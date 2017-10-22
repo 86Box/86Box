@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../ibm.h"
+#include "../86box.h"
 #include "../config.h"
 #include "../device.h"
 #include "../game/gameport.h"

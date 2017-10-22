@@ -8,7 +8,7 @@
  *
  *		Emulation of the NatSemi PC87306 Super I/O chip.
  *
- * Version:	@(#)sio_pc87306.c	1.0.5	2017/09/30
+ * Version:	@(#)sio_pc87306.c	1.0.6	2017/10/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "86box.h"
 #include "ibm.h"
 #include "io.h"
 #include "device.h"
@@ -178,7 +179,7 @@ void pc87306_write(uint16_t port, uint8_t val, void *priv)
 			{
 				val = 0x4b;
 			}
-			if (pc87306_curreg <= 28)  valxor = val ^ pc87306_regs[pc87306_curreg];
+			valxor = val ^ pc87306_regs[pc87306_curreg];
 			tries = 0;
 			if ((pc87306_curreg == 0x19) && !(pc87306_regs[0x1B] & 0x40))
 			{

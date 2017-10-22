@@ -9,7 +9,7 @@
  *		Implementation of the raw sector-based floppy image format,
  *		as well as the Japanese FDI, CopyQM, and FDF formats.
  *
- * Version:	@(#)floppy_img.c	1.0.3	2017/10/12
+ * Version:	@(#)floppy_img.c	1.0.5	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../config.h"
 #include "../plat.h"
@@ -346,7 +347,7 @@ void img_load(int drive, wchar_t *fn)
 	uint8_t *literal;
 	int guess = 0;
 
-	ext = get_extension_w(fn);
+	ext = plat_get_extension(fn);
 
 	d86f_unregister(drive);
 

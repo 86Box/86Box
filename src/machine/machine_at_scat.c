@@ -10,7 +10,7 @@
  *
  *		Re-worked version based on the 82C235 datasheet and errata.
  *
- * Version:	@(#)at_scat.c	1.0.2	2017/10/07
+ * Version:	@(#)at_scat.c	1.0.4	2017/10/18
  *
  * Authors:	Original by GreatPsycho for PCem.
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../cpu/x86.h"
@@ -29,7 +30,7 @@
 #include "machine.h"
 
 
-#define SCAT_DEBUG		2
+#define SCAT_DEBUG		1
 
 #define SCAT_DMA_WS_CTL		0x01
 #define SCAT_VERSION		0x40
@@ -176,12 +177,10 @@ set_xms_bound(uint8_t val)
 				  0x160000 - scat_xms_bound,
 				  MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
     } else {
-#if 0
 	for (i=0; i<6; i++)
 		mem_mapping_disable(&scat_shadowram_mapping[i]);
 	if (mem_size > 1024)
 		mem_mapping_enable(&ram_high_mapping);
-#endif
 
 	if (scat_xms_bound > max_xms)
 		scat_xms_bound = max_xms;
@@ -279,10 +278,8 @@ ems_state(int state)
 	} else {
 		mem_mapping_set_exec(&scat_mapping[i], ram+base_addr);
 		mem_mapping_disable(&scat_mapping[i]);
-#if 0
 		if (i < 24)
 			mem_mapping_enable(&scat_top_mapping[i]);
-#endif
 	}
     }
 }
@@ -490,7 +487,6 @@ ics_write(uint8_t idx, uint8_t val)
 		break;
 
 	case SCAT_EMS_CTL:
-pclog("SCAT: EMSctrl(%02x)\n", val);
 		if (val & 0x40) {
 			if (val & 1) {
 				io_sethandler(0x0218, 3,
@@ -526,24 +522,18 @@ pclog("SCAT: EMSctrl(%02x)\n", val);
 
 	case SCAT_DRAM_CONFIG:
 		if ((scat_regs[SCAT_EXT_BOUNDARY] & 0x40) == 0) {
-pclog("SCAT: 0\n");
 			if ((val & 0x0f) == 3) {
-pclog("SCAT:  3\n");
 				if (mem_size > 1024)
 					mem_mapping_disable(&ram_high_mapping);
 				for (idx=0; idx<6; idx++)
 					mem_mapping_enable(&scat_shadowram_mapping[idx]);
 			} else {
-pclog("SCAT:  0\n");
 				for (idx=0; idx<6; idx++)
 					mem_mapping_disable(&scat_shadowram_mapping[idx]);
-#if 0
 				if (mem_size > 1024)
 					mem_mapping_enable(&ram_high_mapping);
-#endif
 			}
 		} else {
-pclog("SCAT: 1\n");
 			for (idx=0; idx<6; idx++)
 				mem_mapping_disable(&scat_shadowram_mapping[idx]);
 			if (mem_size > 1024)
@@ -687,8 +677,6 @@ scat_init(void)
      */
     pclog("SCAT: mem_size=%d\n", mem_size);
 
-
-#if 0
     /* Create the 32 EMS page frame mappings for 256-640K. */
     for (i=0; i<24; i++) {
 	mem_mapping_add(&scat_top_mapping[i],
@@ -697,12 +685,9 @@ scat_init(void)
 			ems_pgwr, NULL, NULL,
 			mem_size > 256+(i<<4) ? ram+0x40000+(i<<14) : NULL,
 			MEM_MAPPING_INTERNAL, NULL);
-//	mem_mapping_enable(&scat_top_mapping[i]);
-	mem_mapping_disable(&scat_top_mapping[i]);
+	mem_mapping_enable(&scat_top_mapping[i]);
     }
-#endif
 
-#if 0
     /* Re-map the 128K at A0000 (video BIOS) to above 16MB+top. */
     mem_mapping_add(&scat_A000_mapping,
 		    0xA0000, 0x20000,
@@ -711,9 +696,7 @@ scat_init(void)
 		    ram+0xA0000,
 		    MEM_MAPPING_INTERNAL, NULL);
     mem_mapping_disable(&scat_A000_mapping);
-#endif
 
-#if 0
     /* Create 32 page frames for EMS, each 16K. */
     for (i=0; i<32; i++) {
 	scat_ems[i].regs_2x8 = 0xff;
@@ -726,9 +709,8 @@ scat_init(void)
 			0, &scat_ems[i]);
 	mem_mapping_disable(&scat_mapping[i]);
     }
-#endif
 
-//    for (i=4; i<10; i++) isram[i] = 0;
+    for (i=4; i<10; i++) isram[i] = 0;
 
     /* Re-map the BIOS ROM (C0000-FFFFF) area. */
     for (i=12; i<16; i++) {
@@ -740,7 +722,6 @@ scat_init(void)
 			0, NULL);
     }
 
-#if 0
     for (i=0; i<6; i++) {
 	mem_mapping_add(&scat_shadowram_mapping[i],
 			0x100000 + (i<<16), 0x10000,
@@ -749,7 +730,6 @@ scat_init(void)
 			mem_size >= 1024 ? ram+get_addr(0x100000+(i<<16), NULL) : NULL,
 			MEM_MAPPING_INTERNAL, NULL);
     }
-#endif
 
     set_xms_bound(0);
     shadow_state_update();

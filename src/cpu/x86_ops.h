@@ -5,7 +5,7 @@
 #define _X86_OPS_H
 
 
-#define UNUSED(x)	(void)(x)
+#define UN_USED(x)	(void)(x)
 
 
 typedef int (*OpFn)(uint32_t fetchdat);

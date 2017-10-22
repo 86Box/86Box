@@ -399,6 +399,9 @@ typedef struct {
 
     uint8_t	shram_mode;
 
+    uint8_t	sync;
+    uint8_t	parity;
+
     volatile
     uint8_t	dma_buffer[128];
 
@@ -420,6 +423,7 @@ typedef struct {
     uint8_t	setup_info_len;
     uint8_t	max_id;
     uint8_t	pci_slot;
+    uint8_t	bit32;
 
     mem_mapping_t mmio_mapping;
 
@@ -488,10 +492,10 @@ typedef struct
 
 
 extern void	x54x_reset_ctrl(x54x_t *dev, uint8_t Reset);
-extern void	x54x_busy_set(void);
+extern void	x54x_busy(uint8_t set);
 extern void	x54x_thread_start(x54x_t *dev);
-extern void	x54x_busy_clear(void);
-extern uint8_t	x54x_busy(void);
+extern void	x54x_set_wait_event(void);
+extern uint8_t	x54x_is_busy(void);
 extern void	x54x_buf_alloc(uint8_t id, uint8_t lun, int length);
 extern void	x54x_buf_free(uint8_t id, uint8_t lun);
 extern uint8_t	x54x_mbo_process(x54x_t *dev);

@@ -10,7 +10,7 @@
  *		made by Adaptec, Inc. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.30	2017/10/16
+ * Version:	@(#)scsi_aha154x.c	1.0.32	2017/10/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mca.h"
@@ -66,6 +67,7 @@ uint16_t	aha_ports[] = {
 };
 
 
+#pragma pack(push,1)
 typedef struct {
     uint8_t	CustomerSignature[20];
     uint8_t	uAutoRetry;
@@ -74,6 +76,7 @@ typedef struct {
     uint8_t	uUnknown;
     addr24	BIOSMailboxAddress;
 } aha_setup_t;
+#pragma pack(pop)
 
 
 #ifdef ENABLE_AHA154X_LOG
@@ -84,7 +87,7 @@ int aha_do_log = ENABLE_AHA154X_LOG;
 static void
 aha_log(const char *fmt, ...)
 {
-#if ENABLE_AHA154X_LOG
+#ifdef ENABLE_AHA154X_LOG
     va_list ap;
 
     if (aha_do_log) {
@@ -263,11 +266,10 @@ aha_fast_cmds(void *p, uint8_t cmd)
     x54x_t *dev = (x54x_t *)p;
 
     if (cmd == CMD_BIOS_SCSI) {
-	x54x_busy_set();
+	x54x_busy(1);
 	dev->BIOSMailboxReq++;
-
-	x54x_thread_start(dev);
-	x54x_busy_clear();
+	x54x_set_wait_event();
+	x54x_busy(0);
 	return 1;
     }
 
@@ -359,7 +361,7 @@ aha_cmds(void *p)
 
 		case CMD_BIOS_MBINIT: /* BIOS Mailbox Initialization */
 			/* Sent by CF BIOS. */
-			x54x_busy_set();
+			x54x_busy(1);
 			dev->Mbx24bit = 1;
 
 			mbi = (MailboxInit_t *)dev->CmdBuf;
@@ -375,7 +377,7 @@ aha_cmds(void *p)
 
 			dev->Status &= ~STAT_INIT;
 			dev->DataReplyLeft = 0;
-			x54x_busy_clear();
+			x54x_busy(0);
 			break;
 
 		case CMD_MEMORY_MAP_1:	/* AHA memory mapper */
@@ -436,22 +438,12 @@ aha_setup_data(void *p)
     ReplyISI = (ReplyInquireSetupInformation *)dev->DataBuf;
     aha_setup = (aha_setup_t *)ReplyISI->VendorSpecificData;
 
+    ReplyISI->fSynchronousInitiationEnabled = dev->sync & 1;
+    ReplyISI->fParityCheckingEnabled = dev->parity & 1;
+
     U32_TO_ADDR(aha_setup->BIOSMailboxAddress, dev->BIOSMailboxOutAddr);
     aha_setup->uChecksum = 0xA3;
     aha_setup->uUnknown = 0xC2;
-}
-
-
-static void
-aha_reset(void *p)
-{
-    x54x_t *dev = (x54x_t *)p;
-
-    dev->Lock = 0;
-    dev->shram_mode = 0;
-    dev->MailboxIsBIOS = 0;
-    dev->BIOSMailboxCount = 0;
-    dev->BIOSMailboxOutPosCur = 0;
 }
 
 
@@ -507,35 +499,12 @@ aha_mca_write(int port, uint8_t val, void *priv)
     /* Save the MCA register value. */
     dev->pos_regs[port & 7] = val;
 
-    /* Get the new assigned I/O base address. */
-    switch(dev->pos_regs[3] & 0xc7) {
-	case 0x01:		/* [1]=00xx x001 */
-		dev->Base = 0x0130;
-		break;
-
-	case 0x02:		/* [1]=00xx x010 */
-		dev->Base = 0x0230;
-		break;
-
-	case 0x03:		/* [1]=00xx x011 */
-		dev->Base = 0x0330;
-		break;
-
-	case 0x41:
-		dev->Base = 0x0134;
-		break;
-
-	case 0x42:		/* [1]=01xx x010 */
-		dev->Base = 0x0234;
-		break;
-
-	case 0x43:		/* [1]=01xx x011 */
-		dev->Base = 0x0334;
-		break;
-    }
-
     /* This is always necessary so that the old handler doesn't remain. */
     x54x_io_remove(dev, dev->Base);
+
+    /* Get the new assigned I/O base address. */
+    dev->Base = (dev->pos_regs[3] & 7) << 8;
+    dev->Base |= ((dev->pos_regs[3] & 0xc0) ? 4 : 0);
 
     /* Save the new IRQ and DMA channel values. */
     dev->Irq = (dev->pos_regs[4] & 0x07) + 8;
@@ -585,6 +554,8 @@ aha_mca_write(int port, uint8_t val, void *priv)
      *
      * SCSI Parity is pos[2]=xxx1xxxx.
      */
+    dev->sync = (dev->pos_regs[4] >> 3) & 1;
+    dev->parity = (dev->pos_regs[4] >> 4) & 1;
 
     /*
      * The PS/2 Model 80 BIOS always enables a card if it finds one,
@@ -789,6 +760,7 @@ aha_init(device_t *info)
     dev->max_id = 7;
     dev->int_geom_writable = 0;
     dev->cdrom_boot = 0;
+    dev->bit32 = 0;
 
     dev->ven_thread = aha_thread;
     dev->ven_cmd_is_fast = aha_cmd_is_fast;
@@ -796,7 +768,6 @@ aha_init(device_t *info)
     dev->get_ven_param_len = aha_param_len;
     dev->ven_cmds = aha_cmds;
     dev->get_ven_data = aha_setup_data;
-    dev->ven_reset = aha_reset;
 
     strcpy(dev->vendor, "Adaptec");
 

@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.21	2017/10/13
+ * Version:	@(#)config.c	1.0.25	2017/10/21
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <inttypes.h>
+#include "86box.h"
 #include "ibm.h"
 #include "cpu/cpu.h"
 #include "nvr.h"
@@ -101,6 +102,7 @@ typedef struct {
 
 
 wchar_t config_file_default[256];
+
 
 static list_t	config_head;
 
@@ -326,8 +328,9 @@ config_read(wchar_t *fn)
     }
 
     (void)fclose(f);
-	
-    config_dump();
+
+    if (do_dump_config)
+	config_dump();
 
     return(1);
 }
@@ -415,23 +418,8 @@ load_general(void)
     vid_resize = !!config_get_int(cat, "vid_resize", 0);
 
     memset(temp, '\0', sizeof(temp));
-    p = config_get_string(cat, "vid_renderer", "d3d9");
-    if (p != NULL)
-	strcpy(temp, p);
-    if (! strcmp(temp, "ddraw"))
-	vid_api = 0;
-      else if (! strcmp(temp, "d3d9"))
-	vid_api = 1;
-#ifdef USE_VNC
-      else if (! strcmp(temp, "vnc"))
-	vid_api = 2;
-#endif
-#ifdef USE_RDP
-      else if (! strcmp(temp, "rdp"))
-	vid_api = 3;
-#endif
-      else
-	vid_api = 1;		/* default to d3d9 on invalid values */
+    p = config_get_string(cat, "vid_renderer", "default");
+    vid_api = plat_vidapi(p);
     config_delete_var(cat, "vid_api");
 
     video_fullscreen_scale = config_get_int(cat, "video_fullscreen_scale", 0);
@@ -705,7 +693,10 @@ load_other_peripherals(void)
       else
 	scsi_card_current = 0;
 
-    memset(hdc_name, '\0', sizeof(hdc_name));
+    if (hdc_name) {
+	free(hdc_name);
+	hdc_name = NULL;
+    }
     p = config_get_string(cat, "hdc", NULL);
     if (p == NULL) {
 	p = config_get_string(cat, "hdd_controller", NULL);
@@ -713,12 +704,17 @@ load_other_peripherals(void)
 		config_delete_var(cat, "hdd_controller");
     }
     if (p == NULL) {
-	if (machines[machine].flags & MACHINE_HAS_HDC)
+	if (machines[machine].flags & MACHINE_HAS_HDC) {
+		hdc_name = (char *) malloc((strlen("internal") + 1) * sizeof(char));
 		strcpy(hdc_name, "internal");
-	  else
+	} else {
+		hdc_name = (char *) malloc((strlen("none") + 1) * sizeof(char));
 		strcpy(hdc_name, "none");
-    } else
+	}
+    } else {
+	hdc_name = (char *) malloc((strlen(p) + 1) * sizeof(char));
 	strcpy(hdc_name, p);
+    }
     config_set_string(cat, "hdc", hdc_name);
 
     memset(temp, '\0', sizeof(temp));
@@ -1133,6 +1129,11 @@ config_load(wchar_t *fn)
 	vid_api = 1;
 	enable_sync = 1;
 	joystick_type = 7;
+	if (hdc_name) {
+		free(hdc_name);
+		hdc_name = NULL;
+	}
+	hdc_name = (char *) malloc((strlen("none") + 1) * sizeof(char));
 	strcpy(hdc_name, "none");
 	serial_enabled[0] = 0;
 	serial_enabled[1] = 0;
@@ -1987,59 +1988,4 @@ config_set_wstring(char *head, char *name, wchar_t *val)
 
     memcpy(ent->wdata, val, sizeof_w(ent->wdata));
     wcstombs(ent->data, ent->wdata, sizeof(ent->data));
-}
-
-
-/* FIXME: should be moved elsewhere. --FvK */
-wchar_t *
-get_filename_w(wchar_t *s)
-{
-    int c = wcslen(s) - 1;
-
-    while (c > 0) {
-	if (s[c] == L'/' || s[c] == L'\\')
-	   return(&s[c+1]);
-       c--;
-    }
-
-    return(s);
-}
-
-
-/* FIXME: should be moved elsewhere. --FvK */
-void
-append_filename_w(wchar_t *dest, wchar_t *s1, wchar_t *s2, int size)
-{
-    wcscat(dest, s1);
-    wcscat(dest, s2);
-}
-
-
-/* FIXME: should be moved elsewhere. --FvK */
-void
-put_backslash_w(wchar_t *s)
-{
-    int c = wcslen(s) - 1;
-
-    if (s[c] != L'/' && s[c] != L'\\')
-	   s[c] = L'/';
-}
-
-
-/* FIXME: should be moved elsewhere. --FvK */
-wchar_t
-*get_extension_w(wchar_t *s)
-{
-    int c = wcslen(s) - 1;
-
-    if (c <= 0)
-	return(s);
-
-    while (c && s[c] != L'.')
-		c--;
-
-    if (!c)
-	return(&s[wcslen(s)]);
-
-    return(&s[c+1]);
 }

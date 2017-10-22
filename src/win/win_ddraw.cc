@@ -236,70 +236,6 @@ blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 }
 
 
-static void
-blit_memtoscreen_8(int x, int y, int w, int h)
-{
-    RECT r_src;
-    RECT r_dest;
-    int xx, yy;
-    POINT po;
-    uint32_t *p;
-    HRESULT hr;
-
-    if (lpdds_back == NULL) {
-	video_blit_complete();
-	return; /*Nothing to do*/
-    }
-
-    memset(&ddsd, 0, sizeof(ddsd));
-    ddsd.dwSize = sizeof(ddsd);
-
-    hr = lpdds_back->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
-    if (hr == DDERR_SURFACELOST) {
-	lpdds_back->Restore();
-	lpdds_back->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
-	device_force_redraw();
-    }
-    if (!ddsd.lpSurface) {
-	video_blit_complete();
-	return;
-    }
-
-    for (yy = 0; yy < h; yy++) {
-	if ((y + yy) >= 0 && (y + yy) < buffer->h) {
-		p = (uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]);
-		for (xx = 0; xx < w; xx++)
-			p[xx] = pal_lookup[buffer->line[y + yy][x + xx]];
-	}
-    }
-    p = &(((uint32_t *) ddsd.lpSurface)[4 * ddsd.lPitch]);
-    lpdds_back->Unlock(NULL);
-    video_blit_complete();
-	
-    po.x = po.y = 0;
-    ClientToScreen(ddraw_hwnd, &po);
-    GetClientRect(ddraw_hwnd, &r_dest);
-    OffsetRect(&r_dest, po.x, po.y);	
-
-    r_src.left   = 0;
-    r_src.top    = 0;       
-    r_src.right  = w;
-    r_src.bottom = h;
-
-    hr = lpdds_back2->Blt(&r_src, lpdds_back, &r_src, DDBLT_WAIT, NULL);
-    if (hr == DDERR_SURFACELOST) {
-	lpdds_back2->Restore();
-	lpdds_back2->Blt(&r_src, lpdds_back, &r_src, DDBLT_WAIT, NULL);
-    }
-
-    hr = lpdds_pri->Blt(&r_dest, lpdds_back2, &r_src, DDBLT_WAIT, NULL);
-    if (hr == DDERR_SURFACELOST) {
-	lpdds_pri->Restore();
-	hr = lpdds_pri->Blt(&r_dest, lpdds_back2, &r_src, DDBLT_WAIT, NULL);
-    }
-}
-
-
 int
 ddraw_init(HWND h)
 {
@@ -361,7 +297,7 @@ ddraw_init(HWND h)
 
     ddraw_hwnd = h;
 
-    video_setblit(blit_memtoscreen_8, blit_memtoscreen);
+    video_setblit(blit_memtoscreen);
 
     return(1);
 }

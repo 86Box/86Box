@@ -8,7 +8,7 @@
  *
  *		Several dialogs for the application.
  *
- * Version:	@(#)win_dialog.c	1.0.3	2017/10/10
+ * Version:	@(#)win_dialog.c	1.0.4	2017/10/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -27,7 +27,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../ibm.h"
+#include "../86box.h"
 #include "../device.h"
 #include "../plat.h"
 #include "../ui.h"

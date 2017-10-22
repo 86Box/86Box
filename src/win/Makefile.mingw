@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.63	2017/10/14
+# Version:	@(#)Makefile.mingw	1.0.65	2017/10/19
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -20,25 +20,11 @@ PROG		:= 86Box
 endif
 
 # Various compile-time options.
-# -DROM_TRACE=0xc800 traces ROM access from segment C800
-# -DIO_TRACE=0x66 traces I/O on port 0x66
+ifndef STUFF
 STUFF		:=
+endif
 
 # Add feature selections here.
-# -DANSI_CFG forces the config file to ANSI encoding.
-# -DENABLE_VRAM_DUMP enables Video Ram dumping.
-# -DENABLE_LOG_BREAKPOINT enables extra logging.
-# -DENABLE_SCSI_BIOS_COMMAND_LOG=n enables extra logging.
-# -DENABLE_AHA154X_LOG=n enables extra logging.
-# -DENABLE_BUSLOGIC_LOG=n enables extra logging.
-# -DENABLE_CDROM_LOG enables extra logging.
-# -DENABLE_D86F_LOG enables extra logging.
-# -DENABLE_FDC_LOG enables extra logging.
-# -DENABLE_HDD_IMAGE_LOG enables extra logging.
-# -DENABLE_IDE_LOG enables extra logging.
-# -DENABLE_SERIAL_LOG enables extra logging.
-# -DENABLE_NIC_LOG enables extra logging.
-# -DENABLE_KEYBOARD_LOG enables extra logging.
 ifndef EXTRAS
 EXTRAS		:=
 endif
@@ -224,7 +210,7 @@ RFLAGS		+= -DUSE_VNC
   VNCLIB	:= -L$(VNC_PATH)\LIB
  endif
 VNCLIB		+= -lvncserver
-VNCOBJ		:= win_vnc.o
+VNCOBJ		:= vnc.o
 endif
 
 ifeq ($(RDP), y)
@@ -235,7 +221,7 @@ RFLAGS		+= -DUSE_RDP
   RDPLIB	:= -L$(RDP_PATH)\LIB
  endif
 RDPLIB		+= -lrdp
-RDPOBJ		:= win_rdp.o
+RDPOBJ		:= rdp.o
 endif
 
 # Options for the DEV branch.
@@ -276,7 +262,7 @@ endif
 
 MAINOBJ		:= pc.o config.o random.o timer.o io.o dma.o nmi.o pic.o \
 		   pit.o ppi.o pci.o mca.o mcr.o mem.o memregs.o rom.o \
-		   device.o nvr.o nvr_at.o nvr_ps2.o \
+		   device.o nvr.o nvr_at.o nvr_ps2.o $(VNCOBJ) $(RDPOBJ) \
 		   intel.o intel_flash.o intel_sio.o
 
 CPUOBJ		:= cpu.o 386.o 386_dynarec.o 808x.o \
@@ -400,12 +386,11 @@ VIDOBJ		:= video.o \
 
 PLATOBJ		:= win.o \
 		    win_ddraw.o win_ddraw_fs.o win_d3d.o win_d3d_fs.o \
-		    $(VNCOBJ) $(RDPOBJ) \
-		    win_dynld.o win_thread.o $(WSERIAL) win_cdrom.o win_cdrom_ioctl.o \
-		    win_keyboard.o win_mouse.o win_joystick.o win_midi.o \
+		    win_dynld.o win_thread.o $(WSERIAL) win_video.o \
+		    win_cdrom.o win_cdrom_ioctl.o win_keyboard.o win_mouse.o \
+		    win_joystick.o win_midi.o \
 		    win_dialog.o win_about.o win_status.o win_stbar.o \
-		    win_settings.o win_deviceconfig.o win_joystickconfig.o \
-		    $(OPENDIR)
+		    win_settings.o win_deviceconfig.o win_joystickconfig.o
 
 OBJ		:= $(MAINOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
 		   $(FDDOBJ) $(CDROMOBJ) $(HDDOBJ) \
@@ -513,7 +498,7 @@ ifneq ($(AUTODEP), y)
 depclean:
 		@-rm -f $(DEPFILE) 2>NUL
 		@echo Creating dependencies..
-		@echo # Run "make depends" to re-create this file. $(DEPFILE)
+		@echo # Run "make depends" to re-create this file. >$(DEPFILE)
 
 depends:	DEPOBJ=$(OBJ:%.o=%.d)
 depends:	depclean $(OBJ:%.o=%.d)

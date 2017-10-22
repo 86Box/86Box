@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430FX PCISet chip.
  *
- * Version:	@(#)machine_at_430fx.c	1.0.6	2017/10/07
+ * Version:	@(#)machine_at_430fx.c	1.0.7	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../mem.h"
 #include "../memregs.h"
@@ -132,6 +133,10 @@ static void i430fx_write(int func, int addr, uint8_t val, void *priv)
                         i430fx_map(0xec000, 0x04000, val >> 4);
                 pclog("i430fx_write : PAM6 write %02X\n", val);
                 break;
+		case 0x72: /*SMRAM*/
+                if ((card_i430fx[0x72] ^ val) & 0x48)
+                        i430fx_map(0xa0000, 0x20000, ((val & 0x48) == 0x48) ? 3 : 0);
+		break;
         }
                 
         card_i430fx[addr] = val;
@@ -184,6 +189,7 @@ static void i430fx_reset(void)
 static void i430fx_pci_reset(void)
 {
 	i430fx_write(0, 0x59, 0x00, NULL);
+	i430fx_write(0, 0x72, 0x02, NULL);
 }
 
 

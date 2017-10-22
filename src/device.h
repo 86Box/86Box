@@ -98,7 +98,7 @@ extern "C" {
 #endif
 
 extern void	device_init(void);
-extern void	device_add(device_t *d);
+extern void	*device_add(device_t *d);
 extern void	device_close_all(void);
 extern void	device_reset_all(void);
 extern void	*device_get_priv(device_t *d);

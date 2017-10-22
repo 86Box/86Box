@@ -8,7 +8,7 @@
  *
  *		Video emulation for IBM PCjr.
  *
- * Version:	@(#)vid_pcjr.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_pcjr.c	1.0.4	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -502,19 +503,22 @@ void pcjr_poll(void *p)
                                         if (pcjr->array[0] & 1) x = (pcjr->crtc[1] << 3) + 16;
                                         else                    x = (pcjr->crtc[1] << 4) + 16;
                                         pcjr->lastline++;
-                                        if (x != xsize || (pcjr->lastline - pcjr->firstline) != ysize)
+                                        if ((x != xsize) || ((pcjr->lastline - pcjr->firstline) != ysize) || video_force_resize_get())
                                         {
                                                 xsize = x;
                                                 ysize = pcjr->lastline - pcjr->firstline;
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
-                                                updatewindowsize(xsize, (ysize << 1) + 16);
+                                                set_screen_size(xsize, (ysize << 1) + 16);
+
+						if (video_force_resize_get())
+							video_force_resize_set(0);
                                         }
 
                                         if (pcjr->composite) 
                                            video_blit_memtoscreen(0, pcjr->firstline-4, 0, (pcjr->lastline - pcjr->firstline) + 8, xsize, (pcjr->lastline - pcjr->firstline) + 8);
                                         else          
-                                           video_blit_memtoscreen_8(0, pcjr->firstline-4, xsize, (pcjr->lastline - pcjr->firstline) + 8);
+                                           video_blit_memtoscreen_8(0, pcjr->firstline-4, 0, (pcjr->lastline - pcjr->firstline) + 8, xsize, (pcjr->lastline - pcjr->firstline) + 8);
 
                                         frames++;
                                         video_res_x = xsize - 16;

@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "ibm.h"
 
 int et4k_b8000;

@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.5	2017/10/10
+ * Version:	@(#)sound.c	1.0.6	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../device.h"
 #include "../timer.h"
@@ -426,6 +427,22 @@ void sound_reset(void)
 	}
 }
 
+void sound_cd_thread_end(void)
+{
+	if (sound_cd_thread_h) {
+		pclog("Waiting for CD Audio thread to terminate...\n");
+		thread_wait(sound_cd_thread_h, -1);
+		pclog("CD Audio thread terminated...\n");
+
+		if (sound_cd_event) {
+			thread_destroy_event(sound_cd_event);
+			sound_cd_event = NULL;
+		}
+
+		sound_cd_thread_h = NULL;
+	}
+}
+
 void sound_cd_thread_reset(void)
 {
 	int i = 0;
@@ -446,9 +463,7 @@ void sound_cd_thread_reset(void)
 	}
 	else if (!available_cdrom_drives && cd_thread_enable)
 	{
-		thread_destroy_event(sound_cd_event);
-		thread_kill(sound_cd_thread_h);
-		sound_cd_thread_h = NULL;
+		sound_cd_thread_end();
 	}
 
 	cd_thread_enable = available_cdrom_drives ? 1 : 0;

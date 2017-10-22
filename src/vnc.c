@@ -6,9 +6,9 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implement the VNC renderer with LibVNCServer.
+ *		Implement the VNC remote renderer with LibVNCServer.
  *
- * Version:	@(#)win_vnc.c	1.0.2	2017/10/14
+ * Version:	@(#)lnx_vnc.c	1.0.4	2017/10/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>
@@ -17,17 +17,26 @@
  */
 #include <stdio.h>
 #include <stdint.h>
-#include "../ibm.h"
-#include "../device.h"
-#include "../video/video.h"
-#include "../plat.h"
-#include "../plat_keyboard.h"
-#include "../ui.h"
+#include <stdlib.h>
+#include <string.h>
+#include <wchar.h>
+#include "86box.h"
+#include "device.h"
+#include "video/video.h"
+#include "plat.h"
+#include "plat_keyboard.h"
+#include "plat_mouse.h"
+#include "ui.h"
 #define BITMAP MY_BITMAP
 #include <rfb/rfb.h>
 #undef BITMAP
-#include "win.h"
-#include "win_vnc.h"
+#include "vnc.h"
+
+
+#define VNC_MIN_X	320
+#define VNC_MAX_X	2048
+#define VNC_MIN_Y	200
+#define VNC_MAX_Y	2048
 
 
 static rfbScreenInfoPtr	rfb = NULL;
@@ -108,53 +117,6 @@ static int keysyms_ff[] = {
 
 
 static void
-vnc_clientgone(rfbClientPtr cl)
-{
-    pclog("VNC: client disconnected: %s\n", cl->host);
-
-    if (clients > 0)
-	clients--;
-    if (clients == 0) {
-	/* No more clients, pause the emulator. */
-	pclog("VNC: no clients, pausing..\n");
-	plat_pause(1);
-    }
-}
-
-
-static enum rfbNewClientAction
-vnc_newclient(rfbClientPtr cl)
-{
-    /* Hook the ClientGone function so we know when they're gone. */
-    cl->clientGoneHook = vnc_clientgone;
-
-    pclog("VNC: new client: %s\n", cl->host);
-    if (++clients == 1) {
-	/* We now have clients, un-pause the emulator. */
-	pclog("VNC: unpausing..\n");
-	plat_pause(0);
-    }
-
-    return(RFB_CLIENT_ACCEPT);
-}
-
-
-static void
-vnc_display(rfbClientPtr cl)
-{
-    /* Avoid race condition between resize and update. */
-    if (!updatingSize && cl->newFBSizePending) {
-	updatingSize = 1;
-    } else if (updatingSize && !cl->newFBSizePending) {
-	updatingSize = 0;
-
-	allowedX = rfb->width;
-	allowedY = rfb->height;
-    }
-}
-
-
-static void
 vnc_kbdevent(rfbBool down, rfbKeySym k, rfbClientPtr cl)
 {
     int will_press = 0;
@@ -177,15 +139,76 @@ vnc_kbdevent(rfbBool down, rfbKeySym k, rfbClientPtr cl)
 	(will_press >> 8) & 0xff, will_press & 0xff);
 #endif
 
-    // first key
+    /* First key. */
     key = (will_press >> 8) & 0xff;
     if (key > 0)
 	recv_key[key] = down;
 
-    // second key
+    /* Second key. */
     key = will_press & 0xff;
     if (key > 0)
 	recv_key[key] = down;
+}
+
+
+static void
+vnc_ptrevent(int but, int x, int y, rfbClientPtr cl)
+{
+   if (x>=0 && x<allowedX && y>=0 && y<allowedY) {
+	pclog("VNC: mouse event, x=%d, y=%d, buttons=%02x\n", x, y, but);
+
+	/* TODO: stuff a new "packet" into the platform mouse buffer. */
+   }
+
+   rfbDefaultPtrAddEvent(but, x, y, cl);
+}
+
+
+static void
+vnc_clientgone(rfbClientPtr cl)
+{
+    pclog("VNC: client disconnected: %s\n", cl->host);
+
+    if (clients > 0)
+	clients--;
+    if (clients == 0) {
+	/* No more clients, pause the emulator. */
+	pclog("VNC: no clients, pausing..\n");
+	plat_pause(1);
+    }
+}
+
+
+static enum rfbNewClientAction
+vnc_newclient(rfbClientPtr cl)
+{
+    /* Hook the ClientGone function so we know when they're gone. */
+    cl->clientGoneHook = vnc_clientgone;
+
+    pclog("VNC: new client: %s\n", cl->host);
+    if (++clients == 1) {
+	/* We now have clients, un-pause the emulator if needed. */
+	pclog("VNC: unpausing..\n");
+	plat_pause(0);
+    }
+
+    /* For now, we always accept clients. */
+    return(RFB_CLIENT_ACCEPT);
+}
+
+
+static void
+vnc_display(rfbClientPtr cl)
+{
+    /* Avoid race condition between resize and update. */
+    if (!updatingSize && cl->newFBSizePending) {
+	updatingSize = 1;
+    } else if (updatingSize && !cl->newFBSizePending) {
+	updatingSize = 0;
+
+	allowedX = rfb->width;
+	allowedY = rfb->height;
+    }
 }
 
 
@@ -196,9 +219,9 @@ vnc_blit(int x, int y, int y1, int y2, int w, int h)
     int yy;
 
     for (yy=y1; yy<y2; yy++) {
-	p = (uint32_t *)&(((uint32_t *)rfb->frameBuffer)[yy*2048]);
+	p = (uint32_t *)&(((uint32_t *)rfb->frameBuffer)[yy*VNC_MAX_X]);
 
-	if ((y+yy) >= 0 && (y+yy) < 2048)
+	if ((y+yy) >= 0 && (y+yy) < VNC_MAX_Y)
 		memcpy(p, &(((uint32_t *)buffer32->line[y+yy])[x]), w*4);
     }
  
@@ -209,30 +232,9 @@ vnc_blit(int x, int y, int y1, int y2, int w, int h)
 }
 
 
-static void
-vnc_blit8(int x, int y, int w, int h)
-{
-    uint32_t *p;
-    int xx, yy;
-
-    for (yy = 0; yy < h; yy++) {
-	p = (uint32_t *)&(((uint32_t *)rfb->frameBuffer)[yy*2048]);
-
-	if ((y+yy) >= 0 && (y+yy) < buffer->h) {
-		for (xx=0; xx<w; xx++)
-			p[xx] = pal_lookup[buffer->line[y+yy][x+xx]];
-	}
-    }
- 
-    video_blit_complete();
-
-    if (! updatingSize)
-	rfbMarkRectAsModified(rfb, 0,0, x+w,y+h);
-}
- 
-
+/* Initialize VNC for operation. */
 int
-vnc_init(HWND h)
+vnc_init(UNUSED(void *arg))
 {
     static char title[128];
     rfbPixelFormat rpf = {
@@ -249,19 +251,25 @@ vnc_init(HWND h)
     };
 
     if (rfb == NULL) {
-	wcstombs(title, set_window_title(NULL), sizeof(title));
+	wcstombs(title, ui_window_title(NULL), sizeof(title));
 	updatingSize = 0;
-	allowedX = allowedY = 2048;
+	allowedX = scrnsz_x;
+	allowedY = scrnsz_y;
  
-	rfb = rfbGetScreen(0, NULL, 2048, 2048, 8, 3, 4);
+	rfb = rfbGetScreen(0, NULL, VNC_MAX_X, VNC_MAX_Y, 8, 3, 4);
 	rfb->desktopName = title;
-	rfb->frameBuffer = (char *)malloc(2048 * 2048 * 4);
+	rfb->frameBuffer = (char *)malloc(VNC_MAX_X*VNC_MAX_Y*4);
 
 	rfb->serverFormat = rpf;
 	rfb->alwaysShared = TRUE;
 	rfb->displayHook = vnc_display;
+	rfb->ptrAddEvent = vnc_ptrevent;
 	rfb->kbdAddEvent = vnc_kbdevent;
 	rfb->newClientHook = vnc_newclient;
+ 
+	/* Set up our current resolution. */
+	rfb->width = allowedX;
+	rfb->height = allowedY;
  
 	rfbInitServer(rfb);
 
@@ -269,11 +277,11 @@ vnc_init(HWND h)
     }
  
     /* Set up our BLIT handlers. */
-    video_setblit(vnc_blit8, vnc_blit);
-
-    pclog("VNC: init complete.\n");
+    video_setblit(vnc_blit);
 
     clients = 0;
+
+    pclog("VNC: init complete.\n");
 
     return(1);
 }
@@ -282,7 +290,13 @@ vnc_init(HWND h)
 void
 vnc_close(void)
 {
-    pclog("VNC: closed.\n");
+    if (rfb != NULL) {
+	free(rfb->frameBuffer);
+
+	rfbScreenCleanup(rfb);
+
+	rfb = NULL;
+    }
 }
 
 
@@ -293,6 +307,12 @@ vnc_resize(int x, int y)
     rfbClientPtr cl;
 
     if (rfb == NULL) return;
+
+    /* TightVNC doesn't like certain sizes.. */
+    if (x < VNC_MIN_X || x > VNC_MAX_X || y < VNC_MIN_Y || y > VNC_MAX_Y) {
+	pclog("VNC: invalid resoltion %dx%d requested!\n", x, y);
+	return;
+    }
 
     if ((x != rfb->width || y != rfb->height) && x > 160 && y > 0) {
 	pclog("VNC: updating resolution: %dx%d\n", x, y);
@@ -313,6 +333,7 @@ vnc_resize(int x, int y)
 }
  
 
+/* Tell them to pause if we have no clients. */
 int
 vnc_pause(void)
 {

@@ -8,7 +8,7 @@
  *
  *		Olivetti M24 video emulation- essentially double-res CGA.
  *
- * Version:	@(#)vid_olivetti_m24.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_olivetti_m24.c	1.0.4	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -403,16 +404,19 @@ void m24_poll(void *p)
                                                 if (m24->cgamode & 1) x = (m24->crtc[1] << 3) + 16;
                                                 else                  x = (m24->crtc[1] << 4) + 16;
                                                 m24->lastline++;
-                                                if (x != xsize || (m24->lastline - m24->firstline) != ysize)
+                                                if ((x != xsize) || ((m24->lastline - m24->firstline) != ysize) || video_force_resize_get())
                                                 {
                                                         xsize = x;
                                                         ysize = m24->lastline - m24->firstline;
                                                         if (xsize < 64) xsize = 656;
                                                         if (ysize < 32) ysize = 200;
-                                                        updatewindowsize(xsize, ysize + 16);
+                                                        set_screen_size(xsize, ysize + 16);
+
+							if (video_force_resize_get())
+								video_force_resize_set(0);
                                                 }
 
-                                                video_blit_memtoscreen_8(0, m24->firstline - 8, xsize, (m24->lastline - m24->firstline) + 16);
+                                                video_blit_memtoscreen_8(0, m24->firstline - 8, 0, (m24->lastline - m24->firstline) + 16, xsize, (m24->lastline - m24->firstline) + 16);
                                                 frames++;
 
                                                 video_res_x = xsize - 16;

@@ -8,10 +8,11 @@
  *
  *		Implementation of the SMC FDC37C665 Super I/O Chip.
  *
- * Version:	@(#)sio_fdc37c665.c	1.0.6	2017/09/30
+ * Version:	@(#)sio_fdc37c665.c	1.0.7	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -19,6 +20,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "86box.h"
 #include "ibm.h"
 #include "io.h"
 #include "device.h"
@@ -175,6 +177,8 @@ void fdc37c665_write(uint16_t port, uint8_t val, void *priv)
                         if (val == 0xaa)
                                 write_lock(val);
                         else
+				fdc37c665_curreg = val;
+#if 0
 				if (fdc37c665_curreg != 0)
 				{
 	                                fdc37c665_curreg = val & 0xf;
@@ -184,9 +188,13 @@ void fdc37c665_write(uint16_t port, uint8_t val, void *priv)
 					/* Hardcode the IDE to AT type. */
 	                                fdc37c665_curreg = (val & 0xf) | 2;
 				}
+#endif
                 }
                 else
                 {
+			if (fdc37c665_curreg > 15)
+				return;
+
 			valxor = val ^ fdc37c665_regs[fdc37c665_curreg];
                         fdc37c665_regs[fdc37c665_curreg] = val;
                         

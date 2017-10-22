@@ -10,7 +10,7 @@
 #		settings, so we can avoid changing the main one for all of
 #		our local setups.
 #
-# Version:	@(#)Makefile.local	1.0.4	2017/10/14
+# Version:	@(#)Makefile.local	1.0.5	2017/10/19
 #
 # Author:	Fred N. van Kempen, <decwiz@yahoo.com>
 #
@@ -27,10 +27,56 @@ COPTIM	:= -O1
 # Name of the executable.
 PROG	:= yourexe
 
-# Various compile-time options.
-STUFF	:= #-DROM_TRACE=0xC800 -DIO_TRACE=0x70
-EXTRAS	:= #-DYOURNAME
 
+# Various compile-time options.
+# -DROM_TRACE=0xc800 traces ROM access from segment C800
+# -DIO_TRACE=0x66 traces I/O on port 0x66
+STUFF	:=
+
+# Add feature selections here.
+# -DANSI_CFG forces the config file to ANSI encoding.
+# -DENABLE_VRAM_DUMP enables Video Ram dumping.
+# -DENABLE_LOG_BREAKPOINT enables extra logging.
+# -DENABLE_KEYBOARD_AMSTRAD_LOG=N sets logging level at N.
+# -DENABLE_KEYBOARD_AT_LOG=N sets logging level at N.
+# -DENABLE_KEYBOARD_LOG=N sets logging level at N.
+# -DENABLE_PCI_LOG=N sets logging level at N.
+# -DENABLE_CDROM_LOG=N sets logging level at N.
+# -DENABLE_HDD_LOG=N sets logging level at N.
+# -DENABLE_IDE_LOG=N sets logging level at N.
+# -DENABLE_FDC_LOG=N sets logging level at N.
+# -DENABLE_D86F_LOG=N sets logging level at N.
+# -DENABLE_NIC_LOG=N sets logging level at N.
+# -DENABLE_SCSI_BUS_LOG=N sets logging level at N.
+# -DENABLE_SCSI_DISK_LOG=N sets logging level at N.
+# -DENABLE_X54X_LOG=N sets logging level at N.
+# -DENABLE_AHA154X_LOG=N sets logging level at N.
+# -DENABLE_BUSLOGIC_LOG=N sets logging level at N.
+# -DENABLE_NCR5380_LOG=N sets logging level at N.
+# -DENABLE_AUDIOPCI_LOG=N sets logging level at N.
+# -DENABLE_EMU8K_LOG=N sets logging level at N.
+# -DENABLE_VRAM_DUMP=N sets logging level at N.
+# -DENABLE_SERIAL_LOG=N sets logging level at N.
+EXTRAS		:=
+
+
+AUTODEP		:= n
+DEBUG		:= n
+OPTIM		:= n
+X64		:= n
+RELEASE		:= n
+USB		:= n
+VNC		:= n
+RDP		:= n
+DEV_BUILD	:= n
+DEV_BRANCH	:= n
+CIRRUS		:= n
+NE1000		:= n
+NV_RIVA		:= n
+FLUIDSYNTH	:= y
+MUNT		:= y
+PAS16		:= n
+DYNAREC		:= y
 
 
 #########################################################################

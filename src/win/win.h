@@ -6,11 +6,9 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		This file should contain things only used by the platform
- *		support modules for Windows.  Generic definitions for UI and
- *		platform go into ../plat*.h.
+ *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.5	2017/10/13
+ * Version:	@(#)win.h	1.0.7	2017/10/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,12 +18,10 @@
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
-#ifndef BOX_WIN_H
-# define BOX_WIN_H
+#ifndef PLAT_WIN_H
+# define PLAT_WIN_H
 
-# ifndef NO_UNICODE
-#  define UNICODE
-# endif
+# define UNICODE
 # define BITMAP WINDOWS_BITMAP
 # if 0
 #  ifdef _WIN32_WINNT
@@ -52,13 +48,16 @@
 #define WM_SAVESETTINGS		0x8888
 
 
+extern HINSTANCE	hinstance;
+extern HWND		hwndMain,
+			hwndRender;
+extern HANDLE		ghMutex;
+extern LCID		lang_id;
+extern HICON		hIcon[512];
+
 extern int		status_is_open;
 extern int		mousecapture;
-extern LCID		dwLanguage;
-
-extern HINSTANCE	hinstance;
-extern HWND		hwndMain;
-extern HICON		hIcon[512];
+extern int		recv_key[272];
 
 extern char		openfilestring[260];
 extern WCHAR		wopenfilestring[260];
@@ -70,12 +69,16 @@ extern "C" {
 
 extern HICON	LoadIconEx(PCTSTR pszIconName);
 
-extern void	win_language_set(void);
-extern void	win_language_update(void);
-extern void	win_language_check(void);
+/* Emulator start/stop support functions. */
+extern void	do_start(void);
+extern void	do_stop(void);
+
+/* Internal platform support functions. */
+extern void	set_language(int id);
+extern int	get_vidpause(void);
 
 #ifdef EMU_DEVICE_H
-extern void	deviceconfig_open(HWND hwnd, device_t *device);
+extern uint8_t	deviceconfig_open(HWND hwnd, device_t *device);
 #endif
 extern void	joystickconfig_open(HWND hwnd, int joy_nr, int type);
 
@@ -122,4 +125,4 @@ extern wchar_t	*BrowseFolder(wchar_t *saved_path, wchar_t *title);
 #endif
 
 
-#endif	/*BOX_WIN_H*/
+#endif	/*PLAT_WIN_H*/

@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430HX PCISet chip.
  *
- * Version:	@(#)machine_at_430hx.c	1.0.6	2017/10/07
+ * Version:	@(#)machine_at_430hx.c	1.0.7	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -130,6 +131,10 @@ static void i430hx_write(int func, int addr, uint8_t val, void *priv)
                 if ((card_i430hx[0x5f] ^ val) & 0xf0)
                         i430hx_map(0xec000, 0x04000, val >> 4);
                 break;
+		case 0x72: /*SMRAM*/
+                if ((card_i430hx[0x72] ^ val) & 0x48)
+                        i430hx_map(0xa0000, 0x20000, ((val & 0x48) == 0x48) ? 3 : 0);
+		break;
         }
                 
         card_i430hx[addr] = val;
@@ -171,6 +176,7 @@ static void i430hx_reset(void)
 static void i430hx_pci_reset(void)
 {
 	i430hx_write(0, 0x59, 0x00, NULL);
+	i430hx_write(0, 0x72, 0x02, NULL);
 }
 
 

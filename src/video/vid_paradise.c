@@ -10,7 +10,7 @@
  *		 PC2086, PC3086 use PVGA1A
  *		 MegaPC uses W90C11A
  *
- * Version:	@(#)vid_paradise.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_paradise.c	1.0.1	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -253,9 +254,6 @@ void paradise_write(uint32_t addr, uint8_t val, void *p)
         paradise_t *paradise = (paradise_t *)p;
         addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
 
-	/* Horrible hack, I know, but it's the only way to fix the 440FX BIOS filling the VRAM with garbage until Tom fixes the memory emulation. */
-	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF2F) && (romset == ROM_440FX))  return;
-	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF77) && (romset == ROM_440FX))  return;
         svga_write_linear(addr, val, &paradise->svga);
 }
 

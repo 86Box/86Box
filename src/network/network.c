@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.14	2017/10/15
+ * Version:	@(#)network.c	1.0.17	2017/10/19
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../device.h"
 #include "../plat.h"
@@ -53,32 +54,32 @@ int		network_ndev;
 int		network_card;
 netdev_t	network_devs[32];
 char		network_pcap[512];
-int		nic_do_log;
-static mutex_t	*netMutex;
+#ifdef ENABLE_NIC_LOG
+int		nic_do_log = ENABLE_NIC_LOG;
+#endif
+static volatile mutex_t	*netMutex;
 
 
 static struct
 {
-        int busy;
-	int queue_in_use;
+    volatile int
+    busy,
+    queue_in_use;
 
-        event_t *wake_poll_thread;
-        event_t *poll_complete;
-        event_t *queue_not_in_use;
+    volatile event_t
+    *wake_poll_thread,
+    *poll_complete,
+    *queue_not_in_use;
 } poll_data;
 
 
 void
-startnet(void)
+network_mutex_wait(uint8_t wait)
 {
-    thread_wait_mutex(netMutex);
-}
-
-
-void
-endnet(void)
-{
-    thread_release_mutex(netMutex);
+    if (wait)
+	thread_wait_mutex((mutex_t *) netMutex);
+    else
+	thread_release_mutex((mutex_t *) netMutex);
 }
 
 
@@ -86,46 +87,48 @@ void
 network_wait_for_poll()
 {
     while (poll_data.busy)
-	thread_wait_event(poll_data.poll_complete, -1);
-    thread_reset_event(poll_data.poll_complete);
+	thread_wait_event((event_t *) poll_data.wake_poll_thread, -1);
+    thread_reset_event((event_t *) poll_data.wake_poll_thread);
 }
 
 
 void
-network_mutex_init()
+network_wait_for_end(void *handle)
 {
-    netMutex = thread_create_mutex(L"86Box.NetMutex");
+	thread_wait((event_t *) handle, -1);
+
+	if (poll_data.wake_poll_thread) {
+		thread_destroy_event((event_t *) poll_data.wake_poll_thread);
+		poll_data.wake_poll_thread = NULL;
+	}
+
+	if (poll_data.poll_complete) {
+		thread_destroy_event((event_t *) poll_data.poll_complete);
+		poll_data.poll_complete = NULL;
+	}
 }
 
 
 void
-network_mutex_close()
+network_thread_init(void)
 {
-    thread_close_mutex(netMutex);
-}
-
-
-void
-network_thread_init()
-{
-    network_mutex_init();
-
     poll_data.wake_poll_thread = thread_create_event();
     poll_data.poll_complete = thread_create_event();
 }
 
 void
-network_busy_set()
+network_busy(uint8_t set)
 {
-    poll_data.busy = 1;
+    poll_data.busy = !!set;
+    if (!set)
+	thread_set_event((event_t *) poll_data.wake_poll_thread);
 }
 
 
 void
-network_busy_clear()
+network_end(void)
 {
-    poll_data.busy = 0;
-    thread_set_event(poll_data.poll_complete);
+	thread_set_event((event_t *) poll_data.poll_complete);
 }
 
 
@@ -140,12 +143,6 @@ void
 network_init(void)
 {
     int i;
-
-#if ENABLE_NIC_LOG
-    nic_do_log = ENABLE_NIC_LOG;
-#else
-    nic_do_log = 0;
-#endif
 
     /* Initialize to a known state. */
     network_type = NET_TYPE_NONE;
@@ -184,6 +181,8 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
     net_cards[network_card].priv = dev;
     net_cards[network_card].rx = rx;
 
+    netMutex = thread_create_mutex(L"86Box.NetMutex");
+
     /* Start the platform module. */
     switch(network_type) {
 	case NET_TYPE_PCAP:
@@ -207,6 +206,8 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
 void
 network_close(void)
 {
+    thread_close_mutex((mutex_t *) netMutex);
+
     switch(network_type) {
 	case NET_TYPE_PCAP:
 		network_pcap_close();

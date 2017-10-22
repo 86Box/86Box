@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.5	2017/10/10
+ * Version:	@(#)vid_svga.c	1.0.7	2017/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -24,6 +24,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -1044,10 +1045,6 @@ void svga_write(uint32_t addr, uint8_t val, void *p)
         uint8_t vala, valb, valc, vald, wm = svga->writemask;
         int writemask2 = svga->writemask;
 
-	/* Horrible hack, I know, but it's the only way to fix the 440FX BIOS filling the VRAM with garbage until Tom fixes the memory emulation. */
-	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF2F) && (romset == ROM_440FX))  return;
-	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF77) && (romset == ROM_440FX))  return;
-
         egawrites++;
 
         cycles -= video_timing_b;
@@ -1620,40 +1617,20 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
                 return;
         }
 
-        if (((wx!=xsize) || ((wy + 1)!=ysize)) && !vid_resize)
+	if ((wx != xsize) || ((wy + 1) != ysize) || video_force_resize_get())
         {
-                xsize=wx;
-                ysize=wy+1;
-                if (xsize<64) xsize=640;
-                if (ysize<32) ysize=200;
-
-		if ((xsize > 2032) || (ysize > 2032))
-		{
-			x_add = 0;
-			y_add = 0;
-			suppress_overscan = 1;
-		}
-		else
-		{
-			suppress_overscan = 0;
-		}
-
-                updatewindowsize(xsize + x_add,ysize + y_add);
-        }
-        if (vid_resize)
-        {
+		/* Screen res has changed.. fix up, and let them know. */
                 xsize = wx;
-                ysize = wy + 1;
+                ysize = wy+1;
+                if (xsize<64) xsize = 640;
+                if (ysize<32) ysize = 200;
 
-		if ((xsize > 2032) || (ysize > 2032))
+                set_screen_size(xsize+x_add,ysize+y_add);
+
+		if (video_force_resize_get())
 		{
-			x_add = 0;
-			y_add = 0;
-			suppress_overscan = 1;
-		}
-		else
-		{
-			suppress_overscan = 0;
+			pclog("Scroll: %02X (%i, %i, %i, %i, %i, %i)\n", (svga->crtc[8] & 0x1f), enable_overscan, suppress_overscan, wx, wy + 1, x_add, y_add);
+			video_force_resize_set(0);
 		}
         }
 

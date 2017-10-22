@@ -57,8 +57,6 @@ extern int	video_res_x,
 		video_res_y,
 		video_bpp;
 extern int	vid_resize;
-extern int	winsizex,
-		winsizey;
 extern int	cga_palette;
 extern int	vid_cga_contrast;
 extern int	video_grayscale;
@@ -92,10 +90,9 @@ extern char	*video_get_internal_name(int card);
 extern int	video_get_video_from_internal_name(char *s);
 
 
-extern void	video_setblit(void(*blit8)(int,int,int,int),
-			      void(*blit)(int,int,int,int,int,int));
+extern void	video_setblit(void(*blit)(int,int,int,int,int,int));
 extern void	video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
-extern void	video_blit_memtoscreen_8(int x, int y, int w, int h);
+extern void	video_blit_memtoscreen_8(int x, int y, int y1, int y2, int w, int h);
 extern void	video_blit_complete(void);
 extern void	video_wait_for_blit(void);
 extern void	video_wait_for_buffer(void);
@@ -109,6 +106,8 @@ extern void	updatewindowsize(int x, int y);
 extern void	video_init(void);
 extern void	video_close(void);
 extern void	video_reset(void);
+extern uint8_t	video_force_resize_get(void);
+extern void	video_force_resize_set(uint8_t res);
 extern void	video_reset_device(int, int);
 extern void	video_update_timing(void);
 

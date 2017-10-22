@@ -10,7 +10,7 @@
  *
  * Known bugs:	Accelerator doesn't work in planar modes
  *
- * Version:	@(#)vid_et4000w32.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_et4000w32.c	1.0.2	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -470,7 +471,7 @@ static void fifo_thread(void *param)
                 et4000->blitter_busy = 1;
                 while (!FIFO_EMPTY)
                 {
-                        start_time = timer_read();
+                        start_time = plat_timer_read();
                         fifo = &et4000->fifo[et4000->fifo_read_idx & FIFO_MASK];
 
                         switch (fifo->addr_type & FIFO_TYPE)
@@ -489,7 +490,7 @@ static void fifo_thread(void *param)
                         if (FIFO_ENTRIES > 0xe000)
                                 thread_set_event(et4000->fifo_not_full_event);
 
-                        end_time = timer_read();
+                        end_time = plat_timer_read();
                         et4000->blitter_time += end_time - start_time;
                 }
                 et4000->blitter_busy = 0;
@@ -1243,7 +1244,7 @@ void et4000w32p_add_status_info(char *s, int max_len, void *p)
 {
         et4000w32p_t *et4000 = (et4000w32p_t *)p;
         char temps[256];
-        uint64_t new_time = timer_read();
+        uint64_t new_time = plat_timer_read();
         uint64_t status_diff = new_time - et4000->status_time;
         et4000->status_time = new_time;
         

@@ -8,7 +8,7 @@
  *
  *		S3 ViRGE emulation.
  *
- * Version:	@(#)vid_s3_virge.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_s3_virge.c	1.0.2	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -956,7 +957,7 @@ static void fifo_thread(void *param)
                 virge->virge_busy = 1;
                 while (!FIFO_EMPTY)
                 {
-                        uint64_t start_time = timer_read();
+                        uint64_t start_time = plat_timer_read();
                         uint64_t end_time;
                         fifo_entry_t *fifo = &virge->fifo[virge->fifo_read_idx & FIFO_MASK];
                         uint32_t val = fifo->val;
@@ -1287,7 +1288,7 @@ static void fifo_thread(void *param)
                         if (FIFO_ENTRIES > 0xe000)
                                 thread_set_event(virge->fifo_not_full_event);
 
-                        end_time = timer_read();
+                        end_time = plat_timer_read();
                         virge_time += end_time - start_time;
                 }
                 virge->virge_busy = 0;
@@ -3168,7 +3169,7 @@ static void s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri)
         uint32_t tex_base;
         int c;
 
-        uint64_t start_time = timer_read();
+        uint64_t start_time = plat_timer_read();
         uint64_t end_time;
 
         state.tbu = s3d_tri->tbu << 11;
@@ -3296,7 +3297,7 @@ static void s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri)
 
         virge->tri_count++;
 
-        end_time = timer_read();
+        end_time = plat_timer_read();
         
         virge_time += end_time - start_time;
 }
@@ -4136,7 +4137,7 @@ static void s3_virge_add_status_info(char *s, int max_len, void *p)
 {
         virge_t *virge = (virge_t *)p;
         char temps[256];
-        uint64_t new_time = timer_read();
+        uint64_t new_time = plat_timer_read();
         uint64_t status_diff = new_time - status_time;
         status_time = new_time;
 

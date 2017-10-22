@@ -8,7 +8,7 @@
  *
  *		Hercules emulation.
  *
- * Version:	@(#)vid_hercules.c	1.0.2	2017/10/13
+ * Version:	@(#)vid_hercules.c	1.0.5	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../mem.h"
 #include "../rom.h"
@@ -114,9 +115,6 @@ void hercules_write(uint32_t addr, uint8_t val, void *p)
 {
         hercules_t *hercules = (hercules_t *)p;
         egawrites++;
-	/* Horrible hack, I know, but it's the only way to fix the 440FX BIOS filling the VRAM with garbage until Tom fixes the memory emulation. */
-	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF2F) && (romset == ROM_440FX))  return;
-	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF77) && (romset == ROM_440FX))  return;
 //        pclog("Herc write %08X %02X\n",addr,val);
         hercules->vram[addr & 0xffff] = val;
 }
@@ -285,16 +283,19 @@ void hercules_poll(void *p)
                                         if ((hercules->ctrl & 2) && (hercules->ctrl2 & 1)) x = hercules->crtc[1] << 4;
                                         else                                               x = hercules->crtc[1] * 9;
                                         hercules->lastline++;
-                                        if (x != xsize || (hercules->lastline - hercules->firstline) != ysize)
+                                        if ((x != xsize) || ((hercules->lastline - hercules->firstline) != ysize) || video_force_resize_get())
                                         {
                                                 xsize = x;
                                                 ysize = hercules->lastline - hercules->firstline;
 //                                                printf("Resize to %i,%i - R1 %i\n",xsize,ysize,crtcm[1]);
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
-                                                updatewindowsize(xsize, ysize);
+                                                set_screen_size(xsize, ysize);
+
+						if (video_force_resize_get())
+							video_force_resize_set(0);
                                         }
-                                        video_blit_memtoscreen_8(0, hercules->firstline, xsize, ysize);
+                                        video_blit_memtoscreen_8(0, hercules->firstline, 0, ysize, xsize, ysize);
                                         frames++;
                                         if ((hercules->ctrl & 2) && (hercules->ctrl2 & 1))
                                         {

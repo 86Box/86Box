@@ -22,6 +22,8 @@
 
 extern device_t buslogic_device;
 extern device_t buslogic_545s_device;
+extern device_t buslogic_640a_device;
+extern device_t buslogic_445s_device;
 extern device_t buslogic_pci_device;
 
 extern	void BuslogicDeviceReset(void *p);

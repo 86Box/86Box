@@ -8,7 +8,7 @@
  *
  *		MDSI Genius VHR emulation.
  *
- * Version:	@(#)vid_genius.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_genius.c	1.0.4	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -550,15 +551,18 @@ void genius_poll(void *p)
 		if (genius->displine == 1008)
                 {
 /* Hardcode GENIUS_XSIZE * GENIUS_YSIZE window size */
-			if (GENIUS_XSIZE != xsize || GENIUS_YSIZE != ysize)
+			if ((GENIUS_XSIZE != xsize) || (GENIUS_YSIZE != ysize) || video_force_resize_get())
 			{
                                 xsize = GENIUS_XSIZE;
                                 ysize = GENIUS_YSIZE;
                                 if (xsize < 64) xsize = 656;
                                 if (ysize < 32) ysize = 200;
-                                updatewindowsize(xsize, ysize);
+                                set_screen_size(xsize, ysize);
+
+				if (video_force_resize_get())
+					video_force_resize_set(0);
                         }
-                        video_blit_memtoscreen_8(0, 0, xsize, ysize);
+                        video_blit_memtoscreen_8(0, 0, 0, ysize, xsize, ysize);
 
                         frames++;
 			/* Fixed 728x1008 resolution */

@@ -3,8 +3,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../device.h"
+#include "../86box.h"
 #include "../ibm.h"
+#include "../device.h"
 #include "../plat.h"
 #include "../plat_midi.h"
 #include "midi.h"
@@ -177,10 +178,10 @@ void midi_write(uint8_t val)
 
         if (midi_sysex_start)
         {
-                passed_ticks = get_ticks() - midi_sysex_start;
+                passed_ticks = plat_get_ticks() - midi_sysex_start;
                 if (passed_ticks < midi_sysex_delay)
                 {
-                        delay_ms(midi_sysex_delay - passed_ticks);
+                        plat_delay_ms(midi_sysex_delay - passed_ticks);
                 }
         }
 
@@ -229,7 +230,7 @@ void midi_write(uint8_t val)
                                         else
                                                 midi_sysex_delay = (unsigned int) (((float) (midi_pos) * 1.25f) * 1000.0f / 3125.0f) + 2;
 
-                                        midi_sysex_start = get_ticks();
+                                        midi_sysex_start = plat_get_ticks();
                                 }
                         }
                 }

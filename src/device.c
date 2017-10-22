@@ -9,10 +9,11 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.4	2017/10/04
+ * Version:	@(#)device.c	1.0.5	2017/10/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2016 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -20,6 +21,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "86box.h"
 #include "ibm.h"
 #include "cpu/cpu.h"
 #include "config.h"
@@ -43,7 +45,7 @@ device_init(void)
 }
 
 
-void
+void *
 device_add(device_t *d)
 {
     void *priv = NULL;
@@ -63,7 +65,9 @@ device_add(device_t *d)
     }
 
     devices[c] = d;
-    device_priv[c] = priv;        
+    device_priv[c] = priv;
+
+    return priv;
 }
 
 

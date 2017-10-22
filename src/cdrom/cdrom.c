@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.18	2017/10/15
+ * Version:	@(#)cdrom.c	1.0.19	2017/10/22
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -845,7 +845,7 @@ void cdrom_init(int id, int cdb_len_setting)
 	cdrom[id].sense[0] = 0xf0;
 	cdrom[id].sense[7] = 10;
 	cdrom_drives[id].bus_mode = 0;
-	if (cdrom_drives[id].bus_type > CDROM_BUS_ATAPI_PIO_AND_DMA)
+	if (cdrom_drives[id].bus_type >= CDROM_BUS_ATAPI_PIO_AND_DMA)
 	{
 		cdrom_drives[id].bus_mode |= 2;
 	}
@@ -890,6 +890,7 @@ int cdrom_current_mode(int id)
 	}
 	if (cdrom_supports_pio(id) && !cdrom_supports_dma(id))
 	{
+		cdrom_log("CD-ROM %i: Drive does not support DMA, setting to PIO\n", id);
 		return 1;
 	}
 	if (!cdrom_supports_pio(id) && cdrom_supports_dma(id))
@@ -898,6 +899,7 @@ int cdrom_current_mode(int id)
 	}
 	if (cdrom_supports_pio(id) && cdrom_supports_dma(id))
 	{
+		cdrom_log("CD-ROM %i: Drive supports both, setting to %s\n", id, (cdrom[id].features & 1) ? "DMA" : "PIO", id);
 		return (cdrom[id].features & 1) ? 2 : 1;
 	}
 
@@ -1366,6 +1368,8 @@ uint32_t cdrom_mode_sense(uint8_t id, uint8_t *buf, uint32_t pos, uint8_t type, 
 
 void cdrom_update_request_length(uint8_t id, int len, int block_len)
 {
+	uint32_t bt;
+
 	/* For media access commands, make sure the requested DRQ length matches the block length. */
 	switch (cdrom[id].current_cdb[0])
 	{
@@ -1378,17 +1382,11 @@ void cdrom_update_request_length(uint8_t id, int len, int block_len)
 			{
 				cdrom[id].request_length = block_len;
 			}
-			/* Make sure we respect the limit of how many blocks we can transfer at once. */
-			if (cdrom[id].requested_blocks > cdrom_drives[id].max_blocks_at_once)
+			bt = (cdrom[id].requested_blocks * block_len);
+			if (len > bt)
 			{
-				cdrom[id].requested_blocks = cdrom_drives[id].max_blocks_at_once;
+				len = bt;
 			}
-			cdrom[id].block_total = (cdrom[id].requested_blocks * block_len);
-			if (len > cdrom[id].block_total)
-			{
-				len = cdrom[id].block_total;
-			}
-			break;
 		default:
 			cdrom[id].packet_len = len;
 			break;
@@ -1404,21 +1402,6 @@ void cdrom_update_request_length(uint8_t id, int len, int block_len)
 		cdrom[id].request_length = len;
 	}
 	return;
-}
-
-static int cdrom_is_media_access(uint8_t id)
-{
-	switch (cdrom[id].current_cdb[0])
-	{
-		case 0x08:
-		case 0x28:
-		case 0xa8:
-		case 0xb9:
-		case 0xbe:
-			return 1;
-		default:
-			return 0;
-	}
 }
 
 static void cdrom_command_common(uint8_t id)
@@ -1489,6 +1472,11 @@ static int cdrom_request_length_is_zero(uint8_t id)
 	return 0;
 }
 
+/* id = Current CD-ROM device ID;
+   len = Total transfer length;
+   block_len = Length of a single block (why does it matter?!);
+   alloc_len = Allocated transfer length;
+   direction = Transfer direction (0 = read from host, 1 = write to host). */
 static void cdrom_data_command_finish(uint8_t id, int len, int block_len, int alloc_len, int direction)
 {
 	cdrom_log("CD-ROM %i: Finishing command (%02X): %i, %i, %i, %i, %i\n", id, cdrom[id].current_cdb[0], len, block_len, alloc_len, direction, cdrom[id].request_length);
@@ -2547,15 +2535,9 @@ cdrom_readtoc_fallback:
 			}
 
 			max_len = cdrom[id].sector_len;
-			/* if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) */
-			if (cdrom_current_mode(id) == 2)
-			{
-				cdrom[id].requested_blocks = max_len;
-			}
-			else
-			{
-				cdrom[id].requested_blocks = 1;
-			}
+			cdrom[id].requested_blocks = max_len;	/* If we're reading all blocks in one go for DMA, why not also for PIO, it should NOT
+								   matter anyway, this step should be identical and only the way the read dat is
+								   transferred to the host should be different. */
 
 			cdrom[id].packet_len = max_len * alloc_length;
 			cdrom_buf_alloc(id, cdrom[id].packet_len);
@@ -2566,27 +2548,13 @@ cdrom_readtoc_fallback:
 				return;
 			}
 
-			if (cdrom_current_mode(id) == 2)
-			{
-				cdrom[id].requested_blocks = max_len;
-				cdrom[id].packet_len = alloc_length;
-			}
-			else
-			{
-				cdrom[id].requested_blocks = 1;
-				cdrom[id].packet_len = max_len * alloc_length;
-			}
+			cdrom[id].requested_blocks = max_len;
+			cdrom[id].packet_len = alloc_length;
 
 			cdrom_set_buf_len(id, BufLen, &cdrom[id].packet_len);
 
-			if (cdrom[id].requested_blocks > 1)
-			{
-				cdrom_data_command_finish(id, alloc_length, alloc_length / cdrom[id].requested_blocks, alloc_length, 0);
-			}
-			else
-			{
-				cdrom_data_command_finish(id, alloc_length, alloc_length, alloc_length, 0);
-			}
+			cdrom_data_command_finish(id, alloc_length, alloc_length / cdrom[id].requested_blocks, alloc_length, 0);
+
 			cdrom[id].all_blocks_total = cdrom[id].block_total;
 			if (cdrom[id].packet_status != CDROM_PHASE_COMPLETE)
 			{
@@ -3434,63 +3402,6 @@ atapi_out:
 	/* cdrom_log("CD-ROM %i: Phase: %02X, request length: %i\n", cdrom[id].phase, cdrom[id].request_length); */
 }
 
-/* This is for block reads. */
-int cdrom_block_check(uint8_t id)
-{
-	uint32_t alloc_length = 0;
-	int ret = 0;
-
-	/* If this is a media access command, and we hit the end of the block but not the entire length,
-	   read the next block. */
-	if (cdrom_is_media_access(id))
-	{
-		/* We have finished the current block. */
-		cdrom_log("CD-ROM %i: %i bytes total read, %i bytes all total\n", id, cdrom[id].total_read, cdrom[id].all_blocks_total);
-		if (cdrom[id].total_read >= cdrom[id].all_blocks_total)
-		{
-			cdrom_log("CD-ROM %i: %i bytes read, current block finished\n", id, cdrom[id].total_read);
-			/* Read the next block. */
-			ret = cdrom_read_blocks(id, &alloc_length, 0);
-			if (ret == -1)
-			{
-				/* Return value is -1 - there are no further blocks to read. */
-				cdrom_log("CD-ROM %i: %i bytes read, no further blocks to read\n", id, cdrom[id].total_read);
-				cdrom[id].status = BUSY_STAT;
-				cdrom_buf_free(id);
-				return 1;
-			}
-			else if (ret == 0)
-			{
-				/* Return value is 0 - an error has occurred. */
-				cdrom_log("CD-ROM %i: %i bytes read, error while reading blocks\n", id, cdrom[id].total_read);
-				cdrom[id].status = BUSY_STAT | (cdrom[id].status & ERR_STAT);
-				cdrom_buf_free(id);
-				return 0;
-			}
-			else
-			{
-				/* Return value is 1 - sectors have been read successfully. */
-				cdrom[id].pos = 0;
-				cdrom[id].all_blocks_total += cdrom[id].block_total;
-				cdrom_log("CD-ROM %i: %i bytes read, next block(s) read successfully, %i bytes are still left\n", id, cdrom[id].total_read, cdrom[id].all_blocks_total - cdrom[id].total_read);
-				return 1;
-			}
-		}
-		else
-		{
-			/* Blocks not exhausted, tell the host to check for buffer length. */
-			cdrom_log("CD-ROM %i: Blocks not yet finished\n", id);
-			return 1;
-		}
-	}
-	else
-	{
-		/* Not a media access command, ALWAYS do the callback. */
-		cdrom_log("CD-ROM %i: Not a media access command\n", id);
-		return 1;
-	}
-}
-
 /* This is the general ATAPI callback. */
 void cdrom_callback(uint8_t id)		/* Callback for non-Read CD commands */
 {
@@ -3831,7 +3742,6 @@ uint32_t cdrom_read(uint8_t channel, int length)
 	uint8_t id = atapi_cdrom_drives[channel];
 
 	uint32_t temp = 0;
-	int ret = 0;
 
 	if (id > CDROM_NUM)
 	{
@@ -3844,20 +3754,23 @@ uint32_t cdrom_read(uint8_t channel, int length)
 	if (!cdbufferb)
 		return 0;
 
+	/* Make sure we return a 0 and don't attempt to read from the buffer if we're transferring bytes beyond it,
+	   which can happen when issuing media access commands with an allocated length below minimum request length
+	   (which is 1 sector = 2048 bytes). */
 	switch(length)
 	{
 		case 1:
-			temp = cdbufferb[cdrom[id].pos];
+			temp = (cdrom[id].pos < cdrom[id].packet_len) ? cdbufferb[cdrom[id].pos] : 0;
 			cdrom[id].pos++;
 			cdrom[id].request_pos++;
 			break;
 		case 2:
-			temp = cdbufferw[cdrom[id].pos >> 1];
+			temp = (cdrom[id].pos < cdrom[id].packet_len) ? cdbufferw[cdrom[id].pos >> 1] : 0;
 			cdrom[id].pos += 2;
 			cdrom[id].request_pos += 2;
 			break;
 		case 4:
-			temp = cdbufferl[cdrom[id].pos >> 2];
+			temp = (cdrom[id].pos < cdrom[id].packet_len) ? cdbufferl[cdrom[id].pos >> 2] : 0;
 			cdrom[id].pos += 4;
 			cdrom[id].request_pos += 4;
 			break;
@@ -3867,26 +3780,12 @@ uint32_t cdrom_read(uint8_t channel, int length)
 
 	if (cdrom[id].packet_status == CDROM_PHASE_DATA_IN)
 	{
-		cdrom[id].total_read += length;
-		ret = cdrom_block_check(id);
-		/* If the block check has returned 0, this means all the requested blocks have been read, therefore the command has finished. */
-		if (ret)
+		if (cdrom[id].request_pos >= cdrom[id].request_length)
 		{
-			cdrom_log("CD-ROM %i: Return value is 1 (request length: %i)\n", id, cdrom[id].request_length);
-			if (cdrom[id].request_pos >= cdrom[id].request_length)
-			{
-				/* Time for a DRQ. */
-				cdrom_log("CD-ROM %i: Issuing read callback\n", id);
-				cdrom_callback(id);
-			}
-			else
-			{
-				cdrom_log("CD-ROM %i: Doing nothing\n", id);
-			}
-		}
-		else
-		{
-			cdrom_log("CD-ROM %i: Return value is 0\n", id);
+			/* Time for a DRQ. */
+			cdrom_log("CD-ROM %i: Issuing read callback\n", id);
+			cdrom[id].total_read += cdrom[id].request_length;
+			cdrom_callback(id);
 		}
 		cdrom_log("CD-ROM %i: Returning: %02X (buffer position: %i, request position: %i, total: %i)\n", id, temp, cdrom[id].pos, cdrom[id].request_pos, cdrom[id].total_read);
 		return temp;

@@ -8,7 +8,7 @@
  *
  *		Joystick interface to host device.
  *
- * Version:	@(#)win_joystick.cc	1.0.4	2017/10/12
+ * Version:	@(#)win_joystick.cc	1.0.5	2017/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -220,9 +220,11 @@ static int joystick_get_axis(int joystick_nr, int mapping)
                 return plat_joystick_state[joystick_nr].a[plat_joystick_state[joystick_nr].axis[mapping].id];
 }
 
-void joystick_poll()
+void joystick_process(void)
 {
         int c, d;
+
+	if (joystick_type != 7) return;
 
         for (c = 0; c < joysticks_present; c++)
         {                

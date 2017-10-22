@@ -8,7 +8,7 @@
  *
  *		Hercules InColor emulation.
  *
- * Version:	@(#)vid_incolor.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_incolor.c	1.0.3	2017/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -265,10 +266,6 @@ void incolor_write(uint32_t addr, uint8_t val, void *p)
 	unsigned char latch;
 
         egawrites++;
-
-	/* Horrible hack, I know, but it's the only way to fix the 440FX BIOS filling the VRAM with garbage until Tom fixes the memory emulation. */
-	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF2F) && (romset == ROM_440FX))  return;
-	if ((cs == 0xE0000) && (cpu_state.pc == 0xBF77) && (romset == ROM_440FX))  return;
 
 	addr &= 0xFFFF;
 
@@ -983,13 +980,16 @@ void incolor_poll(void *p)
                                                x = incolor->crtc[1] * 9;
 					}
                                         incolor->lastline++;
-                                        if (x != xsize || (incolor->lastline - incolor->firstline) != ysize)
+                                        if ((x != xsize) || ((incolor->lastline - incolor->firstline) != ysize) || video_force_resize_get())
                                         {
                                                 xsize = x;
                                                 ysize = incolor->lastline - incolor->firstline;
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
-                                                updatewindowsize(xsize, ysize);
+                                                set_screen_size(xsize, ysize);
+
+						if (video_force_resize_get())
+							video_force_resize_set(0);
                                         }
 					video_blit_memtoscreen(0, incolor->firstline, 0, incolor->lastline - incolor->firstline, xsize, incolor->lastline - incolor->firstline);
                                         frames++;

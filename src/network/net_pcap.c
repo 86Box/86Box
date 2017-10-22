@@ -8,7 +8,7 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.9	2017/10/11
+ * Version:	@(#)net_pcap.c	1.0.10	2017/10/16
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <pcap.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
@@ -28,11 +29,18 @@
 #include "network.h"
 
 
-static void	*pcap_handle;		/* handle to WinPcap DLL */
-static pcap_t	*pcap;			/* handle to WinPcap library */
-static thread_t	*poll_tid;
-static NETRXCB	poll_rx;		/* network RX function to call */
-static void	*poll_arg;		/* network RX function arg */
+static volatile
+       void	*pcap_handle;		/* handle to WinPcap DLL */
+static volatile
+       pcap_t	*pcap;			/* handle to WinPcap library */
+static volatile
+       thread_t	*poll_tid;
+static volatile
+       NETRXCB	poll_rx;		/* network RX function to call */
+static volatile
+       void	*poll_arg;		/* network RX function arg */
+static volatile
+       event_t	*thread_started;
 
 
 /* Pointers to the real functions. */
@@ -71,6 +79,8 @@ poll_thread(void *arg)
     uint16_t mac_cmp16[2];
     event_t *evt;
 
+    thread_set_event((event_t *) thread_started);
+
     pclog("PCAP: polling thread started, arg %08lx\n", arg);
 
     /* Create a waitable event. */
@@ -78,12 +88,12 @@ poll_thread(void *arg)
 
     /* As long as the channel is open.. */
     while (pcap != NULL) {
-	startnet();
+	network_mutex_wait(1);
 
 	network_wait_for_poll();
 
 	/* Wait for the next packet to arrive. */
-	data = f_pcap_next(pcap, &h);
+	data = f_pcap_next((pcap_t *) pcap, &h);
 	if (data != NULL) {
 		/* Received MAC. */
 		mac_cmp32[0] = *(uint32_t *)(data+6);
@@ -95,7 +105,7 @@ poll_thread(void *arg)
 		if ((mac_cmp32[0] != mac_cmp32[1]) ||
 		    (mac_cmp16[0] != mac_cmp16[1])) {
 			if (poll_rx != NULL)
-				poll_rx(poll_arg, (uint8_t *)data, h.caplen); 
+				poll_rx((void *) poll_arg, (uint8_t *)data, h.caplen); 
 		} else {
 			/* Mark as invalid packet. */
 			data = NULL;
@@ -106,13 +116,10 @@ poll_thread(void *arg)
 	if (data == NULL)
 		thread_wait_event(evt, 10);
 
-	endnet();
+	network_mutex_wait(0);
     }
 
     thread_destroy_event(evt);
-    poll_tid = NULL;
-
-    network_mutex_close();
 
     pclog("PCAP: polling stopped.\n");
 }
@@ -225,15 +232,15 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
 	"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
 	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
 	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    if (f_pcap_compile(pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
-	if (f_pcap_setfilter(pcap, &fp) == -1) {
+    if (f_pcap_compile((pcap_t *) pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
+	if (f_pcap_setfilter((pcap_t *) pcap, &fp) == -1) {
 		pclog(" Error installing filter (%s) !\n", filter_exp);
-		f_pcap_close(pcap);
+		f_pcap_close((pcap_t *) pcap);
 		return (-1);
 	}
     } else {
 	pclog(" Could not compile filter (%s) !\n", filter_exp);
-	f_pcap_close(pcap);
+	f_pcap_close((pcap_t *) pcap);
 	return (-1);
     }
 
@@ -246,6 +253,8 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
     pclog(" Starting thread..\n");
     poll_tid = thread_create(poll_thread, mac);
 
+    thread_wait_event((event_t *) thread_started, -1);
+
     return(0);
 }
 
@@ -254,13 +263,15 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
 void
 network_pcap_close(void)
 {
-    pcap_t *pc;
+    volatile pcap_t *pc;
 
     if (pcap != NULL) {
 	pclog("Closing WinPcap\n");
 
 	/* Tell the polling thread to shut down. */
 	pc = pcap; pcap = NULL;
+
+#if 0
 #if 1
 	/* Terminate the polling thread. */
 	if (poll_tid != NULL) {
@@ -272,16 +283,32 @@ network_pcap_close(void)
 	while (poll_tid != NULL)
 		;
 #endif
+#endif
 
-	network_mutex_close();
+        /* Tell the thread to terminate. */
+	if (poll_tid != NULL) {
+		network_busy(0);
+
+		pclog("Waiting for network thread to end...\n");
+		/* Wait for the end event. */
+		network_wait_for_end((void *) poll_tid);
+		pclog("Network thread ended\n");
+
+		poll_tid = NULL;
+	}
+
+	if (thread_started) {
+		thread_destroy_event((event_t *) thread_started);
+		thread_started = NULL;
+	}
 
 	/* OK, now shut down WinPcap itself. */
-	f_pcap_close(pc);
+	f_pcap_close((pcap_t *) pc);
 	pc = pcap = NULL;
 
 	/* Unload the DLL if possible. */
 	if (pcap_handle != NULL) {
-		dynld_close(pcap_handle);
+		dynld_close((void *) pcap_handle);
 		pcap_handle = NULL;
 	}
     }
@@ -294,12 +321,12 @@ void
 network_pcap_stop(void)
 {
 	/* OK, now shut down WinPcap itself. */
-	f_pcap_close(pcap);
+	f_pcap_close((pcap_t *) pcap);
 	pcap = NULL;
 
 	/* Unload the DLL if possible. */
 	if (pcap_handle != NULL) {
-		dynld_close(pcap_handle);
+		dynld_close((void *) pcap_handle);
 		pcap_handle = NULL;
 	}
 }
@@ -347,7 +374,7 @@ network_pcap_test(void)
 
 	/* Unload the DLL if possible. */
 	if (pcap_handle != NULL) {
-		dynld_close(pcap_handle);
+		dynld_close((void *) pcap_handle);
 		pcap_handle = NULL;
 	}
 
@@ -368,7 +395,7 @@ network_pcap_test(void)
 
 	/* Unload the DLL if possible. */
 	if (pcap_handle != NULL) {
-		dynld_close(pcap_handle);
+		dynld_close((void *) pcap_handle);
 		pcap_handle = NULL;
 	}
 
@@ -380,8 +407,8 @@ network_pcap_test(void)
 	"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
 	0, 1, 2, 3, 4, 5,
 	0, 1, 2, 3, 4, 5);
-    if (f_pcap_compile(pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
-	if (f_pcap_setfilter(pcap, &fp) == -1) {
+    if (f_pcap_compile((pcap_t *) pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
+	if (f_pcap_setfilter((pcap_t *) pcap, &fp) == -1) {
 		pclog(" Error installing filter (%s) !\n", filter_exp);
 		network_pcap_stop();
 		return 0;
@@ -403,10 +430,10 @@ void
 network_pcap_in(uint8_t *bufp, int len)
 {
     if (pcap != NULL) {
-	network_busy_set();
+	network_busy(1);
 
-	f_pcap_sendpacket(pcap, bufp, len);
+	f_pcap_sendpacket((pcap_t *) pcap, bufp, len);
 
-	network_busy_clear();
+	network_busy(0);
     }
 }

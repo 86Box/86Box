@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.8	2017/10/15
+ * Version:	@(#)plat.h	1.0.12	2017/10/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -19,13 +19,27 @@
 #ifndef EMU_PLAT_H
 # define EMU_PLAT_H
 
+#ifndef GLOBAL
+# define GLOBAL extern
+#endif
+
+
+/* A hack (GCC-specific) to allow us to ignore unused parameters. */
+#define UNUSED(arg)	__attribute__((unused))arg
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Global variables residing in the platform module. */
-extern int	dopause;
+GLOBAL int	dopause,			/* system is paused */
+		doresize,			/* screen resize requested */
+		quited,				/* system exit requested */
+		leave_fullscreen_flag;		/* windowed-mode requested */
+GLOBAL uint64_t	timer_freq;
+GLOBAL int	infocus;
+GLOBAL int	mousecapture;
 
 
 /* System-related functions. */
@@ -33,14 +47,21 @@ extern FILE	*plat_fopen(wchar_t *path, wchar_t *mode);
 extern void	plat_remove(wchar_t *path);
 extern int	plat_getcwd(wchar_t *bufp, int max);
 extern int	plat_chdir(wchar_t *path);
-extern void	get_executable_name(wchar_t *s, int size);
-extern wchar_t	*set_window_title(wchar_t *s);
-extern int	dir_check_exist(wchar_t *path);
-extern int	dir_create(wchar_t *path);
-
-extern void	leave_fullscreen(void);
-extern void	plat_pc_reset(int hard);
+extern void	plat_get_exe_name(wchar_t *s, int size);
+extern wchar_t	*plat_get_filename(wchar_t *s);
+extern wchar_t	*plat_get_extension(wchar_t *s);
+extern void	plat_append_filename(wchar_t *dest, wchar_t *s1, wchar_t *s2, int size);
+extern void	plat_put_backslash(wchar_t *s);
+extern int	plat_dir_check(wchar_t *path);
+extern int	plat_dir_create(wchar_t *path);
+extern uint64_t	plat_timer_read(void);
+extern uint32_t	plat_get_ticks(void);
+extern void	plat_delay_ms(uint32_t count);
 extern void	plat_pause(int p);
+extern int	plat_vidapi(char *name);
+extern int	plat_setvid(int api);
+extern void	plat_setfullscreen(int on);
+extern void	plat_resize(int max_x, int max_y);
 
 
 /* Return the size (in wchar's) of a wchar_t array. */
@@ -60,7 +81,6 @@ extern wchar_t	*plat_get_string_from_string(char *str);
 /* Platform-specific device support. */
 extern uint8_t	host_cdrom_drive_available[26];
 extern uint8_t	host_cdrom_drive_available_num;
-extern uint32_t	cdrom_capacity;
 
 extern void	cdrom_init_host_drives(void);
 extern void	cdrom_eject(uint8_t id);
@@ -78,20 +98,18 @@ typedef void thread_t;
 typedef void event_t;
 typedef void mutex_t;
 
-extern thread_t	*thread_create(void (*thread_rout)(void *param), void *param);
-extern void	thread_kill(thread_t *handle);
-
-extern void	thread_sleep(int t);
-
+extern thread_t	*thread_create(void (*thread_func)(void *param), void *param);
+extern void	thread_kill(thread_t *arg);
+extern int	thread_wait(thread_t *arg, int timeout);
 extern event_t	*thread_create_event(void);
-extern void	thread_set_event(event_t *event);
-extern void	thread_reset_event(event_t *_event);
-extern int	thread_wait_event(event_t *event, int timeout);
-extern void	thread_destroy_event(event_t *_event);
+extern void	thread_set_event(event_t *arg);
+extern void	thread_reset_event(event_t *arg);
+extern int	thread_wait_event(event_t *arg, int timeout);
+extern void	thread_destroy_event(event_t *arg);
 
 extern mutex_t	*thread_create_mutex(wchar_t *name);
-extern void	thread_close_mutex(mutex_t *mutex);
-extern int	thread_wait_mutex(mutex_t *mutex);
+extern void	thread_close_mutex(mutex_t *arg);
+extern int	thread_wait_mutex(mutex_t *arg);
 extern int	thread_release_mutex(mutex_t *mutex);
 
 
@@ -99,11 +117,6 @@ extern int	thread_release_mutex(mutex_t *mutex);
 extern void	startblit(void);
 extern void	endblit(void);
 extern void	take_screenshot(void);
-
-
-extern uint32_t	get_ticks(void);
-extern void	delay_ms(uint32_t count);
-
 
 #ifdef __cplusplus
 }

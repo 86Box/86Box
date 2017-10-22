@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.2	2017/10/16
+ * Version:	@(#)scsi_x54x.c	1.0.3	2017/10/19
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,18 +26,18 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
+#include "../dma.h"
+#include "../pic.h"
+#include "../pci.h"
 #include "../mca.h"
 #include "../mem.h"
-#include "../mca.h"
 #include "../rom.h"
 #include "../nvr.h"
-#include "../dma.h"
-#include "../pci.h"
-#include "../pic.h"
-#include "../timer.h"
 #include "../device.h"
+#include "../timer.h"
 #include "../plat.h"
 #include "scsi.h"
 #include "scsi_device.h"
@@ -50,12 +50,23 @@
 
 static void	x54x_cmd_thread(void *priv);
 
-static thread_t	*poll_tid;
-static int	busy;
+static volatile
+thread_t	*poll_tid;
+static volatile
+int	busy;
 
-static event_t	*evt;
+static volatile
+event_t	*evt;
+static volatile
+event_t	*wait_evt;
 
-static event_t	*poll_complete;
+static volatile
+event_t	*wake_poll_thread;
+static volatile
+event_t	*thread_started;
+
+static volatile
+x54x_t	*x54x_dev;
 
 
 #ifdef ENABLE_X54X_LOG
@@ -66,7 +77,7 @@ int x54x_do_log = ENABLE_X54X_LOG;
 static void
 x54x_log(const char *fmt, ...)
 {
-#if ENABLE_X54X_LOG
+#ifdef ENABLE_X54X_LOG
     va_list ap;
 
     if (x54x_do_log) {
@@ -1053,7 +1064,7 @@ x54x_scsi_cmd(x54x_t *dev)
     x54x_log("SCSIStatus = %02X\n", SCSIStatus);
 
     if (temp_cdb[0] == 0x42) {
-	thread_wait_event(evt, 10);
+	thread_wait_event((event_t *) evt, 10);
     }
 }
 
@@ -1233,7 +1244,10 @@ x54x_mbo_process(x54x_t *dev)
 		}
 	}
 
-	dev->MailboxReq--;
+	if (dev->MailboxIsBIOS)
+		dev->BIOSMailboxReq--;
+	else
+		dev->MailboxReq--;
 
         return 1;
     }
@@ -1284,31 +1298,35 @@ x54x_cmd_done(x54x_t *dev, int suppress);
 void
 x54x_wait_for_poll(void)
 {
-    if (x54x_busy()) {
-	thread_wait_event(poll_complete, -1);
+    if (x54x_is_busy()) {
+	thread_wait_event((event_t *) wake_poll_thread, -1);
     }
-    thread_reset_event(poll_complete);
+    thread_reset_event((event_t *) wake_poll_thread);
 }
 
 
 static void
 x54x_cmd_thread(void *priv)
 {
-    x54x_t *dev = (x54x_t *)priv;
+    x54x_t *dev = (x54x_t *) x54x_dev;
+
+    thread_set_event((event_t *) thread_started);
 
     x54x_log("Polling thread started\n");
 
-    while (1)
+    while (x54x_dev)
     {
+	scsi_mutex_wait(1);
+
 	if ((dev->Status & STAT_INIT) || (!dev->MailboxInit && !dev->BIOSMailboxInit) || (!dev->MailboxReq && !dev->BIOSMailboxReq)) {
 		/* If we did not get anything, wait a while. */
-		thread_wait_event(evt, 10);
+		thread_wait_event((event_t *) wait_evt, 10);
+
+		scsi_mutex_wait(0);
 		continue;
 	}
 
-	startscsi();
-
-	if (!(dev->Status & STAT_INIT) && dev->MailboxInit && dev->MailboxReq)
+	if (!(x54x_dev->Status & STAT_INIT) && x54x_dev->MailboxInit && dev->MailboxReq)
 	{
 		x54x_wait_for_poll();
 
@@ -1319,34 +1337,19 @@ x54x_cmd_thread(void *priv)
 		dev->ven_thread(dev);
 	}
 
-	endscsi();
+	scsi_mutex_wait(0);
     }
-
-    if (poll_tid) {
-	thread_kill(poll_tid);
-	poll_tid = NULL;
-    }
-
-    if (poll_complete) {
-	thread_destroy_event(poll_complete);
-	poll_complete = NULL;
-    }
-
-    if (evt) {
-	thread_destroy_event(evt);
-	evt = NULL;
-    }
-
-    scsi_mutex_close();
 
     x54x_log("%s: Callback: polling stopped.\n", dev->name);
 }
 
 
 void
-x54x_busy_set(void)
+x54x_busy(uint8_t set)
 {
-    busy = 1;
+    busy = !!set;
+    if (!set)
+	    thread_set_event((event_t *) wake_poll_thread);
 }
 
 
@@ -1360,18 +1363,17 @@ x54x_thread_start(x54x_t *dev)
 }
 
 
-void
-x54x_busy_clear(void)
-{
-    busy = 0;
-    x54x_log("Thread set event - poll complete\n");
-    thread_set_event(poll_complete);
-}
-
 uint8_t
-x54x_busy(void)
+x54x_is_busy(void)
 {
     return !!busy;
+}
+
+
+void
+x54x_set_wait_event(void)
+{
+    thread_set_event((event_t *) wait_evt);
 }
 
 
@@ -1406,6 +1408,9 @@ x54x_in(uint16_t port, void *priv)
 		break;
     }
 
+#if 0
+    x54x_log("%s: Read Port 0x%02X, Value %02X\n", dev->name, port, ret);
+#endif
     return(ret);
 }
 
@@ -1450,8 +1455,7 @@ x54x_reset_poll(void *priv)
 {
     x54x_t *dev = (x54x_t *)priv;
 
-    dev->Status &= ~STAT_STST;
-    dev->Status |= STAT_IDLE;
+    dev->Status = STAT_INIT | STAT_IDLE;
 
     dev->ResetCB = 0LL;
 }
@@ -1460,22 +1464,22 @@ x54x_reset_poll(void *priv)
 static void
 x54x_reset(x54x_t *dev)
 {
+    clear_irq(dev);
     dev->Geometry = 0x80;
     dev->Command = 0xFF;
     dev->CmdParam = 0;
     dev->CmdParamLeft = 0;
-    dev->IrqEnabled = 1;
-    dev->MailboxCount = 0;
-    dev->MailboxOutPosCur = 0;
+    dev->Mbx24bit = 1;
     dev->MailboxInPosCur = 0;
     dev->MailboxOutInterrupts = 0;
     dev->PendingInterrupt = 0;
+    dev->IrqEnabled = 1;
+    dev->MailboxCount = 0;
+    dev->MailboxOutPosCur = 0;
 
     if (dev->ven_reset) {
 	dev->ven_reset(dev);
     }
-
-    clear_irq(dev);
 }
 
 
@@ -1520,32 +1524,31 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
     switch (port & 3) {
 	case 0:
 		if ((val & CTRL_HRST) || (val & CTRL_SRST)) {
-			x54x_busy_set();
+			x54x_busy(1);
 			reset = (val & CTRL_HRST);
 			x54x_log("Reset completed = %x\n", reset);
 			x54x_reset_ctrl(dev, reset);
 			x54x_log("Controller reset: ");
-			x54x_busy_clear();
+			x54x_busy(0);
 			break;
 		}
 		
 		if (val & CTRL_IRST) {
-			x54x_busy_set();
+			x54x_busy(1);
 			clear_irq(dev);
 			x54x_log("Interrupt reset: ");
-			x54x_busy_clear();
+			x54x_busy(0);
 		}
 		break;
 
 	case 1:
 		/* Fast path for the mailbox execution command. */
 		if ((val == CMD_START_SCSI) && (dev->Command == 0xff)) {
-			x54x_busy_set();
+			x54x_busy(1);
 			dev->MailboxReq++;
-
-			x54x_thread_start(dev);
+			x54x_set_wait_event();
 			x54x_log("Start SCSI command: ");
-			x54x_busy_clear();
+			x54x_busy(0);
 			return;
 		}
 		if (dev->ven_fast_cmds) {
@@ -1612,7 +1615,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 					break;
 
 				case CMD_MBINIT: /* mailbox initialization */
-					x54x_busy_set();
+					x54x_busy(1);
 					dev->Mbx24bit = 1;
 							
 					mbi = (MailboxInit_t *)dev->CmdBuf;
@@ -1631,7 +1634,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 					dev->Status &= ~STAT_INIT;
 					dev->DataReplyLeft = 0;
 					x54x_log("Mailbox init: ");
-					x54x_busy_clear();
+					x54x_busy(0);
 					break;
 
 				case CMD_BIOSCMD: /* execute BIOS */
@@ -1661,6 +1664,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 
 				case CMD_INQUIRY: /* Inquiry */
 					memcpy(dev->DataBuf, dev->fw_rev, 4);
+					x54x_log("Adapter inquiry: %c %c %c %c\n", dev->fw_rev[0], dev->fw_rev[1], dev->fw_rev[2], dev->fw_rev[3]);
 					dev->DataReplyLeft = 4;
 					break;
 
@@ -1699,13 +1703,14 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 
 				case CMD_RETDEVS: /* return Installed Devices */
 					memset(dev->DataBuf, 0x00, 8);
+
+				        if (dev->ven_get_host_id)
+						host_id = dev->ven_get_host_id(dev);
+
 					for (i=0; i<SCSI_ID_MAX; i++) {
 					    dev->DataBuf[i] = 0x00;
 
 					    /* Skip the HA .. */
-					    if (dev->ven_get_host_id)
-						host_id = dev->ven_get_host_id(dev);
-
 					    if (i == host_id) continue;
 
 					    for (j=0; j<SCSI_LUN_MAX; j++) {
@@ -1735,6 +1740,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 						dev->DataBuf[2] = dev->ven_get_host_id(dev);
 					else
 						dev->DataBuf[2] = dev->HostID;
+					x54x_log("Configuration data: %02X %02X %02X\n", dev->DataBuf[0], dev->DataBuf[1], dev->DataBuf[2]);
 					dev->DataReplyLeft = 3;
 					break;
 
@@ -1857,7 +1863,14 @@ x54x_writel(uint32_t port, uint32_t val, void *priv)
 void
 x54x_io_set(x54x_t *dev, uint32_t base)
 {
-    if (dev->bus & DEVICE_PCI) {
+    int bit32 = 0;
+
+    if (dev->bus & DEVICE_PCI)
+	bit32 = 1;
+    else if ((dev->bus & DEVICE_MCA) && dev->bit32)
+	bit32 = 1;
+
+    if (bit32) {
 	x54x_log("x54x: [PCI] Setting I/O handler at %04X\n", base);
 	io_sethandler(base, 4,
 		      x54x_in, x54x_inw, x54x_inl,
@@ -1874,9 +1887,16 @@ x54x_io_set(x54x_t *dev, uint32_t base)
 void
 x54x_io_remove(x54x_t *dev, uint32_t base)
 {
+    int bit32 = 0;
+
+    if (dev->bus & DEVICE_PCI)
+	bit32 = 1;
+    else if ((dev->bus & DEVICE_MCA) && dev->bit32)
+	bit32 = 1;
+
     x54x_log("x54x: Removing I/O handler at %04X\n", base);
 
-    if (dev->bus & DEVICE_PCI) {
+    if (bit32) {
 	io_removehandler(base, 4,
 		      x54x_in, x54x_inw, x54x_inl,
                       x54x_out, x54x_outw, x54x_outl, dev);
@@ -1891,7 +1911,14 @@ x54x_io_remove(x54x_t *dev, uint32_t base)
 void
 x54x_mem_init(x54x_t *dev, uint32_t addr)
 {
-    if (dev->bus & DEVICE_PCI) {
+    int bit32 = 0;
+
+    if (dev->bus & DEVICE_PCI)
+	bit32 = 1;
+    else if ((dev->bus & DEVICE_MCA) && dev->bit32)
+	bit32 = 1;
+
+    if (bit32) {
 	mem_mapping_add(&dev->mmio_mapping, addr, 0x20,
 		        x54x_read, x54x_readw, x54x_readl,
 			x54x_write, x54x_writew, x54x_writel,
@@ -1943,12 +1970,19 @@ x54x_init(device_t *info)
 
     timer_add(x54x_reset_poll, &dev->ResetCB, &dev->ResetCB, dev);
 
-    scsi_mutex_init();
+    x54x_dev = dev;
 
-    poll_complete = thread_create_event();
+    scsi_mutex(1);
+
+    wake_poll_thread = thread_create_event();
+    thread_started = thread_create_event();
 
     /* Create a waitable event. */
     evt = thread_create_event();
+    wait_evt = thread_create_event();
+
+    x54x_thread_start(dev);
+    thread_wait_event((event_t *) thread_started, -1);
 
     return(dev);
 }
@@ -1961,6 +1995,20 @@ x54x_close(void *priv)
 
     if (dev)
     {
+	x54x_dev = NULL;
+
+        /* Tell the thread to terminate. */
+	if (poll_tid != NULL) {
+		x54x_busy(0);
+
+		x54x_log("Waiting for SCSI thread to end...\n");
+		/* Wait for the end event. */
+		thread_wait((event_t *) poll_tid, -1);
+		x54x_log("SCSI thread ended\n");
+
+		poll_tid = NULL;
+	}
+
 	dev->MailboxInit = dev->BIOSMailboxInit = 0;
 	dev->MailboxCount = dev->BIOSMailboxCount = 0;
 	dev->MailboxReq = dev->BIOSMailboxReq = 0;
@@ -1968,22 +2016,27 @@ x54x_close(void *priv)
 	if (dev->ven_data)
 		free(dev->ven_data);
 
-	if (poll_tid) {
-		thread_kill(poll_tid);
-		poll_tid = NULL;
-	}
-
-	if (poll_complete) {
-		thread_destroy_event(poll_complete);
-		poll_complete = NULL;
-	}
-
-	if (evt) {
-		thread_destroy_event(evt);
+	if (wait_evt) {
+		thread_destroy_event((event_t *) evt);
 		evt = NULL;
 	}
 
-	scsi_mutex_close();
+	if (evt) {
+		thread_destroy_event((event_t *) evt);
+		evt = NULL;
+	}
+
+	if (thread_started) {
+		thread_destroy_event((event_t *) thread_started);
+		thread_started = NULL;
+	}
+
+	if (wake_poll_thread) {
+		thread_destroy_event((event_t *) wake_poll_thread);
+		wake_poll_thread = NULL;
+	}
+
+	scsi_mutex(0);
 
 	if (dev->nvr != NULL)
 		free(dev->nvr);

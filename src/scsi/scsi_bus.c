@@ -8,10 +8,10 @@
  *
  *		The generic SCSI bus operations handler.
  *
- * Version:	@(#)scsi_bus.c	1.0.1	2017/10/04
+ * Version:	@(#)scsi_bus.c	1.0.2	2017/10/16
  *
  * NOTES: 	For now ported from PCem with some modifications
- *			but at least it's a start.	
+ *		but at least it's a start.
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  */
@@ -21,9 +21,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "scsi.h"
 #include "scsi_device.h"
+
 
 #define STATE_IDLE 0
 #define STATE_COMMAND 1

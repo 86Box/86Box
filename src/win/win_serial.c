@@ -12,7 +12,7 @@
  *		Windows and UNIX systems, with support for FTDI and Prolific
  *		USB ports. Support for these has been removed.
  *
- * Version:	@(#)win_serial.c	1.0.6	2017/10/10
+ * Version:	@(#)win_serial.c	1.0.6	2017/10/16
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define PLAT_SERIAL_C
-#include "../ibm.h"
+#include "../86box.h"
 #include "../plat.h"
 #include "../plat_serial.h"
 

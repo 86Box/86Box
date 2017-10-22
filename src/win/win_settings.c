@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.21	2017/10/13
+ * Version:	@(#)win_settings.c	1.0.21	2017/10/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../config.h"
 #include "../cpu/cpu.h"
@@ -85,6 +86,8 @@ static int temp_scsi_card, temp_ide_ter, temp_ide_ter_irq, temp_ide_qua, temp_id
 static char temp_hdc_name[16];
 static char *hdc_names[16];
 static int temp_bugger;
+
+static uint8_t temp_deviceconfig;
 
 /* Hard disks category */
 static hard_disk_t temp_hdd[HDD_NUM];
@@ -195,6 +198,8 @@ static void win_settings_init(void)
 		temp_fdd_check_bpb[i] = fdd_get_check_bpb(i);
 	}
 	memcpy(temp_cdrom_drives, cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
+
+	temp_deviceconfig = 0;
 }
 
 
@@ -266,6 +271,8 @@ static int win_settings_changed(void)
 		i = i || (temp_fdd_check_bpb[j] != fdd_get_check_bpb(j));
 	}
 	i = i || memcmp(cdrom_drives, temp_cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
+
+	i = i || !!temp_deviceconfig;
 
 	return i;
 }
@@ -346,6 +353,11 @@ static void win_settings_save(void)
 
 	/* Peripherals category */
 	scsi_card_current = temp_scsi_card;
+	if (hdc_name) {
+		free(hdc_name);
+		hdc_name = NULL;
+	}
+	hdc_name = (char *) malloc(sizeof(temp_hdc_name));
 	strncpy(hdc_name, temp_hdc_name, sizeof(temp_hdc_name) - 1);
 	hdc_init(hdc_name);
 	ide_enable[2] = temp_ide_ter;
@@ -659,7 +671,7 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 					h = GetDlgItem(hdlg, IDC_COMBO_MACHINE);
 					temp_machine = listtomachine[SendMessage(h, CB_GETCURSEL, 0, 0)];
                         
-                        		deviceconfig_open(hdlg, (void *)machine_getdevice(temp_machine));
+                        		temp_deviceconfig |= deviceconfig_open(hdlg, (void *)machine_getdevice(temp_machine));
                         		break;
 			}
 
@@ -841,7 +853,7 @@ static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wPa
 					break;
 
 				case IDC_BUTTON_VOODOO:
-					deviceconfig_open(hdlg, (void *)&voodoo_device);
+					temp_deviceconfig |= deviceconfig_open(hdlg, (void *)&voodoo_device);
 					break;
 
 				case IDC_CONFIGURE_VID:
@@ -851,7 +863,7 @@ static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wPa
 					h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
 		                        SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
 					wcstombs(stransi, lptsTemp, 512);
-					deviceconfig_open(hdlg, (void *)video_card_getdevice(video_card_getid(stransi)));
+					temp_deviceconfig |= deviceconfig_open(hdlg, (void *)video_card_getdevice(video_card_getid(stransi)));
 
 					free(stransi);
 					free(lptsTemp);
@@ -1217,7 +1229,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 					h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
 					temp_sound_card = settings_list_to_sound[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
-					deviceconfig_open(hdlg, (void *)sound_card_getdevice(temp_sound_card));
+					temp_deviceconfig |= deviceconfig_open(hdlg, (void *)sound_card_getdevice(temp_sound_card));
 					break;
 
 				case IDC_COMBO_MIDI:
@@ -1246,7 +1258,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 					h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
 					temp_midi_device = settings_list_to_midi[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
-					deviceconfig_open(hdlg, (void *)midi_device_getdevice(temp_midi_device));
+					temp_deviceconfig |= deviceconfig_open(hdlg, (void *)midi_device_getdevice(temp_midi_device));
 					break;
 
 				case IDC_CHECK_MPU401:
@@ -1258,7 +1270,7 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 					break;
 
 				case IDC_CONFIGURE_MPU401:
-					deviceconfig_open(hdlg, (void *)&mpu401_device);
+					temp_deviceconfig |= deviceconfig_open(hdlg, (void *)&mpu401_device);
 					break;
 			}
 			return FALSE;
@@ -1586,7 +1598,7 @@ static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPAR
 					h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
 					temp_scsi_card = settings_list_to_scsi[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
-					deviceconfig_open(hdlg, (void *)scsi_card_getdevice(temp_scsi_card));
+					temp_deviceconfig |= deviceconfig_open(hdlg, (void *)scsi_card_getdevice(temp_scsi_card));
 					break;
 
 				case IDC_COMBO_SCSI:
@@ -1826,7 +1838,7 @@ static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM w
 					h = GetDlgItem(hdlg, IDC_COMBO_NET);
 					temp_net_card = settings_list_to_network[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
-					deviceconfig_open(hdlg, (void *)network_card_getdevice(temp_net_card));
+					temp_deviceconfig |= deviceconfig_open(hdlg, (void *)network_card_getdevice(temp_net_card));
 					break;
 			}
 			return FALSE;

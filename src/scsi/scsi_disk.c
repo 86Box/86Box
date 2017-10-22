@@ -6,9 +6,10 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.16	2017/10/16
+ * Version:	@(#)scsi_disk.c	1.0.18	2017/10/19
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2017 Miran Grca.
  */
 #include <stdio.h>
@@ -446,13 +447,13 @@ uint8_t scsi_hd_mode_sense_pages_saved[HDD_NUM][0x40][0x40] =
 		[0x30] = { 		       0xB0, 0x16, '8', '6', 'B', 'o', 'x', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' }	}
 };
 
-#ifdef ENABLE_SCSI_HD_LOG
-int scsi_hd_do_log = ENABLE_SCSI_HD_LOG;
+#ifdef ENABLE_SCSI_DISK_LOG
+int scsi_hd_do_log = ENABLE_SCSI_DISK_LOG;
 #endif
 
 void scsi_hd_log(const char *format, ...)
 {
-#ifdef ENABLE_SCSI_HD_LOG
+#ifdef ENABLE_SCSI_DISK_LOG
 	if (scsi_hd_do_log)
 	{
 		va_list ap;

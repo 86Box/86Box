@@ -8,10 +8,11 @@
  *
  *		Common code to handle all sorts of disk controllers.
  *
- * Version:	@(#)hdc.c	1.0.3	2017/10/04
+ * Version:	@(#)hdc.c	1.0.4	2017/10/16
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -19,6 +20,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../device.h"
@@ -26,7 +28,7 @@
 #include "hdc.h"
 
 
-char	hdc_name[16];		/* configured HDC name */
+char	*hdc_name;		/* configured HDC name */
 int	hdc_current;
 
 
@@ -71,8 +73,8 @@ static device_t inthdc_device = {
 
 
 static struct {
-    char	name[50];
-    char	internal_name[16];
+    char	*name;
+    char	*internal_name;
     device_t	*device;
     int		is_mfm;
 } controllers[] = {

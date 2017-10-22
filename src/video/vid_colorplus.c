@@ -8,7 +8,7 @@
  *
  *		Plantronics ColorPlus emulation.
  *
- * Version:	@(#)vid_colorplus.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_colorplus.c	1.0.4	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -320,13 +321,13 @@ void colorplus_poll(void *p)
                                                 ysize = colorplus->cga.lastline - colorplus->cga.firstline;
                                                 if (xsize < 64) xsize = 656;
                                                 if (ysize < 32) ysize = 200;
-                                                updatewindowsize(xsize, (ysize << 1) + 16);
+                                                set_screen_size(xsize, (ysize << 1) + 16);
                                         }
                                         
                                         if (colorplus->cga.composite) 
                                            video_blit_memtoscreen(0, colorplus->cga.firstline - 4, 0, (colorplus->cga.lastline - colorplus->cga.firstline) + 8, xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8);
                                         else          
-                                           video_blit_memtoscreen_8(0, colorplus->cga.firstline - 4, xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8);
+                                           video_blit_memtoscreen_8(0, colorplus->cga.firstline - 4, 0, (colorplus->cga.lastline - colorplus->cga.firstline) + 8, xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8);
                                         frames++;
 
                                         video_res_x = xsize - 16;

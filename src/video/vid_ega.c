@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.6	2017/10/10
+ * Version:	@(#)vid_ega.c	1.0.8	2017/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
@@ -663,7 +664,7 @@ void ega_poll(void *p)
                         if (ega->interlace && !ega->oddeven) ega->lastline++;
                         if (ega->interlace &&  ega->oddeven) ega->firstline--;
 
-                        if ((x != xsize || (ega->lastline - ega->firstline + 1) != ysize) || update_overscan)
+                        if ((x != xsize || (ega->lastline - ega->firstline + 1) != ysize) || update_overscan || video_force_resize_get())
                         {
                                 xsize = x;
                                 ysize = ega->lastline - ega->firstline + 1;
@@ -686,9 +687,12 @@ void ega_poll(void *p)
 				}
 
                                 if (ega->vres)
-                                        updatewindowsize(xsize + x_add_ex, (ysize << 1) + y_add_ex);
+                                        set_screen_size(xsize + x_add_ex, (ysize << 1) + y_add_ex);
                                 else
-                                        updatewindowsize(xsize + x_add_ex, ysize + y_add_ex);
+                                        set_screen_size(xsize + x_add_ex, ysize + y_add_ex);
+
+				if (video_force_resize_get())
+					video_force_resize_set(0);
                         }
 
 			if (enable_overscan)

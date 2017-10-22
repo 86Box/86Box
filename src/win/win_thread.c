@@ -8,7 +8,7 @@
  *
  *		Implement threads and mutexes for the Win32 platform.
  *
- * Version:	@(#)win_thread.c	1.0.3	2017/10/14
+ * Version:	@(#)win_thread.c	1.0.5	2017/10/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -27,7 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../ibm.h"
+#include "../86box.h"
 #include "../plat.h"
 
 
@@ -36,26 +36,33 @@ typedef struct {
 } win_event_t;
 
 
-void *
-thread_create(void (*thread_rout)(void *param), void *param)
+thread_t *
+thread_create(void (*func)(void *param), void *param)
 {
-    return((void *)_beginthread(thread_rout, 0, param));
+    return((thread_t *)_beginthread(func, 0, param));
 }
 
 
 void
-thread_kill(void *handle)
+thread_kill(void *arg)
 {
-    if (handle == NULL) return;
+    if (arg == NULL) return;
 
-    TerminateThread(handle, 0);
+    TerminateThread(arg, 0);
 }
 
 
-void
-thread_sleep(int t)
+int
+thread_wait(thread_t *arg, int timeout)
 {
-    Sleep(t);
+    if (arg == NULL) return(0);
+
+    if (timeout == -1)
+	timeout = INFINITE;
+
+    if (WaitForSingleObject(arg, timeout)) return(1);
+
+    return(0);
 }
 
 
@@ -98,6 +105,8 @@ thread_wait_event(event_t *arg, int timeout)
     win_event_t *ev = (win_event_t *)arg;
 
     if (arg == NULL) return(0);
+
+    if (ev->handle == NULL) return(0);
 
     if (timeout == -1)
 	timeout = INFINITE;

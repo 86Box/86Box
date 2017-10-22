@@ -44,7 +44,7 @@
 
 static int opRETF_a16(uint32_t fetchdat)
 {
-        int cycles_old = cycles; UNUSED(cycles_old);
+        int cycles_old = cycles; UN_USED(cycles_old);
         
         CPU_BLOCK_END();
         RETF_a16(0);
@@ -55,7 +55,7 @@ static int opRETF_a16(uint32_t fetchdat)
 }
 static int opRETF_a32(uint32_t fetchdat)
 {
-        int cycles_old = cycles; UNUSED(cycles_old);
+        int cycles_old = cycles; UN_USED(cycles_old);
         
         CPU_BLOCK_END();
         RETF_a32(0);
@@ -68,7 +68,7 @@ static int opRETF_a32(uint32_t fetchdat)
 static int opRETF_a16_imm(uint32_t fetchdat)
 {
         uint16_t offset = getwordf();
-        int cycles_old = cycles; UNUSED(cycles_old);
+        int cycles_old = cycles; UN_USED(cycles_old);
 
         CPU_BLOCK_END();
         RETF_a16(offset);
@@ -80,7 +80,7 @@ static int opRETF_a16_imm(uint32_t fetchdat)
 static int opRETF_a32_imm(uint32_t fetchdat)
 {
         uint16_t offset = getwordf();
-        int cycles_old = cycles; UNUSED(cycles_old);
+        int cycles_old = cycles; UN_USED(cycles_old);
 
         CPU_BLOCK_END();
         RETF_a32(offset);
@@ -92,7 +92,7 @@ static int opRETF_a32_imm(uint32_t fetchdat)
 
 static int opIRET_286(uint32_t fetchdat)
 {
-        int cycles_old = cycles; UNUSED(cycles_old);
+        int cycles_old = cycles; UN_USED(cycles_old);
         
         if ((cr0 & 1) && (eflags & VM_FLAG) && (IOPL != 3))
         {
@@ -137,7 +137,7 @@ static int opIRET_286(uint32_t fetchdat)
 
 static int opIRET(uint32_t fetchdat)
 {
-        int cycles_old = cycles; UNUSED(cycles_old);
+        int cycles_old = cycles; UN_USED(cycles_old);
         
         if ((cr0 & 1) && (eflags & VM_FLAG) && (IOPL != 3))
         {
@@ -214,7 +214,7 @@ static int opIRET(uint32_t fetchdat)
 
 static int opIRETD(uint32_t fetchdat)
 {
-        int cycles_old = cycles; UNUSED(cycles_old);
+        int cycles_old = cycles; UN_USED(cycles_old);
         
         if ((cr0 & 1) && (eflags & VM_FLAG) && (IOPL != 3))
         {

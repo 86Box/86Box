@@ -49,6 +49,7 @@ int		scsi_card_current = 0;
 int		scsi_card_last = 0;
 
 uint32_t	SCSI_BufferLength;
+static volatile
 mutex_t		*scsiMutex;
 
 
@@ -71,7 +72,9 @@ static SCSI_CARD scsi_cards[] = {
     { "[ISA] Ranco RT1000B",	"rt1000b",	&scsi_rt1000b_device, NULL		  },
     { "[ISA] Trantor T130B",	"t130b",	&scsi_t130b_device,   NULL		  },
     { "[MCA] Adaptec AHA-1640",	"aha1640",	&aha1640_device,      x54x_device_reset   },
+    { "[MCA] BusLogic BT-640A",	"bt640a",	&buslogic_640a_device,BuslogicDeviceReset },
     { "[PCI] BusLogic BT-958D",	"bt958d",	&buslogic_pci_device, BuslogicDeviceReset },
+    { "[VLB] BusLogic BT-445S",	"bt445s",	&buslogic_445s_device,BuslogicDeviceReset },
     { "",			"",		NULL,		      NULL		  },
 };
 
@@ -125,15 +128,12 @@ int scsi_card_get_from_internal_name(char *s)
 }
 
 
-void scsi_mutex_init(void)
+void scsi_mutex(uint8_t start)
 {
-    scsiMutex = thread_create_mutex(L"86Box.SCSIMutex");
-}
-
-
-void scsi_mutex_close(void)
-{
-    thread_close_mutex(scsiMutex);
+    if (start)
+	scsiMutex = thread_create_mutex(L"86Box.SCSIMutex");
+    else
+	thread_close_mutex((mutex_t *) scsiMutex);
 }
 
 
@@ -207,14 +207,10 @@ void SCSIReset(uint8_t id, uint8_t lun)
 
 
 void
-startscsi(void)
+scsi_mutex_wait(uint8_t wait)
 {
-    thread_wait_mutex(scsiMutex);
-}
-
-
-void
-endscsi(void)
-{
-    thread_release_mutex(scsiMutex);
+    if (wait)
+	thread_wait_mutex((mutex_t *) scsiMutex);
+    else
+	thread_release_mutex((mutex_t *) scsiMutex);
 }

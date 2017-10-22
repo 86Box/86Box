@@ -8,7 +8,7 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.9	2017/10/14
+ * Version:	@(#)net_slirp.c	1.0.10	2017/10/16
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -21,6 +21,7 @@
 #include <wchar.h>
 #include "slirp/slirp.h"
 #include "slirp/queue.h"
+#include "../86box.h"
 #include "../ibm.h"
 #include "../config.h"
 #include "../device.h"
@@ -28,10 +29,16 @@
 #include "network.h"
 
 
-static queueADT	slirpq;			/* SLiRP library handle */
-static thread_t	*poll_tid;
-static NETRXCB	poll_rx;		/* network RX function to call */
-static void	*poll_arg;		/* network RX function arg */
+static volatile
+       queueADT	slirpq;			/* SLiRP library handle */
+static volatile
+       thread_t	*poll_tid;
+static volatile
+       NETRXCB	poll_rx;		/* network RX function to call */
+static volatile
+       void	*poll_arg;		/* network RX function arg */
+static volatile
+       event_t	*thread_started;
 
 
 
@@ -74,13 +81,15 @@ poll_thread(void *arg)
     struct queuepacket *qp;
     event_t *evt;
 
+   thread_set_event((event_t *) thread_started);
+
     pclog("SLiRP: polling thread started, arg %08lx\n", arg);
 
     /* Create a waitable event. */
     evt = thread_create_event();
 
     while (slirpq != NULL) {
-	startnet();
+	network_mutex_wait(1);
 
 	network_wait_for_poll();
 
@@ -91,6 +100,8 @@ poll_thread(void *arg)
 	if (QueuePeek(slirpq) == 0) {
 		/* If we did not get anything, wait a while. */
 		thread_wait_event(evt, 10);
+
+		network_mutex_wait(0);
 		continue;
 	}
 
@@ -102,18 +113,15 @@ poll_thread(void *arg)
 #endif
 
 	if (poll_rx != NULL)
-		poll_rx(poll_arg, (uint8_t *)&qp->data, qp->len); 
+		poll_rx((void *) poll_arg, (uint8_t *)&qp->data, qp->len); 
 
 	/* Done with this one. */
 	free(qp);
 
-	endnet();
+	network_mutex_wait(0);
     }
 
     thread_destroy_event(evt);
-    evt = poll_tid = NULL;
-
-    network_mutex_close();
 
     pclog("SLiRP: polling stopped.\n");
 }
@@ -142,6 +150,8 @@ network_slirp_setup(uint8_t *mac, NETRXCB func, void *arg)
     pclog("SLiRP: starting thread..\n");
     poll_tid = thread_create(poll_thread, mac);
 
+    thread_wait_event((event_t *) thread_started, -1);
+
     return(0);
 }
 
@@ -156,6 +166,8 @@ network_slirp_close(void)
 
 	/* Tell the polling thread to shut down. */
 	sl = slirpq; slirpq = NULL;
+
+#if 0
 #if 1
 	/* Terminate the polling thread. */
 	if (poll_tid != NULL) {
@@ -167,8 +179,24 @@ network_slirp_close(void)
 	while (poll_tid != NULL)
 		;
 #endif
+#endif
 
-        network_mutex_close();
+        /* Tell the thread to terminate. */
+	if (poll_tid != NULL) {
+		network_busy(0);
+
+		pclog("Waiting for network thread to end...\n");
+		/* Wait for the end event. */
+		network_wait_for_end((void *) poll_tid);
+		pclog("Network thread ended\n");
+
+		poll_tid = NULL;
+	}
+
+	if (thread_started) {
+		thread_destroy_event((event_t *) thread_started);
+		thread_started = NULL;
+	}
 
 	/* OK, now shut down SLiRP itself. */
 	QueueDestroy(sl);
@@ -201,11 +229,11 @@ void
 network_slirp_in(uint8_t *pkt, int pkt_len)
 {
     if (slirpq != NULL) {
-	network_busy_set();
+	network_busy(1);
 
 	slirp_input((const uint8_t *)pkt, pkt_len);
 
-	network_busy_clear();
+	network_busy(0);
     }
 }
 
