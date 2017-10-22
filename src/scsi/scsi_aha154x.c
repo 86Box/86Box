@@ -10,7 +10,7 @@
  *		made by Adaptec, Inc. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.31	2017/10/19
+ * Version:	@(#)scsi_aha154x.c	1.0.32	2017/10/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -547,15 +547,15 @@ aha_mca_write(int port, uint8_t val, void *priv)
      *  pos[2]=111xxxxx = 7
      *  pos[2]=000xxxxx = 0
      */
-    dev->HostID = (dev->pos_regs[2] >> 5) & 0x07;
+    dev->HostID = (dev->pos_regs[4] >> 5) & 0x07;
 
     /*
      * SYNC mode is pos[2]=xxxx1xxx.
      *
      * SCSI Parity is pos[2]=xxx1xxxx.
      */
-    dev->sync = (dev->pos_regs[2] >> 3) & 1;
-    dev->parity = (dev->pos_regs[2] >> 4) & 1;
+    dev->sync = (dev->pos_regs[4] >> 3) & 1;
+    dev->parity = (dev->pos_regs[4] >> 4) & 1;
 
     /*
      * The PS/2 Model 80 BIOS always enables a card if it finds one,

@@ -8,7 +8,7 @@
  *
  *		Wyse-700 emulation.
  *
- * Version:	@(#)vid_wy700.c	1.0.3	2017/10/18
+ * Version:	@(#)vid_wy700.c	1.0.4	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -871,7 +871,7 @@ void wy700_poll(void *p)
 				if (video_force_resize_get())
 					video_force_resize_set(0);
                         }
-                        video_blit_memtoscreen_8(0, 0, xsize, ysize);
+                        video_blit_memtoscreen_8(0, 0, 0, ysize, xsize, ysize);
 
                         frames++;
 			/* Fixed 1280x800 resolution */

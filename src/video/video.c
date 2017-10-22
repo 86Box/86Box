@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.4	2017/10/18
+ * Version:	@(#)video.c	1.0.5	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -179,7 +179,7 @@ PALETTE		cgapal_mono[6] = {
 
 
 static struct {
-    int		x, y, y1, y2, w, h, blit8;
+    int		x, y, y1, y2, w, h;
     int		busy;
     int		buffer_in_use;
 
@@ -191,7 +191,6 @@ static struct {
 
 
 static void (*blit_func)(int x, int y, int y1, int y2, int w, int h);
-static void (*blit8_func)(int x, int y, int w, int h);
 
 
 static
@@ -201,10 +200,7 @@ void blit_thread(void *param)
 	thread_wait_event(blit_data.wake_blit_thread, -1);
 	thread_reset_event(blit_data.wake_blit_thread);
 
-	if (blit_data.blit8)
-		blit8_func(blit_data.x, blit_data.y, blit_data.w, blit_data.h);
-	else
-		blit_func(blit_data.x, blit_data.y, blit_data.y1, blit_data.y2, blit_data.w, blit_data.h);
+	blit_func(blit_data.x, blit_data.y, blit_data.y1, blit_data.y2, blit_data.w, blit_data.h);
 
 	blit_data.busy = 0;
 	thread_set_event(blit_data.blit_complete);
@@ -213,10 +209,9 @@ void blit_thread(void *param)
 
 
 void
-video_setblit(void(*blit8)(int,int,int,int),void(*blit)(int,int,int,int,int,int))
+video_setblit(void(*blit)(int,int,int,int,int,int))
 {
     blit_func = blit;
-    blit8_func = blit8;
 }
 
 
@@ -262,27 +257,28 @@ video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
     blit_data.y2 = y2;
     blit_data.w = w;
     blit_data.h = h;
-    blit_data.blit8 = 0;
 
     thread_set_event(blit_data.wake_blit_thread);
 }
 
 
 void
-video_blit_memtoscreen_8(int x, int y, int w, int h)
+video_blit_memtoscreen_8(int x, int y, int y1, int y2, int w, int h)
 {
+    int yy, xx;
+
     if (h <= 0) return;
 
-    video_wait_for_blit();
+    for (yy = 0; yy < h; yy++)
+    {
+	if ((y + yy) >= 0 && (y + yy) < buffer->h)
+	{
+		for (xx = 0; xx < w; xx++)
+			*(uint32_t *) &(buffer32->line[y + yy][(x + xx) << 2]) = pal_lookup[buffer->line[y + yy][x + xx]];
+	}
+    }
 
-    blit_data.busy = 1;
-    blit_data.x = x;
-    blit_data.y = y;
-    blit_data.w = w;
-    blit_data.h = h;
-    blit_data.blit8 = 1;
-
-    thread_set_event(blit_data.wake_blit_thread);
+    video_blit_memtoscreen(x, y, y1, y2, w, h);
 }
 
 

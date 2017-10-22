@@ -8,7 +8,7 @@
  *
  *		Emulation of the old and new IBM CGA graphics cards.
  *
- * Version:	@(#)vid_cga.c	1.0.7	2017/10/18
+ * Version:	@(#)vid_cga.c	1.0.8	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -411,7 +411,7 @@ void cga_poll(void *p)
                                         if (cga->composite) 
                                            video_blit_memtoscreen(0, cga->firstline - 4, 0, (cga->lastline - cga->firstline) + 8, xsize, (cga->lastline - cga->firstline) + 8);
                                         else          
-                                           video_blit_memtoscreen_8(0, cga->firstline - 4, xsize, (cga->lastline - cga->firstline) + 8);
+                                           video_blit_memtoscreen_8(0, cga->firstline - 4, 0, (cga->lastline - cga->firstline) + 8, xsize, (cga->lastline - cga->firstline) + 8);
                                         frames++;
 
                                         video_res_x = xsize - 16;

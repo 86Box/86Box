@@ -179,7 +179,7 @@ void pc87306_write(uint16_t port, uint8_t val, void *priv)
 			{
 				val = 0x4b;
 			}
-			if (pc87306_curreg <= 28)  valxor = val ^ pc87306_regs[pc87306_curreg];
+			valxor = val ^ pc87306_regs[pc87306_curreg];
 			tries = 0;
 			if ((pc87306_curreg == 0x19) && !(pc87306_regs[0x1B] & 0x40))
 			{

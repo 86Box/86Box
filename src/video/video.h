@@ -90,10 +90,9 @@ extern char	*video_get_internal_name(int card);
 extern int	video_get_video_from_internal_name(char *s);
 
 
-extern void	video_setblit(void(*blit8)(int,int,int,int),
-			      void(*blit)(int,int,int,int,int,int));
+extern void	video_setblit(void(*blit)(int,int,int,int,int,int));
 extern void	video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
-extern void	video_blit_memtoscreen_8(int x, int y, int w, int h);
+extern void	video_blit_memtoscreen_8(int x, int y, int y1, int y2, int w, int h);
 extern void	video_blit_complete(void);
 extern void	video_wait_for_blit(void);
 extern void	video_wait_for_buffer(void);

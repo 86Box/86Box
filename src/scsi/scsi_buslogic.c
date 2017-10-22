@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.24	2017/10/16
+ * Version:	@(#)scsi_buslogic.c	1.0.25	2017/10/22
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1295,12 +1295,16 @@ buslogic_mca_write(int port, uint8_t val, void *priv)
     x54x_io_remove(dev, dev->Base);
 
     /* Get the new assigned I/O base address. */
-    dev->Base = dev->pos_regs[1] << 8;
-    dev->Base |= ((dev->pos_regs[0] & 0x10) ? 4 : 0);
+    if (dev->pos_regs[3]) {
+	dev->Base = dev->pos_regs[3] << 8;
+	dev->Base |= ((dev->pos_regs[2] & 0x10) ? 4 : 0);
+    } else {
+	dev->Base = 0x0000;
+    }
 
     /* Save the new IRQ and DMA channel values. */
-    dev->Irq = ((dev->pos_regs[0] >> 1) & 0x07) + 8;
-    dev->DmaChannel = dev->pos_regs[3] & 0x0f;	
+    dev->Irq = ((dev->pos_regs[2] >> 1) & 0x07) + 8;
+    dev->DmaChannel = dev->pos_regs[5] & 0x0f;	
 
     /* Extract the BIOS ROM address info. */
     if (dev->pos_regs[0] & 0xe0)  switch(dev->pos_regs[0] & 0xe0) {
@@ -1347,7 +1351,7 @@ buslogic_mca_write(int port, uint8_t val, void *priv)
      *  pos[2]=111xxxxx = 7
      *  pos[2]=000xxxxx = 0
      */
-    dev->HostID = (dev->pos_regs[2] >> 5) & 0x07;
+    dev->HostID = (dev->pos_regs[4] >> 5) & 0x07;
 
     /*
      * SYNC mode is pos[2]=xxxxxx1x.
@@ -1358,14 +1362,14 @@ buslogic_mca_write(int port, uint8_t val, void *priv)
      */
     /* Parity. */
     HALR->structured.autoSCSIData.uSCSIConfiguration &= ~2;
-    HALR->structured.autoSCSIData.uSCSIConfiguration |= (dev->pos_regs[2] & 2);
+    HALR->structured.autoSCSIData.uSCSIConfiguration |= (dev->pos_regs[4] & 2);
 
     /* Sync. */
-    HALR->structured.autoSCSIData.u16SynchronousPermittedMask = (dev->pos_regs[2] & 0x10) ? 0xffff : 0x0000;
+    HALR->structured.autoSCSIData.u16SynchronousPermittedMask = (dev->pos_regs[4] & 0x10) ? 0xffff : 0x0000;
 
     /* DOS Disk Space > 1GBytes */
     HALR->structured.autoSCSIData.uBIOSConfiguration &= ~4;
-    HALR->structured.autoSCSIData.uBIOSConfiguration |= (dev->pos_regs[2] & 8) ? 4 : 0;
+    HALR->structured.autoSCSIData.uBIOSConfiguration |= (dev->pos_regs[4] & 8) ? 4 : 0;
 
     /*
      * The PS/2 Model 80 BIOS always enables a card if it finds one,

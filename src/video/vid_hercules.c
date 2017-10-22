@@ -8,7 +8,7 @@
  *
  *		Hercules emulation.
  *
- * Version:	@(#)vid_hercules.c	1.0.4	2017/10/18
+ * Version:	@(#)vid_hercules.c	1.0.5	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -295,7 +295,7 @@ void hercules_poll(void *p)
 						if (video_force_resize_get())
 							video_force_resize_set(0);
                                         }
-                                        video_blit_memtoscreen_8(0, hercules->firstline, xsize, ysize);
+                                        video_blit_memtoscreen_8(0, hercules->firstline, 0, ysize, xsize, ysize);
                                         frames++;
                                         if ((hercules->ctrl & 2) && (hercules->ctrl2 & 1))
                                         {

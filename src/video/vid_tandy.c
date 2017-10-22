@@ -8,7 +8,7 @@
  *
  *		Emulation of the Tandy Model 1000 video.
  *
- * Version:	@(#)vid_tandy.c	1.0.2	2017/10/18
+ * Version:	@(#)vid_tandy.c	1.0.3	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -555,7 +555,7 @@ void tandy_poll(void *p)
                                         if (tandy->composite) 
                                            video_blit_memtoscreen(0, tandy->firstline-4, 0, (tandy->lastline - tandy->firstline) + 8, xsize, (tandy->lastline - tandy->firstline) + 8);
                                         else          
-                                           video_blit_memtoscreen_8(0, tandy->firstline-4, xsize, (tandy->lastline - tandy->firstline) + 8);
+                                           video_blit_memtoscreen_8(0, tandy->firstline-4, 0, (tandy->lastline - tandy->firstline) + 8, xsize, (tandy->lastline - tandy->firstline) + 8);
 
                                         frames++;
                                         video_res_x = xsize - 16;

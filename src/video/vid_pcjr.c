@@ -8,7 +8,7 @@
  *
  *		Video emulation for IBM PCjr.
  *
- * Version:	@(#)vid_pcjr.c	1.0.3	2017/10/18
+ * Version:	@(#)vid_pcjr.c	1.0.4	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -518,7 +518,7 @@ void pcjr_poll(void *p)
                                         if (pcjr->composite) 
                                            video_blit_memtoscreen(0, pcjr->firstline-4, 0, (pcjr->lastline - pcjr->firstline) + 8, xsize, (pcjr->lastline - pcjr->firstline) + 8);
                                         else          
-                                           video_blit_memtoscreen_8(0, pcjr->firstline-4, xsize, (pcjr->lastline - pcjr->firstline) + 8);
+                                           video_blit_memtoscreen_8(0, pcjr->firstline-4, 0, (pcjr->lastline - pcjr->firstline) + 8, xsize, (pcjr->lastline - pcjr->firstline) + 8);
 
                                         frames++;
                                         video_res_x = xsize - 16;

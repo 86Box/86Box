@@ -31,7 +31,6 @@ extern void ddraw_common_take_screenshot(wchar_t *fn, IDirectDrawSurface7 *pDDSu
 
 
 static void blit_memtoscreen(int, int, int, int, int, int);
-static void blit_memtoscreen_8(int, int, int, int);
 
 
 int ddraw_fs_init(HWND h)
@@ -92,7 +91,7 @@ int ddraw_fs_init(HWND h)
         pclog("DDRAW_INIT complete\n");
         ddraw_hwnd = h;
 
-        video_setblit(blit_memtoscreen_8, blit_memtoscreen);
+        video_setblit(blit_memtoscreen);
 
 	return 1;
 }
@@ -242,77 +241,6 @@ static void blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                 lpdds_pri->Restore();
                 lpdds_pri->Flip(NULL, DDFLIP_NOVSYNC);
         }
-}
-
-static void blit_memtoscreen_8(int x, int y, int w, int h)
-{
-        RECT r_src;
-        RECT r_dest;
-        RECT window_rect;
-        int xx, yy;
-        HRESULT hr;
-        DDBLTFX ddbltfx;
-
-	if (lpdds_back == NULL)
-	{
-                video_blit_complete();
-		return; /*Nothing to do*/
-        }
-
-        memset(&ddsd, 0, sizeof(ddsd));
-        ddsd.dwSize = sizeof(ddsd);
-
-        hr = lpdds_back->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
-
-        if (hr == DDERR_SURFACELOST)
-        {
-                lpdds_back->Restore();
-                lpdds_back->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
-                device_force_redraw();
-        }
-        if (!ddsd.lpSurface)
-        {
-                video_blit_complete();
-                return;
-        }
-        for (yy = 0; yy < h; yy++)
-        {
-                if ((y + yy) >= 0 && (y + yy) < buffer->h)
-                {
-                        uint32_t *p = (uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]);
-                        for (xx = 0; xx < w; xx++)
-			{
-                            p[xx] = pal_lookup[buffer->line[y + yy][x + xx]];
-			}
-                }
-        }
-        video_blit_complete();
-        lpdds_back->Unlock(NULL);
-
-        window_rect.left = 0;
-        window_rect.top = 0;
-        window_rect.right = ddraw_w;
-        window_rect.bottom = ddraw_h;
-        ddraw_fs_size(window_rect, &r_dest, w, h);
-        
-        r_src.left   = 0;
-        r_src.top    = 0;       
-        r_src.right  = w;
-        r_src.bottom = h;
-
-        ddbltfx.dwSize = sizeof(ddbltfx);
-        ddbltfx.dwFillColor = 0;
-        
-        lpdds_back2->Blt(&window_rect, NULL, NULL, DDBLT_WAIT | DDBLT_COLORFILL, &ddbltfx);
-        
-        hr = lpdds_back2->Blt(&r_dest, lpdds_back, &r_src, DDBLT_WAIT, NULL);
-        if (hr == DDERR_SURFACELOST)
-        {
-                lpdds_back2->Restore();
-                lpdds_back2->Blt(&r_dest, lpdds_back, &r_src, DDBLT_WAIT, NULL);
-        }
-        
-        lpdds_pri->Flip(NULL, DDFLIP_NOVSYNC);        
 }
 
 

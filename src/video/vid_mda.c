@@ -8,7 +8,7 @@
  *
  *		MDA emulation.
  *
- * Version:	@(#)vid_mda.c	1.0.4	2017/10/18
+ * Version:	@(#)vid_mda.c	1.0.5	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -254,7 +254,7 @@ void mda_poll(void *p)
 						if (video_force_resize_get())
 							video_force_resize_set(0);
                                         }
-                                        video_blit_memtoscreen_8(0, mda->firstline, xsize, mda->lastline - mda->firstline);
+                                        video_blit_memtoscreen_8(0, mda->firstline, 0, ysize, xsize, ysize);
                                         frames++;
                                         video_res_x = mda->crtc[1];
                                         video_res_y = mda->crtc[6];
