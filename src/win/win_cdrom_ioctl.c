@@ -659,8 +659,8 @@ static int ioctl_get_block_length(uint8_t id, const UCHAR *cdb, int number_of_bl
 	{
 		switch (cdb[0])
 		{
-			case 0x25:
-				/* READ CAPACITY */
+			case 0x25:	/* READ CAPACITY */
+			case 0x44:	/* READ HEADER */
 				return 8;
 			case 0x42:	/* READ SUBCHANNEL */
 			case 0x43:	/* READ TOC */
@@ -668,6 +668,8 @@ static int ioctl_get_block_length(uint8_t id, const UCHAR *cdb, int number_of_bl
 			case 0x52:	/* READ TRACK INFORMATION */
 			case 0x5A:	/* MODE SENSE (10) */
 				return ((uint16_t) cdb[8]) + (((uint16_t) cdb[7]) << 8);
+			case 0xAD:	/* READ DVD STRUCTURE */
+				return (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
 			default:
 				return 65534;
 		}
@@ -675,8 +677,8 @@ static int ioctl_get_block_length(uint8_t id, const UCHAR *cdb, int number_of_bl
 
 	switch (cdb[0])
 	{
-		case 0x25:
-			/* READ CAPACITY */
+		case 0x25:	/* READ CAPACITY */
+		case 0x44:	/* READ HEADER */
 			return 8;
 		case 0x42:	/* READ SUBCHANNEL */
 		case 0x43:	/* READ TOC */
@@ -684,6 +686,8 @@ static int ioctl_get_block_length(uint8_t id, const UCHAR *cdb, int number_of_bl
 		case 0x52:	/* READ TRACK INFORMATION */
 		case 0x5A:	/* MODE SENSE (10) */
 			return ((uint16_t) cdb[8]) + (((uint16_t) cdb[7]) << 8);
+			case 0xAD:	/* READ DVD STRUCTURE */
+				return (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
 		case 0x08:
 		case 0x28:
 		case 0xa8:
@@ -966,19 +970,13 @@ static int ioctl_pass_through(uint8_t id, uint8_t *in_cdb, uint8_t *b, uint32_t 
 	const UCHAR cdb[12];
 	
 	int ret = 0;
-
-	int block_length = 0;
-	
+ 
 	int temp_block_length = 0;
-	int temp_pos = 0;
-	
-	int blocks_at_once = 0;
 	int buffer_pos = 0;
 	
-	int transferred_blocks = 0;
-	
 	uint32_t temp_len = 0;
-	int chunk = 0;
+
+	int i = 0;
 	
 	if (in_cdb[0] == 0x43)
 	{
@@ -989,60 +987,28 @@ static int ioctl_pass_through(uint8_t id, uint8_t *in_cdb, uint8_t *b, uint32_t 
 	ioctl_hopen(id);
 
 	memcpy((void *) cdb, in_cdb, 12);
-	
-	temp_block_length = ioctl_get_block_length(id, cdb, cdrom[id].requested_blocks, 0);
-	*len = 0;
-	if (temp_block_length != -1)
-	{
-		if (temp_block_length > 65534)
-		{
-			block_length = temp_block_length / cdrom[id].requested_blocks;
-			blocks_at_once = 32768 / block_length;
-			cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): Expected transfer length %i is bigger than 65534, splitting the transfer into chunks of %i blocks...\n", id, temp_block_length, blocks_at_once);
 
+	temp_len = 0;
+	temp_block_length = ioctl_get_block_length(id, cdb, cdrom[id].requested_blocks, 0);
+	if (temp_block_length != -1) {
+		cdrom_ioctl[id].actual_requested_blocks = 1;
+		if ((cdb[0] == 0x08) || (cdb[0] == 0x28) || (cdb[0] == 0xA8) || (cdb[0] == 0xB9) || (cdb[0] == 0xBE)) {
 			buffer_pos = 0;
-			temp_pos = cdrom[id].sector_pos;
-			transferred_blocks = 0;
 			temp_len = 0;
 
-split_block_read_iterate:
-			chunk = (cdrom[id].requested_blocks - transferred_blocks);
-			if (chunk < blocks_at_once)
+			for (i = 0; i < cdrom[id].requested_blocks; i++)
 			{
-				cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): The remaining chunk (%i blocks) is less than a complete split block\n", id, chunk);
-				cdrom_ioctl[id].actual_requested_blocks = chunk;
+				cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): Transferring block...\n", id, cdrom_ioctl[id].actual_requested_blocks);
+				cdrom_update_cdb((uint8_t *) cdb, cdrom[id].sector_pos + i, 1);
+				ret = SCSICommand(id, cdb, b + buffer_pos, &temp_len, 0);
+				buffer_pos += temp_len;
 			}
-			else
-			{
-				cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): The remaining chunk (%i blocks) is more or equal than a complete split block\n", id, chunk);
-				cdrom_ioctl[id].actual_requested_blocks = blocks_at_once;
-			}
-			cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): Transferring %i blocks...\n", id, cdrom_ioctl[id].actual_requested_blocks);
-			cdrom_update_cdb((uint8_t *) cdb, temp_pos, cdrom_ioctl[id].actual_requested_blocks);
-			ret = SCSICommand(id, cdb, buf + buffer_pos, &temp_len, 0);
-			*len += temp_len;
-			transferred_blocks += cdrom_ioctl[id].actual_requested_blocks;
-			if (ret && (transferred_blocks < cdrom[id].requested_blocks))
-			{
-				/* Return value was successful and there are still more blocks left to transfer. */
-				temp_pos += cdrom_ioctl[id].actual_requested_blocks;
-				buffer_pos += (cdrom_ioctl[id].actual_requested_blocks * block_length);
-				goto split_block_read_iterate;
-			}
-			cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): Split transfer done\n", id);
-		}
-		else
-		{
+			*len = buffer_pos;
+		} else {
 			cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): Expected transfer length %i is smaller than 65534, transferring all at once...\n", id, temp_block_length);
-			cdrom_ioctl[id].actual_requested_blocks = cdrom[id].requested_blocks;
-			ret = SCSICommand(id, cdb, buf, len, 0);
+			ret = SCSICommand(id, cdb, b, len, 0);
 			cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): Single transfer done\n", id);
 		}
-		memcpy(b, buf, *len);
-	}
-	else
-	{
-		cdrom_ioctl_log("CD-ROM %i: ioctl_pass_through(): Expected transfer length %i is -1, this indicates an illegal mode\n", id, temp_block_length);
 	}
 
 	cdrom_ioctl_log("IOCTL DATA:  %02X %02X %02X %02X %02X %02X %02X %02X\n", b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]);

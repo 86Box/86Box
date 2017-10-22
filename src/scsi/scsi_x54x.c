@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.3	2017/10/19
+ * Version:	@(#)scsi_x54x.c	1.0.4	2017/10/22
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1861,7 +1861,7 @@ x54x_writel(uint32_t port, uint32_t val, void *priv)
 
 
 void
-x54x_io_set(x54x_t *dev, uint32_t base)
+x54x_io_set(x54x_t *dev, uint32_t base, uint8_t len)
 {
     int bit32 = 0;
 
@@ -1872,12 +1872,12 @@ x54x_io_set(x54x_t *dev, uint32_t base)
 
     if (bit32) {
 	x54x_log("x54x: [PCI] Setting I/O handler at %04X\n", base);
-	io_sethandler(base, 4,
+	io_sethandler(base, len,
 		      x54x_in, x54x_inw, x54x_inl,
                       x54x_out, x54x_outw, x54x_outl, dev);
     } else {
 	x54x_log("x54x: [ISA] Setting I/O handler at %04X\n", base);
-	io_sethandler(base, 4,
+	io_sethandler(base, len,
 		      x54x_in, x54x_inw, NULL,
                       x54x_out, x54x_outw, NULL, dev);
     }
@@ -1885,7 +1885,7 @@ x54x_io_set(x54x_t *dev, uint32_t base)
 
 
 void
-x54x_io_remove(x54x_t *dev, uint32_t base)
+x54x_io_remove(x54x_t *dev, uint32_t base, uint8_t len)
 {
     int bit32 = 0;
 
@@ -1897,11 +1897,11 @@ x54x_io_remove(x54x_t *dev, uint32_t base)
     x54x_log("x54x: Removing I/O handler at %04X\n", base);
 
     if (bit32) {
-	io_removehandler(base, 4,
+	io_removehandler(base, len,
 		      x54x_in, x54x_inw, x54x_inl,
                       x54x_out, x54x_outw, x54x_outl, dev);
     } else {
-	io_removehandler(base, 4,
+	io_removehandler(base, len,
 		      x54x_in, x54x_inw, NULL,
                       x54x_out, x54x_outw, NULL, dev);
     }

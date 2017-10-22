@@ -2569,8 +2569,8 @@ cdrom_readtoc_fallback:
 		case GPCMD_READ_HEADER:
 			SCSIPhase = SCSI_PHASE_DATA_IN;
 
-			alloc_length = ((cdb[7] << 8) | cdb[8]) << 3;
-			cdrom_buf_alloc(id, 65536);
+			alloc_length = ((cdb[7] << 8) | cdb[8]);
+			cdrom_buf_alloc(id, 8);
 
 			if (cdrom_drives[id].handler->pass_through)
 			{
@@ -2582,7 +2582,7 @@ cdrom_readtoc_fallback:
 			}
 			else
 			{
-				cdrom[id].sector_len = (cdb[7] << 8) | cdb[8];
+				cdrom[id].sector_len = 1;
 				cdrom[id].sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4]<<8) | cdb[5];
 				if (msf)
 				{

@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.25	2017/10/22
+ * Version:	@(#)scsi_buslogic.c	1.0.26	2017/10/22
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -292,6 +292,8 @@ BuslogicAutoSCSIRamSetDefaults(x54x_t *dev, uint8_t safe)
 
     HALR->structured.autoSCSIData.cbInformation = 64;
 
+    HALR->structured.autoSCSIData.uReserved1 = 6;
+
     HALR->structured.autoSCSIData.aHostAdaptertype[0] = ' ';
     HALR->structured.autoSCSIData.aHostAdaptertype[5] = ' ';
     switch (bl->chip) {
@@ -385,6 +387,8 @@ BuslogicAutoSCSIRamSetDefaults(x54x_t *dev, uint8_t safe)
     HALR->structured.autoSCSIData.fCDROMBoot = safe ? 0 : 1;
     HALR->structured.autoSCSIData.fMultiBoot = safe ? 0 : 1;
     HALR->structured.autoSCSIData.fAggressiveRoundRobinMode = safe ? 0 : 1;	/* 1 = aggressive, 0 = strict */
+
+    HALR->structured.autoSCSIData.uHostAdapterIoPortAddress = 2;	/* 0 = primary (330h), 1 = secondary (334h), 2 = disable, 3 = reserved */
 }
 
 
@@ -392,6 +396,8 @@ static void
 BuslogicInitializeAutoSCSIRam(x54x_t *dev)
 {
     buslogic_data_t *bl = (buslogic_data_t *) dev->ven_data;
+    HALocalRAM *HALR = &bl->LocalRAM;
+
     FILE *f;
 
     f = nvr_fopen(BuslogicGetNVRFileName(bl), L"rb");
@@ -400,6 +406,21 @@ BuslogicInitializeAutoSCSIRam(x54x_t *dev)
 	fread(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f);
 	fclose(f);
 	f = NULL;
+	if (bl->chip == CHIP_BUSLOGIC_PCI) {
+		x54x_io_remove(dev, dev->Base, 4);
+		switch(HALR->structured.autoSCSIData.uHostAdapterIoPortAddress) {
+			case 0:
+				dev->Base = 0x330;
+				break;
+			case 1:
+				dev->Base = 0x334;
+				break;
+			default:
+				dev->Base = 0;
+				break;
+		}
+		x54x_io_set(dev, dev->Base, 4);
+	}
     }
     else
     {
@@ -648,6 +669,8 @@ buslogic_cmds(void *p)
     x54x_t *dev = (x54x_t *)p;
     buslogic_data_t *bl = (buslogic_data_t *) dev->ven_data;
 
+    HALocalRAM *HALR = &bl->LocalRAM;
+
     FILE *f;
     uint16_t TargetsPresentMask = 0;
     uint8_t Offset;
@@ -759,7 +782,7 @@ buslogic_cmds(void *p)
 					ReplyPI->IsaIOPort = 5;
 					break;
 				default:
-					ReplyPI->IsaIOPort = 0xFF;
+					ReplyPI->IsaIOPort = 6;
 					break;
 			}
 			ReplyPI->IRQ = dev->Irq;
@@ -874,6 +897,22 @@ buslogic_cmds(void *p)
 				dev->Status |= STAT_INVCMD;
 				break;
 		}
+
+		if ((bl->chip == CHIP_BUSLOGIC_PCI) && !(dev->Status & STAT_INVCMD)) {
+			x54x_io_remove(dev, dev->Base, 4);
+			switch(HALR->structured.autoSCSIData.uHostAdapterIoPortAddress) {
+				case 0:
+					dev->Base = 0x330;
+					break;
+				case 1:
+					dev->Base = 0x334;
+					break;
+				default:
+					dev->Base = 0;
+					break;
+			}
+			x54x_io_set(dev, dev->Base, 4);
+		}
 		break;
 	case 0x94:
 		if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_MCA)) {
@@ -897,10 +936,10 @@ buslogic_cmds(void *p)
 	case 0x95:
 		if (bl->chip == CHIP_BUSLOGIC_PCI) {
 			if (dev->Base != 0)
-				x54x_io_remove(dev, dev->Base);
+				x54x_io_remove(dev, dev->Base, 4);
 			if (dev->CmdBuf[0] < 6) {
 				dev->Base = ((3 - (dev->CmdBuf[0] >> 1)) << 8) | ((dev->CmdBuf[0] & 1) ? 0x34 : 0x30);
-				x54x_io_set(dev, dev->Base);
+				x54x_io_set(dev, dev->Base, 4);
 			} else
 				dev->Base = 0;
 			dev->DataReplyLeft = 0;
@@ -1168,9 +1207,9 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 	case 0x04:
 		valxor = (val & 0x27) ^ buslogic_pci_regs[addr];
 		if (valxor & PCI_COMMAND_IO) {
-			x54x_io_remove(dev, bl->PCIBase);
+			x54x_io_remove(dev, bl->PCIBase, 32);
 			if ((bl->PCIBase != 0) && (val & PCI_COMMAND_IO)) {
-				x54x_io_set(dev, bl->PCIBase);
+				x54x_io_set(dev, bl->PCIBase, 32);
 			}
 		}
 		if (valxor & PCI_COMMAND_MEM) {
@@ -1189,7 +1228,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 	case 0x11: case 0x12: case 0x13:
 		/* I/O Base set. */
 		/* First, remove the old I/O. */
-		x54x_io_remove(dev, bl->PCIBase);
+		x54x_io_remove(dev, bl->PCIBase, 32);
 		/* Then let's set the PCI regs. */
 		buslogic_pci_bar[0].addr_regs[addr & 3] = val;
 		/* Then let's calculate the new I/O base. */
@@ -1199,7 +1238,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 		/* We're done, so get out of the here. */
 		if (buslogic_pci_regs[4] & PCI_COMMAND_IO) {
 			if (bl->PCIBase != 0) {
-				x54x_io_set(dev, bl->PCIBase);
+				x54x_io_set(dev, bl->PCIBase, 32);
 			}
 		}
 		return;
@@ -1292,7 +1331,7 @@ buslogic_mca_write(int port, uint8_t val, void *priv)
     dev->pos_regs[port & 7] = val;
 
     /* This is always necessary so that the old handler doesn't remain. */
-    x54x_io_remove(dev, dev->Base);
+    x54x_io_remove(dev, dev->Base, 4);
 
     /* Get the new assigned I/O base address. */
     if (dev->pos_regs[3]) {
@@ -1383,7 +1422,7 @@ buslogic_mca_write(int port, uint8_t val, void *priv)
     /* Initialize the device if fully configured. */
     if (dev->pos_regs[2] & 0x01) {
 	/* Card enabled; register (new) I/O handler. */
-	x54x_io_set(dev, dev->Base);
+	x54x_io_set(dev, dev->Base, 4);
 
 	/* Reset the device. */
 	x54x_reset_ctrl(dev, CTRL_HRST);
@@ -1436,10 +1475,13 @@ buslogic_init(device_t *info)
     bl = (buslogic_data_t *) dev->ven_data;
 
     dev->bus = info->flags;
-    dev->Base = device_get_config_hex16("base");
-    if ((info->flags != DEVICE_MCA) && (info->flags != DEVICE_PCI)) {
+    if (!(info->flags & DEVICE_MCA) && !(info->flags & DEVICE_PCI)) {
+	    dev->Base = device_get_config_hex16("base");
 	    dev->Irq = device_get_config_int("irq");
 	    dev->DmaChannel = device_get_config_int("dma");
+    }
+    else if (info->flags & DEVICE_PCI) {
+	    dev->Base = 0;
     }
     dev->HostID = 7;		/* default HA ID */
     dev->setup_info_len = sizeof(buslogic_setup_t);
@@ -1542,8 +1584,8 @@ buslogic_init(device_t *info)
 		break;
     }
 
-    if ((dev->Base != 0) && !(dev->bus & DEVICE_MCA)) {
-	x54x_io_set(dev, dev->Base);
+    if ((dev->Base != 0) && !(dev->bus & DEVICE_MCA) && !(dev->bus & DEVICE_PCI)) {
+	x54x_io_set(dev, dev->Base, 4);
     }
 
     memset(bl->AutoSCSIROM, 0xff, 32768);
@@ -1713,35 +1755,6 @@ static device_config_t BT_ISA_Config[] = {
 
 
 static device_config_t BT958D_Config[] = {
-        {
-		"base", "Legacy Address", CONFIG_HEX16, "", 0x334,
-                {
-                        {
-                                "None",      0
-                        },
-                        {
-                                "0x330", 0x330
-                        },
-                        {
-                                "0x334", 0x334
-                        },
-                        {
-                                "0x230", 0x230
-                        },
-                        {
-                                "0x234", 0x234
-                        },
-                        {
-                                "0x130", 0x130
-                        },
-                        {
-                                "0x134", 0x134
-                        },
-                        {
-                                ""
-                        }
-                },
-        },
 	{
 		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
 	},

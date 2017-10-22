@@ -10,7 +10,7 @@
  *		made by Adaptec, Inc. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.32	2017/10/22
+ * Version:	@(#)scsi_aha154x.c	1.0.33	2017/10/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -500,7 +500,7 @@ aha_mca_write(int port, uint8_t val, void *priv)
     dev->pos_regs[port & 7] = val;
 
     /* This is always necessary so that the old handler doesn't remain. */
-    x54x_io_remove(dev, dev->Base);
+    x54x_io_remove(dev, dev->Base, 4);
 
     /* Get the new assigned I/O base address. */
     dev->Base = (dev->pos_regs[3] & 7) << 8;
@@ -569,7 +569,7 @@ aha_mca_write(int port, uint8_t val, void *priv)
     /* Initialize the device if fully configured. */
     if (dev->pos_regs[2] & 0x01) {
 	/* Card enabled; register (new) I/O handler. */
-	x54x_io_set(dev, dev->Base);
+	x54x_io_set(dev, dev->Base, 4);
 
 	/* Reset the device. */
 	x54x_reset_ctrl(dev, CTRL_HRST);
@@ -858,7 +858,7 @@ aha_init(device_t *info)
 
         if (!(dev->bus & DEVICE_MCA)) {
 		/* Register our address space. */
-	        x54x_io_set(dev, dev->Base);
+	        x54x_io_set(dev, dev->Base, 4);
 
 		/* Enable the memory. */
 		if (dev->rom_addr != 0x000000) {
