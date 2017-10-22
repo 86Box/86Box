@@ -232,28 +232,6 @@ vnc_blit(int x, int y, int y1, int y2, int w, int h)
 }
 
 
-static void
-vnc_blit8(int x, int y, int w, int h)
-{
-    uint32_t *p;
-    int xx, yy;
-
-    for (yy = 0; yy < h; yy++) {
-	p = (uint32_t *)&(((uint32_t *)rfb->frameBuffer)[yy*VNC_MAX_X]);
-
-	if ((y+yy) >= 0 && (y+yy) < buffer->h) {
-		for (xx=0; xx<w; xx++)
-			p[xx] = pal_lookup[buffer->line[y+yy][x+xx]];
-	}
-    }
- 
-    video_blit_complete();
-
-    if (! updatingSize)
-	rfbMarkRectAsModified(rfb, 0,0, x+w,y+h);
-}
-
-
 /* Initialize VNC for operation. */
 int
 vnc_init(UNUSED(void *arg))
@@ -299,7 +277,7 @@ vnc_init(UNUSED(void *arg))
     }
  
     /* Set up our BLIT handlers. */
-    video_setblit(vnc_blit8, vnc_blit);
+    video_setblit(vnc_blit);
 
     clients = 0;
 
