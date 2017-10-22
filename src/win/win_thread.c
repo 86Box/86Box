@@ -8,7 +8,7 @@
  *
  *		Implement threads and mutexes for the Win32 platform.
  *
- * Version:	@(#)win_thread.c	1.0.4	2017/10/16
+ * Version:	@(#)win_thread.c	1.0.5	2017/10/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -36,26 +36,19 @@ typedef struct {
 } win_event_t;
 
 
-void *
-thread_create(void (*thread_rout)(void *param), void *param)
+thread_t *
+thread_create(void (*func)(void *param), void *param)
 {
-    return((void *)_beginthread(thread_rout, 0, param));
+    return((thread_t *)_beginthread(func, 0, param));
 }
 
 
 void
-thread_kill(void *handle)
+thread_kill(void *arg)
 {
-    if (handle == NULL) return;
+    if (arg == NULL) return;
 
-    TerminateThread(handle, 0);
-}
-
-
-void
-thread_sleep(int t)
-{
-    Sleep(t);
+    TerminateThread(arg, 0);
 }
 
 

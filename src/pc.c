@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.29	2017/10/19
+ * Version:	@(#)pc.c	1.0.31	2017/10/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <time.h>
 #include <wchar.h>
 #include "86box.h"
 #include "config.h"
@@ -79,6 +80,7 @@
 
 /* Commandline options. */
 int	dump_on_exit = 0;			/* (O) dump regs on exit */
+int	do_dump_config = 0;			/* (O) dump config on load */
 int	start_in_fullscreen = 0;		/* (O) start in fullscreen */
 
 /* Configuration values. */
@@ -286,6 +288,9 @@ int
 pc_init(int argc, wchar_t *argv[])
 {
     wchar_t *cfg = NULL, *p;
+    char temp[128];
+    struct tm *info;
+    time_t now;
     int c;
 
     /* Grab the executable's full path. */
@@ -310,11 +315,15 @@ usage:
 		printf("\nUsage: 86box [options] [cfg-file]\n\n");
 		printf("Valid options are:\n\n");
 		printf("-? or --help        - show this information\n");
+		printf("-C or --dumpcfg     - dump config file after loading\n");
 		printf("-D or --dump        - dump memory on exit\n");
 		printf("-F or --fullscreen  - start in fullscreen mode\n");
 		printf("-P or --vmpath path - set 'path' to be root for vm\n");
 		printf("\nA config file can be specified. If none is, the default file will be used.\n");
 		return(0);
+	} else if (!wcscasecmp(argv[c], L"--dumpcfg") ||
+		   !wcscasecmp(argv[c], L"-C")) {
+		do_dump_config = 1;
 	} else if (!wcscasecmp(argv[c], L"--dump") ||
 		   !wcscasecmp(argv[c], L"-D")) {
 		dump_on_exit = 1;
@@ -342,14 +351,7 @@ usage:
 	cfg = argv[c++];
     if (c != argc) goto usage;
 
-    /*
-     * This is where we start outputting to the log file,
-     * if there is one. Maybe we should log a header with
-     * application build info and such?  --FvK
-     */
-
     /* Make sure cfg_path has a trailing backslash. */
-    pclog("exe_path=%ls\n", exe_path);
     if ((cfg_path[wcslen(cfg_path)-1] != L'\\') &&
 	(cfg_path[wcslen(cfg_path)-1] != L'/')) {
 #ifdef WIN32
@@ -358,7 +360,6 @@ usage:
 	wcscat(cfg_path, L"/");
 #endif
     }
-    pclog("cfg_path=%ls\n", cfg_path);
 
     if (cfg != NULL) {
 	/*
@@ -382,6 +383,19 @@ usage:
     } else {
         plat_append_filename(config_file_default, cfg_path, CONFIG_FILE_W, 511);
     }
+
+    /*
+     * This is where we start outputting to the log file,
+     * if there is one. Create a little info header first.
+     */
+    (void)time(&now);
+    info = localtime(&now);
+    strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
+    pclog("#\n# %ls v%ls logfile, created %s\n#\n",
+		EMU_NAME_W, EMU_VERSION_W, temp);
+    pclog("# Emulator path: %ls\n", exe_path);
+    pclog("# Userfiles path: %ls\n", cfg_path);
+    pclog("# Configuration file: %ls\n#\n\n", config_file_default);
 
     /*
      * We are about to read the configuration file, which MAY
@@ -946,28 +960,7 @@ pc_thread(void *param)
 
 	/* If needed, hand a screen resize. */
 	if (!video_fullscreen && doresize && (scrnsz_x>0) && (scrnsz_y>0)) {
-#if 1
 		plat_resize(scrnsz_x, scrnsz_y);
-#else
-		SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM)sb_borders);
-		GetWindowRect(hwndMain, &r);
-		MoveWindow(hwndRender, 0, 0, scrnsz_x, scrnsz_y, TRUE);
-		GetWindowRect(hwndRender, &r);
-		MoveWindow(hwndSBAR,
-			   0, r.bottom+GetSystemMetrics(SM_CYEDGE),
-			   scrnsz_x, 17, TRUE);
-		GetWindowRect(hwndMain, &r);
-
-		MoveWindow(hwndMain, r.left, r.top,
-			   scrnsz_x+(GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
-			   scrnsz_y+(GetSystemMetrics(SM_CYEDGE)*2)+(GetSystemMetrics(vid_resize?SM_CYSIZEFRAME:SM_CYFIXEDFRAME)*2)+GetSystemMetrics(SM_CYMENUSIZE)+GetSystemMetrics(SM_CYCAPTION)+17+sb_borders[1]+1,
-			   TRUE);
-
-		if (mousecapture) {
-			GetWindowRect(hwndRender, &r);
-			ClipCursor(&r);
-		}
-#endif
 
 		doresize = 0;
 	}

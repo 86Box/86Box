@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.6	2017/10/18
+ * Version:	@(#)86box.h	1.0.7	2017/10/21
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -58,6 +58,7 @@ extern "C" {
 
 /* Global variables. */
 extern int	dump_on_exit;			/* (O) dump regs on exit*/
+extern int	do_dump_config;			/* (O) dump cfg after load */
 extern int	start_in_fullscreen;		/* (O) start in fullscreen */
 
 extern int	window_w, window_h,		/* (C) window size and */
