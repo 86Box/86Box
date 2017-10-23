@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.31	2017/10/21
+ * Version:	@(#)pc.c	1.0.32	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -132,7 +132,6 @@ wchar_t	cfg_path[1024];				/* path (dir) of user data */
 int	scrnsz_x = SCREEN_RES_X,		/* current screen size, X */
 	scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
 int	title_update;
-int	mousecapture;
 int64_t	main_time;
 
 
@@ -775,7 +774,7 @@ pc_close(thread_t *ptr)
     config_save();
 
 #if 0
-    if (mousecapture) {
+    if (mouse_capture) {
         ClipCursor(&oldclip);
         ShowCursor(TRUE);
     }
@@ -933,7 +932,7 @@ pc_thread(void *param)
 			swprintf(temp, sizeof_w(temp),
 				 L"%ls v%ls - %i%% - %ls - %ls - %ls",
 				 EMU_NAME_W,EMU_VERSION_W,fps,wmachine,wcpu,
-				 (!mousecapture) ? plat_get_string(IDS_2077)
+				 (!mouse_capture) ? plat_get_string(IDS_2077)
 				  : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079)));
 
 			ui_window_title(temp);

@@ -8,10 +8,9 @@
  *
  *		Definitions for the VNC renderer.
  *
- * Version:	@(#)vnc.h	1.0.3	2017/10/18
+ * Version:	@(#)vnc.h	1.0.4	2017/10/22
  *
- * Authors:	RichardG, <richardg867@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -27,6 +26,8 @@ extern int	vnc_init(void *);
 extern void	vnc_close(void);
 extern void	vnc_resize(int x, int y);
 extern int	vnc_pause(void);
+
+extern void	vnc_kbinput(int, int);
 
 extern void	vnc_take_screenshot(wchar_t *fn);
 

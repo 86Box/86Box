@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.27	2017/10/18
+ * Version:	@(#)win.c	1.0.28	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -136,10 +136,10 @@ win_menu_update(void)
 static void
 releasemouse(void)
 {
-    if (mousecapture) {
+    if (mouse_capture) {
 	ClipCursor(&oldclip);
 	ShowCursor(TRUE);
-	mousecapture = 0;
+	mouse_capture = 0;
     }
 }
 
@@ -617,12 +617,12 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_LBUTTONUP:
-		if (!mousecapture && !video_fullscreen) {
+		if (!mouse_capture && !video_fullscreen) {
 			GetClipCursor(&oldclip);
 			GetWindowRect(hwndRender, &rect);
 
 			ClipCursor(&rect);
-			mousecapture = 1;
+			mouse_capture = 1;
 			while (1) {
 				if (ShowCursor(FALSE) < 0) break;
 			}
@@ -646,7 +646,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		plat_resize(scrnsz_x, scrnsz_y);
 
-		if (mousecapture) {
+		if (mouse_capture) {
 			GetWindowRect(hwndRender, &rect);
 
 			ClipCursor(&rect);
@@ -1098,10 +1098,10 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
                 DispatchMessage(&messages);
 	}
 
-	if (mousecapture && recv_key[0x58] && recv_key[0x42]) {
+	if (mouse_capture && recv_key[0x58] && recv_key[0x42]) {
 		ClipCursor(&oldclip);
 		ShowCursor(TRUE);
-		mousecapture = 0;
+		mouse_capture = 0;
         }
 
 	if (video_fullscreen &&
@@ -1115,7 +1115,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 
     timeEndPeriod(1);
 
-    if (mousecapture) {
+    if (mouse_capture) {
 	ClipCursor(&oldclip);
 	ShowCursor(TRUE);
     }
