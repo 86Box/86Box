@@ -25,4 +25,4 @@ extern void piix_bus_master_write(uint16_t port, uint8_t val, void *priv);
 
 extern int piix_bus_master_get_count(int channel);
 
-extern int piix_bus_master_dma_read_ex(int channel, uint8_t *data);
+extern int piix_bus_master_dma_read(int channel, uint8_t *data, int transfer_length);

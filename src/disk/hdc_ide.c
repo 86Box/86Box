@@ -73,7 +73,9 @@
 #define WIN_WRITE_MULTIPLE              0xC5
 #define WIN_SET_MULTIPLE_MODE           0xC6
 #define WIN_READ_DMA                    0xC8
+#define WIN_READ_DMA_ALT                0xC9
 #define WIN_WRITE_DMA                   0xCA
+#define WIN_WRITE_DMA_ALT               0xCB
 #define WIN_STANDBYNOW1			0xE0
 #define WIN_IDLENOW1			0xE1
 #define WIN_SETIDLE1			0xE3
@@ -327,20 +329,39 @@ void ide_padstr8(uint8_t *buf, int buf_size, const char *src)
  */
 static void ide_identify(IDE *ide)
 {
-	uint32_t c, h, s;
+	uint32_t d;
 	char device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
-#if 0
+
+	uint64_t d_hpc, d_spt, d_tracks;
 	uint64_t full_size = (hdd[ide->hdd_num].tracks * hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
-#endif
 
 	device_identify[6] = (ide->hdd_num / 10) + 0x30;
 	device_identify[7] = (ide->hdd_num % 10) + 0x30;
 	ide_log("IDE Identify: %s\n", device_identify);
 
 	memset(ide->buffer, 0, 512);
-	
-	c = hdd[ide->hdd_num].tracks; /* Cylinders */
-	h = hdd[ide->hdd_num].hpc;  /* Heads */
+	d_spt = ide->spt;
+	if (ide->hpc <= 16) {
+		/* HPC <= 16, report as needed. */
+		d_tracks = ide->tracks;
+		d_hpc = ide->hpc;
+	} else {
+		/* HPC > 16, convert to 16 HPC. */
+		d_hpc = 16;
+		d_tracks = (ide->tracks * ide->hpc) / 16;
+	}
+
+	/* Specify default CHS translation */
+	if (full_size <= 16514064) {
+		ide->buffer[1] = d_tracks;	/* Tracks in default CHS translation. */
+		ide->buffer[3] = d_hpc;		/* Heads in default CHS translation. */
+		ide->buffer[6] = d_spt;		/* Heads in default CHS translation. */
+	}
+	ide_log("Default CHS translation: %i, %i, %i\n", ide->buffer[1], ide->buffer[3], ide->buffer[6]);
+
+#if 0
+	c = d_tracks; /* Cylinders */
+	h = d_hpc;  /* Heads */
 	s = hdd[ide->hdd_num].spt;  /* Sectors */
 
 	if (hdd[ide->hdd_num].tracks <= 16383)
@@ -353,60 +374,80 @@ static void ide_identify(IDE *ide)
 	}
 	ide->buffer[3] = hdd[ide->hdd_num].hpc;  /* Heads */
 	ide->buffer[6] = hdd[ide->hdd_num].spt;  /* Sectors */
+#endif
+
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
 	ide_padstr((char *) (ide->buffer + 23), EMU_VERSION, 8); /* Firmware */
 	ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
 	ide->buffer[20] = 3;   /*Buffer type*/
 	ide->buffer[21] = 512; /*Buffer size*/
-	ide->buffer[47] = 16;  /*Max sectors on multiple transfer command*/
 	ide->buffer[48] = 1;   /*Dword transfers supported*/
-	if (PCI && (ide->board < 2) && (hdd[ide->hdd_num].bus == HDD_BUS_IDE_PIO_AND_DMA))
-	{
+	if (PCI && (ide->board < 2) && (hdd[ide->hdd_num].bus == HDD_BUS_IDE_PIO_AND_DMA)) {
+		ide->buffer[47] = 32 | 0x8000;  /*Max sectors on multiple transfer command*/
 		ide->buffer[49] = (1 << 8); /* LBA and DMA supported */
-	}
-	else
-	{
+	} else {
+		ide->buffer[47] = 16 | 0x8000;  /*Max sectors on multiple transfer command*/
 		ide->buffer[49] = 0;
 	}
-	if ((c > 1024) || (h > 16) || (s > 63))
+	if ((ide->tracks >= 1024) || (ide->hpc > 16) || (ide->spt > 63))
 	{
 		ide->buffer[49] |= (1 << 9);
 	}
 	ide->buffer[50] = 0x4000; /* Capabilities */
 	ide->buffer[51] = 2 << 8; /*PIO timing mode*/
-#if 0
-	ide->buffer[53] = 1;
-	ide->buffer[55] = ide->hpc;
-	ide->buffer[56] = ide->spt;
-	if (((full_size / ide->hpc) / ide->spt) <= 16383)
-	{
-		ide->buffer[54] = (full_size / ide->hpc) / ide->spt;
-	}
-	else
-	{
-		ide->buffer[54] = 16383;
-	}
-	full_size = ((uint64_t) ide->hpc) * ((uint64_t) ide->spt) * ((uint64_t) ide->buffer[54]);
-	ide->buffer[57] = full_size & 0xFFFF; /* Total addressable sectors (LBA) */
-	ide->buffer[58] = (full_size >> 16) & 0x0FFF;
-#endif
-	ide->buffer[59] = ide->blocksize ? (ide->blocksize | 0x100) : 0;
+
 	if (ide->buffer[49] & (1 << 9))
 	{
-		ide->buffer[60] = (hdd[ide->hdd_num].tracks * hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt) & 0xFFFF; /* Total addressable sectors (LBA) */
-		ide->buffer[61] = ((hdd[ide->hdd_num].tracks * hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt) >> 16) & 0x0FFF;
+		ide->buffer[60] = full_size & 0xFFFF; /* Total addressable sectors (LBA) */
+		ide->buffer[61] = (full_size >> 16) & 0x0FFF;
+
+		ide->buffer[53] |= 1;
+
+		if (full_size <= 16514064) {
+			if (ide->specify_success) {
+				ide->buffer[54] = (full_size / ide->t_hpc) / ide->t_spt;
+				ide->buffer[55] = ide->t_hpc;
+				ide->buffer[56] = ide->t_spt;
+				full_size = ((uint64_t) ide->t_hpc) * ((uint64_t) ide->t_spt) * ((uint64_t) ide->buffer[54]);
+			} else {
+				ide->buffer[54] = d_tracks;
+				ide->buffer[55] = d_hpc;
+				ide->buffer[56] = d_spt;
+			}
+
+			ide->buffer[57] = full_size & 0xFFFF; /* Total addressable sectors (LBA) */
+			ide->buffer[58] = (full_size >> 16) & 0x0FFF;
+
+			ide_log("Current CHS translation: %i, %i, %i\n", ide->buffer[54], ide->buffer[55], ide->buffer[56]);
+		}
 	}
+
+	ide->buffer[59] = ide->blocksize ? (ide->blocksize | 0x100) : 0;
+
 	if (PCI && (ide->board < 2) && (hdd[ide->hdd_num].bus == HDD_BUS_IDE_PIO_AND_DMA))
 	{
 		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
+		ide->buffer[53] |= 2;
 
+		ide->buffer[62] = 7;
 		ide->buffer[63] = 7;
         	if (ide->mdma_mode != -1)
 	        {
-        	    ide->buffer[63] = (ide->mdma_mode << 8);
+		    d = (ide->mdma_mode & 0xff);
+		    d <<= 8;
+		    if (ide->mdma_mode & 0x100)
+        	    	ide->buffer[63] |= d;
+		    else
+        	    	ide->buffer[62] |= d;
+		    pclog(" IDENTIFY DMA Mode: %04X, %04X\n", ide->buffer[62], ide->buffer[63]);
 	        }
+		ide->buffer[65] = 120;
+		ide->buffer[66] = 120;
+		ide->buffer[80] = 0x1e; /*ATA-1 to ATA-4 supported*/
+		ide->buffer[81] = 0x18; /*ATA-4 revision 18 supported*/
+	} else {
+		ide->buffer[80] = 0x0e; /*ATA-1 to ATA-3 supported*/
 	}
-	ide->buffer[80] = 0xe; /*ATA-1 to ATA-3 supported*/
 }
 
 /**
@@ -415,7 +456,9 @@ static void ide_identify(IDE *ide)
 static void ide_atapi_identify(IDE *ide)
 {
 	char device_identify[9] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
+
 	uint8_t cdrom_id;
+	int32_t d;
 	
 	memset(ide->buffer, 0, 512);
 	cdrom_id = atapi_cdrom_drives[ide->channel];
@@ -427,16 +470,33 @@ static void ide_atapi_identify(IDE *ide)
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
 	ide_padstr((char *) (ide->buffer + 23), EMU_VERSION, 8); /* Firmware */
 	ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
+	ide->buffer[48] = 1;   /*Dword transfers supported*/
 	ide->buffer[49] = 0x200; /* LBA supported */
+	ide->buffer[51] = 2 << 8; /*PIO timing mode*/
 
 	if (PCI && (ide->board < 2) && (cdrom_drives[cdrom_id].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA))
 	{
-		ide->buffer[48] = 1;   /*Dword transfers supported*/
 		ide->buffer[49] |= 0x100; /* DMA supported */
+		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
+		ide->buffer[53] = 3;
+		ide->buffer[62] = 7;
 		ide->buffer[63] = 7;
-		ide->buffer[73] = 6;
-		ide->buffer[74] = 9;
-		ide->buffer[80] = 0x10; /*ATA/ATAPI-4 supported*/
+        	if (ide->mdma_mode != -1)
+	        {
+		    d = (ide->mdma_mode & 0xff);
+		    d <<= 8;
+		    if (ide->mdma_mode & 0x100)
+        	    	ide->buffer[63] |= d;
+		    else
+        	    	ide->buffer[62] |= d;
+		    pclog("PIDENTIFY DMA Mode: %04X, %04X\n", ide->buffer[62], ide->buffer[63]);
+	        }
+		ide->buffer[65] = 0xb4;
+		ide->buffer[66] = 0xb4;
+		ide->buffer[71] = 30;
+		ide->buffer[72] = 30;
+		ide->buffer[80] = 0x1e; /*ATA-1 to ATA-4 supported*/
+		ide->buffer[81] = 0x18; /*ATA-4 revision 18 supported*/
 	}
 }
 
@@ -451,8 +511,8 @@ static off64_t ide_get_sector(IDE *ide)
         }
         else
         {
-        	uint32_t heads = ide->hpc;
-        	uint32_t sectors = ide->spt;
+        	uint32_t heads = ide->t_hpc;
+        	uint32_t sectors = ide->t_spt;
 
         	return ((((off64_t) ide->cylinder * heads) + ide->head) *
         	          sectors) + (ide->sector - 1) + ide->skip512;
@@ -471,11 +531,11 @@ static void ide_next_sector(IDE *ide)
         else
         {
         	ide->sector++;
-        	if (ide->sector == (ide->spt + 1))
+        	if (ide->sector == (ide->t_spt + 1))
 			{
         		ide->sector = 1;
         		ide->head++;
-        		if (ide->head == ide->hpc)
+        		if (ide->head == ide->t_hpc)
 				{
         			ide->head = 0;
         			ide->cylinder++;
@@ -539,11 +599,23 @@ static int ide_set_features(IDE *ide)
 {
 	uint8_t features, features_data;
 	uint8_t mode, submode;
-	
+
+	int bus, dma;
+
 	features = ide->cylprecomp;
 	features_data = ide->secount;
 
+	if (ide_drive_is_cdrom(ide)) {
+		bus = cdrom_drives[atapi_cdrom_drives[ide->channel]].bus_type;
+		dma = (bus == CDROM_BUS_ATAPI_PIO_AND_DMA);
+	} else {
+		bus = hdd[ide->hdd_num].bus;
+		dma = (bus == HDD_BUS_IDE_PIO_AND_DMA);
+	}
+
 	ide_log("Features code %02X\n", features);
+
+	pclog("IDE %02X: Set features: %02X, %02X\n", ide->channel, features, features_data);
 
 	switch(features)
 	{
@@ -561,6 +633,7 @@ static int ide_set_features(IDE *ide)
 						return 0;
 					}
 					ide->mdma_mode = -1;
+					pclog("IDE %02X: Setting DPIO mode: %02X, %08X\n", ide->channel, submode, ide->mdma_mode);
 					break;
 
 				case 0x01:	/* PIO mode */
@@ -569,20 +642,35 @@ static int ide_set_features(IDE *ide)
 						return 0;
 					}
 					ide->mdma_mode = -1;
+					pclog("IDE %02X: Setting  PIO mode: %02X, %08X\n", ide->channel, submode, ide->mdma_mode);
 					break;
 
-				case 0x04:	/* Multiword DMA mode */
-					if (!PCI || (hdd[ide->hdd_num].bus != HDD_BUS_IDE_PIO_AND_DMA) || (ide->board >= 2) || (submode > 2))
+				case 0x02:	/* Singleword DMA mode */
+					if (!PCI || !dma || (ide->board >= 2) || (submode > 2))
 					{
 						return 0;
 					}
 					ide->mdma_mode = (1 << submode);
+					pclog("IDE %02X: Setting SDMA mode: %02X, %08X\n", ide->channel, submode, ide->mdma_mode);
 					break;
-			
+
+				case 0x04:	/* Multiword DMA mode */
+					if (!PCI || !dma || (ide->board >= 2) || (submode > 2))
+					{
+						return 0;
+					}
+					ide->mdma_mode = (1 << submode) | 0x100;
+					pclog("IDE %02X: Setting MDMA mode: %02X, %08X\n", ide->channel, submode, ide->mdma_mode);
+					break;
+
 				default:
 					return 0;
 			}
-		
+
+		case 0x66:	/* Disable reverting to power on defaults. */
+		case 0xCC:	/* Enable reverting to power on defaults. */
+			return 1;
+
 		default:
 			return 0;
 	}
@@ -667,11 +755,7 @@ void ide_reset(void)
 			
 		ide_set_signature(&ide_drives[d]);
 
-		if (ide_drives[d].type == IDE_HDD)
-		{
-			ide_drives[d].mdma_mode = 0;
-		}
-
+		ide_drives[d].mdma_mode = -1;
 		ide_drives[d].error = 1;
 	}
 
@@ -679,11 +763,7 @@ void ide_reset(void)
 	{
 		ide_set_signature(&ide_drives[d | 8]);
 
-		if (ide_drives[d | 8].type == IDE_HDD)
-		{
-			ide_drives[d | 8].mdma_mode = 0;
-		}
-
+		ide_drives[d | 8].mdma_mode = -1;
 		ide_drives[d | 8].error = 1;
 	}
 
@@ -695,6 +775,22 @@ void ide_reset(void)
 	ide_ter_disable_cond();
 	ide_qua_disable_cond();
 }
+
+
+void ide_reset_hard(void)
+{
+	int d;
+
+	for (d = 0; d < (IDE_NUM+XTIDE_NUM); d++)
+	{
+		ide_drives[d].t_spt = ide_drives[d].spt;
+		ide_drives[d].t_hpc = ide_drives[d].hpc;
+		ide_drives[d].specify_success = 0;
+	}
+
+	ide_reset();
+}
+
 
 int idetimes = 0;
 
@@ -980,6 +1076,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			case WIN_READ:
 			case WIN_READ_NORETRY:
 			case WIN_READ_DMA:
+			case WIN_READ_DMA_ALT:
 				if (ide_drive_is_cdrom(ide))
 				{
 					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
@@ -1020,6 +1117,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				return;
 
 			case WIN_WRITE_DMA:
+			case WIN_WRITE_DMA_ALT:
 				if (ide_drive_is_cdrom(ide))
 				{
 					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
@@ -1655,57 +1753,52 @@ void callbackide(int ide_board)
 			return;
 
 		case WIN_READ_DMA:
+		case WIN_READ_DMA_ALT:
 			if (ide_drive_is_cdrom(ide) || (ide->board >= 2))
 			{
+				pclog("IDE %i: DMA read aborted (bad device or board)\n", ide->channel);
 				goto abort_cmd;
 			}
 			if (!ide->specify_success)
 			{
+				pclog("IDE %i: DMA read aborted (SPECIFY failed)\n", ide->channel);
 				goto id_not_found;
 			}
 
-			if (ide->do_initial_read)
+			ide->sector_pos = 0;
+			if (ide->secount)
 			{
-				ide->do_initial_read = 0;
-				ide->sector_pos = 0;
-				if (ide->secount)
-				{
-					hdd_image_read(ide->hdd_num, ide_get_sector(ide), ide->secount, ide->sector_buffer);
-				}
-				else
-				{
-					hdd_image_read(ide->hdd_num, ide_get_sector(ide), 256, ide->sector_buffer);
-				}
+				ide->sector_pos = ide->secount;
 			}
+			else
+			{
+				ide->sector_pos = 256;
+			}
+			hdd_image_read(ide->hdd_num, ide_get_sector(ide), ide->sector_pos, ide->sector_buffer);
 
 			ide->pos=0;
                 
 			if (ide_bus_master_read)
 			{
-				if (ide_bus_master_read(ide_board, &ide->sector_buffer[ide->sector_pos*512], 512))
+				if (ide_bus_master_read(ide_board, ide->sector_buffer, ide->sector_pos * 512))
 				{
-					idecallback[ide_board]=6LL*IDE_TIME;           /*DMA not performed, try again later*/
+					// idecallback[ide_board]=6LL*IDE_TIME;           /*DMA not performed, try again later*/
+					pclog("IDE %i: DMA read aborted (failed)\n", ide->channel);
+					goto abort_cmd;
 				}
 				else
 				{
 					/*DMA successful*/
-					ide->sector_pos++;
-					ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
+					pclog("IDE %i: DMA read successful\n", ide->channel);
 
-					ide->secount = (ide->secount - 1) & 0xff;
-					if (ide->secount)
-					{
-						ide_next_sector(ide);
-						ide->atastat = BUSY_STAT;
-						idecallback[ide_board]=6LL*IDE_TIME;
-						ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
-					}
-					else
-					{
-						ide_irq_raise(ide);
-						ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
-					}
+					ide->atastat = READY_STAT | DSC_STAT;
+
+					ide_irq_raise(ide);
+					ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 				}
+			} else {
+				pclog("IDE %i: DMA read aborted (no bus master)\n", ide->channel);
+				goto abort_cmd;
 			}
 
 			return;
@@ -1788,42 +1881,46 @@ void callbackide(int ide_board)
 			return;
                 
 		case WIN_WRITE_DMA:
+		case WIN_WRITE_DMA_ALT:
 			if (ide_drive_is_cdrom(ide) || (ide_board >= 2))
 			{
+				pclog("IDE %i: DMA write aborted (bad device type or board)\n", ide->channel);
 				goto abort_cmd;
 			}
 			if (!ide->specify_success)
 			{
+				pclog("IDE %i: DMA write aborted (SPECIFY failed)\n", ide->channel);
 				goto id_not_found;
 			}
 
-			if (ide_bus_master_write)
+			if (ide_bus_master_read)
 			{
-				if (ide_bus_master_write(ide_board, (uint8_t *)ide->buffer, 512))
+				if (ide->secount)
+					ide->sector_pos = ide->secount;
+				else
+					ide->sector_pos = 256;
+
+				if (ide_bus_master_write(ide_board, ide->sector_buffer, ide->sector_pos * 512))
 				{
-					idecallback[ide_board]=6LL*IDE_TIME;           /*DMA not performed, try again later*/
+					pclog("IDE %i: DMA write aborted (failed)\n", ide->channel);
+					// idecallback[ide_board]=6LL*IDE_TIME;           /*DMA not performed, try again later*/
+					goto abort_cmd;
 				}
 				else
 				{
 					/*DMA successful*/
-					hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
+					pclog("IDE %i: DMA write successful\n", ide->channel);
 
-					ide->atastat = DRQ_STAT | READY_STAT | DSC_STAT;
+					hdd_image_write(ide->hdd_num, ide_get_sector(ide), ide->sector_pos, ide->sector_buffer);
 
-					ide->secount = (ide->secount - 1) & 0xff;
-					if (ide->secount)
-					{
-						ide_next_sector(ide);
-						ide->atastat = BUSY_STAT;
-						idecallback[ide_board]=6LL*IDE_TIME;
-						ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
-					}
-					else
-					{
-						ide_irq_raise(ide);
-						ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
-					}
+					ide->atastat = READY_STAT | DSC_STAT;
+
+					ide_irq_raise(ide);
+					ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 				}
+			} else {
+				pclog("IDE %i: DMA write aborted (no bus master)\n", ide->channel);
+				goto abort_cmd;
 			}
 
 			return;
@@ -1937,8 +2034,9 @@ void callbackide(int ide_board)
 			full_size /= ide->secount;
 			ide->specify_success = 1;
 			hdd_image_specify(ide->hdd_num, ide->head + 1, ide->secount);
-			ide->spt=ide->secount;
-			ide->hpc=ide->head+1;
+			ide->t_spt=ide->secount;
+			ide->t_hpc=ide->head;
+			ide->t_hpc++;
 			ide->atastat = READY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
 			return;
@@ -1967,7 +2065,7 @@ void callbackide(int ide_board)
 			return;
 
 		case WIN_SET_FEATURES:
-			if ((ide->type == IDE_NONE) || ide_drive_is_cdrom(ide))
+			if ((ide->type == IDE_NONE)/* || ide_drive_is_cdrom(ide)*/)
 			{
 				goto abort_cmd;
 			}
@@ -1978,6 +2076,10 @@ void callbackide(int ide_board)
 			}
 			else
 			{
+				if (ide_drive_is_cdrom(ide)) {
+					cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
+					cdrom[cdrom_id].pos = 0;
+				}
 				ide->atastat = READY_STAT | DSC_STAT;
 				ide_irq_raise(ide);
 			}

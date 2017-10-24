@@ -494,33 +494,6 @@ int piix_bus_master_get_eot(int channel)
 	return piix_busmaster[channel].eot;
 }
 
-int piix_bus_master_dma_read_ex(int channel, uint8_t *data)
-{
-        int transferred = 0;
-
-        if (!(piix_busmaster[channel].status & 1))
-           return 1;                                    /*DMA disabled*/
-
-	mem_invalidate_range(piix_busmaster[channel].addr, piix_busmaster[channel].addr + piix_busmaster[channel].count - 1);
-                
-	memcpy(&ram[piix_busmaster[channel].addr], data, piix_busmaster[channel].count);
-	transferred += piix_busmaster[channel].count;
-	piix_busmaster[channel].addr += piix_busmaster[channel].count;
-	piix_busmaster[channel].addr %= (mem_size * 1024);
-	piix_busmaster[channel].count = 0;
-
-	if (piix_busmaster[channel].eot) /*End of transfer?*/
-	{
-		piix_busmaster[channel].status &= ~1;
-		return -1;
-	}
-	else
-	{
-		piix_bus_master_next_addr(channel);
-	}
-	return 0;
-}
-
 int piix_bus_master_dma_read(int channel, uint8_t *data, int transfer_length)
 {
         int transferred = 0;
@@ -530,11 +503,6 @@ int piix_bus_master_dma_read(int channel, uint8_t *data, int transfer_length)
            
         while (transferred < transfer_length)
         {
-                if ((piix_busmaster[channel].count < (transfer_length - transferred)) && piix_busmaster[channel].eot && (transfer_length == 512))
-		{
-			fatal("DMA on channel %i - Read count less than %04X! Addr %08X Count %04X EOT %i\n", channel, transfer_length, piix_busmaster[channel].addr, piix_busmaster[channel].count, piix_busmaster[channel].eot);
-		}
-
                 mem_invalidate_range(piix_busmaster[channel].addr, piix_busmaster[channel].addr + transfer_length - 1);
                 
                 if (piix_busmaster[channel].count < (transfer_length - transferred))
@@ -575,11 +543,6 @@ int piix_bus_master_dma_write(int channel, uint8_t *data, int transfer_length)
 
         while (transferred < transfer_length)
         {
-                if ((piix_busmaster[channel].count < (transfer_length - transferred)) && piix_busmaster[channel].eot && (transfer_length == 512))
-		{
-			fatal("DMA on channel %i - Write count less than %04X! Addr %08X Count %04X EOT %i\n", channel, transfer_length, piix_busmaster[channel].addr, piix_busmaster[channel].count, piix_busmaster[channel].eot);
-		}
-                
                 if (piix_busmaster[channel].count < (transfer_length - transferred))
                 {
                         memcpy(data + transferred, &ram[piix_busmaster[channel].addr], piix_busmaster[channel].count);
@@ -616,40 +579,6 @@ void piix_bus_master_set_irq(int channel)
         piix_busmaster[channel & 0x0F].status |= (channel >> 4);
 }
 
-
-#if 0
-static int reset_reg = 0;
-
-static uint8_t rc_read(uint16_t port, void *priv)
-{
-	return reset_reg & 0xfb;
-}
-
-static void rc_write(uint16_t port, uint8_t val, void *priv)
-{
-	if (!(reset_reg & 4) && (val & 4))
-	{
-		if (reset_reg & 2)
-		{
-			pc_reset_hard();
-		}
-		else
-		{
-			if (piix_type == 3)
-			{
-				piix3_reset();
-			}
-			else
-			{
-				piix_reset();
-			}
-			ide_reset();
-			softresetx86();
-		}
-	}
-	reset_reg = val;
-}
-#endif
 
 void piix_reset(void)
 {

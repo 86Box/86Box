@@ -546,7 +546,7 @@ again2:
 
     hdc_init(hdc_name);
 
-    ide_reset();
+    ide_reset_hard();
 
     cdrom_hard_reset();
 
@@ -685,7 +685,7 @@ pc_reset_hard_init(void)
 	ide_ter_init();
     if (ide_enable[3])
 	ide_qua_init();
-    ide_reset();
+    ide_reset_hard();
 
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();

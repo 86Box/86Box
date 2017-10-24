@@ -31,6 +31,7 @@ typedef struct {
 	int pos;
 	int packlen;
 	int spt,hpc;
+	int t_spt,t_hpc;
 	int tracks;
 	int packetstatus;
 	uint8_t asc;
@@ -83,6 +84,7 @@ extern void	ide_set_side(int controller, uint16_t port);
 extern void	ide_init_first(void);
 extern void	ide_init(void);
 extern void	ide_reset(void);
+extern void	ide_reset_hard(void);
 
 extern void	ide_xtide_init(void);
 

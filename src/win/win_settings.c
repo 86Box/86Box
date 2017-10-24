@@ -2614,7 +2614,7 @@ static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, W
 			{
 				hdd_ptr->bus = HDD_BUS_IDE_PIO_ONLY;
 				max_spt = 63;
-				max_hpc = 16;
+				max_hpc = 255;
 			}
 			SendMessage(h, CB_SETCURSEL, hdd_ptr->bus, 0);
 			max_tracks = 266305;
@@ -3160,7 +3160,7 @@ hdd_add_file_open_error:
 						case HDD_BUS_IDE_PIO_ONLY:
 						case HDD_BUS_IDE_PIO_AND_DMA:
 							max_spt = 63;
-							max_hpc = 16;
+							max_hpc = 255;
 							max_tracks = 266305;
 							break;
 						case HDD_BUS_SCSI_REMOVABLE:
