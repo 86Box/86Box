@@ -8,7 +8,7 @@
  *
  *		Platform video API support for Win32.
  *
- * Version:	@(#)win_video.c	1.0.1	2017/10/18
+ * Version:	@(#)win_video.c	1.0.2	2017/10/22
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -29,6 +29,7 @@
 #include "../86box.h"
 #include "../config.h"
 #include "../device.h"
+#include "../mouse.h"
 #include "../video/video.h"
 #include "../plat.h"
 #include "../plat_mouse.h"
@@ -300,7 +301,7 @@ pclog("PLAT: VID[%d,%d] resizing to %dx%d\n", video_fullscreen, vid_api, x, y);
 		   y + (GetSystemMetrics(SM_CYEDGE) * 2) + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 17 + sb_borders[1] + 1,
 		   TRUE);
 
-	if (mousecapture) {
+	if (mouse_capture) {
 		GetWindowRect(hwndRender, &r);
 		ClipCursor(&r);
 	}

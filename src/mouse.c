@@ -8,7 +8,7 @@
  *
  *		Common driver module for MOUSE devices.
  *
- * Version:	@(#)mouse.c	1.0.10	2017/10/17
+ * Version:	@(#)mouse.c	1.0.11	2017/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -27,6 +27,14 @@
 #include "mouse.h"
 #include "machine/machine.h"
 #include "plat_mouse.h"
+
+
+int	mouse_type = 0;
+int	mouse_capture;
+int	mouse_x,
+	mouse_y,
+	mouse_z,
+	mouse_buttons;
 
 
 static mouse_t mouse_none = {
@@ -53,15 +61,18 @@ static mouse_t *mouse_list[] = {
 #endif
     NULL
 };
-
 static mouse_t *cur_mouse;
 static void *mouse_p;
-int mouse_type = 0;
 
 
 void
 mouse_emu_init(void)
 {
+    /* Initialize local data. */
+    mouse_x = mouse_y = mouse_z = 0;
+    mouse_buttons = 0x00;
+    mouse_capture = 0;
+
     cur_mouse = mouse_list[mouse_type];
 
     if (cur_mouse == NULL || cur_mouse->init == NULL) return;
@@ -86,15 +97,15 @@ void
 mouse_process(void)
 {
     static int poll_delay = 2;
-    int x, y, z;
 
     if (--poll_delay) return;
 
     mouse_poll_host();
 
-    mouse_get_mickeys(&x, &y, &z);
+    mouse_poll(mouse_x, mouse_y, mouse_z, mouse_buttons);
 
-    mouse_poll(x, y, z, mouse_buttons);
+    /* Reset mouse deltas. */
+    mouse_x = mouse_y = mouse_z = 0;
 
     poll_delay = 2;
 }
