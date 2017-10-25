@@ -196,7 +196,7 @@ set_screen_size(int x, int y)
     int efscrnsz_y;
 
     /* Make sure we keep usable values. */
-#if 1
+#if 0
     pclog("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
 #endif
     if (x < 320) x = 320;
