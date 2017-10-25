@@ -8,7 +8,7 @@
  *
  *		Common driver module for MOUSE devices.
  *
- * Version:	@(#)mouse.c	1.0.11	2017/10/22
+ * Version:	@(#)mouse.c	1.0.12	2017/10/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -30,7 +30,6 @@
 
 
 int	mouse_type = 0;
-int	mouse_capture;
 int	mouse_x,
 	mouse_y,
 	mouse_z,
@@ -71,7 +70,6 @@ mouse_emu_init(void)
     /* Initialize local data. */
     mouse_x = mouse_y = mouse_z = 0;
     mouse_buttons = 0x00;
-    mouse_capture = 0;
 
     cur_mouse = mouse_list[mouse_type];
 

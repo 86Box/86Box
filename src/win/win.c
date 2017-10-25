@@ -133,17 +133,6 @@ win_menu_update(void)
 
 
 static void
-releasemouse(void)
-{
-    if (mouse_capture) {
-	ClipCursor(&oldclip);
-	ShowCursor(TRUE);
-	mouse_capture = 0;
-    }
-}
-
-
-static void
 video_toggle_option(HMENU h, int *val, int id)
 {
     startblit();
@@ -606,7 +595,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_KILLFOCUS:
 		infocus = 0;
-		releasemouse();
+		plat_mouse_capture(0);
 		if (video_fullscreen)
 			leave_fullscreen_flag = 1;
 		if (hook_enabled) {
@@ -616,22 +605,13 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_LBUTTONUP:
-		if (!mouse_capture && !video_fullscreen) {
-			GetClipCursor(&oldclip);
-			GetWindowRect(hwndRender, &rect);
-
-			ClipCursor(&rect);
-			mouse_capture = 1;
-			while (1) {
-				if (ShowCursor(FALSE) < 0) break;
-			}
-		}
+		if (! video_fullscreen)
+			plat_mouse_capture(1);
 		break;
 
 	case WM_MBUTTONUP:
-		if (!(mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON)) {
-			releasemouse();
-		}
+		if (!(mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON))
+			plat_mouse_capture(0);
 		break;
 
 	case WM_ENTERMENULOOP:
@@ -1085,9 +1065,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 	}
 
 	if (mouse_capture && keyboard_ismsexit()) {
-		ClipCursor(&oldclip);
-		ShowCursor(TRUE);
-		mouse_capture = 0;
+		/* Release the in-app mouse. */
+		plat_mouse_capture(0);
         }
 
 	if (video_fullscreen && keyboard_isfsexit()) {
@@ -1098,11 +1077,9 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 
     timeEndPeriod(1);
 
-    if (mouse_capture) {
-	ClipCursor(&oldclip);
-	ShowCursor(TRUE);
-    }
-        
+    if (mouse_capture)
+	plat_mouse_capture(0);
+
     UnregisterClass(SUB_CLASS_NAME, hinstance);
     UnregisterClass(CLASS_NAME, hinstance);
 
@@ -1174,7 +1151,10 @@ do_start(void)
     timer_freq = qpc.QuadPart;
     pclog("Main timer precision: %llu\n", timer_freq);
 
-    atexit(releasemouse);
+#if 0
+    /* We should have an application-wide at_exit catcher. */
+    atexit(plat_mouse_capture);
+#endif
 
     /* Start the emulator, really. */
     thMain = thread_create(pc_thread, &quited);
@@ -1390,4 +1370,29 @@ wchar_t *
 plat_get_string_from_string(char *str)
 {
     return(plat_get_string(atoi(str)));
+}
+
+
+void
+plat_mouse_capture(int on)
+{
+    RECT rect;
+
+    if (on && !mouse_capture) {
+	/* Enable the in-app mouse. */
+	GetClipCursor(&oldclip);
+	GetWindowRect(hwndRender, &rect);
+	ClipCursor(&rect);
+	while (1) {
+		if (ShowCursor(FALSE) < 0) break;
+	}
+
+	mouse_capture = 1;
+    } else if (!on && mouse_capture) {
+	/* Disable the in-app mouse. */
+	ClipCursor(&oldclip);
+	ShowCursor(TRUE);
+
+	mouse_capture = 0;
+    }
 }

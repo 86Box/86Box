@@ -43,5 +43,9 @@ extern void	keyboard_input(int down, uint16_t scan);
 extern int	keyboard_isfsexit(void);
 extern int	keyboard_ismsexit(void);
 
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif	/*EMU_KEYBOARD_H*/

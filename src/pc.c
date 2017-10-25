@@ -666,7 +666,7 @@ pc_reset_hard_init(void)
     /* Reset keyboard and/or mouse. */
     keyboard_at_reset();
     mouse_emu_init();
-        
+
     /* Reset the video card. */
     video_reset();
     if (voodoo_enabled)
@@ -774,13 +774,7 @@ pc_close(thread_t *ptr)
 
     config_save();
 
-#if 0
-    //FIXME: need to move this to Plat. */
-    if (mouse_capture) {
-        ClipCursor(&oldclip);
-        ShowCursor(TRUE);
-    }
-#endif
+    plat_mouse_capture(0);
 
     for (i=0; i<CDROM_NUM; i++)
 	cdrom_drives[i].handler->exit(i);

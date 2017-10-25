@@ -8,14 +8,14 @@
  *
  *		Definitions for the MOUSE driver.
  *
- * Version:	@(#)mouse.h	1.0.5	2017/10/22
+ * Version:	@(#)mouse.h	1.0.6	2017/10/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
 #ifndef EMU_MOUSE_H
 # define EMU_MOUSE_H
@@ -53,7 +53,6 @@ typedef struct {
 
 
 extern int	mouse_type;
-extern int	mouse_capture;
 extern int	mouse_x, mouse_y, mouse_z;
 extern int	mouse_buttons;
 

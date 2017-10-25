@@ -580,5 +580,11 @@ keyboard_isfsexit(void)
 int
 keyboard_ismsexit(void)
 {
+#ifdef WIN32
+    /* Windows: F8+F12 */
     return( recv_key[0x42] && recv_key[0x58] );
+#else
+    /* Linux: CTRL+END */
+    return( (recv_key[0x1D] || recv_key[0x9D]) && recv_key[0xCF] );
+#endif
 }

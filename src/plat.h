@@ -36,7 +36,8 @@ extern "C" {
 GLOBAL int	dopause,			/* system is paused */
 		doresize,			/* screen resize requested */
 		quited,				/* system exit requested */
-		leave_fullscreen_flag;		/* windowed-mode requested */
+		leave_fullscreen_flag,		/* windowed-mode requested */
+		mouse_capture;			/* mouse is captured in app */
 GLOBAL uint64_t	timer_freq;
 GLOBAL int	infocus;
 
@@ -57,6 +58,7 @@ extern uint64_t	plat_timer_read(void);
 extern uint32_t	plat_get_ticks(void);
 extern void	plat_delay_ms(uint32_t count);
 extern void	plat_pause(int p);
+extern void	plat_mouse_capture(int on);
 extern int	plat_vidapi(char *name);
 extern char	*plat_vidapi_name(int api);
 extern int	plat_setvid(int api);
