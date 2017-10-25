@@ -89,13 +89,13 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 		oti->regs[oti->index] = val;
 		switch (oti->index) {
 			case 0xD:
-				svga->vrammask = (val & 0xc) ? oti->vram_mask : 0x3ffff;
+				svga->vram_display_mask = (val & 0xc) ? oti->vram_mask : 0x3ffff;
 				if ((val & 0x80) && oti->vram_size == 256)
 					mem_mapping_disable(&svga->mapping);
 				else
 					mem_mapping_enable(&svga->mapping);
 				if (!(val & 0x80))
-					svga->vrammask = 0x3ffff;
+					svga->vram_display_mask = 0x3ffff;
 				break;
 
 			case 0x11:

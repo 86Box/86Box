@@ -104,7 +104,7 @@ plat_vidapi(char *name)
 {
     int i;
 
-    if (!strcasecmp(name, "default") || !strcasecmp(name, "system")) return(0);
+    if (!strcasecmp(name, "default") || !strcasecmp(name, "system")) return(1);
 
     for (i=0; i<4; i++) {
 	if (vid_apis[0][i].name &&
@@ -112,7 +112,28 @@ plat_vidapi(char *name)
     }
 
     /* Default value. */
-    return(0);
+    return(1);
+}
+
+
+char *
+plat_vidapi_name(void)
+{
+	switch(vid_api) {
+		case 0:
+			return("ddraw");
+		case 1:
+		default:
+			return("default");	/* Direct3D is default. */
+#ifdef USE_VNC
+		case 2:
+			return("vnc");
+#endif
+#ifdef USE_RDP
+		case 3:
+			return("rdp");
+#endif
+	}
 }
 
 
@@ -162,6 +183,7 @@ void
 plat_setfullscreen(int on)
 {
     static int flag = 0;
+    HWND *hw;
 
     /* Want off and already off? */
     if (!on && !video_fullscreen) return;
@@ -190,10 +212,12 @@ plat_setfullscreen(int on)
     /* Close the current mode, and open the new one. */
     vid_apis[video_fullscreen][vid_api].close();
     video_fullscreen = on;
-    vid_apis[video_fullscreen][vid_api].init(NULL);
+    hw = (video_fullscreen) ? &hwndMain : &hwndRender;
+    vid_apis[video_fullscreen][vid_api].init((void *) *hw);
     flag = 0;
 
     mouse_init();
+    leave_fullscreen_flag = 0;
 
     /* Release video and make it redraw the screen. */
     endblit();

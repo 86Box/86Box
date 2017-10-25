@@ -381,7 +381,7 @@ static void s3_virge_out(uint16_t addr, uint8_t val, void *p)
                         break;
                         case 0x32:
                         if ((svga->crtc[0x67] & 0xc) != 0xc)
-                                svga->vrammask = (val & 0x40) ? 0x3ffff : ((virge->memory_size << 20) - 1);
+                                svga->vram_display_mask = (val & 0x40) ? 0x3ffff : ((virge->memory_size << 20) - 1);
 			s3_virge_update_irqs(virge);
                         break;
                         
@@ -585,7 +585,7 @@ static void s3_virge_recalctimings(svga_t *svga)
                         	svga->rowoffset = (svga->rowoffset * 3) / 4; /*Hack*/
 	                }
 		}
-                svga->vrammask = (svga->crtc[0x32] & 0x40) ? 0x3ffff : ((virge->memory_size << 20) - 1);
+                svga->vram_display_mask = (svga->crtc[0x32] & 0x40) ? 0x3ffff : ((virge->memory_size << 20) - 1);
         }
         else /*Streams mode*/
         {
@@ -631,7 +631,7 @@ static void s3_virge_recalctimings(svga_t *svga)
                         svga->render = svga_render_32bpp_highres; 
                         break;
                 }
-                svga->vrammask = (virge->memory_size << 20) - 1;
+                svga->vram_display_mask = (virge->memory_size << 20) - 1;
         }
 
         if (((svga->miscout >> 2) & 3) == 3)

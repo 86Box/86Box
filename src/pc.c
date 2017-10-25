@@ -196,7 +196,7 @@ set_screen_size(int x, int y)
     int efscrnsz_y;
 
     /* Make sure we keep usable values. */
-#if 0
+#if 1
     pclog("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
 #endif
     if (x < 320) x = 320;
@@ -968,7 +968,7 @@ pc_thread(void *param)
 	if (leave_fullscreen_flag) {
 #if 1
 		pclog("Leaving full-screen mode..\n");
-//		plat_fullscreen(0);
+		plat_setfullscreen(0);
 #else
 		SendMessage(hwndMain, WM_LEAVEFULLSCREEN, 0, 0);
 #endif

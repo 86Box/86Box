@@ -480,11 +480,11 @@ void mach64_recalctimings(svga_t *svga)
                         break;
                 }
 
-                svga->vrammask = mach64->vram_mask;
+                svga->vram_display_mask = mach64->vram_mask;
         }
         else
         {
-                svga->vrammask = (mach64->regs[0x36] & 0x01) ? mach64->vram_mask : 0x3ffff;
+                svga->vram_display_mask = (mach64->regs[0x36] & 0x01) ? mach64->vram_mask : 0x3ffff;
         }
 }
 

@@ -149,7 +149,7 @@ void tvga_out(uint16_t addr, uint8_t val, void *p)
                 switch (svga->crtcreg)
                 {
                         case 0x1e:
-                        svga->vrammask = (val & 0x80) ? tvga->vram_mask : 0x3ffff;
+                        svga->vram_display_mask = (val & 0x80) ? tvga->vram_mask : 0x3ffff;
                         break;
                 }
                 return;

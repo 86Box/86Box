@@ -1168,33 +1168,17 @@ save_general(void)
     char *cat = "General";
     char temp[512];
 
+    char *va_name;
+
     config_set_int(cat, "vid_resize", vid_resize);
     if (vid_resize == 0)
 	config_delete_var(cat, "vid_resize");
 
-    if (vid_api == 1) {
+    va_name = plat_vidapi_name();
+    if (!strcmp(va_name, "default")) {
 	config_delete_var(cat, "vid_renderer");
-    } else switch(vid_api) {
-	case 0:
-		config_set_string(cat, "vid_renderer", "ddraw");
-		break;
-
-	case 1:
-	default:
-		config_set_string(cat, "vid_renderer", "d3d9");
-		break;
-
-#ifdef USE_VNC
-	case 2:
-		config_set_string(cat, "vid_renderer", "vnc");
-		break;
-#endif
-
-#ifdef USE_RDP
-	case 3:
-		config_set_string(cat, "vid_renderer", "rdp");
-		break;
-#endif
+    } else {
+	config_set_string(cat, "vid_renderer", va_name);
     }
 
     if (video_fullscreen_scale == 0)

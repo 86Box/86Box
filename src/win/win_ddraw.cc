@@ -182,7 +182,7 @@ blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 	return; /*Nothing to do*/
     }
 
-    if (h <= 0) {
+    if ((y1 == y2) || (h <= 0)) {
 	video_blit_complete();
 	return;
     }

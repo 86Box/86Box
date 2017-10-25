@@ -234,7 +234,7 @@ const uint8_t cdrom_mode_sense_pages_default[CDROM_NUM][0x40][0x40] =
 		{                        0,    0 },
 		{                        0,    0 },
 		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1,  0, 0, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }	},
+		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
 	{	{                        0,    0 },
 		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
 		{                        0,    0 },
@@ -277,7 +277,7 @@ const uint8_t cdrom_mode_sense_pages_default[CDROM_NUM][0x40][0x40] =
 		{                        0,    0 },
 		{                        0,    0 },
 		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1,  0, 0, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }	},
+		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
 	{	{                        0,    0 },
 		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
 		{                        0,    0 },
@@ -320,7 +320,7 @@ const uint8_t cdrom_mode_sense_pages_default[CDROM_NUM][0x40][0x40] =
 		{                        0,    0 },
 		{                        0,    0 },
 		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1,  0, 0, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }	},
+		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
 	{	{                        0,    0 },
 		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
 		{                        0,    0 },
@@ -363,7 +363,7 @@ const uint8_t cdrom_mode_sense_pages_default[CDROM_NUM][0x40][0x40] =
 		{                        0,    0 },
 		{                        0,    0 },
 		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1,  0, 0, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }	}
+		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	}
 };
 
 uint8_t cdrom_mode_sense_pages_changeable[CDROM_NUM][0x40][0x40] =
@@ -410,7 +410,7 @@ uint8_t cdrom_mode_sense_pages_changeable[CDROM_NUM][0x40][0x40] =
 		{                        0,    0 },
 		{                        0,    0 },
 		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1,  0, 0, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }	},
+		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
 	{	{                        0,    0 },
 		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
 		{                        0,    0 },
@@ -453,7 +453,7 @@ uint8_t cdrom_mode_sense_pages_changeable[CDROM_NUM][0x40][0x40] =
 		{                        0,    0 },
 		{                        0,    0 },
 		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1,  0, 0, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }	},
+		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
 	{	{                        0,    0 },
 		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
 		{                        0,    0 },
@@ -496,7 +496,7 @@ uint8_t cdrom_mode_sense_pages_changeable[CDROM_NUM][0x40][0x40] =
 		{                        0,    0 },
 		{                        0,    0 },
 		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1,  0, 0, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }	},
+		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
 	{	{                        0,    0 },
 		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
 		{                        0,    0 },
@@ -539,7 +539,7 @@ uint8_t cdrom_mode_sense_pages_changeable[CDROM_NUM][0x40][0x40] =
 		{                        0,    0 },
 		{                        0,    0 },
 		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1,  0, 0, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }	}
+		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	}
 };
 
 uint8_t cdrom_mode_sense_pages_saved[CDROM_NUM][0x40][0x40] =
@@ -586,7 +586,7 @@ uint8_t cdrom_mode_sense_pages_saved[CDROM_NUM][0x40][0x40] =
 		{                        0,    0 },
 		{                        0,    0 },
 		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1,  0, 0, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }	},
+		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
 	{	{                        0,    0 },
 		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
 		{                        0,    0 },
@@ -629,7 +629,7 @@ uint8_t cdrom_mode_sense_pages_saved[CDROM_NUM][0x40][0x40] =
 		{                        0,    0 },
 		{                        0,    0 },
 		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1,  0, 0, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }	},
+		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
 	{	{                        0,    0 },
 		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
 		{                        0,    0 },
@@ -672,7 +672,7 @@ uint8_t cdrom_mode_sense_pages_saved[CDROM_NUM][0x40][0x40] =
 		{                        0,    0 },
 		{                        0,    0 },
 		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1,  0, 0, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }	},
+		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
 	{	{                        0,    0 },
 		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
 		{                        0,    0 },
@@ -715,7 +715,7 @@ uint8_t cdrom_mode_sense_pages_saved[CDROM_NUM][0x40][0x40] =
 		{                        0,    0 },
 		{                        0,    0 },
 		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1,  0, 0, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }	}
+		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	}
 };
 
 #ifdef ENABLE_CDROM_LOG

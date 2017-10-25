@@ -392,7 +392,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 #ifdef USE_RDP
 			case IDM_VID_RDP:
 #endif
+				CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_UNCHECKED);
 				plat_setvid(LOWORD(wParam) - IDM_VID_DDRAW);
+				CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_CHECKED);
 				config_save();
 				break;
 
@@ -1048,6 +1050,9 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 	device_force_redraw();
     }
 #endif
+    if (start_in_fullscreen) {
+	plat_setfullscreen(1);
+    }
 
     /* Set up the current window size. */
     plat_resize(scrnsz_x, scrnsz_y);
@@ -1140,6 +1145,9 @@ ui_window_title(wchar_t *s)
 		s = wTitle;
 
        	SetWindowText(hwndMain, s);
+    } else {
+	if (s == NULL)
+		s = wTitle;
     }
 
     return(s);
@@ -1344,8 +1352,8 @@ plat_delay_ms(uint32_t count)
 void
 plat_pause(int p)
 {
-    static wchar_t oldtitle[128];
-    wchar_t title[128];
+    static wchar_t oldtitle[512];
+    wchar_t title[512];
 
     /* If un-pausing, as the renderer if that's OK. */
     if (p == 0)

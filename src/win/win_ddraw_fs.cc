@@ -58,8 +58,8 @@ int ddraw_fs_init(HWND h)
         if (FAILED(lpdd7->SetDisplayMode(ddraw_w, ddraw_h, 32, 0 ,0)))
                 return 0;
            
-        // memset(&ddsd, 0, sizeof(ddsd));
-        // ddsd.dwSize = sizeof(ddsd);
+        memset(&ddsd, 0, sizeof(ddsd));
+        ddsd.dwSize = sizeof(ddsd);
         
         ddsd.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
         ddsd.dwBackBufferCount = 1;
@@ -190,6 +190,11 @@ static void blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 		return; /*Nothing to do*/
         }
 
+	if ((y1 == y2) || (h <= 0)) {
+		video_blit_complete();
+		return;
+	}
+
         memset(&ddsd, 0, sizeof(ddsd));
         ddsd.dwSize = sizeof(ddsd);
 
@@ -205,10 +210,8 @@ static void blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
                 video_blit_complete();
                 return;
         }
-	for (yy = y1; yy < y2; yy++)
-	{
-		if ((y + yy) >= 0)  memcpy((unsigned char*)ddsd.lpSurface + (yy * ddsd.lPitch), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
-	}
+        for (yy = y1; yy < y2; yy++)
+                memcpy((void *)((uintptr_t)ddsd.lpSurface + (yy * ddsd.lPitch)), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
         video_blit_complete();
         lpdds_back->Unlock(NULL);
         

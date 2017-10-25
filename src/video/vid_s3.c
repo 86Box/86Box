@@ -807,7 +807,7 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                 }
                 if (svga->seqaddr == 4) /*Chain-4 - update banking*/
                 {
-                        if (val & 8 || (svga->crtc[0x31] & 8))
+                        if (val & 8)
                                 svga->write_bank = svga->read_bank = s3->bank << 16;
                         else
                                 svga->write_bank = svga->read_bank = s3->bank << 14;
@@ -840,13 +840,9 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                 {
                         case 0x31:
                         s3->ma_ext = (s3->ma_ext & 0x1c) | ((val & 0x30) >> 4);
-                        if (svga->chain4 || (svga->crtc[0x31] & 8))
-                                svga->write_bank = svga->read_bank = s3->bank << 16;
-                        else
-                                svga->write_bank = svga->read_bank = s3->bank << 14;
                         break;
                         case 0x32:
-                        svga->vrammask = (val & 0x40) ? 0x3ffff : s3->vram_mask;
+                        svga->vram_display_mask = (val & 0x40) ? 0x3ffff : s3->vram_mask;
                         break;
                                                 
                         case 0x50:
@@ -867,14 +863,14 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                         
                         case 0x35:
                         s3->bank = (s3->bank & 0x70) | (val & 0xf);
-                        if (svga->chain4 || (svga->crtc[0x31] & 8))
+                        if (svga->chain4)
                                 svga->write_bank = svga->read_bank = s3->bank << 16;
                         else
                                 svga->write_bank = svga->read_bank = s3->bank << 14;
                         break;
                         case 0x51:
                         s3->bank = (s3->bank & 0x4f) | ((val & 0xc) << 2);
-                        if (svga->chain4 || (svga->crtc[0x31] & 8))
+                        if (svga->chain4)
                                 svga->write_bank = svga->read_bank = s3->bank << 16;
                         else
                                 svga->write_bank = svga->read_bank = s3->bank << 14;
@@ -882,7 +878,7 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                         break;
                         case 0x6a:
                         s3->bank = val;
-                        if (svga->chain4 || (svga->crtc[0x31] & 8))
+                        if (svga->chain4)
                                 svga->write_bank = svga->read_bank = s3->bank << 16;
                         else
                                 svga->write_bank = svga->read_bank = s3->bank << 14;
@@ -1060,12 +1056,14 @@ void s3_updatemapping(s3_t *s3)
                 return;
         }
 
-        if (svga->crtc[0x31] & 0x08)
+	/*Banked framebuffer*/
+        if (svga->crtc[0x31] & 0x08) /*Enhanced mode mappings*/
         {
+		/* Enhanced mode forces 64kb at 0xa0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
                 svga->banked_mask = 0xffff;
         }
-        else switch (svga->gdcreg[6] & 0xc) /*Banked framebuffer*/
+        else switch (svga->gdcreg[6] & 0xc) /*VGA mapping*/
         {
                 case 0x0: /*128k at A0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
@@ -1106,6 +1104,7 @@ void s3_updatemapping(s3_t *s3)
                         break;
                 }
                 s3->linear_base &= ~(s3->linear_size - 1);
+		svga->linear_base = s3->linear_base;
                 if (s3->linear_base == 0xa0000)
                 {
                         mem_mapping_disable(&s3->linear_mapping);
@@ -2191,6 +2190,33 @@ static void *s3_init(device_t *info, wchar_t *bios_fn, int chip)
                    s3_hwcursor_draw,
                    NULL);
 
+        svga->decode_mask = (4 << 20) - 1;
+        switch (vram)
+        {
+                case 0: /*512kb*/
+                svga->vram_mask = (1 << 19) - 1;
+                svga->vram_max = 2 << 20;
+                break;
+                case 1: /*1MB*/
+                /*VRAM in first MB, mirrored in 2nd MB, 3rd and 4th MBs are open bus*/
+                svga->vram_mask = (1 << 20) - 1;
+                svga->vram_max = 2 << 20;
+                break;
+                case 2: default: /*2MB*/
+                /*VRAM in first 2 MB, 3rd and 4th MBs are open bus*/
+                svga->vram_mask = (2 << 20) - 1;
+                svga->vram_max = 2 << 20;
+                break;
+                case 4: /*4MB*/
+                svga->vram_mask = (4 << 20) - 1;
+                svga->vram_max = 4 << 20;
+                break;
+                case 8: /*4MB*/
+                svga->vram_mask = (8 << 20) - 1;
+                svga->vram_max = 8 << 20;
+                break;
+        }
+                
         if (info->flags & DEVICE_PCI)
                 svga->crtc[0x36] = 2 | (3 << 2) | (1 << 4) | (vram_sizes[vram] << 5);
         else
@@ -2460,11 +2486,8 @@ static device_config_t s3_phoenix_trio32_config[] =
 static device_config_t s3_phoenix_trio64_config[] =
 {
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 2,
+                "memory", "Memory size", CONFIG_SELECTION, "", 4,
                 {
-                        {
-                                "512 KB", 0
-                        },
                         {
                                 "1 MB", 1
                         },

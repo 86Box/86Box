@@ -212,7 +212,7 @@ void clgd_out(uint16_t addr, uint8_t val, void *p)
                 {
 					if (svga->crtcreg == 0x1b)
 					{
-						svga->vrammask = (val & 2) ? (clgd->vram_size - 1) : 0x3ffff;
+						svga->vram_display_mask = (val & 2) ? (clgd->vram_size - 1) : 0x3ffff;
 						clgd->linear_mmio_mask = (val & 2) ? (clgd->vram_size - 256) : (0x40000 - 256);
 					}
                         if (svga->crtcreg < 0xe || svga->crtcreg > 0x10)
@@ -526,9 +526,14 @@ void svga_write_mode45_8bpp(clgd_t *clgd, uint8_t mode, uint32_t offset, uint8_t
 	uint8_t *dst;
 	svga_t *svga = &clgd->svga;
 
-	dst = svga->vram + (offset &= svga->vrammask);
+	offset &= svga->decode_mask;
+	if (offset >= svga->vram_max)
+		return;
+	offset &= svga->vram_mask;
 
-	svga->changedvram[(offset &= svga->vrammask) >> 12] = changeframecount;
+	dst = &(svga->vram[offset]);
+
+	svga->changedvram[offset >> 12] = changeframecount;
 
 	for (x = 0; x < 8; x++)
 	{
@@ -552,9 +557,14 @@ void svga_write_mode45_16bpp(clgd_t *clgd, unsigned mode, unsigned offset, uint3
 	uint8_t *dst;
 	svga_t *svga = &clgd->svga;
 
-	dst = svga->vram + (offset &= svga->vrammask);
+	offset &= svga->decode_mask;
+	if (offset >= svga->vram_max)
+		return;
+	offset &= svga->vram_mask;
 
-	svga->changedvram[(offset &= svga->vrammask) >> 12] = changeframecount;
+	dst = &(svga->vram[offset]);
+
+	svga->changedvram[offset >> 12] = changeframecount;
 
 	for (x = 0; x < 8; x++)
 	{
@@ -883,7 +893,7 @@ void *clgd_common_init(wchar_t *romfn, uint8_t id)
 		// Seems the 5436 and 5446 BIOS'es never turn on that bit until it's actually needed,
 		// therefore they also don't turn it back off on 640x480x4bpp,
 		// therefore, we need to make sure the VRAM mask is correct at start.
-		svga->vrammask = (svga->crtc[0x1b] & 2) ? (clgd->vram_size - 1) : 0x3ffff;
+		svga->vram_display_mask = (svga->crtc[0x1b] & 2) ? (clgd->vram_size - 1) : 0x3ffff;
 		clgd->linear_mmio_mask = (svga->crtc[0x1b] & 2) ? (clgd->vram_size - 256) : (0x40000 - 256);
 
 		svga->seqregs[0x15] = clgd->vram_code;

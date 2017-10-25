@@ -33,8 +33,19 @@ typedef struct svga_t
         uint8_t miscout;
         int vidclock;
 
-        uint32_t vram_limit;
-        
+        /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
+          0MB-1MB - VRAM
+          1MB-2MB - VRAM mirror
+          2MB-4MB - open bus
+          4MB-xMB - mirror of above
+          
+          For the example memory map, decode_mask would be 4MB-1 (4MB address space), vram_max would be 2MB
+          (present video memory only responds to first 2MB), vram_mask would be 1MB-1 (video memory wraps at 1MB)
+        */
+        uint32_t decode_mask;
+        uint32_t vram_max;
+        uint32_t vram_mask;
+
         uint8_t la, lb, lc, ld;
         
         uint8_t dac_mask, dac_status;
@@ -91,7 +102,7 @@ typedef struct svga_t
         
         uint8_t *vram;
         uint8_t *changedvram;
-        int vrammask;
+        int vram_display_mask;
         uint32_t banked_mask;
 
         uint32_t write_bank, read_bank;

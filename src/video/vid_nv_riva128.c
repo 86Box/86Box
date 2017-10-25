@@ -2902,6 +2902,8 @@ void *riva128_init(device_t *info)
 	          riva128_in, riva128_out,
 	          NULL, NULL);
 
+	riva128->svga.decode_mask = 0x1fffff;
+
 	rom_init(&riva128->bios_rom, L"roms/video/nv_riva128/Diamond_V330_rev-e.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 	if (PCI)
 		mem_mapping_disable(&riva128->bios_rom.mapping);
@@ -3151,6 +3153,8 @@ void *rivatnt_init(device_t *info)
 	          riva128_in, riva128_out,
 	          NULL, NULL);
 
+	riva128->svga.decode_mask = 0x1fffff;
+
 	rom_init(&riva128->bios_rom, L"roms/video/nv_riva128/NV4_diamond_revB.rom", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
 	if (PCI)
 		mem_mapping_disable(&riva128->bios_rom.mapping);
@@ -3345,6 +3349,8 @@ void *rivatnt2_init(device_t *info)
 	          riva128_recalctimings,
 	          riva128_in, riva128_out,
 	          NULL, NULL);
+
+	riva128->svga.decode_mask = 0x1fffff;
 
 	switch(model)
 	{

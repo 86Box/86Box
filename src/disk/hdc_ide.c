@@ -103,7 +103,8 @@ int cur_ide[5];
 
 
 #ifdef ENABLE_IDE_LOG
-int ide_do_log = ENABLE_IDE_LOG;
+// int ide_do_log = ENABLE_IDE_LOG;
+int ide_do_log = 0;
 #endif
 
 static void ide_log(const char *format, ...)
@@ -424,22 +425,25 @@ static void ide_identify(IDE *ide)
 
 	ide->buffer[59] = ide->blocksize ? (ide->blocksize | 0x100) : 0;
 
-	if (PCI && (ide->board < 2) && (hdd[ide->hdd_num].bus == HDD_BUS_IDE_PIO_AND_DMA))
+	if (ide->buffer[49] & (1 << 8))
 	{
 		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
-		ide->buffer[53] |= 2;
+		ide->buffer[53] |= 6;
 
 		ide->buffer[62] = 7;
 		ide->buffer[63] = 7;
+		ide->buffer[88] = 7;
         	if (ide->mdma_mode != -1)
 	        {
 		    d = (ide->mdma_mode & 0xff);
 		    d <<= 8;
-		    if (ide->mdma_mode & 0x100)
+		    if ((ide->mdma_mode & 0x100) == 0x200)
+        	    	ide->buffer[88] |= d;
+		    else if ((ide->mdma_mode & 0x100) == 0x100)
         	    	ide->buffer[63] |= d;
 		    else
         	    	ide->buffer[62] |= d;
-		    pclog(" IDENTIFY DMA Mode: %04X, %04X\n", ide->buffer[62], ide->buffer[63]);
+		    ide_log(" IDENTIFY DMA Mode: %04X, %04X\n", ide->buffer[62], ide->buffer[63]);
 	        }
 		ide->buffer[65] = 120;
 		ide->buffer[66] = 120;
@@ -478,18 +482,21 @@ static void ide_atapi_identify(IDE *ide)
 	{
 		ide->buffer[49] |= 0x100; /* DMA supported */
 		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
-		ide->buffer[53] = 3;
+		ide->buffer[53] = 7;
 		ide->buffer[62] = 7;
 		ide->buffer[63] = 7;
+		ide->buffer[88] = 7;
         	if (ide->mdma_mode != -1)
 	        {
 		    d = (ide->mdma_mode & 0xff);
 		    d <<= 8;
-		    if (ide->mdma_mode & 0x100)
+		    if ((ide->mdma_mode & 0x100) == 0x200)
+        	    	ide->buffer[88] |= d;
+		    else if ((ide->mdma_mode & 0x100) == 0x100)
         	    	ide->buffer[63] |= d;
 		    else
         	    	ide->buffer[62] |= d;
-		    pclog("PIDENTIFY DMA Mode: %04X, %04X\n", ide->buffer[62], ide->buffer[63]);
+		    ide_log("PIDENTIFY DMA Mode: %04X, %04X\n", ide->buffer[62], ide->buffer[63]);
 	        }
 		ide->buffer[65] = 0xb4;
 		ide->buffer[66] = 0xb4;
@@ -615,7 +622,7 @@ static int ide_set_features(IDE *ide)
 
 	ide_log("Features code %02X\n", features);
 
-	pclog("IDE %02X: Set features: %02X, %02X\n", ide->channel, features, features_data);
+	ide_log("IDE %02X: Set features: %02X, %02X\n", ide->channel, features, features_data);
 
 	switch(features)
 	{
@@ -633,7 +640,7 @@ static int ide_set_features(IDE *ide)
 						return 0;
 					}
 					ide->mdma_mode = -1;
-					pclog("IDE %02X: Setting DPIO mode: %02X, %08X\n", ide->channel, submode, ide->mdma_mode);
+					ide_log("IDE %02X: Setting DPIO mode: %02X, %08X\n", ide->channel, submode, ide->mdma_mode);
 					break;
 
 				case 0x01:	/* PIO mode */
@@ -642,7 +649,7 @@ static int ide_set_features(IDE *ide)
 						return 0;
 					}
 					ide->mdma_mode = -1;
-					pclog("IDE %02X: Setting  PIO mode: %02X, %08X\n", ide->channel, submode, ide->mdma_mode);
+					ide_log("IDE %02X: Setting  PIO mode: %02X, %08X\n", ide->channel, submode, ide->mdma_mode);
 					break;
 
 				case 0x02:	/* Singleword DMA mode */
@@ -651,7 +658,7 @@ static int ide_set_features(IDE *ide)
 						return 0;
 					}
 					ide->mdma_mode = (1 << submode);
-					pclog("IDE %02X: Setting SDMA mode: %02X, %08X\n", ide->channel, submode, ide->mdma_mode);
+					ide_log("IDE %02X: Setting SDMA mode: %02X, %08X\n", ide->channel, submode, ide->mdma_mode);
 					break;
 
 				case 0x04:	/* Multiword DMA mode */
@@ -660,7 +667,16 @@ static int ide_set_features(IDE *ide)
 						return 0;
 					}
 					ide->mdma_mode = (1 << submode) | 0x100;
-					pclog("IDE %02X: Setting MDMA mode: %02X, %08X\n", ide->channel, submode, ide->mdma_mode);
+					ide_log("IDE %02X: Setting MDMA mode: %02X, %08X\n", ide->channel, submode, ide->mdma_mode);
+					break;
+
+				case 0x08:	/* Ultra DMA mode */
+					if (!PCI || !dma || (ide->board >= 2) || (submode > 2))
+					{
+						return 0;
+					}
+					ide->mdma_mode = (1 << submode) | 0x200;
+					ide_log("IDE %02X: Setting UDMA mode: %02X, %08X\n", ide->channel, submode, ide->mdma_mode);
 					break;
 
 				default:
@@ -889,6 +905,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 		case 0x1F1: /* Features */
 			if (ide_drive_is_cdrom(ide))
 			{
+				ide_log("ATAPI transfer mode: %s\n", (val & 1) ? "DMA" : "PIO");
 				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].features = val;
 			}
 			ide->cylprecomp = val;
@@ -1756,12 +1773,12 @@ void callbackide(int ide_board)
 		case WIN_READ_DMA_ALT:
 			if (ide_drive_is_cdrom(ide) || (ide->board >= 2))
 			{
-				pclog("IDE %i: DMA read aborted (bad device or board)\n", ide->channel);
+				ide_log("IDE %i: DMA read aborted (bad device or board)\n", ide->channel);
 				goto abort_cmd;
 			}
 			if (!ide->specify_success)
 			{
-				pclog("IDE %i: DMA read aborted (SPECIFY failed)\n", ide->channel);
+				ide_log("IDE %i: DMA read aborted (SPECIFY failed)\n", ide->channel);
 				goto id_not_found;
 			}
 
@@ -1782,14 +1799,13 @@ void callbackide(int ide_board)
 			{
 				if (ide_bus_master_read(ide_board, ide->sector_buffer, ide->sector_pos * 512))
 				{
-					// idecallback[ide_board]=6LL*IDE_TIME;           /*DMA not performed, try again later*/
-					pclog("IDE %i: DMA read aborted (failed)\n", ide->channel);
+					ide_log("IDE %i: DMA read aborted (failed)\n", ide->channel);
 					goto abort_cmd;
 				}
 				else
 				{
 					/*DMA successful*/
-					pclog("IDE %i: DMA read successful\n", ide->channel);
+					ide_log("IDE %i: DMA read successful\n", ide->channel);
 
 					ide->atastat = READY_STAT | DSC_STAT;
 
@@ -1797,7 +1813,7 @@ void callbackide(int ide_board)
 					ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 				}
 			} else {
-				pclog("IDE %i: DMA read aborted (no bus master)\n", ide->channel);
+				ide_log("IDE %i: DMA read aborted (no bus master)\n", ide->channel);
 				goto abort_cmd;
 			}
 
@@ -1884,12 +1900,12 @@ void callbackide(int ide_board)
 		case WIN_WRITE_DMA_ALT:
 			if (ide_drive_is_cdrom(ide) || (ide_board >= 2))
 			{
-				pclog("IDE %i: DMA write aborted (bad device type or board)\n", ide->channel);
+				ide_log("IDE %i: DMA write aborted (bad device type or board)\n", ide->channel);
 				goto abort_cmd;
 			}
 			if (!ide->specify_success)
 			{
-				pclog("IDE %i: DMA write aborted (SPECIFY failed)\n", ide->channel);
+				ide_log("IDE %i: DMA write aborted (SPECIFY failed)\n", ide->channel);
 				goto id_not_found;
 			}
 
@@ -1902,14 +1918,13 @@ void callbackide(int ide_board)
 
 				if (ide_bus_master_write(ide_board, ide->sector_buffer, ide->sector_pos * 512))
 				{
-					pclog("IDE %i: DMA write aborted (failed)\n", ide->channel);
-					// idecallback[ide_board]=6LL*IDE_TIME;           /*DMA not performed, try again later*/
+					ide_log("IDE %i: DMA write aborted (failed)\n", ide->channel);
 					goto abort_cmd;
 				}
 				else
 				{
 					/*DMA successful*/
-					pclog("IDE %i: DMA write successful\n", ide->channel);
+					ide_log("IDE %i: DMA write successful\n", ide->channel);
 
 					hdd_image_write(ide->hdd_num, ide_get_sector(ide), ide->sector_pos, ide->sector_buffer);
 
@@ -1919,7 +1934,7 @@ void callbackide(int ide_board)
 					ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 				}
 			} else {
-				pclog("IDE %i: DMA write aborted (no bus master)\n", ide->channel);
+				ide_log("IDE %i: DMA write aborted (no bus master)\n", ide->channel);
 				goto abort_cmd;
 			}
 
@@ -2046,6 +2061,7 @@ void callbackide(int ide_board)
 			{
 				ide_atapi_identify(ide);
 				ide->pos = 0;
+				cdrom[cdrom_id].phase = 2;
 				cdrom[cdrom_id].pos = 0;
 				cdrom[cdrom_id].error = 0;
 				cdrom[cdrom_id].status = DRQ_STAT | READY_STAT | DSC_STAT;

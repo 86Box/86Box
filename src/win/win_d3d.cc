@@ -240,7 +240,7 @@ static void blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         RECT r;
         int yy;
 
-        if (y1 == y2)
+        if ((y1 == y2) || (h <= 0))
         {
                 video_blit_complete();
         	return; /*Nothing to do*/
