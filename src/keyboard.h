@@ -8,10 +8,11 @@
  *
  *		Host to guest keyboard interface and keyboard scan code sets.
  *
- * Version:	@(#)keyboard.h	1.0.1	2017/08/23
+ * Version:	@(#)keyboard.h	1.0.3	2017/10/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -19,18 +20,28 @@
 # define EMU_KEYBOARD_H
 
 
-extern int keyboard_scan;
-extern int pcem_key[272];
-extern uint8_t mode;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-extern uint8_t set3_flags[272];
-extern uint8_t set3_all_repeat;
-extern uint8_t set3_all_break;
+extern uint8_t	keyboard_mode;
+extern int	keyboard_scan;
+extern uint8_t	keyboard_set3_flags[272];
+extern uint8_t	keyboard_set3_all_repeat;
+extern uint8_t	keyboard_set3_all_break;
 
 
-extern void (*keyboard_send)(uint8_t val);
-extern void (*keyboard_poll)(void);
-extern void keyboard_process(void);
+extern void	(*keyboard_send)(uint8_t val);
+extern void	(*keyboard_poll)(void);
+
+extern void	keyboard_init(void);
+extern void	keyboard_close(void);
+extern void	keyboard_poll_host(void);
+extern void	keyboard_process(void);
+extern uint16_t	keyboard_convert(int ch);
+extern void	keyboard_input(int down, uint16_t scan);
+extern int	keyboard_isfsexit(void);
+extern int	keyboard_ismsexit(void);
 
 
 #endif	/*EMU_KEYBOARD_H*/

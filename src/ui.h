@@ -8,7 +8,7 @@
  *
  *		Define the various UI functions.
  *
- * Version:	@(#)ui.h	1.0.5	2017/10/16
+ * Version:	@(#)ui.h	1.0.6	2017/10/24
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -53,6 +53,7 @@ extern void	ui_check_menu_item(int id, int checked);
 #define SB_TEXT         0x60
 
 extern wchar_t  *ui_window_title(wchar_t *s);
+extern void	ui_status_update(void);
 extern int	ui_sb_find_part(int tag);
 extern void	ui_sb_update_panes(void);
 extern void	ui_sb_update_tip(int meaning);

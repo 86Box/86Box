@@ -8,7 +8,7 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.7	2017/10/19
+ * Version:	@(#)win.h	1.0.8	2017/10/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -56,8 +56,6 @@ extern LCID		lang_id;
 extern HICON		hIcon[512];
 
 extern int		status_is_open;
-extern int		mousecapture;
-extern int		recv_key[272];
 
 extern char		openfilestring[260];
 extern WCHAR		wopenfilestring[260];
@@ -77,6 +75,11 @@ extern void	do_stop(void);
 extern void	set_language(int id);
 extern int	get_vidpause(void);
 
+extern void	keyboard_getkeymap(void);
+extern void	keyboard_handle(LPARAM lParam, int infocus);
+
+extern int	fdd_type_to_icon(int type);
+
 #ifdef EMU_DEVICE_H
 extern uint8_t	deviceconfig_open(HWND hwnd, device_t *device);
 #endif
@@ -89,11 +92,6 @@ extern void	win_settings_open(HWND hwnd);
 
 extern void	hard_disk_add_open(HWND hwnd, int is_existing);
 extern int	hard_disk_was_added(void);
-
-extern void	get_registry_key_map(void);
-extern void	process_raw_input(LPARAM lParam, int infocus);
-
-extern int	fdd_type_to_icon(int type);
 
 
 /* Functions in win_about.c: */

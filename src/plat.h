@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.13	2017/10/22
+ * Version:	@(#)plat.h	1.0.14	2017/10/24
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -58,7 +58,7 @@ extern uint32_t	plat_get_ticks(void);
 extern void	plat_delay_ms(uint32_t count);
 extern void	plat_pause(int p);
 extern int	plat_vidapi(char *name);
-extern char *	plat_vidapi_name(void);
+extern char	*plat_vidapi_name(int api);
 extern int	plat_setvid(int api);
 extern void	plat_setfullscreen(int on);
 extern void	plat_resize(int max_x, int max_y);

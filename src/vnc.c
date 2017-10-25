@@ -8,7 +8,7 @@
  *
  *		Implement the VNC remote renderer with LibVNCServer.
  *
- * Version:	@(#)vnc.c	1.0.6	2017/10/22
+ * Version:	@(#)vnc.c	1.0.7	2017/10/24
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>
@@ -26,9 +26,9 @@
 #include "86box.h"
 #include "device.h"
 #include "video/video.h"
+#include "keyboard.h"
 #include "mouse.h"
 #include "plat.h"
-#include "plat_keyboard.h"
 #include "ui.h"
 #include "vnc.h"
 

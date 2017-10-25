@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.25	2017/10/21
+ * Version:	@(#)config.c	1.0.26	2017/10/24
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1174,7 +1174,7 @@ save_general(void)
     if (vid_resize == 0)
 	config_delete_var(cat, "vid_resize");
 
-    va_name = plat_vidapi_name();
+    va_name = plat_vidapi_name(vid_api);
     if (!strcmp(va_name, "default")) {
 	config_delete_var(cat, "vid_renderer");
     } else {

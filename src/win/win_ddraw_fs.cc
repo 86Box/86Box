@@ -2,6 +2,8 @@
    see COPYING for more details
 */
 #include <stdint.h>
+#include "../86box.h"
+#include "../device.h"
 #include "../video/video.h"
 #include "win_ddraw.h"
 
@@ -17,113 +19,8 @@ static HWND ddraw_hwnd;
 static int ddraw_w, ddraw_h;
 
 
-extern "C" void fatal(const char *format, ...);
-extern "C" void pclog(const char *format, ...);
-
-extern "C" void device_force_redraw(void);
-
-extern "C" int ddraw_fs_init(HWND h);
-extern "C" void ddraw_fs_close(void);
-extern "C" int ddraw_fs_pause(void);
-extern "C" void ddraw_fs_take_screenshot(wchar_t *fn);
- 
 extern void ddraw_common_take_screenshot(wchar_t *fn, IDirectDrawSurface7 *pDDSurface);
 
-
-static void blit_memtoscreen(int, int, int, int, int, int);
-
-
-int ddraw_fs_init(HWND h)
-{
-        ddraw_w = GetSystemMetrics(SM_CXSCREEN);
-        ddraw_h = GetSystemMetrics(SM_CYSCREEN);
-        
-	cgapal_rebuild();
-
-        if (FAILED(DirectDrawCreate(NULL, &lpdd, NULL)))
-           return 0;
-        
-        if (FAILED(lpdd->QueryInterface(IID_IDirectDraw7, (LPVOID *)&lpdd7)))
-           return 0;
-
-        lpdd->Release();
-        lpdd = NULL;
-        
-        atexit(ddraw_fs_close);
-
-        if (FAILED(lpdd7->SetCooperativeLevel(h, DDSCL_SETFOCUSWINDOW |  
-        DDSCL_CREATEDEVICEWINDOW | DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT)))
-           return 0;
-
-        if (FAILED(lpdd7->SetDisplayMode(ddraw_w, ddraw_h, 32, 0 ,0)))
-                return 0;
-           
-        memset(&ddsd, 0, sizeof(ddsd));
-        ddsd.dwSize = sizeof(ddsd);
-        
-        ddsd.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
-        ddsd.dwBackBufferCount = 1;
-        ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_COMPLEX | DDSCAPS_FLIP;
-        if (FAILED(lpdd7->CreateSurface(&ddsd, &lpdds_pri, NULL)))
-           return 0;
-        
-        ddsd.ddsCaps.dwCaps = DDSCAPS_BACKBUFFER;
-        if (FAILED(lpdds_pri->GetAttachedSurface(&ddsd.ddsCaps, &lpdds_back2)))
-           return 0;
-        
-        memset(&ddsd, 0, sizeof(ddsd));
-        ddsd.dwSize = sizeof(ddsd);
-        
-        ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-        ddsd.dwWidth  = 2048;
-        ddsd.dwHeight = 2048;
-        ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY;
-        if (FAILED(lpdd7->CreateSurface(&ddsd, &lpdds_back, NULL)))
-        {
-                ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-                ddsd.dwWidth  = 2048;
-                ddsd.dwHeight = 2048;
-                ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
-                if (FAILED(lpdd7->CreateSurface(&ddsd, &lpdds_back, NULL)))
-                        return 0;
-        }
-           
-        pclog("DDRAW_INIT complete\n");
-        ddraw_hwnd = h;
-
-        video_setblit(blit_memtoscreen);
-
-	return 1;
-}
-
-void ddraw_fs_close(void)
-{
-        if (lpdds_back2)
-        {
-                lpdds_back2->Release();
-                lpdds_back2 = NULL;
-        }
-        if (lpdds_back)
-        {
-                lpdds_back->Release();
-                lpdds_back = NULL;
-        }
-        if (lpdds_pri)
-        {
-                lpdds_pri->Release();
-                lpdds_pri = NULL;
-        }
-        if (lpdd_clipper)
-        {
-                lpdd_clipper->Release();
-                lpdd_clipper = NULL;
-        }
-        if (lpdd7)
-        {
-                lpdd7->Release();
-                lpdd7 = NULL;
-        }
-}
 
 static void ddraw_fs_size(RECT window_rect, RECT *r_dest, int w, int h)
 {
@@ -174,6 +71,7 @@ static void ddraw_fs_size(RECT window_rect, RECT *r_dest, int w, int h)
                 break;
         }
 }
+
 
 static void blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
@@ -243,6 +141,98 @@ static void blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
         {
                 lpdds_pri->Restore();
                 lpdds_pri->Flip(NULL, DDFLIP_NOVSYNC);
+        }
+}
+
+
+int ddraw_fs_init(HWND h)
+{
+        ddraw_w = GetSystemMetrics(SM_CXSCREEN);
+        ddraw_h = GetSystemMetrics(SM_CYSCREEN);
+        
+	cgapal_rebuild();
+
+        if (FAILED(DirectDrawCreate(NULL, &lpdd, NULL)))
+           return 0;
+        
+        if (FAILED(lpdd->QueryInterface(IID_IDirectDraw7, (LPVOID *)&lpdd7)))
+           return 0;
+
+        lpdd->Release();
+        lpdd = NULL;
+        
+        atexit(ddraw_fs_close);
+
+        if (FAILED(lpdd7->SetCooperativeLevel(h, DDSCL_SETFOCUSWINDOW |  
+        DDSCL_CREATEDEVICEWINDOW | DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT)))
+           return 0;
+
+        if (FAILED(lpdd7->SetDisplayMode(ddraw_w, ddraw_h, 32, 0 ,0)))
+                return 0;
+           
+        memset(&ddsd, 0, sizeof(ddsd));
+        ddsd.dwSize = sizeof(ddsd);
+        ddsd.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
+        ddsd.dwBackBufferCount = 1;
+        ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_COMPLEX | DDSCAPS_FLIP;
+        if (FAILED(lpdd7->CreateSurface(&ddsd, &lpdds_pri, NULL)))
+           return 0;
+        
+        ddsd.ddsCaps.dwCaps = DDSCAPS_BACKBUFFER;
+        if (FAILED(lpdds_pri->GetAttachedSurface(&ddsd.ddsCaps, &lpdds_back2)))
+           return 0;
+        
+        memset(&ddsd, 0, sizeof(ddsd));
+        ddsd.dwSize = sizeof(ddsd);
+        ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
+        ddsd.dwWidth  = 2048;
+        ddsd.dwHeight = 2048;
+        ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY;
+        if (FAILED(lpdd7->CreateSurface(&ddsd, &lpdds_back, NULL)))
+        {
+                ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
+                ddsd.dwWidth  = 2048;
+                ddsd.dwHeight = 2048;
+                ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
+                if (FAILED(lpdd7->CreateSurface(&ddsd, &lpdds_back, NULL)))
+                        return 0;
+        }
+           
+        pclog("DDRAW_INIT complete\n");
+        ddraw_hwnd = h;
+
+        video_setblit(blit_memtoscreen);
+
+	return 1;
+}
+
+
+void ddraw_fs_close(void)
+{
+        if (lpdds_back2)
+        {
+                lpdds_back2->Release();
+                lpdds_back2 = NULL;
+        }
+        if (lpdds_back)
+        {
+                lpdds_back->Release();
+                lpdds_back = NULL;
+        }
+        if (lpdds_pri)
+        {
+                lpdds_pri->Release();
+                lpdds_pri = NULL;
+        }
+        if (lpdd_clipper)
+        {
+                lpdd_clipper->Release();
+                lpdd_clipper = NULL;
+        }
+        if (lpdd7)
+        {
+                lpdd7->Release();
+                lpdd7 = NULL;
         }
 }
 

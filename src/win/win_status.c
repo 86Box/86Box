@@ -109,3 +109,11 @@ StatusWindowCreate(HWND hwndParent)
 			hwndParent, StatusWindowProcedure);
     ShowWindow(hwnd, SW_SHOW);
 }
+
+
+/* Tell the Status window to update. */
+void
+ui_status_update(void)
+{
+    SendMessage(hwndStatus, WM_USER, 0, 0);
+}

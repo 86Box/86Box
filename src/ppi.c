@@ -13,8 +13,6 @@
 #include <wchar.h>
 #include "ibm.h"
 #include "pit.h"
-#include "plat_keyboard.h"
-#include "plat_mouse.h"
 
 
 PPI ppi;

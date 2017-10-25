@@ -8,7 +8,7 @@
  *
  *		Host to guest keyboard interface and keyboard scan code sets.
  *
- * Version:	@(#)keyboard.c	1.0.5	2017/10/16
+ * Version:	@(#)keyboard.c	1.0.6	2017/10/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,19 +22,32 @@
 #include <wchar.h>
 #include "86box.h"
 #include "ibm.h"
-#include "plat_keyboard.h"
 #include "keyboard.h"
 
 
-int keybsendcallback = 0;
-int64_t keybsenddelay;
+#if 0
+int	keybsendcallback = 0;
+#endif
+int64_t	keybsenddelay;
+
+/* bit 0 = repeat, bit 1 = makes break code? */
+uint8_t	keyboard_set3_flags[272];
+uint8_t keyboard_set3_all_repeat;
+uint8_t keyboard_set3_all_break;
+
+void (*keyboard_send)(uint8_t val);
+void (*keyboard_poll)(void);
+int keyboard_scan;
 
 
-typedef struct
-{
-        int scancodes_make[9];
-        int scancodes_break[9];        
+static int	recv_key[272];			/* keyboard input buffer */
+
+
+typedef struct {
+    int scancodes_make[9];
+    int scancodes_break[9];        
 } scancode;
+
 
 /*272 = 256 + 16 fake interim scancodes for disambiguation purposes.*/
 static scancode scancode_set1[272] =
@@ -428,101 +441,144 @@ static int scorder[272] = {0x38, 0xB8, 0x1D, 0x9D, 0xFF, 0x2A, 0x36,0x103, 0x00,
 			   0xEE, 0xEF, 0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD,
 			   0xFE,0x100,0x101,0x102,0x104,0x105,0x106,0x107,0x108,0x109,0x10A,0x10B,0x10C,0x10D,0x10E,0x10F};
 
-/* bit 0 = repeat, bit 1 = makes break code? */
-uint8_t set3_flags[272];
-uint8_t set3_all_repeat = 0;
-uint8_t set3_all_break = 0;
 
-void (*keyboard_send)(uint8_t val);
-void (*keyboard_poll)();
-int keyboard_scan = 1;
-
-void keyboard_process()
+void
+keyboard_init(void)
 {
-        int c;
-        int d;
-        scancode *scancodes;
+    memset(recv_key, 0x00, sizeof(recv_key));
 
-	if (AT)
-	{
-		switch (mode & 3)
-		{
-			case 1:
-			default:
-				scancodes = scancode_set1;
-				break;
-			case 2:
-				scancodes = scancode_set2;
-				break;
-			case 3:
-				scancodes = scancode_set3;
-				break;
-		}
-		if (mode & 0x20)  scancodes = scancode_set1;
-	}
-	else
-	{
-		scancodes = scancode_xt;
-	}
+    keyboard_scan = 1;
 
-        if (!keyboard_scan) return;
-        if (TANDY) scancodes = scancode_tandy;
+    memset(keyboard_set3_flags, 0x00, sizeof(keyboard_set3_flags));
+    keyboard_set3_all_repeat = 0;
+    keyboard_set3_all_break = 0;
+}
+
+
+void
+keyboard_process(void)
+{
+    scancode *scancodes;
+    int c, d;
+
+    if (AT) {
+	switch (keyboard_mode & 3) {
+		case 1:
+		default:
+			scancodes = scancode_set1;
+			break;
+		case 2:
+			scancodes = scancode_set2;
+			break;
+		case 3:
+			scancodes = scancode_set3;
+			break;
+	}
+	if (keyboard_mode & 0x20)  scancodes = scancode_set1;
+    } else {
+	scancodes = scancode_xt;
+    }
+
+    if (!keyboard_scan) return;
+    if (TANDY) scancodes = scancode_tandy;
                 
-        for (c = 0; c < 272; c++)
-        {
-                if (recv_key[scorder[c]])
-                        keydelay[scorder[c]]++;
-                else
-                        keydelay[scorder[c]] = 0;
-        }
+    for (c = 0; c < 272; c++) {
+	if (recv_key[scorder[c]])
+		keydelay[scorder[c]]++;
+	  else
+		keydelay[scorder[c]] = 0;
+    }
 
-	for (c = 0; c < 272; c++)
-        {
-                if (recv_key[scorder[c]] != oldkey[scorder[c]])
-                {
-                        oldkey[scorder[c]] = recv_key[scorder[c]];
-                        if ( recv_key[scorder[c]] && scancodes[scorder[c]].scancodes_make[0]  == -1)
-                           continue;
-                        if (!recv_key[scorder[c]] && scancodes[scorder[c]].scancodes_break[0] == -1)
-                           continue;
-			if (AT && ((mode & 3) == 3))
-			{
-				if (!set3_all_break && !recv_key[scorder[c]] && !(set3_flags[scancodes[scorder[c]].scancodes_make[0]] & 2))
-					continue;
-			}
-                        d = 0;
-                        if (recv_key[scorder[c]])
-                        {
-                                while (scancodes[scorder[c]].scancodes_make[d] != -1)
-                                      keyboard_send(scancodes[scorder[c]].scancodes_make[d++]);
-                        }
-                        else
-                        {
-                                while (scancodes[scorder[c]].scancodes_break[d] != -1)
-					keyboard_send(scancodes[scorder[c]].scancodes_break[d++]);
-                        }
-                }
-        }
+    for (c = 0; c < 272; c++) {
+	if (recv_key[scorder[c]] != oldkey[scorder[c]]) {
+		oldkey[scorder[c]] = recv_key[scorder[c]];
+		if (recv_key[scorder[c]] &&
+		    scancodes[scorder[c]].scancodes_make[0]  == -1) continue;
 
-        for (c = 0; c < 272; c++)
-        {
-		if (AT && ((mode & 3) == 3))
-		{
-			if (scancodes[scorder[c]].scancodes_make[0] == -1)
-				continue;
-			if (!set3_all_repeat && !recv_key[scorder[c]] && !(set3_flags[scancodes[scorder[c]].scancodes_make[0]] & 1))
-				continue;
+		if (!recv_key[scorder[c]] &&
+		    scancodes[scorder[c]].scancodes_break[0] == -1) continue;
+
+		if (AT && ((keyboard_mode & 3) == 3)) {
+			if (!keyboard_set3_all_break &&
+			    !recv_key[scorder[c]] &&
+			    !(keyboard_set3_flags[scancodes[scorder[c]].scancodes_make[0]] & 2)) continue;
 		}
-                if (keydelay[scorder[c]] >= 30)
-                {
-                        keydelay[scorder[c]] -= 10;
-                        if (scancodes[scorder[c]].scancodes_make[0] == -1)
-                           continue;
-                           
-                        d = 0;
 
-                        while (scancodes[scorder[c]].scancodes_make[d] != -1)
-                              keyboard_send(scancodes[scorder[c]].scancodes_make[d++]);
-                }
-        }
+		d = 0;
+		if (recv_key[scorder[c]]) {
+			while (scancodes[scorder[c]].scancodes_make[d] != -1)
+				keyboard_send(scancodes[scorder[c]].scancodes_make[d++]);
+		} else {
+			while (scancodes[scorder[c]].scancodes_break[d] != -1)
+				keyboard_send(scancodes[scorder[c]].scancodes_break[d++]);
+		}
+	}
+    }
+
+    for (c = 0; c < 272; c++) {
+	if (AT && ((keyboard_mode & 3) == 3)) {
+		if (scancodes[scorder[c]].scancodes_make[0] == -1) continue;
+
+		if (!keyboard_set3_all_repeat &&
+		    !recv_key[scorder[c]] &&
+		    !(keyboard_set3_flags[scancodes[scorder[c]].scancodes_make[0]] & 1)) continue;
+	}
+
+	if (keydelay[scorder[c]] >= 30) {
+		keydelay[scorder[c]] -= 10;
+		if (scancodes[scorder[c]].scancodes_make[0] == -1) continue;
+
+		d = 0;
+		while (scancodes[scorder[c]].scancodes_make[d] != -1)
+			keyboard_send(scancodes[scorder[c]].scancodes_make[d++]);
+	}
+    }
+}
+
+
+/* Handle a keystroke event from the UI layer. */
+void
+keyboard_input(int down, uint16_t scan)
+{
+    int key;
+
+#if 0
+    pclog("KBD: kbinput %d %04x\n", down, scan);
+#endif
+
+    if ((scan >> 8) == 0xf0) {
+	scan &= 0x00ff;
+	scan |= 0x0100;		/* ext key code in disambiguated format */
+    } else if ((scan >> 8) == 0xe0) {
+	scan &= 0x00ff;
+	scan |= 0x0080;		/* normal extended key code */
+    }
+
+    /* First key. */
+    key = (scan >> 8) & 0xff;
+    if (key > 0)
+	recv_key[key] = down;
+
+    /* Second key. */
+    key = scan & 0xff;
+    if (key > 0)
+	recv_key[key] = down;
+}
+
+
+/* Do we have Control-Alt-PgDn in the keyboard buffer? */
+int
+keyboard_isfsexit(void)
+{
+    return( (recv_key[0x1D] || recv_key[0x9D]) &&
+	    (recv_key[0x38] || recv_key[0xB8]) &&
+	    (recv_key[0x51] || recv_key[0xD1]) );
+}
+
+
+/* Do we have F8-F12 in the keyboard buffer? */
+int
+keyboard_ismsexit(void)
+{
+    return( recv_key[0x42] && recv_key[0x58] );
 }

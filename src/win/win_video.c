@@ -8,7 +8,7 @@
  *
  *		Platform video API support for Win32.
  *
- * Version:	@(#)win_video.c	1.0.2	2017/10/22
+ * Version:	@(#)win_video.c	1.0.3	2017/10/24
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -116,24 +116,38 @@ plat_vidapi(char *name)
 }
 
 
+/* Return the VIDAPI name for the given number. */
 char *
-plat_vidapi_name(void)
+plat_vidapi_name(int api)
 {
-	switch(vid_api) {
-		case 0:
-			return("ddraw");
-		case 1:
-		default:
-			return("default");	/* Direct3D is default. */
+    char *name = "default";
+
+    switch(api) {
+	case 0:
+		name = "ddraw";
+		break;
+
+	case 1:
+#if 0
+		/* Direct3D is default. */
+		name = "d3d";
+#endif
+		break;
+
 #ifdef USE_VNC
-		case 2:
-			return("vnc");
+	case 2:
+		name = "vnc";
+		break;
+
 #endif
 #ifdef USE_RDP
-		case 3:
-			return("rdp");
+	case 3:
+		name = "rdp";
+		break;
 #endif
-	}
+    }
+
+    return(name);
 }
 
 
@@ -148,9 +162,6 @@ plat_setvid(int api)
 
     /* Close the (old) API. */
     vid_apis[0][vid_api].close();
-#ifdef USE_WX
-    ui_check_menu_item(IDM_View_WX+vid_api, 0);
-#endif
     vid_api = api;
 
     if (vid_apis[0][vid_api].local)
@@ -159,9 +170,6 @@ plat_setvid(int api)
 	ShowWindow(hwndRender, SW_HIDE);
 
     /* Initialize the (new) API. */
-#ifdef USE_WX
-    ui_check_menu_item(IDM_View_WX+vid_api, 1);
-#endif
     i = vid_apis[0][vid_api].init((void *)hwndRender);
     endblit();
     if (! i) return(0);
@@ -255,7 +263,7 @@ take_screenshot(void)
     switch(vid_api) {
 	case 0:		/* ddraw */
 		wcsftime(path, 128, L"%Y%m%d_%H%M%S.bmp", info);
-		plat_append_filename(path, cfg_path, fn, 1024);
+		wcscat(path, fn);
 		if (video_fullscreen)
 			ddraw_fs_take_screenshot(path);
 		  else
@@ -265,7 +273,7 @@ take_screenshot(void)
 
 	case 1:		/* d3d9 */
 		wcsftime(fn, 128, L"%Y%m%d_%H%M%S.png", info);
-		plat_append_filename(path, cfg_path, fn, 1024);
+		wcscat(path, fn);
 		if (video_fullscreen)
 			d3d_fs_take_screenshot(path);
 		  else
@@ -276,7 +284,7 @@ take_screenshot(void)
 #ifdef USE_VNC
 	case 2:		/* vnc */
 		wcsftime(fn, 128, L"%Y%m%d_%H%M%S.png", info);
-		plat_append_filename(path, cfg_path, fn, 1024);
+		wcscat(path, fn);
 		vnc_take_screenshot(path);
 		pclog("Screenshot: fn='%ls'\n", path);
 		break;

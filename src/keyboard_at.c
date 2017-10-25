@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.5	2017/10/19
+ * Version:	@(#)keyboard_at.c	1.0.6	2017/10/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -111,7 +111,7 @@ int first_write = 1;
 int dtrans = 0;
 
 /* Bits 0 - 1 = scan code set, bit 6 = translate or not. */
-uint8_t mode = 0x42;
+uint8_t keyboard_mode = 0x42;
 
 /* Non-translated to translated scan codes. */
 static uint8_t nont_to_t[256] = {	0xFF, 0x43, 0x41, 0x3F, 0x3D, 0x3B, 0x3C, 0x58, 0x64, 0x44, 0x42, 0x40, 0x3E, 0x0F, 0x29, 0x59,
@@ -213,18 +213,18 @@ uint8_t sc_or = 0;
 void keyboard_at_adddata_keyboard(uint8_t val)
 {
 	/* Modification by OBattler: Allow for scan code translation. */
-	if ((mode & 0x40) && (val == 0xf0) && !(mode & 0x20))
+	if ((keyboard_mode & 0x40) && (val == 0xf0) && !(keyboard_mode & 0x20))
 	{
 		sc_or = 0x80;
 		return;
 	}
 	/* Skip break code if translated make code has bit 7 set. */
-	if ((mode & 0x40) && (sc_or == 0x80) && (nont_to_t[val] & 0x80) && !(mode & 0x20))
+	if ((keyboard_mode & 0x40) && (sc_or == 0x80) && (nont_to_t[val] & 0x80) && !(keyboard_mode & 0x20))
 	{
 		sc_or = 0;
 		return;
 	}
-        key_queue[key_queue_end] = (((mode & 0x40) && !(mode & 0x20)) ? (nont_to_t[val] | sc_or) : val);
+        key_queue[key_queue_end] = (((keyboard_mode & 0x40) && !(keyboard_mode & 0x20)) ? (nont_to_t[val] | sc_or) : val);
         key_queue_end = (key_queue_end + 1) & 0xf;
 	if (sc_or == 0x80)  sc_or = 0;
         return;
@@ -290,21 +290,21 @@ write_register:
 					keyboard_at_log("Mouse interrupt is now %s\n",  (val & 0x02) ? "enabled" : "disabled");
 
 					/* Addition by OBattler: Scan code translate ON/OFF. */
-					mode &= 0x93;
-					mode |= (val & MODE_MASK);
+					keyboard_mode &= 0x93;
+					keyboard_mode |= (val & MODE_MASK);
 					if (first_write)
 					{
 						/* A bit of a hack, but it will make the keyboard behave correctly, regardless
 						   of what the BIOS sets here. */
-						mode &= 0xFC;
-						dtrans = mode & (CCB_TRANSLATE | CCB_PCMODE);
-						if ((mode & (CCB_TRANSLATE | CCB_PCMODE)) == CCB_TRANSLATE)
+						keyboard_mode &= 0xFC;
+						dtrans = keyboard_mode & (CCB_TRANSLATE | CCB_PCMODE);
+						if ((keyboard_mode & (CCB_TRANSLATE | CCB_PCMODE)) == CCB_TRANSLATE)
 						{
 							/* Bit 6 on, bit 5 off, the only case in which translation is on,
 							   therefore, set to set 2. */
-							mode |= 2;
+							keyboard_mode |= 2;
 						}
-						keyboard_at.default_mode = (mode & 3);
+						keyboard_at.default_mode = (keyboard_mode & 3);
 						first_write = 0;
 						/* No else because in all other cases, translation is off, so we need to keep it
 						   set to set 0 which the mode &= 0xFC above will set it. */
@@ -338,8 +338,8 @@ write_register:
                                 case 0xcf: /*??? - sent by MegaPC BIOS*/
 				keyboard_at_log("??? - sent by MegaPC BIOS\n");
 				/* To make sure the keyboard works correctly on the MegaPC. */
-				mode &= 0xFC;
-				mode |= 2;
+				keyboard_mode &= 0xFC;
+				keyboard_mode |= 2;
                                 break;
                                 
                                 case 0xd1: /*Write output port*/
@@ -392,14 +392,14 @@ bad_command:
 					case 0xf0: /*Get/set scancode set*/
 					if (val == 0)
 					{
-						keyboard_at_adddata_keyboard(mode & 3);
+						keyboard_at_adddata_keyboard(keyboard_mode & 3);
 					}
 					else
 					{
 						if (val <= 3)
 						{
-							mode &= 0xFC;
-							mode |= (val & 3);
+							keyboard_mode &= 0xFC;
+							keyboard_mode |= (val & 3);
 						}
 						keyboard_at_adddata_keyboard(0xfa);
 					}
@@ -469,31 +469,31 @@ bad_command:
                                         break;
                                         
                                         case 0xf6: /*Set defaults*/
-					set3_all_break = 0;
-					set3_all_repeat = 0;
-					memset(set3_flags, 0, 272);
-					mode = (mode & 0xFC) | keyboard_at.default_mode;
+					keyboard_set3_all_break = 0;
+					keyboard_set3_all_repeat = 0;
+					memset(keyboard_set3_flags, 0, 272);
+					keyboard_mode = (keyboard_mode & 0xFC) | keyboard_at.default_mode;
                                         keyboard_at_adddata_keyboard(0xfa);
                                         break;
                                         
                                         case 0xf7: /*Set all keys to repeat*/
-					set3_all_break = 1;
+					keyboard_set3_all_break = 1;
                                         keyboard_at_adddata_keyboard(0xfa);
                                         break;
                                         
                                         case 0xf8: /*Set all keys to give make/break codes*/
-					set3_all_break = 1;
+					keyboard_set3_all_break = 1;
                                         keyboard_at_adddata_keyboard(0xfa);
                                         break;
                                         
                                         case 0xf9: /*Set all keys to give make codes only*/
-					set3_all_break = 0;
+					keyboard_set3_all_break = 0;
                                         keyboard_at_adddata_keyboard(0xfa);
                                         break;
                                         
                                         case 0xfa: /*Set all keys to repeat and give make/break codes*/
-                                        set3_all_repeat = 1;
-					set3_all_break = 1;
+                                        keyboard_set3_all_repeat = 1;
+					keyboard_set3_all_break = 1;
                                         keyboard_at_adddata_keyboard(0xfa);
                                         break;
                                         
@@ -506,8 +506,8 @@ bad_command:
                                         keyboard_at_adddata_keyboard(0xfa);
                                         keyboard_at_adddata_keyboard(0xaa);
 					/* Set system flag to 1 and scan code set to 2. */
-					mode &= 0xFC;
-					mode |= 2;
+					keyboard_mode &= 0xFC;
+					keyboard_mode |= 2;
                                         break;
                                         
                                         default:
@@ -851,8 +851,8 @@ uint8_t keyboard_at_read(uint16_t port, void *priv)
                 break;
                 
                 case 0x64:
-                temp = (keyboard_at.status & 0xFB) | (mode & CCB_SYSTEM);
-		/* if (mode & CCB_IGNORELOCK) */  temp |= STAT_LOCK;
+                temp = (keyboard_at.status & 0xFB) | (keyboard_mode & CCB_SYSTEM);
+		/* if (keyboard_mode & CCB_IGNORELOCK) */  temp |= STAT_LOCK;
                 keyboard_at.status &= ~(STAT_RTIMEOUT/* | STAT_TTIMEOUT*/);
                 break;
         }
@@ -864,7 +864,7 @@ void keyboard_at_reset(void)
         keyboard_at.initialised = 0;
         keyboard_at.status = STAT_LOCK | STAT_CD;
         keyboard_at.mem[0] = 0x31;
-	mode = 0x02 | dtrans;
+	keyboard_mode = 0x02 | dtrans;
 	keyboard_at.default_mode = 2;
 	first_write = 1;
         keyboard_at.wantirq = 0;
@@ -882,7 +882,7 @@ void keyboard_at_reset(void)
 
 	sc_or = 0;
 
-	memset(set3_flags, 0, 272);
+	memset(keyboard_set3_flags, 0, 272);
 }
 
 static void at_refresh(void *p)

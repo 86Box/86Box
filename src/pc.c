@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.32	2017/10/22
+ * Version:	@(#)pc.c	1.0.33	2017/10/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -73,7 +73,6 @@
 #include "ui.h"
 #include "plat.h"
 #include "plat_joystick.h"
-#include "plat_keyboard.h"
 #include "plat_midi.h"
 #include "plat_mouse.h"
 
@@ -114,9 +113,9 @@ int	sreadlnum,
 	segawrites,
 	scycles_lost;
 float	mips, flops;
-int	cycles_lost = 0;			// video
-int	insc = 0;				// cpu
-int	emu_fps = 0, fps;			// video
+int	cycles_lost = 0;			/* video */
+int	insc = 0;				/* cpu */
+int	emu_fps = 0, fps;			/* video */
 int	framecount;
 
 int	CPUID;
@@ -125,7 +124,7 @@ int	atfullspeed;
 int	cpuspeed2;
 int	clockrate;
 
-int	gfx_present[GFX_MAX];			// should not be here
+int	gfx_present[GFX_MAX];			/* should not be here */
 
 wchar_t	exe_path[1024];				/* path (dir) of executable */
 wchar_t	cfg_path[1024];				/* path (dir) of user data */
@@ -145,6 +144,7 @@ pclog(const char *format, ...)
 {
 #ifndef RELEASE_BUILD
    va_list ap;
+
    va_start(ap, format);
    vprintf(format, ap);
    va_end(ap);
@@ -280,7 +280,7 @@ set_screen_size_natural(void)
  * Perform initial startup of the PC.
  *
  * This is the platform-indepenent part of the startup,
- * where we check commandline arguments and loading a
+ * where we check commandline arguments and load a
  * configuration file.
  */
 int
@@ -520,6 +520,7 @@ again2:
     codegen_init();
 #endif
 
+    keyboard_init();
     mouse_init();
 #ifdef WALTJE
     serial_init();
@@ -774,6 +775,7 @@ pc_close(thread_t *ptr)
     config_save();
 
 #if 0
+    //FIXME: need to move this to Plat. */
     if (mouse_capture) {
         ClipCursor(&oldclip);
         ShowCursor(TRUE);
@@ -831,10 +833,7 @@ pc_thread(void *param)
     while (! *quitp) {
 	/* Update the Stat(u)s window with the current info. */
 	if (status_update_needed) {
-#if 0
-		pclog("Updating STATS window..\n");
-//		ui_status_update();
-#endif
+		ui_status_update();
 		status_update_needed = 0;
 	}
 
@@ -966,20 +965,10 @@ pc_thread(void *param)
 
 	/* If requested, leave full-screen mode. */
 	if (leave_fullscreen_flag) {
-#if 1
 		pclog("Leaving full-screen mode..\n");
 		plat_setfullscreen(0);
-#else
-		SendMessage(hwndMain, WM_LEAVEFULLSCREEN, 0, 0);
-#endif
 		leave_fullscreen_flag = 0;
 	}
-
-#if 0
-	/* Do we really need this all the time? */
-	if (video_fullscreen && infocus)
-		SetCursorPos(9999, 9999);
-#endif
     }
 
     pclog("PC: main thread done.\n");

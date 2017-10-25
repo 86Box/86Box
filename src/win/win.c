@@ -8,7 +8,7 @@
  *
  *		The Emulator's Windows core.
  *
- * Version:	@(#)win.c	1.0.28	2017/10/22
+ * Version:	@(#)win.c	1.0.29	2017/10/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -43,6 +43,7 @@
 #include "../device.h"
 #include "../nvr.h"
 #include "../mouse.h"
+#include "../keyboard.h"
 #include "../cdrom/cdrom.h"
 #include "../cdrom/cdrom_image.h"
 #include "../cdrom/cdrom_null.h"
@@ -54,7 +55,6 @@
 #include "../sound/sound.h"
 #define GLOBAL
 #include "../plat.h"
-#include "../plat_keyboard.h"
 #include "../plat_mouse.h"
 #include "../plat_midi.h"
 #include "../ui.h"
@@ -62,7 +62,7 @@
 #include "win_d3d.h"
 
 
-#define TIMER_1SEC	1
+#define TIMER_1SEC	1		/* ID of the one-second timer */
 
 
 typedef struct {
@@ -81,7 +81,6 @@ LCID		lang_id;		/* current language ID used */
 DWORD		dwSubLangID;
 RECT		oldclip;		/* mouse rect */
 int		infocus = 1;
-int		recv_key[272];		/* keyboard input buffer */
 
 char		openfilestring[260];
 WCHAR		wopenfilestring[260];
@@ -180,7 +179,6 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_LOG_SERIAL, MF_UNCHECKED);
 # endif
 # ifdef ENABLE_NIC_LOG
-    /*FIXME: should be network_setlog(1:0) */
     CheckMenuItem(menuMain, IDM_LOG_NIC, MF_UNCHECKED);
 # endif
 #endif
@@ -392,9 +390,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 #ifdef USE_RDP
 			case IDM_VID_RDP:
 #endif
-				CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_UNCHECKED);
+				CheckMenuItem(hmenu, IDM_VID_DDRAW+vid_api, MF_UNCHECKED);
 				plat_setvid(LOWORD(wParam) - IDM_VID_DDRAW);
-				CheckMenuItem(hmenu, IDM_VID_DDRAW + vid_api, MF_CHECKED);
+				CheckMenuItem(hmenu, IDM_VID_DDRAW+vid_api, MF_CHECKED);
 				config_save();
 				break;
 
@@ -407,9 +405,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_FS_43:
 			case IDM_VID_FS_SQ:                                
 			case IDM_VID_FS_INT:
-				CheckMenuItem(hmenu, IDM_VID_FS_FULL + video_fullscreen_scale, MF_UNCHECKED);
+				CheckMenuItem(hmenu, IDM_VID_FS_FULL+video_fullscreen_scale, MF_UNCHECKED);
 				video_fullscreen_scale = LOWORD(wParam) - IDM_VID_FS_FULL;
-				CheckMenuItem(hmenu, IDM_VID_FS_FULL + video_fullscreen_scale, MF_CHECKED);
+				CheckMenuItem(hmenu, IDM_VID_FS_FULL+video_fullscreen_scale, MF_CHECKED);
 				device_force_redraw();
 				config_save();
 				break;
@@ -418,9 +416,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_SCALE_2X:
 			case IDM_VID_SCALE_3X:
 			case IDM_VID_SCALE_4X:
-				CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_UNCHECKED);
+				CheckMenuItem(hmenu, IDM_VID_SCALE_1X+scale, MF_UNCHECKED);
 				scale = LOWORD(wParam) - IDM_VID_SCALE_1X;
-				CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_CHECKED);
+				CheckMenuItem(hmenu, IDM_VID_SCALE_1X+scale, MF_CHECKED);
 				device_force_redraw();
 				video_force_resize_set(1);
 				config_save();
@@ -451,9 +449,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_GRAYCT_601:
 			case IDM_VID_GRAYCT_709:
 			case IDM_VID_GRAYCT_AVE:
-				CheckMenuItem(hmenu, IDM_VID_GRAYCT_601 + video_graytype, MF_UNCHECKED);
+				CheckMenuItem(hmenu, IDM_VID_GRAYCT_601+video_graytype, MF_UNCHECKED);
 				video_graytype = LOWORD(wParam) - IDM_VID_GRAYCT_601;
-				CheckMenuItem(hmenu, IDM_VID_GRAYCT_601 + video_graytype, MF_CHECKED);
+				CheckMenuItem(hmenu, IDM_VID_GRAYCT_601+video_graytype, MF_CHECKED);
 				device_force_redraw();
 				config_save();
 				break;
@@ -463,9 +461,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_GRAY_AMBER:
 			case IDM_VID_GRAY_GREEN:
 			case IDM_VID_GRAY_WHITE:
-				CheckMenuItem(hmenu, IDM_VID_GRAY_RGB + video_grayscale, MF_UNCHECKED);
+				CheckMenuItem(hmenu, IDM_VID_GRAY_RGB+video_grayscale, MF_UNCHECKED);
 				video_grayscale = LOWORD(wParam) - IDM_VID_GRAY_RGB;
-				CheckMenuItem(hmenu, IDM_VID_GRAY_RGB + video_grayscale, MF_CHECKED);
+				CheckMenuItem(hmenu, IDM_VID_GRAY_RGB+video_grayscale, MF_CHECKED);
 				device_force_redraw();
 				config_save();
 				break;
@@ -592,7 +590,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		return(0);
 
 	case WM_INPUT:
-		process_raw_input(lParam, infocus);
+		keyboard_handle(lParam, infocus);
 		break;
 
 	case WM_SETFOCUS:
@@ -609,7 +607,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_KILLFOCUS:
 		infocus = 0;
 		releasemouse();
-		memset(recv_key, 0, sizeof(recv_key));
 		if (video_fullscreen)
 			leave_fullscreen_flag = 1;
 		if (hook_enabled) {
@@ -1001,7 +998,6 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     }
 
     /* Initialize the input (keyboard, mouse, game) module. */
-    memset(recv_key, 0x00, sizeof(recv_key));
     device.usUsagePage = 0x01;
     device.usUsage = 0x06;
     device.dwFlags = RIDEV_NOHOTKEYS;
@@ -1013,7 +1009,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 		   MB_OK | MB_ICONERROR);
 	return(4);
     }
-    get_registry_key_map();
+    keyboard_getkeymap();
 
     /* Create the status bar window. */
     StatusBarCreate(hwndMain, IDC_STATUS, hinstance);
@@ -1038,21 +1034,9 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 	return(5);
     }
 
-#if 0
     /* Initialize the rendering window, or fullscreen. */
-    if (start_in_fullscreen) {
-	startblit();
-	vid_apis[0][vid_api].close();
-	video_fullscreen = 1;
-	vid_apis[1][vid_api].init(hwndRender);
-	leave_fullscreen_flag = 0;
-	endblit();
-	device_force_redraw();
-    }
-#endif
-    if (start_in_fullscreen) {
+    if (start_in_fullscreen)
 	plat_setfullscreen(1);
-    }
 
     /* Set up the current window size. */
     plat_resize(scrnsz_x, scrnsz_y);
@@ -1072,9 +1056,6 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 
     /* Set the PAUSE mode depending on the renderer. */
     plat_pause(0);
-
-    /* Initialize raw keyboard input buffer. */
-    memset(recv_key, 0x00, sizeof(recv_key));
 
     /*
      * Everything has been configured, and all seems to work,
@@ -1103,16 +1084,13 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
                 DispatchMessage(&messages);
 	}
 
-	if (mouse_capture && recv_key[0x58] && recv_key[0x42]) {
+	if (mouse_capture && keyboard_ismsexit()) {
 		ClipCursor(&oldclip);
 		ShowCursor(TRUE);
 		mouse_capture = 0;
         }
 
-	if (video_fullscreen &&
-	     (recv_key[0x1D] || recv_key[0x9D]) &&
-	     (recv_key[0x38] || recv_key[0xB8]) &&
-	     (recv_key[0x51] || recv_key[0xD1])) {
+	if (video_fullscreen && keyboard_isfsexit()) {
 		/* Signal "exit fullscreen mode". */
 		plat_setfullscreen(0);
 	}

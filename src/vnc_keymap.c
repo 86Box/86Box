@@ -22,7 +22,7 @@
  * NOTE:	The values are as defined in the Microsoft document named
  *		"Keyboard Scan Code Specification", version 1.3a of 2000/03/16.
  *
- * Version:	@(#)vnc_keymap.c	1.0.1	2017/10/22
+ * Version:	@(#)vnc_keymap.c	1.0.2	2017/10/24
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>
@@ -35,8 +35,8 @@
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
+#include "keyboard.h"
 #include "plat.h"
-#include "plat_keyboard.h"
 #include "vnc.h"
 
 
@@ -183,7 +183,7 @@ static int keysyms_00[] = {
     0x2a2b,	/* 0x7c (XK_bar) */
     0x2a1b,	/* 0x7d (XK_braceright) */
     0x2a29,	/* 0x7e (XK_asciitilde) */
-    0xe071,	/* 0x7f (XK_delete) */
+    0x0053,	/* 0x7f (XK_delete) */
 
     0x0000,	/* 0x80 */
     0x0000,
@@ -371,7 +371,7 @@ static int keysyms_ff[] = {
     0x0000,	/* 0x21 (XK_Kanji; Kanji, Kanji convert) */
     0x0000,	/* 0x22 (XK_Muhenkan; Cancel Conversion) */
     0x0000,	/* 0x23 (XK_Henkan_Mode; Start/Stop Conversion) */
-    0x0000,	/* 0x24 (#define XK_Romaji; to Romaji) */
+    0x0000,	/* 0x24 (XK_Romaji; to Romaji) */
     0x0000,	/* 0x25 (XK_Hiragana; to Hiragana) */
     0x0000,	/* 0x26 (XK_Katakana; to Katakana) */
     0x0000,	/* 0x27 (XK_Hiragana_Katakana; Hiragana/Katakana toggle) */
@@ -421,14 +421,14 @@ static int keysyms_ff[] = {
     0x0000,
     0x0000,
 
-    0x006c,	/* 0x50 (XK_Home) */
-    0x006b,	/* 0x51 (XK_Left) */
-    0x0075,	/* 0x52 (XK_Up) */
-    0x0074,	/* 0x53 (XK_Right) */
-    0x0072,	/* 0x54 (XK_Down) */
-    0x007d,	/* 0x55 (XK_Prior, XK_Page_Up) */
-    0x007a,	/* 0x56 (XK_Next, XK_Page_Down) */
-    0x0069,	/* 0x57 (XK_End) */
+    0xe047,	/* 0x50 (XK_Home) */
+    0xe04b,	/* 0x51 (XK_Left) */
+    0xe048,	/* 0x52 (XK_Up) */
+    0xe04d,	/* 0x53 (XK_Right) */
+    0xe050,	/* 0x54 (XK_Down) */
+    0xe049,	/* 0x55 (XK_Prior, XK_Page_Up) */
+    0xe051,	/* 0x56 (XK_Next, XK_Page_Down) */
+    0xe04f,	/* 0x57 (XK_End) */
 
     0x0000,	/* 0x58 (XK_Begin) */
     0x0000,
@@ -442,11 +442,11 @@ static int keysyms_ff[] = {
     0x0000,	/* 0x60 (XK_Select) */
     0x0000,	/* 0x61 (XK_Print) */
     0x0000,	/* 0x62 (XK_Execute) */
-    0xe070,	/* 0x63 (XK_Insert) */
+    0xe052,	/* 0x63 (XK_Insert) */
     0x0000,
     0x0000,	/* 0x65 (XK_Undo) */
     0x0000,	/* 0x66 (XK_Redo) */
-    0x00dd,	/* 0x67 (XK_Menu) */
+    0xe05d,	/* 0x67 (XK_Menu) */
 
     0x0000,	/* 0x68 (XK_Find) */
     0x0000,	/* 0x69 (XK_Cancel) */
@@ -475,7 +475,7 @@ static int keysyms_ff[] = {
     0x0000,	/* 0x7e (XK_Mode_switch,XK_script_switch) */
     0x0045,	/* 0x7f (XK_Num_Lock) */
 
-    0x0000,	/* 0x80 (XK_KP_Space) */
+    0x0039,	/* 0x80 (XK_KP_Space) */
     0x0000,
     0x0000,
     0x0000,
@@ -485,11 +485,11 @@ static int keysyms_ff[] = {
     0x0000,
 
     0x0000,	/* 0x88 */
-    0x0000,	/* 0x89 (XK_KP_Tab) */
+    0x000f,	/* 0x89 (XK_KP_Tab) */
     0x0000,
     0x0000,
     0x0000,
-    0x001c,	/* 0x8d (XK_KP_Enter) */
+    0xe01c,	/* 0x8d (XK_KP_Enter) */
     0x0000,
     0x0000,
 
@@ -498,18 +498,18 @@ static int keysyms_ff[] = {
     0x0000,	/* 0x92 (XK_KP_F2) */
     0x0000,	/* 0x93 (XK_KP_F3) */
     0x0000,	/* 0x94 (XK_KP_F4) */
-    0x006c,	/* 0x95 (XK_KP_Home) */
-    0x006b,	/* 0x96 (XK_KP_Left) */
-    0x0075,	/* 0x97 (XK_KP_Up) */
+    0x0047,	/* 0x95 (XK_KP_Home) */
+    0x004b,	/* 0x96 (XK_KP_Left) */
+    0x0048,	/* 0x97 (XK_KP_Up) */
 
-    0x0074,	/* 0x98 (XK_KP_Right) */
-    0x0072,	/* 0x99 (XK_KP_Down) */
-    0x007d,	/* 0x9a (XK_KP_Prior,XK_KP_Page_Up) */
-    0x007a,	/* 0x9b (XK_KP_Next,XK_KP_Page_Down) */
-    0x0069,	/* 0x9c (XK_KP_End) */
+    0x004d,	/* 0x98 (XK_KP_Right) */
+    0x0050,	/* 0x99 (XK_KP_Down) */
+    0x0049,	/* 0x9a (XK_KP_Prior,XK_KP_Page_Up) */
+    0x0051,	/* 0x9b (XK_KP_Next,XK_KP_Page_Down) */
+    0x004f,	/* 0x9c (XK_KP_End) */
     0x0000,	/* 0x9d (XK_KP_Begin) */
-    0x0000,	/* 0x9e (XK_KP_Insert) */
-    0xe071,	/* 0x9f (XK_KP_Delete) */
+    0x0052,	/* 0x9e (XK_KP_Insert) */
+    0x0053,	/* 0x9f (XK_KP_Delete) */
 
     0x0000,	/* 0xa0 */
     0x0000,
@@ -527,7 +527,7 @@ static int keysyms_ff[] = {
     0x0000,	/* 0xac (XK_KP_Separator) */
     0x004a,	/* 0xad (XK_KP_Subtract) */
     0x0000,	/* 0xae (XK_KP_Decimal) */
-    0x00b5,	/* 0xaf (XK_KP_Divide) */
+    0x0035,	/* 0xaf (XK_KP_Divide) */
 
     0x0052,	/* 0xb0 (XK_KP_0) */
     0x004f,	/* 0xb1 (XK_KP_1) */
@@ -543,7 +543,7 @@ static int keysyms_ff[] = {
     0x0000,
     0x0000,
     0x0000,
-    0x0000,	/* 0xbd (XK_KP_Equal) */
+    0x000d,	/* 0xbd (XK_KP_Equal) */
     0x003b,	/* 0xbe (XK_F1) */
     0x003c,	/* 0xbf (XK_F2) */
 
@@ -589,10 +589,10 @@ static int keysyms_ff[] = {
     0x001d,	/* 0xe3 (XK_Control_L) */
     0xe01d,	/* 0xe4 (XK_Control_R) */
     0x003a,	/* 0xe5 (XK_Caps_Lock) */
-    0x0000,	/* 0xe6 (XK_Shift_Lock) */
-    0x0000,	/* 0xe7 (XK_Meta_L) */
+    0x003a,	/* 0xe6 (XK_Shift_Lock) */
+    0xe05b,	/* 0xe7 (XK_Meta_L) */
 
-    0x0000,	/* 0xe8 (XK_Meta_R) */
+    0xe05c,	/* 0xe8 (XK_Meta_R) */
     0x0038,	/* 0xe9 (XK_Alt_L) */
     0xe038,	/* 0xea (XK_Alt_R) */
     0x0000,	/* 0xeb (XK_Super_L) */
@@ -624,7 +624,7 @@ static int keysyms_ff[] = {
 void
 vnc_kbinput(int down, int k)
 {
-    int key, scan;
+    uint16_t scan;
 
 #if 0
     pclog("VNC: kbinput %d %04x\n", down, k);
@@ -652,13 +652,6 @@ vnc_kbinput(int down, int k)
     else pclog("VNC: translated to %02x %02x\n", (scan>>8)&0xff, scan&0xff);
 #endif
 
-    /* First key. */
-    key = (scan >> 8) & 0xff;
-    if (key > 0)
-	recv_key[key] = down;
-
-    /* Second key. */
-    key = scan & 0xff;
-    if (key > 0)
-	recv_key[key] = down;
+    /* Send this scancode sequence to the PC keyboard. */
+    keyboard_input(down, scan);
 }
