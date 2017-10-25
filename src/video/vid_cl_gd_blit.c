@@ -82,8 +82,8 @@ bool blit_is_unsafe(clgd_t *clgd, svga_t *svga)
 
 	if (clgd->blt.width > CIRRUS_BLTBUFSIZE)  return true;
 
-	if (blit_region_is_unsafe(clgd, svga, clgd->blt.dst_pitch, clgd->blt.dst_addr & svga->vrammask))  return true;
-	if (blit_region_is_unsafe(clgd, svga, clgd->blt.src_pitch, clgd->blt.src_addr & svga->vrammask))  return true;
+	if (blit_region_is_unsafe(clgd, svga, clgd->blt.dst_pitch, clgd->blt.dst_addr & svga->vram_display_mask))  return true;
+	if (blit_region_is_unsafe(clgd, svga, clgd->blt.src_pitch, clgd->blt.src_addr & svga->vram_display_mask))  return true;
 
 	return false;
 }
@@ -424,7 +424,7 @@ void cirrus_invalidate_region(clgd_t *clgd, svga_t *svga, int off_begin, int off
 	for (y = 0; y < lines; y++)
 	{
 		off_cur = off_begin;
-		off_cur_end = ((off_cur + bytesperline) & svga->vrammask);
+		off_cur_end = ((off_cur + bytesperline) & svga->vram_display_mask);
 		// Memory region set dirty
 		off_begin += off_pitch;
 		for (x = (off_cur >> 12); x <= (off_cur_end >> 12); x++) 
@@ -438,7 +438,7 @@ int cirrus_bitblt_common_patterncopy(clgd_t *clgd, svga_t *svga, const uint8_t *
 {
 	uint8_t *dst;
 
-	dst = svga->vram + (clgd->blt.dst_addr & svga->vrammask);
+	dst = svga->vram + (clgd->blt.dst_addr & svga->vram_display_mask);
 
 	if (blit_is_unsafe(clgd, svga))  return 0;
 
@@ -457,7 +457,7 @@ int cirrus_bitblt_solidfill(clgd_t *clgd, svga_t *svga, int blt_rop)
 	if (blit_is_unsafe(clgd, svga))  return 0;
 
 	rop_func = cirrus_fill[rop_to_index[blt_rop]][clgd->blt.pixel_width - 1];
-	rop_func(clgd, svga, svga->vram + (clgd->blt.dst_addr & svga->vrammask), clgd->blt.dst_pitch, clgd->blt.width, clgd->blt.height);
+	rop_func(clgd, svga, svga->vram + (clgd->blt.dst_addr & svga->vram_display_mask), clgd->blt.dst_pitch, clgd->blt.width, clgd->blt.height);
 	cirrus_invalidate_region(clgd, svga, clgd->blt.dst_addr, clgd->blt.dst_pitch, clgd->blt.width, clgd->blt.height);
 	cirrus_bitblt_reset(clgd, svga);
 
@@ -466,7 +466,7 @@ int cirrus_bitblt_solidfill(clgd_t *clgd, svga_t *svga, int blt_rop)
 
 int cirrus_bitblt_videotovideo_patterncopy(clgd_t *clgd, svga_t *svga)
 {
-	return cirrus_bitblt_common_patterncopy(clgd, svga, svga->vram + ((clgd->blt.src_addr & ~7) & svga->vrammask));
+	return cirrus_bitblt_common_patterncopy(clgd, svga, svga->vram + ((clgd->blt.src_addr & ~7) & svga->vram_display_mask));
 }
 
 void cirrus_do_copy(clgd_t *clgd, svga_t *svga, int dst, int src, int w, int h)
@@ -556,7 +556,7 @@ void cirrus_bitblt_cputovideo_next(clgd_t *clgd, svga_t *svga)
 			/* at least one scan line */
 			do
 			{
-				(*cirrus_rop)(clgd, svga, svga->vram + (clgd->blt.dst_addr & svga->vrammask), clgd->blt.buf, 0, 0, clgd->blt.width, 1);
+				(*cirrus_rop)(clgd, svga, svga->vram + (clgd->blt.dst_addr & svga->vram_display_mask), clgd->blt.buf, 0, 0, clgd->blt.width, 1);
 				cirrus_invalidate_region(clgd, svga, clgd->blt.dst_addr, 0 , clgd->blt.width, 1);
 				clgd->blt.dst_addr += clgd->blt.dst_pitch;
 				clgd->src_counter -= clgd->blt.src_pitch;
