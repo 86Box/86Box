@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.33	2017/10/24
+ * Version:	@(#)pc.c	1.0.34	2017/10/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -950,8 +950,8 @@ pc_thread(void *param)
 		plat_delay_ms(1);
 	}
 
-	/* If needed, hand a screen resize. */
-	if (!video_fullscreen && doresize && (scrnsz_x>0) && (scrnsz_y>0)) {
+	/* If needed, handle a screen resize. */
+	if (doresize && !video_fullscreen) {
 		plat_resize(scrnsz_x, scrnsz_y);
 
 		doresize = 0;

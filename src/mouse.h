@@ -8,7 +8,7 @@
  *
  *		Definitions for the MOUSE driver.
  *
- * Version:	@(#)mouse.h	1.0.6	2017/10/24
+ * Version:	@(#)mouse.h	1.0.7	2017/10/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -42,11 +42,11 @@
 #define MOUSE_TYPE_3BUTTON	(1<<7)	/* device has 3+ buttons */
 
 
-typedef struct {
-    char	name[80];
-    char	internal_name[24];
+typedef struct _mouse_ {
+    const char	*name;
+    const char	*internal_name;
     int		type;
-    void	*(*init)(void);
+    void	*(*init)(struct _mouse_ *);
     void	(*close)(void *p);
     uint8_t	(*poll)(int x, int y, int z, int b, void *p);
 } mouse_t;
@@ -67,12 +67,11 @@ extern mouse_t	mouse_ps2_2button;
 extern mouse_t	mouse_ps2_intellimouse;
 
 
-extern void	*mouse_ps2_init(void);
+extern void	*mouse_ps2_init(void *);
 
 extern void	mouse_emu_init(void);
 extern void	mouse_emu_close(void);
 
-extern void	mouse_poll(int x, int y, int z, int b);
 extern char	*mouse_get_name(int mouse);
 extern char	*mouse_get_internal_name(int mouse);
 extern int	mouse_get_from_internal_name(char *s);

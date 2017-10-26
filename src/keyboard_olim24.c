@@ -323,7 +323,7 @@ uint8_t mouse_olim24_poll(int x, int y, int z, int b, void *p)
 }
 
 
-static void *mouse_olim24_init(void)
+static void *mouse_olim24_init(mouse_t *info)
 {
         mouse_olim24_t *mouse = (mouse_olim24_t *)malloc(sizeof(mouse_olim24_t));
         memset(mouse, 0, sizeof(mouse_olim24_t));

@@ -8,7 +8,7 @@
  *
  *		Implement the VNC remote renderer with LibVNCServer.
  *
- * Version:	@(#)vnc.c	1.0.7	2017/10/24
+ * Version:	@(#)vnc.c	1.0.8	2017/10/25
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>
@@ -94,6 +94,10 @@ vnc_clientgone(rfbClientPtr cl)
     if (clients == 0) {
 	/* No more clients, pause the emulator. */
 	pclog("VNC: no clients, pausing..\n");
+
+	/* Disable the mouse. */
+	plat_mouse_capture(0);
+
 	plat_pause(1);
     }
 }
@@ -115,6 +119,10 @@ vnc_newclient(rfbClientPtr cl)
 
 	/* We now have clients, un-pause the emulator if needed. */
 	pclog("VNC: unpausing..\n");
+
+	/* Enable the mouse. */
+	plat_mouse_capture(1);
+
 	plat_pause(0);
     }
 

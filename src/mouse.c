@@ -8,7 +8,7 @@
  *
  *		Common driver module for MOUSE devices.
  *
- * Version:	@(#)mouse.c	1.0.12	2017/10/24
+ * Version:	@(#)mouse.c	1.0.13	2017/10/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -60,8 +60,8 @@ static mouse_t *mouse_list[] = {
 #endif
     NULL
 };
-static mouse_t *cur_mouse;
-static void *mouse_p;
+static mouse_t	*mouse_curr;
+static void	*mouse_priv;
 
 
 void
@@ -71,23 +71,23 @@ mouse_emu_init(void)
     mouse_x = mouse_y = mouse_z = 0;
     mouse_buttons = 0x00;
 
-    cur_mouse = mouse_list[mouse_type];
+    mouse_curr = mouse_list[mouse_type];
 
-    if (cur_mouse == NULL || cur_mouse->init == NULL) return;
+    if (mouse_curr == NULL || mouse_curr->init == NULL) return;
 
-    mouse_p = cur_mouse->init();
+    mouse_priv = mouse_curr->init(mouse_curr);
 }
 
 
 void
 mouse_emu_close(void)
 {
-    if (cur_mouse == NULL || cur_mouse->close == NULL) return;
+    if (mouse_curr == NULL || mouse_curr->close == NULL) return;
 
-    cur_mouse->close(mouse_p);
+    mouse_curr->close(mouse_priv);
 
-    cur_mouse = NULL;
-    mouse_p = NULL;
+    mouse_curr = NULL;
+    mouse_priv = NULL;
 }
 
 
@@ -100,21 +100,13 @@ mouse_process(void)
 
     mouse_poll_host();
 
-    mouse_poll(mouse_x, mouse_y, mouse_z, mouse_buttons);
+    if (mouse_curr->poll != NULL)
+    	mouse_curr->poll(mouse_x,mouse_y,mouse_z,mouse_buttons, mouse_priv);
 
     /* Reset mouse deltas. */
     mouse_x = mouse_y = mouse_z = 0;
 
     poll_delay = 2;
-}
-
-
-void
-mouse_poll(int x, int y, int z, int b)
-{
-    if (cur_mouse == NULL || cur_mouse->init == NULL) return;
-
-    cur_mouse->poll(x, y, z, b, mouse_p);
 }
 
 
@@ -124,14 +116,14 @@ mouse_get_name(int mouse)
     if (!mouse_list[mouse])
 	return(NULL);
 
-    return(mouse_list[mouse]->name);
+    return((char *)mouse_list[mouse]->name);
 }
 
 
 char *
 mouse_get_internal_name(int mouse)
 {
-    return(mouse_list[mouse]->internal_name);
+    return((char *)mouse_list[mouse]->internal_name);
 }
 
 
@@ -141,7 +133,7 @@ mouse_get_from_internal_name(char *s)
     int c = 0;
 
     while (mouse_list[c] != NULL) {
-	if (!strcmp(mouse_list[c]->internal_name, s))
+	if (!strcmp((char *)mouse_list[c]->internal_name, s))
 		return(c);
 	c++;
     }

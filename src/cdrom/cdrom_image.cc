@@ -997,7 +997,7 @@ int image_open(uint8_t id, wchar_t *fn)
 
 	if (!cdrom_image[id].image_inited || cdrom_image[id].image_changed)
 	{
-		swprintf(cdrom_image[id].image_path, sizeof(cdrom_image[id].image_path)/sizeof(wchar_t), L"%ls", fn);
+		wcscpy(cdrom_image[id].image_path, fn);
 	}
 
 	if (! wcscasecmp(plat_get_extension(fn), L"ISO"))

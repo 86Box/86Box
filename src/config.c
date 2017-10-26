@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.26	2017/10/24
+ * Version:	@(#)config.c	1.0.27	2017/10/25
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1126,14 +1126,14 @@ config_load(wchar_t *fn)
 	plat_langid = 0x0409;
 #endif
 	scale = 1;
-	vid_api = 1;
+	vid_api = plat_vidapi("default");;
 	enable_sync = 1;
 	joystick_type = 7;
 	if (hdc_name) {
 		free(hdc_name);
 		hdc_name = NULL;
 	}
-	hdc_name = (char *) malloc((strlen("none") + 1) * sizeof(char));
+	hdc_name = (char *) malloc((strlen("none")+1) * sizeof(char));
 	strcpy(hdc_name, "none");
 	serial_enabled[0] = 0;
 	serial_enabled[1] = 0;

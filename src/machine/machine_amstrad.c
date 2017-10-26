@@ -22,133 +22,157 @@
 #include "machine.h"
 
 
-static uint8_t amstrad_dead;
-
-
-static uint8_t amstrad_read(uint16_t port, void *priv)
-{
-        pclog("amstrad_read : %04X\n",port);
-        switch (port)
-        {
-                case 0x379:
-                return 7;
-                case 0x37a:
-                if (romset == ROM_PC1512) return 0x20;
-                if (romset == ROM_PC200)  return 0x80;
-                return 0;
-                case 0xdead:
-                return amstrad_dead;
-        }
-        return 0xff;
-}
-
-
-static void amstrad_write(uint16_t port, uint8_t val, void *priv)
-{
-        switch (port)
-        {
-                case 0xdead:
-                amstrad_dead = val;
-                break;
-        }
-}
-
-
-static uint8_t mousex, mousey;
-static void amstrad_mouse_write(uint16_t addr, uint8_t val, void *p)
-{
-        if (addr == 0x78)
-                mousex = 0;
-        else
-                mousey = 0;
-}
-
-static uint8_t amstrad_mouse_read(uint16_t addr, void *p)
-{
-        if (addr == 0x78)
-                return mousex;
-        return mousey;
-}
-
-typedef struct mouse_amstrad_t
-{
-        int oldb;
+typedef struct {
+    int	oldb;
 } mouse_amstrad_t;
 
-static uint8_t mouse_amstrad_poll(int x, int y, int z, int b, void *p)
+
+static uint8_t amstrad_dead;
+static uint8_t mousex, mousey;
+
+
+static uint8_t
+amstrad_read(uint16_t port, void *priv)
 {
-        mouse_amstrad_t *mouse = (mouse_amstrad_t *)p;
-        
-        mousex += x;
-        mousey -= y;
+    pclog("amstrad_read: %04X\n", port);
 
-        if ((b & 1) && !(mouse->oldb & 1))
-                keyboard_send(0x7e);
-        if ((b & 2) && !(mouse->oldb & 2))
-                keyboard_send(0x7d);
-        if (!(b & 1) && (mouse->oldb & 1))
-                keyboard_send(0xfe);
-        if (!(b & 2) && (mouse->oldb & 2))
-                keyboard_send(0xfd);
-        
-        mouse->oldb = b;
+    switch (port) {
+	case 0x379:
+		return(7);
 
-	return(0);
+	case 0x37a:
+		if (romset == ROM_PC1512) return(0x20);
+		if (romset == ROM_PC200)  return(0x80);
+		return(0);
+
+	case 0xdead:
+		return(amstrad_dead);
+    }
+
+    return(0xff);
 }
 
 
-static void *mouse_amstrad_init(void)
+static void
+amstrad_write(uint16_t port, uint8_t val, void *priv)
 {
-        mouse_amstrad_t *mouse = (mouse_amstrad_t *)malloc(sizeof(mouse_amstrad_t));
-        memset(mouse, 0, sizeof(mouse_amstrad_t));
-                
-        return mouse;
+    switch (port) {
+	case 0xdead:
+		amstrad_dead = val;
+		break;
+    }
 }
 
 
-static void mouse_amstrad_close(void *p)
+static void
+amstrad_mouse_write(uint16_t addr, uint8_t val, void *priv)
 {
-        mouse_amstrad_t *mouse = (mouse_amstrad_t *)p;
-        
-        free(mouse);
+    if (addr == 0x78)
+	mousex = 0;
+      else
+	mousey = 0;
 }
 
 
-mouse_t mouse_amstrad =
+static uint8_t
+amstrad_mouse_read(uint16_t addr, void *priv)
 {
-        "Amstrad mouse",
-        "amstrad",
-        MOUSE_TYPE_AMSTRAD,
-        mouse_amstrad_init,
-        mouse_amstrad_close,
-        mouse_amstrad_poll
+    if (addr == 0x78)
+	return(mousex);
+
+    return(mousey);
+}
+
+
+static uint8_t
+amstrad_mouse_poll(int x, int y, int z, int b, void *priv)
+{
+    mouse_amstrad_t *ms = (mouse_amstrad_t *)priv;
+
+    mousex += x;
+    mousey -= y;
+
+    if ((b & 1) && !(ms->oldb & 1))
+	keyboard_send(0x7e);
+    if ((b & 2) && !(ms->oldb & 2))
+	keyboard_send(0x7d);
+    if (!(b & 1) && (ms->oldb & 1))
+	keyboard_send(0xfe);
+    if (!(b & 2) && (ms->oldb & 2))
+	keyboard_send(0xfd);
+
+    ms->oldb = b;
+
+    return(0);
+}
+
+
+static void *
+amstrad_mouse_init(mouse_t *info)
+{
+    mouse_amstrad_t *ms = (mouse_amstrad_t *)malloc(sizeof(mouse_amstrad_t));
+
+    memset(ms, 0x00, sizeof(mouse_amstrad_t));
+
+    return(ms);
+}
+
+
+static void
+amstrad_mouse_close(void *priv)
+{
+    mouse_amstrad_t *ms = (mouse_amstrad_t *)priv;
+
+    free(ms);
+}
+
+
+mouse_t mouse_amstrad = {
+    "Amstrad mouse",
+    "amstrad",
+    MOUSE_TYPE_AMSTRAD,
+    amstrad_mouse_init,
+    amstrad_mouse_close,
+    amstrad_mouse_poll
 };
 
 
-static void amstrad_init(void)
+static void
+amstrad_init(void)
 {
-        lpt2_remove_ams();
-        
-        io_sethandler(0x0078, 0x0001, amstrad_mouse_read, NULL, NULL, amstrad_mouse_write, NULL, NULL,  NULL);
-        io_sethandler(0x007a, 0x0001, amstrad_mouse_read, NULL, NULL, amstrad_mouse_write, NULL, NULL,  NULL);
-        io_sethandler(0x0379, 0x0002, amstrad_read,       NULL, NULL, NULL,                NULL, NULL,  NULL);
-        io_sethandler(0xdead, 0x0001, amstrad_read,       NULL, NULL, amstrad_write,       NULL, NULL,  NULL);
+    lpt2_remove_ams();
+
+    io_sethandler(0x0078, 1,
+		  amstrad_mouse_read, NULL, NULL,
+		  amstrad_mouse_write, NULL, NULL, NULL);
+
+    io_sethandler(0x007a, 1,
+		  amstrad_mouse_read, NULL, NULL,
+		  amstrad_mouse_write, NULL, NULL, NULL);
+
+    io_sethandler(0x0379, 2,
+		  amstrad_read, NULL, NULL,
+		  NULL, NULL, NULL, NULL);
+
+    io_sethandler(0xdead, 1,
+		  amstrad_read, NULL, NULL,
+		  amstrad_write, NULL, NULL, NULL);
 }
 
 
 void
 machine_amstrad_init(machine_t *model)
 {
-        machine_common_init(model);
+    machine_common_init(model);
 
-        amstrad_init();
-        keyboard_amstrad_init();
+    amstrad_init();
+    keyboard_amstrad_init();
 
-	/* FIXME: make sure this is correct? */
-        nvr_at_init(1);
+    /* FIXME: make sure this is correct? */
+    nvr_at_init(1);
 
-	nmi_init();
-	fdc_set_dskchg_activelow();
-	if (joystick_type != 7)
-		device_add(&gameport_device);
+    nmi_init();
+    fdc_set_dskchg_activelow();
+    if (joystick_type != 7)
+	device_add(&gameport_device);
 }

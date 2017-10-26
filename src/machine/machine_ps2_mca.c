@@ -812,7 +812,7 @@ machine_ps2_common_init(machine_t *model)
         ps2_dma_init();
         keyboard_at_init();
         keyboard_at_init_ps2();
-        mouse_ps2_init();
+        mouse_ps2_init(NULL);
         nvr_at_init(8);
         pic2_init();
 

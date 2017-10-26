@@ -10,7 +10,7 @@
  *
  *		Based on the 86Box Serial Mouse driver as a framework.
  *
- * Version:	@(#)mouse_serial.c	1.0.9	2017/09/24
+ * Version:	@(#)mouse_serial.c	1.0.10	2017/10/25
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -26,6 +26,7 @@
 
 
 typedef struct mouse_serial_t {
+    char	*name;
     int8_t	port,
 		type;
     int		pos;
@@ -215,12 +216,13 @@ sermouse_close(void *priv)
 
 
 static void *
-sermouse_init(int type)
+sermouse_init(mouse_t *info)
 {
     mouse_serial_t *ms = (mouse_serial_t *)malloc(sizeof(mouse_serial_t));
     memset(ms, 0x00, sizeof(mouse_serial_t));
+    ms->name = (char *)info->name;
     ms->port = SERMOUSE_PORT;
-    ms->type = type;
+    ms->type = info->type;
 
     /* Attach a serial port to the mouse. */
 #ifdef WALTJE
@@ -237,39 +239,11 @@ sermouse_init(int type)
 }
 
 
-static void *
-sermouse_init_msystems(void)
-{
-    return(sermouse_init(MOUSE_TYPE_MSYSTEMS));
-}
-
-
-static void *
-sermouse_init_microsoft(void)
-{
-    return(sermouse_init(MOUSE_TYPE_MICROSOFT));
-}
-
-
-static void *
-sermouse_init_logitech(void)
-{
-    return(sermouse_init(MOUSE_TYPE_LOGITECH));
-}
-
-
-static void *
-sermouse_init_mswheel(void)
-{
-    return(sermouse_init(MOUSE_TYPE_MSWHEEL));
-}
-
-
 mouse_t mouse_serial_msystems = {
     "Mouse Systems Mouse (serial)",
     "mssystems",
     MOUSE_TYPE_MSYSTEMS | MOUSE_TYPE_3BUTTON,
-    sermouse_init_msystems,
+    sermouse_init,
     sermouse_close,
     sermouse_poll
 };
@@ -279,7 +253,7 @@ mouse_t mouse_serial_microsoft = {
     "Microsoft 2-button mouse (serial)",
     "msserial",
     MOUSE_TYPE_MICROSOFT,
-    sermouse_init_microsoft,
+    sermouse_init,
     sermouse_close,
     sermouse_poll
 };
@@ -289,7 +263,7 @@ mouse_t mouse_serial_logitech = {
     "Logitech 3-button mouse (serial)",
     "lserial",
     MOUSE_TYPE_LOGITECH | MOUSE_TYPE_3BUTTON,
-    sermouse_init_logitech,
+    sermouse_init,
     sermouse_close,
     sermouse_poll
 };
@@ -299,7 +273,7 @@ mouse_t mouse_serial_mswheel = {
     "Microsoft wheel mouse (serial)",
     "mswheel",
     MOUSE_TYPE_MSWHEEL | MOUSE_TYPE_3BUTTON,
-    sermouse_init_mswheel,
+    sermouse_init,
     sermouse_close,
     sermouse_poll
 };
