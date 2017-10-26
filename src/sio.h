@@ -8,7 +8,7 @@
  *
  *		Definitions for the Super I/O chips.
  *
- * Version:	@(#)sio.h	1.0.1	2017/09/03
+ * Version:	@(#)sio.h	1.0.2	2017/10/26
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -18,9 +18,11 @@
 
 
 extern void	superio_detect_init(void);
+extern void	fdc37c663_init(void);
 extern void	fdc37c665_init(void);
 extern void	fdc37c669_init(void);
 extern void	fdc37c932fr_init(void);
+extern void	fdc37c935_init(void);
 extern void	pc87306_init(void);
 extern void	um8669f_init(void);
 extern void	w83877f_init(void);

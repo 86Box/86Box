@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.13	2017/10/16
+ * Version:	@(#)hdc_ide.c	1.0.15	2017/10/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdarg.h>
+#include <inttypes.h>
 #include <wchar.h>
 #include "../86box.h"
 #include "../ibm.h"
@@ -103,8 +104,7 @@ int cur_ide[5];
 
 
 #ifdef ENABLE_IDE_LOG
-// int ide_do_log = ENABLE_IDE_LOG;
-int ide_do_log = 0;
+int ide_do_log = ENABLE_IDE_LOG;
 #endif
 
 static void ide_log(const char *format, ...)
@@ -214,63 +214,6 @@ void ide_irq_lower(IDE *ide)
 	ide->irqstat=0;
 }
 
-void ide_irq_update(IDE *ide)
-{
-	int pending = 0;
-	int mask = 0;
-	
-	if (ide->board > 3)
-	{
-		return;
-	}
-
-	ide_log("Updating IRQ %i (board %i)\n", ide_irq[ide->board], ide->board);
-
-	mask = ide_irq[ide->board];
-	mask &= 7;
-
-	pending = (pic2.pend | pic2.ins);
-	pending &= (1 << mask);
-
-	if (ide->irqstat && !pending && !(ide->fdisk & 2))
-	{
-		if (pci_use_mirq(0) && (ide->board == 1))
-		{
-			pci_set_mirq(0);
-		}
-		else
-		{
-			picint(1 << ide_irq[ide->board]);
-		}
-
-		if (ide->board < 2)
-		{
-			if (ide_bus_master_set_irq)
-			{
-				ide_bus_master_set_irq(ide->board | 0x40);
-			}
-		}
-	}
-	else if (pending)
-	{
-		if (pci_use_mirq(0) && (ide->board == 1))
-		{
-			pci_clear_mirq(0);
-		}
-		else
-		{
-			picintc(1 << ide_irq[ide->board]);
-		}
-
-		if (ide->board < 2)
-		{
-			if (ide_bus_master_set_irq)
-			{
-				ide_bus_master_set_irq(ide->board);
-			}
-		}
-	}
-}
 /**
  * Copy a string into a buffer, padding with spaces, and placing characters as
  * if they were packed into 16-bit values, stored little-endian.
@@ -357,25 +300,12 @@ static void ide_identify(IDE *ide)
 		ide->buffer[1] = d_tracks;	/* Tracks in default CHS translation. */
 		ide->buffer[3] = d_hpc;		/* Heads in default CHS translation. */
 		ide->buffer[6] = d_spt;		/* Heads in default CHS translation. */
+	} else {
+		ide->buffer[1] = 16383;		/* Tracks in default CHS translation. */
+		ide->buffer[3] = 16;		/* Heads in default CHS translation. */
+		ide->buffer[6] = 63;		/* Heads in default CHS translation. */
 	}
 	ide_log("Default CHS translation: %i, %i, %i\n", ide->buffer[1], ide->buffer[3], ide->buffer[6]);
-
-#if 0
-	c = d_tracks; /* Cylinders */
-	h = d_hpc;  /* Heads */
-	s = hdd[ide->hdd_num].spt;  /* Sectors */
-
-	if (hdd[ide->hdd_num].tracks <= 16383)
-	{
-		ide->buffer[1] = hdd[ide->hdd_num].tracks; /* Cylinders */
-	}
-	else
-	{
-		ide->buffer[1] = 16383; /* Cylinders */
-	}
-	ide->buffer[3] = hdd[ide->hdd_num].hpc;  /* Heads */
-	ide->buffer[6] = hdd[ide->hdd_num].spt;  /* Sectors */
-#endif
 
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
 	ide_padstr((char *) (ide->buffer + 23), EMU_VERSION, 8); /* Firmware */
@@ -393,6 +323,7 @@ static void ide_identify(IDE *ide)
 	if ((ide->tracks >= 1024) || (ide->hpc > 16) || (ide->spt > 63))
 	{
 		ide->buffer[49] |= (1 << 9);
+		ide_log("LBA supported\n");
 	}
 	ide->buffer[50] = 0x4000; /* Capabilities */
 	ide->buffer[51] = 2 << 8; /*PIO timing mode*/
@@ -401,26 +332,32 @@ static void ide_identify(IDE *ide)
 	{
 		ide->buffer[60] = full_size & 0xFFFF; /* Total addressable sectors (LBA) */
 		ide->buffer[61] = (full_size >> 16) & 0x0FFF;
+		ide_log("Full size: %" PRIu64 "\n", full_size);
 
 		ide->buffer[53] |= 1;
 
-		if (full_size <= 16514064) {
-			if (ide->specify_success) {
-				ide->buffer[54] = (full_size / ide->t_hpc) / ide->t_spt;
-				ide->buffer[55] = ide->t_hpc;
-				ide->buffer[56] = ide->t_spt;
-				full_size = ((uint64_t) ide->t_hpc) * ((uint64_t) ide->t_spt) * ((uint64_t) ide->buffer[54]);
-			} else {
+		if (ide->specify_success) {
+			ide->buffer[54] = (full_size / ide->t_hpc) / ide->t_spt;
+			ide->buffer[55] = ide->t_hpc;
+			ide->buffer[56] = ide->t_spt;
+		} else {
+			if (full_size <= 16514064) {
 				ide->buffer[54] = d_tracks;
 				ide->buffer[55] = d_hpc;
 				ide->buffer[56] = d_spt;
+			} else {
+				ide->buffer[54] = 16383;
+				ide->buffer[55] = 16;
+				ide->buffer[56] = 63;
 			}
-
-			ide->buffer[57] = full_size & 0xFFFF; /* Total addressable sectors (LBA) */
-			ide->buffer[58] = (full_size >> 16) & 0x0FFF;
-
-			ide_log("Current CHS translation: %i, %i, %i\n", ide->buffer[54], ide->buffer[55], ide->buffer[56]);
 		}
+
+		full_size = ((uint64_t) ide->buffer[54]) * ((uint64_t) ide->buffer[55]) * ((uint64_t) ide->buffer[56]);
+
+		ide->buffer[57] = full_size & 0xFFFF; /* Total addressable sectors (LBA) */
+		ide->buffer[58] = (full_size >> 16) & 0x0FFF;
+
+		ide_log("Current CHS translation: %i, %i, %i\n", ide->buffer[54], ide->buffer[55], ide->buffer[56]);
 	}
 
 	ide->buffer[59] = ide->blocksize ? (ide->blocksize | 0x100) : 0;
@@ -437,9 +374,9 @@ static void ide_identify(IDE *ide)
 	        {
 		    d = (ide->mdma_mode & 0xff);
 		    d <<= 8;
-		    if ((ide->mdma_mode & 0x100) == 0x200)
+		    if ((ide->mdma_mode & 0x300) == 0x200)
         	    	ide->buffer[88] |= d;
-		    else if ((ide->mdma_mode & 0x100) == 0x100)
+		    else if ((ide->mdma_mode & 0x300) == 0x100)
         	    	ide->buffer[63] |= d;
 		    else
         	    	ide->buffer[62] |= d;
@@ -490,9 +427,9 @@ static void ide_atapi_identify(IDE *ide)
 	        {
 		    d = (ide->mdma_mode & 0xff);
 		    d <<= 8;
-		    if ((ide->mdma_mode & 0x100) == 0x200)
+		    if ((ide->mdma_mode & 0x300) == 0x200)
         	    	ide->buffer[88] |= d;
-		    else if ((ide->mdma_mode & 0x100) == 0x100)
+		    else if ((ide->mdma_mode & 0x300) == 0x100)
         	    	ide->buffer[63] |= d;
 		    else
         	    	ide->buffer[62] |= d;
@@ -810,6 +747,15 @@ void ide_reset_hard(void)
 
 int idetimes = 0;
 
+void ide_set_callback(uint8_t channel, int64_t callback)
+{
+	IDE *ide = &ide_drives[channel];
+	if (callback)
+		idecallback[ide->board] += callback;
+	else
+		idecallback[ide->board] = 0LL;
+}
+
 void ide_write_data(int ide_board, uint32_t val, int length)
 {
 	IDE *ide = &ide_drives[cur_ide[ide_board]];
@@ -828,11 +774,6 @@ void ide_write_data(int ide_board, uint32_t val, int length)
 		}
 
 		cdrom_write(cur_ide[ide_board], val, length);
-
-		if (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback)
-		{
-			idecallback[ide_board] = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback;
-		}
 		return;
 	}
 	else
@@ -1026,7 +967,6 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			ide->lba_addr = (ide->lba_addr & 0x0FFFFFF) | ((val & 0xF) << 24);
 			ide_other->lba_addr = (ide_other->lba_addr & 0x0FFFFFF)|((val & 0xF) << 24);
 
-			ide_irq_update(ide);
 			return;
 
 		case 0x1F7: /* Command register */
@@ -1341,7 +1281,6 @@ ide_bad_command:
 				ide->atastat = ide_other->atastat = BUSY_STAT;
 			}
 			ide->fdisk = ide_other->fdisk = val;
-			ide_irq_update(ide);
 			return;
 	}
 }
@@ -1364,10 +1303,6 @@ uint32_t ide_read_data(int ide_board, int length)
 			return 0;
 		}
 		temp = cdrom_read(cur_ide[ide_board], length);
-		if (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback)
-		{
-			idecallback[ide_board] = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback;
-		}
 	}
 	else
 	{
@@ -1616,11 +1551,6 @@ void callbackide(int ide_board)
 	}
 	ext_ide = ide;
 
-	if (ide_drive_is_cdrom(ide))
-	{
-		cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback = 0LL;
-	}
-	
 	if (ide->command==0x30) times30++;
 	/*if (ide_board) */ide_log("CALLBACK %02X %i %i  %i\n",ide->command,times30,ide->reset,cur_ide[ide_board]);
 
@@ -2143,7 +2073,6 @@ void callbackide(int ide_board)
 			}
 
 			cdrom_phase_callback(atapi_cdrom_drives[cur_ide[ide_board]]);
-			idecallback[ide_board] = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].callback;
 			ide_log("IDE callback now: %i\n", idecallback[ide_board]);
 			return;
 

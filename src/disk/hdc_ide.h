@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_ide.h	1.0.4	2017/09/30
+ * Version:	@(#)hdd_ide.h	1.0.5	2017/10/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -100,9 +100,14 @@ extern void	ide_qua_enable(void);
 extern void	ide_qua_disable(void);
 extern void	ide_qua_init(void);
 
+extern void	ide_set_callback(uint8_t channel, int64_t callback);
 extern void	secondary_ide_check(void);
 
 extern void	ide_padstr8(uint8_t *buf, int buf_size, const char *src);
+
+extern int	(*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length);
+extern int	(*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length);
+extern void	(*ide_bus_master_set_irq)(int channel);
 
 
 #endif	/*EMU_IDE_H*/

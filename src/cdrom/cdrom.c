@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.19	2017/10/22
+ * Version:	@(#)cdrom.c	1.0.20	2017/10/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -792,6 +792,12 @@ void build_scsi_cdrom_map()
 	}
 }
 
+void cdrom_set_callback(uint8_t id)
+{
+	if (cdrom_drives[id].bus_type != CDROM_BUS_SCSI)
+		ide_set_callback(cdrom_drives[id].ide_channel, cdrom[id].callback);
+}
+
 void cdrom_set_cdb_len(int id, int cdb_len)
 {
 	cdrom[id].cdb_len = cdb_len;
@@ -1288,16 +1294,23 @@ static void cdrom_command_common(uint8_t id)
 	cdrom[id].status = BUSY_STAT;
 	cdrom[id].phase = 1;
 	cdrom[id].pos = 0;
-	if (cdrom[id].packet_status == CDROM_PHASE_COMPLETE)
+	if (cdrom[id].packet_status == CDROM_PHASE_COMPLETE) {
 		cdrom[id].callback = 20LL * CDROM_TIME;
+		cdrom_set_callback(id);
+	}
 	else if (cdrom[id].packet_status == CDROM_PHASE_DATA_IN) {
 		if (cdrom[id].current_cdb[0] == 0x42) {
 			cdrom_log("CD-ROM %i: READ SUBCHANNEL\n");
 			cdrom[id].callback = 1000LL * CDROM_TIME;
-		} else
+			cdrom_set_callback(id);
+		} else {
 			cdrom[id].callback = 60LL * CDROM_TIME;
-	} else
+			cdrom_set_callback(id);
+		}
+	} else {
 		cdrom[id].callback = 60LL * CDROM_TIME;
+		cdrom_set_callback(id);
+	}
 }
 
 static void cdrom_command_complete(uint8_t id)
@@ -1400,6 +1413,7 @@ static void cdrom_cmd_error(uint8_t id)
 	cdrom[id].phase = 3;
 	cdrom[id].packet_status = 0x80;
 	cdrom[id].callback = 50LL * CDROM_TIME;
+	cdrom_set_callback(id);
 	cdrom_log("CD-ROM %i: ERROR: %02X/%02X/%02X\n", id, cdrom_sense_key, cdrom_asc, cdrom_ascq);
 }
 
@@ -1413,7 +1427,14 @@ static void cdrom_unit_attention(uint8_t id)
 	cdrom[id].phase = 3;
 	cdrom[id].packet_status = 0x80;
 	cdrom[id].callback = 50LL * CDROM_TIME;
+	cdrom_set_callback(id);
 	cdrom_log("CD-ROM %i: UNIT ATTENTION\n", id);
+}
+
+static void cdrom_bus_master_error(uint8_t id)
+{
+	cdrom_sense_key = cdrom_asc = cdrom_ascq = 0;
+	cdrom_cmd_error(id);
 }
 
 static void cdrom_not_ready(uint8_t id)
@@ -1923,9 +1944,10 @@ void cdrom_clear_callback(uint8_t channel)
 {
 	uint8_t id = atapi_cdrom_drives[channel];
 
-	if (id <= CDROM_NUM)
+	if (id < CDROM_NUM)
 	{
 		cdrom[id].callback = 0LL;
+		cdrom_set_callback(id);
 	}
 }
 
@@ -1950,6 +1972,7 @@ void cdrom_reset(uint8_t id)
 	cdrom_rezero(id);
 	cdrom[id].status = 0;
 	cdrom[id].callback = 0LL;
+	cdrom_set_callback(id);
 	cdrom[id].packet_status = 0xff;
 	cdrom[id].unit_attention = 0;
 }
@@ -2284,6 +2307,7 @@ cdrom_readtoc_fallback:
 				/* cdrom_log("CD-ROM %i: All done - callback set\n", id); */
 				cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
 				cdrom[id].callback = 20LL * CDROM_TIME;
+				cdrom_set_callback(id);
 				break;
 			}
 
@@ -3032,12 +3056,12 @@ void cdrom_callback(uint8_t id)		/* Callback for non-Read CD commands */
 
 	if (cdrom[id].pos >= cdrom[id].packet_len)
 	{
-		cdrom_log("CD-ROM %i: %i bytes read, command done\n", id, cdrom[id].total_read);
+		cdrom_log("CD-ROM %i: %i bytes read, command done\n", id, cdrom[id].pos);
 
 		cdrom[id].pos = cdrom[id].request_pos = 0;
 		cdrom_command_complete(id);
 	} else {
-		cdrom_log("CD-ROM %i: %i bytes read, %i bytes are still left\n", id, cdrom[id].total_read, cdrom[id].packet_len - cdrom[id].total_read);
+		cdrom_log("CD-ROM %i: %i bytes read, %i bytes are still left\n", id, cdrom[id].pos, cdrom[id].packet_len - cdrom[id].pos);
 
 		/* Make sure to keep pos, and reset request_pos to 0. */
 		/* Also make sure to not reset total_read. */
@@ -3096,13 +3120,13 @@ int cdrom_read_from_ide_dma(uint8_t channel)
 
 	if (ide_bus_master_write) {
 		if (ide_bus_master_write(channel >> 1, cdbufferb, cdrom[id].packet_len)) {
-			cdrom_data_phase_error(id);
+			cdrom_bus_master_error(id);
 			cdrom_phase_callback(id);
 			return 0;
 		} else
 			return 1;
 	} else {
-		cdrom_data_phase_error(id);
+		cdrom_bus_master_error(id);
 		cdrom_phase_callback(id);
 		return 0;
 	}
@@ -3166,20 +3190,27 @@ int cdrom_write_to_ide_dma(uint8_t channel)
 {
 	uint8_t id = atapi_cdrom_drives[channel];
 
-	if (id > CDROM_NUM)
+	if (id > CDROM_NUM) {
+		cdrom_log("CD-ROM %i: Drive not found\n", id);
+		cdrom_data_phase_error(id);
+		cdrom_phase_callback(id);
 		return 0;
+	}
 
 	if (ide_bus_master_read) {
-		if (piix_bus_master_dma_read(channel >> 1, cdbufferb, cdrom[id].packet_len)) {
-			/* cdrom_log("CD-ROM %i: ATAPI DMA error\n", id); */
-			cdrom_data_phase_error(id);
+		if (ide_bus_master_read(channel >> 1, cdbufferb, cdrom[id].packet_len)) {
+			cdrom_log("CD-ROM %i: ATAPI DMA error\n", id);
+			cdrom_bus_master_error(id);
 			cdrom_phase_callback(id);
 			return 0;
 		}
-		else
+		else {
+			cdrom_log("CD-ROM %i: ATAPI DMA success\n", id);
 			return 1;
+		}
 	} else {
-		cdrom_data_phase_error(id);
+		cdrom_log("CD-ROM %i: No bus master\n", id);
+		cdrom_bus_master_error(id);
 		cdrom_phase_callback(id);
 		return 0;
 	}
@@ -3336,13 +3367,13 @@ uint32_t cdrom_read(uint8_t channel, int length)
 	if (cdrom[id].packet_status == CDROM_PHASE_DATA_IN) {
 		if ((cdrom[id].request_pos >= cdrom[id].request_length) || (cdrom[id].pos >= cdrom[id].packet_len)) {
 			/* Time for a DRQ. */
-			cdrom_log("CD-ROM %i: Issuing read callback\n", id);
+			// cdrom_log("CD-ROM %i: Issuing read callback\n", id);
 			cdrom_callback(id);
 		}
-		cdrom_log("CD-ROM %i: Returning: %02X (buffer position: %i, request position: %i)\n", id, temp, cdrom[id].pos, cdrom[id].request_pos);
+		// cdrom_log("CD-ROM %i: Returning: %02X (buffer position: %i, request position: %i)\n", id, temp, cdrom[id].pos, cdrom[id].request_pos);
 		return temp;
 	} else {
-		cdrom_log("CD-ROM %i: Returning zero (buffer position: %i, request position: %i)\n", id, cdrom[id].pos, cdrom[id].request_pos);
+		// cdrom_log("CD-ROM %i: Returning zero (buffer position: %i, request position: %i)\n", id, cdrom[id].pos, cdrom[id].request_pos);
 		return 0;
 	}
 }
