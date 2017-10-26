@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.2	2017/10/16
+ * Version:	@(#)vid_table.c	1.0.3	2017/10/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -124,6 +124,10 @@ video_cards[] = {
     {"[PCI] S3 ViRGE/DX (VBE 2.0)",                 "virge375_vbe20_pci",	&s3_virge_375_4_pci_device,      	GFX_VIRGEDX4_PCI		},
     {"[PCI] Trident TGUI9440",                      "tgui9440_pci",		&tgui9440_pci_device,            	GFX_TGUI9440_PCI		},
     {"[VLB] ATI Graphics Pro Turbo (Mach64 GX)",    "mach64x_vlb",		&mach64gx_vlb_device,        		GFX_MACH64GX_VLB		},
+#if defined(DEV_BRANCH) && defined(USE_CIRRUS)
+    {"[VLB] Cirrus Logic CL-GD5429",		    "cl_gd5429",		&gd5429_device,				GFX_CL_GD5429},
+    {"[VLB] Cirrus Logic CL-GD5446",		    "cl_gd5446",		&gd5446_device,				GFX_CL_GD5446},
+#endif
     {"[VLB] Diamond Stealth 32 (Tseng ET4000/w32p)","stealth32_vlb",		&et4000w32p_vlb_device,      		GFX_ET4000W32_VLB		},
     {"[VLB] Diamond Stealth 3D 2000 (S3 ViRGE)",    "stealth3d_2000_vlb",	&s3_virge_vlb_device,            	GFX_VIRGE_VLB			},
     {"[VLB] Diamond Stealth 3D 3000 (S3 ViRGE/VX)", "stealth3d_3000_vlb",	&s3_virge_988_vlb_device,        	GFX_VIRGEVX_VLB			},

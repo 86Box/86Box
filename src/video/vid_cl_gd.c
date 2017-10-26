@@ -8,7 +8,7 @@
  *
  *		Emulation of select Cirrus Logic cards.
  *
- * Version:	@(#)vid_cl_gd.c	1.0.1	2017/10/16
+ * Version:	@(#)vid_cl_gd.c	1.0.2	2017/10/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1050,7 +1050,7 @@ device_t gd5422_device =
 device_t gd5429_device =
 {
         "Cirrus Logic GD5429",
-        DEVICE_ISA | DEVICE_NOT_WORKING,
+        DEVICE_VLB | DEVICE_NOT_WORKING,
 	0,
         gd5429_init,
         clgd_close,
@@ -1140,7 +1140,7 @@ device_t gd5440_device =
 device_t gd5446_device =
 {
         "Cirrus Logic GD5446",
-        DEVICE_ISA | DEVICE_NOT_WORKING,
+        DEVICE_VLB | DEVICE_NOT_WORKING,
 	0,
         gd5446_init,
         clgd_close,
