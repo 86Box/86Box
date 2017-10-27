@@ -8,7 +8,7 @@
  *
  *		Define the various UI functions.
  *
- * Version:	@(#)ui.h	1.0.6	2017/10/24
+ * Version:	@(#)ui.h	1.0.7	2017/10/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -28,7 +28,7 @@ extern "C" {
 #ifdef WIN32
 # include "win/resource.h"
 #else
-# include "lnx/strings.h"
+# include "unix/resource.h"
 #endif
 
 

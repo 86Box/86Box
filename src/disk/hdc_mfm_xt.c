@@ -41,7 +41,7 @@
  *		Since all controllers (including the ones made by DTC) use
  *		(mostly) the same API, we keep them all in this module.
  *
- * Version:	@(#)hdd_mfm_xt.c	1.0.10	2017/10/16
+ * Version:	@(#)hdd_mfm_xt.c	1.0.11	2017/10/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -66,6 +66,7 @@
 #include "../pic.h"
 #include "../rom.h"
 #include "../timer.h"
+#include "../plat.h"
 #include "../ui.h"
 #include "hdc.h"
 #include "hdd.h"

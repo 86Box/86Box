@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.68	2017/10/26
+# Version:	@(#)Makefile.mingw	1.0.69	2017/10/26
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -65,6 +65,9 @@ NE1000		:= n
 endif
 ifndef NV_RIVA
 NV_RIVA		:= n
+endif
+ifndef OPENAL
+OPENAL		:= y
 endif
 ifndef FLUIDSYNTH
 FLUIDSYNTH	:= y
@@ -187,6 +190,9 @@ DYNARECOBJ	:= 386_dynarec_ops.o \
 		    codegen_timing_winchip.o $(PLATCG)
 endif
 
+ifeq ($(OPENAL), y)
+CFLAGS		+= -DUSE_OPENAL
+endif
 ifeq ($(FLUIDSYNTH), y)
 CFLAGS		+= -DUSE_FLUIDSYNTH
 FSYNTHOBJ	:= midi_fluidsynth.o

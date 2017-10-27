@@ -1,4 +1,3 @@
-#define USE_OPENAL
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -39,6 +38,7 @@ void al_set_midi(int freq, int buf_size)
         midi_buf_size = buf_size;
 }
 
+#ifdef USE_OPENAL
 void closeal(void);
 ALvoid alutInit(ALint *argc,ALbyte **argv) 
 {
@@ -80,6 +80,7 @@ ALvoid alutExit(ALvoid)
 	alcDestroyContext(Context);
     }
 }
+#endif
 
 
 void closeal(void)

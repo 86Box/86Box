@@ -10,7 +10,7 @@
 #		settings, so we can avoid changing the main one for all of
 #		our local setups.
 #
-# Version:	@(#)Makefile.local	1.0.5	2017/10/19
+# Version:	@(#)Makefile.local	1.0.6	2017/10/26
 #
 # Author:	Fred N. van Kempen, <decwiz@yahoo.com>
 #
@@ -73,6 +73,7 @@ DEV_BRANCH	:= n
 CIRRUS		:= n
 NE1000		:= n
 NV_RIVA		:= n
+OPENAL		:= y
 FLUIDSYNTH	:= y
 MUNT		:= y
 PAS16		:= n

@@ -60,6 +60,10 @@ typedef unsigned long 	ioctlsockopt_t;
 # define final_udp slirp_final_udp
 #else
 # include <inttypes.h>	
+# define HAVE_STDINT_H
+# define HAVE_STDLIB_H
+# define HAVE_STRING_H
+# define HAVE_UNISTD_H
 typedef uint8_t u_int8_t;
 typedef uint16_t u_int16_t;
 typedef uint32_t u_int32_t;

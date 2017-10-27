@@ -24,6 +24,15 @@
 #endif
 
 
+#ifdef FREEBSD
+/* FreeBSD has largefile by default. */
+# define fopen64        fopen
+# define fseeko64       fseeko
+# define ftello64       ftello
+# define off64_t        off_t
+#endif
+
+
 /* A hack (GCC-specific) to allow us to ignore unused parameters. */
 #define UNUSED(arg)	__attribute__((unused))arg
 
