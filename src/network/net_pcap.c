@@ -253,6 +253,8 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
     pclog(" Starting thread..\n");
     poll_tid = thread_create(poll_thread, mac);
 
+    thread_started = thread_create_event();
+
     thread_wait_event((event_t *) thread_started, -1);
 
     return(0);
