@@ -6,21 +6,26 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Simple program to show usage of WinPcap.
+ *		Simple program to show usage of (Win)Pcap.
  *
  *		Based on the "libpcap" examples.
  *
- * Version:	@(#)pcap_if.c	1.0.5	2017/10/10
+ * Version:	@(#)pcap_if.c	1.0.6	2017/10/27
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <ctype.h>
 #include <pcap.h>
+#include <time.h>
+#include "../86box.h"
+#include "../plat.h"
 #include "../plat_dynld.h"
 
 
@@ -46,12 +51,12 @@ static dllimp_t pcap_imports[] = {
 typedef struct {
     char	device[128];
     char	description[128];
-} dev_t;
+} capdev_t;
 
 
 /* Retrieve an easy-to-use list of devices. */
 static int
-get_devlist(dev_t *list)
+get_devlist(capdev_t *list)
 {
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_if_t *devlist, *dev;
@@ -192,7 +197,7 @@ start_cap(char *dev)
 
 /* Show a list of available network interfaces. */
 static void
-show_devs(dev_t *list, int num)
+show_devs(capdev_t *list, int num)
 {
     int i;
 
@@ -228,13 +233,21 @@ pclog(const char *fmt, ...)
 int
 main(int argc, char **argv)
 {
-    dev_t interfaces[32];
+    capdev_t interfaces[32];
     int numdev, i;
 
     /* Try loading the DLL. */
+#ifdef WIN32
     pcap_handle = dynld_module("wpcap.dll", pcap_imports);
+#else
+    pcap_handle = dynld_module("libpcap.so", pcap_imports);
+#endif
     if (pcap_handle == NULL) {
+#ifdef WIN32
 	fprintf(stderr, "Unable to load WinPcap DLL !\n");
+#else
+	fprintf(stderr, "Unable to load libpcap.so !\n");
+#endif
 	return(1);
     }
 

@@ -8,7 +8,7 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.10	2017/10/16
+ * Version:	@(#)net_pcap.c	1.0.11	2017/10/27
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -79,9 +79,8 @@ poll_thread(void *arg)
     uint16_t mac_cmp16[2];
     event_t *evt;
 
-    thread_set_event((event_t *) thread_started);
-
     pclog("PCAP: polling thread started, arg %08lx\n", arg);
+    thread_set_event((event_t *)thread_started);
 
     /* Create a waitable event. */
     evt = thread_create_event();
@@ -93,7 +92,7 @@ poll_thread(void *arg)
 	network_wait_for_poll();
 
 	/* Wait for the next packet to arrive. */
-	data = f_pcap_next((pcap_t *) pcap, &h);
+	data = f_pcap_next((pcap_t *)pcap, &h);
 	if (data != NULL) {
 		/* Received MAC. */
 		mac_cmp32[0] = *(uint32_t *)(data+6);
@@ -105,7 +104,7 @@ poll_thread(void *arg)
 		if ((mac_cmp32[0] != mac_cmp32[1]) ||
 		    (mac_cmp16[0] != mac_cmp16[1])) {
 			if (poll_rx != NULL)
-				poll_rx((void *) poll_arg, (uint8_t *)data, h.caplen); 
+				poll_rx((void *)poll_arg, (uint8_t *)data, h.caplen); 
 		} else {
 			/* Mark as invalid packet. */
 			data = NULL;
@@ -137,7 +136,11 @@ network_pcap_init(netdev_t *list)
     pcap = NULL;
 
     /* Try loading the DLL. */
+#ifdef WIN32
     pcap_handle = dynld_module("wpcap.dll", pcap_imports);
+#else
+    pcap_handle = dynld_module("libpcap.so", pcap_imports);
+#endif
     if (pcap_handle == NULL) return(-1);
 
     /* Retrieve the device list from the local machine */
@@ -167,7 +170,12 @@ void
 network_pcap_reset(void)
 {
     /* Try loading the DLL. */
+#ifdef WIN32
     pcap_handle = dynld_module("wpcap.dll", pcap_imports);
+#else
+    pcap_handle = dynld_module("libpcap.so", pcap_imports);
+#endif
+
     return;
 }
 
@@ -184,42 +192,24 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
     /* Did we already load the DLL? */
     if (pcap_handle == NULL) return(-1);
 
-#if 1
     /* Get the value of our capture interface. */
     dev = network_pcap;
-    if (dev == NULL) {
-	pclog(" PCap device is a null pointer!\n");
-	return(-1);
-    }
-    if ((dev[0] == '\0') || !strcmp(dev, "none")) {
-	pclog(" No network device configured!\n");
+    if ((dev == NULL) || (dev[0] == '\0') || !strcmp(dev, "none")) {
+	pclog(" No PCap interface configured!\n");
 	return(-1);
     }
     pclog(" Network interface: '%s'\n", dev);
-#endif
 
     strcpy(temp, f_pcap_lib_version());
     dev = strchr(temp, '(');
     if (dev != NULL) *(dev-1) = '\0';
     pclog("PCAP: initializing, %s\n", temp);
 
-#if 0
-    /* Get the value of our capture interface. */
-    dev = network_pcap;
-    if ((dev[0] == '\0') || !strcmp(dev, "none")) {
-	pclog(" No network device configured!\n");
-	return(-1);
-    }
-    pclog(" Network interface: '%s'\n", dev);
-#else
-    dev = network_pcap;
-#endif
-
-    pcap = f_pcap_open_live(dev,		/* interface name */
-			   1518,	/* maximum packet size */
-			   1,		/* promiscuous mode? */
-			   10,		/* timeout in msec */
-			   temp);	/* error buffer */
+    pcap = f_pcap_open_live(dev,	/* interface name */
+			    1518,	/* maximum packet size */
+			    1,		/* promiscuous mode? */
+			    10,		/* timeout in msec */
+			    temp);	/* error buffer */
     if (pcap == NULL) {
 	pclog(" Unable to open device: %s!\n", temp);
 	return(-1);
@@ -232,15 +222,20 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
 	"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
 	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
 	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+#ifdef WIN32
     if (f_pcap_compile((pcap_t *) pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
 	if (f_pcap_setfilter((pcap_t *) pcap, &fp) == -1) {
+#else
+    if (f_pcap_compile((pcap_t *) pcap, &fp, filter_exp, 0, 0xffffffff) != 0) {
+	if (f_pcap_setfilter((pcap_t *) pcap, &fp) == 0) {
+#endif
 		pclog(" Error installing filter (%s) !\n", filter_exp);
 		f_pcap_close((pcap_t *) pcap);
 		return (-1);
 	}
     } else {
 	pclog(" Could not compile filter (%s) !\n", filter_exp);
-	f_pcap_close((pcap_t *) pcap);
+	f_pcap_close((pcap_t *)pcap);
 	return (-1);
     }
 
@@ -250,12 +245,10 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
 
     network_thread_init();
 
-    thread_started = thread_create_event();
-
     pclog(" Starting thread..\n");
+    thread_started = thread_create_event();
     poll_tid = thread_create(poll_thread, mac);
-
-    thread_wait_event((event_t *) thread_started, -1);
+    thread_wait_event((event_t *)thread_started, -1);
 
     return(0);
 }
@@ -265,52 +258,38 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
 void
 network_pcap_close(void)
 {
-    volatile pcap_t *pc;
+    pcap_t *pc;
 
     if (pcap != NULL) {
 	pclog("Closing WinPcap\n");
 
 	/* Tell the polling thread to shut down. */
-	pc = pcap; pcap = NULL;
-
-#if 0
-#if 1
-	/* Terminate the polling thread. */
-	if (poll_tid != NULL) {
-		thread_kill(poll_tid);
-		poll_tid = NULL;
-	}
-#else
-	/* Wait for the polling thread to shut down. */
-	while (poll_tid != NULL)
-		;
-#endif
-#endif
+	pc = (pcap_t *)pcap; pcap = NULL;
 
         /* Tell the thread to terminate. */
 	if (poll_tid != NULL) {
 		network_busy(0);
 
-		pclog("Waiting for network thread to end...\n");
 		/* Wait for the end event. */
-		network_wait_for_end((void *) poll_tid);
+		pclog("Waiting for network thread to end...\n");
+		network_wait_for_end((void *)poll_tid);
 		pclog("Network thread ended\n");
 
 		poll_tid = NULL;
 	}
 
 	if (thread_started) {
-		thread_destroy_event((event_t *) thread_started);
+		thread_destroy_event((event_t *)thread_started);
 		thread_started = NULL;
 	}
 
 	/* OK, now shut down WinPcap itself. */
-	f_pcap_close((pcap_t *) pc);
-	pc = pcap = NULL;
+	f_pcap_close((pcap_t *)pc);
+	pcap = NULL;
 
 	/* Unload the DLL if possible. */
 	if (pcap_handle != NULL) {
-		dynld_close((void *) pcap_handle);
+		dynld_close((void *)pcap_handle);
 		pcap_handle = NULL;
 	}
     }
@@ -322,15 +301,15 @@ network_pcap_close(void)
 void
 network_pcap_stop(void)
 {
-	/* OK, now shut down WinPcap itself. */
-	f_pcap_close((pcap_t *) pcap);
-	pcap = NULL;
+    /* OK, now shut down WinPcap itself. */
+    f_pcap_close((pcap_t *)pcap);
+    pcap = NULL;
 
-	/* Unload the DLL if possible. */
-	if (pcap_handle != NULL) {
-		dynld_close((void *) pcap_handle);
-		pcap_handle = NULL;
-	}
+    /* Unload the DLL if possible. */
+    if (pcap_handle != NULL) {
+	dynld_close((void *)pcap_handle);
+	pcap_handle = NULL;
+    }
 }
 
 

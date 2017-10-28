@@ -222,7 +222,11 @@ void* fluidsynth_init(device_t *info)
         memset(data, 0, sizeof(fluidsynth_t));
 
 	/* Try loading the DLL. */
+#ifdef WIN32
 	fluidsynth_handle = dynld_module("libfluidsynth.dll", fluidsynth_imports);
+#else
+	fluidsynth_handle = dynld_module("libfluidsynth.so", fluidsynth_imports);
+#endif
 	if (fluidsynth_handle == NULL)
 	{
 		ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2171);
