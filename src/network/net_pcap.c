@@ -8,7 +8,7 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.11	2017/10/27
+ * Version:	@(#)net_pcap.c	1.0.12	2017/10/28
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -166,6 +166,7 @@ network_pcap_init(netdev_t *list)
 
 
 /* Initialize the (Win)Pcap module for use. */
+// FIXME: this will be deleted. --FvK
 void
 network_pcap_reset(void)
 {
@@ -175,8 +176,6 @@ network_pcap_reset(void)
 #else
     pcap_handle = dynld_module("libpcap.so", pcap_imports);
 #endif
-
-    return;
 }
 
 
@@ -205,13 +204,13 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
     if (dev != NULL) *(dev-1) = '\0';
     pclog("PCAP: initializing, %s\n", temp);
 
-    pcap = f_pcap_open_live(dev,	/* interface name */
-			    1518,	/* maximum packet size */
-			    1,		/* promiscuous mode? */
-			    10,		/* timeout in msec */
-			    temp);	/* error buffer */
+    pcap = f_pcap_open_live(network_pcap,	/* interface name */
+			    1518,		/* maximum packet size */
+			    1,			/* promiscuous mode? */
+			    10,			/* timeout in msec */
+			    temp);		/* error buffer */
     if (pcap == NULL) {
-	pclog(" Unable to open device: %s!\n", temp);
+	pclog(" Unable to open device: %s!\n", network_pcap);
 	return(-1);
     }
 
@@ -222,16 +221,11 @@ network_pcap_setup(uint8_t *mac, NETRXCB func, void *arg)
 	"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
 	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
 	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-#ifdef WIN32
     if (f_pcap_compile((pcap_t *) pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
-	if (f_pcap_setfilter((pcap_t *) pcap, &fp) == -1) {
-#else
-    if (f_pcap_compile((pcap_t *) pcap, &fp, filter_exp, 0, 0xffffffff) != 0) {
-	if (f_pcap_setfilter((pcap_t *) pcap, &fp) == 0) {
-#endif
+	if (f_pcap_setfilter((pcap_t *)pcap, &fp) != 0) {
 		pclog(" Error installing filter (%s) !\n", filter_exp);
-		f_pcap_close((pcap_t *) pcap);
-		return (-1);
+		f_pcap_close((pcap_t *)pcap);
+		return(-1);
 	}
     } else {
 	pclog(" Could not compile filter (%s) !\n", filter_exp);
@@ -284,7 +278,7 @@ network_pcap_close(void)
 	}
 
 	/* OK, now shut down WinPcap itself. */
-	f_pcap_close((pcap_t *)pc);
+	f_pcap_close(pc);
 	pcap = NULL;
 
 	/* Unload the DLL if possible. */
@@ -314,6 +308,7 @@ network_pcap_stop(void)
 
 
 /* Test WinPcap - 1 = success, 0 = failure. */
+// FIXME: this will be deleted. --FvK
 int
 network_pcap_test(void)
 {
