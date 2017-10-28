@@ -11,7 +11,7 @@
  *		of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.h	1.0.2	2017/10/22
+ * Version:	@(#)scsi_x54x.h	1.0.3	2017/10/27
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -368,7 +368,7 @@ typedef struct {
     uint8_t	Command;
     uint8_t	CmdBuf[128];
     uint8_t	CmdParam;
-    uint8_t	CmdParamLeft;
+    uint32_t	CmdParamLeft;
     uint8_t	DataBuf[65536];
     uint16_t	DataReply;
     uint16_t	DataReplyLeft;

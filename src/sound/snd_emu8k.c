@@ -316,6 +316,7 @@ static inline int16_t EMU8K_READ(emu8k_t *emu8k, uint32_t addr)
         return emu8k->ram_pointers[addrmem.hb_address][addrmem.lw_address];
 }
 
+#if NOTUSED
 static inline int16_t EMU8K_READ_INTERP_LINEAR(emu8k_t *emu8k, uint32_t int_addr, uint16_t fract)
 {
         /* The interpolation in AWE32 used a so-called patented 3-point interpolation
@@ -328,6 +329,7 @@ static inline int16_t EMU8K_READ_INTERP_LINEAR(emu8k_t *emu8k, uint32_t int_addr
         dat1 += ((dat2-(int32_t)dat1)* fract) >> 16;
         return dat1;
 }
+#endif
 
 static inline int32_t EMU8K_READ_INTERP_CUBIC(emu8k_t *emu8k, uint32_t int_addr, uint16_t fract)
 {

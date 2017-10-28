@@ -18,11 +18,6 @@
 
 /* Modified for use with PCem by bit */
 
-//#ifdef FREEBSD
-//# define fopen64	fopen
-//# define fseeko64	fseeko
-//# define ftello64	ftello
-//#endif
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
 #ifdef WIN32
@@ -30,6 +25,7 @@
 # define _GNU_SOURCE
 #endif
 #include <stdio.h>
+#include <stdint.h>
 
 #include <cctype>
 #include <cmath>

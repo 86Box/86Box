@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.26	2017/10/22
+ * Version:	@(#)scsi_buslogic.c	1.0.27	2017/10/27
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -673,7 +673,7 @@ buslogic_cmds(void *p)
 
     FILE *f;
     uint16_t TargetsPresentMask = 0;
-    uint8_t Offset;
+    uint32_t Offset;
     int i = 0;
     int j = 0;
     MailboxInitExtended_t *MailboxInitE;

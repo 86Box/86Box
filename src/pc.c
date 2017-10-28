@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.34	2017/10/25
+ * Version:	@(#)pc.c	1.0.35	2017/10/27
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -81,6 +81,9 @@
 int	dump_on_exit = 0;			/* (O) dump regs on exit */
 int	do_dump_config = 0;			/* (O) dump config on load */
 int	start_in_fullscreen = 0;		/* (O) start in fullscreen */
+#ifdef USE_WX
+int	video_fps = RENDER_FPS;			/* (O) render speed in fps */
+#endif
 
 /* Configuration values. */
 int	window_w, window_h,			/* (C) window size and */
@@ -318,6 +321,9 @@ usage:
 		printf("-D or --dump        - dump memory on exit\n");
 		printf("-F or --fullscreen  - start in fullscreen mode\n");
 		printf("-P or --vmpath path - set 'path' to be root for vm\n");
+#ifdef USE_WX
+		printf("-R or --fps num     - set render speed to 'num' fps\n");
+#endif
 		printf("\nA config file can be specified. If none is, the default file will be used.\n");
 		return(0);
 	} else if (!wcscasecmp(argv[c], L"--dumpcfg") ||
@@ -331,9 +337,16 @@ usage:
 		start_in_fullscreen = 1;
 	} else if (!wcscasecmp(argv[c], L"--vmpath") ||
 		   !wcscasecmp(argv[c], L"-P")) {
-		if ((c+1) == argc) break;
+		if ((c+1) == argc) goto usage;
 
 		wcscpy(cfg_path, argv[++c]);
+#ifdef USE_WX
+	} else if (!wcscasecmp(argv[c], L"--fps") ||
+		   !wcscasecmp(argv[c], L"-R")) {
+		if ((c+1) == argc) goto usage;
+
+		video_fps = wcstol(argv[++c], NULL, 10);
+#endif
 	} else if (!wcscasecmp(argv[c], L"--test")) {
 		/* some (undocumented) test function here.. */
 

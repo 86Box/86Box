@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.14	2017/10/24
+ * Version:	@(#)plat.h	1.0.15	2017/10/27
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -21,6 +21,11 @@
 
 #ifndef GLOBAL
 # define GLOBAL extern
+#endif
+
+
+#ifndef WIN32
+# define RENDER_FPS	70			/* default render speed */
 #endif
 
 

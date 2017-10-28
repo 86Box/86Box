@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.16	2017/10/26
+ * Version:	@(#)hdc_ide.c	1.0.17	2017/10/27
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2012,7 +2012,12 @@ void callbackide(int ide_board)
 			return;
 
 		case WIN_SET_FEATURES:
-			if ((ide->type == IDE_NONE)/* || ide_drive_is_cdrom(ide)*/)
+#if 1
+			/* To avoid Clang warning. --FvK */
+			if (ide->type == IDE_NONE)
+#else
+			if ((ide->type == IDE_NONE) || ide_drive_is_cdrom(ide))
+#endif
 			{
 				goto abort_cmd;
 			}

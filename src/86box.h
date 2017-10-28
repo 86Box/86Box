@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.7	2017/10/21
+ * Version:	@(#)86box.h	1.0.8	2017/10/27
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -60,6 +60,9 @@ extern "C" {
 extern int	dump_on_exit;			/* (O) dump regs on exit*/
 extern int	do_dump_config;			/* (O) dump cfg after load */
 extern int	start_in_fullscreen;		/* (O) start in fullscreen */
+#ifdef USE_WX
+extern int	video_fps;			/* (O) render speed in fps */
+#endif
 
 extern int	window_w, window_h,		/* (C) window size and */
 		window_x, window_y,		/*     position info */
