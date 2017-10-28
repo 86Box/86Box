@@ -147,7 +147,7 @@ network_slirp_setup(uint8_t *mac, NETRXCB func, void *arg)
 
     network_thread_init();
 
-    thread_start = thread_create_event();
+    thread_started = thread_create_event();
 
     pclog("SLiRP: starting thread..\n");
     poll_tid = thread_create(poll_thread, mac);
