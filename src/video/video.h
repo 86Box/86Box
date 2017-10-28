@@ -6,6 +6,10 @@
 #define makecol32(r, g, b)  ((b) | ((g) << 8) | ((r) << 16))
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum {
     FULLSCR_SCALE_FULL = 0,
     FULLSCR_SCALE_43,
@@ -67,10 +71,6 @@ extern int	emu_fps,
 		frames;
 extern int	readflash;
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* Function handler pointers. */
 extern void	(*video_recalctimings)(void);
