@@ -20,7 +20,7 @@
 
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
-#ifdef WIN32
+#ifdef _WIN32
 //FIXME: should not be needed. */
 # define _GNU_SOURCE
 #endif
@@ -40,10 +40,10 @@
 #include "../plat.h"
 #include "cdrom_dosbox.h"
 
-#if !defined(WIN32)
-#include <libgen.h>
+#ifndef _WIN32
+# include <libgen.h>
 #else
-#include <string.h>
+# include <string.h>
 #endif
 
 using namespace std;
@@ -287,7 +287,7 @@ bool CDROM_Interface_Image::CanReadPVD(TrackFile *file, uint64_t sectorSize, boo
 			(pvd[8] == 1 && !strncmp((char*)(&pvd[9]), "CDROM", 5) && pvd[14] == 1));
 }
 
-#if defined(WIN32)
+#ifdef _WIN32
 static string dirname(char * file) {
 	char * sep = strrchr(file, '\\');
 	if (sep == NULL)
@@ -506,7 +506,7 @@ bool CDROM_Interface_Image::GetRealFileName(string &filename, string &pathname)
 		filename = tmpstr;
 		return true;
 	}
-#if defined (WIN32) || defined(OS2)
+#if defined (_WIN32) || defined(OS2)
 	//Nothing
 #else
 	//Consider the possibility that the filename has a windows directory seperator (inside the CUE file)

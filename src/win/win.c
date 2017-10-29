@@ -6,9 +6,9 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		The Emulator's Windows core.
+ *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.29	2017/10/24
+ * Version:	@(#)win.c	1.0.30	2017/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -561,7 +561,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 						rom_load_bios(romset);
 						network_init();
 						ResetAllMenus();
-						ui_sb_update_panes();
 						pc_reset_hard_init();
 					}
 				}

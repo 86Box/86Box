@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.21	2017/10/16
+ * Version:	@(#)win_settings.c	1.0.22	2017/10/28
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -378,6 +378,12 @@ static void win_settings_save(void)
 	}
 	memcpy(cdrom_drives, temp_cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
 
+	/* Mark configuration as changed. */
+	config_changed = 1;
+
+#if 1
+	pc_reset_hard_init();
+#else
 	mem_resize();
 	rom_load_bios(romset);
 
@@ -396,6 +402,7 @@ static void win_settings_save(void)
 	pc_speed_changed();
 
 	if (joystick_type != 7)  gameport_update_joystick_type();
+#endif
 }
 
 

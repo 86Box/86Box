@@ -8,7 +8,7 @@
  *
  *		Host to guest keyboard interface and keyboard scan code sets.
  *
- * Version:	@(#)keyboard.c	1.0.6	2017/10/24
+ * Version:	@(#)keyboard.c	1.0.7	2017/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -580,11 +580,11 @@ keyboard_isfsexit(void)
 int
 keyboard_ismsexit(void)
 {
-#ifdef WIN32
+#ifdef _WIN32
     /* Windows: F8+F12 */
     return( recv_key[0x42] && recv_key[0x58] );
 #else
-    /* Linux: CTRL+END */
+    /* WxWidgets cannot do two regular keys.. CTRL+END */
     return( (recv_key[0x1D] || recv_key[0x9D]) && recv_key[0xCF] );
 #endif
 }

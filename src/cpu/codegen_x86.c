@@ -1,4 +1,4 @@
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _WIN32
 
 #include <stdio.h>
 #include <stdint.h>
@@ -24,7 +24,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
-#if defined WIN32 || defined _WIN32 || defined _WIN32
+#if defined _WIN32
 #include <windows.h>
 #endif
 
@@ -1135,7 +1135,7 @@ void codegen_init()
 	long pagemask = ~(pagesize - 1);
 #endif
         
-#if defined WIN32 || defined _WIN32 || defined _WIN32
+#ifdef _WIN32
         codeblock = VirtualAlloc(NULL, (BLOCK_SIZE+1) * sizeof(codeblock_t), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 #else
         codeblock = malloc((BLOCK_SIZE+1) * sizeof(codeblock_t));

@@ -44,7 +44,7 @@
  *		configuration register (CTRL_SPCFG bit set) but have to
  *		remember that stuff first...
  *
- * Version:	@(#)bugger.c	1.0.8	2017/10/16
+ * Version:	@(#)bugger.c	1.0.9	2017/10/28
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 1989-2017 Fred N. van Kempen.
@@ -54,8 +54,9 @@
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
-#include "ibm.h"
 #include "io.h"
+#include "device.h"
+#include "plat.h"
 #include "ui.h"
 #include "bugger.h"
 
@@ -307,23 +308,36 @@ bug_read(uint16_t port, void *priv)
 
 
 /* Initialize the ISA BusBugger emulator. */
-void
-bugger_init(void)
+static void *
+bug_init(device_t *info)
 {
-    pclog("ISA Bus (de)Bugger, I/O=%04x\n", BUGGER_ADDR);
+    pclog("%s, I/O=%04x\n", info->name, BUGGER_ADDR);
 
     /* Initialize local registers. */
     bug_reset();
 
     io_sethandler(BUGGER_ADDR, BUGGER_ADDRLEN,
 		  bug_read, NULL, NULL, bug_write, NULL, NULL,  NULL);
+
+    /* Just so its not NULL. */
+    return(info);
 }
 
 
 /* Remove the ISA BusBugger emulator from the system. */
-void
-bugger_remove(void)
+static void
+bug_close(UNUSED(void *priv))
 {
     io_removehandler(BUGGER_ADDR, BUGGER_ADDRLEN,
 		     bug_read, NULL, NULL, bug_write, NULL, NULL,  NULL);
 }
+
+
+device_t bugger_device = {
+    "ISA/PCI Bus Bugger",
+    DEVICE_ISA | DEVICE_AT,
+    0,
+    bug_init, bug_close, NULL,
+    NULL, NULL, NULL, NULL,
+    NULL
+};

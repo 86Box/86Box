@@ -8,7 +8,7 @@
  *
  *		Definitions for the network module.
  *
- * Version:	@(#)network.h	1.0.8	2017/10/15
+ * Version:	@(#)network.h	1.0.9	2017/10/28
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -38,6 +38,7 @@ typedef struct {
     void	*priv;
     int		(*poll)(void *);
     NETRXCB	rx;
+    uint8_t	*mac;
 } netcard_t;
 
 typedef struct {
@@ -47,42 +48,37 @@ typedef struct {
 
 
 /* Global variables. */
-extern int	nic_do_log;
-extern int	network_card;
-extern int	network_type;
+extern int	nic_do_log;				/* config */
+extern int	network_card;				/* config */
+extern int	network_type;				/* config */
+extern char	network_pcap[512];			/* config */
 extern int      network_ndev;
 extern netdev_t network_devs[32];
-extern char	network_pcap[512];
 
 
 /* Function prototypes. */
-extern void	network_mutex_wait(uint8_t wait);
-extern void	network_wait_for_poll(void);
-extern void	network_wait_for_end(void *handle);
-extern void	network_mutex_init(void);
-extern void	network_thread_init(void);
+extern void	network_wait(uint8_t wait);
+extern void	network_poll(void);
 extern void	network_busy(uint8_t set);
 extern void	network_end(void);
 
 extern void	network_init(void);
-extern int	network_attach(void *, uint8_t *, NETRXCB);
+extern void	network_attach(void *, uint8_t *, NETRXCB);
 extern void	network_close(void);
-extern int	network_test(void);
 extern void	network_reset(void);
+extern int	network_available(void);
 extern void	network_tx(uint8_t *, int);
 
-extern int	network_pcap_init(netdev_t *);
-extern void	network_pcap_reset(void);
-extern int	network_pcap_setup(uint8_t *, NETRXCB, void *);
-extern void	network_pcap_close(void);
-extern int	network_pcap_test(void);
-extern void	network_pcap_in(uint8_t *, int);
+extern int	net_pcap_prepare(netdev_t *);
+extern int	net_pcap_init(void);
+extern int	net_pcap_reset(netcard_t *);
+extern void	net_pcap_close(void);
+extern void	net_pcap_in(uint8_t *, int);
 
-extern void	network_slirp_mutex_init(void);
-extern int	network_slirp_setup(uint8_t *, NETRXCB, void *);
-extern void	network_slirp_close(void);
-extern int	network_slirp_test(void);
-extern void	network_slirp_in(uint8_t *, int);
+extern int	net_slirp_init(void);
+extern int	net_slirp_reset(netcard_t *);
+extern void	net_slirp_close(void);
+extern void	net_slirp_in(uint8_t *, int);
 
 extern int	network_dev_to_id(char *);
 extern int	network_card_available(int);

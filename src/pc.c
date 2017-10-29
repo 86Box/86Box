@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.35	2017/10/27
+ * Version:	@(#)pc.c	1.0.37	2017/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -50,6 +50,7 @@
 #include "keyboard_at.h"
 #include "lpt.h"
 #include "serial.h"
+#include "bugger.h"
 #include "cdrom/cdrom.h"
 #include "disk/hdd.h"
 #include "disk/hdc.h"
@@ -133,6 +134,7 @@ wchar_t	exe_path[1024];				/* path (dir) of executable */
 wchar_t	cfg_path[1024];				/* path (dir) of user data */
 int	scrnsz_x = SCREEN_RES_X,		/* current screen size, X */
 	scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
+int	config_changed;				/* configuration has changed */
 int	title_update;
 int64_t	main_time;
 
@@ -366,7 +368,7 @@ usage:
     /* Make sure cfg_path has a trailing backslash. */
     if ((cfg_path[wcslen(cfg_path)-1] != L'\\') &&
 	(cfg_path[wcslen(cfg_path)-1] != L'/')) {
-#ifdef WIN32
+#ifdef _WIN32
 	wcscat(cfg_path, L"\\");
 #else
 	wcscat(cfg_path, L"/");
@@ -382,7 +384,7 @@ usage:
 	 * Otherwise, assume the pathname given is
 	 * relative to whatever the cfg_path is.
 	 */
-#ifdef WIN32
+#ifdef _WIN32
 	if ((cfg[1] == L':') ||	/* drive letter present */
 	    (cfg[0] == L'\\'))	/* backslash, root dir */
 #else
@@ -632,9 +634,10 @@ pc_reset_hard_close(void)
 void
 pc_reset_hard_init(void)
 {
-    /* First, we reset the modules that are not part of the
-     * actual machine, but which support some of the modules
-     * that are.
+    /*
+     * First, we reset the modules that are not part of
+     * the actual machine, but which support some of the
+     * modules that are.
      */
     sound_realloc_buffers();
     sound_cd_thread_reset();
@@ -719,8 +722,25 @@ pc_reset_hard_init(void)
     if (SSI2001)
 	device_add(&ssi2001_device);
 
+    if (joystick_type != 7)
+	gameport_update_joystick_type();
+
+    if (config_changed) {
+pclog("PC: configuration changed, updating status bar and saving..\n");
+	ui_sb_update_panes();
+
+        config_save();
+
+	config_changed = 0;
+    }
+
+    /* Needs the status bar... */
+    if (bugger_enabled)
+	device_add(&bugger_device);
+
     /* Reset the CPU module. */
     cpu_set();
+    cpu_update_waitstates();
     cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
     resetx86();
     dma_reset();
@@ -728,10 +748,7 @@ pc_reset_hard_init(void)
 
     shadowbios = 0;
 
-    if (AT)
-	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
-      else
- 	setpitclock(14318184.0);
+    pc_speed_changed();
 }
 
 
@@ -792,11 +809,11 @@ pc_close(thread_t *ptr)
     for (i=0; i<CDROM_NUM; i++)
 	cdrom_drives[i].handler->exit(i);
 
-    dumppic();
-
     for (i=0; i<FDD_NUM; i++)
        floppy_close(i);
 
+    if (dump_on_exit)
+	dumppic();
     dumpregs(0);
 
     video_close();

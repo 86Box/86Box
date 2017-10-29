@@ -10,7 +10,6 @@
 #include "../mem.h"
 #include "../device.h"
 #include "../nvr.h"
-#include "../bugger.h"
 #include "../game/gameport.h"
 #include "../keyboard_at.h"
 #include "../lpt.h"
@@ -37,9 +36,6 @@ machine_at_init(machine_t *model)
 
     if (joystick_type != 7)
 	device_add(&gameport_device);
-
-    if (bugger_enabled)
-	bugger_init();
 }
 
 

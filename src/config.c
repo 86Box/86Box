@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.27	2017/10/25
+ * Version:	@(#)config.c	1.0.29	2017/10/28
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -242,7 +242,7 @@ config_read(wchar_t *fn)
     int c, d;
     FILE *f;
 
-#if defined(ANSI_CFG) || !defined(WIN32)
+#if defined(ANSI_CFG) || !defined(_WIN32)
     f = plat_fopen(fn, L"rt");
 #else
     f = plat_fopen(fn, L"rt, ccs=UNICODE");
@@ -350,7 +350,7 @@ config_write(wchar_t *fn)
     FILE *f;
     int fl = 0;
 
-#if defined(ANSI_CFG) || !defined(WIN32)
+#if defined(ANSI_CFG) || !defined(_WIN32)
     f = plat_fopen(fn, L"wt");
 #else
     f = plat_fopen(fn, L"wt, ccs=UNICODE");
@@ -395,7 +395,7 @@ config_write(wchar_t *fn)
 static void
 config_new(void)
 {
-#if defined(ANSI_CFG) || !defined(WIN32)
+#if defined(ANSI_CFG) || !defined(_WIN32)
     FILE *f = _wfopen(config_file, L"wt");
 #else
     FILE *f = _wfopen(config_file, L"wt, ccs=UNICODE");
@@ -1156,6 +1156,9 @@ config_load(wchar_t *fn)
     load_other_peripherals();	/* Other peripherals */
     load_hard_disks();		/* Hard disks */
     load_removable_devices();	/* Removable devices */
+
+    /* Mark the configuration as changed. */
+    config_changed = 1;
 
     pclog("Config loaded.\n\n");
 }

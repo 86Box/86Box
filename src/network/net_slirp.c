@@ -8,7 +8,7 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.10	2017/10/16
+ * Version:	@(#)net_slirp.c	1.0.11	2017/10/28
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -29,22 +29,12 @@
 #include "network.h"
 
 
-static volatile
-       queueADT	slirpq;			/* SLiRP library handle */
-static volatile
-       thread_t	*poll_tid;
-static volatile
-       NETRXCB	poll_rx;		/* network RX function to call */
-static volatile
-       void	*poll_arg;		/* network RX function arg */
-static volatile
-       event_t	*thread_started;
+static volatile queueADT	slirpq;		/* SLiRP library handle */
+static volatile thread_t	*poll_tid;
+static netcard_t		*poll_card;	/* netcard attached to us */
+static event_t			*poll_state;
 
 
-
-/* Instead of calling this and crashing some times
-   or experencing jitter, this is called by the 
-   60Hz clock which seems to do the job. */
 static void
 slirp_tic(void)
 {
@@ -76,60 +66,60 @@ slirp_tic(void)
 
 /* Handle the receiving of frames. */
 static void
-poll_thread(void *arg)
+poll_thread(UNUSED(void *arg))
 {
     struct queuepacket *qp;
     event_t *evt;
 
-   thread_set_event((event_t *) thread_started);
-
-    pclog("SLiRP: polling thread started, arg %08lx\n", arg);
+    pclog("SLiRP: polling started.\n");
+    thread_set_event(poll_state);
 
     /* Create a waitable event. */
     evt = thread_create_event();
 
     while (slirpq != NULL) {
-	network_mutex_wait(1);
+	/* Request ownership of the queue. */
+	network_wait(1);
 
-	network_wait_for_poll();
+	/* Wait for a poll request. */
+	network_poll();
 
 	/* See if there is any work. */
 	slirp_tic();
 
 	/* Wait for the next packet to arrive. */
-	if (QueuePeek(slirpq) == 0) {
-		/* If we did not get anything, wait a while. */
-		thread_wait_event(evt, 10);
-
-		network_mutex_wait(0);
-		continue;
-	}
-
-	/* Grab a packet from the queue. */
-	qp = QueueDelete(slirpq);
+	if (QueuePeek(slirpq) != 0) {
+		/* Grab a packet from the queue. */
+		qp = QueueDelete(slirpq);
 #if 0
-	pclog("SLiRP: inQ:%d  got a %dbyte packet @%08lx\n",
+		pclog("SLiRP: inQ:%d  got a %dbyte packet @%08lx\n",
 				QueuePeek(slirpq), qp->len, qp);
 #endif
 
-	if (poll_rx != NULL)
-		poll_rx((void *) poll_arg, (uint8_t *)&qp->data, qp->len); 
+		poll_card->rx(poll_card->priv, (uint8_t *)qp->data, qp->len); 
 
-	/* Done with this one. */
-	free(qp);
+		/* Done with this one. */
+		free(qp);
+	} else {
+		/* If we did not get anything, wait a while. */
+		thread_wait_event(evt, 10);
+	}
 
-	network_mutex_wait(0);
+	/* Release ownership of the queue. */
+	network_wait(0);
     }
 
+    /* No longer needed. */
     thread_destroy_event(evt);
 
     pclog("SLiRP: polling stopped.\n");
+    thread_set_event(poll_state);
 }
 
 
-/* Initialize SLiRP for us. */
+/* Initialize SLiRP for use. */
 int
-network_slirp_setup(uint8_t *mac, NETRXCB func, void *arg)
+net_slirp_init(void)
 {
     pclog("SLiRP: initializing..\n");
 
@@ -139,107 +129,79 @@ network_slirp_setup(uint8_t *mac, NETRXCB func, void *arg)
     }
 
     slirpq = QueueCreate();
-    pclog(" Packet queue is at %08lx\n", &slirpq);
 
+    poll_tid = NULL;
+    poll_state = NULL;
+    poll_card = NULL;
+
+    return(0);
+}
+
+
+/* Initialize SLiRP for use. */
+int
+net_slirp_reset(netcard_t *card)
+{
     /* Save the callback info. */
-    poll_rx = func;
-    poll_arg = arg;
+    poll_card = card;
 
-    network_thread_init();
-
-    thread_started = thread_create_event();
-
-    pclog("SLiRP: starting thread..\n");
-    poll_tid = thread_create(poll_thread, mac);
-
-    thread_wait_event((event_t *) thread_started, -1);
+    pclog("SLiRP: creating thread..\n");
+    poll_state = thread_create_event();
+    poll_tid = thread_create(poll_thread, card->mac);
+    thread_wait_event(poll_state, -1);
 
     return(0);
 }
 
 
 void
-network_slirp_close(void)
+net_slirp_close(void)
 {
     queueADT sl;
 
-    if (slirpq != NULL) {
-	pclog("Closing SLiRP\n");
+    if (slirpq == NULL) return;
 
-	/* Tell the polling thread to shut down. */
-	sl = slirpq; slirpq = NULL;
+    pclog("SLiRP: closing.\n");
 
-#if 0
-#if 1
-	/* Terminate the polling thread. */
-	if (poll_tid != NULL) {
-		thread_kill(poll_tid);
-		poll_tid = NULL;
-	}
-#else
-	/* Wait for the polling thread to shut down. */
-	while (poll_tid != NULL)
-		;
-#endif
-#endif
+    /* Tell the polling thread to shut down. */
+    sl = slirpq; slirpq = NULL;
 
-        /* Tell the thread to terminate. */
-	if (poll_tid != NULL) {
-		network_busy(0);
+    /* Tell the thread to terminate. */
+    if (poll_tid != NULL) {
+	network_busy(0);
 
-		pclog("Waiting for network thread to end...\n");
-		/* Wait for the end event. */
-		network_wait_for_end((void *) poll_tid);
-		pclog("Network thread ended\n");
+	/* Wait for the thread to finish. */
+	pclog("SLiRP: waiting for thread to end...\n");
+	thread_wait_event(poll_state, -1);
+	pclog("SLiRP: thread ended\n");
+	thread_destroy_event(poll_state);
 
-		poll_tid = NULL;
-	}
-
-	if (thread_started) {
-		thread_destroy_event((event_t *) thread_started);
-		thread_started = NULL;
-	}
-
-	/* OK, now shut down SLiRP itself. */
-	QueueDestroy(sl);
-	slirp_exit(0);
+	poll_tid = NULL;
+	poll_state = NULL;
+	poll_card = NULL;
     }
 
-    poll_rx = NULL;
-    poll_arg = NULL;
-}
-
-
-/* Test SLiRP - 1 = success, 0 = failure. */
-int
-network_slirp_test(void)
-{
-    if (slirp_init() != 0) {
-	pclog("SLiRP could not be initialized!\n");
-	return 0;
-    }
-    else
-    {
-	slirp_exit(0);
-	return 1;
-    }
+    /* OK, now shut down SLiRP itself. */
+    QueueDestroy(sl);
+    slirp_exit(0);
 }
 
 
 /* Send a packet to the SLiRP interface. */
 void
-network_slirp_in(uint8_t *pkt, int pkt_len)
+net_slirp_in(uint8_t *pkt, int pkt_len)
 {
-    if (slirpq != NULL) {
-	network_busy(1);
+    if (slirpq == NULL) return;
 
-	slirp_input((const uint8_t *)pkt, pkt_len);
+    network_busy(1);
 
-	network_busy(0);
-    }
+    slirp_input((const uint8_t *)pkt, pkt_len);
+
+    network_busy(0);
 }
 
 
+/* Needed by SLiRP library. */
 void
 slirp_output(const uint8_t *pkt, int pkt_len)
 {
@@ -254,6 +216,7 @@ slirp_output(const uint8_t *pkt, int pkt_len)
 }
 
 
+/* Needed by SLiRP library. */
 int
 slirp_can_output(void)
 {

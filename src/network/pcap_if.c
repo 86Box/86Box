@@ -10,7 +10,7 @@
  *
  *		Based on the "libpcap" examples.
  *
- * Version:	@(#)pcap_if.c	1.0.6	2017/10/27
+ * Version:	@(#)pcap_if.c	1.0.7	2017/10/28
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -237,13 +237,13 @@ main(int argc, char **argv)
     int numdev, i;
 
     /* Try loading the DLL. */
-#ifdef WIN32
+#ifdef _WIN32
     pcap_handle = dynld_module("wpcap.dll", pcap_imports);
 #else
     pcap_handle = dynld_module("libpcap.so", pcap_imports);
 #endif
     if (pcap_handle == NULL) {
-#ifdef WIN32
+#ifdef _WIN32
 	fprintf(stderr, "Unable to load WinPcap DLL !\n");
 #else
 	fprintf(stderr, "Unable to load libpcap.so !\n");

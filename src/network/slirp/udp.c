@@ -39,7 +39,7 @@
  */
 
 #include <stdlib.h>
-#ifndef WIN32
+#ifndef _WIN32
 # include <unistd.h>
 #endif
 #include "slirp.h"

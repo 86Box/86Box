@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.69	2017/10/26
+# Version:	@(#)Makefile.mingw	1.0.70	2017/10/28
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -117,7 +117,7 @@ DEPS		= -MMD -MF $*.d -c $<
 DEPFILE		:= win/.depends
 
 # Set up the correct toolchain flags.
-OPTS		:= -DWIN32 $(EXTRAS) $(STUFF)
+OPTS		:= $(EXTRAS) $(STUFF)
 ifdef EXFLAGS
 OPTS		+= $(EXFLAGS)
 endif

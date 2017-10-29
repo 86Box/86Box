@@ -15,7 +15,7 @@
  *
  *		Definitions for the BUGGER card.
  *
- * Version:	@(#)bugger.h	1.0.4	2017/10/15
+ * Version:	@(#)bugger.h	1.0.5	2017/10/28
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -34,9 +34,11 @@
 extern "C" {
 #endif
 
+/* Global variables. */
+extern device_t bugger_device;
+
+
 /* Functions. */
-extern void bugger_init(void);
-extern void bugger_remove(void);
 
 #ifdef __cplusplus
 }

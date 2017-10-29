@@ -8,7 +8,7 @@
  *
  *		Emulation of the 3DFX Voodoo Graphics controller.
  *
- * Version:	@(#)vid_voodoo.c	1.0.3	2017/10/16
+ * Version:	@(#)vid_voodoo.c	1.0.4	2017/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei
@@ -2563,7 +2563,7 @@ static inline void voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t 
                 state->tex_a[0] ^= 0xff;
 }
 
-#if ((defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32) && !(defined __amd64__) && (defined USE_DYNAREC))
+#if ((defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _WIN32) && !(defined __amd64__) && (defined USE_DYNAREC))
 #include "vid_voodoo_codegen_x86.h"
 #elif ((defined __amd64__) && (defined USE_DYNAREC))
 #include "vid_voodoo_codegen_x86-64.h"

@@ -9,7 +9,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
-#if defined WIN32 || defined _WIN32 || defined _WIN32
+#ifdef _WIN32
 #define BITMAP windows_BITMAP
 #include <windows.h>
 #undef BITMAP
@@ -3285,7 +3285,7 @@ static void voodoo_codegen_init(voodoo_t *voodoo)
 	long pagemask = ~(pagesize - 1);
 #endif
 
-#if defined WIN32 || defined _WIN32 || defined _WIN32
+#ifdef _WIN32
         voodoo->codegen_data = VirtualAlloc(NULL, sizeof(voodoo_x86_data_t) * BLOCK_NUM*2, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 #else
         voodoo->codegen_data = malloc(sizeof(voodoo_x86_data_t) * BLOCK_NUM*2);
@@ -3325,7 +3325,7 @@ static void voodoo_codegen_init(voodoo_t *voodoo)
 
 static void voodoo_codegen_close(voodoo_t *voodoo)
 {
-#if defined WIN32 || defined _WIN32 || defined _WIN32
+#ifdef _WIN32
         VirtualFree(voodoo->codegen_data, 0, MEM_RELEASE);
 #else
         free(voodoo->codegen_data);

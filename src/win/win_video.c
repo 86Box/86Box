@@ -8,7 +8,7 @@
  *
  *		Platform video API support for Win32.
  *
- * Version:	@(#)win_video.c	1.0.3	2017/10/24
+ * Version:	@(#)win_video.c	1.0.4	2017/10/28
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -254,11 +254,7 @@ take_screenshot(void)
     if (! plat_dir_check(path))
 	plat_dir_create(path);
 
-#ifdef WIN32
     wcscat(path, L"\\");
-#else
-    wcscat(path, L"/");
-#endif
 
     switch(vid_api) {
 	case 0:		/* ddraw */

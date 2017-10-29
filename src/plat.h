@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.15	2017/10/27
+ * Version:	@(#)plat.h	1.0.16	2017/10/28
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -24,12 +24,16 @@
 #endif
 
 
-#ifndef WIN32
+#ifndef _WIN32
 # define RENDER_FPS	70			/* default render speed */
 #endif
 
+/* The Win32 API uses _wcsicmp. */
+#ifdef _WIN32
+# define wcscasecmp	_wcsicmp
+#endif
 
-#ifdef FREEBSD
+#if defined(UNIX) && defined(FREEBSD)
 /* FreeBSD has largefile by default. */
 # define fopen64        fopen
 # define fseeko64       fseeko
@@ -38,8 +42,11 @@
 #endif
 
 
-/* A hack (GCC-specific) to allow us to ignore unused parameters. */
+/* A hack (GCC-specific?) to allow us to ignore unused parameters. */
 #define UNUSED(arg)	__attribute__((unused))arg
+
+/* Return the size (in wchar's) of a wchar_t array. */
+#define sizeof_w(x)	(sizeof((x)) / sizeof(wchar_t))
 
 
 #ifdef __cplusplus
@@ -78,15 +85,6 @@ extern char	*plat_vidapi_name(int api);
 extern int	plat_setvid(int api);
 extern void	plat_setfullscreen(int on);
 extern void	plat_resize(int max_x, int max_y);
-
-
-/* Return the size (in wchar's) of a wchar_t array. */
-#define sizeof_w(x)	(sizeof((x)) / sizeof(wchar_t))
-
-/* The Win32 API uses _wcsicmp. */
-#ifdef WIN32
-# define wcscasecmp	_wcsicmp
-#endif
 
 
 /* Resource management. */

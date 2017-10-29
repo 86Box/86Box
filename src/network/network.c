@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.17	2017/10/19
+ * Version:	@(#)network.c	1.0.18	2017/10/28
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -57,78 +57,53 @@ char		network_pcap[512];
 #ifdef ENABLE_NIC_LOG
 int		nic_do_log = ENABLE_NIC_LOG;
 #endif
-static volatile mutex_t	*netMutex;
+static mutex_t	*network_mutex;
 
 
-static struct
-{
-    volatile int
-    busy,
-    queue_in_use;
+static struct {
+    volatile int	busy,
+			queue_in_use;
 
-    volatile event_t
-    *wake_poll_thread,
-    *poll_complete,
-    *queue_not_in_use;
+    event_t		*wake_poll_thread,
+			*poll_complete,
+			*queue_not_in_use;
 } poll_data;
 
 
 void
-network_mutex_wait(uint8_t wait)
+network_wait(uint8_t wait)
 {
     if (wait)
-	thread_wait_mutex((mutex_t *) netMutex);
-    else
-	thread_release_mutex((mutex_t *) netMutex);
+	thread_wait_mutex(network_mutex);
+      else
+	thread_release_mutex(network_mutex);
 }
 
 
 void
-network_wait_for_poll()
+network_poll(void)
 {
     while (poll_data.busy)
-	thread_wait_event((event_t *) poll_data.wake_poll_thread, -1);
-    thread_reset_event((event_t *) poll_data.wake_poll_thread);
+	thread_wait_event(poll_data.wake_poll_thread, -1);
+
+    thread_reset_event(poll_data.wake_poll_thread);
 }
 
-
-void
-network_wait_for_end(void *handle)
-{
-	thread_wait((event_t *) handle, -1);
-
-	if (poll_data.wake_poll_thread) {
-		thread_destroy_event((event_t *) poll_data.wake_poll_thread);
-		poll_data.wake_poll_thread = NULL;
-	}
-
-	if (poll_data.poll_complete) {
-		thread_destroy_event((event_t *) poll_data.poll_complete);
-		poll_data.poll_complete = NULL;
-	}
-}
-
-
-void
-network_thread_init(void)
-{
-    poll_data.wake_poll_thread = thread_create_event();
-    poll_data.poll_complete = thread_create_event();
-}
 
 void
 network_busy(uint8_t set)
 {
     poll_data.busy = !!set;
-    if (!set)
-	thread_set_event((event_t *) poll_data.wake_poll_thread);
+
+    if (! set)
+	thread_set_event(poll_data.wake_poll_thread);
 }
 
 
 void
 network_end(void)
 {
-	thread_set_event((event_t *) poll_data.poll_complete);
+    thread_set_event(poll_data.poll_complete);
 }
 
 
@@ -154,12 +129,9 @@ network_init(void)
     network_ndev = 1;
 
     /* Initialize the Pcap system module, if present. */
-    i = network_pcap_init(&network_devs[network_ndev]);
+    i = net_pcap_prepare(&network_devs[network_ndev]);
     if (i > 0)
 	network_ndev += i;
-
-    if (network_type != NET_TYPE_PCAP)
-	network_pcap_close();
 }
 
 
@@ -170,35 +142,30 @@ network_init(void)
  * finished initializing itself, to link itself to the platform support
  * modules.
  */
-int
+void
 network_attach(void *dev, uint8_t *mac, NETRXCB rx)
 {
-    int ret = -1;
+    if (network_card == 0) return;
 
-    if (network_card == 0) return(ret);
-
-    /* Save the card's callback info. */
+    /* Save the card's info. */
     net_cards[network_card].priv = dev;
     net_cards[network_card].rx = rx;
+    net_cards[network_card].mac = mac;
 
-    netMutex = thread_create_mutex(L"86Box.NetMutex");
+    /* Create the network events. */
+    poll_data.wake_poll_thread = thread_create_event();
+    poll_data.poll_complete = thread_create_event();
 
-    /* Start the platform module. */
+    /* Activate the platform module. */
     switch(network_type) {
 	case NET_TYPE_PCAP:
-		ret = network_pcap_setup(mac, rx, dev);
-		if (ret < 0) {
-			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2139);
-			network_type = NET_TYPE_NONE;
-		}
+		(void)net_pcap_reset(&net_cards[network_card]);
 		break;
 
 	case NET_TYPE_SLIRP:
-		ret = network_slirp_setup(mac, rx, dev);
+		(void)net_slirp_reset(&net_cards[network_card]);
 		break;
     }
-
-    return(ret);
 }
 
 
@@ -206,35 +173,30 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
 void
 network_close(void)
 {
-    thread_close_mutex((mutex_t *) netMutex);
+    /* If already closed, do nothing. */
+    if (network_mutex == NULL) return;
 
-    switch(network_type) {
-	case NET_TYPE_PCAP:
-		network_pcap_close();
-		break;
+    /* Force-close the PCAP module. */
+    net_pcap_close();
 
-	case NET_TYPE_SLIRP:
-		network_slirp_close();
-		break;
+    /* Force-close the SLIRP module. */
+    net_slirp_close();
+ 
+    /* Close the network events. */
+    if (poll_data.wake_poll_thread != NULL) {
+	thread_destroy_event(poll_data.wake_poll_thread);
+	poll_data.wake_poll_thread = NULL;
     }
-}
-
-
-/* Test the network. */
-int
-network_test(void)
-{
-    switch(network_type) {
-	case NET_TYPE_PCAP:
-		return network_pcap_test();
-		break;
-
-	case NET_TYPE_SLIRP:
-		return network_slirp_test();
-		break;
+    if (poll_data.poll_complete != NULL) {
+	thread_destroy_event(poll_data.poll_complete);
+	poll_data.poll_complete = NULL;
     }
 
-    return 0;
+    /* Close the network thread mutex. */
+    thread_close_mutex(network_mutex);
+    network_mutex = NULL;
+
+    pclog("NETWORK: closed.\n");
 }
 
 
@@ -249,7 +211,10 @@ network_test(void)
 void
 network_reset(void)
 {
+    int i = -1;
+
     pclog("NETWORK: reset (type=%d, card=%d)\n", network_type, network_card);
+    ui_sb_update_icon(SB_NETWORK, 0);
 
     /* Just in case.. */
     network_close();
@@ -257,11 +222,36 @@ network_reset(void)
     /* If no active card, we're done. */
     if ((network_type==NET_TYPE_NONE) || (network_card==0)) return;
 
-    if (network_type==NET_TYPE_PCAP)  network_pcap_reset();
+    network_mutex = thread_create_mutex(L"86Box.NetMutex");
+
+    /* Initialize the platform module. */
+    switch(network_type) {
+	case NET_TYPE_PCAP:
+		i = net_pcap_init();
+		break;
+
+	case NET_TYPE_SLIRP:
+		i = net_slirp_init();
+		break;
+    }
+
+    if (i < 0) {
+	/* Tell user we can't do this (at the moment.) */
+	ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2139);
+
+	// FIXME: we should ask in the dialog if they want to
+	//	  reconfigure or quit, and throw them into the
+	//	  Settings dialog if yes.
+
+	/* Disable network. */
+	network_type = NET_TYPE_NONE;
+
+	return;
+    }
 
     pclog("NETWORK: set up for %s, card='%s'\n",
-	(network_type==NET_TYPE_SLIRP)?"SLiRP":"WinPcap",
-				net_cards[network_card].name);
+	(network_type==NET_TYPE_SLIRP)?"SLiRP":"Pcap",
+			net_cards[network_card].name);
 
     /* Add the (new?) card to the I/O system. */
     if (net_cards[network_card].device) {
@@ -276,15 +266,45 @@ network_reset(void)
 void
 network_tx(uint8_t *bufp, int len)
 {
+    ui_sb_update_icon(SB_NETWORK, 1);
+
     switch(network_type) {
 	case NET_TYPE_PCAP:
-		network_pcap_in(bufp, len);
+		net_pcap_in(bufp, len);
 		break;
 
 	case NET_TYPE_SLIRP:
-		network_slirp_in(bufp, len);
+		net_slirp_in(bufp, len);
 		break;
     }
+
+    ui_sb_update_icon(SB_NETWORK, 0);
+}
+
+
+int
+network_dev_to_id(char *devname)
+{
+    int i = 0;
+
+    for (i=0; i<network_ndev; i++) {
+	if (! strcmp(network_devs[i].device, devname)) {
+		return(i);
+	}
+    }
+
+    /* If no match found, assume "none". */
+    return(0);
+}
+
+
+/* UI */
+int
+network_available(void)
+{
+    if ((network_type == NET_TYPE_NONE) || (network_card == 0)) return(0);
+
+    return(1);
 }
 
 
@@ -346,20 +366,4 @@ network_card_get_from_internal_name(char *s)
     }
 	
     return(-1);
-}
-
-
-int
-network_dev_to_id(char *dev)
-{
-    int i = 0;
-
-    for (i=0; i<network_ndev; i++) {
-	if (! strcmp(network_devs[i].device, dev)) {
-		return(i);
-	}
-    }
-
-    /* If no match found, assume "none". */
-    return(0);
 }

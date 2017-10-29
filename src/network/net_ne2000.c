@@ -10,7 +10,7 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.20	2017/10/19
+ * Version:	@(#)net_ne2000.c	1.0.21	2017/10/28
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -1673,8 +1673,6 @@ mcast_index(const void *dst)
 static void
 nic_tx(nic_t *dev, uint32_t val)
 {
-    ui_sb_update_icon(SB_NETWORK, 1);
-
     dev->CR.tx_packet = 0;
     dev->TSR.tx_ok = 1;
     dev->ISR.pkt_tx = 1;
@@ -1683,8 +1681,6 @@ nic_tx(nic_t *dev, uint32_t val)
     if (dev->IMR.tx_inte)
 	nic_interrupt(dev, 1);
     dev->tx_timer_active = 0;
-
-    ui_sb_update_icon(SB_NETWORK, 0);
 }
 
 
@@ -1705,6 +1701,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
     int idx, nextpage;
     int endbytes;
 
+    //FIXME: move to upper layer
     ui_sb_update_icon(SB_NETWORK, 1);
 
     if (io_len != 60)
@@ -1736,6 +1733,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		) {
 	nelog(1, "%s: no space\n", dev->name);
 
+    //FIXME: move to upper layer
 	ui_sb_update_icon(SB_NETWORK, 0);
 	return;
     }
@@ -1743,6 +1741,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
     if ((io_len < 40/*60*/) && !dev->RCR.runts_ok) {
 	nelog(1, "%s: rejected small packet, length %d\n", dev->name, io_len);
 
+    //FIXME: move to upper layer
 	ui_sb_update_icon(SB_NETWORK, 0);
 	return;
     }
@@ -1765,6 +1764,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		if (! dev->RCR.broadcast) {
 			nelog(2, "%s: RX BC disabled\n", dev->name);
 
+    //FIXME: move to upper layer
 			ui_sb_update_icon(SB_NETWORK, 0);
 			return;
 		}
@@ -1778,6 +1778,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 			nelog(2, "%s: RX MC disabled\n", dev->name);
 #endif
 
+    //FIXME: move to upper layer
 			ui_sb_update_icon(SB_NETWORK, 0);
 			return;
 		}
@@ -1787,6 +1788,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
 		if (! (dev->mchash[idx>>3] & (1<<(idx&0x7)))) {
 			nelog(2, "%s: RX MC not listed\n", dev->name);
 
+    //FIXME: move to upper layer
 			ui_sb_update_icon(SB_NETWORK, 0);
 			return;
 		}
@@ -1833,6 +1835,7 @@ nic_rx(void *priv, uint8_t *buf, int io_len)
     if (dev->IMR.rx_inte)
 	nic_interrupt(dev, 1);
 
+    //FIXME: move to upper layer
     ui_sb_update_icon(SB_NETWORK, 0);
 }
 
@@ -2030,28 +2033,11 @@ nic_init(device_t *info)
     /* Reset the board. */
     nic_reset(dev);
 
-    if (network_attach(dev, dev->physaddr, nic_rx) < 0) {
-#if 0
-	msgbox_error_wstr(ghwnd, L"Unable to init platform network");
-#endif
-	nelog(0, "%s: unable to init platform network type %d\n",
-					dev->name, network_type);
-#if 0
-	/*
-	 * To avoid crashes, we ignore the fact that even though
-	 * there is no active platform support, we just continue
-	 * initializing. If we return an error here, the device
-	 * handling code will throw a fatal error... --FvK
-	 */
-	free(dev);
-	return(NULL);
-#endif
-    }
+    /* Attach ourselves to the network module. */
+    network_attach(dev, dev->physaddr, nic_rx);
 
     nelog(1, "%s: %s attached IO=0x%X IRQ=%d\n", dev->name,
 	dev->is_pci?"PCI":"ISA", dev->base_address, dev->base_irq);
-
-    ui_sb_update_icon(SB_NETWORK, 0);
 
     return(dev);
 }

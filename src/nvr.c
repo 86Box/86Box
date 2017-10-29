@@ -186,7 +186,7 @@
  *		(DS12887A) which implemented a "century" register to be 
  *		compatible with Y2K.
  *
- * Version:	@(#)nvr.c	1.0.10	2017/10/16
+ * Version:	@(#)nvr.c	1.0.11	2017/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -760,7 +760,7 @@ nvr_path(wchar_t *str)
 	plat_dir_create(temp);
 
     /* Now append the actual filename. */
-#ifdef WIN32
+#ifdef _WIN32
     wcscat(temp, L"\\");
 #else
     wcscat(temp, L"/");

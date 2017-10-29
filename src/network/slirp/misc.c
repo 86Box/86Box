@@ -7,7 +7,7 @@
 
 #define WANT_SYS_IOCTL_H
 #include <stdlib.h>
-#ifndef WIN32
+#ifndef _WIN32
 # include <unistd.h>
 #endif
 #include "slirp.h"
@@ -223,12 +223,6 @@ add_exec(ex_ptr, do_pty, exec, addr, port)
 /*
  * For systems with no strerror
  */
-
-#ifdef WIN32
-//extern int sys_nerr;
-//extern char *sys_errlist[];
-#endif
-
 char *
 SLIRPstrerror(error)
 	int error;

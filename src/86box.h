@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.8	2017/10/27
+ * Version:	@(#)86box.h	1.0.9	2017/10/28
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -95,6 +95,7 @@ extern wchar_t	exe_path[1024];			/* path (dir) of executable */
 extern wchar_t	cfg_path[1024];			/* path (dir) of user data */
 extern int	scrnsz_x,			/* current screen size, X */
 		scrnsz_y;			/* current screen size, Y */
+extern int	config_changed;			/* configuration has changed */
 
 
 /* Function prototypes. */

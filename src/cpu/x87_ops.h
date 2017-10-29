@@ -8,16 +8,16 @@
  *
  *		x87 FPU instructions core.
  *
- * Version:	@(#)x87_ops.h	1.0.0	2017/05/30
+ * Version:	@(#)x87_ops.h	1.0.1	2017/10/28
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 leilei.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016,2017 Miran Grca.
  */
-
 #include <math.h>
 #include <fenv.h>
 
@@ -244,7 +244,7 @@ static __inline void x87_stmmx(MMX_REG r)
 
 static __inline uint16_t x87_compare(double a, double b)
 {
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _WIN32
         uint32_t out;
 
 	if (!is386)
@@ -316,7 +316,7 @@ static __inline uint16_t x87_compare(double a, double b)
 
 static __inline uint16_t x87_ucompare(double a, double b)
 {
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _WIN32
         uint32_t out;
         
         /* Memory barrier, to force GCC to write to the input parameters

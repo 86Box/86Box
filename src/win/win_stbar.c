@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.3	2017/10/16
+ * Version:	@(#)win_stbar.c	1.0.4	2017/10/28
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -116,15 +116,6 @@ hdd_count(int bus)
     }
 
     return(c);
-}
-
-
-static int
-display_network_icon(void)
-{
-    if ((network_type == 0) || (network_card == 0)) return(0);
-
-    return(network_test());
 }
 
 
@@ -530,7 +521,7 @@ ui_sb_update_panes(void)
     c_ide_pio = hdd_count(HDD_BUS_IDE_PIO_ONLY);
     c_ide_dma = hdd_count(HDD_BUS_IDE_PIO_AND_DMA);
     c_scsi = hdd_count(HDD_BUS_SCSI);
-    do_net = display_network_icon();
+    do_net = network_available();
 
     if (sb_parts > 0) {
 	for (i = 0; i < sb_parts; i++)
@@ -1075,9 +1066,29 @@ StatusBarCreate(HWND hwndParent, int idStatus, HINSTANCE hInst)
     /* Load the dummu menu for this window. */
     menuSBAR = LoadMenu(hInst, SB_MENU_NAME);
 
-    /* Initialize the status bar and populate the icons and menus. */
+    /* Initialize the status bar. This is clumsy. */
+    sb_parts = 1;
+    iStatusWidths = (int *)malloc(sb_parts * sizeof(int));
+     memset(iStatusWidths, 0, sb_parts * sizeof(int));
+    sb_part_meanings = (int *)malloc(sb_parts * sizeof(int));
+     memset(sb_part_meanings, 0, sb_parts * sizeof(int));
+    sb_part_icons = (int *)malloc(sb_parts * sizeof(int));
+     memset(sb_part_icons, 0, sb_parts * sizeof(int));
+    sb_icon_flags = (int *)malloc(sb_parts * sizeof(int));
+     memset(sb_icon_flags, 0, sb_parts * sizeof(int));
+    sb_menu_handles = (HMENU *)malloc(sb_parts * sizeof(HMENU));
+     memset(sb_menu_handles, 0, sb_parts * sizeof(HMENU));
+    sbTips = (WCHAR **)malloc(sb_parts * sizeof(WCHAR *));
+     memset(sbTips, 0, sb_parts * sizeof(WCHAR *));
     sb_parts = 0;
-    ui_sb_update_panes();
+    iStatusWidths[sb_parts] = -1;
+    sb_part_meanings[sb_parts] = SB_TEXT;
+    sb_part_icons[sb_parts] = -1;
+    sb_parts++;
+    SendMessage(hwndSBAR, SB_SETPARTS, (WPARAM)sb_parts, (LPARAM)iStatusWidths);
+    SendMessage(hwndSBAR, SB_SETTEXT, 0 | SBT_NOBORDERS,
+		(LPARAM)L"Welcome to 86Box !");
+    sb_ready = 1;
 }
 
 
