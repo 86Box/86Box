@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.37	2017/10/28
+ * Version:	@(#)pc.c	1.0.38	2017/10/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -601,6 +601,19 @@ pc_send_cad(void)
 /* Send the machine a Control-Alt-ESC sequence. */
 void
 pc_send_cae(void)
+{
+    pc_keyboard_send(29);	/* Ctrl key pressed */
+    pc_keyboard_send(56);	/* Alt key pressed */
+    pc_keyboard_send(1);	/* Esc key pressed */
+    pc_keyboard_send(157);	/* Ctrl key released */
+    pc_keyboard_send(184);	/* Alt key released */
+    pc_keyboard_send(129);	/* Esc key released */
+}
+
+
+/* Send the machine a Control-Alt-Break sequence. */
+void
+pc_send_cab(void)
 {
     pc_keyboard_send(29);	/* Ctrl key pressed */
     pc_keyboard_send(56);	/* Alt key pressed */

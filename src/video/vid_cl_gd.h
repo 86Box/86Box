@@ -12,6 +12,7 @@
 #define CIRRUS_ID_CLGD5428  (0x26<<2)
 #define CIRRUS_ID_CLGD5429  (0x27<<2)
 #define CIRRUS_ID_CLGD5430  (0x28<<2)
+#define CIRRUS_ID_CLGD5430VL  (0x28<<2)+10000	/* gets fixed in code */
 #define CIRRUS_ID_CLGD5432  0xA2
 #define CIRRUS_ID_CLGD5434O (0x29<<2)		/* O = obsolete, never used? */
 #define CIRRUS_ID_CLGD5434  (0x2A<<2)

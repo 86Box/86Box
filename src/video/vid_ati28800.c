@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger)
  *
- * Version:	@(#)vid_ati28800.c	1.0.1	2017/10/16
+ * Version:	@(#)vid_ati28800.c	1.0.2	2017/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -33,6 +33,15 @@
 #include "vid_ati_eeprom.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
+
+
+#define BIOS_VGAXL_EVEN_PATH	L"roms/video/ati28800/xleven.bin"
+#define BIOS_VGAXL_ODD_PATH	L"roms/video/ati28800/xlodd.bin"
+
+#define BIOS_XL24_EVEN_PATH	L"roms/video/ati28800/112-14318-102.bin"
+#define BIOS_XL24_ODD_PATH	L"roms/video/ati28800/112-14319-102.bin"
+
+#define BIOS_ROM_PATH		L"roms/video/ati28800/bios.bin"
 
 
 typedef struct ati28800_t
@@ -372,92 +381,123 @@ static void ati28800_recalctimings(svga_t *svga)
         }
 }               
 
-static void *ati28800_init(device_t *info)
-{
-	uint32_t memory = 512;
-        ati28800_t *ati28800;
-	/* if (gfxcard == GFX_VGAWONDERXL) */  memory = device_get_config_int("memory");
-	memory <<= 10;
-        ati28800 = malloc(sizeof(ati28800_t));
-        memset(ati28800, 0, sizeof(ati28800_t));
 
-	if (gfxcard == GFX_VGAWONDERXL)
-	{
-		rom_init_interleaved(&ati28800->bios_rom,
-					L"roms/video/ati28800/XLEVEN.BIN",
-					L"roms/video/ati28800/XLODD.BIN",
-					0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-	}
-	else if (gfxcard == GFX_VGAWONDERXL24)
-	{
-		rom_init_interleaved(&ati28800->bios_rom,
-					L"roms/video/ati28800/112-14318-102.bin",
-					L"roms/video/ati28800/112-14319-102.bin",
-					0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-	}
-	else        
-	        rom_init(&ati28800->bios_rom, L"roms/video/ati28800/bios.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        
-        svga_init(&ati28800->svga, ati28800, memory, /*512kb*/
-                   ati28800_recalctimings,
+static void *
+ati28800_init(device_t *info)
+{
+    uint32_t memory = 512;
+    ati28800_t *ati;
+
+#if 0
+    if (info->type == GFX_VGAWONDERXL)
+#endif
+	memory = device_get_config_int("memory");
+memory <<= 10;
+    ati = malloc(sizeof(ati28800_t));
+    memset(ati, 0x00, sizeof(ati28800_t));
+
+    switch(info->local) {
+	case GFX_VGAWONDERXL:
+		rom_init_interleaved(&ati->bios_rom,
+				     BIOS_VGAXL_EVEN_PATH,
+				     BIOS_VGAXL_ODD_PATH,
+				     0xc0000, 0x10000, 0xffff,
+				     0, MEM_MAPPING_EXTERNAL);
+		break;
+
+	case GFX_VGAWONDERXL24:
+		rom_init_interleaved(&ati->bios_rom,
+				     BIOS_XL24_EVEN_PATH,
+				     BIOS_XL24_ODD_PATH,
+				     0xc0000, 0x10000, 0xffff,
+				     0, MEM_MAPPING_EXTERNAL);
+		break;
+
+	default:
+		rom_init(&ati->bios_rom,
+			 BIOS_ROM_PATH,
+			 0xc0000, 0x8000, 0x7fff,
+			 0, MEM_MAPPING_EXTERNAL);
+		break;
+    }
+
+    svga_init(&ati->svga, ati, memory, /*512kb*/
+	      ati28800_recalctimings,
                    ati28800_in, ati28800_out,
                    NULL,
                    NULL);
 
-        io_sethandler(0x01ce, 0x0002, ati28800_in, NULL, NULL, ati28800_out, NULL, NULL, ati28800);
-        io_sethandler(0x03c0, 0x0020, ati28800_in, NULL, NULL, ati28800_out, NULL, NULL, ati28800);
+    io_sethandler(0x01ce, 2,
+		  ati28800_in, NULL, NULL,
+		  ati28800_out, NULL, NULL, ati);
+    io_sethandler(0x03c0, 32,
+		  ati28800_in, NULL, NULL,
+		  ati28800_out, NULL, NULL, ati);
 
-        ati28800->svga.miscout = 1;
+    ati->svga.miscout = 1;
 
-        ati_eeprom_load(&ati28800->eeprom, L"ati28800.nvr", 0);
+    ati_eeprom_load(&ati->eeprom, L"ati28800.nvr", 0);
 
-        return ati28800;
+    return(ati);
 }
 
-static int ati28800_available(void)
+
+static int
+ati28800_available(void)
 {
-        return rom_present(L"roms/video/ati28800/bios.bin");
+    return(rom_present(BIOS_ROM_PATH));
 }
 
-static int compaq_ati28800_available(void)
+
+static int
+compaq_ati28800_available(void)
 {
-        return (rom_present(L"roms/video/ati28800/XLEVEN.bin") && rom_present(L"roms/video/ati28800/XLODD.bin"));
+    return((rom_present(BIOS_VGAXL_EVEN_PATH) && rom_present(BIOS_VGAXL_ODD_PATH)));
 }
 
-static int ati28800_wonderxl24_available(void)
+
+static int
+ati28800_wonderxl24_available(void)
 {
-        return (rom_present(L"roms/video/ati28800/112-14318-102.bin") && rom_present(L"roms/video/ati28800/112-14319-102.bin"));
+    return((rom_present(BIOS_XL24_EVEN_PATH) && rom_present(BIOS_XL24_ODD_PATH)));
 }
 
-static void ati28800_close(void *p)
+
+static void
+ati28800_close(void *priv)
 {
-        ati28800_t *ati28800 = (ati28800_t *)p;
+    ati28800_t *ati = (ati28800_t *)priv;
 
-        svga_close(&ati28800->svga);
-        
-        free(ati28800);
+    svga_close(&ati->svga);
+
+    free(ati);
 }
 
-static void ati28800_speed_changed(void *p)
+
+static void
+ati28800_speed_changed(void *priv)
 {
-        ati28800_t *ati28800 = (ati28800_t *)p;
-        
-        ati28800_svga_recalctimings(ati28800);
+    ati28800_t *ati = (ati28800_t *)priv;
+
+    ati28800_svga_recalctimings(ati);
 }
 
-static void ati28800_force_redraw(void *p)
+
+static void
+ati28800_force_redraw(void *priv)
 {
-        ati28800_t *ati28800 = (ati28800_t *)p;
+    ati28800_t *ati = (ati28800_t *)priv;
 
-        ati28800->svga.fullchange = changeframecount;
+    ati->svga.fullchange = changeframecount;
 }
 
-static void ati28800_add_status_info(char *s, int max_len, void *p)
+static void ati28800_add_status_info(char *s, int max_len, void *priv)
 {
-        ati28800_t *ati28800 = (ati28800_t *)p;
-        
-        svga_add_status_info(s, max_len, &ati28800->svga);
+    ati28800_t *ati = (ati28800_t *)priv;
+
+    svga_add_status_info(s, max_len, &ati->svga);
 }
+
 
 static device_config_t ati28800_config[] =
 {
@@ -509,9 +549,7 @@ device_t ati28800_device =
         "ATI-28800",
         DEVICE_ISA,
 	0,
-        ati28800_init,
-        ati28800_close,
-	NULL,
+        ati28800_init, ati28800_close, NULL,
         ati28800_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
@@ -523,10 +561,8 @@ device_t compaq_ati28800_device =
 {
         "Compaq ATI-28800",
         DEVICE_ISA,
-	0,
-        ati28800_init,
-        ati28800_close,
-	NULL,
+	GFX_VGAWONDERXL,
+        ati28800_init, ati28800_close, NULL,
         compaq_ati28800_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
@@ -538,10 +574,8 @@ device_t ati28800_wonderxl24_device =
 {
         "ATI-28800 (VGA Wonder XL24)",
         DEVICE_ISA,
-	0,
-        ati28800_init,
-        ati28800_close,
-	NULL,
+	GFX_VGAWONDERXL24,
+        ati28800_init, ati28800_close, NULL,
         ati28800_wonderxl24_available,
         ati28800_speed_changed,
         ati28800_force_redraw,

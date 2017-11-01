@@ -8,7 +8,7 @@
  *
  *		MDSI Genius VHR emulation.
  *
- * Version:	@(#)vid_genius.c	1.0.4	2017/10/22
+ * Version:	@(#)vid_genius.c	1.0.5	2017/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -31,6 +31,9 @@
 #include "../plat.h"
 #include "video.h"
 #include "vid_genius.h"
+
+
+#define BIOS_ROM_PATH	L"roms/video/genius/8x12.bin"
 
 
 #define GENIUS_XSIZE 728
@@ -90,7 +93,6 @@ extern uint8_t fontdat8x12[256][16];
  *  in an 8x12 cell if necessary.
  */
 
- 
 
 typedef struct genius_t
 {
@@ -394,8 +396,6 @@ void genius_textline(genius_t *genius, uint8_t background)
 }
 
 
-
-
 /* Draw a line in the CGA 640x200 mode */
 void genius_cgaline(genius_t *genius)
 {
@@ -433,8 +433,6 @@ void genius_cgaline(genius_t *genius)
 }
 
 
-
-
 /* Draw a line in the native high-resolution mode */
 void genius_hiresline(genius_t *genius)
 {
@@ -469,8 +467,6 @@ void genius_hiresline(genius_t *genius)
 		}
 	}
 }
-
-
 
 
 void genius_poll(void *p)
@@ -632,7 +628,7 @@ void genius_close(void *p)
 
 static int genius_available(void)
 {
-        return rom_present(L"roms/video/genius/8x12.bin");
+        return rom_present(BIOS_ROM_PATH);
 }
 
 void genius_speed_changed(void *p)
@@ -646,9 +642,7 @@ device_t genius_device =
 {
         "Genius VHR",
         DEVICE_ISA, 0,
-        genius_init,
-        genius_close,
-	NULL,
+        genius_init, genius_close, NULL,
         genius_available,
         genius_speed_changed,
 	NULL,

@@ -415,13 +415,12 @@ static device_config_t hercules_config[] =
         }
 };
 
+
 device_t hercules_device =
 {
         "Hercules",
         DEVICE_ISA, 0,
-        hercules_init,
-        hercules_close,
-	NULL,
+        hercules_init, hercules_close, NULL,
         NULL,
         hercules_speed_changed,
         NULL,

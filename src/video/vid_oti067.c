@@ -8,7 +8,7 @@
  *
  *		Oak OTI067/077 emulation.
  *
- * Version:	@(#)vid_oti067.c	1.0.1	2017/10/16
+ * Version:	@(#)vid_oti067.c	1.0.2	2017/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -30,6 +30,10 @@
 #include "video.h"
 #include "vid_oti067.h"
 #include "vid_svga.h"
+
+
+#define BIOS_67_PATH	L"roms/video/oti/bios.bin"
+#define BIOS_77_PATH	L"roms/video/oti/oti077.vbi"
 
 
 typedef struct {
@@ -196,62 +200,39 @@ oti_recalctimings(svga_t *svga)
 
 
 static void *
-oti_common_init(wchar_t *bios_fn, int vram_size, int chip_id)
+oti_init(device_t *info)
 {
     oti_t *oti = malloc(sizeof(oti_t));
+    wchar_t *romfn = NULL;
 
     memset(oti, 0x00, sizeof(oti_t));
+    oti->chip_id = info->local;
 
-    rom_init(&oti->bios_rom, bios_fn,
+    switch(oti->chip_id) {
+	case 2:
+		romfn = BIOS_67_PATH;
+		break;
+
+	case 5:
+		romfn = BIOS_77_PATH;
+		break;
+    }
+
+    rom_init(&oti->bios_rom, romfn,
 	     0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
-    oti->vram_size = vram_size;
-    oti->vram_mask = (vram_size << 10) - 1;
+    oti->vram_size = device_get_config_int("memory");
+    oti->vram_mask = (oti->vram_size << 10) - 1;
 
-    oti->chip_id = chip_id;
-	
-    svga_init(&oti->svga, oti, vram_size << 10,
+    svga_init(&oti->svga, oti, oti->vram_size << 10,
 	      oti_recalctimings, oti_in, oti_out, NULL, NULL);
 
     io_sethandler(0x03c0, 32,
 		  oti_in, NULL, NULL, oti_out, NULL, NULL, oti);
     io_sethandler(0x46e8, 1, oti_pos_in,NULL,NULL, oti_pos_out,NULL,NULL, oti);
-	
     oti->svga.miscout = 1;
 
     return(oti);
-}
-
-
-static void *
-oti067_init(device_t *info)
-{
-    int vram_size = device_get_config_int("memory");
-
-    return(oti_common_init(L"roms/video/oti/bios.bin", vram_size, 2));
-}
-
-
-static void *
-oti077_init(device_t *info)
-{
-    int vram_size = device_get_config_int("memory");
-
-    return(oti_common_init(L"roms/video/oti/oti077.vbi", vram_size, 5));
-}
-
-
-static int
-oti067_available(void)
-{
-    return(rom_present(L"roms/video/oti/bios.bin"));
-}
-
-
-static int
-oti077_available(void)
-{
-    return(rom_present(L"roms/video/oti/oti077.vbi"));
 }
 
 
@@ -293,6 +274,13 @@ oti_add_status_info(char *s, int max_len, void *p)
 }
 
 
+static int
+oti067_available(void)
+{
+    return(rom_present(BIOS_67_PATH));
+}
+
+
 static device_config_t oti067_config[] =
 {
 	{
@@ -313,6 +301,14 @@ static device_config_t oti067_config[] =
 		"", "", -1
 	}
 };
+
+
+static int
+oti077_available(void)
+{
+    return(rom_present(BIOS_77_PATH));
+}
+
 
 static device_config_t oti077_config[] =
 {
@@ -343,10 +339,8 @@ device_t oti067_device =
 {
 	"Oak OTI-067",
 	DEVICE_ISA,
-	0,
-	oti067_init,
-	oti_close,
-	NULL,
+	2,
+	oti_init, oti_close, NULL,
 	oti067_available,
 	oti_speed_changed,
 	oti_force_redraw,
@@ -358,10 +352,8 @@ device_t oti077_device =
 {
 	"Oak OTI-077",
 	DEVICE_ISA,
-	0,
-	oti077_init,
-	oti_close,
-	NULL,
+	5,
+	oti_init, oti_close, NULL,
 	oti077_available,
 	oti_speed_changed,
 	oti_force_redraw,

@@ -41,7 +41,6 @@
 
 
 #define MFM_TIME		(TIMER_USEC*10LL)
-#define MFM_DEBUG		0
 
 #define STAT_ERR		0x01
 #define STAT_INDEX		0x02
@@ -238,7 +237,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
     switch (val & 0xf0) {
 	case CMD_RESTORE:
 		drive->steprate = (val & 0x0f);
-#if MFM_DEBUG
+#if ENABLE_HDC_LOG
 		pclog("WD1003(%d) restore, step=%d\n",
 			mfm->drvsel, drive->steprate);
 #endif
@@ -263,7 +262,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 			case CMD_READ+1:
 			case CMD_READ+2:
 			case CMD_READ+3:
-#if MFM_DEBUG
+#if ENABLE_HDC_LOG
 				pclog("WD1003(%d) read, opt=%d\n",
 					mfm->drvsel, val&0x03);
 #endif
@@ -280,7 +279,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 			case CMD_WRITE+1:
 			case CMD_WRITE+2:
 			case CMD_WRITE+3:
-#if MFM_DEBUG
+#if ENABLE_HDC_LOG
 				pclog("WD1003(%d) write, opt=%d\n",
 					mfm->drvsel, val & 0x03);
 #endif
@@ -384,7 +383,7 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 {
     mfm_t *mfm = (mfm_t *)priv;
 
-#if MFM_DEBUG > 1
+#if ENABLE_HDC_LOG > 1
     pclog("WD1003 write(%04x, %02x)\n", port, val);
 #endif
     switch (port) {
@@ -520,7 +519,7 @@ mfm_read(uint16_t port, void *priv)
 	default:
 		break;
     }
-#if MFM_DEBUG > 1
+#if ENABLE_HDC_LOG > 1
     pclog("WD1003 read(%04x) = %02x\n", port, ret);
 #endif
 
@@ -533,7 +532,7 @@ do_seek(mfm_t *mfm)
 {
     drive_t *drive = &mfm->drives[mfm->drvsel];
 
-#if MFM_DEBUG
+#if ENABLE_HDC_LOG
     pclog("WD1003(%d) seek(%d) max=%d\n",
 	mfm->drvsel,mfm->cylinder,drive->tracks);
 #endif
@@ -553,7 +552,7 @@ do_callback(void *priv)
 
     mfm->callback = 0LL;
     if (mfm->reset) {
-#if MFM_DEBUG
+#if ENABLE_HDC_LOG
 	pclog("WD1003(%d) reset\n", mfm->drvsel);
 #endif
 	mfm->status = STAT_READY|STAT_DSC;
@@ -575,7 +574,7 @@ do_callback(void *priv)
 
     switch (mfm->command) {
 	case CMD_SEEK:
-#if MFM_DEBUG
+#if ENABLE_HDC_LOG
 		pclog("WD1003(%d) seek, step=%d\n",
 			mfm->drvsel, drive->steprate);
 #endif
@@ -585,7 +584,7 @@ do_callback(void *priv)
 		break;
 
 	case CMD_READ:
-#if MFM_DEBUG
+#if ENABLE_HDC_LOG
 		pclog("WD1003(%d) read(%d,%d,%d)\n",
 			mfm->drvsel, mfm->cylinder, mfm->head, mfm->sector);
 #endif
@@ -606,7 +605,7 @@ do_callback(void *priv)
 		break;
 
 	case CMD_WRITE:
-#if MFM_DEBUG
+#if ENABLE_HDC_LOG
 		pclog("WD1003(%d) write(%d,%d,%d)\n",
 			mfm->drvsel, mfm->cylinder, mfm->head, mfm->sector);
 #endif
@@ -635,7 +634,7 @@ do_callback(void *priv)
 		break;
 
 	case CMD_VERIFY:
-#if MFM_DEBUG
+#if ENABLE_HDC_LOG
 		pclog("WD1003(%d) verify(%d,%d,%d)\n",
 			mfm->drvsel, mfm->cylinder, mfm->head, mfm->sector);
 #endif
@@ -647,7 +646,7 @@ do_callback(void *priv)
 		break;
 
 	case CMD_FORMAT:
-#if MFM_DEBUG
+#if ENABLE_HDC_LOG
 		pclog("WD1003(%d) format(%d,%d)\n",
 			mfm->drvsel, mfm->cylinder, mfm->head);
 #endif
@@ -667,7 +666,7 @@ do_callback(void *priv)
 		break;
 
 	case CMD_DIAGNOSE:
-#if MFM_DEBUG
+#if ENABLE_HDC_LOG
 		pclog("WD1003(%d) diag\n", mfm->drvsel);
 #endif
 		drive->steprate = 0x0f;

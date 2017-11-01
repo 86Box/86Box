@@ -9,17 +9,17 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.h	1.0.1	2017/06/05
+ * Version:	@(#)vid_ega.h	1.0.2	2017/10/31
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		akm,
+ *
  *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2017-2017 akm.
+ *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 akm.
  */
 
-#include <stdint.h>
 
 typedef struct ega_t
 {
@@ -102,7 +102,6 @@ typedef struct ega_t
 
 extern int update_overscan;
 
-void   *ega_standalone_init();
 void    ega_out(uint16_t addr, uint8_t val, void *p);
 uint8_t ega_in(uint16_t addr, void *p);
 void    ega_poll(void *p);

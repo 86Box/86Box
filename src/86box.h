@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.9	2017/10/28
+ * Version:	@(#)86box.h	1.0.10	2017/10/30
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -114,6 +114,7 @@ extern void	pc_full_speed(void);
 extern void	pc_speed_changed(void);
 extern void	pc_send_cad(void);
 extern void	pc_send_cae(void);
+extern void	pc_send_cab(void);
 extern void	pc_thread(void *param);
 extern void	pc_start(void);
 extern void	pc_onesec(void);

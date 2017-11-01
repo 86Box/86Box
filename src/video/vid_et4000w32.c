@@ -10,7 +10,7 @@
  *
  * Known bugs:	Accelerator doesn't work in planar modes
  *
- * Version:	@(#)vid_et4000w32.c	1.0.2	2017/10/16
+ * Version:	@(#)vid_et4000w32.c	1.0.3	2017/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -35,6 +35,9 @@
 #include "vid_svga.h"
 #include "vid_icd2061.h"
 #include "vid_stg_ramdac.h"
+
+
+#define BIOS_ROM_PATH	L"roms/video/et4000w32/et4000w32.bin"
 
 
 #define FIFO_SIZE 65536
@@ -1173,7 +1176,7 @@ void *et4000w32p_init(device_t *info)
                    et4000w32p_hwcursor_draw,
                    NULL); 
 
-        rom_init(&et4000->bios_rom, L"roms/video/et4000w32/et4000w32.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&et4000->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 	et4000->pci = !!(info->flags & DEVICE_PCI);
         if (info->flags & DEVICE_PCI)
                 mem_mapping_disable(&et4000->bios_rom.mapping);
@@ -1210,7 +1213,7 @@ void *et4000w32p_init(device_t *info)
 
 int et4000w32p_available(void)
 {
-        return rom_present(L"roms/video/et4000w32/et4000w32.bin");
+        return rom_present(BIOS_ROM_PATH);
 }
 
 void et4000w32p_close(void *p)
@@ -1280,11 +1283,8 @@ static device_config_t et4000w32p_config[] =
 device_t et4000w32p_vlb_device =
 {
         "Tseng Labs ET4000/w32p VLB",
-        DEVICE_VLB,
-	0,
-        et4000w32p_init,
-        et4000w32p_close,
-	NULL,
+        DEVICE_VLB, 0,
+        et4000w32p_init, et4000w32p_close, NULL,
         et4000w32p_available,
         et4000w32p_speed_changed,
         et4000w32p_force_redraw,
@@ -1295,11 +1295,8 @@ device_t et4000w32p_vlb_device =
 device_t et4000w32p_pci_device =
 {
         "Tseng Labs ET4000/w32p PCI",
-        DEVICE_PCI,
-	0,
-        et4000w32p_init,
-        et4000w32p_close,
-	NULL,
+        DEVICE_PCI, 0,
+        et4000w32p_init, et4000w32p_close, NULL,
         et4000w32p_available,
         et4000w32p_speed_changed,
         et4000w32p_force_redraw,

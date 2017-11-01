@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.21	2017/10/27
+ * Version:	@(#)machine.c	1.0.22	2017/10/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -79,6 +79,9 @@ machine_t machines[] =
         {"[286 ISA] IBM PS/2 model 30-286",	ROM_IBMPS2_M30_286,	"ibmps2_m30_286",	{{"",      cpus_ps2_m30_286}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_PS2_HDD,				  1,   16,   1, 127,	     machine_ps2_m30_286_init, NULL			},
         {"[286 ISA] IBM XT Model 286",		ROM_IBMXT286,		"ibmxt286",		{{"",      cpus_ibmxt286},    {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								256,15872, 128,   0,	    machine_at_top_remap_init, NULL			},
         {"[286 ISA] Samsung SPC-4200P",		ROM_SPC4200P,		"spc4200p",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_PS2,							512, 2048, 128, 127,		 machine_at_scat_init, NULL			},
+#ifdef WALTJE
+        {"[286 ISA] OpenAT 286",		ROM_OPENAT,		"open_at",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								512, 4096, 128, 127,		 machine_at_init, NULL				},
+#endif
 
         {"[286 MCA] IBM PS/2 model 50",		ROM_IBMPS2_M50,		"ibmps2_m50",		{{"",      cpus_ps2_m30_286}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_PS2_HDD,				  1,   16,   1,  63,	    machine_ps2_model_50_init, NULL			},
 

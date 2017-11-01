@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.8	2017/10/18
+ * Version:	@(#)vid_ega.c	1.0.9	2017/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -33,6 +33,11 @@
 #include "video.h"
 #include "vid_ega.h"
 #include "vid_ega_render.h"
+
+
+#define BIOS_IBM_PATH	L"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin"
+#define BIOS_CPQ_PATH	L"roms/video/ega/108281-001.bin"
+#define BIOS_SEGA_PATH	L"roms/video/ega/lega.vbi"
 
 
 extern uint8_t edatlookup[4][4];
@@ -151,6 +156,7 @@ void ega_jega_read_font(ega_t *ega)
 	ega->RSTAT |= 0x02;
 }
 #endif
+
 
 void ega_out(uint16_t addr, uint8_t val, void *p)
 {
@@ -351,7 +357,7 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
  *
  * Note by Tohka: Code from PCE.
  */
-static uint8_t ega_get_input_status_0(ega_t *ega)
+uint8_t ega_get_input_status_0(ega_t *ega)
 {
 	unsigned bit;
 	uint8_t status0 = 0;
@@ -367,6 +373,7 @@ static uint8_t ega_get_input_status_0(ega_t *ega)
 
 	return status0;
 }
+
 
 uint8_t ega_in(uint16_t addr, void *p)
 {
@@ -460,6 +467,7 @@ uint8_t ega_in(uint16_t addr, void *p)
         return 0xff;
 }
 
+
 void ega_recalctimings(ega_t *ega)
 {
 	double _dispontime, _dispofftime, disptime;
@@ -516,6 +524,7 @@ void ega_recalctimings(ega_t *ega)
 	ega->dispontime  = (int64_t)(_dispontime  * (1LL << TIMER_SHIFT));
 	ega->dispofftime = (int64_t)(_dispofftime * (1LL << TIMER_SHIFT));
 }
+
 
 void ega_poll(void *p)
 {
@@ -935,6 +944,7 @@ void ega_write(uint32_t addr, uint8_t val, void *p)
         }
 }
 
+
 uint8_t ega_read(uint32_t addr, void *p)
 {
         ega_t *ega = (ega_t *)p;
@@ -984,6 +994,7 @@ uint8_t ega_read(uint32_t addr, void *p)
         return ega->vram[addr | readplane];
 }
 
+
 void ega_init(ega_t *ega)
 {
         int c, d, e;
@@ -1030,7 +1041,8 @@ void ega_init(ega_t *ega)
 	old_overscan_color = 0;
 }
 
-void ega_common_defaults(ega_t *ega)
+
+static void ega_common_defaults(ega_t *ega)
 {
 	ega->miscout |= 0x22;
 	ega->enablevram = 1;
@@ -1046,15 +1058,17 @@ void ega_common_defaults(ega_t *ega)
 #endif
 }
 
-void *ega_standalone_init()
+
+static void *ega_standalone_init(device_t *info)
 {
         ega_t *ega = malloc(sizeof(ega_t));
         memset(ega, 0, sizeof(ega_t));
-        
+
 	overscan_x = 16;
 	overscan_y = 28;
 
-        rom_init(&ega->bios_rom, L"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&ega->bios_rom, BIOS_IBM_PATH,
+		 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
@@ -1087,7 +1101,8 @@ void *ega_standalone_init()
         return ega;
 }
 
-void *cpqega_standalone_init()
+
+static void *cpqega_standalone_init(device_t *info)
 {
         ega_t *ega = malloc(sizeof(ega_t));
         memset(ega, 0, sizeof(ega_t));
@@ -1095,7 +1110,8 @@ void *cpqega_standalone_init()
 	overscan_x = 16;
 	overscan_y = 28;
 
-        rom_init(&ega->bios_rom, L"roms/video/ega/108281-001.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&ega->bios_rom, BIOS_CPQ_PATH,
+		 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
@@ -1126,15 +1142,17 @@ void *cpqega_standalone_init()
         return ega;
 }
 
-void *sega_standalone_init(device_t *info)
+
+static void *sega_standalone_init(device_t *info)
 {
         ega_t *ega = malloc(sizeof(ega_t));
         memset(ega, 0, sizeof(ega_t));
-        
+
 	overscan_x = 16;
 	overscan_y = 28;
 
-        rom_init(&ega->bios_rom, L"roms/video/ega/lega.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&ega->bios_rom, BIOS_SEGA_PATH,
+		 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
@@ -1262,7 +1280,7 @@ static void LoadFontxFile(wchar_t *fname)
 
 void *jega_standalone_init(device_t *info)
 {
-        ega_t *ega = (ega_t *) sega_standalone_init();
+        ega_t *ega = (ega_t *)sega_standalone_init(info);
 
 	LoadFontxFile(L"roms/video/ega/JPNHN19X.FNT");
 	LoadFontxFile(L"roms/video/ega/JPNZN16X.FNT");
@@ -1273,22 +1291,26 @@ void *jega_standalone_init(device_t *info)
 }
 #endif
 
+
 static int ega_standalone_available(void)
 {
-        return rom_present(L"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin");
+        return rom_present(BIOS_IBM_PATH);
 }
+
 
 static int cpqega_standalone_available(void)
 {
-        return rom_present(L"roms/video/ega/108281-001.bin");
+        return rom_present(BIOS_CPQ_PATH);
 }
+
 
 static int sega_standalone_available(void)
 {
-        return rom_present(L"roms/video/ega/lega.vbi");
+        return rom_present(BIOS_SEGA_PATH);
 }
 
-void ega_close(void *p)
+
+static void ega_close(void *p)
 {
         ega_t *ega = (ega_t *)p;
 
@@ -1296,12 +1318,14 @@ void ega_close(void *p)
         free(ega);
 }
 
-void ega_speed_changed(void *p)
+
+static void ega_speed_changed(void *p)
 {
         ega_t *ega = (ega_t *)p;
         
         ega_recalctimings(ega);
 }
+
 
 static device_config_t ega_config[] =
 {
@@ -1327,14 +1351,13 @@ static device_config_t ega_config[] =
         }
 };
 
+
 device_t ega_device =
 {
         "EGA",
         DEVICE_ISA,
 	0,
-        ega_standalone_init,
-        ega_close,
-	NULL,
+        ega_standalone_init, ega_close, NULL,
         ega_standalone_available,
         ega_speed_changed,
         NULL,
@@ -1347,9 +1370,7 @@ device_t cpqega_device =
         "Compaq EGA",
         DEVICE_ISA,
 	0,
-        cpqega_standalone_init,
-        ega_close,
-	NULL,
+        cpqega_standalone_init, ega_close, NULL,
         cpqega_standalone_available,
         ega_speed_changed,
         NULL,
@@ -1362,9 +1383,7 @@ device_t sega_device =
         "SuperEGA",
         DEVICE_ISA,
 	0,
-        sega_standalone_init,
-        ega_close,
-	NULL,
+        sega_standalone_init, ega_close, NULL,
         sega_standalone_available,
         ega_speed_changed,
         NULL,
@@ -1378,9 +1397,7 @@ device_t jega_device =
         "AX JEGA",
         DEVICE_ISA,
 	0,
-        jega_standalone_init,
-        ega_close,
-	NULL,
+        jega_standalone_init, ega_close, NULL,
         sega_standalone_available,
         ega_speed_changed,
         NULL,

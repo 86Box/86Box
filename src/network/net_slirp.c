@@ -8,7 +8,7 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.11	2017/10/28
+ * Version:	@(#)net_slirp.c	1.0.12	2017/10/30
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -87,6 +87,9 @@ poll_thread(UNUSED(void *arg))
 	/* See if there is any work. */
 	slirp_tic();
 
+	/* Our queue may have been nuked.. */
+	if (slirpq == NULL) break;
+
 	/* Wait for the next packet to arrive. */
 	if (QueuePeek(slirpq) != 0) {
 		/* Grab a packet from the queue. */
@@ -110,7 +113,8 @@ poll_thread(UNUSED(void *arg))
     }
 
     /* No longer needed. */
-    thread_destroy_event(evt);
+    if (evt != NULL)
+	thread_destroy_event(evt);
 
     pclog("SLiRP: polling stopped.\n");
     thread_set_event(poll_state);

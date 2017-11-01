@@ -504,9 +504,7 @@ device_t pc1512_device =
 {
         "Amstrad PC1512 (video)",
         0, 0,
-        pc1512_init,
-        pc1512_close,
-	NULL,
+        pc1512_init, pc1512_close, NULL,
         NULL,
         pc1512_speed_changed,
         NULL,

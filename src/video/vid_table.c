@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.3	2017/10/26
+ * Version:	@(#)vid_table.c	1.0.4	2017/10/31
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -88,6 +88,13 @@ video_cards[] = {
     {"[ISA] ATI VGA Edge-16 (ATI-18800)",           "ati18800",			&ati18800_device,            		GFX_VGAEDGE16			},
     {"[ISA] CGA",                                   "cga",			&cga_device,                 		GFX_CGA				},
     {"[ISA] Chips & Technologies SuperEGA",         "superega",			&sega_device,                		GFX_SUPER_EGA			},
+#if defined(DEV_BRANCH) && defined(USE_CIRRUS)
+    {"[ISA] Cirrus Logic CL-GD5422",		    "cl_gd5422",		&gd5422_device,				GFX_CL_GD5422			},
+    {"[ISA] Cirrus Logic CL-GD5430",		    "cl_gd5430",		&gd5430_device,				GFX_CL_GD5430			},
+    {"[ISA] Cirrus Logic CL-GD5434",		    "cl_gd5434",		&gd5434_device,				GFX_CL_GD5434			},
+    {"[ISA] Cirrus Logic CL-GD5436",		    "cl_gd5436",		&gd5436_device,				GFX_CL_GD5436			},
+    {"[ISA] Cirrus Logic CL-GD5440",		    "cl_gd5440",		&gd5440_device,				GFX_CL_GD5440			},
+#endif
     {"[ISA] Compaq ATI VGA Wonder XL (ATI-28800-5)","compaq_ati28800",		&compaq_ati28800_device,     		GFX_VGAWONDERXL			},
     {"[ISA] Compaq EGA",                            "compaq_ega",		&cpqega_device,              		GFX_COMPAQ_EGA			},
     {"[ISA] EGA",                                   "ega",			&ega_device,                 		GFX_EGA				},
@@ -125,8 +132,9 @@ video_cards[] = {
     {"[PCI] Trident TGUI9440",                      "tgui9440_pci",		&tgui9440_pci_device,            	GFX_TGUI9440_PCI		},
     {"[VLB] ATI Graphics Pro Turbo (Mach64 GX)",    "mach64x_vlb",		&mach64gx_vlb_device,        		GFX_MACH64GX_VLB		},
 #if defined(DEV_BRANCH) && defined(USE_CIRRUS)
-    {"[VLB] Cirrus Logic CL-GD5429",		    "cl_gd5429",		&gd5429_device,				GFX_CL_GD5429},
-    {"[VLB] Cirrus Logic CL-GD5446",		    "cl_gd5446",		&gd5446_device,				GFX_CL_GD5446},
+    {"[VLB] Cirrus Logic CL-GD5429",		    "cl_gd5429",		&gd5429_device,				GFX_CL_GD5429			},
+    {"[VLB] Cirrus Logic CL-GD5430",		    "cl_gd5430_vlb",		&dia5430_device,			GFX_CL_GD5430			},
+    {"[VLB] Cirrus Logic CL-GD5446",		    "cl_gd5446",		&gd5446_device,				GFX_CL_GD5446			},
 #endif
     {"[VLB] Diamond Stealth 32 (Tseng ET4000/w32p)","stealth32_vlb",		&et4000w32p_vlb_device,      		GFX_ET4000W32_VLB		},
     {"[VLB] Diamond Stealth 3D 2000 (S3 ViRGE)",    "stealth3d_2000_vlb",	&s3_virge_vlb_device,            	GFX_VIRGE_VLB			},

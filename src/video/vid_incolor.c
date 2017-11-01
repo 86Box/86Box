@@ -8,7 +8,7 @@
  *
  *		Hercules InColor emulation.
  *
- * Version:	@(#)vid_incolor.c	1.0.3	2017/10/18
+ * Version:	@(#)vid_incolor.c	1.0.4	2017/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1076,9 +1076,7 @@ device_t incolor_device =
 {
         "Hercules InColor",
         DEVICE_ISA, 0,
-        incolor_init,
-        incolor_close,
-	NULL,
+        incolor_init, incolor_close, NULL,
         NULL,
         incolor_speed_changed,
 	NULL,

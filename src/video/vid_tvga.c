@@ -8,7 +8,7 @@
  *
  *		Trident TVGA (8900D) emulation.
  *
- * Version:	@(#)vid_tvga.c	1.0.1	2017/10/16
+ * Version:	@(#)vid_tvga.c	1.0.2	2017/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -306,7 +306,7 @@ static void *tvga8900d_init(device_t *info)
         tvga->vram_size = device_get_config_int("memory") << 10;
         tvga->vram_mask = tvga->vram_size - 1;
         
-        rom_init(&tvga->bios_rom, L"roms/video/tvga/TRIDENT.BIN", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&tvga->bios_rom, L"roms/video/tvga/trident.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         
         svga_init(&tvga->svga, tvga, tvga->vram_size,
                    tvga_recalctimings,
@@ -321,7 +321,7 @@ static void *tvga8900d_init(device_t *info)
 
 static int tvga8900d_available(void)
 {
-        return rom_present(L"roms/video/tvga/TRIDENT.BIN");
+        return rom_present(L"roms/video/tvga/trident.bin");
 }
 
 void tvga_close(void *p)

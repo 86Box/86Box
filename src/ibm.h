@@ -10,7 +10,7 @@
  *
  * !!!NOTE!!!	The goal is to GET RID of this file.  Do NOT add stuff !!
  *
- * Version:	@(#)ibm.h	1.0.10	2017/10/16
+ * Version:	@(#)ibm.h	1.0.11	2017/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -449,6 +449,11 @@ enum
 
 	GFX_TRIGEM_UNK,			/*Unknown TriGem graphics card with Hangeul ROM*/
         GFX_MIRO_VISION964, 		/*S3 Vision964 (Miro Crystal)*/
+        GFX_CL_GD5422,  		/*Cirrus Logic CL-GD5422*/
+        GFX_CL_GD5430,  		/*Cirrus Logic CL-GD5430*/
+        GFX_CL_GD5434,  		/*Cirrus Logic CL-GD5434*/
+        GFX_CL_GD5436,  		/*Cirrus Logic CL-GD5436*/
+        GFX_CL_GD5440,  		/*Cirrus Logic CL-GD5440*/
 
         GFX_MAX
 };

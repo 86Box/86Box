@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.5	2017/10/16
+ * Version:	@(#)vid_ati_mach64.c	1.0.6	2017/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -39,6 +39,10 @@
 #ifdef CLAMP
 #undef CLAMP
 #endif
+
+#define BIOS_ROM_PATH		L"roms/video/mach64/bios.bin"
+#define BIOS_ROMVT2_PATH	L"roms/video/mach64/atimach64vt2pci.bin"
+
 
 #define FIFO_SIZE 65536
 #define FIFO_MASK (FIFO_SIZE - 1)
@@ -3358,7 +3362,7 @@ static void *mach64gx_init(device_t *info)
 
         ati_eeprom_load(&mach64->eeprom, L"mach64.nvr", 1);
 
-        rom_init(&mach64->bios_rom, L"roms/video/mach64/bios.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&mach64->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 
         return mach64;
 }
@@ -3376,7 +3380,7 @@ static void *mach64vt2_init(device_t *info)
         
         ati_eeprom_load(&mach64->eeprom, L"mach64vt.nvr", 1);
 
-        rom_init(&mach64->bios_rom, L"roms/video/mach64/atimach64vt2pci.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&mach64->bios_rom, BIOS_ROMVT2_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         
         svga->vblank_start = mach64_vblank_start;
         
@@ -3385,11 +3389,11 @@ static void *mach64vt2_init(device_t *info)
 
 int mach64gx_available(void)
 {
-        return rom_present(L"roms/video/mach64/bios.bin");
+        return rom_present(BIOS_ROM_PATH);
 }
 int mach64vt2_available(void)
 {
-        return rom_present(L"roms/video/mach64/atimach64vt2pci.bin");
+        return rom_present(BIOS_ROMVT2_PATH);
 }
 
 void mach64_close(void *p)
@@ -3517,9 +3521,7 @@ device_t mach64gx_vlb_device =
         "ATI Mach64GX VLB",
         DEVICE_VLB,
 	0,
-        mach64gx_init,
-        mach64_close,
-	NULL,
+        mach64gx_init, mach64_close, NULL,
         mach64gx_available,
         mach64_speed_changed,
         mach64_force_redraw,
@@ -3532,9 +3534,7 @@ device_t mach64gx_pci_device =
         "ATI Mach64GX PCI",
         DEVICE_PCI,
 	0,
-        mach64gx_init,
-        mach64_close,
-	NULL,
+        mach64gx_init, mach64_close, NULL,
         mach64gx_available,
         mach64_speed_changed,
         mach64_force_redraw,
@@ -3547,9 +3547,7 @@ device_t mach64vt2_device =
         "ATI Mach64VT2",
         DEVICE_PCI,
 	0,
-        mach64vt2_init,
-        mach64_close,
-	NULL,
+        mach64vt2_init, mach64_close, NULL,
         mach64vt2_available,
         mach64_speed_changed,
         mach64_force_redraw,

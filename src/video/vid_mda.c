@@ -8,7 +8,7 @@
  *
  *		MDA emulation.
  *
- * Version:	@(#)vid_mda.c	1.0.5	2017/10/22
+ * Version:	@(#)vid_mda.c	1.0.6	2017/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -364,13 +364,12 @@ static device_config_t mda_config[] =
         }
 };
 
+
 device_t mda_device =
 {
         "MDA",
         DEVICE_ISA, 0,
-        mda_init,
-        mda_close,
-	NULL,
+        mda_init, mda_close, NULL,
         NULL,
         mda_speed_changed,
         NULL,

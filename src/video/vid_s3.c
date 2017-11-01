@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.2	2017/10/16
+ * Version:	@(#)vid_s3.c	1.0.3	2017/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2266,7 +2266,7 @@ void *s3_vision864_init(device_t *info, wchar_t *bios_fn)
 
 static void *s3_bahamas64_init(device_t *info)
 {
-	s3_t *s3 = s3_vision864_init(info, L"roms/video/s3/bahamas64.BIN");
+	s3_t *s3 = s3_vision864_init(info, L"roms/video/s3/bahamas64.bin");
 	return s3;
 }
 
@@ -2278,7 +2278,7 @@ static void *s3_phoenix_vision864_init(device_t *info)
 
 static int s3_bahamas64_available(void)
 {
-        return rom_present(L"roms/video/s3/bahamas64.BIN");
+        return rom_present(L"roms/video/s3/bahamas64.bin");
 }
 
 static int s3_phoenix_vision864_available(void)
@@ -2288,7 +2288,7 @@ static int s3_phoenix_vision864_available(void)
 
 static void *s3_phoenix_trio32_init(device_t *info)
 {
-        s3_t *s3 = s3_init(info, L"roms/video/s3/86C732P.bin", S3_TRIO32);
+        s3_t *s3 = s3_init(info, L"roms/video/s3/86c732p.bin", S3_TRIO32);
 
         s3->id = 0xe1; /*Trio32*/
         s3->id_ext = 0x10;
@@ -2303,7 +2303,7 @@ static void *s3_phoenix_trio32_init(device_t *info)
 
 static int s3_phoenix_trio32_available(void)
 {
-        return rom_present(L"roms/video/s3/86C732P.bin");
+        return rom_present(L"roms/video/s3/86c732p.bin");
 }
 
 static void *s3_trio64_init(device_t *info, wchar_t *bios_fn)
@@ -2328,13 +2328,13 @@ static void *s3_9fx_init(device_t *info)
 
 static void *s3_phoenix_trio64_init(device_t *info)
 {
-	s3_t *s3 = s3_trio64_init(info, L"roms/video/s3/86C764X1.bin");
+	s3_t *s3 = s3_trio64_init(info, L"roms/video/s3/86c764x1.bin");
 	return s3;
 }
 
 static void *s3_diamond_stealth64_init(device_t *info)
 {
-	s3_t *s3 = s3_trio64_init(info, L"roms/video/s3/STEALT64.BIN");
+	s3_t *s3 = s3_trio64_init(info, L"roms/video/s3/stealt64.bin");
 	return s3;
 }
 
@@ -2350,7 +2350,7 @@ static int s3_phoenix_trio64_available(void)
 
 static int s3_diamond_stealth64_available(void)
 {
-        return rom_present(L"roms/video/s3/STEALT64.BIN");
+        return rom_present(L"roms/video/s3/stealt64.bin");
 }
 
 static void s3_close(void *p)

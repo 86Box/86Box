@@ -86,6 +86,8 @@ poll_thread(void *arg)
 	/* Wait for a poll request. */
 	network_poll();
 
+	if (pcap == NULL) break;
+
 	/* Wait for the next packet to arrive. */
 	data = (uint8_t *)f_pcap_next((pcap_t *)pcap, &h);
 	if (data != NULL) {
@@ -115,7 +117,8 @@ poll_thread(void *arg)
     }
 
     /* No longer needed. */
-    thread_destroy_event(evt);
+    if (evt != NULL)
+	thread_destroy_event(evt);
 
     pclog("PCAP: polling stopped.\n");
     thread_set_event(poll_state);

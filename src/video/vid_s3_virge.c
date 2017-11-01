@@ -3884,7 +3884,7 @@ static void *s3_virge_988_init(device_t *info)
 
 	virge->pci = !!(info->flags & DEVICE_PCI);
 
-        rom_init(&virge->bios_rom, L"roms/video/s3virge/diamondstealth3000.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&virge->bios_rom, L"roms/video/s3virge/diamondstealth3000.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         if (info->flags & DEVICE_PCI)
                 mem_mapping_disable(&virge->bios_rom.mapping);
 
@@ -4106,7 +4106,7 @@ static int s3_virge_available(void)
 
 static int s3_virge_988_available(void)
 {
-        return rom_present(L"roms/video/s3virge/diamondstealth3000.VBI");
+        return rom_present(L"roms/video/s3virge/diamondstealth3000.vbi");
 }
 
 static int s3_virge_375_1_available(void)

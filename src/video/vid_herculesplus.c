@@ -730,9 +730,7 @@ device_t herculesplus_device =
 {
         "Hercules Plus",
         DEVICE_ISA, 0,
-        herculesplus_init,
-        herculesplus_close,
-	NULL,
+        herculesplus_init, herculesplus_close, NULL,
         NULL,
         herculesplus_speed_changed,
         NULL,

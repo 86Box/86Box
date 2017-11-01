@@ -8,7 +8,7 @@
  *
  *		Emulation of the Tseng Labs ET4000.
  *
- * Version:	@(#)vid_et4000.c	1.0.1	2017/10/16
+ * Version:	@(#)vid_et4000.c	1.0.2	2017/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -31,6 +31,9 @@
 #include "vid_svga.h"
 #include "vid_sc1502x_ramdac.h"
 #include "vid_et4000.h"
+
+
+#define BIOS_ROM_PATH	L"roms/video/et4000/et4000.bin"
 
 
 typedef struct et4000_t
@@ -163,7 +166,7 @@ void *et4000_init(device_t *info)
         et4000_t *et4000 = malloc(sizeof(et4000_t));
         memset(et4000, 0, sizeof(et4000_t));
 
-        rom_init(&et4000->bios_rom, L"roms/video/et4000/et4000.BIN", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&et4000->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 
         io_sethandler(0x03c0, 0x0020, et4000_in, NULL, NULL, et4000_out, NULL, NULL, et4000);
 
@@ -178,7 +181,7 @@ void *et4000_init(device_t *info)
 
 static int et4000_available(void)
 {
-        return rom_present(L"roms/video/et4000/et4000.BIN");
+        return rom_present(BIOS_ROM_PATH);
 }
 
 void et4000_close(void *p)
@@ -214,13 +217,11 @@ void et4000_add_status_info(char *s, int max_len, void *p)
 device_t et4000_device =
 {
         "Tseng Labs ET4000AX",
-        DEVICE_ISA,
-	0,
-        et4000_init,
-        et4000_close,
-	NULL,
+        DEVICE_ISA, 0,
+        et4000_init, et4000_close, NULL,
         et4000_available,
         et4000_speed_changed,
         et4000_force_redraw,
-        et4000_add_status_info
+        et4000_add_status_info,
+	NULL
 };

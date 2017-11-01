@@ -8,7 +8,7 @@
  *
  *		ATI 18800 emulation (VGA Edge-16)
  *
- * Version:	@(#)vid_ati18800.c	1.0.1	2017/10/16
+ * Version:	@(#)vid_ati18800.c	1.0.2	2017/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -31,6 +31,9 @@
 #include "vid_ati18800.h"
 #include "vid_ati_eeprom.h"
 #include "vid_svga.h"
+
+
+#define BIOS_ROM_PATH	L"roms/video/ati18800/vga88.bin"
 
 
 typedef struct ati18800_t
@@ -183,7 +186,7 @@ static void *ati18800_init(device_t *info)
         ati18800_t *ati18800 = malloc(sizeof(ati18800_t));
         memset(ati18800, 0, sizeof(ati18800_t));
         
-        rom_init(&ati18800->bios_rom, L"roms/video/ati18800/vga88.BIN", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&ati18800->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
         
         svga_init(&ati18800->svga, ati18800, 1 << 19, /*512kb*/
                    NULL,
@@ -203,7 +206,7 @@ static void *ati18800_init(device_t *info)
 
 static int ati18800_available(void)
 {
-        return rom_present(L"roms/video/ati18800/vga88.BIN");
+        return rom_present(BIOS_ROM_PATH);
 }
 
 static void ati18800_close(void *p)
