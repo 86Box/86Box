@@ -8,7 +8,7 @@
  *
  *		Emulation of the 3DFX Voodoo Graphics controller.
  *
- * Version:	@(#)vid_voodoo.c	1.0.5	2017/11/01
+ * Version:	@(#)vid_voodoo.c	1.0.6	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei
@@ -3325,6 +3325,7 @@ static void voodoo_triangle(voodoo_t *voodoo, voodoo_params_t *params, int odd_e
         int lodbias;
         
         voodoo->tri_count++;
+	memset(&state, 0x00, sizeof(state));
         
         dx = 8 - (params->vertexAx & 0xf);
         if ((params->vertexAx & 0xf) > 8)
