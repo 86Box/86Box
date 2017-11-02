@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.c	1.0.5	2017/10/16
+ * Version:	@(#)cpu.c	1.0.6	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -97,7 +97,6 @@ enum
 	CPUID_FXSR = (1 << 24)
 };
 
-int cpu = 3, cpu_manufacturer = 0;
 CPU *cpu_s;
 int cpu_multi;
 int cpu_iscyrix;
@@ -107,10 +106,9 @@ int cpu_hasrdtsc;
 int cpu_hasMMX, cpu_hasMSR;
 int cpu_hasCR4;
 int cpu_hasVME;
-int cpu_use_dynarec;
 int cpu_cyrix_alignment;
-
 int hasfpu;
+int cpuspeed;
 
 uint64_t cpu_CR4_mask;
 
@@ -621,12 +619,12 @@ CPU cpus_PentiumPro[] =
         {"",             -1,        0, 0, 0}
 };
 
+
 void cpu_set_edx()
 {
         EDX = machines[machine].cpu[cpu_manufacturer].cpus[cpu].edx_reset;
 }
 
-int enable_external_fpu = 0;
 
 void cpu_set()
 {

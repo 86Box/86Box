@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.6	2017/10/24
+ * Version:	@(#)keyboard_at.c	1.0.7	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -27,6 +27,7 @@
 #include "io.h"
 #include "pic.h"
 #include "pit.h"
+#include "ppi.h"
 #include "mem.h"
 #include "rom.h"
 #include "timer.h"

@@ -7,6 +7,7 @@
 #include <wchar.h>
 #include "ibm.h"
 #include "cpu/cpu.h"
+#include "machine/machine.h"
 #include "io.h"
 #include "mem.h"
 #include "pit.h"

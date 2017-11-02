@@ -4,11 +4,10 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "86box.h"
-#include "ibm.h"
 #include "io.h"
-#include "mem.h"
 #include "pic.h"
 #include "pit.h"
+#include "ppi.h"
 #include "timer.h"
 #include "mouse.h"
 #include "sound/sound.h"

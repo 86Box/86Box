@@ -21,7 +21,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
+//#include "../ibm.h"
 #include "floppy.h"
 #include "fdc.h"
 #include "fdd.h"

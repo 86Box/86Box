@@ -18,7 +18,7 @@
  *		2 clocks - fetch opcode 1       2 clocks - execute
  *		2 clocks - fetch opcode 2  etc
  *
- * Version:	@(#)808x.c	1.0.5	2017/10/16
+ * Version:	@(#)808x.c	1.0.6	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -34,6 +34,8 @@
 #include "../ibm.h"
 #include "cpu.h"
 #include "x86.h"
+#include "../machine/machine.h"
+#include "../io.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../nmi.h"
@@ -537,41 +539,41 @@ void dumpregs(int force)
         pclog("Dumping done\n");        
 #endif
         if (is386)
-           printf("EAX=%08X EBX=%08X ECX=%08X EDX=%08X\nEDI=%08X ESI=%08X EBP=%08X ESP=%08X\n",EAX,EBX,ECX,EDX,EDI,ESI,EBP,ESP);
+           pclog("EAX=%08X EBX=%08X ECX=%08X EDX=%08X\nEDI=%08X ESI=%08X EBP=%08X ESP=%08X\n",EAX,EBX,ECX,EDX,EDI,ESI,EBP,ESP);
         else
-           printf("AX=%04X BX=%04X CX=%04X DX=%04X DI=%04X SI=%04X BP=%04X SP=%04X\n",AX,BX,CX,DX,DI,SI,BP,SP);
-        printf("PC=%04X CS=%04X DS=%04X ES=%04X SS=%04X FLAGS=%04X\n",cpu_state.pc,CS,DS,ES,SS,flags);
-        printf("%04X:%04X %04X:%04X\n",oldcs,cpu_state.oldpc, oldcs2, oldpc2);
-        printf("%i ins\n",ins);
+           pclog("AX=%04X BX=%04X CX=%04X DX=%04X DI=%04X SI=%04X BP=%04X SP=%04X\n",AX,BX,CX,DX,DI,SI,BP,SP);
+        pclog("PC=%04X CS=%04X DS=%04X ES=%04X SS=%04X FLAGS=%04X\n",cpu_state.pc,CS,DS,ES,SS,flags);
+        pclog("%04X:%04X %04X:%04X\n",oldcs,cpu_state.oldpc, oldcs2, oldpc2);
+        pclog("%i ins\n",ins);
         if (is386)
-           printf("In %s mode\n",(msw&1)?((eflags&VM_FLAG)?"V86":"protected"):"real");
+           pclog("In %s mode\n",(msw&1)?((eflags&VM_FLAG)?"V86":"protected"):"real");
         else
-           printf("In %s mode\n",(msw&1)?"protected":"real");
-        printf("CS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",cs,_cs.limit,_cs.access, _cs.limit_low, _cs.limit_high);
-        printf("DS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",ds,_ds.limit,_ds.access, _ds.limit_low, _ds.limit_high);
-        printf("ES : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",es,_es.limit,_es.access, _es.limit_low, _es.limit_high);
+           pclog("In %s mode\n",(msw&1)?"protected":"real");
+        pclog("CS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",cs,_cs.limit,_cs.access, _cs.limit_low, _cs.limit_high);
+        pclog("DS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",ds,_ds.limit,_ds.access, _ds.limit_low, _ds.limit_high);
+        pclog("ES : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",es,_es.limit,_es.access, _es.limit_low, _es.limit_high);
         if (is386)
         {
-                printf("FS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",seg_fs,_fs.limit,_fs.access, _fs.limit_low, _fs.limit_high);
-                printf("GS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",gs,_gs.limit,_gs.access, _gs.limit_low, _gs.limit_high);
+                pclog("FS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",seg_fs,_fs.limit,_fs.access, _fs.limit_low, _fs.limit_high);
+                pclog("GS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",gs,_gs.limit,_gs.access, _gs.limit_low, _gs.limit_high);
         }
-        printf("SS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",ss,_ss.limit,_ss.access, _ss.limit_low, _ss.limit_high);
-        printf("GDT : base=%06X limit=%04X\n",gdt.base,gdt.limit);
-        printf("LDT : base=%06X limit=%04X\n",ldt.base,ldt.limit);
-        printf("IDT : base=%06X limit=%04X\n",idt.base,idt.limit);
-        printf("TR  : base=%06X limit=%04X\n", tr.base, tr.limit);
+        pclog("SS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",ss,_ss.limit,_ss.access, _ss.limit_low, _ss.limit_high);
+        pclog("GDT : base=%06X limit=%04X\n",gdt.base,gdt.limit);
+        pclog("LDT : base=%06X limit=%04X\n",ldt.base,ldt.limit);
+        pclog("IDT : base=%06X limit=%04X\n",idt.base,idt.limit);
+        pclog("TR  : base=%06X limit=%04X\n", tr.base, tr.limit);
         if (is386)
         {
-                printf("386 in %s mode   stack in %s mode\n",(use32)?"32-bit":"16-bit",(stack32)?"32-bit":"16-bit");
-                printf("CR0=%08X CR2=%08X CR3=%08X CR4=%08x\n",cr0,cr2,cr3, cr4);
+                pclog("386 in %s mode   stack in %s mode\n",(use32)?"32-bit":"16-bit",(stack32)?"32-bit":"16-bit");
+                pclog("CR0=%08X CR2=%08X CR3=%08X CR4=%08x\n",cr0,cr2,cr3, cr4);
         }
-        printf("Entries in readlookup : %i    writelookup : %i\n",readlnum,writelnum);
+        pclog("Entries in readlookup : %i    writelookup : %i\n",readlnum,writelnum);
         for (c=0;c<1024*1024;c++)
         {
                 if (readlookup2[c]!=0xFFFFFFFF) d++;
                 if (writelookup2[c]!=0xFFFFFFFF) e++;
         }
-        printf("Entries in readlookup : %i    writelookup : %i\n",d,e);
+        pclog("Entries in readlookup : %i    writelookup : %i\n",d,e);
         x87_dumpregs();
         indump = 0;
 }
@@ -1025,7 +1027,7 @@ void execx86(int cycs)
                 cpu_state.pc--;
                 if (output)
                 {
-                                if (!skipnextprint) printf("%04X:%04X : %04X %04X %04X %04X %04X %04X %04X %04X %04X %04X %04X %04X %02X %04X  %i %p %02X\n",cs,cpu_state.pc,AX,BX,CX,DX,CS,DS,ES,SS,DI,SI,BP,SP,opcode,flags, ins, ram, ram[0x1a925]);
+                                if (!skipnextprint) pclog("%04X:%04X : %04X %04X %04X %04X %04X %04X %04X %04X %04X %04X %04X %04X %02X %04X  %i %p %02X\n",cs,cpu_state.pc,AX,BX,CX,DX,CS,DS,ES,SS,DI,SI,BP,SP,opcode,flags, ins, ram, ram[0x1a925]);
                                 skipnextprint=0;
                 }
                 cpu_state.pc++;
@@ -2910,7 +2912,7 @@ void execx86(int cycs)
                                 }
                                 else
                                 {
-                                        printf("DIVb BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
+                                        pclog("DIVb BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
                                         writememw(ss,(SP-2)&0xFFFF,flags|0xF000);
                                         writememw(ss,(SP-4)&0xFFFF,CS);
                                         writememw(ss,(SP-6)&0xFFFF,cpu_state.pc);
@@ -2934,7 +2936,7 @@ void execx86(int cycs)
                                 }
                                 else
                                 {
-                                        printf("IDIVb BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
+                                        pclog("IDIVb BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
                                         writememw(ss,(SP-2)&0xFFFF,flags|0xF000);
                                         writememw(ss,(SP-4)&0xFFFF,CS);
                                         writememw(ss,(SP-6)&0xFFFF,cpu_state.pc);
@@ -3006,7 +3008,7 @@ void execx86(int cycs)
                                 }
                                 else
                                 {
-                                        printf("DIVw BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
+                                        pclog("DIVw BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
                                         writememw(ss,(SP-2)&0xFFFF,flags|0xF000);
                                         writememw(ss,(SP-4)&0xFFFF,CS);
                                         writememw(ss,(SP-6)&0xFFFF,cpu_state.pc);
@@ -3030,7 +3032,7 @@ void execx86(int cycs)
                                 }
                                 else
                                 {
-                                        printf("IDIVw BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
+                                        pclog("IDIVw BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
                                         writememw(ss,(SP-2)&0xFFFF,flags|0xF000);
                                         writememw(ss,(SP-4)&0xFFFF,CS);
                                         writememw(ss,(SP-6)&0xFFFF,cpu_state.pc);

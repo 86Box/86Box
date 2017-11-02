@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.22	2017/10/30
+ * Version:	@(#)machine.c	1.0.23	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -40,8 +40,6 @@
 
 int machine;
 int AMSTRAD, AT, PCI, TANDY;
-int serial_enabled[SERIAL_MAX] = { 0, 0 };
-int lpt_enabled = 0, bugger_enabled = 0;
 int romset;
 
 

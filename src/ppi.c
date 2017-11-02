@@ -13,6 +13,7 @@
 #include <wchar.h>
 #include "ibm.h"
 #include "pit.h"
+#include "ppi.h"
 
 
 PPI ppi;

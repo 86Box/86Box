@@ -275,7 +275,7 @@ static void opti495_write(uint16_t addr, uint8_t val, void *p)
                 optireg=val;
                 break;
                 case 0x24:
-                printf("Writing OPTI reg %02X %02X\n",optireg,val);
+                pclog("OPTI: writing reg %02X %02X\n",optireg,val);
                 if (optireg>=0x20 && optireg<=0x2C)
                 {
                         optiregs[optireg-0x20]=val;

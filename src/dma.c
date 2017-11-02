@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel DMA controllers.
  *
- * Version:	@(#)dma.c	1.0.4	2017/10/16
+ * Version:	@(#)dma.c	1.0.5	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,6 +23,7 @@
 #include "86box.h"
 #include "ibm.h"
 #include "cpu/x86.h"
+#include "machine/machine.h"
 #include "mem.h"
 #include "io.h"
 #include "dma.h"

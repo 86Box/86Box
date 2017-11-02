@@ -9,7 +9,7 @@
  *		Generic floppy disk interface that communicates with the
  *		other handlers.
  *
- * Version:	@(#)floppy.h	1.0.4	2017/10/15
+ * Version:	@(#)floppy.h	1.0.5	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -24,26 +24,29 @@
 #define FDD_NUM		4
 
 
-typedef struct
-{
-        void (*seek)(int drive, int track);
-        void (*readsector)(int drive, int sector, int track, int side, int density, int sector_size);
-        void (*writesector)(int drive, int sector, int track, int side, int density, int sector_size);
-        void (*comparesector)(int drive, int sector, int track, int side, int density, int sector_size);
-        void (*readaddress)(int drive, int side, int density);
-        void (*format)(int drive, int side, int density, uint8_t fill);
-        int (*hole)(int drive);
-        double (*byteperiod)(int drive);
-        void (*stop)(int drive);
-        void (*poll)(int drive);
+typedef struct {
+    void (*seek)(int drive, int track);
+    void (*readsector)(int drive, int sector, int track, int side, int density, int sector_size);
+    void (*writesector)(int drive, int sector, int track, int side, int density, int sector_size);
+    void (*comparesector)(int drive, int sector, int track, int side, int density, int sector_size);
+    void (*readaddress)(int drive, int side, int density);
+    void (*format)(int drive, int side, int density, uint8_t fill);
+    int (*hole)(int drive);
+    double (*byteperiod)(int drive);
+    void (*stop)(int drive);
+    void (*poll)(int drive);
 } DRIVE;
 
 
 extern DRIVE	drives[FDD_NUM];
+extern wchar_t	floppyfns[FDD_NUM][512];
+extern int	driveempty[FDD_NUM];
+extern int64_t	floppy_poll_time[FDD_NUM];
+
 extern int	curdrive;
 
 extern int	floppy_time;
-extern int64_t	floppy_poll_time[FDD_NUM];
+extern int64_t	floppytime;
 
 
 extern void	floppy_load(int drive, wchar_t *fn);
@@ -84,9 +87,11 @@ extern void	fdc_sectorid(uint8_t track, uint8_t side, uint8_t sector,
 			     uint8_t size, uint8_t crc1, uint8_t crc2);
 extern void	fdc_indexpulse(void);
 
-/*extern int fdc_time;
+#if 0
+extern int fdc_time;
 extern int fdc_ready;
-extern int fdc_indexcount;*/
+extern int fdc_indexcount;
+#endif
 
 extern int motorspin;
 extern int64_t motoron[FDD_NUM];

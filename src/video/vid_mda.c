@@ -8,7 +8,7 @@
  *
  *		MDA emulation.
  *
- * Version:	@(#)vid_mda.c	1.0.6	2017/10/31
+ * Version:	@(#)vid_mda.c	1.0.7	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -24,6 +24,7 @@
 #include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
+#include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../timer.h"

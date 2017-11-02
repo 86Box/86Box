@@ -6,6 +6,7 @@
 #include "../86box.h"
 #include "../ibm.h"
 #include "../cpu/cpu.h"
+#include "../machine/machine.h"
 #include "../timer.h"
 #include "../lpt.h"
 #include "sound.h"

@@ -4,6 +4,43 @@
 #ifndef _MEM_H_
 #define _MEM_H_
 
+
+extern uint8_t *ram;
+extern uint32_t rammask;
+
+extern int readlookup[256],readlookupp[256];
+extern uintptr_t *readlookup2;
+extern int readlnext;
+extern int writelookup[256],writelookupp[256];
+extern uintptr_t *writelookup2;
+extern int writelnext;
+
+extern int mmu_perm;
+
+#define readmemb(a) ((readlookup2[(a)>>12]==-1)?readmembl(a):*(uint8_t *)(readlookup2[(a) >> 12] + (a)))
+#define readmemw(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a)) & 1))?readmemwl(s,a):*(uint16_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
+#define readmeml(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (s)==0xFFFFFFFF || (((s)+(a)) & 3))?readmemll(s,a):*(uint32_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
+
+extern uint8_t	readmembl(uint32_t addr);
+extern void	writemembl(uint32_t addr, uint8_t val);
+extern uint8_t	readmemb386l(uint32_t seg, uint32_t addr);
+extern void	writememb386l(uint32_t seg, uint32_t addr, uint8_t val);
+extern uint16_t	readmemwl(uint32_t seg, uint32_t addr);
+extern void	writememwl(uint32_t seg, uint32_t addr, uint16_t val);
+extern uint32_t	readmemll(uint32_t seg, uint32_t addr);
+extern void	writememll(uint32_t seg, uint32_t addr, uint32_t val);
+extern uint64_t	readmemql(uint32_t seg, uint32_t addr);
+extern void	writememql(uint32_t seg, uint32_t addr, uint64_t val);
+
+extern uint8_t	*getpccache(uint32_t a);
+extern uint32_t	mmutranslatereal(uint32_t addr, int rw);
+extern void	addreadlookup(uint32_t virt, uint32_t phys);
+extern void	addwritelookup(uint32_t virt, uint32_t phys);
+
+extern int	shadowbios,shadowbios_write;
+extern int	readlnum,writelnum;
+
+
 typedef struct mem_mapping_t
 {
         struct mem_mapping_t *prev, *next;

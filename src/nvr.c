@@ -186,7 +186,7 @@
  *		(DS12887A) which implemented a "century" register to be 
  *		compatible with Y2K.
  *
- * Version:	@(#)nvr.c	1.0.11	2017/10/28
+ * Version:	@(#)nvr.c	1.0.12	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -204,11 +204,9 @@
 #include <time.h>
 #include <wchar.h>
 #include "86Box.h"
-#include "ibm.h"
-#include "cpu/cpu.h"
 #include "pic.h"
+#include "pit.h"
 #include "timer.h"
-#include "device.h"
 #include "machine/machine.h"
 #include "plat.h"
 #include "nvr.h"

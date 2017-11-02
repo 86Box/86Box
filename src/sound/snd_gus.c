@@ -1020,7 +1020,7 @@ void *gus_init(device_t *info)
 		out/=1.002709201;		/* 0.0235 dB Steps */
 	}
 
-	printf("Top volume %f %f %f %f\n",vol16bit[4095],vol16bit[3800],vol16bit[3000],vol16bit[2048]);
+	pclog("GUS: top volume %f %f %f %f\n",vol16bit[4095],vol16bit[3800],vol16bit[3000],vol16bit[2048]);
 	gus->voices=14;
 
         gus->samp_timer = gus->samp_latch = (int64_t)(TIMER_USEC * (1000000.0 / 44100.0));

@@ -43,7 +43,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
+//#include "../ibm.h"
 #include "../plat.h"
 #include "floppy.h"
 #include "floppy_td0.h"

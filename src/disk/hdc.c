@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of disk controllers.
  *
- * Version:	@(#)hdc.c	1.0.4	2017/10/16
+ * Version:	@(#)hdc.c	1.0.5	2017/11/01
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -21,10 +21,8 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
-#include "../cpu/cpu.h"
-#include "../device.h"
 #include "../machine/machine.h"
+#include "../device.h"
 #include "hdc.h"
 
 

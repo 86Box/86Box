@@ -12,6 +12,7 @@
 #include "io.h"
 #include "pic.h"
 #include "pit.h"
+#include "ppi.h"
 #include "device.h"
 #include "timer.h"
 #include "machine/machine.h"
@@ -23,14 +24,17 @@
 /*B4 to 40, two writes to 43, then two reads - value _does_ change!*/
 int64_t displine;
 
-double PITCONST;
+PIT	pit,
+	pit2;
 float cpuclock;
 float isa_timing, bus_timing;
 
-float CGACONST;
-float MDACONST;
-float VGACONST1,VGACONST2;
-float RTCCONST;
+double	PITCONST;
+float	CGACONST;
+float	MDACONST;
+float	VGACONST1,
+	VGACONST2;
+float	RTCCONST;
 
 int64_t firsttime=1;
 void setpitclock(float clock)

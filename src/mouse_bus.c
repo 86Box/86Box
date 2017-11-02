@@ -32,7 +32,7 @@
  *		Based on an early driver for MINIX 1.5.
  *		Based on the 86Box PS/2 mouse driver as a framework.
  *
- * Version:	@(#)mouse_bus.c	1.0.20	2017/10/25
+ * Version:	@(#)mouse_bus.c	1.0.21	2017/11/01
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -44,7 +44,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "86box.h"
-#include "ibm.h"
 #include "io.h"
 #include "pic.h"
 #include "timer.h"
@@ -407,6 +406,7 @@ bm_init(mouse_t *info)
 		break;
     }
     ms->flags |= MOUSE_ENABLED;
+    ms->flags |= MOUSE_SCALED;
 
     /* Request an I/O range. */
     io_sethandler(ms->port, ms->portlen,

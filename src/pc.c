@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.38	2017/10/30
+ * Version:	@(#)pc.c	1.0.39	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -102,6 +102,19 @@ int	vid_cga_contrast = 0,			/* (C) video */
 	enable_overscan = 0,			/* (C) video */
 	force_43 = 0,				/* (C) video */
 	video_speed = 0;			/* (C) video */
+int	serial_enabled[SERIAL_MAX] = {0,0},	/* (C) enable serial ports */
+	lpt_enabled = 0,			/* (C) enable LPT ports */
+	bugger_enabled = 0;			/* (C) enable ISAbugger */
+int	gfxcard = 0;				/* (C) graphics/video card */
+int	GAMEBLASTER = 0,			/* (C) sound option */
+	GUS = 0,				/* (C) sound option */
+	SSI2001 = 0,				/* (C) sound option */
+	voodoo_enabled = 0;			/* (C) video option */
+int	mem_size = 0;				/* (C) memory size */
+int	cpu_manufacturer = 0,			/* (C) cpu manufacturer */
+	cpu_use_dynarec = 0,			/* (C) cpu uses/needs Dyna */
+	cpu = 3,				/* (C) cpu type */
+	enable_external_fpu = 0;		/* (C) enable external FPU */
 
 
 /* Statistics. */
@@ -134,7 +147,8 @@ wchar_t	exe_path[1024];				/* path (dir) of executable */
 wchar_t	cfg_path[1024];				/* path (dir) of user data */
 int	scrnsz_x = SCREEN_RES_X,		/* current screen size, X */
 	scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
-int	config_changed;				/* configuration has changed */
+int	config_changed;				/* config has changed */
+int	romset;					/* current machine ID */
 int	title_update;
 int64_t	main_time;
 
@@ -168,7 +182,7 @@ fatal(const char *format, ...)
 
    va_start(ap, format);
    vsprintf(msg, format, ap);
-   printf(msg);
+   fprintf(stdout, msg);
    va_end(ap);
    fflush(stdout);
 

@@ -8,7 +8,7 @@
  *
  *		Olivetti M24 video emulation- essentially double-res CGA.
  *
- * Version:	@(#)vid_olivetti_m24.c	1.0.4	2017/10/22
+ * Version:	@(#)vid_olivetti_m24.c	1.0.5	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -24,6 +24,7 @@
 #include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
+#include "../pit.h"
 #include "../mem.h"
 #include "../timer.h"
 #include "../device.h"

@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.10	2017/10/30
+ * Version:	@(#)86box.h	1.0.11	2017/11/01
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -79,6 +79,19 @@ extern int	vid_cga_contrast,		/* (C) video */
 		enable_overscan,		/* (C) video */
 		force_43,			/* (C) video */
 		video_speed;			/* (C) video */
+extern int	serial_enabled[],		/* (C) enable serial ports */
+		lpt_enabled,			/* (C) enable LPT ports */
+		bugger_enabled;			/* (C) enable ISAbugger */
+extern int	gfxcard;			/* (C) graphics/video card */
+extern int	GAMEBLASTER,			/* (C) sound option */
+		GUS,				/* (C) sound option */
+		SSI2001,			/* (C) sound option */
+		voodoo_enabled;			/* (C) video option */
+extern int	mem_size;			/* (C) memory size */
+extern int	cpu_manufacturer,		/* (C) cpu manufacturer */
+		cpu,				/* (C) cpu type */
+		cpu_use_dynarec,		/* (C) cpu uses/needs Dyna */
+		enable_external_fpu;		/* (C) enable external FPU */
 
 
 #ifdef ENABLE_LOG_TOGGLES
@@ -95,7 +108,7 @@ extern wchar_t	exe_path[1024];			/* path (dir) of executable */
 extern wchar_t	cfg_path[1024];			/* path (dir) of user data */
 extern int	scrnsz_x,			/* current screen size, X */
 		scrnsz_y;			/* current screen size, Y */
-extern int	config_changed;			/* configuration has changed */
+extern int	config_changed;			/* config has changed */
 
 
 /* Function prototypes. */

@@ -8,10 +8,11 @@
  *
  *		Implementation of the Intel DMA controllers.
  *
- * Version:	@(#)dma.h	1.0.2	2017/08/23
+ * Version:	@(#)dma.h	1.0.3	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -19,9 +20,35 @@
 # define EMU_DMA_H
 
 
-#define DMA_NODATA -1
-#define DMA_OVER 0x10000
-#define DMA_VERIFY 0x20000
+#define DMA_NODATA	-1
+#define DMA_OVER	0x10000
+#define DMA_VERIFY	0x20000
+
+
+typedef struct DMA {
+    uint32_t	ab[4],
+		ac[4];
+    uint16_t	cb[4];
+    int		cc[4];
+    int		wp;
+    uint8_t	m,
+		mode[4];
+    uint8_t	page[4];
+    uint8_t	stat;
+    uint8_t	command;
+    uint8_t	request;
+
+    int		xfr_command,
+		xfr_channel;
+    int		byte_ptr;
+
+    int		is_ps2;
+    uint8_t	arb_level[4];
+    uint8_t	ps2_mode[4];
+} DMA;
+
+
+extern DMA	dma, dma16;
 
 
 extern void	dma_init(void);

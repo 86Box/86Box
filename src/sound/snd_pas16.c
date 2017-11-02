@@ -416,7 +416,7 @@ static void pas16_pit_out(uint16_t port, uint8_t val, void *p)
                 pas16->pit.ctrls[t] = pas16->pit.ctrl = val;
                 if (t == 3)
                 {
-                        printf("Bad PIT reg select\n");
+                        pclog("PAS16: bad PIT reg select\n");
                         return;
                 }
                 if (!(pas16->pit.ctrl & 0x30))

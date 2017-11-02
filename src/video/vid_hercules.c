@@ -8,7 +8,7 @@
  *
  *		Hercules emulation.
  *
- * Version:	@(#)vid_hercules.c	1.0.5	2017/10/22
+ * Version:	@(#)vid_hercules.c	1.0.6	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,6 +26,7 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../io.h"
+#include "../pit.h"
 #include "../timer.h"
 #include "../device.h"
 #include "video.h"

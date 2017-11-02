@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include <wchar.h>
+#include "86box.h"
+#include "machine/machine.h"
 #include "ibm.h"
 #include "io.h"
 #include "pic.h"

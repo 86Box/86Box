@@ -86,7 +86,7 @@ static uint8_t	bug_buff[FIFO_LEN],	/* serial port data buffer */
 static char	bug_str[UISTR_LEN];	/* UI output string */
 
 
-extern void	set_bugui(char *__str);
+extern void	ui_sb_bugui(char *__str);
 
 
 /* Update the system's UI with the actual Bugger status. */
@@ -106,7 +106,7 @@ bug_setui(void)
 		(bug_ledr&0x02)?'R':'r', (bug_ledr&0x01)?'R':'r');
 
     /* Send formatted string to the UI. */
-    ui_sb_set_text(bug_str);
+    ui_sb_bugui(bug_str);
 }
 
 

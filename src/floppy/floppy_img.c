@@ -9,7 +9,7 @@
  *		Implementation of the raw sector-based floppy image format,
  *		as well as the Japanese FDI, CopyQM, and FDF formats.
  *
- * Version:	@(#)floppy_img.c	1.0.5	2017/10/16
+ * Version:	@(#)floppy_img.c	1.0.6	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -674,7 +674,7 @@ void img_load(int drive, wchar_t *fn)
 					}
 				}
 			}
-			printf("Finished reading CopyQM image data\n");
+			pclog("Finished reading CopyQM image data\n");
 
 			cqm = 1;
 			img[drive].disk_at_once = 1;

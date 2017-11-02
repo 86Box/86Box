@@ -3,7 +3,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
-#include "ibm.h"
+#include "machine/machine.h"
 #include "io.h"
 #include "pci.h"
 #include "pic.h"

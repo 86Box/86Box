@@ -8,7 +8,7 @@
  *
  *		nVidia RIVA 128 emulation.
  *
- * Version:	@(#)vid_nv_riva128.c	1.0.1	2017/10/16
+ * Version:	@(#)vid_nv_riva128.c	1.0.2	2017/11/01
  *
  * Author:	Melissa Goad
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,6 +23,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../ibm.h"
+#include "../machine/machine.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../pci.h"

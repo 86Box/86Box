@@ -11,6 +11,7 @@
 #include "cpu/cpu.h"
 #include "cpu/x86_ops.h"
 #include "cpu/x86.h"
+#include "machine/machine.h"
 #include "config.h"
 #include "io.h"
 #include "mem.h"

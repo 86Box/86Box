@@ -14,6 +14,7 @@
 #include "x87.h"
 #include "../mem.h"
 #include "../pic.h"
+#include "../pit.h"
 #include "../timer.h"
 #include "../floppy/floppy.h"
 #include "../floppy/fdc.h"

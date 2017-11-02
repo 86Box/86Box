@@ -8,7 +8,7 @@
  *
  *		Emulation of the old and new IBM CGA graphics cards.
  *
- * Version:	@(#)vid_cga.c	1.0.8	2017/10/22
+ * Version:	@(#)vid_cga.c	1.0.9	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -25,6 +25,7 @@
 #include "../86box.h"
 #include "../ibm.h"
 #include "../io.h"
+#include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../timer.h"

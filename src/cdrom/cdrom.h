@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.h	1.0.3	2017/10/15
+ * Version:	@(#)cdrom.h	1.0.4	2017/11/01
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -20,6 +20,12 @@
 
 
 #define CDROM_NUM		4
+
+#define CD_STATUS_EMPTY		0
+#define CD_STATUS_DATA_ONLY	1
+#define CD_STATUS_PLAYING	2
+#define CD_STATUS_PAUSED	3
+#define CD_STATUS_STOPPED	4
 
 #define CDROM_PHASE_IDLE            0
 #define CDROM_PHASE_COMMAND         1
@@ -36,6 +42,15 @@
 
 #define IDE_TIME (5LL * 100LL * (1LL << TIMER_SHIFT))
 #define CDROM_TIME (5LL * 100LL * (1LL << TIMER_SHIFT))
+
+
+enum {
+    CDROM_BUS_DISABLED = 0,
+    CDROM_BUS_ATAPI_PIO_ONLY = 4,
+    CDROM_BUS_ATAPI_PIO_AND_DMA,
+    CDROM_BUS_SCSI,
+    CDROM_BUS_USB = 8
+};
 
 
 typedef struct {

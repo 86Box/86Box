@@ -8,7 +8,7 @@
  *
  *		Host to guest keyboard interface and keyboard scan code sets.
  *
- * Version:	@(#)keyboard.h	1.0.3	2017/10/24
+ * Version:	@(#)keyboard.h	1.0.4	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,6 +26,7 @@ extern "C" {
 
 extern uint8_t	keyboard_mode;
 extern int	keyboard_scan;
+extern int64_t	keybsenddelay;
 extern uint8_t	keyboard_set3_flags[272];
 extern uint8_t	keyboard_set3_all_repeat;
 extern uint8_t	keyboard_set3_all_break;

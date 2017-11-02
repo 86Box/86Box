@@ -13,6 +13,7 @@
 #include "x86.h"
 #include "x86_ops.h"
 #include "x87.h"
+#include "../io.h"
 #include "../mem.h"
 #include "../nmi.h"
 #include "../pic.h"

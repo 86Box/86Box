@@ -9,10 +9,11 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_table.c	1.0.4	2017/10/16
+ * Version:	@(#)hdd_table.c	1.0.5	2017/11/01
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -22,11 +23,6 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
-#include "../io.h"
-#include "../pic.h"
-#include "../pci.h"
-#include "../timer.h"
 #include "hdd.h"
 
 

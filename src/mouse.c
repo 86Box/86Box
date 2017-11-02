@@ -8,7 +8,7 @@
  *
  *		Common driver module for MOUSE devices.
  *
- * Version:	@(#)mouse.c	1.0.13	2017/10/25
+ * Version:	@(#)mouse.c	1.0.14	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "ibm.h"
+#include "86box.h"
 #include "device.h"
 #include "mouse.h"
 #include "machine/machine.h"

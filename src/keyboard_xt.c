@@ -7,11 +7,13 @@
 #include <wchar.h>
 #include "86box.h"
 #include "ibm.h"
+#include "machine/machine.h"
 #include "io.h"
 #include "mem.h"
 #include "rom.h"
 #include "pic.h"
 #include "pit.h"
+#include "ppi.h"
 #include "timer.h"
 #include "device.h"
 #include "tandy_eeprom.h"

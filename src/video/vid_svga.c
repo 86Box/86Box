@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.7	2017/10/18
+ * Version:	@(#)vid_svga.c	1.0.9	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,7 +26,9 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../ibm.h"
+#include "../machine/machine.h"
 #include "../io.h"
+#include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../timer.h"
@@ -92,19 +94,19 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
         {
 #ifdef DEV_BRANCH
 		case 0x32CB:
-	        printf("Write 32CB: %04X\n", val);
+	        pclog("SVGA: write 32CB: %04X\n", val);
 		charedit_on = (val & 0x10) ? 1 : 0;
 		charsettings = val;
 		return;
 
 		case 0x22CB:
-	        printf("Write 22CB: %04X\n", val);
+	        pclog("SVGA: write 22CB: %04X\n", val);
 		charmode = val;
 		charptr = 0;
 		return;
 
 		case 0x22CF:
-	        printf("Write 22CF: %04X\n", val);
+	        pclog("SVGA: write 22CF: %04X\n", val);
 		switch(charmode)
 		{
 			case 1: case 2:
@@ -121,7 +123,7 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
 		return;
 
 		case 0x22CA: case 0x22CE: case 0x32CA:
-	        printf("OUT SVGA %03X %02X %04X:%04X\n",addr,val,CS,cpu_state.pc);
+	        pclog("SVGA: OUT SVGA %03X %02X %04X:%04X\n",addr,val,CS,cpu_state.pc);
 		return;
 #endif
 
@@ -689,9 +691,9 @@ void svga_recalctimings(svga_t *svga)
 
 	svga->dispontime = (int64_t)(_dispontime * (1 << TIMER_SHIFT));
 	svga->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
-/*        printf("SVGA horiz total %i display end %i vidclock %f\n",svga->crtc[0],svga->crtc[1],svga->clock);
-        printf("SVGA vert total %i display end %i max row %i vsync %i\n",svga->vtotal,svga->dispend,(svga->crtc[9]&31)+1,svga->vsyncstart);
-        printf("total %f on %i cycles off %i cycles frame %i sec %i %02X\n",disptime*crtcconst,svga->dispontime,svga->dispofftime,(svga->dispontime+svga->dispofftime)*svga->vtotal,(svga->dispontime+svga->dispofftime)*svga->vtotal*70,svga->seqregs[1]);
+/*        pclog("SVGA horiz total %i display end %i vidclock %f\n",svga->crtc[0],svga->crtc[1],svga->clock);
+        pclog("SVGA vert total %i display end %i max row %i vsync %i\n",svga->vtotal,svga->dispend,(svga->crtc[9]&31)+1,svga->vsyncstart);
+        pclog("total %f on %i cycles off %i cycles frame %i sec %i %02X\n",disptime*crtcconst,svga->dispontime,svga->dispofftime,(svga->dispontime+svga->dispofftime)*svga->vtotal,(svga->dispontime+svga->dispofftime)*svga->vtotal*70,svga->seqregs[1]);
 
         pclog("svga->render %08X\n", svga->render);*/
 }

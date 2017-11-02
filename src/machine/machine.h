@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.7	2017/10/12
+ * Version:	@(#)machine.h	1.0.8	2017/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -73,6 +73,8 @@ typedef struct _machine_ {
 /* Global variables. */
 extern machine_t	machines[];
 extern int		machine;
+extern int		romset;
+extern int		AMSTRAD, TANDY, AT, PCI;
 
 
 /* Core functions. */

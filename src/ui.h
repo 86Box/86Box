@@ -8,7 +8,7 @@
  *
  *		Define the various UI functions.
  *
- * Version:	@(#)ui.h	1.0.8	2017/10/28
+ * Version:	@(#)ui.h	1.0.9	2017/11/01
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -64,6 +64,7 @@ extern void	ui_sb_update_icon(int tag, int val);
 extern void	ui_sb_update_icon_state(int tag, int active);
 extern void	ui_sb_set_text_w(wchar_t *wstr);
 extern void	ui_sb_set_text(char *str);
+extern void	ui_sb_bugui(char *str);
 
 #ifdef __cplusplus
 }

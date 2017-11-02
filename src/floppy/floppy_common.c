@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
+//#include "../ibm.h"
 #include "../floppy/floppy.h"
 #include "floppy_common.h"
 

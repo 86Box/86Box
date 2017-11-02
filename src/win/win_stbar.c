@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.4	2017/10/28
+ * Version:	@(#)win_stbar.c	1.0.5	2017/11/01
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -1140,14 +1140,25 @@ ui_sb_set_text_w(wchar_t *wstr)
 }
 
 
-
 /* API */
 void
 ui_sb_set_text(char *str)
 {
     static wchar_t wstr[512];
 
-    memset(wstr, 0x00, 1024);
+    memset(wstr, 0x00, sizeof(wstr));
+    mbstowcs(wstr, str, strlen(str) + 1);
+    ui_sb_set_text_w(wstr);
+}
+
+
+/* API */
+void
+ui_sb_bugui(char *str)
+{
+    static wchar_t wstr[512];
+
+    memset(wstr, 0x00, sizeof(wstr));
     mbstowcs(wstr, str, strlen(str) + 1);
     ui_sb_set_text_w(wstr);
 }

@@ -2,9 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "ibm.h"
 #include "io.h"
-#include "mem.h"
 #include "mca.h"
 
 

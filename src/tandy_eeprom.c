@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "ibm.h"
+#include "machine/machine.h"
 #include "device.h"
 #include "mem.h"
 #include "rom.h"

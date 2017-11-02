@@ -8,10 +8,11 @@
  *
  *		Implementation of the floppy drive emulation.
  *
- * Version:	@(#)fdd.h	1.0.2	2017/09/03
+ * Version:	@(#)fdd.h	1.0.3	2017/10/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -21,6 +22,10 @@
 
 #define SEEK_RECALIBRATE -999
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 extern int fdd_swap;
 
@@ -59,6 +64,10 @@ extern char	*fdd_get_internal_name(int type);
 extern int	fdd_get_from_internal_name(char *s);
 
 extern int	fdd_track(int drive);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif	/*EMU_FDD_H*/
