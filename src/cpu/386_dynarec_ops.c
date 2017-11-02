@@ -13,6 +13,7 @@
 #include "x86_ops.h"
 #include "x87.h"
 #include "x86_flags.h"
+#include "../io.h"
 #include "../mem.h"
 #include "../nmi.h"
 #include "codegen.h"
