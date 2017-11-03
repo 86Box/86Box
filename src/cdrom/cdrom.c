@@ -3192,8 +3192,6 @@ int cdrom_write_to_ide_dma(uint8_t channel)
 
 	if (id > CDROM_NUM) {
 		cdrom_log("CD-ROM %i: Drive not found\n", id);
-		cdrom_data_phase_error(id);
-		cdrom_phase_callback(id);
 		return 0;
 	}
 
