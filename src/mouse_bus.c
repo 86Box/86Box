@@ -32,7 +32,7 @@
  *		Based on an early driver for MINIX 1.5.
  *		Based on the 86Box PS/2 mouse driver as a framework.
  *
- * Version:	@(#)mouse_bus.c	1.0.21	2017/11/01
+ * Version:	@(#)mouse_bus.c	1.0.22	2017/11/01
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -72,7 +72,7 @@ typedef struct mouse_bus {
     uint8_t	r_intr;				/* INTSTAT register (RO) */
     uint8_t	r_conf;				/* CONFIG register */
 
-    int8_t	x, y;				/* current mouse status */
+    int16_t	x, y;				/* current mouse status */
     uint8_t	but;
 
     uint8_t	(*read)(struct mouse_bus *, uint16_t);
@@ -329,7 +329,7 @@ bm_poll(int x, int y, int z, int b, void *priv)
     /* If we are not interested, return. */
     if (!(ms->flags & MOUSE_ENABLED) || (ms->flags & MOUSE_FROZEN)) return(0);
 
-#if 1
+#if 0
     pclog("BUSMOUSE: poll(%d,%d,%d, %02x)\n", x, y, z, b);
 #endif
 
@@ -341,23 +341,23 @@ bm_poll(int x, int y, int z, int b, void *priv)
 
     /* Add the delta to our state. */
     x += ms->x;
-    if (x > 127)
-	x = 127;
-    if (x < -128)
-	x = -128;
-    ms->x = (int8_t)x;
+    if (x > 1023)
+	x = 1023;
+    if (x < -1024)
+	x = -1024;
+    ms->x = (int16_t)x;
 
     y += ms->y;
-    if (y > 127)
-	y = 127;
-    if (y < -128)
-	y = -128;
-    ms->y = (int8_t)y;
+    if (y > 1023)
+	y = 1023;
+    if (y < -1024)
+	y = -1024;
+    ms->y = (int16_t)y;
 
     ms->but = b;
 
     /* All set, generate an interrupt. */
-//    if (! (ms->r_ctrl & CTRL_IDIS))
+    if (! (ms->r_ctrl & CTRL_IDIS))
 		picint(1 << ms->irq);
 
     return(0);
@@ -406,7 +406,6 @@ bm_init(mouse_t *info)
 		break;
     }
     ms->flags |= MOUSE_ENABLED;
-    ms->flags |= MOUSE_SCALED;
 
     /* Request an I/O range. */
     io_sethandler(ms->port, ms->portlen,

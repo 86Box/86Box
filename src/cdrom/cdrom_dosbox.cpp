@@ -230,7 +230,7 @@ bool CDROM_Interface_Image::LoadIsoFile(char* filename)
 	tracks.clear();
 	
 	// data track
-	Track track = {0, 0, 0, 0, 0, 0, false, NULL};
+	Track track = {0, 0, 0, 0, 0, 0, 0, false, NULL};
 	bool error;
 	track.file = new BinaryFile(filename, error);
 	if (error) {
@@ -305,7 +305,7 @@ static string dirname(char * file) {
 
 bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 {
-	Track track = {0, 0, 0, 0, 0, 0, false, NULL};
+	Track track = {0, 0, 0, 0, 0, 0, 0, false, NULL};
 	tracks.clear();
 	uint64_t shift = 0;
 	uint64_t currPregap = 0;
@@ -470,7 +470,10 @@ bool CDROM_Interface_Image::AddTrack(Track &curr, uint64_t &shift, uint64_t pres
 	if (curr.number <= 1) return false;
 	if (prev.number + 1 != curr.number) return false;
 	if (curr.start < prev.start + prev.length) return false;
+#if 0
+	/* curr.length is unsigned, so... --FvK */
 	if (curr.length < 0) return false;
+#endif
 	
 	tracks.push_back(curr);
 	return true;

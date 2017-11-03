@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.39	2017/11/01
+ * Version:	@(#)pc.c	1.0.40	2017/11/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -162,12 +162,12 @@ void
 pclog(const char *format, ...)
 {
 #ifndef RELEASE_BUILD
-   va_list ap;
+    va_list ap;
 
-   va_start(ap, format);
-   vprintf(format, ap);
-   va_end(ap);
-   fflush(stdout);
+    va_start(ap, format);
+    vprintf(format, ap);
+    va_end(ap);
+    fflush(stdout);
 #endif
 }
 
@@ -176,31 +176,31 @@ pclog(const char *format, ...)
 void
 fatal(const char *format, ...)
 {
-   char msg[1024];
-   va_list ap;
-   char *sp;
+    char temp[1024];
+    va_list ap;
+    char *sp;
 
-   va_start(ap, format);
-   vsprintf(msg, format, ap);
-   fprintf(stdout, msg);
-   va_end(ap);
-   fflush(stdout);
+    va_start(ap, format);
+    vsprintf(temp, format, ap);
+    fprintf(stdout, "%s", temp);
+    fflush(stdout);
+    va_end(ap);
 
-   nvr_save();
+    nvr_save();
 
-   config_save();
+    config_save();
 
-   dumppic();
-   dumpregs(1);
+    dumppic();
+    dumpregs(1);
 
-   /* Make sure the message does not have a trailing newline. */
-   if ((sp = strchr(msg, '\n')) != NULL) *sp = '\0';
+    /* Make sure the message does not have a trailing newline. */
+    if ((sp = strchr(temp, '\n')) != NULL) *sp = '\0';
 
-   ui_msgbox(MBX_ERROR|MBX_FATAL|MBX_ANSI, msg);
+    ui_msgbox(MBX_ERROR|MBX_FATAL|MBX_ANSI, temp);
 
-   fflush(stdout);
+    fflush(stdout);
 
-   exit(-1);
+    exit(-1);
 }
 
 

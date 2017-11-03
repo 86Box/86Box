@@ -8,7 +8,7 @@
  *
  *		S3 ViRGE emulation.
  *
- * Version:	@(#)vid_s3_virge.c	1.0.2	2017/10/16
+ * Version:	@(#)vid_s3_virge.c	1.0.3	2017/11/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2920,7 +2920,7 @@ static void tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int3
         
         int bpp = (s3d_tri->cmd_set >> 2) & 7;
         
-        uint32_t dest_offset, z_offset;
+        uint32_t dest_offset = 0, z_offset = 0;
 
 	uint32_t src_col;
 	int src_r = 0, src_g = 0, src_b = 0;
