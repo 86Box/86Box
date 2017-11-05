@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.18	2017/11/01
+ * Version:	@(#)hdc_ide.c	1.0.19	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -27,7 +27,7 @@
 #include <inttypes.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
+#include "../cpu/cpu.h"
 #include "../machine/machine.h"
 #include "../io.h"
 #include "../pic.h"
@@ -832,7 +832,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 	IDE *ide = &ide_drives[cur_ide[ide_board]];
 	IDE *ide_other = &ide_drives[cur_ide[ide_board] ^ 1];
 
-	ide_log("WriteIDE %04X %02X from %04X(%08X):%08X %i\n", addr, val, CS, cs, cpu_state.pc, ins);
+	ide_log("WriteIDE %04X %02X from %04X(%08X):%08X\n", addr, val, CS, cs, cpu_state.pc);
 	addr|=0x90;
 	addr&=0xFFF7;
 

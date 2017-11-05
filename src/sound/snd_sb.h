@@ -8,15 +8,30 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.h	1.0.0	2017/05/30
+ * Version:	@(#)sound_sb.h	1.0.2	2017/11/04
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2016-2017 TheCollector1995.
  */
+#ifndef SOUND_SND_SB_H
+# define SOUND_SND_SB_H
+
+
+#define SADLIB		1	/* No DSP */
+#define SB1		2	/* DSP v1.05 */
+#define SB15		3	/* DSP v2.00 */
+#define SB2		4	/* DSP v2.01 - needed for high-speed DMA */
+#define SBPRO		5	/* DSP v3.00 */
+#define SBPRO2		6	/* DSP v3.02 + OPL3 */
+#define SB16		7	/* DSP v4.05 + OPL3 */
+#define SADGOLD		8	/* AdLib Gold */
+#define SND_WSS		9	/* Windows Sound System */
+#define SND_PAS16	10	/* Pro Audio Spectrum 16 */
+
 
 extern device_t sb_1_device;
 extern device_t sb_15_device;
@@ -27,3 +42,6 @@ extern device_t sb_pro_v2_device;
 extern device_t sb_pro_mcv_device;
 extern device_t sb_16_device;
 extern device_t sb_awe32_device;
+
+
+#endif	/*SOUND_SND_SB_H*/

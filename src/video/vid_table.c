@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.4	2017/10/31
+ * Version:	@(#)vid_table.c	1.0.5	2017/11/04
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
+#include "../machine/machine.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
@@ -55,18 +55,10 @@
 #  include "vid_nv_riva128.h"
 # endif
 #endif
-#include "vid_olivetti_m24.h"
 #include "vid_oti067.h"
 #include "vid_paradise.h"
-#include "vid_pc1512.h"
-#include "vid_pc1640.h"
-#include "vid_pc200.h"
-#include "vid_pcjr.h"
-#include "vid_ps1_svga.h"
 #include "vid_s3.h"
 #include "vid_s3_virge.h"
-#include "vid_tandy.h"
-#include "vid_tandysl.h"
 #include "vid_tgui9440.h"
 #include "vid_tvga.h"
 #include "vid_vga.h"
@@ -83,32 +75,45 @@ typedef struct {
 
 static VIDEO_CARD
 video_cards[] = {
-    {"[ISA] ATI VGA Charger (ATI-28800-5)",         "ati28800",			&ati28800_device,            		GFX_VGACHARGER			},
-    {"[ISA] ATI VGA Wonder XL24 (ATI-28800-6)",     "ati28800w",		&ati28800_wonderxl24_device,		GFX_VGAWONDERXL24		},
-    {"[ISA] ATI VGA Edge-16 (ATI-18800)",           "ati18800",			&ati18800_device,            		GFX_VGAEDGE16			},
-    {"[ISA] CGA",                                   "cga",			&cga_device,                 		GFX_CGA				},
-    {"[ISA] Chips & Technologies SuperEGA",         "superega",			&sega_device,                		GFX_SUPER_EGA			},
+    { "None",						"none",
+      NULL,				GFX_NONE			},
+    { "Internal",					"internal",
+      NULL,				GFX_INTERNAL			},
+    { "[ISA] ATI VGA Charger (ATI-28800-5)",		"ati28800",
+      &ati28800_device,			GFX_VGACHARGER			},
+    { "[ISA] ATI VGA Charger (ATI-28800-5)",		"ati28800",
+      &ati28800_device,			GFX_VGACHARGER			},
+    { "[ISA] ATI VGA Wonder XL24 (ATI-28800-6)",	"ati28800w",
+      &ati28800_wonderxl24_device,	GFX_VGAWONDERXL24		},
+    { "[ISA] ATI VGA Edge-16 (ATI-18800)",		"ati18800",
+      &ati18800_device,			GFX_VGAEDGE16			},
+    { "[ISA] CGA",					"cga",
+      &cga_device,			GFX_CGA				},
+    { "[ISA] Chips & Technologies SuperEGA",		"superega",
+      &sega_device,			GFX_SUPER_EGA			},
 #if defined(DEV_BRANCH) && defined(USE_CIRRUS)
-    {"[ISA] Cirrus Logic CL-GD5422",		    "cl_gd5422",		&gd5422_device,				GFX_CL_GD5422			},
-    {"[ISA] Cirrus Logic CL-GD5430",		    "cl_gd5430",		&gd5430_device,				GFX_CL_GD5430			},
-    {"[ISA] Cirrus Logic CL-GD5434",		    "cl_gd5434",		&gd5434_device,				GFX_CL_GD5434			},
-    {"[ISA] Cirrus Logic CL-GD5436",		    "cl_gd5436",		&gd5436_device,				GFX_CL_GD5436			},
-    {"[ISA] Cirrus Logic CL-GD5440",		    "cl_gd5440",		&gd5440_device,				GFX_CL_GD5440			},
+    { "[ISA] Cirrus Logic CL-GD5422",			"cl_gd5422",
+      &gd5422_device,			GFX_CL_GD5422			},
+    { "[ISA] Cirrus Logic CL-GD5430",			"cl_gd5430",
+      &gd5430_device,			GFX_CL_GD5430			},
+    { "[ISA] Cirrus Logic CL-GD5434",		    "cl_gd5434",		&gd5434_device,				GFX_CL_GD5434			},
+    { "[ISA] Cirrus Logic CL-GD5436",		    "cl_gd5436",		&gd5436_device,				GFX_CL_GD5436			},
+    { "[ISA] Cirrus Logic CL-GD5440",		    "cl_gd5440",		&gd5440_device,				GFX_CL_GD5440			},
 #endif
-    {"[ISA] Compaq ATI VGA Wonder XL (ATI-28800-5)","compaq_ati28800",		&compaq_ati28800_device,     		GFX_VGAWONDERXL			},
-    {"[ISA] Compaq EGA",                            "compaq_ega",		&cpqega_device,              		GFX_COMPAQ_EGA			},
-    {"[ISA] EGA",                                   "ega",			&ega_device,                 		GFX_EGA				},
-    {"[ISA] Hercules",                              "hercules",			&hercules_device,            		GFX_HERCULES			},
-    {"[ISA] Hercules Plus",                         "hercules_plus",		&herculesplus_device,        		GFX_HERCULESPLUS		},
-    {"[ISA] Hercules InColor",                      "incolor",			&incolor_device,             		GFX_INCOLOR			},
-    {"[ISA] MDA",                                   "mda",			&mda_device,                 		GFX_MDA				},
-    {"[ISA] MDSI Genius",                           "genius",            	&genius_device,              		GFX_GENIUS			},
-    {"[ISA] OAK OTI-067",                           "oti067",			&oti067_device,              		GFX_OTI067			},
-    {"[ISA] OAK OTI-077",                           "oti077",			&oti077_device,              		GFX_OTI077			},
-    {"[ISA] Paradise WD90C11",                      "wd90c11",			&paradise_wd90c11_device,    		GFX_WD90C11			},
-    {"[ISA] Plantronics ColorPlus",                 "plantronics",		&colorplus_device,           		GFX_COLORPLUS			},
-    {"[ISA] Trident TVGA8900D",                     "tvga8900d",		&tvga8900d_device,           		GFX_TVGA			},
-    {"[ISA] Tseng ET4000AX",                        "et4000ax",			&et4000_device,              		GFX_ET4000			},
+    { "[ISA] Compaq ATI VGA Wonder XL (ATI-28800-5)","compaq_ati28800",		&compaq_ati28800_device,     		GFX_VGAWONDERXL			},
+    { "[ISA] Compaq EGA",                            "compaq_ega",		&cpqega_device,              		GFX_COMPAQ_EGA			},
+    { "[ISA] EGA",                                   "ega",			&ega_device,                 		GFX_EGA				},
+    { "[ISA] Hercules",                              "hercules",			&hercules_device,            		GFX_HERCULES			},
+    { "[ISA] Hercules Plus",                         "hercules_plus",		&herculesplus_device,        		GFX_HERCULESPLUS		},
+    { "[ISA] Hercules InColor",                      "incolor",			&incolor_device,             		GFX_INCOLOR			},
+    { "[ISA] MDA",                                   "mda",			&mda_device,                 		GFX_MDA				},
+    { "[ISA] MDSI Genius",                           "genius",            	&genius_device,              		GFX_GENIUS			},
+    { "[ISA] OAK OTI-067",                           "oti067",			&oti067_device,              		GFX_OTI067			},
+    { "[ISA] OAK OTI-077",                           "oti077",			&oti077_device,              		GFX_OTI077			},
+    { "[ISA] Paradise WD90C11",                      "wd90c11",			&paradise_wd90c11_device,    		GFX_WD90C11			},
+    { "[ISA] Plantronics ColorPlus",                 "plantronics",		&colorplus_device,           		GFX_COLORPLUS			},
+    { "[ISA] Trident TVGA8900D",                     "tvga8900d",		&tvga8900d_device,           		GFX_TVGA			},
+    { "[ISA] Tseng ET4000AX",                        "et4000ax",			&et4000_device,              		GFX_ET4000			},
     {"[ISA] VGA",                                   "vga",			&vga_device,                 		GFX_VGA				},
     {"[ISA] Wyse 700",                              "wy700",			&wy700_device,               		GFX_WY700			},
     {"[PCI] ATI Graphics Pro Turbo (Mach64 GX)",    "mach64x_pci",		&mach64gx_pci_device,        		GFX_MACH64GX_PCI		},
@@ -152,68 +157,54 @@ video_cards[] = {
 };
 
 
-/* This will be merged into machine.c soon. --FvK */
 void
-video_reset_device(int rs, int gc)
+video_reset_card(int card)
 {
-    pclog("Video_reset_device(rom=%i, gfx=%i)\n", rs, gc);
+    /* Nothing to do if this is their internal video card. */
+    if (card == GFX_NONE) return;
+    if ((machines[machine].flags & MACHINE_VIDEO) &&
+	(card == GFX_INTERNAL)) return;
 
+    pclog("Video_reset_card(gfx=%i)\n", card);
+
+    device_add(video_cards[video_old_to_new(card)].device);
+
+#if 0
     switch (rs) {
 	case ROM_IBMPCJR:
-		device_add(&pcjr_video_device);
-		return;
-
+	case ROM_OLIM24:
+	case ROM_PC1512:
+		device_add(&pc1512_device);
+	case ROM_PC1640:
+		device_add(&pc1640_device);
+	case ROM_PC200:
+		device_add(&pc200_device);
+	case ROM_PC2086:
+		device_add(&paradise_pvga1a_pc2086_device);
+	case ROM_PC3086:
+		device_add(&paradise_pvga1a_pc3086_device);
+	case ROM_MEGAPC:
+		device_add(&paradise_wd90c11_megapc_device);
 	case ROM_TANDY:
 	case ROM_TANDY1000HX:
 		device_add(&tandy_device);
-		return;
-
 	case ROM_TANDY1000SL2:
 		device_add(&tandysl_device);
-		return;
-
-	case ROM_PC1512:
-		device_add(&pc1512_device);
-		return;
-		
-	case ROM_PC1640:
-		device_add(&pc1640_device);
-		return;
-		
-	case ROM_PC200:
-		device_add(&pc200_device);
-		return;
-		
-	case ROM_OLIM24:
-		device_add(&m24_device);
-		return;
-
-	case ROM_PC2086:
-		device_add(&paradise_pvga1a_pc2086_device);
-		return;
-
-	case ROM_PC3086:
-		device_add(&paradise_pvga1a_pc3086_device);
-		return;
-
-	case ROM_MEGAPC:
-		device_add(&paradise_wd90c11_megapc_device);
-		return;
-			
 	case ROM_IBMPS1_2011:
+		device_add(&ps1vga_device);
+	case ROM_IBMPS1_2121:
 	case ROM_IBMPS2_M30_286:
 	case ROM_IBMPS2_M50:
 	case ROM_IBMPS2_M55SX:
 	case ROM_IBMPS2_M80:
-		device_add(&ps1vga_device);
-		return;
-
-	case ROM_IBMPS1_2121:
 		device_add(&ps1_m2121_svga_device);
-		return;
-    }
+		/* Handled by the machine. */
+		break;
 
-    device_add(video_cards[video_old_to_new(gc)].device);
+	default:
+		device_add(video_cards[video_old_to_new(gc)].device);
+    }
+#endif
 }
 
 
@@ -244,6 +235,8 @@ video_card_getdevice(int card)
 int
 video_card_has_config(int card)
 {
+    if (video_cards[card].device == NULL) return(0);
+
     return(video_cards[card].device->config ? 1 : 0);
 }
 
@@ -253,7 +246,7 @@ video_card_getid(char *s)
 {
     int c = 0;
 
-    while (video_cards[c].device) {
+    while (video_cards[c].legacy_id != -1) {
 	if (!strcmp(video_cards[c].name, s))
 		return(c);
 	c++;
@@ -268,7 +261,7 @@ video_old_to_new(int card)
 {
     int c = 0;
 
-    while (video_cards[c].device) {
+    while (video_cards[c].legacy_id != -1) {
 	if (video_cards[c].legacy_id == card)
 		return(c);
 	c++;

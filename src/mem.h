@@ -120,6 +120,7 @@ void mem_set_mem_state(uint32_t base, uint32_t size, int state);
 #define MEM_WRITE_DISABLED 0x03
 #define MEM_WRITE_MASK     0x0f
 
+extern int mem_a20_state;
 extern int mem_a20_alt;
 extern int mem_a20_key;
 void mem_a20_recalc();
@@ -175,6 +176,8 @@ extern page_t **page_lookup;
 uint32_t mmutranslate_noabrt(uint32_t addr, int rw);
 
 extern uint32_t get_phys_virt,get_phys_phys;
+
+#ifdef EMU_CPU_H
 static __inline uint32_t get_phys(uint32_t addr)
 {
         if (!((addr ^ get_phys_virt) & ~0xfff))
@@ -200,6 +203,7 @@ static __inline uint32_t get_phys_noabrt(uint32_t addr)
         
         return mmutranslate_noabrt(addr, 0) & rammask;
 }
+#endif
 
 void mem_invalidate_range(uint32_t start_addr, uint32_t end_addr);
 
@@ -218,7 +222,11 @@ extern mem_mapping_t ram_mid_mapping;
 extern void	mem_remap_top_256k(void);
 extern void	mem_remap_top_384k(void);
 
+extern void     flushmmucache(void);
+extern void     flushmmucache_cr3(void);
 extern void	flushmmucache_nopc(void);
+extern void     mmu_invalidate(uint32_t addr);
+
 
 extern void	mem_add_bios(void);
 
@@ -226,6 +234,7 @@ extern void	mem_init(void);
 extern void	mem_resize(void);
 
 extern void	port_92_reset(void);
+extern void     port_92_clear_reset(void);
 extern void	port_92_add(void);
 extern void	port_92_remove(void);
 

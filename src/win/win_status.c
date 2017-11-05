@@ -10,9 +10,9 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../pit.h"
 #include "../mem.h"
+#include "../cpu/cpu.h"
 #include "../cpu/x86_ops.h"
 #ifdef USE_DYNAREC
 # include "../cpu/codegen.h"

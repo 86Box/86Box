@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.70	2017/10/28
+# Version:	@(#)Makefile.mingw	1.0.71	2017/11/04
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -262,7 +262,7 @@ ifndef SERIAL
 SERIAL		:= serial.o
 endif
 ifndef EUROPC
-EUROPC		:= machine_europc.o
+EUROPC		:= m_europc.o
 endif
 
 
@@ -271,28 +271,28 @@ MAINOBJ		:= pc.o config.o random.o timer.o io.o dma.o nmi.o pic.o \
 		   device.o nvr.o nvr_at.o nvr_ps2.o $(VNCOBJ) $(RDPOBJ) \
 		   intel.o intel_flash.o intel_sio.o
 
-CPUOBJ		:= cpu.o 386.o 386_dynarec.o 808x.o \
-		    x86seg.o x87.o \
-		    $(DYNARECOBJ)
+CPUOBJ		:= cpu.o cpu_table.o \
+		    808x.o 386.o x86seg.o x87.o \
+		    386_dynarec.o $(DYNARECOBJ)
 
 MCHOBJ		:= machine.o \
-		    machine_common.o \
-		    machine_amstrad.o $(EUROPC) \
-		    machine_olivetti_m24.o \
-		    machine_pcjr.o \
-		    machine_tandy.o \
-		    machine_xt.o machine_xt_laserxt.o \
-		    machine_at.o \
-		    machine_at_ali1429.o machine_at_commodore.o \
-		    machine_at_neat.o machine_at_headland.o \
-		    machine_at_opti495.o machine_at_scat.o \
-		    machine_at_wd76c10.o \
-		    machine_at_sis_85c471.o machine_at_sis_85c496.o \
-		    machine_at_430lx_nx.o machine_at_430fx.o \
-		    machine_at_430hx.o machine_at_430vx.o \
-		    machine_at_440fx.o \
-		    machine_ps1.o \
-		    machine_ps2_isa.o machine_ps2_mca.o
+		    m_common.o \
+		    m_amstrad.o $(EUROPC) \
+		    m_olivetti_m24.o \
+		    m_pcjr.o \
+		    m_tandy.o \
+		    m_xt.o m_xt_laserxt.o \
+		    m_at.o \
+		    m_at_ali1429.o m_at_commodore.o \
+		    m_at_neat.o m_at_headland.o \
+		    m_at_opti495.o m_at_scat.o \
+		    m_at_wd76c10.o \
+		    m_at_sis_85c471.o m_at_sis_85c496.o \
+		    m_at_430lx_nx.o m_at_430fx.o \
+		    m_at_430hx.o m_at_430vx.o \
+		    m_at_440fx.o \
+		    m_ps1.o \
+		    m_ps2_isa.o m_ps2_mca.o
 
 DEVOBJ		:= bugger.o lpt.o $(SERIAL) \
 		   tandy_eeprom.o tandy_rom.o \
@@ -303,8 +303,7 @@ DEVOBJ		:= bugger.o lpt.o $(SERIAL) \
 		    sio_um8669f.o \
 		    piix.o \
 		   keyboard.o \
-		    keyboard_xt.o keyboard_at.o keyboard_pcjr.o \
-		    keyboard_amstrad.o keyboard_olim24.o \
+		    keyboard_xt.o keyboard_at.o \
 		   gameport.o \
 		    joystick_standard.o joystick_ch_flightstick_pro.o \
 		    joystick_sw_pad.o joystick_tm_fcs.o \
@@ -385,13 +384,7 @@ VIDOBJ		:= video.o \
 		    vid_sdac_ramdac.o \
 		    vid_stg_ramdac.o \
 		    vid_wy700.o \
-		    vid_voodoo.o \
-		    vid_pcjr.o \
-		    vid_ps1_svga.o \
-		    vid_olivetti_m24.o \
-		    vid_pc1512.o vid_pc1640.o \
-		    vid_pc200.o \
-		    vid_tandy.o vid_tandysl.o
+		    vid_voodoo.o
 
 PLATOBJ		:= win.o \
 		    win_ddraw.o win_ddraw_fs.o win_d3d.o win_d3d_fs.o \

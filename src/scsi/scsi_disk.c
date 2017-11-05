@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.18	2017/10/19
+ * Version:	@(#)scsi_disk.c	1.0.9	2017/11/04
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -19,7 +19,6 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../timer.h"
 #include "../device.h"
 #include "../nvr.h"
@@ -1442,7 +1441,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 	if (cdb[0] != 0)
 	{
-		scsi_hd_log("SCSI HD %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, %i\n", id, cdb[0], scsi_hd_sense_key, scsi_hd_asc, scsi_hd_ascq, ins);
+		scsi_hd_log("SCSI HD %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X\n", id, cdb[0], scsi_hd_sense_key, scsi_hd_asc, scsi_hd_ascq);
 		scsi_hd_log("SCSI HD %i: Request length: %04X\n", id, shdc[id].request_length);
 
 #if 0

@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.27	2017/10/27
+ * Version:	@(#)scsi_buslogic.c	1.0.28	2017/11/04
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -27,7 +27,6 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../io.h"
 #include "../mca.h"
 #include "../mem.h"

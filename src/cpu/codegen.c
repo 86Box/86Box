@@ -3,8 +3,8 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../mem.h"
+#include "cpu.h"
 #include "x86_ops.h"
 #include "codegen.h"
 

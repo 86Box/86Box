@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../machine/machine.h"
 #include "../timer.h"

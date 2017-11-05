@@ -12,7 +12,7 @@
  *		    word 0 - base address
  *		    word 1 - bits 1 - 15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)piix4.c	1.0.0	2017/10/25
+ * Version:	@(#)piix4.c	1.0.1	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -25,7 +25,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
-#include "ibm.h"
 #include "dma.h"
 #include "io.h"
 #include "device.h"

@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.16	2017/10/31
+ * Version:	@(#)rom.c	1.0.17	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -30,7 +30,7 @@
 #include <wchar.h>
 #include "86box.h"
 #include "config.h"
-#include "ibm.h"
+#include "cpu/cpu.h"
 #include "mem.h"
 #include "rom.h"
 #include "video/video.h"		/* for loadfont() */

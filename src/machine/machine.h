@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.8	2017/11/01
+ * Version:	@(#)machine.h	1.0.9	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,20 +26,17 @@
 #define MACHINE_PC		0x000000	/* PC architecture */
 #define MACHINE_AT		0x000001	/* PC/AT architecture */
 #define MACHINE_PS2		0x000002	/* PS/2 architecture */
-#define MACHINE_ISA		0x000010	/* machine has ISA bus */
-#define MACHINE_CBUS		0x000020	/* machine has C-BUS bus */
-#define MACHINE_EISA		0x000040	/* machine has EISA bus */
-#define MACHINE_VLB		0x000080	/* machine has VL bus */
-#define MACHINE_MCA		0x000100	/* machine has MCA bus */
-#define MACHINE_PCI		0x000200	/* machine has PCI */
-#define MACHINE_AGP		0x000400	/* machine has AGP */
-#define MACHINE_HAS_HDC		0x001000	/* machine has internal HDC */
-#define MACHINE_PS2_HDD		0x002000	// can now remove? --FvK
-#define MACHINE_NEC		0x010000
-#define MACHINE_FUJITSU		0x020000
-#define MACHINE_AMSTRAD		0x040000
-#define MACHINE_OLIM24		0x080000
-#define MACHINE_RM		0x100000
+#define MACHINE_ISA		0x000010	/* sys has ISA bus */
+#define MACHINE_CBUS		0x000020	/* sys has C-BUS bus */
+#define MACHINE_EISA		0x000040	/* sys has EISA bus */
+#define MACHINE_VLB		0x000080	/* sys has VL bus */
+#define MACHINE_MCA		0x000100	/* sys has MCA bus */
+#define MACHINE_PCI		0x000200	/* sys has PCI bus */
+#define MACHINE_AGP		0x000400	/* sys has AGP bus */
+#define MACHINE_HDC		0x001000	/* sys has int HDC */
+#define MACHINE_HDC_PS2		0x002000	/* sys has int PS/2 HDC */
+#define MACHINE_MOUSE		0x004000	/* sys has int mouse */
+#define MACHINE_VIDEO		0x008000	/* sys has int video */
 
 #define IS_ARCH(m, a)		(machines[(m)].flags & (a)) ? 1 : 0;
 
@@ -74,7 +71,7 @@ typedef struct _machine_ {
 extern machine_t	machines[];
 extern int		machine;
 extern int		romset;
-extern int		AMSTRAD, TANDY, AT, PCI;
+extern int		AT, PCI;
 
 
 /* Core functions. */
@@ -91,13 +88,6 @@ extern device_t	*machine_getdevice(int machine);
 extern int	machine_getromset_ex(int m);
 extern char	*machine_get_internal_name_ex(int m);
 extern int	machine_get_nvrmask(int m);
-
-
-/* Global variables for boards and systems. */
-#ifdef EMU_MOUSE_H
-extern mouse_t	mouse_amstrad;
-extern mouse_t	mouse_olim24;
-#endif
 
 
 /* Initialization functions for boards and systems. */

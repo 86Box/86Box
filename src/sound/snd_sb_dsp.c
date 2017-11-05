@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../io.h"
 #include "../pic.h"
 #include "../dma.h"
@@ -19,6 +18,7 @@
 #include "sound.h"
 #include "midi.h"
 #include "snd_mpu401.h"
+#include "snd_sb.h"
 #include "snd_sb_dsp.h"
 
 /*The recording safety margin is intended for uneven "len" calls to the get_buffer mixer calls on sound_sb*/

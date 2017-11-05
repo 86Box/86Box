@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.7	2017/11/01
+ * Version:	@(#)fdc.c	1.0.8	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,7 +23,7 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
+#include "../cpu/cpu.h"
 #include "../machine/machine.h"
 #include "../io.h"
 #include "../mem.h"

@@ -12,6 +12,7 @@
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -19,41 +20,50 @@
 # define EMU_SOUND_H
 
 
-void sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), void *p);
+#define SOUNDBUFLEN	(48000/50)
 
-extern int sound_card_current;
+#define CD_FREQ		44100
+#define CD_BUFLEN	(CD_FREQ / 10)
 
-int sound_card_available(int card);
-char *sound_card_getname(int card);
+
+extern int	ppispeakon;
+extern int	gated,
+		speakval,
+		speakon;
+
+extern int	sound_pos_global;
+extern int	sound_card_current;
+
+
+extern void	sound_add_handler(void (*get_buffer)(int32_t *buffer, \
+				  int len, void *p), void *p);
+
+extern int	sound_card_available(int card);
+extern char	*sound_card_getname(int card);
 #ifdef EMU_DEVICE_H
-device_t *sound_card_getdevice(int card);
+extern device_t	*sound_card_getdevice(int card);
 #endif
-int sound_card_has_config(int card);
-char *sound_card_get_internal_name(int card);
-int sound_card_get_from_internal_name(char *s);
-void sound_card_init();
-void sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r);
+extern int	sound_card_has_config(int card);
+extern char	*sound_card_get_internal_name(int card);
+extern int	sound_card_get_from_internal_name(char *s);
+extern void	sound_card_init(void);
+extern void	sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r);
 
-#define CD_FREQ 44100
-#define CD_BUFLEN (CD_FREQ / 10)
+extern void	sound_speed_changed(void);
 
-extern int sound_pos_global;
-void sound_speed_changed();
+extern void	sound_realloc_buffers(void);
 
-extern int sound_is_float;
-void sound_realloc_buffers(void);
+extern void	sound_init(void);
+extern void	sound_reset(void);
 
-void sound_init();
-void sound_reset();
+extern void	sound_cd_thread_end(void);
+extern void	sound_cd_thread_reset(void);
 
-void sound_cd_thread_end();
-void sound_cd_thread_reset();
-
-void closeal(void);
-void initalmain(int argc, char *argv[]);
-void inital();
-void givealbuffer(void *buf);
-void givealbuffer_cd(void *buf);
+extern void	closeal(void);
+extern void	initalmain(int argc, char *argv[]);
+extern void	inital(void);
+extern void	givealbuffer(void *buf);
+extern void	givealbuffer_cd(void *buf);
 
 
 #endif	/*EMU_SOUND_H*/

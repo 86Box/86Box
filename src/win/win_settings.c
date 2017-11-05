@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.22	2017/10/28
+ * Version:	@(#)win_settings.c	1.0.23	2017/11/04
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -26,7 +26,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../config.h"
 #include "../cpu/cpu.h"
 #include "../mem.h"
@@ -719,7 +718,10 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 			{
 				temp_mem_size *= 1024;
 			}
-
+			if (machines[temp_machine].flags & MACHINE_VIDEO)
+			{
+				gfxcard = GFX_INTERNAL;
+			}
 			free(stransi);
 			free(lptsTemp);
 
@@ -743,6 +745,12 @@ static void recalc_vid_list(HWND hdlg)
         
         while (1)
         {
+		/* Skip "internal" if machine doesn't have it. */
+		if (c==1 && !(machines[temp_machine].flags&MACHINE_VIDEO)) {
+			c++;
+			continue;
+		}
+
                 char *s = video_card_getname(c);
 
                 if (!s[0])
@@ -907,14 +915,11 @@ static int mouse_valid(int type, int machine)
 {
 	type &= MOUSE_TYPE_MASK;
 
+	if ((type == MOUSE_TYPE_INTERNAL) &&
+	    !(machines[machine].flags & MACHINE_MOUSE)) return(0);
+
 	if ((type == MOUSE_TYPE_PS2) &&
 	    !(machines[machine].flags & MACHINE_PS2)) return(0);
-
-	if ((type == MOUSE_TYPE_AMSTRAD) &&
-	    !(machines[machine].flags & MACHINE_AMSTRAD)) return(0);
-
-	if ((type == MOUSE_TYPE_OLIM24) &&
-	    !(machines[machine].flags & MACHINE_OLIM24)) return(0);
 
 	return(1);
 }
@@ -1435,7 +1440,7 @@ static void recalc_hdc_list(HWND hdlg, int machine, int use_selected_hdc)
 		{
 			break;
 		}
-		if (c==1 && !(machines[temp_machine].flags&MACHINE_HAS_HDC))
+		if (c==1 && !(machines[temp_machine].flags&MACHINE_HDC))
 		{
 			/* Skip "Internal" if machine doesn't have one. */
 			c++;

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
+#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../pic.h"
 #include "../pit.h"
@@ -15,8 +15,9 @@
 #include "filters.h"
 #include "snd_mpu401.h"
 #include "snd_opl.h"
-#include "snd_pas16.h"
+#include "snd_sb.h"
 #include "snd_sb_dsp.h"
+#include "snd_pas16.h"
 
 
 /*      Original PAS uses

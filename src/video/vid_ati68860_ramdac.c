@@ -28,7 +28,7 @@
  *		    7  If set can remove "snow" in some cases
  *			(A860_Delay_L ?) ??
  *
- * Version:	@(#)vid_ati68860.c	1.0.2	2017/10/31
+ * Version:	@(#)vid_ati68860.c	1.0.3	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -41,7 +41,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../mem.h"
 #include "video.h"
 #include "vid_svga.h"

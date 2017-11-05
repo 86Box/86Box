@@ -5,7 +5,6 @@
 #include <wchar.h>
 #include "munt/c_interface/c_interface.h"
 #include "../86box.h"
-#include "../ibm.h"
 #include "../device.h"
 #include "../mem.h"
 #include "../rom.h"

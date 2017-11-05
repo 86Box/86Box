@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.6	2017/10/16
+ * Version:	@(#)sound.c	1.0.8	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../device.h"
 #include "../timer.h"
 #include "../cdrom/cdrom.h"
@@ -43,16 +42,33 @@
 #include "filters.h"
 
 
-int sound_card_current = 0;
-static int sound_card_last = 0;
-
-
-typedef struct
-{
+typedef struct {
         char name[64];
         char internal_name[24];
         device_t *device;
 } SOUND_CARD;
+
+
+int sound_card_current = 0;
+int sound_pos_global = 0;
+int soundon = 1;
+
+
+static int sound_card_last = 0;
+static struct {
+        void (*get_buffer)(int32_t *buffer, int len, void *p);
+        void *priv;
+} sound_handlers[8];
+static int sound_handlers_num;
+static int64_t sound_poll_time = 0LL, sound_poll_latch;
+static int16_t cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
+static float cd_out_buffer[CD_BUFLEN * 2];
+static int16_t cd_out_buffer_int16[CD_BUFLEN * 2];
+static thread_t *sound_cd_thread_h;
+static event_t *sound_cd_event;
+static unsigned int cd_vol_l, cd_vol_r;
+static int cd_buf_update = CD_BUFLEN / SOUNDBUFLEN;
+
 
 static SOUND_CARD sound_cards[] =
 {
@@ -129,29 +145,6 @@ void sound_card_init(void)
                 device_add(sound_cards[sound_card_current].device);
         sound_card_last = sound_card_current;
 }
-
-static struct
-{
-        void (*get_buffer)(int32_t *buffer, int len, void *p);
-        void *priv;
-} sound_handlers[8];
-
-static int sound_handlers_num;
-
-static int64_t sound_poll_time = 0LL, sound_poll_latch;
-int sound_pos_global = 0;
-
-int soundon = 1;
-
-static int16_t cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
-static float cd_out_buffer[CD_BUFLEN * 2];
-static int16_t cd_out_buffer_int16[CD_BUFLEN * 2];
-static thread_t *sound_cd_thread_h;
-static event_t *sound_cd_event;
-static unsigned int cd_vol_l, cd_vol_r;
-static int cd_buf_update = CD_BUFLEN / SOUNDBUFLEN;
-
-int sound_is_float = 1;
 
 void sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r)
 {

@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.21	2017/11/02
+ * Version:	@(#)cdrom.c	1.0.22	2017/11/04
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -23,7 +23,6 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../config.h"
-#include "../ibm.h"
 #include "../timer.h"
 #include "../device.h"
 #include "../piix.h"
@@ -2127,7 +2126,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 	cdrom[id].cd_status = cdrom_drives[id].handler->status(id);
 
 	if (cdb[0] != 0) {
-		cdrom_log("CD-ROM %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, %i, Unit attention: %i\n", id, cdb[0], cdrom_sense_key, cdrom_asc, cdrom_ascq, ins, cdrom[id].unit_attention);
+		cdrom_log("CD-ROM %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, Unit attention: %i\n", id, cdb[0], cdrom_sense_key, cdrom_asc, cdrom_ascq, cdrom[id].unit_attention);
 		cdrom_log("CD-ROM %i: Request length: %04X\n", id, cdrom[id].request_length);
 
 #if 1

@@ -5,7 +5,7 @@
 #define fplog 0
 #include <math.h>
 #include "../86box.h"
-#include "../ibm.h"
+#include "cpu.h"
 #include "../mem.h"
 #include "../pic.h"
 #include "x86.h"

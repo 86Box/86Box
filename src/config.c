@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.30	2017/11/01
+ * Version:	@(#)config.c	1.0.31	2017/11/04
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -30,7 +30,6 @@
 #include <wchar.h>
 #include <inttypes.h>
 #include "86box.h"
-#include "ibm.h"
 #include "cpu/cpu.h"
 #include "nvr.h"
 #include "config.h"
@@ -48,6 +47,7 @@
 #include "mouse.h"
 #include "network/network.h"
 #include "scsi/scsi.h"
+#include "sound/sound.h"
 #include "sound/midi.h"
 #include "sound/snd_dbopl.h"
 #include "sound/snd_mpu401.h"
@@ -519,15 +519,27 @@ load_video(void)
     char *cat = "Video";
     char *p;
 
-    p = config_get_string(cat, "gfxcard", NULL);
-    if (p != NULL)
+    if (machines[machine].fixed_gfxcard) {
+	config_delete_var(cat, "gfxcard");
+	config_delete_var(cat, "voodoo");
+	gfxcard = GFX_INTERNAL;
+    } else {
+	p = config_get_string(cat, "gfxcard", NULL);
+	if (p == NULL) {
+		if (machines[machine].flags & MACHINE_VIDEO) {
+			p = (char *)malloc((strlen("internal")+1)*sizeof(char));
+			strcpy(p, "internal");
+		} else {
+			p = (char *)malloc((strlen("none")+1)*sizeof(char));
+			strcpy(p, "none");
+		}
+	}
 	gfxcard = video_get_video_from_internal_name(p);
-      else
-	gfxcard = 0;
 
-    video_speed = config_get_int(cat, "video_speed", 3);
+	video_speed = config_get_int(cat, "video_speed", 3);
 
-    voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
+	voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
+    }
 }
 
 
@@ -704,7 +716,7 @@ load_other_peripherals(void)
 		config_delete_var(cat, "hdd_controller");
     }
     if (p == NULL) {
-	if (machines[machine].flags & MACHINE_HAS_HDC) {
+	if (machines[machine].flags & MACHINE_HDC) {
 		hdc_name = (char *) malloc((strlen("internal") + 1) * sizeof(char));
 		strcpy(hdc_name, "internal");
 	} else {

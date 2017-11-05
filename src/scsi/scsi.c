@@ -8,7 +8,7 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.10	2017/10/14
+ * Version:	@(#)scsi.c	1.0.11	2017/11/04
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../timer.h"

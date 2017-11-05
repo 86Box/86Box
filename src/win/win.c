@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.31	2017/11/01
+ * Version:	@(#)win.c	1.0.32	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -37,7 +37,6 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../config.h"
-#include "../ibm.h"
 #include "../machine/machine.h"
 #include "../mem.h"			// because of load_config
 #include "../rom.h"			// because of load_config

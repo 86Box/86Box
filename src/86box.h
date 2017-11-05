@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.11	2017/11/01
+ * Version:	@(#)86box.h	1.0.12	2017/11/04
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -51,6 +51,8 @@
 # define ENABLE_LOG_COMMANDS	1
 #endif
 
+#define MIN(a, b)             ((a) < (b) ? (a) : (b))
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -83,7 +85,8 @@ extern int	serial_enabled[],		/* (C) enable serial ports */
 		lpt_enabled,			/* (C) enable LPT ports */
 		bugger_enabled;			/* (C) enable ISAbugger */
 extern int	gfxcard;			/* (C) graphics/video card */
-extern int	GAMEBLASTER,			/* (C) sound option */
+extern int	sound_is_float,			/* (C) sound uses FP values */
+		GAMEBLASTER,			/* (C) sound option */
 		GUS,				/* (C) sound option */
 		SSI2001,			/* (C) sound option */
 		voodoo_enabled;			/* (C) video option */

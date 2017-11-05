@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../io.h"
 #include "../dma.h"
 #include "../pic.h"

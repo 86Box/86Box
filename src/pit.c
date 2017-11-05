@@ -6,16 +6,18 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "ibm.h"
+#include "86box.h"
 #include "cpu/cpu.h"
 #include "dma.h"
 #include "io.h"
+#include "nmi.h"
 #include "pic.h"
 #include "pit.h"
 #include "ppi.h"
 #include "device.h"
 #include "timer.h"
 #include "machine/machine.h"
+#include "sound/sound.h"
 #include "sound/snd_speaker.h"
 #include "video/video.h"
 

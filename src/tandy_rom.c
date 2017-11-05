@@ -6,7 +6,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "ibm.h"
 #include "device.h"
 #include "io.h"
 #include "mem.h"

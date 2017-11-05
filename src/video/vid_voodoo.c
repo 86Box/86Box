@@ -8,7 +8,7 @@
  *
  *		Emulation of the 3DFX Voodoo Graphics controller.
  *
- * Version:	@(#)vid_voodoo.c	1.0.7	2017/11/02
+ * Version:	@(#)vid_voodoo.c	1.0.8	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei
@@ -23,7 +23,6 @@
 #include <wchar.h>
 #include <math.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../machine/machine.h"
 #include "../device.h"

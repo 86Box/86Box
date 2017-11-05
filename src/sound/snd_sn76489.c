@@ -5,7 +5,6 @@
 #include <wchar.h>
 #include <time.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../io.h"
 #include "../device.h"
 #include "sound.h"

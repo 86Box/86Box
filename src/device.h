@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.h	1.0.4	2017/10/15
+ * Version:	@(#)device.h	1.0.5	2017/11/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -99,6 +99,7 @@ extern "C" {
 
 extern void	device_init(void);
 extern void	*device_add(device_t *d);
+extern void	device_add_ex(device_t *d, void *priv);
 extern void	device_close_all(void);
 extern void	device_reset_all(void);
 extern void	*device_get_priv(device_t *d);

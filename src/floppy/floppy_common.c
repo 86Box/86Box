@@ -8,7 +8,7 @@
  *
  *		Shared code for all the floppy modules.
  *
- * Version:	@(#)floppy_common.c	1.0.3	2017/10/16
+ * Version:	@(#)floppy_common.c	1.0.4	2017/11/04
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -19,7 +19,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-//#include "../ibm.h"
 #include "../floppy/floppy.h"
 #include "floppy_common.h"
 

@@ -8,10 +8,11 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.0	2017/05/30
+ * Version:	@(#)vid_svga.h	1.0.1	2017/11/04
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  */
@@ -193,4 +194,5 @@ void svga_close(svga_t *svga);
 uint32_t svga_mask_addr(uint32_t addr, svga_t *svga);
 uint32_t svga_mask_changedaddr(uint32_t addr, svga_t *svga);
 
+uint32_t svga_color_transform(uint32_t color);
 void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga);

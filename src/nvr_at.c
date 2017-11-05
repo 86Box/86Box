@@ -14,7 +14,7 @@
  *		of those batteries would create corrosion issues later on
  *		in mainboard life...
  *
- * Version:	@(#)nvr_at.c	1.0.6	2017/10/04
+ * Version:	@(#)nvr_at.c	1.0.7	2017/11/04
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -27,7 +27,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "ibm.h"
 #include "cpu/cpu.h"
 #include "io.h"
 #include "device.h"

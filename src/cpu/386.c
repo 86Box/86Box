@@ -8,10 +8,10 @@
 # define INFINITY   (__builtin_inff())
 #endif
 #include "../86box.h"
-#include "../ibm.h"
 #include "cpu.h"
 #include "x86.h"
 #include "x87.h"
+#include "../nmi.h"
 #include "../mem.h"
 #include "../pic.h"
 #include "../pit.h"

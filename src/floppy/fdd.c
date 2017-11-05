@@ -8,7 +8,7 @@
  *
  *		Implementation of the floppy drive emulation.
  *
- * Version:	@(#)fdd.c	1.0.4	2017/10/16
+ * Version:	@(#)fdd.c	1.0.5	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,7 +21,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-//#include "../ibm.h"
 #include "floppy.h"
 #include "fdc.h"
 #include "fdd.h"

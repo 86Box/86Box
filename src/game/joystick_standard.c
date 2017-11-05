@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../device.h"
 #include "../timer.h"
 #include "../plat_joystick.h"

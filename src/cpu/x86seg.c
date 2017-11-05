@@ -8,7 +8,7 @@
  *
  *		x86 CPU segment emulation.
  *
- * Version:	@(#)x86seg.c	1.0.4	2017/10/16
+ * Version:	@(#)x86seg.c	1.0.5	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,13 +23,12 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
+#include "cpu.h"
 #include "../mem.h"
 #include "../nvr.h"
 #include "x86.h"
 #include "386.h"
 #include "386_common.h"
-#include "cpu.h"
 
 
 /*Controls whether the accessed bit in a descriptor is set when CS is loaded.*/

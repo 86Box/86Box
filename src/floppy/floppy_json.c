@@ -8,7 +8,7 @@
  *
  *		Implementation of the PCjs JSON floppy image format.
  *
- * Version:	@(#)floppy_json.c	1.0.8	2017/10/16
+ * Version:	@(#)floppy_json.c	1.0.9	2017/11/04
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-//#include "../ibm.h"
 #include "../plat.h"
 #include "floppy.h"
 #include "fdc.h"

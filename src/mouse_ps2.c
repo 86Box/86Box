@@ -3,8 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "ibm.h"
-#include "keyboard_at.h"
+#include "keyboard.h"
 #include "mouse.h"
 #include "plat_mouse.h"
 

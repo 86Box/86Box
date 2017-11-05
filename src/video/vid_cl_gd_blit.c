@@ -8,7 +8,7 @@
  *
  *		This is the CL-GD 5446 blitter, directly from QEMU.
  *
- * Version:	@(#)vid_cl_gd_blit.c	1.0.1	2017/10/16
+ * Version:	@(#)vid_cl_gd_blit.c	1.0.2	2017/11/04
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../rom.h"

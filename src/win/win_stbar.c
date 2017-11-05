@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.5	2017/11/01
+ * Version:	@(#)win_stbar.c	1.0.6	2017/11/04
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -30,7 +30,6 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../config.h"
-#include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../device.h"
 #include "../machine/machine.h"
@@ -514,7 +513,7 @@ ui_sb_update_panes(void)
 
     sb_ready = 0;
 
-    hdint = (machines[machine].flags & MACHINE_HAS_HDC) ? 1 : 0;
+    hdint = (machines[machine].flags & MACHINE_HDC) ? 1 : 0;
     c_mfm = hdd_count(HDD_BUS_MFM);
     c_esdi = hdd_count(HDD_BUS_ESDI);
     c_xtide = hdd_count(HDD_BUS_XTIDE);

@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "ibm.h"
 #include "pit.h"
 #include "ppi.h"
 

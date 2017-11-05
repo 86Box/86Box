@@ -14,7 +14,7 @@
  *
  *		This might be of use for an attempt at an ET4000/W32i.
  *
- * Version:	@(#)vid_et4000w32i.c	1.0.1	2017/10/10
+ * Version:	@(#)vid_et4000w32i.c	1.0.2	2017/11/04
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *
@@ -27,7 +27,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "ibm.h"
 
 int et4k_b8000;
 

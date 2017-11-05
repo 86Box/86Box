@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../machine/machine.h"
 #include "../cpu/cpu.h"
 #include "../device.h"

@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.5	2017/10/16
+ * Version:	@(#)device.c	1.0.7	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,7 +22,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
-#include "ibm.h"
 #include "cpu/cpu.h"
 #include "config.h"
 #include "device.h"
@@ -49,13 +48,18 @@ void *
 device_add(device_t *d)
 {
     void *priv = NULL;
-    int c = 0;
+    int c;
 
-    while (devices[c] != NULL && c < 256)
-                c++;
+    for (c=0; c<256; c++) {
+	if (devices[c] == d) {
+		fatal("device_add: device already exists!\n");
+		break;
+	}
+	if (devices[c] == NULL) break;
+    }
     if (c >= DEVICE_MAX)
 	fatal("device_add: too many devices\n");
-        
+
     device_current = d;
 
     if (d->init != NULL) {
@@ -68,6 +72,29 @@ device_add(device_t *d)
     device_priv[c] = priv;
 
     return priv;
+}
+
+
+/* For devices that do not have an init function (internal video etc.) */
+void
+device_add_ex(device_t *d, void *priv)
+{
+    int c;
+
+    for (c=0; c<256; c++) {
+	if (devices[c] == d) {
+		fatal("device_add: device already exists!\n");
+		break;
+	}
+	if (devices[c] == NULL) break;
+    }
+    if (c >= DEVICE_MAX)
+	fatal("device_add: too many devices\n");
+
+    device_current = d;
+
+    devices[c] = d;
+    device_priv[c] = priv;
 }
 
 
@@ -369,7 +396,7 @@ device_is_valid(device_t *device, int machine_flags)
 	return 0;
     }
 
-    if ((device->flags & DEVICE_PS2) && !(machine_flags & MACHINE_PS2_HDD)) {
+    if ((device->flags & DEVICE_PS2) && !(machine_flags & MACHINE_HDC_PS2)) {
 	return 0;
     }
 

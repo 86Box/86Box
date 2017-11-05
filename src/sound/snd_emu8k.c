@@ -7,7 +7,6 @@
 #include <wchar.h>
 #include <math.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../device.h"
 #include "../io.h"
 #include "../mem.h"

@@ -52,3 +52,14 @@ typedef union {
     uint32_t addr;
     uint8_t addr_regs[4];
 } bar_t;
+
+typedef struct PCI_RESET
+{
+        void (*pci_master_reset)(void);
+        void (*pci_set_reset)(void);
+        void (*super_io_reset)(void);
+} PCI_RESET;
+
+extern PCI_RESET pci_reset_handler;
+
+extern void     trc_init(void);

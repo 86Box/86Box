@@ -8,7 +8,7 @@
  *
  *		The generic SCSI bus operations handler.
  *
- * Version:	@(#)scsi_bus.c	1.0.2	2017/10/16
+ * Version:	@(#)scsi_bus.c	1.0.3	2017/11/04
  *
  * NOTES: 	For now ported from PCem with some modifications
  *		but at least it's a start.
@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "scsi.h"
 #include "scsi_device.h"
 

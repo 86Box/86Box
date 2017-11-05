@@ -3,7 +3,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../pit.h"
 #include "sound.h"
 #include "snd_speaker.h"

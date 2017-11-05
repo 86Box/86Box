@@ -11,7 +11,7 @@
  *		Currently only a dummy stub for logging and passing output
  *		to the generic SVGA handler.
  *
- * Version:	@(#)vid_bt485_ramdac.c	1.0.1	2017/10/16
+ * Version:	@(#)vid_bt485_ramdac.c	1.0.2	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -24,7 +24,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../mem.h"
 #include "video.h"
 #include "vid_svga.h"

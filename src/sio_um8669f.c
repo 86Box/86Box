@@ -26,8 +26,8 @@ PnP registers :
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
-#include "ibm.h"
 #include "io.h"
+#include "pci.h"
 #include "lpt.h"
 #include "serial.h"
 #include "floppy/floppy.h"

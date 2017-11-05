@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.7	2017/11/01
+ * Version:	@(#)video.c	1.0.8	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -55,7 +55,6 @@
 #include <wchar.h>
 #include <math.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../cpu/cpu.h"
 #include "../machine/machine.h"
 #include "../io.h"
@@ -560,17 +559,11 @@ video_close(void)
 void
 video_reset(void)
 {
-    pclog("Video_reset(rom=%i, gfx=%i)\n", romset, gfxcard);
+    pclog("VIDEO: reset(rom=%d, gfx=%d, internal=%d)\n",
+        romset, gfxcard, (machines[machine].flags & MACHINE_VIDEO)?1:0);
 
     cga_palette = 0;
     cgapal_rebuild();
-
-    /*
-     * Add and initialize the selected video card device.
-     *
-     * This will soon be moved into machine.c.
-     */
-    video_reset_device(romset, gfxcard);
 }
 
 

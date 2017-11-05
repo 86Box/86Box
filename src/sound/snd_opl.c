@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
+#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../timer.h"
 #include "sound.h"

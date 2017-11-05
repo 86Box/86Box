@@ -6,9 +6,9 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Definitions for the MOUSE driver.
+ *		Definitions for the mouse driver.
  *
- * Version:	@(#)mouse.h	1.0.7	2017/10/25
+ * Version:	@(#)mouse.h	1.0.8	2017/11/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,19 +23,18 @@
 
 #define SERMOUSE_PORT		1	/* attach to Serial1 */
 
-#define MOUSE_TYPE_NONE		0
-#define MOUSE_TYPE_LOGIBUS	1	/* Logitech/ATI Bus Mouse */
-#define MOUSE_TYPE_INPORT	2	/* Microsoft InPort Mouse */
-#define MOUSE_TYPE_MSYSTEMS	3	/* Mouse Systems mouse */
-#define MOUSE_TYPE_MICROSOFT	4	/* Microsoft Serial Mouse */
-#define MOUSE_TYPE_LOGITECH	5	/* Logitech Serial Mouse */
-#define MOUSE_TYPE_MSWHEEL	6	/* Serial Wheel Mouse */
-#define MOUSE_TYPE_PS2		7	/* IBM PS/2 series Bus Mouse */
-#define MOUSE_TYPE_PS2_MS	8	/* Microsoft Intellimouse PS/2 */
-#define MOUSE_TYPE_AMSTRAD	9	/* Amstrad PC system mouse */
-#define MOUSE_TYPE_OLIM24	10	/* Olivetti M24 system mouse */
+#define MOUSE_TYPE_NONE		0	/* no mouse configured */
+#define MOUSE_TYPE_INTERNAL	1	/* machine has internal mouse */
+#define MOUSE_TYPE_LOGIBUS	2	/* Logitech/ATI Bus Mouse */
+#define MOUSE_TYPE_INPORT	3	/* Microsoft InPort Mouse */
+#define MOUSE_TYPE_MSYSTEMS	4	/* Mouse Systems mouse */
+#define MOUSE_TYPE_MICROSOFT	5	/* Microsoft Serial Mouse */
+#define MOUSE_TYPE_LOGITECH	6	/* Logitech Serial Mouse */
+#define MOUSE_TYPE_MSWHEEL	7	/* Serial Wheel Mouse */
+#define MOUSE_TYPE_PS2		8	/* IBM PS/2 series Bus Mouse */
+#define MOUSE_TYPE_PS2_MS	9	/* Microsoft Intellimouse PS/2 */
 #if 0
-# define MOUSE_TYPE_GENIUS	11	/* Genius Bus Mouse */
+# define MOUSE_TYPE_GENIUS	10	/* Genius Bus Mouse */
 #endif
 
 #define MOUSE_TYPE_MASK		0x0f
@@ -71,6 +70,7 @@ extern void	*mouse_ps2_init(void *);
 
 extern void	mouse_emu_init(void);
 extern void	mouse_emu_close(void);
+extern void	mouse_setpoll(uint8_t (*f)(int,int,int,int,void *), void *);
 
 extern char	*mouse_get_name(int mouse);
 extern char	*mouse_get_internal_name(int mouse);

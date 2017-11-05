@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.40	2017/11/02
+ * Version:	@(#)pc.c	1.0.41	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -27,7 +27,6 @@
 #include <wchar.h>
 #include "86box.h"
 #include "config.h"
-#include "ibm.h"
 #include "cpu/cpu.h"
 #ifdef USE_DYNAREC
 # include "cpu/codegen.h"
@@ -47,7 +46,6 @@
 #include "machine/machine.h"
 #include "game/gameport.h"
 #include "keyboard.h"
-#include "keyboard_at.h"
 #include "lpt.h"
 #include "serial.h"
 #include "bugger.h"
@@ -106,7 +104,8 @@ int	serial_enabled[SERIAL_MAX] = {0,0},	/* (C) enable serial ports */
 	lpt_enabled = 0,			/* (C) enable LPT ports */
 	bugger_enabled = 0;			/* (C) enable ISAbugger */
 int	gfxcard = 0;				/* (C) graphics/video card */
-int	GAMEBLASTER = 0,			/* (C) sound option */
+int	sound_is_float = 1,			/* (C) sound uses FP values */
+	GAMEBLASTER = 0,			/* (C) sound option */
 	GUS = 0,				/* (C) sound option */
 	SSI2001 = 0,				/* (C) sound option */
 	voodoo_enabled = 0;			/* (C) video option */

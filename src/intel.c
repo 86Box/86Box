@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "ibm.h"
 #include "cpu/cpu.h"
 #include "machine/machine.h"
 #include "io.h"

@@ -8,7 +8,7 @@
  *
  *		Trident TGUI9440 emulation.
  *
- * Version:	@(#)vid_tgui9440.c	1.0.2	2017/10/16
+ * Version:	@(#)vid_tgui9440.c	1.0.3	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../pci.h"

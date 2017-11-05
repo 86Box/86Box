@@ -13,7 +13,6 @@
 # include <AL/alext.h>
 #endif
 #include "../86box.h"
-#include "../ibm.h"
 #include "sound.h"
 
 
@@ -102,7 +101,7 @@ void initalmain(int argc, char *argv[])
 }
 
 
-void inital(ALvoid)
+void inital(void)
 {
         if (initialized) return;
 

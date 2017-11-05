@@ -4,9 +4,9 @@
 #include <string.h>
 #include <stdarg.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../device.h"
 #include "../io.h"
+#include "../nmi.h"
 #include "../mem.h"
 #include "../pci.h"
 #include "../timer.h"

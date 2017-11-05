@@ -9,7 +9,7 @@
  *		IBM CGA composite filter, borrowed from reenigne's DOSBox
  *		patch and ported to C.
  *
- * Version:	@(#)vid_cga_comp.c	1.0.2	2017/10/16
+ * Version:	@(#)vid_cga_comp.c	1.0.3	2017/11/04
  *
  * Authors:	reenigne,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -24,7 +24,6 @@
 #include <wchar.h>
 #include <math.h>
 #include "../86box.h"
-#include "../ibm.h"
 #include "../device.h"
 #include "../mem.h"
 #include "vid_cga.h"

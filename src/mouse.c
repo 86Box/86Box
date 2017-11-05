@@ -8,7 +8,7 @@
  *
  *		Common driver module for MOUSE devices.
  *
- * Version:	@(#)mouse.c	1.0.14	2017/11/01
+ * Version:	@(#)mouse.c	1.0.15	2017/11/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -42,21 +42,26 @@ static mouse_t mouse_none = {
     NULL, NULL, NULL
 };
 
+static mouse_t mouse_internal = {
+    "Internal", "internal",
+    MOUSE_TYPE_INTERNAL,
+    NULL, NULL, NULL
+};
+
 
 static mouse_t *mouse_list[] = {
     &mouse_none,
-    &mouse_bus_logitech,	/*  1 Logitech Bus Mouse 2-button */
-    &mouse_bus_msinport,	/*  2 Microsoft InPort Mouse */
-    &mouse_serial_msystems,	/*  3 Mouse Systems Serial Mouse */
-    &mouse_serial_microsoft,	/*  4 Microsoft Serial Mouse */
-    &mouse_serial_logitech,	/*  5 Logitech 3-button Serial Mouse */
-    &mouse_serial_mswheel,	/*  6 Microsoft Serial Wheel Mouse */
-    &mouse_ps2_2button,		/*  7 PS/2 Mouse 2-button */
-    &mouse_ps2_intellimouse,	/*  8 PS/2 Intellimouse 3-button */
-    &mouse_amstrad,		/*  9 Amstrad PC System Mouse */
-    &mouse_olim24,		/* 10 Olivetti M24 System Mouse */
+    &mouse_internal,
+    &mouse_bus_logitech,	/*  2 Logitech Bus Mouse 2-button */
+    &mouse_bus_msinport,	/*  3 Microsoft InPort Mouse */
+    &mouse_serial_msystems,	/*  4 Mouse Systems Serial Mouse */
+    &mouse_serial_microsoft,	/*  5 Microsoft Serial Mouse */
+    &mouse_serial_logitech,	/*  6 Logitech 3-button Serial Mouse */
+    &mouse_serial_mswheel,	/*  7 Microsoft Serial Wheel Mouse */
+    &mouse_ps2_2button,		/*  8 PS/2 Mouse 2-button */
+    &mouse_ps2_intellimouse,	/*  9 PS/2 Intellimouse 3-button */
 #if 0
-    &mouse_bus_genius,		/* 11 Genius Bus Mouse */
+    &mouse_bus_genius,		/* 10 Genius Bus Mouse */
 #endif
     NULL
 };
@@ -107,6 +112,16 @@ mouse_process(void)
     mouse_x = mouse_y = mouse_z = 0;
 
     poll_delay = 2;
+}
+
+
+void
+mouse_setpoll(uint8_t (*func)(int,int,int,int,void *), void *arg)
+{
+    if (mouse_type != MOUSE_TYPE_INTERNAL) return;
+
+    mouse_curr->poll = func;
+    mouse_priv = arg;
 }
 
 

@@ -8,7 +8,7 @@
  *
  *		Implementation of the Teledisk floppy image format.
  *
- * Version:	@(#)floppy_td0.c	1.0.5	2017/10/16
+ * Version:	@(#)floppy_td0.c	1.0.6	2017/11/04
  *
  * Authors:	Milodrag Milanovic,
  *		Haruhiko OKUMURA,
@@ -43,7 +43,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-//#include "../ibm.h"
 #include "../plat.h"
 #include "floppy.h"
 #include "floppy_td0.h"

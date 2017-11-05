@@ -9,7 +9,7 @@
  *		Generic floppy disk interface that communicates with the
  *		other handlers.
  *
- * Version:	@(#)floppy.h	1.0.5	2017/11/01
+ * Version:	@(#)floppy.h	1.0.6	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -42,6 +42,7 @@ extern DRIVE	drives[FDD_NUM];
 extern wchar_t	floppyfns[FDD_NUM][512];
 extern int	driveempty[FDD_NUM];
 extern int64_t	floppy_poll_time[FDD_NUM];
+extern int	ui_writeprot[FDD_NUM];
 
 extern int	curdrive;
 

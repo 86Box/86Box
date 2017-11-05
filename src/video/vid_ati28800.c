@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger)
  *
- * Version:	@(#)vid_ati28800.c	1.0.3	2017/11/01
+ * Version:	@(#)vid_ati28800.c	1.0.4	2017/11/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../ibm.h"
+#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../pit.h"
 #include "../mem.h"
