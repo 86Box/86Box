@@ -26,20 +26,19 @@
 #include "fdd.h"
 
 
-static struct
-{
-        int type;
-        
-        int track;
+typedef struct {
+    int type;
+    int track;
+    int densel;
+    int head;
+    int turbo;
+    int check_bpb;
+} fdd_t;
 
-	int densel;
 
-	int head;
+fdd_t	fdd[FDD_NUM];
+int	ui_writeprot[FDD_NUM] = {0, 0, 0, 0};
 
-	int turbo;
-
-	int check_bpb;
-} fdd[FDD_NUM];
 
 /* Flags:
    Bit  0:	300 rpm supported;

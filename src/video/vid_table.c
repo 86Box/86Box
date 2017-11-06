@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.5	2017/11/04
+ * Version:	@(#)vid_table.c	1.0.6	2017/11/05
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -62,6 +62,7 @@
 #include "vid_tgui9440.h"
 #include "vid_tvga.h"
 #include "vid_vga.h"
+#include "vid_ti_cf62011.h"
 #include "vid_wy700.h"
 
 
@@ -112,6 +113,8 @@ video_cards[] = {
     { "[ISA] OAK OTI-077",                           "oti077",			&oti077_device,              		GFX_OTI077			},
     { "[ISA] Paradise WD90C11",                      "wd90c11",			&paradise_wd90c11_device,    		GFX_WD90C11			},
     { "[ISA] Plantronics ColorPlus",                 "plantronics",		&colorplus_device,           		GFX_COLORPLUS			},
+    {"[ISA] TI CF62011 SVGA",                        "ti_cf62011",
+     &ti_cf62011_device,                GFX_TICF62011			},
     { "[ISA] Trident TVGA8900D",                     "tvga8900d",		&tvga8900d_device,           		GFX_TVGA			},
     { "[ISA] Tseng ET4000AX",                        "et4000ax",			&et4000_device,              		GFX_ET4000			},
     {"[ISA] VGA",                                   "vga",			&vga_device,                 		GFX_VGA				},
@@ -170,9 +173,6 @@ video_reset_card(int card)
     device_add(video_cards[video_old_to_new(card)].device);
 
 #if 0
-    switch (rs) {
-	case ROM_IBMPCJR:
-	case ROM_OLIM24:
 	case ROM_PC1512:
 		device_add(&pc1512_device);
 	case ROM_PC1640:
@@ -190,20 +190,6 @@ video_reset_card(int card)
 		device_add(&tandy_device);
 	case ROM_TANDY1000SL2:
 		device_add(&tandysl_device);
-	case ROM_IBMPS1_2011:
-		device_add(&ps1vga_device);
-	case ROM_IBMPS1_2121:
-	case ROM_IBMPS2_M30_286:
-	case ROM_IBMPS2_M50:
-	case ROM_IBMPS2_M55SX:
-	case ROM_IBMPS2_M80:
-		device_add(&ps1_m2121_svga_device);
-		/* Handled by the machine. */
-		break;
-
-	default:
-		device_add(video_cards[video_old_to_new(gc)].device);
-    }
 #endif
 }
 
