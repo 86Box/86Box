@@ -1559,7 +1559,7 @@ static device_config_t sb_awe32_config[] =
                 }
         },
         {
-                "emu_addr", "EMU8000 Address", CONFIG_HEX16, "", 0x620,
+                "emu_base", "EMU8000 Address", CONFIG_HEX16, "", 0x620,
                 {
                         {
                                 "0x620", 0x620
