@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.8	2017/11/04
+ * Version:	@(#)fdc.c	1.0.8	2017/11/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -39,8 +39,6 @@
 
 extern int64_t motoron[FDD_NUM];
 
-
-int ui_writeprot[FDD_NUM] = {0, 0, 0, 0};
 
 int command_has_drivesel[256] = {
 	0, 0,
@@ -1332,16 +1330,24 @@ uint8_t fdc_read(uint16_t addr, void *priv)
                 drive = real_drive(fdc.dor & 3);
                 if (fdc.ps1)
                 {
-                        /*PS/1 Model 2121 seems return drive type in port 0x3f3,
-                          despite the 82077AA FDC not implementing this. This is
-                          presumably implemented outside the FDC on one of the
-                          motherboard's support chips.*/
+                        /* PS/1 Model 2121 seems return drive type in port
+			 * 0x3f3, despite the 82077AA FDC not implementing
+			 * this. This is presumably implemented outside the
+			 * FDC on one of the motherboard's support chips.
+			 *
+			 * Confirmed: 00=1.44M 3.5
+			 *	      10=2.88M 3.5
+			 *	      20=1.2M 5.25
+			 *	      30=1.2M 5.25
+			 *
+			 * as reported by Configur.exe.
+			 */
                         if (fdd_is_525(drive))
                                 temp = 0x20;
                         else if (fdd_is_ed(drive))
                                 temp = 0x10;
                         else
-                                temp = 0x00;
+                                temp = 0x30;
                 }
                 else if (!fdc.enh_mode)
 	                temp = 0x20;

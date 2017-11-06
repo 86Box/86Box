@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.71	2017/11/04
+# Version:	@(#)Makefile.mingw	1.0.72	2017/11/05
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -383,6 +383,7 @@ VIDOBJ		:= video.o \
 		    vid_sc1502x_ramdac.o \
 		    vid_sdac_ramdac.o \
 		    vid_stg_ramdac.o \
+		    vid_ti_cf62011.o \
 		    vid_wy700.o \
 		    vid_voodoo.o
 

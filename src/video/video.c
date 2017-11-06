@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.8	2017/11/04
+ * Version:	@(#)video.c	1.0.9	2017/11/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -476,8 +476,6 @@ void
 video_init(void)
 {
     int c, d, e;
-
-    pclog("VIDEO: initializing..\n");
 
     /* Account for overscan. */
     buffer32 = create_bitmap(2048, 2048);
