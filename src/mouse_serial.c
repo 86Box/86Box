@@ -10,7 +10,7 @@
  *
  *		Based on the 86Box Serial Mouse driver as a framework.
  *
- * Version:	@(#)mouse_serial.c	1.0.11	2017/11/04
+ * Version:	@(#)mouse_serial.c	1.0.12	2017/11/08
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -118,8 +118,6 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
 
     ms->oldb = b;
 
-    if (ms->type == MOUSE_TYPE_MSYSTEMS) y = -y;
-
     if (x>127) x = 127;
     if (y>127) y = 127;
     if (x<-128) x = -128;
@@ -133,9 +131,9 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
 		buff[0] |= (b&0x02) ? 0x00 : 0x01;	/* middle button */
 		buff[0] |= (b&0x04) ? 0x00 : 0x02;	/* right button */
 		buff[1] = x;
-		buff[2] = y;
+		buff[2] = -y;
 		buff[3] = x;				/* same as byte 1 */
-		buff[4] = y;				/* same as byte 2 */
+		buff[4] = -y;				/* same as byte 2 */
 		len = 5;
 		break;
 
