@@ -41,7 +41,7 @@
  *		Since all controllers (including the ones made by DTC) use
  *		(mostly) the same API, we keep them all in this module.
  *
- * Version:	@(#)hdc_mfm_xt.c	1.0.12	2017/11/04
+ * Version:	@(#)hdc_mfm_xt.c	1.0.13	2017/11/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -815,13 +815,16 @@ xebec_init(device_t *info)
     mfm_t *xebec = malloc(sizeof(mfm_t));
     memset(xebec, 0x00, sizeof(mfm_t));
 
+    pclog("MFM: looking for disks..\n");
     for (i=0; i<HDD_NUM; i++) {
 	if ((hdd[i].bus == HDD_BUS_MFM) && (hdd[i].mfm_channel < MFM_NUM)) {
+		pclog("Found MFM hard disk on channel %i\n", hdd[i].mfm_channel);
 		loadhd(xebec, i, hdd[i].mfm_channel, hdd[i].fn);
 
 		if (++c > MFM_NUM) break;
 	}
     }
+    pclog("MFM: %d disks loaded.\n", c);
 
     mfm_set_switches(xebec);
 
@@ -878,13 +881,16 @@ dtc5150x_init(device_t *info)
     mfm_t *dtc = malloc(sizeof(mfm_t));
     memset(dtc, 0x00, sizeof(mfm_t));
 
+    pclog("MFM: looking for disks..\n");
     for (i=0; i<HDD_NUM; i++) {
 	if ((hdd[i].bus == HDD_BUS_MFM) && (hdd[i].mfm_channel < MFM_NUM)) {
+		pclog("Found MFM hard disk on channel %i\n", hdd[i].mfm_channel);
 		loadhd(dtc, i, hdd[i].mfm_channel, hdd[i].fn);
 
 		if (++c > MFM_NUM) break;
 	}
     }
+    pclog("MFM: %d disks loaded.\n", c);
 
     dtc->switches = 0xff;
 

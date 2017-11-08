@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of disk controllers.
  *
- * Version:	@(#)hdc.c	1.0.6	2017/11/04
+ * Version:	@(#)hdc.c	1.0.7	2017/11/08
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -76,48 +76,48 @@ static struct {
     device_t	*device;
     int		is_mfm;
 } controllers[] = {
-    { "None",					"none",		
-      &null_device,				0		},
+    { "None",						"none",		
+      &null_device,					0		},
 
-    { "Internal Controller",			"internal",
-      &inthdc_device,				0		},
+    { "Internal Controller",				"internal",
+      &inthdc_device,					0		},
 
-    { "[ISA] [MFM] IBM PC Fixed Disk Adapter",	"mfm_xebec",
-      &mfm_xt_xebec_device,			1		},
+    { "[ISA] [MFM] IBM PC Fixed Disk Adapter",		"mfm_xt",
+      &mfm_xt_xebec_device,				1		},
 
     { "[ISA] [MFM] DTC-5150X Fixed Disk Adapter",	"mfm_dtc5150x",
-      &mfm_xt_dtc5150x_device,			1		},
+      &mfm_xt_dtc5150x_device,				1		},
 
     { "[ISA] [MFM] IBM PC/AT Fixed Disk Adapter",	"mfm_at",
-      &mfm_at_wd1003_device,			1		},
+      &mfm_at_wd1003_device,				1		},
 
-    { "[ISA] [ESDI] PC/AT ESDI Fixed Disk Adapter",	"esdi_wd1007vse1",
-      &esdi_at_wd1007vse1_device,		0		},
+    { "[ISA] [ESDI] PC/AT ESDI Fixed Disk Adapter",	"esdi_at",
+      &esdi_at_wd1007vse1_device,			0		},
 
 #if 0
-    { "[ISA] [IDE] PC/AT IDE Adapter",		"ide_isa",
-      &ide_isa_device,				0		},
+    { "[ISA] [IDE] PC/AT IDE Adapter",			"ide_isa",
+      &ide_isa_device,					0		},
 
-    { "[PCI] [IDE] PCI IDE Adapter",		"ide_pci",
-      &ide_pci_device,				0		},
+    { "[PCI] [IDE] PCI IDE Adapter",			"ide_pci",
+      &ide_pci_device,					0		},
 #endif
 
-    { "[ISA] [IDE] PC/XT XTIDE",		"xtide",
-      &xtide_device		,		0		},
+    { "[ISA] [IDE] PC/XT XTIDE",			"xtide",
+      &xtide_device		,			0		},
 
-    { "[ISA] [IDE] PC/AT XTIDE",		"xtide_at",
-      &xtide_at_device,				0		},
+    { "[ISA] [IDE] PC/AT XTIDE",			"xtide_at",
+      &xtide_at_device,					0		},
 
-    { "[ISA] [IDE] PS/2 XTIDE (Acculogic)",	"xtide_ps2",
-      &xtide_ps2_device,			0		},
+    { "[ISA] [IDE] PS/2 XTIDE (Acculogic)",		"xtide_ps2",
+      &xtide_ps2_device,				0		},
 
-    { "[ISA] [IDE] PS/2 AT XTIDE (1.1.5)",	"xtide_at_ps2",
-      &xtide_at_ps2_device,			0		},
+    { "[ISA] [IDE] PS/2 AT XTIDE (1.1.5)",		"xtide_at_ps2",
+      &xtide_at_ps2_device,				0		},
 
     { "[MCA] [ESDI] IBM PS/2 ESDI Fixed Disk Adapter","esdi_mca",
-      &esdi_ps2_device,				1		},
+      &esdi_ps2_device,					1		},
 
-    { "",					"", NULL, 0	}
+    { "",						"", NULL, 0	}
 };
 
 
