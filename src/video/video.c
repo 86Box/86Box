@@ -554,17 +554,6 @@ video_close(void)
 }
 
 
-void
-video_reset(void)
-{
-    pclog("VIDEO: reset(rom=%d, gfx=%d, internal=%d)\n",
-        romset, gfxcard, (machines[machine].flags & MACHINE_VIDEO)?1:0);
-
-    cga_palette = 0;
-    cgapal_rebuild();
-}
-
-
 uint8_t
 video_force_resize_get(void)
 {

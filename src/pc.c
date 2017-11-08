@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.41	2017/11/04
+ * Version:	@(#)pc.c	1.0.42	2017/11/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -68,7 +68,6 @@
 #include "sound/snd_speaker.h"
 #include "sound/snd_ssi2001.h"
 #include "video/video.h"
-#include "video/vid_voodoo.h"
 #include "ui.h"
 #include "plat.h"
 #include "plat_joystick.h"
@@ -683,6 +682,8 @@ pc_reset_hard_init(void)
     fdc_update_is_nsc(0);
     floppy_reset();
 
+    mouse_emu_init();
+
 #ifndef WALTJE
     /* This is needed to initialize the serial timer. */
     serial_init();
@@ -706,13 +707,11 @@ pc_reset_hard_init(void)
     lpt1_device_init();
 
     /* Reset keyboard and/or mouse. */
+    // FIXME: do we really have to reset the *AT* keyboard?? --FvK
     keyboard_at_reset();
-    mouse_emu_init();
 
     /* Reset the video card. */
-    video_reset();
-    if (voodoo_enabled)
-	device_add(&voodoo_device);
+    video_reset(gfxcard);
 
     /* Reset the Floppy Disk controller. */
     fdc_reset();
@@ -721,6 +720,7 @@ pc_reset_hard_init(void)
     hdc_reset();
 
     /* Reconfire and reset the IDE layer. */
+    // FIXME: this should have been done via hdc_reset() above.. --FvK
     ide_ter_disable();
     ide_qua_disable();
     if (ide_enable[2])
@@ -738,6 +738,7 @@ pc_reset_hard_init(void)
     network_reset();
 
     /* Reset and reconfigure the Sound Card layer. */
+    // FIXME: should be just one sound_reset() here.  --FvK
     sound_card_init();
     if (mpu401_standalone_enable)
 	mpu401_device_add();
@@ -752,7 +753,6 @@ pc_reset_hard_init(void)
 	gameport_update_joystick_type();
 
     if (config_changed) {
-pclog("PC: configuration changed, updating status bar and saving..\n");
 	ui_sb_update_panes();
 
         config_save();

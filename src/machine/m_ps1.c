@@ -8,6 +8,8 @@
  *
  *		Emulation of the IBM PS/1 models 2011, 2121 and 2133.
  *
+ * Model 2011:	The initial model, using a 10MHz 80286.
+ *
  * Model 2121:	This is similar to model 2011 but some of the functionality
  *		has moved to a chip at ports 0xe0 (index)/0xe1 (data). The
  *		only functions I have identified are enables for the first
@@ -315,7 +317,11 @@ ps1_setup(int model)
 	io_sethandler(0x00e0, 2,
 		      ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
 
-#if 0
+#if 1
+	rom_init(&ps->high_rom,
+		 L"roms/machines/ibmps1_2121/fc0000.bin",
+		 0xfc0000, 0x20000, 0x1ffff, 0, MEM_MAPPING_EXTERNAL);
+#else
 	rom_init(&ps->high_rom,
 		 L"roms/machines/ibmps1_2121/fc0000_shell.bin",
 		 0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);

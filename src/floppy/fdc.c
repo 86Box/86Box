@@ -1347,7 +1347,7 @@ uint8_t fdc_read(uint16_t addr, void *priv)
                         else if (fdd_is_ed(drive))
                                 temp = 0x10;
                         else
-                                temp = 0x30;
+                                temp = 0x00;
                 }
                 else if (!fdc.enh_mode)
 	                temp = 0x20;

@@ -8,7 +8,7 @@
  *
  *		Implementation of the XT-style keyboard.
  *
- * Version:	@(#)keyboard_xt.c	1.0.2	2017/11/04
+ * Version:	@(#)keyboard_xt.c	1.0.3	2017/11/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -61,7 +61,7 @@ typedef struct {
 
 
 /*XT keyboard has no escape scancodes, and no scancodes beyond 53*/
-static scancode scancode_xt[272] = {
+scancode scancode_xt[272] = {
     { {-1},       {-1}       }, { {0x01, -1}, {0x81, -1} },
     { {0x02, -1}, {0x82, -1} }, { {0x03, -1}, {0x83, -1} },
     { {0x04, -1}, {0x84, -1} }, { {0x05, -1}, {0x85, -1} },

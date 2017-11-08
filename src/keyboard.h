@@ -8,7 +8,7 @@
  *
  *		Definitions for the keyboard interface.
  *
- * Version:	@(#)keyboard.h	1.0.5	2017/11/03
+ * Version:	@(#)keyboard.h	1.0.6	2017/11/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -37,6 +37,8 @@ extern int	keyboard_scan;
 extern int64_t	keyboard_delay;
 
 extern void	(*keyboard_send)(uint8_t val);
+
+extern scancode scancode_xt[272];
 
 extern uint8_t	keyboard_set3_flags[272];
 extern uint8_t	keyboard_set3_all_repeat;

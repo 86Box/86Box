@@ -74,6 +74,8 @@ typedef struct {
 
     rom_t	bios_rom;
 
+    int		enabled;
+
     uint32_t	vram_size;
 
     uint8_t	banking;
@@ -89,15 +91,22 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
     svga_t *svga = &ti->svga;
     uint8_t old;
 
-    if (((addr & 0xfff0) == 0x3d0 ||
-	 (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) addr ^= 0x60;
+#if 0
+    if (((addr & 0xfff0) == 0x03d0 || (addr & 0xfff0) == 0x03b0) &&
+	!(svga->miscout & 1)) addr ^= 0x60;
+#endif
+    pclog("TISVGA_out(%04x, %02x)\n", addr, val);
 
     switch (addr) {
-	case 0x3D4:
+	case 0x0102:
+		ti->enabled = (val & 0x01);
+		return;
+
+	case 0x03d4:
 		svga->crtcreg = val & 0x1f;
 		return;
 
-	case 0x3D5:
+	case 0x03d5:
 		if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
 			return;
 		if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
@@ -115,16 +124,14 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
 	case 0x2100:
 		ti->reg_2100 = val;
 		if ((val & 7) < 4)
-			svga->write_bank = 0;
+			svga->read_bank = svga->write_bank = 0;
 		  else
-			svga->write_bank = (ti->banking & 0x7) * 0x10000;
-		svga->read_bank = svga->write_bank;
+			svga->read_bank = svga->write_bank = (ti->banking & 0x7) * 0x10000;
 		break;
 
 	case 0x2108:
 		if ((ti->reg_2100 & 7) >= 4)
-			svga->write_bank = (val & 0x7) * 0x10000;
-		svga->read_bank = svga->write_bank;
+			svga->read_bank = svga->write_bank = (val & 0x7) * 0x10000;
 		ti->banking = val;
 		break;
 
@@ -144,24 +151,34 @@ vid_in(uint16_t addr, void *priv)
     svga_t *svga = &ti->svga;
     uint8_t ret;
 
-    if (((addr & 0xfff0) == 0x3d0 ||
-	 (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) addr ^= 0x60;
+#if 0
+    if (((addr & 0xfff0) == 0x03d0 || (addr & 0xfff0) == 0x03b0) &&
+	!(svga->miscout & 1)) addr ^= 0x60;
+#endif
 
     switch (addr) {
-	case 0x100:
+	case 0x0100:
 		ret = 0xfe;
 		break;
 
-	case 0x101:
+	case 0x0101:
 		ret = 0xe8;
 		break;
 
-	case 0x3D4:
+	case 0x0102:
+		ret = ti->enabled;
+		break;
+
+	case 0x03d4:
 		ret = svga->crtcreg;
 		break;
 
-	case 0x3D5:
+	case 0x03d5:
 		ret = svga->crtc[svga->crtcreg];
+		break;
+
+	case 0x2100:
+		ret = ti->reg_2100;
 		break;
 
 	case 0x2108:
@@ -176,6 +193,8 @@ vid_in(uint16_t addr, void *priv)
 		ret = svga_in(addr, svga);
 		break;
     }
+
+    pclog("TISVGA_in(%04x) = %02x\n", addr, ret);
 
     return(ret);
 }
@@ -236,9 +255,11 @@ vid_init(device_t *info)
 
     pclog("VIDEO: initializing %s, %dK VRAM\n", info->name, ti->vram_size);
 
-    svga_init(&ti->svga, ti, ti->vram_size<<10, NULL, vid_in, vid_out, NULL, NULL);
+    svga_init(&ti->svga, ti,
+	      ti->vram_size<<10,
+	      NULL, vid_in, vid_out, NULL, NULL);
 
-    io_sethandler(0x0100, 2, vid_in, NULL, NULL, vid_out, NULL, NULL, ti);
+    io_sethandler(0x0100, 2, vid_in, NULL, NULL, NULL, NULL, NULL, ti);
     io_sethandler(0x03c0, 32, vid_in, NULL, NULL, vid_out, NULL, NULL, ti);
     io_sethandler(0x2100, 16, vid_in, NULL, NULL, vid_out, NULL, NULL, ti);
 
@@ -290,7 +311,7 @@ device_t ti_cf62011_device = {
 device_t ibm_ps1_2121_device = {
     "IBM PS/1 Model 2121 SVGA",
     0,
-    256,
+    512,
     vid_init, vid_close, NULL,
     NULL,
     vid_speed_changed,

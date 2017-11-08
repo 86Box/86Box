@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.10	2017/11/04
+ * Version:	@(#)vid_svga.c	1.0.11	2017/11/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -186,6 +186,9 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                 }
                 svga_recalctimings(svga);
                 break;
+		case 0x3C3:
+		svga->enabled = (val & 0x01);
+		break;
                 case 0x3C4: 
                 svga->seqaddr = val; 
                 break;
@@ -264,7 +267,8 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
 				svga->vgapal[svga->dac_write].g &= 0x3f;
 				svga->vgapal[svga->dac_write].b &= 0x3f;
 
-				if ((romset == ROM_IBMPS1_2011) || (romset == ROM_IBMPS1_2121) || (romset == ROM_IBMPS2_M30_286))
+//				if ((romset == ROM_IBMPS1_2011) || (romset == ROM_IBMPS1_2121) || (romset == ROM_IBMPS2_M30_286))
+				if (romset == ROM_IBMPS1_2011)
 				{
 					svga->pallook[svga->dac_write] = makecol32((svga->vgapal[svga->dac_write].r & 0x3f) * 4, (svga->vgapal[svga->dac_write].g & 0x3f) * 4, (svga->vgapal[svga->dac_write].b & 0x3f) * 4);
  				}
@@ -273,6 +277,10 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                                 	svga->pallook[svga->dac_write] = makecol32(video_6to8[svga->vgapal[svga->dac_write].r], video_6to8[svga->vgapal[svga->dac_write].g], video_6to8[svga->vgapal[svga->dac_write].b]);
  				}
 			}
+#if 1
+// FIXME: temp to see if this fixes 2401 on PS/1.
+			svga->sense = (svga->vgapal[svga->dac_write].r & svga->vgapal[svga->dac_write].g & svga->vgapal[svga->dac_write].b) & 0x10;
+#endif
                         svga->dac_pos = 0; 
                         svga->dac_write = (svga->dac_write + 1) & 255; 
                         break;
@@ -414,7 +422,8 @@ uint8_t svga_in(uint16_t addr, void *p)
                 case 0x3C1: 
                 return svga->attrregs[svga->attraddr];
                 case 0x3c2:
-		if ((romset == ROM_IBMPS1_2011) || (romset == ROM_IBMPS1_2121) || (romset == ROM_IBMPS1_2121_ISA) || (romset == ROM_IBMPS1_2133) || (romset == ROM_IBMPS2_M30_286) || (romset == ROM_IBMPS2_M50) || (romset == ROM_IBMPS2_M55SX) || (romset == ROM_IBMPS2_M80))
+//		if ((romset == ROM_IBMPS1_2011) || (romset == ROM_IBMPS1_2121) || (romset == ROM_IBMPS1_2121_ISA) || (romset == ROM_IBMPS1_2133) || (romset == ROM_IBMPS2_M30_286) || (romset == ROM_IBMPS2_M50) || (romset == ROM_IBMPS2_M55SX) || (romset == ROM_IBMPS2_M80))
+		if (romset == ROM_IBMPS1_2011)
 		{
 	                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x50)
 			{
@@ -450,7 +459,11 @@ uint8_t svga_in(uint16_t addr, void *p)
 				}
 			}
 		}
+temp = svga->sense;
+pclog("SVGAread = %02x\n", temp);
                 return temp;
+		case 0x3C3:
+		return svga->enabled & 0x01;
                 case 0x3C4: 
                 return svga->seqaddr;
                 case 0x3C5:

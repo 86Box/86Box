@@ -60,9 +60,10 @@
 #include "vid_s3.h"
 #include "vid_s3_virge.h"
 #include "vid_tgui9440.h"
+#include "vid_ti_cf62011.h"
 #include "vid_tvga.h"
 #include "vid_vga.h"
-#include "vid_ti_cf62011.h"
+#include "vid_voodoo.h"
 #include "vid_wy700.h"
 
 
@@ -161,36 +162,25 @@ video_cards[] = {
 
 
 void
-video_reset_card(int card)
+video_reset(int card)
 {
-    /* Nothing to do if this is their internal video card. */
-    if (card == GFX_NONE) return;
-    if ((machines[machine].flags & MACHINE_VIDEO) &&
-	(card == GFX_INTERNAL)) return;
+    pclog("VIDEO: reset (romset=%d, gfxcard=%d, internal=%d)\n",
+       	romset, card, (machines[machine].flags & MACHINE_VIDEO)?1:0);
 
-    pclog("Video_reset_card(gfx=%i)\n", card);
+    /* Reset the CGA palette. */
+    cga_palette = 0;
+    cgapal_rebuild();
 
+    /* Do not initialize internal cards here. */
+    if ((card == GFX_NONE) || \
+	(card == GFX_INTERNAL) || machines[machine].fixed_gfxcard) return;
+
+    /* Initialize the video card. */
     device_add(video_cards[video_old_to_new(card)].device);
 
-#if 0
-	case ROM_PC1512:
-		device_add(&pc1512_device);
-	case ROM_PC1640:
-		device_add(&pc1640_device);
-	case ROM_PC200:
-		device_add(&pc200_device);
-	case ROM_PC2086:
-		device_add(&paradise_pvga1a_pc2086_device);
-	case ROM_PC3086:
-		device_add(&paradise_pvga1a_pc3086_device);
-	case ROM_MEGAPC:
-		device_add(&paradise_wd90c11_megapc_device);
-	case ROM_TANDY:
-	case ROM_TANDY1000HX:
-		device_add(&tandy_device);
-	case ROM_TANDY1000SL2:
-		device_add(&tandysl_device);
-#endif
+    /* Enable the Voodoo if configured. */
+    if (voodoo_enabled)
+       	device_add(&voodoo_device);
 }
 
 

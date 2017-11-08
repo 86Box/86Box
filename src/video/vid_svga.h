@@ -8,7 +8,7 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.1	2017/11/04
+ * Version:	@(#)vid_svga.h	1.0.2	2017/11/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,6 +20,9 @@
 typedef struct svga_t
 {
         mem_mapping_t mapping;
+
+	int enabled;
+
         
         uint8_t crtcreg;
         uint8_t crtc[128];
@@ -81,6 +84,7 @@ typedef struct svga_t
         double clock;
         uint32_t ma_latch;
         int bpp;
+	int sense;
         
         int64_t dispontime, dispofftime;
         int64_t vidtime;
