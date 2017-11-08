@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.9	2017/11/04
+ * Version:	@(#)machine.h	1.0.10	2017/11/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -42,11 +42,11 @@
 
 
 typedef struct _machine_ {
-    char	name[64];
+    const char	*name;
     int		id;
-    char	internal_name[24];
+    const char	*internal_name;
     struct {
-	char name[16];
+	const char *name;
 #ifdef EMU_CPU_H
 	CPU *cpus;
 #else

@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.23	2017/11/04
+ * Version:	@(#)win_settings.c	1.0.24	2017/11/08
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -513,7 +513,7 @@ static void win_settings_machine_recalc_machine(HWND hdlg)
 	int c = 0;
 	int temp_romset = 0;
 	LPTSTR lptsTemp;
-	char *stransi;
+	const char *stransi;
         UDACCEL accel;
 
 	temp_romset = machine_getromset_ex(temp_machine);
@@ -601,7 +601,7 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 			{
 				if (romspresent[machines[c].id])
 				{
-					stransi = machines[c].name;
+					stransi = (char *)machines[c].name;
 					mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 					machinetolist[c] = d;
@@ -685,7 +685,7 @@ static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM w
 
 		case WM_SAVESETTINGS:
 			lptsTemp = (LPTSTR) malloc(512);
-			stransi = (char *) malloc(512);
+			stransi = (char *)malloc(512);
 
 #ifdef USE_DYNAREC
         	        h=GetDlgItem(hdlg, IDC_CHECK_DYNAREC);
