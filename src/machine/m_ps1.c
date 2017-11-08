@@ -22,7 +22,13 @@
  *		The reserved 384K is remapped to the top of extended memory.
  *		If this is not done then you get an error on startup.
  *
- * Version:	@(#)m_ps1.c	1.0.2	2017/11/05
+ * NOTES:	Floppy does not seem to work.  --FvK
+ *		The "ROM DOS" shell does not seem to work. We do have the
+ *		correct BIOS images now, and they do load, but they do not
+ *		boot. Sometimes, they do, and then it shows an "Incorrect
+ *		DOS" error message??  --FvK
+ *
+ * Version:	@(#)m_ps1.c	1.0.3	2017/11/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -45,6 +51,7 @@
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
+#include "../timer.h"
 #include "../device.h"
 #include "../nvr.h"
 #include "../game/gameport.h"
@@ -56,12 +63,25 @@
 #include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
-#include "../sound/snd_ps1.h"
+#include "../sound/sound.h"
+#include "../sound/snd_sn76489.h"
 #include "../video/video.h"
 #include "../video/vid_vga.h"
 #include "../video/vid_ti_cf62011.h"
 #include "machine.h"
 
+
+typedef struct {
+	sn76489_t	sn76489;
+	uint8_t		status, ctrl;
+	int64_t		timer_latch, timer_count, timer_enable;
+	uint8_t		fifo[2048];
+	int		fifo_read_idx, fifo_write_idx;
+	int		fifo_threshold;
+	uint8_t		dac_val;
+	int16_t		buffer[SOUNDBUFLEN];
+	int		pos;
+} ps1snd_t;
 
 typedef struct {
     int		model;
@@ -83,6 +103,177 @@ typedef struct {
 	uint8_t attention, ctrl;
     }		hd;
 } ps1_t;
+
+
+static void
+update_irq_status(ps1snd_t *snd)
+{
+    if (((snd->status & snd->ctrl) & 0x12) && (snd->ctrl & 0x01))
+	picint(1 << 7);
+      else
+	picintc(1 << 7);
+}
+
+
+static uint8_t
+snd_read(uint16_t port, void *priv)
+{
+    ps1snd_t *snd = (ps1snd_t *)priv;
+    uint8_t ret = 0xff;
+
+    switch (port & 7) {
+	case 0:		/* ADC data */
+		snd->status &= ~0x10;
+		update_irq_status(snd);
+		ret = 0;
+		break;
+
+	case 2:		/* status */
+		ret = snd->status;
+		ret |= (snd->ctrl & 0x01);
+		if ((snd->fifo_write_idx - snd->fifo_read_idx) >= 2048)
+			ret |= 0x08; /* FIFO full */
+		if (snd->fifo_read_idx == snd->fifo_write_idx)
+			ret |= 0x04; /* FIFO empty */
+		break;
+
+	case 3:		/* FIFO timer */
+		/*
+		 * The PS/1 Technical Reference says this should return
+		 * thecurrent value, but the PS/1 BIOS and Stunt Island
+		 * expect it not to change.
+		 */
+		ret = snd->timer_latch;
+		break;
+
+	case 4:
+	case 5:
+	case 6:
+	case 7:
+		ret = 0;
+    }
+
+    return(ret);
+}
+
+
+static void
+snd_write(uint16_t port, uint8_t val, void *priv)
+{
+    ps1snd_t *snd = (ps1snd_t *)priv;
+
+    switch (port & 7) {
+	case 0:		/* DAC output */
+		if ((snd->fifo_write_idx - snd->fifo_read_idx) < 2048) {
+			snd->fifo[snd->fifo_write_idx & 2047] = val;
+			snd->fifo_write_idx++;
+		}
+		break;
+
+	case 2:		/* control */
+		snd->ctrl = val;
+		if (! (val & 0x02))
+			snd->status &= ~0x02;
+		update_irq_status(snd);
+		break;
+
+	case 3:		/* timer reload value */
+		snd->timer_latch = val;
+		snd->timer_count = (int64_t) ((0xff-val) * TIMER_USEC);
+		snd->timer_enable = (val != 0);
+		break;
+
+	case 4:		/* almost empty */
+		snd->fifo_threshold = val * 4;
+		break;
+    }
+}
+
+
+static void
+snd_update(ps1snd_t *snd)
+{
+    for (; snd->pos < sound_pos_global; snd->pos++)        
+	snd->buffer[snd->pos] = (int8_t)(snd->dac_val ^ 0x80) * 0x20;
+}
+
+
+static void
+snd_callback(void *priv)
+{
+    ps1snd_t *snd = (ps1snd_t *)priv;
+
+    snd_update(snd);
+
+    if (snd->fifo_read_idx != snd->fifo_write_idx) {
+	snd->dac_val = snd->fifo[snd->fifo_read_idx & 2047];
+	snd->fifo_read_idx++;
+    }
+
+    if ((snd->fifo_write_idx - snd->fifo_read_idx) == snd->fifo_threshold)
+	snd->status |= 0x02; /*FIFO almost empty*/
+
+    snd->status |= 0x10; /*ADC data ready*/
+    update_irq_status(snd);
+
+    snd->timer_count += snd->timer_latch * TIMER_USEC;
+}
+
+
+static void
+snd_get_buffer(int32_t *buffer, int len, void *priv)
+{
+    ps1snd_t *snd = (ps1snd_t *)priv;
+    int c;
+
+    snd_update(snd);
+
+    for (c = 0; c < len * 2; c++)
+	buffer[c] += snd->buffer[c >> 1];
+
+    snd->pos = 0;
+}
+
+
+static void *
+snd_init(device_t *info)
+{
+    ps1snd_t *snd;
+
+    snd = malloc(sizeof(ps1snd_t));
+    memset(snd, 0x00, sizeof(ps1snd_t));
+
+    sn76489_init(&snd->sn76489, 0x0205, 0x0001, SN76496, 4000000);
+
+    io_sethandler(0x0200, 1, snd_read,NULL,NULL, snd_write,NULL,NULL, snd);
+    io_sethandler(0x0202, 6, snd_read,NULL,NULL, snd_write,NULL,NULL, snd);
+
+    timer_add(snd_callback, &snd->timer_count, &snd->timer_enable, snd);
+
+    sound_add_handler(snd_get_buffer, snd);
+
+    return(snd);
+}
+
+
+static void
+snd_close(void *priv)
+{
+    ps1snd_t *snd = (ps1snd_t *)priv;
+
+    free(snd);
+}
+
+
+static device_t snd_device = {
+    "PS/1 Audio Card",
+    0, 0,
+    snd_init, snd_close, NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
 
 
 static void
@@ -354,14 +545,14 @@ ps1_common_init(machine_t *model)
 
     nvr_at_init(8);
 
-//    if (romset != ROM_IBMPS1_2011)
+    if (romset != ROM_IBMPS1_2011)
 	ide_init();
 
     device_add(&keyboard_at_device);
 
     if (romset != ROM_IBMPS1_2133) {			
 	fdc_set_dskchg_activelow();
-	device_add(&ps1_audio_device);
+	device_add(&snd_device);
     }
 
     /* Audio uses ports 200h and 202-207h, so only initialize gameport on 201h. */

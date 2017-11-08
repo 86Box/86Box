@@ -354,7 +354,7 @@ SNDOBJ		:= sound.o \
 		    midi.o $(FSYNTHOBJ) $(MUNTOBJ) \
 		     midi_system.o \
 		    snd_speaker.o \
-		    snd_ps1.o snd_pssj.o \
+		    snd_pssj.o \
 		    snd_lpt_dac.o snd_lpt_dss.o \
 		    snd_adlib.o snd_adlibgold.o snd_ad1848.o snd_audiopci.o \
 		    snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
