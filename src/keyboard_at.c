@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.8	2017/11/04
+ * Version:	@(#)keyboard_at.c	1.0.9	2017/11/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -95,9 +95,6 @@ typedef struct {
     int		dtrans;
     int		first_write;
 
-    void	(*mouse_write)(uint8_t val, void *p);
-    void	*mouse_p;
-
     int64_t	refresh_time;
     int		refresh;
 
@@ -128,6 +125,8 @@ static uint8_t	key_queue[16];
 static int	key_queue_start = 0,
 		key_queue_end = 0;
 static uint8_t	mouse_queue[16];
+static void	(*mouse_write)(uint8_t val, void *priv) = NULL;
+static void	*mouse_p = NULL;
 static uint8_t	sc_or = 0;
 static atkbd_t	*CurrentKbd = NULL;		// FIXME: remove!!! --FvK
 
@@ -691,8 +690,8 @@ write_register:
 
 				case 0xd4: /*Write to mouse*/
 					kbd_log("ATkbd: write to mouse (%02X)\n", val);
-					if (kbd->mouse_write && (machines[machine].flags & MACHINE_PS2))
-						kbd->mouse_write(val, kbd->mouse_p);
+					if (mouse_write && (machines[machine].flags & MACHINE_PS2))
+						mouse_write(val, mouse_p);
 					else
 						keyboard_at_adddata_mouse(0xff);
 					break;
@@ -1229,7 +1228,7 @@ kbd_close(void *priv)
 {
     atkbd_t *kbd = (atkbd_t *)priv;
 
-    kbd_reset(priv);
+    kbd_reset(kbd);
 
     /* Stop timers. */
     keyboard_delay = 0;
@@ -1278,12 +1277,10 @@ keyboard_at_reset(void)
 
 
 void
-keyboard_at_set_mouse(void (*mouse_write)(uint8_t val, void *p), void *p)
+keyboard_at_set_mouse(void (*func)(uint8_t val, void *priv), void *priv)
 {
-    atkbd_t *kbd = CurrentKbd;
-
-    kbd->mouse_write = mouse_write;
-    kbd->mouse_p = p;
+    mouse_write = func;
+    mouse_p = priv;
 }
 
 

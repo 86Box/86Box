@@ -817,7 +817,6 @@ machine_ps2_common_init(machine_t *model)
         dma16_init();
         ps2_dma_init();
 	device_add(&keyboard_ps2_device);
-        mouse_ps2_init(NULL);
         nvr_at_init(8);
         pic2_init();
 

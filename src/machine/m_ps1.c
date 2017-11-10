@@ -450,7 +450,7 @@ ps1_read(uint16_t port, void *priv)
 			ps->hd.int_status &= ~0x02;
 		}
 		break;
-	
+
 	default:
 		break;
     }
