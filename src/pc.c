@@ -682,12 +682,15 @@ pc_reset_hard_init(void)
     fdc_update_is_nsc(0);
     floppy_reset();
 
-    mouse_emu_init();
-
 #ifndef WALTJE
     /* This is needed to initialize the serial timer. */
     serial_init();
 #endif
+
+    /* This has to be after the serial initialization so that
+       serial_init() doesn't break the serial mouse by resetting
+       the RCR callback to NULL. */
+    mouse_emu_init();
 
     /* Initialize the actual machine and its basic modules. */
     machine_init();
