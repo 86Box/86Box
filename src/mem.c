@@ -392,7 +392,6 @@ void addwritelookup(uint32_t virt, uint32_t phys)
         cycles -= 9;
 }
 
-#undef printf
 uint8_t *getpccache(uint32_t a)
 {
         uint32_t a2=a;
@@ -428,7 +427,6 @@ uint8_t *getpccache(uint32_t a)
         pclog("Bad getpccache %08X\n", a);
         return &ff_array[0-(uintptr_t)(a2 & ~0xFFF)];
 }
-#define printf pclog
 
 uint32_t mem_logical_addr;
 uint8_t readmembl(uint32_t addr)
@@ -447,7 +445,9 @@ uint8_t readmembl(uint32_t addr)
         }
         addr &= rammask;
 
-        if (_mem_read_b[addr >> 14]) return _mem_read_b[addr >> 14](addr, _mem_priv_r[addr >> 14]);
+        if (_mem_read_b[addr >> 14]) {
+		return _mem_read_b[addr >> 14](addr, _mem_priv_r[addr >> 14]);
+	}
         return 0xFF;
 }
 

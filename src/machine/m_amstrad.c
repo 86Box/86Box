@@ -6,10 +6,9 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Emulation of the Amstrad series of PC's.
- *
- *		The module supports the PC1512, PC1640 and PC200, including
- *		their keyboard, mouse and video devices.
+ *		Emulation of the Amstrad series of PC's: PC1512, PC1640 and
+ *		PC200, including their keyboard, mouse and video devices, as
+ *		well as the PC2086 and PC3086 systems.
  *
  * PC1512:	The PC1512 extends CGA with a bit-planar 640x200x16 mode.
  *		Most CRTC registers are fixed.
@@ -23,9 +22,15 @@
  * PC200:	CGA with some NMI stuff. But we don't need that as it's only
  *		used for TV and LCD displays, and we're emulating a CRT.
  *
+ * TODO:	This module is not complete yet:
  *
- * TODO:	EGA mode does not seem to work in the PC1640; it displays some
- *		semi-random junk. Video-memory pointer maybe?
+ * PC1512:	The BIOS assumes 512K RAM, because I cannot figure out how to
+ *		read the status of the LK4 jumper on the mainboard, which is
+ *		somehow linked to the bus gate array on the NDMACS line...
+ *
+ * PC1612:	EGA mode does not seem to work in the PC1640; it works fine
+ *		in alpha mode, but in highres ("ECD350") mode, it displays
+ *		some semi-random junk. Video-memory pointer maybe?
  *
  * Version:	@(#)m_amstrad.c	1.0.3	2017/11/08
  *
@@ -68,9 +73,6 @@
 #include "../video/vid_ega.h"
 #include "../video/vid_paradise.h"
 #include "machine.h"
-
-
-#define BIOS_1640_PATH	L"roms/machines/pc1640/40100"
 
 
 #define STAT_PARITY     0x80
@@ -121,8 +123,8 @@ typedef struct {
 typedef struct {
     /* Machine stuff. */
     uint8_t	dead;
-    uint8_t	systemstat_1,
-		systemstat_2;
+    uint8_t	stat1,
+		stat2;
 
     /* Keyboard stuff. */
     int8_t	wantirq;
@@ -173,11 +175,11 @@ vid_out_1512(uint16_t addr, uint8_t val, void *priv)
     uint8_t old;
 
     switch (addr) {
-	case 0x3d4:
+	case 0x03d4:
 		vid->crtcreg = val & 31;
 		return;
 
-	case 0x3d5:
+	case 0x03d5:
 		old = vid->crtc[vid->crtcreg];
 		vid->crtc[vid->crtcreg] = val & crtc_mask[vid->crtcreg];
 		if (old != val) {
@@ -188,7 +190,7 @@ vid_out_1512(uint16_t addr, uint8_t val, void *priv)
 		}
 		return;
 
-	case 0x3d8:
+	case 0x03d8:
 		if ((val & 0x12) == 0x12 && (vid->cgamode & 0x12) != 0x12) {
 			vid->plane_write = 0xf;
 			vid->plane_read  = 0;
@@ -196,19 +198,19 @@ vid_out_1512(uint16_t addr, uint8_t val, void *priv)
 		vid->cgamode = val;
 		return;
 
-	case 0x3d9:
+	case 0x03d9:
 		vid->cgacol = val;
 		return;
 
-	case 0x3dd:
+	case 0x03dd:
 		vid->plane_write = val;
 		return;
 
-	case 0x3de:
+	case 0x03de:
 		vid->plane_read = val & 3;
 		return;
 
-	case 0x3df:
+	case 0x03df:
 		vid->border = val;
 		return;
     }
@@ -222,13 +224,13 @@ vid_in_1512(uint16_t addr, void *priv)
     uint8_t ret = 0xff;
 
     switch (addr) {
-	case 0x3d4:
+	case 0x03d4:
 		ret = vid->crtcreg;
 
-	case 0x3d5:
+	case 0x03d5:
 		ret = vid->crtc[vid->crtcreg];
 
-	case 0x3da:
+	case 0x03da:
 		ret = vid->stat;
     }
 
@@ -465,10 +467,6 @@ vid_poll_1512(void *priv)
 				x = (vid->crtc[1] << 3) + 16;
 			  else
 				x = (vid->crtc[1] << 4) + 16;
-#if 0
-//FIXME: this doesnt seem right???? --FvK
-			x = 640 + 16;
-#endif
 			vid->lastline++;
 
 			if ((x != xsize) || ((vid->lastline - vid->firstline) != ysize) || video_force_resize_get()) {
@@ -683,7 +681,8 @@ vid_init_1640(amstrad_t *ams)
     vid = (amsvid_t *)malloc(sizeof(amsvid_t));
     memset(vid, 0x00, sizeof(amsvid_t));
 
-    rom_init(&vid->bios_rom, BIOS_1640_PATH, 0xc0000, 0x8000, 0x7fff, 0, 0);
+    rom_init(&vid->bios_rom, L"roms/machines/pc1640/40100",
+	     0xc0000, 0x8000, 0x7fff, 0, 0);
 
     ega_init(&vid->ega);
     vid->cga.vram = vid->ega.vram;
@@ -744,7 +743,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
     uint8_t old;
 
     switch (addr) {
-	case 0x3d5:
+	case 0x03d5:
 		if (!(vid->plane_read & 0x40) && cga->crtcreg <= 11) {
 			if (vid->plane_read & 0x80) 
 				nmi = 1;
@@ -763,7 +762,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 		}
 		return;
 
-	case 0x3d8:
+	case 0x03d8:
 		old = cga->cgamode;
 		cga->cgamode = val;
 		if ((cga->cgamode ^ old) & 3)
@@ -773,7 +772,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 			nmi = 1;
 		return;
 
-	case 0x3de:
+	case 0x03de:
 		vid->plane_read = val;
 		vid->plane_write = 0x1f;
 		if (val & 0x80) 
@@ -793,19 +792,19 @@ vid_in_200(uint16_t addr, void *priv)
     uint8_t ret;
 
     switch (addr) {
-	case 0x3d8:
+	case 0x03d8:
 		return(cga->cgamode);
 
-	case 0x3dd:
+	case 0x03dd:
 		ret = vid->plane_write;
 		vid->plane_write &= 0x1f;
 		nmi = 0;
 		return(ret);
 
-	case 0x3de:
+	case 0x03de:
 		return((vid->plane_read & 0xc7) | 0x10); /*External CGA*/
 
-	case 0x3df:
+	case 0x03df:
 		return(vid->border);
     }
 
@@ -934,6 +933,9 @@ static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     amstrad_t *ams = (amstrad_t *)priv;
+#ifdef WALTJE
+    int i = 0;
+#endif
 
 #if ENABLE_KEYBOARD_LOG
     pclog("keyboard_amstrad : write %04X %02X %02X\n", port, val, ams->pb);
@@ -941,13 +943,26 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
     switch (port) {
 	case 0x61:
+		/*
+		 * PortB - System Control.
+		 *
+		 *  7	Enable Status-1/Disable Keyboard Code on Port A.
+		 *  6	Enable incoming Keyboard Clock.
+		 *  5	Prevent external parity errors from causing NMI.
+		 *  4	Disable parity checking of on-board system Ram.
+		 *  3	Undefined (Not Connected).
+		 *  2	Enable Port C LSB / Disable MSB. (See 1.8.3)
+		 *  1	Speaker Drive.
+		 *  0	8253 GATE 2 (Speaker Modulate).
+		 *
+		 * This register is controlled by BIOS and/or ROS.
+		 */
 #if ENABLE_KEYBOARD_LOG
-		pclog("keyboard_amstrad : pb write %02X %02X  %i %02X %i\n",
-		    val, ams->pb, !(ams->pb&0x40), ams->pb&0x40, (val&0x40));
+		pclog("AMSkb: write PB %02x (%02x)\n", val, ams->pb);
 #endif
 		if (!(ams->pb & 0x40) && (val & 0x40)) { /*Reset keyboard*/
 #if ENABLE_KEYBOARD_LOG
-			pclog("keyboard_amstrad : reset keyboard\n");
+			pclog("AMSkb: reset keyboard\n");
 #endif
 			kbd_adddata(0xaa);
 		}
@@ -958,29 +973,46 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		timer_update_outstanding();
 
 		speaker_update();
-		speaker_gated = val & 1;
-		speaker_enable = val & 2;
+		speaker_gated = val & 0x01;
+		speaker_enable = val & 0x02;
 		if (speaker_enable) 
 			was_speaker_enable = 1;
-		pit_set_gate(&pit, 2, val & 1);
+		pit_set_gate(&pit, 2, val & 0x01);
 
-		if (val & 0x80)
-			ams->pa = 0;
+		if (val & 0x80) {
+			/* Keyboard enabled, so enable PA reading. */
+			ams->pa = 0x00;
+		}
 		break;
 
 	case 0x63:
 		break;
 
 	case 0x64:
-		ams->systemstat_1 = val;
+#ifdef WALTJE
+		pclog("AMSkb: STAT1 = %02x (%02x)\n", val, ams->stat1);
+#endif
+		ams->stat1 = val;
 		break;
 
 	case 0x65:
-		ams->systemstat_2 = val;
+#ifdef WALTJE
+		pclog("AMSkb: STAT2 = %02x (%02x)\n", val, ams->stat2);
+		i = 512 + (((val & 0x1f) - 0x0e) * 32);
+		pclog("AMSkb: %d KB RAM installed.\n", i);
+#endif
+		ams->stat2 = val;
+		break;
+
+	case 0x66:
+#ifdef WALTJE
+		pclog("AMSkb: RESET REQUESTED !\n");
+#endif
+		pc_reset(1);
 		break;
 
 	default:
-		pclog("\nBad Amstrad keyboard write %04X %02X\n", port, val);
+		pclog("AMSkb: bad keyboard write %04X %02X\n", port, val);
     }
 }
 
@@ -994,7 +1026,29 @@ kbd_read(uint16_t port, void *priv)
     switch (port) {
 	case 0x60:
 		if (ams->pb & 0x80) {
-			ret = (ams->systemstat_1 | 0xd) & 0x7f;
+			/*
+			 * PortA - System Status 1
+			 *
+			 *  7	Always 0			    (KBD7)
+			 *  6	Second Floppy disk drive installed  (KBD6)
+			 *  5	DDM1 - Default Display Mode bit 1   (KBD5)
+			 *  4	DDM0 - Default Display Mode bit 0   (KBD4)
+			 *  3	Always 1			    (KBD3)
+			 *  2	Always 1			    (KBD2)
+			 *  1	8087 NDP installed		    (KBD1)
+			 *  0	Always 1			    (KBD0)
+			 *
+			 * DDM00
+			 *    00 unknown, external color?
+			 *    01 Color,alpha,40x25, bright white on black.
+			 *    10 Color,alpha,80x25, bright white on black.
+			 *    11 External Monochrome,80x25.
+			 *
+			 * Following a reset, the hardware selects VDU mode
+			 * 2. The ROS then sets the initial VDU state based
+			 * on the DDM value.
+			 */
+			ret = (0x0d | ams->stat1) & 0x7f;
 		} else {
 			ret = ams->pa;
 			if (key_queue_start == key_queue_end) {
@@ -1010,19 +1064,44 @@ kbd_read(uint16_t port, void *priv)
 	case 0x61:
 		ret = ams->pb;
 		break;
-		
+
 	case 0x62:
+		/*
+		 * PortC - System Status 2.
+		 *
+		 *  7	On-board system RAM parity error.
+		 *  6	External parity error (I/OCHCK from expansion bus).
+		 *  5	8253 PIT OUT2 output.
+		 *  4 	Undefined (Not Connected).
+		 *-------------------------------------------
+		 *	LSB 	MSB (depends on PB2)
+		 *-------------------------------------------
+		 *  3	RAM3	Undefined
+		 *  2	RAM2	Undefined
+		 *  1	RAM1	Undefined
+		 *  0	RAM0	RAM4
+		 *
+		 * PC7 is forced to 0 when on-board system RAM parity
+		 * checking is disabled by PB4.
+		 *
+		 * RAM4:0
+		 * 01110	512K bytes on-board.
+		 * 01111	544K bytes (32K external).
+		 * 10000	576K bytes (64K external).
+		 * 10001	608K bytes (96K external).
+		 * 10010	640K bytes (128K external or fitted on-board).
+		 */
 		if (ams->pb & 0x04)
-		   ret = ams->systemstat_2 & 0xf;
-		else
-		   ret = ams->systemstat_2 >> 4;
+			ret = ams->stat2 & 0x0f;
+		  else
+			ret = ams->stat2 >> 4;
 		ret |= (ppispeakon ? 0x20 : 0);
 		if (nmi)
 			ret |= 0x40;
 		break;
 
 	default:
-		pclog("\nBad Amstrad keyboard read %04X\n", port);
+		pclog("AMDkb: bad keyboard read %04X\n", port);
     }
 
     return(ret);
@@ -1057,32 +1136,8 @@ kbd_poll(void *priv)
 }
 
 
-static uint8_t
-amstrad_read(uint16_t port, void *priv)
-{
-    amstrad_t *ams = (amstrad_t *)priv;
-
-    pclog("amstrad_read: %04X\n", port);
-
-    switch (port) {
-	case 0x379:
-		return(7);
-
-	case 0x37a:
-		if (romset == ROM_PC1512) return(0x20);
-		if (romset == ROM_PC200)  return(0x80);
-		return(0);
-
-	case 0xdead:
-		return(ams->dead);
-    }
-
-    return(0xff);
-}
-
-
 static void
-amstrad_write(uint16_t port, uint8_t val, void *priv)
+ams_write(uint16_t port, uint8_t val, void *priv)
 {
     amstrad_t *ams = (amstrad_t *)priv;
 
@@ -1094,6 +1149,50 @@ amstrad_write(uint16_t port, uint8_t val, void *priv)
 }
 
 
+static uint8_t
+ams_read(uint16_t port, void *priv)
+{
+    amstrad_t *ams = (amstrad_t *)priv;
+    uint8_t ret = 0xff;
+
+    switch (port) {
+	case 0x0379:	/* printer control, also set LK1-3.
+			 *   0	English Language.
+			 *   1	German Language.
+			 *   2	French Language.
+			 *   3	Spanish Language.
+			 *   4	Danish Language.
+			 *   5	Swedish Language.
+			 *   6	Italian Language.
+			 *   7	Diagnostic Mode.
+			 */
+		ret = 0x02;	/* ENGLISH. no Diags mode */
+		break;
+
+	case 0x037a:	/* printer status */
+		switch(romset) {
+			case ROM_PC1512:
+				ret = 0x20;
+				break;
+
+			case ROM_PC200:
+				ret = 0x80;
+				break;
+
+			default:
+				ret = 0x00;
+		}
+		break;
+
+	case 0xdead:
+		ret = ams->dead;
+		break;
+    }
+
+    return(ret);
+}
+
+
 void
 machine_amstrad_init(machine_t *model)
 {
@@ -1102,6 +1201,8 @@ machine_amstrad_init(machine_t *model)
     ams = (amstrad_t *)malloc(sizeof(amstrad_t));
     memset(ams, 0x00, sizeof(amstrad_t));
 
+    nvr_at_init(1);
+
     machine_common_init(model);
 
     nmi_init();
@@ -1109,10 +1210,10 @@ machine_amstrad_init(machine_t *model)
     lpt2_remove_ams();
 
     io_sethandler(0x0379, 2,
-		  amstrad_read, NULL, NULL, NULL, NULL, NULL, ams);
+		  ams_read, NULL, NULL, NULL, NULL, NULL, ams);
 
     io_sethandler(0xdead, 1,
-		  amstrad_read, NULL, NULL, amstrad_write, NULL, NULL, ams);
+		  ams_read, NULL, NULL, ams_write, NULL, NULL, ams);
 
     io_sethandler(0x0078, 1,
 		  ms_read, NULL, NULL, ms_write, NULL, NULL, ams);
@@ -1120,8 +1221,9 @@ machine_amstrad_init(machine_t *model)
     io_sethandler(0x007a, 1,
 		  ms_read, NULL, NULL, ms_write, NULL, NULL, ams);
 
-    switch(romset) {
+    if (gfxcard == GFX_INTERNAL) switch(romset) {
 	case ROM_PC1512:
+                loadfont(L"roms/machines/pc1512/40078", 2);
 		vid_init_1512(ams);
 		device_add_ex(&vid_1512_device, ams->vid);
 		break;
@@ -1132,6 +1234,7 @@ machine_amstrad_init(machine_t *model)
 		break;
 
 	case ROM_PC200:
+		loadfont(L"roms/machines/pc200/40109.bin", 1);
 		vid_init_200(ams);
 		device_add_ex(&vid_200_device, ams->vid);
 		break;
@@ -1151,7 +1254,7 @@ machine_amstrad_init(machine_t *model)
 
     /* Initialize the (custom) keyboard/mouse interface. */
     ams->wantirq = 0;
-    io_sethandler(0x0060, 6,
+    io_sethandler(0x0060, 7,
 		  kbd_read, NULL, NULL, kbd_write, NULL, NULL, ams);
     timer_add(kbd_poll, &keyboard_delay, TIMER_ALWAYS_ENABLED, ams);
     keyboard_set_table(scancode_xt);
@@ -1163,9 +1266,6 @@ machine_amstrad_init(machine_t *model)
 
     if (joystick_type != 7)
 	device_add(&gameport_device);
-
-    /* FIXME: make sure this is correct? */
-    nvr_at_init(1);
 
     fdc_set_dskchg_activelow();
 }

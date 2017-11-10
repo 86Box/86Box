@@ -175,6 +175,7 @@ video_reset(int card)
     if ((card == GFX_NONE) || \
 	(card == GFX_INTERNAL) || machines[machine].fixed_gfxcard) return;
 
+pclog("VIDEO: initializing '%s'\n", video_cards[video_old_to_new(card)].name);
     /* Initialize the video card. */
     device_add(video_cards[video_old_to_new(card)].device);
 

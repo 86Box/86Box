@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.17	2017/11/04
+ * Version:	@(#)rom.c	1.0.18	2017/11/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -348,10 +348,12 @@ rom_load_bios(int rom_id)
 
 	case ROM_PC1512:	/* Amstrad PC-1512 */
 		if (! rom_load_interleaved(
-			L"roms/machines/pc1512/40043.v1",
-			L"roms/machines/pc1512/40044.v1",
+			L"roms/machines/pc1512/40044",
+			L"roms/machines/pc1512/40043",
 			0x00c000, 16384, 0, rom)) break;
-		loadfont(L"roms/machines/pc1512/40078.ic127", 2);
+		f = rom_fopen(L"roms/machines/pc1512/40078", L"rb");
+		if (f == NULL) break;
+		(void)fclose(f);
 		return(1);
 
 	case ROM_PC1640:	/* Amstrad PC-1640 */
@@ -369,7 +371,8 @@ rom_load_bios(int rom_id)
 			L"roms/machines/pc200/pc20v2.1",
 			L"roms/machines/pc200/pc20v2.0",
 			0x00c000, 16384, 0, rom)) break;
-		loadfont(L"roms/machines/pc200/40109.bin", 1);
+		f = rom_fopen(L"roms/machines/pc200/40109", L"rb");
+		if (f == NULL) break;
 		return(1);
 
 	case ROM_TANDY:
