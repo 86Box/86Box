@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.3	2017/10/30
+ * Version:	@(#)rom.h	1.0.4	2017/11/11
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -67,6 +67,9 @@ enum {
     ROM_IBMXT286,
     ROM_DESKPRO_386,
     ROM_PORTABLE,
+    ROM_PORTABLEII,
+    ROM_PORTABLEIII,
+    ROM_PORTABLEIII386,
     ROM_IBMPS1_2121,
 
     ROM_AMI386DX_OPTI495,

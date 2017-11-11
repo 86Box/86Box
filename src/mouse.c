@@ -22,10 +22,10 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "machine/machine.h"
 #include "86box.h"
 #include "device.h"
 #include "mouse.h"
-#include "machine/machine.h"
 #include "plat_mouse.h"
 
 

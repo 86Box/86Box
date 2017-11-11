@@ -8,7 +8,7 @@
  *
  *		Windows resource script.
  *
- * Version:	@(#)86Box.rc	1.0.17	2017/10/14
+ * Version:	@(#)86Box.rc	1.0.18	2017/11/11
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -849,16 +849,17 @@ BEGIN
     IDS_2171	"Unable to initialize FluidSynth, make sure you have the following libraries\nin your 86Box folder:\n\nlibfluidsynth.dll\nlibglib-2.0-0.dll\nlibiconv-2.dll\nlibintl-8.dll\nlibpcre-1.dll"
 
     IDS_3072    "None"
-    IDS_3073	"[Bus] Logitech Bus Mouse"
-    IDS_3074	"[Bus] Microsoft Bus Mouse (InPort)"
-    IDS_3075	"[Serial] Mouse Systems Mouse"
-    IDS_3076	"[Serial] Microsoft 2-button Mouse"
-    IDS_3077	"[Serial] Logitech 3-button Mouse"
-    IDS_3078	"[Serial] Microsoft Wheel Mouse"
-    IDS_3079	"[PS/2] 2-button Mouse"
-    IDS_3080	"[PS/2] Microsoft Intellimouse"
-    IDS_3081	"[Proprietary] Amstrad Mouse"
-    IDS_3082	"[Proprietary] Olivetti M24 Mouse"
+    IDS_3073    "Internal"
+    IDS_3074	"[Bus] Logitech Bus Mouse"
+    IDS_3075	"[Bus] Microsoft Bus Mouse (InPort)"
+    IDS_3076	"[Serial] Mouse Systems Mouse"
+    IDS_3077	"[Serial] Microsoft 2-button Mouse"
+    IDS_3078	"[Serial] Logitech 3-button Mouse"
+    IDS_3079	"[Serial] Microsoft Wheel Mouse"
+    IDS_3080	"[PS/2] 2-button Mouse"
+    IDS_3081	"[PS/2] Microsoft Intellimouse"
+    IDS_3082	"[Proprietary] Amstrad Mouse"
+    IDS_3083	"[Proprietary] Olivetti M24 Mouse"
 
     IDS_4096    "Hard disk (%s)"
     IDS_4097	"%01i:%01i"

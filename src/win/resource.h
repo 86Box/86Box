@@ -10,7 +10,7 @@
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
  *
- * Version:	@(#)resource.h	1.0.12	2017/10/13
+ * Version:	@(#)resource.h	1.0.13	2017/11/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -212,25 +212,25 @@
 #define IDS_2054		2054	// "Invalid number of heads.."
 #define IDS_2055		2055	// "Invalid number of cylinders.."
 #define IDS_2056		2056	// "No usable ROM images found!"
-#define IDS_2057		2057	// "Unable to open the file for write"
-#define IDS_2058		2058	// "Attempting to create a HDI.."
-#define IDS_2059		2059	// "Remember to partition and.."
-#define IDS_2060		2060	// "Unable to open the file.."
-#define IDS_2061		2061	// "HDI or HDX image with a.."
+#define IDS_2057		2057	// "(empty)"
+#define IDS_2058		2058	// "(host drive %c:)"
+#define IDS_2059		2059	// "(Turbo)"
+#define IDS_2060		2060	// "On"
+#define IDS_2061		2061	// "Off"
 #define IDS_2062		2062	// "86Box was unable to find any.."
 #define IDS_2063		2063	// "Configured ROM set not avai.."
 #define IDS_2064		2064	// "Configured video BIOS not.."
 #define IDS_2065		2065	// "Machine"
-#define IDS_2066		2066	// "Video"
+#define IDS_2066		2066	// "Display"
 #define IDS_2067		2067	// "Input devices"
 #define IDS_2068		2068	// "Sound"
 #define IDS_2069		2069	// "Network"
-#define IDS_2070		2070	// "Other peripherals"
-#define IDS_2071		2071	// "Hard disks"
-#define IDS_2072		2072	// "Removable devices"
-#define IDS_2073		2073	// "%i"" floppy drive: %s"
-#define IDS_2074		2074	// "Disabled CD-ROM drive"
-#define IDS_2075		2075	// "%s CD-ROM drive: %s"
+#define IDS_2070		2070	// "Ports (COM & LPT)"
+#define IDS_2071		2071	// "Other peripherals"
+#define IDS_2072		2072	// "Hard disks"
+#define IDS_2073		2073	// "Removable devices"
+#define IDS_2074		2074	// "Use CTRL+ALT+PAGE DOWN.."
+#define IDS_2075		2075	// "CD-ROM images (*.ISO;*.CU.."
 #define IDS_2076		2076	// "Host CD/DVD Drive (%c:)"
 #define IDS_2077		2077	// "Click to capture mouse"
 #define IDS_2078		2078	// "Press F12-F8 to release mouse"
@@ -243,14 +243,14 @@
 #define IDS_2085		2085	// "H"
 #define IDS_2086		2086	// "S"
 #define IDS_2087		2087	// "MB"
-#define IDS_2088		2088	// "%i"
+#define IDS_2088		2088	// "Unable to create bitmap file: %s"
 #define IDS_2089		2089	// "Enabled"
 #define IDS_2090		2090	// "Mute"
 #define IDS_2091		2091	// "Type"
 #define IDS_2092		2092	// "Bus"
 #define IDS_2093		2093	// "DMA"
 #define IDS_2094		2094	// "KB"
-#define IDS_2095		2095	// "No renderer available!"
+#define IDS_2095		2095	// "Neither DirectDraw nor Dire.."
 #define IDS_2096		2096	// "Slave"
 #define IDS_2097		2097	// "SCSI (ID %s, LUN %s)"
 #define IDS_2098		2098	// "Adapter Type"
@@ -262,7 +262,7 @@
 #define IDS_2104		2104	// "Network Type"
 #define IDS_2105		2105	// "Surround Module"
 #define IDS_2106		2106	// "MPU-401 Base Address"
-#define IDS_2107		2107	// "No PCap devices found"
+#define IDS_2107		2107	// "PCAP not found.."
 #define IDS_2108		2108	// "On-board RAM"
 #define IDS_2109		2109	// "Memory Size"
 #define IDS_2110		2110	// "Display Type"
@@ -294,108 +294,109 @@
 #define IDS_2136		2136	// "Slow VLB/PCI"
 #define IDS_2137		2137	// "Mid  VLB/PCI"
 #define IDS_2138		2138	// "Fast VLB/PCI"
-#define IDS_2139                2139
-#define IDS_2140                2140
-#define IDS_2141                2141
-#define IDS_2142                2142
-#define IDS_2143                2143
+#define IDS_2139                2139	// "PCap failed to set up.."
+#define IDS_2140                2140	// "No PCap devices found"
+#define IDS_2141                2141	// "Invalid PCap device"
+#define IDS_2142                2142	// "&Notify disk change"
+#define IDS_2143                2143	// "Type"
 #define IDS_2144		2144	// "Standard 2-button joystick(s)"
 #define IDS_2145		2145	// "Standard 4-button joystick"
 #define IDS_2146		2146	// "Standard 6-button joystick"
 #define IDS_2147		2147	// "Standard 8-button joystick"
 #define IDS_2148		2148	// "CH Flightstick Pro"
 #define IDS_2149		2149	// "Microsoft SideWinder Pad"
-#define IDS_2150		2150	// "Thrustmaster Flight Control System"
+#define IDS_2150		2150	// "Thrustmaster Flight Cont.."
 #define IDS_2151		2151	// "Disabled"
 #define IDS_2152		2152	// "None"
 #define IDS_2153		2153	// "Unable to load Accelerators"
 #define IDS_2154		2154	// "Unable to register Raw Input"
 #define IDS_2155		2155	// "IRQ %i"
-#define IDS_2156		2156	// "MFM/RLL (%91i:%01i)"
-#define IDS_2157		2157	// "IDE (PIO+DMA) (%01i:%01i)"
-#define IDS_2158		2158	// "SCSI (%02i:%02i)"
-#define IDS_2159		2159	// "Invalid number of cylinders.."
-#define IDS_2160		2160	// "%" PRIu64
-#define IDS_2161                2161
-#define IDS_2162                2162
-#define IDS_2163		2163	// "Attempting to create a spuriously.."
-#define IDS_2164		2164	// "Invalid number of sectors.."
-#define IDS_2165		2165	// "MFM"
-#define IDS_2166		2166	// "XT IDE"
-#define IDS_2167		2167	// "ESDI"
-#define IDS_2168		2168	// "IDE (PIO-only)"
-#define IDS_2169		2169	// "%01i:%01i"
-#define IDS_2170		2170	// "%01i:%01i"
-#define IDS_2171		2171
+#define IDS_2156		2156	// "%" PRIu64
+#define IDS_2157		2157	// "%" PRIu64 " MB (CHS: %".."
+#define IDS_2158		2158	// "Floppy %i (%s): %ls"
+#define IDS_2159		2159	// "All floppy images (*.0??;*.."
+#define IDS_2160		2160	// "Configuration files (*.CF.."
+#define IDS_2161                2161	// "&New image..."
+#define IDS_2162                2162	// "Existing image..."
+#define IDS_2163		2163	// "Existing image (&Write-pr..."
+#define IDS_2164		2164	// "E&ject"
+#define IDS_2165		2165	// "&Mute"
+#define IDS_2166		2166	// "E&mpty"
+#define IDS_2167		2167	// "&Reload previous image"
+#define IDS_2168		2168	// "&Image..."
+#define IDS_2169		2169	// "Image (&Write-protected)..."
+#define IDS_2170		2170	// "Check BPB"
+#define IDS_2171		2171	// "Unable to initialize Flui.."
 
-#define IDS_3072		3072
-#define IDS_3073		3073
-#define IDS_3074		3074
-#define IDS_3075		3075
-#define IDS_3076		3076
-#define IDS_3077		3077
-#define IDS_3078		3078
-#define IDS_3079		3079
-#define IDS_3080		3080
-#define IDS_3081		3081
-#define IDS_3082		3082
+#define IDS_3072		3072	// "None"
+#define IDS_3073		3073	// "Internal"
+#define IDS_3074		3074	// "[Bus] Logitech Bus Mouse"
+#define IDS_3075		3075	// "[Bus] Microsoft Bus Mous.."
+#define IDS_3076		3076	// "[Serial] Mouse Systems Mouse"
+#define IDS_3077		3077	// "[Serial] Microsoft 2-button Mouse"
+#define IDS_3078		3078	// "[Serial] Logitech 3-button Mouse"
+#define IDS_3079		3079	// "[Serial] Microsoft Wheel Mouse"
+#define IDS_3080		3080	// "[PS/2] 2-button Mouse"
+#define IDS_3081		3081	// "[PS/2] Microsoft Intellimouse"
+#define IDS_3082		3082	// "[Proprietary] Amstrad Mouse"
+#define IDS_3083		3083	// "[Proprietary] Olivetti M24.."
 
-#define IDS_4096		4096
-#define IDS_4097		4097
-#define IDS_4098		4098
-#define IDS_4099		4099
-#define IDS_4100		4100
-#define IDS_4101		4101
-#define IDS_4102		4102
-#define IDS_4103		4103
-#define IDS_4104		4104
-#define IDS_4105		4105
-#define IDS_4106		4106
-#define IDS_4107		4107
-#define IDS_4108		4108
-#define IDS_4109		4109
-#define IDS_4110		4110
-#define IDS_4111		4111
-#define IDS_4112		4112
-#define IDS_4113		4113
-#define IDS_4114		4114
-#define IDS_4115		4115
+#define IDS_4096		4096	// "Hard disk (%s)"
+#define IDS_4097		4097	// "%01i:%01i"
+#define IDS_4098		4098	// "%i"
+#define IDS_4099		4099	// "Disabled"
+#define IDS_4100		4100	// "Custom..."
+#define IDS_4101		4101	// "Custom (large)..."
+#define IDS_4102		4102	// "Add New Hard Disk"
+#define IDS_4103		4103	// "Add Existing Hard Disk"
+#define IDS_4104		4104	// "Attempting to create a HDI ima.."
+#define IDS_4105		4105	// "Attempting to create a spurio.."
+#define IDS_4106		4106	// "Hard disk images (*.HDI;*.HD.."
+#define IDS_4107		4107	// "Unable to open the file for read"
+#define IDS_4108		4108	// "Unable to open the file for write"
+#define IDS_4109		4109	// "HDI or HDX image with a sect.."
+#define IDS_4110		4110	// "USB is not yet supported"
+#define IDS_4111		4111	// "This image exists and will be.."
+#define IDS_4112		4112	// "Please enter a valid file name"
+#define IDS_4113		4113	// "Remember to partition and fo.."
+#define IDS_4114		4114	// "MFM/RLL or ESDI CD-ROM driv.."
+#define IDS_4115		4115	// "Removable disk %i (SCSI): %ls"
 
-#define IDS_4352		4352
-#define IDS_4353		4353
-#define IDS_4354		4354
-#define IDS_4355		4355
-#define IDS_4356		4356
-#define IDS_4357		4357
-#define IDS_4358		4358
+#define IDS_4352		4352	// "MFM/RLL"
+#define IDS_4353		4353	// "XT IDE"
+#define IDS_4354		4354	// "ESDI"
+#define IDS_4355		4355	// "IDE (PIO-only)"
+#define IDS_4356		4356	// "IDE (PIO+DMA)"
+#define IDS_4357		4357	// "SCSI"
+#define IDS_4358		4358	// "SCSI (removable)"
 
-#define IDS_4608		4608
-#define IDS_4609		4609
-#define IDS_4610		4610
-#define IDS_4611		4611
-#define IDS_4612		4612
-#define IDS_4613		4613
-#define IDS_4614		4614
+#define IDS_4608		4608	// "MFM/RLL (%01i:%01i)"
+#define IDS_4609		4609	// "XT IDE (%01i:%01i)"
+#define IDS_4610		4610	// "ESDI (%01i:%01i)"
+#define IDS_4611		4611	// "IDE (PIO-only) (%01i:%01i)"
+#define IDS_4612		4612	// "IDE (PIO+DMA) (%01i:%01i)"
+#define IDS_4613		4613	// "SCSI (%02i:%02i)"
+#define IDS_4614		4614	// "SCSI (removable) (%02i:%02i)"
 
-#define IDS_5120		5120
+#define IDS_5120		5120	// "CD-ROM %i (%s): %s"
 
-#define IDS_5376		5376
-#define IDS_5377		5377
-#define IDS_5378		5378
-#define IDS_5379		5379
-#define IDS_5380		5380
-#define IDS_5381		5381
-#define IDS_5382		5382
+#define IDS_5376		5376	// "Disabled"
+#define IDS_5377		5377	// "<Reserved>"
+#define IDS_5378		5378	// "<Reserved>"
+#define IDS_5379		5379	// "<Reserved>"
+#define IDS_5380		5380	// "ATAPI (PIO-only)"
+#define IDS_5381		5381	// "ATAPI (PIO and DMA)"
+#define IDS_5382		5382	// "SCSI"
 
-#define IDS_5632		5632
-#define IDS_5633		5633
-#define IDS_5634		5634
-#define IDS_5635		5635
-#define IDS_5636		5636
-#define IDS_5637		5637
-#define IDS_5638		5638
+#define IDS_5632		5632	// "Disabled"
+#define IDS_5633		5633	// "<Reserved>"
+#define IDS_5634		5634	// "<Reserved>"
+#define IDS_5635		5635	// "<Reserved>"
+#define IDS_5636		5636	// "ATAPI (PIO-only) (%01i:%01i)"
+#define IDS_5637		5637	// "ATAPI (PIO and DMA) (%01i:%01i)"
+#define IDS_5638		5638	// "SCSI (%02i:%02i)"
 
-#define IDS_6144		6144
+#define IDS_6144		6144	// "English (United States)"
 
 #define IDS_LANG_ENUS		IDS_6144
 
