@@ -315,6 +315,7 @@ pclog("PLAT: VID[%d,%d] resizing to %dx%d\n", video_fullscreen, vid_api, x, y);
 #endif
     /* First, see if we should resize the UI window. */
     if (!vid_resize) {
+	video_wait_for_blit();
 	SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
 	GetWindowRect(hwndMain, &r);
 	MoveWindow(hwndRender, 0, 0, x, y, TRUE);
@@ -338,6 +339,7 @@ pclog("PLAT: VID[%d,%d] resizing to %dx%d\n", video_fullscreen, vid_api, x, y);
     /* Now, tell the renderer about the new screen size we want. */
     if (vid_apis[video_fullscreen][vid_api].resize) {
 	startblit();
+	video_wait_for_blit();
 	vid_apis[video_fullscreen][vid_api].resize(x, y);
 	endblit();
     }
