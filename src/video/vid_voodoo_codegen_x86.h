@@ -9,7 +9,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
-#ifdef _WIN32
+#if defined WIN32 || defined _WIN32 || defined _WIN32
 #define BITMAP windows_BITMAP
 #include <windows.h>
 #undef BITMAP
@@ -761,7 +761,7 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
 
                 if (depth_jump_pos)
                         *(uint8_t *)&code_block[depth_jump_pos] = (block_pos - depth_jump_pos) - 1;
-                if (depth_jump_pos2)
+                if (depth_jump_pos)
                         *(uint8_t *)&code_block[depth_jump_pos2] = (block_pos - depth_jump_pos2) - 1;
                 
                 if ((params->fogMode & (FOG_ENABLE|FOG_CONSTANT|FOG_Z|FOG_ALPHA)) == FOG_ENABLE)
@@ -1129,10 +1129,14 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                                 addbyte(0xfd);
                                 addbyte(0xc8);
                         }
-                        addbyte(0x66); /*PACKUSWB XMM3, XMM1*/
+                        addbyte(0xf3); /*MOVD XMM3, XMM1*/
+                        addbyte(0x0f);
+                        addbyte(0x7e);
+                        addbyte(0xd9);
+                        addbyte(0x66); /*PACKUSWB XMM3, XMM3*/
                         addbyte(0x0f);
                         addbyte(0x67);
-                        addbyte(0xd9);
+                        addbyte(0xdb);
                         if (tca_sub_clocal_1)
                         {
                                 addbyte(0x66); /*MOVD EBX, XMM3*/
@@ -1204,7 +1208,7 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                                 addbyte(0x35); /*XOR EAX, 0xff*/
                                 addlong(0xff);
                         }
-                        addbyte(0x8e); /*ADD EAX, 1*/
+                        addbyte(0x83); /*ADD EAX, 1*/
                         addbyte(0xc0);
                         addbyte(1);
                         addbyte(0x0f); /*IMUL EAX, EBX*/
@@ -1457,16 +1461,8 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                         addbyte(0xff);
                         addbyte(0x66); /*PADDW XMM1, XMM4*/
                         addbyte(0x0f);
-                        addbyte(0xfc);
+                        addbyte(0xfd);
                         addbyte(0xcc);
-                }
-                if (tc_invert_output)
-                {
-                        addbyte(0x66); /*PXOR XMM1, FF*/
-                        addbyte(0x0f);
-                        addbyte(0xef);
-                        addbyte(0x0d);
-                        addlong((uint32_t)&xmm_ff_w);
                 }
         
                 addbyte(0x66); /*PACKUSWB XMM0, XMM0*/
@@ -1481,6 +1477,14 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                 addbyte(0x0f);
                 addbyte(0x67);
                 addbyte(0xc9);
+                if (tc_invert_output)
+                {
+                        addbyte(0x66); /*PXOR XMM1, FF*/
+                        addbyte(0x0f);
+                        addbyte(0xef);
+                        addbyte(0x0d);
+                        addlong((uint32_t)&xmm_ff_b);
+                }
         
                 if (tca_zero_other)
                 {
@@ -1658,7 +1662,7 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                 addbyte(0xc0);
         }
 
-        if (params->alphaMode & ((1 << 0) | (1 << 4)))
+        if ((params->alphaMode & ((1 << 0) | (1 << 4))) || (!(cc_mselect == 0 && cc_reverse_blend == 0) && (cc_mselect == CC_MSELECT_AOTHER || cc_mselect == CC_MSELECT_ALOCAL)))
         {
                 /*EBX = a_other*/
                 switch (a_sel)
@@ -1823,7 +1827,6 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                 {
                         addbyte(0xf6); /*TEST state->tex_a, 0x80*/
                         addbyte(0x87);
-                        addbyte(0x23);
                         addlong(offsetof(voodoo_state_t, tex_a));
                         addbyte(0x80);
                         addbyte(0x74);/*JZ !cc_localselect*/
@@ -1833,7 +1836,8 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                                 addbyte(0x6e);
                                 addbyte(0x8e);
                                 addlong(offsetof(voodoo_params_t, color0));
-                                /*JMP +*/
+                                addbyte(0xeb); /*JMP +*/
+                                addbyte(8);
                         /*!cc_localselect:*/
                                 addbyte(0xf3); /*MOVDQU XMM1, ib*/ /* ir, ig and ib must be in same dqword!*/
                                 addbyte(0x0f);
@@ -3285,7 +3289,7 @@ static void voodoo_codegen_init(voodoo_t *voodoo)
 	long pagemask = ~(pagesize - 1);
 #endif
 
-#ifdef _WIN32
+#if defined WIN32 || defined _WIN32 || defined _WIN32
         voodoo->codegen_data = VirtualAlloc(NULL, sizeof(voodoo_x86_data_t) * BLOCK_NUM*2, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 #else
         voodoo->codegen_data = malloc(sizeof(voodoo_x86_data_t) * BLOCK_NUM*2);
@@ -3325,7 +3329,7 @@ static void voodoo_codegen_init(voodoo_t *voodoo)
 
 static void voodoo_codegen_close(voodoo_t *voodoo)
 {
-#ifdef _WIN32
+#if defined WIN32 || defined _WIN32 || defined _WIN32
         VirtualFree(voodoo->codegen_data, 0, MEM_RELEASE);
 #else
         free(voodoo->codegen_data);

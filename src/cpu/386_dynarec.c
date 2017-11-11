@@ -201,6 +201,21 @@ void x86_int(int num)
         }
         else
         {
+                addr = (num << 2) + idt.base;
+
+                if (addr + 3 > idt.limit)
+                {
+                        if(idt.limit < 35)
+                        {
+                                cpu_state.abrt = 0;
+                                softresetx86();
+                                cpu_set_edx();
+                                pclog("IDT limit is less than 35 in real mode - reset\n");
+                        }
+                        else x86_int(8);
+                        return;
+                }
+
                 if (stack32)
                 {
                         writememw(ss,ESP-2,flags);
@@ -215,7 +230,6 @@ void x86_int(int num)
                         writememw(ss,((SP-6)&0xFFFF),cpu_state.pc);
                         SP-=6;
                 }
-                addr = (num << 2) + idt.base;
 
                 flags&=~I_FLAG;
                 flags&=~T_FLAG;
@@ -238,6 +252,14 @@ void x86_int_sw(int num)
         }
         else
         {
+                addr = (num << 2) + idt.base;
+
+                if (addr + 3 > idt.limit)
+                {
+                        x86_int(13);
+                        return;
+                }
+
                 if (stack32)
                 {
                         writememw(ss,ESP-2,flags);
@@ -252,7 +274,6 @@ void x86_int_sw(int num)
                         writememw(ss,((SP-6)&0xFFFF),cpu_state.pc);
                         SP-=6;
                 }
-                addr = (num << 2) + idt.base;
 
                 flags&=~I_FLAG;
                 flags&=~T_FLAG;

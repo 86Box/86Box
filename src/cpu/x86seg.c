@@ -542,7 +542,7 @@ void loadcs(uint16_t seg)
                 _cs.limit=0xFFFF;
                 _cs.limit_low = 0;
                 _cs.limit_high = 0xffff;
-                CS=seg;
+                CS=seg & 0xFFFF;
                 if (eflags&VM_FLAG) _cs.access=(3<<5) | 2 | 0x80;
                 else                _cs.access=(0<<5) | 2 | 0x80;
                 if (CPL==3 && oldcpl!=3) flushmmucache_cr3();

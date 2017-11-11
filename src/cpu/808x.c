@@ -587,7 +587,6 @@ void resetx86()
         use32=0;
 	cpu_cur_status = 0;
         stack32=0;
-        cpu_state.pc=0;
 	msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
         msw=0;
         if (is486)
@@ -599,9 +598,20 @@ void resetx86()
         cr4 = 0;
         eflags=0;
         cgate32=0;
-        loadcs(0xFFFF);
-        rammask = AT ? 0xFFFFFFFF : 0xfffff;
+        if(AT)
+        {
+                loadcs(cpu_16bitbus ? 0xFF000 : 0xFFFF000);
+                cpu_state.pc=0xFFF0;
+                rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+        }
+        else
+        {
+                loadcs(0xFFFF);
+                cpu_state.pc=0;
+                rammask = 0xfffff;
+        }
         idt.base = 0;
+        idt.limit = 0xFFFF;
         flags=2;
         makeznptable();
         resetreadlookup();
@@ -628,16 +638,27 @@ void softresetx86()
         use32=0;
         stack32=0;
 	cpu_cur_status = 0;
-        cpu_state.pc=0;
 	msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
         msw=0;
         cr0=0;
         cr4 = 0;
         eflags=0;
         cgate32=0;
-        loadcs(0xFFFF);
+        if(AT)
+        {
+                loadcs(cpu_16bitbus ? 0xFF000 : 0xFFFF000);
+                cpu_state.pc=0xFFF0;
+                rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+        }
+        else
+        {
+                loadcs(0xFFFF);
+                cpu_state.pc=0;
+                rammask = 0xfffff;
+        }
         flags=2;
         idt.base = 0;
+        idt.limit = 0xFFFF;
         x86seg_reset();
         x86_was_reset = 1;
 	port_92_clear_reset();
@@ -2537,9 +2558,17 @@ void execx86(int cycs)
                                 cycles-=((cpu_mod==3)?8:28);
                                 break;
                                 case 0x20: case 0x30: /*SHL b,CL*/
-                                if ((temp<<(c-1))&0x80) flags|=C_FLAG;
-                                else                    flags&=~C_FLAG;
-                                temp<<=c;
+                                if (c > 8)
+                                {
+                                        temp = 0;
+                                        flags &= ~C_FLAG;
+                                }
+                                else
+                                {
+                                        if ((temp<<(c-1))&0x80) flags|=C_FLAG;
+                                        else                    flags&=~C_FLAG;
+                                        temp<<=c;
+                                }
                                 seteab(temp);
                                 setznp8(temp);
                                 cycles-=(c*4);
@@ -2547,9 +2576,17 @@ void execx86(int cycs)
                                 flags|=A_FLAG;
                                 break;
                                 case 0x28: /*SHR b,CL*/
-                                if ((temp>>(c-1))&1) flags|=C_FLAG;
-                                else                 flags&=~C_FLAG;
-                                temp>>=c;
+                                if (c > 8)
+                                {
+                                        temp = 0;
+                                        flags &= ~C_FLAG;
+                                }
+                                else
+                                {
+                                        if ((temp>>(c-1))&1) flags|=C_FLAG;
+                                        else                 flags&=~C_FLAG;
+                                        temp>>=c;
+                                }
                                 seteab(temp);
                                 setznp8(temp);
                                 cycles-=(c*4);
@@ -2680,9 +2717,17 @@ void execx86(int cycs)
                                 break;
 
                                 case 0x28:            /*SHR w,CL*/
-                                if ((tempw>>(c-1))&1) flags|=C_FLAG;
-                                else                  flags&=~C_FLAG;
-                                tempw>>=c;
+                                if (c > 16)
+                                {
+                                        tempw = 0;
+                                        flags &= ~C_FLAG;
+                                }
+                                else
+                                {
+                                        if ((tempw>>(c-1))&1) flags|=C_FLAG;
+                                        else                  flags&=~C_FLAG;
+                                        tempw>>=c;
+                                }
                                 seteaw(tempw);
                                 setznp16(tempw);
                                 cycles-=(c*4);

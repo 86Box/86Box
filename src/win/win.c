@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.32	2017/11/04
+ * Version:	@(#)win.c	1.0.33	2017/11/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -622,7 +622,11 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (scrnsz_y < 0)
 			scrnsz_y = 0;
 
-		plat_resize(scrnsz_x, scrnsz_y);
+		MoveWindow(hwndRender, 0, 0, scrnsz_x, scrnsz_y, TRUE);
+
+		plat_vid_api_resize(scrnsz_x, scrnsz_y);
+
+		MoveWindow(hwndSBAR, 0, scrnsz_y + 6, scrnsz_x, 17, TRUE);
 
 		if (mouse_capture) {
 			GetWindowRect(hwndRender, &rect);

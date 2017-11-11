@@ -7,6 +7,7 @@
 #include "../cpu/cpu.h"
 #include "../io.h"
 #include "../mem.h"
+#include "../rom.h"
 #include "machine.h"
 
 
@@ -20,8 +21,9 @@ static uint32_t get_laserxt_ems_addr(uint32_t addr)
 {
         if(laserxt_emspage[(addr >> 14) & 3] & 0x80)
         {
-                addr = 0xA0000 + ((laserxt_emspage[(addr >> 14) & 3] & 0x0F) << 14) + ((laserxt_emspage[(addr >> 14) & 3] & 0x40) << 12) + (addr & 0x3FFF);
+                addr = (romset == ROM_LTXT ? 0x70000 + (((mem_size + 64) & 255) << 10) : 0x30000 + (((mem_size + 320) & 511) << 10)) + ((laserxt_emspage[(addr >> 14) & 3] & 0x0F) << 14) + ((laserxt_emspage[(addr >> 14) & 3] & 0x40) << 12) + (addr & 0x3FFF);
         }
+
         return addr;
 }
 
@@ -115,6 +117,7 @@ static void laserxt_init(void)
                 io_sethandler(0x4208, 0x0002, laserxt_read, NULL, NULL, laserxt_write, NULL, NULL,  NULL);
                 io_sethandler(0x8208, 0x0002, laserxt_read, NULL, NULL, laserxt_write, NULL, NULL,  NULL);
                 io_sethandler(0xc208, 0x0002, laserxt_read, NULL, NULL, laserxt_write, NULL, NULL,  NULL);
+                mem_mapping_set_addr(&ram_low_mapping, 0, romset == ROM_LTXT ? 0x70000 + (((mem_size + 64) & 255) << 10) : 0x30000 + (((mem_size + 320) & 511) << 10));
         }
 
         for (i = 0; i < 4; i++)

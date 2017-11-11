@@ -399,7 +399,6 @@ void pit_write(uint16_t addr, uint8_t val, void *p)
                                 pit->rl[t] = pit_read_timer(pit, t);
                         }
                         pit->rereadlatch[t]=1;
-                        if (t == 2) ppispeakon=speakon=(pit->m[2]==0)?0:1;
                         pit->initial[t] = 1;
                         if (!pit->m[t])
                                 pit_set_out(pit, t, 0);

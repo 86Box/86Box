@@ -86,8 +86,8 @@ void sdac_ramdac_out(uint16_t addr, uint8_t val, sdac_ramdac_t *ramdac, svga_t *
                 ramdac->magic_count = 0;
                 if (ramdac->rs2)
                 {
-                        if (!ramdac->reg_ff) ramdac->regs[ramdac->windex] = (ramdac->regs[ramdac->windex] & 0xff00) | val;
-                        else                 ramdac->regs[ramdac->windex] = (ramdac->regs[ramdac->windex] & 0x00ff) | (val << 8);
+                        if (!ramdac->reg_ff) ramdac->regs[ramdac->windex & 0xff] = (ramdac->regs[ramdac->windex & 0xff] & 0xff00) | val;
+                        else                 ramdac->regs[ramdac->windex & 0xff] = (ramdac->regs[ramdac->windex & 0xff] & 0x00ff) | (val << 8);
                         ramdac->reg_ff = !ramdac->reg_ff;
                         if (!ramdac->reg_ff) ramdac->windex++;
                 }
@@ -128,8 +128,8 @@ uint8_t sdac_ramdac_in(uint16_t addr, sdac_ramdac_t *ramdac, svga_t *svga)
                         ramdac->magic_count=0;
                 if (ramdac->rs2)
                 {
-                        if (!ramdac->reg_ff) temp = ramdac->regs[ramdac->rindex] & 0xff;
-                        else                 temp = ramdac->regs[ramdac->rindex] >> 8;
+                        if (!ramdac->reg_ff) temp = ramdac->regs[ramdac->rindex & 0xff] & 0xff;
+                        else                 temp = ramdac->regs[ramdac->rindex & 0xff] >> 8;
                         ramdac->reg_ff = !ramdac->reg_ff;
                         if (!ramdac->reg_ff)
                         {

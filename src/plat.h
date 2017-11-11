@@ -84,6 +84,7 @@ extern int	plat_vidapi(char *name);
 extern char	*plat_vidapi_name(int api);
 extern int	plat_setvid(int api);
 extern void	plat_setfullscreen(int on);
+extern void	plat_vid_api_resize(int x, int y);
 extern void	plat_resize(int max_x, int max_y);
 
 

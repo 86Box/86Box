@@ -8,7 +8,7 @@
  *
  *		Emulation of the 3DFX Voodoo Graphics controller.
  *
- * Version:	@(#)vid_voodoo.c	1.0.8	2017/11/04
+ * Version:	@(#)vid_voodoo.c	1.0.9	2017/11/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei
@@ -28,6 +28,7 @@
 #include "../device.h"
 #include "../mem.h"
 #include "../pci.h"
+#include "../rom.h"
 #include "../timer.h"
 #include "../device.h"
 #include "../plat.h"
@@ -35,7 +36,6 @@
 #include "vid_svga.h"
 #include "vid_voodoo.h"
 #include "vid_voodoo_dither.h"
-
 
 #ifdef MIN
 #undef MIN
@@ -58,14 +58,12 @@
 
 #define TEX_CACHE_MAX 64
 
-
 enum
 {
         VOODOO_1 = 0,
         VOODOO_SB50 = 1,
         VOODOO_2 = 2
 };
-
 
 static uint32_t texture_offset[LOD_MAX+3] =
 {
@@ -196,6 +194,7 @@ typedef struct voodoo_params_t
         uint32_t texBaseAddr[2], texBaseAddr1[2], texBaseAddr2[2], texBaseAddr38[2];
         
         uint32_t tex_base[2][LOD_MAX+2];
+        uint32_t tex_end[2][LOD_MAX+2];
         int tex_width[2];
         int tex_w_mask[2][LOD_MAX+2];
         int tex_w_nmask[2][LOD_MAX+2];
@@ -227,7 +226,7 @@ typedef struct texture_t
         volatile int refcount, refcount_r[2];
         int is16;
         uint32_t palette_checksum;
-        uint32_t addr_start, addr_end;
+        uint32_t addr_start[4], addr_end[4];
         uint32_t *data;
 } texture_t;
 
@@ -243,7 +242,7 @@ typedef struct voodoo_t
         uint16_t dac_pll_regs[16];
         
         float pixel_clock;
-        int64_t line_time;
+        int line_time;
         
         voodoo_params_t params;
         
@@ -286,7 +285,7 @@ typedef struct voodoo_t
         uint32_t videoDimensions;
         uint32_t hSync, vSync;
         
-        int64_t h_total, v_total, v_disp;
+        int h_total, v_total, v_disp;
         int h_disp;
         int v_retrace;
 
@@ -1021,11 +1020,12 @@ enum
 
 enum
 {
-        LOD_ODD        = (1 << 18),
-        LOD_SPLIT      = (1 << 19),
-        LOD_S_IS_WIDER = (1 << 20),
-        LOD_TMIRROR_S  = (1 << 28),
-        LOD_TMIRROR_T  = (1 << 29)
+        LOD_ODD            = (1 << 18),
+        LOD_SPLIT          = (1 << 19),
+        LOD_S_IS_WIDER     = (1 << 20),
+        LOD_TMULTIBASEADDR = (1 << 24),
+        LOD_TMIRROR_S      = (1 << 28),
+        LOD_TMIRROR_T      = (1 << 29)
 };
 enum
 {
@@ -1184,6 +1184,7 @@ static void voodoo_recalc_tex(voodoo_t *voodoo, int tmu)
         int shift = 8;
         int lod;
         uint32_t base = voodoo->params.texBaseAddr[tmu];
+        uint32_t offset = 0;
         int tex_lod = 0;
         
         if (voodoo->params.tLOD[tmu] & LOD_S_IS_WIDER)
@@ -1200,6 +1201,8 @@ static void voodoo_recalc_tex(voodoo_t *voodoo, int tmu)
                 height >>= 1;
                 shift--;
                 tex_lod++;
+                if (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR)
+                        base = voodoo->params.texBaseAddr1[tmu];
         }
         
         for (lod = 0; lod <= LOD_MAX+1; lod++)
@@ -1210,7 +1213,11 @@ static void voodoo_recalc_tex(voodoo_t *voodoo, int tmu)
                         height = 1;
                 if (shift < 0)
                         shift = 0;
-                voodoo->params.tex_base[tmu][lod] = base;
+                voodoo->params.tex_base[tmu][lod] = base + offset;
+                if (voodoo->params.tformat[tmu] & 8)
+                        voodoo->params.tex_end[tmu][lod] = base + offset + (width * height * 2);
+                else
+                        voodoo->params.tex_end[tmu][lod] = base + offset + (width * height);
                 voodoo->params.tex_w_mask[tmu][lod] = width - 1;
                 voodoo->params.tex_w_nmask[tmu][lod] = ~(width - 1);
                 voodoo->params.tex_h_mask[tmu][lod] = height - 1;
@@ -1222,9 +1229,9 @@ static void voodoo_recalc_tex(voodoo_t *voodoo, int tmu)
                         if (!(voodoo->params.tLOD[tmu] & LOD_ODD) || lod != 0)
                         {
                                 if (voodoo->params.tformat[tmu] & 8)
-                                        base += width * height * 2;
+                                        offset += width * height * 2;
                                 else
-                                        base += width * height;
+                                        offset += width * height;
 
                                 if (voodoo->params.tLOD[tmu] & LOD_SPLIT)
                                 {
@@ -1240,6 +1247,25 @@ static void voodoo_recalc_tex(voodoo_t *voodoo, int tmu)
                                         shift--;
                                         tex_lod++;
                                 }
+
+                                if (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR)
+                                {
+                                        switch (tex_lod)
+                                        {
+                                                case 0:
+                                                base = voodoo->params.texBaseAddr[tmu];
+                                                break;
+                                                case 1:
+                                                base = voodoo->params.texBaseAddr1[tmu];
+                                                break;
+                                                case 2:
+                                                base = voodoo->params.texBaseAddr2[tmu];
+                                                break;
+                                                default:
+                                                base = voodoo->params.texBaseAddr38[tmu];
+                                                break;
+                                        }
+                                }
                         }
                 }
         }
@@ -1251,7 +1277,7 @@ static void voodoo_recalc_tex(voodoo_t *voodoo, int tmu)
 
 static void use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
 {
-        int c;
+        int c, d;
         int lod;
         int lod_min, lod_max;
         uint32_t addr = 0, addr_end;
@@ -1278,10 +1304,15 @@ static void use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
         else
                 palette_checksum = 0;
 
+        if ((voodoo->params.tLOD[tmu] & LOD_SPLIT) && (voodoo->params.tLOD[tmu] & LOD_ODD) && (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR))
+                addr = params->texBaseAddr1[tmu];
+        else
+                addr = params->texBaseAddr[tmu];
+
         /*Try to find texture in cache*/
         for (c = 0; c < TEX_CACHE_MAX; c++)
         {
-                if (voodoo->texture_cache[tmu][c].base == params->texBaseAddr[tmu] &&
+                if (voodoo->texture_cache[tmu][c].base == addr &&
                     voodoo->texture_cache[tmu][c].tLOD == (params->tLOD[tmu] & 0xf00fff) &&
                     voodoo->texture_cache[tmu][c].palette_checksum == palette_checksum)
                 {
@@ -1310,12 +1341,16 @@ static void use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
 
         c = voodoo->texture_last_removed;
         
-        voodoo->texture_cache[tmu][c].base = params->texBaseAddr[tmu];
+
+        if ((voodoo->params.tLOD[tmu] & LOD_SPLIT) && (voodoo->params.tLOD[tmu] & LOD_ODD) && (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR))
+                voodoo->texture_cache[tmu][c].base = params->texBaseAddr1[tmu];
+        else
+                voodoo->texture_cache[tmu][c].base = params->texBaseAddr[tmu];
         voodoo->texture_cache[tmu][c].tLOD = params->tLOD[tmu] & 0xf00fff;
 
         lod_min = (params->tLOD[tmu] >> 2) & 15;
         lod_max = (params->tLOD[tmu] >> 8) & 15;
-//        pclog("  add new texture to %i tformat=%i %08x LOD=%i-%i\n", c, voodoo->params.tformat[tmu], params->texBaseAddr[tmu], lod_min, lod_max);
+//        pclog("  add new texture to %i tformat=%i %08x LOD=%i-%i tmu=%i\n", c, voodoo->params.tformat[tmu], params->texBaseAddr[tmu], lod_min, lod_max, tmu);
         
         for (lod = lod_min; lod <= lod_max; lod++)
         {
@@ -1547,13 +1582,51 @@ static void use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
                 voodoo->texture_cache[tmu][c].palette_checksum = palette_checksum;
         else
                 voodoo->texture_cache[tmu][c].palette_checksum = 0;
-        
-        addr = voodoo->params.tex_base[tmu][lod_min];
-        addr_end = voodoo->params.tex_base[tmu][lod_max+1];
-        voodoo->texture_cache[tmu][c].addr_start = addr;
-        voodoo->texture_cache[tmu][c].addr_end = addr_end;
-        for (; addr <= addr_end; addr += (1 << TEX_DIRTY_SHIFT))
-                voodoo->texture_present[tmu][(addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT] = 1;
+
+        if (lod_min == 0)
+        {
+                voodoo->texture_cache[tmu][c].addr_start[0] = voodoo->params.tex_base[tmu][0];
+                voodoo->texture_cache[tmu][c].addr_end[0] = voodoo->params.tex_end[tmu][0];
+        }
+        else        
+                voodoo->texture_cache[tmu][c].addr_start[0] = voodoo->texture_cache[tmu][c].addr_end[0] = 0;
+
+        if (lod_min <= 1 && lod_max >= 1)
+        {
+                voodoo->texture_cache[tmu][c].addr_start[1] = voodoo->params.tex_base[tmu][1];
+                voodoo->texture_cache[tmu][c].addr_end[1] = voodoo->params.tex_end[tmu][1];
+        }
+        else        
+                voodoo->texture_cache[tmu][c].addr_start[1] = voodoo->texture_cache[tmu][c].addr_end[1] = 0;
+
+        if (lod_min <= 2 && lod_max >= 2)
+        {
+                voodoo->texture_cache[tmu][c].addr_start[2] = voodoo->params.tex_base[tmu][2];
+                voodoo->texture_cache[tmu][c].addr_end[2] = voodoo->params.tex_end[tmu][2];
+        }
+        else        
+                voodoo->texture_cache[tmu][c].addr_start[2] = voodoo->texture_cache[tmu][c].addr_end[2] = 0;
+
+        if (lod_max >= 3)
+        {
+                voodoo->texture_cache[tmu][c].addr_start[3] = voodoo->params.tex_base[tmu][(lod_min > 3) ? lod_min : 3];
+                voodoo->texture_cache[tmu][c].addr_end[3] = voodoo->params.tex_end[tmu][(lod_max < 8) ? lod_max : 8];
+        }
+        else        
+                voodoo->texture_cache[tmu][c].addr_start[3] = voodoo->texture_cache[tmu][c].addr_end[3] = 0;
+
+
+        for (d = 0; d < 4; d++)
+        {
+                addr = voodoo->texture_cache[tmu][c].addr_start[d];
+                addr_end = voodoo->texture_cache[tmu][c].addr_end[d];
+
+                if (addr_end != 0)
+                {
+                        for (; addr <= addr_end; addr += (1 << TEX_DIRTY_SHIFT))
+                                voodoo->texture_present[tmu][(addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT] = 1;
+                }
+        }
        
         params->tex_entry[tmu] = c;
         voodoo->texture_cache[tmu][c].refcount++;
@@ -1570,23 +1643,31 @@ static void flush_texture_cache(voodoo_t *voodoo, uint32_t dirty_addr, int tmu)
         {
                 if (voodoo->texture_cache[tmu][c].base != -1)
                 {
-                        int addr_start = voodoo->texture_cache[tmu][c].addr_start;
-                        int addr_end = voodoo->texture_cache[tmu][c].addr_end;
-
-                        if (dirty_addr >= (addr_start & voodoo->texture_mask & ~0x3ff) && dirty_addr < (((addr_end & voodoo->texture_mask) + 0x3ff) & ~0x3ff))
+                        int d;
+                        
+                        for (d = 0; d < 4; d++)
                         {
+                                int addr_start = voodoo->texture_cache[tmu][c].addr_start[d];
+                                int addr_end = voodoo->texture_cache[tmu][c].addr_end[d];
+                                
+                                if (addr_end != 0)
+                                {
+                                        if (dirty_addr >= (addr_start & voodoo->texture_mask & ~0x3ff) && dirty_addr < (((addr_end & voodoo->texture_mask) + 0x3ff) & ~0x3ff))
+                                        {
 //                                pclog("  Evict texture %i %08x\n", c, voodoo->texture_cache[tmu][c].base);
 
-                                if (voodoo->texture_cache[tmu][c].refcount != voodoo->texture_cache[tmu][c].refcount_r[0] ||
-                                    (voodoo->render_threads == 2 && voodoo->texture_cache[tmu][c].refcount != voodoo->texture_cache[tmu][c].refcount_r[1]))
-                                        wait_for_idle = 1;
+                                                if (voodoo->texture_cache[tmu][c].refcount != voodoo->texture_cache[tmu][c].refcount_r[0] ||
+                                                    (voodoo->render_threads == 2 && voodoo->texture_cache[tmu][c].refcount != voodoo->texture_cache[tmu][c].refcount_r[1]))
+                                                        wait_for_idle = 1;
                                         
-                                voodoo->texture_cache[tmu][c].base = -1;
-                        }
-                        else
-                        {
-                                for (; addr_start <= addr_end; addr_start += (1 << TEX_DIRTY_SHIFT))
-                                        voodoo->texture_present[tmu][(addr_start & voodoo->texture_mask) >> TEX_DIRTY_SHIFT] = 1;
+                                                voodoo->texture_cache[tmu][c].base = -1;
+                                        }
+                                        else
+                                        {
+                                                for (; addr_start <= addr_end; addr_start += (1 << TEX_DIRTY_SHIFT))
+                                                        voodoo->texture_present[tmu][(addr_start & voodoo->texture_mask) >> TEX_DIRTY_SHIFT] = 1;
+                                        }
+                                }
                         }
                 }
         }
@@ -2600,9 +2681,7 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
         int dither = params->fbzMode & FBZ_DITHER;*/
         int texels;
         int c;
-#ifndef NO_CODEGEN
         uint8_t (*voodoo_draw)(voodoo_state_t *state, voodoo_params_t *params, int x, int real_y);
-#endif
         int y_diff = SLI_ENABLED ? 2 : 1;
 
         if ((params->textureMode[0] & TEXTUREMODE_MASK) == TEXTUREMODE_PASSTHROUGH ||
@@ -2693,7 +2772,6 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                         state->xend += state->dx2;
                 }
         } 
-
 #ifndef NO_CODEGEN
         if (voodoo->use_recompiler)
                 voodoo_draw = voodoo_get_block(voodoo, params, state, odd_even);
@@ -2854,7 +2932,6 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                 state->texel_count = 0;
                 state->x = x;
                 state->x2 = x2;
-
 #ifndef NO_CODEGEN
                 if (voodoo->use_recompiler)
                 {
@@ -2875,7 +2952,7 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
 //                        if (voodoo->fbzMode & FBZ_RGB_WMASK)
                         {
                                 int update = 1;
-                                uint8_t cother_r = 0, cother_g = 0, cother_b = 0, aother;
+                                uint8_t cother_r, cother_g, cother_b, aother;
                                 uint8_t clocal_r, clocal_g, clocal_b, alocal;
                                 int src_r = 0, src_g = 0, src_b = 0, src_a = 0;
                                 int msel_r, msel_g, msel_b, msel_a;
@@ -3324,7 +3401,6 @@ static void voodoo_triangle(voodoo_t *voodoo, voodoo_params_t *params, int odd_e
         int lodbias;
         
         voodoo->tri_count++;
-	memset(&state, 0x00, sizeof(state));
         
         dx = 8 - (params->vertexAx & 0xf);
         if ((params->vertexAx & 0xf) > 8)
@@ -5575,11 +5651,7 @@ static void voodoo_fb_writew(uint32_t addr, uint16_t val, void *p)
                                 *(uint16_t *)(&voodoo->fb_mem[write_addr_aux & voodoo->fb_mask]) = new_depth;
 
 skip_pixel:
-#if 1
-			x = 0;
-#else
                         x = x;
-#endif
                 }
         }
         else
@@ -5795,7 +5867,7 @@ static void voodoo_tex_writel(uint32_t addr, uint32_t val, void *p)
         *(uint32_t *)(&voodoo->tex_mem[tmu][addr & voodoo->texture_mask]) = val;
 }
 
-#define WAKE_DELAY (TIMER_USEC * 100LL)
+#define WAKE_DELAY (TIMER_USEC * 100)
 static inline void wake_fifo_thread(voodoo_t *voodoo)
 {
         if (!voodoo->wake_timer)
@@ -5819,7 +5891,7 @@ static void voodoo_wake_timer(void *p)
 {
         voodoo_t *voodoo = (voodoo_t *)p;
         
-        voodoo->wake_timer = 0LL;
+        voodoo->wake_timer = 0;
 
         thread_set_event(voodoo->wake_fifo_thread); /*Wake up FIFO thread if moving from idle*/
 }
@@ -5906,7 +5978,7 @@ static void wake_fifo_threads(voodoo_set_t *set, voodoo_t *voodoo)
 static uint32_t voodoo_readl(uint32_t addr, void *p)
 {
         voodoo_t *voodoo = (voodoo_t *)p;
-        uint32_t temp = 0;
+        uint32_t temp;
         int fifo_size;
         voodoo->rd_count++;
         addr &= 0xffffff;
@@ -6130,7 +6202,7 @@ static void voodoo_pixelclock_update(voodoo_t *voodoo)
         int n2 = ((voodoo->dac_pll_regs[0] >> 13) & 0x07);
         float t = (14318184.0 * ((float)m / (float)n1)) / (float)(1 << n2);
         double clock_const;
-        int64_t line_length;
+        int line_length;
         
         if ((voodoo->dac_data[6] & 0xf0) == 0x20 ||
             (voodoo->dac_data[6] & 0xf0) == 0x60 ||
@@ -6144,7 +6216,7 @@ static void voodoo_pixelclock_update(voodoo_t *voodoo)
         voodoo->pixel_clock = t;
 
         clock_const = cpuclock / t;
-        voodoo->line_time = (int64_t)((double)line_length * clock_const * (double)(1 << TIMER_SHIFT));
+        voodoo->line_time = (int)((double)line_length * clock_const * (double)(1 << TIMER_SHIFT));
 }
 
 static void voodoo_writel(uint32_t addr, uint32_t val, void *p)
@@ -7232,7 +7304,7 @@ static void voodoo_filterline_v2(voodoo_t *voodoo, uint8_t *fil, int column, uin
 void voodoo_callback(void *p)
 {
         voodoo_t *voodoo = (voodoo_t *)p;
-	int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
+	int y_add = (enable_overscan && !suppress_overscan) ? (overscan_y >> 1) : 0;
 	int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
 
         if (voodoo->fbiInit0 & FBIINIT0_VGA_PASS)
@@ -7380,7 +7452,7 @@ skip_draw:
         if (voodoo->line_time)
                 voodoo->timer_count += voodoo->line_time;
         else
-                voodoo->timer_count += TIMER_USEC * 32LL;
+                voodoo->timer_count += TIMER_USEC * 32;
 }
 
 static void voodoo_add_status_info(char *s, int max_len, void *p)
@@ -7488,8 +7560,7 @@ static void voodoo_speed_changed(void *p)
 //        pclog("Voodoo read_time=%i write_time=%i burst_time=%i %08x %08x\n", voodoo->read_time, voodoo->write_time, voodoo->burst_time, voodoo->fbiInit1, voodoo->fbiInit4);
 }
 
-
-void *voodoo_card_init(void)
+void *voodoo_card_init()
 {
         int c;
         voodoo_t *voodoo = malloc(sizeof(voodoo_t));
@@ -7538,12 +7609,12 @@ void *voodoo_card_init(void)
         
         for (c = 0; c < TEX_CACHE_MAX; c++)
         {
-                voodoo->texture_cache[0][c].data = malloc((256*256 + 128*128 + 64*64 + 32*32 + 16*16 + 8*8 + 4*4 + 2*2 + 1*1) * 4);
+                voodoo->texture_cache[0][c].data = malloc((256*256 + 256*256 + 128*128 + 64*64 + 32*32 + 16*16 + 8*8 + 4*4 + 2*2) * 4);
                 voodoo->texture_cache[0][c].base = -1; /*invalid*/
                 voodoo->texture_cache[0][c].refcount = 0;
                 if (voodoo->dual_tmus)
                 {
-                        voodoo->texture_cache[1][c].data = malloc((256*256 + 128*128 + 64*64 + 32*32 + 16*16 + 8*8 + 4*4 + 2*2 + 1*1) * 4);
+                        voodoo->texture_cache[1][c].data = malloc((256*256 + 256*256 + 128*128 + 64*64 + 32*32 + 16*16 + 8*8 + 4*4 + 2*2) * 4);
                         voodoo->texture_cache[1][c].base = -1; /*invalid*/
                         voodoo->texture_cache[1][c].refcount = 0;
                 }
@@ -7626,7 +7697,7 @@ void *voodoo_card_init(void)
         return voodoo;
 }
 
-void *voodoo_init(device_t *info)
+void *voodoo_init()
 {
         voodoo_set_t *voodoo_set = malloc(sizeof(voodoo_set_t));
         uint32_t tmuConfig = 1;
@@ -7686,25 +7757,21 @@ void *voodoo_init(device_t *info)
 
 void voodoo_card_close(voodoo_t *voodoo)
 {
-#ifdef VOODOO_DEBUG
 #ifndef RELEASE_BUILD
         FILE *f;
 #endif
-#endif
         int c;
         
-#ifdef VOODOO_DEBUG
 #ifndef RELEASE_BUILD        
-        f = romfopen(L"texram.dmp", L"wb");
+        f = rom_fopen(L"texram.dmp", L"wb");
         fwrite(voodoo->tex_mem[0], voodoo->texture_size*1024*1024, 1, f);
         fclose(f);
         if (voodoo->dual_tmus)
         {
-                f = romfopen(L"texram2.dmp", L"wb");
+                f = rom_fopen(L"texram2.dmp", L"wb");
                 fwrite(voodoo->tex_mem[1], voodoo->texture_size*1024*1024, 1, f);
                 fclose(f);
         }
-#endif
 #endif
 
         thread_kill(voodoo->fifo_thread);

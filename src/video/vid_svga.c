@@ -262,21 +262,7 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                         if (svga->ramdac_type == RAMDAC_8BIT)
                                 svga->pallook[svga->dac_write] = makecol32(svga->vgapal[svga->dac_write].r, svga->vgapal[svga->dac_write].g, svga->vgapal[svga->dac_write].b);
                         else
-			{
-				svga->vgapal[svga->dac_write].r &= 0x3f;
-				svga->vgapal[svga->dac_write].g &= 0x3f;
-				svga->vgapal[svga->dac_write].b &= 0x3f;
-
-//				if ((romset == ROM_IBMPS1_2011) || (romset == ROM_IBMPS1_2121) || (romset == ROM_IBMPS2_M30_286))
-				if (romset == ROM_IBMPS1_2011)
-				{
-					svga->pallook[svga->dac_write] = makecol32((svga->vgapal[svga->dac_write].r & 0x3f) * 4, (svga->vgapal[svga->dac_write].g & 0x3f) * 4, (svga->vgapal[svga->dac_write].b & 0x3f) * 4);
- 				}
-				else
-				{
-                                	svga->pallook[svga->dac_write] = makecol32(video_6to8[svga->vgapal[svga->dac_write].r], video_6to8[svga->vgapal[svga->dac_write].g], video_6to8[svga->vgapal[svga->dac_write].b]);
- 				}
-			}
+                               	svga->pallook[svga->dac_write] = makecol32(video_6to8[svga->vgapal[svga->dac_write].r & 0x3f], video_6to8[svga->vgapal[svga->dac_write].g & 0x3f], video_6to8[svga->vgapal[svga->dac_write].b & 0x3f]);
 #if 1
 // FIXME: temp to see if this fixes 2401 on PS/1.
 			svga->sense = (svga->vgapal[svga->dac_write].r & svga->vgapal[svga->dac_write].g & svga->vgapal[svga->dac_write].b) & 0x10;
@@ -477,14 +463,23 @@ pclog("SVGAread = %02x\n", temp);
                 {
                         case 0: 
                         svga->dac_pos++; 
-                        return svga->vgapal[svga->dac_read].r;
+                        if (svga->ramdac_type == RAMDAC_8BIT)
+	                        return svga->vgapal[svga->dac_read].r;
+			else
+	                        return svga->vgapal[svga->dac_read].r & 0x3f;
                         case 1: 
                         svga->dac_pos++; 
-                        return svga->vgapal[svga->dac_read].g;
+                        if (svga->ramdac_type == RAMDAC_8BIT)
+	                        return svga->vgapal[svga->dac_read].g;
+			else
+	                        return svga->vgapal[svga->dac_read].g & 0x3f;
                         case 2: 
                         svga->dac_pos=0; 
                         svga->dac_read = (svga->dac_read + 1) & 255; 
-                        return svga->vgapal[(svga->dac_read - 1) & 255].b;
+                        if (svga->ramdac_type == RAMDAC_8BIT)
+	                        return svga->vgapal[(svga->dac_read - 1) & 255].b;
+			else
+	                        return svga->vgapal[(svga->dac_read - 1) & 255].b& 0x3f;
                 }
                 break;
                 case 0x3CC: 

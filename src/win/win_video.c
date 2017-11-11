@@ -303,6 +303,19 @@ endblit(void)
 }
 
 
+void
+plat_vid_api_resize(int x, int y)
+{
+    if (vid_apis[video_fullscreen][vid_api].resize)
+    {
+	startblit();
+	video_wait_for_blit();
+	vid_apis[video_fullscreen][vid_api].resize(x, y);
+	endblit();
+    }
+}
+
+
 /* Tell the UI and/or renderers about a new screen resolution. */
 void
 plat_resize(int x, int y)
@@ -334,13 +347,5 @@ pclog("PLAT: VID[%d,%d] resizing to %dx%d\n", video_fullscreen, vid_api, x, y);
 		GetWindowRect(hwndRender, &r);
 		ClipCursor(&r);
 	}
-    }
-
-    /* Now, tell the renderer about the new screen size we want. */
-    if (vid_apis[video_fullscreen][vid_api].resize) {
-	startblit();
-	video_wait_for_blit();
-	vid_apis[video_fullscreen][vid_api].resize(x, y);
-	endblit();
     }
 }
