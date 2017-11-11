@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.74	2017/11/10
+# Version:	@(#)Makefile.mingw	1.0.75	2017/11/11
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -285,7 +285,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_ali1429.o m_at_commodore.o \
 		    m_at_neat.o m_at_headland.o \
 		    m_at_opti495.o m_at_scat.o \
-		    m_at_wd76c10.o \
+		    m_at_compaq.o m_at_wd76c10.o \
 		    m_at_sis_85c471.o m_at_sis_85c496.o \
 		    m_at_430lx_nx.o m_at_430fx.o \
 		    m_at_430hx.o m_at_430vx.o \

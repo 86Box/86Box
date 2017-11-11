@@ -403,22 +403,19 @@ rom_load_bios(int rom_id)
 
 	case ROM_PORTABLEII:
 		if (! rom_load_interleaved(
-			L"roms/machines/portableii/109739-001.rom",
 			L"roms/machines/portableii/109740-001.rom",
+			L"roms/machines/portableii/109739-001.rom",
 			0x000000, 32768, 0, rom)) break;
 		biosmask = 0x7fff;
 		return(1);
 
-#if NOT_USED
 	case ROM_PORTABLEIII:
 	case ROM_PORTABLEIII386:
 		if (rom_load_interleaved(
 			L"roms/machines/portableiii/109738-002.bin",
 			L"roms/machines/portableiii/109737-002.bin",
-			0x000000, 32768, 0, rom)) return(1);
-		biosmask = 0x7fff;
+			0x000000, 65536, 0, rom)) return(1);
 		break;
-#endif
 
 	case ROM_DTKXT:
 		if (rom_load_linear(
