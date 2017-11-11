@@ -2681,7 +2681,9 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
         int dither = params->fbzMode & FBZ_DITHER;*/
         int texels;
         int c;
+#if NOTUSED
         uint8_t (*voodoo_draw)(voodoo_state_t *state, voodoo_params_t *params, int x, int real_y);
+#endif
         int y_diff = SLI_ENABLED ? 2 : 1;
 
         if ((params->textureMode[0] & TEXTUREMODE_MASK) == TEXTUREMODE_PASSTHROUGH ||
@@ -3400,6 +3402,7 @@ static void voodoo_triangle(voodoo_t *voodoo, voodoo_params_t *params, int odd_e
         int LOD;
         int lodbias;
         
+	memset(&state, 0x00, sizeof(voodoo_state_t));
         voodoo->tri_count++;
         
         dx = 8 - (params->vertexAx & 0xf);
