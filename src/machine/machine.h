@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.10	2017/11/08
+ * Version:	@(#)machine.h	1.0.11	2017/11/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -133,11 +133,13 @@ extern void	machine_at_r418_init(machine_t *);
 
 extern void	machine_at_wd76c10_init(machine_t *);
 
+extern void	machine_pcjr_init(machine_t *);
+
 extern void	machine_ps1_m2011_init(machine_t *);
 extern void	machine_ps1_m2121_init(machine_t *);
 extern void	machine_ps1_m2133_init(machine_t *);
-extern void	machine_ps2_m30_286_init(machine_t *);
 
+extern void	machine_ps2_m30_286_init(machine_t *);
 extern void	machine_ps2_model_50_init(machine_t *);
 extern void	machine_ps2_model_55sx_init(machine_t *);
 extern void	machine_ps2_model_80_init(machine_t *);
@@ -149,10 +151,8 @@ extern void	machine_europc_init(machine_t *);
 
 extern void	machine_olim24_init(machine_t *);
 
-extern void	machine_pcjr_init(machine_t *);
-
 extern void	machine_tandy1k_init(machine_t *);
-extern void	machine_tandy1ksl2_init(machine_t *);
+extern int	tandy1k_eeprom_read(void);
 
 extern void	machine_xt_init(machine_t *);
 extern void	machine_xt_laserxt_init(machine_t *);

@@ -8,7 +8,7 @@
  *
  *		Implementation of the XT-style keyboard.
  *
- * Version:	@(#)keyboard_xt.c	1.0.3	2017/11/06
+ * Version:	@(#)keyboard_xt.c	1.0.4	2017/11/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -33,7 +33,6 @@
 #include "rom.h"
 #include "timer.h"
 #include "device.h"
-#include "tandy_eeprom.h"
 #include "sound/sound.h"
 #include "sound/snd_speaker.h"
 #include "video/video.h"
@@ -217,10 +216,10 @@ kbd_poll(void *priv)
 	kbd->pa = key_queue[key_queue_start];
 	picint(2);
 #if ENABLE_KEYBOARD_LOG
-	pclog("Reading %02X from the key queue at %i\n",
+	pclog("XTkbd: reading %02X from the key queue at %i\n",
 				kbd->pa, key_queue_start);
 #endif
-	key_queue_start = (key_queue_start + 1) & 0xf;
+	key_queue_start = (key_queue_start + 1) & 0x0f;
 	kbd->blocked = 1;
     }
 }
@@ -234,7 +233,7 @@ kbd_adddata(uint8_t val)
     pclog("XTkbd: %02X added to key queue at %i\n",
 				val, key_queue_end);
 #endif
-    key_queue_end = (key_queue_end + 1) & 0xf;
+    key_queue_end = (key_queue_end + 1) & 0x0f;
 }
 
 
@@ -283,11 +282,11 @@ kbd_read(uint16_t port, void *priv)
 	case 0x60:
 		if ((romset == ROM_IBMPC) && (kbd->pb & 0x80)) {
 			if (VGA || gfxcard == GFX_EGA)
-				ret = 0x4D;
+				ret = 0x4d;
 			  else if (MDA)
-				ret = 0x7D;
+				ret = 0x7d;
 			  else
-				ret = 0x6D;
+				ret = 0x6d;
 		} else
 			ret = kbd->pa;
 		break;
@@ -299,7 +298,7 @@ kbd_read(uint16_t port, void *priv)
 	case 0x62:
 		if (romset == ROM_IBMPC) {
 			if (kbd->pb & 0x04)
-				ret = ((mem_size-64) / 32) & 0xf;
+				ret = ((mem_size-64) / 32) & 0x0f;
 			else
 				ret = ((mem_size-64) / 32) >> 4;
 		} else {
@@ -311,16 +310,16 @@ kbd_read(uint16_t port, void *priv)
 				  else
 					ret = 6;
 			} else
-				ret = 0x0D;
+				ret = 0x0d;
 		}
 		ret |= (ppispeakon ? 0x20 : 0);
 
 		if (kbd->tandy)
-			ret |= (tandy_eeprom_read() ? 0x10 : 0);
+			ret |= (tandy1k_eeprom_read() ? 0x10 : 0);
 		break;
 
 	default:
-		pclog("\nXTkbd: bad read %04X\n", port);
+		pclog("XTkbd: bad read %04X\n", port);
 		ret = 0xff;
     }
 

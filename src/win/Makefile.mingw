@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.73	2017/11/08
+# Version:	@(#)Makefile.mingw	1.0.74	2017/11/10
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -294,7 +294,6 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_ps2_isa.o m_ps2_mca.o
 
 DEVOBJ		:= bugger.o lpt.o $(SERIAL) \
-		   tandy_eeprom.o tandy_rom.o \
 		   sio_detect.o \
 		    sio_fdc37c66x.o sio_fdc37c669.o \
 		    sio_fdc37c93x.o \
