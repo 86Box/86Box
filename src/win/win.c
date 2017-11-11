@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.33	2017/11/11
+ * Version:	@(#)win.c	1.0.34	2017/11/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -624,7 +624,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		MoveWindow(hwndRender, 0, 0, scrnsz_x, scrnsz_y, TRUE);
 
-		plat_vid_api_resize(scrnsz_x, scrnsz_y);
+		plat_vidsize(scrnsz_x, scrnsz_y);
 
 		MoveWindow(hwndSBAR, 0, scrnsz_y + 6, scrnsz_x, 17, TRUE);
 
@@ -1369,10 +1369,38 @@ plat_get_string(int i)
 }
 
 
-wchar_t *
-plat_get_string_from_string(char *str)
+/* Tell the UI about a new screen resolution. */
+void
+plat_resize(int x, int y)
 {
-    return(plat_get_string(atoi(str)));
+    int sb_borders[3];
+    RECT r;
+
+#if 0
+pclog("PLAT: VID[%d,%d] resizing to %dx%d\n", video_fullscreen, vid_api, x, y);
+#endif
+    /* First, see if we should resize the UI window. */
+    if (!vid_resize) {
+	video_wait_for_blit();
+	SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
+	GetWindowRect(hwndMain, &r);
+	MoveWindow(hwndRender, 0, 0, x, y, TRUE);
+	GetWindowRect(hwndRender, &r);
+	MoveWindow(hwndSBAR,
+		   0, r.bottom + GetSystemMetrics(SM_CYEDGE),
+		   x, 17, TRUE);
+	GetWindowRect(hwndMain, &r);
+
+	MoveWindow(hwndMain, r.left, r.top,
+		   x + (GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
+		   y + (GetSystemMetrics(SM_CYEDGE) * 2) + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 17 + sb_borders[1] + 1,
+		   TRUE);
+
+	if (mouse_capture) {
+		GetWindowRect(hwndRender, &r);
+		ClipCursor(&r);
+	}
+    }
 }
 
 

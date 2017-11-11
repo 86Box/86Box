@@ -8,7 +8,7 @@
  *
  *		Platform video API support for Win32.
  *
- * Version:	@(#)win_video.c	1.0.4	2017/10/28
+ * Version:	@(#)win_video.c	1.0.5	2017/11/11
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -180,6 +180,19 @@ plat_setvid(int api)
 }
 
 
+/* Tell the renderers about a new screen resolution. */
+void
+plat_vidsize(int x, int y)
+{
+    if (! vid_apis[video_fullscreen][vid_api].resize) return;
+
+    startblit();
+    video_wait_for_blit();
+    vid_apis[video_fullscreen][vid_api].resize(x, y);
+    endblit();
+}
+
+
 int
 get_vidpause(void)
 {
@@ -300,52 +313,4 @@ void	/* plat_ */
 endblit(void)
 {
     ReleaseMutex(ghMutex);
-}
-
-
-void
-plat_vid_api_resize(int x, int y)
-{
-    if (vid_apis[video_fullscreen][vid_api].resize)
-    {
-	startblit();
-	video_wait_for_blit();
-	vid_apis[video_fullscreen][vid_api].resize(x, y);
-	endblit();
-    }
-}
-
-
-/* Tell the UI and/or renderers about a new screen resolution. */
-void
-plat_resize(int x, int y)
-{
-    int sb_borders[3];
-    RECT r;
-
-#if 0
-pclog("PLAT: VID[%d,%d] resizing to %dx%d\n", video_fullscreen, vid_api, x, y);
-#endif
-    /* First, see if we should resize the UI window. */
-    if (!vid_resize) {
-	video_wait_for_blit();
-	SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
-	GetWindowRect(hwndMain, &r);
-	MoveWindow(hwndRender, 0, 0, x, y, TRUE);
-	GetWindowRect(hwndRender, &r);
-	MoveWindow(hwndSBAR,
-		   0, r.bottom + GetSystemMetrics(SM_CYEDGE),
-		   x, 17, TRUE);
-	GetWindowRect(hwndMain, &r);
-
-	MoveWindow(hwndMain, r.left, r.top,
-		   x + (GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
-		   y + (GetSystemMetrics(SM_CYEDGE) * 2) + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 17 + sb_borders[1] + 1,
-		   TRUE);
-
-	if (mouse_capture) {
-		GetWindowRect(hwndRender, &r);
-		ClipCursor(&r);
-	}
-    }
 }

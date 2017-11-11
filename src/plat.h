@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.16	2017/10/28
+ * Version:	@(#)plat.h	1.0.17	2017/11/11
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -83,14 +83,13 @@ extern void	plat_mouse_capture(int on);
 extern int	plat_vidapi(char *name);
 extern char	*plat_vidapi_name(int api);
 extern int	plat_setvid(int api);
+extern void	plat_vidsize(int x, int y);
 extern void	plat_setfullscreen(int on);
-extern void	plat_vid_api_resize(int x, int y);
-extern void	plat_resize(int max_x, int max_y);
+extern void	plat_resize(int x, int y);
 
 
 /* Resource management. */
 extern wchar_t	*plat_get_string(int id);
-extern wchar_t	*plat_get_string_from_string(char *str);
 
 
 /* Platform-specific device support. */
