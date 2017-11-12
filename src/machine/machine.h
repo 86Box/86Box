@@ -156,6 +156,7 @@ extern void	machine_tandy1k_init(machine_t *);
 extern int	tandy1k_eeprom_read(void);
 
 extern void	machine_xt_init(machine_t *);
+extern void	machine_xt_compaq_init(machine_t *);
 extern void	machine_xt_laserxt_init(machine_t *);
 
 

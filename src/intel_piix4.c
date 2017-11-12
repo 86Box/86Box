@@ -6,13 +6,11 @@
  *
  *		Preliminary emulation of the Intel PIIX4 Xcelerator.
  *
- *		Emulation core dispatcher.
- *
  *		PRD format :
  *		    word 0 - base address
- *		    word 1 - bits 1 - 15 = byte count, bit 31 = end of transfer
+ *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)piix4.c	1.0.1	2017/11/04
+ * Version:	@(#)intel_piix4.c	1.0.2	2017/11/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -28,7 +26,7 @@
 #include "dma.h"
 #include "io.h"
 #include "device.h"
-#include "keyboard_at.h"
+#include "keyboard.h"
 #include "mem.h"
 #include "pci.h"
 #include "disk/hdc.h"

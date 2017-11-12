@@ -269,20 +269,16 @@ endif
 MAINOBJ		:= pc.o config.o random.o timer.o io.o dma.o nmi.o pic.o \
 		   pit.o ppi.o pci.o mca.o mcr.o mem.o memregs.o rom.o \
 		   device.o nvr.o nvr_at.o nvr_ps2.o $(VNCOBJ) $(RDPOBJ) \
-		   intel.o intel_flash.o intel_sio.o
+		   intel.o intel_flash.o intel_piix.o intel_piix4.o intel_sio.o
 
 CPUOBJ		:= cpu.o cpu_table.o \
 		    808x.o 386.o x86seg.o x87.o \
 		    386_dynarec.o $(DYNARECOBJ)
 
 MCHOBJ		:= machine.o machine_table.o \
-		    m_amstrad.o $(EUROPC) \
-		    m_olivetti_m24.o \
-		    m_pcjr.o \
-		    m_tandy.o \
-		    m_xt.o m_xt_laserxt.o \
-		    m_at.o \
-		    m_at_ali1429.o m_at_commodore.o \
+		    m_amstrad.o $(EUROPC) m_olivetti_m24.o m_tandy.o \
+		    m_xt.o m_xt_compaq.o m_xt_laserxt.o \
+		    m_at.o m_at_ali1429.o m_at_commodore.o \
 		    m_at_neat.o m_at_headland.o \
 		    m_at_opti495.o m_at_scat.o \
 		    m_at_compaq.o m_at_wd76c10.o \
@@ -290,16 +286,12 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_430lx_nx.o m_at_430fx.o \
 		    m_at_430hx.o m_at_430vx.o \
 		    m_at_440fx.o \
-		    m_ps1.o \
-		    m_ps2_isa.o m_ps2_mca.o
+		    m_pcjr.o m_ps1.o m_ps2_isa.o m_ps2_mca.o
 
 DEVOBJ		:= bugger.o lpt.o $(SERIAL) \
 		   sio_detect.o \
-		    sio_fdc37c66x.o sio_fdc37c669.o \
-		    sio_fdc37c93x.o \
-		    sio_pc87306.o sio_w83877f.o \
-		    sio_um8669f.o \
-		    piix.o \
+		    sio_fdc37c66x.o sio_fdc37c669.o sio_fdc37c93x.o \
+		    sio_pc87306.o sio_w83877f.o sio_um8669f.o \
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o \
 		   gameport.o \

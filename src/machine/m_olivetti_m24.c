@@ -8,7 +8,7 @@
  *
  *		Emulation of the Olivetti M24.
  *
- * Version:	@(#)m_olivetti_m24.c	1.0.2	2017/11/03
+ * Version:	@(#)m_olivetti_m24.c	1.0.3	2017/11/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -761,7 +761,7 @@ machine_olim24_init(machine_t *model)
 		    vid_write, NULL, NULL,  NULL, 0, m24);
     io_sethandler(0x03d0, 16, vid_in, NULL, NULL, vid_out, NULL, NULL, m24);
     timer_add(vid_poll, &m24->vidtime, TIMER_ALWAYS_ENABLED, m24);
-    device_add(&m24_device);
+    device_add_ex(&m24_device, m24);
 
     /* Initialize the keyboard. */
     m24->status = STAT_LOCK | STAT_CD;

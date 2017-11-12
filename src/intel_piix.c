@@ -6,13 +6,11 @@
  *
  *		Emulation of the Intel PIIX and PIIX3 Xcelerators.
  *
- *		Emulation core dispatcher.
- *
  *		PRD format :
  *		    word 0 - base address
- *		    word 1 - bits 1 - 15 = byte count, bit 31 = end of transfer
+ *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)piix.c	1.0.8	2017/11/04
+ * Version:	@(#)intel_piix.c	1.0.9	2017/11/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

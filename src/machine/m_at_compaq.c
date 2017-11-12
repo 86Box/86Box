@@ -24,6 +24,10 @@
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../mem.h"
+#include "../rom.h"
+#include "../device.h"
+#include "../disk/hdc.h"
+#include "../disk/hdc_ide.h"
 #include "machine.h"
 
 
@@ -100,4 +104,25 @@ machine_at_compaq_init(machine_t *model)
                     read_ram, read_ramw, read_raml,
                     write_ram, write_ramw, write_raml,
                     0xa0000+ram, MEM_MAPPING_INTERNAL, NULL);
+
+    switch(model->id) {
+	case ROM_DESKPRO_386:
+		if (hdc_current == 1)
+			ide_init();
+		break;
+
+	case ROM_PORTABLE:
+		break;
+
+	case ROM_PORTABLEII:
+		break;
+
+	case ROM_PORTABLEIII:
+		break;
+
+	case ROM_PORTABLEIII386:
+		if (hdc_current == 1)
+			ide_init();
+		break;
+    }
 }
