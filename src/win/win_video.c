@@ -8,7 +8,7 @@
  *
  *		Platform video API support for Win32.
  *
- * Version:	@(#)win_video.c	1.0.5	2017/11/11
+ * Version:	@(#)win_video.c	1.0.6	2017/11/12
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -68,7 +68,7 @@ static struct {
 #endif
   },
   {
-    {	"DDraw", 1, (int(*)(void*))ddraw_fs_init, ddraw_fs_close, NULL, ddraw_fs_pause	},
+    {	"DDraw", 1, (int(*)(void*))ddraw_init_fs, ddraw_close, NULL, ddraw_pause	},
     {	"D3D", 1, (int(*)(void*))d3d_fs_init, d3d_fs_close, NULL, d3d_fs_pause		},
 #ifdef USE_VNC
     {	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause		},
@@ -82,20 +82,6 @@ static struct {
 #endif
   },
 };
-
-
-#if 0
-    /* Initialize the rendering window, or fullscreen. */
-    if (start_in_fullscreen) {
-	startblit();
-	vid_apis[0][vid_api].close();
-	video_fullscreen = 1;
-	vid_apis[1][vid_api].init(hwndRender);
-	leave_fullscreen_flag = 0;
-	endblit();
-	device_force_redraw();
-    }
-#endif
 
 
 /* Return the VIDAPI number for the given name. */
@@ -273,10 +259,7 @@ take_screenshot(void)
 	case 0:		/* ddraw */
 		wcsftime(path, 128, L"%Y%m%d_%H%M%S.bmp", info);
 		wcscat(path, fn);
-		if (video_fullscreen)
-			ddraw_fs_take_screenshot(path);
-		  else
-			ddraw_take_screenshot(path);
+		ddraw_take_screenshot(path);
 		pclog("Screenshot: fn='%ls'\n", path);
 		break;
 

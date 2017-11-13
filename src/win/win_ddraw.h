@@ -1,6 +1,21 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Definitions for the DirectDraw 9 rendering module.
+ *
+ * Version:	@(#)win_ddraw.h	1.0.1	2017/11/12
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ */
 #ifndef WIN_DDRAW_H
 # define WIN_DDRAW_H
 # define UNICODE
@@ -14,14 +29,10 @@ extern "C" {
 #endif
 
 extern int	ddraw_init(HWND h);
+extern int	ddraw_init_fs(HWND h);
 extern void	ddraw_close(void);
 extern int	ddraw_pause(void);
 extern void	ddraw_take_screenshot(wchar_t *fn);
-
-extern int	ddraw_fs_init(HWND h);
-extern void	ddraw_fs_close(void);
-extern int	ddraw_fs_pause(void);
-extern void	ddraw_fs_take_screenshot(wchar_t *fn);
 
 #ifdef __cplusplus
 }

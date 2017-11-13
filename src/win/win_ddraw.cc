@@ -1,40 +1,53 @@
-/* Copyright holders: Sarah Walker, Tenshi
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Rendering module for Microsoft DirectDraw 9.
+ *
+ * NOTES:	This code should be re-merged into a single init() with a
+ *		'fullscreen' argument, indicating FS mode is requested.
+ *
+ * Version:	@(#)win_ddraw.cc	1.0.2	2017/11/12
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #undef BITMAP
+#include "../86box.h"
+#include "../device.h"
 #include "../video/video.h"
 #include "../plat.h"
 #include "../ui.h"
 #include "win_ddraw.h"
+#include "win_png.h"
 #include "win.h"
 
 
-extern "C" void fatal(const char *format, ...);
-extern "C" void pclog(const char *format, ...);
-
-extern "C" void device_force_redraw(void);
-
-extern "C" int ddraw_init(HWND h);
-extern "C" int ddraw_pause(void);
-extern "C" void ddraw_close(void);
-extern "C" void ddraw_take_screenshot(wchar_t *fn);
- 
-
-static LPDIRECTDRAW  lpdd  = NULL;
-static LPDIRECTDRAW7 lpdd7 = NULL;
-static LPDIRECTDRAWSURFACE7 lpdds_pri = NULL;
-static LPDIRECTDRAWSURFACE7 lpdds_back = NULL;
-static LPDIRECTDRAWSURFACE7 lpdds_back2 = NULL;
-static LPDIRECTDRAWCLIPPER lpdd_clipper = NULL;
-static DDSURFACEDESC2 ddsd;
-static HWND ddraw_hwnd;
-static HBITMAP hbitmap;
-static int xs, ys, ys2;
+static LPDIRECTDRAW		lpdd = NULL;
+static LPDIRECTDRAW7		lpdd7 = NULL;
+static LPDIRECTDRAWSURFACE7	lpdds_pri = NULL,
+				lpdds_back = NULL,
+				lpdds_back2 = NULL;
+static LPDIRECTDRAWCLIPPER	lpdd_clipper = NULL;
+static DDSURFACEDESC2		ddsd;
+static HWND			ddraw_hwnd;
+static HBITMAP			hbitmap;
+static int			ddraw_w, ddraw_h,
+				xs, ys, ys2;
 
 
 static void
@@ -142,40 +155,68 @@ SaveBitmap(wchar_t *szFilename, HBITMAP hBitmap)
 }
 
 
-void
-ddraw_common_take_screenshot(wchar_t *fn, IDirectDrawSurface7 *pDDSurface)
+static void
+ddraw_fs_size(RECT w_rect, RECT *r_dest, int w, int h)
 {
-	xs = xsize;
-	ys = ys2 = ysize;
-	/* For EGA/(S)VGA, the size is NOT adjusted for overscan. */
-	if ((overscan_y > 16) && enable_overscan)
-	{
-		xs += overscan_x;
-		ys += overscan_y;
-	}
-	/* For CGA, the width is adjusted for overscan, but the height is not. */
-	if (overscan_y == 16)
-	{
-		if (ys2 <= 250)
-			ys += (overscan_y >> 1);
-		else
-			ys += overscan_y;
-	}
-	CopySurface(pDDSurface);
-	SaveBitmap(fn, hbitmap);
+    int ratio_w, ratio_h;
+
+    switch (video_fullscreen_scale) {
+	case FULLSCR_SCALE_FULL:
+		r_dest->left   = 0;
+		r_dest->top    = 0;
+		r_dest->right  = (w_rect.right  - w_rect.left) - 1;
+		r_dest->bottom = (w_rect.bottom - w_rect.top) - 1;
+		break;
+
+	case FULLSCR_SCALE_43:
+		r_dest->top    = 0;
+		r_dest->bottom = (w_rect.bottom - w_rect.top) - 1;
+		r_dest->left   = ((w_rect.right  - w_rect.left) / 2) - (((w_rect.bottom - w_rect.top) * 4) / (3 * 2));
+		r_dest->right  = ((w_rect.right  - w_rect.left) / 2) + (((w_rect.bottom - w_rect.top) * 4) / (3 * 2)) - 1;
+		if (r_dest->left < 0) {
+			r_dest->left   = 0;
+			r_dest->right  = (w_rect.right  - w_rect.left) - 1;
+			r_dest->top    = ((w_rect.bottom - w_rect.top) / 2) - (((w_rect.right - w_rect.left) * 3) / (4 * 2));
+			r_dest->bottom = ((w_rect.bottom - w_rect.top) / 2) + (((w_rect.right - w_rect.left) * 3) / (4 * 2)) - 1;
+		}
+		break;
+
+	case FULLSCR_SCALE_SQ:
+		r_dest->top    = 0;
+		r_dest->bottom = (w_rect.bottom - w_rect.top) - 1;
+		r_dest->left   = ((w_rect.right  - w_rect.left) / 2) - (((w_rect.bottom - w_rect.top) * w) / (h * 2));
+		r_dest->right  = ((w_rect.right  - w_rect.left) / 2) + (((w_rect.bottom - w_rect.top) * w) / (h * 2)) - 1;
+		if (r_dest->left < 0) {
+			r_dest->left   = 0;
+			r_dest->right  = (w_rect.right  - w_rect.left) - 1;
+			r_dest->top    = ((w_rect.bottom - w_rect.top) / 2) - (((w_rect.right - w_rect.left) * h) / (w * 2));
+			r_dest->bottom = ((w_rect.bottom - w_rect.top) / 2) + (((w_rect.right - w_rect.left) * h) / (w * 2)) - 1;
+		}
+		break;
+
+	case FULLSCR_SCALE_INT:
+		ratio_w = (w_rect.right  - w_rect.left) / w;
+		ratio_h = (w_rect.bottom - w_rect.top)  / h;
+		if (ratio_h < ratio_w)
+			ratio_w = ratio_h;
+		r_dest->left   = ((w_rect.right  - w_rect.left) / 2) - ((w * ratio_w) / 2);
+		r_dest->right  = ((w_rect.right  - w_rect.left) / 2) + ((w * ratio_w) / 2) - 1;
+		r_dest->top    = ((w_rect.bottom - w_rect.top)  / 2) - ((h * ratio_w) / 2);
+		r_dest->bottom = ((w_rect.bottom - w_rect.top)  / 2) + ((h * ratio_w) / 2) - 1;
+		break;
+    }
 }
 
 
 static void
-blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
+ddraw_blit_fs(int x, int y, int y1, int y2, int w, int h)
 {
     RECT r_src;
     RECT r_dest;
+    RECT w_rect;
     int yy;
-    POINT po;
     HRESULT hr;
-
-//    pclog("Blit memtoscreen %i,%i %i %i %i,%i\n", x, y, y1, y2, w, h);
+    DDBLTFX ddbltfx;
 
     if (lpdds_back == NULL) {
 	video_blit_complete();
@@ -190,13 +231,87 @@ blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
     memset(&ddsd, 0, sizeof(ddsd));
     ddsd.dwSize = sizeof(ddsd);
 
-    hr = lpdds_back->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
+    hr = lpdds_back->Lock(NULL, &ddsd,
+			  DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
     if (hr == DDERR_SURFACELOST) {
 	lpdds_back->Restore();
-	lpdds_back->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
+	lpdds_back->Lock(NULL, &ddsd,
+			 DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
 	device_force_redraw();
     }
-    if (!ddsd.lpSurface) {
+    if (! ddsd.lpSurface) {
+	video_blit_complete();
+	return;
+    }
+
+    for (yy = y1; yy < y2; yy++)
+	memcpy((void *)((uintptr_t)ddsd.lpSurface + (yy * ddsd.lPitch)), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
+    video_blit_complete();
+    lpdds_back->Unlock(NULL);
+
+    w_rect.left = 0;
+    w_rect.top = 0;
+    w_rect.right = ddraw_w;
+    w_rect.bottom = ddraw_h;
+    ddraw_fs_size(w_rect, &r_dest, w, h);
+
+    r_src.left   = 0;
+    r_src.top    = 0;       
+    r_src.right  = w;
+    r_src.bottom = h;
+
+    ddbltfx.dwSize = sizeof(ddbltfx);
+    ddbltfx.dwFillColor = 0;
+
+    lpdds_back2->Blt(&w_rect, NULL, NULL,
+		     DDBLT_WAIT | DDBLT_COLORFILL, &ddbltfx);
+
+    hr = lpdds_back2->Blt(&r_dest, lpdds_back, &r_src, DDBLT_WAIT, NULL);
+    if (hr == DDERR_SURFACELOST) {
+	lpdds_back2->Restore();
+	lpdds_back2->Blt(&r_dest, lpdds_back, &r_src, DDBLT_WAIT, NULL);
+    }
+	
+    hr = lpdds_pri->Flip(NULL, DDFLIP_NOVSYNC);	
+    if (hr == DDERR_SURFACELOST) {
+	lpdds_pri->Restore();
+	lpdds_pri->Flip(NULL, DDFLIP_NOVSYNC);
+    }
+}
+
+
+static void
+ddraw_blit(int x, int y, int y1, int y2, int w, int h)
+{
+    RECT r_src;
+    RECT r_dest;
+    POINT po;
+    HRESULT hr;
+    int yy;
+
+    if (lpdds_back == NULL) {
+	video_blit_complete();
+	return; /*Nothing to do*/
+    }
+
+    if ((y1 == y2) || (h <= 0)) {
+	video_blit_complete();
+	return;
+    }
+
+    memset(&ddsd, 0, sizeof(ddsd));
+    ddsd.dwSize = sizeof(ddsd);
+
+    hr = lpdds_back->Lock(NULL, &ddsd,
+			  DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
+    if (hr == DDERR_SURFACELOST) {
+	lpdds_back->Restore();
+	lpdds_back->Lock(NULL, &ddsd,
+			 DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
+	device_force_redraw();
+    }
+
+    if (! ddsd.lpSurface) {
 	video_blit_complete();
 	return;
     }
@@ -227,12 +342,37 @@ blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 
     lpdds_back2->Unlock(NULL);
 	
-//    pclog("Blit from %i,%i %i,%i to %i,%i %i,%i\n", r_src.left, r_src.top, r_src.right, r_src.bottom, r_dest.left, r_dest.top, r_dest.right, r_dest.bottom);
     hr = lpdds_pri->Blt(&r_dest, lpdds_back2, &r_src, DDBLT_WAIT, NULL);
     if (hr == DDERR_SURFACELOST) {
 	lpdds_pri->Restore();
 	lpdds_pri->Blt(&r_dest, lpdds_back2, &r_src, DDBLT_WAIT, NULL);
     }
+}
+
+
+void
+ddraw_take_screenshot(wchar_t *fn)
+{
+    xs = xsize;
+    ys = ys2 = ysize;
+
+    /* For EGA/(S)VGA, the size is NOT adjusted for overscan. */
+    if ((overscan_y > 16) && enable_overscan) {
+	xs += overscan_x;
+	ys += overscan_y;
+    }
+
+    /* For CGA, the width is adjusted for overscan, but the height is not. */
+    if (overscan_y == 16) {
+	if (ys2 <= 250)
+		ys += (overscan_y >> 1);
+	  else
+		ys += overscan_y;
+    }
+
+    CopySurface(lpdds_back2);
+
+    SaveBitmap(fn, hbitmap);
 }
 
 
@@ -258,8 +398,6 @@ ddraw_init(HWND h)
     ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
     if (FAILED(lpdd7->CreateSurface(&ddsd, &lpdds_pri, NULL))) return(0);
 
-    // memset(&ddsd, 0, sizeof(ddsd));
-    // ddsd.dwSize = sizeof(ddsd);
     ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
     ddsd.dwWidth  = 2048;
     ddsd.dwHeight = 2048;
@@ -275,7 +413,6 @@ ddraw_init(HWND h)
 
     memset(&ddsd, 0, sizeof(ddsd));
     ddsd.dwSize = sizeof(ddsd);
-
     ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
     ddsd.dwWidth  = 2048;
     ddsd.dwHeight = 2048;
@@ -297,7 +434,65 @@ ddraw_init(HWND h)
 
     ddraw_hwnd = h;
 
-    video_setblit(blit_memtoscreen);
+    video_setblit(ddraw_blit);
+
+    return(1);
+}
+
+
+int
+ddraw_init_fs(HWND h)
+{
+    ddraw_w = GetSystemMetrics(SM_CXSCREEN);
+    ddraw_h = GetSystemMetrics(SM_CYSCREEN);
+
+    cgapal_rebuild();
+
+    if (FAILED(DirectDrawCreate(NULL, &lpdd, NULL))) return 0;
+
+    if (FAILED(lpdd->QueryInterface(IID_IDirectDraw7, (LPVOID *)&lpdd7))) return 0;
+
+    lpdd->Release();
+    lpdd = NULL;
+
+    atexit(ddraw_close);
+
+    if (FAILED(lpdd7->SetCooperativeLevel(h,
+					  DDSCL_SETFOCUSWINDOW | \
+					  DDSCL_CREATEDEVICEWINDOW | \
+					  DDSCL_EXCLUSIVE | \
+					  DDSCL_FULLSCREEN | \
+					  DDSCL_ALLOWREBOOT))) return 0;
+
+    if (FAILED(lpdd7->SetDisplayMode(ddraw_w, ddraw_h, 32, 0 ,0))) return 0;
+
+    memset(&ddsd, 0, sizeof(ddsd));
+    ddsd.dwSize = sizeof(ddsd);
+    ddsd.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
+    ddsd.dwBackBufferCount = 1;
+    ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_COMPLEX | DDSCAPS_FLIP;
+    if (FAILED(lpdd7->CreateSurface(&ddsd, &lpdds_pri, NULL))) return 0;
+
+    ddsd.ddsCaps.dwCaps = DDSCAPS_BACKBUFFER;
+    if (FAILED(lpdds_pri->GetAttachedSurface(&ddsd.ddsCaps, &lpdds_back2))) return 0;
+
+    memset(&ddsd, 0, sizeof(ddsd));
+    ddsd.dwSize = sizeof(ddsd);
+    ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
+    ddsd.dwWidth  = 2048;
+    ddsd.dwHeight = 2048;
+    ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY;
+    if (FAILED(lpdd7->CreateSurface(&ddsd, &lpdds_back, NULL))) {
+	ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
+	ddsd.dwWidth  = 2048;
+	ddsd.dwHeight = 2048;
+	ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
+	if (FAILED(lpdd7->CreateSurface(&ddsd, &lpdds_back, NULL))) return 0;
+    }
+
+    ddraw_hwnd = h;
+
+    video_setblit(ddraw_blit_fs);
 
     return(1);
 }
@@ -333,11 +528,4 @@ int
 ddraw_pause(void)
 {
     return(0);
-}
-
-
-void
-ddraw_take_screenshot(wchar_t *fn)
-{
-    ddraw_common_take_screenshot(fn, lpdds_back2);
 }
