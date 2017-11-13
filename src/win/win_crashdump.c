@@ -1,8 +1,23 @@
-/* Copyright holders: Riley
-   see COPYING for more details
-   
-   win_crashdump.c : Windows exception handler to make a crash dump just before a crash happens.
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Handle generation of crash-dump reports.
+ *
+ * Version:	@(#)win_crashdump.c	1.0.2	2017/11/12
+ *
+ * Authors:	Riley
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *		Copyright 2016,2017 Riley.
+ *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
+ */
 #define _WIN32_WINNT 0x0501
 #include <windows.h>
 #include <psapi.h>
@@ -110,41 +125,41 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
 	return(EXCEPTION_CONTINUE_SEARCH);
     }
 	
-    // Now the file is open, let's write the data we were passed out in a human-readable format.
-	
-    // Let's get the name of the module where the exception occured.
+    /*
+     * Write the data we were passed out in a human-readable format.
+     *
+     * Get the name of the module where the exception occurred.
+     */
     HMODULE hMods[1024];
     MODULEINFO modInfo;
     HMODULE ipModule = 0;
     DWORD cbNeeded;
 
-    // Try to get a list of all loaded modules.
+    /* Try to get a list of all loaded modules. */
     if (EnumProcessModules(GetCurrentProcess(),
 			   hMods, sizeof(hMods), &cbNeeded)) {
-	// The list was obtained, walk through each of the modules.
+	/* Got it, now walk through all modules.. */
 	for (DWORD i = 0; i < (cbNeeded / sizeof(HMODULE)); i++) {
-		// For each module, get the module information
-		// (base address, size, entry point)
+		/* For each module, get the module information. */
 		GetModuleInformation(GetCurrentProcess(),
 				     hMods[i], &modInfo, sizeof(MODULEINFO));
-		// If the exception address is located in the range of
-		// where this module is loaded...
+		/* If the exception address is in the range of this module.. */
 		if ( (ExceptionInfo->ExceptionRecord->ExceptionAddress >= modInfo.lpBaseOfDll) &&
 		   (ExceptionInfo->ExceptionRecord->ExceptionAddress < (modInfo.lpBaseOfDll + modInfo.SizeOfImage))) {
-			// ...this is the module we're looking for!
+			/* ...this is the module we're looking for! */
 			ipModule = hMods[i];
 			break;
 		}
 	}
     }
 	
-    // Start to put the crash-dump string into the buffer.
+    /* Start to put the crash-dump string into the buffer. */
     sprintf(ExceptionHandlerBuffer,
-	"%s crashed on %d-%02d-%02d %02d:%02d:%02d.%03d\r\n\r\n"
-	""
+	"#\r\n# %s\r\n#\r\n"
+	"# Crash on %d-%02d-%02d at %02d:%02d:%02d.%03d\r\n#\r\n"
+	"\r\n"
 	"Exception details:\r\n"
-	"Exception NTSTATUS code: 0x%08lx\r\n"
-	"Occured at address: 0x%p",
+	" NTSTATUS code: 0x%08lx\r\n Address: 0x%p",
 	emu_version,
 	SystemTime.wYear, SystemTime.wMonth, SystemTime.wDay,
 	SystemTime.wHour, SystemTime.wMinute, SystemTime.wSecond,
@@ -152,7 +167,10 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
 	ExceptionInfo->ExceptionRecord->ExceptionCode,
 	(void *)ExceptionInfo->ExceptionRecord->ExceptionAddress);
 
-    // If we found the module that the exception occured in, get the full path to the module the exception occured at and include it.
+    /*
+     * If we found the correct module, get the full path to
+     * the module the exception occured at and include it.
+     */
     BufPtr = &ExceptionHandlerBuffer[strlen(ExceptionHandlerBuffer)];
     if (ipModule != 0) {
 	sprintf(BufPtr," [");
@@ -165,14 +183,10 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
 	}
     }
 	
-    // Continue to create the crash-dump string.
     sprintf(BufPtr,
-	"\r\n"
-	"Number of parameters: %lu\r\n"
-	"Exception parameters: ",
+	"\r\nNumber of parameters: %lu\r\nException parameters: ",
 	ExceptionInfo->ExceptionRecord->NumberParameters);
 	
-    // Add the exception parameters to the crash-dump string.
     for (int i = 0; i < ExceptionInfo->ExceptionRecord->NumberParameters; i++) {
 	BufPtr = &ExceptionHandlerBuffer[strlen(ExceptionHandlerBuffer)];
 	sprintf(BufPtr,"0x%p ",
@@ -183,32 +197,35 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
     PCONTEXT Registers = ExceptionInfo->ContextRecord;
 	
 #if defined(__i386__) && !defined(__x86_64)
-    // This binary is being compiled for x86, include a register dump.
+    /* This binary is being compiled for x86, include a register dump. */
     sprintf(BufPtr,
-	"\r\n"
-	"Register dump:\r\n"
-	"eax=0x%08lx ebx=0x%08lx ecx=0x%08lx edx=0x%08lx ebp=0x%08lx esp=0x%08lx esi=0x%08lx edi=0x%08lx eip=0x%08lx\r\n"
-	"\r\n",
-	Registers->Eax, Registers->Ebx, Registers->Ecx, Registers->Edx, Registers->Ebp, Registers->Esp, Registers->Esi, Registers->Edi, Registers->Eip);
+	"\r\n\r\nRegister dump:\r\n\r\n"
+	"EIP:0x%08lx\r\n"
+	"EAX:0x%08lx EBX:0x%08lx ECX:0x%08lx EDX:0x%08lx\r\n"
+	"EBP:0x%08lx ESP:0x%08lx ESI:0x%08lx EDI:0x%08lx\r\n\r\n",
+	Registers->Eip,
+	Registers->Eax, Registers->Ebx, Registers->Ecx, Registers->Edx,
+	Registers->Ebp, Registers->Esp, Registers->Esi, Registers->Edi);
 #else
-    // Register dump is supported by no other architectures right now. MinGW headers seem to lack the x64 CONTEXT structure definition.
-    sprintf(BufPtr,"\r\n");
+    /* Register dump not supported by this architecture. */
+    /* (MinGW headers seem to lack the x64 CONTEXT structure definition) */
+    sprintf(BufPtr, "\r\n");
 #endif
 	
-    // The crash-dump string has been created, write it to disk.
+    /* Write the string to disk. */
     WriteFile(hDumpFile, ExceptionHandlerBuffer,
 	      strlen(ExceptionHandlerBuffer), NULL, NULL);
 
-    // Finally, close the file.
+    /* Close the file. */
     CloseHandle(hDumpFile);
 
-    // And return, therefore causing the crash,
-    // but only after the crash dump has been created.
+    /* Return, therefore causing the crash. */
     return(EXCEPTION_CONTINUE_SEARCH);
 }
 
 
-void InitCrashDump(void)
+void
+InitCrashDump(void)
 {
     /*
      * An exception handler should not allocate memory,
