@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.75	2017/11/12
+# Version:	@(#)Makefile.mingw	1.0.76	2017/11/12
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -32,6 +32,9 @@ endif
 # Defaults for several build options (possibly defined in a chained file.)
 ifndef AUTODEP
 AUTODEP		:= n
+endif
+ifndef CRASHDUMP
+CRASHCUMP	:= n
 endif
 ifndef DEBUG
 DEBUG		:= n
@@ -159,6 +162,9 @@ AFLAGS		:= -msse -msse2 -mfpmath=sse
 CFLAGS		:= $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) $(AFLAGS) \
 		   -fomit-frame-pointer -mstackrealign -Wall
 RFLAGS		:= --input-format=rc -O coff
+ifeq ($(CRASHDUMP), y)
+CFLAGS		+= -DUSE_CRASHDUMP
+endif
 ifeq ($(RELEASE), y)
 CFLAGS		+= -DRELEASE_BUILD
 RFLAGS		+= -DRELEASE_BUILD
@@ -378,10 +384,10 @@ VIDOBJ		:= video.o \
 		    vid_voodoo.o
 
 PLATOBJ		:= win.o \
-		    win_ddraw.o  win_d3d.o win_d3d_fs.o win_png.o \
+		    win_crashdump.o win_ddraw.o win_d3d.o win_png.o \
 		    win_dynld.o win_thread.o $(WSERIAL) win_video.o \
-		    win_cdrom.o win_cdrom_ioctl.o win_keyboard.o win_mouse.o \
-		    win_joystick.o win_midi.o \
+		    win_cdrom.o win_cdrom_ioctl.o win_keyboard.o \
+		    win_mouse.o win_joystick.o win_midi.o \
 		    win_dialog.o win_about.o win_status.o win_stbar.o \
 		    win_settings.o win_deviceconfig.o win_joystickconfig.o
 

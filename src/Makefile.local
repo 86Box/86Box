@@ -10,7 +10,7 @@
 #		settings, so we can avoid changing the main one for all of
 #		our local setups.
 #
-# Version:	@(#)Makefile.local	1.0.6	2017/10/26
+# Version:	@(#)Makefile.local	1.0.7	2017/11/12
 #
 # Author:	Fred N. van Kempen, <decwiz@yahoo.com>
 #
@@ -61,6 +61,7 @@ EXTRAS		:=
 
 
 AUTODEP		:= n
+CRASHDUMP	:= n
 DEBUG		:= n
 OPTIM		:= n
 X64		:= n

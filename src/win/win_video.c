@@ -8,7 +8,7 @@
  *
  *		Platform video API support for Win32.
  *
- * Version:	@(#)win_video.c	1.0.6	2017/11/12
+ * Version:	@(#)win_video.c	1.0.7	2017/11/12
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -69,7 +69,7 @@ static struct {
   },
   {
     {	"DDraw", 1, (int(*)(void*))ddraw_init_fs, ddraw_close, NULL, ddraw_pause	},
-    {	"D3D", 1, (int(*)(void*))d3d_fs_init, d3d_fs_close, NULL, d3d_fs_pause		},
+    {	"D3D", 1, (int(*)(void*))d3d_init_fs, d3d_close, NULL, d3d_pause		},
 #ifdef USE_VNC
     {	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause		},
 #else
@@ -266,10 +266,7 @@ take_screenshot(void)
 	case 1:		/* d3d9 */
 		wcsftime(fn, 128, L"%Y%m%d_%H%M%S.png", info);
 		wcscat(path, fn);
-		if (video_fullscreen)
-			d3d_fs_take_screenshot(path);
-		  else
-			d3d_take_screenshot(path);
+		d3d_take_screenshot(path);
 		pclog("Screenshot: fn='%ls'\n", path);
 		break;
 

@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.34	2017/11/11
+ * Version:	@(#)win.c	1.0.35	2017/11/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -666,7 +666,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_RESETD3D:
 		startblit();
 		if (video_fullscreen)
-			d3d_fs_reset();
+			d3d_reset_fs();
 		  else
 			d3d_reset();
 		endblit();
@@ -884,6 +884,14 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
 
     /* We need this later. */
     hinstance = hInst;
+
+    /* Set the application version ID string. */
+    sprintf(emu_version, "%s v%s", EMU_NAME, EMU_VERSION);
+
+#ifdef USE_CRASHDUMP
+    /* Enable crash dump services. */
+    InitCrashDump();
+#endif
 
     /* First, set our (default) language. */
     set_language(0x0409);

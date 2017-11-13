@@ -8,7 +8,7 @@
  *
  *		Direct3D 9 rendererer and screenshots taking.
  *
- * Version:	@(#)win_d3d.h	1.0.2	2017/10/13
+ * Version:	@(#)win_d3d.h	1.0.3	2017/11/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -30,18 +30,13 @@ extern "C" {
 #endif
 
 extern int	d3d_init(HWND h);
+extern int	d3d_init_fs(HWND h);
 extern void	d3d_close(void);
 extern void	d3d_reset(void);
+extern void	d3d_reset_fs(void);
 extern int	d3d_pause(void);
 extern void	d3d_resize(int x, int y);
 extern void	d3d_take_screenshot(wchar_t *fn);
-
-extern int	d3d_fs_init(HWND h);
-extern void	d3d_fs_close(void);
-extern void	d3d_fs_reset(void);
-extern int	d3d_fs_pause(void);
-extern void	d3d_fs_resize(int x, int y);
-extern void	d3d_fs_take_screenshot(wchar_t *fn);
 
 #ifdef __cplusplus
 }

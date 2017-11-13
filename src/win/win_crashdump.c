@@ -6,25 +6,27 @@
 #define _WIN32_WINNT 0x0501
 #include <windows.h>
 #include <psapi.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
 #include "../86box.h"
-#include "win_crashdump.h"
+#include "../plat.h"
+#include "win.h"
 
 
 #define ExceptionHandlerBufferSize (10240)
 
 
 static PVOID	hExceptionHandler;
-static char	*ExceptionHandlerBuffer;
+static char	*ExceptionHandlerBuffer,
+		*CurrentBufferPointer;
 
 
 LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
 {
     SYSTEMTIME SystemTime;
     HANDLE hDumpFile;
-    DWORD Error;
     char *BufPtr;
 
     /*
@@ -138,17 +140,17 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
 	
     // Start to put the crash-dump string into the buffer.
     sprintf(ExceptionHandlerBuffer,
-	"86Box version %s crashed on %d-%02d-%02d %02d:%02d:%02d.%03d\r\n\r\n"
+	"%s crashed on %d-%02d-%02d %02d:%02d:%02d.%03d\r\n\r\n"
 	""
 	"Exception details:\r\n"
-	"Exception NTSTATUS code: 0x%08x\r\n"
+	"Exception NTSTATUS code: 0x%08lx\r\n"
 	"Occured at address: 0x%p",
-	emulator_version,
+	emu_version,
 	SystemTime.wYear, SystemTime.wMonth, SystemTime.wDay,
 	SystemTime.wHour, SystemTime.wMinute, SystemTime.wSecond,
 	SystemTime.wMilliseconds,
 	ExceptionInfo->ExceptionRecord->ExceptionCode,
-	ExceptionInfo->ExceptionRecord->ExceptionAddress);
+	(void *)ExceptionInfo->ExceptionRecord->ExceptionAddress);
 
     // If we found the module that the exception occured in, get the full path to the module the exception occured at and include it.
     BufPtr = &ExceptionHandlerBuffer[strlen(ExceptionHandlerBuffer)];
@@ -166,7 +168,7 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
     // Continue to create the crash-dump string.
     sprintf(BufPtr,
 	"\r\n"
-	"Number of parameters: %d\r\n"
+	"Number of parameters: %lu\r\n"
 	"Exception parameters: ",
 	ExceptionInfo->ExceptionRecord->NumberParameters);
 	
@@ -174,7 +176,7 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
     for (int i = 0; i < ExceptionInfo->ExceptionRecord->NumberParameters; i++) {
 	BufPtr = &ExceptionHandlerBuffer[strlen(ExceptionHandlerBuffer)];
 	sprintf(BufPtr,"0x%p ",
-		ExceptionInfo->ExceptionRecord->ExceptionInformation[i]);
+	    (void *)ExceptionInfo->ExceptionRecord->ExceptionInformation[i]);
     }
     BufPtr = &ExceptionHandlerBuffer[strlen(ExceptionHandlerBuffer) - 1];
 
@@ -185,7 +187,7 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
     sprintf(BufPtr,
 	"\r\n"
 	"Register dump:\r\n"
-	"eax=0x%08x ebx=0x%08x ecx=0x%08x edx=0x%08x ebp=0x%08x esp=0x%08x esi=0x%08x edi=0x%08x eip=0x%08x\r\n"
+	"eax=0x%08lx ebx=0x%08lx ecx=0x%08lx edx=0x%08lx ebp=0x%08lx esp=0x%08lx esi=0x%08lx edi=0x%08lx eip=0x%08lx\r\n"
 	"\r\n",
 	Registers->Eax, Registers->Ebx, Registers->Ecx, Registers->Edx, Registers->Ebp, Registers->Esp, Registers->Esi, Registers->Edi, Registers->Eip);
 #else
@@ -214,6 +216,7 @@ void InitCrashDump(void)
      * an amount which should be more than enough.
      */
     ExceptionHandlerBuffer = malloc(ExceptionHandlerBufferSize);
+    CurrentBufferPointer = ExceptionHandlerBuffer;
 
     /*
      * Register the exception handler.

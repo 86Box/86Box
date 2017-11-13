@@ -8,7 +8,7 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.8	2017/10/24
+ * Version:	@(#)win.h	1.0.9	2017/11/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -63,6 +63,10 @@ extern WCHAR		wopenfilestring[260];
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifdef USE_CRASHDUMP
+extern void	InitCrashDump(void);
 #endif
 
 extern HICON	LoadIconEx(PCTSTR pszIconName);
