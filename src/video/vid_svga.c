@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.11	2017/11/05
+ * Version:	@(#)vid_svga.c	1.0.12	2017/11/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -445,8 +445,6 @@ uint8_t svga_in(uint16_t addr, void *p)
 				}
 			}
 		}
-temp = svga->sense;
-pclog("SVGAread = %02x\n", temp);
                 return temp;
 		case 0x3C3:
 		return svga->enabled & 0x01;
