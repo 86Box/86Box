@@ -23,6 +23,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../lpt.h"
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
@@ -707,6 +708,8 @@ void *herculesplus_init(device_t *info)
         mdacols[0x08][0][1] = mdacols[0x08][1][1] = 16;
         mdacols[0x80][0][1] = mdacols[0x80][1][1] = 16;
         mdacols[0x88][0][1] = mdacols[0x88][1][1] = 16;
+
+	lpt3_init(0x3BC);
 
         return herculesplus;
 }

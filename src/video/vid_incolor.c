@@ -23,6 +23,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../lpt.h"
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
@@ -1052,7 +1053,7 @@ void *incolor_init(device_t *info)
 	}
 	incolor->palette_idx = 0;
 
-
+	lpt3_init(0x3BC);
 
         return incolor;
 }

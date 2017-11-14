@@ -25,6 +25,7 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../io.h"
+#include "../lpt.h"
 #include "../pit.h"
 #include "../timer.h"
 #include "../device.h"
@@ -369,6 +370,8 @@ void *hercules_init(device_t *info)
 		cga_palette = 0;
 	}
 	cgapal_rebuild();
+
+	lpt3_init(0x3BC);
 
         return hercules;
 }

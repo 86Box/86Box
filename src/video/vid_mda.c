@@ -23,6 +23,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../lpt.h"
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
@@ -318,6 +319,8 @@ void *mda_init(device_t *info)
 		cga_palette = 0;
 	}
 	cgapal_rebuild();
+
+	lpt3_init(0x3BC);
 
         return mda;
 }
