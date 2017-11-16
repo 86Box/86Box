@@ -224,10 +224,19 @@ struct _cpustate_ {
     uint32_t	last_ea;
 } cpu_state;
 
+/*The flags below must match in both cpu_cur_status and block->status for a block
+  to be valid*/
 #define CPU_STATUS_USE32   (1 << 0)
 #define CPU_STATUS_STACK32 (1 << 1)
-#define CPU_STATUS_FLATDS  (1 << 2)
-#define CPU_STATUS_FLATSS  (1 << 3)
+#define CPU_STATUS_PMODE   (1 << 2)
+#define CPU_STATUS_V86     (1 << 3)
+#define CPU_STATUS_FLAGS 0xffff
+
+/*If the flags below are set in cpu_cur_status, they must be set in block->status.
+  Otherwise they are ignored*/
+#define CPU_STATUS_NOTFLATDS  (1 << 16)
+#define CPU_STATUS_NOTFLATSS  (1 << 17)
+#define CPU_STATUS_MASK 0xffff0000
 
 #ifdef __MSC__
 # define COMPILE_TIME_ASSERT(expr)	/*nada*/

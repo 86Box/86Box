@@ -774,16 +774,16 @@ static int opLOADALL(uint32_t fetchdat)
         _ss.access = readmemb(0, 0x845);
         _ss.limit = readmemw(0, 0x846);
         if (_ss.base == 0 && _ss.limit_low == 0 && _ss.limit_high == 0xffffffff)
-                cpu_cur_status |= CPU_STATUS_FLATSS;
+                cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
         else
-                cpu_cur_status &= ~CPU_STATUS_FLATSS;
+                cpu_cur_status |= CPU_STATUS_NOTFLATSS;
         ds = readmemw(0, 0x848) | (readmemb(0, 0x84A) << 16);
         _ds.access = readmemb(0, 0x84B);
         _ds.limit = readmemw(0, 0x84C);
         if (_ds.base == 0 && _ds.limit_low == 0 && _ds.limit_high == 0xffffffff)
-                cpu_cur_status |= CPU_STATUS_FLATDS;
+                cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
         else
-                cpu_cur_status &= ~CPU_STATUS_FLATDS;
+                cpu_cur_status |= CPU_STATUS_NOTFLATDS;
         gdt.base = readmemw(0, 0x84E) | (readmemb(0, 0x850) << 16);
         gdt.limit = readmemw(0, 0x852);
         ldt.base = readmemw(0, 0x854) | (readmemb(0, 0x856) << 16);
@@ -834,17 +834,16 @@ static void loadall_load_segment(uint32_t addr, x86seg *s)
         if (s == &_ds)
         {
                 if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
-
-                       cpu_cur_status |= CPU_STATUS_FLATDS;
-                else
-                        cpu_cur_status &= ~CPU_STATUS_FLATDS;
+	                cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
+        	else
+                	cpu_cur_status |= CPU_STATUS_NOTFLATDS;
         }
         if (s == &_ss)
         {
                 if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
-                        cpu_cur_status |= CPU_STATUS_FLATSS;
-                else
-                        cpu_cur_status &= ~CPU_STATUS_FLATSS;
+	                cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
+        	else
+                	cpu_cur_status |= CPU_STATUS_NOTFLATSS;
         }
 }
 

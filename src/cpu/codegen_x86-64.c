@@ -294,6 +294,8 @@ void codegen_block_start_recompile(codeblock_t *block)
         if (block->pc != cs + cpu_state.pc || block->was_recompiled)
                 fatal("Recompile to used block!\n");
 
+        block->status = cpu_cur_status;
+        
         block_pos = BLOCK_GPF_OFFSET;
 #if WIN64
         addbyte(0x48); /*XOR RCX, RCX*/
@@ -377,8 +379,8 @@ void codegen_block_start_recompile(codeblock_t *block)
 
         block->was_recompiled = 1;
 
-        codegen_flat_ds = cpu_cur_status & CPU_STATUS_FLATDS;
-        codegen_flat_ss = cpu_cur_status & CPU_STATUS_FLATSS;
+        codegen_flat_ds = !(cpu_cur_status & CPU_STATUS_NOTFLATDS);
+        codegen_flat_ss = !(cpu_cur_status & CPU_STATUS_NOTFLATSS);
 }
 
 void codegen_block_remove()

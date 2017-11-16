@@ -131,6 +131,10 @@ static int opMOV_CRx_r_a16(uint32_t fetchdat)
                         cpu_cache_int_enabled = 0;
                 if (is486 && ((cr0 ^ old_cr0) & (1 << 30)))
                         cpu_update_waitstates();
+                if (cr0 & 1)
+                        cpu_cur_status |= CPU_STATUS_PMODE;
+                else
+                        cpu_cur_status &= ~CPU_STATUS_PMODE;
                 break;
                 case 2:
                 cr2 = cpu_state.regs[cpu_rm].l;
@@ -183,6 +187,10 @@ static int opMOV_CRx_r_a32(uint32_t fetchdat)
                         cpu_cache_int_enabled = 0;
                 if (is486 && ((cr0 ^ old_cr0) & (1 << 30)))
                         cpu_update_waitstates();
+                if (cr0 & 1)
+                        cpu_cur_status |= CPU_STATUS_PMODE;
+                else
+                        cpu_cur_status &= ~CPU_STATUS_PMODE;
                 break;
                 case 2:
                 cr2 = cpu_state.regs[cpu_rm].l;

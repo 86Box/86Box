@@ -375,6 +375,10 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
                 }
                 else tempw &= 0xF;
                 msw = tempw;
+                if (msw & 1)
+                        cpu_cur_status |= CPU_STATUS_PMODE;
+                else
+                        cpu_cur_status &= ~CPU_STATUS_PMODE;
                 PREFETCH_RUN(2, 2, rmdat, 0,0,(cpu_mod == 3) ? 0:1,0, ea32);
                 break;
 

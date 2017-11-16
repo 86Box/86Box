@@ -657,7 +657,8 @@ void exec386_dynarec(int cycs)
                           and physical address. The physical address check will
                           also catch any page faults at this stage*/
                         valid_block = (block->pc == cs + cpu_state.pc) && (block->_cs == cs) &&
-                                      (block->phys == phys_addr) && (block->status == cpu_cur_status);
+                                      (block->phys == phys_addr) && !((block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) &&
+                                      ((block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
                         if (!valid_block)
                         {
                                 uint64_t mask = (uint64_t)1 << ((phys_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
@@ -669,7 +670,8 @@ void exec386_dynarec(int cycs)
                                         if (new_block)
                                         {
                                                 valid_block = (new_block->pc == cs + cpu_state.pc) && (new_block->_cs == cs) &&
-                                                                (new_block->phys == phys_addr) && (new_block->status == cpu_cur_status);
+                                                                (new_block->phys == phys_addr) && !((new_block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) &&
+                                                                ((new_block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
                                                 if (valid_block)
                                                         block = new_block;
                                         }
