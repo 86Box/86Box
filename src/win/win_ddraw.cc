@@ -353,6 +353,7 @@ ddraw_blit(int x, int y, int y1, int y2, int w, int h)
 void
 ddraw_take_screenshot(wchar_t *fn)
 {
+#if 0
     xs = xsize;
     ys = ys2 = ysize;
 
@@ -368,6 +369,15 @@ ddraw_take_screenshot(wchar_t *fn)
 		ys += (overscan_y >> 1);
 	  else
 		ys += overscan_y;
+    }
+#endif
+
+    xs = get_actual_size_x();
+    ys = ys2 = get_actual_size_y();
+
+    if (ysize <= 250) {
+	ys >>= 1;
+	ys2 >>= 1;
     }
 
     CopySurface(lpdds_back2);

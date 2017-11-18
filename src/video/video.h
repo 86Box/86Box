@@ -218,6 +218,9 @@ extern void	video_update_timing(void);
 
 extern void	loadfont(wchar_t *s, int format);
 
+extern int	get_actual_size_x(void);
+extern int	get_actual_size_y(void);
+
 #ifdef ENABLE_VRAM_DUMP
 extern void	svga_dump_vram(void);
 #endif

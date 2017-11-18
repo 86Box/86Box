@@ -152,7 +152,19 @@ int64_t	main_time;
 
 
 static int	unscaled_size_x = SCREEN_RES_X,	/* current unscaled size X */
-		unscaled_size_y = SCREEN_RES_Y;	/* current unscaled size Y */
+		unscaled_size_y = SCREEN_RES_Y,	/* current unscaled size Y */
+		efscrnsz_y = SCREEN_RES_Y;
+
+
+int get_actual_size_x(void)
+{
+	return unscaled_size_x;
+}
+
+int get_actual_size_y(void)
+{
+	return efscrnsz_y;
+}
 
 
 /* Log something to the logfile or stdout. */
@@ -210,7 +222,6 @@ set_screen_size(int x, int y)
     int temp_overscan_x = overscan_x;
     int temp_overscan_y = overscan_y;
     double dx, dy, dtx, dty;
-    int efscrnsz_y;
 
     /* Make sure we keep usable values. */
 #if 0

@@ -963,10 +963,10 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     /* Set up main window for resizing if configured. */
     if (vid_resize)
 	SetWindowLongPtr(hwnd, GWL_STYLE,
-			(WS_OVERLAPPEDWINDOW&~WS_MINIMIZEBOX));
+			(WS_OVERLAPPEDWINDOW));
       else
 	SetWindowLongPtr(hwnd, GWL_STYLE,
-			(WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX&~WS_MINIMIZEBOX));
+			(WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX));
 
     /* Move to the last-saved position if needed. */
     if (window_remember)
