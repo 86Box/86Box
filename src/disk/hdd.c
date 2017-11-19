@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of hard disk images.
  *
- * Version:	@(#)hdd.c	1.0.6	2017/11/01
+ * Version:	@(#)hdd.c	1.0.7	2017/11/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../plat.h"
 #include "../ui.h"
 #include "hdd.h"
 

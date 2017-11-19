@@ -6,13 +6,11 @@
 */
 
 #ifdef __linux__
-#include <sys/mman.h>
-#include <unistd.h>
+# include <sys/mman.h>
+# include <unistd.h>
 #endif
 #if defined WIN32 || defined _WIN32 || defined _WIN32
-#define BITMAP windows_BITMAP
-#include <windows.h>
-#undef BITMAP
+# include <windows.h>
 #endif
 
 #include <xmmintrin.h>

@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.9	2017/11/05
+ * Version:	@(#)video.c	1.0.10	2017/11/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -73,9 +73,9 @@ enum {
 };
 
 
-BITMAP		*screen = NULL;
-BITMAP		*buffer= NULL,
-		*buffer32= NULL;
+bitmap_t	*screen = NULL,
+		*buffer = NULL,
+		*buffer32 = NULL;
 uint8_t		fontdat[256][8];		/* IBM CGA font */
 uint8_t		fontdatm[256][16];		/* IBM MDA font */
 uint8_t		fontdatw[512][32];		/* Wyse700 font */
@@ -414,7 +414,7 @@ calc_16to32(int c)
 
 
 void
-hline(BITMAP *b, int x1, int y, int x2, uint32_t col)
+hline(bitmap_t *b, int x1, int y, int x2, uint32_t col)
 {
     if (y < 0 || y >= buffer->h)
 	   return;
@@ -427,19 +427,19 @@ hline(BITMAP *b, int x1, int y, int x2, uint32_t col)
 
 
 void
-blit(BITMAP *src, BITMAP *dst, int x1, int y1, int x2, int y2, int xs, int ys)
+blit(bitmap_t *src, bitmap_t *dst, int x1, int y1, int x2, int y2, int xs, int ys)
 {
 }
 
 
 void
-stretch_blit(BITMAP *src, BITMAP *dst, int x1, int y1, int xs1, int ys1, int x2, int y2, int xs2, int ys2)
+stretch_blit(bitmap_t *src, bitmap_t *dst, int x1, int y1, int xs1, int ys1, int x2, int y2, int xs2, int ys2)
 {
 }
 
 
 void
-rectfill(BITMAP *b, int x1, int y1, int x2, int y2, uint32_t col)
+rectfill(bitmap_t *b, int x1, int y1, int x2, int y2, uint32_t col)
 {
 }
 
@@ -451,15 +451,18 @@ set_palette(PALETTE p)
 
 
 void
-destroy_bitmap(BITMAP *b)
+destroy_bitmap(bitmap_t *b)
 {
+    if (b->dat != NULL)
+	free(b->dat);
+    free(b);
 }
 
 
-BITMAP *
+bitmap_t *
 create_bitmap(int x, int y)
 {
-    BITMAP *b = malloc(sizeof(BITMAP) + (y * sizeof(uint8_t *)));
+    bitmap_t *b = malloc(sizeof(bitmap_t) + (y * sizeof(uint8_t *)));
     int c;
 
     b->dat = malloc(x * y * 4);

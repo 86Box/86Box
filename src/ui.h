@@ -8,7 +8,7 @@
  *
  *		Define the various UI functions.
  *
- * Version:	@(#)ui.h	1.0.9	2017/11/01
+ * Version:	@(#)ui.h	1.0.10	2017/11/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -24,14 +24,10 @@
 extern "C" {
 #endif
 
-/* Strings. Those are defined within the platform. */
-#ifdef _WIN32
-# include "win/resource.h"
-#endif
-#ifdef UNIX
-# include "unix/resource.h"
-#endif
 
+#ifdef USE_WX
+# define RENDER_FPS	30			/* default render speed */
+#endif
 
 /* Message Box functions. */
 #define MBX_INFO	1

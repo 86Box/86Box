@@ -6,9 +6,9 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Windows resource script.
+ *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.19	2017/11/12
+ * Version:	@(#)86Box.rc	1.0.20	2017/11/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -19,6 +19,7 @@
 #define IN_RESOURCE_H
 #include "resource.h"
 #include "../86box.h"
+#include "../plat.h"
 #undef IN_RESOURCE_H
 
 #define APSTUDIO_READONLY_SYMBOLS

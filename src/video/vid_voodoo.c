@@ -84,26 +84,21 @@ static int tris = 0;
 
 static uint64_t status_time = 0;
 
-typedef union int_float
-{
+typedef union {
         uint32_t i;
         float f;
 } int_float;
 
-typedef struct rgb_t
-{
+typedef struct {
         uint8_t b, g, r;
         uint8_t pad;
-} rgb_t;
-typedef struct rgba8_t
-{
+} rgbp_t;
+typedef struct {
         uint8_t b, g, r, a;
 } rgba8_t;
 
-typedef union rgba_u
-{
-        struct
-        {
+typedef union {
+        struct {
                 uint8_t b, g, r, a;
         } rgba;
         uint32_t u;
@@ -175,7 +170,7 @@ typedef struct voodoo_params_t
         uint32_t fbzColorPath;
         
         uint32_t fogMode;
-        rgb_t fogColor;
+        rgbp_t fogColor;
         struct
         {
                 uint8_t fog, dfog;
@@ -401,9 +396,9 @@ typedef struct voodoo_t
                 int dst_stride;
         } blt;
                 
-        rgb_t clutData[33];
+        rgbp_t clutData[33];
         int clutData_dirty;
-        rgb_t clutData256[256];
+        rgbp_t clutData256[256];
         uint32_t video_16to32[0x10000];
         
         uint8_t dirty_line[1024];

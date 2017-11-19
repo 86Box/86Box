@@ -8,7 +8,7 @@
  *
  *		Several dialogs for the application.
  *
- * Version:	@(#)win_dialog.c	1.0.4	2017/10/16
+ * Version:	@(#)win_dialog.c	1.0.5	2017/11/18
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -17,11 +17,9 @@
  *		Copyright 2017 Fred N. van Kempen.
  */
 #define UNICODE
-#define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #include <windowsx.h>
 #include <shlobj.h>
-#undef BITMAP
 #include <commdlg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -34,7 +32,9 @@
 #include "win.h"
 
 
-WCHAR path[MAX_PATH];
+WCHAR	path[MAX_PATH];
+WCHAR	wopenfilestring[260];
+char	openfilestring[260];
 
 
 static int CALLBACK

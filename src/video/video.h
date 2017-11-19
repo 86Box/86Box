@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.3	2017/11/05
+ * Version:	@(#)video.h	1.0.4	2017/11/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -125,13 +125,13 @@ typedef struct {
     int		w, h;
     uint8_t	*dat;
     uint8_t	*line[];
-} BITMAP;
+} bitmap_t;
 
 typedef struct {
     uint8_t	r, g, b;
-} RGB;
+} rgb_t;
 
-typedef RGB PALETTE[256];
+typedef rgb_t PALETTE[256];
 
 
 extern int	gfx_present[GFX_MAX];
@@ -139,7 +139,7 @@ extern int	egareads,
 		egawrites;
 extern int	changeframecount;
 
-extern BITMAP	*screen,
+extern bitmap_t	*screen,
 		*buffer,
 		*buffer32;
 extern PALETTE	cgapal,
@@ -203,10 +203,10 @@ extern void	video_blit_complete(void);
 extern void	video_wait_for_blit(void);
 extern void	video_wait_for_buffer(void);
 
-extern BITMAP	*create_bitmap(int w, int h);
-extern void	destroy_bitmap(BITMAP *b);
+extern bitmap_t	*create_bitmap(int w, int h);
+extern void	destroy_bitmap(bitmap_t *b);
 extern void	cgapal_rebuild(void);
-extern void	hline(BITMAP *b, int x1, int y, int x2, uint32_t col);
+extern void	hline(bitmap_t *b, int x1, int y, int x2, uint32_t col);
 extern void	updatewindowsize(int x, int y);
 
 extern void	video_init(void);

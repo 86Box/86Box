@@ -24,6 +24,12 @@ typedef struct
         char pov_names[4][32];
 } joystick_if_t;
 
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern device_t gameport_device;
 extern device_t gameport_201_device;
 
@@ -40,6 +46,10 @@ extern char	*joystick_get_button_name(int64_t joystick, int64_t id);
 extern char	*joystick_get_pov_name(int64_t joystick, int64_t id);
 
 extern void	gameport_update_joystick_type(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif	/*EMU_GAMEPORT_H*/

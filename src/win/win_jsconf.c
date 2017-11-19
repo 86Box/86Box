@@ -1,10 +1,8 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
-#define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #include <windowsx.h>
-#undef BITMAP
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

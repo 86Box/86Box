@@ -8,7 +8,7 @@
  *
  *		Joystick interface to host device.
  *
- * Version:	@(#)win_joystick.cc	1.0.5	2017/10/17
+ * Version:	@(#)win_joystick.cc	1.0.6	2017/11/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,33 +21,25 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
-extern "C" {
+#include "../86box.h"
 #include "../device.h"
-#include "../game/gameport.h"
-}
 #include "../plat.h"
+#include "../game/gameport.h"
 #include "../plat_joystick.h"
 #include "win.h"
 
-extern "C" int video_fullscreen;
-
-extern "C" void fatal(const char *format, ...);
-extern "C" void pclog(const char *format, ...);
-
-extern "C" void joystick_init();
-extern "C" void joystick_close();
-extern "C" void poll_joystick();
 
 plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
 joystick_t joystick_state[MAX_JOYSTICKS];
+int joysticks_present = 0;
+
 
 static LPDIRECTINPUT8 lpdi;
 static LPDIRECTINPUTDEVICE8 lpdi_joystick[2] = {NULL, NULL};
-
-int joysticks_present = 0;
 static GUID joystick_guids[MAX_JOYSTICKS];
 
-static BOOL CALLBACK joystick_enum_callback(LPCDIDEVICEINSTANCE lpddi, LPVOID data)
+
+static BOOL CALLBACK joystick_enum_callback(LPCDIDEVICEINSTANCE lpddi, UNUSED(LPVOID data))
 {
         if (joysticks_present >= MAX_JOYSTICKS)
                 return DIENUM_STOP;

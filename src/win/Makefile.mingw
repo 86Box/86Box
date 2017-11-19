@@ -8,16 +8,11 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.77	2017/11/17
+# Version:	@(#)Makefile.mingw	1.0.78	2017/11/18
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
 #
-
-# Name of the executable.
-ifndef PROG
-PROG		:= 86Box
-endif
 
 # Various compile-time options.
 ifndef STUFF
@@ -45,11 +40,17 @@ endif
 ifndef RELEASE
 RELEASE		:= n
 endif
+ifndef X64
+X64		:= n
+endif
+ifndef WX
+WX		:= n
+endif
 ifndef USB
 USB		:= n
 endif
 ifndef VNC
-VNC		:= n
+VNC		:= y
 endif
 ifndef RDP
 RDP		:= n
@@ -84,8 +85,15 @@ endif
 ifndef DYNAREC
 DYNAREC		:= y
 endif
-ifndef X64
-X64		:= n
+
+
+# Name of the executable.
+ifndef PROG
+ ifneq ($(WX), n)
+  PROG		:= Wx86Box
+ else
+  PROG		:= 86Box
+ endif
 endif
 
 ifeq ($(DEV_BUILD), y)
@@ -94,7 +102,38 @@ CIRRUS		:= y
 NE1000		:= y
 NV_RIVA		:= y
 PAS16		:= y
-VNC		:= y
+endif
+
+# WxWidgets basic info. Extract using the config program.
+ifneq ($(WX), n)
+ EXPATH		+= wx
+ WX_CONFIG	:= wx-config.exe
+ ifeq ($(WX), y)
+  WX_PATH	:= C:/MinGW32/WxWidgets
+  WX_FLAGS	:= -I$(WX_PATH)/lib/wx/include/msw-unicode-3.0 \
+		   -I$(WX_PATH)/include/wx-3.0 \
+		   -D__WXMSW__ -DWX_PRECOMP -D_FILE_OFFSET_BITS=64 -pthread
+#		   -lwx_mswu_gl-3.0 -lwxtiff-3.0 -llzma
+  WX_LIBS	:= -mwindows -mthreads -L$(WX_PATH)/lib \
+		   -lwx_mswu-3.0.dll \
+		   -lrpcrt4 -loleaut32 -lole32 -luuid \
+		   -lwinspool -lwinmm -lshell32 -lcomctl32 \
+		   -lcomdlg32 -ladvapi32 -lwsock32 -lgdi32
+ endif
+ ifeq ($(WX), static)
+  WX_PATH	:= C:/MinGW32/WxWidgets
+  WX_FLAGS	:= -I$(WX_PATH)/lib/wx/include/msw-unicode-3.0 \
+		   -I$(WX_PATH)/include/wx-3.0 \
+		   -D__WXMSW__ -DWX_PRECOMP -D_FILE_OFFSET_BITS=64 -pthread
+#		   -lwx_mswu_gl-3.0 -lwxtiff-3.0 -llzma
+  WX_LIBS	:= -mwindows -mthreads -L$(WX_PATH)/lib \
+		   -lwx_mswu-3.0 -lwxscintilla-3.0 \
+		   -lwxjpeg-3.0 -lwxpng-3.0 -lwxzlib-3.0 \
+		   -lwxregexu-3.0 -lwxexpat-3.0 \
+		   -lrpcrt4 -loleaut32 -lole32 -luuid \
+		   -lwinspool -lwinmm -lshell32 -lcomctl32 \
+		   -lcomdlg32 -ladvapi32 -lwsock32 -lgdi32
+ endif
 endif
 
 
@@ -159,18 +198,16 @@ else
  endif
 endif
 AFLAGS		:= -msse -msse2 -mfpmath=sse
-CFLAGS		:= $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) $(AFLAGS) \
-		   -fomit-frame-pointer -mstackrealign -Wall
 RFLAGS		:= --input-format=rc -O coff
 ifeq ($(CRASHDUMP), y)
-CFLAGS		+= -DUSE_CRASHDUMP
+OPTS		+= -DUSE_CRASHDUMP
 endif
 ifeq ($(RELEASE), y)
-CFLAGS		+= -DRELEASE_BUILD
+OPTS		+= -DRELEASE_BUILD
 RFLAGS		+= -DRELEASE_BUILD
 endif
 ifeq ($(VRAMDUMP), y)
-CFLAGS		+= -DENABLE_VRAM_DUMP
+OPTS		+= -DENABLE_VRAM_DUMP
 RFLAGS		+= -DENABLE_VRAM_DUMP
 endif
 ifeq ($(X64), y)
@@ -186,7 +223,7 @@ endif
 
 # Optional modules.
 ifeq ($(DYNAREC), y)
-CFLAGS		+= -DUSE_DYNAREC
+OPTS		+= -DUSE_DYNAREC
 RFLAGS		+= -DUSE_DYNAREC
 DYNARECOBJ	:= 386_dynarec_ops.o \
 		    codegen.o \
@@ -196,16 +233,26 @@ DYNARECOBJ	:= 386_dynarec_ops.o \
 		    codegen_timing_winchip.o $(PLATCG)
 endif
 
+ifneq ($(WX), n)
+ OPTS		+= -DUSE_WX $(WX_FLAGS)
+ LIBS		+= $(WX_LIBS)
+ UIOBJ		:= wx_main.o wx_ui.o wx_stbar.o wx_render.o
+else
+ UIOBJ		:= win_ui.o win_ddraw.o win_d3d.o win_png.o \
+		   win_dialog.o win_about.o win_status.o win_stbar.o \
+		   win_settings.o win_devconf.o win_jsconf.o
+endif
+
 ifeq ($(OPENAL), y)
-CFLAGS		+= -DUSE_OPENAL
+OPTS		+= -DUSE_OPENAL
 endif
 ifeq ($(FLUIDSYNTH), y)
-CFLAGS		+= -DUSE_FLUIDSYNTH
+OPTS		+= -DUSE_FLUIDSYNTH
 FSYNTHOBJ	:= midi_fluidsynth.o
 endif
 
 ifeq ($(MUNT), y)
-CFLAGS		+= -DUSE_MUNT
+OPTS		+= -DUSE_MUNT
 MUNTOBJ		:= midi_mt32.o \
 		    Analog.o BReverbModel.o File.o FileStream.o LA32Ramp.o \
 		    LA32FloatWaveGenerator.o LA32WaveGenerator.o \
@@ -215,10 +262,10 @@ MUNTOBJ		:= midi_mt32.o \
 endif
 
 ifeq ($(VNC), y)
-CFLAGS		+= -DUSE_VNC
+OPTS		+= -DUSE_VNC
 RFLAGS		+= -DUSE_VNC
  ifneq ($(VNC_PATH), )
-  CFLAGS	+= -I$(VNC_PATH)\INCLUDE
+  OPTS		+= -I$(VNC_PATH)\INCLUDE
   VNCLIB	:= -L$(VNC_PATH)\LIB
  endif
 VNCLIB		+= -lvncserver
@@ -226,10 +273,10 @@ VNCOBJ		:= vnc.o vnc_keymap.o
 endif
 
 ifeq ($(RDP), y)
-CFLAGS		+= -DUSE_RDP
+OPTS		+= -DUSE_RDP
 RFLAGS		+= -DUSE_RDP
  ifneq ($(RDP_PATH), )
-  CFLAGS	+= -I$(RDP_PATH)\INCLUDE
+  OPTS		+= -I$(RDP_PATH)\INCLUDE
   RDPLIB	:= -L$(RDP_PATH)\LIB
  endif
 RDPLIB		+= -lrdp
@@ -238,25 +285,25 @@ endif
 
 # Options for the DEV branch.
 ifeq ($(DEV_BRANCH), y)
-CFLAGS		+= -DDEV_BRANCH
+OPTS		+= -DDEV_BRANCH
 DEVBROBJ	:=
 
 ifeq ($(CIRRUS), y)
-CFLAGS		+= -DUSE_CIRRUS
+OPTS		+= -DUSE_CIRRUS
 DEVBROBJ	+= vid_cl_gd.o vid_cl_gd_blit.o vid_cl_ramdac.o
 endif
 
 ifeq ($(NE1000), y)
-CFLAGS		+= -DUSE_NE1000
+OPTS		+= -DUSE_NE1000
 endif
 
 ifeq ($(NV_RIVA), y)
-CFLAGS		+= -DUSE_RIVA
+OPTS		+= -DUSE_RIVA
 DEVBROBJ	+= vid_nv_riva128.o
 endif
 
 ifeq ($(PAS16), y)
-CFLAGS		+= -DUSE_PAS16
+OPTS		+= -DUSE_PAS16
 DEVBROBJ	+= snd_pas16.o
 endif
 
@@ -272,41 +319,14 @@ EUROPC		:= m_europc.o
 endif
 
 
-ifeq ($(WX), y)
-CFLAGS		+= -I$(WXLIB)/wx/include/msw-unicode-3.0 -I$(WXINC) \
-		   -D__WXMSW__ -DWX_PRECOMP -D_FILE_OFFSET_BITS=64
-#		   -lwx_mswu_gl-3.0.dll -llzma
-WXLIBS		:= -mwindows -mthreads \
-		   -L$(WXLIB) \
-		   -lwx_mswu-3.0.dll \
-		   -lrpcrt4 -loleaut32 -lole32 -luuid \
-		   -lwinspool -lwinmm -lshell32 -lcomctl32 \
-		   -lcomdlg32 -ladvapi32 -lwsock32 -lgdi32
-endif
-
-ifeq ($(WX), static)
-CFLAGS		+= -I$(WXLIB)/wx/include/msw-unicode-3.0 -I$(WXINC) \
-		   -D__WXMSW__ -DWX_PRECOMP -D_FILE_OFFSET_BITS=64
-#		   -lwx_mswu_gl-3.0 -lwxtiff-3.0 -llzma
-WXLIBS		:= -mwindows -mthreads \
-		   -L$(WXLIB) \
-		   -lwx_mswu-3.0 -lwxscintilla-3.0 \
-		   -lwxjpeg-3.0 -lwxpng-3.0 -lwxzlib-3.0 \
-		   -lwxregexu-3.0 -lwxexpat-3.0 \
-		   -lrpcrt4 -loleaut32 -lole32 -luuid \
-		   -lwinspool -lwinmm -lshell32 -lcomctl32 \
-		   -lcomdlg32 -ladvapi32 -lwsock32 -lgdi32
-endif
-
-
 # Final versions of the toolchain flags.
-#CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
-#		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall
-#CXXFLAGS	:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(AOPTIM) \
-#		   $(AFLAGS) -fno-strict-aliasing -fvisibility=hidden \
-#		   -Wall -Wundef -fvisibility-inlines-hidden \
-#		   -Wunused-parameter -Wno-ctor-dtor-privacy \
-#		   -Woverloaded-virtual
+CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
+		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall
+CXXFLAGS	:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
+		   $(AFLAGS) -fno-strict-aliasing -fvisibility=hidden \
+		   -Wall -Wundef -fvisibility-inlines-hidden \
+		   -Wunused-parameter -Wno-ctor-dtor-privacy \
+		   -Woverloaded-virtual
 
 
 #########################################################################
@@ -424,17 +444,14 @@ VIDOBJ		:= video.o \
 		    vid_voodoo.o
 
 PLATOBJ		:= win.o \
-		    win_crashdump.o win_ddraw.o win_d3d.o win_png.o \
-		    win_dynld.o win_thread.o $(WSERIAL) win_video.o \
+		    win_crashdump.o win_dynld.o win_thread.o $(WSERIAL) \
 		    win_cdrom.o win_cdrom_ioctl.o win_keyboard.o \
-		    win_mouse.o win_joystick.o win_midi.o \
-		    win_dialog.o win_about.o win_status.o win_stbar.o \
-		    win_settings.o win_deviceconfig.o win_joystickconfig.o
+		    win_mouse.o win_joystick.o win_midi.o win_video.o
 
 OBJ		:= $(MAINOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
 		   $(FDDOBJ) $(CDROMOBJ) $(HDDOBJ) \
 		   $(USBOBJ) $(NETOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
-		   $(PLATOBJ) $(DEVBROBJ)
+		   $(PLATOBJ) $(UIOBJ) $(DEVBROBJ)
 ifdef EXOBJ
 OBJ		+= $(EXOBJ)
 endif
@@ -451,6 +468,9 @@ endif
 ifeq ($(RDP), y)
 LIBS		+= $(RDPLIB)
 endif
+ifneq ($(WX), n)
+LIBS		+= $(WX_LIBS) -lz -lm
+endif
 LIBS		+= -lkernel32 -lwsock32 -liphlpapi -lpsapi
 LIBS		+= -lpthread -static -lstdc++ -lgcc
 LIBS		+= -Wl,--large-address-aware
@@ -464,11 +484,11 @@ ifeq ($(AUTODEP), y)
 
 %.o:		%.cc
 		@echo $<
-		@$(CPP) $(CFLAGS) $(DEPS) -c $<
+		@$(CPP) $(CXXFLAGS) $(DEPS) -c $<
 
 %.o:		%.cpp
 		@echo $<
-		@$(CPP) $(CFLAGS) $(DEPS) -c $<
+		@$(CPP) $(CXXFLAGS) $(DEPS) -c $<
 else
 %.o:		%.c
 		@echo $<
@@ -476,11 +496,11 @@ else
 
 %.o:		%.cc
 		@echo $<
-		@$(CPP) $(CFLAGS) -c $<
+		@$(CPP) $(CXXFLAGS) -c $<
 
 %.o:		%.cpp
 		@echo $<
-		@$(CPP) $(CFLAGS) -c $<
+		@$(CPP) $(CXXFLAGS) -c $<
 
 %.d:		%.c $(wildcard $*.d)
 		@echo $<
@@ -488,11 +508,11 @@ else
 
 %.d:		%.cc $(wildcard $*.d)
 		@echo $<
-		@$(CPP) $(CFLAGS) $(DEPS) -E $< >NUL
+		@$(CPP) $(CXXFLAGS) $(DEPS) -E $< >NUL
 
 %.d:		%.cpp $(wildcard $*.d)
 		@echo $<
-		@$(CPP) $(CFLAGS) $(DEPS) -E $< >NUL
+		@$(CPP) $(CXXFLAGS) $(DEPS) -E $< >NUL
 endif
 
 

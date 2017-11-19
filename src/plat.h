@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.20	2017/11/18
+ * Version:	@(#)plat.h	1.0.21	2017/11/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -23,10 +23,8 @@
 # define GLOBAL extern
 #endif
 
-
-#ifndef _WIN32
-# define RENDER_FPS	30			/* default render speed */
-#endif
+/* String ID numbers. */
+#include "lang/language.h"
 
 /* The Win32 API uses _wcsicmp. */
 #ifdef _WIN32

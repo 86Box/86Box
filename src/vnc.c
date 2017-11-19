@@ -8,7 +8,7 @@
  *
  *		Implement the VNC remote renderer with LibVNCServer.
  *
- * Version:	@(#)vnc.c	1.0.8	2017/10/25
+ * Version:	@(#)vnc.c	1.0.9	2017/11/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>
@@ -20,9 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#define BITMAP MY_BITMAP
 #include <rfb/rfb.h>
-#undef BITMAP
 #include "86box.h"
 #include "device.h"
 #include "video/video.h"

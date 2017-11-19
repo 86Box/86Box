@@ -98,6 +98,10 @@ extern void	hard_disk_add_open(HWND hwnd, int is_existing);
 extern int	hard_disk_was_added(void);
 
 
+/* Platform UI support functions. */
+extern int	ui_init(int nStyle);
+
+
 /* Functions in win_about.c: */
 extern void	AboutDialogCreate(HWND hwnd);
 
