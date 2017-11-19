@@ -1380,7 +1380,7 @@ void mem_init(void)
         for (c = 0; c < (mem_size / 64); c++)
         {
                 isram[c] = 1;
-                if (c >= 0xa && c <= 0xf) 
+                if ((c >= 0xa && c <= 0xf) || (cpu_16bitbus && c >= 0xfe && c <= 0xff))
                         isram[c] = 0;
         }
 
@@ -1476,7 +1476,7 @@ void mem_resize()
         for (c = 0; c < (mem_size / 64); c++)
         {
                 isram[c] = 1;
-                if (c >= 0xa && c <= 0xf) 
+                if ((c >= 0xa && c <= 0xf) || (cpu_16bitbus && c >= 0xfe && c <= 0xff))
                         isram[c] = 0;
         }
 

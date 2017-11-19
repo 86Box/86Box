@@ -683,6 +683,7 @@ pc_reset_hard_init(void)
     initalmain(0, NULL);
 
     /* Reset the general machine support modules. */
+    cpu_set();
     mem_resize();
     io_init();
     device_init();
@@ -782,7 +783,6 @@ pc_reset_hard_init(void)
 	device_add(&bugger_device);
 
     /* Reset the CPU module. */
-    cpu_set();
     cpu_update_waitstates();
     cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
     resetx86();
