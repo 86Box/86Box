@@ -8,7 +8,7 @@
  *
  *		Emulation of the 3DFX Voodoo Graphics controller.
  *
- * Version:	@(#)vid_voodoo.c	1.0.9	2017/11/11
+ * Version:	@(#)vid_voodoo.c	1.0.10	2017/11/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei
@@ -5654,7 +5654,7 @@ static void voodoo_fb_writew(uint32_t addr, uint16_t val, void *p)
                                 *(uint16_t *)(&voodoo->fb_mem[write_addr_aux & voodoo->fb_mask]) = new_depth;
 
 skip_pixel:
-                        x = x;
+                        (void)x;
                 }
         }
         else
@@ -5981,7 +5981,7 @@ static void wake_fifo_threads(voodoo_set_t *set, voodoo_t *voodoo)
 static uint32_t voodoo_readl(uint32_t addr, void *p)
 {
         voodoo_t *voodoo = (voodoo_t *)p;
-        uint32_t temp;
+        uint32_t temp = 0;
         int fifo_size;
         voodoo->rd_count++;
         addr &= 0xffffff;
