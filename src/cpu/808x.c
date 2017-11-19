@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -18,7 +18,7 @@
  *		2 clocks - fetch opcode 1       2 clocks - execute
  *		2 clocks - fetch opcode 2  etc
  *
- * Version:	@(#)808x.c	1.0.7	2017/11/04
+ * Version:	@(#)808x.c	1.0.8	2017/11/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -600,7 +600,8 @@ void resetx86()
         cgate32=0;
         if(AT)
         {
-                loadcs(cpu_16bitbus ? 0xFF000 : 0xFFFF000);
+//                loadcs(cpu_16bitbus ? 0xFF000 : 0xFFFF000);  arg is uint16_t
+                loadcs(cpu_16bitbus ? 0xFF00 : 0xFFFF);
                 cpu_state.pc=0xFFF0;
                 rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
         }
@@ -646,7 +647,8 @@ void softresetx86()
         cgate32=0;
         if(AT)
         {
-                loadcs(cpu_16bitbus ? 0xFF000 : 0xFFFF000);
+//                loadcs(cpu_16bitbus ? 0xFF000 : 0xFFFF000);   arg is uint16_t
+                loadcs(cpu_16bitbus ? 0xFF00 : 0xFFFF);
                 cpu_state.pc=0xFFF0;
                 rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
         }
