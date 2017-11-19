@@ -726,6 +726,7 @@ pc_reset_hard_init(void)
 
     /* Reset keyboard and/or mouse. */
     // FIXME: do we really have to reset the *AT* keyboard?? --FvK
+    shadowbios = 0;
     keyboard_at_reset();
 
     /* Reset the video card. */
@@ -783,15 +784,15 @@ pc_reset_hard_init(void)
 	device_add(&bugger_device);
 
     /* Reset the CPU module. */
-    cpu_update_waitstates();
-    cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
     resetx86();
     dma_reset();
     pic_reset();
+    cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
 
-    shadowbios = 0;
-
-    pc_speed_changed();
+    if (AT)
+	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
+    else
+	setpitclock(14318184.0);
 }
 
 

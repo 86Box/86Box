@@ -1171,7 +1171,8 @@ kbd_reset(void *priv)
     kbd->dtrans = 0;
     kbd->first_write = 1;
     kbd->status = STAT_LOCK | STAT_CD;
-    kbd->mem[0] = 0x31;
+    // kbd->mem[0] = 0x31;
+    kbd->mem[0] = 0x11;
     kbd->default_mode = 0x02;
     kbd->wantirq = 0;
     kbd->output_port = 0xcf;

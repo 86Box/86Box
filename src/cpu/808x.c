@@ -601,7 +601,6 @@ void resetx86()
         if(AT)
         {
 		loadcs(0xF000);
-		_cs.base = cpu_16bitbus ? 0xFF0000 : 0xFFFF0000;
                 cpu_state.pc=0xFFF0;
                 rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
         }
@@ -648,7 +647,6 @@ void softresetx86()
         if(AT)
         {
 		loadcs(0xF000);
-		_cs.base = cpu_16bitbus ? 0xFF0000 : 0xFFFF0000;
                 cpu_state.pc=0xFFF0;
                 rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
         }
