@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.18	2017/11/12
+ * Version:	@(#)plat.h	1.0.20	2017/11/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -25,7 +25,7 @@
 
 
 #ifndef _WIN32
-# define RENDER_FPS	70			/* default render speed */
+# define RENDER_FPS	30			/* default render speed */
 #endif
 
 /* The Win32 API uses _wcsicmp. */
@@ -65,6 +65,7 @@ GLOBAL char	emu_version[128];		/* version ID string */
 
 
 /* System-related functions. */
+extern wchar_t	*fix_exe_path(wchar_t *str);
 extern FILE	*plat_fopen(wchar_t *path, wchar_t *mode);
 extern void	plat_remove(wchar_t *path);
 extern int	plat_getcwd(wchar_t *bufp, int max);
@@ -90,7 +91,13 @@ extern void	plat_resize(int x, int y);
 
 
 /* Resource management. */
+extern void	set_language(int id);
 extern wchar_t	*plat_get_string(int id);
+
+
+/* Emulator start/stop support functions. */
+extern void	do_start(void);
+extern void	do_stop(void);
 
 
 /* Platform-specific device support. */

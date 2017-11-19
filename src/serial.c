@@ -23,6 +23,7 @@ enum
 };
 
 SERIAL serial1, serial2;
+int serial_do_log = 0;
 
 
 void serial_reset()

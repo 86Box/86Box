@@ -10,7 +10,7 @@
  *
  *		Based on old original code @(#)dir_win32.c 1.2.0 2007/04/19
  *
- * Version:	@(#)win_opendir.c	1.0.3	2017/10/16
+ * Version:	@(#)win_opendir.c	1.0.4	2017/11/18
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -27,7 +27,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../plat.h"
-#include "../plat_dir.h"
+#include "plat_dir.h"
 
 
 #ifdef UNICODE

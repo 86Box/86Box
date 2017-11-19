@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.76	2017/11/12
+# Version:	@(#)Makefile.mingw	1.0.77	2017/11/17
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -272,6 +272,46 @@ EUROPC		:= m_europc.o
 endif
 
 
+ifeq ($(WX), y)
+CFLAGS		+= -I$(WXLIB)/wx/include/msw-unicode-3.0 -I$(WXINC) \
+		   -D__WXMSW__ -DWX_PRECOMP -D_FILE_OFFSET_BITS=64
+#		   -lwx_mswu_gl-3.0.dll -llzma
+WXLIBS		:= -mwindows -mthreads \
+		   -L$(WXLIB) \
+		   -lwx_mswu-3.0.dll \
+		   -lrpcrt4 -loleaut32 -lole32 -luuid \
+		   -lwinspool -lwinmm -lshell32 -lcomctl32 \
+		   -lcomdlg32 -ladvapi32 -lwsock32 -lgdi32
+endif
+
+ifeq ($(WX), static)
+CFLAGS		+= -I$(WXLIB)/wx/include/msw-unicode-3.0 -I$(WXINC) \
+		   -D__WXMSW__ -DWX_PRECOMP -D_FILE_OFFSET_BITS=64
+#		   -lwx_mswu_gl-3.0 -lwxtiff-3.0 -llzma
+WXLIBS		:= -mwindows -mthreads \
+		   -L$(WXLIB) \
+		   -lwx_mswu-3.0 -lwxscintilla-3.0 \
+		   -lwxjpeg-3.0 -lwxpng-3.0 -lwxzlib-3.0 \
+		   -lwxregexu-3.0 -lwxexpat-3.0 \
+		   -lrpcrt4 -loleaut32 -lole32 -luuid \
+		   -lwinspool -lwinmm -lshell32 -lcomctl32 \
+		   -lcomdlg32 -ladvapi32 -lwsock32 -lgdi32
+endif
+
+
+# Final versions of the toolchain flags.
+#CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
+#		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall
+#CXXFLAGS	:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(AOPTIM) \
+#		   $(AFLAGS) -fno-strict-aliasing -fvisibility=hidden \
+#		   -Wall -Wundef -fvisibility-inlines-hidden \
+#		   -Wunused-parameter -Wno-ctor-dtor-privacy \
+#		   -Woverloaded-virtual
+
+
+#########################################################################
+#		Create the (final) list of objects to build.		#
+#########################################################################
 MAINOBJ		:= pc.o config.o random.o timer.o io.o dma.o nmi.o pic.o \
 		   pit.o ppi.o pci.o mca.o mcr.o mem.o memregs.o rom.o \
 		   device.o nvr.o nvr_at.o nvr_ps2.o $(VNCOBJ) $(RDPOBJ) \
@@ -479,6 +519,12 @@ pcap_if.exe:	pcap_if.o win_dynld.o pcap_if.res
 		@$(CC) -o pcap_if.exe pcap_if.o win_dynld.o pcap_if.res
 ifneq ($(DEBUG), y)
 		@strip pcap_if.exe
+endif
+
+hello.exe:	hello.o
+		$(CXX) $(LDFLAGS) -o hello.exe hello.o $(WXLIBS) $(LIBS)
+ifneq ($(DEBUG), y)
+		@strip hello.exe
 endif
 
 

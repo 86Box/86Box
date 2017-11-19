@@ -10,7 +10,7 @@
  *
  *		Based on the 86Box Serial Mouse driver as a framework.
  *
- * Version:	@(#)mouse_serial.c	1.0.12	2017/11/08
+ * Version:	@(#)mouse_serial.c	1.0.13	2017/11/13
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -37,11 +37,7 @@ typedef struct mouse_serial_t {
 
 /* Callback from serial driver: RTS was toggled. */
 static void
-#ifdef WALTJE
-sermouse_callback(void *priv)
-#else
 sermouse_callback(struct SERIAL *serial, void *priv)
-#endif
 {
     mouse_serial_t *ms = (mouse_serial_t *)priv;
 
@@ -65,43 +61,25 @@ sermouse_timer(void *priv)
     switch(ms->type & MOUSE_TYPE_MASK) {
 	case MOUSE_TYPE_MSYSTEMS:
 		/* Identifies Mouse Systems serial mouse. */
-#ifdef WALTJE
-		serial_write_fifo(ms->serial, 'H', 1);
-#else
 		serial_write_fifo(ms->serial, 'H');
-#endif
 		break;
 
 	case MOUSE_TYPE_MICROSOFT:
 	default:
 		/* Identifies a two-button Microsoft Serial mouse. */
-#ifdef WALTJE
-		serial_write_fifo(ms->serial, 'M', 1);
-#else
 		serial_write_fifo(ms->serial, 'M');
-#endif
 		break;
 
 	case MOUSE_TYPE_LOGITECH:
 		/* Identifies a two-button Logitech Serial mouse. */
-#ifdef WALTJE
-		serial_write_fifo(ms->serial, 'M', 1);
-		serial_write_fifo(ms->serial, '3', 1);
-#else
 		serial_write_fifo(ms->serial, 'M');
 		serial_write_fifo(ms->serial, '3');
-#endif
 		break;
 
 	case MOUSE_TYPE_MSWHEEL:
 		/* Identifies multi-button Microsoft Wheel Mouse. */
-#ifdef WALTJE
-		serial_write_fifo(ms->serial, 'M', 1);
-		serial_write_fifo(ms->serial, 'Z', 1);
-#else
 		serial_write_fifo(ms->serial, 'M');
 		serial_write_fifo(ms->serial, 'Z');
-#endif
 		break;
     }
 }
@@ -186,11 +164,7 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
 
     /* Send the packet to the bottom-half of the attached port. */
     for (b=0; b<len; b++)
-#ifdef WALTJE
-	serial_write_fifo(ms->serial, buff[b], 1);
-#else
 	serial_write_fifo(ms->serial, buff[b]);
-#endif
 
     return(0);
 }
@@ -202,11 +176,7 @@ sermouse_close(void *priv)
     mouse_serial_t *ms = (mouse_serial_t *)priv;
 
     /* Detach serial port from the mouse. */
-#ifdef WALTJE
-    serial_attach(ms->port, NULL, NULL);
-#else
     serial1.rcr_callback = NULL;
-#endif
 
     free(ms);
 }
@@ -222,13 +192,9 @@ sermouse_init(mouse_t *info)
     ms->type = info->type;
 
     /* Attach a serial port to the mouse. */
-#ifdef WALTJE
-    ms->serial = serial_attach(ms->port, sermouse_callback, ms);
-#else
     ms->serial = &serial1;
     ms->serial->rcr_callback = sermouse_callback;
     ms->serial->rcr_callback_p = ms;
-#endif
 
     timer_add(sermouse_timer, &ms->delay, &ms->delay, ms);
 

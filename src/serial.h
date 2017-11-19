@@ -17,7 +17,7 @@
 # define EMU_SERIAL_H
 
 
-#ifdef WALTJE
+#ifdef WALTJE_SERIAL
 /* Default settings for the standard ports. */
 #define SERIAL1_ADDR		0x03f8
 #define SERIAL1_IRQ		4

@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.42	2017/11/05
+ * Version:	@(#)pc.c	1.0.43	2017/11/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -156,17 +156,6 @@ static int	unscaled_size_x = SCREEN_RES_X,	/* current unscaled size X */
 		efscrnsz_y = SCREEN_RES_Y;
 
 
-int get_actual_size_x(void)
-{
-	return unscaled_size_x;
-}
-
-int get_actual_size_y(void)
-{
-	return efscrnsz_y;
-}
-
-
 /* Log something to the logfile or stdout. */
 void
 pclog(const char *format, ...)
@@ -301,6 +290,20 @@ void
 set_screen_size_natural(void)
 {
     set_screen_size(unscaled_size_x, unscaled_size_y);
+}
+
+
+int
+get_actual_size_x(void)
+{
+    return(unscaled_size_x);
+}
+
+
+int
+get_actual_size_y(void)
+{
+    return(efscrnsz_y);
 }
 
 
@@ -560,7 +563,7 @@ again2:
 
     keyboard_init();
     mouse_init();
-#ifdef WALTJE
+#ifdef WALTJE_SERIAL
     serial_init();
 #endif
     joystick_init();
@@ -693,7 +696,7 @@ pc_reset_hard_init(void)
     fdc_update_is_nsc(0);
     floppy_reset();
 
-#ifndef WALTJE
+#ifndef WALTJE_SERIAL
     /* This is needed to initialize the serial timer. */
     serial_init();
 #endif
