@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -600,8 +600,8 @@ void resetx86()
         cgate32=0;
         if(AT)
         {
-//                loadcs(cpu_16bitbus ? 0xFF000 : 0xFFFF000);  arg is uint16_t
-                loadcs(cpu_16bitbus ? 0xFF00 : 0xFFFF);
+		loadcs(0xF000);
+		_cs.base = cpu_16bitbus ? 0xFF0000 : 0xFFFF0000;
                 cpu_state.pc=0xFFF0;
                 rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
         }
@@ -647,8 +647,8 @@ void softresetx86()
         cgate32=0;
         if(AT)
         {
-//                loadcs(cpu_16bitbus ? 0xFF000 : 0xFFFF000);   arg is uint16_t
-                loadcs(cpu_16bitbus ? 0xFF00 : 0xFFFF);
+		loadcs(0xF000);
+		_cs.base = cpu_16bitbus ? 0xFF0000 : 0xFFFF0000;
                 cpu_state.pc=0xFFF0;
                 rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
         }
