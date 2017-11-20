@@ -29,21 +29,11 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../config.h"
-#include "../machine/machine.h"
-#include "../mem.h"			// because of load_config
-#include "../rom.h"			// because of load_config
 #include "../device.h"
 #include "../mouse.h"
 #include "../keyboard.h"
-#include "../cdrom/cdrom.h"
-#include "../cdrom/cdrom_image.h"
-#include "../cdrom/cdrom_null.h"
-#include "../floppy/floppy.h"
-#include "../scsi/scsi.h"
-#include "../network/network.h"
 #include "../video/video.h"
 #include "../video/vid_ega.h"		// for update_overscan
-#include "../sound/sound.h"
 #include "../plat.h"
 #include "../plat_mouse.h"
 #include "../plat_midi.h"
@@ -116,6 +106,12 @@ video_toggle_option(HMENU h, int *val, int id)
 static void
 ResetAllMenus(void)
 {
+#ifndef DEV_BRANCH
+    /* FIXME: until we fix these.. --FvK */
+    EnableMenuItem(menuMain, IDM_CONFIG_LOAD, MF_DISABLED);
+    EnableMenuItem(menuMain, IDM_CONFIG_SAVE, MF_DISABLED);
+#endif
+
 #ifdef ENABLE_LOG_TOGGLES
 # ifdef ENABLE_BUSLOGIC_LOG
     CheckMenuItem(menuMain, IDM_LOG_BUSLOGIC, MF_UNCHECKED);
@@ -252,7 +248,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HMENU hmenu;
     RECT rect;
-    int i = 0;
 
     switch (message) {
 	case WM_CREATE:
@@ -490,47 +485,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_CONFIG_LOAD:
 				plat_pause(1);
-				if (! file_dlg_st(hwnd, IDS_2160, "", 0)) {
-					if (ui_msgbox(MBX_QUESTION, (wchar_t *)IDS_2051) == IDYES) {
-						config_write(config_file_default);
-						for (i = 0; i < FDD_NUM; i++)
-							floppy_close(i);
-						for (i = 0; i < CDROM_NUM; i++)
-						{
-							cdrom_drives[i].handler->exit(i);
-							if (cdrom_drives[i].host_drive == 200)
-								image_close(i);
-							else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
-								ioctl_close(i);
-							else
-								null_close(i);
-						}
-						pc_reset_hard_close();
-						config_load(wopenfilestring);
-						for (i = 0; i < CDROM_NUM; i++)
-						{
-							if (cdrom_drives[i].bus_type)
-								SCSIReset(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun);
-
-							if (cdrom_drives[i].host_drive == 200)
-								image_open(i, cdrom_image[i].image_path);
-							else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
-								ioctl_open(i, cdrom_drives[i].host_drive);
-							else	
-							        cdrom_null_open(i, cdrom_drives[i].host_drive);
-						}
-
-						floppy_load(0, floppyfns[0]);
-						floppy_load(1, floppyfns[1]);
-						floppy_load(2, floppyfns[2]);
-						floppy_load(3, floppyfns[3]);
-
-						mem_resize();
-						rom_load_bios(romset);
-						network_init();
-						ResetAllMenus();
-						pc_reset_hard_init();
-					}
+				if (!file_dlg_st(hwnd, IDS_2160, "", 0) &&
+				    (ui_msgbox(MBX_QUESTION, (wchar_t *)IDS_2051) == IDYES)) {
+					pc_reload(wopenfilestring);
+					ResetAllMenus();
 				}
 				plat_pause(0);
 				break;                        

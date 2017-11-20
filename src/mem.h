@@ -1,8 +1,8 @@
 /* Copyright holders: Sarah Walker, Tenshi
    see COPYING for more details
 */
-#ifndef _MEM_H_
-#define _MEM_H_
+#ifndef EMU_MEM_H
+# define EMU_MEM_H
 
 
 extern uint8_t *ram;
@@ -238,4 +238,5 @@ extern void     port_92_clear_reset(void);
 extern void	port_92_add(void);
 extern void	port_92_remove(void);
 
-#endif
+
+#endif	/*EMU_MEM_H*/

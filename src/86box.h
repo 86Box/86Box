@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.12	2017/11/04
+ * Version:	@(#)86box.h	1.0.13	2017/11/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -119,6 +119,7 @@ extern void	pclog(const char *format, ...);
 extern void	fatal(const char *format, ...);
 extern void	set_screen_size(int x, int y);
 extern void	set_screen_size_natural(void);
+extern void	pc_reload(wchar_t *fn);
 extern int	pc_init_modules(void);
 extern int	pc_init(int argc, wchar_t *argv[]);
 extern void	pc_close(void *threadid);

@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.43	2017/11/18
+ * Version:	@(#)pc.c	1.0.44	2017/11/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -50,6 +50,9 @@
 #include "serial.h"
 #include "bugger.h"
 #include "cdrom/cdrom.h"
+#include "cdrom/cdrom.h"
+#include "cdrom/cdrom_image.h"
+#include "cdrom/cdrom_null.h"
 #include "disk/hdd.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
@@ -482,6 +485,55 @@ pc_speed_changed(void)
 	setpitclock(14318184.0);
 
     nvr_recalc();
+}
+
+
+/* Re-load system configuration and restart. */
+void
+pc_reload(wchar_t *fn)
+{
+    int i;
+
+    config_write(config_file_default);
+
+    for (i=0; i<FDD_NUM; i++)
+	floppy_close(i);
+    for (i=0; i<CDROM_NUM; i++) {
+	cdrom_drives[i].handler->exit(i);
+	if (cdrom_drives[i].host_drive == 200)
+		image_close(i);
+	  else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
+		ioctl_close(i);
+	  else
+		null_close(i);
+    }
+
+    pc_reset_hard_close();
+
+    config_load(fn);
+
+    for (i=0; i<CDROM_NUM; i++) {
+	if (cdrom_drives[i].bus_type)
+		SCSIReset(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun);
+
+	if (cdrom_drives[i].host_drive == 200)
+		image_open(i, cdrom_image[i].image_path);
+	  else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
+		ioctl_open(i, cdrom_drives[i].host_drive);
+	  else	
+	        cdrom_null_open(i, cdrom_drives[i].host_drive);
+    }
+
+    floppy_load(0, floppyfns[0]);
+    floppy_load(1, floppyfns[1]);
+    floppy_load(2, floppyfns[2]);
+    floppy_load(3, floppyfns[3]);
+
+    mem_resize();
+    rom_load_bios(romset);
+    network_init();
+
+    pc_reset_hard_init();
 }
 
 
