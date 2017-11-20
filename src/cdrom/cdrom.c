@@ -2563,7 +2563,7 @@ cdrom_readtoc_fallback:
 				alloc_length <<= 8;
 				alloc_length |= cdbufferb[1];
 				alloc_length += 2;
-				len = MIN(len, alloc_length);
+				len = alloc_length;
 			} else {
 				memset(cdbufferb, 0, 34);
 				memset(cdbufferb, 1, 9);
@@ -2574,6 +2574,9 @@ cdrom_readtoc_fallback:
 				cdbufferb[8] = 0x00; /* CD-ROM */
 				len=34;
 			}
+
+			len = MIN(len, max_len);
+			pclog("READ_DISC_INFORMATION: len = %i\n", len);
 
 			cdrom_set_buf_len(id, BufLen, &len);
 
