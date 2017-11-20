@@ -149,6 +149,10 @@ extern void	machine_ps2_model_80_486_init(machine_t *);
 extern void	machine_amstrad_init(machine_t *);
 
 extern void	machine_europc_init(machine_t *);
+#ifdef EMU_DEVICE_H
+extern device_t europc_device,
+                europc_hdc_device;
+#endif
 
 extern void	machine_olim24_init(machine_t *);
 

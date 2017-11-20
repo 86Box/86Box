@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.78	2017/11/18
+# Version:	@(#)Makefile.mingw	1.0.79	2017/11/19
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -314,9 +314,6 @@ endif
 ifndef SERIAL
 SERIAL		:= serial.o
 endif
-ifndef EUROPC
-EUROPC		:= m_europc.o
-endif
 
 
 # Final versions of the toolchain flags.
@@ -342,7 +339,8 @@ CPUOBJ		:= cpu.o cpu_table.o \
 		    386_dynarec.o $(DYNARECOBJ)
 
 MCHOBJ		:= machine.o machine_table.o \
-		    m_amstrad.o $(EUROPC) m_olivetti_m24.o m_tandy.o \
+		    m_amstrad.o m_europc.o m_europc_hdc.o \
+		    m_olivetti_m24.o m_tandy.o \
 		    m_xt.o m_xt_compaq.o m_xt_laserxt.o \
 		    m_at.o m_at_ali1429.o m_at_commodore.o \
 		    m_at_neat.o m_at_headland.o \
