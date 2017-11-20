@@ -186,10 +186,9 @@
  *		(DS12887A) which implemented a "century" register to be 
  *		compatible with Y2K.
  *
- * Version:	@(#)nvr.c	1.0.12	2017/11/01
+ * Version:	@(#)nvr.c	1.0.13	2017/11/19
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Mahod,
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -212,25 +211,25 @@
 #include "nvr.h"
 
 
-int64_t	enable_sync;		/* configuration variable: enable time sync */
-int64_t	nvr_dosave;		/* NVR is dirty, needs saved */
+int	enable_sync;		/* configuration variable: enable time sync */
+int	nvr_dosave;		/* NVR is dirty, needs saved */
 
 
 static nvr_t	*saved_nvr = NULL;
 static int8_t	days_in_month[12] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
 static struct {
-   int64_t sec;
-   int64_t min;
-   int64_t hour;
-   int64_t mday;
-   int64_t mon;
-   int64_t year;
+   int16_t	year;
+   int8_t	sec;
+   int8_t	min;
+   int8_t	hour;
+   int8_t	mday;
+   int8_t	mon;
 }		intclk;		/* the internal clock */
 
 
 /* Determine whether or not the year is leap. */
-static int
-is_leap(int64_t year)
+static int8_t
+is_leap(int8_t year)
 {
     if (year % 400 == 0) return(1);
     if (year % 100 == 0) return(0);
@@ -241,8 +240,8 @@ is_leap(int64_t year)
 
 
 /* Determine the days in the current month. */
-static int
-get_days(int64_t month, int64_t year)
+static int8_t
+get_days(int8_t month, int8_t year)
 {
     if (month != 2)
 	return(days_in_month[month - 1]);
@@ -329,7 +328,7 @@ rtc_getnvr(uint8_t *nvr, struct tm *tm)
 static void
 rtc_setnvr(uint8_t *nvr)
 {
-    int64_t temp;
+    int8_t temp;
 
     if (nvr[RTC_REGB] & REGB_DM) {
 	intclk.sec = nvr[RTC_SECONDS];
@@ -409,8 +408,8 @@ onesec_timer(void *priv)
 
 
 /* Check if the current time matches a set alarm time. */
-static int
-check_alarm(nvr_t *nvr, int64_t addr)
+static int8_t
+check_alarm(nvr_t *nvr, int8_t addr)
 {
 #define ALARM_DONTCARE 0xc0
     return((nvr->regs[addr+1] == nvr->regs[addr]) ||
@@ -424,7 +423,8 @@ update_timer(void *priv)
 {
     nvr_t *nvr = (nvr_t *)priv;
     struct tm tm;
-    int64_t dom, mon, yr, cent, sum, wd;
+    int8_t dom, mon, sum, wd;
+    int16_t cent, yr;
 
     if (! (nvr->regs[RTC_REGB] & REGB_SET)) {
 	/* Get the current time from the internal clock. */
@@ -507,7 +507,8 @@ ticker_timer(void *priv)
 static void
 nvr_write(nvr_t *nvr, uint16_t reg, uint8_t val)
 {
-    int64_t c, old;
+    uint8_t old;
+    int64_t c;
 
     old = nvr->regs[reg];
     switch(reg) {
@@ -647,19 +648,19 @@ nvr_recalc(void)
 /*
  * Load an NVR from file.
  *
- * This function does two things, really.  It clear and initializes
+ * This function does two things, really. It clears and initializes
  * the RTC and NVRAM areas, sets up defaults for the RTC part, and
  * then attempts to load data from a saved file.
  *
- * Either way, after that loading, it will continue to configure
- * the local RTC to operate, so it can update either the local RTC,
- * and/or the supplied by a client.
+ * Either way, after that, it will continue to configure the local
+ * RTC to operate, so it can update either the local RTC, and/or
+ * the one supplied by a client.
  */
-int64_t
+int
 nvr_load(void)
 {
-    FILE *f;
     int64_t c;
+    FILE *f;
 
     /* Make sure we have been initialized. */
     if (saved_nvr == NULL) return(0);
@@ -709,7 +710,7 @@ nvr_load(void)
 
 
 /* Save the current NVR to a file. */
-int64_t
+int
 nvr_save(void)
 {
     FILE *f;

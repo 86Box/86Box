@@ -8,14 +8,12 @@
  *
  *		Definitions for a defacto-standard RTC/NVRAM device.
  *
- * Version:	@(#)nvr.h	1.0.3	2017/10/02
+ * Version:	@(#)nvr.h	1.0.4	2017/11/19
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Mahod,
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016-2017 Miran Grca.
  *		Copyright 2016-2017 Mahod.
  *		Copyright 2017 Fred N. van Kempen.
@@ -102,13 +100,13 @@ typedef struct _nvr_ {
 } nvr_t;
 
 
-extern int64_t	enable_sync;
-extern int64_t	nvr_dosave;
+extern int	enable_sync;
+extern int	nvr_dosave;
 
 
 extern void	nvr_init(nvr_t *);
-extern int64_t	nvr_load(void);
-extern int64_t	nvr_save(void);
+extern int	nvr_load(void);
+extern int	nvr_save(void);
 extern void	nvr_recalc(void);
 
 extern wchar_t	*nvr_path(wchar_t *str);
