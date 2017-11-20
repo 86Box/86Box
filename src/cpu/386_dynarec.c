@@ -512,19 +512,6 @@ int dontprint=0;
 #define CACHE_ON() (!(cr0 & (1 << 30)) /*&& (cr0 & 1)*/ && !(flags & T_FLAG))
 
 #ifdef USE_DYNAREC
-static int cpu_cycle_period(void)
-{
-	switch(cpu_pci_speed)
-	{
-		case 333333333:
-	                return is_pentium ? 1000 : 1333;
-			break;
-		default:
-	                return 1000;
-			break;
-	}
-}
-
 static int cycles_main = 0;
 
 void exec386_dynarec(int cycs)
@@ -536,46 +523,14 @@ void exec386_dynarec(int cycs)
         int oldcyc;
 	uint32_t start_pc = 0;
 
+        int cyc_period = cycs / 2000; /*5us*/
+
         cycles_main += cycs;
         while (cycles_main > 0)
         {
                 int cycles_start;
 
-#if 0
-		switch(cpu_pci_speed)
-		{
-			case 16000000:
-		                cycles += 640;
-				break;
-			case 20000000:
-		                cycles += 800;
-				break;
-			case 25000000:
-			default:
-		                cycles += 1000;
-				break;
-			case 27500000:
-		                cycles += 1100;
-				break;
-			case 30000000:
-		                cycles += 1200;
-				break;
-			case 333333333:
-		                cycles += 1333;
-				break;
-			case 37500000:
-		                cycles += 1500;
-				break;
-			case 40000000:
-		                cycles += 1600;
-				break;
-			case 41666667:
-		                cycles += 1666;
-				break;
-		}
-#endif
-		cycles += cpu_cycle_period();
-
+		cycles += cyc_period;
                 cycles_start = cycles;
 
                 timer_start_period(cycles << TIMER_SHIFT);
