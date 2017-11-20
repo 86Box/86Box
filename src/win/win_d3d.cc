@@ -121,6 +121,7 @@ static void
 d3d_blit_fs(int x, int y, int y1, int y2, int w, int h)
 {
     HRESULT hr = D3D_OK;
+    HRESULT hbsr = D3D_OK;
     VOID* pVoid;
     D3DLOCKED_RECT dr;
     RECT w_rect;
@@ -191,7 +192,7 @@ d3d_blit_fs(int x, int y, int y1, int y2, int w, int h)
 	hr = v_buffer->Unlock();
 
     if (hr == D3D_OK)	
-	hr = d3ddev->BeginScene();
+	hbsr = hr = d3ddev->BeginScene();
 
     if (hr == D3D_OK) {
 	if (hr == D3D_OK)
@@ -211,10 +212,10 @@ d3d_blit_fs(int x, int y, int y1, int y2, int w, int h)
 
 	if (hr == D3D_OK)
 		hr = d3ddev->SetTexture(0, NULL);
-
-	if (hr == D3D_OK)
-		hr = d3ddev->EndScene();
     }
+
+    if (hbsr == D3D_OK)
+	hr = d3ddev->EndScene();
 
     if (hr == D3D_OK)
 	hr = d3ddev->Present(NULL, NULL, d3d_device_window, NULL);
@@ -228,6 +229,7 @@ static void
 d3d_blit(int x, int y, int y1, int y2, int w, int h)
 {
     HRESULT hr = D3D_OK;
+    HRESULT hbsr = D3D_OK;
     VOID* pVoid;
     D3DLOCKED_RECT dr;
     RECT r;
@@ -284,7 +286,7 @@ d3d_blit(int x, int y, int y1, int y2, int w, int h)
 	hr = v_buffer->Unlock();    // unlock the vertex buffer
 
     if (hr == D3D_OK)	
-	hr = d3ddev->BeginScene();
+	hbsr = hr = d3ddev->BeginScene();
 
     if (hr == D3D_OK) {
 	if (hr == D3D_OK)
@@ -301,10 +303,10 @@ d3d_blit(int x, int y, int y1, int y2, int w, int h)
 
 	if (hr == D3D_OK)
 		hr = d3ddev->SetTexture(0, NULL);
-
-	if (hr == D3D_OK)
-		hr = d3ddev->EndScene();
     }
+
+    if (hbsr == D3D_OK)
+	hr = d3ddev->EndScene();
 
     if (hr == D3D_OK)
 	hr = d3ddev->Present(NULL, NULL, d3d_hwnd, NULL);
