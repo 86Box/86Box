@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.79	2017/11/19
+# Version:	@(#)Makefile.mingw	1.0.80	2017/11/19
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -50,7 +50,7 @@ ifndef USB
 USB		:= n
 endif
 ifndef VNC
-VNC		:= y
+VNC		:= n
 endif
 ifndef RDP
 RDP		:= n
@@ -102,6 +102,7 @@ CIRRUS		:= y
 NE1000		:= y
 NV_RIVA		:= y
 PAS16		:= y
+VNC		:= y
 endif
 
 # WxWidgets basic info. Extract using the config program.

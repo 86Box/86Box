@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.2	2017/11/18
+ * Version:	@(#)win_ui.c	1.0.3	2017/11/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -56,14 +56,10 @@
 
 
 /* Platform Public data, specific. */
-HINSTANCE	hinstance;		/* application instance */
 HWND		hwndMain,		/* application main window */
 		hwndRender;		/* machine render window */
 HMENU		menuMain;		/* application main menu */
-HANDLE		ghMutex;
 HICON		hIcon[512];		/* icon data loaded from resources */
-LCID		lang_id;		/* current language ID used */
-DWORD		dwSubLangID;
 RECT		oldclip;		/* mouse rect */
 int		infocus = 1;
 
@@ -72,7 +68,6 @@ WCHAR		wopenfilestring[260];
 
 
 /* Local data. */
-//static HANDLE	thMain;
 static wchar_t	wTitle[512];
 static RAWINPUTDEVICE	device;
 static HHOOK	hKeyboardHook;
