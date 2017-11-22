@@ -76,6 +76,9 @@ nvr_read(uint16_t addr, void *priv)
 void
 nvr_at_close(void)
 {
+    if (nvrp == NULL)
+	return;
+
     if (nvrp->fname != NULL)
 	free(nvrp->fname);
 

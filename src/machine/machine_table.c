@@ -220,5 +220,6 @@ machine_get_machine_from_internal_name(char *s)
 void
 machine_close(void)
 {
-    machines[machine].nvr_close();
+    if (machines[machine].nvr_close)
+    	machines[machine].nvr_close();
 }
