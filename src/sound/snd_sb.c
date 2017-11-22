@@ -124,6 +124,7 @@ typedef struct sb_ct1745_mixer_t
 
 typedef struct sb_t
 {
+	uint8_t		opl_enabled;
         opl_t           opl;
         sb_dsp_t        dsp;
         union {
@@ -171,12 +172,14 @@ static void sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
                 
         int c;
 
-        opl2_update2(&sb->opl);
+	if (sb->opl_enabled)
+        	opl2_update2(&sb->opl);
         sb_dsp_update(&sb->dsp);
         for (c = 0; c < len * 2; c += 2)
         {
-                int32_t out;
-                out = ((sb->opl.buffer[c]     * 51000) >> 16);
+                int32_t out = 0;
+		if (sb->opl_enabled)
+                	out = ((sb->opl.buffer[c]     * 51000) >> 16);
                 //TODO: Recording: Mic and line In with AGC
                 out += (int32_t)(((sb_iir(0, (float)sb->dsp.buffer[c]) / 1.3) * 65536) / 3) >> 16;
         
@@ -196,13 +199,15 @@ static void sb_get_buffer_sb2_mixer(int32_t *buffer, int len, void *p)
                 
         int c;
 
-        opl2_update2(&sb->opl);
+	if (sb->opl_enabled)
+        	opl2_update2(&sb->opl);
         sb_dsp_update(&sb->dsp);
         for (c = 0; c < len * 2; c += 2)
         {
-                int32_t out;
+                int32_t out = 0;
                 
-                out = ((((sb->opl.buffer[c]     * mixer->fm) >> 16) * 51000) >> 15);
+		if (sb->opl_enabled)
+                	out = ((((sb->opl.buffer[c]     * mixer->fm) >> 16) * 51000) >> 15);
                 /* TODO: Recording : I assume it has direct mic and line in like sb2 */
                 /* It is unclear from the docs if it has a filter, but it probably does */
                 out += (int32_t)(((sb_iir(0, (float)sb->dsp.buffer[c])     / 1.3) * mixer->voice) / 3) >> 15;
@@ -225,18 +230,22 @@ static void sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
                 
         int c;
 
-        if (sb->dsp.sb_type == SBPRO)
-                opl2_update2(&sb->opl);
-        else
-                opl3_update2(&sb->opl);
+	if (sb->opl_enabled) {
+        	if (sb->dsp.sb_type == SBPRO)
+                	opl2_update2(&sb->opl);
+        	else
+                	opl3_update2(&sb->opl);
+	}
 
         sb_dsp_update(&sb->dsp);
         for (c = 0; c < len * 2; c += 2)
         {
-                int32_t out_l, out_r;
+                int32_t out_l = 0, out_r = 0;
                 
-                out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
-                out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
+		if (sb->opl_enabled) {
+                	out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
+                	out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
+		}
                 
                 /*TODO: Implement the stereo switch on the mixer instead of on the dsp? */
                 if (mixer->output_filter)
@@ -270,15 +279,18 @@ static void sb_get_buffer_sb16(int32_t *buffer, int len, void *p)
                 
         int c;
 
-        opl3_update2(&sb->opl);
+	if (sb->opl_enabled)
+        	opl3_update2(&sb->opl);
         sb_dsp_update(&sb->dsp);
         const int dsp_rec_pos = sb->dsp.record_pos_write;
         for (c = 0; c < len * 2; c += 2)
         {
-                int32_t out_l, out_r, in_l, in_r;
+                int32_t out_l = 0, out_r = 0, in_l, in_r;
                 
-                out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
-                out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
+		if (sb->opl_enabled) {
+                	out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
+                	out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
+		}
 
                 /*TODO: multi-recording mic with agc/+20db, cd and line in with channel inversion */
                 in_l = (mixer->input_selector_left&INPUT_MIDI_L) ? out_l : 0 + (mixer->input_selector_left&INPUT_MIDI_R) ? out_r : 0;
@@ -345,20 +357,23 @@ static void sb_get_buffer_emu8k(int32_t *buffer, int len, void *p)
                 
         int c;
 
-        opl3_update2(&sb->opl);
+	if (sb->opl_enabled)
+        	opl3_update2(&sb->opl);
         emu8k_update(&sb->emu8k);
         sb_dsp_update(&sb->dsp);
         const int dsp_rec_pos = sb->dsp.record_pos_write;
         for (c = 0; c < len * 2; c += 2)
         {
-                int32_t out_l, out_r, in_l, in_r;
+                int32_t out_l = 0, out_r = 0, in_l, in_r;
                 int c_emu8k = (((c/2) * 44100) / 48000)*2;
                 
-                out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 15) * (sb->opl_emu ? 47000 : 51000)) >> 16);
-                out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 15) * (sb->opl_emu ? 47000 : 51000)) >> 16);
+		if (sb->opl_enabled) {
+                	out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 15) * (sb->opl_emu ? 47000 : 51000)) >> 16);
+                	out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 15) * (sb->opl_emu ? 47000 : 51000)) >> 16);
+		}
 
-                out_l += ((sb->emu8k.buffer[c_emu8k]     * mixer->fm_l) >> 15);
-                out_r += ((sb->emu8k.buffer[c_emu8k + 1] * mixer->fm_r) >> 15);
+               	out_l += ((sb->emu8k.buffer[c_emu8k]     * mixer->fm_l) >> 15);
+               	out_r += ((sb->emu8k.buffer[c_emu8k + 1] * mixer->fm_r) >> 15);
                 
                 /*TODO: multi-recording mic with agc/+20db, cd and line in with channel inversion  */
                 in_l = (mixer->input_selector_left&INPUT_MIDI_L) ? out_l : 0 + (mixer->input_selector_left&INPUT_MIDI_R) ? out_r : 0;
@@ -901,8 +916,10 @@ void sb_mcv_write(int port, uint8_t val, void *p)
         /* pclog("sb_mcv_write: port=%04x val=%02x\n", port, val); */
 
         addr = sb_mcv_addr[sb->pos_regs[4] & 7];
-        io_removehandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
-        io_removehandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+	if (sb->opl_enabled) {
+        	io_removehandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+        	io_removehandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+	}
         /* DSP I/O handler is activated in sb_dsp_setaddr */
         sb_dsp_setaddr(&sb->dsp, 0);
 
@@ -912,8 +929,10 @@ void sb_mcv_write(int port, uint8_t val, void *p)
         {
                 addr = sb_mcv_addr[sb->pos_regs[4] & 7];
                 
-                io_sethandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
-                io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+		if (sb->opl_enabled) {
+                	io_sethandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+                	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+		}
                 /* DSP I/O handler is activated in sb_dsp_setaddr */
                 sb_dsp_setaddr(&sb->dsp, addr);
         }
@@ -975,7 +994,9 @@ void *sb_1_init()
         uint16_t addr = device_get_config_hex16("base");        
         memset(sb, 0, sizeof(sb_t));
         
-        opl2_init(&sb->opl);
+	sb->opl_enabled = device_get_config_int("opl");
+	if (sb->opl_enabled)
+        	opl2_init(&sb->opl);
         sb_dsp_init(&sb->dsp, SB1);
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
@@ -983,8 +1004,10 @@ void *sb_1_init()
 	sb_dsp_set_mpu(&sb->mpu);
         /* CMS I/O handler is activated on the dedicated sound_cms module
            DSP I/O handler is activated in sb_dsp_setaddr */
-        io_sethandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
-        io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+	if (sb->opl_enabled) {
+        	io_sethandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+        	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+	}
         sound_add_handler(sb_get_buffer_sb2, sb);
         return sb;
 }
@@ -998,15 +1021,19 @@ void *sb_15_init()
         uint16_t addr = device_get_config_hex16("base");
         memset(sb, 0, sizeof(sb_t));
 
-        opl2_init(&sb->opl);
+	sb->opl_enabled = device_get_config_int("opl");
+	if (sb->opl_enabled)
+        	opl2_init(&sb->opl);
         sb_dsp_init(&sb->dsp, SB15);
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
         /* CMS I/O handler is activated on the dedicated sound_cms module
            DSP I/O handler is activated in sb_dsp_setaddr */
-        io_sethandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
-        io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+	if (sb->opl_enabled) {
+        	io_sethandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+        	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+	}
         sound_add_handler(sb_get_buffer_sb2, sb);
         return sb;
 }
@@ -1019,7 +1046,9 @@ void *sb_mcv_init()
         sb_t *sb = malloc(sizeof(sb_t));
         memset(sb, 0, sizeof(sb_t));
 
-        opl2_init(&sb->opl);
+	sb->opl_enabled = device_get_config_int("opl");
+	if (sb->opl_enabled)
+        	opl2_init(&sb->opl);
         sb_dsp_init(&sb->dsp, SB15);
         sb_dsp_setaddr(&sb->dsp, 0);//addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
@@ -1045,7 +1074,9 @@ void *sb_2_init()
         uint16_t addr = device_get_config_hex16("base");
         memset(sb, 0, sizeof(sb_t));
 
-        opl2_init(&sb->opl);
+	sb->opl_enabled = device_get_config_int("opl");
+	if (sb->opl_enabled)
+        	opl2_init(&sb->opl);
         sb_dsp_init(&sb->dsp, SB2);
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
@@ -1054,8 +1085,10 @@ void *sb_2_init()
         sb_ct1335_mixer_reset(sb);
         /* CMS I/O handler is activated on the dedicated sound_cms module
            DSP I/O handler is activated in sb_dsp_setaddr */
-        io_sethandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
-        io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+	if (sb->opl_enabled) {
+        	io_sethandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+        	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
+	}
         
         int mixer_addr = device_get_config_int("mixaddr");
         if (mixer_addr > 0)
@@ -1081,7 +1114,9 @@ void *sb_pro_v1_init()
         uint16_t addr = device_get_config_hex16("base");
         memset(sb, 0, sizeof(sb_t));
 
-        opl2_init(&sb->opl);
+	sb->opl_enabled = device_get_config_int("opl");
+	if (sb->opl_enabled)
+        	opl2_init(&sb->opl);
         sb_dsp_init(&sb->dsp, SBPRO);
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
@@ -1089,10 +1124,12 @@ void *sb_pro_v1_init()
 	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1345_mixer_reset(sb);
         /* DSP I/O handler is activated in sb_dsp_setaddr */
-        io_sethandler(addr+0, 0x0002, opl2_l_read, NULL, NULL, opl2_l_write, NULL, NULL, &sb->opl);
-        io_sethandler(addr+2, 0x0002, opl2_r_read, NULL, NULL, opl2_r_write, NULL, NULL, &sb->opl);
-        io_sethandler(addr+8, 0x0002, opl2_read,   NULL, NULL, opl2_write,   NULL, NULL, &sb->opl);
-        io_sethandler(0x0388, 0x0002, opl2_read,   NULL, NULL, opl2_write,   NULL, NULL, &sb->opl);
+	if (sb->opl_enabled) {
+        	io_sethandler(addr+0, 0x0002, opl2_l_read, NULL, NULL, opl2_l_write, NULL, NULL, &sb->opl);
+        	io_sethandler(addr+2, 0x0002, opl2_r_read, NULL, NULL, opl2_r_write, NULL, NULL, &sb->opl);
+        	io_sethandler(addr+8, 0x0002, opl2_read,   NULL, NULL, opl2_write,   NULL, NULL, &sb->opl);
+        	io_sethandler(0x0388, 0x0002, opl2_read,   NULL, NULL, opl2_write,   NULL, NULL, &sb->opl);
+	}
         io_sethandler(addr+4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sbpro, sb);
 
@@ -1111,7 +1148,9 @@ void *sb_pro_v2_init()
         uint16_t addr = device_get_config_hex16("base");
         memset(sb, 0, sizeof(sb_t));
 
-        opl3_init(&sb->opl);
+	sb->opl_enabled = device_get_config_int("opl");
+	if (sb->opl_enabled)
+        	opl3_init(&sb->opl);
         sb_dsp_init(&sb->dsp, SBPRO2);
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
@@ -1119,9 +1158,11 @@ void *sb_pro_v2_init()
 	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1345_mixer_reset(sb);
         /* DSP I/O handler is activated in sb_dsp_setaddr */
-        io_sethandler(addr+0, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
-        io_sethandler(addr+8, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
-        io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+	if (sb->opl_enabled) {
+        	io_sethandler(addr+0, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+        	io_sethandler(addr+8, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+        	io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+	}
         io_sethandler(addr+4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sbpro, sb);
 
@@ -1138,6 +1179,7 @@ void *sb_pro_mcv_init()
         sb_t *sb = malloc(sizeof(sb_t));
         memset(sb, 0, sizeof(sb_t));
 
+	sb->opl_enabled = 1;
         opl3_init(&sb->opl);
         sb_dsp_init(&sb->dsp, SBPRO2);
         sb_ct1345_mixer_reset(sb);
@@ -1158,16 +1200,20 @@ void *sb_16_init()
         uint16_t addr = device_get_config_hex16("base");
         memset(sb, 0, sizeof(sb_t));
 
-        opl3_init(&sb->opl);
+	sb->opl_enabled = device_get_config_int("opl");
+	if (sb->opl_enabled)
+	        opl3_init(&sb->opl);
         sb_dsp_init(&sb->dsp, SB16);
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
         sb_dsp_setdma16(&sb->dsp, device_get_config_int("dma16"));
         sb_ct1745_mixer_reset(sb);
-        io_sethandler(addr, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
-        io_sethandler(addr+8, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
-        io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+	if (sb->opl_enabled) {
+        	io_sethandler(addr, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+        	io_sethandler(addr+8, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+        	io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+	}
         io_sethandler(addr+4, 0x0002, sb_ct1745_mixer_read, NULL, NULL, sb_ct1745_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sb16, sb);
         mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
@@ -1190,7 +1236,10 @@ void *sb_awe32_init()
         memset(sb, 0, sizeof(sb_t));
 
 
-        opl3_init(&sb->opl);
+	sb->opl_enabled = device_get_config_int("opl");
+	if (sb->opl_enabled)
+        	opl3_init(&sb->opl);
+
         sb_dsp_init(&sb->dsp, SB16 + 1);
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
@@ -1198,9 +1247,11 @@ void *sb_awe32_init()
         sb_dsp_setdma16(&sb->dsp, device_get_config_int("dma16"));
 	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1745_mixer_reset(sb);
-        io_sethandler(addr, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
-        io_sethandler(addr+8, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
-        io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+	if (sb->opl_enabled) {
+        	io_sethandler(addr, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+	        io_sethandler(addr+8, 0x0002, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+        	io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
+	}
         io_sethandler(addr+4, 0x0002, sb_ct1745_mixer_read, NULL, NULL, sb_ct1745_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_emu8k, sb);
         mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
@@ -1303,6 +1354,9 @@ static device_config_t sb_config[] =
                         }
                 }
         },
+	{
+		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
         {
                 "", "", -1
         }
@@ -1341,6 +1395,9 @@ static device_config_t sb_mcv_config[] =
                         }
                 }
         },
+	{
+		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
         {
                 "", "", -1
         }
@@ -1396,6 +1453,9 @@ static device_config_t sb_pro_config[] =
                         }
                 }
         },
+	{
+		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
         {
                 "", "", -1
         }
@@ -1531,6 +1591,9 @@ static device_config_t sb_16_config[] =
                         }
                 }
         },
+	{
+		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
         {
                 "", "", -1
         }
@@ -1709,6 +1772,9 @@ static device_config_t sb_awe32_config[] =
                         }
                 }
         },
+	{
+		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
         {
                 "", "", -1
         }

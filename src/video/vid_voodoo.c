@@ -1347,6 +1347,8 @@ static void use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
         lod_max = (params->tLOD[tmu] >> 8) & 15;
 //        pclog("  add new texture to %i tformat=%i %08x LOD=%i-%i tmu=%i\n", c, voodoo->params.tformat[tmu], params->texBaseAddr[tmu], lod_min, lod_max, tmu);
         
+        lod_min = MIN(lod_min, 8);
+        lod_max = MIN(lod_max, 8);
         for (lod = lod_min; lod <= lod_max; lod++)
         {
                 uint32_t *base = &voodoo->texture_cache[tmu][c].data[texture_offset[lod]];
@@ -2733,8 +2735,8 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                 ystart = params->clipLowY;
         }
 
-        if ((params->fbzMode & 1) && (yend > params->clipHighY))
-                yend = params->clipHighY;
+        if ((params->fbzMode & 1) && (yend >= params->clipHighY))
+                yend = params->clipHighY-1;
 
         state->y = ystart;
 //        yend--;
@@ -2877,14 +2879,14 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                                         
                                         x = params->clipLeft;
                                 }
-                                if (x2 > params->clipRight)
-                                        x2 = params->clipRight;
+                                if (x2 >= params->clipRight)
+                                        x2 = params->clipRight-1;
                         }
                         else
                         {
-                                if (x > params->clipRight)
+                                if (x >= params->clipRight)
                                 {
-                                        int dx = params->clipRight - x;
+                                        int dx = (params->clipRight-1) - x;
 
                                         state->ir += params->dRdX*dx;
                                         state->ig += params->dGdX*dx;
@@ -2899,7 +2901,7 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                                         state->tmu1_w += params->tmu[1].dWdX*dx;
                                         state->w += params->dWdX*dx;
                                         
-                                        x = params->clipRight;
+                                        x = params->clipRight-1;
                                 }
                                 if (x2 < params->clipLeft)
                                         x2 = params->clipLeft;
@@ -4017,8 +4019,8 @@ static void blit_start(voodoo_t *voodoo)
 
                                 if (voodoo->bltCommand & BLIT_CLIPPING_ENABLED)
                                 {
-                                        if (dst_x < voodoo->bltClipLeft || dst_x > voodoo->bltClipRight ||
-                                            dst_y < voodoo->bltClipLowY || dst_y > voodoo->bltClipHighY)
+                                        if (dst_x < voodoo->bltClipLeft || dst_x >= voodoo->bltClipRight ||
+                                            dst_y < voodoo->bltClipLowY || dst_y >= voodoo->bltClipHighY)
                                                 goto skip_pixel_blit;
                                 }
 
@@ -4089,8 +4091,8 @@ skip_pixel_blit:
                         {
                                 if (voodoo->bltCommand & BLIT_CLIPPING_ENABLED)
                                 {
-                                        if (dst_x < voodoo->bltClipLeft || dst_x > voodoo->bltClipRight ||
-                                            dst_y < voodoo->bltClipLowY || dst_y > voodoo->bltClipHighY)
+                                        if (dst_x < voodoo->bltClipLeft || dst_x >= voodoo->bltClipRight ||
+                                            dst_y < voodoo->bltClipLowY || dst_y >= voodoo->bltClipHighY)
                                                 goto skip_pixel_fill;
                                 }
 
@@ -4243,8 +4245,8 @@ static void blit_data(voodoo_t *voodoo, uint32_t data)
                 
                 if (voodoo->bltCommand & BLIT_CLIPPING_ENABLED)
                 {
-                        if (x < voodoo->bltClipLeft || x > voodoo->bltClipRight ||
-                            voodoo->blt.dst_y < voodoo->bltClipLowY || voodoo->blt.dst_y > voodoo->bltClipHighY)
+                        if (x < voodoo->bltClipLeft || x >= voodoo->bltClipRight ||
+                            voodoo->blt.dst_y < voodoo->bltClipLowY || voodoo->blt.dst_y >= voodoo->bltClipHighY)
                                 goto skip_pixel;
                 }
 

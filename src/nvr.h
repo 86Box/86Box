@@ -8,7 +8,7 @@
  *
  *		Definitions for a defacto-standard RTC/NVRAM device.
  *
- * Version:	@(#)nvr.h	1.0.4	2017/11/19
+ * Version:	@(#)nvr.h	1.0.5	2017/11/22
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Mahod,
@@ -113,6 +113,7 @@ extern wchar_t	*nvr_path(wchar_t *str);
 extern FILE	*nvr_fopen(wchar_t *str, wchar_t *mode);
 
 extern void	nvr_at_init(int64_t irq);
+extern void	nvr_at_close(void);
 
 
 #endif	/*EMU_NVR_H*/

@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.12	2017/11/11
+ * Version:	@(#)machine.h	1.0.13	2017/11/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -64,6 +64,7 @@ typedef struct _machine_ {
 #else
     void	*get_device;
 #endif
+    void	(*nvr_close)(void);
 } machine_t;
 
 
@@ -88,6 +89,7 @@ extern device_t	*machine_getdevice(int machine);
 extern int	machine_getromset_ex(int m);
 extern char	*machine_get_internal_name_ex(int m);
 extern int	machine_get_nvrmask(int m);
+extern void	machine_close(void);
 
 
 /* Initialization functions for boards and systems. */
@@ -155,6 +157,7 @@ extern device_t europc_device,
 #endif
 
 extern void	machine_olim24_init(machine_t *);
+extern void	machine_olim24_video_init(void);
 
 extern void	machine_tandy1k_init(machine_t *);
 extern int	tandy1k_eeprom_read(void);

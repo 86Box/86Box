@@ -118,9 +118,11 @@ machine_at_compaq_init(machine_t *model)
 		break;
 
 	case ROM_PORTABLEIII:
+		machine_olim24_video_init();
 		break;
 
 	case ROM_PORTABLEIII386:
+		machine_olim24_video_init();
 		if (hdc_current == 1)
 			ide_init();
 		break;

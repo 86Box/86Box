@@ -791,3 +791,20 @@ machine_olim24_init(machine_t *model)
 
     nmi_init();
 }
+
+void machine_olim24_video_init(void) {
+    olim24_t *m24;
+
+    m24 = (olim24_t *)malloc(sizeof(olim24_t));
+    memset(m24, 0x00, sizeof(olim24_t));
+
+    /* Initialize the video adapter. */
+    m24->vram = malloc(0x8000);
+    overscan_x = overscan_y = 16;
+    mem_mapping_add(&m24->mapping, 0xb8000, 0x08000,
+		    vid_read, NULL, NULL,
+		    vid_write, NULL, NULL,  NULL, 0, m24);
+    io_sethandler(0x03d0, 16, vid_in, NULL, NULL, vid_out, NULL, NULL, m24);
+    timer_add(vid_poll, &m24->vidtime, TIMER_ALWAYS_ENABLED, m24);
+    device_add_ex(&m24_device, m24);
+}

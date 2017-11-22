@@ -1038,10 +1038,10 @@ load_removable_devices(void)
 		sprintf(tmp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
 		p = config_get_string(cat, temp, tmp2);
 		if (! strstr(p, ":")) {
-			sscanf(p, "%i", (int *)&hdd[c].ide_channel);
+			sscanf(p, "%i", (int *)&cdrom_drives[c].ide_channel);
 			cdrom_drives[c].ide_channel &= 7;
 		} else {
-			sscanf(p, "%02u:%02u", &board, &dev);
+			sscanf(p, "%01u:%01u", &board, &dev);
 
 			board &= 3;
 			dev &= 1;
@@ -1050,8 +1050,6 @@ load_removable_devices(void)
 
 		if (cdrom_drives[c].ide_channel > 7)
 			cdrom_drives[c].ide_channel = 7;
-		  else
-			config_delete_var(cat, temp);
 	} else {
 		sprintf(temp, "cdrom_%02i_scsi_location", c+1);
 		if (cdrom_drives[c].bus_type == CDROM_BUS_SCSI) {

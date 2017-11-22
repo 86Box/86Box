@@ -80,7 +80,7 @@ static void *ps2_nvr_init(device_t *info)
         return nvr;
 }
 
-static void ps2_nvr_close(void *p)
+void ps2_nvr_close(void *p)
 {
         ps2_nvr_t *nvr = (ps2_nvr_t *)p;
         FILE *f = NULL;

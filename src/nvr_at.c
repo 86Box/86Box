@@ -14,7 +14,7 @@
  *		of those batteries would create corrosion issues later on
  *		in mainboard life...
  *
- * Version:	@(#)nvr_at.c	1.0.7	2017/11/04
+ * Version:	@(#)nvr_at.c	1.0.8	2017/11/22
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -32,6 +32,9 @@
 #include "device.h"
 #include "machine/machine.h"
 #include "nvr.h"
+
+
+static nvr_t *nvrp;
 
 
 static void
@@ -71,14 +74,14 @@ nvr_read(uint16_t addr, void *priv)
 
 
 void
-nvr_at_close(void *priv)
+nvr_at_close(void)
 {
-    nvr_t *nvr = (nvr_t *)priv;
+    if (nvrp->fname != NULL)
+	free(nvrp->fname);
 
-    if (nvr->fname != NULL)
-	free(nvr->fname);
+    free(nvrp);
 
-    free(nvr);
+    nvrp = NULL;
 }
 
 
@@ -107,4 +110,6 @@ nvr_at_init(int64_t irq)
 
     /* Load the NVR into memory! */
     (void)nvr_load();
+
+    nvrp = nvr;
 }
