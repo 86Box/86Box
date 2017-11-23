@@ -62,9 +62,14 @@ extern "C" {
 extern int	dump_on_exit;			/* (O) dump regs on exit*/
 extern int	do_dump_config;			/* (O) dump cfg after load */
 extern int	start_in_fullscreen;		/* (O) start in fullscreen */
+#ifdef _WIN32
+extern int	force_debug;			/* (O) force debug output */
+#endif
 #ifdef USE_WX
 extern int	video_fps;			/* (O) render speed in fps */
 #endif
+extern wchar_t	log_path[1024];			/* (O) full path of logfile */
+
 
 extern int	window_w, window_h,		/* (C) window size and */
 		window_x, window_y,		/*     position info */
@@ -109,6 +114,7 @@ extern int	nic_do_log;
 
 extern wchar_t	exe_path[1024];			/* path (dir) of executable */
 extern wchar_t	cfg_path[1024];			/* path (dir) of user data */
+extern FILE	*stdlog;			/* file to log output to */
 extern int	scrnsz_x,			/* current screen size, X */
 		scrnsz_y;			/* current screen size, Y */
 extern int	config_changed;			/* config has changed */

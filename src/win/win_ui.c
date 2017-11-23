@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.3	2017/11/19
+ * Version:	@(#)win_ui.c	1.0.4	2017/11/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -642,7 +642,7 @@ SubWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 int
-ui_init(int nFunsterStil)
+ui_init(int nCmdShow)
 {
     WCHAR title[200];
     WNDCLASSEX wincl;			/* buffer for main window's class */
@@ -709,7 +709,7 @@ ui_init(int nFunsterStil)
     ResetAllMenus();
 
     /* Make the window visible on the screen. */
-    ShowWindow(hwnd, nFunsterStil);
+    ShowWindow(hwnd, nCmdShow);
 
     /* Load the accelerator table */
     haccel = LoadAccelerators(hinstance, ACCEL_NAME);

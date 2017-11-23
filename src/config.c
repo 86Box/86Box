@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.31	2017/11/04
+ * Version:	@(#)config.c	1.0.32	2017/11/23
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -739,14 +739,6 @@ load_other_peripherals(void)
     }
 
     bugger_enabled = !!config_get_int(cat, "bugger_enabled", 0);
-
-    /* Remove these after a while. */
-    serial_enabled[0] = !!config_get_int(cat, "serial1_enabled", 1);
-    config_delete_var(cat, "serial1_enabled");
-    serial_enabled[1] = !!config_get_int(cat, "serial2_enabled", 1);
-    config_delete_var(cat, "serial2_enabled");
-    lpt_enabled = !!config_get_int(cat, "lpt_enabled", 1);
-    config_delete_var(cat, "lpt_enabled");
 }
 
 

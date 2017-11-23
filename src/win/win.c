@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.36	2017/11/18
+ * Version:	@(#)win.c	1.0.37	2017/11/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,6 +20,7 @@
  */
 #define UNICODE
 #include <windows.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -158,7 +159,6 @@ plat_get_string(int i)
 
 
 #ifndef USE_WX
-# ifdef USE_CONSOLE
 /* Create a console if we don't already have one. */
 static void
 CreateConsole(int init)
@@ -205,7 +205,6 @@ CreateConsole(int init)
     *stdin = *fp;
 #endif
 }
-# endif
 
 
 /* Process the commandline, and create standard argc/argv array. */
@@ -277,7 +276,7 @@ ProcessCommandLine(wchar_t ***argw)
  * For the Windows platform, this is the start of the application.
  */
 int WINAPI
-WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
+WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 {
     wchar_t **argw = NULL;
     int	argc, i;
@@ -296,29 +295,27 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nFunsterStil)
     /* First, set our (default) language. */
     set_language(0x0409);
 
-#ifdef USE_CONSOLE
     /* Create console window. */
     CreateConsole(1);
-#endif
 
     /* Process the command line for options. */
     argc = ProcessCommandLine(&argw);
 
     /* Pre-initialize the system, this loads the config file. */
     if (! pc_init(argc, argw)) {
-#ifdef USE_CONSOLE
 	/* Detach from console. */
 	CreateConsole(0);
-#endif
 	return(1);
     }
 
     /* Cleanup: we no longer need the commandline arguments. */
+    if (! force_debug)
+	CreateConsole(0);
     free(argw[0]);
     free(argw);
 
     /* Handle our GUI. */
-    i = ui_init(nFunsterStil);
+    i = ui_init(nCmdShow);
 
     return(i);
 }

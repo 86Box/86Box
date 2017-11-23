@@ -8,7 +8,7 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.9	2017/11/12
+ * Version:	@(#)win.h	1.0.10	2017/11/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -99,7 +99,7 @@ extern int	hard_disk_was_added(void);
 
 
 /* Platform UI support functions. */
-extern int	ui_init(int nStyle);
+extern int	ui_init(int nCmdShow);
 
 
 /* Functions in win_about.c: */

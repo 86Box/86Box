@@ -29,10 +29,21 @@
  *		then makes up its mind.  Maybe an effort to 'debounce' the
  *		reading of the DIP switches?  Oh-well.
  *
+ * NOTES:	Verified with:
+ *		  AMI WinBIOS 486 (OK, IRQ5 only)
+ *		  Microsoft Mouse V2.00 (DOS V6.22)
+ *		  Microsoft Mouse V9.1 (DOS V6.22)
+ *		  Microsoft WfW V3.11 on DOS V6.22
+ *		  GEOS V1.0: does not seem to work
+ *		  GEOS V2.0: does not seem to work
+ *		  Microsoft Windows 95 OSR2
+ *		  Microsoft Windows 98 SE
+ *		  Microsoft Windows NT 3.1
+ *
  *		Based on an early driver for MINIX 1.5.
  *		Based on the 86Box PS/2 mouse driver as a framework.
  *
- * Version:	@(#)mouse_bus.c	1.0.22	2017/11/15
+ * Version:	@(#)mouse_bus.c	1.0.23	2017/11/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -52,7 +63,8 @@
 
 
 #define BUSMOUSE_PORT		0x023c		/* default */
-#define BUSMOUSE_IRQ		2		/* default (DOS,NT31) */
+#define BUSMOUSE_IRQ		5		/* default (DOS,NT31) */
+#define BUSMOUSE_DEBUG		0
 
 
 #define ENABLE_3BTN		1		/* enable 3-button mode */
@@ -106,7 +118,7 @@ lt_write(mouse_bus_t *ms, uint16_t port, uint8_t val)
 {
     uint8_t b;
 
-#if 1
+#if BUSMOUSE_DEBUG
     pclog("BUSMOUSE: lt_write(%d,%02x)\n", port, val);
 #endif
 
@@ -117,13 +129,10 @@ lt_write(mouse_bus_t *ms, uint16_t port, uint8_t val)
 	case MOUSE_MAGIC:	/* [01] magic data register */
 		switch(val) {
 			case MAGIC_BYTE1:
-				ms->r_ctrl = (CTRL_IDIS);
-				ms->r_magic = val;
-				break;
-
 			case MAGIC_BYTE2:
 				ms->r_ctrl = (CTRL_IENB);
 				ms->r_magic = val;
+				ms->r_intr = 0x00;
 				break;
 		}
 		break;
@@ -237,64 +246,29 @@ lt_read(mouse_bus_t *ms, uint16_t port)
 		break;
 
 	case MOUSE_CTRL:	/* [02] control register */
-		/*
-		 * This is the weird stuff mentioned in the file header.
-		 * The Microsoft "mouse" drivers (at least versions 2.0
-		 * through 9.1 for DOS) do some whacky things to extract
-		 * the configured IRQ channel from the board.
-		 *
-		 * First, it reads the current value, and then re-reads
-		 * it another 10,000 (yes, really) times. It keeps track
-		 * of whether or not the data has changed (to allow for
-		 * de-bouncing the value.)
-		 *
-		 * Drivers that use 5A then expect the value to be a
-		 * simple bitmask of the DIP switch settings, where bits
-		 * 0 through 3 mean IRQ2 through IRQ5.
-		 *
-		 * Drivers that use A5 expect this first value to be the
-		 * 2's complement of the actual IRQ value. Next, it does
-		 * this a second time, but now with the IDIS bit clear
-		 * (so, interrupts enabled), which is our cue to return
-		 * the regular (not complemented) value to them.
-		 *
-		 * Since we have to fake the initial value and the settling
-		 * of the data a bit later on, we first return a bunch of
-		 * invalid ("random") data, and then the real value.
-		 *
-		 * Yes, this is weird.  --FvK
-		 */
-		if (ms->r_magic == MAGIC_BYTE2) {
-			/*
-			 * Drivers using 5A expect a bitmask
-			 * of the DIP switch here, where bits
-			 * 0..3 mean IRQ2..IRQ5.
-			 */
-			switch(ms->irq) {
-				case 2:
-					r = 0x01;
-					break;
+		r = 0x0f;
+		switch(ms->irq) {
+			case 2:
+				r &= ~0x08;
+				break;
 
-				case 3:
-					r = 0x02;
-					break;
+			case 3:
+				r &= ~0x04;
+				break;
 
-				case 4:
-					r = 0x04;
-					break;
+			case 4:
+				r &= ~0x02;
+				break;
 
-				case 5:
-					r = 0x08;
-					break;
-			}
+			case 5:
+				r &= ~0x01;
+				break;
+		}
+		if (ms->r_intr++ < 250) {
+			/* Still settling, return invalid data. */
+			r = (ms->r_ctrl & 0x10) ? r : 0x0f;
 		} else {
-			if (ms->r_intr++ < 250)
-				/* Still settling, return invalid data. */
-				r = (ms->r_ctrl&CTRL_IDIS) ? 0xff : 0x00;
-			  else {
-				r = (ms->r_ctrl&CTRL_IDIS)?-ms->irq:ms->irq;
-				ms->r_intr = 0;
-			}
+			ms->r_intr = 0;
 		}
 		break;
 
@@ -306,8 +280,8 @@ lt_read(mouse_bus_t *ms, uint16_t port)
 		break;
     }
 
-#if 0
-    pclog("BUSMOUSE: lt_read(%d): %02x\n", port);
+#if BUSMOUSE_DEBUG > 1
+    pclog("BUSMOUSE: lt_read(%d): %02x\n", port, r);
 #endif
 
     return(r);
@@ -358,20 +332,6 @@ bm_read(uint16_t port, void *priv)
 }
 
 
-/* Called at 30hz */
-static void
-bm_timer(void *priv)
-{
-    mouse_bus_t *ms = (mouse_bus_t *)priv;
-
-    ms->timer += ((1000000.0 / 30.0) * TIMER_USEC);
-
-    /* All set, generate an interrupt. */
-    if (! (ms->r_ctrl & CTRL_IDIS))
-	picint(1 << ms->irq);
-}
-
-
 /* The emulator calls us with an update on the host mouse device. */
 static uint8_t
 bm_poll(int x, int y, int z, int b, void *priv)
@@ -411,11 +371,10 @@ bm_poll(int x, int y, int z, int b, void *priv)
 
     ms->but = b;
 
-#if 1
     /* All set, generate an interrupt. */
     if (! (ms->r_ctrl & CTRL_IDIS))
 	picint(1 << ms->irq);
-#endif
+
     return(0);
 }
 
@@ -467,11 +426,6 @@ bm_init(mouse_t *info)
     /* Request an I/O range. */
     io_sethandler(BUSMOUSE_PORT, 4,
 		  bm_read, NULL, NULL, bm_write, NULL, NULL, ms);
-
-#if 0
-    /* Start the mouse interrupt timer. */
-    timer_add(bm_timer, &ms->timer, TIMER_ALWAYS_ENABLED, ms);
-#endif
 
     /* Return our private data to the I/O layer. */
     return(ms);

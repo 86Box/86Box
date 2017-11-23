@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.45	2017/11/22
+ * Version:	@(#)pc.c	1.0.45	2017/11/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -82,9 +82,13 @@
 int	dump_on_exit = 0;			/* (O) dump regs on exit */
 int	do_dump_config = 0;			/* (O) dump config on load */
 int	start_in_fullscreen = 0;		/* (O) start in fullscreen */
+#ifdef _WIN32
+int	force_debug = 0;			/* (O) force debug output */
+#endif
 #ifdef USE_WX
 int	video_fps = RENDER_FPS;			/* (O) render speed in fps */
 #endif
+wchar_t log_path[1024] = { L'\0'};		/* (O) full path of logfile */
 
 /* Configuration values. */
 int	window_w, window_h,			/* (C) window size and */
@@ -146,6 +150,7 @@ int	gfx_present[GFX_MAX];			/* should not be here */
 
 wchar_t	exe_path[1024];				/* path (dir) of executable */
 wchar_t	cfg_path[1024];				/* path (dir) of user data */
+FILE	*stdlog = NULL;				/* file to log output to */
 int	scrnsz_x = SCREEN_RES_X,		/* current screen size, X */
 	scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
 int	config_changed;				/* config has changed */
@@ -167,9 +172,20 @@ pclog(const char *format, ...)
     va_list ap;
 
     va_start(ap, format);
-    vprintf(format, ap);
+
+    if (stdlog == NULL) {
+	if (log_path[0] != L'\0') {
+		stdlog = plat_fopen(log_path, L"w");
+		if (stdlog == NULL)
+			stdlog = stdout;
+	} else {
+		stdlog = stdout;
+	}
+    }
+
+    vfprintf(stdlog, format, ap);
     va_end(ap);
-    fflush(stdout);
+    fflush(stdlog);
 #endif
 }
 
@@ -183,9 +199,20 @@ fatal(const char *format, ...)
     char *sp;
 
     va_start(ap, format);
+
+    if (stdlog == NULL) {
+	if (log_path[0] != L'\0') {
+		stdlog = plat_fopen(log_path, L"w");
+		if (stdlog == NULL)
+			stdlog = stdout;
+	} else {
+		stdlog = stdout;
+	}
+    }
+
     vsprintf(temp, format, ap);
-    fprintf(stdout, "%s", temp);
-    fflush(stdout);
+    fprintf(stdlog, "%s", temp);
+    fflush(stdlog);
     va_end(ap);
 
     nvr_save();
@@ -347,25 +374,38 @@ pc_init(int argc, wchar_t *argv[])
 usage:
 		printf("\nUsage: 86box [options] [cfg-file]\n\n");
 		printf("Valid options are:\n\n");
-		printf("-? or --help        - show this information\n");
-		printf("-C or --dumpcfg     - dump config file after loading\n");
-		printf("-D or --dump        - dump memory on exit\n");
-		printf("-F or --fullscreen  - start in fullscreen mode\n");
-		printf("-P or --vmpath path - set 'path' to be root for vm\n");
+		printf("-? or --help         - show this information\n");
+		printf("-C or --dumpcfg      - dump config file after loading\n");
+#ifdef _WIN32
+		printf("-D or --debug        - force debug output logging\n");
+#endif
+		printf("-F or --fullscreen   - start in fullscreen mode\n");
+		printf("-M or --memdump      - dump memory on exit\n");
+		printf("-L or --logfile path - set 'path' to be the logfile\n");
+		printf("-P or --vmpath path  - set 'path' to be root for vm\n");
 #ifdef USE_WX
-		printf("-R or --fps num     - set render speed to 'num' fps\n");
+		printf("-R or --fps num      - set render speed to 'num' fps\n");
 #endif
 		printf("\nA config file can be specified. If none is, the default file will be used.\n");
 		return(0);
 	} else if (!wcscasecmp(argv[c], L"--dumpcfg") ||
 		   !wcscasecmp(argv[c], L"-C")) {
 		do_dump_config = 1;
-	} else if (!wcscasecmp(argv[c], L"--dump") ||
+#ifdef _WIN32
+	} else if (!wcscasecmp(argv[c], L"--debug") ||
 		   !wcscasecmp(argv[c], L"-D")) {
-		dump_on_exit = 1;
+		force_debug = 1;
+#endif
 	} else if (!wcscasecmp(argv[c], L"--fullscreen") ||
 		   !wcscasecmp(argv[c], L"-F")) {
 		start_in_fullscreen = 1;
+	} else if (!wcscasecmp(argv[c], L"--logfile") ||
+		   !wcscasecmp(argv[c], L"-L")) {
+		if ((c+1) == argc) goto usage;
+
+		wcscpy(log_path, argv[++c]);
+	} else if (!wcscasecmp(argv[c], L"--memdump") ||
+		   !wcscasecmp(argv[c], L"-M")) {
 	} else if (!wcscasecmp(argv[c], L"--vmpath") ||
 		   !wcscasecmp(argv[c], L"-P")) {
 		if ((c+1) == argc) goto usage;
@@ -708,9 +748,11 @@ pc_reset_hard_close(void)
     suppress_overscan = 0;
 
     nvr_save();
+
     machine_close();
 
     device_close_all();
+
     midi_close();
     mouse_emu_close();
     closeal();
