@@ -169,7 +169,6 @@ static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 	if (mpu->state.reset) 
 	{
 		mpu->state.cmd_pending=val+1;
-		return;
 	}
 	
 	if (val<=0x2f) 
@@ -678,9 +677,8 @@ static uint8_t mpu401_read(uint16_t addr, void *p)
 			break;
 			
 			case 1: //Read Status
-			ret = 0x3f; /* Bits 6 and 7 clear */
-			if (mpu->state.cmd_pending) ret|=STATUS_OUTPUT_NOT_READY;
-			if (!mpu->queue_used) ret|=STATUS_INPUT_NOT_READY;				
+			if (mpu->state.cmd_pending) ret=STATUS_OUTPUT_NOT_READY;
+			if (!mpu->queue_used) ret=STATUS_INPUT_NOT_READY;				
 			pclog("Read Status (0x331) %x\n", ret);
 			break;
 		}
