@@ -1649,7 +1649,12 @@ static void flush_texture_cache(voodoo_t *voodoo, uint32_t dirty_addr, int tmu)
                                 
                                 if (addr_end != 0)
                                 {
-                                        if (dirty_addr >= (addr_start & voodoo->texture_mask & ~0x3ff) && dirty_addr < (((addr_end & voodoo->texture_mask) + 0x3ff) & ~0x3ff))
+                                        int addr_start_masked = addr_start & voodoo->texture_mask & ~0x3ff;
+                                        int addr_end_masked = ((addr_end & voodoo->texture_mask) + 0x3ff) & ~0x3ff;
+                                        
+                                        if (addr_end_masked < addr_start_masked)
+                                                addr_end_masked = voodoo->texture_mask+1;
+                                        if (dirty_addr >= addr_start_masked && dirty_addr < addr_end_masked)
                                         {
 //                                pclog("  Evict texture %i %08x\n", c, voodoo->texture_cache[tmu][c].base);
 
