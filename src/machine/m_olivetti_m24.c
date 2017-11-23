@@ -8,7 +8,7 @@
  *
  *		Emulation of the Olivetti M24.
  *
- * Version:	@(#)m_olivetti_m24.c	1.0.3	2017/11/11
+ * Version:	@(#)m_olivetti_m24.c	1.0.4	2017/11/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
@@ -57,6 +58,7 @@ typedef struct {
     mem_mapping_t mapping;
     uint8_t	crtc[32];
     int		crtcreg;
+	uint8_t monitor_type, port_23c6;
     uint8_t	*vram;
     uint8_t	charbuffer[256];
     uint8_t	ctrl;
@@ -102,7 +104,28 @@ static uint8_t	key_queue[16];
 static int	key_queue_start = 0,
 		key_queue_end = 0;
 
+		
+		
+#ifdef ENABLE_M24VID_LOG
+int m24vid_do_log = ENABLE_M24VID_LOG;
+#endif
 
+
+static void
+m24vid_log(const char *fmt, ...)
+{
+#ifdef ENABLE_M24VID_LOG
+    va_list ap;
+
+    if (m24vid_do_log) {
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+	fflush(stdout);
+    }
+#endif
+}		
+		
 static void
 recalc_timings(olim24_t *m24)
 {
@@ -158,6 +181,14 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
 		m24->ctrl = val;
 		m24->base = (val & 0x08) ? 0x4000 : 0;
 		break;
+		
+	case 0x13c6:
+		m24->monitor_type = val;
+		break;
+		
+	case 0x23c6:
+		m24->port_23c6 = val;
+		break;
     }
 }
 
@@ -179,6 +210,14 @@ vid_in(uint16_t addr, void *priv)
 
 	case 0x3da:
 		ret = m24->stat;
+		break;
+		
+	case 0x13c6:
+		ret = m24->monitor_type;
+		break;
+		
+	case 0x23c6:
+		ret = m24->port_23c6;
 		break;
     }
 
@@ -232,7 +271,8 @@ vid_poll(void *priv)
 			m24->firstline = m24->displine;
 		}
 		m24->lastline = m24->displine;
-		for (c = 0; c < 8; c++) {
+		for (c = 0; c < 8; c++) 
+		{
 			if ((m24->cgamode & 0x12) == 0x12) {
 				buffer->line[m24->displine][c] = 0;
 				if (m24->cgamode & 1)
@@ -322,13 +362,14 @@ vid_poll(void *priv)
 				}
 			}
 		} else {
-			if (m24->ctrl & 1) {
+			if (m24->ctrl & 1 || ((m24->monitor_type & 8) && (m24->port_23c6 & 1))) {
 				dat2 = ((m24->sc & 1) * 0x4000) | (m24->lineff * 0x2000);
 				cols[0] = 0; cols[1] = /*(m24->cgacol & 15)*/15 + 16;
 			} else {
 				dat2 = (m24->sc & 1) * 0x2000;
 				cols[0] = 0; cols[1] = (m24->cgacol & 15) + 16;
 			}
+			
 			for (x = 0; x < m24->crtc[1]; x++) {
 				dat = (m24->vram[((m24->ma << 1) & 0x1fff) + dat2] << 8) | m24->vram[((m24->ma << 1) & 0x1fff) + dat2 + 1];
 				m24->ma++;
@@ -729,11 +770,20 @@ m24_read(uint16_t port, void *priv)
     return(0xff);
 }
 
+static void
+vid_close(void *priv)
+{
+    olim24_t *m24 = (olim24_t *)priv;
+
+    free(m24->vram);
+
+    free(m24);
+}
 
 device_t m24_device = {
     "Olivetti M24",
     0, 0,
-    NULL, NULL, NULL,
+    NULL, vid_close, NULL,
     NULL,
     speed_changed,
     NULL, NULL,
@@ -776,6 +826,7 @@ machine_olim24_init(machine_t *model)
 		  kbd_read, NULL, NULL, kbd_write, NULL, NULL, m24);
     io_sethandler(0x0064, 1,
 		  kbd_read, NULL, NULL, kbd_write, NULL, NULL, m24);
+	keyboard_set_table(scancode_xt);
     keyboard_send = kbd_adddata;
     keyboard_scan = 1;
     timer_add(kbd_poll, &keyboard_delay, TIMER_ALWAYS_ENABLED, m24);
@@ -805,6 +856,8 @@ void machine_olim24_video_init(void) {
 		    vid_read, NULL, NULL,
 		    vid_write, NULL, NULL,  NULL, 0, m24);
     io_sethandler(0x03d0, 16, vid_in, NULL, NULL, vid_out, NULL, NULL, m24);
+	io_sethandler(0x13c6, 1, vid_in, NULL, NULL, vid_out, NULL, NULL, m24);
+	io_sethandler(0x23c6, 1, vid_in, NULL, NULL, vid_out, NULL, NULL, m24);
     timer_add(vid_poll, &m24->vidtime, TIMER_ALWAYS_ENABLED, m24);
     device_add_ex(&m24_device, m24);
 }
