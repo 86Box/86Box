@@ -611,7 +611,7 @@ void resetx86()
                 rammask = 0xfffff;
         }
         idt.base = 0;
-        idt.limit = 0xFFFF;
+        idt.limit = is386 ? 0x03FF : 0xFFFF;
         flags=2;
         makeznptable();
         resetreadlookup();
@@ -658,7 +658,7 @@ void softresetx86()
         }
         flags=2;
         idt.base = 0;
-        idt.limit = 0xFFFF;
+        idt.limit = is386 ? 0x03FF : 0xFFFF;
         x86seg_reset();
         x86_was_reset = 1;
 	port_92_clear_reset();
