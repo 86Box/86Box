@@ -1835,7 +1835,7 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
                                 addbyte(0x8e);
                                 addlong(offsetof(voodoo_params_t, color0));
                                 addbyte(0xeb); /*JMP +*/
-                                addbyte(8);
+                                addbyte(8+5+4+4);
                         /*!cc_localselect:*/
                                 addbyte(0xf3); /*MOVDQU XMM1, ib*/ /* ir, ig and ib must be in same dqword!*/
                                 addbyte(0x0f);
