@@ -103,10 +103,13 @@ uint8_t scsi_hd_command_flags[0x100] = {
     IMPLEMENTED | CHECK_READY,					/* 0x28 */
     0,
     IMPLEMENTED | CHECK_READY,					/* 0x2A */
-    0, 0, 0, 0,
+    0, 0, 0,
+    IMPLEMENTED | CHECK_READY,					/* 0x2E */
     IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,		/* 0x2F */
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0,
+    IMPLEMENTED | CHECK_READY,					/* 0x41 */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
     IMPLEMENTED,						/* 0x55 */
     0, 0, 0, 0,
@@ -120,7 +123,8 @@ uint8_t scsi_hd_command_flags[0x100] = {
     IMPLEMENTED | CHECK_READY,					/* 0xA8 */
     0,
     IMPLEMENTED | CHECK_READY,					/* 0xAA */
-    0, 0, 0, 0,
+    0, 0, 0,
+    IMPLEMENTED | CHECK_READY,					/* 0xAE */
     IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,		/* 0xAF */
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     IMPLEMENTED,						/* 0xBD */
@@ -1466,9 +1470,6 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 	{
 		case GPCMD_TEST_UNIT_READY:
 		case GPCMD_FORMAT_UNIT:
-		case GPCMD_VERIFY_6:
-		case GPCMD_VERIFY_10:
-		case GPCMD_VERIFY_12:
 			SCSIPhase = SCSI_PHASE_STATUS;
 			scsi_hd_command_complete(id);
 			break;
@@ -1567,9 +1568,19 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			ui_sb_update_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 1);
 			return;
 
+		case GPCMD_VERIFY_6:
+		case GPCMD_VERIFY_10:
+		case GPCMD_VERIFY_12:
+			if (!(cdb[1] & 2)) {
+				SCSIPhase = SCSI_PHASE_STATUS;
+				scsi_hd_command_complete(id);
+				break;
+			}
 		case GPCMD_WRITE_6:
 		case GPCMD_WRITE_10:
+		case GPCMD_WRITE_AND_VERIFY_10:
 		case GPCMD_WRITE_12:
+		case GPCMD_WRITE_AND_VERIFY_12:
 			if ((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) && hdd[id].wp)
 			{
 				scsi_hd_write_protected(id);
@@ -1578,17 +1589,22 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			switch(cdb[0])
 			{
+				case GPCMD_VERIFY_6:
 				case GPCMD_WRITE_6:
 					shdc[id].sector_len = cdb[4];
 					shdc[id].sector_pos = ((((uint32_t) cdb[1]) & 0x1f) << 16) | (((uint32_t) cdb[2]) << 8) | ((uint32_t) cdb[3]);
 					scsi_hd_log("SCSI HD %i: Length: %i, LBA: %i\n", id, shdc[id].sector_len, shdc[id].sector_pos);
 					break;
+				case GPCMD_VERIFY_10:
 				case GPCMD_WRITE_10:
+				case GPCMD_WRITE_AND_VERIFY_10:
 					shdc[id].sector_len = (cdb[7] << 8) | cdb[8];
 					shdc[id].sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
 					scsi_hd_log("SCSI HD %i: Length: %i, LBA: %i\n", id, shdc[id].sector_len, shdc[id].sector_pos);
 					break;
+				case GPCMD_VERIFY_12:
 				case GPCMD_WRITE_12:
+				case GPCMD_WRITE_AND_VERIFY_12:
 					shdc[id].sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
 					shdc[id].sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) | (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
 					break;
@@ -1611,6 +1627,63 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			}
 
 			max_len = shdc[id].sector_len;
+			shdc[id].requested_blocks = max_len;
+			
+			alloc_length = shdc[id].packet_len = max_len << 9;
+
+			if ((*BufLen == -1) || (alloc_length < *BufLen))
+			{
+				*BufLen = alloc_length;
+			}
+
+			SCSIPhase = SCSI_PHASE_DATA_OUT;
+			
+			if (shdc[id].requested_blocks > 1)
+			{
+				scsi_hd_data_command_finish(id, alloc_length, alloc_length / shdc[id].requested_blocks, alloc_length, 1);
+			}
+			else
+			{
+				scsi_hd_data_command_finish(id, alloc_length, alloc_length, alloc_length, 1);
+			}
+			shdc[id].all_blocks_total = shdc[id].block_total;
+			ui_sb_update_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 1);
+			return;
+
+		case GPCMD_WRITE_SAME_10:
+			if ((cdb[1] & 6) == 6)
+			{
+				scsi_hd_invalid_field(id);
+				return;
+			}
+
+			if ((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) && hdd[id].wp)
+			{
+				scsi_hd_write_protected(id);
+				return;
+			}
+
+			shdc[id].sector_len = (cdb[7] << 8) | cdb[8];
+			shdc[id].sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+			scsi_hd_log("SCSI HD %i: Length: %i, LBA: %i\n", id, shdc[id].sector_len, shdc[id].sector_pos);
+
+			if ((shdc[id].sector_pos > last_sector) || ((shdc[id].sector_pos + shdc[id].sector_len - 1) > last_sector))
+			{
+				scsi_hd_lba_out_of_range(id);
+				return;
+			}
+
+			if ((!shdc[id].sector_len) || (*BufLen == 0))
+			{
+				SCSIPhase = SCSI_PHASE_STATUS;
+				ui_sb_update_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
+				scsi_hd_log("SCSI HD %i: All done - callback set\n", id);
+				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
+				shdc[id].callback = 20 * SCSI_TIME;
+				break;
+			}
+
+			max_len = 1;
 			shdc[id].requested_blocks = max_len;
 			
 			alloc_length = shdc[id].packet_len = max_len << 9;
@@ -2040,6 +2113,11 @@ void scsi_hd_phase_data_out(uint8_t id)
 
 	int32_t *BufLen = &SCSIDevices[hdd[id].scsi_id][hdd[id].scsi_lun].BufferLength;
 
+        uint32_t last_sector = hdd_image_get_last_sector(id);
+	uint32_t last_to_write = 0;
+
+	uint32_t c, h, s;
+
 	if (!*BufLen)
 	{
 		SCSIPhase = SCSI_PHASE_STATUS;
@@ -2050,9 +2128,15 @@ void scsi_hd_phase_data_out(uint8_t id)
 
 	switch (shdc[id].current_cdb[0])
 	{
+		case GPCMD_VERIFY_6:
+		case GPCMD_VERIFY_10:
+		case GPCMD_VERIFY_12:
+			break;
 		case GPCMD_WRITE_6:
 		case GPCMD_WRITE_10:
+		case GPCMD_WRITE_AND_VERIFY_10:
 		case GPCMD_WRITE_12:
+		case GPCMD_WRITE_AND_VERIFY_12:
 			if ((shdc[id].requested_blocks > 0) && (*BufLen > 0))
 			{
 				if (shdc[id].packet_len > *BufLen)
@@ -2063,6 +2147,34 @@ void scsi_hd_phase_data_out(uint8_t id)
 				{
 					hdd_image_write(id, shdc[id].sector_pos, shdc[id].requested_blocks, hdbufferb);
 				}
+			}
+			break;
+		case GPCMD_WRITE_SAME_10:
+			if (!shdc[id].current_cdb[7] && !shdc[id].current_cdb[8])
+				last_to_write = last_sector;
+			else
+				last_to_write = shdc[id].sector_pos + shdc[id].sector_len - 1;
+
+			for (i = shdc[id].sector_pos; i <= last_to_write; i++) {
+				if (shdc[id].current_cdb[1] & 2) {
+					hdbufferb[0] = (i >> 24) & 0xff;
+					hdbufferb[1] = (i >> 16) & 0xff;
+					hdbufferb[2] = (i >> 8) & 0xff;
+					hdbufferb[3] = i & 0xff;
+				} else if (shdc[id].current_cdb[1] & 4) {
+					s = (i % hdd[id].spt);
+					h = ((i - s) / hdd[id].spt) % hdd[id].hpc;
+					c = ((i - s) / hdd[id].spt) / hdd[id].hpc;
+					hdbufferb[0] = (c >> 16) & 0xff;
+					hdbufferb[1] = (c >> 8) & 0xff;
+					hdbufferb[2] = c & 0xff;
+					hdbufferb[3] = h & 0xff;
+					hdbufferb[4] = (s >> 24) & 0xff;
+					hdbufferb[5] = (s >> 16) & 0xff;
+					hdbufferb[6] = (s >> 8) & 0xff;
+					hdbufferb[7] = s & 0xff;
+				}
+				hdd_image_write(id, i, 1, hdbufferb);
 			}
 			break;
 		case GPCMD_MODE_SELECT_6:
