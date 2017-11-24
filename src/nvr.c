@@ -679,7 +679,7 @@ nvr_load(void)
 	/* We are responsible for loading. */
 	f = NULL;
 	if (saved_nvr->mask != 0) {
-		pclog("Opening NVR file: %ls...\n", saved_nvr->fname);
+		pclog("Opening NVR file: %ls...\n", nvr_path(saved_nvr->fname));
 		f = plat_fopen(nvr_path(saved_nvr->fname), L"rb");
 	}
 
@@ -722,7 +722,7 @@ nvr_save(void)
 	/* We are responsible for saving. */
 	f = NULL;
 	if (saved_nvr->mask != 0) {
-		pclog("Saving NVR file: %ls...\n", saved_nvr->fname);
+		pclog("Saving NVR file: %ls...\n", nvr_path(saved_nvr->fname));
 		f = plat_fopen(nvr_path(saved_nvr->fname), L"wb");
 	}
 

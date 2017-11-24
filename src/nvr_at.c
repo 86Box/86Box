@@ -31,6 +31,7 @@
 #include "io.h"
 #include "device.h"
 #include "machine/machine.h"
+#include "nmi.h"
 #include "nvr.h"
 
 
@@ -44,9 +45,7 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 
     if (! (addr & 1)) {
 	nvr->addr = (val & nvr->mask);
-#if 0
-	nvr->nmi_mask = (~val & 0x80);
-#endif
+	nmi_mask = (~val & 0x80);
 
 	return;
     }

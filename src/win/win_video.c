@@ -306,7 +306,7 @@ take_screenshot(void)
 		break;
 #else
 	case 0:		/* ddraw */
-		wcsftime(path, 128, L"%Y%m%d_%H%M%S.bmp", info);
+		wcsftime(fn, 128, L"%Y%m%d_%H%M%S.bmp", info);
 		wcscat(path, fn);
 		ddraw_take_screenshot(path);
 		break;

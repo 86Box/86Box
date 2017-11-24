@@ -337,6 +337,20 @@ get_actual_size_y(void)
 }
 
 
+void cfg_path_slash(void)
+{
+    /* Make sure cfg_path has a trailing backslash. */
+    if ((cfg_path[wcslen(cfg_path)-1] != L'\\') &&
+	(cfg_path[wcslen(cfg_path)-1] != L'/')) {
+#ifdef _WIN32
+	wcscat(cfg_path, L"\\");
+#else
+	wcscat(cfg_path, L"/");
+#endif
+    }
+}
+
+
 /*
  * Perform initial startup of the PC.
  *
@@ -352,6 +366,8 @@ pc_init(int argc, wchar_t *argv[])
     struct tm *info;
     time_t now;
     int c;
+    int cfgp = 0;
+    wchar_t cmdl_cfg_path[2048];
 
     /* Grab the executable's full path. */
     plat_get_exe_name(exe_path, sizeof(exe_path)-1);
@@ -410,7 +426,8 @@ usage:
 		   !wcscasecmp(argv[c], L"-P")) {
 		if ((c+1) == argc) goto usage;
 
-		wcscpy(cfg_path, argv[++c]);
+		wcscpy(cmdl_cfg_path, argv[++c]);
+		cfgp = 1;
 #ifdef USE_WX
 	} else if (!wcscasecmp(argv[c], L"--fps") ||
 		   !wcscasecmp(argv[c], L"-R")) {
@@ -434,15 +451,19 @@ usage:
 	cfg = argv[c++];
     if (c != argc) goto usage;
 
-    /* Make sure cfg_path has a trailing backslash. */
-    if ((cfg_path[wcslen(cfg_path)-1] != L'\\') &&
-	(cfg_path[wcslen(cfg_path)-1] != L'/')) {
-#ifdef _WIN32
-	wcscat(cfg_path, L"\\");
-#else
-	wcscat(cfg_path, L"/");
-#endif
+    if (!cfgp) {
+	wcscpy(cfg_path, exe_path);
+    } else {
+	if ((cmdl_cfg_path[0] != L'\\') && (cmdl_cfg_path[0] != L'/') && (cmdl_cfg_path[1] != L':')) {
+		wcscpy(cfg_path, exe_path);
+		cfg_path_slash();
+		wcscat(cfg_path, cmdl_cfg_path);
+	} else {
+		wcscpy(cfg_path, cmdl_cfg_path);
+	}
     }
+
+    cfg_path_slash();
 
     if (cfg != NULL) {
 	/*
