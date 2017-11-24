@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.8	2017/11/05
+ * Version:	@(#)fdc.c	1.0.9	2017/11/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -171,21 +171,24 @@ int floppyint;
 int fdc_do_log = ENABLE_FDC_LOG;
 #endif
 
-void fdc_log(const char *format, ...)
+
+static void
+fdc_log(const char *format, ...)
 {
 #ifdef ENABLE_FDC_LOG
    if (fdc_do_log)
    {
-		va_list ap;
-		va_start(ap, format);
-		vprintf(format, ap);
-		va_end(ap);
-		fflush(stdout);
+	va_list ap;
+	va_start(ap, format);
+	vfprintf(stdlog, format, ap);
+	va_end(ap);
+	fflush(stdlog);
    }
 #endif
 }
 
-void fdc_reset()
+
+void fdc_reset(void)
 {
         fdc.stat=0x80;
         fdc.pnum=fdc.ptot=0;
@@ -199,12 +202,12 @@ void fdc_reset()
         }
 }
 
-sector_id_t fdc_get_read_track_sector()
+sector_id_t fdc_get_read_track_sector(void)
 {
 	return fdc.read_track_sector;
 }
 
-int fdc_ps1_525()
+int fdc_ps1_525(void)
 {
 	if ((romset == ROM_IBMPS1_2011) && fdd_is_525(real_drive(fdc.dor & 3)))
 	{
@@ -216,7 +219,7 @@ int fdc_ps1_525()
 	}
 }
 
-int fdc_get_compare_condition()
+int fdc_get_compare_condition(void)
 {
 	switch (floppyint)
 	{
@@ -230,36 +233,36 @@ int fdc_get_compare_condition()
 	}
 }
 
-int fdc_is_deleted()
+int fdc_is_deleted(void)
 {
 	return fdc.deleted & 1;
 }
 
-int fdc_is_sk()
+int fdc_is_sk(void)
 {
 	return (fdc.deleted & 0x20) ? 1 : 0;
 }
 
-void fdc_set_wrong_am()
+void fdc_set_wrong_am(void)
 {
 	fdc.wrong_am = 1;
 }
 
-int fdc_get_drive()
+int fdc_get_drive(void)
 {
 	return fdc.drive;
 }
 
-int fdc_get_bitcell_period();
+int fdc_get_bitcell_period(void);
 
-int fdc_get_perp()
+int fdc_get_perp(void)
 {
 	if (!AT || fdc.pcjr || fdc.ps1)  return 0;
 
 	return fdc.perp;
 }
 
-int fdc_get_bit_rate();
+int fdc_get_bit_rate(void);
 
 int fdc_get_gap2(int drive)
 {
@@ -278,7 +281,7 @@ int fdc_get_gap2(int drive)
 	}
 }
 
-int fdc_get_format_n()
+int fdc_get_format_n(void)
 {
 	return fdc.format_n;
 }
@@ -289,7 +292,7 @@ int fdc_is_mfm()
 }
 
 #if 0
-double fdc_get_hut()
+double fdc_get_hut(void)
 {
 	int hut = (fdc.specify[0] & 0xF);
 	double dusec;
@@ -301,7 +304,7 @@ double fdc_get_hut()
 	return (bcp * dhut * dusec * 1000.0);
 }
 
-double fdc_get_hlt()
+double fdc_get_hlt(void)
 {
 	int hlt = (fdc.specify[1] >> 1);
 	double dusec;
@@ -314,7 +317,7 @@ double fdc_get_hlt()
 }
 #endif
 
-void fdc_request_next_sector_id()
+void fdc_request_next_sector_id(void)
 {
 	if (fdc.pcjr || !fdc.dma)
 	{
@@ -326,33 +329,33 @@ void fdc_request_next_sector_id()
 	}
 }
 
-void fdc_stop_id_request()
+void fdc_stop_id_request(void)
 {
 	fdc.stat &= 0x7f;
 }
 
-int fdc_get_gap()
+int fdc_get_gap(void)
 {
 	return fdc.gap;
 }
 
-int fdc_get_dtl()
+int fdc_get_dtl(void)
 {
 	return fdc.dtl;
 }
 
-int fdc_get_format_sectors()
+int fdc_get_format_sectors(void)
 {
 	return fdc.format_sectors;
 }
 
-void fdc_reset_fifo_buf()
+void fdc_reset_fifo_buf(void)
 {
 	memset(fdc.fifobuf, 0, 16);
 	fdc.fifobufpos = 0;
 }
 
-void fdc_fifo_buf_advance()
+void fdc_fifo_buf_advance(void)
 {
 	if (fdc.fifobufpos == fdc.tfifo)
 	{
@@ -370,7 +373,7 @@ void fdc_fifo_buf_write(int val)
 	fdc_fifo_buf_advance();
 }
 
-int fdc_fifo_buf_read()
+int fdc_fifo_buf_read(void)
 {
 	int temp = 0;
 	temp = fdc.fifobuf[fdc.fifobufpos];
@@ -378,7 +381,7 @@ int fdc_fifo_buf_read()
 	return temp;
 }
 
-static void fdc_int()
+static void fdc_int(void)
 {
         if (!fdc.pcjr)
 	{
@@ -419,7 +422,7 @@ int bit_rate = 250;
 
 static void fdc_rate(int drive);
 
-void fdc_update_rates()
+void fdc_update_rates(void)
 {
 	fdc_rate(0);
 	fdc_rate(1);
@@ -461,7 +464,7 @@ void fdc_update_rwc(int drive, int rwc)
 	fdc_rate(drive);
 }
 
-int fdc_get_boot_drive()
+int fdc_get_boot_drive(void)
 {
 	return fdc.boot_drive;
 }
@@ -478,7 +481,7 @@ void fdc_update_densel_polarity(int densel_polarity)
 	fdc_update_rates();
 }
 
-uint8_t fdc_get_densel_polarity()
+uint8_t fdc_get_densel_polarity(void)
 {
 	return fdc.densel_polarity;
 }
@@ -542,7 +545,7 @@ void fdc_update_rate(int drive)
         fdc.bitcell_period = 1000000 / bit_rate*2; /*Bitcell period in ns*/
 }
 
-int fdc_get_bit_rate()
+int fdc_get_bit_rate(void)
 {
 	switch(bit_rate)
 	{
@@ -562,7 +565,7 @@ int fdc_get_bit_rate()
 	return 2;
 }
 
-int fdc_get_bitcell_period()
+int fdc_get_bitcell_period(void)
 {
         return fdc.bitcell_period;
 }
@@ -641,7 +644,7 @@ int real_drive(int drive)
 	}
 }
 
-void fdc_implied_seek()
+void fdc_implied_seek(void)
 {
 	if (fdc.config & 0x40)
 	{
@@ -1935,7 +1938,7 @@ void fdc_overrun()
 	fdc_error(0x10, 0);
 }
 
-int fdc_is_verify()
+int fdc_is_verify(void)
 {
 	return (fdc.deleted & 2) ? 1 : 0;
 }
@@ -2014,7 +2017,7 @@ int fdc_data(uint8_t data)
         return 0;
 }
 
-void fdc_finishread()
+void fdc_finishread(void)
 {
         fdc.inread = 0;
 }
@@ -2035,7 +2038,7 @@ void fdc_sector_finishcompare(int satisfying)
 	fdc_callback(NULL);
 }
 
-void fdc_sector_finishread()
+void fdc_sector_finishread(void)
 {
 	fdc.stat = 0x10;
         fdc.inread = 0;
@@ -2043,51 +2046,51 @@ void fdc_sector_finishread()
 }
 
 /* There is no sector ID. */
-void fdc_noidam()
+void fdc_noidam(void)
 {
 	fdc_error(1, 0);
 }
 
 /* Sector ID's are there, but there is no sector. */
-void fdc_nosector()
+void fdc_nosector(void)
 {
 	fdc_error(4, 0);
 }
 
 /* There is no sector data. */
-void fdc_nodataam()
+void fdc_nodataam(void)
 {
 	fdc_error(1, 1);
 }
 
 /* Abnormal termination with both status 1 and 2 set to 0, used when abnormally
    terminating the FDC FORMAT TRACK command. */
-void fdc_cannotformat()
+void fdc_cannotformat(void)
 {
 	fdc_error(0, 0);
 }
 
-void fdc_datacrcerror()
+void fdc_datacrcerror(void)
 {
 	fdc_error(0x20, 0x20);
 }
 
-void fdc_headercrcerror()
+void fdc_headercrcerror(void)
 {
 	fdc_error(0x20, 0);
 }
 
-void fdc_wrongcylinder()
+void fdc_wrongcylinder(void)
 {
 	fdc_error(4, 0x10);
 }
 
-void fdc_badcylinder()
+void fdc_badcylinder(void)
 {
 	fdc_error(4, 0x02);
 }
 
-void fdc_writeprotect()
+void fdc_writeprotect(void)
 {
 	fdc_error(0x02, 0);
 }
@@ -2158,12 +2161,12 @@ void fdc_sectorid(uint8_t track, uint8_t side, uint8_t sector, uint8_t size, uin
         paramstogo=7;
 }
 
-void fdc_indexpulse()
+void fdc_indexpulse(void)
 {
 	return;
 }
 
-void fdc_hard_reset()
+void fdc_hard_reset(void)
 {
 	int i = 0;
 	int base_address = fdc.base_address;
@@ -2214,14 +2217,14 @@ void fdc_hard_reset()
 	}
 }
 
-void fdc_init()
+void fdc_init(void)
 {
 	fdc_hard_reset();
 
 	timer_add(fdc_callback, &floppytime, &floppytime, NULL);
 }
 
-void fdc_add()
+void fdc_add(void)
 {
         io_sethandler(0x03f0, 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, NULL);
         io_sethandler(0x03f7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, NULL);
@@ -2241,7 +2244,7 @@ void fdc_set_base(int base, int super_io)
 	fdc_log("FDC Base address set%s (%04X)\n", super_io ? " for Super I/O" : "", fdc.base_address);
 }
 
-void fdc_add_for_superio()
+void fdc_add_for_superio(void)
 {
         io_sethandler(0x03f2, 0x0004, fdc_read, NULL, NULL, fdc_write, NULL, NULL, NULL);
         io_sethandler(0x03f7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, NULL);
@@ -2251,7 +2254,7 @@ void fdc_add_for_superio()
 	fdc_log("FDC Added for Super I/O (%04X)\n", fdc.base_address);
 }
 
-void fdc_add_pcjr()
+void fdc_add_pcjr(void)
 {
         io_sethandler(0x00f0, 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, NULL);
 	timer_add(fdc_watchdog_poll, &fdc.watchdog_timer, &fdc.watchdog_timer, &fdc);
@@ -2263,7 +2266,7 @@ void fdc_add_pcjr()
 	fdc_log("FDC Added for PCjr (%04X)\n", fdc.base_address);
 }
 
-void fdc_remove()
+void fdc_remove(void)
 {
 	fdc_log("FDC Removed (%04X)\n", fdc.base_address);
         io_removehandler(fdc.base_address, 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, NULL);
@@ -2276,7 +2279,7 @@ void fdc_floppychange_clear(int drive)
                 floppy_changed[drive] = 0;
 }
 
-void fdc_set_dskchg_activelow()
+void fdc_set_dskchg_activelow(void)
 {
         fdc.dskchg_activelow = 1;
 }
@@ -2286,7 +2289,7 @@ void fdc_3f1_enable(int enable)
         fdc.enable_3f1 = enable;
 }
 
-void fdc_set_ps1()
+void fdc_set_ps1(void)
 {
         fdc.ps1 = 1;
 }

@@ -10,13 +10,14 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.23	2017/11/04
+ * Version:	@(#)net_ne2000.c	1.0.24	2017/11/24
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
  *		SA1988, Tenshi
  *
  * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
+ *
  *		Portions Copyright (C) 2002  MandrakeSoft S.A.
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -231,9 +232,9 @@ nelog(int lvl, const char *fmt, ...)
 
     if (nic_do_log >= lvl) {
 	va_start(ap, fmt);
-	vprintf(fmt, ap);
+	vfprintf(stdlog, fmt, ap);
 	va_end(ap);
-	fflush(stdout);
+	fflush(stdlog);
     }
 #endif
 }

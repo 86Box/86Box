@@ -18,7 +18,7 @@
  *		2 clocks - fetch opcode 1       2 clocks - execute
  *		2 clocks - fetch opcode 2  etc
  *
- * Version:	@(#)808x.c	1.0.8	2017/11/18
+ * Version:	@(#)808x.c	1.0.9	2017/11/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

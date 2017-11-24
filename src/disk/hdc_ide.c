@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.19	2017/11/04
+ * Version:	@(#)hdc_ide.c	1.0.20	2017/11/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -109,21 +109,24 @@ int cur_ide[5];
 int ide_do_log = ENABLE_IDE_LOG;
 #endif
 
+
 static void ide_log(const char *format, ...)
 {
 #ifdef ENABLE_IDE_LOG
    if (ide_do_log)
    {
-		va_list ap;
-		va_start(ap, format);
-		vprintf(format, ap);
-		va_end(ap);
-		fflush(stdout);
+	va_list ap;
+	va_start(ap, format);
+	vfprintf(stdlog, format, ap);
+	va_end(ap);
+	fflush(stdlog);
    }
 #endif
 }
 
+
 uint8_t getstat(IDE *ide) { return ide->atastat; }
+
 
 int ide_drive_is_cdrom(IDE *ide)
 {

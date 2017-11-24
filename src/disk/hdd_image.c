@@ -8,7 +8,7 @@
  *
  *		Handling of hard disk image files.
  *
- * Version:	@(#)hdd_image.c	1.0.7	2017/11/01
+ * Version:	@(#)hdd_image.c	1.0.8	2017/11/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -53,16 +53,18 @@ static char *empty_sector_1mb;
 int hdd_image_do_log = ENABLE_HDD_LOG;
 #endif
 
-void hdd_image_log(const char *format, ...)
+
+static void
+hdd_image_log(const char *format, ...)
 {
 #ifdef ENABLE_HDD_LOG
 	if (hdd_image_do_log)
 	{
 		va_list ap;
 		va_start(ap, format);
-		vprintf(format, ap);
+		vfprintf(stdlog, format, ap);
 		va_end(ap);
-		fflush(stdout);
+		fflush(stdlog);
 	}
 #endif
 }

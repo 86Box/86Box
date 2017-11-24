@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM host drive IOCTL interface for
  *		Windows using SCSI Passthrough Direct.
  *
- * Version:	@(#)cdrom_ioctl.c	1.0.7	2017/11/04
+ * Version:	@(#)cdrom_ioctl.c	1.0.8	2017/11/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -36,38 +36,40 @@
 #define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)
 
 
+enum {
+    CD_STOPPED = 0,
+    CD_PLAYING,
+    CD_PAUSED
+};
+
+
+typedef struct {
+    HANDLE hIOCTL;
+    CDROM_TOC toc;
+    int is_playing;
+} cdrom_ioctl_windows_t;
+
+
+cdrom_ioctl_windows_t cdrom_ioctl_windows[CDROM_NUM];
+#ifdef ENABLE_CDROM_LOG
+int cdrom_ioctl_do_log = ENABLE_CDROM_LOG;
+#endif
+
+
 static CDROM ioctl_cdrom;
 
 
-typedef struct
-{
-	HANDLE hIOCTL;
-	CDROM_TOC toc;
-	int is_playing;
-} cdrom_ioctl_windows_t;
-
-cdrom_ioctl_windows_t cdrom_ioctl_windows[CDROM_NUM];
-
-enum
-{
-	CD_STOPPED = 0,
-	CD_PLAYING,
-	CD_PAUSED
-};
-
-int cdrom_ioctl_do_log = 0;
-
-void cdrom_ioctl_log(const char *format, ...)
+static void
+cdrom_ioctl_log(const char *format, ...)
 {
 #ifdef ENABLE_CDROM_LOG
-	if (cdrom_ioctl_do_log)
-	{
-		va_list ap;
-		va_start(ap, format);
-		vprintf(format, ap);
-		va_end(ap);
-		fflush(stdout);
-	}
+    if (cdrom_ioctl_do_log) {
+	va_list ap;
+	va_start(ap, format);
+	vfprintf(stdlog, format, ap);
+	va_end(ap);
+	fflush(stdstdlog);
+    }
 #endif
 }
 

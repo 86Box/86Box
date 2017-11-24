@@ -8,7 +8,7 @@
  *
  *		x86 CPU segment emulation.
  *
- * Version:	@(#)x86seg.c	1.0.5	2017/11/04
+ * Version:	@(#)x86seg.c	1.0.6	2017/11/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -61,12 +61,12 @@ void x86abort(const char *format, ...)
 {
    va_list ap;
    va_start(ap, format);
-   vprintf(format, ap);
+   vfprintf(stdlog, format, ap);
    va_end(ap);
-   fflush(stdout);
+   fflush(stdlog);
    nvr_save();
    dumpregs(1);
-   fflush(stdout);
+   fflush(stdlog);
    exit(-1);
 }
 

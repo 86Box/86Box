@@ -8,7 +8,7 @@
  *
  *		Emulation of the Olivetti M24.
  *
- * Version:	@(#)m_olivetti_m24.c	1.0.4	2017/11/23
+ * Version:	@(#)m_olivetti_m24.c	1.0.5	2017/11/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -112,16 +112,16 @@ int m24vid_do_log = ENABLE_M24VID_LOG;
 
 
 static void
-m24vid_log(const char *fmt, ...)
+m24_log(const char *fmt, ...)
 {
 #ifdef ENABLE_M24VID_LOG
     va_list ap;
 
     if (m24vid_do_log) {
 	va_start(ap, fmt);
-	vprintf(fmt, ap);
+	vfprintf(stdlog, fmt, ap);
 	va_end(ap);
-	fflush(stdout);
+	fflush(stdlog);
     }
 #endif
 }		
@@ -525,13 +525,13 @@ kbd_poll(void *priv)
 	m24->wantirq = 0;
 	picint(2);
 #if ENABLE_KEYBOARD_LOG
-	pclog("M24: take IRQ\n");
+	m24_log("M24: take IRQ\n");
 #endif
     }
 
     if (!(m24->status & STAT_OFULL) && key_queue_start != key_queue_end) {
 #if ENABLE_KEYBOARD_LOG
-	pclog("Reading %02X from the key queue at %i\n",
+	m24_log("Reading %02X from the key queue at %i\n",
 				m24->out, key_queue_start);
 #endif
 	m24->out = key_queue[key_queue_start];
@@ -557,7 +557,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
     olim24_t *m24 = (olim24_t *)priv;
 
 #if ENABLE_KEYBOARD_LOG
-    pclog("M24: write %04X %02X\n", port, val);
+    m24_log("M24: write %04X %02X\n", port, val);
 #endif
 
 #if 0
@@ -590,7 +590,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 						break;
 					
 					default:
-						pclog("M24: bad keyboard command complete %02X\n", m24->command);
+						m24_log("M24: bad keyboard command complete %02X\n", m24->command);
 				}
 			}
 		} else {
@@ -614,7 +614,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 					break;
 
 				default:
-					pclog("M24: bad keyboard command %02X\n", val);
+					m24_log("M24: bad keyboard command %02X\n", val);
 			}
 		}
 		break;
@@ -667,7 +667,7 @@ kbd_read(uint16_t port, void *priv)
 		break;
 
 	default:
-		pclog("\nBad M24 keyboard read %04X\n", port);
+		m24_log("\nBad M24 keyboard read %04X\n", port);
     }
 
     return(ret);

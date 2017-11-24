@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.28	2017/11/04
+ * Version:	@(#)scsi_buslogic.c	1.0.29	2017/11/24
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -236,9 +236,11 @@ enum {
     CHIP_BUSLOGIC_PCI
 };
 
+
 #ifdef ENABLE_BUSLOGIC_LOG
 int buslogic_do_log = ENABLE_BUSLOGIC_LOG;
 #endif
+
 
 static void
 buslogic_log(const char *format, ...)
@@ -248,9 +250,9 @@ buslogic_log(const char *format, ...)
 
     if (buslogic_do_log) {
 	va_start(ap, format);
-	vprintf(format, ap);
+	vfprintf(stdlog, format, ap);
 	va_end(ap);
-	fflush(stdout);
+	fflush(stdlog);
     }
 #endif
 }

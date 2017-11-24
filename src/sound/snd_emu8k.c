@@ -15,6 +15,7 @@
 #include "sound.h"
 #include "snd_emu8k.h"
 
+
 #if !defined FILTER_INITIAL && !defined FILTER_MOOG && !defined FILTER_CONSTANT
 //#define FILTER_INITIAL
 #define FILTER_MOOG
@@ -295,19 +296,21 @@ uint32_t rep_count_w = 0;
 int emu8k_do_log = ENABLE_EMU8K_LOG;
 #endif
 
-void emu8k_log(const char *format, ...)
+
+static void
+emu8k_log(const char *format, ...)
 {
 #ifdef ENABLE_EMU8K_LOG
-	if (emu8k_do_log)
-	{
-		va_list ap;
-		va_start(ap, format);
-		vprintf(format, ap);
-		va_end(ap);
-		fflush(stdout);
-	}
+    if (emu8k_do_log) {
+	va_list ap;
+	va_start(ap, format);
+	vfprintf(stdlog, format, ap);
+	va_end(ap);
+	fflush(stdlog);
+    }
 #endif
 }
+
 
 static inline int16_t EMU8K_READ(emu8k_t *emu8k, uint32_t addr)
 {
