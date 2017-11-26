@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.32	2017/11/23
+ * Version:	@(#)config.c	1.0.32	2017/11/25
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1128,6 +1128,7 @@ config_load(wchar_t *fn)
 	plat_langid = 0x0409;
 #endif
 	scale = 1;
+	gfxcard = GFX_CGA;
 	vid_api = plat_vidapi("default");;
 	enable_sync = 1;
 	joystick_type = 7;
