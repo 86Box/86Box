@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.80	2017/11/19
+# Version:	@(#)Makefile.mingw	1.0.81	2017/11/26
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -97,6 +97,7 @@ ifndef PROG
 endif
 
 ifeq ($(DEV_BUILD), y)
+DEBUG		:= y
 DEV_BRANCH	:= y
 CIRRUS		:= y
 NE1000		:= y
@@ -184,7 +185,8 @@ ifeq ($(DEBUG), y)
  DFLAGS		+= -ggdb -DDEBUG
  AOPTIM		:=
  ifndef COPTIM
-  COPTIM	:= -Og
+#  COPTIM	:= -Og
+  COPTIM	:= -O0
  endif
 else
  ifeq ($(OPTIM), y)
