@@ -368,6 +368,7 @@ pc_init(int argc, wchar_t *argv[])
     int c;
     int cfgp = 0;
     wchar_t cmdl_cfg_path[2048];
+    wchar_t emu_cwd[2048];
 
     /* Grab the executable's full path. */
     plat_get_exe_name(exe_path, sizeof(exe_path)-1);
@@ -381,7 +382,7 @@ pc_init(int argc, wchar_t *argv[])
      * a shortcut (desktop icon), however, the CWD
      * could have been set to something else.
      */
-    plat_getcwd(cfg_path, sizeof(cfg_path)-1);
+    plat_getcwd(emu_cwd, sizeof(emu_cwd)-1);
 
     for (c=1; c<argc; c++) {
 	if (argv[c][0] != L'-') break;
@@ -452,10 +453,10 @@ usage:
     if (c != argc) goto usage;
 
     if (!cfgp) {
-	wcscpy(cfg_path, exe_path);
+	wcscpy(cfg_path, emu_cwd);
     } else {
 	if ((cmdl_cfg_path[0] != L'\\') && (cmdl_cfg_path[0] != L'/') && (cmdl_cfg_path[1] != L':')) {
-		wcscpy(cfg_path, exe_path);
+		wcscpy(cfg_path, emu_cwd);
 		cfg_path_slash();
 		wcscat(cfg_path, cmdl_cfg_path);
 	} else {
