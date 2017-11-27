@@ -626,8 +626,8 @@ static inline void CHECK_SEG_READ(x86seg *seg)
         addlong((uint32_t)&seg->base);
         addbyte(-1);
         addbyte(0x0f);
-        addbyte(0x84); /*JE end*/
-        addlong(BLOCK_EXIT_OFFSET - (block_pos + 4));
+        addbyte(0x84); /*JE BLOCK_GPF_OFFSET*/
+        addlong(BLOCK_GPF_OFFSET - (block_pos + 4));
         
         seg->checked = 1;
 }
@@ -649,8 +649,8 @@ static inline void CHECK_SEG_WRITE(x86seg *seg)
         addlong((uint32_t)&seg->base);
         addbyte(-1);
         addbyte(0x0f);
-        addbyte(0x84); /*JE end*/
-        addlong(BLOCK_EXIT_OFFSET - (block_pos + 4));
+        addbyte(0x84); /*JE BLOCK_GPF_OFFSET*/
+        addlong(BLOCK_GPF_OFFSET - (block_pos + 4));
 
         seg->checked = 1;
 }

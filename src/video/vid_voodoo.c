@@ -331,6 +331,7 @@ typedef struct voodoo_t
         fifo_entry_t fifo[FIFO_SIZE];
         volatile int fifo_read_idx, fifo_write_idx;
         int cmd_read, cmd_written;
+	volatile int cmd_read, cmd_written, cmd_written_fifo;
 
         voodoo_params_t params_buffer[PARAM_SIZE];
         volatile int params_read_idx[2], params_write_idx;
@@ -6023,17 +6024,19 @@ static uint32_t voodoo_readl(uint32_t addr, void *p)
                 {
                         int fifo_entries = FIFO_ENTRIES;
                         int swap_count = voodoo->swap_count;
-                        int busy = (voodoo->cmd_written - voodoo->cmd_read) || (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr);
+                        int written = voodoo->cmd_written + voodoo->cmd_written_fifo;
+                        int busy = (written - voodoo->cmd_read) || (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr);
 
                         if (SLI_ENABLED && voodoo->type != VOODOO_2)
                         {
                                 voodoo_t *voodoo_other = (voodoo == voodoo->set->voodoos[0]) ? voodoo->set->voodoos[1] : voodoo->set->voodoos[0];
-                                
+                                int other_written = voodoo_other->cmd_written + voodoo_other->cmd_written_fifo;
+                                                        
                                 if (voodoo_other->swap_count > swap_count)
                                         swap_count = voodoo_other->swap_count;
                                 if ((voodoo_other->fifo_write_idx - voodoo_other->fifo_read_idx) > fifo_entries)
                                         fifo_entries = voodoo_other->fifo_write_idx - voodoo_other->fifo_read_idx;
-                                if ((voodoo_other->cmd_written - voodoo_other->cmd_read) ||
+                                if ((other_written - voodoo_other->cmd_read) ||
                                     (voodoo_other->cmdfifo_depth_rd != voodoo_other->cmdfifo_depth_wr))
                                         busy = 1;
                                 if (!voodoo_other->voodoo_busy)
@@ -6651,7 +6654,7 @@ static void fifo_thread(void *param)
                                         uint32_t val = cmdfifo_get(voodoo);
                                         if ((addr & 0x3ff) == SST_triangleCMD || (addr & 0x3ff) == SST_ftriangleCMD ||
                                             (addr & 0x3ff) == SST_fastfillCMD || (addr & 0x3ff) == SST_nopCMD)
-                                                voodoo->cmd_written++;
+                                                voodoo->cmd_written_fifo++;
                                                 
                                         voodoo_reg_writel(addr, val, voodoo);
                                 
@@ -6735,7 +6738,7 @@ static void fifo_thread(void *param)
                                                 uint32_t val = cmdfifo_get(voodoo);
                                                 if ((addr & 0x3ff) == SST_triangleCMD || (addr & 0x3ff) == SST_ftriangleCMD ||
                                                     (addr & 0x3ff) == SST_fastfillCMD || (addr & 0x3ff) == SST_nopCMD)
-                                                        voodoo->cmd_written++;
+                                                        voodoo->cmd_written_fifo++;
 
                                                 voodoo_reg_writel(addr, val, voodoo);
                                         }
