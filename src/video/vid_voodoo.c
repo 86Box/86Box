@@ -330,7 +330,6 @@ typedef struct voodoo_t
         
         fifo_entry_t fifo[FIFO_SIZE];
         volatile int fifo_read_idx, fifo_write_idx;
-        int cmd_read, cmd_written;
 	volatile int cmd_read, cmd_written, cmd_written_fifo;
 
         voodoo_params_t params_buffer[PARAM_SIZE];
