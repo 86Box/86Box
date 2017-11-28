@@ -2200,6 +2200,8 @@ static void *s3_init(device_t *info, wchar_t *bios_fn, int chip)
                 break;
                 case 1: /*1MB*/
                 /*VRAM in first MB, mirrored in 2nd MB, 3rd and 4th MBs are open bus*/
+                /*This works with the #9 9FX BIOS, and matches how my real Trio64 behaves,
+                  but does not work with the Phoenix EDO BIOS. Possibly an FPM/EDO difference?*/
                 svga->vram_mask = (1 << 20) - 1;
                 svga->vram_max = 2 << 20;
                 break;
@@ -2330,12 +2332,16 @@ static void *s3_9fx_init(device_t *info)
 static void *s3_phoenix_trio64_init(device_t *info)
 {
 	s3_t *s3 = s3_trio64_init(info, L"roms/video/s3/86c764x1.bin");
+        if (device_get_config_int("memory") == 1)
+                s3->svga.vram_max = 1 << 20; /*Phoenix BIOS does not expect VRAM to be mirrored*/
 	return s3;
 }
 
 static void *s3_diamond_stealth64_init(device_t *info)
 {
 	s3_t *s3 = s3_trio64_init(info, L"roms/video/s3/stealt64.bin");
+        if (device_get_config_int("memory") == 1)
+                s3->svga.vram_max = 1 << 20; /*Phoenix BIOS does not expect VRAM to be mirrored*/
 	return s3;
 }
 
