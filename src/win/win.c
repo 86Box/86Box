@@ -311,8 +311,11 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
     /* Cleanup: we no longer need the commandline arguments. */
     if (! force_debug)
 	CreateConsole(0);
+#if 0
+    //QUICKFIX, DO NOT CHANGE --FvK
     free(argw[0]);
     free(argw);
+#endif
 
     /* Handle our GUI. */
     i = ui_init(nCmdShow);
