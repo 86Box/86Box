@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.4	2017/11/20
+ * Version:	@(#)win_ui.c	1.0.5	2017/11/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -715,7 +715,7 @@ ui_init(int nCmdShow)
     haccel = LoadAccelerators(hinstance, ACCEL_NAME);
     if (haccel == NULL) {
 	MessageBox(hwndMain,
-		   plat_get_string(IDS_2053),
+		   plat_get_string(IDS_2153),
 		   plat_get_string(IDS_2050),
 		   MB_OK | MB_ICONERROR);
 	return(3);
@@ -728,7 +728,7 @@ ui_init(int nCmdShow)
     device.hwndTarget = hwnd;
     if (! RegisterRawInputDevices(&device, 1, sizeof(device))) {
 	MessageBox(hwndMain,
-		   plat_get_string(IDS_2054),
+		   plat_get_string(IDS_2154),
 		   plat_get_string(IDS_2050),
 		   MB_OK | MB_ICONERROR);
 	return(4);
