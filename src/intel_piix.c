@@ -159,7 +159,7 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
                         else
                                 pci_set_mirq_routing(PCI_MIRQ0, val & 0xf);
                         break;
-			pclog("MIRQ0 is %s\n", (val & 0x20) ? "disabled" : "enabled");
+			/* pclog("MIRQ0 is %s\n", (val & 0x20) ? "disabled" : "enabled"); */
                         case 0x71:
 			if (piix_type == 1)
 			{
@@ -416,7 +416,9 @@ static void piix_bus_master_next_addr(int channel)
 {
 	DMAPageRead(piix_busmaster[channel].ptr_cur, (char *) &(piix_busmaster[channel].addr), 4);
 	DMAPageRead(piix_busmaster[channel].ptr_cur + 4, (char *) &(piix_busmaster[channel].count), 4);
+#if 0
 	pclog("PIIX Bus master DWORDs: %08X %08X\n", piix_busmaster[channel].addr, piix_busmaster[channel].count);
+#endif
 	piix_busmaster[channel].eot = piix_busmaster[channel].count >> 31;
 	piix_busmaster[channel].count &= 0xfffe;
 	if (!piix_busmaster[channel].count)
@@ -510,36 +512,50 @@ int piix_bus_master_dma_read(int channel, uint8_t *data, int transfer_length)
         if (!(piix_busmaster[channel].status & 1))
            return 1;                                    /*DMA disabled*/
 
+#if 0
 	pclog("PIIX Bus master read: %i bytes\n", transfer_length);
+#endif
 
         while (1) {
                 if (piix_busmaster[channel].count <= transfer_length) {
+#if 0
 			pclog("Writing %i bytes to %08X\n", piix_busmaster[channel].count, piix_busmaster[channel].addr);
+#endif
 			DMAPageWrite(piix_busmaster[channel].addr, (char *) (data + buffer_pos), piix_busmaster[channel].count);
 			transfer_length -= piix_busmaster[channel].count;
 			buffer_pos += piix_busmaster[channel].count;
                 } else {
+#if 0
 			pclog("Writing %i bytes to %08X\n", piix_busmaster[channel].count, piix_busmaster[channel].addr);
+#endif
 			DMAPageWrite(piix_busmaster[channel].addr, (char *) (data + buffer_pos), transfer_length);
 			transfer_length = 0;
 			force_end = 1;
        	        }
 
 		if (force_end) {
+#if 0
 			pclog("Total transfer length smaller than sum of all blocks, partial block\n");
+#endif
 			piix_busmaster[channel].status &= ~2;
 			return 0;		/* This block has exhausted the data to transfer and it was smaller than the count, break. */
 		} else {
 			if (!transfer_length && !piix_busmaster[channel].eot) {
+#if 0
 				pclog("Total transfer length smaller than sum of all blocks, full block\n");
+#endif
                                 piix_busmaster[channel].status &= ~2;
 				return 0;	/* We have exhausted the data to transfer but there's more blocks left, break. */
 			} else if (transfer_length && piix_busmaster[channel].eot) {
+#if 0
 				pclog("Total transfer length greater than sum of all blocks\n");
+#endif
                                 piix_busmaster[channel].status |= 2;
 				return 1;	/* There is data left to transfer but we have reached EOT - return with error. */
 			} else if (piix_busmaster[channel].eot) {
+#if 0
 				pclog("Regular EOT\n");
+#endif
                                 piix_busmaster[channel].status &= ~3;
 				return 0;	/* We have regularly reached EOT - clear status and break. */
 			} else {
@@ -559,36 +575,50 @@ int piix_bus_master_dma_write(int channel, uint8_t *data, int transfer_length)
         if (!(piix_busmaster[channel].status & 1))
            return 1;                                    /*DMA disabled*/
 
+#if 0
 	pclog("PIIX Bus master write: %i bytes\n", transfer_length);
+#endif
 
         while (1) {
                 if (piix_busmaster[channel].count <= transfer_length) {
+#if 0
 			pclog("Reading %i bytes from %08X\n", piix_busmaster[channel].count, piix_busmaster[channel].addr);
+#endif
 			DMAPageRead(piix_busmaster[channel].addr, (char *) (data + buffer_pos), piix_busmaster[channel].count);
 			transfer_length -= piix_busmaster[channel].count;
 			buffer_pos += piix_busmaster[channel].count;
                 } else {
+#if 0
 			pclog("Reading %i bytes from %08X\n", piix_busmaster[channel].count, piix_busmaster[channel].addr);
+#endif
 			DMAPageRead(piix_busmaster[channel].addr, (char *) (data + buffer_pos), transfer_length);
 			transfer_length = 0;
 			force_end = 1;
        	        }
 
 		if (force_end) {
+#if 0
 			pclog("Total transfer length smaller than sum of all blocks, partial block\n");
+#endif
 			piix_busmaster[channel].status &= ~2;
 			return 0;		/* This block has exhausted the data to transfer and it was smaller than the count, break. */
 		} else {
 			if (!transfer_length && !piix_busmaster[channel].eot) {
+#if 0
 				pclog("Total transfer length smaller than sum of all blocks, full block\n");
+#endif
                                 piix_busmaster[channel].status &= ~2;
 				return 0;	/* We have exhausted the data to transfer but there's more blocks left, break. */
 			} else if (transfer_length && piix_busmaster[channel].eot) {
+#if 0
 				pclog("Total transfer length greater than sum of all blocks\n");
+#endif
                                 piix_busmaster[channel].status |= 2;
 				return 1;	/* There is data left to transfer but we have reached EOT - return with error. */
 			} else if (piix_busmaster[channel].eot) {
+#if 0
 				pclog("Regular EOT\n");
+#endif
                                 piix_busmaster[channel].status &= ~3;
 				return 0;	/* We have regularly reached EOT - clear status and break. */
 			} else {
