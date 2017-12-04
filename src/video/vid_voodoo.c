@@ -2686,6 +2686,7 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
 #ifndef NO_CODEGEN
         uint8_t (*voodoo_draw)(voodoo_state_t *state, voodoo_params_t *params, int x, int real_y);
 #endif
+	uint8_t cother_r = 0, cother_g = 0, cother_b = 0;
         int y_diff = SLI_ENABLED ? 2 : 1;
 
         if ((params->textureMode[0] & TEXTUREMODE_MASK) == TEXTUREMODE_PASSTHROUGH ||
@@ -2956,7 +2957,7 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
 //                        if (voodoo->fbzMode & FBZ_RGB_WMASK)
                         {
                                 int update = 1;
-                                uint8_t cother_r, cother_g, cother_b, aother;
+                                uint8_t aother;
                                 uint8_t clocal_r, clocal_g, clocal_b, alocal;
                                 int src_r = 0, src_g = 0, src_b = 0, src_a = 0;
                                 int msel_r, msel_g, msel_b, msel_a;
