@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine_table.c	1.0.4	2017/11/22
+ * Version:	@(#)machine_table.c	1.0.5	2017/12/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -99,6 +99,8 @@ machine_t machines[] = {
 
     { "[486 PCI] Rise Computer R418",		ROM_R418,		"r418",			{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,	  1,  255,   1, 127,		 machine_at_r418_init, NULL, nvr_at_close		},
 
+    { "[Socket 4] Green-B 4GP V3.1",		ROM_4GPV31,		"4gpv31",		{{"Intel", cpus_i486},        {"Intel",cpus_Pentium5V},{"AMD", cpus_Am486},  {"Cyrix", cpus_Cx486},{"",     NULL}}, 0, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,					  1,  128,   1, 127,	       machine_at_4gpv31_init, NULL, nvr_at_close		},
+    
     { "[Socket 4 LX] Intel Premiere/PCI",	ROM_REVENGE,		"revenge",		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,	  2,  128,   2, 127,	       machine_at_batman_init, NULL, nvr_at_close		},
 
     { "[Socket 5 NX] Intel Premiere/PCI II",	ROM_PLATO,		"plato",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"AMD",   cpus_K5},     {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,	  2,  128,   2, 127,		machine_at_plato_init, NULL, nvr_at_close		},

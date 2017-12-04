@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.19	2017/11/11
+ * Version:	@(#)rom.c	1.0.20	2017/12/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -805,6 +805,12 @@ rom_load_bios(int rom_id)
 			L"roms/machines/ibmps2_m80/15f6639.bin",
 			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
+		return(1);
+
+	case ROM_4GPV31:
+		if (! rom_load_linear(
+			L"roms/machines/green-b/4gpv31-ami-1993-8273517.bin",
+			0x000000, 65536, 0, rom)) break;
 		return(1);
 
 	default:

@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.4	2017/11/11
+ * Version:	@(#)rom.h	1.0.5	2017/12/04
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -116,6 +116,9 @@ enum {
 
     ROM_PRESIDENT,	/* President Award 430FX PCI/430FX/Award/Unknown SIO */
     ROM_IBMPS2_M80_486,
+
+    ROM_4GPV31,		/* Green-B 4GPV3.1 ISA/VLB 486/Pentium, AMI */
+
     ROM_OPENAT,		/* PC/AT clone with Open BIOS */
 
     ROM_MAX

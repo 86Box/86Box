@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.13	2017/11/22
+ * Version:	@(#)machine.h	1.0.14	2017/12/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -135,6 +135,8 @@ extern void	machine_at_dtk486_init(machine_t *);
 extern void	machine_at_r418_init(machine_t *);
 
 extern void	machine_at_wd76c10_init(machine_t *);
+
+extern void	machine_at_4gpv31_init(machine_t *);
 
 extern void	machine_pcjr_init(machine_t *);
 

@@ -49,7 +49,7 @@
  *		only the Logitech part is considered to
  *		be OK.
  *
- * Version:	@(#)mouse_bus.c	1.0.24	2017/12/03
+ * Version:	@(#)mouse_bus.c	1.0.25	2017/12/04
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -358,7 +358,6 @@ lt_write(mouse_t *dev, uint16_t port, uint8_t val)
 				dev->x = dev->y = 0;
 				if (dev->but)
 					dev->but |= 0x80;
-				dev->seq = 0;
 			}
 		}
 
@@ -398,25 +397,15 @@ lt_read(mouse_t *dev, uint16_t port)
 
     switch (port) {
 	case LTMOUSE_DATA:	/* [00] data register */
-		/*
-		 * Regardless of which subcommand used, the first
-		 * one has to return the state of the buttons.
-		 */
-		if (! dev->seq) {
-			ret = 0x07;
-			if (dev->but & 0x01)		/*LEFT*/
-				ret &= ~0x04;
-			if (dev->but & 0x02)		/*RIGHT*/
-				ret &= ~0x01;
-			if (dev->flags & FLAG_3BTN)
-				if (dev->but & 0x04)	/*MIDDLE*/
-					ret &= ~0x02;
-			ret <<= 5;
-		} else {
-			dev->seq++;
-
-			ret = 0x00;
-		}
+		ret = 0x07;
+		if (dev->but & 0x01)		/*LEFT*/
+			ret &= ~0x04;
+		if (dev->but & 0x02)		/*RIGHT*/
+			ret &= ~0x01;
+		if (dev->flags & FLAG_3BTN)
+			if (dev->but & 0x04)	/*MIDDLE*/
+				ret &= ~0x02;
+		ret <<= 5;
 
 		switch(dev->r_ctrl & LTCTRL_RD_MASK) {
 			case LTCTRL_RD_X_LO:	/* X, low bits */
