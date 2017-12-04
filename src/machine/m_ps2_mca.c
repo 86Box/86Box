@@ -19,7 +19,7 @@
 #include "../lpt.h"
 #include "../mouse.h"
 #include "../serial.h"
-#include "../video/vid_ti_cf62011.h"
+#include "../video/vid_vga.h"
 #include "machine.h"
 
 
@@ -576,7 +576,7 @@ static void ps2_mca_board_model_50_init()
         ps2.planar_read = model_50_read;
         ps2.planar_write = model_50_write;
 
-	device_add(&ti_cf62011_device);
+	device_add(&ps1vga_device);
 }
 
 static void ps2_mca_board_model_55sx_init()
@@ -640,7 +640,7 @@ static void ps2_mca_board_model_55sx_init()
         ps2.planar_read = model_55sx_read;
         ps2.planar_write = model_55sx_write;
 
-	device_add(&ti_cf62011_device);
+	device_add(&ps1vga_device);
 }
 
 static void mem_encoding_update()
@@ -805,7 +805,7 @@ static void ps2_mca_board_model_80_type2_init()
                 mem_mapping_disable(&ps2.expansion_mapping);
         }
 
-	device_add(&ti_cf62011_device);
+	device_add(&ps1vga_device);
 }
 
 

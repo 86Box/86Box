@@ -1149,8 +1149,7 @@ void sb_poll_i(void *p)
 
 void sb_dsp_update(sb_dsp_t *dsp)
 {
-        /*this "if" implements two things: speaker on/off and buffer cleanup after stopping audio. */
-        if (!dsp->sbenable || dsp->muted)
+	if (dsp->muted)
         {
                 dsp->sbdatl=0;
                 dsp->sbdatr=0;

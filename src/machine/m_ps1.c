@@ -501,7 +501,10 @@ ps1_setup(int model)
 	serial_remove(2);
 
 	/* Enable the PS/1 VGA controller. */
-	device_add(&ps1vga_device);
+	if (model == 2011)
+		device_add(&ps1vga_device);
+	else
+		device_add(&ti_cf62011_device);
     }
 
     if (model == 2121) {

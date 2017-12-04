@@ -18,7 +18,7 @@
 #include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
-#include "../video/vid_ti_cf62011.h"
+#include "../video/vid_vga.h"
 #include "machine.h"
 
 
@@ -166,5 +166,5 @@ machine_ps2_m30_286_init(machine_t *model)
         ps2board_init();
         fdc_set_dskchg_activelow();
         fdc_set_ps1();
-	device_add(&ti_cf62011_device);
+	device_add(&ps1vga_device);
 }

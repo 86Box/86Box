@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -95,7 +95,7 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
     if (((addr & 0xfff0) == 0x03d0 || (addr & 0xfff0) == 0x03b0) &&
 	!(svga->miscout & 1)) addr ^= 0x60;
 #endif
-    pclog("TISVGA_out(%04x, %02x)\n", addr, val);
+    // pclog("TISVGA_out(%04x, %02x)\n", addr, val);
 
     switch (addr) {
 	case 0x0102:
@@ -194,7 +194,7 @@ vid_in(uint16_t addr, void *priv)
 		break;
     }
 
-    pclog("TISVGA_in(%04x) = %02x\n", addr, ret);
+    // pclog("TISVGA_in(%04x) = %02x\n", addr, ret);
 
     return(ret);
 }

@@ -465,7 +465,7 @@ plat_path_slash(wchar_t *path)
 int
 plat_path_abs(wchar_t *path)
 {
-    if ((path[1] == L':') || (path[0] == L'\\'))
+    if ((path[1] == L':') || (path[0] == L'\\') || (path[0] == L'/'))
 	return(1);
 
     return(0);

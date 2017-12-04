@@ -101,7 +101,7 @@ static void pit_set_out(PIT *pit, int64_t t, int64_t out)
 static void pit_load(PIT *pit, int64_t t)
 {
         int64_t l = pit->l[t] ? pit->l[t] : 0x10000LL;
-        timer_process();
+        timer_clock();
         pit->newcount[t] = 0;
         pit->disabled[t] = 0;
         switch (pit->m[t])
@@ -346,11 +346,11 @@ void pit_write(uint16_t addr, uint8_t val, void *p)
                         if (!(val&0x20))
                         {
                                 if (val & 2)
-                                        pit->rl[0] = pit->using_timer[0] ? ((int64_t)(pit->c[0] / PITCONST) >> TIMER_SHIFT) : pit->count[0];
+                                        pit->rl[0] = pit_read_timer(pit, 0);
                                 if (val & 4)
-                                        pit->rl[1] = pit->using_timer[1] ? ((int64_t)(pit->c[1] / PITCONST) >> TIMER_SHIFT) : pit->count[1];
+                                        pit->rl[1] = pit_read_timer(pit, 1);
                                 if (val & 8)
-                                        pit->rl[2] = pit->using_timer[2] ? ((int64_t)(pit->c[2] / PITCONST) >> TIMER_SHIFT) : pit->count[2];
+                                        pit->rl[2] = pit_read_timer(pit, 2);
                         }
                         if (!(val & 0x10))
                         {

@@ -198,6 +198,8 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
 	r = GetOpenFileName(&ofn);
     }
 
+    plat_chdir(usr_path);
+
     if (r) {
 	wcstombs(openfilestring, wopenfilestring, sizeof(openfilestring));
 //	pclog("File dialog return true\n");

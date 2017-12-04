@@ -171,6 +171,7 @@ typedef struct mach64_t
 
 
         uint32_t linear_base, old_linear_base;
+	uint32_t io_base;
 
         struct
         {
@@ -3119,15 +3120,33 @@ void mach64_overlay_draw(svga_t *svga, int displine)
 static void mach64_io_remove(mach64_t *mach64)
 {
         int c;
+	uint16_t io_base = 0x02ec;
+
+	switch (mach64->io_base)
+	{
+		case 0:
+		default:
+			io_base = 0x02ec;
+			break;
+		case 1:
+			io_base = 0x01cc;
+			break;
+		case 2:
+			io_base = 0x01c8;
+			break;
+		case 3:
+			fatal("Attempting to use the reserved value for I/O Base\n");
+			return;
+	}
 
         io_removehandler(0x03c0, 0x0020, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
         
         for (c = 0; c < 8; c++)
         {
-                io_removehandler((c * 0x1000) + 0x2ec, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
-                io_removehandler((c * 0x1000) + 0x6ec, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
-                io_removehandler((c * 0x1000) + 0xaec, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
-                io_removehandler((c * 0x1000) + 0xeec, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
+                io_removehandler((c * 0x1000) + 0x0000 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
+                io_removehandler((c * 0x1000) + 0x0400 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
+                io_removehandler((c * 0x1000) + 0x0800 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
+                io_removehandler((c * 0x1000) + 0x0c00 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
         }
 
         io_removehandler(0x01ce, 0x0002, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
@@ -3193,10 +3212,22 @@ uint8_t mach64_pci_read(int func, int addr, void *p)
                 case 0x12: return mach64->linear_base >> 16;
                 case 0x13: return mach64->linear_base >> 24;
 
-                case 0x14: return 0x01; /*Block decoded IO address*/
-                case 0x15: return mach64->block_decoded_io >> 8;
-                case 0x16: return mach64->block_decoded_io >> 16;
-                case 0x17: return mach64->block_decoded_io >> 24;
+                case 0x14:
+                if (mach64->type == MACH64_VT2)
+                        return 0x01; /*Block decoded IO address*/
+                return 0x00;
+                case 0x15:
+                if (mach64->type == MACH64_VT2)
+			return mach64->block_decoded_io >> 8;
+		return 0x00;
+                case 0x16:
+                if (mach64->type == MACH64_VT2)
+			return mach64->block_decoded_io >> 16;
+		return 0x00;
+                case 0x17:
+                if (mach64->type == MACH64_VT2)
+			return mach64->block_decoded_io >> 24;
+		return 0x00;
 
                 case 0x30: return mach64->pci_regs[0x30] & 0x01; /*BIOS ROM address*/
                 case 0x31: return 0x00;
@@ -3206,7 +3237,7 @@ uint8_t mach64_pci_read(int func, int addr, void *p)
                 case 0x3c: return mach64->int_line;
                 case 0x3d: return PCI_INTA;
                 
-                case 0x40: return mach64->use_block_decoded_io;
+                case 0x40: return mach64->use_block_decoded_io | mach64->io_base;
         }
         return 0;
 }
@@ -3288,14 +3319,13 @@ void mach64_pci_write(int func, int addr, uint8_t val, void *p)
                 break;
                 
                 case 0x40:
+		if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
+			mach64_io_remove(mach64);
+		mach64->io_base = val & 0x03;
                 if (mach64->type == MACH64_VT2)
-                {
-                        if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
-                                mach64_io_remove(mach64);
                         mach64->use_block_decoded_io = val & 0x04;
-                        if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
-                                mach64_io_set(mach64);
-                }
+		if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
+			mach64_io_set(mach64);
                 break;
         }
 }
