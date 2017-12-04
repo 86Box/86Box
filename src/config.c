@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.32	2017/11/25
+ * Version:	@(#)config.c	1.0.33	2017/12/03
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -99,9 +99,6 @@ typedef struct {
 					\
     (next)->next = (old)->next;		\
 }
-
-
-wchar_t config_file_default[256];
 
 
 static list_t	config_head;
@@ -900,13 +897,13 @@ load_hard_disks(void)
 	 * files.  We should remove this before
 	 * finalizing this release!  --FvK
 	 */
-	if (! wcsnicmp(wp, cfg_path, wcslen(cfg_path))) {
+	if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
 		/*
 		 * Yep, its absolute and prefixed
 		 * with the CFG path.  Just strip
 		 * that off for now...
 		 */
-		wcsncpy(hdd[c].fn, &wp[wcslen(cfg_path)], sizeof_w(hdd[c].fn));
+		wcsncpy(hdd[c].fn, &wp[wcslen(usr_path)], sizeof_w(hdd[c].fn));
 	} else
 #endif
 	wcsncpy(hdd[c].fn, wp, sizeof_w(hdd[c].fn));
@@ -967,13 +964,13 @@ load_removable_devices(void)
 	 * files.  We should remove this before
 	 * finalizing this release!  --FvK
 	 */
-	if (! wcsnicmp(wp, cfg_path, wcslen(cfg_path))) {
+	if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
 		/*
 		 * Yep, its absolute and prefixed
 		 * with the EXE path.  Just strip
 		 * that off for now...
 		 */
-		wcsncpy(floppyfns[c], &wp[wcslen(cfg_path)], sizeof_w(floppyfns[c]));
+		wcsncpy(floppyfns[c], &wp[wcslen(usr_path)], sizeof_w(floppyfns[c]));
 	} else
 #endif
 	wcsncpy(floppyfns[c], wp, sizeof_w(floppyfns[c]));
@@ -1071,13 +1068,13 @@ load_removable_devices(void)
 	 * files.  We should remove this before
 	 * finalizing this release!  --FvK
 	 */
-	if (! wcsnicmp(wp, cfg_path, wcslen(cfg_path))) {
+	if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
 		/*
 		 * Yep, its absolute and prefixed
 		 * with the EXE path.  Just strip
 		 * that off for now...
 		 */
-		wcsncpy(cdrom_image[c].image_path, &wp[wcslen(cfg_path)], sizeof_w(cdrom_image[c].image_path));
+		wcsncpy(cdrom_image[c].image_path, &wp[wcslen(usr_path)], sizeof_w(cdrom_image[c].image_path));
 	} else
 #endif
 	wcsncpy(cdrom_image[c].image_path, wp, sizeof_w(cdrom_image[c].image_path));
@@ -1116,13 +1113,11 @@ load_removable_devices(void)
 
 /* Load the specified or a default configuration file. */
 void
-config_load(wchar_t *fn)
+config_load(void)
 {
-    if (fn == NULL)
-	fn = config_file_default;
-    pclog("Loading config file '%ls'..\n", fn);
+    pclog("Loading config file '%ls'..\n", cfg_path);
 
-    if (! config_read(fn)) {
+    if (! config_read(cfg_path)) {
 	cpu = 0;
 #ifdef USE_LANGUAGE
 	plat_langid = 0x0409;
@@ -1701,7 +1696,7 @@ config_save(void)
     save_hard_disks();		/* Hard disks */
     save_removable_devices();	/* Removable devices */
 
-    config_write(config_file_default);
+    config_write(cfg_path);
 }
 
 

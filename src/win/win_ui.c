@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.5	2017/11/28
+ * Version:	@(#)win_ui.c	1.0.6	2017/11/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -30,12 +30,11 @@
 #include "../86box.h"
 #include "../config.h"
 #include "../device.h"
-#include "../mouse.h"
 #include "../keyboard.h"
+#include "../mouse.h"
 #include "../video/video.h"
 #include "../video/vid_ega.h"		// for update_overscan
 #include "../plat.h"
-#include "../plat_mouse.h"
 #include "../plat_midi.h"
 #include "../ui.h"
 #include "win.h"
@@ -651,6 +650,11 @@ ui_init(int nCmdShow)
     HACCEL haccel;			/* handle to accelerator table */
     int bRet;
 
+#if 0
+    /* We should have an application-wide at_exit catcher. */
+    atexit(plat_mouse_capture);
+#endif
+
     /* Create our main window's class and register it. */
     wincl.hInstance = hinstance;
     wincl.lpszClassName = CLASS_NAME;
@@ -734,6 +738,9 @@ ui_init(int nCmdShow)
 	return(4);
     }
     keyboard_getkeymap();
+
+    /* Initialize the mouse module. */
+    win_mouse_init();
 
     /* Create the status bar window. */
     StatusBarCreate(hwndMain, IDC_STATUS, hinstance);
@@ -824,11 +831,13 @@ ui_init(int nCmdShow)
     if (mouse_capture)
 	plat_mouse_capture(0);
 
+    /* Close down the emulator. */
+    do_stop();
+
     UnregisterClass(SUB_CLASS_NAME, hinstance);
     UnregisterClass(CLASS_NAME, hinstance);
 
-    /* Close down the emulator. */
-    do_stop();
+    win_mouse_close();
 
     return(messages.wParam);
 }

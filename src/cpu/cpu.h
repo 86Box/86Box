@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.h	1.0.3	2017/11/04
+ * Version:	@(#)cpu.h	1.0.4	2017/11/27
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -151,7 +151,7 @@ typedef struct {
     int		checked; /*Non-zero if selector is known to be valid*/
 } x86seg;
 
-typedef union MMX_REG {
+typedef union {
     uint64_t	q;
     int64_t	sq;
     uint32_t	l[2];
@@ -404,6 +404,8 @@ extern void	cyrix_write(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t	cyrix_read(uint16_t addr, void *priv);
 extern void	loadseg(uint16_t seg, x86seg *s);
 extern void	loadcs(uint16_t seg);
+
+extern char	*cpu_current_pc(char *bufp);
 
 extern void	cpu_update_waitstates(void);
 extern void	cpu_set(void);

@@ -8,7 +8,7 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.10	2017/11/20
+ * Version:	@(#)win.h	1.0.11	2017/11/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -81,6 +81,9 @@ extern int	get_vidpause(void);
 
 extern void	keyboard_getkeymap(void);
 extern void	keyboard_handle(LPARAM lParam, int infocus);
+
+extern void     win_mouse_init(void);
+extern void     win_mouse_close(void);
 
 extern int	fdd_type_to_icon(int type);
 

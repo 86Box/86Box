@@ -32,7 +32,7 @@
  *		in alpha mode, but in highres ("ECD350") mode, it displays
  *		some semi-random junk. Video-memory pointer maybe?
  *
- * Version:	@(#)m_amstrad.c	1.0.3	2017/11/08
+ * Version:	@(#)m_amstrad.c	1.0.4	2017/11/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -894,7 +894,7 @@ ms_read(uint16_t addr, void *priv)
 }
 
 
-static uint8_t
+static int
 ms_poll(int x, int y, int z, int b, void *priv)
 {
     amstrad_t *ams = (amstrad_t *)priv;

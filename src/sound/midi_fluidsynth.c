@@ -375,7 +375,7 @@ static device_config_t fluidsynth_config[] =
         {
                 .name = "sound_font",
                 .description = "Sound Font",
-                .type = CONFIG_FILE,
+                .type = CONFIG_FNAME,
                 .default_string = "",
                 .file_filter =
                 {

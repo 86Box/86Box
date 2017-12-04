@@ -68,7 +68,7 @@ cdrom_ioctl_log(const char *format, ...)
 	va_start(ap, format);
 	vfprintf(stdlog, format, ap);
 	va_end(ap);
-	fflush(stdstdlog);
+	fflush(stdlog);
     }
 #endif
 }

@@ -10,7 +10,7 @@
 #		settings, so we can avoid changing the main one for all of
 #		our local setups.
 #
-# Version:	@(#)Makefile.local	1.0.7	2017/11/12
+# Version:	@(#)Makefile.local	1.0.8	2017/11/28
 #
 # Author:	Fred N. van Kempen, <decwiz@yahoo.com>
 #
@@ -20,12 +20,8 @@
 #########################################################################
 
 
-DEBUG	:= y
-OPTIM	:= n
-COPTIM	:= -O1
-
 # Name of the executable.
-PROG	:= yourexe
+#PROG	:= yourexe
 
 
 # Various compile-time options.

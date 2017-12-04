@@ -8,7 +8,7 @@
  *
  *		Mouse interface to host device.
  *
- * Version:	@(#)win_mouse.cc	1.0.5	2017/10/22
+ * Version:	@(#)win_mouse.cpp	1.0.6	2017/11/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,7 +23,6 @@
 #include "../86Box.h"
 #include "../mouse.h"
 #include "../plat.h"
-#include "../plat_mouse.h"
 #include "win.h"
 
 
@@ -36,32 +35,32 @@ static DIMOUSESTATE mousestate;
 
 
 void
-mouse_init(void)
+win_mouse_init(void)
 {
-    atexit(mouse_close);
-        
+    atexit(win_mouse_close);
+
     mouse_capture = 0;
 
     if (FAILED(DirectInput8Create(hinstance, DIRECTINPUT_VERSION,
 	       IID_IDirectInput8A, (void **) &lpdi, NULL)))
-	fatal("mouse_init : DirectInputCreate failed\n"); 
+	fatal("plat_mouse_init: DirectInputCreate failed\n"); 
 
     if (FAILED(lpdi->CreateDevice(GUID_SysMouse, &lpdi_mouse, NULL)))
-	fatal("mouse_init : CreateDevice failed\n");
+	fatal("plat_mouse_init: CreateDevice failed\n");
 
     if (FAILED(lpdi_mouse->SetCooperativeLevel(hwndMain,
 	       DISCL_FOREGROUND | (video_fullscreen ? DISCL_EXCLUSIVE : DISCL_NONEXCLUSIVE))))
-	fatal("mouse_init : SetCooperativeLevel failed\n");
+	fatal("plat_mouse_init: SetCooperativeLevel failed\n");
 
     if (FAILED(lpdi_mouse->SetDataFormat(&c_dfDIMouse)))
-	fatal("mouse_init : SetDataFormat failed\n");
+	fatal("plat_mouse_init: SetDataFormat failed\n");
 }
 
 
 void
-mouse_close(void)
+win_mouse_close(void)
 {
-    if (lpdi_mouse) {
+    if (lpdi_mouse != NULL) {
 	lpdi_mouse->Release();
 	lpdi_mouse = NULL;
     }
@@ -69,7 +68,7 @@ mouse_close(void)
 
 
 void
-mouse_poll_host(void)
+mouse_poll(void)
 {
     static int buttons = 0;
     static int x = 0, y = 0, z = 0;

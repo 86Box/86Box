@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.c	1.0.7	2017/11/04
+ * Version:	@(#)cpu.c	1.0.8	2017/11/27
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -1243,6 +1243,21 @@ void cpu_set()
                 fatal("cpu_set : unknown CPU type %i\n", cpu_s->cpu_type);
         }
 }
+
+
+char *
+cpu_current_pc(char *bufp)
+{
+    static char buff[10];
+
+    if (bufp == NULL)
+	bufp = buff;
+
+    sprintf(bufp, "%04X:%04X", CS, cpu_state.pc);
+
+    return(bufp);
+}
+
 
 void cpu_CPUID()
 {

@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.h	1.0.5	2017/11/03
+ * Version:	@(#)device.h	1.0.7	2017/11/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -28,7 +28,7 @@
 #define CONFIG_BINARY		2
 #define CONFIG_SELECTION	3
 #define CONFIG_MIDI		4
-#define CONFIG_FILE		5
+#define CONFIG_FNAME		5
 #define CONFIG_SPINNER		6
 #define CONFIG_HEX16		7
 #define CONFIG_HEX20		8
@@ -84,7 +84,7 @@ typedef struct _device_ {
     void	*(*init)(struct _device_ *);
     void	(*close)(void *p);
     void	(*reset)(void *p);
-    int		(*available)(void);
+    int		(*available)(/*void*/);
     void	(*speed_changed)(void *p);
     void	(*force_redraw)(void *p);
     void	(*add_status_info)(char *s, int max_len, void *p);

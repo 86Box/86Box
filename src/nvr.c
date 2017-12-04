@@ -186,7 +186,7 @@
  *		(DS12887A) which implemented a "century" register to be 
  *		compatible with Y2K.
  *
- * Version:	@(#)nvr.c	1.0.13	2017/11/19
+ * Version:	@(#)nvr.c	1.0.14	2017/12/03
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Mahod,
@@ -751,7 +751,7 @@ nvr_path(wchar_t *str)
 
     /* Get the full prefix in place. */
     memset(temp, 0x00, sizeof(temp));
-    wcscpy(temp, cfg_path);
+    wcscpy(temp, usr_path);
     wcscat(temp, NVR_PATH);
 
     /* Create the directory if needed. */

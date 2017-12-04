@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.45	2017/11/23
+ * Version:	@(#)pc.c	1.0.47	2017/12/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -40,24 +40,24 @@
 #include "pit.h"
 #include "random.h"
 #include "timer.h"
-#include "mouse.h"
 #include "device.h"
 #include "nvr.h"
 #include "machine/machine.h"
-#include "game/gameport.h"
-#include "keyboard.h"
+#include "bugger.h"
 #include "lpt.h"
 #include "serial.h"
-#include "bugger.h"
+#include "keyboard.h"
+#include "mouse.h"
+#include "game/gameport.h"
+#include "floppy/floppy.h"
+#include "floppy/fdc.h"
+#include "disk/hdd.h"
+#include "disk/hdc.h"
+#include "disk/hdc_ide.h"
 #include "cdrom/cdrom.h"
 #include "cdrom/cdrom.h"
 #include "cdrom/cdrom_image.h"
 #include "cdrom/cdrom_null.h"
-#include "disk/hdd.h"
-#include "disk/hdc.h"
-#include "disk/hdc_ide.h"
-#include "floppy/floppy.h"
-#include "floppy/fdc.h"
 #include "scsi/scsi.h"
 #include "network/network.h"
 #include "sound/sound.h"
@@ -75,7 +75,6 @@
 #include "plat.h"
 #include "plat_joystick.h"
 #include "plat_midi.h"
-#include "plat_mouse.h"
 
 
 /* Commandline options. */
@@ -149,7 +148,8 @@ int	clockrate;
 int	gfx_present[GFX_MAX];			/* should not be here */
 
 wchar_t	exe_path[1024];				/* path (dir) of executable */
-wchar_t	cfg_path[1024];				/* path (dir) of user data */
+wchar_t	usr_path[1024];				/* path (dir) of user data */
+wchar_t	cfg_path[1024];				/* full path of config file */
 FILE	*stdlog = NULL;				/* file to log output to */
 int	scrnsz_x = SCREEN_RES_X,		/* current screen size, X */
 	scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
@@ -164,14 +164,23 @@ static int	unscaled_size_x = SCREEN_RES_X,	/* current unscaled size X */
 		efscrnsz_y = SCREEN_RES_Y;
 
 
-/* Log something to the logfile or stdout. */
+/*
+ * Log something to the logfile or stdout.
+ *
+ * To avoid excessively-large logfiles because some
+ * module repeatedly logs, we keep track of what is
+ * being logged, and catch repeating entries.
+ */
 void
-pclog(const char *format, ...)
+pclog(const char *fmt, ...)
 {
 #ifndef RELEASE_BUILD
+    static char buff[1024];
+    static int seen = 0;
+    char temp[1024];
     va_list ap;
 
-    va_start(ap, format);
+    va_start(ap, fmt);
 
     if (stdlog == NULL) {
 	if (log_path[0] != L'\0') {
@@ -183,7 +192,18 @@ pclog(const char *format, ...)
 	}
     }
 
-    vfprintf(stdlog, format, ap);
+    vsprintf(temp, fmt, ap);
+    if (! strcmp(buff, temp)) {
+	seen++;
+    } else {
+	if (seen) {
+		fprintf(stdlog, "*** %d repeats ***\n", seen);
+		seen = 0;
+	}
+	strcpy(buff, temp);
+	fprintf(stdlog, temp, ap);
+    }
+
     va_end(ap);
     fflush(stdlog);
 #endif
@@ -192,13 +212,13 @@ pclog(const char *format, ...)
 
 /* Log a fatal error, and display a UI message before exiting. */
 void
-fatal(const char *format, ...)
+fatal(const char *fmt, ...)
 {
     char temp[1024];
     va_list ap;
     char *sp;
 
-    va_start(ap, format);
+    va_start(ap, fmt);
 
     if (stdlog == NULL) {
 	if (log_path[0] != L'\0') {
@@ -210,7 +230,7 @@ fatal(const char *format, ...)
 	}
     }
 
-    vsprintf(temp, format, ap);
+    vsprintf(temp, fmt, ap);
     fprintf(stdlog, "%s", temp);
     fflush(stdlog);
     va_end(ap);
@@ -227,127 +247,9 @@ fatal(const char *format, ...)
 
     ui_msgbox(MBX_ERROR|MBX_FATAL|MBX_ANSI, temp);
 
-    fflush(stdout);
+    fflush(stdlog);
 
     exit(-1);
-}
-
-
-void
-set_screen_size(int x, int y)
-{
-    int owsx = scrnsz_x;
-    int owsy = scrnsz_y;
-    int temp_overscan_x = overscan_x;
-    int temp_overscan_y = overscan_y;
-    double dx, dy, dtx, dty;
-
-    /* Make sure we keep usable values. */
-#if 0
-    pclog("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
-#endif
-    if (x < 320) x = 320;
-    if (y < 200) y = 200;
-    if (x > 2048) x = 2048;
-    if (y > 2048) y = 2048;
-
-    /* Save the new values as "real" (unscaled) resolution. */
-    unscaled_size_x = x;
-    efscrnsz_y = y;
-
-    if (suppress_overscan)
-	temp_overscan_x = temp_overscan_y = 0;
-
-    if (force_43) {
-	dx = (double)x;
-	dtx = (double)temp_overscan_x;
-
-	dy = (double)y;
-	dty = (double)temp_overscan_y;
-
-	/* Account for possible overscan. */
-	if (!(VGA) && (temp_overscan_y == 16)) {
-		/* CGA */
-		dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-	} else if (!(VGA) && (temp_overscan_y < 16)) {
-		/* MDA/Hercules */
-		dy = (x / 4.0) * 3.0;
-	} else {
-		if (enable_overscan) {
-			/* EGA/(S)VGA with overscan */
-			dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-		} else {
-			/* EGA/(S)VGA without overscan */
-			dy = (x / 4.0) * 3.0;
-		}
-	}
-	unscaled_size_y = (int)dy;
-    } else {
-	unscaled_size_y = efscrnsz_y;
-    }
-
-    switch(scale) {
-	case 0:		/* 50% */
-		scrnsz_x = (unscaled_size_x>>1);
-		scrnsz_y = (unscaled_size_y>>1);
-		break;
-
-	case 1:		/* 100% */
-		scrnsz_x = unscaled_size_x;
-		scrnsz_y = unscaled_size_y;
-		break;
-
-	case 2:		/* 150% */
-		scrnsz_x = ((unscaled_size_x*3)>>1);
-		scrnsz_y = ((unscaled_size_y*3)>>1);
-		break;
-
-	case 3:		/* 200% */
-		scrnsz_x = (unscaled_size_x<<1);
-		scrnsz_y = (unscaled_size_y<<1);
-		break;
-    }
-
-    /* If the resolution has changed, let the main thread handle it. */
-    if ((owsx != scrnsz_x) || (owsy != scrnsz_y))
-	doresize = 1;
-      else
-	doresize = 0;
-}
-
-
-void
-set_screen_size_natural(void)
-{
-    set_screen_size(unscaled_size_x, unscaled_size_y);
-}
-
-
-int
-get_actual_size_x(void)
-{
-    return(unscaled_size_x);
-}
-
-
-int
-get_actual_size_y(void)
-{
-    return(efscrnsz_y);
-}
-
-
-void cfg_path_slash(void)
-{
-    /* Make sure cfg_path has a trailing backslash. */
-    if ((cfg_path[wcslen(cfg_path)-1] != L'\\') &&
-	(cfg_path[wcslen(cfg_path)-1] != L'/')) {
-#ifdef _WIN32
-	wcscat(cfg_path, L"\\");
-#else
-	wcscat(cfg_path, L"/");
-#endif
-    }
 }
 
 
@@ -361,14 +263,12 @@ void cfg_path_slash(void)
 int
 pc_init(int argc, wchar_t *argv[])
 {
+    wchar_t path[2048];
     wchar_t *cfg = NULL, *p;
     char temp[128];
     struct tm *info;
     time_t now;
     int c;
-    int cfgp = 0;
-    wchar_t cmdl_cfg_path[2048];
-    wchar_t emu_cwd[2048];
 
     /* Grab the executable's full path. */
     plat_get_exe_name(exe_path, sizeof(exe_path)-1);
@@ -377,12 +277,14 @@ pc_init(int argc, wchar_t *argv[])
 
     /*
      * Get the current working directory.
+     *
      * This is normally the directory from where the
      * program was run. If we have been started via
      * a shortcut (desktop icon), however, the CWD
      * could have been set to something else.
      */
-    plat_getcwd(emu_cwd, sizeof(emu_cwd)-1);
+    plat_getcwd(usr_path, sizeof_w(usr_path)-1);
+    memset(path, 0x00, sizeof(path));
 
     for (c=1; c<argc; c++) {
 	if (argv[c][0] != L'-') break;
@@ -427,8 +329,7 @@ usage:
 		   !wcscasecmp(argv[c], L"-P")) {
 		if ((c+1) == argc) goto usage;
 
-		wcscpy(cmdl_cfg_path, argv[++c]);
-		cfgp = 1;
+		wcscpy(path, argv[++c]);
 #ifdef USE_WX
 	} else if (!wcscasecmp(argv[c], L"--fps") ||
 		   !wcscasecmp(argv[c], L"-R")) {
@@ -452,42 +353,72 @@ usage:
 	cfg = argv[c++];
     if (c != argc) goto usage;
 
-    if (!cfgp) {
-	wcscpy(cfg_path, emu_cwd);
-    } else {
-	if ((cmdl_cfg_path[0] != L'\\') && (cmdl_cfg_path[0] != L'/') && (cmdl_cfg_path[1] != L':')) {
-		wcscpy(cfg_path, emu_cwd);
-		cfg_path_slash();
-		wcscat(cfg_path, cmdl_cfg_path);
+    /*
+     * If the user provided a path for files, use that
+     * instead of the current working directory. We do
+     * make sure that if that was a relative path, we
+     * make it absolute.
+     */
+    if (path[0] != L'\0') {
+	if (! plat_path_abs(path)) {
+		/*
+		 * This looks like a relative path.
+		 *
+		 * Add it to the current working directory
+		 * to convert it (back) to an absolute path.
+		 */
+		plat_path_slash(usr_path);
+		wcscat(usr_path, path);
 	} else {
-		wcscpy(cfg_path, cmdl_cfg_path);
+		/*
+		 * The user-provided path seems like an
+		 * absolute path, so just use that.
+		 */
+		wcscpy(usr_path, path);
 	}
     }
 
-    cfg_path_slash();
+    /* Make sure we have a trailing backslash. */
+    plat_path_slash(usr_path);
 
-    if (cfg != NULL) {
+    /* Grab the name of the configuration file. */
+    if (cfg == NULL)
+	cfg = CONFIG_FILE;
+
+    /*
+     * If the configuration file name has (part of)
+     * a pathname, consider that to be part of the
+     * actual working directory.
+     *
+     * This can happen when people load a config 
+     * file using the UI, for example.
+     */
+    p = plat_get_filename(cfg);
+    if (cfg != p) {
 	/*
-	 * The user specified a configuration file.
-	 *
-	 * If this is an absolute path, keep it, as
-	 * they probably have a reason to do that.
-	 * Otherwise, assume the pathname given is
-	 * relative to whatever the cfg_path is.
+	 * OK, the configuration file name has a
+	 * path component. Separate the two, and
+	 * add the path component to the cfg path.
 	 */
-#ifdef _WIN32
-	if ((cfg[1] == L':') ||	/* drive letter present */
-	    (cfg[0] == L'\\'))	/* backslash, root dir */
-#else
-	if (cfg[0] == L'/')	/* slash, root dir */
-#endif
-		wcscpy(config_file_default, cfg);
+	*(p-1) = L'\0';
+
+	/*
+	 * If this is an absolute path, keep it, as
+	 * there is probably have a reason to do so.
+	 * Otherwise, assume the pathname given is
+	 * relative to whatever the usr_path is.
+	 */
+	if (plat_path_abs(cfg))
+		wcscpy(usr_path, cfg);
 	  else
-		plat_append_filename(config_file_default, cfg_path, cfg, 511);
-	cfg = NULL;
-    } else {
-        plat_append_filename(config_file_default, cfg_path, CONFIG_FILE_W, 511);
+		wcscat(usr_path, cfg);
+
+	/* Make sure we have a trailing backslash. */
+	plat_path_slash(usr_path);
     }
+
+    /* At this point, we can safely create the full path name. */
+    plat_append_filename(cfg_path, usr_path, p);
 
     /*
      * This is where we start outputting to the log file,
@@ -499,8 +430,8 @@ usage:
     pclog("#\n# %ls v%ls logfile, created %s\n#\n",
 		EMU_NAME_W, EMU_VERSION_W, temp);
     pclog("# Emulator path: %ls\n", exe_path);
-    pclog("# Userfiles path: %ls\n", cfg_path);
-    pclog("# Configuration file: %ls\n#\n\n", config_file_default);
+    pclog("# Userfiles path: %ls\n", usr_path);
+    pclog("# Configuration file: %ls\n#\n\n", cfg_path);
 
     /*
      * We are about to read the configuration file, which MAY
@@ -510,10 +441,11 @@ usage:
      */
     hdd_init();
     network_init();
+    mouse_init();
     cdrom_global_init();
 
     /* Load the configuration file. */
-    config_load(cfg);
+    config_load();
 
     /* All good! */
     return(1);
@@ -551,12 +483,13 @@ pc_speed_changed(void)
 
 
 /* Re-load system configuration and restart. */
+/* FIXME: this has to be reviewed! */
 void
 pc_reload(wchar_t *fn)
 {
     int i;
 
-    config_write(config_file_default);
+    config_write(cfg_path);
 
     for (i=0; i<FDD_NUM; i++)
 	floppy_close(i);
@@ -572,7 +505,9 @@ pc_reload(wchar_t *fn)
 
     pc_reset_hard_close();
 
-    config_load(fn);
+    // FIXME: set up new config file path 'fn'... --FvK
+
+    config_load();
 
     for (i=0; i<CDROM_NUM; i++) {
 	if (cdrom_drives[i].bus_type)
@@ -644,7 +579,7 @@ again:
 		}
 	}
     }
-        
+
     /* Make sure we have a usable video card. */
     for (c=0; c<GFX_MAX; c++)
 	gfx_present[c] = video_card_available(video_old_to_new(c));
@@ -675,11 +610,10 @@ again2:
     codegen_init();
 #endif
 
-    keyboard_init();
-    mouse_init();
 #ifdef WALTJE_SERIAL
     serial_init();
 #endif
+    keyboard_init();
     joystick_init();
     video_init();
 
@@ -776,7 +710,7 @@ pc_reset_hard_close(void)
     device_close_all();
 
     midi_close();
-    mouse_emu_close();
+
     closeal();
 }
 
@@ -819,11 +753,6 @@ pc_reset_hard_init(void)
     serial_init();
 #endif
 
-    /* This has to be after the serial initialization so that
-       serial_init() doesn't break the serial mouse by resetting
-       the RCR callback to NULL. */
-    mouse_emu_init();
-
     /* Initialize the actual machine and its basic modules. */
     machine_init();
 
@@ -845,6 +774,13 @@ pc_reset_hard_init(void)
     // FIXME: do we really have to reset the *AT* keyboard?? --FvK
     shadowbios = 0;
     keyboard_at_reset();
+
+    /*
+     * This has to be after the serial initialization so that
+     * serial_init() doesn't break the serial mouse by resetting
+     * the RCR callback to NULL.
+     */
+    mouse_reset();
 
     /* Reset the video card. */
     video_reset(gfxcard);
@@ -1168,4 +1104,108 @@ pc_onesec(void)
     framecount = 0;
 
     title_update = 1;
+}
+
+
+void
+set_screen_size(int x, int y)
+{
+    int owsx = scrnsz_x;
+    int owsy = scrnsz_y;
+    int temp_overscan_x = overscan_x;
+    int temp_overscan_y = overscan_y;
+    double dx, dy, dtx, dty;
+
+    /* Make sure we keep usable values. */
+#if 0
+    pclog("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
+#endif
+    if (x < 320) x = 320;
+    if (y < 200) y = 200;
+    if (x > 2048) x = 2048;
+    if (y > 2048) y = 2048;
+
+    /* Save the new values as "real" (unscaled) resolution. */
+    unscaled_size_x = x;
+    efscrnsz_y = y;
+
+    if (suppress_overscan)
+	temp_overscan_x = temp_overscan_y = 0;
+
+    if (force_43) {
+	dx = (double)x;
+	dtx = (double)temp_overscan_x;
+
+	dy = (double)y;
+	dty = (double)temp_overscan_y;
+
+	/* Account for possible overscan. */
+	if (!(VGA) && (temp_overscan_y == 16)) {
+		/* CGA */
+		dy = (((dx - dtx) / 4.0) * 3.0) + dty;
+	} else if (!(VGA) && (temp_overscan_y < 16)) {
+		/* MDA/Hercules */
+		dy = (x / 4.0) * 3.0;
+	} else {
+		if (enable_overscan) {
+			/* EGA/(S)VGA with overscan */
+			dy = (((dx - dtx) / 4.0) * 3.0) + dty;
+		} else {
+			/* EGA/(S)VGA without overscan */
+			dy = (x / 4.0) * 3.0;
+		}
+	}
+	unscaled_size_y = (int)dy;
+    } else {
+	unscaled_size_y = efscrnsz_y;
+    }
+
+    switch(scale) {
+	case 0:		/* 50% */
+		scrnsz_x = (unscaled_size_x>>1);
+		scrnsz_y = (unscaled_size_y>>1);
+		break;
+
+	case 1:		/* 100% */
+		scrnsz_x = unscaled_size_x;
+		scrnsz_y = unscaled_size_y;
+		break;
+
+	case 2:		/* 150% */
+		scrnsz_x = ((unscaled_size_x*3)>>1);
+		scrnsz_y = ((unscaled_size_y*3)>>1);
+		break;
+
+	case 3:		/* 200% */
+		scrnsz_x = (unscaled_size_x<<1);
+		scrnsz_y = (unscaled_size_y<<1);
+		break;
+    }
+
+    /* If the resolution has changed, let the main thread handle it. */
+    if ((owsx != scrnsz_x) || (owsy != scrnsz_y))
+	doresize = 1;
+      else
+	doresize = 0;
+}
+
+
+void
+set_screen_size_natural(void)
+{
+    set_screen_size(unscaled_size_x, unscaled_size_y);
+}
+
+
+int
+get_actual_size_x(void)
+{
+    return(unscaled_size_x);
+}
+
+
+int
+get_actual_size_y(void)
+{
+    return(efscrnsz_y);
 }

@@ -8,7 +8,7 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_devconf.c	1.0.9	2017/11/18
+ * Version:	@(#)win_devconf.c	1.0.10	2017/11/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -117,7 +117,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                         id += 2;
                                         break;
 
-                                        case CONFIG_FILE:
+                                        case CONFIG_FNAME:
                                         {
                                                 wchar_t* str = config_get_wstring(config_device->name, config->name, 0);
                                                 if (str)
@@ -218,7 +218,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                 id += 2;
                                                 break;
 
-                                                case CONFIG_FILE:
+                                                case CONFIG_FNAME:
                                                 {
                                                         char* str = config_get_string(config_device->name, config->name, (char*)"");
                                                         SendMessage(h, WM_GETTEXT, 511, (LPARAM)s);
@@ -318,7 +318,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                 id += 2;
                                                 break;
 
-                                                case CONFIG_FILE:
+                                                case CONFIG_FNAME:
                                                 SendMessage(h, WM_GETTEXT, 511, (LPARAM)ws);
                                                 config_set_wstring(config_device->name, config->name, ws);
 
@@ -387,7 +387,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                 id += 2;
                                                 break;
 
-                                                case CONFIG_FILE:
+                                                case CONFIG_FNAME:
                                                 {
                                                         if (cid == id+1)
                                                         {
@@ -605,7 +605,7 @@ uint8_t deviceconfig_open(HWND hwnd, device_t *device)
                         y += 20;
                         break;
 
-                        case CONFIG_FILE:
+                        case CONFIG_FNAME:
                         /*File*/
                         item = (DLGITEMTEMPLATE *)data;
                         item->x = 70;

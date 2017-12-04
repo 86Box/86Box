@@ -8,7 +8,7 @@
  *
  *		Configuration file handler header.
  *
- * Version:	@(#)config.h	1.0.5	2017/10/18
+ * Version:	@(#)config.h	1.0.6	2017/12/03
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,14 +23,11 @@
 # define EMU_CONFIG_H
 
 
-extern wchar_t	config_file_default[256];
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern void	config_load(wchar_t *fn);
+extern void	config_load(void);
 extern void	config_save(void);
 extern void	config_write(wchar_t *fn);
 extern void	config_dump(void);

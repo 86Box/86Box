@@ -10,7 +10,7 @@
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
  *
- * Version:	@(#)language.h	1.0.3	2017/11/18
+ * Version:	@(#)language.h	1.0.4	2017/11/25
  *
  * Author:	Fred N. van Kempem, <decwiz@yahoo.com>
  *
@@ -145,19 +145,6 @@
 #define IDS_2169	2169		// "Image (&Write-protected)..."
 #define IDS_2170	2170		// "Check BPB"
 #define IDS_2171	2171		// "Unable to initialize Flui.."
-
-#define IDS_3072	3072		// "None"
-#define IDS_3073	3073		// "Internal"
-#define IDS_3074	3074		// "[Bus] Logitech Bus Mouse"
-#define IDS_3075	3075		// "[Bus] Microsoft Bus Mous.."
-#define IDS_3076	3076		// "[Serial] Mouse Systems Mouse"
-#define IDS_3077	3077		// "[Serial] Microsoft 2-button Mouse"
-#define IDS_3078	3078		// "[Serial] Logitech 3-button Mouse"
-#define IDS_3079	3079		// "[Serial] Microsoft Wheel Mouse"
-#define IDS_3080	3080		// "[PS/2] 2-button Mouse"
-#define IDS_3081	3081		// "[PS/2] Microsoft Intellimouse"
-#define IDS_3082	3082		// "[Proprietary] Amstrad Mouse"
-#define IDS_3083	3083		// "[Proprietary] Olivetti M24.."
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"

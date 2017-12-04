@@ -8,7 +8,7 @@
  *
  *		Emulation of the Olivetti M24.
  *
- * Version:	@(#)m_olivetti_m24.c	1.0.5	2017/11/24
+ * Version:	@(#)m_olivetti_m24.c	1.0.6	2017/11/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -674,7 +674,7 @@ kbd_read(uint16_t port, void *priv)
 }
 
 
-static uint8_t
+static int
 ms_poll(int x, int y, int z, int b, void *priv)
 {
     olim24_t *m24 = (olim24_t *)priv;

@@ -18,7 +18,7 @@
  *		2 clocks - fetch opcode 1       2 clocks - execute
  *		2 clocks - fetch opcode 2  etc
  *
- * Version:	@(#)808x.c	1.0.9	2017/11/24
+ * Version:	@(#)808x.c	1.0.10	2017/12/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -518,7 +518,7 @@ void dumpregs(int force)
 #ifndef RELEASE_BUILD
         indump = 1;
         output=0;
-	(void)plat_chdir(cfg_path);
+	(void)plat_chdir(usr_path);
         nopageerrors=1;
         f=fopen("ram.dmp","wb");
         fwrite(ram,mem_size*1024,1,f);

@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.24	2017/11/08
+ * Version:	@(#)win_settings.c	1.0.25	2017/11/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -927,11 +927,11 @@ static int mouse_valid(int type, int machine)
 
 static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	wchar_t str[128];
 	HWND h;
 	int c = 0;
 	int d = 0;
 	int type;
-	int str_id = 0;
 
         switch (message)
         {
@@ -946,9 +946,8 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 
 				if (mouse_valid(type, temp_machine))
 				{
-					str_id = IDS_3072 + c;
-
-					SendMessage(h, CB_ADDSTRING, 0, (LPARAM)plat_get_string(str_id));
+					mbstowcs(str, mouse_get_name(c), sizeof_w(str));
+					SendMessage(h, CB_ADDSTRING, 0, (LPARAM)str);
 
 					settings_list_to_mouse[d] = c;
 					d++;

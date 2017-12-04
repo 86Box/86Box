@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.13	2017/11/19
+ * Version:	@(#)86box.h	1.0.15	2017/12/03
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -33,7 +33,7 @@
 #define EMU_VERSION_W	L"2.00"
 
 /* Filename and pathname info. */
-#define CONFIG_FILE_W	L"86box.cfg"
+#define CONFIG_FILE	L"86box.cfg"
 #define NVR_PATH        L"nvr"
 #define SCREENSHOT_PATH L"screenshots"
 
@@ -113,7 +113,8 @@ extern int	nic_do_log;
 #endif
 
 extern wchar_t	exe_path[1024];			/* path (dir) of executable */
-extern wchar_t	cfg_path[1024];			/* path (dir) of user data */
+extern wchar_t	usr_path[1024];			/* path (dir) of user data */
+extern wchar_t  cfg_path[1024];			/* full path of config file */
 extern FILE	*stdlog;			/* file to log output to */
 extern int	scrnsz_x,			/* current screen size, X */
 		scrnsz_y;			/* current screen size, Y */

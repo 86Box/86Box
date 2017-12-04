@@ -8,25 +8,30 @@
  *
  *		Common driver module for MOUSE devices.
  *
- * Version:	@(#)mouse.c	1.0.15	2017/11/03
+ * TODO:	Add the Genius bus- and serial mouse.
+ *		Remove the '3-button' flag from mouse types.
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		TheCollector1995,
+ * Version:	@(#)mouse.c	1.0.17	2017/12/03
+ *
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2017 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "machine/machine.h"
 #include "86box.h"
 #include "device.h"
 #include "mouse.h"
-#include "plat_mouse.h"
+
+
+typedef struct {
+    const char  *internal_name;
+    device_t    *device;
+} mouse_t;
 
 
 int	mouse_type = 0;
@@ -36,63 +41,90 @@ int	mouse_x,
 	mouse_buttons;
 
 
-static mouse_t mouse_none = {
-    "Disabled", "none",
-    MOUSE_TYPE_NONE,
-    NULL, NULL, NULL
-};
-
-static mouse_t mouse_internal = {
-    "Internal", "internal",
-    MOUSE_TYPE_INTERNAL,
-    NULL, NULL, NULL
-};
-
-
-static mouse_t *mouse_list[] = {
-    &mouse_none,
-    &mouse_internal,
-    &mouse_bus_logitech,	/*  2 Logitech Bus Mouse 2-button */
-    &mouse_bus_msinport,	/*  3 Microsoft InPort Mouse */
-    &mouse_serial_msystems,	/*  4 Mouse Systems Serial Mouse */
-    &mouse_serial_microsoft,	/*  5 Microsoft Serial Mouse */
-    &mouse_serial_logitech,	/*  6 Logitech 3-button Serial Mouse */
-    &mouse_serial_mswheel,	/*  7 Microsoft Serial Wheel Mouse */
-    &mouse_ps2_2button,		/*  8 PS/2 Mouse 2-button */
-    &mouse_ps2_intellimouse,	/*  9 PS/2 Intellimouse 3-button */
-#if 0
-    &mouse_bus_genius,		/* 10 Genius Bus Mouse */
-#endif
+static device_t mouse_none_device = {
+    "None",
+    0, MOUSE_TYPE_NONE,
+    NULL, NULL, NULL,
+    NULL, NULL, NULL, NULL,
     NULL
 };
-static mouse_t	*mouse_curr;
+static device_t mouse_internal_device = {
+    "Internal Mouse",
+    0, MOUSE_TYPE_INTERNAL,
+    NULL, NULL, NULL,
+    NULL, NULL, NULL, NULL,
+    NULL
+};
+
+
+static mouse_t mouse_devices[] = {
+    { "none",		&mouse_none_device	},
+    { "internal",	&mouse_internal_device	},
+    { "logibus",	&mouse_logibus_device	},
+    { "msbus",		&mouse_msinport_device	},
+#if 0
+    { "genibus",	&mouse_genibus_device	},
+#endif
+    { "mssystems",	&mouse_mssystems_device	},
+    { "msserial",	&mouse_msserial_device	},
+    { "lserial",	&mouse_lserial_device	},
+    { "mswheel",	&mouse_mswheel_device	},
+    { "ps2",		&mouse_ps2_device	},
+    { "intellimouse",	&mouse_ps2ms_device	},
+    { NULL,		NULL			}
+};
+
+
+static device_t	*mouse_curr;
 static void	*mouse_priv;
 
 
+/* Initialize the mouse module. */
 void
-mouse_emu_init(void)
+mouse_init(void)
 {
     /* Initialize local data. */
     mouse_x = mouse_y = mouse_z = 0;
     mouse_buttons = 0x00;
 
-    mouse_curr = mouse_list[mouse_type];
-
-    if (mouse_curr == NULL || mouse_curr->init == NULL) return;
-
-    mouse_priv = mouse_curr->init(mouse_curr);
+    mouse_type = MOUSE_TYPE_NONE;
+    mouse_curr = NULL;
+    mouse_priv = NULL;
 }
 
 
 void
-mouse_emu_close(void)
+mouse_close(void)
 {
-    if (mouse_curr == NULL || mouse_curr->close == NULL) return;
+    if (mouse_curr == NULL) return;
 
-    mouse_curr->close(mouse_priv);
+    if (mouse_curr->close != NULL)
+	mouse_curr->close(mouse_priv);
 
     mouse_curr = NULL;
     mouse_priv = NULL;
+}
+
+
+void
+mouse_reset(void)
+{
+    pclog("MOUSE: reset(type=%d)\n", mouse_type);
+
+    /* Close previous mouse, if open. */
+    mouse_close();
+
+    /* Clear local data. */
+    mouse_x = mouse_y = mouse_z = 0;
+    mouse_buttons = 0x00;
+
+    /* If no mouse configured, we're done. */
+    if (mouse_type == 0) return;
+
+    mouse_curr = mouse_devices[mouse_type].device;
+
+    if (mouse_curr != NULL)
+	mouse_priv = device_add(mouse_curr);
 }
 
 
@@ -101,26 +133,29 @@ mouse_process(void)
 {
     static int poll_delay = 2;
 
+    if (mouse_curr == NULL) return;
+
     if (--poll_delay) return;
 
-    mouse_poll_host();
+    mouse_poll();
 
-    if (mouse_curr->poll != NULL)
-    	mouse_curr->poll(mouse_x,mouse_y,mouse_z,mouse_buttons, mouse_priv);
+    if (mouse_curr->available != NULL) {
+    	mouse_curr->available(mouse_x,mouse_y,mouse_z,mouse_buttons, mouse_priv);
 
-    /* Reset mouse deltas. */
-    mouse_x = mouse_y = mouse_z = 0;
+	/* Reset mouse deltas. */
+	mouse_x = mouse_y = mouse_z = 0;
+    }
 
     poll_delay = 2;
 }
 
 
 void
-mouse_setpoll(uint8_t (*func)(int,int,int,int,void *), void *arg)
+mouse_setpoll(int (*func)(int,int,int,int,void *), void *arg)
 {
     if (mouse_type != MOUSE_TYPE_INTERNAL) return;
 
-    mouse_curr->poll = func;
+    mouse_curr->available = func;
     mouse_priv = arg;
 }
 
@@ -128,17 +163,14 @@ mouse_setpoll(uint8_t (*func)(int,int,int,int,void *), void *arg)
 char *
 mouse_get_name(int mouse)
 {
-    if (!mouse_list[mouse])
-	return(NULL);
-
-    return((char *)mouse_list[mouse]->name);
+    return((char *)mouse_devices[mouse].device->name);
 }
 
 
 char *
 mouse_get_internal_name(int mouse)
 {
-    return((char *)mouse_list[mouse]->internal_name);
+    return((char *)mouse_devices[mouse].internal_name);
 }
 
 
@@ -147,9 +179,10 @@ mouse_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (mouse_list[c] != NULL) {
-	if (!strcmp((char *)mouse_list[c]->internal_name, s))
+    while (mouse_devices[c].internal_name != NULL) {
+	if (! strcmp((char *)mouse_devices[c].internal_name, s)) {
 		return(c);
+	}
 	c++;
     }
 
@@ -160,7 +193,7 @@ mouse_get_from_internal_name(char *s)
 int
 mouse_get_type(int mouse)
 {
-    return(mouse_list[mouse]->type);
+    return(mouse_devices[mouse].device->local);
 }
 
 
@@ -168,5 +201,5 @@ mouse_get_type(int mouse)
 int
 mouse_get_ndev(void)
 {
-    return(sizeof(mouse_list)/sizeof(mouse_t *) - 1);
+    return((sizeof(mouse_devices)/sizeof(mouse_t)) - 1);
 }
