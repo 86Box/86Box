@@ -705,7 +705,7 @@ static void ps2_mem_expansion_write(int port, uint8_t val, void *p)
                 mem_mapping_disable(&ps2.expansion_mapping);
 }
 
-static void ps2_mca_board_model_80_type2_init()
+static void ps2_mca_board_model_80_type2_init(int is486)
 {        
         ps2_mca_board_common_init();
 
@@ -753,7 +753,7 @@ static void ps2_mca_board_model_80_type2_init()
                     NULL);
         mem_mapping_disable(&ps2.split_mapping);
         
-        if (mem_size > 4096)
+        if ((mem_size > 4096) && !is486)
         {
                 /* Only 4 MB supported on planar, create a memory expansion card for the rest */
                 mem_mapping_set_addr(&ram_high_mapping, 0x100000, 0x800000);
@@ -847,7 +847,7 @@ machine_ps2_model_80_init(machine_t *model)
 {
         machine_ps2_common_init(model);
 
-        ps2_mca_board_model_80_type2_init();
+        ps2_mca_board_model_80_type2_init(0);
 }
 
 
@@ -856,5 +856,5 @@ machine_ps2_model_80_486_init(machine_t *model)
 {
         machine_ps2_common_init(model);
 
-        ps2_mca_board_model_80_type2_init();
+        ps2_mca_board_model_80_type2_init(1);
 }
