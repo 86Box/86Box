@@ -856,6 +856,22 @@ esdi_mca_write(int port, uint8_t val, void *priv)
 #endif
     if (port < 0x102) return;
 
+    /*
+     * The PS/2 Model 80 BIOS always enables a card if it finds one,
+     * even if no resources were assigned yet (because we only added
+     * the card, but have not run AutoConfig yet...)
+     *
+     * So, remove current address, if any.
+     *
+     * Note by Kotori: Moved this to the beginning of esdi_mca_write,
+     * 		       so the *old* base is removed rather than the
+     * 		       new base.
+     */
+    io_removehandler(dev->base, 8,
+		     esdi_read, esdi_readw, NULL,
+		     esdi_write, esdi_writew, NULL, dev);
+    mem_mapping_disable(&dev->bios_rom.mapping);
+
     /* Save the new value. */
     dev->pos_regs[port & 7] = val;
 
@@ -932,24 +948,12 @@ esdi_mca_write(int port, uint8_t val, void *priv)
 		break;
 
 	case 7:		/* ROM DC00 [1]=XXXX 0111 */
-		dev->bios = 0xC0000;
+		dev->bios = 0xDC000;
 		break;
     } else {
 	/* BIOS ROM disabled. */
 	dev->bios = 0x000000;
     }
-
-    /*
-     * The PS/2 Model 80 BIOS always enables a card if it finds one,
-     * even if no resources were assigned yet (because we only added
-     * the card, but have not run AutoConfig yet...)
-     *
-     * So, remove current address, if any.
-     */
-    io_removehandler(dev->base, 8,
-		     esdi_read, esdi_readw, NULL,
-		     esdi_write, esdi_writew, NULL, dev);
-    mem_mapping_disable(&dev->bios_rom.mapping);
 
     if (dev->pos_regs[2] & 0x01) {
 	/* Card enabled; register (new) I/O handler. */
@@ -989,8 +993,8 @@ esdi_init(device_t *info)
     dev->irq = ESDI_IRQCHAN;
 
     rom_init_interleaved(&dev->bios_rom,
-			 BIOS_FILE_L, BIOS_FILE_H,
-			 0x00000, 16384, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+			 BIOS_FILE_H, BIOS_FILE_L,
+			 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
     mem_mapping_disable(&dev->bios_rom.mapping);
 
     dev->drives[0].present = dev->drives[1].present = 0;
