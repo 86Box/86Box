@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.8	2017/11/04
+ * Version:	@(#)sound.c	1.0.9	2017/12/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -66,8 +66,10 @@ static float cd_out_buffer[CD_BUFLEN * 2];
 static int16_t cd_out_buffer_int16[CD_BUFLEN * 2];
 static thread_t *sound_cd_thread_h;
 static event_t *sound_cd_event;
+static event_t *sound_cd_start_event;
 static unsigned int cd_vol_l, cd_vol_r;
 static int cd_buf_update = CD_BUFLEN / SOUNDBUFLEN;
+static volatile int cdaudioon = 0;
 
 
 static SOUND_CARD sound_cards[] =
@@ -161,10 +163,12 @@ static void sound_cd_thread(void *param)
 
 	int c, has_audio;
 
-	while (1)
+	thread_set_event(sound_cd_start_event);
+
+	while (cdaudioon)
 	{
 		thread_wait_event(sound_cd_event, -1);
-		if (!soundon)
+		if (!soundon || !cdaudioon)
 		{
 			return;
 		}
@@ -322,9 +326,18 @@ void sound_init(void)
 
 	if (available_cdrom_drives)
 	{
+		sound_cd_start_event = thread_create_event();
+
 		sound_cd_event = thread_create_event();
 		sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
+
+		cdaudioon = 1;
+		pclog("Waiting for CD start event...\n");
+		thread_wait_event(sound_cd_start_event, -1);
+		pclog("Done!\n");
 	}
+	else
+		cdaudioon = 0;
 
 	cd_thread_enable = available_cdrom_drives ? 1 : 0;
 }
@@ -422,8 +435,11 @@ void sound_reset(void)
 
 void sound_cd_thread_end(void)
 {
-	if (sound_cd_thread_h) {
+	if (cdaudioon) {
+		cdaudioon = 0;
+
 		pclog("Waiting for CD Audio thread to terminate...\n");
+		thread_set_event(sound_cd_event);
 		thread_wait(sound_cd_thread_h, -1);
 		pclog("CD Audio thread terminated...\n");
 
@@ -433,6 +449,11 @@ void sound_cd_thread_end(void)
 		}
 
 		sound_cd_thread_h = NULL;
+
+		if (sound_cd_start_event) {
+			thread_destroy_event(sound_cd_start_event);
+			sound_cd_event = NULL;
+		}
 	}
 }
 
@@ -451,8 +472,13 @@ void sound_cd_thread_reset(void)
 
 	if (available_cdrom_drives && !cd_thread_enable)
 	{
+		sound_cd_start_event = thread_create_event();
+
 		sound_cd_event = thread_create_event();
 		sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
+
+		cdaudioon = 1;
+		thread_wait_event(sound_cd_start_event, -1);
 	}
 	else if (!available_cdrom_drives && cd_thread_enable)
 	{
