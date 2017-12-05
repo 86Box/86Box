@@ -1609,12 +1609,12 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 
 				case CMD_BIOSCMD: /* execute BIOS */
 					cmd = (BIOSCMD *)dev->CmdBuf;
-					if (!(dev->bus & DEVICE_MCA)) {
+					if (!dev->lba_bios) {
 						/* 1640 uses LBA. */
 						cyl = ((cmd->u.chs.cyl & 0xff) << 8) | ((cmd->u.chs.cyl >> 8) & 0xff);
 						cmd->u.chs.cyl = cyl;
 					}
-					if (dev->bus & DEVICE_MCA) {
+					if (dev->lba_bios) {
 						/* 1640 uses LBA. */
 						x54x_log("BIOS LBA=%06lx (%lu)\n",
 							lba32_blk(cmd),
@@ -1627,7 +1627,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 							cmd->u.chs.head,
 							cmd->u.chs.sec);
 					}
-					dev->DataBuf[0] = x54x_bios_command(dev, dev->max_id, cmd, (dev->bus & DEVICE_MCA)?1:0);
+					dev->DataBuf[0] = x54x_bios_command(dev, dev->max_id, cmd, (dev->lba_bios)?1:0);
 					x54x_log("BIOS Completion/Status Code %x\n", dev->DataBuf[0]);
 					dev->DataReplyLeft = 1;
 					break;

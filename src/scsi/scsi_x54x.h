@@ -424,6 +424,7 @@ typedef struct {
     uint8_t	max_id;
     uint8_t	pci_slot;
     uint8_t	bit32;
+    uint8_t	lba_bios;
 
     mem_mapping_t mmio_mapping;
 

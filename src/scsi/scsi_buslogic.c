@@ -1337,7 +1337,7 @@ buslogic_mca_write(int port, uint8_t val, void *priv)
     /* Get the new assigned I/O base address. */
     if (dev->pos_regs[3]) {
 	dev->Base = dev->pos_regs[3] << 8;
-	dev->Base |= ((dev->pos_regs[2] & 0x10) ? 4 : 0);
+	dev->Base |= ((dev->pos_regs[2] & 0x10) ? 0x34 : 0x30);
     } else {
 	dev->Base = 0x0000;
     }
@@ -1347,7 +1347,7 @@ buslogic_mca_write(int port, uint8_t val, void *priv)
     dev->DmaChannel = dev->pos_regs[5] & 0x0f;	
 
     /* Extract the BIOS ROM address info. */
-    if (dev->pos_regs[0] & 0xe0)  switch(dev->pos_regs[0] & 0xe0) {
+    if (dev->pos_regs[2] & 0xe0)  switch(dev->pos_regs[2] & 0xe0) {
 		case 0xe0: /* [0]=111x xxxx */
 		bl->bios_addr = 0xDC000;
 		break;
@@ -1433,6 +1433,10 @@ buslogic_mca_write(int port, uint8_t val, void *priv)
 		mem_mapping_enable(&bl->bios.mapping);
 		mem_mapping_set_addr(&bl->bios.mapping, bl->bios_addr, ROM_SIZE);
 	}
+
+	/* Say hello. */
+	pclog("BT-640A: I/O=%04x, IRQ=%d, DMA=%d, BIOS @%05X, HOST ID %i\n",
+		dev->Base, dev->Irq, dev->DmaChannel, bl->bios_addr, dev->HostID);
     }
 }
 
@@ -1490,6 +1494,7 @@ buslogic_init(device_t *info)
     dev->int_geom_writable = 1;
     dev->cdrom_boot = 0;
     dev->bit32 = 0;
+    dev->lba_bios = 0;
 
     bl->chip = info->local;
     bl->PCIBase = 0;

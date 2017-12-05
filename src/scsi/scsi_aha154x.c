@@ -503,7 +503,7 @@ aha_mca_write(int port, uint8_t val, void *priv)
 
     /* Get the new assigned I/O base address. */
     dev->Base = (dev->pos_regs[3] & 7) << 8;
-    dev->Base |= ((dev->pos_regs[3] & 0xc0) ? 4 : 0);
+    dev->Base |= ((dev->pos_regs[3] & 0xc0) ? 0x34 : 0x30);
 
     /* Save the new IRQ and DMA channel values. */
     dev->Irq = (dev->pos_regs[4] & 0x07) + 8;
@@ -578,6 +578,10 @@ aha_mca_write(int port, uint8_t val, void *priv)
 		mem_mapping_enable(&dev->bios.mapping);
 		mem_mapping_set_addr(&dev->bios.mapping, dev->rom_addr, ROM_SIZE);
 	}
+
+	/* Say hello. */
+	pclog("AHA-1640: I/O=%04x, IRQ=%d, DMA=%d, BIOS @%05X, HOST ID %i\n",
+		dev->Base, dev->Irq, dev->DmaChannel, dev->rom_addr, dev->HostID);
     }
 }
 
@@ -760,6 +764,7 @@ aha_init(device_t *info)
     dev->int_geom_writable = 0;
     dev->cdrom_boot = 0;
     dev->bit32 = 0;
+    dev->lba_bios = 0;
 
     dev->ven_thread = aha_thread;
     dev->ven_cmd_is_fast = aha_cmd_is_fast;
@@ -837,6 +842,8 @@ aha_init(device_t *info)
 		strcpy(dev->name, "AHA-1640");
 		dev->bios_path = L"roms/scsi/adaptec/aha1640.bin";
 		dev->fw_rev = "BB01";
+
+		dev->lba_bios = 1;
 
 		/* Enable MCA. */
 		dev->pos_regs[0] = 0x1F;	/* MCA board ID */
