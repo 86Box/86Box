@@ -10,7 +10,7 @@
  *
  * TODO:	Add the Genius Serial Mouse.
  *
- * Version:	@(#)mouse_serial.c	1.0.14	2017/12/03
+ * Version:	@(#)mouse_serial.c	1.0.15	2017/12/05
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -184,8 +184,10 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
 #endif
 
     /* Send the packet to the bottom-half of the attached port. */
-    for (b=0; b<len; b++)
-	serial_write_fifo(dev->serial, buff[b]);
+    if (dev->serial != NULL) {
+	for (b=0; b<len; b++)
+		serial_write_fifo(dev->serial, buff[b]);
+    }
 
     return(0);
 }
@@ -197,8 +199,10 @@ sermouse_close(void *priv)
     mouse_t *dev = (mouse_t *)priv;
 
     /* Detach serial port from the mouse. */
-    dev->serial->rcr_callback = NULL;
-    dev->serial->rcr_callback_p = NULL;
+    if (dev->serial != NULL) {
+	dev->serial->rcr_callback = NULL;
+	dev->serial->rcr_callback_p = NULL;
+    }
 
     free(dev);
 }
