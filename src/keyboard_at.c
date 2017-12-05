@@ -981,6 +981,7 @@ bad_command:
 					case ROM_AP53:
 					case ROM_P55T2S:
 					case ROM_S1668:
+					case ROM_4GPV31:
 						/*Set extended controller RAM*/
 						kbdlog("ATkbd: set extended controller RAM\n");
 						kbd->want60 = 1;

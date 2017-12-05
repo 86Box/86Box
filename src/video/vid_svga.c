@@ -263,10 +263,7 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                                 svga->pallook[svga->dac_write] = makecol32(svga->vgapal[svga->dac_write].r, svga->vgapal[svga->dac_write].g, svga->vgapal[svga->dac_write].b);
                         else
                                	svga->pallook[svga->dac_write] = makecol32(video_6to8[svga->vgapal[svga->dac_write].r & 0x3f], video_6to8[svga->vgapal[svga->dac_write].g & 0x3f], video_6to8[svga->vgapal[svga->dac_write].b & 0x3f]);
-#if 1
-// FIXME: temp to see if this fixes 2401 on PS/1.
 			svga->sense = (svga->vgapal[svga->dac_write].r & svga->vgapal[svga->dac_write].g & svga->vgapal[svga->dac_write].b) & 0x10;
-#endif
                         svga->dac_pos = 0; 
                         svga->dac_write = (svga->dac_write + 1) & 255; 
                         break;
@@ -324,46 +321,6 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
         }
 }
 
-/*
- * Get the switch sense input
- *
- * This is reverse engineered from the IBM VGA BIOS. I have no
- * idea how and why this works.
- *
- * Note by Tohka: This code is from PCE, modified to be 86Box-compatible.
- */
-static int svga_get_input_status_0_ss(svga_t *svga)
-{
-	const unsigned char *p;
-	unsigned char       dac[3];
-
-	static unsigned char vals[] = {
-		0x12, 0x12, 0x12, 0x10,
-		0x14, 0x14, 0x14, 0x10,
-		0x2d, 0x14, 0x14, 0x00,
-		0x14, 0x2d, 0x14, 0x00,
-		0x14, 0x14, 0x2d, 0x00,
-		0x2d, 0x2d, 0x2d, 0x00,
-		0x00, 0x00, 0x00, 0xff
-	};
-
-	dac[0] = svga->vgapal[0].r >> 2;
-	dac[1] = svga->vgapal[0].g >> 2;
-	dac[2] = svga->vgapal[0].b >> 2;
-
-	p = vals;
-
-	while (p[3] != 0xff) {
-		if ((p[0] == dac[0]) && (p[1] == dac[1]) && (p[2] == dac[2])) {
-			return (p[3] != 0);
-		}
-
-		p += 4;
-	}
-
-	return (1);
-}
-
 uint8_t svga_in(uint16_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
@@ -408,43 +365,7 @@ uint8_t svga_in(uint16_t addr, void *p)
                 case 0x3C1: 
                 return svga->attrregs[svga->attraddr];
                 case 0x3c2:
-//		if ((romset == ROM_IBMPS1_2011) || (romset == ROM_IBMPS1_2121) || (romset == ROM_IBMPS1_2121_ISA) || (romset == ROM_IBMPS1_2133) || (romset == ROM_IBMPS2_M30_286) || (romset == ROM_IBMPS2_M50) || (romset == ROM_IBMPS2_M55SX) || (romset == ROM_IBMPS2_M80))
-		if (romset == ROM_IBMPS1_2011)
-		{
-	                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x50)
-			{
-        	                temp = 0;
-			}
-	                else
-			{
-        	                temp = 0x10;
-			}
-		}
-		else
-		{
-			if (gfxcard == GFX_RIVA128)
-			{
-		                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
-				{
-        		                temp = 0;
-				}
-		                else
-				{
-        		                temp = 0x10;
-				}
-			}
-			else
-			{
-				if (svga_get_input_status_0_ss(svga))
-				{
-					temp = 0x10;
-				}
-				else
-				{
-					temp = 0;
-				}
-			}
-		}
+		temp = svga->sense;
                 return temp;
 		case 0x3C3:
 		return svga->enabled & 0x01;
