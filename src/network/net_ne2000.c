@@ -232,9 +232,8 @@ nelog(int lvl, const char *fmt, ...)
 
     if (nic_do_log >= lvl) {
 	va_start(ap, fmt);
-	vfprintf(stdlog, fmt, ap);
+	pclog(fmt, ap);
 	va_end(ap);
-	fflush(stdlog);
     }
 #endif
 }

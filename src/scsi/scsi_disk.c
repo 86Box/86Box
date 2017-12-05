@@ -460,12 +460,12 @@ static void
 scsi_hd_log(const char *format, ...)
 {
 #ifdef ENABLE_SCSI_DISK_LOG
+    va_list ap;
+
     if (scsi_hd_do_log) {
-	va_list ap;
 	va_start(ap, format);
-	vfprintf(stdlog, format, ap);
+	pclog(format, ap);
 	va_end(ap);
-	fflush(stdlog);
     }
 #endif
 }

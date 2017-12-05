@@ -47,12 +47,12 @@ static void
 scsi_bus_log(const char *format, ...)
 {
 #ifdef ENABLE_SCSI_BUS_LOG
+    va_list ap;
+
     if (scsi_bus_do_log) {
-	va_list ap;
 	va_start(ap, format);
-	vfprintf(stdlog, format, ap);
+	pclog(format, ap);
 	va_end(ap);
-	fflush(stdlog);
     }
 #endif
 }

@@ -249,13 +249,13 @@ static void
 d86f_log(const char *format, ...)
 {
 #ifdef ENABLE_D86F_LOG
+    va_list ap;
+
    if (d86f_do_log)
    {
-	va_list ap;
 	va_start(ap, format);
-	vfprintf(stdlog, format, ap);
+	pclog(format, ap);
 	va_end(ap);
-	fflush(stdlog);
    }
 #endif
 }

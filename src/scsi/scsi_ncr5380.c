@@ -156,9 +156,8 @@ ncr_log(const char *fmt, ...)
 
     if (ncr5380_do_log) {
 	va_start(ap, fmt);
-	vfprintf(stdlog, fmt, ap);
+	pclog(fmt, ap);
 	va_end(ap);
-	fflush(stdlog);
     }
 #endif
 }

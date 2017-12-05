@@ -756,7 +756,7 @@ static void ps2_mca_board_model_80_type2_init(int is486)
         if ((mem_size > 4096) && !is486)
         {
                 /* Only 4 MB supported on planar, create a memory expansion card for the rest */
-                mem_mapping_set_addr(&ram_high_mapping, 0x100000, 0x800000);
+                mem_mapping_set_addr(&ram_high_mapping, 0x100000, 0x400000);
 
                 ps2.mem_pos_regs[0] = 0xff;
                 ps2.mem_pos_regs[1] = 0xfc;

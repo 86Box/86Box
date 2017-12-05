@@ -58,13 +58,13 @@ static void
 hdd_image_log(const char *format, ...)
 {
 #ifdef ENABLE_HDD_LOG
+	va_list ap;
+
 	if (hdd_image_do_log)
 	{
-		va_list ap;
 		va_start(ap, format);
-		vfprintf(stdlog, format, ap);
+		pclog(format, ap);
 		va_end(ap);
-		fflush(stdlog);
 	}
 #endif
 }

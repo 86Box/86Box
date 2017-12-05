@@ -134,12 +134,12 @@ static void
 audiopci_log(const char *format, ...)
 {
 #ifdef ENABLE_AUDIOPCI_LOG
+    va_list ap;
+
     if (audiopci_do_log) {
-	va_list ap;
 	va_start(ap, format);
-	vfprintf(stdlog, format, ap);
+	pclog(format, ap);
 	va_end(ap);
-	fflush(stdlog);
     }
 #endif
 }

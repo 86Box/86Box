@@ -113,13 +113,13 @@ int ide_do_log = ENABLE_IDE_LOG;
 static void ide_log(const char *format, ...)
 {
 #ifdef ENABLE_IDE_LOG
+   va_list ap;
+
    if (ide_do_log)
    {
-	va_list ap;
 	va_start(ap, format);
-	vfprintf(stdlog, format, ap);
+	pclog(format, ap);
 	va_end(ap);
-	fflush(stdlog);
    }
 #endif
 }

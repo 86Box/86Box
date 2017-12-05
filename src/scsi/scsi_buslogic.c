@@ -250,9 +250,8 @@ buslogic_log(const char *format, ...)
 
     if (buslogic_do_log) {
 	va_start(ap, format);
-	vfprintf(stdlog, format, ap);
+	pclog(format, ap);
 	va_end(ap);
-	fflush(stdlog);
     }
 #endif
 }

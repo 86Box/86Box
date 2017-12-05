@@ -458,12 +458,12 @@ static void
 kbdlog(const char *fmt, ...)
 {
 #ifdef ENABLE_KEYBOARD_AT_LOG
+    va_list ap;
+
     if (keyboard_at_do_log) {
-	va_list ap;
 	va_start(ap, fmt);
-	vfprintf(stdlog, fmt, ap);
+	pclog(fmt, ap);
 	va_end(ap);
-	fflush(stdlog);
     }
 #endif
 }
