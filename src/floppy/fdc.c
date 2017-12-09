@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.9	2017/11/24
+ * Version:	@(#)fdc.c	1.0.10	2017/12/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -173,15 +173,15 @@ int fdc_do_log = ENABLE_FDC_LOG;
 
 
 static void
-fdc_log(const char *format, ...)
+fdc_log(const char *fmt, ...)
 {
 #ifdef ENABLE_FDC_LOG
    va_list ap;
 
    if (fdc_do_log)
    {
-	va_list ap;
-	pclog(format, ap);
+	va_start(ap, fmt);
+	pclog(fmt, ap);
 	va_end(ap);
    }
 #endif

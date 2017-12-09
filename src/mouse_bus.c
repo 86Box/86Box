@@ -49,7 +49,7 @@
  *		only the Logitech part is considered to
  *		be OK.
  *
- * Version:	@(#)mouse_bus.c	1.0.25	2017/12/04
+ * Version:	@(#)mouse_bus.c	1.0.26	2017/12/08
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -70,7 +70,7 @@
 
 
 #define MOUSE_PORT		0x023c		/* default */
-#define MOUSE_IRQ		5		/* default (DOS,NT31) */
+#define MOUSE_IRQ		5		/* default */
 #define MOUSE_DEBUG		2
 
 
@@ -145,13 +145,15 @@ typedef struct mouse {
 static void
 ms_reset(mouse_t *dev)
 {
-    dev->flags &= 0xf0;
+    dev->r_ctrl = 0x00;
+    dev->r_cmd = 0x00;
 
     dev->seq = 0;
 
     dev->x = dev->y = 0;
     dev->but = 0x00;
 
+    dev->flags &= 0xf0;
     dev->flags |= FLAG_INTR;
 }
 
@@ -164,8 +166,7 @@ ms_write(mouse_t *dev, uint16_t port, uint8_t val)
 	case MSMOUSE_CTRL:
 		switch (val) {
 			case MSCTRL_RESET:
-				dev->r_ctrl = 0x00;
-				dev->r_cmd = 0x00;
+				ms_reset(dev);
 				break;
 
 			case MSCTRL_COMMAND:
@@ -269,7 +270,6 @@ bm_timer(void *priv)
 #if 0
     /* The controller updates the data on every interrupt
 	We just don't copy it to the current_X if the 'hold' bit is set */
-    if (dev->is_inport) {
 	if ((dev->but & (1<<2)) ||
 		((dev->but_last & (1<<2)) && !(dev->but & (1<<2))))
 		dev->but |= (1<<5);
@@ -280,7 +280,6 @@ bm_timer(void *priv)
 	    ((dev->but_last & (1<<0)) && !(dev->buttons & (1<<0))))
 		dev->but |= (1<<3);
 	dev->but_last = dev>but;
-    }
 #endif
 
     if (dev->flags & FLAG_INTR)
@@ -288,30 +287,10 @@ bm_timer(void *priv)
 }
 
 
-/* Initialize the Microsoft Bus Mouse interface. */
-static void
-ms_init(mouse_t *dev)
-{
-    /* Initialize registers. */
-    dev->r_ctrl = 0x00;
-    dev->r_conf = 0x00;
-
-    dev->flags |= FLAG_INPORT;
-
-    /* Initialize I/O handlers. */
-    dev->read = ms_read;
-    dev->write = ms_write;
-
-    timer_add(bm_timer, &dev->timer, TIMER_ALWAYS_ENABLED, dev);
-}
-
-
 /* Reset the controller state. */
 static void
 lt_reset(mouse_t *dev)
 {
-    dev->flags &= 0xf0;
-
     dev->r_magic = 0x00;
     dev->r_ctrl = (LTCTRL_IENB);
     dev->r_conf = 0x00;
@@ -321,6 +300,7 @@ lt_reset(mouse_t *dev)
     dev->x = dev->y = 0;
     dev->but = 0x00;
 
+    dev->flags &= 0xf0;
     dev->flags |= FLAG_INTR;
 }
 
@@ -436,12 +416,9 @@ lt_read(mouse_t *dev, uint16_t port)
 		break;
 
 	case LTMOUSE_CTRL:	/* [02] control register */
-		if (dev->r_ctrl & LTCTRL_IDIS) {
-			/* IDIS, no interrupts, return all-off. */
-			ret = 0x0f;
-		} else if (dev->seq++ == 0) {
+		ret = 0x0f;
+		if (!(dev->r_ctrl & LTCTRL_IDIS) && (dev->seq++ == 0)) {
 			/* !IDIS, return DIP switch setting. */
-			ret = 0x0f;
 			switch(dev->irq) {
 				case 2:
 					ret &= ~0x08;
@@ -459,9 +436,6 @@ lt_read(mouse_t *dev, uint16_t port)
 					ret &= ~0x01;
 					break;
 			}
-		} else {
-			/* Return all-off (invalid data.) */
-			ret = 0x0f;
 		}
 		break;
 
@@ -607,7 +581,13 @@ bm_init(device_t *info)
 		break;
 
 	case MOUSE_TYPE_INPORT:
-		ms_init(dev);
+		dev->flags |= FLAG_INPORT;
+
+		/* Initialize I/O handlers. */
+		dev->read = ms_read;
+		dev->write = ms_write;
+
+		timer_add(bm_timer, &dev->timer, TIMER_ALWAYS_ENABLED, dev);
 		break;
     }
 
