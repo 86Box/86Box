@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.82	2017/12/04
+# Version:	@(#)Makefile.mingw	1.0.83	2017/12/06
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -29,7 +29,7 @@ ifndef AUTODEP
 AUTODEP		:= n
 endif
 ifndef CRASHDUMP
-CRASHCUMP	:= n
+CRASHDUMP	:= n
 endif
 ifndef DEBUG
 DEBUG		:= n
@@ -389,8 +389,8 @@ SCSIOBJ		:= scsi.o \
 		    scsi_bus.o scsi_device.o \
 		    scsi_disk.o \
 		    scsi_x54x.o \
-		    scsi_buslogic.o scsi_aha154x.o \
-		    scsi_ncr5380.o
+		    scsi_aha154x.o scsi_buslogic.o \
+		    scsi_ncr5380.o scsi_ncr53c810.o
 
 NETOBJ		:= network.o \
 		    net_pcap.o \

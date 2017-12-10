@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.9	2017/12/05
+ * Version:	@(#)sound.c	1.0.10	2017/12/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -52,6 +52,7 @@ typedef struct {
 int sound_card_current = 0;
 int sound_pos_global = 0;
 int soundon = 1;
+int sound_gain[3] = { 0, 0, 0 };
 
 
 static int sound_card_last = 0;

@@ -32,6 +32,8 @@
 #include "../mem.h"
 #include "../pic.h"
 #include "../rom.h"
+#include "../cpu/cpu.h"
+#include "../machine/machine.h"
 #include "../timer.h"
 #include "../plat.h"
 #include "../ui.h"
@@ -206,7 +208,7 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
     if (esdi->pos >= 512) {
 	esdi->pos = 0;
 	esdi->status = STAT_BUSY;
-	timer_process();
+	timer_clock();
       	esdi->callback = 6LL*HDC_TIME;
 	timer_update_outstanding();
     }
@@ -269,7 +271,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 			case CMD_RESTORE:
 				esdi->command &= ~0x0f; /*mask off step rate*/
 				esdi->status = STAT_BUSY;
-				timer_process();
+				timer_clock();
 				esdi->callback = 200LL*HDC_TIME;
 				timer_update_outstanding();
 				break;
@@ -277,7 +279,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 			case CMD_SEEK:
 				esdi->command &= ~0x0f; /*mask off step rate*/
 				esdi->status = STAT_BUSY;
-				timer_process();
+				timer_clock();
 				esdi->callback = 200LL*HDC_TIME;
 				timer_update_outstanding();
 				break;
@@ -286,7 +288,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 				switch (val) {
 					case CMD_NOP:
 						esdi->status = STAT_BUSY;
-						timer_process();
+						timer_clock();
 						esdi->callback = 200LL*HDC_TIME;
 						timer_update_outstanding();
 						break;
@@ -301,7 +303,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
 					case 0xa0:
 						esdi->status = STAT_BUSY;
-						timer_process();
+						timer_clock();
 						esdi->callback = 200LL*HDC_TIME;
 						timer_update_outstanding();
 						break;
@@ -321,7 +323,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 					case CMD_VERIFY+1:
 						esdi->command &= ~0x01;
 						esdi->status = STAT_BUSY;
-						timer_process();
+						timer_clock();
 						esdi->callback = 200LL*HDC_TIME;
 						timer_update_outstanding();
 						break;
@@ -333,14 +335,14 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
 					case CMD_SET_PARAMETERS: /* Initialize Drive Parameters */
 						esdi->status = STAT_BUSY;
-						timer_process();
+						timer_clock();
 						esdi->callback = 30LL*HDC_TIME;
 						timer_update_outstanding();
 						break;
 
 					case CMD_DIAGNOSE: /* Execute Drive Diagnostics */
 						esdi->status = STAT_BUSY;
-						timer_process();
+						timer_clock();
 						esdi->callback = 200LL*HDC_TIME;
 						timer_update_outstanding();
 						break;
@@ -348,7 +350,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 					case 0xe0: /*???*/
 					case CMD_READ_PARAMETERS:
 						esdi->status = STAT_BUSY;
-						timer_process();
+						timer_clock();
 						esdi->callback = 200LL*HDC_TIME;
 						timer_update_outstanding();
 						break;
@@ -357,7 +359,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 						pclog("WD1007: bad command %02X\n", val);
 					case 0xe8: /*???*/
 						esdi->status = STAT_BUSY;
-						timer_process();
+						timer_clock();
 						esdi->callback = 200LL*HDC_TIME;
 						timer_update_outstanding();
 						break;
@@ -367,7 +369,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
 	case 0x3f6: /* Device control */
 		if ((esdi->fdisk & 0x04) && !(val & 0x04)) {
-			timer_process();
+			timer_clock();
 			esdi->callback = 500LL*HDC_TIME;
 			timer_update_outstanding();
 			esdi->reset = 1;
@@ -376,7 +378,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
 		if (val & 0x04) {
 			/*Drive held in reset*/
-			timer_process();
+			timer_clock();
 			esdi->callback = 0LL;
 			timer_update_outstanding();
 			esdi->status = STAT_BUSY;
@@ -404,7 +406,7 @@ esdi_readw(uint16_t port, void *priv)
 		if (esdi->secount) {
 			next_sector(esdi);
 			esdi->status = STAT_BUSY;
-			timer_process();
+			timer_clock();
 			esdi->callback = 6LL*HDC_TIME;
 			timer_update_outstanding();
 		} else {

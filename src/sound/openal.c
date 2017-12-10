@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -205,6 +206,7 @@ void givealbuffer_common(void *buf, uint8_t src, int size, int freq)
     int processed;
     int state;
     ALuint buffer;
+    double gain;
 
         alGetSourcei(source[src], AL_SOURCE_STATE, &state);
 
@@ -216,6 +218,10 @@ void givealbuffer_common(void *buf, uint8_t src, int size, int freq)
 
         if (processed>=1)
         {
+                gain = pow(10.0, (double)sound_gain[src] / 20.0);
+                
+                // alSourcef(source[src], AL_GAIN, gain);
+
                 alSourceUnqueueBuffers(source[src], 1, &buffer);
 
 		if (sound_is_float)

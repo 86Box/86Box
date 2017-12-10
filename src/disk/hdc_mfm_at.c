@@ -32,6 +32,8 @@
 #include "../device.h"
 #include "../io.h"
 #include "../pic.h"
+#include "../cpu/cpu.h"
+#include "../machine/machine.h"
 #include "../timer.h"
 #include "../plat.h"
 #include "../ui.h"
@@ -223,7 +225,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 					mfm->drvsel, val);
 	mfm->command = 0xff;
 	mfm->status = STAT_BUSY;
-	timer_process();
+	timer_clock();
 	mfm->callback = 200LL*MFM_TIME;
 	timer_update_outstanding();
 
@@ -250,7 +252,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 		drive->steprate = (val & 0x0f);
 		mfm->command = (val & 0xf0);
 		mfm->status = STAT_BUSY;
-		timer_process();
+		timer_clock();
 		mfm->callback = 200LL*MFM_TIME;
 		timer_update_outstanding();
 		break;
@@ -269,7 +271,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 				if (val & 2)
 					fatal("WD1003: READ with ECC\n");
 				mfm->status = STAT_BUSY;
-				timer_process();
+				timer_clock();
 				mfm->callback = 200LL*MFM_TIME;
 				timer_update_outstanding();
 				break;
@@ -293,7 +295,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 			case CMD_VERIFY+1:
 				mfm->command = (val & 0xfe);
 				mfm->status = STAT_BUSY;
-				timer_process();
+				timer_clock();
 				mfm->callback = 200LL*MFM_TIME;
 				timer_update_outstanding();
 				break;
@@ -307,7 +309,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 			case CMD_DIAGNOSE:
 				mfm->command = val;
 				mfm->status = STAT_BUSY;
-				timer_process();
+				timer_clock();
 				mfm->callback = 200LL*MFM_TIME;
 				timer_update_outstanding();
 				break;
@@ -350,7 +352,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 			default:
 				pclog("WD1003: bad command %02X\n", val);
 				mfm->status = STAT_BUSY;
-				timer_process();
+				timer_clock();
 				mfm->callback = 200LL*MFM_TIME;
 				timer_update_outstanding();
 				break;
@@ -370,7 +372,7 @@ mfm_writew(uint16_t port, uint16_t val, void *priv)
     if (mfm->pos >= 512) {
 	mfm->pos = 0;
 	mfm->status = STAT_BUSY;
-	timer_process();
+	timer_clock();
 	mfm->callback = 6LL*MFM_TIME;
 	timer_update_outstanding();
     }
@@ -428,7 +430,7 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 		if ((mfm->fdisk & 0x04) && !(val & 0x04)) {
 			mfm->status = STAT_BUSY;
 			mfm->reset = 1;
-			timer_process();
+			timer_clock();
 			mfm->callback = 500LL*MFM_TIME;
 			timer_update_outstanding();
 		}
@@ -437,7 +439,7 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 			/* Drive held in reset. */
 			mfm->status = STAT_BUSY;
 			mfm->callback = 0LL;
-			timer_process();
+			timer_clock();
 			timer_update_outstanding();
 		}
 		mfm->fdisk = val;
@@ -462,7 +464,7 @@ mfm_readw(uint16_t port, void *priv)
 		if (mfm->secount) {
 			next_sector(mfm);
 			mfm->status = STAT_BUSY;
-			timer_process();
+			timer_clock();
 			mfm->callback = 6LL*MFM_TIME;
 			timer_update_outstanding();
 		} else {

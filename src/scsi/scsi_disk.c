@@ -1927,11 +1927,18 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				shdc[id].temp_buffer[2] = 0x02; /*SCSI-2 compliant*/
 				shdc[id].temp_buffer[3] = 0x02;
 				shdc[id].temp_buffer[4] = 31;
+				shdc[id].temp_buffer[6] = 1;	/* 16-bit transfers supported */
+				shdc[id].temp_buffer[7] = 0x20;	/* Wide bus supported */
 
 				ide_padstr8(shdc[id].temp_buffer + 8, 8, EMU_NAME); /* Vendor */
 				ide_padstr8(shdc[id].temp_buffer + 16, 16, device_identify); /* Product */
 				ide_padstr8(shdc[id].temp_buffer + 32, 4, EMU_VERSION); /* Revision */
 				idx = 36;
+
+				if (max_len == 96) {
+					shdc[id].temp_buffer[4] = 91;
+					idx = 96;
+				}
 			}
 
 atapi_out:

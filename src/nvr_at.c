@@ -31,8 +31,10 @@
 #include "io.h"
 #include "device.h"
 #include "machine/machine.h"
+#include "mem.h"
 #include "nmi.h"
 #include "nvr.h"
+#include "rom.h"
 
 
 static nvr_t *nvrp;
@@ -45,7 +47,8 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 
     if (! (addr & 1)) {
 	nvr->addr = (val & nvr->mask);
-	nmi_mask = (~val & 0x80);
+	if (!(machines[machine].flags & MACHINE_MCA) && (romset != ROM_IBMPS1_2133))
+		nmi_mask = (~val & 0x80);
 
 	return;
     }

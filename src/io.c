@@ -7,6 +7,7 @@
 #include <wchar.h>
 #include "86box.h"
 #include "io.h"
+#include "cpu/cpu.h"
 
 
 uint8_t  (*port_inb[0x10000][2])(uint16_t addr, void *priv);

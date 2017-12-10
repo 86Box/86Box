@@ -185,6 +185,7 @@ typedef struct esdi {
 #define CMD_READ_VERIFY    0x03
 #define CMD_WRITE_VERIFY   0x04
 #define CMD_SEEK           0x05
+#define CMD_GET_DEV_STATUS 0x08
 #define CMD_GET_DEV_CONFIG 0x09
 #define CMD_GET_POS_INFO   0x0a
 
@@ -249,6 +250,25 @@ device_not_present(esdi_t *dev)
     set_irq(dev);
 }
 
+static void rba_out_of_range(esdi_t *dev)
+{
+        dev->status_len = 9;
+        dev->status_data[0] = dev->command | STATUS_LEN(9) | dev->cmd_dev;
+        dev->status_data[1] = 0x0e01; /*Command block error, invalid parameter*/
+        dev->status_data[2] = 0x0007; /*RBA out of range*/
+        dev->status_data[3] = 0;
+        dev->status_data[4] = 0;
+        dev->status_data[5] = 0;
+        dev->status_data[6] = 0;                        
+        dev->status_data[7] = 0;                       
+        dev->status_data[8] = 0;
+
+        dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+        dev->irq_status = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
+        dev->irq_in_progress = 1;
+        set_irq(dev);
+}
+
 #define ESDI_ADAPTER_ONLY() do \
         {                                                 \
                 if (dev->cmd_dev != ATTN_HOST_ADAPTER)    \
@@ -305,6 +325,11 @@ esdi_callback(void *priv)
 
                         	dev->sector_pos = 0;
                         	dev->sector_count = dev->cmd_data[1];
+
+                        	if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+                                	rba_out_of_range(dev);
+                                	return;
+                        	}
 
                         	dev->status = STATUS_IRQ | STATUS_CMD_IN_PROGRESS | STATUS_TRANSFER_REQ;
                         	dev->irq_status = dev->cmd_dev | IRQ_DATA_TRANSFER_READY;
@@ -375,6 +400,11 @@ esdi_callback(void *priv)
                         	dev->sector_pos = 0;
                         	dev->sector_count = dev->cmd_data[1];
 
+                        	if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+                                	rba_out_of_range(dev);
+                                	return;
+                        	}
+
                         	dev->status = STATUS_IRQ | STATUS_CMD_IN_PROGRESS | STATUS_TRANSFER_REQ;
                         	dev->irq_status = dev->cmd_dev | IRQ_DATA_TRANSFER_READY;
                         	dev->irq_in_progress = 1;
@@ -436,6 +466,11 @@ esdi_callback(void *priv)
                         return;
                 }
 
+		if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+			rba_out_of_range(dev);
+			return;
+		}
+
                 dev->status = STATUS_IRQ;
                 dev->irq_status = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
                 dev->irq_in_progress = 1;
@@ -456,6 +491,36 @@ esdi_callback(void *priv)
                 set_irq(dev);
                 break;
 
+	case CMD_GET_DEV_STATUS:
+                ESDI_DRIVE_ONLY();
+
+                if (! drive->present) {
+                        device_not_present(dev);
+                        return;
+                }
+
+                if (dev->status_pos)
+                        fatal("Status send in progress\n");
+                if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
+                        fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
+
+                dev->status_len = 9;
+                dev->status_data[0] = CMD_GET_DEV_STATUS | STATUS_LEN(9) | STATUS_DEVICE_HOST_ADAPTER;
+                dev->status_data[1] = 0x0000; /*Error bits*/
+                dev->status_data[2] = 0x1900; /*Device status*/
+                dev->status_data[3] = 0; /*ESDI Standard Status*/
+                dev->status_data[4] = 0; /*ESDI Vendor Unique Status*/
+                dev->status_data[5] = 0;
+                dev->status_data[6] = 0;
+                dev->status_data[7] = 0;
+                dev->status_data[8] = 0;
+
+                dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+                dev->irq_status = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
+                dev->irq_in_progress = 1;
+                set_irq(dev);
+                break;
+
 	case CMD_GET_DEV_CONFIG:
 		ESDI_DRIVE_ONLY();
 
@@ -470,7 +535,7 @@ esdi_callback(void *priv)
                         fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
                 dev->status_len = 6;
-                dev->status_data[0] = CMD_GET_POS_INFO | STATUS_LEN(6) | STATUS_DEVICE_HOST_ADAPTER;
+                dev->status_data[0] = CMD_GET_DEV_CONFIG | STATUS_LEN(6) | STATUS_DEVICE_HOST_ADAPTER;
                 dev->status_data[1] = 0x10; /*Zero defect*/
                 dev->status_data[2] = drive->sectors & 0xffff;
                 dev->status_data[3] = drive->sectors >> 16;

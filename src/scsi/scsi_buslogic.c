@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.30	2017/12/09
+ * Version:	@(#)scsi_buslogic.c	1.0.31	2017/12/10
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1215,7 +1215,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 		}
 		if (valxor & PCI_COMMAND_MEM) {
 			x54x_mem_disable(dev);
-			if ((bl->MMIOBase != 0) & (val & PCI_COMMAND_MEM)) {
+			if ((bl->MMIOBase != 0) && (val & PCI_COMMAND_MEM)) {
 				x54x_mem_set_addr(dev, bl->MMIOBase);
 			}
 		}

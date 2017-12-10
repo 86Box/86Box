@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.24	2017/12/09
+ * Version:	@(#)cdrom.c	1.0.25	2017/12/10
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
-#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../config.h"
 #include "../timer.h"
@@ -724,15 +723,15 @@ int cdrom_do_log = ENABLE_CDROM_LOG;
 
 
 static void
-cdrom_log(const char *fmt, ...)
+cdrom_log(const char *format, ...)
 {
 #ifdef ENABLE_CDROM_LOG
 	va_list ap;
 
 	if (cdrom_do_log)
 	{
-		va_start(ap, fmt);
-		pclog_ex(fmt, ap);
+		va_start(ap, format);
+		pclog_ex(format, ap);
 		va_end(ap);
 	}
 #endif
@@ -1502,7 +1501,7 @@ static void cdrom_incompatible_format(uint8_t id)
 {
 	cdrom_sense_key = SENSE_ILLEGAL_REQUEST;
 	cdrom_asc = ASC_INCOMPATIBLE_FORMAT;
-	cdrom_ascq = 0;
+	cdrom_ascq = 2;
 	cdrom_cmd_error(id);
 }
 
@@ -1717,22 +1716,6 @@ int cdrom_read_blocks(uint8_t id, uint32_t *len, int first_batch)
 }
 
 /*SCSI Get Configuration*/
-uint8_t cdrom_set_profile(uint8_t *buf, uint8_t *index, uint16_t profile)
-{
-	uint8_t *buf_profile = buf + 12; /* start of profiles */
-
-	buf_profile += ((*index) * 4); /* start of indexed profile */
-	buf_profile[0] = (profile >> 8) & 0xff;
-	buf_profile[1] = profile & 0xff;
-	buf_profile[2] = ((buf_profile[0] == buf[6]) && (buf_profile[1] == buf[7]));
-
-	/* each profile adds 4 bytes to the response */
-	(*index)++;
-	buf[11] += 4; /* Additional Length */
-
-	return 4;
-}
-
 /*SCSI Read DVD Structure*/
 static int cdrom_read_dvd_structure(uint8_t id, int format, const uint8_t *packet, uint8_t *buf)
 {
@@ -2085,13 +2068,13 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 	int msf;
 	int pos=0;
 	uint32_t max_len;
+	uint32_t feature;
 	uint32_t used_len;
 	unsigned idx = 0;
 	unsigned size_idx;
 	unsigned preamble_len;
 	int toc_format;
 	uint32_t alloc_length;
-	uint8_t index = 0;
 	int block_desc = 0;
 	int format = 0;
 	int ret;
@@ -2101,8 +2084,11 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 	char device_identify_ex[15] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', ' ', 'v', '1', '.', '0', '0', 0 };
 	int32_t blen = 0;
 	int32_t *BufLen;
+	uint8_t *b;
+	uint32_t profiles[2] = { MMC_PROFILE_CD_ROM, MMC_PROFILE_DVD_ROM };
+	uint32_t i = 0;
 
-#if 1
+#if 0
 	int CdbLength;
 #endif
 	if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) {
@@ -2133,9 +2119,10 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 		cdrom_log("CD-ROM %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, Unit attention: %i\n", id, cdb[0], cdrom_sense_key, cdrom_asc, cdrom_ascq, cdrom[id].unit_attention);
 		cdrom_log("CD-ROM %i: Request length: %04X\n", id, cdrom[id].request_length);
 
-#if 1
+#if 0
 		for (CdbLength = 1; CdbLength < cdrom[id].cdb_len; CdbLength++)
-			cdrom_log("CD-ROM %i: CDB[%d] = %d\n", id, CdbLength, cdb[CdbLength]);
+			pclog("cdblog CD-ROM %i: CDB[%d] = %d\n", id, CdbLength, cdb[CdbLength]);
+			// cdrom_log("CD-ROM %i: CDB[%d] = %d\n", id, CdbLength, cdb[CdbLength]);
 #endif
 	}
 	
@@ -2447,40 +2434,92 @@ cdrom_readtoc_fallback:
 
 		case GPCMD_GET_CONFIGURATION:
 			SCSIPhase = SCSI_PHASE_DATA_IN;
-		
+
 			/* XXX: could result in alignment problems in some architectures */
+			feature = (cdb[2] << 8) | cdb[3];
 			max_len = (cdb[7] << 8) | cdb[8];
 
-			index = 0;
-
 			/* only feature 0 is supported */
-			if (cdb[2] != 0 || cdb[3] != 0) {
+			if ((cdb[2] != 0) || (cdb[3] > 2)) {
 				cdrom_invalid_field(id);
 				return;
 			}
 
 			cdrom_buf_alloc(id, 65536);
 			memset(cdbufferb, 0, max_len);
+
+			alloc_length = 0;
+			b = cdbufferb;
+
 			/*
 			 * the number of sectors from the media tells us which profile
 			 * to use as current.  0 means there is no media
 			 */
-			len = cdrom_drives[id].handler->size(id);
-			if (len > CD_MAX_SECTORS) {
-				cdbufferb[6] = (MMC_PROFILE_DVD_ROM >> 8) & 0xff;
-				cdbufferb[7] = MMC_PROFILE_DVD_ROM & 0xff;
-			} else if (len <= CD_MAX_SECTORS) {
-				cdbufferb[6] = (MMC_PROFILE_CD_ROM >> 8) & 0xff;
-				cdbufferb[7] = MMC_PROFILE_CD_ROM & 0xff;
+			if (cdrom_drives[id].handler->ready(id)) {
+				len = cdrom_drives[id].handler->size(id);
+				if (len > CD_MAX_SECTORS) {
+					b[6] = (MMC_PROFILE_DVD_ROM >> 8) & 0xff;
+					b[7] = MMC_PROFILE_DVD_ROM & 0xff;
+					ret = 1;
+				} else if (len <= CD_MAX_SECTORS) {
+					b[6] = (MMC_PROFILE_CD_ROM >> 8) & 0xff;
+					b[7] = MMC_PROFILE_CD_ROM & 0xff;
+					ret = 0;
+				}
+			} else {
+				ret = 2;
 			}
-			cdbufferb[10] = 0x02 | 0x01; /* persistent and current */
-			alloc_length = 12; /* headers: 8 + 4 */
-			alloc_length += cdrom_set_profile(cdbufferb, &index, MMC_PROFILE_DVD_ROM);
-			alloc_length += cdrom_set_profile(cdbufferb, &index, MMC_PROFILE_CD_ROM);
+
+			alloc_length = 8;
+			b += 8;
+
+			if ((feature == 0) || ((cdb[1] & 3) < 2)) {
+				b[2] = (0 << 2) | 0x02 | 0x01; /* persistent and current */
+				b[3] = 8;
+
+				alloc_length += 4;
+				b += 4;
+
+				for (i = 0; i < 2; i++) {
+					b[0] = (profiles[i] >> 8) & 0xff;
+					b[1] = profiles[i] & 0xff;
+
+					if (ret == i)
+						b[2] |= 1;
+
+					alloc_length += 4;
+					b += 4;
+				}
+			}
+			if ((feature == 1) || ((cdb[1] & 3) < 2)) {
+				b[1] = 1;
+				b[2] = (2 << 2) | 0x02 | 0x01; /* persistent and current */
+				b[3] = 8;
+
+				if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
+					b[7] = 1;
+				else
+					b[7] = 2;
+				b[8] = 1;
+
+				alloc_length += 12;
+				b += 12;
+			}
+			if ((feature == 2) || ((cdb[1] & 3) < 2)) {
+				b[1] = 2;
+				b[2] = (1 << 2) | 0x02 | 0x01; /* persistent and current */
+				b[3] = 4;
+
+				b[4] = 2;
+
+				alloc_length += 8;
+				b += 8;
+			}
+
 			cdbufferb[0] = ((alloc_length - 4) >> 24) & 0xff;
 			cdbufferb[1] = ((alloc_length - 4) >> 16) & 0xff;
 			cdbufferb[2] = ((alloc_length - 4) >> 8) & 0xff;
-			cdbufferb[3] = (alloc_length - 4) & 0xff;           
+			cdbufferb[3] = (alloc_length - 4) & 0xff;
 
 			alloc_length = MIN(alloc_length, max_len);
 
@@ -2580,7 +2619,6 @@ cdrom_readtoc_fallback:
 			}
 
 			len = MIN(len, max_len);
-			pclog("READ_DISC_INFORMATION: len = %i\n", len);
 
 			cdrom_set_buf_len(id, BufLen, &len);
 
@@ -2789,16 +2827,15 @@ cdrom_readtoc_fallback:
 		case GPCMD_READ_DVD_STRUCTURE:
 			SCSIPhase = SCSI_PHASE_DATA_IN;
 
-			alloc_length = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
-			alloc_length = MIN(alloc_length, 256 * 512 + 4);
+			alloc_length = (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
 
 			cdrom_buf_alloc(id, alloc_length);
 
 			if (cdrom_drives[id].handler->pass_through) {
 				ret = cdrom_pass_through(id, &len, cdrom[id].current_cdb, cdbufferb);
-				if (!ret)
+				if (!ret) {
 					return;
-				else {
+				} else {
 					if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) {
 						if (*BufLen == -1)
 							*BufLen = len;
@@ -2809,15 +2846,11 @@ cdrom_readtoc_fallback:
 					}
 				}
 			} else {
-				len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
-				alloc_length = len;
+				len = cdrom_drives[id].handler->size(id);
 
- 				if (cdb[7] < 0xff) {
+ 				if (cdb[7] < 0xc0) {
 					if (len <= CD_MAX_SECTORS) {
 						cdrom_incompatible_format(id);
-						return;
-					} else {
-						cdrom_invalid_field(id);
 						return;
 					}
 				}
@@ -2954,19 +2987,29 @@ cdrom_readtoc_fallback:
 				cdbufferb[0] = 5; /*CD-ROM*/
 				cdbufferb[1] = 0x80; /*Removable*/
 				cdbufferb[2] = (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) ? 0x02 : 0x00; /*SCSI-2 compliant*/
-				cdbufferb[3] = (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) ? 0x02 : 0x21;
+				cdbufferb[3] = (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) ? 0x12 : 0x21;
 				cdbufferb[4] = 31;
+				if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) {
+					cdbufferb[6] = 1;	/* 16-bit transfers supported */
+					cdbufferb[7] = 0x20;	/* Wide bus supported */
+				}
 
 				ide_padstr8(cdbufferb + 8, 8, EMU_NAME); /* Vendor */
 				ide_padstr8(cdbufferb + 16, 16, device_identify); /* Product */
 				ide_padstr8(cdbufferb + 32, 4, EMU_VERSION); /* Revision */
 				idx = 36;
+
+				if (max_len == 96) {
+					cdbufferb[4] = 91;
+					idx = 96;
+				}
 			}
 
 atapi_out:
 			cdbufferb[size_idx] = idx - preamble_len;
 			len=idx;
 
+			len = MIN(len, max_len);
 			cdrom_set_buf_len(id, BufLen, &len);
 
 			cdrom_data_command_finish(id, len, len, max_len, 0);

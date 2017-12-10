@@ -34,7 +34,8 @@ typedef struct DMA {
     uint8_t	m,
 		mode[4];
     uint8_t	page[4];
-    uint8_t	stat;
+    uint8_t	stat,
+		stat_rq;
     uint8_t	command;
     uint8_t	request;
 

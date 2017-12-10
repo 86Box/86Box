@@ -11,6 +11,7 @@
 #include "../pit.h"
 #include "../mca.h"
 #include "../mem.h"
+#include "../nmi.h"
 #include "../rom.h"
 #include "../device.h"
 #include "../nvr.h"
@@ -38,6 +39,7 @@ static struct
         
         mem_mapping_t shadow_mapping;
         mem_mapping_t split_mapping;
+        mem_mapping_t split_mapping_2;
         mem_mapping_t expansion_mapping;
         
         uint8_t (*planar_read)(uint16_t port);
@@ -84,30 +86,61 @@ static void ps2_write_shadow_raml(uint32_t addr, uint32_t val, void *priv)
 
 static uint8_t ps2_read_split_ram(uint32_t addr, void *priv)
 {
-        addr = (addr & 0x3ffff) + 0xa0000;
+        addr = (addr & 0x1ffff) + 0x80000;
         return mem_read_ram(addr, priv);
 }
 static uint16_t ps2_read_split_ramw(uint32_t addr, void *priv)
 {
-        addr = (addr & 0x3ffff) + 0xa0000;
+        addr = (addr & 0x1ffff) + 0x80000;
         return mem_read_ramw(addr, priv);
 }
 static uint32_t ps2_read_split_raml(uint32_t addr, void *priv)
 {
-        addr = (addr & 0x3ffff) + 0xa0000;
+        addr = (addr & 0x1ffff) + 0x80000;
         return mem_read_raml(addr, priv);
 }
 static void ps2_write_split_ram(uint32_t addr, uint8_t val, void *priv)
 {
-        addr = (addr & 0x3ffff) + 0xa0000;
+        addr = (addr & 0x1ffff) + 0x80000;
         mem_write_ram(addr, val, priv);
 }
 static void ps2_write_split_ramw(uint32_t addr, uint16_t val, void *priv)
 {
-        addr = (addr & 0x3ffff) + 0xa0000;
+        addr = (addr & 0x1ffff) + 0x80000;
         mem_write_ramw(addr, val, priv);
 }
 static void ps2_write_split_raml(uint32_t addr, uint32_t val, void *priv)
+{
+        addr = (addr & 0x1ffff) + 0x80000;
+        mem_write_raml(addr, val, priv);
+}
+
+static uint8_t ps2_read_split_2_ram(uint32_t addr, void *priv)
+{
+        addr = (addr & 0x3ffff) + 0xa0000;
+        return mem_read_ram(addr, priv);
+}
+static uint16_t ps2_read_split_2_ramw(uint32_t addr, void *priv)
+{
+        addr = (addr & 0x3ffff) + 0xa0000;
+        return mem_read_ramw(addr, priv);
+}
+static uint32_t ps2_read_split_2_raml(uint32_t addr, void *priv)
+{
+        addr = (addr & 0x3ffff) + 0xa0000;
+        return mem_read_raml(addr, priv);
+}
+static void ps2_write_split_2_ram(uint32_t addr, uint8_t val, void *priv)
+{
+        addr = (addr & 0x3ffff) + 0xa0000;
+        mem_write_ram(addr, val, priv);
+}
+static void ps2_write_split_2_ramw(uint32_t addr, uint16_t val, void *priv)
+{
+        addr = (addr & 0x3ffff) + 0xa0000;
+        mem_write_ramw(addr, val, priv);
+}
+static void ps2_write_split_2_raml(uint32_t addr, uint32_t val, void *priv)
 {
         addr = (addr & 0x3ffff) + 0xa0000;
         mem_write_raml(addr, val, priv);
@@ -645,21 +678,39 @@ static void ps2_mca_board_model_55sx_init()
 
 static void mem_encoding_update()
 {
-        if (ps2.split_addr >= mem_size*1024)
-                mem_mapping_disable(&ps2.split_mapping);
+	mem_mapping_disable(&ps2.split_mapping);
+	mem_mapping_disable(&ps2.split_mapping_2);
                 
-        ps2.split_addr = (ps2.mem_regs[0] & 0xf) << 20;
+        ps2.split_addr = ((uint32_t) (ps2.mem_regs[0] & 0xf)) << 20;
         
-        if (ps2.mem_regs[1] & 2)
+        if (ps2.mem_regs[1] & 2) {
                 mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
-        else
+		pclog("PS/2 Model 80-111: ROM space enabled\n");
+        } else {
                 mem_set_mem_state(0xe0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+		pclog("PS/2 Model 80-111: ROM space disabled\n");
+	}
+
+	if (ps2.mem_regs[1] & 4) {
+		mem_mapping_set_addr(&ram_low_mapping, 0x00000, 0x80000);
+		pclog("PS/2 Model 80-111: 00080000- 0009FFFF disabled\n");
+	} else {
+		mem_mapping_set_addr(&ram_low_mapping, 0x00000, 0xa0000);
+		pclog("PS/2 Model 80-111: 00080000- 0009FFFF enabled\n");
+	}
 
         if (!(ps2.mem_regs[1] & 8))
         {
-                if (ps2.split_addr >= mem_size*1024)
-                        mem_mapping_set_addr(&ps2.split_mapping, ps2.split_addr, 256*1024);
-        }
+		if (ps2.mem_regs[1] & 4) {
+			mem_mapping_set_addr(&ps2.split_mapping, ps2.split_addr, 128*1024);
+			mem_mapping_set_addr(&ps2.split_mapping_2, ps2.split_addr+(128*1024), 256*1024);
+		} else
+			mem_mapping_set_addr(&ps2.split_mapping_2, ps2.split_addr, 256*1024);
+
+		pclog("PS/2 Model 80-111: Split memory block enabled at %08X\n", ps2.split_addr);
+        } else {
+		pclog("PS/2 Model 80-111: Split memory block disabled\n");
+	}
 }
 
 static uint8_t mem_encoding_read(uint16_t addr, void *p)
@@ -711,7 +762,7 @@ static void ps2_mca_board_model_80_type2_init(int is486)
 
         mem_remap_top_256k();
         ps2.split_addr = mem_size * 1024;
-        mca_init(24);
+        mca_init(8);
         
         ps2.planar_read = model_80_read;
         ps2.planar_write = model_80_write;
@@ -721,42 +772,69 @@ static void ps2_mca_board_model_80_type2_init(int is486)
         io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
         
         ps2.mem_regs[1] = 2;
-        
+
+	/* Note by Kotori: I rewrote this because the original code was using
+	   Model 80 Type 1-style 1 MB memory card settings, which are *NOT*
+	   supported by Model 80 Type 2. */
         switch (mem_size/1024)
         {
                 case 1:
-                ps2.option[1] = 0x0c;
+                ps2.option[1] = 0x0e;	/* 11 10 = 0 2 */
+		ps2.mem_regs[1] = 0xd2;	/* 01 = 1 (first) */
+		ps2.mem_regs[0] = 0xf0;	/* 11 = invalid */
                 break;
                 case 2:
-                ps2.option[1] = 0x0e;
+                ps2.option[1] = 0x0e;	/* 11 10 = 0 2 */
+		ps2.mem_regs[1] = 0xc2;	/* 00 = 2 */
+		ps2.mem_regs[0] = 0xf0;	/* 11 = invalid */
                 break;
                 case 3:
-                ps2.option[1] = 0x02;
+                ps2.option[1] = 0x0a;	/* 10 10 = 2 2 */
+		ps2.mem_regs[1] = 0xc2;	/* 00 = 2 */
+		ps2.mem_regs[0] = 0xd0;	/* 01 = 1 (first) */
                 break;
                 case 4:
                 default:
-                ps2.option[1] = 0x0a;
+                ps2.option[1] = 0x0a;	/* 10 10 = 2 2 */
+		ps2.mem_regs[1] = 0xc2;	/* 00 = 2 */
+		ps2.mem_regs[0] = 0xc0;	/* 00 = 2 */
                 break;
         }
 
+	ps2.mem_regs[0] |= ((mem_size/1024) & 0x0f);
+
         mem_mapping_add(&ps2.split_mapping,
                     (mem_size+256) * 1024, 
-                    256*1024,
+                    128*1024,
                     ps2_read_split_ram,
                     ps2_read_split_ramw,
                     ps2_read_split_raml,
                     ps2_write_split_ram,
                     ps2_write_split_ramw,
                     ps2_write_split_raml,
-                    &ram[0xa0000],
+                    &ram[0x80000],
                     MEM_MAPPING_INTERNAL,
                     NULL);
         mem_mapping_disable(&ps2.split_mapping);
         
+        mem_mapping_add(&ps2.split_mapping_2,
+                    (mem_size+384) * 1024, 
+                    256*1024,
+                    ps2_read_split_2_ram,
+                    ps2_read_split_2_ramw,
+                    ps2_read_split_2_raml,
+                    ps2_write_split_2_ram,
+                    ps2_write_split_2_ramw,
+                    ps2_write_split_2_raml,
+                    &ram[0xa0000],
+                    MEM_MAPPING_INTERNAL,
+                    NULL);
+        mem_mapping_disable(&ps2.split_mapping_2);
+        
         if ((mem_size > 4096) && !is486)
         {
                 /* Only 4 MB supported on planar, create a memory expansion card for the rest */
-                mem_mapping_set_addr(&ram_high_mapping, 0x100000, 0x400000);
+                mem_mapping_set_addr(&ram_high_mapping, 0x100000, 0x300000);
 
                 ps2.mem_pos_regs[0] = 0xff;
                 ps2.mem_pos_regs[1] = 0xfc;
@@ -764,30 +842,32 @@ static void ps2_mca_board_model_80_type2_init(int is486)
                 switch (mem_size/1024)
                 {
                         case 5:
-                        ps2.mem_pos_regs[4] = 0xfc;
+                        ps2.mem_pos_regs[4] = 0xfc;	/* 11 11 11 00 = 0 0 0 1 */
                         break;
                         case 6:
-                        ps2.mem_pos_regs[4] = 0xfe;
+                        ps2.mem_pos_regs[4] = 0xfe;	/* 11 11 11 10 = 0 0 0 2 */
                         break;
                         case 7:
-                        ps2.mem_pos_regs[4] = 0xf2;
+                        ps2.mem_pos_regs[4] = 0xf2;	/* 11 11 00 10 = 0 0 1 2 */
                         break;
                         case 8:
-                        ps2.mem_pos_regs[4] = 0xfa;
+                        ps2.mem_pos_regs[4] = 0xfa;	/* 11 11 10 10 = 0 0 2 2 */
                         break;
                         case 9:
-                        ps2.mem_pos_regs[4] = 0xca;
+                        ps2.mem_pos_regs[4] = 0xca;	/* 11 00 10 10 = 0 1 2 2 */
                         break;
                         case 10:
-                        ps2.mem_pos_regs[4] = 0xea;
+                        ps2.mem_pos_regs[4] = 0xea;	/* 11 10 10 10 = 0 2 2 2 */
                         break;
                         case 11:
-                        ps2.mem_pos_regs[4] = 0x2a;
+                        ps2.mem_pos_regs[4] = 0x2a;	/* 00 10 10 10 = 1 2 2 2 */
                         break;
                         case 12:
-                        ps2.mem_pos_regs[4] = 0xaa;
+                        ps2.mem_pos_regs[4] = 0xaa;	/* 10 10 10 10 = 2 2 2 2 */
                         break;
                 }
+
+		pclog("ps2.mem_pos_regs[4] = %08X\n", ps2.mem_pos_regs[4]);
 
                 mca_add(ps2_mem_expansion_read, ps2_mem_expansion_write, NULL);
                 mem_mapping_add(&ps2.expansion_mapping,
@@ -821,6 +901,8 @@ machine_ps2_common_init(machine_t *model)
         pic2_init();
 
         pit_ps2_init();
+
+	nmi_mask = 0x80;
 }
 
 

@@ -1358,17 +1358,17 @@ void mem_init(void)
         writelookup2 = malloc(1024 * 1024 * sizeof(uintptr_t));
 	rom = NULL;
         biosmask = 0xffff;
-        pages = malloc((((mem_size + 384) * 1024) >> 12) * sizeof(page_t));
+        pages = malloc((1 << 20) * sizeof(page_t));
         page_lookup = malloc((1 << 20) * sizeof(page_t *));
 
         memset(ram, 0, mem_size * 1024);
-        memset(pages, 0, (((mem_size + 384) * 1024) >> 12) * sizeof(page_t));
+        memset(pages, 0, (1 << 20) * sizeof(page_t));
         
         memset(page_lookup, 0, (1 << 20) * sizeof(page_t *));
 
 	memset(ram_mapped_addr, 0, 64 * sizeof(uint32_t));
         
-        for (c = 0; c < (((mem_size + 384) * 1024) >> 12); c++)
+        for (c = 0; c < (1 << 20); c++)
         {
                 pages[c].mem = &ram[c << 12];
                 pages[c].write_b = mem_write_ramb_page;
@@ -1461,10 +1461,8 @@ void mem_resize()
         ram = malloc(mem_size * 1024);
         memset(ram, 0, mem_size * 1024);
         
-        free(pages);
-        pages = malloc((((mem_size + 384) * 1024) >> 12) * sizeof(page_t));
-        memset(pages, 0, (((mem_size + 384) * 1024) >> 12) * sizeof(page_t));
-        for (c = 0; c < (((mem_size + 384) * 1024) >> 12); c++)
+        memset(pages, 0, (1 << 20) * sizeof(page_t));
+        for (c = 0; c < (1 << 20); c++)
         {
                 pages[c].mem = &ram[c << 12];
                 pages[c].write_b = mem_write_ramb_page;

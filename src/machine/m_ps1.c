@@ -50,6 +50,7 @@
 #include "../pic.h"
 #include "../pit.h"
 #include "../mem.h"
+#include "../nmi.h"
 #include "../rom.h"
 #include "../timer.h"
 #include "../device.h"
@@ -590,4 +591,6 @@ machine_ps1_m2133_init(machine_t *model)
     ps1_common_init(model);
 
     ps1_setup(2133);
+
+    nmi_mask = 0x80;
 }
