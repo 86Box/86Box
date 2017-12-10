@@ -714,7 +714,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                         }
                         if ((val&4) && !(fdc.dor&4))
                         {
-        			timer_process();
+        			timer_clock();
                                 floppytime = 128LL * (1LL << TIMER_SHIFT);
                                 timer_update_outstanding();
                                 floppyint=-1;
@@ -727,8 +727,6 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
 
                                 fdc_reset();
                         }
-			timer_process();
-			timer_update_outstanding();
 			/* We can now simplify this since each motor now spins separately. */
 			for (i = 0; i < FDD_NUM; i++)
 			{
@@ -757,7 +755,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
                 case 4:
                 if (val & 0x80)
                 {
-			timer_process();
+			timer_clock();
                         floppytime = 128LL * (1LL << TIMER_SHIFT);
                         timer_update_outstanding();
                         floppyint=-1;
@@ -938,7 +936,7 @@ void fdc_write(uint16_t addr, uint8_t val, void *priv)
 bad_command:
                                 fdc.stat |= 0x10;
                                 floppyint=0xfc;
-        			timer_process();
+        			timer_clock();
         			floppytime = 200LL * (1LL << TIMER_SHIFT);
         			timer_update_outstanding();
                                 break;
@@ -964,7 +962,7 @@ bad_command:
                         {
                                 fdc_log("Got all params %02X\n", fdc.command);
                                 floppyint=fdc.command&0x1F;
-        			timer_process();
+        			timer_clock();
        				floppytime = 1024LL * (1LL << TIMER_SHIFT);
         			timer_update_outstanding();
                                 fdc_reset_stat = 0;
@@ -1142,7 +1140,7 @@ bad_command:
 				                fdc.pcn[fdc.params[0] & 3] = 0;
 						floppytime = 0LL;
 				                floppyint=-3;
-						timer_process();
+						timer_clock();
 						floppytime = 2048LL * (1LL << TIMER_SHIFT);
 						timer_update_outstanding();
 						break;
@@ -1199,7 +1197,7 @@ bad_command:
 						}
 						floppytime = 0LL;
 				                floppyint=-3;
-						timer_process();
+						timer_clock();
 						floppytime = 2048LL * (1LL << TIMER_SHIFT);
 						timer_update_outstanding();
 						break;
@@ -1230,7 +1228,7 @@ bad_command:
                         				fdc.st0 = 0x20 | (fdc.params[0] & 7);
 							floppytime = 0LL;
 					                floppyint=-3;
-							timer_process();
+							timer_clock();
 							floppytime = 2048LL * (1LL << TIMER_SHIFT);
 							timer_update_outstanding();
 							break;
@@ -1246,7 +1244,7 @@ bad_command:
                         				fdc.st0 = 0x20 | (fdc.params[0] & 7);
 							floppytime = 0LL;
 					                floppyint=-3;
-							timer_process();
+							timer_clock();
 							floppytime = 2048LL * (1LL << TIMER_SHIFT);
 							timer_update_outstanding();
 							break;
@@ -1404,7 +1402,7 @@ uint8_t fdc_read(uint16_t addr, void *priv)
 		/* What the heck is this even doing?! */
                 /* if (floppyint==0xA) 
 		{
-			timer_process();
+			timer_clock();
 			floppytime = 1024LL * (1LL << TIMER_SHIFT);
 			timer_update_outstanding();
 		} */
@@ -1742,7 +1740,7 @@ void fdc_callback(void *priv)
 			fdc.st0 |= 0x50;
 		}
                 floppyint=-3;
-		timer_process();
+		timer_clock();
 		floppytime = 2048LL * (1LL << TIMER_SHIFT);
 		timer_update_outstanding();
                 fdc.stat = 0x80 | (1 << fdc.drive);
@@ -1788,7 +1786,7 @@ void fdc_callback(void *priv)
                 if (fdc.format_state == 1)
                 {
                         fdc.format_state = 2;
-			timer_process();
+			timer_clock();
 			floppytime = 128LL * (1LL << TIMER_SHIFT);
 			timer_update_outstanding();
                 }                
@@ -1819,7 +1817,7 @@ void fdc_callback(void *priv)
 		drive_num = real_drive(fdc.rw_drive);
 		fdc.st0 = 0x20 | (fdc.params[0] & 7);
                 floppyint=-3;
-		timer_process();
+		timer_clock();
 		floppytime = 2048LL * (1LL << TIMER_SHIFT);
 		timer_update_outstanding();
                 fdc.stat = 0x80 | (1 << fdc.drive);

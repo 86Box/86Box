@@ -727,7 +727,7 @@ static void lsi_do_command(LSIState *s, uint8_t id)
     uint8_t buf[12];
 
     memset(buf, 0, 12);
-    lsi_read(s, s->dnad, (char *)buf, MIN(12, s->dbc));
+    DMAPageRead(s->dnad, (char *)buf, MIN(12, s->dbc));
     if (s->dbc > 12) {
     	DPRINTF("(ID=%02i LUN=%02i) SCSI Command 0x%02x: CDB length %i too big\n", id, s->current_lun, buf[0], s->dbc);
         s->dbc = 12;
@@ -830,7 +830,7 @@ static void lsi_do_msgin(LSIState *s)
 static uint8_t lsi_get_msgbyte(LSIState *s)
 {
     uint8_t data;
-    lsi_read(s, s->dnad, (char *)&data, 1);
+    DMAPageRead(s->dnad, (char *)&data, 1);
     s->dnad++;
     s->dbc--;
     return data;

@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../config.h"
 #include "../timer.h"
