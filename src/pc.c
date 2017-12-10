@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.48	2017/12/05
+ * Version:	@(#)pc.c	1.0.49	2017/12/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -737,8 +737,8 @@ pc_reset_hard_init(void)
     cpu_set();
     mem_resize();
     io_init();
-    device_init();
     timer_reset();
+    device_init();
 
     midi_device_init();
     inital();
@@ -1055,7 +1055,7 @@ pc_thread(void *param)
 				 L"%ls v%ls - %i%% - %ls - %ls - %ls",
 				 EMU_NAME_W,EMU_VERSION_W,fps,wmachine,wcpu,
 				 (!mouse_capture) ? plat_get_string(IDS_2077)
-				  : ((mouse_get_type(mouse_type) & MOUSE_TYPE_3BUTTON) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079)));
+				  : (mouse_get_buttons() > 2) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079));
 
 			ui_window_title(temp);
 

@@ -8,7 +8,7 @@
  *
  *		Implementation of PS/2 series Mouse devices.
  *
- * Version:	@(#)mouse_ps2.c	1.0.2	2017/12/03
+ * Version:	@(#)mouse_ps2.c	1.0.3	2017/12/09
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -227,6 +227,7 @@ void *
 mouse_ps2_init(device_t *info)
 {
     mouse_t *dev;
+    int i;
 
     dev = (mouse_t *)malloc(sizeof(mouse_t));
     memset(dev, 0x00, sizeof(mouse_t));
@@ -234,13 +235,17 @@ mouse_ps2_init(device_t *info)
     dev->type = info->local;
 
     dev->mode = MODE_STREAM;
-    if (dev->type & MOUSE_TYPE_3BUTTON)
-	dev->flags |= FLAG_INTELLI;
+    i = device_get_config_int("buttons");
+    if (i > 2)
+        dev->flags |= FLAG_INTELLI;
 
     /* Hook into the general AT Keyboard driver. */
     keyboard_at_set_mouse(ps2_write, dev);
 
     pclog("%s: buttons=%d\n", dev->name, (dev->flags & FLAG_INTELLI)? 3 : 2);
+
+    /* Tell them how many buttons we have. */
+    mouse_set_buttons((dev->flags & FLAG_INTELLI) ? 3 : 2);
 
     /* Return our private data to the I/O layer. */
     return(dev);
@@ -251,6 +256,9 @@ static void
 ps2_close(void *priv)
 {
     mouse_t *dev = (mouse_t *)priv;
+
+    /* Unhook from the general AT Keyboard driver. */
+    keyboard_at_set_mouse(NULL, NULL);
 
     free(dev);
 }
@@ -280,18 +288,9 @@ static device_config_t ps2_config[] = {
 
 
 device_t mouse_ps2_device = {
-    "Standard 2-button PS/2 Mouse",
+    "Standard PS/2 Mouse",
     0,
     MOUSE_TYPE_PS2,
-    mouse_ps2_init, ps2_close, NULL,
-    ps2_poll, NULL, NULL, NULL,
-    ps2_config
-};
-
-device_t mouse_ps2ms_device = {
-    "Microsoft 3-button PS/2 Mouse",
-    0,
-    MOUSE_TYPE_PS2 | MOUSE_TYPE_3BUTTON,
     mouse_ps2_init, ps2_close, NULL,
     ps2_poll, NULL, NULL, NULL,
     ps2_config

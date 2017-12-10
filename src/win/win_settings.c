@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.25	2017/11/24
+ * Version:	@(#)win_settings.c	1.0.26	2017/12/09
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -911,17 +911,15 @@ static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wPa
 }
 
 
-static int mouse_valid(int type, int machine)
+static int mouse_valid(int num, int m)
 {
-	type &= MOUSE_TYPE_MASK;
+	device_t *dev;
 
-	if ((type == MOUSE_TYPE_INTERNAL) &&
-	    !(machines[machine].flags & MACHINE_MOUSE)) return(0);
+	if ((num == MOUSE_TYPE_INTERNAL) &&
+	    !(machines[m].flags & MACHINE_MOUSE)) return(0);
 
-	if ((type == MOUSE_TYPE_PS2) &&
-	    !(machines[machine].flags & MACHINE_PS2)) return(0);
-
-	return(1);
+	dev = mouse_get_device(num);
+	return(device_is_valid(dev, machines[m].flags));
 }
 
 
@@ -931,7 +929,6 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 	HWND h;
 	int c = 0;
 	int d = 0;
-	int type;
 
         switch (message)
         {
@@ -940,11 +937,9 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 			c = d = 0;
 			for (c = 0; c < mouse_get_ndev(); c++)
 			{
-				type = mouse_get_type(c);
-
 				settings_mouse_to_list[c] = d;
 
-				if (mouse_valid(type, temp_machine))
+				if (mouse_valid(c, temp_machine))
 				{
 					mbstowcs(str, mouse_get_name(c), sizeof_w(str));
 					SendMessage(h, CB_ADDSTRING, 0, (LPARAM)str);
@@ -955,6 +950,8 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 			}
 
 			SendMessage(h, CB_SETCURSEL, settings_mouse_to_list[temp_mouse], 0);
+			h = GetDlgItem(hdlg, IDC_CONFIGURE_MOUSE);
+			EnableWindow(h, TRUE);
 
 			h = GetDlgItem(hdlg, IDC_COMBO_JOYSTICK);
 			c = 0;
@@ -980,6 +977,12 @@ static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wPa
 		case WM_COMMAND:
                 	switch (LOWORD(wParam))
 	                {
+				case IDC_CONFIGURE_MOUSE:
+					h = GetDlgItem(hdlg, IDC_COMBO_MOUSE);
+					temp_mouse = settings_list_to_mouse[SendMessage(h, CB_GETCURSEL, 0, 0)];
+					temp_deviceconfig |= deviceconfig_open(hdlg, (void *)mouse_get_device(temp_mouse));
+					break;
+
 				case IDC_COMBO_JOYSTICK:
 					if (HIWORD(wParam) == CBN_SELCHANGE)
 					{

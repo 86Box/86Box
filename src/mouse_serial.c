@@ -10,7 +10,7 @@
  *
  * TODO:	Add the Genius Serial Mouse.
  *
- * Version:	@(#)mouse_serial.c	1.0.15	2017/12/05
+ * Version:	@(#)mouse_serial.c	1.0.16	2017/12/09
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -73,7 +73,7 @@ sermouse_timer(void *priv)
     if (dev->pos != -1) return;
 
     dev->pos = 0;
-    switch(dev->type & MOUSE_TYPE_MASK) {
+    switch(dev->type) {
 	case MOUSE_TYPE_MSYSTEMS:
 		/* Identifies Mouse Systems serial mouse. */
 		serial_write_fifo(dev->serial, 'H');
@@ -123,7 +123,7 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
     if (y <- 128) y = -128;
 
     len = 0;
-    switch(dev->type & MOUSE_TYPE_MASK) {
+    switch(dev->type) {
 	case MOUSE_TYPE_MSYSTEMS:
 		buff[0] = 0x80;
 		buff[0] |= (b & 0x01) ? 0x00 : 0x04;	/* left button */
@@ -213,17 +213,17 @@ static void *
 sermouse_init(device_t *info)
 {
     mouse_t *dev;
+    int i;
 
     dev = (mouse_t *)malloc(sizeof(mouse_t));
     memset(dev, 0x00, sizeof(mouse_t));
     dev->name = info->name;
     dev->type = info->local;
 
-#if NOTYET
     dev->port = device_get_config_int("port");
-#else
-    dev->port = config_get_int((char *)info->name, "port", SERMOUSE_PORT);
-#endif
+    i = device_get_config_int("buttons");
+    if (i > 2)
+	dev->flags |= FLAG_3BTN;
 
     /* Attach a serial port to the mouse. */
     if (dev->port == 0)
@@ -237,12 +237,28 @@ sermouse_init(device_t *info)
 
     timer_add(sermouse_timer, &dev->delay, &dev->delay, dev);
 
+    /* Tell them how many buttons we have. */
+    mouse_set_buttons((dev->flags & FLAG_3BTN) ? 3 : 2);
+
     /* Return our private data to the I/O layer. */
     return(dev);
 }
 
 
 static device_config_t sermouse_config[] = {
+    {
+	"port", "Serial Port", CONFIG_SELECTION, "", 0, {
+		{
+			"COM1", 0
+		},
+		{
+			"COM2", 1
+		},
+		{
+			""
+		}
+	}
+    },
     {
 	"buttons", "Buttons", CONFIG_SELECTION, "", 2, {
 		{
@@ -260,19 +276,6 @@ static device_config_t sermouse_config[] = {
 	}
     },
     {
-	"port", "Serial Port", CONFIG_SELECTION, "", 0, {
-		{
-			"COM1", 0
-		},
-		{
-			"COM2", 1
-		},
-		{
-			""
-		}
-	}
-    },
-    {
 	"", "", -1
     }
 };
@@ -281,14 +284,14 @@ static device_config_t sermouse_config[] = {
 device_t mouse_mssystems_device = {
     "Mouse Systems Serial Mouse",
     0,
-    MOUSE_TYPE_MSYSTEMS | MOUSE_TYPE_3BUTTON,
+    MOUSE_TYPE_MSYSTEMS,
     sermouse_init, sermouse_close, NULL,
     sermouse_poll, NULL, NULL, NULL,
     sermouse_config
 };
 
 device_t mouse_msserial_device = {
-    "Microsoft 2-button Serial Mouse",
+    "Microsoft Serial Mouse",
     0,
     MOUSE_TYPE_MICROSOFT,
     sermouse_init, sermouse_close, NULL,
@@ -297,9 +300,9 @@ device_t mouse_msserial_device = {
 };
 
 device_t mouse_lserial_device = {
-    "Logitech 3-button Serial Mouse",
+    "Logitech Serial Mouse",
     0,
-    MOUSE_TYPE_LOGITECH | MOUSE_TYPE_3BUTTON,
+    MOUSE_TYPE_LOGITECH,
     sermouse_init, sermouse_close, NULL,
     sermouse_poll, NULL, NULL, NULL,
     sermouse_config
@@ -308,7 +311,7 @@ device_t mouse_lserial_device = {
 device_t mouse_mswheel_device = {
     "Microsoft Serial Wheel Mouse",
     0,
-    MOUSE_TYPE_MSWHEEL | MOUSE_TYPE_3BUTTON,
+    MOUSE_TYPE_MSWHEEL,
     sermouse_init, sermouse_close, NULL,
     sermouse_poll, NULL, NULL, NULL,
     sermouse_config

@@ -11,7 +11,7 @@
  * TODO:	Add the Genius bus- and serial mouse.
  *		Remove the '3-button' flag from mouse types.
  *
- * Version:	@(#)mouse.c	1.0.17	2017/12/03
+ * Version:	@(#)mouse.c	1.0.17	2017/12/09
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -70,13 +70,13 @@ static mouse_t mouse_devices[] = {
     { "lserial",	&mouse_lserial_device	},
     { "mswheel",	&mouse_mswheel_device	},
     { "ps2",		&mouse_ps2_device	},
-    { "intellimouse",	&mouse_ps2ms_device	},
     { NULL,		NULL			}
 };
 
 
 static device_t	*mouse_curr;
 static void	*mouse_priv;
+static int	mouse_nbut;
 
 
 /* Initialize the mouse module. */
@@ -90,6 +90,7 @@ mouse_init(void)
     mouse_type = MOUSE_TYPE_NONE;
     mouse_curr = NULL;
     mouse_priv = NULL;
+    mouse_nbut = 0;
 }
 
 
@@ -103,13 +104,15 @@ mouse_close(void)
 
     mouse_curr = NULL;
     mouse_priv = NULL;
+    mouse_nbut = 0;
 }
 
 
 void
 mouse_reset(void)
 {
-    pclog("MOUSE: reset(type=%d)\n", mouse_type);
+    pclog("MOUSE: reset(type=%d, '%s')\n",
+	mouse_type, mouse_devices[mouse_type].device->name);
 
     /* Close previous mouse, if open. */
     mouse_close();
@@ -125,6 +128,14 @@ mouse_reset(void)
 
     if (mouse_curr != NULL)
 	mouse_priv = device_add(mouse_curr);
+}
+
+
+/* Callback from the hardware driver. */
+void
+mouse_set_buttons(int buttons)
+{
+    mouse_nbut = buttons;
 }
 
 
@@ -151,7 +162,7 @@ mouse_process(void)
 
 
 void
-mouse_setpoll(int (*func)(int,int,int,int,void *), void *arg)
+mouse_set_poll(int (*func)(int,int,int,int,void *), void *arg)
 {
     if (mouse_type != MOUSE_TYPE_INTERNAL) return;
 
@@ -190,10 +201,17 @@ mouse_get_from_internal_name(char *s)
 }
 
 
-int
-mouse_get_type(int mouse)
+device_t *
+mouse_get_device(int mouse)
 {
-    return(mouse_devices[mouse].device->local);
+    return(mouse_devices[mouse].device);
+}
+
+
+int
+mouse_get_buttons(void)
+{
+    return(mouse_nbut);
 }
 
 

@@ -8,7 +8,7 @@
  *
  *		Definitions for the mouse driver.
  *
- * Version:	@(#)mouse.h	1.0.10	2017/12/03
+ * Version:	@(#)mouse.h	1.0.11	2017/12/09
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -31,11 +31,7 @@
 #define MOUSE_TYPE_MICROSOFT	6	/* Microsoft Serial Mouse */
 #define MOUSE_TYPE_LOGITECH	7	/* Logitech Serial Mouse */
 #define MOUSE_TYPE_MSWHEEL	8	/* Serial Wheel Mouse */
-#define MOUSE_TYPE_PS2		9	/* IBM PS/2 series Bus Mouse */
-#define MOUSE_TYPE_PS2_MS	10	/* Microsoft Intellimouse PS/2 */
-
-#define MOUSE_TYPE_MASK		0x0f
-#define MOUSE_TYPE_3BUTTON	(1<<7)	/* device has 3+ buttons */
+#define MOUSE_TYPE_PS2		9	/* PS/2 series Bus Mouse */
 
 
 #ifdef __cplusplus
@@ -48,6 +44,9 @@ extern int	mouse_buttons;
 
 
 #ifdef EMU_DEVICE_H
+extern device_t	*mouse_get_device(int mouse);
+extern void	*mouse_ps2_init(device_t *);
+
 extern device_t	mouse_logibus_device;
 extern device_t	mouse_msinport_device;
 #if 0
@@ -58,22 +57,21 @@ extern device_t	mouse_msserial_device;
 extern device_t	mouse_lserial_device;
 extern device_t	mouse_mswheel_device;
 extern device_t	mouse_ps2_device;
-extern device_t	mouse_ps2ms_device;
-
-extern void	*mouse_ps2_init(device_t *);
 #endif
 
 extern void	mouse_init(void);
 extern void	mouse_reset(void);
+extern void	mouse_set_buttons(int buttons);
 extern void	mouse_process(void);
+extern void	mouse_set_poll(int (*f)(int,int,int,int,void *), void *);
 extern void	mouse_poll(void);
-extern void	mouse_setpoll(int (*f)(int,int,int,int,void *), void *);
 
 extern char	*mouse_get_name(int mouse);
 extern char	*mouse_get_internal_name(int mouse);
 extern int	mouse_get_from_internal_name(char *s);
 extern int	mouse_get_type(int mouse);
 extern int	mouse_get_ndev(void);
+extern int	mouse_get_buttons(void);
 
 #ifdef __cplusplus
 }

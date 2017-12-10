@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.14	2017/11/18
+ * Version:	@(#)resource.h	1.0.15	2017/12/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -115,6 +115,7 @@
 #define IDC_COMBO_MOUSE		1051
 #define IDC_COMBO_JOYSTICK	1052
 #define IDC_COMBO_JOY		1053
+#define IDC_CONFIGURE_MOUSE	1054
 
 #define IDC_SOUND		1070	/* sound config */
 #define IDC_COMBO_SOUND		1071

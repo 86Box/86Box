@@ -43,13 +43,17 @@
  *		  Microsoft Windows NT 3.1
  *		  Microsoft Windows NT 3.51
  *
+ *		The polling frequency for InPort controllers has to
+ *		 be changed to programmable. Microsoft uses 30Hz, 
+ *		 but ATIXL ports are programmable 30-200Hz.
+ *
  *		Based on an early driver for MINIX 1.5.
  *
  * TODO:	Re-integrate the InPort part. Currently,
  *		only the Logitech part is considered to
  *		be OK.
  *
- * Version:	@(#)mouse_bus.c	1.0.26	2017/12/08
+ * Version:	@(#)mouse_bus.c	1.0.27	2017/12/09
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -71,6 +75,7 @@
 
 #define MOUSE_PORT		0x023c		/* default */
 #define MOUSE_IRQ		5		/* default */
+#define MOUSE_BUTTONS		2		/* default */
 #define MOUSE_DEBUG		0
 
 
@@ -243,6 +248,9 @@ ms_read(mouse_t *dev, uint16_t port)
 					ret |= 0x04;
 				if (dev->but & 0x02)		/* RIGHT */
 					ret |= 0x01;
+				if (dev->flags & FLAG_3BTN)
+					if (dev->but & 0x04)	/*MIDDLE*/
+						ret |= 0x02;
 				break;
 
 			case MSCTRL_RD_X:
@@ -584,25 +592,22 @@ static void *
 bm_init(device_t *info)
 {
     mouse_t *dev;
+    int i;
 
     dev = (mouse_t *)malloc(sizeof(mouse_t));
     memset(dev, 0x00, sizeof(mouse_t));
     dev->name = info->name;
     dev->type = info->local;
-#if NOTYET
     dev->irq = device_get_config_int("irq");
-#else
-    dev->irq = config_get_int((char *)info->name, "irq", 0);
-#endif
-    if (dev->irq == 0)
-	dev->irq = MOUSE_IRQ;
+    i = device_get_config_int("buttons");
+    if (i > 2)
+	dev->flags |= FLAG_3BTN;
 
-    pclog("%s: I/O=%04x, IRQ=%d\n", dev->name, MOUSE_PORT, dev->irq);
+    pclog("%s: I/O=%04x, IRQ=%d, buttons=%d\n",
+	dev->name, MOUSE_PORT, dev->irq, i);
 
-    switch(dev->type & MOUSE_TYPE_MASK) {
+    switch(dev->type) {
 	case MOUSE_TYPE_LOGIBUS:
-		if (dev->type & MOUSE_TYPE_3BUTTON)
-			dev->flags |= FLAG_3BTN;
 		lt_reset(dev);
 
 		/* Initialize I/O handlers. */
@@ -626,6 +631,9 @@ bm_init(device_t *info)
     io_sethandler(MOUSE_PORT, 4,
 		  bm_read, NULL, NULL, bm_write, NULL, NULL, dev);
 
+    /* Tell them how many buttons we have. */
+    mouse_set_buttons((dev->flags & FLAG_3BTN) ? 3 : 2);
+
     /* Return our private data to the I/O layer. */
     return(dev);
 }
@@ -633,7 +641,7 @@ bm_init(device_t *info)
 
 static device_config_t bm_config[] = {
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 2, {
+	"irq", "IRQ", CONFIG_SELECTION, "", MOUSE_IRQ, {
 		{
 			"IRQ 2", 2
 		},
@@ -652,6 +660,19 @@ static device_config_t bm_config[] = {
 	}
     },
     {
+	"buttons", "Buttons", CONFIG_SELECTION, "", MOUSE_BUTTONS, {
+		{
+			"Two", 2
+		},
+		{
+			"Three", 3
+		},
+		{
+			""
+		}
+	}
+    },
+    {
 	"", "", -1
     }
 };
@@ -660,7 +681,7 @@ static device_config_t bm_config[] = {
 device_t mouse_logibus_device = {
     "Logitech Bus Mouse",
     DEVICE_ISA,
-    MOUSE_TYPE_LOGIBUS | MOUSE_TYPE_3BUTTON,
+    MOUSE_TYPE_LOGIBUS,
     bm_init, bm_close, NULL,
     bm_poll, NULL, NULL, NULL,
     bm_config
