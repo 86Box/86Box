@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.29	2017/11/24
+ * Version:	@(#)scsi_buslogic.c	1.0.30	2017/12/09
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../mca.h"
@@ -243,14 +244,14 @@ int buslogic_do_log = ENABLE_BUSLOGIC_LOG;
 
 
 static void
-buslogic_log(const char *format, ...)
+buslogic_log(const char *fmt, ...)
 {
 #ifdef ENABLE_BUSLOGIC_LOG
     va_list ap;
 
     if (buslogic_do_log) {
-	va_start(ap, format);
-	pclog(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
 #endif

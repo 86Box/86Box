@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../io.h"
@@ -131,14 +132,14 @@ int audiopci_do_log = ENABLE_AUDIOPCI_LOG;
 
 
 static void
-audiopci_log(const char *format, ...)
+audiopci_log(const char *fmt, ...)
 {
 #ifdef ENABLE_AUDIOPCI_LOG
     va_list ap;
 
     if (audiopci_do_log) {
-	va_start(ap, format);
-	pclog(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
 #endif

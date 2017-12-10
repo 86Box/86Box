@@ -8,7 +8,7 @@
  *
  *		The generic SCSI bus operations handler.
  *
- * Version:	@(#)scsi_bus.c	1.0.4	2017/11/24
+ * Version:	@(#)scsi_bus.c	1.0.5	2017/12/09
  *
  * NOTES: 	For now ported from PCem with some modifications
  *		but at least it's a start.
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "scsi.h"
 #include "scsi_device.h"
@@ -44,14 +45,14 @@ int scsi_bus_do_log = ENABLE_SCSI_BUS_LOG;
 
 
 static void
-scsi_bus_log(const char *format, ...)
+scsi_bus_log(const char *fmt, ...)
 {
 #ifdef ENABLE_SCSI_BUS_LOG
     va_list ap;
 
     if (scsi_bus_do_log) {
-	va_start(ap, format);
-	pclog(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
 #endif

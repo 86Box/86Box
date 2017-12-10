@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../io.h"
@@ -298,14 +299,14 @@ int emu8k_do_log = ENABLE_EMU8K_LOG;
 
 
 static void
-emu8k_log(const char *format, ...)
+emu8k_log(const char *fmt, ...)
 {
 #ifdef ENABLE_EMU8K_LOG
     va_list ap;
 
     if (emu8k_do_log) {
-	va_start(ap, format);
-	pclog(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
 #endif

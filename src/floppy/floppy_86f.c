@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)floppy_86f.c	1.0.12	2017/11/24
+ * Version:	@(#)floppy_86f.c	1.0.13	2017/12/09
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -23,6 +23,7 @@
 #include <assert.h>
 #include <wchar.h>
 #include "../lzf/lzf.h"
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../config.h"
 #include "../dma.h"
@@ -246,15 +247,15 @@ int d86f_do_log = ENABLE_D86F_LOG;
 
 
 static void
-d86f_log(const char *format, ...)
+d86f_log(const char *fmt, ...)
 {
 #ifdef ENABLE_D86F_LOG
     va_list ap;
 
    if (d86f_do_log)
    {
-	va_start(ap, format);
-	pclog(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
    }
 #endif

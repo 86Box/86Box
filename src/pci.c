@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "machine/machine.h"
 #include "cpu/cpu.h"
@@ -60,15 +61,15 @@ int pci_do_log = ENABLE_PCI_LOG;
 
 
 static void
-pcilog(const char *format, ...)
+pcilog(const char *fmt, ...)
 {
 #ifdef ENABLE_PCI_LOG
 	va_list ap;
 
 	if (pci_do_log)
 	{
-		va_start(ap, format);
-		pclog(format, ap);
+		va_start(ap, fmt);
+		pclog_ex(fmt, ap);
 		va_end(ap);
 	}
 #endif

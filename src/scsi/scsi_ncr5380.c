@@ -9,7 +9,7 @@
  *		Implementation of the NCR 5380 series of SCSI Host Adapters
  *		made by NCR. These controllers were designed for the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.7	2017/11/24
+ * Version:	@(#)scsi_ncr5380.c	1.0.8	2017/12/09
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../dma.h"
@@ -156,7 +157,7 @@ ncr_log(const char *fmt, ...)
 
     if (ncr5380_do_log) {
 	va_start(ap, fmt);
-	pclog(fmt, ap);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
 #endif

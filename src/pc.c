@@ -25,6 +25,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "config.h"
 #include "cpu/cpu.h"
@@ -172,15 +173,12 @@ static int	unscaled_size_x = SCREEN_RES_X,	/* current unscaled size X */
  * being logged, and catch repeating entries.
  */
 void
-pclog(const char *fmt, ...)
+pclog_ex(const char *fmt, va_list ap)
 {
 #ifndef RELEASE_BUILD
     static char buff[1024];
     static int seen = 0;
     char temp[1024];
-    va_list ap;
-
-    va_start(ap, fmt);
 
     if (stdlog == NULL) {
 	if (log_path[0] != L'\0') {
@@ -204,8 +202,21 @@ pclog(const char *fmt, ...)
 	fprintf(stdlog, temp, ap);
     }
 
-    va_end(ap);
     fflush(stdlog);
+#endif
+}
+
+
+/* Log something. We only do this in non-release builds. */
+void
+pclog(const char *fmt, ...)
+{
+#ifndef RELEASE_BUILD
+    va_list ap;
+
+    va_start(ap, fmt);
+    pclog_ex(fmt, ap);
+    va_end(ap);
 #endif
 }
 

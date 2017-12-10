@@ -10,7 +10,7 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.24	2017/11/24
+ * Version:	@(#)net_ne2000.c	1.0.25	2017/12/09
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, grehan@iprg.nokia.com>
@@ -28,6 +28,7 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include <time.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../config.h"
 #include "../machine/machine.h"
@@ -202,7 +203,7 @@ typedef struct {
 
     int		board;
     int		is_pci;
-    char	name[32];
+    const char	*name;
     uint32_t	base_address;
     int		base_irq;
     uint32_t	bios_addr,
@@ -232,7 +233,7 @@ nelog(int lvl, const char *fmt, ...)
 
     if (nic_do_log >= lvl) {
 	va_start(ap, fmt);
-	pclog(fmt, ap);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
 #endif
@@ -1896,12 +1897,12 @@ nic_init(device_t *info)
 
     dev = malloc(sizeof(nic_t));
     memset(dev, 0x00, sizeof(nic_t));
+    dev->name = info->name;
     dev->board = info->local;
     rom = NULL;
     switch(dev->board) {
 #if defined(DEV_BRANCH) && defined(USE_NE1000)
 	case NE2K_NE1000:
-		strcpy(dev->name, "NE1000");
 		dev->maclocal[0] = 0x00;  /* 00:00:D8 (NE1000 ISA OID) */
 		dev->maclocal[1] = 0x00;
 		dev->maclocal[2] = 0xD8;
@@ -1910,7 +1911,6 @@ nic_init(device_t *info)
 #endif
 
 	case NE2K_NE2000:
-		strcpy(dev->name, "NE2000");
 		dev->maclocal[0] = 0x00;  /* 00:A0:0C (NE2000 compatible OID) */
 		dev->maclocal[1] = 0xA0;
 		dev->maclocal[2] = 0x0C;
@@ -1919,7 +1919,6 @@ nic_init(device_t *info)
 
 	case NE2K_RTL8029AS:
 		dev->is_pci = (PCI) ? 1 : 0;
-		strcpy(dev->name, "RTL8029AS");
 		dev->maclocal[0] = 0x00;  /* 00:20:18 (RTL 8029AS PCI OID) */
 		dev->maclocal[1] = 0x20;
 		dev->maclocal[2] = 0x18;

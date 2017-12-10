@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.10	2017/11/24
+ * Version:	@(#)scsi_disk.c	1.0.11	2017/12/09
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../timer.h"
 #include "../device.h"
@@ -457,14 +458,14 @@ int scsi_hd_do_log = ENABLE_SCSI_DISK_LOG;
 
 
 static void
-scsi_hd_log(const char *format, ...)
+scsi_hd_log(const char *fmt, ...)
 {
 #ifdef ENABLE_SCSI_DISK_LOG
     va_list ap;
 
     if (scsi_hd_do_log) {
-	va_start(ap, format);
-	pclog(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
 #endif

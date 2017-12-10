@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.6	2017/11/24
+ * Version:	@(#)scsi_x54x.c	1.0.7	2017/12/09
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../dma.h"
@@ -81,7 +82,7 @@ x54x_log(const char *fmt, ...)
 
     if (x54x_do_log) {
 	va_start(ap, fmt);
-	pclog(fmt, ap);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
 #endif

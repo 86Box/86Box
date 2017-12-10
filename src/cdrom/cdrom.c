@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.23	2017/11/24
+ * Version:	@(#)cdrom.c	1.0.24	2017/12/09
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../config.h"
 #include "../timer.h"
@@ -723,15 +724,15 @@ int cdrom_do_log = ENABLE_CDROM_LOG;
 
 
 static void
-cdrom_log(const char *format, ...)
+cdrom_log(const char *fmt, ...)
 {
 #ifdef ENABLE_CDROM_LOG
 	va_list ap;
 
 	if (cdrom_do_log)
 	{
-		va_start(ap, format);
-		pclog(format, ap);
+		va_start(ap, fmt);
+		pclog_ex(fmt, ap);
 		va_end(ap);
 	}
 #endif
