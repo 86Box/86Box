@@ -1386,8 +1386,8 @@ void mem_init(void)
         	ram = malloc(16384 * 1024);
         	memset(ram, 0, 16384 * 1024);
 	} else {
-        	ram = malloc(mem_size * 1024);
-        	memset(ram, 0, mem_size * 1024);
+        	ram = malloc((mem_size + 384) * 1024);	/* 386 extra kB for top remapping */
+        	memset(ram, 0, (mem_size + 384) * 1024);
 	}
 
         readlookup2  = malloc(1024 * 1024 * sizeof(uintptr_t));
@@ -1574,8 +1574,8 @@ void mem_resize()
         	ram = malloc(16384 * 1024);
         	memset(ram, 0, 16384 * 1024);
 	} else {
-        	ram = malloc(mem_size * 1024);
-        	memset(ram, 0, mem_size * 1024);
+        	ram = malloc((mem_size + 384) * 1024);	/* 386 extra kB for top remapping */
+        	memset(ram, 0, (mem_size + 384) * 1024);
 	}
         
         memset(pages, 0, (1 << 20) * sizeof(page_t));
