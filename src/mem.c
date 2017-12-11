@@ -40,6 +40,7 @@ static int                _mem_state[0x40000];
 
 static mem_mapping_t base_mapping;
 static mem_mapping_t ram_remapped_mapping;
+static mem_mapping_t ram_split_mapping;
 mem_mapping_t ram_low_mapping;
 mem_mapping_t ram_high_mapping;
 mem_mapping_t ram_mid_mapping;
@@ -81,6 +82,8 @@ uint8_t *rom;
 uint8_t romext[32768];
 
 uint32_t ram_mapped_addr[64];
+
+int split_mapping_enabled = 0;
 
 
 void resetreadlookup(void)
@@ -338,6 +341,22 @@ void mmu_invalidate(uint32_t addr)
         flushmmucache_cr3();
 }
 
+uint8_t mem_addr_range_match(uint32_t addr, uint32_t start, uint32_t len)
+{
+	if (addr < start)
+		return 0;
+	else if (addr >= (start + len))
+		return 0;
+	else
+		return 1;
+}
+
+uint32_t mem_addr_translate(uint32_t addr, uint32_t chunk_start, uint32_t len)
+{
+	uint32_t mask = len - 1;
+	return chunk_start + (addr & mask);
+}
+
 void addreadlookup(uint32_t virt, uint32_t phys)
 {
         if (virt == 0xffffffff)
@@ -348,11 +367,11 @@ void addreadlookup(uint32_t virt, uint32_t phys)
                 return;
         }
         
-        
         if (readlookup[readlnext]!=0xFFFFFFFF)
         {
                 readlookup2[readlookup[readlnext]] = -1;
         }
+
         readlookup2[virt>>12] = (uintptr_t)&ram[(uintptr_t)(phys & ~0xFFF) - (uintptr_t)(virt & ~0xfff)];
         readlookupp[readlnext]=mmu_perm;
         readlookup[readlnext++]=virt>>12;
@@ -383,8 +402,9 @@ void addwritelookup(uint32_t virt, uint32_t phys)
         if (pages[phys >> 12].block[0] || pages[phys >> 12].block[1] || pages[phys >> 12].block[2] || pages[phys >> 12].block[3])
 #endif
                 page_lookup[virt >> 12] = &pages[phys >> 12];
-        else
+        else {
                 writelookup2[virt>>12] = (uintptr_t)&ram[(uintptr_t)(phys & ~0xFFF) - (uintptr_t)(virt & ~0xfff)];
+	}
         writelookupp[writelnext] = mmu_perm;
         writelookup[writelnext++] = virt >> 12;
         writelnext &= (cachesize - 1);
@@ -394,13 +414,17 @@ void addwritelookup(uint32_t virt, uint32_t phys)
 
 uint8_t *getpccache(uint32_t a)
 {
-        uint32_t a2=a;
+        uint32_t a2;
+
+	a2=a;
 
         if (a2 < 0x100000 && ram_mapped_addr[a2 >> 14])
         {
                 a = (ram_mapped_addr[a2 >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? a2 : (ram_mapped_addr[a2 >> 14] & ~0x3FFF) + (a2 & 0x3FFF);
                 return &ram[(uintptr_t)(a & 0xFFFFF000) - (uintptr_t)(a2 & ~0xFFF)];
         }
+
+	a2 = a;
 
         if (cr0>>31)
         {
@@ -412,7 +436,7 @@ uint8_t *getpccache(uint32_t a)
         }
         a&=rammask;
 
-        if (isram[a>>16])
+        if ((a < mem_size * 1024) && isram[a>>16])
         {
                 if ((a >> 16) != 0xF || shadowbios)
                 	addreadlookup(a2, a);
@@ -916,6 +940,21 @@ uint8_t mem_readb_phys(uint32_t addr)
         return 0xff;
 }
 
+/* Version of mem_readby_phys that doesn't go through the CPU paging mechanism. */
+uint8_t mem_readb_phys_dma(uint32_t addr)
+{
+        mem_logical_addr = 0xffffffff;
+        
+        if (_mem_read_b[addr >> 14]) {
+		if (_mem_mapping_r[addr >> 14] && (_mem_mapping_r[addr >> 14]->flags & MEM_MAPPING_INTERNAL)) {
+			return ram[addr];
+		} else
+                	return _mem_read_b[addr >> 14](addr, _mem_priv_r[addr >> 14]);
+	}
+                
+        return 0xff;
+}
+
 uint16_t mem_readw_phys(uint32_t addr)
 {
         mem_logical_addr = 0xffffffff;
@@ -932,6 +971,19 @@ void mem_writeb_phys(uint32_t addr, uint8_t val)
         
         if (_mem_write_b[addr >> 14]) 
                 _mem_write_b[addr >> 14](addr, val, _mem_priv_w[addr >> 14]);
+}
+
+/* Version of mem_readby_phys that doesn't go through the CPU paging mechanism. */
+void mem_writeb_phys_dma(uint32_t addr, uint8_t val)
+{
+        mem_logical_addr = 0xffffffff;
+        
+        if (_mem_write_b[addr >> 14]) {
+		if (_mem_mapping_w[addr >> 14] && (_mem_mapping_w[addr >> 14]->flags & MEM_MAPPING_INTERNAL)) {
+			ram[addr] = val;
+		} else
+                	_mem_write_b[addr >> 14](addr, val, _mem_priv_w[addr >> 14]);
+	}
 }
 
 void mem_writew_phys(uint32_t addr, uint16_t val)
@@ -1018,48 +1070,6 @@ void mem_write_raml(uint32_t addr, uint32_t val, void *priv)
         mem_write_raml_page(addr, val, &pages[addr >> 12]);
 }
 
-static uint32_t remap_start_addr;
-
-uint8_t mem_read_remapped(uint32_t addr, void *priv)
-{
-        addr = 0xA0000 + (addr - remap_start_addr);
-        addreadlookup(mem_logical_addr, addr);
-        return ram[addr];
-}
-uint16_t mem_read_remappedw(uint32_t addr, void *priv)
-{
-        addr = 0xA0000 + (addr - remap_start_addr);
-        addreadlookup(mem_logical_addr, addr);
-        return *(uint16_t *)&ram[addr];
-}
-uint32_t mem_read_remappedl(uint32_t addr, void *priv)
-{
-        addr = 0xA0000 + (addr - remap_start_addr);
-        addreadlookup(mem_logical_addr, addr);
-        return *(uint32_t *)&ram[addr];
-}
-
-void mem_write_remapped(uint32_t addr, uint8_t val, void *priv)
-{
-        uint32_t oldaddr = addr;
-        addr = 0xA0000 + (addr - remap_start_addr);
-        addwritelookup(mem_logical_addr, addr);
-        mem_write_ramb_page(addr, val, &pages[oldaddr >> 12]);
-}
-void mem_write_remappedw(uint32_t addr, uint16_t val, void *priv)
-{
-        uint32_t oldaddr = addr;
-        addr = 0xA0000 + (addr - remap_start_addr);
-        addwritelookup(mem_logical_addr, addr);
-        mem_write_ramw_page(addr, val, &pages[oldaddr >> 12]);
-}
-void mem_write_remappedl(uint32_t addr, uint32_t val, void *priv)
-{
-        uint32_t oldaddr = addr;
-        addr = 0xA0000 + (addr - remap_start_addr);
-        addwritelookup(mem_logical_addr, addr);
-        mem_write_raml_page(addr, val, &pages[oldaddr >> 12]);
-}
 
 uint8_t mem_read_bios(uint32_t addr, void *priv)
 {
@@ -1233,6 +1243,7 @@ void mem_mapping_add(mem_mapping_t *mapping,
         while (dest->next)
                 dest = dest->next;        
         dest->next = mapping;
+	mapping->prev = dest;
         
         if (size)
                 mapping->enable  = 1;
@@ -1349,11 +1360,36 @@ void mem_add_bios()
 int mem_a20_key = 0, mem_a20_alt = 0;
 int mem_a20_state = 1;
 
+void mem_a20_init(void)
+{
+	if (AT) {
+		rammask = cpu_16bitbus ? 0xffffff : 0xffffffff;
+		flushmmucache();
+        	mem_a20_state = mem_a20_key | mem_a20_alt;
+	} else {
+		rammask = 0xfffff;
+		flushmmucache();
+        	mem_a20_key = mem_a20_alt = mem_a20_state = 0;
+	}
+}
+
+
 void mem_init(void)
 {
         int c;
 
-        ram = malloc(mem_size * 1024);
+	split_mapping_enabled = 0;
+
+	/* Always allocate the full 16 MB memory space if memory size is smaller,
+	   we'll need this for stupid things like the PS/2 split mapping. */
+	if (mem_size < 16384) {
+        	ram = malloc(16384 * 1024);
+        	memset(ram, 0, 16384 * 1024);
+	} else {
+        	ram = malloc(mem_size * 1024);
+        	memset(ram, 0, mem_size * 1024);
+	}
+
         readlookup2  = malloc(1024 * 1024 * sizeof(uintptr_t));
         writelookup2 = malloc(1024 * 1024 * sizeof(uintptr_t));
 	rom = NULL;
@@ -1361,7 +1397,6 @@ void mem_init(void)
         pages = malloc((1 << 20) * sizeof(page_t));
         page_lookup = malloc((1 << 20) * sizeof(page_t *));
 
-        memset(ram, 0, mem_size * 1024);
         memset(pages, 0, (1 << 20) * sizeof(page_t));
         
         memset(page_lookup, 0, (1 << 20) * sizeof(page_t *));
@@ -1403,8 +1438,16 @@ void mem_init(void)
 
         mem_mapping_add(&ram_low_mapping, 0x00000, (mem_size > 640) ? 0xa0000 : mem_size * 1024, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram,  MEM_MAPPING_INTERNAL, NULL);
         if (mem_size > 1024) {
-                mem_set_mem_state(0x100000, (mem_size - 1024) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                mem_mapping_add(&ram_high_mapping, 0x100000, ((mem_size - 1024) * 1024), mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0x100000, MEM_MAPPING_INTERNAL, NULL);
+                if(cpu_16bitbus && mem_size > 16256)
+                {
+                        mem_set_mem_state(0x100000, (16256 - 1024) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        mem_mapping_add(&ram_high_mapping, 0x100000, ((16256 - 1024) * 1024), mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0x100000, MEM_MAPPING_INTERNAL, NULL);
+                }
+                else
+                {
+                        mem_set_mem_state(0x100000, (mem_size - 1024) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        mem_mapping_add(&ram_high_mapping, 0x100000, ((mem_size - 1024) * 1024), mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0x100000, MEM_MAPPING_INTERNAL, NULL);
+                }
 	}
 	if (mem_size > 768)
 		mem_mapping_add(&ram_mid_mapping,   0xc0000, 0x40000, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0xc0000,  MEM_MAPPING_INTERNAL, NULL);
@@ -1412,14 +1455,20 @@ void mem_init(void)
         if (romset == ROM_IBMPS1_2011)
                 mem_mapping_add(&romext_mapping,  0xc8000, 0x08000, mem_read_romext, mem_read_romextw, mem_read_romextl, NULL, NULL, NULL,   romext, 0, NULL);
 
+	mem_mapping_add(&ram_remapped_mapping,  mem_size * 1024, 384 * 1024, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + (1 << 20),  MEM_MAPPING_INTERNAL, NULL);
+	mem_mapping_disable(&ram_remapped_mapping);
+
+	mem_mapping_add(&ram_split_mapping,  mem_size * 1024, 384 * 1024, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + (1 << 20),  MEM_MAPPING_INTERNAL, NULL);
+	mem_mapping_disable(&ram_split_mapping);
+
         mem_a20_key = 2;
 	mem_a20_alt = 0;
-        mem_a20_recalc();
+        mem_a20_init();
 }
 
 static void mem_remap_top(int max_size)
 {
-        int c;
+	int c;
 
 	if (mem_size > 640)
 	{
@@ -1427,19 +1476,17 @@ static void mem_remap_top(int max_size)
                 int size = mem_size - 640;
                 if (size > max_size)
                         size = max_size;
-                
-                remap_start_addr = start * 1024;
-                        
-                for (c = ((start * 1024) >> 12); c < (((start + size) * 1024) >> 12); c++)
-                {
-                        pages[c].mem = &ram[0xA0000 + ((c - ((start * 1024) >> 12)) << 12)];
-                        pages[c].write_b = mem_write_ramb_page;
-                        pages[c].write_w = mem_write_ramw_page;
-                        pages[c].write_l = mem_write_raml_page;
-                }
+
+       		for (c = (start / 64); c < ((start + size - 1) / 64); c++)
+	        {
+               		isram[c] = 1;
+	        }
 
                 mem_set_mem_state(start * 1024, size * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                mem_mapping_add(&ram_remapped_mapping, start * 1024, size * 1024, mem_read_remapped,    mem_read_remappedw,    mem_read_remappedl,    mem_write_remapped, mem_write_remappedw, mem_write_remappedl,   ram + 0xA0000,  MEM_MAPPING_INTERNAL, NULL);
+		mem_mapping_set_addr(&ram_remapped_mapping, start * 1024, size * 1024);
+		mem_mapping_set_exec(&ram_split_mapping, ram + (start * 1024));
+
+		flushmmucache();
 	}
 }
 
@@ -1453,13 +1500,83 @@ void mem_remap_top_384k()
 	mem_remap_top(384);
 }
 
+void mem_split_enable(int max_size, uint32_t addr)
+{
+	int c;
+
+	uint8_t *mem_split_buffer = &ram[0x80000];
+
+	if (split_mapping_enabled)
+		return;
+
+	// pclog("Split mapping enable at %08X\n", addr);
+
+	mem_set_mem_state(addr, max_size * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+	mem_mapping_set_addr(&ram_split_mapping, addr, max_size * 1024);
+	mem_mapping_set_exec(&ram_split_mapping, &ram[addr]);
+
+	if (max_size == 384)
+		memcpy(&ram[addr], mem_split_buffer, max_size);
+	else
+		memcpy(&ram[addr], &mem_split_buffer[128 * 1024], max_size);
+
+	for (c = ((addr / 1024) / 64); c < (((addr / 1024) + max_size - 1) / 64); c++)
+        {
+		isram[c] = 1;
+        }
+
+	flushmmucache();
+
+	split_mapping_enabled = 1;
+}
+
+void mem_split_disable(int max_size, uint32_t addr)
+{
+	int c;
+
+	uint8_t *mem_split_buffer = &ram[0x80000];
+
+	if (!split_mapping_enabled)
+		return;
+
+	// pclog("Split mapping disable at %08X\n", addr);
+
+	if (max_size == 384)
+		memcpy(mem_split_buffer, &ram[addr], max_size);
+	else
+		memcpy(&mem_split_buffer[128 * 1024], &ram[addr], max_size);
+
+	mem_mapping_disable(&ram_split_mapping);
+	mem_set_mem_state(addr, max_size * 1024, 0);
+	mem_mapping_set_exec(&ram_split_mapping, NULL);
+
+	for (c = ((addr / 1024) / 64); c < (((addr / 1024) + max_size - 1) / 64); c++)
+        {
+		isram[c] = 0;
+        }
+
+	flushmmucache();
+
+	split_mapping_enabled = 0;
+}
+
 void mem_resize()
 {
         int c;
+
+	split_mapping_enabled = 0;
         
         free(ram);
-        ram = malloc(mem_size * 1024);
-        memset(ram, 0, mem_size * 1024);
+
+	/* Always allocate the full 16 MB memory space if memory size is smaller,
+	   we'll need this for stupid things like the PS/2 split mapping. */
+	if (mem_size < 16384) {
+        	ram = malloc(16384 * 1024);
+        	memset(ram, 0, 16384 * 1024);
+	} else {
+        	ram = malloc(mem_size * 1024);
+        	memset(ram, 0, mem_size * 1024);
+	}
         
         memset(pages, 0, (1 << 20) * sizeof(page_t));
         for (c = 0; c < (1 << 20); c++)
@@ -1495,8 +1612,16 @@ void mem_resize()
         
         mem_mapping_add(&ram_low_mapping, 0x00000, (mem_size > 640) ? 0xa0000 : mem_size * 1024, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram,  MEM_MAPPING_INTERNAL, NULL);
         if (mem_size > 1024) {
-                mem_set_mem_state(0x100000, (mem_size - 1024) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                mem_mapping_add(&ram_high_mapping, 0x100000, ((mem_size - 1024) * 1024), mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0x100000, MEM_MAPPING_INTERNAL, NULL);
+                if(cpu_16bitbus && mem_size > 16256)
+                {
+                        mem_set_mem_state(0x100000, (16256 - 1024) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        mem_mapping_add(&ram_high_mapping, 0x100000, ((16256 - 1024) * 1024), mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0x100000, MEM_MAPPING_INTERNAL, NULL);
+                }
+                else
+                {
+                        mem_set_mem_state(0x100000, (mem_size - 1024) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        mem_mapping_add(&ram_high_mapping, 0x100000, ((mem_size - 1024) * 1024), mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0x100000, MEM_MAPPING_INTERNAL, NULL);
+                }
 	}
 	if (mem_size > 768)
         	mem_mapping_add(&ram_mid_mapping,   0xc0000, 0x40000, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + 0xc0000,  MEM_MAPPING_INTERNAL, NULL);
@@ -1504,9 +1629,15 @@ void mem_resize()
         if (romset == ROM_IBMPS1_2011)
                 mem_mapping_add(&romext_mapping,  0xc8000, 0x08000, mem_read_romext, mem_read_romextw, mem_read_romextl, NULL, NULL, NULL,   romext, 0, NULL);
 
+	mem_mapping_add(&ram_remapped_mapping,  mem_size * 1024, 384 * 1024, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + (1 << 20),  MEM_MAPPING_INTERNAL, NULL);
+	mem_mapping_disable(&ram_remapped_mapping);
+
+	mem_mapping_add(&ram_split_mapping,  mem_size * 1024, 384 * 1024, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + (1 << 20),  MEM_MAPPING_INTERNAL, NULL);
+	mem_mapping_disable(&ram_split_mapping);
+
         mem_a20_key = 2;
 	mem_a20_alt = 0;
-        mem_a20_recalc();
+        mem_a20_init();
 }
 
 void mem_reset_page_blocks()
@@ -1528,6 +1659,13 @@ static int port_92_reg = 0;
 
 void mem_a20_recalc(void)
 {
+	if (!AT) {
+		rammask = 0xfffff;
+		flushmmucache();
+        	mem_a20_key = mem_a20_alt = mem_a20_state = 0;
+		return;
+	}
+
         int state = mem_a20_key | mem_a20_alt;
         if (state && !mem_a20_state)
         {
@@ -1537,7 +1675,7 @@ void mem_a20_recalc(void)
         else if (!state && mem_a20_state)
         {
                 rammask = (AT && cpu_16bitbus) ? 0xefffff : 0xffefffff;
-                flushmmucache();
+		flushmmucache();
         }
         mem_a20_state = state;
 }

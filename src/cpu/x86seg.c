@@ -24,6 +24,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "cpu.h"
+#include "../machine/machine.h"
 #include "../mem.h"
 #include "../nvr.h"
 #include "x86.h"
@@ -78,6 +79,19 @@ static void seg_reset(x86seg *s)
         s->limit = 0xFFFF;
         s->limit_low = 0;
         s->limit_high = 0xffff;
+        if(s == &_cs)
+        {
+                // TODO - When the PC is reset, initialization of the CS descriptor must be like the annotated line below.
+                //s->base = AT ? (cpu_16bitbus ? 0xFF0000 : 0xFFFF0000) : 0xFFFF0;
+                s->base = AT ? 0xF0000 : 0xFFFF0;
+                s->seg = AT ? 0xF000 : 0xFFFF;
+        }
+        else
+        {
+                s->base = 0;
+                s->seg = 0;
+        }
+
 }
 
 void x86seg_reset()
@@ -124,7 +138,7 @@ void x86_doabrt(int x86_abrt)
                 return;
         }
         
-        if (cpu_state.abrt) return;
+        if (cpu_state.abrt || x86_was_reset) return;
         
         if (intgatesize == 16)
         {

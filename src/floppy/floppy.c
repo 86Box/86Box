@@ -323,6 +323,7 @@ void floppy_set_rate(int drive, int drvden, int rate)
 		                floppy_period = 4;
 		                break;
 		}
+		break;
                 case 2: /*Double density*/
                 floppy_period = 32;
                 break;

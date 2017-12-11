@@ -38,8 +38,6 @@ static struct
         uint8_t io_id;
         
         mem_mapping_t shadow_mapping;
-        mem_mapping_t split_mapping;
-        mem_mapping_t split_mapping_2;
         mem_mapping_t expansion_mapping;
         
         uint8_t (*planar_read)(uint16_t port);
@@ -47,7 +45,7 @@ static struct
         
         uint8_t mem_regs[3];
         
-        uint32_t split_addr;
+        uint32_t split_addr, split_size;
         
         uint8_t mem_pos_regs[8];
 } ps2;
@@ -83,69 +81,6 @@ static void ps2_write_shadow_raml(uint32_t addr, uint32_t val, void *priv)
         addr = (addr & 0x1ffff) + 0xe0000;
         mem_write_raml(addr, val, priv);
 }
-
-static uint8_t ps2_read_split_ram(uint32_t addr, void *priv)
-{
-        addr = (addr & 0x1ffff) + 0x80000;
-        return mem_read_ram(addr, priv);
-}
-static uint16_t ps2_read_split_ramw(uint32_t addr, void *priv)
-{
-        addr = (addr & 0x1ffff) + 0x80000;
-        return mem_read_ramw(addr, priv);
-}
-static uint32_t ps2_read_split_raml(uint32_t addr, void *priv)
-{
-        addr = (addr & 0x1ffff) + 0x80000;
-        return mem_read_raml(addr, priv);
-}
-static void ps2_write_split_ram(uint32_t addr, uint8_t val, void *priv)
-{
-        addr = (addr & 0x1ffff) + 0x80000;
-        mem_write_ram(addr, val, priv);
-}
-static void ps2_write_split_ramw(uint32_t addr, uint16_t val, void *priv)
-{
-        addr = (addr & 0x1ffff) + 0x80000;
-        mem_write_ramw(addr, val, priv);
-}
-static void ps2_write_split_raml(uint32_t addr, uint32_t val, void *priv)
-{
-        addr = (addr & 0x1ffff) + 0x80000;
-        mem_write_raml(addr, val, priv);
-}
-
-static uint8_t ps2_read_split_2_ram(uint32_t addr, void *priv)
-{
-        addr = (addr & 0x3ffff) + 0xa0000;
-        return mem_read_ram(addr, priv);
-}
-static uint16_t ps2_read_split_2_ramw(uint32_t addr, void *priv)
-{
-        addr = (addr & 0x3ffff) + 0xa0000;
-        return mem_read_ramw(addr, priv);
-}
-static uint32_t ps2_read_split_2_raml(uint32_t addr, void *priv)
-{
-        addr = (addr & 0x3ffff) + 0xa0000;
-        return mem_read_raml(addr, priv);
-}
-static void ps2_write_split_2_ram(uint32_t addr, uint8_t val, void *priv)
-{
-        addr = (addr & 0x3ffff) + 0xa0000;
-        mem_write_ram(addr, val, priv);
-}
-static void ps2_write_split_2_ramw(uint32_t addr, uint16_t val, void *priv)
-{
-        addr = (addr & 0x3ffff) + 0xa0000;
-        mem_write_ramw(addr, val, priv);
-}
-static void ps2_write_split_2_raml(uint32_t addr, uint32_t val, void *priv)
-{
-        addr = (addr & 0x3ffff) + 0xa0000;
-        mem_write_raml(addr, val, priv);
-}
-
 
 
 #define PS2_SETUP_IO  0x80
@@ -678,8 +613,7 @@ static void ps2_mca_board_model_55sx_init()
 
 static void mem_encoding_update()
 {
-	mem_mapping_disable(&ps2.split_mapping);
-	mem_mapping_disable(&ps2.split_mapping_2);
+	mem_split_disable(ps2.split_size, ps2.split_addr);
                 
         ps2.split_addr = ((uint32_t) (ps2.mem_regs[0] & 0xf)) << 20;
         
@@ -701,11 +635,12 @@ static void mem_encoding_update()
 
         if (!(ps2.mem_regs[1] & 8))
         {
-		if (ps2.mem_regs[1] & 4) {
-			mem_mapping_set_addr(&ps2.split_mapping, ps2.split_addr, 128*1024);
-			mem_mapping_set_addr(&ps2.split_mapping_2, ps2.split_addr+(128*1024), 256*1024);
-		} else
-			mem_mapping_set_addr(&ps2.split_mapping_2, ps2.split_addr, 256*1024);
+		if (ps2.mem_regs[1] & 4)
+			ps2.split_size = 384;
+		else
+			ps2.split_size = 256;
+
+		mem_split_enable(ps2.split_size, ps2.split_addr);
 
 		pclog("PS/2 Model 80-111: Split memory block enabled at %08X\n", ps2.split_addr);
         } else {
@@ -760,7 +695,6 @@ static void ps2_mca_board_model_80_type2_init(int is486)
 {        
         ps2_mca_board_common_init();
 
-        mem_remap_top_256k();
         ps2.split_addr = mem_size * 1024;
         mca_init(8);
         
@@ -803,34 +737,6 @@ static void ps2_mca_board_model_80_type2_init(int is486)
 
 	ps2.mem_regs[0] |= ((mem_size/1024) & 0x0f);
 
-        mem_mapping_add(&ps2.split_mapping,
-                    (mem_size+256) * 1024, 
-                    128*1024,
-                    ps2_read_split_ram,
-                    ps2_read_split_ramw,
-                    ps2_read_split_raml,
-                    ps2_write_split_ram,
-                    ps2_write_split_ramw,
-                    ps2_write_split_raml,
-                    &ram[0x80000],
-                    MEM_MAPPING_INTERNAL,
-                    NULL);
-        mem_mapping_disable(&ps2.split_mapping);
-        
-        mem_mapping_add(&ps2.split_mapping_2,
-                    (mem_size+384) * 1024, 
-                    256*1024,
-                    ps2_read_split_2_ram,
-                    ps2_read_split_2_ramw,
-                    ps2_read_split_2_raml,
-                    ps2_write_split_2_ram,
-                    ps2_write_split_2_ramw,
-                    ps2_write_split_2_raml,
-                    &ram[0xa0000],
-                    MEM_MAPPING_INTERNAL,
-                    NULL);
-        mem_mapping_disable(&ps2.split_mapping_2);
-        
         if ((mem_size > 4096) && !is486)
         {
                 /* Only 4 MB supported on planar, create a memory expansion card for the rest */

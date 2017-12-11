@@ -126,8 +126,10 @@ extern int mem_a20_key;
 void mem_a20_recalc();
 
 uint8_t mem_readb_phys(uint32_t addr);
+uint8_t mem_readb_phys_dma(uint32_t addr);
 uint16_t mem_readw_phys(uint32_t addr);
 void mem_writeb_phys(uint32_t addr, uint8_t val);
+void mem_writeb_phys_dma(uint32_t addr, uint8_t val);
 void mem_writew_phys(uint32_t addr, uint16_t val);
 
 uint8_t  mem_read_ram(uint32_t addr, void *priv);
@@ -226,6 +228,9 @@ extern void     flushmmucache(void);
 extern void     flushmmucache_cr3(void);
 extern void	flushmmucache_nopc(void);
 extern void     mmu_invalidate(uint32_t addr);
+
+extern void	mem_split_enable(int max_size, uint32_t addr);
+extern void	mem_split_disable(int max_size, uint32_t addr);
 
 
 extern void	mem_add_bios(void);

@@ -251,6 +251,8 @@ void exec386(int cycs)
                 cpu_state.oldpc = cpu_state.pc;
                 oldcpl=CPL;
                 cpu_state.op32 = use32;
+
+		x86_was_reset = 0;
                 
 dontprint=0;
 
@@ -271,6 +273,7 @@ dontprint=0;
                         }
                         cpu_state.pc++;
                         x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+			if(x86_was_reset) break;
                 }
 
                 if (!use32) cpu_state.pc &= 0xffff;

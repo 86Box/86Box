@@ -537,13 +537,13 @@ void ps2_dma_init(void)
 
 uint8_t _dma_read(uint32_t addr)
 {
-        uint8_t temp = mem_readb_phys(addr);
+        uint8_t temp = mem_readb_phys_dma(addr);
         return temp;
 }
 
 void _dma_write(uint32_t addr, uint8_t val)
 {
-        mem_writeb_phys(addr, val);
+        mem_writeb_phys_dma(addr, val);
         mem_invalidate_range(addr, addr);
 }
 
@@ -762,7 +762,7 @@ void DMAPageRead(uint32_t PhysAddress, char *DataRead, uint32_t TotalSize)
 	// memcpy(DataRead, &ram[PhysAddress], TotalSize);
 
 	for (i = 0; i < TotalSize; i++)
-		DataRead[i] = mem_readb_phys(PhysAddress + i);
+		DataRead[i] = mem_readb_phys_dma(PhysAddress + i);
 }
 
 void DMAPageWrite(uint32_t PhysAddress, const char *DataWrite, uint32_t TotalSize)
@@ -773,7 +773,7 @@ void DMAPageWrite(uint32_t PhysAddress, const char *DataWrite, uint32_t TotalSiz
 	// memcpy(&ram[PhysAddress], DataWrite, TotalSize);
 
 	for (i = 0; i < TotalSize; i++)
-		mem_writeb_phys(PhysAddress + i, DataWrite[i]);
+		mem_writeb_phys_dma(PhysAddress + i, DataWrite[i]);
 
 	mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
 }
