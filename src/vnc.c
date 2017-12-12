@@ -182,6 +182,8 @@ vnc_init(UNUSED(void *arg))
 	32, 32, 0, 1, 255,255,255, 16, 8, 0, 0, 0
     };
 
+    cgapal_rebuild();
+
     if (rfb == NULL) {
 	wcstombs(title, ui_window_title(NULL), sizeof(title));
 	updatingSize = 0;

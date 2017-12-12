@@ -389,6 +389,8 @@ ddraw_take_screenshot(wchar_t *fn)
 int
 ddraw_init(HWND h)
 {
+    cgapal_rebuild();
+
     if (FAILED(DirectDrawCreate(NULL, &lpdd, NULL))) return(0);
 
     if (FAILED(lpdd->QueryInterface(IID_IDirectDraw7, (LPVOID *)&lpdd7)))

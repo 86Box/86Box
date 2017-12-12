@@ -362,11 +362,9 @@ d3d_init(HWND h)
 {
     int c;
 
-    for (c = 0; c < 256; c++)
-	pal_lookup[c] = makecol(cgapal[c].r << 2,
-				cgapal[c].g << 2, cgapal[c].b << 2);
-
     d3d_hwnd = h;
+
+    cgapal_rebuild();
 
     d3d = Direct3DCreate9(D3D_SDK_VERSION);
 
@@ -405,13 +403,12 @@ d3d_init_fs(HWND h)
     WCHAR title[200];
     int c;
 
+    cgapal_rebuild();
+
     d3d_w = GetSystemMetrics(SM_CXSCREEN);
     d3d_h = GetSystemMetrics(SM_CYSCREEN);
 
     d3d_hwnd = h;
-    for (c = 0; c < 256; c++)
-	pal_lookup[c] = makecol(cgapal[c].r << 2,
-				cgapal[c].g << 2, cgapal[c].b << 2);
 
     /*FIXME: should be done once, in win.c */
     _swprintf(title, L"%s v%s", EMU_NAME_W, EMU_VERSION_W);
