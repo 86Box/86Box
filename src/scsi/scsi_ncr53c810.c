@@ -1340,23 +1340,41 @@ again:
 
     case 3:
 	ncr53c810_log("00: Memory move\n");
-        if ((insn & 0x3E000000) == 0) {
+        if ((insn & (1 << 29)) == 0) {
             /* Memory move.  */
             uint32_t dest;
             /* ??? The docs imply the destination address is loaded into
                the TEMP register.  However the Linux drivers rely on
                the value being presrved.  */
-	    dest = read_dword(s, s->dsp);
-	    s->dsp += 4;
-	    s->regop = 0;
-	    if (dest)
-		lsi_memcpy(s, dest, addr, insn & 0xffffff);
-        }
-	else {
-	    DPRINTF("Illegal memory move: %02X\n", insn >> 24);
-	    lsi_script_dma_interrupt(s, LSI_DSTAT_IID);
-	    break;
-        }
+            dest = read_dword(s, s->dsp);
+            s->dsp += 4;
+            lsi_memcpy(s, dest, addr, insn & 0xffffff);
+        } else {
+            uint8_t data[7];
+            int reg;
+            int n;
+            int i;
+
+            if (insn & (1 << 28)) {
+                addr = s->dsa + sextract32(addr, 0, 24);
+            }
+            n = (insn & 7);
+            reg = (insn >> 16) & 0xff;
+            if (insn & (1 << 24)) {
+                DMAPageRead(addr, (char *) data, n);
+                DPRINTF("Load reg 0x%x size %d addr 0x%08x = %08x\n", reg, n,
+                        addr, *(int *)data);
+                for (i = 0; i < n; i++) {
+                    lsi_reg_writeb(s, reg + i, data[i]);
+                }
+            } else {
+                DPRINTF("Store reg 0x%x size %d addr 0x%08x\n", reg, n, addr);
+                for (i = 0; i < n; i++) {
+                    data[i] = lsi_reg_readb(s, reg + i);
+                }
+                DMAPageWrite(addr, (char *) data, n);
+            }
+	}
         break;
 
     default:
