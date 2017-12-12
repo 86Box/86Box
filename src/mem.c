@@ -436,7 +436,7 @@ uint8_t *getpccache(uint32_t a)
         }
         a&=rammask;
 
-        if ((a < mem_size * 1024) && isram[a>>16])
+        if (isram[a>>16])
         {
                 if ((a >> 16) != 0xF || shadowbios)
                 	addreadlookup(a2, a);
