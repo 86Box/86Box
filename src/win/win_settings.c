@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.26	2017/12/09
+ * Version:	@(#)win_settings.c	1.0.27	2017/12/13
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -578,7 +578,12 @@ static void win_settings_machine_recalc_machine(HWND hdlg)
 }
 
 
-static BOOL CALLBACK win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
 	int c = 0;
@@ -785,7 +790,12 @@ static void recalc_vid_list(HWND hdlg)
 }
 
 
-static BOOL CALLBACK win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
 	LPTSTR lptsTemp;
@@ -923,7 +933,12 @@ static int mouse_valid(int num, int m)
 }
 
 
-static BOOL CALLBACK win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	wchar_t str[128];
 	HWND h;
@@ -1081,7 +1096,12 @@ int mpu401_standalone_allow(void)
 	return 1;
 }
 
-static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
 	int c = 0;
@@ -1321,7 +1341,12 @@ static BOOL CALLBACK win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wPa
 }
 
 
-static BOOL CALLBACK win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
 	int c = 0;
@@ -1496,7 +1521,12 @@ int find_irq_in_array(int irq, int def)
 }
 
 
-static BOOL CALLBACK win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
 	int c = 0;
@@ -1726,7 +1756,12 @@ static void network_recalc_combos(HWND hdlg)
 	net_ignore_message = 0;
 }
 
-static BOOL CALLBACK win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
 	int c = 0;
@@ -2556,7 +2591,12 @@ static void recalc_selection(HWND hdlg)
 
 static int chs_enabled = 0;
 
-static BOOL CALLBACK win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
 	int64_t i = 0;
@@ -3285,7 +3325,12 @@ void hard_disk_add_open(HWND hwnd, int is_existing)
 
 int ignore_change = 0;
 
-static BOOL CALLBACK win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
 	int old_sel = 0;
@@ -3951,7 +3996,12 @@ static void cdrom_recalc_location_controls(HWND hdlg)
 
 int rd_ignore_change = 0;
 
-static BOOL CALLBACK win_settings_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
 	int i = 0;
@@ -4307,7 +4357,7 @@ static BOOL win_settings_main_image_list_init(HWND hwndList)
 
 	for (i = 0; i < 9; i++)
 	{
-		hiconItem = LoadIcon(hinstance, (LPCWSTR) (256 + i));
+		hiconItem = LoadIcon(hinstance, (LPCWSTR) (256 + (uintptr_t) i));
 		ImageList_AddIcon(hSmall, hiconItem);
 		DestroyIcon(hiconItem);
 	}
@@ -4338,7 +4388,12 @@ static BOOL win_settings_main_insert_categories(HWND hwndList)
 	return TRUE;
 }
 
-static BOOL CALLBACK win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
 	int category;

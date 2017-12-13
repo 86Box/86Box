@@ -36,10 +36,14 @@
 #include "tcpip.h"
 #include "tcp_timer.h"
 
+#ifdef __amd64__
+typedef uintptr_t tcpiphdrp_32;
+#else
 #if SIZEOF_CHAR_P == 4
  typedef struct tcpiphdr *tcpiphdrp_32;
 #else
  typedef u_int32_t tcpiphdrp_32;
+#endif
 #endif
 
 /*
@@ -174,10 +178,14 @@ struct tcpcb {
  * port numbers (which are no longer needed once we've located the
  * tcpcb) are overlayed with an mbuf pointer.
  */
+#ifdef __amd64__
+typedef uintptr_t mbufp_32;
+#else
 #if SIZEOF_CHAR_P == 4
 typedef struct SLIRPmbuf *mbufp_32;
 #else
 typedef u_int32_t mbufp_32;
+#endif
 #endif
 #define REASS_MBUF(ti) (*(mbufp_32 *)&((ti)->ti_t))
 

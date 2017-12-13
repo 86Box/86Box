@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.6	2017/11/04
+ * Version:	@(#)win_stbar.c	1.0.7	2017/12/13
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -49,6 +49,10 @@
 #include "../ui.h"
 #include "win.h"
 
+#ifndef GWL_WNDPROC
+#define GWL_WNDPROC GWLP_WNDPROC
+#endif
+
 
 HWND		hwndSBAR;
 
@@ -66,7 +70,7 @@ static int	sb_ready = 0;
 
 
 /* Also used by win_settings.c */
-int
+intptr_t
 fdd_type_to_icon(int type)
 {
     int ret = 512;
@@ -789,7 +793,11 @@ StatusBarPopupMenu(HWND hwnd, POINT pt, int id)
 
 
 /* Handle messages for the Status Bar window. */
+#ifdef __amd64__
 static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
 StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     WCHAR temp_path[1024];
@@ -1004,10 +1012,11 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 /* API: Create and set up the Status Bar window. */
 void
-StatusBarCreate(HWND hwndParent, int idStatus, HINSTANCE hInst)
+StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
 {
     RECT rectDialog;
-    int dw, dh, i;
+    int dw, dh;
+    uintptr_t i;
 
     /* Load our icons into the cache for faster access. */
     for (i = 128; i < 130; i++)

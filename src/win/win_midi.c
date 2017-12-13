@@ -49,12 +49,12 @@ void plat_midi_init()
 
 	m_event = CreateEvent(NULL, TRUE, TRUE, NULL);
 
-        hr = midiOutOpen(&midi_out_device, midi_id, (DWORD) m_event,
+        hr = midiOutOpen(&midi_out_device, midi_id, (uintptr_t) m_event,
 		   0, CALLBACK_EVENT);
         if (hr != MMSYSERR_NOERROR) {
                 printf("midiOutOpen error - %08X\n",hr);
                 midi_id = 0;
-                hr = midiOutOpen(&midi_out_device, midi_id, (DWORD) m_event,
+                hr = midiOutOpen(&midi_out_device, midi_id, (uintptr_t) m_event,
         		   0, CALLBACK_EVENT);
                 if (hr != MMSYSERR_NOERROR) {
                         printf("midiOutOpen error - %08X\n",hr);

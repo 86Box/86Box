@@ -8,7 +8,7 @@
  *
  *		Handle generation of crash-dump reports.
  *
- * Version:	@(#)win_crashdump.c	1.0.2	2017/11/12
+ * Version:	@(#)win_crashdump.c	1.0.3	2017/12/13
  *
  * Authors:	Riley
  *		Miran Grca, <mgrca8@gmail.com>
@@ -194,9 +194,9 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
     }
     BufPtr = &ExceptionHandlerBuffer[strlen(ExceptionHandlerBuffer) - 1];
 
+#if defined(__i386__) && !defined(__x86_64)
     PCONTEXT Registers = ExceptionInfo->ContextRecord;
 	
-#if defined(__i386__) && !defined(__x86_64)
     /* This binary is being compiled for x86, include a register dump. */
     sprintf(BufPtr,
 	"\r\n\r\nRegister dump:\r\n\r\n"

@@ -8,7 +8,7 @@
  *
  *		Rendering module for Microsoft Direct3D 9.
  *
- * Version:	@(#)win_d3d.cpp	1.0.6	2017/11/25
+ * Version:	@(#)win_d3d.cpp	1.0.7	2017/12/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -360,8 +360,6 @@ d3d_init_objects(void)
 int
 d3d_init(HWND h)
 {
-    int c;
-
     d3d_hwnd = h;
 
     cgapal_rebuild();
@@ -401,7 +399,6 @@ int
 d3d_init_fs(HWND h)
 {
     WCHAR title[200];
-    int c;
 
     cgapal_rebuild();
 

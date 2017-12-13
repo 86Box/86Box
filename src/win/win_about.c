@@ -8,7 +8,7 @@
  *
  *		Handle the About dialog.
  *
- * Version:	@(#)win_about.c	1.0.4	2017/10/16
+ * Version:	@(#)win_about.c	1.0.5	2017/12/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -33,7 +33,11 @@
 #include "win.h"
 
 
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
 static BOOL CALLBACK
+#endif
 AboutDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h;

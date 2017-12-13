@@ -559,6 +559,8 @@ static void lsi_disconnect(LSIState *s)
 {
     s->scntl1 &= ~LSI_SCNTL1_CON;
     s->sstat1 &= ~PHASE_MASK;
+    if (s->dcmd & 0x01)		/* Select with ATN */
+	s->sstat1 |= 0x07;
 }
 
 static void lsi_bad_selection(LSIState *s, uint32_t id)
@@ -689,12 +691,18 @@ static lsi_request *lsi_find_by_tag(LSIState *s, uint32_t tag)
 static void lsi_request_free(LSIState *s, lsi_request *p)
 {
     if (p == s->current) {
-	free(s->current);
-        s->current = NULL;
+	if (s->current) {
+		free(s->current);
+        	s->current = NULL;
+		return;		/* If s->current is p, we do *NOT* need to free it a second time. */
+	}
     } else {
         QTAILQ_REMOVE(&s->queue, p, next);
     }
-    free(p);
+    if (p) {
+	free(p);
+	p = NULL;
+    }
 }
 
 /* Callback to indicate that the SCSI layer has completed a command.  */
@@ -909,8 +917,10 @@ static void lsi_do_msgout(LSIState *s, uint8_t id)
             /* The ABORT TAG message clears the current I/O process only. */
             DPRINTF("MSG: ABORT TAG tag=0x%x\n", current_tag);
             if (current_req)  {
-		free(dev->CmdBuffer);
-		dev->CmdBuffer = NULL;
+		if (dev->CmdBuffer) {
+			free(dev->CmdBuffer);
+			dev->CmdBuffer = NULL;
+		}
             }
             lsi_disconnect(s);
             break;
@@ -935,8 +945,10 @@ static void lsi_do_msgout(LSIState *s, uint8_t id)
 
             /* clear the current I/O process */
             if (s->current) {
-				free(dev->CmdBuffer);
-				dev->CmdBuffer = NULL;
+		if (dev->CmdBuffer) {
+			free(dev->CmdBuffer);
+			dev->CmdBuffer = NULL;
+		}
             }
             lsi_disconnect(s);
             break;
@@ -1519,6 +1531,7 @@ static void lsi_reg_writeb(LSIState *s, uint32_t offset, uint8_t val)
             s->istat0 &= ~LSI_ISTAT0_INTF;
             lsi_update_irq(s);
         }
+
         if (s->waiting == 1 && val & LSI_ISTAT0_SIGP) {
             DPRINTF("Woken by SIGP\n");
             s->waiting = 0;
@@ -2227,7 +2240,10 @@ ncr53c810_close(void *priv)
 {
     LSIState *s = (LSIState *)priv;
 
-    free(s);
+    if (s) {
+	free(s);
+	s = NULL;
+    }
 }
 
 device_t ncr53c810_pci_device =

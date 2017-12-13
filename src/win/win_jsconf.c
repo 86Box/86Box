@@ -152,7 +152,12 @@ static int get_pov(HWND hdlg, int id)
         return axis_sel - nr_povs;
 }
 
-static BOOL CALLBACK joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
 	int c;
@@ -305,7 +310,7 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
         *data++ = 8; /*Point*/
         data += MultiByteToWideChar(CP_ACP, 0, "MS Sans Serif", -1, data, 50);
         
-        if (((unsigned long)data) & 2)
+        if (((uintptr_t)data) & 2)
                 data++;
 
 
@@ -327,7 +332,7 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
         data += MultiByteToWideChar(CP_ACP, 0, "Device", -1, data, 256);
         *data++ = 0;              /* no creation data */
                         
-        if (((unsigned long)data) & 2)
+        if (((uintptr_t)data) & 2)
                 data++;
 
         /*Static text*/
@@ -348,7 +353,7 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
         data += MultiByteToWideChar(CP_ACP, 0, "Device :", -1, data, 256);
         *data++ = 0;              /* no creation data */
                         
-        if (((unsigned long)data) & 2)
+        if (((uintptr_t)data) & 2)
                 data++;
 
         y += 20;
@@ -374,7 +379,7 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 data += MultiByteToWideChar(CP_ACP, 0, joystick_get_axis_name(type, c), -1, data, 256);
                 *data++ = 0;              /* no creation data */
                         
-                if (((unsigned long)data) & 2)
+                if (((uintptr_t)data) & 2)
                         data++;
 
                 /*Static text*/
@@ -395,7 +400,7 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 data += MultiByteToWideChar(CP_ACP, 0, joystick_get_axis_name(type, c), -1, data, 256);
                 *data++ = 0;              /* no creation data */
                         
-                if (((unsigned long)data) & 2)
+                if (((uintptr_t)data) & 2)
                         data++;
 
                 y += 20;
@@ -421,7 +426,7 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 data += MultiByteToWideChar(CP_ACP, 0, joystick_get_button_name(type, c), -1, data, 256);
                 *data++ = 0;              /* no creation data */
                         
-                if (((unsigned long)data) & 2)
+                if (((uintptr_t)data) & 2)
                         data++;
 
                 /*Static text*/
@@ -442,7 +447,7 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 data += MultiByteToWideChar(CP_ACP, 0, joystick_get_button_name(type, c), -1, data, 256);
                 *data++ = 0;              /* no creation data */
                         
-                if (((unsigned long)data) & 2)
+                if (((uintptr_t)data) & 2)
                         data++;
 
                 y += 20;
@@ -474,7 +479,7 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 data += MultiByteToWideChar(CP_ACP, 0, s, -1, data, 256);
                 *data++ = 0;              /* no creation data */
                         
-                if (((unsigned long)data) & 2)
+                if (((uintptr_t)data) & 2)
                         data++;
 
                 /*Static text*/
@@ -495,7 +500,7 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 data += MultiByteToWideChar(CP_ACP, 0, s, -1, data, 256);
                 *data++ = 0;              /* no creation data */
                         
-                if (((unsigned long)data) & 2)
+                if (((uintptr_t)data) & 2)
                         data++;
 
                 y += 20;
@@ -518,7 +523,7 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
         data += MultiByteToWideChar(CP_ACP, 0, "OK", -1, data, 50);
         *data++ = 0;              /* no creation data */
 
-        if (((unsigned long)data) & 2)
+        if (((uintptr_t)data) & 2)
                 data++;
                 
         item = (DLGITEMTEMPLATE *)data;

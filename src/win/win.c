@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.40	2017/12/04
+ * Version:	@(#)win.c	1.0.41	2017/12/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -241,13 +241,13 @@ CreateConsole(int init)
     }
 
     h = GetStdHandle(STD_OUTPUT_HANDLE);
-    i = _open_osfhandle((long)h, _O_TEXT);
+    i = _open_osfhandle((intptr_t)h, _O_TEXT);
     fp = _fdopen(i, "w");
     setvbuf(fp, NULL, _IONBF, 1);
     *stdout = *fp;
 
     h = GetStdHandle(STD_ERROR_HANDLE);
-    i = _open_osfhandle((long)h, _O_TEXT);
+    i = _open_osfhandle((intptr_t)h, _O_TEXT);
     fp = _fdopen(i, "w");
     setvbuf(fp, NULL, _IONBF, 1);
     *stderr = *fp;
@@ -255,7 +255,7 @@ CreateConsole(int init)
 #if 0
     /* Set up stdin as well. */
     h = GetStdHandle(STD_INPUT_HANDLE);
-    i = _open_osfhandle((long)h, _O_TEXT);
+    i = _open_osfhandle((intptr_t)h, _O_TEXT);
     fp = _fdopen(i, "r");
     setvbuf(fp, NULL, _IONBF, 128);
     *stdin = *fp;

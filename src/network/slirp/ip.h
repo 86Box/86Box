@@ -209,12 +209,17 @@ typedef u_int32_t caddr32_t;
 #endif
 #endif
 
+#ifdef __amd64__
+typedef uintptr_t ipqp_32;
+typedef uintptr_t ipasfragp_32;
+#else
 #if SIZEOF_CHAR_P == 4
 typedef struct ipq *ipqp_32;
 typedef struct ipasfrag *ipasfragp_32;
 #else
 typedef caddr32_t ipqp_32;
 typedef caddr32_t ipasfragp_32;
+#endif
 #endif
 
 /*
@@ -225,7 +230,11 @@ typedef caddr32_t ipasfragp_32;
 #endif
 
 struct ipovly {
+#ifdef __amd64__
+	uintptr_t	ih_next, ih_prev;	/* for protocol sequence q's */
+#else
 	caddr32_t	ih_next, ih_prev;	/* for protocol sequence q's */
+#endif
 	u_int8_t	ih_x1;			/* (unused) */
 	u_int8_t	ih_pr;			/* protocol */
 	u_int16_t	ih_len;			/* protocol length */
@@ -249,7 +258,11 @@ struct ipovly {
  * size 28 bytes
  */
 struct ipq {
+#ifdef __amd64__
+	uintptr_t next,prev;	/* to other reass headers */
+#else
 	ipqp_32 next,prev;	/* to other reass headers */
+#endif
 	u_int8_t	ipq_ttl;		/* time for reass q to live */
 	u_int8_t	ipq_p;			/* protocol of this fragment */
 	u_int16_t	ipq_id;			/* sequence id for reassembly */

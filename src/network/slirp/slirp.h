@@ -46,12 +46,24 @@ typedef unsigned long 	ioctlsockopt_t;
 # include <iphlpapi.h>
 
 # define USE_FIONBIO 1
+#ifndef EWOULDBLOCK
 # define EWOULDBLOCK WSAEWOULDBLOCK
+#endif
+#ifndef EINPROGRESS
 # define EINPROGRESS WSAEINPROGRESS
+#endif
+#ifndef ENOTCONN
 # define ENOTCONN WSAENOTCONN
+#endif
+#ifndef EHOSTUNREACH
 # define EHOSTUNREACH WSAEHOSTUNREACH
+#endif
+#ifndef ENETUNREACH
 # define ENETUNREACH WSAENETUNREACH
+#endif
+#ifndef ECONNREFUSED
 # define ECONNREFUSED WSAECONNREFUSED
+#endif
 
 /* Basilisk II Router defines those */
 # define udp_read_completion slirp_udp_read_completion

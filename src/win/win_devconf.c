@@ -8,7 +8,7 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_devconf.c	1.0.10	2017/11/25
+ * Version:	@(#)win_devconf.c	1.0.11	2017/12/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -35,7 +35,11 @@ static device_t *config_device;
 static uint8_t deviceconfig_changed = 0;
 
 
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
 static BOOL CALLBACK
+#endif
 deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
@@ -480,7 +484,7 @@ uint8_t deviceconfig_open(HWND hwnd, device_t *device)
         *data++ = 9; /*Point*/
         data += MultiByteToWideChar(CP_ACP, 0, "Segoe UI", -1, data, 50);
         
-        if (((unsigned long)data) & 2)
+        if (((uintptr_t)data) & 2)
                 data++;
 
         while (config->type != -1)
@@ -530,7 +534,7 @@ uint8_t deviceconfig_open(HWND hwnd, device_t *device)
                         data += MultiByteToWideChar(CP_ACP, 0, config->description, -1, data, 256);
                         *data++ = 0;              /* no creation data */
                         
-                        if (((unsigned long)data) & 2)
+                        if (((uintptr_t)data) & 2)
                                 data++;
 
                         /*Static text*/
@@ -551,7 +555,7 @@ uint8_t deviceconfig_open(HWND hwnd, device_t *device)
                         data += MultiByteToWideChar(CP_ACP, 0, config->description, -1, data, 256);
                         *data++ = 0;              /* no creation data */
                         
-                        if (((unsigned long)data) & 2)
+                        if (((uintptr_t)data) & 2)
                                 data++;
 
                         y += 20;
@@ -674,7 +678,7 @@ uint8_t deviceconfig_open(HWND hwnd, device_t *device)
                         break;
                 }
 
-                if (((unsigned long)data) & 2)
+                if (((uintptr_t)data) & 2)
                         data++;
 
                 config++;
@@ -697,7 +701,7 @@ uint8_t deviceconfig_open(HWND hwnd, device_t *device)
         data += MultiByteToWideChar(CP_ACP, 0, "OK", -1, data, 50);
         *data++ = 0;              /* no creation data */
 
-        if (((unsigned long)data) & 2)
+        if (((uintptr_t)data) & 2)
                 data++;
                 
         item = (DLGITEMTEMPLATE *)data;

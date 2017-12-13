@@ -8,7 +8,7 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.11	2017/11/24
+ * Version:	@(#)win.h	1.0.12	2017/12/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -85,7 +85,7 @@ extern void	keyboard_handle(LPARAM lParam, int infocus);
 extern void     win_mouse_init(void);
 extern void     win_mouse_close(void);
 
-extern int	fdd_type_to_icon(int type);
+extern intptr_t	fdd_type_to_icon(int type);
 
 #ifdef EMU_DEVICE_H
 extern uint8_t	deviceconfig_open(HWND hwnd, device_t *device);
@@ -116,7 +116,7 @@ extern void	StatusWindowCreate(HWND hwnd);
 
 /* Functions in win_stbar.c: */
 extern HWND	hwndSBAR;
-extern void	StatusBarCreate(HWND hwndParent, int idStatus, HINSTANCE hInst);
+extern void	StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst);
 
 
 /* Functions in win_dialog.c: */

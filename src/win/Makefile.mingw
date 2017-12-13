@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.83	2017/12/06
+# Version:	@(#)Makefile.mingw	1.0.84	2017/12/13
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -30,6 +30,7 @@ AUTODEP		:= n
 endif
 ifndef CRASHDUMP
 CRASHDUMP	:= n
+CRASHDUMPOBJ	:= win_crashdump.o
 endif
 ifndef DEBUG
 DEBUG		:= n
@@ -445,7 +446,7 @@ VIDOBJ		:= video.o \
 		    vid_voodoo.o
 
 PLATOBJ		:= win.o \
-		    win_crashdump.o win_dynld.o win_thread.o $(WSERIAL) \
+		    $(CRASHDUMPOBJ) win_dynld.o win_thread.o $(WSERIAL) \
 		    win_cdrom.o win_cdrom_ioctl.o win_keyboard.o \
 		    win_mouse.o win_joystick.o win_midi.o
 
@@ -474,7 +475,9 @@ LIBS		+= $(WX_LIBS) -lz -lm
 endif
 LIBS		+= -lkernel32 -lwsock32 -liphlpapi -lpsapi
 LIBS		+= -lpthread -static -lstdc++ -lgcc
+ifneq ($(X64), y)
 LIBS		+= -Wl,--large-address-aware
+endif
 
 
 # Build module rules.

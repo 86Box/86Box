@@ -31,7 +31,11 @@ extern uint64_t main_time;
 static uint64_t status_time;
 
 
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
 static BOOL CALLBACK
+#endif
 StatusWindowProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     char temp[4096];
