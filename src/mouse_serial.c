@@ -10,7 +10,7 @@
  *
  * TODO:	Add the Genius Serial Mouse.
  *
- * Version:	@(#)mouse_serial.c	1.0.17	2017/12/13
+ * Version:	@(#)mouse_serial.c	1.0.18	2017/12/14
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -205,7 +205,6 @@ sermouse_close(void *priv)
     }
 
     free(dev);
-    dev = NULL;
 }
 
 
