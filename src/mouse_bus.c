@@ -53,7 +53,7 @@
  *		only the Logitech part is considered to
  *		be OK.
  *
- * Version:	@(#)mouse_bus.c	1.0.27	2017/12/09
+ * Version:	@(#)mouse_bus.c	1.0.28	2017/12/14
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -584,6 +584,7 @@ bm_close(void *priv)
 		     bm_read, NULL, NULL, bm_write, NULL, NULL, dev);
 
     free(dev);
+    dev = NULL;
 }
 
 

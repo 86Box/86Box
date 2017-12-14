@@ -10,7 +10,7 @@
  *
  * TODO:	Add the Genius Serial Mouse.
  *
- * Version:	@(#)mouse_serial.c	1.0.16	2017/12/09
+ * Version:	@(#)mouse_serial.c	1.0.17	2017/12/13
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -199,12 +199,13 @@ sermouse_close(void *priv)
     mouse_t *dev = (mouse_t *)priv;
 
     /* Detach serial port from the mouse. */
-    if (dev->serial != NULL) {
+    if ((dev != NULL) && (dev->serial != NULL)) {
 	dev->serial->rcr_callback = NULL;
 	dev->serial->rcr_callback_p = NULL;
     }
 
     free(dev);
+    dev = NULL;
 }
 
 

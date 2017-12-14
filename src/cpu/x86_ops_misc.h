@@ -67,7 +67,6 @@ static int opF6_a16(uint32_t fetchdat)
         int tempws, tempws2 = 0;
         uint16_t tempw, src16;
         uint8_t src, dst;
-        int8_t temps;
         
         fetch_ea_16(fetchdat);
         dst = geteab();                 if (cpu_state.abrt) return 1;
@@ -133,8 +132,7 @@ static int opF6_a16(uint32_t fetchdat)
                 case 0x38: /*IDIV AL,b*/
                 tempws = (int)(int16_t)AX;
                 if (dst != 0) tempws2 = tempws / (int)((int8_t)dst);
-                temps = tempws2 & 0xff;
-                if (dst && ((int)temps == tempws2))
+                if (dst && ((tempws2 > 0x0000007F) || (tempws2 < 0xFFFFFF80)))
                 {
                         AH = (tempws % (int)((int8_t)dst)) & 0xff;
                         AL = tempws2 & 0xff;
@@ -164,7 +162,6 @@ static int opF6_a32(uint32_t fetchdat)
         int tempws, tempws2 = 0;
         uint16_t tempw, src16;
         uint8_t src, dst;
-        int8_t temps;
         
         fetch_ea_32(fetchdat);
         dst = geteab();                 if (cpu_state.abrt) return 1;
@@ -230,8 +227,7 @@ static int opF6_a32(uint32_t fetchdat)
                 case 0x38: /*IDIV AL,b*/
                 tempws = (int)(int16_t)AX;
                 if (dst != 0) tempws2 = tempws / (int)((int8_t)dst);
-                temps = tempws2 & 0xff;
-                if (dst && ((int)temps == tempws2))
+                if (dst && ((tempws2 > 0x0000007F) || (tempws2 < 0xFFFFFF80)))
                 {
                         AH = (tempws % (int)((int8_t)dst)) & 0xff;
                         AL = tempws2 & 0xff;
@@ -263,7 +259,6 @@ static int opF7_w_a16(uint32_t fetchdat)
 {
         uint32_t templ, templ2;
         int tempws, tempws2 = 0;
-        int16_t temps16;
         uint16_t src, dst;
         
         fetch_ea_16(fetchdat);
@@ -329,8 +324,7 @@ static int opF7_w_a16(uint32_t fetchdat)
                 case 0x38: /*IDIV AX,w*/
                 tempws = (int)((DX << 16)|AX);
                 if (dst) tempws2 = tempws / (int)((int16_t)dst);
-                temps16 = tempws2 & 0xffff;
-                if ((dst != 0) && ((int)temps16 == tempws2))
+                if ((dst != 0) && ((tempws2 > 0x00007FFF) || (tempws2 < 0xFFFF8000)))
                 {
                         DX = tempws % (int)((int16_t)dst);
                         AX = tempws2 & 0xffff;
@@ -355,7 +349,6 @@ static int opF7_w_a32(uint32_t fetchdat)
 {
         uint32_t templ, templ2;
         int tempws, tempws2 = 0;
-        int16_t temps16;
         uint16_t src, dst;
 
         fetch_ea_32(fetchdat);
@@ -421,8 +414,7 @@ static int opF7_w_a32(uint32_t fetchdat)
                 case 0x38: /*IDIV AX,w*/
                 tempws = (int)((DX << 16)|AX);
                 if (dst) tempws2 = tempws / (int)((int16_t)dst);
-                temps16 = tempws2 & 0xffff;
-                if ((dst != 0) && ((int)temps16 == tempws2))
+                if ((dst != 0) && ((tempws2 > 0x00007FFF) || (tempws2 < 0xFFFF8000)))
                 {
                         DX = tempws % (int)((int16_t)dst);
                         AX = tempws2 & 0xffff;

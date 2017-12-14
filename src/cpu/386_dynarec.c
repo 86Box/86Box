@@ -477,7 +477,7 @@ int idivl(int32_t val)
          rem=num%val;
          quo32=(int32_t)(quo&0xFFFFFFFF);
 
-        if (quo!=(int64_t)quo32) 
+	if ((quo > 0x000000007FFFFFFFLL) || (quo < 0xFFFFFFFF80000000LL))
         {
                 divexcp();
                 return 1;

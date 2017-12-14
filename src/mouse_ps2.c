@@ -8,7 +8,7 @@
  *
  *		Implementation of PS/2 series Mouse devices.
  *
- * Version:	@(#)mouse_ps2.c	1.0.3	2017/12/09
+ * Version:	@(#)mouse_ps2.c	1.0.4	2017/12/13
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -261,6 +261,7 @@ ps2_close(void *priv)
     keyboard_at_set_mouse(NULL, NULL);
 
     free(dev);
+    dev = NULL;
 }
 
 
