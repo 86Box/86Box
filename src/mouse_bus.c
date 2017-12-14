@@ -49,11 +49,7 @@
  *
  *		Based on an early driver for MINIX 1.5.
  *
- * TODO:	Re-integrate the InPort part. Currently,
- *		only the Logitech part is considered to
- *		be OK.
- *
- * Version:	@(#)mouse_bus.c	1.0.28	2017/12/14
+ * Version:	@(#)mouse_bus.c	1.0.29	2017/12/14
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -249,7 +245,7 @@ ms_read(mouse_t *dev, uint16_t port)
 				if (dev->but & 0x02)		/* RIGHT */
 					ret |= 0x01;
 				if (dev->flags & FLAG_3BTN)
-					if (dev->but & 0x04)	/*MIDDLE*/
+					if (dev->but & 0x04)	/* MIDDLE */
 						ret |= 0x02;
 				break;
 
@@ -415,12 +411,12 @@ lt_read(mouse_t *dev, uint16_t port)
     switch (port) {
 	case LTMOUSE_DATA:	/* [00] data register */
 		ret = 0x07;
-		if (dev->but & 0x01)		/*LEFT*/
+		if (dev->but & 0x01)		/* LEFT */
 			ret &= ~0x04;
-		if (dev->but & 0x02)		/*RIGHT*/
+		if (dev->but & 0x02)		/* RIGHT */
 			ret &= ~0x01;
 		if (dev->flags & FLAG_3BTN)
-			if (dev->but & 0x04)	/*MIDDLE*/
+			if (dev->but & 0x04)	/* MIDDLE */
 				ret &= ~0x02;
 		ret <<= 5;
 
@@ -584,7 +580,6 @@ bm_close(void *priv)
 		     bm_read, NULL, NULL, bm_write, NULL, NULL, dev);
 
     free(dev);
-    dev = NULL;
 }
 
 
