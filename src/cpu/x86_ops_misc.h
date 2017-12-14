@@ -64,7 +64,7 @@ static int opSETALC(uint32_t fetchdat)
 
 static int opF6_a16(uint32_t fetchdat)
 {
-	int32_t tempws, tempws2 = 0;
+	int32_t tempsrc, tempdst, tempws, tempws2 = 0;
         uint16_t tempw, src16;
         uint8_t src, dst;
         
@@ -135,7 +135,10 @@ static int opF6_a16(uint32_t fetchdat)
 			return 1;
 		}
 
-                tempws = ((int)((int16_t)AX)) / ((int)((int8_t)dst));
+		tempsrc = (int16_t) AX;
+		tempdst = (int8_t) dst;
+
+		tempws = tempsrc / tempdst;
 
 		if ((tempws > 127) || (tempws < -128)) {
 			x86_int(0);
@@ -143,7 +146,7 @@ static int opF6_a16(uint32_t fetchdat)
 		}
 
 		tempws = (int8_t) tempws;
-                tempws2 = (int8_t) ((int)((int16_t)AX)) % ((int)((int8_t)dst));
+                tempws2 = (int8_t) (tempsrc % tempdst);
 
 		AH = (uint8_t) tempws2;
 		AL = (uint8_t) tempws;
@@ -165,7 +168,7 @@ static int opF6_a16(uint32_t fetchdat)
 }
 static int opF6_a32(uint32_t fetchdat)
 {
-        int tempws, tempws2 = 0;
+        int tempsrc, tempdst, tempws, tempws2 = 0;
         uint16_t tempw, src16;
         uint8_t src, dst;
         
@@ -236,7 +239,10 @@ static int opF6_a32(uint32_t fetchdat)
 			return 1;
 		}
 
-                tempws = ((int)((int16_t)AX)) / ((int)((int8_t)dst));
+		tempsrc = (int16_t) AX;
+		tempdst = (int8_t) dst;
+
+		tempws = tempsrc / tempdst;
 
 		if ((tempws > 127) || (tempws < -128)) {
 			x86_int(0);
@@ -244,7 +250,7 @@ static int opF6_a32(uint32_t fetchdat)
 		}
 
 		tempws = (int8_t) tempws;
-                tempws2 = (int8_t) ((int)((int16_t)AX)) % ((int)((int8_t)dst));
+                tempws2 = (int8_t) (tempsrc % tempdst);
 
 		AH = (uint8_t) tempws2;
 		AL = (uint8_t) tempws;
@@ -270,8 +276,7 @@ static int opF6_a32(uint32_t fetchdat)
 static int opF7_w_a16(uint32_t fetchdat)
 {
         uint32_t templ, templ2;
-        uint32_t tempsrc;
-	int32_t tempws, tempws2 = 0;
+	int32_t tempsrc, tempdst, tempws, tempws2 = 0;
         uint16_t src, dst;
         
         fetch_ea_16(fetchdat);
@@ -340,8 +345,12 @@ static int opF7_w_a16(uint32_t fetchdat)
 			return 1;
 		}
 
-		tempsrc = (DX << 16) | AX;
-                tempws = ((int32_t)tempsrc) / ((int32_t)((int16_t)dst));
+		templ = (uint32_t) DX;
+                templ = (templ << 16) | AX;
+		tempsrc = (int32_t) templ;
+		tempdst = (int16_t) dst;
+
+		tempws = tempsrc / tempdst;
 
 		if ((tempws > 32767) || (tempws < -32768)) {
 			x86_int(0);
@@ -349,7 +358,7 @@ static int opF7_w_a16(uint32_t fetchdat)
 		}
 
 		tempws = (int16_t) tempws;
-                tempws2 = (int16_t) ((int32_t)tempsrc) % ((int32_t)((int16_t)dst));
+                tempws2 = (int16_t) (tempsrc % tempdst);
 
 		DX = (uint16_t) tempws2;
 		AX = (uint16_t) tempws;
@@ -369,8 +378,7 @@ static int opF7_w_a16(uint32_t fetchdat)
 static int opF7_w_a32(uint32_t fetchdat)
 {
         uint32_t templ, templ2;
-	uint32_t tempsrc;
-        int tempws, tempws2 = 0;
+        int tempsrc, tempdst, tempws, tempws2 = 0;
         uint16_t src, dst;
 
         fetch_ea_32(fetchdat);
@@ -439,8 +447,12 @@ static int opF7_w_a32(uint32_t fetchdat)
 			return 1;
 		}
 
-		tempsrc = (DX << 16) | AX;
-                tempws = ((int32_t)tempsrc) / ((int32_t)((int16_t)dst));
+		templ = (uint32_t) DX;
+                templ = (templ << 16) | AX;
+		tempsrc = (int32_t) templ;
+		tempdst = (int16_t) dst;
+
+		tempws = tempsrc / tempdst;
 
 		if ((tempws > 32767) || (tempws < -32768)) {
 			x86_int(0);
@@ -448,7 +460,7 @@ static int opF7_w_a32(uint32_t fetchdat)
 		}
 
 		tempws = (int16_t) tempws;
-                tempws2 = (int16_t) ((int32_t)tempsrc) % ((int32_t)((int16_t)dst));
+                tempws2 = (int16_t) (tempsrc % tempdst);
 
 		DX = (uint16_t) tempws2;
 		AX = (uint16_t) tempws;
