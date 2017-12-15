@@ -9,7 +9,7 @@
  *		Implementation of the FDI floppy stream image format
  *		interface to the FDI2RAW module.
  *
- * Version:	@(#)floppy_fdi.c	1.0.5	2017/11/04
+ * Version:	@(#)floppy_fdi.c	1.0.6	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -333,9 +333,4 @@ void fdi_seek(int drive, int track)
 	fdi[drive].track = track;
 
 	fdi_read_revolution(drive);
-}
-
-void fdi_init()
-{
-	return;
 }

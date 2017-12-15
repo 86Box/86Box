@@ -417,7 +417,6 @@ void floppy_stop(int drive)
 void floppy_general_init(void)
 {
     floppy_init();
-    fdi_init();
     img_init();
     d86f_init();
     td0_init();

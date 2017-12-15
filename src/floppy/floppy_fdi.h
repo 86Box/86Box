@@ -9,7 +9,7 @@
  *		Implementation of the FDI floppy stream image format
  *		interface to the FDI2RAW module.
  *
- * Version:	@(#)floppy_fdi.h	1.0.2	2017/09/03
+ * Version:	@(#)floppy_fdi.h	1.0.3	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
