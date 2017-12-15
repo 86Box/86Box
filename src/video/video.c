@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.10	2017/11/18
+ * Version:	@(#)video.c	1.0.11	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -200,9 +200,10 @@ void blit_thread(void *param)
 	thread_wait_event(blit_data.wake_blit_thread, -1);
 	thread_reset_event(blit_data.wake_blit_thread);
 
-	blit_func(blit_data.x, blit_data.y,
-		  blit_data.y1, blit_data.y2,
-		  blit_data.w, blit_data.h);
+	if (blit_func)
+		blit_func(blit_data.x, blit_data.y,
+			  blit_data.y1, blit_data.y2,
+			  blit_data.w, blit_data.h);
 
 	blit_data.busy = 0;
 	thread_set_event(blit_data.blit_complete);

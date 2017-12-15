@@ -335,6 +335,9 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
     wchar_t **argw = NULL;
     int	argc, i;
 
+    /* Set this to the default value (windowed mode). */
+    video_fullscreen = 0;
+
     /* We need this later. */
     hinstance = hInst;
 
@@ -689,7 +692,6 @@ get_vidpause(void)
 void
 plat_setfullscreen(int on)
 {
-    static int flag = 0;
     HWND *hw;
 
     /* Want off and already off? */
@@ -698,25 +700,12 @@ plat_setfullscreen(int on)
     /* Want on and already on? */
     if (on && video_fullscreen) return;
 
-    if (!on && !flag) {
-	/* We want to leave FS mode. */
-	flag = 1;
-
-#ifdef USE_WX
-	goto doit;
-#endif
-	return;
-    }
-
-    if (video_fullscreen_first) {
+    if (on && video_fullscreen_first) {
 	video_fullscreen_first = 0;
 	ui_msgbox(MBX_INFO, (wchar_t *)IDS_2074);
     }
 
     /* OK, claim the video. */
-#ifdef USE_WX
-doit:
-#endif
     startblit();
     video_wait_for_blit();
 
@@ -727,7 +716,6 @@ doit:
     video_fullscreen = on;
     hw = (video_fullscreen) ? &hwndMain : &hwndRender;
     vid_apis[video_fullscreen][vid_api].init((void *) *hw);
-    flag = 0;
 
 #ifdef USE_WX
     wx_set_fullscreen(on);
@@ -735,13 +723,12 @@ doit:
 
     win_mouse_init();
 
-    leave_fullscreen_flag = 0;
-
     /* Release video and make it redraw the screen. */
     endblit();
     device_force_redraw();
 
     /* Finally, handle the host's mouse cursor. */
+    pclog("%s full screen, %s cursor\n", on ? "enter" : "leave", on ? "hide" : "show");
     show_cursor(video_fullscreen ? 0 : -1);
 }
 

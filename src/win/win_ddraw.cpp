@@ -11,7 +11,7 @@
  * NOTES:	This code should be re-merged into a single init() with a
  *		'fullscreen' argument, indicating FS mode is requested.
  *
- * Version:	@(#)win_ddraw.cpp	1.0.3	2017/12/15
+ * Version:	@(#)win_ddraw.cpp	1.0.4	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -514,6 +514,8 @@ ddraw_init_fs(HWND h)
 void
 ddraw_close(void)
 {
+    video_setblit(NULL);
+
     if (lpdds_back2) {
 	lpdds_back2->Release();
 	lpdds_back2 = NULL;

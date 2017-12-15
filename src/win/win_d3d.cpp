@@ -8,7 +8,7 @@
  *
  *		Rendering module for Microsoft Direct3D 9.
  *
- * Version:	@(#)win_d3d.cpp	1.0.8	2017/12/15
+ * Version:	@(#)win_d3d.cpp	1.0.9	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -473,6 +473,8 @@ d3d_close_objects(void)
 void
 d3d_close(void)
 {       
+    video_setblit(NULL);
+
     d3d_close_objects();
 
     if (d3ddev) {

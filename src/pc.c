@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.49	2017/12/09
+ * Version:	@(#)pc.c	1.0.50	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1095,13 +1095,6 @@ pc_thread(void *param)
 		plat_resize(scrnsz_x, scrnsz_y);
 
 		doresize = 0;
-	}
-
-	/* If requested, leave full-screen mode. */
-	if (leave_fullscreen_flag) {
-		pclog("Leaving full-screen mode..\n");
-		plat_setfullscreen(0);
-		leave_fullscreen_flag = 0;
 	}
     }
 

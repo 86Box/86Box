@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.9	2017/12/15
+ * Version:	@(#)win_ui.c	1.0.10	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -64,21 +64,23 @@ static int	hook_enabled = 0;
 static int	save_window_pos = 0;
 
 
+static int vis = -1;
+
 /* Set host cursor visible or not. */
 void
 show_cursor(int val)
 {
-    static int old = -1, vis = -1;
+    if (val == vis)
+	return;
 
-    if (vis == val) return;
-
-    if (val < 0)
-	val = old;
-
-    old = vis;
-    while (1) {
-	if (ShowCursor((val == 0) ? FALSE : TRUE) < 0) break;
+    if (val == 0) {
+    	while (1) {
+		if (ShowCursor(FALSE) < 0) break;
+	}
+    } else {
+	ShowCursor(TRUE);
     }
+
     vis = val;
 }
 
@@ -367,6 +369,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_VID_FULLSCREEN:
+				pclog("enter full screen though menu\n");
 				plat_setfullscreen(1);
 				config_save();
 				break;
@@ -539,8 +542,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_KILLFOCUS:
 		infocus = 0;
 		plat_mouse_capture(0);
-		if (video_fullscreen)
-			leave_fullscreen_flag = 1;
 		if (hook_enabled) {
 			UnhookWindowsHookEx(hKeyboardHook);
 			hook_enabled = 0;
@@ -617,9 +618,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_LEAVEFULLSCREEN:
+		pclog("leave full screen on window message\n");
 		plat_setfullscreen(0);
 		config_save();
-		cgapal_rebuild();
 		break;
 
 	case WM_KEYDOWN:
@@ -841,6 +842,7 @@ ui_init(int nCmdShow)
 
 	if (video_fullscreen && keyboard_isfsexit()) {
 		/* Signal "exit fullscreen mode". */
+		pclog("leave full screen though key combination\n");
 		plat_setfullscreen(0);
 	}
     }
@@ -957,12 +959,14 @@ plat_mouse_capture(int on)
 	GetClipCursor(&oldclip);
 	GetWindowRect(hwndRender, &rect);
 	ClipCursor(&rect);
+	pclog("mouse capture off, hide cursor\n");
 	show_cursor(0);
 	mouse_capture = 1;
     } else if (!on && mouse_capture) {
 	/* Disable the in-app mouse. */
 	ClipCursor(&oldclip);
-	show_cursor(1);
+	pclog("mouse capture on, show cursor\n");
+	show_cursor(-1);
 
 	mouse_capture = 0;
     }

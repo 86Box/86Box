@@ -8,7 +8,7 @@
  *
  *		Implement the VNC remote renderer with LibVNCServer.
  *
- * Version:	@(#)vnc.c	1.0.9	2017/11/18
+ * Version:	@(#)vnc.c	1.0.10	2017/12/15
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>
@@ -224,6 +224,8 @@ vnc_init(UNUSED(void *arg))
 void
 vnc_close(void)
 {
+    video_setblit(NULL);
+
     if (rfb != NULL) {
 	free(rfb->frameBuffer);
 
