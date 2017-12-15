@@ -8,11 +8,11 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.11	2017/11/04
+ * Version:	@(#)scsi.c	1.0.12	2017/12/05
  *
- * Authors:	TheCollector1995, <mariogplayer@gmail.com>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *		TheCollector1995, <mariogplayer@gmail.com>
  *
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
@@ -35,6 +35,7 @@
 #include "scsi_buslogic.h"
 #include "scsi_ncr5380.h"
 #include "scsi_ncr53c810.h"
+#include "scsi_wd33c93.h"
 #include "scsi_x54x.h"
 
 
@@ -71,6 +72,9 @@ static SCSI_CARD scsi_cards[] = {
     { "[ISA] Longshine LCS-6821N","lcs6821n",	&scsi_lcs6821n_device,NULL		  },
     { "[ISA] Ranco RT1000B",	"rt1000b",	&scsi_rt1000b_device, NULL		  },
     { "[ISA] Trantor T130B",	"t130b",	&scsi_t130b_device,   NULL		  },
+#ifdef WALTJE
+    { "[ISA] Generic WDC33C93",	"wd33c93",	&scsi_wd33c93_device, NULL		  },
+#endif
     { "[MCA] Adaptec AHA-1640",	"aha1640",	&aha1640_device,      x54x_device_reset   },
     { "[MCA] BusLogic BT-640A",	"bt640a",	&buslogic_640a_device,BuslogicDeviceReset },
     { "[PCI] BusLogic BT-958D",	"bt958d",	&buslogic_pci_device, BuslogicDeviceReset },
