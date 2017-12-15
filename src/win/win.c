@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.41	2017/12/13
+ * Version:	@(#)win.c	1.0.42	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -740,6 +740,9 @@ doit:
     /* Release video and make it redraw the screen. */
     endblit();
     device_force_redraw();
+
+    /* Finally, handle the host's mouse cursor. */
+    show_cursor(video_fullscreen ? 0 : -1);
 }
 
 

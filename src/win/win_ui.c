@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.8	2017/12/15
+ * Version:	@(#)win_ui.c	1.0.9	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -62,6 +62,25 @@ static RAWINPUTDEVICE	device;
 static HHOOK	hKeyboardHook;
 static int	hook_enabled = 0;
 static int	save_window_pos = 0;
+
+
+/* Set host cursor visible or not. */
+void
+show_cursor(int val)
+{
+    static int old = -1, vis = -1;
+
+    if (vis == val) return;
+
+    if (val < 0)
+	val = old;
+
+    old = vis;
+    while (1) {
+	if (ShowCursor((val == 0) ? FALSE : TRUE) < 0) break;
+    }
+    vis = val;
+}
 
 
 HICON
@@ -938,15 +957,12 @@ plat_mouse_capture(int on)
 	GetClipCursor(&oldclip);
 	GetWindowRect(hwndRender, &rect);
 	ClipCursor(&rect);
-	while (1) {
-		if (ShowCursor(FALSE) < 0) break;
-	}
-
+	show_cursor(0);
 	mouse_capture = 1;
     } else if (!on && mouse_capture) {
 	/* Disable the in-app mouse. */
 	ClipCursor(&oldclip);
-	ShowCursor(TRUE);
+	show_cursor(1);
 
 	mouse_capture = 0;
     }
