@@ -35,7 +35,9 @@
 #include "scsi_buslogic.h"
 #include "scsi_ncr5380.h"
 #include "scsi_ncr53c810.h"
-#include "scsi_wd33c93.h"
+#ifdef WALTJE
+# include "scsi_wd33c93.h"
+#endif
 #include "scsi_x54x.h"
 
 
