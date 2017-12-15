@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.34	2017/12/09
+ * Version:	@(#)config.c	1.0.35	2017/12/15
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1024,6 +1024,9 @@ load_removable_devices(void)
 	  else
 		sscanf("0, none", "%u, %s", &cdrom_drives[c].sound_on, s);
 	cdrom_drives[c].bus_type = hdd_string_to_bus(s, 1);
+
+	/* Default values, needed for proper operation of the Settings dialog. */
+	cdrom_drives[c].ide_channel = cdrom_drives[c].scsi_device_id = c + 2;
 
 	sprintf(temp, "cdrom_%02i_ide_channel", c+1);
 	if ((cdrom_drives[c].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) ||
