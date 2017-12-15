@@ -621,10 +621,12 @@ static uint32_t ropFCHS(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
 #define opFLDimm(name, v)                                                                                                       \
         static uint32_t ropFLD ## name(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)   \
         {                                                                                                                       \
+		uint64_t *q;													\
                 static double fp_imm = v;                                                                                       \
                                                                                                                                 \
                 FP_ENTER();                                                                                                     \
-                FP_LOAD_IMM_Q(*(uint64_t *)&fp_imm);                                                                            \
+		q = (uint64_t *)&fp_imm;											\
+                FP_LOAD_IMM_Q(*q);                                                                            			\
                                                                                                                                 \
                 return op_pc;                                                                                                   \
         }
