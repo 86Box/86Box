@@ -8,7 +8,7 @@
  *
  *		Rendering module for Microsoft Direct3D 9.
  *
- * Version:	@(#)win_d3d.cpp	1.0.7	2017/12/13
+ * Version:	@(#)win_d3d.cpp	1.0.8	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -144,7 +144,7 @@ d3d_blit_fs(int x, int y, int y1, int y2, int w, int h)
 	hr = d3dTexture->LockRect(0, &dr, &lock_rect, 0);
 	if (hr == D3D_OK) {
 		for (yy = y1; yy < y2; yy++)
-			memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
+			if (buffer32)  memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
 
 		video_blit_complete();
 		d3dTexture->UnlockRect(0);
@@ -248,8 +248,9 @@ d3d_blit(int x, int y, int y1, int y2, int w, int h)
     hr = d3dTexture->LockRect(0, &dr, &r, 0);
     if (hr == D3D_OK) {	
 	for (yy = y1; yy < y2; yy++) {
-		if ((y + yy) >= 0 && (y + yy) < buffer32->h)
-			memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
+		if (buffer32)
+			if ((y + yy) >= 0 && (y + yy) < buffer32->h)
+				memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
 	}
 
 	video_blit_complete();

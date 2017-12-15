@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.7	2017/12/09
+ * Version:	@(#)win_ui.c	1.0.8	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -756,6 +756,16 @@ ui_init(int nCmdShow)
 			      0, 0, 1, 1, hwnd, NULL, hinstance, NULL);
     MoveWindow(hwndRender, 0, 0, scrnsz_x, scrnsz_y, TRUE);
 
+    /* All done, fire up the actual emulated machine. */
+    if (! pc_init_modules()) {
+	/* Dang, no ROMs found at all! */
+	MessageBox(hwnd,
+		   plat_get_string(IDS_2056),
+		   plat_get_string(IDS_2050),
+		   MB_OK | MB_ICONERROR);
+	return(6);
+    }
+
     /* Initialize the configured Video API. */
     if (! plat_setvid(vid_api)) {
 	MessageBox(hwnd,
@@ -771,16 +781,6 @@ ui_init(int nCmdShow)
 
     /* Set up the current window size. */
     plat_resize(scrnsz_x, scrnsz_y);
-
-    /* All done, fire up the actual emulated machine. */
-    if (! pc_init_modules()) {
-	/* Dang, no ROMs found at all! */
-	MessageBox(hwnd,
-		   plat_get_string(IDS_2056),
-		   plat_get_string(IDS_2050),
-		   MB_OK | MB_ICONERROR);
-	return(6);
-    }
 
     /* Fire up the machine. */
     pc_reset_hard();

@@ -11,7 +11,7 @@
  * NOTES:	This code should be re-merged into a single init() with a
  *		'fullscreen' argument, indicating FS mode is requested.
  *
- * Version:	@(#)win_ddraw.cpp	1.0.2	2017/11/25
+ * Version:	@(#)win_ddraw.cpp	1.0.3	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -245,7 +245,7 @@ ddraw_blit_fs(int x, int y, int y1, int y2, int w, int h)
     }
 
     for (yy = y1; yy < y2; yy++)
-	memcpy((void *)((uintptr_t)ddsd.lpSurface + (yy * ddsd.lPitch)), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
+	if (buffer32)  memcpy((void *)((uintptr_t)ddsd.lpSurface + (yy * ddsd.lPitch)), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
     video_blit_complete();
     lpdds_back->Unlock(NULL);
 
@@ -317,8 +317,9 @@ ddraw_blit(int x, int y, int y1, int y2, int w, int h)
     }
 
     for (yy = y1; yy < y2; yy++) {
-	if ((y + yy) >= 0 && (y + yy) < buffer->h)
-		memcpy((uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
+	if (buffer32)
+		if ((y + yy) >= 0 && (y + yy) < buffer32->h)
+			memcpy((uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
     }
     video_blit_complete();
     lpdds_back->Unlock(NULL);
