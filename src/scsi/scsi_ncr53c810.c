@@ -10,7 +10,7 @@
  *		NCR and later Symbios and LSI. This controller was designed
  *		for the PCI bus.
  *
- * Version:	@(#)scsi_ncr53c810.c	1.0.2	2017/12/16
+ * Version:	@(#)scsi_ncr53c810.c	1.0.3	2017/12/16
  *
  * Authors:	Paul Brook (QEMU)
  *		Artyom Tarasenko (QEMU)
@@ -419,32 +419,16 @@ static void lsi_read(LSIState *s, uint32_t addr, uint8_t *buf, uint32_t len)
 
 	ncr53c810_log("lsi_read(): %08X-%08X, length %i\n", addr, (addr + len - 1), len);
 
+	s->ncr_to_ncr = 1;
 	if (s->dmode & LSI_DMODE_SIOM) {
 		ncr53c810_log("NCR 810: Reading from I/O address %04X\n", (uint16_t) addr);
-
-		if ((addr & 0xFF00) == s->PCIBase) {
-			s->ncr_to_ncr = 1;
-			for (i = 0; i < len; i++)
-				buf[i] = lsi_reg_readb(s, addr & 0xFF);
-			s->ncr_to_ncr = 0;
-			return;
-		}
-
 		for (i = 0; i < len; i++)
 			buf[i] = inb((uint16_t) (addr + i));
 	} else {
 		ncr53c810_log("NCR 810: Reading from memory address %08X\n", addr);
-
-		if ((addr & 0xFFFFFF00) == s->MMIOBase) {
-			s->ncr_to_ncr = 1;
-			for (i = 0; i < len; i++)
-				buf[i] = lsi_reg_readb(s, addr & 0xFF);
-			s->ncr_to_ncr = 0;
-			return;
-		}
-
         	DMAPageRead(addr, buf, len);
 	}
+	s->ncr_to_ncr = 0;
 }
 
 static void lsi_write(LSIState *s, uint32_t addr, uint8_t *buf, uint32_t len)
@@ -453,32 +437,16 @@ static void lsi_write(LSIState *s, uint32_t addr, uint8_t *buf, uint32_t len)
 
 	ncr53c810_log("lsi_write(): %08X-%08X, length %i\n", addr, (addr + len - 1), len);
 
+	s->ncr_to_ncr = 1;
 	if (s->dmode & LSI_DMODE_DIOM) {
 		ncr53c810_log("NCR 810: Writing to I/O address %04X\n", (uint16_t) addr);
-
-		if ((addr & 0xFF00) == s->PCIBase) {
-			s->ncr_to_ncr = 1;
-			for (i = 0; i < len; i++)
-				lsi_reg_writeb(s, addr & 0xFF, buf[i]);
-			s->ncr_to_ncr = 0;
-			return;
-		}
-
 		for (i = 0; i < len; i++)
 			outb((uint16_t) (addr + i), buf[i]);
 	} else {
 		ncr53c810_log("NCR 810: Writing to memory address %08X\n", addr);
-
-		if ((addr & 0xFFFFFF00) == s->MMIOBase) {
-			s->ncr_to_ncr = 1;
-			for (i = 0; i < len; i++)
-				lsi_reg_writeb(s, addr & 0xFF, buf[i]);
-			s->ncr_to_ncr = 0;
-			return;
-		}
-
         	DMAPageWrite(addr, buf, len);
 	}
+	s->ncr_to_ncr = 0;
 }
 
 static inline uint32_t read_dword(LSIState *s, uint32_t addr)
@@ -2089,6 +2057,7 @@ static uint8_t lsi_reg_readb(LSIState *s, uint32_t offset)
         if ((s->sstat1 & PHASE_MASK) == PHASE_MI) {
 	    ncr53c810_log("NCR 810: Read SBDL %02X\n", s->msg[0]);
             ret = s->msg[0];
+	    break;
 	}
 	ncr53c810_log("NCR 810: Read SBDL 00\n");
         ret = 0;
