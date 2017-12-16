@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of disk controllers.
  *
- * Version:	@(#)hdc.c	1.0.7	2017/11/08
+ * Version:	@(#)hdc.c	1.0.8	2017/12/15
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -94,13 +94,8 @@ static struct {
     { "[ISA] [ESDI] PC/AT ESDI Fixed Disk Adapter",	"esdi_at",
       &esdi_at_wd1007vse1_device,			0		},
 
-#if 0
     { "[ISA] [IDE] PC/AT IDE Adapter",			"ide_isa",
       &ide_isa_device,					0		},
-
-    { "[PCI] [IDE] PCI IDE Adapter",			"ide_pci",
-      &ide_pci_device,					0		},
-#endif
 
     { "[ISA] [IDE] PC/XT XTIDE",			"xtide",
       &xtide_device		,			0		},
@@ -116,6 +111,12 @@ static struct {
 
     { "[MCA] [ESDI] IBM PS/2 ESDI Fixed Disk Adapter","esdi_mca",
       &esdi_ps2_device,					1		},
+
+    { "[PCI] [IDE] PCI IDE Adapter",			"ide_pci",
+      &ide_pci_device,					0		},
+
+    { "[VLB] [IDE] PC/AT IDE Adapter",			"vlb_isa",
+      &ide_vlb_device,					0		},
 
     { "",						"", NULL, 0	}
 };

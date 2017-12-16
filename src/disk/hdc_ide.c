@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.21	2017/12/09
+ * Version:	@(#)hdc_ide.c	1.0.22	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2426,3 +2426,72 @@ void secondary_ide_check(void)
 	}
 	if (!secondary_cdroms)  ide_sec_disable();
 }
+
+
+/*
+ * Initialization of standalone IDE controller instance.
+ *
+ * Eventually, we should clean up the whole mess by only
+ * using device_t units, with configuration parameters to
+ * indicate primary/secondary and all that, rather than
+ * keeping a zillion of duplicate functions around.
+ */
+static void *
+ide_sainit(device_t *info)
+{
+    switch(info->local) {
+	case 0:		/* ISA, single-channel */
+		ide_pri_enable();
+		ide_bus_master_read = ide_bus_master_write = NULL;
+		timer_add(ide_callback_pri, &idecallback[0], &idecallback[0],  NULL);
+		break;
+
+	case 1:		/* VLB, single-channel */
+		ide_pri_enable();
+		ide_bus_master_read = ide_bus_master_write = NULL;
+		timer_add(ide_callback_pri, &idecallback[0], &idecallback[0],  NULL);
+		break;
+
+	case 2:		/* PCI, single-channel */
+		ide_pri_enable();
+		timer_add(ide_callback_pri, &idecallback[0], &idecallback[0],  NULL);
+		break;
+    }
+
+    return(info);
+}
+
+
+/* Close a standalone IDE unit. */
+static void
+ide_saclose(void *priv)
+{
+}
+
+
+device_t ide_isa_device = {
+    "ISA PC/AT IDE Controller",
+    DEVICE_ISA | DEVICE_AT,
+    0,
+    ide_sainit, ide_saclose, NULL,
+    NULL, NULL, NULL, NULL,
+    NULL
+};
+
+device_t ide_pci_device = {
+    "PCI IDE Controller",
+    DEVICE_PCI | DEVICE_AT,
+    2,
+    ide_sainit, ide_saclose, NULL,
+    NULL, NULL, NULL, NULL,
+    NULL
+};
+
+device_t ide_vlb_device = {
+    "VLB IDE Controller",
+    DEVICE_VLB | DEVICE_AT,
+    1,
+    ide_sainit, ide_saclose, NULL,
+    NULL, NULL, NULL, NULL,
+    NULL
+};

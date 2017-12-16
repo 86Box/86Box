@@ -8,10 +8,11 @@
  *
  *		Definitions for the common disk controller handler.
  *
- * Version:	@(#)hdc.h	1.0.3	2017/10/01
+ * Version:	@(#)hdc.h	1.0.4	2017/12/15
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2016,2017 Miran Grca.
  *		Copyright 2017 Fred N. van Kempen.
  */
@@ -37,6 +38,10 @@ extern device_t	mfm_at_wd1003_device;		/* mfm_at_wd1003 */
 
 extern device_t	esdi_at_wd1007vse1_device;	/* esdi_at */
 extern device_t	esdi_ps2_device;		/* esdi_mca */
+
+extern device_t	ide_isa_device;			/* isa_ide */
+extern device_t	ide_pci_device;			/* pci_ide */
+extern device_t	ide_vlb_device;			/* vlb_ide */
 
 extern device_t	xtide_device;			/* xtide_xt */
 extern device_t	xtide_at_device;		/* xtide_at */
