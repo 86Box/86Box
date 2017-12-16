@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.31	2017/12/10
+ * Version:	@(#)scsi_buslogic.c	1.0.32	2017/12/15
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -570,10 +570,10 @@ BuslogicSCSIBIOSDMATransfer(ESCMD *ESCSICmd, uint8_t TargetID, uint8_t LUN, int 
 
 	if (dir && ((ESCSICmd->DataDirection == CCB_DATA_XFER_OUT) || (ESCSICmd->DataDirection == 0x00))) {
 		buslogic_log("BusLogic BIOS DMA: Reading %i bytes from %08X\n", TransferLength, Address);
-		DMAPageRead(Address, (char *)SCSIDevices[TargetID][LUN].CmdBuffer, TransferLength);
+		DMAPageRead(Address, (uint8_t *)SCSIDevices[TargetID][LUN].CmdBuffer, TransferLength);
 	} else if (!dir && ((ESCSICmd->DataDirection == CCB_DATA_XFER_IN) || (ESCSICmd->DataDirection == 0x00))) {
 		buslogic_log("BusLogic BIOS DMA: Writing %i bytes at %08X\n", TransferLength, Address);
-		DMAPageWrite(Address, (char *)SCSIDevices[TargetID][LUN].CmdBuffer, TransferLength);
+		DMAPageWrite(Address, (uint8_t *)SCSIDevices[TargetID][LUN].CmdBuffer, TransferLength);
 	}
     }
 }

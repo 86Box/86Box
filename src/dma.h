@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel DMA controllers.
  *
- * Version:	@(#)dma.h	1.0.3	2017/11/01
+ * Version:	@(#)dma.h	1.0.4	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -72,9 +72,9 @@ extern void	dma_alias_set(void);
 extern void	dma_alias_remove(void);
 extern void	dma_alias_remove_piix(void);
 
-extern void	DMAPageRead(uint32_t PhysAddress, char *DataRead,
+extern void	DMAPageRead(uint32_t PhysAddress, uint8_t *DataRead,
 			    uint32_t TotalSize);
-extern void	DMAPageWrite(uint32_t PhysAddress, const char *DataWrite,
+extern void	DMAPageWrite(uint32_t PhysAddress, const uint8_t *DataWrite,
 			     uint32_t TotalSize);
 
 

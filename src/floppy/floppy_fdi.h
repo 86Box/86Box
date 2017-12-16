@@ -9,10 +9,11 @@
  *		Implementation of the FDI floppy stream image format
  *		interface to the FDI2RAW module.
  *
- * Version:	@(#)floppy_fdi.h	1.0.3	2017/12/15
+ * Version:	@(#)floppy_fdi.h	1.0.3	2017/12/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
@@ -20,7 +21,6 @@
 # define EMU_FLOPPY_FDI_H
 
 
-extern void fdi_init(void);
 extern void fdi_load(int drive, wchar_t *fn);
 extern void fdi_close(int drive);
 extern void fdi_seek(int drive, int track);

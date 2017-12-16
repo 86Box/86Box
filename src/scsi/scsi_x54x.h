@@ -11,7 +11,7 @@
  *		of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.h	1.0.3	2017/10/27
+ * Version:	@(#)scsi_x54x.h	1.0.4	2017/12/15
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -332,9 +332,7 @@ typedef struct {
     char	vendor[16];			/* name of device vendor */
     char	name[16];			/* name of device */
 
-    volatile
     int8_t	Irq;
-    volatile
     uint8_t	IrqEnabled;
 
     int8_t	DmaChannel;
@@ -373,8 +371,8 @@ typedef struct {
     uint16_t	DataReply;
     uint16_t	DataReplyLeft;
 
-    volatile
-    uint32_t	MailboxInit,
+    volatile uint32_t
+		MailboxInit,
 		MailboxCount,
 		MailboxOutAddr,
 		MailboxOutPosCur,
@@ -382,19 +380,18 @@ typedef struct {
 		MailboxInPosCur,
 		MailboxReq;
 
-    volatile
-    int		Mbx24bit,
+    volatile int
+		Mbx24bit,
 		MailboxOutInterrupts;
 
-    volatile
-    int		PendingInterrupt,
+    volatile int
+		PendingInterrupt,
 		Lock;
 
-    volatile
     uint8_t	shadow_ram[128];
 
-    volatile
-    uint8_t	MailboxIsBIOS,
+    volatile uint8_t
+		MailboxIsBIOS,
 		ToRaise;
 
     uint8_t	shram_mode;
@@ -402,7 +399,6 @@ typedef struct {
     uint8_t	sync;
     uint8_t	parity;
 
-    volatile
     uint8_t	dma_buffer[128];
 
     volatile
@@ -413,7 +409,6 @@ typedef struct {
 		BIOSMailboxReq,
 		Residue;
 
-    volatile
     uint8_t	BusOnTime,
 		BusOffTime,
 		ATBusSpeed;
@@ -491,7 +486,6 @@ typedef struct
 				   (p->u.lba.lba2<<8) | p->u.lba.lba3)
 
 
-
 extern void	x54x_reset_ctrl(x54x_t *dev, uint8_t Reset);
 extern void	x54x_busy(uint8_t set);
 extern void	x54x_thread_start(x54x_t *dev);
@@ -510,7 +504,6 @@ extern void	x54x_mem_disable(x54x_t *dev);
 extern void	*x54x_init(device_t *info);
 extern void	x54x_close(void *priv);
 extern void	x54x_device_reset(void *priv);
-
 
 
 #endif

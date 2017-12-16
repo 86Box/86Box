@@ -9,7 +9,7 @@
  *		Generic floppy disk interface that communicates with the
  *		other handlers.
  *
- * Version:	@(#)floppy.c	1.0.12	2017/11/04
+ * Version:	@(#)floppy.c	1.0.13	2017/12/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -323,7 +323,6 @@ void floppy_set_rate(int drive, int drvden, int rate)
 		                floppy_period = 4;
 		                break;
 		}
-		break;
                 case 2: /*Double density*/
                 floppy_period = 32;
                 break;

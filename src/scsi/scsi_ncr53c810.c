@@ -10,12 +10,12 @@
  *		NCR and later Symbios and LSI. This controller was designed
  *		for the PCI bus.
  *
- * Version:	@(#)scsi_ncr53c810.c	1.0.0	2017/12/10
+ * Version:	@(#)scsi_ncr53c810.c	1.0.1	2017/12/15
  *
- * Authors:	TheCollector1995, <mariogplayer@gmail.com>
+ * Authors:	Paul Brook (QEMU)
+ *		Artyom Tarasenko (QEMU)
+ *		TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
- *		Paul Brook (QEMU),
- *		Artyom Tarasenko (QEMU),
  *
  *		Copyright 2006-2017 Paul Brook.
  *		Copyright 2009-2017 Artyom Tarasenko.
@@ -398,7 +398,7 @@ static void lsi_soft_reset(LSIState *s)
 }
 
 
-static void lsi_read(LSIState *s, uint32_t addr, char *buf, uint32_t len)
+static void lsi_read(LSIState *s, uint32_t addr, uint8_t *buf, uint32_t len)
 {
 	int i = 0;
 
@@ -414,7 +414,7 @@ static void lsi_read(LSIState *s, uint32_t addr, char *buf, uint32_t len)
 	}
 }
 
-static void lsi_write(LSIState *s, uint32_t addr, char *buf, uint32_t len)
+static void lsi_write(LSIState *s, uint32_t addr, uint8_t *buf, uint32_t len)
 {
 	int i = 0;
 
@@ -434,7 +434,7 @@ static inline uint32_t read_dword(LSIState *s, uint32_t addr)
 {
     uint32_t buf;
     ncr53c810_log("Reading the next DWORD from memory (%08X)...\n", addr);
-    DMAPageRead(addr, (char *)&buf, 4);
+    DMAPageRead(addr, (uint8_t *)&buf, 4);
     return cpu_to_le32(buf);
 }
 
@@ -601,13 +601,13 @@ static void lsi_do_dma(LSIState *s, int out, uint8_t id)
     s->dbc -= count;
 
     if (out) {
-        lsi_read(s, addr, ((char *)dev->CmdBuffer) + s->buffer_pos, count);
+        lsi_read(s, addr, dev->CmdBuffer+s->buffer_pos, count);
     }  else {
 	if (!s->buffer_pos) {
     		DPRINTF("(ID=%02i LUN=%02i) SCSI Command 0x%02x: SCSI Command Phase 1 on PHASE_DI\n", id, s->current_lun, s->last_command);
 		scsi_device_command_phase1(s->current->tag, s->current_lun);
 	}
-        lsi_write(s, addr, ((char *)dev->CmdBuffer) + s->buffer_pos, count);
+        lsi_write(s, addr, dev->CmdBuffer+s->buffer_pos, count);
     }
 
     s->temp_buf_len -= count;
@@ -735,7 +735,7 @@ static void lsi_do_command(LSIState *s, uint8_t id)
     uint8_t buf[12];
 
     memset(buf, 0, 12);
-    DMAPageRead(s->dnad, (char *)buf, MIN(12, s->dbc));
+    DMAPageRead(s->dnad, buf, MIN(12, s->dbc));
     if (s->dbc > 12) {
     	DPRINTF("(ID=%02i LUN=%02i) SCSI Command 0x%02x: CDB length %i too big\n", id, s->current_lun, buf[0], s->dbc);
         s->dbc = 12;
@@ -791,7 +791,7 @@ static void lsi_do_status(LSIState *s)
     s->dbc = 1;
     status = s->status;
     s->sfbr = status;
-    lsi_write(s, s->dnad, (char *)&status, 1);
+    lsi_write(s, s->dnad, &status, 1);
     lsi_set_phase(s, PHASE_MI);
     s->msg_action = 1;
     lsi_add_msg_byte(s, 0); /* COMMAND COMPLETE */
@@ -805,7 +805,7 @@ static void lsi_do_msgin(LSIState *s)
     len = s->msg_len;
     if (len > s->dbc)
         len = s->dbc;
-    lsi_write(s, s->dnad, (char *)s->msg, len);
+    lsi_write(s, s->dnad, s->msg, len);
     /* Linux drivers rely on the last byte being in the SIDL.  */
     s->sidl = s->msg[len - 1];
     s->msg_len -= len;
@@ -838,7 +838,7 @@ static void lsi_do_msgin(LSIState *s)
 static uint8_t lsi_get_msgbyte(LSIState *s)
 {
     uint8_t data;
-    DMAPageRead(s->dnad, (char *)&data, 1);
+    DMAPageRead(s->dnad, &data, 1);
     s->dnad++;
     s->dbc--;
     return data;
@@ -979,8 +979,8 @@ static void lsi_memcpy(LSIState *s, uint32_t dest, uint32_t src, int count)
     DPRINTF("memcpy dest 0x%08x src 0x%08x count %d\n", dest, src, count);
     while (count) {
         n = (count > LSI_BUF_SIZE) ? LSI_BUF_SIZE : count;
-        lsi_read(s, src, (char *)buf, n);
-        lsi_write(s, dest, (char *)buf, n);
+        lsi_read(s, src, buf, n);
+        lsi_write(s, dest, buf, n);
         src += n;
         dest += n;
         count -= n;
@@ -1053,7 +1053,7 @@ again:
 
             /* 32-bit Table indirect */
             offset = sextract32(addr, 0, 24);
-            DMAPageRead(s->dsa + offset, (char *)buf, 8);
+            DMAPageRead(s->dsa + offset, (uint8_t *)buf, 8);
             /* byte count is stored in bits 0:23 only */
             s->dbc = cpu_to_le32(buf[0]) & 0xffffff;
             addr = cpu_to_le32(buf[1]);
@@ -1363,6 +1363,7 @@ again:
             lsi_memcpy(s, dest, addr, insn & 0xffffff);
         } else {
             uint8_t data[7];
+	    uint8_t *pp = data;
             int reg;
             int n;
             int i;
@@ -1373,9 +1374,9 @@ again:
             n = (insn & 7);
             reg = (insn >> 16) & 0xff;
             if (insn & (1 << 24)) {
-                DMAPageRead(addr, (char *) data, n);
-                DPRINTF("Load reg 0x%x size %d addr 0x%08x = %08x\n", reg, n,
-                        addr, *(int *)data);
+                DMAPageRead(addr, data, n);
+                DPRINTF("Load reg 0x%x size %d addr 0x%08x = %08x\n",
+			reg, n, addr, *(unsigned *)pp);
                 for (i = 0; i < n; i++) {
                     lsi_reg_writeb(s, reg + i, data[i]);
                 }
@@ -1384,7 +1385,7 @@ again:
                 for (i = 0; i < n; i++) {
                     data[i] = lsi_reg_readb(s, reg + i);
                 }
-                DMAPageWrite(addr, (char *) data, n);
+                DMAPageWrite(addr, data, n);
             }
 	}
         break;

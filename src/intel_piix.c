@@ -10,7 +10,7 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)intel_piix.c	1.0.9	2017/11/11
+ * Version:	@(#)intel_piix.c	1.0.10	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -414,8 +414,8 @@ struct
 
 static void piix_bus_master_next_addr(int channel)
 {
-	DMAPageRead(piix_busmaster[channel].ptr_cur, (char *) &(piix_busmaster[channel].addr), 4);
-	DMAPageRead(piix_busmaster[channel].ptr_cur + 4, (char *) &(piix_busmaster[channel].count), 4);
+	DMAPageRead(piix_busmaster[channel].ptr_cur, (uint8_t *)&(piix_busmaster[channel].addr), 4);
+	DMAPageRead(piix_busmaster[channel].ptr_cur + 4, (uint8_t *)&(piix_busmaster[channel].count), 4);
 #if 0
 	pclog("PIIX Bus master DWORDs: %08X %08X\n", piix_busmaster[channel].addr, piix_busmaster[channel].count);
 #endif
@@ -521,14 +521,14 @@ int piix_bus_master_dma_read(int channel, uint8_t *data, int transfer_length)
 #if 0
 			pclog("Writing %i bytes to %08X\n", piix_busmaster[channel].count, piix_busmaster[channel].addr);
 #endif
-			DMAPageWrite(piix_busmaster[channel].addr, (char *) (data + buffer_pos), piix_busmaster[channel].count);
+			DMAPageWrite(piix_busmaster[channel].addr, (uint8_t *)(data + buffer_pos), piix_busmaster[channel].count);
 			transfer_length -= piix_busmaster[channel].count;
 			buffer_pos += piix_busmaster[channel].count;
                 } else {
 #if 0
 			pclog("Writing %i bytes to %08X\n", piix_busmaster[channel].count, piix_busmaster[channel].addr);
 #endif
-			DMAPageWrite(piix_busmaster[channel].addr, (char *) (data + buffer_pos), transfer_length);
+			DMAPageWrite(piix_busmaster[channel].addr, (uint8_t *)(data + buffer_pos), transfer_length);
 			transfer_length = 0;
 			force_end = 1;
        	        }
@@ -584,14 +584,14 @@ int piix_bus_master_dma_write(int channel, uint8_t *data, int transfer_length)
 #if 0
 			pclog("Reading %i bytes from %08X\n", piix_busmaster[channel].count, piix_busmaster[channel].addr);
 #endif
-			DMAPageRead(piix_busmaster[channel].addr, (char *) (data + buffer_pos), piix_busmaster[channel].count);
+			DMAPageRead(piix_busmaster[channel].addr, (uint8_t *)(data + buffer_pos), piix_busmaster[channel].count);
 			transfer_length -= piix_busmaster[channel].count;
 			buffer_pos += piix_busmaster[channel].count;
                 } else {
 #if 0
 			pclog("Reading %i bytes from %08X\n", piix_busmaster[channel].count, piix_busmaster[channel].addr);
 #endif
-			DMAPageRead(piix_busmaster[channel].addr, (char *) (data + buffer_pos), transfer_length);
+			DMAPageRead(piix_busmaster[channel].addr, (uint8_t *)(data + buffer_pos), transfer_length);
 			transfer_length = 0;
 			force_end = 1;
        	        }

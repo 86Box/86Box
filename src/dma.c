@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel DMA controllers.
  *
- * Version:	@(#)dma.c	1.0.6	2017/11/04
+ * Version:	@(#)dma.c	1.0.7	2017/12/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -755,25 +755,30 @@ int dma_mode(int channel)
 }
 
 /* DMA Bus Master Page Read/Write */
-void DMAPageRead(uint32_t PhysAddress, char *DataRead, uint32_t TotalSize)
+void DMAPageRead(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize)
 {
 	int i = 0;
 
-	// memcpy(DataRead, &ram[PhysAddress], TotalSize);
-
+#if 0
+	memcpy(DataRead, &ram[PhysAddress], TotalSize);
+#else
 	for (i = 0; i < TotalSize; i++)
 		DataRead[i] = mem_readb_phys_dma(PhysAddress + i);
+#endif
 }
 
-void DMAPageWrite(uint32_t PhysAddress, const char *DataWrite, uint32_t TotalSize)
+void DMAPageWrite(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize)
 {
 	int i = 0;
 
-	// mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
-	// memcpy(&ram[PhysAddress], DataWrite, TotalSize);
+#if 0
+	mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
+	memcpy(&ram[PhysAddress], DataWrite, TotalSize);
 
+#else
 	for (i = 0; i < TotalSize; i++)
 		mem_writeb_phys_dma(PhysAddress + i, DataWrite[i]);
+#endif
 
 	mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
 }
