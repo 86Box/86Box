@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.50	2017/12/15
+ * Version:	@(#)pc.c	1.0.51	2017/12/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -196,8 +196,8 @@ pclog_ex(const char *fmt, va_list ap)
     } else {
 	if (seen) {
 		fprintf(stdlog, "*** %d repeats ***\n", seen);
-		seen = 0;
 	}
+	seen = 0;
 	strcpy(buff, temp);
 	fprintf(stdlog, temp, ap);
     }

@@ -10,7 +10,7 @@
  *		NCR and later Symbios and LSI. This controller was designed
  *		for the PCI bus.
  *
- * Version:	@(#)scsi_ncr53c810.c	1.0.1	2017/12/15
+ * Version:	@(#)scsi_ncr53c810.c	1.0.2	2017/12/16
  *
  * Authors:	Paul Brook (QEMU)
  *		Artyom Tarasenko (QEMU)
@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../dma.h"
@@ -208,7 +209,7 @@ typedef struct {
      * 1 if a Wait Reselect instruction has been issued.
      * 2 if processing DMA from lsi_execute_script.
      * 3 if a DMA operation is in progress.  */
-    int waiting;
+    volatile uint8_t waiting, sstop;
 
     uint8_t current_lun;
     uint8_t select_id;
@@ -261,7 +262,8 @@ typedef struct {
     uint8_t stime0;
     uint8_t respid0;
     uint8_t respid1;
-    uint32_t scratch[4]; /* SCRATCHA-SCRATCHR */
+    uint32_t scratch;
+    uint32_t scratch2; /* SCRATCHA-SCRATCHD */
     uint8_t sbr;
     uint8_t chip_rev;
     int last_level;
@@ -273,14 +275,31 @@ typedef struct {
 
     /* Script ram is stored as 32-bit words in host byteorder.  */
     uint8_t script_ram[8192];
-    uint8_t sstop;
 
-    uint32_t prefetch;
-    uint8_t prefetch_used;
-
-    uint8_t regop;
     uint32_t adder;
+    uint8_t ncr_to_ncr;
 } LSIState;
+
+
+static volatile
+thread_t	*poll_tid;
+static volatile
+int	busy;
+
+static volatile
+event_t	*evt;
+static volatile
+event_t	*wait_evt;
+
+static volatile
+event_t	*wake_poll_thread;
+static volatile
+event_t	*thread_started;
+static volatile
+event_t	*waiting_state;
+
+static volatile
+LSIState	*lsi_dev;
 
 
 #ifdef ENABLE_NCR53C810_LOG
@@ -313,9 +332,6 @@ static void lsi_reg_writeb(LSIState *s, uint32_t offset, uint8_t val);
 static void lsi_execute_script(LSIState *s);
 static void lsi_reselect(LSIState *s, lsi_request *p);
 static void lsi_command_complete(void *priv, uint32_t status);
-#if 0
-static void lsi_transfer_data(void *priv, uint32_t len, uint8_t id);
-#endif
 
 static inline int32_t sextract32(uint32_t value, int start, int length)
 {
@@ -350,7 +366,7 @@ static void lsi_soft_reset(LSIState *s)
     s->dnad = 0;
     s->dbc = 0;
     s->temp = 0;
-    memset(s->scratch, 0, sizeof(s->scratch));
+    s->scratch = s->scratch2 = 0;
     s->istat0 = 0;
     s->istat1 = 0;
     s->dcmd = 0x40;
@@ -393,8 +409,7 @@ static void lsi_soft_reset(LSIState *s)
     s->last_level = 0;
     s->gpreg0 = 0;
     s->sstop = 1;
-    s->prefetch = 0;
-    s->prefetch_used = 0;
+    s->ncr_to_ncr = 0;
 }
 
 
@@ -406,10 +421,28 @@ static void lsi_read(LSIState *s, uint32_t addr, uint8_t *buf, uint32_t len)
 
 	if (s->dmode & LSI_DMODE_SIOM) {
 		ncr53c810_log("NCR 810: Reading from I/O address %04X\n", (uint16_t) addr);
+
+		if ((addr & 0xFF00) == s->PCIBase) {
+			s->ncr_to_ncr = 1;
+			for (i = 0; i < len; i++)
+				buf[i] = lsi_reg_readb(s, addr & 0xFF);
+			s->ncr_to_ncr = 0;
+			return;
+		}
+
 		for (i = 0; i < len; i++)
 			buf[i] = inb((uint16_t) (addr + i));
 	} else {
 		ncr53c810_log("NCR 810: Reading from memory address %08X\n", addr);
+
+		if ((addr & 0xFFFFFF00) == s->MMIOBase) {
+			s->ncr_to_ncr = 1;
+			for (i = 0; i < len; i++)
+				buf[i] = lsi_reg_readb(s, addr & 0xFF);
+			s->ncr_to_ncr = 0;
+			return;
+		}
+
         	DMAPageRead(addr, buf, len);
 	}
 }
@@ -422,10 +455,28 @@ static void lsi_write(LSIState *s, uint32_t addr, uint8_t *buf, uint32_t len)
 
 	if (s->dmode & LSI_DMODE_DIOM) {
 		ncr53c810_log("NCR 810: Writing to I/O address %04X\n", (uint16_t) addr);
+
+		if ((addr & 0xFF00) == s->PCIBase) {
+			s->ncr_to_ncr = 1;
+			for (i = 0; i < len; i++)
+				lsi_reg_writeb(s, addr & 0xFF, buf[i]);
+			s->ncr_to_ncr = 0;
+			return;
+		}
+
 		for (i = 0; i < len; i++)
 			outb((uint16_t) (addr + i), buf[i]);
 	} else {
 		ncr53c810_log("NCR 810: Writing to memory address %08X\n", addr);
+
+		if ((addr & 0xFFFFFF00) == s->MMIOBase) {
+			s->ncr_to_ncr = 1;
+			for (i = 0; i < len; i++)
+				lsi_reg_writeb(s, addr & 0xFF, buf[i]);
+			s->ncr_to_ncr = 0;
+			return;
+		}
+
         	DMAPageWrite(addr, buf, len);
 	}
 }
@@ -543,19 +594,8 @@ static void lsi_bad_phase(LSIState *s, int out, int new_phase)
 }
 
 
-/* Resume SCRIPTS execution after a DMA operation.  */
-static void lsi_resume_script(LSIState *s)
-{
-    ncr53c810_log("lsi_resume_script()\n");
-    if (s->waiting != 2) {
-        s->waiting = 0;
-        lsi_execute_script(s);
-    } else {
-        s->waiting = 0;
-    }
-}
-
-static void lsi_disconnect(LSIState *s)
+static void
+lsi_disconnect(LSIState *s)
 {
     s->scntl1 &= ~LSI_SCNTL1_CON;
     s->sstat1 &= ~PHASE_MASK;
@@ -563,14 +603,18 @@ static void lsi_disconnect(LSIState *s)
 	s->sstat1 |= 0x07;
 }
 
-static void lsi_bad_selection(LSIState *s, uint32_t id)
+
+static void
+lsi_bad_selection(LSIState *s, uint32_t id)
 {
     DPRINTF("Selected absent target %d\n", id);
     lsi_script_scsi_interrupt(s, 0, LSI_SIST1_STO);
     lsi_disconnect(s);
 }
 
-static void lsi_do_dma(LSIState *s, int out, uint8_t id)
+
+static void
+lsi_do_dma(LSIState *s, int out, uint8_t id)
 {
     uint32_t addr, count, tdbc;
 
@@ -625,12 +669,14 @@ static void lsi_do_dma(LSIState *s, int out, uint8_t id)
 	lsi_command_complete(s, SCSIStatus);
     } else {
     	DPRINTF("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Resume SCRIPTS\n", id, s->current_lun, s->last_command);
-	lsi_resume_script(s);
+	s->sstop = 0;
     }
 }
 
+
 /* Queue a byte for a MSG IN phase.  */
-static void lsi_add_msg_byte(LSIState *s, uint8_t data)
+static void
+lsi_add_msg_byte(LSIState *s, uint8_t data)
 {
     if (s->msg_len >= LSI_MAX_MSGIN_LEN) {
         BADF("MSG IN data too long\n");
@@ -640,8 +686,33 @@ static void lsi_add_msg_byte(LSIState *s, uint8_t data)
     }
 }
 
+
+static void
+lsi_busy(uint8_t set)
+{
+    if (busy == !!set)
+	return;
+
+    busy = !!set;
+    ncr53c810_log("NCR 810: Busy is now %s...\n", busy ? "ON" : "OFF");
+    if (!set) {
+	    ncr53c810_log("NCR 810: Setting thread wake event...\n", busy ? "ON" : "OFF");
+	    thread_set_event((event_t *) wake_poll_thread);
+    }
+}
+
+
+static void
+lsi_set_wake_event(void)
+{
+    ncr53c810_log("NCR 810: Setting wait event arrived...\n");
+    thread_set_event((event_t *)waiting_state);
+}
+
+
 /* Perform reselection to continue a command.  */
-static void lsi_reselect(LSIState *s, lsi_request *p)
+static void
+lsi_reselect(LSIState *s, lsi_request *p)
 {
     int id;
 
@@ -671,6 +742,9 @@ static void lsi_reselect(LSIState *s, lsi_request *p)
     if (lsi_irq_on_rsl(s)) {
         lsi_script_scsi_interrupt(s, LSI_SIST0_RSL, 0);
     }
+
+    s->sstop = s->waiting = 0;
+    lsi_set_wake_event();
 }
 
 
@@ -726,7 +800,7 @@ static void lsi_command_complete(void *priv, uint32_t status)
         s->hba_private = NULL;
         lsi_request_free(s, s->current);
     }
-    lsi_resume_script(s);
+    s->sstop = 0;
 }
 
 static void lsi_do_command(LSIState *s, uint8_t id)
@@ -1004,7 +1078,8 @@ static void lsi_wait_reselect(LSIState *s)
     }
 }
 
-static void lsi_execute_script(LSIState *s)
+static void
+lsi_process_script(LSIState *s)
 {
     uint32_t insn;
     uint32_t addr;
@@ -1012,16 +1087,14 @@ static void lsi_execute_script(LSIState *s)
     int insn_processed = 0;
     uint32_t id;
 
-    /* s->istat1 |= LSI_ISTAT1_SRUN; */
     s->sstop = 0;
-again:
     insn_processed++;
     insn = read_dword(s, s->dsp);
     if (!insn) {
         /* If we receive an empty opcode increment the DSP by 4 bytes
            instead of 8 and execute the next opcode at that location */
         s->dsp += 4;
-        goto again;
+	return;	/* The thread will take care of resuming execution. */
     }
     addr = read_dword(s, s->dsp + 4);
     DPRINTF("SCRIPTS dsp=%08x opcode %08x arg %08x\n", s->dsp, insn, addr);
@@ -1266,7 +1339,9 @@ again:
             switch (opcode) {
             case 5: /* From SFBR */
             case 7: /* Read-modify-write */
+		s->ncr_to_ncr = 1;
                 lsi_reg_writeb(s, reg, op0);
+		s->ncr_to_ncr = 0;
                 break;
             case 6: /* To SFBR */
                 s->sfbr = op0;
@@ -1410,9 +1485,10 @@ again:
         if (s->dcntl & LSI_DCNTL_SSM) {
 	    ncr53c810_log("NCR 810: SCRIPTS: Single-step mode\n");
             lsi_script_dma_interrupt(s, LSI_DSTAT_SSI);
+	    s->sstop = 1;
         } else {
 	    ncr53c810_log("NCR 810: SCRIPTS: Normal mode\n");
-            goto again;
+            return;
         }
     } else {
 	if (s->sstop)
@@ -1424,7 +1500,102 @@ again:
     DPRINTF("SCRIPTS execution stopped\n");
 }
 
-static void lsi_reg_writeb(LSIState *s, uint32_t offset, uint8_t val)
+
+static uint8_t
+lsi_is_busy(void)
+{
+    return(!!busy);
+}
+
+
+void
+lsi_wait_for_poll(void)
+{
+    if (lsi_is_busy()) {
+	ncr53c810_log("NCR 810: Waiting for thread wake event...\n");
+	thread_wait_event((event_t *) wake_poll_thread, -1);
+    }
+    ncr53c810_log("NCR 810: Thread wake event arrived...\n");
+    thread_reset_event((event_t *) wake_poll_thread);
+}
+
+
+void
+lsi_wait_for_resume(void)
+{
+    if (lsi_dev && (lsi_dev->waiting == 1)) {
+	ncr53c810_log("NCR 810: Waiting for thread resume event...\n");
+	thread_wait_event((event_t *) waiting_state, -1);
+    }
+    ncr53c810_log("NCR 810: Thread resume event arrived...\n");
+    thread_reset_event((event_t *) waiting_state);
+}
+
+
+static void
+lsi_script_thread(void *priv)
+{
+    LSIState *dev = (LSIState *) lsi_dev;
+
+    thread_set_event((event_t *) thread_started);
+
+    ncr53c810_log("Polling thread started\n");
+
+    while (lsi_dev) {
+	scsi_mutex_wait(1);
+
+	if (!dev->sstop) {
+		lsi_wait_for_poll();
+
+		if (dev->waiting) {
+			/* Wait for event followed by a clear of the waiting state
+			   if waiting for reselect. */
+			lsi_wait_for_resume();
+
+			thread_wait_event((event_t *) wait_evt, dev->waiting);
+		}
+
+		if (!dev->waiting)
+			lsi_process_script(dev);
+	} else
+		thread_wait_event((event_t *) wait_evt, 10);
+
+	scsi_mutex_wait(0);
+    }
+
+    ncr53c810_log("NCR 810: Callback: polling stopped.\n");
+}
+
+
+static void
+lsi_thread_start(LSIState *dev)
+{
+    if (!poll_tid) {
+	poll_tid = thread_create(lsi_script_thread, dev);
+    }
+}
+
+
+static void
+lsi_set_wait_event(void)
+{
+    ncr53c810_log("NCR 810: Setting wait event arrived...\n");
+    thread_set_event((event_t *)wait_evt);
+}
+
+
+static void
+lsi_execute_script(LSIState *s)
+{
+    lsi_busy(1);
+    s->sstop = s->waiting = 0;
+    lsi_set_wait_event();
+    lsi_busy(0);
+}
+
+
+static void
+lsi_reg_writeb(LSIState *s, uint32_t offset, uint8_t val)
 {
     uint8_t tmp = 0;
 
@@ -1439,11 +1610,12 @@ static void lsi_reg_writeb(LSIState *s, uint32_t offset, uint8_t val)
     case addr + 2: s->name &= 0xff00ffff; s->name |= val << 16; break; \
     case addr + 3: s->name &= 0x00ffffff; s->name |= val << 24; break;
 
-// #ifdef DEBUG_LSI_REG
-    DPRINTF("Write reg %02x = %02x\n", offset, val);
-// #endif
+    if (!s->ncr_to_ncr)
+	lsi_busy(1);
 
-    s->regop = 1;
+#ifdef DEBUG_LSI_REG
+    DPRINTF("Write reg %02x = %02x\n", offset, val);
+#endif
 
     switch (offset) {
     case 0x00: /* SCNTL0 */
@@ -1516,10 +1688,10 @@ static void lsi_reg_writeb(LSIState *s, uint32_t offset, uint8_t val)
 	break;
     case 0x0a: case 0x0b:
         /* Openserver writes to these readonly registers on startup */
-	return;
+	break;
     case 0x0c: case 0x0d: case 0x0e: case 0x0f:
         /* Linux writes to these readonly registers on startup.  */
-        return;
+        break;
     CASE_SET_REG32(dsa, 0x10)
     case 0x14: /* ISTAT0 */
         ncr53c810_log("ISTAT0 write: %02X\n", val);
@@ -1537,7 +1709,7 @@ static void lsi_reg_writeb(LSIState *s, uint32_t offset, uint8_t val)
             DPRINTF("Woken by SIGP\n");
             s->waiting = 0;
             s->dsp = s->dnad;
-            lsi_execute_script(s);
+	    lsi_set_wake_event();
         }
         if ((val & LSI_ISTAT0_SRST) && !(tmp & LSI_ISTAT0_SRST)) {
 	    lsi_soft_reset(s);
@@ -1598,7 +1770,7 @@ static void lsi_reg_writeb(LSIState *s, uint32_t offset, uint8_t val)
 	}
         break;
     CASE_SET_REG32(dsps, 0x30)
-    CASE_SET_REG32(scratch[0], 0x34)
+    CASE_SET_REG32(scratch, 0x34)
     case 0x38: /* DMODE */
         s->dmode = val;
         break;
@@ -1658,19 +1830,16 @@ static void lsi_reg_writeb(LSIState *s, uint32_t offset, uint8_t val)
         }
         s->stest3 = val;
         break;
-	case 0x54:
-		break;
+    case 0x54:
+	break;
+    CASE_SET_REG32(scratch2, 0x5c)
     default:
-        if (offset >= 0x5c && offset < 0x60) {
-            int n;
-            int shift;
-            n = (offset - 0x58) >> 2;
-            shift = (offset & 3) * 8;
-            s->scratch[n] = deposit32(s->scratch[n], shift, 8, val);
-        } else {
-            BADF("Unhandled writeb 0x%x = 0x%x\n", offset, val);
-        }
+	BADF("Unhandled writeb 0x%x = 0x%x\n", offset, val);
     }
+
+    if (!s->ncr_to_ncr)
+	lsi_busy(0);
+
 #undef CASE_SET_REG24
 #undef CASE_SET_REG32
 }
@@ -1678,50 +1847,62 @@ static void lsi_reg_writeb(LSIState *s, uint32_t offset, uint8_t val)
 static uint8_t lsi_reg_readb(LSIState *s, uint32_t offset)
 {
     uint8_t tmp;
+    uint8_t ret = 0;
 #define CASE_GET_REG24(name, addr) \
-    case addr: return s->name & 0xff; \
-    case addr + 1: return (s->name >> 8) & 0xff; \
-    case addr + 2: return (s->name >> 16) & 0xff;
+    case addr: ret = s->name & 0xff; break; \
+    case addr + 1: ret = (s->name >> 8) & 0xff; break; \
+    case addr + 2: ret = (s->name >> 16) & 0xff; break;
 
 #define CASE_GET_REG32(name, addr) \
-    case addr: return s->name & 0xff; \
-    case addr + 1: return (s->name >> 8) & 0xff; \
-    case addr + 2: return (s->name >> 16) & 0xff; \
-    case addr + 3: return (s->name >> 24) & 0xff;
+    case addr: ret = s->name & 0xff; break; \
+    case addr + 1: ret = (s->name >> 8) & 0xff; break; \
+    case addr + 2: ret = (s->name >> 16) & 0xff; break; \
+    case addr + 3: ret = (s->name >> 24) & 0xff; break;
 
-    s->regop = 1;
+    if (!s->ncr_to_ncr)
+	lsi_busy(1);
 
     switch (offset) {
     case 0x00: /* SCNTL0 */
 	ncr53c810_log("NCR 810: Read SCNTL0 %02X\n", s->scntl0);
-        return s->scntl0;
+        ret = s->scntl0;
+	break;
     case 0x01: /* SCNTL1 */
 	ncr53c810_log("NCR 810: Read SCNTL1 %02X\n", s->scntl1);
-        return s->scntl1;
+        ret = s->scntl1;
+	break;
     case 0x02: /* SCNTL2 */
 	ncr53c810_log("NCR 810: Read SCNTL2 %02X\n", s->scntl2);
-        return s->scntl2;
+        ret = s->scntl2;
+	break;
     case 0x03: /* SCNTL3 */
 	ncr53c810_log("NCR 810: Read SCNTL3 %02X\n", s->scntl3);
-        return s->scntl3;
+        ret = s->scntl3;
+	break;
     case 0x04: /* SCID */
 	ncr53c810_log("NCR 810: Read SCID %02X\n", s->scid);
-        return s->scid;
+        ret = s->scid;
+	break;
     case 0x05: /* SXFER */
 	ncr53c810_log("NCR 810: Read SXFER %02X\n", s->sxfer);
-        return s->sxfer;
+        ret = s->sxfer;
+	break;
     case 0x06: /* SDID */
 	ncr53c810_log("NCR 810: Read SDID %02X\n", s->sdid);
-        return s->sdid;
+        ret = s->sdid;
+	break;
     case 0x07: /* GPREG0 */
 	ncr53c810_log("NCR 810: Read GPREG0 %02X\n", s->gpreg0 & 3);
-        return s->gpreg0 & 3;
+        ret = s->gpreg0 & 3;
+	break;
     case 0x08: /* Revision ID */
 	ncr53c810_log("NCR 810: Read REVID 00\n");
-        return 0x00;
+        ret = 0x00;
+	break;
     case 0xa: /* SSID */
 	ncr53c810_log("NCR 810: Read SSID %02X\n", s->ssid);
-        return s->ssid;
+        ret = s->ssid;
+	break;
     case 0xb: /* SBCL */
         /* ??? This is not correct. However it's (hopefully) only
            used for diagnostics, so should be ok.  */
@@ -1735,42 +1916,53 @@ static uint8_t lsi_reg_readb(LSIState *s, uint32_t offset)
 	   Bit 0 = I/O (SI_O/ status) */
 	tmp = (s->sstat1 & 7);
 	ncr53c810_log("NCR 810: Read SBCL %02X\n", tmp);
-	return tmp;	/* For now, return the MSG, C/D, and I/O bits from SSTAT1. */
+	ret = tmp;	/* For now, return the MSG, C/D, and I/O bits from SSTAT1. */
+	break;
     case 0xc: /* DSTAT */
         tmp = s->dstat | LSI_DSTAT_DFE;
         if ((s->istat0 & LSI_ISTAT0_INTF) == 0)
             s->dstat = 0;
         lsi_update_irq(s);
 	ncr53c810_log("NCR 810: Read DSTAT %02X\n", tmp);
-        return tmp;
+        ret = tmp;
+	break;
     case 0x0d: /* SSTAT0 */
 	ncr53c810_log("NCR 810: Read SSTAT0 %02X\n", s->sstat0);
-        return s->sstat0;
+        ret = s->sstat0;
+	break;
     case 0x0e: /* SSTAT1 */
 	ncr53c810_log("NCR 810: Read SSTAT1 %02X\n", s->sstat1);
-        return s->sstat1;
+        ret = s->sstat1;
+	break;
     case 0x0f: /* SSTAT2 */
 	ncr53c810_log("NCR 810: Read SSTAT2 %02X\n", s->scntl1 & LSI_SCNTL1_CON ? 0 : 2);
-        return s->scntl1 & LSI_SCNTL1_CON ? 0 : 2;
+        ret = s->scntl1 & LSI_SCNTL1_CON ? 0 : 2;
+	break;
     CASE_GET_REG32(dsa, 0x10)
     case 0x14: /* ISTAT0 */
 	ncr53c810_log("NCR 810: Read ISTAT0 %02X\n", s->istat0);
-        return s->istat0;
+        ret = s->istat0;
+	break;
     case 0x15: /* ISTAT1 */
 	ncr53c810_log("NCR 810: Read ISTAT1 %02X\n", s->istat1);
-        return s->istat1;
+        ret = s->istat1;
+	break;
     case 0x16: /* MBOX0 */
 	ncr53c810_log("NCR 810: Read MBOX0 %02X\n", s->mbox0);
-        return s->mbox0;
+        ret = s->mbox0;
+	break;
     case 0x17: /* MBOX1 */
 	ncr53c810_log("NCR 810: Read MBOX1 %02X\n", s->mbox1);
-        return s->mbox1;
+        ret = s->mbox1;
+	break;
     case 0x18: /* CTEST0 */
 	ncr53c810_log("NCR 810: Read CTEST0 FF\n");
-        return 0xff;
+        ret = 0xff;
+	break;
     case 0x19: /* CTEST1 */
 	ncr53c810_log("NCR 810: Read CTEST1 F0\n");
-        return 0xf0;	/* dma fifo empty */
+        ret = 0xf0;	/* dma fifo empty */
+	break;
     case 0x1a: /* CTEST2 */
         tmp = s->ctest2 | LSI_CTEST2_DACK | LSI_CTEST2_CM;
         if (s->istat0 & LSI_ISTAT0_SIGP) {
@@ -1778,119 +1970,146 @@ static uint8_t lsi_reg_readb(LSIState *s, uint32_t offset)
             tmp |= LSI_CTEST2_SIGP;
         }
 	ncr53c810_log("NCR 810: Read CTEST2 %02X\n", tmp);
-        return tmp;
+        ret = tmp;
+	break;
     case 0x1b: /* CTEST3 */
 	ncr53c810_log("NCR 810: Read CTEST3 %02X\n", (s->ctest3 & (0x08 | 0x02 | 0x01)) | s->chip_rev);
-        return (s->ctest3 & (0x08 | 0x02 | 0x01)) | s->chip_rev;
+        ret = (s->ctest3 & (0x08 | 0x02 | 0x01)) | s->chip_rev;
+	break;
     CASE_GET_REG32(temp, 0x1c)
     case 0x20: /* DFIFO */
 	ncr53c810_log("NCR 810: Read DFIFO 00\n");
-        return 0;
+        ret = 0;
+	break;
     case 0x21: /* CTEST4 */
 	ncr53c810_log("NCR 810: Read CTEST4 %02X\n", s->ctest4);
-        return s->ctest4;
+        ret = s->ctest4;
+	break;
     case 0x22: /* CTEST5 */
 	ncr53c810_log("NCR 810: Read CTEST5 %02X\n", s->ctest5);
-        return s->ctest5;
+        ret = s->ctest5;
+	break;
     case 0x23: /* CTEST6 */
 	ncr53c810_log("NCR 810: Read CTEST6 00\n");
-         return 0;
+	ret = 0;
+	break;
     CASE_GET_REG24(dbc, 0x24)
     case 0x27: /* DCMD */
 	ncr53c810_log("NCR 810: Read DCMD %02X\n", s->dcmd);
-        return s->dcmd;
+        ret = s->dcmd;
+	break;
     CASE_GET_REG32(dnad, 0x28)
     CASE_GET_REG32(dsp, 0x2c)
     CASE_GET_REG32(dsps, 0x30)
-    CASE_GET_REG32(scratch[0], 0x34)
+    CASE_GET_REG32(scratch, 0x34)
     case 0x38: /* DMODE */
 	ncr53c810_log("NCR 810: Read DMODE %02X\n", s->dmode);
-        return s->dmode;
+        ret = s->dmode;
+	break;
     case 0x39: /* DIEN */
 	ncr53c810_log("NCR 810: Read DIEN %02X\n", s->dien);
-        return s->dien;
+        ret = s->dien;
+	break;
     case 0x3a: /* SBR */
 	ncr53c810_log("NCR 810: Read SBR %02X\n", s->sbr);
-        return s->sbr;
+        ret = s->sbr;
+	break;
     case 0x3b: /* DCNTL */
 	ncr53c810_log("NCR 810: Read DCNTL %02X\n", s->dcntl);
-        return s->dcntl;
+        ret = s->dcntl;
+	break;
     /* ADDER Output (Debug of relative jump address) */
     CASE_GET_REG32(adder, 0x3c)
     case 0x40: /* SIEN0 */
 	ncr53c810_log("NCR 810: Read SIEN0 %02X\n", s->sien0);
-        return s->sien0;
+        ret = s->sien0;
+	break;
     case 0x41: /* SIEN1 */
 	ncr53c810_log("NCR 810: Read SIEN1 %02X\n", s->sien1);
-        return s->sien1;
+        ret = s->sien1;
+	break;
     case 0x42: /* SIST0 */
         tmp = s->sist0;
         s->sist0 = 0;
         lsi_update_irq(s);
 	ncr53c810_log("NCR 810: Read SIST0 %02X\n", tmp);
-        return tmp;
+        ret = tmp;
+	break;
     case 0x43: /* SIST1 */
         tmp = s->sist1;
         s->sist1 = 0;
         lsi_update_irq(s);
 	ncr53c810_log("NCR 810: Read SIST1 %02X\n", tmp);
-        return tmp;
+        ret = tmp;
+	break;
     case 0x46: /* MACNTL */
 	ncr53c810_log("NCR 810: Read MACNTL 4F\n");
-        return 0x4f;
+        ret = 0x4f;
+	break;
     case 0x47: /* GPCNTL0 */
 	ncr53c810_log("NCR 810: Read GPCNTL0 0F\n");
-        return 0x0f;
+        ret = 0x0f;
+	break;
     case 0x48: /* STIME0 */
 	ncr53c810_log("NCR 810: Read STIME0 %02X\n", s->stime0);
-        return s->stime0;
+        ret = s->stime0;
+	break;
     case 0x4a: /* RESPID0 */
 	ncr53c810_log("NCR 810: Read RESPID0 %02X\n", s->respid0);
-        return s->respid0;
+        ret = s->respid0;
+	break;
     case 0x4b: /* RESPID1 */
 	ncr53c810_log("NCR 810: Read RESPID1 %02X\n", s->respid1);
-        return s->respid1;
+        ret = s->respid1;
+	break;
     case 0x4d: /* STEST1 */
 	ncr53c810_log("NCR 810: Read STEST1 %02X\n", s->stest1);
-        return s->stest1;
+        ret = s->stest1;
+	break;
     case 0x4e: /* STEST2 */
 	ncr53c810_log("NCR 810: Read STEST2 %02X\n", s->stest2);
-        return s->stest2;
+        ret = s->stest2;
+	break;
     case 0x4f: /* STEST3 */
 	ncr53c810_log("NCR 810: Read STEST3 %02X\n", s->stest3);
-        return s->stest3;
+        ret = s->stest3;
+	break;
     case 0x50: /* SIDL */
         /* This is needed by the linux drivers.  We currently only update it
            during the MSG IN phase.  */
 	ncr53c810_log("NCR 810: Read SIDL %02X\n", s->sidl);
-        return s->sidl;
+        ret = s->sidl;
+	break;
     case 0x52: /* STEST4 */
 	ncr53c810_log("NCR 810: Read STEST4 E0\n");
-        return 0xe0;
+        ret = 0xe0;
+	break;
     case 0x58: /* SBDL */
         /* Some drivers peek at the data bus during the MSG IN phase.  */
         if ((s->sstat1 & PHASE_MASK) == PHASE_MI) {
 	    ncr53c810_log("NCR 810: Read SBDL %02X\n", s->msg[0]);
-            return s->msg[0];
+            ret = s->msg[0];
 	}
 	ncr53c810_log("NCR 810: Read SBDL 00\n");
-        return 0;
+        ret = 0;
+	break;
     case 0x59: /* SBDL high */
 	ncr53c810_log("NCR 810: Read SBDLH 00\n");
-        return 0;
+        ret = 0;
+	break;
+    CASE_GET_REG32(scratch2, 0x5c)
+    default:
+	BADF("readb 0x%x\n", offset);
+	ret = 0;
+	break;
     }
-    if (offset >= 0x5c && offset < 0x60) {
-        int n;
-        int shift;
-        n = (offset - 0x58) >> 2;
-        shift = (offset & 3) * 8;
-	ncr53c810_log("NCR 810: Read SCRATCH%i %02X\n", offset & 3, (s->scratch[n] >> shift) & 0xff);
-        return (s->scratch[n] >> shift) & 0xff;
-    }
-    BADF("readb 0x%x\n", offset);
-	return 0;
 #undef CASE_GET_REG24
 #undef CASE_GET_REG32
+
+    if (!s->ncr_to_ncr)
+	lsi_busy(0);
+
+    return ret;
 }
 
 static uint8_t lsi_io_readb(uint16_t addr, void *p)
@@ -2232,6 +2451,21 @@ ncr53c810_init(device_t *info)
 
     lsi_soft_reset(s);
 
+    lsi_dev = s;
+
+    scsi_mutex(1);
+
+    wake_poll_thread = thread_create_event();
+    thread_started = thread_create_event();
+    waiting_state = thread_create_event();
+
+    /* Create a waitable event. */
+    evt = thread_create_event();
+    wait_evt = thread_create_event();
+
+    lsi_thread_start(s);
+    thread_wait_event((event_t *) thread_started, -1);
+
     return(s);
 }
 
@@ -2239,11 +2473,52 @@ ncr53c810_init(device_t *info)
 static void 
 ncr53c810_close(void *priv)
 {
-    LSIState *s = (LSIState *)priv;
+    LSIState *dev = (LSIState *)priv;
 
-    if (s) {
-	free(s);
-	s = NULL;
+    if (dev) {
+	lsi_dev = NULL;
+
+        /* Tell the thread to terminate. */
+	if (poll_tid != NULL) {
+		lsi_busy(0);
+
+		/* Wait for the end event. */
+		thread_wait((event_t *) poll_tid, -1);
+
+		poll_tid = NULL;
+	}
+
+	dev->sstop = 1;
+
+	if (wait_evt) {
+		thread_destroy_event((event_t *) evt);
+		evt = NULL;
+	}
+
+	if (evt) {
+		thread_destroy_event((event_t *) evt);
+		evt = NULL;
+	}
+
+	if (waiting_state) {
+		thread_destroy_event((event_t *) waiting_state);
+		thread_started = NULL;
+	}
+
+	if (thread_started) {
+		thread_destroy_event((event_t *) thread_started);
+		thread_started = NULL;
+	}
+
+	if (wake_poll_thread) {
+		thread_destroy_event((event_t *) wake_poll_thread);
+		wake_poll_thread = NULL;
+	}
+
+	scsi_mutex(0);
+
+	free(dev);
+	dev = NULL;
     }
 }
 

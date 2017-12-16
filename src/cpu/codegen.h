@@ -84,8 +84,12 @@ static inline codeblock_t *codeblock_tree_find(uint32_t phys, uint32_t _cs)
         while (block)
         {
                 if (a == block->cmp)
-                        break;
-                else if (a < block->cmp)
+                {
+                        if (!((block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) &&
+                             ((block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK)))
+                                break;
+                }
+                if (a < block->cmp)
                         block = block->left;
                 else
                         block = block->right;

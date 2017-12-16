@@ -463,31 +463,28 @@ int divl(uint32_t val)
 }
 int idivl(int32_t val)
 {
-	uint64_t templ;
-	int64_t tempsrc, tempws, tempws2 = 0;
+         int64_t num, quo;
+         int32_t rem, quo32;
  
-	if (val == 0) {
-		divexcp();	/* Divide by zero. */
-		return 1;
-	}
+        if (val==0) 
+        {       
+                divexcp();
+                return 1;
+        }
 
-	templ = (uint64_t) EDX;
-	templ = (templ << 32) | EAX;
-	tempsrc = (int64_t) templ;
-	tempws = tempsrc / val;
+         num=(((uint64_t)EDX)<<32)|EAX;
+         quo=num/val;
+         rem=num%val;
+         quo32=(int32_t)(quo&0xFFFFFFFF);
 
-	if ((tempws > 2147483647LL) || (tempws < -2147483648LL)) {
-		divexcp();
-		return 1;
-	}
-
-	tempws = (int32_t) tempws;
-	tempws2 = (int32_t) (templ % val);
-
-	EDX = (int32_t) tempws2;
-	EAX = (int32_t) tempws;
-
-	return 0;
+        if (quo!=(int64_t)quo32) 
+        {
+                divexcp();
+                return 1;
+        }
+        EDX=rem;
+        EAX=quo32;
+        return 0;
 }
 
 
