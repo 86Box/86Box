@@ -9,10 +9,10 @@
  *		Implementation of the NCR 5380 series of SCSI Host Adapters
  *		made by NCR. These controllers were designed for the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.8	2017/12/09
+ * Version:	@(#)scsi_ncr5380.c	1.0.9	2017/12/16
  *
- * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
- *		TheCollector1995, <mariogplayer@gmail.com>
+ * Authors:	TheCollector1995, <mariogplayer@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -22,6 +22,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
+#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../dma.h"
 #include "../pic.h"
@@ -40,6 +41,7 @@
 #define LCS6821N_ROM	L"roms/scsi/ncr5380/Longshine LCS-6821N - BIOS version 1.04.bin"
 #define RT1000B_ROM	L"roms/scsi/ncr5380/Rancho_RT1000_RTBios_version_8.10R.bin"
 #define T130B_ROM	L"roms/scsi/ncr5380/trantor_t130b_bios_v2.14.bin"
+#define SCSIAT_ROM	L"roms/scsi/ncr5380/sumo_scsiat_bios_v6.3.bin"
 
 
 #define NCR_CURDATA	0		/* current SCSI data (read only) */
@@ -111,6 +113,12 @@ typedef struct {
 } ncr5380_t;
 
 typedef struct {
+    const char	*name;
+    uint32_t	rom_addr;
+    uint16_t	base;
+    int8_t	irq;
+    int8_t	type;
+
     rom_t	bios_rom;
     mem_mapping_t mapping;
 
@@ -129,7 +137,7 @@ typedef struct {
     ncr5380_t	ncr;
     int		ncr5380_dma_enabled;
 
-    int64_t	dma_callback;
+    int64_t	dma_timer;
     int64_t	dma_enabled;
 
     int		ncr_busy;
@@ -165,9 +173,9 @@ ncr_log(const char *fmt, ...)
 
 
 static void
-ncr_dma_changed(void *p, int mode, int enable)
+dma_changed(void *priv, int mode, int enable)
 {
-    ncr_t *scsi = (ncr_t *)p;
+    ncr_t *scsi = (ncr_t *)priv;
 
     scsi->ncr5380_dma_enabled = (mode && enable);
 
@@ -220,7 +228,7 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
     int bus_host = 0;
 
 #if ENABLE_NCR5380_LOG
-    ncr_log("ncr5380_write: addr=%06x val=%02x %04x:%04x\n", port, val, CS,cpu_state.pc);
+    ncr_log("NCR5380 write(%04x,%02x) @%04X:%04X\n",port,val,CS,cpu_state.pc);
 #endif
     switch (port & 7) {
 	case 0:		/* Output data register */
@@ -249,8 +257,8 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 			ncr->icr |=  ICR_ARB_IN_PROGRESS;
 		}
 		ncr->mode = val;
-		ncr_dma_changed(scsi, ncr->dma_mode, ncr->mode & MODE_DMA);
-		if (!(ncr->mode & MODE_DMA)) {
+		dma_changed(scsi, ncr->dma_mode, ncr->mode & MODE_DMA);
+		if (! (ncr->mode & MODE_DMA)) {
 			ncr->tcr &= ~TCR_LAST_BYTE_SENT;
 			ncr->isr &= ~STATUS_END_OF_DMA;
 			ncr->dma_mode = DMA_IDLE;
@@ -267,17 +275,17 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 
 	case 5:		/* start DMA Send */
 		ncr->dma_mode = DMA_SEND;
-		ncr_dma_changed(scsi, ncr->dma_mode, ncr->mode & MODE_DMA);
+		dma_changed(scsi, ncr->dma_mode, ncr->mode & MODE_DMA);
 		break;
 
 	case 7:		/* start DMA Initiator Receive */
 		ncr->dma_mode = DMA_INITIATOR_RECEIVE;
-		ncr_dma_changed(scsi, ncr->dma_mode, ncr->mode & MODE_DMA);
+		dma_changed(scsi, ncr->dma_mode, ncr->mode & MODE_DMA);
 		break;
 
 	default:
 #if 1
-		pclog("Bad NCR5380 write %06x %02x\n", port, val);
+		pclog("NCR5380: bad write %04x %02x\n", port, val);
 #endif
 		break;
     }
@@ -294,48 +302,48 @@ ncr_read(uint16_t port, void *priv)
     ncr_t *scsi = (ncr_t *)priv;
     ncr5380_t *ncr = &scsi->ncr;
     uint32_t bus = 0;
-    uint8_t temp = 0xff;
+    uint8_t ret = 0xff;
 
     switch (port & 7) {
 	case 0:		/* current SCSI data */
 		if (ncr->icr & ICR_DBP) {
-			temp = ncr->output_data;
+			ret = ncr->output_data;
 		} else {	
 			bus = scsi_bus_read(&ncr->bus);
-			temp = BUS_GETDATA(bus);
+			ret = BUS_GETDATA(bus);
 		}
 		break;
 
 	case 1:		/* Initiator Command Register */
-		temp = ncr->icr;
+		ret = ncr->icr;
 		break;
 
 	case 2:		/* Mode register */
-		temp = ncr->mode;
+		ret = ncr->mode;
 		break;
 
 	case 3:		/* Target Command Register */
-		temp = ncr->tcr;
+		ret = ncr->tcr;
 		break;
 
 	case 4:		/* Current SCSI Bus status */
-		temp = 0;
+		ret = 0;
 		bus = scsi_bus_read(&ncr->bus);
-		temp |= (bus & 0xff);
+		ret |= (bus & 0xff);
 		break;
 
 	case 5:		/* Bus and Status register */
-		temp = 0;
-		
+		ret = 0;
+
 		bus = get_bus_host(ncr);
 		if (scsi_bus_match(&ncr->bus, bus))
-			temp |= 8;
+			ret |= 0x08;
 		bus = scsi_bus_read(&ncr->bus);
 
 		if (bus & BUS_ACK)
-			temp |= STATUS_ACK;
+			ret |= STATUS_ACK;
 		if ((bus & BUS_REQ) && (ncr->mode & MODE_DMA))
-			temp |= STATUS_DRQ;
+			ret |= STATUS_DRQ;
 		if ((bus & BUS_REQ) && (ncr->mode & MODE_DMA)) {
 			int bus_state = 0;
 
@@ -349,8 +357,8 @@ ncr_read(uint16_t port, void *priv)
 				ncr->isr |= STATUS_INT;
 		}
 		if (!(bus & BUS_BSY) && (ncr->mode & MODE_MONITOR_BUSY))
-				temp |= STATUS_BUSY_ERROR;
-		temp |= (ncr->isr & (STATUS_INT | STATUS_END_OF_DMA));
+				ret |= STATUS_BUSY_ERROR;
+		ret |= (ncr->isr & (STATUS_INT | STATUS_END_OF_DMA));
 		break;
 
 	case 7:		/* reset Parity/Interrupt */
@@ -358,27 +366,26 @@ ncr_read(uint16_t port, void *priv)
 		break;
 
 	default:
-		ncr_log("Bad NCR5380 read %06x\n", port);
+		ncr_log("NCR5380: bad read %04x\n", port);
 		break;
     }
 
 #if ENABLE_NCR5380_LOG
-    ncr_log("ncr5380_read: addr=%06x temp=%02x pc=%04x:%04x\n", port, temp, CS,cpu_state.pc);
+    ncr_log("NCR5380 read(%04x)=%02x @%04X:%04X\n", port, ret, CS,cpu_state.pc);
 #endif
-    return(temp);
+    return(ret);
 }
 
 
-
 static void
-ncr_dma_callback(void *priv)
+dma_callback(void *priv)
 {
     ncr_t *scsi = (ncr_t *)priv;
     ncr5380_t *ncr = &scsi->ncr;
     int bytes_transferred = 0;
     int c;
 
-    scsi->dma_callback += POLL_TIME_US;
+    scsi->dma_timer += POLL_TIME_US;
 
     switch (scsi->ncr.dma_mode) {
 	case DMA_SEND:
@@ -390,7 +397,7 @@ ncr_dma_callback(void *priv)
 		if (!(scsi->status_ctrl & STATUS_BUFFER_NOT_READY)) {
 			break;
 		}
-					
+
 		if (! scsi->block_count_loaded) break;
 
 		while (bytes_transferred < MAX_BYTES_TRANSFERRED_PER_POLL) {
@@ -424,7 +431,7 @@ ncr_dma_callback(void *priv)
 					scsi->dma_enabled = 0;
 
 					ncr->tcr |= TCR_LAST_BYTE_SENT;
-					ncr->isr |= STATUS_END_OF_DMA;                                        
+					ncr->isr |= STATUS_END_OF_DMA;
 					if (ncr->mode & MODE_ENA_EOP_INT)
 						ncr->isr |= STATUS_INT;
 				}
@@ -442,7 +449,7 @@ ncr_dma_callback(void *priv)
 		if (!(scsi->status_ctrl & STATUS_BUFFER_NOT_READY)) break;
 
 		if (!scsi->block_count_loaded) break;
-                
+
 		while (bytes_transferred < MAX_BYTES_TRANSFERRED_PER_POLL) {
 			int bus;
 			uint8_t temp;
@@ -472,7 +479,7 @@ ncr_dma_callback(void *priv)
 				if (!scsi->block_count) {
 					scsi->block_count_loaded = 0;
 					scsi->dma_enabled = 0;
-					
+
 					ncr->isr |= STATUS_END_OF_DMA;
 					if (ncr->mode & MODE_ENA_EOP_INT)
 						ncr->isr |= STATUS_INT;
@@ -481,7 +488,7 @@ ncr_dma_callback(void *priv)
 			}
 		}
 		break;
-       
+
 	default:
 #if 1
 		pclog("DMA callback bad mode %i\n", scsi->ncr.dma_mode);
@@ -493,42 +500,42 @@ ncr_dma_callback(void *priv)
     if (!(c & BUS_BSY) && (ncr->mode & MODE_MONITOR_BUSY)) {
 	ncr->mode &= ~MODE_DMA;
 	ncr->dma_mode = DMA_IDLE;
-	ncr_dma_changed(scsi, ncr->dma_mode, ncr->mode & MODE_DMA);
+	dma_changed(scsi, ncr->dma_mode, ncr->mode & MODE_DMA);
     }
 }
 
 
-/* I/O handlers for the LCS6821N and TR1000B. */
+/* Memory-mapped I/O READ handler. */
 static uint8_t 
-lcs6821n_read(uint32_t addr, void *priv)
+memio_read(uint32_t addr, void *priv)
 {
     ncr_t *scsi = (ncr_t *)priv;
-    uint8_t temp = 0xff;
-	
+    uint8_t ret = 0xff;
+
     addr &= 0x3fff;
 #if ENABLE_NCR5380_LOG
-    ncr_log("lcs6821n_read %08x\n", addr);
+    ncr_log("memio_read %08x\n", addr);
 #endif
 
     if (addr < 0x2000)
-	temp = scsi->bios_rom.rom[addr & 0x1fff];
+	ret = scsi->bios_rom.rom[addr & 0x1fff];
     else if (addr < 0x3800)
-	temp = 0xff;
+	ret = 0xff;
     else if (addr >= 0x3a00)
-	temp = scsi->ext_ram[addr - 0x3a00];
+	ret = scsi->ext_ram[addr - 0x3a00];
     else switch (addr & 0x3f80) {
 	case 0x3800:
 #if ENABLE_NCR5380_LOG
 		ncr_log("Read intRAM %02x %02x\n", addr & 0x3f, scsi->int_ram[addr & 0x3f]);
 #endif
-		temp = scsi->int_ram[addr & 0x3f];
+		ret = scsi->int_ram[addr & 0x3f];
 		break;
 
 	case 0x3880:
 #if ENABLE_NCR5380_LOG
 		ncr_log("Read 53c80 %04x\n", addr);
 #endif
-		temp = ncr_read(addr, scsi);
+		ret = ncr_read(addr, scsi);
 		break;
 
 	case 0x3900:
@@ -536,9 +543,9 @@ lcs6821n_read(uint32_t addr, void *priv)
 		ncr_log(" Read 3900 %i %02x\n", scsi->buffer_host_pos, scsi->status_ctrl);
 #endif
 		if (scsi->buffer_host_pos >= 128 || !(scsi->status_ctrl & CTRL_DATA_DIR))
-			temp = 0xff;
+			ret = 0xff;
 		else {
-			temp = scsi->buffer[scsi->buffer_host_pos++];
+			ret = scsi->buffer[scsi->buffer_host_pos++];
 
 			if (scsi->buffer_host_pos == 128)
 				scsi->status_ctrl |= STATUS_BUFFER_NOT_READY;
@@ -548,21 +555,21 @@ lcs6821n_read(uint32_t addr, void *priv)
 	case 0x3980:
 		switch (addr) {
 			case 0x3980:	/* status */
-				temp = scsi->status_ctrl;// | 0x80;
+				ret = scsi->status_ctrl;// | 0x80;
 				if (! scsi->ncr_busy)
-					temp |= STATUS_53C80_ACCESSIBLE;
+					ret |= STATUS_53C80_ACCESSIBLE;
 				break;
 
 			case 0x3981:	/* block counter register*/
-				temp = scsi->block_count;
+				ret = scsi->block_count;
 				break;
 
 			case 0x3982:	/* switch register read */
-				temp = 0xff;
+				ret = 0xff;
 				break;
 
 			case 0x3983:
-				temp = 0xff;
+				ret = 0xff;
 				break;
 		}
 		break;
@@ -570,22 +577,23 @@ lcs6821n_read(uint32_t addr, void *priv)
 
 #if ENABLE_NCR5380_LOG
     if (addr >= 0x3880)
-	ncr_log("lcs6821n_read: addr=%05x val=%02x\n", addr, temp);
+	ncr_log("memio_read(%08x)=%02x\n", addr, ret);
 #endif
-        
-    return(temp);
+
+    return(ret);
 }
 
 
+/* Memory-mapped I/O WRITE handler. */
 static void 
-lcs6821n_write(uint32_t addr, uint8_t val, void *priv)
+memio_write(uint32_t addr, uint8_t val, void *priv)
 {
     ncr_t *scsi = (ncr_t *)priv;
 
     addr &= 0x3fff;
 
 #if ENABLE_NCR5380_LOG
-    ncr_log("lcs6821n_write: addr=%05x val=%02x %04x:%04x  %i %02x\n", addr, val, CS,cpu_state.pc,  scsi->buffer_host_pos, scsi->status_ctrl);
+    ncr_log("memio_write(%08x,%02x) @%04X:%04X  %i %02x\n", addr, val, CS,cpu_state.pc,  scsi->buffer_host_pos, scsi->status_ctrl);
 #endif
 
     if (addr >= 0x3a00)
@@ -597,14 +605,14 @@ lcs6821n_write(uint32_t addr, uint8_t val, void *priv)
 #endif
 		scsi->int_ram[addr & 0x3f] = val;
 		break;
-       
+
 	case 0x3880:
 #if ENABLE_NCR5380_LOG
 		ncr_log("Write 53c80 %04x %02x\n", addr, val);
 #endif
 		ncr_write(addr, val, scsi);
 		break;
-  
+
 	case 0x3900:
 		if (!(scsi->status_ctrl & CTRL_DATA_DIR) && scsi->buffer_host_pos < 128) {
 			scsi->buffer[scsi->buffer_host_pos++] = val;
@@ -614,7 +622,7 @@ lcs6821n_write(uint32_t addr, uint8_t val, void *priv)
 			}
 		}
 		break;
-                
+
 	case 0x3980:
 		switch (addr) {
 			case 0x3980:	/* Control */
@@ -647,7 +655,7 @@ lcs6821n_write(uint32_t addr, uint8_t val, void *priv)
 }
 
 
-/* I/O handlers for the Trantor T130B. */
+/* Memory-mapped I/O READ handler for the Trantor T130B. */
 static uint8_t 
 t130b_read(uint32_t addr, void *priv)
 {
@@ -665,6 +673,7 @@ t130b_read(uint32_t addr, void *priv)
 }
 
 
+/* Memory-mapped I/O WRITE handler for the Trantor T130B. */
 static void 
 t130b_write(uint32_t addr, uint8_t val, void *priv)
 {
@@ -681,18 +690,18 @@ t130b_in(uint16_t port, void *priv)
 {
     ncr_t *scsi = (ncr_t *)priv;
     uint8_t ret = 0xff;
-	
-    switch (port & 0xf) {
+
+    switch (port & 0x0f) {
 	case 0x00:
 	case 0x01:
 	case 0x02:
 	case 0x03:
-		ret = lcs6821n_read((port & 7) | 0x3980, scsi);
+		ret = memio_read((port & 7) | 0x3980, scsi);
 		break;
-									
+
 	case 0x04:
 	case 0x05:
-		ret = lcs6821n_read(0x3900, scsi);
+		ret = memio_read(0x3900, scsi);
 		break;
 
 	case 0x08:
@@ -721,12 +730,79 @@ t130b_out(uint16_t port, uint8_t val, void *priv)
 	case 0x01:
 	case 0x02:
 	case 0x03:
-		lcs6821n_write((port & 7) | 0x3980, val, scsi);
+		memio_write((port & 7) | 0x3980, val, scsi);
 		break;
-									
+
 	case 0x04:
 	case 0x05:
-		lcs6821n_write(0x3900, val, scsi);
+		memio_write(0x3900, val, scsi);
+		break;
+
+	case 0x08:
+	case 0x09:
+	case 0x0a:
+	case 0x0b:
+	case 0x0c:
+	case 0x0d:
+	case 0x0e:
+	case 0x0f:
+		ncr_write(port, val, scsi);
+		break;
+    }
+}
+
+
+static uint8_t 
+scsiat_in(uint16_t port, void *priv)
+{
+    ncr_t *scsi = (ncr_t *)priv;
+    uint8_t ret = 0xff;
+
+    switch (port & 0x0f) {
+	case 0x00:
+	case 0x01:
+	case 0x02:
+	case 0x03:
+		ret = memio_read((port & 7) | 0x3980, scsi);
+		break;
+
+	case 0x04:
+	case 0x05:
+		ret = memio_read(0x3900, scsi);
+		break;
+
+	case 0x08:
+	case 0x09:
+	case 0x0a:
+	case 0x0b:
+	case 0x0c:
+	case 0x0d:
+	case 0x0e:
+	case 0x0f:
+		ret = ncr_read(port, scsi);
+		break;
+    }
+
+    return(ret);
+}
+
+
+static void 
+scsiat_out(uint16_t port, uint8_t val, void *priv)
+{
+    ncr_t *scsi = (ncr_t *)priv;
+
+    switch (port & 0x0f) {
+	case 0x00:
+	case 0x01:
+	case 0x02:
+	case 0x03:
+		memio_write((port & 7) | 0x3980, val, scsi);
+		break;
+
+	case 0x04:
+	case 0x05:
+		memio_write(0x3900, val, scsi);
 		break;
 
 	case 0x08:
@@ -746,56 +822,85 @@ t130b_out(uint16_t port, uint8_t val, void *priv)
 static void *
 ncr_init(device_t *info)
 {
+    char temp[128];
     ncr_t *scsi;
 
     scsi = malloc(sizeof(ncr_t));
     memset(scsi, 0x00, sizeof(ncr_t));
+    scsi->name = info->name;
+    scsi->type = info->local;
 
-    switch(info->local) {
+    switch(scsi->type) {
 	case 0:		/* Longshine LCS6821N */
+		scsi->rom_addr = 0xDC000;
 		rom_init(&scsi->bios_rom, LCS6821N_ROM,
-			 0xdc000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
-
+			 scsi->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 		mem_mapping_disable(&scsi->bios_rom.mapping);
 
-		mem_mapping_add(&scsi->mapping, 0xdc000, 0x4000, 
-				lcs6821n_read, NULL, NULL,
-				lcs6821n_write, NULL, NULL,
+		mem_mapping_add(&scsi->mapping, scsi->rom_addr, 0x4000, 
+				memio_read, NULL, NULL,
+				memio_write, NULL, NULL,
 				scsi->bios_rom.rom, 0, scsi);
 		break;
 
 	case 1:		/* Ranco RT1000B */
+		scsi->rom_addr = 0xDC000;
 		rom_init(&scsi->bios_rom, RT1000B_ROM,
-			 0xdc000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+			 scsi->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
 		mem_mapping_disable(&scsi->bios_rom.mapping);
 
-		mem_mapping_add(&scsi->mapping, 0xdc000, 0x4000, 
-				lcs6821n_read, NULL, NULL,
-				lcs6821n_write, NULL, NULL,
+		mem_mapping_add(&scsi->mapping, scsi->rom_addr, 0x4000, 
+				memio_read, NULL, NULL,
+				memio_write, NULL, NULL,
 				scsi->bios_rom.rom, 0, scsi);
 		break;
 
 	case 2:		/* Trantor T130B */
+		scsi->rom_addr = 0xDC000;
+		scsi->base = 0x0350;
 		rom_init(&scsi->bios_rom, T130B_ROM,
-			 0xdc000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+			 scsi->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
-		mem_mapping_add(&scsi->mapping, 0xdc000, 0x4000, 
+		mem_mapping_add(&scsi->mapping, scsi->rom_addr, 0x4000, 
 				t130b_read, NULL, NULL,
 				t130b_write, NULL, NULL,
 				scsi->bios_rom.rom, 0, scsi);
 
-		io_sethandler(0x0350, 16,
+		io_sethandler(scsi->base, 16,
 			      t130b_in,NULL,NULL, t130b_out,NULL,NULL, scsi);
+		break;
+
+	case 3:		/* Sumo SCSI-AT */
+		scsi->base = device_get_config_hex16("base");
+		scsi->irq = device_get_config_int("irq");
+		scsi->rom_addr = device_get_config_hex20("bios_addr");
+		rom_init(&scsi->bios_rom, SCSIAT_ROM,
+			 scsi->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+
+		mem_mapping_add(&scsi->mapping, scsi->rom_addr, 0x4000, 
+				t130b_read, NULL, NULL,
+				t130b_write, NULL, NULL,
+				scsi->bios_rom.rom, 0, scsi);
+
+		io_sethandler(scsi->base, 16,
+			      scsiat_in,NULL,NULL, scsiat_out,NULL,NULL, scsi);
 		break;
     }
 
+    sprintf(temp, "%s: BIOS=%05X", scsi->name, scsi->rom_addr);
+    if (scsi->base != 0)
+	sprintf(&temp[strlen(temp)], " I/O=%04x", scsi->base);
+    if (scsi->irq != 0)
+	sprintf(&temp[strlen(temp)], " IRQ=%d", scsi->irq);
+    pclog("%s\n", temp);
+
     ncr5380_reset(&scsi->ncr);
-	
+
     scsi->status_ctrl = STATUS_BUFFER_NOT_READY;
     scsi->buffer_host_pos = 128;
 
-    timer_add(ncr_dma_callback, &scsi->dma_callback, &scsi->dma_enabled, scsi);
+    timer_add(dma_callback, &scsi->dma_timer, &scsi->dma_timer, scsi);
 
     return(scsi);
 }
@@ -831,9 +936,113 @@ t130b_available(void)
 }
 
 
+static int
+scsiat_available(void)
+{
+    return(rom_present(SCSIAT_ROM));
+}
+
+
+static device_config_t scsiat_config[] = {
+        {
+		"base", "Address", CONFIG_HEX16, "", 0x0310,
+                {
+                        {
+                                "None",      0
+                        },
+                        {
+                                "300H", 0x0300
+                        },
+                        {
+                                "310H", 0x0310
+                        },
+                        {
+                                "320H", 0x0320
+                        },
+                        {
+                                "330H", 0x0330
+                        },
+                        {
+                                "340H", 0x0340
+                        },
+                        {
+                                "350H", 0x0350
+                        },
+                        {
+                                "360H", 0x0360
+                        },
+                        {
+                                "370H", 0x0370
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+        {
+		"irq", "IRQ", CONFIG_SELECTION, "", 5,
+                {
+                        {
+                                "IRQ 3", 3
+                        },
+                        {
+                                "IRQ 4", 4
+                        },
+                        {
+                                "IRQ 5", 5
+                        },
+                        {
+                                "IRQ 10", 10
+                        },
+                        {
+                                "IRQ 11", 11
+                        },
+                        {
+                                "IRQ 12", 12
+                        },
+                        {
+                                "IRQ 14", 14
+                        },
+                        {
+                                "IRQ 15", 15
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+        {
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000,
+                {
+                        {
+                                "Disabled", 0
+                        },
+                        {
+                                "C800H", 0xc8000
+                        },
+                        {
+                                "CC00H", 0xcc000
+                        },
+                        {
+                                "D800H", 0xd8000
+                        },
+                        {
+                                "DC00H", 0xdc000
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+	{
+		"", "", -1
+	}
+};
+
+
 device_t scsi_lcs6821n_device =
 {
-    "Longshine LCS-6821N (SCSI)",
+    "Longshine LCS-6821N",
     DEVICE_ISA,
     0,
     ncr_init, ncr_close, NULL,
@@ -844,7 +1053,7 @@ device_t scsi_lcs6821n_device =
 
 device_t scsi_rt1000b_device =
 {
-    "Ranco RT1000B (SCSI)",
+    "Ranco RT1000B",
     DEVICE_ISA,
     1,
     ncr_init, ncr_close, NULL,
@@ -855,11 +1064,22 @@ device_t scsi_rt1000b_device =
 
 device_t scsi_t130b_device =
 {
-    "Trantor T130B (SCSI)",
+    "Trantor T130B",
     DEVICE_ISA,
     2,
     ncr_init, ncr_close, NULL,
     t130b_available,
     NULL, NULL, NULL,
     NULL
+};
+
+device_t scsi_scsiat_device =
+{
+    "Sumo SCSI-AT",
+    DEVICE_ISA,
+    3,
+    ncr_init, ncr_close, NULL,
+    scsiat_available,
+    NULL, NULL, NULL,
+    scsiat_config
 };

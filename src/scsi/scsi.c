@@ -8,7 +8,7 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.12	2017/12/05
+ * Version:	@(#)scsi.c	1.0.13	2017/12/16
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -74,6 +74,7 @@ static SCSI_CARD scsi_cards[] = {
     { "[ISA] Longshine LCS-6821N","lcs6821n",	&scsi_lcs6821n_device,NULL		  },
     { "[ISA] Ranco RT1000B",	"rt1000b",	&scsi_rt1000b_device, NULL		  },
     { "[ISA] Trantor T130B",	"t130b",	&scsi_t130b_device,   NULL		  },
+    { "[ISA] Sumo SCSI-AT",	"scsiat",	&scsi_scsiat_device,  NULL		  },
 #ifdef WALTJE
     { "[ISA] Generic WDC33C93",	"wd33c93",	&scsi_wd33c93_device, NULL		  },
 #endif

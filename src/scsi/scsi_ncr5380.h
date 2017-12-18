@@ -10,10 +10,10 @@
  *		made by NCR. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.0	2017/10/04
+ * Version:	@(#)scsi_ncr5380.c	1.0.1	2017/12/16
  *
- * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
- *		TheCollector1995, <mariogplayer@gmail.com>
+ * Authors:	TheCollector1995, <mariogplayer@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  */
 #ifndef SCSI_NCR5380_H
 # define SCSI_NCR5380_H
@@ -22,6 +22,7 @@
 extern device_t scsi_lcs6821n_device;
 extern device_t scsi_rt1000b_device;
 extern device_t scsi_t130b_device;
+extern device_t scsi_scsiat_device;
 
   
 #endif	/*SCSI_NCR5380_H*/
