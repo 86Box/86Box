@@ -10,7 +10,7 @@
 #		settings, so we can avoid changing the main one for all of
 #		our local setups.
 #
-# Version:	@(#)Makefile.local	1.0.8	2017/11/28
+# Version:	@(#)Makefile.local	1.0.8	2017/12/15
 #
 # Author:	Fred N. van Kempen, <decwiz@yahoo.com>
 #
@@ -27,6 +27,7 @@
 # Various compile-time options.
 # -DROM_TRACE=0xc800 traces ROM access from segment C800
 # -DIO_TRACE=0x66 traces I/O on port 0x66
+# -DIO_CATCH enables I/O range catch logs
 STUFF	:=
 
 # Add feature selections here.
