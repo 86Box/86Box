@@ -20,7 +20,8 @@
 #define PCJR	(romset==ROM_IBMPCJR)
 #define AMIBIOS	(romset==ROM_AMI386SX || \
 		 romset==ROM_AMI486 || \
-		 romset==ROM_WIN486)
+		 romset==ROM_WIN486 || \
+		 romset==ROM_4GPV31)
 
 
 typedef struct {
