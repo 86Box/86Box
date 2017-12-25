@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.6	2017/12/25
+ * Version:	@(#)rom.h	1.0.7	2017/12/25
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -18,10 +18,16 @@
 
 
 #define PCJR	(romset==ROM_IBMPCJR)
+#ifdef GREENB
 #define AMIBIOS	(romset==ROM_AMI386SX || \
 		 romset==ROM_AMI486 || \
 		 romset==ROM_WIN486 || \
 		 romset==ROM_4GPV31)
+#else
+#define AMIBIOS	(romset==ROM_AMI386SX || \
+		 romset==ROM_AMI486 || \
+		 romset==ROM_WIN486)
+#endif
 
 
 typedef struct {
