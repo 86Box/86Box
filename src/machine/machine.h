@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.14	2017/12/04
+ * Version:	@(#)machine.h	1.0.15	2017/12/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -136,7 +136,9 @@ extern void	machine_at_r418_init(machine_t *);
 
 extern void	machine_at_wd76c10_init(machine_t *);
 
+#ifdef GREENB
 extern void	machine_at_4gpv31_init(machine_t *);
+#endif
 
 extern void	machine_pcjr_init(machine_t *);
 
@@ -148,7 +150,9 @@ extern void	machine_ps2_m30_286_init(machine_t *);
 extern void	machine_ps2_model_50_init(machine_t *);
 extern void	machine_ps2_model_55sx_init(machine_t *);
 extern void	machine_ps2_model_80_init(machine_t *);
+#ifdef WALTJE
 extern void	machine_ps2_model_80_486_init(machine_t *);
+#endif
 
 extern void	machine_amstrad_init(machine_t *);
 

@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.5	2017/12/04
+ * Version:	@(#)rom.h	1.0.6	2017/12/25
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -82,7 +82,9 @@ enum {
     ROM_IBMPS2_M80,
 
     ROM_DTK486,		/* DTK PKM-0038S E-2/SiS 471/Award/SiS 85C471 */
+#ifdef UNIMPLEMENTED_MACHINES
     ROM_VLI486SV2G,	/* ASUS VL/I-486SV2G/SiS 471/Award/SiS 85C471 */	/* 51 */
+#endif
     ROM_R418,		/* Rise Computer R418/SiS 496/497/Award/SMC FDC37C665 */
     ROM_PLATO,		/* Intel Premiere/PCI II/430NX/AMI/SMC FDC37C665 */
     ROM_MB500N,		/* PC Partner MB500N/430FX/Award/SMC FDC37C665 */
@@ -96,7 +98,9 @@ enum {
     ROM_P55VA,		/* Epox P55-VA/430VX/Award/SMC FDC37C932FR*/
     ROM_THOR,		/* Intel Advanced_ATX/430FX/AMI/NS PC87306 */
     ROM_MRTHOR,		/* Intel Advanced_ATX/430FX/MR.BIOS/NS PC87306 */
+#ifdef UNIMPLEMENTED_MACHINES
     ROM_POWERMATE_V,	/* NEC PowerMate V/430FX/Phoenix/SMC FDC37C66 5*/	/* 68 */
+#endif
 
     ROM_440FX,		/* Tyan Titan-Pro AT/440FX/Award BIOS/SMC FDC37C665 */
 
@@ -116,11 +120,17 @@ enum {
     ROM_IBMPS1_2133,
 
     ROM_PRESIDENT,	/* President Award 430FX PCI/430FX/Award/Unknown SIO */
+#ifdef WALTJE
     ROM_IBMPS2_M80_486,
+#endif
 
+#ifdef GREENB
     ROM_4GPV31,		/* Green-B 4GPV3.1 ISA/VLB 486/Pentium, AMI */
+#endif
 
+#ifdef WALTJE
     ROM_OPENAT,		/* PC/AT clone with Open BIOS */
+#endif
 
     ROM_MAX
 };

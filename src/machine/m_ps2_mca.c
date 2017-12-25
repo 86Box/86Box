@@ -839,6 +839,7 @@ machine_ps2_model_80_init(machine_t *model)
 }
 
 
+#ifdef WALTJE
 void
 machine_ps2_model_80_486_init(machine_t *model)
 {
@@ -846,3 +847,4 @@ machine_ps2_model_80_486_init(machine_t *model)
 
         ps2_mca_board_model_80_type2_init(1);
 }
+#endif

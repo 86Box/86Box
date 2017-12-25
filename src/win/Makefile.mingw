@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.84	2017/12/13
+# Version:	@(#)Makefile.mingw	1.0.85	2017/12/25
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -65,6 +65,9 @@ endif
 ifndef CIRRUS
 CIRRUS		:= n
 endif
+ifndef GREENB
+GREENB		:= n
+endif
 ifndef NE1000
 NE1000		:= n
 endif
@@ -101,6 +104,7 @@ ifeq ($(DEV_BUILD), y)
 DEBUG		:= y
 DEV_BRANCH	:= y
 CIRRUS		:= y
+GREENB		:= y
 NE1000		:= y
 NV_RIVA		:= y
 PAS16		:= y
