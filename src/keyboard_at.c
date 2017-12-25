@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.10	2017/11/23
+ * Version:	@(#)keyboard_at.c	1.0.11	2017/12/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -981,7 +981,9 @@ bad_command:
 					case ROM_AP53:
 					case ROM_P55T2S:
 					case ROM_S1668:
+#ifdef GREENB
 					case ROM_4GPV31:
+#endif
 						/*Set extended controller RAM*/
 						kbdlog("ATkbd: set extended controller RAM\n");
 						kbd->want60 = 1;
