@@ -8,7 +8,7 @@
  *
  *		Emulation of the old and new IBM CGA graphics cards.
  *
- * Version:	@(#)vid_cga.c	1.0.10	2017/11/04
+ * Version:	@(#)vid_cga.c	1.0.11	2017/12/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -137,7 +137,7 @@ void cga_recalctimings(cga_t *cga)
 {
         double disptime;
 	double _dispontime, _dispofftime;
-        pclog("Recalc - %i %i %i\n", cga->crtc[0], cga->crtc[1], cga->cgamode & 1);
+        /* pclog("Recalc - %i %i %i\n", cga->crtc[0], cga->crtc[1], cga->cgamode & 1); */
         if (cga->cgamode & 1)
         {
                 disptime = cga->crtc[0] + 1;

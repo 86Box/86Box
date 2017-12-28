@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.42	2017/12/15
+ * Version:	@(#)win.c	1.0.43	2017/12/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -728,7 +728,7 @@ plat_setfullscreen(int on)
     device_force_redraw();
 
     /* Finally, handle the host's mouse cursor. */
-    pclog("%s full screen, %s cursor\n", on ? "enter" : "leave", on ? "hide" : "show");
+    /* pclog("%s full screen, %s cursor\n", on ? "enter" : "leave", on ? "hide" : "show"); */
     show_cursor(video_fullscreen ? 0 : -1);
 }
 

@@ -8,7 +8,7 @@
  *
  *		Several dialogs for the application.
  *
- * Version:	@(#)win_dialog.c	1.0.6	2017/12/13
+ * Version:	@(#)win_dialog.c	1.0.7	2017/12/28
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -160,7 +160,7 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
 {
     OPENFILENAME ofn;
     BOOL r;
-    DWORD err;
+    /* DWORD err; */
 
     /* Initialize OPENFILENAME */
     ZeroMemory(&ofn, sizeof(ofn));
@@ -201,9 +201,9 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
 	return(0);
     }
 
-    pclog("File dialog return false\n");
-    err = CommDlgExtendedError();
-    pclog("CommDlgExtendedError return %04X\n", err);
+    /* pclog("File dialog return false\n"); */
+    /* err = CommDlgExtendedError();
+    pclog("CommDlgExtendedError return %04X\n", err); */
 
     return(1);
 }

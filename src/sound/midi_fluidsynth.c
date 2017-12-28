@@ -204,7 +204,7 @@ void fluidsynth_msg(uint8_t *msg)
         case 0xF0:      /* SysEx */
                 break;
         default:
-                pclog("fluidsynth: unknown send() command 0x%02X", cmd);
+                /* pclog("fluidsynth: unknown send() command 0x%02X", cmd); */
                 break;
         }
 }
@@ -311,7 +311,7 @@ void* fluidsynth_init(device_t *info)
 
         al_set_midi(data->samplerate, data->buf_size);
 
-        pclog("fluidsynth (%s) initialized, samplerate %d, buf_size %d\n", f_fluid_version_str(), data->samplerate, data->buf_size);
+        /* pclog("fluidsynth (%s) initialized, samplerate %d, buf_size %d\n", f_fluid_version_str(), data->samplerate, data->buf_size); */
 
         midi_device_t* dev = malloc(sizeof(midi_device_t));
         memset(dev, 0, sizeof(midi_device_t));
@@ -367,7 +367,7 @@ void fluidsynth_close(void* p)
 		fluidsynth_handle = NULL;
 	}
 
-        pclog("fluidsynth closed\n");
+        /* pclog("fluidsynth closed\n"); */
 }
 
 static device_config_t fluidsynth_config[] =

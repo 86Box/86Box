@@ -8,7 +8,7 @@
  *
  *		S3 ViRGE emulation.
  *
- * Version:	@(#)vid_s3_virge.c	1.0.4	2017/11/04
+ * Version:	@(#)vid_s3_virge.c	1.0.5	2017/12/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -3224,7 +3224,7 @@ static void s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri)
                         dest_pixel = dest_pixel_lit_texture_decal;
                         break;
                         default:
-                        pclog("bad triangle type %x\n", (s3d_tri->cmd_set >> 27) & 0xf);
+                        /* pclog("bad triangle type %x\n", (s3d_tri->cmd_set >> 27) & 0xf); */
                         return;
                 }
                 break;
@@ -3233,7 +3233,7 @@ static void s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri)
                 dest_pixel = dest_pixel_unlit_texture_triangle;
                 break;
                 default:
-                pclog("bad triangle type %x\n", (s3d_tri->cmd_set >> 27) & 0xf);
+                /* pclog("bad triangle type %x\n", (s3d_tri->cmd_set >> 27) & 0xf); */
                 return;
         }        
         
@@ -3289,7 +3289,7 @@ static void s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri)
                 tex_read = (s3d_tri->cmd_set & CMD_SET_TWE) ? tex_ARGB1555 : tex_ARGB1555_nowrap;
                 break;
                 default:
-                pclog("bad texture type %i\n", (s3d_tri->cmd_set >> 5) & 7);
+                /* pclog("bad texture type %i\n", (s3d_tri->cmd_set >> 5) & 7); */
                 tex_read = (s3d_tri->cmd_set & CMD_SET_TWE) ? tex_ARGB1555 : tex_ARGB1555_nowrap;
                 break;
         }

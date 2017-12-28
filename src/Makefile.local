@@ -10,7 +10,7 @@
 #		settings, so we can avoid changing the main one for all of
 #		our local setups.
 #
-# Version:	@(#)Makefile.local	1.0.8	2017/12/15
+# Version:	@(#)Makefile.local	1.0.9	2017/12/28
 #
 # Author:	Fred N. van Kempen, <decwiz@yahoo.com>
 #
@@ -50,8 +50,10 @@ STUFF	:=
 # -DENABLE_AHA154X_LOG=N sets logging level at N.
 # -DENABLE_BUSLOGIC_LOG=N sets logging level at N.
 # -DENABLE_NCR5380_LOG=N sets logging level at N.
+# -DENABLE_NCR53C810_LOG=N sets logging level at N.
 # -DENABLE_AUDIOPCI_LOG=N sets logging level at N.
 # -DENABLE_EMU8K_LOG=N sets logging level at N.
+# -DENABLE_VOODOO_LOG=N sets logging level at N.
 # -DENABLE_VRAM_DUMP=N sets logging level at N.
 # -DENABLE_SERIAL_LOG=N sets logging level at N.
 EXTRAS		:=

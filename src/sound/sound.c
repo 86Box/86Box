@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.10	2017/12/09
+ * Version:	@(#)sound.c	1.0.11	2017/12/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -333,9 +333,9 @@ void sound_init(void)
 		sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
 
 		cdaudioon = 1;
-		pclog("Waiting for CD start event...\n");
+		/* pclog("Waiting for CD start event...\n"); */
 		thread_wait_event(sound_cd_start_event, -1);
-		pclog("Done!\n");
+		/* pclog("Done!\n"); */
 	}
 	else
 		cdaudioon = 0;
@@ -439,10 +439,10 @@ void sound_cd_thread_end(void)
 	if (cdaudioon) {
 		cdaudioon = 0;
 
-		pclog("Waiting for CD Audio thread to terminate...\n");
+		/* pclog("Waiting for CD Audio thread to terminate...\n"); */
 		thread_set_event(sound_cd_event);
 		thread_wait(sound_cd_thread_h, -1);
-		pclog("CD Audio thread terminated...\n");
+		/* pclog("CD Audio thread terminated...\n"); */
 
 		if (sound_cd_event) {
 			thread_destroy_event(sound_cd_event);

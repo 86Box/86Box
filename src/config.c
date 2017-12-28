@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.35	2017/12/15
+ * Version:	@(#)config.c	1.0.36	2017/12/28
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -979,8 +979,8 @@ load_removable_devices(void)
 #endif
 	wcsncpy(floppyfns[c], wp, sizeof_w(floppyfns[c]));
 
-	if (*wp != L'\0')
-		pclog("Floppy%d: %ls\n", c, floppyfns[c]);
+	/* if (*wp != L'\0')
+		pclog("Floppy%d: %ls\n", c, floppyfns[c]); */
 	sprintf(temp, "fdd_%02i_writeprot", c+1);
 	ui_writeprot[c] = !!config_get_int(cat, temp, 0);
 	sprintf(temp, "fdd_%02i_turbo", c + 1);

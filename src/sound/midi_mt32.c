@@ -63,7 +63,7 @@ mt32emu_return_code mt32_check(const char* func, mt32emu_return_code ret, mt32em
 {
         if (ret != expected)
         {
-                pclog("%s() failed, expected %d but returned %d\n", func, expected, ret);
+                /* pclog("%s() failed, expected %d but returned %d\n", func, expected, ret); */
                 return 0;
         }
         return 1;
@@ -201,14 +201,14 @@ void* mt32emu_init(wchar_t *control_rom, wchar_t *pcm_rom)
         mt32emu_set_reversed_stereo_enabled(context, device_get_config_int("reversed_stereo"));
         mt32emu_set_nice_amp_ramp_enabled(context, device_get_config_int("nice_ramp"));
 
-        pclog("mt32 output gain: %f\n", mt32emu_get_output_gain(context));
+        /* pclog("mt32 output gain: %f\n", mt32emu_get_output_gain(context));
         pclog("mt32 reverb output gain: %f\n", mt32emu_get_reverb_output_gain(context));
         pclog("mt32 reverb: %d\n", mt32emu_is_reverb_enabled(context));
-        pclog("mt32 reversed stereo: %d\n", mt32emu_is_reversed_stereo_enabled(context));
+        pclog("mt32 reversed stereo: %d\n", mt32emu_is_reversed_stereo_enabled(context)); */
 
         al_set_midi(samplerate, buf_size);
 
-        pclog("mt32 (Munt %s) initialized, samplerate %d, buf_size %d\n", mt32emu_get_library_version_string(), samplerate, buf_size);
+        /* pclog("mt32 (Munt %s) initialized, samplerate %d, buf_size %d\n", mt32emu_get_library_version_string(), samplerate, buf_size); */
 
         midi_device_t* dev = malloc(sizeof(midi_device_t));
         memset(dev, 0, sizeof(midi_device_t));
@@ -262,7 +262,7 @@ void mt32_close(void* p)
 
         free((midi_device_t*)p);
 
-        pclog("mt32 closed\n");
+        /* pclog("mt32 closed\n"); */
 }
 
 static device_config_t mt32_config[] =

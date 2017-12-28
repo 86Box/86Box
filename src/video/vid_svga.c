@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.12	2017/11/12
+ * Version:	@(#)vid_svga.c	1.0.13	2017/12/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1550,7 +1550,7 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 
 		if (video_force_resize_get())
 		{
-			pclog("Scroll: %02X (%i, %i, %i, %i, %i, %i)\n", (svga->crtc[8] & 0x1f), enable_overscan, suppress_overscan, wx, wy + 1, x_add, y_add);
+			/* pclog("Scroll: %02X (%i, %i, %i, %i, %i, %i)\n", (svga->crtc[8] & 0x1f), enable_overscan, suppress_overscan, wx, wy + 1, x_add, y_add); */
 			video_force_resize_set(0);
 		}
         }
@@ -1707,7 +1707,7 @@ uint32_t svga_readl(uint32_t addr, void *p)
         
         if (!svga->fast)
 	{
-	   if (addr == 0xBF0000)  pclog ("%08X\n", svga_read(addr, p) | (svga_read(addr + 1, p) << 8) | (svga_read(addr + 2, p) << 16) | (svga_read(addr + 3, p) << 24));
+	   /* if (addr == 0xBF0000)  pclog ("%08X\n", svga_read(addr, p) | (svga_read(addr + 1, p) << 8) | (svga_read(addr + 2, p) << 16) | (svga_read(addr + 3, p) << 24)); */
            return svga_read(addr, p) | (svga_read(addr + 1, p) << 8) | (svga_read(addr + 2, p) << 16) | (svga_read(addr + 3, p) << 24);
 	}
         
