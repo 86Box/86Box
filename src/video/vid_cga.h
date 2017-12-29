@@ -8,7 +8,7 @@
  *
  *		Emulation of the old and new IBM CGA graphics cards.
  *
- * Version:	@(#)vid_cga.h	1.0.0	2017/05/30
+ * Version:	@(#)vid_cga.h	1.0.1	2017/12/29
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -60,4 +60,5 @@ uint8_t cga_read(uint32_t addr, void *p);
 void    cga_recalctimings(cga_t *cga);
 void    cga_poll(void *p);
 
+extern device_config_t cga_config[];
 extern device_t cga_device;

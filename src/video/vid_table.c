@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.6	2017/11/05
+ * Version:	@(#)vid_table.c	1.0.7	2017/12/29
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -41,6 +41,7 @@
 #  include "vid_cl_gd.h"
 # endif
 #endif
+#include "vid_compaq_cga.h"
 #include "vid_ega.h"
 #include "vid_et4000.h"
 #include "vid_et4000w32.h"
@@ -103,6 +104,8 @@ video_cards[] = {
     { "[ISA] Cirrus Logic CL-GD5440",		    "cl_gd5440",		&gd5440_device,				GFX_CL_GD5440			},
 #endif
     { "[ISA] Compaq ATI VGA Wonder XL (ATI-28800-5)","compaq_ati28800",		&compaq_ati28800_device,     		GFX_VGAWONDERXL			},
+    { "[ISA] Compaq CGA",                            "compaq_cga",		&compaq_cga_device,              	GFX_COMPAQ_CGA			},
+    { "[ISA] Compaq CGA 2",                          "compaq_cga_2",		&compaq_cga_2_device,              	GFX_COMPAQ_CGA_2		},
     { "[ISA] Compaq EGA",                            "compaq_ega",		&cpqega_device,              		GFX_COMPAQ_EGA			},
     { "[ISA] EGA",                                   "ega",			&ega_device,                 		GFX_EGA				},
     { "[ISA] Hercules",                              "hercules",			&hercules_device,            		GFX_HERCULES			},

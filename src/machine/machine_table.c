@@ -11,7 +11,7 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.7	2017/12/25
+ * Version:	@(#)machine_table.c	1.0.8	2017/12/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -36,7 +36,7 @@
 
 machine_t machines[] = {
     { "[8088] AMI XT clone",			ROM_AMIXT,		"amixt",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,										 64,  640,  64,   0,		      machine_xt_init, NULL, NULL			},
-    { "[8088] Compaq Portable",			ROM_PORTABLE,		"portable",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO,								128,  640, 128,   0,	       machine_xt_compaq_init, NULL, NULL			},
+    { "[8088] Compaq Portable",			ROM_PORTABLE,		"portable",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO,								128,  640, 128,   0,	       machine_xt_compaq_init, NULL, NULL			},
     { "[8088] DTK XT clone",			ROM_DTKXT,		"dtk",			{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,										 64,  640,  64,   0,		      machine_xt_init, NULL, NULL			},
     { "[8088] IBM PC",				ROM_IBMPC,		"ibmpc",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,										 64,  640,  32,   0,		      machine_xt_init, NULL, NULL			},
     { "[8088] IBM PCjr",			ROM_IBMPCJR,		"ibmpcjr",		{{"",      cpus_pcjr},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO,								128,  640, 128,   0,		    machine_pcjr_init, NULL, NULL			},
@@ -62,7 +62,9 @@ machine_t machines[] = {
     { "[286 ISA] Award 286 clone",		ROM_AWARD286,		"award286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								512,16384, 128, 127,		 machine_at_scat_init, NULL, nvr_at_close		},
     { "[286 ISA] Commodore PC 30 III",		ROM_CMDPC30,		"cmdpc30",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								640,16384, 128, 127,		machine_at_cmdpc_init, NULL, nvr_at_close		},
     { "[286 ISA] Compaq Portable II",		ROM_PORTABLEII,		"portableii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								640,16384, 128, 127,	       machine_at_compaq_init, NULL, nvr_at_close		},
+#ifdef PORTABLE3
     { "[286 ISA] Compaq Portable III",		ROM_PORTABLEIII,	"portableiii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_VIDEO,						640,16384, 128, 127,	       machine_at_compaq_init, NULL, nvr_at_close		},
+#endif
     { "[286 ISA] Hyundai Super-286TR",		ROM_SUPER286TR,		"super286tr",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								512,16384, 128, 127,		 machine_at_scat_init, NULL, nvr_at_close		},
     { "[286 ISA] IBM AT",			ROM_IBMAT,		"ibmat",		{{"",      cpus_ibmat},       {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								256,15872, 128,  63,	    machine_at_top_remap_init, NULL, nvr_at_close		},
     { "[286 ISA] IBM PS/1 model 2011",		ROM_IBMPS1_2011,	"ibmps1es",		{{"",      cpus_ps1_m2011},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC_PS2,				512,16384, 512, 127,	       machine_ps1_m2011_init, NULL, nvr_at_close		},
@@ -88,7 +90,9 @@ machine_t machines[] = {
     { "[386DX ISA] Amstrad MegaPC 386DX",	ROM_MEGAPCDX,		"megapcdx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,			  1,   16,   1, 127,	      machine_at_wd76c10_init, NULL, nvr_at_close		},
     { "[386DX ISA] Award 386DX clone",		ROM_AWARD386DX_OPTI495,	"award386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,							  1,   64,   1, 127,	      machine_at_opti495_init, NULL, nvr_at_close		},
     { "[386DX ISA] MR 386DX clone",		ROM_MR386DX_OPTI495,	"mr386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,							  1,   64,   1, 127,	      machine_at_opti495_init, NULL, nvr_at_close		},
+#ifdef PORTABLE3
     { "[386DX ISA] Compaq Portable III (386)",  ROM_PORTABLEIII386,     "portableiii386",       {{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_VIDEO,                		          1,   14,   1, 127,           machine_at_compaq_init, NULL, nvr_at_close		},
+#endif
 
     { "[386DX MCA] IBM PS/2 model 80",		ROM_IBMPS2_M80,		"ibmps2_m80",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 1, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC_PS2,				  1,   12,   1,  63,	    machine_ps2_model_80_init, NULL, nvr_at_close		},
 

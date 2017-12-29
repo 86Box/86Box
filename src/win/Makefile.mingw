@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.85	2017/12/25
+# Version:	@(#)Makefile.mingw	1.0.86	2017/12/29
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -77,6 +77,9 @@ endif
 ifndef OPENAL
 OPENAL		:= y
 endif
+ifndef PORTABLE3
+PORTABLE3	:= n
+endif
 ifndef FLUIDSYNTH
 FLUIDSYNTH	:= y
 endif
@@ -108,6 +111,7 @@ GREENB		:= y
 NE1000		:= y
 NV_RIVA		:= y
 PAS16		:= y
+PORTABLE3	:= y
 VNC		:= y
 endif
 
@@ -428,7 +432,9 @@ SNDOBJ		:= sound.o \
 
 VIDOBJ		:= video.o \
 		    vid_table.o \
-		    vid_cga.o vid_cga_comp.o vid_mda.o \
+		    vid_cga.o vid_cga_comp.o \
+		    vid_compaq_cga.o \
+		    vid_mda.o \
 		    vid_ega.o vid_ega_render.o \
 		    vid_vga.o vid_svga.o vid_svga_render.o \
 		    vid_hercules.o vid_herculesplus.o vid_incolor.o \

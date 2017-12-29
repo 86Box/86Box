@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.5	2017/11/25
+ * Version:	@(#)video.h	1.0.6	2017/12/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -92,6 +92,8 @@ enum {
     GFX_CL_GD5436,  		/* Cirrus Logic CL-GD5436 */
     GFX_CL_GD5440,  		/* Cirrus Logic CL-GD5440 */
     GFX_TICF62011,  		/* TI CF62011 */
+    GFX_COMPAQ_CGA,		/* Compaq CGA */
+    GFX_COMPAQ_CGA_2,		/* Compaq CGA 2 */
 
     GFX_MAX
 };
