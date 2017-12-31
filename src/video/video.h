@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.6	2017/12/29
+ * Version:	@(#)video.h	1.0.7	2017/12/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -68,7 +68,7 @@ enum {
     GFX_COMPAQ_VGA,		/* Compaq/Paradise VGA */
     GFX_CL_GD5446,		/* Cirrus Logic CL-GD5446 */
     GFX_VGAWONDERXL,		/* Compaq ATI VGA Wonder XL (28800-5) */
-    GFX_WD90C11,		/* Paradise WD90C11 Standalone */
+    GFX_WD90C11,		/* Paradise WD90C11-LR Standalone */
     GFX_OTI077,     		/* Oak OTI-077 */
     GFX_VGAWONDERXL24,		/* Compaq ATI VGA Wonder XL24 (28800-6) */
     GFX_STEALTH64_VLB,		/* S3 Vision864 (Diamond Stealth 64) VLB */
@@ -94,6 +94,8 @@ enum {
     GFX_TICF62011,  		/* TI CF62011 */
     GFX_COMPAQ_CGA,		/* Compaq CGA */
     GFX_COMPAQ_CGA_2,		/* Compaq CGA 2 */
+    GFX_PVGA1A,			/* Paradise PVGA1A Standalone */
+    GFX_WD90C30,		/* Paradise WD90C30-LR Standalone */
 
     GFX_MAX
 };
@@ -108,7 +110,7 @@ enum {
 		   gfxcard!=GFX_GENIUS && gfxcard!=GFX_COMPAQ_EGA && \
 		   gfxcard!=GFX_SUPER_EGA && gfxcard!=GFX_HERCULESPLUS) && \
 		 (romset!=ROM_PC1640 && romset!=ROM_PC1512 && \
-		  romset!=ROM_TANDY && romset!=ROM_PC200))
+		  romset!=ROM_TANDY && romset!=ROM_PC200 && romset!=ROM_T3100E))
 
 enum {
     FULLSCR_SCALE_FULL = 0,
@@ -151,8 +153,8 @@ extern int	video_fullscreen,
 		video_fullscreen_scale,
 		video_fullscreen_first;
 extern int	fullchange;
-extern uint8_t	fontdat[256][8];
-extern uint8_t	fontdatm[256][16];
+extern uint8_t	fontdat[2048][8];
+extern uint8_t	fontdatm[2048][16];
 extern uint32_t	*video_6to8,
 		*video_15to32,
 		*video_16to32;

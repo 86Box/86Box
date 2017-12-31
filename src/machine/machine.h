@@ -100,6 +100,8 @@ extern void	machine_at_ide_init(machine_t *);
 extern void	machine_at_top_remap_init(machine_t *);
 extern void	machine_at_ide_top_remap_init(machine_t *);
 
+extern void	machine_at_t3100e_init(machine_t *);
+
 extern void	machine_at_p54tp4xe_init(machine_t *);
 extern void	machine_at_endeavor_init(machine_t *);
 extern void	machine_at_zappa_init(machine_t *);

@@ -8,7 +8,7 @@
  *
  *		General keyboard driver interface.
  *
- * Version:	@(#)keyboard.c	1.0.9	2017/11/03
+ * Version:	@(#)keyboard.c	1.0.10	2017/12/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -191,6 +191,13 @@ keyboard_input(int down, uint16_t scan)
     key = scan & 0xff;
     if (key > 0)
 	recv_key[key] = down;
+}
+
+
+int
+keyboard_recv(uint16_t key)
+{
+	return recv_key[key];
 }
 
 

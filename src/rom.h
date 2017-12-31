@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.8	2017/12/29
+ * Version:	@(#)rom.h	1.0.9	2017/12/31
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
@@ -139,6 +139,8 @@ enum {
 #ifdef WALTJE
     ROM_OPENAT,		/* PC/AT clone with Open BIOS */
 #endif
+
+    ROM_T3100E,
 
     ROM_MAX
 };

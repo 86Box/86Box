@@ -355,6 +355,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_xt.o m_xt_compaq.o m_xt_laserxt.o \
 		    m_at.o m_at_ali1429.o m_at_commodore.o \
 		    m_at_neat.o m_at_headland.o \
+		    m_at_t3100e.o \
 		    m_at_opti495.o m_at_scat.o \
 		    m_at_compaq.o m_at_wd76c10.o \
 		    m_at_sis_85c471.o m_at_sis_85c496.o \
@@ -440,6 +441,7 @@ VIDOBJ		:= video.o \
 		    vid_hercules.o vid_herculesplus.o vid_incolor.o \
 		    vid_colorplus.o \
 		    vid_genius.o \
+		    vid_t3100e.o \
 		    vid_s3.o vid_s3_virge.o \
 		    vid_et4000.o vid_et4000w32.o vid_icd2061.o \
 		    vid_oti067.o \

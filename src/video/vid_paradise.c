@@ -10,7 +10,7 @@
  *		 PC2086, PC3086 use PVGA1A
  *		 MegaPC uses W90C11A
  *
- * Version:	@(#)vid_paradise.c	1.0.2	2017/11/04
+ * Version:	@(#)vid_paradise.c	1.0.3	2017/12/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -43,7 +43,8 @@ typedef struct paradise_t
         enum
         {
                 PVGA1A = 0,
-                WD90C11
+                WD90C11,
+		WD90C30
         } type;
 
         uint32_t read_bank[4], write_bank[4];
@@ -207,37 +208,39 @@ uint8_t paradise_in(uint16_t addr, void *p)
 void paradise_remap(paradise_t *paradise)
 {
         svga_t *svga = &paradise->svga;
+
+	uint8_t mask = (paradise->type == WD90C11) ? 0x7f : 0xff;
         
         if (svga->seqregs[0x11] & 0x80)
         {
-                paradise->read_bank[0]  = paradise->read_bank[2]  =  (svga->gdcreg[0x9] & 0x7f) << 12;
-                paradise->read_bank[1]  = paradise->read_bank[3]  = ((svga->gdcreg[0x9] & 0x7f) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
-                paradise->write_bank[0] = paradise->write_bank[2] =  (svga->gdcreg[0xa] & 0x7f) << 12;
-                paradise->write_bank[1] = paradise->write_bank[3] = ((svga->gdcreg[0xa] & 0x7f) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
+                paradise->read_bank[0]  = paradise->read_bank[2]  =  (svga->gdcreg[0x9] & mask) << 12;
+                paradise->read_bank[1]  = paradise->read_bank[3]  = ((svga->gdcreg[0x9] & mask) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
+                paradise->write_bank[0] = paradise->write_bank[2] =  (svga->gdcreg[0xa] & mask) << 12;
+                paradise->write_bank[1] = paradise->write_bank[3] = ((svga->gdcreg[0xa] & mask) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
         }
         else if (svga->gdcreg[0xe] & 0x08)
         {
                 if (svga->gdcreg[0x6] & 0xc)
                 {
-                        paradise->read_bank[0]  = paradise->read_bank[2]  =  (svga->gdcreg[0xa] & 0x7f) << 12;
-                        paradise->write_bank[0] = paradise->write_bank[2] =  (svga->gdcreg[0xa] & 0x7f) << 12;
-                        paradise->read_bank[1]  = paradise->read_bank[3]  = ((svga->gdcreg[0x9] & 0x7f) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
-                        paradise->write_bank[1] = paradise->write_bank[3] = ((svga->gdcreg[0x9] & 0x7f) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
+                        paradise->read_bank[0]  = paradise->read_bank[2]  =  (svga->gdcreg[0xa] & mask) << 12;
+                        paradise->write_bank[0] = paradise->write_bank[2] =  (svga->gdcreg[0xa] & mask) << 12;
+                        paradise->read_bank[1]  = paradise->read_bank[3]  = ((svga->gdcreg[0x9] & mask) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
+                        paradise->write_bank[1] = paradise->write_bank[3] = ((svga->gdcreg[0x9] & mask) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
                 }
                 else
                 {
-                        paradise->read_bank[0] = paradise->write_bank[0] =  (svga->gdcreg[0xa] & 0x7f) << 12;
-                        paradise->read_bank[1] = paradise->write_bank[1] = ((svga->gdcreg[0xa] & 0x7f) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
-                        paradise->read_bank[2] = paradise->write_bank[2] =  (svga->gdcreg[0x9] & 0x7f) << 12;
-                        paradise->read_bank[3] = paradise->write_bank[3] = ((svga->gdcreg[0x9] & 0x7f) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
+                        paradise->read_bank[0] = paradise->write_bank[0] =  (svga->gdcreg[0xa] & mask) << 12;
+                        paradise->read_bank[1] = paradise->write_bank[1] = ((svga->gdcreg[0xa] & mask) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
+                        paradise->read_bank[2] = paradise->write_bank[2] =  (svga->gdcreg[0x9] & mask) << 12;
+                        paradise->read_bank[3] = paradise->write_bank[3] = ((svga->gdcreg[0x9] & mask) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
                 }
         }
         else
         {
-                paradise->read_bank[0]  = paradise->read_bank[2]  =  (svga->gdcreg[0x9] & 0x7f) << 12;
-                paradise->read_bank[1]  = paradise->read_bank[3]  = ((svga->gdcreg[0x9] & 0x7f) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
-                paradise->write_bank[0] = paradise->write_bank[2] =  (svga->gdcreg[0x9] & 0x7f) << 12;
-                paradise->write_bank[1] = paradise->write_bank[3] = ((svga->gdcreg[0x9] & 0x7f) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
+                paradise->read_bank[0]  = paradise->read_bank[2]  =  (svga->gdcreg[0x9] & mask) << 12;
+                paradise->read_bank[1]  = paradise->read_bank[3]  = ((svga->gdcreg[0x9] & mask) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
+                paradise->write_bank[0] = paradise->write_bank[2] =  (svga->gdcreg[0x9] & mask) << 12;
+                paradise->write_bank[1] = paradise->write_bank[3] = ((svga->gdcreg[0x9] & mask) << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
         }
 }
 
@@ -264,7 +267,7 @@ uint8_t paradise_read(uint32_t addr, void *p)
 }
 
 
-void *paradise_pvga1a_init(device_t *info)
+void *paradise_pvga1a_init(device_t *info, uint32_t memsize)
 {
         paradise_t *paradise = malloc(sizeof(paradise_t));
         svga_t *svga = &paradise->svga;
@@ -272,7 +275,7 @@ void *paradise_pvga1a_init(device_t *info)
         
         io_sethandler(0x03c0, 0x0020, paradise_in, NULL, NULL, paradise_out, NULL, NULL, paradise);
 
-        svga_init(&paradise->svga, paradise, 1 << 18, /*256kb*/
+        svga_init(&paradise->svga, paradise, memsize, /*256kb*/
                    NULL,
                    paradise_in, paradise_out,
                    NULL,
@@ -332,9 +335,44 @@ void *paradise_wd90c11_init(device_t *info)
         return paradise;
 }
 
+void *paradise_wd90c30_init(device_t *info, uint32_t memsize)
+{
+        paradise_t *paradise = malloc(sizeof(paradise_t));
+        svga_t *svga = &paradise->svga;
+        memset(paradise, 0, sizeof(paradise_t));
+        
+        io_sethandler(0x03c0, 0x0020, paradise_in, NULL, NULL, paradise_out, NULL, NULL, paradise);
+
+        svga_init(&paradise->svga, paradise, memsize,
+                   paradise_recalctimings,
+                   paradise_in, paradise_out,
+                   NULL,
+                   NULL);
+
+        mem_mapping_set_handler(&paradise->svga.mapping, paradise_read, NULL, NULL, paradise_write, NULL, NULL);
+        mem_mapping_set_p(&paradise->svga.mapping, paradise);
+
+        svga->crtc[0x31] = 'W';
+        svga->crtc[0x32] = 'D';
+        svga->crtc[0x33] = '9';
+        svga->crtc[0x34] = '0';
+        svga->crtc[0x35] = 'C';
+        svga->crtc[0x36] = '3';
+        svga->crtc[0x37] = '0';
+
+        svga->bpp = 8;
+        svga->miscout = 1;
+        
+	svga->linear_base = 0;
+        
+        paradise->type = WD90C11;               
+        
+        return paradise;
+}
+
 static void *paradise_pvga1a_pc2086_init(device_t *info)
 {
-        paradise_t *paradise = paradise_pvga1a_init(info);
+        paradise_t *paradise = paradise_pvga1a_init(info, 1 << 18);
         
         if (paradise)
                 rom_init(&paradise->bios_rom, L"roms/machines/pc2086/40186.ic171", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -343,12 +381,33 @@ static void *paradise_pvga1a_pc2086_init(device_t *info)
 }
 static void *paradise_pvga1a_pc3086_init(device_t *info)
 {
-        paradise_t *paradise = paradise_pvga1a_init(info);
+        paradise_t *paradise = paradise_pvga1a_init(info, 1 << 18);
 
         if (paradise)
                 rom_init(&paradise->bios_rom, L"roms/machines/pc3086/c000.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 
         return paradise;
+}
+
+static void *paradise_pvga1a_standalone_init(device_t *info)
+{
+        paradise_t *paradise;
+	uint32_t memory = 512;
+
+	memory = device_get_config_int("memory");
+	memory <<= 10;
+
+        paradise = paradise_pvga1a_init(info, memory);
+        
+        if (paradise)
+                rom_init(&paradise->bios_rom, L"roms/video/pvga1a/BIOS.BIN", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        
+        return paradise;
+}
+
+static int paradise_pvga1a_standalone_available(void)
+{
+        return rom_present(L"roms/video/pvga1a/BIOS.BIN");
 }
 
 static void *paradise_wd90c11_megapc_init(device_t *info)
@@ -364,9 +423,40 @@ static void *paradise_wd90c11_megapc_init(device_t *info)
         return paradise;
 }
 
+static void *paradise_wd90c11_standalone_init(device_t *info)
+{
+        paradise_t *paradise = paradise_wd90c11_init(info);
+        
+        if (paradise)
+                rom_init(&paradise->bios_rom, L"roms/video/wd90c11/WD90C11.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        
+        return paradise;
+}
+
 static int paradise_wd90c11_standalone_available(void)
 {
-        return rom_present(L"roms/machines/megapc/41651-bios lo.u18") && rom_present(L"roms/machines/megapc/211253-bios hi.u19");
+        return rom_present(L"roms/video/wd90c11/WD90C11.VBI");
+}
+
+static void *paradise_wd90c30_standalone_init(device_t *info)
+{
+        paradise_t *paradise;
+	uint32_t memory = 512;
+
+	memory = device_get_config_int("memory");
+	memory <<= 10;
+
+        paradise = paradise_wd90c30_init(info, memory);
+        
+        if (paradise)
+                rom_init(&paradise->bios_rom, L"roms/video/wd90c30/90C30-LR.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+        return paradise;
+}
+
+static int paradise_wd90c30_standalone_available(void)
+{
+        return rom_present(L"roms/video/wd90c30/90C30-LR.VBI");
 }
 
 void paradise_close(void *p)
@@ -426,6 +516,45 @@ device_t paradise_pvga1a_pc3086_device =
         paradise_force_redraw,
         paradise_add_status_info
 };
+
+static device_config_t paradise_pvga1a_config[] =
+{
+        {
+                "memory", "Memory size", CONFIG_SELECTION, "", 512,
+                {
+                        {
+                                "256 kB", 256
+                        },
+                        {
+                                "512 kB", 512
+                        },
+                        {
+                                "1 MB", 1024
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "", "", -1
+        }
+};
+
+device_t paradise_pvga1a_device =
+{
+        "Paradise PVGA1A",
+        DEVICE_ISA,
+	0,
+        paradise_pvga1a_standalone_init,
+        paradise_close,
+	NULL,
+        paradise_pvga1a_standalone_available,
+        paradise_speed_changed,
+        paradise_force_redraw,
+        paradise_add_status_info,
+	paradise_pvga1a_config
+};
 device_t paradise_wd90c11_megapc_device =
 {
         "Paradise WD90C11 (Amstrad MegaPC)",
@@ -441,14 +570,50 @@ device_t paradise_wd90c11_megapc_device =
 };
 device_t paradise_wd90c11_device =
 {
-        "Paradise WD90C11",
+        "Paradise WD90C11-LR",
         DEVICE_ISA,
 	0,
-        paradise_wd90c11_megapc_init,
+        paradise_wd90c11_standalone_init,
         paradise_close,
 	NULL,
         paradise_wd90c11_standalone_available,
         paradise_speed_changed,
         paradise_force_redraw,
         paradise_add_status_info
+};
+
+static device_config_t paradise_wd90c30_config[] =
+{
+        {
+                "memory", "Memory size", CONFIG_SELECTION, "", 1024,
+                {
+                        {
+                                "512 kB", 512
+                        },
+                        {
+                                "1 MB", 1024
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "", "", -1
+        }
+};
+
+device_t paradise_wd90c30_device =
+{
+        "Paradise WD90C30-LR",
+        DEVICE_ISA,
+	0,
+        paradise_wd90c30_standalone_init,
+        paradise_close,
+	NULL,
+        paradise_wd90c30_standalone_available,
+        paradise_speed_changed,
+        paradise_force_redraw,
+        paradise_add_status_info,
+	paradise_wd90c30_config
 };

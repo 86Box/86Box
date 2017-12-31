@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.11	2017/12/25
+ * Version:	@(#)keyboard_at.c	1.0.12	2017/12/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -35,6 +35,7 @@
 #include "device.h"
 #include "timer.h"
 #include "machine/machine.h"
+#include "machine/m_at_t3100e.h"
 #include "floppy/floppy.h"
 #include "floppy/fdc.h"
 #include "sound/sound.h"
@@ -567,6 +568,29 @@ kbd_adddata_keyboard(uint8_t val)
 	return;
     }
 
+    /* Test for T3100E 'Fn' key (Right Alt / Right Ctrl) */
+    if (romset == ROM_T3100E && (keyboard_recv(0xb8) || keyboard_recv(0x9d)))
+    {
+	switch (val)
+	{
+		case 0x4f: t3100e_notify_set(0x01); break; /* End */
+		case 0x50: t3100e_notify_set(0x02); break; /* Down */
+		case 0x51: t3100e_notify_set(0x03); break; /* PgDn */
+		case 0x52: t3100e_notify_set(0x04); break; /* Ins */
+		case 0x53: t3100e_notify_set(0x05); break; /* Del */
+		case 0x54: t3100e_notify_set(0x06); break; /* SysRQ */
+		case 0x45: t3100e_notify_set(0x07); break; /* NumLock */
+		case 0x46: t3100e_notify_set(0x08); break; /* ScrLock */
+		case 0x47: t3100e_notify_set(0x09); break; /* Home */
+		case 0x48: t3100e_notify_set(0x0A); break; /* Up */
+		case 0x49: t3100e_notify_set(0x0B); break; /* PgUp */
+		case 0x4A: t3100e_notify_set(0x0C); break; /* Keypad -*/
+		case 0x4B: t3100e_notify_set(0x0D); break; /* Left */
+		case 0x4C: t3100e_notify_set(0x0E); break; /* KP 5 */
+		case 0x4D: t3100e_notify_set(0x0F); break; /* Right */
+	}
+    }
+
     key_queue[key_queue_end] = (((keyboard_mode & 0x40) && !(keyboard_mode & 0x20)) ? (nont_to_t[val] | sc_or) : val);
     key_queue_end = (key_queue_end + 1) & 0xf;
 
@@ -654,6 +678,11 @@ write_register:
 						kbd->mem[kbd->mem_addr] = val;
 						kbd->secr_phase = 0;
 					}
+					break;
+
+				case 0xb6: /* T3100e - set colour/mono switch */
+					if (romset == ROM_T3100E)
+						t3100e_mono_set(val);
 					break;
 
 				case 0xcb: /*AMI - set keyboard mode*/
@@ -924,6 +953,8 @@ bad_command:
 
 			case 0xaa: /*Self-test*/
 				kbdlog("Self-test\n");
+				if(romset == ROM_T3100E)
+					kbd->status |= STAT_IFULL;
 				if (! kbd->initialized) {
 					kbd->initialized = 1;
 					key_ctrl_queue_start = key_ctrl_queue_end = 0;
@@ -998,10 +1029,64 @@ bad_command:
 				}
 				break;
 
-			case 0xb0: case 0xb1: case 0xb2: case 0xb3:
-			case 0xb4: case 0xb5: case 0xb6: case 0xb7:
-			case 0xb8: case 0xb9: case 0xba: case 0xbb:
-			case 0xbc: case 0xbd: case 0xbe: case 0xbf:
+			case 0xb0:		/* T3100e: Turbo on */
+				if (romset == ROM_T3100E) {
+					t3100e_turbo_set(1);
+					break;
+				}
+			case 0xb1:		/* T3100e: Turbo off */
+				if (romset == ROM_T3100E) {
+					t3100e_turbo_set(0);
+					break;
+				}
+			case 0xb2:		/* T3100e: Select external display */
+				if (romset == ROM_T3100E) {
+					t3100e_display_set(0x00);
+					break;
+				}
+			case 0xb3:		/* T3100e: Select internal display */
+				if (romset == ROM_T3100E) {
+					t3100e_display_set(0x01);
+					break;
+				}
+			case 0xb4:		/* T3100e: Get configuration / status */
+				if (romset == ROM_T3100E) {
+					kbd_adddata(t3100e_config_get());
+					break;
+				}
+			case 0xb5:		/* T3100e: Get colour / mono byte */
+				if (romset == ROM_T3100E) {
+					kbd_adddata(t3100e_mono_get());
+					break;
+				}
+			case 0xb6:		/* T3100e: Set colour / mono byte */
+				if (romset == ROM_T3100E) {
+					kbd->want60 = 1;
+					break;
+				}
+			case 0xb7:		/* T3100e: Emulate PS/2 keyboard - not implemented */
+			case 0xb8:		/* T3100e: Emulate AT keyboard - not implemented */
+				if (romset == ROM_T3100E)
+					break;
+			case 0xbb:		/* T3100e: Read 'Fn' key.
+						   Return it for right Ctrl and right Alt; on the real
+						   T3100e, these keystrokes could only be generated
+						   using 'Fn'. */
+				if (romset == ROM_T3100E)
+				{
+					if (keyboard_recv(0xb8) ||	/* Right Alt */
+					    keyboard_recv(0x9d))	/* Right Ctrl */
+						kbd_adddata(0x04);
+					else	kbd_adddata(0x00);
+					break;
+				}
+			case 0xbc:		/* T3100e: Reset Fn+Key notification */
+				if (romset == ROM_T3100E) {
+					t3100e_notify_set(0x00);
+					break;
+				}
+			case 0xb9: case 0xba:
+			case 0xbd: case 0xbe: case 0xbf:
 				/*Set keyboard lines low (B0-B7) or high (B8-BF)*/
 				kbdlog("ATkbd: set keyboard lines low (B0-B7) or high (B8-BF)\n");
 				kbd_adddata(0x00);
@@ -1009,8 +1094,17 @@ bad_command:
 
 			case 0xc0: /*Read input port*/
 				kbdlog("ATkbd: read input port\n");
-				kbd_adddata(kbd->input_port | 4 | fdc_ps1_525());
-				kbd->input_port = ((kbd->input_port + 1) & 3) | (kbd->input_port & 0xfc) | fdc_ps1_525();
+
+				/* The T3100e returns all bits set except bit 6 which
+				 * is set by t3100e_mono_set() */
+				if (romset == ROM_T3100E) {
+					kbd->input_port = (t3100e_mono_get() & 1) ? 0xFF : 0xBF;
+					kbd_adddata(kbd->input_port | 4 | fdc_ps1_525());
+					kbd->input_port = ((kbd->input_port + 1) & 3) | (kbd->input_port & 0xfc);
+				} else {
+					kbd_adddata(kbd->input_port | 4 | fdc_ps1_525());
+					kbd->input_port = ((kbd->input_port + 1) & 3) | (kbd->input_port & 0xfc) | fdc_ps1_525();
+				}
 				break;
 
 			case 0xc1: /*Copy bits 0 to 3 of input port to status bits 4 to 7*/

@@ -8,7 +8,7 @@
  *
  *		Definitions for the keyboard interface.
  *
- * Version:	@(#)keyboard.h	1.0.6	2017/11/06
+ * Version:	@(#)keyboard.h	1.0.7	2017/12/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -60,6 +60,7 @@ extern void	keyboard_poll_host(void);
 extern void	keyboard_process(void);
 extern uint16_t	keyboard_convert(int ch);
 extern void	keyboard_input(int down, uint16_t scan);
+extern int	keyboard_recv(uint16_t key);
 extern int	keyboard_isfsexit(void);
 extern int	keyboard_ismsexit(void);
 

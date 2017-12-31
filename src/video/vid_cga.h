@@ -8,7 +8,7 @@
  *
  *		Emulation of the old and new IBM CGA graphics cards.
  *
- * Version:	@(#)vid_cga.h	1.0.1	2017/12/29
+ * Version:	@(#)vid_cga.h	1.0.2	2017/12/31
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -27,6 +27,7 @@ typedef struct cga_t
         
         uint8_t cgamode, cgacol;
 
+	int fontbase;
         int linepos, displine;
         int sc, vc;
         int cgadispon;

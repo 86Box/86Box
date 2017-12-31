@@ -132,12 +132,12 @@ void compaq_cga_poll(void *p)
                                         else if (drawcursor)
                                         {
                                                 for (c = 0; c < 8; c++)
-                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 3) + c + 8] = cols[(fontdatm[chr][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xffffff;
+                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 3) + c + 8] = cols[(fontdatm[chr + self->cga.fontbase][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xffffff;
                                         }
                                         else
                                         {
                                                 for (c = 0; c < 8; c++)
-                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 3) + c + 8] = cols[(fontdatm[chr][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
+                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 3) + c + 8] = cols[(fontdatm[chr + self->cga.fontbase][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
                                         }
                                         self->cga.ma++;
                                 }
@@ -187,13 +187,13 @@ void compaq_cga_poll(void *p)
                                         {
                                                 for (c = 0; c < 8; c++)
                                                         ((uint32_t *)buffer32->line[self->cga.displine])[(x << 4)+(c << 1) + 8] =
-                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr + self->cga.fontbase][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
                                         }
                                         else
                                         {
                                                 for (c = 0; c < 8; c++)
                                                         ((uint32_t *)buffer32->line[self->cga.displine])[(x << 4) + (c << 1) + 8] =
-                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
+                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr + self->cga.fontbase][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
                                         }
                                 }
                         }

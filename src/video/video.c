@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.11	2017/12/15
+ * Version:	@(#)video.c	1.0.12	2017/12/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -76,8 +76,8 @@ enum {
 bitmap_t	*screen = NULL,
 		*buffer = NULL,
 		*buffer32 = NULL;
-uint8_t		fontdat[256][8];		/* IBM CGA font */
-uint8_t		fontdatm[256][16];		/* IBM MDA font */
+uint8_t		fontdat[2048][8];		/* IBM CGA font */
+uint8_t		fontdatm[2048][16];		/* IBM MDA font */
 uint8_t		fontdatw[512][32];		/* Wyse700 font */
 uint8_t		fontdat8x12[256][16];		/* MDSI Genius font */
 uint32_t	pal_lookup[256];
@@ -632,6 +632,36 @@ loadfont(wchar_t *s, int format)
 				fontdat8x12[c][d] = fgetc(f);
 		break;
 
+	case 5: /* Toshiba 3100e */
+		for (d = 0; d < 2048; d += 512)	/* Four languages... */
+		{
+	                for (c = d; c < d+256; c++)
+                	{
+                       		fread(&fontdatm[c][8], 1, 8, f);
+                	}
+                	for (c = d+256; c < d+512; c++)
+                	{
+                        	fread(&fontdatm[c][8], 1, 8, f);
+                	}
+	                for (c = d; c < d+256; c++)
+                	{
+                        	fread(&fontdatm[c][0], 1, 8, f);
+                	}
+                	for (c = d+256; c < d+512; c++)
+                	{
+                        	fread(&fontdatm[c][0], 1, 8, f);
+                	}
+			fseek(f, 4096, SEEK_CUR);	/* Skip blank section */
+	                for (c = d; c < d+256; c++)
+                	{
+                       		fread(&fontdat[c][0], 1, 8, f);
+                	}
+                	for (c = d+256; c < d+512; c++)
+                	{
+                        	fread(&fontdat[c][0], 1, 8, f);
+                	}
+		}
+                break;
     }
 
     (void)fclose(f);

@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.7	2017/12/29
+ * Version:	@(#)vid_table.c	1.0.8	2017/12/31
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -115,7 +115,9 @@ video_cards[] = {
     { "[ISA] MDSI Genius",                           "genius",            	&genius_device,              		GFX_GENIUS			},
     { "[ISA] OAK OTI-067",                           "oti067",			&oti067_device,              		GFX_OTI067			},
     { "[ISA] OAK OTI-077",                           "oti077",			&oti077_device,              		GFX_OTI077			},
-    { "[ISA] Paradise WD90C11",                      "wd90c11",			&paradise_wd90c11_device,    		GFX_WD90C11			},
+    { "[ISA] Paradise PVGA1A",             	     "pvga1a",			&paradise_pvga1a_device,    		GFX_PVGA1A			},
+    { "[ISA] Paradise WD90C11-LR",                   "wd90c11",			&paradise_wd90c11_device,    		GFX_WD90C11			},
+    { "[ISA] Paradise WD90C30-LR",                   "wd90c30",			&paradise_wd90c30_device,    		GFX_WD90C30			},
     { "[ISA] Plantronics ColorPlus",                 "plantronics",		&colorplus_device,           		GFX_COLORPLUS			},
     {"[ISA] TI CF62011 SVGA",                        "ti_cf62011",
      &ti_cf62011_device,                GFX_TICF62011			},
