@@ -1,9 +1,9 @@
 86Box
 =====
-**86Box** (formerly known as _PCem-X_, _PCem Experimental_ or _PCem Unofficial_)
-is a hypervisor and IBM PC system emulator that specializes in running old
-operating systems and software designed for IBM PC systems and compatibles
-from 1981 through fairly recent system designs based on the PCI bus.
+**86Box** is a hypervisor and IBM PC system emulator that specializes in
+running old operating systems and software designed for IBM PC systems and
+compatibles from 1981 through fairly recent system designs based on the
+PCI bus.
 
 86Box is released under the GNU General Public License, version 2. For more
 information, see the `LICENSE` file.
@@ -45,7 +45,7 @@ guide:
 7. In order to test your fresh build, replace the `86Box.exe` in your current
    86Box enviroment with your freshly built one. If you do not have a
    pre-existing 86Box environment, download the latest successful build from
-   http://ci.86box.net, and the ROM set from http://tinyurl.com/rs20170915.
+   http://ci.86box.net, and the ROM set from http://tinyurl.com/rs20171231.
 8. Enjoy using and testing the emulator! :)
 
 If you encounter issues at any step or have additional questions, please join
