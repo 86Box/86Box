@@ -246,6 +246,11 @@ void paradise_remap(paradise_t *paradise)
 
 void paradise_recalctimings(svga_t *svga)
 {
+	paradise_t *paradise = (paradise_t *) svga->p;
+
+	if (paradise->type == WD90C30)
+		svga->interlace = (svga->crtc[0x2d] & 0x20);
+
         svga->lowres = !(svga->gdcreg[0xe] & 0x01);
         if (svga->bpp == 8 && !svga->lowres)
                 svga->render = svga_render_8bpp_highres;
