@@ -106,10 +106,12 @@ machine_at_compaq_init(machine_t *model)
                     0xa0000+ram, MEM_MAPPING_INTERNAL, NULL);
 
     switch(model->id) {
+#ifdef PORTABLE3
 	case ROM_DESKPRO_386:
 		if (hdc_current == 1)
 			ide_init();
 		break;
+#endif
 
 	case ROM_PORTABLE:
 		break;

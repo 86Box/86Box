@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.23	2017/12/31
+ * Version:	@(#)rom.c	1.0.24	2017/12/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -574,6 +574,7 @@ rom_load_bios(int rom_id)
 		biosmask = 0x1ffff;
 		return(1);
 
+#ifdef PORTABLE3
 	case ROM_DESKPRO_386:
 		if (! rom_load_interleaved(
 			L"roms/machines/deskpro386/109592-005.u11.bin",
@@ -581,6 +582,7 @@ rom_load_bios(int rom_id)
 			0x000000, 32768, 0, rom)) break;
 		biosmask = 0x7fff;
 		return(1);
+#endif
 
 	case ROM_AMIXT:
 		if (rom_load_linear(
