@@ -8,10 +8,10 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.10	2017/12/31
+ * Version:	@(#)rom.h	1.0.11	2018/01/01
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2018 Fred N. van Kempen.
  */
 #ifndef EMU_ROM_H
 # define EMU_ROM_H
@@ -72,14 +72,18 @@ enum {
     ROM_REVENGE,
     ROM_IBMPS1_2011,
     ROM_IBMXT286,
-#ifdef PORTABLE3
+#ifdef DEV_BRANCH
+#ifdef USE_PORTABLE3
     ROM_DESKPRO_386,
+#endif
 #endif
     ROM_PORTABLE,
     ROM_PORTABLEII,
-#ifdef PORTABLE3
+#ifdef DEV_BRANCH
+#ifdef USE_PORTABLE3
     ROM_PORTABLEIII,
     ROM_PORTABLEIII386,
+#endif
 #endif
     ROM_IBMPS1_2121,
 
@@ -112,7 +116,11 @@ enum {
     ROM_POWERMATE_V,	/* NEC PowerMate V/430FX/Phoenix/SMC FDC37C66 5*/	/* 68 */
 #endif
 
+#ifdef DEV_BRANCH
+#ifdef USE_I686
     ROM_440FX,		/* Tyan Titan-Pro AT/440FX/Award BIOS/SMC FDC37C665 */
+#endif
+#endif
 
     ROM_IBMPS1_2121_ISA,/* IBM PS/1 Model 2121 with ISA expansion bus */
 
@@ -126,7 +134,11 @@ enum {
     ROM_MEGAPCDX,	/* 386DX mdl - Note: documentation (in German) clearly says such a model exists */
     ROM_ZAPPA,		/* Intel Advanced_ZP/430FX/AMI/NS PC87306 */
 
+#ifdef DEV_BRANCH
+#ifdef USE_I686
     ROM_S1668,		/* Tyan Titan-Pro ATX/440FX/AMI/SMC FDC37C669 */
+#endif
+#endif
     ROM_IBMPS1_2133,
 
     ROM_PRESIDENT,	/* President Award 430FX PCI/430FX/Award/Unknown SIO */
@@ -134,8 +146,10 @@ enum {
     ROM_IBMPS2_M80_486,
 #endif
 
-#ifdef GREENB
+#ifdef DEV_BRANCH
+#ifdef USE_GREENB
     ROM_4GPV31,		/* Green-B 4GPV3.1 ISA/VLB 486/Pentium, AMI */
+#endif
 #endif
 
 #ifdef WALTJE

@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.86	2017/12/29
+# Version:	@(#)Makefile.mingw	1.0.87	2018/01/01
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -67,6 +67,9 @@ CIRRUS		:= n
 endif
 ifndef GREENB
 GREENB		:= n
+endif
+ifndef I686
+I686		:= n
 endif
 ifndef NE1000
 NE1000		:= n
@@ -304,6 +307,15 @@ OPTS		+= -DUSE_CIRRUS
 DEVBROBJ	+= vid_cl_gd.o vid_cl_gd_blit.o vid_cl_ramdac.o
 endif
 
+ifeq ($(GREENB), y)
+OPTS		+= -DUSE_GREENB
+endif
+
+ifeq ($(I686), y)
+OPTS		+= -DUSE_I686
+DEVBROBJ	+= m_at_440fx.o
+endif
+
 ifeq ($(NE1000), y)
 OPTS		+= -DUSE_NE1000
 endif
@@ -316,6 +328,10 @@ endif
 ifeq ($(PAS16), y)
 OPTS		+= -DUSE_PAS16
 DEVBROBJ	+= snd_pas16.o
+endif
+
+ifeq ($(PORTABLE3), y)
+OPTS		+= -DUSE_PORTABLE3
 endif
 
 endif
@@ -361,7 +377,6 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_sis_85c471.o m_at_sis_85c496.o \
 		    m_at_430lx_nx.o m_at_430fx.o \
 		    m_at_430hx.o m_at_430vx.o \
-		    m_at_440fx.o \
 		    m_at_4gpv31.o \
 		    m_pcjr.o m_ps1.o m_ps2_isa.o m_ps2_mca.o
 

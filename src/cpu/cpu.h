@@ -8,15 +8,15 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.h	1.0.4	2017/11/27
+ * Version:	@(#)cpu.h	1.0.5	2018/01/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 leilei.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 leilei.
+ *		Copyright 2016,2018 Miran Grca.
  */
 #ifndef EMU_CPU_H
 # define EMU_CPU_H
@@ -48,12 +48,16 @@
 #define CPU_K5		23
 #define CPU_5K86	24
 #define CPU_K6		25
+#ifdef DEV_BRANCH
+#ifdef USE_I686
 #define CPU_PENTIUMPRO	26		/* 686 class CPUs */
 #if 0
 # define CPU_PENTIUM2	27
 # define CPU_PENTIUM2D	28
 #else
 # define CPU_PENTIUM2D	27
+#endif
+#endif
 #endif
 
 #define MANU_INTEL	0
@@ -100,9 +104,13 @@ extern CPU	cpus_K5[];
 extern CPU	cpus_K56[];
 extern CPU	cpus_Pentium[];
 extern CPU	cpus_6x86[];
+#ifdef DEV_BRANCH
+#ifdef USE_I686
 extern CPU	cpus_PentiumPro[];
 extern CPU	cpus_Pentium2[];
 extern CPU	cpus_Pentium2D[];
+#endif
+#endif
 
 
 #define C_FLAG		0x0001

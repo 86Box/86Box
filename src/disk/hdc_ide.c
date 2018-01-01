@@ -9,13 +9,13 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.22	2017/12/15
+ * Version:	@(#)hdc_ide.c	1.0.23	2018/01/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016,2018 Miran Grca.
  */
 #define __USE_LARGEFILE64
 #define _LARGEFILE_SOURCE
@@ -2391,7 +2391,6 @@ void ide_init(void)
 {
 	ide_pri_enable();
 	ide_sec_enable();
-	ide_bus_master_read = ide_bus_master_write = NULL;
 
 	timer_add(ide_callback_pri, &idecallback[0], &idecallback[0],  NULL);
 	timer_add(ide_callback_sec, &idecallback[1], &idecallback[1],  NULL);

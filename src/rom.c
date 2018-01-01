@@ -13,15 +13,15 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.24	2017/12/31
+ * Version:	@(#)rom.c	1.0.25	2018/01/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -741,6 +741,8 @@ rom_load_bios(int rom_id)
 		biosmask = 0x1ffff;
 		return(1);
 
+#ifdef DEV_BRANCH
+#ifdef USE_I686
 	case ROM_440FX:		/* working Tyan BIOS */
 		if (! rom_load_linear(
 			L"roms/machines/440fx/ntmaw501.bin",
@@ -754,6 +756,8 @@ rom_load_bios(int rom_id)
 			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
+#endif
+#endif
 
 	case ROM_THOR:
 		if (! rom_load_linear(

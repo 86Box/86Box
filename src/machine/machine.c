@@ -8,21 +8,22 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.27	2017/11/08
+ * Version:	@(#)machine.c	1.0.28	2018/01/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../device.h"
 #include "../dma.h"
 #include "../pic.h"
 #include "../pit.h"
@@ -33,6 +34,8 @@
 #include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
+#include "../disk/hdc.h"
+#include "../disk/hdc_ide.h"
 #include "machine.h"
 
 
@@ -45,6 +48,8 @@ void
 machine_init(void)
 {
     pclog("Initializing as \"%s\"\n", machine_getname());
+
+    ide_set_bus_master(NULL, NULL, NULL);
 
     /* Set up the architecture flags. */
     AT = IS_ARCH(machine, MACHINE_AT);

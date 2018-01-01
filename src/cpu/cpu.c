@@ -8,15 +8,15 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.c	1.0.8	2017/11/27
+ * Version:	@(#)cpu.c	1.0.9	2018/01/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 leilei.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 leilei.
+ *		Copyright 2016,2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -127,6 +127,8 @@ uint64_t pmc[2] = {0, 0};
 
 uint16_t temp_seg_data[4] = {0, 0, 0, 0};
 
+#ifdef DEV_BRANCH
+#ifdef USE_I686
 uint16_t cs_msr = 0;
 uint32_t esp_msr = 0;
 uint32_t eip_msr = 0;
@@ -151,6 +153,8 @@ uint64_t ecx186_msr = 0;
 uint64_t ecx187_msr = 0;
 uint64_t ecx1e0_msr = 0;
 uint64_t ecx570_msr = 0;
+#endif
+#endif
 
 /* AMD K5 and K6 MSR's. */
 uint64_t ecx83_msr = 0;
@@ -1117,6 +1121,8 @@ void cpu_set()
 #endif
                 break;
 
+#ifdef DEV_BRANCH
+#ifdef USE_I686
                 case CPU_PENTIUMPRO:
 #ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentiumpro_0f, dynarec_ops_386, dynarec_ops_pentiumpro_0f);
@@ -1238,6 +1244,8 @@ void cpu_set()
          	codegen_timing_set(&codegen_timing_686);
 #endif
                 break;
+#endif
+#endif
 
                 default:
                 fatal("cpu_set : unknown CPU type %i\n", cpu_s->cpu_type);
@@ -1610,6 +1618,8 @@ void cpu_CPUID()
                         EAX = 0;
                 break;
 
+#ifdef DEV_BRANCH
+#ifdef USE_I686
                 case CPU_PENTIUMPRO:
                 if (!EAX)
                 {
@@ -1678,6 +1688,8 @@ void cpu_CPUID()
                 else
                         EAX = 0;
                 break;
+#endif
+#endif
 
         }
 }
@@ -1774,6 +1786,8 @@ void cpu_RDMSR()
                 }
  		break;
 
+#ifdef DEV_BRANCH
+#ifdef USE_I686
                 case CPU_PENTIUMPRO:
                 case CPU_PENTIUM2D:
                 EAX = EDX = 0;
@@ -1899,6 +1913,8 @@ i686_invalid_rdmsr:
 			break;
                 }
                 break;
+#endif
+#endif
         }
 }
 
@@ -1981,6 +1997,8 @@ void cpu_WRMSR()
                 }
                 break;
 
+#ifdef DEV_BRANCH
+#ifdef USE_I686
                 case CPU_PENTIUMPRO:
 		case CPU_PENTIUM2D:
                 switch (ECX)
@@ -2074,6 +2092,8 @@ i686_invalid_wrmsr:
 			break;
                 }
                 break;
+#endif
+#endif
         }
 }
 

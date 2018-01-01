@@ -8,14 +8,14 @@
  *
  *		286/386+ instruction handlers list.
  *
- * Version:	@(#)386_ops.h	1.0.0	2017/05/30
+ * Version:	@(#)386_ops.h	1.0.1	2018/01/01
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
  *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 leilei.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 leilei.
+ *		Copyright 2016-2018 Miran Grca.
  */
 
 #include "x86_ops.h"
@@ -148,6 +148,7 @@ static int ILLEGAL(uint32_t fetchdat)
 }
 
 #include "x86seg.h"
+#include "x86_ops_amd.h"
 #include "x86_ops_arith.h"
 #include "x86_ops_atomic.h"
 #include "x86_ops_bcd.h"
@@ -162,7 +163,11 @@ static int ILLEGAL(uint32_t fetchdat)
 #include "x86_ops_jump.h"
 #include "x86_ops_misc.h"
 #include "x87_ops.h"
+#ifdef DEV_BRANCH
+#ifdef USE_I686
 #include "x86_ops_i686.h"
+#endif
+#endif
 #include "x86_ops_mmx.h"
 #include "x86_ops_mmx_arith.h"
 #include "x86_ops_mmx_cmp.h"
@@ -955,6 +960,8 @@ OpFn OP_TABLE(c6x86mx_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 };
 
+#ifdef DEV_BRANCH
+#ifdef USE_I686
 OpFn OP_TABLE(pentiumpro_0f)[1024] = 
 {
         /*16-bit data, 16-bit addr*/
@@ -1229,6 +1236,8 @@ OpFn OP_TABLE(pentium2d_0f)[1024] =
 /*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 };
+#endif
+#endif
 
 OpFn OP_TABLE(286)[1024] = 
 {
