@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.87	2018/01/01
+# Version:	@(#)Makefile.mingw	1.0.88	2018/01/01
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -111,6 +111,7 @@ DEBUG		:= y
 DEV_BRANCH	:= y
 CIRRUS		:= y
 GREENB		:= y
+I686		:= y
 NE1000		:= y
 NV_RIVA		:= y
 PAS16		:= y

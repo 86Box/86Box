@@ -29,17 +29,17 @@
  *		16 = 180 MHz
  *		17 = 200 MHz
  *
- * Version:	@(#)cpu_table.c	1.0.1	2017/11/04
+ * Version:	@(#)cpu_table.c	1.0.2	2018/01/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 leilei.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 leilei.
+ *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -419,6 +419,8 @@ CPU cpus_K56[] = {
     {"",             -1,        0, 0,           0, 0, 0, 0, 0, 0, 0,0,0,0}
 };
 
+#ifdef DEV_BRANCH
+#ifdef USE_I686
 CPU cpus_PentiumPro[] = {
     /*Intel Pentium Pro and II Overdrive*/
     {"Pentium Pro 50",   CPU_PENTIUMPRO,  5,  50000000, 1, 25000000, 0x612, 0x612, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 4,4,3,3},
@@ -443,3 +445,5 @@ CPU cpus_PentiumPro[] = {
     {"Pentium II Overdrive 333",  CPU_PENTIUM2D, 29, 333333333, 5, 33333333, 0x1632, 0x1632, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13},
     {"",             -1,        0, 0,           0, 0, 0, 0, 0, 0, 0,0,0,0}
 };
+#endif
+#endif
