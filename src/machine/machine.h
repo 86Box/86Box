@@ -122,8 +122,12 @@ extern void	machine_at_p55tvp4_init(machine_t *);
 extern void	machine_at_i430vx_init(machine_t *);
 extern void	machine_at_p55va_init(machine_t *);
 
+#ifdef DEV_BRANCH
+#ifdef USE_I686
 extern void	machine_at_i440fx_init(machine_t *);
 extern void	machine_at_s1668_init(machine_t *);
+#endif
+#endif
 extern void	machine_at_ali1429_init(machine_t *);
 extern void	machine_at_cmdpc_init(machine_t *);
 
@@ -138,8 +142,10 @@ extern void	machine_at_r418_init(machine_t *);
 
 extern void	machine_at_wd76c10_init(machine_t *);
 
-#ifdef GREENB
+#ifdef DEV_BRANCH
+#ifdef USE_GREENB
 extern void	machine_at_4gpv31_init(machine_t *);
+#endif
 #endif
 
 extern void	machine_pcjr_init(machine_t *);

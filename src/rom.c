@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.25	2018/01/01
+ * Version:	@(#)rom.c	1.0.26	2018/01/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -409,7 +409,8 @@ rom_load_bios(int rom_id)
 		biosmask = 0x7fff;
 		return(1);
 
-#ifdef PORTABLE3
+#ifdef DEV_BRANCH
+#ifdef USE_PORTABLE3
 	case ROM_PORTABLEIII:
 	case ROM_PORTABLEIII386:
 		if (rom_load_interleaved(
@@ -417,6 +418,7 @@ rom_load_bios(int rom_id)
 			L"roms/machines/portableiii/109737-002.bin",
 			0x000000, 65536, 0, rom)) return(1);
 		break;
+#endif
 #endif
 
 	case ROM_DTKXT:
@@ -574,7 +576,8 @@ rom_load_bios(int rom_id)
 		biosmask = 0x1ffff;
 		return(1);
 
-#ifdef PORTABLE3
+#ifdef DEV_BRANCH
+#ifdef USE_PORTABLE3
 	case ROM_DESKPRO_386:
 		if (! rom_load_interleaved(
 			L"roms/machines/deskpro386/109592-005.u11.bin",
@@ -582,6 +585,7 @@ rom_load_bios(int rom_id)
 			0x000000, 32768, 0, rom)) break;
 		biosmask = 0x7fff;
 		return(1);
+#endif
 #endif
 
 	case ROM_AMIXT:
@@ -817,12 +821,14 @@ rom_load_bios(int rom_id)
 		biosmask = 0x1ffff;
 		return(1);
 
-#ifdef GREENB
+#ifdef DEV_BRANCH
+#ifdef USE_GREENB
 	case ROM_4GPV31:
 		if (! rom_load_linear(
 			L"roms/machines/green-b/4gpv31-ami-1993-8273517.bin",
 			0x000000, 65536, 0, rom)) break;
 		return(1);
+#endif
 #endif
 
 	case ROM_T3100E:

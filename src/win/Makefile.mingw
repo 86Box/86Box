@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.88	2018/01/01
+# Version:	@(#)Makefile.mingw	1.0.89	2018/01/01
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -310,6 +310,7 @@ endif
 
 ifeq ($(GREENB), y)
 OPTS		+= -DUSE_GREENB
+DEVROBJ		+ m_at_4gpv31.o
 endif
 
 ifeq ($(I686), y)
@@ -378,7 +379,6 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_sis_85c471.o m_at_sis_85c496.o \
 		    m_at_430lx_nx.o m_at_430fx.o \
 		    m_at_430hx.o m_at_430vx.o \
-		    m_at_4gpv31.o \
 		    m_pcjr.o m_ps1.o m_ps2_isa.o m_ps2_mca.o
 
 DEVOBJ		:= bugger.o lpt.o $(SERIAL) \
