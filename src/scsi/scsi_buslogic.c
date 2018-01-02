@@ -11,14 +11,14 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.32	2017/12/15
+ * Version:	@(#)scsi_buslogic.c	1.0.33	2018/01/02
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -81,7 +81,7 @@ typedef struct {
     uint16_t	u16IgnoreInBIOSScanMask;
     unsigned char uPCIInterruptPin :                2;
     unsigned char uHostAdapterIoPortAddress :       2;
-    uint8_t          fAggressiveRoundRobinMode :           1;
+    uint8_t          fRoundRobinScheme :           1;
     uint8_t          fVesaBusSpeedGreaterThan33MHz :   1;
     uint8_t          fVesaBurstWrite :                 1;
     uint8_t          fVesaBurstRead :                  1;
@@ -387,7 +387,7 @@ BuslogicAutoSCSIRamSetDefaults(x54x_t *dev, uint8_t safe)
     HALR->structured.autoSCSIData.fInt13Extension = safe ? 0 : 1;
     HALR->structured.autoSCSIData.fCDROMBoot = safe ? 0 : 1;
     HALR->structured.autoSCSIData.fMultiBoot = safe ? 0 : 1;
-    HALR->structured.autoSCSIData.fAggressiveRoundRobinMode = safe ? 0 : 1;	/* 1 = aggressive, 0 = strict */
+    HALR->structured.autoSCSIData.fRoundRobinScheme = safe ? 1 : 0;	/* 1 = aggressive, 0 = strict */
 
     HALR->structured.autoSCSIData.uHostAdapterIoPortAddress = 2;	/* 0 = primary (330h), 1 = secondary (334h), 2 = disable, 3 = reserved */
 }
@@ -840,10 +840,7 @@ buslogic_cmds(void *p)
 		buslogic_log("Return Extended Setup Information: %d\n", dev->CmdBuf[0]);
 		break;
 	case 0x8F:
-		if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_MCA))
-			bl->fAggressiveRoundRobinMode = dev->CmdBuf[0] & 1;
-		else
-			bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode = dev->CmdBuf[0] & 1;
+		bl->fAggressiveRoundRobinMode = dev->CmdBuf[0] & 1;
 
 		dev->DataReplyLeft = 0;
 		break;
@@ -1056,11 +1053,7 @@ buslogic_is_aggressive_mode(void *p)
     x54x_t *dev = (x54x_t *)p;
     buslogic_data_t *bl = (buslogic_data_t *) dev->ven_data;
 
-    HALocalRAM *HALR = &bl->LocalRAM;
-    if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_MCA))
-	return bl->fAggressiveRoundRobinMode;
-    else
-	return HALR->structured.autoSCSIData.fAggressiveRoundRobinMode;
+    return bl->fAggressiveRoundRobinMode;
 }
 
 
@@ -1303,7 +1296,7 @@ BuslogicInitializeLocalRAM(buslogic_data_t *bl)
     bl->LocalRAM.structured.autoSCSIData.u16FastPermittedMask = ~0;
     bl->LocalRAM.structured.autoSCSIData.u16SynchronousPermittedMask = ~0;
     bl->LocalRAM.structured.autoSCSIData.u16DisconnectPermittedMask = ~0;
-    bl->LocalRAM.structured.autoSCSIData.fAggressiveRoundRobinMode = 0;
+    bl->LocalRAM.structured.autoSCSIData.fRoundRobinScheme = 0;
     bl->LocalRAM.structured.autoSCSIData.u16UltraPermittedMask = ~0;
 }
 
@@ -1523,6 +1516,8 @@ buslogic_init(device_t *info)
 
     strcpy(dev->vendor, "BusLogic");
 
+    bl->fAggressiveRoundRobinMode = 1;
+
     switch(bl->chip)
     {
 	case CHIP_BUSLOGIC_ISA_542:
@@ -1533,7 +1528,6 @@ buslogic_init(device_t *info)
 		has_autoscsi_rom = 0;
 		has_scam_rom = 0;
 		dev->fw_rev = "AA335";
-		bl->fAggressiveRoundRobinMode = 1;
 		break;
 	case CHIP_BUSLOGIC_ISA:
 	default:
@@ -1556,7 +1550,6 @@ buslogic_init(device_t *info)
 		has_scam_rom = 0;
 		dev->fw_rev = "BA150";
 		dev->bit32 = 1;
-		bl->fAggressiveRoundRobinMode = 1;
 		dev->pos_regs[0] = 0x08;	/* MCA board ID */
 		dev->pos_regs[1] = 0x07;	
 		mca_add(buslogic_mca_read, buslogic_mca_write, dev);
