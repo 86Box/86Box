@@ -11,14 +11,14 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.8	2017/12/15
+ * Version:	@(#)scsi_x54x.c	1.0.9	2018/01/01
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -1258,7 +1258,8 @@ x54x_do_mail(x54x_t *dev)
 	if (x54x_mbo_process(dev)) {
 		dev->MailboxOutPosCur++;
 		dev->MailboxOutPosCur %= dev->MailboxCount;
-	}
+	} else
+		thread_wait_event((event_t *) wait_evt, 10);
     }
 }
 
