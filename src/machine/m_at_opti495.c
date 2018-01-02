@@ -292,6 +292,12 @@ static void opti495_write(uint16_t addr, uint8_t val, void *p)
                                 else
                                         mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
                         }
+			if (optireg == 0x27)
+			{
+				mem_a20_key = (val & 0x80) ? 0x00 : 0x02;
+				mem_a20_recalc();
+				flushmmucache();
+			}
                 }
                 break;
         }
