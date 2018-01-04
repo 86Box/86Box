@@ -1358,12 +1358,12 @@ void mem_add_bios()
 }
 
 int mem_a20_key = 0, mem_a20_alt = 0;
-int mem_a20_state = 1;
+int mem_a20_state = 0;
 
 void mem_a20_init(void)
 {
 	if (AT) {
-		rammask = cpu_16bitbus ? 0xffffff : 0xffffffff;
+                rammask = cpu_16bitbus ? 0xefffff : 0xffefffff;
 		flushmmucache();
         	mem_a20_state = mem_a20_key | mem_a20_alt;
 	} else {
@@ -1461,8 +1461,6 @@ void mem_init(void)
 	mem_mapping_add(&ram_split_mapping,  mem_size * 1024, 384 * 1024, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + (1 << 20),  MEM_MAPPING_INTERNAL, NULL);
 	mem_mapping_disable(&ram_split_mapping);
 
-        mem_a20_key = 2;
-	mem_a20_alt = 0;
         mem_a20_init();
 }
 
@@ -1635,8 +1633,6 @@ void mem_resize()
 	mem_mapping_add(&ram_split_mapping,  mem_size * 1024, 384 * 1024, mem_read_ram,    mem_read_ramw,    mem_read_raml,    mem_write_ram, mem_write_ramw, mem_write_raml,   ram + (1 << 20),  MEM_MAPPING_INTERNAL, NULL);
 	mem_mapping_disable(&ram_split_mapping);
 
-        mem_a20_key = 2;
-	mem_a20_alt = 0;
         mem_a20_init();
 }
 
@@ -1691,7 +1687,7 @@ static void port_92_write(uint16_t port, uint8_t val, void *priv)
 {
 	if ((mem_a20_alt ^ val) & 2)
 	{
-		mem_a20_alt = val & 2;
+		mem_a20_alt = (val & 2) ? 0 : 2;
 		mem_a20_recalc();
 	}
 

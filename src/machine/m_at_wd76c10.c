@@ -6,11 +6,13 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../device.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../serial.h"
 #include "../floppy/floppy.h"
 #include "../floppy/fdc.h"
+#include "../video/vid_paradise.h"
 #include "machine.h"
 
 
@@ -141,4 +143,6 @@ machine_at_wd76c10_init(machine_t *model)
         machine_at_ide_init(model);
 
         wd76c10_init();
+
+	device_add(&paradise_wd90c11_megapc_device);
 }

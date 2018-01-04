@@ -294,7 +294,8 @@ static void opti495_write(uint16_t addr, uint8_t val, void *p)
                         }
 			if (optireg == 0x27)
 			{
-				mem_a20_key = (val & 0x80) ? 0x00 : 0x02;
+				// mem_a20_alt = (val & 0x80) ? 0x00 : 0x02;
+				mem_a20_alt = (val & 0x80);
 				mem_a20_recalc();
 				flushmmucache();
 			}
