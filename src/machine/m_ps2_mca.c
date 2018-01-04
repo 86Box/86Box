@@ -260,10 +260,10 @@ static void model_55sx_write(uint16_t port, uint8_t val)
                 case 0x104:
                 ps2.memory_bank[ps2.option[3] & 7] &= ~0xf;
                 ps2.memory_bank[ps2.option[3] & 7] |= (val & 0xf);
-                pclog("Write memory bank %i %02x\n", ps2.option[3] & 7, val);
+                /* pclog("Write memory bank %i %02x\n", ps2.option[3] & 7, val); */
                 break;
                 case 0x105:
-                pclog("Write POS3 %02x\n", val);
+                /* pclog("Write POS3 %02x\n", val); */
                 ps2.option[3] = val;
                 shadowbios = !(val & 0x10);
                 shadowbios_write = val & 0x10;
@@ -440,15 +440,15 @@ uint8_t ps2_mca_read(uint16_t port, void *p)
                 temp = 0xff;
                 break;
         }
-        
-        pclog("ps2_read: port=%04x temp=%02x\n", port, temp);
+
+        /* pclog("ps2_read: port=%04x temp=%02x\n", port, temp); */
         
         return temp;
 }
 
 static void ps2_mca_write(uint16_t port, uint8_t val, void *p)
 {
-        pclog("ps2_write: port=%04x val=%02x %04x:%04x\n", port, val, CS,cpu_state.pc);
+        /* pclog("ps2_write: port=%04x val=%02x %04x:%04x\n", port, val, CS,cpu_state.pc); */
 
         switch (port)
         {
@@ -619,18 +619,18 @@ static void mem_encoding_update()
         
         if (ps2.mem_regs[1] & 2) {
                 mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
-		pclog("PS/2 Model 80-111: ROM space enabled\n");
+		/* pclog("PS/2 Model 80-111: ROM space enabled\n"); */
         } else {
                 mem_set_mem_state(0xe0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
-		pclog("PS/2 Model 80-111: ROM space disabled\n");
+		/* pclog("PS/2 Model 80-111: ROM space disabled\n"); */
 	}
 
 	if (ps2.mem_regs[1] & 4) {
 		mem_mapping_set_addr(&ram_low_mapping, 0x00000, 0x80000);
-		pclog("PS/2 Model 80-111: 00080000- 0009FFFF disabled\n");
+		/* pclog("PS/2 Model 80-111: 00080000- 0009FFFF disabled\n"); */
 	} else {
 		mem_mapping_set_addr(&ram_low_mapping, 0x00000, 0xa0000);
-		pclog("PS/2 Model 80-111: 00080000- 0009FFFF enabled\n");
+		/* pclog("PS/2 Model 80-111: 00080000- 0009FFFF enabled\n"); */
 	}
 
         if (!(ps2.mem_regs[1] & 8))
@@ -642,10 +642,10 @@ static void mem_encoding_update()
 
 		mem_split_enable(ps2.split_size, ps2.split_addr);
 
-		pclog("PS/2 Model 80-111: Split memory block enabled at %08X\n", ps2.split_addr);
-        } else {
+		/* pclog("PS/2 Model 80-111: Split memory block enabled at %08X\n", ps2.split_addr); */
+        } /* else {
 		pclog("PS/2 Model 80-111: Split memory block disabled\n");
-	}
+	} */
 }
 
 static uint8_t mem_encoding_read(uint16_t addr, void *p)
@@ -773,7 +773,7 @@ static void ps2_mca_board_model_80_type2_init(int is486)
                         break;
                 }
 
-		pclog("ps2.mem_pos_regs[4] = %08X\n", ps2.mem_pos_regs[4]);
+		/* pclog("ps2.mem_pos_regs[4] = %08X\n", ps2.mem_pos_regs[4]); */
 
                 mca_add(ps2_mem_expansion_read, ps2_mem_expansion_write, NULL);
                 mem_mapping_add(&ps2.expansion_mapping,
@@ -802,7 +802,7 @@ machine_ps2_common_init(machine_t *model)
 
         dma16_init();
         ps2_dma_init();
-	device_add(&keyboard_ps2_device);
+	device_add(&keyboard_ps2_mca_device);
         nvr_at_init(8);
         pic2_init();
 

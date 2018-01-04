@@ -8,6 +8,7 @@
 #include "../86box.h"
 #include "../device.h"
 #include "../io.h"
+#include "../keyboard.h"
 #include "../mem.h"
 #include "../serial.h"
 #include "../floppy/floppy.h"
@@ -140,7 +141,8 @@ static void wd76c10_init(void)
 void
 machine_at_wd76c10_init(machine_t *model)
 {
-        machine_at_ide_init(model);
+        machine_at_common_ide_init(model);
+	device_add(&keyboard_at_quadtel_device);
 
         wd76c10_init();
 

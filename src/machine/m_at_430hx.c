@@ -8,13 +8,13 @@
  *
  *		Implementation of the Intel 430HX PCISet chip.
  *
- * Version:	@(#)m_at_430hx.c	1.0.8	2017/11/04
+ * Version:	@(#)m_at_430hx.c	1.0.10	2018/01/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -26,6 +26,7 @@
 #include "../memregs.h"
 #include "../pci.h"
 #include "../device.h"
+#include "../keyboard.h"
 #include "../piix.h"
 #include "../intel_flash.h"
 #include "../sio.h"
@@ -189,10 +190,35 @@ static void i430hx_init(void)
 }
 
 
+static int acerm3a_index;
+
+
+static void
+acerm3a_out(uint16_t port, uint8_t val, void *p)
+{
+        if (port == 0xea)
+                acerm3a_index = val;
+}
+
+static uint8_t
+acerm3a_in(uint16_t port, void *p)
+{
+        if (port == 0xeb)
+        {
+                switch (acerm3a_index)
+                {
+                        case 2:
+                        	return 0xfd;
+                }
+        }
+        return 0xff;
+}
+
+
 void
 machine_at_acerm3a_init(machine_t *model)
 {
-        machine_at_ide_init(model);
+        machine_at_ps2_ide_init(model);
 
 	powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -206,6 +232,7 @@ machine_at_acerm3a_init(machine_t *model)
         i430hx_init();
         piix3_init(7);
         fdc37c932fr_init();
+        io_sethandler(0x00ea, 0x0002, acerm3a_in, NULL, NULL, acerm3a_out, NULL, NULL, NULL);
 
         device_add(&intel_flash_bxb_device);
 }
@@ -214,7 +241,7 @@ machine_at_acerm3a_init(machine_t *model)
 void
 machine_at_acerv35n_init(machine_t *model)
 {
-        machine_at_ide_init(model);
+        machine_at_ps2_ide_init(model);
 
 	powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -228,6 +255,7 @@ machine_at_acerv35n_init(machine_t *model)
         i430hx_init();
         piix3_init(7);
         fdc37c932fr_init();
+        io_sethandler(0x00ea, 0x0002, acerm3a_in, NULL, NULL, acerm3a_out, NULL, NULL, NULL);
 
         device_add(&intel_flash_bxb_device);
 }
@@ -236,7 +264,8 @@ machine_at_acerv35n_init(machine_t *model)
 void
 machine_at_ap53_init(machine_t *model)
 {
-        machine_at_ide_init(model);
+        machine_at_common_ide_init(model);
+	device_add(&keyboard_ps2_ami_device);
 
         memregs_init();
         powermate_memregs_init();
@@ -259,7 +288,7 @@ machine_at_ap53_init(machine_t *model)
 void
 machine_at_p55t2p4_init(machine_t *model)
 {
-        machine_at_ide_init(model);
+        machine_at_ps2_ide_init(model);
 
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -280,7 +309,8 @@ machine_at_p55t2p4_init(machine_t *model)
 void
 machine_at_p55t2s_init(machine_t *model)
 {
-        machine_at_ide_init(model);
+        machine_at_common_ide_init(model);
+	device_add(&keyboard_ps2_ami_device);
 
         memregs_init();
         powermate_memregs_init();

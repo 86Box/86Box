@@ -258,6 +258,8 @@ SeeAlso: #P0178,#P0187
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
+#include "../device.h"
+#include "../keyboard.h"
 #include "../mem.h"
 #include "machine.h"
 
@@ -329,6 +331,16 @@ void
 machine_at_opti495_init(machine_t *model)
 {
         machine_at_ide_init(model);
+
+        opti495_init();
+}
+
+
+void
+machine_at_opti495_ami_init(machine_t *model)
+{
+        machine_at_common_ide_init(model);
+	device_add(&keyboard_at_ami_device);
 
         opti495_init();
 }

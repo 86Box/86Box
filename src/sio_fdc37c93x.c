@@ -9,7 +9,7 @@
  *		Implementation of the SMC FDC37C932FR and FDC37C935 Super
  *		I/O Chips.
  *
- * Version:	@(#)sio_fdc37c93x.c	1.0.9	2017/12/28
+ * Version:	@(#)sio_fdc37c93x.c	1.0.10	2018/01/04
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016,2017 Miran Grca.
@@ -71,6 +71,7 @@ static void fdc37c93x_fdc_handler(void)
 	uint8_t local_enable = !!fdc37c93x_ld_regs[0][0x30];
 
 	fdc_remove();
+	/* pclog("fdc37c93x: Removing FDC (%i, %i)\n", global_enable, local_enable); */
 	if (global_enable && local_enable)
 	{
 		ld_port = make_port(0);
@@ -121,11 +122,10 @@ static void fdc37c93x_auxio_handler(void)
 {
 	uint16_t ld_port = 0;
 
-	uint8_t global_enable = !!(fdc37c93x_regs[0x22] & (1 << 3));
 	uint8_t local_enable = !!fdc37c93x_ld_regs[3][0x30];
 
         io_removehandler(fdc37c93x_gpio_base, 0x0001, fdc37c93x_gpio_read, NULL, NULL, fdc37c93x_gpio_write, NULL, NULL,  NULL);
-	if (global_enable && local_enable)
+	if (local_enable)
 	{
 		fdc37c93x_gpio_base = ld_port = make_port(3);
 		/* pclog("fdc37c93x: Setting Auxiliary I/O port to %04X\n", ld_port); */
@@ -440,8 +440,9 @@ static void fdc37c93x_reset(void)
 
 	memset(fdc37c93x_regs, 0, 48);
 
-	fdc37c93x_regs[3] = 3;
+	fdc37c93x_regs[0x03] = 3;
 	fdc37c93x_regs[0x21] = 1;
+	fdc37c93x_regs[0x22] = 0x39;
 	fdc37c93x_regs[0x24] = 4;
 	fdc37c93x_regs[0x26] = 0xF0;
 	fdc37c93x_regs[0x27] = 3;

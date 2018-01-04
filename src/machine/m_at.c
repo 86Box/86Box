@@ -18,7 +18,7 @@
 
 
 void
-machine_at_init(machine_t *model)
+machine_at_common_init(machine_t *model)
 {
     machine_common_init(model);
 
@@ -31,10 +31,35 @@ machine_at_init(machine_t *model)
 
     nvr_at_init(8);
 
-    device_add(&keyboard_at_device);
-
     if (joystick_type != 7)
 	device_add(&gameport_device);
+}
+
+
+void
+machine_at_init(machine_t *model)
+{
+    machine_at_common_init(model);
+
+    device_add(&keyboard_at_device);
+}
+
+
+void
+machine_at_ps2_init(machine_t *model)
+{
+    machine_at_common_init(model);
+
+    device_add(&keyboard_ps2_device);
+}
+
+
+void
+machine_at_common_ide_init(machine_t *model)
+{
+    machine_at_common_init(model);
+
+    ide_init();
 }
 
 
@@ -42,6 +67,15 @@ void
 machine_at_ide_init(machine_t *model)
 {
     machine_at_init(model);
+
+    ide_init();
+}
+
+
+void
+machine_at_ps2_ide_init(machine_t *model)
+{
+    machine_at_ps2_init(model);
 
     ide_init();
 }

@@ -8,15 +8,15 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.15	2017/12/25
+ * Version:	@(#)machine.h	1.0.16	2018/01/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2018 Fred N. van Kempen.
  */
 #ifndef EMU_MACHINE_H
 # define EMU_MACHINE_H
@@ -95,8 +95,12 @@ extern void	machine_close(void);
 /* Initialization functions for boards and systems. */
 extern void	machine_common_init(machine_t *);
 
+extern void	machine_at_common_init(machine_t *);
 extern void	machine_at_init(machine_t *);
+extern void	machine_at_ps2_init(machine_t *);
+extern void	machine_at_common_ide_init(machine_t *);
 extern void	machine_at_ide_init(machine_t *);
+extern void	machine_at_ps2_ide_init(machine_t *);
 extern void	machine_at_top_remap_init(machine_t *);
 extern void	machine_at_ide_top_remap_init(machine_t *);
 
@@ -133,7 +137,9 @@ extern void	machine_at_cmdpc_init(machine_t *);
 
 extern void	machine_at_headland_init(machine_t *);
 extern void	machine_at_neat_init(machine_t *);
+extern void	machine_at_neat_ami_init(machine_t *);
 extern void	machine_at_opti495_init(machine_t *);
+extern void	machine_at_opti495_ami_init(machine_t *);
 extern void	machine_at_scat_init(machine_t *);
 extern void	machine_at_compaq_init(machine_t *);
 

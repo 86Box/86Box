@@ -162,7 +162,7 @@ static void sis_85c496_init(void)
 static void
 machine_at_sis_85c496_common_init(machine_t *model)
 {
-        machine_at_ide_init(model);
+        machine_at_ps2_ide_init(model);
 
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);

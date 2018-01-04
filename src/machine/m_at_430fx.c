@@ -8,13 +8,13 @@
  *
  *		Implementation of the Intel 430FX PCISet chip.
  *
- * Version:	@(#)m_at_430fx.c	1.0.8	2017/11/04
+ * Version:	@(#)m_at_430fx.c	1.0.10	2018/01/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016,2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -26,6 +26,7 @@
 #include "../rom.h"
 #include "../pci.h"
 #include "../device.h"
+#include "../keyboard.h"
 #include "../piix.h"
 #include "../intel_flash.h"
 #include "../sio.h"
@@ -205,7 +206,7 @@ static void i430fx_init(void)
 void
 machine_at_p54tp4xe_init(machine_t *model)
 {
-        machine_at_ide_init(model);
+        machine_at_ps2_ide_init(model);
 
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -226,7 +227,8 @@ machine_at_p54tp4xe_init(machine_t *model)
 void
 machine_at_endeavor_init(machine_t *model)
 {
-        machine_at_ide_init(model);
+        machine_at_common_ide_init(model);
+	device_add(&keyboard_ps2_ami_device);
 
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -248,7 +250,8 @@ machine_at_endeavor_init(machine_t *model)
 void
 machine_at_zappa_init(machine_t *model)
 {
-        machine_at_ide_init(model);
+        machine_at_common_ide_init(model);
+	device_add(&keyboard_ps2_ami_device);
 
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -268,7 +271,7 @@ machine_at_zappa_init(machine_t *model)
 void
 machine_at_mb500n_init(machine_t *model)
 {
-        machine_at_ide_init(model);
+        machine_at_ps2_ide_init(model);
 
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
@@ -288,7 +291,7 @@ machine_at_mb500n_init(machine_t *model)
 void
 machine_at_president_init(machine_t *model)
 {
-        machine_at_ide_init(model);
+        machine_at_ps2_ide_init(model);
 
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -309,7 +312,8 @@ machine_at_president_init(machine_t *model)
 void
 machine_at_thor_init(machine_t *model)
 {
-        machine_at_ide_init(model);
+        machine_at_common_ide_init(model);
+	device_add(&keyboard_ps2_ami_device);
 
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);

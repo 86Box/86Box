@@ -9,6 +9,8 @@
 #include "../cpu/cpu.h"
 #include "../cpu/x86.h"
 #include "../io.h"
+#include "../device.h"
+#include "../keyboard.h"
 #include "../mem.h"
 #include "machine.h"
 
@@ -68,7 +70,8 @@ static void headland_init(void)
 void
 machine_at_headland_init(machine_t *model)
 {
-        machine_at_ide_init(model);
+        machine_at_common_ide_init(model);
+	device_add(&keyboard_at_ami_device);
 
         headland_init();
 }

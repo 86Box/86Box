@@ -50,7 +50,12 @@ extern int	mouse_scan;
 extern device_t	keyboard_xt_device;
 extern device_t	keyboard_tandy_device;
 extern device_t	keyboard_at_device;
+extern device_t	keyboard_at_ami_device;
+extern device_t	keyboard_at_quadtel_device;
+extern device_t	keyboard_at_toshiba_device;
 extern device_t	keyboard_ps2_device;
+extern device_t	keyboard_ps2_ami_device;
+extern device_t	keyboard_ps2_mca_device;
 #endif
 
 extern void	keyboard_init(void);

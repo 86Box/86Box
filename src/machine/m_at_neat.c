@@ -7,7 +7,9 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../device.h"
 #include "../io.h"
+#include "../keyboard.h"
 #include "machine.h"
 
 
@@ -87,6 +89,16 @@ void
 machine_at_neat_init(machine_t *model)
 {
         machine_at_init(model);
+
+        neat_init();
+}
+
+
+void
+machine_at_neat_ami_init(machine_t *model)
+{
+        machine_at_common_init(model);
+	device_add(&keyboard_at_ami_device);
 
         neat_init();
 }

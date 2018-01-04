@@ -665,7 +665,7 @@ pc_keyboard_send(uint8_t val)
 {
     if (AT)
 	keyboard_at_adddata_keyboard_raw(val);
-      else
+    else
 	keyboard_send(val);
 }
 
@@ -690,9 +690,9 @@ pc_send_cae(void)
     pc_keyboard_send(29);	/* Ctrl key pressed */
     pc_keyboard_send(56);	/* Alt key pressed */
     pc_keyboard_send(1);	/* Esc key pressed */
-    pc_keyboard_send(157);	/* Ctrl key released */
-    pc_keyboard_send(184);	/* Alt key released */
     pc_keyboard_send(129);	/* Esc key released */
+    pc_keyboard_send(184);	/* Alt key released */
+    pc_keyboard_send(157);	/* Ctrl key released */
 }
 
 
