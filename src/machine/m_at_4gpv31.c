@@ -11,7 +11,7 @@
  * NOTE:	The NEAT 82c206 code should be moved into a 82c206 module,
  *		so it can be re-used by other boards.
  *
- * Version:	@(#)m_4gpv31.c	1.0.2	2018/01/04
+ * Version:	@(#)m_4gpv31.c	1.0.3	2018/01/04
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2018 Fred N. van Kempen.
@@ -23,6 +23,8 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../device.h"
+#include "../keyboard.h"
 #include "machine.h"
 
 
