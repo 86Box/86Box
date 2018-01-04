@@ -8,15 +8,15 @@
  *
  *		Definitions for the keyboard interface.
  *
- * Version:	@(#)keyboard.h	1.0.7	2017/12/31
+ * Version:	@(#)keyboard.h	1.0.8	2018/01/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2018 Fred N. van Kempen.
  */
 #ifndef EMU_KEYBOARD_H
 # define EMU_KEYBOARD_H
@@ -51,11 +51,11 @@ extern device_t	keyboard_xt_device;
 extern device_t	keyboard_tandy_device;
 extern device_t	keyboard_at_device;
 extern device_t	keyboard_at_ami_device;
-extern device_t	keyboard_at_quadtel_device;
 extern device_t	keyboard_at_toshiba_device;
 extern device_t	keyboard_ps2_device;
 extern device_t	keyboard_ps2_ami_device;
 extern device_t	keyboard_ps2_mca_device;
+extern device_t	keyboard_ps2_quadtel_device;
 #endif
 
 extern void	keyboard_init(void);

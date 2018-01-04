@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.15	2018/01/04
+ * Version:	@(#)keyboard_at.c	1.0.16	2018/01/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1556,16 +1556,6 @@ device_t keyboard_at_ami_device = {
     NULL, NULL, NULL, NULL
 };
 
-device_t keyboard_at_quadtel_device = {
-    "PC/AT Keyboard (Quadtel/MegaPC)",
-    0,
-    KBC_TYPE_ISA | KBC_VEN_QUADTEL,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    NULL, NULL, NULL, NULL
-};
-
 device_t keyboard_at_toshiba_device = {
     "PC/AT Keyboard (Toshiba)",
     0,
@@ -1600,6 +1590,16 @@ device_t keyboard_ps2_mca_device = {
     "PS/2 Keyboard",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_IBM_MCA,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    NULL, NULL, NULL, NULL
+};
+
+device_t keyboard_ps2_quadtel_device = {
+    "PS/2 Keyboard (Quadtel/MegaPC)",
+    0,
+    KBC_TYPE_PS2_1 | KBC_VEN_QUADTEL,
     kbd_init,
     kbd_close,
     kbd_reset,

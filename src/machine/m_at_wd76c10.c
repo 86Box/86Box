@@ -142,7 +142,7 @@ void
 machine_at_wd76c10_init(machine_t *model)
 {
         machine_at_common_ide_init(model);
-	device_add(&keyboard_at_quadtel_device);
+	device_add(&keyboard_ps2_quadtel_device);
 
         wd76c10_init();
 
