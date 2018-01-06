@@ -42,8 +42,8 @@
 
 
 scsi_device_t	SCSIDevices[SCSI_ID_MAX][SCSI_LUN_MAX];
-uint8_t		SCSIPhase = 0xff;
-uint8_t		SCSIStatus = SCSI_STATUS_OK;
+// uint8_t		SCSIPhase = 0xff;
+// uint8_t		SCSIStatus = SCSI_STATUS_OK;
 uint8_t		scsi_cdrom_id = 3; /*common setting*/
 char		scsi_fn[SCSI_NUM][512];
 uint16_t	scsi_hd_location[SCSI_NUM];

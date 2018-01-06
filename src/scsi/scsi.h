@@ -8,15 +8,15 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.8	2017/10/15
+ * Version:	@(#)scsi_h	1.0.9	2018/01/06
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 TheCollector1995.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016,2018 TheCollector1995.
+ *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2018 Fred N. van Kempen.
  */
 #ifndef EMU_SCSI_H
 #define EMU_SCSI_H
@@ -215,8 +215,6 @@ extern uint8_t	page_current;
 #define PAGE_CHANGEABLE		1
 #define PAGE_CHANGED		2
 
-extern uint8_t	SCSIStatus;
-extern uint8_t	SCSIPhase;
 extern uint8_t	scsi_cdrom_id;
 
 struct _scsisense_ {
@@ -267,6 +265,8 @@ typedef struct {
     uint8_t	*CmdBuffer;
     int		LunType;
     int32_t	BufferLength;
+    uint8_t	Status;
+    uint8_t	Phase;
 } scsi_device_t;
 
 

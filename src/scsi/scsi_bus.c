@@ -8,7 +8,7 @@
  *
  *		The generic SCSI bus operations handler.
  *
- * Version:	@(#)scsi_bus.c	1.0.5	2017/12/09
+ * Version:	@(#)scsi_bus.c	1.0.6	2018/01/06
  *
  * NOTES: 	For now ported from PCem with some modifications
  *		but at least it's a start.
@@ -159,16 +159,16 @@ scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 							   get_cmd_len(bus->command[0]),
 							   bus->command);
 
-				scsi_bus_log("(%02X:%02X): Command %02X: Buffer Length %i, SCSI Phase %02X\n", bus->dev_id, lun, bus->command[0], dev->BufferLength, SCSIPhase);
+				scsi_bus_log("(%02X:%02X): Command %02X: Buffer Length %i, SCSI Phase %02X\n", bus->dev_id, lun, bus->command[0], dev->BufferLength, dev->Phase);
 
-				if ((SCSIPhase == SCSI_PHASE_DATA_IN) ||
-				    (SCSIPhase == SCSI_PHASE_DATA_OUT)) {
+				if ((dev->Phase == SCSI_PHASE_DATA_IN) ||
+				    (dev->Phase == SCSI_PHASE_DATA_OUT)) {
 					scsi_bus_log("dev->CmdBuffer = %08X\n", dev->CmdBuffer);
 					dev->CmdBuffer = (uint8_t *) malloc(dev->BufferLength);
 					scsi_bus_log("dev->CmdBuffer = %08X\n", dev->CmdBuffer);
 				}
 
-				if (SCSIPhase == SCSI_PHASE_DATA_OUT) {
+				if (dev->Phase == SCSI_PHASE_DATA_OUT) {
 					/* Write direction commands have delayed execution - only execute them after the bus has gotten all the data from the host. */
 					scsi_bus_log("Next state is data out\n");
 
@@ -176,8 +176,8 @@ scsi_bus_update(scsi_bus_t *bus, int bus_assert)
 					bus->clear_req = 0;
 				} else {
 					/* Other command - execute immediately. */
-					bus->new_state = SCSIPhase;
-					if (SCSIPhase == SCSI_PHASE_DATA_IN) {
+					bus->new_state = dev->Phase;
+					if (dev->Phase == SCSI_PHASE_DATA_IN) {
 						scsi_device_command_phase1(bus->dev_id, lun);
 					}
 
@@ -324,11 +324,14 @@ scsi_bus_read(scsi_bus_t *bus)
 				break;
 
 			case SCSI_PHASE_STATUS:
+				lun = (bus->command[1] >> 5) & 7;
+				dev = &SCSIDevices[bus->dev_id][lun];
+
 				scsi_bus_log("Phase status\n");
 				bus->state = STATE_STATUS;
 				bus->bus_out |= BUS_REQ;
-				bus->bus_out = (bus->bus_out & ~BUS_DATAMASK) | BUS_SETDATA(SCSIStatus) | BUS_DBP;
-				/* scsi_bus_log("SCSI Status (command %02X): %02X (%08X)\n", bus->command[0], SCSIStatus, bus->bus_out); */
+				bus->bus_out = (bus->bus_out & ~BUS_DATAMASK) | BUS_SETDATA(dev->Status) | BUS_DBP;
+				/* scsi_bus_log("SCSI Status (command %02X): %02X (%08X)\n", bus->command[0], dev->Status, bus->bus_out); */
 				break;
 
 			case SCSI_PHASE_MESSAGE_IN:

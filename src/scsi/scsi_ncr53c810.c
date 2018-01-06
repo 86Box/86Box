@@ -10,16 +10,16 @@
  *		NCR and later Symbios and LSI. This controller was designed
  *		for the PCI bus.
  *
- * Version:	@(#)scsi_ncr53c810.c	1.0.5	2017/12/25
+ * Version:	@(#)scsi_ncr53c810.c	1.0.6	2018/01/06
  *
  * Authors:	Paul Brook (QEMU)
  *		Artyom Tarasenko (QEMU)
  *		TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2006-2017 Paul Brook.
- *		Copyright 2009-2017 Artyom Tarasenko.
- *		Copyright 2017 Miran Grca.
+ *		Copyright 2006-2018 Paul Brook.
+ *		Copyright 2009-2018 Artyom Tarasenko.
+ *		Copyright 2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -623,7 +623,7 @@ ncr53c810_do_dma(ncr53c810_t *dev, int out, uint8_t id)
 		free(sd->CmdBuffer);
 		sd->CmdBuffer = NULL;
 	}
-	ncr53c810_command_complete(dev, SCSIStatus);
+	ncr53c810_command_complete(dev, sd->Status);
     } else {
 	ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Resume SCRIPTS\n", id, dev->current_lun, dev->last_command);
 	dev->sstop = 0;
@@ -687,14 +687,14 @@ ncr53c810_do_command(ncr53c810_t *dev, uint8_t id)
 	dev->current->dma_len = sd->BufferLength;
     }
 
-    if ((SCSIPhase == SCSI_PHASE_DATA_IN) && (sd->BufferLength > 0)) {
+    if ((sd->Phase == SCSI_PHASE_DATA_IN) && (sd->BufferLength > 0)) {
 	ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: PHASE_DI\n", id, dev->current_lun, buf[0]);
 	ncr53c810_set_phase(dev, PHASE_DI);
-    } else if ((SCSIPhase == SCSI_PHASE_DATA_OUT) && (sd->BufferLength > 0)) {
+    } else if ((sd->Phase == SCSI_PHASE_DATA_OUT) && (sd->BufferLength > 0)) {
 	ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: PHASE_DO\n", id, dev->current_lun, buf[0]);
 	ncr53c810_set_phase(dev, PHASE_DO);
     } else
-	ncr53c810_command_complete(dev, SCSIStatus);
+	ncr53c810_command_complete(dev, sd->Status);
 }
 
 

@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.10	2018/01/02
+ * Version:	@(#)scsi_x54x.c	1.0.11	2018/01/06
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -363,10 +363,6 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		dev->CmdBuffer = (uint8_t *)malloc(14);
 		memset(dev->CmdBuffer, 0x00, 14);
 
-#if 0
-		SCSIStatus = x54x_bios_command_08(cmd->id, cmd->lun, dev->CmdBuffer) ? SCSI_STATUS_OK : SCSI_STATUS_CHECK_CONDITION;
-#endif
-
 		if (sector_len > 0) {
 			x54x_log("BIOS DMA: Reading 14 bytes at %08X\n",
 							dma_address);
@@ -402,7 +398,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 
 		scsi_device_command_phase0(cmd->id, cmd->lun, 12, cdb);
 
-		if (SCSIPhase == SCSI_PHASE_STATUS)
+		if (dev->Phase == SCSI_PHASE_STATUS)
 			goto skip_read_phase1;
 
 		scsi_device_command_phase1(cmd->id, cmd->lun);
@@ -442,7 +438,7 @@ skip_read_phase1:
 
 		scsi_device_command_phase0(cmd->id, cmd->lun, 12, cdb);
 
-		if (SCSIPhase == SCSI_PHASE_STATUS)
+		if (dev->Phase == SCSI_PHASE_STATUS)
 			goto skip_write_phase1;
 
 		if (sector_len > 0) {
@@ -532,7 +528,7 @@ skip_write_phase1:
 
 		scsi_device_command_phase0(cmd->id, cmd->lun, 12, cdb);
 
-		return((SCSIStatus == SCSI_STATUS_OK) ? 1 : 0);
+		return((dev->Status == SCSI_STATUS_OK) ? 1 : 0);
 
 	case 0x0d:	/* Alternate Disk Reset, in practice it's a nop */
 //FIXME: add a longer delay here --FvK
@@ -997,7 +993,7 @@ x54x_scsi_cmd(x54x_t *dev)
 
     scsi_device_command_phase0(id, lun, req->CmdBlock.common.CdbLength, temp_cdb);
 
-    phase = SCSIPhase;
+    phase = SCSIDevices[id][lun].Phase;
 
     x54x_log("Control byte: %02X\n", (req->CmdBlock.common.ControlByte == 0x03));
 
@@ -1007,7 +1003,7 @@ x54x_scsi_cmd(x54x_t *dev)
 		*BufLen = ConvertSenseLength(req->CmdBlock.common.RequestSenseLength);
 	    	x54x_buf_alloc(id, lun, *BufLen);
 		scsi_device_command_phase1(id, lun);
-		if ((SCSIStatus != SCSI_STATUS_OK) && (*BufLen > 0)) {
+		if ((SCSIDevices[id][lun].Status != SCSI_STATUS_OK) && (*BufLen > 0)) {
 			SenseBufferAddress = SenseBufferPointer(req);
 			DMAPageWrite(SenseBufferAddress, SCSIDevices[id][lun].CmdBuffer, *BufLen);
 		}
@@ -1019,10 +1015,10 @@ x54x_scsi_cmd(x54x_t *dev)
 		if (phase == SCSI_PHASE_DATA_IN)
 			x54x_buf_dma_transfer(req, bit24, target_data_len, 0);
 
-		SenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK));
+		SenseBufferFree(req, (SCSIDevices[id][lun].Status != SCSI_STATUS_OK));
 	}
     } else
-	SenseBufferFree(req, (SCSIStatus != SCSI_STATUS_OK));
+	SenseBufferFree(req, (SCSIDevices[id][lun].Status != SCSI_STATUS_OK));
 
     x54x_set_residue(req, target_data_len);
 
@@ -1030,15 +1026,15 @@ x54x_scsi_cmd(x54x_t *dev)
 
     x54x_log("Request complete\n");
 
-    if (SCSIStatus == SCSI_STATUS_OK) {
+    if (SCSIDevices[id][lun].Status == SCSI_STATUS_OK) {
 	x54x_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
 		       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
-    } else if (SCSIStatus == SCSI_STATUS_CHECK_CONDITION) {
+    } else if (SCSIDevices[id][lun].Status == SCSI_STATUS_CHECK_CONDITION) {
 	x54x_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
 		       CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
     }
 
-    x54x_log("SCSIStatus = %02X\n", SCSIStatus);
+    x54x_log("SCSIDevices[%02i][%02i].Status = %02X\n", id, lun, SCSIDevices[id][lun].Status);
 
     if (temp_cdb[0] == 0x42) {
 	thread_wait_event((event_t *) evt, 10);
@@ -1084,7 +1080,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 
     x54x_log("Scanning SCSI Target ID %i\n", id);
 
-    SCSIStatus = SCSI_STATUS_OK;
+    SCSIDevices[id][lun].Status = SCSI_STATUS_OK;
 
     /* If there is no device at ID:0, timeout the selection - the LUN is then checked later. */
     if (! scsi_device_present(id, 0)) {

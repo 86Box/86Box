@@ -6,11 +6,11 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.11	2017/12/09
+ * Version:	@(#)scsi_disk.c	1.0.12	2018/01/06
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2017 Miran Grca.
+ *		Copyright 2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -487,40 +487,6 @@ int scsi_hd_err_stat_to_scsi(uint8_t id)
 	}
 
 	return SCSI_STATUS_OK;
-}
-
-
-/* Translates ATAPI phase (DRQ, I/O, C/D) to SCSI phase (MSG, C/D, I/O). */
-int scsi_hd_phase_to_scsi(uint8_t id)
-{
-	if (shdc[id].status & 8)
-	{
-		switch (shdc[id].phase & 3)
-		{
-			case 0:
-				return 0;
-			case 1:
-				return 2;
-			case 2:
-				return 1;
-			case 3:
-				return 7;
-		}
-	}
-	else
-	{
-		if ((shdc[id].phase & 3) == 3)
-		{
-			return 3;
-		}
-		else
-		{
-			/* Translate reserved ATAPI phase to reserved SCSI phase. */
-			return 4;
-		}
-	}
-
-	return 0;
 }
 
 
@@ -1095,9 +1061,21 @@ static void scsi_hd_sense_clear(int id, int command)
 }
 
 
+static void scsi_hd_set_phase(uint8_t id, uint8_t phase)
+{
+	uint8_t scsi_id = hdd[id].scsi_id;
+	uint8_t scsi_lun = hdd[id].scsi_lun;
+
+	if ((hdd[id].bus != HDD_BUS_SCSI) && (hdd[id].bus != HDD_BUS_SCSI_REMOVABLE))
+		return;
+
+	SCSIDevices[scsi_id][scsi_lun].Phase = phase;
+}
+
+
 static void scsi_hd_cmd_error(uint8_t id)
 {
-	SCSIPhase = SCSI_PHASE_STATUS;
+	scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 	shdc[id].error = ((scsi_hd_sense_key & 0xf) << 4) | ABRT_ERR;
 	if (shdc[id].unit_attention & 3)
 	{
@@ -1113,7 +1091,7 @@ static void scsi_hd_cmd_error(uint8_t id)
 
 static void scsi_hd_unit_attention(uint8_t id)
 {
-	SCSIPhase = SCSI_PHASE_STATUS;
+	scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 	shdc[id].error = (SENSE_NOT_READY << 4) | ABRT_ERR;
 	if (shdc[id].unit_attention & 3)
 	{
@@ -1150,7 +1128,7 @@ static void scsi_hd_invalid_lun(uint8_t id)
 	scsi_hd_sense_key = SENSE_ILLEGAL_REQUEST;
 	scsi_hd_asc = ASC_INV_LUN;
 	scsi_hd_ascq = 0;
-	SCSIPhase = BUS_CD | BUS_IO;
+	scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 	scsi_hd_cmd_error(id);
 }
 
@@ -1461,7 +1439,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 	
 	shdc[id].sector_len = 0;
 
-	SCSIPhase = SCSI_PHASE_STATUS;
+	scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 
 	/* This handles the Not Ready/Unit Attention check if it has to be handled at this point. */
 	if (scsi_hd_pre_execution_check(id, cdb) == 0)
@@ -1473,14 +1451,14 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 	{
 		case GPCMD_TEST_UNIT_READY:
 		case GPCMD_FORMAT_UNIT:
-			SCSIPhase = SCSI_PHASE_STATUS;
+			scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 			scsi_hd_command_complete(id);
 			break;
 
 		case GPCMD_REZERO_UNIT:
 			shdc[id].sector_pos = shdc[id].sector_len = 0;
 			scsi_hd_seek(id, 0);
-			SCSIPhase = SCSI_PHASE_STATUS;
+			scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 			break;
 
 		case GPCMD_REQUEST_SENSE:
@@ -1496,7 +1474,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				cdb[4] = *BufLen;
 			}
 			
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			scsi_hd_set_phase(id, SCSI_PHASE_DATA_IN);
 			scsi_hd_data_command_finish(id, 18, 18, cdb[4], 0);
 			break;
 
@@ -1508,7 +1486,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				*BufLen = len;
 			}
 
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			scsi_hd_set_phase(id, SCSI_PHASE_DATA_IN);
 			scsi_hd_data_command_finish(id, 8, 8, len, 0);
 			break;
 
@@ -1539,7 +1517,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			if ((!shdc[id].sector_len) || (*BufLen == 0))
 			{
-				SCSIPhase = SCSI_PHASE_STATUS;
+				scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 				ui_sb_update_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 				scsi_hd_log("SCSI HD %i: All done - callback set\n", id);
 				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
@@ -1557,7 +1535,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				*BufLen = alloc_length;
 			}
 
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			scsi_hd_set_phase(id, SCSI_PHASE_DATA_IN);
 
 			if (shdc[id].requested_blocks > 1)
 			{
@@ -1575,7 +1553,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 		case GPCMD_VERIFY_10:
 		case GPCMD_VERIFY_12:
 			if (!(cdb[1] & 2)) {
-				SCSIPhase = SCSI_PHASE_STATUS;
+				scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 				scsi_hd_command_complete(id);
 				break;
 			}
@@ -1621,7 +1599,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			if ((!shdc[id].sector_len) || (*BufLen == 0))
 			{
-				SCSIPhase = SCSI_PHASE_STATUS;
+				scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 				ui_sb_update_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 				scsi_hd_log("SCSI HD %i: All done - callback set\n", id);
 				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
@@ -1639,7 +1617,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				*BufLen = alloc_length;
 			}
 
-			SCSIPhase = SCSI_PHASE_DATA_OUT;
+			scsi_hd_set_phase(id, SCSI_PHASE_DATA_OUT);
 			
 			if (shdc[id].requested_blocks > 1)
 			{
@@ -1678,7 +1656,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			if ((!shdc[id].sector_len) || (*BufLen == 0))
 			{
-				SCSIPhase = SCSI_PHASE_STATUS;
+				scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 				ui_sb_update_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 				scsi_hd_log("SCSI HD %i: All done - callback set\n", id);
 				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
@@ -1696,7 +1674,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 				*BufLen = alloc_length;
 			}
 
-			SCSIPhase = SCSI_PHASE_DATA_OUT;
+			scsi_hd_set_phase(id, SCSI_PHASE_DATA_OUT);
 			
 			if (shdc[id].requested_blocks > 1)
 			{
@@ -1712,7 +1690,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 		case GPCMD_MODE_SENSE_6:
 		case GPCMD_MODE_SENSE_10:
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			scsi_hd_set_phase(id, SCSI_PHASE_DATA_IN);
 		
 			block_desc = ((cdb[1] >> 3) & 1) ? 0 : 1;
 
@@ -1792,7 +1770,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 		case GPCMD_MODE_SELECT_6:
 		case GPCMD_MODE_SELECT_10:
-			SCSIPhase = SCSI_PHASE_DATA_OUT;
+			scsi_hd_set_phase(id, SCSI_PHASE_DATA_OUT);
 		
 			if (cdb[0] == GPCMD_MODE_SELECT_6)
 			{
@@ -1833,7 +1811,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 					break;
 			}
 
-			SCSIPhase = SCSI_PHASE_STATUS;
+			scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 			scsi_hd_command_complete(id);
 			break;
 
@@ -1844,7 +1822,7 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 			if ((!max_len) || (*BufLen == 0))
 			{
-				SCSIPhase = SCSI_PHASE_STATUS;
+				scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 				/* scsi_hd_log("SCSI HD %i: All done - callback set\n", id); */
 				shdc[id].packet_status = CDROM_PHASE_COMPLETE;
 				shdc[id].callback = 20 * SCSI_TIME;
@@ -1962,12 +1940,12 @@ atapi_out:
 				len = *BufLen;
 			}
 
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			scsi_hd_set_phase(id, SCSI_PHASE_DATA_IN);
 			scsi_hd_data_command_finish(id, len, len, max_len, 0);
 			break;
 
 		case GPCMD_PREVENT_REMOVAL:
-			SCSIPhase = SCSI_PHASE_STATUS;
+			scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 			scsi_hd_command_complete(id);
 			break;
 
@@ -1984,7 +1962,7 @@ atapi_out:
 			}
 			scsi_hd_seek(id, pos);
 			
-			SCSIPhase = SCSI_PHASE_STATUS;
+			scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 			scsi_hd_command_complete(id);
 			break;
 
@@ -1993,7 +1971,7 @@ atapi_out:
 
 			if (scsi_hd_read_capacity(id, shdc[id].current_cdb, shdc[id].temp_buffer, &len) == 0)
 			{
-				SCSIPhase = SCSI_PHASE_STATUS;
+				scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 				return;
 			}
 			
@@ -2002,7 +1980,7 @@ atapi_out:
 				*BufLen = len;
 			}
 
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			scsi_hd_set_phase(id, SCSI_PHASE_DATA_IN);
 			scsi_hd_data_command_finish(id, len, len, len, 0);
 			break;
 
@@ -2061,7 +2039,7 @@ void scsi_hd_phase_data_in(uint8_t id)
 	if (!*BufLen)
 	{
 		scsi_hd_log("scsi_hd_phase_data_in(): Buffer length is 0\n");
-		SCSIPhase = SCSI_PHASE_STATUS;
+		scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 		ui_sb_update_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 
 		return;
@@ -2109,7 +2087,7 @@ void scsi_hd_phase_data_in(uint8_t id)
 			break;
 	}
 
-	SCSIPhase = SCSI_PHASE_STATUS;
+	scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 	ui_sb_update_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 }
 
@@ -2130,7 +2108,7 @@ void scsi_hd_phase_data_out(uint8_t id)
 
 	if (!*BufLen)
 	{
-		SCSIPhase = SCSI_PHASE_STATUS;
+		scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 		ui_sb_update_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 
 		return;
@@ -2211,7 +2189,7 @@ void scsi_hd_phase_data_out(uint8_t id)
 			break;
 	}
 
-	SCSIPhase = SCSI_PHASE_STATUS;
+	scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
 	ui_sb_update_icon((hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? (SB_RDISK | id) : (SB_HDD | HDD_BUS_SCSI), 0);
 }
 

@@ -9,11 +9,11 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.25	2017/12/10
+ * Version:	@(#)cdrom.c	1.0.26	2018/01/06
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016,2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -1406,9 +1406,20 @@ static void cdrom_sense_clear(int id, int command)
 	cdrom_sense_key = cdrom_asc = cdrom_ascq = 0;
 }
 
+static void cdrom_set_phase(uint8_t id, uint8_t phase)
+{
+	uint8_t scsi_id = cdrom_drives[id].scsi_device_id;
+	uint8_t scsi_lun = cdrom_drives[id].scsi_device_lun;
+
+	if (cdrom_drives[id].bus_type != CDROM_BUS_SCSI)
+		return;
+
+	SCSIDevices[scsi_id][scsi_lun].Phase = phase;
+}
+
 static void cdrom_cmd_error(uint8_t id)
 {
-	SCSIPhase = SCSI_PHASE_STATUS;
+	cdrom_set_phase(id, SCSI_PHASE_STATUS);
 	cdrom[id].error = ((cdrom_sense_key & 0xf) << 4) | ABRT_ERR;
 	if (cdrom[id].unit_attention)
 		cdrom[id].error |= MCR_ERR;
@@ -1422,7 +1433,7 @@ static void cdrom_cmd_error(uint8_t id)
 
 static void cdrom_unit_attention(uint8_t id)
 {
-	SCSIPhase = SCSI_PHASE_STATUS;
+	cdrom_set_phase(id, SCSI_PHASE_STATUS);
 	cdrom[id].error = (SENSE_UNIT_ATTENTION << 4) | ABRT_ERR;
 	if (cdrom[id].unit_attention)
 		cdrom[id].error |= MCR_ERR;
@@ -2130,17 +2141,15 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 	msf = cdb[1] & 2;
 	cdrom[id].sector_len = 0;
 
-	SCSIPhase = SCSI_PHASE_STATUS;
+	cdrom_set_phase(id, SCSI_PHASE_STATUS);
 
 	/* This handles the Not Ready/Unit Attention check if it has to be handled at this point. */
 	if (cdrom_pre_execution_check(id, cdb) == 0)
 		return;
 
-	cdrom_buf_free(id);
-
 	switch (cdb[0]) {
 		case GPCMD_TEST_UNIT_READY:
-			SCSIPhase = SCSI_PHASE_STATUS;
+			cdrom_set_phase(id, SCSI_PHASE_STATUS);
 			cdrom_command_complete(id);
 			break;
 
@@ -2149,13 +2158,13 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 				cdrom_drives[id].handler->stop(id);
 			cdrom[id].sector_pos = cdrom[id].sector_len = 0;
 			cdrom_seek(id, 0);
-			SCSIPhase = SCSI_PHASE_STATUS;
+			cdrom_set_phase(id, SCSI_PHASE_STATUS);
 			break;
 
 		case GPCMD_REQUEST_SENSE:
 			/* If there's a unit attention condition and there's a buffered not ready, a standalone REQUEST SENSE
 			   should forget about the not ready, and report unit attention straight away. */
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_IN);
 			max_len = cdb[4];
 			cdrom_buf_alloc(id, 256);
 			cdrom_set_buf_len(id, BufLen, &max_len);
@@ -2165,12 +2174,12 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 
 		case GPCMD_SET_SPEED:
 		case GPCMD_SET_SPEED_ALT:
-			SCSIPhase = SCSI_PHASE_STATUS;
+			cdrom_set_phase(id, SCSI_PHASE_STATUS);
 			cdrom_command_complete(id);
 			break;
 
 		case GPCMD_MECHANISM_STATUS:
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_IN);
 			len = (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
 
 			cdrom_buf_alloc(id, 8);
@@ -2186,7 +2195,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 		case GPCMD_READ_TOC_PMA_ATIP:
 			cdrom[id].toctimes++;
 
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_IN);
 			
 			max_len = cdb[7];
 			max_len <<= 8;
@@ -2197,7 +2206,6 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			if (cdrom_drives[id].handler->pass_through) {
 				ret = cdrom_pass_through(id, &len, cdrom[id].current_cdb, cdbufferb);
 				if (!ret) {
-					/* return; */
 					cdrom_sense_key = cdrom_asc = cdrom_ascq = 0;
 					goto cdrom_readtoc_fallback;
 				}
@@ -2228,6 +2236,7 @@ cdrom_readtoc_fallback:
 						break;
 					default:
 						cdrom_invalid_field(id);
+						cdrom_buf_free(id);
 						return;
 				}
 			}
@@ -2252,7 +2261,7 @@ cdrom_readtoc_fallback:
 		case GPCMD_READ_12:
 		case GPCMD_READ_CD:
 		case GPCMD_READ_CD_MSF:
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_IN);
 			alloc_length = 2048;
 
 			switch(cdb[0]) {
@@ -2294,7 +2303,7 @@ cdrom_readtoc_fallback:
 			}
 
 			if (!cdrom[id].sector_len) {
-				SCSIPhase = SCSI_PHASE_STATUS;
+				cdrom_set_phase(id, SCSI_PHASE_STATUS);
 				/* cdrom_log("CD-ROM %i: All done - callback set\n", id); */
 				cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
 				cdrom[id].callback = 20LL * CDROM_TIME;
@@ -2311,8 +2320,10 @@ cdrom_readtoc_fallback:
 			cdrom_buf_alloc(id, cdrom[id].packet_len);
 
 			ret = cdrom_read_blocks(id, &alloc_length, 1);
-			if (ret <= 0)
+			if (ret <= 0) {
+				cdrom_buf_free(id);
 				return;
+			}
 
 			cdrom[id].requested_blocks = max_len;
 			cdrom[id].packet_len = alloc_length;
@@ -2329,15 +2340,17 @@ cdrom_readtoc_fallback:
 			return;
 
 		case GPCMD_READ_HEADER:
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_IN);
 
 			alloc_length = ((cdb[7] << 8) | cdb[8]);
 			cdrom_buf_alloc(id, 8);
 
 			if (cdrom_drives[id].handler->pass_through) {
 				ret = cdrom_pass_through(id, &len, cdrom[id].current_cdb, cdbufferb);
-				if (!ret)
+				if (!ret) {
+					cdrom_buf_free(id);
 					return;
+				}
 			} else {
 				cdrom[id].sector_len = 1;
 				cdrom[id].sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4]<<8) | cdb[5];
@@ -2364,7 +2377,7 @@ cdrom_readtoc_fallback:
 
 		case GPCMD_MODE_SENSE_6:
 		case GPCMD_MODE_SENSE_10:
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_IN);
 		
 			if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 				block_desc = ((cdb[1] >> 3) & 1) ? 0 : 1;
@@ -2383,6 +2396,7 @@ cdrom_readtoc_fallback:
 
 			if (!(cdrom_mode_sense_page_flags[id] & (1LL << cdrom[id].current_page_code))) {
 				cdrom_invalid_field(id);
+				cdrom_buf_free(id);
 				return;
 			}
 			
@@ -2417,7 +2431,7 @@ cdrom_readtoc_fallback:
 
 		case GPCMD_MODE_SELECT_6:
 		case GPCMD_MODE_SELECT_10:
-			SCSIPhase = SCSI_PHASE_DATA_OUT;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_OUT);
 		
 			if (cdb[0] == GPCMD_MODE_SELECT_6) {
 				len = cdb[4];
@@ -2434,7 +2448,7 @@ cdrom_readtoc_fallback:
 			return;
 
 		case GPCMD_GET_CONFIGURATION:
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_IN);
 
 			/* XXX: could result in alignment problems in some architectures */
 			feature = (cdb[2] << 8) | cdb[3];
@@ -2443,6 +2457,7 @@ cdrom_readtoc_fallback:
 			/* only feature 0 is supported */
 			if ((cdb[2] != 0) || (cdb[3] > 2)) {
 				cdrom_invalid_field(id);
+				cdrom_buf_free(id);
 				return;
 			}
 
@@ -2530,7 +2545,7 @@ cdrom_readtoc_fallback:
 			break;
 
 		case GPCMD_GET_EVENT_STATUS_NOTIFICATION:
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_IN);
 
 			cdrom_buf_alloc(id, 8 + sizeof(gesn_event_header));
 		
@@ -2542,6 +2557,7 @@ cdrom_readtoc_fallback:
 				/* asynchronous mode */
 				/* Only polling is supported, asynchronous mode is not. */
 				cdrom_invalid_field(id);
+				cdrom_buf_free(id);
 				return;
 			}
 
@@ -2591,7 +2607,7 @@ cdrom_readtoc_fallback:
 			break;
 
 		case GPCMD_READ_DISC_INFORMATION:
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_IN);
 			
 			max_len = cdb[7];
 			max_len <<= 8;
@@ -2601,8 +2617,10 @@ cdrom_readtoc_fallback:
 
 			if (cdrom_drives[id].handler->pass_through) {
 				ret = cdrom_pass_through(id, &len, cdrom[id].current_cdb, cdbufferb);
-				if (!ret)
+				if (!ret) {
+					cdrom_buf_free(id);
 					return;
+				}
 				alloc_length = cdbufferb[0];
 				alloc_length <<= 8;
 				alloc_length |= cdbufferb[1];
@@ -2627,7 +2645,7 @@ cdrom_readtoc_fallback:
 			break;
 
 		case GPCMD_READ_TRACK_INFORMATION:
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_IN);
 		
 			max_len = cdb[7];
 			max_len <<= 8;
@@ -2642,8 +2660,10 @@ cdrom_readtoc_fallback:
 
 			if (cdrom_drives[id].handler->pass_through) {
 				ret = cdrom_pass_through(id, &len, cdrom[id].current_cdb, cdbufferb);
-				if (!ret)
+				if (!ret) {
+					cdrom_buf_free(id);
 					return;
+				}
 				alloc_length = cdbufferb[0];
 				alloc_length <<= 8;
 				alloc_length |= cdbufferb[1];
@@ -2652,6 +2672,7 @@ cdrom_readtoc_fallback:
 			} else {
 				if (((cdb[1] & 0x03) != 1) || (track != 1)) {
 					cdrom_invalid_field(id);
+					cdrom_buf_free(id);
 					return;
 				}
 
@@ -2686,7 +2707,7 @@ cdrom_readtoc_fallback:
 		case GPCMD_PLAY_AUDIO_12:
 		case GPCMD_PLAY_AUDIO_MSF:
 		case GPCMD_PLAY_AUDIO_TRACK_INDEX:
-			SCSIPhase = SCSI_PHASE_STATUS;
+			cdrom_set_phase(id, SCSI_PHASE_STATUS);
 		
 			switch(cdb[0]) {
 				case GPCMD_PLAY_AUDIO_10:
@@ -2729,7 +2750,7 @@ cdrom_readtoc_fallback:
 			break;
 
 		case GPCMD_READ_SUBCHANNEL:
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_IN);
 		
 			max_len = cdb[7];
 			max_len <<= 8;
@@ -2741,8 +2762,10 @@ cdrom_readtoc_fallback:
 			cdrom_log("CD-ROM %i: Getting page %i (%s)\n", id, cdb[3], msf ? "MSF" : "LBA");
 			if ((cdrom_drives[id].handler->pass_through) && (cdb[3] != 1)) {
 				ret = cdrom_pass_through(id, &len, cdrom[id].current_cdb, cdbufferb);
-				if (!ret)
+				if (!ret) {
+					cdrom_buf_free(id);
 					return;
+				}
 				switch(cdrom[id].cd_status) {
 					case CD_STATUS_PLAYING:
 						cdbufferb[1] = 0x11;
@@ -2776,6 +2799,7 @@ cdrom_readtoc_fallback:
 				if (cdb[3] > 3) {
 					/* cdrom_log("CD-ROM %i: Read subchannel check condition %02X\n", id, cdb[3]); */
 					cdrom_invalid_field(id);
+					cdrom_buf_free(id);
 					return;
 				}
 
@@ -2826,7 +2850,7 @@ cdrom_readtoc_fallback:
 			break;
 
 		case GPCMD_READ_DVD_STRUCTURE:
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_IN);
 
 			alloc_length = (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
 
@@ -2835,6 +2859,7 @@ cdrom_readtoc_fallback:
 			if (cdrom_drives[id].handler->pass_through) {
 				ret = cdrom_pass_through(id, &len, cdrom[id].current_cdb, cdbufferb);
 				if (!ret) {
+					cdrom_buf_free(id);
 					return;
 				} else {
 					if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) {
@@ -2852,6 +2877,7 @@ cdrom_readtoc_fallback:
  				if (cdb[7] < 0xc0) {
 					if (len <= CD_MAX_SECTORS) {
 						cdrom_incompatible_format(id);
+						cdrom_buf_free(id);
 						return;
 					}
 				}
@@ -2879,10 +2905,11 @@ cdrom_readtoc_fallback:
 						if (cdb[1] == 0) {
 							ret = cdrom_read_dvd_structure(id, format, cdb, cdbufferb);
 
-							cdrom_set_buf_len(id, BufLen, &alloc_length);
-
-							if (ret)
+							if (ret) {
+								cdrom_set_buf_len(id, BufLen, &alloc_length);
 								cdrom_data_command_finish(id, alloc_length, alloc_length, len, 0);
+							} else
+								cdrom_buf_free(id);
 							return;
 						}
 						/* TODO: BD support, fall through for now */
@@ -2896,13 +2923,14 @@ cdrom_readtoc_fallback:
 					case 0xc0: /* TODO: Write protection status */
 					default:
 						cdrom_invalid_field(id);
+						cdrom_buf_free(id);
 						return;
 				}
 			}
 			break;
 
 		case GPCMD_START_STOP_UNIT:
-			SCSIPhase = SCSI_PHASE_STATUS;
+			cdrom_set_phase(id, SCSI_PHASE_STATUS);
 		
 			switch(cdb[4] & 3) {
 				case 0:		/* Stop the disc. */
@@ -2926,7 +2954,7 @@ cdrom_readtoc_fallback:
 			break;
                 
 		case GPCMD_INQUIRY:
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_IN);
 		
 			max_len = cdb[3];
 			max_len <<= 8;
@@ -2952,6 +2980,7 @@ cdrom_readtoc_fallback:
 					case 0x83:
 						if (idx + 24 > max_len) {
 							cdrom_data_phase_error(id);
+							cdrom_buf_free(id);
 							return;
 						}
 
@@ -2978,6 +3007,7 @@ cdrom_readtoc_fallback:
 					default:
 						cdrom_log("INQUIRY: Invalid page: %02X\n", cdb[2]);
 						cdrom_invalid_field(id);
+						cdrom_buf_free(id);
 						return;
 				}
 			} else {
@@ -3017,13 +3047,13 @@ atapi_out:
 			break;
 
 		case GPCMD_PREVENT_REMOVAL:
-			SCSIPhase = SCSI_PHASE_STATUS;
+			cdrom_set_phase(id, SCSI_PHASE_STATUS);
 			cdrom_command_complete(id);
 			break;
 
 		case GPCMD_PAUSE_RESUME_ALT:
 		case GPCMD_PAUSE_RESUME:
-			SCSIPhase = SCSI_PHASE_STATUS;
+			cdrom_set_phase(id, SCSI_PHASE_STATUS);
 		
 			if (cdb[8] & 1) {
 				if (cdrom_drives[id].handler->resume)
@@ -3045,7 +3075,7 @@ atapi_out:
 
 		case GPCMD_SEEK_6:
 		case GPCMD_SEEK_10:
-			SCSIPhase = SCSI_PHASE_STATUS;
+			cdrom_set_phase(id, SCSI_PHASE_STATUS);
 		
 			switch(cdb[0]) {
 				case GPCMD_SEEK_6:
@@ -3060,12 +3090,14 @@ atapi_out:
 			break;
 
 		case GPCMD_READ_CDROM_CAPACITY:
-			SCSIPhase = SCSI_PHASE_DATA_IN;
+			cdrom_set_phase(id, SCSI_PHASE_DATA_IN);
 
 			cdrom_buf_alloc(id, 8);
 
-			if (cdrom_read_capacity(id, cdrom[id].current_cdb, cdbufferb, &len) == 0)
+			if (cdrom_read_capacity(id, cdrom[id].current_cdb, cdbufferb, &len) == 0) {
+				cdrom_buf_free(id);
 				return;
+			}
 			
 			cdrom_set_buf_len(id, BufLen, &len);
 
@@ -3073,7 +3105,7 @@ atapi_out:
 			break;
 
 		case GPCMD_STOP_PLAY_SCAN:
-			SCSIPhase = SCSI_PHASE_STATUS;
+			cdrom_set_phase(id, SCSI_PHASE_STATUS);
 		
 			if (cdrom_drives[id].handler->stop)
 				cdrom_drives[id].handler->stop(id);
@@ -3090,6 +3122,9 @@ atapi_out:
 	}
 
 	/* cdrom_log("CD-ROM %i: Phase: %02X, request length: %i\n", cdrom[id].phase, cdrom[id].request_length); */
+
+	if (cdrom_atapi_phase_to_scsi(id) == SCSI_PHASE_STATUS)
+		cdrom_buf_free(id);
 }
 
 /* This is the general ATAPI callback. */
@@ -3110,6 +3145,7 @@ void cdrom_callback(uint8_t id)		/* Callback for non-Read CD commands */
 
 		cdrom[id].pos = cdrom[id].request_pos = 0;
 		cdrom_command_complete(id);
+		cdrom_buf_free(id);
 	} else {
 		cdrom_log("CD-ROM %i: %i bytes read, %i bytes are still left\n", id, cdrom[id].pos, cdrom[id].packet_len - cdrom[id].pos);
 
@@ -3132,6 +3168,7 @@ int cdrom_mode_select_return(uint8_t id, int ret)
 		case -6:
 			/* Attempted to write to a non-existent CD-ROM drive (should never occur, but you never know). */
 			cdrom_invalid_field_pl(id);
+			cdrom_buf_free(id);
 			return -2;
 		case 1:
 			/* Successful, more data needed. */
@@ -3149,10 +3186,11 @@ int cdrom_mode_select_return(uint8_t id, int ret)
 		case -4:
 			/* Unknown phase. */
 			cdrom_illegal_opcode(id);
+			cdrom_buf_free(id);
 			return -2;
 		case -5:
 			/* Command terminated successfully. */
-			/* cdrom_command_complete(id); */
+			cdrom_buf_free(id);
 			return -1;
 		default:
 			return -15;
@@ -3317,7 +3355,6 @@ void cdrom_phase_callback(uint8_t id)
 			cdrom_log("CD-ROM %i: CDROM_PHASE_COMMAND\n", id);
 			cdrom[id].status = BUSY_STAT | (cdrom[id].status &ERR_STAT);
 			memcpy(cdrom[id].atapi_cdb, cdbufferb, cdrom[id].cdb_len);
-			cdrom_buf_free(id);
 			cdrom_command(id, cdrom[id].atapi_cdb);
 			return;
 		case CDROM_PHASE_COMPLETE:
@@ -3325,7 +3362,6 @@ void cdrom_phase_callback(uint8_t id)
 			cdrom[id].status = READY_STAT;
 			cdrom[id].phase = 3;
 			cdrom[id].packet_status = 0xFF;
-			cdrom_buf_free(id);
 			ui_sb_update_icon(SB_CDROM | id, 0);
 			cdrom_irq_raise(id);
 			return;
@@ -3338,6 +3374,7 @@ void cdrom_phase_callback(uint8_t id)
 		case CDROM_PHASE_DATA_OUT_DMA:
 			cdrom_log("CD-ROM %i: CDROM_PHASE_DATA_OUT_DMA\n", id);
 			cdrom_read_from_dma(id);
+			cdrom_buf_free(id);
 			cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
 			cdrom[id].status = READY_STAT;
 			cdrom[id].phase = 3;
@@ -3353,6 +3390,7 @@ void cdrom_phase_callback(uint8_t id)
 		case CDROM_PHASE_DATA_IN_DMA:
 			cdrom_log("CD-ROM %i: CDROM_PHASE_DATA_IN_DMA\n", id);
 			cdrom_write_to_dma(id);
+			cdrom_buf_free(id);
 			cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
 			cdrom[id].status = READY_STAT;
 			cdrom[id].phase = 3;
@@ -3363,7 +3401,6 @@ void cdrom_phase_callback(uint8_t id)
 			cdrom_log("CD-ROM %i: CDROM_PHASE_ERROR\n", id);
 			cdrom[id].status = READY_STAT | ERR_STAT;
 			cdrom[id].phase = 3;
-			cdrom_buf_free(id);
 			cdrom_irq_raise(id);
 			ui_sb_update_icon(SB_CDROM | id, 0);
 			return;

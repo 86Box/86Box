@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.33	2018/01/02
+ * Version:	@(#)scsi_buslogic.c	1.0.34	2018/01/06
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -599,7 +599,7 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 		
     buslogic_log("Scanning SCSI Target ID %i\n", ESCSICmd->TargetId);		
 
-    SCSIStatus = SCSI_STATUS_OK;
+    SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].Status = SCSI_STATUS_OK;
 
     if (!scsi_device_present(ESCSICmd->TargetId, 0)) {
 	buslogic_log("SCSI Target ID %i has no device attached\n",ESCSICmd->TargetId,ESCSICmd->LogicalUnit);
@@ -639,7 +639,7 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
     SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].BufferLength = ESCSICmd->DataLength;
     scsi_device_command_phase0(ESCSICmd->TargetId, ESCSICmd->LogicalUnit, ESCSICmd->CDBLength, temp_cdb);
 
-    phase = SCSIPhase;
+    phase = SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].Phase;
     if (phase != SCSI_PHASE_STATUS) {
 	if (phase == SCSI_PHASE_DATA_IN)
 		scsi_device_command_phase1(ESCSICmd->TargetId, ESCSICmd->LogicalUnit);
@@ -652,10 +652,10 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 
     buslogic_log("BIOS Request complete\n");
 
-    if (SCSIStatus == SCSI_STATUS_OK) {
+    if (SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].Status == SCSI_STATUS_OK) {
 	DataInBuf[2] = CCB_COMPLETE;
 	DataInBuf[3] = SCSI_STATUS_OK;
-    } else if (SCSIStatus == SCSI_STATUS_CHECK_CONDITION) {
+    } else if (SCSIDevices[ESCSICmd->TargetId][ESCSICmd->LogicalUnit].Status == SCSI_STATUS_CHECK_CONDITION) {
 	DataInBuf[2] = CCB_COMPLETE;
 	DataInBuf[3] = SCSI_STATUS_CHECK_CONDITION;			
     }

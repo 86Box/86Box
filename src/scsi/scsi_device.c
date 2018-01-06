@@ -8,13 +8,13 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.9	2017/11/04
+ * Version:	@(#)scsi_device.c	1.0.10	2018/01/06
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -31,41 +31,21 @@
 static uint8_t scsi_null_device_sense[14] = { 0x70,0,SENSE_ILLEGAL_REQUEST,0,0,0,0,0,0,0,0,0,ASC_INV_LUN,0 };
 
 
-static void scsi_device_target_command(int lun_type, uint8_t id, uint8_t *cdb)
+static uint8_t scsi_device_target_command(int lun_type, uint8_t id, uint8_t *cdb)
 {
 	if (lun_type == SCSI_DISK)
 	{
-		SCSIPhase = SCSI_PHASE_COMMAND;
 		scsi_hd_command(id, cdb);
-		SCSIStatus = scsi_hd_err_stat_to_scsi(id);
+		return scsi_hd_err_stat_to_scsi(id);
 	}
 	else if (lun_type == SCSI_CDROM)
 	{
-		SCSIPhase = SCSI_PHASE_COMMAND;
 		cdrom_command(id, cdb);
-		SCSIStatus = cdrom_CDROM_PHASE_to_scsi(id);
+		return cdrom_CDROM_PHASE_to_scsi(id);
 	}
 	else
 	{
-		SCSIPhase = SCSI_PHASE_STATUS;
-		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
-	}
-}
-
-
-static int scsi_device_target_phase_to_scsi(int lun_type, uint8_t id)
-{
-	if (lun_type == SCSI_DISK)
-	{
-		return scsi_hd_phase_to_scsi(id);
-	}
-	else if (lun_type == SCSI_CDROM)
-	{
-		return cdrom_atapi_phase_to_scsi(id);
-	}
-	else
-	{
-		return 0;
+		return SCSI_STATUS_CHECK_CONDITION;
 	}
 }
 
@@ -281,7 +261,6 @@ int scsi_device_block_shift(uint8_t scsi_id, uint8_t scsi_lun)
 
 void scsi_device_command_phase0(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, uint8_t *cdb)
 {
-    uint8_t phase = 0;
     uint8_t lun_type = SCSIDevices[scsi_id][scsi_lun].LunType;
 
     uint8_t id = 0;
@@ -296,8 +275,8 @@ void scsi_device_command_phase0(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, 
 		break;
 	default:
 		id = 0;
-		SCSIPhase = SCSI_PHASE_STATUS;
-		SCSIStatus = SCSI_STATUS_CHECK_CONDITION;
+		SCSIDevices[scsi_id][scsi_lun].Phase = SCSI_PHASE_STATUS;
+		SCSIDevices[scsi_id][scsi_lun].Status = SCSI_STATUS_CHECK_CONDITION;
 		return;
     }
 
@@ -317,26 +296,14 @@ void scsi_device_command_phase0(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, 
     }
 
     /* Finally, execute the SCSI command immediately and get the transfer length. */
-    scsi_device_target_command(lun_type, id, cdb);
-    if (SCSIStatus == SCSI_STATUS_OK) {
-	phase = scsi_device_target_phase_to_scsi(lun_type, id);
-	if (phase == 2) {
-		/* Command completed - call the phase callback to complete the command. */
-		scsi_device_target_phase_callback(lun_type, id);
-	} else {
-		/* Command first phase complete - call the callback to execute the second phase. */
-		if (SCSIPhase == SCSI_PHASE_STATUS)
-		{
-			scsi_device_target_phase_callback(lun_type, id);
-			SCSIStatus = scsi_device_target_err_stat_to_scsi(lun_type, id);
-			/* Command second phase complete - call the callback to complete the command. */
-			scsi_device_target_phase_callback(lun_type, id);
-		}
-	}
-    } else {
-	/* Error (Check Condition) - call the phase callback to complete the command. */
+    SCSIDevices[scsi_id][scsi_lun].Phase = SCSI_PHASE_COMMAND;
+    SCSIDevices[scsi_id][scsi_lun].Status = scsi_device_target_command(lun_type, id, cdb);
+
+    if (SCSIDevices[scsi_id][scsi_lun].Phase == SCSI_PHASE_STATUS) {
+	/* Command completed (either OK or error) - call the phase callback to complete the command. */
 	scsi_device_target_phase_callback(lun_type, id);
     }
+    /* If the phase is DATA IN or DATA OUT, finish this here. */
 }
 
 void scsi_device_command_phase1(uint8_t scsi_id, uint8_t scsi_lun)
@@ -358,8 +325,9 @@ void scsi_device_command_phase1(uint8_t scsi_id, uint8_t scsi_lun)
 			return;
 	}
 
+	/* Call the second phase. */
 	scsi_device_target_phase_callback(lun_type, id);
-	SCSIStatus = scsi_device_target_err_stat_to_scsi(lun_type, id);
+	SCSIDevices[scsi_id][scsi_lun].Status = scsi_device_target_err_stat_to_scsi(lun_type, id);
 	/* Command second phase complete - call the callback to complete the command. */
 	scsi_device_target_phase_callback(lun_type, id);
 }
