@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.16	2018/01/04
+ * Version:	@(#)keyboard_at.c	1.0.17	2018/01/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -130,6 +130,7 @@ uint8_t	keyboard_set3_all_break;
 /* Bits 0 - 1 = scan code set, bit 6 = translate or not. */
 uint8_t keyboard_mode = 0x42;
 
+#define ENABLE_KEYBOARD_AT_LOG 1
 #ifdef ENABLE_KEYBOARD_AT_LOG
 int	keyboard_at_do_log = ENABLE_KEYBOARD_AT_LOG;
 #endif
@@ -655,7 +656,7 @@ kbd_cmd_write(atkbd_t *kbd, uint8_t val)
 static void
 kbd_output_write(atkbd_t *kbd, uint8_t val)
 {
-    kbdlog("Write output port\n");
+    kbdlog("Write output port: %02X\n", val);
     if ((kbd->output_port ^ val) & 0x20) { /*IRQ 12*/
 	if (val & 0x20)
 		picint(1 << 12);
@@ -663,7 +664,7 @@ kbd_output_write(atkbd_t *kbd, uint8_t val)
 		picintc(1 << 12);
     }
     if ((kbd->output_port ^ val) & 0x10) { /*IRQ 1*/
-	if (val & 0x20)
+	if (val & 0x10)
 		picint(1 << 1);
 	else
 		picintc(1 << 1);
@@ -725,6 +726,20 @@ kbd_write64_generic(void *p, uint8_t val)
 
 		kbd_adddata(kbd->input_port | 4 | fdc_ps1_525());
 		kbd->input_port = ((kbd->input_port + 1) & 3) | (kbd->input_port & 0xfc) | fdc_ps1_525();
+		return 0;
+	case 0xd3: /*Write mouse output buffer*/
+		if ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
+			kbdlog("ATkbd: write mouse output buffer\n");
+			kbd->want60 = 1;
+			return 0;
+		}
+		break;
+	case 0xd4: /*Write to mouse*/
+		if ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
+			kbdlog("ATkbd: write to mouse\n");
+			kbd->want60 = 1;
+			return 0;
+		}
 		break;
 	case 0xf0: case 0xf1: case 0xf2: case 0xf3:
 	case 0xf4: case 0xf5: case 0xf6: case 0xf7:
@@ -732,7 +747,7 @@ kbd_write64_generic(void *p, uint8_t val)
 	case 0xfc: case 0xfd: case 0xfe: case 0xff:
 		kbdlog("ATkbd: pulse\n");
 		kbd_output_pulse(kbd, val & 0x0f);
-		break;
+		return 0;
     }
 
     return 1;
@@ -838,13 +853,23 @@ kbd_write64_ibm_mca(void *p, uint8_t val)
     atkbd_t *kbd = (atkbd_t *) p;
 
     switch (val) {
+	case 0xc1: /*Copy bits 0 to 3 of input port to status bits 4 to 7*/
+		kbdlog("ATkbd: copy bits 0 to 3 of input port to status bits 4 to 7\n");
+		kbd->status &= 0xf;
+		kbd->status |= ((((kbd->input_port & 0xfc) | 0x84 | fdc_ps1_525()) & 0xf) << 4);
+		return 0;
+	case 0xc2: /*Copy bits 4 to 7 of input port to status bits 4 to 7*/
+		kbdlog("ATkbd: copy bits 4 to 7 of input port to status bits 4 to 7\n");
+		kbd->status &= 0xf;
+		kbd->status |= (((kbd->input_port & 0xfc) | 0x84 | fdc_ps1_525()) & 0xf0);
+		return 0;
 	case 0xf0: case 0xf1: case 0xf2: case 0xf3:
 	case 0xf4: case 0xf5: case 0xf6: case 0xf7:
 	case 0xf8: case 0xf9: case 0xfa: case 0xfb:
 	case 0xfc: case 0xfd: case 0xfe: case 0xff:
 		kbdlog("ATkbd: pulse\n");
 		kbd_output_pulse(kbd, val & 0x03);
-		break;
+		return 0;
     }
 
     return kbd_write64_generic(kbd, val);
@@ -1012,15 +1037,14 @@ write_register:
 
 				case 0xd3: /*Write to mouse output buffer*/
 					kbdlog("ATkbd: write to mouse output buffer\n");
-					keyboard_at_adddata_mouse(val);
+					if (mouse_write && ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1))
+						keyboard_at_adddata_mouse(val);
 					break;
 
 				case 0xd4: /*Write to mouse*/
 					kbdlog("ATkbd: write to mouse (%02X)\n", val);
 					if (mouse_write && ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1))
 						mouse_write(val, mouse_p);
-					else
-						keyboard_at_adddata_mouse(0xff);
 					break;
 
 				default:
@@ -1295,18 +1319,6 @@ write_register:
 				kbd->mem[0] &= ~0x10;
 				break;
 
-			case 0xc1: /*Copy bits 0 to 3 of input port to status bits 4 to 7*/
-				kbdlog("ATkbd: copy bits 0 to 3 of input port to status bits 4 to 7\n");
-				kbd->status &= 0xf;
-				kbd->status |= ((((kbd->input_port & 0xfc) | 0x84 | fdc_ps1_525()) & 0xf) << 4);
-				break;
-
-			case 0xc2: /*Copy bits 4 to 7 of input port to status bits 4 to 7*/
-				kbdlog("ATkbd: copy bits 4 to 7 of input port to status bits 4 to 7\n");
-				kbd->status &= 0xf;
-				kbd->status |= (((kbd->input_port & 0xfc) | 0x84 | fdc_ps1_525()) & 0xf0);
-				break;
-
 			case 0xd0: /*Read output port*/
 				kbdlog("ATkbd: read output port\n");
 				kbd_adddata(kbd->output_port);
@@ -1319,16 +1331,6 @@ write_register:
 
 			case 0xd2: /*Write keyboard output buffer*/
 				kbdlog("ATkbd: write keyboard output buffer\n");
-				kbd->want60 = 1;
-				break;
-
-			case 0xd3: /*Write mouse output buffer*/
-				kbdlog("ATkbd: write mouse output buffer\n");
-				kbd->want60 = 1;
-				break;
-
-			case 0xd4: /*Write to mouse*/
-				kbdlog("ATkbd: write to mouse\n");
 				kbd->want60 = 1;
 				break;
 
