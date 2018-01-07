@@ -356,9 +356,6 @@ uint8_t ps2_mca_read(uint16_t port, void *p)
         {
                 case 0x91:
                 fatal("Read 91 setup=%02x adapter=%02x\n", ps2.setup, ps2.adapter_setup);
-                case 0x92:
-                temp = ps2.sys_ctrl_port_a;
-                break;
                 case 0x94:
                 temp = ps2.setup;
                 break;
@@ -452,16 +449,6 @@ static void ps2_mca_write(uint16_t port, uint8_t val, void *p)
 
         switch (port)
         {
-                case 0x0092:
-                if ((val & 1) && !(ps2.sys_ctrl_port_a & 1))
-                {
-                        softresetx86();
-                        cpu_set_edx();
-                }                        
-                ps2.sys_ctrl_port_a = val;    
-                mem_a20_alt = val & 2;
-                mem_a20_recalc();
-                break;
                 case 0x94:
                 ps2.setup = val;
                 break;
@@ -524,11 +511,15 @@ static void ps2_mca_write(uint16_t port, uint8_t val, void *p)
 
 static void ps2_mca_board_common_init()
 {
-        io_sethandler(0x0091, 0x0002, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
+        io_sethandler(0x0091, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
         io_sethandler(0x0094, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
         io_sethandler(0x0096, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
         io_sethandler(0x0100, 0x0008, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
         
+	port_92_reset();
+
+        port_92_add();
+
         ps2.setup = 0xff;
         
         lpt1_init(0x3bc);

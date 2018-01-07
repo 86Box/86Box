@@ -22,7 +22,7 @@
 #include "machine.h"
 
 
-static uint8_t ps2_92, ps2_94, ps2_102, ps2_103, ps2_104, ps2_105, ps2_190;
+static uint8_t ps2_94, ps2_102, ps2_103, ps2_104, ps2_105, ps2_190;
 
 
 static struct
@@ -40,8 +40,6 @@ static uint8_t ps2_read(uint16_t port, void *p)
         {
                 case 0x91:
                 return 0;
-                case 0x92:
-                return ps2_92;
                 case 0x94:
                 return ps2_94;
                 case 0x102:
@@ -75,11 +73,6 @@ static void ps2_write(uint16_t port, uint8_t val, void *p)
 {
         switch (port)
         {
-                case 0x0092:
-                ps2_92 = val;    
-                mem_a20_alt = val & 2;
-                mem_a20_recalc();
-                break;
                 case 0x94:
                 ps2_94 = val;
                 break;
@@ -136,7 +129,6 @@ static void ps2_write(uint16_t port, uint8_t val, void *p)
 static void ps2board_init(void)
 {
         io_sethandler(0x0091, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
-        io_sethandler(0x0092, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         io_sethandler(0x0094, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         io_sethandler(0x0102, 0x0004, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         io_sethandler(0x0190, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
@@ -144,7 +136,10 @@ static void ps2board_init(void)
         io_sethandler(0x0322, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         io_sethandler(0x0324, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         
-	ps2_92 = 0;
+	port_92_reset();
+
+        port_92_add();
+
         ps2_190 = 0;
 
         lpt1_init(0x3bc);

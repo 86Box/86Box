@@ -10,12 +10,12 @@
  *
  *		Re-worked version based on the 82C235 datasheet and errata.
  *
- * Version:	@(#)m_at_scat.c	1.0.5	2017/11/04
+ * Version:	@(#)m_at_scat.c	1.0.7	2018/01/05
  *
  * Authors:	Original by GreatPsycho for PCem.
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -449,6 +449,10 @@ scat_read(uint16_t port, void *priv)
 				val = (scat_regs[scat_index] & 0x8f) | (cpu_waitstates == 1 ? 0 : 0x10);
 				break;
 
+			case SCAT_SYS_CTL:
+				val = port_92_read(0x0092, priv);
+				break;
+
 			default:
 				val = scat_regs[scat_index];
 				break;
@@ -564,6 +568,10 @@ ics_write(uint8_t idx, uint8_t val)
 		shadow_update = 1;
 		break;
 
+	case SCAT_SYS_CTL:
+		port_92_write(0x0092, val, NULL);
+		break;
+
 	default:
 		break;
     }
@@ -598,19 +606,6 @@ scat_write(uint16_t port, uint8_t val, void *priv)
 	case 0x23:
 		ics_write(scat_index, val);
 		break;
-
-	case 0x92:
-		if ((mem_a20_alt ^ val) & 2) {
-			 mem_a20_alt = val & 2;
-			 mem_a20_recalc();
-		}
-
-		if ((~scat_regs[SCAT_SYS_CTL] & val) & 1) {
-			softresetx86();
-			cpu_set_edx();
-		}
-		scat_regs[SCAT_SYS_CTL] = val;
-		break;
     }
 }
 
@@ -625,8 +620,10 @@ scat_init(void)
 #endif
     io_sethandler(0x0022, 2,
 		  scat_read, NULL, NULL, scat_write, NULL, NULL,  NULL);
-    io_sethandler(0x0092, 1,
-		  scat_read, NULL, NULL, scat_write, NULL, NULL,  NULL);
+
+    port_92_reset();
+
+    port_92_add();
 
     for (i=0; i<128; i++)
 	scat_regs[i] = 0xff;

@@ -1677,17 +1677,17 @@ void mem_a20_recalc(void)
 }
 
 
-static uint8_t port_92_read(uint16_t port, void *priv)
+uint8_t port_92_read(uint16_t port, void *priv)
 {
 	return port_92_reg;
 }
 
 
-static void port_92_write(uint16_t port, uint8_t val, void *priv)
+void port_92_write(uint16_t port, uint8_t val, void *priv)
 {
 	if ((mem_a20_alt ^ val) & 2)
 	{
-		mem_a20_alt = (val & 2) ? 0 : 2;
+		mem_a20_alt = (val & 2);
 		mem_a20_recalc();
 	}
 

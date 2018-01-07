@@ -238,10 +238,12 @@ extern void	mem_add_bios(void);
 extern void	mem_init(void);
 extern void	mem_resize(void);
 
-extern void	port_92_reset(void);
+extern uint8_t	port_92_read(uint16_t port, void *priv);
+extern void	port_92_write(uint16_t port, uint8_t val, void *priv);
 extern void     port_92_clear_reset(void);
 extern void	port_92_add(void);
 extern void	port_92_remove(void);
+extern void	port_92_reset(void);
 
 
 #endif	/*EMU_MEM_H*/
