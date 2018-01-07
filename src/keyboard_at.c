@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.17	2018/01/06
+ * Version:	@(#)keyboard_at.c	1.0.18	2018/01/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -656,7 +656,7 @@ kbd_cmd_write(atkbd_t *kbd, uint8_t val)
 static void
 kbd_output_write(atkbd_t *kbd, uint8_t val)
 {
-    kbdlog("Write output port: %02X\n", val);
+    kbdlog("Write output port: %02X (old: %02X)\n", val, kbd->output_port);
     if ((kbd->output_port ^ val) & 0x20) { /*IRQ 12*/
 	if (val & 0x20)
 		picint(1 << 12);
@@ -688,9 +688,11 @@ kbd_output_write(atkbd_t *kbd, uint8_t val)
 static void
 kbd_output_pulse(atkbd_t *kbd, uint8_t mask)
 {
-    kbd_output_write(kbd, kbd->output_port & (0xF0 | mask));
-    kbd->old_output_port = kbd->output_port & ~(0xF0 | mask);
-    kbd->pulse_cb = 6LL * TIMER_USEC;
+    if (mask != 0xF) {
+    	kbd->old_output_port = kbd->output_port & ~(0xF0 | mask);
+    	kbd_output_write(kbd, kbd->output_port & (0xF0 | mask));
+    	kbd->pulse_cb = 6LL * TIMER_USEC;
+    }
 }
 
 
@@ -745,7 +747,7 @@ kbd_write64_generic(void *p, uint8_t val)
 	case 0xf4: case 0xf5: case 0xf6: case 0xf7:
 	case 0xf8: case 0xf9: case 0xfa: case 0xfb:
 	case 0xfc: case 0xfd: case 0xfe: case 0xff:
-		kbdlog("ATkbd: pulse\n");
+		kbdlog("ATkbd: pulse %01X\n", val & 0x0f);
 		kbd_output_pulse(kbd, val & 0x0f);
 		return 0;
     }
@@ -867,8 +869,8 @@ kbd_write64_ibm_mca(void *p, uint8_t val)
 	case 0xf4: case 0xf5: case 0xf6: case 0xf7:
 	case 0xf8: case 0xf9: case 0xfa: case 0xfb:
 	case 0xfc: case 0xfd: case 0xfe: case 0xff:
-		kbdlog("ATkbd: pulse\n");
-		kbd_output_pulse(kbd, val & 0x03);
+		kbdlog("ATkbd: pulse: %01X\n", (val & 0x03) | 0x0c);
+		kbd_output_pulse(kbd, (val & 0x03) | 0x0c);
 		return 0;
     }
 
@@ -1353,19 +1355,6 @@ write_register:
 			case 0xe0: /*Read test inputs*/
 				kbdlog("ATkbd: read test inputs\n");
 				kbd_adddata(0x00);
-				break;
-
-			case 0xf0: case 0xf1: case 0xf2: case 0xf3:
-			case 0xf4: case 0xf5: case 0xf6: case 0xf7:
-			case 0xf8: case 0xf9: case 0xfa: case 0xfb:
-			case 0xfc: case 0xfd: case 0xfe: case 0xff:
-				kbdlog("ATkbd: pulse\n");
-				if (! (val & 1)) {
-					/* Pin 0 selected. */
-					/* trc_reset(2); */
-					softresetx86(); /*Pulse reset!*/
-					cpu_set_edx();
-				}
 				break;
 
 			default:
