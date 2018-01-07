@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.18	2018/01/06
+ * Version:	@(#)keyboard_at.c	1.0.19	2018/01/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -130,7 +130,6 @@ uint8_t	keyboard_set3_all_break;
 /* Bits 0 - 1 = scan code set, bit 6 = translate or not. */
 uint8_t keyboard_mode = 0x42;
 
-#define ENABLE_KEYBOARD_AT_LOG 1
 #ifdef ENABLE_KEYBOARD_AT_LOG
 int	keyboard_at_do_log = ENABLE_KEYBOARD_AT_LOG;
 #endif
