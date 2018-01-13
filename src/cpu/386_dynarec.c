@@ -203,39 +203,41 @@ void x86_int(int num)
         {
                 addr = (num << 2) + idt.base;
 
-                if (addr + 3 > idt.limit)
+                if ((num << 2) + 3 > idt.limit)
                 {
-                        if(idt.limit < 35)
+                        if (idt.limit < 35)
                         {
                                 cpu_state.abrt = 0;
                                 softresetx86();
                                 cpu_set_edx();
-                                pclog("IDT limit is less than 35 in real mode - reset\n");
+                                pclog("Triple fault in real mode - reset\n");
                         }
-                        else x86_int(8);
-                        return;
-                }
-
-                if (stack32)
-                {
-                        writememw(ss,ESP-2,flags);
-                        writememw(ss,ESP-4,CS);
-                        writememw(ss,ESP-6,cpu_state.pc);
-                        ESP-=6;
+                        else
+                                x86_int(8);
                 }
                 else
                 {
-                        writememw(ss,((SP-2)&0xFFFF),flags);
-                        writememw(ss,((SP-4)&0xFFFF),CS);
-                        writememw(ss,((SP-6)&0xFFFF),cpu_state.pc);
-                        SP-=6;
-                }
+                        if (stack32)
+                        {
+                                writememw(ss,ESP-2,flags);
+                                writememw(ss,ESP-4,CS);
+                                writememw(ss,ESP-6,cpu_state.pc);
+                                ESP-=6;
+                        }
+                        else
+                        {
+                                writememw(ss,((SP-2)&0xFFFF),flags);
+                                writememw(ss,((SP-4)&0xFFFF),CS);
+                                writememw(ss,((SP-6)&0xFFFF),cpu_state.pc);
+                                SP-=6;
+                        }
 
-                flags&=~I_FLAG;
-                flags&=~T_FLAG;
-                oxpc=cpu_state.pc;
-                cpu_state.pc=readmemw(0,addr);
-                loadcs(readmemw(0,addr+2));
+                        flags&=~I_FLAG;
+                        flags&=~T_FLAG;
+                        oxpc=cpu_state.pc;
+                        cpu_state.pc=readmemw(0,addr);
+                        loadcs(readmemw(0,addr+2));
+                }
         }
         cycles-=70;
         CPU_BLOCK_END();
@@ -254,33 +256,34 @@ void x86_int_sw(int num)
         {
                 addr = (num << 2) + idt.base;
 
-                if (addr + 3 > idt.limit)
+                if ((num << 2) + 3 > idt.limit)
                 {
                         x86_int(13);
-                        return;
-                }
-
-                if (stack32)
-                {
-                        writememw(ss,ESP-2,flags);
-                        writememw(ss,ESP-4,CS);
-                        writememw(ss,ESP-6,cpu_state.pc);
-                        ESP-=6;
                 }
                 else
                 {
-                        writememw(ss,((SP-2)&0xFFFF),flags);
-                        writememw(ss,((SP-4)&0xFFFF),CS);
-                        writememw(ss,((SP-6)&0xFFFF),cpu_state.pc);
-                        SP-=6;
-                }
+                        if (stack32)
+                        {
+                                writememw(ss,ESP-2,flags);
+                                writememw(ss,ESP-4,CS);
+                                writememw(ss,ESP-6,cpu_state.pc);
+                                ESP-=6;
+                        }
+                        else
+                        {
+                                writememw(ss,((SP-2)&0xFFFF),flags);
+                                writememw(ss,((SP-4)&0xFFFF),CS);
+                                writememw(ss,((SP-6)&0xFFFF),cpu_state.pc);
+                                SP-=6;
+                        }
 
-                flags&=~I_FLAG;
-                flags&=~T_FLAG;
-                oxpc=cpu_state.pc;
-                cpu_state.pc=readmemw(0,addr);
-                loadcs(readmemw(0,addr+2));
-                cycles -= timing_int_rm;
+                        flags&=~I_FLAG;
+                        flags&=~T_FLAG;
+                        oxpc=cpu_state.pc;
+                        cpu_state.pc=readmemw(0,addr);
+                        loadcs(readmemw(0,addr+2));
+                        cycles -= timing_int_rm;
+                }
         }
         trap = 0;
         CPU_BLOCK_END();
@@ -547,6 +550,7 @@ void exec386_dynarec(int cycs)
                 if (!CACHE_ON()) /*Interpret block*/
                 {
                         cpu_block_end = 0;
+			x86_was_reset = 0;
                         while (!cpu_block_end)
                         {
                                 oldcs=CS;

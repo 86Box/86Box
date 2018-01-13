@@ -12,8 +12,13 @@
  *
  * Version:	@(#)scsi_ncr5380.c	1.0.1	2017/12/16
  *
- * Authors:	TheCollector1995, <mariogplayer@gmail.com>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		TheCollector1995, <mariogplayer@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *		Copyright 2017-2018 Sarah Walker.
+ *		Copyright 2017-2018 TheCollector1995.
+ *		Copyright 2018 Fred N. van Kempen.
  */
 #ifndef SCSI_NCR5380_H
 # define SCSI_NCR5380_H

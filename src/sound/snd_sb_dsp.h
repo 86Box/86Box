@@ -62,6 +62,8 @@ typedef struct sb_dsp_t
         
         int64_t wb_time, wb_full;
 
+	int busy_count;
+
         int record_pos_read;
         int record_pos_write;
         int16_t record_buffer[0xFFFF];

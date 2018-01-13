@@ -49,17 +49,18 @@
  *
  *		Based on an early driver for MINIX 1.5.
  *
- * Version:	@(#)mouse_bus.c	1.0.29	2017/12/14
+ * Version:	@(#)mouse_bus.c	1.0.30	2018/01/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 1989-2017 Fred N. van Kempen.
+ *		Copyright 1989-2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <inttypes.h>
 #include "86box.h"
 #include "config.h"
 #include "io.h"
@@ -91,9 +92,11 @@ typedef struct mouse {
 
     uint8_t	but,				/* current mouse status */
 		but_last;
+    uint8_t	cur_but;
     int8_t	x, y;
-    int8_t	x_delay,
+    int		x_delay,
 		y_delay;
+    uint8_t     need_upd;
 
     int64_t	timer;				/* mouse event timer */
 
@@ -143,7 +146,8 @@ typedef struct mouse {
 # define MSDATA_HZ200	0x04			/* ATIXL 200Hz */
 #define	MSMOUSE_MAGIC	2			/* MAGIC register */
 # define MAGIC_MSBYTE1	0xde			/* indicates MS InPort */
-# define MAGIC_MSBYTE2	0x12
+// # define MAGIC_MSBYTE2	0x12
+# define MAGIC_MSBYTE2	0x22			/* According to the Bochs code, this sould be 0x22, not 0x12. */
 #define	MSMOUSE_CONFIG	3			/* CONFIG register */
 
 
@@ -161,6 +165,47 @@ ms_reset(mouse_t *dev)
 
     dev->flags &= 0xf0;
     dev->flags |= (FLAG_INTR | FLAG_ENABLED);
+
+    dev->x_delay = dev->y_delay = 0;
+    dev->need_upd = 0;
+
+    dev->cur_but = 0x00;
+}
+
+
+static void
+ms_update_data(mouse_t *dev)
+{
+    int delta_x, delta_y;
+
+    if (dev->x_delay > 127) {
+	delta_x = 127;
+	dev->x_delay -= 127;
+    } else if (dev->x_delay < -128) {
+	delta_x = -128;
+	dev->x_delay += 128;
+    } else {
+	delta_x = dev->x_delay;
+	dev->x_delay = 0;
+    }
+
+    if (dev->y_delay > 127) {
+	delta_y = 127;
+	dev->y_delay -= 127;
+    } else if (dev->y_delay < -128) {
+	delta_y = -128;
+	dev->x_delay += 128;
+    } else {
+	delta_y = dev->y_delay;
+	dev->y_delay = 0;
+    }
+
+    if ((dev->x_delay == 0) && (dev->y_delay == 0))
+	dev->need_upd = 0;
+
+    dev->x = (int8_t) delta_x;
+    dev->y = (int8_t) delta_y;
+    dev->cur_but = dev->but;
 }
 
 
@@ -179,12 +224,12 @@ ms_write(mouse_t *dev, uint16_t port, uint8_t val)
 			case MSCTRL_RD_BUT:
 			case MSCTRL_RD_X:
 			case MSCTRL_RD_Y:
-				dev->r_cmd = val;
+				dev->r_ctrl = val & 0x07;
 				break;
 
 			case 0x87:
 				ms_reset(dev);
-				dev->r_cmd = MSCTRL_COMMAND;
+				dev->r_ctrl = MSCTRL_COMMAND;
 				break;
 		}
 		break;
@@ -193,22 +238,22 @@ ms_write(mouse_t *dev, uint16_t port, uint8_t val)
 		picintc(1 << dev->irq);
 		if (val == MSDATA_IRQ) {
 			picint(1<<dev->irq);
-		} else switch (dev->r_cmd) {
+		} else switch (dev->r_ctrl) {
 			case MSCTRL_COMMAND:
-				dev->r_ctrl = val;
-				if (val & (MSCTRL_IENB_M | MSCTRL_IENB_A))
-					dev->flags |= FLAG_INTR;
-				  else
-					dev->flags &= ~FLAG_INTR;
-
 				if (val & MSCTRL_FREEZE) {
 					/* Hold the sampling. */
-					dev->flags |= FLAG_FROZEN;
+					ms_update_data(dev);
 				} else {
 					/* Reset current state. */
-					dev->flags &= ~FLAG_FROZEN;
-					dev->x = dev->y = 0;
+					picintc(1 << dev->irq);
 				}
+
+				if (val & (MSCTRL_IENB_M | MSCTRL_IENB_A))
+					dev->flags |= FLAG_INTR;
+				else
+					dev->flags &= ~FLAG_INTR;
+
+				dev->r_cmd = val;
 				break;
 
 			default:
@@ -237,16 +282,9 @@ ms_read(mouse_t *dev, uint16_t port)
 		break;
 
 	case MSMOUSE_DATA:
-		switch (dev->r_cmd) {
+		switch (dev->r_ctrl) {
 			case MSCTRL_RD_BUT:
-				ret = 0x00;
-				if (dev->but & 0x01)		/* LEFT */
-					ret |= 0x04;
-				if (dev->but & 0x02)		/* RIGHT */
-					ret |= 0x01;
-				if (dev->flags & FLAG_3BTN)
-					if (dev->but & 0x04)	/* MIDDLE */
-						ret |= 0x02;
+				ret = dev->cur_but;
 				break;
 
 			case MSCTRL_RD_X:
@@ -258,7 +296,7 @@ ms_read(mouse_t *dev, uint16_t port)
 				break;
 
 			case MSCTRL_COMMAND:
-				ret = dev->r_ctrl;
+				ret = dev->r_cmd;
 				break;
 		}
 		break;
@@ -266,9 +304,9 @@ ms_read(mouse_t *dev, uint16_t port)
 	case MSMOUSE_MAGIC:
 		if (dev->seq & 0x01)
 			ret = MAGIC_MSBYTE2;
-		  else
+		else
 			ret = MAGIC_MSBYTE1;
-		dev->seq++;
+		dev->seq ^= 1;
 		break;
 
 	case MSMOUSE_CONFIG:
@@ -286,10 +324,12 @@ bm_timer(void *priv)
 {
     mouse_t *dev = (mouse_t *)priv;
 
-    dev->timer += ((1000000.0 / 30.0) * TIMER_USEC);
+    dev->timer = ((1000000LL * TIMER_USEC) / 30LL);
 
-    if (dev->flags & FLAG_INTR)
+    if ((dev->flags & FLAG_INTR) && dev->need_upd) {
 	picint(1 << dev->irq);
+	pclog("IRQ %i raised\n", dev->irq);
+    }
 }
 
 
@@ -522,48 +562,64 @@ bm_poll(int x, int y, int z, int b, void *priv)
     mouse_t *dev = (mouse_t *)priv;
 
     /* Return early if nothing to do. */
-    if (!x && !y && !z && (dev->but == b)) return(1);
+    if (!x && !y && !z && (dev->but == b))
+	return(1);
 
     /* If we are not enabled, return. */
-    if (! (dev->flags & FLAG_ENABLED)) return(0);
+    if (! (dev->flags & FLAG_ENABLED))
+	pclog("bm_poll(): Mouse not enabled\n");
 
 #if 0
     pclog("%s: poll(%d,%d,%d,%02x) %d\n",
 	dev->name, x, y, z, b, !!(dev->flags & FLAG_FROZEN));
 #endif
 
-    /* If we are frozen, do not update the state. */
-    if (! (dev->flags & FLAG_FROZEN)) {
-	if (dev->flags & FLAG_SCALED) {
-		/* Scale down the motion. */
-		if ((x < -1) || (x > 1)) x >>= 1;
-		if ((y < -1) || (y > 1)) y >>= 1;
-	}
+    if (dev->flags & FLAG_SCALED) {
+	/* Scale down the motion. */
+	if ((x < -1) || (x > 1)) x >>= 1;
+	if ((y < -1) || (y > 1)) y >>= 1;
+    }
 
-	/* Add the delta to our state. */
-	x += dev->x;
-	if (x > 127)
-		x = 127;
-	if (x < -128)
-		x = -128;
-	dev->x = (int8_t)x;
-
-	y += dev->y;
-	if (y > 127)
-		y = 127;
-	if (y < -1287)
-		y = -1287;
-	dev->y = (int8_t)y;
+    if (dev->flags & FLAG_INPORT) {
+	if (x > 127)  x = 127;
+	if (y > 127)  y = 127;
+	if (x < -128)  x = -128;
+	if (y < -128)  y = -128;
 
 	dev->x_delay += x;
 	dev->y_delay += y;
+	dev->but = (uint8_t)(0x40 | ((b & 1) << 2) | ((b & 2) >> 1));
+	if (dev->flags & FLAG_3BTN)
+		dev->but |= ((b & 4) >> 1);
+	dev->need_upd = 1;
+    } else {
+	/* If we are frozen, do not update the state. */
+	if (! (dev->flags & FLAG_FROZEN)) {
+		/* Add the delta to our state. */
+		x += dev->x;
+		if (x > 127)
+			x = 127;
+		if (x < -128)
+			x = -128;
+		dev->x = (int8_t)x;
 
-	dev->but = b;
+		y += dev->y;
+		if (y > 127)
+			y = 127;
+		if (y < -1287)
+			y = -1287;
+		dev->y = (int8_t)y;
+
+		dev->x_delay += x;
+		dev->y_delay += y;
+
+		dev->but = b;
+	}
+
+	/* Either way, generate an interrupt. */
+	if ((dev->flags & FLAG_INTR) && !(dev->flags & FLAG_INPORT))
+		picint(1 << dev->irq);
     }
-
-    /* Either way, generate an interrupt. */
-    if ((dev->flags & FLAG_INTR) && !(dev->flags & FLAG_INPORT))
-	picint(1 << dev->irq);
 
     return(0);
 }
@@ -619,6 +675,7 @@ bm_init(device_t *info)
 		dev->read = ms_read;
 		dev->write = ms_write;
 
+		dev->timer = (33334LL * TIMER_USEC);
 		timer_add(bm_timer, &dev->timer, TIMER_ALWAYS_ENABLED, dev);
 		break;
     }

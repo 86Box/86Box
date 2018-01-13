@@ -6,6 +6,7 @@
 #define __USE_LARGEFILE64
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -38,7 +39,9 @@ enum
     CD_PAUSED
 };
 
-int cdrom_image_do_log = 0;
+#ifdef ENABLE_CDROM_IMAGE_LOG
+int cdrom_image_do_log = ENABLE_CDROM_IMAGE_LOG;
+#endif
 
 CDROM_Interface_Image* cdimg[CDROM_NUM] = { NULL, NULL, NULL, NULL };
 
@@ -68,6 +71,7 @@ void image_audio_callback(uint8_t id, int16_t *output, int len)
 {
         if (!cdrom_drives[id].sound_on || (cdrom_image[id].cd_state != CD_PLAYING) || cdrom_image[id].image_is_iso)
         {
+		pclog("image_audio_callback(i): Not playing\n", id);
 		if (cdrom_ioctl[id].cd_state == CD_PLAYING)
 		{
 			cdrom[id].seek_pos += (len >> 11);
@@ -79,7 +83,7 @@ void image_audio_callback(uint8_t id, int16_t *output, int len)
         {
                 if (cdrom[id].seek_pos < cdrom_image[id].cd_end)
                 {
-                        if (!cdimg[id]->ReadSector((unsigned char*)&cdrom_image[id].cd_buffer[cdrom_image[id].cd_buflen], true, cdrom[id].seek_pos - 150))
+                        if (!cdimg[id]->ReadSector((unsigned char*)&cdrom_image[id].cd_buffer[cdrom_image[id].cd_buflen], true, cdrom[id].seek_pos))
                         {
                                 memset(&cdrom_image[id].cd_buffer[cdrom_image[id].cd_buflen], 0, (BUF_SIZE - cdrom_image[id].cd_buflen) * 2);
                                 cdrom_image[id].cd_state = CD_STOPPED;
@@ -127,9 +131,9 @@ static void image_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
 	if (ismsf == 2)
 	{
 	        cdimg[id]->GetAudioTrackInfo(pos, number, tmsf, attr);
-                pos = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr);
+                pos = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr) - 150;
 	        cdimg[id]->GetAudioTrackInfo(len, number, tmsf, attr);
-                len = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr);
+                len = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr) - 150;
 	}
         else if (ismsf == 1)
         {
@@ -144,13 +148,13 @@ static void image_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
 		}
 		else
 		{
-			pos = MSFtoLBA(m, s, f);
+			pos = MSFtoLBA(m, s, f) - 150;
 		}
 
 		m = (len >> 16) & 0xff;
 		s = (len >> 8) & 0xff;
 		f = len & 0xff;
-		len = MSFtoLBA(m, s, f);
+		len = MSFtoLBA(m, s, f) - 150;
 
                 cdrom_image_log("MSF - pos = %08X len = %08X\n", pos, len);
         }
@@ -166,8 +170,6 @@ static void image_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
         cdrom[id].seek_pos   = pos;
         cdrom_image[id].cd_end   = len;
         cdrom_image[id].cd_state = CD_PLAYING;
-        if (cdrom[id].seek_pos < 150)
-                cdrom[id].seek_pos = 150;
         cdrom_image[id].cd_buflen = 0;
 }
 
@@ -270,7 +272,6 @@ static uint8_t image_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
         int pos=0;
 
         uint32_t cdpos = cdrom[id].seek_pos;
-        if (cdpos >= 150) cdpos -= 150;
         TMSF relPos, absPos;
         unsigned char attr, track, index;
         cdimg[id]->GetAudioSub(cdpos, attr, track, index, relPos, absPos);
@@ -347,13 +348,10 @@ static int image_is_track_audio(uint8_t id, uint32_t pos, int ismsf)
 		m = (pos >> 16) & 0xff;
 		s = (pos >> 8) & 0xff;
 		f = pos & 0xff;
-		pos = MSFtoLBA(m, s, f);
+		pos = MSFtoLBA(m, s, f) - 150;
 	}
-	else
-	{
-		pos += 150;
-	}
-        
+
+	/* GetTrack requires LBA. */
         cdimg[id]->GetAudioTrackInfo(cdimg[id]->GetTrack(pos), number, tmsf, attr);
 
         return attr == AUDIO_TRACK;
@@ -416,107 +414,90 @@ static int image_readsector_raw(uint8_t id, uint8_t *buffer, int sector, int ism
 {
 	uint8_t *b;
 	uint8_t *temp_b;
-	int real_pos;
+	uint32_t msf;
+        uint32_t lba;
 	int audio;
 	int mode2;
+	int m, s, f;
 
 	if (!cdimg[id])
-	{
 		return 0;
-	}
 
 	if (!cdrom_drives[id].host_drive)
-	{
 		return 0;
-	}
 
 	b = temp_b = buffer;
 
 	*len = 0;
 	
-	if (ismsf)
-	{
-		real_pos = cdrom_lba_to_msf_accurate(sector);
-	}
-	else
-	{
-		real_pos = sector;
+	if (ismsf) {
+		m = (sector >> 16) & 0xff;
+		s = (sector >> 8) & 0xff;
+		f = sector & 0xff;
+		lba = MSFtoLBA(m, s, f) - 150;
+		msf = sector;
+	} else {
+		lba = sector;
+		msf = cdrom_lba_to_msf_accurate(sector);
 	}
 
-	if (cdrom_image[id].image_is_iso)
-	{
+	if (cdrom_image[id].image_is_iso) {
 		audio = 0;
-		mode2 = cdimg[id]->IsMode2(real_pos) ? 1 : 0;
-	}
-	else
-	{
-		audio = image_is_track_audio(id, real_pos, 1);
-		mode2 = cdimg[id]->IsMode2(real_pos) ? 1 : 0;
+		mode2 = cdimg[id]->IsMode2(lba) ? 1 : 0;
+	} else {
+		audio = image_is_track_audio(id, sector, ismsf);
+		mode2 = cdimg[id]->IsMode2(lba) ? 1 : 0;
 	}
 
 	memset(raw_buffer, 0, 2352);
 	memset(extra_buffer, 0, 296);
 
-	if (!(cdrom_sector_flags & 0xf0))		/* 0x00 and 0x08 are illegal modes */
-	{
+	if (!(cdrom_sector_flags & 0xf0)) {		/* 0x00 and 0x08 are illegal modes */
 		cdrom_image_log("CD-ROM %i: [Mode 1] 0x00 and 0x08 are illegal modes\n", id);
 		return 0;
 	}
 
-	if ((cdrom_sector_type == 3) || ((cdrom_sector_type > 4) && (cdrom_sector_type != 8)))
-	{
+	if ((cdrom_sector_type == 3) || ((cdrom_sector_type > 4) && (cdrom_sector_type != 8))) {
 		if (cdrom_sector_type == 3)
-		{
 			cdrom_image_log("CD-ROM %i: Attempting to read a Yellowbook Mode 2 data sector from an image\n", id);
-		}
 		if (cdrom_sector_type > 4)
-		{
 			cdrom_image_log("CD-ROM %i: Attempting to read a XA Mode 2 Form 2 data sector from an image\n", id);
-		}
 		return 0;
 	}
-	else if (cdrom_sector_type == 1)
-	{
-		if (!audio || cdrom_image[id].image_is_iso)
-		{
+	else if (cdrom_sector_type == 1) {
+		if (!audio || cdrom_image[id].image_is_iso) {
 			cdrom_image_log("CD-ROM %i: [Audio] Attempting to read an audio sector from a data image\n", id);
 			return 0;
 		}
 
 read_audio:
-		cdimg[id]->ReadSector(raw_buffer, true, real_pos);
+		cdimg[id]->ReadSector(raw_buffer, true, lba);
 		memcpy(temp_b, raw_buffer, 2352);
-	}
-	else if (cdrom_sector_type == 2)
-	{
-		if (audio || mode2)
-		{
+		cdrom_sector_size = 2352;
+	} else if (cdrom_sector_type == 2) {
+		if (audio || mode2) {
 			cdrom_image_log("CD-ROM %i: [Mode 1] Attempting to read a non-Mode 1 sector from an audio track\n", id);
 			return 0;
 		}
 
 read_mode1:
-		if ((cdrom_sector_flags & 0x06) == 0x06)
-		{
+		if ((cdrom_sector_flags & 0x06) == 0x06) {
 			cdrom_image_log("CD-ROM %i: [Mode 1] Invalid error flags\n", id);
 			return 0;
 		}
 
-		if (((cdrom_sector_flags & 0x700) == 0x300) || ((cdrom_sector_flags & 0x700) > 0x400))
-		{
+		if (((cdrom_sector_flags & 0x700) == 0x300) || ((cdrom_sector_flags & 0x700) > 0x400)) {
 			cdrom_image_log("CD-ROM %i: [Mode 1] Invalid subchannel data flags (%02X)\n", id, cdrom_sector_flags & 0x700);
 			return 0;
 		}
 
-		if ((cdrom_sector_flags & 0x18) == 0x08)		/* EDC/ECC without user data is an illegal mode */
-		{
+		if ((cdrom_sector_flags & 0x18) == 0x08) {		/* EDC/ECC without user data is an illegal mode */
 			cdrom_image_log("CD-ROM %i: [Mode 1] EDC/ECC without user data is an illegal mode\n", id);
 			return 0;
 		}
 
-		if (cdrom_image[id].image_is_iso)
-		{
-			cdimg[id]->ReadSector(raw_buffer + 16, false, real_pos);
+		if (cdrom_image[id].image_is_iso) {
+			cdimg[id]->ReadSector(raw_buffer + 16, false, lba);
 
 			uint8_t *bb = raw_buffer;
 
@@ -526,9 +507,9 @@ read_mode1:
 			bb[11] = 0;
 			bb += 12;
 
-			bb[0] = (real_pos >> 16) & 0xff;
-			bb[1] = (real_pos >> 8) & 0xff;
-			bb[2] = real_pos & 0xff;
+			bb[0] = (msf >> 16) & 0xff;
+			bb[1] = (msf >> 8) & 0xff;
+			bb[2] = msf & 0xff;
 
 			bb[3] = 1; /* mode 1 data */
 			bb += 4;
@@ -536,22 +517,18 @@ read_mode1:
 			memset(bb, 0, 288);
 		}
 		else
-		{
-			cdimg[id]->ReadSector(raw_buffer, true, real_pos);
-		}
+			cdimg[id]->ReadSector(raw_buffer, true, lba);
 
 		cdrom_sector_size = 0;
 
-		if (cdrom_sector_flags & 0x80)		/* Sync */
-		{
+		if (cdrom_sector_flags & 0x80) {	/* Sync */
 			cdrom_image_log("CD-ROM %i: [Mode 1] Sync\n", id);
 			memcpy(temp_b, raw_buffer, 12);
 			cdrom_sector_size += 12;
 			temp_b += 12;
 		}
 
-		if (cdrom_sector_flags & 0x20)		/* Header */
-		{
+		if (cdrom_sector_flags & 0x20) {	/* Header */
 			cdrom_image_log("CD-ROM %i: [Mode 1] Header\n", id);
 			memcpy(temp_b, raw_buffer + 12, 4);
 			cdrom_sector_size += 4;
@@ -559,10 +536,8 @@ read_mode1:
 		}
 		
 		/* Mode 1 sector, expected type is 1 type. */
-		if (cdrom_sector_flags & 0x40)		/* Sub-header */
-		{
-			if (!(cdrom_sector_flags & 0x10))		/* No user data */
-			{
+		if (cdrom_sector_flags & 0x40) {	/* Sub-header */
+			if (!(cdrom_sector_flags & 0x10)) {		/* No user data */
 				cdrom_image_log("CD-ROM %i: [Mode 1] Sub-header\n", id);
 				memcpy(temp_b, raw_buffer + 16, 8);
 				cdrom_sector_size += 8;
@@ -570,64 +545,53 @@ read_mode1:
 			}
 		}
 
-		if (cdrom_sector_flags & 0x10)		/* User data */
-		{
+		if (cdrom_sector_flags & 0x10) {	/* User data */
 			cdrom_image_log("CD-ROM %i: [Mode 1] User data\n", id);
 			memcpy(temp_b, raw_buffer + 16, 2048);
 			cdrom_sector_size += 2048;
 			temp_b += 2048;
 		}
 
-		if (cdrom_sector_flags & 0x08)		/* EDC/ECC */
-		{
+		if (cdrom_sector_flags & 0x08) {	/* EDC/ECC */
 			cdrom_image_log("CD-ROM %i: [Mode 1] EDC/ECC\n", id);
 			memcpy(temp_b, raw_buffer + 2064, 288);
 			cdrom_sector_size += 288;
 			temp_b += 288;
 		}
-	}
-	else if (cdrom_sector_type == 4)
-	{
-		if (audio || !mode2)
-		{
+	} else if (cdrom_sector_type == 4) {
+		if (audio || !mode2) {
 			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] Attempting to read a non-XA Mode 2 Form 1 sector from an audio track\n", id);
 			return 0;
 		}
 
 read_mode2:
-		if (!(cdrom_sector_flags & 0xf0))		/* 0x00 and 0x08 are illegal modes */
-		{
+		if (!(cdrom_sector_flags & 0xf0)) {		/* 0x00 and 0x08 are illegal modes */
 			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] 0x00 and 0x08 are illegal modes\n", id);
 			return 0;
 		}
 
-		if (((cdrom_sector_flags & 0xf0) == 0xb0) || ((cdrom_sector_flags & 0xf0) == 0xd0))		/* 0xBx and 0xDx are illegal modes */
-		{
+		if (((cdrom_sector_flags & 0xf0) == 0xb0) || ((cdrom_sector_flags & 0xf0) == 0xd0)) {	/* 0xBx and 0xDx are illegal modes */
 			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] 0xBx and 0xDx are illegal modes\n", id);
 			return 0;
 		}
 
-		if ((cdrom_sector_flags & 0x06) == 0x06)
-		{
+		if ((cdrom_sector_flags & 0x06) == 0x06) {
 			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] Invalid error flags\n", id);
 			return 0;
 		}
 
-		if (((cdrom_sector_flags & 0x700) == 0x300) || ((cdrom_sector_flags & 0x700) > 0x400))
-		{
+		if (((cdrom_sector_flags & 0x700) == 0x300) || ((cdrom_sector_flags & 0x700) > 0x400)) {
 			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] Invalid subchannel data flags (%02X)\n", id, cdrom_sector_flags & 0x700);
 			return 0;
 		}
 
-		if ((cdrom_sector_flags & 0x18) == 0x08)		/* EDC/ECC without user data is an illegal mode */
-		{
+		if ((cdrom_sector_flags & 0x18) == 0x08) {		/* EDC/ECC without user data is an illegal mode */
 			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] EDC/ECC without user data is an illegal mode\n", id);
 			return 0;
 		}
 
-		if (cdrom_image[id].image_is_iso)
-		{
-			cdimg[id]->ReadSector(raw_buffer + 24, false, real_pos);
+		if (cdrom_image[id].image_is_iso) {
+			cdimg[id]->ReadSector(raw_buffer + 24, false, lba);
 
 			uint8_t *bb = raw_buffer;
 
@@ -637,32 +601,27 @@ read_mode2:
 			bb[11] = 0;
 			bb += 12;
 
-			bb[0] = (real_pos >> 16) & 0xff;
-			bb[1] = (real_pos >> 8) & 0xff;
-			bb[2] = real_pos & 0xff;
+			bb[0] = (msf >> 16) & 0xff;
+			bb[1] = (msf >> 8) & 0xff;
+			bb[2] = msf & 0xff;
 
 			bb[3] = 1; /* mode 1 data */
 			bb += 12;
 			bb += 2048;
 			memset(bb, 0, 280);
-		}
-		else
-		{
-			cdimg[id]->ReadSector(raw_buffer, true, real_pos);
-		}
+		} else
+			cdimg[id]->ReadSector(raw_buffer, true, lba);
 
 		cdrom_sector_size = 0;
 
-		if (cdrom_sector_flags & 0x80)		/* Sync */
-		{
+		if (cdrom_sector_flags & 0x80) {	/* Sync */
 			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] Sync\n", id);
 			memcpy(temp_b, raw_buffer, 12);
 			cdrom_sector_size += 12;
 			temp_b += 12;
 		}
 
-		if (cdrom_sector_flags & 0x20)		/* Header */
-		{
+		if (cdrom_sector_flags & 0x20) {	/* Header */
 			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] Header\n", id);
 			memcpy(temp_b, raw_buffer + 12, 4);
 			cdrom_sector_size += 4;
@@ -670,95 +629,71 @@ read_mode2:
 		}
 		
 		/* Mode 1 sector, expected type is 1 type. */
-		if (cdrom_sector_flags & 0x40)		/* Sub-header */
-		{
+		if (cdrom_sector_flags & 0x40) {	/* Sub-header */
 			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] Sub-header\n", id);
 			memcpy(temp_b, raw_buffer + 16, 8);
 			cdrom_sector_size += 8;
 			temp_b += 8;
 		}
 
-		if (cdrom_sector_flags & 0x10)		/* User data */
-		{
+		if (cdrom_sector_flags & 0x10) {	/* User data */
 			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] User data\n", id);
 			memcpy(temp_b, raw_buffer + 24, 2048);
 			cdrom_sector_size += 2048;
 			temp_b += 2048;
 		}
 
-		if (cdrom_sector_flags & 0x08)		/* EDC/ECC */
-		{
+		if (cdrom_sector_flags & 0x08) {	/* EDC/ECC */
 			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] EDC/ECC\n", id);
 			memcpy(temp_b, raw_buffer + 2072, 280);
 			cdrom_sector_size += 280;
 			temp_b += 280;
 		}
-	}
-	else if (cdrom_sector_type == 8)
-	{
-		if (audio)
-		{
+	} else if (cdrom_sector_type == 8) {
+		if (audio) {
 			cdrom_image_log("CD-ROM %i: [Any Data] Attempting to read a data sector from an audio track\n", id);
 			return 0;
 		}
 
 		if (mode2)
-		{
 			goto read_mode2;
-		}
 		else
-		{
 			goto read_mode1;
-		}
-	}
-	else
-	{
+	} else {
 		if (mode2)
-		{
 			goto read_mode2;
-		}
-		else
-		{
+		else {
 			if (audio)
-			{
 				goto read_audio;
-			}
 			else
-			{
 				goto read_mode1;
-			}
 		}
 	}
 
-	if ((cdrom_sector_flags & 0x06) == 0x02)
-	{
+	if ((cdrom_sector_flags & 0x06) == 0x02) {
 		/* Add error flags. */
 		cdrom_image_log("CD-ROM %i: Error flags\n", id);
 		memcpy(b + cdrom_sector_size, extra_buffer, 294);
 		cdrom_sector_size += 294;
 	}
-	else if ((cdrom_sector_flags & 0x06) == 0x04)
-	{
+	else if ((cdrom_sector_flags & 0x06) == 0x04) {
 		/* Add error flags. */
 		cdrom_image_log("CD-ROM %i: Full error flags\n", id);
 		memcpy(b + cdrom_sector_size, extra_buffer, 296);
 		cdrom_sector_size += 296;
 	}
 	
-	if ((cdrom_sector_flags & 0x700) == 0x100)
-	{
+	if ((cdrom_sector_flags & 0x700) == 0x100) {
 		cdrom_image_log("CD-ROM %i: Raw subchannel data\n", id);
 		memcpy(b + cdrom_sector_size, extra_buffer, 96);
 		cdrom_sector_size += 96;
 	}
-	else if ((cdrom_sector_flags & 0x700) == 0x200)
-	{
+	else if ((cdrom_sector_flags & 0x700) == 0x200) {
 		cdrom_image_log("CD-ROM %i: Q subchannel data\n", id);
 		memcpy(b + cdrom_sector_size, extra_buffer, 16);
 		cdrom_sector_size += 16;
 	}
-	else if ((cdrom_sector_flags & 0x700) == 0x400)
-	{
+	else if ((cdrom_sector_flags & 0x700) == 0x400) {
 		cdrom_image_log("CD-ROM %i: R/W subchannel data\n", id);
 		memcpy(b + cdrom_sector_size, extra_buffer, 96);
 		cdrom_sector_size += 96;
@@ -1013,7 +948,6 @@ int image_open(uint8_t id, wchar_t *fn)
 	wcstombs(afn, fn, sizeof(afn));
         if (!cdimg[id]->SetDevice(afn, false))
         {
-		pclog("Image failed to load\n");
                 image_close(id);
 		cdrom_set_null_handler(id);
                 return 1;

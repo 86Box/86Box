@@ -10,16 +10,19 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.25	2017/12/09
+ * Version:	@(#)net_ne2000.c	1.0.26	2018/01/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Peter Grehan, grehan@iprg.nokia.com>
- *		SA1988, Tenshi
+ *		Peter Grehan, <grehan@iprg.nokia.com>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		SA1988
  *
  * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *
  *		Portions Copyright (C) 2002  MandrakeSoft S.A.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Portions Copyright (C) 2018  Sarah Walker.
+ *		Copyright 2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -218,6 +221,10 @@ typedef struct {
     rom_t	bios_rom;
     int		card;			/* PCI card slot */
     int		has_bios;
+
+    /* RTL8029AS registers */
+    uint8_t	config0, config2, config3;
+    uint8_t	_9346cr;
 } nic_t;
 
 
@@ -1103,15 +1110,24 @@ page2_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 static uint32_t
 page3_read(nic_t *dev, uint32_t off, unsigned int len)
 { 
-    if (dev->is_pci) switch(off) {
+    if (dev->board == NE2K_RTL8029AS) switch(off) {
+	case 0x1:	/* 9346CR */
+		return(dev->_9346cr);
+
 	case 0x3:	/* CONFIG0 */
-		return(0x00);
+		return(0x00);	/* Cable not BNC */
 
 	case 0x5:	/* CONFIG2 */
-		return(0x40);
+		return(dev->config2 & 0xe0);
 
 	case 0x6:	/* CONFIG3 */
-		return(0x40);
+		return(dev->config3 & 0x46);
+
+	case 0xe:	/* 8029ASID0 */
+		return(0x29);
+
+	case 0xf:	/* 8029ASID1 */
+		return(0x08);
 
 	default:
 		break;
@@ -1125,7 +1141,33 @@ page3_read(nic_t *dev, uint32_t off, unsigned int len)
 static void
 page3_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 {
-    nelog(3, "%s: Page3 write register 0x%02x attempted\n", dev->name, off);
+    if (dev->board == NE2K_RTL8029AS) {
+	nelog(3, "%s: Page2 write to register 0x%02x, len=%u, value=0x%04x\n",
+		 dev->name, off, len, val);
+
+	switch(off) {
+		case 0x01:	/* 9346CR */
+			dev->_9346cr = (val & 0xfe);
+			break;
+
+		case 0x05:	/* CONFIG2 */
+			dev->config2 = (val & 0xe0);
+			break;
+
+		case 0x06:	/* CONFIG3 */
+			dev->config3 = (val & 0x46);
+			break;
+
+		case 0x09:	/* HLTCLK  */
+			break;
+
+		default:
+			nelog(3, "%s: Page3 write to reserved register 0x%02x\n",
+				 dev->name, off);
+			break;
+	}
+    } else
+    	nelog(3, "%s: Page3 write register 0x%02x attempted\n", dev->name, off);
 }
 
 

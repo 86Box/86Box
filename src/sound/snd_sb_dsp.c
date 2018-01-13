@@ -719,7 +719,11 @@ uint8_t sb_read(uint16_t a, void *priv)
 //                pclog("SB read %02X\n",sbreaddat);
                 return dsp->sbreaddat;
                 case 0xC: /*Write data ready*/
-                if (dsp->wb_full)
+                if (dsp->sb_8_enable || dsp->sb_type >= SB16 )
+                        dsp->busy_count = (dsp->busy_count + 1) & 15;
+                else
+                        dsp->busy_count = 0;
+                if (dsp->wb_full || (dsp->busy_count & 8))
                 {
                         dsp->wb_full = dsp->wb_time;
                         return 0xff;

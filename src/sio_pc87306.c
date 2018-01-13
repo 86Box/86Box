@@ -8,10 +8,10 @@
  *
  *		Emulation of the NatSemi PC87306 Super I/O chip.
  *
- * Version:	@(#)sio_pc87306.c	1.0.7	2017/11/04
+ * Version:	@(#)sio_pc87306.c	1.0.8	2018/01/12
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016,2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -45,56 +45,52 @@ void pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 	pc87306_gpio[port & 1] = val;
 }
 
-uint8_t uart_int1()
-{
-	/* 0: IRQ3, 1: IRQ4 */
-	return ((pc87306_regs[0x1C] >> 2) & 1) ? 4 : 3;
-}
-
-uint8_t uart_int2()
-{
-	/* 0: IRQ3, 1: IRQ4 */
-	return ((pc87306_regs[0x1C] >> 6) & 1) ? 4 : 3;
-}
-
 uint8_t uart1_int()
 {
-	uint8_t temp;
-	temp = ((pc87306_regs[1] >> 2) & 1) ? 3 : 4;	/* 0 = COM1 (IRQ 4), 1 = COM2 (IRQ 3), 2 = COM3 (IRQ 4), 3 = COM4 (IRQ 3) */
-	return (pc87306_regs[0x1C] & 1) ? uart_int1() : temp;
+	uint8_t fer_irq, pnp1_irq;
+	fer_irq = ((pc87306_regs[1] >> 2) & 1) ? 3 : 4;	/* 0 = COM1 (IRQ 4), 1 = COM2 (IRQ 3), 2 = COM3 (IRQ 4), 3 = COM4 (IRQ 3) */
+	pnp1_irq = ((pc87306_regs[0x1C] >> 2) & 1) ? 4 : 3;
+	return (pc87306_regs[0x1C] & 1) ? pnp1_irq : fer_irq;
 }
 
 uint8_t uart2_int()
 {
-	uint8_t temp;
-	temp = ((pc87306_regs[1] >> 4) & 1) ? 3 : 4;	/* 0 = COM1 (IRQ 4), 1 = COM2 (IRQ 3), 2 = COM3 (IRQ 4), 3 = COM4 (IRQ 3) */
-	return (pc87306_regs[0x1C] & 1) ? uart_int2() : temp;
+	uint8_t fer_irq, pnp1_irq;
+	fer_irq = ((pc87306_regs[1] >> 4) & 1) ? 3 : 4;	/* 0 = COM1 (IRQ 4), 1 = COM2 (IRQ 3), 2 = COM3 (IRQ 4), 3 = COM4 (IRQ 3) */
+	pnp1_irq = ((pc87306_regs[0x1C] >> 6) & 1) ? 4 : 3;
+	return (pc87306_regs[0x1C] & 1) ? pnp1_irq : fer_irq;
 }
 
 void lpt1_handler()
 {
         int temp;
+        uint16_t lptba;
 	temp = pc87306_regs[0x01] & 3;
-	switch (temp)
-	{
-		case 0:
-			lpt_port = 0x378;
-			break;
-		case 1:
-			if (pc87306_regs[0x1B] & 0x40)
-			{
-				lpt_port = ((uint16_t) pc87306_regs[0x19]) << 2;
-			}
-			else
-			{
-				lpt_port = 0x3bc;
-			}
-			break;
-		case 2:
+        lptba = ((uint16_t) pc87306_regs[0x19]) << 2;
+	if (pc87306_regs[0x1B] & 0x10) {
+		if (pc87306_regs[0x1B] & 0x20)
 			lpt_port = 0x278;
-			break;
+		else
+			lpt_port = 0x378;
+	} else {
+		switch (temp) {
+			case 0:
+				lpt_port = 0x378;
+				break;
+			case 1:
+				lpt_port = lptba;
+				break;
+			case 2:
+				lpt_port = 0x278;
+				break;
+			case 3:
+				// pclog("PNP0 Bits 4,5 = 00, FAR Bits 1,0 = 3 - reserved\n");
+				lpt_port = 0x000;
+				break;
+		}
 	}
-	lpt1_init(lpt_port);
+	if (lpt_port)
+		lpt1_init(lpt_port);
 }
 
 void serial1_handler()
@@ -361,7 +357,7 @@ process_value:
 			}
 			break;
 		case 0x1B:
-			if (valxor & 0x40)
+			if (valxor & 0x70)
 			{
 				lpt1_remove();
 				if (!(val & 0x40))

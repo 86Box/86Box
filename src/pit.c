@@ -356,17 +356,17 @@ void pit_write(uint16_t addr, uint8_t val, void *p)
                         {
                                 if (val & 2)
                                 {
-                                        pit->read_status[0] = (pit->ctrls[0] & 0x3f) | 0x40 | (pit->out[0] ? 0x80 : 0);
+                                        pit->read_status[0] = (pit->ctrls[0] & 0x3f) | (pit->out[0] ? 0x80 : 0);
                                         pit->do_read_status[0] = 1;
                                 }
                                 if (val & 4)
                                 {
-                                        pit->read_status[1] = (pit->ctrls[1] & 0x3f) | 0x40 | (pit->out[1] ? 0x80 : 0);
+                                        pit->read_status[1] = (pit->ctrls[1] & 0x3f) | (pit->out[1] ? 0x80 : 0);
                                         pit->do_read_status[1] = 1;
                                 }
                                 if (val & 8)
                                 {
-                                        pit->read_status[2] = (pit->ctrls[2] & 0x3f) | 0x40 | (pit->out[2] ? 0x80 : 0);
+                                        pit->read_status[2] = (pit->ctrls[2] & 0x3f) | (pit->out[2] ? 0x80 : 0);
                                         pit->do_read_status[2] = 1;
                                 }
                         }

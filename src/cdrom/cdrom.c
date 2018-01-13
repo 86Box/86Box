@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.26	2018/01/06
+ * Version:	@(#)cdrom.c	1.0.27	2018/01/10
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -185,538 +185,105 @@ uint8_t cdrom_command_flags[0x100] =
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-uint64_t cdrom_mode_sense_page_flags[CDROM_NUM] = { (1LL << GPMODE_R_W_ERROR_PAGE) | (1LL << GPMODE_CDROM_PAGE) | (1LL << GPMODE_CDROM_AUDIO_PAGE) | (1LL << GPMODE_CAPABILITIES_PAGE) | (1LL << GPMODE_ALL_PAGES),
-						    (1LL << GPMODE_R_W_ERROR_PAGE) | (1LL << GPMODE_CDROM_PAGE) | (1LL << GPMODE_CDROM_AUDIO_PAGE) | (1LL << GPMODE_CAPABILITIES_PAGE) | (1LL << GPMODE_ALL_PAGES),
-						    (1LL << GPMODE_R_W_ERROR_PAGE) | (1LL << GPMODE_CDROM_PAGE) | (1LL << GPMODE_CDROM_AUDIO_PAGE) | (1LL << GPMODE_CAPABILITIES_PAGE) | (1LL << GPMODE_ALL_PAGES),
-						    (1LL << GPMODE_R_W_ERROR_PAGE) | (1LL << GPMODE_CDROM_PAGE) | (1LL << GPMODE_CDROM_AUDIO_PAGE) | (1LL << GPMODE_CAPABILITIES_PAGE) | (1LL << GPMODE_ALL_PAGES) };
+uint64_t cdrom_mode_sense_page_flags = (1LL << GPMODE_R_W_ERROR_PAGE) | (1LL << GPMODE_CDROM_PAGE) | (1LL << GPMODE_CDROM_AUDIO_PAGE) | (1LL << GPMODE_CAPABILITIES_PAGE) | (1LL << GPMODE_ALL_PAGES);
 
-const uint8_t cdrom_mode_sense_pages_default[CDROM_NUM][0x40][0x40] =
-{
-	{	{                        0,    0 },
-		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
-		{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
-	{	{                        0,    0 },
-		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
-		{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
-	{	{                        0,    0 },
-		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
-		{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
-	{	{                        0,    0 },
-		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
-		{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	}
-};
 
-uint8_t cdrom_mode_sense_pages_changeable[CDROM_NUM][0x40][0x40] =
-{
-	{	{                        0,    0 },
-		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
-		{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
-	{	{                        0,    0 },
-		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
-		{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
-	{	{                        0,    0 },
-		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
-		{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
-	{	{                        0,    0 },
-		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
-		{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	}
-};
+static const mode_sense_pages_t cdrom_mode_sense_pages_default =
+{	{
+	{                        0,    0 },
+	{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
+	{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }
+}	};
 
-uint8_t cdrom_mode_sense_pages_saved[CDROM_NUM][0x40][0x40] =
-{
-	{	{                        0,    0 },
-		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
-		{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
-	{	{                        0,    0 },
-		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
-		{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
-	{	{                        0,    0 },
-		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
-		{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	},
-	{	{                        0,    0 },
-		{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
-		{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{                        0,    0 },
-		{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }	}
-};
+static const mode_sense_pages_t cdrom_mode_sense_pages_changeable =
+{	{
+	{                        0,    0 },
+	{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
+	{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }
+}	};
+
+static mode_sense_pages_t cdrom_mode_sense_pages_saved[CDROM_NUM];
+
 
 #ifdef ENABLE_CDROM_LOG
 int cdrom_do_log = ENABLE_CDROM_LOG;
@@ -738,8 +305,6 @@ cdrom_log(const char *format, ...)
 #endif
 }
 
-
-int cdrom_mode_select_terminate(uint8_t id, int force);
 
 int find_cdrom_for_channel(uint8_t channel)
 {
@@ -828,7 +393,6 @@ void cdrom_init(int id, int cdb_len_setting)
 	if (cdb_len_setting <= 1)
 		cdrom[id].cdb_len_setting = cdb_len_setting;
 	cdrom_reset_cdb_len(id);
-	cdrom_mode_select_terminate(id, 1);
 	cdrom[id].cd_status = CD_STATUS_EMPTY;
 	cdrom[id].sense[0] = 0xf0;
 	cdrom[id].sense[7] = 10;
@@ -930,253 +494,47 @@ int cdrom_lba_to_msf_accurate(int lba)
 
 uint32_t cdrom_mode_sense_get_channel(uint8_t id, int channel)
 {
-	return cdrom_mode_sense_pages_saved[id][GPMODE_CDROM_AUDIO_PAGE][channel ? 10 : 8];
+	return cdrom_mode_sense_pages_saved[id].pages[GPMODE_CDROM_AUDIO_PAGE][channel ? 10 : 8];
 }
 
 uint32_t cdrom_mode_sense_get_volume(uint8_t id, int channel)
 {
-	return cdrom_mode_sense_pages_saved[id][GPMODE_CDROM_AUDIO_PAGE][channel ? 11 : 9];
+	return cdrom_mode_sense_pages_saved[id].pages[GPMODE_CDROM_AUDIO_PAGE][channel ? 11 : 9];
 }
 
 void cdrom_mode_sense_load(uint8_t id)
 {
 	FILE *f;
-	switch(id) {
-		case 0:
-			f = plat_fopen(nvr_path(L"cdrom_1_mode_sense.bin"), L"rb");
-			break;
-		case 1:
-			f = plat_fopen(nvr_path(L"cdrom_2_mode_sense.bin"), L"rb");
-			break;
-		case 2:
-			f = plat_fopen(nvr_path(L"cdrom_3_mode_sense.bin"), L"rb");
-			break;
-		case 3:
-			f = plat_fopen(nvr_path(L"cdrom_4_mode_sense.bin"), L"rb");
-			break;
-		default:
-			return;
+	wchar_t file_name[512];
+	int i;
+	memset(&cdrom_mode_sense_pages_saved[id], 0, sizeof(mode_sense_pages_t));
+	for (i = 0; i < 0x3f; i++) {
+		if (cdrom_mode_sense_pages_default.pages[i][1] != 0)
+			memcpy(cdrom_mode_sense_pages_saved[id].pages[i], cdrom_mode_sense_pages_default.pages[i], cdrom_mode_sense_pages_default.pages[i][1] + 2);
 	}
-	if (!f)
-		return;
-	fread(cdrom_mode_sense_pages_saved[id][GPMODE_CDROM_AUDIO_PAGE], 1, 0x10, f);
-	fclose(f);
+	memset(file_name, 0, 512 * sizeof(wchar_t));
+	swprintf(file_name, 512, L"cdrom_%02i_mode_sense_bin", id);
+	f = plat_fopen(nvr_path(file_name), L"rb");
+	if (f) {
+		fread(cdrom_mode_sense_pages_saved[id].pages[GPMODE_CDROM_AUDIO_PAGE], 1, 0x10, f);
+		fclose(f);
+	}
 }
 
 void cdrom_mode_sense_save(uint8_t id)
 {
 	FILE *f;
-	switch(id) {
-		case 0:
-			f = plat_fopen(nvr_path(L"cdrom_1_mode_sense.bin"), L"wb");
-			break;
-		case 1:
-			f = plat_fopen(nvr_path(L"cdrom_2_mode_sense.bin"), L"wb");
-			break;
-		case 2:
-			f = plat_fopen(nvr_path(L"cdrom_3_mode_sense.bin"), L"wb");
-			break;
-		case 3:
-			f = plat_fopen(nvr_path(L"cdrom_4_mode_sense.bin"), L"wb");
-			break;
-		default:
-			return;
+	wchar_t file_name[512];
+	memset(file_name, 0, 512 * sizeof(wchar_t));
+	swprintf(file_name, 512, L"cdrom_%02i_mode_sense_bin", id);
+	f = plat_fopen(nvr_path(file_name), L"wb");
+	if (f) {
+		fwrite(cdrom_mode_sense_pages_saved[id].pages[GPMODE_CDROM_AUDIO_PAGE], 1, 0x10, f);
+		fclose(f);
 	}
-	if (!f)
-		return;
-	fwrite(cdrom_mode_sense_pages_saved[id][GPMODE_CDROM_AUDIO_PAGE], 1, 0x10, f);
-	fclose(f);
-}
-
-int cdrom_mode_select_init(uint8_t id, uint8_t command, uint16_t pl_length, uint8_t do_save)
-{
-	switch(command) {
-		case GPCMD_MODE_SELECT_6:
-			cdrom[id].current_page_len = 4;
-			break;
-		case GPCMD_MODE_SELECT_10:
-			cdrom[id].current_page_len = 8;
-			break;
-		default:
-			cdrom_log("CD-ROM %i: Attempting to initialize MODE SELECT with unrecognized command: %02X\n", id, command);
-			return -1;
-	}
-	if (pl_length == 0) {
-		cdrom_log("CD-ROM %i: Attempting to initialize MODE SELECT with zero parameter list length: %02X\n", id, command);
-		return -2;
-	}
-	cdrom[id].current_page_pos = 0;
-	cdrom[id].mode_select_phase = MODE_SELECT_PHASE_HEADER;
-	cdrom[id].total_length = pl_length;
-	cdrom[id].written_length = 0;
-	cdrom[id].do_page_save = do_save;
-	return 1;
-}
-
-int cdrom_mode_select_terminate(uint8_t id, int force)
-{
-	if (((cdrom[id].written_length >= cdrom[id].total_length) || force) && (cdrom[id].mode_select_phase != MODE_SELECT_PHASE_IDLE)) {
-		cdrom_log("CD-ROM %i: MODE SELECT terminate: %i\n", id, force);
-		cdrom[id].current_page_pos = cdrom[id].current_page_len = cdrom[id].block_descriptor_len = 0;
-		cdrom[id].total_length = cdrom[id].written_length = 0;
-		cdrom[id].mode_select_phase = MODE_SELECT_PHASE_IDLE;
-		if (force)
-			cdrom_mode_sense_load(id);
-		return 1;
-	} else
-		return 0;
-}
-
-int cdrom_mode_select_header(uint8_t id, uint8_t val)
-{
-	if (cdrom[id].current_page_pos == 0)
-		cdrom[id].block_descriptor_len = 0;
-	else if (cdrom[id].current_page_pos == (cdrom[id].current_page_len - 2)) {
-		if ((cdrom_drives[id].bus_type == CDROM_BUS_SCSI) && (cdrom[id].current_page_len == 8)) {
-			cdrom[id].block_descriptor_len |= ((uint16_t) val) << 8;
-			cdrom_log("CD-ROM %i: Position: %02X, value: %02X, block descriptor length: %02X\n", id, cdrom[id].current_page_pos, val, cdrom[id].block_descriptor_len);
-		}
-	} else if (cdrom[id].current_page_pos == (cdrom[id].current_page_len - 1)) {
-		if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) {
-			cdrom[id].block_descriptor_len |= (uint16_t) val;
-			cdrom_log("CD-ROM %i: Position: %02X, value: %02X, block descriptor length: %02X\n", id, cdrom[id].current_page_pos, val, cdrom[id].block_descriptor_len);
-		}
-	}
-
-	cdrom[id].current_page_pos++;
-
-	if (cdrom[id].current_page_pos >= cdrom[id].current_page_len) {
-		cdrom[id].current_page_pos = 0;
-		if (cdrom[id].block_descriptor_len)
-			cdrom[id].mode_select_phase = MODE_SELECT_PHASE_BLOCK_DESC;
-		else
-			cdrom[id].mode_select_phase = MODE_SELECT_PHASE_PAGE_HEADER;
-	}
-
-	return 1;
-}
-
-int cdrom_mode_select_block_desc(uint8_t id)
-{
-	cdrom[id].current_page_pos++;
-	if (cdrom[id].current_page_pos >= 8) {
-		cdrom[id].current_page_pos = 0;
-		cdrom[id].mode_select_phase = MODE_SELECT_PHASE_PAGE_HEADER;
-	}
-	return 1;
-}
-
-static void cdrom_invalid_field_pl(uint8_t id);
-
-int cdrom_mode_select_page_header(uint8_t id, uint8_t val)
-{
-	if (cdrom[id].current_page_pos == 0) {
-		cdrom[id].current_page_code = val & 0x3f;
-		if (!(cdrom_mode_sense_page_flags[id] & (1LL << cdrom[id].current_page_code))) {
-			cdrom_log("CD-ROM %i: Trying to modify an unimplemented page: %02X\n", id, cdrom[id].current_page_code);
-			cdrom_mode_select_terminate(id, 1);
-			cdrom_invalid_field_pl(id);
-		}
-		cdrom[id].current_page_pos++;
-	} else if (cdrom[id].current_page_pos == 1) {
-		cdrom[id].current_page_pos = 0;
-		cdrom[id].current_page_len = val;
-		cdrom[id].mode_select_phase = MODE_SELECT_PHASE_PAGE;
-	}
-	return 1;
-}
-
-int cdrom_mode_select_page(uint8_t id, uint8_t val)
-{
-	if (cdrom_mode_sense_pages_changeable[id][cdrom[id].current_page_code][cdrom[id].current_page_pos + 2] != 0xFF) {
-		if (val != cdrom_mode_sense_pages_saved[id][cdrom[id].current_page_code][cdrom[id].current_page_pos + 2]) {
-			/* Trying to change an unchangeable value. */
-			cdrom_log("CD-ROM %i: Trying to change an unchangeable value: [%02X][%02X] = %02X (new: %02X)\n", id, cdrom[id].current_page_code, cdrom[id].current_page_pos + 2, cdrom_mode_sense_pages_saved[id][cdrom[id].current_page_code][cdrom[id].current_page_pos + 2], val);
-			cdrom_mode_select_terminate(id, 1);
-			cdrom_invalid_field_pl(id);
-			return 0;
-		}
-	} else {
-		if (cdrom[id].current_page_code == 0xE) {
-			if ((cdrom[id].current_page_pos == 6) || (cdrom[id].current_page_pos == 8)) {
-				if (val > 3) {
-					/* Trying to set an unsupported audio channel. */
-					cdrom_log("CD-ROM %i: Trying to set an unsupported value: [%02X][%02X] = %02X (new: %02X)\n", id, cdrom[id].current_page_code, cdrom[id].current_page_pos, cdrom_mode_sense_pages_saved[id][cdrom[id].current_page_code][cdrom[id].current_page_pos + 2], val);
-					return 0;
-				}
-			}
-		}
-		cdrom_mode_sense_pages_saved[id][cdrom[id].current_page_code][cdrom[id].current_page_pos + 2] = val;
-	}
-	cdrom[id].current_page_pos++;
-	if (cdrom[id].current_page_pos >= cdrom[id].current_page_len) {
-		cdrom[id].current_page_pos = 0;
-		cdrom[id].mode_select_phase = MODE_SELECT_PHASE_PAGE_HEADER;
-	}
-	return 1;
 }
 
 static void cdrom_command_complete(uint8_t id);
-
-int cdrom_mode_select_write(uint8_t id, uint8_t val)
-{
-	int ret = 0;
-	int ret2 = 0;
-
-	if (id > CDROM_NUM) {
-		cdrom_log("MODE SELECT: attempted write to wrong CD-ROM drive\n", val);
-		return -6;
-	}
-
-	if (cdrom[id].total_length == 0) {
-		cdrom_log("CD-ROM %i: MODE SELECT: attempted write when not initialized (%02X)\n", id, val);
-		return -3;
-	}
-
-	cdrom[id].written_length++;
-
-	switch (cdrom[id].mode_select_phase) {
-		case MODE_SELECT_PHASE_IDLE:
-			cdrom_log("CD-ROM %i: MODE SELECT idle (%02X)\n", id, val);
-			ret = 1;
-			break;
-		case MODE_SELECT_PHASE_HEADER:
-			cdrom_log("CD-ROM %i: MODE SELECT header (%02X)\n", id, val);
-			ret = cdrom_mode_select_header(id, val);
-			break;
-		case MODE_SELECT_PHASE_BLOCK_DESC:
-			cdrom_log("CD-ROM %i: MODE SELECT block descriptor (%02X)\n", id, val);
-			ret = cdrom_mode_select_block_desc(id);
-			break;
-		case MODE_SELECT_PHASE_PAGE_HEADER:
-			cdrom_log("CD-ROM %i: MODE SELECT page header (%02X)\n", id, val);
-			ret = cdrom_mode_select_page_header(id, val);
-			break;
-		case MODE_SELECT_PHASE_PAGE:
-			cdrom_log("CD-ROM %i: MODE SELECT page (%02X)\n", id, val);
-			ret = cdrom_mode_select_page(id, val);
-			if (cdrom[id].mode_select_phase == MODE_SELECT_PHASE_PAGE_HEADER) {
-				if (cdrom[id].do_page_save && (cdrom_mode_sense_pages_default[id][cdrom[id].current_page_code][0] & 0x80)) {
-					cdrom_log("CD-ROM %i: Page %i finished, saving it...\n", id, cdrom[id].current_page_code);
-					cdrom_mode_sense_save(id);
-				}
-			}
-			break;
-		default:
-			cdrom_log("CD-ROM %i: MODE SELECT unknown phase (%02X)\n", id, val);
-			ret = -4;
-			break;
-	}
-
-	/* On termination, override the return value, but only if it is 1. */
-	ret2 = cdrom_mode_select_terminate(id, 0);
-	if (ret2)
-		cdrom_command_complete(id);
-	if (ret2 && (ret == 1))
-		ret = -5;
-
-	return ret;
-}
 
 uint8_t cdrom_read_capacity_cdb[12] = {0x25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -1212,13 +570,13 @@ uint8_t cdrom_mode_sense_read(uint8_t id, uint8_t page_control, uint8_t page, ui
 	switch (page_control) {
 		case 0:
 		case 3:
-			return cdrom_mode_sense_pages_saved[id][page][pos];
+			return cdrom_mode_sense_pages_saved[id].pages[page][pos];
 			break;
 		case 1:
-			return cdrom_mode_sense_pages_changeable[id][page][pos];
+			return cdrom_mode_sense_pages_changeable.pages[page][pos];
 			break;
 		case 2:
-			return cdrom_mode_sense_pages_default[id][page][pos];
+			return cdrom_mode_sense_pages_default.pages[page][pos];
 			break;
 	}
 
@@ -1249,7 +607,7 @@ uint32_t cdrom_mode_sense(uint8_t id, uint8_t *buf, uint32_t pos, uint8_t type, 
 
 	for (i = 0; i < 0x40; i++) {
 	        if ((type == GPMODE_ALL_PAGES) || (type == i)) {
-			if (cdrom_mode_sense_page_flags[id] & (1LL << cdrom[id].current_page_code)) {
+			if (cdrom_mode_sense_page_flags & (1LL << cdrom[id].current_page_code)) {
 				buf[pos++] = cdrom_mode_sense_read(id, page_control, i, 0);
 				msplen = cdrom_mode_sense_read(id, page_control, i, 1);
 				buf[pos++] = msplen;
@@ -1300,8 +658,7 @@ static void cdrom_command_common(uint8_t id)
 	if (cdrom[id].packet_status == CDROM_PHASE_COMPLETE) {
 		cdrom[id].callback = 20LL * CDROM_TIME;
 		cdrom_set_callback(id);
-	}
-	else if (cdrom[id].packet_status == CDROM_PHASE_DATA_IN) {
+	} else if (cdrom[id].packet_status == CDROM_PHASE_DATA_IN) {
 		if (cdrom[id].current_cdb[0] == 0x42) {
 			cdrom_log("CD-ROM %i: READ SUBCHANNEL\n");
 			cdrom[id].callback = 1000LL * CDROM_TIME;
@@ -1351,9 +708,7 @@ static void cdrom_command_write_dma(uint8_t id)
 static int cdrom_request_length_is_zero(uint8_t id)
 {
 	if ((cdrom[id].request_length == 0) && (cdrom_drives[id].bus_type < CDROM_BUS_SCSI))
-	{
 		return 1;
-	}
 	return 0;
 }
 
@@ -1425,6 +780,7 @@ static void cdrom_cmd_error(uint8_t id)
 		cdrom[id].error |= MCR_ERR;
 	cdrom[id].status = READY_STAT | ERR_STAT;
 	cdrom[id].phase = 3;
+	cdrom[id].pos = 0;
 	cdrom[id].packet_status = 0x80;
 	cdrom[id].callback = 50LL * CDROM_TIME;
 	cdrom_set_callback(id);
@@ -1439,6 +795,7 @@ static void cdrom_unit_attention(uint8_t id)
 		cdrom[id].error |= MCR_ERR;
 	cdrom[id].status = READY_STAT | ERR_STAT;
 	cdrom[id].phase = 3;
+	cdrom[id].pos = 0;
 	cdrom[id].packet_status = 0x80;
 	cdrom[id].callback = 50LL * CDROM_TIME;
 	cdrom_set_callback(id);
@@ -1693,7 +1050,7 @@ int cdrom_read_blocks(uint8_t id, uint32_t *len, int first_batch)
 	
 	if ((cdrom[id].current_cdb[0] == 0xb9) || (cdrom[id].current_cdb[0] == 0xbe)) {
 		type = (cdrom[id].current_cdb[1] >> 2) & 7;
-		flags = cdrom[id].current_cdb[9] || (((uint32_t) cdrom[id].current_cdb[10]) << 8);
+		flags = cdrom[id].current_cdb[9] | (((uint32_t) cdrom[id].current_cdb[10]) << 8);
 	} else {
 		type = 8;
 		flags = 0x10;
@@ -2133,7 +1490,6 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 
 #if 0
 		for (CdbLength = 1; CdbLength < cdrom[id].cdb_len; CdbLength++)
-			pclog("cdblog CD-ROM %i: CDB[%d] = %d\n", id, CdbLength, cdb[CdbLength]);
 			// cdrom_log("CD-ROM %i: CDB[%d] = %d\n", id, CdbLength, cdb[CdbLength]);
 #endif
 	}
@@ -2394,7 +1750,7 @@ cdrom_readtoc_fallback:
 
 			cdrom[id].current_page_code = cdb[2] & 0x3F;
 
-			if (!(cdrom_mode_sense_page_flags[id] & (1LL << cdrom[id].current_page_code))) {
+			if (!(cdrom_mode_sense_page_flags & (1LL << cdrom[id].current_page_code))) {
 				cdrom_invalid_field(id);
 				cdrom_buf_free(id);
 				return;
@@ -2442,7 +1798,11 @@ cdrom_readtoc_fallback:
 			}
 
 			cdrom_set_buf_len(id, BufLen, &len);
-			ret = cdrom_mode_select_init(id, cdb[0], len, cdb[1] & 1);
+
+			cdrom[id].total_length = len;
+			cdrom[id].do_page_save = cdb[1] & 1;
+
+			cdrom[id].current_page_pos = 0;
 
 			cdrom_data_command_finish(id, len, len, len, 1);
 			return;
@@ -2884,47 +2244,21 @@ cdrom_readtoc_fallback:
 
 				memset(cdbufferb, 0, alloc_length);
 
-				switch (cdb[7]) {
-					case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
-					case 0x08: case 0x09: case 0x0a: case 0x0b: case 0x0c: case 0x0d: case 0x0e: case 0x0f:
-					case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17:
-					case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f:
-					case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: case 0x27:
-					case 0x28: case 0x29: case 0x2a: case 0x2b: case 0x2c: case 0x2d: case 0x2e: case 0x2f:
-					case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37:
-					case 0x38: case 0x39: case 0x3a: case 0x3b: case 0x3c: case 0x3d: case 0x3e: case 0x3f:
-					case 0x40: case 0x41: case 0x42: case 0x43: case 0x44: case 0x45: case 0x46: case 0x47:
-					case 0x48: case 0x49: case 0x4a: case 0x4b: case 0x4c: case 0x4d: case 0x4e: case 0x4f:
-					case 0x50: case 0x51: case 0x52: case 0x53: case 0x54: case 0x55: case 0x56: case 0x57:
-					case 0x58: case 0x59: case 0x5a: case 0x5b: case 0x5c: case 0x5d: case 0x5e: case 0x5f:
-					case 0x60: case 0x61: case 0x62: case 0x63: case 0x64: case 0x65: case 0x66: case 0x67:
-					case 0x68: case 0x69: case 0x6a: case 0x6b: case 0x6c: case 0x6d: case 0x6e: case 0x6f:
-					case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: case 0x76: case 0x77:
-					case 0x78: case 0x79: case 0x7a: case 0x7b: case 0x7c: case 0x7d: case 0x7e: case 0x7f:
-					case 0xff:
-						if (cdb[1] == 0) {
-							ret = cdrom_read_dvd_structure(id, format, cdb, cdbufferb);
+				if (((cdb[7] >= 0x00) && (cdb[7] <= 0x7f)) || (cdb[7] == 0xff)) {
+					if (cdb[1] == 0) {
+						ret = cdrom_read_dvd_structure(id, format, cdb, cdbufferb);
 
-							if (ret) {
-								cdrom_set_buf_len(id, BufLen, &alloc_length);
-								cdrom_data_command_finish(id, alloc_length, alloc_length, len, 0);
-							} else
-								cdrom_buf_free(id);
-							return;
-						}
-						/* TODO: BD support, fall through for now */
-
-					/* Generic disk structures */
-					case 0x80: /* TODO: AACS volume identifier */
-					case 0x81: /* TODO: AACS media serial number */
-					case 0x82: /* TODO: AACS media identifier */
-					case 0x83: /* TODO: AACS media key block */
-					case 0x90: /* TODO: List of recognized format layers */
-					case 0xc0: /* TODO: Write protection status */
-					default:
-						cdrom_invalid_field(id);
-						cdrom_buf_free(id);
+						if (ret) {
+							cdrom_set_buf_len(id, BufLen, &alloc_length);
+							cdrom_data_command_finish(id, alloc_length, alloc_length, len, 0);
+						} else
+							cdrom_buf_free(id);
 						return;
+					}
+				} else {
+					cdrom_invalid_field(id);
+					cdrom_buf_free(id);
+					return;
 				}
 			}
 			break;
@@ -3127,10 +2461,83 @@ atapi_out:
 		cdrom_buf_free(id);
 }
 
-/* This is the general ATAPI callback. */
-void cdrom_callback(uint8_t id)		/* Callback for non-Read CD commands */
+/* The command second phase function, needed for Mode Select. */
+uint8_t cdrom_phase_data_out(uint8_t id)
+{
+	uint16_t block_desc_len;
+	uint16_t pos;
+
+	uint8_t error = 0;
+	uint8_t page, page_len;
+
+	uint16_t i = 0;
+
+	uint8_t hdr_len, val, old_val, ch;
+
+	switch(cdrom[id].current_cdb[0]) {
+		case GPCMD_MODE_SELECT_6:
+		case GPCMD_MODE_SELECT_10:
+			if (cdrom[id].current_cdb[0] == GPCMD_MODE_SELECT_10)
+				hdr_len = 8;
+			else
+				hdr_len = 4;
+
+			if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) {
+				block_desc_len = cdbufferb[6];
+				block_desc_len <<= 8;
+				block_desc_len |= cdbufferb[7];
+			} else
+				block_desc_len = 0;
+
+			pos = hdr_len + block_desc_len;
+
+			while(1) {
+				page = cdbufferb[pos] & 0x3F;
+				page_len = cdbufferb[pos + 1];
+
+				pos += 2;
+
+				if (!(cdrom_mode_sense_page_flags & (1LL << ((uint64_t) page))))
+					error |= 1;
+				else {
+					for (i = 0; i < page_len; i++) {
+						ch = cdrom_mode_sense_pages_changeable.pages[page][i + 2];
+						val = cdbufferb[pos + i];
+						old_val = cdrom_mode_sense_pages_saved[id].pages[page][i + 2];
+						if (val != old_val) {
+							if (ch)
+								cdrom_mode_sense_pages_saved[id].pages[page][i + 2] = val;
+							else
+								error |= 1;
+						}
+					}
+				}
+
+				pos += page_len;
+
+				val = cdrom_mode_sense_pages_default.pages[page][0] & 0x80;
+				if (cdrom[id].do_page_save && val)
+					cdrom_mode_sense_save(id);
+
+				if (pos >= cdrom[id].total_length)
+					break;
+			}
+
+			if (error) {
+				cdrom_invalid_field_pl(id);
+				return 0;
+			}
+			break;
+	}
+
+	return 1;
+}
+
+/* This is the general ATAPI PIO request function. */
+void cdrom_pio_request(uint8_t id, uint8_t out)
 {
 	int old_pos = 0;
+	int ret = 0;
 
 	if (cdrom_drives[id].bus_type < CDROM_BUS_SCSI) {
 		cdrom_log("CD-ROM %i: Lowering IDE IRQ\n", id);
@@ -3139,20 +2546,27 @@ void cdrom_callback(uint8_t id)		/* Callback for non-Read CD commands */
 	
 	cdrom[id].status = BUSY_STAT;
 
-	if (cdrom[id].pos >= cdrom[id].packet_len)
-	{
-		cdrom_log("CD-ROM %i: %i bytes read, command done\n", id, cdrom[id].pos);
+	if (cdrom[id].pos >= cdrom[id].packet_len) {
+		cdrom_log("CD-ROM %i: %i bytes %s, command done\n", id, cdrom[id].pos, out ? "written" : "read");
 
 		cdrom[id].pos = cdrom[id].request_pos = 0;
-		cdrom_command_complete(id);
+		if (out) {
+			ret = cdrom_phase_data_out(id);
+			/* If ret = 0 (phase 1 error), then we do not do anything else other than
+			   free the buffer, as the phase and callback have already been set by the
+			   error function. */
+			if (ret)
+				cdrom_command_complete(id);
+		} else
+			cdrom_command_complete(id);
 		cdrom_buf_free(id);
 	} else {
-		cdrom_log("CD-ROM %i: %i bytes read, %i bytes are still left\n", id, cdrom[id].pos, cdrom[id].packet_len - cdrom[id].pos);
+		cdrom_log("CD-ROM %i: %i bytes %s, %i bytes are still left\n", id, cdrom[id].pos, out ? "written" : "read", cdrom[id].packet_len - cdrom[id].pos);
 
 		/* Make sure to keep pos, and reset request_pos to 0. */
 		/* Also make sure to not reset total_read. */
 		old_pos = cdrom[id].pos;
-		cdrom[id].packet_status = CDROM_PHASE_DATA_IN;
+		cdrom[id].packet_status = out ? CDROM_PHASE_DATA_OUT : CDROM_PHASE_DATA_IN;
 		cdrom_command_common(id);
 		cdrom[id].pos = old_pos;
 		cdrom[id].request_pos = 0;
@@ -3239,7 +2653,6 @@ int cdrom_read_from_dma(uint8_t id)
 {
 	int32_t *BufLen = &SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].BufferLength;
 
-	int i = 0;
 	int ret = 0;
 
 	int in_data_length = 0;
@@ -3260,16 +2673,12 @@ int cdrom_read_from_dma(uint8_t id)
 		cdrom_log("CD-ROM %i: ATAPI Input data length: %i\n", id, in_data_length);
 	}
 
-	for (i = 0; i < in_data_length; i++) {
-		ret = cdrom_mode_select_write(id, cdbufferb[i]);
-		ret = cdrom_mode_select_return(id, ret);
-		if (ret == -1)
-			return 1;
-		else if (ret == -2) {
-			cdrom_phase_callback(id);
-			return 0;
-		}
-	}
+	ret = cdrom_phase_data_out(id);
+	if (!ret) {
+		cdrom_phase_callback(id);
+		return 0;
+	} else
+		return 1;
 
 	return 0;
 }
@@ -3453,7 +2862,7 @@ uint32_t cdrom_read(uint8_t channel, int length)
 		if ((cdrom[id].request_pos >= cdrom[id].request_length) || (cdrom[id].pos >= cdrom[id].packet_len)) {
 			/* Time for a DRQ. */
 			// cdrom_log("CD-ROM %i: Issuing read callback\n", id);
-			cdrom_callback(id);
+			cdrom_pio_request(id, 0);
 		}
 		// cdrom_log("CD-ROM %i: Returning: %02X (buffer position: %i, request position: %i)\n", id, temp, cdrom[id].pos, cdrom[id].request_pos);
 		return temp;
@@ -3466,15 +2875,10 @@ uint32_t cdrom_read(uint8_t channel, int length)
 /* Reimplement as 8-bit due to reimplementation of IDE data read and write. */
 void cdrom_write(uint8_t channel, uint32_t val, int length)
 {
-	uint8_t i = 0;
 	uint16_t *cdbufferw;
 	uint32_t *cdbufferl;
 
-	uint8_t old_pos = 0;
-
 	uint8_t id = atapi_cdrom_drives[channel];
-
-	int ret = 0;
 
 	if (id > CDROM_NUM)
 		return;
@@ -3487,29 +2891,33 @@ void cdrom_write(uint8_t channel, uint32_t val, int length)
 	cdbufferw = (uint16_t *) cdbufferb;
 	cdbufferl = (uint32_t *) cdbufferb;
 
-	old_pos = cdrom[id].pos;
+	if (!cdbufferb)
+		return;
 
 	switch(length) {
 		case 1:
 			cdbufferb[cdrom[id].pos] = val & 0xff;
 			cdrom[id].pos++;
+			cdrom[id].request_pos++;
 			break;
 		case 2:
 			cdbufferw[cdrom[id].pos >> 1] = val & 0xffff;
 			cdrom[id].pos += 2;
+			cdrom[id].request_pos += 2;
 			break;
 		case 4:
 			cdbufferl[cdrom[id].pos >> 2] = val;
 			cdrom[id].pos += 4;
+			cdrom[id].request_pos += 4;
 			break;
 		default:
 			return;
 	}
 
 	if (cdrom[id].packet_status == CDROM_PHASE_DATA_OUT) {
-		for (i = 0; i < length; i++) {
-			ret = cdrom_mode_select_write(id, cdbufferb[old_pos + i]);
-			cdrom_mode_select_return(id, ret);
+		if ((cdrom[id].request_pos >= cdrom[id].request_length) || (cdrom[id].pos >= cdrom[id].packet_len)) {
+			/* Time for a DRQ. */
+			cdrom_pio_request(id, 1);
 		}
 		return;
 	} else if (cdrom[id].packet_status == CDROM_PHASE_IDLE) {
@@ -3534,6 +2942,8 @@ void cdrom_hard_reset(void)
 		image_reset(i);
 	else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
 		ioctl_reset(i);
+
+	cdrom_mode_sense_load(i);
     }
 }
 

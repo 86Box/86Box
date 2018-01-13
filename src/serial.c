@@ -61,10 +61,16 @@ void serial_update_ints(SERIAL *serial)
                 serial->iir = 0;
         }
 
-        if (stat && ((serial->mctrl & 8) || PCJR))
-                picintlevel(1 << serial->irq);               
-        else
+        if (stat && ((serial->mctrl & 8) || PCJR)) {
+                picintlevel(1 << serial->irq);
+        } else
                 picintc(1 << serial->irq);
+}
+
+void serial_clear_fifo(SERIAL *serial)
+{
+	memset(serial->fifo, 0, 256);
+	serial->fifo_read = serial->fifo_write = 0;
 }
 
 void serial_write_fifo(SERIAL *serial, uint8_t dat)
@@ -190,8 +196,9 @@ uint8_t serial_read(uint16_t addr, void *p)
                 serial->int_status &= ~SERIAL_INT_RECEIVE;
                 serial_update_ints(serial);
                 temp = serial_read_fifo(serial);
-                if (serial->fifo_read != serial->fifo_write)
+                if (serial->fifo_read != serial->fifo_write) {
                         serial->recieve_delay = 1000LL * TIMER_USEC;
+		}
                 break;
                 case 1:
                 if (serial->lcr & 0x80)

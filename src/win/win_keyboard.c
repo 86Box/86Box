@@ -8,11 +8,11 @@
  *
  *		Windows raw keyboard input handler.
  *
- * Version:	@(#)win_keyboard.c	1.0.4	2017/10/24
+ * Version:	@(#)win_keyboard.c	1.0.5	2018/01/09
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016,2018 Miran Grca.
  */
 #define UNICODE
 #define  _WIN32_WINNT 0x0501
@@ -31,7 +31,7 @@
 #include "win.h"
 
 
-static uint16_t	scancode_map[65536];
+static uint16_t	scancode_map[768];
 
 
 /* This is so we can disambiguate scan codes that would otherwise conflict and get
@@ -39,39 +39,16 @@ static uint16_t	scancode_map[65536];
 static UINT16
 convert_scan_code(UINT16 scan_code)
 {
-    switch (scan_code) {
-	case 0xE001:
-		return 0xF001;
-	case 0xE002:
-		return 0xF002;
-	case 0xE0AA:
-		return 0xF003;
-	case 0xE005:
-		return 0xF005;
-	case 0xE006:
-		return 0xF006;
-	case 0xE007:
-		return 0xF007;
-	case 0xE071:
-		return 0xF008;
-	case 0xE072:
-		return 0xF009;
-	case 0xE07F:
-		return 0xF00A;
-	case 0xE0E1:
-		return 0xF00B;
-	case 0xE0EE:
-		return 0xF00C;
-	case 0xE0F1:
-		return 0xF00D;
-	case 0xE0FE:
-		return 0xF00E;
-	case 0xE0EF:
-		return 0xF00F;
-
-	default:
-		return scan_code;
+    if ((scan_code & 0xFF00) == 0xE000) {
+	scan_code &= 0x00FF;
+	scan_code |= 0x0100;
+    } else if (scan_code == 0xE11D)
+	scan_code = 0xE000;
+    else if (scan_code > 0x00FF) {
+	scan_code = 0xFFFF;
     }
+
+    return scan_code;
 }
 
 
@@ -92,12 +69,11 @@ keyboard_getkeymap(void)
 
     /* First, prepare the default scan code map list which is 1:1.
      * Remappings will be inserted directly into it.
-     * 65536 bytes so scan codes fit in easily and it's easy to find
-     * what each maps too, since each array element is a scan code
-     * and provides for E0, etc. ones too.
+     * 512 bytes so this takes less memory, bit 9 set means E0
+     * prefix.
      */
-    for (j = 0; j < 65536; j++)
-	scancode_map[j] = convert_scan_code(j);
+    for (j = 0; j < 512; j++)
+	scancode_map[j] = j;
 
     /* Get the scan code remappings from:
     HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout */
@@ -114,10 +90,14 @@ keyboard_getkeymap(void)
   				scancode_unmapped = bufEx[j + 1];
   				scancode_mapped = bufEx[j];
 
+				scancode_unmapped = convert_scan_code(scancode_unmapped);
 				scancode_mapped = convert_scan_code(scancode_mapped);
+				/* pclog("Scan code map found: %04X -> %04X\n", scancode_unmapped, scancode_mapped); */
 
-				/* Fixes scan code map logging. */
-				scancode_map[scancode_unmapped] = scancode_mapped;
+				/* Ignore source scan codes with prefixes other than E1
+				   that are not E1 1D. */
+				if (scancode_unmapped != 0xFFFF)
+					scancode_map[scancode_unmapped] = scancode_mapped;
 			}
 		}
 	}
@@ -158,27 +138,30 @@ keyboard_handle(LPARAM lParam, int infocus)
 			scancode |= (0xE0 << 8);
 		}
 
+		/* Translate the scan code to 9-bit */
+		scancode = convert_scan_code(scancode);
+
 		/* Remap it according to the list from the Registry */
+                /* pclog("Scan code: %04X (map: %04X)\n", scancode, scancode_map[scancode]); */
 		scancode = scancode_map[scancode];
 
-		if ((scancode >> 8) == 0xF0) {
-			/* Extended key code in disambiguated format */
-			scancode |= 0x100;
-		} else if ((scancode >> 8) == 0xE0) {
-			/* Normal extended key code */
-			scancode |= 0x80;
-		}
-
-		/* If it's not 0 (therefore not 0xE1, 0xE2, etc),
-		   send it to the PC keyboard. */
-		if (!(scancode & 0xf00))
-			keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode & 0x1ff);
+		/* If it's not 0xFFFF, send it to the emulated
+		   keyboard.
+		   We use scan code 0xFFFF to mean a mapping that
+		   has a prefix other than E0 and that is not E1 1D,
+		   which is, for our purposes, invalid. */
+		if (scancode != 0xFFFF)
+			keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
 	} else {
 		if (rawKB.MakeCode == 0x1D) {
-			scancode = 0xFF;
+			scancode = scancode_map[0x100];	/* Translate E1 1D to 0x100 (which would
+							   otherwise be E0 00 but that is invalid
+							   anyway).
+							   Also, take a potential mapping into
+							   account. */
 		}
-		if (!(scancode & 0xf00))
-			keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode & 0x1ff);
+		if (scancode != 0xFFFF)
+			keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
 	}
     }
 

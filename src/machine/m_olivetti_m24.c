@@ -8,15 +8,15 @@
  *
  *		Emulation of the Olivetti M24.
  *
- * Version:	@(#)m_olivetti_m24.c	1.0.7	2017/12/09
+ * Version:	@(#)m_olivetti_m24.c	1.0.8	2018/01/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -544,10 +544,17 @@ kbd_poll(void *priv)
 
 
 static void
-kbd_adddata(uint8_t val)
+kbd_adddata(uint16_t val)
 {
     key_queue[key_queue_end] = val;
     key_queue_end = (key_queue_end + 1) & 0xf;
+}
+
+
+static void
+kbd_adddata_ex(uint16_t val)
+{
+    kbd_adddata_process(val, kbd_adddata);
 }
 
 
@@ -827,7 +834,7 @@ machine_olim24_init(machine_t *model)
     io_sethandler(0x0064, 1,
 		  kbd_read, NULL, NULL, kbd_write, NULL, NULL, m24);
 	keyboard_set_table(scancode_xt);
-    keyboard_send = kbd_adddata;
+    keyboard_send = kbd_adddata_ex;
     keyboard_scan = 1;
     timer_add(kbd_poll, &keyboard_delay, TIMER_ALWAYS_ENABLED, m24);
 

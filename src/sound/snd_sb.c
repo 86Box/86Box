@@ -551,7 +551,7 @@ void sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p)
                         mixer->regs[0x04] = (7 << 5) | (7 << 1);
                         mixer->regs[0x22] = (7 << 5) | (7 << 1);
                         mixer->regs[0x26] = (7 << 5) | (7 << 1);
-                        mixer->regs[0x28] = (0 << 5) | (0 << 1);
+                        mixer->regs[0x28] = (7 << 5) | (7 << 1);
                         mixer->regs[0x2E] = (0 << 5) | (0 << 1);
                         sb_dsp_set_stereo(&sb->dsp, mixer->regs[0x0E] & 2);
                 }
@@ -561,11 +561,11 @@ void sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p)
                         switch (mixer->index)
                         {
                                 /* Compatibility: chain registers 0x02 and 0x22 as well as 0x06 and 0x26 */
-                                case 0x02: case 0x06:
+                                case 0x02: case 0x06: case 0x08:
                                 mixer->regs[mixer->index+0x20]=((val&0xE) << 4)|(val&0xE) << 4;
                                 break;
                                 
-                                case 0x22: case 0x26:
+                                case 0x22: case 0x26: case 0x28:
                                 mixer->regs[mixer->index-0x20]=(val&0xE);
                                 break;
                                 
@@ -575,7 +575,7 @@ void sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p)
                                 break;
 
                                 case 0x00: case 0x04: case 0x0a: case 0x0c: case 0x0e:
-                                case 0x28: case 0x2e:
+                                case 0x2e:
                                 break;
                                 
                                 
@@ -681,12 +681,13 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
                         mixer->regs[0x33]=31 << 3;
                         mixer->regs[0x34]=31 << 3;
                         mixer->regs[0x35]=31 << 3;
-                        mixer->regs[0x36]=0 << 3;
-                        mixer->regs[0x37]=0 << 3;
+                        mixer->regs[0x36]=31 << 3;
+                        mixer->regs[0x37]=31 << 3;
                         mixer->regs[0x38]=0 << 3;
                         mixer->regs[0x39]=0 << 3;
 
                         mixer->regs[0x3A]=0 << 3;
+
                         mixer->regs[0x3B]=0 << 6;
                         mixer->regs[0x3C] = OUTPUT_MIC|OUTPUT_CD_R|OUTPUT_CD_L|OUTPUT_LINE_R|OUTPUT_LINE_L;
                         mixer->regs[0x3D] = INPUT_MIC|INPUT_CD_L|INPUT_LINE_L|INPUT_MIDI_L;
@@ -723,12 +724,12 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
                         mixer->regs[0x36] = (mixer->regs[0x28] & 0xF0) | 0x8;
                         mixer->regs[0x37] = ((mixer->regs[0x28] & 0xf) << 4) | 0x8;
                         break;
+                        case 0x0A:
+                        mixer->regs[0x3A] = (mixer->regs[0x0A]*3)+10;
+                        break;
                         case 0x2E:
                         mixer->regs[0x38] = (mixer->regs[0x2E] & 0xF0) | 0x8;
                         mixer->regs[0x39] = ((mixer->regs[0x2E] & 0xf) << 4) | 0x8;
-                        break;
-                        case 0x0A:
-                        mixer->regs[0x3A] = (mixer->regs[0x0A]*3)+10;
                         break;
 
                         /*
@@ -813,7 +814,7 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
                 case 0x04:
                 return ((mixer->regs[0x33] >> 4) & 0x0f) | (mixer->regs[0x32] & 0xf0);
                 case 0x0a:
-                return (mixer->regs[0x2a] - 10) / 3;
+                return (mixer->regs[0x3a] - 10) / 3;
                 case 0x22:
                 return ((mixer->regs[0x31] >> 4) & 0x0f) | (mixer->regs[0x30] & 0xf0);
                 case 0x26:

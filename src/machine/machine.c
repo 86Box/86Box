@@ -15,7 +15,7 @@
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2018 Fred N. van Kempen.
  */
 #include <stdio.h>

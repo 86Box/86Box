@@ -236,6 +236,7 @@ void exec386(int cycs)
         {
                 int cycle_period = (timer_count >> TIMER_SHIFT) + 1;
                 
+		x86_was_reset = 0;
                 cycdiff=0;
                 oldcyc=cycles;
                 timer_start_period(cycles << TIMER_SHIFT);
@@ -273,6 +274,8 @@ dontprint=0;
                         }
                         cpu_state.pc++;
                         x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+			if (x86_was_reset)
+				break;
 			if(x86_was_reset) break;
                 }
 

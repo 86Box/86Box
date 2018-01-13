@@ -745,9 +745,9 @@ pc_reset_hard_init(void)
     initalmain(0, NULL);
 
     /* Reset the general machine support modules. */
+    io_init();
     cpu_set();
     mem_resize();
-    io_init();
     timer_reset();
     device_init();
 
@@ -791,7 +791,7 @@ pc_reset_hard_init(void)
      * serial_init() doesn't break the serial mouse by resetting
      * the RCR callback to NULL.
      */
-    mouse_reset();
+    // mouse_reset();
 
     /* Reset the video card. */
     video_reset(gfxcard);
@@ -857,6 +857,8 @@ pc_reset_hard_init(void)
 	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
     else
 	setpitclock(14318184.0);
+
+    mouse_reset();
 }
 
 

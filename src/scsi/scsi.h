@@ -8,7 +8,7 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.9	2018/01/06
+ * Version:	@(#)scsi_h	1.0.10	2018/01/13
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -345,6 +345,12 @@ typedef struct {
     addr24	Segment;
     addr24	SegmentPointer;
 } SGE;
+#pragma pack(pop)
+
+#pragma pack(push,1)
+typedef struct {
+	uint8_t pages[0x40][0x40];
+} mode_sense_pages_t;
 #pragma pack(pop)
 
 

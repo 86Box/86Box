@@ -8,7 +8,7 @@
  *
  *		Definitions for the keyboard interface.
  *
- * Version:	@(#)keyboard.h	1.0.9	2018/01/08
+ * Version:	@(#)keyboard.h	1.0.10	2018/01/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -28,6 +28,18 @@ typedef struct {
 } scancode;
 
 
+#define STATE_SHIFT_MASK	0x22
+#define STATE_RSHIFT		0x20
+#define STATE_LSHIFT		0x02
+
+#define FAKE_LSHIFT_ON		0x100
+#define FAKE_LSHIFT_OFF		0x101
+#define LSHIFT_ON		0x102
+#define LSHIFT_OFF		0x103
+#define RSHIFT_ON		0x104
+#define RSHIFT_OFF		0x105
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -36,11 +48,12 @@ extern uint8_t	keyboard_mode;
 extern int	keyboard_scan;
 extern int64_t	keyboard_delay;
 
-extern void	(*keyboard_send)(uint8_t val);
+extern void	(*keyboard_send)(uint16_t val);
+extern void	kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val));
 
-extern scancode scancode_xt[272];
+extern scancode scancode_xt[512];
 
-extern uint8_t	keyboard_set3_flags[272];
+extern uint8_t	keyboard_set3_flags[512];
 extern uint8_t	keyboard_set3_all_repeat;
 extern uint8_t	keyboard_set3_all_break;
 extern int	mouse_queue_start, mouse_queue_end;
@@ -65,6 +78,10 @@ extern void	keyboard_poll_host(void);
 extern void	keyboard_process(void);
 extern uint16_t	keyboard_convert(int ch);
 extern void	keyboard_input(int down, uint16_t scan);
+extern void	keyboard_update_states(uint8_t cl, uint8_t nl, uint8_t sl);
+extern uint8_t	keyboard_get_shift(void);
+extern void	keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl);
+extern void	keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl);
 extern int	keyboard_recv(uint16_t key);
 extern int	keyboard_isfsexit(void);
 extern int	keyboard_ismsexit(void);

@@ -10,7 +10,7 @@
  *
  * TODO:	Add the Genius Serial Mouse.
  *
- * Version:	@(#)mouse_serial.c	1.0.18	2017/12/14
+ * Version:	@(#)mouse_serial.c	1.0.19	2018/01/12
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -58,6 +58,7 @@ sermouse_callback(struct SERIAL *serial, void *priv)
 
     /* Start a timer to wake us up in a little while. */
     dev->pos = -1;
+    serial_clear_fifo((SERIAL *) serial);
     dev->delay = 5000LL * (1LL << TIMER_SHIFT);
 }
 
