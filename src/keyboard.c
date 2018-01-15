@@ -8,7 +8,7 @@
  *
  *		General keyboard driver interface.
  *
- * Version:	@(#)keyboard.c	1.0.12	2018/01/14
+ * Version:	@(#)keyboard.c	1.0.13	2018/01/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -406,9 +406,9 @@ keyboard_recv(uint16_t key)
 int
 keyboard_isfsexit(void)
 {
-    return( (recv_key[0x1D] || recv_key[0x9D]) &&
-	    (recv_key[0x38] || recv_key[0xB8]) &&
-	    (recv_key[0x51] || recv_key[0xD1]) );
+    return( (recv_key[0x01D] || recv_key[0x11D]) &&
+	    (recv_key[0x038] || recv_key[0x138]) &&
+	    (recv_key[0x051] || recv_key[0x151]) );
 }
 
 
@@ -418,9 +418,9 @@ keyboard_ismsexit(void)
 {
 #ifdef _WIN32
     /* Windows: F8+F12 */
-    return( recv_key[0x42] && recv_key[0x58] );
+    return( recv_key[0x042] && recv_key[0x058] );
 #else
     /* WxWidgets cannot do two regular keys.. CTRL+END */
-    return( (recv_key[0x1D] || recv_key[0x9D]) && (recv_key[0x14F] || recv_key[0x1CF]) );
+    return( (recv_key[0x01D] || recv_key[0x11D]) && (recv_key[0x04F] || recv_key[0x14F]) );
 #endif
 }
