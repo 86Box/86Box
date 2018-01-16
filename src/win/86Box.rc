@@ -8,12 +8,12 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.22	2017/12/09
+ * Version:	@(#)86Box.rc	1.0.23	2018/01/16
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016,2018 Miran Grca.
  */
 #include <inttypes.h>
 #define IN_RESOURCE_H
@@ -935,10 +935,10 @@ BEGIN
         BEGIN
             VALUE "Comments", "\0"
             VALUE "CompanyName", "IRC #SoftHistory\0"
-            VALUE "FileDescription", "86Box - an emulator for X86-based systems\0"
+            VALUE "FileDescription", "86Box - an emulator for x86-based systems\0"
             VALUE "FileVersion", "2.00\0"
             VALUE "InternalName", "86Box\0"
-            VALUE "LegalCopyright", "Copyright (C)SoftHistory, Sarah Walker, 2007-2017, Released under the GNU GPL v2\0"
+            VALUE "LegalCopyright", "Copyright © 2007-2018 SoftHistory, Sarah Walker. Released under the GNU GPL v2\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "86Box.exe\0"
             VALUE "PrivateBuild", "\0"
