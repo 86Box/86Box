@@ -8,7 +8,7 @@
  *
  *		Emulation of the NatSemi PC87306 Super I/O chip.
  *
- * Version:	@(#)sio_pc87306.c	1.0.8	2018/01/16
+ * Version:	@(#)sio_pc87306.c	1.0.9	2018/01/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -469,7 +469,7 @@ void pc87306_reset(void)
 
 void pc87306_init()
 {
-	device_add(&fdc_at_nsc_device);
+	pc87306_fdc = device_add(&fdc_at_nsc_device);
 
 	lpt2_remove();
 
