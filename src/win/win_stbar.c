@@ -8,13 +8,13 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.7	2017/12/13
+ * Version:	@(#)win_stbar.c	1.0.8	2018/01/16
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -38,7 +38,6 @@
 #include "../cdrom/cdrom_null.h"
 #include "../disk/hdd.h"
 #include "../disk/hdc.h"
-#include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
 #include "../scsi/scsi.h"
 #include "../scsi/scsi_disk.h"
@@ -826,9 +825,9 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				ret = file_dlg_w_st(hwnd, IDS_2159, floppyfns[id], 0);
 				if (! ret) {
-					floppy_close(id);
+					fdd_close(id);
 					ui_writeprot[id] = (item_id == IDM_FLOPPY_IMAGE_EXISTING_WP) ? 1 : 0;
-					floppy_load(id, wopenfilestring);
+					fdd_load(id, wopenfilestring);
 					ui_sb_update_icon_state(SB_FLOPPY | id, wcslen(floppyfns[id]) ? 0 : 1);
 					EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
 					ui_sb_update_tip(SB_FLOPPY | id);
@@ -842,7 +841,7 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if ((part == -1) || (sb_menu_handles == NULL))
 						break;
 
-				floppy_close(id);
+				fdd_close(id);
 				ui_sb_update_icon_state(SB_FLOPPY | id, 1);
 				EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
 				ui_sb_update_tip(SB_FLOPPY | id);

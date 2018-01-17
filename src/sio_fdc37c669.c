@@ -8,10 +8,10 @@
  *
  *		Implementation of the SMC FDC37C669 Super I/O Chip.
  *
- * Version:	@(#)sio_fdc37c669.c	1.0.6	2017/11/04
+ * Version:	@(#)sio_fdc37c669.c	1.0.7	2018/01/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -25,9 +25,8 @@
 #include "serial.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
-#include "floppy/floppy.h"
-#include "floppy/fdc.h"
 #include "floppy/fdd.h"
+#include "floppy/fdc.h"
 #include "sio.h"
 
 
@@ -36,6 +35,7 @@ static int fdc37c669_rw_locked = 0;
 static int fdc37c669_curreg = 0;
 static uint8_t fdc37c669_regs[42];
 static uint8_t tries;
+static fdc_t *fdc37c669_fdc;
 
 static uint16_t make_port(uint8_t reg)
 {
@@ -131,8 +131,8 @@ process_value:
 #endif
 			if (valxor & 8)
 			{
-				fdc_remove();
-				if ((fdc37c669_regs[0] & 8) && (fdc37c669_regs[0x20] & 0xc0))  fdc_set_base(make_port(0x20), 1);
+				fdc_remove(fdc37c669_fdc);
+				if ((fdc37c669_regs[0] & 8) && (fdc37c669_regs[0x20] & 0xc0))  fdc_set_base(fdc37c669_fdc, make_port(0x20));
 			}
 			break;
 		case 1:
@@ -174,21 +174,21 @@ process_value:
 			}
 			break;
 		case 3:
-			if (valxor & 2)  fdc_update_enh_mode((val & 2) ? 1 : 0);
+			if (valxor & 2)  fdc_update_enh_mode(fdc37c669_fdc, (val & 2) ? 1 : 0);
 			break;
 		case 5:
-			if (valxor & 0x18)  fdc_update_densel_force((val & 0x18) >> 3);
-			if (valxor & 0x20)  fdd_swap = ((val & 0x20) >> 5);
+			if (valxor & 0x18)  fdc_update_densel_force(fdc37c669_fdc, (val & 0x18) >> 3);
+			if (valxor & 0x20)  fdc_set_swap(fdc37c669_fdc, (val & 0x20) >> 5);
 			break;
 		case 0xB:
-			if (valxor & 3)  fdc_update_rwc(0, val & 3);
-			if (valxor & 0xC)  fdc_update_rwc(1, (val & 0xC) >> 2);
+			if (valxor & 3)  fdc_update_rwc(fdc37c669_fdc, 0, val & 3);
+			if (valxor & 0xC)  fdc_update_rwc(fdc37c669_fdc, 1, (val & 0xC) >> 2);
 			break;
 		case 0x20:
 			if (valxor & 0xfc)
 			{
-				fdc_remove();
-				if ((fdc37c669_regs[0] & 8) && (fdc37c669_regs[0x20] & 0xc0))  fdc_set_base(make_port(0x20), 1);
+				fdc_remove(fdc37c669_fdc);
+				if ((fdc37c669_regs[0] & 8) && (fdc37c669_regs[0x20] & 0xc0))  fdc_set_base(fdc37c669_fdc, make_port(0x20));
 			}
 			break;
 		case 0x21:
@@ -294,10 +294,7 @@ uint8_t fdc37c669_read(uint16_t port, void *priv)
 
 void fdc37c669_reset(void)
 {
-	fdc_remove();
-	fdc_add_for_superio();
-
-        fdc_update_is_nsc(0);
+	fdc_reset(fdc37c669_fdc);
 
 	serial_remove(1);
 	serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
@@ -309,7 +306,7 @@ void fdc37c669_reset(void)
 
 	lpt1_remove();
 	lpt1_init(0x378);
-        
+
 	memset(fdc37c669_regs, 0, 42);
 	fdc37c669_regs[0] = 0x28;
 	fdc37c669_regs[1] = 0x9C;
@@ -337,15 +334,14 @@ void fdc37c669_reset(void)
 	fdc37c669_regs[0x27] = (6 << 4) | 7;
 	fdc37c669_regs[0x28] = (4 << 4) | 3;
 
-	fdc_update_densel_polarity(1);
-	fdc_update_densel_force(0);
-	fdd_swap = 0;
         fdc37c669_locked = 0;
         fdc37c669_rw_locked = 0;
 }
 
 void fdc37c669_init()
 {
+        fdc37c669_fdc = device_add(&fdc_at_smc_device);
+
         io_sethandler(0x3f0, 0x0002, fdc37c669_read, NULL, NULL, fdc37c669_write, NULL, NULL,  NULL);
 
 	fdc37c669_reset();

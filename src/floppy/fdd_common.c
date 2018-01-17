@@ -8,10 +8,10 @@
  *
  *		Shared code for all the floppy modules.
  *
- * Version:	@(#)floppy_common.c	1.0.4	2017/11/04
+ * Version:	@(#)fdd_common.c	1.0.5	2018/01/16
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -19,15 +19,15 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../floppy/floppy.h"
-#include "floppy_common.h"
+#include "fdd.h"
+#include "fdd_common.h"
 
 
-uint8_t floppy_holes[6] = { 0, 0, 0, 1, 1, 2 };
+uint8_t fdd_holes[6] = { 0, 0, 0, 1, 1, 2 };
 
-uint8_t floppy_rates[6] = { 2, 2, 1, 4, 0, 3 };
+uint8_t fdd_rates[6] = { 2, 2, 1, 4, 0, 3 };
 
-double floppy_bit_rates_300[6] = {
+double fdd_bit_rates_300[6] = {
     (250.0 * 300.0) / 360.0,
     250.0,
     300.0,
@@ -46,7 +46,7 @@ double floppy_bit_rates_300[6] = {
  * Disks formatted at 300 kbps @ 300 RPM can be read with any 300 RPM
  * single-RPM drive by setting the rate to 300 kbps.
  */
-uint8_t floppy_max_sectors[8][6] = {
+uint8_t fdd_max_sectors[8][6] = {
     { 26, 31, 38, 53, 64, 118 },	/*   128 */
     { 15, 19, 23, 32, 38,  73 },	/*   256 */
     {  7, 10, 12, 17, 22,  41 },	/*   512 */
@@ -57,12 +57,12 @@ uint8_t floppy_max_sectors[8][6] = {
     {  0,  0,  0,  0,  0,   1 }		/* 16384 */
 };
 
-uint8_t	floppy_dmf_r[21] = {
+uint8_t	fdd_dmf_r[21] = {
     12,2,13,3,14,4,15,5,16,6,17,7,18,8,19,9,20,10,21,11,1
 };
 
 
-static uint8_t floppy_gap3_sizes[5][8][48] = {
+static uint8_t fdd_gap3_sizes[5][8][48] = {
     {	{ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 	  0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,	/* [0][0] */
 	  0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -348,14 +348,14 @@ static uint8_t floppy_gap3_sizes[5][8][48] = {
 
 
 int
-floppy_get_gap3_size(int rate, int size, int sector)
+fdd_get_gap3_size(int rate, int size, int sector)
 {
-    return(floppy_gap3_sizes[rate][size][sector]);
+    return(fdd_gap3_sizes[rate][size][sector]);
 }
 
 
 uint8_t
-floppy_sector_size_code(int size)
+fdd_sector_size_code(int size)
 {
     int ret = 2;
 
@@ -401,14 +401,14 @@ floppy_sector_size_code(int size)
 
 
 int
-floppy_sector_code_size(uint8_t code)
+fdd_sector_code_size(uint8_t code)
 {
     return(128 << code);
 }
 
 
 int
-floppy_bps_valid(uint16_t bps)
+fdd_bps_valid(uint16_t bps)
 {
     int i;
 
@@ -423,7 +423,7 @@ floppy_bps_valid(uint16_t bps)
 
 
 int
-floppy_interleave(int sector, int skew, int spt)
+fdd_interleave(int sector, int skew, int spt)
 {
     uint32_t add = (spt & 1);
     uint32_t adjust = (spt >> 1);

@@ -9,13 +9,13 @@
  *		Implementation of the CD-ROM host drive IOCTL interface for
  *		Windows using SCSI Passthrough Direct.
  *
- * Version:	@(#)cdrom_ioctl.c	1.0.8	2017/11/24
+ * Version:	@(#)cdrom_ioctl.c	1.0.9	2018/01/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2016 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #define WINVER 0x0600
 #include <windows.h>
@@ -573,13 +573,16 @@ static int is_track_audio(uint8_t id, uint32_t pos)
 		return 0;
 	}
 
-	for (c = 0; c <= cdrom_ioctl_windows[id].toc.LastTrack; c++)
+	for (c = 0; cdrom_ioctl_windows[id].toc.TrackData[c].TrackNumber != 0xaa; c++)
 	{
 		track_address = MSFtoLBA(cdrom_ioctl_windows[id].toc.TrackData[c].Address[1],cdrom_ioctl_windows[id].toc.TrackData[c].Address[2],cdrom_ioctl_windows[id].toc.TrackData[c].Address[3]);
 
-		if (track_address <= pos)
+		if (cdrom_ioctl_windows[id].toc.TrackData[c].TrackNumber >= cdrom_ioctl_windows[id].toc.FirstTrack &&
+		    cdrom_ioctl_windows[id].toc.TrackData[c].TrackNumber <= cdrom_ioctl_windows[id].toc.LastTrack &&
+		    track_address <= pos)
 		{
 			control = cdrom_ioctl_windows[id].toc.TrackData[c].Control;
+			break;
 		}
 	}
 
@@ -1048,7 +1051,6 @@ static int ioctl_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
                         break;
                 }
         }
-        b[2]=cdrom_ioctl_windows[id].toc.TrackData[c].TrackNumber;
         last_block = 0;
         for (c=d;c<=cdrom_ioctl_windows[id].toc.LastTrack;c++)
         {

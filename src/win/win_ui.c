@@ -8,15 +8,15 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.11	2017/12/28
+ * Version:	@(#)win_ui.c	1.0.12	2018/01/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #define UNICODE
 #include <windows.h>
@@ -173,6 +173,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+1, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+2, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+3, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_FS_FULL+4, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_REMEMBER, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X+0, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X+1, MF_UNCHECKED);
@@ -309,6 +310,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				win_settings_open(hwnd);
 				break;
 
+			case IDM_SND_GAIN:
+				SoundGainDialogCreate(hwnd);
+				break;
+
 			case IDM_ABOUT:
 				AboutDialogCreate(hwnd);
 				break;
@@ -378,6 +383,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_FS_43:
 			case IDM_VID_FS_SQ:                                
 			case IDM_VID_FS_INT:
+			case IDM_VID_FS_KEEPRATIO:
 				CheckMenuItem(hmenu, IDM_VID_FS_FULL+video_fullscreen_scale, MF_UNCHECKED);
 				video_fullscreen_scale = LOWORD(wParam) - IDM_VID_FS_FULL;
 				CheckMenuItem(hmenu, IDM_VID_FS_FULL+video_fullscreen_scale, MF_CHECKED);

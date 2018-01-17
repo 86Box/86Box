@@ -8,14 +8,14 @@
  *
  *		Emulation of various Compaq XT-class PC's.
  *
- * Version:	@(#)m_xt_compaq.c	1.0.1	2017/11/11
+ * Version:	@(#)m_xt_compaq.c	1.0.2	2018/01/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -28,6 +28,8 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "../game/gameport.h"
 #include "../keyboard.h"
 #include "machine.h"
@@ -41,6 +43,7 @@ machine_xt_compaq_init(machine_t *model)
     pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
 
     device_add(&keyboard_xt_device);
+    device_add(&fdc_xt_device);
     nmi_init();
     if (joystick_type != 7)
 	device_add(&gameport_device);

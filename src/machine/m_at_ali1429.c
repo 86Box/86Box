@@ -11,6 +11,8 @@
 #include "../mem.h"
 #include "../device.h"
 #include "../keyboard.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "../disk/hdc.h"
 #include "../disk/hdc_ide.h"
 #include "machine.h"
@@ -101,7 +103,9 @@ machine_at_ali1429_init(machine_t *model)
         ali1429_reset();
 
         machine_at_common_ide_init(model);
+
 	device_add(&keyboard_at_ami_device);
+	device_add(&fdc_at_device);
 
         ali1429_init();
 

@@ -110,6 +110,10 @@ extern int	ui_init(int nCmdShow);
 extern void	AboutDialogCreate(HWND hwnd);
 
 
+/* Functions in win_snd_gain.c: */
+extern void	SoundGainDialogCreate(HWND hwnd);
+
+
 /* Functions in win_status.c: */
 extern HWND	hwndStatus;
 extern void	StatusWindowCreate(HWND hwnd);

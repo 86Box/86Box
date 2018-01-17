@@ -28,15 +28,15 @@
  *		boot. Sometimes, they do, and then it shows an "Incorrect
  *		DOS" error message??  --FvK
  *
- * Version:	@(#)m_ps1.c	1.0.4	2018/01/04
+ * Version:	@(#)m_ps1.c	1.0.5	2018/01/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016,2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -61,7 +61,6 @@
 #include "../keyboard.h"
 #include "../disk/hdc.h"
 #include "../disk/hdc_ide.h"
-#include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
 #include "../sound/sound.h"
@@ -554,8 +553,13 @@ ps1_common_init(machine_t *model)
 
     device_add(&keyboard_ps2_device);
 
-    if (romset != ROM_IBMPS1_2133) {			
-	fdc_set_dskchg_activelow();
+    if (romset == ROM_IBMPS1_2133)
+	device_add(&fdc_at_device);
+    else {
+	if ((romset == ROM_IBMPS1_2121) || (romset == ROM_IBMPS1_2121_ISA))
+		device_add(&fdc_at_ps1_device);
+	else
+		device_add(&fdc_at_actlow_device);
 	device_add(&snd_device);
     }
 
@@ -580,8 +584,6 @@ machine_ps1_m2121_init(machine_t *model)
     ps1_common_init(model);
 
     ps1_setup(2121);
-
-    fdc_set_ps1();
 }
 
 

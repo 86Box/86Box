@@ -67,7 +67,7 @@
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *		
- * Version:	@(#)europc.c	1.0.5	2017/11/18
+ * Version:	@(#)europc.c	1.0.6	2018/01/16
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -76,7 +76,7 @@
  *		Schneider's schematics and technical manuals, and the
  *		input from people with real EuroPC hardware.
  *
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -90,6 +90,8 @@
 #include "../rom.h"
 #include "../nvr.h"
 #include "../device.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "../disk/hdc.h"
 #include "../keyboard.h"
 #include "../mouse.h"
@@ -699,6 +701,9 @@ machine_europc_init(machine_t *model)
 
     /* Initialize the actual NVR. */
     nvr_init(&vm->nvr);
+
+    /* Enable and set up the FDC. */
+    device_add(&fdc_xt_device);
 
     /* Enable and set up the mainboard device. */
     device_add(&europc_device);

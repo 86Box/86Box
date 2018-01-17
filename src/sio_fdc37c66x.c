@@ -9,13 +9,13 @@
  *		Implementation of the SMC FDC37C663 and FDC37C665 Super
  *		I/O Chips.
  *
- * Version:	@(#)sio_fdc37c66x.c	1.0.9	2017/11/04
+ * Version:	@(#)sio_fdc37c66x.c	1.0.10	2018/01/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -29,9 +29,8 @@
 #include "serial.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
-#include "floppy/floppy.h"
-#include "floppy/fdc.h"
 #include "floppy/fdd.h"
+#include "floppy/fdc.h"
 #include "sio.h"
 
 
@@ -39,14 +38,15 @@ static uint8_t fdc37c66x_lock[2];
 static int fdc37c66x_curreg;
 static uint8_t fdc37c66x_regs[16];
 static int com3_addr, com4_addr;
+static fdc_t *fdc37c66x_fdc;
 
 
 static void write_lock(uint8_t val)
 {
         if (val == 0x55 && fdc37c66x_lock[1] == 0x55)
-                fdc_3f1_enable(0);
+                fdc_3f1_enable(fdc37c66x_fdc, 0);
         if (fdc37c66x_lock[0] == 0x55 && fdc37c66x_lock[1] == 0x55 && val != 0x55)
-                fdc_3f1_enable(1);
+                fdc_3f1_enable(fdc37c66x_fdc, 1);
 
         fdc37c66x_lock[0] = fdc37c66x_lock[1];
         fdc37c66x_lock[1] = val;
@@ -235,7 +235,7 @@ static void fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
 				case 3:
 					if (valxor & 2)
 					{
-						fdc_update_enh_mode((fdc37c66x_regs[3] & 2) ? 1 : 0);
+						fdc_update_enh_mode(fdc37c66x_fdc, (fdc37c66x_regs[3] & 2) ? 1 : 0);
 					}
 					break;
 				case 5:
@@ -245,11 +245,11 @@ static void fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
 					}
 					if (valxor & 0x18)
 					{
-						fdc_update_densel_force((fdc37c66x_regs[5] & 0x18) >> 3);
+						fdc_update_densel_force(fdc37c66x_fdc, (fdc37c66x_regs[5] & 0x18) >> 3);
 					}
 					if (valxor & 0x20)
 					{
-						fdd_swap = ((fdc37c66x_regs[5] & 0x20) >> 5);
+						fdc_set_swap(fdc37c66x_fdc, (fdc37c66x_regs[5] & 0x20) >> 5);
 					}
 					break;
                         }
@@ -277,11 +277,6 @@ static void fdc37c66x_reset(void)
 	com3_addr = 0x338;
 	com4_addr = 0x238;
 
-	fdc_remove();
-	fdc_add_for_superio();
-
-        fdc_update_is_nsc(0);
-        
 	serial_remove(1);
 	serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
 
@@ -292,6 +287,8 @@ static void fdc37c66x_reset(void)
 
 	lpt1_remove();
 	lpt1_init(0x378);
+
+	fdc_reset(fdc37c66x_fdc);
         
 	memset(fdc37c66x_lock, 0, 2);
 	memset(fdc37c66x_regs, 0, 16);
@@ -301,10 +298,6 @@ static void fdc37c66x_reset(void)
         fdc37c66x_regs[0x3] = 0x78;
         fdc37c66x_regs[0x6] = 0xff;
         fdc37c66x_regs[0xe] = 0x01;
-
-	fdc_update_densel_polarity(1);
-	fdc_update_densel_force(0);
-	fdd_swap = 0;
 }
 
 static void fdc37c663_reset(void)
@@ -321,6 +314,8 @@ static void fdc37c665_reset(void)
 
 void fdc37c663_init()
 {
+	fdc37c66x_fdc = device_add(&fdc_at_smc_device);
+
         io_sethandler(0x03f0, 0x0002, fdc37c66x_read, NULL, NULL, fdc37c66x_write, NULL, NULL,  NULL);
 
 	fdc37c663_reset();
@@ -330,6 +325,8 @@ void fdc37c663_init()
 
 void fdc37c665_init()
 {
+	fdc37c66x_fdc = device_add(&fdc_at_smc_device);
+
         io_sethandler(0x03f0, 0x0002, fdc37c66x_read, NULL, NULL, fdc37c66x_write, NULL, NULL,  NULL);
 
 	fdc37c665_reset();

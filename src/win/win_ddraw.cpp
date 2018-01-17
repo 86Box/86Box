@@ -11,15 +11,15 @@
  * NOTES:	This code should be re-merged into a single init() with a
  *		'fullscreen' argument, indicating FS mode is requested.
  *
- * Version:	@(#)win_ddraw.cpp	1.0.4	2017/12/15
+ * Version:	@(#)win_ddraw.cpp	1.0.5	2018/01/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -156,16 +156,26 @@ SaveBitmap(wchar_t *szFilename, HBITMAP hBitmap)
 
 
 static void
+ddraw_fs_size_default(RECT w_rect, RECT *r_dest)
+{
+	r_dest->left   = 0;
+	r_dest->top    = 0;
+	r_dest->right  = (w_rect.right  - w_rect.left) - 1;
+	r_dest->bottom = (w_rect.bottom - w_rect.top) - 1;
+}
+
+
+static void
 ddraw_fs_size(RECT w_rect, RECT *r_dest, int w, int h)
 {
     int ratio_w, ratio_h;
+    double hsr, gsr, ra, d;
+
+    pclog("video_fullscreen_scale = %i\n", video_fullscreen_scale);
 
     switch (video_fullscreen_scale) {
 	case FULLSCR_SCALE_FULL:
-		r_dest->left   = 0;
-		r_dest->top    = 0;
-		r_dest->right  = (w_rect.right  - w_rect.left) - 1;
-		r_dest->bottom = (w_rect.bottom - w_rect.top) - 1;
+		ddraw_fs_size_default(w_rect, r_dest);
 		break;
 
 	case FULLSCR_SCALE_43:
@@ -203,6 +213,38 @@ ddraw_fs_size(RECT w_rect, RECT *r_dest, int w, int h)
 		r_dest->right  = ((w_rect.right  - w_rect.left) / 2) + ((w * ratio_w) / 2) - 1;
 		r_dest->top    = ((w_rect.bottom - w_rect.top)  / 2) - ((h * ratio_w) / 2);
 		r_dest->bottom = ((w_rect.bottom - w_rect.top)  / 2) + ((h * ratio_w) / 2) - 1;
+		break;
+
+	case FULLSCR_SCALE_KEEPRATIO:
+		hsr = ((double) (w_rect.right  - w_rect.left)) / ((double) (w_rect.bottom - w_rect.top));
+		gsr = ((double) w) / ((double) h);
+
+		if (hsr > gsr) {
+			/* Host ratio is bigger than guest ratio. */
+			ra = ((double) (w_rect.bottom - w_rect.top)) / ((double) h);
+
+			d = ((double) w) * ra;
+			d = (((double) (w_rect.right  - w_rect.left)) - d) / 2.0;
+
+			r_dest->left   = ((int) d);
+			r_dest->right  = (w_rect.right  - w_rect.left) - ((int) d) - 1;
+			r_dest->top    = 0;
+			r_dest->bottom = (w_rect.bottom - w_rect.top)  - 1;
+		} else if (hsr < gsr) {
+			/* Host ratio is smaller or rqual than guest ratio. */
+			ra = ((double) (w_rect.right  - w_rect.left)) / ((double) w);
+
+			d = ((double) h) * ra;
+			d = (((double) (w_rect.bottom - w_rect.top)) - d) / 2.0;
+
+			r_dest->left   = 0;
+			r_dest->right  = (w_rect.right  - w_rect.left) - 1;
+			r_dest->top    = ((int) d);
+			r_dest->bottom = (w_rect.bottom - w_rect.top)  - ((int) d) - 1;
+		} else {
+			/* Host ratio is equal to guest ratio. */
+			ddraw_fs_size_default(w_rect, r_dest);
+		}
 		break;
     }
 }

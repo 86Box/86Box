@@ -261,6 +261,8 @@ SeeAlso: #P0178,#P0187
 #include "../device.h"
 #include "../keyboard.h"
 #include "../mem.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "machine.h"
 
 
@@ -324,7 +326,9 @@ void
 machine_at_opti495_init(machine_t *model)
 {
         machine_at_common_ide_init(model);
+
 	device_add(&keyboard_at_device);
+	device_add(&fdc_at_device);
 
         opti495_init();
 }
@@ -334,7 +338,9 @@ void
 machine_at_opti495_ami_init(machine_t *model)
 {
         machine_at_common_ide_init(model);
+
 	device_add(&keyboard_at_ami_device);
+	device_add(&fdc_at_device);
 
         opti495_init();
 }

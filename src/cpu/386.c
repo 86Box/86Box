@@ -16,7 +16,7 @@
 #include "../pic.h"
 #include "../pit.h"
 #include "../timer.h"
-#include "../floppy/floppy.h"
+#include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
 #include "386_common.h"
 

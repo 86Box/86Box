@@ -9,13 +9,13 @@
  *		Implementation of the FDI floppy stream image format
  *		interface to the FDI2RAW module.
  *
- * Version:	@(#)floppy_fdi.c	1.0.6	2017/12/14
+ * Version:	@(#)fdd_fdi.c	1.0.7	2018/01/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -23,12 +23,11 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../plat.h"
-#include "floppy.h"
-#include "floppy_86f.h"
-#include "floppy_img.h"
-#include "floppy_fdi.h"
-#include "fdc.h"
 #include "fdd.h"
+#include "fdd_86f.h"
+#include "fdd_img.h"
+#include "fdd_fdi.h"
+#include "fdc.h"
 #include "fdi2raw.h"
 
 
@@ -46,6 +45,8 @@ static struct
         
         int lasttrack;
 } fdi[FDD_NUM];
+
+static fdc_t *fdi_fdc;
 
 uint16_t fdi_disk_flags(int drive)
 {
@@ -111,12 +112,12 @@ uint16_t fdi_side_flags(int drive)
 
 int fdi_density()
 {
-	if (!fdc_is_mfm())
+	if (!fdc_is_mfm(fdi_fdc))
 	{
 		return 0;
 	}
 
-	switch (fdc_get_bit_rate())
+	switch (fdc_get_bit_rate(fdi_fdc))
 	{
 		case 0:
 			return 2;
@@ -142,9 +143,9 @@ int32_t fdi_extra_bit_cells(int drive, int side)
 
 	density = fdi_density();
 
-	is_300_rpm = (fdd_getrpm(real_drive(drive)) == 300);
+	is_300_rpm = (fdd_getrpm(drive) == 300);
 
-	switch (fdc_get_bit_rate())
+	switch (fdc_get_bit_rate(fdi_fdc))
 	{
 		case 0:
 			raw_size = is_300_rpm ? 200000 : 166666;
@@ -322,15 +323,25 @@ void fdi_seek(int drive, int track)
 			track /= 2;
 		}
 	}
+
+	d86f_set_cur_track(drive, track);
         
         if (!fdi[drive].f)
                 return;
         if (track < 0)
                 track = 0;
+
+#if 0
         if (track > fdi[drive].lasttrack)
                 track = fdi[drive].lasttrack - 1;
+#endif
 
 	fdi[drive].track = track;
 
 	fdi_read_revolution(drive);
+}
+
+void fdi_set_fdc(void *fdc)
+{
+	fdi_fdc = (fdc_t *) fdc;
 }

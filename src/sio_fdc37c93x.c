@@ -9,10 +9,10 @@
  *		Implementation of the SMC FDC37C932FR and FDC37C935 Super
  *		I/O Chips.
  *
- * Version:	@(#)sio_fdc37c93x.c	1.0.10	2018/01/04
+ * Version:	@(#)sio_fdc37c93x.c	1.0.10	2018/01/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -26,9 +26,8 @@
 #include "serial.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
-#include "floppy/floppy.h"
-#include "floppy/fdc.h"
 #include "floppy/fdd.h"
+#include "floppy/fdc.h"
 #include "sio.h"
 
 
@@ -38,6 +37,7 @@ static int fdc37c93x_gpio_reg = 0;
 static uint8_t fdc37c93x_regs[48];
 static uint8_t fdc37c93x_ld_regs[10][256];
 static uint8_t fdc37c93x_gpio_base = 0x00EA;
+static fdc_t *fdc37c93x_fdc;
 
 static uint8_t tries;
 
@@ -70,14 +70,14 @@ static void fdc37c93x_fdc_handler(void)
 	uint8_t global_enable = !!(fdc37c93x_regs[0x22] & (1 << 0));
 	uint8_t local_enable = !!fdc37c93x_ld_regs[0][0x30];
 
-	fdc_remove();
+	fdc_remove(fdc37c93x_fdc);
 	/* pclog("fdc37c93x: Removing FDC (%i, %i)\n", global_enable, local_enable); */
 	if (global_enable && local_enable)
 	{
 		ld_port = make_port(0);
 		/* pclog("fdc37c93x: Setting FDC port to %04X\n", ld_port); */
 		if ((ld_port >= 0x0100) && (ld_port <= 0x0FF8)) {
-			fdc_set_base(ld_port, 1);
+			fdc_set_base(fdc37c93x_fdc, ld_port);
 		}
 	}
 }
@@ -216,7 +216,7 @@ static void fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 			if (tries)
 			{
 				fdc37c93x_locked = 1;
-				fdc_3f1_enable(0);
+				fdc_3f1_enable(fdc37c93x_fdc, 0);
 				tries = 0;
 			}
 			else
@@ -231,7 +231,7 @@ static void fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 				if (val == 0xaa)
 				{
 					fdc37c93x_locked = 0;
-					fdc_3f1_enable(1);
+					fdc_3f1_enable(fdc37c93x_fdc, 1);
 					return;
 				}
 				fdc37c93x_curreg = val;
@@ -306,29 +306,29 @@ process_value:
 					}
 					break;
 				case 0xF0:
-					if (valxor & 0x01)  fdc_update_enh_mode(val & 0x01);
-					if (valxor & 0x10)  fdd_swap = ((val & 0x10) >> 4);
+					if (valxor & 0x01)  fdc_update_enh_mode(fdc37c93x_fdc, val & 0x01);
+					if (valxor & 0x10)  fdc_set_swap(fdc37c93x_fdc, (val & 0x10) >> 4);
 					break;
 				case 0xF1:
-					if (valxor & 0xC)  fdc_update_densel_force((val & 0xC) >> 2);
+					if (valxor & 0xC)  fdc_update_densel_force(fdc37c93x_fdc, (val & 0xC) >> 2);
 					break;
 				case 0xF2:
-					if (valxor & 0xC0)  fdc_update_rwc(3, (valxor & 0xC0) >> 6);
-					if (valxor & 0x30)  fdc_update_rwc(2, (valxor & 0x30) >> 4);
-					if (valxor & 0x0C)  fdc_update_rwc(1, (valxor & 0x0C) >> 2);
-					if (valxor & 0x03)  fdc_update_rwc(0, (valxor & 0x03));
+					if (valxor & 0xC0)  fdc_update_rwc(fdc37c93x_fdc, 3, (valxor & 0xC0) >> 6);
+					if (valxor & 0x30)  fdc_update_rwc(fdc37c93x_fdc, 2, (valxor & 0x30) >> 4);
+					if (valxor & 0x0C)  fdc_update_rwc(fdc37c93x_fdc, 1, (valxor & 0x0C) >> 2);
+					if (valxor & 0x03)  fdc_update_rwc(fdc37c93x_fdc, 0, (valxor & 0x03));
 					break;
 				case 0xF4:
-					if (valxor & 0x18)  fdc_update_drvrate(0, (val & 0x18) >> 3);
+					if (valxor & 0x18)  fdc_update_drvrate(fdc37c93x_fdc, 0, (val & 0x18) >> 3);
 					break;
 				case 0xF5:
-					if (valxor & 0x18)  fdc_update_drvrate(1, (val & 0x18) >> 3);
+					if (valxor & 0x18)  fdc_update_drvrate(fdc37c93x_fdc, 1, (val & 0x18) >> 3);
 					break;
 				case 0xF6:
-					if (valxor & 0x18)  fdc_update_drvrate(2, (val & 0x18) >> 3);
+					if (valxor & 0x18)  fdc_update_drvrate(fdc37c93x_fdc, 2, (val & 0x18) >> 3);
 					break;
 				case 0xF7:
-					if (valxor & 0x18)  fdc_update_drvrate(3, (val & 0x18) >> 3);
+					if (valxor & 0x18)  fdc_update_drvrate(fdc37c93x_fdc, 3, (val & 0x18) >> 3);
 					break;
 			}
 			break;
@@ -428,7 +428,7 @@ static uint8_t fdc37c93x_read(uint16_t port, void *priv)
 		}
 		else
 		{
-			if ((fdc37c93x_regs[7] == 0) && (fdc37c93x_curreg == 0xF2))  return (fdc_get_rwc(0) | (fdc_get_rwc(1) << 2));
+			if ((fdc37c93x_regs[7] == 0) && (fdc37c93x_curreg == 0xF2))  return (fdc_get_rwc(fdc37c93x_fdc, 0) | (fdc_get_rwc(fdc37c93x_fdc, 1) << 2));
 			return fdc37c93x_ld_regs[fdc37c93x_regs[7]][fdc37c93x_curreg];
 		}
 	}
@@ -521,21 +521,16 @@ static void fdc37c93x_reset(void)
 
 	/* Logical device 9: ACCESS.bus */
 
-	fdc_update_densel_force(0);
-	fdd_swap = 0;
-	fdc_update_rwc(0, 0);
-	fdc_update_rwc(1, 0);
-	fdc_update_rwc(2, 0);
-	fdc_update_rwc(3, 0);
-	fdc_update_drvrate(0, 0);
-	fdc_update_drvrate(1, 0);
-	fdc_update_drvrate(2, 0);
-	fdc_update_drvrate(3, 0);
-	fdc_update_max_track(79);
-
         io_removehandler(fdc37c93x_gpio_base, 0x0001, fdc37c93x_gpio_read, NULL, NULL, fdc37c93x_gpio_write, NULL, NULL,  NULL);
 	fdc37c93x_gpio_base = 0x00EA;
         io_sethandler(fdc37c93x_gpio_base, 0x0001, fdc37c93x_gpio_read, NULL, NULL, fdc37c93x_gpio_write, NULL, NULL,  NULL);
+
+	fdc37c93x_lpt_handler();
+	fdc37c93x_serial_handler(1);
+	fdc37c93x_serial_handler(2);
+	fdc37c93x_auxio_handler();
+
+	fdc_reset(fdc37c93x_fdc);
 
         fdc37c93x_locked = 0;
 }
@@ -545,6 +540,8 @@ static void fdc37c932fr_reset(void)
 	fdc37c93x_reset();
 
 	fdc37c93x_regs[0x20] = 3;
+
+	fdc37c932fr_access_bus_handler();
 }
 
 static void fdc37c935_reset(void)
@@ -558,8 +555,7 @@ static void fdc37c93x_init(void)
 {
 	lpt2_remove();
 
-	fdc_remove();
-	fdc_add_for_superio();
+	fdc37c93x_fdc = device_add(&fdc_at_smc_device);
 
 	fdc37c93x_gpio_reg = 0xFD;
 

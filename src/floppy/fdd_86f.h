@@ -10,33 +10,36 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)floppy_86f.h	1.0.2	2017/09/03
+ * Version:	@(#)floppy_86f.h	1.0.3	2018/01/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #ifndef EMU_FLOPPY_86F_H
 # define EMU_FLOPPY_86F_H
 
 
-extern void d86f_init(void);
-extern void d86f_load(int drive, wchar_t *fn);
-extern void d86f_close(int drive);
-extern void d86f_seek(int drive, int track);
-extern int d86f_hole(int drive);
-extern double d86f_byteperiod(int drive);
-extern void d86f_stop(int drive);
-extern void d86f_poll(int drive);
-extern int d86f_realtrack(int track, int drive);
-extern void d86f_reset(int drive, int side);
-extern void d86f_readsector(int drive, int sector, int track, int side, int density, int sector_size);
-extern void d86f_writesector(int drive, int sector, int track, int side, int density, int sector_size);
-extern void d86f_comparesector(int drive, int sector, int track, int side, int rate, int sector_size);
-extern void d86f_readaddress(int drive, int side, int density);
-extern void d86f_format(int drive, int side, int density, uint8_t fill);
+extern void	d86f_init(void);
+extern void	d86f_load(int drive, wchar_t *fn);
+extern void	d86f_close(int drive);
+extern void	d86f_seek(int drive, int track);
+extern int	d86f_hole(int drive);
+extern double	d86f_byteperiod(int drive);
+extern void	d86f_stop(int drive);
+extern void	d86f_poll(int drive);
+extern int	d86f_realtrack(int track, int drive);
+extern void	d86f_reset(int drive, int side);
+extern void	d86f_readsector(int drive, int sector, int track, int side, int density, int sector_size);
+extern void	d86f_writesector(int drive, int sector, int track, int side, int density, int sector_size);
+extern void	d86f_comparesector(int drive, int sector, int track, int side, int rate, int sector_size);
+extern void	d86f_readaddress(int drive, int side, int density);
+extern void	d86f_format(int drive, int side, int density, uint8_t fill);
 
-extern void d86f_prepare_track_layout(int drive, int side);
-extern void d86f_set_version(int drive, uint16_t version);
+extern void	d86f_prepare_track_layout(int drive, int side);
+extern void	d86f_set_version(int drive, uint16_t version);
+extern uint16_t	d86f_side_flags(int drive);
+extern uint16_t	d86f_track_flags(int drive);
+extern void	d86f_write_tracks(int drive, FILE **f);
 
 #define length_gap0	80
 #define length_gap1	50

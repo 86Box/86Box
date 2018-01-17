@@ -8,15 +8,15 @@
  *
  *		Emulation of the Olivetti M24.
  *
- * Version:	@(#)m_olivetti_m24.c	1.0.8	2018/01/09
+ * Version:	@(#)m_olivetti_m24.c	1.0.9	2018/01/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016,2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -36,6 +36,8 @@
 #include "../nvr.h"
 #include "../keyboard.h"
 #include "../mouse.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "../game/gameport.h"
 #include "../sound/sound.h"
 #include "../sound/snd_speaker.h"
@@ -807,6 +809,7 @@ machine_olim24_init(machine_t *model)
     memset(m24, 0x00, sizeof(olim24_t));
 
     machine_common_init(model);
+    device_add(&fdc_xt_device);
 
     io_sethandler(0x0066, 2, m24_read, NULL, NULL, NULL, NULL, NULL, m24);
 

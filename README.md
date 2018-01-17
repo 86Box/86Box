@@ -21,7 +21,7 @@ Building
 --------
 In order to compile 86Box from this repository, please follow this step-by-step 
 guide:
-1. Download the development environment from http://tinyurl.com/pcemude. 
+1. Download the development environment from http://tinyurl.com/de86box. 
    Afterwards, extract it to your desired location.  Of course, also clone 
    the repository in your desired location. Downloading ZIPs is not recommended,
    as it makes it more inconvenient to keep the code up-to-date. To avoid

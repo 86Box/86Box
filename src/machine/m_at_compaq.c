@@ -8,14 +8,14 @@
  *
  *		Emulation of various Compaq PC's.
  *
- * Version:	@(#)m_at_compaq.c	1.0.2	2017/12/29
+ * Version:	@(#)m_at_compaq.c	1.0.3	2018/01/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -26,6 +26,8 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "../disk/hdc.h"
 #include "../disk/hdc_ide.h"
 #include "machine.h"
@@ -99,6 +101,7 @@ void
 machine_at_compaq_init(machine_t *model)
 {
     machine_at_top_remap_init(model);
+    device_add(&fdc_at_device);
 
     mem_mapping_add(&ram_mapping, 0xfa0000, 0x60000,
                     read_ram, read_ramw, read_raml,

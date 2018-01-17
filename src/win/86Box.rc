@@ -8,12 +8,12 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.22	2017/12/09
+ * Version:	@(#)86Box.rc	1.0.22	2018/01/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <inttypes.h>
 #define IN_RESOURCE_H
@@ -88,6 +88,7 @@ BEGIN
             MENUITEM "&4:3",                    IDM_VID_FS_43
             MENUITEM "&Square pixels",          IDM_VID_FS_SQ
             MENUITEM "&Integer scale",          IDM_VID_FS_INT
+            MENUITEM "&Keep size",              IDM_VID_FS_KEEPRATIO
         END
         POPUP "E&GA/(S)VGA settings"
         BEGIN
@@ -116,11 +117,10 @@ BEGIN
     BEGIN
         MENUITEM "&Settings...",                IDM_CONFIG
         MENUITEM SEPARATOR
-        MENUITEM "&Load configuration...",      IDM_CONFIG_LOAD
-        MENUITEM "&Save configuration...",      IDM_CONFIG_SAVE
-        MENUITEM SEPARATOR
         MENUITEM "S&tatus",                     IDM_STATUS
         MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "S&ound gain...",              IDM_SND_GAIN
     END
 #if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
     POPUP "&Logging"
@@ -236,6 +236,39 @@ FONT 9, "Segoe UI"
 BEGIN
     LTEXT           "1",IDT_SDEVICE,16,16,180,1000
     LTEXT           "1",IDT_STEXT,16,186,180,1000
+END
+
+DLG_SND_GAIN DIALOG DISCARDABLE  0, 0, 174, 136
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Sound Gain"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,117,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,117,24,50,14
+    CONTROL         "Main",IDC_SLIDER_MAIN,"msctls_trackbar32",TBS_VERT | 
+                    TBS_BOTH | TBS_AUTOTICKS | WS_TABSTOP,15,20,20,109
+    CONTROL         "CD",IDC_SLIDER_CD,"msctls_trackbar32",TBS_VERT | 
+                    TBS_BOTH | TBS_AUTOTICKS | WS_TABSTOP,45,20,20,109
+    CONTROL         "MIDI",IDC_SLIDER_MIDI,"msctls_trackbar32",TBS_VERT | 
+                    TBS_BOTH | TBS_AUTOTICKS | WS_TABSTOP,77,20,20,109
+    CTEXT           "Main",IDT_1746,7,7,32,9,SS_CENTERIMAGE
+    CTEXT           "CD",IDT_1747,38,7,32,9,SS_CENTERIMAGE
+    CTEXT           "MIDI",IDT_1748,70,7,32,9,SS_CENTERIMAGE
+END
+
+DLG_NEW_FLOPPY DIALOG DISCARDABLE  0, 0, 186, 65
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "New Floppy Image"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,74,44,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,129,44,50,14
+    LTEXT           "File name:",IDT_1749,7,6,34,12,SS_CENTERIMAGE
+    LTEXT           "Disk size:",IDT_1750,7,25,34,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_EDIT_FILE_NAME,43,7,124,12,ES_AUTOHSCROLL | ES_READONLY
+    COMBOBOX        IDC_COMBO_DISK_SIZE,43,25,136,14,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "...",IDC_CFILE,166,7,13,12
 END
 
 DLG_CONFIG DIALOG DISCARDABLE  0, 0, 366, 241
@@ -606,6 +639,22 @@ END
 #ifdef APSTUDIO_INVOKED
 GUIDELINES DESIGNINFO DISCARDABLE 
 BEGIN
+    DLG_SND_GAIN, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 167
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 129
+    END
+
+    DLG_NEW_FLOPPY, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 58
+    END
+
     DLG_CFG_MAIN, DIALOG
     BEGIN
         RIGHTMARGIN, 365

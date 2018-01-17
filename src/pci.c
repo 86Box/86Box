@@ -16,8 +16,6 @@
 #include "cdrom/cdrom.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
-#include "floppy/floppy.h"
-#include "floppy/fdc.h"
 
 
 static uint64_t pci_irq_hold[16];
@@ -650,8 +648,6 @@ static void trc_reset(uint8_t val)
 		{
 			pci_reset_handler.pci_set_reset();
 		}
-
-		fdc_hard_reset();
 
 		if (pci_reset_handler.super_io_reset)
 		{

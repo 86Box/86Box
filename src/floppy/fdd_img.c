@@ -9,13 +9,13 @@
  *		Implementation of the raw sector-based floppy image format,
  *		as well as the Japanese FDI, CopyQM, and FDF formats.
  *
- * Version:	@(#)floppy_img.c	1.0.7	2017/11/04
+ * Version:	@(#)fdd_img.c	1.0.8	2018/01/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -25,10 +25,9 @@
 #include "../86box.h"
 #include "../config.h"
 #include "../plat.h"
-#include "floppy.h"
-#include "floppy_img.h"
-#include "fdc.h"
 #include "fdd.h"
+#include "fdd_img.h"
+#include "fdc.h"
 
 
 static struct
@@ -56,6 +55,8 @@ static struct
 	uint8_t interleave;
 	uint8_t skew;
 } img[FDD_NUM];
+
+static fdc_t *img_fdc;
 
 uint8_t dmf_r[21] = { 12, 2, 13, 3, 14, 4, 15, 5, 16, 6, 17, 7, 18, 8, 19, 9, 20, 10, 21, 11, 1 };
 static uint8_t xdf_logical_sectors[2][2] = { { 38, 6 }, { 46, 8 } };
@@ -930,6 +931,7 @@ void img_seek(int drive, int track)
                 track /= 2;
 
 	img[drive].track = track;
+	d86f_set_cur_track(drive, track);
 
 	is_t0 = (track == 0) ? 1 : 0;
 
@@ -960,6 +962,12 @@ void img_seek(int drive, int track)
 
 	d86f_zero_bit_field(drive, 0);
 	d86f_zero_bit_field(drive, 1);
+
+	if (track > img[drive].tracks)
+	{
+		d86f_zero_track(drive);
+		return;
+	}
 
 	if (!img[drive].xdf_type || img[drive].is_cqm)
 	{
@@ -1129,10 +1137,15 @@ void img_poll_write_data(int drive, int side, uint16_t pos, uint8_t data)
 
 int img_format_conditions(int drive)
 {
-	int temp = (fdc_get_format_sectors() == img[drive].sectors);
-	temp = temp && (fdc_get_format_n() == img[drive].sector_size);
+	int temp = (fdc_get_format_sectors(img_fdc) == img[drive].sectors);
+	temp = temp && (fdc_get_format_n(img_fdc) == img[drive].sector_size);
 	temp = temp && (img[drive].xdf_type == 0);
 	return temp;
+}
+
+void img_set_fdc(void *fdc)
+{
+	img_fdc = (fdc_t *) fdc;
 }
 
 void d86f_register_img(int drive)

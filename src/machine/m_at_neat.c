@@ -10,6 +10,8 @@
 #include "../device.h"
 #include "../io.h"
 #include "../keyboard.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "machine.h"
 
 
@@ -89,6 +91,7 @@ void
 machine_at_neat_init(machine_t *model)
 {
         machine_at_init(model);
+	device_add(&fdc_at_device);
 
         neat_init();
 }
@@ -98,7 +101,9 @@ void
 machine_at_neat_ami_init(machine_t *model)
 {
         machine_at_common_init(model);
+
 	device_add(&keyboard_at_ami_device);
+	device_add(&fdc_at_device);
 
         neat_init();
 }

@@ -8,14 +8,14 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.15	2017/12/09
+ * Version:	@(#)resource.h	1.0.16	2018/01/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempem, <decwiz@yahoo.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #ifndef WIN_RESOURCE_H
 # define WIN_RESOURCE_H
@@ -24,6 +24,8 @@
 /* Dialog IDs. */
 #define DLG_ABOUT		101	/* top-level dialog */
 #define DLG_STATUS		102	/* top-level dialog */
+#define DLG_SND_GAIN		103	/* top-level dialog */
+#define DLG_NEW_FLOPPY		104	/* top-level dialog */
 #define DLG_CONFIG		110	/* top-level dialog */
 #define  DLG_CFG_MACHINE	111	/* sub-dialog of config */
 #define  DLG_CFG_VIDEO		112	/* sub-dialog of config */
@@ -77,6 +79,11 @@
 #define IDT_1743		1743	/* Channel: */
 #define IDT_STEXT		1744	/* text in status window */
 #define IDT_SDEVICE		1745	/* text in status window */
+#define IDT_1746		1746	/* Main */
+#define IDT_1747		1747	/* CD */
+#define IDT_1748		1748	/* MIDI */
+#define IDT_1749		1749	/* File name: */
+#define IDT_1750		1750	/* Disk size: */
 
 
 /*
@@ -180,6 +187,13 @@
 #define IDC_BUTTON_CDROM_EDIT	1164	// status bar menu
 #define IDC_BUTTON_CDROM_REMOVE	1165	// status bar menu
 
+#define IDC_SLIDER_MAIN		1180	/* sound gain dialog */
+#define IDC_SLIDER_CD		1181
+#define IDC_SLIDER_MIDI		1182
+
+#define IDC_EDIT_FILE_NAME	1190	/* new floppy image dialog */
+#define IDC_COMBO_DISK_SIZE	1191
+
 
 /* For the DeviceConfig code, re-do later. */
 #define IDC_CONFIG_BASE		1200
@@ -213,6 +227,7 @@
 #define IDM_CONFIG_LOAD		40021
 #define IDM_CONFIG_SAVE		40022
 #define IDM_STATUS		40030
+#define IDM_SND_GAIN		40040
 #define IDM_VID_RESIZE		40050
 #define IDM_VID_REMEMBER	40051
 #define IDM_VID_DDRAW		40060
@@ -228,8 +243,9 @@
 #define IDM_VID_FS_43		40072
 #define IDM_VID_FS_SQ		40073
 #define IDM_VID_FS_INT		40074
-#define IDM_VID_FORCE43		40075
-#define IDM_VID_OVERSCAN	40076
+#define IDM_VID_FS_KEEPRATIO	40075
+#define IDM_VID_FORCE43		40076
+#define IDM_VID_OVERSCAN	40077
 #define IDM_VID_INVERT		40079
 #define IDM_VID_CGACON		40080
 #define IDM_VID_GRAYCT_601	40085

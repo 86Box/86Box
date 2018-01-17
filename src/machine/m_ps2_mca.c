@@ -14,6 +14,8 @@
 #include "../nmi.h"
 #include "../rom.h"
 #include "../device.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "../nvr.h"
 #include "../nvr_ps2.h"
 #include "../keyboard.h"
@@ -790,6 +792,7 @@ static void
 machine_ps2_common_init(machine_t *model)
 {
         machine_common_init(model);
+	device_add(&fdc_at_device);
 
         dma16_init();
         ps2_dma_init();

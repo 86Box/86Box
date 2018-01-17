@@ -8,16 +8,16 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.36	2017/12/28
+ * Version:	@(#)config.c	1.0.37	2018/01/16
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Overdoze,
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  *
  * NOTE:	Forcing config files to be in Unicode encoding breaks
  *		it on Windows XP, and possibly also Vista. Use the
@@ -39,9 +39,8 @@
 #include "disk/hdd.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
-#include "floppy/floppy.h"
-#include "floppy/fdc.h"
 #include "floppy/fdd.h"
+#include "floppy/fdc.h"
 #include "game/gameport.h"
 #include "machine/machine.h"
 #include "mouse.h"

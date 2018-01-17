@@ -8,13 +8,13 @@
  *
  *		Emulation of Tandy models 1000, 1000HX and 1000SL2.
  *
- * Version:	@(#)m_tandy.c	1.0.1	2018/01/10
+ * Version:	@(#)m_tandy.c	1.0.2	2018/01/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
  *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -31,6 +31,8 @@
 #include "../timer.h"
 #include "../device.h"
 #include "../nvr.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "../game/gameport.h"
 #include "../keyboard.h"
 #include "../sound/sound.h"
@@ -1687,6 +1689,8 @@ machine_tandy1k_init(machine_t *model)
 
     device_add(&keyboard_tandy_device);
     keyboard_set_table(scancode_tandy);
+
+    device_add(&fdc_xt_device);
 
     switch(romset) {
 	case ROM_TANDY:

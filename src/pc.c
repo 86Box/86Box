@@ -8,15 +8,15 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.51	2017/12/16
+ * Version:	@(#)pc.c	1.0.52	2018/01/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -50,7 +50,7 @@
 #include "keyboard.h"
 #include "mouse.h"
 #include "game/gameport.h"
-#include "floppy/floppy.h"
+#include "floppy/fdd.h"
 #include "floppy/fdc.h"
 #include "disk/hdd.h"
 #include "disk/hdc.h"
@@ -503,7 +503,7 @@ pc_reload(wchar_t *fn)
     config_write(cfg_path);
 
     for (i=0; i<FDD_NUM; i++)
-	floppy_close(i);
+	fdd_close(i);
     for (i=0; i<CDROM_NUM; i++) {
 	cdrom_drives[i].handler->exit(i);
 	if (cdrom_drives[i].host_drive == 200)
@@ -532,10 +532,10 @@ pc_reload(wchar_t *fn)
 	        cdrom_null_open(i, cdrom_drives[i].host_drive);
     }
 
-    floppy_load(0, floppyfns[0]);
-    floppy_load(1, floppyfns[1]);
-    floppy_load(2, floppyfns[2]);
-    floppy_load(3, floppyfns[3]);
+    fdd_load(0, floppyfns[0]);
+    fdd_load(1, floppyfns[1]);
+    fdd_load(2, floppyfns[2]);
+    fdd_load(3, floppyfns[3]);
 
     mem_resize();
     rom_load_bios(romset);
@@ -638,9 +638,7 @@ again2:
 
     sound_reset();
 
-    fdc_init();
-
-    floppy_general_init();
+    fdd_init();
 
     sound_init();
 
@@ -755,10 +753,6 @@ pc_reset_hard_init(void)
     inital();
     sound_reset();
 
-    fdc_init();
-    fdc_update_is_nsc(0);
-    floppy_reset();
-
 #ifndef WALTJE_SERIAL
     /* This is needed to initialize the serial timer. */
     serial_init();
@@ -766,6 +760,8 @@ pc_reset_hard_init(void)
 
     /* Initialize the actual machine and its basic modules. */
     machine_init();
+
+    fdd_reset();
 
     /*
      * Once the machine has been initialized, all that remains
@@ -791,13 +787,10 @@ pc_reset_hard_init(void)
      * serial_init() doesn't break the serial mouse by resetting
      * the RCR callback to NULL.
      */
-    // mouse_reset();
+    mouse_reset();
 
     /* Reset the video card. */
     video_reset(gfxcard);
-
-    /* Reset the Floppy Disk controller. */
-    fdc_reset();
 
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
@@ -857,8 +850,6 @@ pc_reset_hard_init(void)
 	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
     else
 	setpitclock(14318184.0);
-
-    mouse_reset();
 }
 
 
@@ -920,7 +911,7 @@ pc_close(thread_t *ptr)
 	cdrom_drives[i].handler->exit(i);
 
     for (i=0; i<FDD_NUM; i++)
-       floppy_close(i);
+       fdd_close(i);
 
     if (dump_on_exit)
 	dumppic();

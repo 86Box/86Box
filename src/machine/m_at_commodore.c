@@ -3,9 +3,12 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../device.h"
 #include "../io.h"
 #include "../lpt.h"
 #include "../serial.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "machine.h"
 
 
@@ -46,6 +49,7 @@ void
 machine_at_cmdpc_init(machine_t *model)
 {
 	machine_at_ide_top_remap_init(model);
+	device_add(&fdc_at_device);
 
 	cbm_io_init();
 }

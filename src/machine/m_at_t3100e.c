@@ -12,6 +12,7 @@
 #include "../keyboard.h"
 #include "../cpu/cpu.h"
 #include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "../video/vid_t3100e.h"
 
 #include "machine.h"
@@ -685,7 +686,9 @@ void machine_at_t3100e_init(machine_t *model)
         memset(&t3100e_ems, 0, sizeof(t3100e_ems));
         
         machine_at_common_ide_init(model);
+
 	device_add(&keyboard_at_toshiba_device);
+	device_add(&fdc_at_device);
 
 	/* Hook up system control port */
 	io_sethandler(0x8084, 0x0001, 

@@ -8,11 +8,11 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.27	2017/12/13
+ * Version:	@(#)win_settings.c	1.0.28	2018/01/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -40,7 +40,6 @@
 #include "../disk/hdd.h"
 #include "../disk/hdc.h"
 #include "../disk/hdc_ide.h"
-#include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
 #include "../scsi/scsi.h"
 #include "../network/network.h"

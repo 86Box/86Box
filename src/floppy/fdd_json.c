@@ -8,11 +8,11 @@
  *
  *		Implementation of the PCjs JSON floppy image format.
  *
- * Version:	@(#)floppy_json.c	1.0.9	2017/11/04
+ * Version:	@(#)fdd_json.c	1.0.10	2018/01/16
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -21,11 +21,10 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../plat.h"
-#include "floppy.h"
-#include "fdc.h"
 #include "fdd.h"
-#include "floppy_common.h"
-#include "floppy_json.h"
+#include "fdc.h"
+#include "fdd_common.h"
+#include "fdd_json.h"
 
 
 #define NTRACKS			256
@@ -96,7 +95,7 @@ handle(json_t *img, char *name, char *str)
 	}
 
 	/* Encode the sector size. */
-	sec->size = floppy_sector_size_code(sec->size);
+	sec->size = fdd_sector_size_code(sec->size);
 
 	/* Set up the rest of the Sector ID. */
 	sec->track = img->track;
@@ -353,6 +352,7 @@ json_seek(int drive, int track)
 
     /* Set the new track. */
     img->track = track;
+    d86f_set_cur_track(drive, track);
 
     /* Reset the 86F state machine. */
     d86f_reset_index_hole_pos(drive, 0);
@@ -361,13 +361,19 @@ json_seek(int drive, int track)
     d86f_zero_bit_field(drive, 1);
 
     interleave_type = 0;
+
+    if (track > img->tracks) {
+	d86f_zero_track(drive);
+	return;
+    }
+
     for (side=0; side<img->sides; side++) {
 	/* Get transfer rate for this side. */
 	rate = img->track_flags & 0x07;
 	if (!rate && (img->track_flags & 0x20)) rate = 4;
 
 	/* Get correct GAP3 value for this side. */
-	gap3 = floppy_get_gap3_size(rate,
+	gap3 = fdd_get_gap3_size(rate,
 				    img->sects[track][side][0].size,
 				    img->spt[track][side]);
 
@@ -381,14 +387,14 @@ json_seek(int drive, int track)
 			rsec = img->sects[track][side][sector].sector;
 			asec = sector;
 		} else {
-			rsec = floppy_dmf_r[sector];
+			rsec = fdd_dmf_r[sector];
 			asec = img->interleave_ordered[rsec][side];
 		}
 		id[0] = track;
 		id[1] = side;
 		id[2] = rsec;
 		id[3] = img->sects[track][side][asec].size;
-		ssize = floppy_sector_code_size(img->sects[track][side][asec].size);
+		ssize = fdd_sector_code_size(img->sects[track][side][asec].size);
 
 		pos = d86f_prepare_sector(
 				drive, side, pos, id,
@@ -521,11 +527,11 @@ json_load(int drive, wchar_t *fn)
     temp_rate = 0xff;
     sec = &img->sects[0][0][0];
     for (i=0; i<6; i++) {
-	if (img->spt[0][0] > floppy_max_sectors[sec->size][i]) continue;
+	if (img->spt[0][0] > fdd_max_sectors[sec->size][i]) continue;
 
-	bit_rate = floppy_bit_rates_300[i];
-	temp_rate = floppy_rates[i];
-	img->disk_flags |= (floppy_holes[i] << 1);
+	bit_rate = fdd_bit_rates_300[i];
+	temp_rate = fdd_rates[i];
+	img->disk_flags |= (fdd_holes[i] << 1);
 
 	if ((bit_rate == 500.0) && (img->spt[0][0] == 21) &&
 	    (sec->size == 2) && (img->tracks >= 80) &&
@@ -569,7 +575,7 @@ json_load(int drive, wchar_t *fn)
     if (img->dmf) {
 	img->gap3_len = 8;
     } else {
-	img->gap3_len = floppy_get_gap3_size(temp_rate,sec->size,img->spt[0][0]);
+	img->gap3_len = fdd_get_gap3_size(temp_rate,sec->size,img->spt[0][0]);
     }
 
     if (! img->gap3_len) {

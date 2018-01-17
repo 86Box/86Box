@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.28	2018/01/01
+ * Version:	@(#)machine.c	1.0.29	2018/01/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,7 +16,7 @@
  *
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -31,9 +31,6 @@
 #include "../rom.h"
 #include "../lpt.h"
 #include "../serial.h"
-#include "../floppy/floppy.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
 #include "../disk/hdc.h"
 #include "../disk/hdc_ide.h"
 #include "machine.h"
@@ -80,6 +77,4 @@ machine_common_init(machine_t *model)
 
     if (serial_enabled[1])
 	serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
-
-    fdc_add();
 }

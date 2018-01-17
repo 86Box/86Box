@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.27	2018/01/10
+ * Version:	@(#)cdrom.c	1.0.28	2018/01/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -235,6 +235,53 @@ static const mode_sense_pages_t cdrom_mode_sense_pages_default =
 	{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }
 }	};
 
+static const mode_sense_pages_t cdrom_mode_sense_pages_default_scsi =
+{	{
+	{                        0,    0 },
+	{    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0, 0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
+	{                     0x8E,  0xE, 5, 4, 0,0x80,0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{                        0,    0 },
+	{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }
+}	};
+
 static const mode_sense_pages_t cdrom_mode_sense_pages_changeable =
 {	{
 	{                        0,    0 },
@@ -251,7 +298,7 @@ static const mode_sense_pages_t cdrom_mode_sense_pages_changeable =
 	{                        0,    0 },
 	{                        0,    0 },
 	{        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
-	{                     0x8E,  0xE, 4, 0, 0,  0, 0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
+	{                     0x8E,  0xE, 5, 4, 0,0x80,0, 75, 1, 0xFF, 2, 0xFF, 0, 0, 0, 0 },
 	{                        0,    0 },
 	{                        0,    0 },
 	{                        0,    0 },
@@ -509,11 +556,18 @@ void cdrom_mode_sense_load(uint8_t id)
 	int i;
 	memset(&cdrom_mode_sense_pages_saved[id], 0, sizeof(mode_sense_pages_t));
 	for (i = 0; i < 0x3f; i++) {
-		if (cdrom_mode_sense_pages_default.pages[i][1] != 0)
-			memcpy(cdrom_mode_sense_pages_saved[id].pages[i], cdrom_mode_sense_pages_default.pages[i], cdrom_mode_sense_pages_default.pages[i][1] + 2);
+		if (cdrom_mode_sense_pages_default.pages[i][1] != 0) {
+			if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
+				memcpy(cdrom_mode_sense_pages_saved[id].pages[i], cdrom_mode_sense_pages_default_scsi.pages[i], cdrom_mode_sense_pages_default_scsi.pages[i][1] + 2);
+			else
+				memcpy(cdrom_mode_sense_pages_saved[id].pages[i], cdrom_mode_sense_pages_default.pages[i], cdrom_mode_sense_pages_default.pages[i][1] + 2);
+		}
 	}
 	memset(file_name, 0, 512 * sizeof(wchar_t));
-	swprintf(file_name, 512, L"cdrom_%02i_mode_sense_bin", id);
+	if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
+		swprintf(file_name, 512, L"scsi_cdrom_%02i_mode_sense_bin", id);
+	else
+		swprintf(file_name, 512, L"cdrom_%02i_mode_sense_bin", id);
 	f = plat_fopen(nvr_path(file_name), L"rb");
 	if (f) {
 		fread(cdrom_mode_sense_pages_saved[id].pages[GPMODE_CDROM_AUDIO_PAGE], 1, 0x10, f);
@@ -526,7 +580,10 @@ void cdrom_mode_sense_save(uint8_t id)
 	FILE *f;
 	wchar_t file_name[512];
 	memset(file_name, 0, 512 * sizeof(wchar_t));
-	swprintf(file_name, 512, L"cdrom_%02i_mode_sense_bin", id);
+	if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
+		swprintf(file_name, 512, L"scsi_cdrom_%02i_mode_sense_bin", id);
+	else
+		swprintf(file_name, 512, L"cdrom_%02i_mode_sense_bin", id);
 	f = plat_fopen(nvr_path(file_name), L"wb");
 	if (f) {
 		fwrite(cdrom_mode_sense_pages_saved[id].pages[GPMODE_CDROM_AUDIO_PAGE], 1, 0x10, f);
@@ -576,7 +633,10 @@ uint8_t cdrom_mode_sense_read(uint8_t id, uint8_t page_control, uint8_t page, ui
 			return cdrom_mode_sense_pages_changeable.pages[page][pos];
 			break;
 		case 2:
-			return cdrom_mode_sense_pages_default.pages[page][pos];
+			if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
+				return cdrom_mode_sense_pages_default_scsi.pages[page][pos];
+			else
+				return cdrom_mode_sense_pages_default.pages[page][pos];
 			break;
 	}
 
@@ -2515,7 +2575,10 @@ uint8_t cdrom_phase_data_out(uint8_t id)
 
 				pos += page_len;
 
-				val = cdrom_mode_sense_pages_default.pages[page][0] & 0x80;
+				if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
+					val = cdrom_mode_sense_pages_default_scsi.pages[page][0] & 0x80;
+				else
+					val = cdrom_mode_sense_pages_default.pages[page][0] & 0x80;
 				if (cdrom[id].do_page_save && val)
 					cdrom_mode_sense_save(id);
 

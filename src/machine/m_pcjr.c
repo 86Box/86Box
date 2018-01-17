@@ -8,15 +8,15 @@
  *
  *		Emulation of the IBM PCjr.
  *
- * Version:	@(#)m_pcjr.c	1.0.3	2018/01/09
+ * Version:	@(#)m_pcjr.c	1.0.4	2018/01/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016,2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -34,9 +34,8 @@
 #include "../device.h"
 #include "../serial.h"
 #include "../keyboard.h"
-#include "../floppy/floppy.h"
-#include "../floppy/fdc.h"
 #include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "../sound/sound.h"
 #include "../sound/snd_speaker.h"
 #include "../sound/snd_sn76489.h"
@@ -765,9 +764,9 @@ machine_pcjr_init(machine_t *model)
     keyboard_set_table(scancode_xt);
     keyboard_send = kbd_adddata_ex;
 
-    fdc_add_pcjr();
-
     device_add(&sn76489_device);
 
     nmi_mask = 0x80;
+
+    device_add(&fdc_pcjr_device);
 }

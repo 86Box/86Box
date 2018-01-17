@@ -17,7 +17,7 @@
 #include "../nmi.h"
 #include "../pic.h"
 #include "../timer.h"
-#include "../floppy/floppy.h"
+#include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
 #ifdef USE_DYNAREC
 #include "codegen.h"

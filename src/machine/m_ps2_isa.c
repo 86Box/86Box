@@ -15,7 +15,6 @@
 #include "../keyboard.h"
 #include "../lpt.h"
 #include "../serial.h"
-#include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
 #include "../video/vid_vga.h"
@@ -152,6 +151,7 @@ void
 machine_ps2_m30_286_init(machine_t *model)
 {
         machine_common_init(model);
+	device_add(&fdc_at_ps1_device);
 
         pit_set_out_func(&pit, 1, pit_refresh_timer_at);
         dma16_init();
@@ -159,7 +159,5 @@ machine_ps2_m30_286_init(machine_t *model)
         nvr_at_init(8);
         pic2_init();
         ps2board_init();
-        fdc_set_dskchg_activelow();
-        fdc_set_ps1();
 	device_add(&ps1vga_device);
 }

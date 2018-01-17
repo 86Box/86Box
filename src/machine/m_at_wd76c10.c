@@ -11,7 +11,7 @@
 #include "../keyboard.h"
 #include "../mem.h"
 #include "../serial.h"
-#include "../floppy/floppy.h"
+#include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
 #include "../video/vid_paradise.h"
 #include "machine.h"
@@ -21,6 +21,9 @@ static uint16_t wd76c10_0092;
 static uint16_t wd76c10_2072;
 static uint16_t wd76c10_2872;
 static uint16_t wd76c10_5872;
+
+
+static fdc_t *wd76c10_fdc;
 
 
 static uint16_t
@@ -89,9 +92,9 @@ wd76c10_write(uint16_t port, uint16_t val, void *priv)
                 case 0x2872:
                 wd76c10_2872 = val;
                 
-                fdc_remove();
+                fdc_remove(wd76c10_fdc);
                 if (!(val & 1))
-                   fdc_add();
+                   fdc_set_base(wd76c10_fdc, 0x03f0);
                 break;
                 
                 case 0x5872:
@@ -142,7 +145,9 @@ void
 machine_at_wd76c10_init(machine_t *model)
 {
         machine_at_common_ide_init(model);
+
 	device_add(&keyboard_ps2_quadtel_device);
+	wd76c10_fdc = device_add(&fdc_at_device);
 
         wd76c10_init();
 

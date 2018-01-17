@@ -10,20 +10,23 @@
  *
  *		Re-worked version based on the 82C235 datasheet and errata.
  *
- * Version:	@(#)m_at_scat.c	1.0.7	2018/01/05
+ * Version:	@(#)m_at_scat.c	1.0.8	2018/01/16
  *
  * Authors:	Original by GreatPsycho for PCem.
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../device.h"
 #include "../cpu/cpu.h"
 #include "../cpu/x86.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "../io.h"
 #include "../mem.h"
 #include "machine.h"
@@ -736,6 +739,7 @@ void
 machine_at_scat_init(machine_t *model)
 {
     machine_at_init(model);
+    device_add(&fdc_at_device);
 
     scat_init();
 }

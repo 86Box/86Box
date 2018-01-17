@@ -8,10 +8,10 @@
  *
  *		Emulation of the NatSemi PC87306 Super I/O chip.
  *
- * Version:	@(#)sio_pc87306.c	1.0.8	2018/01/12
+ * Version:	@(#)sio_pc87306.c	1.0.8	2018/01/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -25,15 +25,15 @@
 #include "serial.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
-#include "floppy/floppy.h"
-#include "floppy/fdc.h"
 #include "floppy/fdd.h"
+#include "floppy/fdc.h"
 #include "sio.h"
 
 
 static int pc87306_curreg;
 static uint8_t pc87306_regs[29];
 static uint8_t pc87306_gpio[2] = {0xFF, 0xFB};
+static fdc_t *pc87306_fdc;
 static uint8_t tries;
 static uint16_t lpt_port;
 
@@ -234,10 +234,10 @@ process_value:
 			}
 			if (valxor & 0x28)
 			{
-				fdc_remove();
+				fdc_remove(pc87306_fdc);
 				if (val & 8)
 				{
-					fdc_set_base((val & 0x20) ? 0x370 : 0x3f0, 0);
+					fdc_set_base(pc87306_fdc, (val & 0x20) ? 0x370 : 0x3f0);
 				}
 			}
 			if (valxor & 0xc0)
@@ -304,7 +304,7 @@ process_value:
 					lpt1_remove();
 					serial_remove(1);
 					serial_remove(2);
-					fdc_remove();
+					fdc_remove(pc87306_fdc);
 				}
 				else
 				{
@@ -322,7 +322,7 @@ process_value:
 					}
 					if (pc87306_regs[0] & 8)
 					{
-						fdc_set_base((pc87306_regs[0] & 0x20) ? 0x370 : 0x3f0, 0);
+						fdc_set_base(pc87306_fdc, (pc87306_regs[0] & 0x20) ? 0x370 : 0x3f0);
 					}
 				}
 			}
@@ -330,8 +330,8 @@ process_value:
 		case 9:
 			if (valxor & 0x44)
 			{
-				fdc_update_enh_mode((val & 4) ? 1 : 0);
-				fdc_update_densel_polarity((val & 0x40) ? 1 : 0);
+				fdc_update_enh_mode(pc87306_fdc, (val & 4) ? 1 : 0);
+				fdc_update_densel_polarity(pc87306_fdc, (val & 0x40) ? 1 : 0);
 			}
 			break;
 		case 0xF:
@@ -456,22 +456,21 @@ void pc87306_reset(void)
 		0 = 360 rpm @ 500 kbps for 3.5"
 		1 = Default, 300 rpm @ 500,300,250,1000 kbps for 3.5"
 	*/
-	fdc_update_is_nsc(1);
-	fdc_update_enh_mode(0);
-	fdc_update_densel_polarity(1);
-	fdc_update_max_track(85);
-	fdc_remove();
-	fdc_set_base(0x3f0, 0);
-	fdd_swap = 0;
+	lpt1_remove();
+	lpt2_remove();
+	lpt1_handler();
 	serial_remove(1);
 	serial_remove(2);
 	serial1_handler();
 	serial2_handler();
+	fdc_reset(pc87306_fdc);
 	pc87306_gpio_init();
 }
 
 void pc87306_init()
 {
+	device_add(&fdc_at_nsc_device);
+
 	lpt2_remove();
 
 	pc87306_reset();

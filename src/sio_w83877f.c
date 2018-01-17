@@ -11,10 +11,10 @@
  *		Winbond W83877F Super I/O Chip
  *		Used by the Award 430HX
  *
- * Version:	@(#)sio_w83877f.c	1.0.7	2017/12/28
+ * Version:	@(#)sio_w83877f.c	1.0.8	2018/01/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -22,15 +22,15 @@
 #include <wchar.h>
 #include "86box.h"
 #include "machine/machine.h"
+#include "device.h"
 #include "io.h"
 #include "pci.h"
 #include "mem.h"
 #include "rom.h"
 #include "lpt.h"
 #include "serial.h"
-#include "floppy/floppy.h"
-#include "floppy/fdc.h"
 #include "floppy/fdd.h"
+#include "floppy/fdc.h"
 #include "sio.h"
 
 
@@ -39,6 +39,7 @@ static int w83877f_rw_locked = 0;
 static int w83877f_curreg = 0;
 static uint8_t w83877f_regs[0x2A];
 static uint8_t tries;
+static fdc_t *w83877f_fdc;
 
 static int winbond_port = 0x3f0;
 static int winbond_key = 0x89;
@@ -378,8 +379,9 @@ process_value:
 		case 1:
 			if (valxor & 0x80)
 			{
-				fdd_setswap((w83877f_regs[1] & 0x80) ? 1 : 0);
+				fdc_set_swap(w83877f_fdc, (w83877f_regs[1] & 0x80) ? 1 : 0);
 			}
+			break;
 		case 4:
 			if (valxor & 0x10)
 			{
@@ -398,25 +400,25 @@ process_value:
 		case 6:
 			if (valxor & 0x08)
 			{
-				fdc_remove();
-				if (!(w83877f_regs[6] & 0x08))  fdc_add();
+				fdc_remove(w83877f_fdc);
+				if (!(w83877f_regs[6] & 0x08))  fdc_set_base(w83877f_fdc, 0x03f0);
 			}
 			break;
 		case 7:
-			if (valxor & 3)  fdc_update_rwc(0, FDDA_TYPE);
-			if (valxor & 0xC)  fdc_update_rwc(1, FDDB_TYPE);
-			if (valxor & 0x30)  fdc_update_rwc(2, FDDC_TYPE);
-			if (valxor & 0xC0)  fdc_update_rwc(3, FDDD_TYPE);
+			if (valxor & 3)  fdc_update_rwc(w83877f_fdc, 0, FDDA_TYPE);
+			if (valxor & 0xC)  fdc_update_rwc(w83877f_fdc, 1, FDDB_TYPE);
+			if (valxor & 0x30)  fdc_update_rwc(w83877f_fdc, 2, FDDC_TYPE);
+			if (valxor & 0xC0)  fdc_update_rwc(w83877f_fdc, 3, FDDD_TYPE);
 			break;
 		case 8:
-			if (valxor & 3)  fdc_update_boot_drive(FD_BOOT);
-			if (valxor & 0x10)  swwp = SWWP ? 1 : 0;
-			if (valxor & 0x20)  disable_write = DISFDDWR ? 1 : 0;
+			if (valxor & 3)  fdc_update_boot_drive(w83877f_fdc, FD_BOOT);
+			if (valxor & 0x10)  fdc_set_swwp(w83877f_fdc, SWWP ? 1 : 0);
+			if (valxor & 0x20)  fdc_set_diswr(w83877f_fdc, DISFDDWR ? 1 : 0);
 			break;
 		case 9:
 			if (valxor & 0x20)
 			{
-				fdc_update_enh_mode(EN3MODE ? 1 : 0);
+				fdc_update_enh_mode(w83877f_fdc, EN3MODE ? 1 : 0);
 			}
 			if (valxor & 0x40)
 			{
@@ -424,8 +426,8 @@ process_value:
 			}
 			break;
 		case 0xB:
-			if (valxor & 1)  fdc_update_drv2en(DRV2EN_NEG ? 0 : 1);
-			if (valxor & 2)  fdc_update_densel_polarity(INVERTZ ? 1 : 0);
+			if (valxor & 1)  fdc_update_drv2en(w83877f_fdc, DRV2EN_NEG ? 0 : 1);
+			if (valxor & 2)  fdc_update_densel_polarity(w83877f_fdc, INVERTZ ? 1 : 0);
 			break;
 		case 0xC:
 			if (valxor & 0x20)  w83877f_remap();
@@ -488,9 +490,7 @@ uint8_t w83877f_read(uint16_t port, void *priv)
 	{
 		if ((w83877f_curreg < 0x18) && w83877f_rw_locked)  return 0xff;
 		if (w83877f_curreg == 7)
-		{
-			return (fdc_get_rwc(0) | (fdc_get_rwc(1) << 2));
-		}
+			return (fdc_get_rwc(w83877f_fdc, 0) | (fdc_get_rwc(w83877f_fdc, 1) << 2));
 		return w83877f_regs[w83877f_curreg];
 	}
 }
@@ -501,8 +501,7 @@ void w83877f_reset(void)
 	lpt1_remove();
 	lpt1_init(0x378);
 
-	fdc_remove();
-	fdc_add_for_superio();
+	fdc_reset(w83877f_fdc);
 
 	w83877f_regs[3] = 0x30;
 	w83877f_regs[7] = 0xF5;
@@ -523,18 +522,6 @@ void w83877f_reset(void)
 	w83877f_regs[0x28] = (4 << 4) | 3;
 	w83877f_regs[0x29] = 0x62;
 
-	fdc_update_densel_polarity(1);
-	fdc_update_densel_force(0);
-	fdc_update_rwc(0, 1);
-	fdc_update_rwc(1, 1);
-	fdc_update_drvrate(0, 0);
-	fdc_update_drvrate(1, 0);
-	fdc_update_enh_mode(0);
-	fdc_update_max_track(85);
-	swwp = 0;
-	disable_write = 0;
-	fdc_update_drv2en(1);
-	fdd_setswap(0);
 	serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
 	serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
 	w83877f_remap();
@@ -545,6 +532,8 @@ void w83877f_reset(void)
 
 void w83877f_init(void)
 {
+	w83877f_fdc = device_add(&fdc_at_winbond_device);
+
 	lpt2_remove();
 
 	w83877f_reset();

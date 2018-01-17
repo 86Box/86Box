@@ -256,6 +256,34 @@ int mmu_page_fault_check(uint32_t addr, int rw, uint32_t flags, int pde, int is_
 #define PAGE_DIRTY 0x40
 #define PAGE_ACCESSED 0x20
 
+/* This is needed so that mmutranslate reads things from the correct place
+   if it has to read something from a remapped mapping. */
+uint32_t mem_readl_phys(uint32_t addr)
+{
+	uint8_t i, temp[4];
+	uint32_t ta;
+
+	for (i = 0; i < 4; i++) {
+		ta = addr + i;
+		temp[i] = _mem_exec[ta >> 14][ta & 0x3fff];
+	}
+
+	return *(uint32_t *) temp;
+}
+
+void mem_writel_phys(uint32_t addr, uint32_t val)
+{
+	uint8_t i, temp[4];
+	uint32_t ta;
+
+	*(uint32_t *) temp = val;
+
+	for (i = 0; i < 4; i++) {
+		ta = addr + i;
+		_mem_exec[ta >> 14][ta & 0x3fff] = temp[i];
+	}
+}
+
 /* rw means 0 = read, 1 = write */
 uint32_t mmutranslate(uint32_t addr, int rw, int is_abrt)
 {
@@ -277,7 +305,7 @@ uint32_t mmutranslate(uint32_t addr, int rw, int is_abrt)
 	table_addr = dir_base + ((addr >> 20) & 0xffc);
 
 	/* First check the flags of the page directory entry. */
-	table_flags = ((uint32_t *)ram)[table_addr >> 2];
+	table_flags = mem_readl_phys(table_addr);
 
 	if ((table_flags & 0x80) && (cr4 & CR4_PSE))
 	{
@@ -291,7 +319,7 @@ uint32_t mmutranslate(uint32_t addr, int rw, int is_abrt)
 		if (is_abrt)
 		{
 			mmu_perm = table_flags & 4;
-			((uint32_t *)ram)[table_addr >> 2] |= (rw ? PAGE_DIRTY_AND_ACCESSED : PAGE_ACCESSED);
+			mem_writel_phys(table_addr, table_flags | (rw ? PAGE_DIRTY_AND_ACCESSED : PAGE_ACCESSED));
 		}
 
 		return (table_flags & ~0x3FFFFF) + (addr & 0x3FFFFF);
@@ -309,7 +337,7 @@ uint32_t mmutranslate(uint32_t addr, int rw, int is_abrt)
 	page_addr += ((addr >> 10) & 0xffc);
 
 	/* Then check the flags of the page table entry. */
-	page_flags = ((uint32_t *)ram)[page_addr >> 2];
+	page_flags = mem_readl_phys(page_addr);
 
 	if (mmu_page_fault_check(addr, rw, page_flags & 7, 1, is_abrt) == -1)
 	{
@@ -319,8 +347,8 @@ uint32_t mmutranslate(uint32_t addr, int rw, int is_abrt)
 	if (is_abrt)
 	{
 		mmu_perm = page_flags & 4;
-		((uint32_t *)ram)[table_addr >> 2] |= PAGE_ACCESSED;
-		((uint32_t *)ram)[page_addr >> 2] |= (rw ? PAGE_DIRTY_AND_ACCESSED : PAGE_ACCESSED);
+		mem_writel_phys(table_addr, table_flags | PAGE_ACCESSED);
+		mem_writel_phys(page_addr, page_flags | (rw ? PAGE_DIRTY_AND_ACCESSED : PAGE_ACCESSED));
 	}
 
 	return (page_flags & ~0xFFF) + (addr & 0xFFF);
@@ -947,7 +975,7 @@ uint8_t mem_readb_phys_dma(uint32_t addr)
         
         if (_mem_read_b[addr >> 14]) {
 		if (_mem_mapping_r[addr >> 14] && (_mem_mapping_r[addr >> 14]->flags & MEM_MAPPING_INTERNAL)) {
-			return ram[addr];
+			return _mem_exec[addr >> 14][addr & 0x3fff];
 		} else
                 	return _mem_read_b[addr >> 14](addr, _mem_priv_r[addr >> 14]);
 	}
@@ -980,7 +1008,7 @@ void mem_writeb_phys_dma(uint32_t addr, uint8_t val)
         
         if (_mem_write_b[addr >> 14]) {
 		if (_mem_mapping_w[addr >> 14] && (_mem_mapping_w[addr >> 14]->flags & MEM_MAPPING_INTERNAL)) {
-			ram[addr] = val;
+			_mem_exec[addr >> 14][addr & 0x3fff] = val;
 		} else
                 	_mem_write_b[addr >> 14](addr, val, _mem_priv_w[addr >> 14]);
 	}

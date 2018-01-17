@@ -32,15 +32,15 @@
  *		in alpha mode, but in highres ("ECD350") mode, it displays
  *		some semi-random junk. Video-memory pointer maybe?
  *
- * Version:	@(#)m_amstrad.c	1.0.5	2018/01/09
+ * Version:	@(#)m_amstrad.c	1.0.5	2018/01/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016,2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -63,7 +63,6 @@
 #include "../mouse.h"
 #include "../game/gameport.h"
 #include "../lpt.h"
-#include "../floppy/floppy.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
 #include "../sound/sound.h"
@@ -1274,5 +1273,5 @@ machine_amstrad_init(machine_t *model)
     if (joystick_type != 7)
 	device_add(&gameport_device);
 
-    fdc_set_dskchg_activelow();
+    device_add(&fdc_xt_amstrad_device);
 }

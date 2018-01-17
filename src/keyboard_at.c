@@ -8,15 +8,15 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.22	2018/01/09
+ * Version:	@(#)keyboard_at.c	1.0.24	2018/01/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016,2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -37,7 +37,7 @@
 #include "timer.h"
 #include "machine/machine.h"
 #include "machine/m_at_t3100e.h"
-#include "floppy/floppy.h"
+#include "floppy/fdd.h"
 #include "floppy/fdc.h"
 #include "sound/sound.h"
 #include "sound/snd_speaker.h"
@@ -936,8 +936,6 @@ kbd_output_write(atkbd_t *kbd, uint8_t val)
 static void
 kbd_cmd_write(atkbd_t *kbd, uint8_t val)
 {
-    uint8_t temp_op = kbd->output_port;
-
     kbdlog("Write command byte: %02X (old: %02X)\n", val, kbd->mem[0]);
 
     if ((val & 1) && (kbd->status & STAT_OFULL))
@@ -959,9 +957,6 @@ kbd_cmd_write(atkbd_t *kbd, uint8_t val)
     kbdlog("ATkbd: keyboard is now %s\n",  mouse_scan ? "enabled" : "disabled");
     kbdlog("ATkbd: keyboard interrupt is now %s\n",  (val & 0x01) ? "enabled" : "disabled");
 
-    temp_op &= 0xbf;
-    temp_op |= (keyboard_scan ? 0x40 : 0x00);
-
     /* ISA AT keyboard controllers use bit 5 for keyboard mode (1 = PC/XT, 2 = AT);
        PS/2 (and EISA/PCI) keyboard controllers use it as the PS/2 mouse enable switch. */
     if ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
@@ -969,9 +964,6 @@ kbd_cmd_write(atkbd_t *kbd, uint8_t val)
 
 	mouse_scan = !(val & 0x20);
 	kbdlog("ATkbd: mouse is now %s\n",  mouse_scan ? "enabled" : "disabled");
-
-	temp_op &= 0xf7;
-	temp_op |= (mouse_scan ? 0x08 : 0x00);
 
 	kbdlog("ATkbd: mouse interrupt is now %s\n",  (val & 0x02) ? "enabled" : "disabled");
     }
@@ -1033,21 +1025,24 @@ kbd_write64_generic(void *p, uint8_t val)
 			kbdlog("ATkbd: check if password installed\n");
 			kbd_adddata(0xf1);
 			return 0;
-		}
+		} else
+			kbdlog("ATkbd: bad command A4\n");
 		break;
 	case 0xa7: /*Disable mouse port*/
 		if ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
 			kbdlog("ATkbd: disable mouse port\n");
 			kbd_mouse_set(kbd, 0);
 			return 0;
-		}
+		} else
+			kbdlog("ATkbd: bad command A7\n");
 		break;
 	case 0xa8: /*Enable mouse port*/
 		if ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
 			kbdlog("ATkbd: enable mouse port\n");
 			kbd_mouse_set(kbd, 1);
 			return 0;
-		}
+		} else
+			kbdlog("ATkbd: bad command A8\n");
 		break;
 	case 0xa9: /*Test mouse port*/
 		kbdlog("ATkbd: test mouse port\n");
@@ -1057,7 +1052,9 @@ kbd_write64_generic(void *p, uint8_t val)
 			else
 				kbd_adddata(0xff); /*no mouse*/
 			return 0;
-		}
+		} else
+			kbdlog("ATkbd: bad command A9\n");
+		break;
 	case 0xaf: /*Read keyboard version*/
 		kbdlog("ATkbd: read keyboard version\n");
 		kbd_adddata(0x00);
@@ -1475,10 +1472,13 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 				case 0xd4: /*Write to mouse*/
 					kbdlog("ATkbd: write to mouse (%02X)\n", val);
 					kbd_mouse_set(kbd, 1);
-					if (mouse_write && ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1))
+					if (mouse_write && ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1)) {
+						pclog("Mouse write\n");
 						mouse_write(val, mouse_p);
-					else if (!mouse_write && ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1))
+					} else if (!mouse_write && ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1)) {
+						pclog("Adding 0xFF to queue\n");
 						keyboard_at_adddata_mouse(0xff);
+					}
 					break;
 
 				default:
@@ -1786,6 +1786,7 @@ kbd_read(uint16_t port, void *priv)
     switch (port) {
 	case 0x60:
 		ret = kbd->out;
+		pclog("Reading: %02X\n", ret);
 		kbd->status &= ~(STAT_OFULL);
 		picintc(kbd->last_irq);
 		kbd->last_irq = 0;
@@ -1806,7 +1807,9 @@ kbd_read(uint16_t port, void *priv)
 	case 0x64:
 		ret = (kbd->status & 0xFB) | (keyboard_mode & CCB_SYSTEM);
 		ret |= STAT_LOCK;
-		kbd->status &= ~(STAT_RTIMEOUT | STAT_TTIMEOUT);
+		/* The transmit timeout (TTIMEOUT) flag should *NOT* be cleared, otherwise
+		   the IBM PS/2 Model 80's BIOS gives error 8601 (mouse error). */
+		kbd->status &= ~(STAT_RTIMEOUT/* | STAT_TTIMEOUT*/);
 		break;
     }
 
@@ -2035,6 +2038,7 @@ keyboard_at_adddata_keyboard_raw(uint8_t val)
 void
 keyboard_at_adddata_mouse(uint8_t val)
 {
+    pclog("Adding mouse data: %02X\n", val);
     mouse_queue[mouse_queue_end] = val;
     mouse_queue_end = (mouse_queue_end + 1) & 0xf;
 }

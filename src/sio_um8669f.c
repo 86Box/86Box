@@ -26,11 +26,11 @@ PnP registers :
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
+#include "device.h"
 #include "io.h"
 #include "pci.h"
 #include "lpt.h"
 #include "serial.h"
-#include "floppy/floppy.h"
 #include "floppy/fdd.h"
 #include "floppy/fdc.h"
 #include "sio.h"
@@ -51,6 +51,8 @@ typedef struct um8669f_t
                 int irq;
                 int dma;
         } dev[8];
+
+	fdc_t *fdc;
 } um8669f_t;
 
 
@@ -120,9 +122,9 @@ void um8669f_pnp_write(uint16_t port, uint8_t val, void *p)
                                 case DEV_FDC:
 				if ((um8669f->cur_reg == REG_ENABLE) && valxor)
 				{
-	                                fdc_remove();
+	                                fdc_remove(um8669f_global.fdc);
         	                        if (um8669f->dev[DEV_FDC].enable & 1)
-                	                        fdc_add();
+                	                        fdc_set_base(um8669f_global.fdc, 0x03f0);
 				}
                                 break;
                                 case DEV_COM1:
@@ -235,8 +237,8 @@ uint8_t um8669f_read(uint16_t port, void *p)
 
 void um8669f_reset(void)
 {
-        fdc_update_is_nsc(0);
-        
+	fdc_reset(um8669f_global.fdc);
+
 	serial_remove(1);
 	serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
 
@@ -251,11 +253,6 @@ void um8669f_reset(void)
         memset(&um8669f_global, 0, sizeof(um8669f_t));
 
         um8669f_global.locked = 1;
-
-	fdc_update_densel_polarity(1);
-	fdc_update_densel_force(0);
-
-	fdd_swap = 0;
 
 	io_removehandler(0x0279, 0x0001, NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, &um8669f_global);
 	io_removehandler(0x0a79, 0x0001, NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, &um8669f_global);
@@ -282,6 +279,8 @@ void um8669f_reset(void)
 
 void um8669f_init(void)
 {
+	um8669f_global.fdc = device_add(&fdc_at_device);
+
         io_sethandler(0x0108, 0x0002, um8669f_read, NULL, NULL, um8669f_write, NULL, NULL,  &um8669f_global);
 
 	um8669f_reset();

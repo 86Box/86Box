@@ -8,18 +8,18 @@
  *
  *		Implementation of the Teledisk floppy image format.
  *
- * Version:	@(#)floppy_td0.c	1.0.6	2017/11/04
+ * Version:	@(#)fdd_td0.c	1.0.7	2018/01/16
  *
  * Authors:	Milodrag Milanovic,
  *		Haruhiko OKUMURA,
  *		Haruyasu YOSHIZAKI,
  *		Kenji RIKITAKE,
  *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 1988-2017 Haruhiko OKUMURA.
- *		Copyright 1988-2017 Haruyasu YOSHIZAKI.
- *		Copyright 1988-2017 Kenji RIKITAKE.
- *		Copyright 2013-2017 Milodrag Milanovic.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 1988-2018 Haruhiko OKUMURA.
+ *		Copyright 1988-2018 Haruyasu YOSHIZAKI.
+ *		Copyright 1988-2018 Kenji RIKITAKE.
+ *		Copyright 2013-2018 Milodrag Milanovic.
+ *		Copyright 2016-2018 Miran Grca.
  */
 
 /* license:BSD-3-Clause
@@ -44,10 +44,9 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../plat.h"
-#include "floppy.h"
-#include "floppy_td0.h"
-#include "fdc.h"
 #include "fdd.h"
+#include "fdd_td0.h"
+#include "fdc.h"
 
 
 #define BUFSZ           512     /* new input buffer */
@@ -80,8 +79,8 @@ typedef struct {
 
 typedef struct
 {
-	FILE *floppy_file;
-	uint64_t floppy_file_offset;
+	FILE *fdd_file;
+	uint64_t fdd_file_offset;
 
 	tdlzhuf tdctl;
 	uint8_t text_buf[N + F - 1];
@@ -136,7 +135,7 @@ typedef struct
 td0_t td0[FDD_NUM];
 
 
-void floppy_image_read(int drive, char *buffer, uint32_t offset, uint32_t len)
+void fdd_image_read(int drive, char *buffer, uint32_t offset, uint32_t len)
 {
 	fseek(td0[drive].f, offset, SEEK_SET);
 	fread(buffer, 1, len, td0[drive].f);
@@ -146,7 +145,7 @@ int td0_dsk_identify(int drive)
 {
 	char header[2];
 
-	floppy_image_read(drive, header, 0, 2);
+	fdd_image_read(drive, header, 0, 2);
 	if (header[0]=='T' && header[1]=='D') {
 		return 1;
 	} else if (header[0]=='t' && header[1]=='d') {
@@ -159,14 +158,14 @@ int td0_dsk_identify(int drive)
 int td0_state_data_read(td0dsk_t *state, uint8_t *buf, uint16_t size)
 {
 	uint32_t image_size = 0;
-	fseek(state->floppy_file, 0, SEEK_END);
-	image_size = ftell(state->floppy_file);
-	if (size > image_size - state->floppy_file_offset) {
-		size = image_size - state->floppy_file_offset;
+	fseek(state->fdd_file, 0, SEEK_END);
+	image_size = ftell(state->fdd_file);
+	if (size > image_size - state->fdd_file_offset) {
+		size = image_size - state->fdd_file_offset;
 	}
-	fseek(state->floppy_file, state->floppy_file_offset, SEEK_SET);
-	fread(buf, 1, size, state->floppy_file);
-	state->floppy_file_offset += size;
+	fseek(state->fdd_file, state->fdd_file_offset, SEEK_SET);
+	fread(buf, 1, size, state->fdd_file);
+	state->fdd_file_offset += size;
 	return size;
 }
 
@@ -711,9 +710,9 @@ int td0_initialize(int drive)
 	if(header[0] == 't')
 	{
 		pclog("TD0: File is compressed\n");
-		disk_decode.floppy_file = td0[drive].f;
+		disk_decode.fdd_file = td0[drive].f;
 		td0_state_init_Decode(&disk_decode);
-		disk_decode.floppy_file_offset = 12;
+		disk_decode.fdd_file_offset = 12;
 		td0_state_Decode(&disk_decode, imagebuf, max_size);
 	}
 	else
@@ -1100,6 +1099,8 @@ void td0_seek(int drive, int track)
         if (!td0[drive].track_width && fdd_doublestep_40(drive))
                 track /= 2;
 
+	d86f_set_cur_track(drive, track);
+
 	is_trackx = (track == 0) ? 0 : 1;
 
 	td0[drive].track = track;
@@ -1112,6 +1113,12 @@ void td0_seek(int drive, int track)
 
 	d86f_zero_bit_field(drive, 0);
 	d86f_zero_bit_field(drive, 1);
+
+	if (track > td0[drive].tracks)
+	{
+		d86f_zero_track(drive);
+		return;
+	}
 
 	for (side = 0; side < td0[drive].sides; side++)
 	{

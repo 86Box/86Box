@@ -8,10 +8,10 @@
  *
  *		Implementation of the IMD floppy image format.
  *
- * Version:	@(#)floppy_imd.c	1.0.5	2017/11/04
+ * Version:	@(#)fdd_imd.c	1.0.6	2018/01/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -20,10 +20,9 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../plat.h"
-#include "floppy.h"
-#include "floppy_imd.h"
-#include "fdc.h"
 #include "fdd.h"
+#include "fdd_imd.h"
+#include "fdc.h"
 
 
 typedef struct
@@ -58,6 +57,8 @@ static struct
 	char *current_data[2];
 	uint8_t track_buffer[2][25000];
 } imd[FDD_NUM];
+
+static fdc_t *imd_fdc;
 
 void imd_init()
 {
@@ -529,6 +530,8 @@ void imd_seek(int drive, int track)
         if (!imd[drive].track_width && fdd_doublestep_40(drive))
                 track /= 2;
 
+	d86f_set_cur_track(drive, track);
+
 	is_trackx = (track == 0) ? 0 : 1;
 
 	imd[drive].track = track;
@@ -541,6 +544,12 @@ void imd_seek(int drive, int track)
 
 	d86f_zero_bit_field(drive, 0);
 	d86f_zero_bit_field(drive, 1);
+
+	if (track > imd[drive].track_count)
+	{
+		d86f_zero_track(drive);
+		return;
+	}
 
 	for (side = 0; side < imd[drive].sides; side++)
 	{
@@ -797,9 +806,14 @@ int imd_format_conditions(int drive)
 	int side = 0;
 	int temp = 0;
 	side = fdd_get_head(drive);
-	temp = (fdc_get_format_sectors() == imd[drive].tracks[track][side].params[3]);
-	temp = temp && (fdc_get_format_n() == imd[drive].tracks[track][side].params[4]);
+	temp = (fdc_get_format_sectors(imd_fdc) == imd[drive].tracks[track][side].params[3]);
+	temp = temp && (fdc_get_format_n(imd_fdc) == imd[drive].tracks[track][side].params[4]);
 	return temp;
+}
+
+void imd_set_fdc(void *fdc)
+{
+	imd_fdc = (fdc_t *) fdc;
 }
 
 void d86f_register_imd(int drive)

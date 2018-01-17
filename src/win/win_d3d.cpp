@@ -8,15 +8,15 @@
  *
  *		Rendering module for Microsoft Direct3D 9.
  *
- * Version:	@(#)win_d3d.cpp	1.0.9	2017/12/15
+ * Version:	@(#)win_d3d.cpp	1.0.10	2018/01/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -65,16 +65,24 @@ static CUSTOMVERTEX d3d_verts[] = {
 
 
 static void
+d3d_size_default(RECT w_rect, double *l, double *t, double *r, double *b)
+{
+    *l = -0.5;
+    *t = -0.5;
+    *r = (w_rect.right  - w_rect.left) - 0.5;
+    *b = (w_rect.bottom - w_rect.top) - 0.5;
+}
+
+
+static void
 d3d_size(RECT w_rect, double *l, double *t, double *r, double *b, int w, int h)
 {
     int ratio_w, ratio_h;
+    double hsr, gsr, ra, d;
 
     switch (video_fullscreen_scale) {
 	case FULLSCR_SCALE_FULL:
-		*l = -0.5;
-		*t = -0.5;
-		*r = (w_rect.right  - w_rect.left) - 0.5;
-		*b = (w_rect.bottom - w_rect.top) - 0.5;
+		d3d_size_default(w_rect, l, t, r, b);
 		break;
 
 	case FULLSCR_SCALE_43:
@@ -112,6 +120,38 @@ d3d_size(RECT w_rect, double *l, double *t, double *r, double *b, int w, int h)
 		*r = ((w_rect.right  - w_rect.left) / 2) + ((w * ratio_w) / 2) - 0.5;
 		*t = ((w_rect.bottom - w_rect.top)  / 2) - ((h * ratio_w) / 2) - 0.5;
 		*b = ((w_rect.bottom - w_rect.top)  / 2) + ((h * ratio_w) / 2) - 0.5;
+		break;
+
+	case FULLSCR_SCALE_KEEPRATIO:
+		hsr = ((double) (w_rect.right  - w_rect.left)) / ((double) (w_rect.bottom - w_rect.top));
+		gsr = ((double) w) / ((double) h);
+
+		if (hsr > gsr) {
+			/* Host ratio is bigger than guest ratio. */
+			ra = ((double) (w_rect.bottom - w_rect.top)) / ((double) h);
+
+			d = ((double) w) * ra;
+			d = (((double) (w_rect.right  - w_rect.left)) - d) / 2.0;
+
+			*l = ((int) d) - 0.5;
+			*r = (w_rect.right  - w_rect.left) - ((int) d) - 0.5;
+			*t = -0.5;
+			*b = (w_rect.bottom - w_rect.top)  - 0.5;
+		} else if (hsr < gsr) {
+			/* Host ratio is smaller or rqual than guest ratio. */
+			ra = ((double) (w_rect.right  - w_rect.left)) / ((double) w);
+
+			d = ((double) h) * ra;
+			d = (((double) (w_rect.bottom - w_rect.top)) - d) / 2.0;
+
+			*l = -0.5;
+			*r = (w_rect.right  - w_rect.left) - 0.5;
+			*t = ((int) d) - 0.5;
+			*b = (w_rect.bottom - w_rect.top)  - ((int) d) - 0.5;
+		} else {
+			/* Host ratio is equal to guest ratio. */
+			d3d_size_default(w_rect, l, t, r, b);
+		}
 		break;
     }
 }
