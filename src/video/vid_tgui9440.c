@@ -96,6 +96,7 @@ typedef struct tgui_t
 
         uint8_t tgui_3d8, tgui_3d9;
         int oldmode;
+		uint8_t oldctrl1;
         uint8_t oldctrl2,newctrl2;
 
         uint32_t linear_base, linear_size;
@@ -137,6 +138,18 @@ void tgui_accel_write_fb_b(uint32_t addr, uint8_t val, void *priv);
 void tgui_accel_write_fb_w(uint32_t addr, uint16_t val, void *priv);
 void tgui_accel_write_fb_l(uint32_t addr, uint32_t val, void *priv);
 
+static void tgui_recalcbanking(tgui_t *tgui)
+{
+        svga_t *svga = &tgui->svga;
+        
+        svga->write_bank = (tgui->tgui_3d8 & 0x1f) * 65536;
+
+        if (svga->gdcreg[0xf] & 1)
+                svga->read_bank = (tgui->tgui_3d9 & 0x1f) * 65536;
+        else
+                svga->read_bank = svga->write_bank;
+}
+
 void tgui_out(uint16_t addr, uint8_t val, void *p)
 {
         tgui_t *tgui = (tgui_t *)p;
@@ -156,19 +169,26 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
                         break;
                         case 0xC: 
                         if (svga->seqregs[0xe] & 0x80) 
-                        svga->seqregs[0xc] = val; 
+							svga->seqregs[0xc] = val; 
                         break;
                         case 0xd: 
                         if (tgui->oldmode) 
                                 tgui->oldctrl2 = val; 
                         else 
-                                tgui->newctrl2=val; 
+						{
+                                tgui->newctrl2=val;
+								svga_recalctimings(svga);
+						}
                         break;
                         case 0xE:
-                        svga->seqregs[0xe] = val ^ 2;
-                        svga->write_bank = (svga->seqregs[0xe] & 0xf) * 65536;
-                        if (!(svga->gdcreg[0xf] & 1)) 
-                                svga->read_bank = svga->write_bank;
+						if (tgui->oldmode) 
+							tgui->oldctrl1 = val;
+						else
+						{
+							svga->seqregs[0xe] = val ^ 2;
+							tgui->tgui_3d8 = svga->seqregs[0xe] & 0xf;
+							tgui_recalcbanking(tgui);
+						}
                         return;
                 }
                 break;
@@ -197,37 +217,35 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
                 }
                 case 0x3C7: case 0x3C8: case 0x3C9:
                 tgui->ramdac_state = 0;
-		break;
+				break;
 
                 case 0x3CF:
                 switch (svga->gdcaddr & 15)
                 {
-			case 0x6:
-			if (svga->gdcreg[6] != val)
-			{
-				svga->gdcreg[6] = val;
-				tgui_recalcmapping(tgui);
-			}
-			return;
+						case 0x6:
+						if (svga->gdcreg[6] != val)
+						{
+							svga->gdcreg[6] = val;
+							tgui_recalcmapping(tgui);
+						}
+						return;
 			
                         case 0xE:
                         svga->gdcreg[0xe] = val ^ 2;
-                        if ((svga->gdcreg[0xf] & 1) == 1)
-                           svga->read_bank = (svga->gdcreg[0xe] & 0xf) * 65536;
+						tgui->tgui_3d9 = svga->gdcreg[0xe] & 0xf;
+                        tgui_recalcbanking(tgui);
                         break;
                         case 0xF:
-                        if (val & 1) svga->read_bank = (svga->gdcreg[0xe]  & 0xf)  *65536;
-                        else         svga->read_bank = (svga->seqregs[0xe] & 0xf)  *65536;
-                        svga->write_bank = (svga->seqregs[0xe] & 0xf) * 65536;
+						svga->gdcreg[0xf] = val;
+						tgui->tgui_3d9 = svga->gdcreg[0xf] & 0xf;
+                        tgui_recalcbanking(tgui);
                         break;
                 }
                 break;
                 case 0x3D4:
-		svga->crtcreg = val & 0x7f;
+				svga->crtcreg = val & 0x7f;
                 return;
                 case 0x3D5:
-		if (svga->crtcreg <= 0x18)
-			val &= mask_crtc[svga->crtcreg];
                 if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
                         return;
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
@@ -244,16 +262,21 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
                 }
                 switch (svga->crtcreg)
                 {
-			case 0x21:
-			if (old != val)
-			{
+                        case 0x1e:
+                        svga->vram_display_mask = (val & 0x80) ? tgui->vram_mask : 0x3ffff;
+                        break;					
+					
+						case 0x21:
+						if (old != val)
+						{
                                 if (!tgui->pci)
                                 {
                                         tgui->linear_base = ((val & 0xf) | ((val >> 2) & 0x30)) << 20;
                                         tgui->linear_size = (val & 0x10) ? 0x200000 : 0x100000;
                                 }
-        			tgui_recalcmapping(tgui);
+								tgui_recalcmapping(tgui);
                         }
+						break;
 			break;
 
 			case 0x40: case 0x41: case 0x42: case 0x43:
@@ -271,21 +294,17 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
 		}
                 return;
                 case 0x3D8:
-                tgui->tgui_3d8 = val;
                 if (svga->gdcreg[0xf] & 4)
                 {
-                        svga->write_bank = (val & 0x1f) * 65536;
-                        if (!(svga->gdcreg[0xf] & 1))
-                        {
-                                svga->read_bank = (val & 0x1f) * 65536;
-                        }
+                        tgui->tgui_3d8 = val;
+                        tgui_recalcbanking(tgui);
                 }
                 return;
                 case 0x3D9:
-                tgui->tgui_3d9 = val;
-                if ((svga->gdcreg[0xf] & 5) == 5)
+                if (svga->gdcreg[0xf] & 4)
                 {
-                        svga->read_bank = (val & 0x1F) * 65536;
+                        tgui->tgui_3d9 = val;
+                        tgui_recalcbanking(tgui);
                 }
                 return;
                 
@@ -321,6 +340,12 @@ uint8_t tgui_in(uint16_t addr, void *p)
                         if (tgui->oldmode) return tgui->oldctrl2;
                         return tgui->newctrl2;
                 }
+                if ((svga->seqaddr & 0xf) == 0xe)
+                {
+                        if (tgui->oldmode) 
+                                return tgui->oldctrl1; 
+                }
+                break;
                 break;
                 case 0x3C6:
                 if (tgui->ramdac_state == 4)
@@ -361,28 +386,23 @@ void tgui_recalctimings(svga_t *svga)
                 svga->rowoffset <<= 1;
                 svga->ma_latch <<= 1;
         }
-        if (tgui->oldctrl2 & 0x10) /*I'm not convinced this is the right register for this function*/
-           svga->lowres=0;
 
-	svga->lowres = !(svga->crtc[0x2a] & 0x40); 
+		svga->lowres = !(svga->crtc[0x2a] & 0x40); 
 
-        if (svga->crtc[0x1e] & 4)
-	{
-		svga->vtotal *= 2;
-		svga->dispend *= 2;
-		svga->vblankstart *= 2;
-		svga->vsyncstart *= 2;
-		svga->split *= 2;
-	}
-        
         if (svga->miscout & 8)
                 svga->clock = cpuclock / (((tgui->clock_n + 8) * 14318180.0) / ((tgui->clock_m + 2) * (1 << tgui->clock_k)));
 
         if (svga->gdcreg[0xf] & 0x08)
+		{
                 svga->clock *= 2;
+		}
         else if (svga->gdcreg[0xf] & 0x40)
+		{
                 svga->clock *= 3;
-                                
+		}
+                        
+		svga->interlace = svga->crtc[0x1e] & 4;
+
         if ((tgui->oldctrl2 & 0x10) || (svga->crtc[0x2a] & 0x40))
         {
                 switch (svga->bpp)
@@ -411,7 +431,7 @@ void tgui_recalcmapping(tgui_t *tgui)
 	{
                 mem_mapping_disable(&svga->mapping);
                 mem_mapping_set_addr(&tgui->linear_mapping, tgui->linear_base, tgui->linear_size);
-		svga->linear_base = tgui->linear_base;
+				svga->linear_base = tgui->linear_base;
                 mem_mapping_enable(&tgui->accel_mapping);
 	}
 	else
@@ -443,29 +463,39 @@ void tgui_recalcmapping(tgui_t *tgui)
 
 void tgui_hwcursor_draw(svga_t *svga, int displine)
 {
+		int x;
         uint32_t dat[2];
         int xx;
         int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
-	int y_add = enable_overscan ? 16 : 0;
-	int x_add = enable_overscan ? 8 : 0;
-        
-        dat[0] = (svga->vram[svga->hwcursor_latch.addr]     << 24) | (svga->vram[svga->hwcursor_latch.addr + 1] << 16) | (svga->vram[svga->hwcursor_latch.addr + 2] << 8) | svga->vram[svga->hwcursor_latch.addr + 3];
-        dat[1] = (svga->vram[svga->hwcursor_latch.addr + 4] << 24) | (svga->vram[svga->hwcursor_latch.addr + 5] << 16) | (svga->vram[svga->hwcursor_latch.addr + 6] << 8) | svga->vram[svga->hwcursor_latch.addr + 7];
-        for (xx = 0; xx < 32; xx++)
+		uint8_t cursor_size = (svga->crtc[0x50] & 0x01) ? 64 : 32;
+	int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
+	int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
+
+        if (svga->interlace && svga->hwcursor_oddeven)
+                svga->hwcursor_latch.addr += 8;
+
+        for (x = 0; x < cursor_size; x += 32)
         {
-                if (offset >= svga->hwcursor_latch.x)
-                {
-                        if (!(dat[0] & 0x80000000))
-                                ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add]  = (dat[1] & 0x80000000) ? 0xffffff : 0;
-                        else if (dat[1] & 0x80000000)
-                                ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add] ^= 0xffffff;
-                }
-                           
-                offset++;
-                dat[0] <<= 1;
-                dat[1] <<= 1;
+			dat[0] = (svga->vram[svga->hwcursor_latch.addr]     << 24) | (svga->vram[svga->hwcursor_latch.addr + 1] << 16) | (svga->vram[svga->hwcursor_latch.addr + 2] << 8) | svga->vram[svga->hwcursor_latch.addr + 3];
+			dat[1] = (svga->vram[svga->hwcursor_latch.addr + 4] << 24) | (svga->vram[svga->hwcursor_latch.addr + 5] << 16) | (svga->vram[svga->hwcursor_latch.addr + 6] << 8) | svga->vram[svga->hwcursor_latch.addr + 7];
+			for (xx = 0; xx < 32; xx++)
+			{
+					if (offset >= svga->hwcursor_latch.x)
+					{
+							if (!(dat[0] & 0x80000000))
+									((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add]  = (dat[1] & 0x80000000) ? 0xffffff : 0;
+							else if (dat[1] & 0x80000000)
+									((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add] ^= 0xffffff;
+					}
+							   
+					offset++;
+					dat[0] <<= 1;
+					dat[1] <<= 1;
+			}
+			svga->hwcursor_latch.addr += 8;
         }
-        svga->hwcursor_latch.addr += 8;
+        if (svga->interlace && !svga->hwcursor_oddeven)
+                svga->hwcursor_latch.addr += 8;
 }
 
 uint8_t tgui_pci_read(int func, int addr, void *p)
