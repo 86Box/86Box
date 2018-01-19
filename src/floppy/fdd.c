@@ -8,7 +8,7 @@
  *
  *		Implementation of the floppy drive emulation.
  *
- * Version:	@(#)fdd.c	1.0.6	2018/01/16
+ * Version:	@(#)fdd.c	1.0.7	2018/01/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -232,8 +232,9 @@ int fdd_get_from_internal_name(char *s)
 /* This is needed for the dump as 86F feature. */
 void fdd_do_seek(int drive, int track)
 {
-        if (drives[drive].seek)
-                drives[drive].seek(drive, fdd[drive].track);
+        if (drives[drive].seek) {
+                drives[drive].seek(drive, track);
+	}
 }
 
 void fdd_forced_seek(int drive, int track_diff)

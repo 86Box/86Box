@@ -8,7 +8,7 @@
  *
  *		Implementation of the floppy drive emulation.
  *
- * Version:	@(#)fdd.h	1.0.4	2018/01/16
+ * Version:	@(#)fdd.h	1.0.5	2018/01/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -273,6 +273,8 @@ void img_set_fdc(void *fdc);
 
 extern void	d86f_set_cur_track(int drive, int track);
 extern void	d86f_zero_track(int drive);
+
+extern int	d86f_export(int drive, wchar_t *fn);
 
 #ifdef __cplusplus
 }

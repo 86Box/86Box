@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.12	2018/01/15
+ * Version:	@(#)win_ui.c	1.0.13	2018/01/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -304,6 +304,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_ACTION_PAUSE:
 				plat_pause(dopause ^ 1);
+				CheckMenuItem(menuMain, IDM_ACTION_PAUSE, dopause ? MF_CHECKED : MF_UNCHECKED);
 				break;
 
 			case IDM_CONFIG:
@@ -641,6 +642,15 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PostQuitMessage(0);
 		break;
 
+	case WM_SHOWSETTINGS:
+		win_settings_open(hwnd);
+		break;
+
+	case WM_PAUSE:
+		plat_pause(dopause ^ 1);
+		CheckMenuItem(menuMain, IDM_ACTION_PAUSE, dopause ? MF_CHECKED : MF_UNCHECKED);
+		break;
+
 	case WM_SYSCOMMAND:
 		/*
 		 * Disable ALT key *ALWAYS*,
@@ -680,6 +690,20 @@ ui_init(int nCmdShow)
     /* We should have an application-wide at_exit catcher. */
     atexit(plat_mouse_capture);
 #endif
+
+    if (settings_only) {
+	if (! pc_init_modules()) {
+		/* Dang, no ROMs found at all! */
+		MessageBox(hwnd,
+			   plat_get_string(IDS_2056),
+			   plat_get_string(IDS_2050),
+			   MB_OK | MB_ICONERROR);
+		return(6);
+	}
+
+	win_settings_open(NULL);
+	return(0);
+    }
 
     /* Create our main window's class and register it. */
     wincl.hInstance = hinstance;
@@ -813,6 +837,13 @@ ui_init(int nCmdShow)
 
     /* Set the PAUSE mode depending on the renderer. */
     plat_pause(0);
+
+    /* If so requested via the command line, inform the
+     * application that started us of our HWND, using the
+     * the hWnd and unique ID the application has given
+     * us. */
+    if (source_hwnd)
+	SendMessage((HWND) (uintptr_t) source_hwnd, WM_SENDHWND, (WPARAM) unique_id, (LPARAM) hwndMain);
 
     /*
      * Everything has been configured, and all seems to work,

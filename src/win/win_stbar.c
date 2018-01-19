@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.8	2018/01/16
+ * Version:	@(#)win_stbar.c	1.0.9	2018/01/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -134,6 +134,14 @@ StatusBarCreateFloppySubmenu(HMENU m, int id)
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_FLOPPY_EJECT | id,
 	       plat_get_string(IDS_2164));
+    AppendMenu(m, MF_SEPARATOR, 0, 0);
+    AppendMenu(m, MF_STRING, IDM_FLOPPY_EXPORT_TO_86F | id,
+	       plat_get_string(IDS_2172));
+
+    if (floppyfns[id][0] == 0x0000) {
+	EnableMenuItem(m, IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
+	EnableMenuItem(m, IDM_FLOPPY_EXPORT_TO_86F | id, MF_BYCOMMAND | MF_GRAYED);
+    }
 }
 
 
@@ -791,6 +799,20 @@ StatusBarPopupMenu(HWND hwnd, POINT pt, int id)
 }
 
 
+void
+ui_sb_mount_floppy_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name)
+{
+	fdd_close(id);
+	ui_writeprot[id] = wp;
+	fdd_load(id, file_name);
+	ui_sb_update_icon_state(SB_FLOPPY | id, wcslen(floppyfns[id]) ? 0 : 1);
+	EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
+	EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EXPORT_TO_86F | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
+	ui_sb_update_tip(SB_FLOPPY | id);
+	config_save();
+}
+
+
 /* Handle messages for the Status Bar window. */
 #ifdef __amd64__
 static LRESULT CALLBACK
@@ -816,6 +838,12 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		item_params = LOWORD(wParam) & 0x00ff;	/* high 8 bits */
 
                 switch (item_id) {
+			case IDM_FLOPPY_IMAGE_NEW:
+				id = item_params & 0x0003;
+				part = ui_sb_find_part(SB_FLOPPY | id);
+				NewFloppyDialogCreate(hwnd, id, part);
+				break;
+
 			case IDM_FLOPPY_IMAGE_EXISTING:
 			case IDM_FLOPPY_IMAGE_EXISTING_WP:
 				id = item_params & 0x0003;
@@ -824,15 +852,8 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					break;
 
 				ret = file_dlg_w_st(hwnd, IDS_2159, floppyfns[id], 0);
-				if (! ret) {
-					fdd_close(id);
-					ui_writeprot[id] = (item_id == IDM_FLOPPY_IMAGE_EXISTING_WP) ? 1 : 0;
-					fdd_load(id, wopenfilestring);
-					ui_sb_update_icon_state(SB_FLOPPY | id, wcslen(floppyfns[id]) ? 0 : 1);
-					EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
-					ui_sb_update_tip(SB_FLOPPY | id);
-					config_save();
-				}
+				if (! ret)
+					ui_sb_mount_floppy_img(id, part, (item_id == IDM_FLOPPY_IMAGE_EXISTING_WP) ? 1 : 0, wopenfilestring);
 				break;
 
 			case IDM_FLOPPY_EJECT:
@@ -844,8 +865,25 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				fdd_close(id);
 				ui_sb_update_icon_state(SB_FLOPPY | id, 1);
 				EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
+				EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EXPORT_TO_86F | id, MF_BYCOMMAND | MF_GRAYED);
 				ui_sb_update_tip(SB_FLOPPY | id);
 				config_save();
+				break;
+
+			case IDM_FLOPPY_EXPORT_TO_86F:
+				id = item_params & 0x0003;
+				part = ui_sb_find_part(SB_FLOPPY | id);
+				if ((part == -1) || (sb_menu_handles == NULL))
+					break;
+
+				ret = file_dlg_w_st(hwnd, IDS_2173, floppyfns[id], 1);
+				if (! ret) {
+					plat_pause(1);
+					ret = d86f_export(id, wopenfilestring);
+					if (!ret)
+						ui_msgbox(MBX_ERROR, (wchar_t *)IDS_4108);
+					plat_pause(0);
+				}
 				break;
 
 			case IDM_CDROM_MUTE:

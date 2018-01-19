@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)floppy_86f.h	1.0.3	2018/01/17
+ * Version:	@(#)floppy_86f.h	1.0.4	2018/01/18
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -39,7 +39,6 @@ extern void	d86f_prepare_track_layout(int drive, int side);
 extern void	d86f_set_version(int drive, uint16_t version);
 extern uint16_t	d86f_side_flags(int drive);
 extern uint16_t	d86f_track_flags(int drive);
-extern void	d86f_write_tracks(int drive, FILE **f);
 
 #define length_gap0	80
 #define length_gap1	50

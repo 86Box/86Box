@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.16	2018/01/17
+ * Version:	@(#)resource.h	1.0.17	2018/01/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -84,6 +84,7 @@
 #define IDT_1748		1748	/* MIDI */
 #define IDT_1749		1749	/* File name: */
 #define IDT_1750		1750	/* Disk size: */
+#define IDT_1751		1751	/* RPM mode: */
 
 
 /*
@@ -193,6 +194,7 @@
 
 #define IDC_EDIT_FILE_NAME	1190	/* new floppy image dialog */
 #define IDC_COMBO_DISK_SIZE	1191
+#define IDC_COMBO_RPM_MODE	1192
 
 
 /* For the DeviceConfig code, re-do later. */
@@ -276,7 +278,7 @@
 #define IDM_FLOPPY_IMAGE_NEW		0x1200
 #define IDM_FLOPPY_IMAGE_EXISTING	0x1300
 #define IDM_FLOPPY_IMAGE_EXISTING_WP	0x1400
-#define IDM_FLOPPY_DUMP_86F		0x1500
+#define IDM_FLOPPY_EXPORT_TO_86F	0x1500
 #define IDM_FLOPPY_EJECT		0x1600
 
 #define IDM_CDROM_MUTE			0x2200

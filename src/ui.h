@@ -8,13 +8,13 @@
  *
  *		Define the various UI functions.
  *
- * Version:	@(#)ui.h	1.0.10	2017/11/18
+ * Version:	@(#)ui.h	1.0.11	2018/01/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef EMU_UI_H
 # define EMU_UI_H
@@ -61,6 +61,7 @@ extern void	ui_sb_update_icon_state(int tag, int active);
 extern void	ui_sb_set_text_w(wchar_t *wstr);
 extern void	ui_sb_set_text(char *str);
 extern void	ui_sb_bugui(char *str);
+extern void	ui_sb_mount_floppy_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name);
 
 #ifdef __cplusplus
 }

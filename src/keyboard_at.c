@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.24	2018/01/17
+ * Version:	@(#)keyboard_at.c	1.0.25	2018/01/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1472,10 +1472,9 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 				case 0xd4: /*Write to mouse*/
 					kbdlog("ATkbd: write to mouse (%02X)\n", val);
 					kbd_mouse_set(kbd, 1);
-					if (mouse_write && ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1)) {
-						pclog("Mouse write\n");
+					if (mouse_write && ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1))
 						mouse_write(val, mouse_p);
-					} else if (!mouse_write && ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1)) {
+					else if (!mouse_write && ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1)) {
 						pclog("Adding 0xFF to queue\n");
 						keyboard_at_adddata_mouse(0xff);
 					}
@@ -1786,7 +1785,6 @@ kbd_read(uint16_t port, void *priv)
     switch (port) {
 	case 0x60:
 		ret = kbd->out;
-		pclog("Reading: %02X\n", ret);
 		kbd->status &= ~(STAT_OFULL);
 		picintc(kbd->last_irq);
 		kbd->last_irq = 0;
@@ -2038,7 +2036,6 @@ keyboard_at_adddata_keyboard_raw(uint8_t val)
 void
 keyboard_at_adddata_mouse(uint8_t val)
 {
-    pclog("Adding mouse data: %02X\n", val);
     mouse_queue[mouse_queue_end] = val;
     mouse_queue_end = (mouse_queue_end + 1) & 0xf;
 }

@@ -10,11 +10,11 @@
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
  *
- * Version:	@(#)language.h	1.0.4	2017/11/25
+ * Version:	@(#)language.h	1.0.5	2018/01/18
  *
- * Author:	Fred N. van Kempem, <decwiz@yahoo.com>
+ * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef LANG_UAGE_H
 # define LANG_UAGE_H
@@ -135,7 +135,7 @@
 #define IDS_2159	2159		// "All floppy images (*.0??;*.."
 #define IDS_2160	2160		// "Configuration files (*.CF.."
 #define IDS_2161	2161		// "&New image..."
-#define IDS_2162	2162		// "Existing image..."
+#define IDS_2162	2162		// "&Existing image..."
 #define IDS_2163	2163		// "Existing image (&Write-pr..."
 #define IDS_2164	2164		// "E&ject"
 #define IDS_2165	2165		// "&Mute"
@@ -145,6 +145,9 @@
 #define IDS_2169	2169		// "Image (&Write-protected)..."
 #define IDS_2170	2170		// "Check BPB"
 #define IDS_2171	2171		// "Unable to initialize Flui.."
+#define IDS_2172	2172		// "E&xport to 86F..."
+#define IDS_2173	2173		// "Surface-based images (*.8.."
+#define IDS_2174	2174		// "All floppy images (*.DSK..."
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -201,11 +204,29 @@
 #define IDS_5637	5637		// "ATAPI (PIO and DMA) (%01i:%01i)"
 #define IDS_5638	5638		// "SCSI (%02i:%02i)"
 
-#define IDS_6144	6144		// "English (United States)"
+#define IDS_5888	5888		// "160 kB"
+#define IDS_5889	5889		// "180 kB"
+#define IDS_5890	5890		// "320 kB"
+#define IDS_5891	5891		// "360 kB"
+#define IDS_5892	5892		// "640 kB"
+#define IDS_5893	5893		// "720 kB"
+#define IDS_5894	5894		// "1.2 MB"
+#define IDS_5895	5895		// "1.25 MB"
+#define IDS_5896	5896		// "1.44 MB"
+#define IDS_5897	5897		// "DMF (cluster 1024)"
+#define IDS_5898	5898		// "DMF (cluster 2048)"
+#define IDS_5899	5899		// "2.88 MB"
 
-#define IDS_LANG_ENUS	IDS_6144
+#define IDS_6144	6144		// "Perfect RPM"
+#define IDS_6145	6145		// "1%% below perfect RPM"
+#define IDS_6146	6146		// "1.5%% below perfect RPM"
+#define IDS_6147	6147		// "2%% below perfect RPM"
 
-#define STR_NUM_2048	124
+#define IDS_7168	7168		// "English (United States)"
+
+#define IDS_LANG_ENUS	IDS_7168
+
+#define STR_NUM_2048	127
 #define STR_NUM_3072	11
 #define STR_NUM_4096	20
 #define STR_NUM_4352	7
@@ -213,7 +234,9 @@
 #define STR_NUM_5120	1
 #define STR_NUM_5376	7
 #define STR_NUM_5632	7
-#define STR_NUM_6144	1
+#define STR_NUM_5888	12
+#define STR_NUM_6144	4
+#define STR_NUM_7168	1
 
 
 #endif	/*LANG_UAGE_H*/

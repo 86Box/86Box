@@ -46,6 +46,9 @@
 #define WM_RESETD3D		WM_USER
 #define WM_LEAVEFULLSCREEN	WM_USER+1
 #define WM_SAVESETTINGS		0x8888
+#define WM_SHOWSETTINGS		0x8889
+#define WM_PAUSE		0x8890
+#define WM_SENDHWND		0x8891
 
 
 extern HINSTANCE	hinstance;
@@ -112,6 +115,10 @@ extern void	AboutDialogCreate(HWND hwnd);
 
 /* Functions in win_snd_gain.c: */
 extern void	SoundGainDialogCreate(HWND hwnd);
+
+
+/* Functions in win_new_floppy.c: */
+extern void	NewFloppyDialogCreate(HWND hwnd, int id, int part);
 
 
 /* Functions in win_status.c: */

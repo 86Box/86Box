@@ -50,6 +50,7 @@ static struct
         uint32_t split_addr, split_size;
         
         uint8_t mem_pos_regs[8];
+        uint8_t mem_2mb_pos_regs[8];
 } ps2;
 
 
@@ -527,6 +528,24 @@ static void ps2_mca_board_common_init()
         lpt1_init(0x3bc);
 }
 
+static uint8_t ps2_mem_expansion_read(int port, void *p)
+{
+        return ps2.mem_pos_regs[port & 7];
+}
+
+static void ps2_mem_expansion_write(int port, uint8_t val, void *p)
+{
+        if (port < 0x102 || port == 0x104)
+                return;
+
+        ps2.mem_pos_regs[port & 7] = val;
+
+        if (ps2.mem_pos_regs[2] & 1)
+                mem_mapping_enable(&ps2.expansion_mapping);
+        else
+                mem_mapping_disable(&ps2.expansion_mapping);
+}
+
 static void ps2_mca_board_model_50_init()
 {        
         ps2_mca_board_common_init();
@@ -536,6 +555,58 @@ static void ps2_mca_board_model_50_init()
         
         ps2.planar_read = model_50_read;
         ps2.planar_write = model_50_write;
+
+        if (mem_size > 2048)
+        {
+                /* Only 2 MB supported on planar, create a memory expansion card for the rest */
+                mem_mapping_set_addr(&ram_high_mapping, 0x100000, 0x160000);
+
+		ps2.mem_pos_regs[0] = 0xff;
+               	ps2.mem_pos_regs[1] = 0xfc;
+
+               	switch (mem_size/1024)
+       	        {
+                        case 3:
+                       	ps2.mem_pos_regs[4] = 0xfc;	/* 11 11 11 00 = 0 0 0 1 */
+               	        break;
+       	                case 4:
+                        ps2.mem_pos_regs[4] = 0xfe;	/* 11 11 11 10 = 0 0 0 2 */
+                       	break;
+               	        case 5:
+       	                ps2.mem_pos_regs[4] = 0xf2;	/* 11 11 00 10 = 0 0 1 2 */
+                        break;
+                       	case 6:
+               	        ps2.mem_pos_regs[4] = 0xfa;	/* 11 11 10 10 = 0 0 2 2 */
+       	                break;
+                        case 7:
+                       	ps2.mem_pos_regs[4] = 0xca;	/* 11 00 10 10 = 0 1 2 2 */
+               	        break;
+       	                case 8:
+                        ps2.mem_pos_regs[4] = 0xea;	/* 11 10 10 10 = 0 2 2 2 */
+                       	break;
+               	        case 9:
+       	                ps2.mem_pos_regs[4] = 0x2a;	/* 00 10 10 10 = 1 2 2 2 */
+                        break;
+                       	case 10:
+               	        ps2.mem_pos_regs[4] = 0xaa;	/* 10 10 10 10 = 2 2 2 2 */
+       	                break;
+                }
+
+               	mca_add(ps2_mem_expansion_read, ps2_mem_expansion_write, NULL);
+       	        mem_mapping_add(&ps2.expansion_mapping,
+                            0x260000,
+                       	    (mem_size - 2048)*1024,
+               	            mem_read_ram,
+       	                    mem_read_ramw,
+                            mem_read_raml,
+                       	    mem_write_ram,
+               	            mem_write_ramw,
+       	                    mem_write_raml,
+                            &ram[0x260000],
+                       	    MEM_MAPPING_INTERNAL,
+               	            NULL);
+       	        mem_mapping_disable(&ps2.expansion_mapping);
+        }
 
 	device_add(&ps1vga_device);
 }
@@ -664,24 +735,6 @@ static void mem_encoding_write(uint16_t addr, uint8_t val, void *p)
                 break;
         }
         mem_encoding_update();
-}
-
-static uint8_t ps2_mem_expansion_read(int port, void *p)
-{
-        return ps2.mem_pos_regs[port & 7];
-}
-
-static void ps2_mem_expansion_write(int port, uint8_t val, void *p)
-{
-        if (port < 0x102 || port == 0x104)
-                return;
-
-        ps2.mem_pos_regs[port & 7] = val;
-
-        if (ps2.mem_pos_regs[2] & 1)
-                mem_mapping_enable(&ps2.expansion_mapping);
-        else
-                mem_mapping_disable(&ps2.expansion_mapping);
 }
 
 static void ps2_mca_board_model_80_type2_init(int is486)

@@ -8,15 +8,15 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.43	2017/12/28
+ * Version:	@(#)win.c	1.0.44	2018/01/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #define UNICODE
 #include <windows.h>
@@ -72,7 +72,9 @@ static rc_str_t	*lpRCstr2048,
 		*lpRCstr5120,
 		*lpRCstr5376,
 		*lpRCstr5632,
-		*lpRCstr6144;
+		*lpRCstr5888,
+		*lpRCstr6144,
+		*lpRCstr7168;
 
 
 static struct {
@@ -136,7 +138,9 @@ LoadCommonStrings(void)
     lpRCstr5120 = (rc_str_t *)malloc(STR_NUM_5120*sizeof(rc_str_t));
     lpRCstr5376 = (rc_str_t *)malloc(STR_NUM_5376*sizeof(rc_str_t));
     lpRCstr5632 = (rc_str_t *)malloc(STR_NUM_5632*sizeof(rc_str_t));
+    lpRCstr5888 = (rc_str_t *)malloc(STR_NUM_5888*sizeof(rc_str_t));
     lpRCstr6144 = (rc_str_t *)malloc(STR_NUM_6144*sizeof(rc_str_t));
+    lpRCstr7168 = (rc_str_t *)malloc(STR_NUM_7168*sizeof(rc_str_t));
 
     for (i=0; i<STR_NUM_2048; i++)
 	LoadString(hinstance, 2048+i, lpRCstr2048[i].str, 512);
@@ -159,8 +163,14 @@ LoadCommonStrings(void)
     for (i=0; i<STR_NUM_5632; i++)
 	LoadString(hinstance, 5632+i, lpRCstr5632[i].str, 512);
 
+    for (i=0; i<STR_NUM_5888; i++)
+	LoadString(hinstance, 5888+i, lpRCstr5888[i].str, 512);
+
     for (i=0; i<STR_NUM_6144; i++)
 	LoadString(hinstance, 6144+i, lpRCstr6144[i].str, 512);
+
+    for (i=0; i<STR_NUM_7168; i++)
+	LoadString(hinstance, 7168+i, lpRCstr7168[i].str, 512);
 }
 
 
@@ -204,10 +214,14 @@ plat_get_string(int i)
 	str = lpRCstr5120[i-5120].str;
     } else if ((i >= 5376) && (i <= 5631)) {
 	str = lpRCstr5376[i-5376].str;
-    } else if ((i >= 5632) && (i <= 6143)) {
+    } else if ((i >= 5632) && (i <= 5887)) {
 	str = lpRCstr5632[i-5632].str;
-    } else {
+    } else if ((i >= 5888) && (i <= 6143)) {
+	str = lpRCstr5888[i-5888].str;
+    } else if ((i >= 6144) && (i <= 7167)) {
 	str = lpRCstr6144[i-6144].str;
+    } else {
+	str = lpRCstr7168[i-7168].str;
     }
 
     return((wchar_t *)str);

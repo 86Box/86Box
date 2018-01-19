@@ -11,15 +11,15 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.12	2018/01/05
+ * Version:	@(#)machine_table.c	1.0.13	2018/01/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016,2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -78,7 +78,7 @@ machine_t machines[] = {
 #endif
     { "[286 ISA] Toshiba 3100e",		ROM_T3100E,		"t3100e",		{{"",      cpus_286},         {"",    NULL},	     {"",      NULL},	     {"",      NULL},	  {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						       1024, 5120, 256,  63,	       machine_at_t3100e_init, NULL, nvr_at_close		},
 
-    { "[286 MCA] IBM PS/2 model 50",		ROM_IBMPS2_M50,		"ibmps2_m50",		{{"",      cpus_ps2_m30_286}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC_PS2,				  1,   16,   1,  63,	    machine_ps2_model_50_init, NULL, nvr_at_close		},
+    { "[286 MCA] IBM PS/2 model 50",		ROM_IBMPS2_M50,		"ibmps2_m50",		{{"",      cpus_ps2_m30_286}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC_PS2,				  1,   10,   1,  63,	    machine_ps2_model_50_init, NULL, nvr_at_close		},
 
     { "[386SX ISA] AMI 386SX clone",		ROM_AMI386SX,		"ami386",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,							512,16384, 128, 127,	     machine_at_headland_init, NULL, nvr_at_close		},
     { "[386SX ISA] Amstrad MegaPC",		ROM_MEGAPC,		"megapc",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_VIDEO | MACHINE_HDC,			  1,   16,   1, 127,	      machine_at_wd76c10_init, NULL, nvr_at_close		},

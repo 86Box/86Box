@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.22	2018/01/17
+ * Version:	@(#)86Box.rc	1.0.23	2018/01/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -256,19 +256,22 @@ BEGIN
     CTEXT           "MIDI",IDT_1748,70,7,32,9,SS_CENTERIMAGE
 END
 
-DLG_NEW_FLOPPY DIALOG DISCARDABLE  0, 0, 186, 65
+DLG_NEW_FLOPPY DIALOG DISCARDABLE  0, 0, 226, 86
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "New Floppy Image"
 FONT 8, "MS Sans Serif"
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,74,44,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,129,44,50,14
-    LTEXT           "File name:",IDT_1749,7,6,34,12,SS_CENTERIMAGE
-    LTEXT           "Disk size:",IDT_1750,7,25,34,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_EDIT_FILE_NAME,43,7,124,12,ES_AUTOHSCROLL | ES_READONLY
-    COMBOBOX        IDC_COMBO_DISK_SIZE,43,25,136,14,CBS_DROPDOWN | CBS_SORT | 
+    DEFPUSHBUTTON   "OK",IDOK,74,65,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,129,65,50,14
+    LTEXT           "File name:",IDT_1749,7,6,44,12,SS_CENTERIMAGE
+    LTEXT           "Disk size:",IDT_1750,7,25,44,12,SS_CENTERIMAGE
+    LTEXT           "RPM mode:",IDT_1751,7,45,44,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_EDIT_FILE_NAME,53,5,154,14,ES_AUTOHSCROLL | ES_READONLY
+    COMBOBOX        IDC_COMBO_DISK_SIZE,53,25,166,14,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "...",IDC_CFILE,166,7,13,12
+    COMBOBOX        IDC_COMBO_RPM_MODE,53,45,166,14,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "...",IDC_CFILE,206,5,13,14
 END
 
 DLG_CONFIG DIALOG DISCARDABLE  0, 0, 366, 241
@@ -650,9 +653,9 @@ BEGIN
     DLG_NEW_FLOPPY, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 179
+        RIGHTMARGIN, 219
         TOPMARGIN, 7
-        BOTTOMMARGIN, 58
+        BOTTOMMARGIN, 79
     END
 
     DLG_CFG_MAIN, DIALOG
@@ -888,7 +891,7 @@ BEGIN
     IDS_2159"All floppy images (*.0??;*.12;*.144;*.360;*.720;*.86F;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.JSON;*.TD0;*.VFD;*.XDF)\0*.0??;*.12;*.144;*.360;*.720;*.86F;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMD;*.IMG;*.JSON;*.TD0;*.VFD;*.XDF\0Advanced sector-based images (*.IMD;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basic sector-based images (*.0??;*.12;*.144;*.360;*.720;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMG;*.JSON;*.VFD;*.XDF)\0*.0??;*.12;*.144;*.360;*.720;*.BIN;*.CQ;*.CQM;*.DSK;*.FDI;*.FDF;*.FLP;*.HDM;*.IMA;*.IMG;*.JSON;*.VFD;*.XDF\0Flux images (*.FDI)\0*.FDI\0Surface-based images (*.86F)\0*.86F\0All files (*.*)\0*.*\0"
     IDS_2160	"Configuration files (*.CFG)\0*.CFG\0All files (*.*)\0*.*\0"
     IDS_2161	"&New image..."
-    IDS_2162	"Existing image..."
+    IDS_2162	"&Existing image..."
     IDS_2163	"Existing image (&Write-protected)..."
     IDS_2164	"E&ject"
     IDS_2165	"&Mute"
@@ -898,6 +901,9 @@ BEGIN
     IDS_2169	"Image (&Write-protected)..."
     IDS_2170	"Check BPB"
     IDS_2171	"Unable to initialize FluidSynth, make sure you have the following libraries\nin your 86Box folder:\n\nlibfluidsynth.dll\nlibglib-2.0-0.dll\nlibiconv-2.dll\nlibintl-8.dll\nlibpcre-1.dll"
+    IDS_2172	"E&xport to 86F..."
+    IDS_2173	"Surface-based images (*.86F)\0*.86F\0"
+    IDS_2174	"All floppy images (*.86F;*.DSK;*.FDI;*.FLP;*.IMA;*.IMG;*.VFD)\0*.86F;*.DSK;*.FDI;*.FLP;*.IMA;*.IMG;*.VFD\0Basic sector-based images (*.DSK;*.FDI;*.FLP;*.IMA;*.IMG;*.VFD)\0*.DSK;*.FDI;*.FLP;*.IMA;*.IMG;*.VFD\0Surface-based images (*.86F)\0*.86F\0"
 
     IDS_4096    "Hard disk (%s)"
     IDS_4097	"%01i:%01i"
@@ -954,9 +960,27 @@ BEGIN
     IDS_5637	"ATAPI (PIO and DMA) (%01i:%01i)"
     IDS_5638    "SCSI (%02i:%02i)"
 
-    IDS_6144	"English (United States)"
+    IDS_5888	"160 kB"
+    IDS_5889	"180 kB"
+    IDS_5890	"320 kB"
+    IDS_5891	"360 kB"
+    IDS_5892	"640 kB"
+    IDS_5893	"720 kB"
+    IDS_5894	"1.2 MB"
+    IDS_5895	"1.25 MB"
+    IDS_5896	"1.44 MB"
+    IDS_5897	"DMF (cluster 1024)"
+    IDS_5898	"DMF (cluster 2048)"
+    IDS_5899	"2.88 MB"
+
+    IDS_6144	"Perfect RPM"
+    IDS_6145	"1%% below perfect RPM"
+    IDS_6146	"1.5%% below perfect RPM"
+    IDS_6147	"2%% below perfect RPM"
+
+    IDS_7168	"English (United States)"
 END
-#define IDS_LANG_ENUS	IDS_6144
+#define IDS_LANG_ENUS	IDS_7168
 
 
 #ifndef _MAC

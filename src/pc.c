@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.52	2018/01/16
+ * Version:	@(#)pc.c	1.0.53	2018/01/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,6 +18,7 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -87,6 +88,11 @@ int	force_debug = 0;			/* (O) force debug output */
 #endif
 #ifdef USE_WX
 int	video_fps = RENDER_FPS;			/* (O) render speed in fps */
+#endif
+int	settings_only = 0;			/* (O) show only the settings dialog */
+#ifdef _WIN32
+uint64_t	unique_id = 0;
+uint64_t	source_hwnd = 0;
 #endif
 wchar_t log_path[1024] = { L'\0'};		/* (O) full path of logfile */
 
@@ -316,6 +322,10 @@ usage:
 #ifdef USE_WX
 		printf("-R or --fps num      - set render speed to 'num' fps\n");
 #endif
+		printf("-S or --settings     - show only the settings dialog\n");
+#ifdef _WIN32
+		printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
+#endif
 		printf("\nA config file can be specified. If none is, the default file will be used.\n");
 		return(0);
 	} else if (!wcscasecmp(argv[c], L"--dumpcfg") ||
@@ -347,6 +357,18 @@ usage:
 		if ((c+1) == argc) goto usage;
 
 		video_fps = wcstol(argv[++c], NULL, 10);
+#endif
+	} else if (!wcscasecmp(argv[c], L"--settings") ||
+		   !wcscasecmp(argv[c], L"-S")) {
+		settings_only = 1;
+#ifdef _WIN32
+	} else if (!wcscasecmp(argv[c], L"--hwnd") ||
+		   !wcscasecmp(argv[c], L"-H")) {
+
+		if ((c+1) == argc) goto usage;
+
+		wcstombs(temp, argv[++c], 128);
+		sscanf(temp, "%016" PRIX64 ",%016" PRIX64, &unique_id, &source_hwnd);
 #endif
 	} else if (!wcscasecmp(argv[c], L"--test")) {
 		/* some (undocumented) test function here.. */
