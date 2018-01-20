@@ -11,7 +11,7 @@
  *		Winbond W83877F Super I/O Chip
  *		Used by the Award 430HX
  *
- * Version:	@(#)sio_w83877f.c	1.0.8	2018/01/16
+ * Version:	@(#)sio_w83877f.c	1.0.9	2018/01/20
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -503,6 +503,7 @@ void w83877f_reset(void)
 
 	fdc_reset(w83877f_fdc);
 
+	memset(w83877f_regs, 0, 0x2A);
 	w83877f_regs[3] = 0x30;
 	w83877f_regs[7] = 0xF5;
 	w83877f_regs[9] = 0x0A;

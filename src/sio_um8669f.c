@@ -237,6 +237,8 @@ uint8_t um8669f_read(uint16_t port, void *p)
 
 void um8669f_reset(void)
 {
+	fdc_t *temp_fdc = um8669f_global.fdc;
+
 	fdc_reset(um8669f_global.fdc);
 
 	serial_remove(1);
@@ -251,6 +253,8 @@ void um8669f_reset(void)
 	lpt1_init(0x378);
         
         memset(&um8669f_global, 0, sizeof(um8669f_t));
+
+	um8669f_global.fdc = temp_fdc;
 
         um8669f_global.locked = 1;
 
