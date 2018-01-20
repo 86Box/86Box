@@ -8,11 +8,11 @@
  *
  *		Windows raw keyboard input handler.
  *
- * Version:	@(#)win_keyboard.c	1.0.5	2018/01/09
+ * Version:	@(#)win_keyboard.c	1.0.6	2018/01/20
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #define UNICODE
 #define  _WIN32_WINNT 0x0501
@@ -150,8 +150,29 @@ keyboard_handle(LPARAM lParam, int infocus)
 		   We use scan code 0xFFFF to mean a mapping that
 		   has a prefix other than E0 and that is not E1 1D,
 		   which is, for our purposes, invalid. */
-		if (scancode != 0xFFFF)
-			keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
+		if ((scancode == 0x00F) &&
+		    !(rawKB.Flags & RI_KEY_BREAK) &&
+		    (keyboard_recv(0x038) || keyboard_recv(0x138)) &&
+		    !mouse_capture) {
+			/* We received a TAB while ALT was pressed, while the mouse
+			   is not captured, suppress the TAB and send an ALT key up. */
+			if (keyboard_recv(0x038))
+				keyboard_input(0, 0x038);
+			if (keyboard_recv(0x138))
+				keyboard_input(0, 0x138);
+		} else if (((scancode == 0x038) || (scancode == 0x138)) &&
+			   !(rawKB.Flags & RI_KEY_BREAK) &&
+			   keyboard_recv(0x00F) &&
+			   !mouse_capture) {
+			/* We received an ALT while TAB was pressed, while the mouse
+			   is not captured, suppress the ALT and send a TAB key up. */
+			keyboard_input(0, 0x00F);
+		} else {
+			/* Normal scan code pass through, pass it through as is if
+			   it's not an invalid scan code. */
+			if (scancode != 0xFFFF)
+				keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
+		}
 	} else {
 		if (rawKB.MakeCode == 0x1D) {
 			scancode = scancode_map[0x100];	/* Translate E1 1D to 0x100 (which would
