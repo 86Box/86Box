@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.30	2018/01/21
+ * Version:	@(#)win_settings.c	1.0.31	2018/01/21
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -1044,25 +1044,25 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					break;
 
 				case IDC_JOY1:
-					h = GetDlgItem(hdlg, IDC_COMBO_JOY);
+					h = GetDlgItem(hdlg, IDC_COMBO_JOYSTICK);
 					temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
 					temp_deviceconfig |= joystickconfig_open(hdlg, 0, temp_joystick);
 					break;
 
 				case IDC_JOY2:
-					h = GetDlgItem(hdlg, IDC_COMBO_JOY);
+					h = GetDlgItem(hdlg, IDC_COMBO_JOYSTICK);
 					temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
 					temp_deviceconfig |= joystickconfig_open(hdlg, 1, temp_joystick);
 					break;
 
 				case IDC_JOY3:
-					h = GetDlgItem(hdlg, IDC_COMBO_JOY);
+					h = GetDlgItem(hdlg, IDC_COMBO_JOYSTICK);
 					temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
 					temp_deviceconfig |= joystickconfig_open(hdlg, 2, temp_joystick);
 					break;
 
 				case IDC_JOY4:
-					h = GetDlgItem(hdlg, IDC_COMBO_JOY);
+					h = GetDlgItem(hdlg, IDC_COMBO_JOYSTICK);
 					temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
 					temp_deviceconfig |= joystickconfig_open(hdlg, 3, temp_joystick);
 					break;
