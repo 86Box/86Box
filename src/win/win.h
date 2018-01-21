@@ -8,15 +8,15 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.13	2017/12/15
+ * Version:	@(#)win.h	1.0.14	2018/01/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef PLAT_WIN_H
 # define PLAT_WIN_H
@@ -63,6 +63,8 @@ extern int		status_is_open;
 extern char		openfilestring[260];
 extern WCHAR		wopenfilestring[260];
 
+extern uint8_t		filterindex;
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -94,7 +96,7 @@ extern intptr_t	fdd_type_to_icon(int type);
 #ifdef EMU_DEVICE_H
 extern uint8_t	deviceconfig_open(HWND hwnd, device_t *device);
 #endif
-extern void	joystickconfig_open(HWND hwnd, int joy_nr, int type);
+extern uint8_t	joystickconfig_open(HWND hwnd, int joy_nr, int type);
 
 extern int	getfile(HWND hwnd, char *f, char *fn);
 extern int	getsfile(HWND hwnd, char *f, char *fn);

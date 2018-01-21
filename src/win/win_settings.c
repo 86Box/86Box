@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.29	2018/01/19
+ * Version:	@(#)win_settings.c	1.0.30	2018/01/21
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -1030,44 +1030,41 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					break;
 
 				case IDC_COMBO_JOYSTICK:
-					if (HIWORD(wParam) == CBN_SELCHANGE)
-					{
-						h = GetDlgItem(hdlg, IDC_COMBO_JOYSTICK);
-						temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
+					h = GetDlgItem(hdlg, IDC_COMBO_JOYSTICK);
+					temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
 
-						h = GetDlgItem(hdlg, IDC_JOY1);
-						EnableWindow(h, (joystick_get_max_joysticks(temp_joystick) >= 1) ? TRUE : FALSE);
-						h = GetDlgItem(hdlg, IDC_JOY2);
-						EnableWindow(h, (joystick_get_max_joysticks(temp_joystick) >= 2) ? TRUE : FALSE);
-						h = GetDlgItem(hdlg, IDC_JOY3);
-						EnableWindow(h, (joystick_get_max_joysticks(temp_joystick) >= 3) ? TRUE : FALSE);
-						h = GetDlgItem(hdlg, IDC_JOY4);
-						EnableWindow(h, (joystick_get_max_joysticks(temp_joystick) >= 4) ? TRUE : FALSE);
-					}
+					h = GetDlgItem(hdlg, IDC_JOY1);
+					EnableWindow(h, (joystick_get_max_joysticks(temp_joystick) >= 1) ? TRUE : FALSE);
+					h = GetDlgItem(hdlg, IDC_JOY2);
+					EnableWindow(h, (joystick_get_max_joysticks(temp_joystick) >= 2) ? TRUE : FALSE);
+					h = GetDlgItem(hdlg, IDC_JOY3);
+					EnableWindow(h, (joystick_get_max_joysticks(temp_joystick) >= 3) ? TRUE : FALSE);
+					h = GetDlgItem(hdlg, IDC_JOY4);
+					EnableWindow(h, (joystick_get_max_joysticks(temp_joystick) >= 4) ? TRUE : FALSE);
 					break;
 
 				case IDC_JOY1:
 					h = GetDlgItem(hdlg, IDC_COMBO_JOY);
 					temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
-					joystickconfig_open(hdlg, 0, temp_joystick);
+					temp_deviceconfig |= joystickconfig_open(hdlg, 0, temp_joystick);
 					break;
 
 				case IDC_JOY2:
 					h = GetDlgItem(hdlg, IDC_COMBO_JOY);
 					temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
-					joystickconfig_open(hdlg, 1, temp_joystick);
+					temp_deviceconfig |= joystickconfig_open(hdlg, 1, temp_joystick);
 					break;
 
 				case IDC_JOY3:
 					h = GetDlgItem(hdlg, IDC_COMBO_JOY);
 					temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
-					joystickconfig_open(hdlg, 2, temp_joystick);
+					temp_deviceconfig |= joystickconfig_open(hdlg, 2, temp_joystick);
 					break;
 
 				case IDC_JOY4:
 					h = GetDlgItem(hdlg, IDC_COMBO_JOY);
 					temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
-					joystickconfig_open(hdlg, 3, temp_joystick);
+					temp_deviceconfig |= joystickconfig_open(hdlg, 3, temp_joystick);
 					break;
 			}
 			return FALSE;

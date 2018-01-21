@@ -244,10 +244,10 @@ joystick_if_t joystick_sw_pad =
         sw_write,
         sw_read_axis,
         sw_a0_over,
-        4,
         2,
         10,
 	0,
+        4,
         {"X axis", "Y axis"},
         {"A", "B", "C", "X", "Y", "Z", "L", "R", "Start", "M"}
 };

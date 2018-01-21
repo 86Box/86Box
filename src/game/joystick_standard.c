@@ -171,8 +171,8 @@ joystick_if_t joystick_standard =
         joystick_standard_a0_over,
         2,
         2,
-        2,
         0,
+        2,
         {"X axis", "Y axis"},
         {"Button 1", "Button 2"}
 };
@@ -185,10 +185,10 @@ joystick_if_t joystick_standard_4button =
         joystick_standard_write,
         joystick_standard_read_axis_4button,
         joystick_standard_a0_over,
-        1,
         2,
         4,
         0,
+        1,
         {"X axis", "Y axis"},
         {"Button 1", "Button 2", "Button 3", "Button 4"}
 };
@@ -201,10 +201,10 @@ joystick_if_t joystick_standard_6button =
         joystick_standard_write,
         joystick_standard_read_axis_6button,
         joystick_standard_a0_over,
-        1,
         2,
         6,
         0,
+        1,
         {"X axis", "Y axis"},
         {"Button 1", "Button 2", "Button 3", "Button 4", "Button 5", "Button 6"}
 };
@@ -217,10 +217,10 @@ joystick_if_t joystick_standard_8button =
         joystick_standard_write,
         joystick_standard_read_axis_8button,
         joystick_standard_a0_over,
-        1,
         2,
         8,
         0,
+        1,
         {"X axis", "Y axis"},
         {"Button 1", "Button 2", "Button 3", "Button 4", "Button 5", "Button 6", "Button 7", "Button 8"}
 };

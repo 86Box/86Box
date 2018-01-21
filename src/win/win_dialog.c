@@ -8,13 +8,13 @@
  *
  *		Several dialogs for the application.
  *
- * Version:	@(#)win_dialog.c	1.0.7	2017/12/28
+ * Version:	@(#)win_dialog.c	1.0.8	2018/01/21
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #define UNICODE
 #include <windows.h>
@@ -35,6 +35,7 @@
 WCHAR	path[MAX_PATH];
 WCHAR	wopenfilestring[260];
 char	openfilestring[260];
+uint8_t	filterindex = 0;
 
 
 static int CALLBACK
@@ -196,6 +197,7 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
 
     if (r) {
 	wcstombs(openfilestring, wopenfilestring, sizeof(openfilestring));
+	filterindex = ofn.nFilterIndex;
 //	pclog("File dialog return true\n");
 
 	return(0);

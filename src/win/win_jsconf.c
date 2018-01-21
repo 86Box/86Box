@@ -21,6 +21,8 @@ static int joystick_config_type;
 #define AXIS_STRINGS_MAX 3
 static char *axis_strings[AXIS_STRINGS_MAX] = {"X Axis", "Y Axis", "Z Axis"};
 
+static uint8_t joystickconfig_changed = 0;
+
 
 static void rebuild_axis_button_selections(HWND hdlg)
 {
@@ -271,7 +273,11 @@ joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                         }
                                 }
                         }
+			joystickconfig_changed = 1;
+                        EndDialog(hdlg, 0);
+                        return TRUE;
                         case IDCANCEL:
+			joystickconfig_changed = 0;
                         EndDialog(hdlg, 0);
                         return TRUE;
                 }
@@ -280,7 +286,7 @@ joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
         return FALSE;
 }
 
-void joystickconfig_open(HWND hwnd, int joy_nr, int type)
+uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
 {
         uint16_t *data_block = malloc(16384);
         uint16_t *data;
@@ -289,6 +295,8 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
         int y = 10;
         int id = IDC_CONFIG_BASE;
         int c;
+
+	joystickconfig_changed = 0;
         
         joystick_nr = joy_nr;
         joystick_config_type = type;
@@ -546,4 +554,6 @@ void joystickconfig_open(HWND hwnd, int joy_nr, int type)
         DialogBoxIndirect(hinstance, dlg, hwnd, joystickconfig_dlgproc);
 
         free(data_block);
+
+	return joystickconfig_changed;
 }
