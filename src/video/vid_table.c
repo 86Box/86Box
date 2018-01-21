@@ -8,13 +8,13 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.8	2017/12/31
+ * Version:	@(#)vid_table.c	1.0.9	2018/01/21
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -82,6 +82,8 @@ video_cards[] = {
       NULL,				GFX_NONE			},
     { "Internal",					"internal",
       NULL,				GFX_INTERNAL			},
+    { "[ISA] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64x_vlb",
+      &mach64gx_isa_device,		GFX_MACH64GX_ISA		},
     { "[ISA] ATI VGA Charger (ATI-28800-5)",		"ati28800",
       &ati28800_device,			GFX_VGACHARGER			},
     { "[ISA] ATI VGA Charger (ATI-28800-5)",		"ati28800",

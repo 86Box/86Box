@@ -8,7 +8,7 @@
  *
  *		Windows raw keyboard input handler.
  *
- * Version:	@(#)win_keyboard.c	1.0.6	2018/01/20
+ * Version:	@(#)win_keyboard.c	1.0.7	2018/01/20
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -44,7 +44,10 @@ convert_scan_code(UINT16 scan_code)
 	scan_code |= 0x0100;
     } else if (scan_code == 0xE11D)
 	scan_code = 0xE000;
-    else if (scan_code > 0x00FF) {
+    /* E0 00 is sent by some USB keyboards for their special keys, as it is an
+       invalid scan code (it has no untranslated set 2 equivalent), we mark it
+       appropriately so it does not get passed through. */
+    else if ((scan_code > 0x00FF) || (scan_code == 0xE000)) {
 	scan_code = 0xFFFF;
     }
 
@@ -134,9 +137,8 @@ keyboard_handle(LPARAM lParam, int infocus)
 
 	/* If it's not a scan code that starts with 0xE1 */
 	if (!(rawKB.Flags & RI_KEY_E1)) {
-		if (rawKB.Flags & RI_KEY_E0) {
+		if (rawKB.Flags & RI_KEY_E0)
 			scancode |= (0xE0 << 8);
-		}
 
 		/* Translate the scan code to 9-bit */
 		scancode = convert_scan_code(scancode);
@@ -180,7 +182,8 @@ keyboard_handle(LPARAM lParam, int infocus)
 							   anyway).
 							   Also, take a potential mapping into
 							   account. */
-		}
+		} else
+			scancode = 0xFFFF;
 		if (scancode != 0xFFFF)
 			keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
 	}

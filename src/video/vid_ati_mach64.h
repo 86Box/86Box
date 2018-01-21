@@ -8,14 +8,15 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.h	1.0.0	2017/05/30
+ * Version:	@(#)vid_ati_mach64.h	1.0.1	2018/01/21
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 
+extern device_t mach64gx_isa_device;
 extern device_t mach64gx_vlb_device;
 extern device_t mach64gx_pci_device;
 extern device_t mach64vt2_device;

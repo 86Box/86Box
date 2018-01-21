@@ -8,15 +8,15 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.7	2017/12/31
+ * Version:	@(#)video.h	1.0.8	2018/01/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef EMU_VIDEO_H
 # define EMU_VIDEO_H
@@ -49,6 +49,7 @@ enum {
     GFX_VGAEDGE16,  		/* ATI VGA Edge-16 (18800-1) */
     GFX_VGACHARGER, 		/* ATI VGA Charger (28800-5) */
     GFX_OTI067,     		/* Oak OTI-067 */
+    GFX_MACH64GX_ISA,		/* ATI Graphics Pro Turbo (Mach64) VLB */
     GFX_MACH64GX_VLB,		/* ATI Graphics Pro Turbo (Mach64) VLB */
     GFX_MACH64GX_PCI,		/* ATI Graphics Pro Turbo (Mach64) PCI */
     GFX_CL_GD5429,  		/* Cirrus Logic CL-GD5429 */
