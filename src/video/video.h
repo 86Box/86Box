@@ -30,9 +30,19 @@ enum {
     GFX_NONE = 0,
     GFX_INTERNAL,
     GFX_CGA,
+    GFX_COMPAQ_CGA,		/* Compaq CGA */
+    GFX_COMPAQ_CGA_2,		/* Compaq CGA 2 */
+    GFX_COLORPLUS,		/* Plantronics ColorPlus */
+    GFX_WY700,			/* Wyse 700 */
     GFX_MDA,
+    GFX_GENIUS,			/* MDSI Genius */
     GFX_HERCULES,
+    GFX_HERCULESPLUS,
+    GFX_INCOLOR,		/* Hercules InColor */
     GFX_EGA,			/* Using IBM EGA BIOS */
+    GFX_COMPAQ_EGA,		/* Compaq EGA */
+    GFX_SUPER_EGA,		/* Using Chips & Technologies SuperEGA BIOS */
+    GFX_VGA,        		/* IBM VGA */
     GFX_TVGA,			/* Using Trident TVGA8900D BIOS */
     GFX_ET4000,			/* Tseng ET4000 */
     GFX_ET4000W32_VLB,		/* Tseng ET4000/W32p (Diamond Stealth 32) VLB */
@@ -41,75 +51,62 @@ enum {
     GFX_BAHAMAS64_PCI,		/* S3 Vision864 (Paradise Bahamas 64) PCI */
     GFX_N9_9FX_VLB,		/* S3 764/Trio64 (Number Nine 9FX) VLB */
     GFX_N9_9FX_PCI,		/* S3 764/Trio64 (Number Nine 9FX) PCI */
-    GFX_VIRGE_VLB,      	/* S3 Virge VLB */
-    GFX_VIRGE_PCI,      	/* S3 Virge PCI */
     GFX_TGUI9440_VLB,   	/* Trident TGUI9440 VLB */
     GFX_TGUI9440_PCI,   	/* Trident TGUI9440 PCI */
-    GFX_VGA,        		/* IBM VGA */
     GFX_VGAEDGE16,  		/* ATI VGA Edge-16 (18800-1) */
     GFX_VGACHARGER, 		/* ATI VGA Charger (28800-5) */
-    GFX_OTI067,     		/* Oak OTI-067 */
-    GFX_MACH64GX_ISA,		/* ATI Graphics Pro Turbo (Mach64) VLB */
+    GFX_VGAWONDERXL,		/* Compaq ATI VGA Wonder XL (28800-5) */
+    GFX_VGAWONDERXL24,		/* Compaq ATI VGA Wonder XL24 (28800-6) */
     GFX_MACH64GX_VLB,		/* ATI Graphics Pro Turbo (Mach64) VLB */
     GFX_MACH64GX_PCI,		/* ATI Graphics Pro Turbo (Mach64) PCI */
-    GFX_CL_GD5429,  		/* Cirrus Logic CL-GD5429 */
-    GFX_VIRGEDX_VLB,    	/* S3 Virge/DX VLB */
-    GFX_VIRGEDX_PCI,    	/* S3 Virge/DX PCI */
-    GFX_PHOENIX_TRIO32_VLB, 	/* S3 732/Trio32 (Phoenix) VLB */
-    GFX_PHOENIX_TRIO32_PCI, 	/* S3 732/Trio32 (Phoenix) PCI */
-    GFX_PHOENIX_TRIO64_VLB, 	/* S3 764/Trio64 (Phoenix) VLB */
-    GFX_PHOENIX_TRIO64_PCI, 	/* S3 764/Trio64 (Phoenix) PCI */
-    GFX_INCOLOR,		/* Hercules InColor */
-    GFX_COLORPLUS,		/* Plantronics ColorPlus */
-    GFX_WY700,			/* Wyse 700 */
-    GFX_GENIUS,			/* MDSI Genius */
     GFX_MACH64VT2,  		/* ATI Mach64 VT2 */
-    GFX_COMPAQ_EGA,		/* Compaq EGA */
-    GFX_SUPER_EGA,		/* Using Chips & Technologies SuperEGA BIOS */
-    GFX_COMPAQ_VGA,		/* Compaq/Paradise VGA */
-    GFX_CL_GD5446,		/* Cirrus Logic CL-GD5446 */
-    GFX_VGAWONDERXL,		/* Compaq ATI VGA Wonder XL (28800-5) */
-    GFX_WD90C11,		/* Paradise WD90C11-LR Standalone */
-    GFX_OTI077,     		/* Oak OTI-077 */
-    GFX_VGAWONDERXL24,		/* Compaq ATI VGA Wonder XL24 (28800-6) */
-    GFX_STEALTH64_VLB,		/* S3 Vision864 (Diamond Stealth 64) VLB */
-    GFX_STEALTH64_PCI,		/* S3 Vision864 (Diamond Stealth 64) PCI */
-    GFX_PHOENIX_VISION864_VLB,	/* S3 Vision864 (Phoenix) VLB */
-    GFX_PHOENIX_VISION864_PCI,	/* S3 Vision864 (Phoenix) PCI */
-    GFX_RIVATNT,		/* nVidia Riva TNT */
-    GFX_RIVATNT2,		/* nVidia Riva TNT2 */
-    GFX_RIVA128,		/* nVidia Riva 128 */
-    GFX_HERCULESPLUS,
-    GFX_VIRGEVX_VLB,		/* S3 Virge/VX VLB */
-    GFX_VIRGEVX_PCI,		/* S3 Virge/VX PCI */
-    GFX_VIRGEDX4_VLB,		/* S3 Virge/DX (VBE 2.0) VLB */
-    GFX_VIRGEDX4_PCI,		/* S3 Virge/DX (VBE 2.0) PCI */
-    GFX_OTI037,			/* Oak OTI-037 */
-    GFX_TRIGEM_UNK,		/* Unknown TriGem graphics card w/Hangeul ROM */
-    GFX_MIRO_VISION964, 	/* S3 Vision964 (Miro Crystal) */
+#if defined(DEV_BRANCH) && defined(USE_CIRRUS)
     GFX_CL_GD5422,  		/* Cirrus Logic CL-GD5422 */
+    GFX_CL_GD5429,  		/* Cirrus Logic CL-GD5429 */
     GFX_CL_GD5430,  		/* Cirrus Logic CL-GD5430 */
     GFX_CL_GD5434,  		/* Cirrus Logic CL-GD5434 */
     GFX_CL_GD5436,  		/* Cirrus Logic CL-GD5436 */
     GFX_CL_GD5440,  		/* Cirrus Logic CL-GD5440 */
-    GFX_TICF62011,  		/* TI CF62011 */
-    GFX_COMPAQ_CGA,		/* Compaq CGA */
-    GFX_COMPAQ_CGA_2,		/* Compaq CGA 2 */
+    GFX_CL_GD5446,		/* Cirrus Logic CL-GD5446 */
+#endif
+#if defined(DEV_BRANCH) && defined(USE_RIVA)
+    GFX_RIVATNT,		/* nVidia Riva TNT */
+    GFX_RIVATNT2,		/* nVidia Riva TNT2 */
+    GFX_RIVA128,		/* nVidia Riva 128 */
+#endif
+    GFX_OTI067,     		/* Oak OTI-067 */
+    GFX_OTI077,     		/* Oak OTI-077 */
     GFX_PVGA1A,			/* Paradise PVGA1A Standalone */
+    GFX_WD90C11,		/* Paradise WD90C11-LR Standalone */
     GFX_WD90C30,		/* Paradise WD90C30-LR Standalone */
+    GFX_PHOENIX_TRIO32_VLB, 	/* S3 732/Trio32 (Phoenix) VLB */
+    GFX_PHOENIX_TRIO32_PCI, 	/* S3 732/Trio32 (Phoenix) PCI */
+    GFX_PHOENIX_TRIO64_VLB, 	/* S3 764/Trio64 (Phoenix) VLB */
+    GFX_PHOENIX_TRIO64_PCI, 	/* S3 764/Trio64 (Phoenix) PCI */
+    GFX_VIRGE_VLB,      	/* S3 Virge VLB */
+    GFX_VIRGE_PCI,      	/* S3 Virge PCI */
+    GFX_VIRGEDX_VLB,    	/* S3 Virge/DX VLB */
+    GFX_VIRGEDX_PCI,    	/* S3 Virge/DX PCI */
+    GFX_VIRGEDX4_VLB,		/* S3 Virge/DX (VBE 2.0) VLB */
+    GFX_VIRGEDX4_PCI,		/* S3 Virge/DX (VBE 2.0) PCI */
+    GFX_VIRGEVX_VLB,		/* S3 Virge/VX VLB */
+    GFX_VIRGEVX_PCI,		/* S3 Virge/VX PCI */
+    GFX_STEALTH64_VLB,		/* S3 Vision864 (Diamond Stealth 64) VLB */
+    GFX_STEALTH64_PCI,		/* S3 Vision864 (Diamond Stealth 64) PCI */
+    GFX_PHOENIX_VISION864_VLB,	/* S3 Vision864 (Phoenix) VLB */
+    GFX_PHOENIX_VISION864_PCI,	/* S3 Vision864 (Phoenix) PCI */
+#if defined(DEV_BRANCH) && defined(USE_TI)
+    GFX_TICF62011,  		/* TI CF62011 */
+#endif
 
     GFX_MAX
 };
 
-#define MDA	((gfxcard==GFX_MDA || gfxcard==GFX_HERCULES || \
-		  gfxcard==GFX_HERCULESPLUS || gfxcard==GFX_INCOLOR || \
-		  gfxcard==GFX_GENIUS) && \
+#define MDA	((gfxcard>=GFX_MDA) && \
+		 (gfxcard<=GFX_INCOLOR) && \
 		 (romset<ROM_TANDY || romset>=ROM_IBMAT))
 
-#define VGA	(((gfxcard>=GFX_TVGA) && gfxcard!=GFX_COLORPLUS && \
-		   gfxcard!=GFX_INCOLOR && gfxcard!=GFX_WY700 && \
-		   gfxcard!=GFX_GENIUS && gfxcard!=GFX_COMPAQ_EGA && \
-		   gfxcard!=GFX_SUPER_EGA && gfxcard!=GFX_HERCULESPLUS) && \
+#define VGA	((gfxcard>=GFX_VGA) && \
 		 (romset!=ROM_PC1640 && romset!=ROM_PC1512 && \
 		  romset!=ROM_TANDY && romset!=ROM_PC200 && romset!=ROM_T3100E))
 

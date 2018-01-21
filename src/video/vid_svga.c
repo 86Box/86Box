@@ -11,13 +11,13 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.13	2017/12/28
+ * Version:	@(#)vid_svga.c	1.0.14	2018/01/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -365,7 +365,13 @@ uint8_t svga_in(uint16_t addr, void *p)
                 case 0x3C1: 
                 return svga->attrregs[svga->attraddr];
                 case 0x3c2:
-		temp = svga->sense;
+		if (gfxcard == GFX_TVGA) {
+	                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x50)
+                	        temp = 0;
+        	        else
+	                        temp = 0x10;
+		} else
+			temp = svga->sense;
                 return temp;
 		case 0x3C3:
 		return svga->enabled & 0x01;

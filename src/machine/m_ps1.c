@@ -504,7 +504,7 @@ ps1_setup(int model)
 	if (model == 2011)
 		device_add(&ps1vga_device);
 	else
-		device_add(&ti_cf62011_device);
+		device_add(&ibm_ps1_2121_device);
     }
 
     if (model == 2121) {

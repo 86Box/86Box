@@ -198,8 +198,6 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
 	wcstombs(openfilestring, wopenfilestring, sizeof(openfilestring));
 //	pclog("File dialog return true\n");
 
-	pclog("Filter Index: %i\n", ofn.nFilterIndex);
-
 	return(0);
     }
 

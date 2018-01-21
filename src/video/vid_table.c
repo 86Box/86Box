@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.9	2018/01/21
+ * Version:	@(#)vid_table.c	1.0.10	2018/01/21
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -82,10 +82,6 @@ video_cards[] = {
       NULL,				GFX_NONE			},
     { "Internal",					"internal",
       NULL,				GFX_INTERNAL			},
-    { "[ISA] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64x_vlb",
-      &mach64gx_isa_device,		GFX_MACH64GX_ISA		},
-    { "[ISA] ATI VGA Charger (ATI-28800-5)",		"ati28800",
-      &ati28800_device,			GFX_VGACHARGER			},
     { "[ISA] ATI VGA Charger (ATI-28800-5)",		"ati28800",
       &ati28800_device,			GFX_VGACHARGER			},
     { "[ISA] ATI VGA Wonder XL24 (ATI-28800-6)",	"ati28800w",
@@ -121,8 +117,10 @@ video_cards[] = {
     { "[ISA] Paradise WD90C11-LR",                   "wd90c11",			&paradise_wd90c11_device,    		GFX_WD90C11			},
     { "[ISA] Paradise WD90C30-LR",                   "wd90c30",			&paradise_wd90c30_device,    		GFX_WD90C30			},
     { "[ISA] Plantronics ColorPlus",                 "plantronics",		&colorplus_device,           		GFX_COLORPLUS			},
+#if defined(DEV_BRANCH) && defined(USE_TI)
     {"[ISA] TI CF62011 SVGA",                        "ti_cf62011",
      &ti_cf62011_device,                GFX_TICF62011			},
+#endif
     { "[ISA] Trident TVGA8900D",                     "tvga8900d",		&tvga8900d_device,           		GFX_TVGA			},
     { "[ISA] Tseng ET4000AX",                        "et4000ax",			&et4000_device,              		GFX_ET4000			},
     {"[ISA] VGA",                                   "vga",			&vga_device,                 		GFX_VGA				},
