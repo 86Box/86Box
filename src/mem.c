@@ -261,22 +261,24 @@ int mmu_page_fault_check(uint32_t addr, int rw, uint32_t flags, int pde, int is_
 uint32_t mem_readl_phys(uint32_t addr)
 {
 	uint8_t i, temp[4];
-	uint32_t ta;
+	uint32_t ta, *tv;
 
 	for (i = 0; i < 4; i++) {
 		ta = addr + i;
 		temp[i] = _mem_exec[ta >> 14][ta & 0x3fff];
 	}
 
-	return *(uint32_t *) temp;
+	tv = (uint32_t *) temp;
+	return *tv;
 }
 
 void mem_writel_phys(uint32_t addr, uint32_t val)
 {
 	uint8_t i, temp[4];
-	uint32_t ta;
+	uint32_t ta, *tv;
 
-	*(uint32_t *) temp = val;
+	tv = (uint32_t *) temp;
+	*tv = val;
 
 	for (i = 0; i < 4; i++) {
 		ta = addr + i;
@@ -1535,7 +1537,9 @@ void mem_split_enable(int max_size, uint32_t addr)
 	if (split_mapping_enabled)
 		return;
 
-	// pclog("Split mapping enable at %08X\n", addr);
+#if 0
+	pclog("Split mapping enable at %08X\n", addr);
+#endif
 
 	mem_set_mem_state(addr, max_size * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 	mem_mapping_set_addr(&ram_split_mapping, addr, max_size * 1024);
@@ -1565,7 +1569,9 @@ void mem_split_disable(int max_size, uint32_t addr)
 	if (!split_mapping_enabled)
 		return;
 
-	// pclog("Split mapping disable at %08X\n", addr);
+#if 0
+	pclog("Split mapping disable at %08X\n", addr);
+#endif
 
 	if (max_size == 384)
 		memcpy(mem_split_buffer, &ram[addr], max_size);
@@ -1683,6 +1689,8 @@ static int port_92_reg = 0;
 
 void mem_a20_recalc(void)
 {
+	int state;
+
 	if (!AT) {
 		rammask = 0xfffff;
 		flushmmucache();
@@ -1690,7 +1698,7 @@ void mem_a20_recalc(void)
 		return;
 	}
 
-        int state = mem_a20_key | mem_a20_alt;
+        state = mem_a20_key | mem_a20_alt;
         if (state && !mem_a20_state)
         {
                 rammask = (AT && cpu_16bitbus) ? 0xffffff : 0xffffffff;
