@@ -8,6 +8,8 @@
 #include "../dma.h"
 #include "../mem.h"
 #include "../device.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
 #include "../nvr.h"
 #include "../game/gameport.h"
 #include "../keyboard.h"
@@ -96,4 +98,13 @@ machine_at_ide_top_remap_init(machine_t *model)
     machine_at_ide_init(model);
 
     mem_remap_top_384k();
+}
+
+
+void
+machine_at_ibm_init(machine_t *model)
+{
+    machine_at_top_remap_init(model);
+
+    device_add(&fdc_at_device);
 }
