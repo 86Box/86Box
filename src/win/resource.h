@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.17	2018/01/18
+ * Version:	@(#)resource.h	1.0.18	2018/01/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -85,6 +85,7 @@
 #define IDT_1749		1749	/* File name: */
 #define IDT_1750		1750	/* Disk size: */
 #define IDT_1751		1751	/* RPM mode: */
+#define IDT_1752		1752	/* Progress: */
 
 
 /*
@@ -170,6 +171,7 @@
 #define IDC_EDIT_HD_CYL		1143
 #define IDC_EDIT_HD_SIZE	1144
 #define IDC_COMBO_HD_TYPE	1145
+#define IDC_PBAR_IMG_CREATE	1146
 
 #define IDC_REMOV_DEVICES	1150	/* removable dev config */
 #define IDC_LIST_FLOPPY_DRIVES	1151

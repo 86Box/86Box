@@ -8,15 +8,13 @@
  *
  *		Handling of hard disk image files.
  *
- * Version:	@(#)hdd_image.c	1.0.9	2017/12/09
+ * Version:	@(#)hdd_image.c	1.0.10	2018/01/24
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
@@ -354,10 +352,12 @@ prepare_new_hard_disk:
 		empty_sector_1mb = (char *) malloc(1048576);
 		memset(empty_sector_1mb, 0, 1048576);
 
+		pclog("Writing image sectors: [");
 		if (s > 0)
 		{
 			for (i = 0; i < s; i++)
 			{
+				pclog("#");
 				fwrite(empty_sector, 1, 512, hdd_images[id].file);
 			}
 		}
@@ -366,9 +366,11 @@ prepare_new_hard_disk:
 		{
 			for (i = 0; i < t; i++)
 			{
+				pclog("#");
 				fwrite(empty_sector_1mb, 1, 1045876, hdd_images[id].file);
 			}
 		}
+		pclog("]\n");
 
 		free(empty_sector_1mb);
 	}

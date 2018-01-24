@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.24	2018/01/19
+ * Version:	@(#)86Box.rc	1.0.25	2018/01/24
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -516,6 +516,9 @@ BEGIN
     LTEXT           "LUN:",IDT_1724,168,72,15,8
     COMBOBOX        IDC_COMBO_HD_CHANNEL_IDE,134,71,77,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Progress:",IDT_1752,7,7,204,9
+    CONTROL         "IMGCreateProgress",IDC_PBAR_IMG_CREATE,"msctls_progress32",PBS_SMOOTH | 
+                    WS_BORDER,7,16,204,12
 END
 
 DLG_CFG_REMOVABLE_DEVICES DIALOG DISCARDABLE  97, 0, 267, 202
