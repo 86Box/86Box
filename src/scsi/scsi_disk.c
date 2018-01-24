@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.14	2018/01/21
+ * Version:	@(#)scsi_disk.c	1.0.15	2018/01/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -791,7 +791,7 @@ void scsi_hd_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length, in
 		else {
 			buffer[1] = scsi_hd_sense_key;
 			buffer[2] = scsi_hd_asc;
-			buffer[3] = scsi_hd_scq;
+			buffer[3] = scsi_hd_ascq;
 		}
 	}
 	else
