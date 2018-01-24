@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.13	2018/01/13
+ * Version:	@(#)scsi_disk.c	1.0.14	2018/01/21
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -93,10 +93,13 @@ uint8_t scsi_hd_command_flags[0x100] = {
     IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,		/* 0x13 */
     0,
     IMPLEMENTED,						/* 0x15 */
-    0, 0, 0, 0,
+    IMPLEMENTED | SCSI_ONLY,					/* 0x16 */
+    IMPLEMENTED | SCSI_ONLY,					/* 0x17 */
+    0, 0,
     IMPLEMENTED,
     IMPLEMENTED | CHECK_READY,					/* 0x1B */
-    0, 0,
+    0,
+    IMPLEMENTED,						/* 0x1D */
     IMPLEMENTED | CHECK_READY,					/* 0x1E */
     0, 0, 0, 0, 0, 0,
     IMPLEMENTED | CHECK_READY,					/* 0x25 */
@@ -777,13 +780,19 @@ void scsi_hd_reset(uint8_t id)
 }
 
 
-void scsi_hd_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
+void scsi_hd_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length, int desc)
 {				
 	/*Will return 18 bytes of 0*/
 	if (alloc_length != 0)
 	{
 		memset(buffer, 0, alloc_length);
-		memcpy(buffer, shdc[id].sense, alloc_length);
+		if (!desc)
+			memcpy(buffer, shdc[id].sense, alloc_length);
+		else {
+			buffer[1] = scsi_hd_sense_key;
+			buffer[2] = scsi_hd_asc;
+			buffer[3] = scsi_hd_scq;
+		}
 	}
 	else
 	{
@@ -794,14 +803,14 @@ void scsi_hd_request_sense(uint8_t id, uint8_t *buffer, uint8_t alloc_length)
 
 	if (shdc[id].unit_attention && (scsi_hd_sense_key == 0))
 	{
-		buffer[2]=SENSE_UNIT_ATTENTION;
-		buffer[12]=ASC_MEDIUM_MAY_HAVE_CHANGED;
-		buffer[13]=0x00;
+		buffer[desc ? 1 : 2]=SENSE_UNIT_ATTENTION;
+		buffer[desc ? 2 : 12]=ASC_MEDIUM_MAY_HAVE_CHANGED;
+		buffer[desc ? 3 : 13]=0x00;
 	}
 
 	scsi_hd_log("SCSI HD %i: Reporting sense: %02X %02X %02X\n", id, buffer[2], buffer[12], buffer[13]);
 
-	if (buffer[2] == SENSE_UNIT_ATTENTION)
+	if (buffer[desc ? 1: 2] == SENSE_UNIT_ATTENTION)
 	{
 		/* If the last remaining sense is unit attention, clear
 		   that condition. */
@@ -845,7 +854,7 @@ void scsi_hd_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_l
 
 	/* Do *NOT* advance the unit attention phase. */
 
-	scsi_hd_request_sense(id, buffer, alloc_length);
+	scsi_hd_request_sense(id, buffer, alloc_length, 0);
 }
 
 
@@ -921,6 +930,13 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 
 	switch (cdb[0])
 	{
+		case GPCMD_SEND_DIAGNOSTIC:
+			if (!(cdb[1] & (1 << 2))) {
+				scsi_hd_invalid_field(id);
+				return;
+			}
+		case GPCMD_SCSI_RESERVE:
+		case GPCMD_SCSI_RELEASE:
 		case GPCMD_TEST_UNIT_READY:
 		case GPCMD_FORMAT_UNIT:
 			scsi_hd_set_phase(id, SCSI_PHASE_STATUS);
@@ -945,9 +961,11 @@ void scsi_hd_command(uint8_t id, uint8_t *cdb)
 			{
 				cdb[4] = *BufLen;
 			}
-			
+
+			len = (cdb[1] & 1) ? 8 : 18;
+
 			scsi_hd_set_phase(id, SCSI_PHASE_DATA_IN);
-			scsi_hd_data_command_finish(id, 18, 18, cdb[4], 0);
+			scsi_hd_data_command_finish(id, len, len, cdb[4], 0);
 			break;
 
 		case GPCMD_MECHANISM_STATUS:
@@ -1492,7 +1510,7 @@ void scsi_hd_phase_data_in(uint8_t id)
 	{
 		case GPCMD_REQUEST_SENSE:
 			scsi_hd_log("SCSI HDD %i: %08X, %08X\n", id, hdbufferb, *BufLen);
-			scsi_hd_request_sense(id, hdbufferb, *BufLen);
+			scsi_hd_request_sense(id, hdbufferb, *BufLen, shdc[id].current_cdb[1] & 1);
 			break;
 		case GPCMD_MECHANISM_STATUS:
  			memset(hdbufferb, 0, *BufLen);
@@ -1621,9 +1639,15 @@ void scsi_hd_phase_data_out(uint8_t id)
 			else
 				hdr_len = 4;
 
-			block_desc_len = hdbufferb[6];
-			block_desc_len <<= 8;
-			block_desc_len |= hdbufferb[7];
+			if (shdc[id].current_cdb[0] == GPCMD_MODE_SELECT_6) {
+				block_desc_len = hdbufferb[2];
+				block_desc_len <<= 8;
+				block_desc_len |= hdbufferb[3];
+			} else {
+				block_desc_len = hdbufferb[6];
+				block_desc_len <<= 8;
+				block_desc_len |= hdbufferb[7];
+			}
 
 			pos = hdr_len + block_desc_len;
 

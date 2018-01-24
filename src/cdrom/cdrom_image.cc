@@ -71,7 +71,7 @@ void image_audio_callback(uint8_t id, int16_t *output, int len)
 {
         if (!cdrom_drives[id].sound_on || (cdrom_image[id].cd_state != CD_PLAYING) || cdrom_image[id].image_is_iso)
         {
-		pclog("image_audio_callback(i): Not playing\n", id);
+		cdrom_image_log("image_audio_callback(i): Not playing\n", id);
 		if (cdrom_ioctl[id].cd_state == CD_PLAYING)
 		{
 			cdrom[id].seek_pos += (len >> 11);

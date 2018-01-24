@@ -9,11 +9,11 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.28	2018/01/17
+ * Version:	@(#)cdrom.c	1.0.29	2018/01/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -1695,6 +1695,7 @@ cdrom_readtoc_fallback:
 				case GPCMD_READ_12:
 					cdrom[id].sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
 					cdrom[id].sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) | (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
+					cdrom_log("CD-ROM %i: Length: %i, LBA: %i\n", id, cdrom[id].sector_len, cdrom[id].sector_pos);
 					msf = 0;
 					break;
 				case GPCMD_READ_CD_MSF:
@@ -2534,18 +2535,30 @@ uint8_t cdrom_phase_data_out(uint8_t id)
 
 	uint8_t hdr_len, val, old_val, ch;
 
+	FILE *f;
+
 	switch(cdrom[id].current_cdb[0]) {
 		case GPCMD_MODE_SELECT_6:
 		case GPCMD_MODE_SELECT_10:
+			f = nvr_fopen(L"modeselect.bin", L"wb");
+			fwrite(cdbufferb, 1, cdrom[id].total_length, f);
+			fclose(f);
+
 			if (cdrom[id].current_cdb[0] == GPCMD_MODE_SELECT_10)
 				hdr_len = 8;
 			else
 				hdr_len = 4;
 
 			if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) {
-				block_desc_len = cdbufferb[6];
-				block_desc_len <<= 8;
-				block_desc_len |= cdbufferb[7];
+				if (cdrom[id].current_cdb[0] == GPCMD_MODE_SELECT_6) {
+					block_desc_len = cdbufferb[2];
+					block_desc_len <<= 8;
+					block_desc_len |= cdbufferb[3];
+				} else {
+					block_desc_len = cdbufferb[6];
+					block_desc_len <<= 8;
+					block_desc_len |= cdbufferb[7];
+				}
 			} else
 				block_desc_len = 0;
 
@@ -2557,9 +2570,10 @@ uint8_t cdrom_phase_data_out(uint8_t id)
 
 				pos += 2;
 
-				if (!(cdrom_mode_sense_page_flags & (1LL << ((uint64_t) page))))
+				if (!(cdrom_mode_sense_page_flags & (1LL << ((uint64_t) page)))) {
+					cdrom_log("Unimplemented page %02X\n", page);
 					error |= 1;
-				else {
+				} else {
 					for (i = 0; i < page_len; i++) {
 						ch = cdrom_mode_sense_pages_changeable.pages[page][i + 2];
 						val = cdbufferb[pos + i];
@@ -2567,8 +2581,10 @@ uint8_t cdrom_phase_data_out(uint8_t id)
 						if (val != old_val) {
 							if (ch)
 								cdrom_mode_sense_pages_saved[id].pages[page][i + 2] = val;
-							else
+							else {
+								cdrom_log("Unchangeable value on position %02X on page %02X\n", i + 2, page);
 								error |= 1;
+							}
 						}
 					}
 				}
@@ -3039,7 +3055,7 @@ cdrom_global_reset(void)
 	if (cdrom_drives[c].bus_type)
 		SCSIReset(cdrom_drives[c].scsi_device_id, cdrom_drives[c].scsi_device_lun);
 
-pclog("CDROM global_reset drive=%d host=%02x\n", c, cdrom_drives[c].host_drive);
+cdrom_log("CDROM global_reset drive=%d host=%02x\n", c, cdrom_drives[c].host_drive);
 	if (cdrom_drives[c].host_drive == 200)
 		image_open(c, cdrom_image[c].image_path);
 	else if ((cdrom_drives[c].host_drive>='A') && (cdrom_drives[c].host_drive <= 'Z'))

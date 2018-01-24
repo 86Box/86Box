@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.31	2018/01/21
+ * Version:	@(#)win_settings.c	1.0.32	2018/01/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -3478,6 +3478,7 @@ win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPar
 	HWND h;
 	int old_sel = 0;
 	int b = 0, i = 0;
+	int assign = 0;
 
         switch (message)
         {
@@ -3558,9 +3559,15 @@ win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPar
 					{
 						goto hd_bus_skip;
 					}
-					temp_hdd[hdlv_current_sel].bus = b;
 					hard_disk_untrack(hdlv_current_sel);
-					recalc_location_controls(hdlg, 0, 1);
+					assign = (temp_hdd[hdlv_current_sel].bus == b) ? 0 : 1;
+					if ((b == HDD_BUS_IDE_PIO_ONLY) && (temp_hdd[hdlv_current_sel].bus == HDD_BUS_IDE_PIO_AND_DMA))
+						assign = 0;
+					else if ((b == HDD_BUS_IDE_PIO_AND_DMA) && (temp_hdd[hdlv_current_sel].bus == HDD_BUS_IDE_PIO_ONLY))
+						assign = 0;
+					temp_hdd[hdlv_current_sel].bus = b;
+					recalc_location_controls(hdlg, 0, assign);
+					hard_disk_track(hdlv_current_sel);
 					h = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
 					win_settings_hard_disks_update_item(h, hdlv_current_sel, 0);
 hd_bus_skip:
@@ -3686,7 +3693,7 @@ hd_bus_skip:
 					{
 						hdlv_current_sel = -1;
 					}
-					recalc_location_controls(hdlg, 0, 1);
+					recalc_location_controls(hdlg, 0, 0);
 					ignore_change = 0;
 					return FALSE;
 			}
@@ -4188,6 +4195,7 @@ win_settings_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 	int b = 0;
 	int b2 = 0;
 	WCHAR szText[256];
+	int assign = 0;
 
         switch (message)
         {
@@ -4407,8 +4415,13 @@ win_settings_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 						goto cdrom_bus_skip;
 					}
 					cdrom_untrack(cdlv_current_sel);
+					assign = (temp_cdrom_drives[cdlv_current_sel].bus_type == b2) ? 0 : 1;
+					if ((b2 == CDROM_BUS_ATAPI_PIO_ONLY) && (temp_cdrom_drives[cdlv_current_sel].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA))
+						assign = 0;
+					else if ((b2 == CDROM_BUS_ATAPI_PIO_AND_DMA) && (temp_cdrom_drives[cdlv_current_sel].bus_type == CDROM_BUS_ATAPI_PIO_ONLY))
+						assign = 0;
 					temp_cdrom_drives[cdlv_current_sel].bus_type = b2;
-					cdrom_recalc_location_controls(hdlg, 1);
+					cdrom_recalc_location_controls(hdlg, assign);
 					cdrom_track(cdlv_current_sel);
 					h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
 					win_settings_cdrom_drives_update_item(h, cdlv_current_sel);
@@ -4424,7 +4437,9 @@ cdrom_bus_skip:
 
 					rd_ignore_change = 1;
 					h = GetDlgItem(hdlg, IDC_COMBO_CD_ID);
+					cdrom_untrack(cdlv_current_sel);
 					temp_cdrom_drives[cdlv_current_sel].scsi_device_id = SendMessage(h, CB_GETCURSEL, 0, 0);
+					cdrom_track(cdlv_current_sel);
 					h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
 					win_settings_cdrom_drives_update_item(h, cdlv_current_sel);
 					rd_ignore_change = 0;

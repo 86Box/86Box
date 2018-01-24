@@ -8,15 +8,15 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.10	2018/01/13
+ * Version:	@(#)scsi_h	1.0.11	2018/01/24
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2018 TheCollector1995.
- *		Copyright 2016,2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2016-2018 TheCollector1995.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef EMU_SCSI_H
 #define EMU_SCSI_H
@@ -35,69 +35,76 @@
 
 
 /* SCSI commands. */
-#define GPCMD_TEST_UNIT_READY	0x00
-#define GPCMD_REZERO_UNIT	0x01
-#define GPCMD_REQUEST_SENSE	0x03
-#define GPCMD_FORMAT_UNIT	0x04
-#define GPCMD_READ_6		0x08
-#define GPCMD_WRITE_6		0x0a
-#define GPCMD_SEEK_6		0x0b
-#define GPCMD_INQUIRY		0x12
-#define GPCMD_VERIFY_6		0x13
-#define GPCMD_MODE_SELECT_6	0x15
-#define GPCMD_MODE_SENSE_6	0x1a
-#define GPCMD_START_STOP_UNIT	0x1b
-#define GPCMD_PREVENT_REMOVAL	0x1e
-#define GPCMD_READ_CDROM_CAPACITY 0x25
-#define GPCMD_READ_10		0x28
-#define GPCMD_WRITE_10		0x2a
-#define GPCMD_SEEK_10		0x2b
-#define GPCMD_WRITE_AND_VERIFY_10	0x2e
-#define GPCMD_VERIFY_10		0x2f
-#define GPCMD_WRITE_SAME_10	0x41
-#define GPCMD_READ_SUBCHANNEL	0x42
-#define GPCMD_READ_TOC_PMA_ATIP	0x43
-#define GPCMD_READ_HEADER	0x44
-#define GPCMD_PLAY_AUDIO_10	0x45
-#define GPCMD_GET_CONFIGURATION	0x46
-#define GPCMD_PLAY_AUDIO_MSF	0x47
-#define GPCMD_PLAY_AUDIO_TRACK_INDEX 0x48
-#define GPCMD_GET_EVENT_STATUS_NOTIFICATION 0x4a
-#define GPCMD_PAUSE_RESUME	0x4b
-#define GPCMD_STOP_PLAY_SCAN	0x4e
-#define GPCMD_READ_DISC_INFORMATION 0x51
-#define GPCMD_READ_TRACK_INFORMATION 0x52
-#define GPCMD_MODE_SELECT_10	0x55
-#define GPCMD_MODE_SENSE_10	0x5a
-#define GPCMD_PLAY_AUDIO_12	0xa5
-#define GPCMD_READ_12		0xa8
-#define GPCMD_WRITE_12		0xaa
-#define GPCMD_READ_DVD_STRUCTURE 0xad	/* For reading. */
-#define GPCMD_WRITE_AND_VERIFY_12	0xae
-#define GPCMD_VERIFY_12		0xaf
-#define GPCMD_PLAY_CD_OLD	0xb4
-#define GPCMD_READ_CD_OLD	0xb8
-#define GPCMD_READ_CD_MSF	0xb9
-#define GPCMD_SCAN		0xba
-#define GPCMD_SET_SPEED		0xbb
-#define GPCMD_PLAY_CD		0xbc
-#define GPCMD_MECHANISM_STATUS	0xbd
-#define GPCMD_READ_CD		0xbe
-#define GPCMD_SEND_DVD_STRUCTURE 0xbf	/* This is for writing only, irrelevant to PCem. */
-#define GPCMD_PAUSE_RESUME_ALT	0xc2
-#define GPCMD_SCAN_ALT		0xcd	/* Should be equivalent to 0xba */
-#define GPCMD_SET_SPEED_ALT	0xda	/* Should be equivalent to 0xbb */
+#define GPCMD_TEST_UNIT_READY			0x00
+#define GPCMD_REZERO_UNIT			0x01
+#define GPCMD_REQUEST_SENSE			0x03
+#define GPCMD_FORMAT_UNIT			0x04
+#define GPCMD_IOMEGA_SENSE			0x06
+#define GPCMD_READ_6				0x08
+#define GPCMD_WRITE_6				0x0a
+#define GPCMD_SEEK_6				0x0b
+#define GPCMD_IOMEGA_SET_PROTECTION_MODE	0x0c
+#define GPCMD_IOMEGA_EJECT			0x0d	/* ATAPI only? */
+#define GPCMD_INQUIRY				0x12
+#define GPCMD_VERIFY_6				0x13
+#define GPCMD_MODE_SELECT_6			0x15
+#define GPCMD_SCSI_RESERVE			0x16
+#define GPCMD_SCSI_RELEASE			0x17
+#define GPCMD_MODE_SENSE_6			0x1a
+#define GPCMD_START_STOP_UNIT			0x1b
+#define GPCMD_SEND_DIAGNOSTIC			0x1d
+#define GPCMD_PREVENT_REMOVAL			0x1e
+#define GPCMD_READ_CDROM_CAPACITY		0x25
+#define GPCMD_READ_10				0x28
+#define GPCMD_WRITE_10				0x2a
+#define GPCMD_SEEK_10				0x2b
+#define GPCMD_WRITE_AND_VERIFY_10		0x2e
+#define GPCMD_VERIFY_10				0x2f
+#define GPCMD_READ_BUFFER			0x3c
+#define GPCMD_WRITE_SAME_10			0x41
+#define GPCMD_READ_SUBCHANNEL			0x42
+#define GPCMD_READ_TOC_PMA_ATIP			0x43
+#define GPCMD_READ_HEADER			0x44
+#define GPCMD_PLAY_AUDIO_10			0x45
+#define GPCMD_GET_CONFIGURATION			0x46
+#define GPCMD_PLAY_AUDIO_MSF			0x47
+#define GPCMD_PLAY_AUDIO_TRACK_INDEX		0x48
+#define GPCMD_GET_EVENT_STATUS_NOTIFICATION	0x4a
+#define GPCMD_PAUSE_RESUME			0x4b
+#define GPCMD_STOP_PLAY_SCAN			0x4e
+#define GPCMD_READ_DISC_INFORMATION		0x51
+#define GPCMD_READ_TRACK_INFORMATION		0x52
+#define GPCMD_MODE_SELECT_10			0x55
+#define GPCMD_MODE_SENSE_10			0x5a
+#define GPCMD_PLAY_AUDIO_12			0xa5
+#define GPCMD_READ_12				0xa8
+#define GPCMD_WRITE_12				0xaa
+#define GPCMD_READ_DVD_STRUCTURE 		0xad	/* For reading. */
+#define GPCMD_WRITE_AND_VERIFY_12		0xae
+#define GPCMD_VERIFY_12				0xaf
+#define GPCMD_PLAY_CD_OLD			0xb4
+#define GPCMD_READ_CD_OLD			0xb8
+#define GPCMD_READ_CD_MSF			0xb9
+#define GPCMD_SCAN				0xba
+#define GPCMD_SET_SPEED				0xbb
+#define GPCMD_PLAY_CD				0xbc
+#define GPCMD_MECHANISM_STATUS			0xbd
+#define GPCMD_READ_CD				0xbe
+#define GPCMD_SEND_DVD_STRUCTURE		0xbf	/* This is for writing only, irrelevant to PCem. */
+#define GPCMD_PAUSE_RESUME_ALT			0xc2
+#define GPCMD_SCAN_ALT				0xcd	/* Should be equivalent to 0xba */
+#define GPCMD_SET_SPEED_ALT			0xda	/* Should be equivalent to 0xbb */
 
 /* Mode page codes for mode sense/set */
-#define GPMODE_R_W_ERROR_PAGE	0x01
-#define GPMODE_CDROM_PAGE	0x0d
-#define GPMODE_CDROM_AUDIO_PAGE	0x0e
-#define GPMODE_CAPABILITIES_PAGE 0x2a
-#define GPMODE_ALL_PAGES	0x3f
+#define GPMODE_R_W_ERROR_PAGE		0x01
+#define GPMODE_CDROM_PAGE		0x0d
+#define GPMODE_CDROM_AUDIO_PAGE		0x0e
+#define GPMODE_CAPABILITIES_PAGE	0x2a
+#define GPMODE_ALL_PAGES		0x3f
 
 /* SCSI Status Codes */
-#define SCSI_STATUS_OK		0
-#define SCSI_STATUS_CHECK_CONDITION 2
+#define SCSI_STATUS_OK			0
+#define SCSI_STATUS_CHECK_CONDITION	2
 
 /* SCSI Sense Keys */
 #define SENSE_NONE		0
@@ -131,6 +138,10 @@
 /* Tell RISC OS that we have a 4x CD-ROM drive (600kb/sec data, 706kb/sec raw).
    Not that it means anything */
 #define CDROM_SPEED	706		 /* 0x2C2 */
+
+#define BUFFER_SIZE (256*1024)
+
+#define RW_DELAY (TIMER_USEC * 500)
 
 /* Some generally useful CD-ROM information */
 #define CD_MINS                       75 /* max. minutes per CD */
@@ -215,8 +226,6 @@ extern uint8_t	page_current;
 #define PAGE_CHANGEABLE		1
 #define PAGE_CHANGED		2
 
-extern uint8_t	scsi_cdrom_id;
-
 struct _scsisense_ {
     uint8_t	SenseBuffer[18];
     uint8_t	SenseLength;	
@@ -229,24 +238,26 @@ struct _scsisense_ {
 extern int	cd_status;
 extern int	prev_status;
 
-#define SCSI_NONE 0
-#define SCSI_DISK 1
-#define SCSI_CDROM 2
+enum {
+    SCSI_NONE = 0,
+    SCSI_DISK,
+    SCSI_CDROM
+};
 
 #define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)
 
 #define MSG_COMMAND_COMPLETE 0x00
 
-#define BUS_DBP 0x01
-#define BUS_SEL 0x02
-#define BUS_IO  0x04
-#define BUS_CD  0x08
-#define BUS_MSG 0x10
-#define BUS_REQ 0x20
-#define BUS_BSY 0x40
-#define BUS_RST 0x80
-#define BUS_ACK 0x200
-#define BUS_ATN 0x200
+#define BUS_DBP   0x01
+#define BUS_SEL   0x02
+#define BUS_IO    0x04
+#define BUS_CD    0x08
+#define BUS_MSG   0x10
+#define BUS_REQ   0x20
+#define BUS_BSY   0x40
+#define BUS_RST   0x80
+#define BUS_ACK  0x200
+#define BUS_ATN  0x200
 #define BUS_ARB 0x8000
 #define BUS_SETDATA(val) ((uint32_t)val << 16)
 #define BUS_GETDATA(val) ((val >> 16) & 0xff)
@@ -273,12 +284,6 @@ typedef struct {
 extern scsi_device_t	SCSIDevices[SCSI_ID_MAX][SCSI_LUN_MAX];
 
 extern void SCSIReset(uint8_t id, uint8_t lun);
-
-extern uint32_t SCSICDROMModeSense(uint8_t *buf, uint32_t pos, uint8_t type);
-extern uint8_t SCSICDROMSetProfile(uint8_t *buf, uint8_t *index, uint16_t profile);
-extern int SCSICDROMReadDVDStructure(int format, const uint8_t *packet, uint8_t *buf);
-extern uint32_t SCSICDROMEventStatus(uint8_t *buffer);
-extern void SCSICDROM_Insert(void);
 
 extern int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
 extern int cdrom_LBAtoMSF_accurate(void);
