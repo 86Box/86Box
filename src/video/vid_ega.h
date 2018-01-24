@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.h	1.0.4	2018/01/24
+ * Version:	@(#)vid_ega.h	1.0.5	2018/01/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -125,6 +125,13 @@ extern uint8_t jfont_dbcs_16[DBCS16_LEN];	/* 65536 * 16 * 2 (* 8) */
 #endif
 
 extern int update_overscan;
+
+#define DISPLAY_RGB 0
+#define DISPLAY_COMPOSITE 1
+#define DISPLAY_RGB_NO_BROWN 2
+#define DISPLAY_GREEN 3
+#define DISPLAY_AMBER 4
+#define DISPLAY_WHITE 5
 
 
 #if defined(EMU_MEM_H) && defined(EMU_ROM_H)

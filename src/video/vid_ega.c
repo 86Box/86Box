@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.12	2018/01/24
+ * Version:	@(#)vid_ega.c	1.0.13	2018/01/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -39,11 +39,6 @@
 #define BIOS_IBM_PATH	L"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin"
 #define BIOS_CPQ_PATH	L"roms/video/ega/108281-001.bin"
 #define BIOS_SEGA_PATH	L"roms/video/ega/lega.vbi"
-
-
-static wchar_t *ibm_path = BIOS_IBM_PATH;
-static wchar_t *cpq_path = BIOS_CPQ_PATH;
-static wchar_t *sega_path = BIOS_SEGA_PATH;
 
 
 enum {
@@ -368,7 +363,6 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
 uint8_t ega_in(uint16_t addr, void *p)
 {
         ega_t *ega = (ega_t *)p;
-	int crtcreg;
 
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1)) 
                 addr ^= 0x60;
@@ -1085,8 +1079,24 @@ void ega_init(ega_t *ega, int monitor_type, int is_mono)
         ega->pallook = pallook16;
 
         egaswitches = monitor_type & 0xf;
+
         ega->vram_limit = 256 * 1024;
         ega->vrammask = ega->vram_limit-1;
+
+	old_overscan_color = 0;
+
+	ega->miscout |= 0x22;
+	ega->enablevram = 1;
+	ega->oddeven_page = 0;
+
+	ega->seqregs[4] |= 2;
+	ega->extvram = 1;
+
+	update_overscan = 0;
+
+#ifdef JEGA
+	ega->is_jega = 0;
+#endif
 }
 
 
@@ -1107,11 +1117,11 @@ static void *ega_standalone_init(device_t *info)
 				 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 			break;
 		case EGA_COMPAQ:
-        		rom_init(&ega->bios_rom, BIOS_IBM_PATH,
+        		rom_init(&ega->bios_rom, BIOS_CPQ_PATH,
 				 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 			break;
-		casae EGA_SUPEREGA:
-        		rom_init(&ega->bios_rom, BIOS_IBM_PATH,
+		case EGA_SUPEREGA:
+        		rom_init(&ega->bios_rom, BIOS_SEGA_PATH,
 				 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 			break;
 	}
@@ -1127,12 +1137,6 @@ static void *ega_standalone_init(device_t *info)
                         ega->bios_rom.rom[0x3fff - c] = temp;
                 }
         }
-
-	update_overscan = 0;
-
-#ifdef JEGA
-	ega->is_jega = 0;
-#endif
 
         monitor_type = device_get_config_int("monitor_type");
         ega_init(ega, monitor_type, (monitor_type & 0xf) == 10);
