@@ -171,7 +171,6 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
         ega_t *ega = (ega_t *)p;
         int c;
         uint8_t o, old;
-	uint8_t crtcreg;
         
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1)) 
                 addr ^= 0x60;
@@ -274,88 +273,21 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
                 break;
 		case 0x3d0:
                 case 0x3d4:
-                ega->crtcreg = val;
+                ega->crtcreg = val & 31;
                 return;
 		case 0x3d1:
                 case 0x3d5:
-#ifdef JEGA
-		if ((ega->crtcreg < 0xb9) || !ega->is_jega)
-#else
-		if (ega->crtcreg < 0xb9)
-#endif
-		{
-			crtcreg = ega->crtcreg & 0x1f;
-	                if (crtcreg <= 7 && ega->crtc[0x11] & 0x80) return;
-        	        old = ega->crtc[crtcreg];
-                	ega->crtc[crtcreg] = val;
-	                if (old != val)
-        	        {
-                	        if (crtcreg < 0xe || crtcreg > 0x10)
-                        	{
-                                	fullchange = changeframecount;
-	                                ega_recalctimings(ega);
-        	                }
-                	}
-		}
-#ifdef JEGA
-		else
-		{
-			switch(ega->crtcreg)
-			{
-				case 0xb9:	/* Mode register 1 */
-					ega->RMOD1 = val;
-					break;
-				case 0xba:	/* Mode register 2 */
-					ega->RMOD2 = val;
-					break;
-				case 0xbb:	/* ANK Group sel */
-					ega->RDAGS = val;
-					break;
-				case 0xbc:	/* Font access first byte */
-					if (ega->RDFFB != val)
-					{
-						ega->RDFFB = val;
-						ega->font_index = 0;
-					}
-					break;
-				case 0xbd:	/* Font access Second Byte */
-					if (ega->RDFSB != val)
-					{
-						ega->RDFSB = val;
-						ega->font_index = 0;
-					}
-					break;
-				case 0xbe:	/* Font Access Pattern */
-					ega->RDFAP = val;
-					ega_jega_write_font(ega);
-					break;
-				case 0xdb:
-					ega->RPSSC = val;
-					break;
-				case 0xd9:
-					ega->RPSSU = val;
-					break;
-				case 0xda:
-					ega->RPSSL = val;
-					break;
-				case 0xdc:	/* Superimposed mode (only AX-2 system, not implemented) */
-					ega->RPPAJ = val;
-					break;
-				case 0xdd:
-					ega->RCMOD = val;
-					break;
-				case 0xde:	/* Cursor Skew control */
-					ega->RCSKW = val;
-					break;
-				case 0xdf:	/* Font R/W register */
-					ega->RSTAT = val;
-					break;
-				default:
-					pclog("JEGA: Write to illegal index %02X\n", ega->crtcreg);
-					break;
-			}
-		}
-#endif
+                if (ega->crtcreg <= 7 && ega->crtc[0x11] & 0x80) return;
+                old = ega->crtc[ega->crtcreg];
+                ega->crtc[ega->crtcreg] = val;
+                if (old != val)
+                {
+                        if (ega->crtcreg < 0xe || ega->crtcreg > 0x10)
+                        {
+                                fullchange = changeframecount;
+                                ega_recalctimings(ega);
+                        }
+                }
                 break;
         }
 }
@@ -399,53 +331,7 @@ uint8_t ega_in(uint16_t addr, void *p)
                 return ega->crtcreg;
 		case 0x3d1:
                 case 0x3d5:
-#ifdef JEGA
-		if ((ega->crtcreg < 0xb9) || !ega->is_jega)
-		{
-#endif
-	                return ega->crtc[ega->crtcreg];
-#ifdef JEGA
-		}
-		else
-		{
-			switch(ega->crtcreg)
-			{
-				case 0xb9:
-					return ega->RMOD1;
-				case 0xba:
-					return ega->RMOD2;
-				case 0xbb:
-					return ega->RDAGS;
-				case 0xbc:	/* BCh RDFFB Font access First Byte */
-					return ega->RDFFB;
-				case 0xbd:	/* BDh RDFFB Font access Second Byte */
-					return ega->RDFSB;
-				case 0xbe:	/* BEh RDFAP Font Access Pattern */
-					ega_jega_read_font(ega);
-					return ega->RDFAP;
-				case 0xdb:
-					return ega->RPSSC;
-				case 0xd9:
-					return ega->RPSSU;
-				case 0xda:
-					return ega->RPSSL;
-				case 0xdc:
-					return ega->RPPAJ;
-				case 0xdd:
-					return ega->RCMOD;
-				case 0xde:
-					return ega->RCSKW;
-				case 0xdf:
-					return ega->ROMSL;
-				case 0xbf:
-					return 0x03;	/* The font is always readable and writable */
-				default:
-					pclog("JEGA: Read from illegal index %02X\n", ega->crtcreg);
-					return 0x00;
-			}
-		}
-#endif
-		return 0xff;
+                return ega->crtc[ega->crtcreg];
                 case 0x3da:
                 ega->attrff = 0;
                 ega->stat ^= 0x30; /*Fools IBM EGA video BIOS self-test*/
@@ -1094,6 +980,8 @@ void ega_init(ega_t *ega, int monitor_type, int is_mono)
 
 	update_overscan = 0;
 
+        ega->crtc[0] = 63;
+
 #ifdef JEGA
 	ega->is_jega = 0;
 #endif
@@ -1146,7 +1034,7 @@ static void *ega_standalone_init(device_t *info)
 
         mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
         timer_add(ega_poll, &ega->vidtime, TIMER_ALWAYS_ENABLED, ega);
-        io_sethandler(0x03c0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+        io_sethandler(0x03a0, 0x0040, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
         return ega;
 }
 
