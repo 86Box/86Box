@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.15	2018/01/24
+ * Version:	@(#)vid_svga.c	1.0.16	2018/01/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -263,7 +263,6 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                                 svga->pallook[svga->dac_write] = makecol32(svga->vgapal[svga->dac_write].r, svga->vgapal[svga->dac_write].g, svga->vgapal[svga->dac_write].b);
                         else
                                	svga->pallook[svga->dac_write] = makecol32(video_6to8[svga->vgapal[svga->dac_write].r & 0x3f], video_6to8[svga->vgapal[svga->dac_write].g & 0x3f], video_6to8[svga->vgapal[svga->dac_write].b & 0x3f]);
-			svga->sense = (svga->vgapal[svga->dac_write].r & svga->vgapal[svga->dac_write].g & svga->vgapal[svga->dac_write].b) & 0x10;
                         svga->dac_pos = 0; 
                         svga->dac_write = (svga->dac_write + 1) & 255; 
                         break;
@@ -365,13 +364,10 @@ uint8_t svga_in(uint16_t addr, void *p)
                 case 0x3C1: 
                 return svga->attrregs[svga->attraddr];
                 case 0x3c2:
-		if (gfxcard == GFX_TVGA) {
-	                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x50)
-                	        temp = 0;
-        	        else
-	                        temp = 0x10;
-		} else
-			temp = svga->sense;
+                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x50)
+               	        temp = 0;
+       	        else
+                        temp = 0x10;
                 return temp;
 		case 0x3C3:
 		return svga->enabled & 0x01;

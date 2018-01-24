@@ -9,15 +9,15 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.h	1.0.3	2017/11/19
+ * Version:	@(#)vid_ega.h	1.0.4	2018/01/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		akm,
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 akm.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 akm.
  */
 #ifndef VIDEO_EGA_H
 # define VIDEO_EGA_H
@@ -128,7 +128,7 @@ extern int update_overscan;
 
 
 #if defined(EMU_MEM_H) && defined(EMU_ROM_H)
-extern void	ega_init(ega_t *ega);
+extern void	ega_init(ega_t *ega, int monitor_type, int is_mono);
 extern void	ega_recalctimings(struct ega_t *ega);
 #endif
 

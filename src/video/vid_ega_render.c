@@ -8,13 +8,13 @@
  *
  *		EGA renderers.
  *
- * Version:	@(#)vid_ega_render.c	1.0.4	2017/11/04
+ * Version:	@(#)vid_ega_render.c	1.0.5	2018/01/24
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -380,11 +380,10 @@ void ega_render_text_jega(ega_t *ega, int drawcursor)
 }
 #endif
 
-void ega_render_2bpp_lowres(ega_t *ega)
+void ega_render_2bpp(ega_t *ega)
 {
-	int x_add = (enable_overscan) ? 8 : 0;
-	int dl = ega_display_line(ega);
         int x;
+	int dl = ega_display_line(ega);
         int offset = ((8 - ega->scrollcache) << 1) + 16;
         
         for (x = 0; x <= ega->hdisp; x++)
@@ -415,61 +414,15 @@ void ega_render_2bpp_lowres(ega_t *ega)
 
                 ega->ma &= ega->vrammask;
 
-		((uint32_t *)buffer32->line[dl])[(x << 4) + 14 + offset + x_add]=  ((uint32_t *)buffer32->line[dl])[(x << 4) + 15 + offset + x_add] = ega->pallook[ega->egapal[edat[1] & 3]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) + 12 + offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) + 13 + offset + x_add] = ega->pallook[ega->egapal[(edat[1] >> 2) & 3]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) + 10 + offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) + 11 + offset + x_add] = ega->pallook[ega->egapal[(edat[1] >> 4) & 3]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) +  8 + offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) +  9 + offset + x_add] = ega->pallook[ega->egapal[(edat[1] >> 6) & 3]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) +  6 + offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) +  7 + offset + x_add] = ega->pallook[ega->egapal[(edat[0] >> 0) & 3]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) +  4 + offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) +  5 + offset + x_add] = ega->pallook[ega->egapal[(edat[0] >> 2) & 3]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) +  2 + offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) +  3 + offset + x_add] = ega->pallook[ega->egapal[(edat[0] >> 4) & 3]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) +      offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) +  1 + offset + x_add] = ega->pallook[ega->egapal[(edat[0] >> 6) & 3]];
-	}
-}
-
-void ega_render_2bpp_highres(ega_t *ega)
-{
-	int x_add = (enable_overscan) ? 8 : 0;
-	int dl = ega_display_line(ega);
-        int x;
-        int offset = ((8 - ega->scrollcache) << 1) + 16;
-        
-        for (x = 0; x <= ega->hdisp; x++)
-        {
-                uint8_t edat[2];
-                uint32_t addr = ega->ma;
-                                
-                if (!(ega->crtc[0x17] & 0x40))
-                {
-                        addr = (addr << 1) & ega->vrammask;
-                        addr &= ~7;
-                        if ((ega->crtc[0x17] & 0x20) && (ega->ma & 0x20000))
-                                addr |= 4;
-                        if (!(ega->crtc[0x17] & 0x20) && (ega->ma & 0x8000))
-                                addr |= 4;
-                }
-                if (!(ega->crtc[0x17] & 0x01))
-                        addr = (addr & ~0x8000) | ((ega->sc & 1) ? 0x8000 : 0);
-                if (!(ega->crtc[0x17] & 0x02))
-                        addr = (addr & ~0x10000) | ((ega->sc & 2) ? 0x10000 : 0);
-
-                edat[0] = ega->vram[addr];
-                edat[1] = ega->vram[addr | 0x1];
-                if (ega->seqregs[1] & 4)
-                        ega->ma += 2;
-                else
-                        ega->ma += 4;
-
-                ega->ma &= ega->vrammask;
-
-		((uint32_t *)buffer32->line[dl])[(x << 4) + 7 + offset + x_add] = ega->pallook[ega->egapal[edat[1] & 3]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) + 6 + offset + x_add] = ega->pallook[ega->egapal[(edat[1] >> 2) & 3]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) + 5 + offset + x_add] = ega->pallook[ega->egapal[(edat[1] >> 4) & 3]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) + 4 + offset + x_add] = ega->pallook[ega->egapal[(edat[1] >> 6) & 3]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) + 3 + offset + x_add] = ega->pallook[ega->egapal[(edat[0] >> 0) & 3]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) + 2 + offset + x_add] = ega->pallook[ega->egapal[(edat[0] >> 2) & 3]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) + 1 + offset + x_add] = ega->pallook[ega->egapal[(edat[0] >> 4) & 3]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) +     offset + x_add] = ega->pallook[ega->egapal[(edat[0] >> 6) & 3]];
-	}
+                ((uint32_t *)buffer32->line[dl])[(x << 4) + 14 + offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) + 15 + offset] = ega->pallook[ega->egapal[edat[1] & 3]];
+                ((uint32_t *)buffer32->line[dl])[(x << 4) + 12 + offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) + 13 + offset] = ega->pallook[ega->egapal[(edat[1] >> 2) & 3]];
+                ((uint32_t *)buffer32->line[dl])[(x << 4) + 10 + offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) + 11 + offset] = ega->pallook[ega->egapal[(edat[1] >> 4) & 3]];
+                ((uint32_t *)buffer32->line[dl])[(x << 4) +  8 + offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) +  9 + offset] = ega->pallook[ega->egapal[(edat[1] >> 6) & 3]];
+                ((uint32_t *)buffer32->line[dl])[(x << 4) +  6 + offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) +  7 + offset] = ega->pallook[ega->egapal[(edat[0] >> 0) & 3]];
+                ((uint32_t *)buffer32->line[dl])[(x << 4) +  4 + offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) +  5 + offset] = ega->pallook[ega->egapal[(edat[0] >> 2) & 3]];
+                ((uint32_t *)buffer32->line[dl])[(x << 4) +  2 + offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) +  3 + offset] = ega->pallook[ega->egapal[(edat[0] >> 4) & 3]];
+                ((uint32_t *)buffer32->line[dl])[(x << 4) +      offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) +  1 + offset] = ega->pallook[ega->egapal[(edat[0] >> 6) & 3]];
+        }
 }
 
 void ega_render_4bpp_lowres(ega_t *ega)

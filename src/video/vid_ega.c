@@ -9,14 +9,14 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.11	2017/11/04
+ * Version:	@(#)vid_ega.c	1.0.12	2018/01/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		akm
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -39,6 +39,18 @@
 #define BIOS_IBM_PATH	L"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin"
 #define BIOS_CPQ_PATH	L"roms/video/ega/108281-001.bin"
 #define BIOS_SEGA_PATH	L"roms/video/ega/lega.vbi"
+
+
+static wchar_t *ibm_path = BIOS_IBM_PATH;
+static wchar_t *cpq_path = BIOS_CPQ_PATH;
+static wchar_t *sega_path = BIOS_SEGA_PATH;
+
+
+enum {
+	EGA_IBM = 0,
+	EGA_COMPAQ,
+	EGA_SUPEREGA
+};
 
 
 extern uint8_t edatlookup[4][4];
@@ -353,29 +365,6 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
         }
 }
 
-/*
- * Get the input status register 0
- *
- * Note by Tohka: Code from PCE.
- */
-uint8_t ega_get_input_status_0(ega_t *ega)
-{
-	unsigned bit;
-	uint8_t status0 = 0;
-
-	bit = (egaswitchread >> 2) & 3;
-
-	if (egaswitches & (0x08 >> bit)) {
-		status0 |= 0x10;
-	}
-	else {
-		status0 &= ~0x10;
-	}
-
-	return status0;
-}
-
-
 uint8_t ega_in(uint16_t addr, void *p)
 {
         ega_t *ega = (ega_t *)p;
@@ -391,7 +380,13 @@ uint8_t ega_in(uint16_t addr, void *p)
                 case 0x3c1: 
                 return ega->attrregs[ega->attraddr];
                 case 0x3c2:
-		return ega_get_input_status_0(ega);
+                switch (egaswitchread)
+                {
+                        case 0xc: return (egaswitches & 1) ? 0x10 : 0;
+                        case 0x8: return (egaswitches & 2) ? 0x10 : 0;
+                        case 0x4: return (egaswitches & 4) ? 0x10 : 0;
+                        case 0x0: return (egaswitches & 8) ? 0x10 : 0;
+                }
                 break;
                 case 0x3c4: 
                 return ega->seqaddr;
@@ -412,14 +407,11 @@ uint8_t ega_in(uint16_t addr, void *p)
                 case 0x3d5:
 #ifdef JEGA
 		if ((ega->crtcreg < 0xb9) || !ega->is_jega)
-#else
-		if (ega->crtcreg < 0xb9)
-#endif
 		{
-			crtcreg = ega->crtcreg & 0x1f;
-	                return ega->crtc[crtcreg];
-		}
+#endif
+	                return ega->crtc[ega->crtcreg];
 #ifdef JEGA
+		}
 		else
 		{
 			switch(ega->crtcreg)
@@ -591,14 +583,7 @@ void ega_poll(void *p)
 						}
 						break;
                                         case 0x20:
-						if (ega->seqregs[1] & 8)
-						{
-							ega_render_2bpp_lowres(ega);
-						}
-						else
-						{
-							ega_render_2bpp_highres(ega);
-						}
+	                                        ega_render_2bpp(ega);
 						break;
                                 }
                         }
@@ -996,7 +981,7 @@ uint8_t ega_read(uint32_t addr, void *p)
 }
 
 
-void ega_init(ega_t *ega)
+void ega_init(ega_t *ega, int monitor_type, int is_mono)
 {
         int c, d, e;
         
@@ -1025,51 +1010,111 @@ void ega_init(ega_t *ega)
                 }
         }
 
-        for (c = 0; c < 256; c++)
+        if (is_mono)
         {
-                pallook64[c]  = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
-                pallook64[c] += makecol32(((c >> 5) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 3) & 1) * 0x55);
-                pallook16[c]  = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
-                pallook16[c] += makecol32(((c >> 4) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 4) & 1) * 0x55);
-                if ((c & 0x17) == 6) 
-                        pallook16[c] = makecol32(0xaa, 0x55, 0);
+                for (c = 0; c < 256; c++)
+                {
+                        switch (monitor_type >> 4)
+                        {
+                                case DISPLAY_GREEN:
+                                switch ((c >> 3) & 3)
+                                {
+                                        case 0:
+                                        pallook64[c] = pallook16[c] = makecol32(0, 0, 0);
+                                        break;
+                                        case 2:
+                                        pallook64[c] = pallook16[c] = makecol32(0x04, 0x8a, 0x20);
+                                        break;
+                                        case 1:
+                                        pallook64[c] = pallook16[c] = makecol32(0x08, 0xc7, 0x2c);
+                                        break;
+                                        case 3:
+                                        pallook64[c] = pallook16[c] = makecol32(0x34, 0xff, 0x5d);
+                                        break;
+                                }
+                                break;
+                                case DISPLAY_AMBER:
+                                switch ((c >> 3) & 3)
+                                {
+                                        case 0:
+                                        pallook64[c] = pallook16[c] = makecol32(0, 0, 0);
+                                        break;
+                                        case 2:
+                                        pallook64[c] = pallook16[c] = makecol32(0xb2, 0x4d, 0x00);
+                                        break;
+                                        case 1:
+                                        pallook64[c] = pallook16[c] = makecol32(0xef, 0x79, 0x00);
+                                        break;
+                                        case 3:
+                                        pallook64[c] = pallook16[c] = makecol32(0xff, 0xe3, 0x34);
+                                        break;
+                                }
+                                break;
+                                case DISPLAY_WHITE: default:
+                                switch ((c >> 3) & 3)
+                                {
+                                        case 0:
+                                        pallook64[c] = pallook16[c] = makecol32(0, 0, 0);
+                                        break;
+                                        case 2:
+                                        pallook64[c] = pallook16[c] = makecol32(0x7a, 0x81, 0x83);
+                                        break;
+                                        case 1:
+                                        pallook64[c] = pallook16[c] = makecol32(0xaf, 0xb3, 0xb0);
+                                        break;
+                                        case 3:
+                                        pallook64[c] = pallook16[c] = makecol32(0xff, 0xfd, 0xed);
+                                        break;
+                                }
+                                break;
+                        }
+                }
+        }
+        else
+        {
+                for (c = 0; c < 256; c++)
+                {
+                        pallook64[c]  = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
+                        pallook64[c] += makecol32(((c >> 5) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 3) & 1) * 0x55);
+                        pallook16[c]  = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
+                        pallook16[c] += makecol32(((c >> 4) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 4) & 1) * 0x55);
+                        if ((c & 0x17) == 6) 
+                                pallook16[c] = makecol32(0xaa, 0x55, 0);
+                }
         }
         ega->pallook = pallook16;
 
+        egaswitches = monitor_type & 0xf;
         ega->vram_limit = 256 * 1024;
         ega->vrammask = ega->vram_limit-1;
-
-	old_overscan_color = 0;
-}
-
-
-static void ega_common_defaults(ega_t *ega)
-{
-	ega->miscout |= 0x22;
-	ega->enablevram = 1;
-	ega->oddeven_page = 0;
-
-	ega->seqregs[4] |= 2;
-	ega->extvram = 1;
-
-	update_overscan = 0;
-
-#ifdef JEGA
-	ega->is_jega = 0;
-#endif
 }
 
 
 static void *ega_standalone_init(device_t *info)
 {
         ega_t *ega = malloc(sizeof(ega_t));
+        int monitor_type;
+
         memset(ega, 0, sizeof(ega_t));
 
 	overscan_x = 16;
 	overscan_y = 28;
 
-        rom_init(&ega->bios_rom, BIOS_IBM_PATH,
-		 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+	switch(info->local) {
+		case EGA_IBM:
+		default:
+        		rom_init(&ega->bios_rom, BIOS_IBM_PATH,
+				 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+			break;
+		case EGA_COMPAQ:
+        		rom_init(&ega->bios_rom, BIOS_IBM_PATH,
+				 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+			break;
+		casae EGA_SUPEREGA:
+        		rom_init(&ega->bios_rom, BIOS_IBM_PATH,
+				 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+			break;
+	}
 
         if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
         {
@@ -1083,97 +1128,14 @@ static void *ega_standalone_init(device_t *info)
                 }
         }
 
-        ega->crtc[0] = 63;
-        ega->dispontime = 1000LL * (1LL << TIMER_SHIFT);
-        ega->dispofftime = 1000LL * (1LL << TIMER_SHIFT);
-	ega->dispontime <<= 1LL;
-	ega->dispofftime <<= 1LL;
+	update_overscan = 0;
 
-        ega_init(ega);        
+#ifdef JEGA
+	ega->is_jega = 0;
+#endif
 
-	ega_common_defaults(ega);
-
-        ega->vram_limit = device_get_config_int("memory") * 1024;
-        ega->vrammask = ega->vram_limit-1;
-
-        mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
-        timer_add(ega_poll, &ega->vidtime, TIMER_ALWAYS_ENABLED, ega);
-        io_sethandler(0x03c0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
-        return ega;
-}
-
-
-static void *cpqega_standalone_init(device_t *info)
-{
-        ega_t *ega = malloc(sizeof(ega_t));
-        memset(ega, 0, sizeof(ega_t));
-        
-	overscan_x = 16;
-	overscan_y = 28;
-
-        rom_init(&ega->bios_rom, BIOS_CPQ_PATH,
-		 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-
-        if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
-        {
-                int c;
-
-                for (c = 0; c < 0x2000; c++)
-                {
-                        uint8_t temp = ega->bios_rom.rom[c];
-                        ega->bios_rom.rom[c] = ega->bios_rom.rom[0x3fff - c];
-                        ega->bios_rom.rom[0x3fff - c] = temp;
-                }
-        }
-
-        ega->crtc[0] = 63;
-        ega->dispontime = 1000 * (1 << TIMER_SHIFT);
-        ega->dispofftime = 1000 * (1 << TIMER_SHIFT);
-
-        ega_init(ega);        
-
-	ega_common_defaults(ega);
-
-        ega->vram_limit = device_get_config_int("memory") * 1024;
-        ega->vrammask = ega->vram_limit-1;
-
-        mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
-        timer_add(ega_poll, &ega->vidtime, TIMER_ALWAYS_ENABLED, ega);
-        io_sethandler(0x03c0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
-        return ega;
-}
-
-
-static void *sega_standalone_init(device_t *info)
-{
-        ega_t *ega = malloc(sizeof(ega_t));
-        memset(ega, 0, sizeof(ega_t));
-
-	overscan_x = 16;
-	overscan_y = 28;
-
-        rom_init(&ega->bios_rom, BIOS_SEGA_PATH,
-		 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-
-        if (ega->bios_rom.rom[0x3ffe] == 0xaa && ega->bios_rom.rom[0x3fff] == 0x55)
-        {
-                int c;
-
-                for (c = 0; c < 0x2000; c++)
-                {
-                        uint8_t temp = ega->bios_rom.rom[c];
-                        ega->bios_rom.rom[c] = ega->bios_rom.rom[0x3fff - c];
-                        ega->bios_rom.rom[0x3fff - c] = temp;
-                }
-        }
-
-        ega->crtc[0] = 63;
-        ega->dispontime = 1000 * (1 << TIMER_SHIFT);
-        ega->dispofftime = 1000 * (1 << TIMER_SHIFT);
-
-        ega_init(ega);        
-
-	ega_common_defaults(ega);
+        monitor_type = device_get_config_int("monitor_type");
+        ega_init(ega, monitor_type, (monitor_type & 0xf) == 10);
 
         ega->vram_limit = device_get_config_int("memory") * 1024;
         ega->vrammask = ega->vram_limit-1;
@@ -1281,7 +1243,7 @@ static void LoadFontxFile(wchar_t *fname)
 
 void *jega_standalone_init(device_t *info)
 {
-        ega_t *ega = (ega_t *)sega_standalone_init(info);
+        ega_t *ega = (ega_t *)ega_standalone_init(info);
 
 	LoadFontxFile(L"roms/video/ega/JPNHN19X.FNT");
 	LoadFontxFile(L"roms/video/ega/JPNZN16X.FNT");
@@ -1348,7 +1310,43 @@ static device_config_t ega_config[] =
                 }
         },
         {
-                "", "", -1
+                .name = "monitor_type",
+                .description = "Monitor type",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "EGA Colour, 40x25",
+                                .value = 6
+                        },
+                        {
+                                .description = "EGA Colour, 80x25",
+                                .value = 7
+                        },
+                        {
+                                .description = "EGA Colour, ECD",
+                                .value = 9
+                        },
+                        {
+                                .description = "EGA Monochrome (white)",
+                                .value = 10 | (DISPLAY_WHITE << 4)
+                        },
+                        {
+                                .description = "EGA Monochrome (green)",
+                                .value = 10 | (DISPLAY_GREEN << 4)
+                        },
+                        {
+                                .description = "EGA Monochrome (amber)",
+                                .value = 10 | (DISPLAY_AMBER << 4)
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 9
+        },
+        {
+                .type = -1
         }
 };
 
@@ -1357,7 +1355,7 @@ device_t ega_device =
 {
         "EGA",
         DEVICE_ISA,
-	0,
+	EGA_IBM,
         ega_standalone_init, ega_close, NULL,
         ega_standalone_available,
         ega_speed_changed,
@@ -1370,8 +1368,8 @@ device_t cpqega_device =
 {
         "Compaq EGA",
         DEVICE_ISA,
-	0,
-        cpqega_standalone_init, ega_close, NULL,
+	EGA_COMPAQ,
+        ega_standalone_init, ega_close, NULL,
         cpqega_standalone_available,
         ega_speed_changed,
         NULL,
@@ -1383,8 +1381,8 @@ device_t sega_device =
 {
         "SuperEGA",
         DEVICE_ISA,
-	0,
-        sega_standalone_init, ega_close, NULL,
+	EGA_SUPEREGA,
+        ega_standalone_init, ega_close, NULL,
         sega_standalone_available,
         ega_speed_changed,
         NULL,
@@ -1397,8 +1395,8 @@ device_t jega_device =
 {
         "AX JEGA",
         DEVICE_ISA,
-	0,
-        jega_standalone_init, ega_close, NULL,
+	EGA_SUPEREGA,
+        ega_standalone_init, ega_close, NULL,
         sega_standalone_available,
         ega_speed_changed,
         NULL,

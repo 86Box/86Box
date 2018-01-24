@@ -8,13 +8,13 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.2	2017/11/05
+ * Version:	@(#)vid_svga.h	1.0.3	2018/01/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 
 typedef struct svga_t
@@ -84,7 +84,6 @@ typedef struct svga_t
         double clock;
         uint32_t ma_latch;
         int bpp;
-	int sense;
         
         int64_t dispontime, dispofftime;
         int64_t vidtime;

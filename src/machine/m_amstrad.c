@@ -32,7 +32,7 @@
  *		in alpha mode, but in highres ("ECD350") mode, it displays
  *		some semi-random junk. Video-memory pointer maybe?
  *
- * Version:	@(#)m_amstrad.c	1.0.5	2018/01/16
+ * Version:	@(#)m_amstrad.c	1.0.6	2018/01/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -683,7 +683,7 @@ vid_init_1640(amstrad_t *ams)
     rom_init(&vid->bios_rom, L"roms/machines/pc1640/40100",
 	     0xc0000, 0x8000, 0x7fff, 0, 0);
 
-    ega_init(&vid->ega);
+    ega_init(&vid->ega, 9, 0);
     vid->cga.vram = vid->ega.vram;
     vid->cga_enabled = 1;
     cga_init(&vid->cga);
