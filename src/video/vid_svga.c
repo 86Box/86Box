@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.14	2018/01/21
+ * Version:	@(#)vid_svga.c	1.0.15	2018/01/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -596,14 +596,16 @@ void svga_recalctimings(svga_t *svga)
 
         svga->linedbl = svga->crtc[9] & 0x80;
         svga->rowcount = svga->crtc[9] & 31;
-	overscan_y = (svga->rowcount + 1) << 1;
-	if (svga->seqregs[1] & 8) /*Low res (320)*/
-	{
-		overscan_y <<= 1;
-	}
-	if (overscan_y < 16)
-	{
-		overscan_y = 16;
+	if (enable_overscan) {
+		overscan_y = (svga->rowcount + 1) << 1;
+		if (svga->seqregs[1] & 8) /*Low res (320)*/
+		{
+			overscan_y <<= 1;
+		}
+		if (overscan_y < 16)
+		{
+			overscan_y = 16;
+		}
 	}
 	/* pclog("SVGA row count: %i (scroll: %i)\n", svga->rowcount, svga->crtc[8] & 0x1f); */
         if (svga->recalctimings_ex) 
@@ -643,7 +645,7 @@ uint32_t svga_mask_addr(uint32_t addr, svga_t *svga)
 	{
 		limit_shift = 1;
 	}
-	return addr % (svga->vram_display_mask >> limit_shift);
+	return addr & (svga->vram_display_mask >> limit_shift);
 }
 
 uint32_t svga_mask_changedaddr(uint32_t addr, svga_t *svga)
