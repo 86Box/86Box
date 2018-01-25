@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.9	2018/01/25
+ * Version:	@(#)video.h	1.0.10	2018/01/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -107,13 +107,19 @@ enum {
     GFX_MAX
 };
 
-#define MDA	((gfxcard>=GFX_MDA) && \
-		 (gfxcard<=GFX_INCOLOR) && \
-		 (romset<ROM_TANDY || romset>=ROM_IBMAT))
+#define MDA	( (gfxcard >= GFX_MDA) && \
+		  (gfxcard <  GFX_EGA) && \
+		 ((romset  <  ROM_TANDY) || \
+		  (romset  >= ROM_AMI286)))
 
-#define VGA	((gfxcard>=GFX_VGA) && \
-		 (romset!=ROM_PC1640 && romset!=ROM_PC1512 && \
-		  romset!=ROM_TANDY && romset!=ROM_PC200 && romset!=ROM_T3100E))
+#define EGA	((gfxcard >= GFX_EGA) && \
+		 (gfxcard <  GFX_VGA))
+
+#define VGA	((gfxcard >= GFX_VGA))
+
+#define EGA_VGA	( (EGA || VGA) && \
+		 ((romset   < ROM_TANDY) || \
+		  (romset  >= ROM_AMI286)))
 
 enum {
     FULLSCR_SCALE_FULL = 0,

@@ -11,7 +11,7 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.14	2018/01/22
+ * Version:	@(#)machine_table.c	1.0.15	2018/01/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -47,7 +47,7 @@ machine_t machines[] = {
     { "[8088] Schneider EuroPC",		ROM_EUROPC,		"europc",		{{"Siemens",cpus_europc},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_HDC | MACHINE_VIDEO | MACHINE_MOUSE,				512,  640, 128,   0,		  machine_europc_init, NULL, NULL			},
     { "[8088] Tandy 1000",			ROM_TANDY,		"tandy",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,										128,  640, 128,   0,		 machine_tandy1k_init, NULL, NULL			},
     { "[8088] Tandy 1000 HX",			ROM_TANDY1000HX,	"tandy1000hx",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,										256,  640, 128,   0,		 machine_tandy1k_init, NULL, NULL			},
-    { "[8088] VTech Laser Turbo XT",		ROM_LTXT,		"ltxt",			{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,										 64, 1152,  64,   0,	      machine_xt_laserxt_init, NULL, NULL			},
+    { "[8088] VTech Laser Turbo XT",		ROM_LTXT,		"ltxt",			{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,										512,  512, 256,   0,	      machine_xt_laserxt_init, NULL, NULL			},
 
     { "[8086] Amstrad PC1512",			ROM_PC1512,		"pc1512",		{{"",      cpus_pc1512},      {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,						512,  640, 128,  63,		 machine_amstrad_init, NULL, nvr_at_close		},
     { "[8086] Amstrad PC1640",			ROM_PC1640,		"pc1640",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,						640,  640,   0,  63,		 machine_amstrad_init, NULL, nvr_at_close		},
@@ -56,7 +56,7 @@ machine_t machines[] = {
     { "[8086] Amstrad PC20(0)",			ROM_PC200,		"pc200",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,						512,  640, 128,  63,		 machine_amstrad_init, NULL, nvr_at_close		},
     { "[8086] Olivetti M24",			ROM_OLIM24,		"olivetti_m24",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,						128,  640, 128,   0,		  machine_olim24_init, NULL, NULL			},
     { "[8086] Tandy 1000 SL/2",			ROM_TANDY1000SL2,	"tandy1000sl2",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,										512,  768, 128,   0,	         machine_tandy1k_init, NULL, NULL			},
-    { "[8086] VTech Laser XT3",			ROM_LXT3,		"lxt3",			{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,										512, 1152, 128,   0,	      machine_xt_laserxt_init, NULL, NULL			},
+    { "[8086] VTech Laser XT3",			ROM_LXT3,		"lxt3",			{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,										256,  512, 256,   0,	      machine_xt_laserxt_init, NULL, NULL			},
 
     { "[286 ISA] AMI 286 clone",		ROM_AMI286,		"ami286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								512,16384, 128, 127,	     machine_at_neat_ami_init, NULL, nvr_at_close		},
     { "[286 ISA] Award 286 clone",		ROM_AWARD286,		"award286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								512,16384, 128, 127,		 machine_at_scat_init, NULL, nvr_at_close		},

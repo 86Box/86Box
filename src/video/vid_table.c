@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.11	2018/01/25
+ * Version:	@(#)vid_table.c	1.0.12	2018/01/25
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -83,7 +83,7 @@ video_cards[] = {
     { "Internal",					"internal",
       NULL,				GFX_INTERNAL			},
     {"[ISA] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_isa",
-      &mach64gx_isa_device,		GFX_MACH64GX_VLB		},
+      &mach64gx_isa_device,		GFX_MACH64GX_ISA		},
     { "[ISA] ATI VGA Charger (ATI-28800-5)",		"ati28800",
       &ati28800_device,			GFX_VGACHARGER			},
     { "[ISA] ATI VGA Wonder XL24 (ATI-28800-6)",	"ati28800w",
