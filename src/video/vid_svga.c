@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.16	2018/01/24
+ * Version:	@(#)vid_svga.c	1.0.17	2018/01/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -173,7 +173,6 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                 break;
                 case 0x3C2:
                 svga->miscout = val;
-		svga->enablevram = (val & 2) ? 1 : 0;
 		svga->oddeven_page = (val & 0x20) ? 0 : 1;
                 svga->vidclock = val & 4;
                 if (val & 1)
@@ -195,9 +194,6 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                 case 0x3C5:
                 if (svga->seqaddr > 0xf) return;
                 o = svga->seqregs[svga->seqaddr & 0xf];
-		/* Sanitize value for the first 5 sequencer registers. */
-		/* if ((svga->seqaddr & 0xf) <= 4)
-			val &= mask_seq[svga->seqaddr & 0xf]; */
                 svga->seqregs[svga->seqaddr & 0xf] = val;
                 if (o != val && (svga->seqaddr & 0xf) == 1)
                         svga_recalctimings(svga);
@@ -272,9 +268,6 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                 svga->gdcaddr = val; 
                 break;
                 case 0x3CF:
-		/* Sanitize the first 9 GDC registers. */
-		/* if ((svga->gdcaddr & 15) <= 8)
-			val &= mask_gdc[svga->gdcaddr & 15]; */
                 o = svga->gdcreg[svga->gdcaddr & 15];
                 switch (svga->gdcaddr & 15)
                 {
@@ -364,7 +357,7 @@ uint8_t svga_in(uint16_t addr, void *p)
                 case 0x3C1: 
                 return svga->attrregs[svga->attraddr];
                 case 0x3c2:
-                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x50)
+                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
                	        temp = 0;
        	        else
                         temp = 0x10;
@@ -622,11 +615,6 @@ void svga_recalctimings(svga_t *svga)
 
 	svga->dispontime = (int64_t)(_dispontime * (1 << TIMER_SHIFT));
 	svga->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
-/*        pclog("SVGA horiz total %i display end %i vidclock %f\n",svga->crtc[0],svga->crtc[1],svga->clock);
-        pclog("SVGA vert total %i display end %i max row %i vsync %i\n",svga->vtotal,svga->dispend,(svga->crtc[9]&31)+1,svga->vsyncstart);
-        pclog("total %f on %i cycles off %i cycles frame %i sec %i %02X\n",disptime*crtcconst,svga->dispontime,svga->dispofftime,(svga->dispontime+svga->dispofftime)*svga->vtotal,(svga->dispontime+svga->dispofftime)*svga->vtotal*70,svga->seqregs[1]);
-
-        pclog("svga->render %08X\n", svga->render);*/
 }
 
 extern int cyc_total;
@@ -926,7 +914,7 @@ int svga_init(svga_t *svga, void *p, int memsize,
         svga->vram_display_mask = memsize - 1;
         svga->vram_mask = memsize - 1;
         svga->decode_mask = 0x7fffff;
-        svga->changedvram = malloc(/*(memsize >> 12) << 1*/memsize >> 12);
+        svga->changedvram = malloc(memsize >> 12);
         svga->recalctimings_ex = recalctimings_ex;
         svga->video_in  = video_in;
         svga->video_out = video_out;
@@ -944,10 +932,6 @@ int svga_init(svga_t *svga, void *p, int memsize,
         svga->ramdac_type = RAMDAC_6BIT;
 
 	svga_pointer = svga;
-
-	/* io_sethandler(0x22ca, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
-	io_sethandler(0x22ce, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga);
-	io_sethandler(0x32ca, 0x0002, svga_in, NULL, NULL, svga_out, NULL, NULL, svga); */
         
         return 0;
 }
@@ -1621,8 +1605,6 @@ void svga_writew(uint32_t addr, uint16_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
 
-	if (!svga->enablevram)  return;
-
         if (!svga->fast)
         {
                 svga_write(addr, val, p);
@@ -1650,8 +1632,6 @@ void svga_writew(uint32_t addr, uint16_t val, void *p)
 void svga_writel(uint32_t addr, uint32_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
-
-	if (!svga->enablevram)  return;
         
         if (!svga->fast)
         {
@@ -1683,8 +1663,6 @@ void svga_writel(uint32_t addr, uint32_t val, void *p)
 uint16_t svga_readw(uint32_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
-
-	if (!svga->enablevram)  return 0xffff;
         
         if (!svga->fast)
            return svga_read(addr, p) | (svga_read(addr + 1, p) << 8);
@@ -1706,8 +1684,6 @@ uint16_t svga_readw(uint32_t addr, void *p)
 uint32_t svga_readl(uint32_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
-
-	if (!svga->enablevram)  return 0xffffffff;
         
         if (!svga->fast)
 	{
@@ -1732,8 +1708,6 @@ uint32_t svga_readl(uint32_t addr, void *p)
 void svga_writew_linear(uint32_t addr, uint16_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
-
-	if (!svga->enablevram)  return;
         
         if (!svga->fast)
         {
@@ -1760,8 +1734,6 @@ void svga_writew_linear(uint32_t addr, uint16_t val, void *p)
 void svga_writel_linear(uint32_t addr, uint32_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
-
-	if (!svga->enablevram)  return;
         
         if (!svga->fast)
         {
@@ -1790,8 +1762,6 @@ void svga_writel_linear(uint32_t addr, uint32_t val, void *p)
 uint16_t svga_readw_linear(uint32_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
-
-	if (!svga->enablevram)  return 0xffff;
         
         if (!svga->fast)
            return svga_read_linear(addr, p) | (svga_read_linear(addr + 1, p) << 8);
@@ -1812,8 +1782,6 @@ uint16_t svga_readw_linear(uint32_t addr, void *p)
 uint32_t svga_readl_linear(uint32_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
-
-	if (!svga->enablevram)  return 0xffffffff;
         
         if (!svga->fast)
            return svga_read_linear(addr, p) | (svga_read_linear(addr + 1, p) << 8) | (svga_read_linear(addr + 2, p) << 16) | (svga_read_linear(addr + 3, p) << 24);

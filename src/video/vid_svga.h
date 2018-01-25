@@ -8,7 +8,7 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.3	2018/01/24
+ * Version:	@(#)vid_svga.h	1.0.4	2018/01/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -67,7 +67,7 @@ typedef struct svga_t
         int readmode, writemode, readplane;
         int chain4, chain2_write, chain2_read;
 	int oddeven_page, oddeven_chain;
-	int enablevram, extvram;
+	int extvram;
         uint8_t writemask;
         uint32_t charseta, charsetb;
         

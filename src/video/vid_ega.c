@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.13	2018/01/24
+ * Version:	@(#)vid_ega.c	1.0.14	2018/01/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -972,7 +972,6 @@ void ega_init(ega_t *ega, int monitor_type, int is_mono)
 	old_overscan_color = 0;
 
 	ega->miscout |= 0x22;
-	ega->enablevram = 1;
 	ega->oddeven_page = 0;
 
 	ega->seqregs[4] |= 2;

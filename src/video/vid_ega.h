@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.h	1.0.5	2018/01/24
+ * Version:	@(#)vid_ega.h	1.0.6	2018/01/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -61,7 +61,7 @@ typedef struct ega_t {
     int readmode, writemode, readplane;
     int chain4, chain2_read, chain2_write;
     int oddeven_page, oddeven_chain;
-    int enablevram, extvram;
+    int extvram;
     uint8_t writemask;
     uint32_t charseta, charsetb;
 
