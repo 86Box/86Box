@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.29	2018/01/24
+ * Version:	@(#)cdrom.c	1.0.30	2018/01/25
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -2265,6 +2265,7 @@ cdrom_readtoc_fallback:
 					len = alloc_length;
 			}
 
+			len = MIN(len, max_len);
 			cdrom_set_buf_len(id, BufLen, &len);
 
 			cdrom_data_command_finish(id, len, len, len, 0);
@@ -2649,44 +2650,6 @@ void cdrom_pio_request(uint8_t id, uint8_t out)
 		cdrom_command_common(id);
 		cdrom[id].pos = old_pos;
 		cdrom[id].request_pos = 0;
-	}
-}
-
-/* 0 = Continue transfer; 1 = Continue transfer, IRQ; -1 = Terminate transfer; -2 = Terminate transfer with error */
-int cdrom_mode_select_return(uint8_t id, int ret)
-{
-	switch(ret) {
-		case 0:
-			/* Invalid field in parameter list. */
-		case -6:
-			/* Attempted to write to a non-existent CD-ROM drive (should never occur, but you never know). */
-			cdrom_invalid_field_pl(id);
-			cdrom_buf_free(id);
-			return -2;
-		case 1:
-			/* Successful, more data needed. */
-			if (cdrom[id].pos >= (cdrom[id].packet_len + 2)) {
-				cdrom[id].pos = 0;
-				cdrom_command_write(id);
-				return 1;
-			}
-			return 0;
-		case 2:
-			/* Successful, more data needed, second byte not yet processed. */
-			return 0;
-		case -3:
-			/* Not initialized. */
-		case -4:
-			/* Unknown phase. */
-			cdrom_illegal_opcode(id);
-			cdrom_buf_free(id);
-			return -2;
-		case -5:
-			/* Command terminated successfully. */
-			cdrom_buf_free(id);
-			return -1;
-		default:
-			return -15;
 	}
 }
 

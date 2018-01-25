@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.15	2018/01/24
+ * Version:	@(#)scsi_disk.c	1.0.16	2018/01/25
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -484,12 +484,6 @@ static void scsi_hd_command_read_dma(uint8_t id)
 	shdc[id].total_read = 0;
 }
 
-
-static void scsi_hd_command_write(uint8_t id)
-{
-	shdc[id].packet_status = CDROM_PHASE_DATA_OUT;
-	scsi_hd_command_common(id);
-}
 
 static void scsi_hd_command_write_dma(uint8_t id)
 {
@@ -1453,44 +1447,6 @@ atapi_out:
 	/* scsi_hd_log("SCSI HD %i: Phase: %02X, request length: %i\n", shdc[id].phase, shdc[id].request_length); */
 }
 
-
-/* 0 = Continue transfer; 1 = Continue transfer, IRQ; -1 = Terminate transfer; -2 = Terminate transfer with error */
-int scsi_hd_mode_select_return(uint8_t id, int ret)
-{
-	switch(ret)
-	{
-		case 0:
-			/* Invalid field in parameter list. */
-		case -6:
-			/* Attempted to write to a non-existent SCSI HDD drive (should never occur, but you never know). */
-			scsi_hd_invalid_field_pl(id);
-			return -2;
-		case 1:
-			/* Successful, more data needed. */
-			if (shdc[id].pos >= (shdc[id].packet_len + 2))
-			{
-				shdc[id].pos = 0;
-				scsi_hd_command_write(id);
-				return 1;
-			}
-			return 0;
-		case 2:
-			/* Successful, more data needed, second byte not yet processed. */
-			return 0;
-		case -3:
-			/* Not initialized. */
-		case -4:
-			/* Unknown phase. */
-			scsi_hd_illegal_opcode(id);
-			return -2;
-		case -5:
-			/* Command terminated successfully. */
-			/* scsi_hd_command_complete(id); */
-			return -1;
-		default:
-			return -15;
-	}
-}
 
 void scsi_hd_phase_data_in(uint8_t id)
 {
