@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.10	2018/01/21
+ * Version:	@(#)vid_ati_mach64.c	1.0.11	2018/01/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -41,7 +41,7 @@
 #endif
 
 #define BIOS_ROM_PATH		L"roms/video/mach64/bios.bin"
-#define BIOS_ISA_ROM_PATH	L"roms/video/mach64/mach64.bin"
+#define BIOS_ISA_ROM_PATH	L"roms/video/mach64/M64-1994.VBI"
 #define BIOS_VLB_ROM_PATH	L"roms/video/mach64/mach64_vlb_vram.bin"
 #define BIOS_ROMVT2_PATH	L"roms/video/mach64/atimach64vt2pci.bin"
 
@@ -3389,7 +3389,7 @@ static void *mach64gx_init(device_t *info)
         mach64->config_stat0 = (5 << 9) | (3 << 3); /*ATI-68860, 256Kx16 DRAM*/
         if (info->flags & DEVICE_PCI)
                 mach64->config_stat0 |= 0; /*PCI, 256Kx16 DRAM*/
-        else if (info->flags & DEVICE_VLB)
+        else if ((info->flags & DEVICE_VLB) || (info->flags & DEVICE_ISA))
                 mach64->config_stat0 |= 1; /*VLB, 256Kx16 DRAM*/
 
         ati_eeprom_load(&mach64->eeprom, L"mach64.nvr", 1);
@@ -3398,6 +3398,8 @@ static void *mach64gx_init(device_t *info)
 	        rom_init(&mach64->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 	else if (info->flags & DEVICE_VLB)
 	        rom_init(&mach64->bios_rom, BIOS_VLB_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+	else if (info->flags & DEVICE_ISA)
+	        rom_init(&mach64->bios_rom, BIOS_ISA_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 
         return mach64;
 }
@@ -3557,6 +3559,19 @@ static device_config_t mach64vt2_config[] =
         {
                 "", "", -1
         }
+};
+
+device_t mach64gx_isa_device =
+{
+        "ATI Mach64GX ISA",
+        DEVICE_ISA,
+	0,
+        mach64gx_init, mach64_close, NULL,
+        mach64gx_isa_available,
+        mach64_speed_changed,
+        mach64_force_redraw,
+        mach64_add_status_info,
+        mach64gx_config
 };
 
 device_t mach64gx_vlb_device =

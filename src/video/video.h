@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.8	2018/01/21
+ * Version:	@(#)video.h	1.0.9	2018/01/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -45,8 +45,12 @@ enum {
     GFX_VGA,        		/* IBM VGA */
     GFX_TVGA,			/* Using Trident TVGA8900D BIOS */
     GFX_ET4000,			/* Tseng ET4000 */
+    GFX_ET4000W32_CARDEX_VLB,	/* Tseng ET4000/W32p (Cardex) VLB */
+    GFX_ET4000W32_CARDEX_PCI,	/* Tseng ET4000/W32p (Cardex) PCI */
+#if defined(DEV_BRANCH) && defined(USE_STEALTH32)
     GFX_ET4000W32_VLB,		/* Tseng ET4000/W32p (Diamond Stealth 32) VLB */
     GFX_ET4000W32_PCI,		/* Tseng ET4000/W32p (Diamond Stealth 32) PCI */
+#endif
     GFX_BAHAMAS64_VLB,		/* S3 Vision864 (Paradise Bahamas 64) VLB */
     GFX_BAHAMAS64_PCI,		/* S3 Vision864 (Paradise Bahamas 64) PCI */
     GFX_N9_9FX_VLB,		/* S3 764/Trio64 (Number Nine 9FX) VLB */
@@ -57,6 +61,7 @@ enum {
     GFX_VGACHARGER, 		/* ATI VGA Charger (28800-5) */
     GFX_VGAWONDERXL,		/* Compaq ATI VGA Wonder XL (28800-5) */
     GFX_VGAWONDERXL24,		/* Compaq ATI VGA Wonder XL24 (28800-6) */
+    GFX_MACH64GX_ISA,		/* ATI Graphics Pro Turbo (Mach64) ISA */
     GFX_MACH64GX_VLB,		/* ATI Graphics Pro Turbo (Mach64) VLB */
     GFX_MACH64GX_PCI,		/* ATI Graphics Pro Turbo (Mach64) PCI */
     GFX_MACH64VT2,  		/* ATI Mach64 VT2 */

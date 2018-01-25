@@ -19,6 +19,7 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -605,13 +606,16 @@ void svga_recalctimings(svga_t *svga)
 
         crtcconst = (svga->seqregs[1] & 1) ? (svga->clock * 8.0) : (svga->clock * 9.0);
 
-        disptime  = svga->htotal;
-        _dispontime = svga->hdisp_time;
-        
-        if (svga->seqregs[1] & 8) { disptime *= 2; _dispontime *= 2; }
+        if (svga->seqregs[1] & 8) {
+	        disptime  = (double) (svga->htotal << 1);
+		_dispontime = (double) (svga->hdisp_time << 1);
+	} else {
+        	disptime  = (double) svga->htotal;
+        	_dispontime = (double) svga->hdisp_time;
+	}
         _dispofftime = disptime - _dispontime;
-        _dispontime *= crtcconst;
-        _dispofftime *= crtcconst;
+        _dispontime = _dispontime * crtcconst;
+        _dispofftime = _dispofftime * crtcconst;
 
 	svga->dispontime = (int64_t)(_dispontime * (1 << TIMER_SHIFT));
 	svga->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
@@ -900,7 +904,7 @@ int svga_init(svga_t *svga, void *p, int memsize,
 	overscan_x = 16;
 	overscan_y = 32;
 
-        svga->crtc[0] = 63;
+        svga->crtc[0] = svga->crtc[1] = 63;
         svga->crtc[6] = 255;
         svga->dispontime = 1000 * (1 << TIMER_SHIFT);
         svga->dispofftime = 1000 * (1 << TIMER_SHIFT);        
@@ -955,7 +959,7 @@ void svga_write(uint32_t addr, uint8_t val, void *p)
         cycles -= video_timing_b;
         cycles_lost += video_timing_b;
 
-        if (svga_output) pclog("Writeega %06X   ",addr);
+        /* if (svga_output) pclog("Writeega %06X   ",addr); */
         addr &= svga->banked_mask;
         addr += svga->write_bank;
 
@@ -1009,7 +1013,7 @@ void svga_write(uint32_t addr, uint8_t val, void *p)
 
 	addr &= svga->vram_mask;
 
-        if (svga_output) pclog("%08X (%i, %i) %02X %i %i %i %02X\n", addr, addr & 1023, addr >> 10, val, writemask2, svga->writemode, svga->chain4, svga->gdcreg[8]);
+        /* if (svga_output) pclog("%08X (%i, %i) %02X %i %i %i %02X\n", addr, addr & 1023, addr >> 10, val, writemask2, svga->writemode, svga->chain4, svga->gdcreg[8]); */
         svga->changedvram[addr >> 12] = changeframecount;
 
         switch (svga->writemode)
@@ -1252,7 +1256,7 @@ void svga_write_linear(uint32_t addr, uint8_t val, void *p)
 
         egawrites++;
         
-        if (svga_output) pclog("Write LFB %08X %02X ", addr, val);
+        /* if (svga_output) pclog("Write LFB %08X %02X ", addr, val); */
         if (!(svga->gdcreg[6] & 1)) 
                 svga->fullchange = 2;
 	addr -= svga->linear_base;
@@ -1290,7 +1294,7 @@ void svga_write_linear(uint32_t addr, uint8_t val, void *p)
 	addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
                 return;
-        if (svga_output) pclog("%08X\n", addr);
+        /* if (svga_output) pclog("%08X\n", addr); */
 	addr &= svga->vram_mask;
         svga->changedvram[addr >> 12]=changeframecount;
         
@@ -1617,14 +1621,14 @@ void svga_writew(uint32_t addr, uint16_t val, void *p)
         cycles -= video_timing_w;
         cycles_lost += video_timing_w;
 
-        if (svga_output) pclog("svga_writew: %05X ", addr);
+        /* if (svga_output) pclog("svga_writew: %05X ", addr); */
         addr = (addr & svga->banked_mask) + svga->write_bank;
 	if ((!svga->extvram) && (addr >= 0x10000))  return;
 	addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
                 return;
 	addr &= svga->vram_mask;
-        if (svga_output) pclog("%08X (%i, %i) %04X\n", addr, addr & 1023, addr >> 10, val);
+        /* if (svga_output) pclog("%08X (%i, %i) %04X\n", addr, addr & 1023, addr >> 10, val); */
         svga->changedvram[addr >> 12] = changeframecount;
         *(uint16_t *)&svga->vram[addr] = val;
 }
@@ -1647,15 +1651,15 @@ void svga_writel(uint32_t addr, uint32_t val, void *p)
         cycles -= video_timing_l;
         cycles_lost += video_timing_l;
 
-        if (svga_output) pclog("svga_writel: %05X ", addr);
+        /* if (svga_output) pclog("svga_writel: %05X ", addr); */
         addr = (addr & svga->banked_mask) + svga->write_bank;
 	if ((!svga->extvram) && (addr >= 0x10000))  return;
 	addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
                 return;
 	addr &= svga->vram_mask;
-        if (svga_output) pclog("%08X (%i, %i) %08X\n", addr, addr & 1023, addr >> 10, val);
-        
+        /* if (svga_output) pclog("%08X (%i, %i) %08X\n", addr, addr & 1023, addr >> 10, val); */
+
         svga->changedvram[addr >> 12] = changeframecount;
         *(uint32_t *)&svga->vram[addr] = val;
 }
@@ -1721,7 +1725,7 @@ void svga_writew_linear(uint32_t addr, uint16_t val, void *p)
         cycles -= video_timing_w;
         cycles_lost += video_timing_w;
 
-	if (svga_output) pclog("Write LFBw %08X %04X\n", addr, val);
+	/* if (svga_output) pclog("Write LFBw %08X %04X\n", addr, val); */
 	addr -= svga->linear_base;
 	addr &= svga->decode_mask;
 	if (addr >= svga->vram_max)
@@ -1749,7 +1753,7 @@ void svga_writel_linear(uint32_t addr, uint32_t val, void *p)
         cycles -= video_timing_l;
         cycles_lost += video_timing_l;
 
-	if (svga_output) pclog("Write LFBl %08X %08X\n", addr, val);
+	/* if (svga_output) pclog("Write LFBl %08X %08X\n", addr, val); */
 	addr -= svga->linear_base;
 	addr &= svga->decode_mask;
 	if (addr >= svga->vram_max)

@@ -377,22 +377,23 @@ void ega_recalctimings(ega_t *ega)
         if (ega->vidclock) crtcconst = (ega->seqregs[1] & 1) ? MDACONST : (MDACONST * (9.0 / 8.0));
         else               crtcconst = (ega->seqregs[1] & 1) ? CGACONST : (CGACONST * (9.0 / 8.0));
 
-        disptime = ega->crtc[0] + 2;
-        _dispontime = ega->crtc[1] + 1;
-
         if (ega->seqregs[1] & 8) 
         { 
-                disptime*=2; 
-                _dispontime*=2;
+	        disptime = (double) ((ega->crtc[0] + 2) << 1);
+        	_dispontime = (double) ((ega->crtc[1] + 1) << 1);
+
 		overscan_y <<= 1;
-        }
+        } else {
+        	disptime = (double) (ega->crtc[0] + 2);
+	        _dispontime = (double) (ega->crtc[1] + 1);
+	}
 	if (overscan_y < 16)
 	{
 		overscan_y = 16;
 	}
         _dispofftime = disptime - _dispontime;
-        _dispontime  *= crtcconst;
-        _dispofftime *= crtcconst;
+        _dispontime  = _dispontime * crtcconst;
+        _dispofftime = _dispofftime * crtcconst;
 
 	ega->dispontime  = (int64_t)(_dispontime  * (1LL << TIMER_SHIFT));
 	ega->dispofftime = (int64_t)(_dispofftime * (1LL << TIMER_SHIFT));
@@ -980,6 +981,7 @@ void ega_init(ega_t *ega, int monitor_type, int is_mono)
 	update_overscan = 0;
 
         ega->crtc[0] = 63;
+        ega->crtc[6] = 255;
 
 #ifdef JEGA
 	ega->is_jega = 0;

@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.92	2018/01/16
+# Version:	@(#)Makefile.mingw	1.0.93	2018/01/25
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -92,6 +92,9 @@ endif
 ifndef PAS16
 PAS16		:= n
 endif
+ifndef STEALTH32
+STEALTH32	:= n
+endif
 ifndef DYNAREC
 DYNAREC		:= y
 endif
@@ -116,6 +119,7 @@ NE1000		:= y
 NV_RIVA		:= y
 PAS16		:= y
 PORTABLE3	:= y
+STEALTH32	:= y
 VNC		:= y
 endif
 
@@ -335,6 +339,10 @@ endif
 
 ifeq ($(PORTABLE3), y)
 OPTS		+= -DUSE_PORTABLE3
+endif
+
+ifeq ($(STEALTH32), y)
+OPTS		+= -DUSE_STEALTH32
 endif
 
 endif

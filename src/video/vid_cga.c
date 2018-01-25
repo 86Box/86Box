@@ -8,13 +8,13 @@
  *
  *		Emulation of the old and new IBM CGA graphics cards.
  *
- * Version:	@(#)vid_cga.c	1.0.12	2017/12/31
+ * Version:	@(#)vid_cga.c	1.0.13	2018/01/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -140,17 +140,17 @@ void cga_recalctimings(cga_t *cga)
         /* pclog("Recalc - %i %i %i\n", cga->crtc[0], cga->crtc[1], cga->cgamode & 1); */
         if (cga->cgamode & 1)
         {
-                disptime = cga->crtc[0] + 1;
-                _dispontime = cga->crtc[1];
+                disptime = (double) (cga->crtc[0] + 1);
+                _dispontime = (double) cga->crtc[1];
         }
         else
         {
-                disptime = (cga->crtc[0] + 1) << 1;
-                _dispontime = cga->crtc[1] << 1;
+                disptime = (double) ((cga->crtc[0] + 1) << 1);
+                _dispontime = (double) (cga->crtc[1] << 1);
         }
         _dispofftime = disptime - _dispontime;
-        _dispontime *= CGACONST;
-        _dispofftime *= CGACONST;
+        _dispontime = _dispontime * CGACONST;
+        _dispofftime = _dispofftime * CGACONST;
 	cga->dispontime = (int64_t)(_dispontime * (1LL << TIMER_SHIFT));
 	cga->dispofftime = (int64_t)(_dispofftime * (1LL << TIMER_SHIFT));
 }

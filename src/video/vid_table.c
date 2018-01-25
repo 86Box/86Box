@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.10	2018/01/21
+ * Version:	@(#)vid_table.c	1.0.11	2018/01/25
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -82,6 +82,8 @@ video_cards[] = {
       NULL,				GFX_NONE			},
     { "Internal",					"internal",
       NULL,				GFX_INTERNAL			},
+    {"[ISA] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_isa",
+      &mach64gx_isa_device,		GFX_MACH64GX_VLB		},
     { "[ISA] ATI VGA Charger (ATI-28800-5)",		"ati28800",
       &ati28800_device,			GFX_VGACHARGER			},
     { "[ISA] ATI VGA Wonder XL24 (ATI-28800-6)",	"ati28800w",
@@ -125,9 +127,12 @@ video_cards[] = {
     { "[ISA] Tseng ET4000AX",                        "et4000ax",			&et4000_device,              		GFX_ET4000			},
     {"[ISA] VGA",                                   "vga",			&vga_device,                 		GFX_VGA				},
     {"[ISA] Wyse 700",                              "wy700",			&wy700_device,               		GFX_WY700			},
-    {"[PCI] ATI Graphics Pro Turbo (Mach64 GX)",    "mach64x_pci",		&mach64gx_pci_device,        		GFX_MACH64GX_PCI		},
+    {"[PCI] ATI Graphics Pro Turbo (Mach64 GX)",    "mach64gx_pci",		&mach64gx_pci_device,        		GFX_MACH64GX_PCI		},
     {"[PCI] ATI Video Xpression (Mach64 VT2)",      "mach64vt2",		&mach64vt2_device,           		GFX_MACH64VT2			},
+    {"[PCI] Cardex Tseng ET4000/w32p",		    "et4000w32p_pci",		&et4000w32p_cardex_pci_device,      	GFX_ET4000W32_CARDEX_PCI	},
+#if defined(DEV_BRANCH) && defined(USE_STEALTH32)
     {"[PCI] Diamond Stealth 32 (Tseng ET4000/w32p)","stealth32_pci",		&et4000w32p_pci_device,      		GFX_ET4000W32_PCI		},
+#endif
     {"[PCI] Diamond Stealth 3D 2000 (S3 ViRGE)",    "stealth3d_2000_pci",	&s3_virge_pci_device,            	GFX_VIRGE_PCI			},
     {"[PCI] Diamond Stealth 3D 3000 (S3 ViRGE/VX)", "stealth3d_3000_pci",	&s3_virge_988_pci_device,        	GFX_VIRGEVX_PCI			},
     {"[PCI] Diamond Stealth 64 DRAM (S3 Trio64)",   "stealth64d_pci",		&s3_diamond_stealth64_pci_device,	GFX_STEALTH64_PCI		},
@@ -144,13 +149,16 @@ video_cards[] = {
     {"[PCI] S3 ViRGE/DX",                           "virge375_pci",		&s3_virge_375_pci_device,        	GFX_VIRGEDX_PCI			},
     {"[PCI] S3 ViRGE/DX (VBE 2.0)",                 "virge375_vbe20_pci",	&s3_virge_375_4_pci_device,      	GFX_VIRGEDX4_PCI		},
     {"[PCI] Trident TGUI9440",                      "tgui9440_pci",		&tgui9440_pci_device,            	GFX_TGUI9440_PCI		},
-    {"[VLB] ATI Graphics Pro Turbo (Mach64 GX)",    "mach64x_vlb",		&mach64gx_vlb_device,        		GFX_MACH64GX_VLB		},
+    {"[VLB] ATI Graphics Pro Turbo (Mach64 GX)",    "mach64gx_vlb",		&mach64gx_vlb_device,        		GFX_MACH64GX_VLB		},
+    {"[VLB] Cardex Tseng ET4000/w32p",		    "et4000w32p_vlb",		&et4000w32p_cardex_vlb_device,      	GFX_ET4000W32_CARDEX_VLB	},
 #if defined(DEV_BRANCH) && defined(USE_CIRRUS)
     {"[VLB] Cirrus Logic CL-GD5429",		    "cl_gd5429",		&gd5429_device,				GFX_CL_GD5429			},
     {"[VLB] Cirrus Logic CL-GD5430",		    "cl_gd5430_vlb",		&dia5430_device,			GFX_CL_GD5430			},
     {"[VLB] Cirrus Logic CL-GD5446",		    "cl_gd5446",		&gd5446_device,				GFX_CL_GD5446			},
 #endif
+#if defined(DEV_BRANCH) && defined(USE_STEALTH32)
     {"[VLB] Diamond Stealth 32 (Tseng ET4000/w32p)","stealth32_vlb",		&et4000w32p_vlb_device,      		GFX_ET4000W32_VLB		},
+#endif
     {"[VLB] Diamond Stealth 3D 2000 (S3 ViRGE)",    "stealth3d_2000_vlb",	&s3_virge_vlb_device,            	GFX_VIRGE_VLB			},
     {"[VLB] Diamond Stealth 3D 3000 (S3 ViRGE/VX)", "stealth3d_3000_vlb",	&s3_virge_988_vlb_device,        	GFX_VIRGEVX_VLB			},
     {"[VLB] Diamond Stealth 64 DRAM (S3 Trio64)",   "stealth64d_vlb",		&s3_diamond_stealth64_vlb_device,	GFX_STEALTH64_VLB		},
