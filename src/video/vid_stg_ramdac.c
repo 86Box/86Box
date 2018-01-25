@@ -8,13 +8,13 @@
  *
  *		STG1702 true colour RAMDAC emulation.
  *
- * Version:	@(#)vid_stg_ramdac.c	1.0.2	2017/11/04
+ * Version:	@(#)vid_stg_ramdac.c	1.0.3	2018/01/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -66,9 +66,10 @@ void stg_ramdac_out(uint16_t addr, uint8_t val, stg_ramdac_t *ramdac, svga_t *sv
                 case 0x3c6:
                 switch (ramdac->magic_count)
                 {
+			/* 0 = PEL mask register */
                         case 0: case 1: case 2: case 3: 
                         break;
-                        case 4: 
+                        case 4:		/* REG06 */
 			old = ramdac->command;
                         ramdac->command = val; 
 			if ((old ^ val) & 8)
@@ -162,29 +163,19 @@ float stg_getclock(int clock, void *p)
 {
         stg_ramdac_t *ramdac = (stg_ramdac_t *)p;
         float t;
-        int m, n1, n2;
-	float d;
+        int m, n, n2;
+	float b, n1, d;
+	uint16_t *c;
         if (clock == 0) return 25175000.0;
         if (clock == 1) return 28322000.0;
         clock ^= 1; /*Clocks 2 and 3 seem to be reversed*/
-        m  =  (ramdac->regs[clock] & 0x7f) + 2;		/* B+2 */
-        n1 = ((ramdac->regs[clock] >>  8) & 0x1f) + 2;	/* N1+2 */
-        n2 = ((ramdac->regs[clock] >> 13) & 0x07);	/* D */
-	switch (n2)
-	{
-		case 0:
-			d = 1.0;
-			break;
-		case 1:
-			d = 2.0;
-			break;
-		case 2:
-			d = 4.0;
-			break;
-		case 3:
-			d = 8.0;
-			break;
-	}
-	t = (14318184.0 * ((float)m / d)) / (float)n1;
+	c = (uint16_t *) &ramdac->regs[0x20 + (clock << 1)];
+        m  =  (*c & 0xff) + 2;		/* B+2 */
+        n  = ((*c >>  8) & 0x1f) + 2;	/* N1+2 */
+        n2 = ((*c >> 13) & 0x07);	/* D */
+	b  = (float) m;
+	n1 = (float) n;
+	d = (double) (1 << n2);
+	t = (14318184.0 * d * b) / n1;
         return t;
 }
