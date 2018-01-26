@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.0	2018/01/22
+ * Version:	@(#)zip.c	1.0.1	2018/01/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -503,6 +503,13 @@ int zip_load(uint8_t id, wchar_t *fn)
 		fseek(zip_drives[id].f, 0, SEEK_END);
 		size = ftell(zip_drives[id].f);
 
+		if (size == ((ZIP_250_SECTORS << 9) + 0x1000)) || (size == ((ZIP_SECTORS << 9) + 0x1000)) {
+			/* This is a ZDI image. */
+			zip_drives[id].size -= 0x1000;
+			zip_drives[id].base = 0x1000;
+		} else
+			zip_drives[id].base = 0;
+
 		if (zip_drives[id].is_250) {
 			if ((size != (ZIP_250_SECTORS << 9)) && (size != (ZIP_SECTORS << 9))) {
 				zip_log("File is incorrect size for a ZIP image\nMust be exactly %i or %i bytes\n", ZIP_250_SECTORS << 9, ZIP_SECTORS << 9);
@@ -523,7 +530,7 @@ int zip_load(uint8_t id, wchar_t *fn)
 
 		zip_drives[id].medium_size = size >> 9;
 
-		fseek(zip_drives[id].f, 0, SEEK_SET);
+		fseek(zip_drives[id].f, zip_drives[id].base, SEEK_SET);
 
 		memcpy(zip_drives[id].image_path, fn, sizeof(zip_drives[id].image_path));
 
@@ -1156,7 +1163,7 @@ int zip_data(uint8_t id, uint32_t *len, int out)
 	*len = 0;
 
 	for (i = 0; i < zip[id].requested_blocks; i++) {
-		fseek(zip_drives[id].f, (zip[id].sector_pos << 9) + *len, SEEK_SET);
+		fseek(zip_drives[id].f, zip_drives[id].base + (zip[id].sector_pos << 9) + *len, SEEK_SET);
 		if (out)
 			fwrite(zipbufferb + *len, 1, 512, zip_drives[id].f);
 		else
@@ -2081,7 +2088,7 @@ uint8_t zip_phase_data_out(uint8_t id)
 					zipbufferb[6] = (s >> 8) & 0xff;
 					zipbufferb[7] = s & 0xff;
 				}
-				fseek(zip_drives[id].f, (i << 9), SEEK_SET);
+				fseek(zip_drives[id].f, zip_drives[id].base + (i << 9), SEEK_SET);
 				fwrite(zipbufferb, 1, 512, zip_drives[id].f);
 			}
 			break;
