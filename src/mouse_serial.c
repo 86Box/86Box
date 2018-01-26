@@ -10,7 +10,7 @@
  *
  * TODO:	Add the Genius Serial Mouse.
  *
- * Version:	@(#)mouse_serial.c	1.0.19	2018/01/12
+ * Version:	@(#)mouse_serial.c	1.0.20	2018/01/25
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -138,31 +138,7 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
 		break;
 
 	case MOUSE_TYPE_MICROSOFT:
-		buff[0] = 0x40;
-		buff[0] |= (((y >> 6) & 0x03) << 2);
-		buff[0] |= ((x >> 6) & 0x03);
-		if (b & 0x01) buff[0] |= 0x20;
-		if (b & 0x02) buff[0] |= 0x10;
-		buff[1] = x & 0x3F;
-		buff[2] = y & 0x3F;
-		len = 3;
-		break;
-
 	case MOUSE_TYPE_LOGITECH:
-		buff[0] = 0x40;
-		buff[0] |= (((y >> 6) & 0x03) << 2);
-		buff[0] |= ((x >> 6) & 0x03);
-		if (b & 0x01) buff[0] |= 0x20;
-		if (b & 0x02) buff[0] |= 0x10;
-		buff[1] = x & 0x3F;
-		buff[2] = y & 0x3F;
-		len = 3;
-		if (b & 0x04) {
-			buff[3] = 0x20;
-			len++;
-		}
-		break;
-
 	case MOUSE_TYPE_MSWHEEL:
 		buff[0] = 0x40;
 		buff[0] |= (((y >> 6) & 0x03) << 2);
@@ -171,11 +147,20 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
 		if (b & 0x02) buff[0] |= 0x10;
 		buff[1] = x & 0x3F;
 		buff[2] = y & 0x3F;
-		buff[3] = z & 0x0F;
-		if (b & 0x04)
-			buff[3] |= 0x10;
-		len = 4;
-
+		if (dev->type == MOUSE_TYPE_LOGITECH) {
+			len = 3;
+			if (b & 0x04) {
+				buff[3] = 0x20;
+				len++;
+			}
+		} else if (dev->type == MOUSE_TYPE_MSWHEEL) {
+			len = 4;
+			buff[3] = z & 0x0F;
+			if (b & 0x04)
+				buff[3] |= 0x10;
+		} else
+			len = 3;
+		break;
     }
 
 #if 0
@@ -219,12 +204,28 @@ sermouse_init(device_t *info)
     dev = (mouse_t *)malloc(sizeof(mouse_t));
     memset(dev, 0x00, sizeof(mouse_t));
     dev->name = info->name;
-    dev->type = info->local;
-
-    dev->port = device_get_config_int("port");
     i = device_get_config_int("buttons");
     if (i > 2)
 	dev->flags |= FLAG_3BTN;
+
+    if (info->local == MOUSE_TYPE_MSYSTEMS)
+	dev->type = info->local;
+    else {
+	switch(i) {
+		case 2:
+		default:
+			dev->type = MOUSE_TYPE_MICROSOFT;
+			break;
+		case 3:
+			dev->type = MOUSE_TYPE_LOGITECH;
+			break;
+		case 4:
+			dev->type = MOUSE_TYPE_MSWHEEL;
+			break;
+	}
+    }
+
+    dev->port = device_get_config_int("port");
 
     /* Attach a serial port to the mouse. */
     if (dev->port == 0)
@@ -292,27 +293,9 @@ device_t mouse_mssystems_device = {
 };
 
 device_t mouse_msserial_device = {
-    "Microsoft Serial Mouse",
+    "Microsoft/Logitech Serial Mouse",
     0,
-    MOUSE_TYPE_MICROSOFT,
-    sermouse_init, sermouse_close, NULL,
-    sermouse_poll, NULL, NULL, NULL,
-    sermouse_config
-};
-
-device_t mouse_lserial_device = {
-    "Logitech Serial Mouse",
     0,
-    MOUSE_TYPE_LOGITECH,
-    sermouse_init, sermouse_close, NULL,
-    sermouse_poll, NULL, NULL, NULL,
-    sermouse_config
-};
-
-device_t mouse_mswheel_device = {
-    "Microsoft Serial Wheel Mouse",
-    0,
-    MOUSE_TYPE_MSWHEEL,
     sermouse_init, sermouse_close, NULL,
     sermouse_poll, NULL, NULL, NULL,
     sermouse_config

@@ -8,7 +8,7 @@
  *
  *		Definitions for the mouse driver.
  *
- * Version:	@(#)mouse.h	1.0.12	2018/01/26
+ * Version:	@(#)mouse.h	1.0.13	2018/01/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -54,8 +54,6 @@ extern device_t	mouse_genibus_device;
 #endif
 extern device_t	mouse_mssystems_device;
 extern device_t	mouse_msserial_device;
-extern device_t	mouse_lserial_device;
-extern device_t	mouse_mswheel_device;
 extern device_t	mouse_ps2_device;
 #endif
 
