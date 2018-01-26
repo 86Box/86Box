@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.9	2018/01/18
+ * Version:	@(#)win_stbar.c	1.0.10	2018/01/23
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -36,6 +36,7 @@
 #include "../cdrom/cdrom.h"
 #include "../cdrom/cdrom_image.h"
 #include "../cdrom/cdrom_null.h"
+#include "../zip.h"
 #include "../disk/hdd.h"
 #include "../disk/hdc.h"
 #include "../floppy/fdd.h"
@@ -132,11 +133,11 @@ StatusBarCreateFloppySubmenu(HMENU m, int id)
     AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_EXISTING_WP | id,
 	       plat_get_string(IDS_2163));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
-    AppendMenu(m, MF_STRING, IDM_FLOPPY_EJECT | id,
-	       plat_get_string(IDS_2164));
-    AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_FLOPPY_EXPORT_TO_86F | id,
 	       plat_get_string(IDS_2172));
+    AppendMenu(m, MF_SEPARATOR, 0, 0);
+    AppendMenu(m, MF_STRING, IDM_FLOPPY_EJECT | id,
+	       plat_get_string(IDS_2164));
 
     if (floppyfns[id][0] == 0x0000) {
 	EnableMenuItem(m, IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
@@ -204,10 +205,36 @@ check_menu_items:
 
 
 static void
+StatusBarCreateZIPSubmenu(HMENU m, int id)
+{
+    AppendMenu(m, MF_STRING, IDM_ZIP_IMAGE_NEW | id,
+	       plat_get_string(IDS_2161));
+    AppendMenu(m, MF_SEPARATOR, 0, 0);
+    AppendMenu(m, MF_STRING, IDM_ZIP_IMAGE_EXISTING | id,
+	       plat_get_string(IDS_2162));
+    AppendMenu(m, MF_STRING, IDM_ZIP_IMAGE_EXISTING_WP | id,
+	       plat_get_string(IDS_2163));
+    AppendMenu(m, MF_SEPARATOR, 0, 0);
+    AppendMenu(m, MF_STRING, IDM_ZIP_EJECT | id,
+	       plat_get_string(IDS_2164));
+    AppendMenu(m, MF_STRING, IDM_ZIP_RELOAD | id,
+	       plat_get_string(IDS_2167));
+
+    if (zip_drives[id].image_path[0] == 0x0000) {
+	EnableMenuItem(m, IDM_ZIP_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
+	EnableMenuItem(m, IDM_ZIP_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
+    } else {
+	EnableMenuItem(m, IDM_ZIP_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(m, IDM_ZIP_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
+    }
+}
+
+
+static void
 StatusBarCreateRemovableDiskSubmenu(HMENU m, int id)
 {
     AppendMenu(m, MF_STRING, IDM_RDISK_EJECT | id,
-	       plat_get_string(IDS_2166));
+	       plat_get_string(IDS_2164));
     AppendMenu(m, MF_STRING, IDM_RDISK_RELOAD | id,
 	       plat_get_string(IDS_2167));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
@@ -359,6 +386,32 @@ StatusBarCreateCdromTip(int part)
 
 
 static void
+StatusBarCreateZIPTip(int part)
+{
+    WCHAR tempTip[512];
+
+    int drive = sb_part_meanings[part] & 0xf;
+
+    int type = zip_drives[drive].is_250 ? 250 : 100;
+
+    if (wcslen(floppyfns[drive]) == 0) {
+	_swprintf(tempTip, plat_get_string(IDS_2177),
+		  drive+1, type, plat_get_string(IDS_2057));
+    } else {
+	_swprintf(tempTip, plat_get_string(IDS_2177),
+		  drive+1, type, zip_drives[drive].image_path);
+    }
+
+    if (sbTips[part] != NULL) {
+	free(sbTips[part]);
+	sbTips[part] = NULL;
+    }
+    sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 2);
+    wcscpy(sbTips[part], tempTip);
+}
+
+
+static void
 StatusBarCreateRemovableDiskTip(int part)
 {
     WCHAR tempTip[512];
@@ -435,6 +488,10 @@ ui_sb_update_tip(int meaning)
 
 		case SB_CDROM:
 			StatusBarCreateCdromTip(part);
+			break;
+
+		case SB_ZIP:
+			StatusBarCreateZIPTip(part);
 			break;
 
 		case SB_RDISK:
@@ -584,6 +641,27 @@ ui_sb_update_panes(void)
 		sb_parts++;
 	}
     }
+    for (i=0; i<ZIP_NUM; i++) {
+	/* Could be Internal or External IDE.. */
+	if ((zip_drives[i].bus_type==ZIP_BUS_ATAPI_PIO_ONLY) &&
+	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
+		continue;
+	}
+
+	/* Could be Internal or External IDE.. */
+	if ((zip_drives[i].bus_type==ZIP_BUS_ATAPI_PIO_AND_DMA) &&
+	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
+		continue;
+	}
+
+	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) &&
+	    (scsi_card_current == 0)) {
+		continue;
+	}
+	if (zip_drives[i].bus_type != 0) {
+		sb_parts++;
+	}
+    }
     for (i=0; i<HDD_NUM; i++) {
 	if ((hdd[i].bus==HDD_BUS_SCSI_REMOVABLE) && (scsi_card_current != 0)) {
 		sb_parts++;
@@ -656,6 +734,27 @@ ui_sb_update_panes(void)
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = SB_CDROM | i;
+		sb_parts++;
+	}
+    }
+    for (i=0; i<ZIP_NUM; i++) {
+	/* Could be Internal or External IDE.. */
+	if ((zip_drives[i].bus_type==ZIP_BUS_ATAPI_PIO_ONLY) &&
+	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
+		continue;
+	}
+	/* Could be Internal or External IDE.. */
+	if ((zip_drives[i].bus_type==ZIP_BUS_ATAPI_PIO_AND_DMA) &&
+	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
+		continue;
+	}
+	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && (scsi_card_current == 0)) {
+		continue;
+	}
+	if (zip_drives[i].bus_type != 0) {
+		edge += SB_ICON_WIDTH;
+		iStatusWidths[sb_parts] = edge;
+		sb_part_meanings[sb_parts] = SB_ZIP | i;
 		sb_parts++;
 	}
     }
@@ -745,9 +844,18 @@ ui_sb_update_panes(void)
 			StatusBarCreateCdromTip(i);
 			break;
 
+		case SB_ZIP:		/* Iomega ZIP */
+			sb_icon_flags[i] = (wcslen(floppyfns[sb_part_meanings[i] & 0xf]) == 0) ? 256 : 0;
+			sb_part_icons[i] = 176 + sb_icon_flags[i];
+			sb_menu_handles[i] = StatusBarCreatePopupMenu(i);
+			StatusBarCreateZIPSubmenu(sb_menu_handles[i], sb_part_meanings[i] & 0xf);
+			EnableMenuItem(sb_menu_handles[i], IDM_ZIP_EJECT | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | ((sb_icon_flags[i] & 256) ? MF_GRAYED : MF_ENABLED));
+			StatusBarCreateZIPTip(i);
+			break;
+
 		case SB_RDISK:		/* Removable hard disk */
 			sb_icon_flags[i] = (wcslen(hdd[sb_part_meanings[i] & 0x1f].fn) == 0) ? 256 : 0;
-			sb_part_icons[i] = 176 + sb_icon_flags[i];
+			sb_part_icons[i] = 192 + sb_icon_flags[i];
 			sb_menu_handles[i] = StatusBarCreatePopupMenu(i);
 			StatusBarCreateRemovableDiskSubmenu(sb_menu_handles[i], sb_part_meanings[i] & 0x1f);
 			EnableMenuItem(sb_menu_handles[i], IDM_RDISK_EJECT | (sb_part_meanings[i] & 0x1f), MF_BYCOMMAND | ((sb_icon_flags[i] & 256) ? MF_GRAYED : MF_ENABLED));
@@ -757,12 +865,12 @@ ui_sb_update_panes(void)
 			break;
 
 		case SB_HDD:		/* Hard disk */
-			sb_part_icons[i] = 192;
+			sb_part_icons[i] = 208;
 			StatusBarCreateDiskTip(i);
 			break;
 
 		case SB_NETWORK:	/* Network */
-			sb_part_icons[i] = 208;
+			sb_part_icons[i] = 224;
 			StatusBarCreateNetworkTip(i);
 			break;
 
@@ -802,14 +910,29 @@ StatusBarPopupMenu(HWND hwnd, POINT pt, int id)
 void
 ui_sb_mount_floppy_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name)
 {
-	fdd_close(id);
-	ui_writeprot[id] = wp;
-	fdd_load(id, file_name);
-	ui_sb_update_icon_state(SB_FLOPPY | id, wcslen(floppyfns[id]) ? 0 : 1);
-	EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
-	EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EXPORT_TO_86F | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
-	ui_sb_update_tip(SB_FLOPPY | id);
-	config_save();
+    fdd_close(id);
+    ui_writeprot[id] = wp;
+    fdd_load(id, file_name);
+    ui_sb_update_icon_state(SB_FLOPPY | id, wcslen(floppyfns[id]) ? 0 : 1);
+    EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
+    EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EXPORT_TO_86F | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
+    ui_sb_update_tip(SB_FLOPPY | id);
+    config_save();
+}
+
+
+void
+ui_sb_mount_zip_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name)
+{
+    zip_close(id);
+    zip_drives[id].ui_writeprot = wp;
+    zip_load(id, file_name);
+    zip_insert(id);
+    ui_sb_update_icon_state(SB_ZIP | id, wcslen(zip_drives[id].image_path) ? 0 : 1);
+    EnableMenuItem(sb_menu_handles[part], IDM_ZIP_EJECT | id, MF_BYCOMMAND | (wcslen(zip_drives[id].image_path) ? MF_ENABLED : MF_GRAYED));
+    EnableMenuItem(sb_menu_handles[part], IDM_ZIP_RELOAD | id, MF_BYCOMMAND | (wcslen(zip_drives[id].image_path) ? MF_GRAYED : MF_ENABLED));
+    ui_sb_update_tip(SB_ZIP | id);
+    config_save();
 }
 
 
@@ -981,6 +1104,34 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				config_save();
 				break;
 
+			case IDM_ZIP_IMAGE_NEW:
+				id = item_params & 0x0003;
+				part = ui_sb_find_part(SB_ZIP | id);
+				NewFloppyDialogCreate(hwnd, id | 0x80, part);	/* NewZIPDialogCreate */
+				break;
+
+			case IDM_ZIP_IMAGE_EXISTING:
+			case IDM_ZIP_IMAGE_EXISTING_WP:
+				id = item_params & 0x0003;
+				part = ui_sb_find_part(SB_ZIP | id);
+				if ((part == -1) || (sb_menu_handles == NULL))
+					break;
+
+				ret = file_dlg_w_st(hwnd, IDS_2175, zip_drives[id].image_path, 0);
+				if (! ret)
+					ui_sb_mount_zip_img(id, part, (item_id == IDM_ZIP_IMAGE_EXISTING_WP) ? 1 : 0, wopenfilestring);
+				break;
+
+			case IDM_ZIP_EJECT:
+				id = item_params & 0x0003;
+				zip_eject(id);
+				break;
+
+			case IDM_ZIP_RELOAD:
+				id = item_params & 0x0003;
+				zip_reload(id);
+				break;
+
 			case IDM_RDISK_EJECT:
 				id = item_params & 0x001f;
 				removable_disk_eject(id);
@@ -1068,6 +1219,8 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
 	hIcon[i] = LoadIconEx((PCTSTR) i);
     for (i = 208; i < 210; i++)
 	hIcon[i] = LoadIconEx((PCTSTR) i);
+    for (i = 224; i < 226; i++)
+	hIcon[i] = LoadIconEx((PCTSTR) i);
     for (i = 384; i < 386; i++)
 	hIcon[i] = LoadIconEx((PCTSTR) i);
     for (i = 400; i < 402; i++)
@@ -1075,6 +1228,8 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
     for (i = 416; i < 418; i++)
 	hIcon[i] = LoadIconEx((PCTSTR) i);
     for (i = 432; i < 434; i++)
+	hIcon[i] = LoadIconEx((PCTSTR) i);
+    for (i = 448; i < 450; i++)
 	hIcon[i] = LoadIconEx((PCTSTR) i);
 
     GetWindowRect(hwndParent, &rectDialog);

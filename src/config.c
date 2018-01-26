@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.37	2018/01/16
+ * Version:	@(#)config.c	1.0.38	2018/01/21
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -36,6 +36,7 @@
 #include "device.h"
 #include "lpt.h"
 #include "cdrom/cdrom.h"
+#include "zip.h"
 #include "disk/hdd.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
@@ -452,7 +453,7 @@ load_general(void)
 #ifdef USE_LANGUAGE
     /*
      * Currently, 86Box is English (US) only, but in the future
-     * (version 1.30 at the earliest) other languages will be
+     * (version 3.0 at the earliest) other languages will be
      * added, therefore it is better to future-proof the code.
      */
     plat_langid = config_get_hex16(cat, "language", 0x0409);
@@ -938,7 +939,7 @@ load_hard_disks(void)
 }
 
 
-/* Load "Removable Devices" section. */
+/* Load old "Removable Devices" section. */
 static void
 load_removable_devices(void)
 {
@@ -946,6 +947,180 @@ load_removable_devices(void)
     char temp[512], tmp2[512], *p;
     char s[512];
     unsigned int board = 0, dev = 0;
+    wchar_t *wp;
+    int c;
+
+    if (find_section(cat) == NULL)
+	return;
+
+    for (c=0; c<FDD_NUM; c++) {
+	sprintf(temp, "fdd_%02i_type", c+1);
+	p = config_get_string(cat, temp, (c < 2) ? "525_2dd" : "none");
+       	fdd_set_type(c, fdd_get_from_internal_name(p));
+	if (fdd_get_type(c) > 13)
+		fdd_set_type(c, 13);
+
+	sprintf(temp, "fdd_%02i_fn", c + 1);
+	wp = config_get_wstring(cat, temp, L"");
+
+#if 0
+	/*
+	 * NOTE:
+	 * Temporary hack to remove the absolute
+	 * path currently saved in most config
+	 * files.  We should remove this before
+	 * finalizing this release!  --FvK
+	 */
+	if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
+		/*
+		 * Yep, its absolute and prefixed
+		 * with the EXE path.  Just strip
+		 * that off for now...
+		 */
+		wcsncpy(floppyfns[c], &wp[wcslen(usr_path)], sizeof_w(floppyfns[c]));
+	} else
+#endif
+	wcsncpy(floppyfns[c], wp, sizeof_w(floppyfns[c]));
+
+	/* if (*wp != L'\0')
+		pclog("Floppy%d: %ls\n", c, floppyfns[c]); */
+	sprintf(temp, "fdd_%02i_writeprot", c+1);
+	ui_writeprot[c] = !!config_get_int(cat, temp, 0);
+	sprintf(temp, "fdd_%02i_turbo", c + 1);
+	fdd_set_turbo(c, !!config_get_int(cat, temp, 0));
+	sprintf(temp, "fdd_%02i_check_bpb", c+1);
+	fdd_set_check_bpb(c, !!config_get_int(cat, temp, 1));
+
+	/* Check whether each value is default, if yes, delete it so that only non-default values will later be saved. */
+	sprintf(temp, "fdd_%02i_type", c+1);
+	config_delete_var(cat, temp);
+
+	sprintf(temp, "fdd_%02i_fn", c+1);
+	config_delete_var(cat, temp);
+
+	sprintf(temp, "fdd_%02i_writeprot", c+1);
+	config_delete_var(cat, temp);
+
+	sprintf(temp, "fdd_%02i_turbo", c+1);
+	config_delete_var(cat, temp);
+
+	sprintf(temp, "fdd_%02i_check_bpb", c+1);
+	config_delete_var(cat, temp);
+    }
+
+    memset(temp, 0x00, sizeof(temp));
+    for (c=0; c<CDROM_NUM; c++) {
+	sprintf(temp, "cdrom_%02i_host_drive", c+1);
+	cdrom_drives[c].host_drive = config_get_int(cat, temp, 0);
+	cdrom_drives[c].prev_host_drive = cdrom_drives[c].host_drive;
+
+	sprintf(temp, "cdrom_%02i_parameters", c+1);
+	p = config_get_string(cat, temp, NULL);
+	if (p != NULL)
+		sscanf(p, "%u, %s", &cdrom_drives[c].sound_on, s);
+	  else
+		sscanf("0, none", "%u, %s", &cdrom_drives[c].sound_on, s);
+	cdrom_drives[c].bus_type = hdd_string_to_bus(s, 1);
+
+	/* Default values, needed for proper operation of the Settings dialog. */
+	cdrom_drives[c].ide_channel = cdrom_drives[c].scsi_device_id = c + 2;
+
+	sprintf(temp, "cdrom_%02i_ide_channel", c+1);
+	if ((cdrom_drives[c].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) ||
+	    (cdrom_drives[c].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA)) {
+		sprintf(tmp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
+		p = config_get_string(cat, temp, tmp2);
+		if (! strstr(p, ":")) {
+			sscanf(p, "%i", (int *)&cdrom_drives[c].ide_channel);
+			cdrom_drives[c].ide_channel &= 7;
+		} else {
+			sscanf(p, "%01u:%01u", &board, &dev);
+
+			board &= 3;
+			dev &= 1;
+			cdrom_drives[c].ide_channel = (board<<1)+dev;
+		}
+
+		if (cdrom_drives[c].ide_channel > 7)
+			cdrom_drives[c].ide_channel = 7;
+	} else {
+		sprintf(temp, "cdrom_%02i_scsi_location", c+1);
+		if (cdrom_drives[c].bus_type == CDROM_BUS_SCSI) {
+			sprintf(tmp2, "%02u:%02u", c+2, 0);
+			p = config_get_string(cat, temp, tmp2);
+			sscanf(p, "%02u:%02u",
+				&cdrom_drives[c].scsi_device_id,
+				&cdrom_drives[c].scsi_device_lun);
+	
+			if (cdrom_drives[c].scsi_device_id > 15)
+				cdrom_drives[c].scsi_device_id = 15;
+			if (cdrom_drives[c].scsi_device_lun > 7)
+				cdrom_drives[c].scsi_device_lun = 7;
+		} else {
+			config_delete_var(cat, temp);
+		}
+	}
+
+	sprintf(temp, "cdrom_%02i_image_path", c+1);
+	wp = config_get_wstring(cat, temp, L"");
+
+#if 0
+	/*
+	 * NOTE:
+	 * Temporary hack to remove the absolute
+	 * path currently saved in most config
+	 * files.  We should remove this before
+	 * finalizing this release!  --FvK
+	 */
+	if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
+		/*
+		 * Yep, its absolute and prefixed
+		 * with the EXE path.  Just strip
+		 * that off for now...
+		 */
+		wcsncpy(cdrom_image[c].image_path, &wp[wcslen(usr_path)], sizeof_w(cdrom_image[c].image_path));
+	} else
+#endif
+	wcsncpy(cdrom_image[c].image_path, wp, sizeof_w(cdrom_image[c].image_path));
+	wcscpy(cdrom_image[c].prev_image_path, cdrom_image[c].image_path);
+
+	if (cdrom_drives[c].host_drive < 'A')
+		cdrom_drives[c].host_drive = 0;
+
+	if ((cdrom_drives[c].host_drive == 0x200) &&
+	    (wcslen(cdrom_image[c].image_path) == 0))
+		cdrom_drives[c].host_drive = 0;
+
+	/* If the CD-ROM is disabled, delete all its variables. */
+	sprintf(temp, "cdrom_%02i_host_drive", c+1);
+	config_delete_var(cat, temp);
+
+	sprintf(temp, "cdrom_%02i_parameters", c+1);
+	config_delete_var(cat, temp);
+
+	sprintf(temp, "cdrom_%02i_ide_channel", c+1);
+	config_delete_var(cat, temp);
+
+	sprintf(temp, "cdrom_%02i_scsi_location", c+1);
+	config_delete_var(cat, temp);
+
+	sprintf(temp, "cdrom_%02i_image_path", c+1);
+	config_delete_var(cat, temp);
+
+	sprintf(temp, "cdrom_%02i_iso_path", c+1);
+	config_delete_var(cat, temp);
+    }
+
+    delete_section_if_empty(cat);
+}
+
+
+/* Load "Floppy Drives" section. */
+static void
+load_floppy_drives(void)
+{
+    char *cat = "Floppy drives";
+    char temp[512], *p;
     wchar_t *wp;
     int c;
 
@@ -1009,6 +1184,19 @@ load_removable_devices(void)
 		config_delete_var(cat, temp);
 	}
     }
+}
+
+
+/* Load "Other Removable Devices" section. */
+static void
+load_other_removable_devices(void)
+{
+    char *cat = "Other removable devices";
+    char temp[512], tmp2[512], *p;
+    char s[512];
+    unsigned int board = 0, dev = 0;
+    wchar_t *wp;
+    int c;
 
     memset(temp, 0x00, sizeof(temp));
     for (c=0; c<CDROM_NUM; c++) {
@@ -1114,6 +1302,99 @@ load_removable_devices(void)
 	sprintf(temp, "cdrom_%02i_iso_path", c+1);
 	config_delete_var(cat, temp);
     }
+
+    memset(temp, 0x00, sizeof(temp));
+    for (c=0; c<ZIP_NUM; c++) {
+	sprintf(temp, "zip_%02i_parameters", c+1);
+	p = config_get_string(cat, temp, NULL);
+	if (p != NULL)
+		sscanf(p, "%u, %s", &zip_drives[c].is_250, s);
+	  else
+		sscanf("0, none", "%u, %s", &zip_drives[c].is_250, s);
+	zip_drives[c].bus_type = hdd_string_to_bus(s, 1);
+
+	/* Default values, needed for proper operation of the Settings dialog. */
+	zip_drives[c].ide_channel = zip_drives[c].scsi_device_id = c + 2;
+
+	sprintf(temp, "zip_%02i_ide_channel", c+1);
+	if ((zip_drives[c].bus_type == ZIP_BUS_ATAPI_PIO_ONLY) ||
+	    (zip_drives[c].bus_type == ZIP_BUS_ATAPI_PIO_AND_DMA)) {
+		sprintf(tmp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
+		p = config_get_string(cat, temp, tmp2);
+		if (! strstr(p, ":")) {
+			sscanf(p, "%i", (int *)&zip_drives[c].ide_channel);
+			zip_drives[c].ide_channel &= 7;
+		} else {
+			sscanf(p, "%01u:%01u", &board, &dev);
+
+			board &= 3;
+			dev &= 1;
+			zip_drives[c].ide_channel = (board<<1)+dev;
+		}
+
+		if (zip_drives[c].ide_channel > 7)
+			zip_drives[c].ide_channel = 7;
+	} else {
+		sprintf(temp, "zip_%02i_scsi_location", c+1);
+		if (zip_drives[c].bus_type == CDROM_BUS_SCSI) {
+			sprintf(tmp2, "%02u:%02u", c+2, 0);
+			p = config_get_string(cat, temp, tmp2);
+			sscanf(p, "%02u:%02u",
+				&zip_drives[c].scsi_device_id,
+				&zip_drives[c].scsi_device_lun);
+	
+			if (zip_drives[c].scsi_device_id > 15)
+				zip_drives[c].scsi_device_id = 15;
+			if (zip_drives[c].scsi_device_lun > 7)
+				zip_drives[c].scsi_device_lun = 7;
+		} else {
+			config_delete_var(cat, temp);
+		}
+	}
+
+	sprintf(temp, "zip_%02i_image_path", c+1);
+	wp = config_get_wstring(cat, temp, L"");
+
+#if 0
+	/*
+	 * NOTE:
+	 * Temporary hack to remove the absolute
+	 * path currently saved in most config
+	 * files.  We should remove this before
+	 * finalizing this release!  --FvK
+	 */
+	if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
+		/*
+		 * Yep, its absolute and prefixed
+		 * with the EXE path.  Just strip
+		 * that off for now...
+		 */
+		wcsncpy(zip_drives[c].image_path, &wp[wcslen(usr_path)], sizeof_w(zip_drives[c].image_path));
+	} else
+#endif
+	wcsncpy(zip_drives[c].image_path, wp, sizeof_w(zip_drives[c].image_path));
+
+	/* If the CD-ROM is disabled, delete all its variables. */
+	if (zip_drives[c].bus_type == ZIP_BUS_DISABLED) {
+		sprintf(temp, "zip_%02i_host_drive", c+1);
+		config_delete_var(cat, temp);
+
+		sprintf(temp, "zip_%02i_parameters", c+1);
+		config_delete_var(cat, temp);
+
+		sprintf(temp, "zip_%02i_ide_channel", c+1);
+		config_delete_var(cat, temp);
+
+		sprintf(temp, "zip_%02i_scsi_location", c+1);
+		config_delete_var(cat, temp);
+
+		sprintf(temp, "zip_%02i_image_path", c+1);
+		config_delete_var(cat, temp);
+	}
+
+	sprintf(temp, "zip_%02i_iso_path", c+1);
+	config_delete_var(cat, temp);
+    }
 }
 
 
@@ -1150,16 +1431,18 @@ config_load(void)
 	return;
     }
 
-    load_general();		/* General */
-    load_machine();		/* Machine */
-    load_video();		/* Video */
-    load_input_devices();	/* Input devices */
-    load_sound();		/* Sound */
-    load_network();		/* Network */
-    load_ports();		/* Ports (COM & LPT) */
-    load_other_peripherals();	/* Other peripherals */
-    load_hard_disks();		/* Hard disks */
-    load_removable_devices();	/* Removable devices */
+    load_general();			/* General */
+    load_machine();			/* Machine */
+    load_video();			/* Video */
+    load_input_devices();		/* Input devices */
+    load_sound();			/* Sound */
+    load_network();			/* Network */
+    load_ports();			/* Ports (COM & LPT) */
+    load_other_peripherals();		/* Other peripherals */
+    load_hard_disks();			/* Hard disks */
+    load_floppy_drives();		/* Floppy drives */
+    load_other_removable_devices();	/* Other removable devices */
+    load_removable_devices();		/* Removable devices (legacy) */
 
     /* Mark the configuration as changed. */
     config_changed = 1;
@@ -1606,12 +1889,12 @@ save_hard_disks(void)
 }
 
 
-/* Save "Removable Devices" section. */
+/* Save "Floppy Drives" section. */
 static void
-save_removable_devices(void)
+save_floppy_drives(void)
 {
-    char *cat = "Removable devices";
-    char temp[512], tmp2[512];
+    char *cat = "Floppy drives";
+    char temp[512];
     int c;
 
     for (c=0; c<FDD_NUM; c++) {
@@ -1653,6 +1936,18 @@ save_removable_devices(void)
 		config_set_int(cat, temp, fdd_get_check_bpb(c));
     }
 
+    delete_section_if_empty(cat);
+}
+
+
+/* Save "Other Removable Devices" section. */
+static void
+save_other_removable_devices(void)
+{
+    char *cat = "Other removable devices";
+    char temp[512], tmp2[512];
+    int c;
+
     for (c=0; c<CDROM_NUM; c++) {
 	sprintf(temp, "cdrom_%02i_host_drive", c+1);
 	if ((cdrom_drives[c].bus_type == 0) ||
@@ -1670,7 +1965,7 @@ save_removable_devices(void)
 			hdd_bus_to_string(cdrom_drives[c].bus_type, 1));
 		config_set_string(cat, temp, tmp2);
 	}
-		
+
 	sprintf(temp, "cdrom_%02i_ide_channel", c+1);
 	if ((cdrom_drives[c].bus_type != CDROM_BUS_ATAPI_PIO_ONLY) &&
 	    (cdrom_drives[c].bus_type != CDROM_BUS_ATAPI_PIO_AND_DMA)) {
@@ -1699,6 +1994,44 @@ save_removable_devices(void)
 	}
     }
 
+    for (c=0; c<ZIP_NUM; c++) {
+	sprintf(temp, "zip_%02i_parameters", c+1);
+	if (zip_drives[c].bus_type == 0) {
+		config_delete_var(cat, temp);
+	} else {
+		sprintf(tmp2, "%u, %s", zip_drives[c].is_250,
+			hdd_bus_to_string(zip_drives[c].bus_type, 1));
+		config_set_string(cat, temp, tmp2);
+	}
+		
+	sprintf(temp, "zip_%02i_ide_channel", c+1);
+	if ((zip_drives[c].bus_type != ZIP_BUS_ATAPI_PIO_ONLY) &&
+	    (zip_drives[c].bus_type != ZIP_BUS_ATAPI_PIO_AND_DMA)) {
+		config_delete_var(cat, temp);
+	} else {
+		sprintf(tmp2, "%01u:%01u", zip_drives[c].ide_channel>>1,
+					zip_drives[c].ide_channel & 1);
+		config_set_string(cat, temp, tmp2);
+	}
+
+	sprintf(temp, "zip_%02i_scsi_location", c + 1);
+	if (zip_drives[c].bus_type != ZIP_BUS_SCSI) {
+		config_delete_var(cat, temp);
+	} else {
+		sprintf(tmp2, "%02u:%02u", zip_drives[c].scsi_device_id,
+					zip_drives[c].scsi_device_lun);
+		config_set_string(cat, temp, tmp2);
+	}
+
+	sprintf(temp, "zip_%02i_image_path", c + 1);
+	if ((zip_drives[c].bus_type == 0) ||
+	    (wcslen(zip_drives[c].image_path) == 0)) {
+		config_delete_var(cat, temp);
+	} else {
+		config_set_wstring(cat, temp, zip_drives[c].image_path);
+	}
+    }
+
     delete_section_if_empty(cat);
 }
 
@@ -1706,16 +2039,17 @@ save_removable_devices(void)
 void
 config_save(void)
 {
-    save_general();		/* General */
-    save_machine();		/* Machine */
-    save_video();		/* Video */
-    save_input_devices();	/* Input devices */
-    save_sound();		/* Sound */
-    save_network();		/* Network */
-    save_ports();		/* Ports (COM & LPT) */
-    save_other_peripherals();	/* Other peripherals */
-    save_hard_disks();		/* Hard disks */
-    save_removable_devices();	/* Removable devices */
+    save_general();			/* General */
+    save_machine();			/* Machine */
+    save_video();			/* Video */
+    save_input_devices();		/* Input devices */
+    save_sound();			/* Sound */
+    save_network();			/* Network */
+    save_ports();			/* Ports (COM & LPT) */
+    save_other_peripherals();		/* Other peripherals */
+    save_hard_disks();			/* Hard disks */
+    save_floppy_drives();		/* Floppy drives */
+    save_other_removable_devices();	/* Other removable devices */
 
     config_write(cfg_path);
 }

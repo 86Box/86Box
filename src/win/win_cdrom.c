@@ -31,6 +31,7 @@
 #include "../cdrom/cdrom.h"
 #include "../cdrom/cdrom_image.h"
 #include "../cdrom/cdrom_null.h"
+#include "../zip.h"
 #include "../disk/hdd.h"
 #include "../scsi/scsi.h"
 #include "../scsi/scsi_disk.h"
@@ -146,6 +147,42 @@ cdrom_reload(uint8_t id)
 
     ui_sb_enable_menu_item(SB_CDROM|id, IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
     ui_sb_update_tip(SB_CDROM|id);
+
+    config_save();
+}
+
+
+void
+zip_eject(uint8_t id)
+{
+    zip_close(id);
+    if (zip_drives[id].bus_type) {
+	/* Signal disk change to the emulated machine. */
+	zip_insert(id);
+    }
+
+    ui_sb_update_icon_state(SB_ZIP | id, 1);
+    ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
+    ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
+    ui_sb_update_tip(SB_ZIP | id);
+    config_save();
+}
+
+
+void
+zip_reload(uint8_t id)
+{
+    zip_disk_reload(id);
+    if (wcslen(zip_drives[id].image_path) == 0) {
+	ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
+	ui_sb_update_icon_state(SB_ZIP|id, 1);
+    } else {
+	ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
+	ui_sb_update_icon_state(SB_ZIP|id, 0);
+    }
+
+    ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
+    ui_sb_update_tip(SB_ZIP|id);
 
     config_save();
 }

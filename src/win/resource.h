@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.18	2018/01/24
+ * Version:	@(#)resource.h	1.0.19	2018/01/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -36,7 +36,8 @@
 #define  DLG_CFG_PERIPHERALS	117	/* sub-dialog of config */
 #define  DLG_CFG_HARD_DISKS	118	/* sub-dialog of config */
 #define  DLG_CFG_HARD_DISKS_ADD	119	/* sub-dialog of config */
-#define  DLG_CFG_REMOVABLE_DEVICES	120	/* sub-dialog of config */
+#define  DLG_CFG_FLOPPY_DRIVES	120	/* sub-dialog of config */
+#define  DLG_CFG_OTHER_REMOVABLE_DEVICES	121	/* sub-dialog of config */
 
 /* Static text label IDs. */
 #define IDT_1700		1700	/* Language: */
@@ -86,6 +87,11 @@
 #define IDT_1750		1750	/* Disk size: */
 #define IDT_1751		1751	/* RPM mode: */
 #define IDT_1752		1752	/* Progress: */
+#define IDT_1753		1753	/* Bus: */
+#define IDT_1754		1754	/* ID: */
+#define IDT_1755		1755	/* LUN: */
+#define IDT_1756		1756	/* Channel: */
+#define IDT_1757		1757	/* Progress: */
 
 
 /*
@@ -178,17 +184,17 @@
 #define IDC_COMBO_FD_TYPE	1152
 #define IDC_CHECKTURBO		1153
 #define IDC_CHECKBPB		1154
-#define IDC_BUTTON_FDD_ADD	1155	// status bar menu
-#define IDC_BUTTON_FDD_EDIT	1156	// status bar menu
-#define IDC_BUTTON_FDD_REMOVE	1157	// status bar menu
-#define IDC_LIST_CDROM_DRIVES	1158
-#define IDC_COMBO_CD_BUS	1159
-#define IDC_COMBO_CD_ID		1160
-#define IDC_COMBO_CD_LUN	1161
-#define IDC_COMBO_CD_CHANNEL_IDE 1162
-#define IDC_BUTTON_CDROM_ADD	1163	// status bar menu
-#define IDC_BUTTON_CDROM_EDIT	1164	// status bar menu
-#define IDC_BUTTON_CDROM_REMOVE	1165	// status bar menu
+#define IDC_LIST_CDROM_DRIVES	1155
+#define IDC_COMBO_CD_BUS	1156
+#define IDC_COMBO_CD_ID		1157
+#define IDC_COMBO_CD_LUN	1158
+#define IDC_COMBO_CD_CHANNEL_IDE 1159
+#define IDC_LIST_ZIP_DRIVES	1160
+#define IDC_COMBO_ZIP_BUS	1161
+#define IDC_COMBO_ZIP_ID	1162
+#define IDC_COMBO_ZIP_LUN	1163
+#define IDC_COMBO_ZIP_CHANNEL_IDE 1164
+#define IDC_CHECK250		1165
 
 #define IDC_SLIDER_MAIN		1180	/* sound gain dialog */
 #define IDC_SLIDER_CD		1181
@@ -289,11 +295,17 @@
 #define IDM_CDROM_IMAGE			0x2500
 #define IDM_CDROM_HOST_DRIVE		0x2600
 
-#define IDM_RDISK_EJECT			0x3200
-#define IDM_RDISK_RELOAD		0x3300
-#define IDM_RDISK_SEND_CHANGE		0x3400
-#define IDM_RDISK_IMAGE			0x3500
-#define IDM_RDISK_IMAGE_WP		0x3600
+#define IDM_ZIP_IMAGE_NEW		0x3200
+#define IDM_ZIP_IMAGE_EXISTING		0x3300
+#define IDM_ZIP_IMAGE_EXISTING_WP	0x3400
+#define IDM_ZIP_EJECT			0x3500
+#define IDM_ZIP_RELOAD			0x3600
+
+#define IDM_RDISK_EJECT			0x4200
+#define IDM_RDISK_RELOAD		0x4300
+#define IDM_RDISK_SEND_CHANGE		0x4400
+#define IDM_RDISK_IMAGE			0x4500
+#define IDM_RDISK_IMAGE_WP		0x4600
 
 
 /* Next default values for new objects */

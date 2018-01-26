@@ -10,7 +10,7 @@
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
  *
- * Version:	@(#)language.h	1.0.5	2018/01/18
+ * Version:	@(#)language.h	1.0.6	2018/01/23
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -46,8 +46,8 @@
 #define IDS_2070	2070		// "Ports (COM & LPT)"
 #define IDS_2071	2071		// "Other peripherals"
 #define IDS_2072	2072		// "Hard disks"
-#define IDS_2073	2073		// "Removable devices"
-#define IDS_2074	2074		// "Use CTRL+ALT+PAGE DOWN.."
+#define IDS_2073	2073		// "Floppy drives"
+#define IDS_2074	2074		// "Other removable devices"
 #define IDS_2075	2075		// "CD-ROM images (*.ISO;*.CU.."
 #define IDS_2076	2076		// "Host CD/DVD Drive (%c:)"
 #define IDS_2077	2077		// "Click to capture mouse"
@@ -80,7 +80,7 @@
 #define IDS_2104	2104		// "Network Type"
 #define IDS_2105	2105		// "Surround Module"
 #define IDS_2106	2106		// "MPU-401 Base Address"
-#define IDS_2107	2107		// "PCAP not found.."
+#define IDS_2107	2107		// "Use CTRL+ALT+PAGE DOWN.."
 #define IDS_2108	2108		// "On-board RAM"
 #define IDS_2109	2109		// "Memory Size"
 #define IDS_2110	2110		// "Display Type"
@@ -148,6 +148,9 @@
 #define IDS_2172	2172		// "E&xport to 86F..."
 #define IDS_2173	2173		// "Surface-based images (*.8.."
 #define IDS_2174	2174		// "All floppy images (*.DSK..."
+#define IDS_2175	2175		// "ZIP images (*.IM?)\0*.IM..."
+#define IDS_2176	2176		// "ZIP images (*.IM?)\0*.IM..."
+#define IDS_2177	2177		// "ZIP %i (%03i): %ls"
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -216,6 +219,8 @@
 #define IDS_5897	5897		// "DMF (cluster 1024)"
 #define IDS_5898	5898		// "DMF (cluster 2048)"
 #define IDS_5899	5899		// "2.88 MB"
+#define IDS_5900	5900		// "ZIP 100"
+#define IDS_5901	5901		// "ZIP 250"
 
 #define IDS_6144	6144		// "Perfect RPM"
 #define IDS_6145	6145		// "1%% below perfect RPM"
@@ -226,7 +231,7 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	127
+#define STR_NUM_2048	130
 #define STR_NUM_3072	11
 #define STR_NUM_4096	20
 #define STR_NUM_4352	7
@@ -234,7 +239,7 @@
 #define STR_NUM_5120	1
 #define STR_NUM_5376	7
 #define STR_NUM_5632	7
-#define STR_NUM_5888	12
+#define STR_NUM_5888	14
 #define STR_NUM_6144	4
 #define STR_NUM_7168	1
 

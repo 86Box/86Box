@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.53	2018/01/18
+ * Version:	@(#)pc.c	1.0.54	2018/01/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -57,9 +57,9 @@
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
 #include "cdrom/cdrom.h"
-#include "cdrom/cdrom.h"
 #include "cdrom/cdrom_image.h"
 #include "cdrom/cdrom_null.h"
+#include "zip.h"
 #include "scsi/scsi.h"
 #include "network/network.h"
 #include "sound/sound.h"
@@ -171,6 +171,9 @@ static int	unscaled_size_x = SCREEN_RES_X,	/* current unscaled size X */
 		efscrnsz_y = SCREEN_RES_Y;
 
 
+static char buff[1024];
+static int seen = 0;
+
 /*
  * Log something to the logfile or stdout.
  *
@@ -182,8 +185,6 @@ void
 pclog_ex(const char *fmt, va_list ap)
 {
 #ifndef RELEASE_BUILD
-    static char buff[1024];
-    static int seen = 0;
     char temp[1024];
 
     if (stdlog == NULL) {
@@ -476,6 +477,7 @@ usage:
     network_init();
     mouse_init();
     cdrom_global_init();
+    zip_global_init();
 
     /* Load the configuration file. */
     config_load();
@@ -552,6 +554,13 @@ pc_reload(wchar_t *fn)
 		ioctl_open(i, cdrom_drives[i].host_drive);
 	  else	
 	        cdrom_null_open(i, cdrom_drives[i].host_drive);
+    }
+
+    for (i=0; i<ZIP_NUM; i++) {
+	if (zip_drives[i].bus_type)
+		SCSIReset(zip_drives[i].scsi_device_id, zip_drives[i].scsi_device_lun);
+
+	zip_load(i, zip_drives[i].image_path);
     }
 
     fdd_load(0, floppyfns[0]);
@@ -653,6 +662,7 @@ again2:
     ide_init_first();
 
     cdrom_global_reset();
+    zip_global_reset();
 
     device_init();        
                        
@@ -669,6 +679,7 @@ again2:
     ide_reset_hard();
 
     cdrom_hard_reset();
+    zip_hard_reset();
 
     scsi_card_init();
 
@@ -766,7 +777,7 @@ pc_reset_hard_init(void)
 
     /* Reset the general machine support modules. */
     io_init();
-    cpu_set();
+    // cpu_set();
     mem_resize();
     timer_reset();
     device_init();
@@ -812,7 +823,7 @@ pc_reset_hard_init(void)
     mouse_reset();
 
     /* Reset the video card. */
-    video_reset(gfxcard);
+    // video_reset(gfxcard);
 
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
@@ -831,6 +842,7 @@ pc_reset_hard_init(void)
     scsi_card_init();
 
     cdrom_hard_reset();
+    zip_hard_reset();
 
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
@@ -863,10 +875,13 @@ pc_reset_hard_init(void)
 	device_add(&bugger_device);
 
     /* Reset the CPU module. */
+    cpu_set();
     resetx86();
     dma_reset();
     pic_reset();
     cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
+
+    video_reset(gfxcard);
 
     if (AT)
 	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
@@ -928,6 +943,9 @@ pc_close(thread_t *ptr)
     config_save();
 
     plat_mouse_capture(0);
+
+    for (i=0; i<ZIP_NUM; i++)
+	zip_close(i);
 
     for (i=0; i<CDROM_NUM; i++)
 	cdrom_drives[i].handler->exit(i);

@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.34	2018/01/26
+ * Version:	@(#)win_settings.c	1.0.35	2018/01/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -37,6 +37,7 @@
 #include "../lpt.h"
 #include "../mouse.h"
 #include "../cdrom/cdrom.h"
+#include "../zip.h"
 #include "../disk/hdd.h"
 #include "../disk/hdc.h"
 #include "../disk/hdc_ide.h"
@@ -79,7 +80,7 @@ static char temp_pcap_dev[520];
 static char temp_lpt1_device_name[16];
 static int temp_serial[2], temp_lpt;
 
-/* Peripherals category */
+/* Other peripherals category */
 static int temp_scsi_card, temp_ide_ter, temp_ide_ter_irq, temp_ide_qua, temp_ide_qua_irq;
 static char temp_hdc_name[16];
 static char *hdc_names[16];
@@ -90,11 +91,14 @@ static uint8_t temp_deviceconfig;
 /* Hard disks category */
 static hard_disk_t temp_hdd[HDD_NUM];
 
-/* Removable devices category */
+/* Floppy drives category */
 static int temp_fdd_types[FDD_NUM];
 static int temp_fdd_turbo[FDD_NUM];
 static int temp_fdd_check_bpb[FDD_NUM];
+
+/* Other removable devices category */
 static cdrom_drive_t temp_cdrom_drives[CDROM_NUM];
+static zip_drive_t temp_zip_drives[ZIP_NUM];
 
 static HWND hwndParentDialog, hwndChildDialog;
 
@@ -178,7 +182,7 @@ static void win_settings_init(void)
 	temp_serial[1] = serial_enabled[1];
 	temp_lpt = lpt_enabled;
 
-	/* Peripherals category */
+	/* Other peripherals category */
 	temp_scsi_card = scsi_card_current;
 	strncpy(temp_hdc_name, hdc_name, sizeof(temp_hdc_name) - 1);
 	temp_ide_ter = ide_enable[2];
@@ -211,13 +215,15 @@ static void win_settings_init(void)
 			scsi_tracking[hdd[i].scsi_id] |= (1 << hdd[i].scsi_lun);
 	}
 
-	/* Removable devices category */
+	/* Floppy drives category */
 	for (i = 0; i < FDD_NUM; i++)
 	{
 		temp_fdd_types[i] = fdd_get_type(i);
 		temp_fdd_turbo[i] = fdd_get_turbo(i);
 		temp_fdd_check_bpb[i] = fdd_get_check_bpb(i);
 	}
+
+	/* Other removable devices category */
 	memcpy(temp_cdrom_drives, cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
 	for (i = 0; i < CDROM_NUM; i++)
 	{
@@ -227,6 +233,16 @@ static void win_settings_init(void)
 			ide_tracking |= (1 << cdrom_drives[i].ide_channel);
 		else if (cdrom_drives[i].bus_type == CDROM_BUS_SCSI)
 			scsi_tracking[cdrom_drives[i].scsi_device_id] |= (1 << cdrom_drives[i].scsi_device_lun);
+	}
+	memcpy(temp_zip_drives, zip_drives, ZIP_NUM * sizeof(zip_drive_t));
+	for (i = 0; i < ZIP_NUM; i++)
+	{
+		if (zip_drives[i].bus_type == ZIP_BUS_ATAPI_PIO_ONLY)
+			ide_tracking |= (1 << zip_drives[i].ide_channel);
+		else if (zip_drives[i].bus_type == ZIP_BUS_ATAPI_PIO_AND_DMA)
+			ide_tracking |= (1 << zip_drives[i].ide_channel);
+		else if (zip_drives[i].bus_type == ZIP_BUS_SCSI)
+			scsi_tracking[zip_drives[i].scsi_device_id] |= (1 << zip_drives[i].scsi_device_lun);
 	}
 
 	temp_deviceconfig = 0;
@@ -293,14 +309,17 @@ static int win_settings_changed(void)
 	/* Hard disks category */
 	i = i || memcmp(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
 
-	/* Removable devices category */
+	/* Floppy drives category */
 	for (j = 0; j < FDD_NUM; j++)
 	{
 		i = i || (temp_fdd_types[j] != fdd_get_type(j));
 		i = i || (temp_fdd_turbo[j] != fdd_get_turbo(j));
 		i = i || (temp_fdd_check_bpb[j] != fdd_get_check_bpb(j));
 	}
+
+	/* Other removable devices category */
 	i = i || memcmp(cdrom_drives, temp_cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
+	i = i || memcmp(zip_drives, temp_zip_drives, ZIP_NUM * sizeof(zip_drive_t));
 
 	i = i || !!temp_deviceconfig;
 
@@ -399,14 +418,17 @@ static void win_settings_save(void)
 	/* Hard disks category */
 	memcpy(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
 
-	/* Removable devices category */
+	/* Floppy drives category */
 	for (i = 0; i < FDD_NUM; i++)
 	{
 		fdd_set_type(i, temp_fdd_types[i]);
 		fdd_set_turbo(i, temp_fdd_turbo[i]);
 		fdd_set_check_bpb(i, temp_fdd_check_bpb[i]);
 	}
+
+	/* Removable devices category */
 	memcpy(cdrom_drives, temp_cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
+	memcpy(zip_drives, temp_zip_drives, ZIP_NUM * sizeof(zip_drive_t));
 
 	/* Mark configuration as changed. */
 	config_changed = 1;
@@ -859,7 +881,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			gfx = video_card_getid(stransi);
 
 			h = GetDlgItem(hdlg, IDC_CONFIGURE_VID);
-			if (video_card_has_config(temp_gfxcard))
+			if (video_card_has_config(gfx))
 			{
 				EnableWindow(h, TRUE);
 			}
@@ -1970,11 +1992,11 @@ static BOOL win_settings_hard_disks_image_list_init(HWND hwndList)
                                   GetSystemMetrics(SM_CYSMICON),
                                   ILC_MASK | ILC_COLOR32, 1, 1);
 
-	hiconItem = LoadIcon(hinstance, (LPCWSTR) 192);
+	hiconItem = LoadIcon(hinstance, (LPCWSTR) 208);
 	ImageList_AddIcon(hSmall, hiconItem);
 	DestroyIcon(hiconItem);
 
-	hiconItem = LoadIcon(hinstance, (LPCWSTR) 176);
+	hiconItem = LoadIcon(hinstance, (LPCWSTR) 192);
 	ImageList_AddIcon(hSmall, hiconItem);
 	DestroyIcon(hiconItem);
 
@@ -3763,8 +3785,10 @@ hd_bus_skip:
 	return FALSE;
 }
 
-int fdlv_current_sel;
-int cdlv_current_sel;
+static int fdlv_current_sel;
+
+static int cdlv_current_sel;
+static int zdlv_current_sel;
 
 static int combo_id_to_string_id(int combo_id)
 {
@@ -3813,6 +3837,28 @@ static BOOL win_settings_cdrom_drives_image_list_init(HWND hwndList)
 	DestroyIcon(hiconItem);
 
 	hiconItem = LoadIcon(hinstance, (LPCWSTR) 160);
+	ImageList_AddIcon(hSmall, hiconItem);
+	DestroyIcon(hiconItem);
+
+	ListView_SetImageList(hwndList, hSmall, LVSIL_SMALL);
+
+	return TRUE;
+}
+
+static BOOL win_settings_zip_drives_image_list_init(HWND hwndList)
+{
+	HICON hiconItem;
+	HIMAGELIST hSmall;
+
+	hSmall = ImageList_Create(GetSystemMetrics(SM_CXSMICON),
+                                  GetSystemMetrics(SM_CYSMICON),
+                                  ILC_MASK | ILC_COLOR32, 1, 1);
+
+	hiconItem = LoadIcon(hinstance, (LPCWSTR) 515);
+	ImageList_AddIcon(hSmall, hiconItem);
+	DestroyIcon(hiconItem);
+
+	hiconItem = LoadIcon(hinstance, (LPCWSTR) 176);
 	ImageList_AddIcon(hSmall, hiconItem);
 	DestroyIcon(hiconItem);
 
@@ -3921,6 +3967,64 @@ static BOOL win_settings_cdrom_drives_recalc_list(HWND hwndList)
 	return TRUE;
 }
 
+static BOOL win_settings_zip_drives_recalc_list(HWND hwndList)
+{
+	LVITEM lvI;
+	int i = 0;
+	WCHAR szText[256];
+	int fsid = 0;
+
+	lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
+	lvI.stateMask = lvI.iSubItem = lvI.state = 0;
+
+	for (i = 0; i < 4; i++)
+	{
+		fsid = combo_id_to_format_string_id(temp_zip_drives[i].bus_type);
+
+		lvI.iSubItem = 0;
+		switch (temp_zip_drives[i].bus_type)
+		{
+			case ZIP_BUS_DISABLED:
+			default:
+				lvI.pszText = plat_get_string(fsid);
+				lvI.iImage = 0;
+				break;
+			case ZIP_BUS_ATAPI_PIO_ONLY:
+				wsprintf(szText, plat_get_string(fsid), temp_zip_drives[i].ide_channel >> 1, temp_zip_drives[i].ide_channel & 1);
+				lvI.pszText = szText;
+				lvI.iImage = 1;
+				break;
+			case ZIP_BUS_ATAPI_PIO_AND_DMA:
+				wsprintf(szText, plat_get_string(fsid), temp_zip_drives[i].ide_channel >> 1, temp_zip_drives[i].ide_channel & 1);
+				lvI.pszText = szText;
+				lvI.iImage = 1;
+				break;
+			case ZIP_BUS_SCSI:
+				wsprintf(szText, plat_get_string(fsid), temp_zip_drives[i].scsi_device_id, temp_zip_drives[i].scsi_device_lun);
+				lvI.pszText = szText;
+				lvI.iImage = 1;
+				break;
+		}
+
+		lvI.iItem = i;
+
+		if (ListView_InsertItem(hwndList, &lvI) == -1)
+			return FALSE;
+
+		lvI.iSubItem = 1;
+		lvI.pszText = plat_get_string(temp_zip_drives[i].is_250 ? IDS_5901 : IDS_5900);
+		lvI.iItem = i;
+		lvI.iImage = 0;
+
+		if (ListView_SetItem(hwndList, &lvI) == -1)
+		{
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
 static BOOL win_settings_floppy_drives_init_columns(HWND hwndList)
 {
 	LVCOLUMN lvc;
@@ -3982,6 +4086,38 @@ static BOOL win_settings_cdrom_drives_init_columns(HWND hwndList)
 	return TRUE;
 }
 
+static BOOL win_settings_zip_drives_init_columns(HWND hwndList)
+{
+	LVCOLUMN lvc;
+
+	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
+
+	lvc.iSubItem = 0;
+	lvc.pszText = plat_get_string(IDS_2082);
+
+	lvc.cx = 342;
+	lvc.fmt = LVCFMT_LEFT;
+
+	if (ListView_InsertColumn(hwndList, 0, &lvc) == -1)
+	{
+		return FALSE;
+	}
+
+
+	lvc.iSubItem = 1;
+	lvc.pszText = plat_get_string(IDS_2143);
+
+	lvc.cx = 50;
+	lvc.fmt = LVCFMT_LEFT;
+
+	if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
+	{
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 static int get_selected_floppy_drive(HWND hdlg)
 {
 	int floppy_drive = -1;
@@ -4018,6 +4154,25 @@ static int get_selected_cdrom_drive(HWND hdlg)
 	}
 
 	return cd_drive;
+}
+
+static int get_selected_zip_drive(HWND hdlg)
+{
+	int zip_disk_drive = -1;
+	int i, j = 0;
+	HWND h;
+
+	for (i = 0; i < 6; i++)
+	{
+		h = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);
+		j = ListView_GetItemState(h, i, LVIS_SELECTED);
+		if (j)
+		{
+			zip_disk_drive = i;
+		}
+	}
+
+	return zip_disk_drive;
 }
 
 static void win_settings_floppy_drives_update_item(HWND hwndList, int i)
@@ -4107,6 +4262,60 @@ static void win_settings_cdrom_drives_update_item(HWND hwndList, int i)
 			lvI.iImage = 1;
 			break;
 	}
+
+	if (ListView_SetItem(hwndList, &lvI) == -1)
+	{
+		return;
+	}
+}
+
+static void win_settings_zip_drives_update_item(HWND hwndList, int i)
+{
+	LVITEM lvI;
+	WCHAR szText[256];
+	int fsid;
+
+	lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
+	lvI.stateMask = lvI.iSubItem = lvI.state = 0;
+
+	lvI.iSubItem = 0;
+	lvI.iItem = i;
+
+	fsid = combo_id_to_format_string_id(temp_zip_drives[i].bus_type);
+
+	switch (temp_zip_drives[i].bus_type)
+	{
+		case ZIP_BUS_DISABLED:
+		default:
+			lvI.pszText = plat_get_string(fsid);
+			lvI.iImage = 0;
+			break;
+		case ZIP_BUS_ATAPI_PIO_ONLY:
+			wsprintf(szText, plat_get_string(fsid), temp_zip_drives[i].ide_channel >> 1, temp_zip_drives[i].ide_channel & 1);
+			lvI.pszText = szText;
+			lvI.iImage = 1;
+			break;
+		case ZIP_BUS_ATAPI_PIO_AND_DMA:
+			wsprintf(szText, plat_get_string(fsid), temp_zip_drives[i].ide_channel >> 1, temp_zip_drives[i].ide_channel & 1);
+			lvI.pszText = szText;
+			lvI.iImage = 1;
+			break;
+		case ZIP_BUS_SCSI:
+			wsprintf(szText, plat_get_string(fsid), temp_zip_drives[i].scsi_device_id, temp_zip_drives[i].scsi_device_lun);
+			lvI.pszText = szText;
+			lvI.iImage = 1;
+			break;
+	}
+
+	if (ListView_SetItem(hwndList, &lvI) == -1)
+	{
+		return;
+	}
+
+	lvI.iSubItem = 1;
+	lvI.pszText = plat_get_string(temp_zip_drives[i].is_250 ? IDS_5901 : IDS_5900);
+	lvI.iItem = i;
+	lvI.iImage = 0;
 
 	if (ListView_SetItem(hwndList, &lvI) == -1)
 	{
@@ -4220,6 +4429,112 @@ static void cdrom_recalc_location_controls(HWND hdlg, int assign_id)
 	}
 }
 
+static void zip_add_locations(HWND hdlg)
+{
+	LPTSTR lptsTemp;
+	HWND h;
+	int i = 0;
+
+	lptsTemp = (LPTSTR) malloc(512);
+
+	h = GetDlgItem(hdlg, IDC_COMBO_ZIP_BUS);
+	for (i = ZIP_BUS_DISABLED; i <= ZIP_BUS_SCSI; i++)
+	{
+		if ((i == ZIP_BUS_DISABLED) || (i >= ZIP_BUS_ATAPI_PIO_ONLY))
+		{
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)plat_get_string(combo_id_to_string_id(i)));
+		}
+	}
+
+	h = GetDlgItem(hdlg, IDC_COMBO_ZIP_ID);
+	for (i = 0; i < 16; i++)
+	{
+		wsprintf(lptsTemp, plat_get_string(IDS_4098), i);
+		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+	}
+
+	h = GetDlgItem(hdlg, IDC_COMBO_ZIP_LUN);
+	for (i = 0; i < 8; i++)
+	{
+		wsprintf(lptsTemp, plat_get_string(IDS_4098), i);
+		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+	}
+
+	h = GetDlgItem(hdlg, IDC_COMBO_ZIP_CHANNEL_IDE);
+	for (i = 0; i < 8; i++)
+	{
+		wsprintf(lptsTemp, plat_get_string(IDS_4097), i >> 1, i & 1);
+		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+	}
+
+	free(lptsTemp);
+}
+static void zip_recalc_location_controls(HWND hdlg, int assign_id)
+{
+	int i = 0;
+	HWND h;
+
+	int bus = temp_zip_drives[zdlv_current_sel].bus_type;
+
+	for (i = IDT_1754; i < (IDT_1756 + 1); i++)
+	{
+		h = GetDlgItem(hdlg, i);
+		EnableWindow(h, FALSE);
+		ShowWindow(h, SW_HIDE);
+	}
+
+	h = GetDlgItem(hdlg, IDC_COMBO_ZIP_ID);
+	EnableWindow(h, FALSE);
+	ShowWindow(h, SW_HIDE);
+
+	h = GetDlgItem(hdlg, IDC_COMBO_ZIP_LUN);
+	EnableWindow(h, FALSE);
+	ShowWindow(h, SW_HIDE);
+
+	h = GetDlgItem(hdlg, IDC_COMBO_ZIP_CHANNEL_IDE);
+	EnableWindow(h, FALSE);
+	ShowWindow(h, SW_HIDE);
+
+	switch(bus)
+	{
+		case ZIP_BUS_ATAPI_PIO_ONLY:			/* ATAPI (PIO-only) */
+		case ZIP_BUS_ATAPI_PIO_AND_DMA:			/* ATAPI (PIO and DMA) */
+			h = GetDlgItem(hdlg, IDT_1756);
+			ShowWindow(h, SW_SHOW);
+			EnableWindow(h, TRUE);
+
+			if (assign_id)
+				temp_zip_drives[zdlv_current_sel].ide_channel = next_free_ide_channel();
+
+			h = GetDlgItem(hdlg, IDC_COMBO_ZIP_CHANNEL_IDE);
+			ShowWindow(h, SW_SHOW);
+			EnableWindow(h, TRUE);
+			SendMessage(h, CB_SETCURSEL, temp_zip_drives[zdlv_current_sel].ide_channel, 0);
+			break;
+		case ZIP_BUS_SCSI:		/* SCSI */
+			h = GetDlgItem(hdlg, IDT_1754);
+			ShowWindow(h, SW_SHOW);
+			EnableWindow(h, TRUE);
+			h = GetDlgItem(hdlg, IDT_1755);
+			ShowWindow(h, SW_SHOW);
+			EnableWindow(h, TRUE);
+
+			if (assign_id)
+				next_free_scsi_id_and_lun((uint8_t *) &temp_zip_drives[zdlv_current_sel].scsi_device_id, (uint8_t *) &temp_zip_drives[zdlv_current_sel].scsi_device_lun);
+
+			h = GetDlgItem(hdlg, IDC_COMBO_ZIP_ID);
+			ShowWindow(h, SW_SHOW);
+			EnableWindow(h, TRUE);
+			SendMessage(h, CB_SETCURSEL, temp_zip_drives[zdlv_current_sel].scsi_device_id, 0);
+
+			h = GetDlgItem(hdlg, IDC_COMBO_ZIP_LUN);
+			ShowWindow(h, SW_SHOW);
+			EnableWindow(h, TRUE);
+			SendMessage(h, CB_SETCURSEL, temp_zip_drives[zdlv_current_sel].scsi_device_lun, 0);
+			break;
+	}
+}
+
 
 static void cdrom_track(uint8_t id)
 {
@@ -4237,31 +4552,58 @@ static void cdrom_untrack(uint8_t id)
 		scsi_tracking[temp_cdrom_drives[id].scsi_device_id] &= ~(1 << temp_cdrom_drives[id].scsi_device_lun);
 }
 
+static void cdrom_track_all(void)
+{
+	int i;
 
-int rd_ignore_change = 0;
+	for (i = 0; i < CDROM_NUM; i++)
+		cdrom_track(i);
+}
+
+
+static void zip_track(uint8_t id)
+{
+	if ((temp_zip_drives[id].bus_type == ZIP_BUS_ATAPI_PIO_ONLY) || (temp_zip_drives[id].bus_type == ZIP_BUS_ATAPI_PIO_ONLY))
+		ide_tracking |= (1 << temp_zip_drives[id].ide_channel);
+	else if (temp_zip_drives[id].bus_type == ZIP_BUS_SCSI)
+		scsi_tracking[temp_zip_drives[id].scsi_device_id] |= (1 << temp_zip_drives[id].scsi_device_lun);
+}
+
+static void zip_untrack(uint8_t id)
+{
+	if ((temp_zip_drives[id].bus_type == ZIP_BUS_ATAPI_PIO_ONLY) || (temp_zip_drives[id].bus_type == ZIP_BUS_ATAPI_PIO_ONLY))
+		ide_tracking &= ~(1 << temp_zip_drives[id].ide_channel);
+	else if (temp_zip_drives[id].bus_type == ZIP_BUS_SCSI)
+		scsi_tracking[temp_zip_drives[id].scsi_device_id] &= ~(1 << temp_zip_drives[id].scsi_device_lun);
+}
+
+static void zip_track_all(void)
+{
+	int i;
+
+	for (i = 0; i < ZIP_NUM; i++)
+		zip_track(i);
+}
+
+
+int fd_ignore_change = 0;
 
 #ifdef __amd64__
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
-win_settings_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+win_settings_floppy_drives_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND h;
 	int i = 0;
 	int old_sel = 0;
-	int b = 0;
-	int b2 = 0;
 	WCHAR szText[256];
-	int assign = 0;
 
         switch (message)
         {
 		case WM_INITDIALOG:
-			rd_ignore_change = 1;
-
-			for (i = 0; i < CDROM_NUM; i++)
-				cdrom_track(i);
+			fd_ignore_change = 1;
 
 			fdlv_current_sel = 0;
 			h = GetDlgItem(hdlg, IDC_LIST_FLOPPY_DRIVES);
@@ -4289,6 +4631,118 @@ win_settings_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 
 			h = GetDlgItem(hdlg, IDC_CHECKBPB);
 			SendMessage(h, BM_SETCHECK, temp_fdd_check_bpb[fdlv_current_sel], 0);
+
+			fd_ignore_change = 0;
+			return TRUE;
+
+		case WM_NOTIFY:
+			if (fd_ignore_change)
+			{
+				return FALSE;
+			}
+
+			if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_LIST_FLOPPY_DRIVES))
+			{
+				old_sel = fdlv_current_sel;
+				fdlv_current_sel = get_selected_floppy_drive(hdlg);
+				if (fdlv_current_sel == old_sel)
+				{
+					return FALSE;
+				}
+				else if (fdlv_current_sel == -1)
+				{
+					fd_ignore_change = 1;
+					fdlv_current_sel = old_sel;
+					ListView_SetItemState(h, fdlv_current_sel, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
+					fd_ignore_change = 0;
+					return FALSE;
+				}
+				fd_ignore_change = 1;
+				h = GetDlgItem(hdlg, IDC_COMBO_FD_TYPE);
+				SendMessage(h, CB_SETCURSEL, temp_fdd_types[fdlv_current_sel], 0);
+				h = GetDlgItem(hdlg, IDC_CHECKTURBO);
+				SendMessage(h, BM_SETCHECK, temp_fdd_turbo[fdlv_current_sel], 0);
+				h = GetDlgItem(hdlg, IDC_CHECKBPB);
+				SendMessage(h, BM_SETCHECK, temp_fdd_check_bpb[fdlv_current_sel], 0);
+				fd_ignore_change = 0;
+			}
+			break;
+
+		case WM_COMMAND:
+                	switch (LOWORD(wParam))
+	                {
+				case IDC_COMBO_FD_TYPE:
+					if (fd_ignore_change)
+					{
+						return FALSE;
+					}
+
+					fd_ignore_change = 1;
+					h = GetDlgItem(hdlg, IDC_COMBO_FD_TYPE);
+					temp_fdd_types[fdlv_current_sel] = SendMessage(h, CB_GETCURSEL, 0, 0);
+					h = GetDlgItem(hdlg, IDC_LIST_FLOPPY_DRIVES);
+					win_settings_floppy_drives_update_item(h, fdlv_current_sel);
+					fd_ignore_change = 0;
+					return FALSE;
+
+				case IDC_CHECKTURBO:
+					if (fd_ignore_change)
+					{
+						return FALSE;
+					}
+
+					fd_ignore_change = 1;
+					h = GetDlgItem(hdlg, IDC_CHECKTURBO);
+					temp_fdd_turbo[fdlv_current_sel] = SendMessage(h, BM_GETCHECK, 0, 0);
+					h = GetDlgItem(hdlg, IDC_LIST_FLOPPY_DRIVES);
+					win_settings_floppy_drives_update_item(h, fdlv_current_sel);
+					fd_ignore_change = 0;
+					return FALSE;
+
+				case IDC_CHECKBPB:
+					if (fd_ignore_change)
+					{
+						return FALSE;
+					}
+
+					fd_ignore_change = 1;
+					h = GetDlgItem(hdlg, IDC_CHECKBPB);
+					temp_fdd_check_bpb[fdlv_current_sel] = SendMessage(h, BM_GETCHECK, 0, 0);
+					h = GetDlgItem(hdlg, IDC_LIST_FLOPPY_DRIVES);
+					win_settings_floppy_drives_update_item(h, fdlv_current_sel);
+					fd_ignore_change = 0;
+					return FALSE;
+			}
+
+		default:
+			return FALSE;
+	}
+
+	return FALSE;
+}
+
+int rd_ignore_change = 0;
+
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	HWND h;
+	int old_sel = 0;
+	int b = 0;
+	int b2 = 0;
+	int assign = 0;
+
+        switch (message)
+        {
+		case WM_INITDIALOG:
+			rd_ignore_change = 1;
+
+			cdrom_track_all();
+			zip_track_all();
 
 			cdlv_current_sel = 0;
 			h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
@@ -4321,6 +4775,40 @@ win_settings_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 
 			cdrom_recalc_location_controls(hdlg, 0);
 
+			zdlv_current_sel = 0;
+			h = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);
+			win_settings_zip_drives_init_columns(h);
+			win_settings_zip_drives_image_list_init(h);
+			win_settings_zip_drives_recalc_list(h);
+			ListView_SetItemState(h, 0, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
+			zip_add_locations(hdlg);
+
+			h = GetDlgItem(hdlg, IDC_COMBO_ZIP_BUS);
+
+			switch (temp_zip_drives[zdlv_current_sel].bus_type)
+			{
+				case ZIP_BUS_DISABLED:
+				default:
+					b = 0;
+					break;
+				case ZIP_BUS_ATAPI_PIO_ONLY:
+					b = 1;
+					break;
+				case ZIP_BUS_ATAPI_PIO_AND_DMA:
+					b = 2;
+					break;
+				case ZIP_BUS_SCSI:
+					b = 3;
+					break;
+			}
+
+			SendMessage(h, CB_SETCURSEL, b, 0);
+
+			zip_recalc_location_controls(hdlg, 0);
+
+			h = GetDlgItem(hdlg, IDC_CHECK250);
+			SendMessage(h, BM_SETCHECK, temp_zip_drives[zdlv_current_sel].is_250, 0);
+
 			rd_ignore_change = 0;
 			return TRUE;
 
@@ -4330,32 +4818,7 @@ win_settings_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 				return FALSE;
 			}
 
-			if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_LIST_FLOPPY_DRIVES))
-			{
-				old_sel = fdlv_current_sel;
-				fdlv_current_sel = get_selected_floppy_drive(hdlg);
-				if (fdlv_current_sel == old_sel)
-				{
-					return FALSE;
-				}
-				else if (fdlv_current_sel == -1)
-				{
-					rd_ignore_change = 1;
-					fdlv_current_sel = old_sel;
-					ListView_SetItemState(h, fdlv_current_sel, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
-					rd_ignore_change = 0;
-					return FALSE;
-				}
-				rd_ignore_change = 1;
-				h = GetDlgItem(hdlg, IDC_COMBO_FD_TYPE);
-				SendMessage(h, CB_SETCURSEL, temp_fdd_types[fdlv_current_sel], 0);
-				h = GetDlgItem(hdlg, IDC_CHECKTURBO);
-				SendMessage(h, BM_SETCHECK, temp_fdd_turbo[fdlv_current_sel], 0);
-				h = GetDlgItem(hdlg, IDC_CHECKBPB);
-				SendMessage(h, BM_SETCHECK, temp_fdd_check_bpb[fdlv_current_sel], 0);
-				rd_ignore_change = 0;
-			}
-			else if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_LIST_CDROM_DRIVES))
+			if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_LIST_CDROM_DRIVES))
 			{
 				old_sel = cdlv_current_sel;
 				cdlv_current_sel = get_selected_cdrom_drive(hdlg);
@@ -4397,53 +4860,57 @@ win_settings_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 				cdrom_recalc_location_controls(hdlg, 0);
 				rd_ignore_change = 0;
 			}
+			else if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_LIST_ZIP_DRIVES))
+			{
+				old_sel = zdlv_current_sel;
+				zdlv_current_sel = get_selected_zip_drive(hdlg);
+				if (zdlv_current_sel == old_sel)
+				{
+					return FALSE;
+				}
+				else if (zdlv_current_sel == -1)
+				{
+					rd_ignore_change = 1;
+					zdlv_current_sel = old_sel;
+					ListView_SetItemState(h, zdlv_current_sel, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
+					rd_ignore_change = 0;
+					return FALSE;
+				}
+				rd_ignore_change = 1;
+
+				h = GetDlgItem(hdlg, IDC_COMBO_ZIP_BUS);
+
+				switch (temp_zip_drives[zdlv_current_sel].bus_type)
+				{
+					case ZIP_BUS_DISABLED:
+					default:
+						b = 0;
+						break;
+					case ZIP_BUS_ATAPI_PIO_ONLY:
+						b = 1;
+						break;
+					case ZIP_BUS_ATAPI_PIO_AND_DMA:
+						b = 2;
+						break;
+					case ZIP_BUS_SCSI:
+						b = 3;
+						break;
+				}
+
+				SendMessage(h, CB_SETCURSEL, b, 0);
+
+				zip_recalc_location_controls(hdlg, 0);
+
+				h = GetDlgItem(hdlg, IDC_CHECK250);
+				SendMessage(h, BM_SETCHECK, temp_zip_drives[zdlv_current_sel].is_250, 0);
+
+				rd_ignore_change = 0;
+			}
 			break;
 
 		case WM_COMMAND:
                 	switch (LOWORD(wParam))
 	                {
-				case IDC_COMBO_FD_TYPE:
-					if (rd_ignore_change)
-					{
-						return FALSE;
-					}
-
-					rd_ignore_change = 1;
-					h = GetDlgItem(hdlg, IDC_COMBO_FD_TYPE);
-					temp_fdd_types[fdlv_current_sel] = SendMessage(h, CB_GETCURSEL, 0, 0);
-					h = GetDlgItem(hdlg, IDC_LIST_FLOPPY_DRIVES);
-					win_settings_floppy_drives_update_item(h, fdlv_current_sel);
-					rd_ignore_change = 0;
-					return FALSE;
-
-				case IDC_CHECKTURBO:
-					if (rd_ignore_change)
-					{
-						return FALSE;
-					}
-
-					rd_ignore_change = 1;
-					h = GetDlgItem(hdlg, IDC_CHECKTURBO);
-					temp_fdd_turbo[fdlv_current_sel] = SendMessage(h, BM_GETCHECK, 0, 0);
-					h = GetDlgItem(hdlg, IDC_LIST_FLOPPY_DRIVES);
-					win_settings_floppy_drives_update_item(h, fdlv_current_sel);
-					rd_ignore_change = 0;
-					return FALSE;
-
-				case IDC_CHECKBPB:
-					if (rd_ignore_change)
-					{
-						return FALSE;
-					}
-
-					rd_ignore_change = 1;
-					h = GetDlgItem(hdlg, IDC_CHECKBPB);
-					temp_fdd_check_bpb[fdlv_current_sel] = SendMessage(h, BM_GETCHECK, 0, 0);
-					h = GetDlgItem(hdlg, IDC_LIST_FLOPPY_DRIVES);
-					win_settings_floppy_drives_update_item(h, fdlv_current_sel);
-					rd_ignore_change = 0;
-					return FALSE;
-
 				case IDC_COMBO_CD_BUS:
 					if (rd_ignore_change)
 					{
@@ -4473,6 +4940,7 @@ win_settings_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam, LPAR
 						goto cdrom_bus_skip;
 					}
 					cdrom_untrack(cdlv_current_sel);
+					zip_track_all();
 					assign = (temp_cdrom_drives[cdlv_current_sel].bus_type == b2) ? 0 : 1;
 					if ((b2 == CDROM_BUS_ATAPI_PIO_ONLY) && (temp_cdrom_drives[cdlv_current_sel].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA))
 						assign = 0;
@@ -4496,6 +4964,7 @@ cdrom_bus_skip:
 					rd_ignore_change = 1;
 					h = GetDlgItem(hdlg, IDC_COMBO_CD_ID);
 					cdrom_untrack(cdlv_current_sel);
+					zip_track_all();
 					temp_cdrom_drives[cdlv_current_sel].scsi_device_id = SendMessage(h, CB_GETCURSEL, 0, 0);
 					cdrom_track(cdlv_current_sel);
 					h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
@@ -4512,6 +4981,7 @@ cdrom_bus_skip:
 					rd_ignore_change = 1;
 					h = GetDlgItem(hdlg, IDC_COMBO_CD_LUN);
 					cdrom_untrack(cdlv_current_sel);
+					zip_track_all();
 					temp_cdrom_drives[cdlv_current_sel].scsi_device_lun = SendMessage(h, CB_GETCURSEL, 0, 0);
 					cdrom_track(cdlv_current_sel);
 					h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
@@ -4528,10 +4998,120 @@ cdrom_bus_skip:
 					rd_ignore_change = 1;
 					h = GetDlgItem(hdlg, IDC_COMBO_CD_CHANNEL_IDE);
 					cdrom_untrack(cdlv_current_sel);
+					zip_track_all();
 					temp_cdrom_drives[cdlv_current_sel].ide_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
 					cdrom_track(cdlv_current_sel);
 					h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
 					win_settings_cdrom_drives_update_item(h, cdlv_current_sel);
+					rd_ignore_change = 0;
+					return FALSE;
+
+				case IDC_COMBO_ZIP_BUS:
+					if (rd_ignore_change)
+					{
+						return FALSE;
+					}
+
+					rd_ignore_change = 1;
+					h = GetDlgItem(hdlg, IDC_COMBO_ZIP_BUS);
+					b = SendMessage(h, CB_GETCURSEL, 0, 0);
+					switch (b)
+					{
+						case 0:
+							b2 = ZIP_BUS_DISABLED;
+							break;
+						case 1:
+							b2 = ZIP_BUS_ATAPI_PIO_ONLY;
+							break;
+						case 2:
+							b2 = ZIP_BUS_ATAPI_PIO_AND_DMA;
+							break;
+						case 3:
+							b2 = ZIP_BUS_SCSI;
+							break;
+					}
+					if (b2 == temp_zip_drives[zdlv_current_sel].bus_type)
+					{
+						goto zip_bus_skip;
+					}
+					zip_untrack(zdlv_current_sel);
+					cdrom_track_all();
+					assign = (temp_zip_drives[zdlv_current_sel].bus_type == b2) ? 0 : 1;
+					if ((b2 == ZIP_BUS_ATAPI_PIO_ONLY) && (temp_zip_drives[zdlv_current_sel].bus_type == ZIP_BUS_ATAPI_PIO_AND_DMA))
+						assign = 0;
+					else if ((b2 == ZIP_BUS_ATAPI_PIO_AND_DMA) && (temp_zip_drives[cdlv_current_sel].bus_type == ZIP_BUS_ATAPI_PIO_ONLY))
+						assign = 0;
+					temp_zip_drives[zdlv_current_sel].bus_type = b2;
+					zip_recalc_location_controls(hdlg, assign);
+					zip_track(zdlv_current_sel);
+					h = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);
+					win_settings_zip_drives_update_item(h, zdlv_current_sel);
+zip_bus_skip:
+					rd_ignore_change = 0;
+					return FALSE;
+
+				case IDC_COMBO_ZIP_ID:
+					if (rd_ignore_change)
+					{
+						return FALSE;
+					}
+
+					rd_ignore_change = 1;
+					h = GetDlgItem(hdlg, IDC_COMBO_ZIP_ID);
+					zip_untrack(zdlv_current_sel);
+					cdrom_track_all();
+					temp_zip_drives[zdlv_current_sel].scsi_device_id = SendMessage(h, CB_GETCURSEL, 0, 0);
+					zip_track(zdlv_current_sel);
+					h = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);
+					win_settings_zip_drives_update_item(h, zdlv_current_sel);
+					rd_ignore_change = 0;
+					return FALSE;
+
+				case IDC_COMBO_ZIP_LUN:
+					if (rd_ignore_change)
+					{
+						return FALSE;
+					}
+
+					rd_ignore_change = 1;
+					h = GetDlgItem(hdlg, IDC_COMBO_ZIP_LUN);
+					zip_untrack(zdlv_current_sel);
+					cdrom_track_all();
+					temp_zip_drives[zdlv_current_sel].scsi_device_lun = SendMessage(h, CB_GETCURSEL, 0, 0);
+					zip_track(zdlv_current_sel);
+					h = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);
+					win_settings_zip_drives_update_item(h, zdlv_current_sel);
+					rd_ignore_change = 0;
+					return FALSE;
+
+				case IDC_COMBO_ZIP_CHANNEL_IDE:
+					if (rd_ignore_change)
+					{
+						return FALSE;
+					}
+
+					rd_ignore_change = 1;
+					h = GetDlgItem(hdlg, IDC_COMBO_ZIP_CHANNEL_IDE);
+					zip_untrack(zdlv_current_sel);
+					cdrom_track_all();
+					temp_zip_drives[zdlv_current_sel].ide_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
+					zip_track(zdlv_current_sel);
+					h = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);
+					win_settings_zip_drives_update_item(h, zdlv_current_sel);
+					rd_ignore_change = 0;
+					return FALSE;
+
+				case IDC_CHECK250:
+					if (rd_ignore_change)
+					{
+						return FALSE;
+					}
+
+					rd_ignore_change = 1;
+					h = GetDlgItem(hdlg, IDC_CHECK250);
+					temp_zip_drives[zdlv_current_sel].is_250 = SendMessage(h, BM_GETCHECK, 0, 0);
+					h = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);
+					win_settings_zip_drives_update_item(h, zdlv_current_sel);
 					rd_ignore_change = 0;
 					return FALSE;
 			}
@@ -4551,7 +5131,8 @@ cdrom_bus_skip:
 #define SETTINGS_PAGE_PORTS		5
 #define SETTINGS_PAGE_PERIPHERALS	6
 #define SETTINGS_PAGE_HARD_DISKS	7
-#define SETTINGS_PAGE_REMOVABLE_DEVICES	8
+#define SETTINGS_PAGE_FLOPPY_DRIVES	8
+#define SETTINGS_PAGE_OTHER_REMOVABLE_DEVICES	9
 
 void win_settings_show_child(HWND hwndParent, DWORD child_id)
 {
@@ -4594,8 +5175,11 @@ void win_settings_show_child(HWND hwndParent, DWORD child_id)
 		case SETTINGS_PAGE_HARD_DISKS:
 			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_HARD_DISKS, hwndParent, win_settings_hard_disks_proc);
 			break;
-		case SETTINGS_PAGE_REMOVABLE_DEVICES:
-			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_REMOVABLE_DEVICES, hwndParent, win_settings_removable_devices_proc);
+		case SETTINGS_PAGE_FLOPPY_DRIVES:
+			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_FLOPPY_DRIVES, hwndParent, win_settings_floppy_drives_proc);
+			break;
+		case SETTINGS_PAGE_OTHER_REMOVABLE_DEVICES:
+			hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_OTHER_REMOVABLE_DEVICES, hwndParent, win_settings_other_removable_devices_proc);
 			break;
 		default:
 			fatal("Invalid child dialog ID\n");
@@ -4616,7 +5200,7 @@ static BOOL win_settings_main_image_list_init(HWND hwndList)
                                   GetSystemMetrics(SM_CYSMICON),
                                   ILC_MASK | ILC_COLOR32, 1, 1);
 
-	for (i = 0; i < 9; i++)
+	for (i = 0; i < 10; i++)
 	{
 		hiconItem = LoadIcon(hinstance, (LPCWSTR) (256 + (uintptr_t) i));
 		ImageList_AddIcon(hSmall, hiconItem);
@@ -4636,7 +5220,7 @@ static BOOL win_settings_main_insert_categories(HWND hwndList)
 	lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
 	lvI.stateMask = lvI.iSubItem = lvI.state = 0;
 
-	for (i = 0; i < 9; i++)
+	for (i = 0; i < 10; i++)
 	{
 		lvI.pszText = plat_get_string(IDS_2065+i);
 		lvI.iItem = i;
@@ -4687,7 +5271,7 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_SETTINGSCATLIST))
 			{
 				category = -1;
-				for (i = 0; i < 9; i++)
+				for (i = 0; i < 10; i++)
 				{
 					h = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
 					j = ListView_GetItemState(h, i, LVIS_SELECTED);

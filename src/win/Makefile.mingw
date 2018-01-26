@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.93	2018/01/25
+# Version:	@(#)Makefile.mingw	1.0.94	2018/01/25
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -400,7 +400,8 @@ DEVOBJ		:= bugger.o lpt.o $(SERIAL) \
 		    joystick_standard.o joystick_ch_flightstick_pro.o \
 		    joystick_sw_pad.o joystick_tm_fcs.o \
 		   mouse.o \
-		    mouse_serial.o mouse_ps2.o mouse_bus.o
+		    mouse_serial.o mouse_ps2.o mouse_bus.o \
+		   zip.o
 
 FDDOBJ		:= fdd.o fdc.o fdi2raw.o \
 		   fdd_common.o fdd_86f.o \

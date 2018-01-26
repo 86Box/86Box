@@ -8,13 +8,13 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.23	2017/12/15
+ * Version:	@(#)plat.h	1.0.24	2018/01/22
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef EMU_PLAT_H
 # define EMU_PLAT_H
@@ -106,6 +106,8 @@ extern uint8_t	host_cdrom_drive_available_num;
 extern void	cdrom_init_host_drives(void);
 extern void	cdrom_eject(uint8_t id);
 extern void	cdrom_reload(uint8_t id);
+extern void	zip_eject(uint8_t id);
+extern void	zip_reload(uint8_t id);
 extern void	removable_disk_unload(uint8_t id);
 extern void	removable_disk_eject(uint8_t id);
 extern void	removable_disk_reload(uint8_t id);

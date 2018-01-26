@@ -8,13 +8,13 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.10	2018/01/06
+ * Version:	@(#)scsi_device.c	1.0.11	2018/01/21
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -23,6 +23,7 @@
 #include "../86box.h"
 #include "../device.h"
 #include "../cdrom/cdrom.h"
+#include "../zip.h"
 #include "../disk/hdd.h"
 #include "scsi.h"
 #include "scsi_disk.h"
@@ -43,6 +44,11 @@ static uint8_t scsi_device_target_command(int lun_type, uint8_t id, uint8_t *cdb
 		cdrom_command(id, cdb);
 		return cdrom_CDROM_PHASE_to_scsi(id);
 	}
+	else if (lun_type == SCSI_ZIP)
+	{
+		zip_command(id, cdb);
+		return zip_ZIP_PHASE_to_scsi(id);
+	}
 	else
 	{
 		return SCSI_STATUS_CHECK_CONDITION;
@@ -59,6 +65,10 @@ static void scsi_device_target_phase_callback(int lun_type, uint8_t id)
 	else if (lun_type == SCSI_CDROM)
 	{
 		cdrom_phase_callback(id);
+	}
+	else if (lun_type == SCSI_ZIP)
+	{
+		zip_phase_callback(id);
 	}
 	else
 	{
@@ -77,6 +87,10 @@ static int scsi_device_target_err_stat_to_scsi(int lun_type, uint8_t id)
 	{
 		return cdrom_CDROM_PHASE_to_scsi(id);
 	}
+	else if (lun_type == SCSI_ZIP)
+	{
+		return zip_ZIP_PHASE_to_scsi(id);
+	}
 	else
 	{
 		return SCSI_STATUS_CHECK_CONDITION;
@@ -93,6 +107,10 @@ static void scsi_device_target_save_cdb_byte(int lun_type, uint8_t id, uint8_t c
 	else if (lun_type == SCSI_CDROM)
 	{
 		cdrom[id].request_length = cdb_byte;
+	}
+	else if (lun_type == SCSI_ZIP)
+	{
+		zip[id].request_length = cdb_byte;
 	}
 	else
 	{
@@ -117,6 +135,10 @@ uint8_t *scsi_device_sense(uint8_t scsi_id, uint8_t scsi_lun)
 		id = scsi_cdrom_drives[scsi_id][scsi_lun];
 		return cdrom[id].sense;
 		break;
+	case SCSI_ZIP:
+		id = scsi_zip_drives[scsi_id][scsi_lun];
+		return zip[id].sense;
+		break;
 	default:
 		return scsi_null_device_sense;
 		break;
@@ -139,6 +161,10 @@ void scsi_device_request_sense(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *buffe
 	case SCSI_CDROM:
 		id = scsi_cdrom_drives[scsi_id][scsi_lun];
 		cdrom_request_sense_for_scsi(id, buffer, alloc_length);
+		break;
+	case SCSI_ZIP:
+		id = scsi_zip_drives[scsi_id][scsi_lun];
+		zip_request_sense_for_scsi(id, buffer, alloc_length);
 		break;
 	default:
 		memcpy(buffer, scsi_null_device_sense, alloc_length);
@@ -164,6 +190,10 @@ void scsi_device_type_data(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *type, uin
 		*type = 0x05;
 		*rmb = 0x80;
 		break;
+	case SCSI_ZIP:
+		*type = 0x00;
+		*rmb = 0x80;
+		break;
 	default:
 		*type = *rmb = 0xFF;
 		break;
@@ -185,6 +215,9 @@ int scsi_device_read_capacity(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *cdb, u
 	case SCSI_CDROM:
 		id = scsi_cdrom_drives[scsi_id][scsi_lun];
 		return cdrom_read_capacity(id, cdb, buffer, len);
+	case SCSI_ZIP:
+		id = scsi_zip_drives[scsi_id][scsi_lun];
+		return zip_read_capacity(id, cdb, buffer, len);
 	default:
 		return 0;
     }
@@ -219,6 +252,9 @@ int scsi_device_valid(uint8_t scsi_id, uint8_t scsi_lun)
 	case SCSI_CDROM:
 		id = scsi_cdrom_drives[scsi_id][scsi_lun];
 		break;
+	case SCSI_ZIP:
+		id = scsi_zip_drives[scsi_id][scsi_lun];
+		break;
 	default:
 		id = 0;
 		break;
@@ -239,6 +275,9 @@ int scsi_device_cdb_length(uint8_t scsi_id, uint8_t scsi_lun)
 	case SCSI_CDROM:
 		id = scsi_cdrom_drives[scsi_id][scsi_lun];
 		return cdrom[id].cdb_len;
+	case SCSI_ZIP:
+		id = scsi_zip_drives[scsi_id][scsi_lun];
+		return zip[id].cdb_len;
 	default:
 		return 12;
     }
@@ -272,6 +311,9 @@ void scsi_device_command_phase0(uint8_t scsi_id, uint8_t scsi_lun, int cdb_len, 
 		break;
 	case SCSI_CDROM:
 		id = scsi_cdrom_drives[scsi_id][scsi_lun];
+		break;
+	case SCSI_ZIP:
+		id = scsi_zip_drives[scsi_id][scsi_lun];
 		break;
 	default:
 		id = 0;
@@ -319,6 +361,9 @@ void scsi_device_command_phase1(uint8_t scsi_id, uint8_t scsi_lun)
 			break;
 		case SCSI_CDROM:
 			id = scsi_cdrom_drives[scsi_id][scsi_lun];
+			break;
+		case SCSI_ZIP:
+			id = scsi_zip_drives[scsi_id][scsi_lun];
 			break;
 		default:
 			id = 0;

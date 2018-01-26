@@ -8,7 +8,7 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.11	2018/01/24
+ * Version:	@(#)scsi_h	1.0.12	2018/01/24
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -241,7 +241,8 @@ extern int	prev_status;
 enum {
     SCSI_NONE = 0,
     SCSI_DISK,
-    SCSI_CDROM
+    SCSI_CDROM,
+    SCSI_ZIP
 };
 
 #define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)

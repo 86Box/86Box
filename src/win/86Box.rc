@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.25	2018/01/24
+ * Version:	@(#)86Box.rc	1.0.26	2018/01/23
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -272,22 +272,25 @@ BEGIN
     COMBOBOX        IDC_COMBO_RPM_MODE,53,45,166,14,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "...",IDC_CFILE,206,5,13,14
+    LTEXT           "Progress:",IDT_1757,7,45,44,12,SS_CENTERIMAGE
+    CONTROL         "IMGCreateProgress",IDC_PBAR_IMG_CREATE,"msctls_progress32",PBS_SMOOTH | 
+                    WS_BORDER,53,45,166,14
 END
 
-DLG_CONFIG DIALOG DISCARDABLE  0, 0, 366, 241
+DLG_CONFIG DIALOG DISCARDABLE  0, 0, 366, 251
 STYLE DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "86Box Settings"
 FONT 9, "Segoe UI"
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,246,220,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,307,220,50,14
+    DEFPUSHBUTTON   "OK",IDOK,246,230,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,307,230,50,14
     CONTROL         "List2",IDC_SETTINGSCATLIST,"SysListView32",LVS_LIST | 
-                    LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | WS_TABSTOP,7,7,90,197
-    CONTROL         "",-1,"Static",SS_BLACKFRAME | SS_SUNKEN,1,211,363,1
+                    LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | WS_TABSTOP,7,7,90,207
+    CONTROL         "",-1,"Static",SS_BLACKFRAME | SS_SUNKEN,1,221,363,1
 /* Leave this commented out until we get into localization. */
 #if 0
-    LTEXT           "Language:",IDT_1700,7,222,41,10
-    COMBOBOX        IDC_COMBO_LANG,48,221,108,120,CBS_DROPDOWN | WS_VSCROLL | 
+    LTEXT           "Language:",IDT_1700,7,232,41,10
+    COMBOBOX        IDC_COMBO_LANG,48,231,108,120,CBS_DROPDOWN | WS_VSCROLL | 
                     WS_TABSTOP
 #endif
 END
@@ -521,7 +524,7 @@ BEGIN
                     WS_BORDER,7,16,204,12
 END
 
-DLG_CFG_REMOVABLE_DEVICES DIALOG DISCARDABLE  97, 0, 267, 202
+DLG_CFG_FLOPPY_DRIVES DIALOG DISCARDABLE  97, 0, 267, 103
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
@@ -536,22 +539,46 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,131,86,64,10
     CONTROL         "Check BPB",IDC_CHECKBPB,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,196,86,64,10
+END
+
+DLG_CFG_OTHER_REMOVABLE_DEVICES DIALOG DISCARDABLE  97, 0, 267, 221
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
     CONTROL         "List1",IDC_LIST_CDROM_DRIVES,"SysListView32",LVS_REPORT | 
                     LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
-                    WS_TABSTOP,7,116,253,60
-    LTEXT           "CD-ROM drives:",IDT_1739,7,106,50,8
-    COMBOBOX        IDC_COMBO_CD_BUS,33,183,90,12,CBS_DROPDOWNLIST | 
+                    WS_TABSTOP,7,18,253,60
+    LTEXT           "CD-ROM drives:",IDT_1739,7,7,50,8
+    COMBOBOX        IDC_COMBO_CD_BUS,33,85,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Bus:",IDT_1740,7,184,24,8
-    COMBOBOX        IDC_COMBO_CD_ID,170,183,22,12,CBS_DROPDOWNLIST | 
+    LTEXT           "Bus:",IDT_1740,7,86,24,8
+    COMBOBOX        IDC_COMBO_CD_ID,170,85,22,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "ID:",IDT_1741,131,184,38,8
-    COMBOBOX        IDC_COMBO_CD_LUN,239,183,22,12,CBS_DROPDOWNLIST | 
+    LTEXT           "ID:",IDT_1741,131,86,38,8
+    COMBOBOX        IDC_COMBO_CD_LUN,239,85,22,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "LUN:",IDT_1742,200,184,38,8
-    COMBOBOX        IDC_COMBO_CD_CHANNEL_IDE,170,183,90,12,CBS_DROPDOWNLIST | 
+    LTEXT           "LUN:",IDT_1742,200,86,38,8
+    COMBOBOX        IDC_COMBO_CD_CHANNEL_IDE,170,85,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Channel:",IDT_1743,131,184,38,8
+    LTEXT           "Channel:",IDT_1743,131,86,38,8
+    CONTROL         "List1",IDC_LIST_ZIP_DRIVES,"SysListView32",LVS_REPORT | 
+                    LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
+                    WS_TABSTOP,7,117,253,60
+    LTEXT           "ZIP drives:",IDT_1739,7,107,50,8
+    COMBOBOX        IDC_COMBO_ZIP_BUS,33,184,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Bus:",IDT_1753,7,185,24,8
+    COMBOBOX        IDC_COMBO_ZIP_ID,170,184,22,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "ID:",IDT_1754,131,185,38,8
+    COMBOBOX        IDC_COMBO_ZIP_LUN,239,184,22,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "LUN:",IDT_1755,200,185,38,8
+    COMBOBOX        IDC_COMBO_ZIP_CHANNEL_IDE,170,184,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Channel:",IDT_1756,131,185,38,8
+    CONTROL         "ZIP 250",IDC_CHECK250,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,204,64,10
 END
 
 
@@ -582,12 +609,14 @@ END
 145                     ICON    DISCARDABLE     "win/icons/floppy_35_active.ico"
 160                     ICON    DISCARDABLE     "win/icons/cdrom.ico"
 161                     ICON    DISCARDABLE     "win/icons/cdrom_active.ico"
-176                     ICON    DISCARDABLE     "win/icons/removable_disk.ico"
-177                     ICON    DISCARDABLE     "win/icons/removable_disk_active.ico"
-192                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
-193                     ICON    DISCARDABLE     "win/icons/hard_disk_active.ico"
-208                     ICON    DISCARDABLE     "win/icons/network.ico"
-209                     ICON    DISCARDABLE     "win/icons/network_active.ico"
+176                     ICON    DISCARDABLE     "win/icons/zip.ico"
+177                     ICON    DISCARDABLE     "win/icons/zip_active.ico"
+192                     ICON    DISCARDABLE     "win/icons/removable_disk.ico"
+193                     ICON    DISCARDABLE     "win/icons/removable_disk_active.ico"
+208                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
+209                     ICON    DISCARDABLE     "win/icons/hard_disk_active.ico"
+224                     ICON    DISCARDABLE     "win/icons/network.ico"
+225                     ICON    DISCARDABLE     "win/icons/network_active.ico"
 256                     ICON    DISCARDABLE     "win/icons/machine.ico"
 257                     ICON    DISCARDABLE     "win/icons/display.ico"
 258                     ICON    DISCARDABLE     "win/icons/input_devices.ico"
@@ -596,17 +625,21 @@ END
 261                     ICON    DISCARDABLE     "win/icons/ports.ico"
 262                     ICON    DISCARDABLE     "win/icons/other_peripherals.ico"
 263                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
-264                     ICON    DISCARDABLE     "win/icons/removable_devices.ico"
+264                     ICON    DISCARDABLE     "win/icons/floppy_drives.ico"
+265                     ICON    DISCARDABLE     "win/icons/other_removable_devices.ico"
 384                     ICON    DISCARDABLE     "win/icons/floppy_525_empty.ico"
 385                     ICON    DISCARDABLE     "win/icons/floppy_525_empty_active.ico"
 400                     ICON    DISCARDABLE     "win/icons/floppy_35_empty.ico"
 401                     ICON    DISCARDABLE     "win/icons/floppy_35_empty_active.ico"
 416                     ICON    DISCARDABLE     "win/icons/cdrom_empty.ico"
 417                     ICON    DISCARDABLE     "win/icons/cdrom_empty_active.ico"
-432                     ICON    DISCARDABLE     "win/icons/removable_disk_empty.ico"
-433                     ICON    DISCARDABLE     "win/icons/removable_disk_empty_active.ico"
+432                     ICON    DISCARDABLE     "win/icons/zip_empty.ico"
+433                     ICON    DISCARDABLE     "win/icons/zip_empty_active.ico"
+448                     ICON    DISCARDABLE     "win/icons/removable_disk_empty.ico"
+449                     ICON    DISCARDABLE     "win/icons/removable_disk_empty_active.ico"
 512                     ICON    DISCARDABLE     "win/icons/floppy_disabled.ico"
 514                     ICON    DISCARDABLE     "win/icons/cdrom_disabled.ico"
+515                     ICON    DISCARDABLE     "win/icons/zip_disabled.ico"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -739,12 +772,20 @@ BEGIN
         BOTTOMMARGIN, 137
     END
 
-    DLG_CFG_REMOVABLE_DEVICES, DIALOG
+    DLG_CFG_FLOPPY_DRIVES, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 260
         TOPMARGIN, 7
-        BOTTOMMARGIN, 195
+        BOTTOMMARGIN, 96
+    END
+
+    DLG_CFG_OTHER_REMOVABLE_DEVICES, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 260
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 214
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -786,8 +827,8 @@ BEGIN
     IDS_2070	"Ports (COM & LPT)"
     IDS_2071	"Other peripherals"
     IDS_2072	"Hard disks"
-    IDS_2073	"Removable devices"
-    IDS_2074	"Use CTRL+ALT+PAGE DOWN to return to windowed mode"
+    IDS_2073	"Floppy drives"
+    IDS_2074	"Other removable devices"
     IDS_2075	"CD-ROM images (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
     IDS_2076	"Host CD/DVD Drive (%c:)"
     IDS_2077	"Click to capture mouse"
@@ -828,6 +869,7 @@ BEGIN
     IDS_2104	"Network Type"
     IDS_2105	"Surround Module"
     IDS_2106	"MPU-401 Base Address"
+    IDS_2107	"Use CTRL+ALT+PAGE DOWN to return to windowed mode"
     IDS_2108	"On-board RAM"
     IDS_2109	"Memory Size"
     IDS_2110	"Display Type"
@@ -907,6 +949,9 @@ BEGIN
     IDS_2172	"E&xport to 86F..."
     IDS_2173	"Surface images (*.86F)\0*.86F\0"
     IDS_2174	"All images (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Basic sector images (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Surface images (*.86F)\0*.86F\0"
+    IDS_2175	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0All files (*.*)\0*.*\0"
+    IDS_2176	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
+    IDS_2177	"ZIP %i (%03i): %ls"
 
     IDS_4096    "Hard disk (%s)"
     IDS_4097	"%01i:%01i"
@@ -975,6 +1020,8 @@ BEGIN
     IDS_5897	"DMF (cluster 1024)"
     IDS_5898	"DMF (cluster 2048)"
     IDS_5899	"2.88 MB"
+    IDS_5900	"ZIP 100"
+    IDS_5901	"ZIP 250"
 
     IDS_6144	"Perfect RPM"
     IDS_6145	"1%% below perfect RPM"

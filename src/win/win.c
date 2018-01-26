@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.44	2018/01/18
+ * Version:	@(#)win.c	1.0.45	2018/01/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -716,7 +716,7 @@ plat_setfullscreen(int on)
 
     if (on && video_fullscreen_first) {
 	video_fullscreen_first = 0;
-	ui_msgbox(MBX_INFO, (wchar_t *)IDS_2074);
+	ui_msgbox(MBX_INFO, (wchar_t *)IDS_2107);
     }
 
     /* OK, claim the video. */

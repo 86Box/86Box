@@ -8,7 +8,7 @@
  *
  *		Define the various UI functions.
  *
- * Version:	@(#)ui.h	1.0.11	2018/01/18
+ * Version:	@(#)ui.h	1.0.12	2018/01/22
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -44,10 +44,11 @@ extern void	ui_check_menu_item(int id, int checked);
 #define SB_ICON_WIDTH	24
 #define SB_FLOPPY       0x00
 #define SB_CDROM        0x10
-#define SB_RDISK        0x20
-#define SB_HDD          0x40
-#define SB_NETWORK      0x50
-#define SB_TEXT         0x60
+#define SB_ZIP          0x20
+#define SB_RDISK        0x30
+#define SB_HDD          0x50
+#define SB_NETWORK      0x60
+#define SB_TEXT         0x70
 
 extern wchar_t  *ui_window_title(wchar_t *s);
 extern void	ui_status_update(void);
@@ -62,6 +63,7 @@ extern void	ui_sb_set_text_w(wchar_t *wstr);
 extern void	ui_sb_set_text(char *str);
 extern void	ui_sb_bugui(char *str);
 extern void	ui_sb_mount_floppy_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name);
+extern void	ui_sb_mount_zip_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name);
 
 #ifdef __cplusplus
 }
