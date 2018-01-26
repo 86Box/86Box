@@ -9,7 +9,7 @@
  *		Implementation of the NCR 5380 series of SCSI Host Adapters
  *		made by NCR. These controllers were designed for the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.9	2017/12/16
+ * Version:	@(#)scsi_ncr5380.c	1.0.10	2018/01/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -905,7 +905,7 @@ ncr_init(device_t *info)
     scsi->status_ctrl = STATUS_BUFFER_NOT_READY;
     scsi->buffer_host_pos = 128;
 
-    timer_add(dma_callback, &scsi->dma_timer, &scsi->dma_timer, scsi);
+    timer_add(dma_callback, &scsi->dma_timer, &scsi->dma_enabled, scsi);
 
     return(scsi);
 }
