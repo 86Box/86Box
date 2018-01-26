@@ -11,13 +11,13 @@
  * TODO:	Add the Genius bus- and serial mouse.
  *		Remove the '3-button' flag from mouse types.
  *
- * Version:	@(#)mouse.c	1.0.18	2017/12/14
+ * Version:	@(#)mouse.c	1.0.19	2018/01/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -195,6 +195,15 @@ mouse_get_from_internal_name(char *s)
     }
 
     return(0);
+}
+
+
+int
+mouse_has_config(int mouse)
+{
+    if (mouse_devices[mouse].device == NULL) return(0);
+
+    return(mouse_devices[mouse].device->config ? 1 : 0);
 }
 
 

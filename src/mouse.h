@@ -8,13 +8,13 @@
  *
  *		Definitions for the mouse driver.
  *
- * Version:	@(#)mouse.h	1.0.11	2017/12/09
+ * Version:	@(#)mouse.h	1.0.12	2018/01/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef EMU_MOUSE_H
 # define EMU_MOUSE_H
@@ -69,6 +69,7 @@ extern void	mouse_poll(void);
 extern char	*mouse_get_name(int mouse);
 extern char	*mouse_get_internal_name(int mouse);
 extern int	mouse_get_from_internal_name(char *s);
+extern int	mouse_has_config(int mouse);
 extern int	mouse_get_type(int mouse);
 extern int	mouse_get_ndev(void);
 extern int	mouse_get_buttons(void);

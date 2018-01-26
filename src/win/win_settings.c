@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.33	2018/01/24
+ * Version:	@(#)win_settings.c	1.0.34	2018/01/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -859,7 +859,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			gfx = video_card_getid(stransi);
 
 			h = GetDlgItem(hdlg, IDC_CONFIGURE_VID);
-			if (video_card_has_config(gfx))
+			if (video_card_has_config(temp_gfxcard))
 			{
 				EnableWindow(h, TRUE);
 			}
@@ -996,8 +996,16 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 
 			SendMessage(h, CB_SETCURSEL, settings_mouse_to_list[temp_mouse], 0);
+
 			h = GetDlgItem(hdlg, IDC_CONFIGURE_MOUSE);
-			EnableWindow(h, TRUE);
+			if (mouse_has_config(temp_mouse))
+			{
+				EnableWindow(h, TRUE);
+			}
+			else
+			{
+				EnableWindow(h, FALSE);
+			}
 
 			h = GetDlgItem(hdlg, IDC_COMBO_JOYSTICK);
 			c = 0;
@@ -1023,6 +1031,21 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_COMMAND:
                 	switch (LOWORD(wParam))
 	                {
+				case IDC_COMBO_MOUSE:
+					h = GetDlgItem(hdlg, IDC_COMBO_MOUSE);
+					temp_mouse = settings_list_to_mouse[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+					h = GetDlgItem(hdlg, IDC_CONFIGURE_MOUSE);
+					if (mouse_has_config(temp_mouse))
+					{
+						EnableWindow(h, TRUE);
+					}
+					else
+					{
+						EnableWindow(h, FALSE);
+					}
+					break;
+
 				case IDC_CONFIGURE_MOUSE:
 					h = GetDlgItem(hdlg, IDC_COMBO_MOUSE);
 					temp_mouse = settings_list_to_mouse[SendMessage(h, CB_GETCURSEL, 0, 0)];
