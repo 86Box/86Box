@@ -503,9 +503,9 @@ int zip_load(uint8_t id, wchar_t *fn)
 		fseek(zip_drives[id].f, 0, SEEK_END);
 		size = ftell(zip_drives[id].f);
 
-		if (size == ((ZIP_250_SECTORS << 9) + 0x1000)) || (size == ((ZIP_SECTORS << 9) + 0x1000)) {
+		if ((size == ((ZIP_250_SECTORS << 9) + 0x1000)) || (size == ((ZIP_SECTORS << 9) + 0x1000))) {
 			/* This is a ZDI image. */
-			zip_drives[id].size -= 0x1000;
+			size -= 0x1000;
 			zip_drives[id].base = 0x1000;
 		} else
 			zip_drives[id].base = 0;
