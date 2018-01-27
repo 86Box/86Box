@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.10	2018/01/23
+ * Version:	@(#)win_stbar.c	1.0.11	2018/01/27
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -394,7 +394,7 @@ StatusBarCreateZIPTip(int part)
 
     int type = zip_drives[drive].is_250 ? 250 : 100;
 
-    if (wcslen(floppyfns[drive]) == 0) {
+    if (wcslen(zip_drives[drive].image_path) == 0) {
 	_swprintf(tempTip, plat_get_string(IDS_2177),
 		  drive+1, type, plat_get_string(IDS_2057));
     } else {
