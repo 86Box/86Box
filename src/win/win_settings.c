@@ -112,7 +112,7 @@ static int settings_mouse_to_list[20], settings_list_to_mouse[20];
 static int settings_scsi_to_list[20], settings_list_to_scsi[20];
 static int settings_network_to_list[20], settings_list_to_network[20];
 
-static uint8_t mfm_tracking, esdi_tracking, xtide_tracking, ide_tracking, scsi_tracking[16];
+static uint64_t mfm_tracking, esdi_tracking, xtide_tracking, ide_tracking, scsi_tracking[16];
 
 
 
@@ -200,19 +200,19 @@ static void win_settings_init(void)
 	for (i = 0; i < HDD_NUM; i++)
 	{
 		if (hdd[i].bus == HDD_BUS_MFM)
-			mfm_tracking |= (1 << hdd[i].mfm_channel);
+			mfm_tracking |= (1 << (hdd[i].mfm_channel << 3));
 		else if (hdd[i].bus == HDD_BUS_XTIDE)
-			xtide_tracking |= (1 << hdd[i].xtide_channel);
+			xtide_tracking |= (1 << (hdd[i].xtide_channel << 3));
 		else if (hdd[i].bus == HDD_BUS_ESDI)
-			esdi_tracking |= (1 << hdd[i].esdi_channel);
+			esdi_tracking |= (1 << (hdd[i].esdi_channel << 3));
 		else if (hdd[i].bus == HDD_BUS_IDE_PIO_ONLY)
-			ide_tracking |= (1 << hdd[i].ide_channel);
+			ide_tracking |= (1 << (hdd[i].ide_channel << 3));
 		else if (hdd[i].bus == HDD_BUS_IDE_PIO_AND_DMA)
-			ide_tracking |= (1 << hdd[i].ide_channel);
+			ide_tracking |= (1 << (hdd[i].ide_channel << 3));
 		else if (hdd[i].bus == HDD_BUS_SCSI)
-			scsi_tracking[hdd[i].scsi_id] |= (1 << hdd[i].scsi_lun);
+			scsi_tracking[hdd[i].scsi_id] |= (1 << (hdd[i].scsi_lun << 3));
 		else if (hdd[i].bus == HDD_BUS_SCSI_REMOVABLE)
-			scsi_tracking[hdd[i].scsi_id] |= (1 << hdd[i].scsi_lun);
+			scsi_tracking[hdd[i].scsi_id] |= (1 << (hdd[i].scsi_lun << 3));
 	}
 
 	/* Floppy drives category */
@@ -228,21 +228,21 @@ static void win_settings_init(void)
 	for (i = 0; i < CDROM_NUM; i++)
 	{
 		if (cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY)
-			ide_tracking |= (1 << cdrom_drives[i].ide_channel);
+			ide_tracking |= (2 << (cdrom_drives[i].ide_channel << 3));
 		else if (cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA)
-			ide_tracking |= (1 << cdrom_drives[i].ide_channel);
+			ide_tracking |= (2 << (cdrom_drives[i].ide_channel << 3));
 		else if (cdrom_drives[i].bus_type == CDROM_BUS_SCSI)
-			scsi_tracking[cdrom_drives[i].scsi_device_id] |= (1 << cdrom_drives[i].scsi_device_lun);
+			scsi_tracking[cdrom_drives[i].scsi_device_id] |= (2 << (cdrom_drives[i].scsi_device_lun << 3));
 	}
 	memcpy(temp_zip_drives, zip_drives, ZIP_NUM * sizeof(zip_drive_t));
 	for (i = 0; i < ZIP_NUM; i++)
 	{
 		if (zip_drives[i].bus_type == ZIP_BUS_ATAPI_PIO_ONLY)
-			ide_tracking |= (1 << zip_drives[i].ide_channel);
+			ide_tracking |= (4 << (zip_drives[i].ide_channel << 3));
 		else if (zip_drives[i].bus_type == ZIP_BUS_ATAPI_PIO_AND_DMA)
-			ide_tracking |= (1 << zip_drives[i].ide_channel);
+			ide_tracking |= (4 << (zip_drives[i].ide_channel << 3));
 		else if (zip_drives[i].bus_type == ZIP_BUS_SCSI)
-			scsi_tracking[zip_drives[i].scsi_device_id] |= (1 << zip_drives[i].scsi_device_lun);
+			scsi_tracking[zip_drives[i].scsi_device_id] |= (4 << (zip_drives[i].scsi_device_lun << 3));
 	}
 
 	temp_deviceconfig = 0;
@@ -2102,12 +2102,12 @@ static void add_locations(HWND hdlg)
 	free(lptsTemp);
 }
 
-static uint8_t next_free_binary_channel(uint8_t *tracking)
+static uint8_t next_free_binary_channel(uint64_t *tracking)
 {
-	int i;
+	int64_t i;
 
 	for (i = 0; i < 2; i++) {
-		if (!(*tracking & (1 << i)))
+		if (!(*tracking & (0xffLL << (i << 3LL))))
 			return i;
 	}
 
@@ -2116,10 +2116,10 @@ static uint8_t next_free_binary_channel(uint8_t *tracking)
 
 static uint8_t next_free_ide_channel(void)
 {
-	int i;
+	int64_t i;
 
 	for (i = 0; i < 8; i++) {
-		if (!(ide_tracking & (1 << i)))
+		if (!(ide_tracking & (0xffLL << (i << 3LL))))
 			return i;
 	}
 
@@ -2128,11 +2128,11 @@ static uint8_t next_free_ide_channel(void)
 
 static void next_free_scsi_id_and_lun(uint8_t *id, uint8_t *lun)
 {
-	uint8_t i, j;
+	int64_t i, j;
 
 	for (j = 0; j < 8; j++) {
 		for (i = 0; i < 16; i++) {
-			if (!(scsi_tracking[i] & (1 << j))) {
+			if (!(scsi_tracking[i] & (0xffLL << (j << 3LL)))) {
 				*id = i;
 				*lun = j;
 				return;
@@ -2190,7 +2190,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg, int assign_id)
 				h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL);
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
-				if (assign_id & !is_add_dlg)
+				if (assign_id)
 					temp_hdd[hdlv_current_sel].mfm_channel = next_free_binary_channel(&mfm_tracking);
 				SendMessage(h, CB_SETCURSEL, is_add_dlg ? new_hdd.mfm_channel : temp_hdd[hdlv_current_sel].mfm_channel, 0);
 				break;
@@ -2202,7 +2202,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg, int assign_id)
 				h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL);
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
-				if (assign_id & !is_add_dlg)
+				if (assign_id)
 					temp_hdd[hdlv_current_sel].xtide_channel = next_free_binary_channel(&xtide_tracking);
 				SendMessage(h, CB_SETCURSEL, is_add_dlg ? new_hdd.xtide_channel : temp_hdd[hdlv_current_sel].xtide_channel, 0);
 				break;
@@ -2214,7 +2214,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg, int assign_id)
 				h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL);
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
-				if (assign_id & !is_add_dlg)
+				if (assign_id)
 					temp_hdd[hdlv_current_sel].esdi_channel = next_free_binary_channel(&esdi_tracking);
 				SendMessage(h, CB_SETCURSEL, is_add_dlg ? new_hdd.esdi_channel : temp_hdd[hdlv_current_sel].esdi_channel, 0);
 				break;
@@ -2227,7 +2227,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg, int assign_id)
 				h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL_IDE);
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
-				if (assign_id & !is_add_dlg)
+				if (assign_id)
 					temp_hdd[hdlv_current_sel].ide_channel = next_free_ide_channel();
 				SendMessage(h, CB_SETCURSEL, is_add_dlg ? new_hdd.ide_channel : temp_hdd[hdlv_current_sel].ide_channel, 0);
 				break;
@@ -2240,7 +2240,7 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg, int assign_id)
 				ShowWindow(h, SW_SHOW);
 				EnableWindow(h, TRUE);
 
-				if (assign_id & !is_add_dlg)
+				if (assign_id)
 					next_free_scsi_id_and_lun((uint8_t *) &temp_hdd[hdlv_current_sel].scsi_id, (uint8_t *) &temp_hdd[hdlv_current_sel].scsi_lun);
 
 				h = GetDlgItem(hdlg, IDC_COMBO_HD_ID);
@@ -2277,6 +2277,28 @@ static void recalc_location_controls(HWND hdlg, int is_add_dlg, int assign_id)
 	}
 }
 
+static int bus_full(uint64_t *tracking, int count)
+{
+	int full = 0;
+	switch(count) {
+		case 2:
+		default:
+			full = (*tracking & 0xFF00LL);
+			full = full && (*tracking & 0x00FFLL);
+			return full;
+		case 8:
+			full = (*tracking & 0xFF00000000000000LL);
+			full = full && (*tracking & 0x00FF000000000000LL);
+			full = full && (*tracking & 0x0000FF0000000000LL);
+			full = full && (*tracking & 0x000000FF00000000LL);
+			full = full && (*tracking & 0x00000000FF000000LL);
+			full = full && (*tracking & 0x0000000000FF0000LL);
+			full = full && (*tracking & 0x000000000000FF00LL);
+			full = full && (*tracking & 0x00000000000000FFLL);
+			return full;
+	}
+}
+
 static void recalc_next_free_id(HWND hdlg)
 {
 	HWND h;
@@ -2289,7 +2311,6 @@ static void recalc_next_free_id(HWND hdlg)
 	int c_ide_dma = 0;
 	int c_scsi = 0;
 	int enable_add = 0;
-	int scsi_tracking_total = 0xff;
 
 	next_free_id = -1;
 
@@ -2334,16 +2355,14 @@ static void recalc_next_free_id(HWND hdlg)
 		}
 	}
 
-	/* pclog("Next free ID: %i\n", next_free_id); */
-
 	enable_add = enable_add || (next_free_id >= 0);
-	/* pclog("Enable add: %i\n", enable_add); */
 	enable_add = enable_add && ((c_mfm < MFM_NUM) || (c_esdi < ESDI_NUM) || (c_xtide < XTIDE_NUM) || (c_ide_pio < IDE_NUM) || (c_ide_dma < IDE_NUM) || (c_scsi < SCSI_NUM));
-	/* pclog("Enable add: %i\n", enable_add); */
-	enable_add = enable_add && (mfm_tracking < 0x03) && (esdi_tracking < 0x03) && (xtide_tracking < 0x03) && (ide_tracking < 0xff);
+	enable_add = enable_add && !bus_full(&mfm_tracking, 2);
+	enable_add = enable_add && !bus_full(&esdi_tracking, 2);
+	enable_add = enable_add && !bus_full(&xtide_tracking, 2);
+	enable_add = enable_add && !bus_full(&ide_tracking, 8);
 	for (i = 0; i < 16; i++)
-		scsi_tracking_total &= scsi_tracking[i];
-	enable_add = enable_add && (scsi_tracking_total != 0xff);
+		enable_add = enable_add && !bus_full(&(scsi_tracking[i]), 8);
 
 	h = GetDlgItem(hdlg, IDC_BUTTON_HDD_ADD_NEW);
 
@@ -2837,11 +2856,11 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 				h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL);
 				SendMessage(h, CB_SETCURSEL, 0, 0);
 				h = GetDlgItem(hdlg, IDC_COMBO_HD_ID);
-				SendMessage(h, CB_SETCURSEL, 0, id);
+				SendMessage(h, CB_SETCURSEL, id, 0);
 				h = GetDlgItem(hdlg, IDC_COMBO_HD_LUN);
-				SendMessage(h, CB_SETCURSEL, 0, lun);
+				SendMessage(h, CB_SETCURSEL, lun, 0);
 				h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL_IDE);
-				SendMessage(h, CB_SETCURSEL, 0, channel);
+				SendMessage(h, CB_SETCURSEL, channel, 0);
 
 				new_hdd.mfm_channel = next_free_binary_channel(&mfm_tracking);
 				new_hdd.esdi_channel = next_free_binary_channel(&esdi_tracking);
@@ -3500,27 +3519,25 @@ void hard_disk_add_open(HWND hwnd, int is_existing)
         DialogBox(hinstance, (LPCWSTR)DLG_CFG_HARD_DISKS_ADD, hwnd, win_settings_hard_disks_add_proc);
 }
 
-int ignore_change = 0;
-
 static void hard_disk_track(uint8_t id)
 {
 	switch(temp_hdd[id].bus) {
 		case HDD_BUS_MFM:
-			mfm_tracking |= (1 << temp_hdd[id].mfm_channel);
+			mfm_tracking |= (1 << (temp_hdd[id].mfm_channel << 3));
 			break;
 		case HDD_BUS_ESDI:
-			esdi_tracking |= (1 << temp_hdd[id].esdi_channel);
+			esdi_tracking |= (1 << (temp_hdd[id].esdi_channel << 3));
 			break;
 		case HDD_BUS_XTIDE:
-			xtide_tracking |= (1 << temp_hdd[id].xtide_channel);
+			xtide_tracking |= (1 << (temp_hdd[id].xtide_channel << 3));
 			break;
 		case HDD_BUS_IDE_PIO_ONLY:
 		case HDD_BUS_IDE_PIO_AND_DMA:
-			ide_tracking |= (1 << temp_hdd[id].ide_channel);
+			ide_tracking |= (1 << (temp_hdd[id].ide_channel << 3));
 			break;
 		case HDD_BUS_SCSI:
 		case HDD_BUS_SCSI_REMOVABLE:
-			scsi_tracking[temp_hdd[id].scsi_id] |= (1 << temp_hdd[id].scsi_lun);
+			scsi_tracking[temp_hdd[id].scsi_id] |= (1 << (temp_hdd[id].scsi_lun << 3));
 			break;
 	}
 }
@@ -3529,24 +3546,34 @@ static void hard_disk_untrack(uint8_t id)
 {
 	switch(temp_hdd[id].bus) {
 		case HDD_BUS_MFM:
-			mfm_tracking &= ~(1 << temp_hdd[id].mfm_channel);
+			mfm_tracking &= ~(1 << (temp_hdd[id].mfm_channel << 3));
 			break;
 		case HDD_BUS_ESDI:
-			esdi_tracking &= ~(1 << temp_hdd[id].esdi_channel);
+			esdi_tracking &= ~(1 << (temp_hdd[id].esdi_channel << 3));
 			break;
 		case HDD_BUS_XTIDE:
-			xtide_tracking &= ~(1 << temp_hdd[id].xtide_channel);
+			xtide_tracking &= ~(1 << (temp_hdd[id].xtide_channel << 3));
 			break;
 		case HDD_BUS_IDE_PIO_ONLY:
 		case HDD_BUS_IDE_PIO_AND_DMA:
-			ide_tracking &= ~(1 << temp_hdd[id].ide_channel);
+			ide_tracking &= ~(1 << (temp_hdd[id].ide_channel << 3));
 			break;
 		case HDD_BUS_SCSI:
 		case HDD_BUS_SCSI_REMOVABLE:
-			scsi_tracking[temp_hdd[id].scsi_id] &= ~(1 << temp_hdd[id].scsi_lun);
+			scsi_tracking[temp_hdd[id].scsi_id] &= ~(1 << (temp_hdd[id].scsi_lun << 3));
 			break;
 	}
 }
+
+static void hard_disk_track_all(void)
+{
+	int i;
+
+	for (i = 0; i < HDD_NUM; i++)
+		hard_disk_track(i);
+}
+
+int ignore_change = 0;
 
 #ifdef __amd64__
 static LRESULT CALLBACK
@@ -3557,16 +3584,13 @@ win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPar
 {
 	HWND h;
 	int old_sel = 0;
-	int b = 0, i = 0;
+	int b = 0;
 	int assign = 0;
 
         switch (message)
         {
 		case WM_INITDIALOG:
 			ignore_change = 1;
-
-			for (i = 0; i < HDD_NUM; i++)
-				hard_disk_track(i);
 
 			normalize_hd_list();	/* Normalize the hard disks so that non-disabled hard disks start from index 0, and so they are contiguous.
 						   This will cause an emulator reset prompt on the first opening of this category with a messy hard disk list
@@ -3737,6 +3761,7 @@ hd_bus_skip:
 						h = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
 						win_settings_hard_disks_recalc_list(h);
 						recalc_next_free_id(hdlg);
+						hard_disk_track_all();
 						ignore_change = 0;
 					}
 					return FALSE;
@@ -3749,6 +3774,7 @@ hd_bus_skip:
 						h = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
 						win_settings_hard_disks_recalc_list(h);
 						recalc_next_free_id(hdlg);
+						hard_disk_track_all();
 						ignore_change = 0;
 					}
 					return FALSE;
@@ -4539,7 +4565,7 @@ static void zip_recalc_location_controls(HWND hdlg, int assign_id)
 static void cdrom_track(uint8_t id)
 {
 	if ((temp_cdrom_drives[id].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) || (temp_cdrom_drives[id].bus_type == CDROM_BUS_ATAPI_PIO_ONLY))
-		ide_tracking |= (1 << temp_cdrom_drives[id].ide_channel);
+		ide_tracking |= (2 << (temp_cdrom_drives[id].ide_channel << 3));
 	else if (temp_cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 		scsi_tracking[temp_cdrom_drives[id].scsi_device_id] |= (1 << temp_cdrom_drives[id].scsi_device_lun);
 }
@@ -4547,11 +4573,12 @@ static void cdrom_track(uint8_t id)
 static void cdrom_untrack(uint8_t id)
 {
 	if ((temp_cdrom_drives[id].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) || (temp_cdrom_drives[id].bus_type == CDROM_BUS_ATAPI_PIO_ONLY))
-		ide_tracking &= ~(1 << temp_cdrom_drives[id].ide_channel);
+		ide_tracking &= ~(2 << (temp_cdrom_drives[id].ide_channel << 3));
 	else if (temp_cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 		scsi_tracking[temp_cdrom_drives[id].scsi_device_id] &= ~(1 << temp_cdrom_drives[id].scsi_device_lun);
 }
 
+#if 0
 static void cdrom_track_all(void)
 {
 	int i;
@@ -4559,6 +4586,7 @@ static void cdrom_track_all(void)
 	for (i = 0; i < CDROM_NUM; i++)
 		cdrom_track(i);
 }
+#endif
 
 
 static void zip_track(uint8_t id)
@@ -4577,6 +4605,7 @@ static void zip_untrack(uint8_t id)
 		scsi_tracking[temp_zip_drives[id].scsi_device_id] &= ~(1 << temp_zip_drives[id].scsi_device_lun);
 }
 
+#if 0
 static void zip_track_all(void)
 {
 	int i;
@@ -4584,6 +4613,7 @@ static void zip_track_all(void)
 	for (i = 0; i < ZIP_NUM; i++)
 		zip_track(i);
 }
+#endif
 
 
 int fd_ignore_change = 0;
@@ -4740,9 +4770,6 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
         {
 		case WM_INITDIALOG:
 			rd_ignore_change = 1;
-
-			cdrom_track_all();
-			zip_track_all();
 
 			cdlv_current_sel = 0;
 			h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
@@ -4940,7 +4967,6 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 						goto cdrom_bus_skip;
 					}
 					cdrom_untrack(cdlv_current_sel);
-					zip_track_all();
 					assign = (temp_cdrom_drives[cdlv_current_sel].bus_type == b2) ? 0 : 1;
 					if ((b2 == CDROM_BUS_ATAPI_PIO_ONLY) && (temp_cdrom_drives[cdlv_current_sel].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA))
 						assign = 0;
@@ -4964,7 +4990,6 @@ cdrom_bus_skip:
 					rd_ignore_change = 1;
 					h = GetDlgItem(hdlg, IDC_COMBO_CD_ID);
 					cdrom_untrack(cdlv_current_sel);
-					zip_track_all();
 					temp_cdrom_drives[cdlv_current_sel].scsi_device_id = SendMessage(h, CB_GETCURSEL, 0, 0);
 					cdrom_track(cdlv_current_sel);
 					h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
@@ -4981,7 +5006,6 @@ cdrom_bus_skip:
 					rd_ignore_change = 1;
 					h = GetDlgItem(hdlg, IDC_COMBO_CD_LUN);
 					cdrom_untrack(cdlv_current_sel);
-					zip_track_all();
 					temp_cdrom_drives[cdlv_current_sel].scsi_device_lun = SendMessage(h, CB_GETCURSEL, 0, 0);
 					cdrom_track(cdlv_current_sel);
 					h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
@@ -4998,7 +5022,6 @@ cdrom_bus_skip:
 					rd_ignore_change = 1;
 					h = GetDlgItem(hdlg, IDC_COMBO_CD_CHANNEL_IDE);
 					cdrom_untrack(cdlv_current_sel);
-					zip_track_all();
 					temp_cdrom_drives[cdlv_current_sel].ide_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
 					cdrom_track(cdlv_current_sel);
 					h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
@@ -5035,7 +5058,6 @@ cdrom_bus_skip:
 						goto zip_bus_skip;
 					}
 					zip_untrack(zdlv_current_sel);
-					cdrom_track_all();
 					assign = (temp_zip_drives[zdlv_current_sel].bus_type == b2) ? 0 : 1;
 					if ((b2 == ZIP_BUS_ATAPI_PIO_ONLY) && (temp_zip_drives[zdlv_current_sel].bus_type == ZIP_BUS_ATAPI_PIO_AND_DMA))
 						assign = 0;
@@ -5059,7 +5081,6 @@ zip_bus_skip:
 					rd_ignore_change = 1;
 					h = GetDlgItem(hdlg, IDC_COMBO_ZIP_ID);
 					zip_untrack(zdlv_current_sel);
-					cdrom_track_all();
 					temp_zip_drives[zdlv_current_sel].scsi_device_id = SendMessage(h, CB_GETCURSEL, 0, 0);
 					zip_track(zdlv_current_sel);
 					h = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);
@@ -5076,7 +5097,6 @@ zip_bus_skip:
 					rd_ignore_change = 1;
 					h = GetDlgItem(hdlg, IDC_COMBO_ZIP_LUN);
 					zip_untrack(zdlv_current_sel);
-					cdrom_track_all();
 					temp_zip_drives[zdlv_current_sel].scsi_device_lun = SendMessage(h, CB_GETCURSEL, 0, 0);
 					zip_track(zdlv_current_sel);
 					h = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);
@@ -5093,7 +5113,6 @@ zip_bus_skip:
 					rd_ignore_change = 1;
 					h = GetDlgItem(hdlg, IDC_COMBO_ZIP_CHANNEL_IDE);
 					zip_untrack(zdlv_current_sel);
-					cdrom_track_all();
 					temp_zip_drives[zdlv_current_sel].ide_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
 					zip_track(zdlv_current_sel);
 					h = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);

@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.38	2018/01/21
+ * Version:	@(#)config.c	1.0.39	2018/01/27
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1017,9 +1017,9 @@ load_removable_devices(void)
 	sprintf(temp, "cdrom_%02i_parameters", c+1);
 	p = config_get_string(cat, temp, NULL);
 	if (p != NULL)
-		sscanf(p, "%u, %s", &cdrom_drives[c].sound_on, s);
+		sscanf(p, "%01u, %s", &cdrom_drives[c].sound_on, s);
 	  else
-		sscanf("0, none", "%u, %s", &cdrom_drives[c].sound_on, s);
+		sscanf("0, none", "%01u, %s", &cdrom_drives[c].sound_on, s);
 	cdrom_drives[c].bus_type = hdd_string_to_bus(s, 1);
 
 	/* Default values, needed for proper operation of the Settings dialog. */
@@ -1207,9 +1207,9 @@ load_other_removable_devices(void)
 	sprintf(temp, "cdrom_%02i_parameters", c+1);
 	p = config_get_string(cat, temp, NULL);
 	if (p != NULL)
-		sscanf(p, "%u, %s", &cdrom_drives[c].sound_on, s);
+		sscanf(p, "%01u, %s", &cdrom_drives[c].sound_on, s);
 	  else
-		sscanf("0, none", "%u, %s", &cdrom_drives[c].sound_on, s);
+		sscanf("0, none", "%01u, %s", &cdrom_drives[c].sound_on, s);
 	cdrom_drives[c].bus_type = hdd_string_to_bus(s, 1);
 
 	/* Default values, needed for proper operation of the Settings dialog. */
@@ -1308,9 +1308,9 @@ load_other_removable_devices(void)
 	sprintf(temp, "zip_%02i_parameters", c+1);
 	p = config_get_string(cat, temp, NULL);
 	if (p != NULL)
-		sscanf(p, "%u, %s", &zip_drives[c].is_250, s);
+		sscanf(p, "%01u, %s", &zip_drives[c].is_250, s);
 	  else
-		sscanf("0, none", "%u, %s", &zip_drives[c].is_250, s);
+		sscanf("0, none", "%01u, %s", &zip_drives[c].is_250, s);
 	zip_drives[c].bus_type = hdd_string_to_bus(s, 1);
 
 	/* Default values, needed for proper operation of the Settings dialog. */
