@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.1	2018/01/26
+ * Version:	@(#)zip.c	1.0.2	2018/01/27
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -516,6 +516,7 @@ int zip_load(uint8_t id, wchar_t *fn)
 				fclose(zip_drives[id].f);
 				zip_drives[id].f = NULL;
 				zip_drives[id].medium_size = 0;
+				zip_eject(id);	/* Make sure the host OS knows we've rejected (and ejected) the image. */
 				return 0;
 			}
 		} else {
@@ -524,6 +525,7 @@ int zip_load(uint8_t id, wchar_t *fn)
 				fclose(zip_drives[id].f);
 				zip_drives[id].f = NULL;
 				zip_drives[id].medium_size = 0;
+				zip_eject(id);	/* Make sure the host OS knows we've rejected (and ejected) the image. */
 				return 0;
 			}
 		}
