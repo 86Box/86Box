@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.55	2018/01/28
+ * Version:	@(#)pc.c	1.0.56	2018/01/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -791,6 +791,13 @@ pc_reset_hard_init(void)
     serial_init();
 #endif
 
+    /*
+     * This has to be after the serial initialization so that
+     * serial_init() doesn't break the serial mouse by resetting
+     * the RCR callback to NULL.
+     */
+    mouse_reset();
+
     /* Initialize the actual machine and its basic modules. */
     machine_init();
 
@@ -814,13 +821,6 @@ pc_reset_hard_init(void)
     // FIXME: do we really have to reset the *AT* keyboard?? --FvK
     shadowbios = 0;
     keyboard_at_reset();
-
-    /*
-     * This has to be after the serial initialization so that
-     * serial_init() doesn't break the serial mouse by resetting
-     * the RCR callback to NULL.
-     */
-    mouse_reset();
 
     /* Reset the video card. */
     video_reset(gfxcard);
