@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.13	2018/01/18
+ * Version:	@(#)win_ui.c	1.0.14	2018/01/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -561,7 +561,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_MBUTTONUP:
-		if (mouse_get_buttons() == 2)
+		if (mouse_get_buttons() < 3)
 			plat_mouse_capture(0);
 		break;
 
