@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.2	2018/01/27
+ * Version:	@(#)zip.c	1.0.3	2018/01/28
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -1060,7 +1060,7 @@ static void zip_cmd_error(uint8_t id)
 	zip[id].packet_status = 0x80;
 	zip[id].callback = 50LL * ZIP_TIME;
 	zip_set_callback(id);
-	pclog("ZIP %i: [%02X] ERROR: %02X/%02X/%02X\n", id, zip[id].current_cdb[0], zip_sense_key, zip_asc, zip_ascq);
+	zip_log("ZIP %i: [%02X] ERROR: %02X/%02X/%02X\n", id, zip[id].current_cdb[0], zip_sense_key, zip_asc, zip_ascq);
 }
 
 static void zip_unit_attention(uint8_t id)
@@ -1157,7 +1157,7 @@ int zip_data(uint8_t id, uint32_t *len, int out)
 	int i = 0;
 
 	if (zip[id].sector_pos >= zip_drives[id].medium_size) {
-		pclog("ZIP %i: Trying to %s beyond the end of disk\n", id, out ? "write" : "read");
+		zip_log("ZIP %i: Trying to %s beyond the end of disk\n", id, out ? "write" : "read");
 		zip_lba_out_of_range(id);
 		return 0;
 	}
@@ -1443,12 +1443,12 @@ void zip_command(uint8_t id, uint8_t *cdb)
 	memcpy(zip[id].current_cdb, cdb, zip[id].cdb_len);
 
 	if (cdb[0] != 0) {
-		pclog("ZIP %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, Unit attention: %i\n", id, cdb[0], zip_sense_key, zip_asc, zip_ascq, zip[id].unit_attention);
-		pclog("ZIP %i: Request length: %04X\n", id, zip[id].request_length);
+		zip_log("ZIP %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, Unit attention: %i\n", id, cdb[0], zip_sense_key, zip_asc, zip_ascq, zip[id].unit_attention);
+		zip_log("ZIP %i: Request length: %04X\n", id, zip[id].request_length);
 
 #if 0
 		for (CdbLength = 1; CdbLength < zip[id].cdb_len; CdbLength++)
-			pclog("ZIP %i: CDB[%d] = %d\n", id, CdbLength, cdb[CdbLength]);
+			zip_log("ZIP %i: CDB[%d] = %d\n", id, CdbLength, cdb[CdbLength]);
 #endif
 	}
 	
@@ -1563,7 +1563,7 @@ void zip_command(uint8_t id, uint8_t *cdb)
 				case GPCMD_READ_6:
 					zip[id].sector_len = cdb[4];
 					zip[id].sector_pos = ((((uint32_t) cdb[1]) & 0x1f) << 16) | (((uint32_t) cdb[2]) << 8) | ((uint32_t) cdb[3]);
-					pclog("ZIP %i: Length: %i, LBA: %i\n", id, zip[id].sector_len, zip[id].sector_pos);
+					zip_log("ZIP %i: Length: %i, LBA: %i\n", id, zip[id].sector_len, zip[id].sector_pos);
 					break;
 				case GPCMD_READ_10:
 					zip[id].sector_len = (cdb[7] << 8) | cdb[8];
@@ -1783,7 +1783,7 @@ void zip_command(uint8_t id, uint8_t *cdb)
 			}
 
 			zip[id].current_page_code = cdb[2] & 0x3F;
-			pclog("Mode sense page: %02X\n", zip[id].current_page_code);
+			zip_log("Mode sense page: %02X\n", zip[id].current_page_code);
 
 			if (!(zip_mode_sense_page_flags & (1LL << zip[id].current_page_code))) {
 				zip_invalid_field(id);
@@ -2552,7 +2552,7 @@ zip_global_reset(void)
 	if (zip_drives[c].bus_type)
 		SCSIReset(zip_drives[c].scsi_device_id, zip_drives[c].scsi_device_lun);
 
-pclog("ZIP global_reset drive=%d host=%02x\n", c, zip_drives[c].host_drive);
+zip_log("ZIP global_reset drive=%d host=%02x\n", c, zip_drives[c].host_drive);
 	if (wcslen(zip_drives[c].image_path))
 		zip_load(c, zip_drives[c].image_path);
     }

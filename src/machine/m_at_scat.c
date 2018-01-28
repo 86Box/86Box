@@ -10,7 +10,7 @@
  *
  *		Re-worked version based on the 82C235 datasheet and errata.
  *
- * Version:	@(#)m_at_scat.c	1.0.8	2018/01/16
+ * Version:	@(#)m_at_scat.c	1.0.9	2018/01/28
  *
  * Authors:	Original by GreatPsycho for PCem.
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -487,6 +487,7 @@ ics_write(uint8_t idx, uint8_t val)
     pclog("SCAT: icr_write(%02x, %02x)\n", idx, val);
 #endif
     switch (idx) {
+	case SCAT_DMA_WS_CTL:
 	case SCAT_CLOCK_CTL:
 	case SCAT_PERIPH_CTL:
 		reg_valid = 1;
@@ -631,7 +632,7 @@ scat_init(void)
     for (i=0; i<128; i++)
 	scat_regs[i] = 0xff;
     scat_regs[SCAT_DMA_WS_CTL] = 0x00;
-    scat_regs[SCAT_VERSION] = 0x0a;
+    scat_regs[SCAT_VERSION] = 0x04;
     scat_regs[SCAT_CLOCK_CTL] = 0x02;
     scat_regs[SCAT_PERIPH_CTL] = 0x80;
     scat_regs[SCAT_MISC_STATUS] = 0x37;
@@ -717,7 +718,7 @@ scat_init(void)
 			(i<<14) + 0xFC0000, 0x04000,
 			mem_read_bios, mem_read_biosw, mem_read_biosl,
 			mem_write_null, mem_write_nullw, mem_write_nulll,
-			rom+(i<<14),
+			rom + ((i << 14) & biosmask),
 			0, NULL);
     }
 

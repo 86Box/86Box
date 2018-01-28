@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.35	2018/01/26
+ * Version:	@(#)win_settings.c	1.0.36	2018/01/27
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -864,13 +864,14 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			recalc_vid_list(hdlg);
 
 			h = GetDlgItem(hdlg, IDC_COMBO_VIDEO_SPEED);
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)plat_get_string(IDS_2131));
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)plat_get_string(IDS_2133));
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)plat_get_string(IDS_2134));
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)plat_get_string(IDS_2135));
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)plat_get_string(IDS_2136));
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)plat_get_string(IDS_2137));
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)plat_get_string(IDS_2138));
-			SendMessage(h, CB_SETCURSEL, temp_video_speed, 0);
+			SendMessage(h, CB_SETCURSEL, temp_video_speed + 1, 0);
 
 	                h=GetDlgItem(hdlg, IDC_CHECK_VOODOO);
         	        SendMessage(h, BM_SETCHECK, temp_voodoo, 0);
@@ -959,7 +960,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                         temp_gfxcard = video_new_to_old(video_card_getid(stransi));
 
                         h = GetDlgItem(hdlg, IDC_COMBO_VIDEO_SPEED);
-			temp_video_speed = SendMessage(h, CB_GETCURSEL, 0, 0);
+			temp_video_speed = SendMessage(h, CB_GETCURSEL, 0, 0) - 1;
 
 	                h = GetDlgItem(hdlg, IDC_CHECK_VOODOO);
 			temp_voodoo = SendMessage(h, BM_GETCHECK, 0, 0);

@@ -537,7 +537,7 @@ load_video(void)
 	}
 	gfxcard = video_get_video_from_internal_name(p);
 
-	video_speed = config_get_int(cat, "video_speed", 3);
+	video_speed = config_get_int(cat, "video_speed", -1);
 
 	voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
     }

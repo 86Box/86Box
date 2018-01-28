@@ -40,13 +40,13 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.12	2017/12/31
+ * Version:	@(#)video.c	1.0.13	2018/01/27
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -341,14 +341,36 @@ cgapal_rebuild(void)
 void
 video_update_timing(void)
 {
-    if (video_timing[video_speed][0] == VIDEO_ISA) {
-	video_timing_b = (int)(isa_timing * video_timing[video_speed][1]);
-	video_timing_w = (int)(isa_timing * video_timing[video_speed][2]);
-	video_timing_l = (int)(isa_timing * video_timing[video_speed][3]);
-    } else {
-	video_timing_b = (int)(bus_timing * video_timing[video_speed][1]);
-	video_timing_w = (int)(bus_timing * video_timing[video_speed][2]);
-	video_timing_l = (int)(bus_timing * video_timing[video_speed][3]);
+    int new_gfxcard;
+    int type, b, w, l;
+
+    if (video_speed == -1) {
+	new_gfxcard = video_old_to_new(gfxcard);
+
+	type = video_card_timing_gettype(new_gfxcard);
+	b = video_card_timing_getb(new_gfxcard);
+	w = video_card_timing_getw(new_gfxcard);
+	l = video_card_timing_getl(new_gfxcard);
+        
+	if (type == VIDEO_ISA) {
+		video_timing_b = (int)(isa_timing * b);
+		video_timing_w = (int)(isa_timing * w);
+		video_timing_l = (int)(isa_timing * l);
+	} else {
+		video_timing_b = (int)(bus_timing * b);
+		video_timing_w = (int)(bus_timing * w);
+		video_timing_l = (int)(bus_timing * l);
+	}
+    } else  {
+	if (video_timing[video_speed][0] == VIDEO_ISA) {
+		video_timing_b = (int)(isa_timing * video_timing[video_speed][1]);
+		video_timing_w = (int)(isa_timing * video_timing[video_speed][2]);
+		video_timing_l = (int)(isa_timing * video_timing[video_speed][3]);
+	} else {
+		video_timing_b = (int)(bus_timing * video_timing[video_speed][1]);
+		video_timing_w = (int)(bus_timing * video_timing[video_speed][2]);
+		video_timing_l = (int)(bus_timing * video_timing[video_speed][3]);
+	}
     }
 
     if (cpu_16bitbus)

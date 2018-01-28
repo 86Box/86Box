@@ -8,7 +8,7 @@
  *
  *		Definitions for the network module.
  *
- * Version:	@(#)network.h	1.0.10	2017/11/01
+ * Version:	@(#)network.h	1.0.11	2018/01/26
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -23,9 +23,13 @@
 #define NET_TYPE_SLIRP	2		/* use the SLiRP port forwarder */
 
 /* Supported network cards. */
-#define NE1000		1
-#define NE2000		2
-#define RTL8029AS	3
+enum {
+	NONE = 0,
+	NE1000,
+	NE2000,
+	RTL8019AS,
+	RTL8029AS
+};
 
 
 typedef void (*NETRXCB)(void *, uint8_t *, int);

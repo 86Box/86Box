@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.54	2018/01/21
+ * Version:	@(#)pc.c	1.0.55	2018/01/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -823,7 +823,7 @@ pc_reset_hard_init(void)
     mouse_reset();
 
     /* Reset the video card. */
-    // video_reset(gfxcard);
+    video_reset(gfxcard);
 
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
@@ -880,8 +880,6 @@ pc_reset_hard_init(void)
     dma_reset();
     pic_reset();
     cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
-
-    video_reset(gfxcard);
 
     if (AT)
 	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);

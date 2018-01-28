@@ -11,7 +11,7 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.15	2018/01/25
+ * Version:	@(#)machine_table.c	1.0.16	2018/01/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -105,13 +105,13 @@ machine_t machines[] = {
     { "[486 ISA] AMI WinBIOS 486",		ROM_WIN486,		"win486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,					  1,   64,   1, 127,	      machine_at_ali1429_init, NULL, nvr_at_close		},
     { "[486 ISA] Award 486 clone",		ROM_AWARD486_OPTI495,	"award486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,					  1,   64,   1, 127,	      machine_at_opti495_init, NULL, nvr_at_close		},
     { "[486 ISA] DTK PKM-0038S E-2",		ROM_DTK486,		"dtk486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,					  1,  128,   1, 127,	       machine_at_dtk486_init, NULL, nvr_at_close		},
-    { "[486 ISA] IBM PS/1 model 2133",		ROM_IBMPS1_2133,	"ibmps1_2133",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  1,   64,   1, 127,	       machine_ps1_m2133_init, NULL, nvr_at_close		},
+    { "[486 ISA] IBM PS/1 model 2133",		ROM_IBMPS1_2133,	"ibmps1_2133",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  1,   64,   1, 127,	       machine_ps1_m2133_init, NULL, nvr_at_close		},
 
 #ifdef WALTJE
     { "[486 MCA] IBM PS/2 model 80-486",	ROM_IBMPS2_M80_486,	"ibmps2_m80-486",	{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 1, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC_PS2,				  1,   32,   1,  63,	machine_ps2_model_80_486_init, NULL, nvr_at_close		},
 #endif
 
-    { "[486 PCI] Rise Computer R418",		ROM_R418,		"r418",			{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,	  1,  255,   1, 127,		 machine_at_r418_init, NULL, nvr_at_close		},
+    { "[486 PCI] Rise Computer R418",		ROM_R418,		"r418",			{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,			  1,  255,   1, 127,		 machine_at_r418_init, NULL, nvr_at_close		},
 
 #ifdef DEV_BRANCH
 #ifdef USE_GREENB

@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.10	2018/01/25
+ * Version:	@(#)video.h	1.0.11	2018/01/27
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -203,6 +203,10 @@ extern char	*video_card_getname(int card);
 extern device_t	*video_card_getdevice(int card);
 #endif
 extern int	video_card_has_config(int card);
+extern int	video_card_timing_gettype(int card);
+extern int	video_card_timing_getb(int card);
+extern int	video_card_timing_getw(int card);
+extern int	video_card_timing_getl(int card);
 extern int	video_card_getid(char *s);
 extern int	video_old_to_new(int card);
 extern int	video_new_to_old(int card);

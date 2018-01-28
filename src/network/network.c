@@ -12,11 +12,11 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.19	2017/11/04
+ * Version:	@(#)network.c	1.0.20	2018/01/26
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -34,13 +34,13 @@
 static netcard_t net_cards[] = {
     { "None",			"none",		NULL,
       NULL,			NULL					},
-#if defined(DEV_BRANCH) && defined(USE_NE1000)
-    { "Novell NE1000",		"ne1k",		&ne1000_device,
+    { "[ISA] Novell NE1000",		"ne1k",		&ne1000_device,
       NULL,			NULL					},
-#endif
-    { "Novell NE2000",		"ne2k",		&ne2000_device,
+    { "[ISA] Novell NE2000",		"ne2k",		&ne2000_device,
       NULL,			NULL					},
-    { "Realtek RTL8029AS",	"ne2kpci",	&rtl8029as_device,
+    { "[ISA] Realtek RTL8019AS",	"ne2kpnp",	&rtl8019as_device,
+      NULL,			NULL					},
+    { "[PCI] Realtek RTL8029AS",	"ne2kpci",	&rtl8029as_device,
       NULL,			NULL					},
     { "",			"",		NULL,
       NULL,			NULL					}

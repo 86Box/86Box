@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.26	2018/01/23
+ * Version:	@(#)86Box.rc	1.0.27	2018/01/27
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -901,7 +901,7 @@ BEGIN
     IDS_2128	"Screen Filter"
     IDS_2129	"Render Threads"
     IDS_2130	"Recompiler"
-    IDS_2131	"System Default"
+    IDS_2131	"Default"
     IDS_2132	"%i Wait state(s)"
     IDS_2133	"8-bit"
     IDS_2134	"Slow 16-bit"
