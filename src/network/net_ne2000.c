@@ -14,7 +14,7 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.27	2018/01/26
+ * Version:	@(#)net_ne2000.c	1.0.28	2018/01/28
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, <grehan@iprg.nokia.com>
@@ -2394,8 +2394,8 @@ nic_init(device_t *info)
     rom = NULL;
     switch(dev->board) {
 	case NE2K_NE1000:
-	case NE2K_NE2000:
 		dev->is_8bit = 1;
+	case NE2K_NE2000:
 		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Novell OID) */
 		dev->maclocal[1] = 0x00;
 		dev->maclocal[2] = 0xD8;
