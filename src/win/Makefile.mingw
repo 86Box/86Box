@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.96	2018/01/28
+# Version:	@(#)Makefile.mingw	1.0.97	2018/01/28
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -27,10 +27,6 @@ endif
 # Defaults for several build options (possibly defined in a chained file.)
 ifndef AUTODEP
 AUTODEP		:= n
-endif
-ifndef CRASHDUMP
-CRASHDUMP	:= n
-CRASHDUMPOBJ	:= win_crashdump.o
 endif
 ifndef DEBUG
 DEBUG		:= n
@@ -64,6 +60,9 @@ DEV_BRANCH	:= n
 endif
 ifndef CIRRUS
 CIRRUS		:= n
+endif
+ifndef CRASHDUMP
+CRASHDUMP	:= n
 endif
 ifndef GREENB
 GREENB		:= n
@@ -113,6 +112,7 @@ ifeq ($(DEV_BUILD), y)
 DEBUG		:= y
 DEV_BRANCH	:= y
 CIRRUS		:= y
+CRASHDUMP	:= y
 GREENB		:= y
 I686		:= y
 LASERXT		:= y
@@ -218,9 +218,6 @@ else
 endif
 AFLAGS		:= -msse -msse2 -mfpmath=sse
 RFLAGS		:= --input-format=rc -O coff
-ifeq ($(CRASHDUMP), y)
-OPTS		+= -DUSE_CRASHDUMP
-endif
 ifeq ($(RELEASE), y)
 OPTS		+= -DRELEASE_BUILD
 RFLAGS		+= -DRELEASE_BUILD
@@ -311,6 +308,11 @@ DEVBROBJ	:=
 ifeq ($(CIRRUS), y)
 OPTS		+= -DUSE_CIRRUS
 DEVBROBJ	+= vid_cl_gd.o vid_cl_gd_blit.o vid_cl_ramdac.o
+endif
+
+ifeq ($(CRASHDUMPOBJ), y)
+OPTS		+= -DUSE_CRASHDUMP
+DEVBROBJ	+= win_crashdump.o
 endif
 
 ifeq ($(GREENB), y)
@@ -485,7 +487,7 @@ VIDOBJ		:= video.o \
 		    vid_voodoo.o
 
 PLATOBJ		:= win.o \
-		    $(CRASHDUMPOBJ) win_dynld.o win_thread.o $(WSERIAL) \
+		    win_dynld.o win_thread.o \
 		    win_cdrom.o win_cdrom_ioctl.o win_keyboard.o \
 		    win_mouse.o win_joystick.o win_midi.o
 
