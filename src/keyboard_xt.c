@@ -8,7 +8,7 @@
  *
  *		Implementation of the XT-style keyboard.
  *
- * Version:	@(#)keyboard_xt.c	1.0.6	2018/01/25
+ * Version:	@(#)keyboard_xt.c	1.0.7	2018/01/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -493,9 +493,11 @@ kbd_read(uint16_t port, void *priv)
 			} else {
 				/* LaserXT = Always 512k RAM;
 				   LaserXT/3 = Bit 0: set = 512k, clear = 256k. */
+#if defined(DEV_BRANCH) && defined(USE_LASERXT)
 				if (romset == ROM_LXT3)
 					ret = (mem_size == 512) ? 0x0d : 0x0c;
 				else
+#endif
 					ret = 0x0d;
 			}
 		}
