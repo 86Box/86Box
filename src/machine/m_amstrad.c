@@ -32,7 +32,7 @@
  *		in alpha mode, but in highres ("ECD350") mode, it displays
  *		some semi-random junk. Video-memory pointer maybe?
  *
- * Version:	@(#)m_amstrad.c	1.0.6	2018/01/24
+ * Version:	@(#)m_amstrad.c	1.0.7	2018/01/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -85,8 +85,6 @@
 
 
 typedef struct {
-    mem_mapping_t cga_map;		/* 1512/1640/200 */
-    mem_mapping_t ega_map;		/* 1640 */
     rom_t	bios_rom;		/* 1640 */
     cga_t	cga;			/* 1640/200 */
     ega_t	ega;			/* 1640 */
@@ -527,7 +525,7 @@ vid_init_1512(amstrad_t *ams)
     vid->cgamode = 0x12;
 
     timer_add(vid_poll_1512, &vid->vidtime, TIMER_ALWAYS_ENABLED, vid);
-    mem_mapping_add(&vid->cga_map, 0xb8000, 0x08000,
+    mem_mapping_add(&vid->cga.mapping, 0xb8000, 0x08000,
 		    vid_read_1512, NULL, NULL, vid_write_1512, NULL, NULL,
 		    NULL, 0, vid);
     io_sethandler(0x03d0, 16,
@@ -599,28 +597,28 @@ vid_out_1640(uint16_t addr, uint8_t val, void *priv)
 	case 0x03db:
 		vid->cga_enabled = val & 0x40;
 		if (vid->cga_enabled) {
-			mem_mapping_enable(&vid->cga_map);
-			mem_mapping_disable(&vid->ega_map);
+			mem_mapping_enable(&vid->cga.mapping);
+			mem_mapping_disable(&vid->ega.mapping);
 		} else {
-			mem_mapping_disable(&vid->cga_map);
+			mem_mapping_disable(&vid->cga.mapping);
 			switch (vid->ega.gdcreg[6] & 0xc) {
 				case 0x0: /*128k at A0000*/
-					mem_mapping_set_addr(&vid->ega_map,
+					mem_mapping_set_addr(&vid->ega.mapping,
 							0xa0000, 0x20000);
 					break;
 
 				case 0x4: /*64k at A0000*/
-					mem_mapping_set_addr(&vid->ega_map,
+					mem_mapping_set_addr(&vid->ega.mapping,
 							0xa0000, 0x10000);
 					break;
 
 				case 0x8: /*32k at B0000*/
-					mem_mapping_set_addr(&vid->ega_map,
+					mem_mapping_set_addr(&vid->ega.mapping,
 							0xb0000, 0x08000);
 					break;
 
 				case 0xC: /*32k at B8000*/
-					mem_mapping_set_addr(&vid->ega_map,
+					mem_mapping_set_addr(&vid->ega.mapping,
 							0xb8000, 0x08000);
 					break;
 			}
@@ -688,9 +686,9 @@ vid_init_1640(amstrad_t *ams)
     vid->cga_enabled = 1;
     cga_init(&vid->cga);
 
-    mem_mapping_add(&vid->cga_map, 0xb8000, 0x08000,
+    mem_mapping_add(&vid->cga.mapping, 0xb8000, 0x08000,
 	cga_read, NULL, NULL, cga_write, NULL, NULL, NULL, 0, &vid->cga);
-    mem_mapping_add(&vid->ega_map, 0,       0,
+    mem_mapping_add(&vid->ega.mapping, 0,       0,
 	ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, 0, &vid->ega);
     io_sethandler(0x03a0, 64,
 		  vid_in_1640, NULL, NULL, vid_out_1640, NULL, NULL, vid);
@@ -825,7 +823,7 @@ vid_init_200(amstrad_t *ams)
     cga->vram = malloc(0x4000);
     cga_init(cga);
 
-    mem_mapping_add(&vid->cga_map, 0xb8000, 0x08000,
+    mem_mapping_add(&vid->cga.mapping, 0xb8000, 0x08000,
 	cga_read, NULL, NULL, cga_write, NULL, NULL, NULL, 0, cga);
     io_sethandler(0x03d0, 16,
 		  vid_in_200, NULL, NULL, vid_out_200, NULL, NULL, vid);
