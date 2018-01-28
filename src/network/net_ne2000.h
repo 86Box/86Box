@@ -8,7 +8,7 @@
  *
  *		Definitions for the NE2000 ethernet controller.
  *
- * Version:	@(#)net_ne2000.h	1.0.4	2018/01/26
+ * Version:	@(#)net_ne2000.h	1.0.5	2018/01/28
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -18,10 +18,10 @@
 
 enum {
 	NE2K_NONE = 0,
-	NE2K_NE1000,			/* 8bit ISA NE1000 */
-	NE2K_NE2000,			/* 16bit ISA NE2000 */
-	NE2K_RTL8019AS,			/* 16bit? ISA? PnP Realtek 8019AS */
-	NE2K_RTL8029AS			/* 32bit PCI Realtek 8029AS */
+	NE2K_NE1000,			/* 8-bit ISA NE1000 */
+	NE2K_NE2000,			/* 16-bit ISA NE2000 */
+	NE2K_RTL8019AS,			/* 16-bit ISA PnP Realtek 8019AS */
+	NE2K_RTL8029AS			/* 32-bit PCI Realtek 8029AS */
 };
 
 

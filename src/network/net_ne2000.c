@@ -7,7 +7,7 @@
  *		This file is part of the 86Box distribution.
  *
  *		Implementation of the following network controllers:
- *			- Novell NE1000 (ISA 8-bit) (Dev branch);
+ *			- Novell NE1000 (ISA 8-bit);
  *			- Novell NE2000 (ISA 16-bit);
  *			- Realtek RTL8019AS (ISA 16-bit, PnP);
  *			- Realtek RTL8029AS (PCI).

@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.94	2018/01/25
+# Version:	@(#)Makefile.mingw	1.0.95	2018/01/28
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -71,9 +71,6 @@ endif
 ifndef I686
 I686		:= n
 endif
-ifndef NE1000
-NE1000		:= n
-endif
 ifndef NV_RIVA
 NV_RIVA		:= n
 endif
@@ -115,7 +112,6 @@ DEV_BRANCH	:= y
 CIRRUS		:= y
 GREENB		:= y
 I686		:= y
-NE1000		:= y
 NV_RIVA		:= y
 PAS16		:= y
 PORTABLE3	:= y
@@ -321,10 +317,6 @@ endif
 ifeq ($(I686), y)
 OPTS		+= -DUSE_I686
 DEVBROBJ	+= m_at_440fx.o
-endif
-
-ifeq ($(NE1000), y)
-OPTS		+= -DUSE_NE1000
 endif
 
 ifeq ($(NV_RIVA), y)
