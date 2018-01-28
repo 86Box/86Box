@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.17	2018/01/22
+ * Version:	@(#)machine.h	1.0.18	2018/01/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -128,11 +128,9 @@ extern void	machine_at_p55tvp4_init(machine_t *);
 extern void	machine_at_i430vx_init(machine_t *);
 extern void	machine_at_p55va_init(machine_t *);
 
-#ifdef DEV_BRANCH
-#ifdef USE_I686
+#if defined(DEV_BRANCH) && defined(USE_I686)
 extern void	machine_at_i440fx_init(machine_t *);
 extern void	machine_at_s1668_init(machine_t *);
-#endif
 #endif
 extern void	machine_at_ali1429_init(machine_t *);
 extern void	machine_at_cmdpc_init(machine_t *);
@@ -150,10 +148,8 @@ extern void	machine_at_r418_init(machine_t *);
 
 extern void	machine_at_wd76c10_init(machine_t *);
 
-#ifdef DEV_BRANCH
-#ifdef USE_GREENB
+#if defined(DEV_BRANCH) && defined(USE_GREENB)
 extern void	machine_at_4gpv31_init(machine_t *);
-#endif
 #endif
 
 extern void	machine_pcjr_init(machine_t *);
@@ -186,7 +182,9 @@ extern int	tandy1k_eeprom_read(void);
 
 extern void	machine_xt_init(machine_t *);
 extern void	machine_xt_compaq_init(machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_LASERXT)
 extern void	machine_xt_laserxt_init(machine_t *);
+#endif
 
 
 #endif	/*EMU_MACHINE_H*/

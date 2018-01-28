@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.27	2018/01/25
+ * Version:	@(#)rom.c	1.0.28	2018/01/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -410,8 +410,7 @@ rom_load_bios(int rom_id)
 		biosmask = 0x7fff;
 		return(1);
 
-#ifdef DEV_BRANCH
-#ifdef USE_PORTABLE3
+#if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
 	case ROM_PORTABLEIII:
 	case ROM_PORTABLEIII386:
 		if (rom_load_interleaved(
@@ -419,7 +418,6 @@ rom_load_bios(int rom_id)
 			L"roms/machines/portableiii/109737-002.bin",
 			0x000000, 65536, 0, rom)) return(1);
 		break;
-#endif
 #endif
 
 	case ROM_DTKXT:
@@ -577,8 +575,7 @@ rom_load_bios(int rom_id)
 		biosmask = 0x1ffff;
 		return(1);
 
-#ifdef DEV_BRANCH
-#ifdef USE_PORTABLE3
+#if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
 	case ROM_DESKPRO_386:
 		if (! rom_load_interleaved(
 			L"roms/machines/deskpro386/109592-005.u11.bin",
@@ -587,7 +584,6 @@ rom_load_bios(int rom_id)
 		biosmask = 0x7fff;
 		return(1);
 #endif
-#endif
 
 	case ROM_AMIXT:
 		if (rom_load_linear(
@@ -595,6 +591,7 @@ rom_load_bios(int rom_id)
 			0x00e000, 8192, 0, rom)) return(1);
 		break;
 
+#if defined(DEV_BRANCH) && defined(USE_LASERXT)
 	case ROM_LTXT:
 		if (rom_load_linear(
 			L"roms/machines/ltxt/27c64.bin",
@@ -606,6 +603,7 @@ rom_load_bios(int rom_id)
 			L"roms/machines/lxt3/27c64d.bin",
 			0x00e000, 8192, 0, rom)) return(1);
 		break;
+#endif
 
 	case ROM_SPC4200P:	/* Samsung SPC-4200P */
 		if (rom_load_linear(
@@ -746,8 +744,7 @@ rom_load_bios(int rom_id)
 		biosmask = 0x1ffff;
 		return(1);
 
-#ifdef DEV_BRANCH
-#ifdef USE_I686
+#if defined(DEV_BRANCH) && defined(USE_I686)
 	case ROM_440FX:		/* working Tyan BIOS */
 		if (! rom_load_linear(
 			L"roms/machines/440fx/ntmaw501.bin",
@@ -761,7 +758,6 @@ rom_load_bios(int rom_id)
 			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
-#endif
 #endif
 
 	case ROM_THOR:
@@ -822,14 +818,12 @@ rom_load_bios(int rom_id)
 		biosmask = 0x1ffff;
 		return(1);
 
-#ifdef DEV_BRANCH
-#ifdef USE_GREENB
+#if defined(DEV_BRANCH) && defined(USE_GREENB)
 	case ROM_4GPV31:
 		if (! rom_load_linear(
 			L"roms/machines/green-b/4gpv31-ami-1993-8273517.bin",
 			0x000000, 65536, 0, rom)) break;
 		return(1);
-#endif
 #endif
 
 	case ROM_T3100E:

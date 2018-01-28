@@ -11,7 +11,7 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.16	2018/01/28
+ * Version:	@(#)machine_table.c	1.0.17	2018/01/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -47,7 +47,9 @@ machine_t machines[] = {
     { "[8088] Schneider EuroPC",		ROM_EUROPC,		"europc",		{{"Siemens",cpus_europc},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_HDC | MACHINE_VIDEO | MACHINE_MOUSE,				512,  640, 128,   0,		  machine_europc_init, NULL, NULL			},
     { "[8088] Tandy 1000",			ROM_TANDY,		"tandy",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,										128,  640, 128,   0,		 machine_tandy1k_init, NULL, NULL			},
     { "[8088] Tandy 1000 HX",			ROM_TANDY1000HX,	"tandy1000hx",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,										256,  640, 128,   0,		 machine_tandy1k_init, NULL, NULL			},
+#if defined(DEV_BRANCH) && defined(USE_LASERXT)
     { "[8088] VTech Laser Turbo XT",		ROM_LTXT,		"ltxt",			{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,										512,  512, 256,   0,	      machine_xt_laserxt_init, NULL, NULL			},
+#endif
 
     { "[8086] Amstrad PC1512",			ROM_PC1512,		"pc1512",		{{"",      cpus_pc1512},      {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,						512,  640, 128,  63,		 machine_amstrad_init, NULL, nvr_at_close		},
     { "[8086] Amstrad PC1640",			ROM_PC1640,		"pc1640",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,						640,  640,   0,  63,		 machine_amstrad_init, NULL, nvr_at_close		},
@@ -56,16 +58,16 @@ machine_t machines[] = {
     { "[8086] Amstrad PC20(0)",			ROM_PC200,		"pc200",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,						512,  640, 128,  63,		 machine_amstrad_init, NULL, nvr_at_close		},
     { "[8086] Olivetti M24",			ROM_OLIM24,		"olivetti_m24",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,						128,  640, 128,   0,		  machine_olim24_init, NULL, NULL			},
     { "[8086] Tandy 1000 SL/2",			ROM_TANDY1000SL2,	"tandy1000sl2",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,										512,  768, 128,   0,	         machine_tandy1k_init, NULL, NULL			},
+#if defined(DEV_BRANCH) && defined(USE_LASERXT)
     { "[8086] VTech Laser XT3",			ROM_LXT3,		"lxt3",			{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,										256,  512, 256,   0,	      machine_xt_laserxt_init, NULL, NULL			},
+#endif
 
     { "[286 ISA] AMI 286 clone",		ROM_AMI286,		"ami286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								512,16384, 128, 127,	     machine_at_neat_ami_init, NULL, nvr_at_close		},
     { "[286 ISA] Award 286 clone",		ROM_AWARD286,		"award286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								512,16384, 128, 127,		 machine_at_scat_init, NULL, nvr_at_close		},
     { "[286 ISA] Commodore PC 30 III",		ROM_CMDPC30,		"cmdpc30",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								640,16384, 128, 127,		machine_at_cmdpc_init, NULL, nvr_at_close		},
     { "[286 ISA] Compaq Portable II",		ROM_PORTABLEII,		"portableii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								640,16384, 128, 127,	       machine_at_compaq_init, NULL, nvr_at_close		},
-#ifdef DEV_BRANCH
-#ifdef USE_PORTABLE3
+#if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
     { "[286 ISA] Compaq Portable III",		ROM_PORTABLEIII,	"portableiii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_VIDEO,						640,16384, 128, 127,	       machine_at_compaq_init, NULL, nvr_at_close		},
-#endif
 #endif
     { "[286 ISA] Hyundai Super-286TR",		ROM_SUPER286TR,		"super286tr",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								512,16384, 128, 127,		 machine_at_scat_init, NULL, nvr_at_close		},
     { "[286 ISA] IBM AT",			ROM_IBMAT,		"ibmat",		{{"",      cpus_ibmat},       {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,								256,15872, 128,  63,		  machine_at_ibm_init, NULL, nvr_at_close		},
@@ -93,10 +95,8 @@ machine_t machines[] = {
     { "[386DX ISA] Amstrad MegaPC 386DX",	ROM_MEGAPCDX,		"megapcdx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,			  1,   32,   1, 127,	      machine_at_wd76c10_init, NULL, nvr_at_close		},
     { "[386DX ISA] Award 386DX clone",		ROM_AWARD386DX_OPTI495,	"award386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,							  1,   64,   1, 127,	      machine_at_opti495_init, NULL, nvr_at_close		},
     { "[386DX ISA] MR 386DX clone",		ROM_MR386DX_OPTI495,	"mr386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,							  1,   64,   1, 127,	  machine_at_opti495_ami_init, NULL, nvr_at_close		},
-#ifdef DEV_BRANCH
-#ifdef USE_PORTABLE3
+#if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
     { "[386DX ISA] Compaq Portable III (386)",  ROM_PORTABLEIII386,     "portableiii386",       {{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_VIDEO,                		          1,   14,   1, 127,           machine_at_compaq_init, NULL, nvr_at_close		},
-#endif
 #endif
 
     { "[386DX MCA] IBM PS/2 model 80",		ROM_IBMPS2_M80,		"ibmps2_m80",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 1, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC_PS2,				  1,   12,   1,  63,	    machine_ps2_model_80_init, NULL, nvr_at_close		},
@@ -113,11 +113,9 @@ machine_t machines[] = {
 
     { "[486 PCI] Rise Computer R418",		ROM_R418,		"r418",			{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,			  1,  255,   1, 127,		 machine_at_r418_init, NULL, nvr_at_close		},
 
-#ifdef DEV_BRANCH
-#ifdef USE_GREENB
+#if defined(DEV_BRANCH) && defined(USE_GREENB)
     { "[486 VLB] Green-B 4GP V3.1",		ROM_4GPV31,		"4gpv31",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VLB | MACHINE_AT,					                  1,  128,   1, 127,	       machine_at_4gpv31_init, NULL, nvr_at_close		},
 #endif
-#endif    
 
     { "[Socket 4 LX] Intel Premiere/PCI",	ROM_REVENGE,		"revenge",		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,	  2,  128,   2, 127,	       machine_at_batman_init, NULL, nvr_at_close		},
 
@@ -142,11 +140,9 @@ machine_t machines[] = {
     { "[Socket 7 VX] Award 430VX PCI",		ROM_430VX,		"430vx",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,	  8,  128,   8, 127,	       machine_at_i430vx_init, NULL, nvr_at_close		},
     { "[Socket 7 VX] Epox P55-VA",		ROM_P55VA,		"p55va",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,	  8,  128,   8, 127,		machine_at_p55va_init, NULL, nvr_at_close		},
 
-#ifdef DEV_BRANCH
-#ifdef USE_I686
+#if defined(DEV_BRANCH) && defined(USE_I686)
     { "[Socket 8 FX] Tyan Titan-Pro AT",	ROM_440FX,		"440fx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8, 1024,   8, 127,	       machine_at_i440fx_init, NULL, nvr_at_close		},
     { "[Socket 8 FX] Tyan Titan-Pro ATX",	ROM_S1668,		"tpatx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8, 1024,   8, 127,		machine_at_s1668_init, NULL, nvr_at_close		},
-#endif
 #endif
     { "",				-1,				"",			{{"", 0},                     {"", 0},               {"", 0}},			0,0,0,0, 0																										}
 };

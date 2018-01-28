@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.12	2018/01/25
+ * Version:	@(#)rom.h	1.0.13	2018/01/28
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2018 Fred N. van Kempen.
@@ -45,10 +45,12 @@ enum {
     ROM_GENXT,		/* 'Generic XT BIOS' */
     ROM_JUKOPC,
     ROM_PORTABLE,
-    ROM_LTXT,
     ROM_PXXT,
+#if defined(DEV_BRANCH) && defined(USE_LASERXT)
+    ROM_LTXT,
 
     ROM_LXT3,
+#endif
 
     ROM_IBMPCJR,
     ROM_TANDY,
