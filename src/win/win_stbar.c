@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.11	2018/01/27
+ * Version:	@(#)win_stbar.c	1.0.12	2018/01/29
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -845,7 +845,7 @@ ui_sb_update_panes(void)
 			break;
 
 		case SB_ZIP:		/* Iomega ZIP */
-			sb_icon_flags[i] = (wcslen(floppyfns[sb_part_meanings[i] & 0xf]) == 0) ? 256 : 0;
+			sb_icon_flags[i] = (wcslen(zip_drives[sb_part_meanings[i] & 0xf].image_path) == 0) ? 256 : 0;
 			sb_part_icons[i] = 176 + sb_icon_flags[i];
 			sb_menu_handles[i] = StatusBarCreatePopupMenu(i);
 			StatusBarCreateZIPSubmenu(sb_menu_handles[i], sb_part_meanings[i] & 0xf);
