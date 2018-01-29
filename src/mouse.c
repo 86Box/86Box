@@ -11,7 +11,7 @@
  * TODO:	Add the Genius bus- and serial mouse.
  *		Remove the '3-button' flag from mouse types.
  *
- * Version:	@(#)mouse.c	1.0.20	2018/01/26
+ * Version:	@(#)mouse.c	1.0.21	2018/01/29
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -106,11 +106,11 @@ mouse_close(void)
 void
 mouse_reset(void)
 {
+    if (mouse_curr != NULL)
+	return;		/* Mouse already initialized. */
+
     pclog("MOUSE: reset(type=%d, '%s')\n",
 	mouse_type, mouse_devices[mouse_type].device->name);
-
-    /* Close previous mouse, if open. */
-    mouse_close();
 
     /* Clear local data. */
     mouse_x = mouse_y = mouse_z = 0;

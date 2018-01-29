@@ -8,7 +8,7 @@
  *
  *		Emulation of the Olivetti M24.
  *
- * Version:	@(#)m_olivetti_m24.c	1.0.9	2018/01/16
+ * Version:	@(#)m_olivetti_m24.c	1.0.10	2018/01/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -842,6 +842,7 @@ machine_olim24_init(machine_t *model)
     timer_add(kbd_poll, &keyboard_delay, TIMER_ALWAYS_ENABLED, m24);
 
     /* Tell mouse driver about our internal mouse. */
+    mouse_reset();
     mouse_set_poll(ms_poll, m24);
 
     if (joystick_type != 7)

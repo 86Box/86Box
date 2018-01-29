@@ -8,7 +8,7 @@
  *
  *		Definitions for the mouse driver.
  *
- * Version:	@(#)mouse.h	1.0.13	2018/01/26
+ * Version:	@(#)mouse.h	1.0.14	2018/01/29
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -58,6 +58,7 @@ extern device_t	mouse_ps2_device;
 #endif
 
 extern void	mouse_init(void);
+extern void	mouse_close(void);
 extern void	mouse_reset(void);
 extern void	mouse_set_buttons(int buttons);
 extern void	mouse_process(void);

@@ -32,7 +32,7 @@
  *		in alpha mode, but in highres ("ECD350") mode, it displays
  *		some semi-random junk. Video-memory pointer maybe?
  *
- * Version:	@(#)m_amstrad.c	1.0.7	2018/01/28
+ * Version:	@(#)m_amstrad.c	1.0.9	2018/01/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1266,6 +1266,7 @@ machine_amstrad_init(machine_t *model)
     keyboard_scan = 1;
 
     /* Tell mouse driver about our internal mouse. */
+    mouse_reset();
     mouse_set_poll(ms_poll, ams);
 
     if (joystick_type != 7)

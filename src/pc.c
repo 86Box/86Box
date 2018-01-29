@@ -749,6 +749,8 @@ pc_reset_hard_close(void)
 
     machine_close();
 
+    mouse_close();
+
     device_close_all();
 
     midi_close();
@@ -791,13 +793,6 @@ pc_reset_hard_init(void)
     serial_init();
 #endif
 
-    /*
-     * This has to be after the serial initialization so that
-     * serial_init() doesn't break the serial mouse by resetting
-     * the RCR callback to NULL.
-     */
-    mouse_reset();
-
     /* Initialize the actual machine and its basic modules. */
     machine_init();
 
@@ -821,6 +816,13 @@ pc_reset_hard_init(void)
     // FIXME: do we really have to reset the *AT* keyboard?? --FvK
     shadowbios = 0;
     keyboard_at_reset();
+
+    /*
+     * This has to be after the serial initialization so that
+     * serial_init() doesn't break the serial mouse by resetting
+     * the RCR callback to NULL.
+     */
+    mouse_reset();
 
     /* Reset the video card. */
     video_reset(gfxcard);
