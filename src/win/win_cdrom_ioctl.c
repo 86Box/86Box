@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM host drive IOCTL interface for
  *		Windows using SCSI Passthrough Direct.
  *
- * Version:	@(#)cdrom_ioctl.c	1.0.9	2018/01/17
+ * Version:	@(#)cdrom_ioctl.c	1.0.10	2018/02/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -51,6 +51,7 @@ typedef struct {
 
 
 cdrom_ioctl_windows_t cdrom_ioctl_windows[CDROM_NUM];
+
 #ifdef ENABLE_CDROM_LOG
 int cdrom_ioctl_do_log = ENABLE_CDROM_LOG;
 #endif
@@ -671,9 +672,9 @@ static int ioctl_get_block_length(uint8_t id, const UCHAR *cdb, int number_of_bl
 			case 0x51:	/* READ DISC INFORMATION */
 			case 0x52:	/* READ TRACK INFORMATION */
 			case 0x5A:	/* MODE SENSE (10) */
-				return ((uint16_t) cdb[8]) + (((uint16_t) cdb[7]) << 8);
+				return (((uint32_t) cdb[7]) << 8) | ((uint32_t) cdb[8]);
 			case 0xAD:	/* READ DVD STRUCTURE */
-				return (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
+				return (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
 			default:
 				return 65534;
 		}
@@ -689,9 +690,9 @@ static int ioctl_get_block_length(uint8_t id, const UCHAR *cdb, int number_of_bl
 		case 0x51:	/* READ DISC INFORMATION */
 		case 0x52:	/* READ TRACK INFORMATION */
 		case 0x5A:	/* MODE SENSE (10) */
-			return ((uint16_t) cdb[8]) + (((uint16_t) cdb[7]) << 8);
-			case 0xAD:	/* READ DVD STRUCTURE */
-				return (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
+			return (((uint32_t) cdb[7]) << 8) | ((uint32_t) cdb[8]);
+		case 0xAD:	/* READ DVD STRUCTURE */
+			return (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
 		case 0x08:
 		case 0x28:
 		case 0xa8:

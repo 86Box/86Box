@@ -772,11 +772,12 @@ void sb_dsp_init(sb_dsp_t *dsp, int type)
 void sb_dsp_setaddr(sb_dsp_t *dsp, uint16_t addr)
 {
 //        pclog("sb_dsp_setaddr : %04X\n", addr);
-        io_removehandler(dsp->sb_addr + 6,   0x0002, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);
-        io_removehandler(dsp->sb_addr + 0xa, 0x0006, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);        
+        if (dsp->sb_addr != 0) {
+	        io_removehandler(dsp->sb_addr + 6,   0x0002, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);
+        	io_removehandler(dsp->sb_addr + 0xa, 0x0006, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);        
+	}
         dsp->sb_addr = addr;
-        if (dsp->sb_addr != 0)
-        {
+        if (dsp->sb_addr != 0) {
                 io_sethandler(dsp->sb_addr + 6,   0x0002, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);
                 io_sethandler(dsp->sb_addr + 0xa, 0x0006, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);        
         }

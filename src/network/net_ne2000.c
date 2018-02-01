@@ -14,7 +14,7 @@
  *
  * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
  *
- * Version:	@(#)net_ne2000.c	1.0.28	2018/01/28
+ * Version:	@(#)net_ne2000.c	1.0.29	2018/02/01
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Peter Grehan, <grehan@iprg.nokia.com>
@@ -26,7 +26,7 @@
  *
  *		Portions Copyright (C) 2002  MandrakeSoft S.A.
  *		Portions Copyright (C) 2018  Sarah Walker.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -1764,9 +1764,6 @@ nic_pnp_writeb(uint16_t addr, uint8_t val, void *priv)
 static void
 nic_pnp_io_set(nic_t *dev, uint16_t read_addr)
 {
-	io_sethandler(0x0A79, 1,
-		      NULL, NULL, NULL,
-		      nic_pnp_writeb, NULL, NULL, dev);
 	if ((read_addr >= 0x0200) && (read_addr <= 0x03FF)) {
 		io_sethandler(read_addr, 1,
 			      nic_pnp_readb, NULL, NULL,
@@ -1779,12 +1776,11 @@ nic_pnp_io_set(nic_t *dev, uint16_t read_addr)
 static void
 nic_pnp_io_remove(nic_t *dev)
 {
-	io_removehandler(0x0A79, 1,
-		      NULL, NULL, NULL,
-		      nic_pnp_writeb, NULL, NULL, dev);
-	io_removehandler(dev->pnp_read, 1,
-		      nic_pnp_readb, NULL, NULL,
-		      NULL, NULL, NULL, dev);
+	if ((dev->pnp_read >= 0x0200) && (dev->pnp_read <= 0x03FF)) {
+		io_removehandler(dev->pnp_read, 1,
+			      nic_pnp_readb, NULL, NULL,
+			      NULL, NULL, NULL, dev);
+	}
 }
 
 
@@ -1799,11 +1795,8 @@ nic_pnp_address_writeb(uint16_t addr, uint8_t val, void *priv)
 	case PNP_PHASE_WAIT_FOR_KEY:
 		if (val == pnp_init_key[dev->pnp_magic_count]) {
 			dev->pnp_magic_count = (dev->pnp_magic_count + 1) & 0x1f;
-			if (!dev->pnp_magic_count) {
-				nic_pnp_io_remove(dev);
-				nic_pnp_io_set(dev, dev->pnp_read);
+			if (!dev->pnp_magic_count)
 				dev->pnp_phase = PNP_PHASE_SLEEP;
-			}
 		} else
 			dev->pnp_magic_count = 0;
 		break;
@@ -2592,7 +2585,9 @@ nic_init(device_t *info)
 			dev->eeprom[0x5C] += dev->eeprom[c];
 		dev->eeprom[0x5C] = -dev->eeprom[0x5C];
 
-		nic_pnp_io_set(dev, dev->pnp_read);
+		io_sethandler(0x0A79, 1,
+			      NULL, NULL, NULL,
+			      nic_pnp_writeb, NULL, NULL, dev);
 	}
     }
 

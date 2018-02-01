@@ -53,6 +53,7 @@ typedef struct um8669f_t
         } dev[8];
 
 	fdc_t *fdc;
+	int pnp_active;
 } um8669f_t;
 
 
@@ -128,7 +129,7 @@ void um8669f_pnp_write(uint16_t port, uint8_t val, void *p)
 				}
                                 break;
                                 case DEV_COM1:
-				if (valxor)
+				if ((um8669f->cur_reg == REG_ENABLE) && valxor)
 				{
 	                                serial_remove(1);
         	                        if (um8669f->dev[DEV_COM1].enable & 1)
@@ -136,7 +137,7 @@ void um8669f_pnp_write(uint16_t port, uint8_t val, void *p)
 				}
                                 break;
                                 case DEV_COM2:
-				if (valxor)
+				if ((um8669f->cur_reg == REG_ENABLE) && valxor)
 				{
 	                                serial_remove(2);
         	                        if (um8669f->dev[DEV_COM2].enable & 1)
@@ -144,7 +145,7 @@ void um8669f_pnp_write(uint16_t port, uint8_t val, void *p)
 				}
                                 break;
                                 case DEV_LPT1:
-				if (valxor)
+				if ((um8669f->cur_reg == REG_ENABLE) && valxor)
 				{
         	                        lpt1_remove();
                 	                if (um8669f->dev[DEV_LPT1].enable & 1)
@@ -186,6 +187,7 @@ uint8_t um8669f_pnp_read(uint16_t port, void *p)
 void um8669f_write(uint16_t port, uint8_t val, void *p)
 {
         um8669f_t *um8669f = (um8669f_t *)p;
+	int new_pnp_active;
 
         if (um8669f->locked)
         {
@@ -206,15 +208,21 @@ void um8669f_write(uint16_t port, uint8_t val, void *p)
 /*                        pclog("Write UM8669f register %02x %02x %04x:%04x %i\n", um8669f_curreg, val, CS,cpu_state.pc, ins); */
                         um8669f->regs_108[um8669f->cur_reg_108] = val;
 
-                        io_removehandler(0x0279, 0x0001, NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, um8669f);
-                        io_removehandler(0x0a79, 0x0001, NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, um8669f);
-                        io_removehandler(0x03e3, 0x0001, um8669f_pnp_read, NULL, NULL, NULL, NULL, NULL, um8669f);
-                        if (um8669f->regs_108[0xc1] & 0x80)
-                        {
-                                io_sethandler(0x0279, 0x0001, NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, um8669f);
-                                io_sethandler(0x0a79, 0x0001, NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, um8669f);
-                                io_sethandler(0x03e3, 0x0001, um8669f_pnp_read, NULL, NULL, NULL, NULL, NULL, um8669f);
-                        }
+			if (um8669f->cur_reg_108 == 0xc1) {
+				new_pnp_active = !!(um8669f->regs_108[0xc1] & 0x80);
+				if (new_pnp_active != um8669f->pnp_active) {
+        	                	if (new_pnp_active) {
+	        	                        io_sethandler(0x0279, 0x0001, NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, um8669f);
+        	        	                io_sethandler(0x0a79, 0x0001, NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, um8669f);
+                	        	        io_sethandler(0x03e3, 0x0001, um8669f_pnp_read, NULL, NULL, NULL, NULL, NULL, um8669f);
+	                	        } else {
+        			                io_removehandler(0x0279, 0x0001, NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, um8669f);
+        	        		        io_removehandler(0x0a79, 0x0001, NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, um8669f);
+		                	        io_removehandler(0x03e3, 0x0001, um8669f_pnp_read, NULL, NULL, NULL, NULL, NULL, um8669f);
+					}
+					um8669f->pnp_active = new_pnp_active;
+				}
+			}
                 }
         }
 }
@@ -252,15 +260,18 @@ void um8669f_reset(void)
 	lpt1_remove();
 	lpt1_init(0x378);
         
+	if (um8669f_global.pnp_active) {
+		io_removehandler(0x0279, 0x0001, NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, &um8669f_global);
+		io_removehandler(0x0a79, 0x0001, NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, &um8669f_global);
+		io_removehandler(0x03e3, 0x0001, um8669f_pnp_read, NULL, NULL, NULL, NULL, NULL, &um8669f_global);
+		um8669f_global.pnp_active = 0;
+	}
+
         memset(&um8669f_global, 0, sizeof(um8669f_t));
 
 	um8669f_global.fdc = temp_fdc;
 
         um8669f_global.locked = 1;
-
-	io_removehandler(0x0279, 0x0001, NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, &um8669f_global);
-	io_removehandler(0x0a79, 0x0001, NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, &um8669f_global);
-	io_removehandler(0x03e3, 0x0001, um8669f_pnp_read, NULL, NULL, NULL, NULL, NULL, &um8669f_global);
 
 	um8669f_global.dev[DEV_FDC].enable = 1;
 	um8669f_global.dev[DEV_FDC].addr = 0x03f0;
