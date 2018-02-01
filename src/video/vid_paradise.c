@@ -10,13 +10,13 @@
  *		 PC2086, PC3086 use PVGA1A
  *		 MegaPC uses W90C11A
  *
- * Version:	@(#)vid_paradise.c	1.0.3	2017/12/31
+ * Version:	@(#)vid_paradise.c	1.0.4	2018/01/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -50,8 +50,6 @@ typedef struct paradise_t
         uint32_t read_bank[4], write_bank[4];
 } paradise_t;
 
-void    paradise_write(uint32_t addr, uint8_t val, void *p);
-uint8_t paradise_read(uint32_t addr, void *p);
 void paradise_remap(paradise_t *paradise);
 
 
@@ -256,21 +254,32 @@ void paradise_recalctimings(svga_t *svga)
                 svga->render = svga_render_8bpp_highres;
 }
 
-void paradise_write(uint32_t addr, uint8_t val, void *p)
+static void paradise_write(uint32_t addr, uint8_t val, void *p)
 {
         paradise_t *paradise = (paradise_t *)p;
         addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
 
         svga_write_linear(addr, val, &paradise->svga);
 }
+static void paradise_writew(uint32_t addr, uint16_t val, void *p)
+{
+        paradise_t *paradise = (paradise_t *)p;
+        addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
+        svga_writew_linear(addr, val, &paradise->svga);
+}
 
-uint8_t paradise_read(uint32_t addr, void *p)
+static uint8_t paradise_read(uint32_t addr, void *p)
 {
         paradise_t *paradise = (paradise_t *)p;
         addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
         return svga_read_linear(addr, &paradise->svga);
 }
-
+static uint16_t paradise_readw(uint32_t addr, void *p)
+{
+        paradise_t *paradise = (paradise_t *)p;
+        addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
+        return svga_readw_linear(addr, &paradise->svga);
+}
 
 void *paradise_pvga1a_init(device_t *info, uint32_t memsize)
 {
@@ -286,7 +295,7 @@ void *paradise_pvga1a_init(device_t *info, uint32_t memsize)
                    NULL,
                    NULL);
 
-        mem_mapping_set_handler(&paradise->svga.mapping, paradise_read, NULL, NULL, paradise_write, NULL, NULL);
+        mem_mapping_set_handler(&paradise->svga.mapping, paradise_read, paradise_readw, NULL, paradise_write, paradise_writew, NULL);
         mem_mapping_set_p(&paradise->svga.mapping, paradise);
         
         svga->crtc[0x31] = 'W';
@@ -319,7 +328,7 @@ void *paradise_wd90c11_init(device_t *info)
                    NULL,
                    NULL);
 
-        mem_mapping_set_handler(&paradise->svga.mapping, paradise_read, NULL, NULL, paradise_write, NULL, NULL);
+        mem_mapping_set_handler(&paradise->svga.mapping, paradise_read, paradise_readw, NULL, paradise_write, paradise_writew, NULL);
         mem_mapping_set_p(&paradise->svga.mapping, paradise);
 
         svga->crtc[0x31] = 'W';
@@ -354,7 +363,7 @@ void *paradise_wd90c30_init(device_t *info, uint32_t memsize)
                    NULL,
                    NULL);
 
-        mem_mapping_set_handler(&paradise->svga.mapping, paradise_read, NULL, NULL, paradise_write, NULL, NULL);
+        mem_mapping_set_handler(&paradise->svga.mapping, paradise_read, paradise_readw, NULL, paradise_write, paradise_writew, NULL);
         mem_mapping_set_p(&paradise->svga.mapping, paradise);
 
         svga->crtc[0x31] = 'W';

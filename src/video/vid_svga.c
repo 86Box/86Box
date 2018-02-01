@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.17	2018/01/25
+ * Version:	@(#)vid_svga.c	1.0.18	2018/02/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -956,8 +956,8 @@ void svga_write(uint32_t addr, uint8_t val, void *p)
 
         egawrites++;
 
-        cycles -= video_timing_b;
-        cycles_lost += video_timing_b;
+        cycles -= video_timing_write_b;
+        cycles_lost += video_timing_write_b;
 
         /* if (svga_output) pclog("Writeega %06X   ",addr); */
         addr &= svga->banked_mask;
@@ -1175,8 +1175,8 @@ uint8_t svga_read(uint32_t addr, void *p)
         uint32_t latch_addr;
         int readplane = svga->readplane;
         
-        cycles -= video_timing_b;
-        cycles_lost += video_timing_b;
+        cycles -= video_timing_read_b;
+        cycles_lost += video_timing_read_b;
         
         egareads++;
 
@@ -1251,8 +1251,8 @@ void svga_write_linear(uint32_t addr, uint8_t val, void *p)
         uint8_t vala, valb, valc, vald, wm = svga->writemask;
         int writemask2 = svga->writemask;
 
-        cycles -= video_timing_b;
-        cycles_lost += video_timing_b;
+        cycles -= video_timing_write_b;
+        cycles_lost += video_timing_write_b;
 
         egawrites++;
         
@@ -1447,8 +1447,8 @@ uint8_t svga_read_linear(uint32_t addr, void *p)
         uint8_t temp, temp2, temp3, temp4;
         int readplane = svga->readplane;
   
-        cycles -= video_timing_b;
-        cycles_lost += video_timing_b;
+        cycles -= video_timing_read_b;
+        cycles_lost += video_timing_read_b;
 
         egareads++;
 
@@ -1618,8 +1618,8 @@ void svga_writew(uint32_t addr, uint16_t val, void *p)
         
         egawrites += 2;
 
-        cycles -= video_timing_w;
-        cycles_lost += video_timing_w;
+        cycles -= video_timing_write_w;
+        cycles_lost += video_timing_write_w;
 
         /* if (svga_output) pclog("svga_writew: %05X ", addr); */
         addr = (addr & svga->banked_mask) + svga->write_bank;
@@ -1648,8 +1648,8 @@ void svga_writel(uint32_t addr, uint32_t val, void *p)
         
         egawrites += 4;
 
-        cycles -= video_timing_l;
-        cycles_lost += video_timing_l;
+        cycles -= video_timing_write_l;
+        cycles_lost += video_timing_write_l;
 
         /* if (svga_output) pclog("svga_writel: %05X ", addr); */
         addr = (addr & svga->banked_mask) + svga->write_bank;
@@ -1673,8 +1673,8 @@ uint16_t svga_readw(uint32_t addr, void *p)
         
         egareads += 2;
 
-        cycles -= video_timing_w;
-        cycles_lost += video_timing_w;
+        cycles -= video_timing_read_w;
+        cycles_lost += video_timing_read_w;
 
         addr = (addr & svga->banked_mask) + svga->read_bank;
 	if ((!svga->extvram) && (addr >= 0x10000))  return 0xffff;
@@ -1697,8 +1697,8 @@ uint32_t svga_readl(uint32_t addr, void *p)
         
         egareads += 4;
 
-        cycles -= video_timing_l;
-        cycles_lost += video_timing_l;
+        cycles -= video_timing_read_l;
+        cycles_lost += video_timing_read_l;
 
         addr = (addr & svga->banked_mask) + svga->read_bank;
 	if ((!svga->extvram) && (addr >= 0x10000))  return 0xffffffff;
@@ -1722,8 +1722,8 @@ void svga_writew_linear(uint32_t addr, uint16_t val, void *p)
         
         egawrites += 2;
 
-        cycles -= video_timing_w;
-        cycles_lost += video_timing_w;
+        cycles -= video_timing_write_w;
+        cycles_lost += video_timing_write_w;
 
 	/* if (svga_output) pclog("Write LFBw %08X %04X\n", addr, val); */
 	addr -= svga->linear_base;
@@ -1750,8 +1750,8 @@ void svga_writel_linear(uint32_t addr, uint32_t val, void *p)
         
         egawrites += 4;
 
-        cycles -= video_timing_l;
-        cycles_lost += video_timing_l;
+        cycles -= video_timing_write_l;
+        cycles_lost += video_timing_write_l;
 
 	/* if (svga_output) pclog("Write LFBl %08X %08X\n", addr, val); */
 	addr -= svga->linear_base;
@@ -1772,8 +1772,8 @@ uint16_t svga_readw_linear(uint32_t addr, void *p)
         
         egareads += 2;
 
-        cycles -= video_timing_w;
-        cycles_lost += video_timing_w;
+        cycles -= video_timing_read_w;
+        cycles_lost += video_timing_read_w;
 
 	addr -= svga->linear_base;
 	addr &= svga->decode_mask;
@@ -1792,8 +1792,8 @@ uint32_t svga_readl_linear(uint32_t addr, void *p)
         
         egareads += 4;
 
-        cycles -= video_timing_l;
-        cycles_lost += video_timing_l;
+        cycles -= video_timing_read_l;
+        cycles_lost += video_timing_read_l;
 
 	addr -= svga->linear_base;
 	addr &= svga->decode_mask;

@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.11	2018/01/25
+ * Version:	@(#)vid_ati_mach64.c	1.0.12	2018/01/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -320,7 +320,11 @@ enum
 };
 
 void mach64_write(uint32_t addr, uint8_t val, void *priv);
+void mach64_writew(uint32_t addr, uint16_t val, void *priv);
+void mach64_writel(uint32_t addr, uint32_t val, void *priv);
 uint8_t mach64_read(uint32_t addr, void *priv);
+uint16_t mach64_readw(uint32_t addr, void *priv);
+uint32_t mach64_readl(uint32_t addr, void *priv);
 void mach64_updatemapping(mach64_t *mach64);
 void mach64_recalctimings(svga_t *svga);
 void mach64_start_fill(mach64_t *mach64);
@@ -514,14 +518,14 @@ void mach64_updatemapping(mach64_t *mach64)
         switch (svga->gdcreg[6] & 0xc)
         {
                 case 0x0: /*128k at A0000*/
-                mem_mapping_set_handler(&mach64->svga.mapping, mach64_read, NULL, NULL, mach64_write, NULL, NULL);
+                mem_mapping_set_handler(&mach64->svga.mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
                 mem_mapping_set_p(&mach64->svga.mapping, mach64);
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
                 mem_mapping_enable(&mach64->mmio_mapping);
                 svga->banked_mask = 0xffff;
                 break;
                 case 0x4: /*64k at A0000*/
-                mem_mapping_set_handler(&mach64->svga.mapping, mach64_read, NULL, NULL, mach64_write, NULL, NULL);
+                mem_mapping_set_handler(&mach64->svga.mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
                 mem_mapping_set_p(&mach64->svga.mapping, mach64);
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
                 svga->banked_mask = 0xffff;
@@ -2813,6 +2817,22 @@ void mach64_write(uint32_t addr, uint8_t val, void *p)
         addr = (addr & 0x7fff) + mach64->bank_w[(addr >> 15) & 1];
         svga_write_linear(addr, val, svga);
 }
+void mach64_writew(uint32_t addr, uint16_t val, void *p)
+{
+        mach64_t *mach64 = (mach64_t *)p;
+        svga_t *svga = &mach64->svga;
+
+        addr = (addr & 0x7fff) + mach64->bank_w[(addr >> 15) & 1];
+        svga_writew_linear(addr, val, svga);
+}
+void mach64_writel(uint32_t addr, uint32_t val, void *p)
+{
+        mach64_t *mach64 = (mach64_t *)p;
+        svga_t *svga = &mach64->svga;
+
+        addr = (addr & 0x7fff) + mach64->bank_w[(addr >> 15) & 1];
+        svga_writel_linear(addr, val, svga);
+}
 
 uint8_t mach64_read(uint32_t addr, void *p)
 {
@@ -2822,6 +2842,22 @@ uint8_t mach64_read(uint32_t addr, void *p)
         addr = (addr & 0x7fff) + mach64->bank_r[(addr >> 15) & 1];
         ret = svga_read_linear(addr, svga);
         return ret;      
+}
+uint16_t mach64_readw(uint32_t addr, void *p)
+{
+        mach64_t *mach64 = (mach64_t *)p;
+        svga_t *svga = &mach64->svga;
+
+        addr = (addr & 0x7fff) + mach64->bank_r[(addr >> 15) & 1];
+        return svga_readw_linear(addr, svga);
+}
+uint32_t mach64_readl(uint32_t addr, void *p)
+{
+        mach64_t *mach64 = (mach64_t *)p;
+        svga_t *svga = &mach64->svga;
+
+        addr = (addr & 0x7fff) + mach64->bank_r[(addr >> 15) & 1];
+        return svga_readl_linear(addr, svga);
 }
 
 void mach64_hwcursor_draw(svga_t *svga, int displine)

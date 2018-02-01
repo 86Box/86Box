@@ -49,7 +49,7 @@
  *
  *		Based on an early driver for MINIX 1.5.
  *
- * Version:	@(#)mouse_bus.c	1.0.30	2018/01/12
+ * Version:	@(#)mouse_bus.c	1.0.31	2018/02/01
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -97,6 +97,7 @@ typedef struct mouse {
     int		x_delay,
 		y_delay;
     uint8_t     need_upd;
+    uint8_t     irq_num;
 
     int64_t	timer;				/* mouse event timer */
 
@@ -318,21 +319,6 @@ ms_read(mouse_t *dev, uint16_t port)
 }
 
 
-/* Called at 30hz */
-static void
-bm_timer(void *priv)
-{
-    mouse_t *dev = (mouse_t *)priv;
-
-    dev->timer = ((1000000LL * TIMER_USEC) / 30LL);
-
-    if ((dev->flags & FLAG_INTR) && dev->need_upd) {
-	picint(1 << dev->irq);
-	pclog("IRQ %i raised\n", dev->irq);
-    }
-}
-
-
 /* Reset the controller state. */
 static void
 lt_reset(mouse_t *dev)
@@ -348,6 +334,42 @@ lt_reset(mouse_t *dev)
 
     dev->flags &= 0xf0;
     dev->flags |= FLAG_INTR;
+
+    dev->irq_num = 0;
+}
+
+
+/* Called at 30hz */
+static void
+bm_timer(void *priv)
+{
+    mouse_t *dev = (mouse_t *)priv;
+
+    if (dev->flags & FLAG_INPORT) {
+	dev->timer = ((1000000LL * TIMER_USEC) / 30LL);
+
+	if ((dev->flags & FLAG_INTR) && dev->need_upd) {
+		picint(1 << dev->irq);
+		/* pclog("IRQ %i raised\n", dev->irq); */
+	}
+    } else {
+	picint(1 << dev->irq);
+
+	if (dev->irq_num == 5) {
+		/* pclog("5th IRQ, enabling mouse...\n"); */
+		lt_reset(dev);
+		dev->flags |= FLAG_ENABLED;
+	}
+
+	if (dev->irq_num == 4) {
+		/* pclog("4th IRQ, going for the 5th...\n"); */
+		dev->irq_num++;
+		dev->timer = ((1000000LL * TIMER_USEC) / 30LL);
+	} else {
+		/* pclog("IRQ before the 4th, disabling timer...\n"); */
+		dev->timer = 0;
+	}
+    }
 }
 
 
@@ -373,6 +395,12 @@ lt_write(mouse_t *dev, uint16_t port, uint8_t val)
 		break;
 
 	case LTMOUSE_CTRL:	/* [02] control register */
+		if (!(dev->flags & FLAG_ENABLED)) {
+			dev->irq_num++;
+			dev->timer = ((1000000LL * TIMER_USEC) / 30LL);
+			break;
+		}
+
 		b = (dev->r_ctrl ^ val);
 		if (b & LTCTRL_FREEZE) {
 			if (val & LTCTRL_FREEZE) {
@@ -665,6 +693,9 @@ bm_init(device_t *info)
 		/* Initialize I/O handlers. */
 		dev->read = lt_read;
 		dev->write = lt_write;
+
+		dev->timer = 0;
+		timer_add(bm_timer, &dev->timer, &dev->timer, dev);
 		break;
 
 	case MOUSE_TYPE_INPORT:

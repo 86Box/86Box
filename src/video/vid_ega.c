@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.14	2018/01/25
+ * Version:	@(#)vid_ega.c	1.0.15	2018/02/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -682,8 +682,8 @@ void ega_write(uint32_t addr, uint8_t val, void *p)
         int writemask2 = ega->writemask;
 
         egawrites++;
-        cycles -= video_timing_b;
-        cycles_lost += video_timing_b;
+        cycles -= video_timing_write_b;
+        cycles_lost += video_timing_write_b;
         
         if (addr >= 0xB0000) addr &= 0x7fff;
         else                 addr &= 0xffff;
@@ -819,8 +819,8 @@ uint8_t ega_read(uint32_t addr, void *p)
         int readplane = ega->readplane;
         
         egareads++;
-        cycles -= video_timing_b;
-        cycles_lost += video_timing_b;
+        cycles -= video_timing_read_b;
+        cycles_lost += video_timing_read_b;
         if (addr >= 0xb0000) addr &= 0x7fff;
         else                 addr &= 0xffff;
 

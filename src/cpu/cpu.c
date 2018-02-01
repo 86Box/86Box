@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.c	1.0.9	2018/01/01
+ * Version:	@(#)cpu.c	1.0.10	2018/02/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -16,7 +16,7 @@
  *
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 leilei.
- *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -226,7 +226,7 @@ void cpu_set()
 
         cpu_update_waitstates();
 
-        isa_cycles = (int)(((int64_t)cpu_s->rspeed << ISA_CYCLES_SHIFT) / 8000000ll);
+	isa_cycles = cpu_s->atclk_div;
 
         if (cpu_s->pci_speed)
         {

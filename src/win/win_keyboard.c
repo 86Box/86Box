@@ -8,7 +8,7 @@
  *
  *		Windows raw keyboard input handler.
  *
- * Version:	@(#)win_keyboard.c	1.0.7	2018/01/20
+ * Version:	@(#)win_keyboard.c	1.0.8	2018/01/29
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -158,10 +158,20 @@ keyboard_handle(LPARAM lParam, int infocus)
 		    !mouse_capture) {
 			/* We received a TAB while ALT was pressed, while the mouse
 			   is not captured, suppress the TAB and send an ALT key up. */
-			if (keyboard_recv(0x038))
+			if (keyboard_recv(0x038)) {
 				keyboard_input(0, 0x038);
-			if (keyboard_recv(0x138))
+				/* Extra key press and release so the guest is not stuck in the
+				   menu bar. */
+				keyboard_input(1, 0x038);
+				keyboard_input(0, 0x038);
+			}
+			if (keyboard_recv(0x138)) {
 				keyboard_input(0, 0x138);
+				/* Extra key press and release so the guest is not stuck in the
+				   menu bar. */
+				keyboard_input(1, 0x138);
+				keyboard_input(0, 0x138);
+			}
 		} else if (((scancode == 0x038) || (scancode == 0x138)) &&
 			   !(rawKB.Flags & RI_KEY_BREAK) &&
 			   keyboard_recv(0x00F) &&

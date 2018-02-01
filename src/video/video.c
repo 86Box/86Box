@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.13	2018/01/27
+ * Version:	@(#)video.c	1.0.14	2018/02/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -96,9 +96,12 @@ int		fullchange = 0;
 uint8_t		edatlookup[4][4];
 int		overscan_x = 0,
 		overscan_y = 0;
-int		video_timing_b = 0,
-		video_timing_w = 0,
-		video_timing_l = 0;
+int		video_timing_read_b = 0,
+		video_timing_read_w = 0,
+		video_timing_read_l = 0;
+int		video_timing_write_b = 0,
+		video_timing_write_w = 0,
+		video_timing_write_l = 0;
 int		video_res_x = 0,
 		video_res_y = 0,
 		video_bpp = 0;
@@ -338,43 +341,110 @@ cgapal_rebuild(void)
 }
 
 
+static video_timings_t timing_dram     = {VIDEO_BUS, 0,0,0, 0,0,0}; /*No additional waitstates*/
+static video_timings_t timing_pc1512   = {VIDEO_BUS, 0,0,0, 0,0,0}; /*PC1512 video code handles waitstates itself*/
+static video_timings_t timing_pc1640   = {VIDEO_ISA, 8,16,32, 8,16,32};
+static video_timings_t timing_pc200    = {VIDEO_ISA, 8,16,32, 8,16,32};
+static video_timings_t timing_m24      = {VIDEO_ISA, 8,16,32, 8,16,32};
+static video_timings_t timing_pvga1a   = {VIDEO_ISA, 6, 8,16, 6, 8,16};
+static video_timings_t timing_wd90c11  = {VIDEO_ISA, 3, 3, 6, 5, 5,10};
+static video_timings_t timing_vga      = {VIDEO_ISA, 8,16,32, 8,16,32};
+static video_timings_t timing_ps1_svga = {VIDEO_ISA, 6, 8,16, 6, 8,16};
+static video_timings_t timing_t3100e   = {VIDEO_ISA, 8,16,32, 8,16,32};
+
 void
 video_update_timing(void)
 {
+    video_timings_t *timing;
     int new_gfxcard;
-    int type, b, w, l;
 
     if (video_speed == -1) {
-	new_gfxcard = video_old_to_new(gfxcard);
+	new_gfxcard = 0;
 
-	type = video_card_timing_gettype(new_gfxcard);
-	b = video_card_timing_getb(new_gfxcard);
-	w = video_card_timing_getw(new_gfxcard);
-	l = video_card_timing_getl(new_gfxcard);
-        
-	if (type == VIDEO_ISA) {
-		video_timing_b = (int)(isa_timing * b);
-		video_timing_w = (int)(isa_timing * w);
-		video_timing_l = (int)(isa_timing * l);
+	switch(romset) {
+		case ROM_IBMPCJR:
+		case ROM_TANDY:
+		case ROM_TANDY1000HX:
+		case ROM_TANDY1000SL2:
+			timing = &timing_dram;
+			break;
+		case ROM_PC1512:
+			timing = &timing_pc1512;
+			break;
+		case ROM_PC1640:
+			timing = &timing_pc1640;
+			break;
+		case ROM_PC200:
+			timing = &timing_pc200;
+			break;
+		case ROM_OLIM24:
+			timing = &timing_m24;
+			break;
+		case ROM_PC2086:
+		case ROM_PC3086:
+			timing = &timing_pvga1a;
+			break;
+		case ROM_MEGAPC:
+		case ROM_MEGAPCDX:
+			timing = &timing_wd90c11;
+			break;
+		case ROM_IBMPS1_2011:
+		case ROM_IBMPS2_M30_286:
+		case ROM_IBMPS2_M50:
+		case ROM_IBMPS2_M55SX:
+		case ROM_IBMPS2_M80:
+			timing = &timing_vga;
+			break;
+		case ROM_IBMPS1_2121:
+		case ROM_IBMPS1_2133:
+			timing = &timing_ps1_svga;
+			break;
+		case ROM_T3100E:
+			timing = &timing_t3100e;
+			break;
+		default:
+			new_gfxcard = video_old_to_new(gfxcard);
+			timing = video_card_gettiming(new_gfxcard);
+			break;
+	}
+
+	if (timing->type == VIDEO_ISA) {
+		video_timing_read_b = ISA_CYCLES(timing->read_b);
+		video_timing_read_w = ISA_CYCLES(timing->read_w);
+		video_timing_read_l = ISA_CYCLES(timing->read_l);
+		video_timing_write_b = ISA_CYCLES(timing->write_b);
+		video_timing_write_w = ISA_CYCLES(timing->write_w);
+		video_timing_write_l = ISA_CYCLES(timing->write_l);
 	} else {
-		video_timing_b = (int)(bus_timing * b);
-		video_timing_w = (int)(bus_timing * w);
-		video_timing_l = (int)(bus_timing * l);
+		video_timing_read_b = (int)(bus_timing * timing->read_b);
+		video_timing_read_w = (int)(bus_timing * timing->read_w);
+		video_timing_read_l = (int)(bus_timing * timing->read_l);
+		video_timing_write_b = (int)(bus_timing * timing->write_b);
+		video_timing_write_w = (int)(bus_timing * timing->write_w);
+		video_timing_write_l = (int)(bus_timing * timing->write_l);
 	}
     } else  {
 	if (video_timing[video_speed][0] == VIDEO_ISA) {
-		video_timing_b = (int)(isa_timing * video_timing[video_speed][1]);
-		video_timing_w = (int)(isa_timing * video_timing[video_speed][2]);
-		video_timing_l = (int)(isa_timing * video_timing[video_speed][3]);
+		video_timing_read_b = ISA_CYCLES(video_timing[video_speed][1]);
+		video_timing_read_w = ISA_CYCLES(video_timing[video_speed][2]);
+		video_timing_read_l = ISA_CYCLES(video_timing[video_speed][3]);
+		video_timing_write_b = ISA_CYCLES(video_timing[video_speed][1]);
+		video_timing_write_w = ISA_CYCLES(video_timing[video_speed][2]);
+		video_timing_write_l = ISA_CYCLES(video_timing[video_speed][3]);
 	} else {
-		video_timing_b = (int)(bus_timing * video_timing[video_speed][1]);
-		video_timing_w = (int)(bus_timing * video_timing[video_speed][2]);
-		video_timing_l = (int)(bus_timing * video_timing[video_speed][3]);
+		video_timing_read_b = (int)(bus_timing * video_timing[video_speed][1]);
+		video_timing_read_w = (int)(bus_timing * video_timing[video_speed][2]);
+		video_timing_read_l = (int)(bus_timing * video_timing[video_speed][3]);
+		video_timing_write_b = (int)(bus_timing * video_timing[video_speed][1]);
+		video_timing_write_w = (int)(bus_timing * video_timing[video_speed][2]);
+		video_timing_write_l = (int)(bus_timing * video_timing[video_speed][3]);
 	}
     }
 
-    if (cpu_16bitbus)
-	video_timing_l = video_timing_w * 2;
+    if (cpu_16bitbus) {
+	video_timing_read_l = video_timing_read_w * 2;
+	video_timing_write_l = video_timing_write_w * 2;
+    }
 }
 
 

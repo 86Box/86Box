@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.11	2018/01/27
+ * Version:	@(#)video.h	1.0.12	2018/02/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -136,6 +136,12 @@ extern "C" {
 
 
 typedef struct {
+    int		type;
+    int		write_b, write_w, write_l;
+    int		read_b, read_w, read_l;
+} video_timings_t;
+
+typedef struct {
     int		w, h;
     uint8_t	*dat;
     uint8_t	*line[];
@@ -173,9 +179,12 @@ extern int	enable_overscan;
 extern int	overscan_x,
 		overscan_y;
 extern int	force_43;
-extern int	video_timing_b,
-		video_timing_w,
-		video_timing_l;
+extern int	video_timing_read_b,
+		video_timing_read_w,
+		video_timing_read_l;
+extern int	video_timing_write_b,
+		video_timing_write_w,
+		video_timing_write_l;
 extern int	video_speed;
 extern int	video_res_x,
 		video_res_y,
@@ -203,10 +212,7 @@ extern char	*video_card_getname(int card);
 extern device_t	*video_card_getdevice(int card);
 #endif
 extern int	video_card_has_config(int card);
-extern int	video_card_timing_gettype(int card);
-extern int	video_card_timing_getb(int card);
-extern int	video_card_timing_getw(int card);
-extern int	video_card_timing_getl(int card);
+extern video_timings_t	*video_card_gettiming(int card);
 extern int	video_card_getid(char *s);
 extern int	video_old_to_new(int card);
 extern int	video_new_to_old(int card);

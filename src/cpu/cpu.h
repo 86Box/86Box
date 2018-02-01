@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.h	1.0.5	2018/01/01
+ * Version:	@(#)cpu.h	1.0.6	2018/02/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -82,6 +82,7 @@ typedef struct {
     int		cpu_flags;
     int		mem_read_cycles, mem_write_cycles;
     int		cache_read_cycles, cache_write_cycles;
+    int		atclk_div;
 } CPU;
 
 extern CPU	cpus_8088[];
@@ -404,7 +405,9 @@ extern CPU	cpus_ibmat[];		// FIXME: should be in machine file!
 extern CPU	cpus_ibmxt286[];	// FIXME: should be in machine file!
 extern CPU	cpus_ps1_m2011[];	// FIXME: should be in machine file!
 extern CPU	cpus_ps2_m30_286[];	// FIXME: should be in machine file!
+#if 0
 extern CPU	cpus_acer[];		// FIXME: should be in machine file!
+#endif
 
 
 /* Functions. */
