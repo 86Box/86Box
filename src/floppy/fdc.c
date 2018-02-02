@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc->c	1.0.13	2018/02/02
+ * Version:	@(#)fdc->c	1.0.14	2018/02/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -312,15 +312,15 @@ fdc_fifo_buf_read(fdc_t *fdc)
 static
 void fdc_int(fdc_t *fdc)
 {
-    if (!(fdc->flags & FDC_FLAG_PCJR)) {
-	if (fdc->dor & 8) {
-       	        picint(1 << fdc->irq);
-		fdc->fintr = 1;
-	}
-    } else {
-	fdc->fintr = 1;
-	fdc_log("PCjr FDC: FINTR now 1\n");
-    }
+    int ienable = 0;
+
+    if (!(fdc->flags & FDC_FLAG_PCJR))
+	ienable = !!(fdc->dor & 8);
+
+    if (ienable)
+	picint(1 << fdc->irq);
+
+    fdc->fintr = 1;
 }
 
 
@@ -652,21 +652,19 @@ fdc_sis(fdc_t *fdc)
 
     fdc->stat    = (fdc->stat & 0xf) | 0xd0;
 
-    if (fdc->fintr) {
-	fdc->res[9] = fdc->st0;
-	fdc->fintr = 0;
-    } else {
-	if (fdc->reset_stat) {
-		drive_num = real_drive(fdc, 4 - fdc->reset_stat);
-		if ((!fdd_get_flags(drive_num)) || (drive_num >= FDD_NUM)) {
-			fdd_stop(drive_num);
-			fdd_set_head(drive_num, 0);
-			fdc->res[9] = 0xc0 | (4 - fdc->reset_stat) | (fdd_get_head(drive_num) ? 4 : 0);
-		} else
-			fdc->res[9] = 0xc0 | (4 - fdc->reset_stat);
+    if (fdc->reset_stat) {
+	drive_num = real_drive(fdc, 4 - fdc->reset_stat);
+	if ((!fdd_get_flags(drive_num)) || (drive_num >= FDD_NUM)) {
+		fdd_stop(drive_num);
+		fdd_set_head(drive_num, 0);
+		fdc->res[9] = 0xc0 | (4 - fdc->reset_stat) | (fdd_get_head(drive_num) ? 4 : 0);
+	} else
+		fdc->res[9] = 0xc0 | (4 - fdc->reset_stat);
 
-		fdc->reset_stat--;
-	}
+	fdc->reset_stat--;
+    } else {
+	fdc->res[9] = (fdc->st0 & ~0x04) | (fdd_get_head(fdc->drive & 0x03) ? 4 : 0);
+	fdc->fintr = 0;
     }
 
     fdc->res[10] = fdc->pcn[fdc->res[9] & 3];
@@ -682,7 +680,6 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
     fdc_t *fdc = (fdc_t *) priv;
 
     int drive, i, drive_num;
-    int64_t seek_time, seek_time_base;
 
     fdc_log("Write FDC %04X %02X\n", addr, val);
 
@@ -709,6 +706,8 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 			if (!fdd_get_flags(0))
 				val &= 0xfe;
 			motoron[0] = val & 0x01;
+			fdc->st0 &= ~0x07;
+			fdc->st0 |= (fdd_get_head(0) ? 4 : 0);
                 } else {
 			if (!(val & 8) && (fdc->dor & 8)) {
 				fdc->tc = 1;
@@ -745,8 +744,11 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 				else
 					motoron[i] = (val & (0x10 << drive_num));
 			}
-			drive_num = real_drive(fdc, val & 3);
-			current_drive = real_drive(fdc, val & 3);
+			drive_num = real_drive(fdc, val & 0x03);
+			current_drive = real_drive(fdc, val & 0x03);
+			fdc->st0 &= ~0x07;
+			fdc->st0 |= real_drive(fdc, drive_num);
+			fdc->st0 |= (fdd_get_head(drive_num) ? 4 : 0);
 		}
 		fdc->dor=val;
 		return;
@@ -862,13 +864,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 					fdc->stat |= 0x90;
 					break;
 				case 0x08: /*Sense interrupt status*/
-					if (fdc->fintr || fdc->reset_stat || (fdc->flags & FDC_FLAG_PCJR)) {
-						fdc_log("fdc->fintr = %i, fdc->reset_stat = %i\n", fdc->fintr, fdc->reset_stat);
-						fdc->lastdrive = fdc->drive;
-						fdc->pos = 0;
-						fdc_sis(fdc);
-					} else
-						fdc_bad_command(fdc);
+					fdc_log("fdc->fintr = %i, fdc->reset_stat = %i\n", fdc->fintr, fdc->reset_stat);
+					fdc->lastdrive = fdc->drive;
+					fdc->pos = 0;
+					fdc_sis(fdc);
 					break;
 				case 0x0a: /*Read sector ID*/
 					fdc->pnum = 0;
@@ -1006,8 +1005,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                         	break;
                                         
                                         case 7: /*Recalibrate*/
-						seek_time_base = fdd_doublestep_40(real_drive(fdc, fdc->drive)) ? 10 : 5;
 						fdc->stat =  (1 << real_drive(fdc, fdc->drive)) | 0x80;
+						fdc->st0 = fdc->drive & 0x03;
+						fdc->st0 |= fdd_get_head(real_drive(fdc, fdc->drive)) ? 0x04 : 0x00;
 						fdc->time = 0LL;
 						drive_num = real_drive(fdc, fdc->drive);
 						/* Three conditions under which the command should fail. */
@@ -1027,10 +1027,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en)
 							fdc_seek(fdc, fdc->drive, -fdc->max_track);
 						fdc_log("Recalibrating...\n");
-						if (fdc->flags & FDC_FLAG_PCJR)
-							fdc->time = 5000LL;
-						else
-							fdc->time = ((int64_t) fdc->max_track) * ((int64_t)  seek_time_base) * TIMER_USEC;
+						fdc->time = 5000LL;
 						break;
 					case 0x0d: /*Format*/
 						fdc_rate(fdc, fdc->drive);
@@ -1047,10 +1044,11 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 					case 0xf: /*Seek*/
 						fdc->stat =  (1 << fdc->drive) | 0x80;
 						fdc->head = (fdc->params[0] & 4) ? 1 : 0;
+						fdc->st0 = fdc->drive & 0x03;
+						fdc->st0 |= (fdc->params[0] & 4);
 						fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
 						fdc->time = 0LL;
 						drive_num = real_drive(fdc, fdc->drive);
-						seek_time_base = fdd_doublestep_40(drive_num) ? 10 : 5;
 						/* Three conditions under which the command should fail. */
 						if (!fdd_get_flags(drive_num) || (drive_num >= FDD_NUM) || !motoron[drive_num]) {
 							/* Yes, failed SEEK's still report success, unlike failed RECALIBRATE's. */
@@ -1079,9 +1077,8 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 									fdc_seek(fdc, fdc->drive, -fdc->params[1]);
 									fdc->pcn[fdc->params[0] & 3] -= fdc->params[1];
 								}
-								fdc->time = ((int64_t) fdc->params[1]) * ((int64_t) seek_time_base) * TIMER_USEC;
+								fdc->time = 5000LL;
 							} else {
-								fdc->time = ((int64_t) seek_time_base) * TIMER_USEC;
 								fdc->st0 = 0x20 | (fdc->params[0] & 7);
 								fdc->interrupt = -3;
 								timer_clock();
@@ -1091,7 +1088,6 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 							}
 						} else {
 							fdc_log("Seeking to track %i (PCN = %i)...\n", fdc->params[1], fdc->pcn[fdc->params[0] & 3]);
-							seek_time = ((int64_t) (fdc->params[1] - fdc->pcn[fdc->params[0] & 3])) * seek_time_base * TIMER_USEC;
 							if ((fdc->params[1] - fdc->pcn[fdc->params[0] & 3]) == 0) {
 								fdc_log("Failed seek\n");
 								fdc->st0 = 0x20 | (fdc->params[0] & 7);
@@ -1103,11 +1099,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 							}
 							fdc_seek(fdc, fdc->drive, fdc->params[1] - fdc->pcn[fdc->params[0] & 3]);
 							fdc->pcn[fdc->params[0] & 3] = fdc->params[1];
-							if (seek_time < 0)  seek_time = -seek_time;
-							if (fdc->flags & FDC_FLAG_PCJR)
-								fdc->time = 5000LL;
-							else
-								fdc->time = seek_time;
+							fdc->time = 5000LL;
 							fdc_log("fdc->time = %i\n", fdc->time);
 						}
 						break;
@@ -1250,7 +1242,7 @@ fdc_poll_common_finish(fdc_t *fdc, int compare, int st5)
     fdc_int(fdc);
     fdc->fintr = 0;
     fdc->stat = 0xD0;
-    fdc->res[4] = (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->rw_drive;
+    fdc->st0 = fdc->res[4] = (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->rw_drive;
     fdc->res[5] = st5;
     fdc->res[6] = 0;
     if (fdc->wrong_am) {
@@ -1509,7 +1501,7 @@ fdc_callback(void *priv)
 			fdc_int(fdc);
 			fdc->fintr = 0;
 			fdc->stat = 0xD0;
-			fdc->res[4] = (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->drive;
+			fdc->st0 = fdc->res[4] = (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->drive;
 			fdc->res[5] = fdc->res[6] = 0;
 			fdc->res[7] = fdc->pcn[fdc->params[0] & 3];
 			fdc->res[8] = fdd_get_head(real_drive(fdc, fdc->drive));
@@ -1591,7 +1583,7 @@ fdc_error(fdc_t *fdc, int st5, int st6)
     fdc_int(fdc);
     fdc->fintr = 0;
     fdc->stat = 0xD0;
-    fdc->res[4] = 0x40 | (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->rw_drive;
+    fdc->st0 = fdc->res[4] = 0x40 | (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->rw_drive;
     fdc->res[5] = st5;
     fdc->res[6] = st6;
     fdc_log("FDC Error: %02X %02X %02X\n", fdc->res[4], fdc->res[5], fdc->res[6]);
@@ -1848,7 +1840,7 @@ fdc_sectorid(fdc_t *fdc, uint8_t track, uint8_t side, uint8_t sector, uint8_t si
 {
     fdc_int(fdc);
     fdc->stat = 0xD0;
-    fdc->res[4] = (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->drive;
+    fdc->st0 = fdc->res[4] = (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->drive;
     fdc->res[5] = 0;
     fdc->res[6] = 0;
     fdc->res[7] = track;
@@ -1910,9 +1902,14 @@ fdc_set_base(fdc_t *fdc, int base)
 {
     int super_io = (fdc->flags & FDC_FLAG_SUPERIO);
 
-    io_sethandler(base + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-    if (!(fdc->flags & FDC_FLAG_PCJR))
+    if (fdc->flags & FDC_FLAG_AT) {
+	io_sethandler(base + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
 	io_sethandler(base + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+    } else {
+	io_sethandler(base + 0x0002, 0x0001, NULL, NULL, NULL, fdc_write, NULL, NULL, fdc);
+	io_sethandler(base + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
+	io_sethandler(base + 0x0005, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+    }
     fdc->base_address = base;
     fdc_log("fdc_t Base address set%s (%04X)\n", super_io ? " for Super I/O" : "", fdc->base_address);
 }
@@ -1924,9 +1921,14 @@ fdc_remove(fdc_t *fdc)
     int super_io = (fdc->flags & FDC_FLAG_SUPERIO);
 
     fdc_log("fdc_t Removed (%04X)\n", fdc->base_address);
-    io_removehandler(fdc->base_address + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-    if (!(fdc->flags & FDC_FLAG_PCJR))
+    if (fdc->flags & FDC_FLAG_AT) {
+	io_removehandler(fdc->base_address + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
 	io_removehandler(fdc->base_address + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+    } else {
+	io_removehandler(fdc->base_address + 0x0002, 0x0001, NULL, NULL, NULL, fdc_write, NULL, NULL, fdc);
+	io_removehandler(fdc->base_address + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
+	io_removehandler(fdc->base_address + 0x0005, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+    }
 }
 
 
