@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc->c	1.0.11	2018/01/16
+ * Version:	@(#)fdc->c	1.0.12	2018/02/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1009,7 +1009,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						drive_num = real_drive(fdc, fdc->drive);
 						/* Three conditions under which the command should fail. */
 						if (!fdd_get_flags(drive_num) || (drive_num >= FDD_NUM) || !motoron[drive_num] || fdd_track0(drive_num)) {
-							pclog("Failed recalibrate\n");
+							fdc_log("Failed recalibrate\n");
 							if (!fdd_get_flags(drive_num) || (drive_num >= FDD_NUM) || !motoron[drive_num])
 								fdc->st0 = 0x70 | (fdc->params[0] & 3);
 							else
@@ -1023,7 +1023,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						}
 						if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en)
 							fdc_seek(fdc, fdc->drive, -fdc->max_track);
-						pclog("Recalibrating...\n");
+						fdc_log("Recalibrating...\n");
 						if (fdc->flags & FDC_FLAG_PCJR)
 							fdc->time = 5000LL;
 						else
@@ -1090,7 +1090,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 							fdc_log("Seeking to track %i (PCN = %i)...\n", fdc->params[1], fdc->pcn[fdc->params[0] & 3]);
 							seek_time = ((int64_t) (fdc->params[1] - fdc->pcn[fdc->params[0] & 3])) * seek_time_base * TIMER_USEC;
 							if ((fdc->params[1] - fdc->pcn[fdc->params[0] & 3]) == 0) {
-								pclog("Failed seek\n");
+								fdc_log("Failed seek\n");
 								fdc->st0 = 0x20 | (fdc->params[0] & 7);
 								fdc->interrupt = -3;
 								timer_clock();
@@ -1105,7 +1105,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 								fdc->time = 5000LL;
 							else
 								fdc->time = seek_time;
-							pclog("fdc->time = %i\n", fdc->time);
+							fdc_log("fdc->time = %i\n", fdc->time);
 						}
 						break;
 					case 10: /*Read sector ID*/
@@ -1314,7 +1314,7 @@ fdc_callback(void *priv)
     int drive_num = 0;
     int old_sector = 0;
     fdc->time = 0LL;
-    pclog("fdc_callback(): %i\n", fdc->interrupt);
+    fdc_log("fdc_callback(): %i\n", fdc->interrupt);
     switch (fdc->interrupt) {
 	case -3: /*End of command with interrupt*/
 		fdc_int(fdc);
