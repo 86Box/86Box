@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc->c	1.0.12	2018/02/02
+ * Version:	@(#)fdc->c	1.0.13	2018/02/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -862,10 +862,13 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 					fdc->stat |= 0x90;
 					break;
 				case 0x08: /*Sense interrupt status*/
-					fdc_log("fdc->fintr = %i, fdc->reset_stat = %i\n", fdc->fintr, fdc->reset_stat);
-					fdc->lastdrive = fdc->drive;
-					fdc->pos = 0;
-					fdc_sis(fdc);
+					if (fdc->fintr || fdc->reset_stat || (fdc->flags & FDC_FLAG_PCJR)) {
+						fdc_log("fdc->fintr = %i, fdc->reset_stat = %i\n", fdc->fintr, fdc->reset_stat);
+						fdc->lastdrive = fdc->drive;
+						fdc->pos = 0;
+						fdc_sis(fdc);
+					} else
+						fdc_bad_command(fdc);
 					break;
 				case 0x0a: /*Read sector ID*/
 					fdc->pnum = 0;
