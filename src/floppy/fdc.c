@@ -303,6 +303,8 @@ fdc_fifo_buf_read(fdc_t *fdc)
 {
     int temp = fdc->fifobuf[fdc->fifobufpos];
     fdc_fifo_buf_advance(fdc);
+    if (!fdc->fifobufpos)
+	fdc->data_ready = 0;
     return temp;
 }
 
@@ -315,6 +317,9 @@ void fdc_int(fdc_t *fdc)
        	        picint(1 << fdc->irq);
 		fdc->fintr = 1;
 	}
+    } else {
+	fdc->fintr = 1;
+	fdc_log("PCjr FDC: FINTR now 1\n");
     }
 }
 
@@ -608,7 +613,7 @@ fdc_bad_command(fdc_t *fdc)
 {
     fdc->stat |= 0x10;
     fdc->interrupt = 0xfc;
-    timer_process();
+    timer_clock();
     fdc->time = 200LL * (1LL << TIMER_SHIFT);
     timer_update_outstanding();
 }
@@ -641,12 +646,43 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
 
 
 static void
+fdc_sis(fdc_t *fdc)
+{
+    int drive_num;
+
+    fdc->stat    = (fdc->stat & 0xf) | 0xd0;
+
+    if (fdc->fintr) {
+	fdc->res[9] = fdc->st0;
+	fdc->fintr = 0;
+    } else {
+	if (fdc->reset_stat) {
+		drive_num = real_drive(fdc, 4 - fdc->reset_stat);
+		if ((!fdd_get_flags(drive_num)) || (drive_num >= FDD_NUM)) {
+			fdd_stop(drive_num);
+			fdd_set_head(drive_num, 0);
+			fdc->res[9] = 0xc0 | (4 - fdc->reset_stat) | (fdd_get_head(drive_num) ? 4 : 0);
+		} else
+			fdc->res[9] = 0xc0 | (4 - fdc->reset_stat);
+
+		fdc->reset_stat--;
+	}
+    }
+
+    fdc->res[10] = fdc->pcn[fdc->res[9] & 3];
+
+    fdc_log("Sense interrupt status: 2 parameters to go\n");
+    fdc->paramstogo = 2;
+}
+
+
+static void
 fdc_write(uint16_t addr, uint8_t val, void *priv)
 {
     fdc_t *fdc = (fdc_t *) priv;
 
     int drive, i, drive_num;
-    int seek_time, seek_time_base;
+    int64_t seek_time, seek_time_base;
 
     fdc_log("Write FDC %04X %02X\n", addr, val);
 
@@ -663,7 +699,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 				picintc(1 << fdc->irq);
 			}
 			if ((val & 0x80) && !(fdc->dor & 0x80)) {
-				timer_process();
+				timer_clock();
 				fdc->time = 128LL * (1LL << TIMER_SHIFT);
 				timer_update_outstanding();
 				fdc->interrupt = -1;
@@ -672,7 +708,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 			}
 			if (!fdd_get_flags(0))
 				val &= 0xfe;
-			motoron[0 ^ fdc->swap] = val & 0x01;
+			motoron[0] = val & 0x01;
                 } else {
 			if (!(val & 8) && (fdc->dor & 8)) {
 				fdc->tc = 1;
@@ -688,7 +724,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 				fdc->pnum = fdc->ptot = 0;
                         }
 			if ((val&4) && !(fdc->dor&4)) {
-				timer_process();
+				timer_clock();
 				fdc->time = 128LL * (1LL << TIMER_SHIFT);
 				timer_update_outstanding();
 				fdc->interrupt = -1;
@@ -699,7 +735,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 
 				fdc_ctrl_reset(fdc);
 			}
-			timer_process();
+			timer_clock();
 			timer_update_outstanding();
 			/* We can now simplify this since each motor now spins separately. */
 			for (i = 0; i < FDD_NUM; i++) {
@@ -722,7 +758,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 		return;
 	case 4:
 		if (val & 0x80) {
-			timer_process();
+			timer_clock();
 			fdc->time = 128LL * (1LL << TIMER_SHIFT);
 			timer_update_outstanding();
 			fdc->interrupt = -1;
@@ -755,9 +791,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 			fdc->tc = 0;
 			fdc->data_ready = 0;
 
-			fdc->command=val;
+			fdc->command = val;
 			fdc->stat |= 0x10;
-			fdc_log("Starting fdc_t command %02X\n",fdc->command);
+			fdc_log("Starting FDC command %02X\n",fdc->command);
 
 			switch (fdc->command & 0x1f) {
 				case 0x01: /*Mode*/
@@ -826,13 +862,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 					fdc->stat |= 0x90;
 					break;
 				case 0x08: /*Sense interrupt status*/
-					if (fdc->fintr || fdc->reset_stat) {
-						fdc->lastdrive = fdc->drive;
-						fdc->interrupt = 8;
-						fdc->pos = 0;
-						fdc_callback(fdc);
-					} else
-						fdc_bad_command(fdc);
+					fdc_log("fdc->fintr = %i, fdc->reset_stat = %i\n", fdc->fintr, fdc->reset_stat);
+					fdc->lastdrive = fdc->drive;
+					fdc->pos = 0;
+					fdc_sis(fdc);
 					break;
 				case 0x0a: /*Read sector ID*/
 					fdc->pnum = 0;
@@ -897,7 +930,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 			fdc->params[fdc->pnum++]=val;
 			if (fdc->pnum == 1) {
 				if (command_has_drivesel[fdc->command & 0x1F]) {
-					fdc->drive = fdc->dor & 3;
+					if (fdc->flags & FDC_FLAG_PCJR)
+						fdc->drive = 0;
+					else
+						fdc->drive = fdc->dor & 3;
 					fdc->rw_drive = fdc->params[0] & 3;
 					if (((fdc->command & 0x1F) == 7) || ((fdc->command & 0x1F) == 15))
 						fdc->stat |= (1 << real_drive(fdc, fdc->drive));
@@ -906,7 +942,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         if (fdc->pnum==fdc->ptot) {
 				fdc_log("Got all params %02X\n", fdc->command);
 				fdc->interrupt = fdc->command & 0x1F;
-				timer_process();
+				timer_clock();
 				fdc->time = 1024LL * (1LL << TIMER_SHIFT);
 				timer_update_outstanding();
 				fdc->reset_stat = 0;
@@ -973,21 +1009,25 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						drive_num = real_drive(fdc, fdc->drive);
 						/* Three conditions under which the command should fail. */
 						if (!fdd_get_flags(drive_num) || (drive_num >= FDD_NUM) || !motoron[drive_num] || fdd_track0(drive_num)) {
+							pclog("Failed recalibrate\n");
 							if (!fdd_get_flags(drive_num) || (drive_num >= FDD_NUM) || !motoron[drive_num])
 								fdc->st0 = 0x70 | (fdc->params[0] & 3);
 							else
 								fdc->st0 = 0x20 | (fdc->params[0] & 3);
 							fdc->pcn[fdc->params[0] & 3] = 0;
-							fdc->time = 0LL;
 							fdc->interrupt = -3;
-							timer_process();
+							timer_clock();
 							fdc->time = 2048LL * (1LL << TIMER_SHIFT);
 							timer_update_outstanding();
 							break;
 						}
 						if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en)
 							fdc_seek(fdc, fdc->drive, -fdc->max_track);
-						fdc->time = ((int64_t) fdc->max_track) * ((int64_t)  seek_time_base) * TIMER_USEC;
+						pclog("Recalibrating...\n");
+						if (fdc->flags & FDC_FLAG_PCJR)
+							fdc->time = 5000LL;
+						else
+							fdc->time = ((int64_t) fdc->max_track) * ((int64_t)  seek_time_base) * TIMER_USEC;
 						break;
 					case 0x0d: /*Format*/
 						fdc_rate(fdc, fdc->drive);
@@ -1019,9 +1059,8 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 									fdc->pcn[fdc->params[0] & 3] -= fdc->params[1];
 							} else
 								fdc->pcn[fdc->params[0] & 3] = fdc->params[1];
-							fdc->time = 0LL;
 							fdc->interrupt = -3;
-							timer_process();
+							timer_clock();
 							fdc->time = 2048LL * (1LL << TIMER_SHIFT);
 							timer_update_outstanding();
 							break;
@@ -1041,21 +1080,20 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 							} else {
 								fdc->time = ((int64_t) seek_time_base) * TIMER_USEC;
 								fdc->st0 = 0x20 | (fdc->params[0] & 7);
-								fdc->time = 0LL;
 								fdc->interrupt = -3;
-								timer_process();
+								timer_clock();
 								fdc->time = 2048LL * (1LL << TIMER_SHIFT);
 								timer_update_outstanding();
 								break;
 							}
 						} else {
-							fdc_log("Seeking to track %i...\n", fdc->params[1]);
-							seek_time = ((int) (fdc->params[1] - fdc->pcn[fdc->params[0] & 3])) * seek_time_base * TIMER_USEC;
+							fdc_log("Seeking to track %i (PCN = %i)...\n", fdc->params[1], fdc->pcn[fdc->params[0] & 3]);
+							seek_time = ((int64_t) (fdc->params[1] - fdc->pcn[fdc->params[0] & 3])) * seek_time_base * TIMER_USEC;
 							if ((fdc->params[1] - fdc->pcn[fdc->params[0] & 3]) == 0) {
+								pclog("Failed seek\n");
 								fdc->st0 = 0x20 | (fdc->params[0] & 7);
-								fdc->time = 0LL;
 								fdc->interrupt = -3;
-								timer_process();
+								timer_clock();
 								fdc->time = 2048LL * (1LL << TIMER_SHIFT);
 								timer_update_outstanding();
 								break;
@@ -1063,7 +1101,11 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 							fdc_seek(fdc, fdc->drive, fdc->params[1] - fdc->pcn[fdc->params[0] & 3]);
 							fdc->pcn[fdc->params[0] & 3] = fdc->params[1];
 							if (seek_time < 0)  seek_time = -seek_time;
-							fdc->time = ((int64_t) seek_time);
+							if (fdc->flags & FDC_FLAG_PCJR)
+								fdc->time = 5000LL;
+							else
+								fdc->time = seek_time;
+							pclog("fdc->time = %i\n", fdc->time);
 						}
 						break;
 					case 10: /*Read sector ID*/
@@ -1152,32 +1194,31 @@ fdc_read(uint16_t addr, void *priv)
 			ret = fdc->rwc[drive] << 4;
 		break;
 	case 4: /*Status*/
-		if (!(fdc->dor & 4) & !(fdc->flags & FDC_FLAG_PCJR)) {
-			ret = 0;
-			break;
-		}
 		ret = fdc->stat;
 		break;
 	case 5: /*Data*/
-		fdc->stat&=~0x80;
 		if ((fdc->stat & 0xf0) == 0xf0) {
-			if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo)
+			fdc->stat &= ~0x80;
+			if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo) {
+				fdc->data_ready = 0;
 				ret = fdc->dat;
-			else
+			} else
 				ret = fdc_fifo_buf_read(fdc);
 			break;
 		}
+		fdc->stat &= ~0x80;
 		if (fdc->paramstogo) {
+			fdc_log("%i parameters to go\n", fdc->paramstogo);
 			fdc->paramstogo--;
 			ret = fdc->res[10 - fdc->paramstogo];
 			if (!fdc->paramstogo)
-				fdc->stat=0x80;
+				fdc->stat = 0x80;
 			else
-				fdc->stat|=0xC0;
+				fdc->stat |= 0xC0;
 		} else {
 			if (lastbyte)
 				fdc->stat = 0x80;
-			lastbyte=0;
+			lastbyte = 0;
 			ret = fdc->dat;
 			fdc->data_ready = 0;
 		}
@@ -1273,6 +1314,7 @@ fdc_callback(void *priv)
     int drive_num = 0;
     int old_sector = 0;
     fdc->time = 0LL;
+    pclog("fdc_callback(): %i\n", fdc->interrupt);
     switch (fdc->interrupt) {
 	case -3: /*End of command with interrupt*/
 		fdc_int(fdc);
@@ -1445,41 +1487,15 @@ fdc_callback(void *priv)
 		if (!fdd_track0(drive_num))
 			fdc->st0 |= 0x50;
 		fdc->interrupt = -3;
-		timer_process();
+		timer_clock();
 		fdc->time = 2048LL * (1LL << TIMER_SHIFT);
 		timer_update_outstanding();
 		fdc->stat = 0x80 | (1 << fdc->drive);
 		return;
-	case 8: /*Sense interrupt status*/
-		fdc->stat    = (fdc->stat & 0xf) | 0xd0;
-
-		if (fdc->fintr) {
-			fdc->res[9] = fdc->st0;
-			fdc->fintr = 0;
-		} else {
-			if (fdc->reset_stat) {
-				drive_num = real_drive(fdc, 4 - fdc->reset_stat);
-				if ((!fdd_get_flags(drive_num)) || (drive_num >= FDD_NUM)) {
-					fdd_stop(drive_num);
-					fdd_set_head(drive_num, 0);
-					fdc->res[9] = 0xc0 | (4 - fdc->reset_stat) | (fdd_get_head(drive_num) ? 4 : 0);
-				} else
-					fdc->res[9] = 0xc0 | (4 - fdc->reset_stat);
-
-				fdc->reset_stat--;
-			}
-		}
-
-		fdc->res[10] = fdc->pcn[fdc->res[9] & 3];
-
-		fdc->paramstogo = 2;
-		fdc->interrupt = 0;
-		fdc->time = 0LL;
-		return;
 	case 0x0d: /*Format track*/
 		if (fdc->format_state == 1) {
 			fdc->format_state = 2;
-			timer_process();
+			timer_clock();
 			fdc->time = 128LL * (1LL << TIMER_SHIFT);
 			timer_update_outstanding();
 		} else if (fdc->format_state == 2) {
@@ -1521,10 +1537,11 @@ fdc_callback(void *priv)
 		drive_num = real_drive(fdc, fdc->rw_drive);
 		fdc->st0 = 0x20 | (fdc->params[0] & 7);
 		fdc->interrupt = -3;
-		timer_process();
+		/* timer_clock();
 		fdc->time = 2048LL * (1LL << TIMER_SHIFT);
-		timer_update_outstanding();
+		timer_update_outstanding(); */
 		fdc->stat = 0x80 | (1 << fdc->drive);
+		fdc_callback(fdc);
 		return;
 	case 0x10: /*Version*/
 	case 0x18: /*NSC*/
@@ -1574,7 +1591,7 @@ fdc_error(fdc_t *fdc, int st5, int st6)
     fdc->res[4] = 0x40 | (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->rw_drive;
     fdc->res[5] = st5;
     fdc->res[6] = st6;
-    fdc_log("fdc_t Error: %02X %02X %02X\n", fdc->res[4], fdc->res[5], fdc->res[6]);
+    fdc_log("FDC Error: %02X %02X %02X\n", fdc->res[4], fdc->res[5], fdc->res[6]);
     switch(fdc->interrupt) {
 	case 0x02:
 	case 0x05:
@@ -1920,7 +1937,6 @@ fdc_reset(void *priv)
 
     default_rwc = (fdc->flags & FDC_FLAG_START_RWC_1) ? 1 : 0;
 
-    fdc->flags &= ~FDC_FLAG_DISKCHG_ACTLOW;
     fdc->enable_3f1 = 1;
 
     fdc_update_is_nsc(fdc, 0);
@@ -2000,7 +2016,7 @@ fdc_init(device_t *info)
     else
 	fdc->dma_ch = 2;
 
-    pclog("FDC added: %04X (flags: %08X)\n", fdc->base_address, fdc->flags);
+    fdc_log("FDC added: %04X (flags: %08X)\n", fdc->base_address, fdc->flags);
 
     timer_add(fdc_callback, &fdc->time, &fdc->time, fdc);
 
