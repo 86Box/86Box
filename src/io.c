@@ -8,7 +8,7 @@
  *
  *		Implement I/O ports and their operations.
  *
- * Version:	@(#)io.c	1.0.2	2018/02/01
+ * Version:	@(#)io.c	1.0.3	2018/02/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -66,7 +66,7 @@ io_init(void)
 
     if (!initialized) {
 	for (c=0; c<NPORTS; c++)
-		io[c] = NULL;
+		io[c] = io_last[c] = NULL;
 	initialized = 1;
     }
 
@@ -87,7 +87,7 @@ io_init(void)
 	/* io[c] should be the only handler, pointing at the NULL catch handler. */
 	p = (io_t *) malloc(sizeof(io_t));
 	memset(p, 0, sizeof(io_t));
-	io[c] = p;
+	io[c] = io_last[c] = p;
 	p->next = NULL;
 	p->prev = NULL;
 	p->inb  = null_inb;
@@ -99,7 +99,7 @@ io_init(void)
 	p->priv = NULL;
 #else
 	/* io[c] should be NULL. */
-	io[c] = NULL;
+	io[c] = io_last[c] = NULL;
 #endif
     }
 }
