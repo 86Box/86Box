@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc->c	1.0.14	2018/02/02
+ * Version:	@(#)fdc->c	1.0.15	2018/02/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -611,7 +611,7 @@ fdc_implied_seek(fdc_t *fdc)
 static void
 fdc_bad_command(fdc_t *fdc)
 {
-    fdc->stat |= 0x10;
+    fdc->stat = 0x10;
     fdc->interrupt = 0xfc;
     timer_clock();
     fdc->time = 200LL * (1LL << TIMER_SHIFT);
@@ -663,8 +663,14 @@ fdc_sis(fdc_t *fdc)
 
 	fdc->reset_stat--;
     } else {
-	fdc->res[9] = (fdc->st0 & ~0x04) | (fdd_get_head(fdc->drive & 0x03) ? 4 : 0);
-	fdc->fintr = 0;
+	if (fdc->fintr) {
+		fdc->res[9] = (fdc->st0 & ~0x04) | (fdd_get_head(fdc->drive & 0x03) ? 4 : 0);
+		fdc->fintr = 0;
+	} else {
+		fdc->res[10] = 0x80;
+		fdc->paramstogo = 1;
+		return;
+	}
     }
 
     fdc->res[10] = fdc->pcn[fdc->res[9] & 3];
@@ -1008,6 +1014,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						fdc->stat =  (1 << real_drive(fdc, fdc->drive)) | 0x80;
 						fdc->st0 = fdc->drive & 0x03;
 						fdc->st0 |= fdd_get_head(real_drive(fdc, fdc->drive)) ? 0x04 : 0x00;
+						fdc->st0 |= 0x80;
 						fdc->time = 0LL;
 						drive_num = real_drive(fdc, fdc->drive);
 						/* Three conditions under which the command should fail. */
@@ -1046,6 +1053,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						fdc->head = (fdc->params[0] & 4) ? 1 : 0;
 						fdc->st0 = fdc->drive & 0x03;
 						fdc->st0 |= (fdc->params[0] & 4);
+						fdc->st0 |= 0x80;
 						fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
 						fdc->time = 0LL;
 						drive_num = real_drive(fdc, fdc->drive);
