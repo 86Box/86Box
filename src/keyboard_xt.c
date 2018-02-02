@@ -8,7 +8,7 @@
  *
  *		Implementation of the XT-style keyboard.
  *
- * Version:	@(#)keyboard_xt.c	1.0.7	2018/01/28
+ * Version:	@(#)keyboard_xt.c	1.0.8	2018/02/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -387,7 +387,6 @@ kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
 		}
 		break;
 	case FAKE_LSHIFT_OFF:
-		pclog("fake left shift on, scan code: ");
 		if (num_lock) {
 			if (!shift_states) {
 				/* Num lock on and no shifts are pressed, send non-inverted fake shift. */

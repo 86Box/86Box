@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.h	1.0.3	2018/01/16
+ * Version:	@(#)fdc.h	1.0.4	2018/02/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -156,7 +156,6 @@ extern uint8_t	fdc_ps1_525(void);
 
 #ifdef EMU_DEVICE_H
 extern device_t	fdc_xt_device;
-extern device_t	fdc_xt_amstrad_device;
 extern device_t	fdc_pcjr_device;
 extern device_t	fdc_at_device;
 extern device_t	fdc_at_actlow_device;

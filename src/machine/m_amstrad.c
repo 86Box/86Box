@@ -32,7 +32,7 @@
  *		in alpha mode, but in highres ("ECD350") mode, it displays
  *		some semi-random junk. Video-memory pointer maybe?
  *
- * Version:	@(#)m_amstrad.c	1.0.9	2018/01/29
+ * Version:	@(#)m_amstrad.c	1.0.10	2018/02/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1225,6 +1225,34 @@ machine_amstrad_init(machine_t *model)
     io_sethandler(0x007a, 1,
 		  ms_read, NULL, NULL, ms_write, NULL, NULL, ams);
 
+// 		device_add(&fdc_at_actlow_device);
+
+    switch(romset) {
+	case ROM_PC1512:
+		device_add(&fdc_xt_device);
+		break;
+
+	case ROM_PC1640:
+		device_add(&fdc_xt_device);
+		break;
+
+	case ROM_PC200:
+		device_add(&fdc_xt_device);
+		break;
+
+	case ROM_PC2086:
+		device_add(&fdc_at_actlow_device);
+		break;
+
+	case ROM_PC3086:
+		device_add(&fdc_at_actlow_device);
+		break;
+
+	case ROM_MEGAPC:
+		device_add(&fdc_at_actlow_device);
+		break;
+    }
+
     if (gfxcard == GFX_INTERNAL) switch(romset) {
 	case ROM_PC1512:
                 loadfont(L"roms/machines/pc1512/40078", 2);
@@ -1271,6 +1299,4 @@ machine_amstrad_init(machine_t *model)
 
     if (joystick_type != 7)
 	device_add(&gameport_device);
-
-    device_add(&fdc_xt_amstrad_device);
 }

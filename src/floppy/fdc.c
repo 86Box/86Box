@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc->c	1.0.15	2018/02/02
+ * Version:	@(#)fdc->c	1.0.16	2018/02/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2056,16 +2056,6 @@ device_t fdc_xt_device = {
     "PC/XT Floppy Drive Controller",
     0,
     0,
-    fdc_init,
-    fdc_close,
-    fdc_reset,
-    NULL, NULL, NULL, NULL
-};
-
-device_t fdc_xt_amstrad_device = {
-    "PC/XT Floppy Drive Controller (Amstrad)",
-    0,
-    FDC_FLAG_DISKCHG_ACTLOW,
     fdc_init,
     fdc_close,
     fdc_reset,
