@@ -68,3 +68,8 @@ Jenkins instance.
   improve the emulator's performance in certain scenarios.
 * **Experimental (Dev)** builds are similar to regular builds but are compiled
   certain unfinished features enabled. These builds are not optimized.
+
+Donations
+---------
+We do not charge you for the emulator but donations are still welcome:
+https://paypal.me/86Box .
