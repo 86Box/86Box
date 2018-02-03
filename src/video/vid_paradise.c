@@ -10,7 +10,7 @@
  *		 PC2086, PC3086 use PVGA1A
  *		 MegaPC uses W90C11A
  *
- * Version:	@(#)vid_paradise.c	1.0.4	2018/01/31
+ * Version:	@(#)vid_paradise.c	1.0.5	2018/02/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -130,8 +130,6 @@ void paradise_out(uint16_t addr, uint8_t val, void *p)
                    svga->crtcreg = val & 0x3f;
                 return;
                 case 0x3D5:
-		if (svga->crtcreg <= 0x18)
-			val &= mask_crtc[svga->crtcreg];
                 if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
                         return;
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))

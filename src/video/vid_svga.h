@@ -8,7 +8,7 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.4	2018/01/25
+ * Version:	@(#)vid_svga.h	1.0.5	2018/02/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -189,8 +189,6 @@ void svga_set_override(svga_t *svga, int val);
 #define RAMDAC_6BIT 0
 #define RAMDAC_8BIT 1
 void svga_set_ramdac_type(svga_t *svga, int type);
-
-extern uint8_t mask_crtc[0x19];
 
 void svga_close(svga_t *svga);
 

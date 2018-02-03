@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.18	2018/02/01
+ * Version:	@(#)vid_svga.c	1.0.19	2018/02/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -49,8 +49,6 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga);
 extern uint8_t edatlookup[4][4];
 
 uint8_t svga_rotate[8][256];
-
-uint8_t mask_crtc[0x19] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0xFF, 0x7F, 0xEF, 0xFF};
 
 /*Primary SVGA device. As multiple video cards are not yet supported this is the
   only SVGA device.*/
