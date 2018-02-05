@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.28	2018/01/28
+ * Version:	@(#)rom.c	1.0.29	2018/02/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -260,6 +260,7 @@ rom_load_bios(int rom_id)
 
     loadfont(L"roms/video/mda/mda.rom", 0);
     loadfont(L"roms/video/wyse700/wy700.rom", 3);
+    loadfont(L"roms/video/genius/8x12.bin", 4);
 
     /* If not done yet, allocate a 128KB buffer for the BIOS ROM. */
     if (rom == NULL)
