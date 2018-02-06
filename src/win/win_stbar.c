@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.12	2018/01/29
+ * Version:	@(#)win_stbar.c	1.0.13	2018/02/06
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -465,6 +465,20 @@ StatusBarCreateNetworkTip(int part)
 }
 
 
+static void
+StatusBarCreateSoundTip(int part)
+{
+    WCHAR tempTip[512];
+
+    _swprintf(tempTip, plat_get_string(IDS_2068));
+
+    if (sbTips[part] != NULL)
+	free(sbTips[part]);
+    sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 2);
+    wcscpy(sbTips[part], tempTip);
+}
+
+
 /* API */
 void
 ui_sb_update_tip(int meaning)
@@ -504,6 +518,10 @@ ui_sb_update_tip(int meaning)
 
 		case SB_NETWORK:
 			StatusBarCreateNetworkTip(part);
+			break;
+
+		case SB_SOUND:
+			StatusBarCreateSoundTip(part);
 			break;
 
 		default:
@@ -692,7 +710,7 @@ ui_sb_update_panes(void)
     if (do_net) {
 	sb_parts++;
     }
-    sb_parts++;
+    sb_parts += 2;
 
     iStatusWidths = (int *)malloc(sb_parts * sizeof(int));
      memset(iStatusWidths, 0, sb_parts * sizeof(int));
@@ -809,11 +827,16 @@ ui_sb_update_panes(void)
 	sb_parts++;
     }
 
+    edge += SB_ICON_WIDTH;
+    iStatusWidths[sb_parts] = edge;
+    sb_part_meanings[sb_parts] = SB_SOUND;
+    sb_parts++;
+
     if (sb_parts)
 	iStatusWidths[sb_parts - 1] += (24 - SB_ICON_WIDTH);
     iStatusWidths[sb_parts] = -1;
     sb_part_meanings[sb_parts] = SB_TEXT;
-    sb_parts++;
+    sb_parts ++;
 
     SendMessage(hwndSBAR, SB_SETPARTS, (WPARAM)sb_parts, (LPARAM)iStatusWidths);
 
@@ -872,6 +895,11 @@ ui_sb_update_panes(void)
 		case SB_NETWORK:	/* Network */
 			sb_part_icons[i] = 224;
 			StatusBarCreateNetworkTip(i);
+			break;
+
+		case SB_SOUND:		/* Sound */
+			sb_part_icons[i] = 259;
+			StatusBarCreateSoundTip(i);
 			break;
 
 		case SB_TEXT:		/* Status text */
@@ -1189,6 +1217,17 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			StatusBarPopupMenu(hwnd, pt, (pt.x / SB_ICON_WIDTH));
 		break;
 
+	case WM_LBUTTONDBLCLK:
+		GetClientRect(hwnd, (LPRECT)& rc);
+		pt.x = GET_X_LPARAM(lParam);
+		pt.y = GET_Y_LPARAM(lParam);
+		item_id = (pt.x / SB_ICON_WIDTH);
+		if (PtInRect((LPRECT) &rc, pt) && (item_id < sb_parts)) {
+			if (sb_part_meanings[item_id] == SB_SOUND)
+				SoundGainDialogCreate(hwndMain);
+		}
+		break;
+
 	default:
 		return(CallWindowProc((WNDPROC)OriginalProcedure,
 				      hwnd, message, wParam, lParam));
@@ -1220,6 +1259,8 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
     for (i = 208; i < 210; i++)
 	hIcon[i] = LoadIconEx((PCTSTR) i);
     for (i = 224; i < 226; i++)
+	hIcon[i] = LoadIconEx((PCTSTR) i);
+    for (i = 259; i < 260; i++)
 	hIcon[i] = LoadIconEx((PCTSTR) i);
     for (i = 384; i < 386; i++)
 	hIcon[i] = LoadIconEx((PCTSTR) i);

@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.27	2018/01/27
+ * Version:	@(#)86Box.rc	1.0.28	2018/02/06
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -119,8 +119,6 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "S&tatus",                     IDM_STATUS
         MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_ACTION_SCREENSHOT
-        MENUITEM SEPARATOR
-        MENUITEM "S&ound gain...",              IDM_SND_GAIN
     END
 #if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
     POPUP "&Logging"
@@ -415,7 +413,7 @@ BEGIN
     PUSHBUTTON      "Configure",IDC_CONFIGURE_NET,214,43,46,12
 END
 
-DLG_CFG_PORTS DIALOG DISCARDABLE  97, 0, 267, 61
+DLG_CFG_PORTS DIALOG DISCARDABLE  97, 0, 267, 99
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
@@ -423,13 +421,21 @@ BEGIN
     COMBOBOX        IDC_COMBO_LPT1,71,7,189,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
 
+    LTEXT           "LPT2 Device:",IDT_1717,7,27,61,10
+    COMBOBOX        IDC_COMBO_LPT2,71,26,189,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+
+    LTEXT           "LPT3 Device:",IDT_1718,7,46,61,10
+    COMBOBOX        IDC_COMBO_LPT3,71,45,189,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+
     CONTROL         "Serial port 1",IDC_CHECK_SERIAL1,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,26,94,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,64,94,10
     CONTROL         "Serial port 2",IDC_CHECK_SERIAL2,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,147,26,94,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,64,94,10
 
     CONTROL         "Parallel port",IDC_CHECK_PARALLEL,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,44,94,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,82,94,10
 END
 
 DLG_CFG_PERIPHERALS DIALOG DISCARDABLE  97, 0, 267, 97

@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.36	2018/01/27
+ * Version:	@(#)win_settings.c	1.0.37	2018/02/06
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -77,7 +77,7 @@ static int temp_net_type, temp_net_card;
 static char temp_pcap_dev[520];
 
 /* Ports category */
-static char temp_lpt1_device_name[16];
+static char temp_lpt_device_names[3][16];
 static int temp_serial[2], temp_lpt;
 
 /* Other peripherals category */
@@ -177,7 +177,8 @@ static void win_settings_init(void)
 	temp_net_card = network_card;
 
 	/* Ports category */
-	strncpy(temp_lpt1_device_name, lpt1_device_name, sizeof(temp_lpt1_device_name) - 1);
+	for (i = 0; i < 3; i++)
+		strncpy(temp_lpt_device_names[i], lpt_device_names[i], sizeof(temp_lpt_device_names[i]) - 1);
 	temp_serial[0] = serial_enabled[0];
 	temp_serial[1] = serial_enabled[1];
 	temp_lpt = lpt_enabled;
@@ -292,7 +293,8 @@ static int win_settings_changed(void)
 	i = i || (network_card != temp_net_card);
 
 	/* Ports category */
-	i = i || strncmp(temp_lpt1_device_name, lpt1_device_name, sizeof(temp_lpt1_device_name) - 1);
+	for (i = 0; i < 3; i++)
+		i = i || strncmp(temp_lpt_device_names[i], lpt_device_names[i], sizeof(temp_lpt_device_names[i]) - 1);
 	i = i || (temp_serial[0] != serial_enabled[0]);
 	i = i || (temp_serial[1] != serial_enabled[1]);
 	i = i || (temp_lpt != lpt_enabled);
@@ -395,7 +397,8 @@ static void win_settings_save(void)
 	network_card = temp_net_card;
 
 	/* Ports category */
-	strncpy(lpt1_device_name, temp_lpt1_device_name, sizeof(temp_lpt1_device_name) - 1);
+	for (i = 0; i < 3; i++)
+		strncpy(lpt_device_names[i], temp_lpt_device_names[i], sizeof(temp_lpt_device_names[i]) - 1);
 	serial_enabled[0] = temp_serial[0];
 	serial_enabled[1] = temp_serial[1];
 	lpt_enabled = temp_lpt;
@@ -1427,41 +1430,36 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	int d = 0;
 	char *s;
 	LPTSTR lptsTemp;
+	int i;
 
         switch (message)
         {
 		case WM_INITDIALOG:
 			lptsTemp = (LPTSTR) malloc(512);
 
-			h = GetDlgItem(hdlg, IDC_COMBO_LPT1);
-			c = d = 0;
-			while (1)
-			{
-				s = lpt_device_get_name(c);
+			for (i = 0; i < 3; i++) {
+				h = GetDlgItem(hdlg, IDC_COMBO_LPT1 + i);
+				c = d = 0;
+				while (1) {
+					s = lpt_device_get_name(c);
 
-				if (!s)
-				{
-					break;
-				}
+					if (!s)
+						break;
 
-				if (c == 0)
-				{
-					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) plat_get_string(IDS_2152));
-				}
-				else
-				{
-					mbstowcs(lptsTemp, s, strlen(s) + 1);
-					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
-				}
+					if (c == 0) {
+						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) plat_get_string(IDS_2152));
+					} else {
+						mbstowcs(lptsTemp, s, strlen(s) + 1);
+						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+					}
 
-				if (!strcmp(temp_lpt1_device_name, lpt_device_get_internal_name(c)))
-				{
-					d = c;
-				}
+					if (!strcmp(temp_lpt_device_names[i], lpt_device_get_internal_name(c)))
+						d = c;
 
-				c++;
+					c++;
+				}
+				SendMessage(h, CB_SETCURSEL, d, 0);
 			}
-			SendMessage(h, CB_SETCURSEL, d, 0);
 
 			h=GetDlgItem(hdlg, IDC_CHECK_SERIAL1);
 			SendMessage(h, BM_SETCHECK, temp_serial[0], 0);
@@ -1477,9 +1475,11 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			return TRUE;
 
 		case WM_SAVESETTINGS:
-			h = GetDlgItem(hdlg, IDC_COMBO_LPT1);
-			c = SendMessage(h, CB_GETCURSEL, 0, 0);
-			strcpy(temp_lpt1_device_name, lpt_device_get_internal_name(c));
+			for (i = 0; i < 3; i++) {
+				h = GetDlgItem(hdlg, IDC_COMBO_LPT1 + i);
+				c = SendMessage(h, CB_GETCURSEL, 0, 0);
+				strcpy(temp_lpt_device_names[i], lpt_device_get_internal_name(c));
+			}
 
 			h = GetDlgItem(hdlg, IDC_CHECK_SERIAL1);
 			temp_serial[0] = SendMessage(h, BM_GETCHECK, 0, 0);

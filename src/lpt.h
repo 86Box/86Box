@@ -7,13 +7,13 @@ extern void lpt2_remove_ams();
 extern void lpt3_init(uint16_t port);
 extern void lpt3_remove();
 
-void lpt1_device_init();
-void lpt1_device_close();
+void lpt_devices_init();
+void lpt_devices_close();
 
 char *lpt_device_get_name(int id);
 char *lpt_device_get_internal_name(int id);
 
-extern char lpt1_device_name[16];
+extern char lpt_device_names[3][16];
 
 typedef struct
 {

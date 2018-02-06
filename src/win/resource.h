@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.19	2018/01/26
+ * Version:	@(#)resource.h	1.0.19	2018/02/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -148,9 +148,11 @@
 #define IDC_COMBO_NET		1092
 
 #define IDC_COMBO_LPT1		1110	/* ports config */
-#define IDC_CHECK_SERIAL1	1111
-#define IDC_CHECK_SERIAL2	1112
-#define IDC_CHECK_PARALLEL	1113
+#define IDC_COMBO_LPT2		1111
+#define IDC_COMBO_LPT3		1112
+#define IDC_CHECK_SERIAL1	1113
+#define IDC_CHECK_SERIAL2	1114
+#define IDC_CHECK_PARALLEL	1115
 
 #define IDC_OTHER_PERIPH	1120	/* other periph config */
 #define IDC_COMBO_SCSI		1121
@@ -237,7 +239,6 @@
 #define IDM_CONFIG_LOAD		40021
 #define IDM_CONFIG_SAVE		40022
 #define IDM_STATUS		40030
-#define IDM_SND_GAIN		40040
 #define IDM_VID_RESIZE		40050
 #define IDM_VID_REMEMBER	40051
 #define IDM_VID_DDRAW		40060

@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.15	2018/02/01
+ * Version:	@(#)win_ui.c	1.0.16	2018/02/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -309,10 +309,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_CONFIG:
 				win_settings_open(hwnd);
-				break;
-
-			case IDM_SND_GAIN:
-				SoundGainDialogCreate(hwnd);
 				break;
 
 			case IDM_ABOUT:

@@ -12,7 +12,7 @@
 #include "sound/snd_lpt_dss.h"
 
 
-char lpt1_device_name[16];
+char lpt_device_names[3][16];
 
 
 static struct
@@ -42,118 +42,102 @@ char *lpt_device_get_internal_name(int id)
         return lpt_devices[id].internal_name;
 }
 
-static lpt_device_t *lpt1_device;
-static void *lpt1_device_p;
+static lpt_device_t *lpt_device_ts[3];
+static void *lpt_device_ps[3];
 
-void lpt1_device_init()
+void lpt_devices_init()
 {
+	int i = 0;
         int c = 0;
 
-        while (strcmp(lpt_devices[c].internal_name, lpt1_device_name) && strlen(lpt_devices[c].internal_name) != 0)
-                c++;
+	for (i = 0; i < 3; i++) {
+	        while (strcmp(lpt_devices[c].internal_name, lpt_device_names[i]) && strlen(lpt_devices[c].internal_name) != 0)
+        	        c++;
 
-        if (strlen(lpt_devices[c].internal_name) == 0)
-                lpt1_device = NULL;
-        else
+	        if (strlen(lpt_devices[c].internal_name) == 0)
+        	        lpt_device_ts[i] = NULL;
+	        else
+        	{
+                	lpt_device_ts[i] = lpt_devices[c].device;
+	                if (lpt_device_ts[i])
+        	                lpt_device_ps[i] = lpt_device_ts[i]->init();
+	        }
+	}
+}
+
+void lpt_devices_close()
+{
+	int i = 0;
+
+	for (i = 0; i < 3; i++) {
+	        if (lpt_device_ts[i])
+        	        lpt_device_ts[i]->close(lpt_device_ps[i]);
+	        lpt_device_ts[i] = NULL;
+	}
+}
+
+static uint8_t lpt_dats[3], lpt_ctrls[3];
+
+void lpt_write(int i, uint16_t port, uint8_t val, void *priv)
+{
+        switch (port & 3)
         {
-                lpt1_device = lpt_devices[c].device;
-                if (lpt1_device)
-                        lpt1_device_p = lpt1_device->init();
+                case 0:
+                if (lpt_device_ts[i])
+                        lpt_device_ts[i]->write_data(val, lpt_device_ps[i]);
+                lpt_dats[i] = val;
+                break;
+                case 2:
+                if (lpt_device_ts[i])
+                        lpt_device_ts[i]->write_ctrl(val, lpt_device_ps[i]);
+                lpt_ctrls[i] = val;
+                break;
         }
 }
-
-void lpt1_device_close()
+uint8_t lpt_read(int i, uint16_t port, void *priv)
 {
-        if (lpt1_device)
-                lpt1_device->close(lpt1_device_p);
-        lpt1_device = NULL;
+        switch (port & 3)
+        {
+                case 0:
+                return lpt_dats[i];
+                case 1:
+                if (lpt_device_ts[i])
+                        return lpt_device_ts[i]->read_status(lpt_device_ps[i]);
+                return 0;
+                case 2:
+                return lpt_ctrls[i];
+        }
+        return 0xff;
 }
-
-static uint8_t lpt1_dat, lpt2_dat, lpt3_dat;
-static uint8_t lpt1_ctrl, lpt2_ctrl, lpt3_ctrl;
 
 void lpt1_write(uint16_t port, uint8_t val, void *priv)
 {
-        switch (port & 3)
-        {
-                case 0:
-                if (lpt1_device)
-                        lpt1_device->write_data(val, lpt1_device_p);
-                lpt1_dat = val;
-                break;
-                case 2:
-                if (lpt1_device)
-                        lpt1_device->write_ctrl(val, lpt1_device_p);
-                lpt1_ctrl = val;
-                break;
-        }
+	lpt_write(0, port, val, priv);
 }
+
 uint8_t lpt1_read(uint16_t port, void *priv)
 {
-        switch (port & 3)
-        {
-                case 0:
-                return lpt1_dat;
-                case 1:
-                if (lpt1_device)
-                        return lpt1_device->read_status(lpt1_device_p);
-                return 0;
-                case 2:
-                return lpt1_ctrl;
-        }
-        return 0xff;
+	return lpt_read(0, port, priv);
 }
 
 void lpt2_write(uint16_t port, uint8_t val, void *priv)
 {
-        switch (port & 3)
-        {
-                case 0:
-                lpt2_dat = val;
-                break;
-                case 2:
-                lpt2_ctrl = val;
-                break;
-        }
+	lpt_write(1, port, val, priv);
 }
+
 uint8_t lpt2_read(uint16_t port, void *priv)
 {
-        switch (port & 3)
-        {
-                case 0:
-                return lpt2_dat;
-                case 1:
-                return 0;
-                case 2:
-                return lpt2_ctrl;
-        }
-        return 0xff;
+	return lpt_read(1, port, priv);
 }
 
 void lpt3_write(uint16_t port, uint8_t val, void *priv)
 {
-        switch (port & 3)
-        {
-                case 0:
-                lpt3_dat = val;
-                break;
-                case 2:
-                lpt3_ctrl = val;
-                break;
-        }
+	lpt_write(2, port, val, priv);
 }
+
 uint8_t lpt3_read(uint16_t port, void *priv)
 {
-        switch (port & 3)
-        {
-                case 0:
-                return lpt3_dat;
-                case 1:
-                return 0;
-                case 2:
-                return lpt3_ctrl;
-        }
-        return 0xff;
+	return lpt_read(2, port, priv);
 }
 
 uint16_t lpt_addr[3] = { 0x378, 0x278, 0x3bc };

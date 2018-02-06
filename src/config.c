@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.39	2018/01/27
+ * Version:	@(#)config.c	1.0.40	2018/02/06
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -686,9 +686,21 @@ load_ports(void)
 
     p = (char *)config_get_string(cat, "lpt1_device", NULL);
     if (p != NULL)
-	strcpy(lpt1_device_name, p);
+	strcpy(lpt_device_names[0], p);
       else
-	strcpy(lpt1_device_name, "none");
+	strcpy(lpt_device_names[0], "none");
+
+    p = (char *)config_get_string(cat, "lpt2_device", NULL);
+    if (p != NULL)
+	strcpy(lpt_device_names[1], p);
+      else
+	strcpy(lpt_device_names[1], "none");
+
+    p = (char *)config_get_string(cat, "lpt3_device", NULL);
+    if (p != NULL)
+	strcpy(lpt_device_names[2], p);
+      else
+	strcpy(lpt_device_names[2], "none");
 }
 
 
@@ -1779,10 +1791,20 @@ save_ports(void)
       else
 	config_set_int(cat, "lpt_enabled", lpt_enabled);
 
-    if (!strcmp(lpt1_device_name, "none"))
+    if (!strcmp(lpt_device_names[0], "none"))
 	config_delete_var(cat, "lpt1_device");
       else
-	config_set_string(cat, "lpt1_device", lpt1_device_name);
+	config_set_string(cat, "lpt1_device", lpt_device_names[0]);
+
+    if (!strcmp(lpt_device_names[1], "none"))
+	config_delete_var(cat, "lpt2_device");
+      else
+	config_set_string(cat, "lpt2_device", lpt_device_names[1]);
+
+    if (!strcmp(lpt_device_names[2], "none"))
+	config_delete_var(cat, "lpt3_device");
+      else
+	config_set_string(cat, "lpt3_device", lpt_device_names[2]);
 
     delete_section_if_empty(cat);
 }

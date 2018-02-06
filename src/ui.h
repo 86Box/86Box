@@ -8,7 +8,7 @@
  *
  *		Define the various UI functions.
  *
- * Version:	@(#)ui.h	1.0.12	2018/01/22
+ * Version:	@(#)ui.h	1.0.13	2018/02/06
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -48,7 +48,8 @@ extern void	ui_check_menu_item(int id, int checked);
 #define SB_RDISK        0x30
 #define SB_HDD          0x50
 #define SB_NETWORK      0x60
-#define SB_TEXT         0x70
+#define SB_SOUND        0x70
+#define SB_TEXT         0x80
 
 extern wchar_t  *ui_window_title(wchar_t *s);
 extern void	ui_status_update(void);

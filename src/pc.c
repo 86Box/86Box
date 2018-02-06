@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.56	2018/01/29
+ * Version:	@(#)pc.c	1.0.57	2018/02/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -751,6 +751,8 @@ pc_reset_hard_close(void)
 
     mouse_close();
 
+    lpt_devices_close();
+
     device_close_all();
 
     midi_close();
@@ -810,7 +812,7 @@ pc_reset_hard_init(void)
     /* Reset some basic devices. */
     speaker_init();
     serial_reset();
-    lpt1_device_init();
+    lpt_devices_init();
 
     /* Reset keyboard and/or mouse. */
     // FIXME: do we really have to reset the *AT* keyboard?? --FvK
@@ -944,6 +946,8 @@ pc_close(thread_t *ptr)
 
     plat_mouse_capture(0);
 
+    lpt_devices_close();
+
     for (i=0; i<ZIP_NUM; i++)
 	zip_close(i);
 
@@ -958,8 +962,6 @@ pc_close(thread_t *ptr)
     dumpregs(0);
 
     video_close();
-
-    lpt1_device_close();
 
     device_close_all();
 
