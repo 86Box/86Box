@@ -48,9 +48,11 @@ static void *lpt_device_ps[3];
 void lpt_devices_init()
 {
 	int i = 0;
-        int c = 0;
+        int c;
 
 	for (i = 0; i < 3; i++) {
+		c = 0;
+
 	        while (strcmp(lpt_devices[c].internal_name, lpt_device_names[i]) && strlen(lpt_devices[c].internal_name) != 0)
         	        c++;
 
