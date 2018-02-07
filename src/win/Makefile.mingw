@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.97	2018/01/28
+# Version:	@(#)Makefile.mingw	1.0.98	2018/02/07
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -216,7 +216,7 @@ else
   endif
  endif
 endif
-AFLAGS		:= -msse -msse2 -mfpmath=sse
+AFLAGS		:= -fomit-frame-pointer -msse2 -mfpmath=sse -mstackrealign -fno-strict-aliasing
 RFLAGS		:= --input-format=rc -O coff
 ifeq ($(RELEASE), y)
 OPTS		+= -DRELEASE_BUILD

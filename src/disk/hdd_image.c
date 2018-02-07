@@ -8,7 +8,7 @@
  *
  *		Handling of hard disk image files.
  *
- * Version:	@(#)hdd_image.c	1.0.10	2018/01/24
+ * Version:	@(#)hdd_image.c	1.0.11	2018/02/07
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -76,18 +76,12 @@ int image_is_hdi(const wchar_t *s)
 	char *ws = (char *) s;
 	len = wcslen(s);
 	if ((len < 4) || (s[0] == L'.'))
-	{
 		return 0;
-	}
 	memcpy(ext, ws + ((len - 4) << 1), 8);
 	if (! wcscasecmp(ext, L".HDI"))
-	{
 		return 1;
-	}
 	else
-	{
 		return 0;
-	}
 }
 
 
@@ -102,46 +96,27 @@ image_is_hdx(const wchar_t *s, int check_signature)
 	wchar_t ext[5] = { 0, 0, 0, 0, 0 };
 	len = wcslen(s);
 	if ((len < 4) || (s[0] == L'.'))
-	{
 		return 0;
-	}
 	memcpy(ext, ws + ((len - 4) << 1), 8);
-	if (wcscasecmp(ext, L".HDX") == 0)
-	{
-		if (check_signature)
-		{
+	if (wcscasecmp(ext, L".HDX") == 0) {
+		if (check_signature) {
 			f = plat_fopen((wchar_t *)s, L"rb");
 			if (!f)
-			{
 				return 0;
-			}
 			fseeko64(f, 0, SEEK_END);
 			filelen = ftello64(f);
 			fseeko64(f, 0, SEEK_SET);
 			if (filelen < 44)
-			{
 				return 0;
-			}
 			fread(&signature, 1, 8, f);
 			fclose(f);
 			if (signature == 0xD778A82044445459ll)
-			{
 				return 1;
-			}
-			else
-			{
-				return 0;
-			}
+			return 0;
 		}
-		else
-		{
-			return 1;
-		}
+		return 1;
 	}
-	else
-	{
-		return 0;
-	}
+	return 0;
 }
 
 
@@ -161,10 +136,8 @@ int hdd_image_load(int id)
 
 	hdd_images[id].base = 0;
 
-	if (hdd_images[id].loaded)
-	{
-		if (hdd_images[id].file)
-		{
+	if (hdd_images[id].loaded) {
+		if (hdd_images[id].file) {
 			fclose(hdd_images[id].file);
 			hdd_images[id].file = NULL;
 		}
@@ -175,38 +148,30 @@ int hdd_image_load(int id)
 	is_hdx[1] = image_is_hdx(fn, 1);
 
 	/* Try to open existing hard disk image */
-	if (fn[0] == '.')
-	{
+	if (fn[0] == '.') {
 		hdd_image_log("File name starts with .\n");
 		memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
 		return 0;
 	}
 	hdd_images[id].file = plat_fopen(fn, L"rb+");
-	if (hdd_images[id].file == NULL)
-	{
+	if (hdd_images[id].file == NULL) {
 		/* Failed to open existing hard disk image */
-		if (errno == ENOENT)
-		{
+		if (errno == ENOENT) {
 			/* Failed because it does not exist,
 			   so try to create new file */
-			if (hdd[id].wp)
-			{
+			if (hdd[id].wp) {
 				hdd_image_log("A write-protected image must exist\n");
 				memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
 				return 0;
 			}
 
 			hdd_images[id].file = plat_fopen(fn, L"wb+");
-			if (hdd_images[id].file == NULL)
-			{
+			if (hdd_images[id].file == NULL) {
 				hdd_image_log("Unable to open image\n");
 				memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
 				return 0;
-			}
-			else
-			{
-				if (image_is_hdi(fn))
-				{
+			} else {
+				if (image_is_hdi(fn)) {
 					full_size = hdd[id].spt * hdd[id].hpc * hdd[id].tracks * 512;
 					hdd_images[id].base = 0x1000;
 					fwrite(&zero, 1, 4, hdd_images[id].file);
@@ -218,13 +183,9 @@ int hdd_image_load(int id)
 					fwrite(&(hdd[id].hpc), 1, 4, hdd_images[id].file);
 					fwrite(&(hdd[id].tracks), 1, 4, hdd_images[id].file);
 					for (c = 0; c < 0x3f8; c++)
-					{
 						fwrite(&zero, 1, 4, hdd_images[id].file);
-					}
 					hdd_images[id].type = 1;
-				}
-				else if (is_hdx[0])
-				{
+				} else if (is_hdx[0]) {
 					full_size = hdd[id].spt * hdd[id].hpc * hdd[id].tracks * 512;
 					hdd_images[id].base = 0x28;
 					fwrite(&signature, 1, 8, hdd_images[id].file);
@@ -238,28 +199,21 @@ int hdd_image_load(int id)
 					hdd_images[id].type = 2;
 				}
 				else
-				{
 					hdd_images[id].type = 0;
-				}
 				hdd_images[id].last_sector = 0;
 			}
 
 			s = full_size = hdd[id].spt * hdd[id].hpc * hdd[id].tracks * 512;
 
 			goto prepare_new_hard_disk;
-		}
-		else
-		{
+		} else {
 			/* Failed for another reason */
 			hdd_image_log("Failed for another reason\n");
 			memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
 			return 0;
 		}
-	}
-	else
-	{
-		if (image_is_hdi(fn))
-		{
+	} else {
+		if (image_is_hdi(fn)) {
 			fseeko64(hdd_images[id].file, 0x8, SEEK_SET);
 			fread(&(hdd_images[id].base), 1, 4, hdd_images[id].file);
 			fseeko64(hdd_images[id].file, 0xC, SEEK_SET);
@@ -267,8 +221,7 @@ int hdd_image_load(int id)
 			fread(&full_size, 1, 4, hdd_images[id].file);
 			fseeko64(hdd_images[id].file, 0x10, SEEK_SET);
 			fread(&sector_size, 1, 4, hdd_images[id].file);
-			if (sector_size != 512)
-			{
+			if (sector_size != 512) {
 				/* Sector size is not 512 */
 				hdd_image_log("HDI: Sector size is not 512\n");
 				fclose(hdd_images[id].file);
@@ -279,10 +232,8 @@ int hdd_image_load(int id)
 			fread(&spt, 1, 4, hdd_images[id].file);
 			fread(&hpc, 1, 4, hdd_images[id].file);
 			fread(&tracks, 1, 4, hdd_images[id].file);
-			if (hdd[id].bus == HDD_BUS_SCSI_REMOVABLE)
-			{
-				if ((spt != hdd[id].spt) || (hpc != hdd[id].hpc) || (tracks != hdd[id].tracks))
-				{
+			if (hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) {
+				if ((spt != hdd[id].spt) || (hpc != hdd[id].hpc) || (tracks != hdd[id].tracks)) {
 					hdd_image_log("HDI: Geometry mismatch\n");
 					fclose(hdd_images[id].file);
 					hdd_images[id].file = NULL;
@@ -295,15 +246,13 @@ int hdd_image_load(int id)
 			hdd[id].tracks = tracks;
 			hdd_images[id].type = 1;
 		}
-		else if (is_hdx[1])
-		{
+		else if (is_hdx[1]) {
 			hdd_images[id].base = 0x28;
 			fseeko64(hdd_images[id].file, 8, SEEK_SET);
 			fread(&full_size, 1, 8, hdd_images[id].file);
 			fseeko64(hdd_images[id].file, 0x10, SEEK_SET);
 			fread(&sector_size, 1, 4, hdd_images[id].file);
-			if (sector_size != 512)
-			{
+			if (sector_size != 512) {
 				/* Sector size is not 512 */
 				hdd_image_log("HDX: Sector size is not 512\n");
 				fclose(hdd_images[id].file);
@@ -314,10 +263,8 @@ int hdd_image_load(int id)
 			fread(&spt, 1, 4, hdd_images[id].file);
 			fread(&hpc, 1, 4, hdd_images[id].file);
 			fread(&tracks, 1, 4, hdd_images[id].file);
-			if (hdd[id].bus == HDD_BUS_SCSI_REMOVABLE)
-			{
-				if ((spt != hdd[id].spt) || (hpc != hdd[id].hpc) || (tracks != hdd[id].tracks))
-				{
+			if (hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) {
+				if ((spt != hdd[id].spt) || (hpc != hdd[id].hpc) || (tracks != hdd[id].tracks)) {
 					hdd_image_log("HDX: Geometry mismatch\n");
 					fclose(hdd_images[id].file);
 					hdd_images[id].file = NULL;
@@ -331,17 +278,14 @@ int hdd_image_load(int id)
 			fread(&(hdd[id].at_spt), 1, 4, hdd_images[id].file);
 			fread(&(hdd[id].at_hpc), 1, 4, hdd_images[id].file);
 			hdd_images[id].type = 2;
-		}
-		else
-		{
+		} else {
 			full_size = hdd[id].spt * hdd[id].hpc * hdd[id].tracks * 512;
 			hdd_images[id].type = 0;
 		}
 	}
 
 	fseeko64(hdd_images[id].file, 0, SEEK_END);
-	if (ftello64(hdd_images[id].file) < (full_size + hdd_images[id].base))
-	{
+	if (ftello64(hdd_images[id].file) < (full_size + hdd_images[id].base)) {
 		s = (full_size + hdd_images[id].base) - ftello64(hdd_images[id].file);
 prepare_new_hard_disk:
 		s >>= 9;
@@ -353,19 +297,15 @@ prepare_new_hard_disk:
 		memset(empty_sector_1mb, 0, 1048576);
 
 		pclog("Writing image sectors: [");
-		if (s > 0)
-		{
-			for (i = 0; i < s; i++)
-			{
+		if (s > 0) {
+			for (i = 0; i < s; i++) {
 				pclog("#");
 				fwrite(empty_sector, 1, 512, hdd_images[id].file);
 			}
 		}
 
-		if (t > 0)
-		{
-			for (i = 0; i < t; i++)
-			{
+		if (t > 0) {
+			for (i = 0; i < t; i++) {
 				pclog("#");
 				fwrite(empty_sector_1mb, 1, 1045876, hdd_images[id].file);
 			}
@@ -384,20 +324,16 @@ prepare_new_hard_disk:
 
 void hdd_image_seek(uint8_t id, uint32_t sector)
 {
-	uint64_t addr = sector;
-	addr <<= 9;
-	addr += hdd_images[id].base;
+	off64_t addr = sector;
+	addr = (uint64_t)sector * 512;
 
-	fseeko64(hdd_images[id].file, addr, SEEK_SET);
+	fseeko64(hdd_images[id].file, addr + hdd_images[id].base, SEEK_SET);
 }
 
 void hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
-	count <<= 9;
-
 	hdd_image_seek(id, sector);
-	memset(buffer, 0, count);
-	fread(buffer, 1, count, hdd_images[id].file);
+	fread(buffer, 1, count * 512, hdd_images[id].file);
 }
 
 uint32_t hdd_sectors(uint8_t id)
@@ -412,27 +348,20 @@ int hdd_image_read_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buff
 	uint32_t sectors = hdd_sectors(id);
 
 	if ((sectors - sector) < transfer_sectors)
-	{
 		transfer_sectors = sectors - sector;
-	}
 
 	hdd_image_seek(id, sector);
-	memset(buffer, 0, transfer_sectors << 9);
-	fread(buffer, 1, transfer_sectors << 9, hdd_images[id].file);
+	fread(buffer, 1, transfer_sectors * 512, hdd_images[id].file);
 
 	if (count != transfer_sectors)
-	{
 		return 1;
-	}
 	return 0;
 }
 
 void hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
-	count <<= 9;
-
 	hdd_image_seek(id, sector);
-	fwrite(buffer, 1, count, hdd_images[id].file);
+	fwrite(buffer, count * 512, 1, hdd_images[id].file);
 }
 
 int hdd_image_write_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
@@ -441,64 +370,41 @@ int hdd_image_write_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buf
 	uint32_t sectors = hdd_sectors(id);
 
 	if ((sectors - sector) < transfer_sectors)
-	{
 		transfer_sectors = sectors - sector;
-	}
 
 	hdd_image_seek(id, sector);
-	memset(buffer, 0, transfer_sectors << 9);
-	fwrite(buffer, 1, transfer_sectors << 9, hdd_images[id].file);
+	fwrite(buffer, transfer_sectors * 512, 1, hdd_images[id].file);
 
 	if (count != transfer_sectors)
-	{
 		return 1;
-	}
 	return 0;
 }
 
 void hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
 {
 	int i = 0;
-	uint8_t *b;
-
-	b = (uint8_t *) malloc(512);
-	memset(b, 0, 512);
 
 	hdd_image_seek(id, sector);
 	for (i = 0; i < count; i++)
-	{
-		fwrite(b, 1, 512, hdd_images[id].file);
-	}
-
-	free(b);
+		fwrite(empty_sector, 512, 1, hdd_images[id].file);
 }
 
 int hdd_image_zero_ex(uint8_t id, uint32_t sector, uint32_t count)
 {
 	int i = 0;
-	uint8_t *b;
 
 	uint32_t transfer_sectors = count;
 	uint32_t sectors = hdd_sectors(id);
 
 	if ((sectors - sector) < transfer_sectors)
-	{
 		transfer_sectors = sectors - sector;
-	}
-
-	b = (uint8_t *) malloc(512);
-	memset(b, 0, 512);
 
 	hdd_image_seek(id, sector);
 	for (i = 0; i < transfer_sectors; i++)
-	{
-		fwrite(b, 1, 512, hdd_images[id].file);
-	}
+		fwrite(empty_sector, 1, 512, hdd_images[id].file);
 
 	if (count != transfer_sectors)
-	{
 		return 1;
-	}
 	return 0;
 }
 
@@ -527,14 +433,10 @@ void hdd_image_specify(uint8_t id, uint64_t hpc, uint64_t spt)
 void hdd_image_unload(uint8_t id, int fn_preserve)
 {
 	if (wcslen(hdd[id].fn) == 0)
-	{
 		return;
-	}
 
-	if (hdd_images[id].loaded)
-	{
-		if (hdd_images[id].file != NULL)
-		{
+	if (hdd_images[id].loaded) {
+		if (hdd_images[id].file != NULL) {
 			fclose(hdd_images[id].file);
 			hdd_images[id].file = NULL;
 		}
@@ -551,8 +453,7 @@ void hdd_image_unload(uint8_t id, int fn_preserve)
 
 void hdd_image_close(uint8_t id)
 {
-	if (hdd_images[id].file != NULL)
-	{
+	if (hdd_images[id].file != NULL) {
 		fclose(hdd_images[id].file);
 		hdd_images[id].file = NULL;
 	}

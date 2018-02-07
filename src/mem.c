@@ -196,7 +196,7 @@ int pctrans=0;
 
 extern uint32_t testr[9];
 
-int mem_cpl3_check(void)
+static __inline__ int mem_cpl3_check(void)
 {
 	if ((CPL == 3) && !cpl_override)
 	{
@@ -205,14 +205,14 @@ int mem_cpl3_check(void)
 	return 0;
 }
 
-void mmu_page_fault(uint32_t addr, uint32_t error_code)
+static __inline__ void mmu_page_fault(uint32_t addr, uint32_t error_code)
 {
 	cr2 = addr;
 	cpu_state.abrt = ABRT_PF;
 	abrt_error = error_code;
 }
 
-int mmu_page_fault_check(uint32_t addr, int rw, uint32_t flags, int pde, int is_abrt)
+static __inline__ int mmu_page_fault_check(uint32_t addr, int rw, uint32_t flags, int pde, int is_abrt)
 {
 	uint8_t error_code = 0;
 
@@ -223,29 +223,22 @@ int mmu_page_fault_check(uint32_t addr, int rw, uint32_t flags, int pde, int is_
 
 	/* Apparently, this check should not be done on PSE. */
 	if (!(flags & 1))
-	{
 		is_page_fault = 1;
-	} else
+	else
 		error_code |= 1;	/* If the page is present, the error must indicate that it is. */
 
-	if (!(flags & 4) && mem_cpl3_check())
-	{
+	if (!(flags & 4) && mem_cpl3_check()) {
 		/* The user/supervisor check needs to be checked for the table as well, *before* checking it for the page. */
 		is_page_fault = 1;
 	}
 
 	/* Only check the write-protect flag if this is a page directory entry. */
 	if (pde && rw && !(flags & 2) && ((cr0 & WP_FLAG) || mem_cpl3_check()))
-	{
 		is_page_fault = 1;
-	}
 
-	if (is_page_fault)
-	{
+	if (is_page_fault) {
 		if (is_abrt)
-		{
 			mmu_page_fault(addr, error_code);
-		}
 		return -1;
 	}
 
@@ -255,36 +248,6 @@ int mmu_page_fault_check(uint32_t addr, int rw, uint32_t flags, int pde, int is_
 #define PAGE_DIRTY_AND_ACCESSED 0x60
 #define PAGE_DIRTY 0x40
 #define PAGE_ACCESSED 0x20
-
-/* This is needed so that mmutranslate reads things from the correct place
-   if it has to read something from a remapped mapping. */
-uint32_t mem_readl_phys(uint32_t addr)
-{
-	uint8_t i, temp[4];
-	uint32_t ta, *tv;
-
-	for (i = 0; i < 4; i++) {
-		ta = addr + i;
-		temp[i] = _mem_exec[ta >> 14][ta & 0x3fff];
-	}
-
-	tv = (uint32_t *) temp;
-	return *tv;
-}
-
-void mem_writel_phys(uint32_t addr, uint32_t val)
-{
-	uint8_t i, temp[4];
-	uint32_t ta, *tv;
-
-	tv = (uint32_t *) temp;
-	*tv = val;
-
-	for (i = 0; i < 4; i++) {
-		ta = addr + i;
-		_mem_exec[ta >> 14][ta & 0x3fff] = temp[i];
-	}
-}
 
 /* rw means 0 = read, 1 = write */
 uint32_t mmutranslate(uint32_t addr, int rw, int is_abrt)
@@ -299,58 +262,45 @@ uint32_t mmutranslate(uint32_t addr, int rw, int is_abrt)
 	uint32_t page_flags = 0;
 
 	if (cpu_state.abrt)
-	{
 		return -1;
-	}
 
 	dir_base = cr3 & ~0xfff;
 	table_addr = dir_base + ((addr >> 20) & 0xffc);
 
 	/* First check the flags of the page directory entry. */
-	table_flags = mem_readl_phys(table_addr);
+	table_flags = *(uint32_t *) &_mem_exec[table_addr >> 14][table_addr & 0x3fff];
 
-	if ((table_flags & 0x80) && (cr4 & CR4_PSE))
-	{
+	if ((table_flags & 0x80) && (cr4 & CR4_PSE)) {
 		/* Do a PDE-style page fault check. */
 		if (mmu_page_fault_check(addr, rw, table_flags & 7, 1, is_abrt) == -1)
-		{
 			return -1;
-		}
 
 		/* Since PSE is not enabled, there is no page table, so we do a slightly modified skip to the end. */
-		if (is_abrt)
-		{
+		if (is_abrt) {
 			mmu_perm = table_flags & 4;
-			mem_writel_phys(table_addr, table_flags | (rw ? PAGE_DIRTY_AND_ACCESSED : PAGE_ACCESSED));
+			*(uint32_t *) &_mem_exec[table_addr >> 14][table_addr & 0x3fff] = table_flags | (rw ? PAGE_DIRTY_AND_ACCESSED : PAGE_ACCESSED);
 		}
 
 		return (table_flags & ~0x3FFFFF) + (addr & 0x3FFFFF);
-	}
-	else
-	{
+	} else {
 		/* Do a non-PDE-style page fault check. */
 		if (mmu_page_fault_check(addr, rw, table_flags & 7, 0, is_abrt) == -1)
-		{
 			return -1;
-		}
 	}
 
 	page_addr = table_flags & ~0xfff;
 	page_addr += ((addr >> 10) & 0xffc);
 
 	/* Then check the flags of the page table entry. */
-	page_flags = mem_readl_phys(page_addr);
+	page_flags = *(uint32_t *) &_mem_exec[page_addr >> 14][page_addr & 0x3fff];
 
 	if (mmu_page_fault_check(addr, rw, page_flags & 7, 1, is_abrt) == -1)
-	{
 		return -1;
-	}
 
-	if (is_abrt)
-	{
+	if (is_abrt) {
 		mmu_perm = page_flags & 4;
-		mem_writel_phys(table_addr, table_flags | PAGE_ACCESSED);
-		mem_writel_phys(page_addr, page_flags | (rw ? PAGE_DIRTY_AND_ACCESSED : PAGE_ACCESSED));
+		*(uint32_t *) &_mem_exec[table_addr >> 14][table_addr & 0x3fff] = table_flags | PAGE_ACCESSED;
+		*(uint32_t *) &_mem_exec[page_addr >> 14][page_addr & 0x3fff] = page_flags | (rw ? PAGE_DIRTY_AND_ACCESSED : PAGE_ACCESSED);
 	}
 
 	return (page_flags & ~0xFFF) + (addr & 0xFFF);

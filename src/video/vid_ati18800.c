@@ -8,7 +8,7 @@
  *
  *		ATI 18800 emulation (VGA Edge-16)
  *
- * Version:	@(#)vid_ati18800.c	1.0.4	2018/02/03
+ * Version:	@(#)vid_ati18800.c	1.0.5	2018/02/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -33,7 +33,15 @@
 #include "vid_svga.h"
 
 
-#define BIOS_ROM_PATH	L"roms/video/ati18800/vga88.bin"
+#define BIOS_ROM_PATH_WONDER	L"roms/video/ati18800/VGA_Wonder_V3-1.02.bin"
+#define BIOS_ROM_PATH_VGA88	L"roms/video/ati18800/vga88.bin"
+#define BIOS_ROM_PATH_EDGE16	L"roms/video/ati18800/vgaedge16.vbi"
+
+enum {
+	ATI18800_WONDER = 0,
+	ATI18800_VGA88,
+	ATI18800_EDGE16
+};
 
 
 typedef struct ati18800_t
@@ -93,18 +101,6 @@ static void ati18800_out(uint16_t addr, uint8_t val, void *p)
                         return;
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80) && !(ati18800->regs[0xb4] & 0x80))
                         val = (svga->crtc[7] & ~0x10) | (val & 0x10);
-                if ((ati18800->regs[0xb4] & 4) && (svga->crtcreg == 9))
-                        val = (svga->crtc[9] & ~0x60) | (val & 0x60);
-                if ((ati18800->regs[0xb4] & 8) && ((svga->crtcreg == 6) || (svga->crtcreg == 0x10) || (svga->crtcreg == 0x12) || (svga->crtcreg == 0x15) || (svga->crtcreg == 0x16)))
-                        return;
-                if ((ati18800->regs[0xb4] & 8) && (svga->crtcreg == 7))
-                        val = (svga->crtc[9] & ~0x10) | (val & 0x10);
-                if ((ati18800->regs[0xb4] & 8) && (svga->crtcreg == 9))
-                        val = (svga->crtc[9] & ~0xdf) | (val & 0xdf);
-                if ((ati18800->regs[0xb4] & 8) && (svga->crtcreg == 0x11))
-                        val = (svga->crtc[9] & ~0xf0) | (val & 0xf0);
-                if ((ati18800->regs[0xb4] & 0x10) && ((svga->crtcreg == 0x0a) || (svga->crtcreg == 0x0b)))
-                        return;
                 old = svga->crtc[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
                 if (old != val)
@@ -163,28 +159,23 @@ static uint8_t ati18800_in(uint16_t addr, void *p)
         return temp;
 }
 
-void ati18800_recalctimings(svga_t *svga)
-{
-        ati18800_t *ati18800 = (ati18800_t *)svga->p;
-
-        svga->ma_latch += (ati18800->regs[0xb0] & 0xc0) << 10;
-
-        if(ati18800->regs[0xb1] & 0x40)
-        {
-                svga->vtotal >>= 1;
-                svga->dispend >>= 1;
-                svga->vsyncstart >>= 1;
-                svga->split >>= 1;
-                svga->vblankstart >>= 1;
-        }
-}
-
 static void *ati18800_init(device_t *info)
 {
         ati18800_t *ati18800 = malloc(sizeof(ati18800_t));
         memset(ati18800, 0, sizeof(ati18800_t));
-        
-        rom_init(&ati18800->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+
+	switch (info->local) {
+		case ATI18800_WONDER:
+		default:
+		        rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_WONDER, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+			break;
+		case ATI18800_VGA88:
+		        rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_VGA88, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+			break;
+		case ATI18800_EDGE16:
+		        rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_EDGE16, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+			break;
+	};
         
         svga_init(&ati18800->svga, ati18800, 1 << 19, /*512kb*/
                    NULL,
@@ -202,9 +193,19 @@ static void *ati18800_init(device_t *info)
         return ati18800;
 }
 
+static int ati18800_wonder_available(void)
+{
+        return rom_present(BIOS_ROM_PATH_WONDER);
+}
+
+static int ati18800_vga88_available(void)
+{
+        return rom_present(BIOS_ROM_PATH_VGA88);
+}
+
 static int ati18800_available(void)
 {
-        return rom_present(BIOS_ROM_PATH);
+        return rom_present(BIOS_ROM_PATH_EDGE16);
 }
 
 static void ati18800_close(void *p)
@@ -237,10 +238,38 @@ static void ati18800_add_status_info(char *s, int max_len, void *p)
         svga_add_status_info(s, max_len, &ati18800->svga);
 }
 
-device_t ati18800_device =
+device_t ati18800_wonder_device =
 {
         "ATI-18800",
-        DEVICE_ISA, 0,
+        DEVICE_ISA, ATI18800_WONDER,
+        ati18800_init,
+        ati18800_close,
+	NULL,
+        ati18800_wonder_available,
+        ati18800_speed_changed,
+        ati18800_force_redraw,
+        ati18800_add_status_info,
+	NULL
+};
+
+device_t ati18800_vga88_device =
+{
+        "ATI-18800-1",
+        DEVICE_ISA, ATI18800_VGA88,
+        ati18800_init,
+        ati18800_close,
+	NULL,
+        ati18800_vga88_available,
+        ati18800_speed_changed,
+        ati18800_force_redraw,
+        ati18800_add_status_info,
+	NULL
+};
+
+device_t ati18800_device =
+{
+        "ATI-18800-5",
+        DEVICE_ISA, ATI18800_EDGE16,
         ati18800_init,
         ati18800_close,
 	NULL,
