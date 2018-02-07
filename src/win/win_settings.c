@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.37	2018/02/06
+ * Version:	@(#)win_settings.c	1.0.38	2018/02/07
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -293,8 +293,8 @@ static int win_settings_changed(void)
 	i = i || (network_card != temp_net_card);
 
 	/* Ports category */
-	for (i = 0; i < 3; i++)
-		i = i || strncmp(temp_lpt_device_names[i], lpt_device_names[i], sizeof(temp_lpt_device_names[i]) - 1);
+	for (j = 0; j < 3; j++)
+		i = i || strncmp(temp_lpt_device_names[j], lpt_device_names[j], sizeof(temp_lpt_device_names[j]) - 1);
 	i = i || (temp_serial[0] != serial_enabled[0]);
 	i = i || (temp_serial[1] != serial_enabled[1]);
 	i = i || (temp_lpt != lpt_enabled);
