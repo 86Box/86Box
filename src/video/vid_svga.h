@@ -207,12 +207,12 @@ __inline__ uint32_t svga_color_transform(uint32_t color)
 		if (video_graytype)
 		{
 			if (video_graytype == 1)
-				color = ((54 * (clr8[2] >> 16)) + (183 * (clr8[1] >> 8)) + (18 * clr8[0])) / 255;
+				color = ((54 * (uint32_t)clr8[2]) + (183 * (uint32_t)clr8[1]) + (18 * (uint32_t)clr8[0])) / 255;
 			else
-				color = ((clr8[2] >> 16) + (clr8[1] >> 8) + clr8[0]) / 3;
+				color = ((uint32_t)clr8[2] + (uint32_t)clr8[1] + (uint32_t)clr8[0]) / 3;
 		}
 		else
-			color = ((76 * (clr8[2] >> 16)) + (150 * (clr8[1] >> 8)) + (29 * clr8[0])) / 255;
+			color = ((76 * (uint32_t)clr8[2]) + (150 * (uint32_t)clr8[1]) + (29 * (uint32_t)clr8[0])) / 255;
 		switch (video_grayscale)
 		{
 			case 2:
@@ -222,7 +222,7 @@ __inline__ uint32_t svga_color_transform(uint32_t color)
 				break;
 			default:
 				clr8[3] = 0;
-				clr8[0] = color & 0xff;
+				clr8[0] = color;
 				clr8[1] = clr8[2] = clr8[0];
 				break;
 		}
