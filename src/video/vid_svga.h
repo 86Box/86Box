@@ -8,7 +8,7 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.5	2018/02/03
+ * Version:	@(#)vid_svga.h	1.0.6	2018/02/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -195,5 +195,45 @@ void svga_close(svga_t *svga);
 uint32_t svga_mask_addr(uint32_t addr, svga_t *svga);
 uint32_t svga_mask_changedaddr(uint32_t addr, svga_t *svga);
 
-uint32_t svga_color_transform(uint32_t color);
+extern uint32_t shade[5][256];
+
+__inline__ uint32_t svga_color_transform(uint32_t color)
+{
+	uint8_t *clr8 = (uint8_t *) &color;
+	if (!video_grayscale && !invert_display)
+		return color;
+	if (video_grayscale)
+	{
+		if (video_graytype)
+		{
+			if (video_graytype == 1)
+				color = ((54 * (clr8[2] >> 16)) + (183 * (clr8[1] >> 8)) + (18 * clr8[0])) / 255;
+			else
+				color = ((clr8[2] >> 16) + (clr8[1] >> 8) + clr8[0]) / 3;
+		}
+		else
+			color = ((76 * (clr8[2] >> 16)) + (150 * (clr8[1] >> 8)) + (29 * clr8[0])) / 255;
+		switch (video_grayscale)
+		{
+			case 2:
+			case 3:
+			case 4:
+				color = shade[video_grayscale][color];
+				break;
+			default:
+				clr8[3] = 0;
+				clr8[0] = color & 0xff;
+				clr8[1] = clr8[2] = clr8[0];
+				break;
+		}
+	}
+	if (invert_display)
+	{
+		clr8[0] ^= 0xff;
+		clr8[1] ^= 0xff;
+		clr8[2] ^= 0xff;
+	}
+	return color;
+}
+
 void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga);
