@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.3	2018/01/28
+ * Version:	@(#)zip.c	1.0.4	2018/02/07
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -1503,7 +1503,7 @@ void zip_command(uint8_t id, uint8_t *cdb)
 				for (i = 0x00; i < 0x13; i++)
 					zipbufferb[i + 0x02] = 0x00;
 				zipbufferb[0x15] = 0x00;
-				if (zip_drives[i].read_only)
+				if (zip_drives[id].read_only)
 					zipbufferb[0x15] |= 0x02;
 				for (i = 0x00; i < 0x27; i++)
 					zipbufferb[i + 0x16] = 0x00;
