@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.24	2018/01/22
+ * Version:	@(#)plat.h	1.0.24	2018/02/09
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -59,6 +59,7 @@ GLOBAL int	dopause,			/* system is paused */
 GLOBAL uint64_t	timer_freq;
 GLOBAL int	infocus;
 GLOBAL char	emu_version[128];		/* version ID string */
+GLOBAL int	rctrl_is_lalt;
 
 
 /* System-related functions. */
