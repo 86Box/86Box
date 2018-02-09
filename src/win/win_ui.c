@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.16	2018/02/06
+ * Version:	@(#)win_ui.c	1.0.17	2018/02/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -51,6 +51,7 @@ HMENU		menuMain;		/* application main menu */
 HICON		hIcon[512];		/* icon data loaded from resources */
 RECT		oldclip;		/* mouse rect */
 int		infocus = 1;
+int		rctrl_is_lalt = 0;
 
 char		openfilestring[260];
 WCHAR		wopenfilestring[260];
@@ -132,6 +133,8 @@ ResetAllMenus(void)
     EnableMenuItem(menuMain, IDM_CONFIG_SAVE, MF_DISABLED);
 #endif
 
+    CheckMenuItem(menuMain, IDM_ACTION_RCTRL_IS_LALT, MF_UNCHECKED);
+
 #ifdef ENABLE_LOG_TOGGLES
 # ifdef ENABLE_BUSLOGIC_LOG
     CheckMenuItem(menuMain, IDM_LOG_BUSLOGIC, MF_UNCHECKED);
@@ -189,6 +192,8 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_GRAY_RGB+2, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_GRAY_RGB+3, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_GRAY_RGB+4, MF_UNCHECKED);
+
+    CheckMenuItem(menuMain, IDM_ACTION_RCTRL_IS_LALT, rctrl_is_lalt ? MF_CHECKED : MF_UNCHECKED);
 
 #ifdef ENABLE_LOG_TOGGLES
 # ifdef ENABLE_BUSLOGIC_LOG
@@ -300,6 +305,12 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_ACTION_CTRL_ALT_ESC:
 				pc_send_cae();
+				break;
+
+			case IDM_ACTION_RCTRL_IS_LALT:
+				rctrl_is_lalt ^= 1;
+				CheckMenuItem(hmenu, IDM_ACTION_RCTRL_IS_LALT, rctrl_is_lalt ? MF_CHECKED : MF_UNCHECKED);
+				config_save();
 				break;
 
 			case IDM_ACTION_PAUSE:

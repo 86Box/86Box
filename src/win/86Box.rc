@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.28	2018/02/06
+ * Version:	@(#)86Box.rc	1.0.29	2018/02/09
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -46,8 +46,9 @@ MainMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Action"
     BEGIN
-        MENUITEM "&Hard Reset",                 IDM_ACTION_HRESET
+        MENUITEM "&Right CTRL is left ALT",	IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
+        MENUITEM "&Hard Reset",                 IDM_ACTION_HRESET
         MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
 	MENUITEM "Ctrl+Alt+&Esc",		IDM_ACTION_CTRL_ALT_ESC

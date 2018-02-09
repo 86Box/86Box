@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.40	2018/02/06
+ * Version:	@(#)config.c	1.0.41	2018/02/09
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -432,6 +432,8 @@ load_general(void)
     vid_cga_contrast = !!config_get_int(cat, "vid_cga_contrast", 0);
     video_grayscale = config_get_int(cat, "video_grayscale", 0);
     video_graytype = config_get_int(cat, "video_graytype", 0);
+
+    rctrl_is_lalt = config_get_int(cat, "rctrl_is_lalt", 0);
 
     window_remember = config_get_int(cat, "window_remember", 0);
     if (window_remember) {
@@ -1522,6 +1524,11 @@ save_general(void)
 	config_delete_var(cat, "video_graytype");
       else
 	config_set_int(cat, "video_graytype", video_graytype);
+
+    if (rctrl_is_lalt == 0)
+	config_delete_var(cat, "rctrl_is_lalt");
+      else
+	config_set_int(cat, "rctrl_is_lalt", rctrl_is_lalt);
 
     if (window_remember) {
 	config_set_int(cat, "window_remember", window_remember);

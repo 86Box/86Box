@@ -8,7 +8,7 @@
  *
  *		Windows raw keyboard input handler.
  *
- * Version:	@(#)win_keyboard.c	1.0.8	2018/01/29
+ * Version:	@(#)win_keyboard.c	1.0.8	2018/02/09
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -180,6 +180,11 @@ keyboard_handle(LPARAM lParam, int infocus)
 			   is not captured, suppress the ALT and send a TAB key up. */
 			keyboard_input(0, 0x00F);
 		} else {
+			/* Translate right CTRL to left ALT if the user has so
+			   chosen. */
+			if ((scancode == 0x11D) && rctrl_is_lalt)
+				scancode = 0x038;
+
 			/* Normal scan code pass through, pass it through as is if
 			   it's not an invalid scan code. */
 			if (scancode != 0xFFFF)

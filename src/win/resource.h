@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.19	2018/02/06
+ * Version:	@(#)resource.h	1.0.20	2018/02/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -229,6 +229,7 @@
 
 #define IDM_ABOUT		40001
 #define  IDC_ABOUT_ICON		65535
+#define IDM_ACTION_RCTRL_IS_LALT	40010
 #define IDM_ACTION_SCREENSHOT	40011
 #define IDM_ACTION_HRESET	40012
 #define IDM_ACTION_RESET_CAD	40013
