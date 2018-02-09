@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.18	2018/01/28
+ * Version:	@(#)machine.h	1.0.19	2018/02/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -184,6 +184,15 @@ extern void	machine_xt_init(machine_t *);
 extern void	machine_xt_compaq_init(machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
 extern void	machine_xt_laserxt_init(machine_t *);
+#endif
+
+#ifdef EMU_DEVICE_H
+extern device_t	*pcjr_get_device(void);
+
+extern device_t	*tandy1k_get_device(void);
+extern device_t	*tandy1k_hx_get_device(void);
+
+extern device_t	*at_endeavor_get_device(void);
 #endif
 
 

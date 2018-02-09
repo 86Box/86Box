@@ -8,7 +8,7 @@
  *
  *		Emulation of Tandy models 1000, 1000HX and 1000SL2.
  *
- * Version:	@(#)m_tandy.c	1.0.2	2018/01/16
+ * Version:	@(#)m_tandy.c	1.0.3	2018/02/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1385,6 +1385,17 @@ static device_t vid_device = {
     vid_config
 };
 
+static device_t vid_device_hx = {
+    "Tandy 1000 HX",
+    0, 0,
+    NULL, vid_close, NULL,
+    NULL,
+    vid_speed_changed,
+    NULL,
+    NULL,
+    vid_config
+};
+
 static device_t vid_device_sl = {
     "Tandy 1000SL2",
     0, 1,
@@ -1395,6 +1406,20 @@ static device_t vid_device_sl = {
     NULL,
     NULL
 };
+
+
+device_t *
+tandy1k_get_device(void)
+{
+    return &vid_device;
+}
+
+
+device_t *
+tandy1k_hx_get_device(void)
+{
+    return &vid_device_hx;
+}
 
 
 static void

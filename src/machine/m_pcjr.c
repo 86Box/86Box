@@ -8,7 +8,7 @@
  *
  *		Emulation of the IBM PCjr.
  *
- * Version:	@(#)m_pcjr.c	1.0.4	2018/01/16
+ * Version:	@(#)m_pcjr.c	1.0.5	2018/02/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -724,6 +724,13 @@ static device_t pcjr_device = {
     NULL,
     pcjr_config
 };
+
+
+device_t *
+pcjr_get_device(void)
+{
+    return &pcjr_device;
+}
 
 
 void

@@ -8,13 +8,13 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.4	2017/11/04
+ * Version:	@(#)vid_s3.c	1.0.5	2018/02/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -83,8 +83,9 @@ typedef struct s3_t
         mem_mapping_t linear_mapping;
         mem_mapping_t mmio_mapping;
         
+	uint8_t has_bios;
         rom_t bios_rom;
-        
+
         svga_t svga;
         sdac_ramdac_t ramdac;
 
@@ -2094,10 +2095,10 @@ uint8_t s3_pci_read(int func, int addr, void *p)
                 case 0x12: return svga->crtc[0x5a] & 0x80;
                 case 0x13: return svga->crtc[0x59];
 
-                case 0x30: return s3->pci_regs[0x30] & 0x01; /*BIOS ROM address*/
+                case 0x30: return s3->has_bios ? (s3->pci_regs[0x30] & 0x01) : 0x00; /*BIOS ROM address*/
                 case 0x31: return 0x00;
-                case 0x32: return s3->pci_regs[0x32];
-                case 0x33: return s3->pci_regs[0x33];
+                case 0x32: return s3->has_bios ? s3->pci_regs[0x32] : 0x00;
+                case 0x33: return s3->has_bios ? s3->pci_regs[0x33] : 0x00;
                 
                 case 0x3c: return s3->int_line;
                 case 0x3d: return PCI_INTA;
@@ -2130,6 +2131,8 @@ void s3_pci_write(int func, int addr, uint8_t val, void *p)
                 break;                
 
                 case 0x30: case 0x32: case 0x33:
+		if (!s3->has_bios)
+			return;
                 s3->pci_regs[addr] = val;
                 if (s3->pci_regs[0x30] & 0x01)
                 {
@@ -2177,9 +2180,12 @@ static void *s3_init(device_t *info, wchar_t *bios_fn, int chip)
                 vram_size = 512 << 10;
         s3->vram_mask = vram_size - 1;
 
-        rom_init(&s3->bios_rom, bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        if (info->flags & DEVICE_PCI)
-                mem_mapping_disable(&s3->bios_rom.mapping);
+	s3->has_bios = !info->local;
+	if (s3->has_bios) {
+		rom_init(&s3->bios_rom, bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		if (info->flags & DEVICE_PCI)
+			mem_mapping_disable(&s3->bios_rom.mapping);
+	}
 
         mem_mapping_add(&s3->linear_mapping, 0,       0,       svga_read_linear, svga_readw_linear, svga_readl_linear, svga_write_linear, svga_writew_linear, svga_writel_linear, NULL, MEM_MAPPING_EXTERNAL, &s3->svga);
         mem_mapping_add(&s3->mmio_mapping,   0xa0000, 0x10000, s3_accel_read, NULL, NULL, s3_accel_write, s3_accel_write_w, s3_accel_write_l, NULL, MEM_MAPPING_EXTERNAL, s3);
@@ -2332,6 +2338,14 @@ static void *s3_9fx_init(device_t *info)
 static void *s3_phoenix_trio64_init(device_t *info)
 {
 	s3_t *s3 = s3_trio64_init(info, L"roms/video/s3/86c764x1.bin");
+        if (device_get_config_int("memory") == 1)
+                s3->svga.vram_max = 1 << 20; /*Phoenix BIOS does not expect VRAM to be mirrored*/
+	return s3;
+}
+
+static void *s3_phoenix_trio64_onboard_init(device_t *info)
+{
+	s3_t *s3 = s3_trio64_init(info, NULL);
         if (device_get_config_int("memory") == 1)
                 s3->svga.vram_max = 1 << 20; /*Phoenix BIOS does not expect VRAM to be mirrored*/
 	return s3;
@@ -2490,6 +2504,30 @@ static device_config_t s3_phoenix_trio32_config[] =
         }
 };
 
+static device_config_t s3_phoenix_trio64_onboard_config[] =
+{
+        {
+                "memory", "Video memory size", CONFIG_SELECTION, "", 4,
+                {
+                        {
+                                "1 MB", 1
+                        },
+                        {
+                                "2 MB", 2
+                        },
+                        {
+                                "4 MB", 4
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "", "", -1
+        }
+};
+
 static device_config_t s3_phoenix_trio64_config[] =
 {
         {
@@ -2617,6 +2655,21 @@ device_t s3_phoenix_trio64_vlb_device =
         s3_force_redraw,
         s3_add_status_info,
         s3_phoenix_trio64_config
+};
+
+device_t s3_phoenix_trio64_onboard_pci_device =
+{
+        "Phoenix S3 Trio64 On-Board PCI",
+        DEVICE_PCI,
+	1,
+        s3_phoenix_trio64_onboard_init,
+        s3_close,
+	NULL,
+        NULL,
+        s3_speed_changed,
+        s3_force_redraw,
+        s3_add_status_info,
+        s3_phoenix_trio64_onboard_config
 };
 
 device_t s3_phoenix_trio64_pci_device =

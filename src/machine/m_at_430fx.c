@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430FX PCISet chip.
  *
- * Version:	@(#)m_at_430fx.c	1.0.10	2018/01/04
+ * Version:	@(#)m_at_430fx.c	1.0.11	2018/02/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -30,6 +30,8 @@
 #include "../piix.h"
 #include "../intel_flash.h"
 #include "../sio.h"
+#include "../video/video.h"
+#include "../video/vid_s3.h"
 #include "machine.h"
 
 
@@ -244,6 +246,16 @@ machine_at_endeavor_init(machine_t *model)
         pc87306_init();
 
         device_add(&intel_flash_bxt_ami_device);
+
+	if (gfxcard == GFX_INTERNAL)
+		device_add(&s3_phoenix_trio64_onboard_pci_device);
+}
+
+
+device_t *
+at_endeavor_get_device(void)
+{
+    return &s3_phoenix_trio64_onboard_pci_device;
 }
 
 
