@@ -8,7 +8,7 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.12	2018/01/24
+ * Version:	@(#)scsi_h	1.0.13	2018/02/07
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -30,7 +30,7 @@
 
 
 /* Configuration. */
-#define SCSI_ID_MAX		8		/* 16 on wide buses */
+#define SCSI_ID_MAX		16		/* 16 on wide buses */
 #define SCSI_LUN_MAX		8		/* always 8 */
 
 

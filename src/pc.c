@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.57	2018/02/06
+ * Version:	@(#)pc.c	1.0.58	2018/02/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1033,8 +1033,6 @@ pc_thread(void *param)
 		} else {
 			execx86(clockrate/100);
 		}
-
-		keyboard_process();
 
 		mouse_process();
 
