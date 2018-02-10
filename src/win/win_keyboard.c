@@ -8,7 +8,7 @@
  *
  *		Windows raw keyboard input handler.
  *
- * Version:	@(#)win_keyboard.c	1.0.8	2018/02/09
+ * Version:	@(#)win_keyboard.c	1.0.9	2018/02/10
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -116,6 +116,7 @@ keyboard_handle(LPARAM lParam, int infocus)
     UINT size;
     RAWINPUT *raw;
     USHORT scancode;
+    static int recv_lalt = 0, recv_ralt = 0, recv_tab = 0;
 
     if (! infocus) return;
 
@@ -154,32 +155,47 @@ keyboard_handle(LPARAM lParam, int infocus)
 		   which is, for our purposes, invalid. */
 		if ((scancode == 0x00F) &&
 		    !(rawKB.Flags & RI_KEY_BREAK) &&
-		    (keyboard_recv(0x038) || keyboard_recv(0x138)) &&
+		    (recv_lalt || recv_ralt) &&
 		    !mouse_capture) {
 			/* We received a TAB while ALT was pressed, while the mouse
 			   is not captured, suppress the TAB and send an ALT key up. */
-			if (keyboard_recv(0x038)) {
+			if (recv_lalt) {
 				keyboard_input(0, 0x038);
 				/* Extra key press and release so the guest is not stuck in the
 				   menu bar. */
 				keyboard_input(1, 0x038);
 				keyboard_input(0, 0x038);
+				recv_lalt = 0;
 			}
-			if (keyboard_recv(0x138)) {
+			if (recv_ralt) {
 				keyboard_input(0, 0x138);
 				/* Extra key press and release so the guest is not stuck in the
 				   menu bar. */
 				keyboard_input(1, 0x138);
 				keyboard_input(0, 0x138);
+				recv_ralt = 0;
 			}
 		} else if (((scancode == 0x038) || (scancode == 0x138)) &&
 			   !(rawKB.Flags & RI_KEY_BREAK) &&
-			   keyboard_recv(0x00F) &&
+			   recv_tab &&
 			   !mouse_capture) {
 			/* We received an ALT while TAB was pressed, while the mouse
 			   is not captured, suppress the ALT and send a TAB key up. */
 			keyboard_input(0, 0x00F);
+			recv_tab = 0;
 		} else {
+			switch(scancode) {
+				case 0x00F:
+					recv_tab = !(rawKB.Flags & RI_KEY_BREAK);
+					break;
+				case 0x038:
+					recv_lalt = !(rawKB.Flags & RI_KEY_BREAK);
+					break;
+				case 0x138:
+					recv_ralt = !(rawKB.Flags & RI_KEY_BREAK);
+					break;
+			}
+
 			/* Translate right CTRL to left ALT if the user has so
 			   chosen. */
 			if ((scancode == 0x11D) && rctrl_is_lalt)
