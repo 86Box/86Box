@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.17	2018/02/11
+ * Version:	@(#)vid_table.c	1.0.18	2018/02/12
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -150,6 +150,7 @@ video_cards[] = {
     {"[VLB] Phoenix S3 Trio64",                     "px_trio64_vlb",		&s3_phoenix_trio64_vlb_device,   	GFX_PHOENIX_TRIO64_VLB,		{VIDEO_BUS, 3,  2,  4,  25, 25, 40}},
     {"[VLB] S3 ViRGE/DX",                           "virge375_vlb",		&s3_virge_375_vlb_device,        	GFX_VIRGEDX_VLB,		{VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
     {"[VLB] S3 ViRGE/DX (VBE 2.0)",                 "virge375_vbe20_vlb",	&s3_virge_375_4_vlb_device,      	GFX_VIRGEDX4_VLB,		{VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
+    {"[VLB] Trident TGUI9400CXi",                   "tgui9400cxi_vlb",		&tgui9400cxi_device,            	GFX_TGUI9400CXI,		{VIDEO_BUS, 4,  8, 16,   4,  8, 16}},
     {"[VLB] Trident TGUI9440",                      "tgui9440_vlb",		&tgui9440_vlb_device,            	GFX_TGUI9440_VLB,		{VIDEO_BUS, 4,  8, 16,   4,  8, 16}},
     {"",                                            "",				NULL,                        		-1				}
 };

@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.15	2018/02/11
+ * Version:	@(#)video.h	1.0.16	2018/02/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -55,6 +55,7 @@ enum {
     GFX_BAHAMAS64_PCI,		/* S3 Vision864 (Paradise Bahamas 64) PCI */
     GFX_N9_9FX_VLB,		/* S3 764/Trio64 (Number Nine 9FX) VLB */
     GFX_N9_9FX_PCI,		/* S3 764/Trio64 (Number Nine 9FX) PCI */
+    GFX_TGUI9400CXI,   		/* Trident TGUI9400CXi VLB */
     GFX_TGUI9440_VLB,   	/* Trident TGUI9440 VLB */
     GFX_TGUI9440_PCI,   	/* Trident TGUI9440 PCI */
     GFX_VGA88,  		/* ATI VGA-88 (18800-1) */

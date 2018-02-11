@@ -365,6 +365,8 @@ void sb_exec_command(sb_dsp_t *dsp)
                 sb_start_dma(dsp, 1, 0, ADPCM_2, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
                 dsp->sbdat2 = sb_8_read_dma(dsp);
                 dsp->sb_8_length--;
+                if (dsp->sb_command == 0x17)
+                        dsp->sb_8_length--;
                 break;
                 case 0x1C: /*8-bit autoinit DMA output*/
                 if (dsp->sb_type < SB15) break;
@@ -444,6 +446,8 @@ void sb_exec_command(sb_dsp_t *dsp)
                 sb_start_dma(dsp, 1, 0, ADPCM_4, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
                 dsp->sbdat2 = sb_8_read_dma(dsp);
                 dsp->sb_8_length--;
+                if (dsp->sb_command == 0x75)
+                        dsp->sb_8_length--;
                 break;
                 case 0x77: /*2.6-bit ADPCM output with reference*/
                 dsp->sbref = sb_8_read_dma(dsp);
@@ -453,6 +457,8 @@ void sb_exec_command(sb_dsp_t *dsp)
                 sb_start_dma(dsp, 1, 0, ADPCM_26, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
                 dsp->sbdat2 = sb_8_read_dma(dsp);
                 dsp->sb_8_length--;
+                if (dsp->sb_command == 0x77)
+                        dsp->sb_8_length--;
                 break;
                 case 0x7D: /*4-bit ADPCM autoinit output*/
                 if (dsp->sb_type < SB15) break;
