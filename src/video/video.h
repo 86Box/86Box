@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.14	2018/02/11
+ * Version:	@(#)video.h	1.0.15	2018/02/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -67,18 +67,7 @@ enum {
     GFX_MACH64GX_VLB,		/* ATI Graphics Pro Turbo (Mach64) VLB */
     GFX_MACH64GX_PCI,		/* ATI Graphics Pro Turbo (Mach64) PCI */
     GFX_MACH64VT2,  		/* ATI Mach64 VT2 */
-#if defined(DEV_BRANCH) && defined(USE_CIRRUS)
-    GFX_CL_GD5422,  		/* Cirrus Logic CL-GD5422 */
-#endif
     GFX_CL_GD5428,  		/* Diamond SpeedStar PRO (Cirrus Logic CL-GD5428) */
-#if defined(DEV_BRANCH) && defined(USE_CIRRUS)
-    GFX_CL_GD5429,  		/* Cirrus Logic CL-GD5429 */
-    GFX_CL_GD5430,  		/* Cirrus Logic CL-GD5430 */
-    GFX_CL_GD5434,  		/* Cirrus Logic CL-GD5434 */
-    GFX_CL_GD5436,  		/* Cirrus Logic CL-GD5436 */
-    GFX_CL_GD5440,  		/* Cirrus Logic CL-GD5440 */
-    GFX_CL_GD5446,		/* Cirrus Logic CL-GD5446 */
-#endif
 #if defined(DEV_BRANCH) && defined(USE_RIVA)
     GFX_RIVATNT,		/* nVidia Riva TNT */
     GFX_RIVATNT2,		/* nVidia Riva TNT2 */

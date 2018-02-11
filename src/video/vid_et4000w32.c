@@ -10,7 +10,7 @@
  *
  * Known bugs:	Accelerator doesn't work in planar modes
  *
- * Version:	@(#)vid_et4000w32.c	1.0.5	2018/01/25
+ * Version:	@(#)vid_et4000w32.c	1.0.6	2018/02/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -168,7 +168,7 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
         {
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
                 case 0x3c2:
-		if (et4000->type = ET4000W32_DIAMOND)
+		if (et4000->type == ET4000W32_DIAMOND)
 	                icd2061_write(&et4000->icd2061, (val >> 2) & 3);
                 break;
 #endif
