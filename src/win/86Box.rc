@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.29	2018/02/09
+ * Version:	@(#)86Box.rc	1.0.30	2018/02/11
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -120,6 +120,8 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "S&tatus",                     IDM_STATUS
         MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "&Update status bar icons",	IDM_UPDATE_ICONS
     END
 #if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
     POPUP "&Logging"
@@ -237,22 +239,16 @@ BEGIN
     LTEXT           "1",IDT_STEXT,16,186,180,1000
 END
 
-DLG_SND_GAIN DIALOG DISCARDABLE  0, 0, 174, 136
+DLG_SND_GAIN DIALOG DISCARDABLE  0, 0, 113, 136
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Sound Gain"
 FONT 8, "MS Sans Serif"
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,117,7,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,117,24,50,14
-    CONTROL         "Main",IDC_SLIDER_MAIN,"msctls_trackbar32",TBS_VERT | 
+    DEFPUSHBUTTON   "OK",IDOK,57,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,57,24,50,14
+    CONTROL         "Gain",IDC_SLIDER_GAIN,"msctls_trackbar32",TBS_VERT | 
                     TBS_BOTH | TBS_AUTOTICKS | WS_TABSTOP,15,20,20,109
-    CONTROL         "CD",IDC_SLIDER_CD,"msctls_trackbar32",TBS_VERT | 
-                    TBS_BOTH | TBS_AUTOTICKS | WS_TABSTOP,45,20,20,109
-    CONTROL         "MIDI",IDC_SLIDER_MIDI,"msctls_trackbar32",TBS_VERT | 
-                    TBS_BOTH | TBS_AUTOTICKS | WS_TABSTOP,77,20,20,109
-    CTEXT           "Main",IDT_1746,7,7,32,9,SS_CENTERIMAGE
-    CTEXT           "CD",IDT_1747,38,7,32,9,SS_CENTERIMAGE
-    CTEXT           "MIDI",IDT_1748,70,7,32,9,SS_CENTERIMAGE
+    CTEXT           "Gain",IDT_1746,16,7,32,9,SS_CENTERIMAGE
 END
 
 DLG_NEW_FLOPPY DIALOG DISCARDABLE  0, 0, 226, 86

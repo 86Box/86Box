@@ -8,7 +8,7 @@
  *
  *		Interface to the OpenAL sound processing library.
  *
- * Version:	@(#)openal.c	1.0.3	2018/01/16
+ * Version:	@(#)openal.c	1.0.4	2018/02/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -231,8 +231,7 @@ givealbuffer_common(void *buf, uint8_t src, int size, int freq)
 
     alGetSourcei(source[src], AL_BUFFERS_PROCESSED, &processed);
     if (processed >= 1) {
-	gain = pow(10.0, (double)sound_gain[src] / 20.0);
-
+	gain = pow(10.0, (double)sound_gain / 20.0);
 	alListenerf(AL_GAIN, gain);
 
 	alSourceUnqueueBuffers(source[src], 1, &buffer);

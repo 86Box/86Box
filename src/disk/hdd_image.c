@@ -8,7 +8,7 @@
  *
  *		Handling of hard disk image files.
  *
- * Version:	@(#)hdd_image.c	1.0.11	2018/02/07
+ * Version:	@(#)hdd_image.c	1.0.12	2018/02/08
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -332,7 +332,7 @@ void hdd_image_seek(uint8_t id, uint32_t sector)
 
 void hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
-	hdd_image_seek(id, sector);
+	fseeko64(hdd_images[id].file, ((uint64_t)sector * 512) + hdd_images[id].base, SEEK_SET);
 	fread(buffer, 1, count * 512, hdd_images[id].file);
 }
 
@@ -350,7 +350,7 @@ int hdd_image_read_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buff
 	if ((sectors - sector) < transfer_sectors)
 		transfer_sectors = sectors - sector;
 
-	hdd_image_seek(id, sector);
+	fseeko64(hdd_images[id].file, ((uint64_t)sector * 512) + hdd_images[id].base, SEEK_SET);
 	fread(buffer, 1, transfer_sectors * 512, hdd_images[id].file);
 
 	if (count != transfer_sectors)
@@ -360,7 +360,7 @@ int hdd_image_read_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buff
 
 void hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
-	hdd_image_seek(id, sector);
+	fseeko64(hdd_images[id].file, ((uint64_t)sector * 512) + hdd_images[id].base, SEEK_SET);
 	fwrite(buffer, count * 512, 1, hdd_images[id].file);
 }
 
@@ -372,7 +372,7 @@ int hdd_image_write_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buf
 	if ((sectors - sector) < transfer_sectors)
 		transfer_sectors = sectors - sector;
 
-	hdd_image_seek(id, sector);
+	fseeko64(hdd_images[id].file, ((uint64_t)sector * 512) + hdd_images[id].base, SEEK_SET);
 	fwrite(buffer, transfer_sectors * 512, 1, hdd_images[id].file);
 
 	if (count != transfer_sectors)
@@ -384,7 +384,7 @@ void hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
 {
 	int i = 0;
 
-	hdd_image_seek(id, sector);
+	fseeko64(hdd_images[id].file, ((uint64_t)sector * 512) + hdd_images[id].base, SEEK_SET);
 	for (i = 0; i < count; i++)
 		fwrite(empty_sector, 512, 1, hdd_images[id].file);
 }
@@ -399,7 +399,7 @@ int hdd_image_zero_ex(uint8_t id, uint32_t sector, uint32_t count)
 	if ((sectors - sector) < transfer_sectors)
 		transfer_sectors = sectors - sector;
 
-	hdd_image_seek(id, sector);
+	fseeko64(hdd_images[id].file, ((uint64_t)sector * 512) + hdd_images[id].base, SEEK_SET);
 	for (i = 0; i < transfer_sectors; i++)
 		fwrite(empty_sector, 1, 512, hdd_images[id].file);
 

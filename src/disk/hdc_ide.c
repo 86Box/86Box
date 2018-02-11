@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.24	2018/01/21
+ * Version:	@(#)hdc_ide.c	1.0.25	2018/02/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1348,84 +1348,50 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				return;
 
 			case WIN_DRIVE_DIAGNOSTICS: /* Execute Drive Diagnostics */
+				if (ide_drive_is_zip(ide))
+						zip[atapi_zip_drives[ide->channel]].status = BUSY_STAT;
+				else if (ide_drive_is_cdrom(ide))
+					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+				else
+					ide->atastat = BUSY_STAT;
+
+				if (ide_drive_is_zip(ide_other))
+					zip[atapi_zip_drives[ide_other->channel]].status = BUSY_STAT;
+				else if (ide_drive_is_cdrom(ide_other))
+					cdrom[atapi_cdrom_drives[ide_other->channel]].status = BUSY_STAT;
+				else
+					ide_other->atastat = BUSY_STAT;
+
+				timer_process();
+				if (ide_drive_is_zip(ide))
+					zip[atapi_zip_drives[ide->channel]].callback = 200LL * IDE_TIME;
+				else if (ide_drive_is_cdrom(ide))
+					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200LL * IDE_TIME;
+				idecallback[ide_board] = 200LL * IDE_TIME;
+				timer_update_outstanding();
+				return;
+
 			case WIN_PIDENTIFY: /* Identify Packet Device */
 			case WIN_SET_MULTIPLE_MODE: /* Set Multiple Mode */
-			case WIN_SET_FEATURES: /* Set Features */
 			case WIN_NOP:
 			case WIN_STANDBYNOW1:
 			case WIN_IDLENOW1:
 			case WIN_SETIDLE1: /* Idle */
 			case WIN_CHECKPOWERMODE1:
 			case WIN_SLEEP1:
-				if (val == WIN_DRIVE_DIAGNOSTICS)
-				{
-					if (ide_drive_is_zip(ide))
-					{
-						zip[atapi_zip_drives[ide->channel]].status = BUSY_STAT;
-					}
-					else if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
-					}
-					else
-					{
-						ide->atastat = BUSY_STAT;
-					}
-
-					if (ide_drive_is_zip(ide_other))
-					{
-						zip[atapi_zip_drives[ide_other->channel]].status = BUSY_STAT;
-					}
-					else if (ide_drive_is_cdrom(ide_other))
-					{
-						cdrom[atapi_cdrom_drives[ide_other->channel]].status = BUSY_STAT;
-					}
-					else
-					{
-						ide_other->atastat = BUSY_STAT;
-					}
-
-					timer_process();
-					if (ide_drive_is_zip(ide))
-					{
-						zip[atapi_zip_drives[ide->channel]].callback = 200LL * IDE_TIME;
-					}
-					else if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].callback = 200LL * IDE_TIME;
-					}
-					idecallback[ide_board] = 200LL * IDE_TIME;
-					timer_update_outstanding();
-				}
+				if (ide_drive_is_zip(ide))
+					zip[atapi_zip_drives[ide->channel]].status = BUSY_STAT;
+				else if (ide_drive_is_cdrom(ide))
+					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
 				else
-				{
-					if (ide_drive_is_zip(ide))
-					{
-						zip[atapi_zip_drives[ide->channel]].status = BUSY_STAT;
-					}
-					else if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
-					}
-					else
-					{
-						ide->atastat = BUSY_STAT;
-					}
-					timer_process();
-					if (ide_drive_is_zip(ide))
-					{
-						zip[atapi_zip_drives[ide->channel]].callback = 30LL * IDE_TIME;
-					}
-					else if (ide_drive_is_cdrom(ide))
-					{
-						cdrom[atapi_cdrom_drives[ide->channel]].callback = 30LL * IDE_TIME;
-					}
-					idecallback[ide_board] = 30LL * IDE_TIME;
-					timer_update_outstanding();
-				}
+					ide->atastat = BUSY_STAT;
+				timer_process();
+				callbackide(ide_board);
+				timer_update_outstanding();
 				return;
 
 			case WIN_IDENTIFY: /* Identify Device */
+			case WIN_SET_FEATURES: /* Set Features */
 			case WIN_READ_NATIVE_MAX:
 				if (ide_drive_is_zip(ide))
 				{
@@ -1472,7 +1438,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				{
 					ide->atastat = BUSY_STAT;
 					timer_process();
-					idecallback[ide_board]=1LL;
+					idecallback[ide_board]=200LL*IDE_TIME;
 					timer_update_outstanding();
 					ide->pos=0;
 				}

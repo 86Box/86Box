@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.98	2018/02/07
+# Version:	@(#)Makefile.mingw	1.0.100	2018/02/11
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -216,7 +216,7 @@ else
   endif
  endif
 endif
-AFLAGS		:= -fomit-frame-pointer -msse2 -mfpmath=sse -mstackrealign -fno-strict-aliasing
+AFLAGS		:= -msse2 -mfpmath=sse
 RFLAGS		:= --input-format=rc -O coff
 ifeq ($(RELEASE), y)
 OPTS		+= -DRELEASE_BUILD
@@ -346,6 +346,7 @@ endif
 
 ifeq ($(STEALTH32), y)
 OPTS		+= -DUSE_STEALTH32
+DEVBROBJ	+= vid_icd2061.o
 endif
 
 endif
@@ -359,12 +360,14 @@ endif
 
 # Final versions of the toolchain flags.
 CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
-		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall
-CXXFLAGS	:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
-		   $(AFLAGS) -fno-strict-aliasing -fvisibility=hidden \
-		   -Wall -Wundef -fvisibility-inlines-hidden \
-		   -Wunused-parameter -Wno-ctor-dtor-privacy \
-		   -Woverloaded-virtual
+		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
+		   -fno-strict-aliasing -flto
+CFLAGS		:= $(CFLAGS)
+# CXXFLAGS	:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
+# 		   $(AFLAGS) -fno-strict-aliasing -fvisibility=hidden \
+# 		   -Wall -Wundef -fvisibility-inlines-hidden \
+# 		   -Wunused-parameter -Wno-ctor-dtor-privacy \
+# 		   -Woverloaded-virtual
 
 
 #########################################################################
@@ -372,29 +375,37 @@ CXXFLAGS	:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 #########################################################################
 MAINOBJ		:= pc.o config.o random.o timer.o io.o dma.o nmi.o pic.o \
 		   pit.o ppi.o pci.o mca.o mcr.o mem.o memregs.o rom.o \
-		   device.o nvr.o nvr_at.o nvr_ps2.o $(VNCOBJ) $(RDPOBJ) \
-		   intel.o intel_flash.o intel_piix.o intel_piix4.o intel_sio.o
+		   device.o nvr.o nvr_at.o nvr_ps2.o $(VNCOBJ) $(RDPOBJ)
+
+INTELOBJ	:= intel.o \
+		    intel_flash.o \
+		    intel_sio.o \
+		    intel_piix.o intel_piix4.o
 
 CPUOBJ		:= cpu.o cpu_table.o \
-		    808x.o 386.o x86seg.o x87.o \
-		    386_dynarec.o $(DYNARECOBJ)
+		    808x.o 386.o 386_dynarec.o \
+		    x86seg.o x87.o \
+		    $(DYNARECOBJ)
 
 MCHOBJ		:= machine.o machine_table.o \
-		    m_amstrad.o m_europc.o m_europc_hdc.o \
-		    m_olivetti_m24.o m_tandy.o \
 		    m_xt.o m_xt_compaq.o \
-		    m_at.o m_at_ali1429.o m_at_commodore.o \
+		    m_pcjr.o \
+		    m_amstrad.o \
+		    m_europc.o m_europc_hdc.o \
+		    m_olivetti_m24.o m_tandy.o \
+		    m_at.o \
+		    m_at_ali1429.o m_at_commodore.o \
 		    m_at_neat.o m_at_headland.o \
 		    m_at_t3100e.o \
+		    m_ps1.o \
+		    m_ps2_isa.o m_ps2_mca.o \
 		    m_at_opti495.o m_at_scat.o \
 		    m_at_compaq.o m_at_wd76c10.o \
 		    m_at_sis_85c471.o m_at_sis_85c496.o \
 		    m_at_430lx_nx.o m_at_430fx.o \
-		    m_at_430hx.o m_at_430vx.o \
-		    m_pcjr.o m_ps1.o m_ps2_isa.o m_ps2_mca.o
+		    m_at_430hx.o m_at_430vx.o
 
 DEVOBJ		:= bugger.o lpt.o $(SERIAL) \
-		   sio_detect.o \
 		    sio_fdc37c66x.o sio_fdc37c669.o sio_fdc37c93x.o \
 		    sio_pc87306.o sio_w83877f.o sio_um8669f.o \
 		   keyboard.o \
@@ -403,8 +414,8 @@ DEVOBJ		:= bugger.o lpt.o $(SERIAL) \
 		    joystick_standard.o joystick_ch_flightstick_pro.o \
 		    joystick_sw_pad.o joystick_tm_fcs.o \
 		   mouse.o \
-		    mouse_serial.o mouse_ps2.o mouse_bus.o \
-		   zip.o
+		    mouse_bus.o \
+		    mouse_serial.o mouse_ps2.o
 
 FDDOBJ		:= fdd.o fdc.o fdi2raw.o \
 		   fdd_common.o fdd_86f.o \
@@ -414,11 +425,15 @@ FDDOBJ		:= fdd.o fdc.o fdi2raw.o \
 HDDOBJ		:= hdd.o \
 		    hdd_image.o hdd_table.o \
 		   hdc.o \
-		    hdc_esdi_at.o hdc_esdi_mca.o hdc_ide.o hdc_mfm_at.o \
-		    hdc_mfm_xt.o hdc_xtide.o
+		    hdc_mfm_xt.o hdc_xtide.o \
+		    hdc_mfm_at.o \
+		    hdc_esdi_at.o hdc_esdi_mca.o \
+		    hdc_ide.o
 
 CDROMOBJ	:= cdrom.o \
 		    cdrom_dosbox.o cdrom_image.o cdrom_null.o
+
+ZIPOBJ		:= zip.o
 
 ifeq ($(USB), y)
 USBOBJ		:= usb.o
@@ -441,6 +456,7 @@ NETOBJ		:= network.o \
 
 SNDOBJ		:= sound.o \
 		    openal.o \
+		    snd_opl.o snd_dbopl.o \
 		    dbopl.o nukedopl.o \
 		    snd_resid.o \
 		     convolve.o convolve-sse.o envelope.o extfilt.o \
@@ -454,10 +470,12 @@ SNDOBJ		:= sound.o \
 		    snd_pssj.o \
 		    snd_lpt_dac.o snd_lpt_dss.o \
 		    snd_adlib.o snd_adlibgold.o snd_ad1848.o snd_audiopci.o \
-		    snd_sb.o snd_sb_dsp.o snd_cms.o snd_dbopl.o \
-		    snd_emu8k.o snd_gus.o snd_opl.o \
-		    snd_mpu401.o \
-		    snd_sn76489.o snd_ssi2001.o snd_wss.o \
+		    snd_cms.o \
+		    snd_gus.o \
+		    snd_sb.o snd_sb_dsp.o \
+		    snd_emu8k.o snd_mpu401.o \
+		    snd_sn76489.o snd_ssi2001.o \
+		    snd_wss.o \
 		    snd_ym7128.o
 
 VIDOBJ		:= video.o \
@@ -465,25 +483,28 @@ VIDOBJ		:= video.o \
 		    vid_cga.o vid_cga_comp.o \
 		    vid_compaq_cga.o \
 		    vid_mda.o \
-		    vid_ega.o vid_ega_render.o \
-		    vid_vga.o vid_svga.o vid_svga_render.o \
 		    vid_hercules.o vid_herculesplus.o vid_incolor.o \
 		    vid_colorplus.o \
 		    vid_genius.o \
 		    vid_t3100e.o \
-		    vid_s3.o vid_s3_virge.o \
-		    vid_et4000.o vid_et4000w32.o vid_icd2061.o \
+		    vid_wy700.o \
+		    vid_ega.o vid_ega_render.o \
+		    vid_svga.o vid_svga_render.o \
+		    vid_vga.o \
+		    vid_ati_eeprom.o \
+		    vid_ati18800.o vid_ati28800.o \
+		    vid_ati_mach64.o vid_ati68860_ramdac.o \
+		    vid_ics2595.o \
+		    vid_cl5428.o \
+		    vid_et4000.o vid_sc1502x_ramdac.o \
+		    vid_et4000w32.o vid_stg_ramdac.o \
 		    vid_oti067.o \
 		    vid_paradise.o \
-		    vid_tvga.o vid_tgui9440.o vid_tkd8001_ramdac.o \
-		    vid_ati_eeprom.o vid_ati18800.o vid_ati28800.o \
-		    vid_ati68860_ramdac.o vid_ati_mach64.o \
-		    vid_ics2595.o \
-		    vid_sc1502x_ramdac.o \
-		    vid_sdac_ramdac.o \
-		    vid_stg_ramdac.o \
 		    vid_ti_cf62011.o \
-		    vid_wy700.o \
+		    vid_tvga.o \
+		    vid_tgui9440.o vid_tkd8001_ramdac.o \
+		    vid_s3.o vid_s3_virge.o \
+		    vid_sdac_ramdac.o \
 		    vid_voodoo.o
 
 PLATOBJ		:= win.o \
@@ -491,8 +512,8 @@ PLATOBJ		:= win.o \
 		    win_cdrom.o win_cdrom_ioctl.o win_keyboard.o \
 		    win_mouse.o win_joystick.o win_midi.o
 
-OBJ		:= $(MAINOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
-		   $(FDDOBJ) $(CDROMOBJ) $(HDDOBJ) \
+OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
+		   $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(HDDOBJ) \
 		   $(USBOBJ) $(NETOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
 		   $(PLATOBJ) $(UIOBJ) $(DEVBROBJ)
 ifdef EXOBJ

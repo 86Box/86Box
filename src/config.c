@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.41	2018/02/09
+ * Version:	@(#)config.c	1.0.42	2018/02/10
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -434,6 +434,7 @@ load_general(void)
     video_graytype = config_get_int(cat, "video_graytype", 0);
 
     rctrl_is_lalt = config_get_int(cat, "rctrl_is_lalt", 0);
+    update_icons = config_get_int(cat, "update_icons", 1);
 
     window_remember = config_get_int(cat, "window_remember", 0);
     if (window_remember) {
@@ -448,9 +449,7 @@ load_general(void)
 	window_w = window_h = window_x = window_y = 0;
     }
 
-    sound_gain[0] = config_get_int(cat, "sound_gain_main", 0);
-    sound_gain[1] = config_get_int(cat, "sound_gain_cd", 0);
-    sound_gain[2] = config_get_int(cat, "sound_gain_midi", 0);
+    sound_gain = config_get_int(cat, "sound_gain", 0);
 
 #ifdef USE_LANGUAGE
     /*
@@ -1530,6 +1529,11 @@ save_general(void)
       else
 	config_set_int(cat, "rctrl_is_lalt", rctrl_is_lalt);
 
+    if (update_icons == 1)
+	config_delete_var(cat, "update_icons");
+      else
+	config_set_int(cat, "update_icons", update_icons);
+
     if (window_remember) {
 	config_set_int(cat, "window_remember", window_remember);
 
@@ -1540,20 +1544,10 @@ save_general(void)
 	config_delete_var(cat, "window_coordinates");
     }
 
-    if (sound_gain[0] != 0)
-	config_set_int(cat, "sound_gain_main", sound_gain[0]);
+    if (sound_gain != 0)
+	config_set_int(cat, "sound_gain", sound_gain);
     else
-	config_delete_var(cat, "sound_gain_main");
-
-    if (sound_gain[1] != 0)
-	config_set_int(cat, "sound_gain_cd", sound_gain[1]);
-    else
-	config_delete_var(cat, "sound_gain_cd");
-
-    if (sound_gain[2] != 0)
-	config_set_int(cat, "sound_gain_midi", sound_gain[2]);
-    else
-	config_delete_var(cat, "sound_gain_midi");
+	config_delete_var(cat, "sound_gain");
 
 #ifdef USE_LANGUAGE
     if (plat_langid == 0x0409)

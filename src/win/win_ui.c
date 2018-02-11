@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.17	2018/02/09
+ * Version:	@(#)win_ui.c	1.0.18	2018/02/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -135,6 +135,8 @@ ResetAllMenus(void)
 
     CheckMenuItem(menuMain, IDM_ACTION_RCTRL_IS_LALT, MF_UNCHECKED);
 
+    CheckMenuItem(menuMain, IDM_UPDATE_ICONS, MF_UNCHECKED);
+
 #ifdef ENABLE_LOG_TOGGLES
 # ifdef ENABLE_BUSLOGIC_LOG
     CheckMenuItem(menuMain, IDM_LOG_BUSLOGIC, MF_UNCHECKED);
@@ -194,6 +196,8 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_GRAY_RGB+4, MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_ACTION_RCTRL_IS_LALT, rctrl_is_lalt ? MF_CHECKED : MF_UNCHECKED);
+
+    CheckMenuItem(menuMain, IDM_UPDATE_ICONS, update_icons ? MF_CHECKED : MF_UNCHECKED);
 
 #ifdef ENABLE_LOG_TOGGLES
 # ifdef ENABLE_BUSLOGIC_LOG
@@ -328,6 +332,12 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_STATUS:
 				StatusWindowCreate(hwnd);
+				break;
+
+			case IDM_UPDATE_ICONS:
+				update_icons ^= 1;
+				CheckMenuItem(hmenu, IDM_UPDATE_ICONS, update_icons ? MF_CHECKED : MF_UNCHECKED);
+				config_save();
 				break;
 
 			case IDM_VID_RESIZE:

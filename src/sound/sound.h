@@ -8,19 +8,19 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.h	1.0.3	2017/12/09
+ * Version:	@(#)sound.h	1.0.4	2018/02/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #ifndef EMU_SOUND_H
 # define EMU_SOUND_H
 
 
-extern int sound_gain[3];
+extern int sound_gain;
 
 #define SOUNDBUFLEN	(48000/50)
 

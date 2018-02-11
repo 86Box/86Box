@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.15	2018/02/07
+ * Version:	@(#)vid_table.c	1.0.16	2018/02/11
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -35,6 +35,7 @@
 #include "vid_ati28800.h"
 #include "vid_ati_mach64.h"
 #include "vid_cga.h"
+#include "vid_cl5428.h"
 #ifdef DEV_BRANCH
 # ifdef USE_CIRRUS
 #  include "vid_cl_ramdac.h" /* vid_cl_gd.c needs this */
@@ -156,6 +157,7 @@ video_cards[] = {
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
     {"[VLB] Diamond Stealth 32 (Tseng ET4000/w32p)","stealth32_vlb",		&et4000w32p_vlb_device,      		GFX_ET4000W32_VLB,		{VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
 #endif
+    {"[VLB] Diamond SpeedStar PRO (CL-GD5428)",     "cl_gd5428_vlb",		&gd5428_device,				GFX_CL_GD5428,			{VIDEO_BUS, 4,  8, 16,   4,  8, 16}},
     {"[VLB] Diamond Stealth 3D 2000 (S3 ViRGE)",    "stealth3d_2000_vlb",	&s3_virge_vlb_device,            	GFX_VIRGE_VLB,			{VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
     {"[VLB] Diamond Stealth 3D 3000 (S3 ViRGE/VX)", "stealth3d_3000_vlb",	&s3_virge_988_vlb_device,        	GFX_VIRGEVX_VLB,		{VIDEO_BUS, 2,  2,  4,  26, 26, 42}},
     {"[VLB] Diamond Stealth 64 DRAM (S3 Trio64)",   "stealth64d_vlb",		&s3_diamond_stealth64_vlb_device,	GFX_STEALTH64_VLB,		{VIDEO_BUS, 2,  2,  4,  26, 26, 42}},

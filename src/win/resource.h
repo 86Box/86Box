@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.20	2018/02/09
+ * Version:	@(#)resource.h	1.0.21	2018/02/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -80,9 +80,7 @@
 #define IDT_1743		1743	/* Channel: */
 #define IDT_STEXT		1744	/* text in status window */
 #define IDT_SDEVICE		1745	/* text in status window */
-#define IDT_1746		1746	/* Main */
-#define IDT_1747		1747	/* CD */
-#define IDT_1748		1748	/* MIDI */
+#define IDT_1746		1746	/* Gain */
 #define IDT_1749		1749	/* File name: */
 #define IDT_1750		1750	/* Disk size: */
 #define IDT_1751		1751	/* RPM mode: */
@@ -198,9 +196,7 @@
 #define IDC_COMBO_ZIP_CHANNEL_IDE 1164
 #define IDC_CHECK250		1165
 
-#define IDC_SLIDER_MAIN		1180	/* sound gain dialog */
-#define IDC_SLIDER_CD		1181
-#define IDC_SLIDER_MIDI		1182
+#define IDC_SLIDER_GAIN		1180	/* sound gain dialog */
 
 #define IDC_EDIT_FILE_NAME	1190	/* new floppy image dialog */
 #define IDC_COMBO_DISK_SIZE	1191
@@ -240,6 +236,7 @@
 #define IDM_CONFIG_LOAD		40021
 #define IDM_CONFIG_SAVE		40022
 #define IDM_STATUS		40030
+#define IDM_UPDATE_ICONS	40040
 #define IDM_VID_RESIZE		40050
 #define IDM_VID_REMEMBER	40051
 #define IDM_VID_DDRAW		40060

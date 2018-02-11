@@ -8,7 +8,7 @@
  *
  *		Handle the sound gain dialog.
  *
- * Version:	@(#)win_snd_gain.c	1.0.0	2018/01/17
+ * Version:	@(#)win_snd_gain.c	1.0.1	2018/02/10
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -32,7 +32,7 @@
 #include "win.h"
 
 
-static uint8_t	old_gain[3];
+static uint8_t	old_gain;
 
 
 #ifdef __amd64__
@@ -43,43 +43,34 @@ static BOOL CALLBACK
 SoundGainDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h;
-    int i;
 
     switch (message) {
 	case WM_INITDIALOG:
-		plat_pause(1);
-		for (i = 0; i < 3; i++) {
-			old_gain[i] = sound_gain[i];
-			h = GetDlgItem(hdlg, IDC_SLIDER_MAIN + i);
-			SendMessage(h, TBM_SETRANGE, (WPARAM)1, (LPARAM)MAKELONG(0, 9));
-			SendMessage(h, TBM_SETPOS, (WPARAM)1, 9 - (sound_gain[i] >> 1));
-			SendMessage(h, TBM_SETTICFREQ, (WPARAM)1, 0);
-			SendMessage(h, TBM_SETLINESIZE, (WPARAM)0, 1);
-			SendMessage(h, TBM_SETPAGESIZE, (WPARAM)0, 2);
-		}
+		old_gain = sound_gain;
+		h = GetDlgItem(hdlg, IDC_SLIDER_GAIN);
+		SendMessage(h, TBM_SETRANGE, (WPARAM)1, (LPARAM)MAKELONG(0, 9));
+		SendMessage(h, TBM_SETPOS, (WPARAM)1, 9 - (sound_gain >> 1));
+		SendMessage(h, TBM_SETTICFREQ, (WPARAM)1, 0);
+		SendMessage(h, TBM_SETLINESIZE, (WPARAM)0, 1);
+		SendMessage(h, TBM_SETPAGESIZE, (WPARAM)0, 2);
 		break;
 
 	case WM_VSCROLL:
-		for (i = 0; i < 3; i++) {
-			h = GetDlgItem(hdlg, IDC_SLIDER_MAIN + i);
-			sound_gain[i] = (9 - SendMessage(h, TBM_GETPOS, (WPARAM)0, 0)) << 1;
-		}
+		h = GetDlgItem(hdlg, IDC_SLIDER_GAIN);
+		sound_gain = (9 - SendMessage(h, TBM_GETPOS, (WPARAM)0, 0)) << 1;
 		break;
 
 	case WM_COMMAND:
                 switch (LOWORD(wParam)) {
 			case IDOK:
-				for (i = 0; i < 3; i++) {
-					h = GetDlgItem(hdlg, IDC_SLIDER_MAIN + i);
-					sound_gain[i] = (9 - SendMessage(h, TBM_GETPOS, (WPARAM)0, 0)) << 1;
-				}
+				h = GetDlgItem(hdlg, IDC_SLIDER_GAIN);
+				sound_gain = (9 - SendMessage(h, TBM_GETPOS, (WPARAM)0, 0)) << 1;
 				config_save();
 				EndDialog(hdlg, 0);
 				return TRUE;
 
 			case IDCANCEL:
-				for (i = 0; i < 3; i++)
-					sound_gain[i] = old_gain[i];
+				sound_gain = old_gain;
 				config_save();
 				EndDialog(hdlg, 0);
 				return TRUE;

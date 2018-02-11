@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.13	2018/02/06
+ * Version:	@(#)win_stbar.c	1.0.14	2018/02/11
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -55,6 +55,7 @@
 
 
 HWND		hwndSBAR;
+int		update_icons = 1;
 
 
 static LONG_PTR	OriginalProcedure;
@@ -276,6 +277,9 @@ ui_sb_update_icon(int tag, int active)
 {
     int temp_flags = 0;
     int found;
+
+    if (!update_icons)
+	return;
 
     if (((tag & 0xf0) >= SB_TEXT) || !sb_ready || (sb_parts == 0) || (sb_icon_flags == NULL) || (sb_part_icons == NULL)) {
 	return;
