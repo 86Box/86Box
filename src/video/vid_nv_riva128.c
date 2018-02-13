@@ -370,7 +370,7 @@ const char* riva128_pfifo_interrupts[32] =
 	if(riva128->card_id == 0x03) switch(addr)
 		{
 		case 0x000000:
-			ret = 0x11;
+			ret = 0x00;
 			break;
 		case 0x000001:
 			ret = 0x01;
@@ -936,7 +936,7 @@ const char* riva128_pfifo_interrupts[32] =
 			case 4:
 				ret = 2;
 			}
-			ret |= 0x04;
+			ret |= 0x0c;
 			break;
 		}
 		case 0x04:
@@ -2075,17 +2075,18 @@ void riva128_pgraph_vblank_interrupt(void *p)
 void riva128_ptimer_tick(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
+	//pclog("RIVA 128 PTIMER tick!\n");
 
-	double time = ((double)riva128->ptimer.clock_mul * 1000000000.0f) / (double)riva128->ptimer.clock_div;
-	uint64_t tmp;
+	double time = ((double)riva128->ptimer.clock_mul * 10000000.0f) / (double)riva128->ptimer.clock_div;
+	uint32_t tmp;
 	int alarm_check;
 
 	//if(cs == 0x0008 && !riva128->pgraph.beta) pclog("RIVA 128 PTIMER time elapsed %f alarm %08x, time_low %08x\n", time, riva128->ptimer.alarm, riva128->ptimer.time & 0xffffffff);
 
 	tmp = riva128->ptimer.time;
-	riva128->ptimer.time += (uint64_t)time << 5;
+	riva128->ptimer.time += (uint64_t)time;
 
-	alarm_check = ((uint32_t)tmp < riva128->ptimer.alarm) || ((uint32_t)riva128->ptimer.time >= riva128->ptimer.alarm);
+	alarm_check = (riva128->ptimer.alarm - tmp) < (uint32_t)riva128->ptimer.time;
 
 	if(alarm_check && (riva128->ptimer.intr_en & 1))
 	{
@@ -2100,18 +2101,18 @@ void riva128_ptimer_tick(void *p)
 
 	//if(!riva128->pgraph.beta) pclog("RIVA 128 MCLK poll PMC enable %08x\n", riva128->pmc.enable);
 
-	if((riva128->pmc.enable & 0x00010000) && riva128->card_id == 0x03) riva128_ptimer_tick(riva128);
+	if((riva128->pmc.enable & 0x00010000) && (riva128->card_id == 0x03)) riva128_ptimer_tick(riva128);
 
-	riva128->mtime += (int)((TIMER_USEC * 100000000.0) / riva128->mfreq);
+	riva128->mtime += (int64_t)((TIMER_USEC * 100000000.0) / riva128->mfreq);
 }
 
  void riva128_nvclk_poll(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
-	if((riva128->pmc.enable & 0x00010000) && riva128->card_id < 0x40 && riva128->card_id != 0x03) riva128_ptimer_tick(riva128);
+	if((riva128->pmc.enable & 0x00010000) && ((riva128->card_id < 0x40) && (riva128->card_id != 0x03))) riva128_ptimer_tick(riva128);
 
-	riva128->nvtime += (int)((TIMER_USEC * 100000000.0) / riva128->nvfreq);
+	riva128->nvtime += (int64_t)((TIMER_USEC * 100000000.0) / riva128->nvfreq);
 }
 
  void riva128_vblank_start(svga_t *svga)
@@ -2837,7 +2838,7 @@ void riva128_ptimer_tick(void *p)
 	{
 		freq = 13500000.0;
 
-		if(riva128->pramdac.v_m == 0) freq = 0;
+		if(riva128->pramdac.v_m == 0) riva128->pramdac.v_m = 1;
 		else
 		{
 			freq = (freq * riva128->pramdac.v_n) / (1 << riva128->pramdac.v_p) / riva128->pramdac.v_m;
@@ -2851,7 +2852,7 @@ void riva128_ptimer_tick(void *p)
 	{
 		freq = 13500000.0;
 
-		if(riva128->pramdac.m_m == 0) freq = 0;
+		if(riva128->pramdac.m_m == 0) riva128->pramdac.m_m = 1;
 		else
 		{
 			freq = (freq * riva128->pramdac.m_n) / (1 << riva128->pramdac.m_p) / riva128->pramdac.m_m;
@@ -2859,17 +2860,15 @@ void riva128_ptimer_tick(void *p)
 		}
 
 		riva128->mfreq = freq;
-		riva128->menable = 0;
-		riva128->mtime = (int)((TIMER_USEC * 100000000.0) / riva128->mfreq);
+		riva128->mtime = (int64_t)((TIMER_USEC * 100000000.0) / riva128->mfreq);
 		riva128->menable = 1;
 	}
-	else riva128->menable = 0;
 
 	if(riva128->card_id >= 0x04)
 	{
 		freq = 13500000.0;
 
-		if(riva128->pramdac.nv_m == 0) freq = 0;
+		if(riva128->pramdac.nv_m == 0) riva128->pramdac.nv_m = 1;
 		else
 		{
 			freq = (freq * riva128->pramdac.nv_n) / (1 << riva128->pramdac.nv_p) / riva128->pramdac.nv_m;
@@ -2877,11 +2876,9 @@ void riva128_ptimer_tick(void *p)
 		}
 
 		riva128->nvfreq = freq;
-		riva128->nvenable = 0;
-		riva128->nvtime = (int)((TIMER_USEC * 100000000.0) / riva128->nvfreq);
+		riva128->nvtime = (int64_t)((TIMER_USEC * 100000000.0) / riva128->nvfreq);
 		riva128->nvenable = 1;
 	}
-	else riva128->nvenable = 0;
 }
 
 
@@ -2964,6 +2961,7 @@ void *riva128_init(device_t *info)
 	riva128->pfifo.intr = 0;
 	riva128->pgraph.intr = 0;
 	riva128->ptimer.intr = 0;
+	riva128->ptimer.intr_en = 0xffffffff;
 
 	riva128->pci_card = pci_add_card(PCI_ADD_VIDEO, riva128_pci_read, riva128_pci_write, riva128);
 
@@ -3008,10 +3006,10 @@ void *riva128_init(device_t *info)
 		}
 	}
 
-	riva128->menable = 0;
-	riva128->nvenable = 0;
+	riva128->menable = 1;
+	riva128->nvenable = 1;
 
-	timer_add(riva128_mclk_poll, &riva128->mtime, &riva128->menable, riva128);
+	timer_add(riva128_mclk_poll, &riva128->mtime, &timer_one, riva128);
 	timer_add(riva128_nvclk_poll, &riva128->nvtime, &riva128->nvenable, riva128);
 
 	riva128->svga.vblank_start = riva128_vblank_start;
