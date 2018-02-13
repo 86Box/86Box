@@ -370,7 +370,7 @@ const char* riva128_pfifo_interrupts[32] =
 	if(riva128->card_id == 0x03) switch(addr)
 		{
 		case 0x000000:
-			ret = 0x10;
+			ret = 0x11;
 			break;
 		case 0x000001:
 			ret = 0x01;
@@ -884,7 +884,7 @@ const char* riva128_pfifo_interrupts[32] =
 		riva128->ptimer.clock_div = val & 0xffff;
 		break;
 	case 0x009210:
-		if((val & 0xffff) > riva128->ptimer.clock_div) val = riva128->ptimer.clock_div;
+		if((val & 0xffff) < riva128->ptimer.clock_div) val = riva128->ptimer.clock_div;
 		riva128->ptimer.clock_mul = val & 0xffff;
 		break;
 	case 0x009400:
@@ -988,7 +988,7 @@ const char* riva128_pfifo_interrupts[32] =
 	switch(addr)
 	{
 	case 0x100200:
-		riva128->pfb.config_0 = val;
+		riva128->pfb.config_0 = (val & 0x33f) | 0x1000;
 		riva128->pfb.width = (val & 0x3f) << 5;
 		switch((val >> 8) & 3)
 		{
@@ -1967,9 +1967,9 @@ void riva128_pgraph_vblank_interrupt(void *p)
 	addr &= 0xffffff;
 
 	//This logging condition is necessary to prevent A CATASTROPHIC LOG BLOWUP when polling PTIMER or PFIFO. DO NOT REMOVE.
-	if(!((addr >= 0x009000) && (addr <= 0x009fff)) && !((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0x000000) 
+	if(/*!((addr >= 0x009000) && (addr <= 0x009fff)) && */!((addr >= 0x002000) && (addr <= 0x003fff))/* && !((addr >= 0x000000) 
 	&& (addr <= 0x000003)) && !((addr <= 0x680fff) && (addr >= 0x680000)) && !((addr >= 0x0c0000) && (addr <= 0x0cffff)) 
-	&& !((addr >= 0x110000) && (addr <= 0x11ffff)) && !(addr <= 0x000fff) && (addr >= 0x000000)) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
+	&& !((addr >= 0x110000) && (addr <= 0x11ffff)) && !(addr <= 0x000fff) && (addr >= 0x000000)*/) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
 
 	if((addr >= 0x000000) && (addr <= 0x000fff)) ret = riva128_pmc_read(addr, riva128);
 	if((addr >= 0x001000) && (addr <= 0x001fff)) ret = riva128_pbus_read(addr, riva128);
@@ -2044,7 +2044,7 @@ void riva128_pgraph_vblank_interrupt(void *p)
 	addr &= 0xffffff;
 
 	//DO NOT REMOVE. This fixes a monstrous log blowup in win9x's drivers when accessing PFIFO.
-	if(!((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0xc0000) && (addr <= 0xcffff)) && (addr != 0x000140)) pclog("RIVA 128 MMIO write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+	if(!((addr >= 0x002000) && (addr <= 0x003fff))/* && !((addr >= 0xc0000) && (addr <= 0xcffff)) && (addr != 0x000140)*/) pclog("RIVA 128 MMIO write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	
 	if((addr >= 0x000000) && (addr <= 0x000fff)) riva128_pmc_write(addr, val, riva128);
@@ -2076,7 +2076,7 @@ void riva128_ptimer_tick(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
-	double time = ((double)riva128->ptimer.clock_mul * 1000000.0f) / (double)riva128->ptimer.clock_div;
+	double time = ((double)riva128->ptimer.clock_mul * 1000000000.0f) / (double)riva128->ptimer.clock_div;
 	uint64_t tmp;
 	int alarm_check;
 
@@ -2087,7 +2087,7 @@ void riva128_ptimer_tick(void *p)
 
 	alarm_check = ((uint32_t)tmp < riva128->ptimer.alarm) || ((uint32_t)riva128->ptimer.time >= riva128->ptimer.alarm);
 
-	if(alarm_check)
+	if(alarm_check && (riva128->ptimer.intr_en & 1))
 	{
 		//pclog("RIVA 128 PTIMER ALARM interrupt fired!\n");
 		riva128_ptimer_interrupt(0, riva128);
@@ -2100,7 +2100,7 @@ void riva128_ptimer_tick(void *p)
 
 	//if(!riva128->pgraph.beta) pclog("RIVA 128 MCLK poll PMC enable %08x\n", riva128->pmc.enable);
 
-	if(!(riva128->pmc.enable & 0x00010000) && riva128->card_id == 0x03) riva128_ptimer_tick(riva128);
+	if((riva128->pmc.enable & 0x00010000) && riva128->card_id == 0x03) riva128_ptimer_tick(riva128);
 
 	riva128->mtime += (int)((TIMER_USEC * 100000000.0) / riva128->mfreq);
 }
@@ -2109,7 +2109,7 @@ void riva128_ptimer_tick(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
-	if(!(riva128->pmc.enable & 0x00010000) && riva128->card_id < 0x40 && riva128->card_id != 0x03) riva128_ptimer_tick(riva128);
+	if((riva128->pmc.enable & 0x00010000) && riva128->card_id < 0x40 && riva128->card_id != 0x03) riva128_ptimer_tick(riva128);
 
 	riva128->nvtime += (int)((TIMER_USEC * 100000000.0) / riva128->nvfreq);
 }
