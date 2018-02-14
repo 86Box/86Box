@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.25	2018/02/11
+ * Version:	@(#)plat.h	1.0.26	2018/02/14
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -62,6 +62,8 @@ GLOBAL char	emu_version[128];		/* version ID string */
 GLOBAL int	rctrl_is_lalt;
 GLOBAL int	update_icons;
 
+GLOBAL int	unscaled_size_x,		/* current unscaled size X */
+		unscaled_size_y;		/* current unscaled size Y */
 
 /* System-related functions. */
 extern wchar_t	*fix_exe_path(wchar_t *str);
