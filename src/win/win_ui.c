@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.19	2018/02/14
+ * Version:	@(#)win_ui.c	1.0.20	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -643,6 +643,11 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_MOVE:
+		/* If window is not resizable, then tell the main thread to
+		   resize it, as sometimes, moves can mess up the window size. */
+		if (!vid_resize)
+			doresize = 1;
+
 		if (window_remember) {
 			GetWindowRect(hwnd, &rect);
 			window_x = rect.left;
