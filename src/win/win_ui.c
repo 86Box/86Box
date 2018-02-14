@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.18	2018/02/11
+ * Version:	@(#)win_ui.c	1.0.19	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -277,6 +277,8 @@ static LRESULT CALLBACK
 MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HMENU hmenu;
+
+    int sb_borders[3];
     RECT rect;
 
     switch (message) {
@@ -343,14 +345,36 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_RESIZE:
 				vid_resize = !vid_resize;
 				CheckMenuItem(hmenu, IDM_VID_RESIZE, (vid_resize)? MF_CHECKED : MF_UNCHECKED);
+				GetWindowRect(hwnd, &rect);
+
 				if (vid_resize)
 					SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW) | WS_VISIBLE);
 				  else
 					SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX) | WS_VISIBLE);
-				GetWindowRect(hwnd, &rect);
-				SetWindowPos(hwnd, 0, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER | SWP_FRAMECHANGED);
-				GetWindowRect(hwndSBAR,&rect);
-				SetWindowPos(hwndSBAR, 0, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER | SWP_FRAMECHANGED);
+
+				SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
+
+				/* Main Window. */
+                        	MoveWindow(hwnd, rect.left, rect.top,
+					unscaled_size_x + (GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
+					unscaled_size_y + (GetSystemMetrics(SM_CYEDGE) * 2) + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 17 + sb_borders[1] + 1,
+					TRUE);
+
+				/* Render window. */
+				MoveWindow(hwndRender, 0, 0, unscaled_size_x, unscaled_size_y, TRUE);
+				GetWindowRect(hwndRender, &rect);
+
+				/* Status bar. */
+				MoveWindow(hwndSBAR,
+					   0, rect.bottom + GetSystemMetrics(SM_CYEDGE),
+					   unscaled_size_x, 17, TRUE);
+
+				if (mouse_capture) {
+					GetWindowRect(hwndRender, &rect);
+
+					ClipCursor(&rect);
+				}
+
 				if (vid_resize) {
 					CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_UNCHECKED);
 					CheckMenuItem(hmenu, IDM_VID_SCALE_2X, MF_CHECKED);
@@ -586,6 +610,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_SIZE:
+		if (!vid_resize)
+			break;
+
 		scrnsz_x = (lParam & 0xFFFF);
 		scrnsz_y = (lParam >> 16) - (17 + 6);
 		if (scrnsz_y < 0)
@@ -982,18 +1009,20 @@ pclog("PLAT: VID[%d,%d] resizing to %dx%d\n", video_fullscreen, vid_api, x, y);
     if (!vid_resize) {
 	video_wait_for_blit();
 	SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
-	GetWindowRect(hwndMain, &r);
-	MoveWindow(hwndRender, 0, 0, x, y, TRUE);
-	GetWindowRect(hwndRender, &r);
-	MoveWindow(hwndSBAR,
-		   0, r.bottom + GetSystemMetrics(SM_CYEDGE),
-		   x, 17, TRUE);
-	GetWindowRect(hwndMain, &r);
 
+	GetWindowRect(hwndMain, &r);
 	MoveWindow(hwndMain, r.left, r.top,
 		   x + (GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
 		   y + (GetSystemMetrics(SM_CYEDGE) * 2) + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 17 + sb_borders[1] + 1,
 		   TRUE);
+	GetWindowRect(hwndMain, &r);
+
+	MoveWindow(hwndRender, 0, 0, x, y, TRUE);
+	GetWindowRect(hwndRender, &r);
+
+	MoveWindow(hwndSBAR,
+		   0, r.bottom + GetSystemMetrics(SM_CYEDGE),
+		   x, 17, TRUE);
 
 	if (mouse_capture) {
 		GetWindowRect(hwndRender, &r);

@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.58	2018/02/10
+ * Version:	@(#)pc.c	1.0.59	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -166,9 +166,9 @@ int	title_update;
 int64_t	main_time;
 
 
-static int	unscaled_size_x = SCREEN_RES_X,	/* current unscaled size X */
-		unscaled_size_y = SCREEN_RES_Y,	/* current unscaled size Y */
-		efscrnsz_y = SCREEN_RES_Y;
+int	unscaled_size_x = SCREEN_RES_X,	/* current unscaled size X */
+	unscaled_size_y = SCREEN_RES_Y,	/* current unscaled size Y */
+	efscrnsz_y = SCREEN_RES_Y;
 
 
 static char buff[1024];
