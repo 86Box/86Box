@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.20	2018/02/14
+ * Version:	@(#)win_ui.c	1.0.21	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -280,6 +280,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     int sb_borders[3];
     RECT rect;
+
+    int temp_x, temp_y;
 
     switch (message) {
 	case WM_CREATE:
@@ -610,19 +612,29 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_SIZE:
-		if (!vid_resize)
-			break;
+		SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
 
-		scrnsz_x = (lParam & 0xFFFF);
-		scrnsz_y = (lParam >> 16) - (17 + 6);
-		if (scrnsz_y < 0)
-			scrnsz_y = 0;
+		temp_x = (lParam & 0xFFFF);
+		temp_y = (lParam >> 16) - (21 + sb_borders[1]);
+		if (temp_y < 0)
+			temp_y = 0;
+
+		if ((temp_x != scrnsz_x) || (temp_y != scrnsz_y))
+			doresize = 1;
+
+		scrnsz_x = temp_x;
+		scrnsz_y = temp_y;
 
 		MoveWindow(hwndRender, 0, 0, scrnsz_x, scrnsz_y, TRUE);
 
 		plat_vidsize(scrnsz_x, scrnsz_y);
 
-		MoveWindow(hwndSBAR, 0, scrnsz_y + 6, scrnsz_x, 17, TRUE);
+		GetWindowRect(hwndRender, &rect);
+
+		/* Status bar. */
+		MoveWindow(hwndSBAR,
+			   0, rect.bottom + GetSystemMetrics(SM_CYEDGE),
+			   scrnsz_x, 17, TRUE);
 
 		if (mouse_capture) {
 			GetWindowRect(hwndRender, &rect);
