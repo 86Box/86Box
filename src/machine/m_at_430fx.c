@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430FX PCISet chip.
  *
- * Version:	@(#)m_at_430fx.c	1.0.11	2018/02/09
+ * Version:	@(#)m_at_430fx.c	1.0.12	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -208,7 +208,7 @@ static void i430fx_init(void)
 void
 machine_at_p54tp4xe_init(machine_t *model)
 {
-        machine_at_ps2_ide_init(model);
+        machine_at_ps2_init(model);
 
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -229,7 +229,7 @@ machine_at_p54tp4xe_init(machine_t *model)
 void
 machine_at_endeavor_init(machine_t *model)
 {
-        machine_at_common_ide_init(model);
+        machine_at_common_init(model);
 	device_add(&keyboard_ps2_ami_device);
 
 	memregs_init();
@@ -262,7 +262,7 @@ at_endeavor_get_device(void)
 void
 machine_at_zappa_init(machine_t *model)
 {
-        machine_at_common_ide_init(model);
+        machine_at_common_init(model);
 	device_add(&keyboard_ps2_ami_device);
 
 	memregs_init();
@@ -283,7 +283,7 @@ machine_at_zappa_init(machine_t *model)
 void
 machine_at_mb500n_init(machine_t *model)
 {
-        machine_at_ps2_ide_init(model);
+        machine_at_ps2_init(model);
 
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
@@ -303,7 +303,7 @@ machine_at_mb500n_init(machine_t *model)
 void
 machine_at_president_init(machine_t *model)
 {
-        machine_at_ps2_ide_init(model);
+        machine_at_ps2_init(model);
 
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -324,7 +324,7 @@ machine_at_president_init(machine_t *model)
 void
 machine_at_thor_init(machine_t *model)
 {
-        machine_at_common_ide_init(model);
+        machine_at_common_init(model);
 	device_add(&keyboard_ps2_ami_device);
 
 	memregs_init();

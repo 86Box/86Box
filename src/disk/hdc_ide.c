@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.25	2018/02/08
+ * Version:	@(#)hdc_ide.c	1.0.26	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -106,6 +106,7 @@ int (*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length);
 void (*ide_bus_master_set_irq)(int channel);
 int64_t idecallback[5] = {0LL, 0LL, 0LL, 0LL, 0LL};
 int cur_ide[5];
+int ide_init_ch[2] = {0, 0};
 
 
 #ifdef ENABLE_IDE_LOG
@@ -2701,16 +2702,6 @@ void ide_init_first(void)
 }
 
 
-void ide_init(void)
-{
-	ide_pri_enable();
-	ide_sec_enable();
-
-	timer_add(ide_callback_pri, &idecallback[0], &idecallback[0],  NULL);
-	timer_add(ide_callback_sec, &idecallback[1], &idecallback[1],  NULL);
-}
-
-
 void ide_xtide_init(void)
 {
 	ide_bus_master_read = ide_bus_master_write = NULL;
@@ -2731,21 +2722,18 @@ void secondary_ide_check(void)
 	int secondary_cdroms = 0;
 	int secondary_zips = 0;
 
-	for (i=0; i<ZIP_NUM; i++)
-	{
+	for (i=0; i<ZIP_NUM; i++) {
 		if ((zip_drives[i].ide_channel >= 2) && (zip_drives[i].ide_channel <= 3) && ((zip_drives[i].bus_type == ZIP_BUS_ATAPI_PIO_ONLY) || (zip_drives[i].bus_type == ZIP_BUS_ATAPI_PIO_AND_DMA)))
-		{
 			secondary_zips++;
-		}
 	}
-	for (i=0; i<CDROM_NUM; i++)
-	{
+	for (i=0; i<CDROM_NUM; i++) {
 		if ((cdrom_drives[i].ide_channel >= 2) && (cdrom_drives[i].ide_channel <= 3) && ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) || (cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA)))
-		{
 			secondary_cdroms++;
-		}
 	}
-	if (!secondary_zips && !secondary_cdroms)  ide_sec_disable();
+	if (!secondary_zips && !secondary_cdroms) {
+		ide_sec_disable();
+		ide_init_ch[1] = 0;
+	}
 }
 
 
@@ -2762,20 +2750,29 @@ ide_sainit(device_t *info)
 {
     switch(info->local) {
 	case 0:		/* ISA, single-channel */
-		ide_pri_enable();
-		ide_bus_master_read = ide_bus_master_write = NULL;
-		timer_add(ide_callback_pri, &idecallback[0], &idecallback[0],  NULL);
-		break;
+	case 2:		/* ISA, dual-channel */
+	case 3:		/* ISA, dual-channel, optional 2nd channel */
+	case 4:		/* VLB, single-channel */
+	case 6:		/* VLB, dual-channel */
+	case 8:		/* PCI, single-channel */
+	case 10:	/* PCI, dual-channel */
+		if (!ide_init_ch[0]) {
+			ide_pri_enable();
+			timer_add(ide_callback_pri, &idecallback[0], &idecallback[0],  NULL);
+			ide_init_ch[0] = 1;
+		}
 
-	case 1:		/* VLB, single-channel */
-		ide_pri_enable();
-		ide_bus_master_read = ide_bus_master_write = NULL;
-		timer_add(ide_callback_pri, &idecallback[0], &idecallback[0],  NULL);
-		break;
+		if ((info->local & 2) && !ide_init_ch[1]) {
+			ide_sec_enable();
+			timer_add(ide_callback_sec, &idecallback[1], &idecallback[1],  NULL);
+			ide_init_ch[1] = 1;
 
-	case 2:		/* PCI, single-channel */
-		ide_pri_enable();
-		timer_add(ide_callback_pri, &idecallback[0], &idecallback[0],  NULL);
+			if (info->local & 1)
+				secondary_ide_check();
+		}
+
+		if (!(info->local & 8))
+			ide_bus_master_read = ide_bus_master_write = NULL;
 		break;
     }
 
@@ -2787,6 +2784,7 @@ ide_sainit(device_t *info)
 static void
 ide_saclose(void *priv)
 {
+    ide_init_ch[0] = ide_init_ch[1] = 0;
 }
 
 
@@ -2799,10 +2797,19 @@ device_t ide_isa_device = {
     NULL
 };
 
-device_t ide_pci_device = {
-    "PCI IDE Controller",
-    DEVICE_PCI | DEVICE_AT,
+device_t ide_isa_2ch_device = {
+    "ISA PC/AT IDE Controller (Dual-Channel)",
+    DEVICE_ISA | DEVICE_AT,
     2,
+    ide_sainit, ide_saclose, NULL,
+    NULL, NULL, NULL, NULL,
+    NULL
+};
+
+device_t ide_isa_2ch_opt_device = {
+    "ISA PC/AT IDE Controller (Single/Dual)",
+    DEVICE_ISA | DEVICE_AT,
+    3,
     ide_sainit, ide_saclose, NULL,
     NULL, NULL, NULL, NULL,
     NULL
@@ -2811,7 +2818,34 @@ device_t ide_pci_device = {
 device_t ide_vlb_device = {
     "VLB IDE Controller",
     DEVICE_VLB | DEVICE_AT,
-    1,
+    4,
+    ide_sainit, ide_saclose, NULL,
+    NULL, NULL, NULL, NULL,
+    NULL
+};
+
+device_t ide_vlb_2ch_device = {
+    "VLB IDE Controller (Dual-Channel)",
+    DEVICE_VLB | DEVICE_AT,
+    6,
+    ide_sainit, ide_saclose, NULL,
+    NULL, NULL, NULL, NULL,
+    NULL
+};
+
+device_t ide_pci_device = {
+    "PCI IDE Controller",
+    DEVICE_PCI | DEVICE_AT,
+    8,
+    ide_sainit, ide_saclose, NULL,
+    NULL, NULL, NULL, NULL,
+    NULL
+};
+
+device_t ide_pci_2ch_device = {
+    "PCI IDE Controller (Dual-Channel)",
+    DEVICE_PCI | DEVICE_AT,
+    10,
     ide_sainit, ide_saclose, NULL,
     NULL, NULL, NULL, NULL,
     NULL

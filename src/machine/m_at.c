@@ -15,7 +15,6 @@
 #include "../keyboard.h"
 #include "../lpt.h"
 #include "../disk/hdc.h"
-#include "../disk/hdc_ide.h"
 #include "machine.h"
 
 
@@ -61,7 +60,7 @@ machine_at_common_ide_init(machine_t *model)
 {
     machine_at_common_init(model);
 
-    ide_init();
+    device_add(&ide_isa_2ch_opt_device);
 }
 
 
@@ -70,7 +69,7 @@ machine_at_ide_init(machine_t *model)
 {
     machine_at_init(model);
 
-    ide_init();
+    device_add(&ide_isa_2ch_opt_device);
 }
 
 
@@ -79,7 +78,7 @@ machine_at_ps2_ide_init(machine_t *model)
 {
     machine_at_ps2_init(model);
 
-    ide_init();
+    device_add(&ide_isa_2ch_opt_device);
 }
 
 

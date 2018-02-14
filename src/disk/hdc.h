@@ -8,13 +8,13 @@
  *
  *		Definitions for the common disk controller handler.
  *
- * Version:	@(#)hdc.h	1.0.4	2017/12/15
+ * Version:	@(#)hdc.h	1.0.5	2018/02/14
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef EMU_HDC_H
 # define EMU_HDC_H
@@ -40,12 +40,16 @@ extern device_t	esdi_at_wd1007vse1_device;	/* esdi_at */
 extern device_t	esdi_ps2_device;		/* esdi_mca */
 
 extern device_t	ide_isa_device;			/* isa_ide */
-extern device_t	ide_pci_device;			/* pci_ide */
+extern device_t	ide_isa_2ch_device;		/* isa_ide_2ch */
+extern device_t	ide_isa_2ch_opt_device;		/* isa_ide_2ch_opt */
 extern device_t	ide_vlb_device;			/* vlb_ide */
+extern device_t	ide_vlb_2ch_device;		/* vlb_ide_2ch */
+extern device_t	ide_pci_device;			/* pci_ide */
+extern device_t	ide_pci_2ch_device;		/* pci_ide_2ch */
 
 extern device_t	xtide_device;			/* xtide_xt */
 extern device_t	xtide_at_device;		/* xtide_at */
-extern device_t	xtide_ps2_device;		/* xtide_ps2 */
+extern device_t	xtide_acculogic_device;		/* xtide_ps2 */
 extern device_t	xtide_at_ps2_device;		/* xtide_at_ps2 */
 
 

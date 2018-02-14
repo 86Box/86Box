@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430VX PCISet chip.
  *
- * Version:	@(#)m_at_430vx.c	1.0.10	2018/01/04
+ * Version:	@(#)m_at_430vx.c	1.0.11	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -195,7 +195,7 @@ void i430vx_init(void)
 void
 machine_at_p55tvp4_init(machine_t *model)
 {
-        machine_at_ps2_ide_init(model);
+        machine_at_ps2_init(model);
 
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -216,7 +216,7 @@ machine_at_p55tvp4_init(machine_t *model)
 void
 machine_at_i430vx_init(machine_t *model)
 {
-        machine_at_ps2_ide_init(model);
+        machine_at_ps2_init(model);
 
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -237,7 +237,7 @@ machine_at_i430vx_init(machine_t *model)
 void
 machine_at_p55va_init(machine_t *model)
 {
-        machine_at_ps2_ide_init(model);
+        machine_at_ps2_init(model);
 
         pci_init(PCI_CONFIG_TYPE_1);
 	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);

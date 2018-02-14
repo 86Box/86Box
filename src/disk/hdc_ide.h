@@ -9,12 +9,12 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_ide.h	1.0.5	2017/10/26
+ * Version:	@(#)hdd_ide.h	1.0.6	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #ifndef EMU_IDE_H
 # define EMU_IDE_H
@@ -82,7 +82,7 @@ extern void	ide_set_base(int controller, uint16_t port);
 extern void	ide_set_side(int controller, uint16_t port);
 
 extern void	ide_init_first(void);
-extern void	ide_init(void);
+
 extern void	ide_reset(void);
 extern void	ide_reset_hard(void);
 

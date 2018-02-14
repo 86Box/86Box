@@ -10,13 +10,13 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)intel_piix4.c	1.0.2	2017/11/11
+ * Version:	@(#)intel_piix4.c	1.0.3	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -375,6 +375,8 @@ void piix4_reset(void)
 
 void piix4_init(int card)
 {
+	device_add(&ide_pci_2ch_device);
+
         pci_add_card(card, piix4_read, piix4_write, NULL);
 
 	piix4_reset();

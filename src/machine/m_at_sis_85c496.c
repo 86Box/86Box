@@ -8,11 +8,13 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../cpu/cpu.h"
+#include "../device.h"
 #include "../io.h"
 #include "../pci.h"
 #include "../mem.h"
 #include "../memregs.h"
 #include "../sio.h"
+#include "../disk/hdc.h"
 #include "machine.h"
 
 
@@ -162,7 +164,8 @@ static void sis_85c496_init(void)
 static void
 machine_at_sis_85c496_common_init(machine_t *model)
 {
-        machine_at_ps2_ide_init(model);
+        machine_at_ps2_init(model);
+	device_add(&ide_pci_device);
 
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);

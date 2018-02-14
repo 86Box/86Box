@@ -21,15 +21,15 @@
  *		already on their way out, the newer IDE standard based on the
  *		PC/AT controller and 16b design became the IDE we now know.
  *
- * Version:	@(#)hdc_xtide.c	1.0.10	2017/11/04
+ * Version:	@(#)hdc_xtide.c	1.0.11	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -163,7 +163,7 @@ xtide_at_init(device_t *info)
     rom_init(&xtide->bios_rom, ROM_PATH_AT,
 	     0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
-    ide_init();
+    device_add(&ide_isa_2ch_device);
 
     return(xtide);
 }
@@ -177,7 +177,7 @@ xtide_at_available(void)
 
 
 static void *
-xtide_ps2_init(device_t *info)
+xtide_acculogic_init(device_t *info)
 {
     xtide_t *xtide = malloc(sizeof(xtide_t));
 
@@ -197,7 +197,7 @@ xtide_ps2_init(device_t *info)
 
 
 static int
-xtide_ps2_available(void)
+xtide_acculogic_available(void)
 {
     return(rom_present(ROM_PATH_PS2));
 }
@@ -213,7 +213,7 @@ xtide_at_ps2_init(device_t *info)
     rom_init(&xtide->bios_rom, ROM_PATH_PS2AT,
 	     0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
-    ide_init();
+    device_add(&ide_isa_2ch_device);
 
     return(xtide);
 }
@@ -253,12 +253,12 @@ device_t xtide_at_device = {
     NULL
 };
 
-device_t xtide_ps2_device = {
+device_t xtide_acculogic_device = {
     "XTIDE (Acculogic)",
     DEVICE_ISA,
     0,
-    xtide_ps2_init, xtide_close, NULL,
-    xtide_ps2_available, NULL, NULL, NULL,
+    xtide_acculogic_init, xtide_close, NULL,
+    xtide_acculogic_available, NULL, NULL, NULL,
     NULL
 };
 

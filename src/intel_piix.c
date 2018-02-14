@@ -10,7 +10,7 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)intel_piix.c	1.0.11	2018/02/01
+ * Version:	@(#)intel_piix.c	1.0.12	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -733,6 +733,8 @@ void piix3_reset(void)
 
 void piix_init(int card)
 {
+	device_add(&ide_pci_2ch_device);
+
         pci_add_card(card, piix_read, piix_write, NULL);
 
 	piix_reset();
@@ -755,6 +757,8 @@ void piix_init(int card)
 
 void piix3_init(int card)
 {
+	device_add(&ide_pci_2ch_device);
+
         pci_add_card(card, piix_read, piix_write, NULL);
         
 	piix3_reset();

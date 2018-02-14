@@ -8,7 +8,7 @@
  *
  *		Emulation of various Compaq PC's.
  *
- * Version:	@(#)m_at_compaq.c	1.0.3	2018/01/16
+ * Version:	@(#)m_at_compaq.c	1.0.4	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -112,7 +112,7 @@ machine_at_compaq_init(machine_t *model)
 #ifdef PORTABLE3
 	case ROM_DESKPRO_386:
 		if (hdc_current == 1)
-			ide_init();
+			device_add(&ide_isa_device);
 		break;
 #endif
 
@@ -130,7 +130,7 @@ machine_at_compaq_init(machine_t *model)
 	case ROM_PORTABLEIII386:
 		machine_olim24_video_init();
 		if (hdc_current == 1)
-			ide_init();
+			device_add(&ide_isa_device);
 		break;
 #endif
     }

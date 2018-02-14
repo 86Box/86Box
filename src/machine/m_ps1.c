@@ -28,7 +28,7 @@
  *		boot. Sometimes, they do, and then it shows an "Incorrect
  *		DOS" error message??  --FvK
  *
- * Version:	@(#)m_ps1.c	1.0.5	2018/01/16
+ * Version:	@(#)m_ps1.c	1.0.6	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -549,7 +549,7 @@ ps1_common_init(machine_t *model)
     nvr_at_init(8);
 
     if (romset != ROM_IBMPS1_2011)
-	ide_init();
+	device_add(&ide_isa_device);
 
     device_add(&keyboard_ps2_device);
 

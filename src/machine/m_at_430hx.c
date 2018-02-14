@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430HX PCISet chip.
  *
- * Version:	@(#)m_at_430hx.c	1.0.10	2018/01/04
+ * Version:	@(#)m_at_430hx.c	1.0.11	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -218,7 +218,7 @@ acerm3a_in(uint16_t port, void *p)
 void
 machine_at_acerm3a_init(machine_t *model)
 {
-        machine_at_ps2_ide_init(model);
+        machine_at_ps2_init(model);
 
 	powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -241,7 +241,7 @@ machine_at_acerm3a_init(machine_t *model)
 void
 machine_at_acerv35n_init(machine_t *model)
 {
-        machine_at_ps2_ide_init(model);
+        machine_at_ps2_init(model);
 
 	powermate_memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -264,7 +264,7 @@ machine_at_acerv35n_init(machine_t *model)
 void
 machine_at_ap53_init(machine_t *model)
 {
-        machine_at_common_ide_init(model);
+        machine_at_common_init(model);
 	device_add(&keyboard_ps2_ami_device);
 
         memregs_init();
@@ -288,7 +288,7 @@ machine_at_ap53_init(machine_t *model)
 void
 machine_at_p55t2p4_init(machine_t *model)
 {
-        machine_at_ps2_ide_init(model);
+        machine_at_ps2_init(model);
 
 	memregs_init();
         pci_init(PCI_CONFIG_TYPE_1);
@@ -309,7 +309,7 @@ machine_at_p55t2p4_init(machine_t *model)
 void
 machine_at_p55t2s_init(machine_t *model)
 {
-        machine_at_common_ide_init(model);
+        machine_at_common_init(model);
 	device_add(&keyboard_ps2_ami_device);
 
         memregs_init();

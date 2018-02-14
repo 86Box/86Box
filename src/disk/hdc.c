@@ -8,13 +8,13 @@
  *
  *		Common code to handle all sorts of disk controllers.
  *
- * Version:	@(#)hdc.c	1.0.8	2017/12/15
+ * Version:	@(#)hdc.c	1.0.9	2018/02/14
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -97,17 +97,20 @@ static struct {
     { "[ISA] [IDE] PC/AT IDE Adapter",			"ide_isa",
       &ide_isa_device,					0		},
 
-    { "[ISA] [IDE] PC/XT XTIDE",			"xtide",
-      &xtide_device		,			0		},
+    { "[ISA] [IDE] PC/AT IDE Adapter (Dual-Channel)",	"ide_isa_2ch",
+      &ide_isa_2ch_device,				0		},
 
     { "[ISA] [IDE] PC/AT XTIDE",			"xtide_at",
       &xtide_at_device,					0		},
 
-    { "[ISA] [IDE] PS/2 XTIDE (Acculogic)",		"xtide_ps2",
-      &xtide_ps2_device,				0		},
-
     { "[ISA] [IDE] PS/2 AT XTIDE (1.1.5)",		"xtide_at_ps2",
       &xtide_at_ps2_device,				0		},
+
+    { "[ISA] [XT IDE] Acculogic XT IDE",		"xtide_acculogic",
+      &xtide_acculogic_device,				0		},
+
+    { "[ISA] [XT IDE] PC/XT XTIDE",			"xtide",
+      &xtide_device		,			0		},
 
     { "[MCA] [ESDI] IBM PS/2 ESDI Fixed Disk Adapter","esdi_mca",
       &esdi_ps2_device,					1		},
@@ -115,8 +118,14 @@ static struct {
     { "[PCI] [IDE] PCI IDE Adapter",			"ide_pci",
       &ide_pci_device,					0		},
 
+    { "[PCI] [IDE] PCI IDE Adapter (Dual-Channel)",	"ide_pci_2ch",
+      &ide_pci_2ch_device,				0		},
+
     { "[VLB] [IDE] PC/AT IDE Adapter",			"vlb_isa",
       &ide_vlb_device,					0		},
+
+    { "[VLB] [IDE] PC/AT IDE Adapter (Dual-Channel)",	"vlb_isa_2ch",
+      &ide_vlb_2ch_device,				0		},
 
     { "",						"", NULL, 0	}
 };

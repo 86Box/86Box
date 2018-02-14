@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430LX and 430NX PCISet chips.
  *
- * Version:	@(#)m_at_430lx_nx.c	1.0.9	2018/01/04
+ * Version:	@(#)m_at_430lx_nx.c	1.0.10	2018/02/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -213,7 +213,7 @@ static void i430nx_init(void)
 static void
 machine_at_premiere_common_init(machine_t *model)
 {
-        machine_at_common_ide_init(model);
+        machine_at_common_init(model);
 	device_add(&keyboard_ps2_ami_device);
 
 	memregs_init();
