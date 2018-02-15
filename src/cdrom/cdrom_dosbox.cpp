@@ -197,17 +197,42 @@ int CDROM_Interface_Image::GetTrack(unsigned int sector)
 
 bool CDROM_Interface_Image::ReadSector(Bit8u *buffer, bool raw, unsigned long sector)
 {
+	uint64_t length;
+
 	int track = GetTrack(sector) - 1;
 	if (track < 0) return false;
 
 	uint64_t s = (uint64_t) sector;	
 	uint64_t seek = tracks[track].skip + ((s - tracks[track].start) * tracks[track].sectorSize);
-	uint64_t length = (raw ? RAW_SECTOR_SIZE : COOKED_SECTOR_SIZE);
+	if (tracks[track].mode2)
+		length = (raw ? RAW_SECTOR_SIZE : 2336);
+	else
+		length = (raw ? RAW_SECTOR_SIZE : COOKED_SECTOR_SIZE);
 	if (tracks[track].sectorSize != RAW_SECTOR_SIZE && raw) return false;
 	if (tracks[track].sectorSize == RAW_SECTOR_SIZE && !tracks[track].mode2 && !raw) seek += 16;
 	if (tracks[track].mode2 && !raw) seek += 24;
 
 	return tracks[track].file->read(buffer, seek, length);
+}
+
+bool CDROM_Interface_Image::ReadSectorSub(Bit8u *buffer, unsigned long sector)
+{
+	int track = GetTrack(sector) - 1;
+	if (track < 0) return false;
+
+	uint64_t s = (uint64_t) sector;	
+	uint64_t seek = tracks[track].skip + ((s - tracks[track].start) * tracks[track].sectorSize);
+	if (tracks[track].sectorSize != 2448) return false;
+
+	return tracks[track].file->read(buffer, seek, 2448);
+}
+
+int CDROM_Interface_Image::GetSectorSize(unsigned long sector)
+{
+	int track = GetTrack(sector) - 1;
+	if (track < 0) return 0;
+
+	return tracks[track].sectorSize;
 }
 
 bool CDROM_Interface_Image::IsMode2(unsigned long sector)
@@ -225,6 +250,14 @@ bool CDROM_Interface_Image::IsMode2(unsigned long sector)
 	}
 }
 
+int CDROM_Interface_Image::GetMode2Form(unsigned long sector)
+{
+	int track = GetTrack(sector) - 1;
+	if (track < 0) return false;
+
+	return tracks[track].form;
+}
+
 bool CDROM_Interface_Image::LoadIsoFile(char* filename)
 {
 	tracks.clear();
@@ -240,6 +273,7 @@ bool CDROM_Interface_Image::LoadIsoFile(char* filename)
 	track.number = 1;
 	track.track_number = 1;//IMPORTANT: This is needed.
 	track.attr = DATA_TRACK;//data
+	track.form = 0;
 	
 	// try to detect iso type
 	if (CanReadPVD(track.file, COOKED_SECTOR_SIZE, false)) {
@@ -248,9 +282,13 @@ bool CDROM_Interface_Image::LoadIsoFile(char* filename)
 	} else if (CanReadPVD(track.file, RAW_SECTOR_SIZE, false)) {
 		track.sectorSize = RAW_SECTOR_SIZE;
 		track.mode2 = false;		
+	} else if (CanReadPVD(track.file, 2324, true)) {
+		track.sectorSize = 2324;
+		track.form = 2;
+		track.mode2 = true;
 	} else if (CanReadPVD(track.file, 2336, true)) {
 		track.sectorSize = 2336;
-		track.mode2 = true;		
+		track.mode2 = true;
 	} else if (CanReadPVD(track.file, RAW_SECTOR_SIZE, true)) {
 		track.sectorSize = RAW_SECTOR_SIZE;
 		track.mode2 = true;		
@@ -259,7 +297,7 @@ bool CDROM_Interface_Image::LoadIsoFile(char* filename)
 		track.sectorSize = COOKED_SECTOR_SIZE;
 		track.mode2 = false;
 	}
-	
+
 	track.length = track.file->getLength() / track.sectorSize;
 	tracks.push_back(track);
 	
@@ -343,7 +381,9 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 			track.track_number = track.number;
 			string type;
 			GetCueKeyword(type, line);
-			
+
+			track.form = 0;
+
 			if (type == "AUDIO") {
 				track.sectorSize = RAW_SECTOR_SIZE;
 				track.attr = AUDIO_TRACK;
@@ -356,11 +396,33 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 				track.sectorSize = RAW_SECTOR_SIZE;
 				track.attr = DATA_TRACK;
 				track.mode2 = false;
+			} else if (type == "MODE2/2048") {
+				track.form = 1;
+				track.sectorSize = 2048;
+				track.attr = DATA_TRACK;
+				track.mode2 = true;
+			} else if (type == "MODE2/2324") {
+				track.form = 2;
+				track.sectorSize = 2324;
+				track.attr = DATA_TRACK;
+				track.mode2 = true;
 			} else if (type == "MODE2/2336") {
 				track.sectorSize = 2336;
 				track.attr = DATA_TRACK;
 				track.mode2 = true;
 			} else if (type == "MODE2/2352") {
+				track.sectorSize = RAW_SECTOR_SIZE;
+				track.attr = DATA_TRACK;
+				track.mode2 = true;
+			} else if (type == "CDG/2448") {
+				track.sectorSize = 2448;
+				track.attr = DATA_TRACK;
+				track.mode2 = true;
+			} else if (type == "CDI/2336") {
+				track.sectorSize = 2336;
+				track.attr = DATA_TRACK;
+				track.mode2 = true;
+			} else if (type == "CDI/2352") {
 				track.sectorSize = RAW_SECTOR_SIZE;
 				track.attr = DATA_TRACK;
 				track.mode2 = true;

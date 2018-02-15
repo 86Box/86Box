@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.30	2018/01/25
+ * Version:	@(#)cdrom.c	1.0.31	2018/02/15
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -720,7 +720,7 @@ static void cdrom_command_common(uint8_t id)
 		cdrom_set_callback(id);
 	} else if (cdrom[id].packet_status == CDROM_PHASE_DATA_IN) {
 		if (cdrom[id].current_cdb[0] == 0x42) {
-			cdrom_log("CD-ROM %i: READ SUBCHANNEL\n");
+			cdrom_log("CD-ROM %i: READ SUBCHANNEL\n", id);
 			cdrom[id].callback = 1000LL * CDROM_TIME;
 			cdrom_set_callback(id);
 		} else {
@@ -1517,9 +1517,6 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 	uint32_t profiles[2] = { MMC_PROFILE_CD_ROM, MMC_PROFILE_DVD_ROM };
 	uint32_t i = 0;
 
-#if 0
-	int CdbLength;
-#endif
 	if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) {
 		BufLen = &SCSIDevices[cdrom_drives[id].scsi_device_id][cdrom_drives[id].scsi_device_lun].BufferLength;
 		cdrom[id].status &= ~ERR_STAT;
@@ -1548,10 +1545,9 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 		cdrom_log("CD-ROM %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, Unit attention: %i\n", id, cdb[0], cdrom_sense_key, cdrom_asc, cdrom_ascq, cdrom[id].unit_attention);
 		cdrom_log("CD-ROM %i: Request length: %04X\n", id, cdrom[id].request_length);
 
-#if 0
-		for (CdbLength = 1; CdbLength < cdrom[id].cdb_len; CdbLength++)
-			// cdrom_log("CD-ROM %i: CDB[%d] = %d\n", id, CdbLength, cdb[CdbLength]);
-#endif
+		cdrom_log("CD-ROM %i: CDB: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n", id,
+			  cdb[0], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5], cdb[6], cdb[7],
+			  cdb[8], cdb[9], cdb[10], cdb[11]);
 	}
 	
 	msf = cdb[1] & 2;
@@ -1665,6 +1661,35 @@ cdrom_readtoc_fallback:
 			}
 
 			cdrom_set_buf_len(id, BufLen, &len);
+
+			if (len >= 8) {
+				cdrom_log("CD-ROM %i: TOC: %02X %02X %02X %02X %02X %02X %02X %02X\n", id,
+					  cdbufferb[0], cdbufferb[1], cdbufferb[2], cdbufferb[3],
+					  cdbufferb[4], cdbufferb[5], cdbufferb[6], cdbufferb[7]);
+			}
+
+			if (len >= 16) {
+				cdrom_log("               %02X %02X %02X %02X %02X %02X %02X %02X\n",
+					  cdbufferb[8], cdbufferb[9], cdbufferb[10], cdbufferb[11],
+					  cdbufferb[12], cdbufferb[13], cdbufferb[14], cdbufferb[15]);
+			}
+
+			if (len >= 24) {
+				cdrom_log("               %02X %02X %02X %02X %02X %02X %02X %02X\n",
+					  cdbufferb[16], cdbufferb[17], cdbufferb[18], cdbufferb[19],
+					  cdbufferb[20], cdbufferb[21], cdbufferb[22], cdbufferb[23]);
+			}
+
+			if (len >= 32) {
+				cdrom_log("               %02X %02X %02X %02X %02X %02X %02X %02X\n",
+					  cdbufferb[24], cdbufferb[25], cdbufferb[26], cdbufferb[27],
+					  cdbufferb[28], cdbufferb[29], cdbufferb[30], cdbufferb[31]);
+			}
+
+			if (len >= 36) {
+				cdrom_log("               %02X %02X %02X %02X\n",
+					  cdbufferb[32], cdbufferb[33], cdbufferb[34], cdbufferb[35]);
+			}
 
 			cdrom_data_command_finish(id, len, len, len, 0);
 			/* cdrom_log("CD-ROM %i: READ_TOC_PMA_ATIP format %02X, length %i (%i)\n", id, toc_format, ide->cylinder, cdbufferb[1]); */
@@ -2155,7 +2180,10 @@ cdrom_readtoc_fallback:
 					break;
 			}
 
-			if ((cdrom_drive < 1) || (cdrom[id].cd_status <= CD_STATUS_DATA_ONLY) || !cdrom_drives[id].handler->is_track_audio(id, pos, msf)) {
+			if (!cdrom_drives[id].handler->is_track_audio)
+				break;
+
+			if ((cdrom_drives[id].host_drive < 1) || (cdrom[id].cd_status <= CD_STATUS_DATA_ONLY) || !cdrom_drives[id].handler->is_track_audio(id, pos, msf)) {
 				cdrom_illegal_mode(id);
 				break;
 			}
@@ -2645,10 +2673,18 @@ void cdrom_pio_request(uint8_t id, uint8_t out)
 
 		/* Make sure to keep pos, and reset request_pos to 0. */
 		/* Also make sure to not reset total_read. */
+
+		/* If less than (packet length) bytes are remaining, update packet length
+		   accordingly. */
+		if ((cdrom[id].packet_len - cdrom[id].pos) < (cdrom[id].request_length))
+			cdrom[id].request_length = cdrom[id].packet_len - cdrom[id].pos;
+		cdrom_log("CD-ROM %i: Packet length %i, request length %i\n", id, cdrom[id].packet_len, cdrom[id].request_length);
+
 		old_pos = cdrom[id].pos;
 		cdrom[id].packet_status = out ? CDROM_PHASE_DATA_OUT : CDROM_PHASE_DATA_IN;
 		cdrom_command_common(id);
 		cdrom[id].pos = old_pos;
+
 		cdrom[id].request_pos = 0;
 	}
 }

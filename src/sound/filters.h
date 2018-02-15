@@ -345,3 +345,33 @@ static inline float dac_iir(int i, float NewSample) {
     
     return y[i][0];
 }
+
+
+#define SB16_NCoef 51
+
+extern float low_fir_sb16_coef[SB16_NCoef];
+
+static inline float low_fir_sb16(int i, float NewSample)
+{
+        static float x[2][SB16_NCoef+1]; //input samples
+        static int pos = 0;
+        float out = 0.0;
+        int n;
+
+        /* Calculate the new output */
+        x[i][pos] = NewSample;
+
+        for (n = 0; n < ((SB16_NCoef+1)-pos) && n < SB16_NCoef; n++)
+                out += low_fir_sb16_coef[n] * x[i][n+pos];
+        for (; n < SB16_NCoef; n++)
+                out += low_fir_sb16_coef[n] * x[i][(n+pos) - (SB16_NCoef+1)];
+
+        if (i == 1)
+        {
+                pos++;
+                if (pos > SB16_NCoef)
+                        pos = 0;
+        }
+                        
+        return out;
+}

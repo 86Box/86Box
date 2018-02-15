@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.4	2018/02/07
+ * Version:	@(#)zip.c	1.0.5	2018/02/15
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -2194,6 +2194,12 @@ void zip_pio_request(uint8_t id, uint8_t out)
 
 		/* Make sure to keep pos, and reset request_pos to 0. */
 		/* Also make sure to not reset total_read. */
+
+		/* If less than (packet length) bytes are remaining, update packet length
+		   accordingly. */
+		if ((zip[id].packet_len - zip[id].pos) < (zip[id].request_length))
+			zip[id].request_length = zip[id].packet_len - zip[id].pos;
+
 		old_pos = zip[id].pos;
 		zip[id].packet_status = out ? ZIP_PHASE_DATA_OUT : ZIP_PHASE_DATA_IN;
 		zip_command_common(id);

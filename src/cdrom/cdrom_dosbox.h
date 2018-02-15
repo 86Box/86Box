@@ -119,6 +119,7 @@ private:
 		int number;
 		int track_number;
 		int attr;
+		int form;
 		uint64_t start;
 		uint64_t length;
 		uint64_t skip;
@@ -140,7 +141,10 @@ public:
 	bool	ReadSectors		(PhysPt buffer, bool raw, unsigned long sector, unsigned long num);
 	bool	LoadUnloadMedia		(bool unload);
 	bool	ReadSector		(Bit8u *buffer, bool raw, unsigned long sector);
+	bool	ReadSectorSub		(Bit8u *buffer, unsigned long sector);
+	int	GetSectorSize		(unsigned long sector);
 	bool	IsMode2			(unsigned long sector);
+	int	GetMode2Form		(unsigned long sector);
 	bool	HasDataTrack		(void);
         bool    HasAudioTracks          (void);
 	

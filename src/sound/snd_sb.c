@@ -8,7 +8,7 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.4	2017/11/04
+ * Version:	@(#)sound_sb.c	1.0.5	2018/02/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -272,6 +272,41 @@ static void sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
         sb->dsp.pos = 0;
 }
 
+static void sb_process_buffer_sb16(int32_t *buffer, int len, void *p)
+{
+        sb_t *sb = (sb_t *)p;
+        sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
+                
+        int c;
+
+        for (c = 0; c < len * 2; c += 2)
+        {
+                int32_t out_l = 0, out_r = 0;
+
+                out_l = ((int32_t)(buffer[c]     * mixer->cd_l) / 3) >> 15;
+                out_r = ((int32_t)(buffer[c + 1] * mixer->cd_r) / 3) >> 15;
+
+                out_l = (out_l * mixer->master_l) >> 15;
+                out_r = (out_r * mixer->master_r) >> 15;
+
+                if (mixer->bass_l != 8 || mixer->bass_r != 8 || mixer->treble_l != 8 || mixer->treble_r != 8)
+                {
+                        /* This is not exactly how one does bass/treble controls, but the end result is like it. A better implementation would reduce the cpu usage */
+                        if (mixer->bass_l>8) out_l += (int32_t)(low_iir(0, (float)out_l)*sb_bass_treble_4bits[mixer->bass_l]);
+                        if (mixer->bass_r>8)  out_r += (int32_t)(low_iir(1, (float)out_r)*sb_bass_treble_4bits[mixer->bass_r]);
+                        if (mixer->treble_l>8) out_l += (int32_t)(high_iir(0, (float)out_l)*sb_bass_treble_4bits[mixer->treble_l]);
+                        if (mixer->treble_r>8) out_r += (int32_t)(high_iir(1, (float)out_r)*sb_bass_treble_4bits[mixer->treble_r]);
+                        if (mixer->bass_l<8)   out_l = (int32_t)((out_l )*sb_bass_treble_4bits[mixer->bass_l] + low_cut_iir(0, (float)out_l)*(1.f-sb_bass_treble_4bits[mixer->bass_l]));
+                        if (mixer->bass_r<8)   out_r = (int32_t)((out_r )*sb_bass_treble_4bits[mixer->bass_r] + low_cut_iir(1, (float)out_r)*(1.f-sb_bass_treble_4bits[mixer->bass_r])); 
+                        if (mixer->treble_l<8) out_l = (int32_t)((out_l )*sb_bass_treble_4bits[mixer->treble_l] + high_cut_iir(0, (float)out_l)*(1.f-sb_bass_treble_4bits[mixer->treble_l]));
+                        if (mixer->treble_r<8) out_r = (int32_t)((out_r )*sb_bass_treble_4bits[mixer->treble_r] + high_cut_iir(1, (float)out_r)*(1.f-sb_bass_treble_4bits[mixer->treble_r]));
+                }
+
+                buffer[c]     = (out_l << mixer->output_gain_L);
+                buffer[c + 1] = (out_r << mixer->output_gain_R);
+	}
+}
+
 static void sb_get_buffer_sb16(int32_t *buffer, int len, void *p)
 {
         sb_t *sb = (sb_t *)p;
@@ -296,10 +331,9 @@ static void sb_get_buffer_sb16(int32_t *buffer, int len, void *p)
                 in_l = (mixer->input_selector_left&INPUT_MIDI_L) ? out_l : 0 + (mixer->input_selector_left&INPUT_MIDI_R) ? out_r : 0;
                 in_r = (mixer->input_selector_right&INPUT_MIDI_L) ? out_l : 0 + (mixer->input_selector_right&INPUT_MIDI_R) ? out_r : 0;
         
-                /*TODO: CT1745 features dynamic filtering. https://www.vogons.org/viewtopic.php?f=62&t=51514 */
-                out_l += ((int32_t)(sb->dsp.buffer[c]     * mixer->voice_l) / 3) >> 15;
-                out_r += ((int32_t)(sb->dsp.buffer[c + 1] * mixer->voice_r) / 3) >> 15;
-                
+                out_l += ((int32_t)(low_fir_sb16(0, (float)sb->dsp.buffer[c])     * mixer->voice_l) / 3) >> 15;
+                out_r += ((int32_t)(low_fir_sb16(1, (float)sb->dsp.buffer[c + 1]) * mixer->voice_r) / 3) >> 15;
+
                 out_l = (out_l * mixer->master_l) >> 15;
                 out_r = (out_r * mixer->master_r) >> 15;
                 
@@ -379,10 +413,8 @@ static void sb_get_buffer_emu8k(int32_t *buffer, int len, void *p)
                 in_l = (mixer->input_selector_left&INPUT_MIDI_L) ? out_l : 0 + (mixer->input_selector_left&INPUT_MIDI_R) ? out_r : 0;
                 in_r = (mixer->input_selector_right&INPUT_MIDI_L) ? out_l : 0 + (mixer->input_selector_right&INPUT_MIDI_R) ? out_r : 0;
                 
-
-                /*TODO: CT1745 features dynamic filtering. https://www.vogons.org/viewtopic.php?f=62&t=51514 */
-                out_l += ((int32_t)(sb->dsp.buffer[c]     * mixer->voice_l) / 3) >> 15;
-                out_r += ((int32_t)(sb->dsp.buffer[c + 1] * mixer->voice_r) / 3) >> 15;
+                out_l += ((int32_t)(low_fir_sb16(0, (float)sb->dsp.buffer[c])     * mixer->voice_l) / 3) >> 15;
+                out_r += ((int32_t)(low_fir_sb16(1, (float)sb->dsp.buffer[c + 1]) * mixer->voice_r) / 3) >> 15;
 
                 out_l = (out_l * mixer->master_l) >> 15;
                 out_r = (out_r * mixer->master_r) >> 15;
@@ -1217,6 +1249,7 @@ void *sb_16_init()
 	}
         io_sethandler(addr+4, 0x0002, sb_ct1745_mixer_read, NULL, NULL, sb_ct1745_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sb16, sb);
+        sound_add_process_handler(sb_process_buffer_sb16, sb);
         mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
 	sb_dsp_set_mpu(&sb->mpu);
 
@@ -1255,6 +1288,7 @@ void *sb_awe32_init()
 	}
         io_sethandler(addr+4, 0x0002, sb_ct1745_mixer_read, NULL, NULL, sb_ct1745_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_emu8k, sb);
+        sound_add_process_handler(sb_process_buffer_sb16, sb);
         mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
 	sb_dsp_set_mpu(&sb->mpu);
         emu8k_init(&sb->emu8k, emu_addr, onboard_ram);

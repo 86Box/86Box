@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM host drive IOCTL interface for
  *		Windows using SCSI Passthrough Direct.
  *
- * Version:	@(#)cdrom_ioctl.c	1.0.10	2018/02/01
+ * Version:	@(#)cdrom_ioctl.c	1.0.11	2018/02/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -562,7 +562,7 @@ static void ioctl_load(uint8_t id)
 	cdrom_ioctl[id].cdrom_capacity = ioctl_get_last_block(id, 0, 0, 4096, 0);
 }
 
-static int is_track_audio(uint8_t id, uint32_t pos)
+static int ioctl_is_track_audio(uint8_t id, uint32_t pos, int ismsf)
 {
 	int c;
 	int control = 0;
@@ -576,43 +576,25 @@ static int is_track_audio(uint8_t id, uint32_t pos)
 
 	for (c = 0; cdrom_ioctl_windows[id].toc.TrackData[c].TrackNumber != 0xaa; c++)
 	{
-		track_address = MSFtoLBA(cdrom_ioctl_windows[id].toc.TrackData[c].Address[1],cdrom_ioctl_windows[id].toc.TrackData[c].Address[2],cdrom_ioctl_windows[id].toc.TrackData[c].Address[3]);
+		if (ismsf) {
+			track_address = cdrom_ioctl_windows[id].toc.TrackData[c].Address[3];
+			track_address |= (cdrom_ioctl_windows[id].toc.TrackData[c].Address[2] << 8);
+			track_address |= (cdrom_ioctl_windows[id].toc.TrackData[c].Address[1] << 16);
+		} else {
+			track_address = MSFtoLBA(cdrom_ioctl_windows[id].toc.TrackData[c].Address[1],cdrom_ioctl_windows[id].toc.TrackData[c].Address[2],cdrom_ioctl_windows[id].toc.TrackData[c].Address[3]);
+			track_address -= 150;
+		}
 
 		if (cdrom_ioctl_windows[id].toc.TrackData[c].TrackNumber >= cdrom_ioctl_windows[id].toc.FirstTrack &&
 		    cdrom_ioctl_windows[id].toc.TrackData[c].TrackNumber <= cdrom_ioctl_windows[id].toc.LastTrack &&
 		    track_address <= pos)
-		{
 			control = cdrom_ioctl_windows[id].toc.TrackData[c].Control;
-			break;
-		}
 	}
 
 	if ((control & 0xd) <= 1)
-	{
 		return 1;
-	}
 	else
-	{
 		return 0;
-	}
-}
-
-static int ioctl_is_track_audio(uint8_t id, uint32_t pos, int ismsf)
-{
-	int m = 0, s = 0, f = 0;
-
-	if (ismsf)
-	{
-		m = (pos >> 16) & 0xff;
-		s = (pos >> 8) & 0xff;
-		f = pos & 0xff;
-		pos = MSFtoLBA(m, s, f);
-	}
-	else
-	{
-		pos += 150;
-	}
-	return is_track_audio(id, pos);
 }
 
 /*								  00,   08,   10,   18,   20,   28,   30,   38 */

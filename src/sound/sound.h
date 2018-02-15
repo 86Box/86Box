@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.h	1.0.4	2018/02/11
+ * Version:	@(#)sound.h	1.0.5	2018/02/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -38,6 +38,8 @@ extern int	sound_card_current;
 
 
 extern void	sound_add_handler(void (*get_buffer)(int32_t *buffer, \
+				  int len, void *p), void *p);
+extern void	sound_add_process_handler(void (*get_buffer)(int32_t *buffer, \
 				  int len, void *p), void *p);
 
 extern int	sound_card_available(int card);

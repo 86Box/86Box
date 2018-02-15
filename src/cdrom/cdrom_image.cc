@@ -46,9 +46,6 @@ int cdrom_image_do_log = ENABLE_CDROM_IMAGE_LOG;
 CDROM_Interface_Image* cdimg[CDROM_NUM] = { NULL, NULL, NULL, NULL };
 
 
-extern "C" void pclog(const char *fmt, ...);
-
-
 void cdrom_image_log(const char *format, ...)
 {
 #ifdef ENABLE_CDROM_IMAGE_LOG
@@ -407,8 +404,83 @@ typedef union __attribute__((__packed__))
 sector_buffer_t cdrom_sector_buffer;
 
 int cdrom_sector_size;
-uint8_t raw_buffer[2352];
+uint8_t raw_buffer[2448];
 uint8_t extra_buffer[296];
+
+static int is_legal(int id, int cdrom_sector_type, int cdrom_sector_flags, int audio, int mode2, int form)
+{
+	if (!(cdrom_sector_flags & 0x70)) {		/* 0x00/0x08/0x80/0x88 are illegal modes */
+		cdrom_image_log("CD-ROM %i: [Any Mode] 0x00/0x08/0x80/0x88 are illegal modes\n", id);
+		return 0;
+	}
+
+	if ((cdrom_sector_type != 1) && !audio)
+	{
+		if (!(cdrom_sector_flags & 0x70)) {		/* 0x00/0x08/0x80/0x88 are illegal modes */
+			cdrom_image_log("CD-ROM %i: [Any Data Mode] 0x00/0x08/0x80/0x88 are illegal modes\n", id);
+			return 0;
+		}
+
+		if ((cdrom_sector_flags & 0x06) == 0x06) {
+			cdrom_image_log("CD-ROM %i: [Any Data Mode] Invalid error flags\n", id);
+			return 0;
+		}
+
+		if (((cdrom_sector_flags & 0x700) == 0x300) || ((cdrom_sector_flags & 0x700) > 0x400)) {
+			cdrom_image_log("CD-ROM %i: [Any Data Mode] Invalid subchannel data flags (%02X)\n", id, cdrom_sector_flags & 0x700);
+			return 0;
+		}
+
+		if ((cdrom_sector_flags & 0x18) == 0x08) {		/* EDC/ECC without user data is an illegal mode */
+			cdrom_image_log("CD-ROM %i: [Any Data Mode] EDC/ECC without user data is an illegal mode\n", id);
+			return 0;
+		}
+
+		if (((cdrom_sector_flags & 0xf0) == 0x90) || ((cdrom_sector_flags & 0xf0) == 0xc0)) {		/* 0x90/0x98/0xC0/0xC8 are illegal modes */
+			cdrom_image_log("CD-ROM %i: [Any Data Mode] 0x90/0x98/0xC0/0xC8 are illegal modes\n", id);
+			return 0;
+		}
+
+		if (((cdrom_sector_type > 3) && (cdrom_sector_type != 8)) || (mode2 && form))
+		{
+			if ((cdrom_sector_flags & 0xf0) == 0x30) {		/* 0x30/0x38 are illegal modes */
+				cdrom_image_log("CD-ROM %i: [Any XA Mode 2] 0x30/0x38 are illegal modes\n", id);
+				return 0;
+			}
+			if (((cdrom_sector_flags & 0xf0) == 0xb0) || ((cdrom_sector_flags & 0xf0) == 0xd0)) {	/* 0xBx and 0xDx are illegal modes */
+				cdrom_image_log("CD-ROM %i: [Any XA Mode 2] 0xBx and 0xDx are illegal modes\n", id);
+				return 0;
+			}
+		}
+	}
+
+	return 1;
+}
+
+static void read_sector_to_buffer(uint8_t id, uint8_t *raw_buffer, uint32_t msf, uint32_t lba, int mode2, int form, int len)
+{
+	cdimg[id]->ReadSector(raw_buffer + 16, false, lba);
+
+	uint8_t *bb = raw_buffer;
+
+	/* sync bytes */
+	bb[0] = 0;
+	memset(bb + 1, 0xff, 10);
+	bb[11] = 0;
+	bb += 12;
+
+	bb[0] = (msf >> 16) & 0xff;
+	bb[1] = (msf >> 8) & 0xff;
+	bb[2] = msf & 0xff;
+
+	bb[3] = 1; /* mode 1 data */
+	bb += mode2 ? 12 : 4;
+	bb += len;
+	if (mode2 && (form == 1))
+		memset(bb, 0, 280);
+	else if (!mode2)
+		memset(bb, 0, 288);
+}
 
 static int image_readsector_raw(uint8_t id, uint8_t *buffer, int sector, int ismsf, int cdrom_sector_type, int cdrom_sector_flags, int *len)
 {
@@ -419,6 +491,7 @@ static int image_readsector_raw(uint8_t id, uint8_t *buffer, int sector, int ism
 	int audio;
 	int mode2;
 	int m, s, f;
+	int form;
 
 	if (!cdimg[id])
 		return 0;
@@ -448,8 +521,9 @@ static int image_readsector_raw(uint8_t id, uint8_t *buffer, int sector, int ism
 		audio = image_is_track_audio(id, sector, ismsf);
 		mode2 = cdimg[id]->IsMode2(lba) ? 1 : 0;
 	}
+	form = cdimg[id]->GetMode2Form(lba);
 
-	memset(raw_buffer, 0, 2352);
+	memset(raw_buffer, 0, 2448);
 	memset(extra_buffer, 0, 296);
 
 	if (!(cdrom_sector_flags & 0xf0)) {		/* 0x00 and 0x08 are illegal modes */
@@ -471,53 +545,32 @@ static int image_readsector_raw(uint8_t id, uint8_t *buffer, int sector, int ism
 		}
 
 read_audio:
-		cdimg[id]->ReadSector(raw_buffer, true, lba);
+		if (!is_legal(id, cdrom_sector_type, cdrom_sector_flags, audio, mode2, form))
+			return 0;
+
+		if (cdimg[id]->GetSectorSize(lba) == 2352)
+			cdimg[id]->ReadSector(raw_buffer, true, lba);
+		else
+			cdimg[id]->ReadSectorSub(raw_buffer, lba);
+
 		memcpy(temp_b, raw_buffer, 2352);
 		cdrom_sector_size = 2352;
 	} else if (cdrom_sector_type == 2) {
 		if (audio || mode2) {
-			cdrom_image_log("CD-ROM %i: [Mode 1] Attempting to read a non-Mode 1 sector from an audio track\n", id);
+			cdrom_image_log("CD-ROM %i: [Mode 1] Attempting to read a sector of another type\n", id);
 			return 0;
 		}
 
 read_mode1:
-		if ((cdrom_sector_flags & 0x06) == 0x06) {
-			cdrom_image_log("CD-ROM %i: [Mode 1] Invalid error flags\n", id);
+		if (!is_legal(id, cdrom_sector_type, cdrom_sector_flags, audio, mode2, form))
 			return 0;
-		}
 
-		if (((cdrom_sector_flags & 0x700) == 0x300) || ((cdrom_sector_flags & 0x700) > 0x400)) {
-			cdrom_image_log("CD-ROM %i: [Mode 1] Invalid subchannel data flags (%02X)\n", id, cdrom_sector_flags & 0x700);
-			return 0;
-		}
-
-		if ((cdrom_sector_flags & 0x18) == 0x08) {		/* EDC/ECC without user data is an illegal mode */
-			cdrom_image_log("CD-ROM %i: [Mode 1] EDC/ECC without user data is an illegal mode\n", id);
-			return 0;
-		}
-
-		if (cdrom_image[id].image_is_iso) {
-			cdimg[id]->ReadSector(raw_buffer + 16, false, lba);
-
-			uint8_t *bb = raw_buffer;
-
-			/* sync bytes */
-			bb[0] = 0;
-			memset(bb + 1, 0xff, 10);
-			bb[11] = 0;
-			bb += 12;
-
-			bb[0] = (msf >> 16) & 0xff;
-			bb[1] = (msf >> 8) & 0xff;
-			bb[2] = msf & 0xff;
-
-			bb[3] = 1; /* mode 1 data */
-			bb += 4;
-			bb += 2048;
-			memset(bb, 0, 288);
-		}
-		else
+		if ((cdrom_image[id].image_is_iso) || (cdimg[id]->GetSectorSize(lba) == 2048))
+			read_sector_to_buffer(id, raw_buffer, msf, lba, mode2, form, 2048);
+		else if (cdimg[id]->GetSectorSize(lba) == 2352)
 			cdimg[id]->ReadSector(raw_buffer, true, lba);
+		else
+			cdimg[id]->ReadSectorSub(raw_buffer, lba);
 
 		cdrom_sector_size = 0;
 
@@ -535,7 +588,6 @@ read_mode1:
 			temp_b += 4;
 		}
 		
-		/* Mode 1 sector, expected type is 1 type. */
 		if (cdrom_sector_flags & 0x40) {	/* Sub-header */
 			if (!(cdrom_sector_flags & 0x10)) {		/* No user data */
 				cdrom_image_log("CD-ROM %i: [Mode 1] Sub-header\n", id);
@@ -558,59 +610,69 @@ read_mode1:
 			cdrom_sector_size += 288;
 			temp_b += 288;
 		}
-	} else if (cdrom_sector_type == 4) {
-		if (audio || !mode2) {
-			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] Attempting to read a non-XA Mode 2 Form 1 sector from an audio track\n", id);
+	} else if (cdrom_sector_type == 3) {
+		if (audio || !mode2 || form) {
+			cdrom_image_log("CD-ROM %i: [Mode 2 Formless] Attempting to read a sector of another type\n", id);
 			return 0;
 		}
 
-read_mode2:
-		if (!(cdrom_sector_flags & 0xf0)) {		/* 0x00 and 0x08 are illegal modes */
-			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] 0x00 and 0x08 are illegal modes\n", id);
+read_mode2_non_xa:
+		if (!is_legal(id, cdrom_sector_type, cdrom_sector_flags, audio, mode2, form))
 			return 0;
-		}
 
-		if (((cdrom_sector_flags & 0xf0) == 0xb0) || ((cdrom_sector_flags & 0xf0) == 0xd0)) {	/* 0xBx and 0xDx are illegal modes */
-			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] 0xBx and 0xDx are illegal modes\n", id);
-			return 0;
-		}
-
-		if ((cdrom_sector_flags & 0x06) == 0x06) {
-			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] Invalid error flags\n", id);
-			return 0;
-		}
-
-		if (((cdrom_sector_flags & 0x700) == 0x300) || ((cdrom_sector_flags & 0x700) > 0x400)) {
-			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] Invalid subchannel data flags (%02X)\n", id, cdrom_sector_flags & 0x700);
-			return 0;
-		}
-
-		if ((cdrom_sector_flags & 0x18) == 0x08) {		/* EDC/ECC without user data is an illegal mode */
-			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] EDC/ECC without user data is an illegal mode\n", id);
-			return 0;
-		}
-
-		if (cdrom_image[id].image_is_iso) {
-			cdimg[id]->ReadSector(raw_buffer + 24, false, lba);
-
-			uint8_t *bb = raw_buffer;
-
-			/* sync bytes */
-			bb[0] = 0;
-			memset(bb + 1, 0xff, 10);
-			bb[11] = 0;
-			bb += 12;
-
-			bb[0] = (msf >> 16) & 0xff;
-			bb[1] = (msf >> 8) & 0xff;
-			bb[2] = msf & 0xff;
-
-			bb[3] = 1; /* mode 1 data */
-			bb += 12;
-			bb += 2048;
-			memset(bb, 0, 280);
-		} else
+		if ((cdrom_image[id].image_is_iso) || (cdimg[id]->GetSectorSize(lba) == 2336))
+			read_sector_to_buffer(id, raw_buffer, msf, lba, mode2, form, 2336);
+		else if (cdimg[id]->GetSectorSize(lba) == 2352)
 			cdimg[id]->ReadSector(raw_buffer, true, lba);
+		else
+			cdimg[id]->ReadSectorSub(raw_buffer, lba);
+
+		cdrom_sector_size = 0;
+
+		if (cdrom_sector_flags & 0x80) {	/* Sync */
+			cdrom_image_log("CD-ROM %i: [Mode 2 Formless] Sync\n", id);
+			memcpy(temp_b, raw_buffer, 12);
+			cdrom_sector_size += 12;
+			temp_b += 12;
+		}
+
+		if (cdrom_sector_flags & 0x20) {	/* Header */
+			cdrom_image_log("CD-ROM %i: [Mode 2 Formless] Header\n", id);
+			memcpy(temp_b, raw_buffer + 12, 4);
+			cdrom_sector_size += 4;
+			temp_b += 4;
+		}
+		
+		/* Mode 1 sector, expected type is 1 type. */
+		if (cdrom_sector_flags & 0x40) {	/* Sub-header */
+			cdrom_image_log("CD-ROM %i: [Mode 2 Formless] Sub-header\n", id);
+			memcpy(temp_b, raw_buffer + 16, 8);
+			cdrom_sector_size += 8;
+			temp_b += 8;
+		}
+
+		if (cdrom_sector_flags & 0x10) {	/* User data */
+			cdrom_image_log("CD-ROM %i: [Mode 2 Formless] User data\n", id);
+			memcpy(temp_b, raw_buffer + 24, 2336);
+			cdrom_sector_size += 2336;
+			temp_b += 2336;
+		}
+	} else if (cdrom_sector_type == 4) {
+		if (audio || !mode2 || (form != 1)) {
+			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] Attempting to read a sector of another type\n", id);
+			return 0;
+		}
+
+read_mode2_xa_form1:
+		if (!is_legal(id, cdrom_sector_type, cdrom_sector_flags, audio, mode2, form))
+			return 0;
+
+		if ((cdrom_image[id].image_is_iso) || (cdimg[id]->GetSectorSize(lba) == 2048))
+			read_sector_to_buffer(id, raw_buffer, msf, lba, mode2, form, 2048);
+		else if (cdimg[id]->GetSectorSize(lba) == 2352)
+			cdimg[id]->ReadSector(raw_buffer, true, lba);
+		else
+			cdimg[id]->ReadSectorSub(raw_buffer, lba);
 
 		cdrom_sector_size = 0;
 
@@ -628,7 +690,6 @@ read_mode2:
 			temp_b += 4;
 		}
 		
-		/* Mode 1 sector, expected type is 1 type. */
 		if (cdrom_sector_flags & 0x40) {	/* Sub-header */
 			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 1] Sub-header\n", id);
 			memcpy(temp_b, raw_buffer + 16, 8);
@@ -649,6 +710,52 @@ read_mode2:
 			cdrom_sector_size += 280;
 			temp_b += 280;
 		}
+	} else if (cdrom_sector_type == 5) {
+		if (audio || !mode2 || (form != 2)) {
+			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 2] Attempting to read a sector of another type\n", id);
+			return 0;
+		}
+
+read_mode2_xa_form2:
+		if (!is_legal(id, cdrom_sector_type, cdrom_sector_flags, audio, mode2, form))
+			return 0;
+
+		if ((cdrom_image[id].image_is_iso) || (cdimg[id]->GetSectorSize(lba) == 2324))
+			read_sector_to_buffer(id, raw_buffer, msf, lba, mode2, form, 2324);
+		else if (cdimg[id]->GetSectorSize(lba) == 2352)
+			cdimg[id]->ReadSector(raw_buffer, true, lba);
+		else
+			cdimg[id]->ReadSectorSub(raw_buffer, lba);
+
+		cdrom_sector_size = 0;
+
+		if (cdrom_sector_flags & 0x80) {	/* Sync */
+			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 2] Sync\n", id);
+			memcpy(temp_b, raw_buffer, 12);
+			cdrom_sector_size += 12;
+			temp_b += 12;
+		}
+
+		if (cdrom_sector_flags & 0x20) {	/* Header */
+			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 2] Header\n", id);
+			memcpy(temp_b, raw_buffer + 12, 4);
+			cdrom_sector_size += 4;
+			temp_b += 4;
+		}
+		
+		if (cdrom_sector_flags & 0x40) {	/* Sub-header */
+			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 2] Sub-header\n", id);
+			memcpy(temp_b, raw_buffer + 16, 8);
+			cdrom_sector_size += 8;
+			temp_b += 8;
+		}
+
+		if (cdrom_sector_flags & 0x10) {	/* User data */
+			cdrom_image_log("CD-ROM %i: [XA Mode 2 Form 2] User data\n", id);
+			memcpy(temp_b, raw_buffer + 24, 2328);
+			cdrom_sector_size += 2328;
+			temp_b += 2328;
+		}
 	} else if (cdrom_sector_type == 8) {
 		if (audio) {
 			cdrom_image_log("CD-ROM %i: [Any Data] Attempting to read a data sector from an audio track\n", id);
@@ -656,12 +763,17 @@ read_mode2:
 		}
 
 		if (mode2)
-			goto read_mode2;
+			goto read_mode2_non_xa;
 		else
 			goto read_mode1;
 	} else {
 		if (mode2)
-			goto read_mode2;
+			if (form == 1)
+				goto read_mode2_xa_form1;
+			else if (form == 2)
+				goto read_mode2_xa_form2;
+			else
+				goto read_mode2_non_xa;
 		else {
 			if (audio)
 				goto read_audio;
@@ -685,17 +797,17 @@ read_mode2:
 	
 	if ((cdrom_sector_flags & 0x700) == 0x100) {
 		cdrom_image_log("CD-ROM %i: Raw subchannel data\n", id);
-		memcpy(b + cdrom_sector_size, extra_buffer, 96);
+		memcpy(b + cdrom_sector_size, raw_buffer + 2352, 96);
 		cdrom_sector_size += 96;
 	}
 	else if ((cdrom_sector_flags & 0x700) == 0x200) {
 		cdrom_image_log("CD-ROM %i: Q subchannel data\n", id);
-		memcpy(b + cdrom_sector_size, extra_buffer, 16);
+		memcpy(b + cdrom_sector_size, raw_buffer + 2352, 16);
 		cdrom_sector_size += 16;
 	}
 	else if ((cdrom_sector_flags & 0x700) == 0x400) {
 		cdrom_image_log("CD-ROM %i: R/W subchannel data\n", id);
-		memcpy(b + cdrom_sector_size, extra_buffer, 96);
+		memcpy(b + cdrom_sector_size, raw_buffer + 2352, 96);
 		cdrom_sector_size += 96;
 	}
 

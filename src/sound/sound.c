@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.12	2018/02/11
+ * Version:	@(#)sound.c	1.0.13	2018/02/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -48,19 +48,23 @@ typedef struct {
         device_t *device;
 } SOUND_CARD;
 
+typedef struct {
+        void (*get_buffer)(int32_t *buffer, int len, void *p);
+        void *priv;
+} sound_handler_t;
+
 
 int sound_card_current = 0;
 int sound_pos_global = 0;
-int soundon = 1;
+volatile int soundon = 1;
 int sound_gain = 0;
 
 
 static int sound_card_last = 0;
-static struct {
-        void (*get_buffer)(int32_t *buffer, int len, void *p);
-        void *priv;
-} sound_handlers[8];
+static sound_handler_t sound_handlers[8];
+static sound_handler_t sound_process_handlers[8];
 static int sound_handlers_num;
+static int sound_process_handlers_num;
 static int64_t sound_poll_time = 0LL, sound_poll_latch;
 static int16_t cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
 static float cd_out_buffer[CD_BUFLEN * 2];
@@ -162,17 +166,19 @@ static void sound_cd_thread(void *param)
 	float cd_buffer_temp[2] = {0.0, 0.0};
 	float cd_buffer_temp2[2] = {0.0, 0.0};
 
+	int32_t cd_buffer_temp4[2] = {0, 0};
+
 	int c, has_audio;
+	int d;
 
 	thread_set_event(sound_cd_start_event);
 
 	while (cdaudioon)
 	{
 		thread_wait_event(sound_cd_event, -1);
+		thread_reset_event(sound_cd_event);
 		if (!soundon || !cdaudioon)
-		{
 			return;
-		}
 		for (c = 0; c < CD_BUFLEN*2; c += 2)
 		{
 			if (sound_is_float)
@@ -189,11 +195,14 @@ static void sound_cd_thread(void *param)
 		for (i = 0; i < CDROM_NUM; i++)
 		{
 			has_audio = 0;
+			if (cdrom_drives[i].bus_type == CDROM_BUS_DISABLED)
+				continue;
 			if (cdrom_drives[i].handler->audio_callback)
 			{
 				cdrom_drives[i].handler->audio_callback(i, cd_buffer[i], CD_BUFLEN*2);
 				has_audio = (cdrom_drives[i].bus_type && cdrom_drives[i].sound_on);
-			}
+			} else
+				continue;
 			if (soundon && has_audio)
 			{
 				int32_t audio_vol_l = cdrom_mode_sense_get_volume(i, 0);
@@ -234,12 +243,26 @@ static void sound_cd_thread(void *param)
 						cd_buffer_temp2[1] += cd_buffer_temp[1];
 					}
 
-					/*Apply sound card CD volume*/
-					cd_buffer_temp2[0] *= (float) cd_vol_l;
-					cd_buffer_temp2[0] /= 65535.0;
+					if (sound_process_handlers_num)
+					{
+						cd_buffer_temp4[0] = (int32_t) cd_buffer_temp2[0];
+						cd_buffer_temp4[1] = (int32_t) cd_buffer_temp2[1];
 
-					cd_buffer_temp2[1] *= (float) cd_vol_r;
-					cd_buffer_temp2[1] /= 65535.0;
+						for (d = 0; d < sound_process_handlers_num; d++)
+							sound_process_handlers[d].get_buffer(cd_buffer_temp4, 1, sound_process_handlers[d].priv);
+
+						cd_buffer_temp2[0] = (float) cd_buffer_temp4[0];
+						cd_buffer_temp2[1] = (float) cd_buffer_temp4[1];
+					}
+					else
+					{
+						/*Apply sound card CD volume*/
+						cd_buffer_temp2[0] *= (float) cd_vol_l;
+						cd_buffer_temp2[0] /= 65535.0;
+
+						cd_buffer_temp2[1] *= (float) cd_vol_r;
+						cd_buffer_temp2[1] /= 65535.0;
+					}
 
 					if (sound_is_float)
 					{
@@ -264,13 +287,9 @@ static void sound_cd_thread(void *param)
 			}
 		}
 		if (sound_is_float)
-		{
 			givealbuffer_cd(cd_out_buffer);
-		}
 		else
-		{
 			givealbuffer_cd(cd_out_buffer_int16);
-		}
 	}
 }
 
@@ -327,14 +346,16 @@ void sound_init(void)
 
 	if (available_cdrom_drives)
 	{
+		cdaudioon = 1;
+
 		sound_cd_start_event = thread_create_event();
 
 		sound_cd_event = thread_create_event();
 		sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
 
-		cdaudioon = 1;
 		/* pclog("Waiting for CD start event...\n"); */
 		thread_wait_event(sound_cd_start_event, -1);
+		thread_reset_event(sound_cd_start_event);
 		/* pclog("Done!\n"); */
 	}
 	else
@@ -348,6 +369,13 @@ void sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), vo
         sound_handlers[sound_handlers_num].get_buffer = get_buffer;
         sound_handlers[sound_handlers_num].priv = p;
         sound_handlers_num++;
+}
+
+void sound_add_process_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), void *p)
+{
+        sound_process_handlers[sound_process_handlers_num].get_buffer = get_buffer;
+        sound_process_handlers[sound_process_handlers_num].priv = p;
+        sound_process_handlers_num++;
 }
 
 void sound_poll(void *priv)
@@ -422,7 +450,8 @@ void sound_reset(void)
         timer_add(sound_poll, &sound_poll_time, TIMER_ALWAYS_ENABLED, NULL);
 
         sound_handlers_num = 0;
-        
+	sound_process_handlers_num = 0;
+
         sound_set_cd_volume(65535, 65535);
 
 	for (i = 0; i < CDROM_NUM; i++)
@@ -473,13 +502,15 @@ void sound_cd_thread_reset(void)
 
 	if (available_cdrom_drives && !cd_thread_enable)
 	{
+		cdaudioon = 1;
+
 		sound_cd_start_event = thread_create_event();
 
 		sound_cd_event = thread_create_event();
 		sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
 
-		cdaudioon = 1;
 		thread_wait_event(sound_cd_start_event, -1);
+		thread_reset_event(sound_cd_start_event);
 	}
 	else if (!available_cdrom_drives && cd_thread_enable)
 	{
