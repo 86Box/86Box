@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.11	2018/01/06
+ * Version:	@(#)scsi_x54x.c	1.0.12	2018/02/15
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1372,7 +1372,17 @@ x54x_in(uint16_t port, void *priv)
 		break;
 
 	case 3:
-		ret = dev->Geometry;
+		if (dev->int_geom_writable)
+			ret = dev->Geometry;
+		else {
+			dev->Geometry++;
+			switch(dev->Geometry & 3) {
+				case 0: ret = 'A'; break;
+				case 1: ret = 'D'; break;
+				case 2: ret = 'A'; break;
+				case 3: ret = 'P'; break;
+			}
+		}
 		break;
     }
 
@@ -1433,7 +1443,11 @@ static void
 x54x_reset(x54x_t *dev)
 {
     clear_irq(dev);
-    dev->Geometry = 0x80;
+    if (dev->int_geom_writable)
+	dev->Geometry = 0x80;
+    else
+	dev->Geometry = 0x00;
+    dev->Geometry = 0x00;
     dev->Command = 0xFF;
     dev->CmdParam = 0;
     dev->CmdParamLeft = 0;
