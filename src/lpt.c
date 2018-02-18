@@ -17,8 +17,8 @@ char lpt_device_names[3][16];
 
 static struct
 {
-        char name[64];
-        char internal_name[16];
+        const char *name;
+        const char *internal_name;
         lpt_device_t *device;
 } lpt_devices[] =
 {
@@ -31,15 +31,15 @@ static struct
 
 char *lpt_device_get_name(int id)
 {
-        if (strlen(lpt_devices[id].name) == 0)
+        if (strlen((char *) lpt_devices[id].name) == 0)
                 return NULL;
-        return lpt_devices[id].name;
+        return (char *) lpt_devices[id].name;
 }
 char *lpt_device_get_internal_name(int id)
 {
-        if (strlen(lpt_devices[id].internal_name) == 0)
+        if (strlen((char *) lpt_devices[id].internal_name) == 0)
                 return NULL;
-        return lpt_devices[id].internal_name;
+        return (char *) lpt_devices[id].internal_name;
 }
 
 static lpt_device_t *lpt_device_ts[3];
@@ -53,10 +53,10 @@ void lpt_devices_init()
 	for (i = 0; i < 3; i++) {
 		c = 0;
 
-	        while (strcmp(lpt_devices[c].internal_name, lpt_device_names[i]) && strlen(lpt_devices[c].internal_name) != 0)
+	        while (strcmp((char *) lpt_devices[c].internal_name, lpt_device_names[i]) && strlen((char *) lpt_devices[c].internal_name) != 0)
         	        c++;
 
-	        if (strlen(lpt_devices[c].internal_name) == 0)
+	        if (strlen((char *) lpt_devices[c].internal_name) == 0)
         	        lpt_device_ts[i] = NULL;
 	        else
         	{

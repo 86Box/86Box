@@ -9,13 +9,13 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.7	2017/11/04
+ * Version:	@(#)device.c	1.0.8	2018/02/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2016 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -207,7 +207,7 @@ device_get_config_string(char *s)
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name))
-		return(config_get_string(device_current->name, s, c->default_string));
+		return(config_get_string((char *) device_current->name, s, (char *) c->default_string));
 
 	c++;
     }
@@ -223,7 +223,7 @@ device_get_config_int(char *s)
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name))
-		return(config_get_int(device_current->name, s, c->default_int));
+		return(config_get_int((char *) device_current->name, s, c->default_int));
 
 	c++;
     }
@@ -239,7 +239,7 @@ device_get_config_int_ex(char *s, int default_int)
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name))
-		return(config_get_int(device_current->name, s, default_int));
+		return(config_get_int((char *) device_current->name, s, default_int));
 
 	c++;
     }
@@ -255,7 +255,7 @@ device_get_config_hex16(char *s)
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name))
-		return(config_get_hex16(device_current->name, s, c->default_int));
+		return(config_get_hex16((char *) device_current->name, s, c->default_int));
 
 	c++;
     }
@@ -271,7 +271,7 @@ device_get_config_hex20(char *s)
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name))
-		return(config_get_hex20(device_current->name, s, c->default_int));
+		return(config_get_hex20((char *) device_current->name, s, c->default_int));
 
 	c++;
     }
@@ -287,7 +287,7 @@ device_get_config_mac(char *s, int default_int)
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name))
-		return(config_get_mac(device_current->name, s, default_int));
+		return(config_get_mac((char *) device_current->name, s, default_int));
 
 	c++;
     }
@@ -303,7 +303,7 @@ device_set_config_int(char *s, int val)
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name)) {
-		config_set_int(device_current->name, s, val);
+		config_set_int((char *) device_current->name, s, val);
 		break;
 	}
 
@@ -319,7 +319,7 @@ device_set_config_hex16(char *s, int val)
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name)) {
-		config_set_hex16(device_current->name, s, val);
+		config_set_hex16((char *) device_current->name, s, val);
 		break;
 	}
 
@@ -335,7 +335,7 @@ device_set_config_hex20(char *s, int val)
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name)) {
-		config_set_hex20(device_current->name, s, val);
+		config_set_hex20((char *) device_current->name, s, val);
 		break;
 	}
 
@@ -351,7 +351,7 @@ device_set_config_mac(char *s, int val)
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name)) {
-		config_set_mac(device_current->name, s, val);
+		config_set_mac((char *) device_current->name, s, val);
 		break;
 	}
 
@@ -419,7 +419,7 @@ machine_get_config_int(char *s)
     c = d->config;
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name))
-		return(config_get_int(d->name, s, c->default_int));
+		return(config_get_int((char *) d->name, s, c->default_int));
 
 	c++;
     }
@@ -439,7 +439,7 @@ machine_get_config_string(char *s)
     c = d->config;
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name))
-		return(config_get_string(d->name, s, c->default_string));
+		return(config_get_string((char *) d->name, s, (char *) c->default_string));
 
 	c++;
     }

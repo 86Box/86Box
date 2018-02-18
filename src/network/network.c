@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.20	2018/01/26
+ * Version:	@(#)network.c	1.0.21	2018/02/18
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -287,7 +287,7 @@ network_dev_to_id(char *devname)
     int i = 0;
 
     for (i=0; i<network_ndev; i++) {
-	if (! strcmp(network_devs[i].device, devname)) {
+	if (! strcmp((char *) network_devs[i].device, devname)) {
 		return(i);
 	}
     }
@@ -322,7 +322,7 @@ network_card_available(int card)
 char *
 network_card_getname(int card)
 {
-    return(net_cards[card].name);
+    return((char *) net_cards[card].name);
 }
 
 
@@ -348,7 +348,7 @@ network_card_has_config(int card)
 char *
 network_card_get_internal_name(int card)
 {
-    return(net_cards[card].internal_name);
+    return((char *) net_cards[card].internal_name);
 }
 
 
@@ -358,8 +358,8 @@ network_card_get_from_internal_name(char *s)
 {
     int c = 0;
 	
-    while (strlen(net_cards[c].internal_name)) {
-	if (! strcmp(net_cards[c].internal_name, s))
+    while (strlen((char *) net_cards[c].internal_name)) {
+	if (! strcmp((char *) net_cards[c].internal_name, s))
 			return(c);
 	c++;
     }

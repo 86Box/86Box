@@ -8,13 +8,13 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_devconf.c	1.0.11	2017/12/13
+ * Version:	@(#)win_devconf.c	1.0.12	2018/02/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -72,7 +72,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                 switch (config->type)
                                 {
                                         case CONFIG_BINARY:
-                                        val_int = config_get_int(config_device->name, config->name, config->default_int);
+                                        val_int = config_get_int((char *) config_device->name, (char *) config->name, config->default_int);
                                         
                                         SendMessage(h, BM_SETCHECK, val_int, 0);
                                                 
@@ -80,7 +80,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                         break;
 
                                         case CONFIG_SELECTION:
-                                        val_int = config_get_int(config_device->name, config->name, config->default_int);
+                                        val_int = config_get_int((char *) config_device->name, (char *) config->name, config->default_int);
                                         
                                         c = 0;
                                         while (selection->description[0])
@@ -97,7 +97,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                         break;
 
                                         case CONFIG_MIDI:
-                                        val_int = config_get_int(config_device->name, config->name, config->default_int);
+                                        val_int = config_get_int((char *) config_device->name, (char *) config->name, config->default_int);
                                         
                                         num  = plat_midi_get_num_devs();
                                         for (c = 0; c < num; c++)
@@ -113,7 +113,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                         break;
 
                                         case CONFIG_SPINNER:
-                                        val_int = config_get_int(config_device->name, config->name, config->default_int);
+                                        val_int = config_get_int((char *) config_device->name, (char *) config->name, config->default_int);
 
                                         _swprintf(ws, L"%i", val_int);
                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)ws);
@@ -123,7 +123,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
                                         case CONFIG_FNAME:
                                         {
-                                                wchar_t* str = config_get_wstring(config_device->name, config->name, 0);
+                                                wchar_t* str = config_get_wstring((char *) config_device->name, (char *) config->name, 0);
                                                 if (str)
                                                         SendMessage(h, WM_SETTEXT, 0, (LPARAM)str);
                                                 id += 3;
@@ -131,7 +131,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                         break;
 
                                         case CONFIG_HEX16:
-                                        val_int = config_get_hex16(config_device->name, config->name, config->default_int);
+                                        val_int = config_get_hex16((char *) config_device->name, (char *) config->name, config->default_int);
                                         
                                         c = 0;
                                         while (selection->description[0])
@@ -148,7 +148,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                         break;
 
                                         case CONFIG_HEX20:
-                                        val_int = config_get_hex20(config_device->name, config->name, config->default_int);
+                                        val_int = config_get_hex20((char *) config_device->name, (char *) config->name, config->default_int);
                                         
                                         c = 0;
                                         while (selection->description[0])
@@ -189,7 +189,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                         switch (config->type)
                                         {
                                                 case CONFIG_BINARY:
-                                                val_int = config_get_int(config_device->name, config->name, config->default_int);
+                                                val_int = config_get_int((char *) config_device->name, (char *) config->name, config->default_int);
 
                                                 if (val_int != SendMessage(h, BM_GETCHECK, 0, 0))
                                                         changed = 1;
@@ -198,7 +198,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                 break;
 
                                                 case CONFIG_SELECTION:
-                                                val_int = config_get_int(config_device->name, config->name, config->default_int);
+                                                val_int = config_get_int((char *) config_device->name, (char *) config->name, config->default_int);
 
                                                 c = SendMessage(h, CB_GETCURSEL, 0, 0);
 
@@ -212,7 +212,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                 break;
 
                                                 case CONFIG_MIDI:
-                                                val_int = config_get_int(config_device->name, config->name, config->default_int);
+                                                val_int = config_get_int((char *) config_device->name, (char *) config->name, config->default_int);
 
                                                 c = SendMessage(h, CB_GETCURSEL, 0, 0);
 
@@ -224,7 +224,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
                                                 case CONFIG_FNAME:
                                                 {
-                                                        char* str = config_get_string(config_device->name, config->name, (char*)"");
+                                                        char* str = config_get_string((char *) config_device->name, (char *) config->name, (char*)"");
                                                         SendMessage(h, WM_GETTEXT, 511, (LPARAM)s);
                                                         if (strcmp(str, s))
                                                                 changed = 1;
@@ -234,7 +234,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                 break;
 
                                                 case CONFIG_SPINNER:
-                                                val_int = config_get_int(config_device->name, config->name, config->default_int);
+                                                val_int = config_get_int((char *) config_device->name, (char *) config->name, config->default_int);
                                                 if (val_int > config->spinner.max)
                                                         val_int = config->spinner.max;
                                                 else if (val_int < config->spinner.min)
@@ -251,7 +251,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                 break;
 
                                                 case CONFIG_HEX16:
-                                                val_int = config_get_hex16(config_device->name, config->name, config->default_int);
+                                                val_int = config_get_hex16((char *) config_device->name, (char *) config->name, config->default_int);
 
                                                 c = SendMessage(h, CB_GETCURSEL, 0, 0);
 
@@ -265,7 +265,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                 break;
 
                                                 case CONFIG_HEX20:
-                                                val_int = config_get_hex20(config_device->name, config->name, config->default_int);
+                                                val_int = config_get_hex20((char *) config_device->name, (char *) config->name, config->default_int);
 
                                                 c = SendMessage(h, CB_GETCURSEL, 0, 0);
 
@@ -301,7 +301,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                         switch (config->type)
                                         {
                                                 case CONFIG_BINARY:
-                                                config_set_int(config_device->name, config->name, SendMessage(h, BM_GETCHECK, 0, 0));
+                                                config_set_int((char *) config_device->name, (char *) config->name, SendMessage(h, BM_GETCHECK, 0, 0));
                                                 
                                                 id++;
                                                 break;
@@ -310,21 +310,21 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                 c = SendMessage(h, CB_GETCURSEL, 0, 0);
                                                 for (; c > 0; c--)
                                                         selection++;
-                                                config_set_int(config_device->name, config->name, selection->value);
+                                                config_set_int((char *) config_device->name, (char *) config->name, selection->value);
                                         
                                                 id += 2;
                                                 break;
 
                                                 case CONFIG_MIDI:
                                                 c = SendMessage(h, CB_GETCURSEL, 0, 0);
-                                                config_set_int(config_device->name, config->name, c);
+                                                config_set_int((char *) config_device->name, (char *) config->name, c);
                                         
                                                 id += 2;
                                                 break;
 
                                                 case CONFIG_FNAME:
                                                 SendMessage(h, WM_GETTEXT, 511, (LPARAM)ws);
-                                                config_set_wstring(config_device->name, config->name, ws);
+                                                config_set_wstring((char *) config_device->name, (char *) config->name, ws);
 
                                                 id += 3;
                                                 break;
@@ -337,7 +337,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                 else if (c < config->spinner.min)
                                                         c = config->spinner.min;
 
-                                                config_set_int(config_device->name, config->name, c);
+                                                config_set_int((char *) config_device->name, (char *) config->name, c);
 
                                                 id += 2;
                                                 break;
@@ -346,7 +346,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                 c = SendMessage(h, CB_GETCURSEL, 0, 0);
                                                 for (; c > 0; c--)
                                                         selection++;
-                                                config_set_hex16(config_device->name, config->name, selection->value);
+                                                config_set_hex16((char *) config_device->name, (char *) config->name, selection->value);
 
                                                 id += 2;
                                                 break;
@@ -355,7 +355,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                 c = SendMessage(h, CB_GETCURSEL, 0, 0);
                                                 for (; c > 0; c--)
                                                         selection++;
-                                                config_set_hex20(config_device->name, config->name, selection->value);
+                                                config_set_hex20((char *) config_device->name, (char *) config->name, selection->value);
 
                                                 id += 2;
                                                 break;

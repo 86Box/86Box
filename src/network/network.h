@@ -8,7 +8,7 @@
  *
  *		Definitions for the network module.
  *
- * Version:	@(#)network.h	1.0.11	2018/01/26
+ * Version:	@(#)network.h	1.0.12	2018/02/18
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -36,8 +36,8 @@ typedef void (*NETRXCB)(void *, uint8_t *, int);
 
 
 typedef struct {
-    char	name[64];
-    char	internal_name[32];
+    const char	*name;
+    const char	*internal_name;
     device_t	*device;
     void	*priv;
     int		(*poll)(void *);

@@ -774,11 +774,10 @@ void DMAPageWrite(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t Total
 #if 0
 	mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
 	memcpy(&ram[PhysAddress], DataWrite, TotalSize);
-
 #else
 	for (i = 0; i < TotalSize; i++)
 		mem_writeb_phys_dma(PhysAddress + i, DataWrite[i]);
-#endif
 
 	mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
+#endif
 }

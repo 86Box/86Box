@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.12	2018/02/15
+ * Version:	@(#)scsi_x54x.c	1.0.13	2018/02/17
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -39,6 +39,7 @@
 #include "../device.h"
 #include "../timer.h"
 #include "../plat.h"
+#include "../cpu/cpu.h"
 #include "scsi.h"
 #include "scsi_device.h"
 #include "scsi_aha154x.h"
@@ -81,6 +82,7 @@ x54x_log(const char *fmt, ...)
     va_list ap;
 
     if (x54x_do_log) {
+	pclog("In %s mode: ",(msw&1)?((eflags&VM_FLAG)?"V86":"protected"):"real");
 	va_start(ap, fmt);
 	pclog_ex(fmt, ap);
 	va_end(ap);
@@ -303,7 +305,6 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
     uint32_t dma_address;
     uint32_t lba;
     int sector_len = cmd->secount;
-    int block_shift;
     uint8_t ret;
 
     if (islba)
@@ -345,8 +346,6 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 	dev->CmdBuffer = NULL;
     }
 
-    block_shift = scsi_device_block_shift(cmd->id, cmd->lun);
-
     switch(cmd->command) {
 	case 0x00:	/* Reset Disk System, in practice it's a nop */
 		return(0);
@@ -380,9 +379,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 	case 0x02:	/* Read Desired Sectors to Memory */
 		target_check(cmd->id, cmd->lun);
 
-		dev->BufferLength = sector_len << block_shift;
-		dev->CmdBuffer = (uint8_t *)malloc(dev->BufferLength);
-		memset(dev->CmdBuffer, 0x00, dev->BufferLength);
+		dev->BufferLength = -1;
 
 		cdb[0] = GPCMD_READ_10;
 		cdb[1] = (cmd->lun & 7) << 5;
@@ -390,8 +387,8 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		cdb[3] = (lba >> 16) & 0xff;
 		cdb[4] = (lba >> 8) & 0xff;
 		cdb[5] = lba & 0xff;
-		cdb[7] = (sector_len >> 8) & 0xff;
-		cdb[8] = sector_len & 0xff;
+		cdb[7] = 0;
+		cdb[8] = sector_len;
 #if 0
 		x54x_log("BIOS CMD(READ, %08lx, %d)\n", lba, cmd->secount);
 #endif
@@ -400,6 +397,8 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 
 		if (dev->Phase == SCSI_PHASE_STATUS)
 			goto skip_read_phase1;
+
+		dev->CmdBuffer = (uint8_t *)malloc(dev->BufferLength);
 
 		scsi_device_command_phase1(cmd->id, cmd->lun);
 		if (sector_len > 0) {
@@ -420,9 +419,7 @@ skip_read_phase1:
 	case 0x03:	/* Write Desired Sectors from Memory */
 		target_check(cmd->id, cmd->lun);
 
-		dev->BufferLength = sector_len << block_shift;
-		dev->CmdBuffer = (uint8_t *)malloc(dev->BufferLength);
-		memset(dev->CmdBuffer, 0x00, dev->BufferLength);
+		dev->BufferLength = -1;
 
 		cdb[0] = GPCMD_WRITE_10;
 		cdb[1] = (cmd->lun & 7) << 5;
@@ -430,8 +427,8 @@ skip_read_phase1:
 		cdb[3] = (lba >> 16) & 0xff;
 		cdb[4] = (lba >> 8) & 0xff;
 		cdb[5] = lba & 0xff;
-		cdb[7] = (sector_len >> 8) & 0xff;
-		cdb[8] = sector_len & 0xff;
+		cdb[7] = 0;
+		cdb[8] = sector_len;
 #if 0
 		x54x_log("BIOS CMD(WRITE, %08lx, %d)\n", lba, cmd->secount);
 #endif
@@ -440,6 +437,8 @@ skip_read_phase1:
 
 		if (dev->Phase == SCSI_PHASE_STATUS)
 			goto skip_write_phase1;
+
+		dev->CmdBuffer = (uint8_t *)malloc(dev->BufferLength);
 
 		if (sector_len > 0) {
 			x54x_log("BIOS DMA: Reading %i bytes at %08X\n",
@@ -467,8 +466,8 @@ skip_write_phase1:
 		cdb[3] = (lba >> 16) & 0xff;
 		cdb[4] = (lba >> 8) & 0xff;
 		cdb[5] = lba & 0xff;
-		cdb[7] = (sector_len >> 8) & 0xff;
-		cdb[8] = sector_len & 0xff;
+		cdb[7] = 0;
+		cdb[8] = sector_len;
 
 		scsi_device_command_phase0(cmd->id, cmd->lun, 12, cdb);
 
@@ -503,7 +502,7 @@ skip_write_phase1:
 
 		x54x_log("BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
 		DMAPageWrite(dma_address,
-			     dev->CmdBuffer, dev->BufferLength);
+			     dev->CmdBuffer, 4 /* dev->BufferLength */);
 
 		if (dev->CmdBuffer != NULL) {
 			free(dev->CmdBuffer);
@@ -569,7 +568,7 @@ skip_write_phase1:
 
 		x54x_log("BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
 		DMAPageWrite(dma_address,
-			     dev->CmdBuffer, dev->BufferLength);
+			     dev->CmdBuffer, 4 /* dev->BufferLength */);
 
 		if (dev->CmdBuffer != NULL) {
 			free(dev->CmdBuffer);
@@ -1290,6 +1289,7 @@ x54x_cmd_thread(void *priv)
 	if ((dev->Status & STAT_INIT) || (!dev->MailboxInit && !dev->BIOSMailboxInit) || (!dev->MailboxReq && !dev->BIOSMailboxReq)) {
 		/* If we did not get anything, wait a while. */
 		thread_wait_event((event_t *) wait_evt, 10);
+		thread_reset_event((event_t *) wait_evt);
 
 		scsi_mutex_wait(0);
 		continue;
@@ -1443,11 +1443,10 @@ static void
 x54x_reset(x54x_t *dev)
 {
     clear_irq(dev);
-    if (dev->int_geom_writable)
+    if (dev->int_geom_writable == 1)
 	dev->Geometry = 0x80;
     else
 	dev->Geometry = 0x00;
-    dev->Geometry = 0x00;
     dev->Command = 0xFF;
     dev->CmdParam = 0;
     dev->CmdParamLeft = 0;
@@ -1800,7 +1799,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 		break;
 
 	case 3:
-		if (dev->int_geom_writable)
+		if (dev->int_geom_writable == 1)
 			dev->Geometry = val;
 		break;
     }
@@ -1964,6 +1963,7 @@ x54x_init(device_t *info)
 
     x54x_thread_start(dev);
     thread_wait_event((event_t *) thread_started, -1);
+    thread_reset_event((event_t *) thread_started);
 
     return(dev);
 }

@@ -10,12 +10,12 @@
  *		made by Adaptec, Inc. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.36	2017/12/09
+ * Version:	@(#)scsi_aha154x.c	1.0.37	2018/02/17
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
  *
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -36,6 +36,7 @@
 #include "../timer.h"
 #include "../device.h"
 #include "../plat.h"
+#include "../cpu/cpu.h"
 #include "scsi.h"
 #include "scsi_aha154x.h"
 #include "scsi_x54x.h"
@@ -91,6 +92,7 @@ aha_log(const char *fmt, ...)
     va_list ap;
 
     if (aha_do_log) {
+	pclog("In %s mode: ",(msw&1)?((eflags&VM_FLAG)?"V86":"protected"):"real");
 	va_start(ap, fmt);
 	pclog_ex(fmt, ap);
 	va_end(ap);
@@ -782,7 +784,7 @@ aha_init(device_t *info)
 		switch(dev->Base) {
 			case 0x0330:
 				dev->bios_path =
-				    L"roms/scsi/adaptec/aha1540b320_330.bin";
+				    L"roms/scsi/adaptec/aha1540b310.bin";
 				break;
 
 			case 0x0334:
@@ -790,9 +792,12 @@ aha_init(device_t *info)
 				    L"roms/scsi/adaptec/aha1540b320_334.bin";
 				break;
 		}
-		dev->fw_rev = "A001";
+		dev->fw_rev = "A005";	/* The 3.2 microcode says A012. */
 		/* This is configurable from the configuration for the 154xB, the rest of the controllers read it from the EEPROM. */
 		dev->HostID = device_get_config_int("hostid");
+		dev->int_geom_writable = 2;
+		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
+		dev->rom_shramsz = 128;		/* size of shadow RAM */
 		break;
 
 	case AHA_154xC:

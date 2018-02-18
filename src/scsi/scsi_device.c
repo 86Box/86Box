@@ -8,7 +8,7 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.11	2018/01/21
+ * Version:	@(#)scsi_device.c	1.0.12	2018/02/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -280,20 +280,6 @@ int scsi_device_cdb_length(uint8_t scsi_id, uint8_t scsi_lun)
 		return zip[id].cdb_len;
 	default:
 		return 12;
-    }
-}
-
-
-int scsi_device_block_shift(uint8_t scsi_id, uint8_t scsi_lun)
-{
-    uint8_t lun_type = SCSIDevices[scsi_id][scsi_lun].LunType;
-
-    switch (lun_type)
-    {
-	case SCSI_CDROM:
-		return 11;	/* 2048 bytes per block */
-	default:
-		return 9;	/* 512 bytes per block */
     }
 }
 

@@ -8,7 +8,7 @@
  *
  *		Definitions for the generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.h	1.0.4	2017/10/10
+ * Version:	@(#)scsi_device.h	1.0.5	2018/02/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -44,7 +44,6 @@ extern int	scsi_device_read_capacity(uint8_t id, uint8_t lun,
 extern int	scsi_device_present(uint8_t id, uint8_t lun);
 extern int	scsi_device_valid(uint8_t id, uint8_t lun);
 extern int	scsi_device_cdb_length(uint8_t id, uint8_t lun);
-extern int	scsi_device_block_shift(uint8_t id, uint8_t lun);
 extern void	scsi_device_command(uint8_t id, uint8_t lun, int cdb_len,
 				    uint8_t *cdb);
 extern void	scsi_device_command_phase0(uint8_t scsi_id, uint8_t scsi_lun,

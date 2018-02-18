@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.18	2018/02/12
+ * Version:	@(#)vid_table.c	1.0.19	2018/02/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -35,7 +35,7 @@
 #include "vid_ati28800.h"
 #include "vid_ati_mach64.h"
 #include "vid_cga.h"
-#include "vid_cl5428.h"
+#include "vid_cl54xx.h"
 #include "vid_compaq_cga.h"
 #include "vid_ega.h"
 #include "vid_et4000.h"
@@ -69,8 +69,8 @@ enum {
 };
 
 typedef struct {
-    char	name[64];
-    char	internal_name[24];
+    const char	*name;
+    const char	*internal_name;
     device_t	*device;
     int		legacy_id;
     video_timings_t	timing;
@@ -136,10 +136,11 @@ video_cards[] = {
     {"[PCI] Trident TGUI9440",                      "tgui9440_pci",		&tgui9440_pci_device,            	GFX_TGUI9440_PCI,		{VIDEO_BUS, 4,  8, 16,   4,  8, 16}},
     {"[VLB] ATI Graphics Pro Turbo (Mach64 GX)",    "mach64gx_vlb",		&mach64gx_vlb_device,        		GFX_MACH64GX_VLB,		{VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
     {"[VLB] Cardex Tseng ET4000/w32p",		    "et4000w32p_vlb",		&et4000w32p_cardex_vlb_device,      	GFX_ET4000W32_CARDEX_VLB,	{VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
+    {"[VLB] Cirrus Logic CL-GD 5429",		    "cl_gd5429_vlb",		&gd5429_device,				GFX_CL_GD5429,			{VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
     {"[VLB] Diamond Stealth 32 (Tseng ET4000/w32p)","stealth32_vlb",		&et4000w32p_vlb_device,      		GFX_ET4000W32_VLB,		{VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
 #endif
-    {"[VLB] Diamond SpeedStar PRO (CL-GD5428)",     "cl_gd5428_vlb",		&gd5428_device,				GFX_CL_GD5428,			{VIDEO_BUS, 4,  8, 16,   4,  8, 16}},
+    {"[VLB] Diamond SpeedStar PRO (CL-GD5428)",     "cl_gd5428_vlb",		&gd5428_device,				GFX_CL_GD5428,			{VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
     {"[VLB] Diamond Stealth 3D 2000 (S3 ViRGE)",    "stealth3d_2000_vlb",	&s3_virge_vlb_device,            	GFX_VIRGE_VLB,			{VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
     {"[VLB] Diamond Stealth 3D 3000 (S3 ViRGE/VX)", "stealth3d_3000_vlb",	&s3_virge_988_vlb_device,        	GFX_VIRGEVX_VLB,		{VIDEO_BUS, 2,  2,  4,  26, 26, 42}},
     {"[VLB] Diamond Stealth 64 DRAM (S3 Trio64)",   "stealth64d_vlb",		&s3_diamond_stealth64_vlb_device,	GFX_STEALTH64_VLB,		{VIDEO_BUS, 2,  2,  4,  26, 26, 42}},
@@ -193,7 +194,7 @@ video_card_available(int card)
 char *
 video_card_getname(int card)
 {
-    return(video_cards[card].name);
+    return((char *) video_cards[card].name);
 }
 
 
@@ -226,7 +227,7 @@ video_card_getid(char *s)
     int c = 0;
 
     while (video_cards[c].legacy_id != -1) {
-	if (!strcmp(video_cards[c].name, s))
+	if (!strcmp((char *) video_cards[c].name, s))
 		return(c);
 	c++;
     }
@@ -260,7 +261,7 @@ video_new_to_old(int card)
 char *
 video_get_internal_name(int card)
 {
-    return(video_cards[card].internal_name);
+    return((char *) video_cards[card].internal_name);
 }
 
 
@@ -270,7 +271,7 @@ video_get_video_from_internal_name(char *s)
     int c = 0;
 
     while (video_cards[c].legacy_id != -1) {
-	if (!strcmp(video_cards[c].internal_name, s))
+	if (!strcmp((char *) video_cards[c].internal_name, s))
 		return(video_cards[c].legacy_id);
 	c++;
     }

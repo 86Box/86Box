@@ -455,6 +455,7 @@ static const mode_sense_pages_t zip_250_mode_sense_pages_changeable =
 static mode_sense_pages_t zip_mode_sense_pages_saved[ZIP_NUM];
 
 
+#define ENABLE_ZIP_LOG 1
 #ifdef ENABLE_ZIP_LOG
 int zip_do_log = ENABLE_ZIP_LOG;
 #endif
@@ -1424,9 +1425,6 @@ void zip_command(uint8_t id, uint8_t *cdb)
 	int32_t *BufLen;
 	uint32_t i = 0;
 
-#if 0
-	int CdbLength;
-#endif
 	if (zip_drives[id].bus_type == ZIP_BUS_SCSI) {
 		BufLen = &SCSIDevices[zip_drives[id].scsi_device_id][zip_drives[id].scsi_device_lun].BufferLength;
 		zip[id].status &= ~ERR_STAT;
@@ -1446,10 +1444,9 @@ void zip_command(uint8_t id, uint8_t *cdb)
 		zip_log("ZIP %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, Unit attention: %i\n", id, cdb[0], zip_sense_key, zip_asc, zip_ascq, zip[id].unit_attention);
 		zip_log("ZIP %i: Request length: %04X\n", id, zip[id].request_length);
 
-#if 0
-		for (CdbLength = 1; CdbLength < zip[id].cdb_len; CdbLength++)
-			zip_log("ZIP %i: CDB[%d] = %d\n", id, CdbLength, cdb[CdbLength]);
-#endif
+		zip_log("ZIP %i: CDB: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n", id,
+			cdb[0], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5], cdb[6], cdb[7],
+			cdb[8], cdb[9], cdb[10], cdb[11]);
 	}
 	
 	zip[id].sector_len = 0;

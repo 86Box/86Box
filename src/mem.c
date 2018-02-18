@@ -884,7 +884,7 @@ void writememql(uint32_t seg, uint32_t addr, uint64_t val)
 uint8_t mem_readb_phys(uint32_t addr)
 {
         mem_logical_addr = 0xffffffff;
-        
+
         if (_mem_read_b[addr >> 14]) 
                 return _mem_read_b[addr >> 14](addr, _mem_priv_r[addr >> 14]);
                 
@@ -894,16 +894,14 @@ uint8_t mem_readb_phys(uint32_t addr)
 /* Version of mem_readby_phys that doesn't go through the CPU paging mechanism. */
 uint8_t mem_readb_phys_dma(uint32_t addr)
 {
-        mem_logical_addr = 0xffffffff;
-        
-        if (_mem_read_b[addr >> 14]) {
-		if (_mem_mapping_r[addr >> 14] && (_mem_mapping_r[addr >> 14]->flags & MEM_MAPPING_INTERNAL)) {
-			return _mem_exec[addr >> 14][addr & 0x3fff];
-		} else
-                	return _mem_read_b[addr >> 14](addr, _mem_priv_r[addr >> 14]);
-	}
-                
-        return 0xff;
+        /* mem_logical_addr = 0xffffffff; */
+
+	if (_mem_exec[addr >> 14])
+		return _mem_exec[addr >> 14][addr & 0x3fff];
+	else if (_mem_read_b[addr >> 14])
+               	return _mem_read_b[addr >> 14](addr, _mem_priv_r[addr >> 14]);
+	else
+		return 0xff;
 }
 
 uint16_t mem_readw_phys(uint32_t addr)
@@ -919,7 +917,7 @@ uint16_t mem_readw_phys(uint32_t addr)
 void mem_writeb_phys(uint32_t addr, uint8_t val)
 {
         mem_logical_addr = 0xffffffff;
-        
+
         if (_mem_write_b[addr >> 14]) 
                 _mem_write_b[addr >> 14](addr, val, _mem_priv_w[addr >> 14]);
 }
@@ -927,14 +925,12 @@ void mem_writeb_phys(uint32_t addr, uint8_t val)
 /* Version of mem_readby_phys that doesn't go through the CPU paging mechanism. */
 void mem_writeb_phys_dma(uint32_t addr, uint8_t val)
 {
-        mem_logical_addr = 0xffffffff;
-        
-        if (_mem_write_b[addr >> 14]) {
-		if (_mem_mapping_w[addr >> 14] && (_mem_mapping_w[addr >> 14]->flags & MEM_MAPPING_INTERNAL)) {
-			_mem_exec[addr >> 14][addr & 0x3fff] = val;
-		} else
-                	_mem_write_b[addr >> 14](addr, val, _mem_priv_w[addr >> 14]);
-	}
+        /* mem_logical_addr = 0xffffffff; */
+
+	if (_mem_exec[addr >> 14])
+		_mem_exec[addr >> 14][addr & 0x3fff] = val;
+	else if (_mem_write_b[addr >> 14])
+               	_mem_write_b[addr >> 14](addr, val, _mem_priv_w[addr >> 14]);
 }
 
 void mem_writew_phys(uint32_t addr, uint16_t val)

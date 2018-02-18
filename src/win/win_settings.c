@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.38	2018/02/07
+ * Version:	@(#)win_settings.c	1.0.39	2018/02/18
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -545,7 +545,7 @@ static void win_settings_machine_recalc_cpu_m(HWND hdlg)
 	c = 0;
 	while (machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[c].cpu_type != -1)
 	{
-		stransi = machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[c].name;
+		stransi = (char *) machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[c].name;
 		mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 		c++;

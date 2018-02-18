@@ -9,15 +9,15 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.h	1.0.7	2017/11/25
+ * Version:	@(#)device.h	1.0.8	2018/02/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2016 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef EMU_DEVICE_H
 # define EMU_DEVICE_H
@@ -50,13 +50,13 @@ enum {
 
 
 typedef struct {
-    char description[256];
+    const char *description;
     int  value;
 } device_config_selection_t;
 
 typedef struct {
-    char description[256];
-    char extensions[25][25];
+    const char *description;
+    const char *extensions[5];
 } device_config_file_filter_t;
 
 typedef struct {
@@ -66,10 +66,10 @@ typedef struct {
 } device_config_spinner_t;
 
 typedef struct {
-    char name[256];
-    char description[256];
+    const char *name;
+    const char *description;
     int type;
-    char default_string[256];
+    const char *default_string;
     int default_int;
     device_config_selection_t selection[16];
     device_config_file_filter_t file_filter[16];
@@ -77,7 +77,7 @@ typedef struct {
 } device_config_t;
 
 typedef struct _device_ {
-    char	name[50];
+    const char	*name;
     uint32_t	flags;		/* system flags */
     uint32_t	local;		/* flags local to device */
 

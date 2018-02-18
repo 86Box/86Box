@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.13	2018/02/15
+ * Version:	@(#)sound.c	1.0.14	2018/02/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -43,8 +43,8 @@
 
 
 typedef struct {
-        char name[64];
-        char internal_name[24];
+        const char *name;
+        const char *internal_name;
         device_t *device;
 } SOUND_CARD;
 
@@ -112,7 +112,7 @@ int sound_card_available(int card)
 
 char *sound_card_getname(int card)
 {
-        return sound_cards[card].name;
+        return (char *) sound_cards[card].name;
 }
 
 device_t *sound_card_getdevice(int card)
@@ -129,16 +129,16 @@ int sound_card_has_config(int card)
 
 char *sound_card_get_internal_name(int card)
 {
-        return sound_cards[card].internal_name;
+        return (char *) sound_cards[card].internal_name;
 }
 
 int sound_card_get_from_internal_name(char *s)
 {
 	int c = 0;
 	
-	while (strlen(sound_cards[c].internal_name))
+	while (strlen((char *) sound_cards[c].internal_name))
 	{
-		if (!strcmp(sound_cards[c].internal_name, s))
+		if (!strcmp((char *) sound_cards[c].internal_name, s))
 			return c;
 		c++;
 	}

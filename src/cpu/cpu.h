@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.h	1.0.6	2018/02/01
+ * Version:	@(#)cpu.h	1.0.7	2018/02/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -70,7 +70,7 @@
 
 
 typedef struct {
-    char	name[32];
+    const char	*name;
     int		cpu_type;
     int		speed;
     int		rspeed;
