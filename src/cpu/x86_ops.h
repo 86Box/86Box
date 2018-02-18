@@ -48,7 +48,11 @@ extern OpFn dynarec_ops_pentium_0f[1024];
 extern OpFn dynarec_ops_pentiummmx_0f[1024];
 extern OpFn dynarec_ops_c6x86mx_0f[1024];
 
+#ifdef DEV_BRANCH
+#ifdef USE_AMD_K
 extern OpFn dynarec_ops_k6_0f[1024];
+#endif
+#endif
 
 #ifdef DEV_BRANCH
 #ifdef USE_I686
@@ -140,7 +144,11 @@ extern OpFn ops_pentiummmx_0f[1024];
 
 extern OpFn ops_c6x86mx_0f[1024];
 
+#ifdef DEV_BRANCH
+#ifdef USE_AMD_K
 extern OpFn ops_k6_0f[1024];
+#endif
+#endif
 
 #ifdef DEV_BRANCH
 #ifdef USE_I686

@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.c	1.0.10	2018/02/01
+ * Version:	@(#)cpu.c	1.0.11	2018/02/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -156,11 +156,15 @@ uint64_t ecx570_msr = 0;
 #endif
 #endif
 
+#ifdef DEV_BRANCH
+#ifdef USE_AMD_K
 /* AMD K5 and K6 MSR's. */
 uint64_t ecx83_msr = 0;
 /* These are K6-only. */
 uint64_t star = 0;
 uint64_t sfmask = 0;
+#endif
+#endif
 
 int timing_rr;
 int timing_mr, timing_mrl;
@@ -1068,6 +1072,8 @@ void cpu_set()
          	ccr4 = 0x80;
                 break;
 
+#ifdef DEV_BRANCH
+#ifdef USE_AMD_K
                 case CPU_K5:
                 case CPU_5K86:
 #ifdef USE_DYNAREC
@@ -1120,6 +1126,8 @@ void cpu_set()
                 codegen_timing_set(&codegen_timing_pentium);
 #endif
                 break;
+#endif
+#endif
 
 #ifdef DEV_BRANCH
 #ifdef USE_I686
@@ -1391,6 +1399,8 @@ void cpu_CPUID()
                         EAX = 0;
                 break;
 
+#ifdef DEV_BRANCH
+#ifdef USE_AMD_K
                 case CPU_K5:
                 if (!EAX)
                 {
@@ -1522,6 +1532,8 @@ void cpu_CPUID()
                 else
                         EAX = 0;
                 break;
+#endif
+#endif
 
                 case CPU_PENTIUMMMX:
                 if (!EAX)
@@ -1728,6 +1740,8 @@ void cpu_RDMSR()
                 }
                 break;
 
+#ifdef DEV_BRANCH
+#ifdef USE_AMD_K
                 case CPU_K5:
                 case CPU_5K86:
                 case CPU_K6:
@@ -1761,6 +1775,8 @@ void cpu_RDMSR()
 			break;
                 }
                 break;
+#endif
+#endif
 
                 case CPU_PENTIUM:
                 case CPU_PENTIUMMMX:
@@ -1953,6 +1969,8 @@ void cpu_WRMSR()
                         break;
                 }
                 break;
+#ifdef DEV_BRANCH
+#ifdef USE_AMD_K
                 case CPU_K5:
                 case CPU_5K86:
                 case CPU_K6:
@@ -1975,6 +1993,8 @@ void cpu_WRMSR()
 			break;
                 }
                 break;
+#endif
+#endif
 
                 case CPU_PENTIUM:
                 case CPU_PENTIUMMMX:

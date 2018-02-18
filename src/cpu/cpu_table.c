@@ -29,7 +29,7 @@
  *		16 = 180 MHz
  *		17 = 200 MHz
  *
- * Version:	@(#)cpu_table.c	1.0.3	2018/02/01
+ * Version:	@(#)cpu_table.c	1.0.4	2018/02/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -382,6 +382,8 @@ CPU cpus_Pentium[] = {
     {"",             -1,        0, 0,           0, 0, 0, 0, 0, 0, 0,0,0,0}
 };
 
+#ifdef DEV_BRANCH
+#ifdef USE_AMD_K
 CPU cpus_K5[] = {
     /*AMD K5 (Socket 5)*/
     {"K5 (5k86) 75 (P75)",    CPU_K5,     9,  75000000, 2, 25000000, 0x500, 0x500, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 7,7,4,4, 9},
@@ -420,6 +422,8 @@ CPU cpus_K56[] = {
     {"K6 (Model 7) 300",      CPU_K6,    28, 300000000, 5, 33333333, 0x570, 0x570, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 36},
     {"",             -1,        0, 0,           0, 0, 0, 0, 0, 0, 0,0,0,0}
 };
+#endif
+#endif
 
 #ifdef DEV_BRANCH
 #ifdef USE_I686

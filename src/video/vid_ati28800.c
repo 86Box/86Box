@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger)
  *
- * Version:	@(#)vid_ati28800.c	1.0.6	2018/02/12
+ * Version:	@(#)vid_ati28800.c	1.0.7	2018/02/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -39,8 +39,10 @@
 #define BIOS_VGAXL_EVEN_PATH	L"roms/video/ati28800/xleven.bin"
 #define BIOS_VGAXL_ODD_PATH	L"roms/video/ati28800/xlodd.bin"
 
+#if defined(DEV_BRANCH) && defined(USE_XL24)
 #define BIOS_XL24_EVEN_PATH	L"roms/video/ati28800/112-14318-102.bin"
 #define BIOS_XL24_ODD_PATH	L"roms/video/ati28800/112-14319-102.bin"
+#endif
 
 #define BIOS_ROM_PATH		L"roms/video/ati28800/bios.bin"
 
@@ -202,6 +204,7 @@ memory <<= 10;
 				     0, MEM_MAPPING_EXTERNAL);
 		break;
 
+#if defined(DEV_BRANCH) && defined(USE_XL24)
 	case GFX_VGAWONDERXL24:
 		rom_init_interleaved(&ati->bios_rom,
 				     BIOS_XL24_EVEN_PATH,
@@ -209,6 +212,7 @@ memory <<= 10;
 				     0xc0000, 0x10000, 0xffff,
 				     0, MEM_MAPPING_EXTERNAL);
 		break;
+#endif
 
 	default:
 		rom_init(&ati->bios_rom,
@@ -253,11 +257,13 @@ compaq_ati28800_available(void)
 }
 
 
+#if defined(DEV_BRANCH) && defined(USE_XL24)
 static int
 ati28800_wonderxl24_available(void)
 {
     return((rom_present(BIOS_XL24_EVEN_PATH) && rom_present(BIOS_XL24_ODD_PATH)));
 }
+#endif
 
 
 static void
@@ -317,6 +323,7 @@ static device_config_t ati28800_config[] =
         }
 };
 
+#if defined(DEV_BRANCH) && defined(USE_XL24)
 static device_config_t ati28800_wonderxl_config[] =
 {
         {
@@ -340,6 +347,7 @@ static device_config_t ati28800_wonderxl_config[] =
                 "", "", -1
         }
 };
+#endif
 
 device_t ati28800_device =
 {
@@ -367,6 +375,7 @@ device_t compaq_ati28800_device =
 	ati28800_config
 };
 
+#if defined(DEV_BRANCH) && defined(USE_XL24)
 device_t ati28800_wonderxl24_device =
 {
         "ATI-28800 (VGA Wonder XL24)",
@@ -379,3 +388,4 @@ device_t ati28800_wonderxl24_device =
         ati28800_add_status_info,
 	ati28800_wonderxl_config
 };
+#endif

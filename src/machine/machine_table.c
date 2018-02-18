@@ -11,7 +11,7 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.18	2018/02/09
+ * Version:	@(#)machine_table.c	1.0.19	2018/02/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -119,6 +119,7 @@ machine_t machines[] = {
 
     { "[Socket 4 LX] Intel Premiere/PCI",	ROM_REVENGE,		"revenge",		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,	       machine_at_batman_init, NULL,			nvr_at_close		},
 
+#if defined(DEV_BRANCH) && defined(USE_AMD_K)
     { "[Socket 5 NX] Intel Premiere/PCI II",	ROM_PLATO,		"plato",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"AMD",   cpus_K5},     {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,		machine_at_plato_init, NULL,			nvr_at_close		},
 
     { "[Socket 5 FX] ASUS P/I-P54TP4XE",	ROM_P54TP4XE,		"p54tp4xe",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"AMD",   cpus_K5},     {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,					  8,  128,   8, 127,	     machine_at_p54tp4xe_init, NULL,			nvr_at_close		},
@@ -139,6 +140,28 @@ machine_t machines[] = {
     { "[Socket 7 VX] ASUS P/I-P55TVP4",		ROM_P55TVP4,		"p55tvp4",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,	      machine_at_p55tvp4_init, NULL,			nvr_at_close		},
     { "[Socket 7 VX] Award 430VX PCI",		ROM_430VX,		"430vx",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,	       machine_at_i430vx_init, NULL,			nvr_at_close		},
     { "[Socket 7 VX] Epox P55-VA",		ROM_P55VA,		"p55va",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,		machine_at_p55va_init, NULL,			nvr_at_close		},
+#else
+    { "[Socket 5 NX] Intel Premiere/PCI II",	ROM_PLATO,		"plato",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,		machine_at_plato_init, NULL,			nvr_at_close		},
+
+    { "[Socket 5 FX] ASUS P/I-P54TP4XE",	ROM_P54TP4XE,		"p54tp4xe",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,					  8,  128,   8, 127,	     machine_at_p54tp4xe_init, NULL,			nvr_at_close		},
+    { "[Socket 5 FX] Intel Advanced/EV",	ROM_ENDEAVOR,		"endeavor",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,	  8,  128,   8, 127,	     machine_at_endeavor_init, at_endeavor_get_device,	nvr_at_close		},
+    { "[Socket 5 FX] Intel Advanced/ZP",	ROM_ZAPPA,		"zappa",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,		machine_at_zappa_init, NULL,			nvr_at_close		},
+    { "[Socket 5 FX] PC Partner MB500N",	ROM_MB500N,		"mb500n",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,					  8,  128,   8, 127,	       machine_at_mb500n_init, NULL,			nvr_at_close		},
+    { "[Socket 5 FX] President Award 430FX PCI",ROM_PRESIDENT,		"president",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,					  8,  128,   8, 127,	    machine_at_president_init, NULL,			nvr_at_close		},
+
+    { "[Socket 7 FX] Intel Advanced/ATX",	ROM_THOR,		"thor",			{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,		 machine_at_thor_init, NULL,			nvr_at_close		},
+    { "[Socket 7 FX] MR Intel Advanced/ATX",	ROM_MRTHOR,		"mrthor",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,		 machine_at_thor_init, NULL,			nvr_at_close		},
+
+    { "[Socket 7 HX] Acer M3a",			ROM_ACERM3A,		"acerm3a",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  192,   8, 127,	      machine_at_acerm3a_init, NULL,			nvr_at_close		},
+    { "[Socket 7 HX] Acer V35n",		ROM_ACERV35N,		"acerv35n",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  192,   8, 127,	     machine_at_acerv35n_init, NULL,			nvr_at_close		},
+    { "[Socket 7 HX] AOpen AP53",		ROM_AP53,		"ap53",			{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  512,   8, 127,		 machine_at_ap53_init, NULL,			nvr_at_close		},
+    { "[Socket 7 HX] ASUS P/I-P55T2P4",		ROM_P55T2P4,		"p55t2p4",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  512,   8, 127,	      machine_at_p55t2p4_init, NULL,			nvr_at_close		},
+    { "[Socket 7 HX] SuperMicro Super P55T2S",	ROM_P55T2S,		"p55t2s",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  768,   8, 127,	       machine_at_p55t2s_init, NULL,			nvr_at_close		},
+
+    { "[Socket 7 VX] ASUS P/I-P55TVP4",		ROM_P55TVP4,		"p55tvp4",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,	      machine_at_p55tvp4_init, NULL,			nvr_at_close		},
+    { "[Socket 7 VX] Award 430VX PCI",		ROM_430VX,		"430vx",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,	       machine_at_i430vx_init, NULL,			nvr_at_close		},
+    { "[Socket 7 VX] Epox P55-VA",		ROM_P55VA,		"p55va",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,		machine_at_p55va_init, NULL,			nvr_at_close		},
+#endif
 
 #if defined(DEV_BRANCH) && defined(USE_I686)
     { "[Socket 8 FX] Tyan Titan-Pro AT",	ROM_440FX,		"440fx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 127,	       machine_at_i440fx_init, NULL,			nvr_at_close		},

@@ -54,7 +54,7 @@ char *joystick_get_name(int64_t joystick)
 {
         if (!joystick_list[joystick])
                 return NULL;
-        return joystick_list[joystick]->name;
+        return (char *) joystick_list[joystick]->name;
 }
 
 int64_t joystick_get_max_joysticks(int64_t joystick)
@@ -79,17 +79,17 @@ int64_t joystick_get_pov_count(int64_t joystick)
 
  char *joystick_get_axis_name(int64_t joystick, int64_t id)
 {
-        return joystick_list[joystick]->axis_names[id];
+        return (char *) joystick_list[joystick]->axis_names[id];
 }
 
 char *joystick_get_button_name(int64_t joystick, int64_t id)
 {
-        return joystick_list[joystick]->button_names[id];
+        return (char *) joystick_list[joystick]->button_names[id];
 }
 
 char *joystick_get_pov_name(int64_t joystick, int64_t id)
 {
-        return joystick_list[joystick]->pov_names[id];
+        return (char *) joystick_list[joystick]->pov_names[id];
 }
 
 typedef struct gameport_axis_t

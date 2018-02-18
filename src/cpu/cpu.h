@@ -45,9 +45,13 @@
 #define CPU_Cx6x86MX 	20
 #define CPU_Cx6x86L 	21
 #define CPU_CxGX1 	22
+#ifdef DEV_BRANCH
+#ifdef USE_AMD_K
 #define CPU_K5		23
 #define CPU_5K86	24
 #define CPU_K6		25
+#endif
+#endif
 #ifdef DEV_BRANCH
 #ifdef USE_I686
 #define CPU_PENTIUMPRO	26		/* 686 class CPUs */
@@ -101,8 +105,12 @@ extern CPU	cpus_WinChip[];
 extern CPU	cpus_Pentium5V[];
 extern CPU	cpus_Pentium5V50[];
 extern CPU	cpus_PentiumS5[];
+#ifdef DEV_BRANCH
+#ifdef USE_AMD_K
 extern CPU	cpus_K5[];
 extern CPU	cpus_K56[];
+#endif
+#endif
 extern CPU	cpus_Pentium[];
 extern CPU	cpus_6x86[];
 #ifdef DEV_BRANCH

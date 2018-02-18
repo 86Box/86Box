@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.19	2018/02/18
+ * Version:	@(#)vid_table.c	1.0.20	2018/02/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -86,7 +86,9 @@ video_cards[] = {
     { "[ISA] ATI VGA Charger (ATI-28800-5)",        "ati28800",			&ati28800_device,			GFX_VGACHARGER,			{VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
     { "[ISA] ATI VGA Edge-16 (ATI-18800-5)",        "ati18800",			&ati18800_device,			GFX_VGAEDGE16,			{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] ATI VGA Wonder (ATI-18800)",           "ati18800w",		&ati18800_wonder_device,		GFX_VGAWONDER,			{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
+#if defined(DEV_BRANCH) && defined(USE_XL24)
     { "[ISA] ATI VGA Wonder XL24 (ATI-28800-6)",    "ati28800w",		&ati28800_wonderxl24_device,	        GFX_VGAWONDERXL24,		{VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
+#endif
     { "[ISA] CGA",                                  "cga",			&cga_device,                            GFX_CGA,			{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] Chips & Technologies SuperEGA",        "superega",			&sega_device,			        GFX_SUPER_EGA,			{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] Compaq ATI VGA Wonder XL (ATI-28800-5)","compaq_ati28800",		&compaq_ati28800_device,     		GFX_VGAWONDERXL,		{VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
