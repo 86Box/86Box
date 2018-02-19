@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.103	2018/02/18
+# Version:	@(#)Makefile.mingw	1.0.104	2018/02/19
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -212,7 +212,7 @@ else
  ifeq ($(OPTIM), y)
   AOPTIM	:= -mtune=native
   ifndef COPTIM
-   COPTIM	:= -O6
+   COPTIM	:= -O6 -flto
   endif
  else
   ifndef COPTIM
@@ -368,13 +368,8 @@ endif
 # Final versions of the toolchain flags.
 CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
-		   -fno-strict-aliasing -flto
+		   -fno-strict-aliasing
 CFLAGS		:= $(CFLAGS)
-# CXXFLAGS	:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
-# 		   $(AFLAGS) -fno-strict-aliasing -fvisibility=hidden \
-# 		   -Wall -Wundef -fvisibility-inlines-hidden \
-# 		   -Wunused-parameter -Wno-ctor-dtor-privacy \
-# 		   -Woverloaded-virtual
 
 
 #########################################################################

@@ -508,7 +508,7 @@ void svga_poll(void *p)
                         }
                         
                         if (svga->hwcursor_on || svga->overlay_on)
-                                svga->changedvram[svga->ma >> 12] = svga->changedvram[(svga->ma >> 12) + 1] = 2;
+                                svga->changedvram[svga->ma >> 12] = svga->changedvram[(svga->ma >> 12) + 1] = svga->interlace ? 3 : 2;;
                       
                         if (!svga->override)
                                 svga->render(svga);
@@ -786,7 +786,7 @@ void svga_write(uint32_t addr, uint8_t val, void *p)
                 case 0:
                 if (svga->gdcreg[3] & 7) 
                         val = svga_rotate[svga->gdcreg[3] & 7][val];
-                if (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1])
+                if (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled))
                 {
                         if (writemask2 & 1) svga->vram[addr]       = val;
                         if (writemask2 & 2) svga->vram[addr | 0x1] = val;
@@ -835,7 +835,7 @@ void svga_write(uint32_t addr, uint8_t val, void *p)
                 }
                 break;
                 case 2:
-                if (!(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1])
+                if (!(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled))
                 {
                         if (writemask2 & 1) svga->vram[addr]       = (((val & 1) ? 0xff : 0) & svga->gdcreg[8]) | (svga->la & ~svga->gdcreg[8]);
                         if (writemask2 & 2) svga->vram[addr | 0x1] = (((val & 2) ? 0xff : 0) & svga->gdcreg[8]) | (svga->lb & ~svga->gdcreg[8]);
@@ -1045,7 +1045,7 @@ void svga_write_linear(uint32_t addr, uint8_t val, void *p)
                 case 0:
                 if (svga->gdcreg[3] & 7) 
                         val = svga_rotate[svga->gdcreg[3] & 7][val];
-                if (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1])
+                if (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled))
                 {
                         if (writemask2 & 1) svga->vram[addr]       = val;
                         if (writemask2 & 2) svga->vram[addr | 0x1] = val;
@@ -1094,7 +1094,7 @@ void svga_write_linear(uint32_t addr, uint8_t val, void *p)
                 }
                 break;
                 case 2:
-                if (!(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1])
+                if (!(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled))
                 {
                         if (writemask2 & 1) svga->vram[addr]       = (((val & 1) ? 0xff : 0) & svga->gdcreg[8]) | (svga->la & ~svga->gdcreg[8]);
                         if (writemask2 & 2) svga->vram[addr | 0x1] = (((val & 2) ? 0xff : 0) & svga->gdcreg[8]) | (svga->lb & ~svga->gdcreg[8]);

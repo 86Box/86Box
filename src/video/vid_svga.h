@@ -71,6 +71,8 @@ typedef struct svga_t
         uint8_t writemask;
         uint32_t charseta, charsetb;
         
+		int set_reset_disabled;
+		
         uint8_t egapal[16];
         uint32_t pallook[256];
         PALETTE vgapal;

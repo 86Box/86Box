@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.20	2018/02/18
+ * Version:	@(#)vid_table.c	1.0.21	2018/02/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -91,6 +91,7 @@ video_cards[] = {
 #endif
     { "[ISA] CGA",                                  "cga",			&cga_device,                            GFX_CGA,			{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] Chips & Technologies SuperEGA",        "superega",			&sega_device,			        GFX_SUPER_EGA,			{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
+    { "[ISA] Cirrus Logic CL-GD 5428",		    "cl_gd5428_isa",		&gd5428_isa_device,			GFX_CL_GD5428_ISA,		{VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
     { "[ISA] Compaq ATI VGA Wonder XL (ATI-28800-5)","compaq_ati28800",		&compaq_ati28800_device,     		GFX_VGAWONDERXL,		{VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
     { "[ISA] Compaq CGA",                            "compaq_cga",		&compaq_cga_device,              	GFX_COMPAQ_CGA,			{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] Compaq CGA 2",                          "compaq_cga_2",		&compaq_cga_2_device,              	GFX_COMPAQ_CGA_2,		{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
@@ -117,6 +118,7 @@ video_cards[] = {
     {"[PCI] ATI Graphics Pro Turbo (Mach64 GX)",    "mach64gx_pci",		&mach64gx_pci_device,        		GFX_MACH64GX_PCI,		{VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
     {"[PCI] ATI Video Xpression (Mach64 VT2)",      "mach64vt2",		&mach64vt2_device,           		GFX_MACH64VT2,			{VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
     {"[PCI] Cardex Tseng ET4000/w32p",		    "et4000w32p_pci",		&et4000w32p_cardex_pci_device,      	GFX_ET4000W32_CARDEX_PCI,	{VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
+    {"[PCI] Cirrus Logic CL-GD 5430",		    "cl_gd5430_pci",		&gd5430_pci_device,			GFX_CL_GD5430_PCI,		{VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
     {"[PCI] Diamond Stealth 32 (Tseng ET4000/w32p)","stealth32_pci",		&et4000w32p_pci_device,      		GFX_ET4000W32_PCI,		{VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
 #endif
@@ -142,7 +144,8 @@ video_cards[] = {
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
     {"[VLB] Diamond Stealth 32 (Tseng ET4000/w32p)","stealth32_vlb",		&et4000w32p_vlb_device,      		GFX_ET4000W32_VLB,		{VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
 #endif
-    {"[VLB] Diamond SpeedStar PRO (CL-GD5428)",     "cl_gd5428_vlb",		&gd5428_device,				GFX_CL_GD5428,			{VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
+    {"[VLB] Diamond SpeedStar PRO (CL-GD5428)",     "cl_gd5428_vlb",		&gd5428_vlb_device,			GFX_CL_GD5428_VLB,		{VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
+    {"[VLB] Diamond SpeedStar PRO SE (CL-GD5430)",  "cl_gd5430_vlb",		&gd5430_vlb_device,			GFX_CL_GD5430_VLB,		{VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
     {"[VLB] Diamond Stealth 3D 2000 (S3 ViRGE)",    "stealth3d_2000_vlb",	&s3_virge_vlb_device,            	GFX_VIRGE_VLB,			{VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
     {"[VLB] Diamond Stealth 3D 3000 (S3 ViRGE/VX)", "stealth3d_3000_vlb",	&s3_virge_988_vlb_device,        	GFX_VIRGEVX_VLB,		{VIDEO_BUS, 2,  2,  4,  26, 26, 42}},
     {"[VLB] Diamond Stealth 64 DRAM (S3 Trio64)",   "stealth64d_vlb",		&s3_diamond_stealth64_vlb_device,	GFX_STEALTH64_VLB,		{VIDEO_BUS, 2,  2,  4,  26, 26, 42}},
