@@ -70,7 +70,6 @@ enum {
     GFX_MACH64GX_VLB,		/* ATI Graphics Pro Turbo (Mach64) VLB */
     GFX_MACH64GX_PCI,		/* ATI Graphics Pro Turbo (Mach64) PCI */
     GFX_MACH64VT2,  		/* ATI Mach64 VT2 */
-    GFX_CL_GD5422, 		/* Cirrus Logic CL-GD 5422 ISA */
     GFX_CL_GD5428_ISA, 		/* Cirrus Logic CL-GD 5428 ISA */
     GFX_CL_GD5428_VLB,		/* Diamond SpeedStar PRO (Cirrus Logic CL-GD 5428) VLB */
     GFX_CL_GD5429,		/* Cirrus Logic CL-GD 5429 VLB */
