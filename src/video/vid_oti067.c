@@ -186,13 +186,7 @@ oti_recalctimings(svga_t *svga)
 
     if (oti->regs[0x0d] & 0x0c) svga->rowoffset <<= 1;
 
-    if (oti->regs[0x14] & 0x80) {
-	svga->vtotal *= 2;
-	svga->dispend *= 2;
-	svga->vblankstart *= 2;
-	svga->vsyncstart *=2;
-	svga->split *= 2;			
-    }
+	svga->interlace = oti->regs[0x14] & 0x80;
 }
 
 

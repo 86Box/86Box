@@ -56,8 +56,8 @@ enum {
     GFX_N9_9FX_VLB,		/* S3 764/Trio64 (Number Nine 9FX) VLB */
     GFX_N9_9FX_PCI,		/* S3 764/Trio64 (Number Nine 9FX) PCI */
     GFX_TGUI9400CXI,   		/* Trident TGUI9400CXi VLB */
-    GFX_TGUI9440_VLB,   	/* Trident TGUI9440 VLB */
-    GFX_TGUI9440_PCI,   	/* Trident TGUI9440 PCI */
+    GFX_TGUI9440_VLB,   	/* Trident TGUI9440AGi VLB */
+    GFX_TGUI9440_PCI,   	/* Trident TGUI9440AGi PCI */
     GFX_VGA88,  		/* ATI VGA-88 (18800-1) */
     GFX_VGAEDGE16,  		/* ATI VGA Edge-16 (18800-1) */
     GFX_VGACHARGER, 		/* ATI VGA Charger (28800-5) */
@@ -70,11 +70,15 @@ enum {
     GFX_MACH64GX_VLB,		/* ATI Graphics Pro Turbo (Mach64) VLB */
     GFX_MACH64GX_PCI,		/* ATI Graphics Pro Turbo (Mach64) PCI */
     GFX_MACH64VT2,  		/* ATI Mach64 VT2 */
+    GFX_CL_GD5422, 		/* Cirrus Logic CL-GD 5422 ISA */
     GFX_CL_GD5428_ISA, 		/* Cirrus Logic CL-GD 5428 ISA */
     GFX_CL_GD5428_VLB,		/* Diamond SpeedStar PRO (Cirrus Logic CL-GD 5428) VLB */
     GFX_CL_GD5429,		/* Cirrus Logic CL-GD 5429 VLB */
     GFX_CL_GD5430_VLB,		/* Diamond SpeedStar PRO SE (Cirrus Logic CL-GD 5430) PCI */
     GFX_CL_GD5430_PCI,		/* Cirrus Logic CL-GD 5430 PCI */
+	GFX_CL_GD5434_VLB,		/* Cirrus Logic CL-GD 5434 VLB */
+	GFX_CL_GD5434_PCI,		/* Cirrus Logic CL-GD 5434 PCI */
+	GFX_CL_GD5446,		/* Cirrus Logic CL-GD 5446 PCI (coming) */
 #if defined(DEV_BRANCH) && defined(USE_RIVA)
     GFX_RIVATNT,		/* nVidia Riva TNT */
     GFX_RIVATNT2,		/* nVidia Riva TNT2 */

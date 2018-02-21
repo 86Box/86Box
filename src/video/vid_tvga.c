@@ -52,18 +52,6 @@ typedef struct tvga_t
         uint32_t vram_mask;
 } tvga_t;
 
-static uint8_t crtc_mask[0x40] =
-{
-        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-        0x7f, 0xff, 0x3f, 0x7f, 0xff, 0xff, 0xff, 0xff,
-        0xff, 0xff, 0xff, 0xff, 0x7f, 0xff, 0xff, 0xef,
-        0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
-        0x7f, 0x00, 0x00, 0x2f, 0x00, 0x00, 0x00, 0x03,
-        0x00, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
-
 static void tvga_recalcbanking(tvga_t *tvga);
 void tvga_out(uint16_t addr, uint8_t val, void *p)
 {
@@ -135,7 +123,6 @@ void tvga_out(uint16_t addr, uint8_t val, void *p)
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
                         val = (svga->crtc[7] & ~0x10) | (val & 0x10);
                 old = svga->crtc[svga->crtcreg];
-                val &= crtc_mask[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
                 if (old != val)
                 {
@@ -252,15 +239,10 @@ void tvga_recalctimings(svga_t *svga)
                 svga->hdisp_time *= 2;
         }
 	   
-        if (svga->crtc[0x1e] & 4)
-	{
+		svga->interlace = (svga->crtc[0x1e] & 4);
+	   
+        if (svga->interlace)
                 svga->rowoffset >>= 1;
-		svga->vtotal *= 2;
-		svga->dispend *= 2;
-		svga->vblankstart *= 2;
-		svga->vsyncstart *= 2;
-		svga->split *= 2;
-	}
 
         switch (((svga->miscout >> 2) & 3) | ((tvga->newctrl2 << 2) & 4))
         {

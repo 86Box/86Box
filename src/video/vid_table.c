@@ -119,6 +119,7 @@ video_cards[] = {
     {"[PCI] ATI Video Xpression (Mach64 VT2)",      "mach64vt2",		&mach64vt2_device,           		GFX_MACH64VT2,			{VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
     {"[PCI] Cardex Tseng ET4000/w32p",		    "et4000w32p_pci",		&et4000w32p_cardex_pci_device,      	GFX_ET4000W32_CARDEX_PCI,	{VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
     {"[PCI] Cirrus Logic CL-GD 5430",		    "cl_gd5430_pci",		&gd5430_pci_device,			GFX_CL_GD5430_PCI,		{VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
+    {"[PCI] Cirrus Logic CL-GD 5434",		    "cl_gd5434_pci",		&gd5434_pci_device,			GFX_CL_GD5434_PCI,		{VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
     {"[PCI] Diamond Stealth 32 (Tseng ET4000/w32p)","stealth32_pci",		&et4000w32p_pci_device,      		GFX_ET4000W32_PCI,		{VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
 #endif
@@ -141,6 +142,7 @@ video_cards[] = {
     {"[VLB] ATI Graphics Pro Turbo (Mach64 GX)",    "mach64gx_vlb",		&mach64gx_vlb_device,        		GFX_MACH64GX_VLB,		{VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
     {"[VLB] Cardex Tseng ET4000/w32p",		    "et4000w32p_vlb",		&et4000w32p_cardex_vlb_device,      	GFX_ET4000W32_CARDEX_VLB,	{VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
     {"[VLB] Cirrus Logic CL-GD 5429",		    "cl_gd5429_vlb",		&gd5429_device,				GFX_CL_GD5429,			{VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
+    {"[VLB] Cirrus Logic CL-GD 5434",		    "cl_gd5434_vlb",		&gd5434_vlb_device,			GFX_CL_GD5434_VLB,		{VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
     {"[VLB] Diamond Stealth 32 (Tseng ET4000/w32p)","stealth32_vlb",		&et4000w32p_vlb_device,      		GFX_ET4000W32_VLB,		{VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
 #endif
