@@ -132,8 +132,6 @@ typedef struct gd54xx_t
 	int card;
         
 	uint32_t lfb_base;	
-	
-	int mmio_vram_overlap;
 } gd54xx_t;
 
 static void 
@@ -217,6 +215,26 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 		if (gd54xx->ramdac.state == 4) {
 			gd54xx->ramdac.state = 0;
 			gd54xx->ramdac.ctrl = val;
+			
+			switch (svga->seqregs[0x07] & CIRRUS_SR7_BPP_MASK) 
+			{
+				case CIRRUS_SR7_BPP_8:
+					svga->bpp = 8;
+					break;
+				case CIRRUS_SR7_BPP_16_DOUBLEVCLK:
+				case CIRRUS_SR7_BPP_16:
+					if (gd54xx->ramdac.ctrl & 0x01)
+						svga->bpp = 16;
+					else
+						svga->bpp = 15;
+					break;
+				case CIRRUS_SR7_BPP_24:
+					svga->bpp = 24;
+					break;
+				case CIRRUS_SR7_BPP_32:
+					svga->bpp = 32;
+					break;
+			}
 			svga_recalctimings(svga);
 			return;
 		}
@@ -230,14 +248,15 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 	
 		if (svga->gdcaddr == 5) {
 			svga->gdcreg[5] = val;
-			if (svga->gdcreg[0x0b] & 0x04)
-				svga->writemode = val & 7;
+			if (svga->gdcreg[0xb] & 0x04)
+					svga->writemode = svga->gdcreg[5] & 7;
 			else
-				svga->writemode = val & 3;
+					svga->writemode = svga->gdcreg[5] & 3;
 			svga->readmode = val & 8;
 			svga->chain2_read = val & 0x10;
 			return;
 		}
+		
 		if (svga->gdcaddr > 8) {
 			svga->gdcreg[svga->gdcaddr & 0x3f] = val;
 			switch (svga->gdcaddr) {
@@ -467,33 +486,31 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
 	return;
     }
 
-	gd54xx->mmio_vram_overlap = 0;
-	
     if (!(svga->seqregs[7] & 0xf0)) {
 	mem_mapping_disable(&gd54xx->linear_mapping);
 	switch (svga->gdcreg[6] & 0x0C) {
 		case 0x0: /*128k at A0000*/
 			mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
+			mem_mapping_disable(&gd54xx->mmio_mapping);
 			svga->banked_mask = 0xffff;
 			break;
 		case 0x4: /*64k at A0000*/
 			mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
+			if (svga->seqregs[0x17] & 0x04)
+				mem_mapping_set_addr(&gd54xx->mmio_mapping, 0xb8000, 0x00100);
 			svga->banked_mask = 0xffff;
 			break;
 		case 0x8: /*32k at B0000*/
 			mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
+			mem_mapping_disable(&gd54xx->mmio_mapping);
 			svga->banked_mask = 0x7fff;
 			break;
 		case 0xC: /*32k at B8000*/
 			mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
+			mem_mapping_disable(&gd54xx->mmio_mapping);
 			svga->banked_mask = 0x7fff;
-			gd54xx->mmio_vram_overlap = 1;
 			break;
 	}
-	if (svga->seqregs[0x17] & 0x04)
-		mem_mapping_set_addr(&gd54xx->mmio_mapping, 0xb8000, 0x00100);
-	else
-		mem_mapping_disable(&gd54xx->mmio_mapping);
     } else {
 	uint32_t base, size;
 
@@ -532,54 +549,36 @@ gd54xx_recalctimings(svga_t *svga)
 	svga->interlace = (svga->crtc[0x1a] & 0x01);
 
     svga->ma_latch |= ((svga->crtc[0x1b] & 0x01) << 16) | ((svga->crtc[0x1b] & 0xc) << 15);
-	
+
     if (svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) 
 	{
-		svga->render = svga_render_8bpp_highres;
-		svga->bpp = 8;
-    }
+		if (!(svga->gdcreg[5] & 0x60)) /*This is needed for the shutdown screens on Win9x to render correctly*/
+			svga->gdcreg[5] = 0x60;
 	
-	if (gd54xx->ramdac.ctrl & 0x80)
-	{
-			if (gd54xx->ramdac.ctrl & 0x40)
-			{
-					switch (gd54xx->ramdac.ctrl & 0xf)
-					{
-							case 0x0:
-							svga->render = svga_render_15bpp_highres;
-							svga->bpp = 15;
-							break;
-							case 0x1:
-							svga->render = svga_render_16bpp_highres;
-							svga->bpp = 16;
-							break;
-							case 0x5:
-							if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5434 && (svga->seqregs[7] & CIRRUS_SR7_BPP_32))
-							{
-									svga->render = svga_render_32bpp_highres;
-									svga->bpp = 32;
-									svga->rowoffset *= 2;
-							}
-							else if (svga->seqregs[7] & CIRRUS_SR7_BPP_24)
-							{
-									svga->render = svga_render_24bpp_highres;
-									svga->bpp = 24;
-							}
-							else /*I don't know if this is right, but the Win9x shutdown screen needs to be 8bpp right here if the screen was 24 or 32bpp
-									before the shutdown*/
-							{
-									svga->render = svga_render_8bpp_highres;
-									svga->bpp = 8;								
-							}
-							break;
-					}
-			}
-			else
-			{
-					svga->render = svga_render_15bpp_highres; 
-					svga->bpp = 15;
-			}
-	}
+		switch (svga->bpp)
+		{
+			case 8:
+			svga->render = svga_render_8bpp_highres;
+			break;
+			
+			case 15:
+			svga->render = svga_render_15bpp_highres;
+			break;
+			
+			case 16:
+			svga->render = svga_render_16bpp_highres;
+			break;
+			
+			case 24:
+			svga->render = svga_render_24bpp_highres;
+			break;
+			
+			case 32:
+			svga->render = svga_render_32bpp_highres;
+			svga->rowoffset *= 2;
+			break;
+		}
+    }
 
     clocksel = (svga->miscout >> 2) & 3;
 
@@ -739,20 +738,17 @@ gd54xx_write(uint32_t addr, uint8_t val, void *p)
     gd54xx_t *gd54xx = (gd54xx_t *)p;
     svga_t *svga = &gd54xx->svga;	
 	
-	if (!gd54xx->mmio_vram_overlap)
-	{
-		if (gd54xx->blt.sys_tx) {
-		if (gd54xx->blt.mode == CIRRUS_BLTMODE_MEMSYSSRC) {
-			gd54xx->blt.sys_buf &= ~(0xff << (gd54xx->blt.sys_cnt * 8));
-			gd54xx->blt.sys_buf |= (val << (gd54xx->blt.sys_cnt * 8));
-			gd54xx->blt.sys_cnt++;
-			if(gd54xx->blt.sys_cnt >= 4) {
-				gd54xx_blit_dword(gd54xx, svga);
-				gd54xx->blt.sys_cnt = 0;
-			}
+	if (gd54xx->blt.sys_tx) {
+	if (gd54xx->blt.mode == CIRRUS_BLTMODE_MEMSYSSRC) {
+		gd54xx->blt.sys_buf &= ~(0xff << (gd54xx->blt.sys_cnt * 8));
+		gd54xx->blt.sys_buf |= (val << (gd54xx->blt.sys_cnt * 8));
+		gd54xx->blt.sys_cnt++;
+		if(gd54xx->blt.sys_cnt >= 4) {
+			gd54xx_blit_dword(gd54xx, svga);
+			gd54xx->blt.sys_cnt = 0;
 		}
-		return;
-		}
+	}
+	return;
 	}
 
     addr &= svga->banked_mask;
@@ -767,14 +763,11 @@ gd54xx_writew(uint32_t addr, uint16_t val, void *p)
     gd54xx_t *gd54xx = (gd54xx_t *)p;
     svga_t *svga = &gd54xx->svga;
 	
-	if (!gd54xx->mmio_vram_overlap)
+	if (gd54xx->blt.sys_tx)
 	{
-		if (gd54xx->blt.sys_tx)
-		{
-			gd54xx_write(addr, val, gd54xx);
-			gd54xx_write(addr+1, val >> 8, gd54xx);
-			return;
-		}
+		gd54xx_write(addr, val, gd54xx);
+		gd54xx_write(addr+1, val >> 8, gd54xx);
+		return;
 	}
 	
     addr &= svga->banked_mask;
@@ -795,18 +788,15 @@ gd54xx_writel(uint32_t addr, uint32_t val, void *p)
     gd54xx_t *gd54xx = (gd54xx_t *)p;
     svga_t *svga = &gd54xx->svga;
 
-	if (!gd54xx->mmio_vram_overlap)
+	if (gd54xx->blt.sys_tx)
 	{
-		if (gd54xx->blt.sys_tx)
-		{
-			gd54xx_write(addr, val, gd54xx);
-			gd54xx_write(addr+1, val >> 8, gd54xx);
-			gd54xx_write(addr+2, val >> 16, gd54xx);
-			gd54xx_write(addr+3, val >> 24, gd54xx);
-			return;
-		}
+		gd54xx_write(addr, val, gd54xx);
+		gd54xx_write(addr+1, val >> 8, gd54xx);
+		gd54xx_write(addr+2, val >> 16, gd54xx);
+		gd54xx_write(addr+3, val >> 24, gd54xx);
+		return;
 	}
-	
+
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + gd54xx->bank[(addr >> 15) & 1];
 
@@ -1149,9 +1139,8 @@ gd543x_mmio_write(uint32_t addr, uint8_t val, void *p)
 {
     gd54xx_t *gd54xx = (gd54xx_t *)p;
 	svga_t *svga = &gd54xx->svga;
-
-	if ((addr & ~0xff) == 0xb8000) {
-    switch (addr & 0xff) {
+	
+	switch (addr & 0xff) {
 	case 0x00:
 		if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5434)
 				gd54xx->blt.bg_col = (gd54xx->blt.bg_col & 0xffffff00) | val;
@@ -1296,10 +1285,7 @@ gd543x_mmio_write(uint32_t addr, uint8_t val, void *p)
 				gd54xx_start_blit(0, -1, gd54xx, svga);
 		}
 		break;
-    }
 	}
-	else if (gd54xx->mmio_vram_overlap)
-		gd54xx_write(addr, val, gd54xx);
 }
 
 static void
@@ -1307,12 +1293,8 @@ gd543x_mmio_writew(uint32_t addr, uint16_t val, void *p)
 {
 	gd54xx_t *gd54xx = (gd54xx_t *)p;
 	
-	if ((addr & ~0xff) == 0xb8000) {
-		gd543x_mmio_write(addr, val & 0xff, gd54xx);
-		gd543x_mmio_write(addr+1, val >> 8, gd54xx);
-	}
-	else if (gd54xx->mmio_vram_overlap)
-		gd54xx_writew(addr, val, gd54xx);
+	gd543x_mmio_write(addr, val & 0xff, gd54xx);
+	gd543x_mmio_write(addr+1, val >> 8, gd54xx);
 }
 
 static void
@@ -1320,29 +1302,21 @@ gd543x_mmio_writel(uint32_t addr, uint32_t val, void *p)
 {
 	gd54xx_t *gd54xx = (gd54xx_t *)p;
 	
-	if ((addr & ~0xff) == 0xb8000) {
-		gd543x_mmio_write(addr, val & 0xff, gd54xx);
-		gd543x_mmio_write(addr+1, val >> 8, gd54xx);
-		gd543x_mmio_write(addr+2, val >> 16, gd54xx);
-		gd543x_mmio_write(addr+3, val >> 24, gd54xx);
-	}
-	else if (gd54xx->mmio_vram_overlap)
-		gd54xx_writel(addr, val, gd54xx);
+	gd543x_mmio_write(addr, val & 0xff, gd54xx);
+	gd543x_mmio_write(addr+1, val >> 8, gd54xx);
+	gd543x_mmio_write(addr+2, val >> 16, gd54xx);
+	gd543x_mmio_write(addr+3, val >> 24, gd54xx);
 }
 
 static uint8_t
 gd543x_mmio_read(uint32_t addr, void *p)
 {
-	gd54xx_t *gd54xx = (gd54xx_t *)p;
+	//gd54xx_t *gd54xx = (gd54xx_t *)p;
 	
-	if ((addr & ~0xff) == 0xb8000) {
-		switch (addr & 0xff) {
-		case 0x40: /*BLT status*/
-			return 0;
-		}
+	switch (addr & 0xff) {
+	case 0x40: /*BLT status*/
+		return 0;
 	}
-	if (gd54xx->mmio_vram_overlap)
-		return gd54xx_read(addr, gd54xx);
 	
     return 0xff; /*All other registers read-only*/
 }
@@ -1352,11 +1326,7 @@ gd543x_mmio_readw(uint32_t addr, void *p)
 {
 	gd54xx_t *gd54xx = (gd54xx_t *)p;
 	
-	if ((addr & ~0xff) == 0xb8000)
-			return gd543x_mmio_read(addr, gd54xx) | (gd543x_mmio_read(addr+1, gd54xx) << 8);
-	if (gd54xx->mmio_vram_overlap)
-			return gd54xx_readw(addr, gd54xx);
-	return 0xffff;
+	return gd543x_mmio_read(addr, gd54xx) | (gd543x_mmio_read(addr+1, gd54xx) << 8);
 }
 
 static uint32_t
@@ -1364,11 +1334,7 @@ gd543x_mmio_readl(uint32_t addr, void *p)
 {
 	gd54xx_t *gd54xx = (gd54xx_t *)p;
 	
-	if ((addr & ~0xff) == 0xb8000)
-			return gd543x_mmio_read(addr, gd54xx) | (gd543x_mmio_read(addr+1, gd54xx) << 8) | (gd543x_mmio_read(addr+2, gd54xx) << 16) | (gd543x_mmio_read(addr+3, gd54xx) << 24);
-	if (gd54xx->mmio_vram_overlap)
-			return gd54xx_readl(addr, gd54xx);
-	return 0xffffffff;
+	return gd543x_mmio_read(addr, gd54xx) | (gd543x_mmio_read(addr+1, gd54xx) << 8) | (gd543x_mmio_read(addr+2, gd54xx) << 16) | (gd543x_mmio_read(addr+3, gd54xx) << 24);
 }
 
 static void 
@@ -1778,9 +1744,9 @@ static void
 	{
 			case 1: /*1MB*/
 			svga->vram_mask = (1 << 20) - 1;
-			svga->vram_max = 2 << 20;
+			svga->vram_max = 1 << 20;
 			break;
-			case 2: default: /*2MB*/
+			case 2: /*2MB*/
 			svga->vram_mask = (2 << 20) - 1;
 			svga->vram_max = 2 << 20;
 			break;
