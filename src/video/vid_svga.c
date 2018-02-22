@@ -388,13 +388,13 @@ void svga_recalctimings(svga_t *svga)
                         svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
                         svga->hdisp_old = svga->hdisp;                        
                         
-                        switch (svga->gdcreg[5] & 0x60) {
-                                case 0x00: /*16 colours*/
-                                if (svga->seqregs[1] & 8) /*Low res (320)*/
-                                        svga->render = svga_render_4bpp_lowres;
-                                else
-                                        svga->render = svga_render_4bpp_highres;
-                                break;
+						switch (svga->gdcreg[5] & 0x60) {
+                                case 0x00: 
+								if (svga->seqregs[1] & 8) /*Low res (320)*/
+										svga->render = svga_render_4bpp_lowres;
+								else
+										svga->render = svga_render_4bpp_highres;
+								break;
                                 case 0x20: /*4 colours*/
                                 if (svga->seqregs[1] & 8) /*Low res (320)*/
                                         svga->render = svga_render_2bpp_lowres;
@@ -435,7 +435,7 @@ void svga_recalctimings(svga_t *svga)
                                         break;
                                 }
                                 break;
-                        }
+						}
                 }
         }        
 
@@ -645,11 +645,7 @@ void svga_poll(void *p)
                                 if (svga->lowres)
                                    svga->video_res_x /= 2;
 
-                                switch (svga->gdcreg[5] & 0x60) {
-                                        case 0x00:            svga->video_bpp = 4;   break;
-                                        case 0x20:            svga->video_bpp = 2;   break;
-                                        case 0x40: case 0x60: svga->video_bpp = svga->bpp; break;
-                                }
+                                svga->video_bpp = svga->bpp;
                         }
                 }
                 if (svga->vc == svga->vtotal) {
