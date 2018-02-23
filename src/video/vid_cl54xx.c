@@ -413,6 +413,8 @@ gd54xx_in(uint16_t addr, void *p)
     switch (addr) {
 	case 0x3c5:
 		if (svga->seqaddr > 5) {
+			uint8_t temp;
+			
 			switch (svga->seqaddr) {
 				case 6:
 					return ((svga->seqregs[6] & 0x17) == 0x12) ? 0x12 : 0x0f;			
@@ -421,7 +423,27 @@ gd54xx_in(uint16_t addr, void *p)
 				case 0x0f:
 					return svga->seqregs[0x0f];			
 				case 0x17:
-					return svga->seqregs[0x17];
+					temp = svga->seqregs[0x17];
+					temp &= ~(7 << 3);
+					if (svga->crtc[0x27] <= CIRRUS_ID_CLGD5429)
+					{
+						if (gd54xx->vlb)
+							temp |= CIRRUS_BUSTYPE_VLBSLOW;
+						else
+							temp |= CIRRUS_BUSTYPE_ISA;
+					}
+					else
+					{
+						if (gd54xx->pci)
+							temp |= CIRRUS_BUSTYPE_PCI;
+						else if (gd54xx->vlb)
+							temp |= CIRRUS_BUSTYPE_VLBSLOW;
+						else
+							temp |= CIRRUS_BUSTYPE_ISA;
+					}
+					return temp;
+					
+					
 				case 0x1b: case 0x1c: case 0x1d: case 0x1e:
 					return gd54xx->vclk_d[svga->seqaddr-0x1b];
 				case 0x1f:
@@ -504,13 +526,10 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
 	switch (svga->gdcreg[6] & 0x0C) {
 		case 0x0: /*128k at A0000*/
 			mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
-			mem_mapping_disable(&gd54xx->mmio_mapping);
 			svga->banked_mask = 0xffff;
 			break;
 		case 0x4: /*64k at A0000*/
 			mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
-			if (svga->seqregs[0x17] & CIRRUS_MMIO_ENABLE) /*This needs to be strictly here otherwise MMIO wouldn't start correctly under CL-GD5429 drivers and up*/
-					mem_mapping_set_addr(&gd54xx->mmio_mapping, 0xb8000, 0x00100);
 			svga->banked_mask = 0xffff;
 			break;
 		case 0x8: /*32k at B0000*/
@@ -525,6 +544,10 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
 			gd54xx->mmio_vram_overlap = 1;
 			break;
 	}
+	if (svga->seqregs[0x17] & CIRRUS_MMIO_ENABLE)
+			mem_mapping_set_addr(&gd54xx->mmio_mapping, 0xb8000, 0x00100);
+	else
+			mem_mapping_disable(&gd54xx->mmio_mapping);	
     } else {
 	uint32_t base, size;
 
@@ -1811,8 +1834,6 @@ static void
 			break;
 	}	
 
-	svga->seqregs[0x17] = CIRRUS_BUSTYPE_ISA; /*ISA, required by Win3.1 drivers for CL-GD5429 and up*/
-	
     svga->hwcursor.yoff = 32;
     svga->hwcursor.xoff = 0;
 
