@@ -92,6 +92,8 @@ video_cards[] = {
     { "[ISA] CGA",                                  "cga",			&cga_device,                            GFX_CGA,			{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] Chips & Technologies SuperEGA",        "superega",			&sega_device,			        GFX_SUPER_EGA,			{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] Cirrus Logic CL-GD 5428",		    "cl_gd5428_isa",		&gd5428_isa_device,			GFX_CL_GD5428_ISA,		{VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
+    { "[ISA] Cirrus Logic CL-GD 5429",		    "cl_gd5429_isa",		&gd5429_isa_device,			GFX_CL_GD5429_ISA,		{VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
+    { "[ISA] Cirrus Logic CL-GD 5434",		    "cl_gd5434_isa",		&gd5434_isa_device,			GFX_CL_GD5434_ISA,		{VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
     { "[ISA] Compaq ATI VGA Wonder XL (ATI-28800-5)","compaq_ati28800",		&compaq_ati28800_device,     		GFX_VGAWONDERXL,		{VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
     { "[ISA] Compaq CGA",                            "compaq_cga",		&compaq_cga_device,              	GFX_COMPAQ_CGA,			{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] Compaq CGA 2",                          "compaq_cga_2",		&compaq_cga_2_device,              	GFX_COMPAQ_CGA_2,		{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
@@ -141,7 +143,7 @@ video_cards[] = {
     {"[PCI] Trident TGUI9440",                      "tgui9440_pci",		&tgui9440_pci_device,            	GFX_TGUI9440_PCI,		{VIDEO_BUS, 4,  8, 16,   4,  8, 16}},
     {"[VLB] ATI Graphics Pro Turbo (Mach64 GX)",    "mach64gx_vlb",		&mach64gx_vlb_device,        		GFX_MACH64GX_VLB,		{VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
     {"[VLB] Cardex Tseng ET4000/w32p",		    "et4000w32p_vlb",		&et4000w32p_cardex_vlb_device,      	GFX_ET4000W32_CARDEX_VLB,	{VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
-    {"[VLB] Cirrus Logic CL-GD 5429",		    "cl_gd5429_vlb",		&gd5429_device,				GFX_CL_GD5429,			{VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
+    {"[VLB] Cirrus Logic CL-GD 5429",		    "cl_gd5429_vlb",		&gd5429_vlb_device,			GFX_CL_GD5429_VLB,		{VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
     {"[VLB] Cirrus Logic CL-GD 5434",		    "cl_gd5434_vlb",		&gd5434_vlb_device,			GFX_CL_GD5434_VLB,		{VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
     {"[VLB] Diamond Stealth 32 (Tseng ET4000/w32p)","stealth32_vlb",		&et4000w32p_vlb_device,      		GFX_ET4000W32_VLB,		{VIDEO_BUS, 4,  4,  4,  10, 10, 10}},

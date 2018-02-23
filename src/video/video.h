@@ -70,11 +70,15 @@ enum {
     GFX_MACH64GX_VLB,		/* ATI Graphics Pro Turbo (Mach64) VLB */
     GFX_MACH64GX_PCI,		/* ATI Graphics Pro Turbo (Mach64) PCI */
     GFX_MACH64VT2,  		/* ATI Mach64 VT2 */
+    GFX_CL_GD5424_ISA, 		/* Cirrus Logic CL-GD 5424 ISA */
+    GFX_CL_GD5424_VLB, 		/* Cirrus Logic CL-GD 5424 VLB */
     GFX_CL_GD5428_ISA, 		/* Cirrus Logic CL-GD 5428 ISA */
     GFX_CL_GD5428_VLB,		/* Diamond SpeedStar PRO (Cirrus Logic CL-GD 5428) VLB */
-    GFX_CL_GD5429,		/* Cirrus Logic CL-GD 5429 VLB */
+    GFX_CL_GD5429_ISA, 		/* Cirrus Logic CL-GD 5429 ISA */
+    GFX_CL_GD5429_VLB,		/* Cirrus Logic CL-GD 5429 VLB */
     GFX_CL_GD5430_VLB,		/* Diamond SpeedStar PRO SE (Cirrus Logic CL-GD 5430) PCI */
     GFX_CL_GD5430_PCI,		/* Cirrus Logic CL-GD 5430 PCI */
+    GFX_CL_GD5434_ISA, 		/* Cirrus Logic CL-GD 5434 ISA */
 	GFX_CL_GD5434_VLB,		/* Cirrus Logic CL-GD 5434 VLB */
 	GFX_CL_GD5434_PCI,		/* Cirrus Logic CL-GD 5434 PCI */
 	GFX_CL_GD5446,		/* Cirrus Logic CL-GD 5446 PCI (coming) */
@@ -83,6 +87,7 @@ enum {
     GFX_RIVATNT2,		/* nVidia Riva TNT2 */
     GFX_RIVA128,		/* nVidia Riva 128 */
 #endif
+    GFX_OTI037C,     		/* Oak OTI-037C */
     GFX_OTI067,     		/* Oak OTI-067 */
     GFX_OTI077,     		/* Oak OTI-077 */
     GFX_PVGA1A,			/* Paradise PVGA1A Standalone */
