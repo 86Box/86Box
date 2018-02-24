@@ -6,9 +6,9 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Oak OTI067/077 emulation.
+ *		Oak OTI037C/67/077 emulation.
  *
- * Version:	@(#)vid_oti067.c	1.0.4	2018/02/03
+ * Version:	@(#)vid_oak_oti.c	1.0.5	2018/02/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -27,10 +27,10 @@
 #include "../rom.h"
 #include "../device.h"
 #include "video.h"
-#include "vid_oti067.h"
+#include "vid_oak_oti.h"
 #include "vid_svga.h"
 
-
+#define BIOS_37C_PATH	L"roms/video/oti/oti037c/bios.bin"
 #define BIOS_67_PATH	L"roms/video/oti/bios.bin"
 #define BIOS_77_PATH	L"roms/video/oti/oti077.vbi"
 
@@ -45,6 +45,8 @@ typedef struct {
 
     uint8_t pos;
 
+	uint8_t enable_register;
+	
     uint32_t vram_size;
     uint32_t vram_mask;
 
@@ -58,24 +60,32 @@ oti_out(uint16_t addr, uint8_t val, void *p)
     oti_t *oti = (oti_t *)p;
     svga_t *svga = &oti->svga;
     uint8_t old;
+	uint8_t idx;
 
+	if (!(oti->enable_register & 1) && addr != 0x3C3)
+			return;	
+	
     if ((((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && addr < 0x3de) &&
 	!(svga->miscout & 1)) addr ^= 0x60;
 
     switch (addr) {
+	case 0x3C3:
+		oti->enable_register = val & 1;
+		return;
+		
 	case 0x3D4:
-		svga->crtcreg = val & 31;
+		svga->crtcreg = val;
 		return;
 
 	case 0x3D5:
-		if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
+		if (((svga->crtcreg & 31) < 7) && (svga->crtc[0x11] & 0x80))
 			return;
-		if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
+		if (((svga->crtcreg & 31) == 7) && (svga->crtc[0x11] & 0x80))
 			val = (svga->crtc[7] & ~0x10) | (val & 0x10);
-		old = svga->crtc[svga->crtcreg];
-		svga->crtc[svga->crtcreg] = val;
+		old = svga->crtc[svga->crtcreg & 31];
+		svga->crtc[svga->crtcreg & 31] = val;
 		if (old != val) {
-			if (svga->crtcreg < 0xE || svga->crtcreg > 0x10) {
+			if ((svga->crtcreg & 31) < 0xE || (svga->crtcreg & 31) > 0x10) {
 				svga->fullchange = changeframecount;
 				svga_recalctimings(svga);
 			}
@@ -83,20 +93,31 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 		break;
 
 	case 0x3DE: 
-		oti->index = val & 0x1f; 
+		oti->index = val; 
 		return;
 
 	case 0x3DF:
-		oti->regs[oti->index] = val;
-		switch (oti->index) {
+		idx = oti->index & 0x1f;
+		oti->regs[idx] = val;
+		switch (idx) {
 			case 0xD:
-				svga->vram_display_mask = (val & 0xc) ? oti->vram_mask : 0x3ffff;
-				if ((val & 0x80) && oti->vram_size == 256)
-					mem_mapping_disable(&svga->mapping);
+				if (oti->chip_id)
+				{
+					svga->vram_display_mask = (val & 0xc) ? oti->vram_mask : 0x3ffff;
+					if ((val & 0x80) && oti->vram_size == 256)
+						mem_mapping_disable(&svga->mapping);
+					else
+						mem_mapping_enable(&svga->mapping);
+					if (!(val & 0x80))
+						svga->vram_display_mask = 0x3ffff;
+				}
 				else
-					mem_mapping_enable(&svga->mapping);
-				if (!(val & 0x80))
-					svga->vram_display_mask = 0x3ffff;
+				{
+					if (val & 0x80)
+							mem_mapping_disable(&svga->mapping);
+					else
+							mem_mapping_enable(&svga->mapping);
+				}
 				break;
 
 			case 0x11:
@@ -118,16 +139,23 @@ oti_in(uint16_t addr, void *p)
     svga_t *svga = &oti->svga;
     uint8_t temp;
 	
+	if (!(oti->enable_register & 1) && addr != 0x3C3)
+			return 0xff;	
+	
     if ((((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && addr < 0x3de) &&
 	!(svga->miscout & 1)) addr ^= 0x60;
 	
     switch (addr) {
+	case 0x3C3:
+		temp = oti->enable_register;
+		break;
+		
 	case 0x3D4:
 		temp = svga->crtcreg;
 		break;
 
 	case 0x3D5:
-		temp = svga->crtc[svga->crtcreg];
+		temp = svga->crtc[svga->crtcreg & 31];
 		break;
 		
 	case 0x3DE: 
@@ -135,10 +163,10 @@ oti_in(uint16_t addr, void *p)
 		break;	       
 
 	case 0x3DF: 
-		if (oti->index==0x10)
+		if ((oti->index & 0x1f)==0x10)
 			temp = 0x18;
 		  else
-			temp = oti->regs[oti->index];
+			temp = oti->regs[oti->index & 0x1f];
 		break;
 
 	default:
@@ -200,6 +228,10 @@ oti_init(device_t *info)
     oti->chip_id = info->local;
 
     switch(oti->chip_id) {
+	case 0:
+		romfn = BIOS_37C_PATH;
+		break;		
+		
 	case 2:
 		romfn = BIOS_67_PATH;
 		break;
@@ -220,9 +252,12 @@ oti_init(device_t *info)
 
     io_sethandler(0x03c0, 32,
 		  oti_in, NULL, NULL, oti_out, NULL, NULL, oti);
-    io_sethandler(0x46e8, 1, oti_pos_in,NULL,NULL, oti_pos_out,NULL,NULL, oti);
-    oti->svga.miscout = 1;
+	io_sethandler(0x46e8, 1, oti_pos_in,NULL,NULL, oti_pos_out,NULL,NULL, oti);
+    
+	oti->svga.miscout = 1;
 
+	oti->regs[0] = 0x08; /* fixme: bios wants to read this at index 0? this index is undocumented */
+	
     return(oti);
 }
 
@@ -264,6 +299,11 @@ oti_add_status_info(char *s, int max_len, void *p)
     svga_add_status_info(s, max_len, &oti->svga);
 }
 
+static int
+oti037c_available(void)
+{
+    return(rom_present(BIOS_37C_PATH));
+}
 
 static int
 oti067_available(void)
@@ -325,6 +365,18 @@ static device_config_t oti077_config[] =
 	}
 };
 
+device_t oti037c_device =
+{
+	"Oak OTI-037C",
+	DEVICE_ISA,
+	0,
+	oti_init, oti_close, NULL,
+	oti037c_available,
+	oti_speed_changed,
+	oti_force_redraw,
+	oti_add_status_info,
+	oti067_config
+};
 
 device_t oti067_device =
 {

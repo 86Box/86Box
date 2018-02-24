@@ -51,7 +51,7 @@
 #  include "vid_nv_riva128.h"
 # endif
 #endif
-#include "vid_oti067.h"
+#include "vid_oak_oti.h"
 #include "vid_paradise.h"
 #include "vid_s3.h"
 #include "vid_s3_virge.h"
@@ -104,6 +104,7 @@ video_cards[] = {
     { "[ISA] Hercules InColor",                      "incolor",			&incolor_device,             		GFX_INCOLOR,			{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] MDA",                                   "mda",			&mda_device,                 		GFX_MDA,			{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] MDSI Genius",                           "genius",            	&genius_device,              		GFX_GENIUS,			{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
+	{"[ISA] OAK OTI-037C",                          "oti037c",			&oti037c_device,              		GFX_OTI037C,		{VIDEO_ISA, 6,  8, 16,   6,  8, 16}},
 	{"[ISA] OAK OTI-067",                           "oti067",			&oti067_device,              		GFX_OTI067,			{VIDEO_ISA, 6,  8, 16,   6,  8, 16}},
     {"[ISA] OAK OTI-077",                           "oti077",			&oti077_device,              		GFX_OTI077,			{VIDEO_ISA, 6,  8, 16,   6,  8, 16}},
     {"[ISA] Paradise PVGA1A",             	     "pvga1a",			&paradise_pvga1a_device,    		GFX_PVGA1A,			{VIDEO_ISA, 8, 16, 32,   8, 16, 32}},

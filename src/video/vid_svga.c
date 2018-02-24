@@ -298,10 +298,44 @@ uint8_t svga_in(uint16_t addr, void *p)
                 return svga->gdcreg[svga->gdcaddr & 0xf];
                 case 0x3DA:
                 svga->attrff = 0;
+                svga->attrff = 0;
+
+                /* old diagnostic code
                 if (svga->cgastat & 0x01)
                         svga->cgastat &= ~0x30;
                 else
                         svga->cgastat ^= 0x30;
+                return svga->cgastat;
+                */
+                svga->cgastat &= ~0x30;
+                /* copy color diagnostic info from the overscan color register */
+                switch (svga->attrregs[0x12] & 0x30)
+                {
+                        case 0x00: /* P0 and P2 */
+                        if (svga->attrregs[0x11] & 0x01)
+                                svga->cgastat |= 0x10;
+                        if (svga->attrregs[0x11] & 0x04)
+                                svga->cgastat |= 0x20;
+                        break;
+                        case 0x10: /* P4 and P5 */
+                        if (svga->attrregs[0x11] & 0x10)
+                                svga->cgastat |= 0x10;
+                        if (svga->attrregs[0x11] & 0x20)
+                                svga->cgastat |= 0x20;
+                        break;
+                        case 0x20: /* P1 and P3 */
+                        if (svga->attrregs[0x11] & 0x02)
+                                svga->cgastat |= 0x10;
+                        if (svga->attrregs[0x11] & 0x08)
+                                svga->cgastat |= 0x20;
+                        break;
+                        case 0x30: /* P6 and P7 */
+                        if (svga->attrregs[0x11] & 0x40)
+                                svga->cgastat |= 0x10;
+                        if (svga->attrregs[0x11] & 0x80)
+                                svga->cgastat |= 0x20;
+                        break;
+                }
                 return svga->cgastat;
         }
         return 0xFF;
@@ -508,7 +542,7 @@ void svga_poll(void *p)
                         }
                         
                         if (svga->hwcursor_on || svga->overlay_on)
-                                svga->changedvram[svga->ma >> 12] = svga->changedvram[(svga->ma >> 12) + 1] = svga->interlace ? 3 : 2;;
+                                svga->changedvram[svga->ma >> 12] = svga->changedvram[(svga->ma >> 12) + 1] = svga->interlace ? 3 : 2;
                       
                         if (!svga->override)
                                 svga->render(svga);
