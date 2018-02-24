@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.14	2018/02/01
+ * Version:	@(#)video.c	1.0.15	2018/02/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -351,6 +351,7 @@ static video_timings_t timing_wd90c11  = {VIDEO_ISA, 3, 3, 6, 5, 5,10};
 static video_timings_t timing_vga      = {VIDEO_ISA, 8,16,32, 8,16,32};
 static video_timings_t timing_ps1_svga = {VIDEO_ISA, 6, 8,16, 6, 8,16};
 static video_timings_t timing_t3100e   = {VIDEO_ISA, 8,16,32, 8,16,32};
+static video_timings_t timing_endeavor = {VIDEO_BUS, 3, 2, 4,25,25,40};
 
 void
 video_update_timing(void)
@@ -401,6 +402,9 @@ video_update_timing(void)
 			break;
 		case ROM_T3100E:
 			timing = &timing_t3100e;
+			break;
+		case ROM_ENDEAVOR:
+			timing = &timing_endeavor;
 			break;
 		default:
 			new_gfxcard = video_old_to_new(gfxcard);
