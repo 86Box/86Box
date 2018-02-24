@@ -8,7 +8,7 @@
  *
  *		Implementation of the XT-style keyboard.
  *
- * Version:	@(#)keyboard_xt.c	1.0.8	2018/02/02
+ * Version:	@(#)keyboard_xt.c	1.0.9	2018/02/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -461,9 +461,9 @@ kbd_read(uint16_t port, void *priv)
     switch (port) {
 	case 0x60:
 		if ((romset == ROM_IBMPC) && (kbd->pb & 0x80)) {
-			if (EGA_VGA)
+			if (video_is_ega_vga())
 				ret = 0x4d;
-			  else if (MDA)
+			  else if (video_is_mda())
 				ret = 0x7d;
 			  else
 				ret = 0x6d;
@@ -483,9 +483,9 @@ kbd_read(uint16_t port, void *priv)
 				ret = ((mem_size-64) / 32) >> 4;
 		} else {
 			if (kbd->pb & 0x08) {
-				if (EGA_VGA)
+				if (video_is_ega_vga())
 					ret = 0x4;
-				  else if (MDA)
+				  else if (video_is_mda())
 					ret = 0x7;
 				  else
 					ret = 0x6;
