@@ -32,6 +32,7 @@
 #include "../floppy/fdc.h"
 #include "../game/gameport.h"
 #include "../keyboard.h"
+#include "../lpt.h"
 #include "machine.h"
 
 
@@ -50,6 +51,8 @@ machine_xt_compaq_init(machine_t *model)
 
     switch(model->id) {
 	case ROM_PORTABLE:
+		lpt1_remove();
+		lpt1_init(0x03bc);
 		break;
     }
 }
