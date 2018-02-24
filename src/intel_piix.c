@@ -10,7 +10,7 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)intel_piix.c	1.0.12	2018/02/14
+ * Version:	@(#)intel_piix.c	1.0.13	2018/02/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -77,24 +77,12 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
                         card_piix_ide[0x40] = val;
                         break;
                         case 0x41:
-                        if ((val ^ card_piix_ide[0x41]) & 0x80)
-                        {
-                                ide_pri_disable();
-                                if (val & 0x80)
-                                        ide_pri_enable();
-                        }
                         card_piix_ide[0x41] = val;
                         break;
                         case 0x42:
                         card_piix_ide[0x42] = val;
                         break;
                         case 0x43:
-                        if ((val ^ card_piix_ide[0x43]) & 0x80)
-                        {
-                                ide_sec_disable();
-                                if (val & 0x80)
-                                   ide_sec_enable();                                  
-                        }
                         card_piix_ide[0x43] = val;
                         break;
 			case 0x44:
@@ -108,6 +96,18 @@ void piix_write(int func, int addr, uint8_t val, void *priv)
 	                        io_removehandler(old_base, 0x10, piix_bus_master_read, NULL, NULL, piix_bus_master_write, NULL, NULL,  NULL);
                         if ((card_piix_ide[0x04] & 1) && base)
 				io_sethandler(base, 0x10, piix_bus_master_read, NULL, NULL, piix_bus_master_write, NULL, NULL,  NULL);
+                }
+                if (addr == 4 || addr == 0x41 || addr == 0x43)
+                {
+                        ide_pri_disable();
+                        ide_sec_disable();
+                        if (card_piix_ide[0x04] & 1)
+                        {
+                                if (card_piix_ide[0x41] & 0x80)
+                                        ide_pri_enable();
+                                if (card_piix_ide[0x43] & 0x80)
+                                        ide_sec_enable();
+                        }
                 }
         }
         else
@@ -673,7 +673,7 @@ void piix_reset(void)
 
         card_piix_ide[0x00] = 0x86; card_piix_ide[0x01] = 0x80; /*Intel*/
         card_piix_ide[0x02] = 0x30; card_piix_ide[0x03] = 0x12; /*82371FB (PIIX)*/
-        card_piix_ide[0x04] = 0x07; card_piix_ide[0x05] = 0x00;
+        card_piix_ide[0x04] = 0x02; card_piix_ide[0x05] = 0x00;
         card_piix_ide[0x06] = 0x80; card_piix_ide[0x07] = 0x02;
         card_piix_ide[0x08] = 0x00;
         card_piix_ide[0x09] = 0x80; card_piix_ide[0x0a] = 0x01; card_piix_ide[0x0b] = 0x01;
@@ -685,6 +685,9 @@ void piix_reset(void)
 
 	pci_set_mirq_routing(PCI_MIRQ0, PCI_IRQ_DISABLED);
 	pci_set_mirq_routing(PCI_MIRQ1, PCI_IRQ_DISABLED);
+
+	ide_pri_disable();
+	ide_sec_disable();
 }
 
 void piix3_reset(void)
@@ -717,7 +720,7 @@ void piix3_reset(void)
 
         card_piix_ide[0x00] = 0x86; card_piix_ide[0x01] = 0x80; /*Intel*/
         card_piix_ide[0x02] = 0x10; card_piix_ide[0x03] = 0x70; /*82371SB (PIIX3)*/
-        card_piix_ide[0x04] = 0x07; card_piix_ide[0x05] = 0x00;
+        card_piix_ide[0x04] = 0x02; card_piix_ide[0x05] = 0x00;
         card_piix_ide[0x06] = 0x80; card_piix_ide[0x07] = 0x02;
         card_piix_ide[0x08] = 0x00;
         card_piix_ide[0x09] = 0x80; card_piix_ide[0x0a] = 0x01; card_piix_ide[0x0b] = 0x01;
@@ -729,6 +732,9 @@ void piix3_reset(void)
 	card_piix_ide[0x44] = 0x00;
 
 	pci_set_mirq_routing(PCI_MIRQ0, PCI_IRQ_DISABLED);
+
+	ide_pri_disable();
+	ide_sec_disable();
 }
 
 void piix_init(int card)

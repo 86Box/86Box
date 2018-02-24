@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430FX PCISet chip.
  *
- * Version:	@(#)m_at_430fx.c	1.0.12	2018/02/14
+ * Version:	@(#)m_at_430fx.c	1.0.13	2018/02/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -31,6 +31,7 @@
 #include "../intel_flash.h"
 #include "../sio.h"
 #include "../video/video.h"
+#include "../video/vid_cl54xx.h"
 #include "../video/vid_s3.h"
 #include "machine.h"
 
@@ -158,7 +159,7 @@ static void i430fx_reset(void)
 {
         memset(card_i430fx, 0, 256);
         card_i430fx[0x00] = 0x86; card_i430fx[0x01] = 0x80; /*Intel*/
-        card_i430fx[0x02] = 0x22; card_i430fx[0x03] = 0x01; /*SB82437FX-66*/
+        card_i430fx[0x02] = 0x2d; card_i430fx[0x03] = 0x16; /*SB82437FX-66*/
         card_i430fx[0x04] = 0x06; card_i430fx[0x05] = 0x00;
         card_i430fx[0x06] = 0x00; card_i430fx[0x07] = 0x82;
 	if (romset == ROM_MB500N)  card_i430fx[0x07] = 0x02;
