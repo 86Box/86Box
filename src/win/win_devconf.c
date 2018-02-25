@@ -8,7 +8,7 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_devconf.c	1.0.12	2018/02/18
+ * Version:	@(#)win_devconf.c	1.0.13	2018/02/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -83,7 +83,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                         val_int = config_get_int((char *) config_device->name, (char *) config->name, config->default_int);
                                         
                                         c = 0;
-                                        while (selection->description[0])
+                                        while (selection->description && selection->description[0])
                                         {
 						mbstowcs(lptsTemp, selection->description, strlen(selection->description) + 1);
                                                 SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
