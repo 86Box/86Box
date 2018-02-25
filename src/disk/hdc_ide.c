@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.27	2018/02/25
+ * Version:	@(#)hdc_ide.c	1.0.28	2018/02/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1137,7 +1137,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 		{
 			cdrom[atapi_cdrom_drives[ide->channel]].error = 0;
 		}
-		if (val >= WIN_SEEK) && (val <= 0x7F)
+		if ((val >= WIN_SEEK) && (val <= 0x7F))
 		{
 			if (ide_drive_is_zip(ide))
 			{
