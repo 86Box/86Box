@@ -1524,7 +1524,7 @@ gd54xx_start_blit(uint32_t cpu_dat, int count, gd54xx_t *gd54xx, svga_t *svga)
 	if (gd54xx->blt.mode & CIRRUS_BLTMODE_MEMSYSSRC) {
 		if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) {
 			
-			if (gd54xx->blt.mode & CIRRUS_BLTMODEEXT_DWORDGRANULARITY)
+			if (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY)
 				mask = (cpu_dat >> 31);
 			else
 				mask = cpu_dat & 0x80;
