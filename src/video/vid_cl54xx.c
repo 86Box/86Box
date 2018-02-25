@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (currently
  *		CL-GD 5428, 5429, 5430 and 5434 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.2	2018/02/23
+ * Version:	@(#)vid_cl_54xx.c	1.0.3	2018/02/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,
@@ -879,9 +879,9 @@ gd54xx_write_linear(uint32_t addr, uint8_t val, gd54xx_t *gd54xx)
 	addr <<= 2;
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
-	return;
+		return;
     addr &= svga->vram_mask;
-    svga->changedvram[addr >> 12]=changeframecount;
+	svga->changedvram[addr >> 12]=changeframecount;
 
     switch (svga->writemode) {
 	case 4:
@@ -1099,16 +1099,16 @@ gd54xx_writew_linear(uint32_t addr, uint16_t val, void *p)
     gd54xx_t *gd54xx = (gd54xx_t *)svga->p;
 
     if (gd54xx->blt.sys_tx) {
-	gd54xx_writeb_linear(addr, val, p);
-	gd54xx_writeb_linear(addr+1, val >> 8, p);
+	gd54xx_writeb_linear(addr, val, svga);
+	gd54xx_writeb_linear(addr+1, val >> 8, svga);
 	return;
     }
 
     if (svga->writemode < 4)
 	svga_writew_linear(addr, val, svga);
     else {
-	gd54xx_write_linear(addr, val & 0xff, p);
-	gd54xx_write_linear(addr+1, val >> 8, p);
+	gd54xx_write_linear(addr, val & 0xff, gd54xx);
+	gd54xx_write_linear(addr+1, val >> 8, gd54xx);
     }
 }
 
@@ -1120,20 +1120,20 @@ gd54xx_writel_linear(uint32_t addr, uint32_t val, void *p)
     gd54xx_t *gd54xx = (gd54xx_t *)svga->p;
 
     if (gd54xx->blt.sys_tx) {
-	gd54xx_writeb_linear(addr, val, p);
-	gd54xx_writeb_linear(addr+1, val >> 8, p);
-	gd54xx_writeb_linear(addr+2, val >> 16, p);
-	gd54xx_writeb_linear(addr+3, val >> 24, p);
+	gd54xx_writeb_linear(addr, val, svga);
+	gd54xx_writeb_linear(addr+1, val >> 8, svga);
+	gd54xx_writeb_linear(addr+2, val >> 16, svga);
+	gd54xx_writeb_linear(addr+3, val >> 24, svga);
 	return;
     }
 	
     if (svga->writemode < 4)
 	svga_writel_linear(addr, val, svga);
     else {
-	gd54xx_write_linear(addr, val & 0xff, p);
-	gd54xx_write_linear(addr+1, val >> 8, p);
-	gd54xx_write_linear(addr+2, val >> 16, p);
-	gd54xx_write_linear(addr+3, val >> 24, p);
+	gd54xx_write_linear(addr, val & 0xff, gd54xx);
+	gd54xx_write_linear(addr+1, val >> 8, gd54xx);
+	gd54xx_write_linear(addr+2, val >> 16, gd54xx);
+	gd54xx_write_linear(addr+3, val >> 24, gd54xx);
     }
 }
 

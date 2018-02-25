@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.59	2018/02/14
+ * Version:	@(#)pc.c	1.0.60	2018/02/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1179,10 +1179,10 @@ set_screen_size(int x, int y)
 	dty = (double)temp_overscan_y;
 
 	/* Account for possible overscan. */
-	if (!(VGA) && (temp_overscan_y == 16)) {
+	if (!(video_is_ega_vga()) && (temp_overscan_y == 16)) {
 		/* CGA */
 		dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-	} else if (!(VGA) && (temp_overscan_y < 16)) {
+	} else if (!(video_is_ega_vga()) && (temp_overscan_y < 16)) {
 		/* MDA/Hercules */
 		dy = (x / 4.0) * 3.0;
 	} else {
