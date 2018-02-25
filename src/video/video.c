@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.15	2018/02/23
+ * Version:	@(#)video.c	1.0.16	2018/02/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -71,7 +71,6 @@ enum {
     VIDEO_ISA = 0,
     VIDEO_BUS
 };
-
 
 bitmap_t	*screen = NULL,
 		*buffer = NULL,

@@ -8,7 +8,7 @@
  *
  *		Emulation of various Compaq XT-class PC's.
  *
- * Version:	@(#)m_xt_compaq.c	1.0.2	2018/01/16
+ * Version:	@(#)m_xt_compaq.c	1.0.3	2018/02/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -32,6 +32,7 @@
 #include "../floppy/fdc.h"
 #include "../game/gameport.h"
 #include "../keyboard.h"
+#include "../lpt.h"
 #include "machine.h"
 
 
@@ -50,6 +51,8 @@ machine_xt_compaq_init(machine_t *model)
 
     switch(model->id) {
 	case ROM_PORTABLE:
+		lpt1_remove();
+		lpt1_init(0x03bc);
 		break;
     }
 }

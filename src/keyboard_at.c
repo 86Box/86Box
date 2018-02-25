@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.25	2018/01/18
+ * Version:	@(#)keyboard_at.c	1.0.26	2018/02/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1837,7 +1837,7 @@ kbd_reset(void *priv)
     kbd->mem[0] = 0x01;
     kbd->wantirq = 0;
     kbd_output_write(kbd, 0xcf);
-    kbd->input_port = (MDA) ? 0xf0 : 0xb0;
+    kbd->input_port = (video_is_mda()) ? 0xf0 : 0xb0;
     kbd->out_new = -1;
     kbd->last_irq = 0;
     kbd->secr_phase = 0;

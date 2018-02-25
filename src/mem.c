@@ -1020,10 +1020,6 @@ void mem_write_raml(uint32_t addr, uint32_t val, void *priv)
 
 uint8_t mem_read_bios(uint32_t addr, void *priv)
 {
-	if (AMIBIOS && (addr&0xFFFFF)==0xF8281) /*This is read constantly during AMIBIOS POST, but is never written to. It's clearly a status register of some kind, but for what?*/
-	{
-		return 0x40;
-	}
         return rom[addr & biosmask];
 }
 uint16_t mem_read_biosw(uint32_t addr, void *priv)

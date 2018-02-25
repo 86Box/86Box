@@ -314,7 +314,7 @@ int64_t pit_get_timer_0()
 static int64_t pit_read_timer(PIT *pit, int64_t t)
 {
         timer_clock();
-        if (pit->using_timer[t])
+        if (pit->using_timer[t] && !(pit->m[t] == 3 && !pit->gate[t]))
         {
                 int64_t read = (int64_t)((pit->c[t] + ((1 << TIMER_SHIFT) - 1)) / PITCONST) >> TIMER_SHIFT;
                 if (pit->m[t] == 2)
