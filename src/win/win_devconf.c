@@ -8,7 +8,7 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_devconf.c	1.0.14	2018/02/25
+ * Version:	@(#)win_devconf.c	1.0.15	2018/02/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -134,7 +134,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                         val_int = config_get_hex16((char *) config_device->name, (char *) config->name, config->default_int);
                                         
                                         c = 0;
-                                        while (selection->description[0])
+                                        while (selection->description && selection->description[0])
                                         {
 						mbstowcs(lptsTemp, selection->description, strlen(selection->description) + 1);
                                                 SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
@@ -151,7 +151,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                         val_int = config_get_hex20((char *) config_device->name, (char *) config->name, config->default_int);
                                         
                                         c = 0;
-                                        while (selection->description[0])
+                                        while (selection->description && selection->description[0])
                                         {
 						mbstowcs(lptsTemp, selection->description, strlen(selection->description) + 1);
                                                 SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
@@ -404,14 +404,14 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                                 file_filter[0] = 0;
 
                                                                 c = 0;
-                                                                while (config->file_filter[c].description[0])
+                                                                while (config->file_filter[c].description && config->file_filter[c].description[0])
                                                                 {
                                                                         if (c > 0)
                                                                                 strcat(file_filter, "|");
                                                                         strcat(file_filter, config->file_filter[c].description);
                                                                         strcat(file_filter, " (");
                                                                         d = 0;
-                                                                        while (config->file_filter[c].extensions[d][0])
+                                                                        while (config->file_filter[c].extensions[d] && config->file_filter[c].extensions[d][0])
                                                                         {
                                                                                 if (d > 0)
                                                                                         strcat(file_filter, ";");
