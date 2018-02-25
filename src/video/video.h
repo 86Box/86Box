@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.20	2018/02/24
+ * Version:	@(#)video.h	1.0.21	2018/02/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -81,7 +81,7 @@ enum {
     GFX_CL_GD5434_ISA, 		/* Cirrus Logic CL-GD 5434 ISA */
 	GFX_CL_GD5434_VLB,		/* Cirrus Logic CL-GD 5434 VLB */
 	GFX_CL_GD5434_PCI,		/* Cirrus Logic CL-GD 5434 PCI */
-	GFX_CL_GD5446,		/* Cirrus Logic CL-GD 5446 PCI (coming) */
+	GFX_CL_GD5436_PCI,		/* Cirrus Logic CL-GD 5436 PCI */
 #if defined(DEV_BRANCH) && defined(USE_RIVA)
     GFX_RIVATNT,		/* nVidia Riva TNT */
     GFX_RIVATNT2,		/* nVidia Riva TNT2 */
