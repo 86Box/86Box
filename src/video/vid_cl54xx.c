@@ -1457,8 +1457,17 @@ gd54xx_start_blit(uint32_t cpu_dat, int count, gd54xx_t *gd54xx, svga_t *svga)
 	case CIRRUS_BLTMODE_PIXELWIDTH24:
 		if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5436)
 		{
-			blt_mask = (gd54xx->blt.mask & 0x1f) / 3;
 			x_max = 24;
+			if (gd54xx->blt.mode & CIRRUS_BLTMODE_PATTERNCOPY)
+			{
+				blt_mask = (gd54xx->blt.mask & 0x1f);
+				blt_mask /= 3;
+			}
+			else
+			{
+				blt_mask = gd54xx->blt.mask & 7;
+				blt_mask *= 3;
+			}
 		}
 		break;
 	case CIRRUS_BLTMODE_PIXELWIDTH32:
@@ -1514,7 +1523,11 @@ gd54xx_start_blit(uint32_t cpu_dat, int count, gd54xx_t *gd54xx, svga_t *svga)
 
 	if (gd54xx->blt.mode & CIRRUS_BLTMODE_MEMSYSSRC) {
 		if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) {
-			mask = cpu_dat & 0x80;
+			
+			if (gd54xx->blt.mode & CIRRUS_BLTMODEEXT_DWORDGRANULARITY)
+				mask = (cpu_dat >> 31);
+			else
+				mask = cpu_dat & 0x80;
 			
 			switch (gd54xx->blt.mode & CIRRUS_BLTMODE_PIXELWIDTHMASK)
 			{
@@ -1535,19 +1548,21 @@ gd54xx_start_blit(uint32_t cpu_dat, int count, gd54xx_t *gd54xx, svga_t *svga)
 					}
 					break;
 					case CIRRUS_BLTMODE_PIXELWIDTH24:
-					if ((gd54xx->blt.x_count % 3) == 2)
-						src = mask ? (gd54xx->blt.fg_col >> 16) : (gd54xx->blt.bg_col >> 16);
-					else if ((gd54xx->blt.x_count % 3) == 1)
-						src = mask ? (gd54xx->blt.fg_col >> 8) : (gd54xx->blt.bg_col >> 8);
-					else
-						src = mask ? gd54xx->blt.fg_col : gd54xx->blt.bg_col;
-					if ((gd54xx->blt.x_count % 3) == 2)
+					if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5436)
 					{
-							cpu_dat <<= 1;
-							count--;
+						if ((gd54xx->blt.x_count % 3) == 2)
+							src = mask ? (gd54xx->blt.fg_col >> 16) : (gd54xx->blt.bg_col >> 16);
+						else if ((gd54xx->blt.x_count % 3) == 1)
+							src = mask ? (gd54xx->blt.fg_col >> 8) : (gd54xx->blt.bg_col >> 8);
+						else
+							src = mask ? gd54xx->blt.fg_col : gd54xx->blt.bg_col;
+						if ((gd54xx->blt.x_count % 3) == 2)
+						{
+								cpu_dat <<= 1;
+								count--;
+						}
 					}
 					break;
-					
 					case CIRRUS_BLTMODE_PIXELWIDTH32:
 					if ((gd54xx->blt.x_count & 3) == 3)
 						src = mask ? (gd54xx->blt.fg_col >> 24) : (gd54xx->blt.bg_col >> 24);
@@ -1582,8 +1597,9 @@ gd54xx_start_blit(uint32_t cpu_dat, int count, gd54xx_t *gd54xx, svga_t *svga)
 						src = svga->vram[(gd54xx->blt.src_addr & (svga->vram_mask & ~3)) + (gd54xx->blt.y_count << 4) + (gd54xx->blt.x_count & 15)];
 						break;
 						case CIRRUS_BLTMODE_PIXELWIDTH24:
+						pclog("Pattern copy\n");
 						if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5436)
-							src = svga->vram[(gd54xx->blt.src_addr & (svga->vram_mask & ~3)) + (gd54xx->blt.y_count * 24) + (gd54xx->blt.x_count % 24)];
+							src = svga->vram[(gd54xx->blt.src_addr & (svga->vram_mask & ~3)) + (gd54xx->blt.y_count << 5) + (gd54xx->blt.x_count % 24)];
 						break;
 						case CIRRUS_BLTMODE_PIXELWIDTH32:
 						src = svga->vram[(gd54xx->blt.src_addr & (svga->vram_mask & ~3)) + (gd54xx->blt.y_count << 5) + (gd54xx->blt.x_count & 31)];
