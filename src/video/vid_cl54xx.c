@@ -47,7 +47,6 @@
 #define BIOS_GD5430_PCI_PATH		L"roms/video/cirruslogic/pci.bin"
 #define BIOS_GD5434_PATH		L"roms/video/cirruslogic/gd5434.bin"
 #define BIOS_GD5436_PATH		L"roms/video/cirruslogic/5436.vbi"
-#define BIOS_GD5446_PATH		L"roms/video/cirruslogic/5446bv.vbi"
 
 #define CIRRUS_ID_CLGD5424		0x94
 #define CIRRUS_ID_CLGD5428		0x98
@@ -55,7 +54,6 @@
 #define CIRRUS_ID_CLGD5430		0xa0
 #define CIRRUS_ID_CLGD5434		0xa8
 #define CIRRUS_ID_CLGD5436		0xac
-#define CIRRUS_ID_CLGD5446		0xb8
 
 /* sequencer 0x07 */
 #define CIRRUS_SR7_BPP_VGA		0x00
@@ -1821,8 +1819,6 @@ cl_pci_read(int func, int addr, void *p)
 				return 0xa8;
 			case CIRRUS_ID_CLGD5436:
 				return 0xac;
-			case CIRRUS_ID_CLGD5446:
-				return 0xb8;
 		}
 		return 0xff;
 	case 0x03: return 0x00;
@@ -1931,10 +1927,6 @@ static void
 	case CIRRUS_ID_CLGD5436:
 		romfn = BIOS_GD5436_PATH;
 		break;
-		
-	case CIRRUS_ID_CLGD5446:
-		romfn = BIOS_GD5446_PATH;
-		break;
     }	
 
     gd54xx->vram_size = device_get_config_int("memory");
@@ -2040,11 +2032,6 @@ gd5436_available(void)
     return rom_present(BIOS_GD5436_PATH);
 }
 
-static int
-gd5446_available(void)
-{
-    return rom_present(BIOS_GD5446_PATH);
-}
 
 void
 gd54xx_close(void *p)
@@ -2234,22 +2221,6 @@ device_t gd5430_pci_device =
 };
 
 
-device_t gd5430_onboard_pci_device =
-{
-    "Cirrus Logic CL-GD 5430 On-Board (PCI)",
-    DEVICE_PCI,
-    0x8000 | CIRRUS_ID_CLGD5430,
-    gd54xx_init, 
-    gd54xx_close, 
-    NULL,
-    NULL,
-    gd54xx_speed_changed,
-    gd54xx_force_redraw,
-    gd54xx_add_status_info,
-    gd5428_config
-};
-
-
 device_t gd5434_isa_device =
 {
     "Cirrus Logic CL-GD 5434 (ISA)",
@@ -2297,22 +2268,6 @@ device_t gd5434_pci_device =
     gd5434_config
 };
 
-
-device_t gd5434_onboard_pci_device =
-{
-    "Cirrus Logic CL-GD 5434 On-Board (PCI)",
-    DEVICE_PCI,
-    0x8000 | CIRRUS_ID_CLGD5434,
-    gd54xx_init, 
-    gd54xx_close, 
-    NULL,
-    NULL,
-    gd54xx_speed_changed,
-    gd54xx_force_redraw,
-    gd54xx_add_status_info,
-    gd5434_config
-};
-
 device_t gd5436_pci_device =
 {
     "Cirrus Logic CL-GD 5436 (PCI)",
@@ -2328,17 +2283,3 @@ device_t gd5436_pci_device =
     gd5434_config
 };
 
-device_t gd5446_pci_device =
-{
-    "Cirrus Logic CL-GD 5446 (PCI)",
-    DEVICE_PCI,
-    CIRRUS_ID_CLGD5436,
-    gd54xx_init, 
-    gd54xx_close, 
-    NULL,
-    gd5446_available,
-    gd54xx_speed_changed,
-    gd54xx_force_redraw,
-    gd54xx_add_status_info,
-    gd5434_config
-};

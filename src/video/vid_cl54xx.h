@@ -11,4 +11,3 @@ extern device_t gd5434_isa_device;
 extern device_t gd5434_vlb_device;
 extern device_t gd5434_pci_device;
 extern device_t gd5436_pci_device;
-extern device_t gd5446_pci_device;

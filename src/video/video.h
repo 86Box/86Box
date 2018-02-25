@@ -82,7 +82,6 @@ enum {
 	GFX_CL_GD5434_VLB,		/* Cirrus Logic CL-GD 5434 VLB */
 	GFX_CL_GD5434_PCI,		/* Cirrus Logic CL-GD 5434 PCI */
 	GFX_CL_GD5436_PCI,		/* Cirrus Logic CL-GD 5436 PCI */
-	GFX_CL_GD5446_PCI,		/* Cirrus Logic CL-GD 5446 PCI */
 #if defined(DEV_BRANCH) && defined(USE_RIVA)
     GFX_RIVATNT,		/* nVidia Riva TNT */
     GFX_RIVATNT2,		/* nVidia Riva TNT2 */

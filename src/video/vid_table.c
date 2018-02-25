@@ -130,7 +130,6 @@ video_cards[] = {
     {"[PCI] Cirrus Logic CL-GD 5430",		    	"cl_gd5430_pci",	&gd5430_pci_device,			GFX_CL_GD5430_PCI,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
     {"[PCI] Cirrus Logic CL-GD 5434",		    	"cl_gd5434_pci",	&gd5434_pci_device,			GFX_CL_GD5434_PCI,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
 	{"[PCI] Cirrus Logic CL-GD 5436",		    	"cl_gd5436_pci",	&gd5436_pci_device,			GFX_CL_GD5436_PCI,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
-	{"[PCI] Cirrus Logic CL-GD 5446",		    	"cl_gd5446_pci",	&gd5446_pci_device,			GFX_CL_GD5446_PCI,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
     {"[PCI] Diamond Stealth 32 (Tseng ET4000/w32p)","stealth32_pci",	&et4000w32p_pci_device,     GFX_ET4000W32_PCI,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
 #endif
