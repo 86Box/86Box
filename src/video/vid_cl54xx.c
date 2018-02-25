@@ -6,8 +6,8 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Emulation of select Cirrus Logic cards (currently
- *		CL-GD 5428, 5429, 5430 and 5434 are supported).
+ *		Emulation of select Cirrus Logic cards (CL-GD 5428,
+ *		CL-GD 5429, 5430, 5434 and 5436 are supported).
  *
  * Version:	@(#)vid_cl_54xx.c	1.0.4	2018/02/25
  *
@@ -2032,7 +2032,6 @@ gd5436_available(void)
     return rom_present(BIOS_GD5436_PATH);
 }
 
-
 void
 gd54xx_close(void *p)
 {
@@ -2141,7 +2140,6 @@ device_t gd5428_isa_device =
     gd5428_config
 };
 
-
 device_t gd5428_vlb_device =
 {
     "Cirrus Logic CL-GD 5428 (VLB)",
@@ -2156,7 +2154,6 @@ device_t gd5428_vlb_device =
     gd54xx_add_status_info,
     gd5428_config
 };
-
 
 device_t gd5429_isa_device =
 {
@@ -2188,7 +2185,6 @@ device_t gd5429_vlb_device =
     gd5428_config
 };
 
-
 device_t gd5430_vlb_device =
 {
     "Cirrus Logic CL-GD 5430 (VLB)",
@@ -2203,7 +2199,6 @@ device_t gd5430_vlb_device =
     gd54xx_add_status_info,
     gd5428_config
 };
-
 
 device_t gd5430_pci_device =
 {
@@ -2220,7 +2215,6 @@ device_t gd5430_pci_device =
     gd5428_config
 };
 
-
 device_t gd5434_isa_device =
 {
     "Cirrus Logic CL-GD 5434 (ISA)",
@@ -2236,7 +2230,6 @@ device_t gd5434_isa_device =
     gd5434_config
 };
 
-
 device_t gd5434_vlb_device =
 {
     "Cirrus Logic CL-GD 5434 (VLB)",
@@ -2251,7 +2244,6 @@ device_t gd5434_vlb_device =
     gd54xx_add_status_info,
     gd5434_config
 };
-
 
 device_t gd5434_pci_device =
 {
@@ -2282,4 +2274,3 @@ device_t gd5436_pci_device =
     gd54xx_add_status_info,
     gd5434_config
 };
-
