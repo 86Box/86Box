@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.31	2018/02/15
+ * Version:	@(#)cdrom.c	1.0.32	2018/02/25
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -1923,14 +1923,13 @@ cdrom_readtoc_fallback:
 					b[6] = (MMC_PROFILE_DVD_ROM >> 8) & 0xff;
 					b[7] = MMC_PROFILE_DVD_ROM & 0xff;
 					ret = 1;
-				} else if (len <= CD_MAX_SECTORS) {
+				} else {
 					b[6] = (MMC_PROFILE_CD_ROM >> 8) & 0xff;
 					b[7] = MMC_PROFILE_CD_ROM & 0xff;
 					ret = 0;
 				}
-			} else {
+			} else
 				ret = 2;
-			}
 
 			alloc_length = 8;
 			b += 8;

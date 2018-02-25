@@ -8,7 +8,7 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_devconf.c	1.0.13	2018/02/23
+ * Version:	@(#)win_devconf.c	1.0.14	2018/02/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -421,7 +421,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                                         }
                                                                         strcat(file_filter, ")|");
                                                                         d = 0;
-                                                                        while (config->file_filter[c].extensions[d][0])
+                                                                        while (config->file_filter[c].extensions[d] && config->file_filter[c].extensions[d][0])
                                                                         {
                                                                                 if (d > 0)
                                                                                         strcat(file_filter, ";");
