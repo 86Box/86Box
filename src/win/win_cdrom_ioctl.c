@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM host drive IOCTL interface for
  *		Windows using SCSI Passthrough Direct.
  *
- * Version:	@(#)cdrom_ioctl.c	1.0.11	2018/02/15
+ * Version:	@(#)cdrom_ioctl.c	1.0.12	2018/02/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -464,7 +464,7 @@ static uint8_t ioctl_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
 			b[pos + 1] = (uint8_t)dat;
 			b[pos]     = 0;
 			pos += 4;
-			dat = cdpos - track_address;
+			dat = cdpos - track_address - 150;
 			b[pos + 3] = (uint8_t)(dat % 75); dat /= 75;
 			b[pos + 2] = (uint8_t)(dat % 60); dat /= 60;
 			b[pos + 1] = (uint8_t)dat;
