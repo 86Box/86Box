@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include <fluidsynth.h>
 #include "../86box.h"
 #include "../config.h"
 #include "../device.h"
@@ -17,8 +16,29 @@
 #include "sound.h"
 
 
+#define FLUID_CHORUS_DEFAULT_N		3
+#define FLUID_CHORUS_DEFAULT_LEVEL	2.0f
+#define FLUID_CHORUS_DEFAULT_SPEED	0.3f
+#define FLUID_CHORUS_DEFAULT_DEPTH	8.0f
+#define FLUID_CHORUS_DEFAULT_TYPE	FLUID_CHORUS_MOD_SINE
+
 #define RENDER_RATE 100
 #define BUFFER_SEGMENTS 10
+
+
+enum fluid_chorus_mod {
+  FLUID_CHORUS_MOD_SINE = 0,
+  FLUID_CHORUS_MOD_TRIANGLE = 1
+};
+
+enum fluid_interp {
+  FLUID_INTERP_NONE = 0,
+  FLUID_INTERP_LINEAR = 1,
+  FLUID_INTERP_DEFAULT = 4,
+  FLUID_INTERP_4THORDER = 4,
+  FLUID_INTERP_7THORDER = 7,
+  FLUID_INTERP_HIGHEST = 7
+};
 
 
 extern void givealbuffer_midi(void *buf, uint32_t size);
@@ -29,27 +49,27 @@ extern int soundon;
 static void	*fluidsynth_handle;		/* handle to FluidSynth DLL */
 
 /* Pointers to the real functions. */
-static fluid_settings_t*(*f_new_fluid_settings)(void);
-static void 		(*f_delete_fluid_settings)(fluid_settings_t *settings);
-static int 		(*f_fluid_settings_setnum)(fluid_settings_t *settings, const char *name, double val);
-static int 		(*f_fluid_settings_getnum)(fluid_settings_t *settings, const char *name, double *val);
-static fluid_synth_t * 	(*f_new_fluid_synth)(fluid_settings_t *settings);
-static int 		(*f_delete_fluid_synth)(fluid_synth_t *synth);
-static int 		(*f_fluid_synth_noteon)(fluid_synth_t *synth, int chan, int key, int vel);
-static int 		(*f_fluid_synth_noteoff)(fluid_synth_t *synth, int chan, int key);
-static int 		(*f_fluid_synth_cc)(fluid_synth_t *synth, int chan, int ctrl, int val);
-static int 		(*f_fluid_synth_sysex)(fluid_synth_t *synth, const char *data, int len, char *response, int *response_len, int *handled, int dryrun);
-static int 		(*f_fluid_synth_pitch_bend)(fluid_synth_t *synth, int chan, int val);
-static int 		(*f_fluid_synth_program_change)(fluid_synth_t *synth, int chan, int program);
-static int 		(*f_fluid_synth_sfload)(fluid_synth_t *synth, const char *filename, int reset_presets);
-static int 		(*f_fluid_synth_sfunload)(fluid_synth_t *synth, unsigned int id, int reset_presets);
-static int 		(*f_fluid_synth_set_interp_method)(fluid_synth_t *synth, int chan, int interp_method);
-static void 		(*f_fluid_synth_set_reverb)(fluid_synth_t *synth, double roomsize, double damping, double width, double level);
-static void 		(*f_fluid_synth_set_reverb_on)(fluid_synth_t *synth, int on);
-static void 		(*f_fluid_synth_set_chorus)(fluid_synth_t *synth, int nr, double level, double speed, double depth_ms, int type);
-static void 		(*f_fluid_synth_set_chorus_on)(fluid_synth_t *synth, int on);
-static int		(*f_fluid_synth_write_s16)(fluid_synth_t *synth, int len, void *lout, int loff, int lincr, void *rout, int roff, int rincr);
-static int		(*f_fluid_synth_write_float)(fluid_synth_t *synth, int len, void *lout, int loff, int lincr, void *rout, int roff, int rincr);
+static void *		(*f_new_fluid_settings)(void);
+static void 		(*f_delete_fluid_settings)(void *settings);
+static int 		(*f_fluid_settings_setnum)(void *settings, const char *name, double val);
+static int 		(*f_fluid_settings_getnum)(void *settings, const char *name, double *val);
+static void * 		(*f_new_fluid_synth)(void *settings);
+static int 		(*f_delete_fluid_synth)(void *synth);
+static int 		(*f_fluid_synth_noteon)(void *synth, int chan, int key, int vel);
+static int 		(*f_fluid_synth_noteoff)(void *synth, int chan, int key);
+static int 		(*f_fluid_synth_cc)(void *synth, int chan, int ctrl, int val);
+static int 		(*f_fluid_synth_sysex)(void *synth, const char *data, int len, char *response, int *response_len, int *handled, int dryrun);
+static int 		(*f_fluid_synth_pitch_bend)(void *synth, int chan, int val);
+static int 		(*f_fluid_synth_program_change)(void *synth, int chan, int program);
+static int 		(*f_fluid_synth_sfload)(void *synth, const char *filename, int reset_presets);
+static int 		(*f_fluid_synth_sfunload)(void *synth, unsigned int id, int reset_presets);
+static int 		(*f_fluid_synth_set_interp_method)(void *synth, int chan, int interp_method);
+static void 		(*f_fluid_synth_set_reverb)(void *synth, double roomsize, double damping, double width, double level);
+static void 		(*f_fluid_synth_set_reverb_on)(void *synth, int on);
+static void 		(*f_fluid_synth_set_chorus)(void *synth, int nr, double level, double speed, double depth_ms, int type);
+static void 		(*f_fluid_synth_set_chorus_on)(void *synth, int on);
+static int		(*f_fluid_synth_write_s16)(void *synth, int len, void *lout, int loff, int lincr, void *rout, int roff, int rincr);
+static int		(*f_fluid_synth_write_float)(void *synth, int len, void *lout, int loff, int lincr, void *rout, int roff, int rincr);
 static char*		(*f_fluid_version_str)(void);
 static dllimp_t fluidsynth_imports[] = {
   { "new_fluid_settings",		&f_new_fluid_settings			},
@@ -80,8 +100,8 @@ static dllimp_t fluidsynth_imports[] = {
 
 typedef struct fluidsynth
 {
-        fluid_settings_t* settings;
-        fluid_synth_t* synth;
+        void* settings;
+        void* synth;
         int samplerate;
         int sound_font;
 

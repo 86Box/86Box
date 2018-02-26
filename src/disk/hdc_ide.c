@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.26	2018/02/14
+ * Version:	@(#)hdc_ide.c	1.0.28	2018/02/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1137,6 +1137,33 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 		{
 			cdrom[atapi_cdrom_drives[ide->channel]].error = 0;
 		}
+		if ((val >= WIN_SEEK) && (val <= 0x7F))
+		{
+			if (ide_drive_is_zip(ide))
+			{
+				zip[atapi_zip_drives[ide->channel]].status = READY_STAT;
+			}
+			else if (ide_drive_is_cdrom(ide))
+			{
+				cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT;
+			}
+			else
+			{
+				ide->atastat = READY_STAT;
+			}
+			timer_process();
+			if (ide_drive_is_zip(ide))
+			{
+				zip[atapi_zip_drives[ide->channel]].callback = 100LL*IDE_TIME;
+			}
+			if (ide_drive_is_cdrom(ide))
+			{
+				cdrom[atapi_cdrom_drives[ide->channel]].callback = 100LL*IDE_TIME;
+			}
+			idecallback[ide_board]=100LL*IDE_TIME;
+			timer_update_outstanding();
+			return;
+		}
 		switch (val)
 		{
 			case WIN_SRST: /* ATAPI Device Reset */
@@ -1166,7 +1193,6 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
         	                return;
 
 			case WIN_RESTORE:
-			case WIN_SEEK:
 				if (ide_drive_is_zip(ide))
 				{
 					zip[atapi_zip_drives[ide->channel]].status = READY_STAT;
@@ -1888,6 +1914,27 @@ void callbackide(int ide_board)
 	zip_id = atapi_zip_drives[cur_ide[ide_board]];
 	zip_id_other = atapi_zip_drives[cur_ide[ide_board] ^ 1];
 
+	if ((ide->command >= WIN_SEEK) && (ide->command <= 0x7F))
+	{
+		if (ide_drive_is_zip(ide) || ide_drive_is_cdrom(ide))
+		{
+			goto abort_cmd;
+		}
+		if (ide_drive_is_zip(ide))
+		{
+			zip[zip_id].status = READY_STAT | DSC_STAT;
+		}
+		else if (ide_drive_is_cdrom(ide))
+		{
+			cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
+		}
+		else
+		{
+			ide->atastat = READY_STAT | DSC_STAT;
+		}
+		ide_irq_raise(ide);
+		return;
+	}
 	switch (ide->command)
 	{
 		/* Initialize the Task File Registers as follows: Status = 00h, Error = 01h, Sector Count = 01h, Sector Number = 01h,
@@ -1920,7 +1967,6 @@ void callbackide(int ide_board)
 			return;
 
 	        case WIN_RESTORE:
-        	case WIN_SEEK:
 			if (ide_drive_is_zip(ide) || ide_drive_is_cdrom(ide))
 			{
 				goto abort_cmd;
