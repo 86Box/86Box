@@ -186,15 +186,15 @@
  *		(DS12887A) which implemented a "century" register to be 
  *		compatible with Y2K.
  *
- * Version:	@(#)nvr.c	1.0.14	2017/12/03
+ * Version:	@(#)nvr.c	1.0.15	2018/02/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Mahod,
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -202,7 +202,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <wchar.h>
-#include "86Box.h"
+#include "86box.h"
 #include "pic.h"
 #include "pit.h"
 #include "timer.h"
