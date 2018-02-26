@@ -207,6 +207,8 @@ typedef struct riva128_t
 
 		uint32_t dma_intr, dma_intr_en;
 
+		uint32_t status;
+
 		struct
 		{
 			uint32_t point_color;
@@ -238,14 +240,17 @@ typedef struct riva128_t
 	{
 		int scl;
 		int sda;
-		int busy;
+		enum
+		{
+			I2C_START, I2C_STOP, I2C_WAITACK, I2C_READ, I2C_WRITE
+		} state;
 		unsigned addrbits;
 		unsigned databits;
 		uint8_t addr; //actually 7 bits
 		uint8_t data;
 		struct
 		{
-			uint8_t addr;
+			uint8_t addr; //actually 7 bits
 			uint8_t edid_rom[128];
 		} edid_rom;
 	} i2c;
@@ -1267,6 +1272,21 @@ void rivatnt_pgraph_ctx_switch(void *p)
 		ret = riva128->pgraph.fifo_enable & 1;
 		break;
 
+	case 0x4006b0:
+		ret = riva128->pgraph.status & 0xff;
+		break;
+	case 0x4006b1:
+		ret = (riva128->pgraph.status >> 8) & 0xff;
+		break;
+	case 0x4006b2:
+		ret = (riva128->pgraph.status >> 16) & 0xff;
+		break;
+	case 0x4006b3:
+		ret = (riva128->pgraph.status >> 24) & 0xff;
+		//HACK
+		riva128->pgraph.status ^= 0x1f131111;
+		break;
+
 	case 0x401100:
 		ret = riva128->pgraph.dma_intr & 0xff;
 		break;
@@ -1808,13 +1828,12 @@ void riva128_pgraph_vblank_interrupt(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 	uint32_t ramht_base = riva128->pfifo.ramht_addr;
+	uint32_t ret = 0;
 
 	uint32_t tmp = handle;
 	uint32_t hash = 0;
 
 	int bits;
-
-	pclog("RIVA 128 RAMHT lookup with handle %08X %04X:%08X\n", handle, CS, cpu_state.pc);
 
 	switch(riva128->pfifo.ramht_size)
 	{
@@ -1828,21 +1847,25 @@ void riva128_pgraph_vblank_interrupt(void *p)
 		bits = 15;
 	}
 
-	while(handle)
+	while(tmp)
 	{
 		hash ^= (tmp & (riva128->pfifo.ramht_size - 1));
-		tmp = handle >> 1;
+		tmp = tmp >> 1;
 	}
 
 	hash ^= riva128->pfifo.caches[1].chanid << (bits - 4);
 
-	return riva128->pramin[ramht_base + (hash * 8)];
+	ret = riva128->pramin[ramht_base + (hash * 8)];
+
+	pclog("RIVA 128 RAMHT lookup with handle %08X returned %08X %04X:%08X\n", handle, ret, CS, cpu_state.pc);
+	
+	return ret;
 }
 
  void riva128_puller_exec_method(int chanid, int subchanid, int offset, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	pclog("RIVA 128 Puller executing method %04X on channel %01X[%01X] %04X:%08X\n", offset, chanid, subchanid, val, CS, cpu_state.pc);
+	pclog("RIVA 128 Puller executing method %04X on channel %01X[%01X] param %08X %04X:%08X\n", offset, chanid, subchanid, val, CS, cpu_state.pc);
 
 	if(riva128->card_id == 0x03)
 	{
@@ -1927,6 +1950,36 @@ void riva128_pgraph_vblank_interrupt(void *p)
 	}
 }
 
+uint8_t riva128_user_read(uint32_t addr, void *p)
+{
+	riva128_t *riva128 = (riva128_t *)p;
+	int chanid = (addr >> 16) & 0xf;
+	int subchanid = (addr >> 13) & 0x7;
+	int offset = addr & 0x1fff;
+	uint8_t ret = 0;
+
+	pclog("RIVA 128 USER read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
+
+	addr -= 0x800000;
+
+	if(riva128->pfifo.chan_mode & (1 << chanid))
+	{
+		//DMA mode reads???
+	}
+	else
+	{
+		//PIO mode
+		switch(offset)
+		{
+			//HACK
+			case 0x10: ret = 0xff; break;
+			case 0x11: ret = 0x7f; break;
+		}
+	}
+
+	return ret;
+}
+
  void riva128_user_write(uint32_t addr, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
@@ -1954,8 +2007,23 @@ void riva128_pgraph_vblank_interrupt(void *p)
 	}
 	else
 	{
+		uint32_t err = -1;
+		int intr = 1;
 		//PIO mode
-		riva128_puller_exec_method(chanid, subchanid, offset, val, riva128);
+		//if((offset & 0x1f00) && (offset != 0)) err = 5; //Reserved access
+		//if((offset & 0x1ff0) == 0x0020) intr = 0;
+		//if(!riva128->pfifo.caches[1].push_enabled) err = 1; //Pusher disabled
+		//else
+		{
+			riva128_puller_exec_method(chanid, subchanid, offset, val, riva128);
+			riva128->pgraph.status = 0x1f131111; //HACK
+		}
+		if(err != -1)
+		{
+			uint32_t w = (addr & 0x7fffff) | (err << 28);
+			if(intr) riva128_pfifo_interrupt(4, riva128);
+
+		}
 	}
 }
 
@@ -1981,6 +2049,7 @@ void riva128_pgraph_vblank_interrupt(void *p)
 	if((addr >= 0x300000) && (addr <= 0x30ffff) && (riva128->card_id >= 0x04)) ret = riva128->bios_rom.rom[addr & riva128->bios_rom.mask];
 	if((addr >= 0x400000) && (addr <= 0x400fff)) ret = riva128_pgraph_read(addr, riva128);
 	if((addr >= 0x680000) && (addr <= 0x680fff)) ret = riva128_pramdac_read(addr, riva128);
+	if(addr >= 0x800000) ret = riva128_user_read(addr, riva128);
 
 	switch(addr)
 	{
@@ -2246,34 +2315,47 @@ void riva128_ptimer_tick(void *p)
 	case 0x3D5:
 		switch(svga->crtcreg)
 		{
-		case 0x3e:
-			if(riva128->i2c.busy == 2)
-			{
-				if(riva128->i2c.addr == 0xA1)
-				{
-					//pclog("RIVA 128 Read EDID %02x %02x\n", riva128->i2c.edid_rom.addr, riva128->i2c.edid_rom.edid_rom[riva128->i2c.edid_rom.addr]);
-					riva128->i2c.data <<= 1;
-					riva128->i2c.data |= (riva128->i2c.edid_rom.edid_rom[riva128->i2c.edid_rom.addr] & (1 << riva128->i2c.databits)) >> riva128->i2c.databits;
-				}
-				riva128->i2c.databits++;
-				if(riva128->i2c.databits == 8)
-				{
-					riva128->i2c.databits = 0;
-					riva128->i2c.edid_rom.addr++;
-					riva128->i2c.busy = 0;
-				}
-			}
-			ret = (riva128->i2c.sda << 3) | (riva128->i2c.scl << 2);
-			break;
 		case 0x28:
 			ret = svga->crtc[0x28] & 0x3f;
+			break;
+		case 0x34:
+			ret = svga->displine & 0xff;
+			break;
+		case 0x35:
+			ret = (svga->displine >> 8) & 7;
+			break;
+		case 0x3e:
+			//DDC status register
+			ret = (riva128->i2c.sda << 3) | (riva128->i2c.scl << 2);
+			if(riva128->i2c.state == I2C_READ)
+			{
+				if(riva128->i2c.scl)
+				{
+					if(riva128->i2c.databits > 8)
+					{
+						riva128->i2c.data <<= 1;
+						if(riva128->i2c.addr == 0xA1)
+						{
+							riva128->i2c.data |= (riva128->i2c.edid_rom.edid_rom[riva128->i2c.edid_rom.addr] & (0x80 >> riva128->i2c.databits)) >> riva128->i2c.databits;
+						}
+						else riva128->i2c.data = 0;
+						riva128->i2c.databits++;
+					}
+					if(riva128->i2c.databits == 8)
+					{
+						riva128->i2c.state = I2C_WAITACK;
+						riva128->i2c.sda = 0;
+						riva128->i2c.edid_rom.addr++;
+					}
+				}
+			}
 			break;
 		default:
 			ret = svga->crtc[svga->crtcreg];
 			break;
 		}
-		//if(svga->crtcreg > 0x18)
-		//  pclog("RIVA 128 Extended CRTC read %02X %04X:%08X\n", svga->crtcreg, CS, cpu_state.pc);
+		if(svga->crtcreg > 0x18)
+		  pclog("RIVA 128 Extended CRTC read %02X %04X:%08X\n", svga->crtcreg, CS, cpu_state.pc);
 		break;
 	default:
 		ret = svga_in(addr, svga);
@@ -2343,44 +2425,46 @@ void riva128_ptimer_tick(void *p)
 			riva128->rma.mode = val & 0xf;
 			break;
 		case 0x3f:
-			if((val & 0x20) && (riva128->i2c.sda == 0) && (val & 0x10))
+			//FULL EMULATION OF I2C AND DDC PROTOCOLS INCOMING
+			if(riva128->i2c.sda && riva128->i2c.scl && ((val & 0x30) == 0))
 			{
-				//I2C Start Condition.
-				riva128->i2c.busy = 1;
+				riva128->i2c.state = I2C_START;
+				riva128->i2c.addr = 0;
+				riva128->i2c.addrbits = 0;
+				riva128->i2c.data = 0;
+				riva128->i2c.databits = 0;
 			}
-			if((val & 0x20) && (riva128->i2c.sda == 1) && !(val & 0x10))
+			else if(!riva128->i2c.sda && !riva128->i2c.scl && ((val & 0x30) == 0x30)) riva128->i2c.state = I2C_STOP;
+			else if(riva128->i2c.state == I2C_START)
 			{
-				//I2C Stop Condition.
-				riva128->i2c.busy = 0;
-			}
-			riva128->i2c.scl = (val & 0x20) ? 1 : 0;
-			riva128->i2c.sda = (val & 0x10) ? 1 : 0;
-			if(riva128->i2c.busy == 1)
-			{
-				riva128->i2c.addr <<= 1;
-				riva128->i2c.addr |= riva128->i2c.sda;
-				riva128->i2c.addrbits++;
-				if(riva128->i2c.addrbits == 8)
+				if(val & 0x20)
 				{
-					riva128->i2c.busy = 2;
-					riva128->i2c.addrbits = 0;
-				}
-			}
-			if(riva128->i2c.busy == 2)
-			{
-				riva128->i2c.data <<= 1;
-				riva128->i2c.addr |= riva128->i2c.sda;
-				riva128->i2c.databits++;
-				if(riva128->i2c.databits == 8)
-				{
-					if(riva128->i2c.addr == 0xA0)
+					if(riva128->i2c.addrbits > 8)
 					{
-						//pclog("RIVA 128 Write EDID Address %02x\n", riva128->i2c.data);
-						riva128->i2c.edid_rom.addr = riva128->i2c.data;
+						riva128->i2c.addr <<= 1;
+						riva128->i2c.addr |= (val >> 4) & 1;
+						riva128->i2c.addrbits++;
 					}
-					riva128->i2c.databits = 0;
+					if(riva128->i2c.addrbits == 8)
+					{
+						riva128->i2c.state = I2C_WAITACK;
+						riva128->i2c.sda = 0;
+						if(riva128->i2c.addr == 0xA1) riva128->i2c.edid_rom.addr = 0;
+					}
 				}
 			}
+			else if(riva128->i2c.state == I2C_WAITACK)
+			{
+				if(riva128->i2c.edid_rom.addr == 0x80)
+				{
+					riva128->i2c.edid_rom.addr = 0;
+					riva128->i2c.state = I2C_STOP;
+				}
+				else riva128->i2c.state = I2C_READ;
+			}
+
+			riva128->i2c.sda = (val >> 4) & 1;
+			riva128->i2c.scl = (val >> 5) & 1;
 			break;
 		}
 		//if(svga->crtcreg > 0x18)
@@ -2979,7 +3063,7 @@ void *riva128_init(device_t *info)
 
 	riva128->i2c.addrbits = 0;
 	riva128->i2c.databits = 0;
-	riva128->i2c.busy = 0;
+	riva128->i2c.state = I2C_STOP;
 
 	uint8_t edid_rom[128] =          {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
 									  0x04, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -3010,7 +3094,7 @@ void *riva128_init(device_t *info)
 	riva128->nvenable = 1;
 
 	timer_add(riva128_mclk_poll, &riva128->mtime, &timer_one, riva128);
-	timer_add(riva128_nvclk_poll, &riva128->nvtime, &riva128->nvenable, riva128);
+	timer_add(riva128_nvclk_poll, &riva128->nvtime, &timer_one, riva128);
 
 	riva128->svga.vblank_start = riva128_vblank_start;
 
@@ -3214,7 +3298,7 @@ void *rivatnt_init(device_t *info)
 
 	riva128->i2c.addrbits = 0;
 	riva128->i2c.databits = 0;
-	riva128->i2c.busy = 0;
+	riva128->i2c.state = I2C_STOP;
 
 	uint8_t edid_rom[128] =          {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
 									  0x04, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -3241,11 +3325,11 @@ void *rivatnt_init(device_t *info)
 		}
 	}
 
-	riva128->menable = 0;
-	riva128->nvenable = 0;
+	riva128->menable = 1;
+	riva128->nvenable = 1;
 
-	timer_add(riva128_mclk_poll, &riva128->mtime, &riva128->menable, riva128);
-	timer_add(riva128_nvclk_poll, &riva128->nvtime, &riva128->nvenable, riva128);
+	timer_add(riva128_mclk_poll, &riva128->mtime, &timer_one, riva128);
+	timer_add(riva128_nvclk_poll, &riva128->nvtime, &timer_one, riva128);
 
 	riva128->svga.vblank_start = riva128_vblank_start;
 
@@ -3422,7 +3506,7 @@ void *rivatnt2_init(device_t *info)
 
 	riva128->i2c.addrbits = 0;
 	riva128->i2c.databits = 0;
-	riva128->i2c.busy = 0;
+	riva128->i2c.state = I2C_STOP;
 
 	uint8_t edid_rom[128] =          {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
 									  0x04, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -3449,11 +3533,11 @@ void *rivatnt2_init(device_t *info)
 		}
 	}
 
-	riva128->menable = 0;
-	riva128->nvenable = 0;
+	riva128->menable = 1;
+	riva128->nvenable = 1;
 
-	timer_add(riva128_mclk_poll, &riva128->mtime, &riva128->menable, riva128);
-	timer_add(riva128_nvclk_poll, &riva128->nvtime, &riva128->nvenable, riva128);
+	timer_add(riva128_mclk_poll, &riva128->mtime, &timer_one, riva128);
+	timer_add(riva128_nvclk_poll, &riva128->nvtime, &timer_one, riva128);
 
 	riva128->svga.vblank_start = riva128_vblank_start;
 
