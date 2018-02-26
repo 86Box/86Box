@@ -8,13 +8,13 @@
  *
  *		Trident TVGA (8900D) emulation.
  *
- * Version:	@(#)vid_tvga.c	1.0.3	2017/11/04
+ * Version:	@(#)vid_tvga.c	1.0.4	2018/02/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -51,6 +51,18 @@ typedef struct tvga_t
         int vram_size;
         uint32_t vram_mask;
 } tvga_t;
+
+static uint8_t crtc_mask[0x40] =
+{
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0x7f, 0xff, 0x3f, 0x7f, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0x7f, 0xff, 0xff, 0xef,
+        0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
+        0x7f, 0x00, 0x00, 0x2f, 0x00, 0x00, 0x00, 0x03,
+        0x00, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
 
 static void tvga_recalcbanking(tvga_t *tvga);
 void tvga_out(uint16_t addr, uint8_t val, void *p)
@@ -123,6 +135,7 @@ void tvga_out(uint16_t addr, uint8_t val, void *p)
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
                         val = (svga->crtc[7] & ~0x10) | (val & 0x10);
                 old = svga->crtc[svga->crtcreg];
+                val &= crtc_mask[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
                 if (old != val)
                 {
