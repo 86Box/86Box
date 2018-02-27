@@ -103,6 +103,7 @@ typedef struct {
 	uint8_t error;
 	uint8_t features;
 	uint16_t request_length;
+	uint16_t max_transfer_len;
 	uint8_t status;
 	uint8_t phase;
 

@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.32	2018/02/25
+ * Version:	@(#)cdrom.c	1.0.33	2018/02/27
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -684,6 +684,7 @@ uint32_t cdrom_mode_sense(uint8_t id, uint8_t *buf, uint32_t pos, uint8_t type, 
 void cdrom_update_request_length(uint8_t id, int len, int block_len)
 {
 	uint32_t bt;
+	cdrom[id].max_transfer_len = cdrom[id].request_length;
 
 	/* For media access commands, make sure the requested DRQ length matches the block length. */
 	switch (cdrom[id].current_cdb[0]) {
@@ -692,8 +693,8 @@ void cdrom_update_request_length(uint8_t id, int len, int block_len)
 		case 0xa8:
 		case 0xb9:
 		case 0xbe:
-			if (cdrom[id].request_length < block_len)
-				cdrom[id].request_length = block_len;
+			if (cdrom[id].max_transfer_len < block_len)
+				cdrom[id].max_transfer_len = block_len;
 			bt = (cdrom[id].requested_blocks * block_len);
 			if (len > bt)
 				len = bt;
@@ -702,11 +703,13 @@ void cdrom_update_request_length(uint8_t id, int len, int block_len)
 			break;
 	}
 	/* If the DRQ length is odd, and the total remaining length is bigger, make sure it's even. */
-	if ((cdrom[id].request_length & 1) && (cdrom[id].request_length < len))
-		cdrom[id].request_length &= 0xfffe;
+	if ((cdrom[id].max_transfer_len & 1) && (cdrom[id].max_transfer_len < len))
+		cdrom[id].max_transfer_len &= 0xfffe;
 	/* If the DRQ length is smaller or equal in size to the total remaining length, set it to that. */
-	if (len <= cdrom[id].request_length)
-		cdrom[id].request_length = len;
+	if (!cdrom[id].max_transfer_len)
+		cdrom[id].max_transfer_len = 65534;
+	if (len <= cdrom[id].max_transfer_len)
+		cdrom[id].max_transfer_len = len;
 	return;
 }
 
@@ -765,13 +768,6 @@ static void cdrom_command_write_dma(uint8_t id)
 	cdrom_command_common(id);
 }
 
-static int cdrom_request_length_is_zero(uint8_t id)
-{
-	if ((cdrom[id].request_length == 0) && (cdrom_drives[id].bus_type < CDROM_BUS_SCSI))
-		return 1;
-	return 0;
-}
-
 /* id = Current CD-ROM device ID;
    len = Total transfer length;
    block_len = Length of a single block (why does it matter?!);
@@ -786,7 +782,7 @@ static void cdrom_data_command_finish(uint8_t id, int len, int block_len, int al
 			len = alloc_len;
 		}
 	}
-	if (cdrom_request_length_is_zero(id) || (len == 0) || (cdrom_current_mode(id) == 0)) {
+	if ((len == 0) || (cdrom_current_mode(id) == 0)) {
 		if (cdrom_drives[id].bus_type != CDROM_BUS_SCSI) {
 			cdrom[id].packet_len = 0;
 		}
@@ -2675,9 +2671,9 @@ void cdrom_pio_request(uint8_t id, uint8_t out)
 
 		/* If less than (packet length) bytes are remaining, update packet length
 		   accordingly. */
-		if ((cdrom[id].packet_len - cdrom[id].pos) < (cdrom[id].request_length))
-			cdrom[id].request_length = cdrom[id].packet_len - cdrom[id].pos;
-		cdrom_log("CD-ROM %i: Packet length %i, request length %i\n", id, cdrom[id].packet_len, cdrom[id].request_length);
+		if ((cdrom[id].packet_len - cdrom[id].pos) < (cdrom[id].max_transfer_len))
+			cdrom[id].max_transfer_len = cdrom[id].packet_len - cdrom[id].pos;
+		cdrom_log("CD-ROM %i: Packet length %i, request length %i\n", id, cdrom[id].packet_len, cdrom[id].max_transfer_len);
 
 		old_pos = cdrom[id].pos;
 		cdrom[id].packet_status = out ? CDROM_PHASE_DATA_OUT : CDROM_PHASE_DATA_IN;
@@ -2732,8 +2728,6 @@ int cdrom_read_from_dma(uint8_t id)
 
 	int ret = 0;
 
-	int in_data_length = 0;
-
 	if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
 		ret = cdrom_read_from_scsi_dma(cdrom_drives[id].scsi_device_id, cdrom_drives[id].scsi_device_lun);
 	else
@@ -2742,13 +2736,10 @@ int cdrom_read_from_dma(uint8_t id)
 	if (!ret)
 		return 0;
 
-	if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) {
-		in_data_length = *BufLen;
-		cdrom_log("CD-ROM %i: SCSI Input data length: %i\n", id, in_data_length);
-	} else {
-		in_data_length = cdrom[id].request_length;
-		cdrom_log("CD-ROM %i: ATAPI Input data length: %i\n", id, in_data_length);
-	}
+	if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
+		cdrom_log("CD-ROM %i: SCSI Input data length: %i\n", id, *BufLen);
+	else
+		cdrom_log("CD-ROM %i: ATAPI Input data length: %i\n", id, cdrom[id].packet_len);
 
 	ret = cdrom_phase_data_out(id);
 	if (!ret) {
@@ -2936,7 +2927,7 @@ uint32_t cdrom_read(uint8_t channel, int length)
 	}
 
 	if (cdrom[id].packet_status == CDROM_PHASE_DATA_IN) {
-		if ((cdrom[id].request_pos >= cdrom[id].request_length) || (cdrom[id].pos >= cdrom[id].packet_len)) {
+		if ((cdrom[id].request_pos >= cdrom[id].max_transfer_len) || (cdrom[id].pos >= cdrom[id].packet_len)) {
 			/* Time for a DRQ. */
 			// cdrom_log("CD-ROM %i: Issuing read callback\n", id);
 			cdrom_pio_request(id, 0);
@@ -2992,7 +2983,7 @@ void cdrom_write(uint8_t channel, uint32_t val, int length)
 	}
 
 	if (cdrom[id].packet_status == CDROM_PHASE_DATA_OUT) {
-		if ((cdrom[id].request_pos >= cdrom[id].request_length) || (cdrom[id].pos >= cdrom[id].packet_len)) {
+		if ((cdrom[id].request_pos >= cdrom[id].max_transfer_len) || (cdrom[id].pos >= cdrom[id].packet_len)) {
 			/* Time for a DRQ. */
 			cdrom_pio_request(id, 1);
 		}

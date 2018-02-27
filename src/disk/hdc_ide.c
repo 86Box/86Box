@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.28	2018/02/25
+ * Version:	@(#)hdc_ide.c	1.0.29	2018/02/27
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -447,6 +447,7 @@ static void ide_atapi_identify(IDE *ide)
 	ide->buffer[48] = 1;   /*Dword transfers supported*/
 	ide->buffer[49] = 0x200; /* LBA supported */
 	ide->buffer[51] = 2 << 8; /*PIO timing mode*/
+	ide->buffer[126] = 0xfffe; /* Interpret zero byte count limit as maximum length */
 
 	if (PCI && (ide->board < 2) && (cdrom_drives[cdrom_id].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA))
 	{
@@ -498,6 +499,8 @@ static void ide_atapi_zip_identify(IDE *ide)
 	/* Note by Kotori: Look at this if this is supported by ZIP at all. */
 	ide->buffer[48] = 1;   /*Dword transfers supported*/
 	ide->buffer[51] = 2 << 8; /*PIO timing mode*/
+
+	ide->buffer[126] = 0xfffe; /* Interpret zero byte count limit as maximum length */
 
 	if (PCI && (ide->board < 2) && (zip_drives[zip_id].bus_type == ZIP_BUS_ATAPI_PIO_AND_DMA))
 	{
