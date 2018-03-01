@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.21	2018/02/24
+ * Version:	@(#)vid_svga.c	1.0.22	2018/03/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1430,6 +1430,27 @@ uint32_t svga_readl(uint32_t addr, void *p)
         return *(uint32_t *)&svga->vram[addr & svga->vram_mask];
 }
 
+void svga_writeb_linear(uint32_t addr, uint8_t val, void *p)
+{
+        svga_t *svga = (svga_t *)p;
+        
+        if (!svga->fast)
+        {
+                svga_write_linear(addr, val, p);
+                return;
+        }
+        
+        egawrites += 2;
+
+	if (svga_output) pclog("Write LFBw %08X %04X\n", addr, val);
+        addr &= svga->decode_mask;
+        if (addr >= svga->vram_max)
+                return;
+        addr &= svga->vram_mask;
+        svga->changedvram[addr >> 12] = changeframecount;
+        *(uint8_t *)&svga->vram[addr] = val;
+}
+
 void svga_writew_linear(uint32_t addr, uint16_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
@@ -1480,6 +1501,22 @@ void svga_writel_linear(uint32_t addr, uint32_t val, void *p)
         addr &= svga->vram_mask;
         svga->changedvram[addr >> 12] = changeframecount;
         *(uint32_t *)&svga->vram[addr] = val;
+}
+
+uint8_t svga_readb_linear(uint32_t addr, void *p)
+{
+        svga_t *svga = (svga_t *)p;
+        
+        if (!svga->fast)
+           return svga_read_linear(addr, p);
+        
+        egareads++;
+
+        addr &= svga->decode_mask;
+        if (addr >= svga->vram_max)
+                return 0xff;
+        
+        return *(uint8_t *)&svga->vram[addr & svga->vram_mask];
 }
 
 uint16_t svga_readw_linear(uint32_t addr, void *p)
