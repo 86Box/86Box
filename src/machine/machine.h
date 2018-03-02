@@ -190,7 +190,11 @@ extern void	machine_xt_laserxt_init(machine_t *);
 extern void	machine_xt_t1000_init(machine_t *);
 extern void	machine_xt_t1200_init(machine_t *);
 
+extern void	machine_xt_xi8088_init(machine_t *);
+
 #ifdef EMU_DEVICE_H
+extern device_t	*xi8088_get_device(void);
+
 extern device_t	*pcjr_get_device(void);
 
 extern device_t	*tandy1k_get_device(void);

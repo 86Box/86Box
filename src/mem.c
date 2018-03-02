@@ -11,6 +11,7 @@
 #include "cpu/x86_ops.h"
 #include "cpu/x86.h"
 #include "machine/machine.h"
+#include "machine/m_xt_xi8088.h"
 #include "config.h"
 #include "io.h"
 #include "mem.h"
@@ -1278,7 +1279,7 @@ void mem_set_mem_state(uint32_t base, uint32_t size, int state)
 
 void mem_add_bios()
 {
-        if (AT)
+        if (AT || (romset == ROM_XI8088 && xi8088_bios_128kb()))
         {
                 mem_mapping_add(&bios_mapping[0], 0xe0000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom,                        MEM_MAPPING_EXTERNAL, 0);
                 mem_mapping_add(&bios_mapping[1], 0xe4000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x4000  & biosmask), MEM_MAPPING_EXTERNAL, 0);

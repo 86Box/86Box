@@ -401,14 +401,11 @@ static void t1200_turbo_set(uint8_t value)
 	t1000.turbo = value;
 	if (!value)
 	{
-		int c = cpu;
-		cpu = 0;	/* 8088/4.77MHz */
-		cpu_set();
-		cpu = c;
+		cpu_dynamic_switch(0);
 	}
 	else
 	{
-		cpu_set();
+		cpu_dynamic_switch(cpu);
 	}
 }
 

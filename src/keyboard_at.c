@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.26	2018/02/24
+ * Version:	@(#)keyboard_at.c	1.0.27	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -36,6 +36,7 @@
 #include "device.h"
 #include "timer.h"
 #include "machine/machine.h"
+#include "machine/m_xt_xi8088.h"
 #include "machine/m_at_t3100e.h"
 #include "floppy/fdd.h"
 #include "floppy/fdc.h"
@@ -1428,6 +1429,9 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
     int bad = 1;
     uint8_t mask;
 
+    if (romset == ROM_XI8088 && port == 0x63)
+	port = 0x61;
+
     switch (port) {
 	case 0x60:
 		if (kbd->want60) {
@@ -1656,6 +1660,13 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		if (speaker_enable) 
 			was_speaker_enable = 1;
 		pit_set_gate(&pit, 2, val & 1);
+
+                if (romset == ROM_XI8088) {
+                        if (val & 0x04)
+                                xi8088_turbo_set(1);
+                        else
+                                xi8088_turbo_set(0);
+                }
 		break;
 
 	case 0x64:
@@ -1782,6 +1793,9 @@ kbd_read(uint16_t port, void *priv)
     atkbd_t *kbd = (atkbd_t *)priv;
     uint8_t ret = 0xff;
 
+    if (romset == ROM_XI8088 && port == 0x63)
+	port = 0x61;
+
     switch (port) {
 	case 0x60:
 		ret = kbd->out;
@@ -1800,6 +1814,12 @@ kbd_read(uint16_t port, void *priv)
 			else
 				ret &= ~0x10;
 		}
+                if (romset == ROM_XI8088){
+                        if (xi8088_turbo_get())
+                                ret |= 0x04;
+                        else
+                                ret &= ~0x04;
+                }
 		break;
 
 	case 0x64:

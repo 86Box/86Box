@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.32	2018/03/02
+ * Version:	@(#)rom.c	1.0.33	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -35,6 +35,7 @@
 #include "rom.h"
 #include "video/video.h"		/* for loadfont() */
 #include "plat.h"
+#include "machine/m_xt_xi8088.h"
 
 
 int	romspresent[ROM_MAX];
@@ -152,6 +153,42 @@ rom_load_linear(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 
     (void)fseek(f, off, SEEK_SET);
     (void)fread(ptr+addr, sz, 1, f);
+    (void)fclose(f);
+
+    return(1);
+}
+
+
+/* Load a ROM BIOS from its chips, linear mode with high bit flipped. */
+int
+rom_load_linear_inverted(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
+{
+    FILE *f = rom_fopen(fn, L"rb");
+        
+    if (f == NULL) {
+	pclog("ROM: image '%ls' not found\n", fn);
+	return(0);
+    }
+
+    /* Make sure we only look at the base-256K offset. */
+    if (addr >= 0x40000)
+    {
+	addr = 0;
+    }
+    else
+    {
+	addr &= 0x03ffff;
+    }
+
+    (void)fseek(f, 0, SEEK_END);
+    if (ftell(f) < sz) {
+	(void)fclose(f);
+	return(0);
+    }
+
+    (void)fseek(f, off, SEEK_SET);
+    (void)fread(ptr+addr+0x10000, sz >> 1, 1, f);
+    (void)fread(ptr+addr, sz >> 1, 1, f);
     (void)fclose(f);
 
     return(1);
@@ -312,6 +349,23 @@ rom_load_bios(int rom_id)
 		if (rom_load_linear(
 			L"roms/machines/ibmxt/1501512.u18",
 			0x008000, 32768, 0, rom)) return(1);
+		break;
+
+	case ROM_XI8088:
+		if (rom_load_linear_inverted(
+			L"roms/machines/xi8088/bios-xi8088.bin",
+			0x000000, 131072, 128, rom)) {
+			biosmask = 0x1ffff;
+			xi8088_bios_128kb_set(1);
+			return(1);
+		} else {
+			if (rom_load_linear(
+				L"roms/machines/xi8088/bios-xi8088.bin",
+				0x000000, 65536, 128, rom)) {
+				xi8088_bios_128kb_set(0);
+				return(1);
+			}
+		}
 		break;
 
 	case ROM_IBMXT286:	/* IBM PX-XT 286 */

@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.105	2018/03/02
+# Version:	@(#)Makefile.mingw	1.0.106	2018/03/02
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -395,7 +395,7 @@ CPUOBJ		:= cpu.o cpu_table.o \
 
 MCHOBJ		:= machine.o machine_table.o \
 		    m_xt.o m_xt_compaq.o \
-		    m_xt_t1000.o \
+		    m_xt_t1000.o m_xt_xi8088.o \
 		    m_pcjr.o \
 		    m_amstrad.o \
 		    m_europc.o m_europc_hdc.o \

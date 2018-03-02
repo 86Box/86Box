@@ -385,13 +385,11 @@ void t3100e_turbo_set(uint8_t value)
 	if (!value)
 	{
 		int c = cpu;
-		cpu = 0;	/* 286/6 */
-		cpu_set();
-		cpu = c;
+		cpu_dynamic_switch(0);	/* 286/6 */
 	}
 	else
 	{
-		cpu_set();
+		cpu_dynamic_switch(cpu);
 	}
 }
 

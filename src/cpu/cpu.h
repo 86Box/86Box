@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.h	1.0.7	2018/02/18
+ * Version:	@(#)cpu.h	1.0.8	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -461,6 +461,8 @@ extern void	x86ss(char *s, uint16_t error);
 extern void	x86ts(char *s, uint16_t error);
 extern void	x87_dumpregs(void);
 extern void	x87_reset(void);
+
+extern int	cpu_effective;
 
 
 #endif	/*EMU_CPU_H*/
