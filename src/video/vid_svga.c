@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.22	2018/03/01
+ * Version:	@(#)vid_svga.c	1.0.23	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -409,7 +409,7 @@ void svga_recalctimings(svga_t *svga)
         svga->hdisp_time = svga->hdisp;
         svga->render = svga_render_blank;
         if (!svga->scrblank && svga->attr_palette_enable) {
-                if (!(svga->gdcreg[6] & 1)) /*Text mode*/ {
+                 if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
                         if (svga->seqregs[1] & 8) /*40 column*/ {
                                 svga->render = svga_render_text_40;
                                 svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
@@ -666,7 +666,7 @@ void svga_poll(void *p)
 
                         svga->video_res_x = wx;
                         svga->video_res_y = wy + 1;
-                        if (!(svga->gdcreg[6] & 1)) { /*Text mode*/
+                        if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
                                 svga->video_res_x /= (svga->seqregs[1] & 1) ? 8 : 9;
                                 svga->video_res_y /= (svga->crtc[9] & 31) + 1;
                                 svga->video_bpp = 0;

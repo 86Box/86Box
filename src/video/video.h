@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.21	2018/02/25
+ * Version:	@(#)video.h	1.0.22	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,6 +20,9 @@
  */
 #ifndef EMU_VIDEO_H
 # define EMU_VIDEO_H
+
+
+#define FONT_ATIKOR_PATH	L"roms/video/ati28800/ati_ksc5601.rom"
 
 
 #define makecol(r, g, b)    ((b) | ((g) << 8) | ((r) << 16))
@@ -58,6 +61,7 @@ enum {
     GFX_TGUI9400CXI,   		/* Trident TGUI9400CXi VLB */
     GFX_TGUI9440_VLB,   	/* Trident TGUI9440AGi VLB */
     GFX_TGUI9440_PCI,   	/* Trident TGUI9440AGi PCI */
+    GFX_ATIKOREANVGA,		/*ATI Korean VGA (28800-5)*/
     GFX_VGA88,  		/* ATI VGA-88 (18800-1) */
     GFX_VGAEDGE16,  		/* ATI VGA Edge-16 (18800-1) */
     GFX_VGACHARGER, 		/* ATI VGA Charger (28800-5) */
@@ -166,6 +170,7 @@ extern int	video_fullscreen,
 extern int	fullchange;
 extern uint8_t	fontdat[2048][8];
 extern uint8_t	fontdatm[2048][16];
+extern uint8_t	fontdatksc5601[16384][32];
 extern uint32_t	*video_6to8,
 		*video_15to32,
 		*video_16to32;
