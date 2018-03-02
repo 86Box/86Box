@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger)
  *
- * Version:	@(#)vid_ati28800.c	1.0.7	2018/02/18
+ * Version:	@(#)vid_ati28800.c	1.0.8	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -36,6 +36,8 @@
 #include "vid_svga_render.h"
 
 
+#define BIOS_ATIKOR_PATH	L"roms/video/ati28800/atikorvga.bin"
+
 #define BIOS_VGAXL_EVEN_PATH	L"roms/video/ati28800/xleven.bin"
 #define BIOS_VGAXL_ODD_PATH	L"roms/video/ati28800/xlodd.bin"
 
@@ -57,6 +59,16 @@ typedef struct ati28800_t
         uint8_t regs[256];
         int index;
 } ati28800_t;
+
+
+uint8_t		port_03dd_val;
+uint16_t	get_korean_font_kind;
+int		in_get_korean_font_kind_set;
+int		get_korean_font_enabled;
+int		get_korean_font_index;
+uint16_t	get_korean_font_base;
+extern int	dbcs_mode_enabled;
+ 
 
 
 static void ati28800_out(uint16_t addr, uint8_t val, void *p)
@@ -118,6 +130,60 @@ static void ati28800_out(uint16_t addr, uint8_t val, void *p)
         svga_out(addr, val, svga);
 }
 
+void ati28800k_out(uint16_t addr, uint8_t val, void *p)
+{
+        ati28800_t *ati28800 = (ati28800_t *)p;
+        svga_t *svga = &ati28800->svga;
+        uint16_t oldaddr = addr;
+
+        if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) 
+                addr ^= 0x60;
+ 
+        switch (addr)
+        {
+                case 0x1CF:
+                if(ati28800->index == 0xBF && ((ati28800->regs[0xBF] ^ val) & 0x20))
+                {
+                        dbcs_mode_enabled = val & 0x20;
+                        svga_recalctimings(svga);
+
+                }
+                ati28800_out(oldaddr, val, p);
+                break;
+                case 0x3DD:
+                port_03dd_val = val;
+                if(val == 1) get_korean_font_enabled = 0;
+                if(in_get_korean_font_kind_set)
+                {
+                        get_korean_font_kind = (val << 8) | (get_korean_font_kind & 0xFF);
+                        get_korean_font_enabled = 1;
+                        get_korean_font_index = 0;
+                }
+                break;
+                case 0x3DE:
+                in_get_korean_font_kind_set = 0;
+                switch(port_03dd_val)
+                {
+                        case 0x10:
+                        get_korean_font_base = ((val & 0x7F) << 7) | (get_korean_font_base & 0x7F);
+                        break;
+                        case 8:
+                        get_korean_font_base = (get_korean_font_base & 0x3F80) | (val & 0x7F);
+                        break;
+                        case 1:
+                        get_korean_font_kind = (get_korean_font_kind & 0xFF00) | val;
+                        if(val & 2) in_get_korean_font_kind_set = 1;
+                        break;
+                        default:
+                        break;
+                }
+                break;
+                default:
+                ati28800_out(oldaddr, val, p);
+                break;
+        }
+}
+
 static uint8_t ati28800_in(uint16_t addr, void *p)
 {
         ati28800_t *ati28800 = (ati28800_t *)p;
@@ -168,6 +234,44 @@ static uint8_t ati28800_in(uint16_t addr, void *p)
         return temp;
 }
 
+uint8_t ati28800k_in(uint16_t addr, void *p)
+{
+        ati28800_t *ati28800 = (ati28800_t *)p;
+        svga_t *svga = &ati28800->svga;
+        uint16_t oldaddr = addr;
+        uint8_t temp = 0xFF;
+
+//        if (addr != 0x3da) pclog("ati28800_in : %04X ", addr);
+                
+        if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) addr ^= 0x60;
+             
+        switch (addr)
+        {
+                case 0x3DE:
+                if(get_korean_font_enabled && (ati28800->regs[0xBF] & 0x20))
+                {
+                        switch(get_korean_font_kind >> 8)
+                        {
+                                case 4: /* ROM font */
+                                temp = fontdatksc5601[get_korean_font_base][get_korean_font_index++];
+                                break;
+                                case 2: /* User defined font - TODO : Should be implemented later */
+                                temp = 0;
+                                break;
+                                default:
+                                break;
+                        }
+                        get_korean_font_index &= 0x1F;
+                }
+                break;
+                default:
+                temp = ati28800_in(oldaddr, p);
+                break;
+        }
+        if (addr != 0x3da) pclog("%02X  %04X:%04X\n", temp, CS,cpu_state.pc);
+        return temp;
+}
+ 
 static void ati28800_recalctimings(svga_t *svga)
 {
         ati28800_t *ati28800 = (ati28800_t *)svga->p;
@@ -179,6 +283,39 @@ static void ati28800_recalctimings(svga_t *svga)
                 svga->rowoffset <<= 1;
                 svga->ma <<= 1;
         }
+}
+
+void *
+ati28800k_init(device_t *info)
+{
+        ati28800_t *ati28800 = malloc(sizeof(ati28800_t));
+        memset(ati28800, 0, sizeof(ati28800_t));
+
+
+        port_03dd_val = 0;
+        get_korean_font_base = 0;
+        get_korean_font_index = 0;
+        get_korean_font_enabled = 0;
+        get_korean_font_kind = 0;
+        in_get_korean_font_kind_set = 0;
+        dbcs_mode_enabled = 0;
+        
+        rom_init(&ati28800->bios_rom, BIOS_ATIKOR_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        
+        svga_init(&ati28800->svga, ati28800, 1 << 19, /*512kb*/
+                   ati28800_recalctimings,
+                   ati28800k_in, ati28800k_out,
+                   NULL,
+                   NULL);
+
+        io_sethandler(0x01ce, 0x0002, ati28800k_in, NULL, NULL, ati28800k_out, NULL, NULL, ati28800);
+        io_sethandler(0x03c0, 0x0020, ati28800k_in, NULL, NULL, ati28800k_out, NULL, NULL, ati28800);
+
+        ati28800->svga.miscout = 1;
+
+        ati_eeprom_load(&ati28800->eeprom, L"atikorvga.nvr", 0);
+
+        return ati28800;
 }
 
 static void *
@@ -247,6 +384,13 @@ static int
 ati28800_available(void)
 {
     return(rom_present(BIOS_ROM_PATH));
+}
+
+
+static int
+ati28800k_available()
+{
+    return ((rom_present(BIOS_ATIKOR_PATH) && rom_present(FONT_ATIKOR_PATH)));
 }
 
 
@@ -356,6 +500,19 @@ device_t ati28800_device =
 	0,
         ati28800_init, ati28800_close, NULL,
         ati28800_available,
+        ati28800_speed_changed,
+        ati28800_force_redraw,
+        ati28800_add_status_info,
+	ati28800_config
+};
+
+device_t ati28800k_device =
+{
+        "ATI Korean VGA",
+        DEVICE_ISA,
+	0,
+        ati28800k_init, ati28800_close, NULL,
+        ati28800k_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
         ati28800_add_status_info,

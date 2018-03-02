@@ -8,7 +8,7 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.8	2018/02/24
+ * Version:	@(#)vid_svga.h	1.0.9	2018/03/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -172,9 +172,11 @@ void     svga_write(uint32_t addr, uint8_t val, void *p);
 void     svga_writew(uint32_t addr, uint16_t val, void *p);
 void     svga_writel(uint32_t addr, uint32_t val, void *p);
 uint8_t  svga_read_linear(uint32_t addr, void *p);
+uint8_t  svga_readb_linear(uint32_t addr, void *p);
 uint16_t svga_readw_linear(uint32_t addr, void *p);
 uint32_t svga_readl_linear(uint32_t addr, void *p);
 void     svga_write_linear(uint32_t addr, uint8_t val, void *p);
+void     svga_writeb_linear(uint32_t addr, uint8_t val, void *p);
 void     svga_writew_linear(uint32_t addr, uint16_t val, void *p);
 void     svga_writel_linear(uint32_t addr, uint32_t val, void *p);
 
