@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc->c	1.0.16	2018/02/02
+ * Version:	@(#)fdc->c	1.0.17	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1140,7 +1140,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 
-static uint8_t
+uint8_t
 fdc_read(uint16_t addr, void *priv)
 {
     fdc_t *fdc = (fdc_t *) priv;

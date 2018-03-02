@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.104	2018/02/19
+# Version:	@(#)Makefile.mingw	1.0.105	2018/03/02
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -220,7 +220,11 @@ else
   endif
  endif
 endif
-AFLAGS		:= -msse2 -mfpmath=sse
+ifeq ($(W5580), y)
+ AFLAGS		:= -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2 -mfpmath=sse
+else
+ AFLAGS		:= -msse2 -mfpmath=sse
+endif
 RFLAGS		:= --input-format=rc -O coff
 ifeq ($(RELEASE), y)
 OPTS		+= -DRELEASE_BUILD
@@ -377,7 +381,8 @@ CFLAGS		:= $(CFLAGS)
 #########################################################################
 MAINOBJ		:= pc.o config.o random.o timer.o io.o dma.o nmi.o pic.o \
 		   pit.o ppi.o pci.o mca.o mcr.o mem.o memregs.o rom.o \
-		   device.o nvr.o nvr_at.o nvr_ps2.o $(VNCOBJ) $(RDPOBJ)
+		   device.o nvr.o nvr_tc8521.o rtc_tc8521.o nvr_at.o \
+		   nvr_ps2.o $(VNCOBJ) $(RDPOBJ)
 
 INTELOBJ	:= intel.o \
 		    intel_flash.o \
@@ -390,6 +395,7 @@ CPUOBJ		:= cpu.o cpu_table.o \
 
 MCHOBJ		:= machine.o machine_table.o \
 		    m_xt.o m_xt_compaq.o \
+		    m_xt_t1000.o \
 		    m_pcjr.o \
 		    m_amstrad.o \
 		    m_europc.o m_europc_hdc.o \
@@ -486,7 +492,7 @@ VIDOBJ		:= video.o \
 		    vid_hercules.o vid_herculesplus.o vid_incolor.o \
 		    vid_colorplus.o \
 		    vid_genius.o \
-		    vid_t3100e.o \
+		    vid_t1000.o vid_t3100e.o \
 		    vid_wy700.o \
 		    vid_ega.o vid_ega_render.o \
 		    vid_svga.o vid_svga_render.o \
