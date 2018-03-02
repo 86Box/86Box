@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.12	2018/01/31
+ * Version:	@(#)vid_ati_mach64.c	1.0.13	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -3600,7 +3600,7 @@ static device_config_t mach64vt2_config[] =
 device_t mach64gx_isa_device =
 {
         "ATI Mach64GX ISA",
-        DEVICE_ISA,
+        DEVICE_AT | DEVICE_ISA,
 	0,
         mach64gx_init, mach64_close, NULL,
         mach64gx_isa_available,
