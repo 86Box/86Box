@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.29	2018/02/27
+ * Version:	@(#)hdc_ide.c	1.0.30	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1157,11 +1157,11 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			timer_process();
 			if (ide_drive_is_zip(ide))
 			{
-				zip[atapi_zip_drives[ide->channel]].callback = 40000LL * TIMER_USEC /*100LL*IDE_TIME*/;
+				zip[atapi_zip_drives[ide->channel]].callback = 100LL*IDE_TIME;
 			}
 			if (ide_drive_is_cdrom(ide))
 			{
-				cdrom[atapi_cdrom_drives[ide->channel]].callback = 40000LL * TIMER_USEC /*100LL*IDE_TIME*/;
+				cdrom[atapi_cdrom_drives[ide->channel]].callback = 100LL*IDE_TIME;
 			}
 			idecallback[ide_board]=40000LL * TIMER_USEC /*100LL*IDE_TIME*/;
 			timer_update_outstanding();
