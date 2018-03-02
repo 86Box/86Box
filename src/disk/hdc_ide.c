@@ -1140,7 +1140,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 		{
 			cdrom[atapi_cdrom_drives[ide->channel]].error = 0;
 		}
-		if ((val >= WIN_SEEK) && (val <= 0x7F))
+		if (((val >= WIN_RESTORE) && (val <= 0x1F)) || ((val >= WIN_SEEK) && (val <= 0x7F)))
 		{
 			if (ide_drive_is_zip(ide))
 			{
@@ -1152,18 +1152,18 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			}
 			else
 			{
-				ide->atastat = READY_STAT;
+				ide->atastat = BUSY_STAT;
 			}
 			timer_process();
 			if (ide_drive_is_zip(ide))
 			{
-				zip[atapi_zip_drives[ide->channel]].callback = 100LL*IDE_TIME;
+				zip[atapi_zip_drives[ide->channel]].callback = 40000LL * TIMER_USEC /*100LL*IDE_TIME*/;
 			}
 			if (ide_drive_is_cdrom(ide))
 			{
-				cdrom[atapi_cdrom_drives[ide->channel]].callback = 100LL*IDE_TIME;
+				cdrom[atapi_cdrom_drives[ide->channel]].callback = 40000LL * TIMER_USEC /*100LL*IDE_TIME*/;
 			}
-			idecallback[ide_board]=100LL*IDE_TIME;
+			idecallback[ide_board]=40000LL * TIMER_USEC /*100LL*IDE_TIME*/;
 			timer_update_outstanding();
 			return;
 		}
@@ -1194,32 +1194,6 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
                 	        idecallback[ide_board]=100LL*IDE_TIME;
 	                        timer_update_outstanding();
         	                return;
-
-			case WIN_RESTORE:
-				if (ide_drive_is_zip(ide))
-				{
-					zip[atapi_zip_drives[ide->channel]].status = READY_STAT;
-				}
-				else if (ide_drive_is_cdrom(ide))
-				{
-					cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT;
-				}
-				else
-				{
-					ide->atastat = READY_STAT;
-				}
-				timer_process();
-				if (ide_drive_is_zip(ide))
-				{
-					zip[atapi_zip_drives[ide->channel]].callback = 100LL*IDE_TIME;
-				}
-				if (ide_drive_is_cdrom(ide))
-				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 100LL*IDE_TIME;
-				}
-				idecallback[ide_board]=100LL*IDE_TIME;
-				timer_update_outstanding();
-				return;
 
 			case WIN_READ_MULTIPLE:
 				/* Fatal removed in accordance with the official ATAPI reference:
@@ -1917,24 +1891,21 @@ void callbackide(int ide_board)
 	zip_id = atapi_zip_drives[cur_ide[ide_board]];
 	zip_id_other = atapi_zip_drives[cur_ide[ide_board] ^ 1];
 
-	if ((ide->command >= WIN_SEEK) && (ide->command <= 0x7F))
+	if (((ide->command >= WIN_RESTORE) && (ide->command <= 0x1F)) || ((ide->command >= WIN_SEEK) && (ide->command <= 0x7F)))
 	{
 		if (ide_drive_is_zip(ide) || ide_drive_is_cdrom(ide))
 		{
 			goto abort_cmd;
 		}
-		if (ide_drive_is_zip(ide))
+		if ((ide->command >= WIN_SEEK) && (ide->command <= 0x7F))
 		{
-			zip[zip_id].status = READY_STAT | DSC_STAT;
+			full_size /= ide->t_hpc;
+			full_size /= ide->t_spt;
+
+			if ((ide->cylinder >= full_size) || (ide->head >= ide->t_hpc) || !ide->sector || (ide->sector > ide->t_spt))
+				goto id_not_found;
 		}
-		else if (ide_drive_is_cdrom(ide))
-		{
-			cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
-		}
-		else
-		{
-			ide->atastat = READY_STAT | DSC_STAT;
-		}
+		ide->atastat = READY_STAT | DSC_STAT;
 		ide_irq_raise(ide);
 		return;
 	}
@@ -1969,11 +1940,6 @@ void callbackide(int ide_board)
 			}
 			return;
 
-	        case WIN_RESTORE:
-			if (ide_drive_is_zip(ide) || ide_drive_is_cdrom(ide))
-			{
-				goto abort_cmd;
-			}
 		case WIN_NOP:
 		case WIN_STANDBYNOW1:
 		case WIN_IDLENOW1:

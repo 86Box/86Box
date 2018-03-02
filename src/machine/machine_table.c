@@ -11,7 +11,7 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.22	2018/03/02
+ * Version:	@(#)machine_table.c	1.0.23	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -47,7 +47,7 @@ machine_t machines[] = {
     { "[8088] Schneider EuroPC",		ROM_EUROPC,		"europc",		{{"Siemens",cpus_europc},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_HDC | MACHINE_VIDEO | MACHINE_MOUSE,						512,  640, 128,   0,		  machine_europc_init, NULL,			NULL			},
     { "[8088] Tandy 1000",			ROM_TANDY,		"tandy",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,												128,  640, 128,   0,		 machine_tandy1k_init, tandy1k_get_device,	NULL			},
     { "[8088] Tandy 1000 HX",			ROM_TANDY1000HX,	"tandy1000hx",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,												256,  640, 128,   0,		 machine_tandy1k_init, tandy1k_hx_get_device,	NULL			},
-    { "[8088] Toshiba 1000",			ROM_T1000,		"t1000",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,												512, 1280, 768,   0,		machine_xt_t1000_init, t1000_get_device,	NULL			},
+    { "[8088] Toshiba 1000",			ROM_T1000,		"t1000",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO,										512, 1280, 768,   0,		machine_xt_t1000_init, t1000_get_device,	NULL			},
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
     { "[8088] VTech Laser Turbo XT",		ROM_LTXT,		"ltxt",			{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												512,  512, 256,   0,	      machine_xt_laserxt_init, NULL,			NULL			},
 #endif
@@ -60,7 +60,7 @@ machine_t machines[] = {
     { "[8086] Amstrad PC20(0)",			ROM_PC200,		"pc200",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,								512,  640, 128,  63,		 machine_amstrad_init, NULL,			nvr_at_close		},
     { "[8086] Olivetti M24",			ROM_OLIM24,		"olivetti_m24",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,								128,  640, 128,   0,		  machine_olim24_init, NULL,			NULL			},
     { "[8086] Tandy 1000 SL/2",			ROM_TANDY1000SL2,	"tandy1000sl2",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,												512,  768, 128,   0,	         machine_tandy1k_init, NULL,			NULL			},
-    { "[8086] Toshiba 1200",			ROM_T1200,		"t1200",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,											       1024, 2048,1024,   0,		machine_xt_t1200_init, t1200_get_device,	NULL			},
+    { "[8086] Toshiba 1200",			ROM_T1200,		"t1200",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO,									       1024, 2048,1024,   0,		machine_xt_t1200_init, t1200_get_device,	NULL			},
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
     { "[8086] VTech Laser XT3",			ROM_LXT3,		"lxt3",			{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												256,  512, 256,   0,	      machine_xt_laserxt_init, NULL,			NULL			},
 #endif

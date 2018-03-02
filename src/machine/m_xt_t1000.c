@@ -622,6 +622,8 @@ void machine_xt_t1000_init(machine_t *model)
 	nmi_init();
 	nvr_tc8521_init();
 /* No gameport, and no provision to fit one 	device_add(&gameport_device); */
+
+	device_add(&t1000_device);
 }
 
 
@@ -668,4 +670,6 @@ void machine_xt_t1200_init(machine_t *model)
 	nmi_init();
 	nvr_tc8521_init();
 /* No gameport, and no provision to fit one 	device_add(&gameport_device); */
+
+	device_add(&t1200_device);
 }
