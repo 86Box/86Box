@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.23	2018/03/03
+ * Version:	@(#)vid_table.c	1.0.24	2018/03/03
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -88,7 +88,7 @@ video_cards[] = {
     {"None",       				     "none",		NULL,				   GFX_NONE			},
     {"Internal",				     "internal",	NULL,				   GFX_INTERNAL, 		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     {"[ISA] ATI Graphics Pro Turbo (Mach64 GX)",     "mach64gx_isa",	&mach64gx_isa_device,		   GFX_MACH64GX_ISA,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
-    {"[ISA] ATI Korean VGA (ATI-28800-5)",           "ati28800k",	&ati28800_device,		   GFX_VGACHARGER,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
+    {"[ISA] ATI Korean VGA (ATI-28800-5)",           "ati28800k",	&ati28800k_device,		   GFX_ATIKOREANVGA,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
     {"[ISA] ATI VGA-88 (ATI-18800-1)",		     "ati18800v",	&ati18800_vga88_device,		   GFX_VGA88,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     {"[ISA] ATI VGA Charger (ATI-28800-5)",          "ati28800",	&ati28800_device,		   GFX_VGACHARGER,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
     {"[ISA] ATI VGA Edge-16 (ATI-18800-5)",          "ati18800",	&ati18800_device,		   GFX_VGAEDGE16,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
