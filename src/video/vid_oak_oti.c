@@ -8,7 +8,7 @@
  *
  *		Oak OTI037C/67/077 emulation.
  *
- * Version:	@(#)vid_oak_oti.c	1.0.5	2018/02/24
+ * Version:	@(#)vid_oak_oti.c	1.0.6	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -31,7 +31,6 @@
 #include "vid_svga.h"
 
 #define BIOS_37C_PATH	L"roms/video/oti/oti037c/bios.bin"
-#define BIOS_67_PATH	L"roms/video/oti/bios.bin"
 #define BIOS_77_PATH	L"roms/video/oti/oti077.vbi"
 
 
@@ -233,9 +232,6 @@ oti_init(device_t *info)
 		break;		
 		
 	case 2:
-		romfn = BIOS_67_PATH;
-		break;
-
 	case 5:
 		romfn = BIOS_77_PATH;
 		break;
