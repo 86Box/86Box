@@ -499,7 +499,7 @@ static void t1000_poll(void *p)
                                 ysize = T1000_YSIZE;
                                 if (xsize < 64) xsize = 656;
                                 if (ysize < 32) ysize = 200;
-                                updatewindowsize(xsize, ysize);
+                                set_screen_size(xsize, ysize);
                         }
                         video_blit_memtoscreen(0, 0, 0, ysize, xsize, ysize);
 
