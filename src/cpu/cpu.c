@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.c	1.0.12	2018/03/02
+ * Version:	@(#)cpu.c	1.0.13	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -190,7 +190,7 @@ void cpu_dynamic_switch(int new_cpu)
         int c = cpu;
         cpu = new_cpu;
         cpu_set();
-        speedchanged();
+        pc_speed_changed();
         cpu = c;
 }
 
