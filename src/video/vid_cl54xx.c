@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, 5430, 5434 and 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.9	2018/03/02
+ * Version:	@(#)vid_cl_54xx.c	1.0.10	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,
@@ -2488,7 +2488,7 @@ static device_config_t gd5434_config[] =
 device_t gd5428_isa_device =
 {
     "Cirrus Logic CL-GD 5428 (ISA)",
-    DEVICE_ISA,
+    DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5428,
     gd54xx_init, 
     gd54xx_close, 
@@ -2518,7 +2518,7 @@ device_t gd5428_vlb_device =
 device_t gd5429_isa_device =
 {
     "Cirrus Logic CL-GD 5429 (ISA)",
-    DEVICE_ISA,
+    DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5429,
     gd54xx_init, 
     gd54xx_close, 

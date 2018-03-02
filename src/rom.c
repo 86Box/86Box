@@ -674,12 +674,14 @@ rom_load_bios(int rom_id)
 		break;
 
 	case ROM_SPC4216P:
-		if (! rom_load_interleaved(
+		if (rom_load_linear(
+			L"roms/machines/spc4216p/phoenix.bin",
+			0x000000, 65536, 0, rom)) return(1);
+		if (rom_load_interleaved(
 			L"roms/machines/spc4216p/7101.u8",
 			L"roms/machines/spc4216p/ac64.u10",
-			0x000000, 65536, 0, rom)) break;
-		biosmask = 0x7fff;
-		return(1);
+			0x000000, 65536, 0, rom)) return(1);
+		break;
 
 	case ROM_KMXC02:
 		if (rom_load_linear(
