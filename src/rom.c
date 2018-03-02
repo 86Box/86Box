@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.31	2018/03/02
+ * Version:	@(#)rom.c	1.0.32	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -607,9 +607,29 @@ rom_load_bios(int rom_id)
 		break;
 #endif
 
+	case ROM_GW286CT:
+		if (rom_load_linear(
+			L"roms/machines/gw286ct/2ctc001.bin",
+			0x000000, 65536, 0, rom)) return(1);
+		break;
+
 	case ROM_SPC4200P:	/* Samsung SPC-4200P */
 		if (rom_load_linear(
 			L"roms/machines/spc4200p/u8.01",
+			0x000000, 65536, 0, rom)) return(1);
+		break;
+
+	case ROM_SPC4216P:
+		if (! rom_load_interleaved(
+			L"roms/machines/spc4216p/7101.u8",
+			L"roms/machines/spc4216p/ac64.u10",
+			0x000000, 65536, 0, rom)) break;
+		biosmask = 0x7fff;
+		return(1);
+
+	case ROM_KMXC02:
+		if (rom_load_linear(
+			L"roms/machines/kmxc02/3ctm005.bin",
 			0x000000, 65536, 0, rom)) return(1);
 		break;
 

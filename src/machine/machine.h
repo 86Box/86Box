@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.20	2018/03/02
+ * Version:	@(#)machine.h	1.0.21	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -141,6 +141,7 @@ extern void	machine_at_neat_ami_init(machine_t *);
 extern void	machine_at_opti495_init(machine_t *);
 extern void	machine_at_opti495_ami_init(machine_t *);
 extern void	machine_at_scat_init(machine_t *);
+extern void	machine_at_scatsx_init(machine_t *);
 extern void	machine_at_compaq_init(machine_t *);
 
 extern void	machine_at_dtk486_init(machine_t *);

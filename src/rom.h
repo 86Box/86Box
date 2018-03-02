@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.14	2018/03/02
+ * Version:	@(#)rom.h	1.0.15	2018/03/02
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2018 Fred N. van Kempen.
@@ -76,12 +76,14 @@ enum {
 #if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
     ROM_PORTABLEIII,
 #endif
+    ROM_GW286CT,
     ROM_SUPER286TR,	/* Hyundai Super-286TR/SCAT/Award */
     ROM_IBMAT,
     ROM_IBMPS1_2011,
     ROM_IBMPS2_M30_286,
     ROM_IBMXT286,
     ROM_SPC4200P,	/* Samsung SPC-4200P/SCAT/Phoenix */
+    ROM_SPC4216P,	/* Samsung SPC-4216P/SCAT */
 #ifdef WALTJE
     ROM_OPENAT,		/* PC/AT clone with Open BIOS */
 #endif
@@ -89,6 +91,7 @@ enum {
     ROM_IBMPS2_M50,
 
     ROM_AMI386SX,
+    ROM_KMXC02,
     ROM_MEGAPC,
     ROM_AWARD386SX_OPTI495,
 #if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
