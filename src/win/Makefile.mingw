@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.106	2018/03/02
+# Version:	@(#)Makefile.mingw	1.0.107	2018/03/05
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -112,19 +112,45 @@ ifndef PROG
 endif
 
 ifeq ($(DEV_BUILD), y)
-DEBUG		:= y
-DEV_BRANCH	:= y
-AMD_K		:= y
-CRASHDUMP	:= y
-GREENB		:= y
-I686		:= y
-LASERXT		:= y
-NV_RIVA		:= y
-PAS16		:= y
-PORTABLE3	:= y
-STEALTH32	:= y
-VNC		:= y
-XL24		:= y
+ ifneq ($(DEBUG), n)
+  DEBUG		:= y
+ endif
+ ifneq ($(DEV_BRANCH), n)
+  DEV_BRANCH	:= y
+ endif
+ ifneq ($(AMD_K), n)
+  AMD_K		:= y
+ endif
+ ifneq ($(CRASHDUMP), n)
+  CRASHDUMP	:= y
+ endif
+ ifneq ($(GREENB), n)
+  GREENB		:= y
+ endif
+ ifneq ($(I686), n)
+  I686		:= y
+ endif
+ ifneq ($(LASERXT), n)
+  LASERXT		:= y
+ endif
+ ifneq ($(NV_RIVA), n)
+  NV_RIVA		:= y
+ endif
+ ifneq ($(PAS16), n)
+  PAS16		:= y
+ endif
+ ifneq ($(PORTABLE3), n)
+  PORTABLE3	:= y
+ endif
+ ifneq ($(STEALTH32), n)
+  STEALTH32	:= y
+ endif
+ ifneq ($(VNC), n)
+  VNC		:= y
+ endif
+ ifneq ($(XL24), n)
+  XL24		:= y
+ endif
 endif
 
 # WxWidgets basic info. Extract using the config program.
