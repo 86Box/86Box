@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, 5430, 5434 and 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.8	2018/03/01
+ * Version:	@(#)vid_cl_54xx.c	1.0.10	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,

@@ -131,5 +131,6 @@ void machine_xt_xi8088_init(machine_t *model)
         nmi_init();
 	nvr_at_init(8);
         pic2_init();
-        device_add(&gameport_device);
+	if (joystick_type != 7)
+        	device_add(&gameport_device);
 }

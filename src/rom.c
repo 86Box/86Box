@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.33	2018/03/02
+ * Version:	@(#)rom.c	1.0.34	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -354,14 +354,14 @@ rom_load_bios(int rom_id)
 	case ROM_XI8088:
 		if (rom_load_linear_inverted(
 			L"roms/machines/xi8088/bios-xi8088.bin",
-			0x000000, 131072, 128, rom)) {
+			0x000000, 131072, 0, rom)) {
 			biosmask = 0x1ffff;
 			xi8088_bios_128kb_set(1);
 			return(1);
 		} else {
 			if (rom_load_linear(
 				L"roms/machines/xi8088/bios-xi8088.bin",
-				0x000000, 65536, 128, rom)) {
+				0x000000, 65536, 0, rom)) {
 				xi8088_bios_128kb_set(0);
 				return(1);
 			}
@@ -674,12 +674,14 @@ rom_load_bios(int rom_id)
 		break;
 
 	case ROM_SPC4216P:
-		if (! rom_load_interleaved(
+		if (rom_load_linear(
+			L"roms/machines/spc4216p/phoenix.bin",
+			0x000000, 65536, 0, rom)) return(1);
+		if (rom_load_interleaved(
 			L"roms/machines/spc4216p/7101.u8",
 			L"roms/machines/spc4216p/ac64.u10",
-			0x000000, 65536, 0, rom)) break;
-		biosmask = 0x7fff;
-		return(1);
+			0x000000, 65536, 0, rom)) return(1);
+		break;
 
 	case ROM_KMXC02:
 		if (rom_load_linear(
@@ -904,19 +906,21 @@ rom_load_bios(int rom_id)
 
 	case ROM_T1000:
 		loadfont(L"roms/machines/t1000/t1000font.bin", 2);
-		if (rom_load_linear(
+		if (!rom_load_linear(
 			L"roms/machines/t1000/t1000.rom",
-			0x000000, 32768, 0, rom)) return(1);
+			0x000000, 32768, 0, rom)) break;
 		memcpy(rom + 0x8000, rom, 0x8000);
-		break;
+		biosmask = 0x7fff;
+		return(1);
 
 	case ROM_T1200:
 		loadfont(L"roms/machines/t1200/t1000font.bin", 2);
-		if (rom_load_linear(
+		if (!rom_load_linear(
 			L"roms/machines/t1200/t1200_019e.ic15.bin",
-			0x000000, 32768, 0, rom)) return(1);
+			0x000000, 32768, 0, rom)) break;
 		memcpy(rom + 0x8000, rom, 0x8000);
-		break;
+		biosmask = 0x7fff;
+		return(1);
 
 	case ROM_T3100E:
 		loadfont(L"roms/machines/t3100e/t3100e_font.bin", 5);
