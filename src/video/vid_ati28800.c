@@ -6,9 +6,9 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		ATI 28800 emulation (VGA Charger)
+ *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.8	2018/03/02
+ * Version:	@(#)vid_ati28800.c	1.0.9	2018/03/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -58,6 +58,8 @@ typedef struct ati28800_t
         
         uint8_t regs[256];
         int index;
+		
+		uint32_t memory;
 } ati28800_t;
 
 
@@ -68,7 +70,6 @@ int		get_korean_font_enabled;
 int		get_korean_font_index;
 uint16_t	get_korean_font_base;
 extern int	dbcs_mode_enabled;
- 
 
 
 static void ati28800_out(uint16_t addr, uint8_t val, void *p)
@@ -88,6 +89,7 @@ static void ati28800_out(uint16_t addr, uint8_t val, void *p)
                 ati28800->index = val;
                 break;
                 case 0x1cf:
+				old=ati28800->regs[ati28800->index];
                 ati28800->regs[ati28800->index] = val;
                 switch (ati28800->index)
                 {
@@ -104,6 +106,9 @@ static void ati28800_out(uint16_t addr, uint8_t val, void *p)
                         case 0xb3:
                         ati_eeprom_write(&ati28800->eeprom, val & 8, val & 2, val & 1);
                         break;
+						case 0xb6:
+						if((old ^ val) & 0x10) svga_recalctimings(svga);
+						break;
                 }
                 break;
                 
@@ -158,6 +163,7 @@ void ati28800k_out(uint16_t addr, uint8_t val, void *p)
                         get_korean_font_kind = (val << 8) | (get_korean_font_kind & 0xFF);
                         get_korean_font_enabled = 1;
                         get_korean_font_index = 0;
+						in_get_korean_font_kind_set = 0;
                 }
                 break;
                 case 0x3DE:
@@ -202,6 +208,15 @@ static uint8_t ati28800_in(uint16_t addr, void *p)
                 case 0x1cf:
                 switch (ati28800->index)
                 {
+						case 0xb0:
+						if (ati28800->memory == 256)
+							return 0x08;
+						else if (ati28800->memory == 512)
+							return 0x10;
+						else
+							return 0x18;
+						break;
+					
                         case 0xb7:
                         temp = ati28800->regs[ati28800->index] & ~8;
                         if (ati_eeprom_read(&ati28800->eeprom))
@@ -275,11 +290,18 @@ uint8_t ati28800k_in(uint16_t addr, void *p)
 static void ati28800_recalctimings(svga_t *svga)
 {
         ati28800_t *ati28800 = (ati28800_t *)svga->p;
-        pclog("ati28800_recalctimings\n");
+
+		if (ati28800->regs[0xb6] & 0x10)
+		{
+                svga->hdisp <<= 1;
+                svga->htotal <<= 1;
+                svga->rowoffset <<= 1;			
+		}
+		
         if (!svga->scrblank && (ati28800->regs[0xb0] & 0x20)) /*Extended 256 colour modes*/
         {
-                pclog("8bpp_highres\n");
                 svga->render = svga_render_8bpp_highres;
+				svga->bpp = 8;
                 svga->rowoffset <<= 1;
                 svga->ma <<= 1;
         }
@@ -291,7 +313,8 @@ ati28800k_init(device_t *info)
         ati28800_t *ati28800 = malloc(sizeof(ati28800_t));
         memset(ati28800, 0, sizeof(ati28800_t));
 
-
+		ati28800->memory = device_get_config_int("memory");
+		
         port_03dd_val = 0;
         get_korean_font_base = 0;
         get_korean_font_index = 0;
@@ -301,8 +324,9 @@ ati28800k_init(device_t *info)
         dbcs_mode_enabled = 0;
         
         rom_init(&ati28800->bios_rom, BIOS_ATIKOR_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		loadfont(FONT_ATIKOR_PATH, 6);
         
-        svga_init(&ati28800->svga, ati28800, 1 << 19, /*512kb*/
+        svga_init(&ati28800->svga, ati28800, ati28800->memory << 10, /*Memory size, default 512KB*/
                    ati28800_recalctimings,
                    ati28800k_in, ati28800k_out,
                    NULL,
@@ -321,17 +345,12 @@ ati28800k_init(device_t *info)
 static void *
 ati28800_init(device_t *info)
 {
-    uint32_t memory = 512;
     ati28800_t *ati;
-
-#if 0
-    if (info->type == GFX_VGAWONDERXL)
-#endif
-	memory = device_get_config_int("memory");
-memory <<= 10;
     ati = malloc(sizeof(ati28800_t));
     memset(ati, 0x00, sizeof(ati28800_t));
 
+	ati->memory = device_get_config_int("memory");	
+	
     switch(info->local) {
 	case GFX_VGAWONDERXL:
 		rom_init_interleaved(&ati->bios_rom,
@@ -359,7 +378,7 @@ memory <<= 10;
 		break;
     }
 
-    svga_init(&ati->svga, ati, memory, /*512kb*/
+    svga_init(&ati->svga, ati, ati->memory << 10, /*default: 512kb*/
 	      ati28800_recalctimings,
                    ati28800_in, ati28800_out,
                    NULL,
@@ -456,6 +475,9 @@ static device_config_t ati28800_config[] =
                         },
                         {
                                 "512 kB", 512
+                        },
+                        {
+                                "1024 kB", 1024
                         },
                         {
                                 ""
