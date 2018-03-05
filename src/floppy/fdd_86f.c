@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)fdd_86f.c	1.0.14	2018/01/18
+ * Version:	@(#)fdd_86f.c	1.0.15	2018/03/05
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -3390,6 +3390,8 @@ int d86f_export(int drive, wchar_t *fn)
 	int tracks = 86;
 	int i;
 
+	int inc = 1;
+
 	uint32_t magic = 0x46423638;
 	uint16_t version = 0x020B;
 
@@ -3411,13 +3413,17 @@ int d86f_export(int drive, wchar_t *fn)
 
 	fwrite(tt, 1, ((d86f_get_sides(drive) == 2) ? 2048 : 1024), f);
 
-	/* Do this do teremine how many tracks to actually output. */
-	fdd_do_seek(drive, 2);
-	if (d86f[drive].cur_track == 1)
-		tracks >>= 1;
+	/* In the case of a thick track drive, always increment track
+	   by two, since two tracks are going to get output at once. */
+	if (!fdd_doublestep_40(drive))
+		inc = 2;
 
-	for (i = 0; i < tracks; i++) {
-		fdd_do_seek(drive, i);
+	for (i = 0; i < tracks; i += inc) {
+		if (inc == 2)
+			fdd_do_seek(drive, i >> 1);
+		else
+			fdd_do_seek(drive, i);
+		d86f[drive].cur_track = i;
 		d86f_write_tracks(drive, &f, tt);
 	}
 
