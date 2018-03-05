@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.107	2018/03/05
+# Version:	@(#)Makefile.mingw	1.0.108	2018/03/05
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -24,12 +24,95 @@ ifndef EXTRAS
 EXTRAS		:=
 endif
 
+ifndef DEV_BUILD
+DEV_BUILD	:= n
+endif
+
+ifeq ($(DEV_BUILD), y)
+ ifndef DEBUG
+  DEBUG		:= y
+ endif
+ ifndef DEV_BRANCH
+  DEV_BRANCH	:= y
+ endif
+ ifndef AMD_K
+  AMD_K		:= y
+ endif
+ ifndef CRASHDUMP
+  CRASHDUMP	:= y
+ endif
+ ifndef GREENB
+  GREENB	:= y
+ endif
+ ifndef I686
+  I686		:= y
+ endif
+ ifndef LASERXT
+  LASERXT	:= y
+ endif
+ ifndef NV_RIVA
+  NV_RIVA	:= y
+ endif
+ ifndef PAS16
+  PAS16		:= y
+ endif
+ ifndef PORTABLE3
+  PORTABLE3	:= y
+ endif
+ ifndef STEALTH32
+  STEALTH32	:= y
+ endif
+ ifndef VNC
+  VNC		:= y
+ endif
+ ifndef XL24
+  XL24		:= y
+ endif
+else
+ ifndef DEBUG
+  DEBUG		:= n
+ endif
+ ifndef DEV_BRANCH
+  DEV_BRANCH	:= n
+ endif
+ ifndef AMD_K
+  AMD_K		:= n
+ endif
+ ifndef CRASHDUMP
+  CRASHDUMP	:= n
+ endif
+ ifndef GREENB
+  GREENB	:= n
+ endif
+ ifndef I686
+  I686		:= n
+ endif
+ ifndef LASERXT
+  LASERXT	:= n
+ endif
+ ifndef NV_RIVA
+  NV_RIVA	:= n
+ endif
+ ifndef PAS16
+  PAS16		:= n
+ endif
+ ifndef PORTABLE3
+  PORTABLE3	:= n
+ endif
+ ifndef STEALTH32
+  STEALTH32	:= n
+ endif
+ ifndef VNC
+  VNC		:= n
+ endif
+ ifndef XL24
+  XL24		:= n
+ endif
+endif
+
 # Defaults for several build options (possibly defined in a chained file.)
 ifndef AUTODEP
 AUTODEP		:= n
-endif
-ifndef DEBUG
-DEBUG		:= n
 endif
 ifndef OPTIM
 OPTIM		:= n
@@ -46,56 +129,17 @@ endif
 ifndef USB
 USB		:= n
 endif
-ifndef VNC
-VNC		:= n
-endif
 ifndef RDP
 RDP		:= n
 endif
-ifndef DEV_BUILD
-DEV_BUILD	:= n
-endif
-ifndef DEV_BRANCH
-DEV_BRANCH	:= n
-endif
-ifndef AMD_K
-AMD_K		:= n
-endif
-ifndef CRASHDUMP
-CRASHDUMP	:= n
-endif
-ifndef GREENB
-GREENB		:= n
-endif
-ifndef I686
-I686		:= n
-endif
-ifndef LASERXT
-LASERXT		:= n
-endif
-ifndef NV_RIVA
-NV_RIVA		:= n
-endif
 ifndef OPENAL
 OPENAL		:= y
-endif
-ifndef PORTABLE3
-PORTABLE3	:= n
 endif
 ifndef FLUIDSYNTH
 FLUIDSYNTH	:= y
 endif
 ifndef MUNT
 MUNT		:= y
-endif
-ifndef PAS16
-PAS16		:= n
-endif
-ifndef STEALTH32
-STEALTH32	:= n
-endif
-ifndef XL24
-XL24		:= n
 endif
 ifndef DYNAREC
 DYNAREC		:= y
@@ -108,48 +152,6 @@ ifndef PROG
   PROG		:= Wx86Box
  else
   PROG		:= 86Box
- endif
-endif
-
-ifeq ($(DEV_BUILD), y)
- ifneq ($(DEBUG), n)
-  DEBUG		:= y
- endif
- ifneq ($(DEV_BRANCH), n)
-  DEV_BRANCH	:= y
- endif
- ifneq ($(AMD_K), n)
-  AMD_K		:= y
- endif
- ifneq ($(CRASHDUMP), n)
-  CRASHDUMP	:= y
- endif
- ifneq ($(GREENB), n)
-  GREENB		:= y
- endif
- ifneq ($(I686), n)
-  I686		:= y
- endif
- ifneq ($(LASERXT), n)
-  LASERXT		:= y
- endif
- ifneq ($(NV_RIVA), n)
-  NV_RIVA		:= y
- endif
- ifneq ($(PAS16), n)
-  PAS16		:= y
- endif
- ifneq ($(PORTABLE3), n)
-  PORTABLE3	:= y
- endif
- ifneq ($(STEALTH32), n)
-  STEALTH32	:= y
- endif
- ifneq ($(VNC), n)
-  VNC		:= y
- endif
- ifneq ($(XL24), n)
-  XL24		:= y
  endif
 endif
 
