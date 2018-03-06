@@ -8,7 +8,7 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.15	2018/02/18
+ * Version:	@(#)scsi.c	1.0.16	2018/03/06
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -28,8 +28,8 @@
 #include "../timer.h"
 #include "../device.h"
 #include "../cdrom/cdrom.h"
-#include "../zip.h"
 #include "../disk/hdc.h"
+#include "../disk/zip.h"
 #include "../plat.h"
 #include "scsi.h"
 #include "scsi_aha154x.h"

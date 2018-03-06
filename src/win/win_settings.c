@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.39	2018/02/18
+ * Version:	@(#)win_settings.c	1.0.40	2018/03/06
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -37,10 +37,10 @@
 #include "../lpt.h"
 #include "../mouse.h"
 #include "../cdrom/cdrom.h"
-#include "../zip.h"
 #include "../disk/hdd.h"
 #include "../disk/hdc.h"
 #include "../disk/hdc_ide.h"
+#include "../disk/zip.h"
 #include "../floppy/fdd.h"
 #include "../scsi/scsi.h"
 #include "../network/network.h"

@@ -8,7 +8,7 @@
  *
  *		Implementation of the IMD floppy image format.
  *
- * Version:	@(#)fdd_imd.c	1.0.6	2018/01/16
+ * Version:	@(#)fdd_imd.c	1.0.7	2018/03/06
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -691,7 +691,7 @@ void imd_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_
 	int sc = 0;
 	int sh = 0;
 	int sn = 0;
-	char *c_map, *h_map, *r_map, *n_map;
+	char *c_map = 0, *h_map = 0, *r_map = 0, *n_map = 0;
 	uint8_t id[4] = { 0, 0, 0, 0 };
 	sc = imd[drive].tracks[track][side].params[1];
 	sh = imd[drive].tracks[track][side].params[2];
@@ -734,7 +734,7 @@ void imd_writeback(int drive)
 
 	int i = 0;
 
-	char *n_map;
+	char *n_map = 0;
 
 	uint8_t h, n, spt;
 	uint32_t ssize;

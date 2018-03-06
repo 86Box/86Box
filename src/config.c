@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.42	2018/02/10
+ * Version:	@(#)config.c	1.0.43	2018/03/06
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -36,10 +36,10 @@
 #include "device.h"
 #include "lpt.h"
 #include "cdrom/cdrom.h"
-#include "zip.h"
 #include "disk/hdd.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
+#include "disk/zip.h"
 #include "floppy/fdd.h"
 #include "floppy/fdc.h"
 #include "game/gameport.h"

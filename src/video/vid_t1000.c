@@ -366,7 +366,7 @@ static void t1000_cgaline4(t1000_t *t1000)
 {
 	int x, c;
 	uint8_t dat, pattern;
-	uint32_t ink0, ink1;
+	uint32_t ink0 = 0, ink1 = 0;
 	uint16_t addr;
 
 	uint16_t ma = (t1000->cga.crtc[13] | (t1000->cga.crtc[12] << 8)) & 0x3fff;

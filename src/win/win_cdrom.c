@@ -8,14 +8,14 @@
  *
  *		Handle the platform-side of CDROM drives.
  *
- * Version:	@(#)win_cdrom.c	1.0.4	2017/10/16
+ * Version:	@(#)win_cdrom.c	1.0.5	2018/03/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -31,8 +31,8 @@
 #include "../cdrom/cdrom.h"
 #include "../cdrom/cdrom_image.h"
 #include "../cdrom/cdrom_null.h"
-#include "../zip.h"
 #include "../disk/hdd.h"
+#include "../disk/zip.h"
 #include "../scsi/scsi.h"
 #include "../scsi/scsi_disk.h"
 #include "../plat.h"

@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.61	2018/03/02
+ * Version:	@(#)pc.c	1.0.62	2018/03/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -56,10 +56,10 @@
 #include "disk/hdd.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
+#include "disk/zip.h"
 #include "cdrom/cdrom.h"
 #include "cdrom/cdrom_image.h"
 #include "cdrom/cdrom_null.h"
-#include "zip.h"
 #include "scsi/scsi.h"
 #include "network/network.h"
 #include "sound/sound.h"

@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.14	2018/02/11
+ * Version:	@(#)win_stbar.c	1.0.15	2018/03/06
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -36,9 +36,9 @@
 #include "../cdrom/cdrom.h"
 #include "../cdrom/cdrom_image.h"
 #include "../cdrom/cdrom_null.h"
-#include "../zip.h"
 #include "../disk/hdd.h"
 #include "../disk/hdc.h"
+#include "../disk/zip.h"
 #include "../floppy/fdd.h"
 #include "../scsi/scsi.h"
 #include "../scsi/scsi_disk.h"

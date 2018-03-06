@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.6	2018/02/27
+ * Version:	@(#)zip.c	1.0.7	2018/03/06
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -22,17 +22,17 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "config.h"
-#include "timer.h"
-#include "device.h"
-#include "piix.h"
-#include "scsi/scsi.h"
-#include "nvr.h"
-#include "disk/hdc.h"
-#include "disk/hdc_ide.h"
-#include "plat.h"
-#include "ui.h"
+#include "../86box.h"
+#include "../config.h"
+#include "../timer.h"
+#include "../device.h"
+#include "../piix.h"
+#include "../scsi/scsi.h"
+#include "../nvr.h"
+#include "../plat.h"
+#include "../ui.h"
+#include "hdc.h"
+#include "hdc_ide.h"
 #include "zip.h"
 
 
