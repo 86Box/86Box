@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.31	2018/03/06
+ * Version:	@(#)hdc_ide.c	1.0.32	2018/03/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -485,7 +485,9 @@ static void ide_atapi_zip_identify(IDE *ide)
 
 	zip_id = atapi_zip_drives[ide->channel];
 
-	ide->buffer[0] = 0x8000 | (0<<8) | 0x80 | (2<<5); /* ATAPI device, direct-access device, removable media, accelerated DRQ */
+	/* Using (2<<5) below makes the ASUS P/I-P54TP4XE misdentify the ZIP drive
+	   as a LS-120. */
+	ide->buffer[0] = 0x8000 | (0<<8) | 0x80 | (1<<5); /* ATAPI device, direct-access device, removable media, accelerated DRQ */
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
 	if (zip_drives[zip_id].is_250) {
 		ide_padstr((char *) (ide->buffer + 23), "42.S", 8); /* Firmware */
@@ -497,7 +499,6 @@ static void ide_atapi_zip_identify(IDE *ide)
 	ide->buffer[49] = 0x200; /* LBA supported */
 
 	/* Note by Kotori: Look at this if this is supported by ZIP at all. */
-	ide->buffer[48] = 1;   /*Dword transfers supported*/
 	ide->buffer[51] = 2 << 8; /*PIO timing mode*/
 
 	ide->buffer[126] = 0xfffe; /* Interpret zero byte count limit as maximum length */
@@ -505,10 +506,9 @@ static void ide_atapi_zip_identify(IDE *ide)
 	if (PCI && (ide->board < 2) && (zip_drives[zip_id].bus_type == ZIP_BUS_ATAPI_PIO_AND_DMA))
 	{
 		ide->buffer[49] |= 0x100; /* DMA supported */
-		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
-		ide->buffer[53] = 7;
-		ide->buffer[62] = 7;
-		ide->buffer[63] = 7;
+		ide->buffer[52] = 0 << 8; /*DMA timing mode*/
+		ide->buffer[53] = 6;
+		ide->buffer[63] = 3;
 		ide->buffer[88] = 7;
         	if (ide->mdma_mode != -1)
 	        {
@@ -516,18 +516,16 @@ static void ide_atapi_zip_identify(IDE *ide)
 		    d <<= 8;
 		    if ((ide->mdma_mode & 0x300) == 0x200)
         	    	ide->buffer[88] |= d;
-		    else if ((ide->mdma_mode & 0x300) == 0x100)
-        	    	ide->buffer[63] |= d;
 		    else
-        	    	ide->buffer[62] |= d;
+        	    	ide->buffer[63] |= d;
 		    ide_log("PIDENTIFY DMA Mode: %04X, %04X\n", ide->buffer[62], ide->buffer[63]);
 	        }
-		ide->buffer[65] = 0xb4;
-		ide->buffer[66] = 0xb4;
-		ide->buffer[71] = 30;
-		ide->buffer[72] = 30;
-		ide->buffer[80] = 0x1e; /*ATA-1 to ATA-4 supported*/
-		ide->buffer[81] = 0x18; /*ATA-4 revision 18 supported*/
+		ide->buffer[65] = 0x96;
+		ide->buffer[66] = 0x96;
+		ide->buffer[67] = 0xb4;
+		ide->buffer[68] = 0xb4;
+		ide->buffer[80] = 0x30; /*Supported ATA versions : ATA/ATAPI-4 ATA/ATAPI-5*/
+		ide->buffer[81] = 0x15; /*Maximum ATA revision supported : ATA/ATAPI-5 T13 1321D revision 1*/
 	}
 }
 
@@ -625,6 +623,7 @@ static int ide_set_features(IDE *ide)
 	uint8_t mode, submode;
 
 	int bus, dma;
+	int max_pio = 2, max_mdma = 2;
 
 	features = ide->cylprecomp;
 	features_data = ide->secount;
@@ -632,6 +631,8 @@ static int ide_set_features(IDE *ide)
 	if (ide_drive_is_zip(ide)) {
 		bus = zip_drives[atapi_zip_drives[ide->channel]].bus_type;
 		dma = (bus == ZIP_BUS_ATAPI_PIO_AND_DMA);
+		max_pio = 0;
+		max_mdma = 1;
 	} else if (ide_drive_is_cdrom(ide)) {
 		bus = cdrom_drives[atapi_cdrom_drives[ide->channel]].bus_type;
 		dma = (bus == CDROM_BUS_ATAPI_PIO_AND_DMA);
@@ -664,7 +665,7 @@ static int ide_set_features(IDE *ide)
 					break;
 
 				case 0x01:	/* PIO mode */
-					if (submode > 2)
+					if (submode > max_pio)
 					{
 						return 0;
 					}
@@ -673,7 +674,7 @@ static int ide_set_features(IDE *ide)
 					break;
 
 				case 0x02:	/* Singleword DMA mode */
-					if (!PCI || !dma || (ide->board >= 2) || (submode > 2))
+					if (!PCI || !dma || ide_drive_is_zip(ide) || (ide->board >= 2) || (submode > 2))
 					{
 						return 0;
 					}
@@ -682,7 +683,7 @@ static int ide_set_features(IDE *ide)
 					break;
 
 				case 0x04:	/* Multiword DMA mode */
-					if (!PCI || !dma || (ide->board >= 2) || (submode > 2))
+					if (!PCI || !dma || (ide->board >= 2) || (submode > max_mdma))
 					{
 						return 0;
 					}
