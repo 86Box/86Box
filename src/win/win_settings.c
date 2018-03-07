@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.41	2018/03/07
+ * Version:	@(#)win_settings.c	1.0.42	2018/03/07
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -4409,7 +4409,7 @@ static void cdrom_add_locations(HWND hdlg)
 	}
 
 	h = GetDlgItem(hdlg, IDC_COMBO_CD_SPEED);
-	for (i = 1; i <= 52; i++)
+	for (i = 1; i <= 56; i++)
 	{
 		wsprintf(lptsTemp, L"%ix", i);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
