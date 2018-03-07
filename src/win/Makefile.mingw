@@ -246,7 +246,7 @@ else
  ifeq ($(OPTIM), y)
   AOPTIM	:= -mtune=native
   ifndef COPTIM
-   COPTIM	:= -O6 -flto
+   COPTIM	:= -O3 -flto
   endif
  else
   ifndef COPTIM
@@ -254,11 +254,7 @@ else
   endif
  endif
 endif
-ifeq ($(W5580), y)
- AFLAGS		:= -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2 -mfpmath=sse
-else
- AFLAGS		:= -msse2 -mfpmath=sse
-endif
+AFLAGS		:= -msse2 -mfpmath=sse
 RFLAGS		:= --input-format=rc -O coff
 ifeq ($(RELEASE), y)
 OPTS		+= -DRELEASE_BUILD
