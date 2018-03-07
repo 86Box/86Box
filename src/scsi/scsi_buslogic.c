@@ -11,14 +11,14 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.34	2018/01/06
+ * Version:	@(#)scsi_buslogic.c	1.0.35	2018/03/07
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -719,7 +719,6 @@ buslogic_cmds(void *p)
 			dev->IrqEnabled = 1;
 		return 1;
 	case 0x81:
-		x54x_busy(1);
 		dev->Mbx24bit = 0;
 
 		MailboxInitE = (MailboxInitExtended_t *)dev->CmdBuf;
@@ -736,7 +735,6 @@ buslogic_cmds(void *p)
 
 		dev->Status &= ~STAT_INIT;
 		dev->DataReplyLeft = 0;
-		x54x_busy(0);
 		break;
 	case 0x83:
 		if (dev->CmdParam == 12) {
@@ -1528,6 +1526,7 @@ buslogic_init(device_t *info)
 		has_autoscsi_rom = 0;
 		has_scam_rom = 0;
 		dev->fw_rev = "AA335";
+		dev->ha_bps = 5000000.0;	/* normal SCSI */
 		break;
 	case CHIP_BUSLOGIC_ISA:
 	default:
@@ -1540,6 +1539,7 @@ buslogic_init(device_t *info)
 		autoscsi_rom_size = 0x4000;
 		has_scam_rom = 0;
 		dev->fw_rev = "AA421E";
+		dev->ha_bps = 10000000.0;	/* fast SCSI */
 		break;
 	case CHIP_BUSLOGIC_MCA:
 		strcpy(dev->name, "BT-640A");
@@ -1553,6 +1553,7 @@ buslogic_init(device_t *info)
 		dev->pos_regs[0] = 0x08;	/* MCA board ID */
 		dev->pos_regs[1] = 0x07;	
 		mca_add(buslogic_mca_read, buslogic_mca_write, dev);
+		dev->ha_bps = 5000000.0;	/* normal SCSI */
 		break;
 	case CHIP_BUSLOGIC_VLB:
 		strcpy(dev->name, "BT-445S");
@@ -1565,6 +1566,7 @@ buslogic_init(device_t *info)
 		has_scam_rom = 0;
 		dev->fw_rev = "AA421E";
 		dev->bit32 = 1;
+		dev->ha_bps = 10000000.0;	/* fast SCSI */
 		break;
 	case CHIP_BUSLOGIC_PCI:
 		strcpy(dev->name, "BT-958D");
@@ -1580,6 +1582,7 @@ buslogic_init(device_t *info)
 		dev->fw_rev = "AA507B";
 		dev->cdrom_boot = 1;
 		dev->bit32 = 1;
+		dev->ha_bps = 20000000.0;	/* ultra SCSI */
 		break;
     }
 

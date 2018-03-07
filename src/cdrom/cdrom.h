@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.h	1.0.4	2017/11/01
+ * Version:	@(#)cdrom.h	1.0.5	2018/03/06
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -169,6 +169,8 @@ typedef struct {
 	
 	unsigned int sound_on;
 	unsigned int atapi_dma;
+
+	uint8_t speed;
 } cdrom_drive_t;
 
 typedef struct {

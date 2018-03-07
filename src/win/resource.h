@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.21	2018/02/11
+ * Version:	@(#)resource.h	1.0.22	2018/03/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -90,6 +90,7 @@
 #define IDT_1755		1755	/* LUN: */
 #define IDT_1756		1756	/* Channel: */
 #define IDT_1757		1757	/* Progress: */
+#define IDT_1758		1758	/* Speed: */
 
 
 /*
@@ -195,6 +196,7 @@
 #define IDC_COMBO_ZIP_LUN	1163
 #define IDC_COMBO_ZIP_CHANNEL_IDE 1164
 #define IDC_CHECK250		1165
+#define IDC_COMBO_CD_SPEED	1166
 
 #define IDC_SLIDER_GAIN		1180	/* sound gain dialog */
 

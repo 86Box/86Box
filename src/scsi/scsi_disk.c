@@ -6,11 +6,11 @@
  *
  *		Emulation of SCSI fixed and removable disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.16	2018/01/25
+ * Version:	@(#)scsi_disk.c	1.0.17	2018/03/07
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2018 Miran Grca.
+ *		Copyright 2017,2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -459,14 +459,11 @@ static void scsi_hd_command_common(uint8_t id)
 	shdc[id].status = BUSY_STAT;
 	shdc[id].phase = 1;
 	shdc[id].pos = 0;
-	if (shdc[id].packet_status == CDROM_PHASE_COMPLETE)
-	{
-		shdc[id].callback = 20 * SCSI_TIME;
-	}
-	else
-	{
-		shdc[id].callback = 60 * SCSI_TIME;
-	}
+	if (shdc[id].packet_status == CDROM_PHASE_COMPLETE) {
+		scsi_hd_callback(id);
+		shdc[id].callback = 0LL;
+	} else
+		shdc[id].callback = -1LL;	/* Speed depends on SCSI controller */
 }
 
 
