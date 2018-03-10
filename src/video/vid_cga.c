@@ -106,6 +106,20 @@ uint8_t cga_in(uint16_t addr, void *p)
         return 0xFF;
 }
 
+void cga_waitstates(void *p)
+{
+        cga_t *cga = (cga_t *)p;
+        int cycle = ((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST));
+        
+        cycles -= 8 - (cycle & 7);
+
+        cycle = ((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST));
+        cycles -= 16 - (cycle & 15);
+
+        cycle = ((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST));
+        cycles -= 3 - (cycle % 3);
+}
+
 void cga_write(uint32_t addr, uint8_t val, void *p)
 {
         cga_t *cga = (cga_t *)p;
@@ -117,13 +131,13 @@ void cga_write(uint32_t addr, uint8_t val, void *p)
                 cga->charbuffer[(((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST)) & 0xfc) | 1] = val;
         }
         egawrites++;
-        cycles -= 4;
+        cga_waitstates(cga);
 }
 
 uint8_t cga_read(uint32_t addr, void *p)
 {
         cga_t *cga = (cga_t *)p;
-        cycles -= 4;        
+        cga_waitstates(cga);
         if (cga->snow_enabled)
         {
                 cga->charbuffer[ ((int)(((cga->dispontime - cga->vidtime) * 2) / CGACONST)) & 0xfc] = cga->vram[addr & 0x3fff];
