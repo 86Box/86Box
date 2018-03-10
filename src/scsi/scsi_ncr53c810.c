@@ -10,7 +10,7 @@
  *		NCR and later Symbios and LSI. This controller was designed
  *		for the PCI bus.
  *
- * Version:	@(#)scsi_ncr53c810.c	1.0.7	2018/03/07
+ * Version:	@(#)scsi_ncr53c810.c	1.0.8	2018/03/09
  *
  * Authors:	Paul Brook (QEMU)
  *		Artyom Tarasenko (QEMU)
@@ -1296,8 +1296,6 @@ again:
 	if (dev->waiting)
 		ncr53c810_log("NCR 810: SCRIPTS: Waiting\n");
     }
-
-    return;
 
     ncr53c810_log("SCRIPTS execution stopped\n");
 }

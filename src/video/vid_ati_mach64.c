@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.13	2018/03/02
+ * Version:	@(#)vid_ati_mach64.c	1.0.14	2018/03/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -959,6 +959,13 @@ void mach64_start_fill(mach64_t *mach64)
 
         mach64->accel.dst_width  = (mach64->dst_height_width >> 16) & 0x1fff;
         mach64->accel.dst_height =  mach64->dst_height_width        & 0x1fff;        
+
+	if (((mach64->dp_src >> 16) & 7) == MONO_SRC_BLITSRC)
+	{
+		if (mach64->accel.dst_width & 7)
+			mach64->accel.dst_width = (mach64->accel.dst_width & ~7) + 8;
+	}
+
         mach64->accel.x_count = mach64->accel.dst_width;
         
         mach64->accel.src_x = 0;
@@ -1140,8 +1147,11 @@ void mach64_start_line(mach64_t *mach64)
 #define READ(addr, dat, width) if (width == 0)      dat =               svga->vram[((addr))      & mach64->vram_mask]; \
                                else if (width == 1) dat = *(uint16_t *)&svga->vram[((addr) << 1) & mach64->vram_mask]; \
                                else if (width == 2) dat = *(uint32_t *)&svga->vram[((addr) << 2) & mach64->vram_mask]; \
-                               else                 dat = (svga->vram[((addr) >> 3) & mach64->vram_mask] >> ((addr) & 7)) & 1;
-
+                   else if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)  dat = (svga->vram[((addr) >> 3) & mach64->vram_mask] >> ((addr) & 7)) & 1; \
+                               else                 dat = (svga->vram[((addr) >> 3) & mach64->vram_mask] >> (7 - ((addr) & 7))) & 1;
+ 
+#define READ1BPP(addr, dat, width) 
+ 
 #define MIX     switch (mix ? mach64->accel.mix_fg : mach64->accel.mix_bg)                                \
                 {                                                                                       \
                         case 0x0: dest_dat =             ~dest_dat;  break;                             \
@@ -1161,7 +1171,7 @@ void mach64_start_line(mach64_t *mach64)
                         case 0xe: dest_dat =  ~src_dat &  dest_dat;  break;                             \
                         case 0xf: dest_dat = ~(src_dat |  dest_dat); break;                             \
                 }
-
+ 
 #define WRITE(addr, width)      if (width == 0)                                                         \
                                 {                                                                       \
                                         svga->vram[(addr) & mach64->vram_mask] = dest_dat;                             \
@@ -1179,10 +1189,17 @@ void mach64_start_line(mach64_t *mach64)
                                 }                                                                                               \
                                 else                                                                                            \
                                 {                                                                                               \
-                                        if (dest_dat & 1)                                                                       \
-                                                svga->vram[((addr) >> 3) & mach64->vram_mask] |= 1 << ((addr) & 7);             \
-                                        else                                                                                    \
-                                                svga->vram[((addr) >> 3) & mach64->vram_mask] &= ~(1 << ((addr) & 7));          \
+                                        if (dest_dat & 1) {                                                                     \
+						if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)                   		\
+                                                    svga->vram[((addr) >> 3) & mach64->vram_mask] |= 1 << ((addr) & 7);         \
+						else                                        					\
+                                                    svga->vram[((addr) >> 3) & mach64->vram_mask] |= 1 << (7 - ((addr) & 7));   \
+                                        } else {                                                                                \
+                        			if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)                   		\
+                                                    svga->vram[((addr) >> 3) & mach64->vram_mask] &= ~(1 << ((addr) & 7));  	\
+						else                                        					\
+                                                    svga->vram[((addr) >> 3) & mach64->vram_mask] &= ~(1 << (7 - ((addr) & 7)));\
+					}                                           						\
                                         svga->changedvram[(((addr) >> 3) & mach64->vram_mask) >> 12] = changeframecount;        \
                                 }
 
