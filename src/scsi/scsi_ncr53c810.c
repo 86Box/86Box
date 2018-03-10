@@ -10,7 +10,7 @@
  *		NCR and later Symbios and LSI. This controller was designed
  *		for the PCI bus.
  *
- * Version:	@(#)scsi_ncr53c810.c	1.0.8	2018/03/09
+ * Version:	@(#)scsi_ncr53c810.c	1.0.9	2018/03/10
  *
  * Authors:	Paul Brook (QEMU)
  *		Artyom Tarasenko (QEMU)
@@ -653,11 +653,13 @@ ncr53c810_add_msg_byte(ncr53c810_t *dev, uint8_t data)
 }
 
 
-static void
+static int
 ncr53c810_do_command(ncr53c810_t *dev, uint8_t id)
 {
     scsi_device_t *sd;
     uint8_t buf[12];
+
+    int64_t p;
 
     double period;
 
@@ -674,7 +676,7 @@ ncr53c810_do_command(ncr53c810_t *dev, uint8_t id)
     if (((id == -1) || !scsi_device_present(id, dev->current_lun))) {
 	ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Bad Selection\n", id, dev->current_lun, buf[0]);
 	ncr53c810_bad_selection(dev, id);
-	return;
+	return 0;
     }
 	
     dev->current = (ncr53c810_request*)malloc(sizeof(ncr53c810_request));
@@ -701,21 +703,27 @@ ncr53c810_do_command(ncr53c810_t *dev, uint8_t id)
     if ((sd->Phase == SCSI_PHASE_DATA_IN) && (sd->BufferLength > 0)) {
 	ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: PHASE_DI\n", id, dev->current_lun, buf[0]);
 	ncr53c810_set_phase(dev, PHASE_DI);
-	dev->timer_period = scsi_device_get_callback(dev->current->tag, dev->current_lun);
-	if (dev->timer_period <= 0LL) {
-	        period = ((double) sd->BufferLength) * 0.2 * ((double) TIMER_USEC);	/* Fast SCSI: 10000000 bytes per second */
-		dev->timer_period = (int64_t) period;
-	}
+	p = scsi_device_get_callback(dev->current->tag, dev->current_lun);
+	if (p <= 0LL) {
+	        period = ((double) sd->BufferLength) * 0.1 * ((double) TIMER_USEC);	/* Fast SCSI: 10000000 bytes per second */
+		dev->timer_period += (int64_t) period;
+	} else
+		dev->timer_period += p;
+	return 1;
     } else if ((sd->Phase == SCSI_PHASE_DATA_OUT) && (sd->BufferLength > 0)) {
 	ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: PHASE_DO\n", id, dev->current_lun, buf[0]);
 	ncr53c810_set_phase(dev, PHASE_DO);
-	dev->timer_period = scsi_device_get_callback(dev->current->tag, dev->current_lun);
-	if (dev->timer_period <= 0LL) {
-	        period = ((double) sd->BufferLength) * 0.2 * ((double) TIMER_USEC);	/* Fast SCSI: 10000000 bytes per second */
-		dev->timer_period = (int64_t) period;
-	}
-    } else
+	p = scsi_device_get_callback(dev->current->tag, dev->current_lun);
+	if (p <= 0LL) {
+	        period = ((double) sd->BufferLength) * 0.1 * ((double) TIMER_USEC);	/* Fast SCSI: 10000000 bytes per second */
+		dev->timer_period += (int64_t) period;
+	} else
+		dev->timer_period += p;
+	return 1;
+    } else {
 	ncr53c810_command_complete(dev, sd->Status);
+	return 0;
+    }
 }
 
 
@@ -931,7 +939,7 @@ static void
 ncr53c810_process_script(ncr53c810_t *dev)
 {
     uint32_t insn, addr, id, buf[2], dest;
-    int opcode, insn_processed = 0, reg, operator, cond, jmp, n, i;
+    int opcode, insn_processed = 0, reg, operator, cond, jmp, n, i, c;
     int32_t offset;
     uint8_t op0, op1, data8, mask, data[7], *pp;
 
@@ -943,7 +951,11 @@ again:
 	/* If we receive an empty opcode increment the DSP by 4 bytes
 	   instead of 8 and execute the next opcode at that location */
 	dev->dsp += 4;
-	goto again;
+	dev->timer_period += (10LL * TIMER_USEC);
+	if (insn_processed < 100)
+		goto again;
+	else
+		return;
     }
     addr = read_dword(dev, dev->dsp + 4);
     ncr53c810_log("SCRIPTS dsp=%08x opcode %08x arg %08x\n", dev->dsp, insn, addr);
@@ -955,9 +967,8 @@ again:
 	case 0: /* Block move.  */
 		ncr53c810_log("00: Block move\n");
 		if (dev->sist1 & NCR_SIST1_STO) {
-		ncr53c810_log("Delayed select timeout\n");
+			ncr53c810_log("Delayed select timeout\n");
 			dev->sstop = 1;
-			dev->timer_period = dev->timer_enabled = 0;
 			break;
 		}
 		ncr53c810_log("Block Move DBC=%d\n", dev->dbc);
@@ -1002,9 +1013,18 @@ again:
 				break;
 			case PHASE_CMD:
 				ncr53c810_log("Command Phase\n");
-				ncr53c810_do_command(dev, dev->sdid);
+				c = ncr53c810_do_command(dev, dev->sdid);
+
+				if (!c || dev->sstop || dev->waiting || ((dev->sstat1 & 0x7) == PHASE_ST))
+					break;
+
 				dev->dfifo = dev->dbc & 0xff;
 				dev->ctest5 = (dev->ctest5 & 0xfc) | ((dev->dbc >> 8) & 3);
+
+				dev->timer_period += (40LL * TIMER_USEC);
+
+				if (dev->dcntl & NCR_DCNTL_SSM)
+					ncr53c810_script_dma_interrupt(dev, NCR_DSTAT_SSI);
 				return;
 			case PHASE_ST:
 				ncr53c810_log("Status Phase\n");
@@ -1177,7 +1197,6 @@ again:
 		if (dev->sist1 & NCR_SIST1_STO) {
 			ncr53c810_log("Delayed select timeout\n");
 			dev->sstop = 1;
-			dev->timer_period = dev->timer_enabled = 0;
 			break;
 		}
 		cond = jmp = (insn & (1 << 19)) != 0;
@@ -1269,6 +1288,8 @@ again:
 		ncr53c810_log("%02X: Unknown command\n", (uint8_t) (insn >> 30));
     }
 
+    dev->timer_period += (40LL * TIMER_USEC);
+
     ncr53c810_log("instructions processed %i\n", insn_processed);
     if (insn_processed > 10000 && !dev->waiting) {
 	/* Some windows drivers make the device spin waiting for a memory
@@ -1304,7 +1325,8 @@ again:
 static void
 ncr53c810_execute_script(ncr53c810_t *dev)
 {
-    dev->timer_period = 10LL * TIMER_USEC;
+    dev->sstop = 0;
+    dev->timer_period = 40LL * TIMER_USEC;
     dev->timer_enabled = 1;
 }
 
@@ -1315,18 +1337,18 @@ ncr53c810_callback(void *p)
     ncr53c810_t *dev = (ncr53c810_t *) p;
 
     dev->timer_period = 0;
-    if (!dev->waiting)
-    	ncr53c810_process_script(dev);
+    if (!dev->sstop) {
+	if (dev->waiting)
+		dev->timer_period = 40LL * TIMER_USEC;
+	else
+    		ncr53c810_process_script(dev);
+    }
 
     if (dev->sstop) {
-	dev->timer_period = 0;
 	dev->timer_enabled = 0;
-	return;
+	dev->timer_period = 0;
     } else
 	dev->timer_enabled = 1;
-
-    if (dev->timer_period == 0)
-	dev->timer_period = 50LL * TIMER_USEC;
 }
 
 
