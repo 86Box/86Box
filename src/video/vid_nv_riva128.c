@@ -84,6 +84,7 @@ typedef struct riva128_t
 
 	struct
 	{
+		uint32_t cache_error;
 		uint32_t intr;
 		uint32_t intr_en;
 
@@ -572,6 +573,17 @@ const char* riva128_pfifo_interrupts[32] =
 	}
 }
 
+void riva128_pfifo_interrupt(int num, void *p)
+{
+	riva128_t *riva128 = (riva128_t *)p;
+
+	riva128->pfifo.intr |= (1 << num);
+
+	if(num == 0) riva128->pfifo.cache_error = 0x11;
+
+	riva128_pmc_interrupt(8, riva128);
+}
+
  uint8_t riva128_pfifo_read(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
@@ -581,6 +593,18 @@ const char* riva128_pfifo_interrupts[32] =
 
 	switch(addr)
 	{
+	case 0x002080:
+		ret = riva128->pfifo.cache_error & 0xff;
+		break;
+	case 0x002081:
+		ret = (riva128->pfifo.cache_error >> 8) & 0xff;
+		break;
+	case 0x002082:
+		ret = (riva128->pfifo.cache_error >> 16) & 0xff;
+		break;
+	case 0x002083:
+		ret = (riva128->pfifo.cache_error >> 24) & 0xff;
+		break;
 	case 0x002100:
 		ret = riva128->pfifo.intr & 0xff;
 		break;
@@ -758,16 +782,11 @@ const char* riva128_pfifo_interrupts[32] =
 	case 0x003204:
 		riva128->pfifo.caches[1].chanid = val;
 		break;
+	//HACKS
+	case 0x002500:
+		riva128_pfifo_interrupt(0, riva128);
+		break;
 	}
-}
-
- void riva128_pfifo_interrupt(int num, void *p)
-{
-	riva128_t *riva128 = (riva128_t *)p;
-
-	riva128->pfifo.intr |= (1 << num);
-
-	riva128_pmc_interrupt(8, riva128);
 }
 
  uint8_t riva128_ptimer_read(uint32_t addr, void *p)
@@ -2035,9 +2054,9 @@ uint8_t riva128_user_read(uint32_t addr, void *p)
 	addr &= 0xffffff;
 
 	//This logging condition is necessary to prevent A CATASTROPHIC LOG BLOWUP when polling PTIMER or PFIFO. DO NOT REMOVE.
-	if(/*!((addr >= 0x009000) && (addr <= 0x009fff)) && */!((addr >= 0x002000) && (addr <= 0x003fff))/* && !((addr >= 0x000000) 
+	if(/*!((addr >= 0x009000) && (addr <= 0x009fff)) && !((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0x000000) 
 	&& (addr <= 0x000003)) && !((addr <= 0x680fff) && (addr >= 0x680000)) && !((addr >= 0x0c0000) && (addr <= 0x0cffff)) 
-	&& !((addr >= 0x110000) && (addr <= 0x11ffff)) && !(addr <= 0x000fff) && (addr >= 0x000000)*/) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
+	&& !((addr >= 0x110000) && (addr <= 0x11ffff)) && !(addr <= 0x000fff) && (addr >= 0x000000)*/1) pclog("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
 
 	if((addr >= 0x000000) && (addr <= 0x000fff)) ret = riva128_pmc_read(addr, riva128);
 	if((addr >= 0x001000) && (addr <= 0x001fff)) ret = riva128_pbus_read(addr, riva128);
@@ -2113,7 +2132,7 @@ uint8_t riva128_user_read(uint32_t addr, void *p)
 	addr &= 0xffffff;
 
 	//DO NOT REMOVE. This fixes a monstrous log blowup in win9x's drivers when accessing PFIFO.
-	if(!((addr >= 0x002000) && (addr <= 0x003fff))/* && !((addr >= 0xc0000) && (addr <= 0xcffff)) && (addr != 0x000140)*/) pclog("RIVA 128 MMIO write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+	if(/*!((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0xc0000) && (addr <= 0xcffff)) && (addr != 0x000140)*/1) pclog("RIVA 128 MMIO write %08X %08X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	
 	if((addr >= 0x000000) && (addr <= 0x000fff)) riva128_pmc_write(addr, val, riva128);
