@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.17	2018/03/02
+ * Version:	@(#)video.c	1.0.18	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -346,6 +346,7 @@ static video_timings_t timing_pc1512   = {VIDEO_BUS, 0,0,0, 0,0,0}; /*PC1512 vid
 static video_timings_t timing_pc1640   = {VIDEO_ISA, 8,16,32, 8,16,32};
 static video_timings_t timing_pc200    = {VIDEO_ISA, 8,16,32, 8,16,32};
 static video_timings_t timing_m24      = {VIDEO_ISA, 8,16,32, 8,16,32};
+static video_timings_t timing_t1000    = {VIDEO_ISA, 8,16,32, 8,16,32};
 static video_timings_t timing_pvga1a   = {VIDEO_ISA, 6, 8,16, 6, 8,16};
 static video_timings_t timing_wd90c11  = {VIDEO_ISA, 3, 3, 6, 5, 5,10};
 static video_timings_t timing_vga      = {VIDEO_ISA, 8,16,32, 8,16,32};
@@ -384,6 +385,10 @@ video_update_timing(void)
 		case ROM_PC2086:
 		case ROM_PC3086:
 			timing = &timing_pvga1a;
+			break;
+		case ROM_T1000:
+		case ROM_T1200:
+			timing = &timing_t1000;
 			break;
 		case ROM_MEGAPC:
 		case ROM_MEGAPCDX:

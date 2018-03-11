@@ -11,7 +11,7 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.20	2018/03/02
+ * Version:	@(#)machine_table.c	1.0.24	2018/03/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -47,10 +47,11 @@ machine_t machines[] = {
     { "[8088] Schneider EuroPC",		ROM_EUROPC,		"europc",		{{"Siemens",cpus_europc},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_HDC | MACHINE_VIDEO | MACHINE_MOUSE,						512,  640, 128,   0,		  machine_europc_init, NULL,			NULL			},
     { "[8088] Tandy 1000",			ROM_TANDY,		"tandy",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,												128,  640, 128,   0,		 machine_tandy1k_init, tandy1k_get_device,	NULL			},
     { "[8088] Tandy 1000 HX",			ROM_TANDY1000HX,	"tandy1000hx",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,												256,  640, 128,   0,		 machine_tandy1k_init, tandy1k_hx_get_device,	NULL			},
-    { "[8088] Toshiba 1000",			ROM_T1000,		"t1000",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,												512, 1280, 768,   0,		machine_xt_t1000_init, t1000_get_device,	NULL			},
+    { "[8088] Toshiba 1000",			ROM_T1000,		"t1000",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO,										512, 1280, 768,   0,		machine_xt_t1000_init, t1000_get_device,	NULL			},
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
     { "[8088] VTech Laser Turbo XT",		ROM_LTXT,		"ltxt",			{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												512,  512, 256,   0,	      machine_xt_laserxt_init, NULL,			NULL			},
 #endif
+    { "[8088] Xi8088",				ROM_XI8088,		"xi8088",		{{"",      cpus_8088},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_PS2,										 64, 1024, 128, 127,	       machine_xt_xi8088_init, xi8088_get_device,	nvr_at_close		},
 
     { "[8086] Amstrad PC1512",			ROM_PC1512,		"pc1512",		{{"",      cpus_pc1512},      {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,								512,  640, 128,  63,		 machine_amstrad_init, NULL,			nvr_at_close		},
     { "[8086] Amstrad PC1640",			ROM_PC1640,		"pc1640",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,								640,  640,   0,  63,		 machine_amstrad_init, NULL,			nvr_at_close		},
@@ -59,7 +60,7 @@ machine_t machines[] = {
     { "[8086] Amstrad PC20(0)",			ROM_PC200,		"pc200",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,								512,  640, 128,  63,		 machine_amstrad_init, NULL,			nvr_at_close		},
     { "[8086] Olivetti M24",			ROM_OLIM24,		"olivetti_m24",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,								128,  640, 128,   0,		  machine_olim24_init, NULL,			NULL			},
     { "[8086] Tandy 1000 SL/2",			ROM_TANDY1000SL2,	"tandy1000sl2",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,												512,  768, 128,   0,	         machine_tandy1k_init, NULL,			NULL			},
-    { "[8086] Toshiba 1200",			ROM_T1200,		"t1200",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,											       1024, 2048,1024,   0,		machine_xt_t1200_init, t1200_get_device,	NULL			},
+    { "[8086] Toshiba 1200",			ROM_T1200,		"t1200",		{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO,									       1024, 2048,1024,   0,		machine_xt_t1200_init, t1200_get_device,	NULL			},
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
     { "[8086] VTech Laser XT3",			ROM_LXT3,		"lxt3",			{{"",      cpus_8086},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												256,  512, 256,   0,	      machine_xt_laserxt_init, NULL,			NULL			},
 #endif
@@ -71,12 +72,14 @@ machine_t machines[] = {
 #if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
     { "[286 ISA] Compaq Portable III",		ROM_PORTABLEIII,	"portableiii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_VIDEO,								640,16384, 128, 127,	       machine_at_compaq_init, NULL,			nvr_at_close		},
 #endif
+    { "[286 ISA] GW-286CT GEAR",		ROM_GW286CT,		"gw286ct",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,										512,16384, 128, 127,		 machine_at_scat_init, NULL,			nvr_at_close		},
     { "[286 ISA] Hyundai Super-286TR",		ROM_SUPER286TR,		"super286tr",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,										512,16384, 128, 127,		 machine_at_scat_init, NULL,			nvr_at_close		},
     { "[286 ISA] IBM AT",			ROM_IBMAT,		"ibmat",		{{"",      cpus_ibmat},       {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,										256,15872, 128,  63,		  machine_at_ibm_init, NULL,			nvr_at_close		},
     { "[286 ISA] IBM PS/1 model 2011",		ROM_IBMPS1_2011,	"ibmps1es",		{{"",      cpus_ps1_m2011},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC_PS2,						512,16384, 512, 127,	       machine_ps1_m2011_init, NULL,			nvr_at_close		},
     { "[286 ISA] IBM PS/2 model 30-286",	ROM_IBMPS2_M30_286,	"ibmps2_m30_286",	{{"",      cpus_ps2_m30_286}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC_PS2,						  1,   16,   1, 127,	     machine_ps2_m30_286_init, NULL,			nvr_at_close		},
     { "[286 ISA] IBM XT Model 286",		ROM_IBMXT286,		"ibmxt286",		{{"",      cpus_ibmxt286},    {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,										256,15872, 128,  63,		  machine_at_ibm_init, NULL,			nvr_at_close		},
     { "[286 ISA] Samsung SPC-4200P",		ROM_SPC4200P,		"spc4200p",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_PS2,									512, 2048, 128, 127,		 machine_at_scat_init, NULL,			nvr_at_close		},
+    { "[286 ISA] Samsung SPC-4216P",		ROM_SPC4216P,		"spc4216p",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_PS2,									  1,    5,   1, 127,		 machine_at_scat_init, NULL,			nvr_at_close		},
 #ifdef WALTJE
     { "[286 ISA] OpenAT 286",			ROM_OPENAT,		"open_at",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,										512, 4096, 128, 127,		      machine_at_init, NULL,			nvr_at_close		},
 #endif
@@ -90,6 +93,7 @@ machine_t machines[] = {
     { "[386SX ISA] DTK 386SX clone",		ROM_DTK386,		"dtk386",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,									512,16384, 128, 127,		 machine_at_neat_init, NULL,			nvr_at_close		},
     { "[386SX ISA] IBM PS/1 model 2121",	ROM_IBMPS1_2121,	"ibmps1_2121",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,					  1,    6,   1, 127,	       machine_ps1_m2121_init, NULL,			nvr_at_close		},
     { "[386SX ISA] IBM PS/1 m.2121+ISA",	ROM_IBMPS1_2121_ISA,	"ibmps1_2121_isa",	{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,					  1,    6,   1, 127,	       machine_ps1_m2121_init, NULL,			nvr_at_close		},
+    { "[386SX ISA] KMX-C-02",			ROM_KMXC02,		"kmxc02",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,										512,16384, 512, 127,	       machine_at_scatsx_init, NULL,			nvr_at_close		},
 
     { "[386SX MCA] IBM PS/2 model 55SX",	ROM_IBMPS2_M55SX,	"ibmps2_m55sx",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, 1, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC_PS2,						  1,    8,   1,  63,	  machine_ps2_model_55sx_init, NULL,			nvr_at_close		},
 
@@ -131,7 +135,9 @@ machine_t machines[] = {
     { "[Socket 5 FX] President Award 430FX PCI",ROM_PRESIDENT,		"president",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"AMD",   cpus_K5},     {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,					  8,  128,   8, 127,	    machine_at_president_init, NULL,			nvr_at_close		},
 
     { "[Socket 7 FX] Intel Advanced/ATX",	ROM_THOR,		"thor",			{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,		 machine_at_thor_init, NULL,			nvr_at_close		},
+#if defined(DEV_BRANCH) && defined(USE_MRTHOR)
     { "[Socket 7 FX] MR Intel Advanced/ATX",	ROM_MRTHOR,		"mrthor",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,		 machine_at_thor_init, NULL,			nvr_at_close		},
+#endif
 
     { "[Socket 7 HX] Acer M3a",			ROM_ACERM3A,		"acerm3a",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  192,   8, 127,	      machine_at_acerm3a_init, NULL,			nvr_at_close		},
     { "[Socket 7 HX] Acer V35n",		ROM_ACERV35N,		"acerv35n",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  192,   8, 127,	     machine_at_acerv35n_init, NULL,			nvr_at_close		},
@@ -152,7 +158,9 @@ machine_t machines[] = {
     { "[Socket 5 FX] President Award 430FX PCI",ROM_PRESIDENT,		"president",		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,					  8,  128,   8, 127,	    machine_at_president_init, NULL,			nvr_at_close		},
 
     { "[Socket 7 FX] Intel Advanced/ATX",	ROM_THOR,		"thor",			{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,		 machine_at_thor_init, NULL,			nvr_at_close		},
+#if defined(DEV_BRANCH) && defined(USE_MRTHOR)
     { "[Socket 7 FX] MR Intel Advanced/ATX",	ROM_MRTHOR,		"mrthor",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,		 machine_at_thor_init, NULL,			nvr_at_close		},
+#endif
 
     { "[Socket 7 HX] Acer M3a",			ROM_ACERM3A,		"acerm3a",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  192,   8, 127,	      machine_at_acerm3a_init, NULL,			nvr_at_close		},
     { "[Socket 7 HX] Acer V35n",		ROM_ACERV35N,		"acerv35n",		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}, 0, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  192,   8, 127,	     machine_at_acerv35n_init, NULL,			nvr_at_close		},

@@ -8,7 +8,7 @@
  *
  *		SVGA renderers.
  *
- * Version:	@(#)vid_svga_render.c	1.0.6	2018/03/02
+ * Version:	@(#)vid_svga_render.c	1.0.7	2018/03/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -349,10 +349,7 @@ void svga_render_2bpp_lowres(svga_t *svga)
 	int y_add = enable_overscan ? (overscan_y >> 1) : 0;
 	int x_add = enable_overscan ? 8 : 0;
 
-        if (svga->sc & 1 && !(svga->crtc[0x17] & 1))
-                changed_offset = (svga->ma << 1) >> 12;
-        else
-                changed_offset = ((svga->ma << 1) + 0x8000) >> 12;
+	changed_offset = ((svga->ma << 1) + (svga->sc & ~svga->crtc[0x17] & 3) * 0x8000) >> 12;
                 
         if (svga->changedvram[changed_offset] || svga->changedvram[changed_offset + 1] || svga->fullchange)
         {
@@ -368,16 +365,8 @@ void svga_render_2bpp_lowres(svga_t *svga)
                 {
                         uint8_t dat[2];
                         
-                        if (svga->sc & 1 && !(svga->crtc[0x17] & 1))
-                        {
-                                dat[0] = svga->vram[(svga->ma << 1) + 0x8000];
-                                dat[1] = svga->vram[(svga->ma << 1) + 0x8001];
-                        }
-                        else
-                        {
-                                dat[0] = svga->vram[(svga->ma << 1)];
-                                dat[1] = svga->vram[(svga->ma << 1) + 1];
-                        }
+                        dat[0] = svga->vram[(svga->ma << 1) + ((svga->sc & ~svga->crtc[0x17] & 3)) * 0x8000];
+                        dat[1] = svga->vram[(svga->ma << 1) + ((svga->sc & ~svga->crtc[0x17] & 3)) * 0x8000 + 1];
                         svga->ma += 4; 
                         svga->ma &= svga->vram_display_mask;
 
@@ -402,10 +391,7 @@ void svga_render_2bpp_highres(svga_t *svga)
 	int y_add = enable_overscan ? (overscan_y >> 1) : 0;
 	int x_add = enable_overscan ? 8 : 0;
 
-        if (svga->sc & 1 && !(svga->crtc[0x17] & 1))
-                changed_offset = ((svga->ma << 1) | 0x8000) >> 12;
-        else
-                changed_offset = (svga->ma << 1) >> 12;
+	changed_offset = ((svga->ma << 1) + (svga->sc & ~svga->crtc[0x17] & 3) * 0x8000) >> 12;
                                 
         if (svga->changedvram[changed_offset] || svga->changedvram[changed_offset + 1] || svga->fullchange)
         {
@@ -421,8 +407,8 @@ void svga_render_2bpp_highres(svga_t *svga)
                 {
                         uint8_t dat[2];
                         
-                        dat[0] = svga->vram[(svga->ma << 1) + ((svga->sc & 3) & (~svga->crtc[0x17] & 3)) * 0x8000];
-                        dat[1] = svga->vram[(svga->ma << 1) + ((svga->sc & 3) & (~svga->crtc[0x17] & 3)) * 0x8000 + 1];
+                        dat[0] = svga->vram[(svga->ma << 1) + ((svga->sc & ~svga->crtc[0x17] & 3)) * 0x8000];
+                        dat[1] = svga->vram[(svga->ma << 1) + ((svga->sc & ~svga->crtc[0x17] & 3)) * 0x8000 + 1];
                         svga->ma += 4; 
                         svga->ma &= svga->vram_display_mask;
 
@@ -489,10 +475,7 @@ void svga_render_4bpp_highres(svga_t *svga)
 	int y_add = enable_overscan ? (overscan_y >> 1) : 0;
 	int x_add = enable_overscan ? 8 : 0;
 
-        if (svga->sc & 1 && !(svga->crtc[0x17] & 1))
-                changed_offset = (svga->ma | 0x8000) >> 12;
-        else
-                changed_offset = svga->ma >> 12;
+	changed_offset = (svga->ma + (svga->sc & ~svga->crtc[0x17] & 3) * 0x8000) >> 12;
                 
         if (svga->changedvram[changed_offset] || svga->changedvram[changed_offset + 1] || svga->fullchange)
         {
@@ -509,8 +492,7 @@ void svga_render_4bpp_highres(svga_t *svga)
                         uint8_t edat[4];
                         uint8_t dat;
 
-                        *(uint32_t *)(&edat[0]) = *(uint32_t *)(&svga->vram[svga->ma | ((svga->sc & 3) & (~svga->crtc[0x17] & 3)) * 0x8000]);
-
+			*(uint32_t *)(&edat[0]) = *(uint32_t *)(&svga->vram[svga->ma | ((svga->sc & ~svga->crtc[0x17] & 3)) * 0x8000]);
                         svga->ma += 4;
                         svga->ma &= svga->vram_display_mask;
 

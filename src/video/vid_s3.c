@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.5	2018/02/09
+ * Version:	@(#)vid_s3.c	1.0.6	2018/03/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -115,8 +115,8 @@ typedef struct s3_t
 
         struct
         {
-                uint8_t subsys_cntl;
-                uint8_t setup_md;
+                uint16_t subsys_cntl;
+                uint16_t setup_md;
                 uint8_t advfunc_cntl;
                 uint16_t cur_y;
                 uint16_t cur_x;

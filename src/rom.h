@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.14	2018/03/02
+ * Version:	@(#)rom.h	1.0.17	2018/03/06
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2018 Fred N. van Kempen.
@@ -55,6 +55,8 @@ enum {
     ROM_T1000,
     ROM_T1200,
 
+    ROM_XI8088,
+
     ROM_IBMPCJR,
     ROM_TANDY,
     ROM_TANDY1000HX,
@@ -76,12 +78,14 @@ enum {
 #if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
     ROM_PORTABLEIII,
 #endif
+    ROM_GW286CT,
     ROM_SUPER286TR,	/* Hyundai Super-286TR/SCAT/Award */
     ROM_IBMAT,
     ROM_IBMPS1_2011,
     ROM_IBMPS2_M30_286,
     ROM_IBMXT286,
     ROM_SPC4200P,	/* Samsung SPC-4200P/SCAT/Phoenix */
+    ROM_SPC4216P,	/* Samsung SPC-4216P/SCAT */
 #ifdef WALTJE
     ROM_OPENAT,		/* PC/AT clone with Open BIOS */
 #endif
@@ -89,6 +93,7 @@ enum {
     ROM_IBMPS2_M50,
 
     ROM_AMI386SX,
+    ROM_KMXC02,
     ROM_MEGAPC,
     ROM_AWARD386SX_OPTI495,
 #if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
@@ -142,7 +147,9 @@ enum {
     ROM_PRESIDENT,	/* President Award 430FX PCI/430FX/Award/Unknown SIO */
 
     ROM_THOR,		/* Intel Advanced_ATX/430FX/AMI/NS PC87306 */
+#if defined(DEV_BRANCH) && defined(USE_MRTHOR)
     ROM_MRTHOR,		/* Intel Advanced_ATX/430FX/MR.BIOS/NS PC87306 */
+#endif
 
     ROM_ACERM3A,	/* Acer M3A/430HX/Acer/SMC FDC37C932FR */
     ROM_ACERV35N,	/* Acer V35N/430HX/Acer/SMC FDC37C932FR */

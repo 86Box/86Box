@@ -8,7 +8,7 @@
  *
  *		Implementation of the floppy drive emulation.
  *
- * Version:	@(#)fdd.c	1.0.7	2018/01/18
+ * Version:	@(#)fdd.c	1.0.8	2018/03/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -523,6 +523,7 @@ double fdd_real_period(int drive)
 		return (32.0 * dusec);
 	}
 
+#if defined(DEV_BRANCH) && defined(USE_MRTHOR)
 	if (romset == ROM_MRTHOR)
 	{
 		return (ddbp * dusec) / 4.0;
@@ -531,6 +532,9 @@ double fdd_real_period(int drive)
 	{
 		return (ddbp * dusec);
 	}
+#else
+	return (ddbp * dusec);
+#endif
 }
 
 void fdd_poll(int drive)

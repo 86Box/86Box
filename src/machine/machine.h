@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.20	2018/03/02
+ * Version:	@(#)machine.h	1.0.21	2018/03/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -141,6 +141,7 @@ extern void	machine_at_neat_ami_init(machine_t *);
 extern void	machine_at_opti495_init(machine_t *);
 extern void	machine_at_opti495_ami_init(machine_t *);
 extern void	machine_at_scat_init(machine_t *);
+extern void	machine_at_scatsx_init(machine_t *);
 extern void	machine_at_compaq_init(machine_t *);
 
 extern void	machine_at_dtk486_init(machine_t *);
@@ -189,7 +190,11 @@ extern void	machine_xt_laserxt_init(machine_t *);
 extern void	machine_xt_t1000_init(machine_t *);
 extern void	machine_xt_t1200_init(machine_t *);
 
+extern void	machine_xt_xi8088_init(machine_t *);
+
 #ifdef EMU_DEVICE_H
+extern device_t	*xi8088_get_device(void);
+
 extern device_t	*pcjr_get_device(void);
 
 extern device_t	*tandy1k_get_device(void);

@@ -8,7 +8,7 @@
  *
  *		Handle the New Floppy Image dialog.
  *
- * Version:	@(#)win_new_floppy.c	1.0.2	2018/02/25
+ * Version:	@(#)win_new_floppy.c	1.0.4	2018/03/06
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -29,7 +29,7 @@
 #include "../plat.h"
 #include "../random.h"
 #include "../ui.h"
-#include "../zip.h"
+#include "../disk/zip.h"
 #include "win.h"
 
 
@@ -82,6 +82,7 @@ create_86f(WCHAR *file_name, disk_size_t disk_size, uint8_t rpm_mode)
     uint32_t array_size, array_size2;
     uint32_t track_base, track_size;
     int i;
+    uint32_t shift = 0;
 
     dflags = 0;					/* Has surface data? - Assume no for now. */
     dflags |= (disk_size.hole << 1);		/* Hole */
@@ -153,12 +154,15 @@ create_86f(WCHAR *file_name, disk_size_t disk_size, uint8_t rpm_mode)
 
     track_base = 8 + ((disk_size.sides == 2) ? 2048 : 1024);
 
-    for (i = 0; i < disk_size.tracks * disk_size.sides; i++)
+    if (disk_size.tracks <= 43)
+	shift = 1;
+
+    for (i = 0; i < (disk_size.tracks * disk_size.sides) << shift; i++)
 	tarray[i] = track_base + (i * track_size);
 
     fwrite(tarray, 1, (disk_size.sides == 2) ? 2048 : 1024, f);
 
-    for (i = 0; i < disk_size.tracks * disk_size.sides; i++) {
+    for (i = 0; i < (disk_size.tracks * disk_size.sides) << shift; i++) {
 	fwrite(&tflags, 2, 1, f);
 	fwrite(&index_hole_pos, 4, 1, f);
 	fwrite(empty, 1, array_size, f);

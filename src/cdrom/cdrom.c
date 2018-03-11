@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.33	2018/02/27
+ * Version:	@(#)cdrom.c	1.0.34	2018/03/06
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -715,25 +715,53 @@ void cdrom_update_request_length(uint8_t id, int len, int block_len)
 
 static void cdrom_command_common(uint8_t id)
 {
+	double bytes_per_second, period;
+	double dusec;
+
 	cdrom[id].status = BUSY_STAT;
 	cdrom[id].phase = 1;
 	cdrom[id].pos = 0;
 	if (cdrom[id].packet_status == CDROM_PHASE_COMPLETE) {
-		cdrom[id].callback = 20LL * CDROM_TIME;
-		cdrom_set_callback(id);
-	} else if (cdrom[id].packet_status == CDROM_PHASE_DATA_IN) {
-		if (cdrom[id].current_cdb[0] == 0x42) {
-			cdrom_log("CD-ROM %i: READ SUBCHANNEL\n", id);
-			cdrom[id].callback = 1000LL * CDROM_TIME;
-			cdrom_set_callback(id);
-		} else {
-			cdrom[id].callback = 60LL * CDROM_TIME;
-			cdrom_set_callback(id);
-		}
+		cdrom_phase_callback(id);
+		cdrom[id].callback = 0LL;
 	} else {
-		cdrom[id].callback = 60LL * CDROM_TIME;
-		cdrom_set_callback(id);
+		switch(cdrom[id].current_cdb[0]) {
+			case 0x25:
+			case 0x42:
+			case 0x43:
+			case 0x44:
+			case 0x08:
+			case 0x28:
+			case 0x51:
+			case 0x52:
+			case 0xa8:
+			case 0xad:
+			case 0xb8:
+			case 0xb9:
+			case 0xbe:
+				bytes_per_second = 150.0 * 1024.0;
+				bytes_per_second *= (double) cdrom_drives[id].speed;
+				break;
+			default:
+				if (cdrom_drives[id].bus_type == CDROM_BUS_SCSI) {
+					cdrom[id].callback = -1LL;	/* Speed depends on SCSI controller */
+					return;
+				} else if (cdrom_drives[id].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA) {
+					if (cdrom_current_mode(id) == 2)
+						bytes_per_second = 66666666.666666666666666;	/* 66 MB/s MDMA-2 speed */
+					else
+						bytes_per_second =  8333333.333333333333333;	/* 8.3 MB/s PIO-2 speed */
+				} else
+					bytes_per_second = 3333333.333333333333333;		/* 3.3 MB/s PIO-0 speed */
+				break;
+		}
+
+		period = 1000000.0 / bytes_per_second;
+		dusec = (double) TIMER_USEC;
+		dusec = dusec * period * (double) (cdrom[id].packet_len);
+		cdrom[id].callback = ((int64_t) dusec);
 	}
+	cdrom_set_callback(id);
 }
 
 static void cdrom_command_complete(uint8_t id)

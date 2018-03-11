@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.30	2018/02/11
+ * Version:	@(#)86Box.rc	1.0.31	2018/03/06
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -473,16 +473,16 @@ BEGIN
     PUSHBUTTON      "&Remove",IDC_BUTTON_HDD_REMOVE,198,137,62,10
     COMBOBOX        IDC_COMBO_HD_BUS,33,117,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Bus:",IDT_1721,7,118,24,8
+    LTEXT           "Bus:",IDT_1721,7,119,24,8
     COMBOBOX        IDC_COMBO_HD_CHANNEL,170,117,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Channel:",IDT_1722,131,118,38,8
+    LTEXT           "Channel:",IDT_1722,131,119,38,8
     COMBOBOX        IDC_COMBO_HD_ID,170,117,22,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "ID:",IDT_1723,131,118,38,8
+    LTEXT           "ID:",IDT_1723,131,119,38,8
     COMBOBOX        IDC_COMBO_HD_LUN,239,117,22,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "LUN:",IDT_1724,200,118,38,8
+    LTEXT           "LUN:",IDT_1724,200,119,38,8
     COMBOBOX        IDC_COMBO_HD_CHANNEL_IDE,170,117,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
 END
@@ -510,16 +510,16 @@ BEGIN
     LTEXT           "File name:",IDT_1731,7,7,204,9
     COMBOBOX        IDC_COMBO_HD_BUS,33,71,58,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Bus:",IDT_1721,7,72,24,8
+    LTEXT           "Bus:",IDT_1721,7,73,24,8
     COMBOBOX        IDC_COMBO_HD_CHANNEL,134,71,77,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Channel:",IDT_1722,99,72,34,8
+    LTEXT           "Channel:",IDT_1722,99,73,34,8
     COMBOBOX        IDC_COMBO_HD_ID,133,71,26,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "ID:",IDT_1723,117,72,15,8
+    LTEXT           "ID:",IDT_1723,117,73,15,8
     COMBOBOX        IDC_COMBO_HD_LUN,185,71,26,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "LUN:",IDT_1724,168,72,15,8
+    LTEXT           "LUN:",IDT_1724,168,73,15,8
     COMBOBOX        IDC_COMBO_HD_CHANNEL_IDE,134,71,77,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Progress:",IDT_1752,7,7,204,9
@@ -537,7 +537,7 @@ BEGIN
     LTEXT           "Floppy drives:",IDT_1737,7,7,43,8
     COMBOBOX        IDC_COMBO_FD_TYPE,33,85,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Type:",IDT_1738,7,86,24,8
+    LTEXT           "Type:",IDT_1738,7,87,24,8
     CONTROL         "Turbo timings",IDC_CHECKTURBO,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,131,86,64,10
     CONTROL         "Check BPB",IDC_CHECKBPB,"Button",
@@ -554,34 +554,37 @@ BEGIN
     LTEXT           "CD-ROM drives:",IDT_1739,7,7,50,8
     COMBOBOX        IDC_COMBO_CD_BUS,33,85,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Bus:",IDT_1740,7,86,24,8
+    LTEXT           "Bus:",IDT_1740,7,87,24,8
     COMBOBOX        IDC_COMBO_CD_ID,170,85,22,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "ID:",IDT_1741,131,86,38,8
+    LTEXT           "ID:",IDT_1741,131,87,38,8
     COMBOBOX        IDC_COMBO_CD_LUN,239,85,22,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "LUN:",IDT_1742,200,86,38,8
+    LTEXT           "LUN:",IDT_1742,200,87,38,8
     COMBOBOX        IDC_COMBO_CD_CHANNEL_IDE,170,85,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Channel:",IDT_1743,131,86,38,8
+    LTEXT           "Channel:",IDT_1743,131,87,38,8
+    COMBOBOX        IDC_COMBO_CD_SPEED,33,105,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Speed:",IDT_1758,7,107,24,8
     CONTROL         "List1",IDC_LIST_ZIP_DRIVES,"SysListView32",LVS_REPORT | 
                     LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
-                    WS_TABSTOP,7,117,253,60
-    LTEXT           "ZIP drives:",IDT_1739,7,107,50,8
-    COMBOBOX        IDC_COMBO_ZIP_BUS,33,184,90,12,CBS_DROPDOWNLIST | 
+                    WS_TABSTOP,7,137,253,60
+    LTEXT           "ZIP drives:",IDT_1739,7,127,50,8
+    COMBOBOX        IDC_COMBO_ZIP_BUS,73,204,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Bus:",IDT_1753,7,185,24,8
-    COMBOBOX        IDC_COMBO_ZIP_ID,170,184,22,12,CBS_DROPDOWNLIST | 
+    LTEXT           "Bus:",IDT_1753,57,206,14,8
+    COMBOBOX        IDC_COMBO_ZIP_ID,190,204,22,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "ID:",IDT_1754,131,185,38,8
-    COMBOBOX        IDC_COMBO_ZIP_LUN,239,184,22,12,CBS_DROPDOWNLIST | 
+    LTEXT           "ID:",IDT_1754,171,206,18,8
+    COMBOBOX        IDC_COMBO_ZIP_LUN,239,204,22,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "LUN:",IDT_1755,200,185,38,8
-    COMBOBOX        IDC_COMBO_ZIP_CHANNEL_IDE,170,184,90,12,CBS_DROPDOWNLIST | 
+    LTEXT           "LUN:",IDT_1755,220,206,18,8
+    COMBOBOX        IDC_COMBO_ZIP_CHANNEL_IDE,200,204,60,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Channel:",IDT_1756,131,185,38,8
+    LTEXT           "Channel:",IDT_1756,171,206,28,8
     CONTROL         "ZIP 250",IDC_CHECK250,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,204,64,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,204,44,10
 END
 
 
@@ -955,6 +958,7 @@ BEGIN
     IDS_2175	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0All files (*.*)\0*.*\0"
     IDS_2176	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
     IDS_2177	"ZIP %i (%03i): %ls"
+    IDS_2178	"Speed"
 
     IDS_4096    "Hard disk (%s)"
     IDS_4097	"%01i:%01i"

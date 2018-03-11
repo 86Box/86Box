@@ -8,7 +8,7 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.12	2018/02/17
+ * Version:	@(#)scsi_device.c	1.0.14	2018/03/07
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -23,8 +23,8 @@
 #include "../86box.h"
 #include "../device.h"
 #include "../cdrom/cdrom.h"
-#include "../zip.h"
 #include "../disk/hdd.h"
+#include "../disk/zip.h"
 #include "scsi.h"
 #include "scsi_disk.h"
 
@@ -116,6 +116,33 @@ static void scsi_device_target_save_cdb_byte(int lun_type, uint8_t id, uint8_t c
 	{
 		return;
 	}
+}
+
+
+int64_t scsi_device_get_callback(uint8_t scsi_id, uint8_t scsi_lun)
+{
+    uint8_t lun_type = SCSIDevices[scsi_id][scsi_lun].LunType;
+
+    uint8_t id = 0;
+
+    switch (lun_type)
+    {
+	case SCSI_DISK:
+		id = scsi_hard_disks[scsi_id][scsi_lun];
+		return shdc[id].callback;
+		break;
+	case SCSI_CDROM:
+		id = scsi_cdrom_drives[scsi_id][scsi_lun];
+		return cdrom[id].callback;
+		break;
+	case SCSI_ZIP:
+		id = scsi_zip_drives[scsi_id][scsi_lun];
+		return zip[id].callback;
+		break;
+	default:
+		return -1LL;
+		break;
+    }
 }
 
 

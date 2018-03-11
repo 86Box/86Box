@@ -51,7 +51,7 @@ void setpitclock(float clock)
         bus_timing = clock/(double)cpu_busspeed;
         video_update_timing();
         
-        xt_cpu_multi = (int64_t)((14318184.0*(double)(1 << TIMER_SHIFT)) / (double)machines[machine].cpu[cpu_manufacturer].cpus[cpu].rspeed);
+        xt_cpu_multi = (int64_t)((14318184.0*(double)(1 << TIMER_SHIFT)) / (double)machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
         RTCCONST=clock/32768.0;
         TIMER_USEC = (int64_t)((clock / 1000000.0f) * (float)(1 << TIMER_SHIFT));
         device_speed_changed();

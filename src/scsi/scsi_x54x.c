@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.17	2018/02/25
+ * Version:	@(#)scsi_x54x.c	1.0.19	2018/03/09
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,6 +20,7 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -49,22 +50,7 @@
 #define X54X_RESET_DURATION_US	UINT64_C(50000)
 
 
-static void	x54x_cmd_thread(void *priv);
-
-static volatile
-thread_t	*poll_tid;
-static volatile
-int	busy;
-
-static volatile
-event_t	*evt;
-static volatile
-event_t	*wait_evt;
-
-static volatile
-event_t	*wake_poll_thread;
-static volatile
-event_t	*thread_started;
+static void	x54x_cmd_callback(void *priv);
 
 static volatile
 x54x_t	*x54x_dev;
@@ -610,6 +596,13 @@ x54x_cmd_done(x54x_t *dev, int suppress)
 
 
 static void
+x54x_add_to_period(int TransferLength)
+{
+    x54x_dev->temp_period += (int64_t) TransferLength;
+}
+
+
+static void
 x54x_mbi_setup(x54x_t *dev, uint32_t CCBPointer, CCBU *CmdBlock,
 	       uint8_t HostStatus, uint8_t TargetStatus, uint8_t mbcc)
 {
@@ -636,6 +629,7 @@ x54x_ccb(x54x_t *dev)
     DMAPageWrite(req->CCBPointer + 0x000D, &(req->MailboxCompletionCode), 1);
     DMAPageWrite(req->CCBPointer + 0x000E, &(req->HostStatus), 1);
     DMAPageWrite(req->CCBPointer + 0x000F, &(req->TargetStatus), 1);
+    x54x_add_to_period(3);
 
     if (dev->MailboxOutInterrupts)
 	dev->ToRaise = INTR_MBOA | INTR_ANY;
@@ -666,6 +660,7 @@ x54x_mbi(x54x_t *dev)
 	x54x_log("CCB statuses rewritten (pointer %08X)\n", req->CCBPointer);
     	DMAPageWrite(req->CCBPointer + 0x000E, &(req->HostStatus), 1);
 	DMAPageWrite(req->CCBPointer + 0x000F, &(req->TargetStatus), 1);
+	x54x_add_to_period(2);
     } else {
 	x54x_log("Mailbox not found!\n");
     }
@@ -677,6 +672,7 @@ x54x_mbi(x54x_t *dev)
 	x54x_log("Mailbox 24-bit: Status=0x%02X, CCB at 0x%04X\n", req->MailboxCompletionCode, CCBPointer);
 	DMAPageWrite(Incoming, &(req->MailboxCompletionCode), 1);
 	DMAPageWrite(Incoming + 1, (uint8_t *)&CCBPointer, 3);
+	x54x_add_to_period(4);
 	x54x_log("%i bytes of 24-bit mailbox written to: %08X\n", sizeof(Mailbox_t), Incoming);
     } else {
 	x54x_log("Mailbox 32-bit: Status=0x%02X, CCB at 0x%04X\n", req->MailboxCompletionCode, CCBPointer);
@@ -684,6 +680,7 @@ x54x_mbi(x54x_t *dev)
 	DMAPageWrite(Incoming + 4, &(req->HostStatus), 1);
 	DMAPageWrite(Incoming + 5, &(req->TargetStatus), 1);
 	DMAPageWrite(Incoming + 7, &(req->MailboxCompletionCode), 1);
+	x54x_add_to_period(7);
 	x54x_log("%i bytes of 32-bit mailbox written to: %08X\n", sizeof(Mailbox32_t), Incoming);
     }
 
@@ -704,6 +701,7 @@ x54x_rd_sge(int Is24bit, uint32_t Address, SGE32 *SG)
 
     if (Is24bit) {
 	DMAPageRead(Address, (uint8_t *)&SGE24, sizeof(SGE));
+	x54x_add_to_period(sizeof(SGE));
 
 	/* Convert the 24-bit entries into 32-bit entries. */
 	x54x_log("Read S/G block: %06X, %06X\n", SGE24.Segment, SGE24.SegmentPointer);
@@ -711,6 +709,7 @@ x54x_rd_sge(int Is24bit, uint32_t Address, SGE32 *SG)
 	SG->SegmentPointer = ADDR_TO_U32(SGE24.SegmentPointer);
     } else {
 	DMAPageRead(Address, (uint8_t *)SG, sizeof(SGE32));		
+	x54x_add_to_period(sizeof(SGE32));
     }
 }
 
@@ -778,9 +777,11 @@ x54x_set_residue(Req_t *req, int32_t TransferLength)
 	if (req->Is24bit) {
 		U32_TO_ADDR(Residue24, Residue);
     		DMAPageWrite(req->CCBPointer + 0x0004, (uint8_t *)&Residue24, 3);
+		x54x_add_to_period(3);
 		x54x_log("24-bit Residual data length for reading: %d\n", Residue);
 	} else {
     		DMAPageWrite(req->CCBPointer + 0x0004, (uint8_t *)&Residue, 4);
+		x54x_add_to_period(4);
 		x54x_log("32-bit Residual data length for reading: %d\n", Residue);
 	}
     }
@@ -832,9 +833,8 @@ x54x_buf_dma_transfer(Req_t *req, int Is24bit, int TransferLength, int dir)
 					x54x_log("Writing S/G segment %i: length %i, pointer %08X\n", i, DataToTransfer, Address);
 					DMAPageWrite(Address, &(SCSIDevices[req->TargetID][req->LUN].CmdBuffer[sg_pos]), DataToTransfer);
 				}
-				else {
+				else
 					x54x_log("No action on S/G segment %i: length %i, pointer %08X\n", i, DataToTransfer, Address);
-				}
 
 				sg_pos += SGBuffer.Segment;
 
@@ -850,11 +850,10 @@ x54x_buf_dma_transfer(Req_t *req, int Is24bit, int TransferLength, int dir)
 		Address = DataPointer;
 
 		if ((DataLength > 0) && (BufLen > 0) && (req->CmdBlock.common.ControlByte < 0x03)) {
-			if (read_from_host) {
+			if (read_from_host)
 				DMAPageRead(Address, SCSIDevices[req->TargetID][req->LUN].CmdBuffer, MIN(BufLen, DataLength));
-			} else if (write_to_host) {
+			else if (write_to_host)
 				DMAPageWrite(Address, SCSIDevices[req->TargetID][req->LUN].CmdBuffer, MIN(BufLen, DataLength));
-			}
 		}
 	}
     }
@@ -938,6 +937,7 @@ SenseBufferFree(Req_t *req, int Copy)
 	x54x_log("SenseBufferFree(): Writing %i bytes at %08X\n",
 					SenseLength, SenseBufferAddress);
 	DMAPageWrite(SenseBufferAddress, temp_sense, SenseLength);
+	x54x_add_to_period(SenseLength);
 	x54x_log("Sense data written to buffer: %02X %02X %02X\n",
 		temp_sense[2], temp_sense[12], temp_sense[13]);
     }
@@ -957,6 +957,7 @@ x54x_scsi_cmd(x54x_t *dev)
     int32_t *BufLen;
     uint8_t phase;
     uint32_t SenseBufferAddress;
+    int64_t p;
 
     id = req->TargetID;
     lun = req->LUN;
@@ -979,8 +980,10 @@ x54x_scsi_cmd(x54x_t *dev)
     if (req->CmdBlock.common.CdbLength <= target_cdb_len) {
 	memcpy(temp_cdb, req->CmdBlock.common.Cdb,
 	       req->CmdBlock.common.CdbLength);
+	x54x_add_to_period(req->CmdBlock.common.CdbLength);
     } else {
 	memcpy(temp_cdb, req->CmdBlock.common.Cdb, target_cdb_len);
+	x54x_add_to_period(target_cdb_len);
     }
 
     dev->Residue = 0;
@@ -1005,8 +1008,14 @@ x54x_scsi_cmd(x54x_t *dev)
 		if ((SCSIDevices[id][lun].Status != SCSI_STATUS_OK) && (*BufLen > 0)) {
 			SenseBufferAddress = SenseBufferPointer(req);
 			DMAPageWrite(SenseBufferAddress, SCSIDevices[id][lun].CmdBuffer, *BufLen);
+			x54x_add_to_period(*BufLen);
 		}
 	} else {
+		p = scsi_device_get_callback(id, lun);
+		if (p <= 0LL)
+			x54x_add_to_period(*BufLen);
+		else
+			dev->media_period += p;
 	    	x54x_buf_alloc(id, lun, MIN(target_data_len, *BufLen));
 		if (phase == SCSI_PHASE_DATA_OUT)
 			x54x_buf_dma_transfer(req, bit24, target_data_len, 1);
@@ -1034,10 +1043,6 @@ x54x_scsi_cmd(x54x_t *dev)
     }
 
     x54x_log("SCSIDevices[%02i][%02i].Status = %02X\n", id, lun, SCSIDevices[id][lun].Status);
-
-    if (temp_cdb[0] == 0x42) {
-	thread_wait_event((event_t *) evt, 10);
-    }
 }
 
 
@@ -1060,6 +1065,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 
     /* Fetch data from the Command Control Block. */
     DMAPageRead(CCBPointer, (uint8_t *)&req->CmdBlock, sizeof(CCB32));
+    x54x_add_to_period(sizeof(CCB32));
 
     req->Is24bit = dev->Mbx24bit;
     req->CCBPointer = CCBPointer;
@@ -1135,6 +1141,7 @@ x54x_req_abort(x54x_t *dev, uint32_t CCBPointer)
 
     /* Fetch data from the Command Control Block. */
     DMAPageRead(CCBPointer, (uint8_t *)&CmdBlock, sizeof(CCB32));
+    x54x_add_to_period(sizeof(CCB32));
 
     x54x_mbi_setup(dev, CCBPointer, &CmdBlock,
 		  0x26, SCSI_STATUS_OK, MBI_NOT_FOUND);
@@ -1163,6 +1170,7 @@ x54x_mbo(x54x_t *dev, Mailbox32_t *Mailbox32)
     if (dev->Mbx24bit) {
 	Outgoing = Addr + (Cur * sizeof(Mailbox_t));
 	DMAPageRead(Outgoing, (uint8_t *)&MailboxOut, sizeof(Mailbox_t));
+	x54x_add_to_period(sizeof(Mailbox_t));
 
 	ccbp = *(uint32_t *) &MailboxOut;
 	Mailbox32->CCBPointer = (ccbp >> 24) | ((ccbp >> 8) & 0xff00) | ((ccbp << 8) & 0xff0000);
@@ -1171,6 +1179,7 @@ x54x_mbo(x54x_t *dev, Mailbox32_t *Mailbox32)
 	Outgoing = Addr + (Cur * sizeof(Mailbox32_t));
 
 	DMAPageRead(Outgoing, (uint8_t *)Mailbox32, sizeof(Mailbox32_t));
+	x54x_add_to_period(sizeof(Mailbox32_t));
     }
 
     return(Outgoing);
@@ -1203,13 +1212,10 @@ x54x_mbo_process(x54x_t *dev)
 	/* We got the mailbox, mark it as free in the guest. */
 	x54x_log("x54x_do_mail(): Writing %i bytes at %08X\n", sizeof(CmdStatus), Outgoing + CodeOffset);
 	DMAPageWrite(Outgoing + CodeOffset, &CmdStatus, 1);
+	x54x_add_to_period(1);
 
-	if (dev->ToRaise) {
+	if (dev->ToRaise)
 		raise_irq(dev, 0, dev->ToRaise);
-
-		while (dev->Interrupt)
-			;
-	}
 
 	if (dev->MailboxIsBIOS)
 		dev->BIOSMailboxReq--;
@@ -1264,84 +1270,29 @@ static void
 x54x_cmd_done(x54x_t *dev, int suppress);
 
 
-void
-x54x_wait_for_poll(void)
-{
-    if (x54x_is_busy()) {
-	thread_wait_event((event_t *) wake_poll_thread, -1);
-    }
-    thread_reset_event((event_t *) wake_poll_thread);
-}
-
-
 static void
-x54x_cmd_thread(void *priv)
+x54x_cmd_callback(void *priv)
 {
+    double period;
     x54x_t *dev = (x54x_t *) x54x_dev;
 
-    thread_set_event((event_t *) thread_started);
-
-    x54x_log("Polling thread started\n");
-
-    while (x54x_dev) {
-	scsi_mutex_wait(1);
-
-	if ((dev->Status & STAT_INIT) || (!dev->MailboxInit && !dev->BIOSMailboxInit) || (!dev->MailboxReq && !dev->BIOSMailboxReq)) {
-		/* If we did not get anything, wait a while. */
-		thread_wait_event((event_t *) wait_evt, 10);
-		thread_reset_event((event_t *) wait_evt);
-
-		scsi_mutex_wait(0);
-		continue;
-	}
-
-	if (!(x54x_dev->Status & STAT_INIT) && x54x_dev->MailboxInit && dev->MailboxReq) {
-		x54x_wait_for_poll();
-
-		x54x_do_mail(dev);
-	}
-
-	if (dev->ven_thread) {
-		dev->ven_thread(dev);
-	}
-
-	scsi_mutex_wait(0);
+    if ((dev->Status & STAT_INIT) || (!dev->MailboxInit && !dev->BIOSMailboxInit) || (!dev->MailboxReq && !dev->BIOSMailboxReq)) {
+	/* If we did not get anything, do nothing and wait 10 us. */
+	dev->timer_period = 10LL * TIMER_USEC;
+	return;
     }
 
-    x54x_log("%s: Callback: polling stopped.\n", dev->name);
-}
+    dev->temp_period = dev->media_period = 0LL;
 
+    if (!(x54x_dev->Status & STAT_INIT) && x54x_dev->MailboxInit && dev->MailboxReq)
+	x54x_do_mail(dev);
 
-void
-x54x_busy(uint8_t set)
-{
-    busy = !!set;
-    if (!set)
-	    thread_set_event((event_t *) wake_poll_thread);
-}
+    if (dev->ven_callback)
+	dev->ven_callback(dev);
 
-
-void
-x54x_thread_start(x54x_t *dev)
-{
-    if (!poll_tid) {
-	x54x_log("Starting thread...\n");
-	poll_tid = thread_create(x54x_cmd_thread, dev);
-    }
-}
-
-
-uint8_t
-x54x_is_busy(void)
-{
-    return(!!busy);
-}
-
-
-void
-x54x_set_wait_event(void)
-{
-    thread_set_event((event_t *)wait_evt);
+    period = (1000000.0 / x54x_dev->ha_bps) * ((double) TIMER_USEC) * ((double) dev->temp_period);
+    dev->timer_period = dev->media_period + ((int64_t) period) + (40LL * TIMER_USEC);
+    x54x_log("Temporary period: %" PRId64 " us (%" PRIi64 " periods)\n", dev->timer_period, dev->temp_period);
 }
 
 
@@ -1518,31 +1469,24 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
     switch (port & 3) {
 	case 0:
 		if ((val & CTRL_HRST) || (val & CTRL_SRST)) {
-			x54x_busy(1);
 			reset = (val & CTRL_HRST);
 			x54x_log("Reset completed = %x\n", reset);
 			x54x_reset_ctrl(dev, reset);
 			x54x_log("Controller reset: ");
-			x54x_busy(0);
 			break;
 		}
 
 		if (val & CTRL_IRST) {
-			x54x_busy(1);
 			clear_irq(dev);
 			x54x_log("Interrupt reset: ");
-			x54x_busy(0);
 		}
 		break;
 
 	case 1:
 		/* Fast path for the mailbox execution command. */
 		if ((val == CMD_START_SCSI) && (dev->Command == 0xff)) {
-			x54x_busy(1);
 			dev->MailboxReq++;
-			x54x_set_wait_event();
 			x54x_log("Start SCSI command: ");
-			x54x_busy(0);
 			return;
 		}
 		if (dev->ven_fast_cmds) {
@@ -1609,7 +1553,6 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 					break;
 
 				case CMD_MBINIT: /* mailbox initialization */
-					x54x_busy(1);
 					dev->Mbx24bit = 1;
 
 					mbi = (MailboxInit_t *)dev->CmdBuf;
@@ -1628,7 +1571,6 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 					dev->Status &= ~STAT_INIT;
 					dev->DataReplyLeft = 0;
 					x54x_log("Mailbox init: ");
-					x54x_busy(0);
 					break;
 
 				case CMD_BIOSCMD: /* execute BIOS */
@@ -1962,21 +1904,10 @@ x54x_init(device_t *info)
     dev->bus = info->flags;
 
     timer_add(x54x_reset_poll, &dev->ResetCB, &dev->ResetCB, dev);
+    dev->timer_period = 10LL * TIMER_USEC;
+    timer_add(x54x_cmd_callback, &dev->timer_period, TIMER_ALWAYS_ENABLED, dev);
 
     x54x_dev = dev;
-
-    scsi_mutex(1);
-
-    wake_poll_thread = thread_create_event();
-    thread_started = thread_create_event();
-
-    /* Create a waitable event. */
-    evt = thread_create_event();
-    wait_evt = thread_create_event();
-
-    x54x_thread_start(dev);
-    thread_wait_event((event_t *) thread_started, -1);
-    thread_reset_event((event_t *) thread_started);
 
     return(dev);
 }
@@ -1990,17 +1921,8 @@ x54x_close(void *priv)
     if (dev) {
 	x54x_dev = NULL;
 
-        /* Tell the thread to terminate. */
-	if (poll_tid != NULL) {
-		x54x_busy(0);
-
-		x54x_log("Waiting for SCSI thread to end...\n");
-		/* Wait for the end event. */
-		thread_wait((event_t *) poll_tid, -1);
-		x54x_log("SCSI thread ended\n");
-
-		poll_tid = NULL;
-	}
+	/* Tell the timer to terminate. */
+	dev->timer_period = 0LL;
 
 	dev->MailboxInit = dev->BIOSMailboxInit = 0;
 	dev->MailboxCount = dev->BIOSMailboxCount = 0;
@@ -2008,28 +1930,6 @@ x54x_close(void *priv)
 
 	if (dev->ven_data)
 		free(dev->ven_data);
-
-	if (wait_evt) {
-		thread_destroy_event((event_t *) evt);
-		evt = NULL;
-	}
-
-	if (evt) {
-		thread_destroy_event((event_t *) evt);
-		evt = NULL;
-	}
-
-	if (thread_started) {
-		thread_destroy_event((event_t *) thread_started);
-		thread_started = NULL;
-	}
-
-	if (wake_poll_thread) {
-		thread_destroy_event((event_t *) wake_poll_thread);
-		wake_poll_thread = NULL;
-	}
-
-	scsi_mutex(0);
 
 	if (dev->nvr != NULL)
 		free(dev->nvr);

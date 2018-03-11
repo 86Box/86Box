@@ -366,7 +366,7 @@ static void t1000_cgaline4(t1000_t *t1000)
 {
 	int x, c;
 	uint8_t dat, pattern;
-	uint32_t ink0, ink1;
+	uint32_t ink0 = 0, ink1 = 0;
 	uint16_t addr;
 
 	uint16_t ma = (t1000->cga.crtc[13] | (t1000->cga.crtc[12] << 8)) & 0x3fff;
@@ -499,7 +499,7 @@ static void t1000_poll(void *p)
                                 ysize = T1000_YSIZE;
                                 if (xsize < 64) xsize = 656;
                                 if (ysize < 32) ysize = 200;
-                                updatewindowsize(xsize, ysize);
+                                set_screen_size(xsize, ysize);
                         }
                         video_blit_memtoscreen(0, 0, 0, ysize, xsize, ysize);
 

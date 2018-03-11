@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, 5430, 5434 and 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.8	2018/03/01
+ * Version:	@(#)vid_cl_54xx.c	1.0.11	2018/03/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,
@@ -2074,7 +2074,7 @@ gd54xx_start_blit(uint32_t cpu_dat, int count, gd54xx_t *gd54xx, svga_t *svga)
 	switch (gd54xx->blt.rop) {
 		case 0x00: dst = 0;             break;
 		case 0x05: dst =   src &  dst;  break;
-		case 0x06: dst =   dst;         break;
+		case 0x06: /* dst =   dst; */   break;
 		case 0x09: dst =   src & ~dst;  break;
 		case 0x0b: dst = ~ dst;         break;
 		case 0x0d: dst =   src;         break;

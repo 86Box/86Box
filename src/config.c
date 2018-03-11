@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.42	2018/02/10
+ * Version:	@(#)config.c	1.0.44	2018/03/06
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -36,10 +36,10 @@
 #include "device.h"
 #include "lpt.h"
 #include "cdrom/cdrom.h"
-#include "zip.h"
 #include "disk/hdd.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
+#include "disk/zip.h"
 #include "floppy/fdd.h"
 #include "floppy/fdc.h"
 #include "game/gameport.h"
@@ -1225,6 +1225,9 @@ load_other_removable_devices(void)
 		sscanf("0, none", "%01u, %s", &cdrom_drives[c].sound_on, s);
 	cdrom_drives[c].bus_type = hdd_string_to_bus(s, 1);
 
+	sprintf(temp, "cdrom_%02i_speed", c+1);
+	cdrom_drives[c].speed = config_get_int(cat, temp, 8);
+
 	/* Default values, needed for proper operation of the Settings dialog. */
 	cdrom_drives[c].ide_channel = cdrom_drives[c].scsi_device_id = c + 2;
 
@@ -1978,6 +1981,13 @@ save_other_removable_devices(void)
 		config_delete_var(cat, temp);
 	} else {
 		config_set_int(cat, temp, cdrom_drives[c].host_drive);
+	}
+
+	sprintf(temp, "cdrom_%02i_speed", c+1);
+	if ((cdrom_drives[c].bus_type == 0) || (cdrom_drives[c].speed == 8)) {
+		config_delete_var(cat, temp);
+	} else {
+		config_set_int(cat, temp, cdrom_drives[c].speed);
 	}
 
 	sprintf(temp, "cdrom_%02i_parameters", c+1);

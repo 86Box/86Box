@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.6	2018/02/27
+ * Version:	@(#)zip.c	1.0.8	2018/03/07
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -22,17 +22,17 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "config.h"
-#include "timer.h"
-#include "device.h"
-#include "piix.h"
-#include "scsi/scsi.h"
-#include "nvr.h"
-#include "disk/hdc.h"
-#include "disk/hdc_ide.h"
-#include "plat.h"
-#include "ui.h"
+#include "../86box.h"
+#include "../config.h"
+#include "../timer.h"
+#include "../device.h"
+#include "../piix.h"
+#include "../scsi/scsi.h"
+#include "../nvr.h"
+#include "../plat.h"
+#include "../ui.h"
+#include "hdc.h"
+#include "hdc_ide.h"
 #include "zip.h"
 
 
@@ -932,25 +932,34 @@ void zip_update_request_length(uint8_t id, int len, int block_len)
 
 static void zip_command_common(uint8_t id)
 {
+	double bytes_per_second, period;
+	double dusec;
+
 	zip[id].status = BUSY_STAT;
 	zip[id].phase = 1;
 	zip[id].pos = 0;
 	if (zip[id].packet_status == ZIP_PHASE_COMPLETE) {
-		zip[id].callback = 20LL * ZIP_TIME;
-		zip_set_callback(id);
-	} else if (zip[id].packet_status == ZIP_PHASE_DATA_IN) {
-		if (zip[id].current_cdb[0] == 0x42) {
-			zip_log("ZIP %i: READ SUBCHANNEL\n");
-			zip[id].callback = 1000LL * ZIP_TIME;
-			zip_set_callback(id);
-		} else {
-			zip[id].callback = 60LL * ZIP_TIME;
-			zip_set_callback(id);
-		}
+		zip_phase_callback(id);
+		zip[id].callback = 0LL;
 	} else {
-		zip[id].callback = 60LL * ZIP_TIME;
-		zip_set_callback(id);
+		if (zip_drives[id].bus_type == ZIP_BUS_SCSI) {
+			zip[id].callback = -1LL;	/* Speed depends on SCSI controller */
+			return;
+		} else if (zip_drives[id].bus_type == ZIP_BUS_ATAPI_PIO_AND_DMA) {
+			if (zip_current_mode(id) == 2)
+				bytes_per_second = 66666666.666666666666666;	/* 66 MB/s MDMA-2 speed */
+			else
+				bytes_per_second =  8333333.333333333333333;	/* 8.3 MB/s PIO-2 speed */
+		} else
+			bytes_per_second = 3333333.333333333333333;		/* 3.3 MB/s PIO-0 speed */
 	}
+
+	period = 1000000.0 / bytes_per_second;
+	dusec = (double) TIMER_USEC;
+	dusec = dusec * period * (double) (zip[id].packet_len);
+	zip[id].callback = ((int64_t) dusec);
+
+	zip_set_callback(id);
 }
 
 static void zip_command_complete(uint8_t id)

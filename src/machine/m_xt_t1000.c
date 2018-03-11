@@ -401,14 +401,11 @@ static void t1200_turbo_set(uint8_t value)
 	t1000.turbo = value;
 	if (!value)
 	{
-		int c = cpu;
-		cpu = 0;	/* 8088/4.77MHz */
-		cpu_set();
-		cpu = c;
+		cpu_dynamic_switch(0);
 	}
 	else
 	{
-		cpu_set();
+		cpu_dynamic_switch(cpu);
 	}
 }
 
@@ -625,6 +622,8 @@ void machine_xt_t1000_init(machine_t *model)
 	nmi_init();
 	nvr_tc8521_init();
 /* No gameport, and no provision to fit one 	device_add(&gameport_device); */
+
+	device_add(&t1000_device);
 }
 
 
@@ -671,4 +670,6 @@ void machine_xt_t1200_init(machine_t *model)
 	nmi_init();
 	nvr_tc8521_init();
 /* No gameport, and no provision to fit one 	device_add(&gameport_device); */
+
+	device_add(&t1200_device);
 }

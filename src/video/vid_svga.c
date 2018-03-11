@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.23	2018/03/02
+ * Version:	@(#)vid_svga.c	1.0.24	2018/03/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -390,6 +390,15 @@ void svga_recalctimings(svga_t *svga)
         if (svga->crtc[9] & 0x20) svga->vblankstart |= 0x200;
         svga->vblankstart++;
         
+        if(svga->crtc[0x17] & 4)
+        {
+                svga->vtotal <<= 1;
+                svga->dispend <<= 1;
+                svga->vsyncstart <<= 1;
+                svga->split <<= 1;
+                svga->vblankstart <<= 1;
+        }		
+		
         svga->hdisp = svga->crtc[1];
         svga->hdisp++;
 
@@ -515,7 +524,7 @@ void svga_poll(void *p)
                 }
 
                 if (svga->displine == svga->hwcursor_latch.y+1 && svga->hwcursor_latch.ena && svga->interlace) {
-                        svga->hwcursor_on = 64 - svga->hwcursor_latch.yoff;
+                        svga->hwcursor_on = 64 - (svga->hwcursor_latch.yoff + 1);
                         svga->hwcursor_oddeven = 1;
                 }
 
@@ -673,7 +682,9 @@ void svga_poll(void *p)
                         } else {
                                 if (svga->crtc[9] & 0x80)
                                    svga->video_res_y /= 2;
-                                if (!(svga->crtc[0x17] & 1))
+                                if (!(svga->crtc[0x17] & 2))
+                                   svga->video_res_y *= 4;
+                                else if (!(svga->crtc[0x17] & 1))
                                    svga->video_res_y *= 2;
                                 svga->video_res_y /= (svga->crtc[9] & 31) + 1;                                   
                                 if (svga->lowres)
@@ -1440,9 +1451,9 @@ void svga_writeb_linear(uint32_t addr, uint8_t val, void *p)
                 return;
         }
         
-        egawrites += 2;
+        egawrites++;
 
-	if (svga_output) pclog("Write LFBw %08X %04X\n", addr, val);
+	if (svga_output) pclog("Write LFBb %08X %04X\n", addr, val);
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
                 return;
