@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.27	2018/03/02
+ * Version:	@(#)keyboard_at.c	1.0.28	2018/03/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -960,7 +960,7 @@ kbd_cmd_write(atkbd_t *kbd, uint8_t val)
 
     /* ISA AT keyboard controllers use bit 5 for keyboard mode (1 = PC/XT, 2 = AT);
        PS/2 (and EISA/PCI) keyboard controllers use it as the PS/2 mouse enable switch. */
-    if ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
+    if (((kbd->flags & KBC_VEN_MASK) == KBC_VEN_AMI) || ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1)) {
 	keyboard_mode &= ~CCB_PCMODE;
 
 	mouse_scan = !(val & 0x20);
