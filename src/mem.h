@@ -68,6 +68,8 @@ typedef struct mem_mapping_t
 #define MEM_MAPPING_EXTERNAL 1
 /*Only present on internal bus (RAM)*/
 #define MEM_MAPPING_INTERNAL 2
+/*Executing from ROM may involve additional wait states*/
+#define MEM_MAPPING_ROM      4
 
 extern uint8_t *ram,*rom;
 extern uint8_t romext[32768];

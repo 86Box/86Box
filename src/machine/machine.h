@@ -162,6 +162,8 @@ extern void	machine_ps1_m2133_init(machine_t *);
 extern void	machine_ps2_m30_286_init(machine_t *);
 extern void	machine_ps2_model_50_init(machine_t *);
 extern void	machine_ps2_model_55sx_init(machine_t *);
+extern void machine_ps2_model_70_type3_init(machine_t *);
+extern void machine_ps2_model_70_type4_init(machine_t *);
 extern void	machine_ps2_model_80_init(machine_t *);
 #ifdef WALTJE
 extern void	machine_ps2_model_80_486_init(machine_t *);

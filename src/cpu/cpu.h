@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.h	1.0.9	2018/03/02
+ * Version:	@(#)cpu.h	1.0.10	2018/03/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -387,7 +387,7 @@ extern x86seg	_oldds;
 #define ISA_CYCLES(x)    ((x * isa_cycles) >> ISA_CYCLES_SHIFT)
 
 extern int	cpu_cycles_read, cpu_cycles_read_l, cpu_cycles_write, cpu_cycles_write_l;
-extern int	cpu_prefetch_cycles, cpu_prefetch_width;
+extern int	cpu_prefetch_cycles, cpu_prefetch_width, cpu_mem_prefetch_cycles, cpu_rom_prefetch_cycles;
 extern int	cpu_waitstates;
 extern int	cpu_cache_int_enabled, cpu_cache_ext_enabled;
 extern int	cpu_pci_speed;

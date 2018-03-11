@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.24	2018/03/05
+ * Version:	@(#)vid_svga.c	1.0.24	2018/03/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -109,14 +109,9 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                 case 0x3C2:
                 svga->miscout = val;
                 svga->vidclock = val & 4;
-                if (val & 1)
-                {
-                        io_removehandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->p);
-                }
-                else
-                {
+                io_removehandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->p);
+                if (!(val & 1))
                         io_sethandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->p);
-                }
                 svga_recalctimings(svga);
                 break;
                 case 0x3C4: 

@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.35	2018/03/06
+ * Version:	@(#)rom.c	1.0.34	2018/03/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -256,7 +256,7 @@ rom_init(rom_t *rom, wchar_t *fn, uint32_t addr, int sz, int mask, int off, uint
 		    addr, sz,
 		    rom_read, rom_readw, rom_readl,
 		    mem_write_null, mem_write_nullw, mem_write_nulll,
-		    rom->rom, flags, rom);
+		    rom->rom, flags | MEM_MAPPING_ROM, rom);
 
     return(0);
 }
@@ -283,7 +283,7 @@ rom_init_interleaved(rom_t *rom, wchar_t *fnl, wchar_t *fnh, uint32_t addr, int 
 		    addr, sz,
 		    rom_read, rom_readw, rom_readl,
 		    mem_write_null, mem_write_nullw, mem_write_nulll,
-		    rom->rom, flags, rom);
+		    rom->rom, flags | MEM_MAPPING_ROM, rom);
 
     return(0);
 }
@@ -674,14 +674,11 @@ rom_load_bios(int rom_id)
 		break;
 
 	case ROM_SPC4216P:
-		if (rom_load_linear(
-			L"roms/machines/spc4216p/phoenix.bin",
-			0x000000, 65536, 0, rom)) return(1);
-		if (rom_load_interleaved(
+		if (! rom_load_interleaved(
 			L"roms/machines/spc4216p/7101.u8",
 			L"roms/machines/spc4216p/ac64.u10",
-			0x000000, 65536, 0, rom)) return(1);
-		break;
+			0x000000, 65536, 0, rom)) break;
+		return(1);
 
 	case ROM_KMXC02:
 		if (rom_load_linear(
@@ -720,6 +717,22 @@ rom_load_bios(int rom_id)
 		biosmask = 0x1ffff;
 		return(1);
 
+	case ROM_IBMPS2_M70_TYPE3:
+		if (! rom_load_interleaved(
+			L"roms/machines/ibmps2_m70_type3/70-a_even.bin",
+			L"roms/machines/ibmps2_m70_type3/70-a_odd.bin",
+			0x000000, 65536, 0, rom)) break;
+		biosmask = 0x1ffff;
+		return(1);
+	
+	case ROM_IBMPS2_M70_TYPE4:
+		if (! rom_load_interleaved(
+			L"roms/machines/ibmps2_m70_type4/70-b_even.bin",
+			L"roms/machines/ibmps2_m70_type4/70-b_odd.bin",
+			0x000000, 65536, 0, rom)) break;
+		biosmask = 0x1ffff;
+		return(1);
+	
 	case ROM_DTK486:
 		if (rom_load_linear(
 			L"roms/machines/dtk486/4siw005.bin",
@@ -848,14 +861,12 @@ rom_load_bios(int rom_id)
 		biosmask = 0x1ffff;
 		return(1);
 
-#if defined(DEV_BRANCH) && defined(USE_MRTHOR)
 	case ROM_MRTHOR:
 		if (! rom_load_linear(
 			L"roms/machines/mrthor/mr_atx.bio",
 			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
-#endif
 
 	case ROM_ZAPPA:
 		if (! rom_load_linear(
@@ -911,7 +922,6 @@ rom_load_bios(int rom_id)
 		if (!rom_load_linear(
 			L"roms/machines/t1000/t1000.rom",
 			0x000000, 32768, 0, rom)) break;
-		memcpy(rom + 0x8000, rom, 0x8000);
 		biosmask = 0x7fff;
 		return(1);
 
@@ -920,7 +930,6 @@ rom_load_bios(int rom_id)
 		if (!rom_load_linear(
 			L"roms/machines/t1200/t1200_019e.ic15.bin",
 			0x000000, 32768, 0, rom)) break;
-		memcpy(rom + 0x8000, rom, 0x8000);
 		biosmask = 0x7fff;
 		return(1);
 
