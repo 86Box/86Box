@@ -8,12 +8,12 @@
  *
  *		SVGA renderers.
  *
- * Version:	@(#)vid_svga_render.h	1.0.0	2017/05/30
+ * Version:	@(#)vid_svga_render.h	1.0.1	2018/03/12
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 
 extern int firstline_draw, lastline_draw;
@@ -29,9 +29,8 @@ extern uint8_t edatlookup[4][4];
 
 void svga_render_blank(svga_t *svga);
 void svga_render_text_40(svga_t *svga);
-void svga_render_text_40_12(svga_t *svga);
 void svga_render_text_80(svga_t *svga);
-void svga_render_text_80_12(svga_t *svga);
+void svga_render_text_80_ksc5601(svga_t *svga);
 
 void svga_render_2bpp_lowres(svga_t *svga);
 void svga_render_2bpp_highres(svga_t *svga);

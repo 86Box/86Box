@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.24	2018/03/11
+ * Version:	@(#)vid_svga.c	1.0.25	2018/03/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -385,15 +385,6 @@ void svga_recalctimings(svga_t *svga)
         if (svga->crtc[9] & 0x20) svga->vblankstart |= 0x200;
         svga->vblankstart++;
         
-        if(svga->crtc[0x17] & 4)
-        {
-                svga->vtotal <<= 1;
-                svga->dispend <<= 1;
-                svga->vsyncstart <<= 1;
-                svga->split <<= 1;
-                svga->vblankstart <<= 1;
-        }		
-		
         svga->hdisp = svga->crtc[1];
         svga->hdisp++;
 
