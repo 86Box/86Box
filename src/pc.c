@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.62	2018/03/06
+ * Version:	@(#)pc.c	1.0.63	2018/03/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -126,6 +126,7 @@ int	cpu_manufacturer = 0,			/* (C) cpu manufacturer */
 	cpu_use_dynarec = 0,			/* (C) cpu uses/needs Dyna */
 	cpu = 3,				/* (C) cpu type */
 	enable_external_fpu = 0;		/* (C) enable external FPU */
+int	enable_sync = 0;			/* (C) enable time sync */
 
 
 /* Statistics. */
@@ -500,8 +501,6 @@ pc_full_speed(void)
 		setpitclock(14318184.0);
     }
     atfullspeed = 1;
-
-    nvr_recalc();
 }
 
 
@@ -512,8 +511,6 @@ pc_speed_changed(void)
 	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
       else
 	setpitclock(14318184.0);
-
-    nvr_recalc();
 }
 
 
