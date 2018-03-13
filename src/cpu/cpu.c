@@ -246,7 +246,10 @@ void cpu_set()
 
 	isa_cycles = cpu_s->atclk_div;
 
-	cpu_rom_prefetch_cycles = cpu_s->rspeed / 1000000;	
+        if (cpu_s->rspeed <= 8000000)
+                cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
+        else
+                cpu_rom_prefetch_cycles = cpu_s->rspeed / 1000000;
 	
         if (cpu_s->pci_speed)
         {
@@ -2259,4 +2262,6 @@ void cpu_update_waitstates()
         if (is486)
                 cpu_prefetch_cycles *= 4;
         cpu_mem_prefetch_cycles = cpu_prefetch_cycles;
+        if (cpu_s->rspeed <= 8000000)
+                cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
 }
