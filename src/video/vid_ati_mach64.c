@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.14	2018/03/10
+ * Version:	@(#)vid_ati_mach64.c	1.0.15	2018/03/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1149,8 +1149,6 @@ void mach64_start_line(mach64_t *mach64)
                                else if (width == 2) dat = *(uint32_t *)&svga->vram[((addr) << 2) & mach64->vram_mask]; \
                    else if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)  dat = (svga->vram[((addr) >> 3) & mach64->vram_mask] >> ((addr) & 7)) & 1; \
                                else                 dat = (svga->vram[((addr) >> 3) & mach64->vram_mask] >> (7 - ((addr) & 7))) & 1;
- 
-#define READ1BPP(addr, dat, width) 
  
 #define MIX     switch (mix ? mach64->accel.mix_fg : mach64->accel.mix_bg)                                \
                 {                                                                                       \
