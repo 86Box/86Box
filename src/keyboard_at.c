@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.28	2018/03/12
+ * Version:	@(#)keyboard_at.c	1.0.29	2018/03/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -91,7 +91,7 @@ typedef struct {
     uint8_t	status;
     uint8_t	mem[0x100];
     uint8_t	out;
-    int		out_new;
+    int		out_new, out_delayed;
     uint8_t	secr_phase;
     uint8_t	mem_addr;
 
@@ -645,7 +645,7 @@ kbd_poll(void *priv)
 		kbdlog("ATkbd: want keyboard data\n");
 		if (kbd->mem[0] & 0x01)
 			picint(2);
-		kbd->out = kbd->out_new;
+		keyboard_at.out = keyboard_at.out_new & 0xff;
 		kbd->out_new = -1;
 		kbd->status |=  STAT_OFULL;
 		kbd->status &= ~STAT_IFULL;
@@ -656,8 +656,16 @@ kbd_poll(void *priv)
 
     if (kbd->out_new == -1 && !(kbd->status & STAT_OFULL) && 
 	key_ctrl_queue_start != key_ctrl_queue_end) {
-	kbd->out_new = key_ctrl_queue[key_ctrl_queue_start];
+	keyboard_at.out_new = key_ctrl_queue[key_ctrl_queue_start] | 0x200;
 	key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0xf;
+    else if (!(keyboard_at.status & STAT_OFULL) && keyboard_at.out_new == -1 && 
+            keyboard_at.out_delayed != -1) {
+            keyboard_at.out_new = keyboard_at.out_delayed;
+            keyboard_at.out_delayed = -1;
+    } else if (!(keyboard_at.status & STAT_OFULL) && keyboard_at.out_new == -1 &&
+             !(keyboard_at.mem[0] & 0x10) && keyboard_at.out_delayed != -1) {
+            keyboard_at.out_new = keyboard_at.out_delayed;
+            keyboard_at.out_delayed = -1;
     } else if (!(kbd->status & STAT_OFULL) && kbd->out_new == -1/* && !(kbd->mem[0] & 0x20)*/ &&
 	    (mouse_queue_start != mouse_queue_end)) {
 	kbd->out_new = mouse_queue[mouse_queue_start] | 0x100;
@@ -675,6 +683,11 @@ kbd_adddata(uint8_t val)
 {
     key_ctrl_queue[key_ctrl_queue_end] = val;
     key_ctrl_queue_end = (key_ctrl_queue_end + 1) & 0xf;
+
+    if (!(keyboard_at.out_new & 0x300)) {
+	keyboard_at.out_delayed = keyboard_at.out_new;
+	keyboard_at.out_new = -1;
+    }
 }
 
 
