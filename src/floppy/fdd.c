@@ -8,7 +8,7 @@
  *
  *		Implementation of the floppy drive emulation.
  *
- * Version:	@(#)fdd.c	1.0.8	2018/03/06
+ * Version:	@(#)fdd.c	1.0.9	2018/03/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -447,6 +447,7 @@ void fdd_load(int drive, wchar_t *fn)
                 {
                         driveloaders[drive] = c;
                         memcpy(floppyfns[drive], fn, (wcslen(fn) << 1) + 2);
+			d86f_initialize_linked_lists(drive);
                         loaders[c].load(drive, floppyfns[drive]);
                         drive_empty[drive] = 0;
                         fdd_forced_seek(drive, 0);
@@ -468,6 +469,8 @@ void fdd_close(int drive)
         drive_empty[drive] = 1;
 	fdd_set_head(drive, 0);
         floppyfns[drive][0] = 0;
+	d86f_destroy_linked_lists(drive, 0);
+	d86f_destroy_linked_lists(drive, 1);
         drives[drive].hole = NULL;
         drives[drive].poll = NULL;
         drives[drive].seek = NULL;

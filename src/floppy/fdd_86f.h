@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)floppy_86f.h	1.0.4	2018/01/18
+ * Version:	@(#)floppy_86f.h	1.0.5	2018/03/14
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -69,7 +69,9 @@ extern int gap4_size[2];
 #define D86FVER		0x020B
 
 extern void d86f_initialize_last_sector_id(int drive, int c, int h, int r, int n);
-extern void d86f_zero_bit_field(int drive, int side);
+
+extern void d86f_initialize_linked_lists(int drive);
+extern void d86f_destroy_linked_lists(int drive, int side);
 
 
 #endif	/*EMU_FLOPPY_86F_H*/
