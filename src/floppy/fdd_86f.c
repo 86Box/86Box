@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)fdd_86f.c	1.0.16	2018/03/14
+ * Version:	@(#)fdd_86f.c	1.0.17	2018/03/14
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -2676,15 +2676,17 @@ uint16_t d86f_prepare_sector(int drive, int side, int prev_pos, uint8_t *id_buf,
 	uint16_t dataam_mfm = 0x4555;
 	uint16_t datadam_mfm = 0x4A55;
 
-	s = (sector_t *) malloc(sizeof(sector_t));
-	memset(s, 0, sizeof(sector_t));
-	s->c = id_buf[0];
-	s->h = id_buf[1];
-	s->r = id_buf[2];
-	s->n = id_buf[3];
-	if (d86f[drive].last_side_sector[side])
-		s->prev = d86f[drive].last_side_sector[side];
-	d86f[drive].last_side_sector[side] = s;
+	if (fdd_get_turbo(drive) && (d86f[drive].version == 0x0063)) {
+		s = (sector_t *) malloc(sizeof(sector_t));
+		memset(s, 0, sizeof(sector_t));
+		s->c = id_buf[0];
+		s->h = id_buf[1];
+		s->r = id_buf[2];
+		s->n = id_buf[3];
+		if (d86f[drive].last_side_sector[side])
+			s->prev = d86f[drive].last_side_sector[side];
+		d86f[drive].last_side_sector[side] = s;
+	}
 
 	mfm = d86f_is_mfm(drive);
 
