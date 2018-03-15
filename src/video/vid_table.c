@@ -158,6 +158,7 @@ video_cards[] = {
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
     {"[VLB] Diamond Stealth 32 (Tseng ET4000/w32p)","stealth32_vlb",	&et4000w32p_vlb_device,     GFX_ET4000W32_VLB,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
 #endif
+    {"[VLB] Diamond SpeedStar PRO (CL-GD5426)",  "cl_gd5426_vlb",		&gd5426_vlb_device,			GFX_CL_GD5426_VLB,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
     {"[VLB] Diamond SpeedStar PRO SE (CL-GD5430)",  "cl_gd5430_vlb",	&gd5430_vlb_device,			GFX_CL_GD5430_VLB,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
     {"[VLB] Diamond Stealth 3D 2000 (S3 ViRGE)",    "stealth3d_2000_vlb",&s3_virge_vlb_device,      GFX_VIRGE_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
     {"[VLB] Diamond Stealth 3D 3000 (S3 ViRGE/VX)", "stealth3d_3000_vlb",&s3_virge_988_vlb_device,  GFX_VIRGEVX_VLB,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  4,  26, 26, 42}},

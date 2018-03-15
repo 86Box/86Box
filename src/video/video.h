@@ -76,11 +76,12 @@ enum {
     GFX_MACH64VT2,  		/* ATI Mach64 VT2 */
     GFX_CL_GD5424_ISA, 		/* Cirrus Logic CL-GD 5424 ISA */
     GFX_CL_GD5424_VLB, 		/* Cirrus Logic CL-GD 5424 VLB */
+    GFX_CL_GD5426_VLB, 		/* Diamond SpeedStar PRO (Cirrus Logic CL-GD 5426) VLB */
     GFX_CL_GD5428_ISA, 		/* Cirrus Logic CL-GD 5428 ISA */
-    GFX_CL_GD5428_VLB,		/* Diamond SpeedStar PRO (Cirrus Logic CL-GD 5428) VLB */
+    GFX_CL_GD5428_VLB,		/* Cirrus Logic CL-GD 5428 VLB */
     GFX_CL_GD5429_ISA, 		/* Cirrus Logic CL-GD 5429 ISA */
     GFX_CL_GD5429_VLB,		/* Cirrus Logic CL-GD 5429 VLB */
-    GFX_CL_GD5430_VLB,		/* Diamond SpeedStar PRO SE (Cirrus Logic CL-GD 5430) PCI */
+    GFX_CL_GD5430_VLB,		/* Diamond SpeedStar PRO SE (Cirrus Logic CL-GD 5430) VLB */
     GFX_CL_GD5430_PCI,		/* Cirrus Logic CL-GD 5430 PCI */
     GFX_CL_GD5434_ISA, 		/* Cirrus Logic CL-GD 5434 ISA */
 	GFX_CL_GD5434_VLB,		/* Cirrus Logic CL-GD 5434 VLB */
