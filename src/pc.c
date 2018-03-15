@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.63	2018/03/13
+ * Version:	@(#)pc.c	1.0.64	2018/03/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -968,6 +968,8 @@ pc_close(thread_t *ptr)
     sound_cd_thread_end();
 
     mem_destroy_pages();
+
+    ide_destroy_buffers();
 }
 
 

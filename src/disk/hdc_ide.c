@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.33	2018/03/15
+ * Version:	@(#)hdc_ide.c	1.0.34	2018/03/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,10 +20,11 @@
 #define __USE_LARGEFILE64
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 #include <inttypes.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
@@ -793,6 +794,24 @@ void ide_ter_disable_cond();
 void ide_qua_disable_cond();
 
 
+void ide_destroy_buffers(void)
+{
+	int d;
+
+	for (d = 0; d < (IDE_NUM+XTIDE_NUM); d++)
+	{
+		if (ide_drives[d].buffer) {
+			free(ide_drives[d].buffer);
+			ide_drives[d].buffer = NULL;
+		}
+
+		if (ide_drives[d].sector_buffer) {
+			free(ide_drives[d].sector_buffer);
+			ide_drives[d].sector_buffer = NULL;
+		}
+	}
+}
+
 void ide_reset(void)
 {
 	int c, d;
@@ -818,8 +837,18 @@ void ide_reset(void)
 		ide_drives[d].atastat = READY_STAT | DSC_STAT;
 		ide_drives[d].service = 0;
 		ide_drives[d].board = d >> 1;
+
+		if (ide_drives[d].buffer) {
+			free(ide_drives[d].buffer);
+			ide_drives[d].buffer = NULL;
+		}
+
+		if (ide_drives[d].sector_buffer) {
+			free(ide_drives[d].sector_buffer);
+			ide_drives[d].sector_buffer = NULL;
+		}
 	}
-		
+
 	idecallback[0]=idecallback[1]=0LL;
 	idecallback[2]=idecallback[3]=0LL;
 	idecallback[4]=0LL;
@@ -832,12 +861,16 @@ void ide_reset(void)
 		{
 			ide_log("Found IDE hard disk on channel %i\n", hdd[d].ide_channel);
 			loadhd(&ide_drives[hdd[d].ide_channel], d, hdd[d].fn);
+			ide_drives[hdd[d].ide_channel].sector_buffer = NULL;	/* Important, makes sure malloc does not reuse an existing pointer from elsewhere. */
+			ide_drives[hdd[d].ide_channel].sector_buffer = (uint8_t *) malloc(256*512);
 			if (++c >= (IDE_NUM+XTIDE_NUM)) break;
 		}
 		if ((hdd[d].bus==HDD_BUS_XTIDE) && (hdd[d].xtide_channel < XTIDE_NUM))
 		{
 			ide_log("Found XT IDE hard disk on channel %i\n", hdd[d].xtide_channel);
 			loadhd(&ide_drives[hdd[d].xtide_channel | 8], d, hdd[d].fn);
+			ide_drives[hdd[d].xtide_channel | 8].sector_buffer = NULL;	/* Important, makes sure malloc does not reuse an existing pointer from elsewhere. */
+			ide_drives[hdd[d].xtide_channel | 8].sector_buffer = (uint8_t *) malloc(256*512);
 			if (++c >= (IDE_NUM+XTIDE_NUM)) break;
 		}
 	}
@@ -845,13 +878,14 @@ void ide_reset(void)
 
 	for (d = 0; d < IDE_NUM; d++)
 	{
-		if (ide_drive_is_zip(&ide_drives[d]) && (ide_drives[d].type != IDE_HDD))
-		{
+		if (ide_drive_is_zip(&ide_drives[d]) && (ide_drives[d].type == IDE_NONE))
 			ide_drives[d].type = IDE_ZIP;
-		}
-		else if (ide_drive_is_cdrom(&ide_drives[d]) && (ide_drives[d].type != IDE_HDD))
-		{
+		else if (ide_drive_is_cdrom(&ide_drives[d]) && (ide_drives[d].type == IDE_NONE))
 			ide_drives[d].type = IDE_CDROM;
+
+		if (ide_drives[d].type != IDE_NONE) {
+			ide_drives[d].buffer = NULL;	/* Important, makes sure malloc does not reuse an existing pointer from elsewhere. */
+			ide_drives[d].buffer = (uint16_t *) malloc(65536);
 		}
 
 		ide_set_signature(&ide_drives[d]);
