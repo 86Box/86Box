@@ -1334,12 +1334,15 @@ void mem_resize_pages(void)
 	if (AT) {
 		if (cpu_16bitbus)
 			total_size = 4096;
-		else
-			total_size = 1048576;
+		else {
+			total_size = (mem_size + 384) >> 2;
+			if ((total_size << 2) < (mem_size + 384))
+				total_size++;
+			if (total_size < 4096)
+				total_size = 4096;
+		}
 	} else
 		total_size = 256;
-
-	pclog("%i pages\n", total_size);
 
         pages = malloc(total_size * sizeof(page_t));
 
@@ -1467,70 +1470,6 @@ void mem_remap_top_256k()
 void mem_remap_top_384k()
 {
 	mem_remap_top(384);
-}
-
-void mem_split_enable(int max_size, uint32_t addr)
-{
-	int c;
-
-	uint8_t *mem_split_buffer = &ram[0x80000];
-
-	if (split_mapping_enabled)
-		return;
-
-#if 0
-	pclog("Split mapping enable at %08X\n", addr);
-#endif
-
-	mem_set_mem_state(addr, max_size * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-	mem_mapping_set_addr(&ram_split_mapping, addr, max_size * 1024);
-	mem_mapping_set_exec(&ram_split_mapping, &ram[addr]);
-
-	if (max_size == 384)
-		memcpy(&ram[addr], mem_split_buffer, max_size);
-	else
-		memcpy(&ram[addr], &mem_split_buffer[128 * 1024], max_size);
-
-	for (c = ((addr / 1024) / 64); c < (((addr / 1024) + max_size - 1) / 64); c++)
-        {
-		isram[c] = 1;
-        }
-
-	flushmmucache();
-
-	split_mapping_enabled = 1;
-}
-
-void mem_split_disable(int max_size, uint32_t addr)
-{
-	int c;
-
-	uint8_t *mem_split_buffer = &ram[0x80000];
-
-	if (!split_mapping_enabled)
-		return;
-
-#if 0
-	pclog("Split mapping disable at %08X\n", addr);
-#endif
-
-	if (max_size == 384)
-		memcpy(mem_split_buffer, &ram[addr], max_size);
-	else
-		memcpy(&mem_split_buffer[128 * 1024], &ram[addr], max_size);
-
-	mem_mapping_disable(&ram_split_mapping);
-	mem_set_mem_state(addr, max_size * 1024, 0);
-	mem_mapping_set_exec(&ram_split_mapping, NULL);
-
-	for (c = ((addr / 1024) / 64); c < (((addr / 1024) + max_size - 1) / 64); c++)
-        {
-		isram[c] = 0;
-        }
-
-	flushmmucache();
-
-	split_mapping_enabled = 0;
 }
 
 void mem_resize()
