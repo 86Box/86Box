@@ -69,7 +69,7 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
         switch (addr)
         {
                 case 0x3C0:
-		case 0x3C1:
+				case 0x3C1:
                 if (!svga->attrff)
                 {
                         svga->attraddr = val & 31;
