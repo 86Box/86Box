@@ -80,9 +80,9 @@ void image_audio_callback(uint8_t id, int16_t *output, int len)
         {
                 if (cdrom[id].seek_pos < cdrom_image[id].cd_end)
                 {
-                        if (!cdimg[id]->ReadSector((unsigned char*)&cdrom_image[id].cd_buffer[cdrom_image[id].cd_buflen], true, cdrom[id].seek_pos))
+                        if (!cdimg[id]->ReadSector((unsigned char*)&cdrom[id].cd_buffer[cdrom_image[id].cd_buflen], true, cdrom[id].seek_pos))
                         {
-                                memset(&cdrom_image[id].cd_buffer[cdrom_image[id].cd_buflen], 0, (BUF_SIZE - cdrom_image[id].cd_buflen) * 2);
+                                memset(&cdrom[id].cd_buffer[cdrom_image[id].cd_buflen], 0, (BUF_SIZE - cdrom_image[id].cd_buflen) * 2);
                                 cdrom_image[id].cd_state = CD_STOPPED;
                                 cdrom_image[id].cd_buflen = len;
                         }
@@ -94,13 +94,13 @@ void image_audio_callback(uint8_t id, int16_t *output, int len)
                 }
                 else
                 {
-                        memset(&cdrom_image[id].cd_buffer[cdrom_image[id].cd_buflen], 0, (BUF_SIZE - cdrom_image[id].cd_buflen) * 2);
+                        memset(&cdrom[id].cd_buffer[cdrom_image[id].cd_buflen], 0, (BUF_SIZE - cdrom_image[id].cd_buflen) * 2);
                         cdrom_image[id].cd_state = CD_STOPPED;
                         cdrom_image[id].cd_buflen = len;
                 }
         }
-        memcpy(output, cdrom_image[id].cd_buffer, len * 2);
-        memmove(cdrom_image[id].cd_buffer, &cdrom_image[id].cd_buffer[len], (BUF_SIZE - len) * 2);
+        memcpy(output, cdrom[id].cd_buffer, len * 2);
+        memmove(cdrom[id].cd_buffer, &cdrom[id].cd_buffer[len], (BUF_SIZE - len) * 2);
         cdrom_image[id].cd_buflen -= len;
 }
 

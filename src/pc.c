@@ -779,7 +779,6 @@ pc_reset_hard_init(void)
     /* Reset the general machine support modules. */
     io_init();
     // cpu_set();
-    mem_resize();
     timer_reset();
     device_init();
 
@@ -967,6 +966,8 @@ pc_close(thread_t *ptr)
     network_close();
 
     sound_cd_thread_end();
+
+    mem_destroy_pages();
 }
 
 

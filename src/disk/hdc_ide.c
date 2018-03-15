@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.32	2018/03/06
+ * Version:	@(#)hdc_ide.c	1.0.33	2018/03/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -89,6 +89,14 @@
 #define WIN_IDENTIFY			0xEC /* Ask drive to identify itself */
 #define WIN_SET_FEATURES		0xEF
 #define WIN_READ_NATIVE_MAX		0xF8
+
+#define FEATURE_SET_TRANSFER_MODE      0x03
+#define FEATURE_ENABLE_IRQ_OVERLAPPED  0x5d
+#define FEATURE_ENABLE_IRQ_SERVICE     0x5e
+#define FEATURE_DISABLE_REVERT         0x66
+#define FEATURE_ENABLE_REVERT          0xcc
+#define FEATURE_DISABLE_IRQ_OVERLAPPED 0xdd
+#define FEATURE_DISABLE_IRQ_SERVICE    0xde
 
 enum
 {
@@ -397,11 +405,13 @@ static void ide_identify(IDE *ide)
 
 	if (ide->buffer[49] & (1 << 8))
 	{
-		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
+		ide->buffer[51] = 120;
+		ide->buffer[52] = 120; /*DMA timing mode*/
 		ide->buffer[53] |= 6;
 
 		ide->buffer[62] = 7;
 		ide->buffer[63] = 7;
+		ide->buffer[64] = 3;	/*PIO Modes 3 & 4*/
 		ide->buffer[88] = 7;
         	if (ide->mdma_mode != -1)
 	        {
@@ -411,7 +421,10 @@ static void ide_identify(IDE *ide)
         	    	ide->buffer[88] |= d;
 		    else if ((ide->mdma_mode & 0x300) == 0x100)
         	    	ide->buffer[63] |= d;
-		    else
+		    else if ((ide->mdma_mode & 0x300) == 0x400) {
+			if ((ide->mdma_mode & 0xff) >= 3)
+				ide->buffer[64] |= d;
+		    } else
         	    	ide->buffer[62] |= d;
 		    ide_log(" IDENTIFY DMA Mode: %04X, %04X\n", ide->buffer[62], ide->buffer[63]);
 	        }
@@ -452,10 +465,12 @@ static void ide_atapi_identify(IDE *ide)
 	if (PCI && (ide->board < 2) && (cdrom_drives[cdrom_id].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA))
 	{
 		ide->buffer[49] |= 0x100; /* DMA supported */
-		ide->buffer[52] = 2 << 8; /*DMA timing mode*/
+		ide->buffer[51] = 120;
+		ide->buffer[52] = 120; /*DMA timing mode*/
 		ide->buffer[53] = 7;
 		ide->buffer[62] = 7;
 		ide->buffer[63] = 7;
+		ide->buffer[64] = 3;	/*PIO Modes 3 & 4*/
 		ide->buffer[88] = 7;
         	if (ide->mdma_mode != -1)
 	        {
@@ -465,12 +480,16 @@ static void ide_atapi_identify(IDE *ide)
         	    	ide->buffer[88] |= d;
 		    else if ((ide->mdma_mode & 0x300) == 0x100)
         	    	ide->buffer[63] |= d;
-		    else
+		    else if ((ide->mdma_mode & 0x300) == 0x400) {
+			if ((ide->mdma_mode & 0xff) >= 3)
+				ide->buffer[64] |= d;
+		    } else
         	    	ide->buffer[62] |= d;
 		    ide_log("PIDENTIFY DMA Mode: %04X, %04X\n", ide->buffer[62], ide->buffer[63]);
 	        }
-		ide->buffer[65] = 0xb4;
-		ide->buffer[66] = 0xb4;
+		ide->buffer[65] = 120;
+		ide->buffer[66] = 120;
+		ide->buffer[67] = 120;
 		ide->buffer[71] = 30;
 		ide->buffer[72] = 30;
 		ide->buffer[80] = 0x1e; /*ATA-1 to ATA-4 supported*/
@@ -506,26 +525,42 @@ static void ide_atapi_zip_identify(IDE *ide)
 	if (PCI && (ide->board < 2) && (zip_drives[zip_id].bus_type == ZIP_BUS_ATAPI_PIO_AND_DMA))
 	{
 		ide->buffer[49] |= 0x100; /* DMA supported */
-		ide->buffer[52] = 0 << 8; /*DMA timing mode*/
-		ide->buffer[53] = 6;
-		ide->buffer[63] = 3;
-		ide->buffer[88] = 7;
-        	if (ide->mdma_mode != -1)
+		if (zip_drives[zip_id].is_250) {
+			ide->buffer[52] = 0 << 8; /*DMA timing mode*/
+			ide->buffer[53] = 6;
+			ide->buffer[63] = 3;
+			ide->buffer[88] = 7;
+			ide->buffer[64] = 0x0001; /*PIO Mode 3*/
+			ide->buffer[65] = 0x96;
+			ide->buffer[66] = 0x96;
+			ide->buffer[67] = 0xb4;
+			ide->buffer[68] = 0xb4;
+			ide->buffer[80] = 0x30; /*Supported ATA versions : ATA/ATAPI-4 ATA/ATAPI-5*/
+			ide->buffer[81] = 0x15; /*Maximum ATA revision supported : ATA/ATAPI-5 T13 1321D revision 1*/
+		} else {
+			ide->buffer[51] = 120;
+			ide->buffer[52] = 120;
+			ide->buffer[53] = 2;	/*Words 64-70 are valid*/
+			ide->buffer[63] = 0x0003; /*Multi-word DMA 0 & 1*/
+			ide->buffer[64] = 0x0001; /*PIO Mode 3*/
+			ide->buffer[65] = 120;
+			ide->buffer[66] = 120;
+			ide->buffer[67] = 120;
+		}
+
+       		if (ide->mdma_mode != -1)
 	        {
 		    d = (ide->mdma_mode & 0xff);
 		    d <<= 8;
 		    if ((ide->mdma_mode & 0x300) == 0x200)
         	    	ide->buffer[88] |= d;
-		    else
+		    else if ((ide->mdma_mode & 0x300) == 0x400) {
+			if ((ide->mdma_mode & 0xff) >= 3)
+				ide->buffer[64] |= d;
+		    } else
         	    	ide->buffer[63] |= d;
 		    ide_log("PIDENTIFY DMA Mode: %04X, %04X\n", ide->buffer[62], ide->buffer[63]);
 	        }
-		ide->buffer[65] = 0x96;
-		ide->buffer[66] = 0x96;
-		ide->buffer[67] = 0xb4;
-		ide->buffer[68] = 0xb4;
-		ide->buffer[80] = 0x30; /*Supported ATA versions : ATA/ATAPI-4 ATA/ATAPI-5*/
-		ide->buffer[81] = 0x15; /*Maximum ATA revision supported : ATA/ATAPI-5 T13 1321D revision 1*/
 	}
 }
 
@@ -631,14 +666,25 @@ static int ide_set_features(IDE *ide)
 	if (ide_drive_is_zip(ide)) {
 		bus = zip_drives[atapi_zip_drives[ide->channel]].bus_type;
 		dma = (bus == ZIP_BUS_ATAPI_PIO_AND_DMA);
-		max_pio = 0;
+		if (!PCI || !dma || (ide->board >= 2))
+			max_pio = 0;
+		else
+			max_pio = 3;
 		max_mdma = 1;
 	} else if (ide_drive_is_cdrom(ide)) {
 		bus = cdrom_drives[atapi_cdrom_drives[ide->channel]].bus_type;
 		dma = (bus == CDROM_BUS_ATAPI_PIO_AND_DMA);
+		if (!PCI || !dma || (ide->board >= 2))
+			max_pio = 0;
+		else
+			max_pio = 4;
 	} else {
 		bus = hdd[ide->hdd_num].bus;
 		dma = (bus == HDD_BUS_IDE_PIO_AND_DMA);
+		if (!PCI || !dma || (ide->board >= 2))
+			max_pio = 0;
+		else
+			max_pio = 2;
 	}
 
 	ide_log("Features code %02X\n", features);
@@ -647,7 +693,7 @@ static int ide_set_features(IDE *ide)
 
 	switch(features)
 	{
-		case 0x03:	/* Set transfer mode. */
+		case FEATURE_SET_TRANSFER_MODE:	/* Set transfer mode. */
 			ide_log("Transfer mode %02X\n", features_data >> 3);
 
 			mode = (features_data >> 3);
@@ -669,7 +715,7 @@ static int ide_set_features(IDE *ide)
 					{
 						return 0;
 					}
-					ide->mdma_mode = -1;
+					ide->mdma_mode = (1 << submode) | 0x400;
 					ide_log("IDE %02X: Setting  PIO mode: %02X, %08X\n", ide->channel, submode, ide->mdma_mode);
 					break;
 
@@ -704,8 +750,17 @@ static int ide_set_features(IDE *ide)
 					return 0;
 			}
 
-		case 0x66:	/* Disable reverting to power on defaults. */
-		case 0xCC:	/* Enable reverting to power on defaults. */
+		case FEATURE_ENABLE_IRQ_OVERLAPPED:
+		case FEATURE_ENABLE_IRQ_SERVICE:
+		case FEATURE_DISABLE_IRQ_OVERLAPPED:
+		case FEATURE_DISABLE_IRQ_SERVICE:
+			if (!PCI || !dma || (ide->board >= 2))
+				return 0;
+			else
+				return 1;
+
+		case FEATURE_DISABLE_REVERT:	/* Disable reverting to power on defaults. */
+		case FEATURE_ENABLE_REVERT:	/* Enable reverting to power on defaults. */
 			return 1;
 
 		default:

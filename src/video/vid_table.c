@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.23	2018/03/11
+ * Version:	@(#)vid_table.c	1.0.24	2018/03/15
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -98,9 +98,9 @@ video_cards[] = {
 #endif
     { "[ISA] CGA",                                  "cga",				&cga_device,                GFX_CGA,			VIDEO_FLAG_TYPE_CGA, 	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] Chips & Technologies SuperEGA",        "superega",			&sega_device,			    GFX_SUPER_EGA,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] Cirrus Logic CL-GD 5428",		    	"cl_gd5428_isa",	&gd5428_isa_device,			GFX_CL_GD5428_ISA,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
-    { "[ISA] Cirrus Logic CL-GD 5429",		    	"cl_gd5429_isa",	&gd5429_isa_device,			GFX_CL_GD5429_ISA,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
-    { "[ISA] Cirrus Logic CL-GD 5434",		   		"cl_gd5434_isa",	&gd5434_isa_device,			GFX_CL_GD5434_ISA,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
+    { "[ISA] Cirrus Logic CL-GD 5428",		    "cl_gd5428_isa",	&gd5428_isa_device,			GFX_CL_GD5428_ISA,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
+    { "[ISA] Cirrus Logic CL-GD 5429",		    "cl_gd5429_isa",	&gd5429_isa_device,			GFX_CL_GD5429_ISA,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
+    { "[ISA] Cirrus Logic CL-GD 5434",		   "cl_gd5434_isa",	&gd5434_isa_device,			GFX_CL_GD5434_ISA,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
     { "[ISA] Compaq ATI VGA Wonder XL (ATI-28800-5)","compaq_ati28800",	&compaq_ati28800_device,    GFX_VGAWONDERXL,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
     { "[ISA] Compaq CGA",                           "compaq_cga",		&compaq_cga_device,         GFX_COMPAQ_CGA,		VIDEO_FLAG_TYPE_CGA,	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] Compaq CGA 2",                         "compaq_cga_2",		&compaq_cga_2_device,       GFX_COMPAQ_CGA_2,	VIDEO_FLAG_TYPE_CGA,	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
@@ -189,6 +189,11 @@ video_reset(int card)
     /* Do not initialize internal cards here. */
     if ((card == GFX_NONE) || \
 	(card == GFX_INTERNAL) || machines[machine].fixed_gfxcard) return;
+
+    if (fontdatksc5601) {
+	free(fontdatksc5601);
+	fontdatksc5601 = NULL;
+    }
 
 pclog("VIDEO: initializing '%s'\n", video_cards[video_old_to_new(card)].name);
     /* Initialize the video card. */
