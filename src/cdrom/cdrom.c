@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.34	2018/03/06
+ * Version:	@(#)cdrom.c	1.0.35	2018/03/15
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -884,12 +884,6 @@ static void cdrom_unit_attention(uint8_t id)
 	cdrom[id].callback = 50LL * CDROM_TIME;
 	cdrom_set_callback(id);
 	cdrom_log("CD-ROM %i: UNIT ATTENTION\n", id);
-}
-
-static void cdrom_bus_master_error(uint8_t id)
-{
-	cdrom_sense_key = cdrom_asc = cdrom_ascq = 0;
-	cdrom_cmd_error(id);
 }
 
 static void cdrom_not_ready(uint8_t id)
@@ -2722,17 +2716,12 @@ int cdrom_read_from_ide_dma(uint8_t channel)
 		return 0;
 
 	if (ide_bus_master_write) {
-		if (ide_bus_master_write(channel >> 1, cdbufferb, cdrom[id].packet_len)) {
-			cdrom_bus_master_error(id);
-			cdrom_phase_callback(id);
+		if (ide_bus_master_write(channel >> 1, cdbufferb, cdrom[id].packet_len))
 			return 0;
-		} else
+		else
 			return 1;
-	} else {
-		cdrom_bus_master_error(id);
-		cdrom_phase_callback(id);
+	} else
 		return 0;
-	}
 
 	return 0;
 }
@@ -2748,6 +2737,12 @@ int cdrom_read_from_scsi_dma(uint8_t scsi_id, uint8_t scsi_lun)
 	cdrom_log("Reading from SCSI DMA: SCSI ID %02X, init length %i\n", scsi_id, *BufLen);
 	memcpy(cdbufferb, SCSIDevices[scsi_id][scsi_lun].CmdBuffer, *BufLen);
 	return 1;
+}
+
+void cdrom_irq_raise(uint8_t id)
+{
+	if (cdrom_drives[id].bus_type < CDROM_BUS_SCSI)
+		ide_irq_raise(&(ide_drives[cdrom_drives[id].ide_channel]));
 }
 
 int cdrom_read_from_dma(uint8_t id)
@@ -2770,43 +2765,33 @@ int cdrom_read_from_dma(uint8_t id)
 		cdrom_log("CD-ROM %i: ATAPI Input data length: %i\n", id, cdrom[id].packet_len);
 
 	ret = cdrom_phase_data_out(id);
-	if (!ret) {
-		cdrom_phase_callback(id);
-		return 0;
-	} else
-		return 1;
 
-	return 0;
+	if (ret) {
+		cdrom_buf_free(id);
+		cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
+		cdrom[id].status = READY_STAT;
+		cdrom[id].phase = 3;
+		ui_sb_update_icon(SB_CDROM | id, 0);
+		cdrom_irq_raise(id);
+		return 1;
+	} else
+		return 0;
 }
 
 int cdrom_write_to_ide_dma(uint8_t channel)
 {
 	uint8_t id = atapi_cdrom_drives[channel];
 
-	if (id > CDROM_NUM) {
-		cdrom_log("CD-ROM %i: Drive not found\n", id);
+	if (id > CDROM_NUM)
 		return 0;
-	}
 
 	if (ide_bus_master_read) {
-		if (ide_bus_master_read(channel >> 1, cdbufferb, cdrom[id].packet_len)) {
-			cdrom_log("CD-ROM %i: ATAPI DMA error\n", id);
-			cdrom_bus_master_error(id);
-			cdrom_phase_callback(id);
+		if (ide_bus_master_read(channel >> 1, cdbufferb, cdrom[id].packet_len))
 			return 0;
-		}
-		else {
-			cdrom_log("CD-ROM %i: ATAPI DMA success\n", id);
+		else
 			return 1;
-		}
-	} else {
-		cdrom_log("CD-ROM %i: No bus master\n", id);
-		cdrom_bus_master_error(id);
-		cdrom_phase_callback(id);
+	} else
 		return 0;
-	}
-
-	return 0;
 }
 
 int cdrom_write_to_scsi_dma(uint8_t scsi_id, uint8_t scsi_lun)
@@ -2834,16 +2819,16 @@ int cdrom_write_to_dma(uint8_t id)
 	} else
 		ret = cdrom_write_to_ide_dma(cdrom_drives[id].ide_channel);
 
-	if (!ret)
+	if (ret) {
+		cdrom_buf_free(id);
+		cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
+		cdrom[id].status = READY_STAT;
+		cdrom[id].phase = 3;
+		ui_sb_update_icon(SB_CDROM | id, 0);
+		cdrom_irq_raise(id);
+		return 1;
+	} else
 		return 0;
-
-	return 1;
-}
-
-void cdrom_irq_raise(uint8_t id)
-{
-	if (cdrom_drives[id].bus_type < CDROM_BUS_SCSI)
-		ide_irq_raise(&(ide_drives[cdrom_drives[id].ide_channel]));
 }
 
 /* If the result is 1, issue an IRQ, otherwise not. */
@@ -2879,12 +2864,6 @@ void cdrom_phase_callback(uint8_t id)
 		case CDROM_PHASE_DATA_OUT_DMA:
 			cdrom_log("CD-ROM %i: CDROM_PHASE_DATA_OUT_DMA\n", id);
 			cdrom_read_from_dma(id);
-			cdrom_buf_free(id);
-			cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
-			cdrom[id].status = READY_STAT;
-			cdrom[id].phase = 3;
-			ui_sb_update_icon(SB_CDROM | id, 0);
-			cdrom_irq_raise(id);
 			return;
 		case CDROM_PHASE_DATA_IN:
 			cdrom_log("CD-ROM %i: CDROM_PHASE_DATA_IN\n", id);
@@ -2895,12 +2874,6 @@ void cdrom_phase_callback(uint8_t id)
 		case CDROM_PHASE_DATA_IN_DMA:
 			cdrom_log("CD-ROM %i: CDROM_PHASE_DATA_IN_DMA\n", id);
 			cdrom_write_to_dma(id);
-			cdrom_buf_free(id);
-			cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
-			cdrom[id].status = READY_STAT;
-			cdrom[id].phase = 3;
-			ui_sb_update_icon(SB_CDROM | id, 0);
-			cdrom_irq_raise(id);
 			return;
 		case CDROM_PHASE_ERROR:
 			cdrom_log("CD-ROM %i: CDROM_PHASE_ERROR\n", id);

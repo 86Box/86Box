@@ -8,7 +8,7 @@
  *
  *		ATI 18800 emulation (VGA Edge-16)
  *
- * Version:	@(#)vid_ati18800.c	1.0.5	2018/02/07
+ * Version:	@(#)vid_ati18800.c	1.0.6	2018/03/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -31,6 +31,7 @@
 #include "vid_ati18800.h"
 #include "vid_ati_eeprom.h"
 #include "vid_svga.h"
+#include "vid_svga_render.h"
 
 
 #define BIOS_ROM_PATH_WONDER	L"roms/video/ati18800/VGA_Wonder_V3-1.02.bin"
@@ -159,6 +160,28 @@ static uint8_t ati18800_in(uint16_t addr, void *p)
         return temp;
 }
 
+static void ati18800_recalctimings(svga_t *svga)
+{
+        ati18800_t *ati18800 = (ati18800_t *)svga->p;
+
+        if(svga->crtc[0x17] & 4)
+        {
+                svga->vtotal <<= 1;
+                svga->dispend <<= 1;
+                svga->vsyncstart <<= 1;
+                svga->split <<= 1;
+                svga->vblankstart <<= 1;
+        }
+
+        if (!svga->scrblank && (ati18800->regs[0xb0] & 0x20)) /*Extended 256 colour modes*/
+        {
+                svga->render = svga_render_8bpp_highres;
+				svga->bpp = 8;
+                svga->rowoffset <<= 1;
+                svga->ma <<= 1;
+        }
+}
+
 static void *ati18800_init(device_t *info)
 {
         ati18800_t *ati18800 = malloc(sizeof(ati18800_t));
@@ -178,7 +201,7 @@ static void *ati18800_init(device_t *info)
 	};
         
         svga_init(&ati18800->svga, ati18800, 1 << 19, /*512kb*/
-                   NULL,
+                   ati18800_recalctimings,
                    ati18800_in, ati18800_out,
                    NULL,
                    NULL);

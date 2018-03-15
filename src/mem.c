@@ -1317,6 +1317,42 @@ void mem_a20_init(void)
 	}
 }
 
+void mem_destroy_pages(void)
+{
+	if (pages) {
+		free(pages);
+		pages = NULL;
+	}
+}
+
+void mem_resize_pages(void)
+{
+	int total_size, c;
+
+	mem_destroy_pages();
+
+	if (AT) {
+		if (cpu_16bitbus)
+			total_size = 4096;
+		else
+			total_size = 1048576;
+	} else
+		total_size = 256;
+
+	pclog("%i pages\n", total_size);
+
+        pages = malloc(total_size * sizeof(page_t));
+
+        memset(pages, 0, total_size * sizeof(page_t));
+
+        for (c = 0; c < total_size; c++)
+        {
+                pages[c].mem = &ram[c << 12];
+                pages[c].write_b = mem_write_ramb_page;
+                pages[c].write_w = mem_write_ramw_page;
+                pages[c].write_l = mem_write_raml_page;
+        }
+}
 
 void mem_init(void)
 {
@@ -1338,22 +1374,13 @@ void mem_init(void)
         writelookup2 = malloc(1024 * 1024 * sizeof(uintptr_t));
 	rom = NULL;
         biosmask = 0xffff;
-        pages = malloc((1 << 20) * sizeof(page_t));
-        page_lookup = malloc((1 << 20) * sizeof(page_t *));
-
-        memset(pages, 0, (1 << 20) * sizeof(page_t));
-        
-        memset(page_lookup, 0, (1 << 20) * sizeof(page_t *));
 
 	memset(ram_mapped_addr, 0, 64 * sizeof(uint32_t));
-        
-        for (c = 0; c < (1 << 20); c++)
-        {
-                pages[c].mem = &ram[c << 12];
-                pages[c].write_b = mem_write_ramb_page;
-                pages[c].write_w = mem_write_ramw_page;
-                pages[c].write_l = mem_write_raml_page;
-        }
+
+        page_lookup = malloc((1 << 20) * sizeof(page_t *));
+        memset(page_lookup, 0, (1 << 20) * sizeof(page_t *));
+
+	mem_resize_pages();
 
         memset(isram, 0, sizeof(isram));
         for (c = 0; c < (mem_size / 64); c++)
@@ -1524,15 +1551,6 @@ void mem_resize()
         	memset(ram, 0, (mem_size + 384) * 1024);
 	}
         
-        memset(pages, 0, (1 << 20) * sizeof(page_t));
-        for (c = 0; c < (1 << 20); c++)
-        {
-                pages[c].mem = &ram[c << 12];
-                pages[c].write_b = mem_write_ramb_page;
-                pages[c].write_w = mem_write_ramw_page;
-                pages[c].write_l = mem_write_raml_page;
-        }
-        
         memset(isram, 0, sizeof(isram));
         for (c = 0; c < (mem_size / 64); c++)
         {
@@ -1540,6 +1558,8 @@ void mem_resize()
                 if ((c >= 0xa && c <= 0xf) || (cpu_16bitbus && c >= 0xfe && c <= 0xff))
                         isram[c] = 0;
         }
+
+	mem_resize_pages();
 
         memset(_mem_read_b,  0, sizeof(_mem_read_b));
         memset(_mem_read_w,  0, sizeof(_mem_read_w));
@@ -1587,6 +1607,9 @@ void mem_resize()
 void mem_reset_page_blocks()
 {
         int c;
+
+	if (!pages)
+		return;
         
         for (c = 0; c < ((mem_size * 1024) >> 12); c++)
         {

@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.h	1.0.5	2018/03/06
+ * Version:	@(#)cdrom.h	1.0.6	2018/03/15
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -148,6 +148,8 @@ typedef struct {
 	int block_descriptor_len;
 	
 	int init_length;
+
+	int16_t cd_buffer[BUF_SIZE];
 } cdrom_t;
 
 typedef struct {
@@ -187,7 +189,6 @@ typedef struct {
 	int cd_state;
 	uint32_t cd_pos;
 	uint32_t cd_end;
-	int16_t cd_buffer[BUF_SIZE];
 	int cd_buflen;
 } cdrom_image_t;
 
@@ -199,7 +200,6 @@ typedef struct {
 	int tocvalid;
 	int cd_state;
 	uint32_t cd_end;
-	int16_t cd_buffer[BUF_SIZE];
 	int cd_buflen;
 	int actual_requested_blocks;
 	int last_track_pos;

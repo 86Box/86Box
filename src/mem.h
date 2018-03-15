@@ -240,6 +240,9 @@ extern void	mem_add_bios(void);
 extern void	mem_init(void);
 extern void	mem_resize(void);
 
+extern void	mem_destroy_pages(void);
+extern void	mem_resize_pages(void);
+
 extern uint8_t	port_92_read(uint16_t port, void *priv);
 extern void	port_92_write(uint16_t port, uint8_t val, void *priv);
 extern void     port_92_clear_reset(void);

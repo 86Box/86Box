@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.10	2018/03/12
+ * Version:	@(#)vid_ati28800.c	1.0.11	2018/03/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -273,7 +273,7 @@ uint8_t ati28800k_in(uint16_t addr, void *p)
                         switch(get_korean_font_kind >> 8)
                         {
                                 case 4: /* ROM font */
-                                temp = fontdatksc5601[get_korean_font_base][get_korean_font_index++];
+                                temp = fontdatksc5601[get_korean_font_base].chr[get_korean_font_index++];
                                 break;
                                 case 2: /* User defined font - TODO : Should be implemented later */
                                 temp = 0;

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <math.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
@@ -14,6 +15,12 @@
 #include "sound.h"
 #include "snd_audiopci.h"
 
+
+#define N 16
+
+#define ES1371_NCoef 91
+
+static float low_fir_es1371_coef[ES1371_NCoef];
 
 typedef struct {
     uint8_t pci_command, pci_serr;
@@ -54,6 +61,9 @@ typedef struct {
 
 	int16_t buffer_l[64], buffer_r[64];
 	int buffer_pos, buffer_pos_end;
+
+	int filtered_l[32], filtered_r[32];
+	int f_pos;
 
 	int16_t out_l, out_r;
 
@@ -490,6 +500,7 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 				case 0x71:
 				es1371->dac[0].vf = (es1371->dac[0].vf & ~0x1f8000) | ((val & 0xfc00) << 5);
 				es1371->dac[0].ac = (es1371->dac[0].ac & ~0x7f8000) | ((val & 0x00ff) << 15);
+                                es1371->dac[0].f_pos = 0;
 				break;
 				case 0x72:
 				es1371->dac[0].ac = (es1371->dac[0].ac & ~0x7fff) | (val & 0x7fff);
@@ -501,6 +512,7 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 				case 0x75:
 				es1371->dac[1].vf = (es1371->dac[1].vf & ~0x1f8000) | ((val & 0xfc00) << 5);
 				es1371->dac[1].ac = (es1371->dac[1].ac & ~0x7f8000) | ((val & 0x00ff) << 15);
+                                es1371->dac[1].f_pos = 0;
 				break;
 				case 0x76:
 				es1371->dac[1].ac = (es1371->dac[1].ac & ~0x7fff) | (val & 0x7fff);
@@ -996,15 +1008,60 @@ static void es1371_fetch(es1371_t *es1371, int dac_nr)
 	}
 }
 
-static void es1371_next_sample(es1371_t *es1371, int dac_nr)
+static inline float low_fir_es1371(int dac_nr, int i, float NewSample)
 {
+        static float x[2][2][128]; //input samples
+        static int x_pos[2] = {0, 0};
+        float out = 0.0;
+	int read_pos;
+	int n_coef;
+	int pos = x_pos[dac_nr];
+
+        x[dac_nr][i][pos] = NewSample;
+
+        /*Since only 1/16th of input samples are non-zero, only filter those that
+          are valid.*/
+	read_pos = (pos + 15) & (127 & ~15);
+	n_coef = (16 - pos) & 15;
+
+	while (n_coef < ES1371_NCoef)
+	{
+		out += low_fir_es1371_coef[n_coef] * x[dac_nr][i][read_pos];
+		read_pos = (read_pos + 16) & (127 & ~15);
+		n_coef += 16;
+	}
+
+        if (i == 1)
+        {
+        	x_pos[dac_nr] = (x_pos[dac_nr] + 1) & 127;
+        	if (x_pos[dac_nr] > 127)
+        		x_pos[dac_nr] = 0;
+        }
+
+        return out;
+}
+
+static void es1371_next_sample_filtered(es1371_t *es1371, int dac_nr, int out_idx)
+{
+        int out_l, out_r;
+        int c;
+        
 	if ((es1371->dac[dac_nr].buffer_pos - es1371->dac[dac_nr].buffer_pos_end) >= 0)
 	{
 		es1371_fetch(es1371, dac_nr);
 	}
 
-	es1371->dac[dac_nr].out_l = es1371->dac[dac_nr].buffer_l[es1371->dac[dac_nr].buffer_pos & 63];
-	es1371->dac[dac_nr].out_r = es1371->dac[dac_nr].buffer_r[es1371->dac[dac_nr].buffer_pos & 63];
+        out_l = es1371->dac[dac_nr].buffer_l[es1371->dac[dac_nr].buffer_pos & 63];
+        out_r = es1371->dac[dac_nr].buffer_r[es1371->dac[dac_nr].buffer_pos & 63];
+        
+        es1371->dac[dac_nr].filtered_l[out_idx] = (int)low_fir_es1371(dac_nr, 0, (float)out_l);
+        es1371->dac[dac_nr].filtered_r[out_idx] = (int)low_fir_es1371(dac_nr, 1, (float)out_r);
+        for (c = 1; c < 16; c++)
+        {
+                es1371->dac[dac_nr].filtered_l[out_idx+c] = (int)low_fir_es1371(dac_nr, 0, 0);
+                es1371->dac[dac_nr].filtered_r[out_idx+c] = (int)low_fir_es1371(dac_nr, 1, 0);
+        }
+        
 //	audiopci_log("Use %02x %04x %04x\n", es1371->dac[dac_nr].buffer_pos & 63, es1371->dac[dac_nr].out_l, es1371->dac[dac_nr].out_r);
 	
 	es1371->dac[dac_nr].buffer_pos++;
@@ -1012,20 +1069,64 @@ static void es1371_next_sample(es1371_t *es1371, int dac_nr)
 }
 
 //static FILE *es1371_f;//,*es1371_f2;
+
+static void es1371_update(es1371_t *es1371)
+{
+        int32_t l, r;
+                                
+        l = (es1371->dac[0].out_l * es1371->dac[0].vol_l) >> 12;
+        l += ((es1371->dac[1].out_l * es1371->dac[1].vol_l) >> 12);
+        r = (es1371->dac[0].out_r * es1371->dac[0].vol_r) >> 12;
+       r += ((es1371->dac[1].out_r * es1371->dac[1].vol_r) >> 12);
+                
+        l >>= 1;
+        r >>= 1;
+                
+        l = (l * es1371->master_vol_l) >> 15;
+        r = (r * es1371->master_vol_r) >> 15;
+                                
+        if (l < -32768)
+                l = -32768;
+        else if (l > 32767)
+                l = 32767;
+        if (r < -32768)
+                r = -32768;
+        else if (r > 32767)
+                r = 32767;
+
+        for (; es1371->pos < sound_pos_global; es1371->pos++)
+        {                                        
+                es1371->buffer[es1371->pos*2]     = l;
+                es1371->buffer[es1371->pos*2 + 1] = r;
+        }
+}
+
 static void es1371_poll(void *p)
 {
 	es1371_t *es1371 = (es1371_t *)p;
 	
 	es1371->dac[1].time += es1371->dac[1].latch;
 	
+        es1371_update(es1371);
+        
 	if (es1371->int_ctrl & INT_DAC1_EN)
 	{
+                int frac = es1371->dac[0].ac & 0x7fff;
+                int idx = es1371->dac[0].ac >> 15;
+                int samp1_l = es1371->dac[0].filtered_l[idx];
+                int samp1_r = es1371->dac[0].filtered_r[idx];
+                int samp2_l = es1371->dac[0].filtered_l[(idx + 1) & 31];
+                int samp2_r = es1371->dac[0].filtered_r[(idx + 1) & 31];
+                
+                es1371->dac[0].out_l = ((samp1_l * (0x8000 - frac)) + (samp2_l * frac)) >> 15;
+                es1371->dac[0].out_r = ((samp1_r * (0x8000 - frac)) + (samp2_r * frac)) >> 15;
 //		audiopci_log("1Samp %i %i  %08x\n", es1371->dac[0].curr_samp_ct, es1371->dac[0].samp_ct, es1371->dac[0].ac);
-		es1371->dac[0].ac += es1371->dac[0].vf;
-		if (es1371->dac[0].ac & (~0 << (15+4)))
+                es1371->dac[0].ac += es1371->dac[0].vf;
+                es1371->dac[0].ac &= ((32 << 15) - 1);
+                if ((es1371->dac[0].ac >> (15+4)) != es1371->dac[0].f_pos)
 		{
-			es1371->dac[0].ac &= ~(~0 << (15+4));
-			es1371_next_sample(es1371, 0);
+                        es1371_next_sample_filtered(es1371, 0, es1371->dac[0].f_pos ? 16 : 0);
+                        es1371->dac[0].f_pos = (es1371->dac[0].f_pos + 1) & 1;
 
 			es1371->dac[0].curr_samp_ct++;
 			if (es1371->dac[0].curr_samp_ct == es1371->dac[0].samp_ct)
@@ -1043,50 +1144,34 @@ static void es1371_poll(void *p)
 
 	if (es1371->int_ctrl & INT_DAC2_EN)
 	{
+                int frac = es1371->dac[1].ac & 0x7fff;
+                int idx = es1371->dac[1].ac >> 15;
+                int samp1_l = es1371->dac[1].filtered_l[idx];
+                int samp1_r = es1371->dac[1].filtered_r[idx];
+                int samp2_l = es1371->dac[1].filtered_l[(idx + 1) & 31];
+                int samp2_r = es1371->dac[1].filtered_r[(idx + 1) & 31];
+                
+                es1371->dac[1].out_l = ((samp1_l * (0x8000 - frac)) + (samp2_l * frac)) >> 15;
+                es1371->dac[1].out_r = ((samp1_r * (0x8000 - frac)) + (samp2_r * frac)) >> 15;
 //		audiopci_log("2Samp %i %i  %08x\n", es1371->dac[1].curr_samp_ct, es1371->dac[1].samp_ct, es1371->dac[1].ac);
 		es1371->dac[1].ac += es1371->dac[1].vf;
-		if (es1371->dac[1].ac & (~0 << (15+4)))
+                es1371->dac[1].ac &= ((32 << 15) - 1);
+                if ((es1371->dac[1].ac >> (15+4)) != es1371->dac[1].f_pos)
 		{
-			es1371->dac[1].ac &= ~(~0 << (15+4));
-			es1371_next_sample(es1371, 1);
+                        es1371_next_sample_filtered(es1371, 1, es1371->dac[1].f_pos ? 16 : 0);
+                        es1371->dac[1].f_pos = (es1371->dac[1].f_pos + 1) & 1;
 
 			es1371->dac[1].curr_samp_ct++;
 			if (es1371->dac[1].curr_samp_ct > es1371->dac[1].samp_ct)
 			{
-				es1371->dac[1].curr_samp_ct = 0;
+//				es1371->dac[1].curr_samp_ct = 0;
 //				audiopci_log("DAC2 IRQ\n");
 				es1371->int_status |= INT_STATUS_DAC2;
 				es1371_update_irqs(es1371);
 			}
+                        if (es1371->dac[1].curr_samp_ct > es1371->dac[1].samp_ct)
+                                es1371->dac[1].curr_samp_ct = 0;
 		}
-	}
-
-	for (; es1371->pos < sound_pos_global; es1371->pos++)
-	{
-		int32_t l, r;
-		
-		l = (es1371->dac[0].out_l * es1371->dac[0].vol_l) >> 12;
-		l += ((es1371->dac[1].out_l * es1371->dac[1].vol_l) >> 12);
-		r = (es1371->dac[0].out_r * es1371->dac[0].vol_r) >> 12;
-		r += ((es1371->dac[1].out_r * es1371->dac[1].vol_r) >> 12);
-		
-		l >>= 1;
-		r >>= 1;
-		
-		l = (l * es1371->master_vol_l) >> 15;
-		r = (r * es1371->master_vol_r) >> 15;
-				
-		if (l < -32768)
-			l = -32768;
-		else if (l > 32767)
-			l = 32767;
-		if (r < -32768)
-			r = -32768;
-		else if (r > 32767)
-			r = 32767;
-					
-		es1371->buffer[es1371->pos*2]     = l;
-		es1371->buffer[es1371->pos*2 + 1] = r;
 	}
 }
 
@@ -1095,11 +1180,47 @@ static void es1371_get_buffer(int32_t *buffer, int len, void *p)
 	es1371_t *es1371 = (es1371_t *)p;
 	int c;
 
+        es1371_update(es1371);
+
 	for (c = 0; c < len * 2; c++)
 		buffer[c] += (es1371->buffer[c] / 2);
 	
 	es1371->pos = 0;
 }
+
+static inline double sinc(double x)
+{
+	return sin(M_PI * x) / (M_PI * x);
+}
+
+static void generate_es1371_filter()
+{
+        /*Cutoff frequency = 1 / 32*/
+        float fC = 1.0 / 32.0;
+        float gain;
+        int n;
+        
+        for (n = 0; n < ES1371_NCoef; n++)
+        {
+                /*Blackman window*/
+                double w = 0.42 - (0.5 * cos((2.0*n*M_PI)/(double)(ES1371_NCoef-1))) + (0.08 * cos((4.0*n*M_PI)/(double)(ES1371_NCoef-1)));
+                /*Sinc filter*/
+                double h = sinc(2.0 * fC * ((double)n - ((double)(ES1371_NCoef-1) / 2.0)));
+                
+                /*Create windowed-sinc filter*/
+                low_fir_es1371_coef[n] = w * h;
+        }
+        
+        low_fir_es1371_coef[(ES1371_NCoef - 1) / 2] = 1.0;
+
+        gain = 0.0;
+        for (n = 0; n < ES1371_NCoef; n++)
+                gain += low_fir_es1371_coef[n] / (float)N;
+
+        /*Normalise filter, to produce unity gain*/
+        for (n = 0; n < ES1371_NCoef; n++)
+                low_fir_es1371_coef[n] /= gain;
+}        
 
 static void *es1371_init()
 {
@@ -1111,6 +1232,8 @@ static void *es1371_init()
 	es1371->card = pci_add_card(PCI_ADD_NORMAL, es1371_pci_read, es1371_pci_write, es1371);
 
 	timer_add(es1371_poll, &es1371->dac[1].time, TIMER_ALWAYS_ENABLED, es1371);
+        
+        generate_es1371_filter();
 		
 	return es1371;
 }
@@ -1128,6 +1251,54 @@ static void es1371_speed_changed(void *p)
 	
 	es1371->dac[1].latch = (int)((double)TIMER_USEC * (1000000.0 / 48000.0));
 }
+ 
+void es1371_add_status_info_dac(es1371_t *es1371, char *s, int max_len, int dac_nr)
+{
+        int ena = dac_nr ? INT_DAC2_EN : INT_DAC1_EN;
+        char *dac_name = dac_nr ? "DAC2 (Wave)" : "DAC1 (MIDI)";
+        char temps[128];
+
+        if (es1371->int_ctrl & ena)
+        {
+                int format = dac_nr ? ((es1371->si_cr >> 2) & 3) : (es1371->si_cr & 3);
+                double freq = 48000.0 * ((double)es1371->dac[dac_nr].vf / (32768.0 * 16.0));
+
+                switch (format)
+                {
+                        case FORMAT_MONO_8:
+                        snprintf(temps, 128, "%s format : 8-bit mono\n", dac_name);
+                        break;
+                        case FORMAT_STEREO_8:
+                        snprintf(temps, 128, "%s format : 8-bit stereo\n", dac_name);
+                        break;
+                        case FORMAT_MONO_16:
+                        snprintf(temps, 128, "%s format : 16-bit mono\n", dac_name);
+                        break;
+                        case FORMAT_STEREO_16:
+                        snprintf(temps, 128, "%s format : 16-bit stereo\n", dac_name);
+                        break;
+                }
+                
+                strncat(s, temps, max_len);
+                max_len -= strlen(temps);
+
+                snprintf(temps, 128, "Playback frequency : %i Hz\n", (int)freq);
+                strncat(s, temps, max_len);
+        }
+        else
+        {
+                snprintf(temps, max_len, "%s stopped\n", dac_name);
+                strncat(s, temps, max_len);
+        }
+}
+
+void es1371_add_status_info(char *s, int max_len, void *p)
+{
+        es1371_t *es1371 = (es1371_t *)p;
+        
+        es1371_add_status_info_dac(es1371, s, max_len, 0);
+        es1371_add_status_info_dac(es1371, s, max_len, 1);
+}
 
 device_t es1371_device =
 {
@@ -1140,6 +1311,6 @@ device_t es1371_device =
 	NULL,
 	es1371_speed_changed,
 	NULL,
-	NULL,
+	es1371_add_status_info,
 	NULL
 };
