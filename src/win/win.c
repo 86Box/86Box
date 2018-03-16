@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.45	2018/01/23
+ * Version:	@(#)win.c	1.0.46	2018/03/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -770,32 +770,27 @@ take_screenshot(void)
 
     wcscat(path, L"\\");
 
+    wcsftime(fn, 128, L"%Y%m%d_%H%M%S.png", info);
+    wcscat(path, fn);
+
     switch(vid_api) {
 #ifdef USE_WX
 	case 0:
 	case 1:
-		wcsftime(fn, 128, L"%Y%m%d_%H%M%S.png", info);
-		wcscat(path, fn);
 		wx_screenshot(path);
 		break;
 #else
 	case 0:		/* ddraw */
-		wcsftime(fn, 128, L"%Y%m%d_%H%M%S.bmp", info);
-		wcscat(path, fn);
 		ddraw_take_screenshot(path);
 		break;
 
 	case 1:		/* d3d9 */
-		wcsftime(fn, 128, L"%Y%m%d_%H%M%S.png", info);
-		wcscat(path, fn);
 		d3d_take_screenshot(path);
 		break;
 #endif
 
 #ifdef USE_VNC
 	case 2:		/* vnc */
-		wcsftime(fn, 128, L"%Y%m%d_%H%M%S.png", info);
-		wcscat(path, fn);
 		vnc_take_screenshot(path);
 		break;
 #endif

@@ -11,7 +11,7 @@
  * NOTES:	This code should be re-merged into a single init() with a
  *		'fullscreen' argument, indicating FS mode is requested.
  *
- * Version:	@(#)win_ddraw.cpp	1.0.5	2018/01/15
+ * Version:	@(#)win_ddraw.cpp	1.0.6	2018/03/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -27,13 +27,16 @@
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #undef BITMAP
+
+#define PNG_DEBUG 0
+#include <png.h>
+
 #include "../86box.h"
 #include "../device.h"
 #include "../video/video.h"
 #include "../plat.h"
 #include "../ui.h"
 #include "win_ddraw.h"
-#include "win_png.h"
 #include "win.h"
 
 
@@ -48,6 +51,9 @@ static HWND			ddraw_hwnd;
 static HBITMAP			hbitmap;
 static int			ddraw_w, ddraw_h,
 				xs, ys, ys2;
+
+static png_structp		png_ptr;
+static png_infop		info_ptr;
 
 
 static void
@@ -72,6 +78,24 @@ CopySurface(IDirectDrawSurface4 *pDDSurface)
 
 
 static void
+bgra_to_rgb(png_bytep *b_rgb, uint8_t *bgra, int width, int height)
+{
+    int i, j;
+    uint8_t *r, *b;
+
+    for (i = 0; i < height; i++) {
+	for (j = 0; j < width; j++) {
+		r = &b_rgb[(height - 1) - i][j * 3];
+		b = &bgra[((i * width) + j) * 4];
+		r[0] = b[2];
+		r[1] = b[1];
+		r[2] = b[0];
+	}
+    }
+}
+
+
+static void
 DoubleLines(uint8_t *dst, uint8_t *src)
 {
     int i = 0;
@@ -84,68 +108,111 @@ DoubleLines(uint8_t *dst, uint8_t *src)
 
 
 static void
-SaveBitmap(wchar_t *szFilename, HBITMAP hBitmap)
+SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
 {
-    static WCHAR szMessage[512];
     BITMAPFILEHEADER bmpFileHeader; 
     BITMAPINFO bmpInfo;
     HDC hdc;
-    FILE *fp = NULL;
     LPVOID pBuf = NULL;
     LPVOID pBuf2 = NULL;
+    png_bytep *b_rgb = NULL;
+    int i;
 
-    do { 
-	hdc = GetDC(NULL);
+    /* create file */
+    FILE *fp = plat_fopen(szFilename, (wchar_t *) L"wb");
+    if (!fp) {
+	pclog("[SavePNG] File %ls could not be opened for writing", szFilename);
+	return;
+    }
 
-	ZeroMemory(&bmpInfo, sizeof(BITMAPINFO));
-	bmpInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    /* initialize stuff */
+    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
-	GetDIBits(hdc, hBitmap, 0, 0, NULL, &bmpInfo, DIB_RGB_COLORS); 
+    if (!png_ptr) {
+	pclog("[SavePNG] png_create_write_struct failed");
+	fclose(fp);
+	return;
+    }
 
-	if (bmpInfo.bmiHeader.biSizeImage <= 0)
-		bmpInfo.bmiHeader.biSizeImage =
-			bmpInfo.bmiHeader.biWidth*abs(bmpInfo.bmiHeader.biHeight)*(bmpInfo.bmiHeader.biBitCount+7)/8;
+    info_ptr = png_create_info_struct(png_ptr);
+    if (!info_ptr) {
+	pclog("[SavePNG] png_create_info_struct failed");
+	fclose(fp);
+	return;
+    }
 
-	if ((pBuf = malloc(bmpInfo.bmiHeader.biSizeImage)) == NULL) {
-//		pclog("ERROR: Unable to Allocate Bitmap Memory");
-		break;
+    png_init_io(png_ptr, fp);
+
+    hdc = GetDC(NULL);
+
+    ZeroMemory(&bmpInfo, sizeof(BITMAPINFO));
+    bmpInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+
+    GetDIBits(hdc, hBitmap, 0, 0, NULL, &bmpInfo, DIB_RGB_COLORS); 
+
+    if (bmpInfo.bmiHeader.biSizeImage <= 0)
+	bmpInfo.bmiHeader.biSizeImage =
+		bmpInfo.bmiHeader.biWidth*abs(bmpInfo.bmiHeader.biHeight)*(bmpInfo.bmiHeader.biBitCount+7)/8;
+
+    if ((pBuf = malloc(bmpInfo.bmiHeader.biSizeImage)) == NULL) {
+	pclog("[SavePNG] Unable to Allocate Bitmap Memory");
+	fclose(fp);
+	return;
+    }
+
+    if (ys2 <= 250) {
+	bmpInfo.bmiHeader.biSizeImage <<= 1;
+
+	if ((pBuf2 = malloc(bmpInfo.bmiHeader.biSizeImage)) == NULL) {
+		pclog("[SavePNG] Unable to Allocate Secondary Bitmap Memory");
+		free(pBuf);
+		fclose(fp);
+		return;
 	}
 
-	if (ys2 <= 250)
-		pBuf2 = malloc(bmpInfo.bmiHeader.biSizeImage * 2);
+	bmpInfo.bmiHeader.biHeight <<= 1;
+    }
 
-	bmpInfo.bmiHeader.biCompression = BI_RGB;
+    pclog("save png w=%i h=%i\n", bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight);
 
-	GetDIBits(hdc, hBitmap, 0, bmpInfo.bmiHeader.biHeight, pBuf, &bmpInfo, DIB_RGB_COLORS);
+    bmpInfo.bmiHeader.biCompression = BI_RGB;
 
-	if ((fp = _wfopen(szFilename, L"wb")) == NULL) {
-		_swprintf(szMessage,
-			  plat_get_string(IDS_2088), szFilename);
-		ui_msgbox(MBX_ERROR, szMessage);
-		break;
-	} 
+    GetDIBits(hdc, hBitmap, 0, bmpInfo.bmiHeader.biHeight, pBuf, &bmpInfo, DIB_RGB_COLORS);
 
-	bmpFileHeader.bfReserved1 = 0;
-	bmpFileHeader.bfReserved2 = 0;
-	if (pBuf2) {
-		bmpInfo.bmiHeader.biSizeImage <<= 1;
-		bmpInfo.bmiHeader.biHeight <<= 1;
-	}
-	bmpFileHeader.bfSize=sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)+bmpInfo.bmiHeader.biSizeImage;
-	bmpFileHeader.bfType=0x4D42;
-	bmpFileHeader.bfOffBits=sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER); 
+    png_set_IHDR(png_ptr, info_ptr, bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight,
+	8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
+	PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
-	(void)fwrite(&bmpFileHeader,sizeof(BITMAPFILEHEADER),1,fp);
-	(void)fwrite(&bmpInfo.bmiHeader,sizeof(BITMAPINFOHEADER),1,fp);
-	if (pBuf2) {
-		DoubleLines((uint8_t *) pBuf2, (uint8_t *) pBuf);
-		(void)fwrite(pBuf2,bmpInfo.bmiHeader.biSizeImage,1,fp); 
-	} else {
-		(void)fwrite(pBuf,bmpInfo.bmiHeader.biSizeImage,1,fp); 
-	}
-    } while(false); 
+    if ((b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * bmpInfo.bmiHeader.biHeight)) == NULL) {
+	pclog("[SavePNG] Unable to Allocate RGB Bitmap Memory");
+	free(pBuf2);
+	free(pBuf);
+	fclose(fp);
+	return;
+    }
 
+    for (i = 0; i < bmpInfo.bmiHeader.biHeight; i++)
+	b_rgb[i] = (png_byte *) malloc(png_get_rowbytes(png_ptr, info_ptr));
+
+    if (pBuf2) {
+	DoubleLines((uint8_t *) pBuf2, (uint8_t *) pBuf);
+	bgra_to_rgb(b_rgb, (uint8_t *) pBuf2, bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight);
+    } else
+	bgra_to_rgb(b_rgb, (uint8_t *) pBuf, bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight);
+
+    png_write_info(png_ptr, info_ptr);
+
+    png_write_image(png_ptr, b_rgb);
+
+    png_write_end(png_ptr, NULL);
+
+    /* cleanup heap allocation */
     if (hdc) ReleaseDC(NULL,hdc); 
+
+    for (i = 0; i < bmpInfo.bmiHeader.biHeight; i++)
+	if (b_rgb[i])  free(b_rgb[i]);
+
+    if (b_rgb) free(b_rgb);
 
     if (pBuf2) free(pBuf2); 
 
@@ -425,7 +492,7 @@ ddraw_take_screenshot(wchar_t *fn)
 
     CopySurface(lpdds_back2);
 
-    SaveBitmap(fn, hbitmap);
+    SavePNG(fn, hbitmap);
 }
 
 

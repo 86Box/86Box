@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.111	2018/03/13
+# Version:	@(#)Makefile.mingw	1.0.112	2018/03/16
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -292,7 +292,8 @@ ifneq ($(WX), n)
  LIBS		+= $(WX_LIBS)
  UIOBJ		:= wx_main.o wx_ui.o wx_stbar.o wx_render.o
 else
- UIOBJ		:= win_ui.o win_ddraw.o win_d3d.o win_png.o \
+ UIOBJ		:= win_ui.o \
+		   win_ddraw.o win_d3d.o \
 		   win_dialog.o win_about.o win_status.o win_stbar.o \
 		   win_settings.o win_devconf.o win_snd_gain.o \
 		   win_new_floppy.o win_jsconf.o
@@ -567,15 +568,15 @@ LIBS		:= -mwindows \
 		   -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 \
 		   -lcomctl32 -lwinmm
 ifeq ($(VNC), y)
-LIBS		+= $(VNCLIB) -lws2_32 -lz
+LIBS		+= $(VNCLIB) -lws2_32
 endif
 ifeq ($(RDP), y)
 LIBS		+= $(RDPLIB)
 endif
 ifneq ($(WX), n)
-LIBS		+= $(WX_LIBS) -lz -lm
+LIBS		+= $(WX_LIBS) -lm
 endif
-LIBS		+= -lkernel32 -lwsock32 -liphlpapi -lpsapi
+LIBS		+= -lpng -lz -lkernel32 -lwsock32 -liphlpapi -lpsapi
 LIBS		+= -lpthread -static -lstdc++ -lgcc
 ifneq ($(X64), y)
 LIBS		+= -Wl,--large-address-aware
