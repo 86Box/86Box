@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.35	2018/03/16
+ * Version:	@(#)hdc_ide.c	1.0.36	2018/03/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1611,6 +1611,20 @@ uint32_t ide_read_data(int ide_board, int length)
 {
 	IDE *ide = &ide_drives[cur_ide[ide_board]];
 	uint32_t temp;
+
+	if (!ide->buffer) {
+		switch (length)
+		{
+			case 1:
+				return 0xff;
+			case 2:
+				return 0xffff;
+			case 4:
+				return 0xffffffff;
+			default:
+				return 0;
+		}
+	}
 
 	uint8_t *idebufferb = (uint8_t *) ide->buffer;
 	uint16_t *idebufferw = ide->buffer;
