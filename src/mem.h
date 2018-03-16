@@ -68,6 +68,8 @@ typedef struct mem_mapping_t
 #define MEM_MAPPING_EXTERNAL 1
 /*Only present on internal bus (RAM)*/
 #define MEM_MAPPING_INTERNAL 2
+/*Executing from ROM may involve additional wait states*/
+#define MEM_MAPPING_ROM      4
 
 extern uint8_t *ram,*rom;
 extern uint8_t romext[32768];
@@ -229,14 +231,14 @@ extern void     flushmmucache_cr3(void);
 extern void	flushmmucache_nopc(void);
 extern void     mmu_invalidate(uint32_t addr);
 
-extern void	mem_split_enable(int max_size, uint32_t addr);
-extern void	mem_split_disable(int max_size, uint32_t addr);
-
 
 extern void	mem_add_bios(void);
 
 extern void	mem_init(void);
 extern void	mem_resize(void);
+
+extern void	mem_destroy_pages(void);
+extern void	mem_resize_pages(void);
 
 extern uint8_t	port_92_read(uint16_t port, void *priv);
 extern void	port_92_write(uint16_t port, uint8_t val, void *priv);

@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)fdd_86f.c	1.0.15	2018/03/05
+ * Version:	@(#)fdd_86f.c	1.0.17	2018/03/14
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -196,6 +196,14 @@ static fdc_t *d86f_fdc;
 
 
 #pragma pack(push,1)
+typedef struct
+{
+	uint8_t c, h, r, n;
+	void *prev;
+} sector_t;
+#pragma pack(pop)
+
+#pragma pack(push,1)
 struct
 {
         FILE *f;
@@ -239,7 +247,7 @@ struct
 	uint8_t *outbuf;
 	uint32_t dma_over;
 	int turbo_pos;
-	uint16_t sector_id_bit_field[2][256][256][256];
+	sector_t *last_side_sector[2];
 } d86f[FDD_NUM + 1];
 #pragma pack(pop)
 
@@ -265,25 +273,29 @@ d86f_log(const char *format, ...)
 }
 
 
-void d86f_zero_bit_field(int drive, int side)
+void d86f_initialize_linked_lists(int drive)
 {
-	int i = 0;
-	int j = 0;
-	int k = 0;
-	int l = 0;
+	d86f[drive].last_side_sector[0] = NULL;
+	d86f[drive].last_side_sector[1] = NULL;
+}
 
-	for (i = 0; i < side; i++)
+void d86f_destroy_linked_lists(int drive, int side)
+{
+	sector_t *s;
+	sector_t *t;
+
+	if (d86f[drive].last_side_sector[side])
 	{
-		for (j = 0; j < 256; j++)
-		{
-			for (k = 0; k < 256; k++)
-			{
-				for (l = 0; l < 256; l++)
-				{
-					d86f[drive].sector_id_bit_field[i][j][k][l] = 0;
-				}
-			}
+		s = d86f[drive].last_side_sector[side];
+		while (s) {
+			t = s->prev;
+			free(s);
+			s = NULL;
+			if (!t)
+				break;
+			s = t;
 		}
+		d86f[drive].last_side_sector[side] = NULL;
 	}
 }
 
@@ -2190,6 +2202,24 @@ void d86f_turbo_format(int drive, int side, int nop)
 	}
 }
 
+int d86f_sector_is_present(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
+{
+	sector_t *s, *t;
+
+	if (d86f[drive].last_side_sector[side]) {
+		s = d86f[drive].last_side_sector[side];
+		while (s) {
+			if ((s->c == c) && (s->h == h) && (s->r == r) && (s->n == n))
+				return 1;
+			if (!s->prev)
+				break;
+			t = s->prev;
+			s = t;
+		}
+	}
+	return 0;
+}
+
 void d86f_turbo_poll(int drive, int side)
 {
 	if ((d86f[drive].state != STATE_IDLE) && (d86f[drive].state != STATE_SECTOR_NOT_FOUND) && ((d86f[drive].state & 0xF8) != 0xE8))
@@ -2213,7 +2243,11 @@ void d86f_turbo_poll(int drive, int side)
 			d86f[drive].state++;
 			return;
 		case STATE_02_FIND_ID:
-			if (!(d86f[drive].sector_id_bit_field[side][fdc_get_read_track_sector(d86f_fdc).id.c][fdc_get_read_track_sector(d86f_fdc).id.h][fdc_get_read_track_sector(d86f_fdc).id.r] & (1 << fdc_get_read_track_sector(d86f_fdc).id.n)))
+			if (!d86f_sector_is_present(drive, side,
+						    fdc_get_read_track_sector(d86f_fdc).id.c,
+						    fdc_get_read_track_sector(d86f_fdc).id.h,
+						    fdc_get_read_track_sector(d86f_fdc).id.r,
+						    fdc_get_read_track_sector(d86f_fdc).id.n))
 			{
 				d86f[drive].id_find.sync_marks = d86f[drive].id_find.bits_obtained = d86f[drive].id_find.bytes_obtained = d86f[drive].error_condition = 0;
 				fdc_nosector(d86f_fdc);
@@ -2234,7 +2268,11 @@ void d86f_turbo_poll(int drive, int side)
 		case STATE_0C_FIND_ID:
 		case STATE_11_FIND_ID:
 		case STATE_16_FIND_ID:
-			if (!(d86f[drive].sector_id_bit_field[side][d86f[drive].req_sector.id.c][d86f[drive].req_sector.id.h][d86f[drive].req_sector.id.r] & (1 << d86f[drive].req_sector.id.n)))
+			if (!d86f_sector_is_present(drive, side,
+						    d86f[drive].req_sector.id.c,
+						    d86f[drive].req_sector.id.h,
+						    d86f[drive].req_sector.id.r,
+						    d86f[drive].req_sector.id.n))
 			{
 				d86f[drive].id_find.sync_marks = d86f[drive].id_find.bits_obtained = d86f[drive].id_find.bytes_obtained = d86f[drive].error_condition = 0;
 				fdc_nosector(d86f_fdc);
@@ -2577,6 +2615,8 @@ uint16_t d86f_prepare_pretrack(int drive, int side, int iso)
 
 	d86f[drive].index_hole_pos[side] = 0;
 
+	d86f_destroy_linked_lists(drive, side);
+
 	for (i = 0; i < raw_size; i++)
 	{
 		d86f_write_direct_common(drive, side, gap_fill, 0, i);
@@ -2621,6 +2661,7 @@ uint16_t d86f_prepare_sector(int drive, int side, int prev_pos, uint8_t *id_buf,
 	uint16_t pos;
 
 	int i;
+	sector_t *s;
 
 	int real_gap2_len = gap2;
 	int real_gap3_len = gap3;
@@ -2635,7 +2676,17 @@ uint16_t d86f_prepare_sector(int drive, int side, int prev_pos, uint8_t *id_buf,
 	uint16_t dataam_mfm = 0x4555;
 	uint16_t datadam_mfm = 0x4A55;
 
-	d86f[drive].sector_id_bit_field[side][id_buf[0]][id_buf[1]][id_buf[2]] |= (1 << id_buf[3]);
+	if (fdd_get_turbo(drive) && (d86f[drive].version == 0x0063)) {
+		s = (sector_t *) malloc(sizeof(sector_t));
+		memset(s, 0, sizeof(sector_t));
+		s->c = id_buf[0];
+		s->h = id_buf[1];
+		s->r = id_buf[2];
+		s->n = id_buf[3];
+		if (d86f[drive].last_side_sector[side])
+			s->prev = d86f[drive].last_side_sector[side];
+		d86f[drive].last_side_sector[side] = s;
+	}
 
 	mfm = d86f_is_mfm(drive);
 
@@ -3748,10 +3799,16 @@ void d86f_load(int drive, wchar_t *fn)
 
 void d86f_init()
 {
+	int i;
+
        	memset(d86f, 0, sizeof(d86f));
         d86f_setupcrc(0x1021);
 
-	d86f[0].state = d86f[1].state = STATE_IDLE;
+	for (i = 0; i < (FDD_NUM + 1); i++)
+	{
+		d86f[i].state = STATE_IDLE;
+		d86f_initialize_linked_lists(i);
+	}
 }
 
 void d86f_set_fdc(void *fdc)

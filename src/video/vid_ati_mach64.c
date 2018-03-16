@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.14	2018/03/10
+ * Version:	@(#)vid_ati_mach64.c	1.0.16	2018/03/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -429,6 +429,39 @@ uint8_t mach64_in(uint16_t addr, void *p)
                 if (svga->crtcreg > 0x18)
                         return 0xff;
                 return svga->crtc[svga->crtcreg];
+		case 0x3DA:
+                svga->attrff = 0;
+                svga->attrff = 0;
+                svga->cgastat &= ~0x30;
+                /* copy color diagnostic info from the overscan color register */
+                switch (svga->attrregs[0x12] & 0x30)
+                {
+                        case 0x00: /* P0 and P2 */
+                        if (svga->attrregs[0x11] & 0x01)
+                                svga->cgastat |= 0x10;
+                        if (svga->attrregs[0x11] & 0x04)
+                                svga->cgastat |= 0x20;
+                        break;
+                        case 0x10: /* P4 and P5 */
+                        if (svga->attrregs[0x11] & 0x10)
+                                svga->cgastat |= 0x10;
+                        if (svga->attrregs[0x11] & 0x20)
+                                svga->cgastat |= 0x20;
+                        break;
+                        case 0x20: /* P1 and P3 */
+                        if (svga->attrregs[0x11] & 0x02)
+                                svga->cgastat |= 0x10;
+                        if (svga->attrregs[0x11] & 0x08)
+                                svga->cgastat |= 0x20;
+                        break;
+                        case 0x30: /* P6 and P7 */
+                        if (svga->attrregs[0x11] & 0x40)
+                                svga->cgastat |= 0x10;
+                        if (svga->attrregs[0x11] & 0x80)
+                                svga->cgastat |= 0x20;
+                        break;
+                }
+                return svga->cgastat;
         }
         return svga_in(addr, svga);
 }
@@ -1149,8 +1182,6 @@ void mach64_start_line(mach64_t *mach64)
                                else if (width == 2) dat = *(uint32_t *)&svga->vram[((addr) << 2) & mach64->vram_mask]; \
                    else if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)  dat = (svga->vram[((addr) >> 3) & mach64->vram_mask] >> ((addr) & 7)) & 1; \
                                else                 dat = (svga->vram[((addr) >> 3) & mach64->vram_mask] >> (7 - ((addr) & 7))) & 1;
- 
-#define READ1BPP(addr, dat, width) 
  
 #define MIX     switch (mix ? mach64->accel.mix_fg : mach64->accel.mix_bg)                                \
                 {                                                                                       \

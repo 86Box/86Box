@@ -1,118 +1,98 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
  *
- *		This file is part of the 86Box distribution.
+ *		This file is part of the VARCem Project.
  *
- *		Definitions for a defacto-standard RTC/NVRAM device.
+ *		Definitions for the generic NVRAM/CMOS driver.
  *
- * Version:	@(#)nvr.h	1.0.5	2017/11/22
+ * Version:	@(#)nvr.h	1.0.2	2018/03/11
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Mahod,
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2016-2017 Mahod.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
+ *
+ *		Redistribution and  use  in source  and binary forms, with
+ *		or  without modification, are permitted  provided that the
+ *		following conditions are met:
+ *
+ *		1. Redistributions of  source  code must retain the entire
+ *		   above notice, this list of conditions and the following
+ *		   disclaimer.
+ *
+ *		2. Redistributions in binary form must reproduce the above
+ *		   copyright  notice,  this list  of  conditions  and  the
+ *		   following disclaimer in  the documentation and/or other
+ *		   materials provided with the distribution.
+ *
+ *		3. Neither the  name of the copyright holder nor the names
+ *		   of  its  contributors may be used to endorse or promote
+ *		   products  derived from  this  software without specific
+ *		   prior written permission.
+ *
+ * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE  ARE  DISCLAIMED. IN  NO  EVENT  SHALL THE COPYRIGHT
+ * HOLDER OR  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL,  EXEMPLARY,  OR  CONSEQUENTIAL  DAMAGES  (INCLUDING,  BUT  NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE  GOODS OR SERVICES;  LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON  ANY
+ * THEORY OF  LIABILITY, WHETHER IN  CONTRACT, STRICT  LIABILITY, OR  TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef EMU_NVR_H
 # define EMU_NVR_H
 
 
+#define NVR_MAXSIZE	128		/* max size of NVR data */
+
 /* Conversion from BCD to Binary and vice versa. */
-#define RTC_BCD(x)	(((x) % 10) | (((x) / 10) << 4))
-#define RTC_DCB(x)	((((x) & 0xf0) >> 4) * 10 + ((x) & 0x0f))
-
-/* RTC registers and bit definitions. */
-#define RTC_SECONDS	0
-#define RTC_ALSECONDS	1
-#define RTC_MINUTES	2
-#define RTC_ALMINUTES	3
-#define RTC_HOURS	4
-# define RTC_AMPM	0x80		/* PM flag if 12h format in use */
-#define RTC_ALHOURS	5
-#define RTC_DOW		6
-#define RTC_DOM		7
-#define RTC_MONTH	8
-#define RTC_YEAR	9
-#define RTC_REGA	10
-# define REGA_UIP	0x80
-# define REGA_DV2	0x40
-# define REGA_DV1	0x20
-# define REGA_DV0	0x10
-# define REGA_DV	0x70
-# define REGA_RS3	0x08
-# define REGA_RS2	0x04
-# define REGA_RS1	0x02
-# define REGA_RS0	0x01
-# define REGA_RS	0x0f
-#define RTC_REGB	11
-# define REGB_SET	0x80
-# define REGB_PIE	0x40
-# define REGB_AIE	0x20
-# define REGB_UIE	0x10
-# define REGB_SQWE	0x08
-# define REGB_DM	0x04
-# define REGB_2412	0x02
-# define REGB_DSE	0x01
-#define RTC_REGC	12
-# define REGC_IRQF	0x80
-# define REGC_PF	0x40
-# define REGC_AF	0x20
-# define REGC_UF	0x10
-#define RTC_REGD	13
-# define REGD_VRT	0x80
-#define RTC_CENTURY	0x32		/* century register */
-#define RTC_REGS	14		/* number of registers */
+#define RTC_BCD(x)      (((x) % 10) | (((x) / 10) << 4))
+#define RTC_DCB(x)      ((((x) & 0xf0) >> 4) * 10 + ((x) & 0x0f))
+#define RTC_BCDINC(x,y)	RTC_BCD(RTC_DCB(x) + y)
 
 
-
-/* Define a (defacto-standard) RTC/NVRAM chip. */
+/* Define a generic RTC/NVRAM device. */
 typedef struct _nvr_ {
-    uint8_t	regs[RTC_REGS+114];	/* these are the registers */
+    uint8_t	regs[NVR_MAXSIZE];	/* these are the registers */
+    wchar_t	*fn;			/* pathname of image file */
+    uint16_t	size;			/* device configuration */
+    int8_t	irq;
 
-    int64_t	mask,
-		irq,
+    int8_t	upd_stat,		/* FIXME: move to private struct */
 		addr;
-
-    wchar_t	*fname;
-
-    int64_t	upd_stat,
-		upd_ecount,
+    int64_t	upd_ecount,		/* FIXME: move to private struct */
 		onesec_time,
 		onesec_cnt,
-    		rtctime,
-		oldmachine;
+    		rtctime;
 
-    /* Hooks to internal RTC I/O functions. */
-    void	(*set)(struct _nvr_ *, uint16_t, uint8_t);
-    uint8_t	(*get)(struct _nvr_ *, uint16_t);
-
-    /* Hooks to alternative load/save functions. */
-    int8_t	(*load)(wchar_t *fname);
-    int8_t	(*save)(wchar_t *fname);
-
-    /* Hook to RTC ticker handler. */
-    void	(*hook)(struct _nvr_ *);
+    /* Hooks to device functions. */
+    void	(*reset)(struct _nvr_ *);
+    void	(*start)(struct _nvr_ *);
+    void	(*tick)(struct _nvr_ *);
 } nvr_t;
 
 
-extern int	enable_sync;
 extern int	nvr_dosave;
 
 
 extern void	nvr_init(nvr_t *);
 extern int	nvr_load(void);
 extern int	nvr_save(void);
-extern void	nvr_recalc(void);
+
+extern int	nvr_is_leap(int year);
+extern int	nvr_get_days(int month, int year);
+extern void	nvr_time_get(struct tm *);
+extern void	nvr_time_set(struct tm *);
 
 extern wchar_t	*nvr_path(wchar_t *str);
 extern FILE	*nvr_fopen(wchar_t *str, wchar_t *mode);
 
-extern void	nvr_at_init(int64_t irq);
+extern void	nvr_at_init(int irq);
 extern void	nvr_at_close(void);
 
 

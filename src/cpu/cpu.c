@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.c	1.0.13	2018/03/02
+ * Version:	@(#)cpu.c	1.0.14	2018/03/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -113,7 +113,7 @@ int cpuspeed;
 uint64_t cpu_CR4_mask;
 
 int cpu_cycles_read, cpu_cycles_read_l, cpu_cycles_write, cpu_cycles_write_l;
-int cpu_prefetch_cycles, cpu_prefetch_width;
+int cpu_prefetch_cycles, cpu_prefetch_width, cpu_mem_prefetch_cycles, cpu_rom_prefetch_cycles;
 int cpu_waitstates;
 int cpu_cache_int_enabled, cpu_cache_ext_enabled;
 int cpu_pci_speed;
@@ -246,6 +246,11 @@ void cpu_set()
 
 	isa_cycles = cpu_s->atclk_div;
 
+        if (cpu_s->rspeed <= 8000000)
+                cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
+        else
+                cpu_rom_prefetch_cycles = cpu_s->rspeed / 1000000;
+	
         if (cpu_s->pci_speed)
         {
                 pci_nonburst_time = 4*cpu_s->rspeed / cpu_s->pci_speed;
@@ -2217,7 +2222,10 @@ void cpu_update_waitstates()
 {
         cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective];
         
-        cpu_prefetch_width = cpu_16bitbus ? 2 : 4;
+        if (is486)
+                cpu_prefetch_width = 16;
+        else
+                cpu_prefetch_width = cpu_16bitbus ? 2 : 4;
         
         if (cpu_cache_int_enabled)
         {
@@ -2251,4 +2259,9 @@ void cpu_update_waitstates()
                 cpu_cycles_write = cpu_s->mem_write_cycles;
                 cpu_cycles_write_l = (cpu_16bitbus ? 2 : 1) * cpu_s->mem_write_cycles;
         }
+        if (is486)
+                cpu_prefetch_cycles *= 4;
+        cpu_mem_prefetch_cycles = cpu_prefetch_cycles;
+        if (cpu_s->rspeed <= 8000000)
+                cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
 }

@@ -8,7 +8,7 @@
  *
  *		Implementation of the PCjs JSON floppy image format.
  *
- * Version:	@(#)fdd_json.c	1.0.10	2018/01/16
+ * Version:	@(#)fdd_json.c	1.0.11	2018/03/14
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -357,8 +357,8 @@ json_seek(int drive, int track)
     /* Reset the 86F state machine. */
     d86f_reset_index_hole_pos(drive, 0);
     d86f_reset_index_hole_pos(drive, 1);
-    d86f_zero_bit_field(drive, 0);
-    d86f_zero_bit_field(drive, 1);
+    d86f_destroy_linked_lists(drive, 0);
+    d86f_destroy_linked_lists(drive, 1);
 
     interleave_type = 0;
 

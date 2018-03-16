@@ -9,7 +9,7 @@
  *		Implementation of the raw sector-based floppy image format,
  *		as well as the Japanese FDI, CopyQM, and FDF formats.
  *
- * Version:	@(#)fdd_img.c	1.0.8	2018/01/16
+ * Version:	@(#)fdd_img.c	1.0.9	2018/03/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -960,8 +960,8 @@ void img_seek(int drive, int track)
 	d86f_reset_index_hole_pos(drive, 0);
 	d86f_reset_index_hole_pos(drive, 1);
 
-	d86f_zero_bit_field(drive, 0);
-	d86f_zero_bit_field(drive, 1);
+	d86f_destroy_linked_lists(drive, 0);
+	d86f_destroy_linked_lists(drive, 1);
 
 	if (track > img[drive].tracks)
 	{

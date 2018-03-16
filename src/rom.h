@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.17	2018/03/06
+ * Version:	@(#)rom.h	1.0.16	2018/03/02
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2018 Fred N. van Kempen.
@@ -127,6 +127,9 @@ enum {
 #endif
     ROM_IBMPS1_2133,
 
+	ROM_IBMPS2_M70_TYPE3,
+	ROM_IBMPS2_M70_TYPE4,	
+	
 #ifdef WALTJE
     ROM_IBMPS2_M80_486,
 #endif
@@ -147,9 +150,7 @@ enum {
     ROM_PRESIDENT,	/* President Award 430FX PCI/430FX/Award/Unknown SIO */
 
     ROM_THOR,		/* Intel Advanced_ATX/430FX/AMI/NS PC87306 */
-#if defined(DEV_BRANCH) && defined(USE_MRTHOR)
     ROM_MRTHOR,		/* Intel Advanced_ATX/430FX/MR.BIOS/NS PC87306 */
-#endif
 
     ROM_ACERM3A,	/* Acer M3A/430HX/Acer/SMC FDC37C932FR */
     ROM_ACERV35N,	/* Acer V35N/430HX/Acer/SMC FDC37C932FR */

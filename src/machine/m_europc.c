@@ -1,10 +1,10 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
  *
- *		This file is part of the 86Box distribution.
+ *		This file is part of the VARCem Project.
  *
  *		Implementation of the Schneider EuroPC system.
  *
@@ -27,8 +27,7 @@
  *		f000:ecc5	801a video setup error
  *		f000:d6c9	copyright output
  *		f000:e1b7
- *		f000:e1be	DI bits set mean output text!!!,
- *		   (801a)
+ *		f000:e1be	DI bits set mean output text!!!	(801a)
  *		f000:		0x8000 output
  *				  1 rtc error
  *				  2 rtc time or date error
@@ -53,21 +52,23 @@
  *				output cl at jim 0xa
  *				write ah hinibble as lownibble into jim 0xa
  *				write ah lownibble into jim 0xa
- *		f000:ef66	RTC read reg cl
+ *		  f000:ef66	RTC read reg cl
  *				polls until jim 0xa is zero,
  *				output cl at jim 0xa
  *				read low 4 nibble at jim 0xa
  *				read low 4 nibble at jim 0xa
  *				return first nibble<<4|second nibble in ah
- *		f000:f046	seldom compares ret 
- *		f000:fe87	0 -> ds
- *		0000:0469	bit 0: b0000 memory available
+ *		  f000:f046	seldom compares ret 
+ *		  f000:fe87	0 -> ds
+ *
+ *		Memory:
+ *		  0000:0469	bit 0: b0000 memory available
  *				bit 1: b8000 memory available
- *		0000:046a:	00 jim 250 01 jim 350
+ *		  0000:046a:	00 jim 250 01 jim 350
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *		
- * Version:	@(#)europc.c	1.0.6	2018/01/16
+ * Version:	@(#)europc.c	1.0.2	2018/03/11
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -77,12 +78,43 @@
  *		input from people with real EuroPC hardware.
  *
  *		Copyright 2017,2018 Fred N. van Kempen.
+ *
+ *		Redistribution and  use  in source  and binary forms, with
+ *		or  without modification, are permitted  provided that the
+ *		following conditions are met:
+ *
+ *		1. Redistributions of  source  code must retain the entire
+ *		   above notice, this list of conditions and the following
+ *		   disclaimer.
+ *
+ *		2. Redistributions in binary form must reproduce the above
+ *		   copyright  notice,  this list  of  conditions  and  the
+ *		   following disclaimer in  the documentation and/or other
+ *		   materials provided with the distribution.
+ *
+ *		3. Neither the  name of the copyright holder nor the names
+ *		   of  its  contributors may be used to endorse or promote
+ *		   products  derived from  this  software without specific
+ *		   prior written permission.
+ *
+ * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE  ARE  DISCLAIMED. IN  NO  EVENT  SHALL THE COPYRIGHT
+ * HOLDER OR  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL,  EXEMPLARY,  OR  CONSEQUENTIAL  DAMAGES  (INCLUDING,  BUT  NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE  GOODS OR SERVICES;  LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON  ANY
+ * THEORY OF  LIABILITY, WHETHER IN  CONTRACT, STRICT  LIABILITY, OR  TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <time.h>
 #include "../86box.h"
 #include "../io.h"
 #include "../nmi.h"
@@ -90,17 +122,17 @@
 #include "../rom.h"
 #include "../nvr.h"
 #include "../device.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../disk/hdc.h"
 #include "../keyboard.h"
 #include "../mouse.h"
 #include "../game/gameport.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
+#include "../disk/hdc.h"
 #include "../video/video.h"
 #include "machine.h"
 
 
-#define EUROPC_DEBUG	1			/* current debugging level */
+#define EUROPC_DEBUG	0			/* current debugging level */
 
 
 /* M3002 RTC chip registers. */
@@ -109,7 +141,7 @@
 #define MRTC_HOURS	0x02			/* BCD, 00-23 */
 #define MRTC_DAYS	0x03			/* BCD, 01-31 */
 #define MRTC_MONTHS	0x04			/* BCD, 01-12 */
-#define MRTC_YEARS	0x05			/* BCD, 00-99 (2017 is 0x17) */
+#define MRTC_YEARS	0x05			/* BCD, 00-99 (year only) */
 #define MRTC_WEEKDAY	0x06			/* BCD, 01-07 */
 #define MRTC_WEEKNO	0x07			/* BCD, 01-52 */
 #define MRTC_CONF_A	0x08			/* EuroPC config, binary */
@@ -121,127 +153,232 @@
 #define MRTC_CHECK_HI	0x0e			/* Checksum, high byte */
 #define MRTC_CTRLSTAT	0x0f			/* RTC control/status, binary */
 
-
 typedef struct {
     uint16_t	jim;				/* JIM base address */
 
     uint8_t	regs[16];			/* JIM internal regs (8) */
 
-    struct {
-        uint8_t dat[16];
-        uint8_t stat;
-        uint8_t addr;
-    }		rtc;
-
-    nvr_t	nvr;				/* 86Box NVR */
-} vm_t;
+    nvr_t	nvr;				/* NVR */
+    uint8_t	nvr_stat;
+    uint8_t	nvr_addr;
+} europc_t;
 
 
-static vm_t	*vm = NULL;
+static europc_t europc;
 
 
-/* Load the relevant portion of the NVR to disk. */
-static int8_t
-load_nvr(wchar_t *fn)
-{
-    FILE *f;
-
-    if (vm == NULL) return(0);
-
-    f = nvr_fopen(fn, L"rb");
-    if (f != NULL) {
-	(void)fread(vm->rtc.dat, 1, 16, f);
-	(void)fclose(f);
-	pclog("EuroPC: CMOS data loaded from file %ls !\n", fn);
-	return(1);
-    }
-
-    pclog("EuroPC: unable to load NVR !\n");
-    return(0);
-}
-
-
-/* Save the relevant portion of the NVR to disk. */
-static int8_t
-save_nvr(wchar_t *fn)
-{
-    FILE *f;
-
-    if (vm == NULL) return(0);
-
-    f = nvr_fopen(fn, L"wb");
-    if (f != NULL) {
-	(void)fwrite(vm->rtc.dat, 1, 16, f);
-	(void)fclose(f);
-	return(1);
-    }
-
-    pclog("EuroPC: unable to save NVR !\n");
-    return(0);
-}
-
-
-/* This is called every second through the NVR/RTC hook. */
+/*
+ * This is called every second through the NVR/RTC hook.
+ *
+ * We fake a 'running' RTC by updating its registers on
+ * each passing second. Not exactly accurate, but good
+ * enough.
+ *
+ * Note that this code looks nasty because of all the
+ * BCD to decimal vv going on.
+ *
+ * FIXME: should we mark NVR as dirty?
+ */
 static void
-rtc_hook(nvr_t *nvr)
+rtc_tick(nvr_t *nvr)
 {
-#if 0
-    int month, year;
+    uint8_t *regs;
+    int mon, yr;
 
-    sys->rtc.dat[0] = bcd_adjust(sys->rtc.dat[0]+1);
-    if (sys->rtc.dat[0] >= 0x60) {
-	sys->rtc.dat[0] = 0;
-	sys->rtc.dat[1] = bcd_adjust(sys->rtc.dat[1]+1);
-	if (sys->rtc.dat[1] >= 0x60) {
-			sys->rtc.dat[1] = 0;
-			sys->rtc.dat[2] = bcd_adjust(sys->rtc.dat[2]+1);
-			if (sys->rtc.dat[2] >= 0x24) {
-				sys->rtc.dat[2] = 0;
-				sys->uropc_rtc.data[3]=bcd_adjust(sys->uropc_rtc.data[3]+1);
-				month = bcd_2_dec(sys->rtc.dat[4]);
+    /* Only if RTC is running.. */
+    regs = nvr->regs;
+    if (! (regs[MRTC_CTRLSTAT] & 0x01)) return;
 
-				/* Save for julian_days_in_month_calculation. */
-				year = bcd_2_dec(sys->rtc.dat[5])+2000;
-				if (sys->rtc.dat[3] > gregorian_days_in_month(month, year)) {
-					sys->rtc.dat[3] = 1;
-					sys->rtc.dat[4] = bcd_adjust(sys->rtc.dat[4]+1);
-					if (sys->rtc.dat[4]>0x12) {
-						sys->rtc.dat[4] = 1;
-						sys->rtc.dat[5] = bcd_adjust(sys->rtc.dat[5]+1)&0xff;
-					}
+    regs[MRTC_SECONDS] = RTC_BCDINC(nvr->regs[MRTC_SECONDS], 1);
+    if (regs[MRTC_SECONDS] >= RTC_BCD(60)) {
+	regs[MRTC_SECONDS] = RTC_BCD(0);
+	regs[MRTC_MINUTES] = RTC_BCDINC(regs[MRTC_MINUTES], 1);
+	if (regs[MRTC_MINUTES] >= RTC_BCD(60)) {
+		regs[MRTC_MINUTES] = RTC_BCD(0);
+		regs[MRTC_HOURS] = RTC_BCDINC(regs[MRTC_HOURS], 1);
+		if (regs[MRTC_HOURS] >= RTC_BCD(24)) {
+			regs[MRTC_HOURS] = RTC_BCD(0);
+			regs[MRTC_DAYS] = RTC_BCDINC(regs[MRTC_DAYS], 1);
+			mon = RTC_DCB(regs[MRTC_MONTHS]);
+			yr = RTC_DCB(regs[MRTC_YEARS]) + 1900;
+			if (RTC_DCB(regs[MRTC_DAYS]) > nvr_get_days(mon, yr)) {
+				regs[MRTC_DAYS] = RTC_BCD(1);
+				regs[MRTC_MONTHS] = RTC_BCDINC(regs[MRTC_MONTHS], 1);
+				if (regs[MRTC_MONTHS] > RTC_BCD(12)) {
+					regs[MRTC_MONTHS] = RTC_BCD(1);
+					regs[MRTC_YEARS] = RTC_BCDINC(regs[MRTC_YEARS], 1) & 0xff;
 				}
 			}
 		}
 	}
     }
+}
+
+
+/* Get the current NVR time. */
+static void
+rtc_time_get(uint8_t *regs, struct tm *tm)
+{
+    /* NVR is in BCD data mode. */
+    tm->tm_sec = RTC_DCB(regs[MRTC_SECONDS]);
+    tm->tm_min = RTC_DCB(regs[MRTC_MINUTES]);
+    tm->tm_hour = RTC_DCB(regs[MRTC_HOURS]);
+    tm->tm_wday = (RTC_DCB(regs[MRTC_WEEKDAY]) - 1);
+    tm->tm_mday = RTC_DCB(regs[MRTC_DAYS]);
+    tm->tm_mon = (RTC_DCB(regs[MRTC_MONTHS]) - 1);
+    tm->tm_year = RTC_DCB(regs[MRTC_YEARS]);
+#if USE_Y2K
+    tm->tm_year += (RTC_DCB(regs[MRTC_CENTURY]) * 100) - 1900;
 #endif
 }
 
+
+/* Set the current NVR time. */
+static void
+rtc_time_set(uint8_t *regs, struct tm *tm)
+{
+    /* NVR is in BCD data mode. */
+    regs[MRTC_SECONDS] = RTC_BCD(tm->tm_sec);
+    regs[MRTC_MINUTES] = RTC_BCD(tm->tm_min);
+    regs[MRTC_HOURS] = RTC_BCD(tm->tm_hour);
+    regs[MRTC_WEEKDAY] = RTC_BCD(tm->tm_wday + 1);
+    regs[MRTC_DAYS] = RTC_BCD(tm->tm_mday);
+    regs[MRTC_MONTHS] = RTC_BCD(tm->tm_mon + 1);
+    regs[MRTC_YEARS] = RTC_BCD(tm->tm_year % 100);
+#if USE_Y2K
+    regs[MRTC_CENTURY] = RTC_BCD((tm->tm_year+1900) / 100);
+#endif
+}
+
+
+static void
+rtc_start(nvr_t *nvr)
+{
+    struct tm tm;
+
+    /* Initialize the internal and chip times. */
+    if (enable_sync) {
+	/* Use the internal clock's time. */
+	nvr_time_get(&tm);
+	rtc_time_set(nvr->regs, &tm);
+    } else {
+	/* Set the internal clock from the chip time. */
+	rtc_time_get(nvr->regs, &tm);
+	nvr_time_set(&tm);
+    }
 
 #if 0
-void europc_rtc_init(void)
-{
-    europc_rtc.data[0xf]=1;
-
-    europc_rtc.timer = timer_alloc(europc_rtc_timer);
-    timer_adjust(europc_rtc.timer, 0, 0, 1.0);
-}
+    /* Start the RTC - BIOS will do this. */
+    nvr->regs[MRTC_CTRLSTAT] = 0x01;
 #endif
+}
+
+
+/* Create a valid checksum for the current NVR data. */
+static uint8_t
+rtc_checksum(uint8_t *ptr)
+{
+    uint8_t sum;
+    int i;
+
+    /* Calculate all bytes with XOR. */
+    sum = 0x00;
+    for (i=MRTC_CONF_A; i<=MRTC_CONF_E; i++)
+	sum += ptr[i];
+
+    return(sum);
+}
+
+
+/* Reset the machine's NVR to a sane state. */
+static void
+rtc_reset(nvr_t *nvr)
+{
+    /* Initialize the RTC to a known state. */
+    nvr->regs[MRTC_SECONDS] = RTC_BCD(0);	/* seconds */
+    nvr->regs[MRTC_MINUTES] = RTC_BCD(0);	/* minutes */
+    nvr->regs[MRTC_HOURS] = RTC_BCD(0);		/* hours */
+    nvr->regs[MRTC_DAYS] = RTC_BCD(1);		/* days */
+    nvr->regs[MRTC_MONTHS] = RTC_BCD(1);	/* months */
+    nvr->regs[MRTC_YEARS] = RTC_BCD(80);	/* years */
+    nvr->regs[MRTC_WEEKDAY] = RTC_BCD(1);	/* weekday */
+    nvr->regs[MRTC_WEEKNO] = RTC_BCD(1);	/* weekno */
+
+    /*
+     * EuroPC System Configuration:
+     *
+     * [A]	unknown
+     *
+     * [B]	7	1  bootdrive extern
+     *			0  bootdribe intern
+     *		6:5	11 invalid hard disk type
+     *			10 hard disk installed, type 2
+     *			01 hard disk installed, type 1
+     *			00 hard disk not installed
+     *		4:3	11 invalid external drive type
+     *			10 external drive 720K
+     *			01 external drive 360K
+     *			00 external drive disabled
+     *		2	unknown
+     *		1:0	11 invalid internal drive type
+     *			10 internal drive 360K
+     *			01 internal drive 720K
+     *			00 internal drive disabled
+     *
+     *	 [C]	7:6	unknown
+     *		5	monitor detection OFF
+     *		4	unknown
+     *		3:2	11 illegal memory size
+     *			10 512K
+     *			01 256K
+     *			00 640K
+     *		1:0	11 illegal game port
+     *			10 gameport as mouse port
+     *			01 gameport as joysticks
+     *			00 gameport disabled
+     *
+     * [D]	7:6	10 9MHz CPU speed
+     *			01 7MHz CPU speed
+     *			00 4.77 MHz CPU
+     *		5	unknown
+     *		4	external: color, internal: mono
+     *		3	unknown
+     *		2	internal video ON
+     *		1:0	11 mono
+     *			10 color80
+     *			01 color40
+     *			00 special (EGA,VGA etc)
+     *
+     * [E]	7:4	unknown
+     *		3:0	country	(00=Deutschland, 0A=ASCII)
+     */
+    nvr->regs[MRTC_CONF_A] = 0x00;	/* CONFIG A */
+    nvr->regs[MRTC_CONF_B] = 0x0A;	/* CONFIG B */
+    nvr->regs[MRTC_CONF_C] = 0x28;	/* CONFIG C */
+    nvr->regs[MRTC_CONF_D] = 0x12;	/* CONFIG D */
+    nvr->regs[MRTC_CONF_E] = 0x0A;	/* CONFIG E */
+
+    nvr->regs[MRTC_CHECK_LO] = 0x00;	/* checksum (LO) */
+    nvr->regs[MRTC_CHECK_HI] = 0x00;	/* checksum (HI) */
+
+    nvr->regs[MRTC_CTRLSTAT] = 0x01;	/* status/control */
+
+    /* Generate a valid checksum. */
+    nvr->regs[MRTC_CHECK_LO] = rtc_checksum(nvr->regs);
+}
 
 
 /* Execute a JIM control command. */
 static void
-jim_action(vm_t *sys, uint8_t reg, uint8_t val)
+jim_set(europc_t *sys, uint8_t reg, uint8_t val)
 {
     switch(reg) {
 	case 0:		/* MISC control (WO) */
-//pclog("EuroPC: write MISC = %02x\n", val);
 		// bit0: enable MOUSE
 		// bit1: enable joystick
 		break;
 
 	case 2:		/* AGA control */
-//pclog("EuroPC: write AGA = %02x\n", val);
 		if (! (val & 0x80)) {
 			/* Reset AGA. */
 			break;
@@ -276,7 +413,6 @@ jim_action(vm_t *sys, uint8_t reg, uint8_t val)
 		break;
 
 	case 4:		/* CPU Speed control */
-//pclog("EuroPC: write CPUCLK = %02x\n", val);
 		switch(val & 0xc0) {
 			case 0x00:	/* 4.77 MHz */
 //				cpu_set_clockscale(0, 1.0/2);
@@ -304,7 +440,7 @@ jim_action(vm_t *sys, uint8_t reg, uint8_t val)
 static void
 jim_write(uint16_t addr, uint8_t val, void *priv)
 {
-    vm_t *sys = (vm_t *)priv;
+    europc_t *sys = (europc_t *)priv;
     uint8_t b;
 
 #if EUROPC_DEBUG > 1
@@ -320,28 +456,30 @@ jim_write(uint16_t addr, uint8_t val, void *priv)
 	case 0x05:
 	case 0x06:
 	case 0x07:
-		jim_action(sys, (addr & 0x07), val);
+		jim_set(sys, (addr & 0x07), val);
 		break;
 
-	case 0x0A:		/* M3002 RTC INDEX/DATA register */
-		switch(sys->rtc.stat) {
+	case 0x0a:		/* M3002 RTC INDEX/DATA register */
+		switch(sys->nvr_stat) {
 			case 0:		/* save index */
-				sys->rtc.addr = val & 0x0f;
-				sys->rtc.stat++;
+				sys->nvr_addr = val & 0x0f;
+				sys->nvr_stat++;
 				break;
 
 			case 1:		/* save data HI nibble */
-                        	b = sys->rtc.dat[sys->rtc.addr] & 0x0f;
+				b = sys->nvr.regs[sys->nvr_addr] & 0x0f;
 				b |= (val << 4);
-                        	sys->rtc.dat[sys->rtc.addr] = b;
-				sys->rtc.stat++;
+				sys->nvr.regs[sys->nvr_addr] = b;
+				sys->nvr_stat++;
+				nvr_dosave++;
 				break;
 
 			case 2:		/* save data LO nibble */
-                        	b = sys->rtc.dat[sys->rtc.addr] & 0xf0;
+				b = sys->nvr.regs[sys->nvr_addr] & 0xf0;
 				b |= (val & 0x0f);
-                        	sys->rtc.dat[sys->rtc.addr] = b;
-				sys->rtc.stat = 0;
+				sys->nvr.regs[sys->nvr_addr] = b;
+				sys->nvr_stat = 0;
+				nvr_dosave++;
 				break;
 		}
 		break;
@@ -357,7 +495,7 @@ jim_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 jim_read(uint16_t addr, void *priv)
 {
-    vm_t *sys = (vm_t *)priv;
+    europc_t *sys = (europc_t *)priv;
     uint8_t r = 0xff;
 
     switch (addr & 0x000f) {
@@ -375,20 +513,20 @@ jim_read(uint16_t addr, void *priv)
 		r = sys->regs[addr & 0x07];
 		break;
 
-	case 0x0A:		/* M3002 RTC INDEX/DATA register */
-		switch(sys->rtc.stat) {
+	case 0x0a:		/* M3002 RTC INDEX/DATA register */
+		switch(sys->nvr_stat) {
 			case 0:
 				r = 0x00;
 				break;
 
 			case 1:		/* read data HI nibble */
-                        	r = (sys->rtc.dat[sys->rtc.addr] >> 4);
-				sys->rtc.stat++;
+				r = (sys->nvr.regs[sys->nvr_addr] >> 4);
+				sys->nvr_stat++;
 				break;
 
 			case 2:		/* read data LO nibble */
-                        	r = (sys->rtc.dat[sys->rtc.addr] & 0x0f);
-				sys->rtc.stat = 0;
+				r = (sys->nvr.regs[sys->nvr_addr] & 0x0f);
+				sys->nvr_stat = 0;
 				break;
 		}
 		break;
@@ -406,120 +544,29 @@ jim_read(uint16_t addr, void *priv)
 }
 
 
-static uint8_t
-rtc_checksum(uint8_t *ptr)
-{
-    uint8_t sum;
-    int i;
-
-    /* Calculate all bytes with XOR. */
-    sum = 0x00;
-    for (i=MRTC_CONF_A; i<=MRTC_CONF_E; i++)
-	sum += ptr[i];
-
-    return(sum);
-}
-
-
-/*
- * Initialize the mainboard 'device' of the machine.
- */
+/* Initialize the mainboard 'device' of the machine. */
 static void *
 europc_boot(device_t *info)
 {
-    vm_t *sys = vm;
+    europc_t *sys = &europc;
     uint8_t b;
 
 #if EUROPC_DEBUG
     pclog("EuroPC: booting mainboard..\n");
 #endif
 
-    /* Try to load the NVR from file. */
-    if (! nvr_load()) {
-	/* Load failed, reset to defaults. */
-	sys->rtc.dat[0x00] = 0x00;		/* RTC seconds */
-	sys->rtc.dat[0x01] = 0x00;		/* RTC minutes */
-	sys->rtc.dat[0x02] = 0x00;		/* RTC hours */
-	sys->rtc.dat[0x03] = 0x01;		/* RTC days */
-	sys->rtc.dat[0x04] = 0x01;		/* RTC months */
-	sys->rtc.dat[0x05] = 0x17;		/* RTC years */
-	sys->rtc.dat[0x06] = 0x01;		/* RTC weekday */
-	sys->rtc.dat[0x07] = 0x01;		/* RTC weekno */
-
-	/*
-	 * EuroPC System Configuration:
-	 *
- 	 * [A]	unknown
-	 *
-	 * [B]	7	1  bootdrive extern
-	 *		0  bootdribe intern
-	 *	6:5	11 invalid hard disk type
-	 *		10 hard disk installed, type 2
-	 *		01 hard disk installed, type 1
-	 *		00 hard disk not installed
-	 *	4:3	11 invalid external drive type
-	 *		10 external drive 720K
-	 *		01 external drive 360K
-	 *		00 external drive disabled
-	 *	2	unknown
-	 *	1:0	11 invalid internal drive type
-	 *		10 internal drive 360K
-	 *		01 internal drive 720K
-	 *		00 internal drive disabled
-	 *
-	 * [C]	7:6	unknown
-	 *	5	monitor detection OFF
-	 *	4	unknown
-	 *	3:2	11 illegal memory size
-	 *		10 512K
-	 *		01 256K
-	 *		00 640K
-	 *	1:0	11 illegal game port
-	 *		10 gameport as mouse port
-	 *		01 gameport as joysticks
-	 *		00 gameport disabled
-	 *
-	 * [D]	7:6	10 9MHz CPU speed
-	 *		01 7MHz CPU speed
-	 *		00 4.77 MHz CPU
-	 *	5	unknown
-	 *	4	external: color, internal: mono
-	 *	3	unknown
-	 *	2	internal video ON
-	 *	1:0	11 mono
-	 *		10 color80
-	 *		01 color40
-	 *		00 special (EGA,VGA etc)
-	 *
-	 * [E]	7:4	unknown
-	 *	3:0	country	(00=Deutschland, 0A=ASCII)
-	 */
-	sys->rtc.dat[MRTC_CONF_A] = 0x00;	/* CONFIG A */
-	sys->rtc.dat[MRTC_CONF_B] = 0x0A;	/* CONFIG B */
-	sys->rtc.dat[MRTC_CONF_C] = 0x28;	/* CONFIG C */
-	sys->rtc.dat[MRTC_CONF_D] = 0x12;	/* CONFIG D */
-	sys->rtc.dat[MRTC_CONF_E] = 0x0A;	/* CONFIG E */
-
-	sys->rtc.dat[MRTC_CHECK_LO] = 0x44;	/* checksum (LO) */
-	sys->rtc.dat[MRTC_CHECK_HI] = 0x00;	/* checksum (HI) */
-
-	sys->rtc.dat[MRTC_CTRLSTAT] = 0x01;	/* status/control */
-
-	/* Provide correct checksum. */
-	sys->rtc.dat[MRTC_CHECK_LO] = rtc_checksum(sys->rtc.dat);
-    }
     pclog("EuroPC: NVR=[ %02x %02x %02x %02x %02x ] %sVALID\n",
-	sys->rtc.dat[MRTC_CONF_A], sys->rtc.dat[MRTC_CONF_B],
-	sys->rtc.dat[MRTC_CONF_C], sys->rtc.dat[MRTC_CONF_D],
-	sys->rtc.dat[MRTC_CONF_E],
-	(sys->rtc.dat[MRTC_CHECK_LO]!=rtc_checksum(sys->rtc.dat))?"IN":"");
+	sys->nvr.regs[MRTC_CONF_A], sys->nvr.regs[MRTC_CONF_B],
+	sys->nvr.regs[MRTC_CONF_C], sys->nvr.regs[MRTC_CONF_D],
+	sys->nvr.regs[MRTC_CONF_E],
+	(sys->nvr.regs[MRTC_CHECK_LO]!=rtc_checksum(sys->nvr.regs))?"IN":"");
 
     /*
      * Now that we have initialized the NVR (either from file,
      * or by setting it to defaults) we can start overriding it
-     * with values set by the 86Box user.
+     * with values set by the user.
      */
-    b = (sys->rtc.dat[MRTC_CONF_D] & ~0x17);
+    b = (sys->nvr.regs[MRTC_CONF_D] & ~0x17);
     switch(gfxcard) {
 	case GFX_CGA:		/* Color, CGA */
 	case GFX_COLORPLUS:	/* Color, Hercules ColorPlus */
@@ -536,10 +583,10 @@ europc_boot(device_t *info)
 		b |= 0x10;	/* external video, special */
 
     }
-    sys->rtc.dat[MRTC_CONF_D] = b;
+    sys->nvr.regs[MRTC_CONF_D] = b;
 
     /* Update the memory size. */
-    b = (sys->rtc.dat[MRTC_CONF_C] & 0xf3);
+    b = (sys->nvr.regs[MRTC_CONF_C] & 0xf3);
     switch(mem_size) {
 	case 256:
 		b |= 0x04;
@@ -553,10 +600,10 @@ europc_boot(device_t *info)
 		b |= 0x00;
 		break;
     }
-    sys->rtc.dat[MRTC_CONF_C] = b;
+    sys->nvr.regs[MRTC_CONF_C] = b;
 
     /* Update CPU speed. */
-    b = (sys->rtc.dat[MRTC_CONF_D] & 0x3f);
+    b = (sys->nvr.regs[MRTC_CONF_D] & 0x3f);
     switch(cpu) {
 	case 0:		/* 8088, 4.77 MHz */
 		b |= 0x00;
@@ -570,26 +617,26 @@ europc_boot(device_t *info)
 		b |= 0x80;
 		break;
     }
-    sys->rtc.dat[MRTC_CONF_D] = b;
+    sys->nvr.regs[MRTC_CONF_D] = b;
 
     /* Set up game port. */
-    b = (sys->rtc.dat[MRTC_CONF_C] & 0xfc);
+    b = (sys->nvr.regs[MRTC_CONF_C] & 0xfc);
     if (mouse_type == MOUSE_TYPE_LOGIBUS) {
 	b |= 0x01;	/* enable port as MOUSE */
     } else if (joystick_type != 7) {
 	b |= 0x02;	/* enable port as joysticks */
 	device_add(&gameport_device);
     }
-    sys->rtc.dat[MRTC_CONF_C] = b;
+    sys->nvr.regs[MRTC_CONF_C] = b;
 
 #if 0
     /* Set up floppy types. */
-    sys->rtc.dat[MRTC_CONF_B] = 0x2A;
+    sys->nvr.regs[MRTC_CONF_B] = 0x2a;
 #endif
 
-    /* Validate the NVR checksum. */
-    sys->rtc.dat[MRTC_CHECK_LO] = rtc_checksum(sys->rtc.dat);
-    nvr_save();
+    /* Validate the NVR checksum and save. */
+    sys->nvr.regs[MRTC_CHECK_LO] = rtc_checksum(sys->nvr.regs);
+    nvr_dosave++;
 
     /*
      * Allocate the system's I/O handlers.
@@ -600,11 +647,10 @@ europc_boot(device_t *info)
      * the way of other cards that need this range.
      */
     io_sethandler(sys->jim, 16,
-		  jim_read, NULL, NULL,
-		  jim_write, NULL, NULL, sys);
+		  jim_read,NULL,NULL, jim_write,NULL,NULL, sys);
 
     /* Only after JIM has been initialized. */
-    device_add(&keyboard_xt_device);
+    (void)device_add(&keyboard_xt_device);
 
     /*
      * Set up and enable the HD20 disk controller.
@@ -612,7 +658,7 @@ europc_boot(device_t *info)
      * We only do this if we have not configured another one.
      */
     if (hdc_current == 1)
-	device_add(&europc_hdc_device);
+	(void)device_add(&europc_hdc_device);
 
     return(sys);
 }
@@ -621,13 +667,10 @@ europc_boot(device_t *info)
 static void
 europc_close(void *priv)
 {
-    nvr_t *nvr = &vm->nvr;
+    nvr_t *nvr = &europc.nvr;
 
-    if (nvr->fname != NULL)
-	free(nvr->fname);
-
-    free(vm);
-    vm = NULL;
+    if (nvr->fn != NULL)
+	free(nvr->fn);
 }
 
 
@@ -655,9 +698,7 @@ static device_config_t europc_config[] = {
 device_t europc_device = {
     "EuroPC System Board",
     0, 0,
-    europc_boot,	/* init */
-    europc_close,	/* close */
-    NULL,
+    europc_boot, europc_close, NULL,
     NULL, NULL, NULL, NULL,
     europc_config
 };
@@ -674,36 +715,28 @@ device_t europc_device = {
 void
 machine_europc_init(machine_t *model)
 {
-    vm_t *sys;
-
-    /* Allocate machine data. */
-    sys = (vm_t *)malloc(sizeof(vm_t));
-    if (sys == NULL) {
-	pclog("EuroPC: unable to allocate machine data!\n");
-	return;
-    }
-    memset(sys, 0x00, sizeof(vm_t));
-    sys->jim = 0x0250;
-    vm = sys;
+    /* Clear the machine state. */
+    memset(&europc, 0x00, sizeof(europc_t));
+    europc.jim = 0x0250;
 
     machine_common_init(model);
     nmi_init();
     mem_add_bios();
 
     /* This is machine specific. */
-    vm->nvr.mask = model->nvrmask;
-    vm->nvr.irq = -1;
+    europc.nvr.size = model->nvrmask + 1;
+    europc.nvr.irq = -1;
 
     /* Set up any local handlers here. */
-    vm->nvr.load = load_nvr;
-    vm->nvr.save = save_nvr;
-    vm->nvr.hook = rtc_hook;
+    europc.nvr.reset = rtc_reset;
+    europc.nvr.start = rtc_start;
+    europc.nvr.tick = rtc_tick;
 
     /* Initialize the actual NVR. */
-    nvr_init(&vm->nvr);
+    nvr_init(&europc.nvr);
 
     /* Enable and set up the FDC. */
-    device_add(&fdc_xt_device);
+    (void)device_add(&fdc_xt_device);
 
     /* Enable and set up the mainboard device. */
     device_add(&europc_device);

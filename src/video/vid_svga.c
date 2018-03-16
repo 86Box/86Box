@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.24	2018/03/05
+ * Version:	@(#)vid_svga.c	1.0.26	2018/03/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -69,7 +69,7 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
         switch (addr)
         {
                 case 0x3C0:
-		case 0x3C1:
+				case 0x3C1:
                 if (!svga->attrff)
                 {
                         svga->attraddr = val & 31;
@@ -109,14 +109,9 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                 case 0x3C2:
                 svga->miscout = val;
                 svga->vidclock = val & 4;
-                if (val & 1)
-                {
-                        io_removehandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->p);
-                }
-                else
-                {
+                io_removehandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->p);
+                if (!(val & 1))
                         io_sethandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->p);
-                }
                 svga_recalctimings(svga);
                 break;
                 case 0x3C4: 
@@ -300,42 +295,10 @@ uint8_t svga_in(uint16_t addr, void *p)
                 svga->attrff = 0;
                 svga->attrff = 0;
 
-                /* old diagnostic code
                 if (svga->cgastat & 0x01)
                         svga->cgastat &= ~0x30;
                 else
                         svga->cgastat ^= 0x30;
-                return svga->cgastat;
-                */
-                svga->cgastat &= ~0x30;
-                /* copy color diagnostic info from the overscan color register */
-                switch (svga->attrregs[0x12] & 0x30)
-                {
-                        case 0x00: /* P0 and P2 */
-                        if (svga->attrregs[0x11] & 0x01)
-                                svga->cgastat |= 0x10;
-                        if (svga->attrregs[0x11] & 0x04)
-                                svga->cgastat |= 0x20;
-                        break;
-                        case 0x10: /* P4 and P5 */
-                        if (svga->attrregs[0x11] & 0x10)
-                                svga->cgastat |= 0x10;
-                        if (svga->attrregs[0x11] & 0x20)
-                                svga->cgastat |= 0x20;
-                        break;
-                        case 0x20: /* P1 and P3 */
-                        if (svga->attrregs[0x11] & 0x02)
-                                svga->cgastat |= 0x10;
-                        if (svga->attrregs[0x11] & 0x08)
-                                svga->cgastat |= 0x20;
-                        break;
-                        case 0x30: /* P6 and P7 */
-                        if (svga->attrregs[0x11] & 0x40)
-                                svga->cgastat |= 0x10;
-                        if (svga->attrregs[0x11] & 0x80)
-                                svga->cgastat |= 0x20;
-                        break;
-                }
                 return svga->cgastat;
         }
         return 0xFF;
@@ -390,15 +353,6 @@ void svga_recalctimings(svga_t *svga)
         if (svga->crtc[9] & 0x20) svga->vblankstart |= 0x200;
         svga->vblankstart++;
         
-        if(svga->crtc[0x17] & 4)
-        {
-                svga->vtotal <<= 1;
-                svga->dispend <<= 1;
-                svga->vsyncstart <<= 1;
-                svga->split <<= 1;
-                svga->vblankstart <<= 1;
-        }		
-		
         svga->hdisp = svga->crtc[1];
         svga->hdisp++;
 

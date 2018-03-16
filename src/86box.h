@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.17	2018/01/18
+ * Version:	@(#)86box.h	1.0.18	2018/03/13
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -105,6 +105,7 @@ extern int	cpu_manufacturer,		/* (C) cpu manufacturer */
 		cpu,				/* (C) cpu type */
 		cpu_use_dynarec,		/* (C) cpu uses/needs Dyna */
 		enable_external_fpu;		/* (C) enable external FPU */
+extern int	enable_sync;			/* (C) enable time sync */
 
 
 #ifdef ENABLE_LOG_TOGGLES

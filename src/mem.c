@@ -389,15 +389,14 @@ uint8_t *getpccache(uint32_t a)
         }
         a&=rammask;
 
-        if (isram[a>>16])
-        {
-                if ((a >> 16) != 0xF || shadowbios)
-                	addreadlookup(a2, a);
-                return &ram[(uintptr_t)(a & 0xFFFFF000) - (uintptr_t)(a2 & ~0xFFF)];
-        }
-
         if (_mem_exec[a >> 14])
         {
+                if (_mem_mapping_r[a >> 14]->flags & MEM_MAPPING_ROM)
+                        cpu_prefetch_cycles = cpu_rom_prefetch_cycles;
+                else
+                        cpu_prefetch_cycles = cpu_mem_prefetch_cycles;
+			
+			
                 return &_mem_exec[a >> 14][(uintptr_t)(a & 0x3000) - (uintptr_t)(a2 & ~0xFFF)];
         }
 
@@ -1282,24 +1281,24 @@ void mem_add_bios()
 {
         if (AT || (romset == ROM_XI8088 && xi8088_bios_128kb()))
         {
-                mem_mapping_add(&bios_mapping[0], 0xe0000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom,                        MEM_MAPPING_EXTERNAL, 0);
-                mem_mapping_add(&bios_mapping[1], 0xe4000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x4000  & biosmask), MEM_MAPPING_EXTERNAL, 0);
-                mem_mapping_add(&bios_mapping[2], 0xe8000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x8000  & biosmask), MEM_MAPPING_EXTERNAL, 0);
-                mem_mapping_add(&bios_mapping[3], 0xec000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0xc000  & biosmask), MEM_MAPPING_EXTERNAL, 0);
+                mem_mapping_add(&bios_mapping[0], 0xe0000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom,                        MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
+                mem_mapping_add(&bios_mapping[1], 0xe4000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x4000  & biosmask), MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
+                mem_mapping_add(&bios_mapping[2], 0xe8000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x8000  & biosmask), MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
+                mem_mapping_add(&bios_mapping[3], 0xec000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0xc000  & biosmask), MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
         }
-        mem_mapping_add(&bios_mapping[4], 0xf0000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x10000 & biosmask), MEM_MAPPING_EXTERNAL, 0);
-        mem_mapping_add(&bios_mapping[5], 0xf4000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x14000 & biosmask), MEM_MAPPING_EXTERNAL, 0);
-        mem_mapping_add(&bios_mapping[6], 0xf8000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x18000 & biosmask), MEM_MAPPING_EXTERNAL, 0);
-        mem_mapping_add(&bios_mapping[7], 0xfc000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x1c000 & biosmask), MEM_MAPPING_EXTERNAL, 0);
+        mem_mapping_add(&bios_mapping[4], 0xf0000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x10000 & biosmask), MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
+        mem_mapping_add(&bios_mapping[5], 0xf4000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x14000 & biosmask), MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
+        mem_mapping_add(&bios_mapping[6], 0xf8000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x18000 & biosmask), MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
+        mem_mapping_add(&bios_mapping[7], 0xfc000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x1c000 & biosmask), MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
 
-        mem_mapping_add(&bios_high_mapping[0], (AT && cpu_16bitbus) ? 0xfe0000 : 0xfffe0000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom,                        0, 0);
-        mem_mapping_add(&bios_high_mapping[1], (AT && cpu_16bitbus) ? 0xfe4000 : 0xfffe4000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x4000  & biosmask), 0, 0);
-        mem_mapping_add(&bios_high_mapping[2], (AT && cpu_16bitbus) ? 0xfe8000 : 0xfffe8000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x8000  & biosmask), 0, 0);
-        mem_mapping_add(&bios_high_mapping[3], (AT && cpu_16bitbus) ? 0xfec000 : 0xfffec000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0xc000  & biosmask), 0, 0);
-        mem_mapping_add(&bios_high_mapping[4], (AT && cpu_16bitbus) ? 0xff0000 : 0xffff0000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x10000 & biosmask), 0, 0);
-        mem_mapping_add(&bios_high_mapping[5], (AT && cpu_16bitbus) ? 0xff4000 : 0xffff4000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x14000 & biosmask), 0, 0);
-        mem_mapping_add(&bios_high_mapping[6], (AT && cpu_16bitbus) ? 0xff8000 : 0xffff8000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x18000 & biosmask), 0, 0);
-        mem_mapping_add(&bios_high_mapping[7], (AT && cpu_16bitbus) ? 0xffc000 : 0xffffc000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x1c000 & biosmask), 0, 0);
+        mem_mapping_add(&bios_high_mapping[0], (AT && cpu_16bitbus) ? 0xfe0000 : 0xfffe0000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom,                        MEM_MAPPING_ROM, 0);
+        mem_mapping_add(&bios_high_mapping[1], (AT && cpu_16bitbus) ? 0xfe4000 : 0xfffe4000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x4000  & biosmask), MEM_MAPPING_ROM, 0);
+        mem_mapping_add(&bios_high_mapping[2], (AT && cpu_16bitbus) ? 0xfe8000 : 0xfffe8000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x8000  & biosmask), MEM_MAPPING_ROM, 0);
+        mem_mapping_add(&bios_high_mapping[3], (AT && cpu_16bitbus) ? 0xfec000 : 0xfffec000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0xc000  & biosmask), MEM_MAPPING_ROM, 0);
+        mem_mapping_add(&bios_high_mapping[4], (AT && cpu_16bitbus) ? 0xff0000 : 0xffff0000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x10000 & biosmask), MEM_MAPPING_ROM, 0);
+        mem_mapping_add(&bios_high_mapping[5], (AT && cpu_16bitbus) ? 0xff4000 : 0xffff4000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x14000 & biosmask), MEM_MAPPING_ROM, 0);
+        mem_mapping_add(&bios_high_mapping[6], (AT && cpu_16bitbus) ? 0xff8000 : 0xffff8000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x18000 & biosmask), MEM_MAPPING_ROM, 0);
+        mem_mapping_add(&bios_high_mapping[7], (AT && cpu_16bitbus) ? 0xffc000 : 0xffffc000, 0x04000, mem_read_bios,   mem_read_biosw,   mem_read_biosl,   mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x1c000 & biosmask), MEM_MAPPING_ROM, 0);
 }
 
 int mem_a20_key = 0, mem_a20_alt = 0;
@@ -1318,6 +1317,45 @@ void mem_a20_init(void)
 	}
 }
 
+void mem_destroy_pages(void)
+{
+	if (pages) {
+		free(pages);
+		pages = NULL;
+	}
+}
+
+void mem_resize_pages(void)
+{
+	int total_size, c;
+
+	mem_destroy_pages();
+
+	if (AT) {
+		if (cpu_16bitbus)
+			total_size = 4096;
+		else {
+			total_size = (mem_size + 384) >> 2;
+			if ((total_size << 2) < (mem_size + 384))
+				total_size++;
+			if (total_size < 4096)
+				total_size = 4096;
+		}
+	} else
+		total_size = 256;
+
+        pages = malloc(total_size * sizeof(page_t));
+
+        memset(pages, 0, total_size * sizeof(page_t));
+
+        for (c = 0; c < total_size; c++)
+        {
+                pages[c].mem = &ram[c << 12];
+                pages[c].write_b = mem_write_ramb_page;
+                pages[c].write_w = mem_write_ramw_page;
+                pages[c].write_l = mem_write_raml_page;
+        }
+}
 
 void mem_init(void)
 {
@@ -1339,22 +1377,13 @@ void mem_init(void)
         writelookup2 = malloc(1024 * 1024 * sizeof(uintptr_t));
 	rom = NULL;
         biosmask = 0xffff;
-        pages = malloc((1 << 20) * sizeof(page_t));
-        page_lookup = malloc((1 << 20) * sizeof(page_t *));
-
-        memset(pages, 0, (1 << 20) * sizeof(page_t));
-        
-        memset(page_lookup, 0, (1 << 20) * sizeof(page_t *));
 
 	memset(ram_mapped_addr, 0, 64 * sizeof(uint32_t));
-        
-        for (c = 0; c < (1 << 20); c++)
-        {
-                pages[c].mem = &ram[c << 12];
-                pages[c].write_b = mem_write_ramb_page;
-                pages[c].write_w = mem_write_ramw_page;
-                pages[c].write_l = mem_write_raml_page;
-        }
+
+        page_lookup = malloc((1 << 20) * sizeof(page_t *));
+        memset(page_lookup, 0, (1 << 20) * sizeof(page_t *));
+
+	mem_resize_pages();
 
         memset(isram, 0, sizeof(isram));
         for (c = 0; c < (mem_size / 64); c++)
@@ -1443,70 +1472,6 @@ void mem_remap_top_384k()
 	mem_remap_top(384);
 }
 
-void mem_split_enable(int max_size, uint32_t addr)
-{
-	int c;
-
-	uint8_t *mem_split_buffer = &ram[0x80000];
-
-	if (split_mapping_enabled)
-		return;
-
-#if 0
-	pclog("Split mapping enable at %08X\n", addr);
-#endif
-
-	mem_set_mem_state(addr, max_size * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-	mem_mapping_set_addr(&ram_split_mapping, addr, max_size * 1024);
-	mem_mapping_set_exec(&ram_split_mapping, &ram[addr]);
-
-	if (max_size == 384)
-		memcpy(&ram[addr], mem_split_buffer, max_size);
-	else
-		memcpy(&ram[addr], &mem_split_buffer[128 * 1024], max_size);
-
-	for (c = ((addr / 1024) / 64); c < (((addr / 1024) + max_size - 1) / 64); c++)
-        {
-		isram[c] = 1;
-        }
-
-	flushmmucache();
-
-	split_mapping_enabled = 1;
-}
-
-void mem_split_disable(int max_size, uint32_t addr)
-{
-	int c;
-
-	uint8_t *mem_split_buffer = &ram[0x80000];
-
-	if (!split_mapping_enabled)
-		return;
-
-#if 0
-	pclog("Split mapping disable at %08X\n", addr);
-#endif
-
-	if (max_size == 384)
-		memcpy(mem_split_buffer, &ram[addr], max_size);
-	else
-		memcpy(&mem_split_buffer[128 * 1024], &ram[addr], max_size);
-
-	mem_mapping_disable(&ram_split_mapping);
-	mem_set_mem_state(addr, max_size * 1024, 0);
-	mem_mapping_set_exec(&ram_split_mapping, NULL);
-
-	for (c = ((addr / 1024) / 64); c < (((addr / 1024) + max_size - 1) / 64); c++)
-        {
-		isram[c] = 0;
-        }
-
-	flushmmucache();
-
-	split_mapping_enabled = 0;
-}
-
 void mem_resize()
 {
         int c;
@@ -1525,15 +1490,6 @@ void mem_resize()
         	memset(ram, 0, (mem_size + 384) * 1024);
 	}
         
-        memset(pages, 0, (1 << 20) * sizeof(page_t));
-        for (c = 0; c < (1 << 20); c++)
-        {
-                pages[c].mem = &ram[c << 12];
-                pages[c].write_b = mem_write_ramb_page;
-                pages[c].write_w = mem_write_ramw_page;
-                pages[c].write_l = mem_write_raml_page;
-        }
-        
         memset(isram, 0, sizeof(isram));
         for (c = 0; c < (mem_size / 64); c++)
         {
@@ -1541,6 +1497,8 @@ void mem_resize()
                 if ((c >= 0xa && c <= 0xf) || (cpu_16bitbus && c >= 0xfe && c <= 0xff))
                         isram[c] = 0;
         }
+
+	mem_resize_pages();
 
         memset(_mem_read_b,  0, sizeof(_mem_read_b));
         memset(_mem_read_w,  0, sizeof(_mem_read_w));
@@ -1588,6 +1546,9 @@ void mem_resize()
 void mem_reset_page_blocks()
 {
         int c;
+
+	if (!pages)
+		return;
         
         for (c = 0; c < ((mem_size * 1024) >> 12); c++)
         {

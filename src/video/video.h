@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.22	2018/03/02
+ * Version:	@(#)video.h	1.0.23	2018/03/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -76,11 +76,12 @@ enum {
     GFX_MACH64VT2,  		/* ATI Mach64 VT2 */
     GFX_CL_GD5424_ISA, 		/* Cirrus Logic CL-GD 5424 ISA */
     GFX_CL_GD5424_VLB, 		/* Cirrus Logic CL-GD 5424 VLB */
+    GFX_CL_GD5426_VLB, 		/* Diamond SpeedStar PRO (Cirrus Logic CL-GD 5426) VLB */
     GFX_CL_GD5428_ISA, 		/* Cirrus Logic CL-GD 5428 ISA */
-    GFX_CL_GD5428_VLB,		/* Diamond SpeedStar PRO (Cirrus Logic CL-GD 5428) VLB */
+    GFX_CL_GD5428_VLB,		/* Cirrus Logic CL-GD 5428 VLB */
     GFX_CL_GD5429_ISA, 		/* Cirrus Logic CL-GD 5429 ISA */
     GFX_CL_GD5429_VLB,		/* Cirrus Logic CL-GD 5429 VLB */
-    GFX_CL_GD5430_VLB,		/* Diamond SpeedStar PRO SE (Cirrus Logic CL-GD 5430) PCI */
+    GFX_CL_GD5430_VLB,		/* Diamond SpeedStar PRO SE (Cirrus Logic CL-GD 5430) VLB */
     GFX_CL_GD5430_PCI,		/* Cirrus Logic CL-GD 5430 PCI */
     GFX_CL_GD5434_ISA, 		/* Cirrus Logic CL-GD 5434 ISA */
 	GFX_CL_GD5434_VLB,		/* Cirrus Logic CL-GD 5434 VLB */
@@ -150,6 +151,10 @@ typedef struct {
     uint8_t	r, g, b;
 } rgb_t;
 
+typedef struct {
+    uint8_t	chr[32];
+} dbcs_font_t;
+
 typedef rgb_t PALETTE[256];
 
 
@@ -170,7 +175,7 @@ extern int	video_fullscreen,
 extern int	fullchange;
 extern uint8_t	fontdat[2048][8];
 extern uint8_t	fontdatm[2048][16];
-extern uint8_t	fontdatksc5601[16384][32];
+extern dbcs_font_t	*fontdatksc5601;
 extern uint32_t	*video_6to8,
 		*video_15to32,
 		*video_16to32;

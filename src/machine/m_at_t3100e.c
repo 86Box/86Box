@@ -1,9 +1,155 @@
+/*
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
+ *
+ *		This file is part of the VARCem Project.
+ *
+ *		Implementation of the Toshiba T3100e.
+ *
+ *		The Toshiba 3100e is a 286-based portable.
+ *
+ *		To bring up the BIOS setup screen hold down the 'Fn' key
+ *		on booting.
+ *
+ *		Memory management
+ *		~~~~~~~~~~~~~~~~~
+ * 
+ *		Motherboard memory is divided into:
+ *		- Conventional memory: Either 512k or 640k
+ *		- Upper memory:        Either 512k or 384k, depending on
+ *				       amount of conventional memory.
+ *				       Upper memory can be used as EMS or XMS.
+ *		- High memory:         0-4Mb, depending on RAM installed.
+ *				       The BIOS setup screen allows some or
+ *				       all of this to be used as EMS; the
+ *				       remainder is XMS.
+ * 
+ *		Additional memory (either EMS or XMS) can also be provided
+ *		by ISA expansion cards.
+ *
+ *		Under test in PCem, the BIOS will boot with up to 65368Kb
+ *		of memory in total (16Mb less 16k). However it will give
+ *		an error with RAM sizes above 8Mb, if any of the high
+ *		memory is allocated as EMS, because the builtin EMS page
+ *		registers can only access up to 8Mb.
+ *
+ *		Memory is controlled by writes to I/O port 8084h:
+ *		  Bit 7: Always 0  }
+ *		  Bit 6: Always 1  } These bits select which motherboard
+ *		  Bit 5: Always 0  } function to access.
+ *		  Bit 4: Set to treat upper RAM as XMS
+ *		  Bit 3: Enable external RAM boards? 
+ *		  Bit 2: Set for 640k conventional memory, clear for 512k
+ *		  Bit 1: Enable RAM beyond 1Mb.
+ *		  Bit 0: Enable EMS.
+ *
+ *		The last value written to this port is saved at 0040:0093h,
+ *		and in CMOS memory at offset 0x37. If the top bit of the
+ *		CMOS byte is set, then high memory is being provided by
+ *		an add-on card rather than the mainboard; accordingly,
+ *		the BIOS will not allow high memory to be used as EMS.
+ *
+ *		EMS is controlled by 16 page registers:
+ *
+ *		Page mapped at		0xD000	0xD400	0xD800	0xDC00
+ *		------------------------------------------------------
+ *		Pages 0x00-0x7F		 0x208	0x4208	0x8208	0xc208
+ *		Pages 0x80-0xFF		 0x218	0x4218	0x8218	0xc218
+ *		Pages 0x100-0x17F	 0x258	0x4258	0x8258	0xc258
+ *		Pages 0x180-0x1FF	 0x268	0x4268	0x8268	0xc268
+ *
+ *		The value written has bit 7 set to enable EMS, reset to
+ *		disable it.
+ *
+ *		So:
+ *		OUT 0x208,  0x80  will page in the first 16k page at 0xD0000.
+ *		OUT 0x208,  0x00  will page out EMS, leaving nothing at 0xD0000.
+ *		OUT 0x4208, 0x80  will page in the first 16k page at 0xD4000.
+ *		OUT 0x218,  0x80  will page in the 129th 16k page at 0xD0000.
+ *		etc.
+ * 
+ *		To use EMS from DOS, you will need the Toshiba EMS driver
+ *		(TOSHEMM.ZIP). This supports the above system, plus further
+ *		ranges of ports at 0x_2A8, 0x_2B8, 0x_2C8.
+ *
+ *		Features not implemented:
+ *		> Four video fonts.
+ *		> BIOS-controlled mapping of serial ports to IRQs.
+ *		> Custom keyboard controller. This has a number of extra
+ *		  commands in the 0xB0-0xBC range, for such things as turbo
+ *		  on/off, and switching the keyboard between AT and PS/2
+ *		  modes. Currently I have only implemented command 0xBB,
+ *		  so that self-test completes successfully. Commands include:
+ *
+ *		  0xB0:   Turbo on
+ *		  0xB1:   Turbo off
+ *		  0xB2:   Internal display on?
+ *		  0xB3:   Internal display off?
+ *		  0xB5:   Get settings byte (bottom bit is color/mono setting)
+ *		  0xB6:   Set settings byte
+ *		  0xB7:   Behave as 101-key PS/2 keyboard
+ *		  0xB8:   Behave as 84-key AT keyboard
+ *		  0xBB:   Return a byte, bit 2 is Fn key state, other bits unknown.
+ *
+ *		The other main I/O port needed to POST is:
+ *		  0x8084: System control.
+ *		  Top 3 bits give command, bottom 5 bits give parameters.
+ *		  000 => set serial port IRQ / addresses
+ *		  bit 4:    IRQ5 serial port base: 1 => 0x338, 0 => 0x3E8
+ *		  bits 3, 2, 0 specify serial IRQs for COM1, COM2, COM3:
+ *			    00 0 => 4, 3, 5
+ *                          00 1 => 4, 5, 3
+ *                          01 0 => 3, 4, 5
+ *                          01 1 => 3, 5, 4
+ *                          10 0 => 4, -, 3
+ *                          10 1 => 3, -, 4 
+ *		  010 => set memory mappings
+ *			 bit 4 set if upper RAM is XMS
+ *			 bit 3 enable add-on memory boards beyond 5Mb?
+ *                       bit 2 set for 640k sysram, clear for 512k sysram
+ *                       bit 1 enable mainboard XMS
+ *                       bit 0 enable mainboard EMS
+ *		  100 => set parallel mode / LCD settings
+ *                       bit 4 set for bidirectional parallel port
+ *                       bit 3 set to disable internal CGA
+ *                       bit 2 set for single-pixel LCD font
+ *                       bits 0,1 for display font
+ *
+ * Version:	@(#)m_at_t3100e.c	1.0.3	2018/03/05
+ *
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *
+ *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free  Software  Foundation; either  version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is  distributed in the hope that it will be useful, but
+ * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the:
+ *
+ *   Free Software Foundation, Inc.
+ *   59 Temple Place - Suite 330
+ *   Boston, MA 02111-1307
+ *   USA.
+ */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-
 #include "../86box.h"
 #include "../io.h"
 #include "../mouse.h"
@@ -13,123 +159,17 @@
 #include "../cpu/cpu.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
-#include "../video/vid_t3100e.h"
-
 #include "machine.h"
 #include "m_at_t3100e.h"
 
-/* The Toshiba 3100e is a 286-based portable.
- *
- * To bring up the BIOS setup screen hold down the 'Fn' key on booting
- *
- * Memory management
- * ~~~~~~~~~~~~~~~~~
- * 
- *      Motherboard memory is divided into:
- *      - Conventional memory: Either 512k or 640k
- *      - Upper memory:        Either 512k or 384k, depending on amount of 
- *                             conventional memory. Upper memory can be 
- *                             used either as EMS or XMS.
- *      - High memory:         0-4Mb, depending on RAM installed. The BIOS
- *                             setup screen allows some or all of this to be
- *                             used as EMS; the remainder is XMS.
- * 
- *      Additional memory (either EMS or XMS) can also be provided by ISA 
- *      expansion cards.
- *
- *      Under test in PCEM, the BIOS will boot with up to 65368Kb of memory in 
- *      total (16Mb less 16k). However it will give an error with RAM sizes 
- *      above 8Mb, if any of the high memory is allocated as EMS, because the
- *      builtin EMS page registers can only access up to 8Mb.
- *
- *      Memory is controlled by writes to I/O port 8084h:
- *        Bit 7: Always 0  }
- *        Bit 6: Always 1  } These bits select which motherboard function to
- *        Bit 5: Always 0  } access.
- *        Bit 4: Set to treat upper RAM as XMS
- *        Bit 3: Enable external RAM boards? 
- *        Bit 2: Set for 640k conventional memory, clear for 512k
- *        Bit 1: Enable RAM beyond 1Mb.
- *        Bit 0: Enable EMS.
- *
- *      The last value written to this port is saved at 0040:0093h, and in 
- *      CMOS memory at offset 0x37. If the top bit of the CMOS byte is set,
- *      then high memory is being provided by an add-on card rather than the 
- *      mainboard; accordingly, the BIOS will not allow high memory to be 
- *      used as EMS.
- *
- *      EMS is controlled by 16 page registers:
- *
- *      Page mapped at		0xD000	0xD400	0xD800	0xDC00
- *	------------------------------------------------------
- * 	Pages 0x00-0x7F		 0x208	0x4208	0x8208	0xc208
- *	Pages 0x80-0xFF		 0x218	0x4218	0x8218	0xc218
- *	Pages 0x100-0x17F	 0x258	0x4258	0x8258	0xc258
- *	Pages 0x180-0x1FF	 0x268	0x4268	0x8268	0xc268
- *
- *	The value written has bit 7 set to enable EMS, reset to disable it.
- *
- *	So: OUT 0x208,  0x80  will page in the first 16k page at 0xD0000.
- *	    OUT 0x208,  0x00  will page out EMS, leaving nothing at 0xD0000.
- *	    OUT 0x4208, 0x80  will page in the first 16k page at 0xD4000.
- *	    OUT 0x218,  0x80  will page in the 129th 16k page at 0xD0000.
- *
- *  etc.
- * 
- * To use EMS from DOS, you will need the Toshiba EMS driver (TOSHEMM.ZIP). 
- * This supports the above system, plus further ranges of ports at 
- * 0x_2A8, 0x_2B8, 0x_2C8.
- *
- */
-
-static const int t3100e_log = 0;
 
 extern uint8_t *ram;		/* Physical RAM */
 
-/* Features not implemented:
- * > Four video fonts.
- * > BIOS-controlled mapping of serial ports to IRQs.
- * > Custom keyboard controller. This has a number of extra commands in the
- *   0xB0-0xBC range, for such things as turbo on/off, and switching the 
- *   keyboard between AT and PS/2 modes. Currently I have only implemented
- *   command 0xBB, so that self-test completes successfully. Commands include:
- *
- *   0xB0:   Turbo on
- *   0xB1:   Turbo off
- *   0xB2:   Internal display on?
- *   0xB3:   Internal display off?
- *   0xB5:   Get settings byte (bottom bit is colour / mono setting)
- *   0xB6:   Set settings byte
- *   0xB7:   Behave as 101-key PS/2 keyboard
- *   0xB8:   Behave as 84-key AT keyboard
- *   0xBB:   Return a byte, bit 2 is Fn key state, other bits unknown.
- *
- * The other main I/O port needed to POST is:
- *      0x8084: System control.
- *              Top 3 bits give command, bottom 5 bits give parameters.
- *               000 => set serial port IRQ / addresses
- *                      bit 4:    IRQ5 serial port base: 1 => 0x338, 0 => 0x3E8
- *                      bits 3, 2, 0 specify serial IRQs for COM1, COM2, COM3:
- *			    00 0 => 4, 3, 5
- *                          00 1 => 4, 5, 3
- *                          01 0 => 3, 4, 5
- *                          01 1 => 3, 5, 4
- *                          10 0 => 4, -, 3
- *                          10 1 => 3, -, 4 
- *               010 => set memory mappings
- *                         bit 4 set if upper RAM is XMS
- *			   bit 3 enable add-on memory boards beyond 5Mb?
- *                         bit 2 set for 640k sysram, clear for 512k sysram
- *                         bit 1 enable mainboard XMS
- *                         bit 0 enable mainboard EMS
- *               100 => set parallel mode / LCD settings
- *                         bit 4 set for bidirectional parallel port
- *                         bit 3 set to disable internal CGA
- *                         bit 2 set for single-pixel LCD font
- *                         bits 0,1 for display font
- */
-
 void at_init();
+
+
+static const int t3100e_log = 0;
+
 
 /* The T3100e motherboard can (and does) dynamically reassign RAM between
  * conventional, XMS and EMS. This translates to monkeying with the mappings.

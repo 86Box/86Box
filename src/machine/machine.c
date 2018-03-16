@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.29	2018/01/16
+ * Version:	@(#)machine.c	1.0.30	2018/03/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -51,6 +51,9 @@ machine_init(void)
     /* Set up the architecture flags. */
     AT = IS_ARCH(machine, MACHINE_AT);
     PCI = IS_ARCH(machine, MACHINE_PCI);
+
+    /* Resize the memory. */
+    mem_resize();
 
     /* Load the machine's ROM BIOS. */
     rom_load_bios(romset);

@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM host drive IOCTL interface for
  *		Windows using SCSI Passthrough Direct.
  *
- * Version:	@(#)cdrom_ioctl.c	1.0.12	2018/02/25
+ * Version:	@(#)cdrom_ioctl.c	1.0.13	2018/03/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -98,9 +98,9 @@ void ioctl_audio_callback(uint8_t id, int16_t *output, int len)
 			in.DiskOffset.HighPart	= 0;
 			in.SectorCount		= 1;
 			in.TrackMode		= CDDA;		
-			if (!DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL, IOCTL_CDROM_RAW_READ, &in, sizeof(in), &(cdrom_ioctl[id].cd_buffer[cdrom_ioctl[id].cd_buflen]), 2352, &count, NULL))
+			if (!DeviceIoControl(cdrom_ioctl_windows[id].hIOCTL, IOCTL_CDROM_RAW_READ, &in, sizeof(in), &(cdrom[id].cd_buffer[cdrom_ioctl[id].cd_buflen]), 2352, &count, NULL))
 			{
-				memset(&(cdrom_ioctl[id].cd_buffer[cdrom_ioctl[id].cd_buflen]), 0, (BUF_SIZE - cdrom_ioctl[id].cd_buflen) * 2);
+				memset(&(cdrom[id].cd_buffer[cdrom_ioctl[id].cd_buflen]), 0, (BUF_SIZE - cdrom_ioctl[id].cd_buflen) * 2);
 				cdrom_ioctl_windows[id].is_playing = 0;
 				ioctl_close(id);
 				cdrom_ioctl[id].cd_state = CD_STOPPED;
@@ -114,15 +114,15 @@ void ioctl_audio_callback(uint8_t id, int16_t *output, int len)
 		}
 		else
 		{
-			memset(&(cdrom_ioctl[id].cd_buffer[cdrom_ioctl[id].cd_buflen]), 0, (BUF_SIZE - cdrom_ioctl[id].cd_buflen) * 2);
+			memset(&(cdrom[id].cd_buffer[cdrom_ioctl[id].cd_buflen]), 0, (BUF_SIZE - cdrom_ioctl[id].cd_buflen) * 2);
 			cdrom_ioctl_windows[id].is_playing = 0;
 			ioctl_close(id);
 			cdrom_ioctl[id].cd_state = CD_STOPPED;
 			cdrom_ioctl[id].cd_buflen = len;                        
 		}
 	}
-	memcpy(output, cdrom_ioctl[id].cd_buffer, len * 2);
-	memcpy(&cdrom_ioctl[id].cd_buffer[0], &(cdrom_ioctl[id].cd_buffer[len]), (BUF_SIZE - len) * 2);
+	memcpy(output, cdrom[id].cd_buffer, len * 2);
+	memcpy(&cdrom[id].cd_buffer[0], &(cdrom[id].cd_buffer[len]), (BUF_SIZE - len) * 2);
 	cdrom_ioctl[id].cd_buflen -= len;
 }
 
