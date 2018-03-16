@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.34	2018/03/15
+ * Version:	@(#)hdc_ide.c	1.0.35	2018/03/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -885,7 +885,7 @@ void ide_reset(void)
 
 		if (ide_drives[d].type != IDE_NONE) {
 			ide_drives[d].buffer = NULL;	/* Important, makes sure malloc does not reuse an existing pointer from elsewhere. */
-			ide_drives[d].buffer = (uint16_t *) malloc(65536);
+			ide_drives[d].buffer = (uint16_t *) malloc(65536 * sizeof(uint16_t));
 		}
 
 		ide_set_signature(&ide_drives[d]);
