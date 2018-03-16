@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.34	2018/03/11
+ * Version:	@(#)rom.c	1.0.35	2018/03/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -721,7 +721,7 @@ rom_load_bios(int rom_id)
 		if (! rom_load_interleaved(
 			L"roms/machines/ibmps2_m70_type3/70-a_even.bin",
 			L"roms/machines/ibmps2_m70_type3/70-a_odd.bin",
-			0x000000, 65536, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 	
@@ -729,7 +729,7 @@ rom_load_bios(int rom_id)
 		if (! rom_load_interleaved(
 			L"roms/machines/ibmps2_m70_type4/70-b_even.bin",
 			L"roms/machines/ibmps2_m70_type4/70-b_odd.bin",
-			0x000000, 65536, 0, rom)) break;
+			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 	

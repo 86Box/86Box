@@ -231,9 +231,6 @@ extern void     flushmmucache_cr3(void);
 extern void	flushmmucache_nopc(void);
 extern void     mmu_invalidate(uint32_t addr);
 
-extern void	mem_split_enable(int max_size, uint32_t addr);
-extern void	mem_split_disable(int max_size, uint32_t addr);
-
 
 extern void	mem_add_bios(void);
 

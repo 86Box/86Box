@@ -40,8 +40,9 @@ static struct
         uint8_t io_id;
         
         mem_mapping_t shadow_mapping;
+        mem_mapping_t split_mapping;
         mem_mapping_t expansion_mapping;
-		mem_mapping_t cache_mapping;
+	mem_mapping_t cache_mapping;
         
         uint8_t (*planar_read)(uint16_t port);
         void (*planar_write)(uint16_t port, uint8_t val);
@@ -49,11 +50,12 @@ static struct
         uint8_t mem_regs[3];
         
         uint32_t split_addr, split_size;
+	uint32_t split_phys;
         
         uint8_t mem_pos_regs[8];
         uint8_t mem_2mb_pos_regs[8];
 		
-		int pending_cache_miss;
+	int pending_cache_miss;
 } ps2;
 
 /*The model 70 type 3/4 BIOS performs cache testing. Since 86Box doesn't have any
@@ -170,6 +172,37 @@ static void ps2_write_shadow_ramw(uint32_t addr, uint16_t val, void *priv)
 static void ps2_write_shadow_raml(uint32_t addr, uint32_t val, void *priv)
 {
         addr = (addr & 0x1ffff) + 0xe0000;
+        mem_write_raml(addr, val, priv);
+}
+
+static uint8_t ps2_read_split_ram(uint32_t addr, void *priv)
+{
+        addr = (addr % (ps2.split_size << 10)) + ps2.split_phys;
+        return mem_read_ram(addr, priv);
+}
+static uint16_t ps2_read_split_ramw(uint32_t addr, void *priv)
+{
+        addr = (addr % (ps2.split_size << 10)) + ps2.split_phys;
+        return mem_read_ramw(addr, priv);
+}
+static uint32_t ps2_read_split_raml(uint32_t addr, void *priv)
+{
+        addr = (addr % (ps2.split_size << 10)) + ps2.split_phys;
+        return mem_read_raml(addr, priv);
+}
+static void ps2_write_split_ram(uint32_t addr, uint8_t val, void *priv)
+{
+        addr = (addr % (ps2.split_size << 10)) + ps2.split_phys;
+        mem_write_ram(addr, val, priv);
+}
+static void ps2_write_split_ramw(uint32_t addr, uint16_t val, void *priv)
+{
+        addr = (addr % (ps2.split_size << 10)) + ps2.split_phys;
+        mem_write_ramw(addr, val, priv);
+}
+static void ps2_write_split_raml(uint32_t addr, uint32_t val, void *priv)
+{
+        addr = (addr % (ps2.split_size << 10)) + ps2.split_phys;
         mem_write_raml(addr, val, priv);
 }
 
@@ -839,7 +872,7 @@ static void ps2_mca_board_model_55sx_init()
 
 static void mem_encoding_update()
 {
-	mem_split_disable(ps2.split_size, ps2.split_addr);
+	mem_mapping_disable(&ps2.split_mapping);
                 
         ps2.split_addr = ((uint32_t) (ps2.mem_regs[0] & 0xf)) << 20;
         
@@ -861,12 +894,16 @@ static void mem_encoding_update()
 
         if (!(ps2.mem_regs[1] & 8))
         {
-		if (ps2.mem_regs[1] & 4)
+		if (ps2.mem_regs[1] & 4) {
 			ps2.split_size = 384;
-		else
+			ps2.split_phys = 0x80000;
+		} else {
 			ps2.split_size = 256;
+			ps2.split_phys = 0xa0000;
+		}
 
-		mem_split_enable(ps2.split_size, ps2.split_addr);
+		mem_mapping_set_exec(&ps2.split_mapping, &ram[ps2.split_phys]);
+		mem_mapping_set_addr(&ps2.split_mapping, ps2.split_addr, ps2.split_size << 10);
 
 		/* pclog("PS/2 Model 80-111: Split memory block enabled at %08X\n", ps2.split_addr); */
         } /* else {
@@ -1108,6 +1145,20 @@ static void ps2_mca_board_model_80_type2_init(int is486)
 
 	ps2.mem_regs[0] |= ((mem_size/1024) & 0x0f);
 
+        mem_mapping_add(&ps2.split_mapping,
+                    (mem_size+256) * 1024, 
+                    256*1024,
+                    ps2_read_split_ram,
+                    ps2_read_split_ramw,
+                    ps2_read_split_raml,
+                    ps2_write_split_ram,
+                    ps2_write_split_ramw,
+                    ps2_write_split_raml,
+                    &ram[0xa0000],
+                    MEM_MAPPING_INTERNAL,
+                    NULL);
+        mem_mapping_disable(&ps2.split_mapping);
+        
         if ((mem_size > 4096) && !is486)
         {
                 /* Only 4 MB supported on planar, create a memory expansion card for the rest */

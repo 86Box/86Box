@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_ide.h	1.0.6	2018/02/14
+ * Version:	@(#)hdd_ide.h	1.0.7	2018/03/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -36,7 +36,7 @@ typedef struct {
 	int packetstatus;
 	uint8_t asc;
 	int reset;
-	uint16_t buffer[65536];
+	uint16_t *buffer;
 	int irqstat;
 	int service;
 	int lba;
@@ -49,7 +49,7 @@ typedef struct {
 	int hdd_num;
 	uint8_t specify_success;
 	int mdma_mode;
-	uint8_t sector_buffer[256*512];
+	uint8_t *sector_buffer;
 	int do_initial_read;
 	int sector_pos;
 } IDE;
@@ -104,6 +104,7 @@ extern void	ide_set_callback(uint8_t channel, int64_t callback);
 extern void	secondary_ide_check(void);
 
 extern void	ide_padstr8(uint8_t *buf, int buf_size, const char *src);
+extern void	ide_destroy_buffers(void);
 
 extern int	(*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length);
 extern int	(*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length);
