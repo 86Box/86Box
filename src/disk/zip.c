@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.9	2018/03/15
+ * Version:	@(#)zip.c	1.0.10	2018/03/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -2267,14 +2267,17 @@ int zip_read_from_dma(uint8_t id)
 
 	ret = zip_phase_data_out(id);
 
-	if (ret) {
+	if (ret || (zip_drives[id].bus_type == ZIP_BUS_SCSI)) {
 		zip_buf_free(id);
 		zip[id].packet_status = ZIP_PHASE_COMPLETE;
 		zip[id].status = READY_STAT;
 		zip[id].phase = 3;
 		ui_sb_update_icon(SB_ZIP | id, 0);
 		zip_irq_raise(id);
-		return 1;
+		if (ret)
+			return 1;
+		else
+			return 0;
 	} else
 		return 0;
 }
@@ -2322,14 +2325,17 @@ int zip_write_to_dma(uint8_t id)
 	} else
 		ret = zip_write_to_ide_dma(zip_drives[id].ide_channel);
 
-	if (ret) {
+	if (ret || (zip_drives[id].bus_type == ZIP_BUS_SCSI)) {
 		zip_buf_free(id);
 		zip[id].packet_status = ZIP_PHASE_COMPLETE;
 		zip[id].status = READY_STAT;
 		zip[id].phase = 3;
 		ui_sb_update_icon(SB_ZIP | id, 0);
 		zip_irq_raise(id);
-		return 1;
+		if (ret)
+			return 1;
+		else
+			return 0;
 	} else
 		return 0;
 }

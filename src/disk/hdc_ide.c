@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.36	2018/03/16
+ * Version:	@(#)hdc_ide.c	1.0.37	2018/03/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -861,7 +861,6 @@ void ide_reset(void)
 		{
 			ide_log("Found IDE hard disk on channel %i\n", hdd[d].ide_channel);
 			loadhd(&ide_drives[hdd[d].ide_channel], d, hdd[d].fn);
-			ide_drives[hdd[d].ide_channel].sector_buffer = NULL;	/* Important, makes sure malloc does not reuse an existing pointer from elsewhere. */
 			ide_drives[hdd[d].ide_channel].sector_buffer = (uint8_t *) malloc(256*512);
 			if (++c >= (IDE_NUM+XTIDE_NUM)) break;
 		}
@@ -869,7 +868,6 @@ void ide_reset(void)
 		{
 			ide_log("Found XT IDE hard disk on channel %i\n", hdd[d].xtide_channel);
 			loadhd(&ide_drives[hdd[d].xtide_channel | 8], d, hdd[d].fn);
-			ide_drives[hdd[d].xtide_channel | 8].sector_buffer = NULL;	/* Important, makes sure malloc does not reuse an existing pointer from elsewhere. */
 			ide_drives[hdd[d].xtide_channel | 8].sector_buffer = (uint8_t *) malloc(256*512);
 			if (++c >= (IDE_NUM+XTIDE_NUM)) break;
 		}
@@ -883,10 +881,8 @@ void ide_reset(void)
 		else if (ide_drive_is_cdrom(&ide_drives[d]) && (ide_drives[d].type == IDE_NONE))
 			ide_drives[d].type = IDE_CDROM;
 
-		if (ide_drives[d].type != IDE_NONE) {
-			ide_drives[d].buffer = NULL;	/* Important, makes sure malloc does not reuse an existing pointer from elsewhere. */
+		if (ide_drives[d].type != IDE_NONE)
 			ide_drives[d].buffer = (uint16_t *) malloc(65536 * sizeof(uint16_t));
-		}
 
 		ide_set_signature(&ide_drives[d]);
 

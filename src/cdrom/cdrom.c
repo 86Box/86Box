@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.35	2018/03/15
+ * Version:	@(#)cdrom.c	1.0.36	2018/03/16
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -2766,14 +2766,17 @@ int cdrom_read_from_dma(uint8_t id)
 
 	ret = cdrom_phase_data_out(id);
 
-	if (ret) {
+	if (ret || (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)) {
 		cdrom_buf_free(id);
 		cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
 		cdrom[id].status = READY_STAT;
 		cdrom[id].phase = 3;
 		ui_sb_update_icon(SB_CDROM | id, 0);
 		cdrom_irq_raise(id);
-		return 1;
+		if (ret)
+			return 1;
+		else
+			return 0;
 	} else
 		return 0;
 }
@@ -2819,14 +2822,17 @@ int cdrom_write_to_dma(uint8_t id)
 	} else
 		ret = cdrom_write_to_ide_dma(cdrom_drives[id].ide_channel);
 
-	if (ret) {
+	if (ret || (cdrom_drives[id].bus_type == CDROM_BUS_SCSI)) {
 		cdrom_buf_free(id);
 		cdrom[id].packet_status = CDROM_PHASE_COMPLETE;
 		cdrom[id].status = READY_STAT;
 		cdrom[id].phase = 3;
 		ui_sb_update_icon(SB_CDROM | id, 0);
 		cdrom_irq_raise(id);
-		return 1;
+		if (ret)
+			return 1;
+		else
+			return 0;
 	} else
 		return 0;
 }
