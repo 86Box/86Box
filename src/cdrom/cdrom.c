@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.38	2018/03/17
+ * Version:	@(#)cdrom.c	1.0.39	2018/03/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -875,7 +875,8 @@ static void cdrom_command_common(uint8_t id)
 			case 0xb8:
 			case 0xb9:
 			case 0xbe:
-				bytes_per_second = 150.0 * 1024.0;
+				/* bytes_per_second = 150.0 * 1024.0; */
+				bytes_per_second = (1000000.0 / 12000.0) * 2048.0;	/* Account for seek time. */
 				bytes_per_second *= (double) cdrom_drives[id].speed;
 				break;
 			default:
