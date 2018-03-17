@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.36	2018/03/16
+ * Version:	@(#)cdrom.c	1.0.37	2018/03/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -453,7 +453,6 @@ void cdrom_init(int id, int cdb_len_setting)
 		return;
 	if (!cdrom[id])
 		cdrom[id] = (cdrom_t *) malloc(sizeof(cdrom_t));
-	pclog(NULL);	/* Trigger segfault so we can backtrace. */
 	dev = cdrom[id];
 	memset(dev, 0, sizeof(cdrom_t));
 	dev->requested_blocks = 1;
@@ -3262,9 +3261,10 @@ cdrom_hard_reset(void)
 	if (cdrom_drives[c].bus_type) {
 		cdrom_log("CDROM global_reset drive=%d host=%02x\n", c, cdrom_drives[c].host_drive);
 
-		SCSIReset(cdrom_drives[c].scsi_device_id, cdrom_drives[c].scsi_device_lun);
 		if (!cdrom[c])
 			cdrom[c] = (cdrom_t *) malloc(sizeof(cdrom_t));
+
+		SCSIReset(cdrom_drives[c].scsi_device_id, cdrom_drives[c].scsi_device_lun);
 
 		if (cdrom_drives[c].host_drive == 200) {
 			image_open(c, cdrom_image[c].image_path);
