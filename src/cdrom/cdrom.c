@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.37	2018/03/17
+ * Version:	@(#)cdrom.c	1.0.38	2018/03/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -451,8 +451,6 @@ void cdrom_init(int id, int cdb_len_setting)
 
 	if (id >= CDROM_NUM)
 		return;
-	if (!cdrom[id])
-		cdrom[id] = (cdrom_t *) malloc(sizeof(cdrom_t));
 	dev = cdrom[id];
 	memset(dev, 0, sizeof(cdrom_t));
 	dev->requested_blocks = 1;
@@ -856,16 +854,16 @@ static void cdrom_command_common(uint8_t id)
 		switch(dev->current_cdb[0]) {
 			case 0x0b:
 			case 0x2b:
-				/* Seek time is in ms. */
-				period = cdrom_seek_time(id) * ((double) TIMER_USEC) * 1000.0;
+				/* Seek time is in us. */
+				period = cdrom_seek_time(id) * ((double) TIMER_USEC);
 				dev->callback += ((int64_t) period);
 				cdrom_set_callback(id);
 				return;
 			case 0x08:
 			case 0x28:
 			case 0xa8:
-				/* Seek time is in ms. */
-				period = cdrom_seek_time(id) * ((double) TIMER_USEC) * 1000.0;
+				/* Seek time is in us. */
+				period = cdrom_seek_time(id) * ((double) TIMER_USEC);
 				dev->callback += ((int64_t) period);
 			case 0x25:
 			case 0x42:

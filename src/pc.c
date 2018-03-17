@@ -665,12 +665,12 @@ again2:
 
     hdc_init(hdc_name);
 
+    cdrom_hard_reset();
+    zip_hard_reset();
+
     ide_reset_hard();
 
     scsi_card_init();
-
-    cdrom_hard_reset();
-    zip_hard_reset();
 
     pc_full_speed();
     shadowbios = 0;
@@ -817,14 +817,14 @@ pc_reset_hard_init(void)
     /* Reset the video card. */
     video_reset(gfxcard);
 
+    cdrom_hard_reset();
+    zip_hard_reset();
+
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
 
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
-
-    cdrom_hard_reset();
-    zip_hard_reset();
 
     /* Reset and reconfigure the Network Card layer. */
     network_reset();

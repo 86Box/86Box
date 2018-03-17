@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.38	2018/03/16
+ * Version:	@(#)hdc_ide.c	1.0.39	2018/03/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1515,14 +1515,14 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 					zip[atapi_zip_drives[ide->channel]].packet_status = ZIP_PHASE_IDLE;
 					zip[atapi_zip_drives[ide->channel]].pos=0;
 					zip[atapi_zip_drives[ide->channel]].phase = 1;
-					zip[atapi_zip_drives[ide->channel]].status = READY_STAT | DRQ_STAT | (zip[cur_ide[ide_board]].status & ERR_STAT);
+					zip[atapi_zip_drives[ide->channel]].status = READY_STAT | DRQ_STAT | (zip[atapi_zip_drives[ide->channel]].status & ERR_STAT);
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
 					cdrom[atapi_cdrom_drives[ide->channel]]->packet_status = CDROM_PHASE_IDLE;
 					cdrom[atapi_cdrom_drives[ide->channel]]->pos=0;
 					cdrom[atapi_cdrom_drives[ide->channel]]->phase = 1;
-					cdrom[atapi_cdrom_drives[ide->channel]]->status = READY_STAT | DRQ_STAT | (cdrom[cur_ide[ide_board]]->status & ERR_STAT);
+					cdrom[atapi_cdrom_drives[ide->channel]]->status = READY_STAT | DRQ_STAT | (cdrom[atapi_cdrom_drives[ide->channel]]->status & ERR_STAT);
 				}
 				else
 				{
