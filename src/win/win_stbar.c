@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.15	2018/03/06
+ * Version:	@(#)win_stbar.c	1.0.16	2018/03/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -1076,6 +1076,8 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 						/* Switching from image to the same image. Do nothing. */
 						break;
 					}
+					if (!cdrom_image[id].prev_image_path)
+						cdrom_image[id].prev_image_path = (wchar_t *) malloc(1024);
 					wcscpy(cdrom_image[id].prev_image_path, cdrom_image[id].image_path);
 					cdrom_drives[id].handler->exit(id);
 					cdrom_close(id);
