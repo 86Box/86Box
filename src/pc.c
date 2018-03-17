@@ -527,12 +527,7 @@ pc_reload(wchar_t *fn)
 	fdd_close(i);
     for (i=0; i<CDROM_NUM; i++) {
 	cdrom_drives[i].handler->exit(i);
-	if (cdrom_drives[i].host_drive == 200)
-		image_close(i);
-	  else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
-		ioctl_close(i);
-	  else
-		null_close(i);
+	cdrom_close(i);
     }
 
     pc_reset_hard_close();
@@ -658,9 +653,6 @@ again2:
 
     ide_init_first();
 
-    cdrom_global_reset();
-    zip_global_reset();
-
     device_init();        
                        
     timer_reset();
@@ -675,10 +667,10 @@ again2:
 
     ide_reset_hard();
 
+    scsi_card_init();
+
     cdrom_hard_reset();
     zip_hard_reset();
-
-    scsi_card_init();
 
     pc_full_speed();
     shadowbios = 0;
@@ -828,16 +820,6 @@ pc_reset_hard_init(void)
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
 
-    /* Reconfire and reset the IDE layer. */
-    // FIXME: this should have been done via hdc_reset() above.. --FvK
-    ide_ter_disable();
-    ide_qua_disable();
-    if (ide_enable[2])
-	ide_ter_init();
-    if (ide_enable[3])
-	ide_qua_init();
-    ide_reset_hard();
-
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
@@ -970,6 +952,8 @@ pc_close(thread_t *ptr)
     mem_destroy_pages();
 
     ide_destroy_buffers();
+
+    cdrom_destroy_drives();
 }
 
 

@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.h	1.0.6	2018/03/15
+ * Version:	@(#)cdrom.h	1.0.8	2018/03/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -121,6 +121,7 @@ typedef struct {
 	int callback;
 
 	int data_pos;
+	uint32_t seek_diff;
 
 	int cdb_len_setting;
 	int cdb_len;
@@ -150,6 +151,20 @@ typedef struct {
 	int init_length;
 
 	int16_t cd_buffer[BUF_SIZE];
+
+	uint8_t rcbuf[16];
+	uint8_t sub_q_data_format[16];
+	uint8_t sub_q_channel_data[256];
+	int last_subchannel_pos;
+
+	uint32_t cd_end;
+	uint32_t cdrom_capacity;
+
+	int cd_buflen;
+	int cd_state;
+
+	int handler_inited;
+	int disc_changed;
 } cdrom_t;
 
 typedef struct {
@@ -177,52 +192,31 @@ typedef struct {
 
 typedef struct {
 	int image_is_iso;
-
-	uint32_t last_block;
-	uint32_t cdrom_capacity;
-	int image_inited;
 	wchar_t image_path[1024];
-	wchar_t prev_image_path[1024];
+	wchar_t *prev_image_path;
 	FILE* image;
-	int image_changed;
-
-	int cd_state;
-	uint32_t cd_pos;
-	uint32_t cd_end;
-	int cd_buflen;
 } cdrom_image_t;
 
 typedef struct {
-	uint32_t last_block;
-	uint32_t cdrom_capacity;
-	int ioctl_inited;
 	char ioctl_path[8];
-	int tocvalid;
-	int cd_state;
-	uint32_t cd_end;
-	int cd_buflen;
 	int actual_requested_blocks;
 	int last_track_pos;
 	int last_track_nr;
 	int capacity_read;
-	uint8_t rcbuf[16];
-	uint8_t sub_q_data_format[16];
-	uint8_t sub_q_channel_data[256];
-	int last_subchannel_pos;
 } cdrom_ioctl_t;
 
 
-extern cdrom_t		cdrom[CDROM_NUM];
+extern cdrom_t		*cdrom[CDROM_NUM];
 extern cdrom_drive_t	cdrom_drives[CDROM_NUM];
-extern uint8_t		atapi_cdrom_drives[8];
-extern uint8_t		scsi_cdrom_drives[16][8];
 extern cdrom_image_t	cdrom_image[CDROM_NUM];
 extern cdrom_ioctl_t	cdrom_ioctl[CDROM_NUM];
+extern uint8_t		atapi_cdrom_drives[8];
+extern uint8_t		scsi_cdrom_drives[16][8];
 
-#define cdrom_sense_error cdrom[id].sense[0]
-#define cdrom_sense_key cdrom[id].sense[2]
-#define cdrom_asc cdrom[id].sense[12]
-#define cdrom_ascq cdrom[id].sense[13]
+#define cdrom_sense_error cdrom[id]->sense[0]
+#define cdrom_sense_key cdrom[id]->sense[2]
+#define cdrom_asc cdrom[id]->sense[12]
+#define cdrom_ascq cdrom[id]->sense[13]
 #define cdrom_drive cdrom_drives[id].host_drive
 
 
@@ -247,6 +241,7 @@ extern uint32_t	cdrom_read(uint8_t channel, int length);
 extern void	cdrom_write(uint8_t channel, uint32_t val, int length);
 
 extern int	cdrom_lba_to_msf_accurate(int lba);
+extern void	cdrom_destroy_drives(void);
 
 extern void     cdrom_close(uint8_t id);
 extern void	cdrom_reset(uint8_t id);

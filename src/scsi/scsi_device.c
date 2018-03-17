@@ -8,7 +8,7 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.14	2018/03/07
+ * Version:	@(#)scsi_device.c	1.0.15	2018/03/16
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -106,7 +106,7 @@ static void scsi_device_target_save_cdb_byte(int lun_type, uint8_t id, uint8_t c
 	}
 	else if (lun_type == SCSI_CDROM)
 	{
-		cdrom[id].request_length = cdb_byte;
+		cdrom[id]->request_length = cdb_byte;
 	}
 	else if (lun_type == SCSI_ZIP)
 	{
@@ -133,7 +133,7 @@ int64_t scsi_device_get_callback(uint8_t scsi_id, uint8_t scsi_lun)
 		break;
 	case SCSI_CDROM:
 		id = scsi_cdrom_drives[scsi_id][scsi_lun];
-		return cdrom[id].callback;
+		return cdrom[id]->callback;
 		break;
 	case SCSI_ZIP:
 		id = scsi_zip_drives[scsi_id][scsi_lun];
@@ -160,7 +160,7 @@ uint8_t *scsi_device_sense(uint8_t scsi_id, uint8_t scsi_lun)
 		break;
 	case SCSI_CDROM:
 		id = scsi_cdrom_drives[scsi_id][scsi_lun];
-		return cdrom[id].sense;
+		return cdrom[id]->sense;
 		break;
 	case SCSI_ZIP:
 		id = scsi_zip_drives[scsi_id][scsi_lun];
@@ -301,7 +301,7 @@ int scsi_device_cdb_length(uint8_t scsi_id, uint8_t scsi_lun)
     {
 	case SCSI_CDROM:
 		id = scsi_cdrom_drives[scsi_id][scsi_lun];
-		return cdrom[id].cdb_len;
+		return cdrom[id]->cdb_len;
 	case SCSI_ZIP:
 		id = scsi_zip_drives[scsi_id][scsi_lun];
 		return zip[id].cdb_len;

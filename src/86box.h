@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.18	2018/03/13
+ * Version:	@(#)86box.h	1.0.19	2018/03/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -52,7 +52,7 @@
 #endif
 
 #define MIN(a, b)             ((a) < (b) ? (a) : (b))
-
+#define ABS(x)		      ((x) > 0 ? (x) : -(x))
 
 #ifdef __cplusplus
 extern "C" {

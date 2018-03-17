@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.44	2018/03/06
+ * Version:	@(#)config.c	1.0.45	2018/03/17
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1095,7 +1095,6 @@ load_removable_devices(void)
 	} else
 #endif
 	wcsncpy(cdrom_image[c].image_path, wp, sizeof_w(cdrom_image[c].image_path));
-	wcscpy(cdrom_image[c].prev_image_path, cdrom_image[c].image_path);
 
 	if (cdrom_drives[c].host_drive < 'A')
 		cdrom_drives[c].host_drive = 0;
@@ -1288,7 +1287,6 @@ load_other_removable_devices(void)
 	} else
 #endif
 	wcsncpy(cdrom_image[c].image_path, wp, sizeof_w(cdrom_image[c].image_path));
-	wcscpy(cdrom_image[c].prev_image_path, cdrom_image[c].image_path);
 
 	if (cdrom_drives[c].host_drive < 'A')
 		cdrom_drives[c].host_drive = 0;

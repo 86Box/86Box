@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.37	2018/03/16
+ * Version:	@(#)hdc_ide.c	1.0.38	2018/03/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -639,8 +639,8 @@ void ide_set_signature(IDE *ide)
 	else if (ide_drive_is_cdrom(ide))
 	{
 		cdrom_set_signature(cdrom_id);
-		ide->secount = cdrom[cdrom_id].phase;
-		ide->cylinder = cdrom[cdrom_id].request_length;
+		ide->secount = cdrom[cdrom_id]->phase;
+		ide->cylinder = cdrom[cdrom_id]->request_length;
 	}
 	else
 	{
@@ -832,7 +832,7 @@ void ide_reset(void)
 		}
 		else if ((d < 8) && ide_drive_is_cdrom(&ide_drives[d]))
 		{
-			cdrom[atapi_cdrom_drives[d]].status = READY_STAT | DSC_STAT;
+			cdrom[atapi_cdrom_drives[d]]->status = READY_STAT | DSC_STAT;
 		}
 		ide_drives[d].atastat = READY_STAT | DSC_STAT;
 		ide_drives[d].service = 0;
@@ -1033,7 +1033,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			else if (ide_drive_is_cdrom(ide))
 			{
 				ide_log("ATAPI transfer mode: %s\n", (val & 1) ? "DMA" : "PIO");
-				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].features = val;
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]]->features = val;
 			}
 			ide->cylprecomp = val;
 
@@ -1043,7 +1043,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			}
 			else if (ide_drive_is_cdrom(ide_other))
 			{
-				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].features = val;
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]]->features = val;
 			}
 			ide_other->cylprecomp = val;
 			return;
@@ -1057,7 +1057,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			else if (ide_drive_is_cdrom(ide))
 			{
 				ide_log("Sector count write: %i\n", val);
-				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].phase = val;
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]]->phase = val;
 			}
 			ide->secount = val;
 
@@ -1069,7 +1069,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			else if (ide_drive_is_cdrom(ide_other))
 			{
 				ide_log("Other sector count write: %i\n", val);
-				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].phase = val;
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]]->phase = val;
 			}
 			ide_other->secount = val;
 			return;
@@ -1089,8 +1089,8 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			}
 			else if (ide_drive_is_cdrom(ide))
 			{
-				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length &= 0xFF00;
-				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length |= val;
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]]->request_length &= 0xFF00;
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]]->request_length |= val;
 			}
 			ide->cylinder = (ide->cylinder & 0xFF00) | val;
 			ide->lba_addr = (ide->lba_addr & 0xFFF00FF) | (val << 8);
@@ -1102,8 +1102,8 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			}
 			else if (ide_drive_is_cdrom(ide_other))
 			{
-				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].request_length &= 0xFF00;
-				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].request_length |= val;
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]]->request_length &= 0xFF00;
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]]->request_length |= val;
 			}
 			ide_other->cylinder = (ide_other->cylinder&0xFF00) | val;
 			ide_other->lba_addr = (ide_other->lba_addr&0xFFF00FF) | (val << 8);
@@ -1117,8 +1117,8 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			}
 			else if (ide_drive_is_cdrom(ide))
 			{
-				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length &= 0xFF;
-				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length |= (val << 8);
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]]->request_length &= 0xFF;
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board]]]->request_length |= (val << 8);
 			}
 			ide->cylinder = (ide->cylinder & 0xFF) | (val << 8);
 			ide->lba_addr = (ide->lba_addr & 0xF00FFFF) | (val << 16);
@@ -1130,8 +1130,8 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			}
 			else if (ide_drive_is_cdrom(ide_other))
 			{
-				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].request_length &= 0xFF;
-				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]].request_length |= (val << 8);
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]]->request_length &= 0xFF;
+				cdrom[atapi_cdrom_drives[cur_ide[ide_board] ^ 1]]->request_length |= (val << 8);
 			}
 			ide_other->cylinder = (ide_other->cylinder & 0xFF) | (val << 8);
 			ide_other->lba_addr = (ide_other->lba_addr & 0xF00FFFF) | (val << 16);
@@ -1163,11 +1163,11 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 					}
 					else if (ide_drive_is_cdrom(ide))
 					{
-						cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT | DSC_STAT;
-						cdrom[atapi_cdrom_drives[ide->channel]].error = 1;
-						cdrom[atapi_cdrom_drives[ide->channel]].phase = 1;
-						cdrom[atapi_cdrom_drives[ide->channel]].request_length = 0xEB14;
-						cdrom[atapi_cdrom_drives[ide->channel]].callback = 0LL;
+						cdrom[atapi_cdrom_drives[ide->channel]]->status = READY_STAT | DSC_STAT;
+						cdrom[atapi_cdrom_drives[ide->channel]]->error = 1;
+						cdrom[atapi_cdrom_drives[ide->channel]]->phase = 1;
+						cdrom[atapi_cdrom_drives[ide->channel]]->request_length = 0xEB14;
+						cdrom[atapi_cdrom_drives[ide->channel]]->callback = 0LL;
 						ide->cylinder = 0xEB14;
 					}
 
@@ -1182,11 +1182,11 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 					}
 					else if (ide_drive_is_cdrom(ide_other))
 					{
-						cdrom[atapi_cdrom_drives[ide_other->channel]].status = READY_STAT | DSC_STAT;
-						cdrom[atapi_cdrom_drives[ide_other->channel]].error = 1;
-						cdrom[atapi_cdrom_drives[ide_other->channel]].phase = 1;
-						cdrom[atapi_cdrom_drives[ide_other->channel]].request_length = 0xEB14;
-						cdrom[atapi_cdrom_drives[ide_other->channel]].callback = 0LL;
+						cdrom[atapi_cdrom_drives[ide_other->channel]]->status = READY_STAT | DSC_STAT;
+						cdrom[atapi_cdrom_drives[ide_other->channel]]->error = 1;
+						cdrom[atapi_cdrom_drives[ide_other->channel]]->phase = 1;
+						cdrom[atapi_cdrom_drives[ide_other->channel]]->request_length = 0xEB14;
+						cdrom[atapi_cdrom_drives[ide_other->channel]]->callback = 0LL;
 						ide->cylinder = 0xEB14;
 					}
 
@@ -1224,7 +1224,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 		}
 		else if (ide_drive_is_cdrom(ide))
 		{
-			cdrom[atapi_cdrom_drives[ide->channel]].error = 0;
+			cdrom[atapi_cdrom_drives[ide->channel]]->error = 0;
 		}
 		if (((val >= WIN_RESTORE) && (val <= 0x1F)) || ((val >= WIN_SEEK) && (val <= 0x7F)))
 		{
@@ -1234,7 +1234,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			}
 			else if (ide_drive_is_cdrom(ide))
 			{
-				cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT;
+				cdrom[atapi_cdrom_drives[ide->channel]]->status = READY_STAT;
 			}
 			else
 			{
@@ -1247,7 +1247,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 			}
 			if (ide_drive_is_cdrom(ide))
 			{
-				cdrom[atapi_cdrom_drives[ide->channel]].callback = 100LL*IDE_TIME;
+				cdrom[atapi_cdrom_drives[ide->channel]]->callback = 100LL*IDE_TIME;
 			}
 			idecallback[ide_board]=40000LL * TIMER_USEC /*100LL*IDE_TIME*/;
 			timer_update_outstanding();
@@ -1262,7 +1262,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					cdrom[atapi_cdrom_drives[ide->channel]]->status = BUSY_STAT;
 				}
 				else
 				{
@@ -1275,7 +1275,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 100LL*IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]]->callback = 100LL*IDE_TIME;
 				}
                 	        idecallback[ide_board]=100LL*IDE_TIME;
 	                        timer_update_outstanding();
@@ -1299,7 +1299,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					cdrom[atapi_cdrom_drives[ide->channel]]->status = BUSY_STAT;
 				}
 				else
 				{
@@ -1312,7 +1312,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200LL*IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]]->callback = 200LL*IDE_TIME;
 				}
 				idecallback[ide_board]=200LL*IDE_TIME;
 				timer_update_outstanding();
@@ -1335,8 +1335,8 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].status = DRQ_STAT | DSC_STAT | READY_STAT;
-					cdrom[atapi_cdrom_drives[ide->channel]].pos = 0;
+					cdrom[atapi_cdrom_drives[ide->channel]]->status = DRQ_STAT | DSC_STAT | READY_STAT;
+					cdrom[atapi_cdrom_drives[ide->channel]]->pos = 0;
 				}
 				else
 				{
@@ -1353,7 +1353,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					cdrom[atapi_cdrom_drives[ide->channel]]->status = BUSY_STAT;
 				}
 				else
 				{
@@ -1366,7 +1366,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200LL*IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]]->callback = 200LL*IDE_TIME;
 				}
 				idecallback[ide_board]=200LL*IDE_TIME;
 				timer_update_outstanding();
@@ -1380,7 +1380,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					cdrom[atapi_cdrom_drives[ide->channel]]->status = BUSY_STAT;
 				}
 				else
 				{
@@ -1393,7 +1393,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200LL*IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]]->callback = 200LL*IDE_TIME;
 				}
 				idecallback[ide_board]=200LL*IDE_TIME;
 				timer_update_outstanding();
@@ -1418,7 +1418,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					cdrom[atapi_cdrom_drives[ide->channel]]->status = BUSY_STAT;
 				}
 				else
 				{
@@ -1431,7 +1431,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 30LL*IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]]->callback = 30LL*IDE_TIME;
 				}
 				idecallback[ide_board]=30LL*IDE_TIME;
 				timer_update_outstanding();
@@ -1439,16 +1439,16 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 
 			case WIN_DRIVE_DIAGNOSTICS: /* Execute Drive Diagnostics */
 				if (ide_drive_is_zip(ide))
-						zip[atapi_zip_drives[ide->channel]].status = BUSY_STAT;
+					zip[atapi_zip_drives[ide->channel]].status = BUSY_STAT;
 				else if (ide_drive_is_cdrom(ide))
-					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					cdrom[atapi_cdrom_drives[ide->channel]]->status = BUSY_STAT;
 				else
 					ide->atastat = BUSY_STAT;
 
 				if (ide_drive_is_zip(ide_other))
 					zip[atapi_zip_drives[ide_other->channel]].status = BUSY_STAT;
 				else if (ide_drive_is_cdrom(ide_other))
-					cdrom[atapi_cdrom_drives[ide_other->channel]].status = BUSY_STAT;
+					cdrom[atapi_cdrom_drives[ide_other->channel]]->status = BUSY_STAT;
 				else
 					ide_other->atastat = BUSY_STAT;
 
@@ -1456,7 +1456,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				if (ide_drive_is_zip(ide))
 					zip[atapi_zip_drives[ide->channel]].callback = 200LL * IDE_TIME;
 				else if (ide_drive_is_cdrom(ide))
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200LL * IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]]->callback = 200LL * IDE_TIME;
 				idecallback[ide_board] = 200LL * IDE_TIME;
 				timer_update_outstanding();
 				return;
@@ -1472,7 +1472,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				if (ide_drive_is_zip(ide))
 					zip[atapi_zip_drives[ide->channel]].status = BUSY_STAT;
 				else if (ide_drive_is_cdrom(ide))
-					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					cdrom[atapi_cdrom_drives[ide->channel]]->status = BUSY_STAT;
 				else
 					ide->atastat = BUSY_STAT;
 				timer_process();
@@ -1489,7 +1489,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					cdrom[atapi_cdrom_drives[ide->channel]]->status = BUSY_STAT;
 				}
 				else
 				{
@@ -1502,7 +1502,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 200LL*IDE_TIME;
+					cdrom[atapi_cdrom_drives[ide->channel]]->callback = 200LL*IDE_TIME;
 				}
 				idecallback[ide_board]=200LL*IDE_TIME;
 				timer_update_outstanding();
@@ -1519,10 +1519,10 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].packet_status = CDROM_PHASE_IDLE;
-					cdrom[atapi_cdrom_drives[ide->channel]].pos=0;
-					cdrom[atapi_cdrom_drives[ide->channel]].phase = 1;
-					cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT | DRQ_STAT | (cdrom[cur_ide[ide_board]].status & ERR_STAT);
+					cdrom[atapi_cdrom_drives[ide->channel]]->packet_status = CDROM_PHASE_IDLE;
+					cdrom[atapi_cdrom_drives[ide->channel]]->pos=0;
+					cdrom[atapi_cdrom_drives[ide->channel]]->phase = 1;
+					cdrom[atapi_cdrom_drives[ide->channel]]->status = READY_STAT | DRQ_STAT | (cdrom[cur_ide[ide_board]]->status & ERR_STAT);
 				}
 				else
 				{
@@ -1544,8 +1544,8 @@ ide_bad_command:
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].status = READY_STAT | ERR_STAT | DSC_STAT;
-					cdrom[atapi_cdrom_drives[ide->channel]].error = ABRT_ERR;
+					cdrom[atapi_cdrom_drives[ide->channel]]->status = READY_STAT | ERR_STAT | DSC_STAT;
+					cdrom[atapi_cdrom_drives[ide->channel]]->error = ABRT_ERR;
 				}
 				else
 				{
@@ -1567,7 +1567,7 @@ ide_bad_command:
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].callback = 0LL;
+					cdrom[atapi_cdrom_drives[ide->channel]]->callback = 0LL;
 				}
 				idecallback[ide_board]=500LL*IDE_TIME;
 				timer_update_outstanding();
@@ -1586,7 +1586,7 @@ ide_bad_command:
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					cdrom[atapi_cdrom_drives[ide->channel]].status = BUSY_STAT;
+					cdrom[atapi_cdrom_drives[ide->channel]]->status = BUSY_STAT;
 				}
 				ide->atastat = ide_other->atastat = BUSY_STAT;
 			}
@@ -1670,8 +1670,8 @@ uint32_t ide_read_data(int ide_board, int length)
 		}
 		else if (ide_drive_is_cdrom(ide))
 		{
-			cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].status = READY_STAT | DSC_STAT;
-			cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].packet_status = CDROM_PHASE_IDLE;
+			cdrom[atapi_cdrom_drives[cur_ide[ide_board]]]->status = READY_STAT | DSC_STAT;
+			cdrom[atapi_cdrom_drives[cur_ide[ide_board]]]->packet_status = CDROM_PHASE_IDLE;
 		}
 		if (ide->command == WIN_READ || ide->command == WIN_READ_NORETRY || ide->command == WIN_READ_MULTIPLE)
 		{
@@ -1733,7 +1733,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					temp = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].error;
+					temp = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]]->error;
 				}
 				else
 				{
@@ -1762,7 +1762,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 			}
 			else if (ide_drive_is_cdrom(ide))
 			{
-				temp = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].phase;
+				temp = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]]->phase;
 			}
 			else
 			{
@@ -1787,7 +1787,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					temp = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length & 0xff;
+					temp = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]]->request_length & 0xff;
 				}
 				else
 				{
@@ -1809,7 +1809,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					temp = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].request_length >> 8;
+					temp = cdrom[atapi_cdrom_drives[cur_ide[ide_board]]]->request_length >> 8;
 				}
 				else
 				{
@@ -1838,7 +1838,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					temp = (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].status & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
+					temp = (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]]->status & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
 				}
 				else
 				{
@@ -1860,7 +1860,7 @@ uint8_t readide(int ide_board, uint16_t addr)
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{
-					temp = (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]].status & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
+					temp = (cdrom[atapi_cdrom_drives[cur_ide[ide_board]]]->status & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
 				}
 				else
 				{
@@ -1942,10 +1942,10 @@ void callbackide(int ide_board)
 		else if (ide_drive_is_cdrom(ide))
 		{
 			cdrom_id = atapi_cdrom_drives[cur_ide[ide_board]];
-			cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
-			cdrom[cdrom_id].error = 1;
-			cdrom[cdrom_id].phase = 1;
-			cdrom[cdrom_id].request_length=0xEB14;
+			cdrom[cdrom_id]->status = READY_STAT | DSC_STAT;
+			cdrom[cdrom_id]->error = 1;
+			cdrom[cdrom_id]->phase = 1;
+			cdrom[cdrom_id]->request_length=0xEB14;
 			ide->cylinder = 0xEB14;
 			if (cdrom_drives[cdrom_id].handler->stop)
 			{
@@ -1968,10 +1968,10 @@ void callbackide(int ide_board)
 		else if (ide_drive_is_cdrom(ide_other))
 		{
 			cdrom_id_other = atapi_cdrom_drives[cur_ide[ide_board] ^ 1];
-			cdrom[cdrom_id_other].status = READY_STAT | DSC_STAT;
-			cdrom[cdrom_id_other].error = 1;
-			cdrom[cdrom_id_other].phase = 1;
-			cdrom[cdrom_id_other].request_length=0xEB14;
+			cdrom[cdrom_id_other]->status = READY_STAT | DSC_STAT;
+			cdrom[cdrom_id_other]->error = 1;
+			cdrom[cdrom_id_other]->phase = 1;
+			cdrom[cdrom_id_other]->request_length=0xEB14;
 			ide_other->cylinder = 0xEB14;
 			if (cdrom_drives[cdrom_id_other].handler->stop)
 			{
@@ -2028,9 +2028,9 @@ void callbackide(int ide_board)
 			}
 			else if (ide_drive_is_cdrom(ide))
 			{
-				cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
-				cdrom[cdrom_id].error = 1;
-				cdrom[cdrom_id].phase = 1;
+				cdrom[cdrom_id]->status = READY_STAT | DSC_STAT;
+				cdrom[cdrom_id]->error = 1;
+				cdrom[cdrom_id]->phase = 1;
 				cdrom_reset(cdrom_id);
 			}
 			ide_irq_raise(ide);
@@ -2050,7 +2050,7 @@ void callbackide(int ide_board)
 			}
 			else if (ide_drive_is_cdrom(ide))
 			{
-				cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
+				cdrom[cdrom_id]->status = READY_STAT | DSC_STAT;
 			}
 			else
 			{
@@ -2068,8 +2068,8 @@ void callbackide(int ide_board)
 			}
 			else if (ide_drive_is_cdrom(ide))
 			{
-				cdrom[cdrom_id].phase = 0xFF;
-				cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
+				cdrom[cdrom_id]->phase = 0xFF;
+				cdrom[cdrom_id]->status = READY_STAT | DSC_STAT;
 			}
 			ide->secount = 0xFF;
 			ide->atastat = READY_STAT | DSC_STAT;
@@ -2361,8 +2361,8 @@ void callbackide(int ide_board)
 			}
 			else if (ide_drive_is_cdrom(ide))
 			{
-				cdrom[cdrom_id].status = 0;
-				cdrom[cdrom_id].error = 1;
+				cdrom[cdrom_id]->status = 0;
+				cdrom[cdrom_id]->error = 1;
 				ide_irq_raise(ide);
 			}
 			else
@@ -2382,8 +2382,8 @@ void callbackide(int ide_board)
 			}
 			else if (ide_drive_is_cdrom(ide_other))
 			{
-				cdrom[cdrom_id_other].status = 0;
-				cdrom[cdrom_id_other].error = 1;
+				cdrom[cdrom_id_other]->status = 0;
+				cdrom[cdrom_id_other]->error = 1;
 			}
 			else
 			{
@@ -2426,10 +2426,10 @@ void callbackide(int ide_board)
 			{
 				ide_atapi_identify(ide);
 				ide->pos = 0;
-				cdrom[cdrom_id].phase = 2;
-				cdrom[cdrom_id].pos = 0;
-				cdrom[cdrom_id].error = 0;
-				cdrom[cdrom_id].status = DRQ_STAT | READY_STAT | DSC_STAT;
+				cdrom[cdrom_id]->phase = 2;
+				cdrom[cdrom_id]->pos = 0;
+				cdrom[cdrom_id]->error = 0;
+				cdrom[cdrom_id]->status = DRQ_STAT | READY_STAT | DSC_STAT;
 				ide_irq_raise(ide);
 				return;
 			}
@@ -2462,8 +2462,8 @@ void callbackide(int ide_board)
 					zip[zip_id].pos = 0;
 				}
 				else if (ide_drive_is_cdrom(ide)) {
-					cdrom[cdrom_id].status = READY_STAT | DSC_STAT;
-					cdrom[cdrom_id].pos = 0;
+					cdrom[cdrom_id]->status = READY_STAT | DSC_STAT;
+					cdrom[cdrom_id]->pos = 0;
 				}
 				ide->atastat = READY_STAT | DSC_STAT;
 				ide_irq_raise(ide);
@@ -2525,9 +2525,9 @@ abort_cmd:
 	}
 	else if (ide_drive_is_cdrom(ide))
 	{
-		cdrom[cdrom_id].status = READY_STAT | ERR_STAT | DSC_STAT;
-		cdrom[cdrom_id].error = ABRT_ERR;
-		cdrom[cdrom_id].pos = 0;
+		cdrom[cdrom_id]->status = READY_STAT | ERR_STAT | DSC_STAT;
+		cdrom[cdrom_id]->error = ABRT_ERR;
+		cdrom[cdrom_id]->pos = 0;
 	}
 	else
 	{

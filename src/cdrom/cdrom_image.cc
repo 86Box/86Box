@@ -66,51 +66,56 @@ void image_close(uint8_t id);
 
 void image_audio_callback(uint8_t id, int16_t *output, int len)
 {
-        if (!cdrom_drives[id].sound_on || (cdrom_image[id].cd_state != CD_PLAYING) || cdrom_image[id].image_is_iso)
+	cdrom_t *dev = cdrom[id];
+
+        if (!cdrom_drives[id].sound_on || (dev->cd_state != CD_PLAYING) || cdrom_image[id].image_is_iso)
         {
 		cdrom_image_log("image_audio_callback(i): Not playing\n", id);
-		if (cdrom_ioctl[id].cd_state == CD_PLAYING)
+		if (dev->cd_state == CD_PLAYING)
 		{
-			cdrom[id].seek_pos += (len >> 11);
+			dev->seek_pos += (len >> 11);
 		}
                 memset(output, 0, len * 2);
                 return;
         }
-        while (cdrom_image[id].cd_buflen < len)
+        while (dev->cd_buflen < len)
         {
-                if (cdrom[id].seek_pos < cdrom_image[id].cd_end)
+                if (dev->seek_pos < dev->cd_end)
                 {
-                        if (!cdimg[id]->ReadSector((unsigned char*)&cdrom[id].cd_buffer[cdrom_image[id].cd_buflen], true, cdrom[id].seek_pos))
+                        if (!cdimg[id]->ReadSector((unsigned char*)&dev->cd_buffer[dev->cd_buflen], true, dev->seek_pos))
                         {
-                                memset(&cdrom[id].cd_buffer[cdrom_image[id].cd_buflen], 0, (BUF_SIZE - cdrom_image[id].cd_buflen) * 2);
-                                cdrom_image[id].cd_state = CD_STOPPED;
-                                cdrom_image[id].cd_buflen = len;
+                                memset(&dev->cd_buffer[dev->cd_buflen], 0, (BUF_SIZE - dev->cd_buflen) * 2);
+                                dev->cd_state = CD_STOPPED;
+                                dev->cd_buflen = len;
                         }
                         else
                         {
-                                cdrom[id].seek_pos++;
-                                cdrom_image[id].cd_buflen += (RAW_SECTOR_SIZE / 2);
+                                dev->seek_pos++;
+                                dev->cd_buflen += (RAW_SECTOR_SIZE / 2);
                         }
                 }
                 else
                 {
-                        memset(&cdrom[id].cd_buffer[cdrom_image[id].cd_buflen], 0, (BUF_SIZE - cdrom_image[id].cd_buflen) * 2);
-                        cdrom_image[id].cd_state = CD_STOPPED;
-                        cdrom_image[id].cd_buflen = len;
+                        memset(&dev->cd_buffer[dev->cd_buflen], 0, (BUF_SIZE - dev->cd_buflen) * 2);
+                        dev->cd_state = CD_STOPPED;
+                        dev->cd_buflen = len;
                 }
         }
-        memcpy(output, cdrom[id].cd_buffer, len * 2);
-        memmove(cdrom[id].cd_buffer, &cdrom[id].cd_buffer[len], (BUF_SIZE - len) * 2);
-        cdrom_image[id].cd_buflen -= len;
+        memcpy(output, dev->cd_buffer, len * 2);
+        memmove(dev->cd_buffer, &dev->cd_buffer[len], (BUF_SIZE - len) * 2);
+        dev->cd_buflen -= len;
 }
 
 void image_audio_stop(uint8_t id)
 {
-    cdrom_image[id].cd_state = CD_STOPPED;
+    cdrom_t *dev = cdrom[id];
+
+    dev->cd_state = CD_STOPPED;
 }
 
 static void image_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
 {
+	cdrom_t *dev = cdrom[id];
         if (!cdimg[id]) return;
         int number;
         unsigned char attr;
@@ -120,8 +125,8 @@ static void image_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
         if (attr == DATA_TRACK)
         {
                 cdrom_image_log("Can't play data track\n");
-                cdrom[id].seek_pos = 0;
-                cdrom_image[id].cd_state = CD_STOPPED;
+                dev->seek_pos = 0;
+                dev->cd_state = CD_STOPPED;
                 return;
         }
         cdrom_image_log("Play audio - %08X %08X %i\n", pos, len, ismsf);
@@ -141,7 +146,7 @@ static void image_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
 		if (pos == 0xffffff)
 		{
 			cdrom_image_log("Playing from current position (MSF)\n");
-			pos = cdrom[id].seek_pos;
+			pos = dev->seek_pos;
 		}
 		else
 		{
@@ -160,38 +165,46 @@ static void image_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
 		if (pos == 0xffffffff)
 		{
 			cdrom_image_log("Playing from current position\n");
-			pos = cdrom[id].seek_pos;
+			pos = dev->seek_pos;
 		}
                 len += pos;
 	}
-        cdrom[id].seek_pos   = pos;
-        cdrom_image[id].cd_end   = len;
-        cdrom_image[id].cd_state = CD_PLAYING;
-        cdrom_image[id].cd_buflen = 0;
+        dev->seek_pos   = pos;
+        dev->cd_end   = len;
+        dev->cd_state = CD_PLAYING;
+        dev->cd_buflen = 0;
 }
 
 static void image_pause(uint8_t id)
 {
+	cdrom_t *dev = cdrom[id];
+
         if (!cdimg[id] || cdrom_image[id].image_is_iso) return;
-        if (cdrom_image[id].cd_state == CD_PLAYING)
-                cdrom_image[id].cd_state = CD_PAUSED;
+        if (dev->cd_state == CD_PLAYING)
+                dev->cd_state = CD_PAUSED;
 }
 
 static void image_resume(uint8_t id)
 {
+	cdrom_t *dev = cdrom[id];
+
         if (!cdimg[id] || cdrom_image[id].image_is_iso) return;
-        if (cdrom_image[id].cd_state == CD_PAUSED)
-                cdrom_image[id].cd_state = CD_PLAYING;
+        if (dev->cd_state == CD_PAUSED)
+                dev->cd_state = CD_PLAYING;
 }
 
 static void image_stop(uint8_t id)
 {
+	cdrom_t *dev = cdrom[id];
+
         if (!cdimg[id] || cdrom_image[id].image_is_iso) return;
-        cdrom_image[id].cd_state = CD_STOPPED;
+        dev->cd_state = CD_STOPPED;
 }
 
 static int image_ready(uint8_t id)
 {
+	cdrom_t *dev = cdrom[id];
+
         if (!cdimg[id])
                 return 0;
 
@@ -203,9 +216,9 @@ static int image_ready(uint8_t id)
 		return 1;
 	}
 
-	if (cdrom_image[id].image_changed)
+	if (dev->disc_changed)
 	{
-		cdrom_image[id].image_changed = 0;
+		dev->disc_changed = 0;
 		return 1;
 	}
 
@@ -239,6 +252,8 @@ static int image_get_last_block(uint8_t id, UNUSED(uint8_t starttrack), UNUSED(i
 
 static int image_medium_changed(uint8_t id)
 {
+	cdrom_t *dev = cdrom[id];
+
         if (!cdimg[id])
                 return 0;
 
@@ -253,9 +268,9 @@ static int image_medium_changed(uint8_t id)
 		return 1;
 	}
 	
-	if (cdrom_image[id].image_changed)
+	if (dev->disc_changed)
 	{
-		cdrom_image[id].image_changed = 0;
+		dev->disc_changed = 0;
 		return 1;
 	}
 
@@ -264,11 +279,12 @@ static int image_medium_changed(uint8_t id)
 
 static uint8_t image_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
 {
+	cdrom_t *dev = cdrom[id];
         if (!cdimg[id]) return 0;
         uint8_t ret;
         int pos=0;
 
-        uint32_t cdpos = cdrom[id].seek_pos;
+        uint32_t cdpos = dev->seek_pos;
         TMSF relPos, absPos;
         unsigned char attr, track, index;
         cdimg[id]->GetAudioSub(cdpos, attr, track, index, relPos, absPos);
@@ -279,9 +295,9 @@ static uint8_t image_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
 	}
 	else
 	{
-		if (cdrom_image[id].cd_state == CD_PLAYING)
+		if (dev->cd_state == CD_PLAYING)
 			ret = 0x11;
-		else if (cdrom_image[id].cd_state == CD_PAUSED)
+		else if (dev->cd_state == CD_PAUSED)
 			ret = 0x12;
 		else
 			ret = 0x13;
@@ -819,7 +835,9 @@ read_mode2_xa_form2:
 
 static uint32_t image_size(uint8_t id)
 {
-        return cdrom_image[id].cdrom_capacity;
+	cdrom_t *dev = cdrom[id];
+
+        return dev->cdrom_capacity;
 }
 
 static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack, int msf, int maxlen, int single)
@@ -996,11 +1014,12 @@ static int image_readtoc_raw(uint8_t id, unsigned char *b, int maxlen)
 
 static int image_status(uint8_t id)
 {
+	cdrom_t *dev = cdrom[id];
         if (!cdimg[id])  return CD_STATUS_EMPTY;
 	if (cdrom_image[id].image_is_iso)  return CD_STATUS_DATA_ONLY;
         if (cdimg[id]->HasAudioTracks())
         {
-                switch(cdrom_image[id].cd_state)
+                switch(dev->cd_state)
                 {
                         case CD_PLAYING:
                         return CD_STATUS_PLAYING;
@@ -1021,7 +1040,9 @@ void image_reset(UNUSED(uint8_t id))
 
 void image_close(uint8_t id)
 {
-        cdrom_image[id].cd_state = CD_STOPPED;
+	cdrom_t *dev = cdrom[id];
+
+        dev->cd_state = CD_STOPPED;
         if (cdimg[id])
         {
                 delete cdimg[id];
@@ -1034,15 +1055,17 @@ static char afn[1024];
 
 int image_open(uint8_t id, wchar_t *fn)
 {
+	cdrom_t *dev = cdrom[id];
+
 	if (wcscmp(fn, cdrom_image[id].image_path) != 0)
 	{
-		cdrom_image[id].image_changed = 1;
+		dev->disc_changed = 1;
 	}
 
        /* Make sure image_changed stays when changing from an image to another image. */
-	if (!cdrom_image[id].image_inited && (cdrom_drives[id].host_drive != 200))  cdrom_image[id].image_changed = 0;
+	if (!dev->handler_inited && (cdrom_drives[id].host_drive != 200))  dev->disc_changed = 0;
 
-	if (!cdrom_image[id].image_inited || cdrom_image[id].image_changed)
+	if (!dev->handler_inited || dev->disc_changed)
 	{
 		wcscpy(cdrom_image[id].image_path, fn);
 	}
@@ -1064,16 +1087,16 @@ int image_open(uint8_t id, wchar_t *fn)
 		cdrom_set_null_handler(id);
                 return 1;
         }
-        cdrom_image[id].cd_state = CD_STOPPED;
-	cdrom[id].seek_pos = 0;
-        cdrom_image[id].cd_buflen = 0;
-        cdrom_image[id].cdrom_capacity = image_get_last_block(id, 0, 0, 4096, 0) + 1;
+        dev->cd_state = CD_STOPPED;
+	dev->seek_pos = 0;
+        dev->cd_buflen = 0;
+        dev->cdrom_capacity = image_get_last_block(id, 0, 0, 4096, 0) + 1;
 	cdrom_drives[id].handler = &image_cdrom;
 
-	if (!cdrom_image[id].image_inited || cdrom_image[id].image_changed)
+	if (!dev->handler_inited || dev->disc_changed)
 	{
-		if (!cdrom_image[id].image_inited)
-			cdrom_image[id].image_inited = 1;
+		if (!dev->handler_inited)
+			dev->handler_inited = 1;
 	}
 
         return 0;
@@ -1081,7 +1104,9 @@ int image_open(uint8_t id, wchar_t *fn)
 
 static void image_exit(uint8_t id)
 {
-    cdrom_image[id].image_inited = 0;
+    cdrom_t *dev = cdrom[id];
+
+    dev->handler_inited = 0;
 }
 
 /* TODO: Check for what data type a mixed CD is. */
