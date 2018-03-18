@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.39	2018/03/17
+ * Version:	@(#)cdrom.c	1.0.40	2018/03/18
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -128,7 +128,7 @@ uint8_t cdrom_command_flags[0x100] =
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0,
 	IMPLEMENTED | CHECK_READY,
-	IMPLEMENTED | CHECK_READY,	/* Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
+	IMPLEMENTED | CHECK_READY | ALLOW_UA,	/* Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
 					   NOTE: The ATAPI reference says otherwise, but I think this is a question of
 					   interpreting things right - the UNIT ATTENTION condition we have here
 					   is a tradition from not ready to ready, by definition the drive
@@ -232,7 +232,7 @@ static const mode_sense_pages_t cdrom_mode_sense_pages_default =
 	{                        0,    0 },
 	{                        0,    0 },
 	{                        0,    0 },
-	{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }
+	{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1, 0, 0, 0, 0x02, 0xC2, 1, 0, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }
 }	};
 
 static const mode_sense_pages_t cdrom_mode_sense_pages_default_scsi =
@@ -279,7 +279,7 @@ static const mode_sense_pages_t cdrom_mode_sense_pages_default_scsi =
 	{                        0,    0 },
 	{                        0,    0 },
 	{                        0,    0 },
-	{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }
+	{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1, 0, 0, 0, 0x02, 0xC2, 1, 0, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }
 }	};
 
 static const mode_sense_pages_t cdrom_mode_sense_pages_changeable =
@@ -326,12 +326,13 @@ static const mode_sense_pages_t cdrom_mode_sense_pages_changeable =
 	{                        0,    0 },
 	{                        0,    0 },
 	{                        0,    0 },
-	{ GPMODE_CAPABILITIES_PAGE, 0x14, 0x3B, 0, 0x71, 0x60, 0x29, 0, 0x02, 0xC2, 0, 2, 0, 0, 0x02, 0xC2, 0, 0, 0, 0, 0, 0 }
+	{ GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1, 0, 0, 0, 0x02, 0xC2, 1, 0, 0, 0, 0x02, 0xC2, 0, 0, 0, 0 }
 }	};
 
 static mode_sense_pages_t cdrom_mode_sense_pages_saved[CDROM_NUM];
 
 
+#define ENABLE_CDROM_LOG 1
 #ifdef ENABLE_CDROM_LOG
 int cdrom_do_log = ENABLE_CDROM_LOG;
 #endif
@@ -475,6 +476,7 @@ void cdrom_init(int id, int cdb_len_setting)
 	cdrom_sense_key = cdrom_asc = cdrom_ascq = dev->unit_attention = 0;
 	dev->cdb_len_setting = 0;
 	dev->cdb_len = 12;
+	dev->cur_speed = cdrom_drives[id].speed;
 }
 
 int cdrom_supports_pio(int id)
@@ -697,8 +699,20 @@ uint32_t cdrom_mode_sense(uint8_t id, uint8_t *buf, uint32_t pos, uint8_t type, 
 				msplen = cdrom_mode_sense_read(id, page_control, i, 1);
 				buf[pos++] = msplen;
 				cdrom_log("CD-ROM %i: MODE SENSE: Page [%02X] length %i\n", id, i, msplen);
-				for (j = 0; j < msplen; j++)
-					buf[pos++] = cdrom_mode_sense_read(id, page_control, i, 2 + j);
+				for (j = 0; j < msplen; j++) {
+					if ((i == GPMODE_CAPABILITIES_PAGE) && (j >= 6) && (j <= 7)) {
+						if (j & 1)
+							buf[pos++] = ((cdrom_drives[id].speed * 176) & 0xff);
+						else
+							buf[pos++] = ((cdrom_drives[id].speed * 176) >> 8);
+					} else if ((i == GPMODE_CAPABILITIES_PAGE) && (j >= 12) && (j <= 13)) {
+						if (j & 1)
+							buf[pos++] = ((dev->cur_speed * 176) & 0xff);
+						else
+							buf[pos++] = ((dev->cur_speed * 176) >> 8);
+					} else
+						buf[pos++] = cdrom_mode_sense_read(id, page_control, i, 2 + j);
+				}
 			}
 		}
 	}
@@ -852,6 +866,7 @@ static void cdrom_command_common(uint8_t id)
 		dev->callback = 0LL;
 	} else {
 		switch(dev->current_cdb[0]) {
+			case GPCMD_REZERO_UNIT:
 			case 0x0b:
 			case 0x2b:
 				/* Seek time is in us. */
@@ -877,7 +892,7 @@ static void cdrom_command_common(uint8_t id)
 			case 0xbe:
 				/* bytes_per_second = 150.0 * 1024.0; */
 				bytes_per_second = (1000000.0 / 12000.0) * 2048.0;	/* Account for seek time. */
-				bytes_per_second *= (double) cdrom_drives[id].speed;
+				bytes_per_second *= (double) dev->cur_speed;
 				break;
 			default:
 				bytes_per_second = cdrom_bus_speed(id);
@@ -1434,6 +1449,8 @@ void cdrom_insert(uint8_t id)
 	cdrom_t *dev = cdrom[id];
 
 	dev->unit_attention = 1;
+
+	cdrom_log("CD-ROM %i: Media insert\n", id);
 }
 
 /*SCSI Sense Initialization*/
@@ -1500,7 +1517,7 @@ skip_ready_check:
 		/* Only increment the unit attention phase if the command can not pass through it. */
 		if (!(cdrom_command_flags[cdb[0]] & ALLOW_UA)) {
 			/* cdrom_log("CD-ROM %i: Unit attention now 2\n", id); */
-			dev->unit_attention = 2;
+			dev->unit_attention++;
 			cdrom_log("CD-ROM %i: UNIT ATTENTION: Command %02X not allowed to pass through\n", id, cdb[0]);
 			cdrom_unit_attention(id);
 			return 0;
@@ -1573,6 +1590,9 @@ static void cdrom_rezero(uint8_t id)
 void cdrom_reset(uint8_t id)
 {
 	cdrom_t *dev = cdrom[id];
+
+	if (!dev)
+		return;
 
 	cdrom_rezero(id);
 	dev->status = 0;
@@ -1771,6 +1791,7 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 			if (cdrom_drives[id].handler->stop)
 				cdrom_drives[id].handler->stop(id);
 			dev->sector_pos = dev->sector_len = 0;
+			dev->seek_diff = dev->seek_pos;
 			cdrom_seek(id, 0);
 			cdrom_set_phase(id, SCSI_PHASE_STATUS);
 			break;
@@ -1788,6 +1809,11 @@ void cdrom_command(uint8_t id, uint8_t *cdb)
 
 		case GPCMD_SET_SPEED:
 		case GPCMD_SET_SPEED_ALT:
+			dev->cur_speed = (cdb[3] | (cdb[2] << 8)) / 176;
+			if (dev->cur_speed < 1)
+				dev->cur_speed = 1;
+			else if (dev->cur_speed > cdrom_drives[id].speed)
+				dev->cur_speed = cdrom_drives[id].speed;
 			cdrom_set_phase(id, SCSI_PHASE_STATUS);
 			cdrom_command_complete(id);
 			break;

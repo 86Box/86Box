@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.h	1.0.8	2018/03/17
+ * Version:	@(#)cdrom.h	1.0.9	2018/03/18
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -165,6 +165,8 @@ typedef struct {
 
 	int handler_inited;
 	int disc_changed;
+
+	int cur_speed;
 } cdrom_t;
 
 typedef struct {
@@ -249,6 +251,7 @@ extern void	cdrom_set_signature(int id);
 extern void	cdrom_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length);
 extern void	cdrom_update_cdb(uint8_t *cdb, int lba_pos, int number_of_blocks);
 extern void	cdrom_insert(uint8_t id);
+extern void	cdrom_new_image(uint8_t id);
 
 extern int	find_cdrom_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun);
 extern int	cdrom_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *len);

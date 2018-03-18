@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.21	2018/02/18
+ * Version:	@(#)network.c	1.0.22	2018/03/18
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -51,12 +51,13 @@ static netcard_t net_cards[] = {
 int		network_type;
 int		network_ndev;
 int		network_card;
-netdev_t	network_devs[32];
 char		network_pcap[512];
+netdev_t	network_devs[32];
 #ifdef ENABLE_NIC_LOG
 int		nic_do_log = ENABLE_NIC_LOG;
 #endif
 static mutex_t	*network_mutex;
+static uint8_t	*network_mac;
 
 
 static struct {
@@ -98,7 +99,7 @@ network_busy(uint8_t set)
 	thread_set_event(poll_data.wake_poll_thread);
 }
 
-
+ 
 void
 network_end(void)
 {
@@ -149,7 +150,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
     /* Save the card's info. */
     net_cards[network_card].priv = dev;
     net_cards[network_card].rx = rx;
-    net_cards[network_card].mac = mac;
+    network_mac = mac;
 
     /* Create the network events. */
     poll_data.wake_poll_thread = thread_create_event();
@@ -158,11 +159,11 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
     /* Activate the platform module. */
     switch(network_type) {
 	case NET_TYPE_PCAP:
-		(void)net_pcap_reset(&net_cards[network_card]);
+		(void)net_pcap_reset(&net_cards[network_card], network_mac);
 		break;
 
 	case NET_TYPE_SLIRP:
-		(void)net_slirp_reset(&net_cards[network_card]);
+		(void)net_slirp_reset(&net_cards[network_card], network_mac);
 		break;
     }
 }
@@ -194,6 +195,7 @@ network_close(void)
     /* Close the network thread mutex. */
     thread_close_mutex(network_mutex);
     network_mutex = NULL;
+    network_mac = NULL;
 
     pclog("NETWORK: closed.\n");
 }

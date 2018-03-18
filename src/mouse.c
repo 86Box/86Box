@@ -11,7 +11,7 @@
  * TODO:	Add the Genius bus- and serial mouse.
  *		Remove the '3-button' flag from mouse types.
  *
- * Version:	@(#)mouse.c	1.0.21	2018/01/29
+ * Version:	@(#)mouse.c	1.0.22	2018/03/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -75,6 +75,7 @@ static mouse_t mouse_devices[] = {
 static device_t	*mouse_curr;
 static void	*mouse_priv;
 static int	mouse_nbut;
+static int	(*mouse_dev_poll)();
 
 
 /* Initialize the mouse module. */
@@ -89,6 +90,7 @@ mouse_init(void)
     mouse_curr = NULL;
     mouse_priv = NULL;
     mouse_nbut = 0;
+    mouse_dev_poll = NULL;
 }
 
 
@@ -100,6 +102,7 @@ mouse_close(void)
     mouse_curr = NULL;
     mouse_priv = NULL;
     mouse_nbut = 0;
+    mouse_dev_poll = NULL;
 }
 
 
@@ -145,8 +148,11 @@ mouse_process(void)
 
     mouse_poll();
 
-    if (mouse_curr->available != NULL) {
-    	mouse_curr->available(mouse_x,mouse_y,mouse_z,mouse_buttons, mouse_priv);
+    if ((mouse_dev_poll != NULL) || (mouse_curr->available != NULL)) {
+	if (mouse_curr->available != NULL)
+	    	mouse_curr->available(mouse_x,mouse_y,mouse_z,mouse_buttons, mouse_priv);
+	else
+	    	mouse_dev_poll(mouse_x,mouse_y,mouse_z,mouse_buttons, mouse_priv);
 
 	/* Reset mouse deltas. */
 	mouse_x = mouse_y = mouse_z = 0;
@@ -161,7 +167,7 @@ mouse_set_poll(int (*func)(int,int,int,int,void *), void *arg)
 {
     if (mouse_type != MOUSE_TYPE_INTERNAL) return;
 
-    mouse_curr->available = func;
+    mouse_dev_poll = func;
     mouse_priv = arg;
 }
 

@@ -68,6 +68,7 @@ void image_audio_callback(uint8_t id, int16_t *output, int len)
 {
 	cdrom_t *dev = cdrom[id];
 
+	return;
         if (!cdrom_drives[id].sound_on || (dev->cd_state != CD_PLAYING) || cdrom_image[id].image_is_iso)
         {
 		cdrom_image_log("image_audio_callback(i): Not playing\n", id);
@@ -216,12 +217,6 @@ static int image_ready(uint8_t id)
 		return 1;
 	}
 
-	if (dev->disc_changed)
-	{
-		dev->disc_changed = 0;
-		return 1;
-	}
-
         return 1;
 }
 
@@ -265,12 +260,6 @@ static int image_medium_changed(uint8_t id)
 	if (cdrom_drives[id].prev_host_drive != cdrom_drives[id].host_drive)
 	{
 		cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
-		return 1;
-	}
-	
-	if (dev->disc_changed)
-	{
-		dev->disc_changed = 0;
 		return 1;
 	}
 
@@ -848,7 +837,7 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
         uint32_t temp;
 
         int first_track;
-        int last_track;
+        int last_track, last_track_pos;
         int number;
         unsigned char attr;
         TMSF tmsf;
@@ -881,6 +870,7 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
                         break;
                 cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
 
+		last_track_pos = 0;
                 b[len++] = 0; /* reserved */
                 b[len++] = attr;
                 b[len++] = number; /* track number */
@@ -971,10 +961,8 @@ static int image_readtoc_raw(uint8_t id, unsigned char *b, int maxlen)
 
         cdimg[id]->GetAudioTracks(first_track, last_track, tmsf);
 
-        if (maxlen >= 3)  b[2] = first_track;
-        if (maxlen >= 4)  b[3] = last_track;
-
-	if (maxlen <= 4)  return len;
+        b[2] = first_track;
+        b[3] = last_track;
 
         for (track = first_track; track <= last_track; track++)
         {
@@ -1057,18 +1045,7 @@ int image_open(uint8_t id, wchar_t *fn)
 {
 	cdrom_t *dev = cdrom[id];
 
-	if (wcscmp(fn, cdrom_image[id].image_path) != 0)
-	{
-		dev->disc_changed = 1;
-	}
-
-       /* Make sure image_changed stays when changing from an image to another image. */
-	if (!dev->handler_inited && (cdrom_drives[id].host_drive != 200))  dev->disc_changed = 0;
-
-	if (!dev->handler_inited || dev->disc_changed)
-	{
-		wcscpy(cdrom_image[id].image_path, fn);
-	}
+	wcscpy(cdrom_image[id].image_path, fn);
 
 	if (! wcscasecmp(plat_get_extension(fn), L"ISO"))
 	{
@@ -1080,6 +1057,7 @@ int image_open(uint8_t id, wchar_t *fn)
 	}
 
         cdimg[id] = new CDROM_Interface_Image();
+	memset(afn, 0, sizeof(afn));
 	wcstombs(afn, fn, sizeof(afn));
         if (!cdimg[id]->SetDevice(afn, false))
         {
@@ -1092,12 +1070,6 @@ int image_open(uint8_t id, wchar_t *fn)
         dev->cd_buflen = 0;
         dev->cdrom_capacity = image_get_last_block(id, 0, 0, 4096, 0) + 1;
 	cdrom_drives[id].handler = &image_cdrom;
-
-	if (!dev->handler_inited || dev->disc_changed)
-	{
-		if (!dev->handler_inited)
-			dev->handler_inited = 1;
-	}
 
         return 0;
 }

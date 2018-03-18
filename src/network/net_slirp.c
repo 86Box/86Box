@@ -8,11 +8,11 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.13	2017/11/04
+ * Version:	@(#)net_slirp.c	1.0.14	2018/03/18
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -143,14 +143,14 @@ net_slirp_init(void)
 
 /* Initialize SLiRP for use. */
 int
-net_slirp_reset(netcard_t *card)
+net_slirp_reset(netcard_t *card, uint8_t *mac)
 {
     /* Save the callback info. */
     poll_card = card;
 
     pclog("SLiRP: creating thread..\n");
     poll_state = thread_create_event();
-    poll_tid = thread_create(poll_thread, card->mac);
+    poll_tid = thread_create(poll_thread, mac);
     thread_wait_event(poll_state, -1);
 
     return(0);

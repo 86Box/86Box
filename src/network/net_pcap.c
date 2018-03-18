@@ -8,11 +8,11 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.13	2017/11/04
+ * Version:	@(#)net_pcap.c	1.0.14	2018/03/18
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -274,7 +274,7 @@ net_pcap_close(void)
  * tries to attach to the network module.
  */
 int
-net_pcap_reset(netcard_t *card)
+net_pcap_reset(netcard_t *card, uint8_t *mac)
 {
     char errbuf[PCAP_ERRBUF_SIZE];
     char filter_exp[255];
@@ -293,14 +293,11 @@ net_pcap_reset(netcard_t *card)
 
     /* Create a MAC address based packet filter. */
     pclog("PCAP: installing filter for MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
-			card->mac[0], card->mac[1], card->mac[2],
-			card->mac[3], card->mac[4], card->mac[5]);
+			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     sprintf(filter_exp,
 	"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
-		card->mac[0], card->mac[1], card->mac[2],
-		card->mac[3], card->mac[4], card->mac[5],
-		card->mac[0], card->mac[1], card->mac[2],
-		card->mac[3], card->mac[4], card->mac[5]);
+		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
+		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     if (f_pcap_compile((pcap_t *)pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
 	if (f_pcap_setfilter((pcap_t *)pcap, &fp) != 0) {
 		pclog("PCAP: error installing filter (%s) !\n", filter_exp);
@@ -318,7 +315,7 @@ net_pcap_reset(netcard_t *card)
 
     pclog("PCAP: starting thread..\n");
     poll_state = thread_create_event();
-    poll_tid = thread_create(poll_thread, card->mac);
+    poll_tid = thread_create(poll_thread, mac);
     thread_wait_event(poll_state, -1);
 
     return(0);
