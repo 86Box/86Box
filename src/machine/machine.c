@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.30	2018/03/15
+ * Version:	@(#)machine.c	1.0.31	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -65,7 +65,7 @@ machine_init(void)
 
 
 void
-machine_common_init(machine_t *model)
+machine_common_init(const machine_t *model)
 {
     /* System devices first. */
     dma_init();

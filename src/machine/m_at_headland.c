@@ -70,7 +70,7 @@ static void headland_init(void)
 
 
 void
-machine_at_headland_init(machine_t *model)
+machine_at_headland_init(const machine_t *model)
 {
         machine_at_common_ide_init(model);
 

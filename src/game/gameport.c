@@ -1,6 +1,39 @@
-/* Copyright holders: Sarah Walker
-   see COPYING for more details
-*/
+/*
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
+ *
+ *		This file is part of the VARCem Project.
+ *
+ *		Implementation of a generic Game Port.
+ *
+ * Version:	@(#)gameport.c	1.0.3	2018/03/15
+ *
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free  Software  Foundation; either  version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is  distributed in the hope that it will be useful, but
+ * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the:
+ *
+ *   Free Software Foundation, Inc.
+ *   59 Temple Place - Suite 330
+ *   Boston, MA 02111-1307
+ *   USA.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -17,261 +50,286 @@
 #include "joystick_standard.h"
 #include "joystick_sw_pad.h"
 #include "joystick_tm_fcs.h"
-#include "../plat_joystick.h"
 
 
-int joystick_type;
+typedef struct {
+    int64_t	count;
+    int		axis_nr;
+    struct _gameport_ *gameport;
+} g_axis_t;
 
+typedef struct _gameport_ {
+    uint8_t	state;
 
-joystick_if_t joystick_none =
-{
-        "No joystick",
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        0,
-        0,
-        0
-};
+    g_axis_t	axis[4];
 
-static joystick_if_t *joystick_list[] =
-{
-        &joystick_standard,
-        &joystick_standard_4button,
-        &joystick_standard_6button,
-        &joystick_standard_8button,
-        &joystick_ch_flightstick_pro,
-        &joystick_sw_pad,
-        &joystick_tm_fcs,
-        &joystick_none,
-        NULL
-};
-
-char *joystick_get_name(int64_t joystick)
-{
-        if (!joystick_list[joystick])
-                return NULL;
-        return (char *) joystick_list[joystick]->name;
-}
-
-int64_t joystick_get_max_joysticks(int64_t joystick)
-{
-        return joystick_list[joystick]->max_joysticks;
-}
-        
-int64_t joystick_get_axis_count(int64_t joystick)
-{
-        return joystick_list[joystick]->axis_count;
-}
-
-int64_t joystick_get_button_count(int64_t joystick)
-{
-        return joystick_list[joystick]->button_count;
-}
-
-int64_t joystick_get_pov_count(int64_t joystick)
-{
-        return joystick_list[joystick]->pov_count;
-}
-
- char *joystick_get_axis_name(int64_t joystick, int64_t id)
-{
-        return (char *) joystick_list[joystick]->axis_names[id];
-}
-
-char *joystick_get_button_name(int64_t joystick, int64_t id)
-{
-        return (char *) joystick_list[joystick]->button_names[id];
-}
-
-char *joystick_get_pov_name(int64_t joystick, int64_t id)
-{
-        return (char *) joystick_list[joystick]->pov_names[id];
-}
-
-typedef struct gameport_axis_t
-{
-        int64_t count;
-        int64_t axis_nr;
-        struct gameport_t *gameport;
-} gameport_axis_t;
-        
-typedef struct gameport_t
-{
-        uint8_t state;
-        
-        gameport_axis_t axis[4];
-        
-        joystick_if_t *joystick;
-        void *joystick_dat;
+    const joystick_if_t *joystick;
+    void	*joystick_dat;
 } gameport_t;
 
-static gameport_t *gameport_global = NULL;
 
-static int64_t gameport_time(int64_t axis)
-{
-        if (axis == AXIS_NOT_PRESENT)
-                return 0;
+int	joystick_type;
 
-        axis += 32768;
-        axis = (axis * 100) / 65; /*Axis now in ohms*/
-        axis = (axis * 11) / 1000;
-        return TIMER_USEC * (axis + 24); /*max = 11.115 ms*/
-}
 
-void gameport_write(uint16_t addr, uint8_t val, void *p)
-{
-        gameport_t *gameport = (gameport_t *)p;
-
-        timer_clock();
-        gameport->state |= 0x0f;
-        pclog("gameport_write : joysticks_present=%i\n", joysticks_present);
-        
-        gameport->axis[0].count = gameport_time(gameport->joystick->read_axis(gameport->joystick_dat, 0));
-        gameport->axis[1].count = gameport_time(gameport->joystick->read_axis(gameport->joystick_dat, 1));
-        gameport->axis[2].count = gameport_time(gameport->joystick->read_axis(gameport->joystick_dat, 2));
-        gameport->axis[3].count = gameport_time(gameport->joystick->read_axis(gameport->joystick_dat, 3));
-
-        gameport->joystick->write(gameport->joystick_dat);
-        
-        cycles -= ISA_CYCLES(8);
-}
-
-uint8_t gameport_read(uint16_t addr, void *p)
-{
-        gameport_t *gameport = (gameport_t *)p;
-        uint8_t ret;
-
-        timer_clock();
-	ret = gameport->state | gameport->joystick->read(gameport->joystick_dat);
-
-        cycles -= ISA_CYCLES(8);
-
-        return ret;
-}
-
-void gameport_timer_over(void *p)
-{
-        gameport_axis_t *axis = (gameport_axis_t *)p;
-        gameport_t *gameport = axis->gameport;
-        
-        gameport->state &= ~(1 << axis->axis_nr);
-        axis->count = 0;
-        
-        if (axis == &gameport->axis[0])
-                gameport->joystick->a0_over(gameport->joystick_dat);
-}
-
-void *gameport_init_common(void)
-{
-        gameport_t *gameport = malloc(sizeof(gameport_t));
-        
-        memset(gameport, 0, sizeof(gameport_t));
-        
-        gameport->axis[0].gameport = gameport;
-        gameport->axis[1].gameport = gameport;
-        gameport->axis[2].gameport = gameport;
-        gameport->axis[3].gameport = gameport;
-
-        gameport->axis[0].axis_nr = 0;
-        gameport->axis[1].axis_nr = 1;
-        gameport->axis[2].axis_nr = 2;
-        gameport->axis[3].axis_nr = 3;
-        
-        timer_add(gameport_timer_over, &gameport->axis[0].count, &gameport->axis[0].count, &gameport->axis[0]);
-        timer_add(gameport_timer_over, &gameport->axis[1].count, &gameport->axis[1].count, &gameport->axis[1]);
-        timer_add(gameport_timer_over, &gameport->axis[2].count, &gameport->axis[2].count, &gameport->axis[2]);
-        timer_add(gameport_timer_over, &gameport->axis[3].count, &gameport->axis[3].count, &gameport->axis[3]);
-  
-        gameport->joystick = joystick_list[joystick_type];            
-        gameport->joystick_dat = gameport->joystick->init();
-        
-        gameport_global = gameport;
-        
-        return gameport;
-}
-
-void gameport_update_joystick_type(void)
-{
-        gameport_t *gameport = gameport_global;
-        
-	if (gameport)
-	{
-	        gameport->joystick->close(gameport->joystick_dat);        
-        	gameport->joystick = joystick_list[joystick_type];
-	        gameport->joystick_dat = gameport->joystick->init();
-	}
-}
-
-void *gameport_init(device_t *info)
-{
-        gameport_t *gameport = NULL;
-
-	if (joystick_type == 7)
-	{
-		gameport = NULL;
-		return gameport;
-	}
-
-	gameport = gameport_init_common();
-
-        io_sethandler(0x0200, 0x0008, gameport_read, NULL, NULL, gameport_write, NULL, NULL, gameport);
-
-        return gameport;
-}
-
-void *gameport_201_init(device_t *info)
-{
-        gameport_t *gameport;
-
-	if (joystick_type == 7)
-	{
-		gameport = NULL;
-		return gameport;
-	}
-
-	gameport = gameport_init_common();
-
-        io_sethandler(0x0201, 0x0001, gameport_read, NULL, NULL, gameport_write, NULL, NULL, gameport);
-
-        return gameport;
-}
-
-void gameport_close(void *p)
-{
-        gameport_t *gameport = (gameport_t *)p;
-
-	if (!p)
-	{
-		return;
-	}
-        
-        gameport->joystick->close(gameport->joystick_dat);
-
-        gameport_global = NULL;
-
-        free(gameport);
-}
-
-device_t gameport_device =
-{
-        "Game port",
-        0, 0,
-        gameport_init,
-        gameport_close,
-	NULL, NULL, NULL, NULL,
-        NULL
+static const joystick_if_t joystick_none = {
+    "No joystick",
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    0,
+    0,
+    0
 };
 
-device_t gameport_201_device =
+
+static const joystick_if_t *joystick_list[] = {
+    &joystick_standard,
+    &joystick_standard_4button,
+    &joystick_standard_6button,
+    &joystick_standard_8button,
+    &joystick_ch_flightstick_pro,
+    &joystick_sw_pad,
+    &joystick_tm_fcs,
+    &joystick_none,
+    NULL
+};
+static gameport_t *gameport_global = NULL;
+
+
+char *
+joystick_get_name(int js)
 {
-        "Game port (port 201h only)",
-        0, 0,
-        gameport_201_init,
-        gameport_close,
-	NULL, NULL, NULL, NULL,
-        NULL
+    if (! joystick_list[js])
+	return(NULL);
+    return((char *)joystick_list[js]->name);
+}
+
+
+int
+joystick_get_max_joysticks(int js)
+{
+    return(joystick_list[js]->max_joysticks);
+}
+
+
+int
+joystick_get_axis_count(int js)
+{
+    return(joystick_list[js]->axis_count);
+}
+
+
+int
+joystick_get_button_count(int js)
+{
+    return(joystick_list[js]->button_count);
+}
+
+
+int
+joystick_get_pov_count(int js)
+{
+    return(joystick_list[js]->pov_count);
+}
+
+
+char *
+joystick_get_axis_name(int js, int id)
+{
+    return((char *)joystick_list[js]->axis_names[id]);
+}
+
+
+char *
+joystick_get_button_name(int js, int id)
+{
+    return((char *)joystick_list[js]->button_names[id]);
+}
+
+
+char *
+joystick_get_pov_name(int js, int id)
+{
+    return (char *)joystick_list[js]->pov_names[id];
+}
+
+
+static int
+gameport_time(int axis)
+{
+    if (axis == AXIS_NOT_PRESENT) return(0);
+
+    axis += 32768;
+    axis = (axis * 100) / 65; /*Axis now in ohms*/
+    axis = (axis * 11) / 1000;
+
+    return(TIMER_USEC * (axis + 24)); /*max = 11.115 ms*/
+}
+
+
+static void
+gameport_write(uint16_t addr, uint8_t val, void *priv)
+{
+    gameport_t *p = (gameport_t *)priv;
+
+    timer_clock();
+    p->state |= 0x0f;
+    pclog("gameport_write : joysticks_present=%i\n", joysticks_present);
+
+    p->axis[0].count = gameport_time(p->joystick->read_axis(p->joystick_dat, 0));
+    p->axis[1].count = gameport_time(p->joystick->read_axis(p->joystick_dat, 1));
+    p->axis[2].count = gameport_time(p->joystick->read_axis(p->joystick_dat, 2));
+    p->axis[3].count = gameport_time(p->joystick->read_axis(p->joystick_dat, 3));
+
+    p->joystick->write(p->joystick_dat);
+
+    cycles -= ISA_CYCLES(8);
+}
+
+
+static uint8_t
+gameport_read(uint16_t addr, void *priv)
+{
+    gameport_t *p = (gameport_t *)p;
+    uint8_t ret;
+
+    timer_clock();
+    ret = p->state | p->joystick->read(p->joystick_dat);
+
+    cycles -= ISA_CYCLES(8);
+
+    return(ret);
+}
+
+
+static void
+timer_over(void *priv)
+{
+    g_axis_t *axis = (g_axis_t *)priv;
+    gameport_t *p = axis->gameport;
+
+    p->state &= ~(1 << axis->axis_nr);
+    axis->count = 0;
+
+    if (axis == &p->axis[0])
+	p->joystick->a0_over(p->joystick_dat);
+}
+
+
+static void *
+init_common(void)
+{
+    gameport_t *p = malloc(sizeof(gameport_t));
+
+    memset(p, 0x00, sizeof(gameport_t));
+
+    p->axis[0].gameport = p;
+    p->axis[1].gameport = p;
+    p->axis[2].gameport = p;
+    p->axis[3].gameport = p;
+
+    p->axis[0].axis_nr = 0;
+    p->axis[1].axis_nr = 1;
+    p->axis[2].axis_nr = 2;
+    p->axis[3].axis_nr = 3;
+
+    timer_add(timer_over, &p->axis[0].count, &p->axis[0].count, &p->axis[0]);
+    timer_add(timer_over, &p->axis[1].count, &p->axis[1].count, &p->axis[1]);
+    timer_add(timer_over, &p->axis[2].count, &p->axis[2].count, &p->axis[2]);
+    timer_add(timer_over, &p->axis[3].count, &p->axis[3].count, &p->axis[3]);
+
+    p->joystick = joystick_list[joystick_type];
+    p->joystick_dat = p->joystick->init();
+
+    gameport_global = p;
+
+    return(p);
+}
+
+
+void
+gameport_update_joystick_type(void)
+{
+    gameport_t *p = gameport_global;
+
+    if (p != NULL) {
+	p->joystick->close(p->joystick_dat);
+	p->joystick = joystick_list[joystick_type];
+	p->joystick_dat = p->joystick->init();
+    }
+}
+
+
+static void *
+gameport_init(const device_t *info)
+{
+    gameport_t *p = NULL;
+
+    if (joystick_type == 7) {
+	p = NULL;
+	return(p);
+    }
+
+    p = init_common();
+
+    io_sethandler(0x0200, 8,
+		  gameport_read,NULL,NULL, gameport_write,NULL,NULL, p);
+
+    return(p);
+}
+
+
+static void *
+gameport_201_init(const device_t *info)
+{
+    gameport_t *p;
+
+    if (joystick_type == 7) {
+	p = NULL;
+	return(p);
+    }
+
+    p = init_common();
+
+    io_sethandler(0x0201, 1,
+		  gameport_read,NULL,NULL, gameport_write,NULL,NULL, p);
+
+    return(p);
+}
+
+
+static void
+gameport_close(void *priv)
+{
+    gameport_t *p = (gameport_t *)priv;
+
+    if (p == NULL) return;
+
+    p->joystick->close(p->joystick_dat);
+
+    gameport_global = NULL;
+
+    free(p);
+}
+
+
+const device_t gameport_device = {
+    "Game port",
+    0, 0,
+    gameport_init,
+    gameport_close,
+    NULL, NULL, NULL, NULL,
+    NULL
+};
+
+const device_t gameport_201_device = {
+    "Game port (port 201h only)",
+    0, 0,
+    gameport_201_init,
+    gameport_close,
+    NULL, NULL, NULL, NULL,
+    NULL
 };

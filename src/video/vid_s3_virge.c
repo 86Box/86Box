@@ -8,13 +8,13 @@
  *
  *		S3 ViRGE emulation.
  *
- * Version:	@(#)vid_s3_virge.c	1.0.5	2017/12/28
+ * Version:	@(#)vid_s3_virge.c	1.0.6	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -3773,7 +3773,7 @@ static void s3_virge_pci_write(int func, int addr, uint8_t val, void *p)
         }
 }
 
-static void *s3_virge_init(device_t *info)
+static void *s3_virge_init(const device_t *info)
 {
         virge_t *virge = malloc(sizeof(virge_t));
         memset(virge, 0, sizeof(virge_t));
@@ -3873,7 +3873,7 @@ static void *s3_virge_init(device_t *info)
         return virge;
 }
 
-static void *s3_virge_988_init(device_t *info)
+static void *s3_virge_988_init(const device_t *info)
 {
         virge_t *virge = malloc(sizeof(virge_t));
         memset(virge, 0, sizeof(virge_t));
@@ -3972,7 +3972,7 @@ static void *s3_virge_988_init(device_t *info)
         return virge;
 }
 
-static void *s3_virge_375_init(device_t *info, wchar_t *romfn)
+static void *s3_virge_375_init(const device_t *info, wchar_t *romfn)
 {
         virge_t *virge = malloc(sizeof(virge_t));
         memset(virge, 0, sizeof(virge_t));
@@ -4072,12 +4072,12 @@ static void *s3_virge_375_init(device_t *info, wchar_t *romfn)
         return virge;
 }
 
-static void *s3_virge_375_1_init(device_t *info)
+static void *s3_virge_375_1_init(const device_t *info)
 {
 	return s3_virge_375_init(info, L"roms/video/s3virge/86c375_1.bin");
 }
 
-static void *s3_virge_375_4_init(device_t *info)
+static void *s3_virge_375_4_init(const device_t *info)
 {
 	return s3_virge_375_init(info, L"roms/video/s3virge/86c375_4.bin");
 }
@@ -4160,7 +4160,7 @@ static void s3_virge_add_status_info(char *s, int max_len, void *p)
         reg_writes = 0;
 }
 
-static device_config_t s3_virge_config[] =
+static const device_config_t s3_virge_config[] =
 {
         {
                 "memory", "Memory size", CONFIG_SELECTION, "", 4,
@@ -4187,7 +4187,7 @@ static device_config_t s3_virge_config[] =
         }
 };
 
-device_t s3_virge_vlb_device =
+const device_t s3_virge_vlb_device =
 {
         "Diamond Stealth 3D 2000 (S3 ViRGE) VLB",
         DEVICE_VLB,
@@ -4202,7 +4202,7 @@ device_t s3_virge_vlb_device =
         s3_virge_config
 };
 
-device_t s3_virge_pci_device =
+const device_t s3_virge_pci_device =
 {
         "Diamond Stealth 3D 2000 (S3 ViRGE) PCI",
         DEVICE_PCI,
@@ -4217,7 +4217,7 @@ device_t s3_virge_pci_device =
         s3_virge_config
 };
 
-device_t s3_virge_988_vlb_device =
+const device_t s3_virge_988_vlb_device =
 {
         "Diamond Stealth 3D 3000 (S3 ViRGE/VX) VLB",
         DEVICE_VLB,
@@ -4232,7 +4232,7 @@ device_t s3_virge_988_vlb_device =
         s3_virge_config
 };
 
-device_t s3_virge_988_pci_device =
+const device_t s3_virge_988_pci_device =
 {
         "Diamond Stealth 3D 3000 (S3 ViRGE/VX) PCI",
         DEVICE_PCI,
@@ -4247,7 +4247,7 @@ device_t s3_virge_988_pci_device =
         s3_virge_config
 };
 
-device_t s3_virge_375_vlb_device =
+const device_t s3_virge_375_vlb_device =
 {
         "S3 ViRGE/DX VLB",
         DEVICE_VLB,
@@ -4262,7 +4262,7 @@ device_t s3_virge_375_vlb_device =
         s3_virge_config
 };
 
-device_t s3_virge_375_pci_device =
+const device_t s3_virge_375_pci_device =
 {
         "S3 ViRGE/DX PCI",
         DEVICE_PCI,
@@ -4277,7 +4277,7 @@ device_t s3_virge_375_pci_device =
         s3_virge_config
 };
 
-device_t s3_virge_375_4_vlb_device =
+const device_t s3_virge_375_4_vlb_device =
 {
         "S3 ViRGE/DX (VBE 2.0) VLB",
         DEVICE_VLB,
@@ -4292,7 +4292,7 @@ device_t s3_virge_375_4_vlb_device =
         s3_virge_config
 };
 
-device_t s3_virge_375_4_pci_device =
+const device_t s3_virge_375_4_pci_device =
 {
         "S3 ViRGE/DX (VBE 2.0) PCI",
         DEVICE_PCI,

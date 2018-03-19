@@ -22,7 +22,7 @@
  *		61 50 52 0F 19 06 19 19 02 0D 0B 0C   MONO
  *		2D 28 22 0A 67 00 64 67 02 03 06 07   640x400
  *
- * Version:	@(#)m_at_t3100e_vid.c	1.0.3	2018/03/07
+ * Version:	@(#)m_at_t3100e_vid.c	1.0.4	2018/03/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -703,7 +703,7 @@ void t3100e_recalcattrs(t3100e_t *t3100e)
 }
 
 
-void *t3100e_init(device_t *info)
+void *t3100e_init(const device_t *info)
 {
         t3100e_t *t3100e = malloc(sizeof(t3100e_t));
         memset(t3100e, 0, sizeof(t3100e_t));
@@ -748,7 +748,7 @@ void t3100e_speed_changed(void *p)
         t3100e_recalctimings(t3100e);
 }
 
-device_t t3100e_device =
+const device_t t3100e_device =
 {
         "Toshiba T3100e",
         0,

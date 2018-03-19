@@ -3,8 +3,8 @@
 
 
 #ifdef EMU_DEVICE_H
-extern device_t compaq_cga_device;
-extern device_t compaq_cga_2_device;
+extern const device_t compaq_cga_device;
+extern const device_t compaq_cga_2_device;
 #endif
 
 

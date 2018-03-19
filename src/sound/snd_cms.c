@@ -175,7 +175,7 @@ uint8_t cms_read(uint16_t addr, void *p)
         return 0xff;
 }
 
-void *cms_init(device_t *info)
+void *cms_init(const device_t *info)
 {
         cms_t *cms = malloc(sizeof(cms_t));
         memset(cms, 0, sizeof(cms_t));
@@ -193,7 +193,7 @@ void cms_close(void *p)
         free(cms);
 }
 
-device_t cms_device =
+const device_t cms_device =
 {
         "Creative Music System / Game Blaster",
         0, 0,

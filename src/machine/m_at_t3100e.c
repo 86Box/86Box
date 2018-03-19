@@ -117,7 +117,7 @@
  *                       bit 2 set for single-pixel LCD font
  *                       bits 0,1 for display font
  *
- * Version:	@(#)m_at_t3100e.c	1.0.3	2018/03/05
+ * Version:	@(#)m_at_t3100e.c	1.0.4	2018/03/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -716,7 +716,7 @@ static void upper_write_raml(uint32_t addr, uint32_t val, void *priv)
 
 
 
-void machine_at_t3100e_init(machine_t *model)
+void machine_at_t3100e_init(const machine_t *model)
 {
 	int pg;
 

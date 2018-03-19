@@ -8,7 +8,7 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.13	2018/02/07
+ * Version:	@(#)scsi_h	1.0.14	2018/03/18
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -298,7 +298,7 @@ extern int scsi_card_current;
 extern int scsi_card_available(int card);
 extern char *scsi_card_getname(int card);
 #ifdef EMU_DEVICE_H
-extern device_t *scsi_card_getdevice(int card);
+extern const device_t *scsi_card_getdevice(int card);
 #endif
 extern int scsi_card_has_config(int card);
 extern char *scsi_card_get_internal_name(int card);

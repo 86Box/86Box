@@ -8,12 +8,12 @@
  *
  *		Emulation of the 3DFX Voodoo Graphics controller.
  *
- * Version:	@(#)vid_voodoo.c	1.0.11	2017/12/28
+ * Version:	@(#)vid_voodoo.c	1.0.12	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei
  *
- *		Copyright 2008-2017 Sarah Walker.
+ *		Copyright 2008-2018 Sarah Walker.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -7841,7 +7841,7 @@ void voodoo_close(void *p)
         free(voodoo_set);
 }
 
-static device_config_t voodoo_config[] =
+static const device_config_t voodoo_config[] =
 {
         {
                 .name = "type",
@@ -7958,7 +7958,7 @@ static device_config_t voodoo_config[] =
         }
 };
 
-device_t voodoo_device =
+const device_t voodoo_device =
 {
         "3DFX Voodoo Graphics",
         DEVICE_PCI,

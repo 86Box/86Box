@@ -1,16 +1,48 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
  *
- *		This file is part of the 86Box distribution.
+ *		This file is part of the VARCem Project.
  *
  *		Definitions for the network module.
  *
- * Version:	@(#)network.h	1.0.13	2018/03/18
+ * Version:	@(#)network.h	1.0.2	2018/03/15
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *		Copyright 2017,2018 Fred N. van Kempen.
+ *
+ *		Redistribution and  use  in source  and binary forms, with
+ *		or  without modification, are permitted  provided that the
+ *		following conditions are met:
+ *
+ *		1. Redistributions of  source  code must retain the entire
+ *		   above notice, this list of conditions and the following
+ *		   disclaimer.
+ *
+ *		2. Redistributions in binary form must reproduce the above
+ *		   copyright  notice,  this list  of  conditions  and  the
+ *		   following disclaimer in  the documentation and/or other
+ *		   materials provided with the distribution.
+ *
+ *		3. Neither the  name of the copyright holder nor the names
+ *		   of  its  contributors may be used to endorse or promote
+ *		   products  derived from  this  software without specific
+ *		   prior written permission.
+ *
+ * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE  ARE  DISCLAIMED. IN  NO  EVENT  SHALL THE COPYRIGHT
+ * HOLDER OR  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL,  EXEMPLARY,  OR  CONSEQUENTIAL  DAMAGES  (INCLUDING,  BUT  NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE  GOODS OR SERVICES;  LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON  ANY
+ * THEORY OF  LIABILITY, WHETHER IN  CONTRACT, STRICT  LIABILITY, OR  TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef EMU_NETWORK_H
 # define EMU_NETWORK_H
@@ -24,11 +56,11 @@
 
 /* Supported network cards. */
 enum {
-	NONE = 0,
-	NE1000,
-	NE2000,
-	RTL8019AS,
-	RTL8029AS
+    NONE = 0,
+    NE1000,
+    NE2000,
+    RTL8019AS,
+    RTL8029AS
 };
 
 
@@ -36,18 +68,17 @@ typedef void (*NETRXCB)(void *, uint8_t *, int);
 
 
 typedef struct {
-    const char	*name;
-    const char	*internal_name;
-    device_t	*device;
-    void	*priv;
-    int		(*poll)(void *);
-    NETRXCB	rx;
-    uint8_t	*mac;
+    const char		*name;
+    const char		*internal_name;
+    const device_t	*device;
+    void		*priv;
+    int			(*poll)(void *);
+    NETRXCB		rx;
 } netcard_t;
 
 typedef struct {
-    char	device[128];
-    char	description[128];
+    char		device[128];
+    char		description[128];
 } netdev_t;
 
 
@@ -57,9 +88,6 @@ extern "C" {
 
 /* Global variables. */
 extern int	nic_do_log;				/* config */
-extern int	network_card;				/* config */
-extern int	network_type;				/* config */
-extern char	network_pcap[512];			/* config */
 extern int      network_ndev;
 extern netdev_t network_devs[32];
 
@@ -79,12 +107,12 @@ extern void	network_tx(uint8_t *, int);
 
 extern int	net_pcap_prepare(netdev_t *);
 extern int	net_pcap_init(void);
-extern int	net_pcap_reset(netcard_t *, uint8_t *);
+extern int	net_pcap_reset(const netcard_t *, uint8_t *);
 extern void	net_pcap_close(void);
 extern void	net_pcap_in(uint8_t *, int);
 
 extern int	net_slirp_init(void);
-extern int	net_slirp_reset(netcard_t *, uint8_t *);
+extern int	net_slirp_reset(const netcard_t *, uint8_t *);
 extern void	net_slirp_close(void);
 extern void	net_slirp_in(uint8_t *, int);
 
@@ -94,7 +122,7 @@ extern char	*network_card_getname(int);
 extern int	network_card_has_config(int);
 extern char	*network_card_get_internal_name(int);
 extern int	network_card_get_from_internal_name(char *);
-extern device_t	*network_card_getdevice(int);
+extern const device_t	*network_card_getdevice(int);
 
 #ifdef __cplusplus
 }

@@ -148,7 +148,7 @@ static void ps2board_init(void)
 
 
 void
-machine_ps2_m30_286_init(machine_t *model)
+machine_ps2_m30_286_init(const machine_t *model)
 {
         machine_common_init(model);
 	device_add(&fdc_at_ps1_device);

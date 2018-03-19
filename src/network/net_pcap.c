@@ -1,25 +1,55 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- * 		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
  *
- *		This file is part of the 86Box distribution.
+ *		This file is part of the VARCem Project.
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.14	2018/03/18
+ * Version:	@(#)net_pcap.c	1.0.3	2018/03/15
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2017,2018 Fred N. van Kempen.
+ *
+ *		Redistribution and  use  in source  and binary forms, with
+ *		or  without modification, are permitted  provided that the
+ *		following conditions are met:
+ *
+ *		1. Redistributions of  source  code must retain the entire
+ *		   above notice, this list of conditions and the following
+ *		   disclaimer.
+ *
+ *		2. Redistributions in binary form must reproduce the above
+ *		   copyright  notice,  this list  of  conditions  and  the
+ *		   following disclaimer in  the documentation and/or other
+ *		   materials provided with the distribution.
+ *
+ *		3. Neither the  name of the copyright holder nor the names
+ *		   of  its  contributors may be used to endorse or promote
+ *		   products  derived from  this  software without specific
+ *		   prior written permission.
+ *
+ * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE  ARE  DISCLAIMED. IN  NO  EVENT  SHALL THE COPYRIGHT
+ * HOLDER OR  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL,  EXEMPLARY,  OR  CONSEQUENTIAL  DAMAGES  (INCLUDING,  BUT  NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE  GOODS OR SERVICES;  LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON  ANY
+ * THEORY OF  LIABILITY, WHETHER IN  CONTRACT, STRICT  LIABILITY, OR  TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include <pcap.h>
+#include <pcap/pcap.h>
 #include "../86box.h"
 #include "../config.h"
 #include "../device.h"
@@ -31,7 +61,7 @@
 static volatile void		*pcap_handle;	/* handle to WinPcap DLL */
 static volatile pcap_t		*pcap;		/* handle to WinPcap library */
 static volatile thread_t	*poll_tid;
-static netcard_t		*poll_card;	/* netcard linked to us */
+static const netcard_t		*poll_card;	/* netcard linked to us */
 static event_t			*poll_state;
 
 
@@ -204,9 +234,7 @@ net_pcap_init(void)
     pclog("PCAP: initializing, %s\n", errbuf);
 
     /* Get the value of our capture interface. */
-    if ((network_pcap == NULL) ||
-	(network_pcap[0] == '\0') ||
-	!strcmp(network_pcap, "none")) {
+    if ((network_host[0] == '\0') || !strcmp(network_host, "none")) {
 	pclog("PCAP: no interface configured!\n");
 	return(-1);
     }
@@ -274,22 +302,22 @@ net_pcap_close(void)
  * tries to attach to the network module.
  */
 int
-net_pcap_reset(netcard_t *card, uint8_t *mac)
+net_pcap_reset(const netcard_t *card, uint8_t *mac)
 {
     char errbuf[PCAP_ERRBUF_SIZE];
     char filter_exp[255];
     struct bpf_program fp;
 
     /* Open a PCAP live channel. */
-    if ((pcap = f_pcap_open_live(network_pcap,		/* interface name */
+    if ((pcap = f_pcap_open_live(network_host,		/* interface name */
 				 1518,			/* max packet size */
 				 1,			/* promiscuous mode? */
 				 10,			/* timeout in msec */
 			         errbuf)) == NULL) {	/* error buffer */
-	pclog(" Unable to open device: %s!\n", network_pcap);
+	pclog(" Unable to open device: %s!\n", network_host);
 	return(-1);
     }
-    pclog("PCAP: interface: %s\n", network_pcap);
+    pclog("PCAP: interface: %s\n", network_host);
 
     /* Create a MAC address based packet filter. */
     pclog("PCAP: installing filter for MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",

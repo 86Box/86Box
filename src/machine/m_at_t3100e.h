@@ -8,7 +8,7 @@
  *
  *		Definitions for the Toshiba T3100e system.
  *
- * Version:	@(#)m_at_t3100e.h	1.0.2	2018/03/05
+ * Version:	@(#)m_at_t3100e.h	1.0.3	2018/03/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -40,7 +40,7 @@
 # define MACHINE_T3100E_H
 
 
-extern device_t t3100e_device;
+extern const device_t t3100e_device;
 
 
 extern void	t3100e_notify_set(uint8_t value);

@@ -19,7 +19,9 @@ int dostats = 0;
 #endif
 int slirp_debug = 0;
 
+#ifndef _MSC_VER
 extern char *strerror _P((int));
+#endif
 
 /* Carry over one item from main.c so that the tty's restored. 
  * Only done when the tty being used is /dev/tty --RedWolf */

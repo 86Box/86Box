@@ -1,17 +1,36 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
  *
- *		This file is part of the 86Box distribution.
+ *		This file is part of the VARCem Project.
  *
  *		Shared code for all the floppy modules.
  *
- * Version:	@(#)fdd_common.c	1.0.5	2018/01/16
+ * Version:	@(#)fdd_common.c	1.0.2	2018/03/16
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *		Copyright 2017,2018 Fred N. van Kempen.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free  Software  Foundation; either  version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is  distributed in the hope that it will be useful, but
+ * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the:
+ *
+ *   Free Software Foundation, Inc.
+ *   59 Temple Place - Suite 330
+ *   Boston, MA 02111-1307
+ *   USA.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -23,11 +42,11 @@
 #include "fdd_common.h"
 
 
-uint8_t fdd_holes[6] = { 0, 0, 0, 1, 1, 2 };
+const uint8_t fdd_holes[6] = { 0, 0, 0, 1, 1, 2 };
 
-uint8_t fdd_rates[6] = { 2, 2, 1, 4, 0, 3 };
+const uint8_t fdd_rates[6] = { 2, 2, 1, 4, 0, 3 };
 
-double fdd_bit_rates_300[6] = {
+const double fdd_bit_rates_300[6] = {
     (250.0 * 300.0) / 360.0,
     250.0,
     300.0,
@@ -46,7 +65,7 @@ double fdd_bit_rates_300[6] = {
  * Disks formatted at 300 kbps @ 300 RPM can be read with any 300 RPM
  * single-RPM drive by setting the rate to 300 kbps.
  */
-uint8_t fdd_max_sectors[8][6] = {
+const uint8_t fdd_max_sectors[8][6] = {
     { 26, 31, 38, 53, 64, 118 },	/*   128 */
     { 15, 19, 23, 32, 38,  73 },	/*   256 */
     {  7, 10, 12, 17, 22,  41 },	/*   512 */
@@ -57,12 +76,12 @@ uint8_t fdd_max_sectors[8][6] = {
     {  0,  0,  0,  0,  0,   1 }		/* 16384 */
 };
 
-uint8_t	fdd_dmf_r[21] = {
+const uint8_t	fdd_dmf_r[21] = {
     12,2,13,3,14,4,15,5,16,6,17,7,18,8,19,9,20,10,21,11,1
 };
 
 
-static uint8_t fdd_gap3_sizes[5][8][48] = {
+static const uint8_t fdd_gap3_sizes[5][8][48] = {
     {	{ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 	  0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,	/* [0][0] */
 	  0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -344,7 +363,6 @@ static uint8_t fdd_gap3_sizes[5][8][48] = {
 	  0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 }
     }
 };
-
 
 
 int

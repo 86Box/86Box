@@ -1,1 +1,1 @@
-extern device_t system_midi_device;
+extern const device_t system_midi_device;

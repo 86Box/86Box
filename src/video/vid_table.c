@@ -76,14 +76,14 @@ enum {
 typedef struct {
     const char	*name;
     const char	*internal_name;
-    device_t	*device;
+    const device_t	*device;
     int		legacy_id;
 	int flags;
     video_timings_t	timing;
 } VIDEO_CARD;
 
 
-static VIDEO_CARD
+static const VIDEO_CARD
 video_cards[] = {
     { "None",       								"none",				NULL,                      	GFX_NONE			},
     { "Internal",									"internal",			NULL,                       GFX_INTERNAL, 		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
@@ -222,7 +222,7 @@ video_card_getname(int card)
 }
 
 
-device_t *
+const device_t *
 video_card_getdevice(int card)
 {
     return(video_cards[card].device);

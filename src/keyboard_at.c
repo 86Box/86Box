@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.30	2018/03/13
+ * Version:	@(#)keyboard_at.c	1.0.31	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1891,7 +1891,7 @@ kbd_reset(void *priv)
 
 
 static void *
-kbd_init(device_t *info)
+kbd_init(const device_t *info)
 {
     atkbd_t *kbd;
 
@@ -1969,7 +1969,7 @@ kbd_close(void *priv)
 }
 
 
-device_t keyboard_at_device = {
+const device_t keyboard_at_device = {
     "PC/AT Keyboard",
     0,
     KBC_TYPE_ISA | KBC_VEN_GENERIC,
@@ -1979,7 +1979,7 @@ device_t keyboard_at_device = {
     NULL, NULL, NULL, NULL
 };
 
-device_t keyboard_at_ami_device = {
+const device_t keyboard_at_ami_device = {
     "PC/AT Keyboard (AMI)",
     0,
     KBC_TYPE_ISA | KBC_VEN_AMI,
@@ -1989,7 +1989,7 @@ device_t keyboard_at_ami_device = {
     NULL, NULL, NULL, NULL
 };
 
-device_t keyboard_at_toshiba_device = {
+const device_t keyboard_at_toshiba_device = {
     "PC/AT Keyboard (Toshiba)",
     0,
     KBC_TYPE_ISA | KBC_VEN_TOSHIBA,
@@ -1999,7 +1999,7 @@ device_t keyboard_at_toshiba_device = {
     NULL, NULL, NULL, NULL
 };
 
-device_t keyboard_ps2_device = {
+const device_t keyboard_ps2_device = {
     "PS/2 Keyboard",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
@@ -2009,7 +2009,7 @@ device_t keyboard_ps2_device = {
     NULL, NULL, NULL, NULL
 };
 
-device_t keyboard_ps2_ami_device = {
+const device_t keyboard_ps2_ami_device = {
     "PS/2 Keyboard (AMI)",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_AMI,
@@ -2019,7 +2019,7 @@ device_t keyboard_ps2_ami_device = {
     NULL, NULL, NULL, NULL
 };
 
-device_t keyboard_ps2_mca_device = {
+const device_t keyboard_ps2_mca_device = {
     "PS/2 Keyboard",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_IBM_MCA,
@@ -2029,7 +2029,7 @@ device_t keyboard_ps2_mca_device = {
     NULL, NULL, NULL, NULL
 };
 
-device_t keyboard_ps2_quadtel_device = {
+const device_t keyboard_ps2_quadtel_device = {
     "PS/2 Keyboard (Quadtel/MegaPC)",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_QUADTEL,

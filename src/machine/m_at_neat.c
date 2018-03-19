@@ -88,7 +88,7 @@ static void neat_init(void)
 
 
 void
-machine_at_neat_init(machine_t *model)
+machine_at_neat_init(const machine_t *model)
 {
         machine_at_init(model);
 	device_add(&fdc_at_device);
@@ -98,7 +98,7 @@ machine_at_neat_init(machine_t *model)
 
 
 void
-machine_at_neat_ami_init(machine_t *model)
+machine_at_neat_ami_init(const machine_t *model)
 {
         machine_at_common_init(model);
 

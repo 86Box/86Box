@@ -9,7 +9,7 @@
  *		Implementation of the Toshiba T1000 plasma display, which
  *		has a fixed resolution of 640x200 pixels.
  *
- * Version:	@(#)m_xt_t1000_vid.c	1.0.4	2018/03/10
+ * Version:	@(#)m_xt_t1000_vid.c	1.0.5	2018/03/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -658,7 +658,7 @@ static void t1000_recalcattrs(t1000_t *t1000)
 }
 
 
-static void *t1000_init(device_t *info)
+static void *t1000_init(const device_t *info)
 {
         t1000_t *t1000 = malloc(sizeof(t1000_t));
         memset(t1000, 0, sizeof(t1000_t));
@@ -704,7 +704,7 @@ static void t1000_speed_changed(void *p)
         t1000_recalctimings(t1000);
 }
 
-static device_config_t t1000_config[] = 
+static const device_config_t t1000_config[] = 
 {
 	{
 		.name = "display_language",
@@ -729,7 +729,7 @@ static device_config_t t1000_config[] =
 };
 
 
-device_t t1000_video_device = {
+const device_t t1000_video_device = {
     "Toshiba T1000 Video",
     0, 0,
     t1000_init, t1000_close, NULL,
@@ -741,7 +741,7 @@ device_t t1000_video_device = {
 };
 
 
-device_t t1200_video_device = {
+const device_t t1200_video_device = {
     "Toshiba T1200 Video",
     0, 0,
     t1000_init, t1000_close, NULL,

@@ -22,7 +22,7 @@
  *
  *		Based on the original "xebec.c" from Sarah Walker.
  *
- * Version:	@(#)m_europc_hdc.c	1.0.2	2018/03/11
+ * Version:	@(#)m_europc_hdc.c	1.0.3	2018/03/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -902,7 +902,7 @@ hd20_write(uint16_t port, uint8_t val, void *priv)
 
 
 static void *
-hd20_init(device_t *info)
+hd20_init(const device_t *info)
 {
     drive_t *drive;
     hd20_t *dev;
@@ -978,7 +978,7 @@ hd20_available(void)
 }
 
 
-device_t europc_hdc_device = {
+const device_t europc_hdc_device = {
     "EuroPC HD20",
     0, 0,
     hd20_init, hd20_close, NULL,

@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430FX PCISet chip.
  *
- * Version:	@(#)m_at_430fx.c	1.0.13	2018/02/23
+ * Version:	@(#)m_at_430fx.c	1.0.14	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -207,7 +207,7 @@ static void i430fx_init(void)
 
 
 void
-machine_at_p54tp4xe_init(machine_t *model)
+machine_at_p54tp4xe_init(const machine_t *model)
 {
         machine_at_ps2_init(model);
 
@@ -228,7 +228,7 @@ machine_at_p54tp4xe_init(machine_t *model)
 
 
 void
-machine_at_endeavor_init(machine_t *model)
+machine_at_endeavor_init(const machine_t *model)
 {
         machine_at_common_init(model);
 	device_add(&keyboard_ps2_ami_device);
@@ -253,7 +253,7 @@ machine_at_endeavor_init(machine_t *model)
 }
 
 
-device_t *
+const device_t *
 at_endeavor_get_device(void)
 {
     return &s3_phoenix_trio64_onboard_pci_device;
@@ -261,7 +261,7 @@ at_endeavor_get_device(void)
 
 
 void
-machine_at_zappa_init(machine_t *model)
+machine_at_zappa_init(const machine_t *model)
 {
         machine_at_common_init(model);
 	device_add(&keyboard_ps2_ami_device);
@@ -282,7 +282,7 @@ machine_at_zappa_init(machine_t *model)
 
 
 void
-machine_at_mb500n_init(machine_t *model)
+machine_at_mb500n_init(const machine_t *model)
 {
         machine_at_ps2_init(model);
 
@@ -302,7 +302,7 @@ machine_at_mb500n_init(machine_t *model)
 
 
 void
-machine_at_president_init(machine_t *model)
+machine_at_president_init(const machine_t *model)
 {
         machine_at_ps2_init(model);
 
@@ -323,7 +323,7 @@ machine_at_president_init(machine_t *model)
 
 
 void
-machine_at_thor_init(machine_t *model)
+machine_at_thor_init(const machine_t *model)
 {
         machine_at_common_init(model);
 	device_add(&keyboard_ps2_ami_device);

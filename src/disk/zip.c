@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.12	2018/03/17
+ * Version:	@(#)zip.c	1.0.13	2018/03/18
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -70,7 +70,7 @@ uint8_t scsi_zip_drives[16][8] =	{	{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0
 
 
 /* Table of all SCSI commands and their flags, needed for the new disc change / not ready handler. */
-uint8_t zip_command_flags[0x100] =
+const uint8_t zip_command_flags[0x100] =
 {
     IMPLEMENTED | CHECK_READY | NONDATA,			/* 0x00 */
     IMPLEMENTED | ALLOW_UA | NONDATA | SCSI_ONLY,		/* 0x01 */

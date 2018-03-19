@@ -1,1 +1,1 @@
-extern device_t wss_device;
+extern const device_t wss_device;

@@ -8,13 +8,13 @@
  *
  *		MDA emulation.
  *
- * Version:	@(#)vid_mda.c	1.0.9	2017/11/14
+ * Version:	@(#)vid_mda.c	1.0.10	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -280,7 +280,7 @@ void mda_poll(void *p)
 }
 
 
-void *mda_init(device_t *info)
+void *mda_init(const device_t *info)
 {
         int c;
         mda_t *mda = malloc(sizeof(mda_t));
@@ -340,7 +340,7 @@ void mda_speed_changed(void *p)
         mda_recalctimings(mda);
 }
 
-static device_config_t mda_config[] =
+static const device_config_t mda_config[] =
 {
         {
                 "rgb_type", "Display type", CONFIG_SELECTION, "", 0,
@@ -368,7 +368,7 @@ static device_config_t mda_config[] =
 };
 
 
-device_t mda_device =
+const device_t mda_device =
 {
         "MDA",
         DEVICE_ISA, 0,

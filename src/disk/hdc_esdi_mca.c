@@ -52,13 +52,13 @@
  *		however, are auto-configured by the system software as
  *		shown above.
  *
- * Version:	@(#)hdc_esdi_mca.c	1.0.8	2017/11/04
+ * Version:	@(#)hdc_esdi_mca.c	1.0.9	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -1041,7 +1041,7 @@ esdi_mca_write(int port, uint8_t val, void *priv)
 
 
 static void *
-esdi_init(device_t *info)
+esdi_init(const device_t *info)
 {
     drive_t *drive;
     esdi_t *dev;
@@ -1135,7 +1135,7 @@ esdi_available(void)
 }
 
 
-device_t esdi_ps2_device = {
+const device_t esdi_ps2_device = {
     "IBM ESDI Fixed Disk Adapter (MCA)",
     DEVICE_MCA, 0,
     esdi_init, esdi_close, NULL,

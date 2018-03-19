@@ -11,7 +11,7 @@
 #include "midi_system.h"
 
 
-void* system_midi_init(device_t *info)
+void* system_midi_init(const device_t *info)
 {
         midi_device_t* dev = malloc(sizeof(midi_device_t));
         memset(dev, 0, sizeof(midi_device_t));
@@ -39,7 +39,7 @@ int system_midi_available(void)
         return plat_midi_get_num_devs();
 }
 
-static device_config_t system_midi_config[] =
+static const device_config_t system_midi_config[] =
 {
         {
                 .name = "midi",
@@ -52,7 +52,7 @@ static device_config_t system_midi_config[] =
         }
 };
 
-device_t system_midi_device =
+const device_t system_midi_device =
 {
         SYSTEM_MIDI_NAME,
         0, 0,

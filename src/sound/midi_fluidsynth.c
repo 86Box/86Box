@@ -236,7 +236,7 @@ void fluidsynth_sysex(uint8_t* data, unsigned int len)
         f_fluid_synth_sysex(d->synth, (const char *) data, len, 0, 0, 0, 0);
 }
 
-void* fluidsynth_init(device_t *info)
+void* fluidsynth_init(const device_t *info)
 {
         fluidsynth_t* data = &fsdev;
         memset(data, 0, sizeof(fluidsynth_t));
@@ -390,7 +390,7 @@ void fluidsynth_close(void* p)
         /* pclog("fluidsynth closed\n"); */
 }
 
-static device_config_t fluidsynth_config[] =
+static const device_config_t fluidsynth_config[] =
 {
         {
                 .name = "sound_font",
@@ -566,7 +566,7 @@ static device_config_t fluidsynth_config[] =
         }
 };
 
-device_t fluidsynth_device =
+const device_t fluidsynth_device =
 {
         "FluidSynth",
         0,

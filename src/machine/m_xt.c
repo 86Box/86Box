@@ -15,7 +15,7 @@
 
 
 void
-machine_xt_init(machine_t *model)
+machine_xt_init(const machine_t *model)
 {
     machine_common_init(model);
 

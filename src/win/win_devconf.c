@@ -8,7 +8,7 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_devconf.c	1.0.15	2018/02/25
+ * Version:	@(#)win_devconf.c	1.0.16	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -30,7 +30,7 @@
 #include <windowsx.h>
 
 
-static device_t *config_device;
+static const device_t *config_device;
 
 static uint8_t deviceconfig_changed = 0;
 
@@ -47,10 +47,10 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	int val_int;
 	int id;
 	int c;
-    int num;
+	int num;
 	int changed;
-    int cid;
-	device_config_t *config;
+	int cid;
+	const device_config_t *config;
 	char s[80];
 	wchar_t ws[512];
 	LPTSTR lptsTemp;
@@ -66,7 +66,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
                         while (config->type != -1)
                         {
-                                device_config_selection_t *selection = config->selection;
+                                const device_config_selection_t *selection = config->selection;
                                 h = GetDlgItem(hdlg, id);
                                 
                                 switch (config->type)
@@ -183,7 +183,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                 
                                 while (config->type != -1)
                                 {
-                                        device_config_selection_t *selection = config->selection;
+                                        const device_config_selection_t *selection = config->selection;
                                         h = GetDlgItem(hdlg, id);
                                 
                                         switch (config->type)
@@ -295,7 +295,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                 
                                 while (config->type != -1)
                                 {
-                                        device_config_selection_t *selection = config->selection;
+                                        const device_config_selection_t *selection = config->selection;
                                         h = GetDlgItem(hdlg, id);
                                 
                                         switch (config->type)
@@ -375,7 +375,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                     else
                     {
                                 int id = IDC_CONFIG_BASE;
-                                device_config_t *config = config_device->config;
+                                const device_config_t *config = config_device->config;
 
                                 while (config->type != -1)
                                 {
@@ -455,9 +455,9 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
         return FALSE;
 }
 
-uint8_t deviceconfig_open(HWND hwnd, device_t *device)
+uint8_t deviceconfig_open(HWND hwnd, const device_t *device)
 {
-        device_config_t *config = device->config;
+        const device_config_t *config = device->config;
         uint16_t *data_block = malloc(16384);
         uint16_t *data;
         DLGTEMPLATE *dlg = (DLGTEMPLATE *)data_block;

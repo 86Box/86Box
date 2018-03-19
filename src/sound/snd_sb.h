@@ -8,14 +8,14 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.h	1.0.2	2017/11/04
+ * Version:	@(#)sound_sb.h	1.0.3	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #ifndef SOUND_SND_SB_H
 # define SOUND_SND_SB_H
@@ -33,15 +33,15 @@
 #define SND_PAS16	10	/* Pro Audio Spectrum 16 */
 
 
-extern device_t sb_1_device;
-extern device_t sb_15_device;
-extern device_t sb_mcv_device;
-extern device_t sb_2_device;
-extern device_t sb_pro_v1_device;
-extern device_t sb_pro_v2_device;
-extern device_t sb_pro_mcv_device;
-extern device_t sb_16_device;
-extern device_t sb_awe32_device;
+extern const device_t sb_1_device;
+extern const device_t sb_15_device;
+extern const device_t sb_mcv_device;
+extern const device_t sb_2_device;
+extern const device_t sb_pro_v1_device;
+extern const device_t sb_pro_v2_device;
+extern const device_t sb_pro_mcv_device;
+extern const device_t sb_16_device;
+extern const device_t sb_awe32_device;
 
 
 #endif	/*SOUND_SND_SB_H*/

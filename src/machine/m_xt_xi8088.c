@@ -76,7 +76,7 @@ static void *xi8088_init()
 	return &xi8088;
 }
 
-static device_config_t xi8088_config[] =
+static const device_config_t xi8088_config[] =
 {
         {
                 .name = "turbo_setting",
@@ -101,7 +101,7 @@ static device_config_t xi8088_config[] =
 };
 
 
-device_t xi8088_device =
+const device_t xi8088_device =
 {
         "Xi8088",
         0,
@@ -116,13 +116,13 @@ device_t xi8088_device =
         xi8088_config
 };
 
-device_t *
+const device_t *
 xi8088_get_device(void)
 {
     return &xi8088_device;
 }
 
-void machine_xt_xi8088_init(machine_t *model)
+void machine_xt_xi8088_init(const machine_t *model)
 {
         /* TODO: set UMBs? See if PCem always sets when we have > 640KB ram and avoids conflicts when a peripheral uses the same memory space */
         machine_common_init(model);

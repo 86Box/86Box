@@ -8,7 +8,7 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.5	2018/02/15
+ * Version:	@(#)sound_sb.c	1.0.6	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1339,7 +1339,7 @@ void sb_add_status_info(char *s, int max_len, void *p)
         sb_dsp_add_status_info(s, max_len, &sb->dsp);
 }
 
-static device_config_t sb_config[] =
+static const device_config_t sb_config[] =
 {
         {
                 "base", "Address", CONFIG_HEX16, "", 0x220,
@@ -1397,7 +1397,7 @@ static device_config_t sb_config[] =
         }
 };
 
-static device_config_t sb_mcv_config[] =
+static const device_config_t sb_mcv_config[] =
 {
         {
                 "irq", "IRQ", CONFIG_SELECTION, "", 7,
@@ -1438,7 +1438,7 @@ static device_config_t sb_mcv_config[] =
         }
 };
 
-static device_config_t sb_pro_config[] =
+static const device_config_t sb_pro_config[] =
 {
         {
                 "base", "Address", CONFIG_HEX16, "", 0x220,
@@ -1496,7 +1496,7 @@ static device_config_t sb_pro_config[] =
         }
 };
 
-static device_config_t sb_16_config[] =
+static const device_config_t sb_16_config[] =
 {
         {
                 "base", "Address", CONFIG_HEX16, "", 0x220,
@@ -1634,7 +1634,7 @@ static device_config_t sb_16_config[] =
         }
 };
 
-static device_config_t sb_awe32_config[] =
+static const device_config_t sb_awe32_config[] =
 {
         {
                 "base", "Address", CONFIG_HEX16, "", 0x220,
@@ -1815,7 +1815,7 @@ static device_config_t sb_awe32_config[] =
         }
 };
 
-device_t sb_1_device =
+const device_t sb_1_device =
 {
         "Sound Blaster v1.0",
         DEVICE_ISA,
@@ -1826,7 +1826,7 @@ device_t sb_1_device =
         sb_add_status_info,
         sb_config
 };
-device_t sb_15_device =
+const device_t sb_15_device =
 {
         "Sound Blaster v1.5",
         DEVICE_ISA,
@@ -1837,7 +1837,7 @@ device_t sb_15_device =
         sb_add_status_info,
         sb_config
 };
-device_t sb_mcv_device =
+const device_t sb_mcv_device =
 {
         "Sound Blaster MCV",
         DEVICE_MCA,
@@ -1848,7 +1848,7 @@ device_t sb_mcv_device =
         sb_add_status_info,
         sb_mcv_config
 };
-device_t sb_2_device =
+const device_t sb_2_device =
 {
         "Sound Blaster v2.0",
         DEVICE_ISA,
@@ -1859,7 +1859,7 @@ device_t sb_2_device =
         sb_add_status_info,
         sb_config
 };
-device_t sb_pro_v1_device =
+const device_t sb_pro_v1_device =
 {
         "Sound Blaster Pro v1",
         DEVICE_ISA,
@@ -1870,7 +1870,7 @@ device_t sb_pro_v1_device =
         sb_add_status_info,
         sb_pro_config
 };
-device_t sb_pro_v2_device =
+const device_t sb_pro_v2_device =
 {
         "Sound Blaster Pro v2",
         DEVICE_ISA,
@@ -1881,7 +1881,7 @@ device_t sb_pro_v2_device =
         sb_add_status_info,
         sb_pro_config
 };
-device_t sb_pro_mcv_device =
+const device_t sb_pro_mcv_device =
 {
         "Sound Blaster Pro MCV",
         DEVICE_MCA,
@@ -1892,7 +1892,7 @@ device_t sb_pro_mcv_device =
         sb_add_status_info,
         NULL
 };
-device_t sb_16_device =
+const device_t sb_16_device =
 {
         "Sound Blaster 16",
         DEVICE_ISA,
@@ -1903,7 +1903,7 @@ device_t sb_16_device =
         sb_add_status_info,
         sb_16_config
 };
-device_t sb_awe32_device =
+const device_t sb_awe32_device =
 {
         "Sound Blaster AWE32",
         DEVICE_ISA,

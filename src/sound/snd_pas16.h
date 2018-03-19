@@ -1,1 +1,1 @@
-extern device_t pas16_device;
+extern const device_t pas16_device;

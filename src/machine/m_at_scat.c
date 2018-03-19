@@ -10,7 +10,7 @@
  *
  *		Re-worked version based on the 82C235 datasheet and errata.
  *
- * Version:	@(#)m_at_scat.c	1.0.10	2018/03/02
+ * Version:	@(#)m_at_scat.c	1.0.11	2018/03/18
  *
  * Authors:	Original by GreatPsycho for PCem.
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -712,7 +712,7 @@ scatsx_init()
 
 
 void
-machine_at_scat_init(machine_t *model)
+machine_at_scat_init(const machine_t *model)
 {
     machine_at_init(model);
     device_add(&fdc_at_device);
@@ -722,7 +722,7 @@ machine_at_scat_init(machine_t *model)
 
 
 void
-machine_at_scatsx_init(machine_t *model)
+machine_at_scatsx_init(const machine_t *model)
 {
     machine_at_init(model);
     device_add(&fdc_at_device);

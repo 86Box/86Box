@@ -11,7 +11,7 @@
  *		of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.h	1.0.5	2018/03/07
+ * Version:	@(#)scsi_x54x.h	1.0.6	2018/03/18
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -501,7 +501,7 @@ extern void	x54x_mem_init(x54x_t *dev, uint32_t addr);
 extern void	x54x_mem_enable(x54x_t *dev);
 extern void	x54x_mem_set_addr(x54x_t *dev, uint32_t base);
 extern void	x54x_mem_disable(x54x_t *dev);
-extern void	*x54x_init(device_t *info);
+extern void	*x54x_init(const device_t *info);
 extern void	x54x_close(void *priv);
 extern void	x54x_device_reset(void *priv);
 

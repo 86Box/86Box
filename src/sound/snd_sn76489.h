@@ -5,8 +5,8 @@ enum
         PSSJ
 };
 
-extern device_t sn76489_device;
-extern device_t ncr8496_device;
+extern const device_t sn76489_device;
+extern const device_t ncr8496_device;
 
 extern int sn76489_mute;
 

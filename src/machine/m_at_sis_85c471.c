@@ -9,7 +9,7 @@
  *		SiS sis85c471 Super I/O Chip
  *		Used by DTK PKM-0038S E-2
  *
- * Version:	@(#)m_at_sis85c471.c	1.0.9	2018/01/16
+ * Version:	@(#)m_at_sis85c471.c	1.0.10	2018/03/18
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -240,7 +240,7 @@ static void sis_85c471_init(void)
 
 
 void
-machine_at_dtk486_init(machine_t *model)
+machine_at_dtk486_init(const machine_t *model)
 {
         machine_at_ide_init(model);
 	device_add(&fdc_at_device);

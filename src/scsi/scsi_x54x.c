@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.19	2018/03/09
+ * Version:	@(#)scsi_x54x.c	1.0.20	2018/03/18
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1891,7 +1891,7 @@ x54x_mem_disable(x54x_t *dev)
 
 /* General initialization routine for all boards. */
 void *
-x54x_init(device_t *info)
+x54x_init(const device_t *info)
 {
     x54x_t *dev;
 

@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.39	2018/03/17
+ * Version:	@(#)hdc_ide.c	1.0.40	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2856,12 +2856,12 @@ void secondary_ide_check(void)
  * Initialization of standalone IDE controller instance.
  *
  * Eventually, we should clean up the whole mess by only
- * using device_t units, with configuration parameters to
+ * using const device_t units, with configuration parameters to
  * indicate primary/secondary and all that, rather than
  * keeping a zillion of duplicate functions around.
  */
 static void *
-ide_sainit(device_t *info)
+ide_sainit(const device_t *info)
 {
     switch(info->local) {
 	case 0:		/* ISA, single-channel */
@@ -2891,7 +2891,7 @@ ide_sainit(device_t *info)
 		break;
     }
 
-    return(info);
+    return(ide_drives);
 }
 
 
@@ -2903,7 +2903,7 @@ ide_saclose(void *priv)
 }
 
 
-device_t ide_isa_device = {
+const device_t ide_isa_device = {
     "ISA PC/AT IDE Controller",
     DEVICE_ISA | DEVICE_AT,
     0,
@@ -2912,7 +2912,7 @@ device_t ide_isa_device = {
     NULL
 };
 
-device_t ide_isa_2ch_device = {
+const device_t ide_isa_2ch_device = {
     "ISA PC/AT IDE Controller (Dual-Channel)",
     DEVICE_ISA | DEVICE_AT,
     2,
@@ -2921,7 +2921,7 @@ device_t ide_isa_2ch_device = {
     NULL
 };
 
-device_t ide_isa_2ch_opt_device = {
+const device_t ide_isa_2ch_opt_device = {
     "ISA PC/AT IDE Controller (Single/Dual)",
     DEVICE_ISA | DEVICE_AT,
     3,
@@ -2930,7 +2930,7 @@ device_t ide_isa_2ch_opt_device = {
     NULL
 };
 
-device_t ide_vlb_device = {
+const device_t ide_vlb_device = {
     "VLB IDE Controller",
     DEVICE_VLB | DEVICE_AT,
     4,
@@ -2939,7 +2939,7 @@ device_t ide_vlb_device = {
     NULL
 };
 
-device_t ide_vlb_2ch_device = {
+const device_t ide_vlb_2ch_device = {
     "VLB IDE Controller (Dual-Channel)",
     DEVICE_VLB | DEVICE_AT,
     6,
@@ -2948,7 +2948,7 @@ device_t ide_vlb_2ch_device = {
     NULL
 };
 
-device_t ide_pci_device = {
+const device_t ide_pci_device = {
     "PCI IDE Controller",
     DEVICE_PCI | DEVICE_AT,
     8,
@@ -2957,7 +2957,7 @@ device_t ide_pci_device = {
     NULL
 };
 
-device_t ide_pci_2ch_device = {
+const device_t ide_pci_2ch_device = {
     "PCI IDE Controller (Dual-Channel)",
     DEVICE_PCI | DEVICE_AT,
     10,

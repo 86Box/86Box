@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.h	1.0.6	2018/01/25
+ * Version:	@(#)vid_ega.h	1.0.7	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -115,9 +115,9 @@ typedef struct ega_t {
 
 
 #ifdef EMU_DEVICE_H
-extern device_t ega_device;
-extern device_t cpqega_device;
-extern device_t sega_device;
+extern const device_t ega_device;
+extern const device_t cpqega_device;
+extern const device_t sega_device;
 #endif
 #ifdef JEGA
 extern uint8_t jfont_sbcs_19[SBCS19_LEN];	/* 256 * 19( * 8) */

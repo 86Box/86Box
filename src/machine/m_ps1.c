@@ -28,7 +28,7 @@
  *		boot. Sometimes, they do, and then it shows an "Incorrect
  *		DOS" error message??  --FvK
  *
- * Version:	@(#)m_ps1.c	1.0.6	2018/02/14
+ * Version:	@(#)m_ps1.c	1.0.7	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -236,7 +236,7 @@ snd_get_buffer(int32_t *buffer, int len, void *priv)
 
 
 static void *
-snd_init(device_t *info)
+snd_init(const device_t *info)
 {
     ps1snd_t *snd;
 
@@ -265,7 +265,7 @@ snd_close(void *priv)
 }
 
 
-static device_t snd_device = {
+static const device_t snd_device = {
     "PS/1 Audio Card",
     0, 0,
     snd_init, snd_close, NULL,
@@ -535,7 +535,7 @@ ps1_setup(int model)
 
 
 static void
-ps1_common_init(machine_t *model)
+ps1_common_init(const machine_t *model)
 {
     machine_common_init(model);
 
@@ -570,7 +570,7 @@ ps1_common_init(machine_t *model)
 
 
 void
-machine_ps1_m2011_init(machine_t *model)
+machine_ps1_m2011_init(const machine_t *model)
 {
     ps1_common_init(model);
 
@@ -579,7 +579,7 @@ machine_ps1_m2011_init(machine_t *model)
 
 
 void
-machine_ps1_m2121_init(machine_t *model)
+machine_ps1_m2121_init(const machine_t *model)
 {
     ps1_common_init(model);
 
@@ -588,7 +588,7 @@ machine_ps1_m2121_init(machine_t *model)
 
 
 void
-machine_ps1_m2133_init(machine_t *model)
+machine_ps1_m2133_init(const machine_t *model)
 {
     ps1_common_init(model);
 

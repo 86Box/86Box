@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.64	2018/03/15
+ * Version:	@(#)pc.c	1.0.65	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -75,7 +75,6 @@
 #include "video/video.h"
 #include "ui.h"
 #include "plat.h"
-#include "plat_joystick.h"
 #include "plat_midi.h"
 
 

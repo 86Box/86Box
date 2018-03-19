@@ -1,1 +1,1 @@
-extern device_t es1371_device;
+extern const device_t es1371_device;

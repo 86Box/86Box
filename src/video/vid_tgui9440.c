@@ -47,7 +47,7 @@
  *		access size or host data has any affect, but the Windows 3.1
  *		driver always reads bytes and write words of 0xffff.
  *
- * Version:	@(#)vid_tgui9440.c	1.0.4	2018/02/12
+ * Version:	@(#)vid_tgui9440.c	1.0.5	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -771,7 +771,7 @@ void tgui_pci_write(int func, int addr, uint8_t val, void *p)
         }
 }
 
-static void *tgui_init(device_t *info, wchar_t *bios_fn, int type)
+static void *tgui_init(const device_t *info, wchar_t *bios_fn, int type)
 {
         tgui_t *tgui = malloc(sizeof(tgui_t));
         memset(tgui, 0, sizeof(tgui_t));
@@ -809,12 +809,12 @@ static void *tgui_init(device_t *info, wchar_t *bios_fn, int type)
         return tgui;
 }
 
-static void *tgui9400cxi_init(device_t *info)
+static void *tgui9400cxi_init(const device_t *info)
 {
         return tgui_init(info, L"roms/video/tgui9440/9400CXI.vbi", TGUI_9400CXI);
 }
 
-static void *tgui9440_init(device_t *info)
+static void *tgui9440_init(const device_t *info)
 {
         return tgui_init(info, L"roms/video/tgui9440/9440.vbi", TGUI_9440);
 }
@@ -1745,7 +1745,7 @@ void tgui_add_status_info(char *s, int max_len, void *p)
         tgui->blitter_time = 0;
 }
 
-static device_config_t tgui9440_config[] =
+static const device_config_t tgui9440_config[] =
 {
         {
                 .name = "memory",
@@ -1772,7 +1772,7 @@ static device_config_t tgui9440_config[] =
         }
 };
 
-device_t tgui9400cxi_device =
+const device_t tgui9400cxi_device =
 {
         "Trident TGUI 9400CXi",
         DEVICE_VLB,
@@ -1787,7 +1787,7 @@ device_t tgui9400cxi_device =
         tgui9440_config
 };
 
-device_t tgui9440_vlb_device =
+const device_t tgui9440_vlb_device =
 {
         "Trident TGUI 9440 VLB",
         DEVICE_VLB,
@@ -1802,7 +1802,7 @@ device_t tgui9440_vlb_device =
         tgui9440_config
 };
 
-device_t tgui9440_pci_device =
+const device_t tgui9440_pci_device =
 {
         "Trident TGUI 9440 PCI",
         DEVICE_PCI,

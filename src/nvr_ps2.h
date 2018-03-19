@@ -8,7 +8,7 @@
  *
  *		Definitions for the PS/2 cmos/nvr device.
  *
- * Version:	@(#)nvr_ps2.h	1.0.1	2018/02/14
+ * Version:	@(#)nvr_ps2.h	1.0.2	2018/03/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -38,7 +38,7 @@
 # define EMU_NVRPS2_H
 
 
-extern device_t	ps2_nvr_device;
+extern const device_t	ps2_nvr_device;
 
 
 #endif	/*EMU_NVRPS2_H*/

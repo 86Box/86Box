@@ -11,7 +11,7 @@
  * TODO:	Add the Genius bus- and serial mouse.
  *		Remove the '3-button' flag from mouse types.
  *
- * Version:	@(#)mouse.c	1.0.22	2018/03/18
+ * Version:	@(#)mouse.c	1.0.23	2018/03/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -30,7 +30,7 @@
 
 typedef struct {
     const char  *internal_name;
-    device_t    *device;
+    const device_t    *device;
 } mouse_t;
 
 
@@ -41,14 +41,14 @@ int	mouse_x,
 	mouse_buttons;
 
 
-static device_t mouse_none_device = {
+static const device_t mouse_none_device = {
     "None",
     0, MOUSE_TYPE_NONE,
     NULL, NULL, NULL,
     NULL, NULL, NULL, NULL,
     NULL
 };
-static device_t mouse_internal_device = {
+static const device_t mouse_internal_device = {
     "Internal Mouse",
     0, MOUSE_TYPE_INTERNAL,
     NULL, NULL, NULL,
@@ -72,7 +72,7 @@ static mouse_t mouse_devices[] = {
 };
 
 
-static device_t	*mouse_curr;
+static const device_t	*mouse_curr;
 static void	*mouse_priv;
 static int	mouse_nbut;
 static int	(*mouse_dev_poll)();
@@ -211,7 +211,7 @@ mouse_has_config(int mouse)
 }
 
 
-device_t *
+const device_t *
 mouse_get_device(int mouse)
 {
     return(mouse_devices[mouse].device);

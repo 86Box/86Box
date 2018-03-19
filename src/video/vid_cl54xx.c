@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.9	2018/03/02
+ * Version:	@(#)vid_cl_54xx.c	1.0.10	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,
@@ -2290,7 +2290,7 @@ cl_pci_write(int func, int addr, uint8_t val, void *p)
 
 
 static void
-*gd54xx_init(device_t *info)
+*gd54xx_init(const device_t *info)
 {
     gd54xx_t *gd54xx = malloc(sizeof(gd54xx_t));
     svga_t *svga = &gd54xx->svga;
@@ -2451,7 +2451,7 @@ gd54xx_add_status_info(char *s, int max_len, void *p)
 }
 
 
-static device_config_t gd5428_config[] =
+static const device_config_t gd5428_config[] =
 {
         {
                 .name = "memory",
@@ -2478,7 +2478,7 @@ static device_config_t gd5428_config[] =
         }
 };
 
-static device_config_t gd5434_config[] =
+static const device_config_t gd5434_config[] =
 {
         {
                 .name = "memory",
@@ -2505,7 +2505,7 @@ static device_config_t gd5434_config[] =
         }
 };
 
-device_t gd5426_vlb_device =
+const device_t gd5426_vlb_device =
 {
     "Cirrus Logic CL-GD 5426 (VLB)",
     DEVICE_VLB,
@@ -2520,7 +2520,7 @@ device_t gd5426_vlb_device =
     gd5428_config
 };
 
-device_t gd5428_isa_device =
+const device_t gd5428_isa_device =
 {
     "Cirrus Logic CL-GD 5428 (ISA)",
     DEVICE_AT | DEVICE_ISA,
@@ -2535,7 +2535,7 @@ device_t gd5428_isa_device =
     gd5428_config
 };
 
-device_t gd5428_vlb_device =
+const device_t gd5428_vlb_device =
 {
     "Cirrus Logic CL-GD 5428 (VLB)",
     DEVICE_VLB,
@@ -2550,7 +2550,7 @@ device_t gd5428_vlb_device =
     gd5428_config
 };
 
-device_t gd5429_isa_device =
+const device_t gd5429_isa_device =
 {
     "Cirrus Logic CL-GD 5429 (ISA)",
     DEVICE_AT | DEVICE_ISA,
@@ -2565,7 +2565,7 @@ device_t gd5429_isa_device =
     gd5428_config
 };
 
-device_t gd5429_vlb_device =
+const device_t gd5429_vlb_device =
 {
     "Cirrus Logic CL-GD 5429 (VLB)",
     DEVICE_VLB,
@@ -2580,7 +2580,7 @@ device_t gd5429_vlb_device =
     gd5428_config
 };
 
-device_t gd5430_vlb_device =
+const device_t gd5430_vlb_device =
 {
     "Cirrus Logic CL-GD 5430 (VLB)",
     DEVICE_VLB,
@@ -2595,7 +2595,7 @@ device_t gd5430_vlb_device =
     gd5428_config
 };
 
-device_t gd5430_pci_device =
+const device_t gd5430_pci_device =
 {
     "Cirrus Logic CL-GD 5430 (PCI)",
     DEVICE_PCI,
@@ -2610,7 +2610,7 @@ device_t gd5430_pci_device =
     gd5428_config
 };
 
-device_t gd5434_isa_device =
+const device_t gd5434_isa_device =
 {
     "Cirrus Logic CL-GD 5434 (ISA)",
     DEVICE_AT | DEVICE_ISA,
@@ -2625,7 +2625,7 @@ device_t gd5434_isa_device =
     gd5434_config
 };
 
-device_t gd5434_vlb_device =
+const device_t gd5434_vlb_device =
 {
     "Cirrus Logic CL-GD 5434 (VLB)",
     DEVICE_VLB,
@@ -2640,7 +2640,7 @@ device_t gd5434_vlb_device =
     gd5434_config
 };
 
-device_t gd5434_pci_device =
+const device_t gd5434_pci_device =
 {
     "Cirrus Logic CL-GD 5434 (PCI)",
     DEVICE_PCI,
@@ -2655,7 +2655,7 @@ device_t gd5434_pci_device =
     gd5434_config
 };
 
-device_t gd5436_pci_device =
+const device_t gd5436_pci_device =
 {
     "Cirrus Logic CL-GD 5436 (PCI)",
     DEVICE_PCI,

@@ -12,13 +12,13 @@
  *		based design. Most cards were WD1003-WA2 or -WAH, where the
  *		-WA2 cards had a floppy controller as well (to save space.)
  *
- * Version:	@(#)hdc_mfm_at.c	1.0.12	2017/12/09
+ * Version:	@(#)hdc_mfm_at.c	1.0.13	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #define __USE_LARGEFILE64
 #define _LARGEFILE_SOURCE
@@ -707,7 +707,7 @@ loadhd(mfm_t *mfm, int c, int d, const wchar_t *fn)
 
 
 static void *
-mfm_init(device_t *info)
+mfm_init(const device_t *info)
 {
     mfm_t *mfm;
     int c, d;
@@ -764,7 +764,7 @@ mfm_close(void *priv)
 }
 
 
-device_t mfm_at_wd1003_device = {
+const device_t mfm_at_wd1003_device = {
     "WD1003 AT MFM/RLL Controller",
     DEVICE_ISA | DEVICE_AT,
     0,

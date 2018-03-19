@@ -1218,7 +1218,7 @@ static void ps2_mca_board_model_80_type2_init(int is486)
 
 
 static void
-machine_ps2_common_init(machine_t *model)
+machine_ps2_common_init(const machine_t *model)
 {
         machine_common_init(model);
 	device_add(&fdc_at_device);
@@ -1236,7 +1236,7 @@ machine_ps2_common_init(machine_t *model)
 
 
 void
-machine_ps2_model_50_init(machine_t *model)
+machine_ps2_model_50_init(const machine_t *model)
 {
         machine_ps2_common_init(model);
 
@@ -1245,7 +1245,7 @@ machine_ps2_model_50_init(machine_t *model)
 
 
 void
-machine_ps2_model_55sx_init(machine_t *model)
+machine_ps2_model_55sx_init(const machine_t *model)
 {
         machine_ps2_common_init(model);
 
@@ -1253,7 +1253,7 @@ machine_ps2_model_55sx_init(machine_t *model)
 }
 
 void
-machine_ps2_model_70_type3_init(machine_t *model)
+machine_ps2_model_70_type3_init(const machine_t *model)
 {
         machine_ps2_common_init(model);
 
@@ -1261,7 +1261,7 @@ machine_ps2_model_70_type3_init(machine_t *model)
 }
 
 void
-machine_ps2_model_70_type4_init(machine_t *model)
+machine_ps2_model_70_type4_init(const machine_t *model)
 {
         machine_ps2_common_init(model);
 
@@ -1269,7 +1269,7 @@ machine_ps2_model_70_type4_init(machine_t *model)
 }
 
 void
-machine_ps2_model_80_init(machine_t *model)
+machine_ps2_model_80_init(const machine_t *model)
 {
         machine_ps2_common_init(model);
 
@@ -1279,7 +1279,7 @@ machine_ps2_model_80_init(machine_t *model)
 
 #ifdef WALTJE
 void
-machine_ps2_model_80_486_init(machine_t *model)
+machine_ps2_model_80_486_init(const machine_t *model)
 {
         machine_ps2_common_init(model);
 

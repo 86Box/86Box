@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.40	2018/03/18
+ * Version:	@(#)cdrom.c	1.0.41	2018/03/18
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -97,7 +97,7 @@ static struct
 
 
 /* Table of all SCSI commands and their flags, needed for the new disc change / not ready handler. */
-uint8_t cdrom_command_flags[0x100] =
+const uint8_t cdrom_command_flags[0x100] =
 {
 	IMPLEMENTED | CHECK_READY | NONDATA,
 	IMPLEMENTED | ALLOW_UA | NONDATA | SCSI_ONLY,

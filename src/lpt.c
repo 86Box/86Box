@@ -15,7 +15,7 @@
 char lpt_device_names[3][16];
 
 
-static struct
+static const struct
 {
         const char *name;
         const char *internal_name;

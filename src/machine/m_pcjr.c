@@ -8,7 +8,7 @@
  *
  *		Emulation of the IBM PCjr.
  *
- * Version:	@(#)m_pcjr.c	1.0.5	2018/02/09
+ * Version:	@(#)m_pcjr.c	1.0.6	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -693,7 +693,7 @@ speed_changed(void *priv)
 }
 
 
-static device_config_t pcjr_config[] = {
+static const device_config_t pcjr_config[] = {
     {
 	"display_type", "Display type", CONFIG_SELECTION, "", PCJR_RGB,
 	{
@@ -714,7 +714,7 @@ static device_config_t pcjr_config[] = {
 };
 
 
-static device_t pcjr_device = {
+static const device_t pcjr_device = {
     "IBM PCjr",
     0, 0,
     NULL, NULL, NULL,
@@ -726,7 +726,7 @@ static device_t pcjr_device = {
 };
 
 
-device_t *
+const device_t *
 pcjr_get_device(void)
 {
     return &pcjr_device;
@@ -734,7 +734,7 @@ pcjr_get_device(void)
 
 
 void
-machine_pcjr_init(machine_t *model)
+machine_pcjr_init(const machine_t *model)
 {
     int display_type;
     pcjr_t *pcjr;

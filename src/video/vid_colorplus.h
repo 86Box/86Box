@@ -12,4 +12,4 @@ uint8_t colorplus_read(uint32_t addr, void *p);
 void    colorplus_recalctimings(colorplus_t *colorplus);
 void    colorplus_poll(void *p);
 
-extern device_t colorplus_device;
+extern const device_t colorplus_device;

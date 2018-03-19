@@ -8,13 +8,13 @@
  *
  *		Plantronics ColorPlus emulation.
  *
- * Version:	@(#)vid_colorplus.c	1.0.7	2017/11/14
+ * Version:	@(#)vid_colorplus.c	1.0.8	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -385,7 +385,7 @@ void colorplus_init(colorplus_t *colorplus)
 	cga_init(&colorplus->cga);
 }
 
-void *colorplus_standalone_init(device_t *info)
+void *colorplus_standalone_init(const device_t *info)
 {
         int display_type;
 
@@ -426,7 +426,7 @@ void colorplus_speed_changed(void *p)
         cga_recalctimings(&colorplus->cga);
 }
 
-static device_config_t colorplus_config[] =
+static const device_config_t colorplus_config[] =
 {
         {
                 "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB,
@@ -464,7 +464,7 @@ static device_config_t colorplus_config[] =
         }
 };
 
-device_t colorplus_device =
+const device_t colorplus_device =
 {
         "Colorplus",
         DEVICE_ISA, 0,

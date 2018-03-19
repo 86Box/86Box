@@ -12,7 +12,6 @@
 #include "../device.h"
 #include "../game/gameport.h"
 #include "../plat.h"
-#include "../plat_joystick.h"
 #include "win.h"
 
 

@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.12	2018/03/16
+ * Version:	@(#)vid_ati28800.c	1.0.13	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -387,7 +387,7 @@ void ati28800k_recalctimings(svga_t *svga)
 }
 
 void *
-ati28800k_init(device_t *info)
+ati28800k_init(const device_t *info)
 {
         ati28800_t *ati28800 = malloc(sizeof(ati28800_t));
         memset(ati28800, 0, sizeof(ati28800_t));
@@ -422,7 +422,7 @@ ati28800k_init(device_t *info)
 }
 
 static void *
-ati28800_init(device_t *info)
+ati28800_init(const device_t *info)
 {
     ati28800_t *ati;
     ati = malloc(sizeof(ati28800_t));
@@ -555,7 +555,7 @@ static void ati28800_add_status_info(char *s, int max_len, void *priv)
 }
 
 
-static device_config_t ati28800_config[] =
+static const device_config_t ati28800_config[] =
 {
         {
                 "memory", "Memory size", CONFIG_SELECTION, "", 512,
@@ -580,7 +580,7 @@ static device_config_t ati28800_config[] =
 };
 
 #if defined(DEV_BRANCH) && defined(USE_XL24)
-static device_config_t ati28800_wonderxl_config[] =
+static const device_config_t ati28800_wonderxl_config[] =
 {
         {
                 "memory", "Memory size", CONFIG_SELECTION, "", 512,
@@ -605,7 +605,7 @@ static device_config_t ati28800_wonderxl_config[] =
 };
 #endif
 
-device_t ati28800_device =
+const device_t ati28800_device =
 {
         "ATI-28800",
         DEVICE_ISA,
@@ -618,7 +618,7 @@ device_t ati28800_device =
 	ati28800_config
 };
 
-device_t ati28800k_device =
+const device_t ati28800k_device =
 {
         "ATI Korean VGA",
         DEVICE_ISA,
@@ -631,7 +631,7 @@ device_t ati28800k_device =
 	ati28800_config
 };
 
-device_t compaq_ati28800_device =
+const device_t compaq_ati28800_device =
 {
         "Compaq ATI-28800",
         DEVICE_ISA,
@@ -645,7 +645,7 @@ device_t compaq_ati28800_device =
 };
 
 #if defined(DEV_BRANCH) && defined(USE_XL24)
-device_t ati28800_wonderxl24_device =
+const device_t ati28800_wonderxl24_device =
 {
         "ATI-28800 (VGA Wonder XL24)",
         DEVICE_ISA,

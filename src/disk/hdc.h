@@ -8,7 +8,7 @@
  *
  *		Definitions for the common disk controller handler.
  *
- * Version:	@(#)hdc.h	1.0.5	2018/02/14
+ * Version:	@(#)hdc.h	1.0.6	2018/03/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -32,25 +32,25 @@ extern char	*hdc_name;
 extern int	hdc_current;
 
 
-extern device_t	mfm_xt_xebec_device;		/* mfm_xt_xebec */
-extern device_t	mfm_xt_dtc5150x_device;		/* mfm_xt_dtc */
-extern device_t	mfm_at_wd1003_device;		/* mfm_at_wd1003 */
+extern const device_t	mfm_xt_xebec_device;		/* mfm_xt_xebec */
+extern const device_t	mfm_xt_dtc5150x_device;		/* mfm_xt_dtc */
+extern const device_t	mfm_at_wd1003_device;		/* mfm_at_wd1003 */
 
-extern device_t	esdi_at_wd1007vse1_device;	/* esdi_at */
-extern device_t	esdi_ps2_device;		/* esdi_mca */
+extern const device_t	esdi_at_wd1007vse1_device;	/* esdi_at */
+extern const device_t	esdi_ps2_device;		/* esdi_mca */
 
-extern device_t	ide_isa_device;			/* isa_ide */
-extern device_t	ide_isa_2ch_device;		/* isa_ide_2ch */
-extern device_t	ide_isa_2ch_opt_device;		/* isa_ide_2ch_opt */
-extern device_t	ide_vlb_device;			/* vlb_ide */
-extern device_t	ide_vlb_2ch_device;		/* vlb_ide_2ch */
-extern device_t	ide_pci_device;			/* pci_ide */
-extern device_t	ide_pci_2ch_device;		/* pci_ide_2ch */
+extern const device_t	ide_isa_device;			/* isa_ide */
+extern const device_t	ide_isa_2ch_device;		/* isa_ide_2ch */
+extern const device_t	ide_isa_2ch_opt_device;		/* isa_ide_2ch_opt */
+extern const device_t	ide_vlb_device;			/* vlb_ide */
+extern const device_t	ide_vlb_2ch_device;		/* vlb_ide_2ch */
+extern const device_t	ide_pci_device;			/* pci_ide */
+extern const device_t	ide_pci_2ch_device;		/* pci_ide_2ch */
 
-extern device_t	xtide_device;			/* xtide_xt */
-extern device_t	xtide_at_device;		/* xtide_at */
-extern device_t	xtide_acculogic_device;		/* xtide_ps2 */
-extern device_t	xtide_at_ps2_device;		/* xtide_at_ps2 */
+extern const device_t	xtide_device;			/* xtide_xt */
+extern const device_t	xtide_at_device;		/* xtide_at */
+extern const device_t	xtide_acculogic_device;		/* xtide_ps2 */
+extern const device_t	xtide_at_ps2_device;		/* xtide_at_ps2 */
 
 
 extern void	hdc_init(char *name);
@@ -58,7 +58,7 @@ extern void	hdc_reset(void);
 
 extern char	*hdc_get_name(int hdc);
 extern char	*hdc_get_internal_name(int hdc);
-extern device_t	*hdc_get_device(int hdc);
+extern const device_t	*hdc_get_device(int hdc);
 extern int	hdc_get_flags(int hdc);
 extern int	hdc_available(int hdc);
 extern int	hdc_current_is_mfm(void);

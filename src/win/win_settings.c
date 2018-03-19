@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.43	2018/03/10
+ * Version:	@(#)win_settings.c	1.0.44	2018/03/18
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -173,7 +173,7 @@ static void win_settings_init(void)
 	/* Network category */
 	temp_net_type = network_type;
 	memset(temp_pcap_dev, 0, sizeof(temp_pcap_dev));
-	strcpy(temp_pcap_dev, network_pcap);
+	strcpy(temp_pcap_dev, network_host);
 	temp_net_card = network_card;
 
 	/* Ports category */
@@ -289,7 +289,7 @@ static int win_settings_changed(void)
 
 	/* Network category */
 	i = i || (network_type != temp_net_type);
-	i = i || strcmp(temp_pcap_dev, network_pcap);
+	i = i || strcmp(temp_pcap_dev, network_host);
 	i = i || (network_card != temp_net_card);
 
 	/* Ports category */
@@ -392,8 +392,8 @@ static void win_settings_save(void)
 
 	/* Network category */
 	network_type = temp_net_type;
-	memset(network_pcap, '\0', sizeof(network_pcap));
-	strcpy(network_pcap, temp_pcap_dev);
+	memset(network_host, '\0', sizeof(network_host));
+	strcpy(network_host, temp_pcap_dev);
 	network_card = temp_net_card;
 
 	/* Ports category */
@@ -436,28 +436,7 @@ static void win_settings_save(void)
 	/* Mark configuration as changed. */
 	config_changed = 1;
 
-#if 1
 	pc_reset_hard_init();
-#else
-	mem_resize();
-	rom_load_bios(romset);
-
-	ui_sb_update_panes();
-
-	sound_realloc_buffers();
-
-	pc_reset_hard_init();
-
-	cpu_set();
-
-	cpu_update_waitstates();
-
-	config_save();
-
-	pc_speed_changed();
-
-	if (joystick_type != 7)  gameport_update_joystick_type();
-#endif
 }
 
 
@@ -980,7 +959,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 static int mouse_valid(int num, int m)
 {
-	device_t *dev;
+	const device_t *dev;
 
 	if ((num == MOUSE_TYPE_INTERNAL) &&
 	    !(machines[m].flags & MACHINE_MOUSE)) return(0);
@@ -1184,7 +1163,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	int c = 0;
 	int d = 0;
 	LPTSTR lptsTemp;
-	device_t *sound_dev/*, *midi_dev*/;
+	const device_t *sound_dev;
 	char *s;
 
         switch (message)
@@ -1256,8 +1235,6 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 				if (midi_device_available(c))
 				{
-					/* midi_dev = midi_device_getdevice(c); */
-
 					if (c == 0)
 					{
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)plat_get_string(IDS_2152));
@@ -1606,7 +1583,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 	int c = 0;
 	int d = 0;
 	LPTSTR lptsTemp;
-	device_t *scsi_dev;
+	const device_t *scsi_dev;
 
         switch (message)
         {

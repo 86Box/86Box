@@ -184,7 +184,7 @@ static void pssj_get_buffer(int32_t *buffer, int len, void *p)
         pssj->pos = 0;
 }
 
-void *pssj_init(device_t *info)
+void *pssj_init(const device_t *info)
 {
         pssj_t *pssj = malloc(sizeof(pssj_t));
         memset(pssj, 0, sizeof(pssj_t));
@@ -205,7 +205,7 @@ void pssj_close(void *p)
         free(pssj);        
 }
 
-device_t pssj_device =
+const device_t pssj_device =
 {
         "Tandy PSSJ",
         0, 0,

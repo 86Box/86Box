@@ -49,7 +49,7 @@
  *
  *		Based on an early driver for MINIX 1.5.
  *
- * Version:	@(#)mouse_bus.c	1.0.31	2018/02/01
+ * Version:	@(#)mouse_bus.c	1.0.32	2018/03/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -669,7 +669,7 @@ bm_close(void *priv)
 
 /* Initialize the device for use by the user. */
 static void *
-bm_init(device_t *info)
+bm_init(const device_t *info)
 {
     mouse_t *dev;
     int i;
@@ -723,7 +723,7 @@ bm_init(device_t *info)
 }
 
 
-static device_config_t bm_config[] = {
+static const device_config_t bm_config[] = {
     {
 	"irq", "IRQ", CONFIG_SELECTION, "", MOUSE_IRQ, {
 		{
@@ -762,7 +762,7 @@ static device_config_t bm_config[] = {
 };
 
 
-device_t mouse_logibus_device = {
+const device_t mouse_logibus_device = {
     "Logitech Bus Mouse",
     DEVICE_ISA,
     MOUSE_TYPE_LOGIBUS,
@@ -771,7 +771,7 @@ device_t mouse_logibus_device = {
     bm_config
 };
 
-device_t mouse_msinport_device = {
+const device_t mouse_msinport_device = {
     "Microsoft Bus Mouse (InPort)",
     DEVICE_ISA,
     MOUSE_TYPE_INPORT,

@@ -10,7 +10,7 @@
  *		 PC2086, PC3086 use PVGA1A
  *		 MegaPC uses W90C11A
  *
- * Version:	@(#)vid_paradise.c	1.0.5	2018/02/03
+ * Version:	@(#)vid_paradise.c	1.0.5	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -279,7 +279,7 @@ static uint16_t paradise_readw(uint32_t addr, void *p)
         return svga_readw_linear(addr, &paradise->svga);
 }
 
-void *paradise_pvga1a_init(device_t *info, uint32_t memsize)
+void *paradise_pvga1a_init(const device_t *info, uint32_t memsize)
 {
         paradise_t *paradise = malloc(sizeof(paradise_t));
         svga_t *svga = &paradise->svga;
@@ -312,7 +312,7 @@ void *paradise_pvga1a_init(device_t *info, uint32_t memsize)
         return paradise;
 }
 
-void *paradise_wd90c11_init(device_t *info)
+void *paradise_wd90c11_init(const device_t *info)
 {
         paradise_t *paradise = malloc(sizeof(paradise_t));
         svga_t *svga = &paradise->svga;
@@ -347,7 +347,7 @@ void *paradise_wd90c11_init(device_t *info)
         return paradise;
 }
 
-void *paradise_wd90c30_init(device_t *info, uint32_t memsize)
+void *paradise_wd90c30_init(const device_t *info, uint32_t memsize)
 {
         paradise_t *paradise = malloc(sizeof(paradise_t));
         svga_t *svga = &paradise->svga;
@@ -382,7 +382,7 @@ void *paradise_wd90c30_init(device_t *info, uint32_t memsize)
         return paradise;
 }
 
-static void *paradise_pvga1a_pc2086_init(device_t *info)
+static void *paradise_pvga1a_pc2086_init(const device_t *info)
 {
         paradise_t *paradise = paradise_pvga1a_init(info, 1 << 18);
         
@@ -391,7 +391,7 @@ static void *paradise_pvga1a_pc2086_init(device_t *info)
                 
         return paradise;
 }
-static void *paradise_pvga1a_pc3086_init(device_t *info)
+static void *paradise_pvga1a_pc3086_init(const device_t *info)
 {
         paradise_t *paradise = paradise_pvga1a_init(info, 1 << 18);
 
@@ -401,7 +401,7 @@ static void *paradise_pvga1a_pc3086_init(device_t *info)
         return paradise;
 }
 
-static void *paradise_pvga1a_standalone_init(device_t *info)
+static void *paradise_pvga1a_standalone_init(const device_t *info)
 {
         paradise_t *paradise;
 	uint32_t memory = 512;
@@ -422,7 +422,7 @@ static int paradise_pvga1a_standalone_available(void)
         return rom_present(L"roms/video/pvga1a/BIOS.BIN");
 }
 
-static void *paradise_wd90c11_megapc_init(device_t *info)
+static void *paradise_wd90c11_megapc_init(const device_t *info)
 {
         paradise_t *paradise = paradise_wd90c11_init(info);
         
@@ -435,7 +435,7 @@ static void *paradise_wd90c11_megapc_init(device_t *info)
         return paradise;
 }
 
-static void *paradise_wd90c11_standalone_init(device_t *info)
+static void *paradise_wd90c11_standalone_init(const device_t *info)
 {
         paradise_t *paradise = paradise_wd90c11_init(info);
         
@@ -450,7 +450,7 @@ static int paradise_wd90c11_standalone_available(void)
         return rom_present(L"roms/video/wd90c11/WD90C11.VBI");
 }
 
-static void *paradise_wd90c30_standalone_init(device_t *info)
+static void *paradise_wd90c30_standalone_init(const device_t *info)
 {
         paradise_t *paradise;
 	uint32_t memory = 512;
@@ -502,7 +502,7 @@ void paradise_add_status_info(char *s, int max_len, void *p)
 }
 
 
-device_t paradise_pvga1a_pc2086_device =
+const device_t paradise_pvga1a_pc2086_device =
 {
         "Paradise PVGA1A (Amstrad PC2086)",
         0,
@@ -515,7 +515,7 @@ device_t paradise_pvga1a_pc2086_device =
         paradise_force_redraw,
         paradise_add_status_info
 };
-device_t paradise_pvga1a_pc3086_device =
+const device_t paradise_pvga1a_pc3086_device =
 {
         "Paradise PVGA1A (Amstrad PC3086)",
         0,
@@ -529,7 +529,7 @@ device_t paradise_pvga1a_pc3086_device =
         paradise_add_status_info
 };
 
-static device_config_t paradise_pvga1a_config[] =
+static const device_config_t paradise_pvga1a_config[] =
 {
         {
                 "memory", "Memory size", CONFIG_SELECTION, "", 512,
@@ -553,7 +553,7 @@ static device_config_t paradise_pvga1a_config[] =
         }
 };
 
-device_t paradise_pvga1a_device =
+const device_t paradise_pvga1a_device =
 {
         "Paradise PVGA1A",
         DEVICE_ISA,
@@ -567,7 +567,7 @@ device_t paradise_pvga1a_device =
         paradise_add_status_info,
 	paradise_pvga1a_config
 };
-device_t paradise_wd90c11_megapc_device =
+const device_t paradise_wd90c11_megapc_device =
 {
         "Paradise WD90C11 (Amstrad MegaPC)",
         0,
@@ -580,7 +580,7 @@ device_t paradise_wd90c11_megapc_device =
         paradise_force_redraw,
         paradise_add_status_info
 };
-device_t paradise_wd90c11_device =
+const device_t paradise_wd90c11_device =
 {
         "Paradise WD90C11-LR",
         DEVICE_ISA,
@@ -594,7 +594,7 @@ device_t paradise_wd90c11_device =
         paradise_add_status_info
 };
 
-static device_config_t paradise_wd90c30_config[] =
+static const device_config_t paradise_wd90c30_config[] =
 {
         {
                 "memory", "Memory size", CONFIG_SELECTION, "", 1024,
@@ -615,7 +615,7 @@ static device_config_t paradise_wd90c30_config[] =
         }
 };
 
-device_t paradise_wd90c30_device =
+const device_t paradise_wd90c30_device =
 {
         "Paradise WD90C30-LR",
         DEVICE_ISA,
