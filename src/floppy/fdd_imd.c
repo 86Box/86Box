@@ -8,7 +8,7 @@
  *
  *		Implementation of the IMD floppy image format.
  *
- * Version:	@(#)fdd_imd.c	1.0.5	2018/03/17
+ * Version:	@(#)fdd_imd.c	1.0.6	2018/03/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -590,6 +590,7 @@ imd_load(int drive, wchar_t *fn)
     uint32_t raw_tsize = 0;
     uint32_t minimum_gap3 = 0;
     uint32_t minimum_gap4 = 0;
+    uint8_t converted_rate;
 
     d86f_unregister(drive);
 
@@ -690,6 +691,7 @@ imd_load(int drive, wchar_t *fn)
 		dev->tracks[track][side].side_flags |= 0x20;
 	if ((dev->tracks[track][side].side_flags & 7) == 1)
 		dev->tracks[track][side].side_flags |= 0x20;
+	/* pclog("Side flags for (%02i)(%01i): %02X\n", track, side, dev->tracks[track][side].side_flags); */
 	dev->tracks[track][side].is_present = 1;
 	dev->tracks[track][side].file_offs = (buffer2 - buffer);
 	memcpy(dev->tracks[track][side].params, buffer2, 5);
@@ -748,30 +750,45 @@ imd_load(int drive, wchar_t *fn)
 	/* Not leaving even GAP1: 146 : 73 */
 	raw_tsize = get_raw_tsize(dev->tracks[track][side].side_flags, 0);
 	minimum_gap3 = 12 * track_spt;
-	if ((raw_tsize - track_total + (mfm ? 146 : 73)) < (minimum_gap3 + minimum_gap4)) {
-		/* If we can't fit the sectors with a reasonable minimum gap at perfect RPM, let's try 2% slower. */
-		raw_tsize = get_raw_tsize(dev->tracks[track][side].side_flags, 1);
-		/* Set disk flags so that rotation speed is 2% slower. */
-		dev->disk_flags |= (3 << 5);
+
+	if ((dev->tracks[track][side].side_flags == 0x0A) || (dev->tracks[track][side].side_flags == 0x29))
+		converted_rate = 2;
+	else if (dev->tracks[track][side].side_flags == 0x28)
+		converted_rate = 4;
+	else
+		converted_rate = dev->tracks[track][side].side_flags & 0x03;
+
+	if (gap3_sizes[converted_rate][sector_size][track_spt] == 0x00) {
 		if ((raw_tsize - track_total + (mfm ? 146 : 73)) < (minimum_gap3 + minimum_gap4)) {
-			/* If we can't fit the sectors with a reasonable minimum gap even at 2% slower RPM, abort. */
-			pclog("IMD: Unable to fit the %i sectors in a track\n", track_spt);
-			fclose(dev->f);
-			free(dev);
-			imd[drive] = NULL;
-			memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
-			return;
+			/* If we can't fit the sectors with a reasonable minimum gap at perfect RPM, let's try 2% slower. */
+			raw_tsize = get_raw_tsize(dev->tracks[track][side].side_flags, 1);
+			/* Set disk flags so that rotation speed is 2% slower. */
+			dev->disk_flags |= (3 << 5);
+			if ((raw_tsize - track_total + (mfm ? 146 : 73)) < (minimum_gap3 + minimum_gap4)) {
+				/* If we can't fit the sectors with a reasonable minimum gap even at 2% slower RPM, abort. */
+				pclog("IMD: Unable to fit the %i sectors in a track\n", track_spt);
+				fclose(dev->f);
+				free(dev);
+				imd[drive] = NULL;
+				memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+				return;
+			}
 		}
-	}
 
-	dev->tracks[track][side].gap3_len = (raw_tsize - track_total - minimum_gap4 + (mfm ? 146 : 73)) / track_spt;
+		dev->tracks[track][side].gap3_len = (raw_tsize - track_total - minimum_gap4 + (mfm ? 146 : 73)) / track_spt;
+	} else if (gap3_sizes[converted_rate][sector_size][track_spt] != 0x00)
+		dev->tracks[track][side].gap3_len = gap3_sizes[converted_rate][sector_size][track_spt];
 
-	dev->track_count++;
+	/* pclog("GAP3 length for (%02i)(%01i): %i bytes\n", track, side, dev->tracks[track][side].gap3_len); */
+
+	if (track > dev->track_count)
+		dev->track_count = track;
 
 	if (last_offset >= fsize) break;
     }
 
     /* If more than 43 tracks, then the tracks are thin (96 tpi). */
+    dev->track_count++;
     dev->track_width = 0;
     if (dev->track_count > 43)
 	dev->track_width = 1;
@@ -779,6 +796,8 @@ imd_load(int drive, wchar_t *fn)
     /* If 2 sides, mark it as such. */
     if (dev->sides == 2)
 	dev->disk_flags |= 8;
+
+    /* pclog("%i tracks, %i sides\n", dev->track_count, dev->sides); */
 
     /* Attach this format to the D86F engine. */
     d86f_handler[drive].disk_flags = disk_flags;

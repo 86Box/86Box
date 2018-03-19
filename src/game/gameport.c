@@ -8,7 +8,7 @@
  *
  *		Implementation of a generic Game Port.
  *
- * Version:	@(#)gameport.c	1.0.3	2018/03/15
+ * Version:	@(#)gameport.c	1.0.4	2018/03/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -193,7 +193,7 @@ gameport_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 gameport_read(uint16_t addr, void *priv)
 {
-    gameport_t *p = (gameport_t *)p;
+    gameport_t *p = (gameport_t *)priv;
     uint8_t ret;
 
     timer_clock();

@@ -8,7 +8,7 @@
  *
  *		Implementation of the Teledisk floppy image format.
  *
- * Version:	@(#)fdd_td0.c	1.0.4	2018/03/17
+ * Version:	@(#)fdd_td0.c	1.0.5	2018/03/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -784,7 +784,8 @@ td0_initialize(int drive)
 		track_size += (pre_sector + size + 2);
 	}
 
-	track_count = track;
+	if (track > track_count)
+		track_count = track;
 
 	if (track_spt != 255) {
 		dev->track_spt[track][head] = track_spt;
