@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.67	2018/03/19
+ * Version:	@(#)pc.c	1.0.68	2018/03/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -170,8 +170,12 @@ int	unscaled_size_x = SCREEN_RES_X,	/* current unscaled size X */
 	efscrnsz_y = SCREEN_RES_Y;
 
 
+#ifndef RELEASE_BUILD
 static char buff[1024];
 static int seen = 0;
+
+static int suppr_seen = 1;
+#endif
 
 /*
  * Log something to the logfile or stdout.
@@ -197,10 +201,10 @@ pclog_ex(const char *fmt, va_list ap)
     }
 
     vsprintf(temp, fmt, ap);
-    if (! strcmp(buff, temp)) {
+    if (suppr_seen && ! strcmp(buff, temp)) {
 	seen++;
     } else {
-	if (seen) {
+	if (suppr_seen && seen) {
 		fprintf(stdlog, "*** %d repeats ***\n", seen);
 	}
 	seen = 0;
@@ -209,6 +213,15 @@ pclog_ex(const char *fmt, va_list ap)
     }
 
     fflush(stdlog);
+#endif
+}
+
+
+void
+pclog_toggle_suppr(void)
+{
+#ifndef RELEASE_BUILD
+    suppr_seen ^= 1;
 #endif
 }
 

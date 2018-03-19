@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.45	2018/03/19
+ * Version:	@(#)win_settings.c	1.0.46	2018/03/19
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -2986,10 +2986,9 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 						}
 
 						memset(buf, 0, 512);
-						size >>= 9;
-						r = (size >> 11) << 11;
-						size -= r;
-						r >>= 11;
+
+						r = size >> 20;
+						size &= 0xfffff;
 
 						if (size || r) {
 							h = GetDlgItem(hdlg, IDT_1731);
@@ -3005,10 +3004,10 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 							ShowWindow(h, SW_HIDE);
 
 							h = GetDlgItem(hdlg, IDC_PBAR_IMG_CREATE);
-							SendMessage(h, PBM_SETRANGE32, (WPARAM) 0, (LPARAM) (size + r - 1));
-							SendMessage(h, PBM_SETPOS, (WPARAM) 0, (LPARAM) 0);
 							EnableWindow(h, TRUE);
 							ShowWindow(h, SW_SHOW);
+							SendMessage(h, PBM_SETRANGE32, (WPARAM) 0, (LPARAM) r);
+							SendMessage(h, PBM_SETPOS, (WPARAM) 0, (LPARAM) 0);
 
 							h = GetDlgItem(hdlg, IDT_1752);
 							EnableWindow(h, TRUE);
@@ -3017,11 +3016,8 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
 						if (size)
 						{
-							for (i = 0; i < size; i++)
-							{
-								fwrite(buf, 1, 512, f);
-								SendMessage(h, PBM_SETPOS, (WPARAM) i, (LPARAM) 0);
-							}
+							fwrite(buf, 1, size, f);
+							SendMessage(h, PBM_SETPOS, (WPARAM) 1, (LPARAM) 0);
 						}
 
 						if (r)
@@ -3031,7 +3027,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 							for (i = 0; i < r; i++)
 							{
 								fwrite(big_buf, 1, 1048576, f);
-								SendMessage(h, PBM_SETPOS, (WPARAM) (size + i), (LPARAM) 0);
+								SendMessage(h, PBM_SETPOS, (WPARAM) (size + 1), (LPARAM) 0);
 							}
 							free(big_buf);
 						}

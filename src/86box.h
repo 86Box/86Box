@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.20	2018/03/18
+ * Version:	@(#)86box.h	1.0.21	2018/03/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -134,6 +134,7 @@ extern int	config_changed;			/* config has changed */
 #ifdef HAVE_STDARG_H
 extern void	pclog_ex(const char *fmt, va_list);
 #endif
+extern void	pclog_toggle_suppr(void);
 extern void	pclog(const char *fmt, ...);
 extern void	fatal(const char *fmt, ...);
 extern void	set_screen_size(int x, int y);
