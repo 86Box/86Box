@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.44	2018/03/18
+ * Version:	@(#)win_settings.c	1.0.45	2018/03/19
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -2740,6 +2740,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 	uint64_t r = 0;
 	uint8_t channel = 0;
 	uint8_t id = 0, lun = 0;
+	wchar_t *twcs;
 
         switch (message)
         {
@@ -3056,6 +3057,16 @@ hd_add_ok_common:
 				case IDC_CFILE:
 		                        if (!file_dlg_w(hdlg, plat_get_string(IDS_4106), L"", !(existing & 1)))
        			                {
+						if (!wcschr(wopenfilestring, L'.')) {
+							if (wcslen(wopenfilestring) && (wcslen(wopenfilestring) <= 256)) {
+								twcs = &wopenfilestring[wcslen(wopenfilestring)];
+								twcs[0] = L'.';
+								twcs[1] = L'i';
+								twcs[2] = L'm';
+								twcs[3] = L'g';
+							}
+						}
+
 						if (!(existing & 1))
 						{
 							f = _wfopen(wopenfilestring, L"rb");

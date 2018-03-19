@@ -8,7 +8,7 @@
  *
  *		Handle the New Floppy Image dialog.
  *
- * Version:	@(#)win_new_floppy.c	1.0.4	2018/03/06
+ * Version:	@(#)win_new_floppy.c	1.0.5	2018/03/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -556,6 +556,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
     int ret;
     FILE *f;
     int zip_types;
+    wchar_t *twcs;
 
     switch (message) {
 	case WM_INITDIALOG:
@@ -624,6 +625,21 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDC_CFILE:
 	                        if (!file_dlg_w(hdlg, plat_get_string(is_zip ? IDS_2176 : IDS_2174), L"", 1)) {
+					if (!wcschr(wopenfilestring, L'.')) {
+						if (wcslen(wopenfilestring) && (wcslen(wopenfilestring) <= 256)) {
+							twcs = &wopenfilestring[wcslen(wopenfilestring)];
+							twcs[0] = L'.';
+							if (!is_zip && (filterindex == 3)) {
+								twcs[1] = L'8';
+								twcs[2] = L'6';
+								twcs[3] = L'f';
+							} else {
+								twcs[1] = L'i';
+								twcs[2] = L'm';
+								twcs[3] = L'g';
+							}
+						}
+					}
 					h = GetDlgItem(hdlg, IDC_EDIT_FILE_NAME);
 					f = _wfopen(wopenfilestring, L"rb");
 					if (f != NULL) {
