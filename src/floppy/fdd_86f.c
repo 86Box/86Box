@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)fdd_86f.c	1.0.6	2018/03/16
+ * Version:	@(#)fdd_86f.c	1.0.7	2018/03/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -196,9 +196,9 @@ typedef struct {
     uint16_t	disk_flags;
     int32_t	extra_bit_cells[2];
     uint16_t	track_encoded_data[2][53048];
-    uint16_t	track_surface_data[2][53048];
+    uint16_t	*track_surface_data[2];
     uint16_t	thin_track_encoded_data[2][2][53048];
-    uint16_t	thin_track_surface_data[2][2][53048];
+    uint16_t	*thin_track_surface_data[2][2];
     uint16_t	side_flags[2];
     uint32_t	index_hole_pos[2];
     uint32_t	track_offset[512];
@@ -3455,7 +3455,7 @@ d86f_load(int drive, wchar_t *fn)
     uint32_t magic = 0;
     uint32_t len = 0;
     uint16_t temp = 0;
-    int i = 0;
+    int i = 0, j = 0;
     FILE *tf;
 
     d86f_unregister(drive);
@@ -3522,6 +3522,17 @@ d86f_load(int drive, wchar_t *fn)
     }
 
     fread(&(dev->disk_flags), 2, 1, dev->f);
+
+    if (d86f_has_surface_desc(drive)) {
+	for (i = 0; i < 2; i++)
+		dev->track_surface_data[i] = (uint16_t *) malloc(53048 * sizeof(uint16_t));
+
+	for (i = 0; i < 2; i++) {
+		for (j = 0; j < 2; j++)
+			dev->thin_track_surface_data[i][j] = (uint16_t *) malloc(53048 * sizeof(uint16_t));
+	}
+    }
+
     dev->is_compressed = (magic == 0x66623638) ? 1 : 0;
     if ((len < 51052) && !dev->is_compressed) {
 	/* File too small, abort. */
@@ -3752,6 +3763,8 @@ d86f_set_fdc(void *fdc)
 void
 d86f_close(int drive)
 {
+    int i, j;
+
     wchar_t temp_file_name[2048];
     d86f_t *dev = d86f[drive];
 
@@ -3759,6 +3772,24 @@ d86f_close(int drive)
     if (dev == NULL) return;
 
     memcpy(temp_file_name, drive ? nvr_path(L"TEMP$$$1.$$$") : nvr_path(L"TEMP$$$0.$$$"), 26);
+
+    if (d86f_has_surface_desc(drive)) {
+	for (i = 0; i < 2; i++) {
+		if (dev->track_surface_data[i]) {
+			free(dev->track_surface_data[i]);
+			dev->track_surface_data[i] = NULL;
+		}
+	}
+
+	for (i = 0; i < 2; i++) {
+		for (j = 0; j < 2; j++) {
+			if (dev->thin_track_surface_data[i][j]) {
+				free(dev->thin_track_surface_data[i][j]);
+				dev->thin_track_surface_data[i][j] = NULL;
+			}
+		}
+	}
+    }
 
     if (dev->f) {
 	fclose(dev->f);
@@ -3792,9 +3823,29 @@ d86f_setup(int drive)
 void
 d86f_destroy(int drive)
 {
+    int i, j;
+
     d86f_t *dev = d86f[drive];
 
     if (dev == NULL) return;
+
+    if (d86f_has_surface_desc(drive)) {
+	for (i = 0; i < 2; i++) {
+		if (dev->track_surface_data[i]) {
+			free(dev->track_surface_data[i]);
+			dev->track_surface_data[i] = NULL;
+		}
+	}
+
+	for (i = 0; i < 2; i++) {
+		for (j = 0; j < 2; j++) {
+			if (dev->thin_track_surface_data[i][j]) {
+				free(dev->thin_track_surface_data[i][j]);
+				dev->thin_track_surface_data[i][j] = NULL;
+			}
+		}
+	}
+    }
 
     d86f_destroy_linked_lists(drive, 0);
     d86f_destroy_linked_lists(drive, 1);

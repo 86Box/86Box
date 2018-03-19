@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.112	2018/03/16
+# Version:	@(#)Makefile.mingw	1.0.113	2018/03/18
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -203,7 +203,7 @@ VPATH		:= $(EXPATH) . cpu \
 		    sound/munt sound/munt/c_interface sound/munt/sha1 \
 		    sound/munt/srchelper \
 		    sound/resid-fp \
-		   scsi video lzf network network/slirp win
+		   scsi video floppy/lzf network network/slirp win
 ifeq ($(X64), y)
 CPP		:= g++ -m64
 CC		:= gcc -m64
