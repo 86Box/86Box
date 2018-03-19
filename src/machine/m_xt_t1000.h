@@ -8,7 +8,7 @@
  *
  *		Definitions for the Toshiba T1000/T1200 machines.
  *
- * Version:	@(#)m_xt_t1000.h	1.0.3	2018/03/18
+ * Version:	@(#)m_xt_t1000.h	1.0.4	2018/03/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -49,11 +49,11 @@ extern void	t1000_display_set(uint8_t internal);
 
 extern void	t1000_syskey(uint8_t amask, uint8_t omask, uint8_t xmask);
 
-extern void	t1000_configsys_load(void);
-extern void	t1000_configsys_save(void);
+extern void	t1000_nvr_load(void);
+extern void	t1000_nvr_save(void);
 
-extern void	t1000_emsboard_load(void);
-extern void	t1000_emsboard_save(void);
+extern void	t1200_nvr_load(void);
+extern void	t1200_nvr_save(void);
 
 
 #endif	/*MACHINE_T1000_H*/

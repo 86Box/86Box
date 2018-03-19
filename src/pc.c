@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.65	2018/03/18
+ * Version:	@(#)pc.c	1.0.66	2018/03/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -126,7 +126,6 @@ int	cpu_manufacturer = 0,			/* (C) cpu manufacturer */
 	cpu = 3,				/* (C) cpu type */
 	enable_external_fpu = 0;		/* (C) enable external FPU */
 int	enable_sync = 0;			/* (C) enable time sync */
-
 
 /* Statistics. */
 extern int
@@ -652,8 +651,8 @@ again2:
 
     ide_init_first();
 
-    device_init();        
-                       
+    device_init();
+
     timer_reset();
 
     sound_reset();

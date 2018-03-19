@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.24	2018/03/18
+ * Version:	@(#)video.h	1.0.24	2018/03/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -176,6 +176,7 @@ extern int	fullchange;
 extern uint8_t	fontdat[2048][8];
 extern uint8_t	fontdatm[2048][16];
 extern dbcs_font_t	*fontdatksc5601;
+extern dbcs_font_t	*fontdatksc5601_user;
 extern uint32_t	*video_6to8,
 		*video_15to32,
 		*video_16to32;

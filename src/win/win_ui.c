@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.22	2018/02/15
+ * Version:	@(#)win_ui.c	1.0.23	2018/03/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1055,6 +1055,9 @@ void
 plat_mouse_capture(int on)
 {
     RECT rect;
+
+    if (mouse_type == MOUSE_TYPE_NONE)
+	return;
 
     if (on && !mouse_capture) {
 	/* Enable the in-app mouse. */

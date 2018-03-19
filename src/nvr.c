@@ -10,7 +10,7 @@
  *
  * NOTE:	I should re-do 'intclk' using a TM struct.
  *
- * Version:	@(#)nvr.c	1.0.2	2018/03/11
+ * Version:	@(#)nvr.c	1.0.3	2018/03/19
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -53,9 +53,13 @@
 #include <time.h>
 #include <wchar.h>
 #include "86box.h"
+#include "device.h"
 #include "machine/machine.h"
+#include "machine/m_xt_t1000.h"
+#include "mem.h"
 #include "pic.h"
 #include "pit.h"
+#include "rom.h"
 #include "timer.h"
 #include "plat.h"
 #include "nvr.h"
@@ -234,6 +238,11 @@ nvr_load(void)
 	}
     }
 
+    if (romset == ROM_T1000)
+	t1000_nvr_load();
+    else if (romset == ROM_T1200)
+	t1200_nvr_load();
+
     /* Get the local RTC running! */
     if (saved_nvr->start != NULL)
 	saved_nvr->start(saved_nvr);
@@ -260,6 +269,11 @@ nvr_save(void)
 		fclose(f);
 	}
     }
+
+    if (romset == ROM_T1000)
+	t1000_nvr_save();
+    else if (romset == ROM_T1200)
+	t1200_nvr_save();
 
     /* Device is clean again. */
     nvr_dosave = 0;
