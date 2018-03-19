@@ -8,7 +8,7 @@
  *
  *		Emulation of Tandy models 1000, 1000HX and 1000SL2.
  *
- * Version:	@(#)m_tandy.c	1.0.4	2018/03/18
+ * Version:	@(#)m_tandy.c	1.0.5	2018/03/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -121,7 +121,7 @@ typedef struct {
 } tandy_t;
 
 
-static scancode scancode_tandy[512] = {
+static const scancode scancode_tandy[512] = {
     { {-1},       {-1}       }, { {0x01, -1}, {0x81, -1} },
     { {0x02, -1}, {0x82, -1} }, { {0x03, -1}, {0x83, -1} },
     { {0x04, -1}, {0x84, -1} }, { {0x05, -1}, {0x85, -1} },

@@ -1,1 +1,1 @@
-extern lpt_device_t dss_device;
+extern const lpt_device_t dss_device;

@@ -19,7 +19,7 @@ static const struct
 {
         const char *name;
         const char *internal_name;
-        lpt_device_t *device;
+        const lpt_device_t *device;
 } lpt_devices[] =
 {
         {"None",                         "none",           NULL},
@@ -60,7 +60,7 @@ void lpt_devices_init()
         	        lpt_device_ts[i] = NULL;
 	        else
         	{
-                	lpt_device_ts[i] = lpt_devices[c].device;
+                	lpt_device_ts[i] = (lpt_device_t *) lpt_devices[c].device;
 	                if (lpt_device_ts[i])
         	                lpt_device_ps[i] = lpt_device_ts[i]->init();
 	        }

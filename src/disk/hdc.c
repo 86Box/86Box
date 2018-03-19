@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of disk controllers.
  *
- * Version:	@(#)hdc.c	1.0.11	2018/03/18
+ * Version:	@(#)hdc.c	1.0.12	2018/03/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -72,63 +72,63 @@ static const device_t inthdc_device = {
 
 
 static const struct {
-    char	*name;
-    char	*internal_name;
+    const char		*name;
+    const char		*internal_name;
     const device_t	*device;
-    int		is_mfm;
 } controllers[] = {
     { "None",						"none",		
-      &null_device,					0		},
+      &null_device			},
 
     { "Internal Controller",				"internal",
-      &inthdc_device,					0		},
+      &inthdc_device			},
 
     { "[ISA] [MFM] IBM PC Fixed Disk Adapter",		"mfm_xt",
-      &mfm_xt_xebec_device,				1		},
+      &mfm_xt_xebec_device		},
 
     { "[ISA] [MFM] DTC-5150X Fixed Disk Adapter",	"mfm_dtc5150x",
-      &mfm_xt_dtc5150x_device,				1		},
+      &mfm_xt_dtc5150x_device		},
 
     { "[ISA] [MFM] IBM PC/AT Fixed Disk Adapter",	"mfm_at",
-      &mfm_at_wd1003_device,				1		},
+      &mfm_at_wd1003_device		},
 
     { "[ISA] [ESDI] PC/AT ESDI Fixed Disk Adapter",	"esdi_at",
-      &esdi_at_wd1007vse1_device,			0		},
+      &esdi_at_wd1007vse1_device	},
 
     { "[ISA] [IDE] PC/AT IDE Adapter",			"ide_isa",
-      &ide_isa_device,					0		},
+      &ide_isa_device			},
 
     { "[ISA] [IDE] PC/AT IDE Adapter (Dual-Channel)",	"ide_isa_2ch",
-      &ide_isa_2ch_device,				0		},
+      &ide_isa_2ch_device		},
 
     { "[ISA] [IDE] PC/AT XTIDE",			"xtide_at",
-      &xtide_at_device,					0		},
+      &xtide_at_device			},
 
     { "[ISA] [IDE] PS/2 AT XTIDE (1.1.5)",		"xtide_at_ps2",
-      &xtide_at_ps2_device,				0		},
+      &xtide_at_ps2_device		},
 
     { "[ISA] [XT IDE] Acculogic XT IDE",		"xtide_acculogic",
-      &xtide_acculogic_device,				0		},
+      &xtide_acculogic_device		},
 
     { "[ISA] [XT IDE] PC/XT XTIDE",			"xtide",
-      &xtide_device		,			0		},
+      &xtide_device			},
 
     { "[MCA] [ESDI] IBM PS/2 ESDI Fixed Disk Adapter","esdi_mca",
-      &esdi_ps2_device,					1		},
+      &esdi_ps2_device			},
 
     { "[PCI] [IDE] PCI IDE Adapter",			"ide_pci",
-      &ide_pci_device,					0		},
+      &ide_pci_device			},
 
     { "[PCI] [IDE] PCI IDE Adapter (Dual-Channel)",	"ide_pci_2ch",
-      &ide_pci_2ch_device,				0		},
+      &ide_pci_2ch_device		},
 
     { "[VLB] [IDE] PC/AT IDE Adapter",			"vlb_isa",
-      &ide_vlb_device,					0		},
+      &ide_vlb_device			},
 
     { "[VLB] [IDE] PC/AT IDE Adapter (Dual-Channel)",	"vlb_isa_2ch",
-      &ide_vlb_2ch_device,				0		},
+      &ide_vlb_2ch_device		},
 
-    { "",						"", NULL, 0	}
+    { "",						"",
+      NULL				}
 };
 
 
@@ -140,8 +140,8 @@ hdc_init(char *name)
 
     pclog("HDC: initializing..\n");
 
-    for (c=0; controllers[c].device; c++) {
-	if (! strcmp(name, controllers[c].internal_name)) {
+    for (c = 0; controllers[c].device; c++) {
+	if (! strcmp(name, (char *) controllers[c].internal_name)) {
 		hdc_current = c;
 		break;
 	}
@@ -174,14 +174,14 @@ hdc_reset(void)
 char *
 hdc_get_name(int hdc)
 {
-    return(controllers[hdc].name);
+    return((char *) controllers[hdc].name);
 }
 
 
 char *
 hdc_get_internal_name(int hdc)
 {
-    return(controllers[hdc].internal_name);
+    return((char *) controllers[hdc].internal_name);
 }
 
 
@@ -203,11 +203,4 @@ int
 hdc_available(int hdc)
 {
     return(device_available(controllers[hdc].device));
-}
-
-
-int
-hdc_current_is_mfm(void)
-{
-    return(controllers[hdc_current].is_mfm);
 }

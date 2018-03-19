@@ -8,7 +8,7 @@
  *
  *		Definitions for the common disk controller handler.
  *
- * Version:	@(#)hdc.h	1.0.6	2018/03/18
+ * Version:	@(#)hdc.h	1.0.7	2018/03/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -61,7 +61,6 @@ extern char	*hdc_get_internal_name(int hdc);
 extern const device_t	*hdc_get_device(int hdc);
 extern int	hdc_get_flags(int hdc);
 extern int	hdc_available(int hdc);
-extern int	hdc_current_is_mfm(void);
 
 
 #endif	/*EMU_HDC_H*/

@@ -8,7 +8,7 @@
  *
  *		Emulation of the Olivetti M24.
  *
- * Version:	@(#)m_olivetti_m24.c	1.0.11	2018/03/18
+ * Version:	@(#)m_olivetti_m24.c	1.0.12	2018/03/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -836,7 +836,7 @@ machine_olim24_init(const machine_t *model)
 		  kbd_read, NULL, NULL, kbd_write, NULL, NULL, m24);
     io_sethandler(0x0064, 1,
 		  kbd_read, NULL, NULL, kbd_write, NULL, NULL, m24);
-	keyboard_set_table(scancode_xt);
+    keyboard_set_table(scancode_xt);
     keyboard_send = kbd_adddata_ex;
     keyboard_scan = 1;
     timer_add(kbd_poll, &keyboard_delay, TIMER_ALWAYS_ENABLED, m24);

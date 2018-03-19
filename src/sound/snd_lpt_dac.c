@@ -104,7 +104,7 @@ static void dac_close(void *p)
         free(lpt_dac);
 }
 
-lpt_device_t lpt_dac_device =
+const lpt_device_t lpt_dac_device =
 {
         "LPT DAC / Covox Speech Thing",
         dac_init,
@@ -113,7 +113,7 @@ lpt_device_t lpt_dac_device =
         dac_write_ctrl,
         dac_read_status
 };
-lpt_device_t lpt_dac_stereo_device =
+const lpt_device_t lpt_dac_stereo_device =
 {
         "Stereo LPT DAC",
         dac_stereo_init,

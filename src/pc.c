@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.66	2018/03/19
+ * Version:	@(#)pc.c	1.0.67	2018/03/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -558,8 +558,6 @@ pc_reload(wchar_t *fn)
     fdd_load(2, floppyfns[2]);
     fdd_load(3, floppyfns[3]);
 
-    mem_resize();
-    rom_load_bios(romset);
     network_init();
 
     pc_reset_hard_init();
@@ -946,8 +944,6 @@ pc_close(thread_t *ptr)
     network_close();
 
     sound_cd_thread_end();
-
-    mem_destroy_pages();
 
     ide_destroy_buffers();
 

@@ -8,7 +8,7 @@
  *
  *		Definitions for the keyboard interface.
  *
- * Version:	@(#)keyboard.h	1.0.12	2018/03/18
+ * Version:	@(#)keyboard.h	1.0.13	2018/03/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -51,7 +51,7 @@ extern int64_t	keyboard_delay;
 extern void	(*keyboard_send)(uint16_t val);
 extern void	kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val));
 
-extern scancode scancode_xt[512];
+extern const scancode	scancode_xt[512];
 
 extern uint8_t	keyboard_set3_flags[512];
 extern uint8_t	keyboard_set3_all_repeat;
@@ -73,7 +73,7 @@ extern const device_t	keyboard_ps2_quadtel_device;
 
 extern void	keyboard_init(void);
 extern void	keyboard_close(void);
-extern void	keyboard_set_table(scancode *ptr);
+extern void	keyboard_set_table(const scancode *ptr);
 extern void	keyboard_poll_host(void);
 extern void	keyboard_process(void);
 extern uint16_t	keyboard_convert(int ch);
