@@ -837,7 +837,7 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
         uint32_t temp;
 
         int first_track;
-        int last_track, last_track_pos;
+        int last_track;
         int number;
         unsigned char attr;
         TMSF tmsf;
@@ -870,7 +870,6 @@ static int image_readtoc(uint8_t id, unsigned char *b, unsigned char starttrack,
                         break;
                 cdimg[id]->GetAudioTrackInfo(c+1, number, tmsf, attr);
 
-		last_track_pos = 0;
                 b[len++] = 0; /* reserved */
                 b[len++] = attr;
                 b[len++] = number; /* track number */
