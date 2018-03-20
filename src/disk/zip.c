@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.13	2018/03/18
+ * Version:	@(#)zip.c	1.0.14	2018/03/20
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *

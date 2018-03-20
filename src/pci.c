@@ -654,7 +654,8 @@ static void trc_reset(uint8_t val)
 			pci_reset_handler.super_io_reset();
 		}
 
-		ide_reset();
+		/* ide_reset(); */
+		ide_set_all_signatures();
 		for (i = 0; i < CDROM_NUM; i++)
 		{
 			if (!cdrom_drives[i].bus_type)

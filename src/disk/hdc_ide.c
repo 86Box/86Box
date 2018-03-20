@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.41	2018/03/20
+ * Version:	@(#)hdc_ide.c	1.0.42	2018/03/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -508,7 +508,7 @@ static void ide_atapi_zip_identify(IDE *ide)
 
 	/* Using (2<<5) below makes the ASUS P/I-P54TP4XE misdentify the ZIP drive
 	   as a LS-120. */
-	ide->buffer[0] = 0x8000 | (0<<8) | 0x80 | (1<<5); /* ATAPI device, direct-access device, removable media, accelerated DRQ */
+	ide->buffer[0] = 0x8000 | (0<<8) | 0x80 | (1<<5); /* ATAPI device, direct-access device, removable media, interrupt DRQ */
 	ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
 	if (zip_drives[zip_id].is_250) {
 		ide_padstr((char *) (ide->buffer + 23), "42.S", 8); /* Firmware */
@@ -517,6 +517,8 @@ static void ide_atapi_zip_identify(IDE *ide)
 		ide_padstr((char *) (ide->buffer + 23), "E.08", 8); /* Firmware */
 		ide_padstr((char *) (ide->buffer + 27), "IOMEGA ZIP 100 ATAPI", 40); /* Model */
 	}
+
+	ide->buffer[48] = 1;   /*Dword transfers supported*/
 	ide->buffer[49] = 0x200; /* LBA supported */
 
 	/* Note by Kotori: Look at this if this is supported by ZIP at all. */
@@ -544,6 +546,7 @@ static void ide_atapi_zip_identify(IDE *ide)
 			ide->buffer[52] = 120;
 			ide->buffer[53] = 2;	/*Words 64-70 are valid*/
 			ide->buffer[63] = 0x0003; /*Multi-word DMA 0 & 1*/
+			ide->buffer[88] = 7;
 			ide->buffer[64] = 0x0001; /*PIO Mode 3*/
 			ide->buffer[65] = 120;
 			ide->buffer[66] = 120;
@@ -556,11 +559,12 @@ static void ide_atapi_zip_identify(IDE *ide)
 		    d <<= 8;
 		    if ((ide->mdma_mode & 0x300) == 0x200)
         	    	ide->buffer[88] |= d;
+		    else if ((ide->mdma_mode & 0x300) == 0x100)
+        	    	ide->buffer[63] |= d;
 		    else if ((ide->mdma_mode & 0x300) == 0x400) {
 			if ((ide->mdma_mode & 0xff) >= 3)
 				ide->buffer[64] |= d;
-		    } else
-        	    	ide->buffer[63] |= d;
+		    }
 		    ide_log("PIDENTIFY DMA Mode: %04X, %04X\n", ide->buffer[62], ide->buffer[63]);
 	        }
 	}
@@ -686,7 +690,7 @@ static int ide_set_features(IDE *ide)
 		if (!PCI || !dma || (ide->board >= 2))
 			max_pio = 0;
 		else
-			max_pio = 2;
+			max_pio = 4;
 	}
 
 	ide_log("Features code %02X\n", features);
@@ -863,6 +867,7 @@ void ide_reset(void)
 			ide_log("Found IDE hard disk on channel %i\n", hdd[d].ide_channel);
 			loadhd(&ide_drives[hdd[d].ide_channel], d, hdd[d].fn);
 			ide_drives[hdd[d].ide_channel].sector_buffer = (uint8_t *) malloc(256*512);
+			memset(ide_drives[hdd[d].ide_channel].sector_buffer, 0, 256*512);
 			if (++c >= (IDE_NUM+XTIDE_NUM)) break;
 		}
 		if ((hdd[d].bus==HDD_BUS_XTIDE) && (hdd[d].xtide_channel < XTIDE_NUM))
@@ -870,6 +875,7 @@ void ide_reset(void)
 			ide_log("Found XT IDE hard disk on channel %i\n", hdd[d].xtide_channel);
 			loadhd(&ide_drives[hdd[d].xtide_channel | 8], d, hdd[d].fn);
 			ide_drives[hdd[d].xtide_channel | 8].sector_buffer = (uint8_t *) malloc(256*512);
+			memset(ide_drives[hdd[d].ide_channel].sector_buffer, 0, 256*512);
 			if (++c >= (IDE_NUM+XTIDE_NUM)) break;
 		}
 	}
@@ -882,8 +888,10 @@ void ide_reset(void)
 		else if (ide_drive_is_cdrom(&ide_drives[d]) && (ide_drives[d].type == IDE_NONE))
 			ide_drives[d].type = IDE_CDROM;
 
-		if (ide_drives[d].type != IDE_NONE)
+		if (ide_drives[d].type != IDE_NONE) {
 			ide_drives[d].buffer = (uint16_t *) malloc(65536 * sizeof(uint16_t));
+			memset(ide_drives[d].buffer, 0, 65536 * sizeof(uint16_t));
+		}
 
 		ide_set_signature(&ide_drives[d]);
 
@@ -906,6 +914,23 @@ void ide_reset(void)
 
 	ide_ter_disable_cond();
 	ide_qua_disable_cond();
+}
+
+
+void ide_set_all_signatures(void)
+{
+	int d;
+
+	for (d = 0; d < IDE_NUM; d++)
+	{
+		ide_set_signature(&ide_drives[d]);
+
+		if (ide_drives[d].sector_buffer)
+			memset(ide_drives[d].sector_buffer, 0, 256*512);
+
+		if (ide_drives[d].buffer)
+			memset(ide_drives[d].buffer, 0, 65536 * sizeof(uint16_t));
+	}
 }
 
 
@@ -1517,6 +1542,7 @@ void writeide(int ide_board, uint16_t addr, uint8_t val)
 					zip[atapi_zip_drives[ide->channel]].pos=0;
 					zip[atapi_zip_drives[ide->channel]].phase = 1;
 					zip[atapi_zip_drives[ide->channel]].status = READY_STAT | DRQ_STAT | (zip[atapi_zip_drives[ide->channel]].status & ERR_STAT);
+					ide_irq_raise(ide);	/* Interrupt IRQ, requires IRQ on any DRQ. */
 				}
 				else if (ide_drive_is_cdrom(ide))
 				{

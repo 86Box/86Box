@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_ide.h	1.0.7	2018/03/15
+ * Version:	@(#)hdd_ide.h	1.0.8	2018/03/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -85,6 +85,8 @@ extern void	ide_init_first(void);
 
 extern void	ide_reset(void);
 extern void	ide_reset_hard(void);
+
+extern void	ide_set_all_signatures(void);
 
 extern void	ide_xtide_init(void);
 
