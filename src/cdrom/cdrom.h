@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.h	1.0.9	2018/03/18
+ * Version:	@(#)cdrom.h	1.0.10	2018/03/20
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -170,8 +170,6 @@ typedef struct {
 } cdrom_t;
 
 typedef struct {
-	int max_blocks_at_once;
-
 	CDROM *handler;
 
 	int host_drive;

@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.42	2018/03/19
+ * Version:	@(#)cdrom.c	1.0.43	2018/03/20
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -128,7 +128,7 @@ const uint8_t cdrom_command_flags[0x100] =
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0,
 	IMPLEMENTED | CHECK_READY,
-	IMPLEMENTED | CHECK_READY | ALLOW_UA,	/* Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
+	IMPLEMENTED | CHECK_READY,	/* Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
 					   NOTE: The ATAPI reference says otherwise, but I think this is a question of
 					   interpreting things right - the UNIT ATTENTION condition we have here
 					   is a tradition from not ready to ready, by definition the drive
@@ -449,10 +449,19 @@ void cdrom_init(int id, int cdb_len_setting)
 {
 	cdrom_t *dev;
 
+	uint8_t *trcbuf;
+	uint32_t tcap;
+
 	if (id >= CDROM_NUM)
 		return;
 	dev = cdrom[id];
+	tcap = dev->cdrom_capacity;
+	trcbuf = (uint8_t *) malloc(16);
+	memcpy(trcbuf, dev->rcbuf, 16);
 	memset(dev, 0, sizeof(cdrom_t));
+	memcpy(dev->rcbuf, trcbuf, 16);
+	free(trcbuf);
+	dev->cdrom_capacity = tcap;
 	dev->requested_blocks = 1;
 	if (cdb_len_setting <= 1)
 		dev->cdb_len_setting = cdb_len_setting;
@@ -468,7 +477,6 @@ void cdrom_init(int id, int cdb_len_setting)
 	cdrom_log("CD-ROM %i: Bus type %i, bus mode %i\n", id, cdrom_drives[id].bus_type, cdrom_drives[id].bus_mode);
 	if (cdrom_drives[id].bus_type < CDROM_BUS_SCSI)
 		cdrom_set_signature(id);
-	cdrom_drives[id].max_blocks_at_once = 85;
 	dev->status = READY_STAT | DSC_STAT;
 	dev->pos = 0;
 	dev->packet_status = 0xff;
@@ -1236,29 +1244,29 @@ int cdrom_read_data(uint8_t id, int msf, int type, int flags, uint32_t *len)
 
 	int last_valid_data_pos = 0;
 
-	if (cdrom_drives[id].handler->pass_through) {
-		cdsize = cdrom_drives[id].handler->size(id);
+	cdsize = cdrom_drives[id].handler->size(id);
 
+	if (dev->sector_pos >= cdsize) {
+		cdrom_log("CD-ROM %i: Trying to read from beyond the end of disc (%i >= %i)\n", id, dev->sector_pos, cdsize);
+		cdrom_lba_out_of_range(id);
+		return 0;
+	}
+
+	if ((dev->sector_pos + dev->sector_len - 1) >= cdsize) {
+		cdrom_log("CD-ROM %i: Trying to read to beyond the end of disc (%i >= %i)\n", id, (dev->sector_pos + dev->sector_len - 1), cdsize);
+		cdrom_lba_out_of_range(id);
+		return 0;
+	}
+
+	if (cdrom_drives[id].handler->pass_through) {
 		ret = cdrom_pass_through(id, len, dev->current_cdb, cdbufferb + dev->data_pos);
 		dev->data_pos += *len;
 
 		if (!ret)
 			return 0;
 
-		if (dev->sector_pos > (cdsize - 1)) {
-			/* cdrom_log("CD-ROM %i: Trying to read beyond the end of disc\n", id); */
-			cdrom_lba_out_of_range(id);
-			return 0;
-		}
-
 		dev->old_len = *len;
 	} else {
-		if (dev->sector_pos > (cdrom_drives[id].handler->size(id) - 1)) {
-			/* cdrom_log("CD-ROM %i: Trying to read beyond the end of disc\n", id); */
-			cdrom_lba_out_of_range(id);
-			return 0;
-		}
-
 		dev->old_len = 0;
 		*len = 0;
 

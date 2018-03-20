@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.14	2018/03/20
+ * Version:	@(#)zip.c	1.0.15	2018/03/20
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -654,7 +654,6 @@ void zip_init(int id, int cdb_len_setting)
 	zip_log("ZIP %i: Bus type %i, bus mode %i\n", id, zip_drives[id].bus_type, zip_drives[id].bus_mode);
 	if (zip_drives[id].bus_type < ZIP_BUS_SCSI)
 		zip_set_signature(id);
-	zip_drives[id].max_blocks_at_once = 85;
 	zip[id].status = READY_STAT | DSC_STAT;
 	zip[id].pos = 0;
 	zip[id].packet_status = 0xff;

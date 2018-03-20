@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM host drive IOCTL interface for
  *		Windows using SCSI Passthrough Direct.
  *
- * Version:	@(#)cdrom_ioctl.c	1.0.14	2018/03/17
+ * Version:	@(#)cdrom_ioctl.c	1.0.15	2018/03/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1202,6 +1202,7 @@ static uint32_t ioctl_size(uint8_t id)
 {
 	uint8_t capacity_buffer[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	uint32_t capacity = 0;
+
 	ioctl_read_capacity(id, capacity_buffer);
 	capacity = ((uint32_t) capacity_buffer[0]) << 24;
 	capacity |= ((uint32_t) capacity_buffer[1]) << 16;
@@ -1260,16 +1261,22 @@ int ioctl_hopen(uint8_t id)
 	return 0;
 }
 
+#define rcs	"Read capacity: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n"
+#define	drb	dev->rcbuf
+
 int ioctl_open(uint8_t id, char d)
 {
 	cdrom_t *dev = cdrom[id];
 	sprintf(cdrom_ioctl[id].ioctl_path,"\\\\.\\%c:",d);
+	pclog("IOCTL path: %s\n", cdrom_ioctl[id].ioctl_path);
 	dev->disc_changed = 1;
 	cdrom_ioctl_windows[id].hIOCTL = CreateFile(cdrom_ioctl[id].ioctl_path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 	cdrom_drives[id].handler = &ioctl_cdrom;
 	dev->handler_inited=1;
-	cdrom_ioctl[id].capacity_read=0;	/* With this two lines, we read the READ CAPACITY command output from the host drive into our cache buffer. */
+	cdrom_ioctl[id].capacity_read=0;	/* With these two lines, we read the READ CAPACITY command output from the host drive into our cache buffer. */
 	ioctl_read_capacity(id, NULL);
+	pclog(rcs, drb[0], drb[1], drb[2], drb[3], drb[4], drb[5], drb[6], drb[7],
+		   drb[8], drb[9], drb[10], drb[11], drb[12], drb[13], drb[14], drb[15]);
 	CloseHandle(cdrom_ioctl_windows[id].hIOCTL);
 	cdrom_ioctl_windows[id].hIOCTL = NULL;
 	return 0;

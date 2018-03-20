@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.h	1.0.3	2018/03/17
+ * Version:	@(#)zip.h	1.0.4	2018/03/20
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -122,8 +122,6 @@ typedef struct {
 } zip_t;
 
 typedef struct {
-	int max_blocks_at_once;
-
 	int host_drive;
 	int prev_host_drive;
 
