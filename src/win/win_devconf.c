@@ -8,7 +8,7 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_devconf.c	1.0.16	2018/03/18
+ * Version:	@(#)win_devconf.c	1.0.17	2018/03/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -241,7 +241,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                         val_int = config->spinner.min;
 
                                                 SendMessage(h, WM_GETTEXT, 79, (LPARAM)ws);
-						wcstombs(s, ws, 79);
+						wcstombs(s, ws, 512);
                                                 sscanf(s, "%i", &c);
 
                                                 if (val_int != c)
@@ -330,7 +330,8 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                 break;
 
                                                 case CONFIG_SPINNER:
-                                                SendMessage(h, WM_GETTEXT, 79, (LPARAM)s);
+                                                SendMessage(h, WM_GETTEXT, 79, (LPARAM)ws);
+						wcstombs(s, ws, 512);
                                                 sscanf(s, "%i", &c);
                                                 if (c > config->spinner.max)
                                                         c = config->spinner.max;
