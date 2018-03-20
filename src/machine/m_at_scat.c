@@ -10,7 +10,7 @@
  *
  *		Re-worked version based on the 82C235 datasheet and errata.
  *
- * Version:	@(#)m_at_scat.c	1.0.11	2018/03/18
+ * Version:	@(#)m_at_scat.c	1.0.12	2018/03/20
  *
  * Authors:	Original by GreatPsycho for PCem.
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -27,6 +27,7 @@
 #include "../cpu/x86.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
+#include "../keyboard.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../nmi.h"
@@ -724,7 +725,9 @@ machine_at_scat_init(const machine_t *model)
 void
 machine_at_scatsx_init(const machine_t *model)
 {
-    machine_at_init(model);
+    machine_at_common_init(model);
+
+    device_add(&keyboard_at_ami_device);
     device_add(&fdc_at_device);
 
     scatsx_init();
