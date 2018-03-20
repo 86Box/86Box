@@ -956,11 +956,11 @@ static void mem_encoding_write_cached(uint16_t addr, uint8_t val, void *p)
         
         switch (addr)
         {
-				case 0xe0:
-				ps2.mem_regs[0] = val;
-				break;
-				case 0xe1:
-				ps2.mem_regs[1] = val;
+		case 0xe0:
+		ps2.mem_regs[0] = val;
+		break;
+		case 0xe1:
+		ps2.mem_regs[1] = val;
                 break;
                 case 0xe2:
                 old = ps2.mem_regs[2];
@@ -1042,13 +1042,27 @@ static void ps2_mca_board_model_70_type34_init(int is_type4)
         if (is_type4)
                 ps2.option[2] |= 0x04; /*486 CPU*/
 
+        mem_mapping_add(&ps2.split_mapping,
+                    (mem_size+256) * 1024, 
+                    256*1024,
+                    ps2_read_split_ram,
+                    ps2_read_split_ramw,
+                    ps2_read_split_raml,
+                    ps2_write_split_ram,
+                    ps2_write_split_ramw,
+                    ps2_write_split_raml,
+                    &ram[0xa0000],
+                    MEM_MAPPING_INTERNAL,
+                    NULL);
+        mem_mapping_disable(&ps2.split_mapping);
+
         mem_mapping_add(&ps2.cache_mapping,
                     0, 
                     is_type4 ? (8 * 1024) : (64 * 1024),
                     ps2_read_cache_ram,
                     ps2_read_cache_ramw,
                     ps2_read_cache_raml,
-					ps2_write_cache_ram,
+                    ps2_write_cache_ram,
                     NULL,
                     NULL,
                     ps2_cache,
@@ -1095,8 +1109,8 @@ static void ps2_mca_board_model_70_type34_init(int is_type4)
                             NULL);
                 mem_mapping_disable(&ps2.expansion_mapping);
         }
-		
-		device_add(&ps1vga_device);
+
+	device_add(&ps1vga_device);
 }
 
 static void ps2_mca_board_model_80_type2_init(int is486)
