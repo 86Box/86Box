@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.16	2018/03/20
+ * Version:	@(#)zip.c	1.0.17	2018/03/20
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -455,7 +455,6 @@ static const mode_sense_pages_t zip_250_mode_sense_pages_changeable =
 static mode_sense_pages_t zip_mode_sense_pages_saved[ZIP_NUM];
 
 
-#define ENABLE_ZIP_LOG 1
 #ifdef ENABLE_ZIP_LOG
 int zip_do_log = ENABLE_ZIP_LOG;
 #endif
