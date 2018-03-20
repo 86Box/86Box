@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.14	2018/03/19
+ * Version:	@(#)vid_ati28800.c	1.0.15	2018/03/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -553,22 +553,22 @@ ati28800_force_redraw(void *priv)
     ati->svga.fullchange = changeframecount;
 }
 
-void ati28800k_add_status_info(char *s, int max_len, void *p)
-{
-        ati28800_t *ati28800 = (ati28800_t *)p;
-        char temps[128];
-        
-        svga_add_status_info(s, max_len, &ati28800->svga);
-
-        sprintf(temps, "Korean SVGA mode enabled : %s\n\n", ati28800->ksc5601_mode_enabled ? "Yes" : "No");
-        strncat(s, temps, max_len);
-}
-
 static void ati28800_add_status_info(char *s, int max_len, void *priv)
 {
     ati28800_t *ati = (ati28800_t *)priv;
 
     svga_add_status_info(s, max_len, &ati->svga);
+}
+
+void ati28800k_add_status_info(char *s, int max_len, void *p)
+{
+        ati28800_t *ati28800 = (ati28800_t *)p;
+        char temps[128];
+        
+        ati28800_add_status_info(s, max_len, p);
+
+        sprintf(temps, "Korean SVGA mode enabled : %s\n\n", ati28800->ksc5601_mode_enabled ? "Yes" : "No");
+        strncat(s, temps, max_len);
 }
 
 

@@ -12,3 +12,6 @@ extern const device_t gd5434_isa_device;
 extern const device_t gd5434_vlb_device;
 extern const device_t gd5434_pci_device;
 extern const device_t gd5436_pci_device;
+extern const device_t gd5446_pci_device;
+extern const device_t gd5446_stb_pci_device;
+extern const device_t gd5480_pci_device;

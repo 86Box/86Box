@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.10	2018/03/18
+ * Version:	@(#)vid_cl_54xx.c	1.0.11	2018/03/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,
@@ -39,7 +39,6 @@
 #include "vid_svga_render.h"
 #include "vid_cl54xx.h"
 
-#define BIOS_GD5424_PATH		L"roms/video/cirruslogic/cl5424.bin"
 #define BIOS_GD5426_PATH		L"roms/video/cirruslogic/Diamond SpeedStar PRO VLB v3.04.bin"
 #define BIOS_GD5428_PATH		L"roms/video/cirruslogic/vlbusjapan.BIN"
 #define BIOS_GD5429_PATH		L"roms/video/cirruslogic/5429.vbi"
@@ -47,14 +46,18 @@
 #define BIOS_GD5430_PCI_PATH		L"roms/video/cirruslogic/pci.bin"
 #define BIOS_GD5434_PATH		L"roms/video/cirruslogic/gd5434.bin"
 #define BIOS_GD5436_PATH		L"roms/video/cirruslogic/5436.vbi"
+#define BIOS_GD5446_PATH		L"roms/video/cirruslogic/5446BV.VBI"
+#define BIOS_GD5446_STB_PATH		L"roms/video/cirruslogic/stb nitro64v.BIN"
+#define BIOS_GD5480_PATH		L"roms/video/cirruslogic/clgd5480.rom"
 
-#define CIRRUS_ID_CLGD5424		0x94
 #define CIRRUS_ID_CLGD5426		0x90
 #define CIRRUS_ID_CLGD5428		0x98
 #define CIRRUS_ID_CLGD5429		0x9c
 #define CIRRUS_ID_CLGD5430		0xa0
 #define CIRRUS_ID_CLGD5434		0xa8
 #define CIRRUS_ID_CLGD5436		0xac
+#define CIRRUS_ID_CLGD5446		0xb8
+#define CIRRUS_ID_CLGD5480		0xbc
 
 /* sequencer 0x07 */
 #define CIRRUS_SR7_BPP_VGA		0x00
@@ -588,13 +591,13 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
 		}
 	} else if (gd54xx->pci) {
 		base = gd54xx->lfb_base;
-		if (svga->crtc[0x27] == CIRRUS_ID_CLGD5436)
+		if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5436)
 			size = 16 * 1024 * 1024;
 		else
 			size = 4 * 1024 * 1024;
 	} else { /*VLB*/
 		base = 128*1024*1024;
-		if (svga->crtc[0x27] == CIRRUS_ID_CLGD5436)
+		if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5436)
 			size = 16 * 1024 * 1024;
 		else
 			size = 4 * 1024 * 1024;
@@ -1690,7 +1693,7 @@ gd543x_mmio_write(uint32_t addr, uint8_t val, void *p)
 		else
 				gd54xx->blt.dst_addr &= 0x1fffff;
 			
-		if ((svga->crtc[0x27] == CIRRUS_ID_CLGD5436) && (gd54xx->blt.status & CIRRUS_BLT_AUTOSTART)) {
+		if ((svga->crtc[0x27] >= CIRRUS_ID_CLGD5436) && (gd54xx->blt.status & CIRRUS_BLT_AUTOSTART)) {
 			if (gd54xx->blt.mode == CIRRUS_BLTMODE_MEMSYSSRC) {
 				gd54xx->blt.sys_tx = 1;
 				gd54xx->blt.sys_cnt = 0;
@@ -1729,7 +1732,7 @@ gd543x_mmio_write(uint32_t addr, uint8_t val, void *p)
 		break;
 
 	case 0x1b:
-		if (svga->crtc[0x27] == CIRRUS_ID_CLGD5436)	
+		if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5436)	
 			gd54xx->blt.modeext = val;
 		break;		
 		
@@ -2294,7 +2297,7 @@ static void
 {
     gd54xx_t *gd54xx = malloc(sizeof(gd54xx_t));
     svga_t *svga = &gd54xx->svga;
-    int id = info->local;
+    int id = info->local & 0xff;
     wchar_t *romfn = NULL;
     memset(gd54xx, 0, sizeof(gd54xx_t));
 
@@ -2328,7 +2331,18 @@ static void
 	case CIRRUS_ID_CLGD5436:
 		romfn = BIOS_GD5436_PATH;
 		break;
-    }	
+
+	case CIRRUS_ID_CLGD5446:
+		if (info->local & 0x100)
+			romfn = BIOS_GD5446_STB_PATH;
+		else
+			romfn = BIOS_GD5446_PATH;
+		break;
+
+	case CIRRUS_ID_CLGD5480:
+		romfn = BIOS_GD5480_PATH;
+		break;
+    }
 
     gd54xx->vram_size = device_get_config_int("memory");
     gd54xx->vram_mask = (gd54xx->vram_size << 20) - 1;
@@ -2411,6 +2425,24 @@ static int
 gd5436_available(void)
 {
     return rom_present(BIOS_GD5436_PATH);
+}
+
+static int
+gd5446_available(void)
+{
+    return rom_present(BIOS_GD5446_PATH);
+}
+
+static int
+gd5446_stb_available(void)
+{
+    return rom_present(BIOS_GD5446_STB_PATH);
+}
+
+static int
+gd5480_available(void)
+{
+    return rom_present(BIOS_GD5480_PATH);
 }
 
 void
@@ -2664,6 +2696,51 @@ const device_t gd5436_pci_device =
     gd54xx_close, 
     NULL,
     gd5436_available,
+    gd54xx_speed_changed,
+    gd54xx_force_redraw,
+    gd54xx_add_status_info,
+    gd5434_config
+};
+
+const device_t gd5446_pci_device =
+{
+    "Cirrus Logic CL-GD 5446 (PCI)",
+    DEVICE_PCI,
+    CIRRUS_ID_CLGD5446,
+    gd54xx_init,
+    gd54xx_close, 
+    NULL,
+    gd5446_available,
+    gd54xx_speed_changed,
+    gd54xx_force_redraw,
+    gd54xx_add_status_info,
+    gd5434_config
+};
+
+const device_t gd5446_stb_pci_device =
+{
+    "STB Nitro 64V (PCI)",
+    DEVICE_PCI,
+    CIRRUS_ID_CLGD5446,
+    gd54xx_init,
+    gd54xx_close, 
+    NULL,
+    gd5446_stb_available,
+    gd54xx_speed_changed,
+    gd54xx_force_redraw,
+    gd54xx_add_status_info,
+    gd5434_config
+};
+
+const device_t gd5480_pci_device =
+{
+    "Cirrus Logic CL-GD 5480 (PCI)",
+    DEVICE_PCI,
+    CIRRUS_ID_CLGD5480,
+    gd54xx_init, 
+    gd54xx_close, 
+    NULL,
+    gd5480_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd54xx_add_status_info,

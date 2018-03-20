@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.25	2018/03/19
+ * Version:	@(#)vid_table.c	1.0.26	2018/03/20
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -131,6 +131,8 @@ video_cards[] = {
     {"[PCI] Cirrus Logic CL-GD 5430",			"cl_gd5430_pci",	&gd5430_pci_device,			GFX_CL_GD5430_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
     {"[PCI] Cirrus Logic CL-GD 5434",			"cl_gd5434_pci",	&gd5434_pci_device,			GFX_CL_GD5434_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
     {"[PCI] Cirrus Logic CL-GD 5436",			"cl_gd5436_pci",	&gd5436_pci_device,			GFX_CL_GD5436_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
+    {"[PCI] Cirrus Logic CL-GD 5446",			"cl_gd5446_pci",	&gd5446_pci_device,			GFX_CL_GD5446_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
+    {"[PCI] Cirrus Logic CL-GD 5480",			"cl_gd5480_pci",	&gd5480_pci_device,			GFX_CL_GD5480_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
     {"[PCI] Diamond Stealth 32 (Tseng ET4000/w32p)",	"stealth32_pci",	&et4000w32p_pci_device,			GFX_ET4000W32_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
 #endif
@@ -149,6 +151,7 @@ video_cards[] = {
     {"[PCI] Phoenix S3 Trio64",				"px_trio64_pci",	&s3_phoenix_trio64_pci_device,		GFX_PHOENIX_TRIO64_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 3,  2,  4,  25, 25, 40}},
     {"[PCI] S3 ViRGE/DX",				"virge375_pci",		&s3_virge_375_pci_device,		GFX_VIRGEDX_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
     {"[PCI] S3 ViRGE/DX (VBE 2.0)",			"virge375_vbe20_pci",	&s3_virge_375_4_pci_device,		GFX_VIRGEDX4_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
+    {"[PCI] STB Nitro 64V (CL-GD 5446)",		"cl_gd5446_stb_pci",	&gd5446_stb_pci_device,			GFX_CL_GD5446_STB_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
     {"[PCI] Trident TGUI9440",				"tgui9440_pci",		&tgui9440_pci_device,			GFX_TGUI9440_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  8, 16,   4,  8, 16}},
     {"[VLB] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_vlb",		&mach64gx_vlb_device,			GFX_MACH64GX_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
     {"[VLB] Cardex Tseng ET4000/w32p",			"et4000w32p_vlb",	&et4000w32p_cardex_vlb_device,		GFX_ET4000W32_CARDEX_VLB,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
@@ -158,8 +161,8 @@ video_cards[] = {
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
     {"[VLB] Diamond Stealth 32 (Tseng ET4000/w32p)",	"stealth32_vlb",	&et4000w32p_vlb_device,			GFX_ET4000W32_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
 #endif
-    {"[VLB] Diamond SpeedStar PRO (CL-GD5426)",		"cl_gd5426_vlb",	&gd5426_vlb_device,			GFX_CL_GD5426_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
-    {"[VLB] Diamond SpeedStar PRO SE (CL-GD5430)",	"cl_gd5430_vlb",	&gd5430_vlb_device,			GFX_CL_GD5430_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
+    {"[VLB] Diamond SpeedStar PRO (CL-GD 5426)",	"cl_gd5426_vlb",	&gd5426_vlb_device,			GFX_CL_GD5426_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
+    {"[VLB] Diamond SpeedStar PRO SE (CL-GD 5430)",	"cl_gd5430_vlb",	&gd5430_vlb_device,			GFX_CL_GD5430_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
     {"[VLB] Diamond Stealth 3D 2000 (S3 ViRGE)",	"stealth3d_2000_vlb",	&s3_virge_vlb_device,			GFX_VIRGE_VLB,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
     {"[VLB] Diamond Stealth 3D 3000 (S3 ViRGE/VX)",	"stealth3d_3000_vlb",	&s3_virge_988_vlb_device,		GFX_VIRGEVX_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  4,  26, 26, 42}},
     {"[VLB] Diamond Stealth 64 DRAM (S3 Trio64)",	"stealth64d_vlb",	&s3_diamond_stealth64_vlb_device,	GFX_STEALTH64_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  4,  26, 26, 42}},
