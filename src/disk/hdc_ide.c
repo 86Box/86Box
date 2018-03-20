@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.40	2018/03/18
+ * Version:	@(#)hdc_ide.c	1.0.41	2018/03/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -503,6 +503,7 @@ static void ide_atapi_zip_identify(IDE *ide)
 	uint8_t zip_id;
 	int32_t d;
 
+	memset(ide->buffer, 0, 512);
 	zip_id = atapi_zip_drives[ide->channel];
 
 	/* Using (2<<5) below makes the ASUS P/I-P54TP4XE misdentify the ZIP drive
