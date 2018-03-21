@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.44	2018/03/21
+ * Version:	@(#)cdrom.c	1.0.45	2018/03/21
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -2575,7 +2575,7 @@ cdrom_readtoc_fallback:
 
 			cdrom_log("CD-ROM %i: Read subchannel:", id);
 			for (i = 0; i < 32; i += 8) {
-				pclog("[%02X] %02X %02X %02X %02X %02X %02X %02X %02X\n", i,
+				cdrom_log("[%02X] %02X %02X %02X %02X %02X %02X %02X %02X\n", i,
 				      cdbufferb[i], cdbufferb[i + 1], cdbufferb[i + 2], cdbufferb[i + 3],
 				      cdbufferb[i + 4], cdbufferb[i + 5], cdbufferb[i + 6], cdbufferb[i + 7]);
 			}
