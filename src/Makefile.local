@@ -10,7 +10,7 @@
 #		settings, so we can avoid changing the main one for all of
 #		our local setups.
 #
-# Version:	@(#)Makefile.local	1.0.9	2017/12/28
+# Version:	@(#)Makefile.local	1.0.10	2018/03/20
 #
 # Author:	Fred N. van Kempen, <decwiz@yahoo.com>
 #
@@ -39,11 +39,14 @@ STUFF	:=
 # -DENABLE_KEYBOARD_LOG=N sets logging level at N.
 # -DENABLE_PCI_LOG=N sets logging level at N.
 # -DENABLE_CDROM_LOG=N sets logging level at N.
+# -DENABLE_CDROM_IMAGE_LOG=N sets logging level at N.
+# -DENABLE_CDROM_IOCTL_LOG=N sets logging level at N.
 # -DENABLE_HDD_LOG=N sets logging level at N.
 # -DENABLE_IDE_LOG=N sets logging level at N.
 # -DENABLE_FDC_LOG=N sets logging level at N.
 # -DENABLE_D86F_LOG=N sets logging level at N.
 # -DENABLE_NIC_LOG=N sets logging level at N.
+# -DENABLE_SCAT_LOG=N sets logging level at N.
 # -DENABLE_SCSI_BUS_LOG=N sets logging level at N.
 # -DENABLE_SCSI_DISK_LOG=N sets logging level at N.
 # -DENABLE_X54X_LOG=N sets logging level at N.

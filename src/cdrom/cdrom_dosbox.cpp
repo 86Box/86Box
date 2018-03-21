@@ -412,6 +412,7 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 				track.attr = DATA_TRACK;
 				track.mode2 = true;
 			} else if (type == "MODE2/2352") {
+				track.form = 1;		/* Assume this is XA Mode 2 Form 1. */
 				track.sectorSize = RAW_SECTOR_SIZE;
 				track.attr = DATA_TRACK;
 				track.mode2 = true;
@@ -481,8 +482,8 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 	track.number++;
 	track.track_number = 0xAA;
 	// track.attr = 0;//sync with load iso
-	// track.attr = 0x16;	/* Was 0x00 but I believe 0x16 is appropriate. */
-	track.attr = last_attr | 0x02;
+	track.attr = 0x16;	/* Was 0x00 but I believe 0x16 is appropriate. */
+	// track.attr = last_attr | 0x02;
 	track.start = 0;
 	track.length = 0;
 	track.file = NULL;

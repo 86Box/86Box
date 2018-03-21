@@ -22,10 +22,12 @@
 #include <io.h>
 #include <ntddcdrm.h>
 #include <ntddscsi.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../scsi/scsi.h"
@@ -52,8 +54,8 @@ typedef struct {
 
 cdrom_ioctl_windows_t cdrom_ioctl_windows[CDROM_NUM];
 
-#ifdef ENABLE_CDROM_LOG
-int cdrom_ioctl_do_log = ENABLE_CDROM_LOG;
+#ifdef ENABLE_CDROM_IOCTL_LOG
+int cdrom_ioctl_do_log = ENABLE_CDROM_IOCTL_LOG;
 #endif
 
 
@@ -63,13 +65,13 @@ static CDROM ioctl_cdrom;
 static void
 cdrom_ioctl_log(const char *format, ...)
 {
-#ifdef ENABLE_CDROM_LOG
+#ifdef ENABLE_CDROM_IOCTL_LOG
+    va_list ap;
+
     if (cdrom_ioctl_do_log) {
-	va_list ap;
 	va_start(ap, format);
-	vfprintf(stdlog, format, ap);
+	pclog_ex(format, ap);
 	va_end(ap);
-	fflush(stdlog);
     }
 #endif
 }
@@ -88,15 +90,19 @@ void ioctl_audio_callback(uint8_t id, int16_t *output, int len)
 		if (dev->cd_state == CD_PLAYING)
 		{
 			dev->seek_pos += (len >> 11);
-		}
+			cdrom_ioctl_log("ioctl_audio_callback(): playing but mute\n");
+		} else
+			cdrom_ioctl_log("ioctl_audio_callback(): not playing\n");
+		cdrom_ioctl_windows[id].is_playing = 0;
 		memset(output, 0, len * 2);
 		return;
 	}
+	cdrom_ioctl_log("ioctl_audio_callback(): dev->cd_buflen = %i, len = %i\n", dev->cd_buflen, len);
 	while (dev->cd_buflen < len)
 	{
 		if (dev->seek_pos < dev->cd_end)
 		{
-			in.DiskOffset.LowPart	= (dev->seek_pos - 150) * 2048;
+			in.DiskOffset.LowPart	= dev->seek_pos * 2048;
 			in.DiskOffset.HighPart	= 0;
 			in.SectorCount		= 1;
 			in.TrackMode		= CDDA;		
@@ -107,11 +113,13 @@ void ioctl_audio_callback(uint8_t id, int16_t *output, int len)
 				ioctl_close(id);
 				dev->cd_state = CD_STOPPED;
 				dev->cd_buflen = len;
+				cdrom_ioctl_log("ioctl_audio_callback(): read sector error, stopped\n");
 			}
 			else
 			{
 				dev->seek_pos++;
 				dev->cd_buflen += (2352 / 2);
+				cdrom_ioctl_log("ioctl_audio_callback(): dev->seek_pos = %i\n", dev->seek_pos);
 			}
 		}
 		else
@@ -121,6 +129,7 @@ void ioctl_audio_callback(uint8_t id, int16_t *output, int len)
 			ioctl_close(id);
 			dev->cd_state = CD_STOPPED;
 			dev->cd_buflen = len;                        
+			cdrom_ioctl_log("ioctl_audio_callback(): reached the end\n");
 		}
 	}
 	memcpy(output, dev->cd_buffer, len * 2);
@@ -146,27 +155,32 @@ static int get_track_nr(uint8_t id, uint32_t pos)
 	if (dev->disc_changed)
 	{
 		return 0;
+		cdrom_ioctl_log("get_track_nr(): disc changed\n");
 	}
 
 	if (cdrom_ioctl[id].last_track_pos == pos)
 	{
+		cdrom_ioctl_log("get_track_nr(): cdrom_ioctl[id].last_track_pos == pos\n");
 		return cdrom_ioctl[id].last_track_nr;
 	}
 
-	for (c = cdrom_ioctl_windows[id].toc.FirstTrack; c < cdrom_ioctl_windows[id].toc.LastTrack; c++)
+	/* for (c = cdrom_ioctl_windows[id].toc.FirstTrack; c < cdrom_ioctl_windows[id].toc.LastTrack; c++) */
+	for (c = 0; c < cdrom_ioctl_windows[id].toc.LastTrack; c++)
 	{
-		uint32_t track_address = cdrom_ioctl_windows[id].toc.TrackData[c].Address[3] +
-						(cdrom_ioctl_windows[id].toc.TrackData[c].Address[2] * 75) +
-						(cdrom_ioctl_windows[id].toc.TrackData[c].Address[1] * 75 * 60);
+		uint32_t track_address = MSFtoLBA(cdrom_ioctl_windows[id].toc.TrackData[c].Address[1],
+						  cdrom_ioctl_windows[id].toc.TrackData[c].Address[2],
+						  cdrom_ioctl_windows[id].toc.TrackData[c].Address[3]) - 150;
 
 		if (track_address <= pos)
 		{
+			cdrom_ioctl_log("get_track_nr(): track = %i\n", c);
 			track = c;
 		}
 	}
 	cdrom_ioctl[id].last_track_pos = pos;
 	cdrom_ioctl[id].last_track_nr = track;
 
+	cdrom_ioctl_log("get_track_nr(): return %i\n", track);
 	return track;
 }
 
@@ -199,6 +213,7 @@ static void ioctl_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
 	{
 		return;
 	}
+        cdrom_ioctl_log("Play audio - %08X %08X %i\n", pos, len, ismsf);
 	if (ismsf == 2)
 	{
 		start_msf = get_track_msf(id, pos);
@@ -214,11 +229,11 @@ static void ioctl_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
 		m = (start_msf >> 16) & 0xff;
 		s = (start_msf >> 8) & 0xff;
 		f = start_msf & 0xff;
-		pos = MSFtoLBA(m, s, f);
+		pos = MSFtoLBA(m, s, f) - 150;
 		m = (end_msf >> 16) & 0xff;
 		s = (end_msf >> 8) & 0xff;
 		f = end_msf & 0xff;
-		len = MSFtoLBA(m, s, f);
+		len = MSFtoLBA(m, s, f) - 150;
 	}
         else if (ismsf == 1)
         {
@@ -233,13 +248,13 @@ static void ioctl_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
 		}
 		else
 		{
-			pos = MSFtoLBA(m, s, f);
+			pos = MSFtoLBA(m, s, f) - 150;
 		}
 
 		m = (len >> 16) & 0xff;
 		s = (len >> 8) & 0xff;
 		f = len & 0xff;
-		len = MSFtoLBA(m, s, f);
+		len = MSFtoLBA(m, s, f) - 150;
 	}
 	else if (ismsf == 0)
 	{
@@ -252,11 +267,7 @@ static void ioctl_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
 	}
 	dev->seek_pos   = pos;
 	dev->cd_end   = len;
-	if (dev->seek_pos < 150)
-	{
-		/* Adjust because the host expects a minimum adjusted LBA of 0 which is equivalent to an absolute LBA of 150. */
-		dev->seek_pos = 150;
-	}
+
 	if (!cdrom_ioctl_windows[id].is_playing)
 	{
 		ioctl_hopen(id);
@@ -462,9 +473,11 @@ static uint8_t ioctl_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
 	if (dev->cd_state == CD_PLAYING || dev->cd_state == CD_PAUSED)
 	{
 		track = get_track_nr(id, cdpos);
-		track_address = cdrom_ioctl_windows[id].toc.TrackData[track].Address[3] + (cdrom_ioctl_windows[id].toc.TrackData[track].Address[2] * 75) + (cdrom_ioctl_windows[id].toc.TrackData[track].Address[1] * 75 * 60);
+		track_address = MSFtoLBA(cdrom_ioctl_windows[id].toc.TrackData[track].Address[1],
+					 cdrom_ioctl_windows[id].toc.TrackData[track].Address[2],
+					 cdrom_ioctl_windows[id].toc.TrackData[track].Address[3]) - 150;
 
-		cdrom_ioctl_log("cdpos = %i, track = %i, track_address = %i\n", cdpos, track, track_address);
+		cdrom_ioctl_log("ioctl_getcurrentsubchannel(): cdpos = %i, track = %i, track_address = %i\n", cdpos, track, track_address);
 		
 		b[pos++] = sub.CurrentPosition.Control;
 		b[pos++] = track + 1;
@@ -478,7 +491,7 @@ static uint8_t ioctl_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
 			b[pos + 1] = (uint8_t)dat;
 			b[pos]     = 0;
 			pos += 4;
-			dat = cdpos - track_address - 150;
+			dat = cdpos - track_address;
 			b[pos + 3] = (uint8_t)(dat % 75); dat /= 75;
 			b[pos + 2] = (uint8_t)(dat % 60); dat /= 60;
 			b[pos + 1] = (uint8_t)dat;
@@ -522,12 +535,12 @@ static uint8_t ioctl_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
 	}
 	else
 	{
-		uint32_t temp = MSFtoLBA(sub.CurrentPosition.AbsoluteAddress[1], sub.CurrentPosition.AbsoluteAddress[2], sub.CurrentPosition.AbsoluteAddress[3]);
+		uint32_t temp = MSFtoLBA(sub.CurrentPosition.AbsoluteAddress[1], sub.CurrentPosition.AbsoluteAddress[2], sub.CurrentPosition.AbsoluteAddress[3]) - 150;
 		b[pos++] = temp >> 24;
 		b[pos++] = temp >> 16;
 		b[pos++] = temp >> 8;
 		b[pos++] = temp;
-		temp = MSFtoLBA(sub.CurrentPosition.TrackRelativeAddress[1], sub.CurrentPosition.TrackRelativeAddress[2], sub.CurrentPosition.TrackRelativeAddress[3]);
+		temp = MSFtoLBA(sub.CurrentPosition.TrackRelativeAddress[1], sub.CurrentPosition.TrackRelativeAddress[2], sub.CurrentPosition.TrackRelativeAddress[3]) - 150;
 		b[pos++] = temp >> 24;
 		b[pos++] = temp >> 16;
 		b[pos++] = temp >> 8;
@@ -1273,6 +1286,7 @@ int ioctl_open(uint8_t id, char d)
 	cdrom_ioctl_windows[id].hIOCTL = CreateFile(cdrom_ioctl[id].ioctl_path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 	cdrom_drives[id].handler = &ioctl_cdrom;
 	dev->handler_inited=1;
+	cdrom_ioctl_windows[id].is_playing = 0;
 	cdrom_ioctl[id].capacity_read=0;	/* With these two lines, we read the READ CAPACITY command output from the host drive into our cache buffer. */
 	ioctl_read_capacity(id, NULL);
 	pclog(rcs, drb[0], drb[1], drb[2], drb[3], drb[4], drb[5], drb[6], drb[7],

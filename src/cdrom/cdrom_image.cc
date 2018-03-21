@@ -57,8 +57,8 @@ void cdrom_image_log(const char *format, ...)
 		va_end(ap);
 		fflush(stdout);
    }
-#else
-   (void)format;
+/* #else
+   (void)format; */
 #endif
 }
 
@@ -68,7 +68,6 @@ void image_audio_callback(uint8_t id, int16_t *output, int len)
 {
 	cdrom_t *dev = cdrom[id];
 
-	return;
         if (!cdrom_drives[id].sound_on || (dev->cd_state != CD_PLAYING) || cdrom_image[id].image_is_iso)
         {
 		cdrom_image_log("image_audio_callback(i): Not playing\n", id);
@@ -767,10 +766,14 @@ read_mode2_xa_form2:
 			return 0;
 		}
 
-		if (mode2)
-			goto read_mode2_non_xa;
-		else
+		if (mode2 && (form == 1))
+			goto read_mode2_xa_form1;
+		else if (!mode2)
 			goto read_mode1;
+		else {
+			cdrom_image_log("CD-ROM %i: [Any Data] Attempting to read a data sector whose cooked size is not 2048 bytes\n", id);
+			return 0;
+		}
 	} else {
 		if (mode2)
 			if (form == 1)
