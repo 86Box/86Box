@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.7	2018/03/18
+ * Version:	@(#)vid_s3.c	1.0.8	2018/03/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -159,6 +159,9 @@ typedef struct s3_t
         uint64_t status_time;
         
         uint8_t subsys_cntl, subsys_stat;
+        
+        uint32_t hwc_fg_col, hwc_bg_col;
+        int hwc_col_stack_pos;
 } s3_t;
 
 #define INT_VSY      (1 << 0)
@@ -815,15 +818,16 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                 break;
                 
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
-		if (s3->chip == S3_VISION864)
-		{
-	                sdac_ramdac_out(addr, val, &s3->ramdac, svga);
-        	        return;
-		}
-		else
-		{
-			break;
-		}
+                if (s3->chip == S3_TRIO32 || s3->chip == S3_TRIO64)
+                        svga_out(addr, val, svga);
+                else
+                {
+                        if ((svga->crtc[0x55] & 1) || (svga->crtc[0x43] & 2))
+                                sdac_ramdac_out((addr & 3) | 4, val, &s3->ramdac, svga);
+                        else
+                                sdac_ramdac_out(addr & 3, val, &s3->ramdac, svga);
+                }
+                return;
 
                 case 0x3D4:
                 svga->crtcreg = val & 0x7f;
@@ -903,6 +907,37 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                                 svga->hwcursor.x <<= 1;
                         break;
 
+                        case 0x4a:
+                        switch (s3->hwc_col_stack_pos)
+                        {
+                                case 0:
+                                s3->hwc_fg_col = (s3->hwc_fg_col & 0xffff00) | val;
+                                break;
+                                case 1:
+                                s3->hwc_fg_col = (s3->hwc_fg_col & 0xff00ff) | (val << 8);
+                                break;
+                                case 2:
+                                s3->hwc_fg_col = (s3->hwc_fg_col & 0x00ffff) | (val << 16);
+                                break;
+                        }
+                        s3->hwc_col_stack_pos = (s3->hwc_col_stack_pos + 1) % 3;
+                        break;
+                        case 0x4b:
+                        switch (s3->hwc_col_stack_pos)
+                        {
+                                case 0:
+                                s3->hwc_bg_col = (s3->hwc_bg_col & 0xffff00) | val;
+                                break;
+                                case 1:
+                                s3->hwc_bg_col = (s3->hwc_bg_col & 0xff00ff) | (val << 8);
+                                break;
+                                case 2:
+                                s3->hwc_bg_col = (s3->hwc_bg_col & 0x00ffff) | (val << 16);
+                                break;
+                        }
+                        s3->hwc_col_stack_pos = (s3->hwc_col_stack_pos + 1) % 3;
+                        break;
+
                         case 0x53:
                         case 0x58: case 0x59: case 0x5a:
                         s3_updatemapping(s3);
@@ -956,14 +991,11 @@ uint8_t s3_in(uint16_t addr, void *p)
                 break;
                 
                 case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
-		if (s3->chip == S3_VISION864)
-		{
-	                return sdac_ramdac_in(addr, &s3->ramdac, svga);
-		}
-		else
-		{
-			break;
-		}
+                if (s3->chip == S3_TRIO32 || s3->chip == S3_TRIO64)
+                        return svga_in(addr, svga);
+                if ((svga->crtc[0x55] & 1) || (svga->crtc[0x43] & 2))
+                        return sdac_ramdac_in((addr & 3) | 4, &s3->ramdac, svga);
+                return sdac_ramdac_in(addr & 3, &s3->ramdac, svga);
 
                 case 0x3d4:
                 return svga->crtcreg;
@@ -976,6 +1008,7 @@ uint8_t s3_in(uint16_t addr, void *p)
                         case 0x30: return s3->id;     /*Chip ID*/
                         case 0x31: return (svga->crtc[0x31] & 0xcf) | ((s3->ma_ext & 3) << 4);
                         case 0x35: return (svga->crtc[0x35] & 0xf0) | (s3->bank & 0xf);
+                        case 0x45: s3->hwc_col_stack_pos = 0; break;
                         case 0x51: return (svga->crtc[0x51] & 0xf0) | ((s3->bank >> 2) & 0xc) | ((s3->ma_ext >> 2) & 3);
                         case 0x69: return s3->ma_ext;
                         case 0x6a: return s3->bank;
@@ -1977,12 +2010,46 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
 void s3_hwcursor_draw(svga_t *svga, int displine)
 {
+	s3_t *s3 = (s3_t *)svga->p;
         int x;
         uint16_t dat[2];
         int xx;
         int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
 	int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
 	int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
+
+        uint32_t fg = 0, bg = 0;
+                
+        switch (svga->bpp)
+        {               
+                case 15:
+                fg = video_15to32[s3->hwc_fg_col & 0xffff];
+                bg = video_15to32[s3->hwc_bg_col & 0xffff];
+                break;
+                
+                case 16:
+                fg = video_16to32[s3->hwc_fg_col & 0xffff];
+                bg = video_16to32[s3->hwc_bg_col & 0xffff];
+                break;
+                
+                case 24: case 32:
+                fg = s3->hwc_fg_col;
+                bg = s3->hwc_bg_col;
+                break;
+
+                default:
+                if (s3->chip == S3_TRIO32 || s3->chip == S3_TRIO64)
+                {
+                        fg = svga->pallook[s3->hwc_fg_col & 0xff];
+                        bg = svga->pallook[s3->hwc_bg_col & 0xff];
+                }
+                else
+                {
+                        fg = svga->pallook[svga->crtc[0xe]];
+                        bg = svga->pallook[svga->crtc[0xf]];
+                }
+                break;
+        }
 
         if (svga->interlace && svga->hwcursor_oddeven)
                 svga->hwcursor_latch.addr += 16;
@@ -1996,7 +2063,7 @@ void s3_hwcursor_draw(svga_t *svga, int displine)
                         if (offset >= svga->hwcursor_latch.x)
                         {
                                 if (!(dat[0] & 0x8000))
-                                   ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add]  = (dat[1] & 0x8000) ? 0xffffff : 0;
+                                   ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add]  = (dat[1] & 0x8000) ? fg : bg;
                                 else if (dat[1] & 0x8000)
                                    ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add] ^= 0xffffff;
                         }
@@ -2268,6 +2335,7 @@ void *s3_vision864_init(const device_t *info, wchar_t *bios_fn)
         
         s3->getclock = sdac_getclock;
         s3->getclock_p = &s3->ramdac;
+        sdac_init(&s3->ramdac);
 
         return s3;
 }
