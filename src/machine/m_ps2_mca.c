@@ -741,6 +741,67 @@ static void ps2_mem_expansion_write(int port, uint8_t val, void *p)
                 mem_mapping_disable(&ps2.expansion_mapping);
 }
 
+static void ps2_mca_mem_fffc_init(int start_mb)
+{
+	uint32_t planar_size, expansion_start;
+
+	if (start_mb == 2) {
+		planar_size = 0x160000;
+		expansion_start = 0x260000;
+	} else {
+		planar_size = (start_mb - 1) << 20;
+		expansion_start = start_mb << 20;
+	}
+
+	mem_mapping_set_addr(&ram_high_mapping, 0x100000, planar_size);
+
+	ps2.mem_pos_regs[0] = 0xff;
+	ps2.mem_pos_regs[1] = 0xfc;
+
+	switch ((mem_size / 1024) - start_mb)
+	{
+		case 1:
+			ps2.mem_pos_regs[4] = 0xfc;	/* 11 11 11 00 = 0 0 0 1 */
+			break;
+		case 2:
+			ps2.mem_pos_regs[4] = 0xfe;	/* 11 11 11 10 = 0 0 0 2 */
+			break;
+		case 3:
+			ps2.mem_pos_regs[4] = 0xf2;	/* 11 11 00 10 = 0 0 1 2 */
+			break;
+		case 4:
+			ps2.mem_pos_regs[4] = 0xfa;	/* 11 11 10 10 = 0 0 2 2 */
+			break;
+		case 5:
+			ps2.mem_pos_regs[4] = 0xca;	/* 11 00 10 10 = 0 1 2 2 */
+			break;
+		case 6:
+			ps2.mem_pos_regs[4] = 0xea;	/* 11 10 10 10 = 0 2 2 2 */
+			break;
+		case 7:
+			ps2.mem_pos_regs[4] = 0x2a;	/* 00 10 10 10 = 1 2 2 2 */
+			break;
+		case 8:
+			ps2.mem_pos_regs[4] = 0xaa;	/* 10 10 10 10 = 2 2 2 2 */
+			break;
+	}
+
+	mca_add(ps2_mem_expansion_read, ps2_mem_expansion_write, NULL);
+	mem_mapping_add(&ps2.expansion_mapping,
+			expansion_start,
+			(mem_size - (start_mb << 10)) << 10,
+			mem_read_ram,
+			mem_read_ramw,
+			mem_read_raml,
+			mem_write_ram,
+			mem_write_ramw,
+			mem_write_raml,
+			&ram[expansion_start],
+			MEM_MAPPING_INTERNAL,
+			NULL);
+	mem_mapping_disable(&ps2.expansion_mapping);
+}
+
 static void ps2_mca_board_model_50_init()
 {        
         ps2_mca_board_common_init();
@@ -754,53 +815,7 @@ static void ps2_mca_board_model_50_init()
         if (mem_size > 2048)
         {
                 /* Only 2 MB supported on planar, create a memory expansion card for the rest */
-                mem_mapping_set_addr(&ram_high_mapping, 0x100000, 0x160000);
-
-		ps2.mem_pos_regs[0] = 0xff;
-               	ps2.mem_pos_regs[1] = 0xfc;
-
-               	switch (mem_size/1024)
-       	        {
-                        case 3:
-                       	ps2.mem_pos_regs[4] = 0xfc;	/* 11 11 11 00 = 0 0 0 1 */
-               	        break;
-       	                case 4:
-                        ps2.mem_pos_regs[4] = 0xfe;	/* 11 11 11 10 = 0 0 0 2 */
-                       	break;
-               	        case 5:
-       	                ps2.mem_pos_regs[4] = 0xf2;	/* 11 11 00 10 = 0 0 1 2 */
-                        break;
-                       	case 6:
-               	        ps2.mem_pos_regs[4] = 0xfa;	/* 11 11 10 10 = 0 0 2 2 */
-       	                break;
-                        case 7:
-                       	ps2.mem_pos_regs[4] = 0xca;	/* 11 00 10 10 = 0 1 2 2 */
-               	        break;
-       	                case 8:
-                        ps2.mem_pos_regs[4] = 0xea;	/* 11 10 10 10 = 0 2 2 2 */
-                       	break;
-               	        case 9:
-       	                ps2.mem_pos_regs[4] = 0x2a;	/* 00 10 10 10 = 1 2 2 2 */
-                        break;
-                       	case 10:
-               	        ps2.mem_pos_regs[4] = 0xaa;	/* 10 10 10 10 = 2 2 2 2 */
-       	                break;
-                }
-
-               	mca_add(ps2_mem_expansion_read, ps2_mem_expansion_write, NULL);
-       	        mem_mapping_add(&ps2.expansion_mapping,
-                            0x260000,
-                       	    (mem_size - 2048)*1024,
-               	            mem_read_ram,
-       	                    mem_read_ramw,
-                            mem_read_raml,
-                       	    mem_write_ram,
-               	            mem_write_ramw,
-       	                    mem_write_raml,
-                            &ram[0x260000],
-                       	    MEM_MAPPING_INTERNAL,
-               	            NULL);
-       	        mem_mapping_disable(&ps2.expansion_mapping);
+		ps2_mca_mem_fffc_init(2);
         }
 
 	device_add(&ps1vga_device);
@@ -1005,7 +1020,6 @@ static void ps2_mca_board_model_70_type34_init(int is_type4)
 {        
         ps2_mca_board_common_init();
 
-        mem_remap_top_256k();
         ps2.split_addr = mem_size * 1024;
         mca_init(4);
         
@@ -1015,7 +1029,7 @@ static void ps2_mca_board_model_70_type34_init(int is_type4)
         device_add(&ps2_nvr_device);
         
         io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached, NULL, NULL, NULL);
-        
+
         ps2.mem_regs[1] = 2;
 
         switch (mem_size/1024)
@@ -1073,41 +1087,7 @@ static void ps2_mca_board_model_70_type34_init(int is_type4)
         if (mem_size > 8192)
         {
                 /* Only 8 MB supported on planar, create a memory expansion card for the rest */
-                mem_mapping_set_addr(&ram_high_mapping, 0x100000, 0x700000);
-
-                ps2.mem_pos_regs[0] = 0xff;
-                ps2.mem_pos_regs[1] = 0xfc;
-
-                switch (mem_size/1024)
-                {
-                        case 10:
-                        ps2.mem_pos_regs[4] = 0xfe;
-                        break;
-                        case 12:
-                        ps2.mem_pos_regs[4] = 0xfa;
-                        break;
-                        case 14:
-                        ps2.mem_pos_regs[4] = 0xea;
-                        break;
-                        case 16:
-                        ps2.mem_pos_regs[4] = 0xaa;
-                        break;
-                }
-
-                mca_add(ps2_mem_expansion_read, ps2_mem_expansion_write, NULL);
-                mem_mapping_add(&ps2.expansion_mapping,
-                            0x800000,
-                            (mem_size - 8192)*1024,
-                            mem_read_ram,
-                            mem_read_ramw,
-                            mem_read_raml,
-                            mem_write_ram,
-                            mem_write_ramw,
-                            mem_write_raml,
-                            &ram[0x800000],
-                            MEM_MAPPING_INTERNAL,
-                            NULL);
-                mem_mapping_disable(&ps2.expansion_mapping);
+		ps2_mca_mem_fffc_init(8);
         }
 
 	device_add(&ps1vga_device);
@@ -1176,55 +1156,7 @@ static void ps2_mca_board_model_80_type2_init(int is486)
         if ((mem_size > 4096) && !is486)
         {
                 /* Only 4 MB supported on planar, create a memory expansion card for the rest */
-                mem_mapping_set_addr(&ram_high_mapping, 0x100000, 0x300000);
-
-                ps2.mem_pos_regs[0] = 0xff;
-                ps2.mem_pos_regs[1] = 0xfc;
-
-                switch (mem_size/1024)
-                {
-                        case 5:
-                        ps2.mem_pos_regs[4] = 0xfc;	/* 11 11 11 00 = 0 0 0 1 */
-                        break;
-                        case 6:
-                        ps2.mem_pos_regs[4] = 0xfe;	/* 11 11 11 10 = 0 0 0 2 */
-                        break;
-                        case 7:
-                        ps2.mem_pos_regs[4] = 0xf2;	/* 11 11 00 10 = 0 0 1 2 */
-                        break;
-                        case 8:
-                        ps2.mem_pos_regs[4] = 0xfa;	/* 11 11 10 10 = 0 0 2 2 */
-                        break;
-                        case 9:
-                        ps2.mem_pos_regs[4] = 0xca;	/* 11 00 10 10 = 0 1 2 2 */
-                        break;
-                        case 10:
-                        ps2.mem_pos_regs[4] = 0xea;	/* 11 10 10 10 = 0 2 2 2 */
-                        break;
-                        case 11:
-                        ps2.mem_pos_regs[4] = 0x2a;	/* 00 10 10 10 = 1 2 2 2 */
-                        break;
-                        case 12:
-                        ps2.mem_pos_regs[4] = 0xaa;	/* 10 10 10 10 = 2 2 2 2 */
-                        break;
-                }
-
-		/* pclog("ps2.mem_pos_regs[4] = %08X\n", ps2.mem_pos_regs[4]); */
-
-                mca_add(ps2_mem_expansion_read, ps2_mem_expansion_write, NULL);
-                mem_mapping_add(&ps2.expansion_mapping,
-                            0x400000,
-                            (mem_size - 4096)*1024,
-                            mem_read_ram,
-                            mem_read_ramw,
-                            mem_read_raml,
-                            mem_write_ram,
-                            mem_write_ramw,
-                            mem_write_raml,
-                            &ram[0x400000],
-                            MEM_MAPPING_INTERNAL,
-                            NULL);
-                mem_mapping_disable(&ps2.expansion_mapping);
+		ps2_mca_mem_fffc_init(4);
         }
 
 	device_add(&ps1vga_device);
