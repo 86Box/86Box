@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.18	2018/03/13
+ * Version:	@(#)86box.h	1.0.21	2018/03/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -52,7 +52,7 @@
 #endif
 
 #define MIN(a, b)             ((a) < (b) ? (a) : (b))
-
+#define ABS(x)		      ((x) > 0 ? (x) : -(x))
 
 #ifdef __cplusplus
 extern "C" {
@@ -90,11 +90,11 @@ extern int	vid_cga_contrast,		/* (C) video */
 		video_fullscreen_scale,		/* (C) video */
 		enable_overscan,		/* (C) video */
 		force_43,			/* (C) video */
+		gfxcard,			/* (C) graphics/video card */
 		video_speed;			/* (C) video */
 extern int	serial_enabled[],		/* (C) enable serial ports */
 		lpt_enabled,			/* (C) enable LPT ports */
 		bugger_enabled;			/* (C) enable ISAbugger */
-extern int	gfxcard;			/* (C) graphics/video card */
 extern int	sound_is_float,			/* (C) sound uses FP values */
 		GAMEBLASTER,			/* (C) sound option */
 		GUS,				/* (C) sound option */
@@ -106,6 +106,9 @@ extern int	cpu_manufacturer,		/* (C) cpu manufacturer */
 		cpu_use_dynarec,		/* (C) cpu uses/needs Dyna */
 		enable_external_fpu;		/* (C) enable external FPU */
 extern int	enable_sync;			/* (C) enable time sync */
+extern int	network_type;			/* (C) net provider type */
+extern int	network_card;			/* (C) net interface num */
+extern char	network_host[512];		/* (C) host network intf */
 
 
 #ifdef ENABLE_LOG_TOGGLES
@@ -131,6 +134,7 @@ extern int	config_changed;			/* config has changed */
 #ifdef HAVE_STDARG_H
 extern void	pclog_ex(const char *fmt, va_list);
 #endif
+extern void	pclog_toggle_suppr(void);
 extern void	pclog(const char *fmt, ...);
 extern void	fatal(const char *fmt, ...);
 extern void	set_screen_size(int x, int y);

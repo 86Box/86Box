@@ -98,7 +98,7 @@ static void ali1429_init(void)
 
 
 void
-machine_at_ali1429_init(machine_t *model)
+machine_at_ali1429_init(const machine_t *model)
 {
         ali1429_reset();
 

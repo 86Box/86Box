@@ -1300,7 +1300,7 @@ void es1371_add_status_info(char *s, int max_len, void *p)
         es1371_add_status_info_dac(es1371, s, max_len, 1);
 }
 
-device_t es1371_device =
+const device_t es1371_device =
 {
 	"Ensoniq AudioPCI (ES1371)",
 	DEVICE_PCI,

@@ -8,7 +8,7 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.13	2018/02/07
+ * Version:	@(#)scsi_h	1.0.15	2018/03/21
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -54,6 +54,7 @@
 #define GPCMD_START_STOP_UNIT			0x1b
 #define GPCMD_SEND_DIAGNOSTIC			0x1d
 #define GPCMD_PREVENT_REMOVAL			0x1e
+#define GPCMD_READ_FORMAT_CAPACITIES		0x23
 #define GPCMD_READ_CDROM_CAPACITY		0x25
 #define GPCMD_READ_10				0x28
 #define GPCMD_WRITE_10				0x2a
@@ -298,7 +299,7 @@ extern int scsi_card_current;
 extern int scsi_card_available(int card);
 extern char *scsi_card_getname(int card);
 #ifdef EMU_DEVICE_H
-extern device_t *scsi_card_getdevice(int card);
+extern const device_t *scsi_card_getdevice(int card);
 #endif
 extern int scsi_card_has_config(int card);
 extern char *scsi_card_get_internal_name(int card);

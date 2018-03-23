@@ -109,7 +109,7 @@ static void dss_close(void *p)
         free(dss);
 }
 
-lpt_device_t dss_device =
+const lpt_device_t dss_device =
 {
         "Disney Sound Source",
         dss_init,

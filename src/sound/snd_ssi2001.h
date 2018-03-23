@@ -1,1 +1,1 @@
-extern device_t ssi2001_device;
+extern const device_t ssi2001_device;

@@ -1,10 +1,10 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
  *
- *		This file is part of the 86Box distribution.
+ *		This file is part of the VARCem Project.
  *
  *		Implementation of the network module.
  *
@@ -12,17 +12,50 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.21	2018/02/18
+ * Version:	@(#)network.c	1.0.3	2018/03/15
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2017,2018 Fred N. van Kempen.
+ *
+ *		Redistribution and  use  in source  and binary forms, with
+ *		or  without modification, are permitted  provided that the
+ *		following conditions are met:
+ *
+ *		1. Redistributions of  source  code must retain the entire
+ *		   above notice, this list of conditions and the following
+ *		   disclaimer.
+ *
+ *		2. Redistributions in binary form must reproduce the above
+ *		   copyright  notice,  this list  of  conditions  and  the
+ *		   following disclaimer in  the documentation and/or other
+ *		   materials provided with the distribution.
+ *
+ *		3. Neither the  name of the copyright holder nor the names
+ *		   of  its  contributors may be used to endorse or promote
+ *		   products  derived from  this  software without specific
+ *		   prior written permission.
+ *
+ * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE  ARE  DISCLAIMED. IN  NO  EVENT  SHALL THE COPYRIGHT
+ * HOLDER OR  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL,  EXEMPLARY,  OR  CONSEQUENTIAL  DAMAGES  (INCLUDING,  BUT  NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE  GOODS OR SERVICES;  LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON  ANY
+ * THEORY OF  LIABILITY, WHETHER IN  CONTRACT, STRICT  LIABILITY, OR  TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#ifdef WALTJE
+# include <ctype.h>
+#endif
 #include "../86box.h"
 #include "../device.h"
 #include "../plat.h"
@@ -32,18 +65,18 @@
 
 
 static netcard_t net_cards[] = {
-    { "None",			"none",		NULL,
-      NULL,			NULL					},
+    { "None",				"none",		NULL,
+      NULL								},
     { "[ISA] Novell NE1000",		"ne1k",		&ne1000_device,
-      NULL,			NULL					},
+      NULL								},
     { "[ISA] Novell NE2000",		"ne2k",		&ne2000_device,
-      NULL,			NULL					},
+      NULL								},
     { "[ISA] Realtek RTL8019AS",	"ne2kpnp",	&rtl8019as_device,
-      NULL,			NULL					},
+      NULL								},
     { "[PCI] Realtek RTL8029AS",	"ne2kpci",	&rtl8029as_device,
-      NULL,			NULL					},
-    { "",			"",		NULL,
-      NULL,			NULL					}
+      NULL								},
+    { "",				"",		NULL,
+      NULL								}
 };
 
 
@@ -51,12 +84,13 @@ static netcard_t net_cards[] = {
 int		network_type;
 int		network_ndev;
 int		network_card;
+char		network_host[512];
 netdev_t	network_devs[32];
-char		network_pcap[512];
 #ifdef ENABLE_NIC_LOG
 int		nic_do_log = ENABLE_NIC_LOG;
 #endif
 static mutex_t	*network_mutex;
+static uint8_t	*network_mac;
 
 
 static struct {
@@ -67,6 +101,87 @@ static struct {
 			*poll_complete,
 			*queue_not_in_use;
 } poll_data;
+
+
+#ifdef WALTJE
+# define is_print(c)	(isalnum((int)(c)) || ((c) == ' '))
+
+
+#if 0
+/* Dump a buffer in hex, standard output. */
+static void
+hexdump(uint8_t *bufp, int len)
+{
+    char asci[20];
+    uint8_t c;
+    int addr;
+
+    addr = 0;
+    while (len-- > 0) {
+	c = bufp[addr];
+	if ((addr % 16) == 0) {
+		printf("%06X  %02X", addr, c);
+	} else {
+		printf(" %02X", c);
+	}
+	asci[(addr & 15)] = (char)((is_print(c) ? c : '.') & 0xff);
+	if ((++addr % 16) == 0) {
+		asci[16] = '\0';
+		printf("  | %s |\n", asci);
+	}
+    }
+
+    if (addr % 16) {
+	while (addr % 16) {
+		printf("   ");
+		asci[(addr & 15)] = ' ';
+		addr++;
+	}
+	asci[16] = '\0';
+	printf("  | %s |\n", asci);
+    }
+}
+#endif
+
+
+/* Dump a buffer in hex to output buffer. */
+static void
+hexdump_p(char *ptr, uint8_t *bufp, int len)
+{
+    char asci[20];
+    uint8_t c;
+    int addr;
+
+    addr = 0;
+    while (len-- > 0) {
+	c = bufp[addr];
+	if ((addr % 16) == 0) {
+		sprintf(ptr, "%06X  %02X", addr, c);
+	} else {
+		sprintf(ptr, " %02X", c);
+	}
+	ptr += strlen(ptr);
+	asci[(addr & 15)] = (char)((is_print(c) ? c : '.') & 0xff);
+	if ((++addr % 16) == 0) {
+		asci[16] = '\0';
+		sprintf(ptr, "  | %s |\n", asci);
+		ptr += strlen(ptr);
+	}
+    }
+
+    if (addr % 16) {
+	while (addr % 16) {
+		sprintf(ptr, "   ");
+		ptr += strlen(ptr);
+		asci[(addr & 15)] = ' ';
+		addr++;
+	}
+	asci[16] = '\0';
+	sprintf(ptr, "  | %s |\n", asci);
+	ptr += strlen(ptr);
+    }
+}
+#endif
 
 
 void
@@ -149,7 +264,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
     /* Save the card's info. */
     net_cards[network_card].priv = dev;
     net_cards[network_card].rx = rx;
-    net_cards[network_card].mac = mac;
+    network_mac = mac;
 
     /* Create the network events. */
     poll_data.wake_poll_thread = thread_create_event();
@@ -158,11 +273,11 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
     /* Activate the platform module. */
     switch(network_type) {
 	case NET_TYPE_PCAP:
-		(void)net_pcap_reset(&net_cards[network_card]);
+		(void)net_pcap_reset(&net_cards[network_card], network_mac);
 		break;
 
 	case NET_TYPE_SLIRP:
-		(void)net_slirp_reset(&net_cards[network_card]);
+		(void)net_slirp_reset(&net_cards[network_card], network_mac);
 		break;
     }
 }
@@ -194,6 +309,7 @@ network_close(void)
     /* Close the network thread mutex. */
     thread_close_mutex(network_mutex);
     network_mutex = NULL;
+    network_mac = NULL;
 
     pclog("NETWORK: closed.\n");
 }
@@ -212,7 +328,13 @@ network_reset(void)
 {
     int i = -1;
 
-    pclog("NETWORK: reset (type=%d, card=%d)\n", network_type, network_card);
+#ifdef ENABLE_NIC_LOG
+    pclog("NETWORK: reset (type=%d, card=%d) debug=%d\n",
+			network_type, network_card, nic_do_log);
+#else
+    pclog("NETWORK: reset (type=%d, card=%d)\n",
+				network_type, network_card);
+#endif
     ui_sb_update_icon(SB_NETWORK, 0);
 
     /* Just in case.. */
@@ -221,7 +343,7 @@ network_reset(void)
     /* If no active card, we're done. */
     if ((network_type==NET_TYPE_NONE) || (network_card==0)) return;
 
-    network_mutex = thread_create_mutex(L"86Box.NetMutex");
+    network_mutex = thread_create_mutex(L"VARCem.NetMutex");
 
     /* Initialize the platform module. */
     switch(network_type) {
@@ -267,6 +389,14 @@ network_tx(uint8_t *bufp, int len)
 {
     ui_sb_update_icon(SB_NETWORK, 1);
 
+#ifdef WALTJE
+{
+    char temp[4096];
+    hexdump_p(temp, bufp, len);
+    pclog("NETWORK: >> len=%d\n%s\n", len, temp);
+}
+#endif
+
     switch(network_type) {
 	case NET_TYPE_PCAP:
 		net_pcap_in(bufp, len);
@@ -287,7 +417,7 @@ network_dev_to_id(char *devname)
     int i = 0;
 
     for (i=0; i<network_ndev; i++) {
-	if (! strcmp((char *) network_devs[i].device, devname)) {
+	if (! strcmp((char *)network_devs[i].device, devname)) {
 		return(i);
 	}
     }
@@ -322,12 +452,12 @@ network_card_available(int card)
 char *
 network_card_getname(int card)
 {
-    return((char *) net_cards[card].name);
+    return((char *)net_cards[card].name);
 }
 
 
 /* UI */
-device_t *
+const device_t *
 network_card_getdevice(int card)
 {
     return(net_cards[card].device);
@@ -348,7 +478,7 @@ network_card_has_config(int card)
 char *
 network_card_get_internal_name(int card)
 {
-    return((char *) net_cards[card].internal_name);
+    return((char *)net_cards[card].internal_name);
 }
 
 
@@ -358,8 +488,8 @@ network_card_get_from_internal_name(char *s)
 {
     int c = 0;
 	
-    while (strlen((char *) net_cards[c].internal_name)) {
-	if (! strcmp((char *) net_cards[c].internal_name, s))
+    while (strlen((char *)net_cards[c].internal_name)) {
+	if (! strcmp((char *)net_cards[c].internal_name, s))
 			return(c);
 	c++;
     }

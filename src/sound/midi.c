@@ -25,10 +25,10 @@ typedef struct
 {
         const char *name;
         const char *internal_name;
-        device_t *device;
+        const device_t *device;
 } MIDI_DEVICE;
 
-static MIDI_DEVICE devices[] =
+static const MIDI_DEVICE devices[] =
 {
         {"None",                        "none",                         NULL},
 #ifdef USE_FLUIDSYNTH
@@ -57,7 +57,7 @@ char *midi_device_getname(int card)
         return (char *) devices[card].name;
 }
 
-device_t *midi_device_getdevice(int card)
+const device_t *midi_device_getdevice(int card)
 {
         return devices[card].device;
 }

@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.64	2018/03/15
+ * Version:	@(#)pc.c	1.0.68	2018/03/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -75,7 +75,6 @@
 #include "video/video.h"
 #include "ui.h"
 #include "plat.h"
-#include "plat_joystick.h"
 #include "plat_midi.h"
 
 
@@ -128,7 +127,6 @@ int	cpu_manufacturer = 0,			/* (C) cpu manufacturer */
 	enable_external_fpu = 0;		/* (C) enable external FPU */
 int	enable_sync = 0;			/* (C) enable time sync */
 
-
 /* Statistics. */
 extern int
 	mmuflush,
@@ -172,8 +170,12 @@ int	unscaled_size_x = SCREEN_RES_X,	/* current unscaled size X */
 	efscrnsz_y = SCREEN_RES_Y;
 
 
+#ifndef RELEASE_BUILD
 static char buff[1024];
 static int seen = 0;
+
+static int suppr_seen = 1;
+#endif
 
 /*
  * Log something to the logfile or stdout.
@@ -199,10 +201,10 @@ pclog_ex(const char *fmt, va_list ap)
     }
 
     vsprintf(temp, fmt, ap);
-    if (! strcmp(buff, temp)) {
+    if (suppr_seen && ! strcmp(buff, temp)) {
 	seen++;
     } else {
-	if (seen) {
+	if (suppr_seen && seen) {
 		fprintf(stdlog, "*** %d repeats ***\n", seen);
 	}
 	seen = 0;
@@ -211,6 +213,15 @@ pclog_ex(const char *fmt, va_list ap)
     }
 
     fflush(stdlog);
+#endif
+}
+
+
+void
+pclog_toggle_suppr(void)
+{
+#ifndef RELEASE_BUILD
+    suppr_seen ^= 1;
 #endif
 }
 
@@ -527,12 +538,7 @@ pc_reload(wchar_t *fn)
 	fdd_close(i);
     for (i=0; i<CDROM_NUM; i++) {
 	cdrom_drives[i].handler->exit(i);
-	if (cdrom_drives[i].host_drive == 200)
-		image_close(i);
-	  else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
-		ioctl_close(i);
-	  else
-		null_close(i);
+	cdrom_close(i);
     }
 
     pc_reset_hard_close();
@@ -565,8 +571,6 @@ pc_reload(wchar_t *fn)
     fdd_load(2, floppyfns[2]);
     fdd_load(3, floppyfns[3]);
 
-    mem_resize();
-    rom_load_bios(romset);
     network_init();
 
     pc_reset_hard_init();
@@ -658,11 +662,8 @@ again2:
 
     ide_init_first();
 
-    cdrom_global_reset();
-    zip_global_reset();
+    device_init();
 
-    device_init();        
-                       
     timer_reset();
 
     sound_reset();
@@ -673,10 +674,10 @@ again2:
 
     hdc_init(hdc_name);
 
-    ide_reset_hard();
-
     cdrom_hard_reset();
     zip_hard_reset();
+
+    ide_reset_hard();
 
     scsi_card_init();
 
@@ -825,24 +826,14 @@ pc_reset_hard_init(void)
     /* Reset the video card. */
     video_reset(gfxcard);
 
+    cdrom_hard_reset();
+    zip_hard_reset();
+
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
 
-    /* Reconfire and reset the IDE layer. */
-    // FIXME: this should have been done via hdc_reset() above.. --FvK
-    ide_ter_disable();
-    ide_qua_disable();
-    if (ide_enable[2])
-	ide_ter_init();
-    if (ide_enable[3])
-	ide_qua_init();
-    ide_reset_hard();
-
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
-
-    cdrom_hard_reset();
-    zip_hard_reset();
 
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
@@ -967,9 +958,9 @@ pc_close(thread_t *ptr)
 
     sound_cd_thread_end();
 
-    mem_destroy_pages();
-
     ide_destroy_buffers();
+
+    cdrom_destroy_drives();
 }
 
 

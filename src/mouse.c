@@ -11,7 +11,7 @@
  * TODO:	Add the Genius bus- and serial mouse.
  *		Remove the '3-button' flag from mouse types.
  *
- * Version:	@(#)mouse.c	1.0.21	2018/01/29
+ * Version:	@(#)mouse.c	1.0.25	2018/03/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -30,7 +30,7 @@
 
 typedef struct {
     const char  *internal_name;
-    device_t    *device;
+    const device_t    *device;
 } mouse_t;
 
 
@@ -41,14 +41,14 @@ int	mouse_x,
 	mouse_buttons;
 
 
-static device_t mouse_none_device = {
+static const device_t mouse_none_device = {
     "None",
     0, MOUSE_TYPE_NONE,
     NULL, NULL, NULL,
     NULL, NULL, NULL, NULL,
     NULL
 };
-static device_t mouse_internal_device = {
+static const device_t mouse_internal_device = {
     "Internal Mouse",
     0, MOUSE_TYPE_INTERNAL,
     NULL, NULL, NULL,
@@ -72,9 +72,10 @@ static mouse_t mouse_devices[] = {
 };
 
 
-static device_t	*mouse_curr;
+static const device_t	*mouse_curr;
 static void	*mouse_priv;
 static int	mouse_nbut;
+static int	(*mouse_dev_poll)();
 
 
 /* Initialize the mouse module. */
@@ -89,6 +90,7 @@ mouse_init(void)
     mouse_curr = NULL;
     mouse_priv = NULL;
     mouse_nbut = 0;
+    mouse_dev_poll = NULL;
 }
 
 
@@ -100,13 +102,14 @@ mouse_close(void)
     mouse_curr = NULL;
     mouse_priv = NULL;
     mouse_nbut = 0;
+    mouse_dev_poll = NULL;
 }
 
 
 void
 mouse_reset(void)
 {
-    if (mouse_curr != NULL)
+    if ((mouse_curr != NULL) || (mouse_type == MOUSE_TYPE_INTERNAL))
 	return;		/* Mouse already initialized. */
 
     pclog("MOUSE: reset(type=%d, '%s')\n",
@@ -139,14 +142,18 @@ mouse_process(void)
 {
     static int poll_delay = 2;
 
-    if (mouse_curr == NULL) return;
+    if ((mouse_curr == NULL) || (mouse_type == MOUSE_TYPE_INTERNAL))
+	return;
 
     if (--poll_delay) return;
 
     mouse_poll();
 
-    if (mouse_curr->available != NULL) {
-    	mouse_curr->available(mouse_x,mouse_y,mouse_z,mouse_buttons, mouse_priv);
+    if ((mouse_dev_poll != NULL) || (mouse_curr->available != NULL)) {
+	if (mouse_curr->available != NULL)
+	    	mouse_curr->available(mouse_x,mouse_y,mouse_z,mouse_buttons, mouse_priv);
+	else
+	    	mouse_dev_poll(mouse_x,mouse_y,mouse_z,mouse_buttons, mouse_priv);
 
 	/* Reset mouse deltas. */
 	mouse_x = mouse_y = mouse_z = 0;
@@ -161,7 +168,7 @@ mouse_set_poll(int (*func)(int,int,int,int,void *), void *arg)
 {
     if (mouse_type != MOUSE_TYPE_INTERNAL) return;
 
-    mouse_curr->available = func;
+    mouse_dev_poll = func;
     mouse_priv = arg;
 }
 
@@ -186,9 +193,8 @@ mouse_get_from_internal_name(char *s)
     int c = 0;
 
     while (mouse_devices[c].internal_name != NULL) {
-	if (! strcmp((char *)mouse_devices[c].internal_name, s)) {
+	if (! strcmp((char *)mouse_devices[c].internal_name, s))
 		return(c);
-	}
 	c++;
     }
 
@@ -205,7 +211,7 @@ mouse_has_config(int mouse)
 }
 
 
-device_t *
+const device_t *
 mouse_get_device(int mouse)
 {
     return(mouse_devices[mouse].device);

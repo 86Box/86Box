@@ -8,15 +8,15 @@
  *
  *		Driver for the ESDI controller (WD1007-vse1) for PC/AT.
  *
- * Version:	@(#)hdc_esdi_at.c	1.0.8	2017/11/08
+ * Version:	@(#)hdc_esdi_at.c	1.0.9	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
@@ -770,7 +770,7 @@ loadhd(esdi_t *esdi, int hdd_num, int d, const wchar_t *fn)
 
 
 static void *
-wd1007vse1_init(device_t *info)
+wd1007vse1_init(const device_t *info)
 {
     int c, d;
 
@@ -835,7 +835,7 @@ wd1007vse1_available(void)
 }
 
 
-device_t esdi_at_wd1007vse1_device = {
+const device_t esdi_at_wd1007vse1_device = {
     "Western Digital WD1007V-SE1 (ESDI)",
     DEVICE_ISA | DEVICE_AT,
     0,

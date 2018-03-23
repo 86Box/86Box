@@ -1,6 +1,39 @@
-/* Copyright holders: neozeed
-   see COPYING for more details
-*/
+/*
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
+ *
+ *		This file is part of the VARCem Project.
+ *
+ *		Various definitions for portable byte-swapping.
+ *
+ * Version:	@(#)bswap.h	1.0.2	2018/03/12
+ *
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *		neozeed,
+ *
+ *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2016-2018 neozeed.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free  Software  Foundation; either  version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is  distributed in the hope that it will be useful, but
+ * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the:
+ *
+ *   Free Software Foundation, Inc.
+ *   59 Temple Place - Suite 330
+ *   Boston, MA 02111-1307
+ *   USA.
+ */
 #ifndef BSWAP_H
 #define BSWAP_H
 
@@ -138,7 +171,7 @@ static __inline void cpu_to_le16wu(uint16_t *p, uint16_t v)
 {
     uint8_t *p1 = (uint8_t *)p;
 
-    p1[0] = v;
+    p1[0] = v & 0xff;
     p1[1] = v >> 8;
 }
 
@@ -169,7 +202,7 @@ static __inline void cpu_to_be16wu(uint16_t *p, uint16_t v)
     uint8_t *p1 = (uint8_t *)p;
 
     p1[0] = v >> 8;
-    p1[1] = v;
+    p1[1] = v & 0xff;
 }
 
 static __inline void cpu_to_be32wu(uint32_t *p, uint32_t v)

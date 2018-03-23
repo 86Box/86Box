@@ -8,7 +8,7 @@
  *
  *		Definitions for the mouse driver.
  *
- * Version:	@(#)mouse.h	1.0.14	2018/01/29
+ * Version:	@(#)mouse.h	1.0.15	2018/03/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -44,17 +44,17 @@ extern int	mouse_buttons;
 
 
 #ifdef EMU_DEVICE_H
-extern device_t	*mouse_get_device(int mouse);
-extern void	*mouse_ps2_init(device_t *);
+extern const device_t	*mouse_get_device(int mouse);
+extern void	*mouse_ps2_init(const device_t *);
 
-extern device_t	mouse_logibus_device;
-extern device_t	mouse_msinport_device;
+extern const device_t	mouse_logibus_device;
+extern const device_t	mouse_msinport_device;
 #if 0
-extern device_t	mouse_genibus_device;
+extern const device_t	mouse_genibus_device;
 #endif
-extern device_t	mouse_mssystems_device;
-extern device_t	mouse_msserial_device;
-extern device_t	mouse_ps2_device;
+extern const device_t	mouse_mssystems_device;
+extern const device_t	mouse_msserial_device;
+extern const device_t	mouse_ps2_device;
 #endif
 
 extern void	mouse_init(void);

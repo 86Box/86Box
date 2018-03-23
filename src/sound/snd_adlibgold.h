@@ -1,1 +1,1 @@
-extern device_t adgold_device;
+extern const device_t adgold_device;

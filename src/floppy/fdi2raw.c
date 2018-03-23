@@ -1,22 +1,45 @@
-/* Copyright holders: Toni Wilen
-   see COPYING for more details
-*/
 /*
-
-  FDI to raw bit stream converter
-  Copyright (c) 2001 by Toni Wilen <twilen@arabuusimiehet.com>
-  FDI 2.0 support
-  Copyright (c) 2003-2004 by Toni Wilen <twilen@arabuusimiehet.com>
-      and Vincent Joguin
-
-  FDI format created by Vincent "ApH" Joguin
-
-  Tiny changes - function type fixes, multiple drives, addition of
-  get_last_head and C++ callability - by Thomas Harte, 2001,
-  T.Harte@excite.co.uk
-
-*/
-
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
+ *
+ *		This file is part of the VARCem Project.
+ *
+ *		FDI to raw bit stream converter
+ *		FDI format created by Vincent "ApH" Joguin
+ *		Tiny changes - function type fixes, multiple drives,
+ *		addition of get_last_head and C++ callability by Thomas
+ *		Harte.
+ *
+ * Version:	@(#)fdi2raw.c	1.0.2	2018/03/12
+ *
+ * Authors:	Toni Wilen, <twilen@arabuusimiehet.com>
+ *		and Vincent Joguin,
+ *		Thomas Harte, <T.Harte@excite.co.uk>
+ *
+ *		Copyright 2001-2004 Toni Wilen.
+ *		Copyright 2001-2004 Vincent Joguin.
+ *		Copyright 2001 Thomas Harte.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free  Software  Foundation; either  version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is  distributed in the hope that it will be useful, but
+ * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the:
+ *
+ *   Free Software Foundation, Inc.
+ *   59 Temple Place - Suite 330
+ *   Boston, MA 02111-1307
+ *   USA.
+ */
 #define STATIC_INLINE
 #include <stdio.h>
 #include <stdint.h>
@@ -1857,7 +1880,7 @@ static int decode_lowlevel_track (FDI *fdi, int track, struct fdi_cache *cache)
 	indexoffset = 0;
 	p1 = idxp;
 	for (i = 0; i < pulses; i++) {
-		if (p1[idx_off1] + p1[idx_off2] > maxidx)
+		if ((uint32_t)p1[idx_off1] + (uint32_t)p1[idx_off2] > maxidx)
 			maxidx = p1[idx_off1] + p1[idx_off2];
 		p1 += idx_off3;
 	}
@@ -1893,7 +1916,7 @@ static int decode_lowlevel_track (FDI *fdi, int track, struct fdi_cache *cache)
 	totalavg = 0;
 	weakbits = 0;
 	for (i = 0; i < pulses; i++) {
-		int sum = p1[idx_off1] + p1[idx_off2];
+		uint32_t sum = p1[idx_off1] + p1[idx_off2];
 		if (sum >= maxidx) {
 			totalavg += *p2;
 		} else {

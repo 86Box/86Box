@@ -19,7 +19,7 @@
 
 
 void
-machine_at_common_init(machine_t *model)
+machine_at_common_init(const machine_t *model)
 {
     machine_common_init(model);
 
@@ -38,7 +38,7 @@ machine_at_common_init(machine_t *model)
 
 
 void
-machine_at_init(machine_t *model)
+machine_at_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
@@ -47,7 +47,7 @@ machine_at_init(machine_t *model)
 
 
 void
-machine_at_ps2_init(machine_t *model)
+machine_at_ps2_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
@@ -56,7 +56,7 @@ machine_at_ps2_init(machine_t *model)
 
 
 void
-machine_at_common_ide_init(machine_t *model)
+machine_at_common_ide_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
@@ -65,7 +65,7 @@ machine_at_common_ide_init(machine_t *model)
 
 
 void
-machine_at_ide_init(machine_t *model)
+machine_at_ide_init(const machine_t *model)
 {
     machine_at_init(model);
 
@@ -74,7 +74,7 @@ machine_at_ide_init(machine_t *model)
 
 
 void
-machine_at_ps2_ide_init(machine_t *model)
+machine_at_ps2_ide_init(const machine_t *model)
 {
     machine_at_ps2_init(model);
 
@@ -83,7 +83,7 @@ machine_at_ps2_ide_init(machine_t *model)
 
 
 void
-machine_at_top_remap_init(machine_t *model)
+machine_at_top_remap_init(const machine_t *model)
 {
     machine_at_init(model);
 
@@ -92,7 +92,7 @@ machine_at_top_remap_init(machine_t *model)
 
 
 void
-machine_at_ide_top_remap_init(machine_t *model)
+machine_at_ide_top_remap_init(const machine_t *model)
 {
     machine_at_ide_init(model);
 
@@ -101,7 +101,7 @@ machine_at_ide_top_remap_init(machine_t *model)
 
 
 void
-machine_at_ibm_init(machine_t *model)
+machine_at_ibm_init(const machine_t *model)
 {
     machine_at_top_remap_init(model);
 

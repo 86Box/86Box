@@ -162,7 +162,7 @@ static void sis_85c496_init(void)
 
 
 static void
-machine_at_sis_85c496_common_init(machine_t *model)
+machine_at_sis_85c496_common_init(const machine_t *model)
 {
         machine_at_ps2_init(model);
 	device_add(&ide_pci_device);
@@ -180,7 +180,7 @@ machine_at_sis_85c496_common_init(machine_t *model)
 
 
 void
-machine_at_r418_init(machine_t *model)
+machine_at_r418_init(const machine_t *model)
 {
 	machine_at_sis_85c496_common_init(model);
 

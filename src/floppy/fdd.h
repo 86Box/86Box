@@ -1,34 +1,54 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
  *
- *		This file is part of the 86Box distribution.
+ *		This file is part of the VARCem Project.
  *
- *		Implementation of the floppy drive emulation.
+ *		Definitions for the floppy drive emulation.
  *
- * Version:	@(#)fdd.h	1.0.5	2018/01/18
+ * Version:	@(#)fdd.h	1.0.3	2018/03/17
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
+ *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2018 Fred N. van Kempen.
  *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free  Software  Foundation; either  version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is  distributed in the hope that it will be useful, but
+ * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the:
+ *
+ *   Free Software Foundation, Inc.
+ *   59 Temple Place - Suite 330
+ *   Boston, MA 02111-1307
+ *   USA.
  */
 #ifndef EMU_FDD_H
 # define EMU_FDD_H
 
 
-#define FDD_NUM		4
-#define SEEK_RECALIBRATE -999
+#define FDD_NUM			4
+#define SEEK_RECALIBRATE	-999
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern int fdd_swap;
+extern int	fdd_swap;
 
 
 extern void	fdd_do_seek(int drive, int track);
@@ -65,16 +85,19 @@ extern int	fdd_current_track(int drive);
 
 
 typedef struct {
-    void (*seek)(int drive, int track);
-    void (*readsector)(int drive, int sector, int track, int side, int density, int sector_size);
-    void (*writesector)(int drive, int sector, int track, int side, int density, int sector_size);
-    void (*comparesector)(int drive, int sector, int track, int side, int density, int sector_size);
-    void (*readaddress)(int drive, int side, int density);
-    void (*format)(int drive, int side, int density, uint8_t fill);
-    int (*hole)(int drive);
-    double (*byteperiod)(int drive);
-    void (*stop)(int drive);
-    void (*poll)(int drive);
+    void	(*seek)(int drive, int track);
+    void	(*readsector)(int drive, int sector, int track, int side,
+			      int density, int sector_size);
+    void	(*writesector)(int drive, int sector, int track, int side,
+			       int density, int sector_size);
+    void	(*comparesector)(int drive, int sector, int track, int side,
+				 int density, int sector_size);
+    void	(*readaddress)(int drive, int side, int density);
+    void	(*format)(int drive, int side, int density, uint8_t fill);
+    int		(*hole)(int drive);
+    double	(*byteperiod)(int drive);
+    void	(*stop)(int drive);
+    void	(*poll)(int drive);
 } DRIVE;
 
 
@@ -115,59 +138,23 @@ extern void	fdd_stop(int drive);
 extern int	fdd_empty(int drive);
 extern void	fdd_set_rate(int drive, int drvden, int rate);
 
-extern int motorspin;
-extern int64_t motoron[FDD_NUM];
+extern int	motorspin;
+extern int64_t	motoron[FDD_NUM];
 
-extern int swwp;
-extern int disable_write;
+extern int	swwp;
+extern int	disable_write;
 
-extern int defaultwriteprot;
+extern int	defaultwriteprot;
 
-extern int writeprot[FDD_NUM], fwriteprot[FDD_NUM];
-extern int fdd_cur_track[FDD_NUM];
-extern int fdd_changed[FDD_NUM];
-extern int drive_empty[FDD_NUM];
-extern int drive_type[FDD_NUM];
+extern int	writeprot[FDD_NUM], fwriteprot[FDD_NUM];
+extern int	fdd_cur_track[FDD_NUM];
+extern int	fdd_changed[FDD_NUM];
+extern int	drive_empty[FDD_NUM];
+extern int	drive_type[FDD_NUM];
 
 /*Used in the Read A Track command. Only valid for fdd_readsector(). */
 #define SECTOR_FIRST -2
 #define SECTOR_NEXT  -1
-
-#if 0
-/* Bits 0-3 define byte type, bit 5 defines whether it is a per-track (0) or per-sector (1) byte, if bit 7 is set, the byte is the index hole. */
-#define BYTE_GAP0		0x00
-#define BYTE_GAP1		0x10
-#define BYTE_GAP4		0x20
-#define BYTE_GAP2		0x40
-#define BYTE_GAP3		0x50
-#define BYTE_I_SYNC		0x01
-#define BYTE_ID_SYNC		0x41
-#define BYTE_DATA_SYNC		0x51
-#define BYTE_IAM_SYNC		0x02
-#define BYTE_IDAM_SYNC		0x42
-#define BYTE_DATAAM_SYNC	0x52
-#define BYTE_IAM		0x03
-#define BYTE_IDAM		0x43
-#define BYTE_DATAAM		0x53
-#define BYTE_ID			0x44
-#define BYTE_DATA		0x54
-#define BYTE_ID_CRC		0x45
-#define BYTE_DATA_CRC		0x55
-
-#define BYTE_IS_FUZZY		0x80
-#define BYTE_INDEX_HOLE		0x80	/* 1 = index hole, 0 = regular byte */
-#define BYTE_IS_SECTOR		0x40	/* 1 = per-sector, 0 = per-track */
-#define BYTE_IS_POST_TRACK	0x20	/* 1 = after all sectors, 0 = before or during all sectors */
-#define BYTE_IS_DATA		0x10	/* 1 = data, 0 = id */
-#define BYTE_TYPE		0x0F	/* 5 = crc, 4 = data, 3 = address mark, 2 = address mark sync, 1 = sync, 0 = gap */
-
-#define BYTE_TYPE_GAP		0x00
-#define BYTE_TYPE_SYNC		0x01
-#define BYTE_TYPE_AM_SYNC	0x02
-#define BYTE_TYPE_AM		0x03
-#define BYTE_TYPE_DATA		0x04
-#define BYTE_TYPE_CRC		0x05
-#endif
 
 typedef union {
 	uint16_t word;
@@ -176,94 +163,92 @@ typedef union {
 
 void fdd_calccrc(uint8_t byte, crc_t *crc_var);
 
-typedef struct
-{
-	uint16_t (*disk_flags)(int drive);
-	uint16_t (*side_flags)(int drive);
-        void (*writeback)(int drive);
-	void (*set_sector)(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n);
-        uint8_t (*read_data)(int drive, int side, uint16_t pos);
-        void (*write_data)(int drive, int side, uint16_t pos, uint8_t data);
-	int (*format_conditions)(int drive);
-	int32_t (*extra_bit_cells)(int drive, int side);
-        uint16_t* (*encoded_data)(int drive, int side);
-	void (*read_revolution)(int drive);
-        uint32_t (*index_hole_pos)(int drive, int side);
-	uint32_t (*get_raw_size)(int drive, int side);
-	uint8_t check_crc;
+typedef struct {
+    uint16_t	(*disk_flags)(int drive);
+    uint16_t	(*side_flags)(int drive);
+    void	(*writeback)(int drive);
+    void	(*set_sector)(int drive, int side, uint8_t c, uint8_t h,
+			      uint8_t r, uint8_t n);
+    uint8_t	(*read_data)(int drive, int side, uint16_t pos);
+    void	(*write_data)(int drive, int side, uint16_t pos,
+			      uint8_t data);
+    int		(*format_conditions)(int drive);
+    int32_t	(*extra_bit_cells)(int drive, int side);
+    uint16_t*	(*encoded_data)(int drive, int side);
+    void	(*read_revolution)(int drive);
+    uint32_t	(*index_hole_pos)(int drive, int side);
+    uint32_t	(*get_raw_size)(int drive, int side);
+
+    uint8_t check_crc;
 } d86f_handler_t;
 
-d86f_handler_t d86f_handler[FDD_NUM];
+extern const int	gap3_sizes[5][8][48];
+extern d86f_handler_t	d86f_handler[FDD_NUM];
 
-void d86f_common_handlers(int drive);
+extern void	d86f_setup(int drive);
+extern void	d86f_destroy(int drive);
+extern int	d86f_export(int drive, wchar_t *fn);
+extern void	d86f_unregister(int drive);
+extern void	d86f_common_handlers(int drive);
+extern void	d86f_set_version(int drive, uint16_t version);
+extern int	d86f_is_40_track(int drive);
+extern void	d86f_reset_index_hole_pos(int drive, int side);
+extern uint16_t	d86f_prepare_pretrack(int drive, int side, int iso);
+extern uint16_t	d86f_prepare_sector(int drive, int side, int prev_pos,
+				    uint8_t *id_buf, uint8_t *data_buf,
+				    int data_len, int gap2, int gap3,
+				    int deleted, int bad_crc);
+extern void	d86f_set_track_pos(int drive, uint32_t track_pos);
+extern void	d86f_set_cur_track(int drive, int track);
+extern void	d86f_zero_track(int drive);
+extern void	d86f_initialize_last_sector_id(int drive, int c, int h,
+					       int r, int n);
+extern void	d86f_initialize_linked_lists(int drive);
+extern void	d86f_destroy_linked_lists(int drive, int side);
+extern uint16_t	*common_encoded_data(int drive, int side);
+extern void	common_read_revolution(int drive);
+extern uint32_t	common_get_raw_size(int drive, int side);
+extern void	null_writeback(int drive);
+extern void	null_write_data(int drive, int side, uint16_t pos,
+				uint8_t data);
+extern int	null_format_conditions(int drive);
+extern int32_t	null_extra_bit_cells(int drive, int side);
+extern void	null_set_sector(int drive, int side, uint8_t c, uint8_t h,
+				uint8_t r, uint8_t n);
+extern uint32_t	null_index_hole_pos(int drive, int side);
 
-int d86f_is_40_track(int drive);
+extern const uint8_t	dmf_r[21];
+extern const uint8_t	xdf_physical_sectors[2][2];
+extern const uint8_t	xdf_gap3_sizes[2][2];
+extern const uint16_t	xdf_trackx_spos[2][8];
 
-void d86f_reset_index_hole_pos(int drive, int side);
-
-uint16_t d86f_prepare_pretrack(int drive, int side, int iso);
-uint16_t d86f_prepare_sector(int drive, int side, int prev_pos, uint8_t *id_buf, uint8_t *data_buf, int data_len, int gap2, int gap3, int deleted, int bad_crc);
-
-extern int gap3_sizes[5][8][48];
-
-void null_writeback(int drive);
-void null_write_data(int drive, int side, uint16_t pos, uint8_t data);
-int null_format_conditions(int drive);
-void d86f_unregister(int drive);
-
-extern uint8_t dmf_r[21];
-extern uint8_t xdf_physical_sectors[2][2];
-extern uint8_t xdf_gap3_sizes[2][2];
-extern uint16_t xdf_trackx_spos[2][8];
-
-typedef struct
-{
-	uint8_t h;
-	uint8_t r;
+typedef struct {
+    uint8_t	h;
+    uint8_t	r;
 } xdf_id_t;
 
-typedef union
-{
-	uint16_t word;
-	xdf_id_t id;
+typedef union {
+    uint16_t	word;
+    xdf_id_t	id;
 } xdf_sector_t;
 
-extern xdf_sector_t xdf_img_layout[2][2][46];
-extern xdf_sector_t xdf_disk_layout[2][2][38];
+extern const xdf_sector_t xdf_img_layout[2][2][46];
+extern const xdf_sector_t xdf_disk_layout[2][2][38];
 
-uint32_t td0_get_raw_tsize(int side_flags, int slower_rpm);
 
-void d86f_set_track_pos(int drive, uint32_t track_pos);
-
-int32_t null_extra_bit_cells(int drive, int side);
-uint16_t* common_encoded_data(int drive, int side);
-
-void common_read_revolution(int drive);
-void null_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n);
-
-uint32_t null_index_hole_pos(int drive, int side);
-
-uint32_t common_get_raw_size(int drive, int side);
-
-typedef struct
-{
-	uint8_t c;
-	uint8_t h;
-	uint8_t r;
-	uint8_t n;
+typedef struct {
+    uint8_t	c;
+    uint8_t	h;
+    uint8_t	r;
+    uint8_t	n;
 } sector_id_fields_t;
 
-typedef union
-{
-	uint32_t dword;
-	uint8_t byte_array[4];
-	sector_id_fields_t id;
+typedef union {
+    uint32_t	dword;
+    uint8_t	byte_array[4];
+    sector_id_fields_t id;
 } sector_id_t;
 
-void d86f_set_version(int drive, uint16_t version);
-
-void d86f_initialize_last_sector_id(int drive, int c, int h, int r, int n);
-void d86f_destroy_linked_lists(int drive, int side);
 
 void d86f_set_fdc(void *fdc);
 void fdi_set_fdc(void *fdc);
@@ -271,10 +256,6 @@ void fdd_set_fdc(void *fdc);
 void imd_set_fdc(void *fdc);
 void img_set_fdc(void *fdc);
 
-extern void	d86f_set_cur_track(int drive, int track);
-extern void	d86f_zero_track(int drive);
-
-extern int	d86f_export(int drive, wchar_t *fn);
 
 #ifdef __cplusplus
 }

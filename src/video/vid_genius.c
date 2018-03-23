@@ -8,13 +8,13 @@
  *
  *		MDSI Genius VHR emulation.
  *
- * Version:	@(#)vid_genius.c	1.0.7	2017/11/04
+ * Version:	@(#)vid_genius.c	1.0.8	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -570,7 +570,7 @@ void genius_poll(void *p)
         }
 }
 
-void *genius_init(device_t *info)
+void *genius_init(const device_t *info)
 {
         int c;
         genius_t *genius = malloc(sizeof(genius_t));
@@ -638,7 +638,7 @@ void genius_speed_changed(void *p)
         genius_recalctimings(genius);
 }
 
-device_t genius_device =
+const device_t genius_device =
 {
         "Genius VHR",
         DEVICE_ISA, 0,

@@ -32,7 +32,7 @@
  *		in alpha mode, but in highres ("ECD350") mode, it displays
  *		some semi-random junk. Video-memory pointer maybe?
  *
- * Version:	@(#)m_amstrad.c	1.0.10	2018/02/02
+ * Version:	@(#)m_amstrad.c	1.0.11	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -557,7 +557,7 @@ vid_speed_change_1512(void *priv)
 }
 
 
-static device_t vid_1512_device = {
+static const device_t vid_1512_device = {
     "Amstrad PC1512 (video)",
     0, 0,
     NULL, vid_close_1512, NULL,
@@ -721,7 +721,7 @@ vid_speed_changed_1640(void *priv)
 }
 
 
-static device_t vid_1640_device = {
+static const device_t vid_1640_device = {
     "Amstrad PC1640 (video)",
     0, 0,
     NULL, vid_close_1640, NULL,
@@ -856,7 +856,7 @@ vid_speed_changed_200(void *priv)
 }
 
 
-static device_t vid_200_device = {
+static const device_t vid_200_device = {
     "Amstrad PC200 (video)",
     0, 0,
     NULL, vid_close_200, NULL,
@@ -1198,7 +1198,7 @@ ams_read(uint16_t port, void *priv)
 
 
 void
-machine_amstrad_init(machine_t *model)
+machine_amstrad_init(const machine_t *model)
 {
     amstrad_t *ams;
 

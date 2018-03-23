@@ -1,10 +1,10 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
  *
- *		This file is part of the 86Box distribution.
+ *		This file is part of the VARCem Project.
  *
  *		Implementation of the following network controllers:
  *			- Novell NE1000 (ISA 8-bit);
@@ -12,21 +12,36 @@
  *			- Realtek RTL8019AS (ISA 16-bit, PnP);
  *			- Realtek RTL8029AS (PCI).
  *
- * NOTE:	The file will also implement an NE1000 for 8-bit ISA systems.
- *
- * Version:	@(#)net_ne2000.c	1.0.30	2018/02/09
- *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Peter Grehan, <grehan@iprg.nokia.com>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Sarah Walker, <http://pcem-emulator.co.uk/>
- *		SA1988
+ * Version:	@(#)net_ne2000.c	1.0.3	2018/03/15
  *
  * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *
- *		Portions Copyright (C) 2002  MandrakeSoft S.A.
- *		Portions Copyright (C) 2018  Sarah Walker.
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *		TheCollector1995, <mariogplayer@gmail.com>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Peter Grehan, <grehan@iprg.nokia.com>
+ *
  *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Portions Copyright (C) 2002  MandrakeSoft S.A.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free  Software  Foundation; either  version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is  distributed in the hope that it will be useful, but
+ * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the:
+ *
+ *   Free Software Foundation, Inc.
+ *   59 Temple Place - Suite 330
+ *   Boston, MA 02111-1307
+ *   USA.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -2362,7 +2377,7 @@ nic_rom_init(nic_t *dev, wchar_t *s)
 
 
 static void *
-nic_init(device_t *info)
+nic_init(const device_t *info)
 {
     uint32_t mac;
     wchar_t *rom;
@@ -2370,9 +2385,9 @@ nic_init(device_t *info)
 #ifdef ENABLE_NIC_LOG
     int i;
 #endif
-   int c;
-   char *ansi_id = "REALTEK PLUG & PLAY ETHERNET CARD";
-   uint64_t *eeprom_pnp_id;
+    int c;
+    char *ansi_id = "REALTEK PLUG & PLAY ETHERNET CARD";
+    uint64_t *eeprom_pnp_id;
 
     /* Get the desired debug level. */
 #ifdef ENABLE_NIC_LOG
@@ -2388,6 +2403,8 @@ nic_init(device_t *info)
     switch(dev->board) {
 	case NE2K_NE1000:
 		dev->is_8bit = 1;
+		/*FALLTHROUGH*/
+
 	case NE2K_NE2000:
 		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Novell OID) */
 		dev->maclocal[1] = 0x00;
@@ -2430,8 +2447,11 @@ nic_init(device_t *info)
     /* See if we have a local MAC address configured. */
     mac = device_get_config_mac("mac", -1);
 
-    /* Make this device known to the I/O system. */
-    if (dev->board < NE2K_RTL8019AS)		/* PnP and PCI devices start with address spaces inactive. */
+    /*
+     * Make this device known to the I/O system.
+     * PnP and PCI devices start with address spaces inactive.
+     */
+    if (dev->board < NE2K_RTL8019AS)
 	nic_ioset(dev, dev->base_address);
 
     /* Set up our BIOS ROM space, if any. */
@@ -2473,21 +2493,21 @@ nic_init(device_t *info)
 		dev->pci_regs[0x02] = (PCI_DEVID&0xff);
 		dev->pci_regs[0x03] = (PCI_DEVID>>8);
 
-	        dev->pci_regs[0x04] = 0x03;		/* IOEN */
+	        dev->pci_regs[0x04] = 0x03;	/* IOEN */
         	dev->pci_regs[0x05] = 0x00;
-	        dev->pci_regs[0x07] = 0x02;		/* DST0, medium devsel */
+	        dev->pci_regs[0x07] = 0x02;	/* DST0, medium devsel */
 
-	        dev->pci_regs[0x09] = 0x00;		/* PIFR */
+	        dev->pci_regs[0x09] = 0x00;	/* PIFR */
 
-	        dev->pci_regs[0x0B] = 0x02;		/* BCR: Network Controller */
-        	dev->pci_regs[0x0A] = 0x00;		/* SCR: Ethernet */
+	        dev->pci_regs[0x0B] = 0x02;	/* BCR: Network Controller */
+        	dev->pci_regs[0x0A] = 0x00;	/* SCR: Ethernet */
 
 		dev->pci_regs[0x2C] = (PCI_VENDID&0xff);
 		dev->pci_regs[0x2D] = (PCI_VENDID>>8);
 		dev->pci_regs[0x2E] = (PCI_DEVID&0xff);
 		dev->pci_regs[0x2F] = (PCI_DEVID>>8);
 
-	        dev->pci_regs[0x3D] = PCI_INTA;		/* PCI_IPR */
+	        dev->pci_regs[0x3D] = PCI_INTA;	/* PCI_IPR */
 
 		/* Enable our address space in PCI. */
 		dev->pci_bar[0].addr_regs[0] = 0x01;
@@ -2503,8 +2523,9 @@ nic_init(device_t *info)
 
 		mem_mapping_disable(&dev->bios_rom.mapping);
 
-		/* Insert this device onto the PCI bus, keep its slot number. */
-		dev->card = pci_add_card(PCI_ADD_NORMAL, nic_pci_read, nic_pci_write, dev);
+		/* Add device to the PCI bus, keep its slot number. */
+		dev->card = pci_add_card(PCI_ADD_NORMAL,
+					 nic_pci_read, nic_pci_write, dev);
 	} else {
 		io_sethandler(0x0279, 1,
 			      NULL, NULL, NULL,
@@ -2536,52 +2557,52 @@ nic_init(device_t *info)
 		eeprom_pnp_id = (uint64_t *) &dev->eeprom[0x12];
 		*eeprom_pnp_id = dev->pnp_id;
 
-								/* TAG: Plug and Play Version Number	*/
-		dev->eeprom[0x1B] = 0x0A;			/* 	Item byte			*/
-		dev->eeprom[0x1C] = 0x10;			/*	PnP version			*/
-		dev->eeprom[0x1D] = 0x10;			/*	Vendor version			*/
+		/* TAG: Plug and Play Version Number. */
+		dev->eeprom[0x1B] = 0x0A;	/* Item byte */
+		dev->eeprom[0x1C] = 0x10;	/* PnP version */
+		dev->eeprom[0x1D] = 0x10;	/* Vendor version */
 
-								/* TAG: ANSI Identifier String		*/
-		dev->eeprom[0x1E] = 0x82;			/* 	Item byte			*/
-		dev->eeprom[0x1F] = 0x22;			/*	Length bits 7-0			*/
-		dev->eeprom[0x20] = 0x00;			/*	Length bits 15-8		*/
-		memcpy(&dev->eeprom[0x21], ansi_id, 0x22);	/*	Identifier string		*/
+		/* TAG: ANSI Identifier String. */
+		dev->eeprom[0x1E] = 0x82;	/* Item byte */
+		dev->eeprom[0x1F] = 0x22;	/* Length bits 7-0 */
+		dev->eeprom[0x20] = 0x00;	/* Length bits 15-8 */
+		memcpy(&dev->eeprom[0x21], ansi_id, 0x22);
 
-								/* TAG: Logical Device ID		*/
-		dev->eeprom[0x43] = 0x16;			/* 	Item byte			*/
-		dev->eeprom[0x44] = 0x4A;			/*	Logical device ID0		*/
-		dev->eeprom[0x45] = 0x8C;			/*	Logical device ID1		*/
-		dev->eeprom[0x46] = 0x80;			/*	Logical device ID2		*/
-		dev->eeprom[0x47] = 0x19;			/*	Logical device ID3		*/
-		dev->eeprom[0x48] = 0x02;			/*	Flag 0 (02 = BROM is disabled)	*/
-		dev->eeprom[0x49] = 0x00;			/*	Flag 1				*/
+		/* TAG: Logical Device ID. */
+		dev->eeprom[0x43] = 0x16;	/* Item byte */
+		dev->eeprom[0x44] = 0x4A;	/* Logical device ID0 */
+		dev->eeprom[0x45] = 0x8C;	/* Logical device ID1 */
+		dev->eeprom[0x46] = 0x80;	/* Logical device ID2 */
+		dev->eeprom[0x47] = 0x19;	/* Logical device ID3 */
+		dev->eeprom[0x48] = 0x02;	/* Flag0 (02=BROM/disabled) */
+		dev->eeprom[0x49] = 0x00;	/* Flag 1 */
 
-								/* TAG: Compatible Device ID (NE2000)	*/
-		dev->eeprom[0x4A] = 0x1C;			/*	Item byte			*/
-		dev->eeprom[0x4B] = 0x41;			/*	Compatible ID0			*/
-		dev->eeprom[0x4C] = 0xD0;			/*	Compatible ID1			*/
-		dev->eeprom[0x4D] = 0x80;			/*	Compatible ID2			*/
-		dev->eeprom[0x4E] = 0xD6;			/*	Compatible ID3			*/
+		/* TAG: Compatible Device ID (NE2000) */
+		dev->eeprom[0x4A] = 0x1C;	/* Item byte			*/
+		dev->eeprom[0x4B] = 0x41;	/* Compatible ID0 */
+		dev->eeprom[0x4C] = 0xD0;	/* Compatible ID1 */
+		dev->eeprom[0x4D] = 0x80;	/* Compatible ID2 */
+		dev->eeprom[0x4E] = 0xD6;	/* Compatible ID3 */
 
-								/* TAG: I/O Format			*/
-		dev->eeprom[0x4F] = 0x47;			/*	Item byte			*/
-		dev->eeprom[0x50] = 0x00;			/*	I/O information			*/
-		dev->eeprom[0x51] = 0x20;			/*	Min. I/O base bits 7-0		*/
-		dev->eeprom[0x52] = 0x02;			/*	Min. I/O base bits 15-8		*/
-		dev->eeprom[0x53] = 0x80;			/*	Max. I/O base bits 7-0		*/
-		dev->eeprom[0x54] = 0x03;			/*	Max. I/O base bits 15-8		*/
-		dev->eeprom[0x55] = 0x20;			/*	Base alignment			*/
-		dev->eeprom[0x56] = 0x20;			/*	Range length			*/
+		/* TAG: I/O Format */
+		dev->eeprom[0x4F] = 0x47;	/* Item byte */
+		dev->eeprom[0x50] = 0x00;	/* I/O information */
+		dev->eeprom[0x51] = 0x20;	/* Min. I/O base bits 7-0 */
+		dev->eeprom[0x52] = 0x02;	/* Min. I/O base bits 15-8 */
+		dev->eeprom[0x53] = 0x80;	/* Max. I/O base bits 7-0 */
+		dev->eeprom[0x54] = 0x03;	/* Max. I/O base bits 15-8 */
+		dev->eeprom[0x55] = 0x20;	/* Base alignment */
+		dev->eeprom[0x56] = 0x20;	/* Range length */
 
-								/* TAG: IRQ Format			*/
-		dev->eeprom[0x57] = 0x23;			/*	Item byte			*/
-		dev->eeprom[0x58] = 0x38;			/*	IRQ mask bits 7-0		*/
-		dev->eeprom[0x59] = 0x9E;			/*	IRQ mask bits 15-8		*/
-		dev->eeprom[0x5A] = 0x01;			/*	IRQ information			*/
+		/* TAG: IRQ Format. */
+		dev->eeprom[0x57] = 0x23;	/* Item byte */
+		dev->eeprom[0x58] = 0x38;	/* IRQ mask bits 7-0 */
+		dev->eeprom[0x59] = 0x9E;	/* IRQ mask bits 15-8 */
+		dev->eeprom[0x5A] = 0x01;	/* IRQ information */
 
-								/* TAG: END Tag				*/
-		dev->eeprom[0x5B] = 0x79;			/*	Item byte			*/
-		for (c = 0x1B; c < 0x5C; c++)			/*	Checksum (2's complement)	*/
+		/* TAG: END Tag */
+		dev->eeprom[0x5B] = 0x79;	/* Item byte */
+		for (c = 0x1b; c < 0x5c; c++)	/* Checksum (2's compl) */
 			dev->eeprom[0x5C] += dev->eeprom[c];
 		dev->eeprom[0x5C] = -dev->eeprom[0x5C];
 
@@ -2620,7 +2641,7 @@ nic_close(void *priv)
 }
 
 
-static device_config_t ne1000_config[] =
+static const device_config_t ne1000_config[] =
 {
 	{
 		"base", "Address", CONFIG_HEX16, "", 0x300,
@@ -2679,7 +2700,7 @@ static device_config_t ne1000_config[] =
 	}
 };
 
-static device_config_t ne2000_config[] =
+static const device_config_t ne2000_config[] =
 {
 	{
 		"base", "Address", CONFIG_HEX16, "", 0x300,
@@ -2764,7 +2785,7 @@ static device_config_t ne2000_config[] =
 	}
 };
 
-static device_config_t rtl8019as_config[] =
+static const device_config_t rtl8019as_config[] =
 {
 	{
 		"mac", "MAC Address", CONFIG_MAC, "", -1
@@ -2774,7 +2795,7 @@ static device_config_t rtl8019as_config[] =
 	}
 };
 
-static device_config_t rtl8029as_config[] =
+static const device_config_t rtl8029as_config[] =
 {
 	{
 		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
@@ -2788,7 +2809,7 @@ static device_config_t rtl8029as_config[] =
 };
 
 
-device_t ne1000_device = {
+const device_t ne1000_device = {
     "Novell NE1000",
     DEVICE_ISA,
     NE2K_NE1000,
@@ -2797,7 +2818,7 @@ device_t ne1000_device = {
     ne1000_config
 };
 
-device_t ne2000_device = {
+const device_t ne2000_device = {
     "Novell NE2000",
     DEVICE_ISA | DEVICE_AT,
     NE2K_NE2000,
@@ -2806,7 +2827,7 @@ device_t ne2000_device = {
     ne2000_config
 };
 
-device_t rtl8019as_device = {
+const device_t rtl8019as_device = {
     "Realtek RTL8019AS",
     DEVICE_ISA | DEVICE_AT,
     NE2K_RTL8019AS,
@@ -2815,7 +2836,7 @@ device_t rtl8019as_device = {
     rtl8019as_config
 };
 
-device_t rtl8029as_device = {
+const device_t rtl8029as_device = {
     "Realtek RTL8029AS",
     DEVICE_PCI,
     NE2K_RTL8029AS,

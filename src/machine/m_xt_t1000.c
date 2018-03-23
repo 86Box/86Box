@@ -51,7 +51,7 @@
  * NOTE:	Still need to figure out a way to load/save ConfigSys and
  *		HardRAM stuff. Needs to be linked in to the NVR code.
  *
- * Version:	@(#)m_xt_t1000.c	1.0.2	2018/03/11
+ * Version:	@(#)m_xt_t1000.c	1.0.4	2018/03/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -96,6 +96,7 @@
 #include "../device.h"
 #include "../keyboard.h"
 #include "../lpt.h"
+#include "../mem.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
 #include "../game/gameport.h"
@@ -141,7 +142,8 @@ typedef struct {
     mem_mapping_t rom_mapping;
 
     /* CONFIG.SYS drive. */
-    uint8_t	config[160];
+    uint8_t	t1000_nvram[160];
+    uint8_t	t1200_nvram[160];
 
     /* System control registers */
     uint8_t	sys_ctl[16];
@@ -153,6 +155,7 @@ typedef struct {
     uint8_t	nvr_tick;
     int		nvr_addr;
     uint8_t	nvr_active;
+    mem_mapping_t	nvr_mapping;	/* T1200 NVRAM mapping */
 
     /* EMS data */
     uint8_t	ems_reg[4];
@@ -662,7 +665,7 @@ t1000_read_nvram(uint16_t addr, void *priv)
     switch (addr) {
 	case 0xc2: /* Read next byte from NVRAM */
 		if (sys->nvr_addr >= 0 && sys->nvr_addr < 160)
-			tmp = sys->config[sys->nvr_addr];
+			tmp = sys->t1000_nvram[sys->nvr_addr];
 		sys->nvr_addr++;
 		break;
 
@@ -696,9 +699,9 @@ t1000_write_nvram(uint16_t addr, uint8_t val, void *priv)
 
 	case 0xc1:	/* Write next byte to NVRAM */
 		if (sys->nvr_addr >= 0 && sys->nvr_addr < 160) {
-			if (sys->config[sys->nvr_addr] != val) 
+			if (sys->t1000_nvram[sys->nvr_addr] != val) 
 				nvr_dosave = 1;
-			sys->config[sys->nvr_addr] = val;
+			sys->t1000_nvram[sys->nvr_addr] = val;
 		}
 		sys->nvr_addr++;
 		break;
@@ -719,6 +722,26 @@ t1000_write_nvram(uint16_t addr, uint8_t val, void *priv)
 		if (val == 0x80) sys->nvr_addr = -1;
 		break;
     }
+}
+
+
+static
+uint8_t read_t1200_nvram(uint32_t addr, void *priv)
+{
+    t1000_t *sys = (t1000_t *)priv;
+
+    return sys->t1200_nvram[addr & 0x7FF];
+}
+
+
+static void write_t1200_nvram(uint32_t addr, uint8_t value, void *priv)
+{
+    t1000_t *sys = (t1000_t *)priv;
+
+    if (sys->t1200_nvram[addr & 0x7FF] != value) 
+	nvr_dosave = 1;
+
+    sys->t1200_nvram[addr & 0x7FF] = value;
 }
 
 
@@ -784,7 +807,7 @@ t1000_read_roml(uint32_t addr, void *priv)
 }
 
 
-device_t *
+const device_t *
 t1000_get_device(void)
 {
     return(&t1000_video_device);
@@ -792,7 +815,7 @@ t1000_get_device(void)
 
 
 void
-machine_xt_t1000_init(machine_t *model)
+machine_xt_t1000_init(const machine_t *model)
 {
     FILE *f;
     int pg;
@@ -862,7 +885,7 @@ machine_xt_t1000_init(machine_t *model)
 }
 
 
-device_t *
+const device_t *
 t1200_get_device(void)
 {
     return(&t1200_video_device);
@@ -870,7 +893,7 @@ t1200_get_device(void)
 
 
 void
-machine_xt_t1200_init(machine_t *model)
+machine_xt_t1200_init(const machine_t *model)
 {
     int pg;
 
@@ -898,6 +921,12 @@ machine_xt_t1200_init(machine_t *model)
 
     machine_common_init(model);
 
+    mem_mapping_add(&t1000.nvr_mapping,
+		    0x000f0000, 2048,
+		    read_t1200_nvram, NULL, NULL,
+		    write_t1200_nvram, NULL, NULL, 
+		    NULL, 0, &t1000);
+
     pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
     device_add(&keyboard_xt_device);
     t1000.fdc = device_add(&fdc_xt_device);
@@ -918,36 +947,62 @@ t1000_syskey(uint8_t andmask, uint8_t ormask, uint8_t xormask)
 }
 
 
-#if 0
-void
+static void
 t1000_configsys_load(void)
 {
     FILE *f;
 
-    memset(config_sys, 0x1a, sizeof(config_sys));
+    memset(t1000.t1000_nvram, 0x1a, sizeof(t1000.t1000_nvram));
     f = plat_fopen(nvr_path(L"t1000_config.nvr"), L"rb");
     if (f != NULL) {
-	fread(config_sys, sizeof(config_sys), 1, f);
+	fread(t1000.t1000_nvram, sizeof(t1000.t1000_nvram), 1, f);
 	fclose(f);
     }
 }
 
 
-void
+static void
 t1000_configsys_save(void)
 {
     FILE *f;
 
     f = plat_fopen(nvr_path(L"t1000_config.nvr"), L"wb");
     if (f != NULL) {
-	fwrite(config_sys, sizeof(config_sys), 1, f);
+	fwrite(t1000.t1000_nvram, sizeof(t1000.t1000_nvram), 1, f);
+	fclose(f);
+    }
+}
+
+
+static void
+t1200_state_load(void)
+{
+    FILE *f;
+
+    memset(t1000.t1200_nvram, 0x1a, sizeof(t1000.t1200_nvram));
+    f = plat_fopen(nvr_path(L"t1200_state.nvr"), L"rb");
+    if (f != NULL) {
+	fread(t1000.t1200_nvram, sizeof(t1000.t1200_nvram), 1, f);
+	fclose(f);
+    }
+}
+
+
+static void
+t1200_state_save(void)
+{
+    FILE *f;
+
+    f = plat_fopen(nvr_path(L"t1200_state.nvr"), L"wb");
+    if (f != NULL) {
+	fwrite(t1000.t1200_nvram, sizeof(t1000.t1200_nvram), 1, f);
 	fclose(f);
     }
 }
 
 
 /* All RAM beyond 512k is non-volatile */
-void
+static void
 t1000_emsboard_load(void)
 {
     FILE *f;
@@ -962,7 +1017,7 @@ t1000_emsboard_load(void)
 }
 
 
-void
+static void
 t1000_emsboard_save(void)
 {
     FILE *f;
@@ -975,4 +1030,35 @@ t1000_emsboard_save(void)
 	}
     }
 }
-#endif
+
+
+void
+t1000_nvr_load(void)
+{
+    t1000_emsboard_load();
+    t1000_configsys_load();
+}
+
+
+void
+t1000_nvr_save(void)
+{
+    t1000_emsboard_save();
+    t1000_configsys_save();
+}
+
+
+void
+t1200_nvr_load(void)
+{
+    t1000_emsboard_load();
+    t1200_state_load();
+}
+
+
+void
+t1200_nvr_save(void)
+{
+    t1000_emsboard_save();
+    t1200_state_save();
+}

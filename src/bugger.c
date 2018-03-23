@@ -44,10 +44,10 @@
  *		configuration register (CTRL_SPCFG bit set) but have to
  *		remember that stuff first...
  *
- * Version:	@(#)bugger.c	1.0.9	2017/10/28
+ * Version:	@(#)bugger.c	1.0.10	2018/03/18
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 1989-2017 Fred N. van Kempen.
+ *		Copyright 1989-2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -309,7 +309,7 @@ bug_read(uint16_t port, void *priv)
 
 /* Initialize the ISA BusBugger emulator. */
 static void *
-bug_init(device_t *info)
+bug_init(const device_t *info)
 {
     pclog("%s, I/O=%04x\n", info->name, BUGGER_ADDR);
 
@@ -320,7 +320,7 @@ bug_init(device_t *info)
 		  bug_read, NULL, NULL, bug_write, NULL, NULL,  NULL);
 
     /* Just so its not NULL. */
-    return(info);
+    return(&bug_ctrl);
 }
 
 
@@ -333,7 +333,7 @@ bug_close(UNUSED(void *priv))
 }
 
 
-device_t bugger_device = {
+const device_t bugger_device = {
     "ISA/PCI Bus Bugger",
     DEVICE_ISA | DEVICE_AT,
     0,

@@ -132,7 +132,7 @@ static void laserxt_init(void)
 
 
 void
-machine_xt_laserxt_init(machine_t *model)
+machine_xt_laserxt_init(const machine_t *model)
 {
         machine_xt_init(model);
 

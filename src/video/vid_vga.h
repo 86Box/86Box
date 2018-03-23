@@ -1,6 +1,8 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
-extern device_t vga_device;
-extern device_t trigem_unk_device;
-extern device_t ps1vga_device;
+extern const device_t vga_device;
+#ifdef DEV_BRANCH
+extern const device_t trigem_unk_device;
+#endif
+extern const device_t ps1vga_device;

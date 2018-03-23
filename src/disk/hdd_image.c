@@ -8,7 +8,7 @@
  *
  *		Handling of hard disk image files.
  *
- * Version:	@(#)hdd_image.c	1.0.12	2018/02/08
+ * Version:	@(#)hdd_image.c	1.0.13	2018/03/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -288,29 +288,29 @@ int hdd_image_load(int id)
 	if (ftello64(hdd_images[id].file) < (full_size + hdd_images[id].base)) {
 		s = (full_size + hdd_images[id].base) - ftello64(hdd_images[id].file);
 prepare_new_hard_disk:
-		s >>= 9;
-		t = (s >> 11) << 11;
-		s -= t;
-		t >>= 11;
+		t = s >> 20;	/* Amount of 1 MB blocks. */
+		s &= 0xfffff;	/* 1 MB mask. */
 
 		empty_sector_1mb = (char *) malloc(1048576);
 		memset(empty_sector_1mb, 0, 1048576);
 
+		/* Temporarily switch off suppression of seen messages so that the
+		   progress gets displayed. */
+		pclog_toggle_suppr();
 		pclog("Writing image sectors: [");
-		if (s > 0) {
-			for (i = 0; i < s; i++) {
+
+		/* First, write all the 1 MB blocks. */
+		if (t > 0) {
+			for (i = 0; i < t; i++) {
+				fwrite(empty_sector_1mb, 1, 1045876, hdd_images[id].file);
 				pclog("#");
-				fwrite(empty_sector, 1, 512, hdd_images[id].file);
 			}
 		}
 
-		if (t > 0) {
-			for (i = 0; i < t; i++) {
-				pclog("#");
-				fwrite(empty_sector_1mb, 1, 1045876, hdd_images[id].file);
-			}
-		}
-		pclog("]\n");
+		/* Then, write the remainder. */
+		fwrite(empty_sector_1mb, 1, s, hdd_images[id].file);
+		pclog("#]\n");
+		pclog_toggle_suppr();
 
 		free(empty_sector_1mb);
 	}

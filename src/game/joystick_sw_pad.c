@@ -1,24 +1,60 @@
-/*Sidewinder game pad notes :
-        
-        - Write to 0x201 starts packet transfer (5*N or 15*N bits)
-        - Currently alternates between Mode A and Mode B (is there any way of
-          actually controlling which is used?)
-          - Windows 9x drivers require Mode B when more than 1 pad connected
-        - Packet preceeded by high data (currently 50us), and followed by low
-          data (currently 160us) - timings are probably wrong, but good enough
-          for everything I've tried
-        - Analogue inputs are only used to time ID packet request. If A0 timing
-          out is followed after ~64us by another 0x201 write then an ID packet
-          is triggered
-        - Sidewinder game pad ID is 'H0003'
-        - ID is sent in Mode A (1 bit per clock), but data bit 2 must change
-          during ID packet transfer, or Windows 9x drivers won't use Mode B. I
-          don't know if it oscillates, mirrors the data transfer, or something
-          else - the drivers only check that it changes at least 10 times during
-          the transfer
-        - Some DOS stuff will write to 0x201 while a packet is being transferred.
-          This seems to be ignored.
-*/
+/*
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
+ *
+ *		This file is part of the VARCem Project.
+ *
+ *		Implementation of a Side Winder GamePad.
+ *
+ * Notes:	- Write to 0x201 starts packet transfer (5*N or 15*N bits)
+ *		- Currently alternates between Mode A and Mode B (is there
+ *		  any way of actually controlling which is used?)
+ *		- Windows 9x drivers require Mode B when more than 1 pad
+ *		  connected
+ *		- Packet preceeded by high data (currently 50us), and
+ *		  followed by low data (currently 160us) - timings are
+ *		  probably wrong, but good enoughfor everything I've tried
+ *		- Analog inputs are only used to time ID packet request.
+ *		  If A0 timing out is followed after ~64us by another 0x201
+ *		  write then an ID packet is triggered
+ *		- Sidewinder game pad ID is 'H0003'
+ *		- ID is sent in Mode A (1 bit per clock), but data bit 2
+ *		  must change during ID packet transfer, or Windows 9x
+ *		  drivers won't use Mode B. I don't know if it oscillates,
+ *		  mirrors the data transfer, or something else - the drivers
+ *		  only check that it changes at least 10 times during the
+ *		  transfer
+ *		- Some DOS stuff will write to 0x201 while a packet is
+ *		  being transferred. This seems to be ignored.
+ *
+ * Version:	@(#)sw_pad.c	1.0.5	2018/03/15
+ *
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free  Software  Foundation; either  version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is  distributed in the hope that it will be useful, but
+ * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the:
+ *
+ *   Free Software Foundation, Inc.
+ *   59 Temple Place - Suite 330
+ *   Boston, MA 02111-1307
+ *   USA.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -27,7 +63,6 @@
 #include "../86box.h"
 #include "../device.h"
 #include "../timer.h"
-#include "../plat_joystick.h"
 #include "gameport.h"
 #include "joystick_sw_pad.h"
 
@@ -90,7 +125,7 @@ static int sw_parity(uint16_t data)
         return bits_set & 1;
 }
 
-static void *sw_init()
+static void *sw_init(void)
 {
         sw_data *sw = (sw_data *)malloc(sizeof(sw_data));
         memset(sw, 0, sizeof(sw_data));
@@ -139,7 +174,7 @@ static uint8_t sw_read(void *p)
 static void sw_write(void *p)
 {
         sw_data *sw = (sw_data *)p;
-        int time_since_last = sw->trigger_time / TIMER_USEC;
+        int64_t time_since_last = sw->trigger_time / TIMER_USEC;
 
         if (!JOYSTICK_PRESENT(0))
                 return;
@@ -177,7 +212,7 @@ static void sw_write(void *p)
 
                         for (c = 0; c < 4; c++)
                         {
-                                uint64_t data = 0x3fff;
+                                uint16_t data = 0x3fff;
                                 int b;
                                 
                                 if (!JOYSTICK_PRESENT(c))
@@ -235,7 +270,7 @@ static void sw_a0_over(void *p)
         sw->trigger_time = TIMER_USEC * 10000;
 }
         
-joystick_if_t joystick_sw_pad =
+const joystick_if_t joystick_sw_pad =
 {
         "Microsoft SideWinder Pad",
         sw_init,

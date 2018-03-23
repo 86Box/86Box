@@ -1,1 +1,1 @@
-extern device_t pssj_device;
+extern const device_t pssj_device;

@@ -1,1 +1,1 @@
-extern device_t wy700_device;
+extern const device_t wy700_device;

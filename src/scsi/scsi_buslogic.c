@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.35	2018/03/07
+ * Version:	@(#)scsi_buslogic.c	1.0.36	2018/03/18
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1446,7 +1446,7 @@ BuslogicDeviceReset(void *p)
 
 
 static void *
-buslogic_init(device_t *info)
+buslogic_init(const device_t *info)
 {
     x54x_t *dev;
     wchar_t *bios_rom_name;
@@ -1660,7 +1660,7 @@ buslogic_init(device_t *info)
 }
 
 
-static device_config_t BT_ISA_Config[] = {
+static const device_config_t BT_ISA_Config[] = {
         {
 		"base", "Address", CONFIG_HEX16, "", 0x334,
                 {
@@ -1756,7 +1756,7 @@ static device_config_t BT_ISA_Config[] = {
 };
 
 
-static device_config_t BT958D_Config[] = {
+static const device_config_t BT958D_Config[] = {
 	{
 		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
 	},
@@ -1766,7 +1766,7 @@ static device_config_t BT958D_Config[] = {
 };
 
 
-device_t buslogic_device = {
+const device_t buslogic_device = {
 	"Buslogic BT-542BH ISA",
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA_542,
@@ -1775,7 +1775,7 @@ device_t buslogic_device = {
 	BT_ISA_Config
 };
 
-device_t buslogic_545s_device = {
+const device_t buslogic_545s_device = {
 	"Buslogic BT-545S ISA",
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA,
@@ -1784,7 +1784,7 @@ device_t buslogic_545s_device = {
 	BT_ISA_Config
 };
 
-device_t buslogic_640a_device = {
+const device_t buslogic_640a_device = {
 	"Buslogic BT-640A MCA",
 	DEVICE_MCA,
 	CHIP_BUSLOGIC_MCA,
@@ -1793,7 +1793,7 @@ device_t buslogic_640a_device = {
 	NULL
 };
 
-device_t buslogic_445s_device = {
+const device_t buslogic_445s_device = {
 	"Buslogic BT-445S ISA",
 	DEVICE_VLB,
 	CHIP_BUSLOGIC_VLB,
@@ -1802,7 +1802,7 @@ device_t buslogic_445s_device = {
 	BT_ISA_Config
 };
 
-device_t buslogic_pci_device = {
+const device_t buslogic_pci_device = {
 	"Buslogic BT-958D PCI",
 	DEVICE_PCI,
 	CHIP_BUSLOGIC_PCI,

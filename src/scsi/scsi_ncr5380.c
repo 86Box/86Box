@@ -9,7 +9,7 @@
  *		Implementation of the NCR 5380 series of SCSI Host Adapters
  *		made by NCR. These controllers were designed for the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.11	2018/03/07
+ * Version:	@(#)scsi_ncr5380.c	1.0.12	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -825,7 +825,7 @@ scsiat_out(uint16_t port, uint8_t val, void *priv)
 
 
 static void *
-ncr_init(device_t *info)
+ncr_init(const device_t *info)
 {
     char temp[128];
     ncr_t *scsi;
@@ -948,7 +948,7 @@ scsiat_available(void)
 }
 
 
-static device_config_t scsiat_config[] = {
+static const device_config_t scsiat_config[] = {
         {
 		"base", "Address", CONFIG_HEX16, "", 0x0310,
                 {
@@ -1045,7 +1045,7 @@ static device_config_t scsiat_config[] = {
 };
 
 
-device_t scsi_lcs6821n_device =
+const device_t scsi_lcs6821n_device =
 {
     "Longshine LCS-6821N",
     DEVICE_ISA,
@@ -1056,7 +1056,7 @@ device_t scsi_lcs6821n_device =
     NULL
 };
 
-device_t scsi_rt1000b_device =
+const device_t scsi_rt1000b_device =
 {
     "Ranco RT1000B",
     DEVICE_ISA,
@@ -1067,7 +1067,7 @@ device_t scsi_rt1000b_device =
     NULL
 };
 
-device_t scsi_t130b_device =
+const device_t scsi_t130b_device =
 {
     "Trantor T130B",
     DEVICE_ISA,
@@ -1078,7 +1078,7 @@ device_t scsi_t130b_device =
     NULL
 };
 
-device_t scsi_scsiat_device =
+const device_t scsi_scsiat_device =
 {
     "Sumo SCSI-AT",
     DEVICE_ISA,

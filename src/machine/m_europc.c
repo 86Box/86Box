@@ -68,7 +68,7 @@
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *		
- * Version:	@(#)europc.c	1.0.2	2018/03/11
+ * Version:	@(#)europc.c	1.0.3	2018/03/18
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -546,7 +546,7 @@ jim_read(uint16_t addr, void *priv)
 
 /* Initialize the mainboard 'device' of the machine. */
 static void *
-europc_boot(device_t *info)
+europc_boot(const device_t *info)
 {
     europc_t *sys = &europc;
     uint8_t b;
@@ -674,7 +674,7 @@ europc_close(void *priv)
 }
 
 
-static device_config_t europc_config[] = {
+static const device_config_t europc_config[] = {
     {
 	"js9", "JS9 Jumper (JIM)", CONFIG_INT, "", 0,
 	{
@@ -695,7 +695,7 @@ static device_config_t europc_config[] = {
 };
 
 
-device_t europc_device = {
+const device_t europc_device = {
     "EuroPC System Board",
     0, 0,
     europc_boot, europc_close, NULL,
@@ -713,7 +713,7 @@ device_t europc_device = {
  * user.
  */
 void
-machine_europc_init(machine_t *model)
+machine_europc_init(const machine_t *model)
 {
     /* Clear the machine state. */
     memset(&europc, 0x00, sizeof(europc_t));

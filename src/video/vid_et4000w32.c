@@ -10,7 +10,7 @@
  *
  * Known bugs:	Accelerator doesn't work in planar modes
  *
- * Version:	@(#)vid_et4000w32.c	1.0.6	2018/02/11
+ * Version:	@(#)vid_et4000w32.c	1.0.7	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1190,7 +1190,7 @@ void et4000w32p_pci_write(int func, int addr, uint8_t val, void *p)
         }
 }
 
-void *et4000w32p_init(device_t *info)
+void *et4000w32p_init(const device_t *info)
 {
         int vram_size;
         et4000w32p_t *et4000 = malloc(sizeof(et4000w32p_t));
@@ -1309,7 +1309,7 @@ void et4000w32p_add_status_info(char *s, int max_len, void *p)
         et4000->blitter_time = 0;
 }
 
-static device_config_t et4000w32p_config[] =
+static const device_config_t et4000w32p_config[] =
 {
         {
                 "memory", "Memory size", CONFIG_SELECTION, "", 2,
@@ -1330,7 +1330,7 @@ static device_config_t et4000w32p_config[] =
         }
 };
 
-device_t et4000w32p_cardex_vlb_device =
+const device_t et4000w32p_cardex_vlb_device =
 {
         "Tseng Labs ET4000/w32p VLB (Cardex)",
         DEVICE_VLB, ET4000W32_CARDEX,
@@ -1342,7 +1342,7 @@ device_t et4000w32p_cardex_vlb_device =
         et4000w32p_config
 };
 
-device_t et4000w32p_cardex_pci_device =
+const device_t et4000w32p_cardex_pci_device =
 {
         "Tseng Labs ET4000/w32p PCI (Cardex)",
         DEVICE_PCI, ET4000W32_CARDEX,
@@ -1355,7 +1355,7 @@ device_t et4000w32p_cardex_pci_device =
 };
 
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
-device_t et4000w32p_vlb_device =
+const device_t et4000w32p_vlb_device =
 {
         "Tseng Labs ET4000/w32p VLB (Diamond)",
         DEVICE_VLB, ET4000W32_DIAMOND,
@@ -1367,7 +1367,7 @@ device_t et4000w32p_vlb_device =
         et4000w32p_config
 };
 
-device_t et4000w32p_pci_device =
+const device_t et4000w32p_pci_device =
 {
         "Tseng Labs ET4000/w32p PCI (Diamond)",
         DEVICE_PCI, ET4000W32_DIAMOND,

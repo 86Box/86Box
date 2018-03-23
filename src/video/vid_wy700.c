@@ -8,13 +8,13 @@
  *
  *		Wyse-700 emulation.
  *
- * Version:	@(#)vid_wy700.c	1.0.6	2017/11/04
+ * Version:	@(#)vid_wy700.c	1.0.7	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -897,7 +897,7 @@ void wy700_poll(void *p)
 }
 
 
-void *wy700_init(device_t *info)
+void *wy700_init(const device_t *info)
 {
         int c;
         wy700_t *wy700 = malloc(sizeof(wy700_t));
@@ -1005,7 +1005,7 @@ void wy700_speed_changed(void *p)
         wy700_recalctimings(wy700);
 }
 
-device_t wy700_device =
+const device_t wy700_device =
 {
         "Wyse 700",
         DEVICE_ISA, 0,

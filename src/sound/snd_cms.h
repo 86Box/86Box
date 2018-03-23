@@ -1,1 +1,1 @@
-extern device_t cms_device;
+extern const device_t cms_device;

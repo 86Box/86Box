@@ -8,15 +8,15 @@
  *
  *		General keyboard driver interface.
  *
- * Version:	@(#)keyboard.c	1.0.14	2018/02/10
+ * Version:	@(#)keyboard.c	1.0.15	2018/03/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016,2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2015-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -61,9 +61,9 @@ keyboard_init(void)
 
 
 void
-keyboard_set_table(scancode *ptr)
+keyboard_set_table(const scancode *ptr)
 {
-    scan_table = ptr;
+    scan_table = (scancode *) ptr;
 }
 
 

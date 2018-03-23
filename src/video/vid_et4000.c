@@ -8,7 +8,7 @@
  *
  *		Emulation of the Tseng Labs ET4000.
  *
- * Version:	@(#)vid_et4000.c	1.0.4	2018/02/25
+ * Version:	@(#)vid_et4000.c	1.0.5	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -160,7 +160,7 @@ void et4000_recalctimings(svga_t *svga)
         }
 }
 
-void *et4000_init(device_t *info)
+void *et4000_init(const device_t *info)
 {
         et4000_t *et4000 = malloc(sizeof(et4000_t));
         memset(et4000, 0, sizeof(et4000_t));
@@ -213,7 +213,7 @@ void et4000_add_status_info(char *s, int max_len, void *p)
         svga_add_status_info(s, max_len, &et4000->svga);
 }
 
-device_t et4000_device =
+const device_t et4000_device =
 {
         "Tseng Labs ET4000AX",
         DEVICE_ISA, 0,

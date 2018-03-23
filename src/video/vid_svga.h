@@ -8,7 +8,7 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.9	2018/03/01
+ * Version:	@(#)vid_svga.h	1.0.10	2018/03/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -153,6 +153,7 @@ typedef struct svga_t
         void *p;
 
         uint32_t linear_base;
+	uint32_t overscan_color;
 } svga_t;
 
 extern int svga_init(svga_t *svga, void *p, int memsize, 

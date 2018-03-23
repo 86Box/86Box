@@ -323,7 +323,7 @@ static void opti495_init(void)
 
 
 void
-machine_at_opti495_init(machine_t *model)
+machine_at_opti495_init(const machine_t *model)
 {
         machine_at_common_ide_init(model);
 
@@ -335,7 +335,7 @@ machine_at_opti495_init(machine_t *model)
 
 
 void
-machine_at_opti495_ami_init(machine_t *model)
+machine_at_opti495_ami_init(const machine_t *model)
 {
         machine_at_common_ide_init(model);
 

@@ -8,16 +8,16 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)sound_mpu401.h	1.0.0	2017/05/30
+ * Version:	@(#)sound_mpu401.h	1.0.1	2018/03/18
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2008-2017 DOSBox Team.
- *		Copyright 2016-2017 Miran Grca.
- *		Copyright 2016-2017 TheCollector1995.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2008-2018 DOSBox Team.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2016-2018 TheCollector1995.
  */
 
 #define MPU401_VERSION	0x15
@@ -89,6 +89,6 @@ void mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode);
 extern int mpu401_standalone_enable;
 
 void mpu401_device_add(void);
-device_t mpu401_device;
+const device_t mpu401_device;
 
 void mpu401_uart_init(mpu_t *mpu, uint16_t addr);

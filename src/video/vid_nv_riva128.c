@@ -8,13 +8,13 @@
  *
  *		nVidia RIVA 128 emulation.
  *
- * Version:	@(#)vid_nv_riva128.c	1.0.4	2017/11/04
+ * Version:	@(#)vid_nv_riva128.c	1.0.5	2018/03/18
  *
  * Author:	Melissa Goad
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2017 Melissa Goad.
- *		Copyright 2017 Miran Grca.
+ *		Copyright 2015-2018 Melissa Goad.
+ *		Copyright 2015-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -2985,7 +2985,7 @@ void riva128_ptimer_tick(void *p)
 }
 
 
-void *riva128_init(device_t *info)
+void *riva128_init(const device_t *info)
 {
 	riva128_t *riva128 = malloc(sizeof(riva128_t));
 	memset(riva128, 0, sizeof(riva128_t));
@@ -3160,7 +3160,7 @@ void riva128_add_status_info(char *s, int max_len, void *p)
 	svga_add_status_info(s, max_len, &riva128->svga);
 }
 
-device_config_t riva128_config[] =
+const device_config_t riva128_config[] =
 {
 	{
 		"memory", "Memory size", CONFIG_SELECTION, "", 4,
@@ -3185,7 +3185,7 @@ device_config_t riva128_config[] =
 };
 
 #if 0
-device_config_t riva128zx_config[] =
+const device_config_t riva128zx_config[] =
 {
 	{
 		.name = "memory",
@@ -3221,7 +3221,7 @@ device_config_t riva128zx_config[] =
 };
 #endif
 
-device_t riva128_device =
+const device_t riva128_device =
 {
 	"nVidia RIVA 128",
 	DEVICE_PCI,
@@ -3237,7 +3237,7 @@ device_t riva128_device =
 };
 
 
-void *rivatnt_init(device_t *info)
+void *rivatnt_init(const device_t *info)
 {
 	riva128_t *riva128 = malloc(sizeof(riva128_t));
 	memset(riva128, 0, sizeof(riva128_t));
@@ -3393,7 +3393,7 @@ void rivatnt_add_status_info(char *s, int max_len, void *p)
 	svga_add_status_info(s, max_len, &riva128->svga);
 }
 
-device_config_t rivatnt_config[] =
+const device_config_t rivatnt_config[] =
 {
 	{
 		"memory", "Memory size", CONFIG_SELECTION, "", 16,
@@ -3417,7 +3417,7 @@ device_config_t rivatnt_config[] =
 	}
 };
 
-device_t rivatnt_device =
+const device_t rivatnt_device =
 {
 	"nVidia RIVA TNT",
 	DEVICE_PCI,
@@ -3432,7 +3432,7 @@ device_t rivatnt_device =
 	rivatnt_config
 };
 
-void *rivatnt2_init(device_t *info)
+void *rivatnt2_init(const device_t *info)
 {
 	riva128_t *riva128 = malloc(sizeof(riva128_t));
 	memset(riva128, 0, sizeof(riva128_t));
@@ -3601,7 +3601,7 @@ void rivatnt2_add_status_info(char *s, int max_len, void *p)
 	svga_add_status_info(s, max_len, &riva128->svga);
 }
 
-device_config_t rivatnt2_config[] =
+const device_config_t rivatnt2_config[] =
 {
 	{
 		"model", "Card model", CONFIG_SELECTION, "", 0,
@@ -3642,7 +3642,7 @@ device_config_t rivatnt2_config[] =
 	}
 };
 
-device_t rivatnt2_device =
+const device_t rivatnt2_device =
 {
 	"nVidia RIVA TNT2",
 	DEVICE_PCI,

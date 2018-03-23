@@ -1,20 +1,41 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
  *
- *		This file is part of the 86Box distribution.
+ *		This file is part of the VARCem Project.
  *
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.h	1.0.5	2018/03/02
+ * Version:	@(#)fdc.h	1.0.3	2018/03/17
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2008-2018 Sarah Walker.
+ *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *
+ *		Copyright 2018 Fred N. van Kempen.
  *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free  Software  Foundation; either  version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is  distributed in the hope that it will be useful, but
+ * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the:
+ *
+ *   Free Software Foundation, Inc.
+ *   59 Temple Place - Suite 330
+ *   Boston, MA 02111-1307
+ *   USA.
  */
 #ifndef EMU_FDC_H
 # define EMU_FDC_H
@@ -29,8 +50,8 @@
 #define FDC_FLAG_MORE_TRACKS	0x40	/* W83877F, W83977F, PC87306, PC87309 */
 #define FDC_FLAG_NSC		0x80	/* PC87306, PC87309 */
 
-typedef struct
-{
+
+typedef struct {
     uint8_t	dor, stat, command, dat, st0, swap;
     uint8_t	swwp, disable_write;
     uint8_t	params[256], res[256];
@@ -78,6 +99,7 @@ typedef struct
     int64_t	time;
     int64_t	watchdog_timer, watchdog_count;
 } fdc_t;
+
 
 extern void	fdc_remove(fdc_t *fdc);
 extern void	fdc_poll(fdc_t *fdc);
@@ -148,7 +170,9 @@ extern void	fdc_set_base(fdc_t *fdc, int base);
 extern int	fdc_getdata(fdc_t *fdc, int last);
 extern int	fdc_data(fdc_t *fdc, uint8_t data);
 
-extern void	fdc_sectorid(fdc_t *fdc, uint8_t track, uint8_t side, uint8_t sector, uint8_t size, uint8_t crc1, uint8_t crc2);
+extern void	fdc_sectorid(fdc_t *fdc, uint8_t track, uint8_t side,
+			     uint8_t sector, uint8_t size, uint8_t crc1,
+			     uint8_t crc2);
 
 extern uint8_t	fdc_read(uint16_t addr, void *priv);
 extern void	fdc_reset(void *priv);
@@ -156,14 +180,14 @@ extern void	fdc_reset(void *priv);
 extern uint8_t	fdc_ps1_525(void);
 
 #ifdef EMU_DEVICE_H
-extern device_t	fdc_xt_device;
-extern device_t	fdc_pcjr_device;
-extern device_t	fdc_at_device;
-extern device_t	fdc_at_actlow_device;
-extern device_t	fdc_at_ps1_device;
-extern device_t	fdc_at_smc_device;
-extern device_t	fdc_at_winbond_device;
-extern device_t	fdc_at_nsc_device;
+extern const device_t	fdc_xt_device;
+extern const device_t	fdc_pcjr_device;
+extern const device_t	fdc_at_device;
+extern const device_t	fdc_at_actlow_device;
+extern const device_t	fdc_at_ps1_device;
+extern const device_t	fdc_at_smc_device;
+extern const device_t	fdc_at_winbond_device;
+extern const device_t	fdc_at_nsc_device;
 #endif
 
 

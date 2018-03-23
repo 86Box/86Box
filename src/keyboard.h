@@ -8,15 +8,15 @@
  *
  *		Definitions for the keyboard interface.
  *
- * Version:	@(#)keyboard.h	1.0.11	2018/02/10
+ * Version:	@(#)keyboard.h	1.0.14	2018/03/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016,2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef EMU_KEYBOARD_H
 # define EMU_KEYBOARD_H
@@ -51,7 +51,7 @@ extern int64_t	keyboard_delay;
 extern void	(*keyboard_send)(uint16_t val);
 extern void	kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val));
 
-extern scancode scancode_xt[512];
+extern const scancode	scancode_xt[512];
 
 extern uint8_t	keyboard_set3_flags[512];
 extern uint8_t	keyboard_set3_all_repeat;
@@ -60,20 +60,21 @@ extern int	mouse_queue_start, mouse_queue_end;
 extern int	mouse_scan;
 
 #ifdef EMU_DEVICE_H
-extern device_t	keyboard_xt_device;
-extern device_t	keyboard_tandy_device;
-extern device_t	keyboard_at_device;
-extern device_t	keyboard_at_ami_device;
-extern device_t	keyboard_at_toshiba_device;
-extern device_t	keyboard_ps2_device;
-extern device_t	keyboard_ps2_ami_device;
-extern device_t	keyboard_ps2_mca_device;
-extern device_t	keyboard_ps2_quadtel_device;
+extern const device_t	keyboard_xt_device;
+extern const device_t	keyboard_tandy_device;
+extern const device_t	keyboard_at_device;
+extern const device_t	keyboard_at_ami_device;
+extern const device_t	keyboard_at_toshiba_device;
+extern const device_t	keyboard_ps2_device;
+extern const device_t	keyboard_ps2_ami_device;
+extern const device_t	keyboard_ps2_mca_device;
+extern const device_t	keyboard_ps2_mca_2_device;
+extern const device_t	keyboard_ps2_quadtel_device;
 #endif
 
 extern void	keyboard_init(void);
 extern void	keyboard_close(void);
-extern void	keyboard_set_table(scancode *ptr);
+extern void	keyboard_set_table(const scancode *ptr);
 extern void	keyboard_poll_host(void);
 extern void	keyboard_process(void);
 extern uint16_t	keyboard_convert(int ch);

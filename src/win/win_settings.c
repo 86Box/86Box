@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.43	2018/03/10
+ * Version:	@(#)win_settings.c	1.0.46	2018/03/19
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -173,7 +173,7 @@ static void win_settings_init(void)
 	/* Network category */
 	temp_net_type = network_type;
 	memset(temp_pcap_dev, 0, sizeof(temp_pcap_dev));
-	strcpy(temp_pcap_dev, network_pcap);
+	strcpy(temp_pcap_dev, network_host);
 	temp_net_card = network_card;
 
 	/* Ports category */
@@ -289,7 +289,7 @@ static int win_settings_changed(void)
 
 	/* Network category */
 	i = i || (network_type != temp_net_type);
-	i = i || strcmp(temp_pcap_dev, network_pcap);
+	i = i || strcmp(temp_pcap_dev, network_host);
 	i = i || (network_card != temp_net_card);
 
 	/* Ports category */
@@ -392,8 +392,8 @@ static void win_settings_save(void)
 
 	/* Network category */
 	network_type = temp_net_type;
-	memset(network_pcap, '\0', sizeof(network_pcap));
-	strcpy(network_pcap, temp_pcap_dev);
+	memset(network_host, '\0', sizeof(network_host));
+	strcpy(network_host, temp_pcap_dev);
 	network_card = temp_net_card;
 
 	/* Ports category */
@@ -436,28 +436,7 @@ static void win_settings_save(void)
 	/* Mark configuration as changed. */
 	config_changed = 1;
 
-#if 1
 	pc_reset_hard_init();
-#else
-	mem_resize();
-	rom_load_bios(romset);
-
-	ui_sb_update_panes();
-
-	sound_realloc_buffers();
-
-	pc_reset_hard_init();
-
-	cpu_set();
-
-	cpu_update_waitstates();
-
-	config_save();
-
-	pc_speed_changed();
-
-	if (joystick_type != 7)  gameport_update_joystick_type();
-#endif
 }
 
 
@@ -980,7 +959,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 static int mouse_valid(int num, int m)
 {
-	device_t *dev;
+	const device_t *dev;
 
 	if ((num == MOUSE_TYPE_INTERNAL) &&
 	    !(machines[m].flags & MACHINE_MOUSE)) return(0);
@@ -1184,7 +1163,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	int c = 0;
 	int d = 0;
 	LPTSTR lptsTemp;
-	device_t *sound_dev/*, *midi_dev*/;
+	const device_t *sound_dev;
 	char *s;
 
         switch (message)
@@ -1256,8 +1235,6 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 				if (midi_device_available(c))
 				{
-					/* midi_dev = midi_device_getdevice(c); */
-
 					if (c == 0)
 					{
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)plat_get_string(IDS_2152));
@@ -1606,7 +1583,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 	int c = 0;
 	int d = 0;
 	LPTSTR lptsTemp;
-	device_t *scsi_dev;
+	const device_t *scsi_dev;
 
         switch (message)
         {
@@ -2763,6 +2740,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 	uint64_t r = 0;
 	uint8_t channel = 0;
 	uint8_t id = 0, lun = 0;
+	wchar_t *twcs;
 
         switch (message)
         {
@@ -3008,10 +2986,9 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 						}
 
 						memset(buf, 0, 512);
-						size >>= 9;
-						r = (size >> 11) << 11;
-						size -= r;
-						r >>= 11;
+
+						r = size >> 20;
+						size &= 0xfffff;
 
 						if (size || r) {
 							h = GetDlgItem(hdlg, IDT_1731);
@@ -3027,10 +3004,10 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 							ShowWindow(h, SW_HIDE);
 
 							h = GetDlgItem(hdlg, IDC_PBAR_IMG_CREATE);
-							SendMessage(h, PBM_SETRANGE32, (WPARAM) 0, (LPARAM) (size + r - 1));
-							SendMessage(h, PBM_SETPOS, (WPARAM) 0, (LPARAM) 0);
 							EnableWindow(h, TRUE);
 							ShowWindow(h, SW_SHOW);
+							SendMessage(h, PBM_SETRANGE32, (WPARAM) 0, (LPARAM) r);
+							SendMessage(h, PBM_SETPOS, (WPARAM) 0, (LPARAM) 0);
 
 							h = GetDlgItem(hdlg, IDT_1752);
 							EnableWindow(h, TRUE);
@@ -3039,11 +3016,8 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
 						if (size)
 						{
-							for (i = 0; i < size; i++)
-							{
-								fwrite(buf, 1, 512, f);
-								SendMessage(h, PBM_SETPOS, (WPARAM) i, (LPARAM) 0);
-							}
+							fwrite(buf, 1, size, f);
+							SendMessage(h, PBM_SETPOS, (WPARAM) 1, (LPARAM) 0);
 						}
 
 						if (r)
@@ -3053,7 +3027,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 							for (i = 0; i < r; i++)
 							{
 								fwrite(big_buf, 1, 1048576, f);
-								SendMessage(h, PBM_SETPOS, (WPARAM) (size + i), (LPARAM) 0);
+								SendMessage(h, PBM_SETPOS, (WPARAM) (size + 1), (LPARAM) 0);
 							}
 							free(big_buf);
 						}
@@ -3079,6 +3053,16 @@ hd_add_ok_common:
 				case IDC_CFILE:
 		                        if (!file_dlg_w(hdlg, plat_get_string(IDS_4106), L"", !(existing & 1)))
        			                {
+						if (!wcschr(wopenfilestring, L'.')) {
+							if (wcslen(wopenfilestring) && (wcslen(wopenfilestring) <= 256)) {
+								twcs = &wopenfilestring[wcslen(wopenfilestring)];
+								twcs[0] = L'.';
+								twcs[1] = L'i';
+								twcs[2] = L'm';
+								twcs[3] = L'g';
+							}
+						}
+
 						if (!(existing & 1))
 						{
 							f = _wfopen(wopenfilestring, L"rb");

@@ -10,7 +10,7 @@
  *		made by NCR. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.1	2017/12/16
+ * Version:	@(#)scsi_ncr5380.c	1.0.2	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -18,16 +18,16 @@
  *
  *		Copyright 2017-2018 Sarah Walker.
  *		Copyright 2017-2018 TheCollector1995.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef SCSI_NCR5380_H
 # define SCSI_NCR5380_H
 
 
-extern device_t scsi_lcs6821n_device;
-extern device_t scsi_rt1000b_device;
-extern device_t scsi_t130b_device;
-extern device_t scsi_scsiat_device;
+extern const device_t scsi_lcs6821n_device;
+extern const device_t scsi_rt1000b_device;
+extern const device_t scsi_t130b_device;
+extern const device_t scsi_scsiat_device;
 
   
 #endif	/*SCSI_NCR5380_H*/

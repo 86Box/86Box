@@ -10,13 +10,14 @@
  *
  *		Re-worked version based on the 82C235 datasheet and errata.
  *
- * Version:	@(#)m_at_scat.c	1.0.10	2018/03/02
+ * Version:	@(#)m_at_scat.c	1.0.13	2018/03/20
  *
  * Authors:	Original by GreatPsycho for PCem.
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -27,6 +28,7 @@
 #include "../cpu/x86.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
+#include "../keyboard.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../nmi.h"
@@ -82,6 +84,24 @@ static int scatsx_mem_conf_val[33] = { 0x00, 0x01, 0x03, 0x04, 0x05, 0x08, 0x06,
 
 uint8_t scat_read(uint16_t port, void *priv);
 void scat_write(uint16_t port, uint8_t val, void *priv);
+
+
+#ifdef ENABLE_SCAT_LOG
+int scat_do_log = ENABLE_SCAT_LOG;
+#endif
+
+static void
+scat_log(const char *format, ...)
+{
+#ifdef ENABLE_SCAT_LOG
+    if (scat_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
+
 
 void scat_shadow_state_update()
 {
@@ -185,7 +205,7 @@ void scat_set_xms_bound(uint8_t val)
                                 mem_mapping_disable(&scat_shadowram_mapping[i]);
                         if(mem_size > 1024) mem_mapping_enable(&ram_high_mapping);
                 }
-                pclog("Set XMS bound(%02X) = %06X(%dKbytes for EMS access)\n", val, scat_xms_bound, (0x160000 - scat_xms_bound) >> 10);
+                scat_log("Set XMS bound(%02X) = %06X(%dKbytes for EMS access)\n", val, scat_xms_bound, (0x160000 - scat_xms_bound) >> 10);
                 if (scat_xms_bound > 0x100000)
                         mem_set_mem_state(0x100000, scat_xms_bound - 0x100000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                 if (scat_xms_bound < 0x160000)
@@ -199,7 +219,7 @@ void scat_set_xms_bound(uint8_t val)
 
                 if (scat_xms_bound > max_xms_size)
                         scat_xms_bound = max_xms_size;
-                pclog("Set XMS bound(%02X) = %06X(%dKbytes for EMS access)\n", val, scat_xms_bound, ((mem_size << 10) - scat_xms_bound) >> 10);
+                scat_log("Set XMS bound(%02X) = %06X(%dKbytes for EMS access)\n", val, scat_xms_bound, ((mem_size << 10) - scat_xms_bound) >> 10);
                 if (scat_xms_bound > 0x100000)
                         mem_set_mem_state(0x100000, scat_xms_bound - 0x100000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                 if (scat_xms_bound < (mem_size << 10))
@@ -398,12 +418,12 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                 }
                 if (scat_reg_valid)
                         scat_regs[scat_index] = val;
-                else pclog("Attemped to write unimplemented SCAT register %02X at %04X:%04X\n", scat_index, val, CS, cpu_state.pc);
+                else scat_log("Attemped to write unimplemented SCAT register %02X at %04X:%04X\n", scat_index, val, CS, cpu_state.pc);
                 if (scat_shadow_update)
                         scat_shadow_state_update();
                 if (scat_map_update)
                         scat_memmap_state_update();
-//                pclog("Write SCAT Register %02X to %02X at %04X:%04X\n", scat_index, val, CS, cpu_state.pc);
+//                scat_log("Write SCAT Register %02X to %02X at %04X:%04X\n", scat_index, val, CS, cpu_state.pc);
                 break;
 
                 case 0x92:
@@ -424,7 +444,7 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                 case 0x218:
                 if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 {
-//                        pclog("Write SCAT EMS Control Port %04X to %02X at %04X:%04X\n", port, val, CS, cpu_state.pc);
+//                        scat_log("Write SCAT EMS Control Port %04X to %02X at %04X:%04X\n", port, val, CS, cpu_state.pc);
                         if((scat_regs[SCAT_VERSION] & 0xF0) == 0) index = scat_ems_reg_2xA & 0x1F;
                         else index = ((scat_ems_reg_2xA & 0x40) >> 4) + (scat_ems_reg_2xA & 0x3) + 24;
                         scat_stat[index].regs_2x8 = val;
@@ -445,7 +465,7 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                 case 0x219:
                 if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 {
-//                        pclog("Write SCAT EMS Control Port %04X to %02X at %04X:%04X\n", port, val, CS, cpu_state.pc);
+//                        scat_log("Write SCAT EMS Control Port %04X to %02X at %04X:%04X\n", port, val, CS, cpu_state.pc);
                         if((scat_regs[SCAT_VERSION] & 0xF0) == 0) index = scat_ems_reg_2xA & 0x1F;
                         else index = ((scat_ems_reg_2xA & 0x40) >> 4) + (scat_ems_reg_2xA & 0x3) + 24;
                         scat_stat[index].regs_2x9 = val;
@@ -462,14 +482,14 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                                         if(virt_addr < (mem_size << 10)) mem_mapping_set_exec(&scat_mapping[index], ram + virt_addr);
                                         else mem_mapping_set_exec(&scat_mapping[index], NULL);
                                         mem_mapping_enable(&scat_mapping[index]);
-//                                        pclog("Map page %d(address %05X) to address %06X\n", scat_ems_reg_2xA & 0x1f, base_addr, virt_addr);
+//                                        scat_log("Map page %d(address %05X) to address %06X\n", scat_ems_reg_2xA & 0x1f, base_addr, virt_addr);
                                 }
                                 else
                                 {
                                         mem_mapping_set_exec(&scat_mapping[index], ram + base_addr);
                                         mem_mapping_disable(&scat_mapping[index]);
                                         if(index < 24) mem_mapping_enable(&scat_4000_9FFF_mapping[index]);
-//                                        pclog("Unmap page %d(address %06X)\n", scat_ems_reg_2xA & 0x1f, base_addr);
+//                                        scat_log("Unmap page %d(address %06X)\n", scat_ems_reg_2xA & 0x1f, base_addr);
                                 }
                                 flushmmucache();
                         }
@@ -484,7 +504,7 @@ void scat_write(uint16_t port, uint8_t val, void *priv)
                 case 0x21A:
                 if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 {
-//                        pclog("Write SCAT EMS Control Port %04X to %02X at %04X:%04X\n", port, val, CS, cpu_state.pc);
+//                        scat_log("Write SCAT EMS Control Port %04X to %02X at %04X:%04X\n", port, val, CS, cpu_state.pc);
                         scat_ems_reg_2xA = ((scat_regs[SCAT_VERSION] & 0xF0) == 0) ? val : val & 0xc3;
                 }
                 break;
@@ -511,7 +531,7 @@ uint8_t scat_read(uint16_t port, void *priv)
                         val = scat_regs[scat_index];
                         break;
                 }
-//                pclog("Read SCAT Register %02X at %04X:%04X\n", scat_index, CS, cpu_state.pc);
+//                scat_log("Read SCAT Register %02X at %04X:%04X\n", scat_index, CS, cpu_state.pc);
                 break;
 
                 case 0x92:
@@ -522,7 +542,7 @@ uint8_t scat_read(uint16_t port, void *priv)
                 case 0x218:
                 if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 {
-//                        pclog("Read SCAT EMS Control Port %04X at %04X:%04X\n", port, CS, cpu_state.pc);
+//                        scat_log("Read SCAT EMS Control Port %04X at %04X:%04X\n", port, CS, cpu_state.pc);
                         if((scat_regs[SCAT_VERSION] & 0xF0) == 0) index = scat_ems_reg_2xA & 0x1F;
                         else index = ((scat_ems_reg_2xA & 0x40) >> 4) + (scat_ems_reg_2xA & 0x3) + 24;
                         val = scat_stat[index].regs_2x8;
@@ -532,7 +552,7 @@ uint8_t scat_read(uint16_t port, void *priv)
                 case 0x219:
                 if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 {
-//                        pclog("Read SCAT EMS Control Port %04X at %04X:%04X\n", port, CS, cpu_state.pc);
+//                        scat_log("Read SCAT EMS Control Port %04X at %04X:%04X\n", port, CS, cpu_state.pc);
                         if((scat_regs[SCAT_VERSION] & 0xF0) == 0) index = scat_ems_reg_2xA & 0x1F;
                         else index = ((scat_ems_reg_2xA & 0x40) >> 4) + (scat_ems_reg_2xA & 0x3) + 24;
                         val = scat_stat[index].regs_2x9;
@@ -542,7 +562,7 @@ uint8_t scat_read(uint16_t port, void *priv)
                 case 0x21A:
                 if ((scat_regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 {
-//                        pclog("Read SCAT EMS Control Port %04X at %04X:%04X\n", port, CS, cpu_state.pc);
+//                        scat_log("Read SCAT EMS Control Port %04X at %04X:%04X\n", port, CS, cpu_state.pc);
                         val = scat_ems_reg_2xA;
                 }
                 break;
@@ -712,7 +732,7 @@ scatsx_init()
 
 
 void
-machine_at_scat_init(machine_t *model)
+machine_at_scat_init(const machine_t *model)
 {
     machine_at_init(model);
     device_add(&fdc_at_device);
@@ -722,9 +742,11 @@ machine_at_scat_init(machine_t *model)
 
 
 void
-machine_at_scatsx_init(machine_t *model)
+machine_at_scatsx_init(const machine_t *model)
 {
-    machine_at_init(model);
+    machine_at_common_init(model);
+
+    device_add(&keyboard_at_ami_device);
     device_add(&fdc_at_device);
 
     scatsx_init();

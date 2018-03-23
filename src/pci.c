@@ -16,6 +16,7 @@
 #include "cdrom/cdrom.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
+#include "disk/zip.h"
 
 
 static uint64_t pci_irq_hold[16];
@@ -654,12 +655,20 @@ static void trc_reset(uint8_t val)
 			pci_reset_handler.super_io_reset();
 		}
 
-		ide_reset();
+		/* ide_reset(); */
+		ide_set_all_signatures();
 		for (i = 0; i < CDROM_NUM; i++)
 		{
-			if (!cdrom_drives[i].bus_type)
+			if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) || (cdrom_drives[i].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA))
 			{
 				cdrom_reset(i);
+			}
+		}
+		for (i = 0; i < ZIP_NUM; i++)
+		{
+			if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI_PIO_ONLY) || (zip_drives[i].bus_type == ZIP_BUS_ATAPI_PIO_AND_DMA))
+			{
+				zip_reset(i);
 			}
 		}
 

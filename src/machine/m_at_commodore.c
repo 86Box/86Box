@@ -46,7 +46,7 @@ static void cbm_io_init()
 
 
 void
-machine_at_cmdpc_init(machine_t *model)
+machine_at_cmdpc_init(const machine_t *model)
 {
 	machine_at_ide_top_remap_init(model);
 	device_add(&fdc_at_device);

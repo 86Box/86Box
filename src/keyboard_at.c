@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.30	2018/03/13
+ * Version:	@(#)keyboard_at.c	1.0.33	2018/03/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -154,7 +154,7 @@ static atkbd_t	*CurrentKbd = NULL;		// FIXME: remove!!! --FvK
 
 
 /* Non-translated to translated scan codes. */
-static uint8_t nont_to_t[256] = {
+static const uint8_t nont_to_t[256] = {
   0xFF, 0x43, 0x41, 0x3F, 0x3D, 0x3B, 0x3C, 0x58,
   0x64, 0x44, 0x42, 0x40, 0x3E, 0x0F, 0x29, 0x59,
   0x65, 0x38, 0x2A, 0x70, 0x1D, 0x10, 0x02, 0x5A,
@@ -189,7 +189,7 @@ static uint8_t nont_to_t[256] = {
   0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
 };
 
-static scancode scancode_set1[512] = {
+static const scancode scancode_set1[512] = {
     { {          -1},{               -1} }, { {     0x01,-1},{          0x81,-1} }, { {     0x02,-1},{          0x82,-1} }, { {     0x03,-1},{          0x83,-1} },        /*000*/
     { {     0x04,-1},{          0x84,-1} }, { {     0x05,-1},{          0x85,-1} }, { {     0x06,-1},{          0x86,-1} }, { {     0x07,-1},{          0x87,-1} },        /*004*/
     { {     0x08,-1},{          0x88,-1} }, { {     0x09,-1},{          0x89,-1} }, { {     0x0a,-1},{          0x8a,-1} }, { {     0x0b,-1},{          0x8b,-1} },        /*008*/
@@ -319,7 +319,7 @@ static scancode scancode_set1[512] = {
     { {          -1},{               -1} }, { {          -1},{               -1} }, { {0xe0,0xfe,-1},{               -1} }, { {0xe0,0xff,-1},{               -1} }         /*1fc*/
 };
 
-static scancode scancode_set2[512] = {
+static const scancode scancode_set2[512] = {
     { {          -1},{               -1} }, { {     0x76,-1},{     0xF0,0x76,-1} }, { {     0x16,-1},{     0xF0,0x16,-1} }, { {     0x1E,-1},{     0xF0,0x1E,-1} },        /*000*/
     { {     0x26,-1},{     0xF0,0x26,-1} }, { {     0x25,-1},{     0xF0,0x25,-1} }, { {     0x2E,-1},{     0xF0,0x2E,-1} }, { {     0x36,-1},{     0xF0,0x36,-1} },        /*004*/
     { {     0x3D,-1},{     0xF0,0x3D,-1} }, { {     0x3E,-1},{     0xF0,0x3E,-1} }, { {     0x46,-1},{     0xF0,0x46,-1} }, { {     0x45,-1},{     0xF0,0x45,-1} },        /*008*/
@@ -449,7 +449,7 @@ static scancode scancode_set2[512] = {
     { {          -1},{               -1} }, { {          -1},{               -1} }, { {0xe0,0xfe,-1},{0xe0,0xF0,0xFE,-1} }, { {0xe0,0xff,-1},{0xe0,0xF0,0xFF,-1} }         /*1fc*/
 };
 
-static scancode scancode_set3[512] = {
+static const scancode scancode_set3[512] = {
     { {          -1},{               -1} }, { {     0x08,-1},{     0xf0,0x08,-1} }, { {     0x16,-1},{     0xf0,0x16,-1} }, { {     0x1E,-1},{     0xf0,0x1E,-1} },        /*000*/
     { {     0x26,-1},{     0xf0,0x26,-1} }, { {     0x25,-1},{     0xf0,0x25,-1} }, { {     0x2E,-1},{     0xf0,0x2E,-1} }, { {     0x36,-1},{     0xf0,0x36,-1} },        /*004*/
     { {     0x3D,-1},{     0xf0,0x3D,-1} }, { {     0x3E,-1},{     0xf0,0x3E,-1} }, { {     0x46,-1},{     0xf0,0x46,-1} }, { {     0x45,-1},{     0xf0,0x45,-1} },        /*008*/
@@ -598,27 +598,23 @@ kbdlog(const char *fmt, ...)
 static void
 kbd_setmap(atkbd_t *kbd)
 {
-    scancode *map = NULL;
-
     switch (keyboard_mode & 3) {
 	case 1:
 	default:
-		map = scancode_set1;
+		keyboard_set_table(scancode_set1);
 		break;
 
 	case 2:
-		map = scancode_set2;
+		keyboard_set_table(scancode_set2);
 		break;
 
 	case 3:
-		map = scancode_set3;
+		keyboard_set_table(scancode_set3);
 		break;
     }
 
     if (keyboard_mode & 0x20)
-	map = scancode_set1;
-
-    keyboard_set_table(map);
+	keyboard_set_table(scancode_set1);
 }
 
 
@@ -981,11 +977,6 @@ kbd_cmd_write(atkbd_t *kbd, uint8_t val)
 
 	kbdlog("ATkbd: mouse interrupt is now %s\n",  (val & 0x02) ? "enabled" : "disabled");
     }
-
-#if 0
-    /* Reset scancode map. */
-    kbd_setmap(kbd);
-#endif
 }
 
 
@@ -1891,7 +1882,7 @@ kbd_reset(void *priv)
 
 
 static void *
-kbd_init(device_t *info)
+kbd_init(const device_t *info)
 {
     atkbd_t *kbd;
 
@@ -1909,6 +1900,10 @@ kbd_init(device_t *info)
     timer_add(kbd_poll, &keyboard_delay, TIMER_ALWAYS_ENABLED, kbd);
 
     if ((kbd->flags & KBC_TYPE_MASK) != KBC_TYPE_ISA) {
+    	if ((kbd->flags & KBC_TYPE_MASK) == KBC_TYPE_PS2_2)
+		keyboard_mode &= ~0x03;		/* These machines force translation off, so the keyboard
+						   must start in scan code set 0. */
+
 	timer_add(kbd_refresh,
 		  &kbd->refresh_time, TIMER_ALWAYS_ENABLED, kbd);
     }
@@ -1969,7 +1964,7 @@ kbd_close(void *priv)
 }
 
 
-device_t keyboard_at_device = {
+const device_t keyboard_at_device = {
     "PC/AT Keyboard",
     0,
     KBC_TYPE_ISA | KBC_VEN_GENERIC,
@@ -1979,7 +1974,7 @@ device_t keyboard_at_device = {
     NULL, NULL, NULL, NULL
 };
 
-device_t keyboard_at_ami_device = {
+const device_t keyboard_at_ami_device = {
     "PC/AT Keyboard (AMI)",
     0,
     KBC_TYPE_ISA | KBC_VEN_AMI,
@@ -1989,7 +1984,7 @@ device_t keyboard_at_ami_device = {
     NULL, NULL, NULL, NULL
 };
 
-device_t keyboard_at_toshiba_device = {
+const device_t keyboard_at_toshiba_device = {
     "PC/AT Keyboard (Toshiba)",
     0,
     KBC_TYPE_ISA | KBC_VEN_TOSHIBA,
@@ -1999,7 +1994,7 @@ device_t keyboard_at_toshiba_device = {
     NULL, NULL, NULL, NULL
 };
 
-device_t keyboard_ps2_device = {
+const device_t keyboard_ps2_device = {
     "PS/2 Keyboard",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
@@ -2009,7 +2004,7 @@ device_t keyboard_ps2_device = {
     NULL, NULL, NULL, NULL
 };
 
-device_t keyboard_ps2_ami_device = {
+const device_t keyboard_ps2_ami_device = {
     "PS/2 Keyboard (AMI)",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_AMI,
@@ -2019,7 +2014,7 @@ device_t keyboard_ps2_ami_device = {
     NULL, NULL, NULL, NULL
 };
 
-device_t keyboard_ps2_mca_device = {
+const device_t keyboard_ps2_mca_device = {
     "PS/2 Keyboard",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_IBM_MCA,
@@ -2029,7 +2024,17 @@ device_t keyboard_ps2_mca_device = {
     NULL, NULL, NULL, NULL
 };
 
-device_t keyboard_ps2_quadtel_device = {
+const device_t keyboard_ps2_mca_2_device = {
+    "PS/2 Keyboard",
+    0,
+    KBC_TYPE_PS2_2 | KBC_VEN_IBM_MCA,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    NULL, NULL, NULL, NULL
+};
+
+const device_t keyboard_ps2_quadtel_device = {
     "PS/2 Keyboard (Quadtel/MegaPC)",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_QUADTEL,

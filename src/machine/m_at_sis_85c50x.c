@@ -6,11 +6,11 @@
  *
  *		Emulation of the SiS 50x PCI chips.
  *
- * Version:	@(#)m_at_sis_85c50x.c	1.0.5	2017/11/04
+ * Version:	@(#)m_at_sis_85c50x.c	1.0.6	2018/03/18
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2017 Miran Grca.
+ *		Copyright 2015-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>

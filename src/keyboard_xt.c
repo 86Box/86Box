@@ -8,15 +8,15 @@
  *
  *		Implementation of the XT-style keyboard.
  *
- * Version:	@(#)keyboard_xt.c	1.0.9	2018/02/24
+ * Version:	@(#)keyboard_xt.c	1.0.11	2018/03/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016,2018 Miran Grca.
- *		Copyright 2018 Fred N. van kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -60,7 +60,7 @@ typedef struct {
 
 
 /*XT keyboard has no escape scancodes, and no scancodes beyond 53*/
-scancode scancode_xt[512] = {
+const scancode scancode_xt[512] = {
     { {-1},       {-1}       }, { {0x01, -1}, {0x81, -1} },
     { {0x02, -1}, {0x82, -1} }, { {0x03, -1}, {0x83, -1} },
     { {0x04, -1}, {0x84, -1} }, { {0x05, -1}, {0x85, -1} },
@@ -530,7 +530,7 @@ kbd_reset(void *priv)
 
 
 static void *
-kbd_init(device_t *info)
+kbd_init(const device_t *info)
 {
     xtkbd_t *kbd;
 
@@ -574,7 +574,7 @@ kbd_close(void *priv)
 }
 
 
-device_t keyboard_xt_device = {
+const device_t keyboard_xt_device = {
     "PC/XT Keyboard",
     0,
     0,
@@ -584,7 +584,7 @@ device_t keyboard_xt_device = {
     NULL, NULL, NULL, NULL
 };
 
-device_t keyboard_tandy_device = {
+const device_t keyboard_tandy_device = {
     "Tandy 1000 Keyboard",
     0,
     1,

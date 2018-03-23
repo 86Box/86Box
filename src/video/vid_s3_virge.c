@@ -8,13 +8,13 @@
  *
  *		S3 ViRGE emulation.
  *
- * Version:	@(#)vid_s3_virge.c	1.0.5	2017/12/28
+ * Version:	@(#)vid_s3_virge.c	1.0.8	2018/03/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -131,8 +131,6 @@ typedef struct virge_t
         
         uint8_t bank;
         uint8_t ma_ext;
-        int width;
-        int bpp;
 
         uint8_t virge_id, virge_id_high, virge_id_low, virge_rev;
 
@@ -155,8 +153,8 @@ typedef struct virge_t
         event_t *wake_main_thread;
         event_t *not_full_event;
         
-        uint32_t hwcursor_col[2];
-        int hwcursor_col_pos;
+        uint32_t hwc_fg_col, hwc_bg_col;
+        int hwc_col_stack_pos;
                         
         struct
         {
@@ -379,23 +377,9 @@ static void s3_virge_out(uint16_t addr, uint8_t val, void *p)
                         virge->ma_ext = (virge->ma_ext & 0x1c) | ((val & 0x30) >> 4);
                         break;
                         case 0x32:
-                        if ((svga->crtc[0x67] & 0xc) != 0xc)
-                                svga->vram_display_mask = (val & 0x40) ? 0x3ffff : ((virge->memory_size << 20) - 1);
 			s3_virge_update_irqs(virge);
                         break;
                         
-                        case 0x50:
-                        switch (svga->crtc[0x50] & 0xc1)
-                        {
-                                case 0x00: virge->width = (svga->crtc[0x31] & 2) ? 2048 : 1024; break;
-                                case 0x01: virge->width = 1152; break;
-                                case 0x40: virge->width = 640;  break;
-                                case 0x80: virge->width = 800;  break;
-                                case 0x81: virge->width = 1600; break;
-                                case 0xc0: virge->width = 1280; break;
-                        }
-                        virge->bpp = (svga->crtc[0x50] >> 4) & 3;
-                        break;
                         case 0x69:
                         virge->ma_ext = val & 0x1f;
                         break;
@@ -434,16 +418,34 @@ static void s3_virge_out(uint16_t addr, uint8_t val, void *p)
                         break;
                         
                         case 0x4a:
-                        virge->hwcursor_col[1] = (virge->hwcursor_col[1] & ~(0xff << (virge->hwcursor_col_pos * 8))) |
-                                                 (val << (virge->hwcursor_col_pos * 8));
-                        virge->hwcursor_col_pos++;
-                        virge->hwcursor_col_pos &= 3;
+                        switch (virge->hwc_col_stack_pos)
+                        {
+                                case 0:
+                                virge->hwc_fg_col = (virge->hwc_fg_col & 0xffff00) | val;
+                                break;
+                                case 1:
+                                virge->hwc_fg_col = (virge->hwc_fg_col & 0xff00ff) | (val << 8);
+                                break;
+                                case 2:
+                                virge->hwc_fg_col = (virge->hwc_fg_col & 0x00ffff) | (val << 16);
+                                break;
+                        }
+                        virge->hwc_col_stack_pos = (virge->hwc_col_stack_pos + 1) & 3;
                         break;
                         case 0x4b:
-                        virge->hwcursor_col[0] = (virge->hwcursor_col[0] & ~(0xff << (virge->hwcursor_col_pos * 8))) |
-                                                 (val << (virge->hwcursor_col_pos * 8));
-                        virge->hwcursor_col_pos++;
-                        virge->hwcursor_col_pos &= 3;
+                        switch (virge->hwc_col_stack_pos)
+                        {
+                                case 0:
+                                virge->hwc_bg_col = (virge->hwc_bg_col & 0xffff00) | val;
+                                break;
+                                case 1:
+                               virge->hwc_bg_col = (virge->hwc_bg_col & 0xff00ff) | (val << 8);
+                                break;
+                                case 2:
+                                virge->hwc_bg_col = (virge->hwc_bg_col & 0x00ffff) | (val << 16);
+                                break;
+                        }
+                        virge->hwc_col_stack_pos = (virge->hwc_col_stack_pos + 1) & 3;
                         break;
 
                         case 0x53:
@@ -515,7 +517,7 @@ static uint8_t s3_virge_in(uint16_t addr, void *p)
                         case 0x31: ret = (svga->crtc[0x31] & 0xcf) | ((virge->ma_ext & 3) << 4); break;
                         case 0x35: ret = (svga->crtc[0x35] & 0xf0) | (virge->bank & 0xf); break;
                         case 0x36: ret = (svga->crtc[0x36] & 0xfc) | 2; break; /*PCI bus*/
-                        case 0x45: virge->hwcursor_col_pos = 0; ret = svga->crtc[0x45]; break;
+                        case 0x45: virge->hwc_col_stack_pos = 0; ret = svga->crtc[0x45]; break;
                         case 0x51: ret = (svga->crtc[0x51] & 0xf0) | ((virge->bank >> 2) & 0xc) | ((virge->ma_ext >> 2) & 3); break;
                         case 0x69: ret = virge->ma_ext; break;
                         case 0x6a: ret = virge->bank; break;
@@ -584,7 +586,7 @@ static void s3_virge_recalctimings(svga_t *svga)
                         	svga->rowoffset = (svga->rowoffset * 3) / 4; /*Hack*/
 	                }
 		}
-                svga->vram_display_mask = (svga->crtc[0x32] & 0x40) ? 0x3ffff : ((virge->memory_size << 20) - 1);
+                svga->vram_display_mask = (!(svga->crtc[0x31] & 0x08) && (svga->crtc[0x32] & 0x40)) ? 0x3ffff : ((virge->memory_size << 20) - 1);
         }
         else /*Streams mode*/
         {
@@ -1810,20 +1812,20 @@ static void s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *p)
                 switch (bpp)                                                                    \
                 {                                                                               \
                         case 0: /*8 bpp*/                                                       \
-                        val = vram[addr & 0x3fffff];                                            \
+                        val = vram[addr & svga->vram_mask];                                     \
                         break;                                                                  \
                         case 1: /*16 bpp*/                                                      \
-                        val = *(uint16_t *)&vram[addr & 0x3fffff];                              \
+                        val = *(uint16_t *)&vram[addr & svga->vram_mask];                       \
                         break;                                                                  \
                         case 2: /*24 bpp*/                                                      \
-                        val = (*(uint32_t *)&vram[addr & 0x3fffff]) & 0xffffff;                 \
+                        val = (*(uint32_t *)&vram[addr & svga->vram_mask]) & 0xffffff;          \
                         break;                                                                  \
                 }                                                                               \
         } while (0)
 
-#define Z_READ(addr) *(uint16_t *)&vram[addr & 0x3fffff]
+#define Z_READ(addr) *(uint16_t *)&vram[addr & svga->vram_mask]
 
-#define Z_WRITE(addr, val) if (!(s3d_tri->cmd_set & CMD_SET_ZB_MODE)) *(uint16_t *)&vram[addr & 0x3fffff] = val
+#define Z_WRITE(addr, val) if (!(s3d_tri->cmd_set & CMD_SET_ZB_MODE)) *(uint16_t *)&vram[addr & svga->vram_mask] = val
 
 #define CLIP(x, y)                                              \
         do                                                      \
@@ -1883,23 +1885,24 @@ static void s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *p)
                 switch (bpp)                                                                    \
                 {                                                                               \
                         case 0: /*8 bpp*/                                                       \
-                        vram[addr & 0x3fffff] = val;                                            \
-                        virge->svga.changedvram[(addr & 0x3fffff) >> 12] = changeframecount;    \
+                        vram[addr & svga->vram_mask] = val;                                     \
+                        virge->svga.changedvram[(addr & svga->vram_mask) >> 12] = changeframecount;    \
                         break;                                                                  \
                         case 1: /*16 bpp*/                                                      \
-                        *(uint16_t *)&vram[addr & 0x3fffff] = val;                              \
-                        virge->svga.changedvram[(addr & 0x3fffff) >> 12] = changeframecount;    \
+                        *(uint16_t *)&vram[addr & svga->vram_mask] = val;                       \
+                        virge->svga.changedvram[(addr & svga->vram_mask) >> 12] = changeframecount;    \
                         break;                                                                  \
                         case 2: /*24 bpp*/                                                      \
-                        *(uint32_t *)&vram[addr & 0x3fffff] = (val & 0xffffff) |                \
-                                                              (vram[(addr + 3) & 0x3fffff] << 24);  \
-                        virge->svga.changedvram[(addr & 0x3fffff) >> 12] = changeframecount;    \
+                        *(uint32_t *)&vram[addr & svga->vram_mask] = (val & 0xffffff) |         \
+                                                              (vram[(addr + 3) & svga->vram_mask] << 24);  \
+                        virge->svga.changedvram[(addr & svga->vram_mask) >> 12] = changeframecount;    \
                         break;                                                                  \
                 }                                                                               \
         } while (0)
 
 static void s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
 {
+	svga_t *svga = &virge->svga;
         uint8_t *vram = virge->svga.vram;
         uint32_t mono_pattern[64];
         int count_mask;
@@ -2916,6 +2919,7 @@ static void dest_pixel_lit_texture_modulate(s3d_state_t *state)
 
 static void tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int32_t dx2)
 {
+	svga_t *svga = &virge->svga;
         uint8_t *vram = virge->svga.vram;
 
         int x_dir = s3d_tri->tlr ? 1 : -1;
@@ -3059,7 +3063,7 @@ static void tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int3
                                 }
                         }
 
-                        virge->svga.changedvram[(dest_offset & 0x3fffff) >> 12] = changeframecount;
+                        virge->svga.changedvram[(dest_offset & svga->vram_mask) >> 12] = changeframecount;
 
                         dest_addr = dest_offset + (x * (bpp + 1));
                         z_addr = z_offset + (x << 1);
@@ -3089,11 +3093,11 @@ static void tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int3
                                                         /*Not implemented yet*/
                                                         break;
                                                         case 1: /*16 bpp*/
-                                                        src_col = *(uint16_t *)&vram[dest_addr & 0x3fffff];
+                                                        src_col = *(uint16_t *)&vram[dest_addr & svga->vram_mask];
                                                         RGB15_TO_24(src_col, src_r, src_g, src_b);
                                                         break;
                                                         case 2: /*24 bpp*/
-                                                        src_col = (*(uint32_t *)&vram[dest_addr & 0x3fffff]) & 0xffffff;
+                                                        src_col = (*(uint32_t *)&vram[dest_addr & svga->vram_mask]) & 0xffffff;
                                                         RGB24_TO_24(src_col, src_r, src_g, src_b);
                                                         break;
                                                 }
@@ -3352,11 +3356,35 @@ static void s3_virge_hwcursor_draw(svga_t *svga, int displine)
         uint16_t dat[2];
         int xx;
         int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
+        uint32_t fg, bg;
 	int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
 	int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
         
         if (svga->interlace && svga->hwcursor_oddeven)
                 svga->hwcursor_latch.addr += 16;
+
+        switch (svga->bpp)
+        {               
+                case 15:
+                fg = video_15to32[virge->hwc_fg_col & 0xffff];
+                bg = video_15to32[virge->hwc_bg_col & 0xffff];
+                break;
+                
+                case 16:
+                fg = video_16to32[virge->hwc_fg_col & 0xffff];
+                bg = video_16to32[virge->hwc_bg_col & 0xffff];
+                break;
+                
+                case 24: case 32:
+                fg = virge->hwc_fg_col;
+                bg = virge->hwc_bg_col;
+                break;
+
+                default:
+                fg = svga->pallook[virge->hwc_fg_col & 0xff];
+                bg = svga->pallook[virge->hwc_bg_col & 0xff];
+                break;
+        }
 
         for (x = 0; x < 64; x += 16)
         {
@@ -3370,7 +3398,7 @@ static void s3_virge_hwcursor_draw(svga_t *svga, int displine)
                                 if (offset >= svga->hwcursor_latch.x)
                                 {
                                         if (dat[0] & 0x8000)
-                                                ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add]  = virge->hwcursor_col[dat[1] >> 15];
+                                                ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add]  = (dat[1] & 0x8000) ? fg : bg;
                                 }
                            
                                 offset++;
@@ -3386,7 +3414,7 @@ static void s3_virge_hwcursor_draw(svga_t *svga, int displine)
                                 if (offset >= svga->hwcursor_latch.x)
                                 {
                                         if (!(dat[0] & 0x8000))
-                                           ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add]  = virge->hwcursor_col[dat[1] >> 15];
+                                           ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add]  = (dat[1] & 0x8000) ? fg : bg;
                                         else if (dat[1] & 0x8000)
                                            ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add] ^= 0xffffff;
                                 }
@@ -3773,7 +3801,7 @@ static void s3_virge_pci_write(int func, int addr, uint8_t val, void *p)
         }
 }
 
-static void *s3_virge_init(device_t *info)
+static void *s3_virge_init(const device_t *info)
 {
         virge_t *virge = malloc(sizeof(virge_t));
         memset(virge, 0, sizeof(virge_t));
@@ -3873,7 +3901,7 @@ static void *s3_virge_init(device_t *info)
         return virge;
 }
 
-static void *s3_virge_988_init(device_t *info)
+static void *s3_virge_988_init(const device_t *info)
 {
         virge_t *virge = malloc(sizeof(virge_t));
         memset(virge, 0, sizeof(virge_t));
@@ -3972,7 +4000,7 @@ static void *s3_virge_988_init(device_t *info)
         return virge;
 }
 
-static void *s3_virge_375_init(device_t *info, wchar_t *romfn)
+static void *s3_virge_375_init(const device_t *info, wchar_t *romfn)
 {
         virge_t *virge = malloc(sizeof(virge_t));
         memset(virge, 0, sizeof(virge_t));
@@ -4072,12 +4100,12 @@ static void *s3_virge_375_init(device_t *info, wchar_t *romfn)
         return virge;
 }
 
-static void *s3_virge_375_1_init(device_t *info)
+static void *s3_virge_375_1_init(const device_t *info)
 {
 	return s3_virge_375_init(info, L"roms/video/s3virge/86c375_1.bin");
 }
 
-static void *s3_virge_375_4_init(device_t *info)
+static void *s3_virge_375_4_init(const device_t *info)
 {
 	return s3_virge_375_init(info, L"roms/video/s3virge/86c375_4.bin");
 }
@@ -4160,7 +4188,7 @@ static void s3_virge_add_status_info(char *s, int max_len, void *p)
         reg_writes = 0;
 }
 
-static device_config_t s3_virge_config[] =
+static const device_config_t s3_virge_config[] =
 {
         {
                 "memory", "Memory size", CONFIG_SELECTION, "", 4,
@@ -4187,7 +4215,7 @@ static device_config_t s3_virge_config[] =
         }
 };
 
-device_t s3_virge_vlb_device =
+const device_t s3_virge_vlb_device =
 {
         "Diamond Stealth 3D 2000 (S3 ViRGE) VLB",
         DEVICE_VLB,
@@ -4202,7 +4230,7 @@ device_t s3_virge_vlb_device =
         s3_virge_config
 };
 
-device_t s3_virge_pci_device =
+const device_t s3_virge_pci_device =
 {
         "Diamond Stealth 3D 2000 (S3 ViRGE) PCI",
         DEVICE_PCI,
@@ -4217,7 +4245,7 @@ device_t s3_virge_pci_device =
         s3_virge_config
 };
 
-device_t s3_virge_988_vlb_device =
+const device_t s3_virge_988_vlb_device =
 {
         "Diamond Stealth 3D 3000 (S3 ViRGE/VX) VLB",
         DEVICE_VLB,
@@ -4232,7 +4260,7 @@ device_t s3_virge_988_vlb_device =
         s3_virge_config
 };
 
-device_t s3_virge_988_pci_device =
+const device_t s3_virge_988_pci_device =
 {
         "Diamond Stealth 3D 3000 (S3 ViRGE/VX) PCI",
         DEVICE_PCI,
@@ -4247,7 +4275,7 @@ device_t s3_virge_988_pci_device =
         s3_virge_config
 };
 
-device_t s3_virge_375_vlb_device =
+const device_t s3_virge_375_vlb_device =
 {
         "S3 ViRGE/DX VLB",
         DEVICE_VLB,
@@ -4262,7 +4290,7 @@ device_t s3_virge_375_vlb_device =
         s3_virge_config
 };
 
-device_t s3_virge_375_pci_device =
+const device_t s3_virge_375_pci_device =
 {
         "S3 ViRGE/DX PCI",
         DEVICE_PCI,
@@ -4277,7 +4305,7 @@ device_t s3_virge_375_pci_device =
         s3_virge_config
 };
 
-device_t s3_virge_375_4_vlb_device =
+const device_t s3_virge_375_4_vlb_device =
 {
         "S3 ViRGE/DX (VBE 2.0) VLB",
         DEVICE_VLB,
@@ -4292,7 +4320,7 @@ device_t s3_virge_375_4_vlb_device =
         s3_virge_config
 };
 
-device_t s3_virge_375_4_pci_device =
+const device_t s3_virge_375_4_pci_device =
 {
         "S3 ViRGE/DX (VBE 2.0) PCI",
         DEVICE_PCI,

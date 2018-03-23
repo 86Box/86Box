@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.23	2018/03/15
+ * Version:	@(#)video.h	1.0.25	2018/03/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -84,9 +84,12 @@ enum {
     GFX_CL_GD5430_VLB,		/* Diamond SpeedStar PRO SE (Cirrus Logic CL-GD 5430) VLB */
     GFX_CL_GD5430_PCI,		/* Cirrus Logic CL-GD 5430 PCI */
     GFX_CL_GD5434_ISA, 		/* Cirrus Logic CL-GD 5434 ISA */
-	GFX_CL_GD5434_VLB,		/* Cirrus Logic CL-GD 5434 VLB */
-	GFX_CL_GD5434_PCI,		/* Cirrus Logic CL-GD 5434 PCI */
-	GFX_CL_GD5436_PCI,		/* Cirrus Logic CL-GD 5436 PCI */
+    GFX_CL_GD5434_VLB,		/* Cirrus Logic CL-GD 5434 VLB */
+    GFX_CL_GD5434_PCI,		/* Cirrus Logic CL-GD 5434 PCI */
+    GFX_CL_GD5436_PCI,		/* Cirrus Logic CL-GD 5436 PCI */
+    GFX_CL_GD5446_PCI,		/* Cirrus Logic CL-GD 5446 PCI */
+    GFX_CL_GD5446_STB_PCI,	/* STB Nitro 64V (Cirrus Logic CL-GD 5446) PCI */
+    GFX_CL_GD5480_PCI,		/* Cirrus Logic CL-GD 5480 PCI */
 #if defined(DEV_BRANCH) && defined(USE_RIVA)
     GFX_RIVATNT,		/* nVidia Riva TNT */
     GFX_RIVATNT2,		/* nVidia Riva TNT2 */
@@ -176,6 +179,7 @@ extern int	fullchange;
 extern uint8_t	fontdat[2048][8];
 extern uint8_t	fontdatm[2048][16];
 extern dbcs_font_t	*fontdatksc5601;
+extern dbcs_font_t	*fontdatksc5601_user;
 extern uint32_t	*video_6to8,
 		*video_15to32,
 		*video_16to32;
@@ -214,7 +218,7 @@ extern void	(*video_recalctimings)(void);
 extern int	video_card_available(int card);
 extern char	*video_card_getname(int card);
 #ifdef EMU_DEVICE_H
-extern device_t	*video_card_getdevice(int card);
+extern const device_t	*video_card_getdevice(int card);
 #endif
 extern int	video_card_has_config(int card);
 extern video_timings_t	*video_card_gettiming(int card);

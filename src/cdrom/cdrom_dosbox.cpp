@@ -58,41 +58,41 @@ CDROM_Interface_Image::BinaryFile::BinaryFile(const char *filename, bool &error)
 {
 	memset(fn, 0, sizeof(fn));
 	strcpy(fn, filename);
-	error = false;
+	file = fopen64(fn, "rb");
+	if (file == NULL)
+		error = true;
+	else
+		error = false;
 }
 
 CDROM_Interface_Image::BinaryFile::~BinaryFile()
 {
+	fclose(file);
+	file = NULL;
 	memset(fn, 0, sizeof(fn));
 }
 
 bool CDROM_Interface_Image::BinaryFile::read(Bit8u *buffer, uint64_t seek, uint64_t count)
 {
-	file = fopen64(fn, "rb");
-	if (file == NULL) return 0;
 	fseeko64(file, seek, SEEK_SET);
 	fread(buffer, 1, count, file);
-	fclose(file);
 	return 1;
 }
 
 uint64_t CDROM_Interface_Image::BinaryFile::getLength()
 {
-	uint64_t ret = 0;
-	file = fopen64(fn, "rb");
-	if (file == NULL) return 0;
 	fseeko64(file, 0, SEEK_END);
-	ret = ftello64(file);
-	fclose(file);
-	return ret;
+	return ftello64(file);
 }
 
 CDROM_Interface_Image::CDROM_Interface_Image()
 {
+	printf("CDROM_Interface_Image constructor\n");
 }
 
 CDROM_Interface_Image::~CDROM_Interface_Image()
 {
+	printf("CDROM_Interface_Image destructor\n");
 	ClearTracks();
 }
 
@@ -357,6 +357,7 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 	ifstream in;
 	in.open(cuefile, ios::in);
 	if (in.fail()) return false;
+	int last_attr;
 	
 	while(!in.eof()) {
 		// get next line
@@ -411,6 +412,7 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 				track.attr = DATA_TRACK;
 				track.mode2 = true;
 			} else if (type == "MODE2/2352") {
+				track.form = 1;		/* Assume this is XA Mode 2 Form 1. */
 				track.sectorSize = RAW_SECTOR_SIZE;
 				track.attr = DATA_TRACK;
 				track.mode2 = true;
@@ -427,6 +429,7 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 				track.attr = DATA_TRACK;
 				track.mode2 = true;
 			} else success = false;
+			last_attr = track.attr;
 			
 			canAddTrack = true;
 		}
@@ -480,6 +483,7 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 	track.track_number = 0xAA;
 	// track.attr = 0;//sync with load iso
 	track.attr = 0x16;	/* Was 0x00 but I believe 0x16 is appropriate. */
+	// track.attr = last_attr | 0x02;
 	track.start = 0;
 	track.length = 0;
 	track.file = NULL;

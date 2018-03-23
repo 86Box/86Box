@@ -1,1 +1,1 @@
-extern device_t voodoo_device;
+extern const device_t voodoo_device;

@@ -6,9 +6,9 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the Intel 2 Mbit 8-bit flash devices.
+ *		Implementation of the Intel 1 Mbit 8-bit flash devices.
  *
- * Version:	@(#)intel_flash.c	1.0.13	2018/02/09
+ * Version:	@(#)intel_flash.c	1.0.14	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -288,7 +288,7 @@ void intel_flash_close(void *p)
 }
 
 
-device_t intel_flash_bxt_ami_device =
+const device_t intel_flash_bxt_ami_device =
 {
         "Intel 28F001BXT Flash BIOS",
         0, 0,
@@ -298,7 +298,7 @@ device_t intel_flash_bxt_ami_device =
         NULL, NULL, NULL, NULL, NULL
 };
 
-device_t intel_flash_bxb_ami_device =
+const device_t intel_flash_bxb_ami_device =
 {
         "Intel 28F001BXB Flash BIOS",
         0, 0,
@@ -308,7 +308,7 @@ device_t intel_flash_bxb_ami_device =
         NULL, NULL, NULL, NULL, NULL
 };
 
-device_t intel_flash_bxt_device =
+const device_t intel_flash_bxt_device =
 {
         "Intel 28F001BXT Flash BIOS",
         0, 0,
@@ -318,7 +318,7 @@ device_t intel_flash_bxt_device =
         NULL, NULL, NULL, NULL, NULL
 };
 
-device_t intel_flash_bxb_device =
+const device_t intel_flash_bxb_device =
 {
         "Intel 28F001BXB Flash BIOS",
         0, 0,

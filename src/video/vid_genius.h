@@ -1,1 +1,1 @@
-extern device_t genius_device;
+extern const device_t genius_device;

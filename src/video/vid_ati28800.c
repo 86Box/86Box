@@ -8,13 +8,15 @@
  *
  *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.12	2018/03/16
+ * Version:	@(#)vid_ati28800.c	1.0.15	2018/03/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *		greatpsycho,
  *
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2018 greatpsycho.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -60,16 +62,15 @@ typedef struct ati28800_t
         int index;
 		
 	uint32_t memory;
+
+	uint8_t		port_03dd_val;
+	uint16_t	get_korean_font_kind;
+	int		in_get_korean_font_kind_set;
+	int		get_korean_font_enabled;
+	int		get_korean_font_index;
+	uint16_t	get_korean_font_base;
+	int		ksc5601_mode_enabled;
 } ati28800_t;
-
-
-uint8_t		port_03dd_val;
-uint16_t	get_korean_font_kind;
-int		in_get_korean_font_kind_set;
-int		get_korean_font_enabled;
-int		get_korean_font_index;
-uint16_t	get_korean_font_base;
-int		ksc5601_mode_enabled;
 
 
 static void ati28800_out(uint16_t addr, uint8_t val, void *p)
@@ -154,43 +155,53 @@ void ati28800k_out(uint16_t addr, uint8_t val, void *p)
                 case 0x1CF:
                 if(ati28800->index == 0xBF && ((ati28800->regs[0xBF] ^ val) & 0x20))
                 {
-                        ksc5601_mode_enabled = val & 0x20;
+                        ati28800->ksc5601_mode_enabled = val & 0x20;
                         svga_recalctimings(svga);
 
                 }
                 ati28800_out(oldaddr, val, p);
                 break;
                 case 0x3DD:
-                port_03dd_val = val;
-                if(val == 1) get_korean_font_enabled = 0;
-                if(in_get_korean_font_kind_set)
+                ati28800->port_03dd_val = val;
+                if(val == 1)  ati28800->get_korean_font_enabled = 0;
+                if(ati28800->in_get_korean_font_kind_set)
                 {
-                        get_korean_font_kind = (val << 8) | (get_korean_font_kind & 0xFF);
-                        get_korean_font_enabled = 1;
-                        get_korean_font_index = 0;
-						in_get_korean_font_kind_set = 0;
+                        ati28800->get_korean_font_kind = (val << 8) | (ati28800->get_korean_font_kind & 0xFF);
+                        ati28800->get_korean_font_enabled = 1;
+                        ati28800->get_korean_font_index = 0;
+			ati28800->in_get_korean_font_kind_set = 0;
                 }
                 break;
                 case 0x3DE:
-                in_get_korean_font_kind_set = 0;
-                switch(port_03dd_val)
+                ati28800->in_get_korean_font_kind_set = 0;
+                if(ati28800->get_korean_font_enabled && (ati28800->regs[0xBF] & 0x20))
                 {
-                        case 0x10:
-                        get_korean_font_base = ((val & 0x7F) << 7) | (get_korean_font_base & 0x7F);
-                        break;
-                        case 8:
-                        get_korean_font_base = (get_korean_font_base & 0x3F80) | (val & 0x7F);
-                        break;
-                        case 1:
-                        get_korean_font_kind = (get_korean_font_kind & 0xFF00) | val;
-                        if(val & 2) in_get_korean_font_kind_set = 1;
-                        break;
-                        default:
-                        break;
+                        if((ati28800->get_korean_font_base & 0x7F) > 0x20 && (ati28800->get_korean_font_base & 0x7F) < 0x7F)
+                                fontdatksc5601_user[(ati28800->get_korean_font_kind & 4) * 24 + (ati28800->get_korean_font_base & 0x7F) - 0x20].chr[ati28800->get_korean_font_index] = val;
+                        ati28800->get_korean_font_index++;
+                        ati28800->get_korean_font_index &= 0x1F;
                 }
-                break;
-                default:
-                ati28800_out(oldaddr, val, p);
+                else
+
+		{
+	                switch(ati28800->port_03dd_val)
+        	        {
+	                        case 0x10:
+        	                ati28800->get_korean_font_base = ((val & 0x7F) << 7) | (ati28800->get_korean_font_base & 0x7F);
+                	        break;
+	                        case 8:
+        	                ati28800->get_korean_font_base = (ati28800->get_korean_font_base & 0x3F80) | (val & 0x7F);
+                	        break;
+	                        case 1:
+        	                ati28800->get_korean_font_kind = (ati28800->get_korean_font_kind & 0xFF00) | val;
+                	        if(val & 2)
+					ati28800->in_get_korean_font_kind_set = 1;
+	                        break;
+			}
+	                break;
+		}
+               	default:
+       	        ati28800_out(oldaddr, val, p);
                 break;
         }
 }
@@ -213,15 +224,15 @@ static uint8_t ati28800_in(uint16_t addr, void *p)
                 case 0x1cf:
                 switch (ati28800->index)
                 {
-						case 0xb0:
-						if (ati28800->memory == 256)
-							return 0x08;
-						else if (ati28800->memory == 512)
-							return 0x10;
-						else
-							return 0x18;
-						break;
-					
+			case 0xb0:
+			if (ati28800->memory == 256)
+				return 0x08;
+			else if (ati28800->memory == 512)
+				return 0x10;
+			else
+				return 0x18;
+			break;
+
                         case 0xb7:
                         temp = ati28800->regs[ati28800->index] & ~8;
                         if (ati_eeprom_read(&ati28800->eeprom))
@@ -301,20 +312,24 @@ uint8_t ati28800k_in(uint16_t addr, void *p)
         switch (addr)
         {
                 case 0x3DE:
-                if(get_korean_font_enabled && (ati28800->regs[0xBF] & 0x20))
+                if (ati28800->get_korean_font_enabled && (ati28800->regs[0xBF] & 0x20))
                 {
-                        switch(get_korean_font_kind >> 8)
+                        switch(ati28800->get_korean_font_kind >> 8)
                         {
                                 case 4: /* ROM font */
-                                temp = fontdatksc5601[get_korean_font_base].chr[get_korean_font_index++];
+                                temp = fontdatksc5601[ati28800->get_korean_font_base].chr[ati28800->get_korean_font_index++];
                                 break;
-                                case 2: /* User defined font - TODO : Should be implemented later */
-                                temp = 0;
+                                case 2: /* User defined font */
+                                if((ati28800->get_korean_font_base & 0x7F) > 0x20 && (ati28800->get_korean_font_base & 0x7F) < 0x7F)
+                                        temp = fontdatksc5601_user[(ati28800->get_korean_font_kind & 4) * 24 + (ati28800->get_korean_font_base & 0x7F) - 0x20].chr[ati28800->get_korean_font_index];
+                                else
+                                        temp = 0xFF;
+                                ati28800->get_korean_font_index++;
                                 break;
                                 default:
                                 break;
                         }
-                        get_korean_font_index &= 0x1F;
+                        ati28800->get_korean_font_index &= 0x1F;
                 }
                 break;
                 default:
@@ -378,29 +393,31 @@ static void ati28800_recalctimings(svga_t *svga)
 
 void ati28800k_recalctimings(svga_t *svga)
 {
+	ati28800_t *ati28800 = (ati28800_t *) svga->p;
+
         ati28800_recalctimings(svga);
 
-        if (svga->render == svga_render_text_80 && ksc5601_mode_enabled)
+        if (svga->render == svga_render_text_80 && ati28800->ksc5601_mode_enabled)
         {
                 svga->render = svga_render_text_80_ksc5601;
         }
 }
 
 void *
-ati28800k_init(device_t *info)
+ati28800k_init(const device_t *info)
 {
         ati28800_t *ati28800 = malloc(sizeof(ati28800_t));
         memset(ati28800, 0, sizeof(ati28800_t));
 
-		ati28800->memory = device_get_config_int("memory");
+	ati28800->memory = device_get_config_int("memory");
 		
-        port_03dd_val = 0;
-        get_korean_font_base = 0;
-        get_korean_font_index = 0;
-        get_korean_font_enabled = 0;
-        get_korean_font_kind = 0;
-        in_get_korean_font_kind_set = 0;
-        ksc5601_mode_enabled = 0;
+        ati28800->port_03dd_val = 0;
+        ati28800->get_korean_font_base = 0;
+        ati28800->get_korean_font_index = 0;
+        ati28800->get_korean_font_enabled = 0;
+        ati28800->get_korean_font_kind = 0;
+        ati28800->in_get_korean_font_kind_set = 0;
+        ati28800->ksc5601_mode_enabled = 0;
         
         rom_init(&ati28800->bios_rom, BIOS_ATIKOR_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 		loadfont(FONT_ATIKOR_PATH, 6);
@@ -422,13 +439,13 @@ ati28800k_init(device_t *info)
 }
 
 static void *
-ati28800_init(device_t *info)
+ati28800_init(const device_t *info)
 {
     ati28800_t *ati;
     ati = malloc(sizeof(ati28800_t));
     memset(ati, 0x00, sizeof(ati28800_t));
 
-	ati->memory = device_get_config_int("memory");	
+    ati->memory = device_get_config_int("memory");	
 	
     switch(info->local) {
 	case GFX_VGAWONDERXL:
@@ -536,17 +553,6 @@ ati28800_force_redraw(void *priv)
     ati->svga.fullchange = changeframecount;
 }
 
-void ati28800k_add_status_info(char *s, int max_len, void *p)
-{
-        ati28800_t *ati28800 = (ati28800_t *)p;
-        char temps[128];
-        
-        svga_add_status_info(s, max_len, &ati28800->svga);
-
-        sprintf(temps, "Korean SVGA mode enabled : %s\n\n", ksc5601_mode_enabled ? "Yes" : "No");
-        strncat(s, temps, max_len);
-}
-
 static void ati28800_add_status_info(char *s, int max_len, void *priv)
 {
     ati28800_t *ati = (ati28800_t *)priv;
@@ -554,8 +560,19 @@ static void ati28800_add_status_info(char *s, int max_len, void *priv)
     svga_add_status_info(s, max_len, &ati->svga);
 }
 
+void ati28800k_add_status_info(char *s, int max_len, void *p)
+{
+        ati28800_t *ati28800 = (ati28800_t *)p;
+        char temps[128];
+        
+        ati28800_add_status_info(s, max_len, p);
 
-static device_config_t ati28800_config[] =
+        sprintf(temps, "Korean SVGA mode enabled : %s\n\n", ati28800->ksc5601_mode_enabled ? "Yes" : "No");
+        strncat(s, temps, max_len);
+}
+
+
+static const device_config_t ati28800_config[] =
 {
         {
                 "memory", "Memory size", CONFIG_SELECTION, "", 512,
@@ -580,7 +597,7 @@ static device_config_t ati28800_config[] =
 };
 
 #if defined(DEV_BRANCH) && defined(USE_XL24)
-static device_config_t ati28800_wonderxl_config[] =
+static const device_config_t ati28800_wonderxl_config[] =
 {
         {
                 "memory", "Memory size", CONFIG_SELECTION, "", 512,
@@ -605,7 +622,7 @@ static device_config_t ati28800_wonderxl_config[] =
 };
 #endif
 
-device_t ati28800_device =
+const device_t ati28800_device =
 {
         "ATI-28800",
         DEVICE_ISA,
@@ -618,7 +635,7 @@ device_t ati28800_device =
 	ati28800_config
 };
 
-device_t ati28800k_device =
+const device_t ati28800k_device =
 {
         "ATI Korean VGA",
         DEVICE_ISA,
@@ -631,7 +648,7 @@ device_t ati28800k_device =
 	ati28800_config
 };
 
-device_t compaq_ati28800_device =
+const device_t compaq_ati28800_device =
 {
         "Compaq ATI-28800",
         DEVICE_ISA,
@@ -645,7 +662,7 @@ device_t compaq_ati28800_device =
 };
 
 #if defined(DEV_BRANCH) && defined(USE_XL24)
-device_t ati28800_wonderxl24_device =
+const device_t ati28800_wonderxl24_device =
 {
         "ATI-28800 (VGA Wonder XL24)",
         DEVICE_ISA,

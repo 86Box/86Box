@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.14	2018/02/18
+ * Version:	@(#)sound.c	1.0.15	2018/03/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -45,7 +45,7 @@
 typedef struct {
         const char *name;
         const char *internal_name;
-        device_t *device;
+        const device_t *device;
 } SOUND_CARD;
 
 typedef struct {
@@ -77,7 +77,7 @@ static int cd_buf_update = CD_BUFLEN / SOUNDBUFLEN;
 static volatile int cdaudioon = 0;
 
 
-static SOUND_CARD sound_cards[] =
+static const SOUND_CARD sound_cards[] =
 {
     { "None",                       "none",	NULL			},
     { "[ISA] Adlib",                "adlib",	&adlib_device		},
@@ -115,7 +115,7 @@ char *sound_card_getname(int card)
         return (char *) sound_cards[card].name;
 }
 
-device_t *sound_card_getdevice(int card)
+const device_t *sound_card_getdevice(int card)
 {
         return sound_cards[card].device;
 }

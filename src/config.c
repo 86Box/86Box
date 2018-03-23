@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.44	2018/03/06
+ * Version:	@(#)config.c	1.0.46	2018/03/18
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -55,7 +55,6 @@
 #include "sound/sound.h"
 #include "video/video.h"
 #include "plat.h"
-#include "plat_joystick.h"
 #include "plat_midi.h"
 #include "ui.h"
 
@@ -649,22 +648,27 @@ load_network(void)
     } else
 	network_type = NET_TYPE_NONE;
 
-    memset(network_pcap, '\0', sizeof(network_pcap));
-    p = config_get_string(cat, "net_pcap_device", NULL);
+    memset(network_host, '\0', sizeof(network_host));
+    p = config_get_string(cat, "net_host_device", NULL);
+    if (p == NULL) {
+	p = config_get_string(cat, "net_host_device", NULL);
+	if (p != NULL)
+		config_delete_var(cat, "net_host_device");
+    }
     if (p != NULL) {
 	if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
-		if ((network_ndev == 1) && strcmp(network_pcap, "none")) {
+		if ((network_ndev == 1) && strcmp(network_host, "none")) {
 			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2140);
 		} else if (network_dev_to_id(p) == -1) {
 			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2141);
 		}
 
-		strcpy(network_pcap, "none");
+		strcpy(network_host, "none");
 	} else {
-		strcpy(network_pcap, p);
+		strcpy(network_host, p);
 	}
     } else
-	strcpy(network_pcap, "none");
+	strcpy(network_host, "none");
 
     p = config_get_string(cat, "net_card", NULL);
     if (p != NULL)
@@ -1095,7 +1099,6 @@ load_removable_devices(void)
 	} else
 #endif
 	wcsncpy(cdrom_image[c].image_path, wp, sizeof_w(cdrom_image[c].image_path));
-	wcscpy(cdrom_image[c].prev_image_path, cdrom_image[c].image_path);
 
 	if (cdrom_drives[c].host_drive < 'A')
 		cdrom_drives[c].host_drive = 0;
@@ -1288,7 +1291,6 @@ load_other_removable_devices(void)
 	} else
 #endif
 	wcsncpy(cdrom_image[c].image_path, wp, sizeof_w(cdrom_image[c].image_path));
-	wcscpy(cdrom_image[c].prev_image_path, cdrom_image[c].image_path);
 
 	if (cdrom_drives[c].host_drive < 'A')
 		cdrom_drives[c].host_drive = 0;
@@ -1754,14 +1756,14 @@ save_network(void)
 	config_set_string(cat, "net_type",
 		(network_type == NET_TYPE_SLIRP) ? "slirp" : "pcap");
 
-    if (network_pcap[0] != '\0') {
-	if (! strcmp(network_pcap, "none"))
-		config_delete_var(cat, "net_pcap_device");
+    if (network_host[0] != '\0') {
+	if (! strcmp(network_host, "none"))
+		config_delete_var(cat, "net_host_device");
 	  else
-		config_set_string(cat, "net_pcap_device", network_pcap);
+		config_set_string(cat, "net_host_device", network_host);
     } else {
-	/* config_set_string(cat, "net_pcap_device", "none"); */
-	config_delete_var(cat, "net_pcap_device");
+	/* config_set_string(cat, "net_host_device", "none"); */
+	config_delete_var(cat, "net_host_device");
     }
 
     if (network_card == 0)
