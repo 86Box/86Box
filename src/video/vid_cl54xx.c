@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.14	2018/03/23
+ * Version:	@(#)vid_cl_54xx.c	1.0.15	2018/03/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,
@@ -163,16 +163,20 @@ typedef struct gd54xx_t
 	uint16_t		pixel_cnt;
 	uint16_t		scan_cnt;
     } blt;
-	     
-	int pci, vlb;	 
-		 
-	uint8_t pci_regs[256];
-	uint8_t int_line;
-	int card;
-        
-	uint32_t lfb_base;
-	
-	int mmio_vram_overlap;
+
+    int pci, vlb;	 
+
+    uint8_t pci_regs[256];
+    uint8_t int_line;
+
+    int card;
+
+    uint32_t lfb_base;
+
+    int mmio_vram_overlap;
+
+    uint32_t extpallook[256];
+    PALETTE extpal;
 } gd54xx_t;
 
 static void 
@@ -203,16 +207,57 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
     gd54xx_t *gd54xx = (gd54xx_t *)p;
     svga_t *svga = &gd54xx->svga;
     uint8_t old;
+    int c;
+    uint8_t o;
+    uint32_t o32;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
 	addr ^= 0x60;
 
     switch (addr) {
+	case 0x3c0:
+	case 0x3c1:
+		if (!svga->attrff) {
+			svga->attraddr = val & 31;
+			if ((val & 0x20) != svga->attr_palette_enable) {
+				svga->fullchange = 3;
+				svga->attr_palette_enable = val & 0x20;
+				svga_recalctimings(svga);
+			}
+		} else {
+			o = svga->attrregs[svga->attraddr & 31];
+			svga->attrregs[svga->attraddr & 31] = val;
+			if (svga->attraddr < 16) 
+				svga->fullchange = changeframecount;
+			if (svga->attraddr == 0x10 || svga->attraddr == 0x14 || svga->attraddr < 0x10) {
+				for (c = 0; c < 16; c++) {
+					if (svga->attrregs[0x10] & 0x80) svga->egapal[c] = (svga->attrregs[c] &  0xf) | ((svga->attrregs[0x14] & 0xf) << 4);
+					else                             svga->egapal[c] = (svga->attrregs[c] & 0x3f) | ((svga->attrregs[0x14] & 0xc) << 4);
+				}
+			}
+			/* Recalculate timings on change of attribute register 0x11 (overscan border color) too. */
+			if (svga->attraddr == 0x10) {
+				if (o != val)
+					svga_recalctimings(svga);
+			} else if (svga->attraddr == 0x11) {
+				if (!(svga->seqregs[0x12] & 0x80)) {
+					svga->overscan_color = svga->pallook[svga->attrregs[0x11]];
+					if (o != val)  svga_recalctimings(svga);
+				}
+			} else if (svga->attraddr == 0x12) {
+				if ((val & 0xf) != svga->plane_mask)
+					svga->fullchange = changeframecount;
+				svga->plane_mask = val & 0xf;
+			}
+		}
+		svga->attrff ^= 1;
+                return;
 	case 0x3c4:
 		svga->seqaddr = val;
 		break;
 	case 0x3c5:
 		if (svga->seqaddr > 5) {
+			o = svga->seqregs[svga->seqaddr & 0x1f];
 			svga->seqregs[svga->seqaddr & 0x1f] = val;
 			switch (svga->seqaddr & 0x1f) {
 				case 6:
@@ -237,18 +282,30 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 					svga->hwcursor.y = (val << 3) | (svga->seqaddr >> 5);
 					break;
 				case 0x12:
-					svga->hwcursor.ena = val & CIRRUS_CURSOR_SHOW;
-					svga->hwcursor.xsize = svga->hwcursor.ysize = (val & CIRRUS_CURSOR_LARGE) ? 64 : 32;
-					if (val & CIRRUS_CURSOR_LARGE)
-						svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((svga->seqregs[0x13] & 0x3c) * 256));
-					else
-						svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((svga->seqregs[0x13] & 0x3f) * 256));
+					if ((o ^ val) & 0x80) {
+						if (val & 0x80)
+							svga->overscan_color = gd54xx->extpallook[2];
+						else
+							svga->overscan_color = svga->pallook[svga->attrregs[0x11]];
+						svga_recalctimings(svga);
+					}
+					if ((o ^ val) & CIRRUS_CURSOR_SHOW)
+						svga->hwcursor.ena = val & CIRRUS_CURSOR_SHOW;
+					if ((o ^ val) & CIRRUS_CURSOR_LARGE) {
+						svga->hwcursor.xsize = svga->hwcursor.ysize = (val & CIRRUS_CURSOR_LARGE) ? 64 : 32;
+						if (val & CIRRUS_CURSOR_LARGE)
+							svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((svga->seqregs[0x13] & 0x3c) * 256));
+						else
+							svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((svga->seqregs[0x13] & 0x3f) * 256));
+					}
 					break;
 				case 0x13:
-					if (svga->seqregs[0x12] & CIRRUS_CURSOR_LARGE)
-						svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((val & 0x3c) * 256));
-					else
-						svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((val & 0x3f) * 256));
+					if (o != val) {
+						if (svga->seqregs[0x12] & CIRRUS_CURSOR_LARGE)
+							svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((val & 0x3c) * 256));
+						else
+							svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((val & 0x3f) * 256));
+					}
 					break;
 				case 0x07:
 					svga->set_reset_disabled = svga->seqregs[7] & 1;
@@ -268,6 +325,42 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 		}
 		gd54xx->ramdac.state = 0;
 		break;
+	case 0x3C9:
+		svga->dac_status = 0;
+		svga->fullchange = changeframecount;
+		switch (svga->dac_pos) {
+			case 0:
+				svga->dac_r = val;
+				svga->dac_pos++; 
+				break;
+			case 1:
+				svga->dac_g = val;
+				svga->dac_pos++; 
+				break;
+                        case 2:
+				if (svga->seqregs[0x12] & 2) {
+					gd54xx->extpal[svga->dac_write].r = svga->dac_r;
+					gd54xx->extpal[svga->dac_write].g = svga->dac_g;
+					gd54xx->extpal[svga->dac_write].b = val; 
+					gd54xx->extpallook[svga->dac_write & 15] = makecol32(video_6to8[gd54xx->extpal[svga->dac_write].r & 0x3f], video_6to8[gd54xx->extpal[svga->dac_write].g & 0x3f], video_6to8[gd54xx->extpal[svga->dac_write].b & 0x3f]);
+					if ((svga->seqregs[0x12] & 0x80) && ((svga->dac_write & 15) == 2)) {
+						o32 = svga->overscan_color;
+						svga->overscan_color = gd54xx->extpallook[2];
+						if (o32 != svga->overscan_color)
+							svga_recalctimings(svga);
+					}
+					svga->dac_write = (svga->dac_write + 1) & 15;
+				} else {
+					svga->vgapal[svga->dac_write].r = svga->dac_r;
+					svga->vgapal[svga->dac_write].g = svga->dac_g;
+					svga->vgapal[svga->dac_write].b = val; 
+					svga->pallook[svga->dac_write] = makecol32(video_6to8[svga->vgapal[svga->dac_write].r & 0x3f], video_6to8[svga->vgapal[svga->dac_write].g & 0x3f], video_6to8[svga->vgapal[svga->dac_write].b & 0x3f]);
+					svga->dac_write = (svga->dac_write + 1) & 255;
+				}
+				svga->dac_pos = 0; 
+                        break;
+                }
+                return;
 	case 0x3cf:
 		if (svga->gdcaddr == 0)
 				gd543x_mmio_write(0xb8000, val, gd54xx);
@@ -487,6 +580,32 @@ gd54xx_in(uint16_t addr, void *p)
 			return svga->seqregs[svga->seqaddr & 0x3f];
 		}
 		break;
+	case 0x3c9:
+		svga->dac_status = 3;
+		switch (svga->dac_pos) {
+			case 0:
+				svga->dac_pos++;
+				if (svga->seqregs[0x12] & 2)
+					return gd54xx->extpal[svga->dac_read].r & 0x3f;
+				else
+					return svga->vgapal[svga->dac_read].r & 0x3f;
+			case 1: 
+				svga->dac_pos++;
+				if (svga->seqregs[0x12] & 2)
+					return gd54xx->extpal[svga->dac_read].g & 0x3f;
+				else
+					return svga->vgapal[svga->dac_read].g & 0x3f;
+                        case 2: 
+				svga->dac_pos=0;
+				if (svga->seqregs[0x12] & 2) {
+					svga->dac_read = (svga->dac_read + 1) & 15;
+                        		return gd54xx->extpal[(svga->dac_read - 1) & 15].b & 0x3f;
+				} else {
+					svga->dac_read = (svga->dac_read + 1) & 255;
+                        		return svga->vgapal[(svga->dac_read - 1) & 255].b & 0x3f;
+				}
+                }
+                return 0xFF;
 	case 0x3C6:
 		if (gd54xx->ramdac.state == 4) {
 			gd54xx->ramdac.state = 0;
@@ -740,18 +859,20 @@ gd54xx_recalctimings(svga_t *svga)
 static
 void gd54xx_hwcursor_draw(svga_t *svga, int displine)
 {
-	int x;
-	uint8_t dat[2];
-	int xx;
-	int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
-	int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
-	int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
-	int pitch = (svga->hwcursor.xsize == 64) ? 16 : 4;
- 
-	if (svga->interlace && svga->hwcursor_oddeven)
-	svga->hwcursor_latch.addr += pitch;
- 
-	for (x = 0; x < svga->hwcursor.xsize; x += 8) {
+    gd54xx_t *gd54xx = (gd54xx_t *)svga->p;	
+    int x, xx, comb;
+    uint8_t dat[2];
+    int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
+    int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
+    int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
+    int pitch = (svga->hwcursor.xsize == 64) ? 16 : 4;
+    uint32_t bgcol = gd54xx->extpallook[0x00];
+    uint32_t fgcol = gd54xx->extpallook[0x0f];
+
+    if (svga->interlace && svga->hwcursor_oddeven)
+    svga->hwcursor_latch.addr += pitch;
+
+    for (x = 0; x < svga->hwcursor.xsize; x += 8) {
 	dat[0] = svga->vram[svga->hwcursor_latch.addr];
 	if (svga->hwcursor.xsize == 64)
 		dat[1] = svga->vram[svga->hwcursor_latch.addr + 0x08];
@@ -759,10 +880,25 @@ void gd54xx_hwcursor_draw(svga_t *svga, int displine)
 		dat[1] = svga->vram[svga->hwcursor_latch.addr + 0x80];
 	for (xx = 0; xx < 8; xx++) {
 		if (offset >= svga->hwcursor_latch.x) {
-			if (dat[1] & 0x80)
-				((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add] = 0;
-			if (dat[0] & 0x80)
-				((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add] ^= 0xffffff;
+			comb = ((dat[0] & 0x80) >> 6) | ((dat[1] & 0x80) >> 7);
+			switch(comb) {
+				case 0:
+					/* The original screen pixel is shown (invisible cursor) */
+					break;
+				case 1:
+					/* The pixel is shown in the cursor background color */
+					((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add] = bgcol;
+					break;
+				case 2:
+					/* The pixel is shown as the inverse of the original screen pixel
+					   (XOR cursor) */
+					((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add] ^= 0xffffff;
+					break;
+				case 3:
+					/* The pixel is shown in the cursor foreground color */
+					((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add] = fgcol;
+					break;
+			}
 		}
 		   
 		offset++;
@@ -770,12 +906,12 @@ void gd54xx_hwcursor_draw(svga_t *svga, int displine)
 		dat[1] <<= 1;
 	}
 	svga->hwcursor_latch.addr++;
-	}
- 
-	if (svga->hwcursor.xsize == 64)
+    }
+
+    if (svga->hwcursor.xsize == 64)
 	svga->hwcursor_latch.addr += 8;
- 
-	if (svga->interlace && !svga->hwcursor_oddeven)
+
+    if (svga->interlace && !svga->hwcursor_oddeven)
 	svga->hwcursor_latch.addr += pitch;
 }
 

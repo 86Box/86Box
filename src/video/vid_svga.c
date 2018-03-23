@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.26	2018/03/16
+ * Version:	@(#)vid_svga.c	1.0.27	2018/03/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -69,7 +69,7 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
         switch (addr)
         {
                 case 0x3C0:
-				case 0x3C1:
+		case 0x3C1:
                 if (!svga->attrff)
                 {
                         svga->attraddr = val & 31;
@@ -95,9 +95,16 @@ void svga_out(uint16_t addr, uint8_t val, void *p)
                                 }
                         }
 			/* Recalculate timings on change of attribute register 0x11 (overscan border color) too. */
-                        if ((svga->attraddr == 0x10) || (svga->attraddr == 0x11))
+                        if (svga->attraddr == 0x10)
+			{
                                 if (o != val)  svga_recalctimings(svga);
-                        if (svga->attraddr == 0x12)
+			}
+			else if (svga->attraddr == 0x11)
+			{
+				svga->overscan_color = svga->pallook[svga->overscan_color];
+                                if (o != val)  svga_recalctimings(svga);
+			}
+                        else if (svga->attraddr == 0x12)
                         {
                                 if ((val & 0xf) != svga->plane_mask)
                                         svga->fullchange = changeframecount;
@@ -687,6 +694,7 @@ int svga_init(svga_t *svga, void *p, int memsize,
         svga->readmode = 0;
 
 	svga->attrregs[0x11] = 0;
+	svga->overscan_color = 0x000000;
 
 	overscan_x = 16;
 	overscan_y = 32;
@@ -1270,7 +1278,7 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 				p = &((uint32_t *)buffer32->line[i & 0x7ff])[32];
 
 				for (j = 0; j < (xsize + x_add); j++)
-					p[j] = svga_color_transform(svga->pallook[svga->attrregs[0x11]]);
+					p[j] = svga_color_transform(svga->overscan_color);
 			}
 
 			/* Draw (overscan_size + scroll size) lines of overscan on the bottom. */
@@ -1278,15 +1286,15 @@ void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 				p = &((uint32_t *)buffer32->line[(ysize + (y_add >> 1) + i) & 0x7ff])[32];
 
 				for (j = 0; j < (xsize + x_add); j++)
-					p[j] = svga_color_transform(svga->pallook[svga->attrregs[0x11]]);
+					p[j] = svga_color_transform(svga->overscan_color);
 			}
 
 			for (i = (y_add >> 1); i < (ysize + (y_add >> 1)); i ++) {
 				p = &((uint32_t *)buffer32->line[i & 0x7ff])[32];
 
 				for (j = 0; j < 8; j++) {
-					p[j] = svga_color_transform(svga->pallook[svga->attrregs[0x11]]);
-					p[xsize + (x_add >> 1) + j] = svga_color_transform(svga->pallook[svga->attrregs[0x11]]);
+					p[j] = svga->pallook[svga->overscan_color];
+					p[xsize + (x_add >> 1) + j] = svga_color_transform(svga->overscan_color);
 				}
 			}
 		}
