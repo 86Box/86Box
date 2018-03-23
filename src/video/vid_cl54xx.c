@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.13	2018/03/22
+ * Version:	@(#)vid_cl_54xx.c	1.0.14	2018/03/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,
@@ -40,6 +40,7 @@
 #include "vid_cl54xx.h"
 
 #define BIOS_GD5426_PATH		L"roms/video/cirruslogic/Diamond SpeedStar PRO VLB v3.04.bin"
+#define BIOS_GD5428_ISA_PATH		L"roms/video/cirruslogic/5428.bin"
 #define BIOS_GD5428_PATH		L"roms/video/cirruslogic/vlbusjapan.BIN"
 #define BIOS_GD5429_PATH		L"roms/video/cirruslogic/5429.vbi"
 #define BIOS_GD5430_VLB_PATH		L"roms/video/cirruslogic/diamondvlbus.bin"
@@ -2224,7 +2225,10 @@ static void
 		break;
 		
 	case CIRRUS_ID_CLGD5428:
-		romfn = BIOS_GD5428_PATH;
+		if (gd54xx->vlb)
+			romfn = BIOS_GD5428_PATH;
+		else
+			romfn = BIOS_GD5428_ISA_PATH;
 		break;
 
 	case CIRRUS_ID_CLGD5429:
@@ -2261,7 +2265,7 @@ static void
     gd54xx->vram_size = device_get_config_int("memory");
     gd54xx->vram_mask = (gd54xx->vram_size << 20) - 1;
 
-	rom_init(&gd54xx->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    rom_init(&gd54xx->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     svga_init(&gd54xx->svga, gd54xx, gd54xx->vram_size << 20,
 	      gd54xx_recalctimings, gd54xx_in, gd54xx_out,
@@ -2309,6 +2313,12 @@ static int
 gd5428_available(void)
 {
     return rom_present(BIOS_GD5428_PATH);
+}
+
+static int
+gd5428_isa_available(void)
+{
+    return rom_present(BIOS_GD5428_ISA_PATH);
 }
 
 static int
@@ -2474,7 +2484,7 @@ const device_t gd5428_isa_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    gd5428_available,
+    gd5428_isa_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd54xx_add_status_info,
