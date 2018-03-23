@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.15	2018/03/23
+ * Version:	@(#)vid_cl_54xx.c	1.0.16	2018/03/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,
@@ -282,30 +282,23 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 					svga->hwcursor.y = (val << 3) | (svga->seqaddr >> 5);
 					break;
 				case 0x12:
-					if ((o ^ val) & 0x80) {
-						if (val & 0x80)
-							svga->overscan_color = gd54xx->extpallook[2];
-						else
-							svga->overscan_color = svga->pallook[svga->attrregs[0x11]];
-						svga_recalctimings(svga);
-					}
-					if ((o ^ val) & CIRRUS_CURSOR_SHOW)
-						svga->hwcursor.ena = val & CIRRUS_CURSOR_SHOW;
-					if ((o ^ val) & CIRRUS_CURSOR_LARGE) {
-						svga->hwcursor.xsize = svga->hwcursor.ysize = (val & CIRRUS_CURSOR_LARGE) ? 64 : 32;
-						if (val & CIRRUS_CURSOR_LARGE)
-							svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((svga->seqregs[0x13] & 0x3c) * 256));
-						else
-							svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((svga->seqregs[0x13] & 0x3f) * 256));
-					}
+					if (val & 0x80)
+						svga->overscan_color = gd54xx->extpallook[2];
+					else
+						svga->overscan_color = svga->pallook[svga->attrregs[0x11]];
+					svga_recalctimings(svga);
+					svga->hwcursor.ena = val & CIRRUS_CURSOR_SHOW;
+					svga->hwcursor.xsize = svga->hwcursor.ysize = (val & CIRRUS_CURSOR_LARGE) ? 64 : 32;
+					if (val & CIRRUS_CURSOR_LARGE)
+						svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((svga->seqregs[0x13] & 0x3c) * 256));
+					else
+						svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((svga->seqregs[0x13] & 0x3f) * 256));
 					break;
 				case 0x13:
-					if (o != val) {
-						if (svga->seqregs[0x12] & CIRRUS_CURSOR_LARGE)
-							svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((val & 0x3c) * 256));
-						else
-							svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((val & 0x3f) * 256));
-					}
+					if (svga->seqregs[0x12] & CIRRUS_CURSOR_LARGE)
+						svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((val & 0x3c) * 256));
+					else
+						svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((val & 0x3f) * 256));
 					break;
 				case 0x07:
 					svga->set_reset_disabled = svga->seqregs[7] & 1;
@@ -860,7 +853,7 @@ static
 void gd54xx_hwcursor_draw(svga_t *svga, int displine)
 {
     gd54xx_t *gd54xx = (gd54xx_t *)svga->p;	
-    int x, xx, comb;
+    int x, xx, comb, b0, b1;
     uint8_t dat[2];
     int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
     int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
@@ -870,7 +863,7 @@ void gd54xx_hwcursor_draw(svga_t *svga, int displine)
     uint32_t fgcol = gd54xx->extpallook[0x0f];
 
     if (svga->interlace && svga->hwcursor_oddeven)
-    svga->hwcursor_latch.addr += pitch;
+	svga->hwcursor_latch.addr += pitch;
 
     for (x = 0; x < svga->hwcursor.xsize; x += 8) {
 	dat[0] = svga->vram[svga->hwcursor_latch.addr];
@@ -879,8 +872,10 @@ void gd54xx_hwcursor_draw(svga_t *svga, int displine)
 	else
 		dat[1] = svga->vram[svga->hwcursor_latch.addr + 0x80];
 	for (xx = 0; xx < 8; xx++) {
+		b0 = (dat[0] >> (7 - xx)) & 1;
+		b1 = (dat[1] >> (7 - xx)) & 1;
+		comb = (b1 | (b0 << 1));
 		if (offset >= svga->hwcursor_latch.x) {
-			comb = ((dat[0] & 0x80) >> 6) | ((dat[1] & 0x80) >> 7);
 			switch(comb) {
 				case 0:
 					/* The original screen pixel is shown (invisible cursor) */
@@ -902,8 +897,6 @@ void gd54xx_hwcursor_draw(svga_t *svga, int displine)
 		}
 		   
 		offset++;
-		dat[0] <<= 1;
-		dat[1] <<= 1;
 	}
 	svga->hwcursor_latch.addr++;
     }
