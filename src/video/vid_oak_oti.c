@@ -8,7 +8,7 @@
  *
  *		Oak OTI037C/67/077 emulation.
  *
- * Version:	@(#)vid_oak_oti.c	1.0.9	2018/03/18
+ * Version:	@(#)vid_oak_oti.c	1.0.10	2018/03/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -157,6 +157,40 @@ oti_in(uint16_t addr, void *p)
 		temp = svga->crtc[svga->crtcreg & 31];
 		break;
 		
+	case 0x3DA:
+                svga->attrff = 0;
+                svga->attrff = 0;
+                svga->cgastat &= ~0x30;
+                /* copy color diagnostic info from the overscan color register */
+                switch (svga->attrregs[0x12] & 0x30)
+                {
+                        case 0x00: /* P0 and P2 */
+                        if (svga->attrregs[0x11] & 0x01)
+                                svga->cgastat |= 0x10;
+                        if (svga->attrregs[0x11] & 0x04)
+                                svga->cgastat |= 0x20;
+                        break;
+                        case 0x10: /* P4 and P5 */
+                        if (svga->attrregs[0x11] & 0x10)
+                                svga->cgastat |= 0x10;
+                        if (svga->attrregs[0x11] & 0x20)
+                                svga->cgastat |= 0x20;
+                        break;
+                        case 0x20: /* P1 and P3 */
+                        if (svga->attrregs[0x11] & 0x02)
+                                svga->cgastat |= 0x10;
+                        if (svga->attrregs[0x11] & 0x08)
+                                svga->cgastat |= 0x20;
+                        break;
+                        case 0x30: /* P6 and P7 */
+                        if (svga->attrregs[0x11] & 0x40)
+                                svga->cgastat |= 0x10;
+                        if (svga->attrregs[0x11] & 0x80)
+                                svga->cgastat |= 0x20;
+                        break;
+                }
+                return svga->cgastat;
+
 	case 0x3DE: 
 		temp = oti->index | (oti->chip_id << 5);
 		break;	       
