@@ -68,9 +68,9 @@ void pit_reset(PIT *pit)
 	memcpy(pit->set_out_funcs, old_set_out_funcs, 3 * sizeof(void *));
 	memcpy(pit->pit_nr, old_pit_nr, 3 * sizeof(PIT_nr));
 
-        pit->l[0] = 0xFFFF; pit->c[0] = 0xFFFFLL*PITCONST;
-        pit->l[1] = 0xFFFF; pit->c[1] = 0xFFFFLL*PITCONST;
-        pit->l[2] = 0xFFFF; pit->c[2] = 0xFFFFLL*PITCONST;
+        pit->l[0] = 0xFFFF; pit->c[0] = 0xFFFF*PITCONST;
+        pit->l[1] = 0xFFFF; pit->c[1] = 0xFFFF*PITCONST;
+        pit->l[2] = 0xFFFF; pit->c[2] = 0xFFFF*PITCONST;
         pit->m[0] = pit->m[1] = pit->m[2] = 0;
         pit->ctrls[0] = pit->ctrls[1] = pit->ctrls[2] = 0;
         pit->thit[0]=1;
@@ -100,7 +100,7 @@ static void pit_set_out(PIT *pit, int t, int out)
 
 static void pit_load(PIT *pit, int t)
 {
-        int l = pit->l[t] ? pit->l[t] : 0x10000LL;
+        int l = pit->l[t] ? pit->l[t] : 0x10000;
         timer_clock();
         pit->newcount[t] = 0;
         pit->disabled[t] = 0;
@@ -159,7 +159,7 @@ static void pit_load(PIT *pit, int t)
 
 void pit_set_gate_no_timer(PIT *pit, int t, int gate)
 {
-        int64_t l = pit->l[t] ? pit->l[t] : 0x10000LL;
+        int64_t l = pit->l[t] ? pit->l[t] : 0x10000;
 
         if (pit->disabled[t])
         {
@@ -226,7 +226,7 @@ void pit_set_gate(PIT *pit, int t, int gate)
 
 static void pit_over(PIT *pit, int t)
 {
-        int64_t l = pit->l[t] ? pit->l[t] : 0x10000LL;
+        int64_t l = pit->l[t] ? pit->l[t] : 0x10000;
         if (pit->disabled[t])
         {
                 pit->count[t] += 0xffff;
@@ -302,12 +302,12 @@ int pit_get_timer_0()
         int read = (int)((int64_t)((pit.c[0] + ((1LL << TIMER_SHIFT) - 1)) / PITCONST) >> TIMER_SHIFT);
         if (pit.m[0] == 2)
                 read++;
-        if (read < 0LL)
-                read = 0LL;
-        if (read > 0x10000LL)
-                read = 0x10000LL;
-        if (pit.m[0] == 3LL)
-                read <<= 1LL;
+        if (read < 0)
+                read = 0;
+        if (read > 0x10000)
+                read = 0x10000;
+        if (pit.m[0] == 3)
+                read <<= 1;
         return read;
 }
         
@@ -316,19 +316,19 @@ static int pit_read_timer(PIT *pit, int t)
         timer_clock();
         if (pit->using_timer[t] && !(pit->m[t] == 3 && !pit->gate[t]))
         {
-                int read = (int)((int64_t)((pit->c[t] + ((1 << TIMER_SHIFT) - 1)) / PITCONST) >> TIMER_SHIFT);
+                int read = (int)((int64_t)((pit->c[t] + ((1LL << TIMER_SHIFT) - 1)) / PITCONST) >> TIMER_SHIFT);
                 if (pit->m[t] == 2)
                         read++;
-                if (read < 0LL)
-                        read = 0LL;
-                if (read > 0x10000LL)
-                        read = 0x10000LL;
-                if (pit->m[t] == 3LL)
-                        read <<= 1LL;
+                if (read < 0)
+                        read = 0;
+                if (read > 0x10000)
+                        read = 0x10000;
+                if (pit->m[t] == 3)
+                        read <<= 1;
                 return read;
         }
-        if (pit->m[t] == 2LL)
-                return pit->count[t] + 1LL;
+        if (pit->m[t] == 2)
+                return pit->count[t] + 1;
         return pit->count[t];
 }
         
