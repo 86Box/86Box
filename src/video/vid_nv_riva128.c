@@ -103,6 +103,8 @@ typedef struct riva128_t
 		uint16_t chan_dma;
 		uint16_t chan_size; //0 = 1024, 1 = 512
 
+		uint32_t runout_put, runout_get;
+
 		struct
 		{
 			uint32_t dmaput;
@@ -113,6 +115,9 @@ typedef struct riva128_t
 		{
 			int chanid;
 			int push_enabled;
+			int runout;
+			uint32_t get, put;
+			uint32_t ctx;
 		} caches[2];
 
 		struct
@@ -582,6 +587,59 @@ void riva128_pfifo_interrupt(int num, void *p)
 	if(num == 0) riva128->pfifo.cache_error = 0x11;
 
 	riva128_pmc_interrupt(8, riva128);
+}
+
+uint32_t riva128_pfifo_runout_next(void *p)
+{
+	riva128_t *riva128 = (riva128_t *)p;
+	uint32_t next = (riva128->pfifo.runout_put + 8) & ((riva128->pfifo.ramro_size) - 1);
+	return next;
+}
+
+uint32_t riva128_pfifo_cache1_next(uint32_t ptr)
+{
+	//Apparently, PFIFO's CACHE1 uses some sort of Gray code... oh well
+	int bits = 5;
+	uint32_t tmp = ptr >> 2;
+	if(tmp == (1 << (bits - 1))) return 0;
+	for(int bit = bits - 1;bit > 0;bit--)
+	{
+		if(tmp == (1 << (bit - 1))) return ptr ^ (1 << (2 + bit));
+		if(tmp & (1 << bit)) tmp ^= 3 << (bit - 1);
+	}
+	return ptr ^ 4;
+}
+
+uint32_t riva128_pfifo_cache1_lin(uint32_t ptr)
+{
+	int bits = 5;
+	uint32_t res = 0;
+	uint32_t tmp = ptr >> 2;
+	for(int bit = bits = 1; bit > 0; bit--)
+	{
+		if(tmp & (1 << bit))
+		{
+			tmp ^= 3 << (bit - 1);
+			res ^= 4 << bit;
+		}
+	}
+	if(tmp & 1) res ^= 4;
+	return res;
+}
+
+uint32_t riva128_pfifo_cache1_free(uint32_t chid, void* p)
+{
+	riva128_t *riva128 = (riva128_t *)p;
+	uint32_t get = riva128_pfifo_cache1_lin(riva128->pfifo.caches[1].get);
+	uint32_t put = riva128_pfifo_cache1_lin(riva128->pfifo.caches[1].put);
+
+	if(riva128->pfifo.caches[1].runout) return 0;
+	if(chid != riva128->pfifo.caches[1].chanid || !riva128->pfifo.caches[1].push_enabled)
+	{
+		if(riva128->pfifo.caches[1].get != riva128->pfifo.caches[1].put) return 0;
+		return 0x7c;
+	}
+	return (get - put - 4) & 0x7c;
 }
 
  uint8_t riva128_pfifo_read(uint32_t addr, void *p)
@@ -1990,9 +2048,8 @@ uint8_t riva128_user_read(uint32_t addr, void *p)
 		//PIO mode
 		switch(offset)
 		{
-			//HACK
-			case 0x10: ret = 0xff; break;
-			case 0x11: ret = 0x7f; break;
+			case 0x10: ret = riva128_pfifo_cache1_free(chanid, riva128) & 0xfc; break;
+			case 0x11: ret = riva128_pfifo_cache1_free(chanid, riva128) >> 8; break;
 		}
 	}
 
