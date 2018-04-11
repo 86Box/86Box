@@ -8,42 +8,58 @@
  *
  *		Implementation of Serial Mouse devices.
  *
- *		Based on the 86Box Serial Mouse driver as a framework.
+ * TODO:	Add the Genius Serial Mouse.
  *
- * Version:	@(#)mouse_serial.c	1.0.7	2017/07/27
+ * Version:	@(#)mouse_serial.c	1.0.21	2018/03/18
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
-#include "ibm.h"
+#include <wchar.h>
+#include "86box.h"
+#include "config.h"
+#include "device.h"
 #include "timer.h"
 #include "serial.h"
 #include "mouse.h"
 
 
-typedef struct mouse_serial_t {
-    int8_t	port,
-		type;
-    int		pos,
-		delay;
+#define SERMOUSE_PORT	0			/* attach to Serial0 */
+
+
+typedef struct {
+    const char	*name;				/* name of this device */
+    int8_t	type,				/* type of this device */
+		port;
+    uint8_t	flags;				/* device flags */
+
+    int		pos;
+    int64_t	delay;
     int		oldb;
+
     SERIAL	*serial;
-} mouse_serial_t;
+} mouse_t;
+#define FLAG_INPORT	0x80			/* device is MS InPort */
+#define FLAG_3BTN	0x20			/* enable 3-button mode */
+#define FLAG_SCALED	0x10			/* enable delta scaling */
+#define FLAG_INTR	0x04			/* dev can send interrupts */
+#define FLAG_FROZEN	0x02			/* do not update counters */
+#define FLAG_ENABLED	0x01			/* dev is enabled for use */
 
 
 /* Callback from serial driver: RTS was toggled. */
 static void
-#ifdef WALTJE
-sermouse_callback(void *priv)
-#else
 sermouse_callback(struct SERIAL *serial, void *priv)
-#endif
 {
-    mouse_serial_t *ms = (mouse_serial_t *)priv;
+    mouse_t *dev = (mouse_t *)priv;
 
     /* Start a timer to wake us up in a little while. */
-    ms->pos = -1;
-    ms->delay = 5000 * (1 << TIMER_SHIFT);
+    dev->pos = -1;
+    serial_clear_fifo((SERIAL *) serial);
+    dev->delay = 5000LL * (1LL << TIMER_SHIFT);
 }
 
 
@@ -51,144 +67,113 @@ sermouse_callback(struct SERIAL *serial, void *priv)
 static void
 sermouse_timer(void *priv)
 {
-    mouse_serial_t *ms = (mouse_serial_t *)priv;
+    mouse_t *dev = (mouse_t *)priv;
 
-    ms->delay = 0;
+    dev->delay = 0LL;
 
-    if (ms->pos != -1) return;
+    if (dev->pos != -1) return;
 
-    ms->pos = 0;
-    switch(ms->type & MOUSE_TYPE_MASK) {
+    dev->pos = 0;
+    switch(dev->type) {
 	case MOUSE_TYPE_MSYSTEMS:
 		/* Identifies Mouse Systems serial mouse. */
-#ifdef WALTJE
-		serial_write_fifo(ms->serial, 'H', 1);
-#else
-		serial_write_fifo(ms->serial, 'H');
-#endif
+		serial_write_fifo(dev->serial, 'H');
 		break;
 
 	case MOUSE_TYPE_MICROSOFT:
-	default:
 		/* Identifies a two-button Microsoft Serial mouse. */
-#ifdef WALTJE
-		serial_write_fifo(ms->serial, 'M', 1);
-#else
-		serial_write_fifo(ms->serial, 'M');
-#endif
+		serial_write_fifo(dev->serial, 'M');
 		break;
 
 	case MOUSE_TYPE_LOGITECH:
 		/* Identifies a two-button Logitech Serial mouse. */
-#ifdef WALTJE
-		serial_write_fifo(ms->serial, 'M', 1);
-		serial_write_fifo(ms->serial, '3', 1);
-#else
-		serial_write_fifo(ms->serial, 'M');
-		serial_write_fifo(ms->serial, '3');
-#endif
+		serial_write_fifo(dev->serial, 'M');
+		serial_write_fifo(dev->serial, '3');
 		break;
 
 	case MOUSE_TYPE_MSWHEEL:
 		/* Identifies multi-button Microsoft Wheel Mouse. */
-#ifdef WALTJE
-		serial_write_fifo(ms->serial, 'M', 1);
-		serial_write_fifo(ms->serial, 'Z', 1);
-#else
-		serial_write_fifo(ms->serial, 'M');
-		serial_write_fifo(ms->serial, 'Z');
-#endif
+		serial_write_fifo(dev->serial, 'M');
+		serial_write_fifo(dev->serial, 'Z');
 		break;
+
+	default:
+		pclog("%s: unsupported mouse type %d?\n", dev->type);
     }
 }
 
 
-static uint8_t
+static int
 sermouse_poll(int x, int y, int z, int b, void *priv)
 {
-    mouse_serial_t *ms = (mouse_serial_t *)priv;
+    mouse_t *dev = (mouse_t *)priv;
     uint8_t buff[16];
     int len;
 
-    if (!x && !y && b == ms->oldb) return(1);
+    if (!x && !y && b == dev->oldb) return(1);
 
-    ms->oldb = b;
+#if 0
+    pclog("%s: poll(%d,%d,%d,%02x)\n", dev->name, x, y, z, b);
+#endif
 
-    if (ms->type == MOUSE_TYPE_MSYSTEMS) y = -y;
+    dev->oldb = b;
 
-    if (x>127) x = 127;
-    if (y>127) y = 127;
-    if (x<-128) x = -128;
-    if (y<-128) y = -128;
+    if (x > 127) x = 127;
+    if (y > 127) y = 127;
+    if (x <- 128) x = -128;
+    if (y <- 128) y = -128;
 
     len = 0;
-    switch(ms->type & MOUSE_TYPE_MASK) {
+    switch(dev->type) {
 	case MOUSE_TYPE_MSYSTEMS:
 		buff[0] = 0x80;
-		buff[0] |= (b&0x01) ? 0x00 : 0x04;	/* left button */
-		buff[0] |= (b&0x02) ? 0x00 : 0x01;	/* middle button */
-		buff[0] |= (b&0x04) ? 0x00 : 0x02;	/* right button */
+		buff[0] |= (b & 0x01) ? 0x00 : 0x04;	/* left button */
+		buff[0] |= (b & 0x02) ? 0x00 : 0x01;	/* middle button */
+		buff[0] |= (b & 0x04) ? 0x00 : 0x02;	/* right button */
 		buff[1] = x;
-		buff[2] = y;
+		buff[2] = -y;
 		buff[3] = x;				/* same as byte 1 */
-		buff[4] = y;				/* same as byte 2 */
+		buff[4] = -y;				/* same as byte 2 */
 		len = 5;
 		break;
 
 	case MOUSE_TYPE_MICROSOFT:
-		buff[0] = 0x40;
-		buff[0] |= (((y>>6)&0x03)<<2);
-		buff[0] |= ((x>>6)&0x03);
-		if (b&0x01) buff[0] |= 0x20;
-		if (b&0x02) buff[0] |= 0x10;
-		buff[1] = x & 0x3F;
-		buff[2] = y & 0x3F;
-		len = 3;
-		break;
-
 	case MOUSE_TYPE_LOGITECH:
-		buff[0] = 0x40;
-		buff[0] |= (((y>>6)&0x03)<<2);
-		buff[0] |= ((x>>6)&0x03);
-		if (b&0x01) buff[0] |= 0x20;
-		if (b&0x02) buff[0] |= 0x10;
-		buff[1] = x & 0x3F;
-		buff[2] = y & 0x3F;
-		len = 3;
-		if (b&0x04) {
-			buff[3] = 0x20;
-			len++;
-		}
-		break;
-
 	case MOUSE_TYPE_MSWHEEL:
 		buff[0] = 0x40;
-		buff[0] |= (((y>>6)&0x03)<<2);
-		buff[0] |= ((x>>6)&0x03);
-		if (b&0x01) buff[0] |= 0x20;
-		if (b&0x02) buff[0] |= 0x10;
+		buff[0] |= (((y >> 6) & 0x03) << 2);
+		buff[0] |= ((x >> 6) & 0x03);
+		if (b & 0x01) buff[0] |= 0x20;
+		if (b & 0x02) buff[0] |= 0x10;
 		buff[1] = x & 0x3F;
 		buff[2] = y & 0x3F;
-		buff[3] = z & 0x0F;
-		if (b&0x04)
-			buff[3] |= 0x10;
-		len = 4;
-
+		if (dev->type == MOUSE_TYPE_LOGITECH) {
+			len = 3;
+			if (b & 0x04) {
+				buff[3] = 0x20;
+				len++;
+			}
+		} else if (dev->type == MOUSE_TYPE_MSWHEEL) {
+			len = 4;
+			buff[3] = z & 0x0F;
+			if (b & 0x04)
+				buff[3] |= 0x10;
+		} else
+			len = 3;
+		break;
     }
 
 #if 0
-    pclog("Mouse_Serial(%d): [", ms->type);
+    pclog("%s: [", dev->name);
     for (b=0; b<len; b++) pclog(" %02X", buff[b]);
     pclog(" ] (%d)\n", len);
 #endif
 
     /* Send the packet to the bottom-half of the attached port. */
-    for (b=0; b<len; b++)
-#ifdef WALTJE
-	serial_write_fifo(ms->serial, buff[b], 1);
-#else
-	serial_write_fifo(ms->serial, buff[b]);
-#endif
+    if (dev->serial != NULL) {
+	for (b=0; b<len; b++)
+		serial_write_fifo(dev->serial, buff[b]);
+    }
 
     return(0);
 }
@@ -197,105 +182,121 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
 static void
 sermouse_close(void *priv)
 {
-    mouse_serial_t *ms = (mouse_serial_t *)priv;
+    mouse_t *dev = (mouse_t *)priv;
 
     /* Detach serial port from the mouse. */
-#ifdef WALTJE
-    serial_attach(ms->port, NULL, NULL);
-#else
-    serial1.rcr_callback = NULL;
-#endif
+    if ((dev != NULL) && (dev->serial != NULL)) {
+	dev->serial->rcr_callback = NULL;
+	dev->serial->rcr_callback_p = NULL;
+    }
 
-    free(ms);
+    free(dev);
 }
 
 
+/* Initialize the device for use by the user. */
 static void *
-sermouse_init(int type)
+sermouse_init(const device_t *info)
 {
-    mouse_serial_t *ms = (mouse_serial_t *)malloc(sizeof(mouse_serial_t));
-    memset(ms, 0x00, sizeof(mouse_serial_t));
-    ms->port = SERMOUSE_PORT;
-    ms->type = type;
+    mouse_t *dev;
+    int i;
+
+    dev = (mouse_t *)malloc(sizeof(mouse_t));
+    memset(dev, 0x00, sizeof(mouse_t));
+    dev->name = info->name;
+    i = device_get_config_int("buttons");
+    if (i > 2)
+	dev->flags |= FLAG_3BTN;
+
+    if (info->local == MOUSE_TYPE_MSYSTEMS)
+	dev->type = info->local;
+    else {
+	switch(i) {
+		case 2:
+		default:
+			dev->type = MOUSE_TYPE_MICROSOFT;
+			break;
+		case 3:
+			dev->type = MOUSE_TYPE_LOGITECH;
+			break;
+		case 4:
+			dev->type = MOUSE_TYPE_MSWHEEL;
+			break;
+	}
+    }
+
+    dev->port = device_get_config_int("port");
 
     /* Attach a serial port to the mouse. */
-#ifdef WALTJE
-    ms->serial = serial_attach(ms->port, sermouse_callback, ms);
-#else
-    ms->serial = &serial1;
-    ms->serial->rcr_callback = sermouse_callback;
-    ms->serial->rcr_callback_p = ms;
-#endif
+    if (dev->port == 0)
+	dev->serial = &serial1;
+      else
+	dev->serial = &serial2;
+    dev->serial->rcr_callback = sermouse_callback;
+    dev->serial->rcr_callback_p = dev;
 
-    timer_add(sermouse_timer, &ms->delay, &ms->delay, ms);
+    pclog("%s: port=COM%d\n", dev->name, dev->port+1);
 
-    return(ms);
+    timer_add(sermouse_timer, &dev->delay, &dev->delay, dev);
+
+    /* Tell them how many buttons we have. */
+    mouse_set_buttons((dev->flags & FLAG_3BTN) ? 3 : 2);
+
+    /* Return our private data to the I/O layer. */
+    return(dev);
 }
 
 
-static void *
-sermouse_init_msystems(void)
-{
-    return(sermouse_init(MOUSE_TYPE_MSYSTEMS));
-}
-
-
-static void *
-sermouse_init_microsoft(void)
-{
-    return(sermouse_init(MOUSE_TYPE_MICROSOFT));
-}
-
-
-static void *
-sermouse_init_logitech(void)
-{
-    return(sermouse_init(MOUSE_TYPE_LOGITECH));
-}
-
-
-static void *
-sermouse_init_mswheel(void)
-{
-    return(sermouse_init(MOUSE_TYPE_MSWHEEL));
-}
-
-
-mouse_t mouse_serial_msystems = {
-    "Mouse Systems Mouse (serial)",
-    "mssystems",
-    MOUSE_TYPE_MSYSTEMS | MOUSE_TYPE_3BUTTON,
-    sermouse_init_msystems,
-    sermouse_close,
-    sermouse_poll
+static const device_config_t sermouse_config[] = {
+    {
+	"port", "Serial Port", CONFIG_SELECTION, "", 0, {
+		{
+			"COM1", 0
+		},
+		{
+			"COM2", 1
+		},
+		{
+			""
+		}
+	}
+    },
+    {
+	"buttons", "Buttons", CONFIG_SELECTION, "", 2, {
+		{
+			"Two", 2
+		},
+		{
+			"Three", 3
+		},
+		{
+			"Wheel", 4
+		},
+		{
+			""
+		}
+	}
+    },
+    {
+	"", "", -1
+    }
 };
 
 
-mouse_t mouse_serial_microsoft = {
-    "Microsoft 2-button mouse (serial)",
-    "msserial",
-    MOUSE_TYPE_MICROSOFT,
-    sermouse_init_microsoft,
-    sermouse_close,
-    sermouse_poll
+const device_t mouse_mssystems_device = {
+    "Mouse Systems Serial Mouse",
+    0,
+    MOUSE_TYPE_MSYSTEMS,
+    sermouse_init, sermouse_close, NULL,
+    sermouse_poll, NULL, NULL, NULL,
+    sermouse_config
 };
 
-
-mouse_t mouse_serial_logitech = {
-    "Logitech 3-button mouse (serial)",
-    "lserial",
-    MOUSE_TYPE_LOGITECH | MOUSE_TYPE_3BUTTON,
-    sermouse_init_logitech,
-    sermouse_close,
-    sermouse_poll
-};
-
-
-mouse_t mouse_serial_mswheel = {
-    "Microsoft wheel mouse (serial)",
-    "mswheel",
-    MOUSE_TYPE_MSWHEEL | MOUSE_TYPE_3BUTTON,
-    sermouse_init_mswheel,
-    sermouse_close,
-    sermouse_poll
+const device_t mouse_msserial_device = {
+    "Microsoft/Logitech Serial Mouse",
+    0,
+    0,
+    sermouse_init, sermouse_close, NULL,
+    sermouse_poll, NULL, NULL, NULL,
+    sermouse_config
 };

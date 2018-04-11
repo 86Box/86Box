@@ -6,9 +6,9 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the Intel 2 Mbit 8-bit flash devices.
+ *		Implementation of the Intel 1 Mbit 8-bit flash devices.
  *
- * Version:	@(#)intel_flash.h	1.0.0	2017/05/30
+ * Version:	@(#)intel_flash.h	1.0.1	2018/03/14
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,7 +16,7 @@
  *		Copyright 2016-2017 Miran Grca.
  */
 
-extern device_t intel_flash_bxt_ami_device;
-extern device_t intel_flash_bxb_ami_device;
-extern device_t intel_flash_bxt_device;
-extern device_t intel_flash_bxb_device;
+extern const device_t intel_flash_bxt_ami_device;
+extern const device_t intel_flash_bxb_ami_device;
+extern const device_t intel_flash_bxt_device;
+extern const device_t intel_flash_bxb_device;

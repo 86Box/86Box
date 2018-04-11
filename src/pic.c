@@ -1,14 +1,22 @@
-#include "ibm.h"
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
+#include "86box.h"
+#include "machine/machine.h"
 #include "io.h"
+#include "pci.h"
 #include "pic.h"
 #include "pit.h"
+
 
 int output;
 int intclear;
 int keywaiting=0;
 int pic_intpending;
-
 PIC pic, pic2;
+uint16_t pic_current;
+
 
 void pic_updatepending()
 {
@@ -16,14 +24,14 @@ void pic_updatepending()
 	if (AT)
 	{
 	        if ((pic2.pend&~pic2.mask)&~pic2.mask2)
-        	        pic.pend |= (1 << 2);
+        	        pic.pend |= pic.icw3;
 	        else
-        	        pic.pend &= ~(1 << 2);
+        	        pic.pend &= ~pic.icw3;
 	}
         pic_intpending = (pic.pend & ~pic.mask) & ~pic.mask2;
 	if (AT)
 	{
-	        if (!((pic.mask | pic.mask2) & (1 << 2)))
+	        if (!((pic.mask | pic.mask2) & pic.icw3))
 		{
 			temp_pending = ((pic2.pend&~pic2.mask)&~pic2.mask2);
 			temp_pending <<= 8;
@@ -64,6 +72,25 @@ void pic_update_mask(uint8_t *mask, uint8_t ins)
         }
 }
 
+static int picint_is_level(uint16_t irq)
+{
+	if (PCI)
+	{
+		return pci_irq_is_level(irq);
+	}
+	else
+	{
+		if (irq < 8)
+		{
+			return (pic.icw1 & 8) ? 1 : 0;
+		}
+		else
+		{
+			return (pic2.icw1 & 8) ? 1 : 0;
+		}
+	}
+}
+
 static void pic_autoeoi()
 {
         int c;
@@ -77,8 +104,16 @@ static void pic_autoeoi()
 
 			if (AT)
 			{
-	                        if (c == 2 && (pic2.pend&~pic2.mask)&~pic2.mask2)
-	                                pic.pend |= (1 << 2);
+	                        if (((1 << c) == pic.icw3) && (pic2.pend&~pic2.mask)&~pic2.mask2)
+	                                pic.pend |= pic.icw3;
+			}
+
+			if ((pic_current & (1 << c)) && picint_is_level(c))
+			{
+				if (((1 << c) != pic.icw3) || !AT)
+				{
+					pic.pend |= 1 << c;
+				}
 			}
 
                         pic_updatepending();
@@ -104,6 +139,8 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
                         else            pic.icw=2;
                         break;
                         case 2: /*ICW3*/
+                        pic.icw3 = val;
+			/* pclog("PIC1 ICW3 now %02X\n", val); */
                         if (pic.icw1&1) pic.icw=3;
                         else            pic.icw=0;
                         break;
@@ -132,9 +169,18 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
                                 pic_update_mask(&pic.mask2, pic.ins);
 				if (AT)
 				{
-	                                if ((val&7) == 2 && (pic2.pend&~pic2.mask)&~pic2.mask2)
-        	                                pic.pend |= (1 << 2);
+	                                if (((val&7) == pic2.icw3) && (pic2.pend&~pic2.mask)&~pic2.mask2)
+        	                                pic.pend |= pic.icw3;
 				}
+
+				if ((pic_current & (1 << (val & 7))) && picint_is_level(val & 7))
+				{
+					if ((((1 << (val & 7)) != pic.icw3) || !AT))
+					{
+						pic.pend |= 1 << (val & 7);
+					}
+				}
+
                                 pic_updatepending();
                         }
                         else
@@ -148,8 +194,16 @@ void pic_write(uint16_t addr, uint8_t val, void *priv)
 
 						if (AT)
 						{
-	                                                if (c == 2 && (pic2.pend&~pic2.mask)&~pic2.mask2)
-        	                                                pic.pend |= (1 << 2);
+	                                                if (((1 << c) == pic.icw3) && (pic2.pend&~pic2.mask)&~pic2.mask2)
+        	                                                pic.pend |= pic.icw3;
+						}
+
+						if ((pic_current & (1 << c)) && picint_is_level(c))
+						{
+							if ((((1 << c) != pic.icw3) || !AT))
+							{
+								pic.pend |= 1 << c;
+							}
 						}
 
                                                 if (c==1 && keywaiting)
@@ -193,6 +247,12 @@ static void pic2_autoeoi()
                         pic2.ins &= ~(1 << c);
                         pic_update_mask(&pic2.mask2, pic2.ins);
 
+			if (pic_current & (0x100 << c) && picint_is_level(c + 8))
+			{
+				pic2.pend |= (1 << c);
+				pic.pend |= (1 << pic2.icw3);
+			}
+
                         pic_updatepending();
                         return;
                 }
@@ -212,10 +272,13 @@ void pic2_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                         case 1: /*ICW2*/
                         pic2.vector=val&0xF8;
+			/* pclog("PIC2 vector now: %02X\n", pic2.vector); */
                         if (pic2.icw1&2) pic2.icw=3;
                         else            pic2.icw=2;
                         break;
                         case 2: /*ICW3*/
+                        pic2.icw3 = val;
+			/* pclog("PIC2 ICW3 now %02X\n", val); */
                         if (pic2.icw1&1) pic2.icw=3;
                         else            pic2.icw=0;
                         break;
@@ -243,6 +306,12 @@ void pic2_write(uint16_t addr, uint8_t val, void *priv)
                                 pic2.ins&=~(1<<(val&7));
                                 pic_update_mask(&pic2.mask2, pic2.ins);
 
+				if (pic_current & (0x100 << (val & 7)) && picint_is_level((val & 7) + 8))
+				{
+					pic2.pend |= (1 << (val & 7));
+					pic.pend |= (1 << pic2.icw3);
+				}
+
                                 pic_updatepending();
                         }
                         else
@@ -253,7 +322,13 @@ void pic2_write(uint16_t addr, uint8_t val, void *priv)
                                         {
                                                 pic2.ins &= ~(1<<c);
                                                 pic_update_mask(&pic2.mask2, pic2.ins);
-                                                        
+
+						if (pic_current & (0x100 << c) && picint_is_level(c + 8))
+						{
+							pic2.pend |= (1 << c);
+							pic.pend |= (1 << pic2.icw3);
+						}
+
                                                 pic_updatepending();
                                                 return;
                                         }
@@ -283,82 +358,102 @@ void pic2_init()
 
 void clearpic()
 {
-        pic.pend=pic.ins=0;
+        pic.pend=pic.ins=pic_current=0;
         pic_updatepending();
 }
 
-int pic_current[16];
-
-void picint(uint16_t num)
-{
-        if (AT && (num == (1 << 2)))
-                num = 1 << 9;
-        if (num>0xFF)
-        {
-		if (!AT)
-		{
-			return;
-		}
-
-                pic2.pend|=(num>>8);
-                if ((pic2.pend&~pic2.mask)&~pic2.mask2)
-                        pic.pend |= (1 << 2);
-        }
-        else
-        {
-                pic.pend|=num;
-        }
-/* if (num == 0x40)
-{
-        pclog("picint : PEND now %02X %02X\n", pic.pend, pic2.pend);
-} */
-        pic_updatepending();
-/*	if (num == 0x40)
-	{
-		pclog("Processing FDC interrupt, pending: %s, previously pending: %s, masked: %s, masked (2): %s, T: %s, I: %s\n", (pic_intpending & num) ? "yes" : "no", (old_pend & num) ? "yes" : "no", (pic.mask & num) ? "yes" : "no", (pic.mask2 & num) ? "yes" : "no", (flags & 0x100) ? "yes" : "no", (flags&I_FLAG) ? "yes" : "no");
-	} */
-}
-
-void picintlevel(uint16_t num)
+void picint_common(uint16_t num, int level)
 {
         int c = 0;
-        while (!(num & (1 << c))) c++;
-        if (AT && (c == 2))
-        {
-                c = 9;
+
+        if (!num)
+	{
+		/* pclog("Attempting to raise null IRQ\n"); */
+                return;
+	}
+
+        if (AT && (num == pic.icw3) && (pic.icw3 == 4))
+	{
                 num = 1 << 9;
-        }
-        if (!pic_current[c])
+	}
+
+        while (!(num & (1 << c))) c++;
+
+	if (AT && (num == pic.icw3) && (pic.icw3 != 4))
+	{
+		/* pclog("Attempting to raise cascaded IRQ %i\n"); */
+		return;
+	}
+
+        if (!(pic_current & num) || !level)
         {
-                pic_current[c]=1;
-                if (num>0xFF)
-                {
+		/* pclog("Raising IRQ %i\n", c); */
+
+		if (level)
+		{
+	                pic_current |= num;
+		}
+
+	        if (num>0xFF)
+        	{
 			if (!AT)
 			{
 				return;
 			}
 
-                        pic2.pend|=(num>>8);
-                }
-                else
-                {
-                        pic.pend|=num;
-                }
-        }
-        pic_updatepending();
+			pic2.pend|=(num>>8);
+			if ((pic2.pend&~pic2.mask)&~pic2.mask2)
+			{
+				pic.pend |= (1 << pic2.icw3);
+			}
+	        }
+	        else
+        	{
+	                pic.pend|=num;
+        	}
+	        pic_updatepending();
+	}
 }
+
+void picint(uint16_t num)
+{
+	picint_common(num, 0);
+}
+
+void picintlevel(uint16_t num)
+{
+	picint_common(num, 1);
+}
+
 void picintc(uint16_t num)
 {
         int c = 0;
+
         if (!num)
+	{
+		/* pclog("Attempting to lower null IRQ\n"); */
                 return;
-        while (!(num & (1 << c))) c++;
-        if (AT && (c == 2))
-        {
-                c = 9;
+	}
+
+        if (AT && (num == pic.icw3) && (pic.icw3 == 4))
+	{
                 num = 1 << 9;
-        }
-        pic_current[c]=0;
+	}
+
+        while (!(num & (1 << c))) c++;
+
+	if (AT && (num == pic.icw3) && (pic.icw3 != 4))
+	{
+		/* pclog("Attempting to lower cascaded IRQ %i\n"); */
+		return;
+	}
+
+	if (pic_current & num)
+	{
+	        pic_current &= ~num;
+	}
+
+	/* pclog("Lowering IRQ %i\n", c); */
 
         if (num > 0xff)
         {
@@ -369,7 +464,9 @@ void picintc(uint16_t num)
 
                 pic2.pend &= ~(num >> 8);
                 if (!((pic2.pend&~pic2.mask)&~pic2.mask2))
-                        pic.pend &= ~(1 << 2);
+		{
+                        pic.pend &= ~(1 << pic2.icw3);
+		}
         }
         else
         {
@@ -378,79 +475,74 @@ void picintc(uint16_t num)
         pic_updatepending();
 }
 
+/* TODO: Verify this whole level-edge thing... edge/level mode is supposedly handled by bit 3 of ICW1,
+	 but the PIIX spec mandates it being able to be edge/level per IRQ... maybe the PCI-era on-board
+	 PIC ignores bit 3 of ICW1 but instead uses whatever is set in ELCR?
+
+   Edit: Yes, the PIIX (and I suppose also the SIO) disables bit 3 of ICW1 and instead, uses the ELCR.
+
+	 Also, shouldn't there be only one picint(), and then edge/level is handled on processing? */
+
+static uint8_t pic_process_interrupt(PIC* target_pic, int c)
+{
+	uint8_t pending = target_pic->pend & ~target_pic->mask;
+
+	int pic_int = c & 7;
+	int pic_int_num = 1 << pic_int;
+
+	/* int pic_cur_num = 1 << c; */
+
+       	if (pending & pic_int_num)
+	{
+		target_pic->pend &= ~pic_int_num;
+		target_pic->ins |= pic_int_num;
+		pic_update_mask(&target_pic->mask2, target_pic->ins);
+
+		if (c >= 8)
+		{
+			pic.ins |= (1 << pic2.icw3); /*Cascade IRQ*/
+			pic_update_mask(&pic.mask2, pic.ins);
+		}
+
+		pic_updatepending();
+
+		if (target_pic->icw4 & 0x02)
+		{
+			(c >= 8) ? pic2_autoeoi() : pic_autoeoi();
+		}
+
+		if (!c)
+		{
+			pit_set_gate(&pit2, 0, 0);
+		}
+
+		return pic_int + target_pic->vector;
+	}
+	else
+	{
+		return 0xFF;
+	}
+}
+
 uint8_t picinterrupt()
 {
-        uint8_t temp=pic.pend&~pic.mask;
-        int c;
-        for (c = 0; c < 2; c++)
+        int c, d;
+	uint8_t ret;
+
+        for (c = 0; c <= 7; c++)
         {
-                if (temp & (1 << c))
+       	        if (AT && ((1 << c) == pic.icw3))
+		{
+        	        for (d = 8; d <= 15; d++)
+	                {
+				ret = pic_process_interrupt(&pic2, d);
+				if (ret != 0xFF)  return ret;
+	                }
+		}
+		else
                 {
-                        pic.pend &= ~(1 << c);
-                        pic.ins |= (1 << c);
-                        pic_update_mask(&pic.mask2, pic.ins);                      
-                   
-                        pic_updatepending();
-                        if (!c)
-                                pit_set_gate(&pit2, 0, 0);
-                        
-                        if (pic.icw4 & 0x02)
-                                pic_autoeoi();
-                                
-                        return c+pic.vector;
-                }
-        }
-        if ((temp & (1 << 2)) && !AT)
-        {
-                if (temp & (1 << 2))
-                {
-                        pic.pend &= ~(1 << 2);
-                        pic.ins |= (1 << 2);
-                        pic_update_mask(&pic.mask2, pic.ins);                      
-                        pic_updatepending();
-                        
-                        if (pic.icw4 & 0x02)
-                                pic_autoeoi();
-                                
-                        return c+pic.vector;
-                }
-	}
-        if ((temp & (1 << 2)) && AT)
-        {
-                uint8_t temp2 = pic2.pend & ~pic2.mask;
-                for (c = 0; c < 8; c++)
-                {
-                        if (temp2 & (1 << c))
-                        {
-                                pic2.pend &= ~(1 << c);
-                                pic2.ins |= (1 << c);
-                                pic_update_mask(&pic2.mask2, pic2.ins);
-                        
-                                pic.ins |= (1 << 2); /*Cascade IRQ*/
-                                pic_update_mask(&pic.mask2, pic.ins);
-
-                                pic_updatepending();
-
-                                if (pic2.icw4 & 0x02)
-                                        pic2_autoeoi();
-
-                                return c+pic2.vector;
-                        }
-                }
-        }
-        for (c = 3; c < 8; c++)
-        {
-                if (temp & (1 << c))
-                {
-                        pic.pend &= ~(1 << c);
-                        pic.ins |= (1 << c);
-                        pic_update_mask(&pic.mask2, pic.ins);                      
-                        pic_updatepending();
-
-                        if (pic.icw4 & 0x02)
-                                pic_autoeoi();
-
-                        return c+pic.vector;
+			ret = pic_process_interrupt(&pic, c);
+			if (ret != 0xFF)  return ret;
                 }
         }
         return 0xFF;
@@ -458,10 +550,10 @@ uint8_t picinterrupt()
 
 void dumppic()
 {
-        pclog("PIC1 : MASK %02X PEND %02X INS %02X VECTOR %02X\n",pic.mask,pic.pend,pic.ins,pic.vector);
+        pclog("PIC1 : MASK %02X PEND %02X INS %02X LEVEL %02X VECTOR %02X CASCADE %02X\n", pic.mask, pic.pend, pic.ins, (pic.icw1 & 8) ? 1 : 0, pic.vector, pic.icw3);
 	if (AT)
 	{
-	        pclog("PIC2 : MASK %02X PEND %02X INS %02X VECTOR %02X\n",pic2.mask,pic2.pend,pic2.ins,pic2.vector);
+	        pclog("PIC2 : MASK %02X PEND %02X INS %02X LEVEL %02X VECTOR %02X CASCADE %02X\n", pic2.mask, pic2.pend, pic2.ins, (pic2.icw1 & 8) ? 1 : 0, pic2.vector, pic2.icw3);
 	}
 }
 

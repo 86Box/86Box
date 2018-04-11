@@ -6,23 +6,29 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the Intel 2 Mbit 8-bit flash devices.
+ *		Implementation of the Intel 1 Mbit 8-bit flash devices.
  *
- * Version:	@(#)intel_flash.c	1.0.0	2017/05/30
+ * Version:	@(#)intel_flash.c	1.0.14	2018/03/18
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
-
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
-#include "ibm.h"
-#include "CPU/cpu.h"
+#include <wchar.h>
+#include "86box.h"
+#include "cpu/cpu.h"
 #include "device.h"
 #include "mem.h"
-#include "model.h"
-#include "rom.h"
+#include "machine/machine.h"
+#include "nvr.h"
+#include "plat.h"
+
 
 #define FLASH_IS_BXB	2
 #define FLASH_INVERT	1
@@ -61,13 +67,9 @@ static uint8_t flash_read(uint32_t addr, void *p)
 {
         flash_t *flash = (flash_t *)p;
 	if (flash->invert_high_pin)
-	{
 		addr ^= 0x10000;
-		if (addr & 0xfff00000)  return flash->array[addr & 0x1ffff];
-	}
 	addr &= 0x1ffff;
-        switch (flash->command)
-        {
+        switch (flash->command) {
 		case CMD_READ_ARRAY:
                 default:
                 return flash->array[addr];
@@ -108,19 +110,13 @@ static void flash_write(uint32_t addr, uint8_t val, void *p)
 	int i;
 
 	if (flash->invert_high_pin)
-	{
 		addr ^= 0x10000;
-		if (addr & 0xfff00000)  return;
-	}
 	addr &= 0x1ffff;
 
-        switch (flash->command)
-        {
+        switch (flash->command) {
                 case CMD_ERASE_SETUP:
-                if (val == CMD_ERASE_CONFIRM)
-                {
-			for (i = 0; i < 3; i++)
-			{
+                if (val == CMD_ERASE_CONFIRM) {
+			for (i = 0; i < 3; i++) {
                         	if ((addr >= flash->block_start[i]) && (addr <= flash->block_end[i]))
                                 	memset(&(flash->array[flash->block_start[i]]), 0xff, flash->block_len[i]);
 			}
@@ -140,11 +136,10 @@ static void flash_write(uint32_t addr, uint8_t val, void *p)
                 
                 default:
                 flash->command = val;
-                switch (val)
-                {
+                switch (val) {
                         case CMD_CLEAR_STATUS:
                         flash->status = 0;
-                        break;                                
+                        break;
                 }
         }
 }
@@ -153,8 +148,7 @@ static void intel_flash_add_mappings(flash_t *flash)
 {
 	int i = 0;
 
-	for (i = 0; i <= 7; i++)
-	{
+	for (i = 0; i <= 7; i++) {
 		mem_mapping_add(&(flash->mapping[i]), 0xe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + ((i << 14) & 0x1ffff),                       MEM_MAPPING_EXTERNAL, (void *)flash);
 		mem_mapping_add(&(flash->mapping_h[i]), 0xfffe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + ((i << 14) & 0x1ffff),                       0, (void *)flash);
 	}
@@ -165,8 +159,7 @@ static void intel_flash_add_mappings_inverted(flash_t *flash)
 {
 	int i = 0;
 
-	for (i = 0; i <= 7; i++)
-	{
+	for (i = 0; i <= 7; i++) {
 		mem_mapping_add(&(flash->mapping[i]), 0xe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + (((i << 14) ^ 0x10000) & 0x1ffff),                       MEM_MAPPING_EXTERNAL, (void *)flash);
 		mem_mapping_add(&(flash->mapping_h[i]), 0xfffe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + (((i << 14) ^ 0x10000) & 0x1ffff),                       0, (void *)flash);
 	}
@@ -175,22 +168,24 @@ static void intel_flash_add_mappings_inverted(flash_t *flash)
 void *intel_flash_init(uint8_t type)
 {
         FILE *f;
-	int i;
+	int i, l;
         flash_t *flash;
-	wchar_t *model_name;
+	wchar_t *machine_name;
 	wchar_t *flash_name;
 
 	flash = malloc(sizeof(flash_t));
         memset(flash, 0, sizeof(flash_t));
 
-	model_name = (wchar_t *) malloc((strlen(model_get_internal_name_ex(model)) << 1) + 2);
-	mbstowcs(model_name, model_get_internal_name_ex(model), strlen(model_get_internal_name_ex(model)) + 1);
-	flash_name = (wchar_t *) malloc((wcslen(model_name) << 1) + 2 + 8);
-	_swprintf(flash_name, L"%s.bin", model_name);
+	l = strlen(machine_get_internal_name_ex(machine))+1;
+	machine_name = (wchar_t *) malloc(l * sizeof(wchar_t));
+	mbstowcs(machine_name, machine_get_internal_name_ex(machine), l);
+	l = wcslen(machine_name)+5;
+	flash_name = (wchar_t *)malloc(l*sizeof(wchar_t));
+	swprintf(flash_name, l, L"%ls.bin", machine_name);
 
 	wcscpy(flash_path, flash_name);
 
-	pclog_w(L"Flash path: %s\n", flash_name);
+	/* pclog("Flash path: %ls\n", flash_name); */
 
 	flash->flash_id = (type & FLASH_IS_BXB) ? 0x95 : 0x94;
 	flash->invert_high_pin = (type & FLASH_INVERT);
@@ -201,8 +196,7 @@ void *intel_flash_init(uint8_t type)
 	flash->block_len[BLOCK_DATA2] = 0x01000;
 	flash->block_len[BLOCK_BOOT] = 0x02000;
 
-	if (type & FLASH_IS_BXB)			/* 28F001BX-B */
-	{
+	if (type & FLASH_IS_BXB) {			/* 28F001BX-B */
 		flash->block_start[BLOCK_MAIN] = 0x04000;	/* MAIN BLOCK */
 		flash->block_end[BLOCK_MAIN] = 0x1ffff;
 		flash->block_start[BLOCK_DATA1] = 0x03000;	/* DATA AREA 1 BLOCK */
@@ -211,9 +205,7 @@ void *intel_flash_init(uint8_t type)
 		flash->block_end[BLOCK_DATA2] = 0x04fff;
 		flash->block_start[BLOCK_BOOT] = 0x00000;	/* BOOT BLOCK */
 		flash->block_end[BLOCK_BOOT] = 0x01fff;
-	}
-	else						/* 28F001BX-T */
-	{
+	} else {					/* 28F001BX-T */
 		flash->block_start[BLOCK_MAIN] = 0x00000;	/* MAIN BLOCK */
 		flash->block_end[BLOCK_MAIN] = 0x1bfff;
 		flash->block_start[BLOCK_DATA1] = 0x1c000;	/* DATA AREA 1 BLOCK */
@@ -224,37 +216,28 @@ void *intel_flash_init(uint8_t type)
 		flash->block_end[BLOCK_BOOT] = 0x1ffff;
 	}
 
-	for (i = 0; i < 8; i++)
-	{
+	for (i = 0; i < 8; i++) {
 		mem_mapping_disable(&bios_mapping[i]);
 		mem_mapping_disable(&bios_high_mapping[i]);
 	}
 
-	if (flash->invert_high_pin)
-	{
+	if (flash->invert_high_pin) {
 		memcpy(flash->array, rom + 65536, 65536);
 		memcpy(flash->array + 65536, rom, 65536);
 	}
 	else
-	{
 		memcpy(flash->array, rom, 131072);
-	}
 
 	if (flash->invert_high_pin)
-	{
 		intel_flash_add_mappings_inverted(flash);
-	}
 	else
-	{
 		intel_flash_add_mappings(flash);
-	}
 
         flash->command = CMD_READ_ARRAY;
         flash->status = 0;
 
-        f = nvrfopen(flash_path, L"rb");
-        if (f)
-        {
+        f = nvr_fopen(flash_path, L"rb");
+        if (f) {
                 fread(&(flash->array[flash->block_start[BLOCK_MAIN]]), flash->block_len[BLOCK_MAIN], 1, f);
        	        fread(&(flash->array[flash->block_start[BLOCK_DATA1]]), flash->block_len[BLOCK_DATA1], 1, f);
                 fread(&(flash->array[flash->block_start[BLOCK_DATA2]]), flash->block_len[BLOCK_DATA2], 1, f);
@@ -262,7 +245,7 @@ void *intel_flash_init(uint8_t type)
         }
 
 	free(flash_name);
-	free(model_name);
+	free(machine_name);
 
         return flash;
 }
@@ -295,7 +278,7 @@ void intel_flash_close(void *p)
         FILE *f;
         flash_t *flash = (flash_t *)p;
 
-        f = nvrfopen(flash_path, L"wb");
+        f = nvr_fopen(flash_path, L"wb");
         fwrite(&(flash->array[flash->block_start[BLOCK_MAIN]]), flash->block_len[BLOCK_MAIN], 1, f);
         fwrite(&(flash->array[flash->block_start[BLOCK_DATA1]]), flash->block_len[BLOCK_DATA1], 1, f);
         fwrite(&(flash->array[flash->block_start[BLOCK_DATA2]]), flash->block_len[BLOCK_DATA2], 1, f);
@@ -304,54 +287,43 @@ void intel_flash_close(void *p)
         free(flash);
 }
 
-device_t intel_flash_bxt_ami_device =
+
+const device_t intel_flash_bxt_ami_device =
 {
         "Intel 28F001BXT Flash BIOS",
-        0,
+        0, 0,
         intel_flash_bxt_ami_init,
         intel_flash_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+	NULL,
+        NULL, NULL, NULL, NULL, NULL
 };
 
-device_t intel_flash_bxb_ami_device =
+const device_t intel_flash_bxb_ami_device =
 {
         "Intel 28F001BXB Flash BIOS",
-        0,
+        0, 0,
         intel_flash_bxb_ami_init,
         intel_flash_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+	NULL,
+        NULL, NULL, NULL, NULL, NULL
 };
 
-device_t intel_flash_bxt_device =
+const device_t intel_flash_bxt_device =
 {
         "Intel 28F001BXT Flash BIOS",
-        0,
+        0, 0,
         intel_flash_bxt_init,
         intel_flash_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+	NULL,
+        NULL, NULL, NULL, NULL, NULL
 };
 
-device_t intel_flash_bxb_device =
+const device_t intel_flash_bxb_device =
 {
         "Intel 28F001BXB Flash BIOS",
-        0,
+        0, 0,
         intel_flash_bxb_init,
         intel_flash_close,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+	NULL,
+        NULL, NULL, NULL, NULL, NULL
 };

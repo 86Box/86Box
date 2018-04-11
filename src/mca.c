@@ -1,14 +1,18 @@
-#include "ibm.h"
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include "io.h"
-#include "mem.h"
-
 #include "mca.h"
+
 
 void    (*mca_card_write[8])(int addr, uint8_t val, void *priv);
 uint8_t  (*mca_card_read[8])(int addr, void *priv);
 void           *mca_priv[8];
+
 static int mca_index;
 static int mca_nr_cards;
+
 
 void mca_init(int nr_cards)
 {

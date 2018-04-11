@@ -44,13 +44,20 @@
  *		configuration register (CTRL_SPCFG bit set) but have to
  *		remember that stuff first...
  *
- * Version:	@(#)bugger.c	1.0.4	2017/05/09
+ * Version:	@(#)bugger.c	1.0.10	2018/03/18
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 1989-2017 Fred N. van Kempen.
+ *		Copyright 1989-2018 Fred N. van Kempen.
  */
-#include "ibm.h"
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
+#include "86box.h"
 #include "io.h"
+#include "device.h"
+#include "plat.h"
+#include "ui.h"
 #include "bugger.h"
 
 
@@ -79,7 +86,7 @@ static uint8_t	bug_buff[FIFO_LEN],	/* serial port data buffer */
 static char	bug_str[UISTR_LEN];	/* UI output string */
 
 
-extern void	set_bugui(char *__str);
+extern void	ui_sb_bugui(char *__str);
 
 
 /* Update the system's UI with the actual Bugger status. */
@@ -99,7 +106,7 @@ bug_setui(void)
 		(bug_ledr&0x02)?'R':'r', (bug_ledr&0x01)?'R':'r');
 
     /* Send formatted string to the UI. */
-    status_settext(bug_str);
+    ui_sb_bugui(bug_str);
 }
 
 
@@ -301,23 +308,36 @@ bug_read(uint16_t port, void *priv)
 
 
 /* Initialize the ISA BusBugger emulator. */
-void
-bugger_init(void)
+static void *
+bug_init(const device_t *info)
 {
-    pclog("ISA Bus (de)Bugger, I/O=%04x\n", BUGGER_ADDR);
+    pclog("%s, I/O=%04x\n", info->name, BUGGER_ADDR);
 
     /* Initialize local registers. */
     bug_reset();
 
     io_sethandler(BUGGER_ADDR, BUGGER_ADDRLEN,
 		  bug_read, NULL, NULL, bug_write, NULL, NULL,  NULL);
+
+    /* Just so its not NULL. */
+    return(&bug_ctrl);
 }
 
 
 /* Remove the ISA BusBugger emulator from the system. */
-void
-bugger_remove(void)
+static void
+bug_close(UNUSED(void *priv))
 {
     io_removehandler(BUGGER_ADDR, BUGGER_ADDRLEN,
 		     bug_read, NULL, NULL, bug_write, NULL, NULL,  NULL);
 }
+
+
+const device_t bugger_device = {
+    "ISA/PCI Bus Bugger",
+    DEVICE_ISA | DEVICE_AT,
+    0,
+    bug_init, bug_close, NULL,
+    NULL, NULL, NULL, NULL,
+    NULL
+};

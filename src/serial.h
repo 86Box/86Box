@@ -8,16 +8,16 @@
  *
  *		Definitions for the SERIAL card.
  *
- * Version:	@(#)serial.h	1.0.6	2017/06/17
+ * Version:	@(#)serial.h	1.0.7	2018/01/12
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef EMU_SERIAL_H
 # define EMU_SERIAL_H
 
 
-#ifdef WALTJE
+#ifdef WALTJE_SERIAL
 /* Default settings for the standard ports. */
 #define SERIAL1_ADDR		0x03f8
 #define SERIAL1_IRQ		4
@@ -56,7 +56,7 @@ typedef struct _serial_ {
     uint8_t	fifo[256];
     int		fifo_read, fifo_write;
 
-    int		receive_delay;
+    int64_t	receive_delay;
 
     void	*bh;			/* BottomHalf handler */
 } SERIAL;
@@ -70,6 +70,7 @@ extern void	serial_remove(int port);
 extern SERIAL	*serial_attach(int, void *, void *);
 extern int	serial_link(int, char *);
 
+extern void	serial_clear_fifo(SERIAL *);
 extern void	serial_write_fifo(SERIAL *, uint8_t, int);
 
 
@@ -99,9 +100,10 @@ typedef struct
         uint8_t fifo[256];
         int fifo_read, fifo_write;
         
-        int recieve_delay;
+        int64_t recieve_delay;
 } SERIAL;
 
+void serial_clear_fifo(SERIAL *);
 void serial_write_fifo(SERIAL *serial, uint8_t dat);
 
 extern SERIAL serial1, serial2;

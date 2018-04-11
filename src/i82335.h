@@ -1,1 +1,1 @@
-void i82335_init();
+extern void i82335_init(void);
