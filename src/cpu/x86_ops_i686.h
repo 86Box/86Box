@@ -8,20 +8,11 @@
  *
  *		x86 i686 (Pentium Pro/Pentium II) CPU Instructions.
  *
- * Version:	@(#)x86_ops_i686.h	1.0.3	2018/03/26
+ * Version:	@(#)x86_ops_i686.h	1.0.4	2018/04/25
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
  */
-
-#ifndef internal_illegal
-static int internal_illegal(char *s)
-{
-	cpu_state.pc = cpu_state.oldpc;
-	x86gpf(s, 0);
-	return cpu_state.abrt;
-}
-#endif
 
 /*	0 = Limit 0-15
 	1 = Base 0-15
