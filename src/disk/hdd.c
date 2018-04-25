@@ -8,13 +8,13 @@
  *
  *		Common code to handle all sorts of hard disk images.
  *
- * Version:	@(#)hdd.c	1.0.7	2017/11/18
+ * Version:	@(#)hdd.c	1.0.8	2018/04/24
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -63,52 +63,34 @@ no_cdrom:
     }
 
     if (! strcmp(str, "ide_pio_only"))
-	return(HDD_BUS_IDE_PIO_ONLY);
+	return(HDD_BUS_IDE);
 
     if (! strcmp(str, "ide"))
-	return(HDD_BUS_IDE_PIO_ONLY);
+	return(HDD_BUS_IDE);
 
     if (! strcmp(str, "atapi_pio_only"))
-	return(HDD_BUS_IDE_PIO_ONLY);
+	return(HDD_BUS_IDE);
 
     if (! strcmp(str, "atapi"))
-	return(HDD_BUS_IDE_PIO_ONLY);
+	return(HDD_BUS_IDE);
 
     if (! strcmp(str, "eide"))
-	return(HDD_BUS_IDE_PIO_ONLY);
+	return(HDD_BUS_IDE);
 
-    if (! strcmp(str, "xtide"))
-	return(HDD_BUS_XTIDE);
+    if (! strcmp(str, "xta"))
+	return(HDD_BUS_XTA);
 
     if (! strcmp(str, "atide"))
-	return(HDD_BUS_IDE_PIO_ONLY);
+	return(HDD_BUS_IDE);
 
     if (! strcmp(str, "ide_pio_and_dma"))
-	return(HDD_BUS_IDE_PIO_AND_DMA);
+	return(HDD_BUS_IDE);
 
     if (! strcmp(str, "atapi_pio_and_dma"))
-	return(HDD_BUS_IDE_PIO_AND_DMA);
+	return(HDD_BUS_IDE);
 
     if (! strcmp(str, "scsi"))
 	return(HDD_BUS_SCSI);
-
-    if (! strcmp(str, "removable")) {
-	if (cdrom) goto no_cdrom;
-
-	return(HDD_BUS_SCSI_REMOVABLE);
-    }
-
-    if (! strcmp(str, "scsi_removable")) {
-	if (cdrom) goto no_cdrom;
-
-	return(HDD_BUS_SCSI_REMOVABLE);
-    }
-
-    if (! strcmp(str, "removable_scsi")) {
-	if (cdrom) goto no_cdrom;
-
-	return(HDD_BUS_SCSI_REMOVABLE);
-    }
 
     if (! strcmp(str, "usb"))
 	ui_msgbox(MBX_ERROR, (wchar_t *)IDS_4110);
@@ -131,28 +113,20 @@ hdd_bus_to_string(int bus, int cdrom)
 		s = "mfm";
 		break;
 
-	case HDD_BUS_XTIDE:
-		s = "xtide";
+	case HDD_BUS_XTA:
+		s = "xta";
 		break;
 
 	case HDD_BUS_ESDI:
 		s = "esdi";
 		break;
 
-	case HDD_BUS_IDE_PIO_ONLY:
-		s = cdrom ? "atapi_pio_only" : "ide_pio_only";
-		break;
-
-	case HDD_BUS_IDE_PIO_AND_DMA:
-		s = cdrom ? "atapi_pio_and_dma" : "ide_pio_and_dma";
+	case HDD_BUS_IDE:
+		s = cdrom ? "atapi" : "ide";
 		break;
 
 	case HDD_BUS_SCSI:
 		s = "scsi";
-		break;
-
-	case HDD_BUS_SCSI_REMOVABLE:
-		s = "scsi_removable";
 		break;
     }
 
@@ -163,12 +137,14 @@ hdd_bus_to_string(int bus, int cdrom)
 int
 hdd_is_valid(int c)
 {
-    if (hdd[c].bus == HDD_BUS_DISABLED) return(0);
+    if (hdd[c].bus == HDD_BUS_DISABLED)
+	return(0);
 
-    if ((wcslen(hdd[c].fn) == 0) &&
-	(hdd[c].bus != HDD_BUS_SCSI_REMOVABLE)) return(0);
+    if (wcslen(hdd[c].fn) == 0)
+	return(0);
 
-    if ((hdd[c].tracks==0) || (hdd[c].hpc==0) || (hdd[c].spt==0)) return(0);
+    if ((hdd[c].tracks==0) || (hdd[c].hpc==0) || (hdd[c].spt==0))
+	return(0);
 
     return(1);
 }

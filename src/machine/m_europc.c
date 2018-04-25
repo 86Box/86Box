@@ -68,7 +68,7 @@
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *		
- * Version:	@(#)europc.c	1.0.3	2018/03/18
+ * Version:	@(#)europc.c	1.0.4	2018/04/11
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -120,8 +120,8 @@
 #include "../nmi.h"
 #include "../mem.h"
 #include "../rom.h"
-#include "../nvr.h"
 #include "../device.h"
+#include "../nvr.h"
 #include "../keyboard.h"
 #include "../mouse.h"
 #include "../game/gameport.h"
@@ -652,13 +652,16 @@ europc_boot(const device_t *info)
     /* Only after JIM has been initialized. */
     (void)device_add(&keyboard_xt_device);
 
-    /*
+    /* Enable and set up the FDC. */
+    (void)device_add(&fdc_xt_device);
+
+     /*
      * Set up and enable the HD20 disk controller.
      *
      * We only do this if we have not configured another one.
      */
     if (hdc_current == 1)
-	(void)device_add(&europc_hdc_device);
+	(void)device_add(&xta_hd20_device);
 
     return(sys);
 }
@@ -715,12 +718,13 @@ const device_t europc_device = {
 void
 machine_europc_init(const machine_t *model)
 {
+    machine_common_init(model);
+    nmi_init();
+
     /* Clear the machine state. */
     memset(&europc, 0x00, sizeof(europc_t));
     europc.jim = 0x0250;
 
-    machine_common_init(model);
-    nmi_init();
     mem_add_bios();
 
     /* This is machine specific. */
@@ -734,9 +738,6 @@ machine_europc_init(const machine_t *model)
 
     /* Initialize the actual NVR. */
     nvr_init(&europc.nvr);
-
-    /* Enable and set up the FDC. */
-    (void)device_add(&fdc_xt_device);
 
     /* Enable and set up the mainboard device. */
     device_add(&europc_device);

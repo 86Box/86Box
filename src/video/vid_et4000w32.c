@@ -10,7 +10,7 @@
  *
  * Known bugs:	Accelerator doesn't work in planar modes
  *
- * Version:	@(#)vid_et4000w32.c	1.0.7	2018/03/18
+ * Version:	@(#)vid_et4000w32.c	1.0.8	2018/04/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -360,7 +360,6 @@ void et4000w32p_recalcmapping(et4000w32p_t *et4000)
         if (svga->crtc[0x36] & 0x10) /*Linear frame buffer*/
         {
                 mem_mapping_set_addr(&et4000->linear_mapping, et4000->linearbase, 0x200000);
-		svga->linear_base = et4000->linearbase;
                 mem_mapping_disable(&svga->mapping);
                 mem_mapping_disable(&et4000->mmu_mapping);
         }

@@ -41,7 +41,7 @@
  *		Since all controllers (including the ones made by DTC) use
  *		(mostly) the same API, we keep them all in this module.
  *
- * Version:	@(#)hdc_mfm_xt.c	1.0.14	2018/03/18
+ * Version:	@(#)hdc_mfm_xt.c	1.0.15	2018/04/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -71,7 +71,8 @@
 #include "hdd.h"
 
 
-#define MFM_TIME	(2000LL*TIMER_USEC)
+// #define MFM_TIME	(2000LL*TIMER_USEC)
+#define MFM_TIME	(50LL*TIMER_USEC)
 #define XEBEC_BIOS_FILE	L"roms/hdd/mfm_xebec/ibm_xebec_62x0822_1985.bin"
 #define DTC_BIOS_FILE	L"roms/hdd/mfm_xebec/dtc_cxd21a.bin"
 
@@ -429,7 +430,7 @@ mfm_callback(void *priv)
 		}
 
 		hdd_image_zero(drive->hdd_num, addr, 17);
-				
+
 		mfm_complete(mfm);
 		break;			       
 
@@ -757,7 +758,7 @@ loadhd(mfm_t *mfm, int c, int d, const wchar_t *fn)
 {
     drive_t *drive = &mfm->drives[d];
 
-    if (! hdd_image_load(d)) {
+    if (! hdd_image_load(c)) {
 	drive->present = 0;
 	return;
     }
@@ -859,7 +860,7 @@ mfm_close(void *priv)
 static int
 xebec_available(void)
 {
-	return(rom_present(XEBEC_BIOS_FILE));
+    return(rom_present(XEBEC_BIOS_FILE));
 }
 
 
@@ -884,7 +885,7 @@ dtc5150x_init(const device_t *info)
     pclog("MFM: looking for disks..\n");
     for (i=0; i<HDD_NUM; i++) {
 	if ((hdd[i].bus == HDD_BUS_MFM) && (hdd[i].mfm_channel < MFM_NUM)) {
-		pclog("Found MFM hard disk on channel %i\n", hdd[i].mfm_channel);
+		pclog("Found MFM hard disk on channel %i (%ls)\n", hdd[i].mfm_channel, hdd[i].fn);
 		loadhd(dtc, i, hdd[i].mfm_channel, hdd[i].fn);
 
 		if (++c > MFM_NUM) break;

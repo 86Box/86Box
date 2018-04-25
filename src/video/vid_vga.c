@@ -50,9 +50,11 @@ void vga_out(uint16_t addr, uint8_t val, void *p)
         switch (addr)
         {
                 case 0x3D4:
-                svga->crtcreg = val & 0x1f;
+                svga->crtcreg = val & 0x3f;
                 return;
                 case 0x3D5:
+		if (svga->crtcreg & 0x20)
+			return;
                 if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
                         return;
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
@@ -87,7 +89,10 @@ uint8_t vga_in(uint16_t addr, void *p)
                 temp = svga->crtcreg;
                 break;
                 case 0x3D5:
-                temp = svga->crtc[svga->crtcreg];
+		if (svga->crtcreg & 0x20)
+			temp = 0xff;
+		else
+                	temp = svga->crtc[svga->crtcreg];
                 break;
                 default:
                 temp = svga_in(addr, svga);

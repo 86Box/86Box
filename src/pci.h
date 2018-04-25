@@ -15,6 +15,7 @@ void pci_clear_irq(uint8_t card, uint8_t pci_int);
 void pci_reset(void);
 void pci_init(int type);
 void pci_register_slot(int card, int type, int inta, int intb, int intc, int intd);
+void pci_close(void);
 uint8_t pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv);
 
 #define PCI_REG_COMMAND 0x04
@@ -52,14 +53,5 @@ typedef union {
     uint32_t addr;
     uint8_t addr_regs[4];
 } bar_t;
-
-typedef struct PCI_RESET
-{
-        void (*pci_master_reset)(void);
-        void (*pci_set_reset)(void);
-        void (*super_io_reset)(void);
-} PCI_RESET;
-
-extern PCI_RESET pci_reset_handler;
 
 extern void     trc_init(void);

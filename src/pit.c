@@ -39,6 +39,12 @@ float	VGACONST1,
 float	RTCCONST;
 
 int64_t firsttime=1;
+void setrtcconst(float clock)
+{
+        RTCCONST=clock/32768.0;
+        TIMER_USEC = (int64_t)((clock / 1000000.0f) * (float)(1 << TIMER_SHIFT));
+}
+
 void setpitclock(float clock)
 {
         cpuclock=clock;
@@ -52,8 +58,8 @@ void setpitclock(float clock)
         video_update_timing();
         
         xt_cpu_multi = (int64_t)((14318184.0*(double)(1 << TIMER_SHIFT)) / (double)machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
-        RTCCONST=clock/32768.0;
-        TIMER_USEC = (int64_t)((clock / 1000000.0f) * (float)(1 << TIMER_SHIFT));
+        /* RTCCONST=clock/32768.0;
+        TIMER_USEC = (int64_t)((clock / 1000000.0f) * (float)(1 << TIMER_SHIFT)); */
         device_speed_changed();
 }
 
@@ -336,7 +342,6 @@ void pit_write(uint16_t addr, uint8_t val, void *p)
 {
         PIT *pit = (PIT *)p;
         int t;
-        cycles -= (int)PITCONST;
         
         switch (addr&3)
         {
@@ -444,7 +449,6 @@ uint8_t pit_read(uint16_t addr, void *p)
         PIT *pit = (PIT *)p;
         int64_t t;
         uint8_t temp = 0xff;
-        cycles -= (int)PITCONST;        
         switch (addr&3)
         {
                 case 0: case 1: case 2: /*Timers*/

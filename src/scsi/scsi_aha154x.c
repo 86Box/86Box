@@ -10,7 +10,7 @@
  *		made by Adaptec, Inc. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.40	2018/03/18
+ * Version:	@(#)scsi_aha154x.c	1.0.40	2018/04/11
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -30,11 +30,11 @@
 #include "../mem.h"
 #include "../mca.h"
 #include "../rom.h"
+#include "../device.h"
 #include "../nvr.h"
 #include "../dma.h"
 #include "../pic.h"
 #include "../timer.h"
-#include "../device.h"
 #include "../plat.h"
 #include "../cpu/cpu.h"
 #include "scsi.h"

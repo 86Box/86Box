@@ -8,15 +8,15 @@
  *
  *		x87 FPU instructions core.
  *
- * Version:	@(#)x87_ops.h	1.0.1	2017/10/28
+ * Version:	@(#)x87_ops.h	1.0.2	2018/04/05
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 leilei.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 leilei.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <math.h>
 #include <fenv.h>
@@ -78,6 +78,21 @@ static __inline void x87_push(double i)
         cpu_state.TOP=(cpu_state.TOP-1)&7;
         cpu_state.ST[cpu_state.TOP] = i;
         cpu_state.tag[cpu_state.TOP&7] = (i == 0.0) ? 1 : 0;
+}
+
+static inline void x87_push_u64(uint64_t i)
+{
+        union
+        {
+                double d;
+                uint64_t ll;
+        } td;
+                
+        td.ll = i;
+
+        cpu_state.TOP=(cpu_state.TOP-1)&7;
+        cpu_state.ST[cpu_state.TOP] = td.d;
+        cpu_state.tag[cpu_state.TOP&7] = (td.d == 0.0) ? 1 : 0;
 }
 
 static __inline double x87_pop()

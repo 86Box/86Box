@@ -8,7 +8,7 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.17	2018/03/18
+ * Version:	@(#)scsi.c	1.0.18	2018/03/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -27,11 +27,12 @@
 #include "../rom.h"
 #include "../timer.h"
 #include "../device.h"
-#include "../cdrom/cdrom.h"
 #include "../disk/hdc.h"
 #include "../disk/zip.h"
 #include "../plat.h"
 #include "scsi.h"
+#include "../cdrom/cdrom.h"
+#include "scsi_device.h"
 #include "scsi_aha154x.h"
 #include "scsi_buslogic.h"
 #include "scsi_ncr5380.h"
@@ -60,30 +61,29 @@ typedef const struct {
     const char		*name;
     const char		*internal_name;
     const device_t	*device;
-    void	(*reset)(void *p);
 } SCSI_CARD;
 
 
 static SCSI_CARD scsi_cards[] = {
-    { "None",			"none",		NULL,		      NULL		  },
-    { "[ISA] Adaptec AHA-1540B","aha1540b",	&aha1540b_device,     x54x_device_reset   },
-    { "[ISA] Adaptec AHA-1542C","aha1542c",	&aha1542c_device,     x54x_device_reset   },
-    { "[ISA] Adaptec AHA-1542CF","aha1542cf",	&aha1542cf_device,    x54x_device_reset   },
-    { "[ISA] BusLogic BT-542BH","bt542bh",	&buslogic_device,     BuslogicDeviceReset },
-    { "[ISA] BusLogic BT-545S",	"bt545s",	&buslogic_545s_device,BuslogicDeviceReset },
-    { "[ISA] Longshine LCS-6821N","lcs6821n",	&scsi_lcs6821n_device,NULL		  },
-    { "[ISA] Ranco RT1000B",	"rt1000b",	&scsi_rt1000b_device, NULL		  },
-    { "[ISA] Trantor T130B",	"t130b",	&scsi_t130b_device,   NULL		  },
-    { "[ISA] Sumo SCSI-AT",	"scsiat",	&scsi_scsiat_device,  NULL		  },
+    { "None",			"none",		NULL,		      },
+    { "[ISA] Adaptec AHA-1540B","aha1540b",	&aha1540b_device,     },
+    { "[ISA] Adaptec AHA-1542C","aha1542c",	&aha1542c_device,     },
+    { "[ISA] Adaptec AHA-1542CF","aha1542cf",	&aha1542cf_device,    },
+    { "[ISA] BusLogic BT-542BH","bt542bh",	&buslogic_device,     },
+    { "[ISA] BusLogic BT-545S",	"bt545s",	&buslogic_545s_device,},
+    { "[ISA] Longshine LCS-6821N","lcs6821n",	&scsi_lcs6821n_device,},
+    { "[ISA] Ranco RT1000B",	"rt1000b",	&scsi_rt1000b_device, },
+    { "[ISA] Trantor T130B",	"t130b",	&scsi_t130b_device,   },
+    { "[ISA] Sumo SCSI-AT",	"scsiat",	&scsi_scsiat_device,  },
 #ifdef WALTJE
-    { "[ISA] Generic WDC33C93",	"wd33c93",	&scsi_wd33c93_device, NULL		  },
+    { "[ISA] Generic WDC33C93",	"wd33c93",	&scsi_wd33c93_device, },
 #endif
-    { "[MCA] Adaptec AHA-1640",	"aha1640",	&aha1640_device,      x54x_device_reset   },
-    { "[MCA] BusLogic BT-640A",	"bt640a",	&buslogic_640a_device,BuslogicDeviceReset },
-    { "[PCI] BusLogic BT-958D",	"bt958d",	&buslogic_pci_device, BuslogicDeviceReset },
-    { "[PCI] NCR 53C810",	"ncr53c810",	&ncr53c810_pci_device,NULL		  },
-    { "[VLB] BusLogic BT-445S",	"bt445s",	&buslogic_445s_device,BuslogicDeviceReset },
-    { "",			"",		NULL,		      NULL		  },
+    { "[MCA] Adaptec AHA-1640",	"aha1640",	&aha1640_device,      },
+    { "[MCA] BusLogic BT-640A",	"bt640a",	&buslogic_640a_device,},
+    { "[PCI] BusLogic BT-958D",	"bt958d",	&buslogic_pci_device, },
+    { "[PCI] NCR 53C810",	"ncr53c810",	&ncr53c810_pci_device,},
+    { "[VLB] BusLogic BT-445S",	"bt445s",	&buslogic_445s_device,},
+    { "",			"",		NULL,		      },
 };
 
 
@@ -149,6 +149,9 @@ void scsi_card_init(void)
 {
     int i, j;
 
+    if (!scsi_cards[scsi_card_current].device)
+	return;
+
     pclog("Building SCSI hard disk map...\n");
     build_scsi_hd_map();
     pclog("Building SCSI CD-ROM map...\n");
@@ -158,38 +161,21 @@ void scsi_card_init(void)
 
     for (i=0; i<SCSI_ID_MAX; i++) {
 	for (j=0; j<SCSI_LUN_MAX; j++) {
-		if (scsi_hard_disks[i][j] != 0xff) {
+		if (scsi_hard_disks[i][j] != 0xff)
 			SCSIDevices[i][j].LunType = SCSI_DISK;
-		} else if (scsi_cdrom_drives[i][j] != 0xff) {
+		else if (scsi_cdrom_drives[i][j] != 0xff)
 			SCSIDevices[i][j].LunType = SCSI_CDROM;
-		} else if (scsi_zip_drives[i][j] != 0xff) {
+		else if (scsi_zip_drives[i][j] != 0xff)
 			SCSIDevices[i][j].LunType = SCSI_ZIP;
-		} else {
+		else
 			SCSIDevices[i][j].LunType = SCSI_NONE;
-		}
 		SCSIDevices[i][j].CmdBuffer = NULL;
 	}
     }
 
-    if (scsi_cards[scsi_card_current].device)
-	device_add(scsi_cards[scsi_card_current].device);
+    device_add(scsi_cards[scsi_card_current].device);
 
     scsi_card_last = scsi_card_current;
-}
-
-
-void scsi_card_reset(void)
-{
-    void *p = NULL;
-
-    if (scsi_cards[scsi_card_current].device) {
-	p = device_get_priv(scsi_cards[scsi_card_current].device);
-	if (p) {
-		if (scsi_cards[scsi_card_current].reset) {
-			scsi_cards[scsi_card_current].reset(p);
-		}
-	}
-    }
 }
 
 
@@ -200,20 +186,16 @@ void SCSIReset(uint8_t id, uint8_t lun)
     uint8_t zip_id = scsi_zip_drives[id][lun];
     uint8_t hdc_id = scsi_hard_disks[id][lun];
 
-    if (hdc_id != 0xff) {
-	scsi_hd_reset(hdc_id);
+    if (hdc_id != 0xff)
 	SCSIDevices[id][lun].LunType = SCSI_DISK;
-    } else {
-	if (cdrom_id != 0xff) {
-		cdrom_reset(cdrom_id);
-		SCSIDevices[id][lun].LunType = SCSI_CDROM;
-	} else if (zip_id != 0xff) {
-		zip_reset(zip_id);
-		SCSIDevices[id][lun].LunType = SCSI_ZIP;
-	} else {
-		SCSIDevices[id][lun].LunType = SCSI_NONE;
-	}
-    }
+    else if (cdrom_id != 0xff)
+	SCSIDevices[id][lun].LunType = SCSI_CDROM;
+    else if (zip_id != 0xff)
+	SCSIDevices[id][lun].LunType = SCSI_ZIP;
+    else
+	SCSIDevices[id][lun].LunType = SCSI_NONE;
+
+    scsi_device_reset(id, lun);
 
     if (SCSIDevices[id][lun].CmdBuffer != NULL) {
 	free(SCSIDevices[id][lun].CmdBuffer);

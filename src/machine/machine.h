@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.22	2018/03/18
+ * Version:	@(#)machine.h	1.0.23	2018/03/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -55,7 +55,7 @@ typedef struct _machine_ {
     }		cpu[5];
     int		fixed_gfxcard;
     int		flags;
-    int		min_ram, max_ram;
+    uint32_t	min_ram, max_ram;
     int		ram_granularity;
     int		nvrmask;
     void	(*init)(const struct _machine_ *);
@@ -64,7 +64,6 @@ typedef struct _machine_ {
 #else
     void	*get_device;
 #endif
-    void	(*nvr_close)(void);
 } machine_t;
 
 
@@ -156,6 +155,12 @@ extern void	machine_at_4gpv31_init(const machine_t *);
 extern void	machine_pcjr_init(const machine_t *);
 
 extern void	machine_ps1_m2011_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern void	ps1_hdc_inform(void *, void *);
+extern void	ps1_set_feedback(void *);
+extern const device_t ps1_hdc_device;
+#endif
+
 extern void	machine_ps1_m2121_init(const machine_t *);
 extern void	machine_ps1_m2133_init(const machine_t *);
 
@@ -173,8 +178,7 @@ extern void	machine_amstrad_init(const machine_t *);
 
 extern void	machine_europc_init(const machine_t *);
 #ifdef EMU_DEVICE_H
-extern const device_t europc_device,
-                europc_hdc_device;
+extern const device_t europc_device;
 #endif
 
 extern void	machine_olim24_init(const machine_t *);

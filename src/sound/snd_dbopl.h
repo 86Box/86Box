@@ -11,7 +11,7 @@ extern "C" {
         void opl2_update(int nr, int16_t *buffer, int samples);
         void opl3_update(int nr, int16_t *buffer, int samples);
 
-	extern int opl3_type;
+	extern int opl_type;
 #ifdef __cplusplus
 }
 #endif

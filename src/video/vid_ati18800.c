@@ -8,7 +8,7 @@
  *
  *		ATI 18800 emulation (VGA Edge-16)
  *
- * Version:	@(#)vid_ati18800.c	1.0.9	2018/03/24
+ * Version:	@(#)vid_ati18800.c	1.0.10	2018/04/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -34,14 +34,21 @@
 #include "vid_svga_render.h"
 
 
+#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
 #define BIOS_ROM_PATH_WONDER	L"roms/video/ati18800/VGA_Wonder_V3-1.02.bin"
+#endif
 #define BIOS_ROM_PATH_VGA88	L"roms/video/ati18800/vga88.bin"
 #define BIOS_ROM_PATH_EDGE16	L"roms/video/ati18800/vgaedge16.vbi"
 
 enum {
+#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
 	ATI18800_WONDER = 0,
 	ATI18800_VGA88,
 	ATI18800_EDGE16
+#else
+	ATI18800_VGA88 = 0,
+	ATI18800_EDGE16
+#endif
 };
 
 
@@ -73,7 +80,7 @@ static void ati18800_out(uint16_t addr, uint8_t val, void *p)
                 break;
                 case 0x1cf:
                 ati18800->regs[ati18800->index] = val;
-                pclog("ATI 18800 ATI register write %02x %02x\n", ati18800->index, val);
+                /* pclog("ATI 18800 ATI register write %02x %02x\n", ati18800->index, val); */
                 switch (ati18800->index)
                 {
                         case 0xb0:
@@ -154,9 +161,7 @@ static uint8_t ati18800_in(uint16_t addr, void *p)
                 temp = svga_in(addr, svga);
                 break;
         }
-#ifndef RELEASE_BUILD
-        if (addr != 0x3da) pclog("%02X  %04X:%04X\n", temp, CS,cpu_state.pc);
-#endif
+        /* if (addr != 0x3da) pclog("%02X  %04X:%04X\n", temp, CS,cpu_state.pc); */
         return temp;
 }
 
@@ -188,10 +193,14 @@ static void *ati18800_init(const device_t *info)
         memset(ati18800, 0, sizeof(ati18800_t));
 
 	switch (info->local) {
+#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
 		case ATI18800_WONDER:
+#endif
 		default:
+#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
 		        rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_WONDER, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 			break;
+#endif
 		case ATI18800_VGA88:
 		        rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_VGA88, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 			break;
@@ -216,10 +225,12 @@ static void *ati18800_init(const device_t *info)
         return ati18800;
 }
 
+#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
 static int ati18800_wonder_available(void)
 {
         return rom_present(BIOS_ROM_PATH_WONDER);
 }
+#endif
 
 static int ati18800_vga88_available(void)
 {
@@ -261,6 +272,7 @@ static void ati18800_add_status_info(char *s, int max_len, void *p)
         svga_add_status_info(s, max_len, &ati18800->svga);
 }
 
+#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
 const device_t ati18800_wonder_device =
 {
         "ATI-18800",
@@ -274,6 +286,7 @@ const device_t ati18800_wonder_device =
         ati18800_add_status_info,
 	NULL
 };
+#endif
 
 const device_t ati18800_vga88_device =
 {

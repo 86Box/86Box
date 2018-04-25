@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.h	1.0.4	2018/03/20
+ * Version:	@(#)zip.h	1.0.5	2018/03/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -19,15 +19,15 @@
 #define EMU_ZIP_H
 
 
-#define ZIP_NUM		4
+#define ZIP_NUM			  4
 
-#define ZIP_PHASE_IDLE            0
-#define ZIP_PHASE_COMMAND         1
-#define ZIP_PHASE_COMPLETE        2
-#define ZIP_PHASE_DATA_IN         3
-#define ZIP_PHASE_DATA_IN_DMA     4
-#define ZIP_PHASE_DATA_OUT        5
-#define ZIP_PHASE_DATA_OUT_DMA    6
+#define ZIP_PHASE_IDLE            0x00
+#define ZIP_PHASE_COMMAND         0x01
+#define ZIP_PHASE_COMPLETE        0x02
+#define ZIP_PHASE_DATA_IN         0x03
+#define ZIP_PHASE_DATA_IN_DMA     0x04
+#define ZIP_PHASE_DATA_OUT        0x05
+#define ZIP_PHASE_DATA_OUT_DMA    0x06
 #define ZIP_PHASE_ERROR           0x80
 
 #define BUF_SIZE 32768
@@ -42,134 +42,81 @@
 
 enum {
     ZIP_BUS_DISABLED = 0,
-    ZIP_BUS_ATAPI_PIO_ONLY = 4,
-    ZIP_BUS_ATAPI_PIO_AND_DMA,
+    ZIP_BUS_ATAPI = 4,
     ZIP_BUS_SCSI,
-    ZIP_BUS_USB = 8
+    ZIP_BUS_USB
 };
 
 
 typedef struct {
-	uint8_t previous_command;
+    uint8_t previous_command, error,
+	    features, status,
+	    phase, *buffer,
+	    atapi_cdb[16],
+	    current_cdb[16],
+	    sense[256];
 
-	int toctimes;
-	int media_status;
+    uint16_t request_length, max_transfer_len;
 
-	int is_dma;
+    int toctimes, media_status,
+	is_dma, requested_blocks,
+	current_page_len, current_page_pos,
+	total_length, written_length,
+	mode_select_phase, do_page_save,
+	callback, data_pos,
+	packet_status, unit_attention,
+	cdb_len_setting, cdb_len,
+	request_pos, total_read,
+	block_total, all_blocks_total,
+	old_len, block_descriptor_len,
+	init_length;
 
-	int requested_blocks;		/* This will be set to something other than 1 when block reads are implemented. */
+    uint32_t sector_pos, sector_len,
+	     packet_len, pos,
+	     seek_pos;
 
-	uint64_t current_page_code;
-	int current_page_len;
-
-	int current_page_pos;
-
-	int mode_select_phase;
-
-	int total_length;
-	int written_length;
-
-	int do_page_save;
-
-	uint8_t error;
-	uint8_t features;
-	uint16_t request_length;
-	uint16_t max_transfer_len;
-	uint8_t status;
-	uint8_t phase;
-
-	uint32_t sector_pos;
-	uint32_t sector_len;
-
-	uint32_t packet_len;
-	int packet_status;
-
-	uint8_t atapi_cdb[16];
-	uint8_t current_cdb[16];
-
-	uint32_t pos;
-
-	int callback;
-
-	int data_pos;
-
-	int cdb_len_setting;
-	int cdb_len;
-
-	int cd_status;
-	int prev_status;
-
-	int unit_attention;
-	uint8_t sense[256];
-
-	int request_pos;
-
-	uint8_t *buffer;
-
-	int times;
-
-	uint32_t seek_pos;
-	
-	int total_read;
-
-	int block_total;
-	int all_blocks_total;
-	
-	int old_len;
-	int block_descriptor_len;
-	
-	int init_length;
+    uint64_t current_page_code;
 } zip_t;
 
 typedef struct {
-	int host_drive;
-	int prev_host_drive;
+    unsigned int bus_type;	/* 0 = ATAPI, 1 = SCSI */
+    uint8_t ide_channel,
+	    bus_mode;		/* Bit 0 = PIO suported;
+				   Bit 1 = DMA supportd. */
 
-	unsigned int bus_type;		/* 0 = ATAPI, 1 = SCSI */
-	uint8_t bus_mode;		/* Bit 0 = PIO suported;
-					   Bit 1 = DMA supportd. */
+    unsigned int scsi_device_id, scsi_device_lun,
+		 is_250;
 
-	uint8_t ide_channel;
+    wchar_t image_path[1024],
+	    prev_image_path[1024];
 
-	unsigned int scsi_device_id;
-	unsigned int scsi_device_lun;
-	
-	unsigned int is_250;
-	unsigned int atapi_dma;
+    int read_only, ui_writeprot;
 
-	wchar_t image_path[1024];
-	wchar_t prev_image_path[1024];
+    uint32_t medium_size, base;
 
-	uint32_t medium_size;
-
-	int read_only;
-	int ui_writeprot;
-
-	uint32_t base;
-
-	FILE *f;
+    FILE *f;
 } zip_drive_t;
 
 
-extern zip_t		zip[ZIP_NUM];
+extern zip_t		*zip[ZIP_NUM];
 extern zip_drive_t	zip_drives[ZIP_NUM];
 extern uint8_t		atapi_zip_drives[8];
 extern uint8_t		scsi_zip_drives[16][8];
 
-#define zip_sense_error zip[id].sense[0]
-#define zip_sense_key zip[id].sense[2]
-#define zip_asc zip[id].sense[12]
-#define zip_ascq zip[id].sense[13]
-#define zip_drive zip_drives[id].host_drive
+#define zip_sense_error zip[id]->sense[0]
+#define zip_sense_key zip[id]->sense[2]
+#define zip_asc zip[id]->sense[12]
+#define zip_ascq zip[id]->sense[13]
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern int	(*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length);
-extern int	(*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length);
-extern void	(*ide_bus_master_set_irq)(int channel);
+extern int	(*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length, void *priv);
+extern int	(*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length, void *priv);
+extern void	(*ide_bus_master_set_irq)(int channel, void *priv);
+extern void	*ide_bus_master_priv[2];
 extern void	ioctl_close(uint8_t id);
 
 extern uint32_t	zip_mode_sense_get_channel(uint8_t id, int channel);
@@ -182,8 +129,6 @@ extern void	zip_command(uint8_t id, uint8_t *cdb);
 extern void	zip_phase_callback(uint8_t id);
 extern uint32_t	zip_read(uint8_t channel, int length);
 extern void	zip_write(uint8_t channel, uint32_t val, int length);
-
-extern int	zip_lba_to_msf_accurate(int lba);
 
 extern void     zip_close(uint8_t id);
 extern void     zip_disk_reload(uint8_t id);
@@ -200,6 +145,8 @@ extern void	zip_global_init(void);
 extern void	zip_hard_reset(void);
 
 extern int	zip_load(uint8_t id, wchar_t *fn);
+
+extern void	zip_destroy_drives(void);
 extern void	zip_close(uint8_t id);
 
 #ifdef __cplusplus

@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.17	2018/03/18
+ * Version:	@(#)win_stbar.c	1.0.17	2018/03/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -33,14 +33,14 @@
 #include "../cpu/cpu.h"
 #include "../device.h"
 #include "../machine/machine.h"
-#include "../cdrom/cdrom.h"
-#include "../cdrom/cdrom_image.h"
-#include "../cdrom/cdrom_null.h"
 #include "../disk/hdd.h"
 #include "../disk/hdc.h"
 #include "../disk/zip.h"
 #include "../floppy/fdd.h"
 #include "../scsi/scsi.h"
+#include "../cdrom/cdrom.h"
+#include "../cdrom/cdrom_image.h"
+#include "../cdrom/cdrom_null.h"
 #include "../scsi/scsi_disk.h"
 #include "../network/network.h"
 #include "../video/video.h"
@@ -63,11 +63,11 @@ static HMENU	*sb_menu_handles;
 static HMENU	menuSBAR;
 static WCHAR	**sbTips;
 static int	*iStatusWidths;
-static int	*sb_icon_flags;
 static int	*sb_part_meanings;
 static int	*sb_part_icons;
 static int	sb_parts = 0;
 static int	sb_ready = 0;
+static uint8_t	sb_map[256];
 
 
 /* Also used by win_settings.c */
@@ -80,22 +80,13 @@ fdd_type_to_icon(int type)
 	case 0:
 		break;
 
-	case 1:
-	case 2:
-	case 3:
-	case 4:
-	case 5:
-	case 6:
+	case 1: case 2: case 3: case 4:
+	case 5: case 6:
 		ret = 128;
 		break;
 
-	case 7:
-	case 8:
-	case 9:
-	case 10:
-	case 11:
-	case 12:
-	case 13:
+	case 7: case 8: case 9: case 10:
+	case 11: case 12: case 13:
 		ret = 144;
 		break;
 
@@ -150,9 +141,6 @@ StatusBarCreateFloppySubmenu(HMENU m, int id)
 static void
 StatusBarCreateCdromSubmenu(HMENU m, int id)
 {
-    WCHAR s[64];
-    int i;
-
     AppendMenu(m, MF_STRING, IDM_CDROM_MUTE | id,
 	       plat_get_string(IDS_2165));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
@@ -164,41 +152,12 @@ StatusBarCreateCdromSubmenu(HMENU m, int id)
     AppendMenu(m, MF_STRING, IDM_CDROM_IMAGE | id,
 	       plat_get_string(IDS_2168));
 
-    if (host_cdrom_drive_available_num == 0) {
-	if ((cdrom_drives[id].host_drive >= 'A') &&
-	    (cdrom_drives[id].host_drive <= 'Z')) {
-		cdrom_drives[id].host_drive = 0;
-	}
-
-	goto check_menu_items;
-    } else {
-	if ((cdrom_drives[id].host_drive >= 'A') &&
-	    (cdrom_drives[id].host_drive <= 'Z')) {
-		if (!host_cdrom_drive_available[cdrom_drives[id].host_drive - 'A']) {
-			cdrom_drives[id].host_drive = 0;
-		}
-	}
-    }
-
-    AppendMenu(m, MF_SEPARATOR, 0, 0);
-
-    for (i=0; i<26; i++) {
-	_swprintf(s, L"Host CD/DVD Drive (%c:)", i+'A');
-	if (host_cdrom_drive_available[i])
-		AppendMenu(m, MF_STRING, IDM_CDROM_HOST_DRIVE | (i<<3)|id, s);
-    }
-
-check_menu_items:
     if (! cdrom_drives[id].sound_on)
 	CheckMenuItem(m, IDM_CDROM_MUTE | id, MF_CHECKED);
 
     if (cdrom_drives[id].host_drive == 200)
 	CheckMenuItem(m, IDM_CDROM_IMAGE | id, MF_CHECKED);
-      else
-    if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z')) {
-	CheckMenuItem(m, IDM_CDROM_HOST_DRIVE | id |
-		((cdrom_drives[id].host_drive - 'A') << 3), MF_CHECKED);
-    } else {
+    else {
 	cdrom_drives[id].host_drive = 0;
 	CheckMenuItem(m, IDM_CDROM_EMPTY | id, MF_CHECKED);
     }
@@ -231,74 +190,26 @@ StatusBarCreateZIPSubmenu(HMENU m, int id)
 }
 
 
-static void
-StatusBarCreateRemovableDiskSubmenu(HMENU m, int id)
-{
-    AppendMenu(m, MF_STRING, IDM_RDISK_EJECT | id,
-	       plat_get_string(IDS_2164));
-    AppendMenu(m, MF_STRING, IDM_RDISK_RELOAD | id,
-	       plat_get_string(IDS_2167));
-    AppendMenu(m, MF_SEPARATOR, 0, 0);
-    AppendMenu(m, MF_STRING, IDM_RDISK_SEND_CHANGE | id,
-	       plat_get_string(IDS_2142));
-    AppendMenu(m, MF_SEPARATOR, 0, 0);
-    AppendMenu(m, MF_STRING, IDM_RDISK_IMAGE | id,
-	       plat_get_string(IDS_2168));
-    AppendMenu(m, MF_STRING, IDM_RDISK_IMAGE_WP | id,
-	       plat_get_string(IDS_2169));
-}
-
-
 /* API */
-int
-ui_sb_find_part(int tag)
-{
-    int found = -1;
-    int i;
-
-    if (!sb_ready || (sb_parts == 0) || (sb_part_meanings == NULL)) {
-	return -1;
-    }
-
-    for (i=0; i<sb_parts; i++) {
-	if (sb_part_meanings[i] == tag) {
-		found = i;
-		break;
-	}
-    }
-
-    return(found);
-}
-
-
 /* API: update one of the icons after activity. */
 void
 ui_sb_update_icon(int tag, int active)
 {
-    int temp_flags = 0;
-    int found;
+    uint8_t found = 0xff;
 
     if (!update_icons)
 	return;
 
-    if (((tag & 0xf0) >= SB_TEXT) || !sb_ready || (sb_parts == 0) || (sb_icon_flags == NULL) || (sb_part_icons == NULL)) {
+    if (((tag & 0xf0) >= SB_TEXT) || !sb_ready)
 	return;
-    }
 
-    temp_flags |= active;
+    found = sb_map[tag];
+    if (found != 0xff) {
+	sb_part_icons[found] &= ~1;
+	sb_part_icons[found] |= active;
 
-    found = ui_sb_find_part(tag);
-    if (found != -1) {
-	if (temp_flags != (sb_icon_flags[found] & 1)) {
-		sb_icon_flags[found] &= ~1;
-		sb_icon_flags[found] |= active;
-
-		sb_part_icons[found] &= ~257;
-		sb_part_icons[found] |= sb_icon_flags[found];
-
-		SendMessage(hwndSBAR, SB_SETICON, found,
-			    (LPARAM)hIcon[sb_part_icons[found]]);
-	}
+	SendMessage(hwndSBAR, SB_SETICON, found,
+		    (LPARAM)hIcon[sb_part_icons[found]]);
     }
 }
 
@@ -307,19 +218,15 @@ ui_sb_update_icon(int tag, int active)
 void
 ui_sb_update_icon_state(int tag, int state)
 {
-    int found = -1;
+    uint8_t found = 0xff;
 
-    if (((tag & 0xf0) >= SB_HDD) || !sb_ready || (sb_parts == 0) || (sb_icon_flags == NULL) || (sb_part_icons == NULL)) {
+    if (((tag & 0xf0) >= SB_HDD) || !sb_ready)
 	return;
-    }
 
-    found = ui_sb_find_part(tag);
-    if (found != -1) {
-	sb_icon_flags[found] &= ~256;
-	sb_icon_flags[found] |= state ? 256 : 0;
-
-	sb_part_icons[found] &= ~257;
-	sb_part_icons[found] |= sb_icon_flags[found];
+    found = sb_map[tag];
+    if (found != 0xff) {
+	sb_part_icons[found] &= ~256;
+	sb_part_icons[found] |= (state ? 256 : 0);
 
 	SendMessage(hwndSBAR, SB_SETICON, found,
 		    (LPARAM)hIcon[sb_part_icons[found]]);
@@ -357,28 +264,22 @@ StatusBarCreateFloppyTip(int part)
 static void
 StatusBarCreateCdromTip(int part)
 {
-    WCHAR wtext[512];
     WCHAR tempTip[512];
     WCHAR *szText;
     int id;
     int drive = sb_part_meanings[part] & 0xf;
     int bus = cdrom_drives[drive].bus_type;
 
-    id = IDS_4352 + (bus - 1);
+    id = IDS_5377 + (bus - 1);
     szText = plat_get_string(id);
 
     if (cdrom_drives[drive].host_drive == 200) {
-	if (wcslen(cdrom_image[drive].image_path) == 0) {
+	if (wcslen(cdrom_image[drive].image_path) == 0)
 		_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, plat_get_string(IDS_2057));
-	} else {
+	else
 		_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, cdrom_image[drive].image_path);
-	}
-    } else if ((cdrom_drives[drive].host_drive >= 'A') && (cdrom_drives[drive].host_drive <= 'Z')) {
-	_swprintf(wtext, plat_get_string(IDS_2058), cdrom_drives[drive].host_drive & ~0x20);
-	_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, wtext);
-    } else {
+    } else
 	_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, plat_get_string(IDS_2057));
-    }
 
     if (sbTips[part] != NULL) {
 	free(sbTips[part]);
@@ -393,38 +294,22 @@ static void
 StatusBarCreateZIPTip(int part)
 {
     WCHAR tempTip[512];
-
+    WCHAR *szText;
+    int id;
     int drive = sb_part_meanings[part] & 0xf;
+    int bus = zip_drives[drive].bus_type;
+
+    id = IDS_5377 + (bus - 1);
+    szText = plat_get_string(id);
 
     int type = zip_drives[drive].is_250 ? 250 : 100;
 
     if (wcslen(zip_drives[drive].image_path) == 0) {
 	_swprintf(tempTip, plat_get_string(IDS_2177),
-		  drive+1, type, plat_get_string(IDS_2057));
+		  type, drive+1, szText, plat_get_string(IDS_2057));
     } else {
 	_swprintf(tempTip, plat_get_string(IDS_2177),
-		  drive+1, type, zip_drives[drive].image_path);
-    }
-
-    if (sbTips[part] != NULL) {
-	free(sbTips[part]);
-	sbTips[part] = NULL;
-    }
-    sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 2);
-    wcscpy(sbTips[part], tempTip);
-}
-
-
-static void
-StatusBarCreateRemovableDiskTip(int part)
-{
-    WCHAR tempTip[512];
-    int drive = sb_part_meanings[part] & 0x1f;
-
-    if (wcslen(hdd[drive].fn) == 0) {
-	_swprintf(tempTip, plat_get_string(IDS_4115), drive, plat_get_string(IDS_2057));
-    } else {
-	_swprintf(tempTip, plat_get_string(IDS_4115), drive, hdd[drive].fn);
+		  type, drive+1, szText, zip_drives[drive].image_path);
     }
 
     if (sbTips[part] != NULL) {
@@ -487,18 +372,13 @@ StatusBarCreateSoundTip(int part)
 void
 ui_sb_update_tip(int meaning)
 {
-    int part = -1;
-    int i;
+    uint8_t part = 0xff;
 
     if (!sb_ready || (sb_parts == 0) || (sb_part_meanings == NULL)) return;
 
-    for (i=0; i<sb_parts; i++) {
-	if (sb_part_meanings[i] == meaning) {
-		part = i;
-	}
-    }
+    part = sb_map[meaning];
 
-    if (part != -1) {
+    if (part != 0xff) {
 	switch(meaning & 0xf0) {
 		case SB_FLOPPY:
 			StatusBarCreateFloppyTip(part);
@@ -510,10 +390,6 @@ ui_sb_update_tip(int meaning)
 
 		case SB_ZIP:
 			StatusBarCreateZIPTip(part);
-			break;
-
-		case SB_RDISK:
-			StatusBarCreateRemovableDiskTip(part);
 			break;
 
 		case SB_HDD:
@@ -597,8 +473,8 @@ ui_sb_update_panes(void)
 {
     int i, id, hdint;
     int edge = 0;
-    int c_mfm, c_esdi, c_scsi;
-    int c_xtide, c_ide_pio, c_ide_dma;
+    int c_mfm, c_esdi, c_xta;
+    int c_ide, c_scsi;
     int do_net;
 
     sb_ready = 0;
@@ -606,9 +482,8 @@ ui_sb_update_panes(void)
     hdint = (machines[machine].flags & MACHINE_HDC) ? 1 : 0;
     c_mfm = hdd_count(HDD_BUS_MFM);
     c_esdi = hdd_count(HDD_BUS_ESDI);
-    c_xtide = hdd_count(HDD_BUS_XTIDE);
-    c_ide_pio = hdd_count(HDD_BUS_IDE_PIO_ONLY);
-    c_ide_dma = hdd_count(HDD_BUS_IDE_PIO_AND_DMA);
+    c_xta = hdd_count(HDD_BUS_XTA);
+    c_ide = hdd_count(HDD_BUS_IDE);
     c_scsi = hdd_count(HDD_BUS_SCSI);
     do_net = network_available();
 
@@ -629,13 +504,11 @@ ui_sb_update_panes(void)
 		free(sb_part_icons);
 		sb_part_icons = NULL;
 	}
-	if (sb_icon_flags) {
-		free(sb_icon_flags);
-		sb_icon_flags = NULL;
-	}
 	StatusBarDestroyMenus();
 	StatusBarDestroyTips();
     }
+
+    memset(sb_map, 0xff, sizeof(sb_map));
 
     sb_parts = 0;
     for (i=0; i<FDD_NUM; i++) {
@@ -644,50 +517,27 @@ ui_sb_update_panes(void)
     }
     for (i=0; i<CDROM_NUM; i++) {
 	/* Could be Internal or External IDE.. */
-	if ((cdrom_drives[i].bus_type==CDROM_BUS_ATAPI_PIO_ONLY) &&
-	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
+	if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI) &&
+	    !(hdint || !memcmp(hdc_name, "ide", 3)))
 		continue;
-	}
-
-	/* Could be Internal or External IDE.. */
-	if ((cdrom_drives[i].bus_type==CDROM_BUS_ATAPI_PIO_AND_DMA) &&
-	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
-		continue;
-	}
 
 	if ((cdrom_drives[i].bus_type == CDROM_BUS_SCSI) &&
-	    (scsi_card_current == 0)) {
+	    (scsi_card_current == 0))
 		continue;
-	}
-	if (cdrom_drives[i].bus_type != 0) {
+	if (cdrom_drives[i].bus_type != 0)
 		sb_parts++;
-	}
     }
     for (i=0; i<ZIP_NUM; i++) {
 	/* Could be Internal or External IDE.. */
-	if ((zip_drives[i].bus_type==ZIP_BUS_ATAPI_PIO_ONLY) &&
-	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
+	if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) &&
+	    !(hdint || !memcmp(hdc_name, "ide", 3)))
 		continue;
-	}
-
-	/* Could be Internal or External IDE.. */
-	if ((zip_drives[i].bus_type==ZIP_BUS_ATAPI_PIO_AND_DMA) &&
-	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
-		continue;
-	}
 
 	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) &&
-	    (scsi_card_current == 0)) {
+	    (scsi_card_current == 0))
 		continue;
-	}
-	if (zip_drives[i].bus_type != 0) {
+	if (zip_drives[i].bus_type != 0)
 		sb_parts++;
-	}
-    }
-    for (i=0; i<HDD_NUM; i++) {
-	if ((hdd[i].bus==HDD_BUS_SCSI_REMOVABLE) && (scsi_card_current != 0)) {
-		sb_parts++;
-	}
     }
     if (c_mfm && (hdint || !memcmp(hdc_name, "mfm", 3))) {
 	/* MFM drives, and MFM or Internal controller. */
@@ -697,23 +547,14 @@ ui_sb_update_panes(void)
 	/* ESDI drives, and ESDI or Internal controller. */
 	sb_parts++;
     }
-    if (c_xtide && !memcmp(hdc_name, "xtide", 5)) {
+    if (c_xta && (hdint || !memcmp(hdc_name, "xta", 3)))
 	sb_parts++;
-    }
-    if (c_ide_pio && (hdint || !memcmp(hdc_name, "ide", 3))) {
-	/* IDE_PIO drives, and IDE or Internal controller. */
+    if (c_ide && (hdint || !memcmp(hdc_name, "xtide", 5) || !memcmp(hdc_name, "ide", 3)))
 	sb_parts++;
-    }
-    if (c_ide_dma && (hdint || !memcmp(hdc_name, "ide", 3))) {
-	/* IDE_DMA drives, and IDE or Internal controller. */
+    if (c_scsi && (scsi_card_current != 0))
 	sb_parts++;
-    }
-    if (c_scsi && (scsi_card_current != 0)) {
+    if (do_net)
 	sb_parts++;
-    }
-    if (do_net) {
-	sb_parts++;
-    }
     sb_parts += 2;
 
     iStatusWidths = (int *)malloc(sb_parts * sizeof(int));
@@ -722,8 +563,6 @@ ui_sb_update_panes(void)
      memset(sb_part_meanings, 0, sb_parts * sizeof(int));
     sb_part_icons = (int *)malloc(sb_parts * sizeof(int));
      memset(sb_part_icons, 0, sb_parts * sizeof(int));
-    sb_icon_flags = (int *)malloc(sb_parts * sizeof(int));
-     memset(sb_icon_flags, 0, sb_parts * sizeof(int));
     sb_menu_handles = (HMENU *)malloc(sb_parts * sizeof(HMENU));
      memset(sb_menu_handles, 0, sb_parts * sizeof(HMENU));
     sbTips = (WCHAR **)malloc(sb_parts * sizeof(WCHAR *));
@@ -735,56 +574,38 @@ ui_sb_update_panes(void)
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = SB_FLOPPY | i;
+		sb_map[SB_FLOPPY | i] = sb_parts;
 		sb_parts++;
 	}
     }
     for (i=0; i<CDROM_NUM; i++) {
 	/* Could be Internal or External IDE.. */
-	if ((cdrom_drives[i].bus_type==CDROM_BUS_ATAPI_PIO_ONLY) &&
+	if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI) &&
 	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
 		continue;
 	}
-	/* Could be Internal or External IDE.. */
-	if ((cdrom_drives[i].bus_type==CDROM_BUS_ATAPI_PIO_AND_DMA) &&
-	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
+	if ((cdrom_drives[i].bus_type == CDROM_BUS_SCSI) && (scsi_card_current == 0))
 		continue;
-	}
-	if ((cdrom_drives[i].bus_type == CDROM_BUS_SCSI) && (scsi_card_current == 0)) {
-		continue;
-	}
 	if (cdrom_drives[i].bus_type != 0) {
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = SB_CDROM | i;
+		sb_map[SB_CDROM | i] = sb_parts;
 		sb_parts++;
 	}
     }
     for (i=0; i<ZIP_NUM; i++) {
 	/* Could be Internal or External IDE.. */
-	if ((zip_drives[i].bus_type==ZIP_BUS_ATAPI_PIO_ONLY) &&
-	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
+	if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) &&
+	    !(hdint || !memcmp(hdc_name, "ide", 3)))
 		continue;
-	}
-	/* Could be Internal or External IDE.. */
-	if ((zip_drives[i].bus_type==ZIP_BUS_ATAPI_PIO_AND_DMA) &&
-	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
+	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && (scsi_card_current == 0))
 		continue;
-	}
-	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && (scsi_card_current == 0)) {
-		continue;
-	}
 	if (zip_drives[i].bus_type != 0) {
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = SB_ZIP | i;
-		sb_parts++;
-	}
-    }
-    for (i=0; i<HDD_NUM; i++) {
-	if ((hdd[i].bus==HDD_BUS_SCSI_REMOVABLE) && (scsi_card_current != 0)) {
-		edge += SB_ICON_WIDTH;
-		iStatusWidths[sb_parts] = edge;
-		sb_part_meanings[sb_parts] = SB_RDISK | i;
+		sb_map[SB_ZIP | i] = sb_parts;
 		sb_parts++;
 	}
     }
@@ -792,54 +613,56 @@ ui_sb_update_panes(void)
 	edge += SB_ICON_WIDTH;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_MFM;
+	sb_map[SB_HDD | HDD_BUS_MFM] = sb_parts;
 	sb_parts++;
     }
     if (c_esdi && (hdint || !memcmp(hdc_name, "esdi", 4))) {
 	edge += SB_ICON_WIDTH;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_ESDI;
+	sb_map[SB_HDD | HDD_BUS_ESDI] = sb_parts;
 	sb_parts++;
     }
-    if (c_xtide && !memcmp(hdc_name, "xtide", 5)) {
+    if (c_xta && (hdint || !memcmp(hdc_name, "xta", 3))) {
 	edge += SB_ICON_WIDTH;
 	iStatusWidths[sb_parts] = edge;
-	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_XTIDE;
+	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_XTA;
+	sb_map[SB_HDD | HDD_BUS_XTA] = sb_parts;
 	sb_parts++;
     }
-    if (c_ide_pio && (hdint || !memcmp(hdc_name, "ide", 3))) {
+    if (c_ide && (hdint || !memcmp(hdc_name, "xtide", 5) || !memcmp(hdc_name, "ide", 3))) {
 	edge += SB_ICON_WIDTH;
 	iStatusWidths[sb_parts] = edge;
-	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_IDE_PIO_ONLY;
-	sb_parts++;
-    }
-    if (c_ide_dma && (hdint || !memcmp(hdc_name, "ide", 3))) {
-	edge += SB_ICON_WIDTH;
-	iStatusWidths[sb_parts] = edge;
-	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_IDE_PIO_AND_DMA;
+	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_IDE;
+	sb_map[SB_HDD | HDD_BUS_IDE] = sb_parts;
 	sb_parts++;
     }
     if (c_scsi && (scsi_card_current != 0)) {
 	edge += SB_ICON_WIDTH;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_SCSI;
+	sb_map[SB_HDD | HDD_BUS_SCSI] = sb_parts;
 	sb_parts++;
     }
     if (do_net) {
 	edge += SB_ICON_WIDTH;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_NETWORK;
+	sb_map[SB_NETWORK] = sb_parts;
 	sb_parts++;
     }
 
     edge += SB_ICON_WIDTH;
     iStatusWidths[sb_parts] = edge;
     sb_part_meanings[sb_parts] = SB_SOUND;
+    sb_map[SB_SOUND] = sb_parts;
     sb_parts++;
 
     if (sb_parts)
 	iStatusWidths[sb_parts - 1] += (24 - SB_ICON_WIDTH);
     iStatusWidths[sb_parts] = -1;
     sb_part_meanings[sb_parts] = SB_TEXT;
+    sb_map[SB_TEXT] = sb_parts;
     sb_parts ++;
 
     SendMessage(hwndSBAR, SB_SETPARTS, (WPARAM)sb_parts, (LPARAM)iStatusWidths);
@@ -847,24 +670,21 @@ ui_sb_update_panes(void)
     for (i=0; i<sb_parts; i++) {
 	switch (sb_part_meanings[i] & 0xf0) {
 		case SB_FLOPPY:		/* Floppy */
-			sb_icon_flags[i] = (wcslen(floppyfns[sb_part_meanings[i] & 0xf]) == 0) ? 256 : 0;
-			sb_part_icons[i] = fdd_type_to_icon(fdd_get_type(sb_part_meanings[i] & 0xf)) | sb_icon_flags[i];
+			sb_part_icons[i] = (wcslen(floppyfns[sb_part_meanings[i] & 0xf]) == 0) ? 256 : 0;
+			sb_part_icons[i] |= fdd_type_to_icon(fdd_get_type(sb_part_meanings[i] & 0xf));
 			sb_menu_handles[i] = StatusBarCreatePopupMenu(i);
 			StatusBarCreateFloppySubmenu(sb_menu_handles[i], sb_part_meanings[i] & 0xf);
-			EnableMenuItem(sb_menu_handles[i], IDM_FLOPPY_EJECT | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | ((sb_icon_flags[i] & 256) ? MF_GRAYED : MF_ENABLED));
+			EnableMenuItem(sb_menu_handles[i], IDM_FLOPPY_EJECT | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | ((sb_part_icons[i] & 256) ? MF_GRAYED : MF_ENABLED));
 			StatusBarCreateFloppyTip(i);
 			break;
 
 		case SB_CDROM:		/* CD-ROM */
 			id = sb_part_meanings[i] & 0xf;
-			if (cdrom_drives[id].host_drive == 200) {
-				sb_icon_flags[i] = (wcslen(cdrom_image[id].image_path) == 0) ? 256 : 0;
-			} else if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z')) {
-				sb_icon_flags[i] = 0;
-			} else {
-				sb_icon_flags[i] = 256;
-			}
-			sb_part_icons[i] = 160 | sb_icon_flags[i];
+			if (cdrom_drives[id].host_drive == 200)
+				sb_part_icons[i] = (wcslen(cdrom_image[id].image_path) == 0) ? 256 : 0;
+			else
+				sb_part_icons[i] = 256;
+			sb_part_icons[i] |= 160;
 			sb_menu_handles[i] = StatusBarCreatePopupMenu(i);
 			StatusBarCreateCdromSubmenu(sb_menu_handles[i], sb_part_meanings[i] & 0xf);
 			EnableMenuItem(sb_menu_handles[i], IDM_CDROM_RELOAD | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | MF_GRAYED);
@@ -872,32 +692,21 @@ ui_sb_update_panes(void)
 			break;
 
 		case SB_ZIP:		/* Iomega ZIP */
-			sb_icon_flags[i] = (wcslen(zip_drives[sb_part_meanings[i] & 0xf].image_path) == 0) ? 256 : 0;
-			sb_part_icons[i] = 176 + sb_icon_flags[i];
+			sb_part_icons[i] = (wcslen(zip_drives[sb_part_meanings[i] & 0xf].image_path) == 0) ? 256 : 0;
+			sb_part_icons[i] |= 176;
 			sb_menu_handles[i] = StatusBarCreatePopupMenu(i);
 			StatusBarCreateZIPSubmenu(sb_menu_handles[i], sb_part_meanings[i] & 0xf);
-			EnableMenuItem(sb_menu_handles[i], IDM_ZIP_EJECT | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | ((sb_icon_flags[i] & 256) ? MF_GRAYED : MF_ENABLED));
+			EnableMenuItem(sb_menu_handles[i], IDM_ZIP_EJECT | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | ((sb_part_icons[i] & 256) ? MF_GRAYED : MF_ENABLED));
 			StatusBarCreateZIPTip(i);
 			break;
 
-		case SB_RDISK:		/* Removable hard disk */
-			sb_icon_flags[i] = (wcslen(hdd[sb_part_meanings[i] & 0x1f].fn) == 0) ? 256 : 0;
-			sb_part_icons[i] = 192 + sb_icon_flags[i];
-			sb_menu_handles[i] = StatusBarCreatePopupMenu(i);
-			StatusBarCreateRemovableDiskSubmenu(sb_menu_handles[i], sb_part_meanings[i] & 0x1f);
-			EnableMenuItem(sb_menu_handles[i], IDM_RDISK_EJECT | (sb_part_meanings[i] & 0x1f), MF_BYCOMMAND | ((sb_icon_flags[i] & 256) ? MF_GRAYED : MF_ENABLED));
-			EnableMenuItem(sb_menu_handles[i], IDM_RDISK_RELOAD | (sb_part_meanings[i] & 0x1f), MF_BYCOMMAND | MF_GRAYED);
-			EnableMenuItem(sb_menu_handles[i], IDM_RDISK_SEND_CHANGE | (sb_part_meanings[i] & 0x1f), MF_BYCOMMAND | ((sb_icon_flags[i] & 256) ? MF_GRAYED : MF_ENABLED));
-			StatusBarCreateRemovableDiskTip(i);
-			break;
-
 		case SB_HDD:		/* Hard disk */
-			sb_part_icons[i] = 208;
+			sb_part_icons[i] = 192;
 			StatusBarCreateDiskTip(i);
 			break;
 
 		case SB_NETWORK:	/* Network */
-			sb_part_icons[i] = 224;
+			sb_part_icons[i] = 208;
 			StatusBarCreateNetworkTip(i);
 			break;
 
@@ -916,9 +725,8 @@ ui_sb_update_panes(void)
 		SendMessage(hwndSBAR, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM)L"");
 		SendMessage(hwndSBAR, SB_SETICON, i, (LPARAM)hIcon[sb_part_icons[i]]);
 		SendMessage(hwndSBAR, SB_SETTIPTEXT, i, (LPARAM)sbTips[i]);
-	} else {
+	} else
 		SendMessage(hwndSBAR, SB_SETICON, i, (LPARAM)NULL);
-	}
     }
 
     sb_ready = 1;
@@ -979,13 +787,11 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     WCHAR temp_path[1024];
     RECT rc;
     POINT pt;
-    int new_cdrom_drive;
     int ret = 0;
     int item_id = 0;
     int item_params = 0;
     int id = 0;
-    int part = 0;
-    int letter = 0;
+    uint8_t part = 0;
 
     switch (message) {
 	case WM_COMMAND:
@@ -995,15 +801,15 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 switch (item_id) {
 			case IDM_FLOPPY_IMAGE_NEW:
 				id = item_params & 0x0003;
-				part = ui_sb_find_part(SB_FLOPPY | id);
+				part = sb_map[SB_FLOPPY | id];
 				NewFloppyDialogCreate(hwnd, id, part);
 				break;
 
 			case IDM_FLOPPY_IMAGE_EXISTING:
 			case IDM_FLOPPY_IMAGE_EXISTING_WP:
 				id = item_params & 0x0003;
-				part = ui_sb_find_part(SB_FLOPPY | id);
-				if ((part == -1) || (sb_menu_handles == NULL))
+				part = sb_map[SB_FLOPPY | id];
+				if ((part == 0xff) || (sb_menu_handles == NULL))
 					break;
 
 				ret = file_dlg_w_st(hwnd, IDS_2159, floppyfns[id], 0);
@@ -1013,8 +819,8 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_FLOPPY_EJECT:
 				id = item_params & 0x0003;
-				part = ui_sb_find_part(SB_FLOPPY | id);
-				if ((part == -1) || (sb_menu_handles == NULL))
+				part = sb_map[SB_FLOPPY | id];
+				if ((part == 0xff) || (sb_menu_handles == NULL))
 						break;
 
 				fdd_close(id);
@@ -1027,8 +833,8 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_FLOPPY_EXPORT_TO_86F:
 				id = item_params & 0x0003;
-				part = ui_sb_find_part(SB_FLOPPY | id);
-				if ((part == -1) || (sb_menu_handles == NULL))
+				part = sb_map[SB_FLOPPY | id];
+				if ((part == 0xff) || (sb_menu_handles == NULL))
 					break;
 
 				ret = file_dlg_w_st(hwnd, IDS_2173, floppyfns[id], 1);
@@ -1043,8 +849,8 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_CDROM_MUTE:
 				id = item_params & 0x0007;
-				part = ui_sb_find_part(SB_CDROM | id);
-				if ((part == -1) || (sb_menu_handles == NULL))
+				part = sb_map[SB_CDROM | id];
+				if ((part == 0xff) || (sb_menu_handles == NULL))
 						break;
 
 				cdrom_drives[id].sound_on ^= 1;
@@ -1065,8 +871,8 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_CDROM_IMAGE:
 				id = item_params & 0x0007;
-				part = ui_sb_find_part(SB_CDROM | id);
-				if ((part == -1) || (sb_menu_handles == NULL))
+				part = sb_map[SB_CDROM | id];
+				if ((part == 0xff) || (sb_menu_handles == NULL))
 						break;
 
 				if (!file_dlg_w_st(hwnd, IDS_2075, cdrom_image[id].image_path, 0)) {
@@ -1075,15 +881,13 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if (!cdrom_image[id].prev_image_path)
 						cdrom_image[id].prev_image_path = (wchar_t *) malloc(1024);
 					wcscpy(cdrom_image[id].prev_image_path, cdrom_image[id].image_path);
-					cdrom_drives[id].handler->exit(id);
-					cdrom_close(id);
+					cdrom[id]->handler->exit(id);
+					cdrom_close_handler(id);
+					memset(cdrom_image[id].image_path, 0, 2048);
 					image_open(id, temp_path);
 					/* Signal media change to the emulated machine. */
-					cdrom_insert(id);
+					cdrom_insert(cdrom[id]);
 					CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
-					if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z')) {
-						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_UNCHECKED);
-					}
 					cdrom_drives[id].host_drive = (wcslen(cdrom_image[id].image_path) == 0) ? 0 : 200;
 					if (cdrom_drives[id].host_drive == 200) {
 						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_CHECKED);
@@ -1099,52 +903,17 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				break;
 
-			case IDM_CDROM_HOST_DRIVE:
-				id = item_params & 0x0007;
-				letter = ((item_params >> 3) & 0x001f) + 'A';
-				part = ui_sb_find_part(SB_CDROM | id);
-				if ((part == -1) || (sb_menu_handles == NULL))
-				{
-					break;
-				}
-
-				new_cdrom_drive = letter;
-				if (cdrom_drives[id].host_drive == new_cdrom_drive)
-				{
-					/* Switching to the same drive. Do nothing. */
-					break;
-				}
-				cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
-				cdrom_drives[id].handler->exit(id);
-				cdrom_close(id);
-				ioctl_open(id, new_cdrom_drive);
-				/* Signal media change to the emulated machine. */
-				cdrom_insert(id);
-				CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
-				if ((cdrom_drives[id].host_drive >= 'A') && (cdrom_drives[id].host_drive <= 'Z'))
-				{
-					CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_UNCHECKED);
-				}
-				CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_UNCHECKED);
-				cdrom_drives[id].host_drive = new_cdrom_drive;
-				CheckMenuItem(sb_menu_handles[part], IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_CHECKED);
-				EnableMenuItem(sb_menu_handles[part], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
-				ui_sb_update_icon_state(SB_CDROM | id, 0);
-				ui_sb_update_tip(SB_CDROM | id);
-				config_save();
-				break;
-
 			case IDM_ZIP_IMAGE_NEW:
 				id = item_params & 0x0003;
-				part = ui_sb_find_part(SB_ZIP | id);
+				part = sb_map[SB_ZIP | id];
 				NewFloppyDialogCreate(hwnd, id | 0x80, part);	/* NewZIPDialogCreate */
 				break;
 
 			case IDM_ZIP_IMAGE_EXISTING:
 			case IDM_ZIP_IMAGE_EXISTING_WP:
 				id = item_params & 0x0003;
-				part = ui_sb_find_part(SB_ZIP | id);
-				if ((part == -1) || (sb_menu_handles == NULL))
+				part = sb_map[SB_ZIP | id];
+				if ((part == 0xff) || (sb_menu_handles == NULL))
 					break;
 
 				ret = file_dlg_w_st(hwnd, IDS_2175, zip_drives[id].image_path, 0);
@@ -1160,49 +929,6 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_ZIP_RELOAD:
 				id = item_params & 0x0003;
 				zip_reload(id);
-				break;
-
-			case IDM_RDISK_EJECT:
-				id = item_params & 0x001f;
-				removable_disk_eject(id);
-				break;
-
-			case IDM_RDISK_RELOAD:
-				id = item_params & 0x001f;
-				removable_disk_reload(id);
-				break;
-
-			case IDM_RDISK_SEND_CHANGE:
-				id = item_params & 0x001f;
-				scsi_disk_insert(id);
-				break;
-
-			case IDM_RDISK_IMAGE:
-			case IDM_RDISK_IMAGE_WP:
-				id = item_params & 0x001f;
-				ret = file_dlg_w_st(hwnd, IDS_4106, hdd[id].fn, id);
-				if (!ret) {
-					removable_disk_unload(id);
-					memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
-					wcscpy(hdd[id].fn, wopenfilestring);
-					hdd[id].wp = (item_id == IDM_RDISK_IMAGE_WP) ? 1 : 0;
-					scsi_loadhd(hdd[id].scsi_id, hdd[id].scsi_lun, id);
-					scsi_disk_insert(id);
-					if (wcslen(hdd[id].fn) > 0) {
-						ui_sb_update_icon_state(SB_RDISK | id, 0);
-						EnableMenuItem(sb_menu_handles[part], IDM_RDISK_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
-						EnableMenuItem(sb_menu_handles[part], IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
-						EnableMenuItem(sb_menu_handles[part], IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | MF_ENABLED);
-					}
-					else {
-						ui_sb_update_icon_state(SB_RDISK | id, 1);
-						EnableMenuItem(sb_menu_handles[part], IDM_RDISK_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
-						EnableMenuItem(sb_menu_handles[part], IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
-						EnableMenuItem(sb_menu_handles[part], IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | MF_GRAYED);
-					}
-					ui_sb_update_tip(SB_RDISK | id);
-					config_save();
-				}
 				break;
 
 			default:
@@ -1260,8 +986,6 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
 	hIcon[i] = LoadIconEx((PCTSTR) i);
     for (i = 208; i < 210; i++)
 	hIcon[i] = LoadIconEx((PCTSTR) i);
-    for (i = 224; i < 226; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) i);
     for (i = 259; i < 260; i++)
 	hIcon[i] = LoadIconEx((PCTSTR) i);
     for (i = 384; i < 386; i++)
@@ -1271,8 +995,6 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
     for (i = 416; i < 418; i++)
 	hIcon[i] = LoadIconEx((PCTSTR) i);
     for (i = 432; i < 434; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) i);
-    for (i = 448; i < 450; i++)
 	hIcon[i] = LoadIconEx((PCTSTR) i);
 
     GetWindowRect(hwndParent, &rectDialog);
@@ -1317,8 +1039,6 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
      memset(sb_part_meanings, 0, sb_parts * sizeof(int));
     sb_part_icons = (int *)malloc(sb_parts * sizeof(int));
      memset(sb_part_icons, 0, sb_parts * sizeof(int));
-    sb_icon_flags = (int *)malloc(sb_parts * sizeof(int));
-     memset(sb_icon_flags, 0, sb_parts * sizeof(int));
     sb_menu_handles = (HMENU *)malloc(sb_parts * sizeof(HMENU));
      memset(sb_menu_handles, 0, sb_parts * sizeof(HMENU));
     sbTips = (WCHAR **)malloc(sb_parts * sizeof(WCHAR *));
@@ -1339,10 +1059,10 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
 void
 ui_sb_check_menu_item(int tag, int id, int chk)
 {
-    int part;
+    uint8_t part;
 
-    part = ui_sb_find_part(tag);
-    if ((part == -1) || (sb_menu_handles == NULL))
+    part = sb_map[tag];
+    if ((part == 0xff) || (sb_menu_handles == NULL))
         return;
 
     CheckMenuItem(sb_menu_handles[part], id, chk);
@@ -1353,10 +1073,10 @@ ui_sb_check_menu_item(int tag, int id, int chk)
 void
 ui_sb_enable_menu_item(int tag, int id, int flg)
 {
-    int part;
+    uint8_t part;
 
-    part = ui_sb_find_part(tag);
-    if ((part == -1) || (sb_menu_handles == NULL))
+    part = sb_map[tag];
+    if ((part == 0xff) || (sb_menu_handles == NULL))
         return;
 
     EnableMenuItem(sb_menu_handles[part], id, flg);
@@ -1367,18 +1087,14 @@ ui_sb_enable_menu_item(int tag, int id, int flg)
 void
 ui_sb_set_text_w(wchar_t *wstr)
 {
-    int part = -1;
-    int i;
+    uint8_t part = 0xff;
 
-    if (!sb_ready || (sb_parts == 0) || (sb_part_meanings == NULL)) return;
+    if (!sb_ready || (sb_parts == 0) || (sb_part_meanings == NULL))
+	return;
 
-    for (i=0; i<sb_parts; i++) {
-	if (sb_part_meanings[i] == SB_TEXT) {
-		part = i;
-	}
-    }
+    part = sb_map[SB_TEXT];
 
-    if (part != -1)
+    if (part != 0xff)
 	SendMessage(hwndSBAR, SB_SETTEXT, part | SBT_NOBORDERS, (LPARAM)wstr);
 }
 

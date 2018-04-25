@@ -8,7 +8,7 @@
  *
  *		Definitions for the device handler.
  *
- * Version:	@(#)device.h	1.0.3	2018/03/15
+ * Version:	@(#)device.h	1.0.4	2018/03/26
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -119,6 +119,7 @@ extern void	*device_add(const device_t *d);
 extern void	device_add_ex(const device_t *d, void *priv);
 extern void	device_close_all(void);
 extern void	device_reset_all(void);
+extern void	device_reset_all_pci(void);
 extern void	*device_get_priv(const device_t *d);
 extern int	device_available(const device_t *d);
 extern void	device_speed_changed(void);

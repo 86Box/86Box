@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.20	2018/03/18
+ * Version:	@(#)scsi_x54x.c	1.0.21	2018/03/28
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -36,8 +36,8 @@
 #include "../mca.h"
 #include "../mem.h"
 #include "../rom.h"
-#include "../nvr.h"
 #include "../device.h"
+#include "../nvr.h"
 #include "../timer.h"
 #include "../plat.h"
 #include "../cpu/cpu.h"
@@ -720,8 +720,7 @@ x54x_get_length(Req_t *req, int Is24bit)
     uint32_t DataPointer, DataLength;
     uint32_t SGEntryLength = (Is24bit ? sizeof(SGE) : sizeof(SGE32));
     SGE32 SGBuffer;
-    uint32_t DataToTransfer = 0;
-    int i = 0;
+    uint32_t DataToTransfer = 0, i = 0;
 
     if (Is24bit) {
 	DataPointer = ADDR_TO_U32(req->CmdBlock.old.DataPointer);
@@ -793,8 +792,7 @@ x54x_buf_dma_transfer(Req_t *req, int Is24bit, int TransferLength, int dir)
 {
     uint32_t DataPointer, DataLength;
     uint32_t SGEntryLength = (Is24bit ? sizeof(SGE) : sizeof(SGE32));
-    uint32_t Address;
-    int i = 0;
+    uint32_t Address, i;
     int32_t BufLen = SCSIDevices[req->TargetID][req->LUN].BufferLength;
     uint8_t read_from_host = (dir && ((req->CmdBlock.common.ControlByte == CCB_DATA_XFER_OUT) || (req->CmdBlock.common.ControlByte == 0x00)));
     uint8_t write_to_host = (!dir && ((req->CmdBlock.common.ControlByte == CCB_DATA_XFER_IN) || (req->CmdBlock.common.ControlByte == 0x00)));
@@ -823,7 +821,7 @@ x54x_buf_dma_transfer(Req_t *req, int Is24bit, int TransferLength, int dir)
 				x54x_rd_sge(Is24bit, DataPointer + i, &SGBuffer);
 
 				Address = SGBuffer.SegmentPointer;
-				DataToTransfer = MIN(SGBuffer.Segment, BufLen);
+				DataToTransfer = MIN((int) SGBuffer.Segment, BufLen);
 
 				if (read_from_host && DataToTransfer) {
 					x54x_log("Reading S/G segment %i: length %i, pointer %08X\n", i, DataToTransfer, Address);
@@ -851,9 +849,9 @@ x54x_buf_dma_transfer(Req_t *req, int Is24bit, int TransferLength, int dir)
 
 		if ((DataLength > 0) && (BufLen > 0) && (req->CmdBlock.common.ControlByte < 0x03)) {
 			if (read_from_host)
-				DMAPageRead(Address, SCSIDevices[req->TargetID][req->LUN].CmdBuffer, MIN(BufLen, DataLength));
+				DMAPageRead(Address, SCSIDevices[req->TargetID][req->LUN].CmdBuffer, MIN(BufLen, (int) DataLength));
 			else if (write_to_host)
-				DMAPageWrite(Address, SCSIDevices[req->TargetID][req->LUN].CmdBuffer, MIN(BufLen, DataLength));
+				DMAPageWrite(Address, SCSIDevices[req->TargetID][req->LUN].CmdBuffer, MIN(BufLen, (int) DataLength));
 		}
 	}
     }
@@ -1061,7 +1059,6 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 {	
     Req_t *req = &dev->Req;
     uint8_t id, lun;
-    uint8_t max_id = SCSI_ID_MAX-1;
 
     /* Fetch data from the Command Control Block. */
     DMAPageRead(CCBPointer, (uint8_t *)&req->CmdBlock, sizeof(CCB32));
@@ -1074,7 +1071,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 
     id = req->TargetID;
     lun = req->LUN;
-    if ((id > max_id) || (lun > 7)) {
+    if ((id > dev->max_id) || (lun > 7)) {
 	x54x_log("SCSI Target ID %i or LUN %i is not valid\n",id,lun);
 	x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock,
 		      CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
@@ -1110,12 +1107,14 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 	}
 	if (req->CmdBlock.common.Opcode == 0x81) {
 		x54x_log("Bus reset opcode\n");
+		scsi_device_reset(id, lun);
 		x54x_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
 			       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
 		x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
 		x54x_notify(dev);
 		return;
 	}
+
 	if (req->CmdBlock.common.ControlByte > 0x03) {
 		x54x_log("Invalid control byte: %02X\n",
 			req->CmdBlock.common.ControlByte);
@@ -1276,7 +1275,12 @@ x54x_cmd_callback(void *priv)
     double period;
     x54x_t *dev = (x54x_t *) x54x_dev;
 
-    if ((dev->Status & STAT_INIT) || (!dev->MailboxInit && !dev->BIOSMailboxInit) || (!dev->MailboxReq && !dev->BIOSMailboxReq)) {
+    int mailboxes_present, bios_mailboxes_present;
+
+    mailboxes_present = (!(dev->Status & STAT_INIT) && dev->MailboxInit && dev->MailboxReq);
+    bios_mailboxes_present = (dev->ven_callback && dev->BIOSMailboxInit && dev->BIOSMailboxReq);
+
+    if (!mailboxes_present && !bios_mailboxes_present) {
 	/* If we did not get anything, do nothing and wait 10 us. */
 	dev->timer_period = 10LL * TIMER_USEC;
 	return;
@@ -1284,11 +1288,21 @@ x54x_cmd_callback(void *priv)
 
     dev->temp_period = dev->media_period = 0LL;
 
-    if (!(x54x_dev->Status & STAT_INIT) && x54x_dev->MailboxInit && dev->MailboxReq)
-	x54x_do_mail(dev);
-
-    if (dev->ven_callback)
+    if (!mailboxes_present) {
+	/* Do only BIOS mailboxes. */
 	dev->ven_callback(dev);
+    } else if (!bios_mailboxes_present) {
+	/* Do only normal mailboxes. */
+	x54x_do_mail(dev);
+    } else {
+	/* Do both kinds of mailboxes. */
+	if (dev->callback_phase)
+		dev->ven_callback(dev);
+	else
+		x54x_do_mail(dev);
+
+	dev->callback_phase = (dev->callback_phase + 1) & 0x01;
+    }
 
     period = (1000000.0 / x54x_dev->ha_bps) * ((double) TIMER_USEC) * ((double) dev->temp_period);
     dev->timer_period = dev->media_period + ((int64_t) period) + (40LL * TIMER_USEC);
@@ -1319,7 +1333,10 @@ x54x_in(uint16_t port, void *priv)
 		break;
 
 	case 2:
-		ret = dev->Interrupt;
+		if (dev->int_geom_writable)
+			ret = dev->Interrupt;
+		else
+			ret = dev->Interrupt & ~0x70;
 		break;
 
 	case 3:
@@ -1406,11 +1423,14 @@ x54x_reset_poll(void *priv)
 static void
 x54x_reset(x54x_t *dev)
 {
+    int i, j;
+
     clear_irq(dev);
     if (dev->int_geom_writable)
 	dev->Geometry = 0x80;
     else
 	dev->Geometry = 0x00;
+    dev->callback_phase = 0;
     dev->Command = 0xFF;
     dev->CmdParam = 0;
     dev->CmdParamLeft = 0;
@@ -1422,9 +1442,14 @@ x54x_reset(x54x_t *dev)
     dev->MailboxCount = 0;
     dev->MailboxOutPosCur = 0;
 
-    if (dev->ven_reset) {
-	dev->ven_reset(dev);
+    /* Reset all devices on controller reset. */
+    for (i = 0; i < 16; i++) {
+	for (j = 0; j < 8; j++)
+		scsi_device_reset(i, j);
     }
+
+    if (dev->ven_reset)
+	dev->ven_reset(dev);
 }
 
 
@@ -1474,6 +1499,14 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 			x54x_reset_ctrl(dev, reset);
 			x54x_log("Controller reset: ");
 			break;
+		}
+
+		if (val & CTRL_SCRST) {
+			/* Reset all devices on SCSI bus reset. */
+			for (i = 0; i < 16; i++) {
+				for (j = 0; j < 8; j++)
+					scsi_device_reset(i, j);
+			}
 		}
 
 		if (val & CTRL_IRST) {
@@ -1643,7 +1676,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 				        if (dev->ven_get_host_id)
 						host_id = dev->ven_get_host_id(dev);
 
-					for (i=0; i<SCSI_ID_MAX; i++) {
+					for (i=0; i<8; i++) {
 					    dev->DataBuf[i] = 0x00;
 
 					    /* Skip the HA .. */
@@ -1902,6 +1935,7 @@ x54x_init(const device_t *info)
     dev->type = info->local;
 
     dev->bus = info->flags;
+    dev->callback_phase = 0;
 
     timer_add(x54x_reset_poll, &dev->ResetCB, &dev->ResetCB, dev);
     dev->timer_period = 10LL * TIMER_USEC;

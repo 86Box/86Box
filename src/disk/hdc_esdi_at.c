@@ -8,7 +8,7 @@
  *
  *		Driver for the ESDI controller (WD1007-vse1) for PC/AT.
  *
- * Version:	@(#)hdc_esdi_at.c	1.0.9	2018/03/18
+ * Version:	@(#)hdc_esdi_at.c	1.0.10	2018/04/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -104,35 +104,28 @@ typedef struct {
 } esdi_t;
 
 
-static __inline void irq_raise(esdi_t *esdi)
+static inline void
+irq_raise(esdi_t *esdi)
 {
-    /* If not already pending.. */
-    if (! esdi->irqstat) {
-	/* If enabled in the control register.. */
-	if (! (esdi->fdisk & 0x02)) {
-		/* .. raise IRQ14. */
-		picint(1<<14);
-	}
+    if (!(esdi->fdisk&2))
+	picint(1 << 14);
 
-	/* Remember this. */
-	esdi->irqstat = 1;
-    }
+    esdi->irqstat=1;
 }
 
 
-static __inline void irq_lower(esdi_t *esdi)
+static inline void
+irq_lower(esdi_t *esdi)
 {
-    /* If raised.. */
-    if (esdi->irqstat) {
-	/* If enabled in the control register.. */
-	if (! (esdi->fdisk & 0x02)) {
-		/* .. drop IRQ14. */
-		picintc(1<<14);
-	}
+    picintc(1 << 14);
+}
 
-	/* Remember this. */
-	esdi->irqstat = 0;
-    }
+
+static void
+irq_update(esdi_t *esdi)
+{
+    if (esdi->irqstat && !((pic2.pend|pic2.ins)&0x40) && !(esdi->fdisk & 2))
+	picint(1 << 14);
 }
 
 
@@ -384,6 +377,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 			esdi->status = STAT_BUSY;
 		}
 		esdi->fdisk = val;
+		irq_update(esdi);
 		break;
 	}
 }

@@ -8,7 +8,7 @@
  *
  *		Emulation of the Olivetti M24.
  *
- * Version:	@(#)m_olivetti_m24.c	1.0.12	2018/03/19
+ * Version:	@(#)m_olivetti_m24.c	1.0.13	2018/04/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -849,7 +849,7 @@ machine_olim24_init(const machine_t *model)
 	device_add(&gameport_device);
 
     /* FIXME: make sure this is correct?? */
-    nvr_at_init(8);
+    device_add(&at_nvr_device);
 
     nmi_init();
 }

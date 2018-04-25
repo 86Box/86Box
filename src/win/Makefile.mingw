@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.113	2018/03/18
+# Version:	@(#)Makefile.mingw	1.0.114	2018/03/31
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -107,6 +107,9 @@ else
  endif
  ifndef STEALTH32
   STEALTH32	:= n
+ endif
+ ifndef VGAWONDER
+  VGAWONDER	:= n
  endif
  ifndef VNC
   VNC		:= n
@@ -391,6 +394,10 @@ OPTS		+= -DUSE_STEALTH32
 DEVBROBJ	+= vid_icd2061.o
 endif
 
+ifeq ($(VGAWONDER), y)
+OPTS		+= -DUSE_VGAWONDER
+endif
+
 ifeq ($(XL24), y)
 OPTS		+= -DUSE_XL24
 endif
@@ -433,13 +440,13 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_xt_xi8088.o \
 		    m_pcjr.o \
 		    m_amstrad.o \
-		    m_europc.o m_europc_hdc.o \
+		    m_europc.o \
 		    m_olivetti_m24.o m_tandy.o \
 		    m_at.o \
 		    m_at_ali1429.o m_at_commodore.o \
 		    m_at_neat.o m_at_headland.o \
 		    m_at_t3100e.o m_at_t3100e_vid.o \
-		    m_ps1.o \
+		    m_ps1.o m_ps1_hdc.o \
 		    m_ps2_isa.o m_ps2_mca.o \
 		    m_at_opti495.o m_at_scat.o \
 		    m_at_compaq.o m_at_wd76c10.o \
@@ -467,10 +474,10 @@ FDDOBJ		:= fdd.o fdc.o fdi2raw.o \
 HDDOBJ		:= hdd.o \
 		    hdd_image.o hdd_table.o \
 		   hdc.o \
-		    hdc_mfm_xt.o hdc_xtide.o \
-		    hdc_mfm_at.o \
+		    hdc_mfm_xt.o hdc_mfm_at.o \
+		    hdc_xta.o \
 		    hdc_esdi_at.o hdc_esdi_mca.o \
-		    hdc_ide.o
+		    hdc_xtide.o hdc_ide.o
 
 CDROMOBJ	:= cdrom.o \
 		    cdrom_dosbox.o cdrom_image.o cdrom_null.o
@@ -549,7 +556,7 @@ VIDOBJ		:= video.o \
 
 PLATOBJ		:= win.o \
 		    win_dynld.o win_thread.o \
-		    win_cdrom.o win_cdrom_ioctl.o win_keyboard.o \
+		    win_cdrom.o win_keyboard.o \
 		    win_mouse.o win_joystick.o win_midi.o
 
 OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \

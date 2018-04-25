@@ -10,7 +10,7 @@
  *		 PC2086, PC3086 use PVGA1A
  *		 MegaPC uses W90C11A
  *
- * Version:	@(#)vid_paradise.c	1.0.5	2018/03/18
+ * Version:	@(#)vid_paradise.c	1.0.6	2018/04/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -124,12 +124,11 @@ void paradise_out(uint16_t addr, uint8_t val, void *p)
                 break;
                 
                 case 0x3D4:
-                if (paradise->type == PVGA1A)
-                   svga->crtcreg = val & 0x1f;
-                else
-                   svga->crtcreg = val & 0x3f;
+                svga->crtcreg = val & 0x3f;
                 return;
                 case 0x3D5:
+                if ((paradise->type == PVGA1A) && (svga->crtcreg & 0x20))
+                        return;
                 if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
                         return;
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
@@ -194,6 +193,8 @@ uint8_t paradise_in(uint16_t addr, void *p)
                 case 0x3D4:
                 return svga->crtcreg;
                 case 0x3D5:
+                if ((paradise->type == PVGA1A) && (svga->crtcreg & 0x20))
+                        return 0xff;
                 if (svga->crtcreg > 0x29 && svga->crtcreg < 0x30 && (svga->crtc[0x29] & 0x88) != 0x80)
                    return 0xff;
                 return svga->crtc[svga->crtcreg];
@@ -305,8 +306,6 @@ void *paradise_pvga1a_init(const device_t *info, uint32_t memsize)
         svga->bpp = 8;
         svga->miscout = 1;
 
-	svga->linear_base = 0;
-        
         paradise->type = PVGA1A;               
         
         return paradise;
@@ -339,9 +338,7 @@ void *paradise_wd90c11_init(const device_t *info)
 
         svga->bpp = 8;
         svga->miscout = 1;
-        
-	svga->linear_base = 0;
-        
+
         paradise->type = WD90C11;               
         
         return paradise;
@@ -374,9 +371,7 @@ void *paradise_wd90c30_init(const device_t *info, uint32_t memsize)
 
         svga->bpp = 8;
         svga->miscout = 1;
-        
-	svga->linear_base = 0;
-        
+
         paradise->type = WD90C11;               
         
         return paradise;

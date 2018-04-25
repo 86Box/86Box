@@ -8,7 +8,7 @@
  *
  *		Oak OTI037C/67/077 emulation.
  *
- * Version:	@(#)vid_oak_oti.c	1.0.10	2018/03/24
+ * Version:	@(#)vid_oak_oti.c	1.0.11	2018/04/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -77,6 +77,8 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 		return;
 
 	case 0x3D5:
+		if (svga->crtcreg & 0x20)
+			return;
 		if (((svga->crtcreg & 31) < 7) && (svga->crtc[0x11] & 0x80))
 			return;
 		if (((svga->crtcreg & 31) == 7) && (svga->crtc[0x11] & 0x80))
@@ -154,9 +156,12 @@ oti_in(uint16_t addr, void *p)
 		break;
 
 	case 0x3D5:
-		temp = svga->crtc[svga->crtcreg & 31];
+		if (svga->crtcreg & 0x20)
+			temp = 0xff;
+		else
+			temp = svga->crtc[svga->crtcreg & 31];
 		break;
-		
+
 	case 0x3DA:
                 svga->attrff = 0;
                 svga->attrff = 0;

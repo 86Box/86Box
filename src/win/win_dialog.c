@@ -8,7 +8,7 @@
  *
  *		Several dialogs for the application.
  *
- * Version:	@(#)win_dialog.c	1.0.8	2018/01/21
+ * Version:	@(#)win_dialog.c	1.0.9	2018/04/01
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -32,51 +32,9 @@
 #include "win.h"
 
 
-WCHAR	path[MAX_PATH];
 WCHAR	wopenfilestring[260];
 char	openfilestring[260];
 uint8_t	filterindex = 0;
-
-
-static int CALLBACK
-BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData)
-{
-    if (uMsg == BFFM_INITIALIZED)
-	SendMessage(hwnd, BFFM_SETSELECTION, TRUE, lpData);
-
-    return(0);
-}
-
-
-wchar_t *
-BrowseFolder(wchar_t *saved_path, wchar_t *title)
-{
-    BROWSEINFO bi = { 0 };
-    LPITEMIDLIST pidl;
-    IMalloc *imalloc;
-
-    bi.lpszTitle  = title;
-    bi.ulFlags    = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
-    bi.lpfn       = BrowseCallbackProc;
-    bi.lParam     = (LPARAM) saved_path;
-
-    pidl = SHBrowseForFolder(&bi);
-    if (pidl != 0) {
-	/* Get the name of the folder and put it in path. */
-	SHGetPathFromIDList(pidl, path);
-
-	/* Free memory used. */
-	imalloc = 0;
-	if (SUCCEEDED(SHGetMalloc(&imalloc))) {
-		imalloc->lpVtbl->Free(imalloc, pidl);
-		imalloc->lpVtbl->Release(imalloc);
-	}
-
-	return(path);
-    }
-
-    return(L"");
-}
 
 
 int

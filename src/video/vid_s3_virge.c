@@ -8,7 +8,7 @@
  *
  *		S3 ViRGE emulation.
  *
- * Version:	@(#)vid_s3_virge.c	1.0.8	2018/03/22
+ * Version:	@(#)vid_s3_virge.c	1.0.9	2018/04/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -701,7 +701,6 @@ static void s3_virge_updatemapping(virge_t *virge)
                         break;
                 }
                 virge->linear_base &= ~(virge->linear_size - 1);
-		svga->linear_base = virge->linear_base;
                 //pclog("Linear framebuffer at %08X size %08X\n", virge->linear_base, virge->linear_size);
                 if (virge->linear_base == 0xa0000)
                 {

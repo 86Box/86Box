@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_ide.h	1.0.8	2018/03/20
+ * Version:	@(#)hdd_ide.h	1.0.9	2018/03/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,59 +21,53 @@
 
 
 typedef struct {
-	int type;
-	int board;
-	uint8_t atastat;
-	uint8_t error;
-	int secount,sector,cylinder,head,drive,cylprecomp;
-	uint8_t command;
-	uint8_t fdisk;
-	int pos;
-	int packlen;
-	int spt,hpc;
-	int t_spt,t_hpc;
-	int tracks;
-	int packetstatus;
-	uint8_t asc;
-	int reset;
+	uint8_t atastat, error,
+		command, fdisk;
+	int type, board,
+	    irqstat, service,
+	    blocksize, blockcount,
+	    hdd_num, channel,
+	    pos, sector_pos,
+	    lba, skip512,
+	    reset, specify_success,
+	    mdma_mode, do_initial_read,
+	    spt, hpc,
+	    tracks;
+	uint32_t secount, sector,
+		 cylinder, head,
+		 drive, cylprecomp,
+		 t_spt, t_hpc,
+		 lba_addr;
+
 	uint16_t *buffer;
-	int irqstat;
-	int service;
-	int lba;
-	int channel;
-	uint32_t lba_addr;
-	int skip512;
-	int blocksize, blockcount;
-	uint16_t dma_identify_data[3];
-	int hdi,base;
-	int hdd_num;
-	uint8_t specify_success;
-	int mdma_mode;
 	uint8_t *sector_buffer;
-	int do_initial_read;
-	int sector_pos;
-} IDE;
+} ide_t;
 
 
 extern int ideboard;
+extern int ide_ter_enabled, ide_qua_enabled;
 
-extern int ide_enable[5];
-extern int ide_irq[5];
-
-extern IDE ide_drives[IDE_NUM + XTIDE_NUM];
+extern ide_t *ide_drives[IDE_NUM];
 extern int64_t idecallback[5];
 
 
-extern void	ide_irq_raise(IDE *ide);
-extern void	ide_irq_lower(IDE *ide);
+extern void	ide_irq_raise(ide_t *ide);
+extern void	ide_irq_lower(ide_t *ide);
 
-extern void	writeide(int ide_board, uint16_t addr, uint8_t val);
-extern void	writeidew(int ide_board, uint16_t val);
-extern uint8_t	readide(int ide_board, uint16_t addr);
-extern uint16_t	readidew(int ide_board);
-extern void	callbackide(int ide_board);
+extern void *	ide_xtide_init(void);
+extern void	ide_xtide_close(void);
 
-extern void	ide_set_bus_master(int (*read)(int channel, uint8_t *data, int transfer_length), int (*write)(int channel, uint8_t *data, int transfer_length), void (*set_irq)(int channel));
+extern void	ide_writew(uint16_t addr, uint16_t val, void *priv);
+extern void	ide_write_devctl(uint16_t addr, uint8_t val, void *priv);
+extern void	ide_writeb(uint16_t addr, uint8_t val, void *priv);
+extern uint8_t	ide_readb(uint16_t addr, void *priv);
+extern uint8_t	ide_read_alt_status(uint16_t addr, void *priv);
+extern uint16_t	ide_readw(uint16_t addr, void *priv);
+
+extern void	ide_set_bus_master(int (*read)(int channel, uint8_t *data, int transfer_length, void *priv),
+				   int (*write)(int channel, uint8_t *data, int transfer_length, void *priv),
+				   void (*set_irq)(int channel, void *priv),
+				   void *priv0, void *priv1);
 
 extern void	win_cdrom_eject(uint8_t id);
 extern void	win_cdrom_reload(uint8_t id);
@@ -81,36 +75,20 @@ extern void	win_cdrom_reload(uint8_t id);
 extern void	ide_set_base(int controller, uint16_t port);
 extern void	ide_set_side(int controller, uint16_t port);
 
-extern void	ide_init_first(void);
-
-extern void	ide_reset(void);
-extern void	ide_reset_hard(void);
-
-extern void	ide_set_all_signatures(void);
-
-extern void	ide_xtide_init(void);
-
 extern void	ide_pri_enable(void);
-extern void	ide_pri_enable_ex(void);
 extern void	ide_pri_disable(void);
 extern void	ide_sec_enable(void);
 extern void	ide_sec_disable(void);
-extern void	ide_ter_enable(void);
-extern void	ide_ter_disable(void);
-extern void	ide_ter_init(void);
-extern void	ide_qua_enable(void);
-extern void	ide_qua_disable(void);
-extern void	ide_qua_init(void);
 
 extern void	ide_set_callback(uint8_t channel, int64_t callback);
 extern void	secondary_ide_check(void);
 
 extern void	ide_padstr8(uint8_t *buf, int buf_size, const char *src);
-extern void	ide_destroy_buffers(void);
 
-extern int	(*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length);
-extern int	(*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length);
-extern void	(*ide_bus_master_set_irq)(int channel);
+extern int	(*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length, void *priv);
+extern int	(*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length, void *priv);
+extern void	(*ide_bus_master_set_irq)(int channel, void *priv);
+extern void	*ide_bus_master_priv[2];
 
 
 #endif	/*EMU_IDE_H*/

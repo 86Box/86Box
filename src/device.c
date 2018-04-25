@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.5	2018/03/18
+ * Version:	@(#)device.c	1.0.6	2018/03/26
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -82,18 +82,22 @@ device_add(const device_t *d)
 
     device_current = (device_t *)d;
 
+    devices[c] = (device_t *)d;
+
     if (d->init != NULL) {
 	priv = d->init(d);
 	if (priv == NULL) {
 		if (d->name)
 			pclog("DEVICE: device '%s' init failed\n", d->name);
-		  else
+		else
 			pclog("DEVICE: device init failed\n");
+
+		device_priv[c] = NULL;
+
 		return(NULL);
 	}
     }
 
-    devices[c] = (device_t *)d;
     device_priv[c] = priv;
 
     return(priv);
@@ -146,6 +150,21 @@ device_reset_all(void)
     for (c=0; c<DEVICE_MAX; c++) {
 	if (devices[c] != NULL) {
 		if (devices[c]->reset != NULL)
+			devices[c]->reset(device_priv[c]);
+	}
+    }
+}
+
+
+/* Reset all attached PCI devices - needed for PCI turbo reset control. */
+void
+device_reset_all_pci(void)
+{
+    int c;
+
+    for (c=0; c<DEVICE_MAX; c++) {
+	if (devices[c] != NULL) {
+		if ((devices[c]->reset != NULL) && (devices[c]->flags & DEVICE_PCI))
 			devices[c]->reset(device_priv[c]);
 	}
     }

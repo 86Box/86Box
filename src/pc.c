@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.68	2018/03/19
+ * Version:	@(#)pc.c	1.0.69	2018/03/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -38,6 +38,7 @@
 #include "mem.h"
 #include "rom.h"
 #include "dma.h"
+#include "pci.h"
 #include "pic.h"
 #include "pit.h"
 #include "random.h"
@@ -57,21 +58,14 @@
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
 #include "disk/zip.h"
+#include "scsi/scsi.h"
 #include "cdrom/cdrom.h"
 #include "cdrom/cdrom_image.h"
 #include "cdrom/cdrom_null.h"
-#include "scsi/scsi.h"
 #include "network/network.h"
 #include "sound/sound.h"
 #include "sound/midi.h"
-#include "sound/snd_cms.h"
-#include "sound/snd_dbopl.h"
-#include "sound/snd_mpu401.h"
-#include "sound/snd_opl.h"
-#include "sound/snd_gus.h"
-#include "sound/snd_sb.h"
 #include "sound/snd_speaker.h"
-#include "sound/snd_ssi2001.h"
 #include "video/video.h"
 #include "ui.h"
 #include "plat.h"
@@ -120,7 +114,7 @@ int	sound_is_float = 1,			/* (C) sound uses FP values */
 	GUS = 0,				/* (C) sound option */
 	SSI2001 = 0,				/* (C) sound option */
 	voodoo_enabled = 0;			/* (C) video option */
-int	mem_size = 0;				/* (C) memory size */
+uint32_t mem_size = 0;				/* (C) memory size */
 int	cpu_manufacturer = 0,			/* (C) cpu manufacturer */
 	cpu_use_dynarec = 0,			/* (C) cpu uses/needs Dyna */
 	cpu = 3,				/* (C) cpu type */
@@ -299,6 +293,7 @@ pc_init(int argc, wchar_t *argv[])
     struct tm *info;
     time_t now;
     int c;
+    uint32_t *uid, *shwnd;
 
     /* Grab the executable's full path. */
     plat_get_exe_name(exe_path, sizeof(exe_path)-1);
@@ -329,12 +324,8 @@ usage:
 		printf("-D or --debug        - force debug output logging\n");
 #endif
 		printf("-F or --fullscreen   - start in fullscreen mode\n");
-		printf("-M or --memdump      - dump memory on exit\n");
 		printf("-L or --logfile path - set 'path' to be the logfile\n");
 		printf("-P or --vmpath path  - set 'path' to be root for vm\n");
-#ifdef USE_WX
-		printf("-R or --fps num      - set render speed to 'num' fps\n");
-#endif
 		printf("-S or --settings     - show only the settings dialog\n");
 #ifdef _WIN32
 		printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
@@ -357,20 +348,11 @@ usage:
 		if ((c+1) == argc) goto usage;
 
 		wcscpy(log_path, argv[++c]);
-	} else if (!wcscasecmp(argv[c], L"--memdump") ||
-		   !wcscasecmp(argv[c], L"-M")) {
 	} else if (!wcscasecmp(argv[c], L"--vmpath") ||
 		   !wcscasecmp(argv[c], L"-P")) {
 		if ((c+1) == argc) goto usage;
 
 		wcscpy(path, argv[++c]);
-#ifdef USE_WX
-	} else if (!wcscasecmp(argv[c], L"--fps") ||
-		   !wcscasecmp(argv[c], L"-R")) {
-		if ((c+1) == argc) goto usage;
-
-		video_fps = wcstol(argv[++c], NULL, 10);
-#endif
 	} else if (!wcscasecmp(argv[c], L"--settings") ||
 		   !wcscasecmp(argv[c], L"-S")) {
 		settings_only = 1;
@@ -381,7 +363,9 @@ usage:
 		if ((c+1) == argc) goto usage;
 
 		wcstombs(temp, argv[++c], 128);
-		sscanf(temp, "%016" PRIX64 ",%016" PRIX64, &unique_id, &source_hwnd);
+		uid = (uint32_t *) &unique_id;
+		shwnd = (uint32_t *) &source_hwnd;
+		sscanf(temp, "%08X%08X,%08X%08X", uid + 1, uid, shwnd + 1, shwnd);
 #endif
 	} else if (!wcscasecmp(argv[c], L"--test")) {
 		/* some (undocumented) test function here.. */
@@ -512,6 +496,8 @@ pc_full_speed(void)
 		setpitclock(14318184.0);
     }
     atfullspeed = 1;
+
+    nvr_period_recalc();
 }
 
 
@@ -522,9 +508,12 @@ pc_speed_changed(void)
 	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
       else
 	setpitclock(14318184.0);
+
+    nvr_period_recalc();
 }
 
 
+#if 0
 /* Re-load system configuration and restart. */
 /* FIXME: this has to be reviewed! */
 void
@@ -536,10 +525,8 @@ pc_reload(wchar_t *fn)
 
     for (i=0; i<FDD_NUM; i++)
 	fdd_close(i);
-    for (i=0; i<CDROM_NUM; i++) {
-	cdrom_drives[i].handler->exit(i);
-	cdrom_close(i);
-    }
+
+    cdrom_close();
 
     pc_reset_hard_close();
 
@@ -547,24 +534,9 @@ pc_reload(wchar_t *fn)
 
     config_load();
 
-    for (i=0; i<CDROM_NUM; i++) {
-	if (cdrom_drives[i].bus_type)
-		SCSIReset(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun);
+    cdrom_hard_reset();
 
-	if (cdrom_drives[i].host_drive == 200)
-		image_open(i, cdrom_image[i].image_path);
-	  else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
-		ioctl_open(i, cdrom_drives[i].host_drive);
-	  else	
-	        cdrom_null_open(i, cdrom_drives[i].host_drive);
-    }
-
-    for (i=0; i<ZIP_NUM; i++) {
-	if (zip_drives[i].bus_type)
-		SCSIReset(zip_drives[i].scsi_device_id, zip_drives[i].scsi_device_lun);
-
-	zip_load(i, zip_drives[i].image_path);
-    }
+    zip_hard_reset();
 
     fdd_load(0, floppyfns[0]);
     fdd_load(1, floppyfns[1]);
@@ -575,6 +547,7 @@ pc_reload(wchar_t *fn)
 
     pc_reset_hard_init();
 }
+#endif
 
 
 /* Initialize modules, ran once, after pc_init. */
@@ -653,20 +626,12 @@ again2:
     codegen_init();
 #endif
 
-#ifdef WALTJE_SERIAL
-    serial_init();
-#endif
     keyboard_init();
     joystick_init();
     video_init();
-
-    ide_init_first();
-
     device_init();
 
     timer_reset();
-
-    sound_reset();
 
     fdd_init();
 
@@ -676,8 +641,6 @@ again2:
 
     cdrom_hard_reset();
     zip_hard_reset();
-
-    ide_reset_hard();
 
     scsi_card_init();
 
@@ -699,16 +662,23 @@ pc_keyboard_send(uint8_t val)
 }
 
 
+void
+pc_send_ca(uint8_t sc)
+{
+    pc_keyboard_send(29);	/* Ctrl key pressed */
+    pc_keyboard_send(56);	/* Alt key pressed */
+    pc_keyboard_send(sc);
+    pc_keyboard_send(sc | 0x80);
+    pc_keyboard_send(184);	/* Alt key released */
+    pc_keyboard_send(157);	/* Ctrl key released */
+}
+
+
 /* Send the machine a Control-Alt-DEL sequence. */
 void
 pc_send_cad(void)
 {
-    pc_keyboard_send(29);	/* Ctrl key pressed */
-    pc_keyboard_send(56);	/* Alt key pressed */
-    pc_keyboard_send(83);	/* Delete key pressed */
-    pc_keyboard_send(157);	/* Ctrl key released */
-    pc_keyboard_send(184);	/* Alt key released */
-    pc_keyboard_send(211);	/* Delete key released */
+    pc_send_ca(83);
 }
 
 
@@ -716,36 +686,18 @@ pc_send_cad(void)
 void
 pc_send_cae(void)
 {
-    pc_keyboard_send(29);	/* Ctrl key pressed */
-    pc_keyboard_send(56);	/* Alt key pressed */
-    pc_keyboard_send(1);	/* Esc key pressed */
-    pc_keyboard_send(129);	/* Esc key released */
-    pc_keyboard_send(184);	/* Alt key released */
-    pc_keyboard_send(157);	/* Ctrl key released */
-}
-
-
-/* Send the machine a Control-Alt-Break sequence. */
-void
-pc_send_cab(void)
-{
-    pc_keyboard_send(29);	/* Ctrl key pressed */
-    pc_keyboard_send(56);	/* Alt key pressed */
-    pc_keyboard_send(1);	/* Esc key pressed */
-    pc_keyboard_send(157);	/* Ctrl key released */
-    pc_keyboard_send(184);	/* Alt key released */
-    pc_keyboard_send(129);	/* Esc key released */
+    pc_send_ca(1);
 }
 
 
 void
 pc_reset_hard_close(void)
 {
+    pclog("pc_reset_hard_close()\n");
+
     suppress_overscan = 0;
 
     nvr_save();
-
-    machine_close();
 
     mouse_close();
 
@@ -754,6 +706,8 @@ pc_reset_hard_close(void)
     device_close_all();
 
     midi_close();
+
+    cdrom_close();
 
     closeal();
 }
@@ -768,29 +722,27 @@ pc_reset_hard_close(void)
 void
 pc_reset_hard_init(void)
 {
+    pclog("pc_reset_hard_init()\n");
+
     /*
      * First, we reset the modules that are not part of
      * the actual machine, but which support some of the
      * modules that are.
      */
-    sound_realloc_buffers();
-    sound_cd_thread_reset();
-    initalmain(0, NULL);
 
     /* Reset the general machine support modules. */
     io_init();
-    // cpu_set();
     timer_reset();
+
     device_init();
 
-    midi_device_init();
-    inital();
     sound_reset();
 
-#ifndef WALTJE_SERIAL
     /* This is needed to initialize the serial timer. */
     serial_init();
-#endif
+
+    cdrom_hard_reset();
+    zip_hard_reset();
 
     /* Initialize the actual machine and its basic modules. */
     machine_init();
@@ -810,11 +762,7 @@ pc_reset_hard_init(void)
     speaker_init();
     serial_reset();
     lpt_devices_init();
-
-    /* Reset keyboard and/or mouse. */
-    // FIXME: do we really have to reset the *AT* keyboard?? --FvK
     shadowbios = 0;
-    keyboard_at_reset();
 
     /*
      * This has to be after the serial initialization so that
@@ -826,29 +774,17 @@ pc_reset_hard_init(void)
     /* Reset the video card. */
     video_reset(gfxcard);
 
-    cdrom_hard_reset();
-    zip_hard_reset();
-
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
 
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
+    /* Reset and reconfigure the Sound Card layer. */
+    sound_card_reset();
+
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
-
-    /* Reset and reconfigure the Sound Card layer. */
-    // FIXME: should be just one sound_reset() here.  --FvK
-    sound_card_init();
-    if (mpu401_standalone_enable)
-	mpu401_device_add();
-    if (GUS)
-	device_add(&gus_device);
-    if (GAMEBLASTER)
-	device_add(&cms_device);
-    if (SSI2001)
-	device_add(&ssi2001_device);
 
     if (joystick_type != 7)
 	gameport_update_joystick_type();
@@ -866,7 +802,6 @@ pc_reset_hard_init(void)
 	device_add(&bugger_device);
 
     /* Reset the CPU module. */
-    cpu_set();
     resetx86();
     dma_reset();
     pic_reset();
@@ -938,9 +873,6 @@ pc_close(thread_t *ptr)
     for (i=0; i<ZIP_NUM; i++)
 	zip_close(i);
 
-    for (i=0; i<CDROM_NUM; i++)
-	cdrom_drives[i].handler->exit(i);
-
     for (i=0; i<FDD_NUM; i++)
        fdd_close(i);
 
@@ -957,10 +889,9 @@ pc_close(thread_t *ptr)
     network_close();
 
     sound_cd_thread_end();
+    cdrom_close();
 
-    ide_destroy_buffers();
-
-    cdrom_destroy_drives();
+    zip_destroy_drives();
 }
 
 

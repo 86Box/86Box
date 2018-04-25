@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.31	2018/03/06
+ * Version:	@(#)86Box.rc	1.0.32	2018/03/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -445,16 +445,17 @@ BEGIN
     PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI,214,7,46,12
 
     LTEXT           "HD Controller:",IDT_1717,7,26,61,10
-    COMBOBOX        IDC_COMBO_HDC,71,25,189,120,CBS_DROPDOWNLIST | 
+    COMBOBOX        IDC_COMBO_HDC,71,25,149,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_HDC,214,25,46,12
 
-    LTEXT           "Tertiary IDE:",IDT_1718,7,44,61,10
-    COMBOBOX        IDC_COMBO_IDE_TER,71,43,189,120,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Tertiary IDE Controller",IDC_CHECK_IDE_TER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,44,199,10
+    PUSHBUTTON      "Configure",IDC_BUTTON_IDE_TER,214,43,46,12
 
-    LTEXT           "Quaternary IDE:",IDT_1719,7,62,61,10
-    COMBOBOX        IDC_COMBO_IDE_QUA,71,61,189,120,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Quaternary IDE Controller",IDC_CHECK_IDE_QUA,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,62,199,10
+    PUSHBUTTON      "Configure",IDC_BUTTON_IDE_QUA,214,61,46,12
 
     CONTROL         "ISABugger device",IDC_CHECK_BUGGER,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,80,94,10
@@ -570,7 +571,7 @@ BEGIN
     CONTROL         "List1",IDC_LIST_ZIP_DRIVES,"SysListView32",LVS_REPORT | 
                     LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
                     WS_TABSTOP,7,137,253,60
-    LTEXT           "ZIP drives:",IDT_1739,7,127,50,8
+    LTEXT           "ZIP drives:",IDT_1759,7,127,50,8
     COMBOBOX        IDC_COMBO_ZIP_BUS,73,204,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Bus:",IDT_1753,57,206,14,8
@@ -617,12 +618,10 @@ END
 161                     ICON    DISCARDABLE     "win/icons/cdrom_active.ico"
 176                     ICON    DISCARDABLE     "win/icons/zip.ico"
 177                     ICON    DISCARDABLE     "win/icons/zip_active.ico"
-192                     ICON    DISCARDABLE     "win/icons/removable_disk.ico"
-193                     ICON    DISCARDABLE     "win/icons/removable_disk_active.ico"
-208                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
-209                     ICON    DISCARDABLE     "win/icons/hard_disk_active.ico"
-224                     ICON    DISCARDABLE     "win/icons/network.ico"
-225                     ICON    DISCARDABLE     "win/icons/network_active.ico"
+192                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
+193                     ICON    DISCARDABLE     "win/icons/hard_disk_active.ico"
+208                     ICON    DISCARDABLE     "win/icons/network.ico"
+209                     ICON    DISCARDABLE     "win/icons/network_active.ico"
 256                     ICON    DISCARDABLE     "win/icons/machine.ico"
 257                     ICON    DISCARDABLE     "win/icons/display.ico"
 258                     ICON    DISCARDABLE     "win/icons/input_devices.ico"
@@ -641,8 +640,6 @@ END
 417                     ICON    DISCARDABLE     "win/icons/cdrom_empty_active.ico"
 432                     ICON    DISCARDABLE     "win/icons/zip_empty.ico"
 433                     ICON    DISCARDABLE     "win/icons/zip_empty_active.ico"
-448                     ICON    DISCARDABLE     "win/icons/removable_disk_empty.ico"
-449                     ICON    DISCARDABLE     "win/icons/removable_disk_empty_active.ico"
 512                     ICON    DISCARDABLE     "win/icons/floppy_disabled.ico"
 514                     ICON    DISCARDABLE     "win/icons/cdrom_disabled.ico"
 515                     ICON    DISCARDABLE     "win/icons/zip_disabled.ico"
@@ -936,8 +933,8 @@ BEGIN
     IDS_2153	"Unable to load Keyboard Accelerators!"
     IDS_2154	"Unable to register Raw Input!"
     IDS_2155	"IRQ %i"
-    IDS_2156	"%" PRIu64
-    IDS_2157	"%" PRIu64 " MB (CHS: %" PRIu64 ", %" PRIu64 ", %" PRIu64 ")"
+    IDS_2156	"%u"
+    IDS_2157	"%u MB (CHS: %i, %i, %i)"
     IDS_2158	"Floppy %i (%s): %ls"
     IDS_2159	"All images (*.0??;*.1??;*.360;*.720;*.86F;*.BIN;*.CQ?;*.DSK;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.XDF)\0*.0??;*.1??;*.360;*.720;*.86F;*.BIN;*.CQ?;*.DSK;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.XDF\0Advanced sector images (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basic sector images (*.0??;*.1??;*.360;*.720;*.BIN;*.CQ?;*.DSK;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.360;*.720;*.BIN;*.CQ?;*.DSK;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Surface images (*.86F)\0*.86F\0All files (*.*)\0*.*\0"
     IDS_2160	"Configuration files (*.CFG)\0*.CFG\0All files (*.*)\0*.*\0"
@@ -957,7 +954,7 @@ BEGIN
     IDS_2174	"All images (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Basic sector images (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Surface images (*.86F)\0*.86F\0"
     IDS_2175	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0All files (*.*)\0*.*\0"
     IDS_2176	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2177	"ZIP %i (%03i): %ls"
+    IDS_2177	"ZIP %03i %i (%s): %ls"
     IDS_2178	"Speed"
 
     IDS_4096    "Hard disk (%s)"
@@ -979,23 +976,18 @@ BEGIN
     IDS_4112	"Please enter a valid file name"
     IDS_4113	"Remember to partition and format the new drive"
     IDS_4114	"MFM/RLL or ESDI CD-ROM drives never existed"
-    IDS_4115	"Removable disk %i (SCSI): %ls"
 
     IDS_4352    "MFM/RLL"
-    IDS_4353    "XT IDE"
+    IDS_4353    "XTA"
     IDS_4354    "ESDI"
-    IDS_4355    "IDE (PIO-only)"
-    IDS_4356    "IDE (PIO+DMA)"
-    IDS_4357    "SCSI"
-    IDS_4358    "SCSI (removable)"
+    IDS_4355    "IDE"
+    IDS_4356    "SCSI"
 
     IDS_4608	"MFM/RLL (%01i:%01i)"
-    IDS_4609	"XT IDE (%01i:%01i)"
+    IDS_4609	"XTA (%01i:%01i)"
     IDS_4610	"ESDI (%01i:%01i)"
-    IDS_4611	"IDE (PIO-only) (%01i:%01i)"
-    IDS_4612	"IDE (PIO+DMA) (%01i:%01i)"
-    IDS_4613	"SCSI (%02i:%02i)"
-    IDS_4614	"SCSI (removable) (%02i:%02i)"
+    IDS_4611	"IDE (%01i:%01i)"
+    IDS_4612	"SCSI (%02i:%02i)"
 
     IDS_5120	"CD-ROM %i (%s): %s"
 
@@ -1003,17 +995,15 @@ BEGIN
     IDS_5377    "<Reserved>"
     IDS_5378    "<Reserved>"
     IDS_5379    "<Reserved>"
-    IDS_5380	"ATAPI (PIO-only)"
-    IDS_5381	"ATAPI (PIO and DMA)"
-    IDS_5382    "SCSI"
+    IDS_5380	"ATAPI"
+    IDS_5381    "SCSI"
 
     IDS_5632	"Disabled"
     IDS_5633    "<Reserved>"
     IDS_5634    "<Reserved>"
     IDS_5635    "<Reserved>"
-    IDS_5636	"ATAPI (PIO-only) (%01i:%01i)"
-    IDS_5637	"ATAPI (PIO and DMA) (%01i:%01i)"
-    IDS_5638    "SCSI (%02i:%02i)"
+    IDS_5636	"ATAPI (%01i:%01i)"
+    IDS_5637    "SCSI (%02i:%02i)"
 
     IDS_5888	"160 kB"
     IDS_5889	"180 kB"

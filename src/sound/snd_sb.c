@@ -8,7 +8,7 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.6	2018/03/18
+ * Version:	@(#)sound_sb.c	1.0.7	2018/04/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -134,6 +134,9 @@ typedef struct sb_t
         };
         mpu_t		mpu;
         emu8k_t         emu8k;
+#if 0
+	sb_ct1745_mixer_t temp_mixer_sb16;
+#endif
 
         int pos;
         
@@ -272,10 +275,12 @@ static void sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
         sb->dsp.pos = 0;
 }
 
+// FIXME: See why this causes weird audio glitches in some situations.
+#if 0
 static void sb_process_buffer_sb16(int32_t *buffer, int len, void *p)
 {
         sb_t *sb = (sb_t *)p;
-        sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
+        sb_ct1745_mixer_t *mixer = &sb->temp_mixer_sb16;
                 
         int c;
 
@@ -283,8 +288,8 @@ static void sb_process_buffer_sb16(int32_t *buffer, int len, void *p)
         {
                 int32_t out_l = 0, out_r = 0;
 
-                out_l = ((int32_t)(buffer[c]     * mixer->cd_l) / 3) >> 15;
-                out_r = ((int32_t)(buffer[c + 1] * mixer->cd_r) / 3) >> 15;
+                out_l = ((int32_t)(low_fir_sb16(0, (float)buffer[c])     * mixer->cd_l) / 3) >> 15;
+                out_r = ((int32_t)(low_fir_sb16(1, (float)buffer[c + 1]) * mixer->cd_r) / 3) >> 15;
 
                 out_l = (out_l * mixer->master_l) >> 15;
                 out_r = (out_r * mixer->master_r) >> 15;
@@ -306,6 +311,7 @@ static void sb_process_buffer_sb16(int32_t *buffer, int len, void *p)
                 buffer[c + 1] = (out_r << mixer->output_gain_R);
 	}
 }
+#endif
 
 static void sb_get_buffer_sb16(int32_t *buffer, int len, void *p)
 {
@@ -378,6 +384,9 @@ static void sb_get_buffer_sb16(int32_t *buffer, int len, void *p)
         sb->pos = 0;
         sb->opl.pos = 0;
         sb->dsp.pos = 0;
+#if 0
+	memcpy(&sb->temp_mixer_sb16, &sb->mixer_sb16, sizeof(sb_ct1745_mixer_t));
+#endif
 }
 #ifdef SB_DSP_RECORD_DEBUG
 int old_dsp_rec_pos=0;
@@ -488,6 +497,9 @@ static void sb_get_buffer_emu8k(int32_t *buffer, int len, void *p)
         sb->opl.pos = 0;
         sb->dsp.pos = 0;
         sb->emu8k.pos = 0;
+#if 0
+	memcpy(&sb->temp_mixer_sb16, &sb->mixer_sb16, sizeof(sb_ct1745_mixer_t));
+#endif
 }
 
 
@@ -1103,6 +1115,12 @@ void *sb_2_init()
         "CD version" also uses 250h or 260h for
           2x0 to 2x3 -> CDROM interface
           2x4 to 2x5 -> Mixer interface*/
+        /*My SB 2.0 mirrors the OPL2 at ports 2x0/2x1. Presumably this mirror is
+          disabled when the CMS chips are present.
+          This mirror may also exist on SB 1.5 & MCV, however I am unable to
+          test this. It shouldn't exist on SB 1.0 as the CMS chips are always
+          present there.
+          Syndicate requires this mirror for music to play.*/
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
         memset(sb, 0, sizeof(sb_t));
@@ -1119,6 +1137,8 @@ void *sb_2_init()
         /* CMS I/O handler is activated on the dedicated sound_cms module
            DSP I/O handler is activated in sb_dsp_setaddr */
 	if (sb->opl_enabled) {
+		if (!GAMEBLASTER)
+			io_sethandler(addr, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
         	io_sethandler(addr+8, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
         	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
 	}
@@ -1249,9 +1269,14 @@ void *sb_16_init()
 	}
         io_sethandler(addr+4, 0x0002, sb_ct1745_mixer_read, NULL, NULL, sb_ct1745_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sb16, sb);
+#if 0
         sound_add_process_handler(sb_process_buffer_sb16, sb);
+#endif
         mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
 	sb_dsp_set_mpu(&sb->mpu);
+#if 0
+	memcpy(&sb->temp_mixer_sb16, &sb->mixer_sb16, sizeof(sb_ct1745_mixer_t));
+#endif
 
         return sb;
 }
@@ -1288,10 +1313,15 @@ void *sb_awe32_init()
 	}
         io_sethandler(addr+4, 0x0002, sb_ct1745_mixer_read, NULL, NULL, sb_ct1745_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_emu8k, sb);
+#if 0
         sound_add_process_handler(sb_process_buffer_sb16, sb);
+#endif
         mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
 	sb_dsp_set_mpu(&sb->mpu);
         emu8k_init(&sb->emu8k, emu_addr, onboard_ram);
+#if 0
+	memcpy(&sb->temp_mixer_sb16, &sb->mixer_sb16, sizeof(sb_ct1745_mixer_t));
+#endif
 
         return sb;
 }

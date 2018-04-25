@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.h	1.0.3	2018/03/17
+ * Version:	@(#)fdc.h	1.0.4	2018/04/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -70,6 +70,8 @@ typedef struct {
     int		abort;
     int		format_state, format_n;
     int		tc, written;
+    int		step, seek_dir;
+    int		noprec;
 
     int		data_ready, inread;
     int		bitcell_period, enh_mode;

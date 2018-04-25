@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.c	1.0.14	2018/03/11
+ * Version:	@(#)cpu.c	1.0.15	2018/04/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -1313,7 +1313,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU; /*FPU*/
                 }
                 else
-                   EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 
                 case CPU_iDX4:
@@ -1331,7 +1331,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU | CPUID_VME;
                 }
                 else
-                   EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 
                 case CPU_Am486SX:
@@ -1348,7 +1348,7 @@ void cpu_CPUID()
                         EBX = ECX = EDX = 0; /*No FPU*/
                 }
                 else
-                   EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 
                 case CPU_Am486DX:
@@ -1366,7 +1366,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU; /*FPU*/
                 }
                 else
-                   EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
                 
                 case CPU_WINCHIP:
@@ -1397,7 +1397,7 @@ void cpu_CPUID()
                                 EDX |= CPUID_MMX;
                 }
                 else
-                   EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 
                 case CPU_PENTIUM:
@@ -1415,7 +1415,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
                 }
                 else
-                        EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 
 #ifdef DEV_BRANCH
@@ -1435,7 +1435,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
                 }
                 else
-                        EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 
                 case CPU_5K86:
@@ -1487,7 +1487,7 @@ void cpu_CPUID()
 			EDX = 0x10040120;
 		}
                 else
-                        EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 
                 case CPU_K6:
@@ -1549,7 +1549,7 @@ void cpu_CPUID()
 			EDX = 0x444D416E;
 		}
                 else
-                        EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 #endif
 #endif
@@ -1569,7 +1569,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX;
                 }
                 else
-                        EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 
 
@@ -1588,7 +1588,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU;
                 }
                 else
-                        EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 
 
@@ -1607,7 +1607,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU | CPUID_CMPXCHG8B;
                 }
                 else
-                        EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 
 
@@ -1626,7 +1626,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
                 }
                 else
-                        EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 
 
@@ -1646,7 +1646,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_CMOV | CPUID_MMX;
                 }
                 else
-                        EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 
 #ifdef DEV_BRANCH
@@ -1669,7 +1669,7 @@ void cpu_CPUID()
 		{
 		}
                 else
-                        EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 
                 /* case CPU_PENTIUM2:
@@ -1693,7 +1693,7 @@ void cpu_CPUID()
 			EDX = 0x0C040843;
 		}
                 else
-                        EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break; */
 
                 case CPU_PENTIUM2D:
@@ -1717,7 +1717,7 @@ void cpu_CPUID()
 			EDX = 0x0C040844;
 		}
                 else
-                        EAX = 0;
+			EAX = EBX = ECX = EDX = 0;
                 break;
 #endif
 #endif
@@ -2260,7 +2260,7 @@ void cpu_update_waitstates()
                 cpu_cycles_write_l = (cpu_16bitbus ? 2 : 1) * cpu_s->mem_write_cycles;
         }
         if (is486)
-                cpu_prefetch_cycles *= 4;
+                cpu_prefetch_cycles = (cpu_prefetch_cycles * 11) / 16;
         cpu_mem_prefetch_cycles = cpu_prefetch_cycles;
         if (cpu_s->rspeed <= 8000000)
                 cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;

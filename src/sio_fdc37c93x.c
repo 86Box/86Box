@@ -9,7 +9,7 @@
  *		Implementation of the SMC FDC37C932FR and FDC37C935 Super
  *		I/O Chips.
  *
- * Version:	@(#)sio_fdc37c93x.c	1.0.11	2018/03/14
+ * Version:	@(#)sio_fdc37c93x.c	1.0.12	2018/04/04
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -566,14 +566,10 @@ void fdc37c932fr_init(void)
 {
 	fdc37c93x_init();
 	fdc37c932fr_reset();
-
-	pci_reset_handler.super_io_reset = fdc37c932fr_reset;
 }
 
 void fdc37c935_init(void)
 {
 	fdc37c93x_init();
 	fdc37c935_reset();
-
-	pci_reset_handler.super_io_reset = fdc37c935_reset;
 }

@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.25	2018/03/20
+ * Version:	@(#)video.h	1.0.26	2018/04/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -65,7 +65,9 @@ enum {
     GFX_VGA88,  		/* ATI VGA-88 (18800-1) */
     GFX_VGAEDGE16,  		/* ATI VGA Edge-16 (18800-1) */
     GFX_VGACHARGER, 		/* ATI VGA Charger (28800-5) */
+#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
     GFX_VGAWONDER,		/* Compaq ATI VGA Wonder (18800) */
+#endif
     GFX_VGAWONDERXL,		/* Compaq ATI VGA Wonder XL (28800-5) */
 #if defined(DEV_BRANCH) && defined(USE_XL24)
     GFX_VGAWONDERXL24,		/* Compaq ATI VGA Wonder XL24 (28800-6) */

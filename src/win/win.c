@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.46	2018/03/16
+ * Version:	@(#)win.c	1.0.47	2018/03/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -75,6 +75,7 @@ static rc_str_t	*lpRCstr2048,
 		*lpRCstr5888,
 		*lpRCstr6144,
 		*lpRCstr7168;
+static int	vid_api_inited = 0;
 
 
 static struct {
@@ -202,27 +203,26 @@ plat_get_string(int i)
 {
     LPTSTR str;
 
-    if ((i >= 2048) && (i <= 3071)) {
+    if ((i >= 2048) && (i <= 3071))
 	str = lpRCstr2048[i-2048].str;
-    } else if ((i >= 4096) && (i <= 4351)) {
+    else if ((i >= 4096) && (i <= 4351))
 	str = lpRCstr4096[i-4096].str;
-    } else if ((i >= 4352) && (i <= 4607)) {
+    else if ((i >= 4352) && (i <= 4607))
 	str = lpRCstr4352[i-4352].str;
-    } else if ((i >= 4608) && (i <= 5119)) {
+    else if ((i >= 4608) && (i <= 5119))
 	str = lpRCstr4608[i-4608].str;
-    } else if ((i >= 5120) && (i <= 5375)) {
+    else if ((i >= 5120) && (i <= 5375))
 	str = lpRCstr5120[i-5120].str;
-    } else if ((i >= 5376) && (i <= 5631)) {
+    else if ((i >= 5376) && (i <= 5631))
 	str = lpRCstr5376[i-5376].str;
-    } else if ((i >= 5632) && (i <= 5887)) {
+    else if ((i >= 5632) && (i <= 5887))
 	str = lpRCstr5632[i-5632].str;
-    } else if ((i >= 5888) && (i <= 6143)) {
+    else if ((i >= 5888) && (i <= 6143))
 	str = lpRCstr5888[i-5888].str;
-    } else if ((i >= 6144) && (i <= 7167)) {
+    else if ((i >= 6144) && (i <= 7167))
 	str = lpRCstr6144[i-6144].str;
-    } else {
+    else
 	str = lpRCstr7168[i-7168].str;
-    }
 
     return((wchar_t *)str);
 }
@@ -251,29 +251,24 @@ CreateConsole(int init)
     /* Not logging to file, attach to console. */
     if (! AttachConsole(ATTACH_PARENT_PROCESS)) {
 	/* Parent has no console, create one. */
-	AllocConsole();
+	if (! AllocConsole()) {
+		/* Cannot create console, just give up. */
+		return;
+	}
     }
-
-    h = GetStdHandle(STD_OUTPUT_HANDLE);
-    i = _open_osfhandle((intptr_t)h, _O_TEXT);
-    fp = _fdopen(i, "w");
-    setvbuf(fp, NULL, _IONBF, 1);
-    *stdout = *fp;
-
-    h = GetStdHandle(STD_ERROR_HANDLE);
-    i = _open_osfhandle((intptr_t)h, _O_TEXT);
-    fp = _fdopen(i, "w");
-    setvbuf(fp, NULL, _IONBF, 1);
-    *stderr = *fp;
-
-#if 0
-    /* Set up stdin as well. */
-    h = GetStdHandle(STD_INPUT_HANDLE);
-    i = _open_osfhandle((intptr_t)h, _O_TEXT);
-    fp = _fdopen(i, "r");
-    setvbuf(fp, NULL, _IONBF, 128);
-    *stdin = *fp;
-#endif
+    fp = NULL;
+    if ((h = GetStdHandle(STD_OUTPUT_HANDLE)) != NULL) {
+	/* We got the handle, now open a file descriptor. */
+	if ((i = _open_osfhandle((intptr_t)h, _O_TEXT)) != -1) {
+		/* We got a file descriptor, now allocate a new stream. */
+		if ((fp = _fdopen(i, "w")) != NULL) {
+			/* Got the stream, re-initialize stdout without it. */
+			(void)freopen("CONOUT$", "w", stdout);
+			setvbuf(stdout, NULL, _IONBF, 0);
+			fflush(stdout);
+		}
+	}
+    }
 }
 
 
@@ -588,7 +583,7 @@ plat_vidapi(char *name)
 {
     int i;
 
-    if (!strcasecmp(name, "default") || !strcasecmp(name, "system")) return(1);
+    if (!strcasecmp(name, "default") || !strcasecmp(name, "system")) return(0);
 
     for (i=0; i<4; i++) {
 	if (vid_apis[0][i].name &&
@@ -596,7 +591,7 @@ plat_vidapi(char *name)
     }
 
     /* Default value. */
-    return(1);
+    return(0);
 }
 
 
@@ -607,25 +602,16 @@ plat_vidapi_name(int api)
     char *name = "default";
 
     switch(api) {
-#if USE_WX
 	case 0:
-		break;
-
-	case 1:
-		name = "wxwidgets";
-		break;
-#else
-	case 0:
-		name = "ddraw";
-		break;
-
-	case 1:
 #if 0
-		/* Direct3D is default. */
-		name = "d3d";
+		/* DirectDraw is default. */
+		name = "ddraw";
 #endif
 		break;
-#endif
+
+	case 1:
+		name = "d3d";
+		break;
 
 #ifdef USE_VNC
 	case 2:
@@ -679,6 +665,8 @@ plat_setvid(int api)
 
     device_force_redraw();
 
+    vid_api_inited = 1;
+
     return(1);
 }
 
@@ -687,7 +675,7 @@ plat_setvid(int api)
 void
 plat_vidsize(int x, int y)
 {
-    if (! vid_apis[video_fullscreen][vid_api].resize) return;
+    if (!vid_api_inited || !vid_apis[video_fullscreen][vid_api].resize) return;
 
     startblit();
     video_wait_for_blit();
@@ -795,6 +783,16 @@ take_screenshot(void)
 		break;
 #endif
     }
+}
+
+
+/* LPARAM interface to plat_get_string(). */
+LPARAM win_get_string(int id)
+{
+    wchar_t *ret;
+
+    ret = plat_get_string(id);
+    return ((LPARAM) ret);
 }
 
 

@@ -11,7 +11,7 @@
  * NOTES:	This code should be re-merged into a single init() with a
  *		'fullscreen' argument, indicating FS mode is requested.
  *
- * Version:	@(#)win_ddraw.cpp	1.0.6	2018/03/16
+ * Version:	@(#)win_ddraw.cpp	1.0.7	2018/03/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -110,7 +110,6 @@ DoubleLines(uint8_t *dst, uint8_t *src)
 static void
 SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
 {
-    BITMAPFILEHEADER bmpFileHeader; 
     BITMAPINFO bmpInfo;
     HDC hdc;
     LPVOID pBuf = NULL;

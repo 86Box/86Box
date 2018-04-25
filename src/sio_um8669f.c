@@ -299,6 +299,4 @@ void um8669f_init(void)
         io_sethandler(0x0108, 0x0002, um8669f_read, NULL, NULL, um8669f_write, NULL, NULL,  &um8669f_global);
 
 	um8669f_reset();
-
-	pci_reset_handler.super_io_reset = um8669f_reset;
 }

@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430HX PCISet chip.
  *
- * Version:	@(#)m_at_430hx.c	1.0.11	2018/03/18
+ * Version:	@(#)m_at_430hx.c	1.0.12	2018/04/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,6 +18,7 @@
  */
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
@@ -33,297 +34,372 @@
 #include "machine.h"
 
 
-static uint8_t card_i430hx[256];
+typedef struct
+{
+    uint8_t	regs[256];
+} i430hx_t;
+
+
+typedef struct
+{
+    int		index;
+} acerm3a_t;
 
 
 static void i430hx_map(uint32_t addr, uint32_t size, int state)
 {
-        switch (state & 3)
-        {
-                case 0:
-                mem_set_mem_state(addr, size, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
-                break;
-                case 1:
-                mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
-                break;
-                case 2:
-                mem_set_mem_state(addr, size, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
-                break;
-                case 3:
-                mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                break;
-        }
-        flushmmucache_nopc();        
-}
-
-
-static void i430hx_write(int func, int addr, uint8_t val, void *priv)
-{
-        if (func)
-           return;
-           
-        if ((addr >= 0x10) && (addr < 0x4f))
-                return;
-                
-        switch (addr)
-        {
-                case 0x00: case 0x01: case 0x02: case 0x03:
-                case 0x08: case 0x09: case 0x0a: case 0x0b:
-                case 0x0c: case 0x0e:
-                return;
-                
-                case 0x04: /*Command register*/
-                val &= 0x02;
-                val |= 0x04;
-                break;
-                case 0x05:
-                val = 0;
-                break;
-                
-                case 0x06: /*Status*/
-                val = 0;
-                break;
-                case 0x07:
-                val &= 0x80;
-                val |= 0x02;
-                break;
-                
-                case 0x59: /*PAM0*/
-                if ((card_i430hx[0x59] ^ val) & 0xf0)
-                {
-                        i430hx_map(0xf0000, 0x10000, val >> 4);
-                        shadowbios = (val & 0x10);
-                }
-                break;
-                case 0x5a: /*PAM1*/
-                if ((card_i430hx[0x5a] ^ val) & 0x0f)
-                        i430hx_map(0xc0000, 0x04000, val & 0xf);
-                if ((card_i430hx[0x5a] ^ val) & 0xf0)
-                        i430hx_map(0xc4000, 0x04000, val >> 4);
-                break;
-                case 0x5b: /*PAM2*/
-                if ((card_i430hx[0x5b] ^ val) & 0x0f)
-                        i430hx_map(0xc8000, 0x04000, val & 0xf);
-                if ((card_i430hx[0x5b] ^ val) & 0xf0)
-                        i430hx_map(0xcc000, 0x04000, val >> 4);
-                break;
-                case 0x5c: /*PAM3*/
-                if ((card_i430hx[0x5c] ^ val) & 0x0f)
-                        i430hx_map(0xd0000, 0x04000, val & 0xf);
-                if ((card_i430hx[0x5c] ^ val) & 0xf0)
-                        i430hx_map(0xd4000, 0x04000, val >> 4);
-                break;
-                case 0x5d: /*PAM4*/
-                if ((card_i430hx[0x5d] ^ val) & 0x0f)
-                        i430hx_map(0xd8000, 0x04000, val & 0xf);
-                if ((card_i430hx[0x5d] ^ val) & 0xf0)
-                        i430hx_map(0xdc000, 0x04000, val >> 4);
-                break;
-                case 0x5e: /*PAM5*/
-                if ((card_i430hx[0x5e] ^ val) & 0x0f)
-                        i430hx_map(0xe0000, 0x04000, val & 0xf);
-                if ((card_i430hx[0x5e] ^ val) & 0xf0)
-                        i430hx_map(0xe4000, 0x04000, val >> 4);
-                break;
-                case 0x5f: /*PAM6*/
-                if ((card_i430hx[0x5f] ^ val) & 0x0f)
-                        i430hx_map(0xe8000, 0x04000, val & 0xf);
-                if ((card_i430hx[0x5f] ^ val) & 0xf0)
-                        i430hx_map(0xec000, 0x04000, val >> 4);
-                break;
-		case 0x72: /*SMRAM*/
-                if ((card_i430hx[0x72] ^ val) & 0x48)
-                        i430hx_map(0xa0000, 0x20000, ((val & 0x48) == 0x48) ? 3 : 0);
+    switch (state & 3) {
+	case 0:
+		mem_set_mem_state(addr, size, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
 		break;
-        }
-                
-        card_i430hx[addr] = val;
+	case 1:
+		mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
+		break;
+	case 2:
+		mem_set_mem_state(addr, size, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+		break;
+	case 3:
+		mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+		break;
+    }
+    flushmmucache_nopc();
 }
 
 
-static uint8_t i430hx_read(int func, int addr, void *priv)
+static void
+i430hx_write(int func, int addr, uint8_t val, void *priv)
 {
-        if (func)
-           return 0xff;
+    i430hx_t *dev = (i430hx_t *) priv;
 
-        return card_i430hx[addr];
+    if (func)
+	return;
+
+    if ((addr >= 0x10) && (addr < 0x4f))
+	return;
+
+    switch (addr) {
+	case 0x00: case 0x01: case 0x02: case 0x03:
+	case 0x08: case 0x09: case 0x0a: case 0x0b:
+	case 0x0c: case 0x0e:
+		return;
+
+	case 0x04: /*Command register*/
+		val &= 0x02;
+		val |= 0x04;
+		break;
+	case 0x05:
+		val = 0;
+		break;
+
+	case 0x06: /*Status*/
+		val = 0;
+		break;
+	case 0x07:
+		val &= 0x80;
+		val |= 0x02;
+		break;
+
+	case 0x59: /*PAM0*/
+		if ((dev->regs[0x59] ^ val) & 0xf0) {
+			i430hx_map(0xf0000, 0x10000, val >> 4);
+			shadowbios = (val & 0x10);
+		}
+		break;
+	case 0x5a: /*PAM1*/
+		if ((dev->regs[0x5a] ^ val) & 0x0f)
+			i430hx_map(0xc0000, 0x04000, val & 0xf);
+		if ((dev->regs[0x5a] ^ val) & 0xf0)
+			i430hx_map(0xc4000, 0x04000, val >> 4);
+		break;
+	case 0x5b: /*PAM2*/
+		if ((dev->regs[0x5b] ^ val) & 0x0f)
+			i430hx_map(0xc8000, 0x04000, val & 0xf);
+		if ((dev->regs[0x5b] ^ val) & 0xf0)
+			i430hx_map(0xcc000, 0x04000, val >> 4);
+		break;
+	case 0x5c: /*PAM3*/
+		if ((dev->regs[0x5c] ^ val) & 0x0f)
+			i430hx_map(0xd0000, 0x04000, val & 0xf);
+		if ((dev->regs[0x5c] ^ val) & 0xf0)
+			i430hx_map(0xd4000, 0x04000, val >> 4);
+		break;
+	case 0x5d: /*PAM4*/
+		if ((dev->regs[0x5d] ^ val) & 0x0f)
+			i430hx_map(0xd8000, 0x04000, val & 0xf);
+		if ((dev->regs[0x5d] ^ val) & 0xf0)
+			i430hx_map(0xdc000, 0x04000, val >> 4);
+		break;
+	case 0x5e: /*PAM5*/
+		if ((dev->regs[0x5e] ^ val) & 0x0f)
+			i430hx_map(0xe0000, 0x04000, val & 0xf);
+		if ((dev->regs[0x5e] ^ val) & 0xf0)
+			i430hx_map(0xe4000, 0x04000, val >> 4);
+		break;
+	case 0x5f: /*PAM6*/
+		if ((dev->regs[0x5f] ^ val) & 0x0f)
+			i430hx_map(0xe8000, 0x04000, val & 0xf);
+		if ((dev->regs[0x5f] ^ val) & 0xf0)
+			i430hx_map(0xec000, 0x04000, val >> 4);
+		break;
+	case 0x72: /*SMRAM*/
+		if ((dev->regs[0x72] ^ val) & 0x48)
+			i430hx_map(0xa0000, 0x20000, ((val & 0x48) == 0x48) ? 3 : 0);
+		break;
+    }
+
+    dev->regs[addr] = val;
+}
+
+
+static uint8_t
+i430hx_read(int func, int addr, void *priv)
+{
+    i430hx_t *dev = (i430hx_t *) priv;
+
+    if (func)
+	return 0xff;
+
+    return dev->regs[addr];
 }
  
 
-static void i430hx_reset(void)
+static void
+i430hx_reset(void *priv)
 {
-        memset(card_i430hx, 0, 256);
-        card_i430hx[0x00] = 0x86; card_i430hx[0x01] = 0x80; /*Intel*/
-        card_i430hx[0x02] = 0x50; card_i430hx[0x03] = 0x12; /*82439HX*/
-        card_i430hx[0x04] = 0x06; card_i430hx[0x05] = 0x00;
-        card_i430hx[0x06] = 0x00; card_i430hx[0x07] = 0x02;
-        card_i430hx[0x08] = 0x00; /*A0 stepping*/
-        card_i430hx[0x09] = 0x00; card_i430hx[0x0a] = 0x00; card_i430hx[0x0b] = 0x06;
-	card_i430hx[0x51] = 0x20;
-	card_i430hx[0x52] = 0xB5; /*512kb cache*/
-
-	card_i430hx[0x59] = 0x40;
-	card_i430hx[0x5A] = card_i430hx[0x5B] = card_i430hx[0x5C] = card_i430hx[0x5D] = card_i430hx[0x5E] = card_i430hx[0x5F] = 0x44;
-
-        card_i430hx[0x56] = 0x52; /*DRAM control*/
-        card_i430hx[0x57] = 0x01;
-        card_i430hx[0x60] = card_i430hx[0x61] = card_i430hx[0x62] = card_i430hx[0x63] = card_i430hx[0x64] = card_i430hx[0x65] = card_i430hx[0x66] = card_i430hx[0x67] = 0x02;
-        card_i430hx[0x68] = 0x11;
-        card_i430hx[0x72] = 0x02;
-}
-    
-
-static void i430hx_pci_reset(void)
-{
-	i430hx_write(0, 0x59, 0x00, NULL);
-	i430hx_write(0, 0x72, 0x02, NULL);
+    i430hx_write(0, 0x59, 0x00, priv);
+    i430hx_write(0, 0x72, 0x02, priv);
 }
 
 
-static void i430hx_init(void)
+static void
+i430hx_close(void *p)
 {
-        pci_add_card(0, i430hx_read, i430hx_write, NULL);
+    i430hx_t *i430hx = (i430hx_t *)p;
 
-	i430hx_reset();
-
-	pci_reset_handler.pci_master_reset = i430hx_pci_reset;
+    free(i430hx);
 }
 
 
-static int acerm3a_index;
+static void
+*i430hx_init(const device_t *info)
+{
+    i430hx_t *i430hx = (i430hx_t *) malloc(sizeof(i430hx_t));
+    memset(i430hx, 0, sizeof(i430hx_t));
+
+    i430hx->regs[0x00] = 0x86; i430hx->regs[0x01] = 0x80; /*Intel*/
+    i430hx->regs[0x02] = 0x50; i430hx->regs[0x03] = 0x12; /*82439HX*/
+    i430hx->regs[0x04] = 0x06; i430hx->regs[0x05] = 0x00;
+    i430hx->regs[0x06] = 0x00; i430hx->regs[0x07] = 0x02;
+    i430hx->regs[0x08] = 0x00; /*A0 stepping*/
+    i430hx->regs[0x09] = 0x00; i430hx->regs[0x0a] = 0x00; i430hx->regs[0x0b] = 0x06;
+    i430hx->regs[0x51] = 0x20;
+    i430hx->regs[0x52] = 0xB5; /*512kb cache*/
+    i430hx->regs[0x59] = 0x40;
+    i430hx->regs[0x5A] = i430hx->regs[0x5B] = i430hx->regs[0x5C] = i430hx->regs[0x5D] = 0x44;
+    i430hx->regs[0x5E] = i430hx->regs[0x5F] = 0x44;
+    i430hx->regs[0x56] = 0x52; /*DRAM control*/
+    i430hx->regs[0x57] = 0x01;
+    i430hx->regs[0x60] = i430hx->regs[0x61] = i430hx->regs[0x62] = i430hx->regs[0x63] = 0x02;
+    i430hx->regs[0x64] = i430hx->regs[0x65] = i430hx->regs[0x66] = i430hx->regs[0x67] = 0x02;
+    i430hx->regs[0x68] = 0x11;
+    i430hx->regs[0x72] = 0x02;
+
+    pci_add_card(0, i430hx_read, i430hx_write, i430hx);
+
+    return i430hx;
+}
+
+
+const device_t i430hx_device =
+{
+    "Intel 82439HX",
+    DEVICE_PCI,
+    0,
+    i430hx_init, 
+    i430hx_close, 
+    i430hx_reset,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
 
 
 static void
 acerm3a_out(uint16_t port, uint8_t val, void *p)
 {
-        if (port == 0xea)
-                acerm3a_index = val;
+    acerm3a_t *dev = (acerm3a_t *) p;
+
+    if (port == 0xea)
+	dev->index = val;
 }
+
 
 static uint8_t
 acerm3a_in(uint16_t port, void *p)
 {
-        if (port == 0xeb)
-        {
-                switch (acerm3a_index)
-                {
-                        case 2:
-                        	return 0xfd;
-                }
-        }
-        return 0xff;
+    acerm3a_t *dev = (acerm3a_t *) p;
+
+    if (port == 0xeb) {
+	switch (dev->index) {
+		case 2:
+			return 0xfd;
+	}
+    }
+    return 0xff;
 }
+
+
+static void
+acerm3a_close(void *p)
+{
+    acerm3a_t *dev = (acerm3a_t *)p;
+
+    free(dev);
+}
+
+
+static void
+*acerm3a_init(const device_t *info)
+{
+    acerm3a_t *acerm3a = (acerm3a_t *) malloc(sizeof(acerm3a_t));
+    memset(acerm3a, 0, sizeof(acerm3a_t));
+
+    io_sethandler(0x00ea, 0x0002, acerm3a_in, NULL, NULL, acerm3a_out, NULL, NULL, acerm3a);
+
+    return acerm3a;
+}
+
+
+const device_t acerm3a_device =
+{
+    "Acer M3A Register",
+    0,
+    0,
+    acerm3a_init, 
+    acerm3a_close, 
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
 
 
 void
 machine_at_acerm3a_init(const machine_t *model)
 {
-        machine_at_ps2_init(model);
+    machine_at_common_init(model);
+    device_add(&keyboard_ps2_pci_device);
 
-	powermate_memregs_init();
-        pci_init(PCI_CONFIG_TYPE_1);
-	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-	pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
-	pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
-	pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
-	pci_register_slot(0x1F, PCI_CARD_NORMAL, 4, 1, 2, 3);
-	pci_register_slot(0x10, PCI_CARD_ONBOARD, 4, 0, 0, 0);
-        i430hx_init();
-        piix3_init(7);
-        fdc37c932fr_init();
-        io_sethandler(0x00ea, 0x0002, acerm3a_in, NULL, NULL, acerm3a_out, NULL, NULL, NULL);
+    powermate_memregs_init();
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x1F, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x10, PCI_CARD_ONBOARD, 4, 0, 0, 0);
+    device_add(&i430hx_device);
+    device_add(&piix3_device);
+    fdc37c932fr_init();
+    device_add(&acerm3a_device);
 
-        device_add(&intel_flash_bxb_device);
+    device_add(&intel_flash_bxb_device);
 }
 
 
 void
 machine_at_acerv35n_init(const machine_t *model)
 {
-        machine_at_ps2_init(model);
+    machine_at_common_init(model);
+    device_add(&keyboard_ps2_pci_device);
 
-	powermate_memregs_init();
-        pci_init(PCI_CONFIG_TYPE_1);
-	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-	pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
-	pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
-	pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
-	pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
-	pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
-        i430hx_init();
-        piix3_init(7);
-        fdc37c932fr_init();
-        io_sethandler(0x00ea, 0x0002, acerm3a_in, NULL, NULL, acerm3a_out, NULL, NULL, NULL);
+    powermate_memregs_init();
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    device_add(&i430hx_device);
+    device_add(&piix3_device);
+    fdc37c932fr_init();
+    device_add(&acerm3a_device);
 
-        device_add(&intel_flash_bxb_device);
+    device_add(&intel_flash_bxb_device);
 }
 
 
 void
 machine_at_ap53_init(const machine_t *model)
 {
-        machine_at_common_init(model);
-	device_add(&keyboard_ps2_ami_device);
+    machine_at_common_init(model);
+    device_add(&keyboard_ps2_ami_pci_device);
 
-        memregs_init();
-        powermate_memregs_init();
-        pci_init(PCI_CONFIG_TYPE_1);
-	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-	pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
-	pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
-	pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
-	pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
-	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-	pci_register_slot(0x06, PCI_CARD_ONBOARD, 1, 2, 3, 4);
-        i430hx_init();
-        piix3_init(7);
-        fdc37c669_init();
+    memregs_init();
+    powermate_memregs_init();
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x06, PCI_CARD_ONBOARD, 1, 2, 3, 4);
+    device_add(&i430hx_device);
+    device_add(&piix3_device);
+    fdc37c669_init();
 
-        device_add(&intel_flash_bxt_device);
+    device_add(&intel_flash_bxt_device);
 }
 
 
 void
 machine_at_p55t2p4_init(const machine_t *model)
 {
-        machine_at_ps2_init(model);
+    machine_at_common_init(model);
+    device_add(&keyboard_ps2_pci_device);
 
-	memregs_init();
-        pci_init(PCI_CONFIG_TYPE_1);
-	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-	pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
-	pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
-	pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
-	pci_register_slot(0x09, PCI_CARD_NORMAL, 4, 1, 2, 3);
-	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-        i430hx_init();
-        piix3_init(7);
-        w83877f_init();
+    memregs_init();
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    device_add(&i430hx_device);
+    device_add(&piix3_device);
+    w83877f_init();
 
-        device_add(&intel_flash_bxt_device);
+    device_add(&intel_flash_bxt_device);
 }
 
 
 void
 machine_at_p55t2s_init(const machine_t *model)
 {
-        machine_at_common_init(model);
-	device_add(&keyboard_ps2_ami_device);
+    machine_at_common_init(model);
+    device_add(&keyboard_ps2_ami_pci_device);
 
-        memregs_init();
-        powermate_memregs_init();
-        pci_init(PCI_CONFIG_TYPE_1);
-	pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-	pci_register_slot(0x12, PCI_CARD_NORMAL, 1, 2, 3, 4);
-	pci_register_slot(0x13, PCI_CARD_NORMAL, 4, 1, 2, 3);
-	pci_register_slot(0x14, PCI_CARD_NORMAL, 3, 4, 1, 2);
-	pci_register_slot(0x11, PCI_CARD_NORMAL, 2, 3, 4, 1);
-	pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-        i430hx_init();
-        piix3_init(7);
-        pc87306_init();
+    memregs_init();
+    powermate_memregs_init();
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x14, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    device_add(&i430hx_device);
+    device_add(&piix3_device);
+    pc87306_init();
 
-        device_add(&intel_flash_bxt_device);
+    device_add(&intel_flash_bxt_device);
 }

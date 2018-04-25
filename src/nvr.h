@@ -8,7 +8,7 @@
  *
  *		Definitions for the generic NVRAM/CMOS driver.
  *
- * Version:	@(#)nvr.h	1.0.2	2018/03/11
+ * Version:	@(#)nvr.h	1.0.6	2018/04/11
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -58,29 +58,36 @@
 
 /* Define a generic RTC/NVRAM device. */
 typedef struct _nvr_ {
-    uint8_t	regs[NVR_MAXSIZE];	/* these are the registers */
-    wchar_t	*fn;			/* pathname of image file */
-    uint16_t	size;			/* device configuration */
+    wchar_t	*fn;			/* pathname of image file */
+    uint16_t	size;			/* device configuration */
     int8_t	irq;
 
-    int8_t	upd_stat,		/* FIXME: move to private struct */
-		addr;
-    int64_t	upd_ecount,		/* FIXME: move to private struct */
-		onesec_time,
-		onesec_cnt,
-    		rtctime;
+    uint8_t	onesec_cnt;
+    int64_t	onesec_time;
+
+    void	*data;			/* local data */
 
     /* Hooks to device functions. */
     void	(*reset)(struct _nvr_ *);
     void	(*start)(struct _nvr_ *);
     void	(*tick)(struct _nvr_ *);
+    void	(*recalc)(struct _nvr_ *);
+
+    uint8_t	regs[NVR_MAXSIZE];	/* these are the registers */
 } nvr_t;
 
 
 extern int	nvr_dosave;
+#ifdef EMU_DEVICE_H
+extern const device_t at_nvr_device;
+extern const device_t ps_nvr_device;
+extern const device_t amstrad_nvr_device;
+#endif
 
 
 extern void	nvr_init(nvr_t *);
+extern wchar_t	*nvr_path(wchar_t *str);
+extern FILE	*nvr_fopen(wchar_t *str, wchar_t *mode);
 extern int	nvr_load(void);
 extern int	nvr_save(void);
 
@@ -88,12 +95,7 @@ extern int	nvr_is_leap(int year);
 extern int	nvr_get_days(int month, int year);
 extern void	nvr_time_get(struct tm *);
 extern void	nvr_time_set(struct tm *);
-
-extern wchar_t	*nvr_path(wchar_t *str);
-extern FILE	*nvr_fopen(wchar_t *str, wchar_t *mode);
-
-extern void	nvr_at_init(int irq);
-extern void	nvr_at_close(void);
+extern void	nvr_period_recalc(void);
 
 
 #endif	/*EMU_NVR_H*/

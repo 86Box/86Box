@@ -49,7 +49,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include <pcap/pcap.h>
+// #include <pcap/pcap.h>
 #include "../86box.h"
 #include "../config.h"
 #include "../device.h"
@@ -58,8 +58,53 @@
 #include "network.h"
 
 
+typedef int bpf_int32; 
+typedef unsigned int bpf_u_int32; 
+
+/*
+ * The instruction data structure.
+ */
+struct bpf_insn {
+    unsigned short	code;
+    unsigned char 	jt;
+    unsigned char 	jf;
+    bpf_u_int32		k;
+};
+
+/*
+ * Structure for "pcap_compile()", "pcap_setfilter()", etc..
+ */
+struct bpf_program {
+    unsigned int	bf_len;
+    struct bpf_insn	*bf_insns;
+};
+
+typedef struct pcap_if	pcap_if_t; 
+
+typedef struct timeval {
+    long		tv_sec;
+    long		tv_usec;
+} timeval;
+
+#define PCAP_ERRBUF_SIZE	256
+
+struct pcap_pkthdr {
+    struct timeval	ts;
+    bpf_u_int32		caplen;
+    bpf_u_int32		len;
+};
+
+struct pcap_if {
+    struct pcap_if *next; 
+    char *name;     
+    char *description;  
+    void *addresses; 
+    unsigned int flags;        
+};
+
+
 static volatile void		*pcap_handle;	/* handle to WinPcap DLL */
-static volatile pcap_t		*pcap;		/* handle to WinPcap library */
+static volatile void		*pcap;		/* handle to WinPcap library */
 static volatile thread_t	*poll_tid;
 static const netcard_t		*poll_card;	/* netcard linked to us */
 static event_t			*poll_state;
@@ -68,14 +113,15 @@ static event_t			*poll_state;
 /* Pointers to the real functions. */
 static const char	*(*f_pcap_lib_version)(void);
 static int		(*f_pcap_findalldevs)(pcap_if_t **,char *);
-static void		(*f_pcap_freealldevs)(pcap_if_t *);
-static pcap_t		*(*f_pcap_open_live)(const char *,int,int,int,char *);
-static int		(*f_pcap_compile)(pcap_t *,struct bpf_program *,
+static void		(*f_pcap_freealldevs)(void *);
+static void		*(*f_pcap_open_live)(const char *,int,int,int,char *);
+static int		(*f_pcap_compile)(void *,void *,
 					 const char *,int,bpf_u_int32);
-static int		(*f_pcap_setfilter)(pcap_t *,struct bpf_program *);
-static const u_char	*(*f_pcap_next)(pcap_t *,struct pcap_pkthdr *);
-static int		(*f_pcap_sendpacket)(pcap_t *,const u_char *,int);
-static void		(*f_pcap_close)(pcap_t *);
+static int		(*f_pcap_setfilter)(void *,void *);
+static const unsigned char
+			*(*f_pcap_next)(void *,void *);
+static int		(*f_pcap_sendpacket)(void *,const unsigned char *,int);
+static void		(*f_pcap_close)(void *);
 static dllimp_t pcap_imports[] = {
   { "pcap_lib_version",	&f_pcap_lib_version	},
   { "pcap_findalldevs",	&f_pcap_findalldevs	},
@@ -118,7 +164,7 @@ poll_thread(void *arg)
 	if (pcap == NULL) break;
 
 	/* Wait for the next packet to arrive. */
-	data = (uint8_t *)f_pcap_next((pcap_t *)pcap, &h);
+	data = (uint8_t *)f_pcap_next((void *)pcap, &h);
 	if (data != NULL) {
 		/* Received MAC. */
 		mac_cmp32[0] = *(uint32_t *)(data+6);
@@ -251,14 +297,14 @@ net_pcap_init(void)
 void
 net_pcap_close(void)
 {
-    pcap_t *pc;
+    void *pc;
 
     if (pcap == NULL) return;
 
     pclog("PCAP: closing.\n");
 
     /* Tell the polling thread to shut down. */
-    pc = (pcap_t *)pcap; pcap = NULL;
+    pc = (void *)pcap; pcap = NULL;
 
     /* Tell the thread to terminate. */
     if (poll_tid != NULL) {
@@ -326,15 +372,15 @@ net_pcap_reset(const netcard_t *card, uint8_t *mac)
 	"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
 		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
 		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    if (f_pcap_compile((pcap_t *)pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
-	if (f_pcap_setfilter((pcap_t *)pcap, &fp) != 0) {
+    if (f_pcap_compile((void *)pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
+	if (f_pcap_setfilter((void *)pcap, &fp) != 0) {
 		pclog("PCAP: error installing filter (%s) !\n", filter_exp);
-		f_pcap_close((pcap_t *)pcap);
+		f_pcap_close((void *)pcap);
 		return(-1);
 	}
     } else {
 	pclog("PCAP: could not compile filter (%s) !\n", filter_exp);
-	f_pcap_close((pcap_t *)pcap);
+	f_pcap_close((void *)pcap);
 	return(-1);
     }
 
@@ -358,7 +404,7 @@ net_pcap_in(uint8_t *bufp, int len)
 
     network_busy(1);
 
-    f_pcap_sendpacket((pcap_t *)pcap, bufp, len);
+    f_pcap_sendpacket((void *)pcap, bufp, len);
 
     network_busy(0);
 }

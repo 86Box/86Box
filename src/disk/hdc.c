@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of disk controllers.
  *
- * Version:	@(#)hdc.c	1.0.12	2018/03/19
+ * Version:	@(#)hdc.c	1.0.13	2018/04/04
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -25,6 +25,7 @@
 #include "../device.h"
 #include "hdc.h"
 #include "hdc_ide.h"
+#include "hdd.h"
 
 
 char	*hdc_name;		/* configured HDC name */
@@ -106,6 +107,9 @@ static const struct {
     { "[ISA] [IDE] PS/2 AT XTIDE (1.1.5)",		"xtide_at_ps2",
       &xtide_at_ps2_device		},
 
+    { "[ISA] [IDE] WDXT-150 IDE (XTA) Adapter",		"xta_wdxt150",
+      &xta_wdxt150_device		},
+
     { "[ISA] [XT IDE] Acculogic XT IDE",		"xtide_acculogic",
       &xtide_acculogic_device		},
 
@@ -146,6 +150,9 @@ hdc_init(char *name)
 		break;
 	}
     }
+
+    /* Zero all the hard disk image arrays. */
+    hdd_image_init();
 }
 
 
@@ -154,20 +161,17 @@ void
 hdc_reset(void)
 {
     pclog("HDC: reset(current=%d, internal=%d)\n",
-	hdc_current, (machines[machine].flags & MACHINE_HDC)?1:0);
+	hdc_current, (machines[machine].flags & MACHINE_HDC) ? 1 : 0);
 
     /* If we have a valid controller, add its device. */
     if (hdc_current > 1)
 	device_add(controllers[hdc_current].device);
 
-    /* Reconfire and reset the IDE layer. */
-    ide_ter_disable();
-    ide_qua_disable();
-    if (ide_enable[2])
-	ide_ter_init();
-    if (ide_enable[3])
-	ide_qua_init();
-    ide_reset_hard();
+    /* Now, add the tertiary and/or quaternary IDE controllers. */
+    if (ide_ter_enabled)
+	device_add(&ide_ter_device);
+    if (ide_qua_enabled)
+	device_add(&ide_qua_device);
 }
 
 
@@ -185,10 +189,39 @@ hdc_get_internal_name(int hdc)
 }
 
 
+int
+hdc_get_from_internal_name(char *s)
+{
+	int c = 0;
+	
+	while (strlen((char *) controllers[c].internal_name))
+	{
+		if (!strcmp((char *) controllers[c].internal_name, s))
+			return c;
+		c++;
+	}
+	
+	return 0;
+}
+
+
 const device_t *
 hdc_get_device(int hdc)
 {
     return(controllers[hdc].device);
+}
+
+
+int
+hdc_has_config(int hdc)
+{
+    const device_t *dev = hdc_get_device(hdc);
+
+    if (dev == NULL) return(0);
+
+    if (dev->config == NULL) return(0);
+
+    return(1);
 }
 
 

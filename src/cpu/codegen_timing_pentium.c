@@ -963,7 +963,7 @@ void codegen_timing_pentium_prefix(uint8_t prefix, uint32_t fetchdat)
                 last_prefix = prefix;
                 return;
         }
-        if (prefix == 0x0f && (opcode & 0xf0) == 0x80)
+        if (prefix == 0x0f && (fetchdat & 0xf0) == 0x80)
         {
                 /*On Pentium 0fh prefix is 'free' when used on conditional jumps*/
                 last_prefix = prefix;

@@ -18,7 +18,7 @@
  *		2 clocks - fetch opcode 1       2 clocks - execute
  *		2 clocks - fetch opcode 2  etc
  *
- * Version:	@(#)808x.c	1.0.2	2018/03/09
+ * Version:	@(#)808x.c	1.0.3	2018/04/19
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -58,9 +58,6 @@
 #include "../nmi.h"
 #include "../pic.h"
 #include "../timer.h"
-#include "../device.h"		/* for scsi.h */
-#include "../keyboard.h"	/* its WRONG to have this in here!! --FvK */
-#include "../scsi/scsi.h"	/* its WRONG to have this in here!! --FvK */
 #include "../plat.h"
 
 
@@ -648,7 +645,6 @@ void resetx86()
 #endif
         x86_was_reset = 1;
 	port_92_clear_reset();
-	scsi_card_reset();
 }
 
 void softresetx86()
@@ -658,7 +654,12 @@ void softresetx86()
 	cpu_cur_status = 0;
 	msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
         msw=0;
-        cr0=0;
+        if (is486)
+                cr0 = 1 << 30;
+        else
+                cr0 = 0;
+        cpu_cache_int_enabled = 0;
+        cpu_update_waitstates();
         cr4 = 0;
         eflags=0;
         cgate32=0;
@@ -680,7 +681,6 @@ void softresetx86()
         x86seg_reset();
         x86_was_reset = 1;
 	port_92_clear_reset();
-	scsi_card_reset();
 }
 
 static void setznp8(uint8_t val)

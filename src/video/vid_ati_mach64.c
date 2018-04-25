@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.18	2018/03/24
+ * Version:	@(#)vid_ati_mach64.c	1.0.19	2018/04/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -94,7 +94,7 @@ typedef struct mach64_t
         uint8_t regs[256];
         int index;
 
-        int type;
+        int type, pci;
         
         uint8_t pci_regs[256];
         uint8_t int_line;
@@ -567,7 +567,6 @@ void mach64_updatemapping(mach64_t *mach64)
                         mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 0x4000), 0x4000);
                         mem_mapping_set_addr(&mach64->mmio_linear_mapping_2, mach64->linear_base + ((16 << 20) - 0x4000), 0x4000);
                 }
-		svga->linear_base = mach64->linear_base;
         }
         else
         {
@@ -579,6 +578,11 @@ void mach64_updatemapping(mach64_t *mach64)
 
 static void mach64_update_irqs(mach64_t *mach64)
 {
+	if (!mach64->pci)
+	{
+		return;
+	}
+
         if ((mach64->crtc_int_cntl & 0xaa0024) & ((mach64->crtc_int_cntl << 1) & 0xaa0024))
                 pci_set_irq(mach64->card, PCI_INTA);
         else
@@ -3434,6 +3438,7 @@ static void *mach64gx_init(const device_t *info)
         mach64_t *mach64 = mach64_common_init(info);
 
         mach64->type = MACH64_GX;
+	mach64->pci = !!(info->flags & DEVICE_PCI);
         mach64->pci_id = (int)'X' | ((int)'G' << 8);
         mach64->config_chip_id = 0x020000d7;
         mach64->dac_cntl = 5 << 16; /*ATI 68860 RAMDAC*/
@@ -3460,6 +3465,7 @@ static void *mach64vt2_init(const device_t *info)
         svga_t *svga = &mach64->svga;
 
         mach64->type = MACH64_VT2;
+	mach64->pci = 1;
         mach64->pci_id = 0x5654;
         mach64->config_chip_id = 0x40005654;
         mach64->dac_cntl = 1 << 16; /*Internal 24-bit DAC*/

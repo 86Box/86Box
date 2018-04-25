@@ -8,7 +8,7 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.15	2018/03/21
+ * Version:	@(#)scsi_h	1.0.16	2018/03/28
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -102,6 +102,13 @@
 #define GPMODE_CDROM_AUDIO_PAGE		0x0e
 #define GPMODE_CAPABILITIES_PAGE	0x2a
 #define GPMODE_ALL_PAGES		0x3f
+
+/* Mode page codes for presence */
+#define GPMODEP_R_W_ERROR_PAGE		0x0000000000000002LL
+#define GPMODEP_CDROM_PAGE		0x0000000000002000LL
+#define GPMODEP_CDROM_AUDIO_PAGE	0x0000000000004000LL
+#define GPMODEP_CAPABILITIES_PAGE	0x0000040000000000LL
+#define GPMODEP_ALL_PAGES		0x8000000000000000LL
 
 /* SCSI Status Codes */
 #define SCSI_STATUS_OK			0
@@ -306,7 +313,6 @@ extern char *scsi_card_get_internal_name(int card);
 extern int scsi_card_get_from_internal_name(char *s);
 extern void scsi_mutex(uint8_t start);
 extern void scsi_card_init(void);
-extern void scsi_card_reset(void);
 
 extern uint8_t scsi_hard_disks[16][8];
 

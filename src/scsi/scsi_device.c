@@ -8,7 +8,7 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.15	2018/03/16
+ * Version:	@(#)scsi_device.c	1.0.16	2018/03/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -22,10 +22,10 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../device.h"
-#include "../cdrom/cdrom.h"
 #include "../disk/hdd.h"
 #include "../disk/zip.h"
 #include "scsi.h"
+#include "../cdrom/cdrom.h"
 #include "scsi_disk.h"
 
 
@@ -41,8 +41,8 @@ static uint8_t scsi_device_target_command(int lun_type, uint8_t id, uint8_t *cdb
 	}
 	else if (lun_type == SCSI_CDROM)
 	{
-		cdrom_command(id, cdb);
-		return cdrom_CDROM_PHASE_to_scsi(id);
+		cdrom_command(cdrom[id], cdb);
+		return cdrom_CDROM_PHASE_to_scsi(cdrom[id]);
 	}
 	else if (lun_type == SCSI_ZIP)
 	{
@@ -64,7 +64,7 @@ static void scsi_device_target_phase_callback(int lun_type, uint8_t id)
 	}
 	else if (lun_type == SCSI_CDROM)
 	{
-		cdrom_phase_callback(id);
+		cdrom_phase_callback(cdrom[id]);
 	}
 	else if (lun_type == SCSI_ZIP)
 	{
@@ -85,7 +85,7 @@ static int scsi_device_target_err_stat_to_scsi(int lun_type, uint8_t id)
 	}
 	else if (lun_type == SCSI_CDROM)
 	{
-		return cdrom_CDROM_PHASE_to_scsi(id);
+		return cdrom_CDROM_PHASE_to_scsi(cdrom[id]);
 	}
 	else if (lun_type == SCSI_ZIP)
 	{
@@ -110,7 +110,7 @@ static void scsi_device_target_save_cdb_byte(int lun_type, uint8_t id, uint8_t c
 	}
 	else if (lun_type == SCSI_ZIP)
 	{
-		zip[id].request_length = cdb_byte;
+		zip[id]->request_length = cdb_byte;
 	}
 	else
 	{
@@ -137,7 +137,7 @@ int64_t scsi_device_get_callback(uint8_t scsi_id, uint8_t scsi_lun)
 		break;
 	case SCSI_ZIP:
 		id = scsi_zip_drives[scsi_id][scsi_lun];
-		return zip[id].callback;
+		return zip[id]->callback;
 		break;
 	default:
 		return -1LL;
@@ -164,7 +164,7 @@ uint8_t *scsi_device_sense(uint8_t scsi_id, uint8_t scsi_lun)
 		break;
 	case SCSI_ZIP:
 		id = scsi_zip_drives[scsi_id][scsi_lun];
-		return zip[id].sense;
+		return zip[id]->sense;
 		break;
 	default:
 		return scsi_null_device_sense;
@@ -187,7 +187,7 @@ void scsi_device_request_sense(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *buffe
 		break;
 	case SCSI_CDROM:
 		id = scsi_cdrom_drives[scsi_id][scsi_lun];
-		cdrom_request_sense_for_scsi(id, buffer, alloc_length);
+		cdrom_request_sense_for_scsi(cdrom[id], buffer, alloc_length);
 		break;
 	case SCSI_ZIP:
 		id = scsi_zip_drives[scsi_id][scsi_lun];
@@ -200,7 +200,7 @@ void scsi_device_request_sense(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *buffe
 }
 
 
-void scsi_device_type_data(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *type, uint8_t *rmb)
+void scsi_device_reset(uint8_t scsi_id, uint8_t scsi_lun)
 {
     uint8_t lun_type = SCSIDevices[scsi_id][scsi_lun].LunType;
 
@@ -210,8 +210,28 @@ void scsi_device_type_data(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *type, uin
     {
 	case SCSI_DISK:
 		id = scsi_hard_disks[scsi_id][scsi_lun];
-		*type = 0x00;
-		*rmb = (hdd[id].bus == HDD_BUS_SCSI_REMOVABLE) ? 0x80 : 0x00;
+		scsi_hd_reset(id);
+		break;
+	case SCSI_CDROM:
+		id = scsi_cdrom_drives[scsi_id][scsi_lun];
+		cdrom_reset(cdrom[id]);
+		break;
+	case SCSI_ZIP:
+		id = scsi_zip_drives[scsi_id][scsi_lun];
+		zip_reset(id);
+		break;
+    }
+}
+
+
+void scsi_device_type_data(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *type, uint8_t *rmb)
+{
+    uint8_t lun_type = SCSIDevices[scsi_id][scsi_lun].LunType;
+
+    switch (lun_type)
+    {
+	case SCSI_DISK:
+		*type = *rmb = 0x00;
 		break;
 	case SCSI_CDROM:
 		*type = 0x05;
@@ -222,7 +242,7 @@ void scsi_device_type_data(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *type, uin
 		*rmb = 0x80;
 		break;
 	default:
-		*type = *rmb = 0xFF;
+		*type = *rmb = 0xff;
 		break;
     }
 }
@@ -241,7 +261,7 @@ int scsi_device_read_capacity(uint8_t scsi_id, uint8_t scsi_lun, uint8_t *cdb, u
 		return scsi_hd_read_capacity(id, cdb, buffer, len);
 	case SCSI_CDROM:
 		id = scsi_cdrom_drives[scsi_id][scsi_lun];
-		return cdrom_read_capacity(id, cdb, buffer, len);
+		return cdrom_read_capacity(cdrom[id], cdb, buffer, len);
 	case SCSI_ZIP:
 		id = scsi_zip_drives[scsi_id][scsi_lun];
 		return zip_read_capacity(id, cdb, buffer, len);
@@ -304,7 +324,7 @@ int scsi_device_cdb_length(uint8_t scsi_id, uint8_t scsi_lun)
 		return cdrom[id]->cdb_len;
 	case SCSI_ZIP:
 		id = scsi_zip_drives[scsi_id][scsi_lun];
-		return zip[id].cdb_len;
+		return zip[id]->cdb_len;
 	default:
 		return 12;
     }

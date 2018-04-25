@@ -32,7 +32,7 @@
  *		in alpha mode, but in highres ("ECD350") mode, it displays
  *		some semi-random junk. Video-memory pointer maybe?
  *
- * Version:	@(#)m_amstrad.c	1.0.11	2018/03/18
+ * Version:	@(#)m_amstrad.c	1.0.12	2018/04/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1205,7 +1205,7 @@ machine_amstrad_init(const machine_t *model)
     ams = (amstrad_t *)malloc(sizeof(amstrad_t));
     memset(ams, 0x00, sizeof(amstrad_t));
 
-    nvr_at_init(1);
+    device_add(&amstrad_nvr_device);
 
     machine_common_init(model);
 

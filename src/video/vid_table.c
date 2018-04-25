@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.26	2018/03/20
+ * Version:	@(#)vid_table.c	1.0.27	2018/04/09
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -92,7 +92,9 @@ video_cards[] = {
     { "[ISA] ATI VGA-88 (ATI-18800-1)",			"ati18800v",		&ati18800_vga88_device,			GFX_VGA88,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] ATI VGA Charger (ATI-28800-5)",		"ati28800",		&ati28800_device,			GFX_VGACHARGER,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
     { "[ISA] ATI VGA Edge-16 (ATI-18800-5)",		"ati18800",		&ati18800_device,			GFX_VGAEDGE16,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
+#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
     { "[ISA] ATI VGA Wonder (ATI-18800)",		"ati18800w",		&ati18800_wonder_device,		GFX_VGAWONDER,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
+#endif
 #if defined(DEV_BRANCH) && defined(USE_XL24)
     { "[ISA] ATI VGA Wonder XL24 (ATI-28800-6)",	"ati28800w",		&ati28800_wonderxl24_device,		GFX_VGAWONDERXL24,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
 #endif
@@ -189,18 +191,19 @@ video_reset(int card)
     cga_palette = 0;
     cgapal_rebuild();
 
-    /* Do not initialize internal cards here. */
-    if ((card == GFX_NONE) || \
-	(card == GFX_INTERNAL) || machines[machine].fixed_gfxcard) return;
-
     if (fontdatksc5601) {
 	free(fontdatksc5601);
 	fontdatksc5601 = NULL;
     }
 
-pclog("VIDEO: initializing '%s'\n", video_cards[video_old_to_new(card)].name);
-    /* Initialize the video card. */
-    device_add(video_cards[video_old_to_new(card)].device);
+    /* Do not initialize internal cards here. */
+    if (!(card == GFX_NONE) && \
+	!(card == GFX_INTERNAL) && !machines[machine].fixed_gfxcard) {
+	pclog("VIDEO: initializing '%s'\n", video_cards[video_old_to_new(card)].name);
+
+	/* Initialize the video card. */
+	device_add(video_cards[video_old_to_new(card)].device);
+    }
 
     /* Enable the Voodoo if configured. */
     if (voodoo_enabled)

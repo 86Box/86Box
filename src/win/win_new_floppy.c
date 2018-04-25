@@ -8,7 +8,7 @@
  *
  *		Handle the New Floppy Image dialog.
  *
- * Version:	@(#)win_new_floppy.c	1.0.5	2018/03/19
+ * Version:	@(#)win_new_floppy.c	1.0.6	2018/03/28
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -65,7 +65,7 @@ disk_size_t disk_sizes[14] = {	{	0,  1, 2, 1, 0,  40,  8, 2, 0xFE, 2, 2,  1, 112
 				{	0, 64, 0, 0, 0,  96, 32, 2,    0, 0, 0,  0,   0 },		/* ZIP 100 */
 				{	0, 64, 0, 0, 0, 239, 32, 2,    0, 0, 0,  0,   0 }	};	/* ZIP 250 */
 
-static char	*empty;
+static unsigned char	*empty;
 
 
 static int
@@ -137,7 +137,7 @@ create_86f(WCHAR *file_name, disk_size_t disk_size, uint8_t rpm_mode)
     if (array_size2 & 15)
 	array_size += 2;
 
-    empty = (char *) malloc(array_size);
+    empty = (unsigned char *) malloc(array_size);
 
     memset(tarray, 0, 2048);
     memset(empty, 0, array_size);
@@ -209,7 +209,7 @@ create_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_fdi)
     zero_bytes = fat2_offs + fat_size + root_dir_bytes;
 
     if (!is_zip && is_fdi) {
-	empty = (char *) malloc(base);
+	empty = (unsigned char *) malloc(base);
 	memset(empty, 0, base);
 
 	*(uint32_t *) &(empty[0x08]) = (uint32_t) base;
@@ -223,7 +223,7 @@ create_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_fdi)
 	free(empty);
     }
 
-    empty = (char *) malloc(total_size);
+    empty = (unsigned char *) malloc(total_size);
     memset(empty, 0x00, zero_bytes);
 
     if (!is_zip) {
@@ -344,7 +344,7 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
     pbar_max++;
 
     if (is_zdi) {
-	empty = (char *) malloc(base);
+	empty = (unsigned char *) malloc(base);
 	memset(empty, 0, base);
 
 	*(uint32_t *) &(empty[0x08]) = (uint32_t) base;
@@ -364,7 +364,7 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
 	pbar_max -= 2;
     }
 
-    empty = (char *) malloc(total_size);
+    empty = (unsigned char *) malloc(total_size);
     memset(empty, 0x00, zero_bytes);
 
     if (total_sectors == ZIP_SECTORS) {
@@ -566,16 +566,16 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		if (is_zip) {
 			zip_types = zip_drives[fdd_id].is_250 ? 2 : 1;
 			for (i = 0; i < zip_types; i++)
-		                SendMessage(h, CB_ADDSTRING, 0, (LPARAM) plat_get_string(IDS_5900 + i));
+		                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_5900 + i));
 		} else {
 			for (i = 0; i < 12; i++)
-		                SendMessage(h, CB_ADDSTRING, 0, (LPARAM) plat_get_string(IDS_5888 + i));
+		                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_5888 + i));
 		}
                 SendMessage(h, CB_SETCURSEL, 0, 0);
 		EnableWindow(h, FALSE);
 		h = GetDlgItem(hdlg, IDC_COMBO_RPM_MODE);
 		for (i = 0; i < 4; i++)
-	                SendMessage(h, CB_ADDSTRING, 0, (LPARAM) plat_get_string(IDS_6144 + i));
+	                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_6144 + i));
                 SendMessage(h, CB_SETCURSEL, 0, 0);
 		EnableWindow(h, FALSE);
 		ShowWindow(h, SW_HIDE);

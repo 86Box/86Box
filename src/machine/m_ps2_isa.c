@@ -156,7 +156,7 @@ machine_ps2_m30_286_init(const machine_t *model)
         pit_set_out_func(&pit, 1, pit_refresh_timer_at);
         dma16_init();
 	device_add(&keyboard_ps2_device);
-        nvr_at_init(8);
+	device_add(&ps_nvr_device);
         pic2_init();
         ps2board_init();
 	device_add(&ps1vga_device);

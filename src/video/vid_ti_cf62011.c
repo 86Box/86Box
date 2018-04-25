@@ -42,7 +42,7 @@
  *		which are the same as the XGA. It supports up to 1MB of VRAM,
  *		but we lock it down to 512K. The PS/1 2122 had 256K.
  *
- * Version:	@(#)vid_ti_cf62011.c	1.0.4	2018/03/18
+ * Version:	@(#)vid_ti_cf62011.c	1.0.5	2018/04/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -103,10 +103,12 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
 		return;
 
 	case 0x03d4:
-		svga->crtcreg = val & 0x1f;
+		svga->crtcreg = val & 0x3f;
 		return;
 
 	case 0x03d5:
+		if (svga->crtcreg & 0x20)
+			return;
 		if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
 			return;
 		if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
@@ -174,7 +176,10 @@ vid_in(uint16_t addr, void *priv)
 		break;
 
 	case 0x03d5:
-		ret = svga->crtc[svga->crtcreg];
+		if (svga->crtcreg & 0x20)
+			ret = 0xff;
+		else
+			ret = svga->crtc[svga->crtcreg];
 		break;
 
 	case 0x2100:

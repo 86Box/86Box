@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.22	2018/03/06
+ * Version:	@(#)resource.h	1.0.23	2018/03/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -58,8 +58,7 @@
 #define IDT_1715		1715	/* Network adapter: */
 #define IDT_1716		1716	/* SCSI Controller: */
 #define IDT_1717		1717	/* HD Controller: */
-#define IDT_1718		1718	/* Tertiary IDE: */
-#define IDT_1719		1719	/* Quaternary IDE: */
+#define IDT_1718		1718
 #define IDT_1720		1720	/* Hard disks: */
 #define IDT_1721		1721	/* Bus: */
 #define IDT_1722		1722	/* Channel: */
@@ -91,6 +90,7 @@
 #define IDT_1756		1756	/* Channel: */
 #define IDT_1757		1757	/* Progress: */
 #define IDT_1758		1758	/* Speed: */
+#define IDT_1759		1759	/* ZIP drives: */
 
 
 /*
@@ -157,9 +157,12 @@
 #define IDC_COMBO_SCSI		1121
 #define IDC_CONFIGURE_SCSI	1122
 #define IDC_COMBO_HDC		1123
-#define IDC_COMBO_IDE_TER	1124
-#define IDC_COMBO_IDE_QUA	1125
-#define IDC_CHECK_BUGGER	1126
+#define IDC_CONFIGURE_HDC	1124
+#define IDC_CHECK_IDE_TER	1125
+#define IDC_BUTTON_IDE_TER	1126
+#define IDC_CHECK_IDE_QUA	1127
+#define IDC_BUTTON_IDE_QUA	1128
+#define IDC_CHECK_BUGGER	1129
 
 #define IDC_HARD_DISKS		1130	/* hard disk config */
 #define IDC_LIST_HARD_DISKS	1131

@@ -8,7 +8,7 @@
  *
  *		Definitions for the floppy drive emulation.
  *
- * Version:	@(#)fdd.h	1.0.3	2018/03/17
+ * Version:	@(#)fdd.h	1.0.4	2018/04/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -135,7 +135,6 @@ extern void	fdd_format(int drive, int side, int density, uint8_t fill);
 extern int	fdd_hole(int drive);
 extern double	fdd_byteperiod(int drive);
 extern void	fdd_stop(int drive);
-extern int	fdd_empty(int drive);
 extern void	fdd_set_rate(int drive, int drvden, int rate);
 
 extern int	motorspin;

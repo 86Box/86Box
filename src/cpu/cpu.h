@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.h	1.0.10	2018/03/11
+ * Version:	@(#)cpu.h	1.0.11	2018/03/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -258,7 +258,11 @@ struct _cpustate_ {
 #ifdef __MSC__
 # define COMPILE_TIME_ASSERT(expr)	/*nada*/
 #else
-# define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
+# ifdef EXTREME_DEBUG
+#  define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
+# else
+#  define COMPILE_TIME_ASSERT(expr)	/*nada*/
+# endif
 #endif
 
 COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128)

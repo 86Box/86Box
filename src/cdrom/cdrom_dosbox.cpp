@@ -87,12 +87,12 @@ uint64_t CDROM_Interface_Image::BinaryFile::getLength()
 
 CDROM_Interface_Image::CDROM_Interface_Image()
 {
-	printf("CDROM_Interface_Image constructor\n");
+	// printf("CDROM_Interface_Image constructor\n");
 }
 
 CDROM_Interface_Image::~CDROM_Interface_Image()
 {
-	printf("CDROM_Interface_Image destructor\n");
+	// printf("CDROM_Interface_Image destructor\n");
 	ClearTracks();
 }
 
@@ -263,7 +263,7 @@ bool CDROM_Interface_Image::LoadIsoFile(char* filename)
 	tracks.clear();
 	
 	// data track
-	Track track = {0, 0, 0, 0, 0, 0, 0, false, NULL};
+	Track track = {0, 0, 0, 0, 0, 0, 0, 0, false, NULL};
 	bool error;
 	track.file = new BinaryFile(filename, error);
 	if (error) {
@@ -343,7 +343,7 @@ static string dirname(char * file) {
 
 bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 {
-	Track track = {0, 0, 0, 0, 0, 0, 0, false, NULL};
+	Track track = {0, 0, 0, 0, 0, 0, 0, 0, false, NULL};
 	tracks.clear();
 	uint64_t shift = 0;
 	uint64_t currPregap = 0;
@@ -357,7 +357,6 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 	ifstream in;
 	in.open(cuefile, ios::in);
 	if (in.fail()) return false;
-	int last_attr;
 	
 	while(!in.eof()) {
 		// get next line
@@ -429,7 +428,6 @@ bool CDROM_Interface_Image::LoadCueSheet(char *cuefile)
 				track.attr = DATA_TRACK;
 				track.mode2 = true;
 			} else success = false;
-			last_attr = track.attr;
 			
 			canAddTrack = true;
 		}

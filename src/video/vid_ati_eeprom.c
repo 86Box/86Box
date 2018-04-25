@@ -8,19 +8,20 @@
  *
  *		Emulation of the EEPROM on select ATI cards.
  *
- * Version:	@(#)vid_ati_eeprom.c	1.0.2	2017/11/04
+ * Version:	@(#)vid_ati_eeprom.c	1.0.2	2018/04/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../device.h"
 #include "../mem.h"
 #include "../nvr.h"
 #include "vid_ati_eeprom.h"

@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.21	2018/03/19
+ * Version:	@(#)86box.h	1.0.22	2018/03/28
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -100,7 +100,7 @@ extern int	sound_is_float,			/* (C) sound uses FP values */
 		GUS,				/* (C) sound option */
 		SSI2001,			/* (C) sound option */
 		voodoo_enabled;			/* (C) video option */
-extern int	mem_size;			/* (C) memory size */
+extern uint32_t	mem_size;			/* (C) memory size */
 extern int	cpu_manufacturer,		/* (C) cpu manufacturer */
 		cpu,				/* (C) cpu type */
 		cpu_use_dynarec,		/* (C) cpu uses/needs Dyna */
@@ -139,7 +139,9 @@ extern void	pclog(const char *fmt, ...);
 extern void	fatal(const char *fmt, ...);
 extern void	set_screen_size(int x, int y);
 extern void	set_screen_size_natural(void);
+#if 0
 extern void	pc_reload(wchar_t *fn);
+#endif
 extern int	pc_init_modules(void);
 extern int	pc_init(int argc, wchar_t *argv[]);
 extern void	pc_close(void *threadid);

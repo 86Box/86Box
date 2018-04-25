@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.32	2018/03/19
+ * Version:	@(#)machine.c	1.0.33	2018/03/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -31,8 +31,7 @@
 #include "../rom.h"
 #include "../lpt.h"
 #include "../serial.h"
-#include "../disk/hdc.h"
-#include "../disk/hdc_ide.h"
+#include "../cpu/cpu.h"
 #include "machine.h"
 
 
@@ -45,8 +44,6 @@ void
 machine_init(void)
 {
     pclog("Initializing as \"%s\"\n", machine_getname());
-
-    ide_set_bus_master(NULL, NULL, NULL);
 
     /* Set up the architecture flags. */
     AT = IS_ARCH(machine, MACHINE_AT);
@@ -68,9 +65,15 @@ void
 machine_common_init(const machine_t *model)
 {
     /* System devices first. */
-    dma_init();
     pic_init();
+    dma_init();
     pit_init();
+
+    cpu_set();
+    if (AT)
+	setrtcconst(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
+    else
+	setrtcconst(14318184.0);
 
     if (lpt_enabled)
 	lpt_init();

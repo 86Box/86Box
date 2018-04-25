@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.36	2018/03/18
+ * Version:	@(#)scsi_buslogic.c	1.0.37	2018/03/28
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -33,12 +33,12 @@
 #include "../mem.h"
 #include "../mca.h"
 #include "../rom.h"
+#include "../device.h"
 #include "../nvr.h"
 #include "../dma.h"
 #include "../pic.h"
 #include "../pci.h"
 #include "../timer.h"
-#include "../device.h"
 #include "../plat.h"
 #include "scsi.h"
 #include "scsi_buslogic.h"
@@ -529,6 +529,7 @@ buslogic_param_len(void *p)
 	case 0x91:
 		return 2;
 	case 0x94:
+	case 0xFB:
 		return 3;
 	case 0x93: /* Valid only for VLB */
 		return (bl->chip == CHIP_BUSLOGIC_VLB) ? 1 : 0;
@@ -550,7 +551,7 @@ static void
 BuslogicSCSIBIOSDMATransfer(ESCMD *ESCSICmd, uint8_t TargetID, uint8_t LUN, int dir)
 {
     uint32_t DataPointer = ESCSICmd->DataPointer;
-    uint32_t DataLength = ESCSICmd->DataLength;
+    int DataLength = ESCSICmd->DataLength;
     uint32_t Address;
     uint32_t TransferLength;
 
@@ -996,6 +997,9 @@ buslogic_cmds(void *p)
 		dev->DataReplyLeft = 0;
 
 		dev->DataReply = 0;
+		break;
+	case 0xFB:
+		dev->DataReplyLeft = dev->CmdBuf[2];
 		break;
 	default:
 		dev->DataReplyLeft = 0;
@@ -1583,6 +1587,7 @@ buslogic_init(const device_t *info)
 		dev->cdrom_boot = 1;
 		dev->bit32 = 1;
 		dev->ha_bps = 20000000.0;	/* ultra SCSI */
+		dev->max_id = 15;		/* wide SCSI */
 		break;
     }
 
@@ -1683,7 +1688,7 @@ static const device_config_t BT_ISA_Config[] = {
                                 "0x134", 0x134
                         },
                         {
-                                ""
+                                "", 0
                         }
                 },
         },
@@ -1709,7 +1714,7 @@ static const device_config_t BT_ISA_Config[] = {
                                 "IRQ 15", 15
                         },
                         {
-                                ""
+                                "", 0
                         }
                 },
         },
@@ -1726,7 +1731,7 @@ static const device_config_t BT_ISA_Config[] = {
                                 "DMA 7", 7
                         },
                         {
-                                ""
+                                "", 0
                         }
                 },
         },
@@ -1746,7 +1751,7 @@ static const device_config_t BT_ISA_Config[] = {
                                 "D800H", 0xd8000
                         },
                         {
-                                ""
+                                "", 0
                         }
                 },
         },

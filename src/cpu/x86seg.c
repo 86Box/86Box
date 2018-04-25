@@ -24,6 +24,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "cpu.h"
+#include "../device.h"
 #include "../machine/machine.h"
 #include "../mem.h"
 #include "../nvr.h"

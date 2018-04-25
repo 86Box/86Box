@@ -58,6 +58,8 @@ extern void	pit_set_using_timer(PIT *pit, int t, int using_timer);
 extern void	pit_set_out_func(PIT *pit, int t, void (*func)(int new_out, int old_out));
 extern void	pit_clock(PIT *pit, int t);
 
+extern void     setrtcconst(float clock);
+
 extern void     setpitclock(float clock);
 extern float    pit_timer0_freq(void);
 

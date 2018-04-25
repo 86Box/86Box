@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.23	2018/03/19
+ * Version:	@(#)win_ui.c	1.0.24	2018/04/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -75,12 +75,10 @@ show_cursor(int val)
 	return;
 
     if (val == 0) {
-    	while (1) {
+    	while (1)
 		if (ShowCursor(FALSE) < 0) break;
-	}
-    } else {
+    } else
 	ShowCursor(TRUE);
-    }
 
     vis = val;
 }
@@ -92,23 +90,6 @@ LoadIconEx(PCTSTR pszIconName)
     return((HICON)LoadImage(hinstance, pszIconName, IMAGE_ICON,
 						16, 16, LR_SHARED));
 }
-
-
-#if 0
-static void
-win_menu_update(void)
-{
-    menuMain = LoadMenu(hinstance, L"MainMenu"));
-
-    menuSBAR = LoadMenu(hinstance, L"StatusBarMenu");
-
-    initmenu();
-
-    SetMenu(hwndMain, menu);
-
-    win_title_update = 1;
-}
-#endif
 
 
 static void
@@ -554,6 +535,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 #endif
 
+#if 0
 			case IDM_CONFIG_LOAD:
 				plat_pause(1);
 				if (!file_dlg_st(hwnd, IDS_2160, "", 0) &&
@@ -571,6 +553,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				plat_pause(0);
 				break;                                                
+#endif
 		}
 		return(0);
 
@@ -748,11 +731,6 @@ ui_init(int nCmdShow)
     HWND hwnd;				/* handle for our window */
     HACCEL haccel;			/* handle to accelerator table */
     int bRet;
-
-#if 0
-    /* We should have an application-wide at_exit catcher. */
-    atexit(plat_mouse_capture);
-#endif
 
     if (settings_only) {
 	if (! pc_init_modules()) {
@@ -1021,9 +999,6 @@ plat_resize(int x, int y)
     int sb_borders[3];
     RECT r;
 
-#if 0
-pclog("PLAT: VID[%d,%d] resizing to %dx%d\n", video_fullscreen, vid_api, x, y);
-#endif
     /* First, see if we should resize the UI window. */
     if (!vid_resize) {
 	video_wait_for_blit();

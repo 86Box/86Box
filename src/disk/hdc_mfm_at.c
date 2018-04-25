@@ -12,7 +12,7 @@
  *		based design. Most cards were WD1003-WA2 or -WAH, where the
  *		-WA2 cards had a floppy controller as well (to save space.)
  *
- * Version:	@(#)hdc_mfm_at.c	1.0.13	2018/03/18
+ * Version:	@(#)hdc_mfm_at.c	1.0.14	2018/04/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -110,35 +110,28 @@ typedef struct {
 } mfm_t;
 
 
-static __inline void irq_raise(mfm_t *mfm)
+static inline void
+irq_raise(mfm_t *mfm)
 {
-    /* If not already pending.. */
-    if (! mfm->irqstat) {
-	/* If enabled in the control register.. */
-	if (! (mfm->fdisk&0x02)) {
-		/* .. raise IRQ14. */
-		picint(1<<14);
-	}
+    if (!(mfm->fdisk&2))
+	picint(1 << 14);
 
-	/* Remember this. */
-	mfm->irqstat = 1;
-    }
+    mfm->irqstat=1;
 }
 
 
-static __inline void irq_lower(mfm_t *mfm)
+static inline void
+irq_lower(mfm_t *mfm)
 {
-    /* If raised.. */
-    if (mfm->irqstat) {
-	/* If enabled in the control register.. */
-	if (! (mfm->fdisk&0x02)) {
-		/* .. drop IRQ14. */
-		picintc(1<<14);
-	}
+    picintc(1 << 14);
+}
 
-	/* Remember this. */
-	mfm->irqstat = 0;
-    }
+
+static void
+irq_update(mfm_t *mfm)
+{
+    if (mfm->irqstat && !((pic2.pend|pic2.ins)&0x40) && !(mfm->fdisk & 2))
+	picint(1 << 14);
 }
 
 
@@ -233,6 +226,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
     }
 
     irq_lower(mfm);
+    mfm->command = val;
     mfm->error = 0;
 
     switch (val & 0xf0) {
@@ -244,13 +238,13 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 #endif
 		drive->curcyl = 0;
 		mfm->status = STAT_READY|STAT_DSC;
-		mfm->command = 0x00;
+		mfm->command &= 0xf0;
 		irq_raise(mfm);
 		break;
 
 	case CMD_SEEK:
 		drive->steprate = (val & 0x0f);
-		mfm->command = (val & 0xf0);
+		mfm->command &= 0xf0;
 		mfm->status = STAT_BUSY;
 		timer_clock();
 		mfm->callback = 200LL*MFM_TIME;
@@ -258,6 +252,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 		break;
 
 	default:
+		mfm->command = val;
 		switch (val) {
 			case CMD_READ:
 			case CMD_READ+1:
@@ -267,7 +262,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 				pclog("WD1003(%d) read, opt=%d\n",
 					mfm->drvsel, val&0x03);
 #endif
-				mfm->command = (val & 0xf0);
+				mfm->command &= 0xfc;
 				if (val & 2)
 					fatal("WD1003: READ with ECC\n");
 				mfm->status = STAT_BUSY;
@@ -284,7 +279,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 				pclog("WD1003(%d) write, opt=%d\n",
 					mfm->drvsel, val & 0x03);
 #endif
-				mfm->command = (val & 0xf0);
+				mfm->command &= 0xfc;
 				if (val & 2)
 					fatal("WD1003: WRITE with ECC\n");
 				mfm->status = STAT_DRQ|STAT_DSC;
@@ -293,7 +288,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 
 			case CMD_VERIFY:
 			case CMD_VERIFY+1:
-				mfm->command = (val & 0xfe);
+				mfm->command &= 0xfe;
 				mfm->status = STAT_BUSY;
 				timer_clock();
 				mfm->callback = 200LL*MFM_TIME;
@@ -301,13 +296,11 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 				break;
 
 			case CMD_FORMAT:
-				mfm->command = val;
 				mfm->status = STAT_DRQ|STAT_BUSY;
 				mfm->pos = 0;
 				break;
 
 			case CMD_DIAGNOSE:
-				mfm->command = val;
 				mfm->status = STAT_BUSY;
 				timer_clock();
 				mfm->callback = 200LL*MFM_TIME;
@@ -417,7 +410,7 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 		mfm->drvsel = (val & 0x10) ? 1 : 0;
 		if (mfm->drives[mfm->drvsel].present)
 			mfm->status = STAT_READY|STAT_DSC;
-		  else
+		else
 			mfm->status = 0;
 		return;
 
@@ -428,21 +421,22 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 	case 0x03f6:	/* device control */
 		val &= 0x0f;
 		if ((mfm->fdisk & 0x04) && !(val & 0x04)) {
-			mfm->status = STAT_BUSY;
-			mfm->reset = 1;
 			timer_clock();
 			mfm->callback = 500LL*MFM_TIME;
 			timer_update_outstanding();
+			mfm->reset = 1;
+			mfm->status = STAT_BUSY;
 		}
 
 		if (val & 0x04) {
 			/* Drive held in reset. */
-			mfm->status = STAT_BUSY;
-			mfm->callback = 0LL;
 			timer_clock();
+			mfm->callback = 0LL;
 			timer_update_outstanding();
+			mfm->status = STAT_BUSY;
 		}
 		mfm->fdisk = val;
+                irq_update(mfm);
 		break;
     }
 }
@@ -619,19 +613,18 @@ do_callback(void *priv)
 		}
 
 		hdd_image_write(drive->hdd_num, addr, 1,(uint8_t *)mfm->buffer);
+		irq_raise(mfm);
+		mfm->secount = (mfm->secount - 1) & 0xff;
 
 		mfm->status = STAT_READY|STAT_DSC;
-		mfm->secount = (mfm->secount - 1) & 0xff;
 		if (mfm->secount) {
 			/* More sectors to do.. */
 			mfm->status |= STAT_DRQ;
 			mfm->pos = 0;
 			next_sector(mfm);
 			ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 1);
-		} else {
+		} else
 			ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 0);
-		}
-		irq_raise(mfm);
 		break;
 
 	case CMD_VERIFY:

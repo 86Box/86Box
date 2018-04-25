@@ -10,7 +10,7 @@
  *		NCR and later Symbios and LSI. This controller was designed
  *		for the PCI bus.
  *
- * Version:	@(#)scsi_ncr53c810.c	1.0.10	2018/03/18
+ * Version:	@(#)scsi_ncr53c810.c	1.0.11	2018/03/28
  *
  * Authors:	Paul Brook (QEMU)
  *		Artyom Tarasenko (QEMU)
@@ -35,8 +35,8 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../pci.h"
-#include "../nvr.h"
 #include "../device.h"
+#include "../nvr.h"
 #include "../timer.h"
 #include "../plat.h"
 #include "scsi.h"
@@ -329,6 +329,8 @@ ncr53c810_irq_on_rsl(ncr53c810_t *dev)
 static void
 ncr53c810_soft_reset(ncr53c810_t *dev)
 {
+    int i, j;
+
     ncr53c810_log("LSI Reset\n");
     dev->timer_period = dev->timer_enabled = 0;
 
@@ -383,13 +385,18 @@ ncr53c810_soft_reset(ncr53c810_t *dev)
     dev->last_level = 0;
     dev->gpreg0 = 0;
     dev->sstop = 1;
+
+    for (i = 0; i < 16; i++) {
+	for (j = 0; j < 8; j++)
+		scsi_device_reset(i, j);
+    }
 }
 
 
 static void
 ncr53c810_read(ncr53c810_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 {
-	int i = 0;
+	uint32_t i = 0;
 
 	ncr53c810_log("ncr53c810_read(): %08X-%08X, length %i\n", addr, (addr + len - 1), len);
 
@@ -407,7 +414,7 @@ ncr53c810_read(ncr53c810_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 static void
 ncr53c810_write(ncr53c810_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 {
-	int i = 0;
+	uint32_t i = 0;
 
 	ncr53c810_log("ncr53c810_write(): %08X-%08X, length %i\n", addr, (addr + len - 1), len);
 
@@ -582,13 +589,14 @@ ncr53c810_command_complete(void *priv, uint32_t status)
 static void
 ncr53c810_do_dma(ncr53c810_t *dev, int out, uint8_t id)
 {
-    uint32_t addr, count, tdbc;
+    uint32_t addr, tdbc;
+    int count;
 
     scsi_device_t *sd;
 
     sd = &SCSIDevices[id][dev->current_lun];
 
-    if ((((id) == -1) && !scsi_device_present(id, dev->current_lun))) {
+    if ((!scsi_device_present(id, dev->current_lun))) {
 	ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Device not present when attempting to do DMA\n", id, dev->current_lun, dev->last_command);
 	return;
     }
@@ -673,7 +681,7 @@ ncr53c810_do_command(ncr53c810_t *dev, uint8_t id)
     dev->command_complete = 0;
 
     sd = &SCSIDevices[id][dev->current_lun];
-    if (((id == -1) || !scsi_device_present(id, dev->current_lun))) {
+    if (!scsi_device_present(id, dev->current_lun)) {
 	ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Bad Selection\n", id, dev->current_lun, buf[0]);
 	ncr53c810_bad_selection(dev, id);
 	return 0;
@@ -747,7 +755,7 @@ ncr53c810_do_status(ncr53c810_t *dev)
 static void
 ncr53c810_do_msgin(ncr53c810_t *dev)
 {
-    int len;
+    uint32_t len;
     ncr53c810_log("Message in len=%d/%d\n", dev->dbc, dev->msg_len);
     dev->sfbr = dev->msg[0];
     len = dev->msg_len;
@@ -1067,7 +1075,7 @@ again:
 					}
 					dev->sstat0 |= NCR_SSTAT0_WOA;
 					dev->scntl1 &= ~NCR_SCNTL1_IARB;
-					if (((id == -1) || !scsi_device_present(id, 0))) {
+					if (!scsi_device_present(id, 0)) {
 						ncr53c810_bad_selection(dev, id);
 						break;
 					}

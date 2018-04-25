@@ -8,7 +8,7 @@
  *
  *		Definitions for the keyboard interface.
  *
- * Version:	@(#)keyboard.h	1.0.14	2018/03/22
+ * Version:	@(#)keyboard.h	1.0.15	2018/03/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -70,6 +70,8 @@ extern const device_t	keyboard_ps2_ami_device;
 extern const device_t	keyboard_ps2_mca_device;
 extern const device_t	keyboard_ps2_mca_2_device;
 extern const device_t	keyboard_ps2_quadtel_device;
+extern const device_t	keyboard_ps2_pci_device;
+extern const device_t	keyboard_ps2_ami_pci_device;
 #endif
 
 extern void	keyboard_init(void);
@@ -87,7 +89,6 @@ extern int	keyboard_recv(uint16_t key);
 extern int	keyboard_isfsexit(void);
 extern int	keyboard_ismsexit(void);
 
-extern void	keyboard_at_reset(void);
 extern void	keyboard_at_adddata_keyboard_raw(uint8_t val);
 extern void	keyboard_at_adddata_mouse(uint8_t val);
 extern void	keyboard_at_set_mouse(void (*mouse_write)(uint8_t val,void *), void *);

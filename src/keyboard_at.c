@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.33	2018/03/22
+ * Version:	@(#)keyboard_at.c	1.0.34	2018/03/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2044,15 +2044,25 @@ const device_t keyboard_ps2_quadtel_device = {
     NULL, NULL, NULL, NULL
 };
 
+const device_t keyboard_ps2_pci_device = {
+    "PS/2 Keyboard",
+    DEVICE_PCI,
+    KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    NULL, NULL, NULL, NULL
+};
 
-void
-keyboard_at_reset(void)
-{
-    atkbd_t *kbd = CurrentKbd;
-
-    if (kbd != NULL)
-	kbd_reset(kbd);
-}
+const device_t keyboard_ps2_ami_pci_device = {
+    "PS/2 Keyboard (AMI)",
+    DEVICE_PCI,
+    KBC_TYPE_PS2_1 | KBC_VEN_AMI,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    NULL, NULL, NULL, NULL
+};
 
 
 void

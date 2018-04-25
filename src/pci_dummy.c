@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include "86box.h"
 #include "io.h"
 #include "pci.h"
 #include "pci_dummy.h"

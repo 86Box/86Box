@@ -51,7 +51,7 @@
  * NOTE:	Still need to figure out a way to load/save ConfigSys and
  *		HardRAM stuff. Needs to be linked in to the NVR code.
  *
- * Version:	@(#)m_xt_t1000.c	1.0.4	2018/03/19
+ * Version:	@(#)m_xt_t1000.c	1.0.5	2018/04/11
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -92,8 +92,8 @@
 #include "../nmi.h"
 #include "../mem.h"
 #include "../rom.h"
-#include "../nvr.h"
 #include "../device.h"
+#include "../nvr.h"
 #include "../keyboard.h"
 #include "../lpt.h"
 #include "../mem.h"

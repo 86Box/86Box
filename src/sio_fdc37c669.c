@@ -8,7 +8,7 @@
  *
  *		Implementation of the SMC FDC37C669 Super I/O Chip.
  *
- * Version:	@(#)sio_fdc37c669.c	1.0.7	2018/01/16
+ * Version:	@(#)sio_fdc37c669.c	1.0.8	2018/04/04
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -125,7 +125,7 @@ process_value:
 			if (valxor & 3)
 			{
 				ide_pri_disable();
-				if ((fdc37c669_regs[0] & 3) == 2)  ide_pri_enable_ex();
+				if ((fdc37c669_regs[0] & 3) == 2)  ide_pri_enable();
 				break;
 			}
 #endif
@@ -206,7 +206,7 @@ process_value:
 						ide_set_side(0, make_port(0x22));
 						break;
 				}
-				if ((fdc37c669_regs[0] & 3) == 2)  ide_pri_enable_ex();
+				if ((fdc37c669_regs[0] & 3) == 2)  ide_pri_enable();
 			}
 #endif
 			break;
@@ -345,6 +345,4 @@ void fdc37c669_init()
         io_sethandler(0x3f0, 0x0002, fdc37c669_read, NULL, NULL, fdc37c669_write, NULL, NULL,  NULL);
 
 	fdc37c669_reset();
-
-	pci_reset_handler.super_io_reset = fdc37c669_reset;
 }
