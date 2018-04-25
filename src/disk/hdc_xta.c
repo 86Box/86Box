@@ -46,7 +46,7 @@
  *
  * NOTE:	The XTA interface is 0-based for sector numbers !!
  *
- * Version:	@(#)hdc_ide_xta.c	1.0.3	2018/04/25
+ * Version:	@(#)hdc_ide_xta.c	1.0.4	2018/04/26
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -108,7 +108,7 @@
 
 #define HDC_TIME	(50*TIMER_USEC)
 
-#define WD_BIOS_FILE	L"disk/xta/idexywd2.bin"
+#define WD_BIOS_FILE	L"roms/hdd/xta/idexywd2.bin"
 
 
 enum {
