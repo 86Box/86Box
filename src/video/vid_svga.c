@@ -796,7 +796,7 @@ svga_init(svga_t *svga, void *p, int memsize,
     svga->vram_max = memsize;
     svga->vram_display_mask = svga->vram_mask = memsize - 1;
     svga->decode_mask = 0x7fffff;
-    svga->changedvram = malloc(memsize >> 12);
+    svga->changedvram = malloc(0x800000 >> 12);
     svga->recalctimings_ex = recalctimings_ex;
     svga->video_in  = video_in;
     svga->video_out = video_out;
