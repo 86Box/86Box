@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.47	2018/03/26
+ * Version:	@(#)win_settings.c	1.0.48	2018/04/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -2036,7 +2036,7 @@ static void add_locations(HWND hdlg)
 	}
 
 	h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL);
-	for (i = 0; i < 8; i++)
+	for (i = 0; i < 2; i++)
 	{
 		wsprintf(lptsTemp, plat_get_string(IDS_4097), i >> 1, i & 1);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);

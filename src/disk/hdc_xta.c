@@ -46,7 +46,7 @@
  *
  * NOTE:	The XTA interface is 0-based for sector numbers !!
  *
- * Version:	@(#)hdc_ide_xta.c	1.0.4	2018/04/26
+ * Version:	@(#)hdc_ide_xta.c	1.0.5	2018/04/26
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -277,6 +277,26 @@ typedef struct {
 } hdc_t;
 
 
+#ifdef ENABLE_XTA_LOG
+int xta_do_log = ENABLE_XTA_LOG;
+#endif
+
+
+static void
+xta_log(const char *fmt, ...)
+{
+#ifdef ENABLE_XTA_LOG
+    va_list ap;
+
+    if (xta_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 static void
 set_intr(hdc_t *dev)
 {
@@ -295,20 +315,20 @@ static int
 get_sector(hdc_t *dev, drive_t *drive, off64_t *addr)
 {
     if (drive->cur_cyl != dev->track) {
-	pclog("%s: get_sector: wrong cylinder %d/%d\n",
+	xta_log("%s: get_sector: wrong cylinder %d/%d\n",
 		dev->name, drive->cur_cyl, dev->track);
 	dev->sense = ERR_ILLADDR;
 	return(1);
     }
 
     if (dev->head >= drive->hpc) {
-	pclog("%s: get_sector: past end of heads\n", dev->name);
+	xta_log("%s: get_sector: past end of heads\n", dev->name);
 	dev->sense = ERR_ILLADDR;
 	return(1);
     }
 
     if (dev->sector >= drive->spt) {
-	pclog("%s: get_sector: past end of sectors\n", dev->name);
+	xta_log("%s: get_sector: past end of sectors\n", dev->name);
 	dev->sense = ERR_ILLADDR;
 	return(1);
     }
@@ -382,7 +402,7 @@ do_format(hdc_t *dev, drive_t *drive, dcb_t *dcb)
 		dev->sector = 0;
 
 #ifdef ENABLE_HDC_LOG
-		pclog("%s: format_%s(%d) %d,%d\n", dev->name,
+		xta_log("%s: format_%s(%d) %d,%d\n", dev->name,
 			(dcb->cmd==CMD_FORMAT_DRIVE)?"drive":"track",
 			drive->id, dev->track, dev->head);
 #endif
@@ -448,7 +468,7 @@ hdc_callback(void *priv)
     switch (dcb->cmd) {
 	case CMD_TEST_READY:
 #ifdef ENABLE_HDC_LOG
-		pclog("%s: test_ready(%d) ready=%d\n",
+		xta_log("%s: test_ready(%d) ready=%d\n",
 			dev->name, dcb->drvsel, drive->present);
 #endif
 		if (! drive->present) {
@@ -460,7 +480,7 @@ hdc_callback(void *priv)
 
 	case CMD_RECALIBRATE:
 #ifdef ENABLE_HDC_LOG
-		pclog("%s: recalibrate(%d) ready=%d\n",
+		xta_log("%s: recalibrate(%d) ready=%d\n",
 			dev->name, dcb->drvsel, drive->present);
 #endif
 		if (! drive->present) {
@@ -476,7 +496,7 @@ hdc_callback(void *priv)
 		switch(dev->state) {
 			case STATE_IDLE:
 #ifdef ENABLE_HDC_LOG
-				pclog("%s: sense(%d)\n",
+				xta_log("%s: sense(%d)\n",
 					dev->name, dcb->drvsel);
 #endif
 				dev->buf_idx = 0;
@@ -530,7 +550,7 @@ hdc_callback(void *priv)
 				/* Activate the status icon. */
 				ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 1);
 #ifdef ENABLE_HDC_LOG
-				pclog("%s: read_%s(%d: %d,%d,%d) cnt=%d\n",
+				xta_log("%s: read_%s(%d: %d,%d,%d) cnt=%d\n",
 				    dev->name, (no_data)?"verify":"sector",
 				    drive->id, dev->track, dev->head,
 				    dev->sector, dev->count);
@@ -579,7 +599,7 @@ do_send:
 						val = dma_channel_write(dev->dma,
 							*dev->buf_ptr);
 						if (val == DMA_NODATA) {
-							pclog("%s: CMD_READ_SECTORS out of data (idx=%d, len=%d)!\n", dev->name, dev->buf_idx, dev->buf_len);
+							xta_log("%s: CMD_READ_SECTORS out of data (idx=%d, len=%d)!\n", dev->name, dev->buf_idx, dev->buf_len);
 
 							dev->status |= (STAT_CD | STAT_IO| STAT_REQ);
 							dev->callback = HDC_TIME;
@@ -597,7 +617,7 @@ do_send:
 				dev->buf_idx = 0;
 				if (--dev->count == 0) {
 #ifdef ENABLE_HDC_LOG
-					pclog("%s: read_%s(%d) DONE\n",
+					xta_log("%s: read_%s(%d) DONE\n",
 					    dev->name,
 					    (no_data)?"verify":"sector",
 					    drive->id);
@@ -653,7 +673,7 @@ do_send:
 				/* Activate the status icon. */
 				ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 1);
 #ifdef ENABLE_HDC_LOG
-				pclog("%s: write_%s(%d: %d,%d,%d) cnt=%d\n",
+				xta_log("%s: write_%s(%d: %d,%d,%d) cnt=%d\n",
 				    dev->name, (no_data)?"verify":"sector",
 				    dcb->drvsel, dev->track,
 				    dev->head, dev->sector, dev->count);
@@ -685,9 +705,9 @@ do_recv:
 					while (dev->buf_idx < dev->buf_len) {
 						val = dma_channel_read(dev->dma);
 						if (val == DMA_NODATA) {
-							pclog("%s: CMD_WRITE_SECTORS out of data (idx=%d, len=%d)!\n", dev->name, dev->buf_idx, dev->buf_len);
+							xta_log("%s: CMD_WRITE_SECTORS out of data (idx=%d, len=%d)!\n", dev->name, dev->buf_idx, dev->buf_len);
 
-							pclog("%s: CMD_WRITE_SECTORS out of data!\n", dev->name);
+							xta_log("%s: CMD_WRITE_SECTORS out of data!\n", dev->name);
 							dev->status |= (STAT_CD | STAT_IO | STAT_REQ);
 							dev->callback = HDC_TIME;
 							return;
@@ -724,7 +744,7 @@ do_recv:
 				dev->buf_idx = 0;
 				if (--dev->count == 0) {
 #ifdef ENABLE_HDC_LOG
-					pclog("HDC: write_%s(%d) DONE\n",
+					xta_log("HDC: write_%s(%d) DONE\n",
 					    (no_data)?"verify":"sector",
 					    drive->id);
 #endif
@@ -759,7 +779,7 @@ do_recv:
 		/* Seek to cylinder. */
 		val = (dcb->cyl_low | (dcb->cyl_high << 8));
 #ifdef ENABLE_HDC_LOG
-		pclog("%s: seek(%d) %d/%d ready=%d\n", dev->name,
+		xta_log("%s: seek(%d) %d/%d ready=%d\n", dev->name,
 			dcb->drvsel, val, drive->cur_cyl, drive->present);
 #endif
 		if (drive->present) {
@@ -792,7 +812,7 @@ do_recv:
 				drive->hpc = params->heads;
 				drive->spt = 17	/*hardcoded*/;
 #ifdef ENABLE_HDC_LOG
-				pclog("%s: set_params(%d) cyl=%d,hd=%d,spt=%d\n",
+				xta_log("%s: set_params(%d) cyl=%d,hd=%d,spt=%d\n",
 					dev->name, dcb->drvsel, drive->tracks,
 					drive->hpc, drive->spt);
 #endif
@@ -806,7 +826,7 @@ do_recv:
 		switch (dev->state) {
 			case STATE_IDLE:
 #ifdef ENABLE_HDC_LOG
-				pclog("%s: write_sector_buffer()\n",
+				xta_log("%s: write_sector_buffer()\n",
 							dev->name);
 #endif
 				dev->buf_idx = 0;
@@ -827,7 +847,7 @@ do_recv:
 					while (dev->buf_idx < dev->buf_len) {
 						val = dma_channel_read(dev->dma);
 						if (val == DMA_NODATA) {
-							pclog("%s: CMD_WRITE_BUFFER out of data!\n", dev->name);
+							xta_log("%s: CMD_WRITE_BUFFER out of data!\n", dev->name);
 							dev->status |= (STAT_CD | STAT_IO | STAT_REQ);
 							dev->callback = HDC_TIME;
 							return;
@@ -854,7 +874,7 @@ do_recv:
 		switch(dev->state) {
 			case STATE_IDLE:
 #ifdef ENABLE_HDC_LOG
-				pclog("%s: ram_diags\n", dev->name);
+				xta_log("%s: ram_diags\n", dev->name);
 #endif
 				dev->state = STATE_RDONE;
 				dev->callback = 5*HDC_TIME;
@@ -870,7 +890,7 @@ do_recv:
 		switch(dev->state) {
 			case STATE_IDLE:
 #ifdef ENABLE_HDC_LOG
-				pclog("%s: drive_diags(%d) ready=%d\n",
+				xta_log("%s: drive_diags(%d) ready=%d\n",
 					dev->name, dcb->drvsel, drive->present);
 #endif
 				if (drive->present) {
@@ -893,7 +913,7 @@ do_recv:
 		switch(dev->state) {
 			case STATE_IDLE:
 #ifdef ENABLE_HDC_LOG
-				pclog("%s: ctrl_diags\n", dev->name);
+				xta_log("%s: ctrl_diags\n", dev->name);
 #endif
 				dev->state = STATE_RDONE;
 				dev->callback = 10*HDC_TIME;
@@ -906,7 +926,7 @@ do_recv:
 		break;
 
 	default:
-		pclog("%s: unknown command - %02x\n", dev->name, dcb->cmd);
+		xta_log("%s: unknown command - %02x\n", dev->name, dcb->cmd);
 		dev->comp |= COMP_ERR;
 		dev->sense = ERR_ILLCMD;
 		set_intr(dev);
@@ -927,7 +947,7 @@ hdc_read(uint16_t port, void *priv)
 
 		if (dev->state == STATE_SDATA) {
 			if (dev->buf_idx > dev->buf_len) {
-				pclog("%s: read with empty buffer!\n",
+				xta_log("%s: read with empty buffer!\n",
 								dev->name);
 				dev->comp |= COMP_ERR;
 				dev->sense = ERR_ILLCMD;
@@ -942,7 +962,7 @@ hdc_read(uint16_t port, void *priv)
 				dev->callback = HDC_TIME;
 			}
 		} else if (dev->state == STATE_COMPL) {
-pclog("DCB=%02X  status=%02X comp=%02X\n", dev->dcb.cmd, dev->status, dev->comp);
+xta_log("DCB=%02X  status=%02X comp=%02X\n", dev->dcb.cmd, dev->status, dev->comp);
 			ret = dev->comp;
 			dev->status = 0x00;
 			dev->state = STATE_IDLE;
@@ -972,14 +992,14 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
 	case 0:		/* DATA register */
 		if (dev->state == STATE_RDATA) {
 			if (! (dev->status & STAT_REQ)) {
-				pclog("%s: not ready for command/data!\n", dev->name);
+				xta_log("%s: not ready for command/data!\n", dev->name);
 				dev->comp |= COMP_ERR;
 				dev->sense = ERR_ILLCMD;
 				break;
 			}
 
 			if (dev->buf_idx >= dev->buf_len) {
-				pclog("%s: write with full buffer!\n", dev->name);
+				xta_log("%s: write with full buffer!\n", dev->name);
 				dev->comp |= COMP_ERR;
 				dev->sense = ERR_ILLCMD;
 				break;
@@ -1015,7 +1035,7 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
 		break;
 
 	case 3:		/* DMA/IRQ intr register */
-//pclog("%s: WriteMASK(%02X)\n", dev->name, val);
+//xta_log("%s: WriteMASK(%02X)\n", dev->name, val);
 		dev->intr = val;
 		break;
     }
@@ -1029,6 +1049,7 @@ xta_init(const device_t *info)
     wchar_t *fn = NULL;
     hdc_t *dev;
     int c, i;
+    int max = XTA_NUM;
 
     /* Allocate and initialize device block. */
     dev = malloc(sizeof(hdc_t));
@@ -1044,6 +1065,7 @@ xta_init(const device_t *info)
 		dev->rom_addr = device_get_config_hex20("bios_addr");
 		dev->dma = 3;
 		fn = WD_BIOS_FILE;
+		max = 1;
 		break;
 
 	case 1:		/* EuroPC */
@@ -1054,17 +1076,17 @@ xta_init(const device_t *info)
 		break;
     }
 
-    pclog("%s: initializing (I/O=%04X, IRQ=%d, DMA=%d",
+    xta_log("%s: initializing (I/O=%04X, IRQ=%d, DMA=%d",
 		dev->name, dev->base, dev->irq, dev->dma);
     if (dev->rom_addr != 0x000000)
-	pclog(", BIOS=%06X", dev->rom_addr);
-    pclog(")\n");
+	xta_log(", BIOS=%06X", dev->rom_addr);
+    xta_log(")\n");
 
     /* Load any disks for this device class. */
     c = 0;
     for (i = 0; i < HDD_NUM; i++) {
-	if ((hdd[i].bus == HDD_BUS_XTA) && (hdd[i].ide_channel < XTA_NUM)) {
-		drive = &dev->drives[hdd[i].ide_channel];
+	if ((hdd[i].bus == HDD_BUS_XTA) && (hdd[i].xta_channel < max)) {
+		drive = &dev->drives[hdd[i].xta_channel];
 
 		if (! hdd_image_load(i)) {
 			drive->present = 0;
@@ -1084,11 +1106,11 @@ xta_init(const device_t *info)
 		drive->hpc = drive->cfg_hpc;
 		drive->tracks = drive->cfg_tracks;
 
-		pclog("%s: drive%d (cyl=%d,hd=%d,spt=%d), disk %d\n",
-			dev->name, hdd[i].ide_channel, drive->tracks,
+		xta_log("%s: drive%d (cyl=%d,hd=%d,spt=%d), disk %d\n",
+			dev->name, hdd[i].xta_channel, drive->tracks,
 			drive->hpc, drive->spt, i);
 
-		if (++c > XTA_NUM) break;
+		if (++c > max) break;
 	}
     }
 

@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.32	2018/03/26
+ * Version:	@(#)86Box.rc	1.0.33	2018/04/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -445,7 +445,7 @@ BEGIN
     PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI,214,7,46,12
 
     LTEXT           "HD Controller:",IDT_1717,7,26,61,10
-    COMBOBOX        IDC_COMBO_HDC,71,25,149,120,CBS_DROPDOWNLIST | 
+    COMBOBOX        IDC_COMBO_HDC,71,25,140,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_HDC,214,25,46,12
 
