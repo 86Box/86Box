@@ -48,7 +48,7 @@
 #include "vid_mda.h"
 #ifdef DEV_BRANCH
 # ifdef USE_RIVA
-#  include "vid_nv_riva128.h"
+#  include "vid_nvidia.h"
 # endif
 #endif
 #include "vid_oak_oti.h"
@@ -143,8 +143,8 @@ video_cards[] = {
     {"[PCI] Diamond Stealth 64 DRAM (S3 Trio64)",	"stealth64d_pci",	&s3_diamond_stealth64_pci_device,	GFX_STEALTH64_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  4,  26, 26, 42}},
 #if defined(DEV_BRANCH) && defined(USE_RIVA)
     {"[PCI] nVidia RIVA 128",				"riva128",		&riva128_device,			GFX_RIVA128,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  24, 24, 36}},
-    {"[PCI] nVidia RIVA TNT",				"rivatnt",		&rivatnt_device,			GFX_RIVATNT,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  24, 24, 36}},
-    {"[PCI] nVidia RIVA TNT2",				"rivatnt2",		&rivatnt2_device,			GFX_RIVATNT2,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  24, 24, 36}},
+    /*{"[PCI] nVidia RIVA TNT",				"rivatnt",		&rivatnt_device,			GFX_RIVATNT,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  24, 24, 36}},
+    {"[PCI] nVidia RIVA TNT2",				"rivatnt2",		&rivatnt2_device,			GFX_RIVATNT2,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  24, 24, 36}},*/
 #endif
     {"[PCI] Number Nine 9FX (S3 Trio64)",		"n9_9fx_pci",		&s3_9fx_pci_device,			GFX_N9_9FX_PCI,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 3,  2,  4,  25, 25, 40}},
     {"[PCI] Paradise Bahamas 64 (S3 Vision864)",	"bahamas64_pci",	&s3_bahamas64_pci_device,		GFX_BAHAMAS64_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  5,  20, 20, 35}},

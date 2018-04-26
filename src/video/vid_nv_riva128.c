@@ -2747,15 +2747,16 @@ void riva128_ptimer_tick(void *p)
 
 	case PCI_REG_COMMAND:
 		riva128->pci_regs[PCI_REG_COMMAND] = val & 0x27;
-		io_removehandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
 		mem_mapping_disable(&svga->mapping);
 		mem_mapping_disable(&riva128->mmio_mapping);
 		mem_mapping_disable(&riva128->linear_mapping);
 		mem_mapping_disable(&riva128->ramin_mapping);
 		if (val & PCI_COMMAND_IO)
 		{
+			io_removehandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
 			io_sethandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
 		}
+		else io_removehandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
 		if (val & PCI_COMMAND_MEM)
 		{
 			uint32_t mmio_addr = riva128->pci_regs[0x13] << 24;
@@ -2770,9 +2771,8 @@ void riva128_ptimer_tick(void *p)
 			}
 			if (linear_addr)
 			{
-				mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0xc00000);
+				mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0x1000000);
 				mem_mapping_set_addr(&riva128->ramin_mapping, linear_addr + 0xc00000, 0x200000);
-				svga->linear_base = linear_addr;
 			}
 		}
 		return;
@@ -2809,7 +2809,6 @@ void riva128_ptimer_tick(void *p)
 		{
 			mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0xc00000);
 			mem_mapping_set_addr(&riva128->ramin_mapping, linear_addr + 0xc00000, 0x200000);
-			svga->linear_base = linear_addr;
 		}
 		return;
 	}
@@ -2862,14 +2861,15 @@ void riva128_ptimer_tick(void *p)
 
 	case PCI_REG_COMMAND:
 		riva128->pci_regs[PCI_REG_COMMAND] = val & 0x27;
-		io_removehandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
 		mem_mapping_disable(&svga->mapping);
 		mem_mapping_disable(&riva128->mmio_mapping);
 		mem_mapping_disable(&riva128->linear_mapping);
 		if (val & PCI_COMMAND_IO)
 		{
+			io_removehandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
 			io_sethandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
 		}
+		else io_removehandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out, NULL, NULL, riva128);
 		if (val & PCI_COMMAND_MEM)
 		{
 			uint32_t mmio_addr = riva128->pci_regs[0x13] << 24;
@@ -2885,7 +2885,6 @@ void riva128_ptimer_tick(void *p)
 			if (linear_addr)
 			{
 				mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0x1000000);
-				svga->linear_base = linear_addr;
 			}
 		}
 		return;
@@ -2920,7 +2919,6 @@ void riva128_ptimer_tick(void *p)
 		if (linear_addr)
 		{
 			mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0x1000000);
-			svga->linear_base = linear_addr;
 		}
 		return;
 	}
@@ -3060,7 +3058,7 @@ void *riva128_init(const device_t *info)
 	          riva128_in, riva128_out,
 	          NULL, NULL);
 
-	riva128->svga.decode_mask = 0x1fffff;
+	riva128->svga.decode_mask = (riva128->memory_size << 20) - 1;
 
 	rom_init(&riva128->bios_rom, L"roms/video/nv_riva128/Diamond_V330_rev-e.vbi", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 	if (PCI)
@@ -3304,7 +3302,7 @@ void *rivatnt_init(const device_t *info)
 	          riva128_in, riva128_out,
 	          NULL, NULL);
 
-	riva128->svga.decode_mask = 0x1fffff;
+	riva128->svga.decode_mask = (riva128->memory_size << 20) - 1;
 
 	rom_init(&riva128->bios_rom, L"roms/video/nv_riva128/NV4_diamond_revB.rom", 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
 	if (PCI)
@@ -3493,7 +3491,7 @@ void *rivatnt2_init(const device_t *info)
 	          riva128_in, riva128_out,
 	          NULL, NULL);
 
-	riva128->svga.decode_mask = 0x1fffff;
+	riva128->svga.decode_mask = 0x3fffff;
 
 	switch(model)
 	{
