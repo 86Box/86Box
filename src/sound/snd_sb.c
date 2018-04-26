@@ -8,7 +8,7 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.7	2018/04/18
+ * Version:	@(#)sound_sb.c	1.0.8	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1362,13 +1362,6 @@ void sb_speed_changed(void *p)
         sb_dsp_speed_changed(&sb->dsp);
 }
 
-void sb_add_status_info(char *s, int max_len, void *p)
-{
-        sb_t *sb = (sb_t *)p;
-        
-        sb_dsp_add_status_info(s, max_len, &sb->dsp);
-}
-
 static const device_config_t sb_config[] =
 {
         {
@@ -1853,7 +1846,6 @@ const device_t sb_1_device =
         sb_1_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
-        sb_add_status_info,
         sb_config
 };
 const device_t sb_15_device =
@@ -1864,7 +1856,6 @@ const device_t sb_15_device =
         sb_15_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
-        sb_add_status_info,
         sb_config
 };
 const device_t sb_mcv_device =
@@ -1875,7 +1866,6 @@ const device_t sb_mcv_device =
         sb_mcv_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
-        sb_add_status_info,
         sb_mcv_config
 };
 const device_t sb_2_device =
@@ -1886,7 +1876,6 @@ const device_t sb_2_device =
         sb_2_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
-        sb_add_status_info,
         sb_config
 };
 const device_t sb_pro_v1_device =
@@ -1897,7 +1886,6 @@ const device_t sb_pro_v1_device =
         sb_pro_v1_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
-        sb_add_status_info,
         sb_pro_config
 };
 const device_t sb_pro_v2_device =
@@ -1908,7 +1896,6 @@ const device_t sb_pro_v2_device =
         sb_pro_v2_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
-        sb_add_status_info,
         sb_pro_config
 };
 const device_t sb_pro_mcv_device =
@@ -1919,7 +1906,6 @@ const device_t sb_pro_mcv_device =
         sb_pro_mcv_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
-        sb_add_status_info,
         NULL
 };
 const device_t sb_16_device =
@@ -1930,7 +1916,6 @@ const device_t sb_16_device =
         sb_16_init, sb_close, NULL, NULL,
         sb_speed_changed,
         NULL,
-        sb_add_status_info,
         sb_16_config
 };
 const device_t sb_awe32_device =
@@ -1942,6 +1927,5 @@ const device_t sb_awe32_device =
         sb_awe32_available,
         sb_speed_changed,
         NULL,
-        sb_add_status_info,
         sb_awe32_config
 };

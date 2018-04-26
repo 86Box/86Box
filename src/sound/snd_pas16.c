@@ -752,6 +752,6 @@ const device_t pas16_device =
         DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         pas16_init, pas16_close, NULL,
-        NULL, NULL, NULL, NULL,
+        NULL, NULL, NULL,
 	NULL
 };

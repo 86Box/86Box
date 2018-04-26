@@ -10,7 +10,7 @@
  *
  * TODO:	Add the Genius Serial Mouse.
  *
- * Version:	@(#)mouse_serial.c	1.0.21	2018/03/18
+ * Version:	@(#)mouse_serial.c	1.0.22	2018/04/26
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -288,7 +288,7 @@ const device_t mouse_mssystems_device = {
     0,
     MOUSE_TYPE_MSYSTEMS,
     sermouse_init, sermouse_close, NULL,
-    sermouse_poll, NULL, NULL, NULL,
+    sermouse_poll, NULL, NULL,
     sermouse_config
 };
 
@@ -297,6 +297,6 @@ const device_t mouse_msserial_device = {
     0,
     0,
     sermouse_init, sermouse_close, NULL,
-    sermouse_poll, NULL, NULL, NULL,
+    sermouse_poll, NULL, NULL,
     sermouse_config
 };

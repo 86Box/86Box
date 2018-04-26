@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.28	2018/04/01
+ * Version:	@(#)vid_svga.c	1.0.29	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -839,7 +839,6 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
     egawrites++;
 
     cycles -= video_timing_write_b;
-    cycles_lost += video_timing_write_b;
 
     if (!linear) {
 	addr &= svga->banked_mask;
@@ -972,7 +971,6 @@ svga_read_common(uint32_t addr, uint8_t linear, void *p)
     uint8_t ret8;
 
     cycles -= video_timing_read_b;
-    cycles_lost += video_timing_read_b;
 
     egareads++;
 
@@ -1167,7 +1165,6 @@ svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *p)
     egawrites += 2;
 
     cycles -= video_timing_write_w;
-    cycles_lost += video_timing_write_w;
 
     if (!linear)
 	addr = (addr & svga->banked_mask) + svga->write_bank;
@@ -1210,7 +1207,6 @@ svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *p)
     egawrites += 4;
 
     cycles -= video_timing_write_l;
-    cycles_lost += video_timing_write_l;
 
     if (!linear)
 	addr = (addr & svga->banked_mask) + svga->write_bank;
@@ -1267,7 +1263,6 @@ svga_readw_common(uint32_t addr, uint8_t linear, void *p)
     egareads += 2;
 
     cycles -= video_timing_read_w;
-    cycles_lost += video_timing_read_w;
 
     if (!linear)
 	addr = (addr & svga->banked_mask) + svga->read_bank;
@@ -1306,7 +1301,6 @@ svga_readl_common(uint32_t addr, uint8_t linear, void *p)
     egareads += 4;
 
     cycles -= video_timing_read_l;
-    cycles_lost += video_timing_read_l;
 
     if (!linear)
 	addr = (addr & svga->banked_mask) + svga->read_bank;

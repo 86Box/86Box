@@ -8,7 +8,7 @@
  *
  *		Oak OTI037C/67/077 emulation.
  *
- * Version:	@(#)vid_oak_oti.c	1.0.11	2018/04/12
+ * Version:	@(#)vid_oak_oti.c	1.0.12	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -326,14 +326,6 @@ oti_force_redraw(void *p)
 }
 
 
-static void
-oti_add_status_info(char *s, int max_len, void *p)
-{
-    oti_t *oti = (oti_t *)p;
-
-    svga_add_status_info(s, max_len, &oti->svga);
-}
-
 static int
 oti037c_available(void)
 {
@@ -403,7 +395,6 @@ const device_t oti037c_device =
 	oti037c_available,
 	oti_speed_changed,
 	oti_force_redraw,
-	oti_add_status_info,
 	oti067_config
 };
 
@@ -416,7 +407,6 @@ const device_t oti067_device =
 	oti067_077_available,
 	oti_speed_changed,
 	oti_force_redraw,
-	oti_add_status_info,
 	oti067_config
 };
 
@@ -429,6 +419,5 @@ const device_t oti077_device =
 	oti067_077_available,
 	oti_speed_changed,
 	oti_force_redraw,
-	oti_add_status_info,
 	oti077_config
 };

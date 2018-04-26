@@ -8,7 +8,7 @@
  *
  *		ATI 18800 emulation (VGA Edge-16)
  *
- * Version:	@(#)vid_ati18800.c	1.0.10	2018/04/09
+ * Version:	@(#)vid_ati18800.c	1.0.11	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -265,13 +265,6 @@ static void ati18800_force_redraw(void *p)
         ati18800->svga.fullchange = changeframecount;
 }
 
-static void ati18800_add_status_info(char *s, int max_len, void *p)
-{
-        ati18800_t *ati18800 = (ati18800_t *)p;
-        
-        svga_add_status_info(s, max_len, &ati18800->svga);
-}
-
 #if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
 const device_t ati18800_wonder_device =
 {
@@ -283,7 +276,6 @@ const device_t ati18800_wonder_device =
         ati18800_wonder_available,
         ati18800_speed_changed,
         ati18800_force_redraw,
-        ati18800_add_status_info,
 	NULL
 };
 #endif
@@ -298,7 +290,6 @@ const device_t ati18800_vga88_device =
         ati18800_vga88_available,
         ati18800_speed_changed,
         ati18800_force_redraw,
-        ati18800_add_status_info,
 	NULL
 };
 
@@ -312,6 +303,5 @@ const device_t ati18800_device =
         ati18800_available,
         ati18800_speed_changed,
         ati18800_force_redraw,
-        ati18800_add_status_info,
 	NULL
 };

@@ -46,7 +46,7 @@
  *
  * NOTE:	The XTA interface is 0-based for sector numbers !!
  *
- * Version:	@(#)hdc_ide_xta.c	1.0.5	2018/04/26
+ * Version:	@(#)hdc_ide_xta.c	1.0.6	2018/04/26
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -1207,7 +1207,7 @@ const device_t xta_wdxt150_device = {
     DEVICE_ISA,
     0,
     xta_init, xta_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     wdxt150_config
 };
 
@@ -1217,6 +1217,6 @@ const device_t xta_hd20_device = {
     DEVICE_ISA,
     1,
     xta_init, xta_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     NULL
 };

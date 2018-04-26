@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.9	2018/04/02
+ * Version:	@(#)vid_s3.c	1.0.10	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2929,24 +2929,6 @@ static void s3_force_redraw(void *p)
         s3->svga.fullchange = changeframecount;
 }
 
-static void s3_add_status_info(char *s, int max_len, void *p)
-{
-        s3_t *s3 = (s3_t *)p;
-        char temps[256];
-        uint64_t new_time = plat_timer_read();
-        uint64_t status_diff = new_time - s3->status_time;
-        s3->status_time = new_time;
-
-        if (!status_diff)
-                status_diff = 1;
-        
-        svga_add_status_info(s, max_len, &s3->svga);
-        sprintf(temps, "%f%% CPU\n%f%% CPU (real)\n\n", ((double)s3->blitter_time * 100.0) / timer_freq, ((double)s3->blitter_time * 100.0) / status_diff);
-        strncat(s, temps, max_len);
-
-        s3->blitter_time = 0;
-}
-
 static const device_config_t s3_bahamas64_config[] =
 {
         {
@@ -3091,7 +3073,6 @@ const device_t s3_bahamas64_vlb_device =
         s3_bahamas64_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_add_status_info,
         s3_bahamas64_config
 };
 
@@ -3106,7 +3087,6 @@ const device_t s3_bahamas64_pci_device =
         s3_bahamas64_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_add_status_info,
         s3_bahamas64_config
 };
 
@@ -3121,7 +3101,6 @@ const device_t s3_9fx_vlb_device =
         s3_9fx_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_add_status_info,
         s3_9fx_config
 };
 
@@ -3136,7 +3115,6 @@ const device_t s3_9fx_pci_device =
         s3_9fx_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_add_status_info,
         s3_9fx_config
 };
 
@@ -3151,7 +3129,6 @@ const device_t s3_phoenix_trio32_vlb_device =
         s3_phoenix_trio32_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_add_status_info,
         s3_phoenix_trio32_config
 };
 
@@ -3166,7 +3143,6 @@ const device_t s3_phoenix_trio32_pci_device =
         s3_phoenix_trio32_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_add_status_info,
         s3_phoenix_trio32_config
 };
 
@@ -3181,7 +3157,6 @@ const device_t s3_phoenix_trio64_vlb_device =
         s3_phoenix_trio64_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_add_status_info,
         s3_phoenix_trio64_config
 };
 
@@ -3196,7 +3171,6 @@ const device_t s3_phoenix_trio64_onboard_pci_device =
         NULL,
         s3_speed_changed,
         s3_force_redraw,
-        s3_add_status_info,
         s3_phoenix_trio64_onboard_config
 };
 
@@ -3211,7 +3185,6 @@ const device_t s3_phoenix_trio64_pci_device =
         s3_phoenix_trio64_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_add_status_info,
         s3_phoenix_trio64_config
 };
 
@@ -3226,7 +3199,6 @@ const device_t s3_phoenix_vision864_vlb_device =
         s3_phoenix_vision864_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_add_status_info,
         s3_bahamas64_config
 };
 
@@ -3241,7 +3213,6 @@ const device_t s3_phoenix_vision864_pci_device =
         s3_phoenix_vision864_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_add_status_info,
         s3_bahamas64_config
 };
 
@@ -3256,7 +3227,6 @@ const device_t s3_diamond_stealth64_vlb_device =
         s3_diamond_stealth64_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_add_status_info,
         s3_phoenix_trio64_config
 };
 
@@ -3271,6 +3241,5 @@ const device_t s3_diamond_stealth64_pci_device =
         s3_diamond_stealth64_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_add_status_info,
         s3_phoenix_trio64_config
 };

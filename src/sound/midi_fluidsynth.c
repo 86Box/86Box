@@ -577,7 +577,6 @@ const device_t fluidsynth_device =
         fluidsynth_available,
         NULL,
         NULL,
-        NULL,
         fluidsynth_config
 };
 

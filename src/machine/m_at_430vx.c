@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430VX PCISet chip.
  *
- * Version:	@(#)m_at_430vx.c	1.0.12	2018/04/04
+ * Version:	@(#)m_at_430vx.c	1.0.13	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -213,7 +213,6 @@ const device_t i430vx_device =
     i430vx_init, 
     i430vx_close, 
     i430vx_reset,
-    NULL,
     NULL,
     NULL,
     NULL,

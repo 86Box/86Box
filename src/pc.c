@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.69	2018/03/26
+ * Version:	@(#)pc.c	1.0.70	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -127,17 +127,7 @@ extern int
 	readlnum,
 	writelnum;
 
-int	sndcount = 0;
-int	sreadlnum,
-	swritelnum,
-	segareads,
-	segawrites,
-	scycles_lost;
-float	mips, flops;
-int	cycles_lost = 0;			/* video */
-int	insc = 0;				/* cpu */
-int	emu_fps = 0, fps;			/* video */
-int	framecount;
+int	fps, framecount;			/* emulator % */
 
 int	CPUID;
 int	output;
@@ -909,7 +899,6 @@ pc_thread(void *param)
     wchar_t wmachine[2048];
     uint64_t start_time, end_time;
     uint32_t old_time, new_time;
-    int status_update_needed;
     int done, drawits, frames;
     int *quitp = (int *)param;
     int framecountx;
@@ -918,16 +907,10 @@ pc_thread(void *param)
 
     main_time = 0;
     framecountx = 0;
-    status_update_needed = title_update = 1;
+    title_update = 1;
     old_time = plat_get_ticks();
     done = drawits = frames = 0;
     while (! *quitp) {
-	/* Update the Stat(u)s window with the current info. */
-	if (status_update_needed) {
-		ui_status_update();
-		status_update_needed = 0;
-	}
-
 	/* See if it is time to run a frame of code. */
 	new_time = plat_get_ticks();
 	drawits += (new_time - old_time);
@@ -967,50 +950,10 @@ pc_thread(void *param)
 		if (++framecountx >= 100) {
 			framecountx = 0;
 
-			/* FIXME: all this should go into a "stats" struct! */
-			mips = (float)insc/1000000.0f;
-			insc = 0;
-			flops = (float)fpucount/1000000.0f;
-			fpucount = 0;
-			sreadlnum = readlnum;
-			swritelnum = writelnum;
-			segareads = egareads;
-			segawrites = egawrites;
-			scycles_lost = cycles_lost;
-
-#ifdef USE_DYNAREC
-			cpu_recomp_blocks_latched = cpu_recomp_blocks;
-			cpu_recomp_ins_latched = cpu_state.cpu_recomp_ins;
-			cpu_recomp_full_ins_latched = cpu_recomp_full_ins;
-			cpu_new_blocks_latched = cpu_new_blocks;
-			cpu_recomp_flushes_latched = cpu_recomp_flushes;
-			cpu_recomp_evicted_latched = cpu_recomp_evicted;
-			cpu_recomp_reuse_latched = cpu_recomp_reuse;
-			cpu_recomp_removed_latched = cpu_recomp_removed;
-			cpu_reps_latched = cpu_reps;
-			cpu_notreps_latched = cpu_notreps;
-
-			cpu_recomp_blocks = 0;
-			cpu_state.cpu_recomp_ins = 0;
-			cpu_recomp_full_ins = 0;
-			cpu_new_blocks = 0;
-			cpu_recomp_flushes = 0;
-			cpu_recomp_evicted = 0;
-			cpu_recomp_reuse = 0;
-			cpu_recomp_removed = 0;
-			cpu_reps = 0;
-			cpu_notreps = 0;
-#endif
-
 			readlnum = writelnum = 0;
 			egareads = egawrites = 0;
-			cycles_lost = 0;
 			mmuflush = 0;
-			emu_fps = frames;
 			frames = 0;
-
-			/* We need a Status window update now. */
-			status_update_needed = 1;
 		}
 
 		if (title_update) {

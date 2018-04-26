@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430LX and 430NX PCISet chips.
  *
- * Version:	@(#)m_at_430lx_nx.c	1.0.11	2018/04/04
+ * Version:	@(#)m_at_430lx_nx.c	1.0.12	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -213,7 +213,6 @@ const device_t i430lx_device =
     NULL,
     NULL,
     NULL,
-    NULL,
     NULL
 };
 
@@ -226,7 +225,6 @@ const device_t i430nx_device =
     i430lx_nx_init, 
     i430lx_nx_close, 
     i430lx_nx_reset,
-    NULL,
     NULL,
     NULL,
     NULL,

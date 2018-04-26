@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.24	2018/04/21
+ * Version:	@(#)win_ui.c	1.0.25	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -313,10 +313,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_ABOUT:
 				AboutDialogCreate(hwnd);
-				break;
-
-			case IDM_STATUS:
-				StatusWindowCreate(hwnd);
 				break;
 
 			case IDM_UPDATE_ICONS:

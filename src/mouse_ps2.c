@@ -8,7 +8,7 @@
  *
  *		Implementation of PS/2 series Mouse devices.
  *
- * Version:	@(#)mouse_ps2.c	1.0.6	2018/03/18
+ * Version:	@(#)mouse_ps2.c	1.0.7	2018/04/26
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -292,6 +292,6 @@ const device_t mouse_ps2_device = {
     0,
     MOUSE_TYPE_PS2,
     mouse_ps2_init, ps2_close, NULL,
-    ps2_poll, NULL, NULL, NULL,
+    ps2_poll, NULL, NULL,
     ps2_config
 };

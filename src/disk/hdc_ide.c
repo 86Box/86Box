@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.44	2018/03/26
+ * Version:	@(#)hdc_ide.c	1.0.45	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2812,8 +2812,7 @@ const device_t ide_isa_device = {
     DEVICE_ISA | DEVICE_AT,
     0,
     ide_sainit, ide_saclose, ide_sareset,
-    NULL, NULL, NULL, NULL,
-    NULL
+    NULL, NULL, NULL, NULL
 };
 
 const device_t ide_isa_2ch_device = {
@@ -2821,8 +2820,7 @@ const device_t ide_isa_2ch_device = {
     DEVICE_ISA | DEVICE_AT,
     2,
     ide_sainit, ide_saclose, ide_sareset,
-    NULL, NULL, NULL, NULL,
-    NULL
+    NULL, NULL, NULL, NULL
 };
 
 const device_t ide_isa_2ch_opt_device = {
@@ -2830,8 +2828,7 @@ const device_t ide_isa_2ch_opt_device = {
     DEVICE_ISA | DEVICE_AT,
     3,
     ide_sainit, ide_saclose, ide_sareset,
-    NULL, NULL, NULL, NULL,
-    NULL
+    NULL, NULL, NULL, NULL
 };
 
 const device_t ide_vlb_device = {
@@ -2839,8 +2836,7 @@ const device_t ide_vlb_device = {
     DEVICE_VLB | DEVICE_AT,
     4,
     ide_sainit, ide_saclose, ide_sareset,
-    NULL, NULL, NULL, NULL,
-    NULL
+    NULL, NULL, NULL, NULL
 };
 
 const device_t ide_vlb_2ch_device = {
@@ -2848,8 +2844,7 @@ const device_t ide_vlb_2ch_device = {
     DEVICE_VLB | DEVICE_AT,
     6,
     ide_sainit, ide_saclose, ide_sareset,
-    NULL, NULL, NULL, NULL,
-    NULL
+    NULL, NULL, NULL, NULL
 };
 
 const device_t ide_pci_device = {
@@ -2857,8 +2852,7 @@ const device_t ide_pci_device = {
     DEVICE_PCI | DEVICE_AT,
     8,
     ide_sainit, ide_saclose, ide_sareset,
-    NULL, NULL, NULL, NULL,
-    NULL
+    NULL, NULL, NULL, NULL
 };
 
 const device_t ide_pci_2ch_device = {
@@ -2866,8 +2860,7 @@ const device_t ide_pci_2ch_device = {
     DEVICE_PCI | DEVICE_AT,
     10,
     ide_sainit, ide_saclose, ide_sareset,
-    NULL, NULL, NULL, NULL,
-    NULL
+    NULL, NULL, NULL, NULL
 };
 
 static const device_config_t ide_ter_config[] =
@@ -2959,7 +2952,7 @@ const device_t ide_ter_device = {
     DEVICE_AT,
     0,
     ide_ter_init, ide_ter_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     ide_ter_config
 };
 
@@ -2968,6 +2961,6 @@ const device_t ide_qua_device = {
     DEVICE_AT,
     0,
     ide_qua_init, ide_qua_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     ide_qua_config
 };

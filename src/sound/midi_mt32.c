@@ -323,7 +323,6 @@ const device_t mt32_device =
         mt32_available,
         NULL,
         NULL,
-        NULL,
         mt32_config
 };
 
@@ -336,7 +335,6 @@ const device_t cm32l_device =
         mt32_close,
 	NULL,
         cm32l_available,
-        NULL,
         NULL,
         NULL,
         mt32_config

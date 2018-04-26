@@ -32,7 +32,7 @@
  *		in alpha mode, but in highres ("ECD350") mode, it displays
  *		some semi-random junk. Video-memory pointer maybe?
  *
- * Version:	@(#)m_amstrad.c	1.0.12	2018/04/11
+ * Version:	@(#)m_amstrad.c	1.0.13	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -563,7 +563,6 @@ static const device_t vid_1512_device = {
     NULL, vid_close_1512, NULL,
     NULL,
     vid_speed_change_1512,
-    NULL,
     NULL
 };
 
@@ -727,7 +726,6 @@ static const device_t vid_1640_device = {
     NULL, vid_close_1640, NULL,
     NULL,
     vid_speed_changed_1640,
-    NULL,
     NULL
 };
 
@@ -862,7 +860,6 @@ static const device_t vid_200_device = {
     NULL, vid_close_200, NULL,
     NULL,
     vid_speed_changed_200,
-    NULL,
     NULL
 };
 

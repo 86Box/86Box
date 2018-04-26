@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.16	2018/03/18
+ * Version:	@(#)vid_ega.c	1.0.17	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -683,7 +683,6 @@ void ega_write(uint32_t addr, uint8_t val, void *p)
 
         egawrites++;
         cycles -= video_timing_write_b;
-        cycles_lost += video_timing_write_b;
         
         if (addr >= 0xB0000) addr &= 0x7fff;
         else                 addr &= 0xffff;
@@ -820,7 +819,6 @@ uint8_t ega_read(uint32_t addr, void *p)
         
         egareads++;
         cycles -= video_timing_read_b;
-        cycles_lost += video_timing_read_b;
         if (addr >= 0xb0000) addr &= 0x7fff;
         else                 addr &= 0xffff;
 
@@ -1253,7 +1251,6 @@ const device_t ega_device =
         ega_standalone_available,
         ega_speed_changed,
         NULL,
-        NULL,
         ega_config
 };
 
@@ -1265,7 +1262,6 @@ const device_t cpqega_device =
         ega_standalone_init, ega_close, NULL,
         cpqega_standalone_available,
         ega_speed_changed,
-        NULL,
         NULL,
         ega_config
 };
@@ -1279,7 +1275,6 @@ const device_t sega_device =
         sega_standalone_available,
         ega_speed_changed,
         NULL,
-        NULL,
         ega_config
 };
 
@@ -1292,7 +1287,6 @@ const device_t jega_device =
         ega_standalone_init, ega_close, NULL,
         sega_standalone_available,
         ega_speed_changed,
-        NULL,
         NULL,
         ega_config
 };

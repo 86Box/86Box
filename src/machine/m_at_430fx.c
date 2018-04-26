@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430FX PCISet chip.
  *
- * Version:	@(#)m_at_430fx.c	1.0.16	2018/04/04
+ * Version:	@(#)m_at_430fx.c	1.0.17	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -209,7 +209,6 @@ const device_t i430fx_device =
     i430fx_init, 
     i430fx_close, 
     i430fx_reset,
-    NULL,
     NULL,
     NULL,
     NULL,

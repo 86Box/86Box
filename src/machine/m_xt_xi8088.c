@@ -112,7 +112,6 @@ const device_t xi8088_device =
         NULL,
         NULL,
         NULL,
-        NULL,
         xi8088_config
 };
 

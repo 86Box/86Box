@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 430HX PCISet chip.
  *
- * Version:	@(#)m_at_430hx.c	1.0.12	2018/04/04
+ * Version:	@(#)m_at_430hx.c	1.0.13	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -221,7 +221,6 @@ const device_t i430hx_device =
     NULL,
     NULL,
     NULL,
-    NULL,
     NULL
 };
 
@@ -279,7 +278,6 @@ const device_t acerm3a_device =
     0,
     acerm3a_init, 
     acerm3a_close, 
-    NULL,
     NULL,
     NULL,
     NULL,

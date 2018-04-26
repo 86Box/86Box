@@ -8,7 +8,7 @@
  *
  *		Implementation of a generic Game Port.
  *
- * Version:	@(#)gameport.c	1.0.4	2018/03/19
+ * Version:	@(#)gameport.c	1.0.5	2018/04/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -321,7 +321,7 @@ const device_t gameport_device = {
     0, 0,
     gameport_init,
     gameport_close,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     NULL
 };
 
@@ -330,6 +330,6 @@ const device_t gameport_201_device = {
     0, 0,
     gameport_201_init,
     gameport_close,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     NULL
 };

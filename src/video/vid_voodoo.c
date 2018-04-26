@@ -8,7 +8,7 @@
  *
  *		Emulation of the 3DFX Voodoo Graphics controller.
  *
- * Version:	@(#)vid_voodoo.c	1.0.13	2018/04/13
+ * Version:	@(#)vid_voodoo.c	1.0.14	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei
@@ -73,8 +73,6 @@ static uint32_t texture_offset[LOD_MAX+3] =
 };
 
 static int tris = 0;
-
-static uint64_t status_time = 0;
 
 typedef union {
         uint32_t i;
@@ -7487,93 +7485,6 @@ skip_draw:
                 voodoo->timer_count += TIMER_USEC * 32;
 }
 
-static void voodoo_add_status_info(char *s, int max_len, void *p)
-{
-        voodoo_set_t *voodoo_set = (voodoo_set_t *)p;
-        voodoo_t *voodoo = voodoo_set->voodoos[0];
-        voodoo_t *voodoo_slave = voodoo_set->voodoos[1];
-        char temps[512], temps2[256];
-        int pixel_count_current[2];
-        int pixel_count_total;
-        int texel_count_current[2];
-        int texel_count_total;
-        int render_time[2];
-        uint64_t new_time = plat_timer_read();
-        uint64_t status_diff = new_time - status_time;
-        status_time = new_time;
-
-        if (!status_diff)
-                status_diff = 1;
-
-        svga_add_status_info(s, max_len, &voodoo->svga);
-        
-        pixel_count_current[0] = voodoo->pixel_count[0];
-        pixel_count_current[1] = voodoo->pixel_count[1];
-        texel_count_current[0] = voodoo->texel_count[0];
-        texel_count_current[1] = voodoo->texel_count[1];
-        render_time[0] = voodoo->render_time[0];
-        render_time[1] = voodoo->render_time[1];
-        if (voodoo_set->nr_cards == 2)
-        {
-                pixel_count_current[0] += voodoo_slave->pixel_count[0];
-                pixel_count_current[1] += voodoo_slave->pixel_count[1];
-                texel_count_current[0] += voodoo_slave->texel_count[0];
-                texel_count_current[1] += voodoo_slave->texel_count[1];
-                render_time[0] = (render_time[0] + voodoo_slave->render_time[0]) / 2;
-                render_time[1] = (render_time[1] + voodoo_slave->render_time[1]) / 2;
-        }
-        pixel_count_total = (pixel_count_current[0] + pixel_count_current[1]) - (voodoo->pixel_count_old[0] + voodoo->pixel_count_old[1]);
-        texel_count_total = (texel_count_current[0] + texel_count_current[1]) - (voodoo->texel_count_old[0] + voodoo->texel_count_old[1]);
-        sprintf(temps, "%f Mpixels/sec (%f)\n%f Mtexels/sec (%f)\n%f ktris/sec\n%f%% CPU (%f%% real)\n%d frames/sec (%i)\n%f%% CPU (%f%% real)\n"/*%d reads/sec\n%d write/sec\n%d tex/sec\n*/,
-                (double)pixel_count_total/1000000.0,
-                ((double)pixel_count_total/1000000.0) / ((double)render_time[0] / status_diff),
-                (double)texel_count_total/1000000.0,
-                ((double)texel_count_total/1000000.0) / ((double)render_time[0] / status_diff),
-                (double)voodoo->tri_count/1000.0, ((double)voodoo->time * 100.0) / timer_freq, ((double)voodoo->time * 100.0) / status_diff, voodoo->frame_count, voodoo_recomp,
-                ((double)voodoo->render_time[0] * 100.0) / timer_freq, ((double)voodoo->render_time[0] * 100.0) / status_diff);
-        if (voodoo->render_threads == 2)
-        {
-                sprintf(temps2, "%f%% CPU (%f%% real)\n",
-                        ((double)voodoo->render_time[1] * 100.0) / timer_freq, ((double)voodoo->render_time[1] * 100.0) / status_diff);
-                strncat(temps, temps2, sizeof(temps)-1);
-        }
-        if (voodoo_set->nr_cards == 2)
-        {
-                sprintf(temps2, "%f%% CPU (%f%% real)\n",
-                        ((double)voodoo_slave->render_time[0] * 100.0) / timer_freq, ((double)voodoo_slave->render_time[0] * 100.0) / status_diff);
-                strncat(temps, temps2, sizeof(temps)-1);
-                        
-                if (voodoo_slave->render_threads == 2)
-                {
-                        sprintf(temps2, "%f%% CPU (%f%% real)\n",
-                                ((double)voodoo_slave->render_time[1] * 100.0) / timer_freq, ((double)voodoo_slave->render_time[1] * 100.0) / status_diff);
-                        strncat(temps, temps2, sizeof(temps)-1);
-                }
-        }
-        strncat(s, temps, max_len);
-
-        voodoo->pixel_count_old[0] = pixel_count_current[0];
-        voodoo->pixel_count_old[1] = pixel_count_current[1];
-        voodoo->texel_count_old[0] = texel_count_current[0];
-        voodoo->texel_count_old[1] = texel_count_current[1];
-        voodoo->tri_count = voodoo->frame_count = 0;
-        voodoo->rd_count = voodoo->wr_count = voodoo->tex_count = 0;
-        voodoo->time = 0;
-        voodoo->render_time[0] = voodoo->render_time[1] = 0;
-        if (voodoo_set->nr_cards == 2)
-        {
-                voodoo_slave->pixel_count_old[0] = pixel_count_current[0];
-                voodoo_slave->pixel_count_old[1] = pixel_count_current[1];
-                voodoo_slave->texel_count_old[0] = texel_count_current[0];
-                voodoo_slave->texel_count_old[1] = texel_count_current[1];
-                voodoo_slave->tri_count = voodoo_slave->frame_count = 0;
-                voodoo_slave->rd_count = voodoo_slave->wr_count = voodoo_slave->tex_count = 0;
-                voodoo_slave->time = 0;
-                voodoo_slave->render_time[0] = voodoo_slave->render_time[1] = 0;
-        }
-        voodoo_recomp = 0;
-}
-
 static void voodoo_speed_changed(void *p)
 {
         voodoo_set_t *voodoo_set = (voodoo_set_t *)p;
@@ -7973,6 +7884,5 @@ const device_t voodoo_device =
         NULL,
         voodoo_speed_changed,
         NULL,
-        voodoo_add_status_info,
         voodoo_config
 };

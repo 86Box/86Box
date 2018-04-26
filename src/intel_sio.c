@@ -6,7 +6,7 @@
  *
  *		Emulation of Intel System I/O PCI chip.
  *
- * Version:	@(#)intel_sio.c	1.0.7	2018/03/26
+ * Version:	@(#)intel_sio.c	1.0.8	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -199,7 +199,6 @@ const device_t sio_device =
     0,
     sio_init, 
     sio_close, 
-    NULL,
     NULL,
     NULL,
     NULL,

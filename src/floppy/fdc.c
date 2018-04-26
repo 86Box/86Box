@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.6	2018/04/12
+ * Version:	@(#)fdc.c	1.0.7	2018/04/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -2158,7 +2158,7 @@ const device_t fdc_xt_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t fdc_pcjr_device = {
@@ -2168,7 +2168,7 @@ const device_t fdc_pcjr_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t fdc_at_device = {
@@ -2178,7 +2178,7 @@ const device_t fdc_at_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t fdc_at_actlow_device = {
@@ -2188,7 +2188,7 @@ const device_t fdc_at_actlow_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t fdc_at_ps1_device = {
@@ -2198,7 +2198,7 @@ const device_t fdc_at_ps1_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t fdc_at_smc_device = {
@@ -2208,7 +2208,7 @@ const device_t fdc_at_smc_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t fdc_at_winbond_device = {
@@ -2218,7 +2218,7 @@ const device_t fdc_at_winbond_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t fdc_at_nsc_device = {
@@ -2228,5 +2228,5 @@ const device_t fdc_at_nsc_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };

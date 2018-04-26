@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of disk controllers.
  *
- * Version:	@(#)hdc.c	1.0.13	2018/04/04
+ * Version:	@(#)hdc.c	1.0.14	2018/04/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -48,7 +48,7 @@ null_close(void *priv)
 static const device_t null_device = {
     "Null HDC", 0, 0,
     null_init, null_close, NULL,
-    NULL, NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, NULL
 };
 
 
@@ -68,7 +68,7 @@ inthdc_close(void *priv)
 static const device_t inthdc_device = {
     "Internal Controller", 0, 0,
     inthdc_init, inthdc_close, NULL,
-    NULL, NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, NULL
 };
 
 

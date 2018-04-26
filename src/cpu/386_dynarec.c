@@ -592,7 +592,6 @@ void exec386_dynarec(int cycs)
                                         CPU_BLOCK_END();
 
                                 ins++;
-                                insc++;
                                 
 /*                                if ((cs + pc) == 4)
                                         fatal("4\n");*/
@@ -686,9 +685,6 @@ inrecomp=1;
 inrecomp=0;
                         if (!use32) cpu_state.pc &= 0xffff;
                         cpu_recomp_blocks++;
-/*                        ins += codeblock_ins[index];
-                        insc += codeblock_ins[index];*/
-/*                        pclog("Exit block now %04X:%04X\n", CS, pc);*/
                 }
                 else if (valid_block && !cpu_state.abrt)
                 {
@@ -752,7 +748,6 @@ inrecomp=0;
                                 }
 
                                 ins++;
-                                insc++;
                         }
                         
                         if (!cpu_state.abrt && !x86_was_reset)
@@ -823,7 +818,6 @@ inrecomp=0;
                                 }
 
                                 ins++;
-                                insc++;
                         }
                         
                         if (!cpu_state.abrt && !x86_was_reset)

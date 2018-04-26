@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.37	2018/03/28
+ * Version:	@(#)scsi_buslogic.c	1.0.38	2018/04/26
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1776,7 +1776,7 @@ const device_t buslogic_device = {
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA_542,
 	buslogic_init, x54x_close, NULL,
-	NULL, NULL, NULL, NULL,
+	NULL, NULL, NULL,
 	BT_ISA_Config
 };
 
@@ -1785,7 +1785,7 @@ const device_t buslogic_545s_device = {
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA,
 	buslogic_init, x54x_close, NULL,
-	NULL, NULL, NULL, NULL,
+	NULL, NULL, NULL,
 	BT_ISA_Config
 };
 
@@ -1794,16 +1794,16 @@ const device_t buslogic_640a_device = {
 	DEVICE_MCA,
 	CHIP_BUSLOGIC_MCA,
 	buslogic_init, x54x_close, NULL,
-	NULL, NULL, NULL, NULL,
+	NULL, NULL, NULL,
 	NULL
 };
 
 const device_t buslogic_445s_device = {
-	"Buslogic BT-445S ISA",
+	"Buslogic BT-445S VLB",
 	DEVICE_VLB,
 	CHIP_BUSLOGIC_VLB,
 	buslogic_init, x54x_close, NULL,
-	NULL, NULL, NULL, NULL,
+	NULL, NULL, NULL,
 	BT_ISA_Config
 };
 
@@ -1812,6 +1812,6 @@ const device_t buslogic_pci_device = {
 	DEVICE_PCI,
 	CHIP_BUSLOGIC_PCI,
 	buslogic_init, x54x_close, NULL,
-	NULL, NULL, NULL, NULL,
+	NULL, NULL, NULL,
 	BT958D_Config
 };

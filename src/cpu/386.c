@@ -384,7 +384,6 @@ dontprint=0;
                 }
 
                 ins++;
-                insc++;
 
                 if (timetolive)
                 {

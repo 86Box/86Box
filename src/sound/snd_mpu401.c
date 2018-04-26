@@ -8,7 +8,7 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)snd_mpu401.c	1.0.8	2018/03/18
+ * Version:	@(#)snd_mpu401.c	1.0.9	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
@@ -984,7 +984,6 @@ const device_t mpu401_device = {
     "MPU-401 (Standalone)",
     0, 0,
     mpu401_standalone_init, mpu401_standalone_close, NULL,
-    NULL,
     NULL,
     NULL,
     NULL,

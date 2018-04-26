@@ -100,7 +100,7 @@ const device_t adlib_device =
         DEVICE_ISA,
 	0,
         adlib_init, adlib_close, NULL,
-        NULL, NULL, NULL, NULL,
+        NULL, NULL, NULL,
         NULL
 };
 
@@ -110,6 +110,6 @@ const device_t adlib_mca_device =
         DEVICE_MCA,
 	0,
         adlib_init, adlib_close, NULL,
-        NULL, NULL, NULL, NULL,
+        NULL, NULL, NULL,
         NULL
 };

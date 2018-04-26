@@ -10,7 +10,7 @@
  *		 PC2086, PC3086 use PVGA1A
  *		 MegaPC uses W90C11A
  *
- * Version:	@(#)vid_paradise.c	1.0.6	2018/04/02
+ * Version:	@(#)vid_paradise.c	1.0.7	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -489,13 +489,6 @@ void paradise_force_redraw(void *p)
         paradise->svga.fullchange = changeframecount;
 }
 
-void paradise_add_status_info(char *s, int max_len, void *p)
-{
-        paradise_t *paradise = (paradise_t *)p;
-        
-        svga_add_status_info(s, max_len, &paradise->svga);
-}
-
 
 const device_t paradise_pvga1a_pc2086_device =
 {
@@ -508,7 +501,7 @@ const device_t paradise_pvga1a_pc2086_device =
 	NULL,
         paradise_speed_changed,
         paradise_force_redraw,
-        paradise_add_status_info
+	NULL
 };
 const device_t paradise_pvga1a_pc3086_device =
 {
@@ -521,7 +514,7 @@ const device_t paradise_pvga1a_pc3086_device =
         NULL,
         paradise_speed_changed,
         paradise_force_redraw,
-        paradise_add_status_info
+	NULL
 };
 
 static const device_config_t paradise_pvga1a_config[] =
@@ -559,7 +552,6 @@ const device_t paradise_pvga1a_device =
         paradise_pvga1a_standalone_available,
         paradise_speed_changed,
         paradise_force_redraw,
-        paradise_add_status_info,
 	paradise_pvga1a_config
 };
 const device_t paradise_wd90c11_megapc_device =
@@ -573,7 +565,7 @@ const device_t paradise_wd90c11_megapc_device =
         NULL,
         paradise_speed_changed,
         paradise_force_redraw,
-        paradise_add_status_info
+	NULL
 };
 const device_t paradise_wd90c11_device =
 {
@@ -586,7 +578,7 @@ const device_t paradise_wd90c11_device =
         paradise_wd90c11_standalone_available,
         paradise_speed_changed,
         paradise_force_redraw,
-        paradise_add_status_info
+	NULL
 };
 
 static const device_config_t paradise_wd90c30_config[] =
@@ -621,6 +613,5 @@ const device_t paradise_wd90c30_device =
         paradise_wd90c30_standalone_available,
         paradise_speed_changed,
         paradise_force_redraw,
-        paradise_add_status_info,
 	paradise_wd90c30_config
 };

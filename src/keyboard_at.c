@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.34	2018/03/26
+ * Version:	@(#)keyboard_at.c	1.0.35	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1971,7 +1971,7 @@ const device_t keyboard_at_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t keyboard_at_ami_device = {
@@ -1981,7 +1981,7 @@ const device_t keyboard_at_ami_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t keyboard_at_toshiba_device = {
@@ -1991,7 +1991,7 @@ const device_t keyboard_at_toshiba_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_device = {
@@ -2001,7 +2001,7 @@ const device_t keyboard_ps2_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_ami_device = {
@@ -2011,7 +2011,7 @@ const device_t keyboard_ps2_ami_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_mca_device = {
@@ -2021,7 +2021,7 @@ const device_t keyboard_ps2_mca_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_mca_2_device = {
@@ -2031,7 +2031,7 @@ const device_t keyboard_ps2_mca_2_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_quadtel_device = {
@@ -2041,7 +2041,7 @@ const device_t keyboard_ps2_quadtel_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_pci_device = {
@@ -2051,7 +2051,7 @@ const device_t keyboard_ps2_pci_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_ami_pci_device = {
@@ -2061,7 +2061,7 @@ const device_t keyboard_ps2_ami_pci_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 

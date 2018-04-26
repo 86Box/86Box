@@ -189,7 +189,7 @@
  *		including the later update (DS12887A) which implemented a
  *		"century" register to be compatible with Y2K.
  *
- * Version:	@(#)nvr_at.c	1.0.5	2018/04/09
+ * Version:	@(#)nvr_at.c	1.0.6	2018/04/26
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -721,7 +721,7 @@ const device_t at_nvr_device = {
     DEVICE_ISA | DEVICE_AT,
     0,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, NULL, NULL,
+    NULL, NULL,
     NULL
 };
 
@@ -730,7 +730,7 @@ const device_t ps_nvr_device = {
     DEVICE_PS2,
     1,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, NULL, NULL,
+    NULL, NULL,
     NULL
 };
 
@@ -739,6 +739,6 @@ const device_t amstrad_nvr_device = {
     MACHINE_ISA | MACHINE_AT,
     2,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, NULL, NULL,
+    NULL, NULL,
     NULL
 };

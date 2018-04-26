@@ -214,6 +214,5 @@ const device_t pssj_device =
 	NULL,
         NULL,
         NULL,
-        NULL,
         NULL
 };

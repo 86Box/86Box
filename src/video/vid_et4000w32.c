@@ -10,7 +10,7 @@
  *
  * Known bugs:	Accelerator doesn't work in planar modes
  *
- * Version:	@(#)vid_et4000w32.c	1.0.8	2018/04/02
+ * Version:	@(#)vid_et4000w32.c	1.0.9	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1301,22 +1301,6 @@ void et4000w32p_force_redraw(void *p)
         et4000w32p->svga.fullchange = changeframecount;
 }
 
-void et4000w32p_add_status_info(char *s, int max_len, void *p)
-{
-        et4000w32p_t *et4000 = (et4000w32p_t *)p;
-        char temps[256];
-        uint64_t new_time = plat_timer_read();
-        uint64_t status_diff = new_time - et4000->status_time;
-        et4000->status_time = new_time;
-        
-        svga_add_status_info(s, max_len, &et4000->svga);
-
-        sprintf(temps, "%f%% CPU\n%f%% CPU (real)\n\n", ((double)et4000->blitter_time * 100.0) / timer_freq, ((double)et4000->blitter_time * 100.0) / status_diff);
-        strncat(s, temps, max_len);
-
-        et4000->blitter_time = 0;
-}
-
 static const device_config_t et4000w32p_config[] =
 {
         {
@@ -1346,7 +1330,6 @@ const device_t et4000w32p_cardex_vlb_device =
         et4000w32p_cardex_available,
         et4000w32p_speed_changed,
         et4000w32p_force_redraw,
-        et4000w32p_add_status_info,
         et4000w32p_config
 };
 
@@ -1358,7 +1341,6 @@ const device_t et4000w32p_cardex_pci_device =
         et4000w32p_cardex_available,
         et4000w32p_speed_changed,
         et4000w32p_force_redraw,
-        et4000w32p_add_status_info,
         et4000w32p_config
 };
 
@@ -1371,7 +1353,6 @@ const device_t et4000w32p_vlb_device =
         et4000w32p_available,
         et4000w32p_speed_changed,
         et4000w32p_force_redraw,
-        et4000w32p_add_status_info,
         et4000w32p_config
 };
 
@@ -1383,7 +1364,6 @@ const device_t et4000w32p_pci_device =
         et4000w32p_available,
         et4000w32p_speed_changed,
         et4000w32p_force_redraw,
-        et4000w32p_add_status_info,
         et4000w32p_config
 };
 #endif

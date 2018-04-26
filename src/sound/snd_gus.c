@@ -1063,6 +1063,6 @@ const device_t gus_device =
         "Gravis UltraSound",
         0, 0,
         gus_init, gus_close, NULL, NULL,
-        gus_speed_changed, NULL, NULL,
+        gus_speed_changed, NULL,
         NULL
 };

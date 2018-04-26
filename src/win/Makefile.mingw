@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.114	2018/03/31
+# Version:	@(#)Makefile.mingw	1.0.115	2018/04/26
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -295,9 +295,9 @@ ifneq ($(WX), n)
  LIBS		+= $(WX_LIBS)
  UIOBJ		:= wx_main.o wx_ui.o wx_stbar.o wx_render.o
 else
- UIOBJ		:= win_ui.o \
+ UIOBJ		:= win_ui.o win_stbar.o \
 		   win_ddraw.o win_d3d.o \
-		   win_dialog.o win_about.o win_status.o win_stbar.o \
+		   win_dialog.o win_about.o \
 		   win_settings.o win_devconf.o win_snd_gain.o \
 		   win_new_floppy.o win_jsconf.o
 endif

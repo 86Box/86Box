@@ -8,7 +8,7 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.16	2018/03/28
+ * Version:	@(#)win.h	1.0.17	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -58,7 +58,7 @@ extern HANDLE		ghMutex;
 extern LCID		lang_id;
 extern HICON		hIcon[512];
 
-extern int		status_is_open;
+// extern int		status_is_open;
 
 extern char		openfilestring[260];
 extern WCHAR		wopenfilestring[260];
@@ -123,11 +123,6 @@ extern void	SoundGainDialogCreate(HWND hwnd);
 
 /* Functions in win_new_floppy.c: */
 extern void	NewFloppyDialogCreate(HWND hwnd, int id, int part);
-
-
-/* Functions in win_status.c: */
-extern HWND	hwndStatus;
-extern void	StatusWindowCreate(HWND hwnd);
 
 
 /* Functions in win_stbar.c: */

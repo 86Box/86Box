@@ -847,6 +847,5 @@ const device_t adgold_device =
         NULL,
         NULL,
         NULL,
-        NULL,
         adgold_config
 };

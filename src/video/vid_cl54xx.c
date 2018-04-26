@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.17	2018/04/02
+ * Version:	@(#)vid_cl_54xx.c	1.0.18	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,
@@ -1202,10 +1202,8 @@ gd54xx_readw_linear(uint32_t addr, void *p)
 		temp = svga_readb_linear(addr + 1, p);
 		temp |= (svga_readb_linear(addr, p) << 8);
 
-		if (svga->fast) {
+		if (svga->fast)
 		        cycles -= video_timing_read_w;
-		        cycles_lost += video_timing_read_w;
-		}
 
 		return temp;
 	case 3:
@@ -1263,10 +1261,8 @@ gd54xx_readl_linear(uint32_t addr, void *p)
 		temp |= (svga_readb_linear(addr + 3, p) << 16);
 		temp |= (svga_readb_linear(addr + 2, p) << 24);
 
-		if (svga->fast) {
+		if (svga->fast)
 		        cycles -= video_timing_read_l;
-		        cycles_lost += video_timing_read_l;
-		}
 
 		return temp;
 	case 2:
@@ -1275,10 +1271,8 @@ gd54xx_readl_linear(uint32_t addr, void *p)
 		temp |= (svga_readb_linear(addr + 1, p) << 16);
 		temp |= (svga_readb_linear(addr, p) << 24);
 
-		if (svga->fast) {
+		if (svga->fast)
 		        cycles -= video_timing_read_l;
-		        cycles_lost += video_timing_read_l;
-		}
 
 		return temp;
 	case 3:
@@ -1382,10 +1376,8 @@ gd54xx_writew_linear(uint32_t addr, uint16_t val, void *p)
 			svga_writeb_linear(addr + 1, val & 0xff, svga);
 			svga_writeb_linear(addr, val >> 8, svga);
 
-			if (svga->fast) {
+			if (svga->fast)
 		        	cycles -= video_timing_write_w;
-			        cycles_lost += video_timing_write_w;
-			}
 		case 3:
 			return;
 	}
@@ -1475,10 +1467,8 @@ gd54xx_writel_linear(uint32_t addr, uint32_t val, void *p)
 			return;
 	}
 
-	if (svga->fast) {
+	if (svga->fast)
         	cycles -= video_timing_write_l;
-	        cycles_lost += video_timing_write_l;
-	}
     } else {
 	switch(ap) {
 		case 0:
@@ -2349,15 +2339,6 @@ gd54xx_force_redraw(void *p)
 }
 
 
-void
-gd54xx_add_status_info(char *s, int max_len, void *p)
-{
-    gd54xx_t *gd54xx = (gd54xx_t *)p;
-    
-    svga_add_status_info(s, max_len, &gd54xx->svga);
-}
-
-
 static const device_config_t gd5428_config[] =
 {
         {
@@ -2423,7 +2404,6 @@ const device_t gd5426_vlb_device =
     gd5426_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd54xx_add_status_info,
     gd5428_config
 };
 
@@ -2438,7 +2418,6 @@ const device_t gd5428_isa_device =
     gd5428_isa_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd54xx_add_status_info,
     gd5428_config
 };
 
@@ -2453,7 +2432,6 @@ const device_t gd5428_vlb_device =
     gd5428_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd54xx_add_status_info,
     gd5428_config
 };
 
@@ -2468,7 +2446,6 @@ const device_t gd5429_isa_device =
     gd5429_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd54xx_add_status_info,
     gd5428_config
 };
 
@@ -2483,7 +2460,6 @@ const device_t gd5429_vlb_device =
     gd5429_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd54xx_add_status_info,
     gd5428_config
 };
 
@@ -2498,7 +2474,6 @@ const device_t gd5430_vlb_device =
     gd5430_vlb_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd54xx_add_status_info,
     gd5428_config
 };
 
@@ -2513,7 +2488,6 @@ const device_t gd5430_pci_device =
     gd5430_pci_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd54xx_add_status_info,
     gd5428_config
 };
 
@@ -2528,7 +2502,6 @@ const device_t gd5434_isa_device =
     gd5434_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd54xx_add_status_info,
     gd5434_config
 };
 
@@ -2543,7 +2516,6 @@ const device_t gd5434_vlb_device =
     gd5434_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd54xx_add_status_info,
     gd5434_config
 };
 
@@ -2558,7 +2530,6 @@ const device_t gd5434_pci_device =
     gd5434_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd54xx_add_status_info,
     gd5434_config
 };
 
@@ -2573,7 +2544,6 @@ const device_t gd5436_pci_device =
     gd5436_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd54xx_add_status_info,
     gd5434_config
 };
 
@@ -2588,7 +2558,6 @@ const device_t gd5446_pci_device =
     gd5446_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd54xx_add_status_info,
     gd5434_config
 };
 
@@ -2603,7 +2572,6 @@ const device_t gd5446_stb_pci_device =
     gd5446_stb_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd54xx_add_status_info,
     gd5434_config
 };
 
@@ -2618,6 +2586,5 @@ const device_t gd5480_pci_device =
     gd5480_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd54xx_add_status_info,
     gd5434_config
 };

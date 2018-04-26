@@ -42,7 +42,7 @@
  *		which are the same as the XGA. It supports up to 1MB of VRAM,
  *		but we lock it down to 512K. The PS/1 2122 had 256K.
  *
- * Version:	@(#)vid_ti_cf62011.c	1.0.5	2018/04/12
+ * Version:	@(#)vid_ti_cf62011.c	1.0.6	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -224,15 +224,6 @@ vid_force_redraw(void *priv)
 
 
 static void
-vid_add_status_info(char *s, int max_len, void *priv)
-{
-    tivga_t *ti = (tivga_t *)priv;
-
-    svga_add_status_info(s, max_len, &ti->svga);
-}
-
-
-static void
 vid_close(void *priv)
 {
     tivga_t *ti = (tivga_t *)priv;
@@ -309,7 +300,6 @@ const device_t ti_cf62011_device = {
     NULL,
     vid_speed_changed,
     vid_force_redraw,
-    vid_add_status_info,
     vid_config
 };
 #endif
@@ -323,6 +313,5 @@ const device_t ibm_ps1_2121_device = {
     NULL,
     vid_speed_changed,
     vid_force_redraw,
-    vid_add_status_info,
     NULL
 };

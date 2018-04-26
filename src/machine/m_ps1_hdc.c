@@ -43,7 +43,7 @@
  *		Type table with the main code, so the user can only select
  *		items from that list...
  *
- * Version:	@(#)m_ps1_hdc.c	1.0.3	2018/04/23
+ * Version:	@(#)m_ps1_hdc.c	1.0.4	2018/04/26
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -1497,7 +1497,7 @@ const device_t ps1_hdc_device = {
     DEVICE_ISA | DEVICE_PS2,
     0,
     ps1_hdc_init, ps1_hdc_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     NULL
 };
 

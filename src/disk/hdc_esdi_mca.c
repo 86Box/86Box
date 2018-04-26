@@ -52,7 +52,7 @@
  *		however, are auto-configured by the system software as
  *		shown above.
  *
- * Version:	@(#)hdc_esdi_mca.c	1.0.11	2018/04/17
+ * Version:	@(#)hdc_esdi_mca.c	1.0.12	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -1086,5 +1086,5 @@ const device_t esdi_ps2_device = {
     "IBM ESDI Fixed Disk Adapter (MCA)",
     DEVICE_MCA, 0,
     esdi_init, esdi_close, NULL,
-    esdi_available, NULL, NULL, NULL, NULL
+    esdi_available, NULL, NULL, NULL
 };

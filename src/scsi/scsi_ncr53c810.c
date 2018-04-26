@@ -10,7 +10,7 @@
  *		NCR and later Symbios and LSI. This controller was designed
  *		for the PCI bus.
  *
- * Version:	@(#)scsi_ncr53c810.c	1.0.11	2018/03/28
+ * Version:	@(#)scsi_ncr53c810.c	1.0.12	2018/04/26
  *
  * Authors:	Paul Brook (QEMU)
  *		Artyom Tarasenko (QEMU)
@@ -2186,6 +2186,6 @@ const device_t ncr53c810_pci_device =
     0,
     ncr53c810_init, ncr53c810_close, NULL,
     NULL,
-    NULL, NULL, NULL,
+    NULL, NULL,
     NULL
 };

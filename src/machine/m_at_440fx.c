@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 440FX PCISet chip.
  *
- * Version:	@(#)m_at_440fx.c	1.0.12	2018/04/04
+ * Version:	@(#)m_at_440fx.c	1.0.13	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -218,7 +218,6 @@ const device_t i440fx_device =
     i440fx_init, 
     i440fx_close, 
     i440fx_reset,
-    NULL,
     NULL,
     NULL,
     NULL,

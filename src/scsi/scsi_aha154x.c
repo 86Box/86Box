@@ -10,7 +10,7 @@
  *		made by Adaptec, Inc. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.40	2018/04/11
+ * Version:	@(#)scsi_aha154x.c	1.0.41	2018/04/26
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -1113,7 +1113,7 @@ const device_t aha1540b_device = {
     DEVICE_ISA | DEVICE_AT,
     AHA_154xB,
     aha_init, x54x_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     aha_154xb_config
 };
 
@@ -1122,7 +1122,7 @@ const device_t aha1542c_device = {
     DEVICE_ISA | DEVICE_AT,
     AHA_154xC,
     aha_init, x54x_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     aha_154x_config
 };
 
@@ -1131,7 +1131,7 @@ const device_t aha1542cf_device = {
     DEVICE_ISA | DEVICE_AT,
     AHA_154xCF,
     aha_init, x54x_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     aha_154x_config
 };
 
@@ -1140,6 +1140,6 @@ const device_t aha1640_device = {
     DEVICE_MCA,
     AHA_1640,
     aha_init, x54x_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     NULL
 };

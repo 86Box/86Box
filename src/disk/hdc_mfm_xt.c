@@ -41,7 +41,7 @@
  *		Since all controllers (including the ones made by DTC) use
  *		(mostly) the same API, we keep them all in this module.
  *
- * Version:	@(#)hdc_mfm_xt.c	1.0.15	2018/04/18
+ * Version:	@(#)hdc_mfm_xt.c	1.0.16	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -869,8 +869,7 @@ const device_t mfm_xt_xebec_device = {
     DEVICE_ISA,
     0,
     xebec_init, mfm_close, NULL,
-    xebec_available, NULL, NULL, NULL,
-    NULL
+    xebec_available, NULL, NULL, NULL
 };
 
 
@@ -924,6 +923,5 @@ const device_t mfm_xt_dtc5150x_device = {
     DEVICE_ISA,
     0,
     dtc5150x_init, mfm_close, NULL,
-    dtc5150x_available, NULL, NULL, NULL,
-    NULL
+    dtc5150x_available, NULL, NULL, NULL
 };

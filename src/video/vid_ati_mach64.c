@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.19	2018/04/02
+ * Version:	@(#)vid_ati_mach64.c	1.0.20	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -3525,54 +3525,6 @@ void mach64_force_redraw(void *p)
         mach64->svga.fullchange = changeframecount;
 }
 
-void mach64_add_status_info(char *s, int max_len, void *p)
-{
-        mach64_t *mach64 = (mach64_t *)p;
-        char temps[256];
-        uint64_t new_time = plat_timer_read();
-        uint64_t status_diff = new_time - mach64->status_time;
-        mach64->status_time = new_time;
-
-        if (((mach64->crtc_gen_cntl >> 24) & 3) == 3)
-        {
-                svga_t *svga = &mach64->svga;
-                char temps[128];
-                int bpp = 4;
-                
-                strncat(s, "Mach64 in native mode\n", max_len);
-
-                switch ((mach64->crtc_gen_cntl >> 8) & 7)
-                {
-                        case 1: bpp = 4; break;
-                        case 2: bpp = 8; break;
-                        case 3: bpp = 15; break;
-                        case 4: bpp = 16; break;
-                        case 5: bpp = 24; break;
-                        case 6: bpp = 32; break;
-                }
-
-                sprintf(temps, "Mach64 colour depth : %i bpp\n", bpp);
-                strncat(s, temps, max_len);
-        
-                sprintf(temps, "Mach64 resolution : %i x %i\n", svga->hdisp, svga->dispend);
-                strncat(s, temps, max_len);
-        
-                sprintf(temps, "Mach64 refresh rate : %i Hz\n\n", svga->frames);
-                svga->frames = 0;
-                strncat(s, temps, max_len);
-        }
-        else
-        {
-                strncat(s, "Mach64 in SVGA mode\n", max_len);
-                svga_add_status_info(s, max_len, &mach64->svga);
-        }
-
-        sprintf(temps, "%f%% CPU\n%f%% CPU (real)\n\n", ((double)mach64->blitter_time * 100.0) / timer_freq, ((double)mach64->blitter_time * 100.0) / status_diff);
-        strncat(s, temps, max_len);
-
-        mach64->blitter_time = 0;
-}
-
 static const device_config_t mach64gx_config[] =
 {
         {
@@ -3627,7 +3579,6 @@ const device_t mach64gx_isa_device =
         mach64gx_isa_available,
         mach64_speed_changed,
         mach64_force_redraw,
-        mach64_add_status_info,
         mach64gx_config
 };
 
@@ -3640,7 +3591,6 @@ const device_t mach64gx_vlb_device =
         mach64gx_vlb_available,
         mach64_speed_changed,
         mach64_force_redraw,
-        mach64_add_status_info,
         mach64gx_config
 };
 
@@ -3653,7 +3603,6 @@ const device_t mach64gx_pci_device =
         mach64gx_available,
         mach64_speed_changed,
         mach64_force_redraw,
-        mach64_add_status_info,
         mach64gx_config
 };
 
@@ -3666,6 +3615,5 @@ const device_t mach64vt2_device =
         mach64vt2_available,
         mach64_speed_changed,
         mach64_force_redraw,
-        mach64_add_status_info,
         mach64vt2_config
 };

@@ -10,7 +10,7 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)intel_piix.c	1.0.14	2018/03/26
+ * Version:	@(#)intel_piix.c	1.0.15	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -868,7 +868,6 @@ const device_t piix_device =
     NULL,
     NULL,
     NULL,
-    NULL,
     NULL
 };
 
@@ -880,7 +879,6 @@ const device_t piix3_device =
     piix_init, 
     piix_close, 
     piix_reset,
-    NULL,
     NULL,
     NULL,
     NULL,

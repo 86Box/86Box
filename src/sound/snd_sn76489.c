@@ -238,7 +238,7 @@ const device_t sn76489_device =
 	0,
         sn76489_device_init,
         sn76489_device_close,
-	NULL, NULL, NULL, NULL,
+	NULL, NULL, NULL,
         NULL
 };
 const device_t ncr8496_device =
@@ -248,6 +248,6 @@ const device_t ncr8496_device =
 	0,
         ncr8496_device_init,
         sn76489_device_close,
-	NULL, NULL, NULL, NULL,
+	NULL, NULL, NULL,
         NULL
 };

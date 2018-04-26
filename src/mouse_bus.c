@@ -49,7 +49,7 @@
  *
  *		Based on an early driver for MINIX 1.5.
  *
- * Version:	@(#)mouse_bus.c	1.0.32	2018/03/18
+ * Version:	@(#)mouse_bus.c	1.0.33	2018/04/26
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -767,7 +767,7 @@ const device_t mouse_logibus_device = {
     DEVICE_ISA,
     MOUSE_TYPE_LOGIBUS,
     bm_init, bm_close, NULL,
-    bm_poll, NULL, NULL, NULL,
+    bm_poll, NULL, NULL,
     bm_config
 };
 
@@ -776,6 +776,6 @@ const device_t mouse_msinport_device = {
     DEVICE_ISA,
     MOUSE_TYPE_INPORT,
     bm_init, bm_close, NULL,
-    bm_poll, NULL, NULL, NULL,
+    bm_poll, NULL, NULL,
     bm_config
 };

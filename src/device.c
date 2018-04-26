@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.6	2018/03/26
+ * Version:	@(#)device.c	1.0.7	2018/04/26
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -225,20 +225,6 @@ device_force_redraw(void)
 	if (devices[c] != NULL) {
 		if (devices[c]->force_redraw != NULL)
                                 devices[c]->force_redraw(device_priv[c]);
-	}
-    }
-}
-
-
-void
-device_add_status_info(char *s, int max_len)
-{
-    int c;
-
-    for (c=0; c<DEVICE_MAX; c++) {
-	if (devices[c] != NULL) {
-		if (devices[c]->add_status_info != NULL)
-			devices[c]->add_status_info(s, max_len, device_priv[c]);
 	}
     }
 }

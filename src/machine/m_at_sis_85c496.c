@@ -8,7 +8,7 @@
  *
  *		Implementation of the SiS 85c496/85c497 chip.
  *
- * Version:	@(#)m_at_sis_85c496.c	1.0.0	2018/04/17
+ * Version:	@(#)m_at_sis_85c496.c	1.0.1	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -189,7 +189,6 @@ const device_t sis_85c496_device =
     sis_85c496_init, 
     sis_85c496_close, 
     sis_85c496_reset,
-    NULL,
     NULL,
     NULL,
     NULL,

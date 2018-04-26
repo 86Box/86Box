@@ -18,7 +18,7 @@
  *		2 clocks - fetch opcode 1       2 clocks - execute
  *		2 clocks - fetch opcode 2  etc
  *
- * Version:	@(#)808x.c	1.0.3	2018/04/19
+ * Version:	@(#)808x.c	1.0.4	2018/04/26
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -3245,7 +3245,6 @@ void execx86(int cycs)
                 }
                 memcycs=0;
 
-                insc++;
                 clockhardware();
 
                 if (trap && (flags&T_FLAG) && !noint)

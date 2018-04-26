@@ -44,7 +44,7 @@
  *		configuration register (CTRL_SPCFG bit set) but have to
  *		remember that stuff first...
  *
- * Version:	@(#)bugger.c	1.0.10	2018/03/18
+ * Version:	@(#)bugger.c	1.0.11	2018/04/26
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 1989-2018 Fred N. van Kempen.
@@ -338,6 +338,6 @@ const device_t bugger_device = {
     DEVICE_ISA | DEVICE_AT,
     0,
     bug_init, bug_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     NULL
 };

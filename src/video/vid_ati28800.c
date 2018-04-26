@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.16	2018/03/24
+ * Version:	@(#)vid_ati28800.c	1.0.17	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -520,24 +520,6 @@ ati28800_force_redraw(void *priv)
     ati->svga.fullchange = changeframecount;
 }
 
-static void ati28800_add_status_info(char *s, int max_len, void *priv)
-{
-    ati28800_t *ati = (ati28800_t *)priv;
-
-    svga_add_status_info(s, max_len, &ati->svga);
-}
-
-void ati28800k_add_status_info(char *s, int max_len, void *p)
-{
-        ati28800_t *ati28800 = (ati28800_t *)p;
-        char temps[128];
-        
-        ati28800_add_status_info(s, max_len, p);
-
-        sprintf(temps, "Korean SVGA mode enabled : %s\n\n", ati28800->ksc5601_mode_enabled ? "Yes" : "No");
-        strncat(s, temps, max_len);
-}
-
 
 static const device_config_t ati28800_config[] =
 {
@@ -598,7 +580,6 @@ const device_t ati28800_device =
         ati28800_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
-        ati28800_add_status_info,
 	ati28800_config
 };
 
@@ -611,7 +592,6 @@ const device_t ati28800k_device =
         ati28800k_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
-        ati28800k_add_status_info,
 	ati28800_config
 };
 
@@ -624,7 +604,6 @@ const device_t compaq_ati28800_device =
         compaq_ati28800_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
-        ati28800_add_status_info,
 	ati28800_config
 };
 
@@ -638,7 +617,6 @@ const device_t ati28800_wonderxl24_device =
         ati28800_wonderxl24_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
-        ati28800_add_status_info,
 	ati28800_wonderxl_config
 };
 #endif

@@ -8,7 +8,7 @@
  *
  *		Emulation of the IBM PCjr.
  *
- * Version:	@(#)m_pcjr.c	1.0.6	2018/03/18
+ * Version:	@(#)m_pcjr.c	1.0.7	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -720,7 +720,6 @@ static const device_t pcjr_device = {
     NULL, NULL, NULL,
     NULL,
     speed_changed,
-    NULL,
     NULL,
     pcjr_config
 };

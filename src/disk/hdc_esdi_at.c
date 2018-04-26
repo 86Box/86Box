@@ -8,7 +8,7 @@
  *
  *		Driver for the ESDI controller (WD1007-vse1) for PC/AT.
  *
- * Version:	@(#)hdc_esdi_at.c	1.0.10	2018/04/17
+ * Version:	@(#)hdc_esdi_at.c	1.0.11	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -835,6 +835,6 @@ const device_t esdi_at_wd1007vse1_device = {
     0,
     wd1007vse1_init, wd1007vse1_close, NULL,
     wd1007vse1_available,
-    NULL, NULL, NULL,
+    NULL, NULL,
     NULL
 };

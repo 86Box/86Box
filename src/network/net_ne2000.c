@@ -12,7 +12,7 @@
  *			- Realtek RTL8019AS (ISA 16-bit, PnP);
  *			- Realtek RTL8029AS (PCI).
  *
- * Version:	@(#)net_ne2000.c	1.0.3	2018/03/15
+ * Version:	@(#)net_ne2000.c	1.0.4	2018/04/26
  *
  * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *
@@ -2814,7 +2814,7 @@ const device_t ne1000_device = {
     DEVICE_ISA,
     NE2K_NE1000,
     nic_init, nic_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     ne1000_config
 };
 
@@ -2823,7 +2823,7 @@ const device_t ne2000_device = {
     DEVICE_ISA | DEVICE_AT,
     NE2K_NE2000,
     nic_init, nic_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     ne2000_config
 };
 
@@ -2832,7 +2832,7 @@ const device_t rtl8019as_device = {
     DEVICE_ISA | DEVICE_AT,
     NE2K_RTL8019AS,
     nic_init, nic_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     rtl8019as_config
 };
 
@@ -2841,6 +2841,6 @@ const device_t rtl8029as_device = {
     DEVICE_PCI,
     NE2K_RTL8029AS,
     nic_init, nic_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     rtl8029as_config
 };

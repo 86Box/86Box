@@ -8,7 +8,7 @@
  *
  *		S3 ViRGE emulation.
  *
- * Version:	@(#)vid_s3_virge.c	1.0.9	2018/04/02
+ * Version:	@(#)vid_s3_virge.c	1.0.10	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -35,7 +35,6 @@
 
 
 static uint64_t virge_time = 0;
-static uint64_t status_time = 0;
 static int reg_writes = 0, reg_reads = 0;
 
 static int dither[4][4] =
@@ -4166,27 +4165,6 @@ static void s3_virge_force_redraw(void *p)
         virge->svga.fullchange = changeframecount;
 }
 
-static void s3_virge_add_status_info(char *s, int max_len, void *p)
-{
-        virge_t *virge = (virge_t *)p;
-        char temps[256];
-        uint64_t new_time = plat_timer_read();
-        uint64_t status_diff = new_time - status_time;
-        status_time = new_time;
-
-        if (!status_diff)
-                status_diff = 1;
-
-        svga_add_status_info(s, max_len, &virge->svga);
-        sprintf(temps, "%f Mpixels/sec\n%f ktris/sec\n%f%% CPU\n%f%% CPU (real)\n%d writes %i reads\n\n", (double)virge->pixel_count/1000000.0, (double)virge->tri_count/1000.0, ((double)virge_time * 100.0) / timer_freq, ((double)virge_time * 100.0) / status_diff, reg_writes, reg_reads);
-        strncat(s, temps, max_len);
-
-        virge->pixel_count = virge->tri_count = 0;
-        virge_time = 0;
-        reg_reads = 0;
-        reg_writes = 0;
-}
-
 static const device_config_t s3_virge_config[] =
 {
         {
@@ -4225,7 +4203,6 @@ const device_t s3_virge_vlb_device =
         s3_virge_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };
 
@@ -4240,7 +4217,6 @@ const device_t s3_virge_pci_device =
         s3_virge_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };
 
@@ -4255,7 +4231,6 @@ const device_t s3_virge_988_vlb_device =
         s3_virge_988_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };
 
@@ -4270,7 +4245,6 @@ const device_t s3_virge_988_pci_device =
         s3_virge_988_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };
 
@@ -4285,7 +4259,6 @@ const device_t s3_virge_375_vlb_device =
         s3_virge_375_1_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };
 
@@ -4300,7 +4273,6 @@ const device_t s3_virge_375_pci_device =
         s3_virge_375_1_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };
 
@@ -4315,7 +4287,6 @@ const device_t s3_virge_375_4_vlb_device =
         s3_virge_375_4_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };
 
@@ -4330,6 +4301,5 @@ const device_t s3_virge_375_4_pci_device =
         s3_virge_375_4_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };

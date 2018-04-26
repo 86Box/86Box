@@ -12,7 +12,7 @@
  *		based design. Most cards were WD1003-WA2 or -WAH, where the
  *		-WA2 cards had a floppy controller as well (to save space.)
  *
- * Version:	@(#)hdc_mfm_at.c	1.0.14	2018/04/16
+ * Version:	@(#)hdc_mfm_at.c	1.0.15	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -762,5 +762,5 @@ const device_t mfm_at_wd1003_device = {
     DEVICE_ISA | DEVICE_AT,
     0,
     mfm_init, mfm_close, NULL,
-    NULL, NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, NULL
 };

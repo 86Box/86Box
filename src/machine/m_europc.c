@@ -68,7 +68,7 @@
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *		
- * Version:	@(#)europc.c	1.0.4	2018/04/11
+ * Version:	@(#)europc.c	1.0.5	2018/04/26
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -702,7 +702,7 @@ const device_t europc_device = {
     "EuroPC System Board",
     0, 0,
     europc_boot, europc_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     europc_config
 };
 

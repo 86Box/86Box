@@ -21,7 +21,7 @@
  *		already on their way out, the newer IDE standard based on the
  *		PC/AT controller and 16b design became the IDE we now know.
  *
- * Version:	@(#)hdc_xtide.c	1.0.12	2018/04/05
+ * Version:	@(#)hdc_xtide.c	1.0.13	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -252,7 +252,7 @@ const device_t xtide_device = {
     DEVICE_ISA,
     0,
     xtide_init, xtide_close, NULL,
-    xtide_available, NULL, NULL, NULL,
+    xtide_available, NULL, NULL,
     NULL
 };
 
@@ -261,7 +261,7 @@ const device_t xtide_at_device = {
     DEVICE_ISA | DEVICE_AT,
     0,
     xtide_at_init, xtide_at_close, NULL,
-    xtide_at_available, NULL, NULL, NULL,
+    xtide_at_available, NULL, NULL,
     NULL
 };
 
@@ -270,7 +270,7 @@ const device_t xtide_acculogic_device = {
     DEVICE_ISA,
     0,
     xtide_acculogic_init, xtide_close, NULL,
-    xtide_acculogic_available, NULL, NULL, NULL,
+    xtide_acculogic_available, NULL, NULL,
     NULL
 };
 
@@ -279,6 +279,6 @@ const device_t xtide_at_ps2_device = {
     DEVICE_ISA | DEVICE_PS2,
     0,
     xtide_at_ps2_init, xtide_at_close, NULL,
-    xtide_at_ps2_available, NULL, NULL, NULL,
+    xtide_at_ps2_available, NULL, NULL,
     NULL
 };

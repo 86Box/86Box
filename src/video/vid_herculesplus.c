@@ -8,7 +8,7 @@
  *
  *		Hercules InColor emulation.
  *
- * Version:	@(#)vid_herculesplus.c	1.0.7	2018/03/18
+ * Version:	@(#)vid_herculesplus.c	1.0.8	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -737,6 +737,5 @@ const device_t herculesplus_device =
         NULL,
         herculesplus_speed_changed,
         NULL,
-	NULL,
         NULL
 };

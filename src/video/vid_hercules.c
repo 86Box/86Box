@@ -8,7 +8,7 @@
  *
  *		Hercules emulation.
  *
- * Version:	@(#)vid_hercules.c	1.0.9	2018/03/18
+ * Version:	@(#)vid_hercules.c	1.0.10	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -427,6 +427,5 @@ const device_t hercules_device =
         NULL,
         hercules_speed_changed,
         NULL,
-	NULL,
 	hercules_config
 };

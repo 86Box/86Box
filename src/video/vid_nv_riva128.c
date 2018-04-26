@@ -8,7 +8,7 @@
  *
  *		nVidia RIVA 128 emulation.
  *
- * Version:	@(#)vid_nv_riva128.c	1.0.5	2018/03/18
+ * Version:	@(#)vid_nv_riva128.c	1.0.6	2018/04/26
  *
  * Author:	Melissa Goad
  *		Miran Grca, <mgrca8@gmail.com>
@@ -3210,13 +3210,6 @@ void riva128_force_redraw(void *p)
 	riva128->svga.fullchange = changeframecount;
 }
 
-void riva128_add_status_info(char *s, int max_len, void *p)
-{
-	riva128_t *riva128 = (riva128_t *)p;
-
-	svga_add_status_info(s, max_len, &riva128->svga);
-}
-
 const device_config_t riva128_config[] =
 {
 	{
@@ -3289,7 +3282,6 @@ const device_t riva128_device =
 	riva128_available,
 	riva128_speed_changed,
 	riva128_force_redraw,
-	riva128_add_status_info,
 	riva128_config
 };
 
@@ -3443,13 +3435,6 @@ void rivatnt_force_redraw(void *p)
 	riva128->svga.fullchange = changeframecount;
 }
 
-void rivatnt_add_status_info(char *s, int max_len, void *p)
-{
-	riva128_t *riva128 = (riva128_t *)p;
-
-	svga_add_status_info(s, max_len, &riva128->svga);
-}
-
 const device_config_t rivatnt_config[] =
 {
 	{
@@ -3485,7 +3470,6 @@ const device_t rivatnt_device =
 	rivatnt_available,
 	rivatnt_speed_changed,
 	rivatnt_force_redraw,
-	rivatnt_add_status_info,
 	rivatnt_config
 };
 
@@ -3651,13 +3635,6 @@ void rivatnt2_force_redraw(void *p)
 	riva128->svga.fullchange = changeframecount;
 }
 
-void rivatnt2_add_status_info(char *s, int max_len, void *p)
-{
-	riva128_t *riva128 = (riva128_t *)p;
-
-	svga_add_status_info(s, max_len, &riva128->svga);
-}
-
 const device_config_t rivatnt2_config[] =
 {
 	{
@@ -3710,6 +3687,5 @@ const device_t rivatnt2_device =
 	rivatnt2_available,
 	rivatnt2_speed_changed,
 	rivatnt2_force_redraw,
-	rivatnt2_add_status_info,
 	rivatnt2_config
 };

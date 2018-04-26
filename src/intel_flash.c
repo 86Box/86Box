@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 1 Mbit 8-bit flash devices.
  *
- * Version:	@(#)intel_flash.c	1.0.14	2018/03/18
+ * Version:	@(#)intel_flash.c	1.0.15	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -295,7 +295,7 @@ const device_t intel_flash_bxt_ami_device =
         intel_flash_bxt_ami_init,
         intel_flash_close,
 	NULL,
-        NULL, NULL, NULL, NULL, NULL
+        NULL, NULL, NULL, NULL
 };
 
 const device_t intel_flash_bxb_ami_device =
@@ -305,7 +305,7 @@ const device_t intel_flash_bxb_ami_device =
         intel_flash_bxb_ami_init,
         intel_flash_close,
 	NULL,
-        NULL, NULL, NULL, NULL, NULL
+        NULL, NULL, NULL, NULL
 };
 
 const device_t intel_flash_bxt_device =
@@ -315,7 +315,7 @@ const device_t intel_flash_bxt_device =
         intel_flash_bxt_init,
         intel_flash_close,
 	NULL,
-        NULL, NULL, NULL, NULL, NULL
+        NULL, NULL, NULL, NULL
 };
 
 const device_t intel_flash_bxb_device =
@@ -325,5 +325,5 @@ const device_t intel_flash_bxb_device =
         intel_flash_bxb_init,
         intel_flash_close,
 	NULL,
-        NULL, NULL, NULL, NULL, NULL
+        NULL, NULL, NULL, NULL
 };

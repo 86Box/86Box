@@ -9,7 +9,7 @@
  *		Implementation of the NCR 5380 series of SCSI Host Adapters
  *		made by NCR. These controllers were designed for the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.13	2018/04/11
+ * Version:	@(#)scsi_ncr5380.c	1.0.14	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -1052,7 +1052,7 @@ const device_t scsi_lcs6821n_device =
     0,
     ncr_init, ncr_close, NULL,
     lcs6821n_available,
-    NULL, NULL, NULL,
+    NULL, NULL,
     NULL
 };
 
@@ -1063,7 +1063,7 @@ const device_t scsi_rt1000b_device =
     1,
     ncr_init, ncr_close, NULL,
     rt1000b_available,
-    NULL, NULL, NULL,
+    NULL, NULL,
     NULL
 };
 
@@ -1074,7 +1074,7 @@ const device_t scsi_t130b_device =
     2,
     ncr_init, ncr_close, NULL,
     t130b_available,
-    NULL, NULL, NULL,
+    NULL, NULL,
     NULL
 };
 
@@ -1085,6 +1085,6 @@ const device_t scsi_scsiat_device =
     3,
     ncr_init, ncr_close, NULL,
     scsiat_available,
-    NULL, NULL, NULL,
+    NULL, NULL,
     scsiat_config
 };
