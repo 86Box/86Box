@@ -2771,7 +2771,7 @@ void riva128_ptimer_tick(void *p)
 			}
 			if (linear_addr)
 			{
-				mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0xc00000);
+				mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0x1000000);
 				mem_mapping_set_addr(&riva128->ramin_mapping, linear_addr + 0xc00000, 0x200000);
 			}
 		}
