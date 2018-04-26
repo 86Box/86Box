@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.33	2018/04/26
+ * Version:	@(#)86Box.rc	1.0.34	2018/04/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -117,11 +117,9 @@ BEGIN
     POPUP "&Tools"
     BEGIN
         MENUITEM "&Settings...",                IDM_CONFIG
-        MENUITEM SEPARATOR
-        MENUITEM "S&tatus",                     IDM_STATUS
-        MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_ACTION_SCREENSHOT
-        MENUITEM SEPARATOR
         MENUITEM "&Update status bar icons",	IDM_UPDATE_ICONS
+        MENUITEM SEPARATOR
+        MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_ACTION_SCREENSHOT
     END
 #if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
     POPUP "&Logging"

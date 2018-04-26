@@ -46,7 +46,7 @@
  *
  * NOTE:	The XTA interface is 0-based for sector numbers !!
  *
- * Version:	@(#)hdc_ide_xta.c	1.0.6	2018/04/26
+ * Version:	@(#)hdc_ide_xta.c	1.0.7	2018/04/26
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -401,11 +401,6 @@ do_format(hdc_t *dev, drive_t *drive, dcb_t *dcb)
 		dev->head = dcb->head;
 		dev->sector = 0;
 
-#ifdef ENABLE_HDC_LOG
-		xta_log("%s: format_%s(%d) %d,%d\n", dev->name,
-			(dcb->cmd==CMD_FORMAT_DRIVE)?"drive":"track",
-			drive->id, dev->track, dev->head);
-#endif
 		/* Activate the status icon. */
 		ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 1);
 
@@ -467,10 +462,6 @@ hdc_callback(void *priv)
 
     switch (dcb->cmd) {
 	case CMD_TEST_READY:
-#ifdef ENABLE_HDC_LOG
-		xta_log("%s: test_ready(%d) ready=%d\n",
-			dev->name, dcb->drvsel, drive->present);
-#endif
 		if (! drive->present) {
 			dev->comp |= COMP_ERR;
 			dev->sense = ERR_NOTRDY;
@@ -479,10 +470,6 @@ hdc_callback(void *priv)
 		break;
 
 	case CMD_RECALIBRATE:
-#ifdef ENABLE_HDC_LOG
-		xta_log("%s: recalibrate(%d) ready=%d\n",
-			dev->name, dcb->drvsel, drive->present);
-#endif
 		if (! drive->present) {
 			dev->comp |= COMP_ERR;
 			dev->sense = ERR_NOTRDY;
@@ -495,10 +482,6 @@ hdc_callback(void *priv)
 	case CMD_READ_SENSE:
 		switch(dev->state) {
 			case STATE_IDLE:
-#ifdef ENABLE_HDC_LOG
-				xta_log("%s: sense(%d)\n",
-					dev->name, dcb->drvsel);
-#endif
 				dev->buf_idx = 0;
 				dev->buf_len = 4;
 				dev->buf_ptr = dev->data;
@@ -549,12 +532,6 @@ hdc_callback(void *priv)
 			case STATE_SEND:
 				/* Activate the status icon. */
 				ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 1);
-#ifdef ENABLE_HDC_LOG
-				xta_log("%s: read_%s(%d: %d,%d,%d) cnt=%d\n",
-				    dev->name, (no_data)?"verify":"sector",
-				    drive->id, dev->track, dev->head,
-				    dev->sector, dev->count);
-#endif
 do_send:
 				/* Get address of sector to load. */
 				if (get_sector(dev, drive, &addr)) {
@@ -616,12 +593,6 @@ do_send:
 			case STATE_SDONE:
 				dev->buf_idx = 0;
 				if (--dev->count == 0) {
-#ifdef ENABLE_HDC_LOG
-					xta_log("%s: read_%s(%d) DONE\n",
-					    dev->name,
-					    (no_data)?"verify":"sector",
-					    drive->id);
-#endif
 					/* De-activate the status icon. */
 					ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 0);
 
@@ -672,12 +643,6 @@ do_send:
 			case STATE_RECV:
 				/* Activate the status icon. */
 				ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 1);
-#ifdef ENABLE_HDC_LOG
-				xta_log("%s: write_%s(%d: %d,%d,%d) cnt=%d\n",
-				    dev->name, (no_data)?"verify":"sector",
-				    dcb->drvsel, dev->track,
-				    dev->head, dev->sector, dev->count);
-#endif
 do_recv:
 				/* Ready to transfer the data in. */
 				dev->state = STATE_RDATA;
@@ -743,11 +708,6 @@ do_recv:
 
 				dev->buf_idx = 0;
 				if (--dev->count == 0) {
-#ifdef ENABLE_HDC_LOG
-					xta_log("HDC: write_%s(%d) DONE\n",
-					    (no_data)?"verify":"sector",
-					    drive->id);
-#endif
 					/* De-activate the status icon. */
 					ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 0);
 
@@ -778,10 +738,6 @@ do_recv:
 	case CMD_SEEK:
 		/* Seek to cylinder. */
 		val = (dcb->cyl_low | (dcb->cyl_high << 8));
-#ifdef ENABLE_HDC_LOG
-		xta_log("%s: seek(%d) %d/%d ready=%d\n", dev->name,
-			dcb->drvsel, val, drive->cur_cyl, drive->present);
-#endif
 		if (drive->present) {
 			do_seek(dev, drive, val);
 			if (val != drive->cur_cyl) {
@@ -811,11 +767,6 @@ do_recv:
 				    (params->cyl_high << 8) | params->cyl_low;
 				drive->hpc = params->heads;
 				drive->spt = 17	/*hardcoded*/;
-#ifdef ENABLE_HDC_LOG
-				xta_log("%s: set_params(%d) cyl=%d,hd=%d,spt=%d\n",
-					dev->name, dcb->drvsel, drive->tracks,
-					drive->hpc, drive->spt);
-#endif
 				dev->status &= ~STAT_REQ;
 				set_intr(dev);
 				break;
@@ -825,10 +776,6 @@ do_recv:
 	case CMD_WRITE_SECTOR_BUFFER:
 		switch (dev->state) {
 			case STATE_IDLE:
-#ifdef ENABLE_HDC_LOG
-				xta_log("%s: write_sector_buffer()\n",
-							dev->name);
-#endif
 				dev->buf_idx = 0;
 				dev->buf_len = 512;
 				dev->state = STATE_RDATA;
@@ -873,9 +820,6 @@ do_recv:
 	case CMD_RAM_DIAGS:
 		switch(dev->state) {
 			case STATE_IDLE:
-#ifdef ENABLE_HDC_LOG
-				xta_log("%s: ram_diags\n", dev->name);
-#endif
 				dev->state = STATE_RDONE;
 				dev->callback = 5*HDC_TIME;
 				break;
@@ -889,10 +833,6 @@ do_recv:
 	case CMD_DRIVE_DIAGS:
 		switch(dev->state) {
 			case STATE_IDLE:
-#ifdef ENABLE_HDC_LOG
-				xta_log("%s: drive_diags(%d) ready=%d\n",
-					dev->name, dcb->drvsel, drive->present);
-#endif
 				if (drive->present) {
 					dev->state = STATE_RDONE;
 					dev->callback = 5*HDC_TIME;
@@ -912,9 +852,6 @@ do_recv:
 	case CMD_CTRL_DIAGS:
 		switch(dev->state) {
 			case STATE_IDLE:
-#ifdef ENABLE_HDC_LOG
-				xta_log("%s: ctrl_diags\n", dev->name);
-#endif
 				dev->state = STATE_RDONE;
 				dev->callback = 10*HDC_TIME;
 				break;

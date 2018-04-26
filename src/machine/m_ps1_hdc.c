@@ -43,7 +43,7 @@
  *		Type table with the main code, so the user can only select
  *		items from that list...
  *
- * Version:	@(#)m_ps1_hdc.c	1.0.4	2018/04/26
+ * Version:	@(#)m_ps1_hdc.c	1.0.5	2018/04/26
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -555,102 +555,6 @@ next_sector(hdc_t *dev, drive_t *drive)
 }
 
 
-#if defined(ENABLE_HDC_LOG) && defined(_DEBUG)
-static void
-dump_ssb(ssb_t *ssb)
-{
-    char temp[1024];
-    char *sp = temp;
-    uint8_t *ptr = (uint8_t *)ssb;
-    int i;
-
-    sprintf(temp, "Current SSB:\n  [");
-    sp += strlen(sp);
-    for (i = 0; i < sizeof(ssb_t); i++) {
-	sprintf(sp, " %02X", *ptr++);
-	sp += strlen(sp);
-    }
-    sprintf(sp, " ]\n"); sp += strlen(sp);
-
-    sprintf(sp, "  Status 0: T0=%d CE=%d WF=%d SE=%d NR=%d\n",
-	ssb->track_0, ssb->cylinder_err, ssb->write_fault,
-	ssb->seek_end, ssb->not_ready);
-    sp += strlen(sp);
-
-    sprintf(sp, "  Status 1: ID=%d WC=%d BT=%d AM=%d ET=%d EF=%d\n",
-	ssb->id_not_found, ssb->wrong_cyl, ssb->all_bit_set,
-	ssb->mark_not_found, ssb->ecc_crc_err, ssb->ecc_crc_field);
-    sp += strlen(sp);
-
-    sprintf(sp, "  Status 2: HEADSEL=%d DS=%d RG=%d RR=%d\n",
-	ssb->headsel_state, ssb->defective_sector, ssb->retried_ok,
-	ssb->need_reset);
-    sp += strlen(sp);
-
-    sprintf(sp, "  Last    : CYL=%d HEAD=%d SECTOR=%d DS=%d SIZE=%d\n",
-	(ssb->last_cyl_high<<8)|ssb->last_cyl_low, ssb->last_head,
-	ssb->last_sect, ssb->last_def_sect, (128<<ssb->sect_size));
-    sp += strlen(sp);
-
-    sprintf(sp, "  Current : CYL=%d HEAD=%d CORR=%d RETR=%d\n",
-	(ssb->curr_cyl_high<<8)|ssb->curr_cyl_low, ssb->curr_head,
-	ssb->sect_corr, ssb->retries);
-    sp += strlen(sp);
-
-    sprintf(sp, "  Misc    : Syndrome=%02X DRIVE_TYPE=%d\n", 
-	ssb->cmd_syndrome, ssb->drive_type);
-
-#if 0
-    pclog("HDC: %s\n", temp);
-#endif
-}
-
-
-static void
-dump_ccb(hdc_t *dev, ccb_t *ccb)
-{
-    char temp[1024];
-    char *sp = temp;
-
-    sprintf(temp, "Incoming CCB:\n");
-    sp += strlen(sp);
-    sprintf(sp, "  CMD=%02X  EC/P=%d  DS=%d  AS=%d  ND=%d\n",
-	ccb->cmd, ccb->ec_p, ccb->mbz1, ccb->auto_seek, ccb->no_data);
-    sp += strlen(sp);
-    sprintf(sp, "  CYL=%d  HEAD=%d  SECTOR=%d  COUNT=%d\n",
-	((ccb->cyl_high<<8)|ccb->cyl_low), ccb->head, ccb->sector, ccb->count);
-
-#if 0
-    pclog("HDC: %s\n", temp);
-#endif
-};
-
-
-static void
-dump_fcb(fcb_t *fcb, int count)
-{
-    char temp[1024];
-    char *sp = temp;
-
-    sprintf(temp, "Incoming FCB:\n");
-
-    while (count--) {
-	sp += strlen(sp);
-	sprintf(sp, "  CYL=%4d  HEAD=%2d  DS=%d",
-		((fcb->cyl_high << 8) | fcb->cyl_low),
-		fcb->head, fcb->defective_sector);
-	sp += strlen(sp);
-	sprintf(sp, "  SECTOR=%2d  FILL=%02X\n", fcb->sector, fcb->fill);
-	fcb++;
-    }
-
-#if 0
-    pclog("HDC: %s\n", temp);
-#endif
-}
-#endif
-
-
 /* Finish up. Repeated all over, so a function it is now. */
 static void
 do_finish(hdc_t *dev)
@@ -725,9 +629,6 @@ do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
 		while (dev->buf_idx < dev->buf_len) {
 			val = dma_channel_read(dev->dma);
 			if (val == DMA_NODATA) {
-#if 0
-				pclog("HDC: CMD_FORMAT out of data (idx=%d, len=%d)!\n", dev->buf_idx, dev->buf_len);
-#endif
 				dev->intstat |= ISR_EQUIP_CHECK;
 				dev->ssb.need_reset = 1;
 				intr = 1;
@@ -748,20 +649,11 @@ do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
 #if 0
 		fcb = (fcb_t *)dev->data;
 #endif
-#if defined(ENABLE_HDC_LOG) && defined(_DEBUG)
-		dump_fcb(fcb, ccb->count);
-#endif
 		dev->state = STATE_FINIT;
 		/*FALLTHROUGH*/
 
 	case STATE_FINIT:
 do_fmt:
-#ifdef ENABLE_HDC_LOG
-		hdc_log("HDC: format_%s(%d) %d,%d\n",
-			(ccb->cmd==CMD_FORMAT_DRIVE)?"drive":"track",
-			drive->id, dev->track, dev->head);
-#endif
-
 		/* Activate the status icon. */
 		ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 1);
 
@@ -856,9 +748,6 @@ hdc_callback(void *priv)
 		/*FALLTHROUGH*/
 
 	case CMD_READ_SECTORS:
-#if defined(ENABLE_HDC_LOG) && defined(_DEBUG)
-		if (dev->state == STATE_IDLE) dump_ccb(dev, ccb);
-#endif
 		if (! drive->present) {
 			dev->ssb.not_ready = 1;
 			do_finish(dev);
@@ -890,13 +779,6 @@ hdc_callback(void *priv)
 				ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 1);
 
 do_send:
-#ifdef ENABLE_HDC_LOG
-				pclog("HDC: read_%s(%d: %d,%d,%d) cnt=%d\n",
-				    (no_data)?"verify":"sector", drive->id,
-				    dev->track, dev->head, dev->sector,
-				    dev->count);
-#endif
-
 				/* Get address of sector to load. */
 				if (get_sector(dev, drive, &addr)) {
 					/* De-activate the status icon. */
@@ -962,11 +844,6 @@ do_send:
 			case STATE_SDONE:
 				dev->buf_idx = 0;
 				if (--dev->count == 0) {
-#ifdef ENABLE_HDC_LOG
-					hdc_log("HDC: read_%s(%d) DONE\n",
-					    (no_data)?"verify":"sector",
-					    drive->id);
-#endif
 					/* De-activate the status icon. */
 					ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 0);
 
@@ -988,9 +865,6 @@ do_send:
 
 	case CMD_READ_EXT:			/* READ_EXT */
 	case CMD_READ_ID:			/* READ_ID */
-#if defined(ENABLE_HDC_LOG) && defined(_DEBUG)
-		if (dev->state == STATE_IDLE) dump_ccb(dev, ccb);
-#endif
 		if (! drive->present) {
 			dev->ssb.not_ready = 1;
 			do_finish(dev);
@@ -1002,13 +876,6 @@ do_send:
 		break;
 
 	case CMD_RECALIBRATE:			/* RECALIBRATE */
-#if defined(ENABLE_HDC_LOG) && defined(_DEBUG)
-		dump_ccb(dev, ccb);
-#endif
-#ifdef ENABLE_HDC_LOG
-		hdc_log("HDC: recalibrate(%d) ready=%d\n",
-				drive->id, drive->present);
-#endif
 		if (drive->present) {
 			dev->track = drive->cur_cyl = 0;
 		} else {
@@ -1024,9 +891,6 @@ do_send:
 		/*FALLTHROUGH*/
 
 	case CMD_WRITE_SECTORS:
-#if defined(ENABLE_HDC_LOG) && defined(_DEBUG)
-		dump_ccb(dev, ccb);
-#endif
 		if (! drive->present) {
 			dev->ssb.not_ready = 1;
 			do_finish(dev);
@@ -1057,12 +921,6 @@ do_send:
 				/* Activate the status icon. */
 				ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 1);
 do_recv:
-#ifdef ENABLE_HDC_LOG
-				hdc_log("HDC write_%s(%d: %d,%d,%d) cnt=%d\n",
-				    (no_data)?"verify":"sector", drive->id,
-				    dev->track, dev->head, dev->sector,
-				    dev->count);
-#endif
 				/* Ready to transfer the data in. */
 				dev->state = STATE_RDATA;
 				dev->buf_idx = 0;
@@ -1129,11 +987,6 @@ do_recv:
 
 				dev->buf_idx = 0;
 				if (--dev->count == 0) {
-#ifdef ENABLE_HDC_LOG
-					hdc_log("HDC: write_%s(%d) DONE\n",
-					    (no_data)?"verify":"sector",
-					    drive->id);
-#endif
 					/* De-activate the status icon. */
 					ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 0);
 
@@ -1155,16 +1008,10 @@ do_recv:
 
 	case CMD_FORMAT_DRIVE:
 	case CMD_FORMAT_TRACK:
-#if defined(ENABLE_HDC_LOG) && defined(_DEBUG)
-		if (dev->state == STATE_IDLE) dump_ccb(dev, ccb);
-#endif
 		do_format(dev, drive, ccb);
 		break;
 		
 	case CMD_SEEK:
-#if defined(ENABLE_HDC_LOG) && defined(_DEBUG)
-		dump_ccb(dev, ccb);
-#endif
 		if (! drive->present) {
 			dev->ssb.not_ready = 1;
 			do_finish(dev);
@@ -1179,23 +1026,12 @@ do_recv:
 			val = do_seek(dev, drive,
 				      (ccb->cyl_low|(ccb->cyl_high<<8)));
 		}
-#ifdef ENABLE_HDC_LOG
-		hdc_log("HDC: %s(%d) cyl=%d, err=%d\n",
-			(ccb->ec_p)?"park":"seek",
-			drive->id, drive->cur_cyl, val);
-#endif
 		if (! val)
 			dev->ssb.seek_end = 1;
 		do_finish(dev);
 		break;
 
 	default:
-#ifdef ENABLE_HDC_LOG
-		hdc_log("HDC: unknown command - %02x\n", ccb->cmd);
-# ifdef _DEBUG
-		dump_ccb(dev, ccb);
-# endif
-#endif
 		dev->intstat |= ISR_INVALID_CMD;
 		do_finish(dev);
     }
@@ -1237,10 +1073,6 @@ hdc_send_ssb(hdc_t *dev)
     dev->buf_idx = 0;
     dev->buf_len = sizeof(dev->ssb);
     dev->buf_ptr = (uint8_t *)&dev->ssb;
-
-#if defined(ENABLE_HDC_LOG) && defined(_DEBUG)
-    dump_ssb(&dev->ssb);
-#endif
 
     /* Done with the SSB. */
     dev->attn &= ~ATT_SSB;
