@@ -377,7 +377,7 @@ endif
 
 ifeq ($(NV_RIVA), y)
 OPTS		+= -DUSE_RIVA
-DEVBROBJ	+= vid_nv_riva128.o
+DEVBROBJ	+= vid_nvidia.o
 endif
 
 ifeq ($(PAS16), y)
