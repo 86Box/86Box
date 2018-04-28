@@ -8,7 +8,7 @@
  *
  *		Implementation of the floppy drive emulation.
  *
- * Version:	@(#)fdd.c	1.0.6	2018/04/10
+ * Version:	@(#)fdd.c	1.0.7	2018/04/28
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -114,6 +114,7 @@ static const struct
         {L"BIN", img_load,       img_close, -1},
         {L"CQ",  img_load,       img_close, -1},
         {L"CQM", img_load,       img_close, -1},
+        {L"DDI", img_load,       img_close, -1},
         {L"DSK", img_load,       img_close, -1},
         {L"FDI", fdi_load,       fdi_close, -1},
         {L"FDF", img_load,       img_close, -1},

@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.34	2018/04/26
+ * Version:	@(#)86Box.rc	1.0.35	2018/04/28
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -934,7 +934,7 @@ BEGIN
     IDS_2156	"%u"
     IDS_2157	"%u MB (CHS: %i, %i, %i)"
     IDS_2158	"Floppy %i (%s): %ls"
-    IDS_2159	"All images (*.0??;*.1??;*.360;*.720;*.86F;*.BIN;*.CQ?;*.DSK;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.XDF)\0*.0??;*.1??;*.360;*.720;*.86F;*.BIN;*.CQ?;*.DSK;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.XDF\0Advanced sector images (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basic sector images (*.0??;*.1??;*.360;*.720;*.BIN;*.CQ?;*.DSK;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.360;*.720;*.BIN;*.CQ?;*.DSK;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Surface images (*.86F)\0*.86F\0All files (*.*)\0*.*\0"
+    IDS_2159	"All images (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.DDI;*.DSK;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.DDI;*.DSK;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.XDF\0Advanced sector images (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basic sector images (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.DDI;*.DSK;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.DDI;*.DSK;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Surface images (*.86F)\0*.86F\0All files (*.*)\0*.*\0"
     IDS_2160	"Configuration files (*.CFG)\0*.CFG\0All files (*.*)\0*.*\0"
     IDS_2161	"&New image..."
     IDS_2162	"&Existing image..."

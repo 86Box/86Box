@@ -13,7 +13,7 @@
  *		re-merged with the other files. Much of it is generic to
  *		all formats.
  *
- * Version:	@(#)fdd_img.c	1.0.5	2018/03/17
+ * Version:	@(#)fdd_img.c	1.0.6	2018/04/28
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -605,7 +605,7 @@ img_load(int drive, wchar_t *fn)
     uint8_t bpb_mid;	/* Media type ID. */
     uint8_t bpb_sectors;
     uint8_t bpb_sides;
-    uint8_t fdi, cqm, fdf;
+    uint8_t fdi, cqm, fdf, ddi;
     uint16_t comment_len = 0;
     int16_t block_len = 0;
     uint32_t cur_pos = 0;
@@ -646,9 +646,15 @@ img_load(int drive, wchar_t *fn)
 		writeprot[drive] = 1;
     fwriteprot[drive] = writeprot[drive];
 
-    fdi = cqm = 0;
+    fdi = cqm = ddi = 0;
 
     dev->interleave = dev->skew = 0;
+
+    if (! wcscasecmp(ext, L"DDI")) {
+	ddi = 1;
+	dev->base = 0x2400;
+    } else
+	dev->base = 0;
 
     if (! wcscasecmp(ext, L"FDI")) {
 	/* This is a Japanese FDI image, so let's read the header */
@@ -903,16 +909,20 @@ img_load(int drive, wchar_t *fn)
 	} else {
 		dev->disk_at_once = 0;
 		/* Read the BPB */
-		pclog("img_load(): File is a raw image...\n");
-		fseek(dev->f, 0x0B, SEEK_SET);
+		if (ddi) {
+			pclog("img_load(): File is a DDI image...\n");
+			fwriteprot[drive] = writeprot[drive] = 1;
+		} else
+			pclog("img_load(): File is a raw image...\n");
+		fseek(dev->f, dev->base + 0x0B, SEEK_SET);
 		fread(&bpb_bps, 1, 2, dev->f);
-		fseek(dev->f, 0x13, SEEK_SET);
+		fseek(dev->f, dev->base + 0x13, SEEK_SET);
 		fread(&bpb_total, 1, 2, dev->f);
-		fseek(dev->f, 0x15, SEEK_SET);
+		fseek(dev->f, dev->base + 0x15, SEEK_SET);
 		bpb_mid = fgetc(dev->f);
-		fseek(dev->f, 0x18, SEEK_SET);
+		fseek(dev->f, dev->base + 0x18, SEEK_SET);
 		bpb_sectors = fgetc(dev->f);
-		fseek(dev->f, 0x1A, SEEK_SET);
+		fseek(dev->f, dev->base + 0x1A, SEEK_SET);
 		bpb_sides = fgetc(dev->f);
 
 		cqm = 0;
@@ -920,9 +930,12 @@ img_load(int drive, wchar_t *fn)
 
 	fseek(dev->f, -1, SEEK_END);
 	size = ftell(dev->f) + 1;
+	if (ddi)
+		size -= 0x2400;
 
 jump_if_fdf:
-	dev->base = 0;
+	if (!ddi)
+		dev->base = 0;
 	fdi = 0;
     }
 
