@@ -189,7 +189,7 @@
  *		including the later update (DS12887A) which implemented a
  *		"century" register to be compatible with Y2K.
  *
- * Version:	@(#)nvr_at.c	1.0.7	2018/04/28
+ * Version:	@(#)nvr_at.c	1.0.8	2018/04/29
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -362,9 +362,9 @@ time_set(nvr_t *nvr, struct tm *tm)
 	/* NVR is in BCD data mode. */
 	nvr->regs[RTC_SECONDS] = RTC_BCD(tm->tm_sec);
 	nvr->regs[RTC_MINUTES] = RTC_BCD(tm->tm_min);
-	nvr->regs[RTC_DOW] = (RTC_BCD(tm->tm_wday + 1));
+	nvr->regs[RTC_DOW] = RTC_BCD(tm->tm_wday + 1);
 	nvr->regs[RTC_DOM] = RTC_BCD(tm->tm_mday);
-	nvr->regs[RTC_MONTH] = (RTC_BCD(tm->tm_mon + 1));
+	nvr->regs[RTC_MONTH] = RTC_BCD(tm->tm_mon + 1);
 	nvr->regs[RTC_YEAR] = RTC_BCD(year % 100);
 	nvr->regs[local->cent] = RTC_BCD(year / 100);
 
