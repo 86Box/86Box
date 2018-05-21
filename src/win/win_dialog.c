@@ -8,7 +8,7 @@
  *
  *		Several dialogs for the application.
  *
- * Version:	@(#)win_dialog.c	1.0.9	2018/04/01
+ * Version:	@(#)win_dialog.c	1.0.10	2018/04/29
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -21,10 +21,12 @@
 #include <windowsx.h>
 #include <shlobj.h>
 #include <commdlg.h>
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../plat.h"
@@ -143,27 +145,19 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
 	ofn.Flags |= OFN_FILEMUSTEXIST;
 
     /* Display the Open dialog box. */
-    if (save) {
-//	pclog("GetSaveFileName - lpstrFile = %s\n", ofn.lpstrFile);
+    if (save)
 	r = GetSaveFileName(&ofn);
-    } else {
-//	pclog("GetOpenFileName - lpstrFile = %s\n", ofn.lpstrFile);
+    else
 	r = GetOpenFileName(&ofn);
-    }
 
     plat_chdir(usr_path);
 
     if (r) {
 	wcstombs(openfilestring, wopenfilestring, sizeof(openfilestring));
 	filterindex = ofn.nFilterIndex;
-//	pclog("File dialog return true\n");
 
 	return(0);
     }
-
-    /* pclog("File dialog return false\n"); */
-    /* err = CommDlgExtendedError();
-    pclog("CommDlgExtendedError return %04X\n", err); */
 
     return(1);
 }

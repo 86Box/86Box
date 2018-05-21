@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.115	2018/04/26
+# Version:	@(#)Makefile.mingw	1.0.116	2018/05/01
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -206,7 +206,7 @@ VPATH		:= $(EXPATH) . cpu \
 		    sound/munt sound/munt/c_interface sound/munt/sha1 \
 		    sound/munt/srchelper \
 		    sound/resid-fp \
-		   scsi video floppy/lzf network network/slirp win
+		   scsi video network network/slirp win
 ifeq ($(X64), y)
 CPP		:= g++ -m64
 CC		:= gcc -m64
@@ -246,6 +246,7 @@ ifeq ($(DEBUG), y)
   COPTIM	:= -Og
  endif
 else
+ DFLAGS		+= -g0
  ifeq ($(OPTIM), y)
   AOPTIM	:= -mtune=native
   ifndef COPTIM
@@ -363,7 +364,6 @@ endif
 
 ifeq ($(I686), y)
 OPTS		+= -DUSE_I686
-DEVBROBJ	+= m_at_440fx.o
 endif
 
 ifeq ($(LASERXT), y)
@@ -451,8 +451,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_opti495.o m_at_scat.o \
 		    m_at_compaq.o m_at_wd76c10.o \
 		    m_at_sis_85c471.o m_at_sis_85c496.o \
-		    m_at_430lx_nx.o m_at_430fx.o \
-		    m_at_430hx.o m_at_430vx.o
+		    m_at_4x0.o
 
 DEVOBJ		:= bugger.o lpt.o $(SERIAL) \
 		    sio_fdc37c66x.o sio_fdc37c669.o sio_fdc37c93x.o \
@@ -568,8 +567,6 @@ ifdef EXOBJ
 OBJ		+= $(EXOBJ)
 endif
 
-LZFOBJ		:= lzf_c.o lzf_d.o
-
 LIBS		:= -mwindows \
 		   -lopenal.dll \
 		   -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 \
@@ -583,8 +580,8 @@ endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
-LIBS		+= -lpng -lz -lkernel32 -lwsock32 -liphlpapi -lpsapi
-LIBS		+= -lpthread -static -lstdc++ -lgcc
+LIBS		+= -lpng -lz -lwsock32 -liphlpapi
+LIBS		+= -static -lstdc++ -lgcc
 ifneq ($(X64), y)
 LIBS		+= -Wl,--large-address-aware
 endif
@@ -637,9 +634,9 @@ all:		$(PROG).exe pcap_if.exe
 		@echo Processing $<
 		@$(WINDRES) $(RFLAGS) $(EXTRAS) -i $< -o 86Box.res
 
-$(PROG).exe:	$(OBJ) $(LZFOBJ) 86Box.res
+$(PROG).exe:	$(OBJ) 86Box.res
 		@echo Linking $(PROG).exe ..
-		@$(CC) -o $(PROG).exe $(OBJ) $(LZFOBJ) 86Box.res $(LIBS)
+		@$(CC) -o $(PROG).exe $(OBJ) 86Box.res $(LIBS)
 ifneq ($(DEBUG), y)
 		@strip $(PROG).exe
 endif

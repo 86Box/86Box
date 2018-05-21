@@ -8,7 +8,7 @@
  *
  *		Emulation of the IBM PCjr.
  *
- * Version:	@(#)m_pcjr.c	1.0.7	2018/04/26
+ * Version:	@(#)m_pcjr.c	1.0.8	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,12 +18,14 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../nmi.h"
@@ -603,9 +605,6 @@ kbd_read(uint16_t port, void *priv)
 		pcjr->latched = 0;
 		ret = 0;
 		break;
-		
-	default:
-		pclog("\nBad PCjr keyboard read %04X\n", port);
     }
 
     return(ret);

@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.47	2018/03/26
+ * Version:	@(#)config.c	1.0.47	2018/04/29
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,12 +23,14 @@
  *		it on Windows XP, and possibly also Vista. Use the
  *		-DANSI_CFG for use on these systems.
  */
+#include <inttypes.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include <inttypes.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "cpu/cpu.h"
 #include "device.h"
@@ -101,6 +103,26 @@ typedef struct {
 
 
 static list_t	config_head;
+
+
+#ifdef ENABLE_CONFIG_LOG
+int config_do_log = ENABLE_CONFIG_LOG;
+#endif
+
+
+static void
+config_log(const char *format, ...)
+{
+#ifdef ENABLE_CONFIG_LOG
+    va_list ap;
+
+    if (config_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 static section_t *
@@ -963,7 +985,7 @@ load_floppy_drives(void)
 	wcsncpy(floppyfns[c], wp, sizeof_w(floppyfns[c]));
 
 	/* if (*wp != L'\0')
-		pclog("Floppy%d: %ls\n", c, floppyfns[c]); */
+		config_log("Floppy%d: %ls\n", c, floppyfns[c]); */
 	sprintf(temp, "fdd_%02i_writeprot", c+1);
 	ui_writeprot[c] = !!config_get_int(cat, temp, 0);
 	sprintf(temp, "fdd_%02i_turbo", c + 1);
@@ -1201,7 +1223,7 @@ config_load(void)
 {
     int i;
 
-    pclog("Loading config file '%ls'..\n", cfg_path);
+    config_log("Loading config file '%ls'..\n", cfg_path);
 
     memset(hdd, 0, sizeof(hard_disk_t));
     memset(cdrom_drives, 0, sizeof(cdrom_drive_t) * CDROM_NUM);
@@ -1244,7 +1266,7 @@ config_load(void)
 	mem_size = 640;
 	opl_type = 0;
 
-	pclog("Config file not present or invalid!\n");
+	config_log("Config file not present or invalid!\n");
 	return;
     }
 
@@ -1263,7 +1285,7 @@ config_load(void)
     /* Mark the configuration as changed. */
     config_changed = 1;
 
-    pclog("Config loaded.\n\n");
+    config_log("Config loaded.\n\n");
 }
 
 
@@ -1894,11 +1916,11 @@ config_dump(void)
 	entry_t *ent;
 
 	if (sec->name && sec->name[0])
-		pclog("[%s]\n", sec->name);
+		config_log("[%s]\n", sec->name);
 	
 	ent = (entry_t *)sec->entry_head.next;
 	while (ent != NULL) {
-		pclog("%s = %ls\n", ent->name, ent->wdata);
+		config_log("%s = %ls\n", ent->name, ent->wdata);
 
 		ent = (entry_t *)ent->list.next;
 	}

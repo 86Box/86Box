@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.48	2018/04/26
+ * Version:	@(#)win_settings.c	1.0.50	2018/05/01
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -21,8 +21,8 @@
 #undef BITMAP
 #include <commctrl.h>
 #include <inttypes.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
@@ -5091,7 +5091,12 @@ static BOOL win_settings_main_image_list_init(HWND hwndList)
 
 	for (i = 0; i < 10; i++)
 	{
-		hiconItem = LoadIcon(hinstance, (LPCWSTR) (256 + (uintptr_t) i));
+		if (i == 4)
+			hiconItem = LoadIcon(hinstance, (LPCWSTR) 208);
+		else if (i == 7)
+			hiconItem = LoadIcon(hinstance, (LPCWSTR) 192);
+		else
+			hiconItem = LoadIcon(hinstance, (LPCWSTR) (256 + (uintptr_t) i));
 		ImageList_AddIcon(hSmall, hiconItem);
 		DestroyIcon(hiconItem);
 	}
@@ -5165,23 +5170,16 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					h = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
 					j = ListView_GetItemState(h, i, LVIS_SELECTED);
 					if (j)
-					{
 						category = i;
-						/* pclog("Category %i selected\n", i); */
-					}
 				}
 				if (category != -1)
-				{
-					/* pclog("Showing child: %i\n", category); */
 					win_settings_show_child(hdlg, category);
-				}
 			}
 			break;
 		case WM_COMMAND:
                 	switch (LOWORD(wParam))
 	                {
 				case IDOK:
-					/* pclog("Saving settings...\n"); */
 					SendMessage(hwndChildDialog, WM_SAVESETTINGS, 0, 0);
 					i = settings_msgbox_reset();
 					if (i > 0)
@@ -5191,7 +5189,6 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 							win_settings_save();
 						}
 
-						/* pclog("Destroying window...\n"); */
 						DestroyWindow(hwndChildDialog);
 	                                        EndDialog(hdlg, 0);
         	                                plat_pause(0);

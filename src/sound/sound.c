@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.16	2018/03/26
+ * Version:	@(#)sound.c	1.0.17	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,11 +16,13 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../timer.h"
@@ -104,6 +106,26 @@ static const SOUND_CARD sound_cards[] =
     { "[PCI] Sound Blaster PCI 128",    "sbpci128",  &es1371_device},
     { "",			"",		NULL			}
 };
+
+
+#ifdef ENABLE_SOUND_LOG
+int sound_do_log = ENABLE_SOUND_LOG;
+#endif
+
+
+static void
+sound_log(const char *fmt, ...)
+{
+#ifdef ENABLE_SOUND_LOG
+    va_list ap;
+
+    if (sound_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 int sound_card_available(int card)
@@ -370,10 +392,10 @@ void sound_init(void)
 		sound_cd_event = thread_create_event();
 		sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
 
-		/* pclog("Waiting for CD start event...\n"); */
+		sound_log("Waiting for CD start event...\n");
 		thread_wait_event(sound_cd_start_event, -1);
 		thread_reset_event(sound_cd_start_event);
-		/* pclog("Done!\n"); */
+		sound_log("Done!\n");
 	}
 	else
 		cdaudioon = 0;
@@ -493,10 +515,10 @@ void sound_cd_thread_end(void)
 	if (cdaudioon) {
 		cdaudioon = 0;
 
-		/* pclog("Waiting for CD Audio thread to terminate...\n"); */
+		sound_log("Waiting for CD Audio thread to terminate...\n");
 		thread_set_event(sound_cd_event);
 		thread_wait(sound_cd_thread_h, -1);
-		/* pclog("CD Audio thread terminated...\n"); */
+		sound_log("CD Audio thread terminated...\n");
 
 		if (sound_cd_event) {
 			thread_destroy_event(sound_cd_event);

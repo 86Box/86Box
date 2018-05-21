@@ -8,7 +8,7 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.18	2018/03/26
+ * Version:	@(#)scsi.c	1.0.19	2018/04/29
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -17,11 +17,13 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../mem.h"
 #include "../rom.h"
@@ -85,6 +87,26 @@ static SCSI_CARD scsi_cards[] = {
     { "[VLB] BusLogic BT-445S",	"bt445s",	&buslogic_445s_device,},
     { "",			"",		NULL,		      },
 };
+
+
+#ifdef ENABLE_SCSI_LOG
+int scsi_do_log = ENABLE_SCSI_LOG;
+#endif
+
+
+static void
+scsi_log(const char *fmt, ...)
+{
+#ifdef ENABLE_SCSI_LOG
+    va_list ap;
+
+    if (scsi_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 int scsi_card_available(int card)
@@ -152,11 +174,11 @@ void scsi_card_init(void)
     if (!scsi_cards[scsi_card_current].device)
 	return;
 
-    pclog("Building SCSI hard disk map...\n");
+    scsi_log("Building SCSI hard disk map...\n");
     build_scsi_hd_map();
-    pclog("Building SCSI CD-ROM map...\n");
+    scsi_log("Building SCSI CD-ROM map...\n");
     build_scsi_cdrom_map();
-    pclog("Building SCSI ZIP map...\n");
+    scsi_log("Building SCSI ZIP map...\n");
     build_scsi_zip_map();
 
     for (i=0; i<SCSI_ID_MAX; i++) {

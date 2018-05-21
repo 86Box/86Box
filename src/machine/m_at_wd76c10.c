@@ -1,8 +1,8 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
@@ -50,7 +50,6 @@ wd76c10_read(uint16_t port, void *priv)
 static void
 wd76c10_write(uint16_t port, uint16_t val, void *priv)
 {
-        pclog("WD76C10 write %04X %04X\n", port, val);
         switch (port)
         {
                 case 0x0092:

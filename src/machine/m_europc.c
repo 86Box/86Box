@@ -68,7 +68,7 @@
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *		
- * Version:	@(#)europc.c	1.0.5	2018/04/26
+ * Version:	@(#)europc.c	1.0.6	2018/04/29
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -109,12 +109,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
 #include <time.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../nmi.h"
@@ -165,6 +167,27 @@ typedef struct {
 
 
 static europc_t europc;
+
+
+#ifdef ENABLE_EUROPC_LOG
+int europc_do_log = ENABLE_EUROPC_LOG;
+#endif
+
+
+static void
+europc_log(const char *fmt, ...)
+{
+#ifdef ENABLE_EUROPC_LOG
+   va_list ap;
+
+   if (europc_do_log)
+   {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+   }
+#endif
+}
 
 
 /*
@@ -388,7 +411,7 @@ jim_set(europc_t *sys, uint8_t reg, uint8_t val)
 			case 0x1f:	/* 0001 1111 */
 			case 0x0b:	/* 0000 1011 */
 				//europc_jim.mode=AGA_MONO;
-				pclog("EuroPC: AGA Monochrome mode!\n");
+				europc_log("EuroPC: AGA Monochrome mode!\n");
 				break;
 
 			case 0x18:	/* 0001 1000 */
@@ -398,12 +421,12 @@ jim_set(europc_t *sys, uint8_t reg, uint8_t val)
 
 			case 0x0e:	/* 0000 1100 */
 				/*80 columns? */
-				pclog("EuroPC: AGA 80-column mode!\n");
+				europc_log("EuroPC: AGA 80-column mode!\n");
 				break;
 
 			case 0x0d:	/* 0000 1011 */
 				/*40 columns? */
-				pclog("EuroPC: AGA 40-column mode!\n");
+				europc_log("EuroPC: AGA 40-column mode!\n");
 				break;
 
 			default:
@@ -444,7 +467,7 @@ jim_write(uint16_t addr, uint8_t val, void *priv)
     uint8_t b;
 
 #if EUROPC_DEBUG > 1
-    pclog("EuroPC: jim_wr(%04x, %02x)\n", addr, val);
+    europc_log("EuroPC: jim_wr(%04x, %02x)\n", addr, val);
 #endif
 
     switch (addr & 0x000f) {
@@ -485,7 +508,7 @@ jim_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	default:
-		pclog("EuroPC: invalid JIM write %02x, val %02x\n", addr, val);
+		europc_log("EuroPC: invalid JIM write %02x, val %02x\n", addr, val);
 		break;
     }
 }
@@ -532,12 +555,12 @@ jim_read(uint16_t addr, void *priv)
 		break;
 
 	default:
-		pclog("EuroPC: invalid JIM read %02x\n", addr);
+		europc_log("EuroPC: invalid JIM read %02x\n", addr);
 		break;
     }
 
 #if EUROPC_DEBUG > 1
-    pclog("EuroPC: jim_rd(%04x): %02x\n", addr, r);
+    europc_log("EuroPC: jim_rd(%04x): %02x\n", addr, r);
 #endif
 
     return(r);
@@ -552,10 +575,10 @@ europc_boot(const device_t *info)
     uint8_t b;
 
 #if EUROPC_DEBUG
-    pclog("EuroPC: booting mainboard..\n");
+    europc_log("EuroPC: booting mainboard..\n");
 #endif
 
-    pclog("EuroPC: NVR=[ %02x %02x %02x %02x %02x ] %sVALID\n",
+    europc_log("EuroPC: NVR=[ %02x %02x %02x %02x %02x ] %sVALID\n",
 	sys->nvr.regs[MRTC_CONF_A], sys->nvr.regs[MRTC_CONF_B],
 	sys->nvr.regs[MRTC_CONF_C], sys->nvr.regs[MRTC_CONF_D],
 	sys->nvr.regs[MRTC_CONF_E],

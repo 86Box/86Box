@@ -8,7 +8,7 @@
  *
  *		Handling of hard disk image files.
  *
- * Version:	@(#)hdd_image.c	1.0.14	2018/03/28
+ * Version:	@(#)hdd_image.c	1.0.15	2018/04/29
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -19,11 +19,11 @@
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <wchar.h>
 #include <errno.h>
 #define HAVE_STDARG_H
@@ -36,9 +36,9 @@ typedef struct
 {
     FILE *file;
     uint32_t base;
-    uint32_t last_sector;
+    uint32_t pos, last_sector;
     uint8_t type;
-    uint8_t loaded;
+    uint8_t loaded;    
 } hdd_image_t;
 
 
@@ -48,23 +48,22 @@ static char empty_sector[512];
 static char *empty_sector_1mb;
 
 
-#ifdef ENABLE_HDD_LOG
-int hdd_image_do_log = ENABLE_HDD_LOG;
+#ifdef ENABLE_HDD_IMAGE_LOG
+int hdd_image_do_log = ENABLE_HDD_IMAGE_LOG;
 #endif
 
 
 static void
 hdd_image_log(const char *fmt, ...)
 {
-#ifdef ENABLE_HDD_LOG
-	va_list ap;
+#ifdef ENABLE_HDD_IMAGE_LOG
+    va_list ap;
 
-	if (hdd_image_do_log)
-	{
-		va_start(ap, fmt);
-		pclog_ex(fmt, ap);
-		va_end(ap);
-	}
+    if (hdd_image_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
 #endif
 }
 
@@ -202,6 +201,8 @@ hdd_image_load(int id)
 
     is_hdx[0] = image_is_hdx(fn, 0);
     is_hdx[1] = image_is_hdx(fn, 1);
+
+    hdd_images[id].pos = 0;
 
     /* Try to open existing hard disk image */
     if (fn[0] == '.') {
@@ -345,8 +346,9 @@ void
 hdd_image_seek(uint8_t id, uint32_t sector)
 {
     off64_t addr = sector;
-    addr = (uint64_t)sector * 512;
+    addr = (uint64_t)sector << 9LL;
 
+    hdd_images[id].pos = sector;
     fseeko64(hdd_images[id].file, addr + hdd_images[id].base, SEEK_SET);
 }
 
@@ -354,6 +356,7 @@ hdd_image_seek(uint8_t id, uint32_t sector)
 void
 hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
+    hdd_images[id].pos = sector;
     fseeko64(hdd_images[id].file, ((uint64_t)sector << 9LL) + hdd_images[id].base, SEEK_SET);
     fread(buffer, 1, count << 9, hdd_images[id].file);
 }
@@ -376,6 +379,7 @@ hdd_image_read_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
     if ((sectors - sector) < transfer_sectors)
 	transfer_sectors = sectors - sector;
 
+    hdd_images[id].pos = sector;
     fseeko64(hdd_images[id].file, ((uint64_t)sector << 9LL) + hdd_images[id].base, SEEK_SET);
     fread(buffer, 1, transfer_sectors << 9, hdd_images[id].file);
 
@@ -388,6 +392,7 @@ hdd_image_read_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 void
 hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
+    hdd_images[id].pos = sector;
     fseeko64(hdd_images[id].file, ((uint64_t)sector << 9LL) + hdd_images[id].base, SEEK_SET);
     fwrite(buffer, count << 9, 1, hdd_images[id].file);
 }
@@ -402,6 +407,7 @@ hdd_image_write_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
     if ((sectors - sector) < transfer_sectors)
 	transfer_sectors = sectors - sector;
 
+    hdd_images[id].pos = sector;
     fseeko64(hdd_images[id].file, ((uint64_t)sector << 9LL) + hdd_images[id].base, SEEK_SET);
     fwrite(buffer, transfer_sectors << 9, 1, hdd_images[id].file);
 
@@ -416,6 +422,7 @@ hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
 {
     uint32_t i = 0;
 
+    hdd_images[id].pos = sector;
     fseeko64(hdd_images[id].file, ((uint64_t)sector << 9LL) + hdd_images[id].base, SEEK_SET);
     for (i = 0; i < count; i++)
 	fwrite(empty_sector, 512, 1, hdd_images[id].file);
@@ -433,6 +440,7 @@ hdd_image_zero_ex(uint8_t id, uint32_t sector, uint32_t count)
     if ((sectors - sector) < transfer_sectors)
 	transfer_sectors = sectors - sector;
 
+    hdd_images[id].pos = sector;
     fseeko64(hdd_images[id].file, ((uint64_t)sector << 9LL) + hdd_images[id].base, SEEK_SET);
     for (i = 0; i < transfer_sectors; i++)
 	fwrite(empty_sector, 1, 512, hdd_images[id].file);
@@ -447,6 +455,13 @@ uint32_t
 hdd_image_get_last_sector(uint8_t id)
 {
     return hdd_images[id].last_sector;
+}
+
+
+uint32_t
+hdd_image_get_pos(uint8_t id)
+{
+    return hdd_images[id].pos;
 }
 
 

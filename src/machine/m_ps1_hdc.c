@@ -43,7 +43,7 @@
  *		Type table with the main code, so the user can only select
  *		items from that list...
  *
- * Version:	@(#)m_ps1_hdc.c	1.0.5	2018/04/26
+ * Version:	@(#)m_ps1_hdc.c	1.0.6	2018/04/29
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -85,11 +85,13 @@
 #define __USE_LARGEFILE64
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../dma.h"
@@ -470,6 +472,27 @@ static const geom_t ibm_type_table[] = {
 };
 
 
+#ifdef ENABLE_PS1_HDC_LOG
+int ps1_hdc_do_log = ENABLE_PS1_HDC_LOG;
+#endif
+
+
+static void
+ps1_hdc_log(const char *fmt, ...)
+{
+#ifdef ENABLE_PS1_HDC_LOG
+   va_list ap;
+
+   if (ps1_hdc_do_log)
+   {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+   }
+#endif
+}
+
+
 /* FIXME: we should use the disk/hdd_table.c code with custom tables! */
 static int
 ibm_drive_type(drive_t *drive)
@@ -506,26 +529,20 @@ static int
 get_sector(hdc_t *dev, drive_t *drive, off64_t *addr)
 {
     if (drive->cur_cyl != dev->track) {
-#if 0
-	pclog("HDC: get_sector: wrong cylinder %d/%d\n",
+	ps1_hdc_log("HDC: get_sector: wrong cylinder %d/%d\n",
 				drive->cur_cyl, dev->track);
-#endif
 	dev->ssb.wrong_cyl = 1;
 	return(1);
     }
 
     if (dev->head >= drive->hpc) {
-#if 0
-	pclog("HDC: get_sector: past end of heads\n");
-#endif
+	ps1_hdc_log("HDC: get_sector: past end of heads\n");
 	dev->ssb.cylinder_err = 1;
 	return(1);
     }
 
     if (dev->sector > drive->spt) {
-#if 0
-	pclog("HDC: get_sector: past end of sectors\n");
-#endif
+	ps1_hdc_log("HDC: get_sector: past end of sectors\n");
 	dev->ssb.mark_not_found = 1;
 	return(1);
     }
@@ -822,9 +839,7 @@ do_send:
 						val = dma_channel_write(dev->dma,
 							*dev->buf_ptr++);
 						if (val == DMA_NODATA) {
-#if 0
-							pclog("HDC: CMD_READ_SECTORS out of data (idx=%d, len=%d)!\n", dev->buf_idx, dev->buf_len);
-#endif
+							ps1_hdc_log("HDC: CMD_READ_SECTORS out of data (idx=%d, len=%d)!\n", dev->buf_idx, dev->buf_len);
 
 							/* De-activate the status icon. */
 							ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 0);
@@ -946,9 +961,7 @@ do_recv:
 					while (dev->buf_idx < dev->buf_len) {
 						val = dma_channel_read(dev->dma);
 						if (val == DMA_NODATA) {
-#if 0
-							pclog("HDC: CMD_WRITE_SECTORS out of data (idx=%d, len=%d)!\n", dev->buf_idx, dev->buf_len);
-#endif
+							ps1_hdc_log("HDC: CMD_WRITE_SECTORS out of data (idx=%d, len=%d)!\n", dev->buf_idx, dev->buf_len);
 
 							/* De-activate the status icon. */
 							ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 0);
@@ -1093,9 +1106,7 @@ hdc_read(uint16_t port, void *priv)
 	case 0:		/* DATA register */
 		if (dev->state == STATE_SDATA) {
 			if (dev->buf_idx > dev->buf_len) {
-#if 0
-				pclog("HDC: read with empty buffer!\n");
-#endif
+				ps1_hdc_log("HDC: read with empty buffer!\n");
 				dev->state = STATE_IDLE;
 				dev->intstat |= ISR_INVALID_CMD;
 				dev->status &= (ASR_TX_EN|ASR_DATA_REQ|ASR_DIR);
@@ -1138,9 +1149,7 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
 	case 0:		/* DATA register */
 		if (dev->state == STATE_RDATA) {
 			if (dev->buf_idx >= dev->buf_len) {
-#if 0
-				pclog("HDC: write with full buffer!\n");
-#endif
+				ps1_hdc_log("HDC: write with full buffer!\n");
 				dev->intstat |= ISR_INVALID_CMD;
 				dev->status &= ~ASR_DATA_REQ;
 				set_intr(dev, 1);
@@ -1249,7 +1258,7 @@ ps1_hdc_init(const device_t *info)
     dev->irq = 14;
     dev->dma = 3;
 
-    pclog("HDC: initializing (I/O=%04X, IRQ=%d, DMA=%d)\n",
+    ps1_hdc_log("HDC: initializing (I/O=%04X, IRQ=%d, DMA=%d)\n",
 				dev->base, dev->irq, dev->dma);
 
     /* Load any disks for this device class. */
@@ -1278,7 +1287,7 @@ ps1_hdc_init(const device_t *info)
 		drive->hdd_num = i;
 		drive->present = 1;
 
-		pclog("HDC: drive%d (type %d: cyl=%d,hd=%d,spt=%d), disk %d\n",
+		ps1_hdc_log("HDC: drive%d (type %d: cyl=%d,hd=%d,spt=%d), disk %d\n",
 			hdd[i].xta_channel, drive->type,
 			drive->tracks, drive->hpc, drive->spt, i);
 

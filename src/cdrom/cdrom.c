@@ -9,18 +9,18 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.46	2018/03/26
+ * Version:	@(#)cdrom.c	1.0.47	2018/05/10
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
  *		Copyright 2016-2018 Miran Grca.
  */
 #include <inttypes.h>
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"

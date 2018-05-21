@@ -1,8 +1,10 @@
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../device.h"
@@ -180,7 +182,6 @@ void *cms_init(const device_t *info)
         cms_t *cms = malloc(sizeof(cms_t));
         memset(cms, 0, sizeof(cms_t));
 
-        pclog("cms_init\n");
         io_sethandler(0x0220, 0x0010, cms_read, NULL, NULL, cms_write, NULL, NULL, cms);
         sound_add_handler(cms_get_buffer, cms);
         return cms;

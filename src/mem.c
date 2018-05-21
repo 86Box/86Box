@@ -12,7 +12,7 @@
  *		the DYNAMIC_TABLES=1 enables this. Will eventually go
  *		away, either way...
  *
- * Version:	@(#)mem.c	1.0.9	2018/03/19
+ * Version:	@(#)mem.c	1.0.10	2018/04/29
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -40,11 +40,13 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "cpu/cpu.h"
 #include "cpu/x86_ops.h"
@@ -149,6 +151,26 @@ static uint8_t		ff_pccache[4] = { 0xff, 0xff, 0xff, 0xff };
 static int		port_92_reg = 0;
 
 
+#ifdef ENABLE_MEM_LOG
+int mem_do_log = ENABLE_MEM_LOG;
+#endif
+
+
+static void
+mem_log(const char *format, ...)
+{
+#ifdef ENABLE_MEM_LOG
+    va_list ap;
+
+    if (mem_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 void
 resetreadlookup(void)
 {
@@ -156,7 +178,7 @@ resetreadlookup(void)
 
     /* This is NULL after app startup, when mem_init() has not yet run. */
 #if DYNAMIC_TABLES
-pclog("MEM: reset_lookup: pages=%08lx, lookup=%08lx, pages_sz=%i\n", pages, page_lookup, pages_sz);
+mem_log("MEM: reset_lookup: pages=%08lx, lookup=%08lx, pages_sz=%i\n", pages, page_lookup, pages_sz);
 #endif
 
     /* Initialize the page lookup table. */
@@ -479,7 +501,7 @@ getpccache(uint32_t a)
 	return &_mem_exec[a >> 14][(uintptr_t)(a & 0x3000) - (uintptr_t)(a2 & ~0xfff)];
     }
 
-    pclog("Bad getpccache %08X\n", a);
+    mem_log("Bad getpccache %08X\n", a);
 
 #if FIXME
     return &ff_array[0-(uintptr_t)(a2 & ~0xfff)];
@@ -717,7 +739,7 @@ writememwl(uint32_t seg, uint32_t addr, uint16_t val)
 
 #if 0
     if (addr2 >= 0xa0000 && addr2 < 0xc0000)
-	   pclog("writememwl %08X %02X\n", addr2, val);
+	   mem_log("writememwl %08X %02X\n", addr2, val);
 #endif
 
     if (_mem_write_w[addr2 >> 14]) {
@@ -1618,7 +1640,7 @@ mem_reset(void)
      * We only do this if the size of the page table has changed.
      */
 #if DYNAMIC_TABLES
-pclog("MEM: reset: previous pages=%08lx, pages_sz=%i\n", pages, pages_sz);
+mem_log("MEM: reset: previous pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 #endif
     if (pages_sz != m) {
 	pages_sz = m;
@@ -1628,7 +1650,7 @@ pclog("MEM: reset: previous pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 	}
 	pages = (page_t *)malloc(m*sizeof(page_t));
 #if DYNAMIC_TABLES
-pclog("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
+mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 #endif
 
 #if DYNAMIC_TABLES

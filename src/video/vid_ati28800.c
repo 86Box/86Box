@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.17	2018/04/26
+ * Version:	@(#)vid_ati28800.c	1.0.19	2018/05/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,11 +18,13 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2018 greatpsycho.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
@@ -39,6 +41,7 @@
 
 
 #define BIOS_ATIKOR_PATH	L"roms/video/ati28800/atikorvga.bin"
+#define FONT_ATIKOR_PATH	L"roms/video/ati28800/ati_ksc5601.rom"
 
 #define BIOS_VGAXL_EVEN_PATH	L"roms/video/ati28800/xleven.bin"
 #define BIOS_VGAXL_ODD_PATH	L"roms/video/ati28800/xlodd.bin"
@@ -73,14 +76,34 @@ typedef struct ati28800_t
 } ati28800_t;
 
 
+#ifdef ENABLE_ATI28800_LOG
+int ati28800_do_log = ENABLE_ATI28800_LOG;
+#endif
+
+
+static void
+ati28800_log(const char *fmt, ...)
+{
+#ifdef ENABLE_ATI28800_LOG
+    va_list ap;
+
+    if (ati28800_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 static void ati28800_out(uint16_t addr, uint8_t val, void *p)
 {
         ati28800_t *ati28800 = (ati28800_t *)p;
         svga_t *svga = &ati28800->svga;
         uint8_t old;
         
-/*        pclog("ati28800_out : %04X %02X  %04X:%04X\n", addr, val, CS,pc); */
-                
+        ati28800_log("ati28800_out : %04X %02X  %04X:%04X\n", addr, val, CS, cpu_state.pc);
+
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) 
                 addr ^= 0x60;
 
@@ -212,7 +235,7 @@ static uint8_t ati28800_in(uint16_t addr, void *p)
         svga_t *svga = &ati28800->svga;
         uint8_t temp;
 
-/*        if (addr != 0x3da) pclog("ati28800_in : %04X ", addr); */
+        if (addr != 0x3da)  ati28800_log("ati28800_in : %04X ", addr);
                 
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) addr ^= 0x60;
              
@@ -261,7 +284,7 @@ static uint8_t ati28800_in(uint16_t addr, void *p)
                 temp = svga_in(addr, svga);
                 break;
         }
-        /* if (addr != 0x3da) pclog("%02X  %04X:%04X\n", temp, CS,cpu_state.pc); */
+        if (addr != 0x3da)  ati28800_log("%02X  %04X:%04X\n", temp, CS,cpu_state.pc);
         return temp;
 }
 
@@ -272,8 +295,8 @@ uint8_t ati28800k_in(uint16_t addr, void *p)
         uint16_t oldaddr = addr;
         uint8_t temp = 0xFF;
 
-//        if (addr != 0x3da) pclog("ati28800_in : %04X ", addr);
-                
+        if (addr != 0x3da)  ati28800_log("ati28800k_in : %04X ", addr);
+
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) addr ^= 0x60;
              
         switch (addr)
@@ -303,7 +326,7 @@ uint8_t ati28800k_in(uint16_t addr, void *p)
                 temp = ati28800_in(oldaddr, p);
                 break;
         }
-        if (addr != 0x3da) pclog("%02X  %04X:%04X\n", temp, CS,cpu_state.pc);
+        if (addr != 0x3da)  ati28800_log("%02X  %04X:%04X\n", temp, CS,cpu_state.pc);
         return temp;
 }
  
@@ -387,7 +410,7 @@ ati28800k_init(const device_t *info)
         ati28800->ksc5601_mode_enabled = 0;
         
         rom_init(&ati28800->bios_rom, BIOS_ATIKOR_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-		loadfont(FONT_ATIKOR_PATH, 6);
+	loadfont(FONT_ATIKOR_PATH, 6);
         
         svga_init(&ati28800->svga, ati28800, ati28800->memory << 10, /*Memory size, default 512KB*/
                    ati28800k_recalctimings,

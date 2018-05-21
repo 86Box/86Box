@@ -8,7 +8,7 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)snd_mpu401.c	1.0.9	2018/04/26
+ * Version:	@(#)snd_mpu401.c	1.0.10	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
@@ -19,12 +19,14 @@
  *		Copyright 2008-2018 DOSBox Team.
  *		Copyright 2016-2018 Miran Grca.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../io.h"
@@ -47,33 +49,29 @@ static int64_t mpu401_event_callback = 0LL;
 static int64_t mpu401_eoi_callback = 0LL;
 static int64_t mpu401_reset_callback = 0LL;
 
-#ifdef ENABLE_MPU401_LOG
-static int mpu401_do_log = ENABLE_MPU401_LOG;
-static char logfmt[512];
-#endif
-
 
 static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val);
 static void MPU401_EOIHandlerDispatch(void *p);
 
 
+#ifdef ENABLE_MPU401_LOG
+int mpu401_do_log = ENABLE_MPU401_LOG;
+#endif
+
+
 static void
-mpulog(const char *fmt, ...)
+mpu401_log(const char *fmt, ...)
 {
 #ifdef ENABLE_MPU401_LOG
     va_list ap;
 
     if (mpu401_do_log) {
 	va_start(ap, fmt);
-	memset(logfmt, 0, 512);
-	strcpy(logfmt, "MPU-401: ");
-	strcpy(logfmt + strlen(logfmt), fmt);
-	vprintf(logfmt, ap);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
 #endif
 }
-#define pclog	mpulog
 
 
 static void
@@ -100,7 +98,7 @@ QueueByte(mpu_t *mpu, uint8_t data)
 	mpu->queue_used++;
 	mpu->queue[pos]=data;
     } else
-	pclog("MPU401:Data queue full\n");
+	mpu401_log("MPU401:Data queue full\n");
 }
 
 
@@ -161,7 +159,7 @@ MPU401_ResetDone(void *priv)
 {
     mpu_t *mpu = (mpu_t *)priv;
 
-    pclog("MPU-401 reset callback\n");
+    mpu401_log("MPU-401 reset callback\n");
 
     mpu401_reset_callback = 0LL;
 
@@ -197,10 +195,6 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 			break;
 	}
 
-#if 0
-	if (val&0x20)
-		pclog("MPU-401:Unhandled Recording Command %x",(int)val);
-#endif
 	switch (val & 0xc) {
 		case  0x4:	/* Stop */
 			mpu->state.playing = 0;
@@ -215,7 +209,6 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 			break;
 
 		case 0x8:	/* Play */
-//			pclog("MPU-401:Intelligent mode playback started");
 			mpu->state.playing = 1;
 			mpu401_event_callback = (MPU401_TIMECONSTANT / (mpu->clock.tempo*mpu->clock.timebase)) * 1000LL * TIMER_USEC;
 			ClrQueue(mpu);
@@ -332,7 +325,7 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 		break;
 
 	case 0xff:	/* Reset MPU-401 */
-		pclog("MPU-401:Reset %X\n",val);
+		mpu401_log("MPU-401:Reset %X\n",val);
 		mpu401_reset_callback = MPU401_RESETBUSY * 33LL * TIMER_USEC;
 		mpu->state.reset=1;
 		MPU401_Reset(mpu);
@@ -342,12 +335,12 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 		break;
 
 	case 0x3f:	/* UART mode */
-		pclog("MPU-401:Set UART mode %X\n",val);
+		mpu401_log("MPU-401:Set UART mode %X\n",val);
 		mpu->mode=M_UART;
 		break;
 
 	default:;
-		//pclog("MPU-401:Unhandled command %X",val);
+		//mpu401_log("MPU-401:Unhandled command %X",val);
     }
 
     QueueByte(mpu, MSG_MPU_ACK);
@@ -371,7 +364,7 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
 	case 0xe1:	/* Set relative tempo */
 		mpu->state.command_byte=0;
 		if (val!=0x40) //default value
-			pclog("MPU-401:Relative tempo change not implemented\n");
+			mpu401_log("MPU-401:Relative tempo change not implemented\n");
 		return;
 
 	case 0xe7:	/* Set internal clock to host interval */
@@ -428,7 +421,7 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
 				break;
 
 			case 0xf0:
-				//pclog("MPU-401:Illegal WSD byte\n");
+				//mpu401_log("MPU-401:Illegal WSD byte\n");
 				mpu->state.wsd=0;
 				mpu->state.channel=mpu->state.old_chan;
 				return;
@@ -656,7 +649,7 @@ MPU401_EOIHandler(void *priv)
     mpu_t *mpu = (mpu_t *)priv;
     uint8_t i;
 
-    pclog("MPU-401 end of input callback\n");
+    mpu401_log("MPU-401 end of input callback\n");
 	
     mpu401_eoi_callback = 0LL;
     mpu->state.eoi_scheduled=0;
@@ -697,7 +690,7 @@ MPU401_EOIHandlerDispatch(void *priv)
 static void
 imf_write(uint16_t addr, uint8_t val, void *priv)
 {
-    pclog("IMF:Wr %4X,%X\n", addr, val);
+    mpu401_log("IMF:Wr %4X,%X\n", addr, val);
 }
 
 
@@ -750,16 +743,16 @@ mpu401_write(uint16_t addr, uint8_t val, void *priv)
 {
     mpu_t *mpu = (mpu_t *)priv;
      
-    /* pclog("MPU401 Write Port %04X, val %x\n", addr, val); */
+    /* mpu401_log("MPU401 Write Port %04X, val %x\n", addr, val); */
     switch (addr & 1) {
 	case 0: /*Data*/
 		MPU401_WriteData(mpu, val);
-		pclog("Write Data (0x330) %X\n", val);
+		mpu401_log("Write Data (0x330) %X\n", val);
 		break;
 
 	case 1: /*Command*/
 		MPU401_WriteCommand(mpu, val);
-		pclog("Write Command (0x331) %x\n", val);
+		mpu401_log("Write Command (0x331) %x\n", val);
 		break;
     }
 }
@@ -774,7 +767,7 @@ mpu401_read(uint16_t addr, void *priv)
     switch (addr & 1) {	
 	case 0: //Read Data
 		ret = MPU401_ReadData(mpu);
-		pclog("Read Data (0x330) %X\n", ret);
+		mpu401_log("Read Data (0x330) %X\n", ret);
 		break;
 
 	case 1: //Read Status
@@ -782,11 +775,11 @@ mpu401_read(uint16_t addr, void *priv)
 		if (!mpu->queue_used) ret=STATUS_INPUT_NOT_READY;
 		ret |= 0x3f;	//FIXME: check with MPU401 TechRef
 
-		pclog("Read Status (0x331) %x\n", ret);
+		mpu401_log("Read Status (0x331) %x\n", ret);
 		break;
     }
 
-    /* pclog("MPU401 Read Port %04X, ret %x\n", addr, ret); */
+    /* mpu401_log("MPU401 Read Port %04X, ret %x\n", addr, ret); */
     return(ret);
 }
 
@@ -798,7 +791,7 @@ MPU401_Event(void *priv)
     int new_time;
     uint8_t i;
 
-    pclog("MPU-401 event callback\n");
+    mpu401_log("MPU-401 event callback\n");
 
     if (mpu->mode==M_UART) {
 	mpu401_event_callback = 0LL;
@@ -838,7 +831,7 @@ next_event:
 	return;
     } else {
 	mpu401_event_callback += (MPU401_TIMECONSTANT/new_time) * 1000LL * TIMER_USEC;
-	pclog("Next event after %i us (time constant: %i)\n", (int) ((MPU401_TIMECONSTANT/new_time) * 1000 * TIMER_USEC), (int) MPU401_TIMECONSTANT);
+	mpu401_log("Next event after %i us (time constant: %i)\n", (int) ((MPU401_TIMECONSTANT/new_time) * 1000 * TIMER_USEC), (int) MPU401_TIMECONSTANT);
     }
 }
 
@@ -860,7 +853,7 @@ mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode)
     mpu->mode = M_UART;
 
     mpu->intelligent = (mode == M_INTELLIGENT) ? 1 : 0;
-    pclog("Starting as %s (mode is %s)\n", mpu->intelligent ? "INTELLIGENT" : "UART", (mode == M_INTELLIGENT) ? "INTELLIGENT" : "UART");
+    mpu401_log("Starting as %s (mode is %s)\n", mpu->intelligent ? "INTELLIGENT" : "UART", (mode == M_INTELLIGENT) ? "INTELLIGENT" : "UART");
 
     mpu401_event_callback = 0LL;
     mpu401_eoi_callback = 0LL;
@@ -902,7 +895,7 @@ mpu401_standalone_init(const device_t *info)
     mpu = malloc(sizeof(mpu_t));
     memset(mpu, 0, sizeof(mpu_t));
  
-    pclog("mpu_init\n");
+    mpu401_log("mpu_init\n");
     mpu401_init(mpu, device_get_config_hex16("base"), device_get_config_int("irq"), device_get_config_int("mode"));
 
    return(mpu);

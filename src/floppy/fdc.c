@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.7	2018/04/26
+ * Version:	@(#)fdc.c	1.0.8	2018/05/09
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -613,7 +613,7 @@ void
 fdc_seek(fdc_t *fdc, int drive, int params)
 {
     fdd_seek(real_drive(fdc, drive), params);
-    fdc->time = 5000 * TIMER_SHIFT;
+    fdc->time = 5000LL * (1 << TIMER_SHIFT);
 
     fdc->stat |= (1 << fdc->drive);
 }
@@ -992,6 +992,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						fdc->read_track_sector.id.h = fdc->params[2];
 						fdc->read_track_sector.id.r = 1;
 						fdc->read_track_sector.id.n = fdc->params[4];
+						if ((fdc->head & 0x01) && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
+							fdc_noidam(fdc);
+							return;
+						}
 						fdd_readsector(real_drive(fdc, fdc->drive), SECTOR_FIRST, fdc->params[1], fdc->head, fdc->rate, fdc->params[4]);
 						break;
 					case 3: /*Specify*/
@@ -1017,12 +1021,20 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 					case 5: /*Write data*/
 					case 9: /*Write deleted data*/
 						fdc_io_command_phase1(fdc, 1);
+						if ((fdc->head & 0x01) && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
+							fdc_noidam(fdc);
+							return;
+						}
 	                                	fdd_writesector(real_drive(fdc, fdc->drive), fdc->sector, fdc->params[1], fdc->head, fdc->rate, fdc->params[4]);
 						break;
 					case 0x11: /*Scan equal*/
 					case 0x19: /*Scan low or equal*/
 					case 0x1D: /*Scan high or equal*/
 						fdc_io_command_phase1(fdc, 1);
+						if ((fdc->head & 0x01) && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
+							fdc_noidam(fdc);
+							return;
+						}
 						fdd_comparesector(real_drive(fdc, fdc->drive), fdc->sector, fdc->params[1], fdc->head, fdc->rate, fdc->params[4]);
 						break;
 					case 0x16: /*Verify*/
@@ -1032,6 +1044,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 					case 0xC: /*Read deleted data*/
 						fdc_io_command_phase1(fdc, 0);
 						fdc_log("Reading sector (drive %i) (%i) (%i %i %i %i) (%i %i %i)\n", fdc->drive, fdc->params[0], fdc->params[1], fdc->params[2], fdc->params[3], fdc->params[4], fdc->params[5], fdc->params[6], fdc->params[7]);
+						if ((fdc->head & 0x01) && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
+							fdc_noidam(fdc);
+							return;
+						}
 						if (((dma_mode(2) & 0x0C) == 0x00) && !(fdc->flags & FDC_FLAG_PCJR) && fdc->dma) {
 							/* DMA is in verify mode, treat this like a VERIFY command. */
 							fdc_log("Verify-mode read!\n");
@@ -1065,7 +1081,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en)
 							fdc_seek(fdc, fdc->drive, -fdc->max_track);
 						fdc_log("Recalibrating...\n");
-						fdc->time = 5000LL;
+						fdc->time = 5000LL * (1 << TIMER_SHIFT);
 						fdc->step = fdc->seek_dir = 1;
 						break;
 					case 0x0d: /*Format*/
@@ -1119,7 +1135,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 									fdc_seek(fdc, fdc->drive, -fdc->params[1]);
 									fdc->pcn[fdc->params[0] & 3] -= fdc->params[1];
 								}
-								fdc->time = 5000LL;
+								fdc->time = 5000LL * (1 << TIMER_SHIFT);
 								fdc->step = 1;
 							} else {
 								fdc->st0 = 0x20 | (fdc->params[0] & 7);
@@ -1146,7 +1162,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 								fdc->seek_dir = 1;
 							fdc_seek(fdc, fdc->drive, fdc->params[1] - fdc->pcn[fdc->params[0] & 3]);
 							fdc->pcn[fdc->params[0] & 3] = fdc->params[1];
-							fdc->time = 5000LL;
+							fdc->time = 5000LL * (1 << TIMER_SHIFT);
 							fdc->step = 1;
 							fdc_log("fdc->time = %i\n", fdc->time);
 						}
@@ -1447,7 +1463,9 @@ fdc_callback(void *priv)
 		fdc->inread = 1;
 		return;
 	case 4: /*Sense drive status*/
-		fdc->res[10] = (fdc->params[0] & 7) | 0x28;
+		fdc->res[10] = (fdc->params[0] & 7) | 0x20;
+		if (fdd_is_double_sided(real_drive(fdc, fdc->drive)))
+			fdc->res[10] |= 0x08;
 		if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en) {
 			if (fdd_track0(real_drive(fdc, fdc->drive)))
 				fdc->res[10] |= 0x10;
@@ -1539,10 +1557,14 @@ fdc_callback(void *priv)
 					fdc_poll_readwrite_finish(fdc, compare);
 				return;
 			}
-			if ((fdc->command & 0x80) && (fdd_get_head(real_drive(fdc, fdc->drive)) == 0)) {
+			if ((fdd_get_head(real_drive(fdc, fdc->drive)) == 0)) {
 				fdc->sector = 1;
 				fdc->head |= 1;
 				fdd_set_head(real_drive(fdc, fdc->drive), 1);
+				if (!fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
+					fdc_noidam(fdc);
+					return;
+				}
 			}
 		} else if (fdc->sector < fdc->params[5])
 			fdc->sector++;
@@ -1688,6 +1710,10 @@ fdc_error(fdc_t *fdc, int st5, int st6)
 	fdc->fintr = 0;
     fdc->stat = 0xD0;
     fdc->st0 = fdc->res[4] = 0x40 | (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->rw_drive;
+    if (fdc->head && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
+	pclog("Head 1 on 1-sided drive\n");
+	fdc->st0 |= 0x08;
+    }
     fdc->res[5] = st5;
     fdc->res[6] = st6;
     fdc_log("FDC Error: %02X %02X %02X\n", fdc->res[4], fdc->res[5], fdc->res[6]);

@@ -1,3 +1,41 @@
+/*
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
+ *
+ *		This file is part of the VARCem Project.
+ *
+ *		Dynamic Recompiler for Intel 32-bit systems.
+ *
+ * Version:	@(#)codegen_x86.c	1.0.3	2018/05/05
+ *
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free  Software  Foundation; either  version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is  distributed in the hope that it will be useful, but
+ * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the:
+ *
+ *   Free Software Foundation, Inc.
+ *   59 Temple Place - Suite 330
+ *   Boston, MA 02111-1307
+ *   USA.
+ */
 #if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _WIN32
 
 #include <stdio.h>
@@ -956,11 +994,6 @@ static uint32_t gen_MEM_CHECK_WRITE()
         return addr;
 }
 
-/*static void checkdebug(uint32_t a)
-{
-        pclog("checkdebug %08x\n", a);
-}*/
-
 static uint32_t gen_MEM_CHECK_WRITE_W()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
@@ -1200,10 +1233,17 @@ void codegen_init()
         block_pos = (block_pos + 15) & ~15;
         mem_check_write_l = (uint32_t)gen_MEM_CHECK_WRITE_L();
         
+#ifndef _MSC_VER
         asm(
                 "fstcw %0\n"
                 : "=m" (cpu_state.old_npxc)
         );
+#else
+        __asm
+        {
+                fstcw cpu_state.old_npxc
+        }
+#endif
 }
 
 void codegen_reset()
@@ -1215,20 +1255,6 @@ void codegen_reset()
 
 void dump_block()
 {
-/*        codeblock_t *block = pages[0x119000 >> 12].block;
-
-        pclog("dump_block:\n");
-        while (block)
-        {
-                uint32_t start_pc = (block->pc & 0xffc) | (block->phys & ~0xfff);
-                uint32_t end_pc = (block->endpc & 0xffc) | (block->phys & ~0xfff);
-                pclog(" %p : %08x-%08x  %08x-%08x %p %p\n", (void *)block, start_pc, end_pc,  block->pc, block->endpc, (void *)block->prev, (void *)block->next);
-                if (!block->pc)
-                        fatal("Dead PC=0\n");
-                
-                block = block->next;
-        }
-        pclog("dump_block done\n");*/
 }
 
 static void add_to_block_list(codeblock_t *block)
@@ -1657,10 +1683,6 @@ int opcode_0f_modrm[256] =
         
 void codegen_debug()
 {
-        if (output)
-        {
-                pclog("At %04x(%08x):%04x  %04x(%08x):%04x  es=%08x EAX=%08x BX=%04x ECX=%08x BP=%04x EDX=%08x EDI=%08x\n", CS, cs, cpu_state.pc, SS, ss, ESP,  es,EAX, BX,ECX,BP,  EDX,EDI);
-        }
 }
 
 static x86seg *codegen_generate_ea_16_long(x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, uint32_t *op_pc)
@@ -1844,7 +1866,7 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
         codeblock_t *block = &codeblock[block_current];
         uint32_t op_32 = use32;
         uint32_t op_pc = new_pc;
-        OpFn *op_table = x86_dynarec_opcodes;
+        const OpFn *op_table = x86_dynarec_opcodes;
         RecompOpFn *recomp_op_table = recomp_opcodes;
         int opcode_shift = 0;
         int opcode_mask = 0x3ff;

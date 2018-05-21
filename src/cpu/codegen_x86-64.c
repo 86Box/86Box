@@ -1,8 +1,10 @@
 #ifdef __amd64__
 
-#include <stdint.h>
+#include <stdarg.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "cpu.h"
 #include "x86.h"
@@ -94,7 +96,6 @@ void codegen_init()
 		exit(-1);
 	}
 #endif
-//        pclog("Codegen is %p\n", (void *)pages[0xfab12 >> 12].block);
 }
 
 void codegen_reset()
@@ -111,20 +112,6 @@ void codegen_reset()
 
 void dump_block()
 {
-/*        codeblock_t *block = pages[0x119000 >> 12].block;
-
-        pclog("dump_block:\n");
-        while (block)
-        {
-                uint32_t start_pc = (block->pc & 0xffc) | (block->phys & ~0xfff);
-                uint32_t end_pc = (block->endpc & 0xffc) | (block->phys & ~0xfff);
-                pclog(" %p : %08x-%08x  %08x-%08x %p %p\n", (void *)block, start_pc, end_pc,  block->pc, block->endpc, (void *)block->prev, (void *)block->next);
-                if (!block->pc)
-                        fatal("Dead PC=0\n");
-                
-                block = block->next;
-        }
-        pclog("dump_block done\n");*/
 }
 
 static void add_to_block_list(codeblock_t *block)
@@ -204,7 +191,6 @@ static void remove_from_block_list(codeblock_t *block, uint32_t pc)
         }
         else
         {
-//                pclog(" pages.block_2=%p 3 %p %p\n", (void *)block->next_2, (void *)block, (void *)pages[block->phys_2 >> 12].block_2);
                 pages[block->phys_2 >> 12].block_2[(block->phys_2 >> 10) & 3] = block->next_2;
                 if (block->next_2)
                         block->next_2->prev_2 = NULL;
@@ -270,11 +256,8 @@ void codegen_block_init(uint32_t phys_addr)
         block_current = (block_current + 1) & BLOCK_MASK;
         block = &codeblock[block_current];
 
-//        if (block->pc == 0xb00b4ff5)
-//                pclog("Init target block\n");
         if (block->valid != 0)
         {
-//                pclog("Reuse block : was %08x now %08x\n", block->pc, cs+pc);
                 delete_block(block);
                 cpu_recomp_reuse++;
         }
@@ -374,8 +357,6 @@ void codegen_block_start_recompile(codeblock_t *block)
         addbyte(0xBD);
         addquad(((uintptr_t)&cpu_state) + 128);
 
-//        pclog("New block %i for %08X   %03x\n", block_current, cs+pc, block_num);
-
         last_op32 = -1;
         last_ea_seg = NULL;
         last_ssegs = -1;
@@ -434,14 +415,10 @@ void codegen_block_generate_end_mask()
                 end_pc = 0x3ff;
         start_pc >>= PAGE_MASK_SHIFT;
         end_pc >>= PAGE_MASK_SHIFT;
-        
-//        pclog("block_end: %08x %08x\n", start_pc, end_pc);
+
         for (; start_pc <= end_pc; start_pc++)
-        {                
                 block->page_mask |= ((uint64_t)1 << start_pc);
-//                pclog("  %08x %llx\n", start_pc, block->page_mask);
-        }
-        
+
         pages[block->phys >> 12].code_present_mask[(block->phys >> 10) & 3] |= block->page_mask;
 
         block->phys_2 = -1;
@@ -467,7 +444,6 @@ void codegen_block_generate_end_mask()
                                 fatal("!page_mask2\n");
                         if (block->next_2)
                         {
-//                        pclog("  next_2->pc=%08x\n", block->next_2->pc);
                                 if (block->next_2->valid == 0)
                                         fatal("block->next_2->valid=0 %p\n", (void *)block->next_2);
                         }
@@ -476,7 +452,6 @@ void codegen_block_generate_end_mask()
                 }
         }
 
-//        pclog("block_end: %08x %08x %016llx\n", block->pc, block->endpc, block->page_mask);
         recomp_page = -1;
 }
 
@@ -542,7 +517,6 @@ void codegen_block_end_recompile(codeblock_t *block)
         block->next_2 = block->prev_2 = NULL;
         codegen_block_generate_end_mask();
         add_to_block_list(block);
-//        pclog("End block %i\n", block_num);
 }
 
 void codegen_flush()
@@ -597,10 +571,6 @@ int opcode_0f_modrm[256] =
         
 void codegen_debug()
 {
-        if (output)
-        {
-                pclog("At %04x(%08x):%04x  %04x(%08x):%04x  es=%08x EAX=%08x BX=%04x ECX=%08x BP=%04x EDX=%08x EDI=%08x\n", CS, cs, cpu_state.pc, SS, ss, ESP,  es,EAX, BX,ECX,BP,  EDX,EDI);
-        }
 }
 
 static x86seg *codegen_generate_ea_16_long(x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, uint32_t *op_pc)
@@ -1122,17 +1092,6 @@ generate_call:
                         addlong(codegen_block_ins);
                         codegen_block_ins = 0;
                 }
-#if 0
-                if (codegen_block_full_ins)
-                {
-                        addbyte(0x81); /*ADD $codegen_block_ins,ins*/
-                        addbyte(0x04);
-                        addbyte(0x25);
-                        addlong((uint32_t)&cpu_recomp_full_ins);
-                        addlong(codegen_block_full_ins);
-                        codegen_block_full_ins = 0;
-                }
-#endif
         }
 
         if ((op_table == x86_dynarec_opcodes_REPNE || op_table == x86_dynarec_opcodes_REPE) && !op_table[opcode | op_32])
@@ -1159,8 +1118,6 @@ generate_call:
         }
 
         op = op_table[((opcode >> opcode_shift) | op_32) & opcode_mask];
-//        if (output)
-//                pclog("Generate call at %08X %02X %08X %02X  %08X %08X %08X %08X %08X  %02X %02X %02X %02X\n", &codeblock[block_current][block_pos], opcode, new_pc, ram[old_pc], EAX, EBX, ECX, EDX, ESI, ram[0x7bd2+6],ram[0x7bd2+7],ram[0x7bd2+8],ram[0x7bd2+9]);
         if (op_ssegs != last_ssegs)
         {
                 last_ssegs = op_ssegs;
@@ -1169,7 +1126,6 @@ generate_call:
                 addbyte((uint8_t)cpu_state_offset(ssegs));
                 addbyte(op_ssegs);
         }
-//#if 0
         if ((!test_modrm ||
                 (op_table == x86_dynarec_opcodes && opcode_modrm[opcode]) ||
                 (op_table == x86_dynarec_opcodes_0f && opcode_0f_modrm[opcode]))/* && !(op_32 & 0x200)*/)
@@ -1195,10 +1151,8 @@ generate_call:
                         op_ea_seg = codegen_generate_ea_32_long(op_ea_seg, fetchdat, op_ssegs, &op_pc, stack_offset);
                 op_pc -= pc_off;
         }
-//#endif
         if (op_ea_seg != last_ea_seg)
         {
-//                last_ea_seg = op_ea_seg;
                 addbyte(0xC7); /*MOVL $&_ds,(ea_seg)*/
                 addbyte(0x45);
                 addbyte((uint8_t)cpu_state_offset(ea_seg));
@@ -1234,8 +1188,6 @@ generate_call:
         addbyte(0xc0);
         addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
         addlong((uint32_t)(uintptr_t)&block->data[BLOCK_EXIT_OFFSET] - (uint32_t)(uintptr_t)(&block->data[block_pos + 4]));
-
-//	call(block, codegen_debug);
 
         codegen_endpc = (cs + cpu_state.pc) + 8;
 }

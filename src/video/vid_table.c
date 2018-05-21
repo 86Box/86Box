@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.27	2018/04/09
+ * Version:	@(#)vid_table.c	1.0.29	2018/05/10
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -16,11 +16,13 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../machine/machine.h"
 #include "../mem.h"
@@ -112,7 +114,7 @@ video_cards[] = {
     { "[ISA] Hercules Plus",				"hercules_plus",	&herculesplus_device,			GFX_HERCULESPLUS,		VIDEO_FLAG_TYPE_MDA, 	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] Hercules InColor",				"incolor",		&incolor_device,			GFX_INCOLOR,			VIDEO_FLAG_TYPE_MDA,	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] MDA",					"mda",			&mda_device,				GFX_MDA,			VIDEO_FLAG_TYPE_MDA, 	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] MDSI Genius",				"genius",		&genius_device,				GFX_GENIUS,			VIDEO_FLAG_TYPE_CGA, 	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
+    { "[ISA] MDSI Genius",				"genius",		&genius_device,				GFX_GENIUS,			VIDEO_FLAG_TYPE_MDA, 	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] OAK OTI-037C",				"oti037c",		&oti037c_device,			GFX_OTI037C,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 6,  8, 16,   6,  8, 16}},
     { "[ISA] OAK OTI-067",				"oti067",		&oti067_device,				GFX_OTI067,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 6,  8, 16,   6,  8, 16}},
     { "[ISA] OAK OTI-077",				"oti077",		&oti077_device,				GFX_OTI077,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 6,  8, 16,   6,  8, 16}},
@@ -133,6 +135,7 @@ video_cards[] = {
     {"[PCI] Cirrus Logic CL-GD 5430",			"cl_gd5430_pci",	&gd5430_pci_device,			GFX_CL_GD5430_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
     {"[PCI] Cirrus Logic CL-GD 5434",			"cl_gd5434_pci",	&gd5434_pci_device,			GFX_CL_GD5434_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
     {"[PCI] Cirrus Logic CL-GD 5436",			"cl_gd5436_pci",	&gd5436_pci_device,			GFX_CL_GD5436_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
+    {"[PCI] Cirrus Logic CL-GD 5440",			"cl_gd5440_pci",	&gd5440_pci_device,			GFX_CL_GD5440_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
     {"[PCI] Cirrus Logic CL-GD 5446",			"cl_gd5446_pci",	&gd5446_pci_device,			GFX_CL_GD5446_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
     {"[PCI] Cirrus Logic CL-GD 5480",			"cl_gd5480_pci",	&gd5480_pci_device,			GFX_CL_GD5480_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
@@ -181,10 +184,30 @@ video_cards[] = {
 };
 
 
+#ifdef ENABLE_VID_TABLE_LOG
+int vid_table_do_log = ENABLE_VID_TABLE_LOG;
+#endif
+
+
+static void
+vid_table_log(const char *fmt, ...)
+{
+#ifdef ENABLE_VID_TABLE_LOG
+    va_list ap;
+
+    if (vid_table_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 void
 video_reset(int card)
 {
-    pclog("VIDEO: reset (romset=%d, gfxcard=%d, internal=%d)\n",
+    vid_table_log("VIDEO: reset (romset=%d, gfxcard=%d, internal=%d)\n",
        	romset, card, (machines[machine].flags & MACHINE_VIDEO)?1:0);
 
     /* Reset the CGA palette. */
@@ -199,7 +222,7 @@ video_reset(int card)
     /* Do not initialize internal cards here. */
     if (!(card == GFX_NONE) && \
 	!(card == GFX_INTERNAL) && !machines[machine].fixed_gfxcard) {
-	pclog("VIDEO: initializing '%s'\n", video_cards[video_old_to_new(card)].name);
+	vid_table_log("VIDEO: initializing '%s'\n", video_cards[video_old_to_new(card)].name);
 
 	/* Initialize the video card. */
 	device_add(video_cards[video_old_to_new(card)].device);

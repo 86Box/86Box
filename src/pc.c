@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.70	2018/04/26
+ * Version:	@(#)pc.c	1.0.71	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -19,11 +19,11 @@
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <inttypes.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 #include <time.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
@@ -267,6 +267,26 @@ fatal(const char *fmt, ...)
 }
 
 
+#ifdef ENABLE_PC_LOG
+int pc_do_log = ENABLE_PC_LOG;
+#endif
+
+
+static void
+pc_log(const char *format, ...)
+{
+#ifdef ENABLE_PC_LOG
+    va_list ap;
+
+    if (pc_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 /*
  * Perform initial startup of the PC.
  *
@@ -479,7 +499,7 @@ pc_full_speed(void)
     cpuspeed2 = cpuspeed;
 
     if (! atfullspeed) {
-	pclog("Set fullspeed - %i %i %i\n", is386, AT, cpuspeed2);
+	pc_log("Set fullspeed - %i %i %i\n", is386, AT, cpuspeed2);
 	if (AT)
 		setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
 	  else
@@ -546,7 +566,7 @@ pc_init_modules(void)
 {
     int c, i;
 
-    pclog("Scanning for ROM images:\n");
+    pc_log("Scanning for ROM images:\n");
     for (c=0,i=0; i<ROM_MAX; i++) {
 	romspresent[i] = rom_load_bios(i);
 	c += romspresent[i];
@@ -555,7 +575,7 @@ pc_init_modules(void)
 	/* No usable ROMs found, aborting. */
 	return(0);
     }
-    pclog("A total of %d ROM sets have been loaded.\n", c);
+    pc_log("A total of %d ROM sets have been loaded.\n", c);
 
     /* Load the ROMs for the selected machine. */
 again:
@@ -683,8 +703,6 @@ pc_send_cae(void)
 void
 pc_reset_hard_close(void)
 {
-    pclog("pc_reset_hard_close()\n");
-
     suppress_overscan = 0;
 
     nvr_save();
@@ -712,8 +730,6 @@ pc_reset_hard_close(void)
 void
 pc_reset_hard_init(void)
 {
-    pclog("pc_reset_hard_init()\n");
-
     /*
      * First, we reset the modules that are not part of
      * the actual machine, but which support some of the
@@ -903,7 +919,7 @@ pc_thread(void *param)
     int *quitp = (int *)param;
     int framecountx;
 
-    pclog("PC: starting main thread...\n");
+    pc_log("PC: starting main thread...\n");
 
     main_time = 0;
     framecountx = 0;
@@ -996,7 +1012,7 @@ pc_thread(void *param)
 	}
     }
 
-    pclog("PC: main thread done.\n");
+    pc_log("PC: main thread done.\n");
 }
 
 
@@ -1022,7 +1038,7 @@ set_screen_size(int x, int y)
 
     /* Make sure we keep usable values. */
 #if 0
-    pclog("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
+    pc_log("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
 #endif
     if (x < 320) x = 320;
     if (y < 200) y = 200;

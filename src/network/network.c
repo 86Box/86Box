@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.3	2018/03/15
+ * Version:	@(#)network.c	1.0.4	2018/04/29
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -48,14 +48,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#ifdef WALTJE
-# include <ctype.h>
-#endif
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../plat.h"
@@ -103,85 +102,24 @@ static struct {
 } poll_data;
 
 
-#ifdef WALTJE
-# define is_print(c)	(isalnum((int)(c)) || ((c) == ' '))
-
-
-#if 0
-/* Dump a buffer in hex, standard output. */
-static void
-hexdump(uint8_t *bufp, int len)
-{
-    char asci[20];
-    uint8_t c;
-    int addr;
-
-    addr = 0;
-    while (len-- > 0) {
-	c = bufp[addr];
-	if ((addr % 16) == 0) {
-		printf("%06X  %02X", addr, c);
-	} else {
-		printf(" %02X", c);
-	}
-	asci[(addr & 15)] = (char)((is_print(c) ? c : '.') & 0xff);
-	if ((++addr % 16) == 0) {
-		asci[16] = '\0';
-		printf("  | %s |\n", asci);
-	}
-    }
-
-    if (addr % 16) {
-	while (addr % 16) {
-		printf("   ");
-		asci[(addr & 15)] = ' ';
-		addr++;
-	}
-	asci[16] = '\0';
-	printf("  | %s |\n", asci);
-    }
-}
+#ifdef ENABLE_NETWORK_LOG
+int network_do_log = ENABLE_NETWORK_LOG;
 #endif
 
 
-/* Dump a buffer in hex to output buffer. */
 static void
-hexdump_p(char *ptr, uint8_t *bufp, int len)
+network_log(const char *format, ...)
 {
-    char asci[20];
-    uint8_t c;
-    int addr;
+#ifdef ENABLE_NETWORK_LOG
+    va_list ap;
 
-    addr = 0;
-    while (len-- > 0) {
-	c = bufp[addr];
-	if ((addr % 16) == 0) {
-		sprintf(ptr, "%06X  %02X", addr, c);
-	} else {
-		sprintf(ptr, " %02X", c);
-	}
-	ptr += strlen(ptr);
-	asci[(addr & 15)] = (char)((is_print(c) ? c : '.') & 0xff);
-	if ((++addr % 16) == 0) {
-		asci[16] = '\0';
-		sprintf(ptr, "  | %s |\n", asci);
-		ptr += strlen(ptr);
-	}
+    if (network_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
     }
-
-    if (addr % 16) {
-	while (addr % 16) {
-		sprintf(ptr, "   ");
-		ptr += strlen(ptr);
-		asci[(addr & 15)] = ' ';
-		addr++;
-	}
-	asci[16] = '\0';
-	sprintf(ptr, "  | %s |\n", asci);
-	ptr += strlen(ptr);
-    }
-}
 #endif
+}
 
 
 void
@@ -311,7 +249,7 @@ network_close(void)
     network_mutex = NULL;
     network_mac = NULL;
 
-    pclog("NETWORK: closed.\n");
+    network_log("NETWORK: closed.\n");
 }
 
 
@@ -329,10 +267,10 @@ network_reset(void)
     int i = -1;
 
 #ifdef ENABLE_NIC_LOG
-    pclog("NETWORK: reset (type=%d, card=%d) debug=%d\n",
+    network_log("NETWORK: reset (type=%d, card=%d) debug=%d\n",
 			network_type, network_card, nic_do_log);
 #else
-    pclog("NETWORK: reset (type=%d, card=%d)\n",
+    network_log("NETWORK: reset (type=%d, card=%d)\n",
 				network_type, network_card);
 #endif
     ui_sb_update_icon(SB_NETWORK, 0);
@@ -370,13 +308,13 @@ network_reset(void)
 	return;
     }
 
-    pclog("NETWORK: set up for %s, card='%s'\n",
+    network_log("NETWORK: set up for %s, card='%s'\n",
 	(network_type==NET_TYPE_SLIRP)?"SLiRP":"Pcap",
 			net_cards[network_card].name);
 
     /* Add the (new?) card to the I/O system. */
     if (net_cards[network_card].device) {
-	pclog("NETWORK: adding device '%s'\n",
+	network_log("NETWORK: adding device '%s'\n",
 		net_cards[network_card].name);
 	device_add(net_cards[network_card].device);
     }
@@ -388,14 +326,6 @@ void
 network_tx(uint8_t *bufp, int len)
 {
     ui_sb_update_icon(SB_NETWORK, 1);
-
-#ifdef WALTJE
-{
-    char temp[4096];
-    hexdump_p(temp, bufp, len);
-    pclog("NETWORK: >> len=%d\n%s\n", len, temp);
-}
-#endif
 
     switch(network_type) {
 	case NET_TYPE_PCAP:

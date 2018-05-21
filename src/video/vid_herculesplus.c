@@ -8,7 +8,7 @@
  *
  *		Hercules InColor emulation.
  *
- * Version:	@(#)vid_herculesplus.c	1.0.8	2018/04/26
+ * Version:	@(#)vid_herculesplus.c	1.0.9	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -97,7 +97,6 @@ static int mdacols[256][2][2];
 void herculesplus_out(uint16_t addr, uint8_t val, void *p)
 {
         herculesplus_t *herculesplus = (herculesplus_t *)p;
-/*        pclog("InColor out %04X %02X\n",addr,val); */
         switch (addr)
         {
                 case 0x3b0: case 0x3b2: case 0x3b4: case 0x3b6:
@@ -129,7 +128,6 @@ void herculesplus_out(uint16_t addr, uint8_t val, void *p)
 uint8_t herculesplus_in(uint16_t addr, void *p)
 {
         herculesplus_t *herculesplus = (herculesplus_t *)p;
-/*        pclog("InColor in %04X %02X %04X:%04X %04X\n",addr,(herculesplus->stat & 0xF) | ((herculesplus->stat & 8) << 4),CS,pc,CX); */
         switch (addr)
         {
                 case 0x3b0: case 0x3b2: case 0x3b4: case 0x3b6:

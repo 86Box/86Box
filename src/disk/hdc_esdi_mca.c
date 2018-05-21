@@ -52,7 +52,7 @@
  *		however, are auto-configured by the system software as
  *		shown above.
  *
- * Version:	@(#)hdc_esdi_mca.c	1.0.12	2018/04/26
+ * Version:	@(#)hdc_esdi_mca.c	1.0.13	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -60,11 +60,13 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../dma.h"
@@ -190,6 +192,26 @@ typedef struct esdi {
 #define STATUS_LEN(x) ((x) << 8)
 #define STATUS_DEVICE(x) ((x) << 5)
 #define STATUS_DEVICE_HOST_ADAPTER (7 << 5)
+
+
+#ifdef ENABLE_ESDI_MCA_LOG
+int esdi_mca_do_log = ENABLE_ESDI_MCA_LOG;
+#endif
+
+
+static void
+esdi_mca_log(const char *fmt, ...)
+{
+#ifdef ENABLE_ESDI_MCA_LOG
+    va_list ap;
+
+    if (esdi_mca_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 static __inline void
@@ -561,13 +583,12 @@ esdi_callback(void *priv)
                 dev->status_data[4] = drive->tracks;
                 dev->status_data[5] = drive->hpc | (drive->spt << 16);
 
-#if 0
-		pclog("CMD_GET_DEV_CONFIG %i  %04x %04x %04x %04x %04x %04x\n",
+		esdi_mca_log("CMD_GET_DEV_CONFIG %i  %04x %04x %04x %04x %04x %04x\n",
 			drive->sectors,
 			dev->status_data[0], dev->status_data[1],
 			dev->status_data[2], dev->status_data[3],
 			dev->status_data[4], dev->status_data[5]);
-#endif
+
                 dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
                 dev->irq_status = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
                 dev->irq_in_progress = 1;
@@ -754,9 +775,8 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 {
     esdi_t *dev = (esdi_t *)priv;
 
-#if 0
-    pclog("ESDI: wr(%04x, %02x)\n", port & 7, val);
-#endif
+    esdi_mca_log("ESDI: wr(%04x, %02x)\n", port & 7, val);
+
     switch (port & 7) {
 	case 2:					/*Basic control register*/
 		if ((dev->basic_ctrl & CTRL_RESET) && !(val & CTRL_RESET)) {
@@ -887,9 +907,8 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
 {
     esdi_t *dev = (esdi_t *)priv;
 
-#if 0
-    pclog("ESDI: wrw(%04x, %04x)\n", port & 7, val);
-#endif
+    esdi_mca_log("ESDI: wrw(%04x, %04x)\n", port & 7, val);
+
     switch (port & 7) {
 	case 0:					/*Command Interface Register*/
                	if (dev->cmd_pos >= 4)
@@ -921,9 +940,8 @@ esdi_mca_read(int port, void *priv)
 {
     esdi_t *dev = (esdi_t *)priv;
 
-#if 0
-    pclog("ESDI: mcard(%04x)\n", port);
-#endif
+    esdi_mca_log("ESDI: mcard(%04x)\n", port);
+
     return(dev->pos_regs[port & 7]);
 }
 
@@ -933,10 +951,9 @@ esdi_mca_write(int port, uint8_t val, void *priv)
 {
     esdi_t *dev = (esdi_t *)priv;
 
-#if 0
-    pclog("ESDI: mcawr(%04x, %02x)  pos[2]=%02x pos[3]=%02x\n",
+    esdi_mca_log("ESDI: mcawr(%04x, %02x)  pos[2]=%02x pos[3]=%02x\n",
 		port, val, dev->pos_regs[2], dev->pos_regs[3]);
-#endif
+
     if (port < 0x102)
 	return;
 
@@ -984,7 +1001,7 @@ esdi_mca_write(int port, uint8_t val, void *priv)
 	}
 
 	/* Say hello. */
-	pclog("ESDI: I/O=3510, IRQ=14, DMA=%d, BIOS @%05X\n",
+	esdi_mca_log("ESDI: I/O=3510, IRQ=14, DMA=%d, BIOS @%05X\n",
 		dev->dma, dev->bios);
     }
 }

@@ -8,19 +8,21 @@
  *
  *		Implement the VNC remote renderer with LibVNCServer.
  *
- * Version:	@(#)vnc.c	1.0.10	2017/12/15
+ * Version:	@(#)vnc.c	1.0.11	2018/04/29
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #include <rfb/rfb.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "device.h"
 #include "video/video.h"
@@ -43,6 +45,26 @@ static int	updatingSize;
 static int	allowedX,
 		allowedY;
 static int	ptr_x, ptr_y, ptr_but;
+
+
+#ifdef ENABLE_VNC_LOG
+int vnc_do_log = ENABLE_VNC_LOG;
+#endif
+
+
+static void
+vnc_log(const char *format, ...)
+{
+#ifdef ENABLE_VNC_LOG
+    va_list ap;
+
+    if (vnc_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 static void
@@ -85,13 +107,13 @@ vnc_ptrevent(int but, int x, int y, rfbClientPtr cl)
 static void
 vnc_clientgone(rfbClientPtr cl)
 {
-    pclog("VNC: client disconnected: %s\n", cl->host);
+    vnc_log("VNC: client disconnected: %s\n", cl->host);
 
     if (clients > 0)
 	clients--;
     if (clients == 0) {
 	/* No more clients, pause the emulator. */
-	pclog("VNC: no clients, pausing..\n");
+	vnc_log("VNC: no clients, pausing..\n");
 
 	/* Disable the mouse. */
 	plat_mouse_capture(0);
@@ -107,7 +129,7 @@ vnc_newclient(rfbClientPtr cl)
     /* Hook the ClientGone function so we know when they're gone. */
     cl->clientGoneHook = vnc_clientgone;
 
-    pclog("VNC: new client: %s\n", cl->host);
+    vnc_log("VNC: new client: %s\n", cl->host);
     if (++clients == 1) {
 	/* Reset the mouse. */
 	ptr_x = allowedX/2;
@@ -116,7 +138,7 @@ vnc_newclient(rfbClientPtr cl)
 	mouse_buttons = 0x00;
 
 	/* We now have clients, un-pause the emulator if needed. */
-	pclog("VNC: unpausing..\n");
+	vnc_log("VNC: unpausing..\n");
 
 	/* Enable the mouse. */
 	plat_mouse_capture(1);
@@ -215,7 +237,7 @@ vnc_init(UNUSED(void *arg))
 
     clients = 0;
 
-    pclog("VNC: init complete.\n");
+    vnc_log("VNC: init complete.\n");
 
     return(1);
 }
@@ -246,12 +268,12 @@ vnc_resize(int x, int y)
 
     /* TightVNC doesn't like certain sizes.. */
     if (x < VNC_MIN_X || x > VNC_MAX_X || y < VNC_MIN_Y || y > VNC_MAX_Y) {
-	pclog("VNC: invalid resoltion %dx%d requested!\n", x, y);
+	vnc_log("VNC: invalid resoltion %dx%d requested!\n", x, y);
 	return;
     }
 
     if ((x != rfb->width || y != rfb->height) && x > 160 && y > 0) {
-	pclog("VNC: updating resolution: %dx%d\n", x, y);
+	vnc_log("VNC: updating resolution: %dx%d\n", x, y);
  
 	allowedX = (rfb->width < x) ? rfb->width : x;
 	allowedY = (rfb->width < y) ? rfb->width : y;
@@ -280,5 +302,5 @@ vnc_pause(void)
 void
 vnc_take_screenshot(wchar_t *fn)
 {
-    pclog("VNC: take_screenshot\n");
+    vnc_log("VNC: take_screenshot\n");
 }

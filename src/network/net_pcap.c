@@ -8,7 +8,7 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.3	2018/03/15
+ * Version:	@(#)net_pcap.c	1.0.4	2018/04/29
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -44,12 +44,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-// #include <pcap/pcap.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../config.h"
 #include "../device.h"
@@ -136,6 +137,26 @@ static dllimp_t pcap_imports[] = {
 };
 
 
+#ifdef ENABLE_PCAP_LOG
+int pcap_do_log = ENABLE_PCAP_LOG;
+#endif
+
+
+static void
+pcap_log(const char *format, ...)
+{
+#ifdef ENABLE_PCAP_LOG
+    va_list ap;
+
+    if (pcap_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 /* Handle the receiving of frames from the channel. */
 static void
 poll_thread(void *arg)
@@ -147,7 +168,7 @@ poll_thread(void *arg)
     uint16_t mac_cmp16[2];
     event_t *evt;
 
-    pclog("PCAP: polling started.\n");
+    pcap_log("PCAP: polling started.\n");
     thread_set_event(poll_state);
 
     /* Create a waitable event. */
@@ -195,7 +216,7 @@ poll_thread(void *arg)
     if (evt != NULL)
 	thread_destroy_event(evt);
 
-    pclog("PCAP: polling stopped.\n");
+    pcap_log("PCAP: polling stopped.\n");
     thread_set_event(poll_state);
 }
 
@@ -227,7 +248,7 @@ net_pcap_prepare(netdev_t *list)
 
     /* Retrieve the device list from the local machine */
     if (f_pcap_findalldevs(&devlist, errbuf) == -1) {
-	pclog("PCAP: error in pcap_findalldevs: %s\n", errbuf);
+	pcap_log("PCAP: error in pcap_findalldevs: %s\n", errbuf);
 	return(-1);
     }
 
@@ -277,11 +298,11 @@ net_pcap_init(void)
     strcpy(errbuf, f_pcap_lib_version());
     str = strchr(errbuf, '(');
     if (str != NULL) *(str-1) = '\0';
-    pclog("PCAP: initializing, %s\n", errbuf);
+    pcap_log("PCAP: initializing, %s\n", errbuf);
 
     /* Get the value of our capture interface. */
     if ((network_host[0] == '\0') || !strcmp(network_host, "none")) {
-	pclog("PCAP: no interface configured!\n");
+	pcap_log("PCAP: no interface configured!\n");
 	return(-1);
     }
 
@@ -301,7 +322,7 @@ net_pcap_close(void)
 
     if (pcap == NULL) return;
 
-    pclog("PCAP: closing.\n");
+    pcap_log("PCAP: closing.\n");
 
     /* Tell the polling thread to shut down. */
     pc = (void *)pcap; pcap = NULL;
@@ -311,9 +332,9 @@ net_pcap_close(void)
 	network_busy(0);
 
 	/* Wait for the thread to finish. */
-	pclog("PCAP: waiting for thread to end...\n");
+	pcap_log("PCAP: waiting for thread to end...\n");
 	thread_wait_event(poll_state, -1);
-	pclog("PCAP: thread ended\n");
+	pcap_log("PCAP: thread ended\n");
 	thread_destroy_event(poll_state);
 
 	poll_tid = NULL;
@@ -360,13 +381,13 @@ net_pcap_reset(const netcard_t *card, uint8_t *mac)
 				 1,			/* promiscuous mode? */
 				 10,			/* timeout in msec */
 			         errbuf)) == NULL) {	/* error buffer */
-	pclog(" Unable to open device: %s!\n", network_host);
+	pcap_log(" Unable to open device: %s!\n", network_host);
 	return(-1);
     }
-    pclog("PCAP: interface: %s\n", network_host);
+    pcap_log("PCAP: interface: %s\n", network_host);
 
     /* Create a MAC address based packet filter. */
-    pclog("PCAP: installing filter for MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
+    pcap_log("PCAP: installing filter for MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
 			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     sprintf(filter_exp,
 	"( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
@@ -374,12 +395,12 @@ net_pcap_reset(const netcard_t *card, uint8_t *mac)
 		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     if (f_pcap_compile((void *)pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
 	if (f_pcap_setfilter((void *)pcap, &fp) != 0) {
-		pclog("PCAP: error installing filter (%s) !\n", filter_exp);
+		pcap_log("PCAP: error installing filter (%s) !\n", filter_exp);
 		f_pcap_close((void *)pcap);
 		return(-1);
 	}
     } else {
-	pclog("PCAP: could not compile filter (%s) !\n", filter_exp);
+	pcap_log("PCAP: could not compile filter (%s) !\n", filter_exp);
 	f_pcap_close((void *)pcap);
 	return(-1);
     }
@@ -387,7 +408,7 @@ net_pcap_reset(const netcard_t *card, uint8_t *mac)
     /* Save the callback info. */
     poll_card = card;
 
-    pclog("PCAP: starting thread..\n");
+    pcap_log("PCAP: starting thread..\n");
     poll_state = thread_create_event();
     poll_tid = thread_create(poll_thread, mac);
     thread_wait_event(poll_state, -1);

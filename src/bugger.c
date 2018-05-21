@@ -44,15 +44,17 @@
  *		configuration register (CTRL_SPCFG bit set) but have to
  *		remember that stuff first...
  *
- * Version:	@(#)bugger.c	1.0.11	2018/04/26
+ * Version:	@(#)bugger.c	1.0.12	2018/04/29
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 1989-2018 Fred N. van Kempen.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "io.h"
 #include "device.h"
@@ -89,6 +91,26 @@ static char	bug_str[UISTR_LEN];	/* UI output string */
 extern void	ui_sb_bugui(char *__str);
 
 
+#ifdef ENABLE_BUGGER_LOG
+int bugger_do_log = ENABLE_BUGGER_LOG;
+#endif
+
+
+static void
+bugger_log(const char *format, ...)
+{
+#ifdef ENABLE_BUGGER_LOG
+    va_list ap;
+
+    if (bugger_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 /* Update the system's UI with the actual Bugger status. */
 static void
 bug_setui(void)
@@ -115,7 +137,7 @@ static void
 bug_spflsh(void)
 {
     *bug_bptr = '\0';
-    pclog("BUGGER- serial port [%s]\n", bug_buff);
+    bugger_log("BUGGER- serial port [%s]\n", bug_buff);
     bug_bptr = bug_buff;
 }
 
@@ -141,7 +163,7 @@ bug_wsport(uint8_t val)
     /* Restore the SPORT bit. */
     bug_ctrl |= (old & CTRL_SPORT);
 
-    pclog("BUGGER- sport %02x\n", val);
+    bugger_log("BUGGER- sport %02x\n", val);
 }
 
 
@@ -151,7 +173,7 @@ bug_wspcfg(uint8_t val)
 {
     bug_spcfg = val;
 
-    pclog("BUGGER- spcfg %02x\n", bug_spcfg);
+    bugger_log("BUGGER- spcfg %02x\n", bug_spcfg);
 }
 
 
@@ -201,7 +223,7 @@ bug_wctrl(uint8_t val)
     }
 
     /* Update the UI with active settings. */
-    pclog("BUGGER- ctrl %02x\n", bug_ctrl);
+    bugger_log("BUGGER- ctrl %02x\n", bug_ctrl);
     bug_setui();
 }
 
@@ -226,7 +248,7 @@ bug_wdata(uint8_t val)
 	  else
 		bug_ledr = val;
 
-	pclog("BUGGER- data %02x\n", bug_data);
+	bugger_log("BUGGER- data %02x\n", bug_data);
     }
 
     /* Update the UI with active settings. */
@@ -311,7 +333,7 @@ bug_read(uint16_t port, void *priv)
 static void *
 bug_init(const device_t *info)
 {
-    pclog("%s, I/O=%04x\n", info->name, BUGGER_ADDR);
+    bugger_log("%s, I/O=%04x\n", info->name, BUGGER_ADDR);
 
     /* Initialize local registers. */
     bug_reset();

@@ -8,7 +8,7 @@
  *
  *		Hercules InColor emulation.
  *
- * Version:	@(#)vid_incolor.c	1.0.9	2018/04/26
+ * Version:	@(#)vid_incolor.c	1.0.10	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -197,7 +197,6 @@ uint8_t incolor_read(uint32_t addr, void *p);
 void incolor_out(uint16_t addr, uint8_t val, void *p)
 {
         incolor_t *incolor = (incolor_t *)p;
-/*        pclog("InColor out %04X %02X\n",addr,val); */
         switch (addr)
         {
                 case 0x3b0: case 0x3b2: case 0x3b4: case 0x3b6:
@@ -235,7 +234,6 @@ void incolor_out(uint16_t addr, uint8_t val, void *p)
 uint8_t incolor_in(uint16_t addr, void *p)
 {
         incolor_t *incolor = (incolor_t *)p;
-/*        pclog("InColor in %04X %02X %04X:%04X %04X\n",addr,(incolor->stat & 0xF) | ((incolor->stat & 8) << 4),CS,pc,CX); */
         switch (addr)
         {
                 case 0x3b0: case 0x3b2: case 0x3b4: case 0x3b6:

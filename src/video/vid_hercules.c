@@ -8,7 +8,7 @@
  *
  *		Hercules emulation.
  *
- * Version:	@(#)vid_hercules.c	1.0.10	2018/04/26
+ * Version:	@(#)vid_hercules.c	1.0.11	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -68,7 +68,6 @@ uint8_t hercules_read(uint32_t addr, void *p);
 void hercules_out(uint16_t addr, uint8_t val, void *p)
 {
         hercules_t *hercules = (hercules_t *)p;
-//        pclog("Herc out %04X %02X\n",addr,val);
         switch (addr)
         {
                 case 0x3b0: case 0x3b2: case 0x3b4: case 0x3b6:
@@ -99,7 +98,6 @@ void hercules_out(uint16_t addr, uint8_t val, void *p)
 uint8_t hercules_in(uint16_t addr, void *p)
 {
         hercules_t *hercules = (hercules_t *)p;
- //       pclog("Herc in %04X %02X %04X:%04X %04X\n",addr,(hercules_stat & 0xF) | ((hercules_stat & 8) << 4),CS,pc,CX);
         switch (addr)
         {
                 case 0x3b0: case 0x3b2: case 0x3b4: case 0x3b6:
@@ -116,7 +114,6 @@ void hercules_write(uint32_t addr, uint8_t val, void *p)
 {
         hercules_t *hercules = (hercules_t *)p;
         egawrites++;
-//        pclog("Herc write %08X %02X\n",addr,val);
         hercules->vram[addr & 0xffff] = val;
 }
 
@@ -153,7 +150,6 @@ void hercules_poll(void *p)
         int blink;
         if (!hercules->linepos)
         {
-                //pclog("Poll %i %i\n",vc,sc);
                 hercules->vidtime += hercules->dispofftime;
                 hercules->stat |= 1;
                 hercules->linepos = 1;

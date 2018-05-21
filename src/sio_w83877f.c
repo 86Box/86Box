@@ -11,7 +11,7 @@
  *		Winbond W83877F Super I/O Chip
  *		Used by the Award 430HX
  *
- * Version:	@(#)sio_w83877f.c	1.0.10	2018/04/04
+ * Version:	@(#)sio_w83877f.c	1.0.11	2018/04/29
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -224,7 +224,6 @@ static void w83877f_remap(void)
 	winbond_port = (HEFRAS ? 0x3f0 : 0x250);
 	winbond_key_times = HEFRAS + 1;
 	winbond_key = (HEFRAS ? 0x86 : 0x88) | HEFERE;
-	/* pclog("W83877F: Remapped to port %04X, key %02X\n", winbond_port, winbond_key); */
 }
 
 
@@ -299,8 +298,6 @@ void w83877f_serial_handler(int id)
 	int reg_mask = (id - 1) ? 0x10 : 0x20;
 	int reg_id = (id - 1) ? 0x24 : 0x25;
 	int irq_mask = (id - 1) ? 0xF : 0xF0;
-
-	/* pclog("Registers (%i): %02X %02X %02X\n", id, w83877f_regs[4], w83877f_regs[reg_id], w83877f_regs[0x28]); */
 
 	if ((w83877f_regs[4] & reg_mask) || !(w83877f_regs[reg_id] & 0xc0))
 	{

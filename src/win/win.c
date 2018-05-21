@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.47	2018/03/28
+ * Version:	@(#)win.c	1.0.48	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,13 +20,15 @@
  */
 #define UNICODE
 #include <windows.h>
-#include <stdio.h>
+#include <fcntl.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <fcntl.h>
 #include <time.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../config.h"
 #include "../device.h"
@@ -125,6 +127,26 @@ static struct {
 #endif
   },
 };
+
+
+#ifdef ENABLE_WIN_LOG
+int win_do_log = ENABLE_WIN_LOG;
+#endif
+
+
+static void
+win_log(const char *fmt, ...)
+{
+#ifdef ENABLE_WIN_LOG
+    va_list ap;
+
+    if (win_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 static void
@@ -403,7 +425,7 @@ do_start(void)
     timeBeginPeriod(1);
     QueryPerformanceFrequency(&qpc);
     timer_freq = qpc.QuadPart;
-    pclog("Main timer precision: %llu\n", timer_freq);
+    win_log("Main timer precision: %llu\n", timer_freq);
 
     /* Start the emulator, really. */
     thMain = thread_create(pc_thread, &quited);
@@ -635,7 +657,7 @@ plat_setvid(int api)
 {
     int i;
 
-    pclog("Initializing VIDAPI: api=%d\n", api);
+    win_log("Initializing VIDAPI: api=%d\n", api);
     startblit();
     video_wait_for_blit();
 
@@ -730,7 +752,7 @@ plat_setfullscreen(int on)
     device_force_redraw();
 
     /* Finally, handle the host's mouse cursor. */
-    /* pclog("%s full screen, %s cursor\n", on ? "enter" : "leave", on ? "hide" : "show"); */
+    /* win_log("%s full screen, %s cursor\n", on ? "enter" : "leave", on ? "hide" : "show"); */
     show_cursor(video_fullscreen ? 0 : -1);
 }
 
@@ -742,7 +764,7 @@ take_screenshot(void)
     struct tm *info;
     time_t now;
 
-    pclog("Screenshot: video API is: %i\n", vid_api);
+    win_log("Screenshot: video API is: %i\n", vid_api);
     if ((vid_api < 0) || (vid_api > 1)) return;
 
     memset(fn, 0, sizeof(fn));

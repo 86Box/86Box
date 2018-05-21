@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.23	2018/03/28
+ * Version:	@(#)machine.h	1.0.24	2018/05/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -113,6 +113,7 @@ extern void	machine_at_zappa_init(const machine_t *);
 extern void	machine_at_mb500n_init(const machine_t *);
 extern void	machine_at_president_init(const machine_t *);
 extern void	machine_at_thor_init(const machine_t *);
+extern void	machine_at_pb640_init(const machine_t *);
 
 extern void	machine_at_acerm3a_init(const machine_t *);
 extern void	machine_at_acerv35n_init(const machine_t *);

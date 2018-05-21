@@ -32,7 +32,7 @@
  *		in alpha mode, but in highres ("ECD350") mode, it displays
  *		some semi-random junk. Video-memory pointer maybe?
  *
- * Version:	@(#)m_amstrad.c	1.0.13	2018/04/26
+ * Version:	@(#)m_amstrad.c	1.0.14	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -42,11 +42,13 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
@@ -148,6 +150,27 @@ static uint8_t	crtc_mask[32] = {
     0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
+
+
+#ifdef ENABLE_AMSTRAD_LOG
+int amstrad_do_log = ENABLE_AMSTRAD_LOG;
+#endif
+
+
+static void
+amstrad_log(const char *fmt, ...)
+{
+#ifdef ENABLE_AMSTRAD_LOG
+   va_list ap;
+
+   if (amstrad_do_log)
+   {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+   }
+#endif
+}
 
 
 static void
@@ -915,10 +938,8 @@ static void
 kbd_adddata(uint16_t val)
 {
     key_queue[key_queue_end] = val;
-#if ENABLE_KEYBOARD_LOG
-    pclog("keyboard_amstrad : %02X added to key queue at %i\n",
+    amstrad_log("keyboard_amstrad : %02X added to key queue at %i\n",
 					val, key_queue_end);
-#endif
     key_queue_end = (key_queue_end + 1) & 0xf;
 }
 
@@ -934,13 +955,8 @@ static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     amstrad_t *ams = (amstrad_t *)priv;
-#ifdef WALTJE
-    int i = 0;
-#endif
 
-#if ENABLE_KEYBOARD_LOG
-    pclog("keyboard_amstrad : write %04X %02X %02X\n", port, val, ams->pb);
-#endif
+    amstrad_log("keyboard_amstrad : write %04X %02X %02X\n", port, val, ams->pb);
 
     switch (port) {
 	case 0x61:
@@ -958,13 +974,9 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		 *
 		 * This register is controlled by BIOS and/or ROS.
 		 */
-#if ENABLE_KEYBOARD_LOG
-		pclog("AMSkb: write PB %02x (%02x)\n", val, ams->pb);
-#endif
+		amstrad_log("AMSkb: write PB %02x (%02x)\n", val, ams->pb);
 		if (!(ams->pb & 0x40) && (val & 0x40)) { /*Reset keyboard*/
-#if ENABLE_KEYBOARD_LOG
-			pclog("AMSkb: reset keyboard\n");
-#endif
+			amstrad_log("AMSkb: reset keyboard\n");
 			kbd_adddata(0xaa);
 		}
 		ams->pb = val;
@@ -990,30 +1002,19 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		break;
 
 	case 0x64:
-#ifdef WALTJE
-		pclog("AMSkb: STAT1 = %02x (%02x)\n", val, ams->stat1);
-#endif
 		ams->stat1 = val;
 		break;
 
 	case 0x65:
-#ifdef WALTJE
-		pclog("AMSkb: STAT2 = %02x (%02x)\n", val, ams->stat2);
-		i = 512 + (((val & 0x1f) - 0x0e) * 32);
-		pclog("AMSkb: %d KB RAM installed.\n", i);
-#endif
 		ams->stat2 = val;
 		break;
 
 	case 0x66:
-#ifdef WALTJE
-		pclog("AMSkb: RESET REQUESTED !\n");
-#endif
 		pc_reset(1);
 		break;
 
 	default:
-		pclog("AMSkb: bad keyboard write %04X %02X\n", port, val);
+		amstrad_log("AMSkb: bad keyboard write %04X %02X\n", port, val);
     }
 }
 
@@ -1102,7 +1103,7 @@ kbd_read(uint16_t port, void *priv)
 		break;
 
 	default:
-		pclog("AMDkb: bad keyboard read %04X\n", port);
+		amstrad_log("AMDkb: bad keyboard read %04X\n", port);
     }
 
     return(ret);
@@ -1120,17 +1121,13 @@ kbd_poll(void *priv)
 	ams->wantirq = 0;
 	ams->pa = ams->key_waiting;
 	picint(2);
-#if ENABLE_KEYBOARD_LOG
-	pclog("keyboard_amstrad : take IRQ\n");
-#endif
+	amstrad_log("keyboard_amstrad : take IRQ\n");
     }
 
     if (key_queue_start != key_queue_end && !ams->pa) {
 	ams->key_waiting = key_queue[key_queue_start];
-#if ENABLE_KEYBOARD_LOG
-	pclog("Reading %02X from the key queue at %i\n",
+	amstrad_log("Reading %02X from the key queue at %i\n",
 			ams->key_waiting, key_queue_start);
-#endif
 	key_queue_start = (key_queue_start + 1) & 0xf;
 	ams->wantirq = 1;
     }

@@ -10,7 +10,7 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)intel_piix.c	1.0.15	2018/04/26
+ * Version:	@(#)intel_piix.c	1.0.16	2018/05/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -52,8 +52,8 @@ typedef struct
 
 typedef struct
 {
-    uint8_t		type,
-			regs[256], regs_ide[256];
+    int			type;
+    uint8_t		regs[256], regs_ide[256];
     piix_busmaster_t	bm[2];
 } piix_t;
 
@@ -244,10 +244,10 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 				pci_set_irq_routing(PCI_INTD, val & 0xf);
 			break;
 		case 0x6a:
-			if (dev->type == 1)
-				dev->regs[addr] = (val & 0xFC) | (dev->regs[addr] | 3);
-			else if (dev->type == 3)
+			if (dev->type == 3)
 				dev->regs[addr] = (val & 0xFD) | (dev->regs[addr] | 2);
+			else
+				dev->regs[addr] = (val & 0xFC) | (dev->regs[addr] | 3);
 			return;
 		case 0x70:
 			piix_log("Set MIRQ routing: MIRQ0 -> %02X\n", val);
@@ -278,6 +278,8 @@ piix_read(int func, int addr, void *priv)
 {
     piix_t *dev = (piix_t *) priv;
 
+    if ((func == 1) && (dev->type & 0x100))	/* PB640's PIIX has no IDE part. */
+	return 0xff;
     if (func > 1)
 	return 0xff;
 
@@ -299,97 +301,104 @@ piix_read(int func, int addr, void *priv)
 	else if (addr == 0x23)
 		return 0;
 	else if (addr == 0x41) {
-		if (dev->type == 1)
-			return dev->regs_ide[addr] & 0xB3;
-		else if (dev->type == 3)
+		if (dev->type == 3)
 			return dev->regs_ide[addr] & 0xF3;
+		else
+			return dev->regs_ide[addr] & 0xB3;
 	} else if (addr == 0x43) {
-		if (dev->type == 1)
-			return dev->regs_ide[addr] & 0xB3;
-		else if (dev->type == 3)
+		if (dev->type == 3)
 			return dev->regs_ide[addr] & 0xF3;
+		else
+			return dev->regs_ide[addr] & 0xB3;
 	} else
                	return dev->regs_ide[addr];
     } else {
 	if ((addr & 0xFC) == 0x60)
 		return dev->regs[addr] & 0x8F;
 
-	if (addr == 4)
-		return (dev->regs[addr] & 0x80) | 7;
-	else if (addr == 5) {
-		if (dev->type == 1)
-			return 0;
-		else if (dev->type == 3)
+	if (addr == 4) {
+		if (dev->type & 0x100)
+			return (dev->regs[addr] & 0x80) | 0x0F;
+		else
+			return (dev->regs[addr] & 0x80) | 7;
+	} else if (addr == 5) {
+		if (dev->type == 3)
 			return dev->regs[addr] & 1;
+		else
+			return 0;
 	} else if (addr == 6)
 			return dev->regs[addr] & 0x80;
 	else if (addr == 7) {
-		if (dev->type == 1)
-			return dev->regs[addr] & 0x3E;
-		else if (dev->type == 3)
+		if (dev->type == 3)
 			return dev->regs[addr];
+		else {
+			if (dev->type & 0x100)
+				return dev->regs[addr] & 0x02;
+			else
+				return dev->regs[addr] & 0x3E;
+		}
 	} else if (addr == 0x4E)
 		return (dev->regs[addr] & 0xEF) | keyboard_at_get_mouse_scan();
 	else if (addr == 0x69)
 		return dev->regs[addr] & 0xFE;
 	else if (addr == 0x6A) {
-		if (dev->type == 1)
-			return dev->regs[addr] & 0x07;
-		else if (dev->type == 3)
+		if (dev->type == 3)
 			return dev->regs[addr] & 0xD1;
+		else
+			return dev->regs[addr] & 0x07;
 	} else if (addr == 0x6B) {
-		if (dev->type == 1)
-			return 0;
-		else if (dev->type == 3)
+		if (dev->type == 3)
 			return dev->regs[addr] & 0x80;
+		else
+			return 0;
 	}
 	else if (addr == 0x70) {
-		if (dev->type == 1)
-			return dev->regs[addr] & 0xCF;
-		else if (dev->type == 3)
+		if (dev->type == 3)
 			return dev->regs[addr] & 0xEF;
-	} else if (addr == 0x71) {
-		if (dev->type == 1)
+		else
 			return dev->regs[addr] & 0xCF;
-		else if (dev->type == 3)
+	} else if (addr == 0x71) {
+		if (dev->type == 3)
 			return 0;
+		else
+			return dev->regs[addr] & 0xCF;
 	} else if (addr == 0x76) {
-		if (dev->type == 1)
-			return dev->regs[addr] & 0x8F;
-		else if (dev->type == 3)
+		if (dev->type == 3)
 			return dev->regs[addr] & 0x87;
+		else
+			return dev->regs[addr] & 0x8F;
 	} else if (addr == 0x77) {
-		if (dev->type == 1)
-			return dev->regs[addr] & 0x8F;
-		else if (dev->type == 3)
+		if (dev->type == 3)
 			return dev->regs[addr] & 0x87;
+		else
+			return dev->regs[addr] & 0x8F;
 	} else if (addr == 0x80) {
-		if (dev->type == 1)
-			return 0;
-		else if (dev->type == 3)
+		if (dev->type == 3)
 			return dev->regs[addr] & 0x7F;
-	} else if (addr == 0x82) {
-		if (dev->type == 1)
+		else if (dev->type == 1)
 			return 0;
-		else if (dev->type == 3)
+	} else if (addr == 0x82) {
+		if (dev->type == 3)
 			return dev->regs[addr] & 0x0F;
+		else
+			return 0;
 	} else if (addr == 0xA0)
 		return dev->regs[addr] & 0x1F;
 	else if (addr == 0xA3) {
-		if (dev->type == 1)
-			return 0;
-		else if (dev->type == 3)
+		if (dev->type == 3)
 			return dev->regs[addr] & 1;
+		else
+			return 0;
 	} else if (addr == 0xA7) {
-		if (dev->type == 1)
+		if (dev->type == 3)
+			return dev->regs[addr];
+		else
 			return dev->regs[addr] & 0xEF;
-		else if (dev->type == 3)
-			return dev->regs[addr];
 	} else if (addr == 0xAB) {
-		if (dev->type == 1)
-			return dev->regs[addr] & 0xFE;
-		else if (dev->type == 3)
+		if (dev->type == 3)
 			return dev->regs[addr];
+		else
+			return dev->regs[addr] & 0xFE;
 	} else
 		return dev->regs[addr];
     }
@@ -740,11 +749,21 @@ piix_reset_hard(void *priv)
     } else {
 	piix->regs[0x02] = 0x2e; piix->regs[0x03] = 0x12; /*82371FB (PIIX)*/
     }
-    piix->regs[0x04] = 0x07; piix->regs[0x05] = 0x00;
+    if (piix->type & 0x100)
+	piix->regs[0x04] = 0x06;
+    else
+	piix->regs[0x04] = 0x07;
+    piix->regs[0x05] = 0x00;
     piix->regs[0x06] = 0x80; piix->regs[0x07] = 0x02;
-    piix->regs[0x08] = 0x00; /*A0 stepping*/
+    if (piix->type & 0x100)
+	piix->regs[0x08] = 0x02; /*A0 stepping*/
+    else
+	piix->regs[0x08] = 0x00; /*A0 stepping*/
     piix->regs[0x09] = 0x00; piix->regs[0x0a] = 0x01; piix->regs[0x0b] = 0x06;
-    piix->regs[0x0e] = 0x80; /*Multi-function device*/
+    if (piix->type & 0x100)
+	piix->regs[0x0e] = 0x00; /*Single-function device*/
+    else
+	piix->regs[0x0e] = 0x80; /*Multi-function device*/
     piix->regs[0x4c] = 0x4d;
     piix->regs[0x4e] = 0x03;
     if (piix->type == 3)
@@ -781,7 +800,7 @@ piix_reset_hard(void *priv)
     piix->regs_ide[0x0e] = 0x00;
     piix->regs_ide[0x20] = 0x01; piix->regs_ide[0x21] = piix->regs_ide[0x22] = piix->regs_ide[0x23] = 0x00; /*Bus master interface base address*/
     piix->regs_ide[0x40] = piix->regs_ide[0x42] = 0x00;
-    piix->regs_ide[0x41] = piix->regs_ide[0x43] = 0x80;
+    piix->regs_ide[0x41] = piix->regs_ide[0x43] = 0x00;
     if (piix->type == 3)
 	piix->regs_ide[0x44] = 0x00;
 
@@ -796,9 +815,6 @@ piix_reset_hard(void *priv)
 
     ide_pri_disable();
     ide_sec_disable();
-
-    ide_pri_enable();
-    ide_sec_enable();
 }
 
 
@@ -871,11 +887,25 @@ const device_t piix_device =
     NULL
 };
 
+const device_t piix_pb640_device =
+{
+    "Intel 82371FB (PIIX) (PB640)",
+    DEVICE_PCI,
+    0x101,
+    piix_init, 
+    piix_close, 
+    piix_reset,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
 const device_t piix3_device =
 {
     "Intel 82371SB (PIIX3)",
     DEVICE_PCI,
-    1,
+    3,
     piix_init, 
     piix_close, 
     piix_reset,

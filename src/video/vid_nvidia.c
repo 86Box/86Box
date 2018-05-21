@@ -8,7 +8,7 @@
  *
  *		nVidia RIVA 128 emulation.
  *
- * Version:	@(#)vid_nv_riva128.c	1.0.6	2018/04/26
+ * Version:	@(#)vid_nv_riva128.c	1.0.7	2018/04/29
  *
  * Author:	Melissa Goad
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,12 +16,13 @@
  *		Copyright 2015-2018 Melissa Goad.
  *		Copyright 2015-2018 Miran Grca.
  */
- 
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../machine/machine.h"
@@ -238,6 +239,27 @@ typedef struct riva128_t
 	int64_t mtime, mfreq;
 } riva128_t;
 
+
+#ifdef ENABLE_NVIDIA_LOG
+int nvidia_do_log = ENABLE_NVIDIA_LOG;
+#endif
+
+
+static void
+nvidia_log(const char *fmt, ...)
+{
+#ifdef ENABLE_NVIDIA_LOG
+    va_list ap;
+
+    if (nvidia_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 uint8_t riva128_rma_in(uint16_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
@@ -246,7 +268,7 @@ uint8_t riva128_rma_in(uint16_t addr, void *p)
 
 	addr &= 0xff;
 
-	//pclog("RIVA 128 RMA read %04X %04X:%08X\n", addr, CS, cpu_state.pc);
+	//nvidia_log("RIVA 128 RMA read %04X %04X:%08X\n", addr, CS, cpu_state.pc);
 
 	switch(addr)
 	{
@@ -266,7 +288,7 @@ uint8_t riva128_rma_in(uint16_t addr, void *p)
 	case 0x09:
 	case 0x0a:
 	case 0x0b:
-		if(riva128->rma.addr < 0x1000000) /*ret = riva128_mmio_read((riva128->rma.addr + (addr & 3)) & 0xffffff, riva128);*/pclog("RIVA 128 MMIO write %08x %08x\n", riva128->rma.addr & 0xffffff, riva128->rma.data);
+		if(riva128->rma.addr < 0x1000000) /*ret = riva128_mmio_read((riva128->rma.addr + (addr & 3)) & 0xffffff, riva128);*/nvidia_log("RIVA 128 MMIO write %08x %08x\n", riva128->rma.addr & 0xffffff, riva128->rma.data);
 		else ret = svga_read_linear((riva128->rma.addr - 0x1000000), svga);
 		break;
 	}
@@ -281,7 +303,7 @@ void riva128_rma_out(uint16_t addr, uint8_t val, void *p)
 
 	addr &= 0xff;
 
-	//pclog("RIVA 128 RMA write %04X %02X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+	//nvidia_log("RIVA 128 RMA write %04X %02X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
 	switch(addr)
 	{
@@ -328,7 +350,7 @@ void riva128_rma_out(uint16_t addr, uint8_t val, void *p)
 	case 0x17:
 		riva128->rma.data &= ~0xff000000;
 		riva128->rma.data |= (val << 24);
-		if(riva128->rma.addr < 0x1000000) /*riva128_mmio_write_l(riva128->rma.addr & 0xffffff, riva128->rma.data, riva128);*/pclog("RIVA 128 MMIO write %08x %08x\n", riva128->rma.addr & 0xffffff, riva128->rma.data);
+		if(riva128->rma.addr < 0x1000000) /*riva128_mmio_write_l(riva128->rma.addr & 0xffffff, riva128->rma.data, riva128);*/nvidia_log("RIVA 128 MMIO write %08x %08x\n", riva128->rma.addr & 0xffffff, riva128->rma.data);
 		else svga_writel_linear((riva128->rma.addr - 0x1000000), riva128->rma.data, svga);
 		break;
 	}
@@ -345,7 +367,7 @@ uint8_t riva128_in(uint16_t addr, void *p)
 	if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
 		addr ^= 0x60;
 
-	//        if (addr != 0x3da) pclog("S3 in %04X %04X:%08X  ", addr, CS, cpu_state.pc);
+	//        if (addr != 0x3da) nvidia_log("S3 in %04X %04X:%08X  ", addr, CS, cpu_state.pc);
 	switch (addr)
 	{
 	case 0x3D4:
@@ -372,13 +394,13 @@ uint8_t riva128_in(uint16_t addr, void *p)
 			break;
 		}
 		//if(svga->crtcreg > 0x18)
-		//  pclog("RIVA 128 Extended CRTC read %02X %04X:%08X\n", svga->crtcreg, CS, cpu_state.pc);
+		//  nvidia_log("RIVA 128 Extended CRTC read %02X %04X:%08X\n", svga->crtcreg, CS, cpu_state.pc);
 		break;
 	default:
 		ret = svga_in(addr, svga);
 		break;
 	}
-	//        if (addr != 0x3da) pclog("%02X\n", ret);
+	//        if (addr != 0x3da) nvidia_log("%02X\n", ret);
 	return ret;
 }
 
@@ -432,7 +454,7 @@ void riva128_out(uint16_t addr, uint8_t val, void *p)
 			break;
 		}
 		//if(svga->crtcreg > 0x18)
-		//  pclog("RIVA 128 Extended CRTC write %02X %02x %04X:%08X\n", svga->crtcreg, val, CS, cpu_state.pc);
+		//  nvidia_log("RIVA 128 Extended CRTC write %02X %02x %04X:%08X\n", svga->crtcreg, val, CS, cpu_state.pc);
 		if (old != val)
 		{
 			if (svga->crtcreg < 0xE || svga->crtcreg > 0x10)
@@ -451,7 +473,7 @@ uint8_t riva128_pci_read(int func, int addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 	uint8_t ret = 0;
-	//pclog("RIVA 128 PCI read %02X %04X:%08X\n", addr, CS, cpu_state.pc);
+	//nvidia_log("RIVA 128 PCI read %02X %04X:%08X\n", addr, CS, cpu_state.pc);
 	switch (addr)
 	{
 	case 0x00:
@@ -541,7 +563,7 @@ uint8_t riva128_pci_read(int func, int addr, void *p)
 		break;
 
 	}
-	//        pclog("%02X\n", ret);
+	//        nvidia_log("%02X\n", ret);
 	return ret;
 }
 
@@ -570,7 +592,7 @@ void riva128_reenable_svga_mappings(svga_t *svga)
 
 void riva128_pci_write(int func, int addr, uint8_t val, void *p)
 {
-	//pclog("RIVA 128 PCI write %02X %02X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+	//nvidia_log("RIVA 128 PCI write %02X %02X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 	riva128_t *riva128 = (riva128_t *)p;
 	svga_t* svga = &riva128->svga;
 	switch (addr)
@@ -660,7 +682,7 @@ void riva128_pci_write(int func, int addr, uint8_t val, void *p)
 		if (riva128->pci_regs[0x30] & 0x01)
 		{
 			uint32_t addr = (riva128->pci_regs[0x32] << 16) | (riva128->pci_regs[0x33] << 24);
-			//                        pclog("RIVA 128 bios_rom enabled at %08x\n", addr);
+			//                        nvidia_log("RIVA 128 bios_rom enabled at %08x\n", addr);
 			mem_mapping_set_addr(&riva128->bios_rom.mapping, addr, 0x8000);
 		}
 		return;
@@ -729,7 +751,7 @@ void riva128_recalctimings(svga_t *svga)
 		else
 		{
 			freq = (freq * riva128->pramdac.v_n) / (1 << riva128->pramdac.v_p) / riva128->pramdac.v_m;
-			//pclog("RIVA 128 Pixel clock is %f Hz\n", freq);
+			//nvidia_log("RIVA 128 Pixel clock is %f Hz\n", freq);
 		}
 
 		svga->clock = cpuclock / freq;
@@ -743,7 +765,7 @@ void riva128_recalctimings(svga_t *svga)
 		else
 		{
 			freq = (freq * riva128->pramdac.m_n) / (1 << riva128->pramdac.m_p) / riva128->pramdac.m_m;
-			//pclog("RIVA 128 Memory clock is %f Hz\n", freq);
+			//nvidia_log("RIVA 128 Memory clock is %f Hz\n", freq);
 		}
 
 		riva128->mfreq = freq;

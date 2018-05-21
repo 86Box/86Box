@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.h	1.0.11	2018/03/26
+ * Version:	@(#)cdrom.h	1.0.12	2018/04/30
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -40,7 +40,6 @@
 
 #define CDROM_IMAGE 200
 
-#define IDE_TIME (5LL * 100LL * (1LL << TIMER_SHIFT))
 #define CDROM_TIME (5LL * 100LL * (1LL << TIMER_SHIFT))
 
 

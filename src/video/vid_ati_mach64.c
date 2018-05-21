@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.20	2018/04/26
+ * Version:	@(#)vid_ati_mach64.c	1.0.21	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,12 +16,15 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
+#include "../cpu/cpu.h"
 #include "../machine/machine.h"
 #include "../device.h"
 #include "../io.h"
@@ -339,6 +342,27 @@ void     mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv);
 void     mach64_ext_writew(uint32_t addr, uint16_t val, void *priv);
 void     mach64_ext_writel(uint32_t addr, uint32_t val, void *priv);
 
+
+#ifdef ENABLE_MACH64_LOG
+int mach64_do_log = ENABLE_MACH64_LOG;
+#endif
+
+
+static void
+mach64_log(const char *fmt, ...)
+{
+#ifdef ENABLE_MACH64_LOG
+    va_list ap;
+
+    if (mach64_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 void mach64_out(uint16_t addr, uint8_t val, void *p)
 {
         mach64_t *mach64 = p;
@@ -505,7 +529,7 @@ void mach64_updatemapping(mach64_t *mach64)
 
         if (!(mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))
         {
-                /* pclog("Update mapping - PCI disabled\n"); */
+                mach64_log("Update mapping - PCI disabled\n");
                 mem_mapping_disable(&svga->mapping);
                 mem_mapping_disable(&mach64->linear_mapping);
                 mem_mapping_disable(&mach64->mmio_mapping);
@@ -647,11 +671,9 @@ static void mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val
                      (addr & 0x3ff) == 0x113) && !(val & 0x80))
                 {
                         mach64_start_fill(mach64);
-#ifdef MACH64_DEBUG
-                        pclog("%i %i %i %i %i %08x\n", (mach64->dst_height_width & 0x7ff), (mach64->dst_height_width & 0x7ff0000),
+                        mach64_log("%i %i %i %i %i %08x\n", (mach64->dst_height_width & 0x7ff), (mach64->dst_height_width & 0x7ff0000),
                             ((mach64->dp_src & 7) != SRC_HOST), (((mach64->dp_src >> 8) & 7) != SRC_HOST),
                             (((mach64->dp_src >> 16) & 3) != MONO_SRC_HOST), mach64->dp_src);
-#endif                            
                         if ((mach64->dst_height_width & 0x7ff) && (mach64->dst_height_width & 0x7ff0000) && 
                             ((mach64->dp_src & 7) != SRC_HOST) && (((mach64->dp_src >> 8) & 7) != SRC_HOST) && 
                             (((mach64->dp_src >> 16) & 3) != MONO_SRC_HOST))
@@ -839,13 +861,7 @@ static void mach64_accel_write_fifo_w(mach64_t *mach64, uint32_t addr, uint16_t 
                 break;
 
                 default:
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 mach64_accel_write_fifo(mach64, addr, val);
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 mach64_accel_write_fifo(mach64, addr + 1, val >> 8);
                 break;
         }
@@ -871,13 +887,7 @@ static void mach64_accel_write_fifo_l(mach64_t *mach64, uint32_t addr, uint32_t 
                 break;
 
                 default:
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 mach64_accel_write_fifo_w(mach64, addr, val);
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 mach64_accel_write_fifo_w(mach64, addr + 2, val >> 16);
                 break;
         }
@@ -990,14 +1000,12 @@ void mach64_start_fill(mach64_t *mach64)
         mach64->accel.src_width2  = (mach64->src_height2_width2 >> 16) & 0x7fff;
         mach64->accel.src_height2 =  mach64->src_height2_width2        & 0x1fff;        
 
-#ifdef MACH64_DEBUG
-        pclog("src %i %i  %i %i  %08X %08X\n", mach64->accel.src_x_count,
+        mach64_log("src %i %i  %i %i  %08X %08X\n", mach64->accel.src_x_count,
                                                mach64->accel.src_y_count,
                                                mach64->accel.src_width1,
                                                mach64->accel.src_height1,
                                                mach64->src_height1_width1,
                                                mach64->src_height2_width2);
-#endif
                                                
         mach64->accel.src_pitch  = (mach64->src_off_pitch >> 22) * 8;
         mach64->accel.src_offset = (mach64->src_off_pitch & 0xfffff) * 8;
@@ -1050,9 +1058,6 @@ void mach64_start_fill(mach64_t *mach64)
         mach64->accel.sc_top    =  mach64->sc_top_bottom & 0x7fff;
         mach64->accel.sc_bottom = (mach64->sc_top_bottom >> 16) & 0x7fff;
 
-/*        mach64->accel.sc_left   *= mach64_inc[mach64->accel.dst_pix_width];
-        mach64->accel.sc_right  *= mach64_inc[mach64->accel.dst_pix_width];*/
-        
         mach64->accel.dp_frgd_clr = mach64->dp_frgd_clr;
         mach64->accel.dp_bkgd_clr = mach64->dp_bkgd_clr;        
 
@@ -1064,9 +1069,8 @@ void mach64_start_fill(mach64_t *mach64)
         mach64->accel.poly_draw = 0;
         
         mach64->accel.busy = 1;
-#ifdef MACH64_DEBUG
-        pclog("mach64_start_fill : dst %i, %i  src %i, %i  size %i, %i  src pitch %i offset %X  dst pitch %i offset %X  scissor %i %i %i %i  src_fg %i  mix %02X %02X\n", mach64->accel.dst_x_start, mach64->accel.dst_y_start, mach64->accel.src_x_start, mach64->accel.src_y_start, mach64->accel.dst_width, mach64->accel.dst_height, mach64->accel.src_pitch, mach64->accel.src_offset, mach64->accel.dst_pitch, mach64->accel.dst_offset, mach64->accel.sc_left, mach64->accel.sc_right, mach64->accel.sc_top, mach64->accel.sc_bottom, mach64->accel.source_fg, mach64->accel.mix_fg, mach64->accel.mix_bg);
-#endif
+        mach64_log("mach64_start_fill : dst %i, %i  src %i, %i  size %i, %i  src pitch %i offset %X  dst pitch %i offset %X  scissor %i %i %i %i  src_fg %i  mix %02X %02X\n", mach64->accel.dst_x_start, mach64->accel.dst_y_start, mach64->accel.src_x_start, mach64->accel.src_y_start, mach64->accel.dst_width, mach64->accel.dst_height, mach64->accel.src_pitch, mach64->accel.src_offset, mach64->accel.dst_pitch, mach64->accel.dst_offset, mach64->accel.sc_left, mach64->accel.sc_right, mach64->accel.sc_top, mach64->accel.sc_bottom, mach64->accel.source_fg, mach64->accel.mix_fg, mach64->accel.mix_bg);
+
         mach64->accel.op = OP_RECT;
 }
 
@@ -1142,9 +1146,8 @@ void mach64_start_line(mach64_t *mach64)
         mach64->accel.clr_cmp_src = mach64->clr_cmp_cntl & (1 << 24);
 
         mach64->accel.busy = 1;
-#ifdef MACH64_DEBUG
-        pclog("mach64_start_line\n");
-#endif
+        mach64_log("mach64_start_line\n");
+
         mach64->accel.op = OP_LINE;
 }
 
@@ -1212,9 +1215,7 @@ void mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
         
         if (!mach64->accel.busy)
         {
-#ifdef MACH64_DEBUG
-                pclog("mach64_blit : return as not busy\n");
-#endif
+                mach64_log("mach64_blit : return as not busy\n");
                 return;
         }
         switch (mach64->accel.op)
@@ -1399,9 +1400,7 @@ void mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                                 if (mach64->accel.dst_height <= 0)
                                 {
                                         /*Blit finished*/
-#ifdef MACH64_DEBUG
-                                        pclog("mach64 blit finished\n");
-#endif
+                                        mach64_log("mach64 blit finished\n");
                                         mach64->accel.busy = 0;
                                         if (mach64->dst_cntl & DST_X_TILE)
                                                 mach64->dst_y_x = (mach64->dst_y_x & 0xfff) | ((mach64->dst_y_x + (mach64->accel.dst_width << 16)) & 0xfff0000);
@@ -1528,9 +1527,7 @@ void mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                         if (mach64->accel.x_count <= 0)
                         {
                                 /*Blit finished*/
-#ifdef MACH64_DEBUG
-                                pclog("mach64 blit finished\n");
-#endif
+                                mach64_log("mach64 blit finished\n");
                                 mach64->accel.busy = 0;
                                 return;
                         }
@@ -1554,9 +1551,7 @@ void mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                                 mach64->accel.dst_y++;
                                 break;
                         }
-#ifdef MACH64_DEBUG
-                        pclog("x %i y %i err %i inc %i dec %i\n", mach64->accel.dst_x, mach64->accel.dst_y, mach64->accel.err, mach64->dst_bres_inc, mach64->dst_bres_dec);
-#endif
+                        mach64_log("x %i y %i err %i inc %i dec %i\n", mach64->accel.dst_x, mach64->accel.dst_y, mach64->accel.err, mach64->dst_bres_inc, mach64->dst_bres_dec);
                         if (mach64->accel.err >= 0)
                         {
                                 mach64->accel.err += mach64->dst_bres_dec;
@@ -1597,10 +1592,8 @@ void mach64_load_context(mach64_t *mach64)
         {
                 addr = ((0x3fff - (mach64->context_load_cntl & 0x3fff)) * 256) & mach64->vram_mask;
                 mach64->context_mask = *(uint32_t *)&svga->vram[addr];
-#ifdef MACH64_DEBUG
-                pclog("mach64_load_context %08X from %08X : mask %08X\n", mach64->context_load_cntl, addr, mach64->context_mask);
-#endif
- 
+                mach64_log("mach64_load_context %08X from %08X : mask %08X\n", mach64->context_load_cntl, addr, mach64->context_mask);
+
                 if (mach64->context_mask & (1 << 2))
                         mach64_accel_write_fifo_l(mach64, 0x100, *(uint32_t *)&svga->vram[addr + 0x08]);
                 if (mach64->context_mask & (1 << 3))
@@ -1675,8 +1668,8 @@ static void pll_write(mach64_t *mach64, uint32_t addr, uint8_t val)
                 break;
                 case 2: /*Data*/
                 mach64->pll_regs[mach64->pll_addr] = val;
-                /* pclog("pll_write %02x,%02x\n", mach64->pll_addr, val); */
-                
+                mach64_log("pll_write %02x,%02x\n", mach64->pll_addr, val);
+
                 for (c = 0; c < 4; c++)
                 {                        
                         double m = (double)mach64->pll_regs[PLL_REF_DIV];
@@ -1684,9 +1677,9 @@ static void pll_write(mach64_t *mach64, uint32_t addr, uint8_t val)
                         double r = 14318184.0;
                         double p = (double)(1 << ((mach64->pll_regs[VCLK_POST_DIV] >> (c*2)) & 3));
                         
-                        /* pclog("PLLfreq %i = %g  %g m=%02x n=%02x p=%02x\n", c, (2.0 * r * n) / (m * p), p, mach64->pll_regs[PLL_REF_DIV], mach64->pll_regs[VCLK0_FB_DIV+c], mach64->pll_regs[VCLK_POST_DIV]); */
+                        mach64_log("PLLfreq %i = %g  %g m=%02x n=%02x p=%02x\n", c, (2.0 * r * n) / (m * p), p, mach64->pll_regs[PLL_REF_DIV], mach64->pll_regs[VCLK0_FB_DIV+c], mach64->pll_regs[VCLK_POST_DIV]);
                         mach64->pll_freq[c] = (2.0 * r * n) / (m * p);
-                        /* pclog(" %g\n", mach64->pll_freq[c]); */
+                        mach64_log(" %g\n", mach64->pll_freq[c]);
                 }
                 break;
         }
@@ -1722,9 +1715,7 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
         uint8_t ret;
         if (!(addr & 0x400))
         {
-#ifdef MACH64_DEBUG
-                pclog("nmach64_ext_readb: addr=%04x %04x(%08x):%08x\n", addr, CS, cs, cpu_state.pc);
-#endif
+                mach64_log("nmach64_ext_readb: addr=%04x %04x(%08x):%08x\n", addr, CS, cs, cpu_state.pc);
                 switch (addr & 0x3ff)
                 {
                         case 0x00: case 0x01: case 0x02: case 0x03:
@@ -2076,8 +2067,6 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
                 break;
                 
                 case 0x338:
-/*                if (!FIFO_EMPTY)
-                        wake_fifo_thread(mach64);*/
                 ret = FIFO_EMPTY ? 0 : 1;
                 break;
 
@@ -2085,9 +2074,7 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
                 ret = 0;
                 break;
         }
-#ifdef MACH64_DEBUG
-        if ((addr & 0x3fc) != 0x018) pclog("mach64_ext_readb : addr %08X ret %02X\n", addr, ret);
-#endif
+        if ((addr & 0x3fc) != 0x018)  mach64_log("mach64_ext_readb : addr %08X ret %02X\n", addr, ret);
         return ret;
 }
 uint16_t mach64_ext_readw(uint32_t addr, void *p)
@@ -2095,27 +2082,17 @@ uint16_t mach64_ext_readw(uint32_t addr, void *p)
         uint16_t ret;
         if (!(addr & 0x400))
         {
-#ifdef MACH64_DEBUG
-                pclog("nmach64_ext_readw: addr=%04x %04x(%08x):%08x\n", addr, CS, cs, cpu_state.pc);
-#endif
+                mach64_log("nmach64_ext_readw: addr=%04x %04x(%08x):%08x\n", addr, CS, cs, cpu_state.pc);
                 ret = 0xffff;
         }
         else switch (addr & 0x3ff)
         {
                 default:
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 ret = mach64_ext_readb(addr, p);
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 ret |= mach64_ext_readb(addr + 1, p) << 8;
                 break;
         }
-#ifdef MACH64_DEBUG
-        if ((addr & 0x3fc) != 0x018) pclog("mach64_ext_readw : addr %08X ret %04X\n", addr, ret);
-#endif
+        if ((addr & 0x3fc) != 0x018)  mach64_log("mach64_ext_readw : addr %08X ret %04X\n", addr, ret);
         return ret;        
 }
 uint32_t mach64_ext_readl(uint32_t addr, void *p)
@@ -2124,9 +2101,7 @@ uint32_t mach64_ext_readl(uint32_t addr, void *p)
         uint32_t ret;
         if (!(addr & 0x400))
         {
-#ifdef MACH64_DEBUG
-                pclog("nmach64_ext_readl: addr=%04x %04x(%08x):%08x\n", addr, CS, cs, cpu_state.pc);
-#endif
+                mach64_log("nmach64_ext_readl: addr=%04x %04x(%08x):%08x\n", addr, CS, cs, cpu_state.pc);
                 ret = 0xffffffff;
         }
         else switch (addr & 0x3ff)
@@ -2145,19 +2120,11 @@ uint32_t mach64_ext_readl(uint32_t addr, void *p)
                 break;
                 
                 default:
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 ret = mach64_ext_readw(addr, p);
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 ret |= mach64_ext_readw(addr + 2, p) << 16;
                 break;
         }
-#ifdef MACH64_DEBUG
-        if ((addr & 0x3fc) != 0x018) pclog("mach64_ext_readl : addr %08X ret %08X\n", addr, ret);
-#endif
+        if ((addr & 0x3fc) != 0x018)  mach64_log("mach64_ext_readl : addr %08X ret %08X\n", addr, ret);
         return ret;
 }
 
@@ -2165,9 +2132,9 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
         svga_t *svga = &mach64->svga;
-#ifdef MACH64_DEBUG
-        pclog("mach64_ext_writeb : addr %08X val %02X %04x(%08x):%08x\n", addr, val, CS,cs,cpu_state.pc);
-#endif
+
+        mach64_log("mach64_ext_writeb : addr %08X val %02X %04x(%08x):%08x\n", addr, val, CS,cs,cpu_state.pc);
+
         if (!(addr & 0x400))
         {
                 switch (addr & 0x3ff)
@@ -2224,9 +2191,8 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
                         WRITE8(addr, mach64->buf_pitch[1], val);
                         break;
                 }
-#ifdef MACH64_DEBUG
-                pclog("nmach64_ext_writeb: addr=%04x val=%02x\n", addr, val);
-#endif
+
+                mach64_log("nmach64_ext_writeb: addr=%04x val=%02x\n", addr, val);
         }
         else if (addr & 0x300)
         {
@@ -2332,27 +2298,19 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
 
                 case 0xb4:
                 mach64->bank_w[0] = val * 32768;
-#ifdef MACH64_DEBUG
-                pclog("mach64 : write bank A0000-A7FFF set to %08X\n", mach64->bank_w[0]);
-#endif
+                mach64_log("mach64 : write bank A0000-A7FFF set to %08X\n", mach64->bank_w[0]);
                 break;
                 case 0xb5: case 0xb6:
                 mach64->bank_w[1] = val * 32768;
-#ifdef MACH64_DEBUG
-                pclog("mach64 : write bank A8000-AFFFF set to %08X\n", mach64->bank_w[1]);
-#endif
+                mach64_log("mach64 : write bank A8000-AFFFF set to %08X\n", mach64->bank_w[1]);
                 break;
                 case 0xb8:
                 mach64->bank_r[0] = val * 32768;
-#ifdef MACH64_DEBUG
-                pclog("mach64 :  read bank A0000-A7FFF set to %08X\n", mach64->bank_r[0]);
-#endif
+                mach64_log("mach64 :  read bank A0000-A7FFF set to %08X\n", mach64->bank_r[0]);
                 break;
                 case 0xb9: case 0xba:
                 mach64->bank_r[1] = val * 32768;
-#ifdef MACH64_DEBUG
-                pclog("mach64 :  read bank A8000-AFFFF set to %08X\n", mach64->bank_r[1]);
-#endif
+                mach64_log("mach64 :  read bank A8000-AFFFF set to %08X\n", mach64->bank_r[1]);
                 break;
 
                 case 0xc0: case 0xc1: case 0xc2: case 0xc3:
@@ -2389,14 +2347,11 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
 void mach64_ext_writew(uint32_t addr, uint16_t val, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
-#ifdef MACH64_DEBUG
-        pclog("mach64_ext_writew : addr %08X val %04X\n", addr, val);
-#endif
+        mach64_log("mach64_ext_writew : addr %08X val %04X\n", addr, val);
         if (!(addr & 0x400))
         {
-#ifdef MACH64_DEBUG
-                pclog("nmach64_ext_writew: addr=%04x val=%04x %04x(%08x):%08x\n", addr, val, CS, cs, cpu_state.pc);
-#endif
+                mach64_log("nmach64_ext_writew: addr=%04x val=%04x %04x(%08x):%08x\n", addr, val, CS, cs, cpu_state.pc);
+
                 mach64_ext_writeb(addr, val, p);
                 mach64_ext_writeb(addr + 1, val >> 8, p);
         }
@@ -2407,13 +2362,7 @@ void mach64_ext_writew(uint32_t addr, uint16_t val, void *p)
         else switch (addr & 0x3fe)
         {
                 default:
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 mach64_ext_writeb(addr, val, p);
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 mach64_ext_writeb(addr + 1, val >> 8, p);
                 break;
         }
@@ -2421,15 +2370,12 @@ void mach64_ext_writew(uint32_t addr, uint16_t val, void *p)
 void mach64_ext_writel(uint32_t addr, uint32_t val, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
-#ifdef MACH64_DEBUG
         if ((addr & 0x3c0) != 0x200)
-                pclog("mach64_ext_writel : addr %08X val %08X\n", addr, val);
-#endif
+                mach64_log("mach64_ext_writel : addr %08X val %08X\n", addr, val);
         if (!(addr & 0x400))
         {
-#ifdef MACH64_DEBUG
-                pclog("nmach64_ext_writel: addr=%04x val=%08x %04x(%08x):%08x\n", addr, val, CS, cs, cpu_state.pc);
-#endif
+                mach64_log("nmach64_ext_writel: addr=%04x val=%08x %04x(%08x):%08x\n", addr, val, CS, cs, cpu_state.pc);
+
                 mach64_ext_writew(addr, val, p);
                 mach64_ext_writew(addr + 2, val >> 16, p);
         }
@@ -2440,13 +2386,7 @@ void mach64_ext_writel(uint32_t addr, uint32_t val, void *p)
         else switch (addr & 0x3fc)
         {
                 default:
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 mach64_ext_writew(addr, val, p);
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 mach64_ext_writew(addr + 2, val >> 16, p);
                 break;
         }
@@ -2570,9 +2510,7 @@ uint8_t mach64_ext_inb(uint16_t port, void *p)
                 ret = 0;
                 break;
         }
-#ifdef MACH64_DEBUG
-        pclog("mach64_ext_inb : port %04X ret %02X  %04X:%04X\n", port, ret, CS,cpu_state.pc);
-#endif
+        mach64_log("mach64_ext_inb : port %04X ret %02X  %04X:%04X\n", port, ret, CS,cpu_state.pc);
         return ret;
 }
 uint16_t mach64_ext_inw(uint16_t port, void *p)
@@ -2581,19 +2519,11 @@ uint16_t mach64_ext_inw(uint16_t port, void *p)
         switch (port)
         {
                 default:
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 ret = mach64_ext_inb(port, p);
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 ret |= (mach64_ext_inb(port + 1, p) << 8);
                 break;
         }
-#ifdef MACH64_DEBUG
-        pclog("mach64_ext_inw : port %04X ret %04X\n", port, ret);
-#endif
+        mach64_log("mach64_ext_inw : port %04X ret %04X\n", port, ret);
         return ret;        
 }
 uint32_t mach64_ext_inl(uint16_t port, void *p)
@@ -2609,28 +2539,18 @@ uint32_t mach64_ext_inl(uint16_t port, void *p)
                 break;
 
                 default:
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 ret = mach64_ext_inw(port, p);
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 ret |= (mach64_ext_inw(port + 2, p) << 16);
                 break;
         }
-#ifdef MACH64_DEBUG
-        pclog("mach64_ext_inl : port %04X ret %08X\n", port, ret);
-#endif
+        mach64_log("mach64_ext_inl : port %04X ret %08X\n", port, ret);
         return ret;
 }
 
 void mach64_ext_outb(uint16_t port, uint8_t val, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
-#ifdef MACH64_DEBUG
-        pclog("mach64_ext_outb : port %04X val %02X  %04X:%04X\n", port, val, CS,cpu_state.pc);
-#endif
+        mach64_log("mach64_ext_outb : port %04X val %02X  %04X:%04X\n", port, val, CS,cpu_state.pc);
         switch (port)
         {
                 case 0x02ec: case 0x02ed: case 0x02ee: case 0x02ef:
@@ -2732,36 +2652,22 @@ void mach64_ext_outb(uint16_t port, uint8_t val, void *p)
 }
 void mach64_ext_outw(uint16_t port, uint16_t val, void *p)
 {
-#ifdef MACH64_DEBUG
-        pclog("mach64_ext_outw : port %04X val %04X\n", port, val);
-#endif
+        mach64_log("mach64_ext_outw : port %04X val %04X\n", port, val);
         switch (port)
         {
                 default:
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 mach64_ext_outb(port, val, p);
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 mach64_ext_outb(port + 1, val >> 8, p);
                 break;
         }
 }
 void mach64_ext_outl(uint16_t port, uint32_t val, void *p)
 {
-        /* pclog("mach64_ext_outl : port %04X val %08X\n", port, val); */
+        mach64_log("mach64_ext_outl : port %04X val %08X\n", port, val);
         switch (port)
         {
                 default:
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 mach64_ext_outw(port, val, p);
-#ifdef MACH64_DEBUG
-                pclog("  ");
-#endif
                 mach64_ext_outw(port + 2, val >> 16, p);
                 break;
         }
@@ -2773,9 +2679,7 @@ static uint8_t mach64_block_inb(uint16_t port, void *p)
         uint8_t ret;
         
         ret = mach64_ext_readb(0x400 | (port & 0x3ff), mach64);
-#ifdef MACH64_DEBUG
-        pclog("mach64_block_inb : port %04X ret %02X %04x:%04x\n", port, ret, CS,cpu_state.pc);
-#endif
+        mach64_log("mach64_block_inb : port %04X ret %02X %04x:%04x\n", port, ret, CS,cpu_state.pc);
         return ret;
 }
 static uint16_t mach64_block_inw(uint16_t port, void *p)
@@ -2784,9 +2688,7 @@ static uint16_t mach64_block_inw(uint16_t port, void *p)
         uint16_t ret;
         
         ret = mach64_ext_readw(0x400 | (port & 0x3ff), mach64);
-#ifdef MACH64_DEBUG
-        pclog("mach64_block_inw : port %04X ret %04X\n", port, ret);
-#endif
+        mach64_log("mach64_block_inw : port %04X ret %04X\n", port, ret);
         return ret;
 }
 static uint32_t mach64_block_inl(uint16_t port, void *p)
@@ -2795,9 +2697,7 @@ static uint32_t mach64_block_inl(uint16_t port, void *p)
         uint32_t ret;
                 
         ret = mach64_ext_readl(0x400 | (port & 0x3ff), mach64);
-#ifdef MACH64_DEBUG
-        pclog("mach64_block_inl : port %04X ret %08X\n", port, ret);
-#endif
+        mach64_log("mach64_block_inl : port %04X ret %08X\n", port, ret);
         return ret;
 }
 
@@ -2805,27 +2705,21 @@ static void mach64_block_outb(uint16_t port, uint8_t val, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
         
-#ifdef MACH64_DEBUG
-        pclog("mach64_block_outb : port %04X val %02X\n ", port, val);
-#endif
+        mach64_log("mach64_block_outb : port %04X val %02X\n ", port, val);
         mach64_ext_writeb(0x400 | (port & 0x3ff), val, mach64);
 }
 static void mach64_block_outw(uint16_t port, uint16_t val, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
         
-#ifdef MACH64_DEBUG
-        pclog("mach64_block_outw : port %04X val %04X\n ", port, val);
-#endif
+        mach64_log("mach64_block_outw : port %04X val %04X\n ", port, val);
         mach64_ext_writew(0x400 | (port & 0x3ff), val, mach64);
 }
 static void mach64_block_outl(uint16_t port, uint32_t val, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
         
-#ifdef MACH64_DEBUG
-        pclog("mach64_block_outl : port %04X val %08X\n ", port, val);
-#endif
+        mach64_log("mach64_block_outl : port %04X val %08X\n ", port, val);
         mach64_ext_writel(0x400 | (port & 0x3ff), val, mach64);
 }
 
@@ -3085,7 +2979,7 @@ void mach64_overlay_draw(svga_t *svga, int displine)
                         break;
                 
                         default:
-                        /* pclog("Unknown Mach64 scaler format %x\n", mach64->scaler_format); */
+                        mach64_log("Unknown Mach64 scaler format %x\n", mach64->scaler_format);
                         /*Fill buffer with something recognisably wrong*/
                         for (x = 0; x < mach64->svga.overlay_latch.xsize; x++)
                                 mach64->overlay_dat[x] = 0xff00ff;
@@ -3361,12 +3255,12 @@ void mach64_pci_write(int func, int addr, uint8_t val, void *p)
                 if (mach64->pci_regs[0x30] & 0x01)
                 {
                         uint32_t addr = (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
-                        /* pclog("Mach64 bios_rom enabled at %08x\n", addr); */
+                        mach64_log("Mach64 bios_rom enabled at %08x\n", addr);
                         mem_mapping_set_addr(&mach64->bios_rom.mapping, addr, 0x8000);
                 }
                 else
                 {
-                        /* pclog("Mach64 bios_rom disabled\n"); */
+                        mach64_log("Mach64 bios_rom disabled\n");
                         mem_mapping_disable(&mach64->bios_rom.mapping);
                 }
                 return;

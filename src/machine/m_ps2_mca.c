@@ -1,7 +1,9 @@
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../cpu/x86.h"
@@ -94,9 +96,30 @@ static struct
 static uint8_t ps2_cache[65536];
 static int ps2_cache_valid[65536/8];
 
+
+#ifdef ENABLE_PS2_MCA_LOG
+int ps2_mca_do_log = ENABLE_PS2_MCA_LOG;
+#endif
+
+
+static void
+ps2_mca_log(const char *format, ...)
+{
+#ifdef ENABLE_PS2_MCA_LOG
+    va_list ap;
+
+    if (ps2_mca_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 static uint8_t ps2_read_cache_ram(uint32_t addr, void *priv)
 {
-//        pclog("ps2_read_cache_ram: addr=%08x %i %04x:%04x\n", addr, ps2_cache_valid[addr >> 3], CS,cpu_state.pc);
+        ps2_mca_log("ps2_read_cache_ram: addr=%08x %i %04x:%04x\n", addr, ps2_cache_valid[addr >> 3], CS,cpu_state.pc);
         if (!ps2_cache_valid[addr >> 3])
         {
                 ps2_cache_valid[addr >> 3] = 1;
@@ -109,7 +132,7 @@ static uint8_t ps2_read_cache_ram(uint32_t addr, void *priv)
 }
 static uint16_t ps2_read_cache_ramw(uint32_t addr, void *priv)
 {
-//        pclog("ps2_read_cache_ramw: addr=%08x %i %04x:%04x\n", addr, ps2_cache_valid[addr >> 3], CS,cpu_state.pc);
+        ps2_mca_log("ps2_read_cache_ramw: addr=%08x %i %04x:%04x\n", addr, ps2_cache_valid[addr >> 3], CS,cpu_state.pc);
         if (!ps2_cache_valid[addr >> 3])
         {
                 ps2_cache_valid[addr >> 3] = 1;
@@ -122,7 +145,7 @@ static uint16_t ps2_read_cache_ramw(uint32_t addr, void *priv)
 }
 static uint32_t ps2_read_cache_raml(uint32_t addr, void *priv)
 {
-//        pclog("ps2_read_cache_raml: addr=%08x %i %04x:%04x\n", addr, ps2_cache_valid[addr >> 3], CS,cpu_state.pc);
+        ps2_mca_log("ps2_read_cache_raml: addr=%08x %i %04x:%04x\n", addr, ps2_cache_valid[addr >> 3], CS,cpu_state.pc);
         if (!ps2_cache_valid[addr >> 3])
         {
                 ps2_cache_valid[addr >> 3] = 1;
@@ -135,7 +158,7 @@ static uint32_t ps2_read_cache_raml(uint32_t addr, void *priv)
 }
 static void ps2_write_cache_ram(uint32_t addr, uint8_t val, void *priv)
 {
-//        pclog("ps2_write_cache_ram: addr=%08x val=%02x %04x:%04x %i\n", addr, val, CS,cpu_state.pc, ins);
+        ps2_mca_log("ps2_write_cache_ram: addr=%08x val=%02x %04x:%04x %i\n", addr, val, CS,cpu_state.pc, ins);
         ps2_cache[addr] = val;
 }
 
@@ -408,10 +431,10 @@ static void model_55sx_write(uint16_t port, uint8_t val)
                 case 0x104:
                 ps2.memory_bank[ps2.option[3] & 7] &= ~0xf;
                 ps2.memory_bank[ps2.option[3] & 7] |= (val & 0xf);
-                /* pclog("Write memory bank %i %02x\n", ps2.option[3] & 7, val); */
+                ps2_mca_log("Write memory bank %i %02x\n", ps2.option[3] & 7, val);
                 break;
                 case 0x105:
-                /* pclog("Write POS3 %02x\n", val); */
+                ps2_mca_log("Write POS3 %02x\n", val);
                 ps2.option[3] = val;
                 shadowbios = !(val & 0x10);
                 shadowbios_write = val & 0x10;
@@ -636,14 +659,14 @@ uint8_t ps2_mca_read(uint16_t port, void *p)
                 break;
         }
 
-        /* pclog("ps2_read: port=%04x temp=%02x\n", port, temp); */
-        
-        return temp;
+        ps2_mca_log("ps2_read: port=%04x temp=%02x\n", port, temp);
+
+       return temp;
 }
 
 static void ps2_mca_write(uint16_t port, uint8_t val, void *p)
 {
-        /* pclog("ps2_write: port=%04x val=%02x %04x:%04x\n", port, val, CS,cpu_state.pc); */
+        ps2_mca_log("ps2_write: port=%04x val=%02x %04x:%04x\n", port, val, CS,cpu_state.pc);
 
         switch (port)
         {
@@ -893,18 +916,18 @@ static void mem_encoding_update()
         
         if (ps2.mem_regs[1] & 2) {
                 mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
-		/* pclog("PS/2 Model 80-111: ROM space enabled\n"); */
+		ps2_mca_log("PS/2 Model 80-111: ROM space enabled\n");
         } else {
                 mem_set_mem_state(0xe0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
-		/* pclog("PS/2 Model 80-111: ROM space disabled\n"); */
+		ps2_mca_log("PS/2 Model 80-111: ROM space disabled\n");
 	}
 
 	if (ps2.mem_regs[1] & 4) {
 		mem_mapping_set_addr(&ram_low_mapping, 0x00000, 0x80000);
-		/* pclog("PS/2 Model 80-111: 00080000- 0009FFFF disabled\n"); */
+		ps2_mca_log("PS/2 Model 80-111: 00080000- 0009FFFF disabled\n");
 	} else {
 		mem_mapping_set_addr(&ram_low_mapping, 0x00000, 0xa0000);
-		/* pclog("PS/2 Model 80-111: 00080000- 0009FFFF enabled\n"); */
+		ps2_mca_log("PS/2 Model 80-111: 00080000- 0009FFFF enabled\n");
 	}
 
         if (!(ps2.mem_regs[1] & 8))
@@ -920,10 +943,9 @@ static void mem_encoding_update()
 		mem_mapping_set_exec(&ps2.split_mapping, &ram[ps2.split_phys]);
 		mem_mapping_set_addr(&ps2.split_mapping, ps2.split_addr, ps2.split_size << 10);
 
-		/* pclog("PS/2 Model 80-111: Split memory block enabled at %08X\n", ps2.split_addr); */
-        } /* else {
-		pclog("PS/2 Model 80-111: Split memory block disabled\n");
-	} */
+		ps2_mca_log("PS/2 Model 80-111: Split memory block enabled at %08X\n", ps2.split_addr);
+        } else
+		ps2_mca_log("PS/2 Model 80-111: Split memory block disabled\n");
 }
 
 static uint8_t mem_encoding_read(uint16_t addr, void *p)
@@ -982,7 +1004,7 @@ static void mem_encoding_write_cached(uint16_t addr, uint8_t val, void *p)
                 ps2.mem_regs[2] = (ps2.mem_regs[2] & 0x80) | (val & ~0x88);
                 if (val & 2)
                 {
-//                        pclog("Clear latch - %i\n", ps2.pending_cache_miss);
+                        ps2_mca_log("Clear latch - %i\n", ps2.pending_cache_miss);
                         if (ps2.pending_cache_miss)
                                 ps2.mem_regs[2] |=  0x80;
                         else
@@ -1000,7 +1022,7 @@ static void mem_encoding_write_cached(uint16_t addr, uint8_t val, void *p)
                         ram_mid_mapping.flags &= ~MEM_MAPPING_ROM;
                 break;
         }
-//        pclog("mem_encoding_write: addr=%02x val=%02x %04x:%04x  %02x %02x\n", addr, val, CS,cpu_state.pc, ps2.mem_regs[1],ps2.mem_regs[2]);
+        ps2_mca_log("mem_encoding_write: addr=%02x val=%02x %04x:%04x  %02x %02x\n", addr, val, CS,cpu_state.pc, ps2.mem_regs[1],ps2.mem_regs[2]);
         mem_encoding_update();
         if ((ps2.mem_regs[1] & 0x10) && (ps2.mem_regs[2] & 0x21) == 0x20)
         {

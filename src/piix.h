@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)piix.h	1.0.3	2018/03/26
+ * Version:	@(#)piix.h	1.0.3	2018/05/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -17,6 +17,7 @@
  */
 
 extern const device_t piix_device;
+extern const device_t piix_pb640_device;
 extern const device_t piix3_device;
 
 extern int	piix_bus_master_dma_read(int channel, uint8_t *data, int transfer_length, void *priv);

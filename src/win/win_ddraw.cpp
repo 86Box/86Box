@@ -11,7 +11,7 @@
  * NOTES:	This code should be re-merged into a single init() with a
  *		'fullscreen' argument, indicating FS mode is requested.
  *
- * Version:	@(#)win_ddraw.cpp	1.0.7	2018/03/28
+ * Version:	@(#)win_ddraw.cpp	1.0.8	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,8 +21,9 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
@@ -31,6 +32,7 @@
 #define PNG_DEBUG 0
 #include <png.h>
 
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../video/video.h"
@@ -54,6 +56,26 @@ static int			ddraw_w, ddraw_h,
 
 static png_structp		png_ptr;
 static png_infop		info_ptr;
+
+
+#ifdef ENABLE_DDRAW_LOG
+int ddraw_do_log = ENABLE_DDRAW_LOG;
+#endif
+
+
+static void
+ddraw_log(const char *fmt, ...)
+{
+#ifdef ENABLE_DDRAW_LOG
+    va_list ap;
+
+    if (ddraw_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 static void
@@ -120,7 +142,7 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
     /* create file */
     FILE *fp = plat_fopen(szFilename, (wchar_t *) L"wb");
     if (!fp) {
-	pclog("[SavePNG] File %ls could not be opened for writing", szFilename);
+	ddraw_log("[SavePNG] File %ls could not be opened for writing", szFilename);
 	return;
     }
 
@@ -128,14 +150,14 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
     png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
     if (!png_ptr) {
-	pclog("[SavePNG] png_create_write_struct failed");
+	ddraw_log("[SavePNG] png_create_write_struct failed");
 	fclose(fp);
 	return;
     }
 
     info_ptr = png_create_info_struct(png_ptr);
     if (!info_ptr) {
-	pclog("[SavePNG] png_create_info_struct failed");
+	ddraw_log("[SavePNG] png_create_info_struct failed");
 	fclose(fp);
 	return;
     }
@@ -154,7 +176,7 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
 		bmpInfo.bmiHeader.biWidth*abs(bmpInfo.bmiHeader.biHeight)*(bmpInfo.bmiHeader.biBitCount+7)/8;
 
     if ((pBuf = malloc(bmpInfo.bmiHeader.biSizeImage)) == NULL) {
-	pclog("[SavePNG] Unable to Allocate Bitmap Memory");
+	ddraw_log("[SavePNG] Unable to Allocate Bitmap Memory");
 	fclose(fp);
 	return;
     }
@@ -163,7 +185,7 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
 	bmpInfo.bmiHeader.biSizeImage <<= 1;
 
 	if ((pBuf2 = malloc(bmpInfo.bmiHeader.biSizeImage)) == NULL) {
-		pclog("[SavePNG] Unable to Allocate Secondary Bitmap Memory");
+		ddraw_log("[SavePNG] Unable to Allocate Secondary Bitmap Memory");
 		free(pBuf);
 		fclose(fp);
 		return;
@@ -172,7 +194,7 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
 	bmpInfo.bmiHeader.biHeight <<= 1;
     }
 
-    pclog("save png w=%i h=%i\n", bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight);
+    ddraw_log("save png w=%i h=%i\n", bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight);
 
     bmpInfo.bmiHeader.biCompression = BI_RGB;
 
@@ -183,7 +205,7 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
 	PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
     if ((b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * bmpInfo.bmiHeader.biHeight)) == NULL) {
-	pclog("[SavePNG] Unable to Allocate RGB Bitmap Memory");
+	ddraw_log("[SavePNG] Unable to Allocate RGB Bitmap Memory");
 	free(pBuf2);
 	free(pBuf);
 	fclose(fp);
@@ -237,7 +259,7 @@ ddraw_fs_size(RECT w_rect, RECT *r_dest, int w, int h)
     int ratio_w, ratio_h;
     double hsr, gsr, ra, d;
 
-    pclog("video_fullscreen_scale = %i\n", video_fullscreen_scale);
+    ddraw_log("video_fullscreen_scale = %i\n", video_fullscreen_scale);
 
     switch (video_fullscreen_scale) {
 	case FULLSCR_SCALE_FULL:

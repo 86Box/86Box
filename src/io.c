@@ -8,7 +8,7 @@
  *
  *		Implement I/O ports and their operations.
  *
- * Version:	@(#)io.c	1.0.3	2018/02/02
+ * Version:	@(#)io.c	1.0.4	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -17,11 +17,13 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "io.h"
 #include "cpu/cpu.h"
@@ -48,13 +50,35 @@ int initialized = 0;
 io_t *io[NPORTS], *io_last[NPORTS];
 
 
-#ifdef IO_CATCH
-static uint8_t null_inb(uint16_t addr, void *priv) { pclog("IO: read(%04x)\n"); return(0xff); }
-static uint16_t null_inw(uint16_t addr, void *priv) { pclog("IO: readw(%04x)\n"); return(0xffff); }
-static uint32_t null_inl(uint16_t addr, void *priv) { pclog("IO: readl(%04x)\n"); return(0xffffffff); }
-static void null_outb(uint16_t addr, uint8_t val, void *priv) { pclog("IO: write(%04x, %02x)\n", val); }
-static void null_outw(uint16_t addr, uint16_t val, void *priv) { pclog("IO: writew(%04x, %04x)\n", val); }
-static void null_outl(uint16_t addr, uint32_t val, void *priv) { pclog("IO: writel(%04x, %08lx)\n", val); }
+#ifdef ENABLE_IO_LOG
+int io_do_log = ENABLE_IO_LOG;
+#endif
+
+
+#ifdef ENABLE_IO_LOG
+static void
+io_log(const char *format, ...)
+{
+#ifdef ENABLE_IO_LOG
+    va_list ap;
+
+    if (io_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
+#endif
+
+
+#ifdef ENABLE_IO_LOG
+static uint8_t null_inb(uint16_t addr, void *priv) { io_log("IO: read(%04x)\n"); return(0xff); }
+static uint16_t null_inw(uint16_t addr, void *priv) { io_log("IO: readw(%04x)\n"); return(0xffff); }
+static uint32_t null_inl(uint16_t addr, void *priv) { io_log("IO: readl(%04x)\n"); return(0xffffffff); }
+static void null_outb(uint16_t addr, uint8_t val, void *priv) { io_log("IO: write(%04x, %02x)\n", val); }
+static void null_outw(uint16_t addr, uint16_t val, void *priv) { io_log("IO: writew(%04x, %04x)\n", val); }
+static void null_outl(uint16_t addr, uint32_t val, void *priv) { io_log("IO: writel(%04x, %08lx)\n", val); }
 #endif
 
 
@@ -83,7 +107,7 @@ io_init(void)
 		p = NULL;
 	}
 
-#ifdef IO_CATCH
+#ifdef ENABLE_IO_LOG
 	/* io[c] should be the only handler, pointing at the NULL catch handler. */
 	p = (io_t *) malloc(sizeof(io_t));
 	memset(p, 0, sizeof(io_t));
@@ -278,9 +302,9 @@ inb(uint16_t port)
 	}
     }
 
-#ifdef IO_TRACE
+#ifdef ENABLE_IO_LOG
     if (CS == IO_TRACE)
-	pclog("IOTRACE(%04X): inb(%04x)=%02x\n", IO_TRACE, port, r);
+	io_log("IOTRACE(%04X): inb(%04x)=%02x\n", IO_TRACE, port, r);
 #endif
 
     return(r);
@@ -301,9 +325,9 @@ outb(uint16_t port, uint8_t val)
 	}
     }
 	
-#ifdef IO_TRACE
+#ifdef ENABLE_IO_LOG
     if (CS == IO_TRACE)
-	pclog("IOTRACE(%04X): outb(%04x,%02x)\n", IO_TRACE, port, val);
+	io_log("IOTRACE(%04X): outb(%04x,%02x)\n", IO_TRACE, port, val);
 #endif
     return;
 }

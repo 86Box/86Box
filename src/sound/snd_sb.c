@@ -8,7 +8,7 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.8	2018/04/26
+ * Version:	@(#)sound_sb.c	1.0.9	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -17,11 +17,13 @@
  *		Copyright 2008-2017 Sarah Walker.
  *		Copyright 2016,2017 Miran Grca.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../mca.h"
@@ -167,6 +169,27 @@ const int32_t sb_att_7dbstep_2bits[]=
 {
         164,6537,14637,32767
 };
+
+
+#ifdef ENABLE_SB_LOG
+int sb_do_log = ENABLE_SB_LOG;
+#endif
+
+
+static void
+sb_log(const char *fmt, ...)
+{
+#ifdef ENABLE_SB_LOG
+    va_list ap;
+
+    if (sb_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
+
 
 /* sb 1, 1.5, 2, 2 mvc do not have a mixer, so signal is hardwired */
 static void sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
@@ -533,7 +556,7 @@ void sb_ct1335_mixer_write(uint16_t addr, uint8_t val, void *p)
                                 break;
 
                                 default:
-                                /* pclog("sb_ct1335: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]); */
+                                sb_log("sb_ct1335: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                                 break;
                         }
                 }
@@ -560,7 +583,7 @@ uint8_t sb_ct1335_mixer_read(uint16_t addr, void *p)
                 case 0x00: case 0x02: case 0x06: case 0x08: case 0x0A:
                 return mixer->regs[mixer->index];
                 default:
-                /* pclog("sb_ct1335: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]); */
+                sb_log("sb_ct1335: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                 break;
         }
 
@@ -624,7 +647,7 @@ void sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p)
                                 
                                 
                                 default:
-                                /* pclog("sb_ct1345: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]); */
+                                sb_log("sb_ct1345: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                                 break;
                         }
                 }
@@ -684,7 +707,7 @@ uint8_t sb_ct1345_mixer_read(uint16_t addr, void *p)
                 return mixer->regs[mixer->index];
                 
                 default:
-                /* pclog("sb_ct1345: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]); */
+                sb_log("sb_ct1345: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                 break;
         }
         
@@ -831,7 +854,7 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
                 /*TODO: pcspeaker volume, with "output_selector" check? or better not? */
                 sound_set_cd_volume(((uint32_t)mixer->master_l * (uint32_t)mixer->cd_l) / 65535,
                                     ((uint32_t)mixer->master_r * (uint32_t)mixer->cd_r) / 65535);
-//                pclog("sb_ct1745: Received register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                sb_log("sb_ct1745: Received register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
         }
 }
 
@@ -843,7 +866,7 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
         if (!(addr & 1))
                 return mixer->index;
 
-//        pclog("sb_ct1745: received register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+        sb_log("sb_ct1745: received register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
 
         if (mixer->index>=0x30 && mixer->index<=0x47)
         {
@@ -925,7 +948,7 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
                 
                 
                 default:
-                /* pclog("sb_ct1745: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]); */
+                sb_log("sb_ct1745: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                 break;
         }
 
@@ -945,8 +968,8 @@ uint8_t sb_mcv_read(int port, void *p)
 {
         sb_t *sb = (sb_t *)p;
 
-        /* pclog("sb_mcv_read: port=%04x\n", port); */
-        
+        sb_log("sb_mcv_read: port=%04x\n", port);
+
         return sb->pos_regs[port & 7];
 }
 
@@ -958,7 +981,7 @@ void sb_mcv_write(int port, uint8_t val, void *p)
         if (port < 0x102)
                 return;
         
-        /* pclog("sb_mcv_write: port=%04x val=%02x\n", port, val); */
+        sb_log("sb_mcv_write: port=%04x val=%02x\n", port, val);
 
         addr = sb_mcv_addr[sb->pos_regs[4] & 7];
 	if (sb->opl_enabled) {
@@ -989,8 +1012,8 @@ uint8_t sb_pro_mcv_read(int port, void *p)
 {
         sb_t *sb = (sb_t *)p;
 
-        /* pclog("sb_pro_mcv_read: port=%04x\n", port); */
-        
+        sb_log("sb_pro_mcv_read: port=%04x\n", port);
+
         return sb->pos_regs[port & 7];
 }
 
@@ -1002,7 +1025,7 @@ void sb_pro_mcv_write(int port, uint8_t val, void *p)
         if (port < 0x102)
                 return;
 
-        /* pclog("sb_pro_mcv_write: port=%04x val=%02x\n", port, val); */
+        sb_log("sb_pro_mcv_write: port=%04x val=%02x\n", port, val);
 
         addr = (sb->pos_regs[2] & 0x20) ? 0x220 : 0x240;
         io_removehandler(addr+0, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);

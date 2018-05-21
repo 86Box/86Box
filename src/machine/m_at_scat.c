@@ -10,16 +10,15 @@
  *
  *		Re-worked version based on the 82C235 datasheet and errata.
  *
- * Version:	@(#)m_at_scat.c	1.0.14	2018/04/26
+ * Version:	@(#)m_at_scat.c	1.0.15	2018/04/29
  *
  * Authors:	Original by GreatPsycho for PCem.
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
-#include <stdarg.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
@@ -999,7 +998,6 @@ scat_write(uint16_t port, uint8_t val, void *priv)
 		}
 		if (scat_reg_valid)
 			scat_regs[scat_index] = val;
-		else pclog("Attemped to write unimplemented SCAT register %02X at %04X:%04X\n", scat_index, val, CS, cpu_state.oldpc);
 		if (scat_shadow_update)
 			scat_shadow_state_update();
 		if (scat_map_update)

@@ -8,7 +8,7 @@
  *
  *		Windows raw keyboard input handler.
  *
- * Version:	@(#)win_keyboard.c	1.0.9	2018/02/10
+ * Version:	@(#)win_keyboard.c	1.0.10	2018/04/29
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -95,7 +95,6 @@ keyboard_getkeymap(void)
 
 				scancode_unmapped = convert_scan_code(scancode_unmapped);
 				scancode_mapped = convert_scan_code(scancode_mapped);
-				/* pclog("Scan code map found: %04X -> %04X\n", scancode_unmapped, scancode_mapped); */
 
 				/* Ignore source scan codes with prefixes other than E1
 				   that are not E1 1D. */
@@ -145,7 +144,6 @@ keyboard_handle(LPARAM lParam, int infocus)
 		scancode = convert_scan_code(scancode);
 
 		/* Remap it according to the list from the Registry */
-                /* pclog("Scan code: %04X (map: %04X)\n", scancode, scancode_map[scancode]); */
 		scancode = scancode_map[scancode];
 
 		/* If it's not 0xFFFF, send it to the emulated

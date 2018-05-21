@@ -8,7 +8,7 @@
  *
  *		Implement a generic NVRAM/CMOS/RTC device.
  *
- * Version:	@(#)nvr.c	1.0.8	2018/04/29
+ * Version:	@(#)nvr.c	1.0.9	2018/04/29
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -44,12 +44,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "device.h"
 #include "machine/machine.h"
@@ -69,6 +71,26 @@ int	nvr_dosave;		/* NVR is dirty, needs saved */
 static int8_t	days_in_month[12] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
 static struct tm intclk;
 static nvr_t	*saved_nvr = NULL;
+
+
+#ifdef ENABLE_NVR_LOG
+int nvr_do_log = ENABLE_NVR_LOG;
+#endif
+
+
+static void
+nvr_log(const char *format, ...)
+{
+#ifdef ENABLE_NVR_LOG
+    va_list ap;
+
+    if (nvr_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 /* Determine whether or not the year is leap. */
@@ -238,7 +260,7 @@ nvr_load(void)
     /* Load the (relevant) part of the NVR contents. */
     if (saved_nvr->size != 0) {
 	path = nvr_path(saved_nvr->fn);
-	pclog("NVR: loading from '%ls'\n", path);
+	nvr_log("NVR: loading from '%ls'\n", path);
 	fp = plat_fopen(path, L"rb");
 	if (fp != NULL) {
 		/* Read NVR contents from file. */
@@ -272,7 +294,7 @@ nvr_save(void)
 
     if (saved_nvr->size != 0) {
 	path = nvr_path(saved_nvr->fn);
-	pclog("NVR: saving to '%ls'\n", path);
+	nvr_log("NVR: saving to '%ls'\n", path);
 	fp = plat_fopen(path, L"wb");
 	if (fp != NULL) {
 		/* Save NVR contents to file. */

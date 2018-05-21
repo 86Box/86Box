@@ -1,8 +1,10 @@
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../device.h"
@@ -61,8 +63,7 @@ void *ssi2001_init(const device_t *info)
 {
         ssi2001_t *ssi2001 = malloc(sizeof(ssi2001_t));
         memset(ssi2001, 0, sizeof(ssi2001_t));
-        
-        pclog("ssi2001_init\n");
+
         ssi2001->psid = sid_init();
         sid_reset(ssi2001->psid);
         io_sethandler(0x0280, 0x0020, ssi2001_read, NULL, NULL, ssi2001_write, NULL, NULL, ssi2001);

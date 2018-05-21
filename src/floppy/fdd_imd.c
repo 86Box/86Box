@@ -8,7 +8,7 @@
  *
  *		Implementation of the IMD floppy image format.
  *
- * Version:	@(#)fdd_imd.c	1.0.6	2018/03/19
+ * Version:	@(#)fdd_imd.c	1.0.7	2018/04/29
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -34,11 +34,13 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../plat.h"
 #include "fdd.h"
@@ -80,6 +82,27 @@ typedef struct {
 
 static imd_t	*imd[FDD_NUM];
 static fdc_t	*imd_fdc;
+
+
+#ifdef ENABLE_IMD_LOG
+int imd_do_log = ENABLE_IMD_LOG;
+#endif
+
+
+static void
+imd_log(const char *fmt, ...)
+{
+#ifdef ENABLE_IMD_LOG
+   va_list ap;
+
+   if (imd_do_log)
+   {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+   }
+#endif
+}
 
 
 static uint32_t
@@ -617,13 +640,13 @@ imd_load(int drive, wchar_t *fn)
     fseek(dev->f, 0, SEEK_SET);
     fread(&magic, 1, 4, dev->f);
     if (magic != 0x20444D49) {
-	pclog("IMD: Not a valid ImageDisk image\n");
+	imd_log("IMD: Not a valid ImageDisk image\n");
 	fclose(dev->f);
 	free(dev);;
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
 	return;
     } else {
-	pclog("IMD: Valid ImageDisk image\n");
+	imd_log("IMD: Valid ImageDisk image\n");
     }
 
     fseek(dev->f, 0, SEEK_END);
@@ -635,24 +658,24 @@ imd_load(int drive, wchar_t *fn)
 
     buffer2 = strchr(buffer, 0x1A);
     if (buffer2 == NULL) {
-	pclog("IMD: No ASCII EOF character\n");
+	imd_log("IMD: No ASCII EOF character\n");
 	fclose(dev->f);
 	free(dev);
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
 	return;
     } else {
-	pclog("IMD: ASCII EOF character found at offset %08X\n", buffer2 - buffer);
+	imd_log("IMD: ASCII EOF character found at offset %08X\n", buffer2 - buffer);
     }
 
     buffer2++;
     if ((buffer2 - buffer) == fsize) {
-	pclog("IMD: File ends after ASCII EOF character\n");
+	imd_log("IMD: File ends after ASCII EOF character\n");
 	fclose(dev->f);
 	free(dev);
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
 	return;
     } else {
-	pclog("IMD: File continues after ASCII EOF character\n");
+	imd_log("IMD: File continues after ASCII EOF character\n");
     }
 
     dev->start_offs = (buffer2 - buffer);
@@ -691,7 +714,7 @@ imd_load(int drive, wchar_t *fn)
 		dev->tracks[track][side].side_flags |= 0x20;
 	if ((dev->tracks[track][side].side_flags & 7) == 1)
 		dev->tracks[track][side].side_flags |= 0x20;
-	/* pclog("Side flags for (%02i)(%01i): %02X\n", track, side, dev->tracks[track][side].side_flags); */
+	/* imd_log("Side flags for (%02i)(%01i): %02X\n", track, side, dev->tracks[track][side].side_flags); */
 	dev->tracks[track][side].is_present = 1;
 	dev->tracks[track][side].file_offs = (buffer2 - buffer);
 	memcpy(dev->tracks[track][side].params, buffer2, 5);
@@ -766,7 +789,7 @@ imd_load(int drive, wchar_t *fn)
 			dev->disk_flags |= (3 << 5);
 			if ((raw_tsize - track_total + (mfm ? 146 : 73)) < (minimum_gap3 + minimum_gap4)) {
 				/* If we can't fit the sectors with a reasonable minimum gap even at 2% slower RPM, abort. */
-				pclog("IMD: Unable to fit the %i sectors in a track\n", track_spt);
+				imd_log("IMD: Unable to fit the %i sectors in a track\n", track_spt);
 				fclose(dev->f);
 				free(dev);
 				imd[drive] = NULL;
@@ -779,7 +802,7 @@ imd_load(int drive, wchar_t *fn)
 	} else if (gap3_sizes[converted_rate][sector_size][track_spt] != 0x00)
 		dev->tracks[track][side].gap3_len = gap3_sizes[converted_rate][sector_size][track_spt];
 
-	/* pclog("GAP3 length for (%02i)(%01i): %i bytes\n", track, side, dev->tracks[track][side].gap3_len); */
+	/* imd_log("GAP3 length for (%02i)(%01i): %i bytes\n", track, side, dev->tracks[track][side].gap3_len); */
 
 	if (track > dev->track_count)
 		dev->track_count = track;
@@ -797,7 +820,7 @@ imd_load(int drive, wchar_t *fn)
     if (dev->sides == 2)
 	dev->disk_flags |= 8;
 
-    /* pclog("%i tracks, %i sides\n", dev->track_count, dev->sides); */
+    /* imd_log("%i tracks, %i sides\n", dev->track_count, dev->sides); */
 
     /* Attach this format to the D86F engine. */
     d86f_handler[drive].disk_flags = disk_flags;

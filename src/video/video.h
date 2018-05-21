@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.26	2018/04/09
+ * Version:	@(#)video.h	1.0.27	2018/05/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,9 +20,6 @@
  */
 #ifndef EMU_VIDEO_H
 # define EMU_VIDEO_H
-
-
-#define FONT_ATIKOR_PATH	L"roms/video/ati28800/ati_ksc5601.rom"
 
 
 #define makecol(r, g, b)    ((b) | ((g) << 8) | ((r) << 16))
@@ -89,6 +86,7 @@ enum {
     GFX_CL_GD5434_VLB,		/* Cirrus Logic CL-GD 5434 VLB */
     GFX_CL_GD5434_PCI,		/* Cirrus Logic CL-GD 5434 PCI */
     GFX_CL_GD5436_PCI,		/* Cirrus Logic CL-GD 5436 PCI */
+    GFX_CL_GD5440_PCI,		/* Cirrus Logic CL-GD 5440 PCI */
     GFX_CL_GD5446_PCI,		/* Cirrus Logic CL-GD 5446 PCI */
     GFX_CL_GD5446_STB_PCI,	/* STB Nitro 64V (Cirrus Logic CL-GD 5446) PCI */
     GFX_CL_GD5480_PCI,		/* Cirrus Logic CL-GD 5480 PCI */

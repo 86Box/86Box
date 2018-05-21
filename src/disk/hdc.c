@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of disk controllers.
  *
- * Version:	@(#)hdc.c	1.0.14	2018/04/26
+ * Version:	@(#)hdc.c	1.0.15	2018/04/29
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -16,10 +16,12 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../machine/machine.h"
 #include "../device.h"
@@ -30,6 +32,26 @@
 
 char	*hdc_name;		/* configured HDC name */
 int	hdc_current;
+
+
+#ifdef ENABLE_HDC_LOG
+int hdc_do_log = ENABLE_HDC_LOG;
+#endif
+
+
+static void
+hdc_log(const char *fmt, ...)
+{
+#ifdef ENABLE_HDC_LOG
+    va_list ap;
+
+    if (hdc_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 static void *
@@ -142,7 +164,7 @@ hdc_init(char *name)
 {
     int c;
 
-    pclog("HDC: initializing..\n");
+    hdc_log("HDC: initializing..\n");
 
     for (c = 0; controllers[c].device; c++) {
 	if (! strcmp(name, (char *) controllers[c].internal_name)) {
@@ -160,7 +182,7 @@ hdc_init(char *name)
 void
 hdc_reset(void)
 {
-    pclog("HDC: reset(current=%d, internal=%d)\n",
+    hdc_log("HDC: reset(current=%d, internal=%d)\n",
 	hdc_current, (machines[machine].flags & MACHINE_HDC) ? 1 : 0);
 
     /* If we have a valid controller, add its device. */

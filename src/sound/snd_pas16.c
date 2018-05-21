@@ -1,8 +1,10 @@
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
@@ -176,6 +178,27 @@ enum
         PAS16_FILT_MUTE = 0x20
 };
 
+
+#ifdef ENABLE_PAS16_LOG
+int pas16_do_log = ENABLE_PAS16_LOG;
+#endif
+
+
+static void
+pas16_log(const char *fmt, ...)
+{
+#ifdef ENABLE_PAS16_LOG
+    va_list ap;
+
+    if (pas16_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 static uint8_t pas16_in(uint16_t port, void *p)
 {
         pas16_t *pas16 = (pas16_t *)p;
@@ -272,7 +295,7 @@ static uint8_t pas16_in(uint16_t port, void *p)
 		temp = 0xff;
 		break;
         }
-/*        if (port != 0x388 && port != 0x389 && port != 0xb8b) */pclog("pas16_in : port %04X return %02X  %04X:%04X\n", port, temp, CS,cpu_state.pc);
+/*        if (port != 0x388 && port != 0x389 && port != 0xb8b) */pas16_log("pas16_in : port %04X return %02X  %04X:%04X\n", port, temp, CS,cpu_state.pc);
 /*        if (CS == 0x1FF4 && pc == 0x0585)
         {
                 if (output)
@@ -285,7 +308,7 @@ static uint8_t pas16_in(uint16_t port, void *p)
 static void pas16_out(uint16_t port, uint8_t val, void *p)
 {
         pas16_t *pas16 = (pas16_t *)p;
-/*        if (port != 0x388 && port != 0x389) */pclog("pas16_out : port %04X val %02X  %04X:%04X\n", port, val, CS,cpu_state.pc);
+/*        if (port != 0x388 && port != 0x389) */pas16_log("pas16_out : port %04X val %02X  %04X:%04X\n", port, val, CS,cpu_state.pc);
 /*        if (CS == 0x369 && pc == 0x2AC5)
                 fatal("here\n");*/
         switch ((port - pas16->base) + 0x388)
@@ -352,12 +375,12 @@ static void pas16_out(uint16_t port, uint8_t val, void *p)
                 case 0xf389:
                 pas16->io_conf_2 = val;
                 pas16->dma = pas16_dmas[val & 0x7];
-                pclog("pas16_out : set PAS DMA %i\n", pas16->dma);
+                pas16_log("pas16_out : set PAS DMA %i\n", pas16->dma);
                 break;
                 case 0xf38a:
                 pas16->io_conf_3 = val;
                 pas16->irq = pas16_irqs[val & 0xf];
-                pclog("pas16_out : set PAS IRQ %i\n", pas16->irq);
+                pas16_log("pas16_out : set PAS IRQ %i\n", pas16->irq);
                 break;
                 case 0xf38b:
                 pas16->io_conf_4 = val;
@@ -380,11 +403,11 @@ static void pas16_out(uint16_t port, uint8_t val, void *p)
                 pas16->sb_irqdma = val;
                 sb_dsp_setirq(&pas16->dsp, pas16_sb_irqs[(val >> 3) & 7]);
                 sb_dsp_setdma8(&pas16->dsp, pas16_sb_dmas[(val >> 6) & 3]);
-                pclog("pas16_out : set SB IRQ %i DMA %i\n", pas16_sb_irqs[(val >> 3) & 7], pas16_sb_dmas[(val >> 6) & 3]);
+                pas16_log("pas16_out : set SB IRQ %i DMA %i\n", pas16_sb_irqs[(val >> 3) & 7], pas16_sb_dmas[(val >> 6) & 3]);
                 break;
                 
                 default:
-                pclog("pas16_out : unknown %04X\n", port);
+                pas16_log("pas16_out : unknown %04X\n", port);
         }
         if (cpu_state.pc == 0x80048CF3)
         {
@@ -417,7 +440,7 @@ static void pas16_pit_out(uint16_t port, uint8_t val, void *p)
                 pas16->pit.ctrls[t] = pas16->pit.ctrl = val;
                 if (t == 3)
                 {
-                        pclog("PAS16: bad PIT reg select\n");
+                        pas16_log("PAS16: bad PIT reg select\n");
                         return;
                 }
                 if (!(pas16->pit.ctrl & 0x30))
@@ -627,7 +650,7 @@ static void pas16_pcm_poll(void *p)
                         pas16->irq_stat |= PAS16_INT_PCM;
                         if (pas16->irq_ena & PAS16_INT_PCM)
                         {
-                                pclog("pas16_pcm_poll : cause IRQ %i %02X\n", pas16->irq, 1 << pas16->irq);
+                                pas16_log("pas16_pcm_poll : cause IRQ %i %02X\n", pas16->irq, 1 << pas16->irq);
                                 picint(1 << pas16->irq);
                         }
                 }
@@ -658,7 +681,7 @@ static void pas16_out_base(uint16_t port, uint8_t val, void *p)
         io_removehandler((pas16->base - 0x388) + 0xff88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
         
         pas16->base = val << 2;
-        pclog("pas16_write_base : PAS16 base now at %04X\n", pas16->base);
+        pas16_log("pas16_write_base : PAS16 base now at %04X\n", pas16->base);
 
         io_sethandler((pas16->base - 0x388) + 0x0388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);
         io_sethandler((pas16->base - 0x388) + 0x0788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL,  pas16);

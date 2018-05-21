@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 1 Mbit 8-bit flash devices.
  *
- * Version:	@(#)intel_flash.c	1.0.15	2018/04/26
+ * Version:	@(#)intel_flash.c	1.0.16	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -184,8 +184,6 @@ void *intel_flash_init(uint8_t type)
 	swprintf(flash_name, l, L"%ls.bin", machine_name);
 
 	wcscpy(flash_path, flash_name);
-
-	/* pclog("Flash path: %ls\n", flash_name); */
 
 	flash->flash_id = (type & FLASH_IS_BXB) ? 0x95 : 0x94;
 	flash->invert_high_pin = (type & FLASH_INVERT);

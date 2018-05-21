@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.21	2018/03/19
+ * Version:	@(#)video.c	1.0.22	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -691,10 +691,8 @@ loadfont(wchar_t *s, int format)
     int c,d;
 
     f = rom_fopen(s, L"rb");
-    if (f == NULL) {
-	pclog("VIDEO: cannot load font '%ls', fmt=%d\n", s, format);
+    if (f == NULL)
 	return;
-    }
 
     switch (format) {
 	case 0:		/* MDA */

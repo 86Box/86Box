@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_ide.h	1.0.9	2018/03/26
+ * Version:	@(#)hdd_ide.h	1.0.10	2018/05/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -29,14 +29,13 @@ typedef struct {
 	    hdd_num, channel,
 	    pos, sector_pos,
 	    lba, skip512,
-	    reset, specify_success,
-	    mdma_mode, do_initial_read,
+	    reset, tracks,
 	    spt, hpc,
-	    tracks;
+	    mdma_mode, do_initial_read;
 	uint32_t secount, sector,
 		 cylinder, head,
 		 drive, cylprecomp,
-		 t_spt, t_hpc,
+		 cfg_spt, cfg_hpc,
 		 lba_addr;
 
 	uint16_t *buffer;

@@ -10,7 +10,7 @@
  *
  * Known bugs:	Accelerator doesn't work in planar modes
  *
- * Version:	@(#)vid_et4000w32.c	1.0.9	2018/04/26
+ * Version:	@(#)vid_et4000w32.c	1.0.10	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,11 +18,13 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
@@ -154,6 +156,27 @@ void et4000w32p_mmu_write(uint32_t addr, uint8_t val, void *p);
 
 void et4000w32_blit_start(et4000w32p_t *et4000);
 void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et4000w32p_t *et4000);
+
+
+#ifdef ENABLE_ET4000W32_LOG
+int et4000w32_do_log = ENABLE_ET4000W32_LOG;
+#endif
+
+
+static void
+et4000w32_log(const char *format, ...)
+{
+#ifdef ENABLE_ET4000W32_LOG
+    va_list ap;
+
+    if (et4000w32_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
+
 
 void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
 {
@@ -847,10 +870,10 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
         {
                 while (count--)
                 {
-                        /* if (bltout) pclog("%i,%i : ", et4000->acl.internal.pos_x, et4000->acl.internal.pos_y); */
+                        et4000w32_log("%i,%i : ", et4000->acl.internal.pos_x, et4000->acl.internal.pos_y);
                         pattern = svga->vram[(et4000->acl.pattern_addr + et4000->acl.pattern_x) & 0x1fffff];
                         source  = svga->vram[(et4000->acl.source_addr  + et4000->acl.source_x)  & 0x1fffff];
-                        /* if (bltout) pclog("%06X %06X ", (et4000->acl.pattern_addr + et4000->acl.pattern_x) & 0x1fffff, (et4000->acl.source_addr + et4000->acl.source_x) & 0x1fffff); */
+                        et4000w32_log("%06X %06X ", (et4000->acl.pattern_addr + et4000->acl.pattern_x) & 0x1fffff, (et4000->acl.source_addr + et4000->acl.source_x) & 0x1fffff);
                         if (cpu_input == 2)
                         {
                                 source = sdat & 0xff;
@@ -858,11 +881,11 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
                         }
                         dest = svga->vram[et4000->acl.dest_addr & 0x1fffff];
                         out = 0;
-                        /* if (bltout) pclog("%06X   ", et4000->acl.dest_addr); */
+                        et4000w32_log("%06X   ", et4000->acl.dest_addr);
                         if ((et4000->acl.internal.ctrl_routing & 0xa) == 8)
                         {
                                 mixdat = svga->vram[(et4000->acl.mix_addr >> 3) & 0x1fffff] & (1 << (et4000->acl.mix_addr & 7));
-                                /* if (bltout) pclog("%06X %02X  ", et4000->acl.mix_addr, svga->vram[(et4000->acl.mix_addr >> 3) & 0x1fffff]); */
+                                et4000w32_log("%06X %02X  ", et4000->acl.mix_addr, svga->vram[(et4000->acl.mix_addr >> 3) & 0x1fffff]);
                         }
                         else
                         {
@@ -879,7 +902,7 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
                                 if (pattern & (1 << c)) d |= 4;
                                 if (rop & (1 << d)) out |= (1 << c);
                         }
-                        /* if (bltout) pclog("%06X = %02X\n", et4000->acl.dest_addr & 0x1fffff, out); */
+                        et4000w32_log("%06X = %02X\n", et4000->acl.dest_addr & 0x1fffff, out);
                         if (!(et4000->acl.internal.ctrl_routing & 0x40))
                         {
                                 svga->vram[et4000->acl.dest_addr & 0x1fffff] = out;
@@ -962,11 +985,11 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
         {
                 while (count--)
                 {
-                        /* if (bltout) pclog("%i,%i : ", et4000->acl.internal.pos_x, et4000->acl.internal.pos_y); */
-                        
+                        et4000w32_log("%i,%i : ", et4000->acl.internal.pos_x, et4000->acl.internal.pos_y);
+
                         pattern = svga->vram[(et4000->acl.pattern_addr + et4000->acl.pattern_x) & 0x1fffff];
                         source  = svga->vram[(et4000->acl.source_addr  + et4000->acl.source_x)  & 0x1fffff];
-                        /* if (bltout) pclog("%i %06X %06X %02X %02X  ", et4000->acl.pattern_y, (et4000->acl.pattern_addr + et4000->acl.pattern_x) & 0x1fffff, (et4000->acl.source_addr + et4000->acl.source_x) & 0x1fffff, pattern, source); */
+                        et4000w32_log("%i %06X %06X %02X %02X  ", et4000->acl.pattern_y, (et4000->acl.pattern_addr + et4000->acl.pattern_x) & 0x1fffff, (et4000->acl.source_addr + et4000->acl.source_x) & 0x1fffff, pattern, source);
 
                         if (cpu_input == 2)
                         {
@@ -975,11 +998,11 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
                         }
                         dest = svga->vram[et4000->acl.dest_addr & 0x1fffff];
                         out = 0;
-                        /* if (bltout) pclog("%06X %02X  %i %08X %08X  ", dest, et4000->acl.dest_addr, mix & 1, mix, et4000->acl.mix_addr); */
+                        et4000w32_log("%06X %02X  %i %08X %08X  ", dest, et4000->acl.dest_addr, mix & 1, mix, et4000->acl.mix_addr);
                         if ((et4000->acl.internal.ctrl_routing & 0xa) == 8)
                         {
                                 mixdat = svga->vram[(et4000->acl.mix_addr >> 3) & 0x1fffff] & (1 << (et4000->acl.mix_addr & 7));
-                                /* if (bltout) pclog("%06X %02X  ", et4000->acl.mix_addr, svga->vram[(et4000->acl.mix_addr >> 3) & 0x1fffff]); */
+                                et4000w32_log("%06X %02X  ", et4000->acl.mix_addr, svga->vram[(et4000->acl.mix_addr >> 3) & 0x1fffff]);
                         }
                         else
                         {
@@ -996,7 +1019,7 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
                                 if (pattern & (1 << c)) d |= 4;
                                 if (rop & (1 << d)) out |= (1 << c);
                         }
-                        /* if (bltout) pclog("%06X = %02X\n", et4000->acl.dest_addr & 0x1fffff, out); */
+                        et4000w32_log("%06X = %02X\n", et4000->acl.dest_addr & 0x1fffff, out);
                         if (!(et4000->acl.internal.ctrl_routing & 0x40))
                         {
                                 svga->vram[et4000->acl.dest_addr & 0x1fffff] = out;
@@ -1186,12 +1209,12 @@ void et4000w32p_pci_write(int func, int addr, uint8_t val, void *p)
 			{
 				addr = 0xC0000;
 			}
-                        /* pclog("ET4000 bios_rom enabled at %08x\n", addr); */
+                        et4000w32_log("ET4000 bios_rom enabled at %08x\n", addr);
                         mem_mapping_set_addr(&et4000->bios_rom.mapping, addr, 0x8000);
                 }
                 else
                 {
-                        /* pclog("ET4000 bios_rom disabled\n"); */
+                        et4000w32_log("ET4000 bios_rom disabled\n");
                         mem_mapping_disable(&et4000->bios_rom.mapping);
                 }
                 return;

@@ -22,18 +22,20 @@
  * NOTE:	The values are as defined in the Microsoft document named
  *		"Keyboard Scan Code Specification", version 1.3a of 2000/03/16.
  *
- * Version:	@(#)vnc_keymap.c	1.0.2	2017/10/24
+ * Version:	@(#)vnc_keymap.c	1.0.3	2018/04/29
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "keyboard.h"
 #include "plat.h"
@@ -621,14 +623,30 @@ static int keysyms_ff[] = {
 };
 
 
+#ifdef ENABLE_VNC_KEYMAP_LOG
+int vnc_keymap_do_log = ENABLE_VNC_KEYMAP_LOG;
+#endif
+
+
+static void
+vnc_keymap_log(const char *format, ...)
+{
+#ifdef ENABLE_VNC_KEYMAP_LOG
+    va_list ap;
+
+    if (vnc_keymap_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 void
 vnc_kbinput(int down, int k)
 {
     uint16_t scan;
-
-#if 0
-    pclog("VNC: kbinput %d %04x\n", down, k);
-#endif
 
     switch(k >> 8) {
 	case 0x00:	/* page 00, Latin-1 */
@@ -640,17 +658,14 @@ vnc_kbinput(int down, int k)
 		break;
 
 	default:
-		pclog("VNC: unhandled Xkbd page: %02x\n", k>>8);
+		vnc_keymap_log("VNC: unhandled Xkbd page: %02x\n", k>>8);
 		return;
     }
 
     if (scan == 0x0000) {
-	pclog("VNC: unhandled Xkbd key: %d (%04x)\n", k, k);
+	vnc_keymap_log("VNC: unhandled Xkbd key: %d (%04x)\n", k, k);
 	return;
     }
-#if 0
-    else pclog("VNC: translated to %02x %02x\n", (scan>>8)&0xff, scan&0xff);
-#endif
 
     /* Send this scancode sequence to the PC keyboard. */
     keyboard_input(down, scan);

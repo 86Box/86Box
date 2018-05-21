@@ -8,7 +8,7 @@
  *
  *		Emulation of the NatSemi PC87306 Super I/O chip.
  *
- * Version:	@(#)sio_pc87306.c	1.0.10	2018/04/04
+ * Version:	@(#)sio_pc87306.c	1.0.12	2018/05/11
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -20,13 +20,16 @@
 #include "86box.h"
 #include "io.h"
 #include "device.h"
-#include "pci.h"
 #include "lpt.h"
+#include "mem.h"
+#include "pci.h"
+#include "rom.h"
 #include "serial.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
 #include "floppy/fdd.h"
 #include "floppy/fdc.h"
+#include "machine/machine.h"
 #include "sio.h"
 
 
@@ -84,7 +87,6 @@ void lpt1_handler()
 				lpt_port = 0x278;
 				break;
 			case 3:
-				// pclog("PNP0 Bits 4,5 = 00, FAR Bits 1,0 = 3 - reserved\n");
 				lpt_port = 0x000;
 				break;
 		}
@@ -153,11 +155,7 @@ void serial2_handler()
 
 void pc87306_write(uint16_t port, uint8_t val, void *priv)
 {
-	uint8_t index;
-	uint8_t valxor;
-#if 0
-	uint16_t or_value;
-#endif
+	uint8_t index, valxor;
 
 	index = (port & 1) ? 0 : 1;
 
@@ -240,27 +238,6 @@ process_value:
 					fdc_set_base(pc87306_fdc, (val & 0x20) ? 0x370 : 0x3f0);
 				}
 			}
-			if (valxor & 0xc0)
-			{
-#if 0
-				ide_pri_disable();
-				if (val & 0x80)
-				{
-					or_value = 0;
-				}
-				else
-				{
-					or_value = 0x80;
-				}
-				ide_set_base(0, 0x170 | or_value);
-				ide_set_side(0, 0x376 | or_value);
-				if (val & 0x40)
-				{
-					ide_pri_enable();
-				}
-#endif
-			}
-			
 			break;
 		case 1:
 			if (valxor & 3)
@@ -441,7 +418,6 @@ void pc87306_reset(void)
 {
 	memset(pc87306_regs, 0, 29);
 
-	/* pc87306_regs[0] = 0x4B; */
 	pc87306_regs[0] = 0x0B;
 	pc87306_regs[1] = 0x01;
 	pc87306_regs[3] = 0x01;

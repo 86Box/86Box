@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.25	2018/04/26
+ * Version:	@(#)win_ui.c	1.0.27	2018/05/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,8 +21,8 @@
 #define UNICODE
 #include <windows.h>
 #include <commctrl.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
@@ -227,7 +227,7 @@ LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     BOOL bControlKeyDown;
     KBDLLHOOKSTRUCT *p;
 
-    if (nCode < 0 || nCode != HC_ACTION)
+    if (nCode < 0 || nCode != HC_ACTION || (!mouse_capture && !video_fullscreen))
 	return(CallNextHookEx(hKeyboardHook, nCode, wParam, lParam));
 	
     p = (KBDLLHOOKSTRUCT*)lParam;
@@ -395,7 +395,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_VID_FULLSCREEN:
-				/* pclog("enter full screen though menu\n"); */
 				plat_setfullscreen(1);
 				config_save();
 				break;
@@ -667,7 +666,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_LEAVEFULLSCREEN:
-		/* pclog("leave full screen on window message\n"); */
 		plat_setfullscreen(0);
 		config_save();
 		break;
@@ -916,7 +914,6 @@ ui_init(int nCmdShow)
 
 	if (video_fullscreen && keyboard_isfsexit()) {
 		/* Signal "exit fullscreen mode". */
-		/* pclog("leave full screen though key combination\n"); */
 		plat_setfullscreen(0);
 	}
     }
@@ -1035,13 +1032,11 @@ plat_mouse_capture(int on)
 	GetClipCursor(&oldclip);
 	GetWindowRect(hwndRender, &rect);
 	ClipCursor(&rect);
-	/* pclog("mouse capture off, hide cursor\n"); */
 	show_cursor(0);
 	mouse_capture = 1;
     } else if (!on && mouse_capture) {
 	/* Disable the in-app mouse. */
 	ClipCursor(&oldclip);
-	/* pclog("mouse capture on, show cursor\n"); */
 	show_cursor(-1);
 
 	mouse_capture = 0;

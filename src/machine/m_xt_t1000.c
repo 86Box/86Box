@@ -51,7 +51,7 @@
  * NOTE:	Still need to figure out a way to load/save ConfigSys and
  *		HardRAM stuff. Needs to be linked in to the NVR code.
  *
- * Version:	@(#)m_xt_t1000.c	1.0.5	2018/04/11
+ * Version:	@(#)m_xt_t1000.c	1.0.6	2018/04/29
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -79,12 +79,14 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #include <time.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
@@ -176,6 +178,27 @@ typedef struct {
 static t1000_t	t1000;
 
 
+#ifdef ENABLE_T1000_LOG
+int t1000_do_log = ENABLE_T1000_LOG;
+#endif
+
+
+static void
+t1000_log(const char *fmt, ...)
+{
+#ifdef ENABLE_TANDY_LOG
+   va_list ap;
+
+   if (t1000_do_log)
+   {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+   }
+#endif
+}
+
+
 /* Set the chip time. */
 static void
 tc8521_time_set(uint8_t *regs, struct tm *tm)
@@ -225,7 +248,7 @@ tc8521_time_get(uint8_t *regs, struct tm *tm)
 static void
 tc8521_tick(nvr_t *nvr)
 {
-    pclog("TC8521: ping\n");
+    t1000_log("TC8521: ping\n");
 }
 
 
@@ -336,7 +359,7 @@ ems_execaddr(t1000_t *sys, int pg, uint16_t val)
     val &= 0x7f;
 
 #if 0
-    pclog("Select EMS page: %d of %d\n", val, sys->ems_pages);
+    t1000_log("Select EMS page: %d of %d\n", val, sys->ems_pages);
 #endif
     if (val < sys->ems_pages) {
 	/* EMS is any memory above 512k,
@@ -354,7 +377,7 @@ ems_in(uint16_t addr, void *priv)
     t1000_t *sys = (t1000_t *)priv;
 
 #if 0
-    pclog("ems_in(%04x)=%02x\n", addr, sys->ems_reg[(addr >> 14) & 3]);
+    t1000_log("ems_in(%04x)=%02x\n", addr, sys->ems_reg[(addr >> 14) & 3]);
 #endif
     return(sys->ems_reg[(addr >> 14) & 3]);
 }
@@ -367,7 +390,7 @@ ems_out(uint16_t addr, uint8_t val, void *priv)
     int pg = (addr >> 14) & 3;
 
 #if 0
-    pclog("ems_out(%04x, %02x) pg=%d\n", addr, val, pg);
+    t1000_log("ems_out(%04x, %02x) pg=%d\n", addr, val, pg);
 #endif
     sys->ems_reg[pg] = val;
     sys->page_exec[pg] = ems_execaddr(sys, pg, val);
@@ -394,7 +417,7 @@ ems_set_hardram(t1000_t *sys, uint8_t val)
 	sys->ems_base = 0;
 
 #if 0
-    pclog("EMS base set to %02x\n", val);
+    t1000_log("EMS base set to %02x\n", val);
 #endif
     sys->ems_pages = 48 - 4 * sys->ems_base;
     if (sys->ems_pages < 0) sys->ems_pages = 0;
@@ -424,7 +447,7 @@ ems_set_port(t1000_t *sys, uint8_t val)
     int n;
 
 #if 0
-    pclog("ems_set_port(%d)", val & 0x0f);
+    t1000_log("ems_set_port(%d)", val & 0x0f);
 #endif
     if (sys->ems_port) {
 	for (n = 0; n <= 0xc000; n += 0x4000) {
@@ -449,7 +472,7 @@ ems_set_port(t1000_t *sys, uint8_t val)
     }
 
 #if 0
-    pclog(" -> %04x\n", sys->ems_port);
+    t1000_log(" -> %04x\n", sys->ems_port);
 #endif
 }
 
@@ -484,12 +507,12 @@ ems_read_ramw(uint32_t addr, void *priv)
     if (pg < 0) return(0xff);
 
 #if 0
-    pclog("ems_read_ramw addr=%05x ", addr);
+    t1000_log("ems_read_ramw addr=%05x ", addr);
 #endif
     addr = sys->page_exec[pg] + (addr & 0x3FFF);
 
 #if 0
-    pclog("-> %06x val=%04x\n", addr, *(uint16_t *)&ram[addr]);
+    t1000_log("-> %06x val=%04x\n", addr, *(uint16_t *)&ram[addr]);
 #endif
 
     return(*(uint16_t *)&ram[addr]);
@@ -534,12 +557,12 @@ ems_write_ramw(uint32_t addr, uint16_t val, void *priv)
     if (pg < 0) return;
 
 #if 0
-    pclog("ems_write_ramw addr=%05x ", addr);
+    t1000_log("ems_write_ramw addr=%05x ", addr);
 #endif
     addr = sys->page_exec[pg] + (addr & 0x3fff);
 
 #if 0
-    pclog("-> %06x val=%04x\n", addr, val);
+    t1000_log("-> %06x val=%04x\n", addr, val);
 #endif
 
     if (*(uint16_t *)&ram[addr] != val) nvr_dosave = 1;	

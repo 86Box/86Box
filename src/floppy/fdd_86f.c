@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)fdd_86f.c	1.0.8	2018/04/11
+ * Version:	@(#)fdd_86f.c	1.0.9	2018/05/06
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -55,7 +55,9 @@
 #include "fdd.h"
 #include "fdc.h"
 #include "fdd_86f.h"
+#ifdef D86F_COMPRESS
 #include "lzf/lzf.h"
+#endif
 
 
 /*
@@ -226,7 +228,9 @@ typedef struct {
     uint16_t	current_bit[2];
     int		cur_track;
     uint32_t	error_condition;
+#ifdef D86F_COMPRESS
     int		is_compressed;
+#endif
     int		id_found;
     wchar_t	original_file_name[2048];
     uint8_t	*filebuf;
@@ -3085,9 +3089,11 @@ d86f_writeback(int drive)
     d86f_t *dev = d86f[drive];
     uint8_t header[32];
     int header_size;
+#ifdef D86F_COMPRESS
     uint32_t len;
     int ret = 0;
     FILE *cf;
+#endif
     header_size = d86f_header_size(drive);
 
     if (! dev->f) return;
@@ -3101,6 +3107,7 @@ d86f_writeback(int drive)
 
     d86f_write_tracks(drive, &dev->f, NULL);
 
+#ifdef D86F_COMPRESS
     if (dev->is_compressed) {
 	/* The image is compressed. */
 
@@ -3129,6 +3136,7 @@ d86f_writeback(int drive)
 	free(dev->outbuf);
 	free(dev->filebuf);
     }
+#endif
 }
 
 
@@ -3451,13 +3459,15 @@ d86f_export(int drive, wchar_t *fn)
 void
 d86f_load(int drive, wchar_t *fn)
 {
-    wchar_t temp_file_name[2048];
     d86f_t *dev = d86f[drive];
     uint32_t magic = 0;
     uint32_t len = 0;
-    uint16_t temp = 0;
     int i = 0, j = 0;
+#ifdef D86F_COMPRESS
+    wchar_t temp_file_name[2048];
+    uint16_t temp = 0;
     FILE *tf;
+#endif
 
     d86f_unregister(drive);
 
@@ -3534,8 +3544,12 @@ d86f_load(int drive, wchar_t *fn)
 	}
     }
 
+#ifdef D86F_COMPRESS
     dev->is_compressed = (magic == 0x66623638) ? 1 : 0;
     if ((len < 51052) && !dev->is_compressed) {
+#else
+    if (len < 51052) {
+#endif
 	/* File too small, abort. */
 	fclose(dev->f);
 	dev->f = NULL;
@@ -3568,6 +3582,7 @@ d86f_load(int drive, wchar_t *fn)
     }
 #endif
 
+#ifdef D86F_COMPRESS
     if (dev->is_compressed) {
 	memcpy(temp_file_name, drive ? nvr_path(L"TEMP$$$1.$$$") : nvr_path(L"TEMP$$$0.$$$"), 256);
 	memcpy(dev->original_file_name, fn, (wcslen(fn) << 1) + 2);
@@ -3614,15 +3629,17 @@ d86f_load(int drive, wchar_t *fn)
 
 	dev->f = plat_fopen(temp_file_name, L"rb+");
     }
+#endif
 
     if (dev->disk_flags & 0x100) {
 	/* Zoned disk. */
 	d86f_log("86F: Disk is zoned (Apple or Sony)\n");
 	fclose(dev->f);
 	dev->f = NULL;
-	if (dev->is_compressed) {
+#ifdef D86F_COMPRESS
+	if (dev->is_compressed)
 		plat_remove(temp_file_name);
-	}
+#endif
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
 	free(dev);
 	return;
@@ -3633,8 +3650,10 @@ d86f_load(int drive, wchar_t *fn)
 	d86f_log("86F: Disk is fixed-RPM but zone type is not 0\n");
 	fclose(dev->f);
 	dev->f = NULL;
+#ifdef D86F_COMPRESS
 	if (dev->is_compressed)
 		plat_remove(temp_file_name);
+#endif
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
 	free(dev);
 	return;
@@ -3649,9 +3668,11 @@ d86f_load(int drive, wchar_t *fn)
 	fclose(dev->f);
 	dev->f = NULL;
 
+#ifdef D86F_COMPRESS
 	if (dev->is_compressed)
 		dev->f = plat_fopen(temp_file_name, L"rb");
-	  else
+	else
+#endif
 		dev->f = plat_fopen(fn, L"rb");
     }
 
@@ -3736,9 +3757,14 @@ d86f_load(int drive, wchar_t *fn)
     d86f_common_handlers(drive);
     drives[drive].format = d86f_format;
 
+#ifdef D86F_COMPRESS
     d86f_log("86F: Disk is %scompressed and does%s have surface description data\n",
 	dev->is_compressed ? "" : "not ",
 	d86f_has_surface_desc(drive) ? "" : " not");
+#else
+    d86f_log("86F: Disk does%s have surface description data\n",
+	d86f_has_surface_desc(drive) ? "" : " not");
+#endif
 }
 
 
@@ -3796,8 +3822,10 @@ d86f_close(int drive)
 	fclose(dev->f);
 	dev->f = NULL;
     }
+#ifdef D86F_COMPRESS
     if (dev->is_compressed)
 	plat_remove(temp_file_name);
+#endif
 }
 
 

@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.35	2018/04/26
+ * Version:	@(#)keyboard_at.c	1.0.36	2018/05/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1482,10 +1482,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 					kbd_mouse_set(kbd, 1);
 					if (mouse_write && ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1))
 						mouse_write(val, mouse_p);
-					else if (!mouse_write && ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1)) {
-						pclog("Adding 0xFF to queue\n");
+					else if (!mouse_write && ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1))
 						keyboard_at_adddata_mouse(0xff);
-					}
 					break;
 
 				default:

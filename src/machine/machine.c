@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.33	2018/03/26
+ * Version:	@(#)machine.c	1.0.34	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,10 +18,12 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../dma.h"
@@ -40,10 +42,31 @@ int AT, PCI;
 int romset;
 
 
+#ifdef ENABLE_MACHINE_LOG
+int machine_do_log = ENABLE_MACHINE_LOG;
+#endif
+
+
+static void
+machine_log(const char *fmt, ...)
+{
+#ifdef ENABLE_TANDY_LOG
+   va_list ap;
+
+   if (machine_do_log)
+   {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+   }
+#endif
+}
+
+
 void
 machine_init(void)
 {
-    pclog("Initializing as \"%s\"\n", machine_getname());
+    machine_log("Initializing as \"%s\"\n", machine_getname());
 
     /* Set up the architecture flags. */
     AT = IS_ARCH(machine, MACHINE_AT);

@@ -18,7 +18,7 @@
  *		2 clocks - fetch opcode 1       2 clocks - execute
  *		2 clocks - fetch opcode 2  etc
  *
- * Version:	@(#)808x.c	1.0.4	2018/04/26
+ * Version:	@(#)808x.c	1.0.5	2018/04/29
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -44,10 +44,12 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "cpu.h"
 #include "x86.h"
@@ -81,6 +83,27 @@ void writememwl(uint32_t seg, uint32_t addr, uint16_t val);
 uint32_t readmemll(uint32_t seg, uint32_t addr);
 void writememll(uint32_t seg, uint32_t addr, uint32_t val);
 
+
+#ifdef ENABLE_808X_LOG
+int x808x_do_log = ENABLE_808X_LOG;
+#endif
+
+
+static void
+x808x_log(const char *fmt, ...)
+{
+#ifdef ENABLE_808X_LOG
+    va_list ap;
+
+    if (x808x_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 #undef readmemb
 #undef readmemw
 uint8_t readmemb(uint32_t a)
@@ -106,7 +129,7 @@ uint16_t readmemw(uint32_t s, uint16_t a)
         else return *(uint16_t *)(readlookup2[(s + a) >> 12] + s + a);
 }
 
-void refreshread() { /*pclog("Refreshread\n"); */FETCHCOMPLETE(); memcycs+=4; }
+void refreshread() { FETCHCOMPLETE(); memcycs+=4; }
 
 #undef fetchea
 #define fetchea()   { rmdat=FETCH();  \
@@ -485,7 +508,7 @@ void makeznptable()
 		{
                    znptable8[c]=P_FLAG;
 		}
-		if (c == 0xb1)  pclog("znp8 b1 = %i %02X\n", d, znptable8[c]);
+		if (c == 0xb1)  x808x_log("znp8 b1 = %i %02X\n", d, znptable8[c]);
                 if (!c) znptable8[c]|=Z_FLAG;
                 if (c&0x80) znptable8[c]|=N_FLAG;
         }
@@ -504,8 +527,8 @@ void makeznptable()
                    znptable16[c]=0;
                 else
                    znptable16[c]=P_FLAG;
-                if (c == 0xb1) pclog("znp16 b1 = %i %02X\n", d, znptable16[c]);
-                if (c == 0x65b1) pclog("znp16 65b1 = %i %02X\n", d, znptable16[c]);
+                if (c == 0xb1) x808x_log("znp16 b1 = %i %02X\n", d, znptable16[c]);
+                if (c == 0x65b1) x808x_log("znp16 65b1 = %i %02X\n", d, znptable16[c]);
                 if (!c) znptable16[c]|=Z_FLAG;
                 if (c&0x8000) znptable16[c]|=N_FLAG;
       }      
@@ -538,11 +561,11 @@ void dumpregs(int force)
         f=fopen("ram.dmp","wb");
         fwrite(ram,mem_size*1024,1,f);
         fclose(f);
-        pclog("Dumping rram.dmp\n");
+        x808x_log("Dumping rram.dmp\n");
         f=fopen("rram.dmp","wb");
         for (c=0;c<0x1000000;c++) putc(readmemb(c),f);
         fclose(f);
-        pclog("Dumping rram4.dmp\n");
+        x808x_log("Dumping rram4.dmp\n");
         f=fopen("rram4.dmp","wb");
         for (c=0;c<0x0050000;c++) 
         {
@@ -550,44 +573,44 @@ void dumpregs(int force)
                 putc(readmemb386l(0,c+0x80000000),f);
         }
         fclose(f);
-        pclog("Dumping done\n");        
+        x808x_log("Dumping done\n");        
 #endif
         if (is386)
-           pclog("EAX=%08X EBX=%08X ECX=%08X EDX=%08X\nEDI=%08X ESI=%08X EBP=%08X ESP=%08X\n",EAX,EBX,ECX,EDX,EDI,ESI,EBP,ESP);
+           x808x_log("EAX=%08X EBX=%08X ECX=%08X EDX=%08X\nEDI=%08X ESI=%08X EBP=%08X ESP=%08X\n",EAX,EBX,ECX,EDX,EDI,ESI,EBP,ESP);
         else
-           pclog("AX=%04X BX=%04X CX=%04X DX=%04X DI=%04X SI=%04X BP=%04X SP=%04X\n",AX,BX,CX,DX,DI,SI,BP,SP);
-        pclog("PC=%04X CS=%04X DS=%04X ES=%04X SS=%04X FLAGS=%04X\n",cpu_state.pc,CS,DS,ES,SS,flags);
-        pclog("%04X:%04X %04X:%04X\n",oldcs,cpu_state.oldpc, oldcs2, oldpc2);
-        pclog("%i ins\n",ins);
+           x808x_log("AX=%04X BX=%04X CX=%04X DX=%04X DI=%04X SI=%04X BP=%04X SP=%04X\n",AX,BX,CX,DX,DI,SI,BP,SP);
+        x808x_log("PC=%04X CS=%04X DS=%04X ES=%04X SS=%04X FLAGS=%04X\n",cpu_state.pc,CS,DS,ES,SS,flags);
+        x808x_log("%04X:%04X %04X:%04X\n",oldcs,cpu_state.oldpc, oldcs2, oldpc2);
+        x808x_log("%i ins\n",ins);
         if (is386)
-           pclog("In %s mode\n",(msw&1)?((eflags&VM_FLAG)?"V86":"protected"):"real");
+           x808x_log("In %s mode\n",(msw&1)?((eflags&VM_FLAG)?"V86":"protected"):"real");
         else
-           pclog("In %s mode\n",(msw&1)?"protected":"real");
-        pclog("CS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",cs,_cs.limit,_cs.access, _cs.limit_low, _cs.limit_high);
-        pclog("DS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",ds,_ds.limit,_ds.access, _ds.limit_low, _ds.limit_high);
-        pclog("ES : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",es,_es.limit,_es.access, _es.limit_low, _es.limit_high);
+           x808x_log("In %s mode\n",(msw&1)?"protected":"real");
+        x808x_log("CS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",cs,_cs.limit,_cs.access, _cs.limit_low, _cs.limit_high);
+        x808x_log("DS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",ds,_ds.limit,_ds.access, _ds.limit_low, _ds.limit_high);
+        x808x_log("ES : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",es,_es.limit,_es.access, _es.limit_low, _es.limit_high);
         if (is386)
         {
-                pclog("FS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",seg_fs,_fs.limit,_fs.access, _fs.limit_low, _fs.limit_high);
-                pclog("GS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",gs,_gs.limit,_gs.access, _gs.limit_low, _gs.limit_high);
+                x808x_log("FS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",seg_fs,_fs.limit,_fs.access, _fs.limit_low, _fs.limit_high);
+                x808x_log("GS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",gs,_gs.limit,_gs.access, _gs.limit_low, _gs.limit_high);
         }
-        pclog("SS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",ss,_ss.limit,_ss.access, _ss.limit_low, _ss.limit_high);
-        pclog("GDT : base=%06X limit=%04X\n",gdt.base,gdt.limit);
-        pclog("LDT : base=%06X limit=%04X\n",ldt.base,ldt.limit);
-        pclog("IDT : base=%06X limit=%04X\n",idt.base,idt.limit);
-        pclog("TR  : base=%06X limit=%04X\n", tr.base, tr.limit);
+        x808x_log("SS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",ss,_ss.limit,_ss.access, _ss.limit_low, _ss.limit_high);
+        x808x_log("GDT : base=%06X limit=%04X\n",gdt.base,gdt.limit);
+        x808x_log("LDT : base=%06X limit=%04X\n",ldt.base,ldt.limit);
+        x808x_log("IDT : base=%06X limit=%04X\n",idt.base,idt.limit);
+        x808x_log("TR  : base=%06X limit=%04X\n", tr.base, tr.limit);
         if (is386)
         {
-                pclog("386 in %s mode   stack in %s mode\n",(use32)?"32-bit":"16-bit",(stack32)?"32-bit":"16-bit");
-                pclog("CR0=%08X CR2=%08X CR3=%08X CR4=%08x\n",cr0,cr2,cr3, cr4);
+                x808x_log("386 in %s mode   stack in %s mode\n",(use32)?"32-bit":"16-bit",(stack32)?"32-bit":"16-bit");
+                x808x_log("CR0=%08X CR2=%08X CR3=%08X CR4=%08x\n",cr0,cr2,cr3, cr4);
         }
-        pclog("Entries in readlookup : %i    writelookup : %i\n",readlnum,writelnum);
+        x808x_log("Entries in readlookup : %i    writelookup : %i\n",readlnum,writelnum);
         for (c=0;c<1024*1024;c++)
         {
                 if (readlookup2[c]!=0xFFFFFFFF) d++;
                 if (writelookup2[c]!=0xFFFFFFFF) e++;
         }
-        pclog("Entries in readlookup : %i    writelookup : %i\n",d,e);
+        x808x_log("Entries in readlookup : %i    writelookup : %i\n",d,e);
         x87_dumpregs();
         indump = 0;
 }
@@ -596,7 +619,7 @@ int resets = 0;
 int x86_was_reset = 0;
 void resetx86()
 {
-        pclog("x86 reset\n");
+        x808x_log("x86 reset\n");
         resets++;
         ins = 0;
         use32=0;
@@ -1065,7 +1088,7 @@ void execx86(int cycs)
                 cpu_state.pc--;
                 if (output)
                 {
-                                if (!skipnextprint) pclog("%04X:%04X : %04X %04X %04X %04X %04X %04X %04X %04X %04X %04X %04X %04X %02X %04X  %i %p %02X\n",cs,cpu_state.pc,AX,BX,CX,DX,CS,DS,ES,SS,DI,SI,BP,SP,opcode,flags, ins, ram, ram[0x1a925]);
+                                if (!skipnextprint) x808x_log("%04X:%04X : %04X %04X %04X %04X %04X %04X %04X %04X %04X %04X %04X %04X %02X %04X  %i %p %02X\n",cs,cpu_state.pc,AX,BX,CX,DX,CS,DS,ES,SS,DI,SI,BP,SP,opcode,flags, ins, ram, ram[0x1a925]);
                                 skipnextprint=0;
                 }
                 cpu_state.pc++;
@@ -2974,7 +2997,7 @@ void execx86(int cycs)
                                 }
                                 else
                                 {
-                                        pclog("DIVb BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
+                                        x808x_log("DIVb BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
                                         writememw(ss,(SP-2)&0xFFFF,flags|0xF000);
                                         writememw(ss,(SP-4)&0xFFFF,CS);
                                         writememw(ss,(SP-6)&0xFFFF,cpu_state.pc);
@@ -2998,7 +3021,7 @@ void execx86(int cycs)
                                 }
                                 else
                                 {
-                                        pclog("IDIVb BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
+                                        x808x_log("IDIVb BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
                                         writememw(ss,(SP-2)&0xFFFF,flags|0xF000);
                                         writememw(ss,(SP-4)&0xFFFF,CS);
                                         writememw(ss,(SP-6)&0xFFFF,cpu_state.pc);
@@ -3070,7 +3093,7 @@ void execx86(int cycs)
                                 }
                                 else
                                 {
-                                        pclog("DIVw BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
+                                        x808x_log("DIVw BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
                                         writememw(ss,(SP-2)&0xFFFF,flags|0xF000);
                                         writememw(ss,(SP-4)&0xFFFF,CS);
                                         writememw(ss,(SP-6)&0xFFFF,cpu_state.pc);
@@ -3094,7 +3117,7 @@ void execx86(int cycs)
                                 }
                                 else
                                 {
-                                        pclog("IDIVw BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
+                                        x808x_log("IDIVw BY 0 %04X:%04X\n",cs>>4,cpu_state.pc);
                                         writememw(ss,(SP-2)&0xFFFF,flags|0xF000);
                                         writememw(ss,(SP-4)&0xFFFF,CS);
                                         writememw(ss,(SP-6)&0xFFFF,cpu_state.pc);

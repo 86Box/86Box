@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.35	2018/04/28
+ * Version:	@(#)86Box.rc	1.0.36	2018/05/01
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -624,10 +624,8 @@ END
 257                     ICON    DISCARDABLE     "win/icons/display.ico"
 258                     ICON    DISCARDABLE     "win/icons/input_devices.ico"
 259                     ICON    DISCARDABLE     "win/icons/sound.ico"
-260                     ICON    DISCARDABLE     "win/icons/network.ico"
 261                     ICON    DISCARDABLE     "win/icons/ports.ico"
 262                     ICON    DISCARDABLE     "win/icons/other_peripherals.ico"
-263                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
 264                     ICON    DISCARDABLE     "win/icons/floppy_drives.ico"
 265                     ICON    DISCARDABLE     "win/icons/other_removable_devices.ico"
 384                     ICON    DISCARDABLE     "win/icons/floppy_525_empty.ico"

@@ -8,7 +8,7 @@
  *
  *		ATI 18800 emulation (VGA Edge-16)
  *
- * Version:	@(#)vid_ati18800.c	1.0.11	2018/04/26
+ * Version:	@(#)vid_ati18800.c	1.0.12	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -80,7 +80,6 @@ static void ati18800_out(uint16_t addr, uint8_t val, void *p)
                 break;
                 case 0x1cf:
                 ati18800->regs[ati18800->index] = val;
-                /* pclog("ATI 18800 ATI register write %02x %02x\n", ati18800->index, val); */
                 switch (ati18800->index)
                 {
                         case 0xb0:
@@ -161,7 +160,6 @@ static uint8_t ati18800_in(uint16_t addr, void *p)
                 temp = svga_in(addr, svga);
                 break;
         }
-        /* if (addr != 0x3da) pclog("%02X  %04X:%04X\n", temp, CS,cpu_state.pc); */
         return temp;
 }
 
