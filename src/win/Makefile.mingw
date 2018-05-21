@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.116	2018/05/01
+# Version:	@(#)Makefile.mingw	1.0.117	2018/05/21
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -40,9 +40,6 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef CRASHDUMP
   CRASHDUMP	:= y
- endif
- ifndef GREENB
-  GREENB	:= y
  endif
  ifndef I686
   I686		:= y
@@ -83,9 +80,6 @@ else
  endif
  ifndef CRASHDUMP
   CRASHDUMP	:= n
- endif
- ifndef GREENB
-  GREENB	:= n
  endif
  ifndef I686
   I686		:= n
@@ -355,11 +349,6 @@ endif
 ifeq ($(CRASHDUMPOBJ), y)
 OPTS		+= -DUSE_CRASHDUMP
 DEVBROBJ	+= win_crashdump.o
-endif
-
-ifeq ($(GREENB), y)
-OPTS		+= -DUSE_GREENB
-DEVBROBJ	+= m_at_4gpv31.o
 endif
 
 ifeq ($(I686), y)

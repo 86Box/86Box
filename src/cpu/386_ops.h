@@ -8,7 +8,7 @@
  *
  *		286/386+ instruction handlers list.
  *
- * Version:	@(#)386_ops.h	1.0.2	2018/05/05
+ * Version:	@(#)386_ops.h	1.0.3	2018/05/21
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -166,6 +166,15 @@ static int ILLEGAL(uint32_t fetchdat)
         x86illegal();
         return 0;
 }
+
+#if defined(DEV_BRANCH) && (defined(USE_AMD_K) || defined(USE_I686))
+static int internal_illegal(char *s)
+{
+	cpu_state.pc = cpu_state.oldpc;
+	x86gpf(s, 0);
+	return cpu_state.abrt;
+}
+#endif
 
 #include "x86seg.h"
 #if defined(DEV_BRANCH) && defined(USE_AMD_K)
