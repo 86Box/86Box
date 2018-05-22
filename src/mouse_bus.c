@@ -49,7 +49,7 @@
  *
  *		Based on an early driver for MINIX 1.5.
  *
- * Version:	@(#)mouse_bus.c	1.0.35	2018/05/21
+ * Version:	@(#)mouse_bus.c	1.0.36	2018/05/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -255,34 +255,37 @@ ms_write(mouse_t *dev, uint16_t port, uint8_t val)
 	case MSMOUSE_DATA:
 		picintc(1 << dev->irq);
 
-		if (val == MSDATA_IRQ) {
-			picint(1<<dev->irq);
-		} else {
+		if (val == MSDATA_IRQ)
+			picint(1 << dev->irq);
+		else {
 			switch (dev->r_cmd) {
 				case MSCTRL_COMMAND:
 					valxor = (dev->r_ctrl ^ val);
 
 					if (valxor & MSCTRL_FREEZE) {
-						if (val & LTCTRL_FREEZE) {
+						if (val & MSCTRL_FREEZE) {
 							/* Hold the sampling while we do something. */
 							dev->flags |= FLAG_FROZEN;
 						} else {
 							/* Reset current state. */
 							dev->flags &= ~FLAG_FROZEN;
+
+							dev->x = dev->y = 0;
+							dev->but = 0;
 						}
 					}
-				}
 
-				if (val & (MSCTRL_IENB_M | MSCTRL_IENB_A))
-					dev->flags |= FLAG_INTR;
-				else
-					dev->flags &= ~FLAG_INTR;
+					if (val & (MSCTRL_IENB_M | MSCTRL_IENB_A))
+						dev->flags |= FLAG_INTR;
+					else
+						dev->flags &= ~FLAG_INTR;
 
-				dev->r_ctrl = val;
-				break;
+					dev->r_ctrl = val;
+					break;
 
-			default:
-				break;
+				default:
+					break;
+			}
 		}
 		break;
 
