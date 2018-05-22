@@ -49,7 +49,7 @@
  *
  *		Based on an early driver for MINIX 1.5.
  *
- * Version:	@(#)mouse_bus.c	1.0.36	2018/05/22
+ * Version:	@(#)mouse_bus.c	1.0.37	2018/05/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -82,6 +82,7 @@
 typedef struct mouse {
     const char	*name;				/* name of this device */
     int8_t	type;				/* type of this device */
+    uint16_t	base;				/* I/O port base to use */
     int8_t	irq;				/* IRQ channel to use */
     uint16_t	flags;				/* device flags */
 
@@ -601,7 +602,7 @@ bm_write(uint16_t port, uint8_t val, void *priv)
 {
     mouse_t *dev = (mouse_t *)priv;
 
-    mouse_bus_log("%s: write(%d,%02x)\n", dev->name, port-MOUSE_PORT, val);
+    mouse_bus_log("%s: write(%d,%02x)\n", dev->name, port & 0x03, val);
 
     dev->write(dev, port & 0x03, val);
 }
@@ -616,7 +617,7 @@ bm_read(uint16_t port, void *priv)
 
     ret = dev->read(dev, port & 0x03);
 
-    mouse_bus_log("%s: read(%d): %02x\n", dev->name, port-MOUSE_PORT, ret);
+    mouse_bus_log("%s: read(%d): %02x\n", dev->name, port & 0x03, ret);
 
     return(ret);
 }
@@ -710,7 +711,7 @@ bm_close(void *priv)
     mouse_t *dev = (mouse_t *)priv;
 
     /* Release our I/O range. */
-    io_removehandler(MOUSE_PORT, 4,
+    io_removehandler(dev->base, 4,
 		     bm_read, NULL, NULL, bm_write, NULL, NULL, dev);
 
     free(dev);
@@ -723,12 +724,12 @@ bm_init(const device_t *info)
 {
     mouse_t *dev;
     int i, j;
-    uint16_t base;
 
     dev = (mouse_t *)malloc(sizeof(mouse_t));
     memset(dev, 0x00, sizeof(mouse_t));
     dev->name = info->name;
     dev->type = info->local;
+    dev->base = device_get_config_hex16("base");
     dev->irq = device_get_config_int("irq");
     i = device_get_config_int("buttons");
     if (i > 2)
@@ -736,9 +737,6 @@ bm_init(const device_t *info)
     j = device_get_config_int("model");
     if (j)
 	dev->flags |= FLAG_NEW;
-
-    mouse_bus_log("%s: I/O=%04x, IRQ=%d, buttons=%d, model=%s\n",
-	dev->name, MOUSE_PORT, dev->irq, i, j ? "new" : "old");
 
     switch(dev->type) {
 	case MOUSE_TYPE_LOGIBUS:
@@ -766,9 +764,11 @@ bm_init(const device_t *info)
     }
 
     /* Request an I/O range. */
-    base = device_get_config_int("base");
-    io_sethandler(base, 4,
+    io_sethandler(dev->base, 4,
 		  bm_read, NULL, NULL, bm_write, NULL, NULL, dev);
+
+    mouse_bus_log("%s: I/O=%04x, IRQ=%d, buttons=%d, model=%s\n",
+	dev->name, dev->base, dev->irq, i, j ? "new" : "old");
 
     /* Tell them how many buttons we have. */
     mouse_set_buttons((dev->flags & FLAG_3BTN) ? 3 : 2);

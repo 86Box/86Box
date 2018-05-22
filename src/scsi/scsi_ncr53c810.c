@@ -10,7 +10,7 @@
  *		NCR and later Symbios and LSI. This controller was designed
  *		for the PCI bus.
  *
- * Version:	@(#)scsi_ncr53c810.c	1.0.12	2018/04/26
+ * Version:	@(#)scsi_ncr53c810.c	1.0.13	2018/05/23
  *
  * Authors:	Paul Brook (QEMU)
  *		Artyom Tarasenko (QEMU)
@@ -42,6 +42,8 @@
 #include "scsi.h"
 #include "scsi_device.h"
 #include "scsi_ncr53c810.h"
+
+#define NCR53C810_ROM	L"roms/scsi/ncr53c810/NCR307.BIN"
 
 #define NCR_SCNTL0_TRG    0x01
 #define NCR_SCNTL0_AAP    0x02
@@ -187,6 +189,9 @@ typedef enum
 
 typedef struct {
     uint8_t	pci_slot;
+    int		has_bios;
+    rom_t	bios;
+    uint32_t	bios_addr, bios_mask;
     int		PCIBase;
     int		MMIOBase;
     mem_mapping_t mmio_mapping;
@@ -1975,7 +1980,28 @@ ncr53c810_mem_disable(ncr53c810_t *dev)
 
 
 uint8_t	ncr53c810_pci_regs[256];
-bar_t	ncr53c810_pci_bar[2];
+bar_t	ncr53c810_pci_bar[3];
+
+
+static void
+ncr53c810_bios_update(ncr53c810_t *dev)
+{
+    int bios_enabled = ncr53c810_pci_bar[2].addr_regs[0] & 0x01;
+
+    if (!dev->has_bios)
+	return;
+
+    /* PCI BIOS stuff, just enable_disable. */
+    if ((dev->bios_addr > 0) && bios_enabled) {
+	mem_mapping_enable(&dev->bios.mapping);
+	mem_mapping_set_addr(&dev->bios.mapping,
+			     dev->bios_addr, 0x4000);
+	ncr53c810_log("NCR53c810: BIOS now at: %06X\n", dev->bios_addr);
+    } else {
+	ncr53c810_log("NCR53c810: BIOS disabled\n");
+	mem_mapping_disable(&dev->bios.mapping);
+    }
+}
 
 
 static uint8_t
@@ -1985,9 +2011,11 @@ ncr53c810_pci_read(int func, int addr, void *p)
 
     ncr53c810_log("NCR53c810: Reading register %02X\n", addr & 0xff);
 
-    if ((addr >= 0x80) && (addr <= 0xDF)) {
+    if ((addr >= 0x30) && (addr <= 0x33) && !dev->has_bios)
+	return 0x00;
+
+    if ((addr >= 0x80) && (addr <= 0xDF))
 	return ncr53c810_reg_readb(dev, addr & 0x7F);
-    }
 
     switch (addr) {
 	case 0x00:
@@ -2041,6 +2069,17 @@ ncr53c810_pci_read(int func, int addr, void *p)
 		return 0x01;
 	case 0x2F:
 		return 0x00;
+	case 0x30:			/* PCI_ROMBAR */
+		return ncr53c810_pci_bar[2].addr_regs[0] & 0x01;
+	case 0x31:			/* PCI_ROMBAR 15:11 */
+		return ncr53c810_pci_bar[2].addr_regs[1];
+		break;
+	case 0x32:			/* PCI_ROMBAR 23:16 */
+		return ncr53c810_pci_bar[2].addr_regs[2];
+		break;
+	case 0x33:			/* PCI_ROMBAR 31:24 */
+		return ncr53c810_pci_bar[2].addr_regs[3];
+		break;
 	case 0x3C:
 		return dev->irq;
 	case 0x3D:
@@ -2062,6 +2101,9 @@ ncr53c810_pci_write(int func, int addr, uint8_t val, void *p)
     uint8_t valxor;
 
     ncr53c810_log("NCR53c810: Write value %02X to register %02X\n", val, addr & 0xff);
+
+    if ((addr >= 0x30) && (addr <= 0x33) && !dev->has_bios)
+	return;
 
     if ((addr >= 0x80) && (addr <= 0xDF)) {
 	ncr53c810_reg_writeb(dev, addr & 0x7F, val);
@@ -2133,6 +2175,17 @@ ncr53c810_pci_write(int func, int addr, uint8_t val, void *p)
 		}
 		return;	
 
+	case 0x30:			/* PCI_ROMBAR */
+	case 0x31:			/* PCI_ROMBAR */
+	case 0x32:			/* PCI_ROMBAR */
+	case 0x33:			/* PCI_ROMBAR */
+		ncr53c810_pci_bar[2].addr_regs[addr & 3] = val;
+		ncr53c810_pci_bar[2].addr &= 0xffffc001;
+		dev->bios_addr = ncr53c810_pci_bar[2].addr & 0xffffc000;
+		ncr53c810_log("NCR53c810: BIOS BAR %02X = NOW %02X (%02X)\n", addr & 3, ncr53c810_pci_bar[2].addr_regs[addr & 3], val);
+		ncr53c810_bios_update(dev);
+		return;
+
 	case 0x3C:
 		ncr53c810_pci_regs[addr] = val;
 		dev->irq = val;
@@ -2163,6 +2216,20 @@ ncr53c810_init(const device_t *info)
 
     timer_add(ncr53c810_callback, &dev->timer_period, &dev->timer_enabled, dev);
 
+    dev->has_bios = device_get_config_int("bios");
+
+    /* Enable our BIOS space in PCI, if needed. */
+    if (dev->has_bios) {
+	dev->bios_mask = 0xffffc000;
+
+	rom_init(&dev->bios, NCR53C810_ROM, 0xd8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+
+	ncr53c810_pci_bar[2].addr = 0xFFFFC000;
+
+	mem_mapping_disable(&dev->bios.mapping);
+    } else
+	ncr53c810_pci_bar[2].addr = 0;
+
     return(dev);
 }
 
@@ -2179,13 +2246,22 @@ ncr53c810_close(void *priv)
 }
 
 
+static const device_config_t ncr53c810_pci_config[] = {
+	{
+		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
+	},
+	{
+		"", "", -1
+	}
+};
+
+
 const device_t ncr53c810_pci_device =
 {
     "NCR 53c810 (SCSI)",
     DEVICE_PCI,
     0,
     ncr53c810_init, ncr53c810_close, NULL,
-    NULL,
-    NULL, NULL,
-    NULL
+    NULL, NULL, NULL,
+    ncr53c810_pci_config
 };
