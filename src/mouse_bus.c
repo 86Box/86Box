@@ -49,7 +49,7 @@
  *
  *		Based on an early driver for MINIX 1.5.
  *
- * Version:	@(#)mouse_bus.c	1.0.37	2018/05/22
+ * Version:	@(#)mouse_bus.c	1.0.38	2018/05/23
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -454,7 +454,7 @@ lt_write(mouse_t *dev, uint16_t port, uint8_t val)
 		}
 
 		/* Save new register value. */
-		dev->r_ctrl = val;
+		dev->r_ctrl = val | 0x0F;
 
 		/* Clear any pending interrupts. */
 		picintc(1 << dev->irq);
@@ -560,24 +560,25 @@ lt_read(mouse_t *dev, uint16_t port)
 		break;
 
 	case LTMOUSE_CTRL:	/* [02] control register */
-		ret = 0x0f;
-		if (!(dev->r_ctrl & LTCTRL_IDIS) && (dev->seq > 0x3FF) && lt_read_int(dev)) {
+		ret = dev->r_ctrl;
+		dev->r_ctrl |= 0x0F;
+		if ((dev->seq > 0x3FF) && lt_read_int(dev)) {
 			/* !IDIS, return DIP switch setting. */
 			switch(dev->irq) {
 				case 2:
-					ret &= ~0x08;
+					dev->r_ctrl &= ~0x08;
 					break;
 	
 				case 3:
-					ret &= ~0x04;
+					dev->r_ctrl &= ~0x04;
 					break;
 	
 				case 4:
-					ret &= ~0x02;
+					dev->r_ctrl &= ~0x02;
 					break;
 	
 				case 5:
-					ret &= ~0x01;
+					dev->r_ctrl &= ~0x01;
 					break;
 			}
 		}
