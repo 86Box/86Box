@@ -50,7 +50,7 @@
 #include "vid_mda.h"
 #ifdef DEV_BRANCH
 # ifdef USE_RIVA
-#  include "vid_nvidia.h"
+#  include "vid_nv_riva128.h"
 # endif
 #endif
 #include "vid_oak_oti.h"

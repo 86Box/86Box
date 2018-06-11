@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
@@ -101,6 +102,8 @@ typedef struct riva128_t
 		uint32_t ramro_addr;
 		uint32_t ramro_size;
 
+		int caches_reassign;
+
 		uint16_t chan_mode;
 		uint16_t chan_dma;
 		uint16_t chan_size; //0 = 1024, 1 = 512
@@ -119,7 +122,9 @@ typedef struct riva128_t
 			int push_enabled;
 			int runout;
 			uint32_t get, put;
-			uint32_t ctx;
+			uint32_t pull_ctrl;
+			uint32_t ctx[8];
+			uint32_t status;
 		} caches[2];
 
 		struct
@@ -240,7 +245,7 @@ typedef struct riva128_t
 		uint32_t gen_ctrl;
 	} pramdac;
 
-	uint32_t pramin[0x80000];
+	uint32_t pramin[0x40000];
 
 	uint32_t channels[16][8][0x2000];
 
@@ -303,6 +308,12 @@ const char* riva128_pfifo_interrupts[32] =
  void riva128_out(uint16_t addr, uint8_t val, void *p);
 
  void riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p);
+
+ void riva128_puller_exec_method(int chanid, int subchanid, int offset, uint32_t val, void *p);
+
+ uint8_t riva128_ramin_readb(uint32_t addr, void *p);
+ void riva128_ramin_writel(uint32_t addr, uint32_t val, void *p);
+ 
 
 #ifdef ENABLE_NV_RIVA_LOG
 int nv_riva_do_log = ENABLE_NV_RIVA_LOG;
@@ -606,9 +617,26 @@ void riva128_pfifo_interrupt(int num, void *p)
 
 	riva128->pfifo.intr |= (1 << num);
 
-	if(num == 0) riva128->pfifo.cache_error = 0x11;
-
 	riva128_pmc_interrupt(8, riva128);
+}
+
+void riva128_pfifo_cache_interrupt(int num, void *p)
+{
+	riva128_t *riva128 = (riva128_t *)p;
+
+	riva128->pfifo.cache_error |= (1 << num);
+
+	riva128_pfifo_interrupt(8, riva128);
+}
+
+void riva128_pfifo_hash_interrupt(int cache, void *p)
+{
+	riva128_t *riva128 = (riva128_t *)p;
+
+	riva128->pfifo.caches[cache].pull_ctrl |= 0x110;
+	riva128->pfifo.caches[cache].pull_ctrl &= ~1;
+
+	riva128_pfifo_cache_interrupt(cache << 2, riva128);
 }
 
 uint32_t riva128_pfifo_runout_next(void *p)
@@ -745,6 +773,9 @@ uint32_t riva128_pfifo_cache1_free(uint32_t chid, void* p)
 	case 0x00221b:
 		ret = (riva128->pfifo.ramro >> 24) & 0xff;
 		break;
+	case 0x002500:
+		ret = riva128->pfifo.caches_reassign & 0xff;
+		break;
 	case 0x002504:
 		ret = riva128->pfifo.chan_mode & 0xff;
 		break;
@@ -781,20 +812,59 @@ uint32_t riva128_pfifo_cache1_free(uint32_t chid, void* p)
 	case 0x00250f:
 		ret = (riva128->pfifo.chan_size >> 24) & 0xff;
 		break;
+	case 0x003204:
+		ret = riva128->pfifo.caches[1].chanid;
+		break;
+	case 0x003210:
+		ret = riva128->pfifo.caches[1].put & 0xff;
+		break;
+	case 0x003211:
+		ret = (riva128->pfifo.caches[1].put >> 8) & 0xff;
+		break;
+	case 0x003212:
+		ret = (riva128->pfifo.caches[1].put >> 16) & 0xff;
+		break;
+	case 0x003213:
+		ret = (riva128->pfifo.caches[1].put >> 24) & 0xff;
+		break;
+	case 0x003214:
+		riva128->pfifo.caches[1].status &= 0x111;
+		if(riva128->pfifo.caches[1].get == riva128->pfifo.caches[1].put)
+		{
+			riva128->pfifo.caches[1].status |= 0x10;
+		}
+		else if(riva128_pfifo_cache1_next(riva128->pfifo.caches[1].put) == riva128->pfifo.caches[1].get)
+		{
+			riva128->pfifo.caches[1].status |= 0x100;
+		}
+		ret = riva128->pfifo.caches[1].status & 0xff;
+		break;
+	case 0x003215:
+		ret = (riva128->pfifo.caches[1].status >> 8) & 0xff;
+		break;
+	case 0x003240:
+		ret = riva128->pfifo.caches[1].pull_ctrl & 0xff;
+		break;
+	case 0x003241:
+		ret = (riva128->pfifo.caches[1].pull_ctrl >> 8) & 0xff;
+		break;
+	case 0x003270:
+		ret = riva128->pfifo.caches[1].get & 0xff;
+		break;
+	case 0x003271:
+		ret = (riva128->pfifo.caches[1].get >> 8) & 0xff;
+		break;
+	case 0x003272:
+		ret = (riva128->pfifo.caches[1].get >> 16) & 0xff;
+		break;
+	case 0x003273:
+		ret = (riva128->pfifo.caches[1].get >> 24) & 0xff;
+		break;
 	//HACK
 	case 0x002400:
 		ret = 0x10;
 		break;
 	case 0x002401:
-		ret = 0x00;
-		break;
-	case 0x003204:
-		ret = riva128->pfifo.caches[1].chanid;
-		break;
-	case 0x003214:
-		ret = 0x10;
-		break;
-	case 0x003215:
 		ret = 0x00;
 		break;
 	case 0x003220:
@@ -820,7 +890,7 @@ uint32_t riva128_pfifo_cache1_free(uint32_t chid, void* p)
 		break;
 	case 0x002210:
 		riva128->pfifo.ramht = val;
-		riva128->pfifo.ramht_addr = (val & 0x1f0) << 8;
+		riva128->pfifo.ramht_addr = val & 0xf000;
 		switch(val & 0x30000)
 		{
 		case 0x00000:
@@ -839,11 +909,11 @@ uint32_t riva128_pfifo_cache1_free(uint32_t chid, void* p)
 		break;
 	case 0x002214:
 		riva128->pfifo.ramfc = val;
-		riva128->pfifo.ramfc_addr = (val & 0x1fe) << 4;
+		riva128->pfifo.ramfc_addr = val & 0xfe00;
 		break;
 	case 0x002218:
 		riva128->pfifo.ramro = val;
-		riva128->pfifo.ramro_addr = (val & 0x1fe) << 4;
+		riva128->pfifo.ramro_addr = val & 0xfe00;
 		if(val & 0x10000) riva128->pfifo.ramro_size = 8192;
 		else riva128->pfifo.ramro_size = 512;
 		break;
@@ -862,10 +932,31 @@ uint32_t riva128_pfifo_cache1_free(uint32_t chid, void* p)
 	case 0x003204:
 		riva128->pfifo.caches[1].chanid = val;
 		break;
+	case 0x003210:
+		riva128->pfifo.caches[1].put = val & 0x1fc;
+		break;
+	case 0x003270:
+		riva128->pfifo.caches[1].get = val & 0x1fc;
+		break;
 	//HACKS
 	case 0x002500:
+		riva128->pfifo.caches_reassign = val & 1;
 		riva128_pfifo_interrupt(0, riva128);
 		break;
+	}
+
+	if((addr >= 0x003300) && (addr <= 0x003400) && !(addr & 4))
+	{
+		riva128->pfifo.cache1[(addr & 0xf8) >> 3].method = val & 0x1ffc;
+		riva128->pfifo.cache1[(addr & 0xf8) >> 3].subchan = (val >> 13) & 7;
+	}
+	else if((addr >= 0x003304) && (addr <= 0x003404) && (addr & 4))
+	{
+		riva128->pfifo.cache1[(addr & 0xf8) >> 3].param = val;
+	}
+	else if((addr >= 0x003280) && (addr <= 0x0032f0) && !(addr & 0x0f))
+	{
+		riva128->pfifo.caches[1].ctx[(addr & 0x70) >> 4] = val & 0xffffff;
 	}
 }
 
@@ -1932,65 +2023,87 @@ void riva128_pgraph_vblank_interrupt(void *p)
 	uint32_t tmp = handle;
 	uint32_t hash = 0;
 
-	int bits;
+	//this is xqemu's hash function, but it's been proven to be wrong for nv3.
+	/*int bits;
 
 	switch(riva128->pfifo.ramht_size)
 	{
 	case 4096:
-		bits = 12;
+		bits = 10;
 	case 8192:
-		bits = 13;
+		bits = 11;
 	case 16384:
-		bits = 14;
+		bits = 12;
 	case 32768:
-		bits = 15;
+		bits = 13;
 	}
 
 	while(tmp)
 	{
-		hash ^= (tmp & (riva128->pfifo.ramht_size - 1));
-		tmp = tmp >> 1;
+		hash ^= (tmp & ((1 << bits) - 1));
+		tmp >>= bits;
 	}
 
-	hash ^= riva128->pfifo.caches[1].chanid << (bits - 4);
+	hash ^= riva128->pfifo.caches[1].chanid << (bits - 4);*/
 
-	ret = riva128->pramin[ramht_base + (hash * 8)];
+	//hash = ((((name) ^ ((name) >> 8) ^ ((name) >> 16) ^ ((name) >> 24)) & 0xFF) ^ ((chid) & 0x7F));
 
-	nv_riva_log("RIVA 128 RAMHT lookup with handle %08X returned %08X %04X:%08X\n", handle, ret, CS, cpu_state.pc);
+	hash = (handle ^ ((handle >> 8) ^ ((handle >> 16) ^ (handle >> 24)) & 0xff) ^ (riva128->pfifo.caches[1].chanid & 0x7f));
+ 
+	ret = riva128->pramin[((ramht_base + (hash * 8)) >> 2) + 1];
+
+	nv_riva_log("RIVA 128 RAMHT lookup with handle %08X returned %08X %04X:%08X ramin address %08x ramin handle %08x ramin ctx %08x\n", handle, ret, CS, cpu_state.pc, (ramht_base + hash * 8),
+	riva128->pramin[((ramht_base + (hash * 8)) >> 2)], ret);
 	
-	return ret;
+	return (ramht_base + (hash * 8)) >> 2;
+}
+
+void riva128_pgraph_exec_method(int chanid, int subchanid, int objclass, int offset, uint32_t val, void *p)
+{
+	riva128_t *riva128 = (riva128_t *)p;
+
+	nv_riva_log("RIVA 128 PGRAPH executing method %04X on channel %01X[%01X] objclass %02X param %08X %04X:%08X\n", offset, chanid, subchanid, objclass, val, CS, cpu_state.pc);
 }
 
  void riva128_puller_exec_method(int chanid, int subchanid, int offset, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	nv_riva_log("RIVA 128 Puller executing method %04X on channel %01X[%01X] param %08X %04X:%08X\n", offset, chanid, subchanid, val, CS, cpu_state.pc);
 
 	if(riva128->card_id == 0x03)
 	{
-		uint32_t tmp = riva128_ramht_lookup(val, riva128);
-		unsigned new_class = (tmp >> 16) & 0x1f;
-		unsigned old_subc = (riva128->pgraph.ctx_user >> 13) & 7;
-		unsigned new_subc = subchanid & 7;
-		riva128->pgraph.instance = (tmp & 0xffff) << 2;
-		if((old_subc != new_subc) || !offset)
+		unsigned new_class = 0;
+		if(offset == 0)
 		{
-			uint32_t tmp_ctx = riva128->pramin[riva128->pgraph.instance];
-			if(!offset) riva128->pgraph.ctx_cache[new_subc][0] = tmp_ctx & 0x3ff3f71f;
-			riva128->pgraph.ctx_user &= 0x1fe000;
-			riva128->pgraph.ctx_user |= tmp & 0x1f0000;
-			riva128->pgraph.ctx_user |= new_subc << 13;
-			if(riva128->pgraph.debug[1] & 0x100000) riva128->pgraph.ctx_switch[0] = riva128->pgraph.ctx_cache[new_subc][0];
-			if(riva128->pgraph.debug[2] & 0x10000000)
+			uint32_t tmp = riva128_ramht_lookup(val, riva128);
+			if((riva128->pramin[tmp] != val) || ((riva128->pramin[tmp+1] >> 24) & 0x7f) != chanid)
 			{
-				//riva128_pgraph_volatile_reset(riva128);
-				riva128->pgraph.debug[1] |= 1;
+				riva128_pfifo_hash_interrupt(1, riva128);
+				return;
 			}
-			else riva128->pgraph.debug[1] &= ~1;
-			if(riva128->pgraph.notify & 0x10000)
+			new_class = (riva128->pramin[tmp+1] >> 16) & 0x1f;
+			unsigned old_subc = (riva128->pgraph.ctx_user >> 13) & 7;
+			unsigned new_subc = subchanid & 7;
+			riva128->pgraph.instance = (riva128->pramin[tmp+1] & 0xffff) << 2;
+			nv_riva_log("RIVA 128 Puller executing method %04X on channel %01X[%01X] objclass %02X param %08X %04X:%08X\n", offset, chanid, subchanid, new_class, val, CS, cpu_state.pc);
+			if((old_subc != new_subc) || !offset)
 			{
-				riva128_pgraph_invalid_interrupt(16, riva128);
-				riva128->pgraph.fifo_enable = 0;
+				uint32_t tmp_ctx = riva128->pramin[riva128->pgraph.instance];
+				if(!offset) riva128->pgraph.ctx_cache[new_subc][0] = tmp_ctx & 0x3ff3f71f;
+				riva128->pgraph.ctx_user &= 0x1fe000;
+				riva128->pgraph.ctx_user |= tmp & 0x1f0000;
+				riva128->pgraph.ctx_user |= new_subc << 13;
+				if(riva128->pgraph.debug[1] & 0x100000) riva128->pgraph.ctx_switch[0] = riva128->pgraph.ctx_cache[new_subc][0];
+				if(riva128->pgraph.debug[2] & 0x10000000)
+				{
+					//riva128_pgraph_volatile_reset(riva128);
+					riva128->pgraph.debug[1] |= 1;
+				}
+				else riva128->pgraph.debug[1] &= ~1;
+				if(riva128->pgraph.notify & 0x10000)
+				{
+					riva128_pgraph_invalid_interrupt(16, riva128);
+					riva128->pgraph.fifo_enable = 0;
+				}
 			}
 		}
 
@@ -2003,11 +2116,13 @@ void riva128_pgraph_vblank_interrupt(void *p)
 		if((riva128->pgraph.debug[1] & 0x10000) && ((riva128->pgraph.instance >> 4) != riva128->pgraph.ctx_switch[3]) && (new_class == 0x0d || new_class == 0x0e || new_class == 0x14 || new_class == 0x17 || offset == 0x0104))
 		{
 			riva128->pgraph.ctx_switch[3] = riva128->pgraph.instance >> 4;
-			riva128->pgraph.ctx_switch[1] = riva128->pramin[riva128->pgraph.instance + 4] & 0xffff;
+			riva128->pgraph.ctx_switch[1] = riva128->pramin[riva128->pgraph.instance + 1] & 0xffff;
 			riva128->pgraph.notify &= 0xf10000;
-			riva128->pgraph.notify |= (riva128->pramin[riva128->pgraph.instance + 4] >> 16) & 0xffff;
-			riva128->pgraph.ctx_switch[2] = riva128->pramin[riva128->pgraph.instance + 8] & 0x1ffff;
+			riva128->pgraph.notify |= (riva128->pramin[riva128->pgraph.instance + 1] >> 16) & 0xffff;
+			riva128->pgraph.ctx_switch[2] = riva128->pramin[riva128->pgraph.instance + 2] & 0x1ffff;
 		}
+
+		riva128_pgraph_exec_method(chanid, subchanid, (riva128->pgraph.ctx_user >> 16) & 0x1f, offset, val, riva128);
 	}
 	else rivatnt_pgraph_ctx_switch(riva128);
 }
@@ -2133,13 +2248,13 @@ uint8_t riva128_user_read(uint32_t addr, void *p)
 	addr &= 0xffffff;
 
 	//This logging condition is necessary to prevent A CATASTROPHIC LOG BLOWUP when polling PTIMER or PFIFO. DO NOT REMOVE.
-	if(/*!((addr >= 0x009000) && (addr <= 0x009fff)) && !((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0x000000) 
-	&& (addr <= 0x000003)) && !((addr <= 0x680fff) && (addr >= 0x680000)) && !((addr >= 0x0c0000) && (addr <= 0x0cffff)) 
-	&& !((addr >= 0x110000) && (addr <= 0x11ffff)) && !(addr <= 0x000fff) && (addr >= 0x000000)*/1) nv_riva_log("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
+	//if(/*!((addr >= 0x009000) && (addr <= 0x009fff)) && !((addr >= 0x002000) && (addr <= 0x003fff)) && !((addr >= 0x000000) 
+	//&& (addr <= 0x000003)) && !((addr <= 0x680fff) && (addr >= 0x680000)) && !((addr >= 0x0c0000) && (addr <= 0x0cffff)) 
+	//&& !((addr >= 0x110000) && (addr <= 0x11ffff)) && !(addr <= 0x000fff) && (addr >= 0x000000)*/1) nv_riva_log("RIVA 128 MMIO read %08X %04X:%08X\n", addr, CS, cpu_state.pc);
 
 	if((addr >= 0x000000) && (addr <= 0x000fff)) ret = riva128_pmc_read(addr, riva128);
 	if((addr >= 0x001000) && (addr <= 0x001fff)) ret = riva128_pbus_read(addr, riva128);
-	if((addr >= 0x002000) && (addr <= 0x002fff)) ret = riva128_pfifo_read(addr, riva128);
+	if((addr >= 0x002000) && (addr <= 0x003fff)) ret = riva128_pfifo_read(addr, riva128);
 	if((addr >= 0x009000) && (addr <= 0x009fff)) ret = riva128_ptimer_read(addr, riva128);
 	if((addr >= 0x100000) && (addr <= 0x100fff)) ret = riva128_pfb_read(addr, riva128);
 	if((addr >= 0x101000) && (addr <= 0x101fff)) ret = riva128_pextdev_read(addr, riva128);
@@ -2147,6 +2262,7 @@ uint8_t riva128_user_read(uint32_t addr, void *p)
 	if((addr >= 0x300000) && (addr <= 0x30ffff) && (riva128->card_id >= 0x04)) ret = riva128->bios_rom.rom[addr & riva128->bios_rom.mask];
 	if((addr >= 0x400000) && (addr <= 0x400fff)) ret = riva128_pgraph_read(addr, riva128);
 	if((addr >= 0x680000) && (addr <= 0x680fff)) ret = riva128_pramdac_read(addr, riva128);
+	//if((addr >= 0x700000) && (addr <= 0x7fffff)) ret = riva128_ramin_readb(addr, riva128);
 	if(addr >= 0x800000) ret = riva128_user_read(addr, riva128);
 
 	switch(addr)
@@ -2159,6 +2275,9 @@ uint8_t riva128_user_read(uint32_t addr, void *p)
 		ret = riva128_in(addr & 0xfff, riva128);
 		break;
 	}
+
+	nv_riva_log("RIVA 128 MMIO read %08X %04X:%08X %02x\n", addr, CS, cpu_state.pc, ret);
+
 	return ret;
 }
 
@@ -2216,12 +2335,13 @@ uint8_t riva128_user_read(uint32_t addr, void *p)
 	
 	if((addr >= 0x000000) && (addr <= 0x000fff)) riva128_pmc_write(addr, val, riva128);
 	if((addr >= 0x001000) && (addr <= 0x001fff)) riva128_pbus_write(addr, val, riva128);
-	if((addr >= 0x002000) && (addr <= 0x002fff)) riva128_pfifo_write(addr, val, riva128);
+	if((addr >= 0x002000) && (addr <= 0x003fff)) riva128_pfifo_write(addr, val, riva128);
 	if((addr >= 0x009000) && (addr <= 0x009fff)) riva128_ptimer_write(addr, val, riva128);
 	if((addr >= 0x100000) && (addr <= 0x100fff)) riva128_pfb_write(addr, val, riva128);
 	if((addr >= 0x101000) && (addr <= 0x101fff)) riva128_pextdev_write(addr, val, riva128);
 	if((addr >= 0x400000) && (addr <= 0x400fff)) riva128_pgraph_write(addr, val, riva128);
 	if((addr >= 0x680000) && (addr <= 0x680fff)) riva128_pramdac_write(addr, val, riva128);
+	//if((addr >= 0x700000) && (addr <= 0x7fffff)) riva128_ramin_writel(addr, val, riva128);
 	if((addr >= 0x800000) && (addr <= 0xffffff)) riva128_user_write(addr, val, riva128);
 
 	switch(addr)
@@ -2584,14 +2704,15 @@ void riva128_ptimer_tick(void *p)
  uint32_t riva128_ramin_readl(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	uint32_t ret = riva128->pramin[(addr & 0x1ffffc) >> 2];
+	uint32_t ret = riva128->pramin[(addr & 0xffffc) >> 2];
+	nv_riva_log("RIVA 128 RAMIN read addr %08x returned &08x\n", addr & 0xffffc, ret);
 	return ret;
 }
 
  uint8_t riva128_ramin_readb(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	uint32_t ret = riva128->pramin[(addr & 0x1ffffc) >> 2];
+	uint32_t ret = riva128->pramin[(addr & 0xffffc) >> 2];
 	ret >>= 24 - ((addr & 3) << 3);
 	return ret;
 }
@@ -2599,7 +2720,7 @@ void riva128_ptimer_tick(void *p)
  uint16_t riva128_ramin_readw(uint32_t addr, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	uint32_t ret = riva128->pramin[(addr & 0x1ffffc) >> 2];
+	uint32_t ret = riva128->pramin[(addr & 0xffffc) >> 2];
 	ret >>= 16 - ((addr & 2) << 3);
 	return ret;
 }
@@ -2607,7 +2728,8 @@ void riva128_ptimer_tick(void *p)
  void riva128_ramin_writel(uint32_t addr, uint32_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-	riva128->pramin[(addr & 0x1ffffc) >> 2] = val;
+	riva128->pramin[(addr & 0xffffc) >> 2] = val;
+	nv_riva_log("RIVA 128 RAMIN write addr %08x val %08x\n", addr & 0xffffc, val);
 }
 
  void riva128_ramin_writeb(uint32_t addr, uint8_t val, void *p)
@@ -2621,8 +2743,8 @@ void riva128_ptimer_tick(void *p)
  void riva128_ramin_writew(uint32_t addr, uint16_t val, void *p)
 {
 	uint32_t tmp = riva128_ramin_readl(addr,p);
-	tmp &= ~(0xffff << ((addr & 2) << 4));
-	tmp |= val << ((addr & 2) << 4);
+	tmp &= ~(0xffff << ((addr & 2) << 3));
+	tmp |= val << ((addr & 2) << 3);
 	riva128_ramin_writel(addr, tmp, p);
 }
 
@@ -2793,8 +2915,8 @@ void riva128_ptimer_tick(void *p)
 			}
 			if (linear_addr)
 			{
-				mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0x1000000);
-				mem_mapping_set_addr(&riva128->ramin_mapping, linear_addr + 0xc00000, 0x200000);
+				mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0xc00000);
+				mem_mapping_set_addr(&riva128->ramin_mapping, linear_addr + 0xc00000, 0x100000);
 			}
 		}
 		return;
@@ -2830,7 +2952,7 @@ void riva128_ptimer_tick(void *p)
 		if (linear_addr)
 		{
 			mem_mapping_set_addr(&riva128->linear_mapping, linear_addr, 0xc00000);
-			mem_mapping_set_addr(&riva128->ramin_mapping, linear_addr + 0xc00000, 0x200000);
+			mem_mapping_set_addr(&riva128->ramin_mapping, linear_addr + 0xc00000, 0x100000);
 		}
 		return;
 	}
@@ -3195,6 +3317,8 @@ void *riva128_init(const device_t *info)
 	riva128->svga.vblank_start = riva128_vblank_start;
 
 	riva128->pgraph.beta = 0xffffffff;
+
+	srand(time(NULL));
 
 	return riva128;
 }
