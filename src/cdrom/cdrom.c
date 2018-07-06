@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.47	2018/05/10
+ * Version:	@(#)cdrom.c	1.0.48	2018/05/28
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -62,22 +62,8 @@ cdrom_t		*cdrom[CDROM_NUM];
 cdrom_image_t	cdrom_image[CDROM_NUM];
 cdrom_drive_t	cdrom_drives[CDROM_NUM];
 uint8_t atapi_cdrom_drives[8] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-uint8_t scsi_cdrom_drives[16][8] =	{	{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
-						{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }	};
+uint8_t scsi_cdrom_drives[16] =	{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+				  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 
 #pragma pack(push,1)
@@ -106,90 +92,90 @@ static struct
 /* Table of all SCSI commands and their flags, needed for the new disc change / not ready handler. */
 const uint8_t cdrom_command_flags[0x100] =
 {
-    IMPLEMENTED | CHECK_READY | NONDATA,
-    IMPLEMENTED | ALLOW_UA | NONDATA | SCSI_ONLY,
-    0,
-    IMPLEMENTED | ALLOW_UA,
-    0, 0, 0, 0,
-    IMPLEMENTED | CHECK_READY,
-    0, 0,
-    IMPLEMENTED | CHECK_READY | NONDATA,
-    0, 0, 0, 0, 0, 0,
-    IMPLEMENTED | ALLOW_UA,
-    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,
-    0,
-    IMPLEMENTED,
-    0, 0, 0, 0,
-    IMPLEMENTED,
-    IMPLEMENTED | CHECK_READY,
-    0, 0,
-    IMPLEMENTED | CHECK_READY,
-    0, 0, 0, 0, 0, 0,
-    IMPLEMENTED | CHECK_READY,
-    0, 0,
-    IMPLEMENTED | CHECK_READY,
-    0, 0,
-    IMPLEMENTED | CHECK_READY | NONDATA,
-    0, 0, 0,
-    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0,
-    IMPLEMENTED | CHECK_READY,
-    IMPLEMENTED | CHECK_READY,	/* Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
+    IMPLEMENTED | CHECK_READY | NONDATA,			/* 0x00 */
+    IMPLEMENTED | ALLOW_UA | NONDATA | SCSI_ONLY,		/* 0x01 */
+    0,								/* 0x02 */
+    IMPLEMENTED | ALLOW_UA,					/* 0x03 */
+    0, 0, 0, 0,							/* 0x04-0x07 */
+    IMPLEMENTED | CHECK_READY,					/* 0x08 */
+    0, 0,							/* 0x09-0x0A */
+    IMPLEMENTED | CHECK_READY | NONDATA,			/* 0x0B */
+    0, 0, 0, 0, 0, 0,						/* 0x0C-0x11 */
+    IMPLEMENTED | ALLOW_UA,					/* 0x12 */
+    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,		/* 0x13 */
+    0,								/* 0x14 */
+    IMPLEMENTED,						/* 0x15 */
+    0, 0, 0, 0,							/* 0x16-0x19 */
+    IMPLEMENTED,						/* 0x1A */
+    IMPLEMENTED | CHECK_READY,					/* 0x1B */
+    0, 0,							/* 0x1C-0x1D */
+    IMPLEMENTED | CHECK_READY,					/* 0x1E */
+    0, 0, 0, 0, 0, 0,						/* 0x1F-0x24 */
+    IMPLEMENTED | CHECK_READY,					/* 0x25 */
+    0, 0,							/* 0x26-0x27 */
+    IMPLEMENTED | CHECK_READY,					/* 0x28 */
+    0, 0,							/* 0x29-0x2A */
+    IMPLEMENTED | CHECK_READY | NONDATA,			/* 0x2B */
+    0, 0, 0,							/* 0x2C-0x2E */
+    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,		/* 0x2F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,		/* 0x30-0x3F */
+    0, 0,							/* 0x40-0x41 */
+    IMPLEMENTED | CHECK_READY,					/* 0x42 */
+    IMPLEMENTED | CHECK_READY,	/* 0x43 - Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
 				   NOTE: The ATAPI reference says otherwise, but I think this is a question of
 				   interpreting things right - the UNIT ATTENTION condition we have here
 				   is a tradition from not ready to ready, by definition the drive
 				   eventually becomes ready, make the condition go away. */
-    IMPLEMENTED | CHECK_READY,
-    IMPLEMENTED | CHECK_READY,
-    IMPLEMENTED | ALLOW_UA,
-    IMPLEMENTED | CHECK_READY,
-    IMPLEMENTED | CHECK_READY,
-    0,
-    IMPLEMENTED | ALLOW_UA,
-    IMPLEMENTED | CHECK_READY,
-    0, 0,
-    IMPLEMENTED | CHECK_READY,
-    0, 0,
-    IMPLEMENTED | CHECK_READY,
-    IMPLEMENTED | CHECK_READY,
-    0, 0,
-    IMPLEMENTED,
-    0, 0, 0, 0,
-    IMPLEMENTED,
-    0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0,
-    IMPLEMENTED | CHECK_READY,
-    0, 0,
-    IMPLEMENTED | CHECK_READY,
-    0, 0, 0, 0,
-    IMPLEMENTED | CHECK_READY,
-    0,
-    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,
-    0, 0, 0, 0,
-    IMPLEMENTED | CHECK_READY | ATAPI_ONLY,
-    0, 0, 0,
-    IMPLEMENTED | CHECK_READY | ATAPI_ONLY,
-    IMPLEMENTED | CHECK_READY,
-    IMPLEMENTED | CHECK_READY,
-    IMPLEMENTED,
-    IMPLEMENTED | CHECK_READY,
-    IMPLEMENTED,
-    IMPLEMENTED | CHECK_READY,
-    IMPLEMENTED | CHECK_READY,
-    0, 0,
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    IMPLEMENTED | SCSI_ONLY,
-    0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    IMPLEMENTED | CHECK_READY,					/* 0x44 */
+    IMPLEMENTED | CHECK_READY,					/* 0x45 */
+    IMPLEMENTED | ALLOW_UA,					/* 0x46 */
+    IMPLEMENTED | CHECK_READY,					/* 0x47 */
+    IMPLEMENTED | CHECK_READY,					/* 0x48 */
+    0,								/* 0x49 */
+    IMPLEMENTED | ALLOW_UA,					/* 0x4A */
+    IMPLEMENTED | CHECK_READY,					/* 0x4B */
+    0, 0,							/* 0x4C-0x4D */
+    IMPLEMENTED | CHECK_READY,					/* 0x4E */
+    0, 0,							/* 0x4F-0x50 */
+    IMPLEMENTED | CHECK_READY,					/* 0x51 */
+    IMPLEMENTED | CHECK_READY,					/* 0x52 */
+    0, 0,							/* 0x53-0x54 */
+    IMPLEMENTED,						/* 0x55 */
+    0, 0, 0, 0,							/* 0x56-0x59 */
+    IMPLEMENTED,						/* 0x5A */
+    0, 0, 0, 0, 0,						/* 0x5B-0x5F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,		/* 0x60-0x6F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,		/* 0x70-0x7F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,		/* 0x80-0x8F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,		/* 0x90-0x9F */
+    0, 0, 0, 0, 0,						/* 0xA0-0xA4 */
+    IMPLEMENTED | CHECK_READY,					/* 0xA5 */
+    0, 0,							/* 0xA6-0xA7 */
+    IMPLEMENTED | CHECK_READY,					/* 0xA8 */
+    0, 0, 0, 0,							/* 0xA9-0xAC */
+    IMPLEMENTED | CHECK_READY,					/* 0xAD */
+    0,								/* 0xAE */
+    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,		/* 0xAF */
+    0, 0, 0, 0,							/* 0xB0-0xB3 */
+    IMPLEMENTED | CHECK_READY | ATAPI_ONLY,			/* 0xB4 */
+    0, 0, 0,							/* 0xB5-0xB7 */
+    IMPLEMENTED | CHECK_READY | ATAPI_ONLY,			/* 0xB8 */
+    IMPLEMENTED | CHECK_READY,					/* 0xB9 */
+    IMPLEMENTED | CHECK_READY,					/* 0xBA */
+    IMPLEMENTED,						/* 0xBB */
+    IMPLEMENTED | CHECK_READY,					/* 0xBC */
+    IMPLEMENTED,						/* 0xBD */
+    IMPLEMENTED | CHECK_READY,					/* 0xBE */
+    IMPLEMENTED | CHECK_READY,					/* 0xBF */
+    0, 0,							/* 0xC0-0xC1 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,			/* 0xC2 */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,				/* 0xC3-0xCC */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,			/* 0xCD */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,				/* 0xCE-0xD9 */
+    IMPLEMENTED | SCSI_ONLY,					/* 0xDA */
+    0, 0, 0, 0, 0,						/* 0xDB-0xDF */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,		/* 0xE0-0xEF */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0		/* 0xF0-0xFF */
 };
 
 static uint64_t cdrom_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE |
@@ -397,12 +383,12 @@ build_atapi_cdrom_map()
 
 
 int
-find_cdrom_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun)
+find_cdrom_for_scsi_id(uint8_t scsi_id)
 {
     uint8_t i = 0;
 
     for (i = 0; i < CDROM_NUM; i++) {
-	if ((cdrom_drives[i].bus_type == CDROM_BUS_SCSI) && (cdrom_drives[i].scsi_device_id == scsi_id) && (cdrom_drives[i].scsi_device_lun == scsi_lun))
+	if ((cdrom_drives[i].bus_type == CDROM_BUS_SCSI) && (cdrom_drives[i].scsi_device_id == scsi_id))
 		return i;
     }
     return 0xff;
@@ -413,15 +399,11 @@ void
 build_scsi_cdrom_map()
 {
     uint8_t i = 0;
-    uint8_t j = 0;
+
+    memset(scsi_cdrom_drives, 0xff, 16);
 
     for (i = 0; i < 16; i++)
-	memset(scsi_cdrom_drives[i], 0xff, 8);
-
-    for (i = 0; i < 16; i++) {
-	for (j = 0; j < 8; j++)
-		scsi_cdrom_drives[i][j] = find_cdrom_for_scsi_id(i, j);
-    }
+	scsi_cdrom_drives[i] = find_cdrom_for_scsi_id(i);
 }
 
 
@@ -772,6 +754,8 @@ cdrom_update_request_length(cdrom_t *dev, int len, int block_len)
 
     if ((len <= dev->max_transfer_len) && (len >= min_len))
 	dev->request_length = dev->max_transfer_len = len;
+    else if (len > dev->max_transfer_len)
+	dev->request_length = dev->max_transfer_len;
 
     return;
 }
@@ -1008,7 +992,7 @@ static void cdrom_data_command_finish(cdrom_t *dev, int len, int block_len, int 
 {
     cdrom_log("CD-ROM %i: Finishing command (%02X): %i, %i, %i, %i, %i\n",
 	      dev->id, dev->current_cdb[0], len, block_len, alloc_len, direction, dev->request_length);
-    dev->pos=0;
+    dev->pos = 0;
     if (alloc_len >= 0) {
 	if (alloc_len < len)
 		len = alloc_len;
@@ -1053,12 +1037,11 @@ static void
 cdrom_set_phase(cdrom_t *dev, uint8_t phase)
 {
     uint8_t scsi_id = dev->drv->scsi_device_id;
-    uint8_t scsi_lun = dev->drv->scsi_device_lun;
 
     if (dev->drv->bus_type != CDROM_BUS_SCSI)
 	return;
 
-    SCSIDevices[scsi_id][scsi_lun].Phase = phase;
+    SCSIDevices[scsi_id].Phase = phase;
 }
 
 
@@ -1482,7 +1465,7 @@ cdrom_pre_execution_check(cdrom_t *dev, uint8_t *cdb)
     int ready = 0, status = 0;
 
     if (dev->drv->bus_type == CDROM_BUS_SCSI) {
-	if (((dev->request_length >> 5) & 7) != dev->drv->scsi_device_lun) {
+	if ((cdb[0] != GPCMD_REQUEST_SENSE) && (cdb[1] & 0xe0)) {
 		cdrom_log("CD-ROM %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n",
 			  dev->id, ((dev->request_length >> 5) & 7));
 		cdrom_invalid_lun(dev);
@@ -1733,7 +1716,7 @@ cdrom_command(cdrom_t *dev, uint8_t *cdb)
     uint32_t profiles[2] = { MMC_PROFILE_CD_ROM, MMC_PROFILE_DVD_ROM };
 
     if (dev->drv->bus_type == CDROM_BUS_SCSI) {
-	BufLen = &SCSIDevices[dev->drv->scsi_device_id][dev->drv->scsi_device_lun].BufferLength;
+	BufLen = &SCSIDevices[dev->drv->scsi_device_id].BufferLength;
 	dev->status &= ~ERR_STAT;
     } else {
 	BufLen = &blen;
@@ -2772,7 +2755,6 @@ cdrom_phase_data_out(cdrom_t *dev)
 static void
 cdrom_pio_request(cdrom_t *dev, uint8_t out)
 {
-    int old_pos = 0;
     int ret = 0;
 
     if (dev->drv->bus_type < CDROM_BUS_SCSI) {
@@ -2807,10 +2789,13 @@ cdrom_pio_request(cdrom_t *dev, uint8_t out)
 	cdrom_log("CD-ROM %i: Packet length %i, request length %i\n", dev->id, dev->packet_len,
 		  dev->max_transfer_len);
 
-	old_pos = dev->pos;
 	dev->packet_status = out ? CDROM_PHASE_DATA_OUT : CDROM_PHASE_DATA_IN;
-	cdrom_command_common(dev);
-	dev->pos = old_pos;
+
+	dev->status = BUSY_STAT;
+	dev->phase = 1;
+	cdrom_phase_callback(dev);
+	dev->callback = 0LL;
+	cdrom_set_callback(dev);
 
 	dev->request_pos = 0;
     }
@@ -2849,12 +2834,12 @@ cdrom_read_from_ide_dma(uint8_t channel)
 
 
 static int
-cdrom_read_from_scsi_dma(uint8_t scsi_id, uint8_t scsi_lun)
+cdrom_read_from_scsi_dma(uint8_t scsi_id)
 {
     cdrom_t *dev;
 
-    uint8_t id = scsi_cdrom_drives[scsi_id][scsi_lun];
-    int32_t *BufLen = &SCSIDevices[scsi_id][scsi_lun].BufferLength;
+    uint8_t id = scsi_cdrom_drives[scsi_id];
+    int32_t *BufLen = &SCSIDevices[scsi_id].BufferLength;
 
     if (id > CDROM_NUM)
 	return 0;
@@ -2862,7 +2847,7 @@ cdrom_read_from_scsi_dma(uint8_t scsi_id, uint8_t scsi_lun)
     dev = cdrom[id];
 
     cdrom_log("Reading from SCSI DMA: SCSI ID %02X, init length %i\n", scsi_id, *BufLen);
-    memcpy(cdbufferb, SCSIDevices[scsi_id][scsi_lun].CmdBuffer, *BufLen);
+    memcpy(cdbufferb, SCSIDevices[scsi_id].CmdBuffer, *BufLen);
     return 1;
 }
 
@@ -2878,11 +2863,11 @@ cdrom_irq_raise(cdrom_t *dev)
 static int
 cdrom_read_from_dma(cdrom_t *dev)
 {
-    int32_t *BufLen = &SCSIDevices[dev->drv->scsi_device_id][dev->drv->scsi_device_lun].BufferLength;
+    int32_t *BufLen = &SCSIDevices[dev->drv->scsi_device_id].BufferLength;
     int ret = 0;
 
     if (dev->drv->bus_type == CDROM_BUS_SCSI)
-	ret = cdrom_read_from_scsi_dma(dev->drv->scsi_device_id, dev->drv->scsi_device_lun);
+	ret = cdrom_read_from_scsi_dma(dev->drv->scsi_device_id);
     else
 	ret = cdrom_read_from_ide_dma(dev->drv->ide_channel);
 
@@ -2933,12 +2918,12 @@ cdrom_write_to_ide_dma(uint8_t channel)
 
 
 static int
-cdrom_write_to_scsi_dma(uint8_t scsi_id, uint8_t scsi_lun)
+cdrom_write_to_scsi_dma(uint8_t scsi_id)
 {
     cdrom_t *dev;
 
-    uint8_t id = scsi_cdrom_drives[scsi_id][scsi_lun];
-    int32_t *BufLen = &SCSIDevices[scsi_id][scsi_lun].BufferLength;
+    uint8_t id = scsi_cdrom_drives[scsi_id];
+    int32_t *BufLen = &SCSIDevices[scsi_id].BufferLength;
 
     if (id > CDROM_NUM)
 	return 0;
@@ -2946,15 +2931,15 @@ cdrom_write_to_scsi_dma(uint8_t scsi_id, uint8_t scsi_lun)
     dev = cdrom[id];
 
     cdrom_log("Writing to SCSI DMA: SCSI ID %02X, init length %i\n", scsi_id, *BufLen);
-    memcpy(SCSIDevices[scsi_id][scsi_lun].CmdBuffer, cdbufferb, *BufLen);
+    memcpy(SCSIDevices[scsi_id].CmdBuffer, cdbufferb, *BufLen);
     cdrom_log("CD-ROM %i: Data from CD buffer:  %02X %02X %02X %02X %02X %02X %02X %02X\n", id,
 	      cdbufferb[0], cdbufferb[1], cdbufferb[2], cdbufferb[3], cdbufferb[4], cdbufferb[5],
 	      cdbufferb[6], cdbufferb[7]);
     cdrom_log("CD-ROM %i: Data from SCSI DMA :  %02X %02X %02X %02X %02X %02X %02X %02X\n", id,
-	      SCSIDevices[scsi_id][scsi_lun].CmdBuffer[0], SCSIDevices[scsi_id][scsi_lun].CmdBuffer[1],
-	      SCSIDevices[scsi_id][scsi_lun].CmdBuffer[2], SCSIDevices[scsi_id][scsi_lun].CmdBuffer[3],
-	      SCSIDevices[scsi_id][scsi_lun].CmdBuffer[4], SCSIDevices[scsi_id][scsi_lun].CmdBuffer[5],
-	      SCSIDevices[scsi_id][scsi_lun].CmdBuffer[6], SCSIDevices[scsi_id][scsi_lun].CmdBuffer[7]);
+	      SCSIDevices[scsi_id].CmdBuffer[0], SCSIDevices[scsi_id].CmdBuffer[1],
+	      SCSIDevices[scsi_id].CmdBuffer[2], SCSIDevices[scsi_id].CmdBuffer[3],
+	      SCSIDevices[scsi_id].CmdBuffer[4], SCSIDevices[scsi_id].CmdBuffer[5],
+	      SCSIDevices[scsi_id].CmdBuffer[6], SCSIDevices[scsi_id].CmdBuffer[7]);
     return 1;
 }
 
@@ -2962,12 +2947,12 @@ cdrom_write_to_scsi_dma(uint8_t scsi_id, uint8_t scsi_lun)
 static int
 cdrom_write_to_dma(cdrom_t *dev)
 {
-    int32_t *BufLen = &SCSIDevices[dev->drv->scsi_device_id][dev->drv->scsi_device_lun].BufferLength;
+    int32_t *BufLen = &SCSIDevices[dev->drv->scsi_device_id].BufferLength;
     int ret = 0;
 
     if (dev->drv->bus_type == CDROM_BUS_SCSI) {
-	cdrom_log("Write to SCSI DMA: (%02X:%02X)\n", dev->drv->scsi_device_id, dev->drv->scsi_device_lun);
-	ret = cdrom_write_to_scsi_dma(dev->drv->scsi_device_id, dev->drv->scsi_device_lun);
+	cdrom_log("Write to SCSI DMA: (ID %02X)\n", dev->drv->scsi_device_id);
+	ret = cdrom_write_to_scsi_dma(dev->drv->scsi_device_id);
     } else
 	ret = cdrom_write_to_ide_dma(dev->drv->ide_channel);
 
@@ -2980,7 +2965,6 @@ cdrom_write_to_dma(cdrom_t *dev)
 }
 
 
-/* If the result is 1, issue an IRQ, otherwise not. */
 void
 cdrom_phase_callback(cdrom_t *dev)
 {
@@ -2989,13 +2973,13 @@ cdrom_phase_callback(cdrom_t *dev)
     switch(dev->packet_status) {
 	case CDROM_PHASE_IDLE:
 		cdrom_log("CD-ROM %i: CDROM_PHASE_IDLE\n", dev->id);
-		dev->pos=0;
+		dev->pos = 0;
 		dev->phase = 1;
 		dev->status = READY_STAT | DRQ_STAT | (dev->status & ERR_STAT);
 		return;
 	case CDROM_PHASE_COMMAND:
 		cdrom_log("CD-ROM %i: CDROM_PHASE_COMMAND\n", dev->id);
-		dev->status = BUSY_STAT | (dev->status &ERR_STAT);
+		dev->status = BUSY_STAT | (dev->status & ERR_STAT);
 		memcpy(dev->atapi_cdb, cdbufferb, dev->cdb_len);
 		cdrom_command(dev, dev->atapi_cdb);
 		return;
@@ -3040,14 +3024,14 @@ cdrom_phase_callback(cdrom_t *dev)
 		ret = cdrom_write_to_dma(dev);
 
 		if ((ret == 1) || (dev->drv->bus_type == CDROM_BUS_SCSI)) {
-			cdrom_log("CD-ROM %i: DMA data in phase done\n");
+			cdrom_log("CD-ROM %i: DMA data in phase done\n", dev->id);
 			cdrom_buf_free(dev);
 			cdrom_command_complete(dev);
 		} else if (ret == 2) {
-			cdrom_log("CD-ROM %i: DMA in not enabled, wait\n");
+			cdrom_log("CD-ROM %i: DMA in not enabled, wait\n", dev->id);
 			cdrom_command_bus(dev);
 		} else {
-			cdrom_log("CD-ROM %i: DMA data in phase failure\n");
+			cdrom_log("CD-ROM %i: DMA data in phase failure\n", dev->id);
 			cdrom_buf_free(dev);
 		}
 		return;
@@ -3109,17 +3093,17 @@ cdrom_read(uint8_t channel, int length)
     }
 
     if (dev->packet_status == CDROM_PHASE_DATA_IN) {
+	cdrom_log("CD-ROM %i: Returning: %04X (buffer position: %05i, request position: %05i)\n",
+		  id, temp, (dev->pos - 2) & 0xffff, (dev->request_pos - 2) & 0xffff);
 	if ((dev->request_pos >= dev->max_transfer_len) || (dev->pos >= dev->packet_len)) {
 		/* Time for a DRQ. */
 		cdrom_log("CD-ROM %i: Issuing read callback\n", id);
 		cdrom_pio_request(dev, 0);
 	}
-	cdrom_log("CD-ROM %i: Returning: %02X (buffer position: %i, request position: %i)\n", id,
-		  temp, dev->pos, dev->request_pos);
 	return temp;
     } else {
-	cdrom_log("CD-ROM %i: Returning zero (buffer position: %i, request position: %i)\n", id,
-		  dev->pos, dev->request_pos);
+	cdrom_log("CD-ROM %i: Returning: 0000 (buffer position: %05i, request position: %05i)\n",
+		  id, (dev->pos - 2) & 0xffff, (dev->request_pos - 2) & 0xffff);
 	return 0;
     }
 }
@@ -3169,7 +3153,6 @@ cdrom_write(uint8_t channel, uint32_t val, int length)
 		return;
     }
 
-    cdrom_log("CD-ROM %i: Write: %u\n", id, dev->pos);
     if (dev->packet_status == CDROM_PHASE_DATA_OUT) {
 	if ((dev->request_pos >= dev->max_transfer_len) || (dev->pos >= dev->packet_len)) {
 		/* Time for a DRQ. */
@@ -3178,8 +3161,7 @@ cdrom_write(uint8_t channel, uint32_t val, int length)
 	return;
     } else if (dev->packet_status == CDROM_PHASE_IDLE) {
 	if (dev->pos >= dev->cdb_len) {
-		cdrom_log("CD-ROM %i: Write: %u > 12\n", id, dev->pos);
-		dev->pos=0;
+		dev->pos = 0;
 		dev->status = BUSY_STAT;
 		dev->packet_status = CDROM_PHASE_COMMAND;
 		timer_process();
@@ -3198,10 +3180,6 @@ cdrom_global_init(void)
     /* Clear the global data. */
     memset(cdrom, 0x00, sizeof(cdrom));
     memset(cdrom_drives, 0x00, sizeof(cdrom_drives));
-
-    /* Set all drives to NULL mode. */
-    /* If this even needed? cdrom_hard_reset() is called before anything
-       attempts to talk to it, and that intializes everything. */
 }
 
 
@@ -3213,7 +3191,7 @@ cdrom_hard_reset(void)
 
     for (c = 0; c < CDROM_NUM; c++) {
 	if (cdrom_drives[c].bus_type) {
-		cdrom_log("CDROM hard_reset drive=%d host=%02x\n", c, cdrom_drives[c].host_drive);
+		cdrom_log("CDROM hard_reset drive=%d\n", c);
 
 		if (!cdrom[c]) {
 			cdrom[c] = (cdrom_t *) malloc(sizeof(cdrom_t));

@@ -10,7 +10,7 @@
  *		made by Adaptec, Inc. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.41	2018/04/26
+ * Version:	@(#)scsi_aha154x.c	1.0.42	2018/06/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -573,7 +573,7 @@ aha_mca_write(int port, uint8_t val, void *priv)
 	}
 
 	/* Say hello. */
-	pclog("AHA-1640: I/O=%04x, IRQ=%d, DMA=%d, BIOS @%05X, HOST ID %i\n",
+	aha_log("AHA-1640: I/O=%04x, IRQ=%d, DMA=%d, BIOS @%05X, HOST ID %i\n",
 		dev->Base, dev->Irq, dev->DmaChannel, dev->rom_addr, dev->HostID);
     }
 }

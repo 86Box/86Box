@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of hard disk images.
  *
- * Version:	@(#)hdd.c	1.0.8	2018/04/24
+ * Version:	@(#)hdd.c	1.0.9	2018/05/25
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -48,7 +48,7 @@ hdd_string_to_bus(char *str, int cdrom)
     if (! strcmp(str, "mfm")) {
 	if (cdrom) {
 no_cdrom:
-		ui_msgbox(MBX_ERROR, (wchar_t *)IDS_4114);
+		ui_msgbox(MBX_ERROR, (wchar_t *)IDS_4099);
 		return(0);
 	}
 

@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.8	2018/05/09
+ * Version:	@(#)fdc.c	1.0.9	2018/06/12
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -1710,10 +1710,8 @@ fdc_error(fdc_t *fdc, int st5, int st6)
 	fdc->fintr = 0;
     fdc->stat = 0xD0;
     fdc->st0 = fdc->res[4] = 0x40 | (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->rw_drive;
-    if (fdc->head && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
-	pclog("Head 1 on 1-sided drive\n");
+    if (fdc->head && !fdd_is_double_sided(real_drive(fdc, fdc->drive)))
 	fdc->st0 |= 0x08;
-    }
     fdc->res[5] = st5;
     fdc->res[6] = st6;
     fdc_log("FDC Error: %02X %02X %02X\n", fdc->res[4], fdc->res[5], fdc->res[6]);

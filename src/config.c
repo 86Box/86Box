@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.47	2018/04/29
+ * Version:	@(#)config.c	1.0.48	2018/05/25
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -40,7 +40,6 @@
 #include "disk/hdd.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
-#include "disk/zip.h"
 #include "floppy/fdd.h"
 #include "floppy/fdc.h"
 #include "game/gameport.h"
@@ -49,6 +48,7 @@
 #include "network/network.h"
 #include "scsi/scsi.h"
 #include "cdrom/cdrom.h"
+#include "disk/zip.h"
 #include "sound/sound.h"
 #include "sound/midi.h"
 #include "sound/snd_dbopl.h"
@@ -559,8 +559,6 @@ load_video(void)
 	gfxcard = video_get_video_from_internal_name(p);
     }
 
-    video_speed = config_get_int(cat, "video_speed", -1);
-
     voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
 }
 
@@ -679,9 +677,9 @@ load_network(void)
     if (p != NULL) {
 	if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
 		if ((network_ndev == 1) && strcmp(network_host, "none")) {
-			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2140);
+			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2103);
 		} else if (network_dev_to_id(p) == -1) {
-			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2141);
+			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2104);
 		}
 
 		strcpy(network_host, "none");
@@ -786,6 +784,8 @@ load_hard_disks(void)
     wchar_t *wp;
     uint32_t max_spt, max_hpc, max_tracks;
     uint32_t board = 0, dev = 0;
+    /* FIXME: Remove in a month. */
+    int lun;
 
     memset(temp, '\0', sizeof(temp));
     for (c=0; c<HDD_NUM; c++) {
@@ -879,21 +879,29 @@ load_hard_disks(void)
 	}
 
 	/* SCSI */
-	sprintf(temp, "hdd_%02i_scsi_location", c+1);
+	sprintf(temp, "hdd_%02i_scsi_id", c+1);
 	if (hdd[c].bus == HDD_BUS_SCSI) {
-		sprintf(tmp2, "%02u:%02u", c, 0);
-		p = config_get_string(cat, temp, tmp2);
-
-		sscanf(p, "%02i:%02i",
-			(int *)&hdd[c].scsi_id, (int *)&hdd[c].scsi_lun);
+		hdd[c].scsi_id = config_get_int(cat, temp, c);
 
 		if (hdd[c].scsi_id > 15)
 			hdd[c].scsi_id = 15;
-		if (hdd[c].scsi_lun > 7)
-			hdd[c].scsi_lun = 7;
-	} else {
+	} else
 		config_delete_var(cat, temp);
+
+	/* FIXME: Remove in a month. */
+	sprintf(temp, "hdd_%02i_scsi_location", c+1);
+	if (hdd[c].bus == HDD_BUS_SCSI) {
+		p = config_get_string(cat, temp, NULL);
+
+		if (p) {
+			sscanf(p, "%02i:%02i",
+				(int *)&hdd[c].scsi_id, (int *)&lun);
+
+			if (hdd[c].scsi_id > 15)
+				hdd[c].scsi_id = 15;
+		}
 	}
+	config_delete_var(cat, temp);
 
 	memset(hdd[c].fn, 0x00, sizeof(hdd[c].fn));
 	memset(hdd[c].prev_fn, 0x00, sizeof(hdd[c].prev_fn));
@@ -930,6 +938,10 @@ load_hard_disks(void)
 		sprintf(temp, "hdd_%02i_ide_channels", c+1);
 		config_delete_var(cat, temp);
 
+		sprintf(temp, "hdd_%02i_scsi_id", c+1);
+		config_delete_var(cat, temp);
+
+		/* FIXME: Remove in a month. */
 		sprintf(temp, "hdd_%02i_scsi_location", c+1);
 		config_delete_var(cat, temp);
 
@@ -1028,6 +1040,8 @@ load_other_removable_devices(void)
     unsigned int board = 0, dev = 0;
     wchar_t *wp;
     int c;
+    /* FIXME: Remove in a month. */
+    int lun;
 
     memset(temp, 0x00, sizeof(temp));
     for (c=0; c<CDROM_NUM; c++) {
@@ -1061,21 +1075,28 @@ load_other_removable_devices(void)
 		if (cdrom_drives[c].ide_channel > 7)
 			cdrom_drives[c].ide_channel = 7;
 	} else {
-		sprintf(temp, "cdrom_%02i_scsi_location", c+1);
+		sprintf(temp, "cdrom_%02i_scsi_id", c+1);
 		if (cdrom_drives[c].bus_type == CDROM_BUS_SCSI) {
-			sprintf(tmp2, "%02u:%02u", c+2, 0);
-			p = config_get_string(cat, temp, tmp2);
-			sscanf(p, "%02u:%02u",
-				&cdrom_drives[c].scsi_device_id,
-				&cdrom_drives[c].scsi_device_lun);
+			cdrom_drives[c].scsi_device_id = config_get_int(cat, temp, c+2);
 	
 			if (cdrom_drives[c].scsi_device_id > 15)
 				cdrom_drives[c].scsi_device_id = 15;
-			if (cdrom_drives[c].scsi_device_lun > 7)
-				cdrom_drives[c].scsi_device_lun = 7;
-		} else {
+		} else
 			config_delete_var(cat, temp);
+
+		/* FIXME: Remove in a month. */
+		sprintf(temp, "cdrom_%02i_scsi_location", c+1);
+		if (cdrom_drives[c].bus_type == CDROM_BUS_SCSI) {
+			p = config_get_string(cat, temp, NULL);
+			if (p) {
+				sscanf(p, "%02u:%02u",
+					&cdrom_drives[c].scsi_device_id, &lun);
+	
+				if (cdrom_drives[c].scsi_device_id > 15)
+					cdrom_drives[c].scsi_device_id = 15;
+			}
 		}
+		config_delete_var(cat, temp);
 	}
 
 	sprintf(temp, "cdrom_%02i_image_path", c+1);
@@ -1118,6 +1139,10 @@ load_other_removable_devices(void)
 		sprintf(temp, "cdrom_%02i_ide_channel", c+1);
 		config_delete_var(cat, temp);
 
+		sprintf(temp, "cdrom_%02i_scsi_id", c+1);
+		config_delete_var(cat, temp);
+
+		/* FIXME: Remove in a month. */
 		sprintf(temp, "cdrom_%02i_scsi_location", c+1);
 		config_delete_var(cat, temp);
 
@@ -1154,21 +1179,28 @@ load_other_removable_devices(void)
 		if (zip_drives[c].ide_channel > 7)
 			zip_drives[c].ide_channel = 7;
 	} else {
-		sprintf(temp, "zip_%02i_scsi_location", c+1);
+		sprintf(temp, "zip_%02i_scsi_id", c+1);
 		if (zip_drives[c].bus_type == CDROM_BUS_SCSI) {
-			sprintf(tmp2, "%02u:%02u", c+2, 0);
-			p = config_get_string(cat, temp, tmp2);
-			sscanf(p, "%02u:%02u",
-				&zip_drives[c].scsi_device_id,
-				&zip_drives[c].scsi_device_lun);
+			zip_drives[c].scsi_device_id = config_get_int(cat, temp, c+2);
 	
 			if (zip_drives[c].scsi_device_id > 15)
 				zip_drives[c].scsi_device_id = 15;
-			if (zip_drives[c].scsi_device_lun > 7)
-				zip_drives[c].scsi_device_lun = 7;
-		} else {
+		} else
 			config_delete_var(cat, temp);
+
+		/* FIXME: Remove in a month. */
+		sprintf(temp, "zip_%02i_scsi_location", c+1);
+		if (zip_drives[c].bus_type == CDROM_BUS_SCSI) {
+			p = config_get_string(cat, temp, NULL);
+			if (p) {
+				sscanf(p, "%02u:%02u",
+					&zip_drives[c].scsi_device_id, &lun);
+	
+				if (zip_drives[c].scsi_device_id > 15)
+					zip_drives[c].scsi_device_id = 15;
+			}
 		}
+		config_delete_var(cat, temp);
 	}
 
 	sprintf(temp, "zip_%02i_image_path", c+1);
@@ -1204,6 +1236,10 @@ load_other_removable_devices(void)
 		sprintf(temp, "zip_%02i_ide_channel", c+1);
 		config_delete_var(cat, temp);
 
+		sprintf(temp, "zip_%02i_scsi_id", c+1);
+		config_delete_var(cat, temp);
+
+		/* FIXME: Remove in a month. */
 		sprintf(temp, "zip_%02i_scsi_location", c+1);
 		config_delete_var(cat, temp);
 
@@ -1242,7 +1278,6 @@ config_load(void)
 	machine = machine_get_machine_from_internal_name("ibmpc");
 	gfxcard = GFX_CGA;
 	vid_api = plat_vidapi("default");
-	video_speed = -1;
 	enable_sync = 1;
 	joystick_type = 7;
 	if (hdc_name) {
@@ -1437,11 +1472,6 @@ save_video(void)
 
     config_set_string(cat, "gfxcard",
 	video_get_internal_name(video_old_to_new(gfxcard)));
-
-    if (video_speed == 3)
-	config_delete_var(cat, "video_speed");
-      else
-	config_set_int(cat, "video_speed", video_speed);
 
     if (voodoo_enabled == 0)
 	config_delete_var(cat, "voodoo");
@@ -1705,7 +1735,7 @@ save_hard_disks(void)
 	sprintf(temp, "hdd_%02i_esdi_channel", c+1);
 	if (hdd_is_valid(c) && (hdd[c].bus == HDD_BUS_ESDI))
 		config_set_int(cat, temp, hdd[c].esdi_channel);
-	  else
+	else
 		config_delete_var(cat, temp);
 
 	sprintf(temp, "hdd_%02i_ide_channel", c+1);
@@ -1716,18 +1746,16 @@ save_hard_disks(void)
 		config_set_string(cat, temp, tmp2);
 	}
 
-	sprintf(temp, "hdd_%02i_scsi_location", c+1);
-	if (! hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_SCSI)) {
+	sprintf(temp, "hdd_%02i_scsi_id", c+1);
+	if (hdd_is_valid(c) && (hdd[c].bus == HDD_BUS_SCSI))
+		config_set_int(cat, temp, hdd[c].scsi_id);
+	else
 		config_delete_var(cat, temp);
-	} else {
-		sprintf(tmp2, "%02u:%02u", hdd[c].scsi_id, hdd[c].scsi_lun);
-		config_set_string(cat, temp, tmp2);
-	}
 
 	sprintf(temp, "hdd_%02i_fn", c+1);
 	if (hdd_is_valid(c) && (wcslen(hdd[c].fn) != 0))
 		config_set_wstring(cat, temp, hdd[c].fn);
-	  else
+	else
 		config_delete_var(cat, temp);
     }
 
@@ -1828,13 +1856,11 @@ save_other_removable_devices(void)
 		config_set_string(cat, temp, tmp2);
 	}
 
-	sprintf(temp, "cdrom_%02i_scsi_location", c + 1);
+	sprintf(temp, "cdrom_%02i_scsi_id", c + 1);
 	if (cdrom_drives[c].bus_type != CDROM_BUS_SCSI) {
 		config_delete_var(cat, temp);
 	} else {
-		sprintf(tmp2, "%02u:%02u", cdrom_drives[c].scsi_device_id,
-					cdrom_drives[c].scsi_device_lun);
-		config_set_string(cat, temp, tmp2);
+		config_set_int(cat, temp, cdrom_drives[c].scsi_device_id);
 	}
 
 	sprintf(temp, "cdrom_%02i_image_path", c + 1);
@@ -1865,13 +1891,11 @@ save_other_removable_devices(void)
 		config_set_string(cat, temp, tmp2);
 	}
 
-	sprintf(temp, "zip_%02i_scsi_location", c + 1);
+	sprintf(temp, "zip_%02i_scsi_id", c + 1);
 	if (zip_drives[c].bus_type != ZIP_BUS_SCSI) {
 		config_delete_var(cat, temp);
 	} else {
-		sprintf(tmp2, "%02u:%02u", zip_drives[c].scsi_device_id,
-					zip_drives[c].scsi_device_lun);
-		config_set_string(cat, temp, tmp2);
+		config_set_int(cat, temp, zip_drives[c].scsi_device_id);
 	}
 
 	sprintf(temp, "zip_%02i_image_path", c + 1);

@@ -8,7 +8,7 @@
  *
  *		Definitions for the hard disk image handler.
  *
- * Version:	@(#)hdd.h	1.0.5	2018/04/30
+ * Version:	@(#)hdd.h	1.0.6	2018/06/09
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -84,7 +84,6 @@ typedef struct {
     uint8_t	xta_channel;
     uint8_t	ide_channel;
     uint8_t	scsi_id;
-    uint8_t	scsi_lun;
 
     uint32_t	base,
 		spt,
@@ -102,6 +101,31 @@ typedef struct {
 
 extern hard_disk_t      hdd[HDD_NUM];
 extern unsigned int	hdd_table[128][3];
+
+
+typedef struct vhd_footer_t
+{
+    uint8_t	cookie[8];
+    uint32_t	features;
+    uint32_t	version;
+    uint64_t	offset;
+    uint32_t	timestamp;
+    uint8_t	creator[4];
+    uint32_t	creator_vers;
+    uint8_t	creator_host_os[4];
+    uint64_t	orig_size;
+    uint64_t	curr_size;
+    struct {
+	uint16_t	cyl;
+	uint8_t		heads;
+	uint8_t		spt;
+    } geom;
+    uint32_t	type;
+    uint32_t	checksum;
+    uint8_t	uuid[16];
+    uint8_t	saved_state;
+    uint8_t	reserved[427];
+} vhd_footer_t;
 
 
 extern int	hdd_init(void);
@@ -124,9 +148,16 @@ extern uint8_t	hdd_image_get_type(uint8_t id);
 extern void	hdd_image_specify(uint8_t id, uint64_t hpc, uint64_t spt);
 extern void	hdd_image_unload(uint8_t id, int fn_preserve);
 extern void	hdd_image_close(uint8_t id);
+extern void	hdd_image_calc_chs(uint32_t *c, uint32_t *h, uint32_t *s, uint32_t size);
+
+extern void	vhd_footer_from_bytes(vhd_footer_t *vhd, uint8_t *bytes);
+extern void	vhd_footer_to_bytes(uint8_t *bytes, vhd_footer_t *vhd);
+extern void	new_vhd_footer(vhd_footer_t **vhd);
+extern void	generate_vhd_checksum(vhd_footer_t *vhd);
 
 extern int	image_is_hdi(const wchar_t *s);
 extern int	image_is_hdx(const wchar_t *s, int check_signature);
+extern int	image_is_vhd(const wchar_t *s, int check_signature);
 
 
 #endif	/*EMU_HDD_H*/

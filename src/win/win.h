@@ -8,7 +8,7 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.17	2018/04/26
+ * Version:	@(#)win.h	1.0.18	2018/05/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -41,6 +41,7 @@
 #define SUB_CLASS_NAME		L"86BoxSubWnd"
 #define SB_CLASS_NAME		L"86BoxStatusBar"
 #define SB_MENU_NAME		L"StatusBarMenu"
+#define FS_CLASS_NAME		L"86BoxFullScreen"
 
 /* Application-specific window messages. */
 #define WM_RESETD3D		WM_USER
@@ -50,13 +51,19 @@
 #define WM_PAUSE		0x8890
 #define WM_SENDHWND		0x8891
 
+#ifdef USE_VNC
+#define RENDERERS_NUM		4
+#else
+#define RENDERERS_NUM		3
+#endif
+
 
 extern HINSTANCE	hinstance;
 extern HWND		hwndMain,
 			hwndRender;
 extern HANDLE		ghMutex;
 extern LCID		lang_id;
-extern HICON		hIcon[512];
+extern HICON		hIcon[256];
 
 // extern int		status_is_open;
 
@@ -111,6 +118,7 @@ extern int	hard_disk_was_added(void);
 
 /* Platform UI support functions. */
 extern int	ui_init(int nCmdShow);
+extern void	plat_set_input(HWND h);
 
 
 /* Functions in win_about.c: */

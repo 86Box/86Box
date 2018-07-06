@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.47	2018/06/02
+ * Version:	@(#)hdc_ide.c	1.0.45	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -32,10 +32,8 @@
 #include "../cpu/cpu.h"
 #include "../machine/machine.h"
 #include "../io.h"
-#include "../mem.h"
 #include "../pic.h"
 #include "../pci.h"
-#include "../rom.h"
 #include "../timer.h"
 #include "../device.h"
 #include "../scsi/scsi.h"
@@ -74,9 +72,9 @@
 #define WIN_SRST			0x08 /* ATAPI Device Reset */
 #define WIN_RECAL			0x10
 #define WIN_READ			0x20 /* 28-Bit Read */
-#define WIN_READ_NORETRY                0x21 /* 28-Bit Read - no retry */
+#define WIN_READ_NORETRY                0x21 /* 28-Bit Read - no retry*/
 #define WIN_WRITE			0x30 /* 28-Bit Write */
-#define WIN_WRITE_NORETRY		0x31 /* 28-Bit Write - no retry */
+#define WIN_WRITE_NORETRY		0x31 /* 28-Bit Write */
 #define WIN_VERIFY			0x40 /* 28-Bit Verify */
 #define WIN_VERIFY_ONCE			0x41 /* Added by OBattler - deprected older ATA command, according to the specification I found, it is identical to 0x40 */
 #define WIN_FORMAT			0x50
@@ -129,11 +127,9 @@ enum
 };
 #endif
 
-#define IDE_PCI (PCI && (romset != ROM_PB640))
-
 
 typedef struct {
-    int bit32, cur_dev,
+    int enable, cur_dev,
 	irq;
     int64_t callback;
 } ide_board_t;
@@ -266,34 +262,6 @@ ide_get_period(ide_t *ide, int size)
 }
 
 
-#if 0
-int64_t
-ide_get_seek_time(ide_t *ide, uint32_t new_pos)
-{
-    double dusec, time;
-    uint32_t pos = hdd_image_get_pos(ide->hdd_num);
-    uint32_t t, nt;
-    t = pos / ide->spt;
-    nt = new_pos / ide->spt;
-
-    dusec = (double) TIMER_USEC;
-    time = (1000000.0 / 2800.0) * dusec;	/* Revolution (1/2800 s). */
-
-    if ((t % ide->hpc) != (pos % ide->hpc))	/* Head change. */
-	time += (dusec / 250.0);		/* 4ns */
-
-    t /= ide->hpc;
-    nt /= ide->hpc;
-
-    if (t != nt) {
-	t = ABS(t - nt);
-	time += ((40000.0 * dusec) / ((double) ide->tracks)) * ((double) t);
-    }
-    return (int64_t) time;
-}
-#endif
-
-
 int
 ide_drive_is_cdrom(ide_t *ide)
 {
@@ -340,7 +308,14 @@ ide_irq_raise(ide_t *ide)
 
     /* ide_log("Raising IRQ %i (board %i)\n", ide_boards[ide->board]->irq, ide->board); */
 
-    if (!(ide->fdisk & 2) && (ide_boards[ide->board]->irq != -1)) {
+    if (ide_boards[ide->board]->irq == -1) {
+	ide->irqstat=1;
+	ide->service=1;
+
+	return;
+    }
+
+    if (!(ide->fdisk&2)) {
 	if ((ide->board < 2) && ide_bus_master_set_irq)
 		ide_bus_master_set_irq(ide->board | 0x40, ide_bus_master_priv[ide->board]);
 	else
@@ -360,12 +335,15 @@ ide_irq_lower(ide_t *ide)
 
     /* ide_log("Lowering IRQ %i (board %i)\n", ide_boards[ide->board]->irq, ide->board); */
 
-    if ((ide_boards[ide->board]->irq != -1) && ide->irqstat) {
-	if ((ide->board < 2) && ide_bus_master_set_irq)
-		ide_bus_master_set_irq(ide->board, ide_bus_master_priv[ide->board]);
-	else
-		picintc(1 << ide_boards[ide->board]->irq);
+    if ((ide_boards[ide->board]->irq == -1) || !(ide->irqstat)) {
+	ide->irqstat=0;
+	return;
     }
+
+    if ((ide->board < 2) && ide_bus_master_set_irq)
+	ide_bus_master_set_irq(ide->board, ide_bus_master_priv[ide->board]);
+    else
+	picintc(1 << ide_boards[ide->board]->irq);
 
     ide->irqstat=0;
 }
@@ -439,7 +417,7 @@ ide_get_max(ide_t *ide, int type)
 {
     switch(type) {
 	case TYPE_PIO:	/* PIO */
-		if (!IDE_PCI || (ide->board >= 2))
+		if (!PCI || (ide->board >= 2))
 			return 0;	/* Maximum PIO 0 for legacy PIO-only drive. */
 		else {
 			if (ide_drive_is_zip(ide))
@@ -449,12 +427,12 @@ ide_get_max(ide_t *ide, int type)
 		}
 		break;
 	case TYPE_SDMA:	/* SDMA */
-		if (!IDE_PCI || (ide->board >= 2) || ide_drive_is_zip(ide))
+		if (!PCI || (ide->board >= 2) || ide_drive_is_zip(ide))
 			return -1;
 		else
 			return 2;
 	case TYPE_MDMA:	/* MDMA */
-		if (!IDE_PCI || (ide->board >= 2))
+		if (!PCI || (ide->board >= 2))
 			return -1;
 		else {
 			if (ide_drive_is_zip(ide))
@@ -463,7 +441,7 @@ ide_get_max(ide_t *ide, int type)
 				return 2;
 		}
 	case TYPE_UDMA:	/* UDMA */
-		if (!IDE_PCI || (ide->board >= 2))
+		if (!PCI || (ide->board >= 2))
 			return -1;
 		else
 			return 2;
@@ -490,7 +468,7 @@ ide_get_timings(ide_t *ide, int type)
 {
     switch(type) {
 	case TIMINGS_DMA:
-		if (!IDE_PCI || (ide->board >= 2))
+		if (!PCI || (ide->board >= 2))
 			return 0;
 		else {
 			if (ide_drive_is_zip(ide))
@@ -500,7 +478,7 @@ ide_get_timings(ide_t *ide, int type)
 		}
 		break;
 	case TIMINGS_PIO:
-		if (!IDE_PCI || (ide->board >= 2))
+		if (!PCI || (ide->board >= 2))
 			return 0;
 		else {
 			if (ide_drive_is_zip(ide))
@@ -510,7 +488,7 @@ ide_get_timings(ide_t *ide, int type)
 		}
 		break;
 	case TIMINGS_PIO_FC:
-		if (!IDE_PCI || (ide->board >= 2))
+		if (!PCI || (ide->board >= 2))
 			return 0;
 		else {
 			if (ide_drive_is_zip(ide))
@@ -585,10 +563,10 @@ static void ide_hd_identify(ide_t *ide)
 		Bit 2 = The fields reported in word 88 are valid.	*/
 	ide->buffer[53] = 1;
 
-	if (ide->cfg_spt != 0) {
-		ide->buffer[54] = (full_size / ide->cfg_hpc) / ide->cfg_spt;
-		ide->buffer[55] = ide->cfg_hpc;
-		ide->buffer[56] = ide->cfg_spt;
+	if (ide->specify_success) {
+		ide->buffer[54] = (full_size / ide->t_hpc) / ide->t_spt;
+		ide->buffer[55] = ide->t_hpc;
+		ide->buffer[56] = ide->t_spt;
 	} else {
 		if (full_size <= 16514064) {
 			ide->buffer[54] = d_tracks;
@@ -609,7 +587,7 @@ static void ide_hd_identify(ide_t *ide)
 	ide_log("Current CHS translation: %i, %i, %i\n", ide->buffer[54], ide->buffer[55], ide->buffer[56]);
     }
 
-    if (IDE_PCI && (ide->board < 2)) {
+    if (PCI && (ide->board < 2)) {
 	ide->buffer[47] = 32 | 0x8000;  /*Max sectors on multiple transfer command*/
 	ide->buffer[80] = 0x1e; /*ATA-1 to ATA-4 supported*/
 	ide->buffer[81] = 0x18; /*ATA-4 revision 18 supported*/
@@ -637,17 +615,12 @@ ide_atapi_cdrom_identify(ide_t *ide)
 
     ide->buffer[0] = 0x8000 | (5<<8) | 0x80 | (2<<5); /* ATAPI device, CD-ROM drive, removable media, accelerated DRQ */
     ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
-#if 0
     ide_padstr((char *) (ide->buffer + 23), EMU_VERSION, 8); /* Firmware */
     ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
-#else
-    ide_padstr((char *) (ide->buffer + 23), "4.20    ", 8); /* Firmware */
-    ide_padstr((char *) (ide->buffer + 27), "NEC                 CD-ROM DRIVE:273    ", 40); /* Model */
-#endif
     ide->buffer[49] = 0x200; /* LBA supported */
     ide->buffer[126] = 0xfffe; /* Interpret zero byte count limit as maximum length */
 
-    if (IDE_PCI && (ide->board < 2)) {
+    if (PCI && (ide->board < 2)) {
 	ide->buffer[71] = 30;
 	ide->buffer[72] = 30;
     }
@@ -668,7 +641,7 @@ ide_atapi_zip_250_identify(ide_t *ide)
     ide_padstr((char *) (ide->buffer + 23), "42.S", 8); /* Firmware */
     ide_padstr((char *) (ide->buffer + 27), "IOMEGA  ZIP 250       ATAPI", 40); /* Model */
 
-    if (IDE_PCI && (ide->board < 2)) {
+    if (PCI && (ide->board < 2)) {
 	ide->buffer[80] = 0x30; /*Supported ATA versions : ATA/ATAPI-4 ATA/ATAPI-5*/
 	ide->buffer[81] = 0x15; /*Maximum ATA revision supported : ATA/ATAPI-5 T13 1321D revision 1*/
     }
@@ -720,8 +693,7 @@ ide_identify(ide_t *ide)
     max_mdma = ide_get_max(ide, TYPE_MDMA);
     max_udma = ide_get_max(ide, TYPE_UDMA);
 
-    if (ide_boards[ide->board]->bit32)
-	ide->buffer[48] |= 1;   /*Dword transfers supported*/
+    ide->buffer[48] |= 1;   /*Dword transfers supported*/
     ide->buffer[51] = ide_get_timings(ide, TIMINGS_PIO);
     ide->buffer[53] &= 0x0006;
     ide->buffer[52] = ide->buffer[62] = ide->buffer[63] = ide->buffer[64] = 0x0000;
@@ -787,8 +759,8 @@ ide_get_sector(ide_t *ide)
     if (ide->lba)
 	return (off64_t)ide->lba_addr + ide->skip512;
     else {
-	heads = ide->cfg_hpc;
-	sectors = ide->cfg_spt;
+	heads = ide->t_hpc;
+	sectors = ide->t_spt;
 
 	return ((((off64_t) ide->cylinder * heads) + ide->head) *
 		sectors) + (ide->sector - 1) + ide->skip512;
@@ -806,10 +778,10 @@ ide_next_sector(ide_t *ide)
 	ide->lba_addr++;
     else {
 	ide->sector++;
-	if (ide->sector == (ide->cfg_spt + 1)) {
+	if (ide->sector == (ide->t_spt + 1)) {
 		ide->sector = 1;
 		ide->head++;
-		if (ide->head == ide->cfg_hpc) {
+		if (ide->head == ide->t_hpc) {
 			ide->head = 0;
 			ide->cylinder++;
 		}
@@ -844,7 +816,7 @@ ide_set_signature(ide_t *ide)
     ide->head=0;
 
     if (ide_drive_is_zip(ide)) {
-	zip_set_signature(zip[zip_id]);
+	zip_set_signature(zip_id);
 	ide->secount = zip[zip_id]->phase;
 	ide->cylinder = zip[zip_id]->request_length;
     } else if (ide_drive_is_cdrom(ide)) {
@@ -1074,7 +1046,6 @@ ide_board_init(int board)
 	max = ide_get_max(dev, TYPE_PIO);
 	dev->mdma_mode = (1 << max);
 	dev->error = 1;
-	dev->cfg_spt = dev->cfg_hpc = 0;
     }
 }
 
@@ -1902,8 +1873,7 @@ ide_read_alt_status(uint16_t addr, void *priv)
     ch = dev->cur_dev;
     ide = ide_drives[ch];
 
-    /* Per the Seagate ATA-3 specification:
-       Reading the alternate status does *NOT* clear the IRQ. */
+    ide_irq_lower(ide);
     temp = ide_status(ide, ch);
 
     ide_log("ide_read_alt_status(%04X, %08X) = %02X\n", addr, priv, temp);
@@ -1927,6 +1897,10 @@ ide_readw(uint16_t addr, void *priv)
     switch (addr & 0x7) {
 	case 0x0: /* Data */
 		temp = ide_read_data(ide, 2);
+		break;
+
+	default:
+		temp = 0xff;
 		break;
     }
 
@@ -1968,6 +1942,7 @@ ide_callback(void *priv)
     int snum, ret, ch;
     int cdrom_id, cdrom_id_other;
     int zip_id, zip_id_other;
+    uint64_t full_size = 0;
 
     ide_board_t *dev = (ide_board_t *) priv;
     ch = dev->cur_dev;
@@ -1976,6 +1951,9 @@ ide_callback(void *priv)
     ide_other = ide_drives[ch ^ 1];
 
     ide_set_callback(ide->board, 0LL);
+
+    if (ide->type == IDE_HDD)
+	full_size = (hdd[ide->hdd_num].tracks * hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
 
     if (ide->reset) {
 	ide_log("CALLBACK RESET %i  %i\n", ide->reset,ch);
@@ -1986,10 +1964,6 @@ ide_callback(void *priv)
 	ide->sector = ide_other->sector = 1;
 	ide->head = ide_other->head = 0;
 	ide->cylinder = ide_other->cylinder = 0;
-
-	// ide->cfg_spt = ide->cfg_hpc = 0;		/* need new parameters (drive 0) */
-	// ide_other->cfg_spt = ide_other->cfg_hpc = 0;	/* need new parameters (drive 1) */
-
 	ide->reset = ide_other->reset = 0;
 
 	ide_set_signature(ide);
@@ -2047,18 +2021,16 @@ ide_callback(void *priv)
 	/* Initialize the Task File Registers as follows: Status = 00h, Error = 01h, Sector Count = 01h, Sector Number = 01h,
 	   Cylinder Low = 14h, Cylinder High =EBh and Drive/Head = 00h. */
         case WIN_SRST: /*ATAPI Device Reset */
-
 		ide->atastat = DRDY_STAT | DSC_STAT;
-		ide->error = 1; /*Device passed*/
-		ide->secount = 1;
-		ide->sector = 1;		
+		ide->error=1; /*Device passed*/
+		ide->secount = ide->sector = 1;
 
 		ide_set_signature(ide);
 
 		if (ide_drive_is_zip(ide)) {
 			zip[zip_id]->status = DRDY_STAT | DSC_STAT;
 			zip[zip_id]->error = 1;
-			zip_reset(zip[zip_id]);
+			zip_reset(zip_id);
 		} else if (ide_drive_is_cdrom(ide)) {
 			cdrom[cdrom_id]->status = DRDY_STAT | DSC_STAT;
 			cdrom[cdrom_id]->error = 1;
@@ -2102,7 +2074,7 @@ ide_callback(void *priv)
 			ide_set_signature(ide);
 			goto abort_cmd;
 		}
-		if (ide->cfg_spt == 0)
+		if (!ide->specify_success)
 			goto id_not_found;
 
 		if (ide->do_initial_read) {
@@ -2132,7 +2104,7 @@ ide_callback(void *priv)
 			ide_log("IDE %i: DMA read aborted (bad device or board)\n", ide->channel);
 			goto abort_cmd;
 		}
-		if (ide->cfg_spt == 0) {
+		if (!ide->specify_success) {
 			ide_log("IDE %i: DMA read aborted (SPECIFY failed)\n", ide->channel);
 			goto id_not_found;
 		}
@@ -2184,7 +2156,7 @@ ide_callback(void *priv)
 		   mand error. */
 		if (ide_drive_is_zip(ide) || ide_drive_is_cdrom(ide) || !ide->blocksize)
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->specify_success)
 			goto id_not_found;
 
 		if (ide->do_initial_read) {
@@ -2213,7 +2185,7 @@ ide_callback(void *priv)
 	case WIN_WRITE_NORETRY:
 		if (ide_drive_is_zip(ide) || ide_drive_is_cdrom(ide))
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->specify_success)
 			goto id_not_found;
 		hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 		ide_irq_raise(ide);
@@ -2235,7 +2207,7 @@ ide_callback(void *priv)
 			ide_log("IDE %i: DMA write aborted (bad device type or board)\n", ide->channel);
 			goto abort_cmd;
 		}
-		if (ide->cfg_spt == 0) {
+		if (!ide->specify_success) {
 			ide_log("IDE %i: DMA write aborted (SPECIFY failed)\n", ide->channel);
 			goto id_not_found;
 		}
@@ -2280,7 +2252,7 @@ ide_callback(void *priv)
 	case WIN_WRITE_MULTIPLE:
 		if (ide_drive_is_zip(ide) || ide_drive_is_cdrom(ide))
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->specify_success)
 			goto id_not_found;
 		hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 		ide->blockcount++;
@@ -2303,7 +2275,7 @@ ide_callback(void *priv)
 	case WIN_VERIFY_ONCE:
 		if (ide_drive_is_zip(ide) || ide_drive_is_cdrom(ide))
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->specify_success)
 			goto id_not_found;
 		ide->pos=0;
 		ide->atastat = DRDY_STAT | DSC_STAT;
@@ -2314,7 +2286,7 @@ ide_callback(void *priv)
 	case WIN_FORMAT:
 		if (ide_drive_is_zip(ide) || ide_drive_is_cdrom(ide))
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->specify_success)
 			goto id_not_found;
 		hdd_image_zero(ide->hdd_num, ide_get_sector(ide), ide->secount);
 
@@ -2363,14 +2335,14 @@ ide_callback(void *priv)
 	case WIN_SPECIFY: /* Initialize Drive Parameters */
 		if (ide_drive_is_zip(ide) || ide_drive_is_cdrom(ide))
 			goto abort_cmd;
-		if (ide->cfg_spt == 0) {
-			/* Only accept after RESET or DIAG. */
-			ide->cfg_spt = ide->secount;
-			ide->cfg_hpc = ide->head + 1;
-		}
-		ide->command = 0x00;	
+		full_size /= (ide->head+1);
+		full_size /= ide->secount;
+		ide->specify_success = 1;
+		hdd_image_specify(ide->hdd_num, ide->head + 1, ide->secount);
+		ide->t_spt=ide->secount;
+		ide->t_hpc=ide->head;
+		ide->t_hpc++;
 		ide->atastat = DRDY_STAT | DSC_STAT;
-		ide->error = 1;
 		ide_irq_raise(ide);
 		return;
 
@@ -2451,7 +2423,7 @@ ide_callback(void *priv)
 			goto abort_cmd;
 
 		if (ide_drive_is_zip(ide))
-			zip_phase_callback(zip[atapi_zip_drives[ch]]);
+			zip_phase_callback(atapi_zip_drives[ch]);
 		else
 			cdrom_phase_callback(cdrom[atapi_cdrom_drives[ch]]);
 		return;
@@ -2480,7 +2452,7 @@ abort_cmd:
 
 id_not_found:
     ide->atastat = DRDY_STAT | ERR_STAT | DSC_STAT;
-    ide->error = IDNF_ERR;
+    ide->error = ABRT_ERR | 0x10;
     ide->pos = 0;
     ide_irq_raise(ide);
 }
@@ -2490,26 +2462,15 @@ static void
 ide_set_handlers(uint8_t board)
 {
     if (ide_base_main[board] & 0x300) {
-	if (ide_boards[board]->bit32) {
-		io_sethandler(ide_base_main[board], 1,
-			      ide_readb,           ide_readw,  ide_readl,
-			      ide_writeb,          ide_writew, ide_writel,
-			      ide_boards[board]);
-	} else {
-		io_sethandler(ide_base_main[board], 1,
-			      ide_readb,           ide_readw,  NULL,
-			      ide_writeb,          ide_writew, NULL,
-			      ide_boards[board]);
-	}
-	io_sethandler(ide_base_main[board] + 1, 7,
-		      ide_readb,           NULL,       NULL,
-		      ide_writeb,          NULL,       NULL,
+	io_sethandler(ide_base_main[board], 8,
+		      ide_readb,           ide_readw, ide_readl,
+		      ide_writeb,          ide_writew, ide_writel,
 		      ide_boards[board]);
     }
     if (ide_side_main[board] & 0x300) {
 	io_sethandler(ide_side_main[board], 1,
-		      ide_read_alt_status, NULL,       NULL,
-		      ide_write_devctl,    NULL,       NULL,
+		      ide_read_alt_status, NULL,      NULL,
+		      ide_write_devctl,    NULL,      NULL,
 		      ide_boards[board]);
     }
 }
@@ -2518,24 +2479,13 @@ ide_set_handlers(uint8_t board)
 static void
 ide_remove_handlers(uint8_t board)
 {
-    if (ide_boards[board]->bit32) {
-	io_removehandler(ide_base_main[board], 1,
-			 ide_readb,           ide_readw,  ide_readl,
-			 ide_writeb,          ide_writew, ide_writel,
-			 ide_boards[board]);
-    } else {
-	io_removehandler(ide_base_main[board], 1,
-			 ide_readb,           ide_readw,  NULL,
-			 ide_writeb,          ide_writew, NULL,
-			 ide_boards[board]);
-    }
-    io_removehandler(ide_base_main[board] + 1, 7,
-		     ide_readb,           NULL,       NULL,
-		     ide_writeb,          NULL,       NULL,
+    io_removehandler(ide_base_main[board], 8,
+		     ide_readb,           ide_readw, ide_readl,
+		     ide_writeb,          ide_writew, ide_writel,
 		     ide_boards[board]);
     io_removehandler(ide_side_main[board], 1,
-		     ide_read_alt_status, NULL,       NULL,
-		     ide_write_devctl,    NULL,       NULL,
+		     ide_read_alt_status, NULL,      NULL,
+		     ide_write_devctl,    NULL,      NULL,
 		     ide_boards[board]);
 }
 
@@ -2755,8 +2705,6 @@ ide_sainit(const device_t *info)
 			memset(ide_boards[0], 0, sizeof(ide_board_t));
 			ide_boards[0]->irq = 14;
 			ide_boards[0]->cur_dev = 0;
-			if (info->local & 8)
-				ide_boards[0]->bit32 = 1;
 			ide_base_main[0] = 0x1f0;
 			ide_side_main[0] = 0x3f6;
 			ide_set_handlers(0);
@@ -2774,8 +2722,6 @@ ide_sainit(const device_t *info)
 			memset(ide_boards[1], 0, sizeof(ide_board_t));
 			ide_boards[1]->irq = 15;
 			ide_boards[1]->cur_dev = 2;
-			if (info->local & 8)
-				ide_boards[1]->bit32 = 1;
 			ide_base_main[1] = 0x170;
 			ide_side_main[1] = 0x376;
 			ide_set_handlers(1);

@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.36	2018/05/12
+ * Version:	@(#)keyboard_at.c	1.0.37	2018/05/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1245,9 +1245,10 @@ kbd_write64_ami(void *p, uint8_t val)
 		return 0;
 	case 0xb8: case 0xb9: case 0xba: case 0xbb:
 		/*Set keyboard controller line P10-P13 (input port bits 0-3) high*/
-		if (!PCI || (val > 0xb9))
+		if (!PCI || (val > 0xb9)) {
 			kbd->input_port |= (1 << (val & 0x03));
-		kbd_adddata(0x00);
+			kbd_adddata(0x00);
+		}
 		return 0;
 	case 0xbc: case 0xbd:
 		/*Set keyboard controller line P22-P23 (output port bits 2-3) high*/

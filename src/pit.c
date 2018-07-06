@@ -2,6 +2,7 @@
   Write B0
   Write aa55
   Expects aa55 back*/
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
