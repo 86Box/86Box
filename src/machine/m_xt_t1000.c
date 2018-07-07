@@ -238,6 +238,7 @@ tc8521_time_get(uint8_t *regs, struct tm *tm)
 	tm->tm_hour = ((nibbles(TC8521_HOUR) % 12) +
 		      (regs[TC8521_HOUR10] & 0x02) ? 12 : 0);
 //FIXME: wday
+    tm->tm_wday = regs[TC8521_WEEKDAY];
     tm->tm_mday = nibbles(TC8521_DAY);
     tm->tm_mon = (nibbles(TC8521_MONTH) - 1);
     tm->tm_year = (nibbles(TC8521_YEAR) + 1980);
@@ -345,7 +346,8 @@ tc8521_init(nvr_t *nvr, int size)
     nvr_init(nvr);
 
     io_sethandler(0x02c0, 16,
-		  tc8521_read,NULL,NULL, tc8521_write,NULL,NULL, nvr);
+		  tc8521_read,NULL,NULL, tc8521_write,NULL,NULL, nvr);
+
 }
 
 

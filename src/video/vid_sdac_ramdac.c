@@ -115,7 +115,7 @@ void sdac_ramdac_out(uint16_t addr, uint8_t val, sdac_ramdac_t *ramdac, svga_t *
 
 uint8_t sdac_ramdac_in(uint16_t addr, sdac_ramdac_t *ramdac, svga_t *svga)
 {
-        uint8_t temp;
+        uint8_t temp = 0;
         switch (addr)
         {
                 case 2:

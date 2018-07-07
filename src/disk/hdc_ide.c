@@ -1040,6 +1040,7 @@ ide_board_init(int board)
 	if (board == 4) {
 		valid_ch = ((ch >= 0) && (ch <= 1));
 		ch |= 8;
+		return;
 	} else
 		valid_ch = ((ch >= min_ch) && (ch <= max_ch));
 

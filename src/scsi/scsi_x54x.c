@@ -644,6 +644,7 @@ x54x_mbi(x54x_t *dev)
     Req_t *req = &dev->Req;
 //  uint32_t CCBPointer = req->CCBPointer;
     addr24 CCBPointer;
+	U32_TO_ADDR(CCBPointer, req->CCBPointer);
     CCBU *CmdBlock = &(req->CmdBlock);
     uint8_t HostStatus = req->HostStatus;
     uint8_t TargetStatus = req->TargetStatus;

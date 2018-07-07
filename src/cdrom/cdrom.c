@@ -2810,7 +2810,7 @@ cdrom_read_from_ide_dma(uint8_t channel)
     uint8_t id = atapi_cdrom_drives[channel];
     int ret;
 
-    if (id > CDROM_NUM)
+    if (id >= CDROM_NUM)
 	return 0;
 
     dev = cdrom[id];
@@ -2841,7 +2841,7 @@ cdrom_read_from_scsi_dma(uint8_t scsi_id)
     uint8_t id = scsi_cdrom_drives[scsi_id];
     int32_t *BufLen = &SCSIDevices[scsi_id].BufferLength;
 
-    if (id > CDROM_NUM)
+    if (id >= CDROM_NUM)
 	return 0;
 
     dev = cdrom[id];
@@ -2896,7 +2896,7 @@ cdrom_write_to_ide_dma(uint8_t channel)
     uint8_t id = atapi_cdrom_drives[channel];
     int ret;
 
-    if (id > CDROM_NUM)
+    if (id >= CDROM_NUM)
 	return 0;
 
     dev = cdrom[id];
@@ -2925,7 +2925,7 @@ cdrom_write_to_scsi_dma(uint8_t scsi_id)
     uint8_t id = scsi_cdrom_drives[scsi_id];
     int32_t *BufLen = &SCSIDevices[scsi_id].BufferLength;
 
-    if (id > CDROM_NUM)
+    if (id >= CDROM_NUM)
 	return 0;
 
     dev = cdrom[id];
@@ -3058,7 +3058,7 @@ cdrom_read(uint8_t channel, int length)
 
     uint32_t temp = 0;
 
-    if (id > CDROM_NUM)
+    if (id >= CDROM_NUM)
 	return 0;
 
     dev = cdrom[id];
@@ -3119,7 +3119,7 @@ cdrom_write(uint8_t channel, uint32_t val, int length)
 
     uint8_t id = atapi_cdrom_drives[channel];
 
-    if (id > CDROM_NUM)
+    if (id >= CDROM_NUM)
 	return;
 
     dev = cdrom[id];

@@ -383,7 +383,7 @@ int slirp_select_fill(int *pnfds,
 void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds)
 {
     struct SLIRPsocket *so, *so_next;
-    int ret;
+    int ret = 0;
 
     global_readfds = readfds;
     global_writefds = writefds;

@@ -203,7 +203,7 @@ create_section(char *name)
     section_t *ns = malloc(sizeof(section_t));
 
     memset(ns, 0x00, sizeof(section_t));
-    strncpy(ns->name, name, sizeof(ns->name));
+    strncpy(ns->name, name, sizeof(ns->name) - 1);
     list_add(&ns->list, &config_head);
 
     return(ns);
@@ -216,7 +216,7 @@ create_entry(section_t *section, char *name)
     entry_t *ne = malloc(sizeof(entry_t));
 
     memset(ne, 0x00, sizeof(entry_t));
-    strncpy(ne->name, name, sizeof(ne->name));
+    strncpy(ne->name, name, sizeof(ne->name) - 1);
     list_add(&ne->list, &section->entry_head);
 
     return(ne);
@@ -305,7 +305,7 @@ config_read(wchar_t *fn)
 		/* Create a new section and insert it. */
 		ns = malloc(sizeof(section_t));
 		memset(ns, 0x00, sizeof(section_t));
-		strncpy(ns->name, sname, sizeof(ns->name));
+		strncpy(ns->name, sname, sizeof(ns->name) - 1);
 		list_add(&ns->list, &config_head);
 
 		/* New section is now the current one. */
@@ -335,7 +335,7 @@ config_read(wchar_t *fn)
 	/* Allocate a new variable entry.. */
 	ne = malloc(sizeof(entry_t));
 	memset(ne, 0x00, sizeof(entry_t));
-	strncpy(ne->name, ename, sizeof(ne->name));
+	strncpy(ne->name, ename, sizeof(ne->name) - 1);
 	wcsncpy(ne->wdata, &buff[d], sizeof_w(ne->wdata)-1);
 	ne->wdata[sizeof_w(ne->wdata)-1] = L'\0';
 	wcstombs(ne->data, ne->wdata, sizeof(ne->data));
@@ -363,7 +363,7 @@ config_read(wchar_t *fn)
 void
 config_write(wchar_t *fn)
 {
-    wchar_t wtemp[512];
+    wchar_t wtemp[128];
     section_t *sec;
     FILE *f;
     int fl = 0;
@@ -550,13 +550,14 @@ load_video(void)
 	if (p == NULL) {
 		if (machines[machine].flags & MACHINE_VIDEO) {
 			p = (char *)malloc((strlen("internal")+1)*sizeof(char));
-			strcpy(p, "internal");
+			strncpy(p, "internal", 9);
 		} else {
 			p = (char *)malloc((strlen("none")+1)*sizeof(char));
-			strcpy(p, "none");
+			strncpy(p, "none", 5);
 		}
 	}
 	gfxcard = video_get_video_from_internal_name(p);
+	free(p);
     }
 
     voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
@@ -2106,7 +2107,7 @@ config_set_int(char *head, char *name, int val)
 	ent = create_entry(section, name);
 
     sprintf(ent->data, "%i", val);
-    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
+    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata) / sizeof(wchar_t));
 }
 
 
@@ -2125,7 +2126,7 @@ config_set_hex16(char *head, char *name, int val)
 	ent = create_entry(section, name);
 
     sprintf(ent->data, "%04X", val);
-    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
+    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata) / sizeof(wchar_t));
 }
 
 
@@ -2144,7 +2145,7 @@ config_set_hex20(char *head, char *name, int val)
 	ent = create_entry(section, name);
 
     sprintf(ent->data, "%05X", val);
-    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
+    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata) / sizeof(wchar_t));
 }
 
 
@@ -2164,7 +2165,7 @@ config_set_mac(char *head, char *name, int val)
 
     sprintf(ent->data, "%02x:%02x:%02x",
 		(val>>16)&0xff, (val>>8)&0xff, val&0xff);
-    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
+    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata) / sizeof(wchar_t));
 }
 
 
@@ -2182,8 +2183,8 @@ config_set_string(char *head, char *name, char *val)
     if (ent == NULL)
 	ent = create_entry(section, name);
 
-    strncpy(ent->data, val, sizeof(ent->data));
-    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
+    strncpy(ent->data, val, sizeof(ent->data) - 1);
+    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata) / sizeof(wchar_t));
 }
 
 
@@ -2201,6 +2202,6 @@ config_set_wstring(char *head, char *name, wchar_t *val)
     if (ent == NULL)
 	ent = create_entry(section, name);
 
-    memcpy(ent->wdata, val, sizeof_w(ent->wdata));
+    memcpy(ent->wdata, val, sizeof_w(ent->wdata) - sizeof(wchar_t));
     wcstombs(ent->data, ent->wdata, sizeof(ent->data));
 }

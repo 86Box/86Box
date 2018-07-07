@@ -646,8 +646,8 @@ void CDROM_Interface_Image::ClearTracks()
 	while(i != end) {
 		Track &curr = *i;
 		if (curr.file != last) {
-			delete curr.file;
 			last = curr.file;
+			delete curr.file;
 		}
 		i++;
 	}

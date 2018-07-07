@@ -2341,7 +2341,7 @@ zip_read_from_ide_dma(uint8_t channel)
     uint8_t id = atapi_zip_drives[channel];
     int ret;
 
-    if (id > ZIP_NUM)
+    if (id >= ZIP_NUM)
 	return 0;
 
     dev = zip[id];
@@ -2370,7 +2370,7 @@ zip_read_from_scsi_dma(uint8_t scsi_id)
     uint8_t id = scsi_zip_drives[scsi_id];
     int32_t *BufLen = &SCSIDevices[scsi_id].BufferLength;
 
-    if (id > ZIP_NUM)
+    if (id >= ZIP_NUM)
 	return 0;
 
     dev = zip[id];
@@ -2425,7 +2425,7 @@ zip_write_to_ide_dma(uint8_t channel)
     uint8_t id = atapi_zip_drives[channel];
     int ret;
 
-    if (id > ZIP_NUM) {
+    if (id >= ZIP_NUM) {
 	zip_log("ZIP %i: Drive not found\n", id);
 	return 0;
     }
@@ -2456,7 +2456,7 @@ zip_write_to_scsi_dma(uint8_t scsi_id)
     uint8_t id = scsi_zip_drives[scsi_id];
     int32_t *BufLen = &SCSIDevices[scsi_id].BufferLength;
 
-    if (id > ZIP_NUM)
+    if (id >= ZIP_NUM)
 	return 0;
 
     dev = zip[id];
@@ -2590,7 +2590,7 @@ zip_read(uint8_t channel, int length)
 
     uint32_t temp = 0;
 
-    if (id > ZIP_NUM)
+    if (id >= ZIP_NUM)
 	return 0;
 
     dev = zip[id];
@@ -2651,7 +2651,7 @@ zip_write(uint8_t channel, uint32_t val, int length)
 
     uint8_t id = atapi_zip_drives[channel];
 
-    if (id > ZIP_NUM)
+    if (id >= ZIP_NUM)
 	return;
 
     dev = zip[id];

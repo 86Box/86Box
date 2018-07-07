@@ -306,7 +306,7 @@ pc_init(int argc, wchar_t *argv[])
     uint32_t *uid, *shwnd;
 
     /* Grab the executable's full path. */
-    plat_get_exe_name(exe_path, sizeof(exe_path)-1);
+    plat_get_exe_name(exe_path, (sizeof(exe_path) / sizeof(wchar_t)) - 1);
     p = plat_get_filename(exe_path);
     *p = L'\0';
 

@@ -270,6 +270,7 @@ CreateConsole(int init)
 		}
 	}
     }
+    if(fp != NULL) fclose(fp);
 }
 
 
@@ -331,6 +332,8 @@ ProcessCommandLine(wchar_t ***argw)
 	}
     }
 
+    free(argbuf);
+
     args[argc] = NULL;
     *argw = args;
 
@@ -374,6 +377,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 	CreateConsole(0);
 	return(1);
     }
+
+    free(argw);
 
     /* Cleanup: we may no longer need the console. */
     if (! force_debug)

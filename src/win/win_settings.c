@@ -2629,6 +2629,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 					f = _wfopen(wopenfilestring, (existing & 1) ? L"rb" : L"wb");
 					if (f == NULL) {
 hdd_add_file_open_error:
+						if(f != NULL) fclose(f);
 						settings_msgbox(MBX_ERROR, (existing & 1) ? (wchar_t *)IDS_4107 : (wchar_t *)IDS_4108);
 						return TRUE;
 					}
@@ -2645,9 +2646,11 @@ hdd_add_file_open_error:
 							fread(&spt, 1, 4, f);
 							fread(&hpc, 1, 4, f);
 							fread(&tracks, 1, 4, f);
+							fclose(f);
 						} else if (image_is_vhd(wopenfilestring, 1)) {
 							fseeko64(f, -512, SEEK_END);
 							fread(buf, 1, 512, f);
+							fclose(f);
 							new_vhd_footer(&vft);
 							vhd_footer_from_bytes(vft, (uint8_t *) buf);
 							size = vft->orig_size;
@@ -3093,6 +3096,7 @@ win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPar
 		if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_LIST_HARD_DISKS)) {
 			old_sel = lv1_current_sel;
 			lv1_current_sel = get_selected_hard_disk(hdlg);
+			h = GetDlgItem(hdlg, IDC_COMBO_HD_BUS);
 			if (lv1_current_sel == old_sel)
 				return FALSE;
 			else if (lv1_current_sel == -1) {
@@ -3103,7 +3107,6 @@ win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPar
 				return FALSE;
 			}
 			ignore_change = 1;
-			h = GetDlgItem(hdlg, IDC_COMBO_HD_BUS);
 			SendMessage(h, CB_SETCURSEL, temp_hdd[lv1_current_sel].bus - 1, 0);
 			recalc_location_controls(hdlg, 0, 0);
 			ignore_change = 0;
@@ -3195,7 +3198,7 @@ hd_bus_skip:
 				return FALSE;
 
 			case IDC_BUTTON_HDD_REMOVE:
-				memcpy(temp_hdd[lv1_current_sel].fn, L"", 4);
+				memcpy(temp_hdd[lv1_current_sel].fn, L"", 2);
 				hard_disk_untrack(lv1_current_sel);
 				temp_hdd[lv1_current_sel].bus = HDD_BUS_DISABLED;	/* Only set the bus to zero, the list normalize code below will take care of turning this entire entry to a complete zero. */
 				normalize_hd_list();			/* Normalize the hard disks so that non-disabled hard disks start from index 0, and so they are contiguous. */

@@ -180,7 +180,7 @@ const machine_t machines[] = {
 int
 machine_count(void)
 {
-    return((sizeof(machines) / sizeof(machine)) - 1);
+    return((sizeof(machines) / sizeof(machine_t)) - 1);
 }
 
 

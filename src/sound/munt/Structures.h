@@ -102,8 +102,8 @@ struct TimbreParam {
 			Bit8u biasLevel2; // 0-12 (-12 - 0)
 			Bit8u envTimeKeyfollow; // TIME KEY FOLLOW 0-4
 			Bit8u envTimeVeloSensitivity; // VELOS KEY FOLL0W 0-4
-			Bit8u envTime[5]; // 0-100
-			Bit8u envLevel[4]; // 0-100 // [3]: SUSTAIN LEVEL
+			Bit8u envTime[7]; // 0-100
+			Bit8u envLevel[7]; // 0-100 // [3]: SUSTAIN LEVEL
 		} MT32EMU_ALIGN_PACKED tva;
 	} MT32EMU_ALIGN_PACKED partial[4]; // struct PartialParam
 } MT32EMU_ALIGN_PACKED; // struct TimbreParam
@@ -138,7 +138,7 @@ struct MemParams {
 		Bit8u outputLevel; // OUTPUT LEVEL 0-100
 		Bit8u panpot; // PANPOT 0-14 (R-L)
 		Bit8u dummyv[6];
-	} MT32EMU_ALIGN_PACKED patchTemp[9];
+	} MT32EMU_ALIGN_PACKED patchTemp[10];
 
 	struct RhythmTemp {
 		Bit8u timbre; // TIMBRE  0-94 (M1-M64,R1-30,OFF); LAPC-I: 0-127 (M01-M64,R01-R63)

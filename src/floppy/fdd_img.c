@@ -59,7 +59,7 @@
 typedef struct {
     FILE	*f;
     uint8_t	track_data[2][50000];
-    int		sectors, tracks, sides;
+    unsigned int sectors, tracks, sides;
     uint8_t	sector_size;
     int		xdf_type;  /* 0 = not XDF, 1-5 = one of the five XDF types */
     int		dmf;

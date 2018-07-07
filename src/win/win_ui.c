@@ -688,20 +688,6 @@ ui_init(int nCmdShow)
     HACCEL haccel;			/* handle to accelerator table */
     int bRet;
 
-    if (settings_only) {
-	if (! pc_init_modules()) {
-		/* Dang, no ROMs found at all! */
-		MessageBox(hwnd,
-			   plat_get_string(IDS_2056),
-			   plat_get_string(IDS_2050),
-			   MB_OK | MB_ICONERROR);
-		return(6);
-	}
-
-	win_settings_open(NULL);
-	return(0);
-    }
-
     /* Create our main window's class and register it. */
     wincl.hInstance = hinstance;
     wincl.lpszClassName = CLASS_NAME;
@@ -741,6 +727,20 @@ ui_init(int nCmdShow)
 		hinstance,		/* Program Instance handler */
 		NULL);			/* no Window Creation data */
     hwndMain = hwnd;
+
+	if (settings_only) {
+	if (! pc_init_modules()) {
+		/* Dang, no ROMs found at all! */
+		MessageBox(hwnd,
+			   plat_get_string(IDS_2056),
+			   plat_get_string(IDS_2050),
+			   MB_OK | MB_ICONERROR);
+		return(6);
+	}
+
+	win_settings_open(NULL);
+	return(0);
+    }
 
     ui_window_title(title);
 

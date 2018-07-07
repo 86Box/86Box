@@ -62,7 +62,7 @@ scsi_bus_log(const char *fmt, ...)
 /* get the length of a SCSI command based on its command byte type */
 static int get_cmd_len(int cbyte)
 {
-    int len;
+    int len = 1;
     int group;
 
     group = (cbyte>>5) & 7;

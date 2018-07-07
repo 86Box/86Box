@@ -107,7 +107,7 @@ extern int	cpu_manufacturer,		/* (C) cpu manufacturer */
 extern int	enable_sync;			/* (C) enable time sync */
 extern int	network_type;			/* (C) net provider type */
 extern int	network_card;			/* (C) net interface num */
-extern char	network_host[512];		/* (C) host network intf */
+extern char	network_host[520];		/* (C) host network intf */
 
 
 #ifdef ENABLE_LOG_TOGGLES

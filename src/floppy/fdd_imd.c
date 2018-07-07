@@ -628,6 +628,7 @@ imd_load(int drive, wchar_t *fn)
 	dev->f = plat_fopen(fn, L"rb");
 	if (dev->f == NULL) {
 		memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+		free(dev);
 		return;
 	}
 	writeprot[drive] = 1;
@@ -651,9 +652,15 @@ imd_load(int drive, wchar_t *fn)
 
     fseek(dev->f, 0, SEEK_END);
     fsize = ftell(dev->f);
+	if((int)fsize < 0)
+	{
+		fclose(dev->f);
+		free(dev);
+		return;
+	}
     fseek(dev->f, 0, SEEK_SET);
-    dev->buffer = malloc(fsize);
-    fread(dev->buffer, 1, fsize, dev->f);
+    dev->buffer = calloc(1, fsize);
+    fread(dev->buffer, 1, fsize - 1, dev->f);
     buffer = dev->buffer;
 
     buffer2 = strchr(buffer, 0x1A);

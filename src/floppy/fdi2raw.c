@@ -2176,7 +2176,7 @@ int fdi2raw_loadtrack (FDI *fdi, uae_u16 *mfmbuf, uae_u16 *tracktiming, int trac
 		zxx (fdi);
 		outlen = -1;
 
-	} else if (fdi->track_type < 0x10) {
+	} else if (fdi->track_type < 0x0f) {
 
 		decode_normal_track[fdi->track_type](fdi);
 		fix_mfm_sync (fdi);

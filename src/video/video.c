@@ -379,18 +379,18 @@ cgapal_rebuild(void)
 		}
 	} else {
 		for (c=0; c<16; c++) {
-			pal_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r],
-						video_6to8[cgapal_mono[cga_palette - 1][c].g],
-						video_6to8[cgapal_mono[cga_palette - 1][c].b]);
-			pal_lookup[c+16] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r],
-						   video_6to8[cgapal_mono[cga_palette - 1][c].g],
-						   video_6to8[cgapal_mono[cga_palette - 1][c].b]);
-			pal_lookup[c+32] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r],
-						   video_6to8[cgapal_mono[cga_palette - 1][c].g],
-						   video_6to8[cgapal_mono[cga_palette - 1][c].b]);
-			pal_lookup[c+48] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r],
-						   video_6to8[cgapal_mono[cga_palette - 1][c].g],
-						   video_6to8[cgapal_mono[cga_palette - 1][c].b]);
+			pal_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r],
+						video_6to8[cgapal_mono[cga_palette - 2][c].g],
+						video_6to8[cgapal_mono[cga_palette - 2][c].b]);
+			pal_lookup[c+16] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r],
+						   video_6to8[cgapal_mono[cga_palette - 2][c].g],
+						   video_6to8[cgapal_mono[cga_palette - 2][c].b]);
+			pal_lookup[c+32] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r],
+						   video_6to8[cgapal_mono[cga_palette - 2][c].g],
+						   video_6to8[cgapal_mono[cga_palette - 2][c].b]);
+			pal_lookup[c+48] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r],
+						   video_6to8[cgapal_mono[cga_palette - 2][c].g],
+						   video_6to8[cgapal_mono[cga_palette - 2][c].b]);
 		}
 	}
     }

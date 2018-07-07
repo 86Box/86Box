@@ -5737,7 +5737,8 @@ static void voodoo_fb_writel(uint32_t addr, uint32_t val, void *p)
                 colour_data[0].b = val & 0xff;
                 colour_data[0].g = (val >> 8) & 0xff;
                 colour_data[0].r = (val >> 16) & 0xff;
-                alpha_data[0] = (val >> 24) & 0xff;
+                colour_data[0].a = (val >> 24) & 0xff;
+                alpha_data[0] = colour_data[0].a;
                 write_mask = LFB_WRITE_COLOUR;
                 addr >>= 1;
                 break;
@@ -5779,6 +5780,7 @@ static void voodoo_fb_writel(uint32_t addr, uint32_t val, void *p)
                 for (c = 0; c < count; c++)
                 {
                         rgba8_t write_data = colour_data[c];
+                        write_data.a = alpha_data[c];
                         uint16_t new_depth = depth_data[c];
 
                         if (params->fbzMode & FBZ_DEPTH_ENABLE)

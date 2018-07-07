@@ -299,15 +299,18 @@ chipmem_read(nic_t *dev, uint32_t addr, unsigned int len)
 	    }
 
 	    if ((addr >= DP8390_DWORD_MEMSTART) && (addr < DP8390_DWORD_MEMEND)) {
-		retval = dev->dp8390.mem[addr - DP8390_DWORD_MEMSTART];
-		if ((len == 2) || (len == 4)) {
-			retval |= (dev->dp8390.mem[addr - DP8390_DWORD_MEMSTART + 1] << 8);
-		}
-		if (len == 4) {
-			retval |= (dev->dp8390.mem[addr - DP8390_DWORD_MEMSTART + 2] << 16);
-			retval |= (dev->dp8390.mem[addr - DP8390_DWORD_MEMSTART + 3] << 24);
-		}
-		return(retval);
+			addr -= DP8390_DWORD_MEMSTART;
+			if(len == 4) addr &= ~3;
+			else if(len == 2) addr &= ~1;
+			retval = dev->dp8390.mem[addr];
+			if ((len == 2) || (len == 4)) {
+				retval |= (dev->dp8390.mem[addr + 1] << 8);
+			}
+			if (len == 4) {
+				retval |= (dev->dp8390.mem[addr + 2] << 16);
+				retval |= (dev->dp8390.mem[addr + 3] << 24);
+			}
+			return(retval);
 	    }
     } else {
 	    if (addr <= 15) {
@@ -319,11 +322,13 @@ chipmem_read(nic_t *dev, uint32_t addr, unsigned int len)
 	    }
 
 	    if ((addr >= DP8390_WORD_MEMSTART) && (addr < DP8390_WORD_MEMEND)) {
-		retval = dev->dp8390.mem[addr - DP8390_WORD_MEMSTART];
-		if (len == 2) {
-			retval |= (dev->dp8390.mem[addr - DP8390_WORD_MEMSTART + 1] << 8);
-		}
-		return(retval);
+			addr -= DP8390_WORD_MEMSTART;
+			if(len == 2) addr &= ~1;
+			retval = dev->dp8390.mem[addr];
+			if (len == 2) {
+				retval |= (dev->dp8390.mem[addr + 1] << 8);
+			}
+			return(retval);
 	    }
     }
 
@@ -353,22 +358,27 @@ chipmem_write(nic_t *dev, uint32_t addr, uint32_t val, unsigned len)
 
     if (dev->board >= NE2K_NE2000) {
 	if ((addr >= DP8390_DWORD_MEMSTART) && (addr < DP8390_DWORD_MEMEND)) {
-		dev->dp8390.mem[addr-DP8390_DWORD_MEMSTART] = val & 0xff;
+		addr -= DP8390_DWORD_MEMSTART;
+		if(len == 4) addr &= ~3;
+		else if(len == 2) addr &= ~1;
+		dev->dp8390.mem[addr] = val & 0xff;
 		if ((len == 2) || (len == 4)) {
-			dev->dp8390.mem[addr-DP8390_DWORD_MEMSTART+1] = val >> 8;
+			dev->dp8390.mem[addr+1] = val >> 8;
 		}
 		if (len == 4) {
-			dev->dp8390.mem[addr-DP8390_DWORD_MEMSTART+2] = val >> 16;
-			dev->dp8390.mem[addr-DP8390_DWORD_MEMSTART+3] = val >> 24;
+			dev->dp8390.mem[addr+2] = val >> 16;
+			dev->dp8390.mem[addr+3] = val >> 24;
 		}
 	} else {
 		nelog(3, "%s: out-of-bounds chipmem write, %04X\n", dev->name, addr);
 	}
     } else {
 	if ((addr >= DP8390_WORD_MEMSTART) && (addr < DP8390_WORD_MEMEND)) {
-		dev->dp8390.mem[addr-DP8390_WORD_MEMSTART] = val & 0xff;
+		addr -= DP8390_WORD_MEMSTART;
+		if(len == 2) addr &= ~1;
+		dev->dp8390.mem[addr] = val & 0xff;
 		if (len == 2) {
-			dev->dp8390.mem[addr-DP8390_WORD_MEMSTART+1] = val >> 8;
+			dev->dp8390.mem[addr+1] = val >> 8;
 		}
 	} else {
 		nelog(3, "%s: out-of-bounds chipmem write, %04X\n", dev->name, addr);

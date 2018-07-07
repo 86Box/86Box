@@ -86,7 +86,7 @@ static netcard_t net_cards[] = {
 int		network_type;
 int		network_ndev;
 int		network_card;
-char		network_host[512];
+char		network_host[520];
 netdev_t	network_devs[32];
 #ifdef ENABLE_NIC_LOG
 int		nic_do_log = ENABLE_NIC_LOG;
