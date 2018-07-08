@@ -255,8 +255,8 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 				pci_set_mirq_routing(PCI_MIRQ0, PCI_IRQ_DISABLED);
 			else
 				pci_set_mirq_routing(PCI_MIRQ0, val & 0xf);
-			break;
 			piix_log("MIRQ0 is %s\n", (val & 0x20) ? "disabled" : "enabled");
+			break;
 		case 0x71:
 			if (dev->type == 1) {
 				piix_log("Set MIRQ routing: MIRQ1 -> %02X\n", val);

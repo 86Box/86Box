@@ -205,8 +205,8 @@ track_is_xdf(int drive, int side, int track)
 			dev->current_side_flags[side] = (dev->tracks[track][side].params[3] == 19) ?  0x08 : 0x28;
 			return((dev->tracks[track][side].params[3] == 19) ? 2 : 1);
 		}
-		return(0);
 	}
+	return(0);
     } else {
 	if (dev->tracks[track][side].params[4] != 0xFF) return(0);
 
@@ -660,7 +660,8 @@ imd_load(int drive, wchar_t *fn)
 	}
     fseek(dev->f, 0, SEEK_SET);
     dev->buffer = calloc(1, fsize);
-    fread(dev->buffer, 1, fsize - 1, dev->f);
+    fread(dev->buffer, 1, fsize, dev->f);
+	dev->buffer[fsize - 1] = '\0';
     buffer = dev->buffer;
 
     buffer2 = strchr(buffer, 0x1A);

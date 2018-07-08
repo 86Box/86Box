@@ -1248,7 +1248,10 @@ fdc_read(uint16_t addr, void *priv)
 				return 0xff;
 			drive = real_drive(fdc, fdc->dor & 3);
 			if (!fdc->enable_3f1)
+			{
 				ret = 0xff;
+				break;
+			}
 
 			ret = 0x70;
 			if (drive)

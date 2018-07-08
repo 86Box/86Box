@@ -2161,7 +2161,7 @@ zip_phase_data_out(zip_t *dev)
     uint8_t error = 0;
     uint8_t page, page_len;
 
-    uint16_t i = 0;
+    uint32_t i = 0;
 
     uint8_t hdr_len, val, old_val, ch;
 

@@ -690,15 +690,15 @@ img_load(int drive, wchar_t *fn)
 	fseek(dev->f, 0x08, SEEK_SET);
 	(void)fread(&(dev->base), 1, 4, dev->f);
 	fseek(dev->f, dev->base + 0x15, SEEK_SET);
-	bpb_mid = fgetc(dev->f);
+	bpb_mid = (uint8_t)fgetc(dev->f);
 	if (bpb_mid < 0xF0)
 		bpb_mid = 0xF0;
 	fseek(dev->f, 0x14, SEEK_SET);
-	bpb_sectors = fgetc(dev->f);
+	bpb_sectors = (uint8_t)fgetc(dev->f);
 	fseek(dev->f, 0x18, SEEK_SET);
-	bpb_sides = fgetc(dev->f);
+	bpb_sides = (uint8_t)fgetc(dev->f);
 	fseek(dev->f, dev->base, SEEK_SET);
-	first_byte = fgetc(dev->f);
+	first_byte = (uint8_t)fgetc(dev->f);
 
 	fdi = 1;
 	cqm = 0;
@@ -707,13 +707,13 @@ img_load(int drive, wchar_t *fn)
     } else {
 	/* Read the first four bytes. */
 	fseek(dev->f, 0x00, SEEK_SET);
-	first_byte = fgetc(dev->f);
+	first_byte = (uint8_t)fgetc(dev->f);
 	fseek(dev->f, 0x01, SEEK_SET);
-	second_byte = fgetc(dev->f);
+	second_byte = (uint8_t)fgetc(dev->f);
 	fseek(dev->f, 0x02, SEEK_SET);
-	third_byte = fgetc(dev->f);
+	third_byte = (uint8_t)fgetc(dev->f);
 	fseek(dev->f, 0x03, SEEK_SET);
-	fourth_byte = fgetc(dev->f);
+	fourth_byte = (uint8_t)fgetc(dev->f);
 
 	if ((first_byte == 0x1A) && (second_byte == 'F') &&
 	    (third_byte == 'D') && (fourth_byte == 'F')) {
@@ -738,7 +738,7 @@ img_load(int drive, wchar_t *fn)
 		while (! feof(dev->f)) {
 			if (! track_bytes) {
 				/* Skip first 3 bytes - their meaning is unknown to us but could be a checksum. */
-				first_byte = fgetc(dev->f);
+				first_byte = (uint8_t)fgetc(dev->f);
 				fread(&track_bytes, 1, 2, dev->f);
 				img_log("Block header: %02X %04X ", first_byte, track_bytes);
 				/* Read the length of encoded data block. */
@@ -751,7 +751,7 @@ img_load(int drive, wchar_t *fn)
 			if (first_byte == 0xFF) break;
 
 			if (first_byte) {
-				run = fgetc(dev->f);
+				run = (uint8_t)fgetc(dev->f);
 
 				/* I *HAVE* to read something because fseek tries to be smart and never hits EOF, causing an infinite loop. */
 				track_bytes--;
@@ -759,7 +759,7 @@ img_load(int drive, wchar_t *fn)
 				if (run & 0x80) {
 					/* Repeat. */
 					track_bytes--;
-					rep_byte = fgetc(dev->f);
+					rep_byte = (uint8_t)fgetc(dev->f);
 				} else {
 					/* Literal. */
 					track_bytes -= (run & 0x7f);
@@ -792,7 +792,7 @@ img_load(int drive, wchar_t *fn)
 		while(! feof(dev->f)) {
 			if (! track_bytes) {
 				/* Skip first 3 bytes - their meaning is unknown to us but could be a checksum. */
-				first_byte = fgetc(dev->f);
+				first_byte = (uint8_t)fgetc(dev->f);
 				fread(&track_bytes, 1, 2, dev->f);
 				img_log("Block header: %02X %04X ", first_byte, track_bytes);
 				/* Read the length of encoded data block. */
@@ -805,7 +805,7 @@ img_load(int drive, wchar_t *fn)
 			if (first_byte == 0xFF) break;
 
 			if (first_byte) {
-				run = fgetc(dev->f);
+				run = (uint8_t)fgetc(dev->f);
 				real_run = (run & 0x7f);
 
 				/* I *HAVE* to read something because fseek tries to be smart and never hits EOF, causing an infinite loop. */
@@ -816,7 +816,7 @@ img_load(int drive, wchar_t *fn)
 					track_bytes--;
 					if (! track_bytes)
 						real_run -= fdf_suppress_final_byte;
-					rep_byte = fgetc(dev->f);
+					rep_byte = (uint8_t)fgetc(dev->f);
 					if (real_run)
 						memset(bpos, rep_byte, real_run);
 				} else {
@@ -870,18 +870,18 @@ img_load(int drive, wchar_t *fn)
 		fread(&bpb_total, 1, 2, dev->f);
 #endif
 		fseek(dev->f, 0x10, SEEK_SET);
-		bpb_sectors = fgetc(dev->f);
+		bpb_sectors = (uint8_t)fgetc(dev->f);
 		fseek(dev->f, 0x12, SEEK_SET);
-		bpb_sides = fgetc(dev->f);
+		bpb_sides = (uint8_t)fgetc(dev->f);
 		fseek(dev->f, 0x5B, SEEK_SET);
 		dev->tracks = fgetc(dev->f);
 
 		bpb_total = ((uint16_t)bpb_sectors) * ((uint16_t) bpb_sides) * dev->tracks;
 
 		fseek(dev->f, 0x74, SEEK_SET);
-		dev->interleave = fgetc(dev->f);
+		dev->interleave = (uint8_t)fgetc(dev->f);
 		fseek(dev->f, 0x76, SEEK_SET);
-		dev->skew = fgetc(dev->f);
+		dev->skew = (uint8_t)fgetc(dev->f);
 
 		dev->disk_data = (uint8_t *) malloc(((uint32_t) bpb_total) * ((uint32_t) bpb_bps));
 		memset(dev->disk_data, 0xf6, ((uint32_t) bpb_total) * ((uint32_t) bpb_bps));

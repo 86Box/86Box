@@ -463,8 +463,6 @@ ps1_setup(int model)
 	/* Enable the PS/1 VGA controller. */
 	if (model == 2011)
 		device_add(&ps1vga_device);
-	else
-		device_add(&ibm_ps1_2121_device);
 
 	device_add(&snd_device);
 

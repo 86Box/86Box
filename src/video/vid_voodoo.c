@@ -2172,7 +2172,7 @@ static inline void voodoo_tmu_fetch(voodoo_t *voodoo, voodoo_params_t *params, v
                                 fog_a = CLAMP(ia >> 12);                \
                                 break;                                  \
                                 case FOG_W:                             \
-                                fog_a = CLAMP((w >> 32) & 0xff);        \
+                                fog_a = CLAMP(w >> 32);                 \
                                 break;                                  \
                         }                                               \
                         fog_a++;                                        \

@@ -534,7 +534,7 @@ static void ide_hd_identify(ide_t *ide)
     char device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
 
     uint32_t d_hpc, d_spt, d_tracks;
-    uint64_t full_size = (hdd[ide->hdd_num].tracks * hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
+    uint64_t full_size = ((uint64_t)hdd[ide->hdd_num].tracks * (uint64_t)hdd[ide->hdd_num].hpc * (uint64_t)hdd[ide->hdd_num].spt);
 
     device_identify[6] = (ide->hdd_num / 10) + 0x30;
     device_identify[7] = (ide->hdd_num % 10) + 0x30;
@@ -1008,8 +1008,7 @@ ide_board_close(int board)
 	if (dev->sector_buffer)
 		free(dev->sector_buffer);
 
-	if (dev)
-		free(dev);
+	free(dev);
     }
 }
 

@@ -582,6 +582,12 @@ bm_init(const device_t *info)
 {
     mouse_t *dev;
 
+	int hz = device_get_config_int("hz");
+	if(!hz)
+	{
+		return NULL;
+	}
+
     dev = (mouse_t *)malloc(sizeof(mouse_t));
     memset(dev, 0x00, sizeof(mouse_t));
 
@@ -616,7 +622,7 @@ bm_init(const device_t *info)
     } else {
 	dev->control_val	= 0x0f;	/* the control port value */
 	dev->config_val		= 0x0e;	/* the config port value */
-	dev->period		= 1000000.0 / ((double) device_get_config_int("hz"));
+	dev->period		= 1000000.0 / ((double)hz);
 
 	io_sethandler(dev->base, 4,
 		      lt_read, NULL, NULL, lt_write, NULL, NULL, dev);

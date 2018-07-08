@@ -297,7 +297,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 
     x54x_log("BIOS Command = 0x%02X\n", cmd->command);
 
-    if ((cmd->id > max_id) || (cmd->lun > 7)) {
+    if (cmd->id > max_id) {
 	x54x_log("BIOS Target ID %i or LUN %i are above maximum\n",
 						cmd->id, cmd->lun);
 	return(0x80);
@@ -365,7 +365,8 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 	case 0x02:	/* Read Desired Sectors to Memory */
 		target_check(cmd->id);
 
-		dev->BufferLength = -1;
+		if(sector_len > 0) dev->BufferLength = sector_len * 512;
+		else dev->BufferLength = 512;
 
 		cdb[0] = GPCMD_READ_10;
 		cdb[1] = (cmd->lun & 7) << 5;
@@ -405,7 +406,8 @@ skip_read_phase1:
 	case 0x03:	/* Write Desired Sectors from Memory */
 		target_check(cmd->id);
 
-		dev->BufferLength = -1;
+		if(sector_len > 0) dev->BufferLength = sector_len * 512;
+		else dev->BufferLength = 512;
 
 		cdb[0] = GPCMD_WRITE_10;
 		cdb[1] = (cmd->lun & 7) << 5;
@@ -490,10 +492,7 @@ skip_write_phase1:
 		DMAPageWrite(dma_address,
 			     dev->CmdBuffer, 4 /* dev->BufferLength */);
 
-		if (dev->CmdBuffer != NULL) {
-			free(dev->CmdBuffer);
-			dev->CmdBuffer = NULL;
-		}
+		free(dev->CmdBuffer);
 
 		return(ret);
 
@@ -556,10 +555,7 @@ skip_write_phase1:
 		DMAPageWrite(dma_address,
 			     dev->CmdBuffer, 4 /* dev->BufferLength */);
 
-		if (dev->CmdBuffer != NULL) {
-			free(dev->CmdBuffer);
-			dev->CmdBuffer = NULL;
-		}
+		free(dev->CmdBuffer);
 
 		return(ret);
 
@@ -568,7 +564,7 @@ skip_write_phase1:
 		return(1);
     }
 	
-    x54x_log("BIOS Request complete\n");
+    //x54x_log("BIOS Request complete\n");
 }
 
 
@@ -1111,15 +1107,6 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 		scsi_device_reset(id);
 		x54x_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
 			       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
-		x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
-		x54x_notify(dev);
-		return;
-	}
-
-	if (req->CmdBlock.common.ControlByte > 0x03) {
-		x54x_log("Invalid control byte: %02X\n",
-			req->CmdBlock.common.ControlByte);
-		x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock, CCB_INVALID_DIRECTION, SCSI_STATUS_OK, MBI_ERROR);
 		x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
 		x54x_notify(dev);
 		return;

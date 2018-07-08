@@ -260,7 +260,7 @@ static void *
 oti_init(const device_t *info)
 {
     oti_t *oti = malloc(sizeof(oti_t));
-    wchar_t *romfn = NULL;
+    wchar_t *romfn = BIOS_77_PATH;
 
     memset(oti, 0x00, sizeof(oti_t));
     oti->chip_id = info->local;
@@ -270,10 +270,10 @@ oti_init(const device_t *info)
 		romfn = BIOS_37C_PATH;
 		break;		
 		
-	case 2:
+	/*case 2:
 	case 5:
 		romfn = BIOS_77_PATH;
-		break;
+		break;*/
     }
 
     rom_init(&oti->bios_rom, romfn,

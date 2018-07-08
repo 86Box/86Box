@@ -346,14 +346,13 @@ fdi_load(int drive, wchar_t *fn)
 
     /* Allocate a drive block. */
     dev = (fdi_t *)malloc(sizeof(fdi_t));
+    if (dev == NULL) {
+	    memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+	    return;
+    }
     memset(dev, 0x00, sizeof(fdi_t));
 
     dev->f = plat_fopen(fn, L"rb");
-    if (dev == NULL) {
-	free(dev);
-	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
-	return;
-    }
 
     d86f_unregister(drive);
 

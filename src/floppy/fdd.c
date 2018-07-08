@@ -667,6 +667,7 @@ void fdd_set_rate(int drive, int drvden, int rate)
 		                fdd_period = 4;
 		                break;
 		}
+                break;
                 case 2: /*Double density*/
                 fdd_period = 32;
                 break;

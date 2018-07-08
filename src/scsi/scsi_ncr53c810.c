@@ -870,16 +870,16 @@ ncr53c810_do_msgout(ncr53c810_t *dev, uint8_t id)
 			}
 			break;
 		case 0x20: /* SIMPLE queue */
-			id |= ncr53c810_get_msgbyte(dev) | NCR_TAG_VALID;
+			current_tag = ncr53c810_get_msgbyte(dev) | NCR_TAG_VALID;
 			ncr53c810_log("SIMPLE queue tag=0x%x\n", id & 0xff);
 			break;
 		case 0x21: /* HEAD of queue */
 			ncr53c810_log("HEAD queue not implemented\n");
-			id |= ncr53c810_get_msgbyte(dev) | NCR_TAG_VALID;
+			current_tag = ncr53c810_get_msgbyte(dev) | NCR_TAG_VALID;
 			break;
 		case 0x22: /* ORDERED queue */
 			ncr53c810_log("ORDERED queue not implemented\n");
-			id |= ncr53c810_get_msgbyte(dev) | NCR_TAG_VALID;
+			current_tag = ncr53c810_get_msgbyte(dev) | NCR_TAG_VALID;
 			break;
 		case 0x0d:
 			/* The ABORT TAG message clears the current I/O process only. */

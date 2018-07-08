@@ -65,7 +65,7 @@ dynld_module(const char *name, dllimp_t *table)
 	if (func == NULL) {
 		dynld_log("DynLd(\"%s\"): function '%s' not found!\n",
 						name, imp->name);
-		CloseHandle(h);
+		FreeLibrary(h);
 		return(NULL);
 	}
 

@@ -539,7 +539,7 @@ gd54xx_in(uint16_t addr, void *p)
 
     uint8_t temp;
 
-    if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3d0) && !(svga->miscout & 1)) 
+    if (((addr & 0xfff0) == 0x3b0 || (addr & 0xfff0) == 0x3d0) && !(svga->miscout & 1)) 
 	addr ^= 0x60;
 
     switch (addr) {
@@ -1254,8 +1254,8 @@ gd54xx_readl_linear(uint32_t addr, void *p)
 			case 2:
 				temp2 = (temp >> 8) & 0xff;
 				temp2 |= (temp & 0xff) << 8;
-				temp2 = ((temp >> 24) & 0xff) << 16;
-				temp2 = ((temp >> 16) & 0xff) << 24;
+				temp2 |= ((temp >> 24) & 0xff) << 16;
+				temp2 |= ((temp >> 16) & 0xff) << 24;
 
 				return temp2;
 			case 3:
@@ -1887,7 +1887,7 @@ gd54xx_start_blit(uint32_t cpu_dat, int count, gd54xx_t *gd54xx, svga_t *svga)
 
 			switch (gd54xx->blt.mode & CIRRUS_BLTMODE_PIXELWIDTHMASK) {
 					case CIRRUS_BLTMODE_PIXELWIDTH8:
-					src = mask ? gd54xx->blt.fg_col : gd54xx->blt.bg_col;
+					//src = mask ? gd54xx->blt.fg_col : gd54xx->blt.bg_col;
 					shift = 0;
 					break;
 					case CIRRUS_BLTMODE_PIXELWIDTH16:

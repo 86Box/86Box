@@ -738,27 +738,27 @@ loadfont(wchar_t *s, int format)
 	case 0:		/* MDA */
 		for (c=0; c<256; c++)
 			for (d=0; d<8; d++)
-				fontdatm[c][d] = fgetc(f);
+				fontdatm[c][d] = (uint8_t)fgetc(f);
 		for (c=0; c<256; c++)
 			for (d=0; d<8; d++)
-				fontdatm[c][d+8] = fgetc(f);
+				fontdatm[c][d+8] = (uint8_t)fgetc(f);
 		(void)fseek(f, 4096+2048, SEEK_SET);
 		for (c=0; c<256; c++)
 			for (d=0; d<8; d++)
-				fontdat[c][d] = fgetc(f);
+				fontdat[c][d] = (uint8_t)fgetc(f);
 		break;
 
 	case 1:		/* PC200 */
 		for (c=0; c<256; c++)
 			for (d=0; d<8; d++)
-				fontdatm[c][d] = fgetc(f);
+				fontdatm[c][d] = (uint8_t)fgetc(f);
 		for (c=0; c<256; c++)
 		       	for (d=0; d<8; d++)
-				fontdatm[c][d+8] = fgetc(f);
+				fontdatm[c][d+8] = (uint8_t)fgetc(f);
 		(void)fseek(f, 4096, SEEK_SET);
 		for (c=0; c<256; c++) {
 			for (d=0; d<8; d++)
-				fontdat[c][d] = fgetc(f);
+				fontdat[c][d] = (uint8_t)fgetc(f);
 			for (d=0; d<8; d++) (void)fgetc(f);		
 		}
 		break;
@@ -767,19 +767,19 @@ loadfont(wchar_t *s, int format)
 	case 2:		/* CGA */
 		for (c=0; c<256; c++)
 		       	for (d=0; d<8; d++)
-				fontdat[c][d] = fgetc(f);
+				fontdat[c][d] = (uint8_t)fgetc(f);
 		break;
 
 	case 3:		/* Wyse 700 */
 		for (c=0; c<512; c++)
 			for (d=0; d<32; d++)
-				fontdatw[c][d] = fgetc(f);
+				fontdatw[c][d] = (uint8_t)fgetc(f);
 		break;
 
 	case 4:		/* MDSI Genius */
 		for (c=0; c<256; c++)
 			for (d=0; d<16; d++)
-				fontdat8x12[c][d] = fgetc(f);
+				fontdat8x12[c][d] = (uint8_t)fgetc(f);
 		break;
 
 	case 5: /* Toshiba 3100e */
@@ -823,7 +823,7 @@ loadfont(wchar_t *s, int format)
 		for (c = 0; c < 16384; c++)
 		{
 			for (d = 0; d < 32; d++)
-				fontdatksc5601[c].chr[d]=getc(f);
+				fontdatksc5601[c].chr[d]=(uint8_t)fgetc(f);
 		}
 		break;
     }

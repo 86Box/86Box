@@ -1099,7 +1099,7 @@ d86f_get_bit(int drive, int side)
 	if (! surface_bit) {
 		if (! current_bit) {
 			/* Bit is 0 and is not set to fuzzy, we add it as read. */
-			dev->last_word[side] |= 1;
+			//dev->last_word[side] |= 0;
 		} else {
 			/* Bit is 1 and is not set to fuzzy, we add it as read. */
 			dev->last_word[side] |= 1;
@@ -1159,15 +1159,15 @@ d86f_put_bit(int drive, int side, int bit)
     if (d86f_has_surface_desc(drive)) {
 	surface_bit = (surface_data >> track_bit) & 1;
 	if (! surface_bit) {
-		if (! current_bit) {
+		//if (! current_bit) {
 			/* Bit is 0 and is not set to fuzzy, we overwrite it as is. */
 			dev->last_word[side] |= bit;
 			current_bit = bit;
-		} else {
+		//} else {
 			/* Bit is 1 and is not set to fuzzy, we overwrite it as is. */
-			dev->last_word[side] |= bit;
-			current_bit = bit;
-		}
+		//	dev->last_word[side] |= bit;
+		//	current_bit = bit;
+		//}
 	} else {
 		if (current_bit) {
 			/* Bit is 1 and is set to fuzzy, we overwrite it with a non-fuzzy bit. */

@@ -83,7 +83,7 @@ static int opPUNPCKLBW_a16(uint32_t fetchdat)
         cpu_state.MM[cpu_reg].b[3] = src.b[1];
         cpu_state.MM[cpu_reg].b[2] = cpu_state.MM[cpu_reg].b[1];
         cpu_state.MM[cpu_reg].b[1] = src.b[0];
-        cpu_state.MM[cpu_reg].b[0] = cpu_state.MM[cpu_reg].b[0];
+        //cpu_state.MM[cpu_reg].b[0] = cpu_state.MM[cpu_reg].b[0];
 
         return 0;
 }
@@ -102,7 +102,7 @@ static int opPUNPCKLBW_a32(uint32_t fetchdat)
         cpu_state.MM[cpu_reg].b[3] = src.b[1];
         cpu_state.MM[cpu_reg].b[2] = cpu_state.MM[cpu_reg].b[1];
         cpu_state.MM[cpu_reg].b[1] = src.b[0];
-        cpu_state.MM[cpu_reg].b[0] = cpu_state.MM[cpu_reg].b[0];
+        //cpu_state.MM[cpu_reg].b[0] = cpu_state.MM[cpu_reg].b[0];
 
         return 0;
 }
@@ -157,7 +157,7 @@ static int opPUNPCKLWD_a16(uint32_t fetchdat)
         cpu_state.MM[cpu_reg].w[3] = src.w[1];
         cpu_state.MM[cpu_reg].w[2] = cpu_state.MM[cpu_reg].w[1];
         cpu_state.MM[cpu_reg].w[1] = src.w[0];
-        cpu_state.MM[cpu_reg].w[0] = cpu_state.MM[cpu_reg].w[0];
+        //cpu_state.MM[cpu_reg].w[0] = cpu_state.MM[cpu_reg].w[0];
 
         return 0;
 }
@@ -172,7 +172,7 @@ static int opPUNPCKLWD_a32(uint32_t fetchdat)
         cpu_state.MM[cpu_reg].w[3] = src.w[1];
         cpu_state.MM[cpu_reg].w[2] = cpu_state.MM[cpu_reg].w[1];
         cpu_state.MM[cpu_reg].w[1] = src.w[0];
-        cpu_state.MM[cpu_reg].w[0] = cpu_state.MM[cpu_reg].w[0];
+        //cpu_state.MM[cpu_reg].w[0] = cpu_state.MM[cpu_reg].w[0];
 
         return 0;
 }

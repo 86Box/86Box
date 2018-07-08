@@ -66,13 +66,18 @@ rom_log(const char *format, ...)
 FILE *
 rom_fopen(wchar_t *fn, wchar_t *mode)
 {
-    wchar_t temp[1024];
+    wchar_t temp = (wchar_t*)malloc(wcslen(fn));
+	FILE* fp = NULL;
 
     wcscpy(temp, exe_path);
     plat_put_backslash(temp);
     wcscat(temp, fn);
 
-    return(plat_fopen(temp, mode));
+	fp = plat_fopen(temp, mode);
+
+	free(temp);
+
+    return fp;
 }
 
 
@@ -247,8 +252,8 @@ rom_load_interleaved(wchar_t *fnl, wchar_t *fnh, uint32_t addr, int sz, int off,
     (void)fseek(fl, off, SEEK_SET);
     (void)fseek(fh, off, SEEK_SET);
     for (c=0; c<sz; c+=2) {
-	ptr[addr+c] = fgetc(fl);
-	ptr[addr+c+1] = fgetc(fh);
+	ptr[addr+c] = (uint8_t)fgetc(fl);
+	ptr[addr+c+1] = (uint8_t)fgetc(fh);
     }
     (void)fclose(fh);
     (void)fclose(fl);

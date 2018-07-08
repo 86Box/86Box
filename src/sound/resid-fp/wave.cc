@@ -26,6 +26,7 @@
 WaveformGeneratorFP::WaveformGeneratorFP()
 {
   sync_source = this;
+  sync_dest = this;
 
   set_chip_model(MOS6581FP);
 
