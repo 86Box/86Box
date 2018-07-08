@@ -8,7 +8,7 @@
  *
  *		Handle the About dialog.
  *
- * Version:	@(#)win_about.c	1.0.6	2018/03/28
+ * Version:	@(#)win_about.c	1.0.7	2018/06/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -45,7 +45,7 @@ AboutDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_INITDIALOG:
 		plat_pause(1);
 		h = GetDlgItem(hdlg, IDC_ABOUT_ICON);
-		ih = LoadImage(hinstance,(PCTSTR)100,IMAGE_ICON,64,64,0);
+		ih = LoadImage(hinstance,(PCTSTR)10,IMAGE_ICON,64,64,0);
 		SendMessage(h, STM_SETIMAGE, (WPARAM)IMAGE_ICON,
 		  (LPARAM)ih);
 		break;

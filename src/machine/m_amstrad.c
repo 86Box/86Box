@@ -246,12 +246,13 @@ vid_in_1512(uint16_t addr, void *priv)
     switch (addr) {
 	case 0x03d4:
 		ret = vid->crtcreg;
-
+		break;
 	case 0x03d5:
 		ret = vid->crtc[vid->crtcreg];
-
+		break;
 	case 0x03da:
 		ret = vid->stat;
+		break;
     }
 
     return(ret);
@@ -1117,7 +1118,8 @@ kbd_poll(void *priv)
 
     keyboard_delay += (1000 * TIMER_USEC);
 
-    if (ams->wantirq) {
+    if (ams->wantirq)
+ {
 	ams->wantirq = 0;
 	ams->pa = ams->key_waiting;
 	picint(2);

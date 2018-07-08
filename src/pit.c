@@ -2,6 +2,7 @@
   Write B0
   Write aa55
   Expects aa55 back*/
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -379,7 +380,7 @@ void pit_write(uint16_t addr, uint8_t val, void *p)
                 }
                 t = val >> 6;
                 pit->ctrl=val;
-                if ((val>>7)==3)
+                if (t==3)
                 {
                         return;
                 }

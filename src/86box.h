@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.22	2018/03/28
+ * Version:	@(#)86box.h	1.0.23	2018/05/25
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -90,8 +90,7 @@ extern int	vid_cga_contrast,		/* (C) video */
 		video_fullscreen_scale,		/* (C) video */
 		enable_overscan,		/* (C) video */
 		force_43,			/* (C) video */
-		gfxcard,			/* (C) graphics/video card */
-		video_speed;			/* (C) video */
+		gfxcard;			/* (C) graphics/video card */
 extern int	serial_enabled[],		/* (C) enable serial ports */
 		lpt_enabled,			/* (C) enable LPT ports */
 		bugger_enabled;			/* (C) enable ISAbugger */
@@ -108,7 +107,7 @@ extern int	cpu_manufacturer,		/* (C) cpu manufacturer */
 extern int	enable_sync;			/* (C) enable time sync */
 extern int	network_type;			/* (C) net provider type */
 extern int	network_card;			/* (C) net interface num */
-extern char	network_host[512];		/* (C) host network intf */
+extern char	network_host[520];		/* (C) host network intf */
 
 
 #ifdef ENABLE_LOG_TOGGLES
@@ -127,6 +126,7 @@ extern wchar_t  cfg_path[1024];			/* full path of config file */
 extern FILE	*stdlog;			/* file to log output to */
 extern int	scrnsz_x,			/* current screen size, X */
 		scrnsz_y;			/* current screen size, Y */
+extern int	efscrnsz_y;
 extern int	config_changed;			/* config has changed */
 
 

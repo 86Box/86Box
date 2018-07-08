@@ -42,7 +42,7 @@ sio_write(int func, int addr, uint8_t val, void *priv)
     if (func > 0)
 	return;
 
-    if (addr >= 0x0f && addr < 0x4c)
+    if (addr >= 0x0f && addr < 0x40)
 	return;
 
     switch (addr) {
@@ -84,6 +84,7 @@ sio_write(int func, int addr, uint8_t val, void *priv)
 			port_92_add();
 		else
 			port_92_remove();
+		break;
 
 	case 0x60:
 		if (val & 0x80)

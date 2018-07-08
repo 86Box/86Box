@@ -27,10 +27,10 @@ typedef struct adgold_t
 
         uint8_t adgold_status;
         int adgold_38x_state, adgold_38x_addr;
-        uint8_t adgold_38x_regs[0x19];
+        uint8_t adgold_38x_regs[0x1a];
 
         int adgold_mma_addr;
-        uint8_t adgold_mma_regs[2][0xe];
+        uint8_t adgold_mma_regs[2][0xf];
 
         int adgold_mma_enable[2];
         uint8_t adgold_mma_fifo[2][256];
@@ -209,7 +209,7 @@ void adgold_write(uint16_t addr, uint8_t val, void *p)
                 case 3:
                 if (adgold->adgold_38x_state)
                 {
-                        if (adgold->adgold_38x_addr >= 0x19) break;
+                        if (adgold->adgold_38x_addr > 0x19) break;
                         switch (adgold->adgold_38x_addr)
                         {
                                 case 0x00: /*Control/ID*/
@@ -270,7 +270,7 @@ void adgold_write(uint16_t addr, uint8_t val, void *p)
                 adgold->adgold_mma_addr = val;
                 break;
                 case 5:
-                if (adgold->adgold_mma_addr >= 0xf) break;
+                if (adgold->adgold_mma_addr > 0xf) break;
                 switch (adgold->adgold_mma_addr)
                 {
                         case 0x2:
@@ -465,8 +465,8 @@ uint8_t adgold_read(uint16_t addr, void *p)
                 case 3:
                 if (adgold->adgold_38x_state)
                 {
-                        if (adgold->adgold_38x_addr >= 0x19) temp = 0xff;
-                        switch (adgold->adgold_38x_addr)
+                        if (adgold->adgold_38x_addr > 0x19) temp = 0xff;
+                        else switch (adgold->adgold_38x_addr)
                         {
                                 case 0x00: /*Control/ID*/
                                 if (adgold->surround_enabled)
@@ -490,7 +490,7 @@ uint8_t adgold_read(uint16_t addr, void *p)
                 break;
                 case 5:
                 if (adgold->adgold_mma_addr >= 0xf) temp = 0xff;
-                switch (adgold->adgold_mma_addr)
+                else switch (adgold->adgold_mma_addr)
                 {
                         case 6: /*Timer 2 low*/
                         adgold->adgold_mma.timer2_read = adgold->adgold_mma.timer2_count;
@@ -507,7 +507,7 @@ uint8_t adgold_read(uint16_t addr, void *p)
                 break;
                 case 7:
                 if (adgold->adgold_mma_addr >= 0xf) temp = 0xff;
-                temp = adgold->adgold_mma_regs[1][adgold->adgold_mma_addr];
+                else temp = adgold->adgold_mma_regs[1][adgold->adgold_mma_addr];
                 break;
         }
         return temp;

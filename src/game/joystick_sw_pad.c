@@ -239,12 +239,12 @@ static void sw_write(void *p)
                                 if (sw->poll_mode)
                                 {
                                         sw->poll_left += 5;
-                                        sw->poll_data |= (data << (c*15 + 3));
+                                        sw->poll_data |= ((uint64_t)data << (c*15 + 3));
                                 }
                                 else
                                 {
                                         sw->poll_left += 15;
-                                        sw->poll_data |= (data << (c*15 + 1));
+                                        sw->poll_data |= ((uint64_t)data << (c*15 + 1));
                                 }
                         }
                 }

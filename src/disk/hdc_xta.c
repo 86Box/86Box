@@ -369,7 +369,7 @@ do_seek(hdc_t *dev, drive_t *drive, int cyl)
       else
 	drive->cur_cyl = dev->track;
 
-    if (drive->cur_cyl < 0)
+    if ((int16_t)drive->cur_cyl < 0)
 	drive->cur_cyl = 0;
 }
 
@@ -611,12 +611,6 @@ do_send:
 		}
 		break;
 
-#if 0
-	case CMD_WRITE_VERIFY:
-		no_data = 1;
-		/*FALLTHROUGH*/
-#endif
-
 	case CMD_WRITE_SECTORS:
 		if (! drive->present) {
 			dev->comp |= COMP_ERR;
@@ -649,19 +643,14 @@ do_recv:
 				/* Ready to transfer the data in. */
 				dev->state = STATE_RDATA;
 				dev->buf_idx = 0;
-				if (no_data) {
-					/* Delay a bit, no actual transfer. */
+				if (dev->intr & DMA_ENA) {
+					/* DMA enabled. */
+					dev->buf_ptr = dev->sector_buf;
 					dev->callback = HDC_TIME;
 				} else {
-					if (dev->intr & DMA_ENA) {
-						/* DMA enabled. */
-						dev->buf_ptr = dev->sector_buf;
-						dev->callback = HDC_TIME;
-					} else {
-						/* No DMA, do PIO. */
-						dev->buf_ptr = dev->data;
-						dev->status |= STAT_REQ;
-					}
+					/* No DMA, do PIO. */
+					dev->buf_ptr = dev->data;
+					dev->status |= STAT_REQ;
 				}
 				break;
 

@@ -462,7 +462,7 @@ process_value:
 				if ((w83877f_regs[0x28] & 0xf0) == 0)  w83877f_regs[0x28] |= 0x40;
 				if (!(w83877f_regs[4] & 0x20))
 				{
-					serial_setup(1, make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 8);
+					serial_setup(1, make_port(0x24), (w83877f_regs[0x28] & 0xF0) >> 4);
 				}
 			}
 			break;

@@ -8,7 +8,7 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.11	2018/04/01
+ * Version:	@(#)vid_svga.h	1.0.12	2018/05/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -170,36 +170,3 @@ enum {
     RAMDAC_6BIT = 0,
     RAMDAC_8BIT
 };
-
-extern uint32_t shade[5][256];
-
-
-static __inline__ uint32_t
-svga_color_transform(uint32_t color)
-{
-    uint8_t *clr8 = (uint8_t *) &color;
-    if (!video_grayscale && !invert_display)
-	return color;
-    if (video_grayscale) {
-	if (video_graytype) {
-		if (video_graytype == 1)
-			color = ((54 * (uint32_t)clr8[2]) + (183 * (uint32_t)clr8[1]) + (18 * (uint32_t)clr8[0])) / 255;
-		else
-			color = ((uint32_t)clr8[2] + (uint32_t)clr8[1] + (uint32_t)clr8[0]) / 3;
-	} else
-		color = ((76 * (uint32_t)clr8[2]) + (150 * (uint32_t)clr8[1]) + (29 * (uint32_t)clr8[0])) / 255;
-	switch (video_grayscale) {
-		case 2: case 3: case 4:
-			color = shade[video_grayscale][color];
-			break;
-		default:
-			clr8[3] = 0;
-			clr8[0] = color;
-			clr8[1] = clr8[2] = clr8[0];
-			break;
-	}
-    }
-    if (invert_display)
-	color ^= 0x00ffffff;
-    return color;
-}

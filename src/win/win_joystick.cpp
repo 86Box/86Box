@@ -85,7 +85,7 @@ BOOL CALLBACK DIEnumDeviceObjectsCallback(
             lpddoi->guidType == GUID_RxAxis || lpddoi->guidType == GUID_RyAxis || lpddoi->guidType == GUID_RzAxis ||
             lpddoi->guidType == GUID_Slider)
         {
-                strncpy(state->axis[state->nr_axes].name, lpddoi->tszName, sizeof(state->axis[state->nr_axes].name));
+                strncpy(state->axis[state->nr_axes].name, lpddoi->tszName, sizeof(state->axis[state->nr_axes].name) - 1);
                 joystick_log("Axis %i : %s  %x %x\n", state->nr_axes, state->axis[state->nr_axes].name, lpddoi->dwOfs, lpddoi->dwType);
                 if (lpddoi->guidType == GUID_XAxis)
                         state->axis[state->nr_axes].id = 0;
@@ -103,13 +103,13 @@ BOOL CALLBACK DIEnumDeviceObjectsCallback(
         }
         else if (lpddoi->guidType == GUID_Button)
         {
-                strncpy(state->button[state->nr_buttons].name, lpddoi->tszName, sizeof(state->button[state->nr_buttons].name));
+                strncpy(state->button[state->nr_buttons].name, lpddoi->tszName, sizeof(state->button[state->nr_buttons].name) - 1);
                 joystick_log("Button %i : %s  %x %x\n", state->nr_buttons, state->button[state->nr_buttons].name, lpddoi->dwOfs, lpddoi->dwType);
                 state->nr_buttons++;
         }
         else if (lpddoi->guidType == GUID_POV)
         {
-                strncpy(state->pov[state->nr_povs].name, lpddoi->tszName, sizeof(state->pov[state->nr_povs].name));
+                strncpy(state->pov[state->nr_povs].name, lpddoi->tszName, sizeof(state->pov[state->nr_povs].name) - 1);
                 joystick_log("POV %i : %s  %x %x\n", state->nr_povs, state->pov[state->nr_povs].name, lpddoi->dwOfs, lpddoi->dwType);
                 state->nr_povs++;
         }        

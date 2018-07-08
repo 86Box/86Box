@@ -273,7 +273,7 @@ sosendoob(so)
 		 * send it all
 		 */
 		len = (sb->sb_data + sb->sb_datalen) - sb->sb_rptr;
-		if (len > so->so_urgc) len = so->so_urgc;
+		if (len >= so->so_urgc) len = so->so_urgc;
 		memcpy(buff, sb->sb_rptr, len);
 		so->so_urgc -= len;
 		if (so->so_urgc) {

@@ -450,7 +450,7 @@ void pci_clear_mirq(uint8_t mirq)
 	uint8_t irq_line = 0;
 	uint8_t level = 0;
 
-	mirq = 0;
+	//mirq = 0;
 
 	if (mirq > 1)
 	{

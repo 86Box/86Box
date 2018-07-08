@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.h	1.0.12	2018/04/30
+ * Version:	@(#)cdrom.h	1.0.13	2018/06/18
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -82,8 +82,7 @@ typedef struct {
 	    bus_mode;		/* Bit 0 = PIO suported;
 				   Bit 1 = DMA supportd. */
 
-    unsigned int scsi_device_id, scsi_device_lun,
-		 sound_on;
+    unsigned int scsi_device_id, sound_on;
 } cdrom_drive_t;
 
 typedef struct {
@@ -139,7 +138,7 @@ extern cdrom_t		*cdrom[CDROM_NUM];
 extern cdrom_drive_t	cdrom_drives[CDROM_NUM];
 extern cdrom_image_t	cdrom_image[CDROM_NUM];
 extern uint8_t		atapi_cdrom_drives[8];
-extern uint8_t		scsi_cdrom_drives[16][8];
+extern uint8_t		scsi_cdrom_drives[16];
 
 #define cdrom_sense_error dev->sense[0]
 #define cdrom_sense_key dev->sense[2]
@@ -178,7 +177,7 @@ extern void	cdrom_request_sense_for_scsi(cdrom_t *dev, uint8_t *buffer, uint8_t 
 extern void	cdrom_update_cdb(uint8_t *cdb, int lba_pos, int number_of_blocks);
 extern void	cdrom_insert(cdrom_t *dev);
 
-extern int	find_cdrom_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun);
+extern int	find_cdrom_for_scsi_id(uint8_t scsi_id);
 extern int	cdrom_read_capacity(cdrom_t *dev, uint8_t *cdb, uint8_t *buffer, uint32_t *len);
 
 extern void	cdrom_global_init(void);

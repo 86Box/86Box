@@ -688,7 +688,7 @@ lprint(va_alist) va_dcl
 		
 		while (len--) {
 			if (*bptr1 == '\r')
-			   memcpy(bptr1, bptr1+1, len+1);
+			   memmove(bptr1, bptr1+1, len+1);
 			else
 			   bptr1++;
 		}

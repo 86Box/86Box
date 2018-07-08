@@ -10,7 +10,7 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)intel_piix.c	1.0.16	2018/05/11
+ * Version:	@(#)intel_piix.c	1.0.17	2018/06/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -255,8 +255,8 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 				pci_set_mirq_routing(PCI_MIRQ0, PCI_IRQ_DISABLED);
 			else
 				pci_set_mirq_routing(PCI_MIRQ0, val & 0xf);
-			break;
 			piix_log("MIRQ0 is %s\n", (val & 0x20) ? "disabled" : "enabled");
+			break;
 		case 0x71:
 			if (dev->type == 1) {
 				piix_log("Set MIRQ routing: MIRQ1 -> %02X\n", val);
@@ -829,7 +829,7 @@ piix_reset(void *p)
     }
     for (i = 0; i < ZIP_NUM; i++) {
 	if (zip_drives[i].bus_type == ZIP_BUS_ATAPI)
-		zip_reset(i);
+		zip_reset(zip[i]);
     }
 }
 

@@ -8,7 +8,7 @@
  *
  *		Handle the platform-side of CDROM drives.
  *
- * Version:	@(#)win_cdrom.c	1.0.7	2018/03/26
+ * Version:	@(#)win_cdrom.c	1.0.8	2018/06/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -29,9 +29,9 @@
 #include <wchar.h>
 #include "../config.h"
 #include "../disk/hdd.h"
-#include "../disk/zip.h"
 #include "../scsi/scsi.h"
 #include "../cdrom/cdrom.h"
+#include "../disk/zip.h"
 #include "../cdrom/cdrom_image.h"
 #include "../cdrom/cdrom_null.h"
 #include "../scsi/scsi_disk.h"
@@ -121,10 +121,10 @@ cdrom_reload(uint8_t id)
 void
 zip_eject(uint8_t id)
 {
-    zip_close(id);
+    zip_disk_close(zip[id]);
     if (zip_drives[id].bus_type) {
 	/* Signal disk change to the emulated machine. */
-	zip_insert(id);
+	zip_insert(zip[id]);
     }
 
     ui_sb_update_icon_state(SB_ZIP | id, 1);
@@ -138,7 +138,7 @@ zip_eject(uint8_t id)
 void
 zip_reload(uint8_t id)
 {
-    zip_disk_reload(id);
+    zip_disk_reload(zip[id]);
     if (wcslen(zip_drives[id].image_path) == 0) {
 	ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
 	ui_sb_update_icon_state(SB_ZIP|id, 1);

@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.8	2018/05/09
+ * Version:	@(#)fdc.c	1.0.9	2018/06/12
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -677,7 +677,7 @@ fdc_sis(fdc_t *fdc)
 
     if (fdc->reset_stat) {
 	drive_num = real_drive(fdc, 4 - fdc->reset_stat);
-	if ((!fdd_get_flags(drive_num)) || (drive_num >= FDD_NUM)) {
+	if ((!fdd_get_flags(drive_num)) && !(drive_num >= FDD_NUM)) {
 		fdd_stop(drive_num);
 		fdd_set_head(drive_num, 0);
 		fdc->res[9] = 0xc0 | (4 - fdc->reset_stat) | (fdd_get_head(drive_num) ? 4 : 0);
@@ -1065,9 +1065,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						fdc->time = 0LL;
 						drive_num = real_drive(fdc, fdc->drive);
 						/* Three conditions under which the command should fail. */
-						if (!fdd_get_flags(drive_num) || (drive_num >= FDD_NUM) || !motoron[drive_num] || fdd_track0(drive_num)) {
+						if ((!fdd_get_flags(drive_num) || !motoron[drive_num] || fdd_track0(drive_num)) && !(drive_num >= FDD_NUM)) {
 							fdc_log("Failed recalibrate\n");
-							if (!fdd_get_flags(drive_num) || (drive_num >= FDD_NUM) || !motoron[drive_num])
+							if (!fdd_get_flags(drive_num)|| !motoron[drive_num])
 								fdc->st0 = 0x70 | (fdc->params[0] & 3);
 							else
 								fdc->st0 = 0x20 | (fdc->params[0] & 3);
@@ -1248,7 +1248,10 @@ fdc_read(uint16_t addr, void *priv)
 				return 0xff;
 			drive = real_drive(fdc, fdc->dor & 3);
 			if (!fdc->enable_3f1)
+			{
 				ret = 0xff;
+				break;
+			}
 
 			ret = 0x70;
 			if (drive)
@@ -1710,10 +1713,8 @@ fdc_error(fdc_t *fdc, int st5, int st6)
 	fdc->fintr = 0;
     fdc->stat = 0xD0;
     fdc->st0 = fdc->res[4] = 0x40 | (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->rw_drive;
-    if (fdc->head && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
-	pclog("Head 1 on 1-sided drive\n");
+    if (fdc->head && !fdd_is_double_sided(real_drive(fdc, fdc->drive)))
 	fdc->st0 |= 0x08;
-    }
     fdc->res[5] = st5;
     fdc->res[6] = st6;
     fdc_log("FDC Error: %02X %02X %02X\n", fdc->res[4], fdc->res[5], fdc->res[6]);

@@ -101,7 +101,7 @@ typedef struct {
     int16_t	prnt[T + N_CHAR];
 
     /* pointing children nodes (son[], son[] + 1)*/
-    int16_t	son[T];
+    int16_t	son[T + 1];
 
     uint16_t	getbuf;
     uint8_t	getlen;

@@ -8,7 +8,7 @@
  *
  *		Implement the VNC remote renderer with LibVNCServer.
  *
- * Version:	@(#)vnc.c	1.0.11	2018/04/29
+ * Version:	@(#)vnc.c	1.0.12	2018/05/26
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>
@@ -169,14 +169,18 @@ vnc_display(rfbClientPtr cl)
 static void
 vnc_blit(int x, int y, int y1, int y2, int w, int h)
 {
-    uint32_t *p;
+    uint32_t *p, *q;
     int yy;
 
     for (yy=y1; yy<y2; yy++) {
 	p = (uint32_t *)&(((uint32_t *)rfb->frameBuffer)[yy*VNC_MAX_X]);
 
-	if ((y+yy) >= 0 && (y+yy) < VNC_MAX_Y)
-		memcpy(p, &(((uint32_t *)buffer32->line[y+yy])[x]), w*4);
+	if ((y+yy) >= 0 && (y+yy) < VNC_MAX_Y) {
+		if (video_grayscale || invert_display)
+			video_transform_copy(p, &(((uint32_t *)buffer32->line[y+yy])[x]), w);
+		else
+			memcpy(p, &(((uint32_t *)buffer32->line[y+yy])[x]), w*4);
+	}
     }
  
     video_blit_complete();

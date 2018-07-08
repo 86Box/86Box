@@ -8,7 +8,7 @@
  *
  *		Implement a generic NVRAM/CMOS/RTC device.
  *
- * Version:	@(#)nvr.c	1.0.9	2018/04/29
+ * Version:	@(#)nvr.c	1.0.10	2018/06/08
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -117,7 +117,7 @@ nvr_get_days(int month, int year)
 
 
 /* One more second has passed, update the internal clock. */
-static void
+void
 rtc_tick(void)
 {
     /* Ping the internal clock. */
@@ -150,7 +150,8 @@ onesec_timer(void *priv)
 
     if (++nvr->onesec_cnt >= 100) {
 	/* Update the internal clock. */
-	rtc_tick();
+	if (!(machines[machine].flags & MACHINE_AT))
+		rtc_tick();
 
 	/* Update the RTC device if needed. */
 	if (nvr->tick != NULL)
@@ -251,7 +252,8 @@ nvr_load(void)
     if (saved_nvr == NULL) return(0);
 
     /* Clear out any old data. */
-    memset(saved_nvr->regs, 0x00, sizeof(saved_nvr->regs));
+    // memset(saved_nvr->regs, 0x00, sizeof(saved_nvr->regs));
+    memset(saved_nvr->regs, 0xff, sizeof(saved_nvr->regs));
 
     /* Set the defaults. */
     if (saved_nvr->reset != NULL)

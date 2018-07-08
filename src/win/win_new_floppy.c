@@ -8,7 +8,7 @@
  *
  *		Handle the New Floppy Image dialog.
  *
- * Version:	@(#)win_new_floppy.c	1.0.7	2018/05/14
+ * Version:	@(#)win_new_floppy.c	1.0.8	2018/05/25
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -29,6 +29,7 @@
 #include "../plat.h"
 #include "../random.h"
 #include "../ui.h"
+#include "../scsi/scsi.h"
 #include "../disk/zip.h"
 #include "win.h"
 
@@ -132,10 +133,11 @@ create_86f(WCHAR *file_name, disk_size_t disk_size, uint8_t rpm_mode)
 		break;
     }
 
+	if (array_size & 15)
+	array_size += 2;
+
     array_size2 = (array_size << 3);
     array_size = (array_size2 >> 4) << 1;
-    if (array_size2 & 15)
-	array_size += 2;
 
     empty = (unsigned char *) malloc(array_size);
 
@@ -624,7 +626,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				return TRUE;
 
 			case IDC_CFILE:
-	                        if (!file_dlg_w(hdlg, plat_get_string(is_zip ? IDS_2176 : IDS_2174), L"", 1)) {
+	                        if (!file_dlg_w(hdlg, plat_get_string(is_zip ? IDS_2055 : IDS_2062), L"", 1)) {
 					if (!wcschr(wopenfilestring, L'.')) {
 						if (wcslen(wopenfilestring) && (wcslen(wopenfilestring) <= 256)) {
 							twcs = &wopenfilestring[wcslen(wopenfilestring)];

@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.48	2018/04/29
+ * Version:	@(#)win.c	1.0.49	2018/05/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -41,15 +41,9 @@
 #ifdef USE_VNC
 # include "../vnc.h"
 #endif
-#ifdef USE_RDP
-# include "../rdp.h"
-#endif
-#ifdef USE_WX
-# include "../wx/wx_ui.h"
-#else
 # include "win_ddraw.h"
 # include "win_d3d.h"
-#endif
+# include "win_sdl.h"
 #include "win.h"
 
 
@@ -87,43 +81,25 @@ static struct {
     void	(*close)(void);
     void	(*resize)(int x, int y);
     int		(*pause)(void);
-} vid_apis[2][4] = {
+} vid_apis[2][RENDERERS_NUM] = {
   {
-#ifdef USE_WX
-    {	"WxWidgets", 1, wx_init, wx_close, NULL, wx_pause		},
-    {	"WxWidgets", 1, wx_init, wx_close, NULL, wx_pause		},
-#else
     {	"DDraw", 1, (int(*)(void*))ddraw_init, ddraw_close, NULL, ddraw_pause		},
     {	"D3D", 1, (int(*)(void*))d3d_init, d3d_close, d3d_resize, d3d_pause		},
-#endif
 #ifdef USE_VNC
-    {	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause		},
+    {	"SDL", 1, (int(*)(void*))sdl_init, sdl_close, NULL, sdl_pause			},
+    {	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause				}
 #else
-    {	NULL, 0, NULL, NULL, NULL, NULL					},
-#endif
-#ifdef USE_RDP
-    {	"RDP", 0, rdp_init, rdp_close, rdp_resize, rdp_pause		}
-#else
-    {	NULL, 0, NULL, NULL, NULL, NULL					}
+    {	"SDL", 1, (int(*)(void*))sdl_init, sdl_close, NULL, sdl_pause			}
 #endif
   },
   {
-#ifdef USE_WX
-    {	"WxWidgets", 1, wx_init, wx_close, NULL, wx_pause		},
-    {	"WxWidgets", 1, wx_init, wx_close, NULL, wx_pause		},
-#else
     {	"DDraw", 1, (int(*)(void*))ddraw_init_fs, ddraw_close, NULL, ddraw_pause	},
     {	"D3D", 1, (int(*)(void*))d3d_init_fs, d3d_close, NULL, d3d_pause		},
-#endif
 #ifdef USE_VNC
-    {	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause		},
+    {	"SDL", 1, (int(*)(void*))sdl_init_fs, sdl_close, NULL, sdl_pause		},
+    {	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause				}
 #else
-    {	NULL, 0, NULL, NULL, NULL, NULL					},
-#endif
-#ifdef USE_RDP
-    {	"RDP", 0, rdp_init, rdp_close, rdp_resize, rdp_pause		}
-#else
-    {	NULL, 0, NULL, NULL, NULL, NULL					}
+    {	"SDL", 1, (int(*)(void*))sdl_init_fs, sdl_close, sdl_resize, sdl_pause		}
 #endif
   },
 };
@@ -180,11 +156,15 @@ LoadCommonStrings(void)
     for (i=0; i<STR_NUM_5120; i++)
 	LoadString(hinstance, 5120+i, lpRCstr5120[i].str, 512);
 
-    for (i=0; i<STR_NUM_5376; i++)
-	LoadString(hinstance, 5376+i, lpRCstr5376[i].str, 512);
+    for (i=0; i<STR_NUM_5376; i++) {
+	if ((i == 0) || (i > 3))
+		LoadString(hinstance, 5376+i, lpRCstr5376[i].str, 512);
+    }
 
-    for (i=0; i<STR_NUM_5632; i++)
-	LoadString(hinstance, 5632+i, lpRCstr5632[i].str, 512);
+    for (i=0; i<STR_NUM_5632; i++) {
+	if ((i == 0) || (i > 3))
+		LoadString(hinstance, 5632+i, lpRCstr5632[i].str, 512);
+    }
 
     for (i=0; i<STR_NUM_5888; i++)
 	LoadString(hinstance, 5888+i, lpRCstr5888[i].str, 512);
@@ -250,7 +230,6 @@ plat_get_string(int i)
 }
 
 
-#ifndef USE_WX
 /* Create a console if we don't already have one. */
 static void
 CreateConsole(int init)
@@ -291,6 +270,7 @@ CreateConsole(int init)
 		}
 	}
     }
+    if(fp != NULL) fclose(fp);
 }
 
 
@@ -352,6 +332,8 @@ ProcessCommandLine(wchar_t ***argw)
 	}
     }
 
+    free(argbuf);
+
     args[argc] = NULL;
     *argw = args;
 
@@ -396,6 +378,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 	return(1);
     }
 
+    free(argw);
+
     /* Cleanup: we may no longer need the console. */
     if (! force_debug)
 	CreateConsole(0);
@@ -405,7 +389,6 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 
     return(i);
 }
-#endif	/*USE_WX*/
 
 
 /*
@@ -607,7 +590,7 @@ plat_vidapi(char *name)
 
     if (!strcasecmp(name, "default") || !strcasecmp(name, "system")) return(0);
 
-    for (i=0; i<4; i++) {
+    for (i = 0; i < RENDERERS_NUM; i++) {
 	if (vid_apis[0][i].name &&
 	    !strcasecmp(vid_apis[0][i].name, name)) return(i);
     }
@@ -635,16 +618,15 @@ plat_vidapi_name(int api)
 		name = "d3d";
 		break;
 
-#ifdef USE_VNC
 	case 2:
+		name = "sdl";
+		break;
+
+#ifdef USE_VNC
+	case 3:
 		name = "vnc";
 		break;
 
-#endif
-#ifdef USE_RDP
-	case 3:
-		name = "rdp";
-		break;
 #endif
     }
 
@@ -663,25 +645,15 @@ plat_setvid(int api)
 
     /* Close the (old) API. */
     vid_apis[0][vid_api].close();
-//#ifdef USE_WX
-//    ui_check_menu_item(IDM_View_WX+vid_api, 0);
-//#endif
     vid_api = api;
 
-#ifndef USE_WX
     if (vid_apis[0][vid_api].local)
 	ShowWindow(hwndRender, SW_SHOW);
       else
 	ShowWindow(hwndRender, SW_HIDE);
-#endif
 
     /* Initialize the (new) API. */
-#ifdef USE_WX
-//    ui_check_menu_item(IDM_View_WX+vid_api, 1);
-    i = vid_apis[0][vid_api].init(NULL);
-#else
     i = vid_apis[0][vid_api].init((void *)hwndRender);
-#endif
     endblit();
     if (! i) return(0);
 
@@ -726,7 +698,7 @@ plat_setfullscreen(int on)
 
     if (on && video_fullscreen_first) {
 	video_fullscreen_first = 0;
-	ui_msgbox(MBX_INFO, (wchar_t *)IDS_2107);
+	ui_msgbox(MBX_INFO, (wchar_t *)IDS_2052);
     }
 
     /* OK, claim the video. */
@@ -740,10 +712,6 @@ plat_setfullscreen(int on)
     video_fullscreen = on;
     hw = (video_fullscreen) ? &hwndMain : &hwndRender;
     vid_apis[video_fullscreen][vid_api].init((void *) *hw);
-
-#ifdef USE_WX
-    wx_set_fullscreen(on);
-#endif
 
     win_mouse_init();
 
@@ -765,7 +733,7 @@ take_screenshot(void)
     time_t now;
 
     win_log("Screenshot: video API is: %i\n", vid_api);
-    if ((vid_api < 0) || (vid_api > 1)) return;
+    if ((vid_api < 0) || (vid_api > 2)) return;
 
     memset(fn, 0, sizeof(fn));
     memset(path, 0, sizeof(path));
@@ -784,12 +752,6 @@ take_screenshot(void)
     wcscat(path, fn);
 
     switch(vid_api) {
-#ifdef USE_WX
-	case 0:
-	case 1:
-		wx_screenshot(path);
-		break;
-#else
 	case 0:		/* ddraw */
 		ddraw_take_screenshot(path);
 		break;
@@ -797,10 +759,13 @@ take_screenshot(void)
 	case 1:		/* d3d9 */
 		d3d_take_screenshot(path);
 		break;
-#endif
+
+	case 2:		/* sdl */
+		sdl_take_screenshot(path);
+		break;
 
 #ifdef USE_VNC
-	case 2:		/* vnc */
+	case 3:		/* vnc */
 		vnc_take_screenshot(path);
 		break;
 #endif

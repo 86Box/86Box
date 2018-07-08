@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.46	2018/05/02
+ * Version:	@(#)hdc_ide.c	1.0.47	2018/06/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -534,7 +534,7 @@ static void ide_hd_identify(ide_t *ide)
     char device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
 
     uint32_t d_hpc, d_spt, d_tracks;
-    uint64_t full_size = (hdd[ide->hdd_num].tracks * hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
+    uint64_t full_size = ((uint64_t)hdd[ide->hdd_num].tracks * (uint64_t)hdd[ide->hdd_num].hpc * (uint64_t)hdd[ide->hdd_num].spt);
 
     device_identify[6] = (ide->hdd_num / 10) + 0x30;
     device_identify[7] = (ide->hdd_num % 10) + 0x30;
@@ -844,7 +844,7 @@ ide_set_signature(ide_t *ide)
     ide->head=0;
 
     if (ide_drive_is_zip(ide)) {
-	zip_set_signature(zip_id);
+	zip_set_signature(zip[zip_id]);
 	ide->secount = zip[zip_id]->phase;
 	ide->cylinder = zip[zip_id]->request_length;
     } else if (ide_drive_is_cdrom(ide)) {
@@ -1008,8 +1008,7 @@ ide_board_close(int board)
 	if (dev->sector_buffer)
 		free(dev->sector_buffer);
 
-	if (dev)
-		free(dev);
+	free(dev);
     }
 }
 
@@ -1040,6 +1039,7 @@ ide_board_init(int board)
 	if (board == 4) {
 		valid_ch = ((ch >= 0) && (ch <= 1));
 		ch |= 8;
+		return;
 	} else
 		valid_ch = ((ch >= min_ch) && (ch <= max_ch));
 
@@ -2058,7 +2058,7 @@ ide_callback(void *priv)
 		if (ide_drive_is_zip(ide)) {
 			zip[zip_id]->status = DRDY_STAT | DSC_STAT;
 			zip[zip_id]->error = 1;
-			zip_reset(zip_id);
+			zip_reset(zip[zip_id]);
 		} else if (ide_drive_is_cdrom(ide)) {
 			cdrom[cdrom_id]->status = DRDY_STAT | DSC_STAT;
 			cdrom[cdrom_id]->error = 1;
@@ -2451,7 +2451,7 @@ ide_callback(void *priv)
 			goto abort_cmd;
 
 		if (ide_drive_is_zip(ide))
-			zip_phase_callback(atapi_zip_drives[ch]);
+			zip_phase_callback(zip[atapi_zip_drives[ch]]);
 		else
 			cdrom_phase_callback(cdrom[atapi_cdrom_drives[ch]]);
 		return;

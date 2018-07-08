@@ -241,12 +241,11 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
                 {
 			if (et4000->pci)
 			{
-				et4000->linearbase &= 0xc0000000;
-				et4000->linearbase = (val & 0xfc) << 22;
+				et4000->linearbase = (val & 0x0c) << 24;
 			}
 			else
 			{
-				et4000->linearbase = val << 22;
+				et4000->linearbase = val << 24;
 			}
                         et4000w32p_recalcmapping(et4000);
                 }
@@ -1189,10 +1188,8 @@ void et4000w32p_pci_write(int func, int addr, uint8_t val, void *p)
                 break;
 
                 case 0x13: 
-		et4000->linearbase &= 0x00c00000; 
-                et4000->linearbase = (et4000->pci_regs[0x13] << 24);
-		svga->crtc[0x30] &= 3;
-		svga->crtc[0x30] = ((et4000->linearbase & 0x3f000000) >> 22);
+                et4000->linearbase = ((uint32_t)et4000->pci_regs[0x13] << 24) & 0x0c000000;
+		svga->crtc[0x30] = (et4000->linearbase >> 24) & 0xc;
                 et4000w32p_recalcmapping(et4000); 
                 break;
 
@@ -1204,7 +1201,7 @@ void et4000w32p_pci_write(int func, int addr, uint8_t val, void *p)
 		et4000->pci_regs[0x33] &= 0xf0;
                 if (et4000->pci_regs[0x30] & 0x01)
                 {
-                        uint32_t addr = (et4000->pci_regs[0x33] << 24);
+                        uint32_t addr = ((uint32_t)et4000->pci_regs[0x33] << 24);
 			if (!addr)
 			{
 				addr = 0xC0000;

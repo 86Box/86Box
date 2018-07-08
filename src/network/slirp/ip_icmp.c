@@ -199,7 +199,7 @@ end_error:
  * packet.  The maximum payload is 576-20(ip hdr)-8(icmp hdr)=548
  */
 
-#define ICMP_MAXDATALEN (IP_MSS-28)
+#define ICMP_MAXDATALEN (sizeof(ip))
 void
 icmp_error(struct SLIRPmbuf *msrc, u_char type, u_char code, int minsize, char *message)
 {

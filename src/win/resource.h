@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.24	2018/04/26
+ * Version:	@(#)resource.h	1.0.25	2018/05/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -48,7 +48,6 @@
 #define IDT_1705		1705	/* MB	== IDC_TEXT_MB */
 #define IDT_1706		1706	/* Memory: */
 #define IDT_1707		1707	/* Video: */
-#define IDT_1708		1708	/* Video speed: */
 #define IDT_1709		1709	/* Mouse: */
 #define IDT_1710		1710	/* Joystick: */
 #define IDT_1711		1711	/* Sound card: */
@@ -121,9 +120,8 @@
 
 #define IDC_VIDEO		1030	/* video config */
 #define IDC_COMBO_VIDEO		1031
-#define IDC_COMBO_VIDEO_SPEED	1032
-#define IDC_CHECK_VOODOO	1033
-#define IDC_BUTTON_VOODOO	1034
+#define IDC_CHECK_VOODOO	1032
+#define IDC_BUTTON_VOODOO	1033
 
 #define IDC_INPUT		1050	/* input config */
 #define IDC_COMBO_MOUSE		1051
@@ -245,8 +243,8 @@
 #define IDM_VID_REMEMBER	40041
 #define IDM_VID_DDRAW		40050
 #define IDM_VID_D3D		40051
-#define IDM_VID_VNC		40052
-#define IDM_VID_RDP		40053
+#define IDM_VID_SDL		40052
+#define IDM_VID_VNC		40053
 #define IDM_VID_SCALE_1X	40054
 #define IDM_VID_SCALE_2X	40055
 #define IDM_VID_SCALE_3X	40056

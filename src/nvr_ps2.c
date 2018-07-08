@@ -159,8 +159,6 @@ ps2_nvr_close(void *priv)
 	fclose(f);
     }
 
-    free(nvr->ram);
-
     free(nvr);
 }
 

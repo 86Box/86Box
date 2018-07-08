@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.117	2018/05/21
+# Version:	@(#)Makefile.mingw	1.0.118	2018/05/26
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -291,7 +291,7 @@ ifneq ($(WX), n)
  UIOBJ		:= wx_main.o wx_ui.o wx_stbar.o wx_render.o
 else
  UIOBJ		:= win_ui.o win_stbar.o \
-		   win_ddraw.o win_d3d.o \
+		   win_ddraw.o win_d3d.o win_sdl.o \
 		   win_dialog.o win_about.o \
 		   win_settings.o win_devconf.o win_snd_gain.o \
 		   win_new_floppy.o win_jsconf.o
@@ -489,7 +489,8 @@ NETOBJ		:= network.o \
 		     bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o \
 		     ip_input.o queue.o tcp_input.o debug.o ip_output.o \
 		     sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o \
-		    net_ne2000.o
+		    net_dp8390.o \
+		    net_3c503.o net_ne2000.o
 
 SNDOBJ		:= sound.o \
 		    openal.o \

@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.17	2018/03/26
+ * Version:	@(#)win_stbar.c	1.0.18	2018/05/25
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -35,10 +35,10 @@
 #include "../machine/machine.h"
 #include "../disk/hdd.h"
 #include "../disk/hdc.h"
-#include "../disk/zip.h"
 #include "../floppy/fdd.h"
 #include "../scsi/scsi.h"
 #include "../cdrom/cdrom.h"
+#include "../disk/zip.h"
 #include "../cdrom/cdrom_image.h"
 #include "../cdrom/cdrom_null.h"
 #include "../scsi/scsi_disk.h"
@@ -64,7 +64,7 @@ static HMENU	menuSBAR;
 static WCHAR	**sbTips;
 static int	*iStatusWidths;
 static int	*sb_part_meanings;
-static int	*sb_part_icons;
+static uint8_t	*sb_part_icons;
 static int	sb_parts = 0;
 static int	sb_ready = 0;
 static uint8_t	sb_map[256];
@@ -74,7 +74,7 @@ static uint8_t	sb_map[256];
 intptr_t
 fdd_type_to_icon(int type)
 {
-    int ret = 512;
+    int ret = 248;
 
     switch(type) {
 	case 0:
@@ -82,12 +82,12 @@ fdd_type_to_icon(int type)
 
 	case 1: case 2: case 3: case 4:
 	case 5: case 6:
-		ret = 128;
+		ret = 16;
 		break;
 
 	case 7: case 8: case 9: case 10:
 	case 11: case 12: case 13:
-		ret = 144;
+		ret = 24;
 		break;
 
 	default:
@@ -118,18 +118,18 @@ static void
 StatusBarCreateFloppySubmenu(HMENU m, int id)
 {
     AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_NEW | id,
-	       plat_get_string(IDS_2161));
+	       plat_get_string(IDS_2096));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_EXISTING | id,
-	       plat_get_string(IDS_2162));
+	       plat_get_string(IDS_2097));
     AppendMenu(m, MF_STRING, IDM_FLOPPY_IMAGE_EXISTING_WP | id,
-	       plat_get_string(IDS_2163));
+	       plat_get_string(IDS_2098));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_FLOPPY_EXPORT_TO_86F | id,
-	       plat_get_string(IDS_2172));
+	       plat_get_string(IDS_2080));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_FLOPPY_EJECT | id,
-	       plat_get_string(IDS_2164));
+	       plat_get_string(IDS_2093));
 
     if (floppyfns[id][0] == 0x0000) {
 	EnableMenuItem(m, IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
@@ -142,15 +142,15 @@ static void
 StatusBarCreateCdromSubmenu(HMENU m, int id)
 {
     AppendMenu(m, MF_STRING, IDM_CDROM_MUTE | id,
-	       plat_get_string(IDS_2165));
+	       plat_get_string(IDS_2092));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_CDROM_EMPTY | id,
-	       plat_get_string(IDS_2166));
+	       plat_get_string(IDS_2091));
     AppendMenu(m, MF_STRING, IDM_CDROM_RELOAD | id,
-	       plat_get_string(IDS_2167));
+	       plat_get_string(IDS_2090));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_CDROM_IMAGE | id,
-	       plat_get_string(IDS_2168));
+	       plat_get_string(IDS_2089));
 
     if (! cdrom_drives[id].sound_on)
 	CheckMenuItem(m, IDM_CDROM_MUTE | id, MF_CHECKED);
@@ -168,17 +168,17 @@ static void
 StatusBarCreateZIPSubmenu(HMENU m, int id)
 {
     AppendMenu(m, MF_STRING, IDM_ZIP_IMAGE_NEW | id,
-	       plat_get_string(IDS_2161));
+	       plat_get_string(IDS_2096));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_ZIP_IMAGE_EXISTING | id,
-	       plat_get_string(IDS_2162));
+	       plat_get_string(IDS_2097));
     AppendMenu(m, MF_STRING, IDM_ZIP_IMAGE_EXISTING_WP | id,
-	       plat_get_string(IDS_2163));
+	       plat_get_string(IDS_2098));
     AppendMenu(m, MF_SEPARATOR, 0, 0);
     AppendMenu(m, MF_STRING, IDM_ZIP_EJECT | id,
-	       plat_get_string(IDS_2164));
+	       plat_get_string(IDS_2093));
     AppendMenu(m, MF_STRING, IDM_ZIP_RELOAD | id,
-	       plat_get_string(IDS_2167));
+	       plat_get_string(IDS_2090));
 
     if (zip_drives[id].image_path[0] == 0x0000) {
 	EnableMenuItem(m, IDM_ZIP_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
@@ -206,7 +206,7 @@ ui_sb_update_icon(int tag, int active)
     found = sb_map[tag];
     if (found != 0xff) {
 	sb_part_icons[found] &= ~1;
-	sb_part_icons[found] |= active;
+	sb_part_icons[found] |= (uint8_t) active;
 
 	SendMessage(hwndSBAR, SB_SETICON, found,
 		    (LPARAM)hIcon[sb_part_icons[found]]);
@@ -225,8 +225,8 @@ ui_sb_update_icon_state(int tag, int state)
 
     found = sb_map[tag];
     if (found != 0xff) {
-	sb_part_icons[found] &= ~256;
-	sb_part_icons[found] |= (state ? 256 : 0);
+	sb_part_icons[found] &= ~128;
+	sb_part_icons[found] |= (state ? 128 : 0);
 
 	SendMessage(hwndSBAR, SB_SETICON, found,
 		    (LPARAM)hIcon[sb_part_icons[found]]);
@@ -245,10 +245,10 @@ StatusBarCreateFloppyTip(int part)
     mbstowcs(wtext, fdd_getname(fdd_get_type(drive)),
 	     strlen(fdd_getname(fdd_get_type(drive))) + 1);
     if (wcslen(floppyfns[drive]) == 0) {
-	_swprintf(tempTip, plat_get_string(IDS_2158),
+	_swprintf(tempTip, plat_get_string(IDS_2117),
 		  drive+1, wtext, plat_get_string(IDS_2057));
     } else {
-	_swprintf(tempTip, plat_get_string(IDS_2158),
+	_swprintf(tempTip, plat_get_string(IDS_2117),
 		  drive+1, wtext, floppyfns[drive]);
     }
 
@@ -305,10 +305,10 @@ StatusBarCreateZIPTip(int part)
     int type = zip_drives[drive].is_250 ? 250 : 100;
 
     if (wcslen(zip_drives[drive].image_path) == 0) {
-	_swprintf(tempTip, plat_get_string(IDS_2177),
+	_swprintf(tempTip, plat_get_string(IDS_2054),
 		  type, drive+1, szText, plat_get_string(IDS_2057));
     } else {
-	_swprintf(tempTip, plat_get_string(IDS_2177),
+	_swprintf(tempTip, plat_get_string(IDS_2054),
 		  type, drive+1, szText, zip_drives[drive].image_path);
     }
 
@@ -561,8 +561,8 @@ ui_sb_update_panes(void)
      memset(iStatusWidths, 0, sb_parts * sizeof(int));
     sb_part_meanings = (int *)malloc(sb_parts * sizeof(int));
      memset(sb_part_meanings, 0, sb_parts * sizeof(int));
-    sb_part_icons = (int *)malloc(sb_parts * sizeof(int));
-     memset(sb_part_icons, 0, sb_parts * sizeof(int));
+    sb_part_icons = (uint8_t *)malloc(sb_parts * sizeof(uint8_t));
+     memset(sb_part_icons, 0, sb_parts * sizeof(uint8_t));
     sb_menu_handles = (HMENU *)malloc(sb_parts * sizeof(HMENU));
      memset(sb_menu_handles, 0, sb_parts * sizeof(HMENU));
     sbTips = (WCHAR **)malloc(sb_parts * sizeof(WCHAR *));
@@ -670,21 +670,21 @@ ui_sb_update_panes(void)
     for (i=0; i<sb_parts; i++) {
 	switch (sb_part_meanings[i] & 0xf0) {
 		case SB_FLOPPY:		/* Floppy */
-			sb_part_icons[i] = (wcslen(floppyfns[sb_part_meanings[i] & 0xf]) == 0) ? 256 : 0;
+			sb_part_icons[i] = (wcslen(floppyfns[sb_part_meanings[i] & 0xf]) == 0) ? 128 : 0;
 			sb_part_icons[i] |= fdd_type_to_icon(fdd_get_type(sb_part_meanings[i] & 0xf));
 			sb_menu_handles[i] = StatusBarCreatePopupMenu(i);
 			StatusBarCreateFloppySubmenu(sb_menu_handles[i], sb_part_meanings[i] & 0xf);
-			EnableMenuItem(sb_menu_handles[i], IDM_FLOPPY_EJECT | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | ((sb_part_icons[i] & 256) ? MF_GRAYED : MF_ENABLED));
+			EnableMenuItem(sb_menu_handles[i], IDM_FLOPPY_EJECT | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | ((sb_part_icons[i] & 128) ? MF_GRAYED : MF_ENABLED));
 			StatusBarCreateFloppyTip(i);
 			break;
 
 		case SB_CDROM:		/* CD-ROM */
 			id = sb_part_meanings[i] & 0xf;
 			if (cdrom_drives[id].host_drive == 200)
-				sb_part_icons[i] = (wcslen(cdrom_image[id].image_path) == 0) ? 256 : 0;
+				sb_part_icons[i] = (wcslen(cdrom_image[id].image_path) == 0) ? 128 : 0;
 			else
-				sb_part_icons[i] = 256;
-			sb_part_icons[i] |= 160;
+				sb_part_icons[i] = 128;
+			sb_part_icons[i] |= 32;
 			sb_menu_handles[i] = StatusBarCreatePopupMenu(i);
 			StatusBarCreateCdromSubmenu(sb_menu_handles[i], sb_part_meanings[i] & 0xf);
 			EnableMenuItem(sb_menu_handles[i], IDM_CDROM_RELOAD | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | MF_GRAYED);
@@ -692,36 +692,36 @@ ui_sb_update_panes(void)
 			break;
 
 		case SB_ZIP:		/* Iomega ZIP */
-			sb_part_icons[i] = (wcslen(zip_drives[sb_part_meanings[i] & 0xf].image_path) == 0) ? 256 : 0;
-			sb_part_icons[i] |= 176;
+			sb_part_icons[i] = (wcslen(zip_drives[sb_part_meanings[i] & 0xf].image_path) == 0) ? 128 : 0;
+			sb_part_icons[i] |= 48;
 			sb_menu_handles[i] = StatusBarCreatePopupMenu(i);
 			StatusBarCreateZIPSubmenu(sb_menu_handles[i], sb_part_meanings[i] & 0xf);
-			EnableMenuItem(sb_menu_handles[i], IDM_ZIP_EJECT | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | ((sb_part_icons[i] & 256) ? MF_GRAYED : MF_ENABLED));
+			EnableMenuItem(sb_menu_handles[i], IDM_ZIP_EJECT | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | ((sb_part_icons[i] & 128) ? MF_GRAYED : MF_ENABLED));
 			StatusBarCreateZIPTip(i);
 			break;
 
 		case SB_HDD:		/* Hard disk */
-			sb_part_icons[i] = 192;
+			sb_part_icons[i] = 64;
 			StatusBarCreateDiskTip(i);
 			break;
 
 		case SB_NETWORK:	/* Network */
-			sb_part_icons[i] = 208;
+			sb_part_icons[i] = 80;
 			StatusBarCreateNetworkTip(i);
 			break;
 
 		case SB_SOUND:		/* Sound */
-			sb_part_icons[i] = 259;
+			sb_part_icons[i] = 243;
 			StatusBarCreateSoundTip(i);
 			break;
 
 		case SB_TEXT:		/* Status text */
 			SendMessage(hwndSBAR, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM)L"");
-			sb_part_icons[i] = -1;
+			sb_part_icons[i] = 255;
 			break;
 	}
 
-	if (sb_part_icons[i] != -1) {
+	if (sb_part_icons[i] != 255) {
 		SendMessage(hwndSBAR, SB_SETTEXT, i | SBT_NOBORDERS, (LPARAM)L"");
 		SendMessage(hwndSBAR, SB_SETICON, i, (LPARAM)hIcon[sb_part_icons[i]]);
 		SendMessage(hwndSBAR, SB_SETTIPTEXT, i, (LPARAM)sbTips[i]);
@@ -764,10 +764,10 @@ ui_sb_mount_floppy_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name)
 void
 ui_sb_mount_zip_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name)
 {
-    zip_close(id);
+    zip_disk_close(zip[id]);
     zip_drives[id].ui_writeprot = wp;
-    zip_load(id, file_name);
-    zip_insert(id);
+    zip_load(zip[id], file_name);
+    zip_insert(zip[id]);
     ui_sb_update_icon_state(SB_ZIP | id, wcslen(zip_drives[id].image_path) ? 0 : 1);
     EnableMenuItem(sb_menu_handles[part], IDM_ZIP_EJECT | id, MF_BYCOMMAND | (wcslen(zip_drives[id].image_path) ? MF_ENABLED : MF_GRAYED));
     EnableMenuItem(sb_menu_handles[part], IDM_ZIP_RELOAD | id, MF_BYCOMMAND | (wcslen(zip_drives[id].image_path) ? MF_GRAYED : MF_ENABLED));
@@ -812,7 +812,7 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if ((part == 0xff) || (sb_menu_handles == NULL))
 					break;
 
-				ret = file_dlg_w_st(hwnd, IDS_2159, floppyfns[id], 0);
+				ret = file_dlg_w_st(hwnd, IDS_2118, floppyfns[id], 0);
 				if (! ret)
 					ui_sb_mount_floppy_img(id, part, (item_id == IDM_FLOPPY_IMAGE_EXISTING_WP) ? 1 : 0, wopenfilestring);
 				break;
@@ -837,7 +837,7 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if ((part == 0xff) || (sb_menu_handles == NULL))
 					break;
 
-				ret = file_dlg_w_st(hwnd, IDS_2173, floppyfns[id], 1);
+				ret = file_dlg_w_st(hwnd, IDS_2076, floppyfns[id], 1);
 				if (! ret) {
 					plat_pause(1);
 					ret = d86f_export(id, wopenfilestring);
@@ -916,7 +916,7 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if ((part == 0xff) || (sb_menu_handles == NULL))
 					break;
 
-				ret = file_dlg_w_st(hwnd, IDS_2175, zip_drives[id].image_path, 0);
+				ret = file_dlg_w_st(hwnd, IDS_2058, zip_drives[id].image_path, 0);
 				if (! ret)
 					ui_sb_mount_zip_img(id, part, (item_id == IDM_ZIP_IMAGE_EXISTING_WP) ? 1 : 0, wopenfilestring);
 				break;
@@ -971,31 +971,31 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
 {
     RECT rectDialog;
     int dw, dh;
-    uintptr_t i;
+    uint8_t i;
 
     /* Load our icons into the cache for faster access. */
-    for (i = 128; i < 130; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) i);
+    for (i = 16; i < 18; i++)
+	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
+    for (i = 24; i < 26; i++)
+	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
+    for (i = 32; i < 34; i++)
+	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
+    for (i = 48; i < 50; i++)
+	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
+    for (i = 64; i < 66; i++)
+	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
+    for (i = 80; i < 82; i++)
+	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
     for (i = 144; i < 146; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) i);
+	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
+    for (i = 152; i < 154; i++)
+	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
     for (i = 160; i < 162; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) i);
+	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
     for (i = 176; i < 178; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) i);
-    for (i = 192; i < 194; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) i);
-    for (i = 208; i < 210; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) i);
-    for (i = 259; i < 260; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) i);
-    for (i = 384; i < 386; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) i);
-    for (i = 400; i < 402; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) i);
-    for (i = 416; i < 418; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) i);
-    for (i = 432; i < 434; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) i);
+	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
+    for (i = 243; i < 244; i++)
+	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
 
     GetWindowRect(hwndParent, &rectDialog);
     dw = rectDialog.right - rectDialog.left;
@@ -1037,8 +1037,8 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
      memset(iStatusWidths, 0, sb_parts * sizeof(int));
     sb_part_meanings = (int *)malloc(sb_parts * sizeof(int));
      memset(sb_part_meanings, 0, sb_parts * sizeof(int));
-    sb_part_icons = (int *)malloc(sb_parts * sizeof(int));
-     memset(sb_part_icons, 0, sb_parts * sizeof(int));
+    sb_part_icons = (uint8_t *)malloc(sb_parts * sizeof(uint8_t));
+     memset(sb_part_icons, 0, sb_parts * sizeof(uint8_t));
     sb_menu_handles = (HMENU *)malloc(sb_parts * sizeof(HMENU));
      memset(sb_menu_handles, 0, sb_parts * sizeof(HMENU));
     sbTips = (WCHAR **)malloc(sb_parts * sizeof(WCHAR *));
@@ -1046,7 +1046,7 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
     sb_parts = 0;
     iStatusWidths[sb_parts] = -1;
     sb_part_meanings[sb_parts] = SB_TEXT;
-    sb_part_icons[sb_parts] = -1;
+    sb_part_icons[sb_parts] = 255;
     sb_parts++;
     SendMessage(hwndSBAR, SB_SETPARTS, (WPARAM)sb_parts, (LPARAM)iStatusWidths);
     SendMessage(hwndSBAR, SB_SETTEXT, 0 | SBT_NOBORDERS,

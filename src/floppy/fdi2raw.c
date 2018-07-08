@@ -202,10 +202,16 @@ static uae_u8 temp, temp2;
 static uae_u8 *expand_tree (uae_u8 *stream, NODE *node)
 {
 	if (temp & temp2) {
-		fdi_free (node->left);
-		node->left = 0;
-		fdi_free (node->right);
-		node->right = 0;
+		if(node->left)
+		{
+			fdi_free (node->left);
+			node->left = 0;
+		}
+		if(node->right)
+		{
+			fdi_free (node->right);
+			node->right = 0;
+		}
 		temp2 >>= 1;
 		if (!temp2) {
 			temp = *stream++;
@@ -336,8 +342,8 @@ static void fdi_decode (uae_u8 *stream, int size, uae_u8 *out)
 			}
 			((uae_u32*)out)[i] = v;
 		}
-		free_nodes (root.left);
-		free_nodes (root.right);
+		if(root.left) free_nodes (root.left);
+		if(root.right) free_nodes (root.right);
 	}
 }
 
@@ -1592,7 +1598,7 @@ static void fdi2_decode (FDI *fdi, uint32_t totalavg, uae_u32 *avgp, uae_u32 *mi
 	i--;
 	adjust = 0;
 	total = 0;
-	totaldiv = 0;
+	totaldiv = 1;
 	init_array(standard_MFM_2_bit_cell_size, 1 + mfm);
 	bitoffset = 0;
 	ref_pulse = 0;
@@ -2176,7 +2182,7 @@ int fdi2raw_loadtrack (FDI *fdi, uae_u16 *mfmbuf, uae_u16 *tracktiming, int trac
 		zxx (fdi);
 		outlen = -1;
 
-	} else if (fdi->track_type < 0x10) {
+	} else if (fdi->track_type < 0x0f) {
 
 		decode_normal_track[fdi->track_type](fdi);
 		fix_mfm_sync (fdi);

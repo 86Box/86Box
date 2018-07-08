@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.71	2018/04/29
+ * Version:	@(#)pc.c	1.0.73	2018/06/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -57,9 +57,10 @@
 #include "disk/hdd.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
-#include "disk/zip.h"
 #include "scsi/scsi.h"
 #include "cdrom/cdrom.h"
+#include "disk/zip.h"
+#include "scsi/scsi_disk.h"
 #include "cdrom/cdrom_image.h"
 #include "cdrom/cdrom_null.h"
 #include "network/network.h"
@@ -103,8 +104,7 @@ int	vid_cga_contrast = 0,			/* (C) video */
 	video_fullscreen_scale = 0,		/* (C) video */
 	video_fullscreen_first = 0,		/* (C) video */
 	enable_overscan = 0,			/* (C) video */
-	force_43 = 0,				/* (C) video */
-	video_speed = 0;			/* (C) video */
+	force_43 = 0;				/* (C) video */
 int	serial_enabled[SERIAL_MAX] = {0,0},	/* (C) enable serial ports */
 	lpt_enabled = 0,			/* (C) enable LPT ports */
 	bugger_enabled = 0;			/* (C) enable ISAbugger */
@@ -306,7 +306,7 @@ pc_init(int argc, wchar_t *argv[])
     uint32_t *uid, *shwnd;
 
     /* Grab the executable's full path. */
-    plat_get_exe_name(exe_path, sizeof(exe_path)-1);
+    plat_get_exe_name(exe_path, (sizeof(exe_path) / sizeof(wchar_t)) - 1);
     p = plat_get_filename(exe_path);
     *p = L'\0';
 
@@ -416,6 +416,11 @@ usage:
 		 */
 		wcscpy(usr_path, path);
 	}
+
+	/* If the specified path does not yet exist,
+	   create it. */
+	if (! plat_dir_check(path))
+		plat_dir_create(path);
     }
 
     /* Make sure we have a trailing backslash. */
@@ -484,6 +489,7 @@ usage:
     mouse_init();
     cdrom_global_init();
     zip_global_init();
+    scsi_disk_global_init();
 
     /* Load the configuration file. */
     config_load();
@@ -500,9 +506,9 @@ pc_full_speed(void)
 
     if (! atfullspeed) {
 	pc_log("Set fullspeed - %i %i %i\n", is386, AT, cpuspeed2);
-	if (AT)
+	if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
 		setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
-	  else
+	else
 		setpitclock(14318184.0);
     }
     atfullspeed = 1;
@@ -514,9 +520,9 @@ pc_full_speed(void)
 void
 pc_speed_changed(void)
 {
-    if (AT)
+    if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
 	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
-      else
+    else
 	setpitclock(14318184.0);
 
     nvr_period_recalc();
@@ -547,6 +553,8 @@ pc_reload(wchar_t *fn)
     cdrom_hard_reset();
 
     zip_hard_reset();
+
+    scsi_disk_hard_reset();
 
     fdd_load(0, floppyfns[0]);
     fdd_load(1, floppyfns[1]);
@@ -625,7 +633,8 @@ again2:
 	}
     }
 
-    cpuspeed2 = (AT) ? 2 : 1;
+    // cpuspeed2 = (AT) ? 2 : 1;
+    cpuspeed2 = (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286) ? 2 : 1;
     atfullspeed = 0;
 
     random_init();
@@ -650,7 +659,10 @@ again2:
     hdc_init(hdc_name);
 
     cdrom_hard_reset();
+
     zip_hard_reset();
+
+    scsi_disk_hard_reset();
 
     scsi_card_init();
 
@@ -748,7 +760,10 @@ pc_reset_hard_init(void)
     serial_init();
 
     cdrom_hard_reset();
+
     zip_hard_reset();
+
+    scsi_disk_hard_reset();
 
     /* Initialize the actual machine and its basic modules. */
     machine_init();
@@ -813,7 +828,7 @@ pc_reset_hard_init(void)
     pic_reset();
     cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
 
-    if (AT)
+    if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
 	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
     else
 	setpitclock(14318184.0);
@@ -876,9 +891,6 @@ pc_close(thread_t *ptr)
 
     lpt_devices_close();
 
-    for (i=0; i<ZIP_NUM; i++)
-	zip_close(i);
-
     for (i=0; i<FDD_NUM; i++)
        fdd_close(i);
 
@@ -897,7 +909,9 @@ pc_close(thread_t *ptr)
     sound_cd_thread_end();
     cdrom_close();
 
-    zip_destroy_drives();
+    zip_close();
+
+    scsi_disk_close();
 }
 
 
@@ -949,7 +963,7 @@ pc_thread(void *param)
 			  else
 #endif
 				exec386(clockrate/100);
-		} else if (AT) {
+		} else if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286) {
 			exec386(clockrate/100);
 		} else {
 			execx86(clockrate/100);

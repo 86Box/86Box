@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.27	2018/05/01
+ * Version:	@(#)win_ui.c	1.0.28	2018/05/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -48,7 +48,7 @@
 HWND		hwndMain,		/* application main window */
 		hwndRender;		/* machine render window */
 HMENU		menuMain;		/* application main menu */
-HICON		hIcon[512];		/* icon data loaded from resources */
+HICON		hIcon[256];		/* icon data loaded from resources */
 RECT		oldclip;		/* mouse rect */
 int		infocus = 1;
 int		rctrl_is_lalt = 0;
@@ -59,7 +59,6 @@ WCHAR		wopenfilestring[260];
 
 /* Local data. */
 static wchar_t	wTitle[512];
-static RAWINPUTDEVICE	device;
 static HHOOK	hKeyboardHook;
 static int	hook_enabled = 0;
 static int	save_window_pos = 0;
@@ -149,9 +148,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_DDRAW+0, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_DDRAW+1, MF_UNCHECKED);
-#ifdef USE_VNC
     CheckMenuItem(menuMain, IDM_VID_DDRAW+2, MF_UNCHECKED);
-#endif
 #ifdef USE_VNC
     CheckMenuItem(menuMain, IDM_VID_DDRAW+3, MF_UNCHECKED);
 #endif
@@ -382,11 +379,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_VID_DDRAW:
 			case IDM_VID_D3D:
+			case IDM_VID_SDL:
 #ifdef USE_VNC
 			case IDM_VID_VNC:
-#endif
-#ifdef USE_RDP
-			case IDM_VID_RDP:
 #endif
 				CheckMenuItem(hmenu, IDM_VID_DDRAW+vid_api, MF_UNCHECKED);
 				plat_setvid(LOWORD(wParam) - IDM_VID_DDRAW);
@@ -529,62 +524,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				svga_dump_vram();
 				break;
 #endif
-
-#if 0
-			case IDM_CONFIG_LOAD:
-				plat_pause(1);
-				if (!file_dlg_st(hwnd, IDS_2160, "", 0) &&
-				    (ui_msgbox(MBX_QUESTION, (wchar_t *)IDS_2051) == IDYES)) {
-					pc_reload(wopenfilestring);
-					ResetAllMenus();
-				}
-				plat_pause(0);
-				break;                        
-
-			case IDM_CONFIG_SAVE:
-				plat_pause(1);
-				if (! file_dlg_st(hwnd, IDS_2160, "", 1)) {
-					config_write(wopenfilestring);
-				}
-				plat_pause(0);
-				break;                                                
-#endif
 		}
 		return(0);
-
-	case WM_INPUT:
-		keyboard_handle(lParam, infocus);
-		break;
-
-	case WM_SETFOCUS:
-		infocus = 1;
-		if (! hook_enabled) {
-			hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL,
-							 LowLevelKeyboardProc,
-							 GetModuleHandle(NULL),
-							 0);
-			hook_enabled = 1;
-		}
-		break;
-
-	case WM_KILLFOCUS:
-		infocus = 0;
-		plat_mouse_capture(0);
-		if (hook_enabled) {
-			UnhookWindowsHookEx(hKeyboardHook);
-			hook_enabled = 0;
-		}
-		break;
-
-	case WM_LBUTTONUP:
-		if (! video_fullscreen)
-			plat_mouse_capture(1);
-		break;
-
-	case WM_MBUTTONUP:
-		if (mouse_get_buttons() < 3)
-			plat_mouse_capture(0);
-		break;
 
 	case WM_ENTERMENULOOP:
 		break;
@@ -703,6 +644,26 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	default:
 		return(DefWindowProc(hwnd, message, wParam, lParam));
+
+	case WM_SETFOCUS:
+		infocus = 1;
+		if (! hook_enabled) {
+			hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL,
+							 LowLevelKeyboardProc,
+							 GetModuleHandle(NULL),
+							 0);
+			hook_enabled = 1;
+		}
+		break;
+
+	case WM_KILLFOCUS:
+		infocus = 0;
+		plat_mouse_capture(0);
+		if (hook_enabled) {
+			UnhookWindowsHookEx(hKeyboardHook);
+			hook_enabled = 0;
+		}
+		break;
     }
 
     return(0);
@@ -721,24 +682,11 @@ ui_init(int nCmdShow)
 {
     WCHAR title[200];
     WNDCLASSEX wincl;			/* buffer for main window's class */
+    RAWINPUTDEVICE ridev;		/* RawInput device */
     MSG messages;			/* received-messages buffer */
     HWND hwnd;				/* handle for our window */
     HACCEL haccel;			/* handle to accelerator table */
     int bRet;
-
-    if (settings_only) {
-	if (! pc_init_modules()) {
-		/* Dang, no ROMs found at all! */
-		MessageBox(hwnd,
-			   plat_get_string(IDS_2056),
-			   plat_get_string(IDS_2050),
-			   MB_OK | MB_ICONERROR);
-		return(6);
-	}
-
-	win_settings_open(NULL);
-	return(0);
-    }
 
     /* Create our main window's class and register it. */
     wincl.hInstance = hinstance;
@@ -746,8 +694,8 @@ ui_init(int nCmdShow)
     wincl.lpfnWndProc = MainWindowProcedure;
     wincl.style = CS_DBLCLKS;		/* Catch double-clicks */
     wincl.cbSize = sizeof(WNDCLASSEX);
-    wincl.hIcon = LoadIcon(hinstance, (LPCTSTR)100);
-    wincl.hIconSm = LoadIcon(hinstance, (LPCTSTR)100);
+    wincl.hIcon = LoadIcon(hinstance, (LPCTSTR)10);
+    wincl.hIconSm = LoadIcon(hinstance, (LPCTSTR)10);
     wincl.hCursor = NULL;
     wincl.lpszMenuName = NULL;
     wincl.cbClsExtra = 0;
@@ -780,6 +728,20 @@ ui_init(int nCmdShow)
 		NULL);			/* no Window Creation data */
     hwndMain = hwnd;
 
+	if (settings_only) {
+	if (! pc_init_modules()) {
+		/* Dang, no ROMs found at all! */
+		MessageBox(hwnd,
+			   plat_get_string(IDS_2056),
+			   plat_get_string(IDS_2050),
+			   MB_OK | MB_ICONERROR);
+		return(6);
+	}
+
+	win_settings_open(NULL);
+	return(0);
+    }
+
     ui_window_title(title);
 
     /* Set up main window for resizing if configured. */
@@ -800,29 +762,33 @@ ui_init(int nCmdShow)
     /* Make the window visible on the screen. */
     ShowWindow(hwnd, nCmdShow);
 
-    /* Load the accelerator table */
-    haccel = LoadAccelerators(hinstance, ACCEL_NAME);
-    if (haccel == NULL) {
+    /* Initialize the RawInput (keyboard) module. */
+    memset(&ridev, 0x00, sizeof(ridev));
+    ridev.usUsagePage = 0x01;
+    ridev.usUsage = 0x06;
+    ridev.dwFlags = RIDEV_NOHOTKEYS;
+    ridev.hwndTarget = NULL;	/* current focus window */
+    if (! RegisterRawInputDevices(&ridev, 1, sizeof(ridev))) {
 	MessageBox(hwndMain,
-		   plat_get_string(IDS_2153),
-		   plat_get_string(IDS_2050),
-		   MB_OK | MB_ICONERROR);
-	return(3);
-    }
-
-    /* Initialize the input (keyboard, mouse, game) module. */
-    device.usUsagePage = 0x01;
-    device.usUsage = 0x06;
-    device.dwFlags = RIDEV_NOHOTKEYS;
-    device.hwndTarget = hwnd;
-    if (! RegisterRawInputDevices(&device, 1, sizeof(device))) {
-	MessageBox(hwndMain,
-		   plat_get_string(IDS_2154),
+		   plat_get_string(IDS_2114),
 		   plat_get_string(IDS_2050),
 		   MB_OK | MB_ICONERROR);
 	return(4);
     }
     keyboard_getkeymap();
+
+    /* Set up the main window for RawInput. */
+    plat_set_input(hwndMain);
+
+    /* Load the accelerator table */
+    haccel = LoadAccelerators(hinstance, ACCEL_NAME);
+    if (haccel == NULL) {
+	MessageBox(hwndMain,
+		   plat_get_string(IDS_2113),
+		   plat_get_string(IDS_2050),
+		   MB_OK | MB_ICONERROR);
+	return(3);
+    }
 
     /* Initialize the mouse module. */
     win_mouse_init();
@@ -1041,4 +1007,75 @@ plat_mouse_capture(int on)
 
 	mouse_capture = 0;
     }
+}
+
+
+/* Catch WM_INPUT messages for 'current focus' window. */
+static LONG_PTR	input_orig_proc;
+static HWND input_orig_hwnd = NULL;
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+input_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message) {
+	case WM_INPUT:
+		keyboard_handle(lParam, infocus);
+		break;
+
+	case WM_SETFOCUS:
+		infocus = 1;
+		if (! hook_enabled) {
+			hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL,
+							 LowLevelKeyboardProc,
+							 GetModuleHandle(NULL),
+							 0);
+			hook_enabled = 1;
+		}
+		break;
+
+	case WM_KILLFOCUS:
+		infocus = 0;
+		plat_mouse_capture(0);
+		if (hook_enabled) {
+			UnhookWindowsHookEx(hKeyboardHook);
+			hook_enabled = 0;
+		}
+		break;
+
+	case WM_LBUTTONUP:
+		if (! video_fullscreen)
+			plat_mouse_capture(1);
+		break;
+
+	case WM_MBUTTONUP:
+		if (mouse_get_buttons() < 3)
+			plat_mouse_capture(0);
+		break;
+
+	default:
+		return(CallWindowProc((WNDPROC)input_orig_proc,
+				      hwnd, message, wParam, lParam));
+    }
+
+    return(0);
+}
+
+
+/* Set up a handler for the 'currently active' window. */
+void
+plat_set_input(HWND h)
+{
+    /* If needed, rest the old one first. */
+    if (input_orig_hwnd != NULL) {
+	SetWindowLongPtr(input_orig_hwnd, GWL_WNDPROC,
+			 (LONG_PTR)input_orig_proc);
+    }
+
+    /* Redirect the window procedure so we can catch WM_INPUT. */
+    input_orig_proc = GetWindowLongPtr(h, GWLP_WNDPROC);
+    input_orig_hwnd = h;
+    SetWindowLongPtr(h, GWL_WNDPROC, (LONG_PTR)&input_proc);
 }

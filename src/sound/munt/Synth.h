@@ -180,7 +180,7 @@ private:
 	ReportHandler *reportHandler;
 
 	PartialManager *partialManager;
-	Part *parts[9];
+	Part *parts[10];
 
 	// When a partial needs to be aborted to free it up for use by a new Poly,
 	// the controller will busy-loop waiting for the sound to finish.

@@ -1536,7 +1536,7 @@ void execx86(int cycs)
                         case 0x36: /*SS:*/
                         oldss=ss;
                         oldds=ds;
-                        ds=ss=ss;
+                        ds=ss;
                         cpu_state.ssegs=2;
                         cycles-=4;
                         goto opcodestart;
