@@ -203,7 +203,7 @@ europc_log(const char *fmt, ...)
  * FIXME: should we mark NVR as dirty?
  */
 static void
-rtc_tick(nvr_t *nvr)
+europc_rtc_tick(nvr_t *nvr)
 {
     uint8_t *regs;
     int mon, yr;
@@ -757,7 +757,7 @@ machine_europc_init(const machine_t *model)
     /* Set up any local handlers here. */
     europc.nvr.reset = rtc_reset;
     europc.nvr.start = rtc_start;
-    europc.nvr.tick = rtc_tick;
+    europc.nvr.tick = europc_rtc_tick;
 
     /* Initialize the actual NVR. */
     nvr_init(&europc.nvr);

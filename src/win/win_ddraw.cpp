@@ -11,7 +11,7 @@
  * NOTES:	This code should be re-merged into a single init() with a
  *		'fullscreen' argument, indicating FS mode is requested.
  *
- * Version:	@(#)win_ddraw.cpp	1.0.8	2018/04/29
+ * Version:	@(#)win_ddraw.cpp	1.0.9	2018/05/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -104,6 +104,10 @@ bgra_to_rgb(png_bytep *b_rgb, uint8_t *bgra, int width, int height)
 {
     int i, j;
     uint8_t *r, *b;
+    uint32_t *rgb = (uint32_t *) bgra;
+
+    if (video_grayscale || invert_display)
+	*bgra = video_color_transform(*bgra);
 
     for (i = 0; i < height; i++) {
 	for (j = 0; j < width; j++) {
@@ -237,7 +241,7 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
 
     if (pBuf2) free(pBuf2); 
 
-    if (pBuf) free(pBuf); 
+    if (pBuf) free(pBuf);
 
     if (fp) fclose(fp);
 }
@@ -374,8 +378,14 @@ ddraw_blit_fs(int x, int y, int y1, int y2, int w, int h)
 	return;
     }
 
-    for (yy = y1; yy < y2; yy++)
-	if (buffer32)  memcpy((void *)((uintptr_t)ddsd.lpSurface + (yy * ddsd.lPitch)), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
+    for (yy = y1; yy < y2; yy++) {
+	if (buffer32) {
+		if (video_grayscale || invert_display)
+			video_transform_copy((uint32_t *)((uintptr_t)ddsd.lpSurface + (yy * ddsd.lPitch)), &(((uint32_t *)buffer32->line[y + yy])[x]), w);
+		else
+			memcpy((void *)((uintptr_t)ddsd.lpSurface + (yy * ddsd.lPitch)), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
+	}
+    }
     video_blit_complete();
     lpdds_back->Unlock(NULL);
 
@@ -418,6 +428,7 @@ ddraw_blit(int x, int y, int y1, int y2, int w, int h)
     POINT po;
     HRESULT hr;
     int yy;
+    uint32_t *p, *q;
 
     if (lpdds_back == NULL) {
 	video_blit_complete();
@@ -447,10 +458,16 @@ ddraw_blit(int x, int y, int y1, int y2, int w, int h)
     }
 
     for (yy = y1; yy < y2; yy++) {
-	if (buffer32)
-		if ((y + yy) >= 0 && (y + yy) < buffer32->h)
-			memcpy((uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
+	if (buffer32) {
+		if ((y + yy) >= 0 && (y + yy) < buffer32->h) {
+			if (video_grayscale || invert_display)
+				video_transform_copy((uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]), &(((uint32_t *)buffer32->line[y + yy])[x]), w);
+			else
+				memcpy((uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
+		}
+	}
     }
+
     video_blit_complete();
     lpdds_back->Unlock(NULL);
 

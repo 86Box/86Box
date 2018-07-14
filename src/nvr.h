@@ -8,7 +8,7 @@
  *
  *		Definitions for the generic NVRAM/CMOS driver.
  *
- * Version:	@(#)nvr.h	1.0.6	2018/04/11
+ * Version:	@(#)nvr.h	1.0.7	2018/06/08
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -79,11 +79,14 @@ typedef struct _nvr_ {
 
 extern int	nvr_dosave;
 #ifdef EMU_DEVICE_H
+extern const device_t at_nvr_old_device;
 extern const device_t at_nvr_device;
 extern const device_t ps_nvr_device;
 extern const device_t amstrad_nvr_device;
 #endif
 
+
+extern void	rtc_tick(void);
 
 extern void	nvr_init(nvr_t *);
 extern wchar_t	*nvr_path(wchar_t *str);

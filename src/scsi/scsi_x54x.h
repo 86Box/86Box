@@ -492,8 +492,8 @@ typedef struct
 
 
 extern void	x54x_reset_ctrl(x54x_t *dev, uint8_t Reset);
-extern void	x54x_buf_alloc(uint8_t id, uint8_t lun, int length);
-extern void	x54x_buf_free(uint8_t id, uint8_t lun);
+extern void	x54x_buf_alloc(uint8_t id, int length);
+extern void	x54x_buf_free(uint8_t id);
 extern uint8_t	x54x_mbo_process(x54x_t *dev);
 extern void	x54x_wait_for_poll(void);
 extern void	x54x_io_set(x54x_t *dev, uint32_t base, uint8_t len);

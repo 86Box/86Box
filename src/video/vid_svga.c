@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.30	2018/04/26
+ * Version:	@(#)vid_svga.c	1.0.31	2018/05/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -966,7 +966,7 @@ uint8_t
 svga_read_common(uint32_t addr, uint8_t linear, void *p)
 {
     svga_t *svga = (svga_t *)p;
-    uint32_t latch_addr, ret;
+    uint32_t latch_addr = 0, ret;
     int readplane = svga->readplane;
     uint8_t ret8;
 
@@ -1104,7 +1104,7 @@ svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 			p = &((uint32_t *)buffer32->line[i & 0x7ff])[32];
 
 			for (j = 0; j < (xsize + x_add); j++)
-				p[j] = svga_color_transform(svga->overscan_color);
+				p[j] = svga->overscan_color;
 		}
 
 		/* Draw (overscan_size + scroll size) lines of overscan on the bottom. */
@@ -1112,7 +1112,7 @@ svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 			p = &((uint32_t *)buffer32->line[(ysize + (y_add >> 1) + i) & 0x7ff])[32];
 
 			for (j = 0; j < (xsize + x_add); j++)
-				p[j] = svga_color_transform(svga->overscan_color);
+				p[j] = svga->overscan_color;
 		}
 
 		for (i = (y_add >> 1); i < (ysize + (y_add >> 1)); i ++) {
@@ -1120,7 +1120,7 @@ svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 
 			for (j = 0; j < 8; j++) {
 				p[j] = svga->pallook[svga->overscan_color];
-				p[xsize + (x_add >> 1) + j] = svga_color_transform(svga->overscan_color);
+				p[xsize + (x_add >> 1) + j] = svga->overscan_color;
 			}
 		}
 	}

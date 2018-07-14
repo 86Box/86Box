@@ -79,6 +79,15 @@ mouse_ps2_log(const char *format, ...)
 }
 
 
+void
+mouse_clear_data(void *priv)
+{
+    mouse_t *dev = (mouse_t *)priv;
+
+    dev->flags &= ~FLAG_CTRLDAT;
+}
+
+
 static void
 ps2_write(uint8_t val, void *priv)
 {

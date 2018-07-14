@@ -8,7 +8,7 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.19	2018/04/29
+ * Version:	@(#)scsi.c	1.0.20	2018/06/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -30,10 +30,12 @@
 #include "../timer.h"
 #include "../device.h"
 #include "../disk/hdc.h"
-#include "../disk/zip.h"
+#include "../disk/hdd.h"
 #include "../plat.h"
 #include "scsi.h"
 #include "../cdrom/cdrom.h"
+#include "../disk/zip.h"
+#include "scsi_disk.h"
 #include "scsi_device.h"
 #include "scsi_aha154x.h"
 #include "scsi_buslogic.h"
@@ -45,11 +47,9 @@
 #include "scsi_x54x.h"
 
 
-scsi_device_t	SCSIDevices[SCSI_ID_MAX][SCSI_LUN_MAX];
-// uint8_t		SCSIPhase = 0xff;
-// uint8_t		SCSIStatus = SCSI_STATUS_OK;
+scsi_device_t	SCSIDevices[SCSI_ID_MAX];
 char		scsi_fn[SCSI_NUM][512];
-uint16_t	scsi_hd_location[SCSI_NUM];
+uint16_t	scsi_disk_location[SCSI_NUM];
 
 int		scsi_card_current = 0;
 int		scsi_card_last = 0;
@@ -169,30 +169,30 @@ void scsi_mutex(uint8_t start)
 
 void scsi_card_init(void)
 {
-    int i, j;
+    int i;
 
     if (!scsi_cards[scsi_card_current].device)
 	return;
 
     scsi_log("Building SCSI hard disk map...\n");
-    build_scsi_hd_map();
+    build_scsi_disk_map();
     scsi_log("Building SCSI CD-ROM map...\n");
     build_scsi_cdrom_map();
     scsi_log("Building SCSI ZIP map...\n");
     build_scsi_zip_map();
 
     for (i=0; i<SCSI_ID_MAX; i++) {
-	for (j=0; j<SCSI_LUN_MAX; j++) {
-		if (scsi_hard_disks[i][j] != 0xff)
-			SCSIDevices[i][j].LunType = SCSI_DISK;
-		else if (scsi_cdrom_drives[i][j] != 0xff)
-			SCSIDevices[i][j].LunType = SCSI_CDROM;
-		else if (scsi_zip_drives[i][j] != 0xff)
-			SCSIDevices[i][j].LunType = SCSI_ZIP;
-		else
-			SCSIDevices[i][j].LunType = SCSI_NONE;
-		SCSIDevices[i][j].CmdBuffer = NULL;
-	}
+	if (scsi_disks[i] != 0xff)
+		SCSIDevices[i].LunType = SCSI_DISK;
+	else if (scsi_cdrom_drives[i] != 0xff)
+		SCSIDevices[i].LunType = SCSI_CDROM;
+	else if (scsi_zip_drives[i] != 0xff)
+		SCSIDevices[i].LunType = SCSI_ZIP;
+	else
+		SCSIDevices[i].LunType = SCSI_NONE;
+	if (SCSIDevices[i].CmdBuffer)
+		free(SCSIDevices[i].CmdBuffer);
+	SCSIDevices[i].CmdBuffer = NULL;
     }
 
     device_add(scsi_cards[scsi_card_current].device);
@@ -202,27 +202,26 @@ void scsi_card_init(void)
 
 
 /* Initialization function for the SCSI layer */
-void SCSIReset(uint8_t id, uint8_t lun)
+void SCSIReset(uint8_t id)
 {
-    uint8_t cdrom_id = scsi_cdrom_drives[id][lun];
-    uint8_t zip_id = scsi_zip_drives[id][lun];
-    uint8_t hdc_id = scsi_hard_disks[id][lun];
+    uint8_t cdrom_id = scsi_cdrom_drives[id];
+    uint8_t zip_id = scsi_zip_drives[id];
+    uint8_t hdc_id = scsi_disks[id];
 
     if (hdc_id != 0xff)
-	SCSIDevices[id][lun].LunType = SCSI_DISK;
+	SCSIDevices[id].LunType = SCSI_DISK;
     else if (cdrom_id != 0xff)
-	SCSIDevices[id][lun].LunType = SCSI_CDROM;
+	SCSIDevices[id].LunType = SCSI_CDROM;
     else if (zip_id != 0xff)
-	SCSIDevices[id][lun].LunType = SCSI_ZIP;
+	SCSIDevices[id].LunType = SCSI_ZIP;
     else
-	SCSIDevices[id][lun].LunType = SCSI_NONE;
+	SCSIDevices[id].LunType = SCSI_NONE;
 
-    scsi_device_reset(id, lun);
+    scsi_device_reset(id);
 
-    if (SCSIDevices[id][lun].CmdBuffer != NULL) {
-	free(SCSIDevices[id][lun].CmdBuffer);
-	SCSIDevices[id][lun].CmdBuffer = NULL;
-    }
+    if (SCSIDevices[id].CmdBuffer)
+	free(SCSIDevices[id].CmdBuffer);
+    SCSIDevices[id].CmdBuffer = NULL;
 }
 
 

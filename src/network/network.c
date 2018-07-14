@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.4	2018/04/29
+ * Version:	@(#)network.c	1.0.5	2018/06/09
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -60,11 +60,14 @@
 #include "../plat.h"
 #include "../ui.h"
 #include "network.h"
+#include "net_3c503.h"
 #include "net_ne2000.h"
 
 
 static netcard_t net_cards[] = {
     { "None",				"none",		NULL,
+      NULL								},
+    { "[ISA] 3Com EtherLink II (3C503)","3c503",	&threec503_device,
       NULL								},
     { "[ISA] Novell NE1000",		"ne1k",		&ne1000_device,
       NULL								},
@@ -296,7 +299,7 @@ network_reset(void)
 
     if (i < 0) {
 	/* Tell user we can't do this (at the moment.) */
-	ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2139);
+	ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2102);
 
 	// FIXME: we should ask in the dialog if they want to
 	//	  reconfigure or quit, and throw them into the

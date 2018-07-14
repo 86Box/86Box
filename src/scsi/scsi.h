@@ -8,7 +8,7 @@
  *
  *		SCSI controller handler header.
  *
- * Version:	@(#)scsi_h	1.0.16	2018/03/28
+ * Version:	@(#)scsi_h	1.0.17	2018/06/02
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -290,9 +290,9 @@ typedef struct {
 } scsi_device_t;
 
 
-extern scsi_device_t	SCSIDevices[SCSI_ID_MAX][SCSI_LUN_MAX];
+extern scsi_device_t	SCSIDevices[SCSI_ID_MAX];
 
-extern void SCSIReset(uint8_t id, uint8_t lun);
+extern void SCSIReset(uint8_t id);
 
 extern int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
 extern int cdrom_LBAtoMSF_accurate(void);
@@ -313,17 +313,6 @@ extern char *scsi_card_get_internal_name(int card);
 extern int scsi_card_get_from_internal_name(char *s);
 extern void scsi_mutex(uint8_t start);
 extern void scsi_card_init(void);
-
-extern uint8_t scsi_hard_disks[16][8];
-
-extern int scsi_hd_err_stat_to_scsi(uint8_t id);
-extern int scsi_hd_phase_to_scsi(uint8_t id);
-extern int find_hdc_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun);
-extern void build_scsi_hd_map(void);
-extern void scsi_hd_reset(uint8_t id);
-extern void scsi_hd_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length);
-extern void scsi_hd_command(uint8_t id, uint8_t *cdb);
-extern void scsi_hd_callback(uint8_t id);
 
 
 #pragma pack(push,1)

@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)fdd_86f.c	1.0.9	2018/05/06
+ * Version:	@(#)fdd_86f.c	1.0.10	2018/06/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1435,9 +1435,9 @@ d86f_read_sector_id(int drive, int side, int match)
 					dev->state = STATE_IDLE;
 					fdc_finishread(d86f_fdc);
 					fdc_headercrcerror(d86f_fdc);
-				} else if (dev->state == STATE_0A_READ_ID) {
+				} else if (dev->state == STATE_0A_READ_ID)
 					dev->state--;
-				} else {
+				else {
 					dev->error_condition |= 1;	/* Mark that there was an ID CRC error. */
 					dev->state++;
 				}
@@ -1549,6 +1549,7 @@ d86f_read_sector_data(int drive, int side)
     if (dev->data_find.bits_obtained) {
 	if (!(dev->data_find.bits_obtained & 15)) {
 		/* We've got a byte. */
+		d86f_log("86F: We've got a byte.\n");
 		if (dev->data_find.bytes_obtained < sector_len) {
 			data = decodefm(drive, dev->last_word[side]);
 			if (dev->state == STATE_11_SCAN_DATA) {
@@ -1559,33 +1560,18 @@ d86f_read_sector_data(int drive, int side)
 				if (dev->data_find.bytes_obtained < d86f_get_data_len(drive)) {
 					if (dev->state != STATE_16_VERIFY_DATA) {
 						read_status = fdc_data(d86f_fdc, data);
-						if (read_status == -1) {
+						if (read_status == -1)
 							dev->dma_over++;
-						}
 					}
 				}
 			}
 			fdd_calccrc(data, &(dev->calc_crc));
-		} else if (dev->data_find.bytes_obtained < crc_pos) {
+		} else if (dev->data_find.bytes_obtained < crc_pos)
 			dev->track_crc.bytes[(dev->data_find.bytes_obtained - sector_len) ^ 1] = decodefm(drive, dev->last_word[side]);
-		}
 		dev->data_find.bytes_obtained++;
 
 		if (dev->data_find.bytes_obtained == (crc_pos + fdc_get_gap(d86f_fdc))) {
 			/* We've got the data. */
-			if (dev->dma_over > 1) {
-				dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
-				dev->error_condition = 0;
-				dev->state = STATE_IDLE;
-				fdc_finishread(d86f_fdc);
-				fdc_overrun(d86f_fdc);
-
-				d86f_get_bit(drive, side);
-
-				dev->data_find.bits_obtained++;
-				return;
-			}
-
 			if ((dev->calc_crc.word != dev->track_crc.word) && (dev->state != STATE_02_READ_DATA)) {
 				d86f_log("86F: Data CRC error: %04X != %04X (%08X)\n", dev->track_crc.word, dev->calc_crc.word, dev->last_sector.dword);
 				dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
@@ -1600,15 +1586,14 @@ d86f_read_sector_data(int drive, int side)
 				fdc_track_finishread(d86f_fdc, dev->error_condition);
 			} else {
 				/* CRC is valid. */
+				d86f_log("86F: Data CRC OK: %04X != %04X (%08X)\n", dev->track_crc.word, dev->calc_crc.word, dev->last_sector.dword);
 				dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
 				dev->error_condition = 0;
-				if (dev->state == STATE_11_SCAN_DATA) {
-					dev->state = STATE_IDLE;
+				dev->state = STATE_IDLE;
+				if (dev->state == STATE_11_SCAN_DATA)
 					fdc_sector_finishcompare(d86f_fdc, (dev->satisfying_bytes == ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
-				} else {
-					dev->state = STATE_IDLE;
+				else
 					fdc_sector_finishread(d86f_fdc);
-				}
 			}
 		}
 	}
@@ -1704,17 +1689,6 @@ d86f_write_sector_data(int drive, int side, int mfm, uint16_t am)
 		dev->data_find.bytes_obtained++;
 
 		if (dev->data_find.bytes_obtained == (crc_pos + fdc_get_gap(d86f_fdc))) {
-			if (dev->dma_over > 1) {
-				dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
-				dev->error_condition = 0;
-				dev->state = STATE_IDLE;
-				fdc_finishread(d86f_fdc);
-				fdc_overrun(d86f_fdc);
-
-				dev->data_find.bits_obtained++;
-				return;
-			}
-
 			/* We've written the data. */
 			dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
 			dev->error_condition = 0;
@@ -2143,15 +2117,6 @@ d86f_turbo_read(int drive, int side)
 	}
     }
 
-    if (dev->dma_over > 1) {
-	dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
-	dev->error_condition = 0;
-	dev->state = STATE_IDLE;
-	fdc_finishread(d86f_fdc);
-	fdc_overrun(d86f_fdc);
-	return;
-    }
-
     if (dev->turbo_pos >= (128 << dev->last_sector.id.n)) {
 	/* CRC is valid. */
 	dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
@@ -2573,7 +2538,8 @@ d86f_poll(int drive)
 						fdc_wrongcylinder(d86f_fdc);
 					else
 						fdc_nosector(d86f_fdc);
-				}
+				} else
+					fdc_nosector(d86f_fdc);
 			} else {
 				fdc_noidam(d86f_fdc);
 			}
@@ -3191,7 +3157,8 @@ d86f_readsector(int drive, int sector, int track, int side, int rate, int sector
     int ret = 0;
 
     ret = d86f_common_command(drive, sector, track, side, rate, sector_size);
-    if (! ret) return;
+    if (! ret)
+	return;
 
     if (sector == SECTOR_FIRST)
 	dev->state = STATE_02_SPIN_TO_INDEX;

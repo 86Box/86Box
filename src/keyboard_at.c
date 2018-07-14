@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.36	2018/05/12
+ * Version:	@(#)keyboard_at.c	1.0.37	2018/05/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -44,6 +44,7 @@
 #include "sound/snd_speaker.h"
 #include "video/video.h"
 #include "keyboard.h"
+#include "mouse.h"
 
 
 #define STAT_PARITY     0x80
@@ -121,6 +122,8 @@ typedef struct {
 
     uint8_t	(*write60_ven)(void *p, uint8_t val);
     uint8_t	(*write64_ven)(void *p, uint8_t val);
+
+    int64_t	timeout;
 } atkbd_t;
 
 
@@ -1002,6 +1005,20 @@ kbd_pulse_poll(void *p)
 
 
 static void
+kbd_timeout_poll(void *p)
+{
+    atkbd_t *kbd = (atkbd_t *) p;
+
+    kbd->key_wantdata = 0;
+    kbd->want60 = 0;
+    if (mouse_p)
+	mouse_clear_data(mouse_p);
+
+    kbd->timeout = 0LL;
+}
+
+
+static void
 kbd_keyboard_set(atkbd_t *kbd, uint8_t enable)
 {
 	kbd->mem[0] &= 0xef;
@@ -1074,6 +1091,7 @@ kbd_write64_generic(void *p, uint8_t val)
 		if ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
 			kbdlog("ATkbd: write mouse output buffer\n");
 			kbd->want60 = 1;
+			kbd->timeout = 25000LL * TIMER_USEC;
 			return 0;
 		}
 		break;
@@ -1081,6 +1099,7 @@ kbd_write64_generic(void *p, uint8_t val)
 		if ((kbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
 			kbdlog("ATkbd: write to mouse\n");
 			kbd->want60 = 1;
+			kbd->timeout = 25000LL * TIMER_USEC;
 			return 0;
 		}
 		break;
@@ -1122,6 +1141,7 @@ kbd_write60_ami(void *p, uint8_t val)
 		if (kbd->secr_phase == 1) {
 			kbd->mem_addr = val;
 			kbd->want60 = 1;
+			kbd->timeout = 25000LL * TIMER_USEC;
 			kbd->secr_phase = 2;
 		} else if (kbd->secr_phase == 2) {
 			kbd->mem[kbd->mem_addr] = val;
@@ -1164,6 +1184,7 @@ kbd_write64_ami(void *p, uint8_t val)
 	case 0x5c: case 0x5d: case 0x5e: case 0x5f:
 		kbdlog("AMI - alias write to register %08X\n", kbd->command);
 		kbd->want60 = 1;
+		kbd->timeout = 25000LL * TIMER_USEC;
 		return 0;
 	case 0xa1: /*AMI - get controller version*/
 		kbdlog("AMI - get controller version\n");
@@ -1229,6 +1250,7 @@ kbd_write64_ami(void *p, uint8_t val)
 	case 0xaf: /*Set extended controller RAM*/
 		kbdlog("ATkbd: set extended controller RAM\n");
 		kbd->want60 = 1;
+		kbd->timeout = 25000LL * TIMER_USEC;
 		kbd->secr_phase = 1;
 		return 0;
 	case 0xb0: case 0xb1: case 0xb2: case 0xb3:
@@ -1245,9 +1267,10 @@ kbd_write64_ami(void *p, uint8_t val)
 		return 0;
 	case 0xb8: case 0xb9: case 0xba: case 0xbb:
 		/*Set keyboard controller line P10-P13 (input port bits 0-3) high*/
-		if (!PCI || (val > 0xb9))
+		if (!PCI || (val > 0xb9)) {
 			kbd->input_port |= (1 << (val & 0x03));
-		kbd_adddata(0x00);
+			kbd_adddata(0x00);
+		}
 		return 0;
 	case 0xbc: case 0xbd:
 		/*Set keyboard controller line P22-P23 (output port bits 2-3) high*/
@@ -1274,6 +1297,7 @@ kbd_write64_ami(void *p, uint8_t val)
 	case 0xcb: /*AMI - set keyboard mode*/
 		kbdlog("AMI - set keyboard mode\n");
 		kbd->want60 = 1;
+		kbd->timeout = 25000LL * TIMER_USEC;
 		return 0;
 	case 0xef: /*??? - sent by AMI486*/
 		kbdlog("??? - sent by AMI486\n");
@@ -1343,6 +1367,7 @@ kbd_write64_quadtel(void *p, uint8_t val)
 	case 0xcf: /*??? - sent by MegaPC BIOS*/
 		kbdlog("??? - sent by MegaPC BIOS\n");
 		kbd->want60 = 1;
+		kbd->timeout = 25000LL * TIMER_USEC;
 		return 0;
     }
 
@@ -1394,6 +1419,7 @@ kbd_write64_toshiba(void *p, uint8_t val)
 		return 0;
 	case 0xb6:		/* T3100e: Set colour / mono byte */
 		kbd->want60 = 1;
+		kbd->timeout = 25000LL * TIMER_USEC;
 		return 0;
 	case 0xb7:		/* T3100e: Emulate PS/2 keyboard - not implemented */
 	case 0xb8:		/* T3100e: Emulate AT keyboard - not implemented */
@@ -1547,6 +1573,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 					case 0xed: /*Set/reset LEDs*/
 						kbdlog("ATkbd: set/reset leds\n");
 						kbd->key_wantdata = 1;
+						kbd->timeout = 25000LL * TIMER_USEC;
 						kbd_adddata_keyboard(0xfa);
 						break;
 
@@ -1562,6 +1589,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 					case 0xf0: /*Get/set scan code set*/
 						kbdlog("ATkbd: scan code set\n");
 						kbd->key_wantdata = 1;
+						kbd->timeout = 25000LL * TIMER_USEC;
 						kbd_adddata_keyboard(0xfa);
 						break;
 
@@ -1576,6 +1604,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 					case 0xf3: /*Set typematic rate/delay*/
 						kbdlog("ATkbd: set typematic rate/delay\n");
 						kbd->key_wantdata = 1;
+						kbd->timeout = 25000LL * TIMER_USEC;
 						kbd_adddata_keyboard(0xfa);
 						break;
 
@@ -1696,6 +1725,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 			case 0x78: case 0x79: case 0x7a: case 0x7b:
 			case 0x7c: case 0x7d: case 0x7e: case 0x7f:
 				kbd->want60 = 1;
+				kbd->timeout = 25000LL * TIMER_USEC;
 				break;
 
 			case 0xaa: /*Self-test*/
@@ -1753,11 +1783,13 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 			case 0xd1: /*Write output port*/
 				// kbdlog("ATkbd: write output port\n");
 				kbd->want60 = 1;
+				kbd->timeout = 25000LL * TIMER_USEC;
 				break;
 
 			case 0xd2: /*Write keyboard output buffer*/
 				kbdlog("ATkbd: write keyboard output buffer\n");
 				kbd->want60 = 1;
+				kbd->timeout = 25000LL * TIMER_USEC;
 				break;
 
 			case 0xdd: /* Disable A20 Address Line */
@@ -1864,6 +1896,7 @@ kbd_reset(void *priv)
     kbd->last_irq = 0;
     kbd->secr_phase = 0;
     kbd->key_wantdata = 0;
+    kbd->timeout = 0LL;
 
     keyboard_mode = 0x02 | kbd->dtrans;
 
@@ -1908,6 +1941,9 @@ kbd_init(const device_t *info)
 
     timer_add(kbd_pulse_poll,
 	      &kbd->pulse_cb, &kbd->pulse_cb, kbd);
+
+    timer_add(kbd_timeout_poll,
+	      &kbd->timeout, &kbd->timeout, kbd);
 
     kbd->write60_ven = NULL;
     kbd->write64_ven = NULL;

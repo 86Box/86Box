@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.27	2018/05/20
+ * Version:	@(#)video.h	1.0.28	2018/05/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -194,7 +194,6 @@ extern int	video_timing_read_b,
 extern int	video_timing_write_b,
 		video_timing_write_w,
 		video_timing_write_l;
-extern int	video_speed;
 extern int	video_res_x,
 		video_res_y,
 		video_bpp;
@@ -260,6 +259,9 @@ extern int	get_actual_size_y(void);
 #ifdef ENABLE_VRAM_DUMP
 extern void	svga_dump_vram(void);
 #endif
+
+extern uint32_t	video_color_transform(uint32_t color);
+extern void	video_transform_copy(uint32_t *dst, uint32_t *src, int len);
 
 #ifdef __cplusplus
 }

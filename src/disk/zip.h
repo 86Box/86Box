@@ -48,9 +48,32 @@ enum {
 
 
 typedef struct {
-    uint8_t previous_command, error,
-	    features, status,
-	    phase, *buffer,
+    unsigned int bus_type;	/* 0 = ATAPI, 1 = SCSI */
+    uint8_t ide_channel,
+	    bus_mode;		/* Bit 0 = PIO suported;
+				   Bit 1 = DMA supportd. */
+
+    unsigned int scsi_device_id, is_250;
+
+    wchar_t image_path[1024],
+	    prev_image_path[1024];
+
+    int read_only, ui_writeprot;
+
+    uint32_t medium_size, base;
+
+    FILE *f;
+} zip_drive_t;
+
+typedef struct {
+    mode_sense_pages_t ms_pages_saved;
+
+    zip_drive_t *drv;
+
+    uint8_t previous_command,
+	    error, features,
+	    status, phase,
+	    id, *buffer,
 	    atapi_cdb[16],
 	    current_cdb[16],
 	    sense[256];
@@ -77,35 +100,16 @@ typedef struct {
     uint64_t current_page_code;
 } zip_t;
 
-typedef struct {
-    unsigned int bus_type;	/* 0 = ATAPI, 1 = SCSI */
-    uint8_t ide_channel,
-	    bus_mode;		/* Bit 0 = PIO suported;
-				   Bit 1 = DMA supportd. */
-
-    unsigned int scsi_device_id, scsi_device_lun,
-		 is_250;
-
-    wchar_t image_path[1024],
-	    prev_image_path[1024];
-
-    int read_only, ui_writeprot;
-
-    uint32_t medium_size, base;
-
-    FILE *f;
-} zip_drive_t;
-
 
 extern zip_t		*zip[ZIP_NUM];
 extern zip_drive_t	zip_drives[ZIP_NUM];
 extern uint8_t		atapi_zip_drives[8];
-extern uint8_t		scsi_zip_drives[16][8];
+extern uint8_t		scsi_zip_drives[16];
 
-#define zip_sense_error zip[id]->sense[0]
-#define zip_sense_key zip[id]->sense[2]
-#define zip_asc zip[id]->sense[12]
-#define zip_ascq zip[id]->sense[13]
+#define zip_sense_error dev->sense[0]
+#define zip_sense_key dev->sense[2]
+#define zip_asc dev->sense[12]
+#define zip_ascq dev->sense[13]
 
 
 #ifdef __cplusplus
@@ -116,37 +120,32 @@ extern int	(*ide_bus_master_read)(int channel, uint8_t *data, int transfer_lengt
 extern int	(*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length, void *priv);
 extern void	(*ide_bus_master_set_irq)(int channel, void *priv);
 extern void	*ide_bus_master_priv[2];
-extern void	ioctl_close(uint8_t id);
 
-extern uint32_t	zip_mode_sense_get_channel(uint8_t id, int channel);
-extern uint32_t	zip_mode_sense_get_volume(uint8_t id, int channel);
 extern void	build_atapi_zip_map(void);
 extern void	build_scsi_zip_map(void);
-extern int	zip_ZIP_PHASE_to_scsi(uint8_t id);
-extern int	zip_atapi_phase_to_scsi(uint8_t id);
-extern void	zip_command(uint8_t id, uint8_t *cdb);
-extern void	zip_phase_callback(uint8_t id);
+extern int	zip_ZIP_PHASE_to_scsi(zip_t *dev);
+extern int	zip_atapi_phase_to_scsi(zip_t *dev);
+extern void	zip_command(zip_t *dev, uint8_t *cdb);
+extern void	zip_phase_callback(zip_t *dev);
 extern uint32_t	zip_read(uint8_t channel, int length);
 extern void	zip_write(uint8_t channel, uint32_t val, int length);
 
-extern void     zip_close(uint8_t id);
-extern void     zip_disk_reload(uint8_t id);
-extern void	zip_reset(uint8_t id);
-extern void	zip_set_signature(int id);
-extern void	zip_request_sense_for_scsi(uint8_t id, uint8_t *buffer, uint8_t alloc_length);
+extern void     zip_disk_close(zip_t *dev);
+extern void     zip_disk_reload(zip_t *dev);
+extern void	zip_reset(zip_t *dev);
+extern void	zip_set_signature(zip_t *dev);
+extern void	zip_request_sense_for_scsi(zip_t *dev, uint8_t *buffer, uint8_t alloc_length);
 extern void	zip_update_cdb(uint8_t *cdb, int lba_pos, int number_of_blocks);
-extern void	zip_insert(uint8_t id);
+extern void	zip_insert(zip_t *dev);
 
-extern int	find_zip_for_scsi_id(uint8_t scsi_id, uint8_t scsi_lun);
-extern int	zip_read_capacity(uint8_t id, uint8_t *cdb, uint8_t *buffer, uint32_t *len);
+extern int	find_zip_for_scsi_id(uint8_t scsi_id);
+extern int	zip_read_capacity(zip_t *dev, uint8_t *cdb, uint8_t *buffer, uint32_t *len);
 
 extern void	zip_global_init(void);
 extern void	zip_hard_reset(void);
 
-extern int	zip_load(uint8_t id, wchar_t *fn);
-
-extern void	zip_destroy_drives(void);
-extern void	zip_close(uint8_t id);
+extern int	zip_load(zip_t *dev, wchar_t *fn);
+extern void	zip_close();
 
 #ifdef __cplusplus
 }

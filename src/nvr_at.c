@@ -311,7 +311,8 @@ time_get(nvr_t *nvr, struct tm *tm)
 	tm->tm_mday = nvr->regs[RTC_DOM];
 	tm->tm_mon = (nvr->regs[RTC_MONTH] - 1);
 	tm->tm_year = nvr->regs[RTC_YEAR];
-	tm->tm_year += (nvr->regs[local->cent] * 100) - 1900;
+	if (local->cent != 0xFF)
+		tm->tm_year += (nvr->regs[local->cent] * 100) - 1900;
     } else {
 	/* NVR is in BCD data mode. */
 	tm->tm_sec = RTC_DCB(nvr->regs[RTC_SECONDS]);
@@ -321,7 +322,8 @@ time_get(nvr_t *nvr, struct tm *tm)
 	tm->tm_mday = RTC_DCB(nvr->regs[RTC_DOM]);
 	tm->tm_mon = (RTC_DCB(nvr->regs[RTC_MONTH]) - 1);
 	tm->tm_year = RTC_DCB(nvr->regs[RTC_YEAR]);
-	tm->tm_year += (RTC_DCB(nvr->regs[local->cent]) * 100) - 1900;
+	if (local->cent != 0xFF)
+		tm->tm_year += (RTC_DCB(nvr->regs[local->cent]) * 100) - 1900;
     }
 
     /* Adjust for 12/24 hour mode. */
@@ -347,7 +349,8 @@ time_set(nvr_t *nvr, struct tm *tm)
 	nvr->regs[RTC_DOM] = tm->tm_mday;
 	nvr->regs[RTC_MONTH] = (tm->tm_mon + 1);
 	nvr->regs[RTC_YEAR] = (year % 100);
-	nvr->regs[local->cent] = (year / 100);
+	if (local->cent != 0xFF)
+		nvr->regs[local->cent] = (year / 100);
 
 	if (nvr->regs[RTC_REGB] & REGB_2412) {
 		/* NVR is in 24h mode. */
@@ -366,7 +369,8 @@ time_set(nvr_t *nvr, struct tm *tm)
 	nvr->regs[RTC_DOM] = RTC_BCD(tm->tm_mday);
 	nvr->regs[RTC_MONTH] = RTC_BCD(tm->tm_mon + 1);
 	nvr->regs[RTC_YEAR] = RTC_BCD(year % 100);
-	nvr->regs[local->cent] = RTC_BCD(year / 100);
+	if (local->cent != 0xFF)
+		nvr->regs[local->cent] = RTC_BCD(year / 100);
 
 	if (nvr->regs[RTC_REGB] & REGB_2412) {
 		/* NVR is in 24h mode. */
@@ -451,9 +455,12 @@ timer_recalc(nvr_t *nvr, int add)
 
     c = 1ULL << ((nvr->regs[RTC_REGA] & REGA_RS) - 1);
     nt = (int64_t)(RTCCONST * c * (1<<TIMER_SHIFT));
-    if (add)
+    if (add == 2) {
+	local->rtctime = nt;
+	return;
+    } else if (add == 1)
 	local->rtctime += nt;
-      else if (local->rtctime > nt)
+    else if (local->rtctime > nt)
 	local->rtctime = nt;
 }
 
@@ -494,7 +501,7 @@ timer_tick(nvr_t *nvr)
 	/* Set the UIP bit, announcing the update. */
 	local->stat = REGA_UIP;
 
-	timer_recalc(nvr, 0);
+	rtc_tick();
 
 	/* Schedule the actual update. */
 	local->ecount = (int64_t)((244.0 + 1984.0) * TIMER_USEC);
@@ -545,7 +552,7 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 			break;
 	}
 
-	if ((local->addr < RTC_REGA) || (local->addr == local->cent)) {
+	if ((local->addr < RTC_REGA) || ((local->cent != 0xff) && (local->addr == local->cent))) {
 		if ((local->addr != 1) && (local->addr != 3) && (local->addr != 5)) {
 			if ((old != val) && !enable_sync) {
 				/* Update internal clock. */
@@ -611,7 +618,8 @@ nvr_reset(nvr_t *nvr)
     nvr->regs[RTC_DOM] = 1;
     nvr->regs[RTC_MONTH] = 1;
     nvr->regs[RTC_YEAR] = RTC_BCD(80);
-    nvr->regs[local->cent] = RTC_BCD(19);
+    if (local->cent != 0xFF)
+	nvr->regs[local->cent] = RTC_BCD(19);
 }
 
 
@@ -656,27 +664,34 @@ nvr_at_init(const device_t *info)
     nvr = (nvr_t *)malloc(sizeof(nvr_t));
     if (nvr == NULL) return(NULL);
     /* FIXME: See which is correct, this or 0xFF. */
-    /* memset(nvr, 0x00, sizeof(nvr_t)); */
-    memset(nvr, 0xFF, sizeof(nvr_t));
+    if (info->local == 0)
+	memset(nvr, 0xff, sizeof(nvr_t));
+    else
+	memset(nvr, 0x00, sizeof(nvr_t));
 
     local = (local_t *)malloc(sizeof(local_t));
-    memset(local, 0xff, sizeof(local_t));
+    memset(local, 0x00, sizeof(local_t));
     nvr->data = local;
 
     /* This is machine specific. */
     nvr->size = machines[machine].nvrmask + 1;
     switch(info->local) {
-	case 0:		/* standard AT */
+	case 0:		/* standard AT, no century register */
+		nvr->irq = 8;
+		local->cent = 0xff;
+		break;
+
+	case 1:		/* standard AT */
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_AT;
 		break;
 
-	case 1:		/* PS/1 or PS/2 */
+	case 2:		/* PS/1 or PS/2 */
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_PS;
 		break;
 
-	case 2:		/* Amstrad PC's */
+	case 3:		/* Amstrad PC's */
 		nvr->irq = 1;
 		local->cent = RTC_CENTURY_AT;
 		break;
@@ -718,10 +733,19 @@ nvr_at_close(void *priv)
 }
 
 
+const device_t at_nvr_old_device = {
+    "PC/AT NVRAM (No century)",
+    DEVICE_ISA | DEVICE_AT,
+    0,
+    nvr_at_init, nvr_at_close, NULL,
+    NULL, NULL,
+    NULL
+};
+
 const device_t at_nvr_device = {
     "PC/AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
-    0,
+    1,
     nvr_at_init, nvr_at_close, NULL,
     NULL, NULL,
     NULL
@@ -730,7 +754,7 @@ const device_t at_nvr_device = {
 const device_t ps_nvr_device = {
     "PS/1 or PS/2 NVRAM",
     DEVICE_PS2,
-    1,
+    2,
     nvr_at_init, nvr_at_close, NULL,
     NULL, NULL,
     NULL
@@ -739,7 +763,7 @@ const device_t ps_nvr_device = {
 const device_t amstrad_nvr_device = {
     "Amstrad NVRAM",
     MACHINE_ISA | MACHINE_AT,
-    2,
+    3,
     nvr_at_init, nvr_at_close, NULL,
     NULL, NULL,
     NULL

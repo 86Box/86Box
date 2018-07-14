@@ -93,7 +93,7 @@ machine_common_init(const machine_t *model)
     pit_init();
 
     cpu_set();
-    if (AT)
+    if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
 	setrtcconst(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
     else
 	setrtcconst(14318184.0);
