@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.49	2018/05/25
+ * Version:	@(#)win.c	1.0.50	2018/07/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -85,21 +85,17 @@ static struct {
   {
     {	"DDraw", 1, (int(*)(void*))ddraw_init, ddraw_close, NULL, ddraw_pause		},
     {	"D3D", 1, (int(*)(void*))d3d_init, d3d_close, d3d_resize, d3d_pause		},
-#ifdef USE_VNC
-    {	"SDL", 1, (int(*)(void*))sdl_init, sdl_close, NULL, sdl_pause			},
-    {	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause				}
-#else
     {	"SDL", 1, (int(*)(void*))sdl_init, sdl_close, NULL, sdl_pause			}
+#ifdef USE_VNC
+    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause				}
 #endif
   },
   {
     {	"DDraw", 1, (int(*)(void*))ddraw_init_fs, ddraw_close, NULL, ddraw_pause	},
     {	"D3D", 1, (int(*)(void*))d3d_init_fs, d3d_close, NULL, d3d_pause		},
-#ifdef USE_VNC
-    {	"SDL", 1, (int(*)(void*))sdl_init_fs, sdl_close, NULL, sdl_pause		},
-    {	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause				}
-#else
     {	"SDL", 1, (int(*)(void*))sdl_init_fs, sdl_close, sdl_resize, sdl_pause		}
+#ifdef USE_VNC
+    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause				}
 #endif
   },
 };
