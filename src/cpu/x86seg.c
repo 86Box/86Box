@@ -8,22 +8,25 @@
  *
  *		x86 CPU segment emulation.
  *
- * Version:	@(#)x86seg.c	1.0.6	2017/11/24
+ * Version:	@(#)x86seg.c	1.0.7	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "cpu.h"
+#include "../device.h"
 #include "../machine/machine.h"
 #include "../mem.h"
 #include "../nvr.h"
@@ -57,7 +60,27 @@ void pmodeint(int num, int soft);
 /*NOT PRESENT is INT 0B
   GPF is INT 0D*/
 
-FILE *pclogf;
+
+#ifdef ENABLE_X86SEG_LOG
+int x86seg_do_log = ENABLE_X86SEG_LOG;
+#endif
+
+
+static void
+x86seg_log(const char *fmt, ...)
+{
+#ifdef ENABLE_X86SEG_LOG
+    va_list ap;
+
+    if (x86seg_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 void x86abort(const char *format, ...)
 {
    va_list ap;
@@ -377,8 +400,8 @@ void loadseg(uint16_t seg, x86seg *s)
                 }
                 else if (s!=&_cs)
                 {
-                        if (output) pclog("Seg data %04X %04X %04X %04X\n", segdat[0], segdat[1], segdat[2], segdat[3]);
-                        if (output) pclog("Seg type %03X\n",segdat[2]&0x1F00);
+                         x86seg_log("Seg data %04X %04X %04X %04X\n", segdat[0], segdat[1], segdat[2], segdat[3]);
+                         x86seg_log("Seg type %03X\n",segdat[2]&0x1F00);
                         switch ((segdat[2]>>8)&0x1F)
                         {
                                 case 0x10: case 0x11: case 0x12: case 0x13: /*Data segments*/
@@ -466,7 +489,7 @@ void loadcs(uint16_t seg)
 {
         uint16_t segdat[4];
         uint32_t addr;
-        if (output) pclog("Load CS %04X\n",seg);
+         x86seg_log("Load CS %04X\n",seg);
         if (msw&1 && !(eflags&VM_FLAG))
         {
                 if (!(seg&~3))
@@ -600,7 +623,7 @@ void loadcsjmp(uint16_t seg, uint32_t oxpc)
                 segdat[1]=readmemw(0,addr+2);
                 segdat[2]=readmemw(0,addr+4);
                 segdat[3]=readmemw(0,addr+6); cpl_override=0; if (cpu_state.abrt) return;
-                if (output) pclog("%04X %04X %04X %04X\n",segdat[0],segdat[1],segdat[2],segdat[3]);
+                 x86seg_log("%04X %04X %04X %04X\n",segdat[0],segdat[1],segdat[2],segdat[3]);
                 if (segdat[2]&0x1000) /*Normal code segment*/
                 {
                         if (!(segdat[2]&0x400)) /*Not conforming*/
@@ -863,7 +886,7 @@ void loadcscall(uint16_t seg)
         
         if (msw&1 && !(eflags&VM_FLAG))
         {
-                if (csout) pclog("Protected mode CS load! %04X\n",seg);
+                if (csout) x86seg_log("Protected mode CS load! %04X\n",seg);
                 if (!(seg&~3))
                 {
                         x86gpf(NULL,0);
@@ -897,7 +920,7 @@ void loadcscall(uint16_t seg)
                 newpc=segdat[0];
                 if (type&0x800) newpc|=segdat[3]<<16;
 
-                if (csout) pclog("Code seg call - %04X - %04X %04X %04X\n",seg,segdat[0],segdat[1],segdat[2]);
+                if (csout) x86seg_log("Code seg call - %04X - %04X %04X %04X\n",seg,segdat[0],segdat[1],segdat[2]);
                 if (segdat[2]&0x1000)
                 {
                         if (!(segdat[2]&0x400)) /*Not conforming*/
@@ -942,18 +965,18 @@ void loadcscall(uint16_t seg)
                         CS=seg;
                         do_seg_load(&_cs, segdat);
                         if (CPL==3 && oldcpl!=3) flushmmucache_cr3();
-                        if (csout) pclog("Complete\n");
+                        if (csout) x86seg_log("Complete\n");
                         cycles -= timing_call_pm;
                 }
                 else
                 {
                         type=segdat[2]&0xF00;
-                        if (csout) pclog("Type %03X\n",type);
+                        if (csout) x86seg_log("Type %03X\n",type);
                         switch (type)
                         {
                                 case 0x400: /*Call gate*/
                                 case 0xC00: /*386 Call gate*/
-                                if (output) pclog("Callgate %08X\n", cpu_state.pc);
+                                 x86seg_log("Callgate %08X\n", cpu_state.pc);
                                 cgate32=(type&0x800);
                                 cgate16=!cgate32;
                                 oldcs=CS;
@@ -970,13 +993,13 @@ void loadcscall(uint16_t seg)
                                 }
                                 if (!(segdat[2]&0x8000))
                                 {
-                                        if (output) pclog("Call gate not present %04X\n",seg);
+                                         x86seg_log("Call gate not present %04X\n",seg);
                                         x86np("Call gate not present\n", seg & 0xfffc);
                                         return;
                                 }
                                 seg2=segdat[1];
                                 
-                                if (output) pclog("New address : %04X:%08X\n", seg2, newpc);
+                                 x86seg_log("New address : %04X:%08X\n", seg2, newpc);
                                 
                                 if (!(seg2&~3))
                                 {
@@ -1008,7 +1031,7 @@ void loadcscall(uint16_t seg)
                                 segdat[2]=readmemw(0,addr+4);
                                 segdat[3]=readmemw(0,addr+6); cpl_override=0; if (cpu_state.abrt) return;
                                 
-                                if (output) pclog("Code seg2 call - %04X - %04X %04X %04X\n",seg2,segdat[0],segdat[1],segdat[2]);
+                                 x86seg_log("Code seg2 call - %04X - %04X %04X %04X\n",seg2,segdat[0],segdat[1],segdat[2]);
                                 
                                 if (DPL > CPL)
                                 {
@@ -1017,7 +1040,7 @@ void loadcscall(uint16_t seg)
                                 }
                                 if (!(segdat[2]&0x8000))
                                 {
-                                        if (output) pclog("Call gate CS not present %04X\n",seg2);
+                                         x86seg_log("Call gate CS not present %04X\n",seg2);
                                         x86np("Call gate CS not present", seg2 & 0xfffc);
                                         return;
                                 }
@@ -1047,7 +1070,7 @@ void loadcscall(uint16_t seg)
                                                 }
                                                 cpl_override=0;
                                                 if (cpu_state.abrt) return;
-                                                if (output) pclog("New stack %04X:%08X\n",newss,newsp);
+                                                 x86seg_log("New stack %04X:%08X\n",newss,newsp);
                                                 if (!(newss&~3))
                                                 {
                                                         x86ts(NULL,newss&~3);
@@ -1075,12 +1098,12 @@ void loadcscall(uint16_t seg)
                                                         addr+=gdt.base;
                                                 }
                                                 cpl_override=1;
-                                                if (output) pclog("Read stack seg\n");
+                                                 x86seg_log("Read stack seg\n");
                                                 segdat2[0]=readmemw(0,addr);
                                                 segdat2[1]=readmemw(0,addr+2);
                                                 segdat2[2]=readmemw(0,addr+4);
                                                 segdat2[3]=readmemw(0,addr+6); cpl_override=0; if (cpu_state.abrt) return;
-                                                if (output) pclog("Read stack seg done!\n");
+                                                 x86seg_log("Read stack seg done!\n");
                                                 if (((newss & 3) != DPL) || (DPL2 != DPL))
                                                 {
                                                         x86ts(NULL,newss&~3);
@@ -1104,7 +1127,7 @@ void loadcscall(uint16_t seg)
                                                 
                                                 do_seg_load(&_ss, segdat2);
 
-                                                if (output) pclog("Set access 1\n");
+                                                 x86seg_log("Set access 1\n");
 
 #ifdef SEL_ACCESSED                                                
                                                 cpl_override = 1;
@@ -1118,7 +1141,7 @@ void loadcscall(uint16_t seg)
                                                 set_use32(segdat[3]&0x40);
                                                 cpu_state.pc=newpc;
                                                 
-                                                if (output) pclog("Set access 2\n");
+                                                 x86seg_log("Set access 2\n");
                                                 
 #ifdef CS_ACCESSED
                                                 cpl_override = 1;
@@ -1126,7 +1149,7 @@ void loadcscall(uint16_t seg)
                                                 cpl_override = 0;
 #endif
                         
-                                                if (output) pclog("Type %04X\n",type);
+                                                 x86seg_log("Type %04X\n",type);
                                                 if (type==0xC00)
                                                 {
                                                         PUSHL(oldss);
@@ -1154,9 +1177,9 @@ void loadcscall(uint16_t seg)
                                                 }
                                                 else
                                                 {
-                                                        if (output) pclog("Stack %04X\n",SP);
+                                                         x86seg_log("Stack %04X\n",SP);
                                                         PUSHW(oldss);
-                                                        if (output) pclog("Write SS to %04X:%04X\n",SS,SP);
+                                                         x86seg_log("Write SS to %04X:%04X\n",SS,SP);
                                                         PUSHW(oldsp2);
                                                         if (cpu_state.abrt)
                                                         {
@@ -1164,14 +1187,14 @@ void loadcscall(uint16_t seg)
                                                                 ESP = oldsp2;
                                                                 return;
                                                         }
-                                                        if (output) pclog("Write SP to %04X:%04X\n",SS,SP);
+                                                         x86seg_log("Write SP to %04X:%04X\n",SS,SP);
                                                         if (count)
                                                         {
                                                                 while (count)
                                                                 {
                                                                         count--;
                                                                         tempw=readmemw(oldssbase,(oldsp&0xFFFF)+(count*2));
-                                                                        if (output) pclog("PUSH %04X\n",tempw);
+                                                                         x86seg_log("PUSH %04X\n",tempw);
                                                                         PUSHW(tempw);
                                                                         if (cpu_state.abrt)
                                                                         {
@@ -1245,7 +1268,7 @@ void pmoderetf(int is32, uint16_t off)
         uint32_t addr, oaddr;
         uint16_t segdat[4],segdat2[4],seg,newss;
         uint32_t oldsp=ESP;
-        if (output) pclog("RETF %i %04X:%04X  %08X %04X\n",is32,CS,cpu_state.pc,cr0,eflags);
+         x86seg_log("RETF %i %04X:%04X  %08X %04X\n",is32,CS,cpu_state.pc,cr0,eflags);
         if (is32)
         {
                 newpc=POPL();
@@ -1253,12 +1276,12 @@ void pmoderetf(int is32, uint16_t off)
         }
         else
         {
-                if (output) pclog("PC read from %04X:%04X\n",SS,SP);
+                 x86seg_log("PC read from %04X:%04X\n",SS,SP);
                 newpc=POPW();
-                if (output) pclog("CS read from %04X:%04X\n",SS,SP);
+                 x86seg_log("CS read from %04X:%04X\n",SS,SP);
                 seg=POPW(); if (cpu_state.abrt) return;
         }
-        if (output) pclog("Return to %04X:%08X\n",seg,newpc);
+         x86seg_log("Return to %04X:%08X\n",seg,newpc);
         if ((seg&3)<CPL)
         {
                 ESP=oldsp;
@@ -1296,14 +1319,14 @@ void pmoderetf(int is32, uint16_t off)
         segdat[3]=readmemw(0,addr+6); cpl_override=0; if (cpu_state.abrt) { ESP=oldsp; return; }
         oaddr = addr;
         
-        if (output) pclog("CPL %i RPL %i %i\n",CPL,seg&3,is32);
+         x86seg_log("CPL %i RPL %i %i\n",CPL,seg&3,is32);
 
         if (stack32) ESP+=off;
         else         SP+=off;
 
         if (CPL==(seg&3))
         {
-                if (output) pclog("RETF CPL = RPL  %04X\n", segdat[2]);
+                 x86seg_log("RETF CPL = RPL  %04X\n", segdat[2]);
                 switch (segdat[2]&0x1F00)
                 {
                         case 0x1800: case 0x1900: case 0x1A00: case 0x1B00: /*Non-conforming*/
@@ -1361,7 +1384,7 @@ void pmoderetf(int is32, uint16_t off)
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
-                        if (output) pclog("RETF non-conforming, %i %i\n",seg&3, DPL);
+                         x86seg_log("RETF non-conforming, %i %i\n",seg&3, DPL);
                         break;
                         case 0x1C00: case 0x1D00: case 0x1E00: case 0x1F00: /*Conforming*/
                         if ((seg&3) < DPL)
@@ -1370,7 +1393,7 @@ void pmoderetf(int is32, uint16_t off)
                                 x86gpf(NULL,seg&~3);
                                 return;
                         }
-                        if (output) pclog("RETF conforming, %i %i\n",seg&3, DPL);
+                         x86seg_log("RETF conforming, %i %i\n",seg&3, DPL);
                         break;
                         default:
                         ESP=oldsp;
@@ -1390,12 +1413,12 @@ void pmoderetf(int is32, uint16_t off)
                 }
                 else
                 {
-                        if (output) pclog("SP read from %04X:%04X\n",SS,SP);
+                         x86seg_log("SP read from %04X:%04X\n",SS,SP);
                         newsp=POPW();
-                        if (output) pclog("SS read from %04X:%04X\n",SS,SP);
+                         x86seg_log("SS read from %04X:%04X\n",SS,SP);
                         newss=POPW(); if (cpu_state.abrt) return;
                 }
-                if (output) pclog("Read new stack : %04X:%04X (%08X)\n", newss, newsp, ldt.base);
+                 x86seg_log("Read new stack : %04X:%04X (%08X)\n", newss, newsp, ldt.base);
                 if (!(newss&~3))
                 {
                         ESP=oldsp;
@@ -1428,7 +1451,7 @@ void pmoderetf(int is32, uint16_t off)
                 segdat2[1]=readmemw(0,addr+2);
                 segdat2[2]=readmemw(0,addr+4);
                 segdat2[3]=readmemw(0,addr+6); cpl_override=0; if (cpu_state.abrt) { ESP=oldsp; return; }
-                if (output) pclog("Segment data %04X %04X %04X %04X\n", segdat2[0], segdat2[1], segdat2[2], segdat2[3]);
+                 x86seg_log("Segment data %04X %04X %04X %04X\n", segdat2[0], segdat2[1], segdat2[2], segdat2[3]);
                 if ((newss & 3) != (seg & 3))
                 {
                         ESP=oldsp;
@@ -1507,7 +1530,7 @@ void pmodeint(int num, int soft)
         
         if (eflags&VM_FLAG && IOPL!=3 && soft)
         {
-                if (output) pclog("V86 banned int\n");
+                 x86seg_log("V86 banned int\n");
                 x86gpf(NULL,0);
                 return;
         }
@@ -1528,7 +1551,7 @@ void pmodeint(int num, int soft)
                 {
                         x86gpf(NULL,(num*8)+2+((soft)?0:1));
                 }
-                if (output) pclog("addr >= IDT.limit\n");
+                 x86seg_log("addr >= IDT.limit\n");
                 return;
         }
         addr+=idt.base;
@@ -1536,10 +1559,10 @@ void pmodeint(int num, int soft)
         segdat[0]=readmemw(0,addr);
         segdat[1]=readmemw(2,addr);
         segdat[2]=readmemw(4,addr);
-        segdat[3]=readmemw(6,addr); cpl_override=0; if (cpu_state.abrt) { /* pclog("Abrt reading from %08X\n",addr); */ return; }
+        segdat[3]=readmemw(6,addr); cpl_override=0; if (cpu_state.abrt) { /* x86seg_log("Abrt reading from %08X\n",addr); */ return; }
         oaddr = addr;
 
-        if (output) pclog("Addr %08X seg %04X %04X %04X %04X\n",addr,segdat[0],segdat[1],segdat[2],segdat[3]);
+         x86seg_log("Addr %08X seg %04X %04X %04X %04X\n",addr,segdat[0],segdat[1],segdat[2],segdat[3]);
         if (!(segdat[2]&0x1F00))
         {
                 x86gpf(NULL,(num*8)+2);
@@ -1682,7 +1705,7 @@ void pmodeint(int num, int soft)
                                         cpl_override = 0;
 #endif
                                         
-                                        if (output) pclog("New stack %04X:%08X\n",SS,ESP);
+                                         x86seg_log("New stack %04X:%08X\n",SS,ESP);
                                         cpl_override=1;
                                         if (type>=0x800)
                                         {
@@ -1867,7 +1890,7 @@ void pmodeiret(int is32)
                 addr=seg&~7;
                 if (seg&4)
                 {
-                        pclog("TS LDT %04X %04X IRET\n",seg,gdt.limit);
+                        x86seg_log("TS LDT %04X %04X IRET\n",seg,gdt.limit);
                         x86ts(NULL,seg&~3);
                         return;
                 }
@@ -2031,7 +2054,7 @@ void pmodeiret(int is32)
         else /*Return to outer level*/
         {
                 oaddr = addr;
-                if (output) pclog("Outer level\n");
+                 x86seg_log("Outer level\n");
                 if (is32)
                 {
                         newsp=POPL();
@@ -2043,7 +2066,7 @@ void pmodeiret(int is32)
                         newss=POPW(); if (cpu_state.abrt) { ESP = oldsp; return; }
                 }
                 
-                if (output) pclog("IRET load stack %04X:%04X\n",newss,newsp);
+                 x86seg_log("IRET load stack %04X:%04X\n",newss,newsp);
                 
                 if (!(newss&~3))
                 {

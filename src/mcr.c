@@ -24,7 +24,6 @@ void resetmcr(void)
 
 void writemcr(uint16_t addr, uint8_t val)
 {
-        pclog("MCR: write %04X %02X %04X:%04X\n",addr,val,CS,cpu_state.pc);
         switch (addr)
         {
                 case 0x22:

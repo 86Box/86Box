@@ -8,7 +8,7 @@
  *
  *		Implementation of the floppy drive emulation.
  *
- * Version:	@(#)fdd.c	1.0.5	2018/03/16
+ * Version:	@(#)fdd.c	1.0.9	2018/05/13
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -36,10 +36,12 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../machine/machine.h"
 #include "../mem.h"
@@ -114,6 +116,7 @@ static const struct
         {L"BIN", img_load,       img_close, -1},
         {L"CQ",  img_load,       img_close, -1},
         {L"CQM", img_load,       img_close, -1},
+        {L"DDI", img_load,       img_close, -1},
         {L"DSK", img_load,       img_close, -1},
         {L"FDI", fdi_load,       fdi_close, -1},
         {L"FDF", img_load,       img_close, -1},
@@ -225,6 +228,27 @@ static const struct
 		-1, -1, "", ""
         }
 };
+
+#ifdef ENABLE_FDD_LOG
+int fdd_do_log = ENABLE_FDD_LOG;
+#endif
+
+
+static void
+fdd_log(const char *fmt, ...)
+{
+#ifdef ENABLE_FDD_LOG
+   va_list ap;
+
+   if (fdd_do_log)
+   {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+   }
+#endif
+}
+
 
 char *fdd_getname(int type)
 {
@@ -357,7 +381,7 @@ int fdd_can_read_medium(int drive)
 {
 	int hole = fdd_hole(drive);
 
-	hole = 1 << (hole + 3);
+	hole = 1 << (hole + 4);
 
 	return (drive_types[fdd[drive].type].flags & hole) ? 1 : 0;
 }
@@ -409,11 +433,16 @@ int fdd_is_double_sided(int drive)
 
 void fdd_set_head(int drive, int head)
 {
-	fdd[drive].head = head;
+	if (head && !fdd_is_double_sided(drive))
+		fdd[drive].head = 0;
+	else
+		fdd[drive].head = head;
 }
 
 int fdd_get_head(int drive)
 {
+	if (!fdd_is_double_sided(drive))
+		return 0;
 	return fdd[drive].head;
 }
 
@@ -455,7 +484,7 @@ void fdd_load(int drive, wchar_t *fn)
         wchar_t *p;
         FILE *f;
 
-	pclog("FDD: loading drive %d with '%ls'\n", drive, fn);
+	fdd_log("FDD: loading drive %d with '%ls'\n", drive, fn);
 
         if (!fn) return;
         p = plat_get_extension(fn);
@@ -480,7 +509,7 @@ void fdd_load(int drive, wchar_t *fn)
                 }
                 c++;
         }
-        pclog("FDD: could not load '%ls' %s\n",fn,p);
+        fdd_log("FDD: could not load '%ls' %s\n",fn,p);
         drive_empty[drive] = 1;
 	fdd_set_head(drive, 0);
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
@@ -489,13 +518,12 @@ void fdd_load(int drive, wchar_t *fn)
 
 void fdd_close(int drive)
 {
-	pclog("FDD: closing drive %d\n", drive);
+	fdd_log("FDD: closing drive %d\n", drive);
 
         if (loaders[driveloaders[drive]].close) loaders[driveloaders[drive]].close(drive);
         drive_empty[drive] = 1;
 	fdd_set_head(drive, 0);
         floppyfns[drive][0] = 0;
-	d86f_destroy(drive);
         drives[drive].hole = NULL;
         drives[drive].poll = NULL;
         drives[drive].seek = NULL;
@@ -506,6 +534,7 @@ void fdd_close(int drive)
         drives[drive].format = NULL;
         drives[drive].byteperiod = NULL;
 	drives[drive].stop = NULL;
+	d86f_destroy(drive);
 	ui_sb_update_icon_state(drive, 1);
 }
 

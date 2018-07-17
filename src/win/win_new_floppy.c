@@ -8,7 +8,7 @@
  *
  *		Handle the New Floppy Image dialog.
  *
- * Version:	@(#)win_new_floppy.c	1.0.5	2018/03/19
+ * Version:	@(#)win_new_floppy.c	1.0.8	2018/05/25
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -29,6 +29,7 @@
 #include "../plat.h"
 #include "../random.h"
 #include "../ui.h"
+#include "../scsi/scsi.h"
 #include "../disk/zip.h"
 #include "win.h"
 
@@ -50,22 +51,22 @@ typedef struct {
 } disk_size_t;
 
 
-disk_size_t disk_sizes[14] = {	{	0,  1, 2, 1, 0,  40,  8, 2, 0xFE, 2, 2,  1, 112 },		/* 160k */
-				{	0,  1, 2, 1, 0,  40,  9, 2, 0xFC, 2, 2,  1, 112 },		/* 180k */
-				{	0,  2, 2, 1, 0,  40,  8, 2, 0xFF, 2, 2,  1, 112 },		/* 320k */
-				{	0,  2, 2, 1, 0,  40,  9, 2, 0xFD, 2, 2,  2, 112 },		/* 360k */
-				{	0,  2, 2, 1, 0,  80,  8, 2, 0xFB, 2, 2,  2, 112 },		/* 640k */
-				{	0,  2, 2, 1, 0,  80,  9, 2, 0xF9, 2, 2,  3, 112 },		/* 720k */
-				{	1,  2, 0, 1, 1,  80, 15, 2, 0xF9, 1, 2,  7, 224 },		/* 1.2M */
-				{	1,  2, 0, 1, 1,  77,  8, 3, 0xFE, 1, 2,  2, 192 },		/* 1.25M */
-				{	1,  2, 0, 1, 0,  80, 18, 2, 0xF0, 1, 2,  9, 224 },		/* 1.44M */
-				{	1,  2, 0, 1, 0,  80, 21, 2, 0xF0, 2, 2,  5,  16 },		/* DMF cluster 1024 */
-				{	1,  2, 0, 1, 0,  80, 21, 2, 0xF0, 4, 2,  3,  16 },		/* DMF cluster 2048 */
-				{	2,  2, 3, 1, 0,  80, 36, 2, 0xF0, 2, 2,  9, 240 },		/* 2.88M */
-				{	0, 64, 0, 0, 0,  96, 32, 2,    0, 0, 0,  0,   0 },		/* ZIP 100 */
-				{	0, 64, 0, 0, 0, 239, 32, 2,    0, 0, 0,  0,   0 }	};	/* ZIP 250 */
+static const disk_size_t disk_sizes[14] = {	{	0,  1, 2, 1, 0,  40,  8, 2, 0xfe, 2, 2,  1, 112 },		/* 160k */
+						{	0,  1, 2, 1, 0,  40,  9, 2, 0xfc, 2, 2,  1, 112 },		/* 180k */
+						{	0,  2, 2, 1, 0,  40,  8, 2, 0xff, 2, 2,  1, 112 },		/* 320k */
+						{	0,  2, 2, 1, 0,  40,  9, 2, 0xfd, 2, 2,  2, 112 },		/* 360k */
+						{	0,  2, 2, 1, 0,  80,  8, 2, 0xfb, 2, 2,  2, 112 },		/* 640k */
+						{	0,  2, 2, 1, 0,  80,  9, 2, 0xf9, 2, 2,  3, 112 },		/* 720k */
+						{	1,  2, 0, 1, 1,  80, 15, 2, 0xf9, 1, 2,  7, 224 },		/* 1.2M */
+						{	1,  2, 0, 1, 1,  77,  8, 3, 0xfe, 1, 2,  2, 192 },		/* 1.25M */
+						{	1,  2, 0, 1, 0,  80, 18, 2, 0xf0, 1, 2,  9, 224 },		/* 1.44M */
+						{	1,  2, 0, 1, 0,  80, 21, 2, 0xf0, 2, 2,  5,  16 },		/* DMF cluster 1024 */
+						{	1,  2, 0, 1, 0,  80, 21, 2, 0xf0, 4, 2,  3,  16 },		/* DMF cluster 2048 */
+						{	2,  2, 3, 1, 0,  80, 36, 2, 0xf0, 2, 2,  9, 240 },		/* 2.88M */
+						{	0, 64, 0, 0, 0,  96, 32, 2,    0, 0, 0,  0,   0 },		/* ZIP 100 */
+						{	0, 64, 0, 0, 0, 239, 32, 2,    0, 0, 0,  0,   0 }	};	/* ZIP 250 */
 
-static char	*empty;
+static unsigned char	*empty;
 
 
 static int
@@ -137,7 +138,7 @@ create_86f(WCHAR *file_name, disk_size_t disk_size, uint8_t rpm_mode)
     if (array_size2 & 15)
 	array_size += 2;
 
-    empty = (char *) malloc(array_size);
+    empty = (unsigned char *) malloc(array_size);
 
     memset(tarray, 0, 2048);
     memset(empty, 0, array_size);
@@ -209,7 +210,7 @@ create_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_fdi)
     zero_bytes = fat2_offs + fat_size + root_dir_bytes;
 
     if (!is_zip && is_fdi) {
-	empty = (char *) malloc(base);
+	empty = (unsigned char *) malloc(base);
 	memset(empty, 0, base);
 
 	*(uint32_t *) &(empty[0x08]) = (uint32_t) base;
@@ -223,7 +224,7 @@ create_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_fdi)
 	free(empty);
     }
 
-    empty = (char *) malloc(total_size);
+    empty = (unsigned char *) malloc(total_size);
     memset(empty, 0x00, zero_bytes);
 
     if (!is_zip) {
@@ -344,7 +345,7 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
     pbar_max++;
 
     if (is_zdi) {
-	empty = (char *) malloc(base);
+	empty = (unsigned char *) malloc(base);
 	memset(empty, 0, base);
 
 	*(uint32_t *) &(empty[0x08]) = (uint32_t) base;
@@ -364,7 +365,7 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
 	pbar_max -= 2;
     }
 
-    empty = (char *) malloc(total_size);
+    empty = (unsigned char *) malloc(total_size);
     memset(empty, 0x00, zero_bytes);
 
     if (total_sectors == ZIP_SECTORS) {
@@ -566,16 +567,16 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		if (is_zip) {
 			zip_types = zip_drives[fdd_id].is_250 ? 2 : 1;
 			for (i = 0; i < zip_types; i++)
-		                SendMessage(h, CB_ADDSTRING, 0, (LPARAM) plat_get_string(IDS_5900 + i));
+		                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_5900 + i));
 		} else {
 			for (i = 0; i < 12; i++)
-		                SendMessage(h, CB_ADDSTRING, 0, (LPARAM) plat_get_string(IDS_5888 + i));
+		                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_5888 + i));
 		}
                 SendMessage(h, CB_SETCURSEL, 0, 0);
 		EnableWindow(h, FALSE);
 		h = GetDlgItem(hdlg, IDC_COMBO_RPM_MODE);
 		for (i = 0; i < 4; i++)
-	                SendMessage(h, CB_ADDSTRING, 0, (LPARAM) plat_get_string(IDS_6144 + i));
+	                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_6144 + i));
                 SendMessage(h, CB_SETCURSEL, 0, 0);
 		EnableWindow(h, FALSE);
 		ShowWindow(h, SW_HIDE);
@@ -624,7 +625,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				return TRUE;
 
 			case IDC_CFILE:
-	                        if (!file_dlg_w(hdlg, plat_get_string(is_zip ? IDS_2176 : IDS_2174), L"", 1)) {
+	                        if (!file_dlg_w(hdlg, plat_get_string(is_zip ? IDS_2055 : IDS_2062), L"", 1)) {
 					if (!wcschr(wopenfilestring, L'.')) {
 						if (wcslen(wopenfilestring) && (wcslen(wopenfilestring) <= 256)) {
 							twcs = &wopenfilestring[wcslen(wopenfilestring)];

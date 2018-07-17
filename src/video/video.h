@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.25	2018/03/20
+ * Version:	@(#)video.h	1.0.29	2018/07/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,9 +20,6 @@
  */
 #ifndef EMU_VIDEO_H
 # define EMU_VIDEO_H
-
-
-#define FONT_ATIKOR_PATH	L"roms/video/ati28800/ati_ksc5601.rom"
 
 
 #define makecol(r, g, b)    ((b) | ((g) << 8) | ((r) << 16))
@@ -65,7 +62,9 @@ enum {
     GFX_VGA88,  		/* ATI VGA-88 (18800-1) */
     GFX_VGAEDGE16,  		/* ATI VGA Edge-16 (18800-1) */
     GFX_VGACHARGER, 		/* ATI VGA Charger (28800-5) */
+#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
     GFX_VGAWONDER,		/* Compaq ATI VGA Wonder (18800) */
+#endif
     GFX_VGAWONDERXL,		/* Compaq ATI VGA Wonder XL (28800-5) */
 #if defined(DEV_BRANCH) && defined(USE_XL24)
     GFX_VGAWONDERXL24,		/* Compaq ATI VGA Wonder XL24 (28800-6) */
@@ -87,6 +86,7 @@ enum {
     GFX_CL_GD5434_VLB,		/* Cirrus Logic CL-GD 5434 VLB */
     GFX_CL_GD5434_PCI,		/* Cirrus Logic CL-GD 5434 PCI */
     GFX_CL_GD5436_PCI,		/* Cirrus Logic CL-GD 5436 PCI */
+    GFX_CL_GD5440_PCI,		/* Cirrus Logic CL-GD 5440 PCI */
     GFX_CL_GD5446_PCI,		/* Cirrus Logic CL-GD 5446 PCI */
     GFX_CL_GD5446_STB_PCI,	/* STB Nitro 64V (Cirrus Logic CL-GD 5446) PCI */
     GFX_CL_GD5480_PCI,		/* Cirrus Logic CL-GD 5480 PCI */
@@ -147,7 +147,7 @@ typedef struct {
 typedef struct {
     int		w, h;
     uint8_t	*dat;
-    uint8_t	*line[];
+    uint8_t	*line[2048];
 } bitmap_t;
 
 typedef struct {
@@ -194,7 +194,6 @@ extern int	video_timing_read_b,
 extern int	video_timing_write_b,
 		video_timing_write_w,
 		video_timing_write_l;
-extern int	video_speed;
 extern int	video_res_x,
 		video_res_y,
 		video_bpp;
@@ -260,6 +259,9 @@ extern int	get_actual_size_y(void);
 #ifdef ENABLE_VRAM_DUMP
 extern void	svga_dump_vram(void);
 #endif
+
+extern uint32_t	video_color_transform(uint32_t color);
+extern void	video_transform_copy(uint32_t *dst, uint32_t *src, int len);
 
 #ifdef __cplusplus
 }

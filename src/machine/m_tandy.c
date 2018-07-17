@@ -8,7 +8,7 @@
  *
  *		Emulation of Tandy models 1000, 1000HX and 1000SL2.
  *
- * Version:	@(#)m_tandy.c	1.0.5	2018/03/19
+ * Version:	@(#)m_tandy.c	1.0.7	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,12 +16,14 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #include <math.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../pit.h"
@@ -396,6 +398,28 @@ static int eep_data_out;
 
 static uint8_t	vid_in(uint16_t addr, void *priv);
 static void	vid_out(uint16_t addr, uint8_t val, void *priv);
+
+
+#ifdef ENABLE_TANDY_LOG
+int tandy_do_log = ENABLE_TANDY_LOG;
+#endif
+
+
+static void
+tandy_log(const char *fmt, ...)
+{
+#ifdef ENABLE_TANDY_LOG
+   va_list ap;
+
+   if (tandy_do_log)
+   {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+   }
+#endif
+}
+
 
 static void
 recalc_mapping(tandy_t *dev)
@@ -1381,7 +1405,6 @@ static const device_t vid_device = {
     NULL,
     vid_speed_changed,
     NULL,
-    NULL,
     vid_config
 };
 
@@ -1392,7 +1415,6 @@ static const device_t vid_device_hx = {
     NULL,
     vid_speed_changed,
     NULL,
-    NULL,
     vid_config
 };
 
@@ -1402,7 +1424,6 @@ static const device_t vid_device_sl = {
     NULL, vid_close, NULL,
     NULL,
     vid_speed_changed,
-    NULL,
     NULL,
     NULL
 };
@@ -1552,7 +1573,7 @@ static const device_t eep_device = {
     "Tandy 1000 EEPROM",
     0, 0,
     eep_init, eep_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     NULL
 };
 
@@ -1669,7 +1690,7 @@ init_rom(tandy_t *dev)
     if (! rom_load_interleaved(L"roms/machines/tandy1000sl2/8079047.hu1",
 			       L"roms/machines/tandy1000sl2/8079048.hu2",
 			       0x000000, 0x80000, 0, dev->rom)) {
-	pclog("TANDY: unable to load BIOS for 1000/SL2 !\n");
+	tandy_log("TANDY: unable to load BIOS for 1000/SL2 !\n");
 	free(dev->rom);
 	dev->rom = NULL;
 	return;

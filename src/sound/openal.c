@@ -8,7 +8,7 @@
  *
  *		Interface to the OpenAL sound processing library.
  *
- * Version:	@(#)openal.c	1.0.5	2018/02/19
+ * Version:	@(#)openal.c	1.0.6	2018/04/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,7 +22,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#ifdef USE_OPENAL
 # undef AL_API
 # undef ALC_API
 # define AL_LIBTYPE_STATIC
@@ -30,7 +29,6 @@
 # include <AL/al.h>
 # include <AL/alc.h>
 # include <AL/alext.h>
-#endif
 #include "../86box.h"
 #include "sound.h"
 #include "midi.h"
@@ -40,12 +38,10 @@
 #define BUFLEN	SOUNDBUFLEN
 
 
-#ifdef USE_OPENAL
 ALuint buffers[4];		/* front and back buffers */
 ALuint buffers_cd[4];		/* front and back buffers */
 ALuint buffers_midi[4];		/* front and back buffers */
 static ALuint source[3];	/* audio source */
-#endif
 
 
 static int midi_freq = 44100;
@@ -61,7 +57,6 @@ al_set_midi(int freq, int buf_size)
 }
 
 
-#ifdef USE_OPENAL
 void closeal(void);
 ALvoid alutInit(ALint *argc,ALbyte **argv) 
 {
@@ -104,27 +99,15 @@ alutExit(ALvoid)
 	alcDestroyContext(Context);
     }
 }
-#endif
 
 
 void
 closeal(void)
 {
-#ifdef USE_OPENAL
+    if (!initialized) return;
+
     alutExit();
-#endif
-}
 
-
-void
-initalmain(int argc, char *argv[])
-{
-    if (! initialized) return;
-
-#ifdef USE_OPENAL
-    alutInit(0,0);
-    atexit(closeal);
-#endif
     initialized = 0;
 }
 
@@ -141,12 +124,13 @@ inital(void)
 
     if (initialized) return;
 
+    alutInit(0, 0);
+    atexit(closeal);
+
     mdn = midi_device_get_internal_name(midi_device_current);
     if (strcmp(mdn, "none") && strcmp(mdn, SYSTEM_MIDI_INTERNAL_NAME))
 	init_midi = 1;	/* If the device is neither none, nor system MIDI, initialize the
 			   MIDI buffer and source, otherwise, do not. */
-
-#ifdef USE_OPENAL
 
     if (sound_is_float) {
 	buf = (float *) malloc((BUFLEN << 1) * sizeof(float));
@@ -236,14 +220,12 @@ inital(void)
     }
 
     initialized = 1;
-#endif
 }
 
 
 void
 givealbuffer_common(void *buf, uint8_t src, int size, int freq)
 {
-#ifdef USE_OPENAL
     int processed;
     int state;
     ALuint buffer;
@@ -270,7 +252,6 @@ givealbuffer_common(void *buf, uint8_t src, int size, int freq)
 
 	alSourceQueueBuffers(source[src], 1, &buffer);
     }
-#endif
 }
 
 

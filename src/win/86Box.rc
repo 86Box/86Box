@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.31	2018/03/06
+ * Version:	@(#)86Box.rc	1.0.37	2018/05/25
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -34,7 +34,7 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 #ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
-#pragma code_page(1252)
+#pragma code_page(65001)
 #endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
@@ -66,11 +66,9 @@ BEGIN
         BEGIN
             MENUITEM "&DirectDraw",             IDM_VID_DDRAW
             MENUITEM "Direct&3D 9",             IDM_VID_D3D
+            MENUITEM "&SDL",                    IDM_VID_SDL
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
-#endif
-#ifdef USE_RDP
-            MENUITEM "&RDP",                    IDM_VID_RDP
 #endif
         END
         MENUITEM SEPARATOR
@@ -117,11 +115,9 @@ BEGIN
     POPUP "&Tools"
     BEGIN
         MENUITEM "&Settings...",                IDM_CONFIG
-        MENUITEM SEPARATOR
-        MENUITEM "S&tatus",                     IDM_STATUS
-        MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_ACTION_SCREENSHOT
-        MENUITEM SEPARATOR
         MENUITEM "&Update status bar icons",	IDM_UPDATE_ICONS
+        MENUITEM SEPARATOR
+        MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_ACTION_SCREENSHOT
     END
 #if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
     POPUP "&Logging"
@@ -327,7 +323,7 @@ BEGIN
 #endif
 END
 
-DLG_CFG_VIDEO DIALOG DISCARDABLE  97, 0, 267, 63
+DLG_CFG_VIDEO DIALOG DISCARDABLE  97, 0, 267, 45
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
@@ -335,12 +331,9 @@ BEGIN
     COMBOBOX        IDC_COMBO_VIDEO,71,7,140,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_VID,214,7,46,12
-    COMBOBOX        IDC_COMBO_VIDEO_SPEED,71,25,189,120,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Video speed:",IDT_1708,7,26,58,10
     CONTROL         "Voodoo Graphics",IDC_CHECK_VOODOO,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,45,199,10
-    PUSHBUTTON      "Configure",IDC_BUTTON_VOODOO,214,44,46,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,27,199,10
+    PUSHBUTTON      "Configure",IDC_BUTTON_VOODOO,214,26,46,12
 END
 
 DLG_CFG_INPUT DIALOG DISCARDABLE  97, 0, 267, 65
@@ -445,16 +438,17 @@ BEGIN
     PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI,214,7,46,12
 
     LTEXT           "HD Controller:",IDT_1717,7,26,61,10
-    COMBOBOX        IDC_COMBO_HDC,71,25,189,120,CBS_DROPDOWNLIST | 
+    COMBOBOX        IDC_COMBO_HDC,71,25,140,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_HDC,214,25,46,12
 
-    LTEXT           "Tertiary IDE:",IDT_1718,7,44,61,10
-    COMBOBOX        IDC_COMBO_IDE_TER,71,43,189,120,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Tertiary IDE Controller",IDC_CHECK_IDE_TER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,44,199,10
+    PUSHBUTTON      "Configure",IDC_BUTTON_IDE_TER,214,43,46,12
 
-    LTEXT           "Quaternary IDE:",IDT_1719,7,62,61,10
-    COMBOBOX        IDC_COMBO_IDE_QUA,71,61,189,120,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Quaternary IDE Controller",IDC_CHECK_IDE_QUA,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,62,199,10
+    PUSHBUTTON      "Configure",IDC_BUTTON_IDE_QUA,214,61,46,12
 
     CONTROL         "ISABugger device",IDC_CHECK_BUGGER,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,80,94,10
@@ -477,12 +471,9 @@ BEGIN
     COMBOBOX        IDC_COMBO_HD_CHANNEL,170,117,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Channel:",IDT_1722,131,119,38,8
-    COMBOBOX        IDC_COMBO_HD_ID,170,117,22,12,CBS_DROPDOWNLIST | 
+    COMBOBOX        IDC_COMBO_HD_ID,170,117,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "ID:",IDT_1723,131,119,38,8
-    COMBOBOX        IDC_COMBO_HD_LUN,239,117,22,12,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
-    LTEXT           "LUN:",IDT_1724,200,119,38,8
     COMBOBOX        IDC_COMBO_HD_CHANNEL_IDE,170,117,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
 END
@@ -514,12 +505,9 @@ BEGIN
     COMBOBOX        IDC_COMBO_HD_CHANNEL,134,71,77,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Channel:",IDT_1722,99,73,34,8
-    COMBOBOX        IDC_COMBO_HD_ID,133,71,26,12,CBS_DROPDOWNLIST | 
+    COMBOBOX        IDC_COMBO_HD_ID,134,71,77,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "ID:",IDT_1723,117,73,15,8
-    COMBOBOX        IDC_COMBO_HD_LUN,185,71,26,12,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
-    LTEXT           "LUN:",IDT_1724,168,73,15,8
+    LTEXT           "ID:",IDT_1723,99,73,34,8
     COMBOBOX        IDC_COMBO_HD_CHANNEL_IDE,134,71,77,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Progress:",IDT_1752,7,7,204,9
@@ -555,36 +543,30 @@ BEGIN
     COMBOBOX        IDC_COMBO_CD_BUS,33,85,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Bus:",IDT_1740,7,87,24,8
-    COMBOBOX        IDC_COMBO_CD_ID,170,85,22,12,CBS_DROPDOWNLIST | 
+    COMBOBOX        IDC_COMBO_CD_ID,170,85,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "ID:",IDT_1741,131,87,38,8
-    COMBOBOX        IDC_COMBO_CD_LUN,239,85,22,12,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
-    LTEXT           "LUN:",IDT_1742,200,87,38,8
     COMBOBOX        IDC_COMBO_CD_CHANNEL_IDE,170,85,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Channel:",IDT_1743,131,87,38,8
+    LTEXT           "Channel:",IDT_1742,131,87,38,8
     COMBOBOX        IDC_COMBO_CD_SPEED,33,105,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Speed:",IDT_1758,7,107,24,8
     CONTROL         "List1",IDC_LIST_ZIP_DRIVES,"SysListView32",LVS_REPORT | 
                     LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
                     WS_TABSTOP,7,137,253,60
-    LTEXT           "ZIP drives:",IDT_1739,7,127,50,8
-    COMBOBOX        IDC_COMBO_ZIP_BUS,73,204,90,12,CBS_DROPDOWNLIST | 
+    LTEXT           "ZIP drives:",IDT_1759,7,127,50,8
+    COMBOBOX        IDC_COMBO_ZIP_BUS,23,204,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Bus:",IDT_1753,57,206,14,8
-    COMBOBOX        IDC_COMBO_ZIP_ID,190,204,22,12,CBS_DROPDOWNLIST | 
+    LTEXT           "Bus:",IDT_1753,7,206,14,8
+    COMBOBOX        IDC_COMBO_ZIP_ID,139,204,61,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "ID:",IDT_1754,171,206,18,8
-    COMBOBOX        IDC_COMBO_ZIP_LUN,239,204,22,12,CBS_DROPDOWNLIST | 
+    LTEXT           "ID:",IDT_1754,120,206,28,8
+    COMBOBOX        IDC_COMBO_ZIP_CHANNEL_IDE,149,204,61,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "LUN:",IDT_1755,220,206,18,8
-    COMBOBOX        IDC_COMBO_ZIP_CHANNEL_IDE,200,204,60,12,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Channel:",IDT_1756,171,206,28,8
+    LTEXT           "Channel:",IDT_1755,120,206,28,8
     CONTROL         "ZIP 250",IDC_CHECK250,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,204,44,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,218,204,44,10
 END
 
 
@@ -604,48 +586,42 @@ END
 // remains consistent on all systems.
 #ifdef RELEASE_BUILD
 /* Icon by Devcore - https://commons.wikimedia.org/wiki/File:Icon_PC_256x256.png */
-100                     ICON    DISCARDABLE     "win/icons/86Box-RB.ico"
+ 10                     ICON    DISCARDABLE     "win/icons/86Box-RB.ico"
 #else
 /* Icon by Devcore - https://commons.wikimedia.org/wiki/File:Icon_PC2_256x256.png */
-100                     ICON    DISCARDABLE     "win/icons/86Box.ico"
+ 10                     ICON    DISCARDABLE     "win/icons/86Box.ico"
 #endif
-128                     ICON    DISCARDABLE     "win/icons/floppy_525.ico"
-129                     ICON    DISCARDABLE     "win/icons/floppy_525_active.ico"
-144                     ICON    DISCARDABLE     "win/icons/floppy_35.ico"
-145                     ICON    DISCARDABLE     "win/icons/floppy_35_active.ico"
-160                     ICON    DISCARDABLE     "win/icons/cdrom.ico"
-161                     ICON    DISCARDABLE     "win/icons/cdrom_active.ico"
-176                     ICON    DISCARDABLE     "win/icons/zip.ico"
-177                     ICON    DISCARDABLE     "win/icons/zip_active.ico"
-192                     ICON    DISCARDABLE     "win/icons/removable_disk.ico"
-193                     ICON    DISCARDABLE     "win/icons/removable_disk_active.ico"
-208                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
-209                     ICON    DISCARDABLE     "win/icons/hard_disk_active.ico"
-224                     ICON    DISCARDABLE     "win/icons/network.ico"
-225                     ICON    DISCARDABLE     "win/icons/network_active.ico"
-256                     ICON    DISCARDABLE     "win/icons/machine.ico"
-257                     ICON    DISCARDABLE     "win/icons/display.ico"
-258                     ICON    DISCARDABLE     "win/icons/input_devices.ico"
-259                     ICON    DISCARDABLE     "win/icons/sound.ico"
-260                     ICON    DISCARDABLE     "win/icons/network.ico"
-261                     ICON    DISCARDABLE     "win/icons/ports.ico"
-262                     ICON    DISCARDABLE     "win/icons/other_peripherals.ico"
-263                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
-264                     ICON    DISCARDABLE     "win/icons/floppy_drives.ico"
-265                     ICON    DISCARDABLE     "win/icons/other_removable_devices.ico"
-384                     ICON    DISCARDABLE     "win/icons/floppy_525_empty.ico"
-385                     ICON    DISCARDABLE     "win/icons/floppy_525_empty_active.ico"
-400                     ICON    DISCARDABLE     "win/icons/floppy_35_empty.ico"
-401                     ICON    DISCARDABLE     "win/icons/floppy_35_empty_active.ico"
-416                     ICON    DISCARDABLE     "win/icons/cdrom_empty.ico"
-417                     ICON    DISCARDABLE     "win/icons/cdrom_empty_active.ico"
-432                     ICON    DISCARDABLE     "win/icons/zip_empty.ico"
-433                     ICON    DISCARDABLE     "win/icons/zip_empty_active.ico"
-448                     ICON    DISCARDABLE     "win/icons/removable_disk_empty.ico"
-449                     ICON    DISCARDABLE     "win/icons/removable_disk_empty_active.ico"
-512                     ICON    DISCARDABLE     "win/icons/floppy_disabled.ico"
-514                     ICON    DISCARDABLE     "win/icons/cdrom_disabled.ico"
-515                     ICON    DISCARDABLE     "win/icons/zip_disabled.ico"
+ 16                     ICON    DISCARDABLE     "win/icons/floppy_525.ico"
+ 17                     ICON    DISCARDABLE     "win/icons/floppy_525_active.ico"
+ 24                     ICON    DISCARDABLE     "win/icons/floppy_35.ico"
+ 25                     ICON    DISCARDABLE     "win/icons/floppy_35_active.ico"
+ 32                     ICON    DISCARDABLE     "win/icons/cdrom.ico"
+ 33                     ICON    DISCARDABLE     "win/icons/cdrom_active.ico"
+ 48                     ICON    DISCARDABLE     "win/icons/zip.ico"
+ 49                     ICON    DISCARDABLE     "win/icons/zip_active.ico"
+ 64                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
+ 65                     ICON    DISCARDABLE     "win/icons/hard_disk_active.ico"
+ 80                     ICON    DISCARDABLE     "win/icons/network.ico"
+ 81                     ICON    DISCARDABLE     "win/icons/network_active.ico"
+144                     ICON    DISCARDABLE     "win/icons/floppy_525_empty.ico"
+145                     ICON    DISCARDABLE     "win/icons/floppy_525_empty_active.ico"
+152                     ICON    DISCARDABLE     "win/icons/floppy_35_empty.ico"
+153                     ICON    DISCARDABLE     "win/icons/floppy_35_empty_active.ico"
+160                     ICON    DISCARDABLE     "win/icons/cdrom_empty.ico"
+161                     ICON    DISCARDABLE     "win/icons/cdrom_empty_active.ico"
+176                     ICON    DISCARDABLE     "win/icons/zip_empty.ico"
+177                     ICON    DISCARDABLE     "win/icons/zip_empty_active.ico"
+240                     ICON    DISCARDABLE     "win/icons/machine.ico"
+241                     ICON    DISCARDABLE     "win/icons/display.ico"
+242                     ICON    DISCARDABLE     "win/icons/input_devices.ico"
+243                     ICON    DISCARDABLE     "win/icons/sound.ico"
+244                     ICON    DISCARDABLE     "win/icons/ports.ico"
+245                     ICON    DISCARDABLE     "win/icons/other_peripherals.ico"
+246                     ICON    DISCARDABLE     "win/icons/floppy_drives.ico"
+247                     ICON    DISCARDABLE     "win/icons/other_removable_devices.ico"
+248                     ICON    DISCARDABLE     "win/icons/floppy_disabled.ico"
+249                     ICON    DISCARDABLE     "win/icons/cdrom_disabled.ico"
+250                     ICON    DISCARDABLE     "win/icons/zip_disabled.ico"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -727,7 +703,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 260
         TOPMARGIN, 7
-        BOTTOMMARGIN, 56
+        BOTTOMMARGIN, 38
     END
 
     DLG_CFG_INPUT, DIALOG
@@ -808,17 +784,17 @@ BEGIN
     IDS_2049	"86Box Error"
     IDS_2050	"86Box Fatal Error"
     IDS_2051	"This will reset 86Box.\nAre you sure you want to save the settings?"
-    IDS_2052	"DirectDraw Screenshot Error"
-    IDS_2053	"Invalid number of sectors (valid values are between 1 and 63)"
-    IDS_2054	"Invalid number of heads (valid values are between 1 and 16)"
-    IDS_2055	"Invalid number of cylinders (valid values are between 1 and 266305)"
+    IDS_2052	"Use CTRL+ALT+PAGE DOWN to return to windowed mode"
+    IDS_2053	"Speed"
+    IDS_2054	"ZIP %03i %i (%s): %ls"
+    IDS_2055	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
     IDS_2056	"No usable ROM images found!"
     IDS_2057	"(empty)"
-    IDS_2058	"(host drive %c:)"
+    IDS_2058	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0All files (*.*)\0*.*\0"
     IDS_2059	"Turbo"
     IDS_2060	"On"
     IDS_2061	"Off"
-    IDS_2062	"86Box was unable to find any ROMs.\nAt least one ROM set is required to use 86Box."
+    IDS_2062	"All images (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Basic sector images (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Surface images (*.86F)\0*.86F\0"
     IDS_2063	"Configured ROM set not available.\nDefaulting to an available ROM set."
 END
 
@@ -836,7 +812,7 @@ BEGIN
     IDS_2073	"Floppy drives"
     IDS_2074	"Other removable devices"
     IDS_2075	"CD-ROM images (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
-    IDS_2076	"Host CD/DVD Drive (%c:)"
+    IDS_2076	"Surface images (*.86F)\0*.86F\0"
     IDS_2077	"Click to capture mouse"
     IDS_2078	"Press F8+F12 to release mouse"
     IDS_2079	"Press F8+F12 or middle button to release mouse"
@@ -844,176 +820,89 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_2080	"Drive"
-    IDS_2081	"Location"
+    IDS_2080	"E&xport to 86F..."
+    IDS_2081	"Unable to initialize FluidSynth, make sure you have the following libraries\nin your 86Box folder:\n\nlibfluidsynth.dll\nlibglib-2.0-0.dll\nlibiconv-2.dll\nlibintl-8.dll\nlibpcre-1.dll"
     IDS_2082	"Bus"
     IDS_2083	"File"
     IDS_2084	"C"
     IDS_2085	"H"
     IDS_2086	"S"
     IDS_2087	"MB"
-    IDS_2088	"Unable to create bitmap file: %s"
-    IDS_2089	"Enabled"
-    IDS_2090	"Mute"
-    IDS_2091	"Type"
-    IDS_2092	"Bus"
-    IDS_2093	"DMA"
+    IDS_2088	"Check BPB"
+    IDS_2089	"&Image..."
+    IDS_2090	"&Reload previous image"
+    IDS_2091	"E&mpty"
+    IDS_2092	"&Mute"
+    IDS_2093	"E&ject"
     IDS_2094	"KB"
     IDS_2095	"Neither DirectDraw nor Direct3D available !"
+    IDS_2096	"&New image..."
+    IDS_2097	"&Existing image..."
+    IDS_2098	"Existing image (&Write-protected)..."
+    IDS_2099	"Default"
+    IDS_2100	"%i Wait state(s)"
+    IDS_2101	"Type"
+    IDS_2102	"PCap failed to set up because it may not be initialized"
+    IDS_2103	"No PCap devices found"
+    IDS_2104	"Invalid PCap device"
+    IDS_2105	"Standard 2-button joystick(s)"
+    IDS_2106	"Standard 4-button joystick"
+    IDS_2107	"Standard 6-button joystick"
+    IDS_2108	"Standard 8-button joystick"
+    IDS_2109	"CH Flightstick Pro"
+    IDS_2110	"Microsoft SideWinder Pad"
+    IDS_2111	"Thrustmaster Flight Control System"
+    IDS_2112	"None"
+    IDS_2113	"Unable to load Keyboard Accelerators!"
+    IDS_2114	"Unable to register Raw Input!"
+    IDS_2115	"%u"
+    IDS_2116	"%u MB (CHS: %i, %i, %i)"
+    IDS_2117	"Floppy %i (%s): %ls"
+    IDS_2118	"All images (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.DDI;*.DSK;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.DDI;*.DSK;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.XDF\0Advanced sector images (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basic sector images (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.DDI;*.DSK;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.DDI;*.DSK;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Surface images (*.86F)\0*.86F\0All files (*.*)\0*.*\0"
 END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_2096	"Slave"
-    IDS_2097	"SCSI (ID %s, LUN %s)"
-    IDS_2098	"Adapter Type"
-    IDS_2099	"Base Address"
-    IDS_2100	"IRQ"
-    IDS_2101	"8-bit DMA"
-    IDS_2102	"16-bit DMA"
-    IDS_2103	"BIOS"
-    IDS_2104	"Network Type"
-    IDS_2105	"Surround Module"
-    IDS_2106	"MPU-401 Base Address"
-    IDS_2107	"Use CTRL+ALT+PAGE DOWN to return to windowed mode"
-    IDS_2108	"On-board RAM"
-    IDS_2109	"Memory Size"
-    IDS_2110	"Display Type"
-    IDS_2111	"RGB"
-END
-
-STRINGTABLE DISCARDABLE 
-BEGIN
-    IDS_2112	"Composite"
-    IDS_2113	"Composite Type"
-    IDS_2114	"Old"
-    IDS_2115	"New"
-    IDS_2116	"RGB Type"
-    IDS_2117	"Color"
-    IDS_2118	"Monochrome (Green)"
-    IDS_2119	"Monochrome (Amber)"
-    IDS_2120	"Monochrome (Gray)"
-    IDS_2121	"Color (no brown)"
-    IDS_2122	"Monochrome (Default)"
-    IDS_2123	"Snow Emulation"
-    IDS_2124	"Bilinear Filtering"
-    IDS_2125	"Dithering"
-    IDS_2126	"Framebuffer Memory Size"
-    IDS_2127	"Texture Memory Size"
-END
-
-STRINGTABLE DISCARDABLE 
-BEGIN
-    IDS_2128	"Screen Filter"
-    IDS_2129	"Render Threads"
-    IDS_2130	"Recompiler"
-    IDS_2131	"Default"
-    IDS_2132	"%i Wait state(s)"
-    IDS_2133	"8-bit"
-    IDS_2134	"Slow 16-bit"
-    IDS_2135	"Fast 16-bit"
-    IDS_2136	"Slow VLB/PCI"
-    IDS_2137	"Mid  VLB/PCI"
-    IDS_2138	"Fast VLB/PCI"
-END
-
-STRINGTABLE DISCARDABLE 
-BEGIN
-    IDS_2139	"PCap failed to set up because it may not be initialized"
-    IDS_2140	"No PCap devices found"
-    IDS_2141	"Invalid PCap device"
-    IDS_2142	"&Notify disk change"
-    IDS_2143	"Type"
-    IDS_2144	"Standard 2-button joystick(s)"
-    IDS_2145	"Standard 4-button joystick"
-    IDS_2146	"Standard 6-button joystick"
-    IDS_2147	"Standard 8-button joystick"
-    IDS_2148	"CH Flightstick Pro"
-    IDS_2149	"Microsoft SideWinder Pad"
-    IDS_2150	"Thrustmaster Flight Control System"
-    IDS_2151	"Disabled"
-    IDS_2152	"None"
-    IDS_2153	"Unable to load Keyboard Accelerators!"
-    IDS_2154	"Unable to register Raw Input!"
-    IDS_2155	"IRQ %i"
-    IDS_2156	"%" PRIu64
-    IDS_2157	"%" PRIu64 " MB (CHS: %" PRIu64 ", %" PRIu64 ", %" PRIu64 ")"
-    IDS_2158	"Floppy %i (%s): %ls"
-    IDS_2159	"All images (*.0??;*.1??;*.360;*.720;*.86F;*.BIN;*.CQ?;*.DSK;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.XDF)\0*.0??;*.1??;*.360;*.720;*.86F;*.BIN;*.CQ?;*.DSK;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.XDF\0Advanced sector images (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basic sector images (*.0??;*.1??;*.360;*.720;*.BIN;*.CQ?;*.DSK;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.360;*.720;*.BIN;*.CQ?;*.DSK;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Surface images (*.86F)\0*.86F\0All files (*.*)\0*.*\0"
-    IDS_2160	"Configuration files (*.CFG)\0*.CFG\0All files (*.*)\0*.*\0"
-    IDS_2161	"&New image..."
-    IDS_2162	"&Existing image..."
-    IDS_2163	"Existing image (&Write-protected)..."
-    IDS_2164	"E&ject"
-    IDS_2165	"&Mute"
-    IDS_2166	"E&mpty"
-    IDS_2167	"&Reload previous image"
-    IDS_2168	"&Image..."
-    IDS_2169	"Image (&Write-protected)..."
-    IDS_2170	"Check BPB"
-    IDS_2171	"Unable to initialize FluidSynth, make sure you have the following libraries\nin your 86Box folder:\n\nlibfluidsynth.dll\nlibglib-2.0-0.dll\nlibiconv-2.dll\nlibintl-8.dll\nlibpcre-1.dll"
-    IDS_2172	"E&xport to 86F..."
-    IDS_2173	"Surface images (*.86F)\0*.86F\0"
-    IDS_2174	"All images (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Basic sector images (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Surface images (*.86F)\0*.86F\0"
-    IDS_2175	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0All files (*.*)\0*.*\0"
-    IDS_2176	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2177	"ZIP %i (%03i): %ls"
-    IDS_2178	"Speed"
-
     IDS_4096    "Hard disk (%s)"
     IDS_4097	"%01i:%01i"
     IDS_4098	"%i"
-    IDS_4099    "Disabled"
+    IDS_4099	"MFM/RLL or ESDI CD-ROM drives never existed"
     IDS_4100	"Custom..."
     IDS_4101	"Custom (large)..."
     IDS_4102	"Add New Hard Disk"
     IDS_4103	"Add Existing Hard Disk"
     IDS_4104	"Attempting to create a HDI image larger than 4 GB"
-    IDS_4105	"Attempting to create a spuriously large hard disk image"
+    IDS_4105	"Attempting to create a hard disk image beyond the 28-bit LBA limit"
     IDS_4106	"Hard disk images (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0All files (*.*)\0*.*\0"
     IDS_4107	"Unable to open the file for read"
     IDS_4108	"Unable to open the file for write"
-    IDS_4109	"HDI or HDX image with a sector size that is not 512 are not supported"
+    IDS_4109	"HDI or HDX images with a sector size that is not 512 are not supported"
     IDS_4110	"USB is not yet supported"
     IDS_4111	"This image exists and will be overwritten.\nAre you sure you want to use it?"
     IDS_4112	"Please enter a valid file name"
     IDS_4113	"Remember to partition and format the new drive"
-    IDS_4114	"MFM/RLL or ESDI CD-ROM drives never existed"
-    IDS_4115	"Removable disk %i (SCSI): %ls"
 
     IDS_4352    "MFM/RLL"
-    IDS_4353    "XT IDE"
+    IDS_4353    "XTA"
     IDS_4354    "ESDI"
-    IDS_4355    "IDE (PIO-only)"
-    IDS_4356    "IDE (PIO+DMA)"
-    IDS_4357    "SCSI"
-    IDS_4358    "SCSI (removable)"
+    IDS_4355    "IDE"
+    IDS_4356    "SCSI"
 
     IDS_4608	"MFM/RLL (%01i:%01i)"
-    IDS_4609	"XT IDE (%01i:%01i)"
+    IDS_4609	"XTA (%01i:%01i)"
     IDS_4610	"ESDI (%01i:%01i)"
-    IDS_4611	"IDE (PIO-only) (%01i:%01i)"
-    IDS_4612	"IDE (PIO+DMA) (%01i:%01i)"
-    IDS_4613	"SCSI (%02i:%02i)"
-    IDS_4614	"SCSI (removable) (%02i:%02i)"
+    IDS_4611	"IDE (%01i:%01i)"
+    IDS_4612	"SCSI (ID %02i)"
 
     IDS_5120	"CD-ROM %i (%s): %s"
 
     IDS_5376	"Disabled"
-    IDS_5377    "<Reserved>"
-    IDS_5378    "<Reserved>"
-    IDS_5379    "<Reserved>"
-    IDS_5380	"ATAPI (PIO-only)"
-    IDS_5381	"ATAPI (PIO and DMA)"
-    IDS_5382    "SCSI"
+    IDS_5380	"ATAPI"
+    IDS_5381    "SCSI"
 
     IDS_5632	"Disabled"
-    IDS_5633    "<Reserved>"
-    IDS_5634    "<Reserved>"
-    IDS_5635    "<Reserved>"
-    IDS_5636	"ATAPI (PIO-only) (%01i:%01i)"
-    IDS_5637	"ATAPI (PIO and DMA) (%01i:%01i)"
-    IDS_5638    "SCSI (%02i:%02i)"
+    IDS_5636	"ATAPI (%01i:%01i)"
+    IDS_5637    "SCSI (ID %02i)"
 
     IDS_5888	"160 kB"
     IDS_5889	"180 kB"
@@ -1061,7 +950,7 @@ VS_VERSION_INFO VERSIONINFO
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "040904b0"
+        BLOCK "0409fde9"
         BEGIN
             VALUE "Comments", "\0"
             VALUE "CompanyName", "IRC #SoftHistory\0"

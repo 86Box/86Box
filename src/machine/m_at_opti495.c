@@ -251,10 +251,12 @@ Note:	the block address is forced to be a multiple of the block size by
 	  ignoring the appropriate number of the least-significant bits
 SeeAlso: #P0178,#P0187
 */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
@@ -278,7 +280,6 @@ static void opti495_write(uint16_t addr, uint8_t val, void *p)
                 optireg=val;
                 break;
                 case 0x24:
-                pclog("OPTI: writing reg %02X %02X\n",optireg,val);
                 if (optireg>=0x20 && optireg<=0x2C)
                 {
                         optiregs[optireg-0x20]=val;

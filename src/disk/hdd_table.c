@@ -9,13 +9,13 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_table.c	1.0.5	2017/11/01
+ * Version:	@(#)hdd_table.c	1.0.5	2018/04/08
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016,2017 Miran Grca.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -26,7 +26,7 @@
 #include "hdd.h"
 
 
-uint64_t hdd_table[128][3] = {
+unsigned int hdd_table[128][3] = {
     {  306,  4, 17 },		/* 0 - 7 */
     {  615,  2, 17 },
     {  306,  4, 26 },

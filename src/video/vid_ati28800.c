@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.15	2018/03/20
+ * Version:	@(#)vid_ati28800.c	1.0.19	2018/05/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,11 +18,13 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2018 greatpsycho.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
@@ -39,6 +41,7 @@
 
 
 #define BIOS_ATIKOR_PATH	L"roms/video/ati28800/atikorvga.bin"
+#define FONT_ATIKOR_PATH	L"roms/video/ati28800/ati_ksc5601.rom"
 
 #define BIOS_VGAXL_EVEN_PATH	L"roms/video/ati28800/xleven.bin"
 #define BIOS_VGAXL_ODD_PATH	L"roms/video/ati28800/xlodd.bin"
@@ -73,14 +76,34 @@ typedef struct ati28800_t
 } ati28800_t;
 
 
+#ifdef ENABLE_ATI28800_LOG
+int ati28800_do_log = ENABLE_ATI28800_LOG;
+#endif
+
+
+static void
+ati28800_log(const char *fmt, ...)
+{
+#ifdef ENABLE_ATI28800_LOG
+    va_list ap;
+
+    if (ati28800_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 static void ati28800_out(uint16_t addr, uint8_t val, void *p)
 {
         ati28800_t *ati28800 = (ati28800_t *)p;
         svga_t *svga = &ati28800->svga;
         uint8_t old;
         
-/*        pclog("ati28800_out : %04X %02X  %04X:%04X\n", addr, val, CS,pc); */
-                
+        ati28800_log("ati28800_out : %04X %02X  %04X:%04X\n", addr, val, CS, cpu_state.pc);
+
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) 
                 addr ^= 0x60;
 
@@ -212,7 +235,7 @@ static uint8_t ati28800_in(uint16_t addr, void *p)
         svga_t *svga = &ati28800->svga;
         uint8_t temp;
 
-/*        if (addr != 0x3da) pclog("ati28800_in : %04X ", addr); */
+        if (addr != 0x3da)  ati28800_log("ati28800_in : %04X ", addr);
                 
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) addr ^= 0x60;
              
@@ -257,44 +280,11 @@ static uint8_t ati28800_in(uint16_t addr, void *p)
                 case 0x3D5:
                 temp = svga->crtc[svga->crtcreg];
                 break;
-		case 0x3DA:
-                svga->attrff = 0;
-                svga->attrff = 0;
-                svga->cgastat &= ~0x30;
-                /* copy color diagnostic info from the overscan color register */
-                switch (svga->attrregs[0x12] & 0x30)
-                {
-                        case 0x00: /* P0 and P2 */
-                        if (svga->attrregs[0x11] & 0x01)
-                                svga->cgastat |= 0x10;
-                        if (svga->attrregs[0x11] & 0x04)
-                                svga->cgastat |= 0x20;
-                        break;
-                        case 0x10: /* P4 and P5 */
-                        if (svga->attrregs[0x11] & 0x10)
-                                svga->cgastat |= 0x10;
-                        if (svga->attrregs[0x11] & 0x20)
-                                svga->cgastat |= 0x20;
-                        break;
-                        case 0x20: /* P1 and P3 */
-                        if (svga->attrregs[0x11] & 0x02)
-                                svga->cgastat |= 0x10;
-                        if (svga->attrregs[0x11] & 0x08)
-                                svga->cgastat |= 0x20;
-                        break;
-                        case 0x30: /* P6 and P7 */
-                        if (svga->attrregs[0x11] & 0x40)
-                                svga->cgastat |= 0x10;
-                        if (svga->attrregs[0x11] & 0x80)
-                                svga->cgastat |= 0x20;
-                        break;
-                }
-                return svga->cgastat;
                 default:
                 temp = svga_in(addr, svga);
                 break;
         }
-        /* if (addr != 0x3da) pclog("%02X  %04X:%04X\n", temp, CS,cpu_state.pc); */
+        if (addr != 0x3da)  ati28800_log("%02X  %04X:%04X\n", temp, CS,cpu_state.pc);
         return temp;
 }
 
@@ -305,8 +295,8 @@ uint8_t ati28800k_in(uint16_t addr, void *p)
         uint16_t oldaddr = addr;
         uint8_t temp = 0xFF;
 
-//        if (addr != 0x3da) pclog("ati28800_in : %04X ", addr);
-                
+        if (addr != 0x3da)  ati28800_log("ati28800k_in : %04X ", addr);
+
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) addr ^= 0x60;
              
         switch (addr)
@@ -336,7 +326,7 @@ uint8_t ati28800k_in(uint16_t addr, void *p)
                 temp = ati28800_in(oldaddr, p);
                 break;
         }
-        if (addr != 0x3da) pclog("%02X  %04X:%04X\n", temp, CS,cpu_state.pc);
+        if (addr != 0x3da)  ati28800_log("%02X  %04X:%04X\n", temp, CS,cpu_state.pc);
         return temp;
 }
  
@@ -420,7 +410,7 @@ ati28800k_init(const device_t *info)
         ati28800->ksc5601_mode_enabled = 0;
         
         rom_init(&ati28800->bios_rom, BIOS_ATIKOR_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-		loadfont(FONT_ATIKOR_PATH, 6);
+	loadfont(FONT_ATIKOR_PATH, 6);
         
         svga_init(&ati28800->svga, ati28800, ati28800->memory << 10, /*Memory size, default 512KB*/
                    ati28800k_recalctimings,
@@ -553,24 +543,6 @@ ati28800_force_redraw(void *priv)
     ati->svga.fullchange = changeframecount;
 }
 
-static void ati28800_add_status_info(char *s, int max_len, void *priv)
-{
-    ati28800_t *ati = (ati28800_t *)priv;
-
-    svga_add_status_info(s, max_len, &ati->svga);
-}
-
-void ati28800k_add_status_info(char *s, int max_len, void *p)
-{
-        ati28800_t *ati28800 = (ati28800_t *)p;
-        char temps[128];
-        
-        ati28800_add_status_info(s, max_len, p);
-
-        sprintf(temps, "Korean SVGA mode enabled : %s\n\n", ati28800->ksc5601_mode_enabled ? "Yes" : "No");
-        strncat(s, temps, max_len);
-}
-
 
 static const device_config_t ati28800_config[] =
 {
@@ -631,7 +603,6 @@ const device_t ati28800_device =
         ati28800_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
-        ati28800_add_status_info,
 	ati28800_config
 };
 
@@ -644,7 +615,6 @@ const device_t ati28800k_device =
         ati28800k_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
-        ati28800k_add_status_info,
 	ati28800_config
 };
 
@@ -657,7 +627,6 @@ const device_t compaq_ati28800_device =
         compaq_ati28800_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
-        ati28800_add_status_info,
 	ati28800_config
 };
 
@@ -671,7 +640,6 @@ const device_t ati28800_wonderxl24_device =
         ati28800_wonderxl24_available,
         ati28800_speed_changed,
         ati28800_force_redraw,
-        ati28800_add_status_info,
 	ati28800_wonderxl_config
 };
 #endif

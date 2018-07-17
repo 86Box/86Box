@@ -13,7 +13,7 @@
  *		re-merged with the other files. Much of it is generic to
  *		all formats.
  *
- * Version:	@(#)fdd_img.c	1.0.5	2018/03/17
+ * Version:	@(#)fdd_img.c	1.0.8	2018/05/09
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -41,11 +41,13 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../config.h"
 #include "../plat.h"
@@ -295,6 +297,27 @@ const int gap3_sizes[5][8][48] = {	{	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 					{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	/* [4][7] */
 					  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 					  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } } };
+
+
+#ifdef ENABLE_IMG_LOG
+int img_do_log = ENABLE_IMG_LOG;
+#endif
+
+
+static void
+img_log(const char *fmt, ...)
+{
+#ifdef ENABLE_IMG_LOG
+   va_list ap;
+
+   if (img_do_log)
+   {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+   }
+#endif
+}
 
 
 /* Generic */
@@ -605,7 +628,7 @@ img_load(int drive, wchar_t *fn)
     uint8_t bpb_mid;	/* Media type ID. */
     uint8_t bpb_sectors;
     uint8_t bpb_sides;
-    uint8_t fdi, cqm, fdf;
+    uint8_t cqm, ddi, fdf, fdi;
     uint16_t comment_len = 0;
     int16_t block_len = 0;
     uint32_t cur_pos = 0;
@@ -646,13 +669,19 @@ img_load(int drive, wchar_t *fn)
 		writeprot[drive] = 1;
     fwriteprot[drive] = writeprot[drive];
 
-    fdi = cqm = 0;
+    cqm = ddi = fdf = fdi = 0;
 
     dev->interleave = dev->skew = 0;
 
+    if (! wcscasecmp(ext, L"DDI")) {
+	ddi = 1;
+	dev->base = 0x2400;
+    } else
+	dev->base = 0;
+
     if (! wcscasecmp(ext, L"FDI")) {
 	/* This is a Japanese FDI image, so let's read the header */
-	pclog("img_load(): File is a Japanese FDI image...\n");
+	img_log("img_load(): File is a Japanese FDI image...\n");
 	fseek(dev->f, 0x10, SEEK_SET);
 	(void)fread(&bpb_bps, 1, 2, dev->f);
 	fseek(dev->f, 0x0C, SEEK_SET);
@@ -689,7 +718,7 @@ img_load(int drive, wchar_t *fn)
 	if ((first_byte == 0x1A) && (second_byte == 'F') &&
 	    (third_byte == 'D') && (fourth_byte == 'F')) {
 		/* This is a FDF image. */
-		pclog("img_load(): File is a FDF image...\n");
+		img_log("img_load(): File is a FDF image...\n");
 		fwriteprot[drive] = writeprot[drive] = 1;
 		fclose(dev->f);
 		dev->f = plat_fopen(fn, L"rb");
@@ -711,10 +740,10 @@ img_load(int drive, wchar_t *fn)
 				/* Skip first 3 bytes - their meaning is unknown to us but could be a checksum. */
 				first_byte = fgetc(dev->f);
 				fread(&track_bytes, 1, 2, dev->f);
-				pclog("Block header: %02X %04X ", first_byte, track_bytes);
+				img_log("Block header: %02X %04X ", first_byte, track_bytes);
 				/* Read the length of encoded data block. */
 				fread(&track_bytes, 1, 2, dev->f);
-				pclog("%04X\n", track_bytes);
+				img_log("%04X\n", track_bytes);
 			}
 
 			if (feof(dev->f)) break;
@@ -765,10 +794,10 @@ img_load(int drive, wchar_t *fn)
 				/* Skip first 3 bytes - their meaning is unknown to us but could be a checksum. */
 				first_byte = fgetc(dev->f);
 				fread(&track_bytes, 1, 2, dev->f);
-				pclog("Block header: %02X %04X ", first_byte, track_bytes);
+				img_log("Block header: %02X %04X ", first_byte, track_bytes);
 				/* Read the length of encoded data block. */
 				fread(&track_bytes, 1, 2, dev->f);
-				pclog("%04X\n", track_bytes);
+				img_log("%04X\n", track_bytes);
 			}
 
 			if (feof(dev->f)) break;
@@ -829,7 +858,7 @@ img_load(int drive, wchar_t *fn)
 
 	if (((first_byte == 'C') && (second_byte == 'Q')) ||
 	    ((first_byte == 'c') && (second_byte == 'q'))) {
-		pclog("img_load(): File is a CopyQM image...\n");
+		img_log("img_load(): File is a CopyQM image...\n");
 		fwriteprot[drive] = writeprot[drive] = 1;
 		fclose(dev->f);
 		dev->f = plat_fopen(fn, L"rb");
@@ -894,7 +923,7 @@ img_load(int drive, wchar_t *fn)
 				}
 			}
 		}
-		pclog("Finished reading CopyQM image data\n");
+		img_log("Finished reading CopyQM image data\n");
 
 		cqm = 1;
 		dev->disk_at_once = 1;
@@ -903,16 +932,20 @@ img_load(int drive, wchar_t *fn)
 	} else {
 		dev->disk_at_once = 0;
 		/* Read the BPB */
-		pclog("img_load(): File is a raw image...\n");
-		fseek(dev->f, 0x0B, SEEK_SET);
+		if (ddi) {
+			img_log("img_load(): File is a DDI image...\n");
+			fwriteprot[drive] = writeprot[drive] = 1;
+		} else
+			img_log("img_load(): File is a raw image...\n");
+		fseek(dev->f, dev->base + 0x0B, SEEK_SET);
 		fread(&bpb_bps, 1, 2, dev->f);
-		fseek(dev->f, 0x13, SEEK_SET);
+		fseek(dev->f, dev->base + 0x13, SEEK_SET);
 		fread(&bpb_total, 1, 2, dev->f);
-		fseek(dev->f, 0x15, SEEK_SET);
+		fseek(dev->f, dev->base + 0x15, SEEK_SET);
 		bpb_mid = fgetc(dev->f);
-		fseek(dev->f, 0x18, SEEK_SET);
+		fseek(dev->f, dev->base + 0x18, SEEK_SET);
 		bpb_sectors = fgetc(dev->f);
-		fseek(dev->f, 0x1A, SEEK_SET);
+		fseek(dev->f, dev->base + 0x1A, SEEK_SET);
 		bpb_sides = fgetc(dev->f);
 
 		cqm = 0;
@@ -920,16 +953,19 @@ img_load(int drive, wchar_t *fn)
 
 	fseek(dev->f, -1, SEEK_END);
 	size = ftell(dev->f) + 1;
+	if (ddi)
+		size -= 0x2400;
 
 jump_if_fdf:
-	dev->base = 0;
+	if (!ddi)
+		dev->base = 0;
 	fdi = 0;
     }
 
     dev->sides = 2;
     dev->sector_size = 2;
 
-    pclog("BPB reports %i sides and %i bytes per sector (%i sectors total)\n",
+    img_log("BPB reports %i sides and %i bytes per sector (%i sectors total)\n",
 	bpb_sides, bpb_bps, bpb_total);
 
     guess = (bpb_sides < 1);
@@ -1056,7 +1092,7 @@ jump_if_fdf:
 		dev->sectors = 42;
 		dev->tracks = 86;
 	} else {
-		pclog("Image is bigger than can fit on an ED floppy, ejecting...\n");
+		img_log("Image is bigger than can fit on an ED floppy, ejecting...\n");
 		fclose(dev->f);
 		free(dev);
 		memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
@@ -1106,13 +1142,13 @@ jump_if_fdf:
 			dev->dmf = 0;
 		}
 
-		pclog("Image parameters: bit rate 300: %f, temporary rate: %i, hole: %i, DMF: %i, XDF type: %i\n", bit_rate_300, temp_rate, dev->disk_flags >> 1, dev->dmf, dev->xdf_type);
+		img_log("Image parameters: bit rate 300: %f, temporary rate: %i, hole: %i, DMF: %i, XDF type: %i\n", bit_rate_300, temp_rate, dev->disk_flags >> 1, dev->dmf, dev->xdf_type);
 		break;
 	}
     }
 
     if (temp_rate == 0xFF) {
-	pclog("Image is bigger than can fit on an ED floppy, ejecting...\n");
+	img_log("Image is bigger than can fit on an ED floppy, ejecting...\n");
 	fclose(dev->f);
 	free(dev);
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
@@ -1125,7 +1161,7 @@ jump_if_fdf:
       else
 	dev->gap3_size = gap3_sizes[temp_rate][dev->sector_size][dev->sectors];
     if (! dev->gap3_size) {
-	pclog("ERROR: Floppy image of unknown format was inserted into drive %c:!\n", drive + 0x41);
+	img_log("ERROR: Floppy image of unknown format was inserted into drive %c:!\n", drive + 0x41);
 	fclose(dev->f);
 	free(dev);
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
@@ -1149,7 +1185,7 @@ jump_if_fdf:
 
     dev->is_cqm = cqm;
 
-    pclog("Disk flags: %i, track flags: %i\n",
+    img_log("Disk flags: %i, track flags: %i\n",
 		dev->disk_flags, dev->track_flags);
 
     /* Set up the drive unit. */

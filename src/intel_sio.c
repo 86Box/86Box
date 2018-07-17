@@ -6,18 +6,20 @@
  *
  *		Emulation of Intel System I/O PCI chip.
  *
- * Version:	@(#)intel_sio.c	1.0.7	2017/11/04
+ * Version:	@(#)intel_sio.c	1.0.8	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include "device.h"
 #include "cpu/cpu.h"
 #include "io.h"
 #include "dma.h"
@@ -26,144 +28,180 @@
 #include "intel_sio.h"
 
 
-static uint8_t card_sio[256];
-
-
-static void sio_write(int func, int addr, uint8_t val, void *priv)
+typedef struct
 {
-        if (func > 0)
-                return;
-        
-	if (addr >= 0x0f && addr < 0x4c)
+	uint8_t regs[256];
+} sio_t;
+
+
+static void
+sio_write(int func, int addr, uint8_t val, void *priv)
+{
+    sio_t *dev = (sio_t *) priv;
+
+    if (func > 0)
+	return;
+
+    if (addr >= 0x0f && addr < 0x4c)
+	return;
+
+    switch (addr) {
+	case 0x00: case 0x01: case 0x02: case 0x03:
+	case 0x08: case 0x09: case 0x0a: case 0x0b:
+	case 0x0e:
 		return;
 
-        switch (addr)
-        {
-                case 0x00: case 0x01: case 0x02: case 0x03:
-                case 0x08: case 0x09: case 0x0a: case 0x0b:
-                case 0x0e:
-                return;
-                        
-                case 0x04: /*Command register*/
-                val &= 0x08;
-                val |= 0x07;
-                break;
-                case 0x05:
-                val = 0;
-                break;
-                
-                case 0x06: /*Status*/
-                val = 0;
-                break;
-                case 0x07:
-                val = 0x02;
-                break;
-
-		case 0x40:
-		if (!((val ^ card_sio[addr]) & 0x40))
-		{
-			return;
-		}
-
-		if (val & 0x40)
-		{
-			dma_alias_remove();
-		}
-		else
-		{
-			dma_alias_set();
-		}
+	case 0x04: /*Command register*/
+		val &= 0x08;
+		val |= 0x07;
+		break;
+	case 0x05:
+		val = 0;
 		break;
 
-		case 0x4f:
-		if (!((val ^ card_sio[addr]) & 0x40))
-		{
+	case 0x06: /*Status*/
+		val = 0;
+		break;
+	case 0x07:
+		val = 0x02;
+		break;
+
+	case 0x40:
+		if (!((val ^ dev->regs[addr]) & 0x40))
 			return;
-		}
 
 		if (val & 0x40)
-		{
-			port_92_add();
-		}
+			dma_alias_remove();
 		else
-		{
+			dma_alias_set();
+		break;
+
+	case 0x4f:
+		if (!((val ^ dev->regs[addr]) & 0x40))
+			return;
+
+		if (val & 0x40)
+			port_92_add();
+		else
 			port_92_remove();
-		}
 
-                case 0x60:
-                if (val & 0x80)
-                        pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
-                else
-                        pci_set_irq_routing(PCI_INTA, val & 0xf);
-                break;
-                case 0x61:
-                if (val & 0x80)
-                        pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
-                else
-                        pci_set_irq_routing(PCI_INTC, val & 0xf);
-                break;
-                case 0x62:
-                if (val & 0x80)
-                        pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
-                else
-                        pci_set_irq_routing(PCI_INTB, val & 0xf);
-                break;
-                case 0x63:
-                if (val & 0x80)
-                        pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
-                else
-                        pci_set_irq_routing(PCI_INTD, val & 0xf);
-                break;
-        }
-        card_sio[addr] = val;
+	case 0x60:
+		if (val & 0x80)
+			pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
+		else
+			pci_set_irq_routing(PCI_INTA, val & 0xf);
+		break;
+	case 0x61:
+		if (val & 0x80)
+			pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
+		else
+			pci_set_irq_routing(PCI_INTC, val & 0xf);
+		break;
+	case 0x62:
+		if (val & 0x80)
+			pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
+		else
+			pci_set_irq_routing(PCI_INTB, val & 0xf);
+		break;
+	case 0x63:
+		if (val & 0x80)
+			pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
+		else
+			pci_set_irq_routing(PCI_INTD, val & 0xf);
+		break;
+    }
+    dev->regs[addr] = val;
 }
 
 
-static uint8_t sio_read(int func, int addr, void *priv)
+static uint8_t
+sio_read(int func, int addr, void *priv)
 {
-        if (func > 0)
-                return 0xff;
+    sio_t *dev = (sio_t *) priv;
+    uint8_t ret;
 
-        return card_sio[addr];
+    ret = 0xff;
+
+    if (func == 0)
+        ret = dev->regs[addr];
+
+    return ret;
 }
 
 
-static void sio_reset(void)
+static void
+sio_reset(void *priv)
 {
-        memset(card_sio, 0, 256);
-        card_sio[0x00] = 0x86; card_sio[0x01] = 0x80; /*Intel*/
-        card_sio[0x02] = 0x84; card_sio[0x03] = 0x04; /*82378IB (SIO)*/
-        card_sio[0x04] = 0x07; card_sio[0x05] = 0x00;
-        card_sio[0x06] = 0x00; card_sio[0x07] = 0x02;
-        card_sio[0x08] = 0x03; /*A0 stepping*/
+    sio_t *dev = (sio_t *) priv;
 
-        card_sio[0x40] = 0x20; card_sio[0x41] = 0x00;
-        card_sio[0x42] = 0x04; card_sio[0x43] = 0x00;
-        card_sio[0x44] = 0x20; card_sio[0x45] = 0x10;
-        card_sio[0x46] = 0x0f; card_sio[0x47] = 0x00;
-        card_sio[0x48] = 0x01; card_sio[0x49] = 0x10;
-        card_sio[0x4a] = 0x10; card_sio[0x4b] = 0x0f;
-        card_sio[0x4c] = 0x56; card_sio[0x4d] = 0x40;
-        card_sio[0x4e] = 0x07; card_sio[0x4f] = 0x4f;
-        card_sio[0x54] = 0x00; card_sio[0x55] = 0x00; card_sio[0x56] = 0x00;
-        card_sio[0x60] = 0x80; card_sio[0x61] = 0x80; card_sio[0x62] = 0x80; card_sio[0x63] = 0x80;
-        card_sio[0x80] = 0x78; card_sio[0x81] = 0x00;
-        card_sio[0xa0] = 0x08;
-        card_sio[0xa8] = 0x0f;
+    memset(dev->regs, 0, 256);
+
+    dev->regs[0x00] = 0x86; dev->regs[0x01] = 0x80; /*Intel*/
+    dev->regs[0x02] = 0x84; dev->regs[0x03] = 0x04; /*82378IB (SIO)*/
+    dev->regs[0x04] = 0x07; dev->regs[0x05] = 0x00;
+    dev->regs[0x06] = 0x00; dev->regs[0x07] = 0x02;
+    dev->regs[0x08] = 0x03; /*A0 stepping*/
+
+    dev->regs[0x40] = 0x20; dev->regs[0x41] = 0x00;
+    dev->regs[0x42] = 0x04; dev->regs[0x43] = 0x00;
+    dev->regs[0x44] = 0x20; dev->regs[0x45] = 0x10;
+    dev->regs[0x46] = 0x0f; dev->regs[0x47] = 0x00;
+    dev->regs[0x48] = 0x01; dev->regs[0x49] = 0x10;
+    dev->regs[0x4a] = 0x10; dev->regs[0x4b] = 0x0f;
+    dev->regs[0x4c] = 0x56; dev->regs[0x4d] = 0x40;
+    dev->regs[0x4e] = 0x07; dev->regs[0x4f] = 0x4f;
+    dev->regs[0x54] = 0x00; dev->regs[0x55] = 0x00; dev->regs[0x56] = 0x00;
+    dev->regs[0x60] = 0x80; dev->regs[0x61] = 0x80; dev->regs[0x62] = 0x80; dev->regs[0x63] = 0x80;
+    dev->regs[0x80] = 0x78; dev->regs[0x81] = 0x00;
+    dev->regs[0xa0] = 0x08;
+    dev->regs[0xa8] = 0x0f;
+
+    pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
 }
 
 
-void sio_init(int card)
+static void
+sio_close(void *p)
 {
-        pci_add_card(card, sio_read, sio_write, NULL);
+    sio_t *sio = (sio_t *)p;
+
+    free(sio);
+}
+
+
+static void
+*sio_init(const device_t *info)
+{
+    sio_t *sio = (sio_t *) malloc(sizeof(sio_t));
+    memset(sio, 0, sizeof(sio_t));
+
+    pci_add_card(2, sio_read, sio_write, sio);
         
-	sio_reset();
+    sio_reset(sio);
 
-	port_92_reset();
+    port_92_reset();
 
-        port_92_add();
+    port_92_add();
 
-	dma_alias_set();
+    dma_alias_set();
 
-	pci_reset_handler.pci_set_reset = sio_reset;
+    return sio;
 }
+
+
+const device_t sio_device =
+{
+    "Intel 82378IB (SIO)",
+    DEVICE_PCI,
+    0,
+    sio_init, 
+    sio_close, 
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};

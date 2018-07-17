@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.35	2018/03/16
+ * Version:	@(#)rom.c	1.0.37	2018/05/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,11 +23,13 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2018 Fred N. van Kempen.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "config.h"
 #include "cpu/cpu.h"
@@ -39,6 +41,26 @@
 
 
 int	romspresent[ROM_MAX];
+
+
+#ifdef ENABLE_ROM_LOG
+int rom_do_log = ENABLE_ROM_LOG;
+#endif
+
+
+static void
+rom_log(const char *format, ...)
+{
+#ifdef ENABLE_ROM_LOG
+    va_list ap;
+
+    if (rom_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 FILE *
@@ -95,7 +117,7 @@ rom_read(uint32_t addr, void *priv)
 
 #ifdef ROM_TRACE
     if (rom->mapping.base==ROM_TRACE)
-	pclog("ROM: read byte from BIOS at %06lX\n", addr);
+	rom_log("ROM: read byte from BIOS at %06lX\n", addr);
 #endif
 
     return(rom->rom[addr & rom->mask]);
@@ -109,7 +131,7 @@ rom_readw(uint32_t addr, void *priv)
 
 #ifdef ROM_TRACE
     if (rom->mapping.base==ROM_TRACE)
-	pclog("ROM: read word from BIOS at %06lX\n", addr);
+	rom_log("ROM: read word from BIOS at %06lX\n", addr);
 #endif
 
     return(*(uint16_t *)&rom->rom[addr & rom->mask]);
@@ -123,7 +145,7 @@ rom_readl(uint32_t addr, void *priv)
 
 #ifdef ROM_TRACE
     if (rom->mapping.base==ROM_TRACE)
-	pclog("ROM: read long from BIOS at %06lX\n", addr);
+	rom_log("ROM: read long from BIOS at %06lX\n", addr);
 #endif
 
     return(*(uint32_t *)&rom->rom[addr & rom->mask]);
@@ -137,7 +159,7 @@ rom_load_linear(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
     FILE *f = rom_fopen(fn, L"rb");
         
     if (f == NULL) {
-	pclog("ROM: image '%ls' not found\n", fn);
+	rom_log("ROM: image '%ls' not found\n", fn);
 	return(0);
     }
 
@@ -166,7 +188,7 @@ rom_load_linear_inverted(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *p
     FILE *f = rom_fopen(fn, L"rb");
         
     if (f == NULL) {
-	pclog("ROM: image '%ls' not found\n", fn);
+	rom_log("ROM: image '%ls' not found\n", fn);
 	return(0);
     }
 
@@ -204,9 +226,9 @@ rom_load_interleaved(wchar_t *fnl, wchar_t *fnh, uint32_t addr, int sz, int off,
     int c;
 
     if (fl == NULL || fh == NULL) {
-	if (fl == NULL) pclog("ROM: image '%ls' not found\n", fnl);
+	if (fl == NULL) rom_log("ROM: image '%ls' not found\n", fnl);
 	  else (void)fclose(fl);
-	if (fh == NULL) pclog("ROM: image '%ls' not found\n", fnh);
+	if (fh == NULL) rom_log("ROM: image '%ls' not found\n", fnh);
 	  else (void)fclose(fh);
 
 	return(0);
@@ -296,9 +318,6 @@ rom_load_bios(int rom_id)
     FILE *f;
 
     loadfont(L"roms/video/mda/mda.rom", 0);
-    loadfont(L"roms/video/wyse700/wy700.rom", 3);
-    loadfont(L"roms/video/genius/8x12.bin", 4);
-    loadfont(FONT_ATIKOR_PATH, 6);
 
     /* If not done yet, allocate a 128KB buffer for the BIOS ROM. */
     if (rom == NULL)
@@ -861,10 +880,22 @@ rom_load_bios(int rom_id)
 		biosmask = 0x1ffff;
 		return(1);
 
+#if defined(DEV_BRANCH) && defined(USE_MRTHOR)
 	case ROM_MRTHOR:
 		if (! rom_load_linear(
 			L"roms/machines/mrthor/mr_atx.bio",
 			0x000000, 131072, 0, rom)) break;
+		biosmask = 0x1ffff;
+		return(1);
+#endif
+
+	case ROM_PB640:
+		if (! rom_load_linear(
+			L"roms/machines/pb640/1007CP0R.BIO",
+			0x010000, 65536, 128, rom)) break;
+		if (! rom_load_linear(
+			L"roms/machines/pb640/1007CP0R.BI1",
+			0x000000, 0x00d000, 128, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
 
@@ -899,23 +930,12 @@ rom_load_bios(int rom_id)
 		return(1);
 
 	case ROM_IBMPS2_M80:
-#ifdef WALTJE
-	case ROM_IBMPS2_M80_486:
-#endif
 		if (! rom_load_interleaved(
 			L"roms/machines/ibmps2_m80/15f6637.bin",
 			L"roms/machines/ibmps2_m80/15f6639.bin",
 			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
-
-#if defined(DEV_BRANCH) && defined(USE_GREENB)
-	case ROM_4GPV31:
-		if (! rom_load_linear(
-			L"roms/machines/green-b/4gpv31-ami-1993-8273517.bin",
-			0x000000, 65536, 0, rom)) break;
-		return(1);
-#endif
 
 	case ROM_T1000:
 		loadfont(L"roms/machines/t1000/t1000font.bin", 2);
@@ -941,7 +961,7 @@ rom_load_bios(int rom_id)
 		break;
 
 	default:
-		pclog("ROM: don't know how to handle ROM set %d !\n", rom_id);
+		rom_log("ROM: don't know how to handle ROM set %d !\n", rom_id);
     }
 
     return(0);

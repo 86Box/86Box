@@ -8,7 +8,7 @@
  *
  *		Driver for the ESDI controller (WD1007-vse1) for PC/AT.
  *
- * Version:	@(#)hdc_esdi_at.c	1.0.9	2018/03/18
+ * Version:	@(#)hdc_esdi_at.c	1.0.13	2018/05/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,11 +21,13 @@
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../io.h"
@@ -104,33 +106,43 @@ typedef struct {
 } esdi_t;
 
 
-static __inline void irq_raise(esdi_t *esdi)
-{
-    /* If not already pending.. */
-    if (! esdi->irqstat) {
-	/* If enabled in the control register.. */
-	if (! (esdi->fdisk & 0x02)) {
-		/* .. raise IRQ14. */
-		picint(1<<14);
-	}
+#ifdef ENABLE_ESDI_AT_LOG
+int esdi_at_do_log = ENABLE_ESDI_AT_LOG;
+#endif
 
-	/* Remember this. */
-	esdi->irqstat = 1;
+
+static void
+esdi_at_log(const char *fmt, ...)
+{
+#ifdef ENABLE_ESDI_AT_LOG
+    va_list ap;
+
+    if (esdi_at_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
     }
+#endif
 }
 
 
-static __inline void irq_lower(esdi_t *esdi)
+static inline void
+irq_raise(esdi_t *esdi)
 {
-    /* If raised.. */
-    if (esdi->irqstat) {
-	/* If enabled in the control register.. */
-	if (! (esdi->fdisk & 0x02)) {
-		/* .. drop IRQ14. */
-		picintc(1<<14);
-	}
+    if (!(esdi->fdisk & 2))
+	picint(1 << 14);
 
-	/* Remember this. */
+    esdi->irqstat = 1;
+}
+
+
+static inline void
+irq_lower(esdi_t *esdi)
+{
+    if (esdi->irqstat) {
+	if (!(esdi->fdisk & 2))
+		picintc(1 << 14);
+
 	esdi->irqstat = 0;
     }
 }
@@ -146,12 +158,12 @@ get_sector(esdi_t *esdi, off64_t *addr)
     int c, h, s;
 
     if (esdi->head > heads) {
-	pclog("esdi_get_sector: past end of configured heads\n");
+	esdi_at_log("esdi_get_sector: past end of configured heads\n");
 	return(1);
     }
 
     if (esdi->sector >= sectors+1) {
-	pclog("esdi_get_sector: past end of configured sectors\n");
+	esdi_at_log("esdi_get_sector: past end of configured sectors\n");
 	return(1);
     }
 
@@ -209,7 +221,8 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
 	esdi->pos = 0;
 	esdi->status = STAT_BUSY;
 	timer_clock();
-      	esdi->callback = 6LL*HDC_TIME;
+	/* 390.625 us per sector at 10 Mbit/s = 1280 kB/s. */
+	esdi->callback = (3125LL * TIMER_USEC) / 8LL;
 	timer_update_outstanding();
     }
 }
@@ -220,9 +233,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 {
     esdi_t *esdi = (esdi_t *)priv;
 
-#ifdef ENABLE_HDD_LOG
-    pclog("WD1007 write(%04x, %02x)\n", port, val);
-#endif
+    esdi_at_log("WD1007 write(%04x, %02x)\n", port, val);
 
     switch (port) {
 	case 0x1f0:	/* data */
@@ -264,9 +275,8 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 		esdi->command = val;
 		esdi->error = 0;
 
-#ifdef ENABLE_HDD_LOG
-		pclog("WD1007: command %02x\n", val & 0xf0);
-#endif
+		esdi_at_log("WD1007: command %02x\n", val & 0xf0);
+
 		switch (val & 0xf0) {
 			case CMD_RESTORE:
 				esdi->command &= ~0x0f; /*mask off step rate*/
@@ -356,7 +366,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 						break;
 
 					default:
-						pclog("WD1007: bad command %02X\n", val);
+						esdi_at_log("WD1007: bad command %02X\n", val);
 					case 0xe8: /*???*/
 						esdi->status = STAT_BUSY;
 						timer_clock();
@@ -384,6 +394,9 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 			esdi->status = STAT_BUSY;
 		}
 		esdi->fdisk = val;
+		/* Lower IRQ on IRQ disable. */
+		if ((val & 2) && !(esdi->fdisk & 0x02))
+			picintc(1 << 14);
 		break;
 	}
 }
@@ -407,7 +420,8 @@ esdi_readw(uint16_t port, void *priv)
 			next_sector(esdi);
 			esdi->status = STAT_BUSY;
 			timer_clock();
-			esdi->callback = 6LL*HDC_TIME;
+			/* 390.625 us per sector at 10 Mbit/s = 1280 kB/s. */
+			esdi->callback = (3125LL * TIMER_USEC) / 8LL;
 			timer_update_outstanding();
 		} else {
 			ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
@@ -460,9 +474,7 @@ esdi_read(uint16_t port, void *priv)
 		break;
     }
 
-#ifdef ENABLE_HDD_LOG
-    pclog("WD1007 read(%04x) = %02x\n", port, temp);
-#endif
+    esdi_at_log("WD1007 read(%04x) = %02x\n", port, temp);
 
     return(temp);
 }
@@ -490,9 +502,7 @@ esdi_callback(void *priv)
 	return;
     }
 
-#ifdef ENABLE_HDD_LOG
-    pclog("WD1007: command %02x\n", esdi->command);
-#endif
+    esdi_at_log("WD1007: command %02x\n", esdi->command);
 
     switch (esdi->command) {
 	case CMD_RESTORE:
@@ -638,9 +648,9 @@ esdi_callback(void *priv)
 
 		drive->cfg_spt = esdi->secount;
 		drive->cfg_hpc = esdi->head+1;
-#ifdef ENABLE_HDD_LOG
-		pclog("WD1007: parameters: spt=%i hpc=%i\n", drive->cfg_spt,drive->cfg_hpc);
-#endif
+
+		esdi_at_log("WD1007: parameters: spt=%i hpc=%i\n", drive->cfg_spt,drive->cfg_hpc);
+
 		if (! esdi->secount)
 			fatal("WD1007: secount=0\n");
 		esdi->status = STAT_READY|STAT_DSC;
@@ -679,7 +689,7 @@ esdi_callback(void *priv)
 				break;
 
 			default:
-				pclog("WD1007: bad read config %02x\n",
+				esdi_at_log("WD1007: bad read config %02x\n",
 						esdi->cylinder >> 8);
 		}
 		esdi->status = STAT_READY|STAT_DSC;
@@ -736,7 +746,7 @@ esdi_callback(void *priv)
 		break;
 
 	default:
-		pclog("WD1007: callback on unknown command %02x\n", esdi->command);
+		esdi_at_log("WD1007: callback on unknown command %02x\n", esdi->command);
 		/*FALLTHROUGH*/
 
 	case 0xe8:
@@ -756,7 +766,7 @@ loadhd(esdi_t *esdi, int hdd_num, int d, const wchar_t *fn)
     drive_t *drive = &esdi->drives[hdd_num];
 
     if (! hdd_image_load(d)) {
-	pclog("WD1007: drive %d not present!\n", d);
+	esdi_at_log("WD1007: drive %d not present!\n", d);
 	drive->present = 0;
 	return;
     }
@@ -841,6 +851,6 @@ const device_t esdi_at_wd1007vse1_device = {
     0,
     wd1007vse1_init, wd1007vse1_close, NULL,
     wd1007vse1_available,
-    NULL, NULL, NULL,
+    NULL, NULL,
     NULL
 };

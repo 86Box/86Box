@@ -11,7 +11,7 @@
  *		of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.h	1.0.6	2018/03/18
+ * Version:	@(#)scsi_x54x.h	1.0.7	2018/04/06
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -333,6 +333,7 @@ typedef struct {
     char	name[16];			/* name of device */
 
     int64_t	timer_period, temp_period;
+    uint8_t	callback_phase;
     int64_t	media_period;
     double	ha_bps;				/* bytes per second */
 
@@ -491,8 +492,8 @@ typedef struct
 
 
 extern void	x54x_reset_ctrl(x54x_t *dev, uint8_t Reset);
-extern void	x54x_buf_alloc(uint8_t id, uint8_t lun, int length);
-extern void	x54x_buf_free(uint8_t id, uint8_t lun);
+extern void	x54x_buf_alloc(uint8_t id, int length);
+extern void	x54x_buf_free(uint8_t id);
 extern uint8_t	x54x_mbo_process(x54x_t *dev);
 extern void	x54x_wait_for_poll(void);
 extern void	x54x_io_set(x54x_t *dev, uint32_t base, uint8_t len);

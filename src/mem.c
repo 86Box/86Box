@@ -12,7 +12,7 @@
  *		the DYNAMIC_TABLES=1 enables this. Will eventually go
  *		away, either way...
  *
- * Version:	@(#)mem.c	1.0.9	2018/03/19
+ * Version:	@(#)mem.c	1.0.10	2018/04/29
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -40,11 +40,13 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "cpu/cpu.h"
 #include "cpu/x86_ops.h"
@@ -149,6 +151,26 @@ static uint8_t		ff_pccache[4] = { 0xff, 0xff, 0xff, 0xff };
 static int		port_92_reg = 0;
 
 
+#ifdef ENABLE_MEM_LOG
+int mem_do_log = ENABLE_MEM_LOG;
+#endif
+
+
+static void
+mem_log(const char *format, ...)
+{
+#ifdef ENABLE_MEM_LOG
+    va_list ap;
+
+    if (mem_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 void
 resetreadlookup(void)
 {
@@ -156,7 +178,7 @@ resetreadlookup(void)
 
     /* This is NULL after app startup, when mem_init() has not yet run. */
 #if DYNAMIC_TABLES
-pclog("MEM: reset_lookup: pages=%08lx, lookup=%08lx, pages_sz=%i\n", pages, page_lookup, pages_sz);
+mem_log("MEM: reset_lookup: pages=%08lx, lookup=%08lx, pages_sz=%i\n", pages, page_lookup, pages_sz);
 #endif
 
     /* Initialize the page lookup table. */
@@ -193,11 +215,11 @@ flushmmucache(void)
     int c;
 
     for (c = 0; c < 256; c++) {
-	if (readlookup[c] != 0xffffffff) {
+	if (readlookup[c] != (int) 0xffffffff) {
 		readlookup2[readlookup[c]] = -1;
 		readlookup[c] = 0xffffffff;
 	}
-	if (writelookup[c] != 0xffffffff) {
+	if (writelookup[c] != (int) 0xffffffff) {
 		page_lookup[writelookup[c]] = NULL;
 		writelookup2[writelookup[c]] = -1;
 		writelookup[c] = 0xffffffff;
@@ -220,11 +242,11 @@ flushmmucache_nopc(void)
     int c;
 
     for (c = 0; c < 256; c++) {
-	if (readlookup[c] != 0xffffffff) {
+	if (readlookup[c] != (int) 0xffffffff) {
 		readlookup2[readlookup[c]] = -1;
 		readlookup[c] = 0xffffffff;
 	}
-	if (writelookup[c] != 0xffffffff) {
+	if (writelookup[c] != (int) 0xffffffff) {
 		page_lookup[writelookup[c]] = NULL;
 		writelookup2[writelookup[c]] = -1;
 		writelookup[c] = 0xffffffff;
@@ -239,11 +261,11 @@ flushmmucache_cr3(void)
     int c;
 
     for (c = 0; c < 256; c++) {
-	if (readlookup[c] != 0xffffffff) {
+	if (readlookup[c] != (int) 0xffffffff) {
 		readlookup2[readlookup[c]] = -1;
 		readlookup[c] = 0xffffffff;
 	}
-	if (writelookup[c] != 0xffffffff) {
+	if (writelookup[c] != (int) 0xffffffff) {
 		page_lookup[writelookup[c]] = NULL;
 		writelookup2[writelookup[c]] = -1;
 		writelookup[c] = 0xffffffff;
@@ -259,7 +281,7 @@ mem_flush_write_page(uint32_t addr, uint32_t virt)
     int c;
 
     for (c = 0; c < 256; c++) {
-	if (writelookup[c] != 0xffffffff) {
+	if (writelookup[c] != (int) 0xffffffff) {
 		uintptr_t target = (uintptr_t)&ram[(uintptr_t)(addr & ~0xfff) - (virt & ~0xfff)];
 
 		if (writelookup2[writelookup[c]] == target || page_lookup[writelookup[c]] == page_target) {
@@ -403,9 +425,9 @@ addreadlookup(uint32_t virt, uint32_t phys)
 {
     if (virt == 0xffffffff) return;
 
-    if (readlookup2[virt>>12] != -1) return;
+    if (readlookup2[virt>>12] != (uintptr_t) -1) return;
 
-    if (readlookup[readlnext] != 0xffffffff)
+    if (readlookup[readlnext] != (int) 0xffffffff)
 	readlookup2[readlookup[readlnext]] = -1;
 
     readlookup2[virt>>12] = (uintptr_t)&ram[(uintptr_t)(phys & ~0xFFF) - (uintptr_t)(virt & ~0xfff)];
@@ -479,7 +501,7 @@ getpccache(uint32_t a)
 	return &_mem_exec[a >> 14][(uintptr_t)(a & 0x3000) - (uintptr_t)(a2 & ~0xfff)];
     }
 
-    pclog("Bad getpccache %08X\n", a);
+    mem_log("Bad getpccache %08X\n", a);
 
 #if FIXME
     return &ff_array[0-(uintptr_t)(a2 & ~0xfff)];
@@ -496,7 +518,7 @@ readmembl(uint32_t addr)
 
     if (addr < 0x100000 && ram_mapped_addr[addr >> 14]) {
 	addr = (ram_mapped_addr[addr >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr : (ram_mapped_addr[addr >> 14] & ~0x3fff) + (addr & 0x3fff);
-	if(addr < mem_size * 1024) return ram[addr];
+	if(addr < (uint32_t) (mem_size * 1024)) return ram[addr];
 	return 0xff;
     }
 
@@ -520,7 +542,7 @@ writemembl(uint32_t addr, uint8_t val)
 
     if (addr < 0x100000 && ram_mapped_addr[addr >> 14]) {
 	addr = (ram_mapped_addr[addr >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr : (ram_mapped_addr[addr >> 14] & ~0x3fff) + (addr & 0x3fff);
-	if (addr < mem_size * 1024)
+	if (addr < (uint32_t) (mem_size * 1024))
 		ram[addr] = val;
 	return;
     }
@@ -545,7 +567,7 @@ writemembl(uint32_t addr, uint8_t val)
 uint8_t
 readmemb386l(uint32_t seg, uint32_t addr)
 {
-    if (seg == -1) {
+    if (seg == (uint32_t) -1) {
 	x86gpf("NULL segment", 0);
 
 	return -1;
@@ -554,7 +576,7 @@ readmemb386l(uint32_t seg, uint32_t addr)
     mem_logical_addr = addr = addr + seg;
     if (addr < 0x100000 && ram_mapped_addr[addr >> 14]) {
 	addr = (ram_mapped_addr[addr >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr : (ram_mapped_addr[addr >> 14] & ~0x3fff) + (addr & 0x3fff);
-	if (addr < mem_size * 1024)
+	if (addr < (uint32_t) (mem_size * 1024))
 		return ram[addr];
 	return 0xff;
     }
@@ -577,7 +599,7 @@ readmemb386l(uint32_t seg, uint32_t addr)
 void
 writememb386l(uint32_t seg, uint32_t addr, uint8_t val)
 {
-    if (seg == -1) {
+    if (seg == (uint32_t) -1) {
 	x86gpf("NULL segment", 0);
 	return;
     }
@@ -585,7 +607,7 @@ writememb386l(uint32_t seg, uint32_t addr, uint8_t val)
     mem_logical_addr = addr = addr + seg;
     if (addr < 0x100000 && ram_mapped_addr[addr >> 14]) {
 	addr = (ram_mapped_addr[addr >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr : (ram_mapped_addr[addr >> 14] & ~0x3fff) + (addr & 0x3fff);
-	if (addr < mem_size * 1024)
+	if (addr < (uint32_t) (mem_size * 1024))
 		ram[addr] = val;
 	return;
     }
@@ -613,7 +635,7 @@ readmemwl(uint32_t seg, uint32_t addr)
 {
     uint32_t addr2 = mem_logical_addr = seg + addr;
 
-    if (seg == -1) {
+    if (seg == (uint32_t) -1) {
 	x86gpf("NULL segment", 0);
 	return -1;
     }
@@ -626,16 +648,16 @@ readmemwl(uint32_t seg, uint32_t addr)
 			if (mmutranslate_read(addr2)   == 0xffffffff) return 0xffff;
 			if (mmutranslate_read(addr2+1) == 0xffffffff) return 0xffff;
 		}
-		if (is386) return readmemb386l(seg,addr)|(readmemb386l(seg,addr+1)<<8);
-		else       return readmembl(seg+addr)|(readmembl(seg+addr+1)<<8);
+		if (is386) return readmemb386l(seg,addr)|(((uint16_t) readmemb386l(seg,addr+1))<<8);
+		else       return readmembl(seg+addr)|(((uint16_t) readmembl(seg+addr+1))<<8);
 	}
-	else if (readlookup2[addr2 >> 12] != -1)
+	else if (readlookup2[addr2 >> 12] != (uintptr_t) -1)
 		return *(uint16_t *)(readlookup2[addr2 >> 12] + addr2);
     }
 
     if (addr2 < 0x100000 && ram_mapped_addr[addr2 >> 14]) {
 	addr = (ram_mapped_addr[addr2 >> 14] & MEM_MAP_TO_SHADOW_RAM_MASK) ? addr2 : (ram_mapped_addr[addr2 >> 14] & ~0x3fff) + (addr2 & 0x3fff);
-	if (addr < mem_size * 1024)
+	if (addr < (uint32_t) (mem_size * 1024))
 		return *((uint16_t *)&ram[addr]);
 	return 0xffff;
     }
@@ -653,9 +675,11 @@ readmemwl(uint32_t seg, uint32_t addr)
 
 	if (_mem_read_b[addr2 >> 14]) {
 		if (AT)
-			return _mem_read_b[addr2 >> 14](addr2, _mem_priv_r[addr2 >> 14]) | (_mem_read_b[(addr2 + 1) >> 14](addr2 + 1, _mem_priv_r[addr2 >> 14]) << 8);
+			return _mem_read_b[addr2 >> 14](addr2, _mem_priv_r[addr2 >> 14]) |
+			       ((uint16_t) (_mem_read_b[(addr2 + 1) >> 14](addr2 + 1, _mem_priv_r[addr2 >> 14])) << 8);
 		else
-			return _mem_read_b[addr2 >> 14](addr2, _mem_priv_r[addr2 >> 14]) | (_mem_read_b[(seg + ((addr + 1) & 0xffff)) >> 14](seg + ((addr + 1) & 0xffff), _mem_priv_r[addr2 >> 14]) << 8);
+			return _mem_read_b[addr2 >> 14](addr2, _mem_priv_r[addr2 >> 14]) |
+			       ((uint16_t) (_mem_read_b[(seg + ((addr + 1) & 0xffff)) >> 14](seg + ((addr + 1) & 0xffff), _mem_priv_r[addr2 >> 14])) << 8);
     }
 
     return 0xffff;
@@ -667,7 +691,7 @@ writememwl(uint32_t seg, uint32_t addr, uint16_t val)
 {
     uint32_t addr2 = mem_logical_addr = seg + addr;
 
-    if (seg == -1) {
+    if (seg == (uint32_t) -1) {
 	x86gpf("NULL segment", 0);
 	return;
     }
@@ -695,7 +719,7 @@ writememwl(uint32_t seg, uint32_t addr, uint16_t val)
 			writemembl(seg+addr+1,val>>8);
 		}
 		return;
-	} else if (writelookup2[addr2 >> 12] != -1) {
+	} else if (writelookup2[addr2 >> 12] != (uintptr_t) -1) {
 		*(uint16_t *)(writelookup2[addr2 >> 12] + addr2) = val;
 		return;
 	}
@@ -715,7 +739,7 @@ writememwl(uint32_t seg, uint32_t addr, uint16_t val)
 
 #if 0
     if (addr2 >= 0xa0000 && addr2 < 0xc0000)
-	   pclog("writememwl %08X %02X\n", addr2, val);
+	   mem_log("writememwl %08X %02X\n", addr2, val);
 #endif
 
     if (_mem_write_w[addr2 >> 14]) {
@@ -736,7 +760,7 @@ readmemll(uint32_t seg, uint32_t addr)
 {
     uint32_t addr2 = mem_logical_addr = seg + addr;
 
-    if (seg == -1) {
+    if (seg == (uint32_t) -1) {
 	x86gpf("NULL segment", 0);
 	return -1;
     }
@@ -757,7 +781,7 @@ readmemll(uint32_t seg, uint32_t addr)
 			if (mmutranslate_read(addr2+3) == 0xffffffff) return 0xffffffff;
 		}
 		return readmemwl(seg,addr)|(readmemwl(seg,addr+2)<<16);
-	} else if (readlookup2[addr2 >> 12] != -1)
+	} else if (readlookup2[addr2 >> 12] != (uintptr_t) -1)
 		return *(uint32_t *)(readlookup2[addr2 >> 12] + addr2);
     }
 
@@ -773,10 +797,14 @@ readmemll(uint32_t seg, uint32_t addr)
 	return _mem_read_l[addr2 >> 14](addr2, _mem_priv_r[addr2 >> 14]);
 
     if (_mem_read_w[addr2 >> 14])
-	return _mem_read_w[addr2 >> 14](addr2, _mem_priv_r[addr2 >> 14]) | (_mem_read_w[addr2 >> 14](addr2 + 2, _mem_priv_r[addr2 >> 14]) << 16);
+	return _mem_read_w[addr2 >> 14](addr2, _mem_priv_r[addr2 >> 14]) |
+	       ((uint32_t) (_mem_read_w[addr2 >> 14](addr2 + 2, _mem_priv_r[addr2 >> 14])) << 16);
 
     if (_mem_read_b[addr2 >> 14])
-	return _mem_read_b[addr2 >> 14](addr2, _mem_priv_r[addr2 >> 14]) | (_mem_read_b[addr2 >> 14](addr2 + 1, _mem_priv_r[addr2 >> 14]) << 8) | (_mem_read_b[addr2 >> 14](addr2 + 2, _mem_priv_r[addr2 >> 14]) << 16) | (_mem_read_b[addr2 >> 14](addr2 + 3, _mem_priv_r[addr2 >> 14]) << 24);
+	return _mem_read_b[addr2 >> 14](addr2, _mem_priv_r[addr2 >> 14]) |
+	       ((uint32_t) (_mem_read_b[addr2 >> 14](addr2 + 1, _mem_priv_r[addr2 >> 14])) << 8) |
+	       ((uint32_t) (_mem_read_b[addr2 >> 14](addr2 + 2, _mem_priv_r[addr2 >> 14])) << 16) |
+	       ((uint32_t) (_mem_read_b[addr2 >> 14](addr2 + 3, _mem_priv_r[addr2 >> 14])) << 24);
 
     return 0xffffffff;
 }
@@ -787,7 +815,7 @@ writememll(uint32_t seg, uint32_t addr, uint32_t val)
 {
     uint32_t addr2 = mem_logical_addr = seg + addr;
 
-    if (seg == -1) {
+    if (seg == (uint32_t) -1) {
 	x86gpf("NULL segment", 0);
 	return;
     }
@@ -810,7 +838,7 @@ writememll(uint32_t seg, uint32_t addr, uint32_t val)
 		writememwl(seg,addr,val);
 		writememwl(seg,addr+2,val>>16);
 		return;
-	} else if (writelookup2[addr2 >> 12] != -1) {
+	} else if (writelookup2[addr2 >> 12] != (uintptr_t) -1) {
 		*(uint32_t *)(writelookup2[addr2 >> 12] + addr2) = val;
 		return;
 	}
@@ -852,7 +880,7 @@ readmemql(uint32_t seg, uint32_t addr)
 {
     uint32_t addr2 = mem_logical_addr = seg + addr;
 
-    if (seg == -1) {
+    if (seg == (uint32_t) -1) {
 	x86gpf("NULL segment", 0);
 	return -1;
     }
@@ -872,7 +900,7 @@ readmemql(uint32_t seg, uint32_t addr)
 			if (mmutranslate_read(addr2+7) == 0xffffffff) return 0xffffffff;
 		}
 		return readmemll(seg,addr)|((uint64_t)readmemll(seg,addr+4)<<32);
-	} else if (readlookup2[addr2 >> 12] != -1)
+	} else if (readlookup2[addr2 >> 12] != (uintptr_t) -1)
 		return *(uint64_t *)(readlookup2[addr2 >> 12] + addr2);
     }
 
@@ -897,7 +925,7 @@ writememql(uint32_t seg, uint32_t addr, uint64_t val)
 {
     uint32_t addr2 = mem_logical_addr = seg + addr;
 
-    if (seg == -1) {
+    if (seg == (uint32_t) -1) {
 	x86gpf("NULL segment", 0);
 	return;
     }
@@ -919,7 +947,7 @@ writememql(uint32_t seg, uint32_t addr, uint64_t val)
 		writememll(seg, addr, val);
 		writememll(seg, addr+4, val >> 32);
 		return;
-	} else if (writelookup2[addr2 >> 12] != -1) {
+	} else if (writelookup2[addr2 >> 12] != (uintptr_t) -1) {
 		*(uint64_t *)(writelookup2[addr2 >> 12] + addr2) = val;
 		return;
 	}
@@ -1278,6 +1306,7 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
 	_mem_read_b[c >> 14] = NULL;
 	_mem_read_w[c >> 14] = NULL;
 	_mem_read_l[c >> 14] = NULL;
+	_mem_exec[c >> 14] = NULL;
 	_mem_priv_r[c >> 14] = NULL;
 	_mem_mapping_r[c >> 14] = NULL;
 	_mem_write_b[c >> 14] = NULL;
@@ -1611,7 +1640,7 @@ mem_reset(void)
      * We only do this if the size of the page table has changed.
      */
 #if DYNAMIC_TABLES
-pclog("MEM: reset: previous pages=%08lx, pages_sz=%i\n", pages, pages_sz);
+mem_log("MEM: reset: previous pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 #endif
     if (pages_sz != m) {
 	pages_sz = m;
@@ -1621,7 +1650,7 @@ pclog("MEM: reset: previous pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 	}
 	pages = (page_t *)malloc(m*sizeof(page_t));
 #if DYNAMIC_TABLES
-pclog("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
+mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 #endif
 
 #if DYNAMIC_TABLES
@@ -1760,7 +1789,7 @@ mem_init(void)
 static void
 mem_remap_top(int max_size)
 {
-    int c;
+    uint32_t c;
 
     if (mem_size > 640) {
 	uint32_t start = (mem_size >= 1024) ? mem_size : 1024;
@@ -1799,7 +1828,7 @@ mem_remap_top_384k(void)
 void
 mem_reset_page_blocks(void)
 {
-    int c;
+    uint32_t c;
 
     if (pages == NULL) return;
 

@@ -8,7 +8,7 @@
  *
  *		Trident TVGA (8900D) emulation.
  *
- * Version:	@(#)vid_tvga.c	1.0.5	2018/03/18
+ * Version:	@(#)vid_tvga.c	1.0.6	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -341,13 +341,6 @@ void tvga_force_redraw(void *p)
         tvga->svga.fullchange = changeframecount;
 }
 
-void tvga_add_status_info(char *s, int max_len, void *p)
-{
-        tvga_t *tvga = (tvga_t *)p;
-        
-        svga_add_status_info(s, max_len, &tvga->svga);
-}
-
 static const device_config_t tvga_config[] =
 {
         {
@@ -384,6 +377,5 @@ const device_t tvga8900d_device =
         tvga8900d_available,
         tvga_speed_changed,
         tvga_force_redraw,
-        tvga_add_status_info,
         tvga_config
 };

@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.68	2018/03/19
+ * Version:	@(#)pc.c	1.0.73	2018/06/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -19,11 +19,11 @@
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #include <inttypes.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 #include <time.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
@@ -38,6 +38,7 @@
 #include "mem.h"
 #include "rom.h"
 #include "dma.h"
+#include "pci.h"
 #include "pic.h"
 #include "pit.h"
 #include "random.h"
@@ -56,22 +57,16 @@
 #include "disk/hdd.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
-#include "disk/zip.h"
+#include "scsi/scsi.h"
 #include "cdrom/cdrom.h"
+#include "disk/zip.h"
+#include "scsi/scsi_disk.h"
 #include "cdrom/cdrom_image.h"
 #include "cdrom/cdrom_null.h"
-#include "scsi/scsi.h"
 #include "network/network.h"
 #include "sound/sound.h"
 #include "sound/midi.h"
-#include "sound/snd_cms.h"
-#include "sound/snd_dbopl.h"
-#include "sound/snd_mpu401.h"
-#include "sound/snd_opl.h"
-#include "sound/snd_gus.h"
-#include "sound/snd_sb.h"
 #include "sound/snd_speaker.h"
-#include "sound/snd_ssi2001.h"
 #include "video/video.h"
 #include "ui.h"
 #include "plat.h"
@@ -109,8 +104,7 @@ int	vid_cga_contrast = 0,			/* (C) video */
 	video_fullscreen_scale = 0,		/* (C) video */
 	video_fullscreen_first = 0,		/* (C) video */
 	enable_overscan = 0,			/* (C) video */
-	force_43 = 0,				/* (C) video */
-	video_speed = 0;			/* (C) video */
+	force_43 = 0;				/* (C) video */
 int	serial_enabled[SERIAL_MAX] = {0,0},	/* (C) enable serial ports */
 	lpt_enabled = 0,			/* (C) enable LPT ports */
 	bugger_enabled = 0;			/* (C) enable ISAbugger */
@@ -120,7 +114,7 @@ int	sound_is_float = 1,			/* (C) sound uses FP values */
 	GUS = 0,				/* (C) sound option */
 	SSI2001 = 0,				/* (C) sound option */
 	voodoo_enabled = 0;			/* (C) video option */
-int	mem_size = 0;				/* (C) memory size */
+uint32_t mem_size = 0;				/* (C) memory size */
 int	cpu_manufacturer = 0,			/* (C) cpu manufacturer */
 	cpu_use_dynarec = 0,			/* (C) cpu uses/needs Dyna */
 	cpu = 3,				/* (C) cpu type */
@@ -133,17 +127,7 @@ extern int
 	readlnum,
 	writelnum;
 
-int	sndcount = 0;
-int	sreadlnum,
-	swritelnum,
-	segareads,
-	segawrites,
-	scycles_lost;
-float	mips, flops;
-int	cycles_lost = 0;			/* video */
-int	insc = 0;				/* cpu */
-int	emu_fps = 0, fps;			/* video */
-int	framecount;
+int	fps, framecount;			/* emulator % */
 
 int	CPUID;
 int	output;
@@ -283,6 +267,26 @@ fatal(const char *fmt, ...)
 }
 
 
+#ifdef ENABLE_PC_LOG
+int pc_do_log = ENABLE_PC_LOG;
+#endif
+
+
+static void
+pc_log(const char *format, ...)
+{
+#ifdef ENABLE_PC_LOG
+    va_list ap;
+
+    if (pc_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 /*
  * Perform initial startup of the PC.
  *
@@ -299,6 +303,7 @@ pc_init(int argc, wchar_t *argv[])
     struct tm *info;
     time_t now;
     int c;
+    uint32_t *uid, *shwnd;
 
     /* Grab the executable's full path. */
     plat_get_exe_name(exe_path, sizeof(exe_path)-1);
@@ -329,12 +334,8 @@ usage:
 		printf("-D or --debug        - force debug output logging\n");
 #endif
 		printf("-F or --fullscreen   - start in fullscreen mode\n");
-		printf("-M or --memdump      - dump memory on exit\n");
 		printf("-L or --logfile path - set 'path' to be the logfile\n");
 		printf("-P or --vmpath path  - set 'path' to be root for vm\n");
-#ifdef USE_WX
-		printf("-R or --fps num      - set render speed to 'num' fps\n");
-#endif
 		printf("-S or --settings     - show only the settings dialog\n");
 #ifdef _WIN32
 		printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
@@ -357,20 +358,11 @@ usage:
 		if ((c+1) == argc) goto usage;
 
 		wcscpy(log_path, argv[++c]);
-	} else if (!wcscasecmp(argv[c], L"--memdump") ||
-		   !wcscasecmp(argv[c], L"-M")) {
 	} else if (!wcscasecmp(argv[c], L"--vmpath") ||
 		   !wcscasecmp(argv[c], L"-P")) {
 		if ((c+1) == argc) goto usage;
 
 		wcscpy(path, argv[++c]);
-#ifdef USE_WX
-	} else if (!wcscasecmp(argv[c], L"--fps") ||
-		   !wcscasecmp(argv[c], L"-R")) {
-		if ((c+1) == argc) goto usage;
-
-		video_fps = wcstol(argv[++c], NULL, 10);
-#endif
 	} else if (!wcscasecmp(argv[c], L"--settings") ||
 		   !wcscasecmp(argv[c], L"-S")) {
 		settings_only = 1;
@@ -381,7 +373,9 @@ usage:
 		if ((c+1) == argc) goto usage;
 
 		wcstombs(temp, argv[++c], 128);
-		sscanf(temp, "%016" PRIX64 ",%016" PRIX64, &unique_id, &source_hwnd);
+		uid = (uint32_t *) &unique_id;
+		shwnd = (uint32_t *) &source_hwnd;
+		sscanf(temp, "%08X%08X,%08X%08X", uid + 1, uid, shwnd + 1, shwnd);
 #endif
 	} else if (!wcscasecmp(argv[c], L"--test")) {
 		/* some (undocumented) test function here.. */
@@ -422,6 +416,11 @@ usage:
 		 */
 		wcscpy(usr_path, path);
 	}
+
+	/* If the specified path does not yet exist,
+	   create it. */
+	if (! plat_dir_check(path))
+		plat_dir_create(path);
     }
 
     /* Make sure we have a trailing backslash. */
@@ -490,6 +489,7 @@ usage:
     mouse_init();
     cdrom_global_init();
     zip_global_init();
+    scsi_disk_global_init();
 
     /* Load the configuration file. */
     config_load();
@@ -505,26 +505,31 @@ pc_full_speed(void)
     cpuspeed2 = cpuspeed;
 
     if (! atfullspeed) {
-	pclog("Set fullspeed - %i %i %i\n", is386, AT, cpuspeed2);
-	if (AT)
+	pc_log("Set fullspeed - %i %i %i\n", is386, AT, cpuspeed2);
+	if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
 		setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
-	  else
+	else
 		setpitclock(14318184.0);
     }
     atfullspeed = 1;
+
+    nvr_period_recalc();
 }
 
 
 void
 pc_speed_changed(void)
 {
-    if (AT)
+    if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
 	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
-      else
+    else
 	setpitclock(14318184.0);
+
+    nvr_period_recalc();
 }
 
 
+#if 0
 /* Re-load system configuration and restart. */
 /* FIXME: this has to be reviewed! */
 void
@@ -536,10 +541,8 @@ pc_reload(wchar_t *fn)
 
     for (i=0; i<FDD_NUM; i++)
 	fdd_close(i);
-    for (i=0; i<CDROM_NUM; i++) {
-	cdrom_drives[i].handler->exit(i);
-	cdrom_close(i);
-    }
+
+    cdrom_close();
 
     pc_reset_hard_close();
 
@@ -547,24 +550,11 @@ pc_reload(wchar_t *fn)
 
     config_load();
 
-    for (i=0; i<CDROM_NUM; i++) {
-	if (cdrom_drives[i].bus_type)
-		SCSIReset(cdrom_drives[i].scsi_device_id, cdrom_drives[i].scsi_device_lun);
+    cdrom_hard_reset();
 
-	if (cdrom_drives[i].host_drive == 200)
-		image_open(i, cdrom_image[i].image_path);
-	  else if ((cdrom_drives[i].host_drive >= 'A') && (cdrom_drives[i].host_drive <= 'Z'))
-		ioctl_open(i, cdrom_drives[i].host_drive);
-	  else	
-	        cdrom_null_open(i, cdrom_drives[i].host_drive);
-    }
+    zip_hard_reset();
 
-    for (i=0; i<ZIP_NUM; i++) {
-	if (zip_drives[i].bus_type)
-		SCSIReset(zip_drives[i].scsi_device_id, zip_drives[i].scsi_device_lun);
-
-	zip_load(i, zip_drives[i].image_path);
-    }
+    scsi_disk_hard_reset();
 
     fdd_load(0, floppyfns[0]);
     fdd_load(1, floppyfns[1]);
@@ -575,6 +565,7 @@ pc_reload(wchar_t *fn)
 
     pc_reset_hard_init();
 }
+#endif
 
 
 /* Initialize modules, ran once, after pc_init. */
@@ -583,7 +574,7 @@ pc_init_modules(void)
 {
     int c, i;
 
-    pclog("Scanning for ROM images:\n");
+    pc_log("Scanning for ROM images:\n");
     for (c=0,i=0; i<ROM_MAX; i++) {
 	romspresent[i] = rom_load_bios(i);
 	c += romspresent[i];
@@ -592,7 +583,7 @@ pc_init_modules(void)
 	/* No usable ROMs found, aborting. */
 	return(0);
     }
-    pclog("A total of %d ROM sets have been loaded.\n", c);
+    pc_log("A total of %d ROM sets have been loaded.\n", c);
 
     /* Load the ROMs for the selected machine. */
 again:
@@ -642,7 +633,8 @@ again2:
 	}
     }
 
-    cpuspeed2 = (AT) ? 2 : 1;
+    // cpuspeed2 = (AT) ? 2 : 1;
+    cpuspeed2 = (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286) ? 2 : 1;
     atfullspeed = 0;
 
     random_init();
@@ -653,20 +645,12 @@ again2:
     codegen_init();
 #endif
 
-#ifdef WALTJE_SERIAL
-    serial_init();
-#endif
     keyboard_init();
     joystick_init();
     video_init();
-
-    ide_init_first();
-
     device_init();
 
     timer_reset();
-
-    sound_reset();
 
     fdd_init();
 
@@ -675,9 +659,10 @@ again2:
     hdc_init(hdc_name);
 
     cdrom_hard_reset();
+
     zip_hard_reset();
 
-    ide_reset_hard();
+    scsi_disk_hard_reset();
 
     scsi_card_init();
 
@@ -699,16 +684,23 @@ pc_keyboard_send(uint8_t val)
 }
 
 
+void
+pc_send_ca(uint8_t sc)
+{
+    pc_keyboard_send(29);	/* Ctrl key pressed */
+    pc_keyboard_send(56);	/* Alt key pressed */
+    pc_keyboard_send(sc);
+    pc_keyboard_send(sc | 0x80);
+    pc_keyboard_send(184);	/* Alt key released */
+    pc_keyboard_send(157);	/* Ctrl key released */
+}
+
+
 /* Send the machine a Control-Alt-DEL sequence. */
 void
 pc_send_cad(void)
 {
-    pc_keyboard_send(29);	/* Ctrl key pressed */
-    pc_keyboard_send(56);	/* Alt key pressed */
-    pc_keyboard_send(83);	/* Delete key pressed */
-    pc_keyboard_send(157);	/* Ctrl key released */
-    pc_keyboard_send(184);	/* Alt key released */
-    pc_keyboard_send(211);	/* Delete key released */
+    pc_send_ca(83);
 }
 
 
@@ -716,25 +708,7 @@ pc_send_cad(void)
 void
 pc_send_cae(void)
 {
-    pc_keyboard_send(29);	/* Ctrl key pressed */
-    pc_keyboard_send(56);	/* Alt key pressed */
-    pc_keyboard_send(1);	/* Esc key pressed */
-    pc_keyboard_send(129);	/* Esc key released */
-    pc_keyboard_send(184);	/* Alt key released */
-    pc_keyboard_send(157);	/* Ctrl key released */
-}
-
-
-/* Send the machine a Control-Alt-Break sequence. */
-void
-pc_send_cab(void)
-{
-    pc_keyboard_send(29);	/* Ctrl key pressed */
-    pc_keyboard_send(56);	/* Alt key pressed */
-    pc_keyboard_send(1);	/* Esc key pressed */
-    pc_keyboard_send(157);	/* Ctrl key released */
-    pc_keyboard_send(184);	/* Alt key released */
-    pc_keyboard_send(129);	/* Esc key released */
+    pc_send_ca(1);
 }
 
 
@@ -745,8 +719,6 @@ pc_reset_hard_close(void)
 
     nvr_save();
 
-    machine_close();
-
     mouse_close();
 
     lpt_devices_close();
@@ -754,6 +726,8 @@ pc_reset_hard_close(void)
     device_close_all();
 
     midi_close();
+
+    cdrom_close();
 
     closeal();
 }
@@ -773,24 +747,23 @@ pc_reset_hard_init(void)
      * the actual machine, but which support some of the
      * modules that are.
      */
-    sound_realloc_buffers();
-    sound_cd_thread_reset();
-    initalmain(0, NULL);
 
     /* Reset the general machine support modules. */
     io_init();
-    // cpu_set();
     timer_reset();
+
     device_init();
 
-    midi_device_init();
-    inital();
     sound_reset();
 
-#ifndef WALTJE_SERIAL
     /* This is needed to initialize the serial timer. */
     serial_init();
-#endif
+
+    cdrom_hard_reset();
+
+    zip_hard_reset();
+
+    scsi_disk_hard_reset();
 
     /* Initialize the actual machine and its basic modules. */
     machine_init();
@@ -810,11 +783,7 @@ pc_reset_hard_init(void)
     speaker_init();
     serial_reset();
     lpt_devices_init();
-
-    /* Reset keyboard and/or mouse. */
-    // FIXME: do we really have to reset the *AT* keyboard?? --FvK
     shadowbios = 0;
-    keyboard_at_reset();
 
     /*
      * This has to be after the serial initialization so that
@@ -826,29 +795,17 @@ pc_reset_hard_init(void)
     /* Reset the video card. */
     video_reset(gfxcard);
 
-    cdrom_hard_reset();
-    zip_hard_reset();
-
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
 
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
+    /* Reset and reconfigure the Sound Card layer. */
+    sound_card_reset();
+
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
-
-    /* Reset and reconfigure the Sound Card layer. */
-    // FIXME: should be just one sound_reset() here.  --FvK
-    sound_card_init();
-    if (mpu401_standalone_enable)
-	mpu401_device_add();
-    if (GUS)
-	device_add(&gus_device);
-    if (GAMEBLASTER)
-	device_add(&cms_device);
-    if (SSI2001)
-	device_add(&ssi2001_device);
 
     if (joystick_type != 7)
 	gameport_update_joystick_type();
@@ -866,13 +823,12 @@ pc_reset_hard_init(void)
 	device_add(&bugger_device);
 
     /* Reset the CPU module. */
-    cpu_set();
     resetx86();
     dma_reset();
     pic_reset();
     cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
 
-    if (AT)
+    if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
 	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
     else
 	setpitclock(14318184.0);
@@ -935,12 +891,6 @@ pc_close(thread_t *ptr)
 
     lpt_devices_close();
 
-    for (i=0; i<ZIP_NUM; i++)
-	zip_close(i);
-
-    for (i=0; i<CDROM_NUM; i++)
-	cdrom_drives[i].handler->exit(i);
-
     for (i=0; i<FDD_NUM; i++)
        fdd_close(i);
 
@@ -957,10 +907,11 @@ pc_close(thread_t *ptr)
     network_close();
 
     sound_cd_thread_end();
+    cdrom_close();
 
-    ide_destroy_buffers();
+    zip_close();
 
-    cdrom_destroy_drives();
+    scsi_disk_close();
 }
 
 
@@ -978,25 +929,18 @@ pc_thread(void *param)
     wchar_t wmachine[2048];
     uint64_t start_time, end_time;
     uint32_t old_time, new_time;
-    int status_update_needed;
     int done, drawits, frames;
     int *quitp = (int *)param;
     int framecountx;
 
-    pclog("PC: starting main thread...\n");
+    pc_log("PC: starting main thread...\n");
 
     main_time = 0;
     framecountx = 0;
-    status_update_needed = title_update = 1;
+    title_update = 1;
     old_time = plat_get_ticks();
     done = drawits = frames = 0;
     while (! *quitp) {
-	/* Update the Stat(u)s window with the current info. */
-	if (status_update_needed) {
-		ui_status_update();
-		status_update_needed = 0;
-	}
-
 	/* See if it is time to run a frame of code. */
 	new_time = plat_get_ticks();
 	drawits += (new_time - old_time);
@@ -1019,7 +963,7 @@ pc_thread(void *param)
 			  else
 #endif
 				exec386(clockrate/100);
-		} else if (AT) {
+		} else if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286) {
 			exec386(clockrate/100);
 		} else {
 			execx86(clockrate/100);
@@ -1036,50 +980,10 @@ pc_thread(void *param)
 		if (++framecountx >= 100) {
 			framecountx = 0;
 
-			/* FIXME: all this should go into a "stats" struct! */
-			mips = (float)insc/1000000.0f;
-			insc = 0;
-			flops = (float)fpucount/1000000.0f;
-			fpucount = 0;
-			sreadlnum = readlnum;
-			swritelnum = writelnum;
-			segareads = egareads;
-			segawrites = egawrites;
-			scycles_lost = cycles_lost;
-
-#ifdef USE_DYNAREC
-			cpu_recomp_blocks_latched = cpu_recomp_blocks;
-			cpu_recomp_ins_latched = cpu_state.cpu_recomp_ins;
-			cpu_recomp_full_ins_latched = cpu_recomp_full_ins;
-			cpu_new_blocks_latched = cpu_new_blocks;
-			cpu_recomp_flushes_latched = cpu_recomp_flushes;
-			cpu_recomp_evicted_latched = cpu_recomp_evicted;
-			cpu_recomp_reuse_latched = cpu_recomp_reuse;
-			cpu_recomp_removed_latched = cpu_recomp_removed;
-			cpu_reps_latched = cpu_reps;
-			cpu_notreps_latched = cpu_notreps;
-
-			cpu_recomp_blocks = 0;
-			cpu_state.cpu_recomp_ins = 0;
-			cpu_recomp_full_ins = 0;
-			cpu_new_blocks = 0;
-			cpu_recomp_flushes = 0;
-			cpu_recomp_evicted = 0;
-			cpu_recomp_reuse = 0;
-			cpu_recomp_removed = 0;
-			cpu_reps = 0;
-			cpu_notreps = 0;
-#endif
-
 			readlnum = writelnum = 0;
 			egareads = egawrites = 0;
-			cycles_lost = 0;
 			mmuflush = 0;
-			emu_fps = frames;
 			frames = 0;
-
-			/* We need a Status window update now. */
-			status_update_needed = 1;
 		}
 
 		if (title_update) {
@@ -1122,7 +1026,7 @@ pc_thread(void *param)
 	}
     }
 
-    pclog("PC: main thread done.\n");
+    pc_log("PC: main thread done.\n");
 }
 
 
@@ -1148,7 +1052,7 @@ set_screen_size(int x, int y)
 
     /* Make sure we keep usable values. */
 #if 0
-    pclog("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
+    pc_log("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
 #endif
     if (x < 320) x = 320;
     if (y < 200) y = 200;

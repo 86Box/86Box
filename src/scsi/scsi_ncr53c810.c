@@ -10,7 +10,7 @@
  *		NCR and later Symbios and LSI. This controller was designed
  *		for the PCI bus.
  *
- * Version:	@(#)scsi_ncr53c810.c	1.0.10	2018/03/18
+ * Version:	@(#)scsi_ncr53c810.c	1.0.14	2018/05/28
  *
  * Authors:	Paul Brook (QEMU)
  *		Artyom Tarasenko (QEMU)
@@ -22,11 +22,12 @@
  *		Copyright 2017,2018 Miran Grca.
  */
 #include <inttypes.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <string.h>
 #include <stdlib.h>
-#include <stdarg.h>
+#include <string.h>
+#define HAVE_STDARG_H
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
@@ -35,13 +36,15 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../pci.h"
-#include "../nvr.h"
 #include "../device.h"
+#include "../nvr.h"
 #include "../timer.h"
 #include "../plat.h"
 #include "scsi.h"
 #include "scsi_device.h"
 #include "scsi_ncr53c810.h"
+
+#define NCR53C810_ROM	L"roms/scsi/ncr53c810/NCR307.BIN"
 
 #define NCR_SCNTL0_TRG    0x01
 #define NCR_SCNTL0_AAP    0x02
@@ -187,6 +190,8 @@ typedef enum
 
 typedef struct {
     uint8_t	pci_slot;
+    int		has_bios;
+    rom_t	bios;
     int		PCIBase;
     int		MMIOBase;
     mem_mapping_t mmio_mapping;
@@ -329,6 +334,8 @@ ncr53c810_irq_on_rsl(ncr53c810_t *dev)
 static void
 ncr53c810_soft_reset(ncr53c810_t *dev)
 {
+    int i;
+
     ncr53c810_log("LSI Reset\n");
     dev->timer_period = dev->timer_enabled = 0;
 
@@ -383,13 +390,16 @@ ncr53c810_soft_reset(ncr53c810_t *dev)
     dev->last_level = 0;
     dev->gpreg0 = 0;
     dev->sstop = 1;
+
+    for (i = 0; i < 16; i++)
+	scsi_device_reset(i);
 }
 
 
 static void
 ncr53c810_read(ncr53c810_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 {
-	int i = 0;
+	uint32_t i = 0;
 
 	ncr53c810_log("ncr53c810_read(): %08X-%08X, length %i\n", addr, (addr + len - 1), len);
 
@@ -407,7 +417,7 @@ ncr53c810_read(ncr53c810_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 static void
 ncr53c810_write(ncr53c810_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 {
-	int i = 0;
+	uint32_t i = 0;
 
 	ncr53c810_log("ncr53c810_write(): %08X-%08X, length %i\n", addr, (addr + len - 1), len);
 
@@ -582,13 +592,14 @@ ncr53c810_command_complete(void *priv, uint32_t status)
 static void
 ncr53c810_do_dma(ncr53c810_t *dev, int out, uint8_t id)
 {
-    uint32_t addr, count, tdbc;
+    uint32_t addr, tdbc;
+    int count;
 
     scsi_device_t *sd;
 
-    sd = &SCSIDevices[id][dev->current_lun];
+    sd = &SCSIDevices[id];
 
-    if ((((id) == -1) && !scsi_device_present(id, dev->current_lun))) {
+    if ((!scsi_device_present(id))) {
 	ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Device not present when attempting to do DMA\n", id, dev->current_lun, dev->last_command);
 	return;
     }
@@ -615,7 +626,7 @@ ncr53c810_do_dma(ncr53c810_t *dev, int out, uint8_t id)
     else {
 	if (!dev->buffer_pos) {
 		ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: SCSI Command Phase 1 on PHASE_DI\n", id, dev->current_lun, dev->last_command);
-		scsi_device_command_phase1(dev->current->tag, dev->current_lun);
+		scsi_device_command_phase1(dev->current->tag);
 	}
 	ncr53c810_write(dev, addr, sd->CmdBuffer+dev->buffer_pos, count);
     }
@@ -626,7 +637,7 @@ ncr53c810_do_dma(ncr53c810_t *dev, int out, uint8_t id)
     if (dev->temp_buf_len <= 0) {
 	if (out) {
 		ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: SCSI Command Phase 1 on PHASE_DO\n", id, dev->current_lun, dev->last_command);
-		scsi_device_command_phase1(id, dev->current_lun);
+		scsi_device_command_phase1(id);
 	}
 	if (sd->CmdBuffer != NULL) {
 		free(sd->CmdBuffer);
@@ -672,8 +683,8 @@ ncr53c810_do_command(ncr53c810_t *dev, uint8_t id)
     dev->sfbr = buf[0];
     dev->command_complete = 0;
 
-    sd = &SCSIDevices[id][dev->current_lun];
-    if (((id == -1) || !scsi_device_present(id, dev->current_lun))) {
+    sd = &SCSIDevices[id];
+    if (!scsi_device_present(id)) {
 	ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Bad Selection\n", id, dev->current_lun, buf[0]);
 	ncr53c810_bad_selection(dev, id);
 	return 0;
@@ -687,7 +698,7 @@ ncr53c810_do_command(ncr53c810_t *dev, uint8_t id)
     ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: DBC=%i\n", id, dev->current_lun, buf[0], dev->dbc);
     dev->last_command = buf[0];
 
-    scsi_device_command_phase0(dev->current->tag, dev->current_lun, dev->dbc, buf);
+    scsi_device_command_phase0(dev->current->tag, buf);
     dev->hba_private = (void *)dev->current;
 
     dev->waiting = 0;
@@ -703,7 +714,7 @@ ncr53c810_do_command(ncr53c810_t *dev, uint8_t id)
     if ((sd->Phase == SCSI_PHASE_DATA_IN) && (sd->BufferLength > 0)) {
 	ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: PHASE_DI\n", id, dev->current_lun, buf[0]);
 	ncr53c810_set_phase(dev, PHASE_DI);
-	p = scsi_device_get_callback(dev->current->tag, dev->current_lun);
+	p = scsi_device_get_callback(dev->current->tag);
 	if (p <= 0LL) {
 	        period = ((double) sd->BufferLength) * 0.1 * ((double) TIMER_USEC);	/* Fast SCSI: 10000000 bytes per second */
 		dev->timer_period += (int64_t) period;
@@ -711,9 +722,9 @@ ncr53c810_do_command(ncr53c810_t *dev, uint8_t id)
 		dev->timer_period += p;
 	return 1;
     } else if ((sd->Phase == SCSI_PHASE_DATA_OUT) && (sd->BufferLength > 0)) {
-	ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: PHASE_DO\n", id, dev->current_lun, buf[0]);
+	ncr53c810_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: PHASE_DO\n", id, buf[0]);
 	ncr53c810_set_phase(dev, PHASE_DO);
-	p = scsi_device_get_callback(dev->current->tag, dev->current_lun);
+	p = scsi_device_get_callback(dev->current->tag);
 	if (p <= 0LL) {
 	        period = ((double) sd->BufferLength) * 0.1 * ((double) TIMER_USEC);	/* Fast SCSI: 10000000 bytes per second */
 		dev->timer_period += (int64_t) period;
@@ -747,7 +758,7 @@ ncr53c810_do_status(ncr53c810_t *dev)
 static void
 ncr53c810_do_msgin(ncr53c810_t *dev)
 {
-    int len;
+    uint32_t len;
     ncr53c810_log("Message in len=%d/%d\n", dev->dbc, dev->msg_len);
     dev->sfbr = dev->msg[0];
     len = dev->msg_len;
@@ -821,7 +832,7 @@ ncr53c810_do_msgout(ncr53c810_t *dev, uint8_t id)
     uint32_t current_tag;
     scsi_device_t *sd;
 
-    sd = &SCSIDevices[id][dev->current_lun];
+    sd = &SCSIDevices[id];
 
     current_tag = id;
 
@@ -1067,7 +1078,7 @@ again:
 					}
 					dev->sstat0 |= NCR_SSTAT0_WOA;
 					dev->scntl1 &= ~NCR_SCNTL1_IARB;
-					if (((id == -1) || !scsi_device_present(id, 0))) {
+					if (!scsi_device_present(id)) {
 						ncr53c810_bad_selection(dev, id);
 						break;
 					}
@@ -1086,8 +1097,12 @@ again:
 					break;
 				case 2: /* Wait Reselect */
 					ncr53c810_log("Wait Reselect\n");
-					if (!ncr53c810_irq_on_rsl(dev))
-						dev->waiting = 1;
+					if (dev->istat & NCR_ISTAT_SIGP)
+						dev->dsp = dev->dnad;		/* If SIGP is set, this command causes an immediate jump to DNAD. */
+					else {
+						if (!ncr53c810_irq_on_rsl(dev))
+							dev->waiting = 1;
+					}
 					break;
 				case 3: /* Set */
 					ncr53c810_log("Set%s%s%s%s\n", insn & (1 << 3) ? " ATN" : "",
@@ -1450,7 +1465,7 @@ ncr53c810_reg_writeb(ncr53c810_t *dev, uint32_t offset, uint8_t val)
 			ncr53c810_update_irq(dev);
 		}
 
-		if (dev->waiting == 1 && val & NCR_ISTAT_SIGP) {
+		if ((dev->waiting == 1) && (val & NCR_ISTAT_SIGP)) {
 			ncr53c810_log("Woken by SIGP\n");
 			dev->waiting = 0;
 			dev->dsp = dev->dnad;
@@ -1656,7 +1671,8 @@ ncr53c810_reg_readb(ncr53c810_t *dev, uint32_t offset)
 	CASE_GET_REG32(dsa, 0x10)
 	case 0x14: /* ISTAT */
 		ncr53c810_log("NCR 810: Read ISTAT %02X\n", dev->istat);
-		return dev->istat;
+		tmp = dev->istat;
+		return tmp;
 	case 0x16: /* MBOX0 */
 		ncr53c810_log("NCR 810: Read MBOX0 %02X\n", dev->mbox0);
 		return dev->mbox0;
@@ -1977,9 +1993,8 @@ ncr53c810_pci_read(int func, int addr, void *p)
 
     ncr53c810_log("NCR53c810: Reading register %02X\n", addr & 0xff);
 
-    if ((addr >= 0x80) && (addr <= 0xDF)) {
+    if ((addr >= 0x80) && (addr <= 0xDF))
 	return ncr53c810_reg_readb(dev, addr & 0x7F);
-    }
 
     switch (addr) {
 	case 0x00:
@@ -2155,6 +2170,12 @@ ncr53c810_init(const device_t *info)
 
     timer_add(ncr53c810_callback, &dev->timer_period, &dev->timer_enabled, dev);
 
+    dev->has_bios = device_get_config_int("bios");
+
+    /* Enable our BIOS space in PCI, if needed. */
+    if (dev->has_bios)
+	rom_init(&dev->bios, NCR53C810_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+
     return(dev);
 }
 
@@ -2171,13 +2192,22 @@ ncr53c810_close(void *priv)
 }
 
 
+static const device_config_t ncr53c810_pci_config[] = {
+	{
+		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
+	},
+	{
+		"", "", -1
+	}
+};
+
+
 const device_t ncr53c810_pci_device =
 {
     "NCR 53c810 (SCSI)",
     DEVICE_PCI,
     0,
     ncr53c810_init, ncr53c810_close, NULL,
-    NULL,
     NULL, NULL, NULL,
-    NULL
+    ncr53c810_pci_config
 };

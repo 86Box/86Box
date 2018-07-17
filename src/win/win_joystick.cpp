@@ -8,7 +8,7 @@
  *
  *		Joystick interface to host device.
  *
- * Version:	@(#)win_joystick.cpp	1.0.8	2018/03/18
+ * Version:	@(#)win_joystick.cpp	1.0.9	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -19,8 +19,10 @@
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 #include <math.h>
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../plat.h"
@@ -38,12 +40,32 @@ static LPDIRECTINPUTDEVICE8 lpdi_joystick[2] = {NULL, NULL};
 static GUID joystick_guids[MAX_JOYSTICKS];
 
 
+#ifdef ENABLE_JOYSTICK_LOG
+int joystick_do_log = ENABLE_JOYSTICK_LOG;
+#endif
+
+
+static void
+joystick_log(const char *fmt, ...)
+{
+#ifdef ENABLE_JOYSTICK_LOG
+    va_list ap;
+
+    if (joystick_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
 static BOOL CALLBACK joystick_enum_callback(LPCDIDEVICEINSTANCE lpddi, UNUSED(LPVOID data))
 {
         if (joysticks_present >= MAX_JOYSTICKS)
                 return DIENUM_STOP;
         
-        pclog("joystick_enum_callback : found joystick %i : %s\n", joysticks_present, lpddi->tszProductName);
+        joystick_log("joystick_enum_callback : found joystick %i : %s\n", joysticks_present, lpddi->tszProductName);
         
         joystick_guids[joysticks_present++] = lpddi->guidInstance;
 
@@ -64,7 +86,7 @@ BOOL CALLBACK DIEnumDeviceObjectsCallback(
             lpddoi->guidType == GUID_Slider)
         {
                 strncpy(state->axis[state->nr_axes].name, lpddoi->tszName, sizeof(state->axis[state->nr_axes].name));
-                pclog("Axis %i : %s  %x %x\n", state->nr_axes, state->axis[state->nr_axes].name, lpddoi->dwOfs, lpddoi->dwType);
+                joystick_log("Axis %i : %s  %x %x\n", state->nr_axes, state->axis[state->nr_axes].name, lpddoi->dwOfs, lpddoi->dwType);
                 if (lpddoi->guidType == GUID_XAxis)
                         state->axis[state->nr_axes].id = 0;
                 else if (lpddoi->guidType == GUID_YAxis)
@@ -82,13 +104,13 @@ BOOL CALLBACK DIEnumDeviceObjectsCallback(
         else if (lpddoi->guidType == GUID_Button)
         {
                 strncpy(state->button[state->nr_buttons].name, lpddoi->tszName, sizeof(state->button[state->nr_buttons].name));
-                pclog("Button %i : %s  %x %x\n", state->nr_buttons, state->button[state->nr_buttons].name, lpddoi->dwOfs, lpddoi->dwType);
+                joystick_log("Button %i : %s  %x %x\n", state->nr_buttons, state->button[state->nr_buttons].name, lpddoi->dwOfs, lpddoi->dwType);
                 state->nr_buttons++;
         }
         else if (lpddoi->guidType == GUID_POV)
         {
                 strncpy(state->pov[state->nr_povs].name, lpddoi->tszName, sizeof(state->pov[state->nr_povs].name));
-                pclog("POV %i : %s  %x %x\n", state->nr_povs, state->pov[state->nr_povs].name, lpddoi->dwOfs, lpddoi->dwType);
+                joystick_log("POV %i : %s  %x %x\n", state->nr_povs, state->pov[state->nr_povs].name, lpddoi->dwOfs, lpddoi->dwType);
                 state->nr_povs++;
         }        
         
@@ -111,7 +133,7 @@ void joystick_init()
         if (FAILED(lpdi->EnumDevices(DIDEVTYPE_JOYSTICK, joystick_enum_callback, NULL, DIEDFL_ATTACHEDONLY)))
                 fatal("joystick_init : EnumDevices failed\n");
 
-        pclog("joystick_init: joysticks_present=%i\n", joysticks_present);
+        joystick_log("joystick_init: joysticks_present=%i\n", joysticks_present);
         
         for (c = 0; c < joysticks_present; c++)
         {                
@@ -130,18 +152,18 @@ void joystick_init()
                 device_instance.dwSize = sizeof(device_instance);
                 if (FAILED(lpdi_joystick[c]->GetDeviceInfo(&device_instance)))
                         fatal("joystick_init : GetDeviceInfo failed\n");
-                pclog("Joystick %i :\n", c);
-                pclog(" tszInstanceName = %s\n", device_instance.tszInstanceName);
-                pclog(" tszProductName = %s\n", device_instance.tszProductName);
+                joystick_log("Joystick %i :\n", c);
+                joystick_log(" tszInstanceName = %s\n", device_instance.tszInstanceName);
+                joystick_log(" tszProductName = %s\n", device_instance.tszProductName);
                 strncpy(plat_joystick_state[c].name, device_instance.tszInstanceName, 64);
 
                 memset(&devcaps, 0, sizeof(devcaps));
                 devcaps.dwSize = sizeof(devcaps);
                 if (FAILED(lpdi_joystick[c]->GetCapabilities(&devcaps)))
                         fatal("joystick_init : GetCapabilities failed\n");
-                pclog(" Axes = %i\n", devcaps.dwAxes);
-                pclog(" Buttons = %i\n", devcaps.dwButtons);
-                pclog(" POVs = %i\n", devcaps.dwPOVs);
+                joystick_log(" Axes = %i\n", devcaps.dwAxes);
+                joystick_log(" Buttons = %i\n", devcaps.dwButtons);
+                joystick_log(" POVs = %i\n", devcaps.dwPOVs);
 
                 lpdi_joystick[c]->EnumObjects(DIEnumDeviceObjectsCallback, &plat_joystick_state[c], DIDFT_ALL); 
                 
@@ -246,7 +268,7 @@ void joystick_process(void)
 
                 for (b = 0; b < 4; b++)
                         plat_joystick_state[c].p[b] = joystate.rgdwPOV[b];
-//                pclog("joystick %i - x=%i y=%i b[0]=%i b[1]=%i  %i\n", c, joystick_state[c].x, joystick_state[c].y, joystick_state[c].b[0], joystick_state[c].b[1], joysticks_present);
+//                joystick_log("joystick %i - x=%i y=%i b[0]=%i b[1]=%i  %i\n", c, joystick_state[c].x, joystick_state[c].y, joystick_state[c].b[0], joystick_state[c].b[1], joysticks_present);
         }
         
         for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++)

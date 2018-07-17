@@ -1,8 +1,10 @@
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../nmi.h"
@@ -1006,8 +1008,6 @@ void *gus_init(const device_t *info)
         gus->ram = malloc(1 << 20);
         memset(gus->ram, 0, 1 << 20);
         
-        pclog("gus_init\n");
-        
         for (c=0;c<32;c++)
         {
                 gus->ctrl[c]=1;
@@ -1020,7 +1020,6 @@ void *gus_init(const device_t *info)
 		out/=1.002709201;		/* 0.0235 dB Steps */
 	}
 
-	pclog("GUS: top volume %f %f %f %f\n",vol16bit[4095],vol16bit[3800],vol16bit[3000],vol16bit[2048]);
 	gus->voices=14;
 
         gus->samp_timer = gus->samp_latch = (int64_t)(TIMER_USEC * (1000000.0 / 44100.0));
@@ -1063,6 +1062,6 @@ const device_t gus_device =
         "Gravis UltraSound",
         0, 0,
         gus_init, gus_close, NULL, NULL,
-        gus_speed_changed, NULL, NULL,
+        gus_speed_changed, NULL,
         NULL
 };

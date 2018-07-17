@@ -68,7 +68,7 @@
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *		
- * Version:	@(#)europc.c	1.0.3	2018/03/18
+ * Version:	@(#)europc.c	1.0.6	2018/04/29
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -109,19 +109,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
 #include <time.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../nmi.h"
 #include "../mem.h"
 #include "../rom.h"
-#include "../nvr.h"
 #include "../device.h"
+#include "../nvr.h"
 #include "../keyboard.h"
 #include "../mouse.h"
 #include "../game/gameport.h"
@@ -167,6 +169,27 @@ typedef struct {
 static europc_t europc;
 
 
+#ifdef ENABLE_EUROPC_LOG
+int europc_do_log = ENABLE_EUROPC_LOG;
+#endif
+
+
+static void
+europc_log(const char *fmt, ...)
+{
+#ifdef ENABLE_EUROPC_LOG
+   va_list ap;
+
+   if (europc_do_log)
+   {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+   }
+#endif
+}
+
+
 /*
  * This is called every second through the NVR/RTC hook.
  *
@@ -180,7 +203,7 @@ static europc_t europc;
  * FIXME: should we mark NVR as dirty?
  */
 static void
-rtc_tick(nvr_t *nvr)
+europc_rtc_tick(nvr_t *nvr)
 {
     uint8_t *regs;
     int mon, yr;
@@ -388,7 +411,7 @@ jim_set(europc_t *sys, uint8_t reg, uint8_t val)
 			case 0x1f:	/* 0001 1111 */
 			case 0x0b:	/* 0000 1011 */
 				//europc_jim.mode=AGA_MONO;
-				pclog("EuroPC: AGA Monochrome mode!\n");
+				europc_log("EuroPC: AGA Monochrome mode!\n");
 				break;
 
 			case 0x18:	/* 0001 1000 */
@@ -398,12 +421,12 @@ jim_set(europc_t *sys, uint8_t reg, uint8_t val)
 
 			case 0x0e:	/* 0000 1100 */
 				/*80 columns? */
-				pclog("EuroPC: AGA 80-column mode!\n");
+				europc_log("EuroPC: AGA 80-column mode!\n");
 				break;
 
 			case 0x0d:	/* 0000 1011 */
 				/*40 columns? */
-				pclog("EuroPC: AGA 40-column mode!\n");
+				europc_log("EuroPC: AGA 40-column mode!\n");
 				break;
 
 			default:
@@ -444,7 +467,7 @@ jim_write(uint16_t addr, uint8_t val, void *priv)
     uint8_t b;
 
 #if EUROPC_DEBUG > 1
-    pclog("EuroPC: jim_wr(%04x, %02x)\n", addr, val);
+    europc_log("EuroPC: jim_wr(%04x, %02x)\n", addr, val);
 #endif
 
     switch (addr & 0x000f) {
@@ -485,7 +508,7 @@ jim_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	default:
-		pclog("EuroPC: invalid JIM write %02x, val %02x\n", addr, val);
+		europc_log("EuroPC: invalid JIM write %02x, val %02x\n", addr, val);
 		break;
     }
 }
@@ -532,12 +555,12 @@ jim_read(uint16_t addr, void *priv)
 		break;
 
 	default:
-		pclog("EuroPC: invalid JIM read %02x\n", addr);
+		europc_log("EuroPC: invalid JIM read %02x\n", addr);
 		break;
     }
 
 #if EUROPC_DEBUG > 1
-    pclog("EuroPC: jim_rd(%04x): %02x\n", addr, r);
+    europc_log("EuroPC: jim_rd(%04x): %02x\n", addr, r);
 #endif
 
     return(r);
@@ -552,10 +575,10 @@ europc_boot(const device_t *info)
     uint8_t b;
 
 #if EUROPC_DEBUG
-    pclog("EuroPC: booting mainboard..\n");
+    europc_log("EuroPC: booting mainboard..\n");
 #endif
 
-    pclog("EuroPC: NVR=[ %02x %02x %02x %02x %02x ] %sVALID\n",
+    europc_log("EuroPC: NVR=[ %02x %02x %02x %02x %02x ] %sVALID\n",
 	sys->nvr.regs[MRTC_CONF_A], sys->nvr.regs[MRTC_CONF_B],
 	sys->nvr.regs[MRTC_CONF_C], sys->nvr.regs[MRTC_CONF_D],
 	sys->nvr.regs[MRTC_CONF_E],
@@ -652,13 +675,16 @@ europc_boot(const device_t *info)
     /* Only after JIM has been initialized. */
     (void)device_add(&keyboard_xt_device);
 
-    /*
+    /* Enable and set up the FDC. */
+    (void)device_add(&fdc_xt_device);
+
+     /*
      * Set up and enable the HD20 disk controller.
      *
      * We only do this if we have not configured another one.
      */
     if (hdc_current == 1)
-	(void)device_add(&europc_hdc_device);
+	(void)device_add(&xta_hd20_device);
 
     return(sys);
 }
@@ -699,7 +725,7 @@ const device_t europc_device = {
     "EuroPC System Board",
     0, 0,
     europc_boot, europc_close, NULL,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     europc_config
 };
 
@@ -715,12 +741,13 @@ const device_t europc_device = {
 void
 machine_europc_init(const machine_t *model)
 {
+    machine_common_init(model);
+    nmi_init();
+
     /* Clear the machine state. */
     memset(&europc, 0x00, sizeof(europc_t));
     europc.jim = 0x0250;
 
-    machine_common_init(model);
-    nmi_init();
     mem_add_bios();
 
     /* This is machine specific. */
@@ -730,13 +757,10 @@ machine_europc_init(const machine_t *model)
     /* Set up any local handlers here. */
     europc.nvr.reset = rtc_reset;
     europc.nvr.start = rtc_start;
-    europc.nvr.tick = rtc_tick;
+    europc.nvr.tick = europc_rtc_tick;
 
     /* Initialize the actual NVR. */
     nvr_init(&europc.nvr);
-
-    /* Enable and set up the FDC. */
-    (void)device_add(&fdc_xt_device);
 
     /* Enable and set up the mainboard device. */
     device_add(&europc_device);

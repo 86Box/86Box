@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.16	2018/03/02
+ * Version:	@(#)rom.h	1.0.17	2018/05/10
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2018 Fred N. van Kempen.
@@ -122,17 +122,10 @@ enum {
 #endif
     ROM_AWARD486_OPTI495,
     ROM_DTK486,		/* DTK PKM-0038S E-2/SiS 471/Award/SiS 85C471 */
-#if defined(DEV_BRANCH) && defined(USE_GREENB)
-    ROM_4GPV31,		/* Green-B 4GPV3.1 ISA/VLB 486/Pentium, AMI */
-#endif
     ROM_IBMPS1_2133,
 
-	ROM_IBMPS2_M70_TYPE3,
-	ROM_IBMPS2_M70_TYPE4,	
-	
-#ifdef WALTJE
-    ROM_IBMPS2_M80_486,
-#endif
+    ROM_IBMPS2_M70_TYPE3,
+    ROM_IBMPS2_M70_TYPE4,	
 
     ROM_R418,		/* Rise Computer R418/SiS 496/497/Award/SMC FDC37C665 */
 
@@ -150,7 +143,10 @@ enum {
     ROM_PRESIDENT,	/* President Award 430FX PCI/430FX/Award/Unknown SIO */
 
     ROM_THOR,		/* Intel Advanced_ATX/430FX/AMI/NS PC87306 */
+#if defined(DEV_BRANCH) && defined(USE_MRTHOR)
     ROM_MRTHOR,		/* Intel Advanced_ATX/430FX/MR.BIOS/NS PC87306 */
+#endif
+    ROM_PB640,		/* Packard Bell PB640/430FX/AMI/NS PC87306 */
 
     ROM_ACERM3A,	/* Acer M3A/430HX/Acer/SMC FDC37C932FR */
     ROM_ACERV35N,	/* Acer V35N/430HX/Acer/SMC FDC37C932FR */

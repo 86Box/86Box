@@ -117,7 +117,7 @@
  *                       bit 2 set for single-pixel LCD font
  *                       bits 0,1 for display font
  *
- * Version:	@(#)m_at_t3100e.c	1.0.4	2018/03/18
+ * Version:	@(#)m_at_t3100e.c	1.0.5	2018/04/29
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -145,11 +145,13 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-#include <stdint.h>
+#include <stdarg.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../mouse.h"
@@ -166,9 +168,6 @@
 extern uint8_t *ram;		/* Physical RAM */
 
 void at_init();
-
-
-static const int t3100e_log = 0;
 
 
 /* The T3100e motherboard can (and does) dynamically reassign RAM between
@@ -212,6 +211,27 @@ struct t3100e_ems_regs
 } t3100e_ems;
 
 void t3100e_ems_out(uint16_t addr, uint8_t val, void *p);
+
+
+#ifdef ENABLE_T3100E_LOG
+int t3100e_do_log = ENABLE_T3100E_LOG;
+#endif
+
+
+static void
+t3100e_log(const char *fmt, ...)
+{
+#ifdef ENABLE_T3100E_LOG
+   va_list ap;
+
+   if (t3100e_do_log)
+   {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+   }
+#endif
+}
 
 
 /* Given a memory address (which ought to be in the page frame at 0xD0000), 
@@ -329,7 +349,7 @@ void dump_mappings()
 			offset = t3100e_ems.page_exec[3];
 		}
 
-		pclog("  %p | base=%05x size=%05x %c @ %06x %s\n", mm, 
+		t3100e_log("  %p | base=%05x size=%05x %c @ %06x %s\n", mm, 
 			mm->base, mm->size, mm->enable ? 'Y' : 'N', 
 			offset, name);
 
@@ -342,16 +362,14 @@ void t3100e_map_ram(uint8_t val)
 	int n;
 	int32_t upper_len;
 
-	if (t3100e_log) 
-	{	
-		pclog("OUT 0x8084, %02x [ set memory mapping :", val | 0x40); 
-		if (val & 1) pclog("ENABLE_EMS ");
-		if (val & 2) pclog("ENABLE_XMS ");
-		if (val & 4) pclog("640K ");
-		if (val & 8) pclog("X8X ");
-		if (val & 16) pclog("UPPER_IS_XMS ");
-		pclog("\n");
-	}
+	t3100e_log("OUT 0x8084, %02x [ set memory mapping :", val | 0x40); 
+	if (val & 1) t3100e_log("ENABLE_EMS ");
+	if (val & 2) t3100e_log("ENABLE_XMS ");
+	if (val & 4) t3100e_log("640K ");
+	if (val & 8) t3100e_log("X8X ");
+	if (val & 16) t3100e_log("UPPER_IS_XMS ");
+	t3100e_log("\n");
+
 	/* Bit 2 controls size of conventional memory */
 	if (val & 4) 
 	{
@@ -441,7 +459,7 @@ uint8_t t3100e_sys_in(uint16_t addr, void *p)
 	/* The low 4 bits always seem to be 0x0C. The high 4 are a 
 	 * notification sent by the keyboard controller when it detects
 	 * an [Fn] key combination */
-	if (t3100e_log) pclog("IN 0x8084\n");
+	t3100e_log("IN 0x8084\n");
 	return 0x0C | (regs->notify << 4);
 }
 
@@ -455,7 +473,7 @@ void t3100e_sys_out(uint16_t addr, uint8_t val, void *p)
 	switch (val & 0xE0)
 	{
 		case 0x00: /* Set serial port IRQs. Not implemented */
-			if (t3100e_log) pclog("OUT 0x8084, %02x [ set serial port IRQs]\n", val); 
+			t3100e_log("OUT 0x8084, %02x [ set serial port IRQs]\n", val); 
 			break;
 		case 0x40: /* Set RAM mappings. */
 			t3100e_map_ram(val & 0x1F);		
@@ -465,7 +483,7 @@ void t3100e_sys_out(uint16_t addr, uint8_t val, void *p)
 			t3100e_video_options_set(val & 0x1F); break;
 
 			/* Other options not implemented. */
-		default: if (t3100e_log) pclog("OUT 0x8084, %02x\n", val); break;
+		default: t3100e_log("OUT 0x8084, %02x\n", val); break;
 	}
 }
 
@@ -562,7 +580,7 @@ void t3100e_ems_out(uint16_t addr, uint8_t val, void *p)
 	int pg = port_to_page(addr);
 
 	regs->page_exec[pg & 3] = t3100e_ems_execaddr(regs, pg, val);
-	if (t3100e_log) pclog("EMS: page %d %02x -> %02x [%06x]\n",
+	t3100e_log("EMS: page %d %02x -> %02x [%06x]\n",
 			pg, regs->page[pg], val, regs->page_exec[pg & 3]);
 	regs->page[pg] = val;
 
@@ -570,14 +588,14 @@ void t3100e_ems_out(uint16_t addr, uint8_t val, void *p)
 /* Bit 7 set if page is enabled, reset if page is disabled */
 	if (regs->page_exec[pg])
 	{
-		if (t3100e_log) pclog("Enabling EMS RAM at %05x\n",
+		t3100e_log("Enabling EMS RAM at %05x\n",
 				page_to_addr(pg));
 		mem_mapping_enable(&regs->mapping[pg]);
 		mem_mapping_set_exec(&regs->mapping[pg], ram + regs->page_exec[pg]);
 	}
 	else
 	{
-		if (t3100e_log) pclog("Disabling EMS RAM at %05x\n",
+		t3100e_log("Disabling EMS RAM at %05x\n",
 				page_to_addr(pg));
 		mem_mapping_disable(&regs->mapping[pg]);
 	}
@@ -604,9 +622,9 @@ static uint16_t ems_read_ramw(uint32_t addr, void *priv)
 	int pg = addr_to_page(addr);
 
 	if (pg < 0) return 0xFF;
-	//pclog("ems_read_ramw addr=%05x ", addr);
+	//t3100e_log("ems_read_ramw addr=%05x ", addr);
 	addr = regs->page_exec[pg] + (addr & 0x3FFF);
-	//pclog("-> %06x val=%04x\n", addr, *(uint16_t *)&ram[addr]);	
+	//t3100e_log("-> %06x val=%04x\n", addr, *(uint16_t *)&ram[addr]);	
 	return *(uint16_t *)&ram[addr];	
 }
 
@@ -639,9 +657,9 @@ static void ems_write_ramw(uint32_t addr, uint16_t val, void *priv)
 	int pg = addr_to_page(addr);
 
 	if (pg < 0) return;
-	//pclog("ems_write_ramw addr=%05x ", addr);
+	//t3100e_log("ems_write_ramw addr=%05x ", addr);
 	addr = regs->page_exec[pg] + (addr & 0x3FFF);
-	//pclog("-> %06x val=%04x\n", addr, val);
+	//t3100e_log("-> %06x val=%04x\n", addr, val);
 
 	*(uint16_t *)&ram[addr] = val;	
 }
@@ -743,7 +761,7 @@ void machine_at_t3100e_init(const machine_t *model)
 	/* Map the EMS page frame */
 	for (pg = 0; pg < 4; pg++)
 	{
-		if (t3100e_log) pclog("Adding memory map at %x for page %d\n", page_to_addr(pg), pg);
+		t3100e_log("Adding memory map at %x for page %d\n", page_to_addr(pg), pg);
 		mem_mapping_add(&t3100e_ems.mapping[pg], 
 			page_to_addr(pg), 16384, 
 			ems_read_ram,  ems_read_ramw,  ems_read_raml,

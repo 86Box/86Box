@@ -12,7 +12,7 @@
  *		based design. Most cards were WD1003-WA2 or -WAH, where the
  *		-WA2 cards had a floppy controller as well (to save space.)
  *
- * Version:	@(#)hdc_mfm_at.c	1.0.13	2018/03/18
+ * Version:	@(#)hdc_mfm_at.c	1.0.17	2018/05/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -23,11 +23,13 @@
 #define __USE_LARGEFILE64
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../io.h"
@@ -110,33 +112,43 @@ typedef struct {
 } mfm_t;
 
 
-static __inline void irq_raise(mfm_t *mfm)
-{
-    /* If not already pending.. */
-    if (! mfm->irqstat) {
-	/* If enabled in the control register.. */
-	if (! (mfm->fdisk&0x02)) {
-		/* .. raise IRQ14. */
-		picint(1<<14);
-	}
+#ifdef ENABLE_MFM_AT_LOG
+int mfm_at_do_log = ENABLE_MFM_AT_LOG;
+#endif
 
-	/* Remember this. */
-	mfm->irqstat = 1;
+
+static void
+mfm_at_log(const char *fmt, ...)
+{
+#ifdef ENABLE_MFM_AT_LOG
+    va_list ap;
+
+    if (mfm_at_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
     }
+#endif
 }
 
 
-static __inline void irq_lower(mfm_t *mfm)
+static inline void
+irq_raise(mfm_t *mfm)
 {
-    /* If raised.. */
-    if (mfm->irqstat) {
-	/* If enabled in the control register.. */
-	if (! (mfm->fdisk&0x02)) {
-		/* .. drop IRQ14. */
-		picintc(1<<14);
-	}
+    if (!(mfm->fdisk & 2))
+	picint(1 << 14);
 
-	/* Remember this. */
+    mfm->irqstat = 1;
+}
+
+
+static inline void
+irq_lower(mfm_t *mfm)
+{
+    if (mfm->irqstat) {
+	if (!(mfm->fdisk & 2))
+		picintc(1 << 14);
+
 	mfm->irqstat = 0;
     }
 }
@@ -160,18 +172,18 @@ get_sector(mfm_t *mfm, off64_t *addr)
     drive_t *drive = &mfm->drives[mfm->drvsel];
 
     if (drive->curcyl != mfm->cylinder) {
-	pclog("WD1003(%d) sector: wrong cylinder\n");
+	mfm_at_log("WD1003(%d) sector: wrong cylinder\n");
 	return(1);
     }
 
     if (mfm->head > drive->cfg_hpc) {
-	pclog("WD1003(%d) get_sector: past end of configured heads\n",
+	mfm_at_log("WD1003(%d) get_sector: past end of configured heads\n",
 							mfm->drvsel);
 	return(1);
     }
 
     if (mfm->sector >= drive->cfg_spt+1) {
-	pclog("WD1003(%d) get_sector: past end of configured sectors\n",
+	mfm_at_log("WD1003(%d) get_sector: past end of configured sectors\n",
 							mfm->drvsel);
 	return(1);
     }
@@ -179,12 +191,12 @@ get_sector(mfm_t *mfm, off64_t *addr)
 #if 1
     /* We should check this in the SET_DRIVE_PARAMETERS command!  --FvK */
     if (mfm->head > drive->hpc) {
-	pclog("WD1003(%d) get_sector: past end of heads\n", mfm->drvsel);
+	mfm_at_log("WD1003(%d) get_sector: past end of heads\n", mfm->drvsel);
 	return(1);
     }
 
     if (mfm->sector >= drive->spt+1) {
-	pclog("WD1003(%d) get_sector: past end of sectors\n", mfm->drvsel);
+	mfm_at_log("WD1003(%d) get_sector: past end of sectors\n", mfm->drvsel);
 	return(1);
     }
 #endif
@@ -221,7 +233,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 
     if (! drive->present) {
 	/* This happens if sofware polls all drives. */
-	pclog("WD1003(%d) command %02x on non-present drive\n",
+	mfm_at_log("WD1003(%d) command %02x on non-present drive\n",
 					mfm->drvsel, val);
 	mfm->command = 0xff;
 	mfm->status = STAT_BUSY;
@@ -233,24 +245,23 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
     }
 
     irq_lower(mfm);
+    mfm->command = val;
     mfm->error = 0;
 
     switch (val & 0xf0) {
 	case CMD_RESTORE:
 		drive->steprate = (val & 0x0f);
-#if ENABLE_HDC_LOG
-		pclog("WD1003(%d) restore, step=%d\n",
+		mfm_at_log("WD1003(%d) restore, step=%d\n",
 			mfm->drvsel, drive->steprate);
-#endif
 		drive->curcyl = 0;
 		mfm->status = STAT_READY|STAT_DSC;
-		mfm->command = 0x00;
+		mfm->command &= 0xf0;
 		irq_raise(mfm);
 		break;
 
 	case CMD_SEEK:
 		drive->steprate = (val & 0x0f);
-		mfm->command = (val & 0xf0);
+		mfm->command &= 0xf0;
 		mfm->status = STAT_BUSY;
 		timer_clock();
 		mfm->callback = 200LL*MFM_TIME;
@@ -258,16 +269,15 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 		break;
 
 	default:
+		mfm->command = val;
 		switch (val) {
 			case CMD_READ:
 			case CMD_READ+1:
 			case CMD_READ+2:
 			case CMD_READ+3:
-#if ENABLE_HDC_LOG
-				pclog("WD1003(%d) read, opt=%d\n",
+				mfm_at_log("WD1003(%d) read, opt=%d\n",
 					mfm->drvsel, val&0x03);
-#endif
-				mfm->command = (val & 0xf0);
+				mfm->command &= 0xfc;
 				if (val & 2)
 					fatal("WD1003: READ with ECC\n");
 				mfm->status = STAT_BUSY;
@@ -280,11 +290,9 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 			case CMD_WRITE+1:
 			case CMD_WRITE+2:
 			case CMD_WRITE+3:
-#if ENABLE_HDC_LOG
-				pclog("WD1003(%d) write, opt=%d\n",
+				mfm_at_log("WD1003(%d) write, opt=%d\n",
 					mfm->drvsel, val & 0x03);
-#endif
-				mfm->command = (val & 0xf0);
+				mfm->command &= 0xfc;
 				if (val & 2)
 					fatal("WD1003: WRITE with ECC\n");
 				mfm->status = STAT_DRQ|STAT_DSC;
@@ -293,7 +301,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 
 			case CMD_VERIFY:
 			case CMD_VERIFY+1:
-				mfm->command = (val & 0xfe);
+				mfm->command &= 0xfe;
 				mfm->status = STAT_BUSY;
 				timer_clock();
 				mfm->callback = 200LL*MFM_TIME;
@@ -301,13 +309,11 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 				break;
 
 			case CMD_FORMAT:
-				mfm->command = val;
 				mfm->status = STAT_DRQ|STAT_BUSY;
 				mfm->pos = 0;
 				break;
 
 			case CMD_DIAGNOSE:
-				mfm->command = val;
 				mfm->status = STAT_BUSY;
 				timer_clock();
 				mfm->callback = 200LL*MFM_TIME;
@@ -335,11 +341,11 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 					/* Only accept after RESET or DIAG. */
 					drive->cfg_spt = mfm->secount;
 					drive->cfg_hpc = mfm->head+1;
-					pclog("WD1003(%d) parameters: tracks=%d, spt=%i, hpc=%i\n",
+					mfm_at_log("WD1003(%d) parameters: tracks=%d, spt=%i, hpc=%i\n",
 						mfm->drvsel, drive->tracks,
 						drive->cfg_spt, drive->cfg_hpc);
 				} else {
-					pclog("WD1003(%d) parameters: tracks=%d,spt=%i,hpc=%i (IGNORED)\n",
+					mfm_at_log("WD1003(%d) parameters: tracks=%d,spt=%i,hpc=%i (IGNORED)\n",
 						mfm->drvsel, drive->tracks,
 						drive->cfg_spt, drive->cfg_hpc);
 				}
@@ -350,7 +356,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 				break;
 
 			default:
-				pclog("WD1003: bad command %02X\n", val);
+				mfm_at_log("WD1003: bad command %02X\n", val);
 				mfm->status = STAT_BUSY;
 				timer_clock();
 				mfm->callback = 200LL*MFM_TIME;
@@ -373,7 +379,9 @@ mfm_writew(uint16_t port, uint16_t val, void *priv)
 	mfm->pos = 0;
 	mfm->status = STAT_BUSY;
 	timer_clock();
-	mfm->callback = 6LL*MFM_TIME;
+	/* 781.25 us per sector at 5 Mbit/s = 640 kB/s. */
+	mfm->callback = ((3125LL * TIMER_USEC) / 4LL);
+	/* mfm->callback = 10LL * MFM_TIME; */
 	timer_update_outstanding();
     }
 }
@@ -384,9 +392,8 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 {
     mfm_t *mfm = (mfm_t *)priv;
 
-#if ENABLE_HDC_LOG > 1
-    pclog("WD1003 write(%04x, %02x)\n", port, val);
-#endif
+    mfm_at_log("WD1003 write(%04x, %02x)\n", port, val);
+
     switch (port) {
 	case 0x01f0:	/* data */
 		mfm_writew(port, val | (val << 8), priv);
@@ -417,7 +424,7 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 		mfm->drvsel = (val & 0x10) ? 1 : 0;
 		if (mfm->drives[mfm->drvsel].present)
 			mfm->status = STAT_READY|STAT_DSC;
-		  else
+		else
 			mfm->status = 0;
 		return;
 
@@ -428,21 +435,24 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 	case 0x03f6:	/* device control */
 		val &= 0x0f;
 		if ((mfm->fdisk & 0x04) && !(val & 0x04)) {
-			mfm->status = STAT_BUSY;
-			mfm->reset = 1;
 			timer_clock();
 			mfm->callback = 500LL*MFM_TIME;
 			timer_update_outstanding();
+			mfm->reset = 1;
+			mfm->status = STAT_BUSY;
 		}
 
 		if (val & 0x04) {
 			/* Drive held in reset. */
-			mfm->status = STAT_BUSY;
-			mfm->callback = 0LL;
 			timer_clock();
+			mfm->callback = 0LL;
 			timer_update_outstanding();
+			mfm->status = STAT_BUSY;
 		}
 		mfm->fdisk = val;
+		/* Lower IRQ on IRQ disable. */
+		if ((val & 2) && !(mfm->fdisk & 0x02))
+			picintc(1 << 14);
 		break;
     }
 }
@@ -465,7 +475,9 @@ mfm_readw(uint16_t port, void *priv)
 			next_sector(mfm);
 			mfm->status = STAT_BUSY;
 			timer_clock();
-			mfm->callback = 6LL*MFM_TIME;
+			/* 781.25 us per sector at 5 Mbit/s = 640 kB/s. */
+			mfm->callback = ((3125LL * TIMER_USEC) / 4LL);
+			/* mfm->callback = 10LL * MFM_TIME; */
 			timer_update_outstanding();
 		} else {
 			ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 0);
@@ -520,9 +532,8 @@ mfm_read(uint16_t port, void *priv)
 	default:
 		break;
     }
-#if ENABLE_HDC_LOG > 1
-    pclog("WD1003 read(%04x) = %02x\n", port, ret);
-#endif
+
+    mfm_at_log("WD1003 read(%04x) = %02x\n", port, ret);
 
     return(ret);
 }
@@ -533,10 +544,9 @@ do_seek(mfm_t *mfm)
 {
     drive_t *drive = &mfm->drives[mfm->drvsel];
 
-#if ENABLE_HDC_LOG
-    pclog("WD1003(%d) seek(%d) max=%d\n",
+    mfm_at_log("WD1003(%d) seek(%d) max=%d\n",
 	mfm->drvsel,mfm->cylinder,drive->tracks);
-#endif
+
     if (mfm->cylinder < drive->tracks)
 	drive->curcyl = mfm->cylinder;
       else
@@ -553,9 +563,8 @@ do_callback(void *priv)
 
     mfm->callback = 0LL;
     if (mfm->reset) {
-#if ENABLE_HDC_LOG
-	pclog("WD1003(%d) reset\n", mfm->drvsel);
-#endif
+	mfm_at_log("WD1003(%d) reset\n", mfm->drvsel);
+
 	mfm->status = STAT_READY|STAT_DSC;
 	mfm->error = 1;
 	mfm->secount = 1;
@@ -575,20 +584,16 @@ do_callback(void *priv)
 
     switch (mfm->command) {
 	case CMD_SEEK:
-#if ENABLE_HDC_LOG
-		pclog("WD1003(%d) seek, step=%d\n",
+		mfm_at_log("WD1003(%d) seek, step=%d\n",
 			mfm->drvsel, drive->steprate);
-#endif
 		do_seek(mfm);
 		mfm->status = STAT_READY|STAT_DSC;
 		irq_raise(mfm);
 		break;
 
 	case CMD_READ:
-#if ENABLE_HDC_LOG
-		pclog("WD1003(%d) read(%d,%d,%d)\n",
+		mfm_at_log("WD1003(%d) read(%d,%d,%d)\n",
 			mfm->drvsel, mfm->cylinder, mfm->head, mfm->sector);
-#endif
 		do_seek(mfm);
 		if (get_sector(mfm, &addr)) {
 			mfm->error = ERR_ID_NOT_FOUND;
@@ -606,10 +611,8 @@ do_callback(void *priv)
 		break;
 
 	case CMD_WRITE:
-#if ENABLE_HDC_LOG
-		pclog("WD1003(%d) write(%d,%d,%d)\n",
+		mfm_at_log("WD1003(%d) write(%d,%d,%d)\n",
 			mfm->drvsel, mfm->cylinder, mfm->head, mfm->sector);
-#endif
 		do_seek(mfm);
 		if (get_sector(mfm, &addr)) {
 			mfm->error = ERR_ID_NOT_FOUND;
@@ -619,26 +622,23 @@ do_callback(void *priv)
 		}
 
 		hdd_image_write(drive->hdd_num, addr, 1,(uint8_t *)mfm->buffer);
+		irq_raise(mfm);
+		mfm->secount = (mfm->secount - 1) & 0xff;
 
 		mfm->status = STAT_READY|STAT_DSC;
-		mfm->secount = (mfm->secount - 1) & 0xff;
 		if (mfm->secount) {
 			/* More sectors to do.. */
 			mfm->status |= STAT_DRQ;
 			mfm->pos = 0;
 			next_sector(mfm);
 			ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 1);
-		} else {
+		} else
 			ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 0);
-		}
-		irq_raise(mfm);
 		break;
 
 	case CMD_VERIFY:
-#if ENABLE_HDC_LOG
-		pclog("WD1003(%d) verify(%d,%d,%d)\n",
+		mfm_at_log("WD1003(%d) verify(%d,%d,%d)\n",
 			mfm->drvsel, mfm->cylinder, mfm->head, mfm->sector);
-#endif
 		do_seek(mfm);
 		mfm->pos = 0;
 		mfm->status = STAT_READY|STAT_DSC;
@@ -647,10 +647,8 @@ do_callback(void *priv)
 		break;
 
 	case CMD_FORMAT:
-#if ENABLE_HDC_LOG
-		pclog("WD1003(%d) format(%d,%d)\n",
+		mfm_at_log("WD1003(%d) format(%d,%d)\n",
 			mfm->drvsel, mfm->cylinder, mfm->head);
-#endif
 		do_seek(mfm);
 		if (get_sector(mfm, &addr)) {
 			mfm->error = ERR_ID_NOT_FOUND;
@@ -667,9 +665,7 @@ do_callback(void *priv)
 		break;
 
 	case CMD_DIAGNOSE:
-#if ENABLE_HDC_LOG
-		pclog("WD1003(%d) diag\n", mfm->drvsel);
-#endif
+		mfm_at_log("WD1003(%d) diag\n", mfm->drvsel);
 		drive->steprate = 0x0f;
 		mfm->error = 1;
 		mfm->status = STAT_READY|STAT_DSC;
@@ -677,7 +673,7 @@ do_callback(void *priv)
 		break;
 
 	default:
-		pclog("WD1003(%d) callback on unknown command %02x\n",
+		mfm_at_log("WD1003(%d) callback on unknown command %02x\n",
 					mfm->drvsel, mfm->command);
 		mfm->status = STAT_READY|STAT_ERR|STAT_DSC;
 		mfm->error = ERR_ABRT;
@@ -712,7 +708,7 @@ mfm_init(const device_t *info)
     mfm_t *mfm;
     int c, d;
 
-    pclog("WD1003: ISA MFM/RLL Fixed Disk Adapter initializing ...\n");
+    mfm_at_log("WD1003: ISA MFM/RLL Fixed Disk Adapter initializing ...\n");
     mfm = malloc(sizeof(mfm_t));
     memset(mfm, 0x00, sizeof(mfm_t));
 
@@ -721,7 +717,7 @@ mfm_init(const device_t *info)
 	if ((hdd[d].bus == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
 		loadhd(mfm, hdd[d].mfm_channel, d, hdd[d].fn);
 
-		pclog("WD1003(%d): (%ls) geometry %d/%d/%d\n", c, hdd[d].fn,
+		mfm_at_log("WD1003(%d): (%ls) geometry %d/%d/%d\n", c, hdd[d].fn,
 			(int)hdd[d].tracks, (int)hdd[d].hpc, (int)hdd[d].spt);
 
 		if (++c >= MFM_NUM) break;
@@ -769,5 +765,5 @@ const device_t mfm_at_wd1003_device = {
     DEVICE_ISA | DEVICE_AT,
     0,
     mfm_init, mfm_close, NULL,
-    NULL, NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, NULL
 };

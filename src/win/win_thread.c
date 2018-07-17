@@ -8,13 +8,13 @@
  *
  *		Implement threads and mutexes for the Win32 platform.
  *
- * Version:	@(#)win_thread.c	1.0.5	2017/10/19
+ * Version:	@(#)win_thread.c	1.0.6	2018/03/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -39,7 +39,8 @@ typedef struct {
 thread_t *
 thread_create(void (*func)(void *param), void *param)
 {
-    return((thread_t *)_beginthread(func, 0, param));
+    uintptr_t bt = _beginthread(func, 0, param);
+    return((thread_t *)bt);
 }
 
 

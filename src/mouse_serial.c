@@ -10,15 +10,17 @@
  *
  * TODO:	Add the Genius Serial Mouse.
  *
- * Version:	@(#)mouse_serial.c	1.0.21	2018/03/18
+ * Version:	@(#)mouse_serial.c	1.0.23	2018/04/29
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "config.h"
 #include "device.h"
@@ -48,6 +50,26 @@ typedef struct {
 #define FLAG_INTR	0x04			/* dev can send interrupts */
 #define FLAG_FROZEN	0x02			/* do not update counters */
 #define FLAG_ENABLED	0x01			/* dev is enabled for use */
+
+
+#ifdef ENABLE_MOUSE_SERIAL_LOG
+int mouse_serial_do_log = ENABLE_MOUSE_SERIAL_LOG;
+#endif
+
+
+static void
+mouse_serial_log(const char *format, ...)
+{
+#ifdef ENABLE_MOUSE_SERIAL_LOG
+    va_list ap;
+
+    if (mouse_serial_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 /* Callback from serial driver: RTS was toggled. */
@@ -98,7 +120,7 @@ sermouse_timer(void *priv)
 		break;
 
 	default:
-		pclog("%s: unsupported mouse type %d?\n", dev->type);
+		mouse_serial_log("%s: unsupported mouse type %d?\n", dev->type);
     }
 }
 
@@ -113,7 +135,7 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
     if (!x && !y && b == dev->oldb) return(1);
 
 #if 0
-    pclog("%s: poll(%d,%d,%d,%02x)\n", dev->name, x, y, z, b);
+    mouse_serial_log("%s: poll(%d,%d,%d,%02x)\n", dev->name, x, y, z, b);
 #endif
 
     dev->oldb = b;
@@ -164,9 +186,9 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
     }
 
 #if 0
-    pclog("%s: [", dev->name);
-    for (b=0; b<len; b++) pclog(" %02X", buff[b]);
-    pclog(" ] (%d)\n", len);
+    mouse_serial_log("%s: [", dev->name);
+    for (b=0; b<len; b++) mouse_serial_log(" %02X", buff[b]);
+    mouse_serial_log(" ] (%d)\n", len);
 #endif
 
     /* Send the packet to the bottom-half of the attached port. */
@@ -235,7 +257,7 @@ sermouse_init(const device_t *info)
     dev->serial->rcr_callback = sermouse_callback;
     dev->serial->rcr_callback_p = dev;
 
-    pclog("%s: port=COM%d\n", dev->name, dev->port+1);
+    mouse_serial_log("%s: port=COM%d\n", dev->name, dev->port+1);
 
     timer_add(sermouse_timer, &dev->delay, &dev->delay, dev);
 
@@ -288,7 +310,7 @@ const device_t mouse_mssystems_device = {
     0,
     MOUSE_TYPE_MSYSTEMS,
     sermouse_init, sermouse_close, NULL,
-    sermouse_poll, NULL, NULL, NULL,
+    sermouse_poll, NULL, NULL,
     sermouse_config
 };
 
@@ -297,6 +319,6 @@ const device_t mouse_msserial_device = {
     0,
     0,
     sermouse_init, sermouse_close, NULL,
-    sermouse_poll, NULL, NULL, NULL,
+    sermouse_poll, NULL, NULL,
     sermouse_config
 };

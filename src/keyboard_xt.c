@@ -8,7 +8,7 @@
  *
  *		Implementation of the XT-style keyboard.
  *
- * Version:	@(#)keyboard_xt.c	1.0.11	2018/03/19
+ * Version:	@(#)keyboard_xt.c	1.0.12	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -581,7 +581,7 @@ const device_t keyboard_xt_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };
 
 const device_t keyboard_tandy_device = {
@@ -591,5 +591,5 @@ const device_t keyboard_tandy_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL
 };

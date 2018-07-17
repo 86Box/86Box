@@ -8,26 +8,19 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)piix.h	1.0.2	2017/10/25
+ * Version:	@(#)piix.h	1.0.3	2018/05/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 
-extern void	piix_init(int card);
+extern const device_t piix_device;
+extern const device_t piix_pb640_device;
+extern const device_t piix3_device;
 
-extern void	piix3_init(int card);
+extern int	piix_bus_master_dma_read(int channel, uint8_t *data, int transfer_length, void *priv);
+extern int	piix_bus_master_dma_write(int channel, uint8_t *data, int transfer_length, void *priv);
 
-extern void	piix4_init(int card);
-
-extern uint8_t	piix_bus_master_read(uint16_t port, void *priv);
-extern void	piix_bus_master_write(uint16_t port, uint8_t val, void *priv);
-
-extern int	piix_bus_master_get_count(int channel);
-
-extern int	piix_bus_master_dma_read(int channel, uint8_t *data, int transfer_length);
-extern int	piix_bus_master_dma_write(int channel, uint8_t *data, int transfer_length);
-
-extern void	piix_bus_master_set_irq(int channel);
+extern void	piix_bus_master_set_irq(int channel, void *priv);

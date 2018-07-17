@@ -8,7 +8,7 @@
  *
  *		S3 ViRGE emulation.
  *
- * Version:	@(#)vid_s3_virge.c	1.0.8	2018/03/22
+ * Version:	@(#)vid_s3_virge.c	1.0.12	2018/07/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,11 +16,13 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
 #include "../mem.h"
@@ -35,7 +37,6 @@
 
 
 static uint64_t virge_time = 0;
-static uint64_t status_time = 0;
 static int reg_writes = 0, reg_reads = 0;
 
 static int dither[4][4] =
@@ -318,6 +319,27 @@ enum
 #define INT_FIFO_EMP (1 << 3)
 #define INT_3DF_EMP  (1 << 6)
 #define INT_MASK 0xff
+
+
+#ifdef ENABLE_S3_VIRGE_LOG
+int s3_virge_do_log = ENABLE_S3_VIRGE_LOG;
+#endif
+
+
+static void
+s3_virge_log(const char *format, ...)
+{
+#ifdef ENABLE_S3_VIRGE_LOG
+    va_list ap;
+
+    if (s3_virge_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
+
 
 static void s3_virge_update_irqs(virge_t *virge)
 {
@@ -659,7 +681,7 @@ static void s3_virge_updatemapping(virge_t *virge)
                 return;
         }
 
-        //pclog("Update mapping - bank %02X ", svga->gdcreg[6] & 0xc);        
+        s3_virge_log("Update mapping - bank %02X ", svga->gdcreg[6] & 0xc);        
         switch (svga->gdcreg[6] & 0xc) /*Banked framebuffer*/
         {
                 case 0x0: /*128k at A0000*/
@@ -682,7 +704,7 @@ static void s3_virge_updatemapping(virge_t *virge)
         
         virge->linear_base = (svga->crtc[0x5a] << 16) | (svga->crtc[0x59] << 24);
         
-        //pclog("Linear framebuffer %02X ", svga->crtc[0x58] & 0x10);
+        s3_virge_log("Linear framebuffer %02X ", svga->crtc[0x58] & 0x10);
         if (svga->crtc[0x58] & 0x10) /*Linear framebuffer*/
         {
                 switch (svga->crtc[0x58] & 3)
@@ -701,8 +723,7 @@ static void s3_virge_updatemapping(virge_t *virge)
                         break;
                 }
                 virge->linear_base &= ~(virge->linear_size - 1);
-		svga->linear_base = virge->linear_base;
-                //pclog("Linear framebuffer at %08X size %08X\n", virge->linear_base, virge->linear_size);
+                s3_virge_log("Linear framebuffer at %08X size %08X\n", virge->linear_base, virge->linear_size);
                 if (virge->linear_base == 0xa0000)
                 {
                         mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
@@ -718,7 +739,7 @@ static void s3_virge_updatemapping(virge_t *virge)
                 svga->fb_only = 0;
         }
         
-        //pclog("Memory mapped IO %02X\n", svga->crtc[0x53] & 0x18);
+        s3_virge_log("Memory mapped IO %02X\n", svga->crtc[0x53] & 0x18);
         if (svga->crtc[0x53] & 0x10) /*Old MMIO*/
         {
                 if (svga->crtc[0x53] & 0x20)
@@ -1998,7 +2019,7 @@ static void s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                         virge->s3d.rop = (virge->s3d.cmd_set >> 17) & 0xff;
                         virge->s3d.data_left_count = 0;
                         
-/*                        pclog("BitBlt start %i,%i %i,%i %i,%i %02X %x %x\n",
+                        s3_virge_log("BitBlt start %i,%i %i,%i %i,%i %02X %x %x\n",
                                                                  virge->s3d.src_x,
                                                                  virge->s3d.src_y,
                                                                  virge->s3d.dest_x,
@@ -2007,7 +2028,7 @@ static void s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                                                                  virge->s3d.h,
                                                                  virge->s3d.rop,
                                                                  virge->s3d.src_base,
-                                                                 virge->s3d.dest_base);*/
+                                                                 virge->s3d.dest_base);
                         
                         if (virge->s3d.cmd_set & CMD_SET_IDS)
                                 return;
@@ -2129,11 +2150,11 @@ static void s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                         virge->s3d.h = virge->s3d.r_height;
                         virge->s3d.rop = (virge->s3d.cmd_set >> 17) & 0xff;
                         
-/*                        pclog("RctFll start %i,%i %i,%i %02X %08x\n", virge->s3d.dest_x,
+                        s3_virge_log("RctFll start %i,%i %i,%i %02X %08x\n", virge->s3d.dest_x,
                                                                  virge->s3d.dest_y,
                                                                  virge->s3d.w,
                                                                  virge->s3d.h,
-                                                                 virge->s3d.rop, virge->s3d.dest_base);*/
+                                                                 virge->s3d.rop, virge->s3d.dest_base);
                 }
 
                 while (count && virge->s3d.h)
@@ -3228,7 +3249,7 @@ static void s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri)
                         dest_pixel = dest_pixel_lit_texture_decal;
                         break;
                         default:
-                        /* pclog("bad triangle type %x\n", (s3d_tri->cmd_set >> 27) & 0xf); */
+                        s3_virge_log("bad triangle type %x\n", (s3d_tri->cmd_set >> 27) & 0xf);
                         return;
                 }
                 break;
@@ -3237,7 +3258,7 @@ static void s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri)
                 dest_pixel = dest_pixel_unlit_texture_triangle;
                 break;
                 default:
-                /* pclog("bad triangle type %x\n", (s3d_tri->cmd_set >> 27) & 0xf); */
+                s3_virge_log("bad triangle type %x\n", (s3d_tri->cmd_set >> 27) & 0xf);
                 return;
         }        
         
@@ -3293,7 +3314,7 @@ static void s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri)
                 tex_read = (s3d_tri->cmd_set & CMD_SET_TWE) ? tex_ARGB1555 : tex_ARGB1555_nowrap;
                 break;
                 default:
-                /* pclog("bad texture type %i\n", (s3d_tri->cmd_set >> 5) & 7); */
+                s3_virge_log("bad texture type %i\n", (s3d_tri->cmd_set >> 5) & 7);
                 tex_read = (s3d_tri->cmd_set & CMD_SET_TWE) ? tex_ARGB1555 : tex_ARGB1555_nowrap;
                 break;
         }
@@ -3356,9 +3377,11 @@ static void s3_virge_hwcursor_draw(svga_t *svga, int displine)
         uint16_t dat[2];
         int xx;
         int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
+	int y_add, x_add;
         uint32_t fg, bg;
-	int y_add = (enable_overscan && !suppress_overscan) ? 16 : 0;
-	int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
+
+	y_add = (enable_overscan && !suppress_overscan) ? (overscan_y >> 1) : 0;
+	x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
         
         if (svga->interlace && svga->hwcursor_oddeven)
                 svga->hwcursor_latch.addr += 16;
@@ -4167,27 +4190,6 @@ static void s3_virge_force_redraw(void *p)
         virge->svga.fullchange = changeframecount;
 }
 
-static void s3_virge_add_status_info(char *s, int max_len, void *p)
-{
-        virge_t *virge = (virge_t *)p;
-        char temps[256];
-        uint64_t new_time = plat_timer_read();
-        uint64_t status_diff = new_time - status_time;
-        status_time = new_time;
-
-        if (!status_diff)
-                status_diff = 1;
-
-        svga_add_status_info(s, max_len, &virge->svga);
-        sprintf(temps, "%f Mpixels/sec\n%f ktris/sec\n%f%% CPU\n%f%% CPU (real)\n%d writes %i reads\n\n", (double)virge->pixel_count/1000000.0, (double)virge->tri_count/1000.0, ((double)virge_time * 100.0) / timer_freq, ((double)virge_time * 100.0) / status_diff, reg_writes, reg_reads);
-        strncat(s, temps, max_len);
-
-        virge->pixel_count = virge->tri_count = 0;
-        virge_time = 0;
-        reg_reads = 0;
-        reg_writes = 0;
-}
-
 static const device_config_t s3_virge_config[] =
 {
         {
@@ -4226,7 +4228,6 @@ const device_t s3_virge_vlb_device =
         s3_virge_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };
 
@@ -4241,7 +4242,6 @@ const device_t s3_virge_pci_device =
         s3_virge_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };
 
@@ -4256,7 +4256,6 @@ const device_t s3_virge_988_vlb_device =
         s3_virge_988_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };
 
@@ -4271,7 +4270,6 @@ const device_t s3_virge_988_pci_device =
         s3_virge_988_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };
 
@@ -4286,7 +4284,6 @@ const device_t s3_virge_375_vlb_device =
         s3_virge_375_1_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };
 
@@ -4301,7 +4298,6 @@ const device_t s3_virge_375_pci_device =
         s3_virge_375_1_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };
 
@@ -4316,7 +4312,6 @@ const device_t s3_virge_375_4_vlb_device =
         s3_virge_375_4_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };
 
@@ -4331,6 +4326,5 @@ const device_t s3_virge_375_4_pci_device =
         s3_virge_375_4_available,
         s3_virge_speed_changed,
         s3_virge_force_redraw,
-        s3_virge_add_status_info,
         s3_virge_config
 };

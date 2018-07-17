@@ -8,15 +8,17 @@
  *
  *		Implementation of PS/2 series Mouse devices.
  *
- * Version:	@(#)mouse_ps2.c	1.0.6	2018/03/18
+ * Version:	@(#)mouse_ps2.c	1.0.9	2018/05/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "config.h"
 #include "device.h"
@@ -57,6 +59,35 @@ typedef struct {
 int mouse_scan = 0;
 
 
+#ifdef ENABLE_MOUSE_PS2_LOG
+int mouse_ps2_do_log = ENABLE_MOUSE_PS2_LOG;
+#endif
+
+
+static void
+mouse_ps2_log(const char *format, ...)
+{
+#ifdef ENABLE_MOUSE_PS2_LOG
+    va_list ap;
+
+    if (mouse_ps2_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
+
+
+void
+mouse_clear_data(void *priv)
+{
+    mouse_t *dev = (mouse_t *)priv;
+
+    dev->flags &= ~FLAG_CTRLDAT;
+}
+
+
 static void
 ps2_write(uint8_t val, void *priv)
 {
@@ -74,7 +105,7 @@ ps2_write(uint8_t val, void *priv)
 
 		case 0xf3:	/* set sample rate */
 			dev->sample_rate = val;
-			keyboard_at_adddata_mouse(0xfa);
+			keyboard_at_adddata_mouse(0xfa);	/* Command response */
 			break;
 
 		default:
@@ -123,7 +154,7 @@ ps2_write(uint8_t val, void *priv)
 
 		case 0xf3:	/* set command mode */
 			dev->flags |= FLAG_CTRLDAT;
-			keyboard_at_adddata_mouse(0xfa);
+			keyboard_at_adddata_mouse(0xfa);		/* ACK for command byte */
 			break;
 
 		case 0xf4:	/* enable */
@@ -242,7 +273,7 @@ mouse_ps2_init(const device_t *info)
     /* Hook into the general AT Keyboard driver. */
     keyboard_at_set_mouse(ps2_write, dev);
 
-    pclog("%s: buttons=%d\n", dev->name, (dev->flags & FLAG_INTELLI)? 3 : 2);
+    mouse_ps2_log("%s: buttons=%d\n", dev->name, (dev->flags & FLAG_INTELLI)? 3 : 2);
 
     /* Tell them how many buttons we have. */
     mouse_set_buttons((dev->flags & FLAG_INTELLI) ? 3 : 2);
@@ -292,6 +323,6 @@ const device_t mouse_ps2_device = {
     0,
     MOUSE_TYPE_PS2,
     mouse_ps2_init, ps2_close, NULL,
-    ps2_poll, NULL, NULL, NULL,
+    ps2_poll, NULL, NULL,
     ps2_config
 };

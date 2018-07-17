@@ -42,7 +42,6 @@ enum fluid_interp {
 
 
 extern void givealbuffer_midi(void *buf, uint32_t size);
-extern void pclog(const char *format, ...);
 extern void al_set_midi(int freq, int buf_size);
 extern int soundon;
 
@@ -224,7 +223,6 @@ void fluidsynth_msg(uint8_t *msg)
         case 0xF0:      /* SysEx */
                 break;
         default:
-                /* pclog("fluidsynth: unknown send() command 0x%02X", cmd); */
                 break;
         }
 }
@@ -243,13 +241,13 @@ void* fluidsynth_init(const device_t *info)
 
 	/* Try loading the DLL. */
 #ifdef _WIN32
-	fluidsynth_handle = dynld_module("libfluidsynth.dll", fluidsynth_imports);
+	fluidsynth_handle = dynld_module("libfluidsynth-1.dll", fluidsynth_imports);
 #else
 	fluidsynth_handle = dynld_module("libfluidsynth.so", fluidsynth_imports);
 #endif
 	if (fluidsynth_handle == NULL)
 	{
-		ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2171);
+		ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2081);
 		return NULL;
 	}
 
@@ -331,8 +329,6 @@ void* fluidsynth_init(const device_t *info)
 
         al_set_midi(data->samplerate, data->buf_size);
 
-        /* pclog("fluidsynth (%s) initialized, samplerate %d, buf_size %d\n", f_fluid_version_str(), data->samplerate, data->buf_size); */
-
         midi_device_t* dev = malloc(sizeof(midi_device_t));
         memset(dev, 0, sizeof(midi_device_t));
 
@@ -386,8 +382,6 @@ void fluidsynth_close(void* p)
 		dynld_close(fluidsynth_handle);
 		fluidsynth_handle = NULL;
 	}
-
-        /* pclog("fluidsynth closed\n"); */
 }
 
 static const device_config_t fluidsynth_config[] =
@@ -575,7 +569,6 @@ const device_t fluidsynth_device =
         fluidsynth_close,
         NULL,
         fluidsynth_available,
-        NULL,
         NULL,
         NULL,
         fluidsynth_config

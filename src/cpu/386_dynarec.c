@@ -1,5 +1,6 @@
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
@@ -7,6 +8,7 @@
 #ifndef INFINITY
 # define INFINITY   (__builtin_inff())
 #endif
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "cpu.h"
 #include "x86.h"
@@ -68,6 +70,27 @@ uint32_t *eal_r, *eal_w;
 
 uint16_t *mod1add[2][8];
 uint32_t *mod1seg[8];
+
+
+#ifdef ENABLE_386_DYNAREC_LOG
+int x386_dynarec_do_log = ENABLE_386_DYNAREC_LOG;
+#endif
+
+
+static void
+x386_dynarec_log(const char *fmt, ...)
+{
+#ifdef ENABLE_386_DYNAREC_LOG
+    va_list ap;
+
+    if (x386_dynarec_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
+
 
 static __inline void fetch_ea_32_long(uint32_t rmdat)
 {
@@ -210,7 +233,7 @@ void x86_int(int num)
                                 cpu_state.abrt = 0;
                                 softresetx86();
                                 cpu_set_edx();
-                                pclog("Triple fault in real mode - reset\n");
+                                x386_dynarec_log("Triple fault in real mode - reset\n");
                         }
                         else
                                 x86_int(8);
@@ -303,9 +326,9 @@ int x86_int_sw_rm(int num)
 
         if (cpu_state.abrt) return 1;
 
-        writememw(ss,((SP-2)&0xFFFF),flags); if (cpu_state.abrt) {pclog("abrt5\n"); return 1; }
+        writememw(ss,((SP-2)&0xFFFF),flags); if (cpu_state.abrt) {x386_dynarec_log("abrt5\n"); return 1; }
         writememw(ss,((SP-4)&0xFFFF),CS);
-        writememw(ss,((SP-6)&0xFFFF),cpu_state.pc); if (cpu_state.abrt) {pclog("abrt6\n"); return 1; }
+        writememw(ss,((SP-6)&0xFFFF),cpu_state.pc); if (cpu_state.abrt) {x386_dynarec_log("abrt6\n"); return 1; }
         SP-=6;
 
         eflags &= ~VIF_FLAG;
@@ -427,13 +450,6 @@ int checkio(int port)
 
 int xout=0;
 
-
-#if 0
-#define divexcp() { \
-                pclog("Divide exception at %04X(%06X):%04X\n",CS,cs,cpu_state.pc); \
-                x86_int(0); \
-}
-#endif
 
 #define divexcp() { \
                 x86_int(0); \
@@ -592,7 +608,6 @@ void exec386_dynarec(int cycs)
                                         CPU_BLOCK_END();
 
                                 ins++;
-                                insc++;
                                 
 /*                                if ((cs + pc) == 4)
                                         fatal("4\n");*/
@@ -686,9 +701,6 @@ inrecomp=1;
 inrecomp=0;
                         if (!use32) cpu_state.pc &= 0xffff;
                         cpu_recomp_blocks++;
-/*                        ins += codeblock_ins[index];
-                        insc += codeblock_ins[index];*/
-/*                        pclog("Exit block now %04X:%04X\n", CS, pc);*/
                 }
                 else if (valid_block && !cpu_state.abrt)
                 {
@@ -752,7 +764,6 @@ inrecomp=0;
                                 }
 
                                 ins++;
-                                insc++;
                         }
                         
                         if (!cpu_state.abrt && !x86_was_reset)
@@ -823,7 +834,6 @@ inrecomp=0;
                                 }
 
                                 ins++;
-                                insc++;
                         }
                         
                         if (!cpu_state.abrt && !x86_was_reset)
@@ -848,14 +858,14 @@ inrecomp=0;
                                 cpu_state.abrt = 0;
                                 CS = oldcs;
                                 cpu_state.pc = cpu_state.oldpc;
-                                pclog("Double fault %i\n", ins);
+                                x386_dynarec_log("Double fault %i\n", ins);
                                 pmodeint(8, 0);
                                 if (cpu_state.abrt)
                                 {
                                         cpu_state.abrt = 0;
                                         softresetx86();
 					cpu_set_edx();
-                                        pclog("Triple fault - reset\n");
+                                        x386_dynarec_log("Triple fault - reset\n");
                                 }
                         }
                 }
@@ -885,7 +895,6 @@ inrecomp=0;
                 {
                         cpu_state.oldpc = cpu_state.pc;
                         oldcs = CS;
-                        pclog("NMI\n");
                         x86_int(2);
                         nmi_enable = 0;
                         if (nmi_auto_clear)
@@ -903,18 +912,10 @@ inrecomp=0;
                                 flags_rebuild();
                                 if (msw&1)
                                 {
-					/* if (temp == 0x0E)
-					{
-						pclog("Servicing FDC interupt (p)!\n");
-					} */
                                         pmodeint(temp,0);
                                 }
                                 else
                                 {
-					/* if (temp == 0x0E)
-					{
-						pclog("Servicing FDC interupt (r)!\n");
-					} */
                                         writememw(ss,(SP-2)&0xFFFF,flags);
                                         writememw(ss,(SP-4)&0xFFFF,CS);
                                         writememw(ss,(SP-6)&0xFFFF,cpu_state.pc);
@@ -927,10 +928,6 @@ inrecomp=0;
                                         loadcs(readmemw(0,addr+2));
                                 }
                         }
-			/* else
-			{
-				pclog("Servicing pending interrupt 0xFF (!)!\n");
-			} */
                 }
         }
                 timer_end_period(cycles << TIMER_SHIFT);

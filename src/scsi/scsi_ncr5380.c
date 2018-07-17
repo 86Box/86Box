@@ -9,7 +9,7 @@
  *		Implementation of the NCR 5380 series of SCSI Host Adapters
  *		made by NCR. These controllers were designed for the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.12	2018/03/18
+ * Version:	@(#)scsi_ncr5380.c	1.0.15	2018/06/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -34,8 +34,8 @@
 #include "../mca.h"
 #include "../mem.h"
 #include "../rom.h"
-#include "../nvr.h"
 #include "../device.h"
+#include "../nvr.h"
 #include "../timer.h"
 #include "../plat.h"
 #include "scsi.h"
@@ -290,7 +290,7 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 
 	default:
 #if 1
-		pclog("NCR5380: bad write %04x %02x\n", port, val);
+		ncr_log("NCR5380: bad write %04x %02x\n", port, val);
 #endif
 		break;
     }
@@ -496,7 +496,7 @@ dma_callback(void *priv)
 
 	default:
 #if 1
-		pclog("DMA callback bad mode %i\n", scsi->ncr.dma_mode);
+		ncr_log("DMA callback bad mode %i\n", scsi->ncr.dma_mode);
 #endif
 		break;
     }
@@ -668,8 +668,11 @@ t130b_read(uint32_t addr, void *priv)
     uint8_t ret = 0xff;
 
     addr &= 0x3fff;
-    if (addr < 0x1800)
+    if ((addr < 0x1800) && scsi->rom_addr)
 	ret = scsi->bios_rom.rom[addr & 0x1fff];
+      else
+    if ((addr < 0x1800) && !scsi->rom_addr)
+	ret = 0xff;
       else
     if (addr < 0x1880)
 	ret = scsi->ext_ram[addr & 0x7f];
@@ -849,47 +852,79 @@ ncr_init(const device_t *info)
 		break;
 
 	case 1:		/* Ranco RT1000B */
-		scsi->rom_addr = 0xDC000;
-		rom_init(&scsi->bios_rom, RT1000B_ROM,
-			 scsi->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+		scsi->base = device_get_config_hex16("base");
+		scsi->rom_addr = device_get_config_hex20("bios_addr");
 
-		mem_mapping_disable(&scsi->bios_rom.mapping);
+		if (scsi->rom_addr) {
+			rom_init(&scsi->bios_rom, RT1000B_ROM,
+				 scsi->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+
+			mem_mapping_disable(&scsi->bios_rom.mapping);
+		} else {
+			scsi->bios_rom.rom = (uint8_t *) malloc(0x4000);
+			memset(scsi->bios_rom.rom, 0xff, 0x4000);
+		}
 
 		mem_mapping_add(&scsi->mapping, scsi->rom_addr, 0x4000, 
 				memio_read, NULL, NULL,
 				memio_write, NULL, NULL,
 				scsi->bios_rom.rom, 0, scsi);
+
+		if (scsi->base) {
+			io_sethandler(scsi->base, 16,
+				      t130b_in,NULL,NULL, t130b_out,NULL,NULL, scsi);
+		}
 		break;
 
 	case 2:		/* Trantor T130B */
-		scsi->rom_addr = 0xDC000;
-		scsi->base = 0x0350;
-		rom_init(&scsi->bios_rom, T130B_ROM,
-			 scsi->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+		scsi->base = device_get_config_hex16("base");
+		scsi->rom_addr = device_get_config_hex20("bios_addr");
+
+		if (scsi->rom_addr) {
+			rom_init(&scsi->bios_rom, T130B_ROM,
+				 scsi->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+
+			mem_mapping_disable(&scsi->bios_rom.mapping);
+		} else {
+			scsi->bios_rom.rom = (uint8_t *) malloc(0x4000);
+			memset(scsi->bios_rom.rom, 0xff, 0x4000);
+		}
 
 		mem_mapping_add(&scsi->mapping, scsi->rom_addr, 0x4000, 
 				t130b_read, NULL, NULL,
 				t130b_write, NULL, NULL,
 				scsi->bios_rom.rom, 0, scsi);
 
-		io_sethandler(scsi->base, 16,
-			      t130b_in,NULL,NULL, t130b_out,NULL,NULL, scsi);
+		if (scsi->base) {
+			io_sethandler(scsi->base, 16,
+				      t130b_in,NULL,NULL, t130b_out,NULL,NULL, scsi);
+		}
 		break;
 
 	case 3:		/* Sumo SCSI-AT */
 		scsi->base = device_get_config_hex16("base");
 		scsi->irq = device_get_config_int("irq");
 		scsi->rom_addr = device_get_config_hex20("bios_addr");
-		rom_init(&scsi->bios_rom, SCSIAT_ROM,
-			 scsi->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+
+		if (scsi->rom_addr) {
+			rom_init(&scsi->bios_rom, SCSIAT_ROM,
+				 scsi->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+
+			mem_mapping_disable(&scsi->bios_rom.mapping);
+		} else {
+			scsi->bios_rom.rom = (uint8_t *) malloc(0x4000);
+			memset(scsi->bios_rom.rom, 0xff, 0x4000);
+		}
 
 		mem_mapping_add(&scsi->mapping, scsi->rom_addr, 0x4000, 
 				t130b_read, NULL, NULL,
 				t130b_write, NULL, NULL,
 				scsi->bios_rom.rom, 0, scsi);
 
-		io_sethandler(scsi->base, 16,
-			      scsiat_in,NULL,NULL, scsiat_out,NULL,NULL, scsi);
+		if (scsi->base) {
+			io_sethandler(scsi->base, 16,
+				      scsiat_in,NULL,NULL, scsiat_out,NULL,NULL, scsi);
+		}
 		break;
     }
 
@@ -898,7 +933,7 @@ ncr_init(const device_t *info)
 	sprintf(&temp[strlen(temp)], " I/O=%04x", scsi->base);
     if (scsi->irq != 0)
 	sprintf(&temp[strlen(temp)], " IRQ=%d", scsi->irq);
-    pclog("%s\n", temp);
+    ncr_log("%s\n", temp);
 
     ncr5380_reset(&scsi->ncr);
 
@@ -946,6 +981,59 @@ scsiat_available(void)
 {
     return(rom_present(SCSIAT_ROM));
 }
+
+
+static const device_config_t ncr5380_config[] = {
+        {
+		"base", "Address", CONFIG_HEX16, "", 0x0350,
+                {
+                        {
+                                "None",      0
+                        },
+                        {
+                                "240H", 0x0240
+                        },
+                        {
+                                "250H", 0x0250
+                        },
+                        {
+                                "340H", 0x0340
+                        },
+                        {
+                                "350H", 0x0350
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+        {
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xDC000,
+                {
+                        {
+                                "Disabled", 0
+                        },
+                        {
+                                "C800H", 0xc8000
+                        },
+                        {
+                                "CC00H", 0xcc000
+                        },
+                        {
+                                "D800H", 0xd8000
+                        },
+                        {
+                                "DC00H", 0xdc000
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+	{
+		"", "", -1
+	}
+};
 
 
 static const device_config_t scsiat_config[] = {
@@ -1052,7 +1140,7 @@ const device_t scsi_lcs6821n_device =
     0,
     ncr_init, ncr_close, NULL,
     lcs6821n_available,
-    NULL, NULL, NULL,
+    NULL, NULL,
     NULL
 };
 
@@ -1063,8 +1151,8 @@ const device_t scsi_rt1000b_device =
     1,
     ncr_init, ncr_close, NULL,
     rt1000b_available,
-    NULL, NULL, NULL,
-    NULL
+    NULL, NULL,
+    ncr5380_config
 };
 
 const device_t scsi_t130b_device =
@@ -1074,8 +1162,8 @@ const device_t scsi_t130b_device =
     2,
     ncr_init, ncr_close, NULL,
     t130b_available,
-    NULL, NULL, NULL,
-    NULL
+    NULL, NULL,
+    ncr5380_config
 };
 
 const device_t scsi_scsiat_device =
@@ -1085,6 +1173,6 @@ const device_t scsi_scsiat_device =
     3,
     ncr_init, ncr_close, NULL,
     scsiat_available,
-    NULL, NULL, NULL,
+    NULL, NULL,
     scsiat_config
 };

@@ -9,7 +9,7 @@
  *		Implementation of the FDI floppy stream image format
  *		interface to the FDI2RAW module.
  *
- * Version:	@(#)fdd_fdi.c	1.0.2	2018/03/17
+ * Version:	@(#)fdd_fdi.c	1.0.3	2018/04/29
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -37,11 +37,13 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../plat.h"
 #include "fdd.h"
@@ -69,6 +71,27 @@ typedef struct {
 
 static fdi_t	*fdi[FDD_NUM];
 static fdc_t	*fdi_fdc;
+
+
+#ifdef ENABLE_FDI_LOG
+int fdi_do_log = ENABLE_FDI_LOG;
+#endif
+
+
+static void
+fdi_log(const char *fmt, ...)
+{
+#ifdef ENABLE_FDI_LOG
+   va_list ap;
+
+   if (fdi_do_log)
+   {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+   }
+#endif
+}
 
 
 static uint16_t
@@ -339,7 +362,7 @@ fdi_load(int drive, wchar_t *fn)
     header[25] = 0;
     if (strcmp(header, "Formatted Disk Image file") != 0) {
 	/* This is a Japanese FDI file. */
-	pclog("fdi_load(): Japanese FDI file detected, redirecting to IMG loader\n");
+	fdi_log("fdi_load(): Japanese FDI file detected, redirecting to IMG loader\n");
 	fclose(dev->f);
 	free(dev);
 	img_load(drive, fn);
@@ -372,7 +395,7 @@ fdi_load(int drive, wchar_t *fn)
 
     drives[drive].seek = fdi_seek;
 
-    pclog("Loaded as FDI\n");
+    fdi_log("Loaded as FDI\n");
 }
 
 

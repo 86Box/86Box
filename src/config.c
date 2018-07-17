@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.46	2018/03/18
+ * Version:	@(#)config.c	1.0.48	2018/05/25
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,23 +23,23 @@
  *		it on Windows XP, and possibly also Vista. Use the
  *		-DANSI_CFG for use on these systems.
  */
+#include <inttypes.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include <inttypes.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "cpu/cpu.h"
+#include "device.h"
 #include "nvr.h"
 #include "config.h"
-#include "device.h"
 #include "lpt.h"
-#include "cdrom/cdrom.h"
 #include "disk/hdd.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
-#include "disk/zip.h"
 #include "floppy/fdd.h"
 #include "floppy/fdc.h"
 #include "game/gameport.h"
@@ -47,6 +47,8 @@
 #include "mouse.h"
 #include "network/network.h"
 #include "scsi/scsi.h"
+#include "cdrom/cdrom.h"
+#include "disk/zip.h"
 #include "sound/sound.h"
 #include "sound/midi.h"
 #include "sound/snd_dbopl.h"
@@ -101,6 +103,26 @@ typedef struct {
 
 
 static list_t	config_head;
+
+
+#ifdef ENABLE_CONFIG_LOG
+int config_do_log = ENABLE_CONFIG_LOG;
+#endif
+
+
+static void
+config_log(const char *format, ...)
+{
+#ifdef ENABLE_CONFIG_LOG
+    va_list ap;
+
+    if (config_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 static section_t *
@@ -522,7 +544,6 @@ load_video(void)
 
     if (machines[machine].fixed_gfxcard) {
 	config_delete_var(cat, "gfxcard");
-	config_delete_var(cat, "voodoo");
 	gfxcard = GFX_INTERNAL;
     } else {
 	p = config_get_string(cat, "gfxcard", NULL);
@@ -536,11 +557,9 @@ load_video(void)
 		}
 	}
 	gfxcard = video_get_video_from_internal_name(p);
-
-	video_speed = config_get_int(cat, "video_speed", -1);
-
-	voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
     }
+
+    voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
 }
 
 
@@ -612,12 +631,12 @@ load_sound(void)
     GUS = !!config_get_int(cat, "gus", 0);
 
     memset(temp, '\0', sizeof(temp));
-    p = config_get_string(cat, "opl3_type", "dbopl");
+    p = config_get_string(cat, "opl_type", "dbopl");
     strcpy(temp, p);
     if (!strcmp(temp, "nukedopl") || !strcmp(temp, "1"))
-	opl3_type = 1;
-      else
-	opl3_type = 0;
+	opl_type = 1;
+    else
+	opl_type = 0;
 
     memset(temp, '\0', sizeof(temp));
     p = config_get_string(cat, "sound_type", "float");
@@ -658,9 +677,9 @@ load_network(void)
     if (p != NULL) {
 	if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
 		if ((network_ndev == 1) && strcmp(network_host, "none")) {
-			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2140);
+			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2103);
 		} else if (network_dev_to_id(p) == -1) {
-			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2141);
+			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2104);
 		}
 
 		strcpy(network_host, "none");
@@ -714,8 +733,7 @@ static void
 load_other_peripherals(void)
 {
     char *cat = "Other peripherals";
-    char temp[512], *p;
-    int c;
+    char *p;
 
     p = config_get_string(cat, "scsicard", NULL);
     if (p != NULL)
@@ -747,31 +765,10 @@ load_other_peripherals(void)
     }
     config_set_string(cat, "hdc", hdc_name);
 
-    memset(temp, '\0', sizeof(temp));
-    for (c=2; c<4; c++) {
-	sprintf(temp, "ide_%02i", c + 1);
-	p = config_get_string(cat, temp, NULL);
-	if (p == NULL)
-		p = "0, 00";
-	sscanf(p, "%i, %02i", &ide_enable[c], &ide_irq[c]);
-    }
+    ide_ter_enabled = !!config_get_int(cat, "ide_ter", 0);
+    ide_qua_enabled = !!config_get_int(cat, "ide_qua", 0);
 
     bugger_enabled = !!config_get_int(cat, "bugger_enabled", 0);
-}
-
-
-static int
-tally_char(char *str, char c)
-{
-    int tally;
-
-    tally = 0;
-    if (str != NULL) {
-	while (*str)
-		if (*str++ == c) tally++;
-    }
-
-    return(tally);
 }
 
 
@@ -785,21 +782,17 @@ load_hard_disks(void)
     int c;
     char *p;
     wchar_t *wp;
-    int max_spt, max_hpc, max_tracks;
-    int board = 0, dev = 0;
+    uint32_t max_spt, max_hpc, max_tracks;
+    uint32_t board = 0, dev = 0;
+    /* FIXME: Remove in a month. */
+    int lun;
 
     memset(temp, '\0', sizeof(temp));
     for (c=0; c<HDD_NUM; c++) {
 	sprintf(temp, "hdd_%02i_parameters", c+1);
 	p = config_get_string(cat, temp, "0, 0, 0, 0, none");
-	if (tally_char(p, ',') == 3) {
-		sscanf(p, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %s",
-			&hdd[c].spt, &hdd[c].hpc, &hdd[c].tracks, s);
-		hdd[c].wp = 0;
-	} else {
-		sscanf(p, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %i, %s",
-			&hdd[c].spt, &hdd[c].hpc, &hdd[c].tracks, (int *)&hdd[c].wp, s);
-	}
+	sscanf(p, "%u, %u, %u, %i, %s",
+		&hdd[c].spt, &hdd[c].hpc, &hdd[c].tracks, (int *)&hdd[c].wp, s);
 
 	hdd[c].bus = hdd_string_to_bus(s, 0);
 	switch(hdd[c].bus) {
@@ -815,21 +808,19 @@ load_hard_disks(void)
 			break;
 
 		case HDD_BUS_ESDI:
-		case HDD_BUS_XTIDE:
+		case HDD_BUS_XTA:
 			max_spt = 63;
 			max_hpc = 16;
 			max_tracks = 1023;
 			break;
 
-		case HDD_BUS_IDE_PIO_ONLY:
-		case HDD_BUS_IDE_PIO_AND_DMA:
+		case HDD_BUS_IDE:
 			max_spt = 63;
 			max_hpc = 16;
 			max_tracks = 266305;
 			break;
 
 		case HDD_BUS_SCSI:
-		case HDD_BUS_SCSI_REMOVABLE:
 			max_spt = 99;
 			max_hpc = 255;
 			max_tracks = 266305;
@@ -850,10 +841,10 @@ load_hard_disks(void)
 	  else
 		config_delete_var(cat, temp);
 
-	/* XT IDE */
-	sprintf(temp, "hdd_%02i_xtide_channel", c+1);
-	if (hdd[c].bus == HDD_BUS_XTIDE)
-		hdd[c].xtide_channel = !!config_get_int(cat, temp, c & 1);
+	/* XTA */
+	sprintf(temp, "hdd_%02i_xta_channel", c+1);
+	if (hdd[c].bus == HDD_BUS_XTA)
+		hdd[c].xta_channel = !!config_get_int(cat, temp, c & 1);
 	  else
 		config_delete_var(cat, temp);
 
@@ -865,21 +856,21 @@ load_hard_disks(void)
 		config_delete_var(cat, temp);
 
 	/* IDE */
+	// FIXME: Remove in a month.
+	sprintf(temp, "hdd_%02i_xtide_channel", c+1);
+	if (hdd[c].bus == HDD_BUS_IDE)
+		hdd[c].ide_channel = !!config_get_int(cat, temp, c & 1);
+	  else
+		config_delete_var(cat, temp);
+
 	sprintf(temp, "hdd_%02i_ide_channel", c+1);
-	if ((hdd[c].bus == HDD_BUS_IDE_PIO_ONLY) ||
-	    (hdd[c].bus == HDD_BUS_IDE_PIO_AND_DMA)) {
+	if (hdd[c].bus == HDD_BUS_IDE) {
 		sprintf(tmp2, "%01u:%01u", c>>1, c&1);
 		p = config_get_string(cat, temp, tmp2);
-		if (! strstr(p, ":")) {
-			sscanf(p, "%i", (int *)&hdd[c].ide_channel);
-			hdd[c].ide_channel &= 7;
-		} else {
-			sscanf(p, "%01u:%01u", &board, &dev);
-
-			board &= 3;
-			dev &= 1;
-			hdd[c].ide_channel = (board<<1) + dev;
-		}
+		sscanf(p, "%01u:%01u", &board, &dev);
+		board &= 3;
+		dev &= 1;
+		hdd[c].ide_channel = (board<<1) + dev;
 
 		if (hdd[c].ide_channel > 7)
 			hdd[c].ide_channel = 7;
@@ -888,22 +879,29 @@ load_hard_disks(void)
 	}
 
 	/* SCSI */
-	sprintf(temp, "hdd_%02i_scsi_location", c+1);
-	if ((hdd[c].bus == HDD_BUS_SCSI) ||
-	    (hdd[c].bus == HDD_BUS_SCSI_REMOVABLE)) {
-		sprintf(tmp2, "%02u:%02u", c, 0);
-		p = config_get_string(cat, temp, tmp2);
-
-		sscanf(p, "%02u:%02u",
-			(int *)&hdd[c].scsi_id, (int *)&hdd[c].scsi_lun);
+	sprintf(temp, "hdd_%02i_scsi_id", c+1);
+	if (hdd[c].bus == HDD_BUS_SCSI) {
+		hdd[c].scsi_id = config_get_int(cat, temp, c);
 
 		if (hdd[c].scsi_id > 15)
 			hdd[c].scsi_id = 15;
-		if (hdd[c].scsi_lun > 7)
-			hdd[c].scsi_lun = 7;
-	} else {
+	} else
 		config_delete_var(cat, temp);
+
+	/* FIXME: Remove in a month. */
+	sprintf(temp, "hdd_%02i_scsi_location", c+1);
+	if (hdd[c].bus == HDD_BUS_SCSI) {
+		p = config_get_string(cat, temp, NULL);
+
+		if (p) {
+			sscanf(p, "%02i:%02i",
+				(int *)&hdd[c].scsi_id, (int *)&lun);
+
+			if (hdd[c].scsi_id > 15)
+				hdd[c].scsi_id = 15;
+		}
 	}
+	config_delete_var(cat, temp);
 
 	memset(hdd[c].fn, 0x00, sizeof(hdd[c].fn));
 	memset(hdd[c].prev_fn, 0x00, sizeof(hdd[c].prev_fn));
@@ -940,6 +938,10 @@ load_hard_disks(void)
 		sprintf(temp, "hdd_%02i_ide_channels", c+1);
 		config_delete_var(cat, temp);
 
+		sprintf(temp, "hdd_%02i_scsi_id", c+1);
+		config_delete_var(cat, temp);
+
+		/* FIXME: Remove in a month. */
 		sprintf(temp, "hdd_%02i_scsi_location", c+1);
 		config_delete_var(cat, temp);
 
@@ -953,181 +955,6 @@ load_hard_disks(void)
 	sprintf(temp, "hdd_%02i_ide_channel", c+1);
 	config_delete_var(cat, temp);
     }
-}
-
-
-/* Load old "Removable Devices" section. */
-static void
-load_removable_devices(void)
-{
-    char *cat = "Removable devices";
-    char temp[512], tmp2[512], *p;
-    char s[512];
-    unsigned int board = 0, dev = 0;
-    wchar_t *wp;
-    int c;
-
-    if (find_section(cat) == NULL)
-	return;
-
-    for (c=0; c<FDD_NUM; c++) {
-	sprintf(temp, "fdd_%02i_type", c+1);
-	p = config_get_string(cat, temp, (c < 2) ? "525_2dd" : "none");
-       	fdd_set_type(c, fdd_get_from_internal_name(p));
-	if (fdd_get_type(c) > 13)
-		fdd_set_type(c, 13);
-
-	sprintf(temp, "fdd_%02i_fn", c + 1);
-	wp = config_get_wstring(cat, temp, L"");
-
-#if 0
-	/*
-	 * NOTE:
-	 * Temporary hack to remove the absolute
-	 * path currently saved in most config
-	 * files.  We should remove this before
-	 * finalizing this release!  --FvK
-	 */
-	if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
-		/*
-		 * Yep, its absolute and prefixed
-		 * with the EXE path.  Just strip
-		 * that off for now...
-		 */
-		wcsncpy(floppyfns[c], &wp[wcslen(usr_path)], sizeof_w(floppyfns[c]));
-	} else
-#endif
-	wcsncpy(floppyfns[c], wp, sizeof_w(floppyfns[c]));
-
-	/* if (*wp != L'\0')
-		pclog("Floppy%d: %ls\n", c, floppyfns[c]); */
-	sprintf(temp, "fdd_%02i_writeprot", c+1);
-	ui_writeprot[c] = !!config_get_int(cat, temp, 0);
-	sprintf(temp, "fdd_%02i_turbo", c + 1);
-	fdd_set_turbo(c, !!config_get_int(cat, temp, 0));
-	sprintf(temp, "fdd_%02i_check_bpb", c+1);
-	fdd_set_check_bpb(c, !!config_get_int(cat, temp, 1));
-
-	/* Check whether each value is default, if yes, delete it so that only non-default values will later be saved. */
-	sprintf(temp, "fdd_%02i_type", c+1);
-	config_delete_var(cat, temp);
-
-	sprintf(temp, "fdd_%02i_fn", c+1);
-	config_delete_var(cat, temp);
-
-	sprintf(temp, "fdd_%02i_writeprot", c+1);
-	config_delete_var(cat, temp);
-
-	sprintf(temp, "fdd_%02i_turbo", c+1);
-	config_delete_var(cat, temp);
-
-	sprintf(temp, "fdd_%02i_check_bpb", c+1);
-	config_delete_var(cat, temp);
-    }
-
-    memset(temp, 0x00, sizeof(temp));
-    for (c=0; c<CDROM_NUM; c++) {
-	sprintf(temp, "cdrom_%02i_host_drive", c+1);
-	cdrom_drives[c].host_drive = config_get_int(cat, temp, 0);
-	cdrom_drives[c].prev_host_drive = cdrom_drives[c].host_drive;
-
-	sprintf(temp, "cdrom_%02i_parameters", c+1);
-	p = config_get_string(cat, temp, NULL);
-	if (p != NULL)
-		sscanf(p, "%01u, %s", &cdrom_drives[c].sound_on, s);
-	  else
-		sscanf("0, none", "%01u, %s", &cdrom_drives[c].sound_on, s);
-	cdrom_drives[c].bus_type = hdd_string_to_bus(s, 1);
-
-	/* Default values, needed for proper operation of the Settings dialog. */
-	cdrom_drives[c].ide_channel = cdrom_drives[c].scsi_device_id = c + 2;
-
-	sprintf(temp, "cdrom_%02i_ide_channel", c+1);
-	if ((cdrom_drives[c].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) ||
-	    (cdrom_drives[c].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA)) {
-		sprintf(tmp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
-		p = config_get_string(cat, temp, tmp2);
-		if (! strstr(p, ":")) {
-			sscanf(p, "%i", (int *)&cdrom_drives[c].ide_channel);
-			cdrom_drives[c].ide_channel &= 7;
-		} else {
-			sscanf(p, "%01u:%01u", &board, &dev);
-
-			board &= 3;
-			dev &= 1;
-			cdrom_drives[c].ide_channel = (board<<1)+dev;
-		}
-
-		if (cdrom_drives[c].ide_channel > 7)
-			cdrom_drives[c].ide_channel = 7;
-	} else {
-		sprintf(temp, "cdrom_%02i_scsi_location", c+1);
-		if (cdrom_drives[c].bus_type == CDROM_BUS_SCSI) {
-			sprintf(tmp2, "%02u:%02u", c+2, 0);
-			p = config_get_string(cat, temp, tmp2);
-			sscanf(p, "%02u:%02u",
-				&cdrom_drives[c].scsi_device_id,
-				&cdrom_drives[c].scsi_device_lun);
-	
-			if (cdrom_drives[c].scsi_device_id > 15)
-				cdrom_drives[c].scsi_device_id = 15;
-			if (cdrom_drives[c].scsi_device_lun > 7)
-				cdrom_drives[c].scsi_device_lun = 7;
-		} else {
-			config_delete_var(cat, temp);
-		}
-	}
-
-	sprintf(temp, "cdrom_%02i_image_path", c+1);
-	wp = config_get_wstring(cat, temp, L"");
-
-#if 0
-	/*
-	 * NOTE:
-	 * Temporary hack to remove the absolute
-	 * path currently saved in most config
-	 * files.  We should remove this before
-	 * finalizing this release!  --FvK
-	 */
-	if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
-		/*
-		 * Yep, its absolute and prefixed
-		 * with the EXE path.  Just strip
-		 * that off for now...
-		 */
-		wcsncpy(cdrom_image[c].image_path, &wp[wcslen(usr_path)], sizeof_w(cdrom_image[c].image_path));
-	} else
-#endif
-	wcsncpy(cdrom_image[c].image_path, wp, sizeof_w(cdrom_image[c].image_path));
-
-	if (cdrom_drives[c].host_drive < 'A')
-		cdrom_drives[c].host_drive = 0;
-
-	if ((cdrom_drives[c].host_drive == 0x200) &&
-	    (wcslen(cdrom_image[c].image_path) == 0))
-		cdrom_drives[c].host_drive = 0;
-
-	/* If the CD-ROM is disabled, delete all its variables. */
-	sprintf(temp, "cdrom_%02i_host_drive", c+1);
-	config_delete_var(cat, temp);
-
-	sprintf(temp, "cdrom_%02i_parameters", c+1);
-	config_delete_var(cat, temp);
-
-	sprintf(temp, "cdrom_%02i_ide_channel", c+1);
-	config_delete_var(cat, temp);
-
-	sprintf(temp, "cdrom_%02i_scsi_location", c+1);
-	config_delete_var(cat, temp);
-
-	sprintf(temp, "cdrom_%02i_image_path", c+1);
-	config_delete_var(cat, temp);
-
-	sprintf(temp, "cdrom_%02i_iso_path", c+1);
-	config_delete_var(cat, temp);
-    }
-
-    delete_section_if_empty(cat);
 }
 
 
@@ -1170,7 +997,7 @@ load_floppy_drives(void)
 	wcsncpy(floppyfns[c], wp, sizeof_w(floppyfns[c]));
 
 	/* if (*wp != L'\0')
-		pclog("Floppy%d: %ls\n", c, floppyfns[c]); */
+		config_log("Floppy%d: %ls\n", c, floppyfns[c]); */
 	sprintf(temp, "fdd_%02i_writeprot", c+1);
 	ui_writeprot[c] = !!config_get_int(cat, temp, 0);
 	sprintf(temp, "fdd_%02i_turbo", c + 1);
@@ -1213,6 +1040,8 @@ load_other_removable_devices(void)
     unsigned int board = 0, dev = 0;
     wchar_t *wp;
     int c;
+    /* FIXME: Remove in a month. */
+    int lun;
 
     memset(temp, 0x00, sizeof(temp));
     for (c=0; c<CDROM_NUM; c++) {
@@ -1235,39 +1064,39 @@ load_other_removable_devices(void)
 	cdrom_drives[c].ide_channel = cdrom_drives[c].scsi_device_id = c + 2;
 
 	sprintf(temp, "cdrom_%02i_ide_channel", c+1);
-	if ((cdrom_drives[c].bus_type == CDROM_BUS_ATAPI_PIO_ONLY) ||
-	    (cdrom_drives[c].bus_type == CDROM_BUS_ATAPI_PIO_AND_DMA)) {
+	if (cdrom_drives[c].bus_type == CDROM_BUS_ATAPI) {
 		sprintf(tmp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
 		p = config_get_string(cat, temp, tmp2);
-		if (! strstr(p, ":")) {
-			sscanf(p, "%i", (int *)&cdrom_drives[c].ide_channel);
-			cdrom_drives[c].ide_channel &= 7;
-		} else {
-			sscanf(p, "%01u:%01u", &board, &dev);
-
-			board &= 3;
-			dev &= 1;
-			cdrom_drives[c].ide_channel = (board<<1)+dev;
-		}
+		sscanf(p, "%01u:%01u", &board, &dev);
+		board &= 3;
+		dev &= 1;
+		cdrom_drives[c].ide_channel = (board<<1)+dev;
 
 		if (cdrom_drives[c].ide_channel > 7)
 			cdrom_drives[c].ide_channel = 7;
 	} else {
-		sprintf(temp, "cdrom_%02i_scsi_location", c+1);
+		sprintf(temp, "cdrom_%02i_scsi_id", c+1);
 		if (cdrom_drives[c].bus_type == CDROM_BUS_SCSI) {
-			sprintf(tmp2, "%02u:%02u", c+2, 0);
-			p = config_get_string(cat, temp, tmp2);
-			sscanf(p, "%02u:%02u",
-				&cdrom_drives[c].scsi_device_id,
-				&cdrom_drives[c].scsi_device_lun);
+			cdrom_drives[c].scsi_device_id = config_get_int(cat, temp, c+2);
 	
 			if (cdrom_drives[c].scsi_device_id > 15)
 				cdrom_drives[c].scsi_device_id = 15;
-			if (cdrom_drives[c].scsi_device_lun > 7)
-				cdrom_drives[c].scsi_device_lun = 7;
-		} else {
+		} else
 			config_delete_var(cat, temp);
+
+		/* FIXME: Remove in a month. */
+		sprintf(temp, "cdrom_%02i_scsi_location", c+1);
+		if (cdrom_drives[c].bus_type == CDROM_BUS_SCSI) {
+			p = config_get_string(cat, temp, NULL);
+			if (p) {
+				sscanf(p, "%02u:%02u",
+					&cdrom_drives[c].scsi_device_id, &lun);
+	
+				if (cdrom_drives[c].scsi_device_id > 15)
+					cdrom_drives[c].scsi_device_id = 15;
+			}
 		}
+		config_delete_var(cat, temp);
 	}
 
 	sprintf(temp, "cdrom_%02i_image_path", c+1);
@@ -1310,6 +1139,10 @@ load_other_removable_devices(void)
 		sprintf(temp, "cdrom_%02i_ide_channel", c+1);
 		config_delete_var(cat, temp);
 
+		sprintf(temp, "cdrom_%02i_scsi_id", c+1);
+		config_delete_var(cat, temp);
+
+		/* FIXME: Remove in a month. */
 		sprintf(temp, "cdrom_%02i_scsi_location", c+1);
 		config_delete_var(cat, temp);
 
@@ -1335,39 +1168,39 @@ load_other_removable_devices(void)
 	zip_drives[c].ide_channel = zip_drives[c].scsi_device_id = c + 2;
 
 	sprintf(temp, "zip_%02i_ide_channel", c+1);
-	if ((zip_drives[c].bus_type == ZIP_BUS_ATAPI_PIO_ONLY) ||
-	    (zip_drives[c].bus_type == ZIP_BUS_ATAPI_PIO_AND_DMA)) {
+	if (zip_drives[c].bus_type == ZIP_BUS_ATAPI) {
 		sprintf(tmp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
 		p = config_get_string(cat, temp, tmp2);
-		if (! strstr(p, ":")) {
-			sscanf(p, "%i", (int *)&zip_drives[c].ide_channel);
-			zip_drives[c].ide_channel &= 7;
-		} else {
-			sscanf(p, "%01u:%01u", &board, &dev);
-
-			board &= 3;
-			dev &= 1;
-			zip_drives[c].ide_channel = (board<<1)+dev;
-		}
+		sscanf(p, "%01u:%01u", &board, &dev);
+		board &= 3;
+		dev &= 1;
+		zip_drives[c].ide_channel = (board<<1)+dev;
 
 		if (zip_drives[c].ide_channel > 7)
 			zip_drives[c].ide_channel = 7;
 	} else {
-		sprintf(temp, "zip_%02i_scsi_location", c+1);
+		sprintf(temp, "zip_%02i_scsi_id", c+1);
 		if (zip_drives[c].bus_type == CDROM_BUS_SCSI) {
-			sprintf(tmp2, "%02u:%02u", c+2, 0);
-			p = config_get_string(cat, temp, tmp2);
-			sscanf(p, "%02u:%02u",
-				&zip_drives[c].scsi_device_id,
-				&zip_drives[c].scsi_device_lun);
+			zip_drives[c].scsi_device_id = config_get_int(cat, temp, c+2);
 	
 			if (zip_drives[c].scsi_device_id > 15)
 				zip_drives[c].scsi_device_id = 15;
-			if (zip_drives[c].scsi_device_lun > 7)
-				zip_drives[c].scsi_device_lun = 7;
-		} else {
+		} else
 			config_delete_var(cat, temp);
+
+		/* FIXME: Remove in a month. */
+		sprintf(temp, "zip_%02i_scsi_location", c+1);
+		if (zip_drives[c].bus_type == CDROM_BUS_SCSI) {
+			p = config_get_string(cat, temp, NULL);
+			if (p) {
+				sscanf(p, "%02u:%02u",
+					&zip_drives[c].scsi_device_id, &lun);
+	
+				if (zip_drives[c].scsi_device_id > 15)
+					zip_drives[c].scsi_device_id = 15;
+			}
 		}
+		config_delete_var(cat, temp);
 	}
 
 	sprintf(temp, "zip_%02i_image_path", c+1);
@@ -1403,6 +1236,10 @@ load_other_removable_devices(void)
 		sprintf(temp, "zip_%02i_ide_channel", c+1);
 		config_delete_var(cat, temp);
 
+		sprintf(temp, "zip_%02i_scsi_id", c+1);
+		config_delete_var(cat, temp);
+
+		/* FIXME: Remove in a month. */
 		sprintf(temp, "zip_%02i_scsi_location", c+1);
 		config_delete_var(cat, temp);
 
@@ -1420,7 +1257,17 @@ load_other_removable_devices(void)
 void
 config_load(void)
 {
-    pclog("Loading config file '%ls'..\n", cfg_path);
+    int i;
+
+    config_log("Loading config file '%ls'..\n", cfg_path);
+
+    memset(hdd, 0, sizeof(hard_disk_t));
+    memset(cdrom_drives, 0, sizeof(cdrom_drive_t) * CDROM_NUM);
+    memset(cdrom_image, 0, sizeof(cdrom_image_t) * CDROM_NUM);
+#ifdef USE_IOCTL
+    memset(cdrom_ioctl, 0, sizeof(cdrom_ioctl_t) * CDROM_NUM);
+#endif
+    memset(zip_drives, 0, sizeof(zip_drive_t));
 
     if (! config_read(cfg_path)) {
 	cpu = 0;
@@ -1428,8 +1275,9 @@ config_load(void)
 	plat_langid = 0x0409;
 #endif
 	scale = 1;
+	machine = machine_get_machine_from_internal_name("ibmpc");
 	gfxcard = GFX_CGA;
-	vid_api = plat_vidapi("default");;
+	vid_api = plat_vidapi("default");
 	enable_sync = 1;
 	joystick_type = 7;
 	if (hdc_name) {
@@ -1438,14 +1286,22 @@ config_load(void)
 	}
 	hdc_name = (char *) malloc((strlen("none")+1) * sizeof(char));
 	strcpy(hdc_name, "none");
-	serial_enabled[0] = 0;
-	serial_enabled[1] = 0;
-	lpt_enabled = 0;
-	fdd_set_type(0, 2);
-	fdd_set_type(1, 2);
-	mem_size = 640;
+	serial_enabled[0] = 1;
+	serial_enabled[1] = 1;
+	lpt_enabled = 1;
+	for (i = 0; i < FDD_NUM; i++) {
+		if (i < 2)
+			fdd_set_type(i, 2);
+		else
+			fdd_set_type(i, 0);
 
-	pclog("Config file not present or invalid!\n");
+		fdd_set_turbo(i, 0);
+		fdd_set_check_bpb(i, 1);
+	}
+	mem_size = 640;
+	opl_type = 0;
+
+	config_log("Config file not present or invalid!\n");
 	return;
     }
 
@@ -1460,12 +1316,11 @@ config_load(void)
     load_hard_disks();			/* Hard disks */
     load_floppy_drives();		/* Floppy drives */
     load_other_removable_devices();	/* Other removable devices */
-    load_removable_devices();		/* Removable devices (legacy) */
 
     /* Mark the configuration as changed. */
     config_changed = 1;
 
-    pclog("Config loaded.\n\n");
+    config_log("Config loaded.\n\n");
 }
 
 
@@ -1618,11 +1473,6 @@ save_video(void)
     config_set_string(cat, "gfxcard",
 	video_get_internal_name(video_old_to_new(gfxcard)));
 
-    if (video_speed == 3)
-	config_delete_var(cat, "video_speed");
-      else
-	config_set_int(cat, "video_speed", video_speed);
-
     if (voodoo_enabled == 0)
 	config_delete_var(cat, "voodoo");
       else
@@ -1730,10 +1580,10 @@ save_sound(void)
       else
 	config_set_int(cat, "gus", GUS);
 
-    if (opl3_type == 0)
-	config_delete_var(cat, "opl3_type");
+    if (opl_type == 0)
+	config_delete_var(cat, "opl_type");
       else
-	config_set_string(cat, "opl3_type", (opl3_type == 1) ? "nukedopl" : "dbopl");
+	config_set_string(cat, "opl_type", (opl_type == 1) ? "nukedopl" : "dbopl");
 
     if (sound_is_float == 1)
 	config_delete_var(cat, "sound_type");
@@ -1821,8 +1671,6 @@ static void
 save_other_peripherals(void)
 {
     char *cat = "Other peripherals";
-    char temp[512], tmp2[512];
-    int c;
 
     if (scsi_card_current == 0)
 	config_delete_var(cat, "scsicard");
@@ -1832,15 +1680,15 @@ save_other_peripherals(void)
 
     config_set_string(cat, "hdc", hdc_name);
 
-    memset(temp, '\0', sizeof(temp));
-    for (c=2; c<4; c++) {
-	sprintf(temp, "ide_%02i", c + 1);
-	sprintf(tmp2, "%i, %02i", !!ide_enable[c], ide_irq[c]);
-	if (ide_enable[c] == 0)
-		config_delete_var(cat, temp);
-	  else
-		config_set_string(cat, temp, tmp2);
-    }
+    if (ide_ter_enabled == 0)
+	config_delete_var(cat, "ide_ter");
+      else
+	config_set_int(cat, "ide_ter", ide_ter_enabled);
+
+    if (ide_qua_enabled == 0)
+	config_delete_var(cat, "ide_qua");
+      else
+	config_set_int(cat, "ide_qua", ide_qua_enabled);
 
     if (bugger_enabled == 0)
 	config_delete_var(cat, "bugger_enabled");
@@ -1865,7 +1713,7 @@ save_hard_disks(void)
 	sprintf(temp, "hdd_%02i_parameters", c+1);
 	if (hdd_is_valid(c)) {
 		p = hdd_bus_to_string(hdd[c].bus, 0);
-		sprintf(tmp2, "%" PRIu64 ", %" PRIu64", %" PRIu64 ", %i, %s",
+		sprintf(tmp2, "%u, %u, %u, %i, %s",
 			hdd[c].spt, hdd[c].hpc, hdd[c].tracks, hdd[c].wp, p);
 		config_set_string(cat, temp, tmp2);
 	} else {
@@ -1878,38 +1726,36 @@ save_hard_disks(void)
 	  else
 		config_delete_var(cat, temp);
 
-	sprintf(temp, "hdd_%02i_xtide_channel", c+1);
-	if (hdd_is_valid(c) && (hdd[c].bus == HDD_BUS_XTIDE))
-		config_set_int(cat, temp, hdd[c].xtide_channel);
+	sprintf(temp, "hdd_%02i_xta_channel", c+1);
+	if (hdd_is_valid(c) && (hdd[c].bus == HDD_BUS_XTA))
+		config_set_int(cat, temp, hdd[c].xta_channel);
 	  else
 		config_delete_var(cat, temp);
 
 	sprintf(temp, "hdd_%02i_esdi_channel", c+1);
 	if (hdd_is_valid(c) && (hdd[c].bus == HDD_BUS_ESDI))
 		config_set_int(cat, temp, hdd[c].esdi_channel);
-	  else
+	else
 		config_delete_var(cat, temp);
 
 	sprintf(temp, "hdd_%02i_ide_channel", c+1);
-	if (! hdd_is_valid(c) || ((hdd[c].bus != HDD_BUS_IDE_PIO_ONLY) && (hdd[c].bus != HDD_BUS_IDE_PIO_AND_DMA))) {
+	if (! hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_IDE)) {
 		config_delete_var(cat, temp);
 	} else {
 		sprintf(tmp2, "%01u:%01u", hdd[c].ide_channel >> 1, hdd[c].ide_channel & 1);
 		config_set_string(cat, temp, tmp2);
 	}
 
-	sprintf(temp, "hdd_%02i_scsi_location", c+1);
-	if (! hdd_is_valid(c) || ((hdd[c].bus != HDD_BUS_SCSI) && (hdd[c].bus != HDD_BUS_SCSI_REMOVABLE))) {
+	sprintf(temp, "hdd_%02i_scsi_id", c+1);
+	if (hdd_is_valid(c) && (hdd[c].bus == HDD_BUS_SCSI))
+		config_set_int(cat, temp, hdd[c].scsi_id);
+	else
 		config_delete_var(cat, temp);
-	} else {
-		sprintf(tmp2, "%02u:%02u", hdd[c].scsi_id, hdd[c].scsi_lun);
-		config_set_string(cat, temp, tmp2);
-	}
 
 	sprintf(temp, "hdd_%02i_fn", c+1);
 	if (hdd_is_valid(c) && (wcslen(hdd[c].fn) != 0))
 		config_set_wstring(cat, temp, hdd[c].fn);
-	  else
+	else
 		config_delete_var(cat, temp);
     }
 
@@ -2002,22 +1848,19 @@ save_other_removable_devices(void)
 	}
 
 	sprintf(temp, "cdrom_%02i_ide_channel", c+1);
-	if ((cdrom_drives[c].bus_type != CDROM_BUS_ATAPI_PIO_ONLY) &&
-	    (cdrom_drives[c].bus_type != CDROM_BUS_ATAPI_PIO_AND_DMA)) {
+	if (cdrom_drives[c].bus_type != CDROM_BUS_ATAPI)
 		config_delete_var(cat, temp);
-	} else {
+	else {
 		sprintf(tmp2, "%01u:%01u", cdrom_drives[c].ide_channel>>1,
 					cdrom_drives[c].ide_channel & 1);
 		config_set_string(cat, temp, tmp2);
 	}
 
-	sprintf(temp, "cdrom_%02i_scsi_location", c + 1);
+	sprintf(temp, "cdrom_%02i_scsi_id", c + 1);
 	if (cdrom_drives[c].bus_type != CDROM_BUS_SCSI) {
 		config_delete_var(cat, temp);
 	} else {
-		sprintf(tmp2, "%02u:%02u", cdrom_drives[c].scsi_device_id,
-					cdrom_drives[c].scsi_device_lun);
-		config_set_string(cat, temp, tmp2);
+		config_set_int(cat, temp, cdrom_drives[c].scsi_device_id);
 	}
 
 	sprintf(temp, "cdrom_%02i_image_path", c + 1);
@@ -2040,22 +1883,19 @@ save_other_removable_devices(void)
 	}
 		
 	sprintf(temp, "zip_%02i_ide_channel", c+1);
-	if ((zip_drives[c].bus_type != ZIP_BUS_ATAPI_PIO_ONLY) &&
-	    (zip_drives[c].bus_type != ZIP_BUS_ATAPI_PIO_AND_DMA)) {
+	if (zip_drives[c].bus_type != ZIP_BUS_ATAPI)
 		config_delete_var(cat, temp);
-	} else {
+	else {
 		sprintf(tmp2, "%01u:%01u", zip_drives[c].ide_channel>>1,
 					zip_drives[c].ide_channel & 1);
 		config_set_string(cat, temp, tmp2);
 	}
 
-	sprintf(temp, "zip_%02i_scsi_location", c + 1);
+	sprintf(temp, "zip_%02i_scsi_id", c + 1);
 	if (zip_drives[c].bus_type != ZIP_BUS_SCSI) {
 		config_delete_var(cat, temp);
 	} else {
-		sprintf(tmp2, "%02u:%02u", zip_drives[c].scsi_device_id,
-					zip_drives[c].scsi_device_lun);
-		config_set_string(cat, temp, tmp2);
+		config_set_int(cat, temp, zip_drives[c].scsi_device_id);
 	}
 
 	sprintf(temp, "zip_%02i_image_path", c + 1);
@@ -2100,11 +1940,11 @@ config_dump(void)
 	entry_t *ent;
 
 	if (sec->name && sec->name[0])
-		pclog("[%s]\n", sec->name);
+		config_log("[%s]\n", sec->name);
 	
 	ent = (entry_t *)sec->entry_head.next;
 	while (ent != NULL) {
-		pclog("%s = %ls\n", ent->name, ent->wdata);
+		config_log("%s = %ls\n", ent->name, ent->wdata);
 
 		ent = (entry_t *)ent->list.next;
 	}
@@ -2157,7 +1997,7 @@ config_get_hex16(char *head, char *name, int def)
 {
     section_t *section;
     entry_t *entry;
-    int value;
+    unsigned int value;
 
     section = find_section(head);
     if (section == NULL)
@@ -2178,7 +2018,7 @@ config_get_hex20(char *head, char *name, int def)
 {
     section_t *section;
     entry_t *entry;
-    int value;
+    unsigned int value;
 
     section = find_section(head);
     if (section == NULL)
@@ -2199,7 +2039,7 @@ config_get_mac(char *head, char *name, int def)
 {
     section_t *section;
     entry_t *entry;
-    int val0 = 0, val1 = 0, val2 = 0;
+    unsigned int val0 = 0, val1 = 0, val2 = 0;
 
     section = find_section(head);
     if (section == NULL)

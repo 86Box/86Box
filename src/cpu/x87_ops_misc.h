@@ -478,7 +478,7 @@ static int opFLDLN2(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         if (fplog) pclog("FLDLN2\n");
-        x87_push(0.693147180559945);
+        x87_push_u64(0x3fe62e42fefa39f0ull);
         CLOCK_CYCLES(8);
         return 0;
 }

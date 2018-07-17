@@ -8,7 +8,7 @@
  *
  *		IBM VGA emulation.
  *
- * Version:	@(#)vid_vga.c	1.0.4	2018/03/18
+ * Version:	@(#)vid_vga.c	1.0.5	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -50,9 +50,11 @@ void vga_out(uint16_t addr, uint8_t val, void *p)
         switch (addr)
         {
                 case 0x3D4:
-                svga->crtcreg = val & 0x1f;
+                svga->crtcreg = val & 0x3f;
                 return;
                 case 0x3D5:
+		if (svga->crtcreg & 0x20)
+			return;
                 if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
                         return;
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
@@ -87,7 +89,10 @@ uint8_t vga_in(uint16_t addr, void *p)
                 temp = svga->crtcreg;
                 break;
                 case 0x3D5:
-                temp = svga->crtc[svga->crtcreg];
+		if (svga->crtcreg & 0x20)
+			temp = 0xff;
+		else
+                	temp = svga->crtc[svga->crtcreg];
                 break;
                 default:
                 temp = svga_in(addr, svga);
@@ -194,13 +199,6 @@ void vga_force_redraw(void *p)
         vga->svga.fullchange = changeframecount;
 }
 
-void vga_add_status_info(char *s, int max_len, void *p)
-{
-        vga_t *vga = (vga_t *)p;
-        
-        svga_add_status_info(s, max_len, &vga->svga);
-}
-
 const device_t vga_device =
 {
         "VGA",
@@ -212,7 +210,7 @@ const device_t vga_device =
         vga_available,
         vga_speed_changed,
         vga_force_redraw,
-        vga_add_status_info
+        NULL
 };
 #ifdef DEV_BRANCH
 const device_t trigem_unk_device =
@@ -226,7 +224,7 @@ const device_t trigem_unk_device =
         vga_available,
         vga_speed_changed,
         vga_force_redraw,
-        vga_add_status_info
+        NULL
 };
 #endif
 const device_t ps1vga_device =
@@ -240,5 +238,5 @@ const device_t ps1vga_device =
         vga_available,
         vga_speed_changed,
         vga_force_redraw,
-        vga_add_status_info
+        NULL
 };

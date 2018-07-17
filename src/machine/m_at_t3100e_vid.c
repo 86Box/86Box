@@ -22,7 +22,7 @@
  *		61 50 52 0F 19 06 19 19 02 0D 0B 0C   MONO
  *		2D 28 22 0A 67 00 64 67 02 03 06 07   640x400
  *
- * Version:	@(#)m_at_t3100e_vid.c	1.0.4	2018/03/18
+ * Version:	@(#)m_at_t3100e_vid.c	1.0.6	2018/04/29
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -50,11 +50,13 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../io.h"
@@ -196,7 +198,6 @@ void t3100e_write(uint32_t addr, uint8_t val, void *p)
         t3100e_t *t3100e = (t3100e_t *)p;
         egawrites++;
 
-//        pclog("CGA_WRITE %04X %02X\n", addr, val);
         t3100e->vram[addr & 0x7fff] = val;
         cycles -= 4;
 }
@@ -209,7 +210,6 @@ uint8_t t3100e_read(uint32_t addr, void *p)
         egareads++;
 	cycles -= 4;
 
-//        pclog("CGA_READ %04X\n", addr);
         return t3100e->vram[addr & 0x7fff];
 }
 
@@ -758,6 +758,5 @@ const device_t t3100e_device =
         NULL,
         NULL,
         t3100e_speed_changed,
-        NULL,
         NULL
 };

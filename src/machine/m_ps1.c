@@ -28,7 +28,7 @@
  *		boot. Sometimes, they do, and then it shows an "Incorrect
  *		DOS" error message??  --FvK
  *
- * Version:	@(#)m_ps1.c	1.0.7	2018/03/18
+ * Version:	@(#)m_ps1.c	1.0.9	2018/04/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -88,7 +88,8 @@ typedef struct {
 
     rom_t	high_rom;
 
-    uint8_t	ps1_92,
+    uint8_t	ps1_91,
+		ps1_92,
 		ps1_94,
 		ps1_102,
 		ps1_103,
@@ -97,11 +98,6 @@ typedef struct {
 		ps1_190;
     int		ps1_e0_addr;
     uint8_t	ps1_e0_regs[256];
-
-    struct {
-	uint8_t status, int_status;
-	uint8_t attention, ctrl;
-    }		hd;
 } ps1_t;
 
 
@@ -271,7 +267,6 @@ static const device_t snd_device = {
     snd_init, snd_close, NULL,
     NULL,
     NULL,
-    NULL,
     NULL
 };
 
@@ -334,7 +329,7 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
 		lpt1_remove();
 		if (val & 0x04)
 			serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
-		  else
+		else
 			serial_remove(1);
 		if (val & 0x10) {
 			switch ((val >> 5) & 3) {
@@ -367,22 +362,6 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
 	case 0x0190:
 		ps->ps1_190 = val;
 		break;
-
-	case 0x0322:
-		if (ps->model == 2011) {
-			ps->hd.ctrl = val;
-			if (val & 0x80)
-				ps->hd.status |= 0x02;
-		}
-		break;
-
-	case 0x0324:
-		if (ps->model == 2011) {
-			ps->hd.attention = val & 0xf0;
-			if (ps->hd.attention)
-				ps->hd.status = 0x14;
-		}
-		break;
     }
 }
 
@@ -395,7 +374,8 @@ ps1_read(uint16_t port, void *priv)
 
     switch (port) {
 	case 0x0091:
-		ret = 0;
+		ret = ps->ps1_91;
+		ps->ps1_91 = 0;
 		break;
 
 	case 0x0092:
@@ -438,19 +418,6 @@ ps1_read(uint16_t port, void *priv)
 		ret = ps->ps1_190;
 		break;
 
-	case 0x0322:
-		if (ps->model == 2011) {
-			ret = ps->hd.status;
-		}
-		break;
-
-	case 0x0324:
-		if (ps->model == 2011) {
-			ret = ps->hd.int_status;
-			ps->hd.int_status &= ~0x02;
-		}
-		break;
-
 	default:
 		break;
     }
@@ -463,6 +430,7 @@ static void
 ps1_setup(int model)
 {
     ps1_t *ps;
+    void *priv;
 
     ps = (ps1_t *)malloc(sizeof(ps1_t));
     memset(ps, 0x00, sizeof(ps1_t));
@@ -479,23 +447,15 @@ ps1_setup(int model)
     io_sethandler(0x0190, 1,
 		  ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
 
+    lpt1_remove();
+    lpt1_init(0x3bc);
+
     if (model == 2011) {
-	io_sethandler(0x0320, 1,
-		      ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
-	io_sethandler(0x0322, 1,
-		      ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
-	io_sethandler(0x0324, 1,
-		      ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
-
-#if 0
 	rom_init(&ps->high_rom,
-		 L"roms/machines/ibmps1es/f80000_shell.bin",
+		 L"roms/machines/ibmps1es/f80000.bin",
 		 0xf80000, 0x80000, 0x7ffff, 0, MEM_MAPPING_EXTERNAL);
-#endif
 
-	lpt1_remove();
 	lpt2_remove();
-	lpt1_init(0x03bc);
 
 	serial_remove(1);
 	serial_remove(2);
@@ -505,31 +465,44 @@ ps1_setup(int model)
 		device_add(&ps1vga_device);
 	else
 		device_add(&ibm_ps1_2121_device);
+
+	device_add(&snd_device);
+
+	device_add(&fdc_at_actlow_device);
+
+ 	/* Enable the builtin HDC. */
+	if (hdc_current == 1) {
+		priv = device_add(&ps1_hdc_device);
+
+		ps1_hdc_inform(priv, ps);
+	}
     }
 
     if (model == 2121) {
 	io_sethandler(0x00e0, 2,
 		      ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
 
-#if 1
+#if 0
 	rom_init(&ps->high_rom,
 		 L"roms/machines/ibmps1_2121/fc0000.bin",
 		 0xfc0000, 0x20000, 0x1ffff, 0, MEM_MAPPING_EXTERNAL);
-#else
-	rom_init(&ps->high_rom,
-		 L"roms/machines/ibmps1_2121/fc0000_shell.bin",
-		 0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
 #endif
-
-	lpt1_init(0x03bc);
 
 	/* Initialize the video controller. */
 	if (gfxcard == GFX_INTERNAL)
 		device_add(&ibm_ps1_2121_device);
+
+	device_add(&fdc_at_ps1_device);
+
+	device_add(&ide_isa_device);
+
+	device_add(&snd_device);
     }
 
     if (model == 2133) {
-	lpt1_init(0x03bc);
+	device_add(&fdc_at_device);
+
+	device_add(&ide_isa_device);
     }
 }
 
@@ -546,26 +519,23 @@ ps1_common_init(const machine_t *model)
     dma16_init();
     pic2_init();
 
-    nvr_at_init(8);
-
-    if (romset != ROM_IBMPS1_2011)
-	device_add(&ide_isa_device);
+    device_add(&ps_nvr_device);
 
     device_add(&keyboard_ps2_device);
-
-    if (romset == ROM_IBMPS1_2133)
-	device_add(&fdc_at_device);
-    else {
-	if ((romset == ROM_IBMPS1_2121) || (romset == ROM_IBMPS1_2121_ISA))
-		device_add(&fdc_at_ps1_device);
-	else
-		device_add(&fdc_at_actlow_device);
-	device_add(&snd_device);
-    }
 
     /* Audio uses ports 200h and 202-207h, so only initialize gameport on 201h. */
     if (joystick_type != 7)
 	device_add(&gameport_201_device);
+}
+
+
+/* Set the Card Selected Flag */
+void
+ps1_set_feedback(void *priv)
+{
+    ps1_t *ps = (ps1_t *)priv;
+
+    ps->ps1_91 |= 0x01;
 }
 
 

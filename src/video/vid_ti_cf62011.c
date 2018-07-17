@@ -42,7 +42,7 @@
  *		which are the same as the XGA. It supports up to 1MB of VRAM,
  *		but we lock it down to 512K. The PS/1 2122 had 256K.
  *
- * Version:	@(#)vid_ti_cf62011.c	1.0.4	2018/03/18
+ * Version:	@(#)vid_ti_cf62011.c	1.0.7	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -95,7 +95,6 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
     if (((addr & 0xfff0) == 0x03d0 || (addr & 0xfff0) == 0x03b0) &&
 	!(svga->miscout & 1)) addr ^= 0x60;
 #endif
-    // pclog("TISVGA_out(%04x, %02x)\n", addr, val);
 
     switch (addr) {
 	case 0x0102:
@@ -103,10 +102,12 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
 		return;
 
 	case 0x03d4:
-		svga->crtcreg = val & 0x1f;
+		svga->crtcreg = val & 0x3f;
 		return;
 
 	case 0x03d5:
+		if (svga->crtcreg & 0x20)
+			return;
 		if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
 			return;
 		if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
@@ -174,7 +175,10 @@ vid_in(uint16_t addr, void *priv)
 		break;
 
 	case 0x03d5:
-		ret = svga->crtc[svga->crtcreg];
+		if (svga->crtcreg & 0x20)
+			ret = 0xff;
+		else
+			ret = svga->crtc[svga->crtcreg];
 		break;
 
 	case 0x2100:
@@ -193,8 +197,6 @@ vid_in(uint16_t addr, void *priv)
 		ret = svga_in(addr, svga);
 		break;
     }
-
-    // pclog("TISVGA_in(%04x) = %02x\n", addr, ret);
 
     return(ret);
 }
@@ -215,15 +217,6 @@ vid_force_redraw(void *priv)
     tivga_t *ti = (tivga_t *)priv;
 
     ti->svga.fullchange = changeframecount;
-}
-
-
-static void
-vid_add_status_info(char *s, int max_len, void *priv)
-{
-    tivga_t *ti = (tivga_t *)priv;
-
-    svga_add_status_info(s, max_len, &ti->svga);
 }
 
 
@@ -252,8 +245,6 @@ vid_init(const device_t *info)
 	ti->vram_size = device_get_config_int("vram_size");
       else
 	ti->vram_size = info->local;
-
-    pclog("VIDEO: initializing %s, %dK VRAM\n", info->name, ti->vram_size);
 
     svga_init(&ti->svga, ti,
 	      ti->vram_size<<10,
@@ -304,7 +295,6 @@ const device_t ti_cf62011_device = {
     NULL,
     vid_speed_changed,
     vid_force_redraw,
-    vid_add_status_info,
     vid_config
 };
 #endif
@@ -318,6 +308,5 @@ const device_t ibm_ps1_2121_device = {
     NULL,
     vid_speed_changed,
     vid_force_redraw,
-    vid_add_status_info,
     NULL
 };

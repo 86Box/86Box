@@ -9,7 +9,7 @@
  *		Implementation of the SMC FDC37C932FR and FDC37C935 Super
  *		I/O Chips.
  *
- * Version:	@(#)sio_fdc37c93x.c	1.0.11	2018/03/14
+ * Version:	@(#)sio_fdc37c93x.c	1.0.13	2018/04/29
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -53,13 +53,11 @@ static uint16_t make_port(uint8_t ld)
 
 static uint8_t fdc37c93x_gpio_read(uint16_t port, void *priv)
 {
-	/* pclog("fdc37c93x: GPIO read: %02X\n", fdc37c93x_gpio_reg); */
 	return fdc37c93x_gpio_reg;
 }
 
 static void fdc37c93x_gpio_write(uint16_t port, uint8_t val, void *priv)
 {
-	/* pclog("fdc37c93x: GPIO write: %02X\n", val); */
 	fdc37c93x_gpio_reg = val;
 }
 
@@ -71,11 +69,9 @@ static void fdc37c93x_fdc_handler(void)
 	uint8_t local_enable = !!fdc37c93x_ld_regs[0][0x30];
 
 	fdc_remove(fdc37c93x_fdc);
-	/* pclog("fdc37c93x: Removing FDC (%i, %i)\n", global_enable, local_enable); */
 	if (global_enable && local_enable)
 	{
 		ld_port = make_port(0);
-		/* pclog("fdc37c93x: Setting FDC port to %04X\n", ld_port); */
 		if ((ld_port >= 0x0100) && (ld_port <= 0x0FF8)) {
 			fdc_set_base(fdc37c93x_fdc, ld_port);
 		}
@@ -93,7 +89,6 @@ static void fdc37c93x_lpt_handler(void)
 	if (global_enable && local_enable)
 	{
 		ld_port = make_port(3);
-		/* pclog("fdc37c93x: Setting LPT1 port to %04X\n", ld_port); */
 		if ((ld_port >= 0x0100) && (ld_port <= 0x0FFC))
 			lpt1_init(ld_port);
 	}
@@ -112,7 +107,6 @@ static void fdc37c93x_serial_handler(int uart)
 	if (global_enable && local_enable)
 	{
 		ld_port = make_port(uart_no);
-		/* pclog("fdc37c93x: Setting COM%i port to %04X\n", uart, ld_port); */
 		if ((ld_port >= 0x0100) && (ld_port <= 0x0FF8))
 			serial_setup(uart, ld_port, fdc37c93x_ld_regs[uart_no][0x70]);
 	}
@@ -128,7 +122,6 @@ static void fdc37c93x_auxio_handler(void)
 	if (local_enable)
 	{
 		fdc37c93x_gpio_base = ld_port = make_port(8);
-		/* pclog("fdc37c93x: Setting Auxiliary I/O port to %04X\n", ld_port); */
 		if ((ld_port >= 0x0100) && (ld_port <= 0x0FFF))
 		        io_sethandler(fdc37c93x_gpio_base, 0x0001, fdc37c93x_gpio_read, NULL, NULL, fdc37c93x_gpio_write, NULL, NULL,  NULL);
 	}
@@ -198,7 +191,6 @@ static void fdc37c932fr_access_bus_handler(void)
 	if (global_enable && local_enable)
 	{
 		access_bus.base = ld_port = make_port(9);
-		/* pclog("fdc37c93x: Setting Auxiliary I/O port to %04X\n", ld_port); */
 		if ((ld_port >= 0x0100) && (ld_port <= 0x0FFC))
 		        io_sethandler(access_bus.base, 0x0004, fdc37c932fr_access_bus_read, NULL, NULL, fdc37c932fr_access_bus_write, NULL, NULL,  NULL);
 	}
@@ -566,14 +558,10 @@ void fdc37c932fr_init(void)
 {
 	fdc37c93x_init();
 	fdc37c932fr_reset();
-
-	pci_reset_handler.super_io_reset = fdc37c932fr_reset;
 }
 
 void fdc37c935_init(void)
 {
 	fdc37c93x_init();
 	fdc37c935_reset();
-
-	pci_reset_handler.super_io_reset = fdc37c935_reset;
 }

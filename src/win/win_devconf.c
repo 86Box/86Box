@@ -8,7 +8,7 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_devconf.c	1.0.17	2018/03/20
+ * Version:	@(#)win_devconf.c	1.0.18	2018/04/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -468,7 +468,7 @@ uint8_t deviceconfig_open(HWND hwnd, const device_t *device)
 
 	deviceconfig_changed = 0;
 
-        memset(data_block, 0, 4096);
+        memset(data_block, 0, 16384);
         
         dlg->style = DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU;
         dlg->x  = 10;
@@ -480,10 +480,10 @@ uint8_t deviceconfig_open(HWND hwnd, const device_t *device)
         
         *data++ = 0; /*no menu*/
         *data++ = 0; /*predefined dialog box class*/
-        data += MultiByteToWideChar(CP_ACP, 0, "Device Configuration", -1, data, 50);
+        data += MultiByteToWideChar(CP_ACP, 0, "Device Configuration", -1, data, 120);
 
         *data++ = 9; /*Point*/
-        data += MultiByteToWideChar(CP_ACP, 0, "Segoe UI", -1, data, 50);
+        data += MultiByteToWideChar(CP_ACP, 0, "Segoe UI", -1, data, 120);
         
         if (((uintptr_t)data) & 2)
                 data++;

@@ -30,7 +30,7 @@ machine_at_common_init(const machine_t *model)
     if (lpt_enabled)
 	lpt2_remove();
 
-    nvr_at_init(8);
+    device_add(&at_nvr_device);
 
     if (joystick_type != 7)
 	device_add(&gameport_device);

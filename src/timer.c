@@ -96,7 +96,6 @@ void timer_update_outstanding(void)
 
 void timer_reset(void)
 {
-	/* pclog("timer_reset\n"); */
 	timers_present = 0;
 	timer_latch = timer_count = 0;
 }

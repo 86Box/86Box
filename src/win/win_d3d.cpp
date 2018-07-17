@@ -8,7 +8,7 @@
  *
  *		Rendering module for Microsoft Direct3D 9.
  *
- * Version:	@(#)win_d3d.cpp	1.0.10	2018/01/15
+ * Version:	@(#)win_d3d.cpp	1.0.11	2018/05/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -183,8 +183,14 @@ d3d_blit_fs(int x, int y, int y1, int y2, int w, int h)
 
 	hr = d3dTexture->LockRect(0, &dr, &lock_rect, 0);
 	if (hr == D3D_OK) {
-		for (yy = y1; yy < y2; yy++)
-			if (buffer32)  memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
+		for (yy = y1; yy < y2; yy++) {
+			if (buffer32) {
+				if (video_grayscale || invert_display)
+					video_transform_copy((uint32_t *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w);
+				else
+					memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
+			}
+		}
 
 		video_blit_complete();
 		d3dTexture->UnlockRect(0);
@@ -288,9 +294,14 @@ d3d_blit(int x, int y, int y1, int y2, int w, int h)
     hr = d3dTexture->LockRect(0, &dr, &r, 0);
     if (hr == D3D_OK) {	
 	for (yy = y1; yy < y2; yy++) {
-		if (buffer32)
-			if ((y + yy) >= 0 && (y + yy) < buffer32->h)
-				memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
+		if (buffer32) {
+			if ((y + yy) >= 0 && (y + yy) < buffer32->h) {
+				if (video_grayscale || invert_display)
+					video_transform_copy((uint32_t *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w);
+				else
+					memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
+			}
+		}
 	}
 
 	video_blit_complete();

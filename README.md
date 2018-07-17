@@ -8,6 +8,8 @@ PCI bus.
 86Box is released under the GNU General Public License, version 2. For more
 information, see the `LICENSE` file.
 
+The project maintainer is OBattler.
+
 Community
 ---------
 We operate an IRC channel and a Discord server for discussing anything related 

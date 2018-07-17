@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <mmsystem.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
@@ -100,10 +100,7 @@ void plat_midi_play_sysex(uint8_t *sysex, unsigned int len)
 	MMRESULT result;
 
 	if (WaitForSingleObject(m_event, 2000) == WAIT_TIMEOUT)
-	{
-		pclog("Can't send MIDI message\n");
 		return;
-	}
 
 	midiOutUnprepareHeader(midi_out_device, &m_hdr, sizeof(m_hdr));
 

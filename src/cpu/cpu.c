@@ -1,22 +1,42 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
  *
- *		This file is part of the 86Box distribution.
+ *		This file is part of the VARCem Project.
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.c	1.0.14	2018/03/11
+ * Version:	@(#)cpu.c	1.0.6	2018/05/05
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		leilei,
  *		Miran Grca, <mgrca8@gmail.com>
  *
+ *		Copyright 2018 Fred N. van Kempen.
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 leilei.
  *		Copyright 2016-2018 Miran Grca.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free  Software  Foundation; either  version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is  distributed in the hope that it will be useful, but
+ * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the:
+ *
+ *   Free Software Foundation, Inc.
+ *   59 Temple Place - Suite 330
+ *   Boston, MA 02111-1307
+ *   USA.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -31,58 +51,11 @@
 #include "../mem.h"
 #include "../pci.h"
 #ifdef USE_DYNAREC
-#include "codegen.h"
+# include "codegen.h"
 #endif
 
-int isa_cycles;
-static uint8_t ccr0, ccr1, ccr2, ccr3, ccr4, ccr5, ccr6;
 
-#ifdef USE_DYNAREC
-OpFn *x86_dynarec_opcodes;
-OpFn *x86_dynarec_opcodes_0f;
-OpFn *x86_dynarec_opcodes_d8_a16;
-OpFn *x86_dynarec_opcodes_d8_a32;
-OpFn *x86_dynarec_opcodes_d9_a16;
-OpFn *x86_dynarec_opcodes_d9_a32;
-OpFn *x86_dynarec_opcodes_da_a16;
-OpFn *x86_dynarec_opcodes_da_a32;
-OpFn *x86_dynarec_opcodes_db_a16;
-OpFn *x86_dynarec_opcodes_db_a32;
-OpFn *x86_dynarec_opcodes_dc_a16;
-OpFn *x86_dynarec_opcodes_dc_a32;
-OpFn *x86_dynarec_opcodes_dd_a16;
-OpFn *x86_dynarec_opcodes_dd_a32;
-OpFn *x86_dynarec_opcodes_de_a16;
-OpFn *x86_dynarec_opcodes_de_a32;
-OpFn *x86_dynarec_opcodes_df_a16;
-OpFn *x86_dynarec_opcodes_df_a32;
-OpFn *x86_dynarec_opcodes_REPE;
-OpFn *x86_dynarec_opcodes_REPNE;
-#endif
-
-OpFn *x86_opcodes;
-OpFn *x86_opcodes_0f;
-OpFn *x86_opcodes_d8_a16;
-OpFn *x86_opcodes_d8_a32;
-OpFn *x86_opcodes_d9_a16;
-OpFn *x86_opcodes_d9_a32;
-OpFn *x86_opcodes_da_a16;
-OpFn *x86_opcodes_da_a32;
-OpFn *x86_opcodes_db_a16;
-OpFn *x86_opcodes_db_a32;
-OpFn *x86_opcodes_dc_a16;
-OpFn *x86_opcodes_dc_a32;
-OpFn *x86_opcodes_dd_a16;
-OpFn *x86_opcodes_dd_a32;
-OpFn *x86_opcodes_de_a16;
-OpFn *x86_opcodes_de_a32;
-OpFn *x86_opcodes_df_a16;
-OpFn *x86_opcodes_df_a32;
-OpFn *x86_opcodes_REPE;
-OpFn *x86_opcodes_REPNE;
-
-enum
-{
+enum {
         CPUID_FPU = (1 << 0),
         CPUID_VME = (1 << 1),
         CPUID_PSE = (1 << 3),
@@ -96,93 +69,145 @@ enum
 	CPUID_FXSR = (1 << 24)
 };
 
-CPU *cpu_s;
-int cpu_effective;
-int cpu_multi;
-int cpu_iscyrix;
-int cpu_16bitbus;
-int cpu_busspeed;
-int cpu_hasrdtsc;
-int cpu_hasMMX, cpu_hasMSR;
-int cpu_hasCR4;
-int cpu_hasVME;
-int cpu_cyrix_alignment;
-int hasfpu;
-int cpuspeed;
 
-uint64_t cpu_CR4_mask;
-
-int cpu_cycles_read, cpu_cycles_read_l, cpu_cycles_write, cpu_cycles_write_l;
-int cpu_prefetch_cycles, cpu_prefetch_width, cpu_mem_prefetch_cycles, cpu_rom_prefetch_cycles;
-int cpu_waitstates;
-int cpu_cache_int_enabled, cpu_cache_ext_enabled;
-int cpu_pci_speed;
-
-int is286, is386, is486;
-int israpidcad, is_pentium;
-
-uint64_t tsc = 0;
-
-cr0_t CR0;
-uint64_t pmc[2] = {0, 0};
-
-uint16_t temp_seg_data[4] = {0, 0, 0, 0};
-
-#ifdef DEV_BRANCH
-#ifdef USE_I686
-uint16_t cs_msr = 0;
-uint32_t esp_msr = 0;
-uint32_t eip_msr = 0;
-uint64_t apic_base_msr = 0;
-uint64_t mtrr_cap_msr = 0;
-uint64_t mtrr_physbase_msr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-uint64_t mtrr_physmask_msr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-uint64_t mtrr_fix64k_8000_msr = 0;
-uint64_t mtrr_fix16k_8000_msr = 0;
-uint64_t mtrr_fix16k_a000_msr = 0;
-uint64_t mtrr_fix4k_msr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-uint64_t pat_msr = 0;
-uint64_t mtrr_deftype_msr = 0;
-uint64_t msr_ia32_pmc[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-uint64_t ecx17_msr = 0;
-uint64_t ecx79_msr = 0;
-uint64_t ecx8x_msr[4] = {0, 0, 0, 0};
-uint64_t ecx116_msr = 0;
-uint64_t ecx11x_msr[4] = {0, 0, 0, 0};
-uint64_t ecx11e_msr = 0;
-uint64_t ecx186_msr = 0;
-uint64_t ecx187_msr = 0;
-uint64_t ecx1e0_msr = 0;
-uint64_t ecx570_msr = 0;
-#endif
+#ifdef USE_DYNAREC
+const OpFn	*x86_dynarec_opcodes;
+const OpFn	*x86_dynarec_opcodes_0f;
+const OpFn	*x86_dynarec_opcodes_d8_a16;
+const OpFn	*x86_dynarec_opcodes_d8_a32;
+const OpFn	*x86_dynarec_opcodes_d9_a16;
+const OpFn	*x86_dynarec_opcodes_d9_a32;
+const OpFn	*x86_dynarec_opcodes_da_a16;
+const OpFn	*x86_dynarec_opcodes_da_a32;
+const OpFn	*x86_dynarec_opcodes_db_a16;
+const OpFn	*x86_dynarec_opcodes_db_a32;
+const OpFn	*x86_dynarec_opcodes_dc_a16;
+const OpFn	*x86_dynarec_opcodes_dc_a32;
+const OpFn	*x86_dynarec_opcodes_dd_a16;
+const OpFn	*x86_dynarec_opcodes_dd_a32;
+const OpFn	*x86_dynarec_opcodes_de_a16;
+const OpFn	*x86_dynarec_opcodes_de_a32;
+const OpFn	*x86_dynarec_opcodes_df_a16;
+const OpFn	*x86_dynarec_opcodes_df_a32;
+const OpFn	*x86_dynarec_opcodes_REPE;
+const OpFn	*x86_dynarec_opcodes_REPNE;
 #endif
 
-#ifdef DEV_BRANCH
-#ifdef USE_AMD_K
-/* AMD K5 and K6 MSR's. */
-uint64_t ecx83_msr = 0;
-/* These are K6-only. */
-uint64_t star = 0;
-uint64_t sfmask = 0;
+const OpFn	*x86_opcodes;
+const OpFn	*x86_opcodes_0f;
+const OpFn	*x86_opcodes_d8_a16;
+const OpFn	*x86_opcodes_d8_a32;
+const OpFn	*x86_opcodes_d9_a16;
+const OpFn	*x86_opcodes_d9_a32;
+const OpFn	*x86_opcodes_da_a16;
+const OpFn	*x86_opcodes_da_a32;
+const OpFn	*x86_opcodes_db_a16;
+const OpFn	*x86_opcodes_db_a32;
+const OpFn	*x86_opcodes_dc_a16;
+const OpFn	*x86_opcodes_dc_a32;
+const OpFn	*x86_opcodes_dd_a16;
+const OpFn	*x86_opcodes_dd_a32;
+const OpFn	*x86_opcodes_de_a16;
+const OpFn	*x86_opcodes_de_a32;
+const OpFn	*x86_opcodes_df_a16;
+const OpFn	*x86_opcodes_df_a32;
+const OpFn	*x86_opcodes_REPE;
+const OpFn	*x86_opcodes_REPNE;
+
+CPU		*cpu_s;
+int		cpu_effective;
+int		cpu_multi;
+int		cpu_16bitbus;
+int		cpu_busspeed;
+int		cpu_cyrix_alignment;
+int		cpuspeed;
+int		CPUID;
+uint64_t	cpu_CR4_mask;
+int		isa_cycles;
+int		cpu_cycles_read, cpu_cycles_read_l,
+		cpu_cycles_write, cpu_cycles_write_l;
+int		cpu_prefetch_cycles, cpu_prefetch_width,
+		cpu_mem_prefetch_cycles, cpu_rom_prefetch_cycles;
+int		cpu_waitstates;
+int		cpu_cache_int_enabled, cpu_cache_ext_enabled;
+int		cpu_pci_speed;
+
+int		is286,
+		is386,
+		is486,
+		cpu_iscyrix,
+		israpidcad,
+		is_pentium;
+
+int		hasfpu,
+		cpu_hasrdtsc,
+		cpu_hasMMX,
+		cpu_hasMSR,
+		cpu_hasCR4,
+		cpu_hasVME;
+
+
+uint64_t	tsc = 0;
+msr_t		msr;
+cr0_t		CR0;
+uint64_t	pmc[2] = {0, 0};
+
+uint16_t	temp_seg_data[4] = {0, 0, 0, 0};
+
+#if defined(DEV_BRANCH) && defined(USE_I686)
+uint16_t	cs_msr = 0;
+uint32_t	esp_msr = 0;
+uint32_t	eip_msr = 0;
+uint64_t	apic_base_msr = 0;
+uint64_t	mtrr_cap_msr = 0;
+uint64_t	mtrr_physbase_msr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+uint64_t	mtrr_physmask_msr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+uint64_t	mtrr_fix64k_8000_msr = 0;
+uint64_t	mtrr_fix16k_8000_msr = 0;
+uint64_t	mtrr_fix16k_a000_msr = 0;
+uint64_t	mtrr_fix4k_msr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+uint64_t	pat_msr = 0;
+uint64_t	mtrr_deftype_msr = 0;
+uint64_t	msr_ia32_pmc[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+uint64_t	ecx17_msr = 0;
+uint64_t	ecx79_msr = 0;
+uint64_t	ecx8x_msr[4] = {0, 0, 0, 0};
+uint64_t	ecx116_msr = 0;
+uint64_t	ecx11x_msr[4] = {0, 0, 0, 0};
+uint64_t	ecx11e_msr = 0;
+uint64_t	ecx186_msr = 0;
+uint64_t	ecx187_msr = 0;
+uint64_t	ecx1e0_msr = 0;
+uint64_t	ecx570_msr = 0;
 #endif
+
+#if defined(DEV_BRANCH) && defined(USE_AMD_K)
+uint64_t	ecx83_msr = 0;			/* AMD K5 and K6 MSR's. */
+uint64_t	star = 0;			/* These are K6-only. */
+uint64_t	sfmask = 0;
 #endif
 
-int timing_rr;
-int timing_mr, timing_mrl;
-int timing_rm, timing_rml;
-int timing_mm, timing_mml;
-int timing_bt, timing_bnt;
-int timing_int, timing_int_rm, timing_int_v86, timing_int_pm, timing_int_pm_outer;
-int timing_iret_rm, timing_iret_v86, timing_iret_pm, timing_iret_pm_outer;
-int timing_call_rm, timing_call_pm, timing_call_pm_gate, timing_call_pm_gate_inner;
-int timing_retf_rm, timing_retf_pm, timing_retf_pm_outer;
-int timing_jmp_rm, timing_jmp_pm, timing_jmp_pm_gate;
-int timing_misaligned;
+int		timing_rr;
+int		timing_mr, timing_mrl;
+int		timing_rm, timing_rml;
+int		timing_mm, timing_mml;
+int		timing_bt, timing_bnt;
+int		timing_int, timing_int_rm, timing_int_v86, timing_int_pm,
+		timing_int_pm_outer;
+int		timing_iret_rm, timing_iret_v86, timing_iret_pm,
+		timing_iret_pm_outer;
+int		timing_call_rm, timing_call_pm, timing_call_pm_gate,
+		timing_call_pm_gate_inner;
+int		timing_retf_rm, timing_retf_pm, timing_retf_pm_outer;
+int		timing_jmp_rm, timing_jmp_pm, timing_jmp_pm_gate;
+int		timing_misaligned;
 
-msr_t msr;
+
+static uint8_t	ccr0, ccr1, ccr2, ccr3, ccr4, ccr5, ccr6;
 
 
-void cpu_dynamic_switch(int new_cpu)
+void
+cpu_dynamic_switch(int new_cpu)
 {
         if (cpu_effective == new_cpu)
                 return;
@@ -194,16 +219,17 @@ void cpu_dynamic_switch(int new_cpu)
         cpu = c;
 }
 
-void cpu_set_edx()
+
+void
+cpu_set_edx(void)
 {
         EDX = machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].edx_reset;
 }
 
 
-void cpu_set()
+void
+cpu_set(void)
 {
-        CPU *cpu_s;
-        
         if (!machines[machine].cpu[cpu_manufacturer].cpus)
         {
                 /*CPU is invalid, set to default*/
@@ -250,7 +276,7 @@ void cpu_set()
                 cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
         else
                 cpu_rom_prefetch_cycles = cpu_s->rspeed / 1000000;
-	
+
         if (cpu_s->pci_speed)
         {
                 pci_nonburst_time = 4*cpu_s->rspeed / cpu_s->pci_speed;
@@ -261,16 +287,12 @@ void cpu_set()
                 pci_nonburst_time = 4;
                 pci_burst_time = 1;
         }
-        pclog("PCI burst=%i nonburst=%i\n", pci_burst_time, pci_nonburst_time);
 
         if (cpu_iscyrix)
            io_sethandler(0x0022, 0x0002, cyrix_read, NULL, NULL, cyrix_write, NULL, NULL, NULL);
         else
            io_removehandler(0x0022, 0x0002, cyrix_read, NULL, NULL, cyrix_write, NULL, NULL, NULL);
         
-        pclog("hasfpu - %i\n",hasfpu);
-        pclog("is486 - %i  %i\n",is486,cpu_s->cpu_type);
-
 #ifdef USE_DYNAREC
         x86_setopcodes(ops_386, ops_386_0f, dynarec_ops_386, dynarec_ops_386_0f);
 #else
@@ -1091,8 +1113,7 @@ void cpu_set()
          	ccr4 = 0x80;
                 break;
 
-#ifdef DEV_BRANCH
-#ifdef USE_AMD_K
+#if defined(DEV_BRANCH) && defined(USE_AMD_K)
                 case CPU_K5:
                 case CPU_5K86:
 #ifdef USE_DYNAREC
@@ -1146,10 +1167,8 @@ void cpu_set()
 #endif
                 break;
 #endif
-#endif
 
-#ifdef DEV_BRANCH
-#ifdef USE_I686
+#if defined(DEV_BRANCH) && defined(USE_I686)
                 case CPU_PENTIUMPRO:
 #ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentiumpro_0f, dynarec_ops_386, dynarec_ops_pentiumpro_0f);
@@ -1272,7 +1291,6 @@ void cpu_set()
 #endif
                 break;
 #endif
-#endif
 
                 default:
                 fatal("cpu_set : unknown CPU type %i\n", cpu_s->cpu_type);
@@ -1294,7 +1312,8 @@ cpu_current_pc(char *bufp)
 }
 
 
-void cpu_CPUID()
+void
+cpu_CPUID(void)
 {
         switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
         {
@@ -1313,7 +1332,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU; /*FPU*/
                 }
                 else
-                   EAX = 0;
+                   EAX = EBX = ECX = EDX = 0;
                 break;
 
                 case CPU_iDX4:
@@ -1331,7 +1350,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU | CPUID_VME;
                 }
                 else
-                   EAX = 0;
+                   EAX = EBX = ECX = EDX = 0;
                 break;
 
                 case CPU_Am486SX:
@@ -1348,7 +1367,7 @@ void cpu_CPUID()
                         EBX = ECX = EDX = 0; /*No FPU*/
                 }
                 else
-                   EAX = 0;
+                   EAX = EBX = ECX = EDX = 0;
                 break;
 
                 case CPU_Am486DX:
@@ -1366,7 +1385,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU; /*FPU*/
                 }
                 else
-                   EAX = 0;
+                   EAX = EBX = ECX = EDX = 0;
                 break;
                 
                 case CPU_WINCHIP:
@@ -1397,7 +1416,7 @@ void cpu_CPUID()
                                 EDX |= CPUID_MMX;
                 }
                 else
-                   EAX = 0;
+                   EAX = EBX = ECX = EDX = 0;
                 break;
 
                 case CPU_PENTIUM:
@@ -1415,11 +1434,10 @@ void cpu_CPUID()
                         EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
                 }
                 else
-                        EAX = 0;
+                        EAX = EBX = ECX = EDX = 0;
                 break;
 
-#ifdef DEV_BRANCH
-#ifdef USE_AMD_K
+#if defined(DEV_BRANCH) && defined(USE_AMD_K)
                 case CPU_K5:
                 if (!EAX)
                 {
@@ -1435,7 +1453,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
                 }
                 else
-                        EAX = 0;
+                        EAX = EBX = ECX = EDX = 0;
                 break;
 
                 case CPU_5K86:
@@ -1487,7 +1505,7 @@ void cpu_CPUID()
 			EDX = 0x10040120;
 		}
                 else
-                        EAX = 0;
+                        EAX = EBX = ECX = EDX = 0;
                 break;
 
                 case CPU_K6:
@@ -1549,9 +1567,8 @@ void cpu_CPUID()
 			EDX = 0x444D416E;
 		}
                 else
-                        EAX = 0;
+                        EAX = EBX = ECX = EDX = 0;
                 break;
-#endif
 #endif
 
                 case CPU_PENTIUMMMX:
@@ -1569,7 +1586,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX;
                 }
                 else
-                        EAX = 0;
+                        EAX = EBX = ECX = EDX = 0;
                 break;
 
 
@@ -1588,7 +1605,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU;
                 }
                 else
-                        EAX = 0;
+                        EAX = EBX = ECX = EDX = 0;
                 break;
 
 
@@ -1607,7 +1624,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU | CPUID_CMPXCHG8B;
                 }
                 else
-                        EAX = 0;
+                        EAX = EBX = ECX = EDX = 0;
                 break;
 
 
@@ -1626,7 +1643,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
                 }
                 else
-                        EAX = 0;
+                        EAX = EBX = ECX = EDX = 0;
                 break;
 
 
@@ -1646,7 +1663,7 @@ void cpu_CPUID()
                         EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_CMOV | CPUID_MMX;
                 }
                 else
-                        EAX = 0;
+                        EAX = EBX = ECX = EDX = 0;
                 break;
 
 #ifdef DEV_BRANCH
@@ -1669,7 +1686,7 @@ void cpu_CPUID()
 		{
 		}
                 else
-                        EAX = 0;
+                        EAX = EBX = ECX = EDX = 0;
                 break;
 
                 /* case CPU_PENTIUM2:
@@ -1693,7 +1710,7 @@ void cpu_CPUID()
 			EDX = 0x0C040843;
 		}
                 else
-                        EAX = 0;
+                        EAX = EBX = ECX = EDX = 0;
                 break; */
 
                 case CPU_PENTIUM2D:
@@ -1717,7 +1734,7 @@ void cpu_CPUID()
 			EDX = 0x0C040844;
 		}
                 else
-                        EAX = 0;
+                        EAX = EBX = ECX = EDX = 0;
                 break;
 #endif
 #endif
@@ -1759,8 +1776,7 @@ void cpu_RDMSR()
                 }
                 break;
 
-#ifdef DEV_BRANCH
-#ifdef USE_AMD_K
+#if defined(DEV_BRANCH) && defined(USE_AMD_K)
                 case CPU_K5:
                 case CPU_5K86:
                 case CPU_K6:
@@ -1787,14 +1803,10 @@ void cpu_RDMSR()
                         EDX = sfmask >> 32;
                         break;
 			default:
-#ifndef RELEASE_BUILD
-			pclog("Invalid MSR: %08X\n", ECX);
-#endif
 			x86gpf(NULL, 0);
 			break;
                 }
                 break;
-#endif
 #endif
 
                 case CPU_PENTIUM:
@@ -1941,9 +1953,6 @@ void cpu_RDMSR()
 			break;
 			default:
 i686_invalid_rdmsr:
-#ifndef RELEASE_BUILD
-			pclog("Invalid MSR: %08X\n", ECX);
-#endif
 			x86gpf(NULL, 0);
 			break;
                 }
@@ -1988,8 +1997,8 @@ void cpu_WRMSR()
                         break;
                 }
                 break;
-#ifdef DEV_BRANCH
-#ifdef USE_AMD_K
+
+#if defined(DEV_BRANCH) && defined(USE_AMD_K)
                 case CPU_K5:
                 case CPU_5K86:
                 case CPU_K6:
@@ -2012,7 +2021,6 @@ void cpu_WRMSR()
 			break;
                 }
                 break;
-#endif
 #endif
 
                 case CPU_PENTIUM:
@@ -2124,9 +2132,6 @@ void cpu_WRMSR()
 			break;			
 			default:
 i686_invalid_wrmsr:
-#ifndef RELEASE_BUILD
-			pclog("Invalid MSR: %08X\n", ECX);
-#endif
 			x86gpf(NULL, 0);
 			break;
                 }
@@ -2202,8 +2207,11 @@ uint8_t cyrix_read(uint16_t addr, void *priv)
         return 0xff;
 }
 
+
+void
 #ifdef USE_DYNAREC
-void x86_setopcodes(OpFn *opcodes, OpFn *opcodes_0f, OpFn *dynarec_opcodes, OpFn *dynarec_opcodes_0f)
+x86_setopcodes(const OpFn *opcodes, const OpFn *opcodes_0f,
+	       const OpFn *dynarec_opcodes, const OpFn *dynarec_opcodes_0f)
 {
         x86_opcodes = opcodes;
         x86_opcodes_0f = opcodes_0f;
@@ -2211,22 +2219,24 @@ void x86_setopcodes(OpFn *opcodes, OpFn *opcodes_0f, OpFn *dynarec_opcodes, OpFn
         x86_dynarec_opcodes_0f = dynarec_opcodes_0f;
 }
 #else
-void x86_setopcodes(OpFn *opcodes, OpFn *opcodes_0f)
+x86_setopcodes(const OpFn *opcodes, const OpFn *opcodes_0f)
 {
         x86_opcodes = opcodes;
         x86_opcodes_0f = opcodes_0f;
 }
 #endif
 
-void cpu_update_waitstates()
+
+void
+cpu_update_waitstates(void)
 {
         cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective];
-        
+
         if (is486)
                 cpu_prefetch_width = 16;
         else
                 cpu_prefetch_width = cpu_16bitbus ? 2 : 4;
-        
+
         if (cpu_cache_int_enabled)
         {
                 /* Disable prefetch emulation */
@@ -2260,7 +2270,7 @@ void cpu_update_waitstates()
                 cpu_cycles_write_l = (cpu_16bitbus ? 2 : 1) * cpu_s->mem_write_cycles;
         }
         if (is486)
-                cpu_prefetch_cycles *= 4;
+                cpu_prefetch_cycles = (cpu_prefetch_cycles * 11) / 16;
         cpu_mem_prefetch_cycles = cpu_prefetch_cycles;
         if (cpu_s->rspeed <= 8000000)
                 cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;

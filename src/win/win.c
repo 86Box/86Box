@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.46	2018/03/16
+ * Version:	@(#)win.c	1.0.50	2018/07/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,13 +20,15 @@
  */
 #define UNICODE
 #include <windows.h>
-#include <stdio.h>
+#include <fcntl.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <fcntl.h>
 #include <time.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../config.h"
 #include "../device.h"
@@ -39,15 +41,9 @@
 #ifdef USE_VNC
 # include "../vnc.h"
 #endif
-#ifdef USE_RDP
-# include "../rdp.h"
-#endif
-#ifdef USE_WX
-# include "../wx/wx_ui.h"
-#else
 # include "win_ddraw.h"
 # include "win_d3d.h"
-#endif
+# include "win_sdl.h"
 #include "win.h"
 
 
@@ -75,6 +71,7 @@ static rc_str_t	*lpRCstr2048,
 		*lpRCstr5888,
 		*lpRCstr6144,
 		*lpRCstr7168;
+static int	vid_api_inited = 0;
 
 
 static struct {
@@ -84,46 +81,44 @@ static struct {
     void	(*close)(void);
     void	(*resize)(int x, int y);
     int		(*pause)(void);
-} vid_apis[2][4] = {
+} vid_apis[2][RENDERERS_NUM] = {
   {
-#ifdef USE_WX
-    {	"WxWidgets", 1, wx_init, wx_close, NULL, wx_pause		},
-    {	"WxWidgets", 1, wx_init, wx_close, NULL, wx_pause		},
-#else
     {	"DDraw", 1, (int(*)(void*))ddraw_init, ddraw_close, NULL, ddraw_pause		},
     {	"D3D", 1, (int(*)(void*))d3d_init, d3d_close, d3d_resize, d3d_pause		},
-#endif
+    {	"SDL", 1, (int(*)(void*))sdl_init, sdl_close, NULL, sdl_pause			}
 #ifdef USE_VNC
-    {	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause		},
-#else
-    {	NULL, 0, NULL, NULL, NULL, NULL					},
-#endif
-#ifdef USE_RDP
-    {	"RDP", 0, rdp_init, rdp_close, rdp_resize, rdp_pause		}
-#else
-    {	NULL, 0, NULL, NULL, NULL, NULL					}
+    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause				}
 #endif
   },
   {
-#ifdef USE_WX
-    {	"WxWidgets", 1, wx_init, wx_close, NULL, wx_pause		},
-    {	"WxWidgets", 1, wx_init, wx_close, NULL, wx_pause		},
-#else
     {	"DDraw", 1, (int(*)(void*))ddraw_init_fs, ddraw_close, NULL, ddraw_pause	},
     {	"D3D", 1, (int(*)(void*))d3d_init_fs, d3d_close, NULL, d3d_pause		},
-#endif
+    {	"SDL", 1, (int(*)(void*))sdl_init_fs, sdl_close, sdl_resize, sdl_pause		}
 #ifdef USE_VNC
-    {	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause		},
-#else
-    {	NULL, 0, NULL, NULL, NULL, NULL					},
-#endif
-#ifdef USE_RDP
-    {	"RDP", 0, rdp_init, rdp_close, rdp_resize, rdp_pause		}
-#else
-    {	NULL, 0, NULL, NULL, NULL, NULL					}
+    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause				}
 #endif
   },
 };
+
+
+#ifdef ENABLE_WIN_LOG
+int win_do_log = ENABLE_WIN_LOG;
+#endif
+
+
+static void
+win_log(const char *fmt, ...)
+{
+#ifdef ENABLE_WIN_LOG
+    va_list ap;
+
+    if (win_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 static void
@@ -157,11 +152,15 @@ LoadCommonStrings(void)
     for (i=0; i<STR_NUM_5120; i++)
 	LoadString(hinstance, 5120+i, lpRCstr5120[i].str, 512);
 
-    for (i=0; i<STR_NUM_5376; i++)
-	LoadString(hinstance, 5376+i, lpRCstr5376[i].str, 512);
+    for (i=0; i<STR_NUM_5376; i++) {
+	if ((i == 0) || (i > 3))
+		LoadString(hinstance, 5376+i, lpRCstr5376[i].str, 512);
+    }
 
-    for (i=0; i<STR_NUM_5632; i++)
-	LoadString(hinstance, 5632+i, lpRCstr5632[i].str, 512);
+    for (i=0; i<STR_NUM_5632; i++) {
+	if ((i == 0) || (i > 3))
+		LoadString(hinstance, 5632+i, lpRCstr5632[i].str, 512);
+    }
 
     for (i=0; i<STR_NUM_5888; i++)
 	LoadString(hinstance, 5888+i, lpRCstr5888[i].str, 512);
@@ -202,33 +201,31 @@ plat_get_string(int i)
 {
     LPTSTR str;
 
-    if ((i >= 2048) && (i <= 3071)) {
+    if ((i >= 2048) && (i <= 3071))
 	str = lpRCstr2048[i-2048].str;
-    } else if ((i >= 4096) && (i <= 4351)) {
+    else if ((i >= 4096) && (i <= 4351))
 	str = lpRCstr4096[i-4096].str;
-    } else if ((i >= 4352) && (i <= 4607)) {
+    else if ((i >= 4352) && (i <= 4607))
 	str = lpRCstr4352[i-4352].str;
-    } else if ((i >= 4608) && (i <= 5119)) {
+    else if ((i >= 4608) && (i <= 5119))
 	str = lpRCstr4608[i-4608].str;
-    } else if ((i >= 5120) && (i <= 5375)) {
+    else if ((i >= 5120) && (i <= 5375))
 	str = lpRCstr5120[i-5120].str;
-    } else if ((i >= 5376) && (i <= 5631)) {
+    else if ((i >= 5376) && (i <= 5631))
 	str = lpRCstr5376[i-5376].str;
-    } else if ((i >= 5632) && (i <= 5887)) {
+    else if ((i >= 5632) && (i <= 5887))
 	str = lpRCstr5632[i-5632].str;
-    } else if ((i >= 5888) && (i <= 6143)) {
+    else if ((i >= 5888) && (i <= 6143))
 	str = lpRCstr5888[i-5888].str;
-    } else if ((i >= 6144) && (i <= 7167)) {
+    else if ((i >= 6144) && (i <= 7167))
 	str = lpRCstr6144[i-6144].str;
-    } else {
+    else
 	str = lpRCstr7168[i-7168].str;
-    }
 
     return((wchar_t *)str);
 }
 
 
-#ifndef USE_WX
 /* Create a console if we don't already have one. */
 static void
 CreateConsole(int init)
@@ -251,29 +248,24 @@ CreateConsole(int init)
     /* Not logging to file, attach to console. */
     if (! AttachConsole(ATTACH_PARENT_PROCESS)) {
 	/* Parent has no console, create one. */
-	AllocConsole();
+	if (! AllocConsole()) {
+		/* Cannot create console, just give up. */
+		return;
+	}
     }
-
-    h = GetStdHandle(STD_OUTPUT_HANDLE);
-    i = _open_osfhandle((intptr_t)h, _O_TEXT);
-    fp = _fdopen(i, "w");
-    setvbuf(fp, NULL, _IONBF, 1);
-    *stdout = *fp;
-
-    h = GetStdHandle(STD_ERROR_HANDLE);
-    i = _open_osfhandle((intptr_t)h, _O_TEXT);
-    fp = _fdopen(i, "w");
-    setvbuf(fp, NULL, _IONBF, 1);
-    *stderr = *fp;
-
-#if 0
-    /* Set up stdin as well. */
-    h = GetStdHandle(STD_INPUT_HANDLE);
-    i = _open_osfhandle((intptr_t)h, _O_TEXT);
-    fp = _fdopen(i, "r");
-    setvbuf(fp, NULL, _IONBF, 128);
-    *stdin = *fp;
-#endif
+    fp = NULL;
+    if ((h = GetStdHandle(STD_OUTPUT_HANDLE)) != NULL) {
+	/* We got the handle, now open a file descriptor. */
+	if ((i = _open_osfhandle((intptr_t)h, _O_TEXT)) != -1) {
+		/* We got a file descriptor, now allocate a new stream. */
+		if ((fp = _fdopen(i, "w")) != NULL) {
+			/* Got the stream, re-initialize stdout without it. */
+			(void)freopen("CONOUT$", "w", stdout);
+			setvbuf(stdout, NULL, _IONBF, 0);
+			fflush(stdout);
+		}
+	}
+    }
 }
 
 
@@ -388,7 +380,6 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 
     return(i);
 }
-#endif	/*USE_WX*/
 
 
 /*
@@ -408,7 +399,7 @@ do_start(void)
     timeBeginPeriod(1);
     QueryPerformanceFrequency(&qpc);
     timer_freq = qpc.QuadPart;
-    pclog("Main timer precision: %llu\n", timer_freq);
+    win_log("Main timer precision: %llu\n", timer_freq);
 
     /* Start the emulator, really. */
     thMain = thread_create(pc_thread, &quited);
@@ -588,15 +579,15 @@ plat_vidapi(char *name)
 {
     int i;
 
-    if (!strcasecmp(name, "default") || !strcasecmp(name, "system")) return(1);
+    if (!strcasecmp(name, "default") || !strcasecmp(name, "system")) return(0);
 
-    for (i=0; i<4; i++) {
+    for (i = 0; i < RENDERERS_NUM; i++) {
 	if (vid_apis[0][i].name &&
 	    !strcasecmp(vid_apis[0][i].name, name)) return(i);
     }
 
     /* Default value. */
-    return(1);
+    return(0);
 }
 
 
@@ -607,36 +598,26 @@ plat_vidapi_name(int api)
     char *name = "default";
 
     switch(api) {
-#if USE_WX
 	case 0:
-		break;
-
-	case 1:
-		name = "wxwidgets";
-		break;
-#else
-	case 0:
-		name = "ddraw";
-		break;
-
-	case 1:
 #if 0
-		/* Direct3D is default. */
-		name = "d3d";
+		/* DirectDraw is default. */
+		name = "ddraw";
 #endif
 		break;
-#endif
+
+	case 1:
+		name = "d3d";
+		break;
+
+	case 2:
+		name = "sdl";
+		break;
 
 #ifdef USE_VNC
-	case 2:
+	case 3:
 		name = "vnc";
 		break;
 
-#endif
-#ifdef USE_RDP
-	case 3:
-		name = "rdp";
-		break;
 #endif
     }
 
@@ -649,35 +630,27 @@ plat_setvid(int api)
 {
     int i;
 
-    pclog("Initializing VIDAPI: api=%d\n", api);
+    win_log("Initializing VIDAPI: api=%d\n", api);
     startblit();
     video_wait_for_blit();
 
     /* Close the (old) API. */
     vid_apis[0][vid_api].close();
-//#ifdef USE_WX
-//    ui_check_menu_item(IDM_View_WX+vid_api, 0);
-//#endif
     vid_api = api;
 
-#ifndef USE_WX
     if (vid_apis[0][vid_api].local)
 	ShowWindow(hwndRender, SW_SHOW);
       else
 	ShowWindow(hwndRender, SW_HIDE);
-#endif
 
     /* Initialize the (new) API. */
-#ifdef USE_WX
-//    ui_check_menu_item(IDM_View_WX+vid_api, 1);
-    i = vid_apis[0][vid_api].init(NULL);
-#else
     i = vid_apis[0][vid_api].init((void *)hwndRender);
-#endif
     endblit();
     if (! i) return(0);
 
     device_force_redraw();
+
+    vid_api_inited = 1;
 
     return(1);
 }
@@ -687,7 +660,7 @@ plat_setvid(int api)
 void
 plat_vidsize(int x, int y)
 {
-    if (! vid_apis[video_fullscreen][vid_api].resize) return;
+    if (!vid_api_inited || !vid_apis[video_fullscreen][vid_api].resize) return;
 
     startblit();
     video_wait_for_blit();
@@ -716,7 +689,7 @@ plat_setfullscreen(int on)
 
     if (on && video_fullscreen_first) {
 	video_fullscreen_first = 0;
-	ui_msgbox(MBX_INFO, (wchar_t *)IDS_2107);
+	ui_msgbox(MBX_INFO, (wchar_t *)IDS_2052);
     }
 
     /* OK, claim the video. */
@@ -731,10 +704,6 @@ plat_setfullscreen(int on)
     hw = (video_fullscreen) ? &hwndMain : &hwndRender;
     vid_apis[video_fullscreen][vid_api].init((void *) *hw);
 
-#ifdef USE_WX
-    wx_set_fullscreen(on);
-#endif
-
     win_mouse_init();
 
     /* Release video and make it redraw the screen. */
@@ -742,7 +711,7 @@ plat_setfullscreen(int on)
     device_force_redraw();
 
     /* Finally, handle the host's mouse cursor. */
-    /* pclog("%s full screen, %s cursor\n", on ? "enter" : "leave", on ? "hide" : "show"); */
+    /* win_log("%s full screen, %s cursor\n", on ? "enter" : "leave", on ? "hide" : "show"); */
     show_cursor(video_fullscreen ? 0 : -1);
 }
 
@@ -754,8 +723,8 @@ take_screenshot(void)
     struct tm *info;
     time_t now;
 
-    pclog("Screenshot: video API is: %i\n", vid_api);
-    if ((vid_api < 0) || (vid_api > 1)) return;
+    win_log("Screenshot: video API is: %i\n", vid_api);
+    if ((vid_api < 0) || (vid_api > 2)) return;
 
     memset(fn, 0, sizeof(fn));
     memset(path, 0, sizeof(path));
@@ -774,12 +743,6 @@ take_screenshot(void)
     wcscat(path, fn);
 
     switch(vid_api) {
-#ifdef USE_WX
-	case 0:
-	case 1:
-		wx_screenshot(path);
-		break;
-#else
 	case 0:		/* ddraw */
 		ddraw_take_screenshot(path);
 		break;
@@ -787,14 +750,27 @@ take_screenshot(void)
 	case 1:		/* d3d9 */
 		d3d_take_screenshot(path);
 		break;
-#endif
+
+	case 2:		/* sdl */
+		sdl_take_screenshot(path);
+		break;
 
 #ifdef USE_VNC
-	case 2:		/* vnc */
+	case 3:		/* vnc */
 		vnc_take_screenshot(path);
 		break;
 #endif
     }
+}
+
+
+/* LPARAM interface to plat_get_string(). */
+LPARAM win_get_string(int id)
+{
+    wchar_t *ret;
+
+    ret = plat_get_string(id);
+    return ((LPARAM) ret);
 }
 
 

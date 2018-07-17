@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.5	2018/03/18
+ * Version:	@(#)device.c	1.0.8	2018/04/29
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -37,10 +37,12 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "86box.h"
 #include "cpu/cpu.h"
 #include "config.h"
@@ -55,6 +57,26 @@
 static void	*device_priv[DEVICE_MAX];
 static device_t	*devices[DEVICE_MAX];
 static device_t	*device_current;
+
+
+#ifdef ENABLE_DEVICE_LOG
+int device_do_log = ENABLE_DEVICE_LOG;
+#endif
+
+
+static void
+device_log(const char *format, ...)
+{
+#ifdef ENABLE_DEVICE_LOG
+    va_list ap;
+
+    if (device_do_log) {
+	va_start(ap, format);
+	pclog_ex(format, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 void
@@ -72,7 +94,7 @@ device_add(const device_t *d)
 
     for (c=0; c<256; c++) {
 	if (devices[c] == (device_t *)d) {
-		pclog("DEVICE: device already exists!\n");
+		device_log("DEVICE: device already exists!\n");
 		return(NULL);
 	}
 	if (devices[c] == NULL) break;
@@ -82,18 +104,22 @@ device_add(const device_t *d)
 
     device_current = (device_t *)d;
 
+    devices[c] = (device_t *)d;
+
     if (d->init != NULL) {
 	priv = d->init(d);
 	if (priv == NULL) {
 		if (d->name)
-			pclog("DEVICE: device '%s' init failed\n", d->name);
-		  else
-			pclog("DEVICE: device init failed\n");
+			device_log("DEVICE: device '%s' init failed\n", d->name);
+		else
+			device_log("DEVICE: device init failed\n");
+
+		device_priv[c] = NULL;
+
 		return(NULL);
 	}
     }
 
-    devices[c] = (device_t *)d;
     device_priv[c] = priv;
 
     return(priv);
@@ -146,6 +172,21 @@ device_reset_all(void)
     for (c=0; c<DEVICE_MAX; c++) {
 	if (devices[c] != NULL) {
 		if (devices[c]->reset != NULL)
+			devices[c]->reset(device_priv[c]);
+	}
+    }
+}
+
+
+/* Reset all attached PCI devices - needed for PCI turbo reset control. */
+void
+device_reset_all_pci(void)
+{
+    int c;
+
+    for (c=0; c<DEVICE_MAX; c++) {
+	if (devices[c] != NULL) {
+		if ((devices[c]->reset != NULL) && (devices[c]->flags & DEVICE_PCI))
 			devices[c]->reset(device_priv[c]);
 	}
     }
@@ -206,20 +247,6 @@ device_force_redraw(void)
 	if (devices[c] != NULL) {
 		if (devices[c]->force_redraw != NULL)
                                 devices[c]->force_redraw(device_priv[c]);
-	}
-    }
-}
-
-
-void
-device_add_status_info(char *s, int max_len)
-{
-    int c;
-
-    for (c=0; c<DEVICE_MAX; c++) {
-	if (devices[c] != NULL) {
-		if (devices[c]->add_status_info != NULL)
-			devices[c]->add_status_info(s, max_len, device_priv[c]);
 	}
     }
 }

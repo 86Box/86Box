@@ -9,7 +9,7 @@
  *		Implementation of the SMC FDC37C663 and FDC37C665 Super
  *		I/O Chips.
  *
- * Version:	@(#)sio_fdc37c66x.c	1.0.10	2018/01/16
+ * Version:	@(#)sio_fdc37c66x.c	1.0.11	2018/04/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -73,7 +73,7 @@ static void ide_handler()
 		}
 		ide_set_base(0, 0x170 | or_value);
 		ide_set_side(0, 0x376 | or_value);
-		ide_pri_enable_ex();
+		ide_pri_enable();
 	}
 #endif
 }
@@ -319,8 +319,6 @@ void fdc37c663_init()
         io_sethandler(0x03f0, 0x0002, fdc37c66x_read, NULL, NULL, fdc37c66x_write, NULL, NULL,  NULL);
 
 	fdc37c663_reset();
-
-	pci_reset_handler.super_io_reset = fdc37c663_reset;
 }
 
 void fdc37c665_init()
@@ -330,6 +328,4 @@ void fdc37c665_init()
         io_sethandler(0x03f0, 0x0002, fdc37c66x_read, NULL, NULL, fdc37c66x_write, NULL, NULL,  NULL);
 
 	fdc37c665_reset();
-
-	pci_reset_handler.super_io_reset = fdc37c665_reset;
 }

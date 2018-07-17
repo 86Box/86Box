@@ -52,7 +52,7 @@
  *		however, are auto-configured by the system software as
  *		shown above.
  *
- * Version:	@(#)hdc_esdi_mca.c	1.0.9	2018/03/18
+ * Version:	@(#)hdc_esdi_mca.c	1.0.13	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -60,11 +60,13 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../dma.h"
@@ -101,8 +103,6 @@ typedef struct esdi_drive {
 } drive_t;
 
 typedef struct esdi {
-    uint16_t	base;
-    int8_t	irq;
     int8_t	dma;
 
     uint32_t	bios;
@@ -190,21 +190,42 @@ typedef struct esdi {
 #define CMD_GET_POS_INFO   0x0a
 
 #define STATUS_LEN(x) ((x) << 8)
+#define STATUS_DEVICE(x) ((x) << 5)
 #define STATUS_DEVICE_HOST_ADAPTER (7 << 5)
+
+
+#ifdef ENABLE_ESDI_MCA_LOG
+int esdi_mca_do_log = ENABLE_ESDI_MCA_LOG;
+#endif
+
+
+static void
+esdi_mca_log(const char *fmt, ...)
+{
+#ifdef ENABLE_ESDI_MCA_LOG
+    va_list ap;
+
+    if (esdi_mca_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 static __inline void
 set_irq(esdi_t *dev)
 {
     if (dev->basic_ctrl & CTRL_IRQ_ENA)
-	picint(1 << dev->irq);
+	picint(1 << 14);
 }
 
 
 static __inline void
 clear_irq(esdi_t *dev)
 {
-    picintc(1 << dev->irq);
+    picintc(1 << 14);
 }
 
 
@@ -250,23 +271,42 @@ device_not_present(esdi_t *dev)
     set_irq(dev);
 }
 
-static void rba_out_of_range(esdi_t *dev)
-{
-        dev->status_len = 9;
-        dev->status_data[0] = dev->command | STATUS_LEN(9) | dev->cmd_dev;
-        dev->status_data[1] = 0x0e01; /*Command block error, invalid parameter*/
-        dev->status_data[2] = 0x0007; /*RBA out of range*/
-        dev->status_data[3] = 0;
-        dev->status_data[4] = 0;
-        dev->status_data[5] = 0;
-        dev->status_data[6] = 0;                        
-        dev->status_data[7] = 0;                       
-        dev->status_data[8] = 0;
 
-        dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
-        dev->irq_status = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
-        dev->irq_in_progress = 1;
-        set_irq(dev);
+static void
+rba_out_of_range(esdi_t *dev)
+{
+    dev->status_len = 9;
+    dev->status_data[0] = dev->command | STATUS_LEN(9) | dev->cmd_dev;
+    dev->status_data[1] = 0x0e01; /*Command block error, invalid parameter*/
+    dev->status_data[2] = 0x0007; /*RBA out of range*/
+    dev->status_data[3] = 0;
+    dev->status_data[4] = 0;
+    dev->status_data[5] = 0;
+    dev->status_data[6] = 0;                        
+    dev->status_data[7] = 0;                       
+    dev->status_data[8] = 0;
+
+    dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+    dev->irq_status = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
+    dev->irq_in_progress = 1;
+    set_irq(dev);
+}
+
+
+static void
+complete_command_status(esdi_t *dev)
+{
+    dev->status_len = 7;
+    if (dev->cmd_dev == ATTN_DEVICE_0)
+	dev->status_data[0] = CMD_READ | STATUS_LEN(7) | STATUS_DEVICE(0);
+    else
+	dev->status_data[0] = CMD_READ | STATUS_LEN(7) | STATUS_DEVICE(1);
+    dev->status_data[1] = 0x0000; /*Error bits*/
+    dev->status_data[2] = 0x1900; /*Device status*/
+    dev->status_data[3] = 0; /*Number of blocks left to do*/
+    dev->status_data[4] = (dev->rba-1) & 0xffff; /*Last RBA processed*/
+    dev->status_data[5] = (dev->rba-1) >> 8;
+    dev->status_data[6] = 0; /*Number of blocks requiring error recovery*/
 }
 
 #define ESDI_ADAPTER_ONLY() do \
@@ -377,7 +417,8 @@ esdi_callback(void *priv)
                         	break;
 
                         case 2:
-                        	dev->status = STATUS_IRQ;
+				complete_command_status(dev);
+				dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
                         	dev->irq_status = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
                         	dev->irq_in_progress = 1;
                         	set_irq(dev);
@@ -438,11 +479,11 @@ esdi_callback(void *priv)
 					hdd_image_write(drive->hdd_num, dev->rba, 1, (uint8_t *)dev->data);
                                 	dev->rba++;
                                 	dev->sector_pos++;
-		                	ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
+		                	ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI,
+							  dev->cmd_dev == ATTN_DEVICE_0 ? 0 : 1);
 
                                 	dev->data_pos = 0;
                         	}
-	                	ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
 
                         	dev->status = STATUS_CMD_IN_PROGRESS;
                         	dev->cmd_state = 2;
@@ -450,7 +491,8 @@ esdi_callback(void *priv)
                         	break;
 
                         case 2:
-                        	dev->status = STATUS_IRQ;
+				complete_command_status(dev);
+				dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
                         	dev->irq_status = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
                         	dev->irq_in_progress = 1;
                         	set_irq(dev);
@@ -471,7 +513,9 @@ esdi_callback(void *priv)
 			return;
 		}
 
-                dev->status = STATUS_IRQ;
+		dev->rba += dev->sector_count;
+		complete_command_status(dev);
+		dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
                 dev->irq_status = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
                 dev->irq_in_progress = 1;
                 set_irq(dev);
@@ -485,7 +529,8 @@ esdi_callback(void *priv)
                         return;
                 }
 
-                dev->status = STATUS_IRQ;
+		complete_command_status(dev);
+		dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
                 dev->irq_status = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
                 dev->irq_in_progress = 1;
                 set_irq(dev);
@@ -499,8 +544,6 @@ esdi_callback(void *priv)
                         return;
                 }
 
-                if (dev->status_pos)
-                        fatal("Status send in progress\n");
                 if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
                         fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
@@ -529,8 +572,6 @@ esdi_callback(void *priv)
                         return;
                 }
 
-                if (dev->status_pos)
-                        fatal("Status send in progress\n");
                 if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
                         fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
@@ -542,13 +583,12 @@ esdi_callback(void *priv)
                 dev->status_data[4] = drive->tracks;
                 dev->status_data[5] = drive->hpc | (drive->spt << 16);
 
-#if 0
-		pclog("CMD_GET_DEV_CONFIG %i  %04x %04x %04x %04x %04x %04x\n",
+		esdi_mca_log("CMD_GET_DEV_CONFIG %i  %04x %04x %04x %04x %04x %04x\n",
 			drive->sectors,
 			dev->status_data[0], dev->status_data[1],
 			dev->status_data[2], dev->status_data[3],
 			dev->status_data[4], dev->status_data[5]);
-#endif
+
                 dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
                 dev->irq_status = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
                 dev->irq_in_progress = 1;
@@ -557,8 +597,7 @@ esdi_callback(void *priv)
 
 	case CMD_GET_POS_INFO:
                 ESDI_ADAPTER_ONLY();
-                if (dev->status_pos)
-                        fatal("Status send in progress\n");
+
                 if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
                         fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
@@ -567,8 +606,8 @@ esdi_callback(void *priv)
                 dev->status_data[1] = 0xffdd; /*MCA ID*/
                 dev->status_data[2] = dev->pos_regs[3] |
 					(dev->pos_regs[2] << 8);
-                dev->status_data[3] = 0xffff;
-                dev->status_data[4] = 0xffff;
+                dev->status_data[3] = 0xff;
+                dev->status_data[4] = 0xff;
 
                 dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
                 dev->irq_status = IRQ_HOST_ADAPTER | IRQ_CMD_COMPLETE_SUCCESS;
@@ -688,8 +727,6 @@ esdi_callback(void *priv)
 
 	case 0x12:
 		ESDI_ADAPTER_ONLY();
-		if (dev->status_pos)
-			fatal("Status send in progress\n");
 		if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
 			fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
@@ -715,7 +752,7 @@ esdi_read(uint16_t port, void *priv)
     esdi_t *dev = (esdi_t *)priv;
     uint8_t ret = 0xff;
 
-    switch (port-dev->base) {
+    switch (port & 7) {
 	case 2:					/*Basic status register*/
 		ret = dev->status;
 		break;
@@ -738,10 +775,9 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 {
     esdi_t *dev = (esdi_t *)priv;
 
-#if 0
-    pclog("ESDI: wr(%04x, %02x)\n", port-dev->base, val);
-#endif
-    switch (port-dev->base) {
+    esdi_mca_log("ESDI: wr(%04x, %02x)\n", port & 7, val);
+
+    switch (port & 7) {
 	case 2:					/*Basic control register*/
 		if ((dev->basic_ctrl & CTRL_RESET) && !(val & CTRL_RESET)) {
 			dev->in_reset = 1;
@@ -751,7 +787,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 		dev->basic_ctrl = val;
 
 		if (! (dev->basic_ctrl & CTRL_IRQ_ENA))
-			picintc(1 << dev->irq);
+			picintc(1 << 14);
 		break;
 
 	case 3:					/*Attention register*/
@@ -765,6 +801,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                                 		dev->cmd_dev = ATTN_HOST_ADAPTER;
 						dev->status |= STATUS_BUSY;
                                 		dev->cmd_pos = 0;
+                                		dev->status_pos = 0;
                                 		break;
 
                                		case ATTN_EOI:
@@ -793,6 +830,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                                			dev->cmd_dev = ATTN_DEVICE_0;
                                			dev->status |= STATUS_BUSY;
                                			dev->cmd_pos = 0;
+                                		dev->status_pos = 0;
                                			break;
           
                                		case ATTN_EOI:
@@ -815,6 +853,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                                			dev->cmd_dev = ATTN_DEVICE_1;
                                			dev->status |= STATUS_BUSY;
                                			dev->cmd_pos = 0;
+                                		dev->status_pos = 0;
 						break;
 
                                		case ATTN_EOI:
@@ -845,12 +884,11 @@ esdi_readw(uint16_t port, void *priv)
     esdi_t *dev = (esdi_t *)priv;
     uint16_t ret = 0xffff;
 
-    switch (port-dev->base) {
+    switch (port & 7) {
 	case 0:					/*Status Interface Register*/
 		if (dev->status_pos >= dev->status_len)
 			return(0);
-		ret = dev->status_data[dev->status_pos++];
-               	if (dev->status_pos >= dev->status_len) {
+		ret = dev->status_data[dev->status_pos++];               	if (dev->status_pos >= dev->status_len) {
                        	dev->status &= ~STATUS_STATUS_OUT_FULL;
                        	dev->status_pos = dev->status_len = 0;
                	}
@@ -869,10 +907,9 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
 {
     esdi_t *dev = (esdi_t *)priv;
 
-#if 0
-    pclog("ESDI: wrw(%04x, %04x)\n", port-dev->base, val);
-#endif
-    switch (port-dev->base) {
+    esdi_mca_log("ESDI: wrw(%04x, %04x)\n", port & 7, val);
+
+    switch (port & 7) {
 	case 0:					/*Command Interface Register*/
                	if (dev->cmd_pos >= 4)
                        	fatal("CIR pos 4\n");
@@ -903,9 +940,8 @@ esdi_mca_read(int port, void *priv)
 {
     esdi_t *dev = (esdi_t *)priv;
 
-#if 0
-    pclog("ESDI: mcard(%04x)\n", port);
-#endif
+    esdi_mca_log("ESDI: mcard(%04x)\n", port);
+
     return(dev->pos_regs[port & 7]);
 }
 
@@ -915,127 +951,58 @@ esdi_mca_write(int port, uint8_t val, void *priv)
 {
     esdi_t *dev = (esdi_t *)priv;
 
-#if 0
-    pclog("ESDI: mcawr(%04x, %02x)  pos[2]=%02x pos[3]=%02x\n",
+    esdi_mca_log("ESDI: mcawr(%04x, %02x)  pos[2]=%02x pos[3]=%02x\n",
 		port, val, dev->pos_regs[2], dev->pos_regs[3]);
-#endif
-    if (port < 0x102) return;
 
-    /*
-     * The PS/2 Model 80 BIOS always enables a card if it finds one,
-     * even if no resources were assigned yet (because we only added
-     * the card, but have not run AutoConfig yet...)
-     *
-     * So, remove current address, if any.
-     *
-     * Note by Kotori: Moved this to the beginning of esdi_mca_write,
-     * 		       so the *old* base is removed rather than the
-     * 		       new base.
-     */
-    io_removehandler(dev->base, 8,
-		     esdi_read, esdi_readw, NULL,
-		     esdi_write, esdi_writew, NULL, dev);
-    mem_mapping_disable(&dev->bios_rom.mapping);
+    if (port < 0x102)
+	return;
 
     /* Save the new value. */
     dev->pos_regs[port & 7] = val;
 
-    /* Extract the new I/O base. */
-    switch(dev->pos_regs[2] & 0x02) {
-	case 0x00:	/* PRIMARY   [0]=XXxx xx0X  0x3510 */
-		dev->base = ESDI_IOADDR_PRI;
-		break;
+    io_removehandler(ESDI_IOADDR_PRI, 8,
+		     esdi_read, esdi_readw, NULL,
+		     esdi_write, esdi_writew, NULL, dev);
+    mem_mapping_disable(&dev->bios_rom.mapping);
 
-	case 0x02:	/* SECONDARY [0]=XXxx xx1X  0x3518 */
-		dev->base = ESDI_IOADDR_SEC;
-		break;
-    }
-
-    /* Extract the new DMA channel. */
     switch(dev->pos_regs[2] & 0x3c) {
-	case 0x14:	/* DMA 5 [0]=XX01 01XX */
+	case 0x14:
 		dev->dma = 5;
 		break;
-
-	case 0x18:	/* DMA 6 [0]=XX01 10XX */
+	case 0x18:
 		dev->dma = 6;
 		break;
-
-	case 0x1c:	/* DMA 7 [0]=XX01 11XX */
+	case 0x1c:
 		dev->dma = 7;
 		break;
-
-	case 0x00:	/* DMA 0 [0]=XX00 00XX */
+	case 0x00:
 		dev->dma = 0;
 		break;
-
-	case 0x01:	/* DMA 1 [0]=XX00 01XX */
+	case 0x04:
 		dev->dma = 1;
 		break;
-
-	case 0x04:	/* DMA 3 [0]=XX00 11XX */
+	case 0x0c:
 		dev->dma = 3;
 		break;
-
-	case 0x10:	/* DMA 4 [0]=XX01 00XX */
+	case 0x10:
 		dev->dma = 4;
 		break;
     }
 
-    /* Extract the new BIOS address. */
-    if (! (dev->pos_regs[3] & 0x08)) switch(dev->pos_regs[3] & 0x0f) {
-	case 0:		/* ROM C000 [1]=XXXX 0000 */
-		dev->bios = 0xC0000;
-		break;
-
-	case 1:		/* ROM C400 [1]=XXXX 0001 */
-		dev->bios = 0xC4000;
-		break;
-
-	case 2:		/* ROM C800 [1]=XXXX 0010 */
-		dev->bios = 0xC8000;
-		break;
-
-	case 3:		/* ROM CC00 [1]=XXXX 0011 */
-		dev->bios = 0xCC000;
-		break;
-
-	case 4:		/* ROM D000 [1]=XXXX 0100 */
-		dev->bios = 0xD0000;
-		break;
-
-	case 5:		/* ROM D400 [1]=XXXX 0101 */
-		dev->bios = 0xD4000;
-		break;
-
-	case 6:		/* ROM D800 [1]=XXXX 0110 */
-		dev->bios = 0xD8000;
-		break;
-
-	case 7:		/* ROM DC00 [1]=XXXX 0111 */
-		dev->bios = 0xDC000;
-		break;
-    } else {
-	/* BIOS ROM disabled. */
-	dev->bios = 0x000000;
-    }
-
-    if (dev->pos_regs[2] & 0x01) {
-	/* Card enabled; register (new) I/O handler. */
-	io_sethandler(dev->base, 8,
+    if (dev->pos_regs[2] & 1) {
+	io_sethandler(ESDI_IOADDR_PRI, 8,
 		      esdi_read, esdi_readw, NULL,
 		      esdi_write, esdi_writew, NULL, dev);
 
-	/* Enable or disable the BIOS ROM. */
-	if (dev->bios != 0x000000) {
+	if (!(dev->pos_regs[3] & 8)) {
 		mem_mapping_enable(&dev->bios_rom.mapping);
 		mem_mapping_set_addr(&dev->bios_rom.mapping,
-				     dev->bios, 0x4000);
+				     ((dev->pos_regs[3] & 7) * 0x4000) + 0xc0000, 0x4000);
 	}
 
 	/* Say hello. */
-	pclog("ESDI: I/O=%04x, IRQ=%d, DMA=%d, BIOS @%05X\n",
-		dev->base, dev->irq, dev->dma, dev->bios);
+	esdi_mca_log("ESDI: I/O=3510, IRQ=14, DMA=%d, BIOS @%05X\n",
+		dev->dma, dev->bios);
     }
 }
 
@@ -1053,9 +1020,6 @@ esdi_init(const device_t *info)
 
     /* Mark as unconfigured. */
     dev->irq_status = 0xff;
-
-    /* This is hardwired. */
-    dev->irq = ESDI_IRQCHAN;
 
     rom_init_interleaved(&dev->bios_rom,
 			 BIOS_FILE_H, BIOS_FILE_L,
@@ -1080,7 +1044,7 @@ esdi_init(const device_t *info)
        		drive->spt = hdd[i].spt;
        		drive->hpc = hdd[i].hpc;
        		drive->tracks = hdd[i].tracks;
-       		drive->sectors = hdd[i].spt*hdd[i].hpc*hdd[i].tracks;
+       		drive->sectors = hdd_image_get_last_sector(i) + 1;
 		drive->hdd_num = i;
 
 		/* Mark drive as present. */
@@ -1139,5 +1103,5 @@ const device_t esdi_ps2_device = {
     "IBM ESDI Fixed Disk Adapter (MCA)",
     DEVICE_MCA, 0,
     esdi_init, esdi_close, NULL,
-    esdi_available, NULL, NULL, NULL, NULL
+    esdi_available, NULL, NULL, NULL
 };

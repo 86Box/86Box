@@ -73,6 +73,8 @@ extern int	mouse_get_type(int mouse);
 extern int	mouse_get_ndev(void);
 extern int	mouse_get_buttons(void);
 
+extern void	mouse_clear_data(void *priv);
+
 #ifdef __cplusplus
 }
 #endif

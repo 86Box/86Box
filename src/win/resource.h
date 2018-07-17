@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.22	2018/03/06
+ * Version:	@(#)resource.h	1.0.25	2018/05/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -48,7 +48,6 @@
 #define IDT_1705		1705	/* MB	== IDC_TEXT_MB */
 #define IDT_1706		1706	/* Memory: */
 #define IDT_1707		1707	/* Video: */
-#define IDT_1708		1708	/* Video speed: */
 #define IDT_1709		1709	/* Mouse: */
 #define IDT_1710		1710	/* Joystick: */
 #define IDT_1711		1711	/* Sound card: */
@@ -58,8 +57,7 @@
 #define IDT_1715		1715	/* Network adapter: */
 #define IDT_1716		1716	/* SCSI Controller: */
 #define IDT_1717		1717	/* HD Controller: */
-#define IDT_1718		1718	/* Tertiary IDE: */
-#define IDT_1719		1719	/* Quaternary IDE: */
+#define IDT_1718		1718
 #define IDT_1720		1720	/* Hard disks: */
 #define IDT_1721		1721	/* Bus: */
 #define IDT_1722		1722	/* Channel: */
@@ -91,6 +89,7 @@
 #define IDT_1756		1756	/* Channel: */
 #define IDT_1757		1757	/* Progress: */
 #define IDT_1758		1758	/* Speed: */
+#define IDT_1759		1759	/* ZIP drives: */
 
 
 /*
@@ -121,9 +120,8 @@
 
 #define IDC_VIDEO		1030	/* video config */
 #define IDC_COMBO_VIDEO		1031
-#define IDC_COMBO_VIDEO_SPEED	1032
-#define IDC_CHECK_VOODOO	1033
-#define IDC_BUTTON_VOODOO	1034
+#define IDC_CHECK_VOODOO	1032
+#define IDC_BUTTON_VOODOO	1033
 
 #define IDC_INPUT		1050	/* input config */
 #define IDC_COMBO_MOUSE		1051
@@ -157,9 +155,12 @@
 #define IDC_COMBO_SCSI		1121
 #define IDC_CONFIGURE_SCSI	1122
 #define IDC_COMBO_HDC		1123
-#define IDC_COMBO_IDE_TER	1124
-#define IDC_COMBO_IDE_QUA	1125
-#define IDC_CHECK_BUGGER	1126
+#define IDC_CONFIGURE_HDC	1124
+#define IDC_CHECK_IDE_TER	1125
+#define IDC_BUTTON_IDE_TER	1126
+#define IDC_CHECK_IDE_QUA	1127
+#define IDC_BUTTON_IDE_QUA	1128
+#define IDC_CHECK_BUGGER	1129
 
 #define IDC_HARD_DISKS		1130	/* hard disk config */
 #define IDC_LIST_HARD_DISKS	1131
@@ -237,36 +238,35 @@
 #define IDM_CONFIG		40020
 #define IDM_CONFIG_LOAD		40021
 #define IDM_CONFIG_SAVE		40022
-#define IDM_STATUS		40030
-#define IDM_UPDATE_ICONS	40040
-#define IDM_VID_RESIZE		40050
-#define IDM_VID_REMEMBER	40051
-#define IDM_VID_DDRAW		40060
-#define IDM_VID_D3D		40061
-#define IDM_VID_VNC		40062
-#define IDM_VID_RDP		40063
-#define IDM_VID_SCALE_1X	40064
-#define IDM_VID_SCALE_2X	40065
-#define IDM_VID_SCALE_3X	40066
-#define IDM_VID_SCALE_4X	40067
-#define IDM_VID_FULLSCREEN	40070
-#define IDM_VID_FS_FULL		40071
-#define IDM_VID_FS_43		40072
-#define IDM_VID_FS_SQ		40073
-#define IDM_VID_FS_INT		40074
-#define IDM_VID_FS_KEEPRATIO	40075
-#define IDM_VID_FORCE43		40076
-#define IDM_VID_OVERSCAN	40077
-#define IDM_VID_INVERT		40079
-#define IDM_VID_CGACON		40080
-#define IDM_VID_GRAYCT_601	40085
-#define IDM_VID_GRAYCT_709	40086
-#define IDM_VID_GRAYCT_AVE	40087
-#define IDM_VID_GRAY_RGB	40090
-#define IDM_VID_GRAY_MONO	40091
-#define IDM_VID_GRAY_AMBER	40092
-#define IDM_VID_GRAY_GREEN	40093
-#define IDM_VID_GRAY_WHITE	40094
+#define IDM_UPDATE_ICONS	40030
+#define IDM_VID_RESIZE		40040
+#define IDM_VID_REMEMBER	40041
+#define IDM_VID_DDRAW		40050
+#define IDM_VID_D3D		40051
+#define IDM_VID_SDL		40052
+#define IDM_VID_VNC		40053
+#define IDM_VID_SCALE_1X	40054
+#define IDM_VID_SCALE_2X	40055
+#define IDM_VID_SCALE_3X	40056
+#define IDM_VID_SCALE_4X	40057
+#define IDM_VID_FULLSCREEN	40060
+#define IDM_VID_FS_FULL		40061
+#define IDM_VID_FS_43		40062
+#define IDM_VID_FS_SQ		40063
+#define IDM_VID_FS_INT		40064
+#define IDM_VID_FS_KEEPRATIO	40065
+#define IDM_VID_FORCE43		40066
+#define IDM_VID_OVERSCAN	40067
+#define IDM_VID_INVERT		40069
+#define IDM_VID_CGACON		40070
+#define IDM_VID_GRAYCT_601	40075
+#define IDM_VID_GRAYCT_709	40076
+#define IDM_VID_GRAYCT_AVE	40077
+#define IDM_VID_GRAY_RGB	40080
+#define IDM_VID_GRAY_MONO	40081
+#define IDM_VID_GRAY_AMBER	40082
+#define IDM_VID_GRAY_GREEN	40083
+#define IDM_VID_GRAY_WHITE	40084
 
 #define IDM_LOG_BREAKPOINT	51201
 #define IDM_DUMP_VRAM		51202	// should be an Action

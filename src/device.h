@@ -8,7 +8,7 @@
  *
  *		Definitions for the device handler.
  *
- * Version:	@(#)device.h	1.0.3	2018/03/15
+ * Version:	@(#)device.h	1.0.5	2018/04/26
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -104,7 +104,6 @@ typedef struct _device_ {
     int		(*available)(/*void*/);
     void	(*speed_changed)(void *p);
     void	(*force_redraw)(void *p);
-    void	(*add_status_info)(char *s, int max_len, void *p);
 
     const device_config_t *config;
 } device_t;
@@ -119,11 +118,11 @@ extern void	*device_add(const device_t *d);
 extern void	device_add_ex(const device_t *d, void *priv);
 extern void	device_close_all(void);
 extern void	device_reset_all(void);
+extern void	device_reset_all_pci(void);
 extern void	*device_get_priv(const device_t *d);
 extern int	device_available(const device_t *d);
 extern void	device_speed_changed(void);
 extern void	device_force_redraw(void);
-extern void	device_add_status_info(char *s, int max_len);
 
 extern int	device_get_config_int(char *name);
 extern int	device_get_config_int_ex(char *s, int default_int);

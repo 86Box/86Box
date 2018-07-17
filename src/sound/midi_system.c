@@ -62,6 +62,5 @@ const device_t system_midi_device =
         system_midi_available,
         NULL,
         NULL,
-        NULL,
         system_midi_config
 };

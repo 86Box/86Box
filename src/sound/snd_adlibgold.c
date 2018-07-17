@@ -10,9 +10,9 @@
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
+#include "../device.h"
 #include "../nvr.h"
 #include "../timer.h"
-#include "../device.h"
 #include "sound.h"
 #include "filters.h"
 #include "snd_opl.h"
@@ -844,7 +844,6 @@ const device_t adgold_device =
         adgold_init,
         adgold_close,
 	NULL,
-        NULL,
         NULL,
         NULL,
         NULL,

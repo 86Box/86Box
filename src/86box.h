@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.21	2018/03/19
+ * Version:	@(#)86box.h	1.0.23	2018/05/25
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -90,8 +90,7 @@ extern int	vid_cga_contrast,		/* (C) video */
 		video_fullscreen_scale,		/* (C) video */
 		enable_overscan,		/* (C) video */
 		force_43,			/* (C) video */
-		gfxcard,			/* (C) graphics/video card */
-		video_speed;			/* (C) video */
+		gfxcard;			/* (C) graphics/video card */
 extern int	serial_enabled[],		/* (C) enable serial ports */
 		lpt_enabled,			/* (C) enable LPT ports */
 		bugger_enabled;			/* (C) enable ISAbugger */
@@ -100,7 +99,7 @@ extern int	sound_is_float,			/* (C) sound uses FP values */
 		GUS,				/* (C) sound option */
 		SSI2001,			/* (C) sound option */
 		voodoo_enabled;			/* (C) video option */
-extern int	mem_size;			/* (C) memory size */
+extern uint32_t	mem_size;			/* (C) memory size */
 extern int	cpu_manufacturer,		/* (C) cpu manufacturer */
 		cpu,				/* (C) cpu type */
 		cpu_use_dynarec,		/* (C) cpu uses/needs Dyna */
@@ -127,6 +126,7 @@ extern wchar_t  cfg_path[1024];			/* full path of config file */
 extern FILE	*stdlog;			/* file to log output to */
 extern int	scrnsz_x,			/* current screen size, X */
 		scrnsz_y;			/* current screen size, Y */
+extern int	efscrnsz_y;
 extern int	config_changed;			/* config has changed */
 
 
@@ -139,7 +139,9 @@ extern void	pclog(const char *fmt, ...);
 extern void	fatal(const char *fmt, ...);
 extern void	set_screen_size(int x, int y);
 extern void	set_screen_size_natural(void);
+#if 0
 extern void	pc_reload(wchar_t *fn);
+#endif
 extern int	pc_init_modules(void);
 extern int	pc_init(int argc, wchar_t *argv[]);
 extern void	pc_close(void *threadid);

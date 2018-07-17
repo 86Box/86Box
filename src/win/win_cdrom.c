@@ -8,7 +8,7 @@
  *
  *		Handle the platform-side of CDROM drives.
  *
- * Version:	@(#)win_cdrom.c	1.0.6	2018/03/17
+ * Version:	@(#)win_cdrom.c	1.0.8	2018/06/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -28,41 +28,16 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../config.h"
+#include "../disk/hdd.h"
+#include "../scsi/scsi.h"
 #include "../cdrom/cdrom.h"
+#include "../disk/zip.h"
 #include "../cdrom/cdrom_image.h"
 #include "../cdrom/cdrom_null.h"
-#include "../disk/hdd.h"
-#include "../disk/zip.h"
-#include "../scsi/scsi.h"
 #include "../scsi/scsi_disk.h"
 #include "../plat.h"
 #include "../ui.h"
 #include "win.h"
-
-
-uint8_t	host_cdrom_drive_available[26];
-uint8_t	host_cdrom_drive_available_num = 0;
-
-
-void
-cdrom_init_host_drives(void)
-{
-    WCHAR s[64];
-    int i = 0;
-
-    host_cdrom_drive_available_num = 0;
-    for (i='A'; i<='Z'; i++) {
-	_swprintf(s, L"%c:\\", i);
-
-	if (GetDriveType(s)==DRIVE_CDROM) {
-		host_cdrom_drive_available[i - 'A'] = 1;
-
-		host_cdrom_drive_available_num++;
-	} else {
-		host_cdrom_drive_available[i - 'A'] = 0;
-	}
-    }
-}
 
 
 void
@@ -71,12 +46,6 @@ cdrom_eject(uint8_t id)
     if (cdrom_drives[id].host_drive == 0) {
 	/* Switch from empty to empty. Do nothing. */
 	return;
-    }
-
-    if ((cdrom_drives[id].host_drive >= 'A') &&
-	(cdrom_drives[id].host_drive <= 'Z')) {
-	ui_sb_check_menu_item(SB_CDROM|id,
-		IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_UNCHECKED);
     }
 
     if (cdrom_image[id].prev_image_path) {
@@ -89,12 +58,13 @@ cdrom_eject(uint8_t id)
 	wcscpy(cdrom_image[id].prev_image_path, cdrom_image[id].image_path);
     }
     cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
-    cdrom_drives[id].handler->exit(id);
-    cdrom_close(id);
-    cdrom_null_open(id, 0);
+    cdrom[id]->handler->exit(id);
+    cdrom_close_handler(id);
+    memset(cdrom_image[id].image_path, 0, 2048);
+    cdrom_null_open(id);
     if (cdrom_drives[id].bus_type) {
 	/* Signal disc change to the emulated machine. */
-	cdrom_insert(id);
+	cdrom_insert(cdrom[id]);
     }
 
     ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_UNCHECKED);
@@ -111,14 +81,13 @@ cdrom_eject(uint8_t id)
 void
 cdrom_reload(uint8_t id)
 {
-    int new_cdrom_drive;
-
     if ((cdrom_drives[id].host_drive == cdrom_drives[id].prev_host_drive) || (cdrom_drives[id].prev_host_drive == 0) || (cdrom_drives[id].host_drive != 0)) {
 	/* Switch from empty to empty. Do nothing. */
 	return;
     }
 
-    cdrom_close(id);
+    cdrom_close_handler(id);
+    memset(cdrom_image[id].image_path, 0, 2048);
 
     if (cdrom_drives[id].prev_host_drive == 200) {
 	wcscpy(cdrom_image[id].image_path, cdrom_image[id].prev_image_path);
@@ -127,7 +96,7 @@ cdrom_reload(uint8_t id)
 	image_open(id, cdrom_image[id].image_path);
 	if (cdrom_drives[id].bus_type) {
 		/* Signal disc change to the emulated machine. */
-		cdrom_insert(id);
+		cdrom_insert(cdrom[id]);
 	}
 	if (wcslen(cdrom_image[id].image_path) == 0) {
 		ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_CHECKED);
@@ -140,17 +109,6 @@ cdrom_reload(uint8_t id)
 		ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_CHECKED);
 		ui_sb_update_icon_state(SB_CDROM|id, 0);
 	}
-    } else {
-	new_cdrom_drive = cdrom_drives[id].prev_host_drive;
-	ioctl_open(id, new_cdrom_drive);
-	if (cdrom_drives[id].bus_type) {
-		/* Signal disc change to the emulated machine. */
-		cdrom_insert(id);
-	}
-	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_UNCHECKED);
-	cdrom_drives[id].host_drive = new_cdrom_drive;
-	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_HOST_DRIVE | id | ((cdrom_drives[id].host_drive - 'A') << 3), MF_CHECKED);
-	ui_sb_update_icon_state(SB_CDROM|id, 0);
     }
 
     ui_sb_enable_menu_item(SB_CDROM|id, IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
@@ -163,10 +121,10 @@ cdrom_reload(uint8_t id)
 void
 zip_eject(uint8_t id)
 {
-    zip_close(id);
+    zip_disk_close(zip[id]);
     if (zip_drives[id].bus_type) {
 	/* Signal disk change to the emulated machine. */
-	zip_insert(id);
+	zip_insert(zip[id]);
     }
 
     ui_sb_update_icon_state(SB_ZIP | id, 1);
@@ -180,7 +138,7 @@ zip_eject(uint8_t id)
 void
 zip_reload(uint8_t id)
 {
-    zip_disk_reload(id);
+    zip_disk_reload(zip[id]);
     if (wcslen(zip_drives[id].image_path) == 0) {
 	ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
 	ui_sb_update_icon_state(SB_ZIP|id, 1);
@@ -191,59 +149,6 @@ zip_reload(uint8_t id)
 
     ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
     ui_sb_update_tip(SB_ZIP|id);
-
-    config_save();
-}
-
-
-void
-removable_disk_unload(uint8_t id)
-{
-    if (wcslen(hdd[id].fn) == 0) {
-	/* Switch from empty to empty. Do nothing. */
-	return;
-    }
-
-    scsi_unloadhd(hdd[id].scsi_id, hdd[id].scsi_lun, id);
-    scsi_disk_insert(id);
-}
-
-
-void
-removable_disk_eject(uint8_t id)
-{
-    removable_disk_unload(id);
-    ui_sb_update_icon_state(SB_RDISK|id, 1);
-    ui_sb_enable_menu_item(SB_RDISK|id, IDM_RDISK_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
-    ui_sb_enable_menu_item(SB_RDISK|id, IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
-    ui_sb_enable_menu_item(SB_RDISK|id, IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | MF_GRAYED);
-
-    ui_sb_update_tip(SB_RDISK|id);
-
-    config_save();
-}
-
-
-void
-removable_disk_reload(uint8_t id)
-{
-    if (wcslen(hdd[id].fn) != 0) {
-	/* Attempting to reload while an image is already loaded. Do nothing. */
-	return;
-    }
-
-    scsi_reloadhd(id);
-#if 0
-    scsi_disk_insert(id);
-#endif
-
-    ui_sb_update_icon_state(SB_RDISK|id, wcslen(hdd[id].fn) ? 0 : 1);
-
-    ui_sb_enable_menu_item(SB_RDISK|id, IDM_RDISK_EJECT | id, MF_BYCOMMAND | (wcslen(hdd[id].fn) ? MF_ENABLED : MF_GRAYED));
-    ui_sb_enable_menu_item(SB_RDISK|id, IDM_RDISK_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
-    ui_sb_enable_menu_item(SB_RDISK|id, IDM_RDISK_SEND_CHANGE | id, MF_BYCOMMAND | (wcslen(hdd[id].fn) ? MF_ENABLED : MF_GRAYED));
-
-    ui_sb_update_tip(SB_RDISK|id);
 
     config_save();
 }

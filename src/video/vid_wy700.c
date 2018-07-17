@@ -8,7 +8,7 @@
  *
  *		Wyse-700 emulation.
  *
- * Version:	@(#)vid_wy700.c	1.0.7	2018/03/18
+ * Version:	@(#)vid_wy700.c	1.0.9	2018/05/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -906,6 +906,8 @@ void *wy700_init(const device_t *info)
 	/* 128k video RAM */
         wy700->vram = malloc(0x20000);
 
+	loadfont(L"roms/video/wyse700/wy700.rom", 3);
+
         timer_add(wy700_poll, &wy700->vidtime, TIMER_ALWAYS_ENABLED, wy700);
 
 	/* Occupy memory between 0xB0000 and 0xBFFFF (moves to 0xA0000 in
@@ -1014,7 +1016,6 @@ const device_t wy700_device =
 	NULL,
         NULL,
         wy700_speed_changed,
-        NULL,
 	NULL,
         NULL
 };

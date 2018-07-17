@@ -112,7 +112,6 @@ const device_t xi8088_device =
         NULL,
         NULL,
         NULL,
-        NULL,
         xi8088_config
 };
 
@@ -129,7 +128,7 @@ void machine_xt_xi8088_init(const machine_t *model)
 	device_add(&fdc_xt_device);
 	device_add(&keyboard_ps2_device);
         nmi_init();
-	nvr_at_init(8);
+	device_add(&at_nvr_device);
         pic2_init();
 	if (joystick_type != 7)
         	device_add(&gameport_device);

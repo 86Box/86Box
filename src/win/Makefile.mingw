@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.113	2018/03/18
+# Version:	@(#)Makefile.mingw	1.0.119	2018/07/17
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -40,9 +40,6 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef CRASHDUMP
   CRASHDUMP	:= y
- endif
- ifndef GREENB
-  GREENB	:= y
  endif
  ifndef I686
   I686		:= y
@@ -84,9 +81,6 @@ else
  ifndef CRASHDUMP
   CRASHDUMP	:= n
  endif
- ifndef GREENB
-  GREENB	:= n
- endif
  ifndef I686
   I686		:= n
  endif
@@ -107,6 +101,9 @@ else
  endif
  ifndef STEALTH32
   STEALTH32	:= n
+ endif
+ ifndef VGAWONDER
+  VGAWONDER	:= n
  endif
  ifndef VNC
   VNC		:= n
@@ -203,7 +200,7 @@ VPATH		:= $(EXPATH) . cpu \
 		    sound/munt sound/munt/c_interface sound/munt/sha1 \
 		    sound/munt/srchelper \
 		    sound/resid-fp \
-		   scsi video floppy/lzf network network/slirp win
+		   scsi video network network/slirp win
 ifeq ($(X64), y)
 CPP		:= g++ -m64
 CC		:= gcc -m64
@@ -243,6 +240,7 @@ ifeq ($(DEBUG), y)
   COPTIM	:= -Og
  endif
 else
+ DFLAGS		+= -g0
  ifeq ($(OPTIM), y)
   AOPTIM	:= -mtune=native
   ifndef COPTIM
@@ -292,9 +290,9 @@ ifneq ($(WX), n)
  LIBS		+= $(WX_LIBS)
  UIOBJ		:= wx_main.o wx_ui.o wx_stbar.o wx_render.o
 else
- UIOBJ		:= win_ui.o \
-		   win_ddraw.o win_d3d.o \
-		   win_dialog.o win_about.o win_status.o win_stbar.o \
+ UIOBJ		:= win_ui.o win_stbar.o \
+		   win_ddraw.o win_d3d.o win_sdl.o \
+		   win_dialog.o win_about.o \
 		   win_settings.o win_devconf.o win_snd_gain.o \
 		   win_new_floppy.o win_jsconf.o
 endif
@@ -353,14 +351,8 @@ OPTS		+= -DUSE_CRASHDUMP
 DEVBROBJ	+= win_crashdump.o
 endif
 
-ifeq ($(GREENB), y)
-OPTS		+= -DUSE_GREENB
-DEVBROBJ	+= m_at_4gpv31.o
-endif
-
 ifeq ($(I686), y)
 OPTS		+= -DUSE_I686
-DEVBROBJ	+= m_at_440fx.o
 endif
 
 ifeq ($(LASERXT), y)
@@ -374,7 +366,7 @@ endif
 
 ifeq ($(NV_RIVA), y)
 OPTS		+= -DUSE_RIVA
-DEVBROBJ	+= vid_nv_riva128.o
+DEVBROBJ	+= vid_nvidia.o
 endif
 
 ifeq ($(PAS16), y)
@@ -389,6 +381,10 @@ endif
 ifeq ($(STEALTH32), y)
 OPTS		+= -DUSE_STEALTH32
 DEVBROBJ	+= vid_icd2061.o
+endif
+
+ifeq ($(VGAWONDER), y)
+OPTS		+= -DUSE_VGAWONDER
 endif
 
 ifeq ($(XL24), y)
@@ -408,7 +404,7 @@ endif
 CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
 		   -fno-strict-aliasing
-CFLAGS		:= $(CFLAGS)
+CXXFLAGS	:= $(CFLAGS)
 
 
 #########################################################################
@@ -433,19 +429,18 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_xt_xi8088.o \
 		    m_pcjr.o \
 		    m_amstrad.o \
-		    m_europc.o m_europc_hdc.o \
+		    m_europc.o \
 		    m_olivetti_m24.o m_tandy.o \
 		    m_at.o \
 		    m_at_ali1429.o m_at_commodore.o \
 		    m_at_neat.o m_at_headland.o \
 		    m_at_t3100e.o m_at_t3100e_vid.o \
-		    m_ps1.o \
+		    m_ps1.o m_ps1_hdc.o \
 		    m_ps2_isa.o m_ps2_mca.o \
 		    m_at_opti495.o m_at_scat.o \
 		    m_at_compaq.o m_at_wd76c10.o \
 		    m_at_sis_85c471.o m_at_sis_85c496.o \
-		    m_at_430lx_nx.o m_at_430fx.o \
-		    m_at_430hx.o m_at_430vx.o
+		    m_at_4x0.o
 
 DEVOBJ		:= bugger.o lpt.o $(SERIAL) \
 		    sio_fdc37c66x.o sio_fdc37c669.o sio_fdc37c93x.o \
@@ -467,10 +462,10 @@ FDDOBJ		:= fdd.o fdc.o fdi2raw.o \
 HDDOBJ		:= hdd.o \
 		    hdd_image.o hdd_table.o \
 		   hdc.o \
-		    hdc_mfm_xt.o hdc_xtide.o \
-		    hdc_mfm_at.o \
+		    hdc_mfm_xt.o hdc_mfm_at.o \
+		    hdc_xta.o \
 		    hdc_esdi_at.o hdc_esdi_mca.o \
-		    hdc_ide.o
+		    hdc_xtide.o hdc_ide.o
 
 CDROMOBJ	:= cdrom.o \
 		    cdrom_dosbox.o cdrom_image.o cdrom_null.o
@@ -494,7 +489,8 @@ NETOBJ		:= network.o \
 		     bootp.o ip_icmp.o misc.o socket.o tcp_timer.o cksum.o \
 		     ip_input.o queue.o tcp_input.o debug.o ip_output.o \
 		     sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o \
-		    net_ne2000.o
+		    net_dp8390.o \
+		    net_3c503.o net_ne2000.o
 
 SNDOBJ		:= sound.o \
 		    openal.o \
@@ -549,7 +545,7 @@ VIDOBJ		:= video.o \
 
 PLATOBJ		:= win.o \
 		    win_dynld.o win_thread.o \
-		    win_cdrom.o win_cdrom_ioctl.o win_keyboard.o \
+		    win_cdrom.o win_keyboard.o \
 		    win_mouse.o win_joystick.o win_midi.o
 
 OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
@@ -560,8 +556,6 @@ OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
 ifdef EXOBJ
 OBJ		+= $(EXOBJ)
 endif
-
-LZFOBJ		:= lzf_c.o lzf_d.o
 
 LIBS		:= -mwindows \
 		   -lopenal.dll \
@@ -576,8 +570,8 @@ endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
-LIBS		+= -lpng -lz -lkernel32 -lwsock32 -liphlpapi -lpsapi
-LIBS		+= -lpthread -static -lstdc++ -lgcc
+LIBS		+= -lpng -lz -lwsock32 -liphlpapi
+LIBS		+= -static -lstdc++ -lgcc
 ifneq ($(X64), y)
 LIBS		+= -Wl,--large-address-aware
 endif
@@ -630,9 +624,9 @@ all:		$(PROG).exe pcap_if.exe
 		@echo Processing $<
 		@$(WINDRES) $(RFLAGS) $(EXTRAS) -i $< -o 86Box.res
 
-$(PROG).exe:	$(OBJ) $(LZFOBJ) 86Box.res
+$(PROG).exe:	$(OBJ) 86Box.res
 		@echo Linking $(PROG).exe ..
-		@$(CC) -o $(PROG).exe $(OBJ) $(LZFOBJ) 86Box.res $(LIBS)
+		@$(CC) -o $(PROG).exe $(OBJ) 86Box.res $(LIBS)
 ifneq ($(DEBUG), y)
 		@strip $(PROG).exe
 endif

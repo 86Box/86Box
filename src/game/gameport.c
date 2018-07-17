@@ -8,7 +8,7 @@
  *
  *		Implementation of a generic Game Port.
  *
- * Version:	@(#)gameport.c	1.0.4	2018/03/19
+ * Version:	@(#)gameport.c	1.0.6	2018/04/29
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -177,7 +177,6 @@ gameport_write(uint16_t addr, uint8_t val, void *priv)
 
     timer_clock();
     p->state |= 0x0f;
-    pclog("gameport_write : joysticks_present=%i\n", joysticks_present);
 
     p->axis[0].count = gameport_time(p->joystick->read_axis(p->joystick_dat, 0));
     p->axis[1].count = gameport_time(p->joystick->read_axis(p->joystick_dat, 1));
@@ -321,7 +320,7 @@ const device_t gameport_device = {
     0, 0,
     gameport_init,
     gameport_close,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     NULL
 };
 
@@ -330,6 +329,6 @@ const device_t gameport_201_device = {
     0, 0,
     gameport_201_init,
     gameport_close,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,
     NULL
 };

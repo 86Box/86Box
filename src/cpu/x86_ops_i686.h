@@ -8,7 +8,7 @@
  *
  *		x86 i686 (Pentium Pro/Pentium II) CPU Instructions.
  *
- * Version:	@(#)x86_ops_i686.h	1.0.2	2018/01/01
+ * Version:	@(#)x86_ops_i686.h	1.0.4	2018/04/25
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.

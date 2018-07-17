@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.15	2018/03/18
+ * Version:	@(#)sound.c	1.0.17	2018/04/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,28 +16,34 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../timer.h"
+#include "../scsi/scsi.h"
 #include "../cdrom/cdrom.h"
 #include "../plat.h"
 #include "sound.h"
 #include "midi.h"
 #include "snd_opl.h"
+#include "snd_cms.h"
 #include "snd_adlib.h"
 #include "snd_adlibgold.h"
 #include "snd_audiopci.h"
+#include "snd_gus.h"
 #include "snd_mpu401.h"
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
 # include "snd_pas16.h"
 #endif
 #include "snd_sb.h"
 #include "snd_sb_dsp.h"
+#include "snd_ssi2001.h"
 #include "snd_wss.h"
 #include "filters.h"
 
@@ -100,6 +106,26 @@ static const SOUND_CARD sound_cards[] =
     { "[PCI] Sound Blaster PCI 128",    "sbpci128",  &es1371_device},
     { "",			"",		NULL			}
 };
+
+
+#ifdef ENABLE_SOUND_LOG
+int sound_do_log = ENABLE_SOUND_LOG;
+#endif
+
+
+static void
+sound_log(const char *fmt, ...)
+{
+#ifdef ENABLE_SOUND_LOG
+    va_list ap;
+
+    if (sound_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+#endif
+}
 
 
 int sound_card_available(int card)
@@ -169,7 +195,7 @@ static void sound_cd_thread(void *param)
 	int32_t cd_buffer_temp4[2] = {0, 0};
 
 	int c, has_audio;
-	int d;
+	int d, r;
 
 	thread_set_event(sound_cd_start_event);
 
@@ -195,22 +221,40 @@ static void sound_cd_thread(void *param)
 		for (i = 0; i < CDROM_NUM; i++)
 		{
 			has_audio = 0;
-			if (cdrom_drives[i].bus_type == CDROM_BUS_DISABLED)
+			if ((cdrom_drives[i].bus_type == CDROM_BUS_DISABLED) || !cdrom[i] || !cdrom[i]->handler)
 				continue;
-			if (cdrom_drives[i].handler->audio_callback)
+			if (cdrom[i]->handler->audio_callback)
 			{
-				cdrom_drives[i].handler->audio_callback(i, cd_buffer[i], CD_BUFLEN*2);
-				has_audio = (cdrom_drives[i].bus_type && cdrom_drives[i].sound_on);
+				r = cdrom[i]->handler->audio_callback(i, cd_buffer[i], CD_BUFLEN*2);
+				has_audio = (cdrom_drives[i].bus_type && cdrom_drives[i].sound_on/* && r*/);
 			} else
 				continue;
 			if (soundon && has_audio)
 			{
-				int32_t audio_vol_l = cdrom_mode_sense_get_volume(i, 0);
-				int32_t audio_vol_r = cdrom_mode_sense_get_volume(i, 1);
+				int32_t audio_vol_l = cdrom_mode_sense_get_volume(cdrom[i], 0);
+				int32_t audio_vol_r = cdrom_mode_sense_get_volume(cdrom[i], 1);
 				int channel_select[2];
 
-				channel_select[0] = cdrom_mode_sense_get_channel(i, 0);
-				channel_select[1] = cdrom_mode_sense_get_channel(i, 1);
+				channel_select[0] = cdrom_mode_sense_get_channel(cdrom[i], 0);
+				channel_select[1] = cdrom_mode_sense_get_channel(cdrom[i], 1);
+
+				if (!r)
+				{
+					for (c = 0; c < CD_BUFLEN*2; c += 2)
+					{
+						if (sound_is_float)
+						{
+							cd_out_buffer[c] += 0.0;
+							cd_out_buffer[c+1] += 0.0;
+						}
+						else
+						{
+							cd_out_buffer_int16[c] += 0;
+							cd_out_buffer_int16[c+1] += 0;
+						}
+					}
+					continue;
+				}
 
 				for (c = 0; c < CD_BUFLEN*2; c += 2)
 				{
@@ -299,7 +343,7 @@ static int16_t *outbuffer_ex_int16;
 
 static int cd_thread_enable = 0;
 
-void sound_realloc_buffers(void)
+static void sound_realloc_buffers(void)
 {
 	if (outbuffer_ex != NULL)
 	{
@@ -326,15 +370,10 @@ void sound_init(void)
 	int i = 0;
 	int available_cdrom_drives = 0;
 
-        initalmain(0,NULL);
-        inital();
-
 	outbuffer_ex = NULL;
 	outbuffer_ex_int16 = NULL;
 
-        outbuffer = malloc(SOUNDBUFLEN * 2 * sizeof(int32_t));
-
-	sound_realloc_buffers();
+	outbuffer = malloc(SOUNDBUFLEN * 2 * sizeof(int32_t));
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
@@ -353,10 +392,10 @@ void sound_init(void)
 		sound_cd_event = thread_create_event();
 		sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
 
-		/* pclog("Waiting for CD start event...\n"); */
+		sound_log("Waiting for CD start event...\n");
 		thread_wait_event(sound_cd_start_event, -1);
 		thread_reset_event(sound_cd_start_event);
-		/* pclog("Done!\n"); */
+		sound_log("Done!\n");
 	}
 	else
 		cdaudioon = 0;
@@ -445,7 +484,10 @@ void sound_speed_changed(void)
 
 void sound_reset(void)
 {
-	int i = 0;
+	sound_realloc_buffers();
+
+	midi_device_init();
+	inital();
 
         timer_add(sound_poll, &sound_poll_time, TIMER_ALWAYS_ENABLED, NULL);
 
@@ -453,14 +495,19 @@ void sound_reset(void)
 	sound_process_handlers_num = 0;
 
         sound_set_cd_volume(65535, 65535);
+}
 
-	for (i = 0; i < CDROM_NUM; i++)
-	{
-		if (cdrom_drives[i].handler->audio_stop)
-		{
-	        	cdrom_drives[i].handler->audio_stop(i);
-		}
-	}
+void sound_card_reset(void)
+{
+    sound_card_init();
+    if (mpu401_standalone_enable)
+	mpu401_device_add();
+    if (GUS)
+	device_add(&gus_device);
+    if (GAMEBLASTER)
+	device_add(&cms_device);
+    if (SSI2001)
+	device_add(&ssi2001_device);
 }
 
 void sound_cd_thread_end(void)
@@ -468,10 +515,10 @@ void sound_cd_thread_end(void)
 	if (cdaudioon) {
 		cdaudioon = 0;
 
-		/* pclog("Waiting for CD Audio thread to terminate...\n"); */
+		sound_log("Waiting for CD Audio thread to terminate...\n");
 		thread_set_event(sound_cd_event);
 		thread_wait(sound_cd_thread_h, -1);
-		/* pclog("CD Audio thread terminated...\n"); */
+		sound_log("CD Audio thread terminated...\n");
 
 		if (sound_cd_event) {
 			thread_destroy_event(sound_cd_event);
@@ -494,7 +541,12 @@ void sound_cd_thread_reset(void)
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].bus_type != CDROM_BUS_DISABLED)
+		if (cdrom[i] && cdrom[i]->handler && cdrom[i]->handler->audio_stop)
+		{
+	        	cdrom[i]->handler->audio_stop(i);
+		}
+
+		if ((cdrom_drives[i].bus_type != CDROM_BUS_DISABLED) && cdrom[i])
 		{
 			available_cdrom_drives++;
 		}

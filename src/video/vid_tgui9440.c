@@ -47,7 +47,7 @@
  *		access size or host data has any affect, but the Windows 3.1
  *		driver always reads bytes and write words of 0xffff.
  *
- * Version:	@(#)vid_tgui9440.c	1.0.5	2018/03/18
+ * Version:	@(#)vid_tgui9440.c	1.0.7	2018/07/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -686,6 +686,10 @@ void tgui_hwcursor_draw(svga_t *svga, int displine)
         uint32_t dat[2];
         int xx;
         int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
+	int y_add, x_add;
+
+	y_add = (enable_overscan && !suppress_overscan) ? (overscan_y >> 1) : 0;
+	x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
         
         if (svga->interlace && svga->hwcursor_oddeven)
                 svga->hwcursor_latch.addr += 8;
@@ -697,9 +701,9 @@ void tgui_hwcursor_draw(svga_t *svga, int displine)
                 if (offset >= svga->hwcursor_latch.x)
                 {
                         if (!(dat[0] & 0x80000000))
-                                ((uint32_t *)buffer32->line[displine])[offset + 32]  = (dat[1] & 0x80000000) ? 0xffffff : 0;
+                                ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add]  = (dat[1] & 0x80000000) ? 0xffffff : 0;
                         else if (dat[1] & 0x80000000)
-                                ((uint32_t *)buffer32->line[displine])[offset + 32] ^= 0xffffff;
+                                ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add] ^= 0xffffff;
                 }
                            
                 offset++;
@@ -864,7 +868,6 @@ static uint8_t tgui_ext_linear_read(uint32_t addr, void *p)
         int c;
   
         cycles -= video_timing_read_b;
-        cycles_lost += video_timing_read_b;
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
@@ -896,7 +899,6 @@ static void tgui_ext_linear_write(uint32_t addr, uint8_t val, void *p)
         uint8_t mask = tgui->ext_gdc_regs[7];
 
         cycles -= video_timing_write_b;
-        cycles_lost += video_timing_write_b;
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
@@ -966,7 +968,6 @@ static void tgui_ext_linear_writew(uint32_t addr, uint16_t val, void *p)
         uint16_t mask = (tgui->ext_gdc_regs[7] << 8) | tgui->ext_gdc_regs[8];
         
         cycles -= video_timing_write_w;
-        cycles_lost += video_timing_write_w;
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
@@ -1729,22 +1730,6 @@ void tgui_accel_write_fb_l(uint32_t addr, uint32_t val, void *p)
                 svga_writel_linear(addr, val, svga);
 }
 
-void tgui_add_status_info(char *s, int max_len, void *p)
-{
-        tgui_t *tgui = (tgui_t *)p;        
-        char temps[256];
-        uint64_t new_time = plat_timer_read();
-        uint64_t status_diff = new_time - tgui->status_time;
-        tgui->status_time = new_time;
-        
-        svga_add_status_info(s, max_len, &tgui->svga);
-
-        sprintf(temps, "%f%% CPU\n%f%% CPU (real)\n\n", ((double)tgui->blitter_time * 100.0) / timer_freq, ((double)tgui->blitter_time * 100.0) / status_diff);
-        strncat(s, temps, max_len);
-
-        tgui->blitter_time = 0;
-}
-
 static const device_config_t tgui9440_config[] =
 {
         {
@@ -1783,7 +1768,6 @@ const device_t tgui9400cxi_device =
         tgui9400cxi_available,
         tgui_speed_changed,
         tgui_force_redraw,
-        tgui_add_status_info,
         tgui9440_config
 };
 
@@ -1798,7 +1782,6 @@ const device_t tgui9440_vlb_device =
         tgui9440_available,
         tgui_speed_changed,
         tgui_force_redraw,
-        tgui_add_status_info,
         tgui9440_config
 };
 
@@ -1813,6 +1796,5 @@ const device_t tgui9440_pci_device =
         tgui9440_available,
         tgui_speed_changed,
         tgui_force_redraw,
-        tgui_add_status_info,
         tgui9440_config
 };
