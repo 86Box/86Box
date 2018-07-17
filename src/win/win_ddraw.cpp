@@ -11,7 +11,7 @@
  * NOTES:	This code should be re-merged into a single init() with a
  *		'fullscreen' argument, indicating FS mode is requested.
  *
- * Version:	@(#)win_ddraw.cpp	1.0.9	2018/05/26
+ * Version:	@(#)win_ddraw.cpp	1.0.10	2018/07/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -104,7 +104,6 @@ bgra_to_rgb(png_bytep *b_rgb, uint8_t *bgra, int width, int height)
 {
     int i, j;
     uint8_t *r, *b;
-    uint32_t *rgb = (uint32_t *) bgra;
 
     if (video_grayscale || invert_display)
 	*bgra = video_color_transform(*bgra);
@@ -428,7 +427,6 @@ ddraw_blit(int x, int y, int y1, int y2, int w, int h)
     POINT po;
     HRESULT hr;
     int yy;
-    uint32_t *p, *q;
 
     if (lpdds_back == NULL) {
 	video_blit_complete();

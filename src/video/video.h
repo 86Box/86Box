@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.28	2018/05/25
+ * Version:	@(#)video.h	1.0.29	2018/07/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -147,7 +147,7 @@ typedef struct {
 typedef struct {
     int		w, h;
     uint8_t	*dat;
-    uint8_t	*line[];
+    uint8_t	*line[2048];
 } bitmap_t;
 
 typedef struct {
