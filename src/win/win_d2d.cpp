@@ -38,7 +38,7 @@
 #include "win_d2d.h"
 
 
-static HWND			d2d_hwnd;
+static HWND			d2d_hwnd, old_hwndMain;
 static ID2D1Factory		*d2d_factory;
 static ID2D1HwndRenderTarget	*d2d_hwndRT;
 static ID2D1BitmapRenderTarget	*d2d_btmpRT;
@@ -343,9 +343,11 @@ d2d_close(void)
 
 	if (d2d_hwnd)
 	{
+		hwndMain = old_hwndMain;
 		plat_set_input(hwndMain);
 		DestroyWindow(d2d_hwnd);
 		d2d_hwnd = NULL;
+		old_hwndMain = NULL;
 	}
 }
 
@@ -381,6 +383,9 @@ d2d_init_common(int fs)
 			NULL,
 			hinstance,
 			NULL);
+
+		old_hwndMain = hwndMain;
+		hwndMain = d2d_hwnd;
 
 		plat_set_input(d2d_hwnd);
 
