@@ -32,25 +32,18 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-#ifndef NET_NE2000_H
-# define NET_NE2000_H
-
+#ifndef NET_WD8003_H
+# define NET_WD8003_H
 
 enum {
-    NE2K_NONE = 0,
-    NE2K_NE1000 = 1,			/* 8-bit ISA NE1000 */
-    NE2K_NE2000 = 2,			/* 16-bit ISA NE2000 */
-	NE2K_NE2_MCA = 3,			/* 16-bit MCA NE/2 */
-    NE2K_RTL8019AS = 4,			/* 16-bit ISA PnP Realtek 8019AS */
-    NE2K_RTL8029AS = 5			/* 32-bit PCI Realtek 8029AS */
+    WD_NONE = 0,
+	WD8003E = 1,				/* 8-bit ISA WD8003E */
+	WD8013EBT = 2,				/* 16-bit ISA WD8013EBT */
+	WD8013EPA = 3				/* MCA WD8013EP/A */
 };
 
+extern const device_t 	wd8003e_device;
+extern const device_t 	wd8013ebt_device;
+extern const device_t 	wd8013epa_device;
 
-extern const device_t	ne1000_device;
-extern const device_t	ne2000_device;
-extern const device_t	ne2_device;
-extern const device_t	rtl8019as_device;
-extern const device_t	rtl8029as_device;
-
-
-#endif	/*NET_NE2000_H*/
+#endif	/*NET_WD8003_H*/

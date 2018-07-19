@@ -126,10 +126,11 @@ video_cards[] = {
     { "[ISA] TI CF62011 SVGA",				"ti_cf62011",		&ti_cf62011_device,			GFX_TICF62011,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
 #endif
     {"[ISA] Trident TVGA8900D",				"tvga8900d",		&tvga8900d_device,			GFX_TVGA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
-    {"[ISA] Tseng ET4000AX",				"et4000ax",		&et4000_device,				GFX_ET4000,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
+    {"[ISA] Tseng ET4000AX",				"et4000ax",		&et4000_isa_device,				GFX_ET4000_ISA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
     {"[ISA] VGA",					"vga",			&vga_device,				GFX_VGA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     {"[ISA] Wyse 700",					"wy700",		&wy700_device,				GFX_WY700,			VIDEO_FLAG_TYPE_CGA,	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    {"[PCI] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_pci",		&mach64gx_pci_device,			GFX_MACH64GX_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
+    {"[MCA] Tseng ET4000AX",				"et4000mca",		&et4000_mca_device,				GFX_ET4000_MCA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 3,  3,  6,   5,  5, 10}},
+	{"[PCI] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_pci",		&mach64gx_pci_device,			GFX_MACH64GX_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
     {"[PCI] ATI Video Xpression (Mach64 VT2)",		"mach64vt2",		&mach64vt2_device,			GFX_MACH64VT2,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
     {"[PCI] Cardex Tseng ET4000/w32p",			"et4000w32p_pci",	&et4000w32p_cardex_pci_device,		GFX_ET4000W32_CARDEX_PCI,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
     {"[PCI] Cirrus Logic CL-GD 5430",			"cl_gd5430_pci",	&gd5430_pci_device,			GFX_CL_GD5430_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},

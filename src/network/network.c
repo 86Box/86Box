@@ -62,6 +62,7 @@
 #include "network.h"
 #include "net_3c503.h"
 #include "net_ne2000.h"
+#include "net_wd8003.h"
 
 
 static netcard_t net_cards[] = {
@@ -74,6 +75,14 @@ static netcard_t net_cards[] = {
     { "[ISA] Novell NE2000",		"ne2k",		&ne2000_device,
       NULL								},
     { "[ISA] Realtek RTL8019AS",	"ne2kpnp",	&rtl8019as_device,
+      NULL								},
+    { "[ISA] Western Digital WD8003E","wd8003e",	&wd8003e_device,
+      NULL								},
+    { "[ISA] Western Digital WD8013EBT","wd8013ebt",	&wd8013ebt_device,
+      NULL								},
+    { "[MCA] Novell NE/2",		"ne2",		&ne2_device,
+      NULL								},
+    { "[MCA] Western Digital WD8013EP/A","wd8013epa",	&wd8013epa_device,
       NULL								},
     { "[PCI] Realtek RTL8029AS",	"ne2kpci",	&rtl8029as_device,
       NULL								},

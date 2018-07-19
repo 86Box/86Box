@@ -881,19 +881,70 @@ void rep(int fv)
                 cycles-=2;
                 goto startrep;
                 break;
-                case 0x6E: /*REP OUTSB*/
-                if (c>0)
-                {
-                        temp2=readmemb(ds+SI);
-                        outb(DX,temp2);
-                        if (flags&D_FLAG) SI--;
-                        else              SI++;
-                        c--;
-                        cycles-=5;
-                }
-                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
-                else firstrepcycle=1;
+                case 0x6C: /*186+ REP INSB*/
+				if (is186)
+				{
+					if (c>0)
+					{
+							temp2=inb(DX);
+							writememb(ds+SI, temp2);
+							if (flags&D_FLAG) SI--;
+							else              SI++;
+							c--;
+							cycles-=5;
+					}
+					if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
+					else firstrepcycle=1;
+				}
+                break;				
+                case 0x6D: /*186+ REP INSW*/
+				if (is186)
+				{
+					if (c>0)
+					{
+							tempw2=inw(DX);
+							writememw(ds, SI, tempw2);
+							if (flags&D_FLAG) SI-=2;
+							else              SI+=2;
+							c--;
+							cycles-=5;
+					}
+					if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
+					else firstrepcycle=1;
+				}
                 break;
+                case 0x6E: /*186+ REP OUTSB*/
+				if (is186)
+				{
+					if (c>0)
+					{
+							temp2=readmemb(ds+SI);
+							outb(DX,temp2);
+							if (flags&D_FLAG) SI--;
+							else              SI++;
+							c--;
+							cycles-=5;
+					}
+					if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
+					else firstrepcycle=1;
+				}
+                break;
+				case 0x6F: /*186+ REP OUTSW*/
+				if (is186)
+				{
+					if (c>0)
+					{
+							tempw2=readmemw(ds,SI);
+							outw(DX,tempw2);
+							if (flags&D_FLAG) SI-=2;
+							else              SI+=2;
+							c--;
+							cycles-=5;
+					}
+					if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
+					else firstrepcycle=1;
+				}
+				break;
                 case 0xA4: /*REP MOVSB*/
                 while (c>0 && !IRQTEST)
                 {
@@ -2282,7 +2333,50 @@ void execx86(int cycs)
                         cycles-=((cpu_mod==3)?4:14);
                         break;
 
-			case 0xC8: /*RETF alias*/
+						case 0xC8: /*186+ ENTER*/
+						if (is186)
+						{
+							int count;
+							
+							tempw=readmemw(ss,SP);
+							tempw2=readmemw(ss,(SP+2)&0xFFFF);
+							tempw3=CS;
+							tempw4=cpu_state.pc;
+							
+							if (cpu_state.ssegs) ss=oldss;
+							
+							count=geteaw();
+							
+							if (count > 0)
+							{
+									while (--count)
+									{
+										cpu_state.pc=tempw;
+										loadcs(tempw2);
+										cycles-=4;
+									}
+									writememw(ss,(SP-2)&0xFFFF,tempw3);
+									writememw(ss,((SP-4)&0xFFFF),tempw4);
+									cycles-=5;
+							}
+							cpu_state.last_ea = SP;
+							SP-=getword();
+							cycles-=10;
+							FETCHCLEAR();							
+						}
+						else /*RETF alias*/
+						{
+							tempw=getword();
+							if (cpu_state.ssegs) ss=oldss;
+							cpu_state.pc=readmemw(ss,SP);
+							loadcs(readmemw(ss,SP+2));
+							SP+=4;
+							SP+=tempw;
+							cycles-=33;
+							FETCHCLEAR();
+						}
+						break;
+						
                         case 0xCA: /*RETF*/
                         tempw=getword();
                         if (cpu_state.ssegs) ss=oldss;
@@ -2293,7 +2387,26 @@ void execx86(int cycs)
                         cycles-=33;
                         FETCHCLEAR();
                         break;
-			case 0xC9: /*RETF alias*/
+						case 0xC9: 
+						if (is186) /*186+ LEAVE*/
+						{	
+							if (cpu_state.ssegs) ss=oldss;
+
+							cpu_state.regs[opcode&7].w=readmemw(ss,(SP-2)&0xFFFF);					
+							cpu_state.last_ea = SP;
+							cycles-=4;
+						}
+						else /*RETF alias*/
+						{
+							if (cpu_state.ssegs) ss=oldss;
+							cpu_state.pc=readmemw(ss,SP);
+							loadcs(readmemw(ss,SP+2));
+							SP+=4;
+							cycles-=34;
+							FETCHCLEAR();
+						}
+						break;
+						
                         case 0xCB: /*RETF*/
                         if (cpu_state.ssegs) ss=oldss;
                         cpu_state.pc=readmemw(ss,SP);

@@ -490,7 +490,8 @@ NETOBJ		:= network.o \
 		     ip_input.o queue.o tcp_input.o debug.o ip_output.o \
 		     sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o \
 		    net_dp8390.o \
-		    net_3c503.o net_ne2000.o
+		    net_3c503.o net_ne2000.o \
+			net_wd8003.o
 
 SNDOBJ		:= sound.o \
 		    openal.o \

@@ -23,6 +23,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../mca.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
@@ -43,6 +44,10 @@ typedef struct et4000_t
         rom_t bios_rom;
         
         uint8_t banking;
+		
+		uint8_t pos_regs[8];
+		
+		int is_mca;
 } et4000_t;
 
 static uint8_t crtc_mask[0x40] =
@@ -112,6 +117,16 @@ uint8_t et4000_in(uint16_t addr, void *p)
 
         switch (addr)
         {
+				case 0x3c2:
+				if (et4000->is_mca)
+				{
+					if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
+						return 0;
+					else
+						return 0x10;					
+				}
+				break;
+			
                 case 0x3C5:
                 if ((svga->seqaddr & 0xf) == 7) return svga->seqregs[svga->seqaddr & 0xf] | 4;
                 break;
@@ -160,11 +175,13 @@ void et4000_recalctimings(svga_t *svga)
         }
 }
 
-void *et4000_init(const device_t *info)
+void *et4000_isa_init(const device_t *info)
 {
         et4000_t *et4000 = malloc(sizeof(et4000_t));
         memset(et4000, 0, sizeof(et4000_t));
 
+		et4000->is_mca = 0;
+		
         rom_init(&et4000->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 
         io_sethandler(0x03c0, 0x0020, et4000_in, NULL, NULL, et4000_out, NULL, NULL, et4000);
@@ -175,6 +192,51 @@ void *et4000_init(const device_t *info)
                    NULL,
                    NULL);
         
+        return et4000;
+}
+
+static uint8_t
+et4000_mca_read(int port, void *priv)
+{
+    et4000_t *et4000 = (et4000_t *)priv;
+
+    return(et4000->pos_regs[port & 7]);
+}
+
+static void
+et4000_mca_write(int port, uint8_t val, void *priv)
+{
+    et4000_t *et4000 = (et4000_t *)priv;
+
+    /* MCA does not write registers below 0x0100. */
+    if (port < 0x0102) return;
+
+    /* Save the MCA register value. */
+    et4000->pos_regs[port & 7] = val;
+}
+
+void *et4000_mca_init(const device_t *info)
+{
+        et4000_t *et4000 = malloc(sizeof(et4000_t));
+        memset(et4000, 0, sizeof(et4000_t));
+        
+		et4000->is_mca = 1;
+		
+		/* Enable MCA. */
+		et4000->pos_regs[0] = 0xF2;	/* ET4000 MCA board ID */
+		et4000->pos_regs[1] = 0x80;	
+		mca_add(et4000_mca_read, et4000_mca_write, et4000);
+        
+		rom_init(&et4000->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		
+		svga_init(&et4000->svga, et4000, 1 << 20, /*1mb*/
+				   et4000_recalctimings,
+				   et4000_in, et4000_out,
+				   NULL,
+				   NULL);	
+		
+		io_sethandler(0x03c0, 0x0020, et4000_in, NULL, NULL, et4000_out, NULL, NULL, et4000);		
+		
         return et4000;
 }
 
@@ -206,13 +268,25 @@ void et4000_force_redraw(void *p)
         et4000->svga.fullchange = changeframecount;
 }
 
-const device_t et4000_device =
+const device_t et4000_isa_device =
 {
-        "Tseng Labs ET4000AX",
+        "Tseng Labs ET4000AX (ISA)",
         DEVICE_ISA, 0,
-        et4000_init, et4000_close, NULL,
+        et4000_isa_init, et4000_close, NULL,
         et4000_available,
         et4000_speed_changed,
         et4000_force_redraw,
 	NULL
 };
+
+const device_t et4000_mca_device =
+{
+        "Tseng Labs ET4000AX (MCA)",
+        DEVICE_MCA, 0,
+        et4000_mca_init, et4000_close, NULL,
+        et4000_available,
+        et4000_speed_changed,
+        et4000_force_redraw,
+	NULL
+};
+

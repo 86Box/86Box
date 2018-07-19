@@ -9,7 +9,7 @@
  *		Implementation of the NCR 5380 series of SCSI Host Adapters
  *		made by NCR. These controllers were designed for the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.15	2018/06/13
+ * Version:	@(#)scsi_ncr5380.c	1.0.16	2018/07/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -19,6 +19,7 @@
  *		Copyright 2017,2018 TheCollector1995.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -63,11 +64,6 @@
 #define NCR_DMAINIRECV	7		/* DMA initiator receive (write only) */
 #define NCR_RESETPARITY	7		/* reset parity/interrupt (read only) */
 
-#define POLL_TIME_US 10LL
-#define MAX_BYTES_TRANSFERRED_PER_POLL 50
-/*10us poll period with 50 bytes transferred per poll = 5MB/sec*/
-
-
 #define ICR_DBP			0x01
 #define ICR_ATN			0x02
 #define ICR_SEL			0x04
@@ -83,6 +79,7 @@
 
 #define STATUS_ACK		0x01
 #define STATUS_BUSY_ERROR	0x04
+#define STATUS_PHASE_MATCH	0x08
 #define STATUS_INT		0x10
 #define STATUS_DRQ		0x40
 #define STATUS_END_OF_DMA	0x80
@@ -93,10 +90,9 @@
 #define TCR_REQ			0x08
 #define TCR_LAST_BYTE_SENT	0x80
 
-#define CTRL_DATA_DIR		(1<<6)
-#define STATUS_BUFFER_NOT_READY	(1<<2)
-#define STATUS_53C80_ACCESSIBLE	(1<<7)
-
+#define CTRL_DATA_DIR		0x40
+#define STATUS_BUFFER_NOT_READY	0x04
+#define STATUS_53C80_ACCESSIBLE 0x80
 
 typedef struct {	
     uint8_t	icr;
@@ -106,16 +102,23 @@ typedef struct {
     uint8_t	isr;
     uint8_t	output_data;
 
-    int		target_bsy;
-    int		target_req;
     uint8_t	target_id;
 
-    uint8_t	bus_status;
-	
     int		dma_mode;
-
-    scsi_bus_t	bus;
-} ncr5380_t;
+	
+	int 	bus_host, cur_bus, bus_in;
+	int 	new_phase;
+	int 	state;
+	
+	int		clear_req, wait_data, wait_complete;
+	
+	int		command_pos;
+	uint8_t command[20];
+	int 	data_pos;
+	uint8_t	tx_data;
+	
+	uint8_t unk_08, unk_08_ret;
+} ncr_t;
 
 typedef struct {
     const char	*name;
@@ -132,30 +135,41 @@ typedef struct {
 
     uint8_t	status_ctrl;
 
-    uint8_t	buffer[0x80];
-    int		buffer_pos;
-    int		buffer_host_pos;
+    uint8_t	buffer[128];
+    int buffer_pos;
+    int buffer_host_pos;
 
     uint8_t	int_ram[0x40];        
-    uint8_t	ext_ram[0x600];
+    uint8_t	ext_ram[0x600];	
+	
+    ncr_t	ncr;
+	
+    int		dma_enabled;
 
-    ncr5380_t	ncr;
-    int		ncr5380_dma_enabled;
+    int64_t	timer_period;
+    int64_t	timer_enabled;
 
-    int64_t	dma_timer;
-    int64_t	dma_enabled;
+	int64_t	media_period;
+	int64_t temp_period;
 
-    int		ncr_busy;
-} ncr_t;
+    int		ncr_busy;	
 
+	double	period;
+	
+	int		is_non_data_mode;
+} ncr5380_t;
 
-enum {
-    DMA_IDLE = 0,
-    DMA_SEND,
-    DMA_TARGET_RECEIVE,
-    DMA_INITIATOR_RECEIVE
-};
+#define STATE_IDLE 0
+#define STATE_COMMAND 1
+#define STATE_DATAIN 2
+#define STATE_DATAOUT 3
+#define STATE_STATUS 4
+#define STATE_MESSAGEIN 5
+#define STATE_SELECT 6
 
+#define DMA_IDLE		0
+#define DMA_SEND		1
+#define DMA_INITIATOR_RECEIVE 2
 
 #ifdef ENABLE_NCR5380_LOG
 int ncr5380_do_log = ENABLE_NCR5380_LOG;
@@ -176,94 +190,211 @@ ncr_log(const char *fmt, ...)
 #endif
 }
 
+#define SET_BUS_STATE(ncr, state) ncr->cur_bus = (ncr->cur_bus & ~(SCSI_PHASE_MESSAGE_IN)) | (state & (SCSI_PHASE_MESSAGE_IN))
 
 static void
-dma_changed(void *priv, int mode, int enable)
+ncr_callback(void *priv);
+
+static int
+get_dev_id(uint8_t data)
 {
-    ncr_t *scsi = (ncr_t *)priv;
+    int c;
 
-    scsi->ncr5380_dma_enabled = (mode && enable);
+    for (c = 0; c < SCSI_ID_MAX; c++) {
+	if (data & (1 << c)) return(c);
+    }
 
-    scsi->dma_enabled = (scsi->ncr5380_dma_enabled && scsi->block_count_loaded);
+    return(-1);
 }
 
-
-void
-ncr5380_reset(ncr5380_t *ncr)
+/* get the length of a SCSI command based on its command byte type */
+static int 
+get_cmd_len(int cbyte)
 {
-    memset(ncr, 0x00, sizeof(ncr5380_t));
+    int len;
+    int group;
+
+    group = (cbyte>>5) & 7;
+
+    if (group == 0) len = 6;
+    if (group == 1 || group == 2) len = 10;
+
+    return(len);
 }
 
+static void
+ncr_reset(ncr_t *ncr)
+{
+	memset(ncr, 0x00, sizeof(ncr_t));
+	ncr_log("NCR reset\n");
+}
 
 static uint32_t
-get_bus_host(ncr5380_t *ncr)
+get_bus_host(ncr_t *ncr)
 {
     uint32_t bus_host = 0;
 
     if (ncr->icr & ICR_DBP)
-	bus_host |= BUS_DBP;
+	{
+		ncr_log("Data bus phase\n");		
+		bus_host |= BUS_DBP;
+	}
     if (ncr->icr & ICR_SEL)
-	bus_host |= BUS_SEL;
-    if (ncr->icr & ICR_ATN)
-	bus_host |= BUS_ATN;
+	{
+		ncr_log("Selection phase\n");
+		bus_host |= BUS_SEL;
+	}
     if (ncr->tcr & TCR_IO)
-	bus_host |= BUS_IO;
+	{
+		ncr_log("Data phase\n");
+		bus_host |= BUS_IO;
+	}
     if (ncr->tcr & TCR_CD)
-	bus_host |= BUS_CD;
+	{
+		ncr_log("Command phase\n");
+		bus_host |= BUS_CD;
+	}
     if (ncr->tcr & TCR_MSG)
-	bus_host |= BUS_MSG;
+	{
+		ncr_log("Message phase\n");
+		bus_host |= BUS_MSG;
+	}
     if (ncr->tcr & TCR_REQ)
-	bus_host |= BUS_REQ;
+	{
+		ncr_log("Request phase\n");
+		bus_host |= BUS_REQ;
+	}
     if (ncr->icr & ICR_BSY)
-	bus_host |= BUS_BSY;
-    if (ncr->icr & ICR_ACK)
-	bus_host |= BUS_ACK;
-    if (ncr->mode & MODE_ARBITRATE)
-	bus_host |= BUS_ARB;
+	{
+		ncr_log("Busy phase\n");
+		bus_host |= BUS_BSY;
+	}
+	if (ncr->icr & ICR_ATN)
+	{
+		bus_host |= BUS_ATN;
+	}
+	if (ncr->icr & ICR_ACK)
+	{
+		ncr_log("ACK phase\n");
+		bus_host |= BUS_ACK;
+	}
+	if (ncr->mode & MODE_ARBITRATE)
+	{
+		bus_host |= BUS_ARB;
+	}
 
     return(bus_host | BUS_SETDATA(ncr->output_data));
 }
 
+static void
+ncr_wait_process(ncr5380_t *ncr_dev)
+{
+	ncr_t *ncr = &ncr_dev->ncr;
+	
+	/*Wait processes to handle bus requests*/
+	ncr_log("Clear REQ=%d\n", ncr->clear_req);
+	if (ncr->clear_req)
+	{
+		ncr->clear_req--;
+		if (!ncr->clear_req)
+		{
+			ncr_log("Prelude to command data\n");
+			SET_BUS_STATE(ncr, ncr->new_phase);
+			ncr->cur_bus |= BUS_REQ;
+		}
+	}
+	
+	if (ncr->wait_data)
+	{
+		ncr->wait_data--;
+		if (!ncr->wait_data)
+		{
+			scsi_device_t *dev;
+
+			dev = &SCSIDevices[ncr->target_id];
+			SET_BUS_STATE(ncr, ncr->new_phase);	
+
+			if (ncr->new_phase == SCSI_PHASE_DATA_IN)
+			{
+				ncr_log("Data In bus phase\n");
+				ncr->tx_data = dev->CmdBuffer[ncr->data_pos++];
+				ncr->state = STATE_DATAIN;
+				ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->tx_data) | BUS_DBP;
+			}
+			else if (ncr->new_phase == SCSI_PHASE_STATUS)
+			{
+				ncr_log("Status bus phase\n");
+				ncr->cur_bus |= BUS_REQ;
+				ncr->state = STATE_STATUS;
+				ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(dev->Status) | BUS_DBP;
+			}
+			else if (ncr->new_phase == SCSI_PHASE_MESSAGE_IN)
+			{
+				ncr_log("Message In bus phase\n");
+				ncr->state = STATE_MESSAGEIN;
+				ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(0) | BUS_DBP;
+			}
+			else
+			{
+				if (ncr->new_phase & BUS_IDLE) {
+					ncr_log("Bus Idle phase\n");
+					ncr->state = STATE_IDLE;
+					ncr->cur_bus &= ~BUS_BSY;
+					ncr_dev->media_period = 0LL;
+					ncr_dev->temp_period = 0LL;
+				} else {
+					ncr->state = STATE_DATAOUT;
+					ncr_log("Data Out bus phase\n");
+				}		
+			}
+		}
+	}
+	
+	if (ncr->wait_complete)
+	{
+		ncr->wait_complete--;
+		if (!ncr->wait_complete)
+		{
+			ncr->cur_bus |= BUS_REQ;
+		}
+	}
+	
+	ncr->bus_host = ncr->cur_bus;		
+}
 
 static void 
 ncr_write(uint16_t port, uint8_t val, void *priv)
 {
-    ncr_t *scsi = (ncr_t *)priv;
-    ncr5380_t *ncr = &scsi->ncr;
-    int bus_host = 0;
+    ncr5380_t *ncr_dev = (ncr5380_t *)priv;
+	ncr_t *ncr = &ncr_dev->ncr;
 
-#if ENABLE_NCR5380_LOG
-    ncr_log("NCR5380 write(%04x,%02x) @%04X:%04X\n",port,val,CS,cpu_state.pc);
-#endif
+    ncr_log("NCR5380 write(%04x,%02x) @%04X:%04X\n",port & 7,val,CS,cpu_state.pc);
+
     switch (port & 7) {
 	case 0:		/* Output data register */
+		ncr_log("Write: Output data register\n");
 		ncr->output_data = val;
 		break;
 
 	case 1:		/* Initiator Command Register */
-		if ((val & (ICR_BSY | ICR_SEL)) == (ICR_BSY | ICR_SEL) &&
-			(ncr->icr & (ICR_BSY | ICR_SEL)) == ICR_SEL) {
-			uint8_t temp = ncr->output_data & 0x7f;
-
-			ncr->target_id = -1;
-			while (temp) {
-				temp >>= 1;
-				ncr->target_id++;
-			}
-
-			ncr_log("Select - target ID = %i, temp data %x\n", ncr->target_id, temp);
-		}			
+		ncr_log("Write: Initiator command register\n");
 		ncr->icr = val;
+		
+		ncr_dev->timer_enabled = 1;
 		break;
 
 	case 2:		/* Mode register */
+		ncr_log("Write: Mode register, val=%02x\n", val & MODE_DMA);
 		if ((val & MODE_ARBITRATE) && !(ncr->mode & MODE_ARBITRATE)) {
 			ncr->icr &= ~ICR_ARB_LOST;
 			ncr->icr |=  ICR_ARB_IN_PROGRESS;
 		}
+
 		ncr->mode = val;
-		dma_changed(scsi, ncr->dma_mode, ncr->mode & MODE_DMA);
-		if (! (ncr->mode & MODE_DMA)) {
+
+		/*If it's not DMA mode, don't do anything*/
+		if (!(ncr->mode & MODE_DMA)) {
+			ncr_log("No DMA mode\n");
 			ncr->tcr &= ~TCR_LAST_BYTE_SENT;
 			ncr->isr &= ~STATUS_END_OF_DMA;
 			ncr->dma_mode = DMA_IDLE;
@@ -271,103 +402,133 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		break;
 
 	case 3:		/* Target Command Register */
+		ncr_log("Write: Target Command register\n");
 		ncr->tcr = val;
 		break;
 
 	case 4:		/* Select Enable Register */
-		ncr->ser = val;
+		ncr_log("Write: Select Enable register\n");
 		break;
-
+		
 	case 5:		/* start DMA Send */
+		ncr_log("Write: start DMA send register\n");
+		ncr_log("Write 6 or 10, block count loaded=%d\n", ncr_dev->block_count_loaded);
+		/*a Write 6/10 has occurred, start the timer when the block count is loaded*/
 		ncr->dma_mode = DMA_SEND;
-		dma_changed(scsi, ncr->dma_mode, ncr->mode & MODE_DMA);
 		break;
 
 	case 7:		/* start DMA Initiator Receive */
+		ncr_log("Write: start DMA initiator receive register\n");
+		ncr_log("Read 6 or 10, block count loaded=%d\n", ncr_dev->block_count_loaded);
+		/*a Read 6/10 has occurred, start the timer when the block count is loaded*/
 		ncr->dma_mode = DMA_INITIATOR_RECEIVE;
-		dma_changed(scsi, ncr->dma_mode, ncr->mode & MODE_DMA);
 		break;
 
 	default:
-#if 1
 		ncr_log("NCR5380: bad write %04x %02x\n", port, val);
-#endif
 		break;
     }
-	
-    bus_host = get_bus_host(ncr);
-
-    scsi_bus_update(&ncr->bus, bus_host);
 }
-
 
 static uint8_t 
 ncr_read(uint16_t port, void *priv)
 {
-    ncr_t *scsi = (ncr_t *)priv;
-    ncr5380_t *ncr = &scsi->ncr;
-    uint32_t bus = 0;
+    ncr5380_t *ncr_dev = (ncr5380_t *)priv;
+	ncr_t *ncr = &ncr_dev->ncr;
     uint8_t ret = 0xff;
 
     switch (port & 7) {
-	case 0:		/* current SCSI data */
+	case 0:		/* Current SCSI data */
+		ncr_log("Read: Current SCSI data register\n");
 		if (ncr->icr & ICR_DBP) {
+			/*Return the data from the output register if on data bus phase from ICR*/
+			ncr_log("Data Bus Phase\n");
 			ret = ncr->output_data;
-		} else {	
-			bus = scsi_bus_read(&ncr->bus);
-			ret = BUS_GETDATA(bus);
+		} else {
+			/*Return the data from the SCSI bus*/
+			ncr_wait_process(ncr_dev);
+			ncr_log("NCR GetData=%02x\n", BUS_GETDATA(ncr->bus_host));
+			ret = BUS_GETDATA(ncr->bus_host);
 		}
 		break;
 
 	case 1:		/* Initiator Command Register */
+		ncr_log("Read: Initiator Command register\n");
+		ncr_log("NCR ICR Read=%02x\n", ncr->icr);
+
 		ret = ncr->icr;
 		break;
 
 	case 2:		/* Mode register */
+		ncr_log("Read: Mode register\n");
 		ret = ncr->mode;
 		break;
 
 	case 3:		/* Target Command Register */
+		ncr_log("Read: Target Command register\n");
+		ncr_log("NCR target stat=%02x\n", ncr->tcr);
 		ret = ncr->tcr;
 		break;
 
 	case 4:		/* Current SCSI Bus status */
+		ncr_log("Read: SCSI bus status register\n");
 		ret = 0;
-		bus = scsi_bus_read(&ncr->bus);
-		ret |= (bus & 0xff);
+		ncr_wait_process(ncr_dev);
+		ncr_log("NCR cur bus stat=%02x\n", ncr->bus_host & 0xff);
+		ret |= (ncr->bus_host & 0xff);
 		break;
 
 	case 5:		/* Bus and Status register */
-		ret = 0;
+		ncr_log("Read: Bus and Status register\n");
+		ret = 0;		
 
-		bus = get_bus_host(ncr);
-		if (scsi_bus_match(&ncr->bus, bus))
-			ret |= 0x08;
-		bus = scsi_bus_read(&ncr->bus);
-
-		if (bus & BUS_ACK)
-			ret |= STATUS_ACK;
-		if ((bus & BUS_REQ) && (ncr->mode & MODE_DMA))
-			ret |= STATUS_DRQ;
-		if ((bus & BUS_REQ) && (ncr->mode & MODE_DMA)) {
-			int bus_state = 0;
-
-			if (bus & BUS_IO)
-				bus_state |= TCR_IO;
-			if (bus & BUS_CD)
-				bus_state |= TCR_CD;
-			if (bus & BUS_MSG)
-				bus_state |= TCR_MSG;
-			if ((ncr->tcr & 7) != bus_state)
-				ncr->isr |= STATUS_INT;
+		ncr->bus_host = get_bus_host(ncr);
+		ncr_log("Get host from Interrupt\n");
+		
+		/*Check if the phase in process matches with TCR's*/
+		if ((ncr->bus_host & SCSI_PHASE_MESSAGE_IN) ==
+			(ncr->cur_bus & SCSI_PHASE_MESSAGE_IN))
+		{
+			ncr_log("Phase match\n");
+			ret |= STATUS_PHASE_MATCH;
 		}
-		if (!(bus & BUS_BSY) && (ncr->mode & MODE_MONITOR_BUSY))
-				ret |= STATUS_BUSY_ERROR;
+		else
+			picint(1 << ncr_dev->irq);
+
+		ncr_wait_process(ncr_dev);
+
+		if (ncr->bus_host & BUS_ACK)
+			ret |= STATUS_ACK;
+		
+		if ((ncr->bus_host & BUS_REQ) && (ncr->mode & MODE_DMA)) {
+			ncr_log("Entering DMA mode\n");
+			ret |= STATUS_DRQ;
+			
+			int bus = 0;
+			
+			if (ncr->bus_host & BUS_IO)
+				bus |= TCR_IO;
+			if (ncr->bus_host & BUS_CD)
+				bus |= TCR_CD;
+			if (ncr->bus_host & BUS_MSG)
+				bus |= TCR_MSG;
+			if ((ncr->tcr & 7) != bus)
+			{
+				ncr->isr |= STATUS_INT;
+			}
+		}
+		if (!(ncr->bus_host & BUS_BSY) && (ncr->mode & MODE_MONITOR_BUSY))
+		{
+			ncr_log("Busy error\n");
+			ret |= STATUS_BUSY_ERROR;
+		}
 		ret |= (ncr->isr & (STATUS_INT | STATUS_END_OF_DMA));
 		break;
 
 	case 7:		/* reset Parity/Interrupt */
 		ncr->isr &= ~STATUS_INT;
+		picintc(1 << ncr_dev->irq);
+		ncr_log("Reset IRQ\n");
 		break;
 
 	default:
@@ -375,198 +536,76 @@ ncr_read(uint16_t port, void *priv)
 		break;
     }
 
-#if ENABLE_NCR5380_LOG
-    ncr_log("NCR5380 read(%04x)=%02x @%04X:%04X\n", port, ret, CS,cpu_state.pc);
-#endif
+    ncr_log("NCR5380 read(%04x)=%02x @%04X:%04X\n", port & 7, ret, CS,cpu_state.pc);
+
     return(ret);
 }
-
-
-static void
-dma_callback(void *priv)
-{
-    ncr_t *scsi = (ncr_t *)priv;
-    ncr5380_t *ncr = &scsi->ncr;
-    int bytes_transferred = 0;
-    int c;
-
-    scsi->dma_timer += POLL_TIME_US * TIMER_USEC;
-
-    switch (scsi->ncr.dma_mode) {
-	case DMA_SEND:
-		if (scsi->status_ctrl & CTRL_DATA_DIR) {
-			ncr_log("DMA_SEND with DMA direction set wrong\n");
-			break;
-		}
-
-		if (!(scsi->status_ctrl & STATUS_BUFFER_NOT_READY)) {
-			break;
-		}
-
-		if (! scsi->block_count_loaded) break;
-
-		while (bytes_transferred < MAX_BYTES_TRANSFERRED_PER_POLL) {
-			int bus;
-			uint8_t data;
-
-			for (c = 0; c < 10; c++) {
-				uint8_t status = scsi_bus_read(&ncr->bus);
-
-				if (status & BUS_REQ) break;
-			}
-			if (c == 10) break;
-
-			/* Data ready. */
-			data = scsi->buffer[scsi->buffer_pos];
-			bus = get_bus_host(ncr) & ~BUS_DATAMASK;
-			bus |= BUS_SETDATA(data);
-
-			scsi_bus_update(&ncr->bus, bus | BUS_ACK);
-			scsi_bus_update(&ncr->bus, bus & ~BUS_ACK);
-
-			bytes_transferred++;
-			if (++scsi->buffer_pos == 128) {
-				scsi->buffer_pos = 0;
-				scsi->buffer_host_pos = 0;
-				scsi->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
-				scsi->block_count = (scsi->block_count - 1) & 255;
-				scsi->ncr_busy = 0;
-				if (! scsi->block_count) {
-					scsi->block_count_loaded = 0;
-					scsi->dma_enabled = 0;
-
-					ncr->tcr |= TCR_LAST_BYTE_SENT;
-					ncr->isr |= STATUS_END_OF_DMA;
-					if (ncr->mode & MODE_ENA_EOP_INT)
-						ncr->isr |= STATUS_INT;
-				}
-				break;
-			}
-		}
-		break;
-
-	case DMA_INITIATOR_RECEIVE:
-		if (!(scsi->status_ctrl & CTRL_DATA_DIR)) {
-			ncr_log("DMA_INITIATOR_RECEIVE with DMA direction set wrong\n");
-			break;
-		}
-
-		if (!(scsi->status_ctrl & STATUS_BUFFER_NOT_READY)) break;
-
-		if (!scsi->block_count_loaded) break;
-
-		while (bytes_transferred < MAX_BYTES_TRANSFERRED_PER_POLL) {
-			int bus;
-			uint8_t temp;
-
-			for (c = 0; c < 10; c++) {
-				uint8_t status = scsi_bus_read(&ncr->bus);
-
-				if (status & BUS_REQ) break;
-			}
-			if (c == 10) break;
-
-			/* Data ready. */
-       			bus = scsi_bus_read(&ncr->bus);
-       			temp = BUS_GETDATA(bus);
-			bus = get_bus_host(ncr);
-
-			scsi_bus_update(&ncr->bus, bus | BUS_ACK);
-			scsi_bus_update(&ncr->bus, bus & ~BUS_ACK);
-
-			bytes_transferred++;
-			scsi->buffer[scsi->buffer_pos++] = temp;
-			if (scsi->buffer_pos == 128) {
-				scsi->buffer_pos = 0;
-				scsi->buffer_host_pos = 0;
-				scsi->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
-				scsi->block_count = (scsi->block_count - 1) & 255;
-				if (!scsi->block_count) {
-					scsi->block_count_loaded = 0;
-					scsi->dma_enabled = 0;
-
-					ncr->isr |= STATUS_END_OF_DMA;
-					if (ncr->mode & MODE_ENA_EOP_INT)
-						ncr->isr |= STATUS_INT;
-				}
-				break;
-			}
-		}
-		break;
-
-	default:
-#if 1
-		ncr_log("DMA callback bad mode %i\n", scsi->ncr.dma_mode);
-#endif
-		break;
-    }
-
-    c = scsi_bus_read(&ncr->bus);
-    if (!(c & BUS_BSY) && (ncr->mode & MODE_MONITOR_BUSY)) {
-	ncr->mode &= ~MODE_DMA;
-	ncr->dma_mode = DMA_IDLE;
-	dma_changed(scsi, ncr->dma_mode, ncr->mode & MODE_DMA);
-    }
-}
-
 
 /* Memory-mapped I/O READ handler. */
 static uint8_t 
 memio_read(uint32_t addr, void *priv)
 {
-    ncr_t *scsi = (ncr_t *)priv;
+    ncr5380_t *ncr_dev = (ncr5380_t *)priv;
     uint8_t ret = 0xff;
-
+	
     addr &= 0x3fff;
 #if ENABLE_NCR5380_LOG
     ncr_log("memio_read %08x\n", addr);
 #endif
 
     if (addr < 0x2000)
-	ret = scsi->bios_rom.rom[addr & 0x1fff];
+	ret = ncr_dev->bios_rom.rom[addr & 0x1fff];
     else if (addr < 0x3800)
 	ret = 0xff;
     else if (addr >= 0x3a00)
-	ret = scsi->ext_ram[addr - 0x3a00];
+	ret = ncr_dev->ext_ram[addr - 0x3a00];
     else switch (addr & 0x3f80) {
 	case 0x3800:
 #if ENABLE_NCR5380_LOG
-		ncr_log("Read intRAM %02x %02x\n", addr & 0x3f, scsi->int_ram[addr & 0x3f]);
+		ncr_log("Read intRAM %02x %02x\n", addr & 0x3f, ncr_dev->int_ram[addr & 0x3f]);
 #endif
-		ret = scsi->int_ram[addr & 0x3f];
+		ret = ncr_dev->int_ram[addr & 0x3f];
 		break;
 
 	case 0x3880:
 #if ENABLE_NCR5380_LOG
 		ncr_log("Read 53c80 %04x\n", addr);
 #endif
-		ret = ncr_read(addr, scsi);
+		ret = ncr_read(addr, ncr_dev);
 		break;
-
+		
 	case 0x3900:
-#if ENABLE_NCR5380_LOG
-		ncr_log(" Read 3900 %i %02x\n", scsi->buffer_host_pos, scsi->status_ctrl);
-#endif
-		if (scsi->buffer_host_pos >= 128 || !(scsi->status_ctrl & CTRL_DATA_DIR))
+		ncr_log("Read 3900 host pos %i status ctrl %02x\n", ncr_dev->buffer_host_pos, ncr_dev->status_ctrl);
+		ncr_log("Read port 0x3900-0x397f\n");
+		
+		if (ncr_dev->buffer_host_pos >= 128 || !(ncr_dev->status_ctrl & CTRL_DATA_DIR))
 			ret = 0xff;
 		else {
-			ret = scsi->buffer[scsi->buffer_host_pos++];
+			ret = ncr_dev->buffer[ncr_dev->buffer_host_pos++];
+			
+			ncr_log("Read host buffer=%d\n", ncr_dev->buffer_host_pos);
 
-			if (scsi->buffer_host_pos == 128)
-				scsi->status_ctrl |= STATUS_BUFFER_NOT_READY;
+			if (ncr_dev->buffer_host_pos == 128)
+			{	
+				ncr_log("Not ready\n");
+				ncr_dev->status_ctrl |= STATUS_BUFFER_NOT_READY;
+			}
 		}
 		break;
 
 	case 0x3980:
 		switch (addr) {
 			case 0x3980:	/* status */
-				ret = scsi->status_ctrl;// | 0x80;
-				if (! scsi->ncr_busy)
+				ret = ncr_dev->status_ctrl;// | 0x80;
+				ncr_log("NCR status ctrl read=%02x\n", ncr_dev->status_ctrl & STATUS_BUFFER_NOT_READY);
+				if (!ncr_dev->ncr_busy)
+				{
 					ret |= STATUS_53C80_ACCESSIBLE;
+				}
 				break;
 
 			case 0x3981:	/* block counter register*/
-				ret = scsi->block_count;
+				ret = ncr_dev->block_count;
 				break;
 
 			case 0x3982:	/* switch register read */
@@ -577,7 +616,7 @@ memio_read(uint32_t addr, void *priv)
 				ret = 0xff;
 				break;
 		}
-		break;
+		break;		
     }
 
 #if ENABLE_NCR5380_LOG
@@ -593,37 +632,37 @@ memio_read(uint32_t addr, void *priv)
 static void 
 memio_write(uint32_t addr, uint8_t val, void *priv)
 {
-    ncr_t *scsi = (ncr_t *)priv;
-
+    ncr5380_t *ncr_dev = (ncr5380_t *)priv;
+	
     addr &= 0x3fff;
 
-#if ENABLE_NCR5380_LOG
-    ncr_log("memio_write(%08x,%02x) @%04X:%04X  %i %02x\n", addr, val, CS,cpu_state.pc,  scsi->buffer_host_pos, scsi->status_ctrl);
-#endif
+    ncr_log("memio_write(%08x,%02x) @%04X:%04X  %i %02x\n", addr, val, CS,cpu_state.pc,  ncr_dev->buffer_host_pos, ncr_dev->status_ctrl);
 
     if (addr >= 0x3a00)
-	scsi->ext_ram[addr - 0x3a00] = val;
+	ncr_dev->ext_ram[addr - 0x3a00] = val;
     else switch (addr & 0x3f80) {
 	case 0x3800:
 #if 0
 		ncr_log("Write intram %02x %02x\n", addr & 0x3f, val);
 #endif
-		scsi->int_ram[addr & 0x3f] = val;
+		ncr_dev->int_ram[addr & 0x3f] = val;
 		break;
 
 	case 0x3880:
 #if ENABLE_NCR5380_LOG
 		ncr_log("Write 53c80 %04x %02x\n", addr, val);
 #endif
-		ncr_write(addr, val, scsi);
+		ncr_write(addr, val, ncr_dev);
 		break;
-
+		
 	case 0x3900:
-		if (!(scsi->status_ctrl & CTRL_DATA_DIR) && scsi->buffer_host_pos < 128) {
-			scsi->buffer[scsi->buffer_host_pos++] = val;
-			if (scsi->buffer_host_pos == 128) {
-				scsi->status_ctrl |= STATUS_BUFFER_NOT_READY;
-				scsi->ncr_busy = 1;
+		if (!(ncr_dev->status_ctrl & CTRL_DATA_DIR) && ncr_dev->buffer_host_pos < 128) {
+			ncr_dev->buffer[ncr_dev->buffer_host_pos++] = val;
+			
+			if (ncr_dev->buffer_host_pos == 128) 
+			{
+				ncr_dev->status_ctrl |= STATUS_BUFFER_NOT_READY;
+				ncr_dev->ncr_busy = 1;
 			}
 		}
 		break;
@@ -631,31 +670,45 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
 	case 0x3980:
 		switch (addr) {
 			case 0x3980:	/* Control */
-				if ((val & CTRL_DATA_DIR) && !(scsi->status_ctrl & CTRL_DATA_DIR)) {
-					scsi->buffer_host_pos = 128;
-					scsi->status_ctrl |= STATUS_BUFFER_NOT_READY;
+				ncr_log("Write 0x3980: val=%02x CS=%04x, pc=%04x\n", val, CS,cpu_state.pc);
+				if (val & 0x80)
+				{
+					ncr_log("Resetting the 53c400\n");
+					picint(1 << ncr_dev->irq);
 				}
-				else if (!(val & CTRL_DATA_DIR) && (scsi->status_ctrl & CTRL_DATA_DIR)) {
-					scsi->buffer_host_pos = 0;
-					scsi->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
+
+				if ((val & CTRL_DATA_DIR) && !(ncr_dev->status_ctrl & CTRL_DATA_DIR)) {
+					ncr_log("Pos 128\n");
+					ncr_dev->buffer_host_pos = 128;
+					ncr_dev->status_ctrl |= STATUS_BUFFER_NOT_READY;
 				}
-				scsi->status_ctrl = (scsi->status_ctrl & 0x87) | (val & 0x78);
+				else if (!(val & CTRL_DATA_DIR) && (ncr_dev->status_ctrl & CTRL_DATA_DIR)) {
+					ncr_log("Pos 0\n");
+					ncr_dev->buffer_host_pos = 0;
+					ncr_dev->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
+				}
+				ncr_dev->status_ctrl = (ncr_dev->status_ctrl & 0x87) | (val & 0x78);
 				break;
 
 			case 0x3981:	/* block counter register */
-				scsi->block_count = val;
-				scsi->block_count_loaded = 1;
-				scsi->dma_enabled = (scsi->ncr5380_dma_enabled && scsi->block_count_loaded);
-				if (scsi->status_ctrl & CTRL_DATA_DIR) {
-					scsi->buffer_host_pos = 128;
-					scsi->status_ctrl |= STATUS_BUFFER_NOT_READY;
+				ncr_log("Write 0x3981: val=%d\n", val);
+				ncr_dev->block_count = val;
+				ncr_dev->block_count_loaded = 1;
+
+				ncr_log("Timer for transfers=%02x\n", ncr_dev->timer_enabled);
+				
+				if (ncr_dev->status_ctrl & CTRL_DATA_DIR) {
+					ncr_log("Data Read\n");
+					ncr_dev->buffer_host_pos = 128;
+					ncr_dev->status_ctrl |= STATUS_BUFFER_NOT_READY;
 				} else {
-					scsi->buffer_host_pos = 0;
-					scsi->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
+					ncr_log("Data Write\n");
+					ncr_dev->buffer_host_pos = 0;
+					ncr_dev->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
 				}
 				break;
 		}
-		break;
+		break;	
     }
 }
 
@@ -664,18 +717,15 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t 
 t130b_read(uint32_t addr, void *priv)
 {
-    ncr_t *scsi = (ncr_t *)priv;
+    ncr5380_t *ncr_dev = (ncr5380_t *)priv;
     uint8_t ret = 0xff;
 
     addr &= 0x3fff;
-    if ((addr < 0x1800) && scsi->rom_addr)
-	ret = scsi->bios_rom.rom[addr & 0x1fff];
-      else
-    if ((addr < 0x1800) && !scsi->rom_addr)
-	ret = 0xff;
+    if (addr < 0x1800)
+	ret = ncr_dev->bios_rom.rom[addr & 0x1fff];
       else
     if (addr < 0x1880)
-	ret = scsi->ext_ram[addr & 0x7f];
+	ret = ncr_dev->ext_ram[addr & 0x7f];
 
     return(ret);
 }
@@ -685,18 +735,18 @@ t130b_read(uint32_t addr, void *priv)
 static void 
 t130b_write(uint32_t addr, uint8_t val, void *priv)
 {
-    ncr_t *scsi = (ncr_t *)priv;
+    ncr5380_t *ncr_dev = (ncr5380_t *)priv;
 
     addr &= 0x3fff;
     if (addr >= 0x1800 && addr < 0x1880)
-	scsi->ext_ram[addr & 0x7f] = val;
+	ncr_dev->ext_ram[addr & 0x7f] = val;
 }
 
 
 static uint8_t 
 t130b_in(uint16_t port, void *priv)
 {
-    ncr_t *scsi = (ncr_t *)priv;
+    ncr5380_t *ncr_dev = (ncr5380_t *)priv;
     uint8_t ret = 0xff;
 
     switch (port & 0x0f) {
@@ -704,14 +754,14 @@ t130b_in(uint16_t port, void *priv)
 	case 0x01:
 	case 0x02:
 	case 0x03:
-		ret = memio_read((port & 7) | 0x3980, scsi);
+		ret = memio_read((port & 7) | 0x3980, ncr_dev);
 		break;
 
 	case 0x04:
 	case 0x05:
-		ret = memio_read(0x3900, scsi);
-		break;
-
+		ret = memio_read(0x3900, ncr_dev);
+		break;		
+		
 	case 0x08:
 	case 0x09:
 	case 0x0a:
@@ -720,7 +770,7 @@ t130b_in(uint16_t port, void *priv)
 	case 0x0d:
 	case 0x0e:
 	case 0x0f:
-		ret = ncr_read(port, scsi);
+		ret = ncr_read(port, ncr_dev);
 		break;
     }
 
@@ -731,21 +781,21 @@ t130b_in(uint16_t port, void *priv)
 static void 
 t130b_out(uint16_t port, uint8_t val, void *priv)
 {
-    ncr_t *scsi = (ncr_t *)priv;
+    ncr5380_t *ncr_dev = (ncr5380_t *)priv;
 
     switch (port & 0x0f) {
 	case 0x00:
 	case 0x01:
 	case 0x02:
 	case 0x03:
-		memio_write((port & 7) | 0x3980, val, scsi);
+		memio_write((port & 7) | 0x3980, val, ncr_dev);
 		break;
 
 	case 0x04:
 	case 0x05:
-		memio_write(0x3900, val, scsi);
-		break;
-
+		memio_write(0x3900, val, ncr_dev);
+		break;		
+		
 	case 0x08:
 	case 0x09:
 	case 0x0a:
@@ -754,16 +804,15 @@ t130b_out(uint16_t port, uint8_t val, void *priv)
 	case 0x0d:
 	case 0x0e:
 	case 0x0f:
-		ncr_write(port, val, scsi);
+		ncr_write(port, val, ncr_dev);
 		break;
     }
 }
 
-
 static uint8_t 
 scsiat_in(uint16_t port, void *priv)
 {
-    ncr_t *scsi = (ncr_t *)priv;
+    ncr5380_t *ncr_dev = (ncr5380_t *)priv;
     uint8_t ret = 0xff;
 
     switch (port & 0x0f) {
@@ -771,26 +820,16 @@ scsiat_in(uint16_t port, void *priv)
 	case 0x01:
 	case 0x02:
 	case 0x03:
-		ret = memio_read((port & 7) | 0x3980, scsi);
-		break;
-
 	case 0x04:
 	case 0x05:
-		ret = memio_read(0x3900, scsi);
-		break;
-
-	case 0x08:
-	case 0x09:
-	case 0x0a:
-	case 0x0b:
-	case 0x0c:
-	case 0x0d:
-	case 0x0e:
-	case 0x0f:
-		ret = ncr_read(port, scsi);
+	case 0x06:
+	case 0x07:
+		ret = ncr_read(port, ncr_dev);
 		break;
     }
 
+	pclog("SCSI AT read=0x%03x, ret=%02x, CS:%08x, PC:%08x\n", port, ret, CS,cpu_state.pc);	
+	
     return(ret);
 }
 
@@ -798,31 +837,601 @@ scsiat_in(uint16_t port, void *priv)
 static void 
 scsiat_out(uint16_t port, uint8_t val, void *priv)
 {
-    ncr_t *scsi = (ncr_t *)priv;
+    ncr5380_t *ncr_dev = (ncr5380_t *)priv;
+	ncr_t *ncr = &ncr_dev->ncr;
+	scsi_device_t *dev = &SCSIDevices[ncr->target_id];
 
+	pclog("SCSI AT write=0x%03x, val=%02x, CS:%08x, PC:%08x\n", port, val, CS,cpu_state.pc);
     switch (port & 0x0f) {
+	case 0x08:
+		ncr->unk_08 = val;	
+	
+		if (ncr->unk_08 & 0x08)
+		{			
+			if (ncr->dma_mode == DMA_INITIATOR_RECEIVE)
+			{
+				while (ncr_dev->buffer_host_pos < 128)
+				{
+					uint8_t temp;
+					
+					temp = ncr_dev->buffer[ncr_dev->buffer_host_pos++];
+					
+					pclog("Read Buffer host=%d\n", ncr_dev->buffer_host_pos);
+					
+					ncr->bus_host = get_bus_host(ncr) & ~BUS_DATAMASK;
+					ncr->bus_host |= BUS_SETDATA(temp);					
+					
+					if (ncr_dev->buffer_host_pos == 128)
+						break;
+				}
+			}
+			else if (ncr->dma_mode == DMA_SEND)
+			{
+				while (ncr_dev->buffer_host_pos < 128)
+				{
+					/* Data ready. */
+					uint8_t temp;
+
+					ncr_wait_process(ncr_dev);
+					temp = BUS_GETDATA(ncr->bus_host);
+					ncr->bus_host = get_bus_host(ncr);
+					
+					ncr_dev->buffer[ncr_dev->buffer_host_pos++] = temp;
+					
+					pclog("Write Buffer host=%d\n", ncr_dev->buffer_host_pos);
+
+					if (ncr_dev->buffer_host_pos == 128)
+					{
+						
+						break;
+					}
+				}			
+			}
+		}
+		
+		if (ncr->unk_08 & 0x01)
+		{
+			ncr_dev->block_count_loaded = 1;
+			ncr_dev->block_count = dev->BufferLength / 128;
+		}
+		break;		
+		
 	case 0x00:
 	case 0x01:
 	case 0x02:
 	case 0x03:
-		memio_write((port & 7) | 0x3980, val, scsi);
-		break;
-
 	case 0x04:
 	case 0x05:
-		memio_write(0x3900, val, scsi);
+	case 0x06:
+	case 0x07:
+		ncr_write(port, val, ncr_dev);
 		break;
+    }
+}
 
-	case 0x08:
-	case 0x09:
-	case 0x0a:
-	case 0x0b:
-	case 0x0c:
-	case 0x0d:
-	case 0x0e:
-	case 0x0f:
-		ncr_write(port, val, scsi);
-		break;
+static void
+ncr_callback(void *priv)
+{
+	ncr5380_t *ncr_dev = (ncr5380_t *)priv;
+	ncr_t *ncr = &ncr_dev->ncr;
+	scsi_device_t *dev = &SCSIDevices[ncr->target_id];
+	int c = 0;
+
+	ncr_log("DMA mode=%d\n", ncr->dma_mode);
+	
+	if (!ncr_dev->timer_enabled)
+	{
+		if (ncr->dma_mode == DMA_IDLE)
+		{
+			ncr_dev->timer_period = 10LL * TIMER_USEC;
+			return;
+		}
+		else
+		{
+			ncr_dev->timer_period += 10LL * TIMER_USEC;
+		}
+	}
+	else
+	{
+		ncr_dev->timer_enabled = 0;
+	}
+
+	if (ncr->dma_mode == DMA_IDLE)
+	{	
+		ncr->bus_host = get_bus_host(ncr);	
+
+		/*Start the SCSI command layer, which will also make the timings*/
+		if (ncr->bus_host & BUS_ARB)
+		{
+			ncr_log("Arbitration\n");
+			ncr->state = STATE_IDLE;
+		}
+
+		if (ncr->state == STATE_IDLE)
+		{
+			ncr->clear_req = ncr->wait_data = ncr->wait_complete = 0;
+			if ((ncr->bus_host & BUS_SEL) && !(ncr->bus_host & BUS_BSY))
+			{
+				ncr_log("Selection phase\n");
+				uint8_t sel_data = BUS_GETDATA(ncr->bus_host);
+
+				ncr->target_id = get_dev_id(sel_data);
+				
+				ncr_log("Select - target ID = %i\n", ncr->target_id);
+
+				/*Once the device has been found and selected, mark it as busy*/
+				if ((ncr->target_id != -1) && scsi_device_present(ncr->target_id)) {
+					ncr->cur_bus |= BUS_BSY;
+					ncr_log("Device found at ID %i\n", ncr->target_id);
+					ncr_log("Current Bus BSY=%02x\n", ncr->cur_bus);
+					ncr->state = STATE_COMMAND;
+					ncr->cur_bus = BUS_BSY | BUS_REQ;
+					ncr_log("CurBus BSY|REQ=%02x\n", ncr->cur_bus);
+					ncr->command_pos = 0;
+					SET_BUS_STATE(ncr, SCSI_PHASE_COMMAND);
+					picint(1 << ncr_dev->irq);
+				}
+				else
+				{
+					ncr->state = STATE_IDLE;
+					ncr->cur_bus = 0;
+				}
+			}
+		}
+		else if (ncr->state == STATE_COMMAND)
+		{
+			int64_t p;
+			
+			/*Command phase, make sure the ICR ACK bit is set to keep on, 
+			because the device must be acknowledged by ICR*/
+			ncr_log("NCR ICR for Command=%02x\n", ncr->bus_host & BUS_ACK);
+			if (ncr->bus_host & BUS_ACK)
+			{
+				/*Write command byte to the output data register*/
+				ncr->command[ncr->command_pos++] = BUS_GETDATA(ncr->bus_host);
+
+				ncr->new_phase = ncr->cur_bus & SCSI_PHASE_MESSAGE_IN;
+				ncr->clear_req = 3;
+				ncr_log("Current bus for command request=%02x\n", ncr->cur_bus & BUS_REQ);				
+				ncr->cur_bus &= ~BUS_REQ;
+
+				ncr_log("Command pos=%i, output data=%02x\n", ncr->command_pos, BUS_GETDATA(ncr->bus_host));
+				if (get_cmd_len(ncr->command[0]) == ncr->command_pos) 
+				{
+					/*Reset data position to default*/
+					ncr->data_pos = 0;
+						
+					dev = &SCSIDevices[ncr->target_id];
+					
+					ncr_log("SCSI Command 0x%02X for ID %d, status code=%02x\n", ncr->command[0], ncr->target_id, dev->Status);
+
+					dev->BufferLength = -1;
+					
+					/*Now, execute the given SCSI command*/
+					scsi_device_command_phase0(ncr->target_id, ncr->command);
+
+					ncr_log("SCSI ID %i: Command %02X: Buffer Length %i, SCSI Phase %02X\n", ncr->target_id, ncr->command[0], dev->BufferLength, dev->Phase);
+					
+					if (dev->Status != SCSI_STATUS_OK)
+						ncr_dev->is_non_data_mode = 1;
+					
+					if (ncr_dev->is_non_data_mode)
+					{
+						ncr_dev->is_non_data_mode = 0;
+						ncr->new_phase = SCSI_PHASE_STATUS;
+						ncr->wait_data = 4;
+						return;
+					}
+					
+					/*If the SCSI phase is Data In or Data Out, allocate the SCSI buffer based on the transfer length of the command*/
+					if (dev->BufferLength && (dev->Phase == SCSI_PHASE_DATA_IN || dev->Phase == SCSI_PHASE_DATA_OUT)) {
+						dev->CmdBuffer = (uint8_t *) malloc(dev->BufferLength);
+						
+						p = scsi_device_get_callback(ncr->target_id);
+						if (p <= 0LL) {
+							ncr_dev->temp_period += (int64_t)(dev->BufferLength);
+						} else {
+							ncr_dev->media_period += p;
+						}
+					}
+
+					if (dev->Phase == SCSI_PHASE_DATA_OUT) {
+						/* Write direction commands have delayed execution - only execute them after the bus has gotten all the data from the host. */
+						ncr_log("Next state is data out\n");
+						ncr->new_phase = SCSI_PHASE_DATA_OUT;
+						ncr->wait_data = 4;
+						ncr->clear_req = 4;
+					} else {
+						/* Other command - execute immediately. */
+						ncr->new_phase = dev->Phase;
+
+						if (ncr->new_phase == SCSI_PHASE_DATA_IN) 
+						{
+							scsi_device_command_phase1(ncr->target_id);
+						}
+						
+						ncr->wait_data = 4;
+					}
+				}	
+			}
+		}
+		else if (ncr->state == STATE_DATAIN)
+		{
+			dev = &SCSIDevices[ncr->target_id];
+			ncr_log("Data In ACK=%02x\n", ncr->bus_host & BUS_ACK);
+			if (ncr->bus_host & BUS_ACK)
+			{
+				if (ncr->data_pos >= dev->BufferLength) {
+
+					if (dev->CmdBuffer != NULL)
+					{
+						free(dev->CmdBuffer);
+						dev->CmdBuffer = NULL;	
+					}
+					
+					ncr->cur_bus &= ~BUS_REQ;
+					ncr->new_phase = SCSI_PHASE_STATUS;
+					ncr->wait_data = 4;
+					ncr->wait_complete = 8;
+				} else {
+					ncr->tx_data = dev->CmdBuffer[ncr->data_pos++];
+					ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->tx_data) | BUS_DBP | BUS_REQ;
+					ncr->clear_req = 3;
+					ncr->cur_bus &= ~BUS_REQ;
+					ncr->new_phase = SCSI_PHASE_DATA_IN;
+				}
+			}
+		}
+		else if (ncr->state == STATE_DATAOUT)
+		{
+			dev = &SCSIDevices[ncr->target_id];
+			
+			ncr_log("Data Out ACK=%02x\n", ncr->bus_host & BUS_ACK);
+			if (ncr->bus_host & BUS_ACK)
+			{
+				dev->CmdBuffer[ncr->data_pos++] = BUS_GETDATA(ncr->bus_host);
+				
+				if (ncr->data_pos >= dev->BufferLength) {
+					scsi_device_command_phase1(ncr->target_id);
+
+					if (dev->CmdBuffer != NULL)
+					{
+						free(dev->CmdBuffer);
+						dev->CmdBuffer = NULL;	
+					}
+					
+					ncr->cur_bus &= ~BUS_REQ;
+					ncr_log("CurBus ~REQ_DataOutDone=%02x\n", ncr->cur_bus);
+					ncr->new_phase = SCSI_PHASE_STATUS;
+					ncr->wait_data = 4;
+					ncr->wait_complete = 8;
+				}				
+				else
+				{
+					/*More data is to be transferred, place a request*/
+					ncr->cur_bus |= BUS_REQ;
+					ncr_log("CurBus ~REQ_DataOut=%02x\n", ncr->cur_bus);
+				}
+			}
+		}
+		else if (ncr->state == STATE_STATUS)
+		{
+			if (ncr->bus_host & BUS_ACK)
+			{	
+				/*All transfers done, wait until next transfer*/
+				ncr->cur_bus &= ~BUS_REQ;
+				ncr->new_phase = SCSI_PHASE_MESSAGE_IN;
+				ncr->wait_data = 4;
+				ncr->wait_complete = 8;	
+			}
+		}
+		else if (ncr->state == STATE_MESSAGEIN)
+		{
+			if (ncr->bus_host & BUS_ACK)
+			{
+				ncr->cur_bus &= ~BUS_REQ;
+				ncr->new_phase = BUS_IDLE;
+				ncr->wait_data = 4;
+			}
+		}		
+	}
+		
+	if (ncr_dev->type < 3)
+	{
+		if (((ncr_dev->status_ctrl & STATUS_BUFFER_NOT_READY) && 
+			(ncr->dma_mode == DMA_SEND || ncr->dma_mode == DMA_INITIATOR_RECEIVE)))
+		{
+			ncr_dev->period = 0.2 * ((double) TIMER_USEC) * ((double) ncr_dev->temp_period);
+			ncr_dev->timer_period = (ncr_dev->media_period + ((int64_t) ncr_dev->period) + (40LL * TIMER_USEC)) / 450;
+			ncr_log("Temporary period: %" PRId64 " us (%" PRIi64 " periods), media periods = %" PRId64 " \n", ncr_dev->timer_period, ncr_dev->temp_period, ncr_dev->media_period);
+		}	
+		
+		if (ncr->dma_mode == DMA_INITIATOR_RECEIVE)
+		{
+			if (!(ncr_dev->status_ctrl & CTRL_DATA_DIR)) {
+				ncr_log("DMA_INITIATOR_RECEIVE with DMA direction set wrong\n");
+				return;
+			}
+			
+			ncr_log("Status for reading=%02x\n", ncr_dev->status_ctrl);
+			
+			if (!(ncr_dev->status_ctrl & STATUS_BUFFER_NOT_READY)) return;
+			
+			if (!ncr_dev->block_count_loaded) return;
+			
+			while (c < 64)
+			{
+				/* Data ready. */
+				uint8_t temp;
+
+				ncr_wait_process(ncr_dev);
+				temp = BUS_GETDATA(ncr->bus_host);
+				ncr->bus_host = get_bus_host(ncr);
+
+				if (ncr->data_pos >= dev->BufferLength) {
+
+					if (dev->CmdBuffer != NULL)
+					{
+						free(dev->CmdBuffer);
+						dev->CmdBuffer = NULL;	
+					}
+					
+					ncr->cur_bus &= ~BUS_REQ;
+					ncr->new_phase = SCSI_PHASE_STATUS;
+					ncr->wait_data = 4;
+					ncr->wait_complete = 8;
+				} else {
+					ncr->tx_data = dev->CmdBuffer[ncr->data_pos++];
+					ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->tx_data) | BUS_DBP | BUS_REQ;
+					ncr->clear_req = 3;
+					ncr->cur_bus &= ~BUS_REQ;
+					ncr->new_phase = SCSI_PHASE_DATA_IN;
+				}
+
+				ncr_dev->buffer[ncr_dev->buffer_pos++] = temp;
+				ncr_log("Buffer pos for reading=%d\n", ncr_dev->buffer_pos);
+				
+				c++;
+				
+				if (ncr_dev->buffer_pos == 128)
+				{					
+					ncr_dev->buffer_pos = 0;
+					ncr_dev->buffer_host_pos = 0;
+					ncr_dev->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
+					ncr_dev->block_count = (ncr_dev->block_count - 1) & 255;
+					ncr_log("Remaining blocks to be read=%d\n", ncr_dev->block_count);
+					if (!ncr_dev->block_count) {
+						ncr_dev->block_count_loaded = 0;
+						ncr_log("IO End of read transfer\n");
+
+						ncr->isr |= STATUS_END_OF_DMA;
+						if (ncr->mode & MODE_ENA_EOP_INT)
+						{
+							ncr_log("NCR read irq\n");
+							ncr->isr |= STATUS_INT;
+							picint(1 << ncr_dev->irq);
+						}
+					}
+					break;
+				}
+			}		
+		}
+		else if (ncr->dma_mode == DMA_SEND)
+		{
+				if (ncr_dev->status_ctrl & CTRL_DATA_DIR) {
+					ncr_log("DMA_SEND with DMA direction set wrong\n");
+					return;
+				}
+				
+				ncr_log("Status for writing=%02x\n", ncr_dev->status_ctrl);
+				
+				if (!(ncr_dev->status_ctrl & STATUS_BUFFER_NOT_READY))
+				{
+					ncr_log("Buffer ready\n");
+					return;
+				}
+				
+				if (!ncr_dev->block_count_loaded) return;			
+
+				while (c < 64)
+				{
+					/* Data ready. */
+					uint8_t data;
+					
+					data = ncr_dev->buffer[ncr_dev->buffer_pos];
+					ncr->bus_host = get_bus_host(ncr) & ~BUS_DATAMASK;
+					ncr->bus_host |= BUS_SETDATA(data);
+					
+					dev->CmdBuffer[ncr->data_pos++] = BUS_GETDATA(ncr->bus_host);
+					
+					if (ncr->data_pos >= dev->BufferLength) {
+						scsi_device_command_phase1(ncr->target_id);
+
+						if (dev->CmdBuffer != NULL)
+						{
+							free(dev->CmdBuffer);
+							dev->CmdBuffer = NULL;	
+						}
+						
+						ncr->cur_bus &= ~BUS_REQ;
+						ncr_log("CurBus ~REQ_DataOutDone=%02x\n", ncr->cur_bus);
+						ncr->new_phase = SCSI_PHASE_STATUS;
+						ncr->wait_data = 4;
+						ncr->wait_complete = 8;
+					}				
+					else
+					{
+						/*More data is to be transferred, place a request*/
+						ncr->cur_bus |= BUS_REQ;
+						ncr_log("CurBus ~REQ_DataOut=%02x\n", ncr->cur_bus);
+					}
+					
+					c++;
+
+					if (++ncr_dev->buffer_pos == 128) {
+						ncr_dev->buffer_pos = 0;
+						ncr_dev->buffer_host_pos = 0;
+						ncr_dev->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
+						ncr_dev->ncr_busy = 0;
+						ncr_dev->block_count = (ncr_dev->block_count - 1) & 255;
+						ncr_log("Remaining blocks to be written=%d\n", ncr_dev->block_count);
+						if (!ncr_dev->block_count) {
+							ncr_dev->block_count_loaded = 0;
+							ncr_log("IO End of write transfer\n");
+							
+							ncr->tcr |= TCR_LAST_BYTE_SENT;
+							ncr->isr |= STATUS_END_OF_DMA;
+							if (ncr->mode & MODE_ENA_EOP_INT)
+							{
+								ncr_log("NCR write irq\n");
+								ncr->isr |= STATUS_INT;
+								picint(1 << ncr_dev->irq);
+							}
+						}
+						break;
+					}
+				}		
+		}
+	}
+	else
+	{
+		if (((ncr->unk_08 & 0x01) && 
+			(ncr->dma_mode == DMA_SEND || ncr->dma_mode == DMA_INITIATOR_RECEIVE)))
+		{
+			ncr_dev->period = 0.2 * ((double) TIMER_USEC) * ((double) ncr_dev->temp_period);
+			ncr_dev->timer_period = (ncr_dev->media_period + ((int64_t) ncr_dev->period) + (40LL * TIMER_USEC)) / 450;
+			ncr_log("Temporary period: %" PRId64 " us (%" PRIi64 " periods), media periods = %" PRId64 " \n", ncr_dev->timer_period, ncr_dev->temp_period, ncr_dev->media_period);
+		}
+		
+		if (ncr->dma_mode == DMA_INITIATOR_RECEIVE)
+		{
+			if (!(ncr_dev->block_count_loaded))
+				return;
+
+			while (c < 64)
+			{
+				/* Data ready. */
+				uint8_t temp;
+
+				ncr_wait_process(ncr_dev);
+				temp = BUS_GETDATA(ncr->bus_host);
+				ncr->bus_host = get_bus_host(ncr);
+
+				if (ncr->data_pos >= dev->BufferLength) {
+
+					if (dev->CmdBuffer != NULL)
+					{
+						free(dev->CmdBuffer);
+						dev->CmdBuffer = NULL;	
+					}
+					
+					ncr->cur_bus &= ~BUS_REQ;
+					ncr->new_phase = SCSI_PHASE_STATUS;
+					ncr->wait_data = 4;
+					ncr->wait_complete = 8;
+				} else {
+					ncr->tx_data = dev->CmdBuffer[ncr->data_pos++];
+					ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->tx_data) | BUS_DBP | BUS_REQ;
+					ncr->clear_req = 3;
+					ncr->cur_bus &= ~BUS_REQ;
+					ncr->new_phase = SCSI_PHASE_DATA_IN;
+				}
+
+				ncr_dev->buffer[ncr_dev->buffer_pos++] = temp;
+				pclog("Buffer pos for reading=%d\n", ncr_dev->buffer_pos);
+				
+				c++;
+				
+				if (ncr_dev->buffer_pos == 128)
+				{					
+					ncr_dev->buffer_pos = 0;
+					ncr_dev->buffer_host_pos = 0;
+					ncr_dev->block_count = (ncr_dev->block_count - 1) & 255;
+					pclog("Remaining blocks to be read=%d\n", ncr_dev->block_count);
+					if (!ncr_dev->block_count) {
+						ncr_dev->block_count_loaded = 0;
+						ncr_log("IO End of read transfer\n");
+
+						ncr->isr |= STATUS_END_OF_DMA;
+						if (ncr->mode & MODE_ENA_EOP_INT)
+						{
+							ncr_log("NCR read irq\n");
+							ncr->isr |= STATUS_INT;
+							picint(1 << ncr_dev->irq);
+						}
+					}
+					break;
+				}
+			}		
+		}
+		else if (ncr->dma_mode == DMA_SEND)
+		{
+			if (!ncr_dev->block_count_loaded) return;			
+
+			while (c < 64)
+			{
+				/* Data ready. */
+				uint8_t data;
+				
+				data = ncr_dev->buffer[ncr_dev->buffer_pos];
+				ncr->bus_host = get_bus_host(ncr) & ~BUS_DATAMASK;
+				ncr->bus_host |= BUS_SETDATA(data);
+				
+				dev->CmdBuffer[ncr->data_pos++] = BUS_GETDATA(ncr->bus_host);
+				
+				if (ncr->data_pos >= dev->BufferLength) {
+					scsi_device_command_phase1(ncr->target_id);
+
+					if (dev->CmdBuffer != NULL)
+					{
+						free(dev->CmdBuffer);
+						dev->CmdBuffer = NULL;	
+					}
+					
+					ncr->cur_bus &= ~BUS_REQ;
+					ncr_log("CurBus ~REQ_DataOutDone=%02x\n", ncr->cur_bus);
+					ncr->new_phase = SCSI_PHASE_STATUS;
+					ncr->wait_data = 4;
+					ncr->wait_complete = 8;
+				}				
+				else
+				{
+					/*More data is to be transferred, place a request*/
+					ncr->cur_bus |= BUS_REQ;
+					ncr_log("CurBus ~REQ_DataOut=%02x\n", ncr->cur_bus);
+				}
+				
+				c++;
+
+				if (++ncr_dev->buffer_pos == 128) {
+					ncr_dev->buffer_pos = 0;
+					ncr_dev->buffer_host_pos = 0;
+					ncr_dev->block_count = (ncr_dev->block_count - 1) & 255;
+					pclog("Remaining blocks to be written=%d\n", ncr_dev->block_count);
+					if (!ncr_dev->block_count) {
+						ncr_dev->block_count_loaded = 0;
+						ncr_log("IO End of write transfer\n");
+						
+						ncr->tcr |= TCR_LAST_BYTE_SENT;
+						ncr->isr |= STATUS_END_OF_DMA;
+						if (ncr->mode & MODE_ENA_EOP_INT)
+						{
+							ncr_log("NCR write irq\n");
+							ncr->isr |= STATUS_INT;
+							picint(1 << ncr_dev->irq);
+						}
+					}
+					break;
+				}
+			}			
+		}
+	}
+	
+    ncr_wait_process(ncr_dev);
+    if (!(ncr->bus_host & BUS_BSY) && (ncr->mode & MODE_MONITOR_BUSY)) {
+	pclog("Updating DMA\n");
+	ncr->mode &= ~MODE_DMA;
+	ncr->dma_mode = DMA_IDLE;
     }
 }
 
@@ -831,127 +1440,107 @@ static void *
 ncr_init(const device_t *info)
 {
     char temp[128];
-    ncr_t *scsi;
+    ncr5380_t *ncr_dev;
 
-    scsi = malloc(sizeof(ncr_t));
-    memset(scsi, 0x00, sizeof(ncr_t));
-    scsi->name = info->name;
-    scsi->type = info->local;
+    ncr_dev = malloc(sizeof(ncr5380_t));
+    memset(ncr_dev, 0x00, sizeof(ncr5380_t));
+    ncr_dev->name = info->name;
+    ncr_dev->type = info->local;
 
-    switch(scsi->type) {
+    switch(ncr_dev->type) {
 	case 0:		/* Longshine LCS6821N */
-		scsi->rom_addr = 0xDC000;
-		rom_init(&scsi->bios_rom, LCS6821N_ROM,
-			 scsi->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
-		mem_mapping_disable(&scsi->bios_rom.mapping);
+		ncr_dev->rom_addr = 0xDC000;
+		rom_init(&ncr_dev->bios_rom, LCS6821N_ROM,
+			 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+			 
+		mem_mapping_disable(&ncr_dev->bios_rom.mapping);
 
-		mem_mapping_add(&scsi->mapping, scsi->rom_addr, 0x4000, 
+		mem_mapping_add(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000, 
 				memio_read, NULL, NULL,
 				memio_write, NULL, NULL,
-				scsi->bios_rom.rom, 0, scsi);
+				ncr_dev->bios_rom.rom, 0, ncr_dev);
 		break;
 
-	case 1:		/* Ranco RT1000B */
-		scsi->base = device_get_config_hex16("base");
-		scsi->rom_addr = device_get_config_hex20("bios_addr");
+	case 1:		/* Rancho RT1000B */
+		ncr_dev->rom_addr = 0xDC000;
+		rom_init(&ncr_dev->bios_rom, RT1000B_ROM,
+			 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
-		if (scsi->rom_addr) {
-			rom_init(&scsi->bios_rom, RT1000B_ROM,
-				 scsi->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+		mem_mapping_disable(&ncr_dev->bios_rom.mapping);
 
-			mem_mapping_disable(&scsi->bios_rom.mapping);
-		} else {
-			scsi->bios_rom.rom = (uint8_t *) malloc(0x4000);
-			memset(scsi->bios_rom.rom, 0xff, 0x4000);
-		}
-
-		mem_mapping_add(&scsi->mapping, scsi->rom_addr, 0x4000, 
+		mem_mapping_add(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000, 
 				memio_read, NULL, NULL,
 				memio_write, NULL, NULL,
-				scsi->bios_rom.rom, 0, scsi);
-
-		if (scsi->base) {
-			io_sethandler(scsi->base, 16,
-				      t130b_in,NULL,NULL, t130b_out,NULL,NULL, scsi);
-		}
+				ncr_dev->bios_rom.rom, 0, ncr_dev);
 		break;
 
 	case 2:		/* Trantor T130B */
-		scsi->base = device_get_config_hex16("base");
-		scsi->rom_addr = device_get_config_hex20("bios_addr");
+		ncr_dev->rom_addr = 0xDC000;
+		ncr_dev->base = device_get_config_hex16("base");
+		ncr_dev->irq = device_get_config_int("irq");
+		rom_init(&ncr_dev->bios_rom, T130B_ROM,
+			 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
-		if (scsi->rom_addr) {
-			rom_init(&scsi->bios_rom, T130B_ROM,
-				 scsi->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
-
-			mem_mapping_disable(&scsi->bios_rom.mapping);
-		} else {
-			scsi->bios_rom.rom = (uint8_t *) malloc(0x4000);
-			memset(scsi->bios_rom.rom, 0xff, 0x4000);
-		}
-
-		mem_mapping_add(&scsi->mapping, scsi->rom_addr, 0x4000, 
+		mem_mapping_add(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000, 
 				t130b_read, NULL, NULL,
 				t130b_write, NULL, NULL,
-				scsi->bios_rom.rom, 0, scsi);
+				ncr_dev->bios_rom.rom, 0, ncr_dev);
 
-		if (scsi->base) {
-			io_sethandler(scsi->base, 16,
-				      t130b_in,NULL,NULL, t130b_out,NULL,NULL, scsi);
-		}
+		io_sethandler(ncr_dev->base, 16,
+			      t130b_in,NULL,NULL, t130b_out,NULL,NULL, ncr_dev);
 		break;
 
 	case 3:		/* Sumo SCSI-AT */
-		scsi->base = device_get_config_hex16("base");
-		scsi->irq = device_get_config_int("irq");
-		scsi->rom_addr = device_get_config_hex20("bios_addr");
+		ncr_dev->base = device_get_config_hex16("base");
+		ncr_dev->irq = device_get_config_int("irq");
+		ncr_dev->rom_addr = device_get_config_hex20("bios_addr");
+		rom_init(&ncr_dev->bios_rom, SCSIAT_ROM,
+			 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
-		if (scsi->rom_addr) {
-			rom_init(&scsi->bios_rom, SCSIAT_ROM,
-				 scsi->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
-
-			mem_mapping_disable(&scsi->bios_rom.mapping);
-		} else {
-			scsi->bios_rom.rom = (uint8_t *) malloc(0x4000);
-			memset(scsi->bios_rom.rom, 0xff, 0x4000);
-		}
-
-		mem_mapping_add(&scsi->mapping, scsi->rom_addr, 0x4000, 
+		mem_mapping_disable(&ncr_dev->bios_rom.mapping);	 
+			 
+		mem_mapping_add(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000, 
 				t130b_read, NULL, NULL,
 				t130b_write, NULL, NULL,
-				scsi->bios_rom.rom, 0, scsi);
+				ncr_dev->bios_rom.rom, 0, ncr_dev);
 
-		if (scsi->base) {
-			io_sethandler(scsi->base, 16,
-				      scsiat_in,NULL,NULL, scsiat_out,NULL,NULL, scsi);
-		}
+		io_sethandler(ncr_dev->base, 16,
+			      scsiat_in,NULL,NULL, scsiat_out,NULL,NULL, ncr_dev);
 		break;
     }
 
-    sprintf(temp, "%s: BIOS=%05X", scsi->name, scsi->rom_addr);
-    if (scsi->base != 0)
-	sprintf(&temp[strlen(temp)], " I/O=%04x", scsi->base);
-    if (scsi->irq != 0)
-	sprintf(&temp[strlen(temp)], " IRQ=%d", scsi->irq);
+    sprintf(temp, "%s: BIOS=%05X", ncr_dev->name, ncr_dev->rom_addr);
+    if (ncr_dev->base != 0)
+	sprintf(&temp[strlen(temp)], " I/O=%04x", ncr_dev->base);
+    if (ncr_dev->irq != 0)
+	sprintf(&temp[strlen(temp)], " IRQ=%d", ncr_dev->irq);
     ncr_log("%s\n", temp);
 
-    ncr5380_reset(&scsi->ncr);
-
-    scsi->status_ctrl = STATUS_BUFFER_NOT_READY;
-    scsi->buffer_host_pos = 128;
-
-    timer_add(dma_callback, &scsi->dma_timer, &scsi->dma_enabled, scsi);
-
-    return(scsi);
+	ncr_reset(&ncr_dev->ncr);
+    ncr_dev->status_ctrl = STATUS_BUFFER_NOT_READY;
+	ncr_dev->buffer_host_pos = 128;
+	
+	ncr_dev->timer_period = 10LL * TIMER_USEC;
+    timer_add(ncr_callback, &ncr_dev->timer_period, TIMER_ALWAYS_ENABLED, ncr_dev);
+	
+    return(ncr_dev);
 }
 
 
 static void 
 ncr_close(void *priv)
 {
-    ncr_t *scsi = (ncr_t *)priv;
+    ncr5380_t *ncr_dev = (ncr5380_t *)priv;
 
-    free(scsi);
+	if (ncr_dev)
+	{
+		/* Tell the timer to terminate. */
+		ncr_dev->timer_period = 0LL;
+		ncr_dev->timer_enabled = 0LL;
+		
+		free(ncr_dev);
+		ncr_dev = NULL;
+	}
 }
 
 
@@ -982,14 +1571,10 @@ scsiat_available(void)
     return(rom_present(SCSIAT_ROM));
 }
 
-
-static const device_config_t ncr5380_config[] = {
+static const device_config_t t130b_config[] = {
         {
 		"base", "Address", CONFIG_HEX16, "", 0x0350,
                 {
-                        {
-                                "None",      0
-                        },
                         {
                                 "240H", 0x0240
                         },
@@ -1008,22 +1593,16 @@ static const device_config_t ncr5380_config[] = {
                 },
         },
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xDC000,
+		"irq", "IRQ", CONFIG_SELECTION, "", 5,
                 {
                         {
-                                "Disabled", 0
+                                "IRQ 3", 3
                         },
                         {
-                                "C800H", 0xc8000
+                                "IRQ 5", 5
                         },
                         {
-                                "CC00H", 0xcc000
-                        },
-                        {
-                                "D800H", 0xd8000
-                        },
-                        {
-                                "DC00H", 0xdc000
+                                "IRQ 7", 7
                         },
                         {
                                 ""
@@ -1034,7 +1613,6 @@ static const device_config_t ncr5380_config[] = {
 		"", "", -1
 	}
 };
-
 
 static const device_config_t scsiat_config[] = {
         {
@@ -1146,13 +1724,13 @@ const device_t scsi_lcs6821n_device =
 
 const device_t scsi_rt1000b_device =
 {
-    "Ranco RT1000B",
+    "Rancho RT1000B",
     DEVICE_ISA,
     1,
     ncr_init, ncr_close, NULL,
     rt1000b_available,
     NULL, NULL,
-    ncr5380_config
+    NULL
 };
 
 const device_t scsi_t130b_device =
@@ -1163,7 +1741,7 @@ const device_t scsi_t130b_device =
     ncr_init, ncr_close, NULL,
     t130b_available,
     NULL, NULL,
-    ncr5380_config
+    t130b_config
 };
 
 const device_t scsi_scsiat_device =
