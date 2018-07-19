@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.25	2018/05/25
+ * Version:	@(#)resource.h	1.0.26	2018/07/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -242,13 +242,14 @@
 #define IDM_VID_RESIZE		40040
 #define IDM_VID_REMEMBER	40041
 #define IDM_VID_DDRAW		40050
-#define IDM_VID_D3D		40051
-#define IDM_VID_SDL		40052
-#define IDM_VID_VNC		40053
-#define IDM_VID_SCALE_1X	40054
-#define IDM_VID_SCALE_2X	40055
-#define IDM_VID_SCALE_3X	40056
-#define IDM_VID_SCALE_4X	40057
+#define IDM_VID_D2D		40051
+#define IDM_VID_D3D		40052
+#define IDM_VID_SDL		40053
+#define IDM_VID_VNC		40054
+#define IDM_VID_SCALE_1X	40055
+#define IDM_VID_SCALE_2X	40056
+#define IDM_VID_SCALE_3X	40057
+#define IDM_VID_SCALE_4X	40058
 #define IDM_VID_FULLSCREEN	40060
 #define IDM_VID_FS_FULL		40061
 #define IDM_VID_FS_43		40062

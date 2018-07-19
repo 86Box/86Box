@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.28	2018/05/25
+ * Version:	@(#)win_ui.c	1.0.29	2018/07/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -378,6 +378,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_VID_DDRAW:
+			case IDM_VID_D2D:
 			case IDM_VID_D3D:
 			case IDM_VID_SDL:
 #ifdef USE_VNC
@@ -596,7 +597,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			pc_onesec();
 		}
 		break;
-
+		
 	case WM_RESETD3D:
 		startblit();
 		if (video_fullscreen)
