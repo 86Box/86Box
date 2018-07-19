@@ -1,20 +1,17 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *		This file is part of the 86Box distribution.
  *
  *		Implementation of the following network controllers:
- *			- Novell NE1000 (ISA 8-bit);
- *			- Novell NE2000 (ISA 16-bit);
- *			- Realtek RTL8019AS (ISA 16-bit, PnP);
- *			- Realtek RTL8029AS (PCI).
+ *			- SMC/WD 8003E (ISA 8-bit);
+ *			- SMC/WD 8013EBT (ISA 16-bit);
+ *			- SMC/WD 8013EP/A (MCA).
  *
- * Version:	@(#)net_ne2000.c	1.0.5	2018/07/11
- *
- * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
+ * Version:	@(#)net_wd8003.c	1.0.0	2018/07/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		TheCollector1995, <mariogplayer@gmail.com>

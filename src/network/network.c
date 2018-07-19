@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.5	2018/06/09
+ * Version:	@(#)network.c	1.0.6	2018/06/19
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
