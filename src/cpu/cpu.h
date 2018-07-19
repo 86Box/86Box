@@ -24,7 +24,7 @@
 
 #define CPU_8088	0		/* 808x class CPUs */
 #define CPU_8086	1
-#define CPU_186		2
+#define CPU_NEC		2
 #define CPU_286		3		/* 286 class CPUs */
 #define CPU_386SX	4		/* 386 class CPUs */
 #define CPU_386DX	5
@@ -92,7 +92,7 @@ typedef struct {
 
 extern CPU	cpus_8088[];
 extern CPU	cpus_8086[];
-extern CPU	cpus_186[];
+extern CPU	cpus_nec[];
 extern CPU	cpus_286[];
 extern CPU	cpus_i386SX[];
 extern CPU	cpus_i386DX[];
@@ -317,7 +317,7 @@ extern int	cpu_multi;
 extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
-extern int		is8086,	is186, is286, is386, is486;
+extern int		is8086,	is_nec, is286, is386, is486;
 extern int		is_rapidcad, is_pentium;
 extern int		hasfpu;
 extern int		cpu_hasrdtsc;
