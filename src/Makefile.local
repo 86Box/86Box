@@ -10,7 +10,7 @@
 #		settings, so we can avoid changing the main one for all of
 #		our local setups.
 #
-# Version:	@(#)Makefile.local	1.0.14	2018/05/26
+# Version:	@(#)Makefile.local	1.0.15	2018/07/19
 #
 # Author:	Fred N. van Kempen, <decwiz@yahoo.com>
 #
@@ -126,6 +126,7 @@ STUFF	:=
 # -DENABLE_VOODOO_LOG=N sets logging level at N.
 # -DENABLE_VRAM_DUMP=N sets logging level at N.
 # win/ logging:
+# -DENABLE_D2D_LOG=N sets logging level at N.
 # -DENABLE_DDRAW_LOG=N sets logging level at N.
 # -DENABLE_DYNLD_LOG=N sets logging level at N.
 # -DENABLE_JOYSTICK_LOG=N sets logging level at N.

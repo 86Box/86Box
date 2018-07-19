@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.50	2018/07/16
+ * Version:	@(#)win.c	1.0.51	2018/07/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -42,6 +42,7 @@
 # include "../vnc.h"
 #endif
 # include "win_ddraw.h"
+# include "win_d2d.h"
 # include "win_d3d.h"
 # include "win_sdl.h"
 #include "win.h"
@@ -84,6 +85,7 @@ static struct {
 } vid_apis[2][RENDERERS_NUM] = {
   {
     {	"DDraw", 1, (int(*)(void*))ddraw_init, ddraw_close, NULL, ddraw_pause		},
+    {	"D2D", 1, (int(*)(void*))d2d_init, d2d_close, NULL, d2d_pause			},
     {	"D3D", 1, (int(*)(void*))d3d_init, d3d_close, d3d_resize, d3d_pause		},
     {	"SDL", 1, (int(*)(void*))sdl_init, sdl_close, NULL, sdl_pause			}
 #ifdef USE_VNC
@@ -92,6 +94,7 @@ static struct {
   },
   {
     {	"DDraw", 1, (int(*)(void*))ddraw_init_fs, ddraw_close, NULL, ddraw_pause	},
+    {	"D2D", 1, (int(*)(void*))d2d_init_fs, d2d_close, NULL, d2d_pause		},
     {	"D3D", 1, (int(*)(void*))d3d_init_fs, d3d_close, NULL, d3d_pause		},
     {	"SDL", 1, (int(*)(void*))sdl_init_fs, sdl_close, sdl_resize, sdl_pause		}
 #ifdef USE_VNC
@@ -606,15 +609,19 @@ plat_vidapi_name(int api)
 		break;
 
 	case 1:
-		name = "d3d";
+		name = "d2d";
 		break;
 
 	case 2:
+		name = "d3d";
+		break;
+
+	case 3:
 		name = "sdl";
 		break;
 
 #ifdef USE_VNC
-	case 3:
+	case 4:
 		name = "vnc";
 		break;
 
@@ -747,16 +754,20 @@ take_screenshot(void)
 		ddraw_take_screenshot(path);
 		break;
 
-	case 1:		/* d3d9 */
+	case 1:		/* d2d */
+		d2d_take_screenshot(path);
+		break;
+
+	case 2:		/* d3d9 */
 		d3d_take_screenshot(path);
 		break;
 
-	case 2:		/* sdl */
+	case 3:		/* sdl */
 		sdl_take_screenshot(path);
 		break;
 
 #ifdef USE_VNC
-	case 3:		/* vnc */
+	case 4:		/* vnc */
 		vnc_take_screenshot(path);
 		break;
 #endif
