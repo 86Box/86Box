@@ -140,8 +140,6 @@ wd_interrupt(wd_t *dev, int set)
 static void
 wd_reset(void *priv)
 {
-	int i;
-	
     wd_t *dev = (wd_t *)priv;
 
     wdlog(1, "%s: reset\n", dev->name);
@@ -925,7 +923,7 @@ page2_read(wd_t *dev, uint32_t off)
     return(0);
 }
 
-
+#if 0
 static void
 page2_write(wd_t *dev, uint32_t off, uint8_t val)
 {
@@ -989,6 +987,7 @@ page2_write(wd_t *dev, uint32_t off, uint8_t val)
 		break;
     }
 }
+#endif
 
 /* Routines for handling reads/writes to the Command Register. */
 static uint8_t

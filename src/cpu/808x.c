@@ -18,7 +18,7 @@
  *		2 clocks - fetch opcode 1       2 clocks - execute
  *		2 clocks - fetch opcode 2  etc
  *
- * Version:	@(#)808x.c	1.0.6	2018/07/19
+ * Version:	@(#)808x.c	1.0.5	2018/04/29
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -881,70 +881,19 @@ void rep(int fv)
                 cycles-=2;
                 goto startrep;
                 break;
-                case 0x6C: /*186+ REP INSB*/
-				if (is_nec)
-				{
-					if (c>0)
-					{
-							temp2=inb(DX);
-							writememb(ds+SI, temp2);
-							if (flags&D_FLAG) SI--;
-							else              SI++;
-							c--;
-							cycles-=5;
-					}
-					if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
-					else firstrepcycle=1;
-				}
-                break;				
-                case 0x6D: /*186+ REP INSW*/
-				if (is_nec)
-				{
-					if (c>0)
-					{
-							tempw2=inw(DX);
-							writememw(ds, SI, tempw2);
-							if (flags&D_FLAG) SI-=2;
-							else              SI+=2;
-							c--;
-							cycles-=5;
-					}
-					if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
-					else firstrepcycle=1;
-				}
+                case 0x6E: /*REP OUTSB*/
+                if (c>0)
+                {
+                        temp2=readmemb(ds+SI);
+                        outb(DX,temp2);
+                        if (flags&D_FLAG) SI--;
+                        else              SI++;
+                        c--;
+                        cycles-=5;
+                }
+                if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
+                else firstrepcycle=1;
                 break;
-                case 0x6E: /*186+ REP OUTSB*/
-				if (is_nec)
-				{
-					if (c>0)
-					{
-							temp2=readmemb(ds+SI);
-							outb(DX,temp2);
-							if (flags&D_FLAG) SI--;
-							else              SI++;
-							c--;
-							cycles-=5;
-					}
-					if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
-					else firstrepcycle=1;
-				}
-                break;
-				case 0x6F: /*186+ REP OUTSW*/
-				if (is_nec)
-				{
-					if (c>0)
-					{
-							tempw2=readmemw(ds,SI);
-							outw(DX,tempw2);
-							if (flags&D_FLAG) SI-=2;
-							else              SI+=2;
-							c--;
-							cycles-=5;
-					}
-					if (c>0) { firstrepcycle=0; cpu_state.pc=ipc; if (cpu_state.ssegs) cpu_state.ssegs++; FETCHCLEAR(); }
-					else firstrepcycle=1;
-				}
-				break;
                 case 0xA4: /*REP MOVSB*/
                 while (c>0 && !IRQTEST)
                 {
@@ -1261,16 +1210,13 @@ void execx86(int cycs)
 			cpu_state.last_ea = SP;
                         cycles-=14;
                         break;
-                        case 0x0F: /*0F handler for NEC V20 soon */
-						if (!is_nec) /*POP CS - 8088/8086 only*/
-						{
-							if (cpu_state.ssegs) ss=oldss;
-							tempw=readmemw(ss,SP);
-							loadseg(tempw,&_cs);
-							SP+=2;
-							cpu_state.last_ea = SP;
-							cycles-=12;
-						}
+                        case 0x0F: /*POP CS - 8088/8086 only*/
+                        if (cpu_state.ssegs) ss=oldss;
+                        tempw=readmemw(ss,SP);
+                        loadseg(tempw,&_cs);
+                        SP+=2;
+			cpu_state.last_ea = SP;
+                        cycles-=12;
                         break;
 
                         case 0x10: /*ADC 8,reg*/
@@ -1695,218 +1641,73 @@ void execx86(int cycs)
                         break;
 
 
-						case 0x60:
-						if (is_nec) /*186+ PUSHA*/
-						{
-							writememw(ss, ((SP -  2) & 0xFFFF), AX);
-							writememw(ss, ((SP -  4) & 0xFFFF), CX);
-							writememw(ss, ((SP -  6) & 0xFFFF), DX);
-							writememw(ss, ((SP -  8) & 0xFFFF), BX);
-							writememw(ss, ((SP - 10) & 0xFFFF), SP);
-							writememw(ss, ((SP - 12) & 0xFFFF), BP);
-							writememw(ss, ((SP - 14) & 0xFFFF), SI);
-							writememw(ss, ((SP - 16) & 0xFFFF), DI);
-							cycles-=18;
-							break;
-						}
-						else /*JO alias*/
-						{
-							offset=(int8_t)FETCH();
-							if (flags&V_FLAG) { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
-							cycles-=4;
-						}
-						break;
+			case 0x60: /*JO alias*/
                         case 0x70: /*JO*/
                         offset=(int8_t)FETCH();
                         if (flags&V_FLAG) { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
                         cycles-=4;
                         break;
-						case 0x61:
-						if (is_nec) /*186+ POPA*/
-						{
-							DI = readmemw(ss, ((SP)      & 0xFFFF));
-							SI = readmemw(ss, ((SP +  2) & 0xFFFF));
-							BP = readmemw(ss, ((SP +  4) & 0xFFFF));
-							BX = readmemw(ss, ((SP +  8) & 0xFFFF));
-							DX = readmemw(ss, ((SP + 10) & 0xFFFF));
-							CX = readmemw(ss, ((SP + 12) & 0xFFFF));
-							AX = readmemw(ss, ((SP + 14) & 0xFFFF));
-							SP += 16;
-							cycles-=24;
-							break;
-						}
-						else /*JNO alias*/
-						{
-							offset=(int8_t)FETCH();
-							if (!(flags&V_FLAG)) { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
-							cycles-=4;							
-						}
-						break;
+			case 0x61: /*JNO alias*/
                         case 0x71: /*JNO*/
                         offset=(int8_t)FETCH();
                         if (!(flags&V_FLAG)) { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
                         cycles-=4;
                         break;
-						case 0x62:
-						if (is_nec) /*186+ BOUND*/
-						{
-							int16_t low, high;
-							
-							low = geteaw();
-							high = readmemw(easeg,cpu_state.eaaddr);
-							
-							if (((int16_t)cpu_state.regs[cpu_reg].w < low) || ((int16_t)cpu_state.regs[cpu_reg].w > high))
-							{
-									writememw(ss,(SP-2)&0xFFFF,flags|0xF000);
-									writememw(ss,(SP-4)&0xFFFF,CS);
-									writememw(ss,(SP-6)&0xFFFF,cpu_state.pc);
-									SP-=6;
-									flags&=~I_FLAG;
-									flags&=~T_FLAG;
-									cpu_state.pc=readmemw(0,0x14);
-									loadcs(readmemw(0,0x14+2));
-									FETCHCLEAR();
-									return;
-							}
-							
-							cycles-=10;
-							break;
-						}
-						else /*JB alias*/
-						{
-	                        offset=(int8_t)FETCH();
-							if (flags&C_FLAG) { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
-							cycles-=4;						
-						}
-						break;
+			case 0x62: /*JB alias*/
                         case 0x72: /*JB*/
                         offset=(int8_t)FETCH();
                         if (flags&C_FLAG) { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
                         cycles-=4;
                         break;
-						case 0x63: /*JNB alias*/
+			case 0x63: /*JNB alias*/
                         case 0x73: /*JNB*/
                         offset=(int8_t)FETCH();
                         if (!(flags&C_FLAG)) { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
                         cycles-=4;
                         break;
-						case 0x64: /*JE alias*/
+			case 0x64: /*JE alias*/
                         case 0x74: /*JE*/
                         offset=(int8_t)FETCH();
                         if (flags&Z_FLAG) { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
                         cycles-=4;
                         break;
-						case 0x65: /*JNE alias*/
+			case 0x65: /*JNE alias*/
                         case 0x75: /*JNE*/
                         offset=(int8_t)FETCH();
                         cycles-=4;
                         if (!(flags&Z_FLAG)) { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
                         break;
-						case 0x66: /*JBE alias*/
+			case 0x66: /*JBE alias*/
                         case 0x76: /*JBE*/
                         offset=(int8_t)FETCH();
                         if (flags&(C_FLAG|Z_FLAG)) { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
                         cycles-=4;
                         break;
-						case 0x67: /*JNBE alias*/
+			case 0x67: /*JNBE alias*/
                         case 0x77: /*JNBE*/
                         offset=(int8_t)FETCH();
                         if (!(flags&(C_FLAG|Z_FLAG))) { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
                         cycles-=4;
                         break;
-						case 0x68: 
-						if (is_nec) /*186+ PUSH imm*/
-						{
-							tempw = getword();
-							cpu_state.pc = tempw;
-							cycles-=2;
-							FETCHCLEAR();
-							return;
-						}
-						else /*JS alias*/
-						{
-							offset=(int8_t)FETCH();
-							if (flags&N_FLAG)  { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
-							cycles-=4;
-						}
-						break;
-			
+			case 0x68: /*JS alias*/
                         case 0x78: /*JS*/
                         offset=(int8_t)FETCH();
                         if (flags&N_FLAG)  { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
                         cycles-=4;
                         break;
-						case 0x69:
-						if (is_nec) /*186+ IMUL*/
-						{
-							tempw = geteaw();
-							tempw2 = getword();
-							
-							templ = ((int)tempw) * ((int)tempw2);
-							if ((templ >> 15) != 0 && (templ >> 15) != -1) flags |=   C_FLAG | V_FLAG;
-							else                                           flags &= ~(C_FLAG | V_FLAG);
-							cpu_state.regs[cpu_reg].w = templ & 0xffff;
-
-							cycles-=((cpu_mod==3)?14:17);
-							FETCHCLEAR();
-							break;
-						}
-						else  /*JNS alias*/
-						{
-							offset=(int8_t)FETCH();
-							if (!(flags&N_FLAG))  { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
-							cycles-=4;
-						}
-						break;
+			case 0x69: /*JNS alias*/
                         case 0x79: /*JNS*/
                         offset=(int8_t)FETCH();
                         if (!(flags&N_FLAG))  { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
                         cycles-=4;
                         break;
-						case 0x6A:
-						if (is_nec) /*186+ PUSH imm8*/
-						{
-							temp = (int8_t)FETCH();
-							cpu_state.pc = temp;
-							cycles-=2;
-							FETCHCLEAR();
-							return;					
-						}
-						else /*JP alias*/
-						{
-							offset=(int8_t)FETCH();
-							if (flags&P_FLAG)  { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
-							cycles-=4;
-						}
-						break;
+			case 0x6A: /*JP alias*/
                         case 0x7A: /*JP*/
                         offset=(int8_t)FETCH();
                         if (flags&P_FLAG)  { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
                         cycles-=4;
                         break;
-						case 0x6B:
-						if (is_nec) /*186+ IMUL byte*/
-						{
-							tempw = geteaw();
-							tempw2 = (int8_t)FETCH();
-							if (tempw2 & 0x80) tempw2 |= 0xff00;
-							
-							templ = ((int)tempw) * ((int)tempw2);
-							if ((templ >> 15) != 0 && (templ >> 15) != -1) flags |=   C_FLAG | V_FLAG;
-							else                                           flags &= ~(C_FLAG | V_FLAG);
-							cpu_state.regs[cpu_reg].w = templ & 0xffff;
-
-							cycles-=((cpu_mod==3)?14:17);
-							FETCHCLEAR();
-							break;							
-						}
-						else /*JNP alias*/
-						{
-							offset=(int8_t)FETCH();
-							if (!(flags&P_FLAG))  { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
-							cycles-=4;
-						}
-						break;
+			case 0x6B: /*JNP alias*/
                         case 0x7B: /*JNP*/
                         offset=(int8_t)FETCH();
                         if (!(flags&P_FLAG))  { cpu_state.pc+=offset; cycles-=12; FETCHCLEAR(); }
@@ -2481,54 +2282,7 @@ void execx86(int cycs)
                         cycles-=((cpu_mod==3)?4:14);
                         break;
 
-						case 0xC8: /*186+ ENTER*/
-						if (is_nec)
-						{
-							uint16_t offsetw;
-							int count;
-							
-							offsetw = getword();
-							
-							tempw=readmemw(ss,SP);
-							tempw2=readmemw(ss,(SP-2)&0xFFFF);
-							tempw3=CS;
-							tempw4=cpu_state.pc;
-							
-							if (cpu_state.ssegs) ss=oldss;
-							
-							count=geteaw();
-							
-							if (count > 0)
-							{
-									while (--count)
-									{
-										cpu_state.pc=tempw;
-										loadcs(tempw2);
-										cycles-=4;
-									}
-									writememw(ss,(SP-2)&0xFFFF,tempw3);
-									writememw(ss,((SP-4)&0xFFFF),tempw4);
-									cycles-=5;
-							}
-							cpu_state.last_ea = SP;
-							SP-=offsetw;
-							cycles-=10;
-							FETCHCLEAR();
-							break;
-						}
-						else /*RETF alias*/
-						{
-							tempw=getword();
-							if (cpu_state.ssegs) ss=oldss;
-							cpu_state.pc=readmemw(ss,SP);
-							loadcs(readmemw(ss,SP+2));
-							SP+=4;
-							SP+=tempw;
-							cycles-=33;
-							FETCHCLEAR();
-						}
-						break;
-						
+			case 0xC8: /*RETF alias*/
                         case 0xCA: /*RETF*/
                         tempw=getword();
                         if (cpu_state.ssegs) ss=oldss;
@@ -2539,27 +2293,7 @@ void execx86(int cycs)
                         cycles-=33;
                         FETCHCLEAR();
                         break;
-						case 0xC9: 
-						if (is_nec) /*186+ LEAVE*/
-						{	
-							if (cpu_state.ssegs) ss=oldss;
-
-							cpu_state.regs[opcode&7].w=readmemw(ss,(SP-2)&0xFFFF);					
-							cpu_state.last_ea = SP;
-							cycles-=4;
-							break;
-						}
-						else /*RETF alias*/
-						{
-							if (cpu_state.ssegs) ss=oldss;
-							cpu_state.pc=readmemw(ss,SP);
-							loadcs(readmemw(ss,SP+2));
-							SP+=4;
-							cycles-=34;
-							FETCHCLEAR();
-						}
-						break;
-						
+			case 0xC9: /*RETF alias*/
                         case 0xCB: /*RETF*/
                         if (cpu_state.ssegs) ss=oldss;
                         cpu_state.pc=readmemw(ss,SP);

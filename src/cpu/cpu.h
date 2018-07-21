@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.h	1.0.12	2018/07/19
+ * Version:	@(#)cpu.h	1.0.11	2018/03/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -24,43 +24,42 @@
 
 #define CPU_8088	0		/* 808x class CPUs */
 #define CPU_8086	1
-#define CPU_NEC		2
-#define CPU_286		3		/* 286 class CPUs */
-#define CPU_386SX	4		/* 386 class CPUs */
-#define CPU_386DX	5
-#define CPU_RAPIDCAD	6
-#define CPU_486SLC	7
-#define CPU_486DLC	8
-#define CPU_i486SX	9		/* 486 class CPUs */
-#define CPU_Am486SX	10
-#define CPU_Cx486S	11
-#define CPU_i486DX	12
-#define CPU_Am486DX	13
-#define CPU_Cx486DX	14
-#define CPU_iDX4	15
-#define CPU_Cx5x86	16
-#define CPU_WINCHIP	17		/* 586 class CPUs */
-#define CPU_PENTIUM	18
-#define CPU_PENTIUMMMX	19
-#define CPU_Cx6x86 	20
-#define CPU_Cx6x86MX 	21
-#define CPU_Cx6x86L 	22
-#define CPU_CxGX1 	23
+#define CPU_286		2		/* 286 class CPUs */
+#define CPU_386SX	3		/* 386 class CPUs */
+#define CPU_386DX	4
+#define CPU_RAPIDCAD	5
+#define CPU_486SLC	6
+#define CPU_486DLC	7
+#define CPU_i486SX	8		/* 486 class CPUs */
+#define CPU_Am486SX	9
+#define CPU_Cx486S	10
+#define CPU_i486DX	11
+#define CPU_Am486DX	12
+#define CPU_Cx486DX	13
+#define CPU_iDX4	14
+#define CPU_Cx5x86	15
+#define CPU_WINCHIP	16		/* 586 class CPUs */
+#define CPU_PENTIUM	17
+#define CPU_PENTIUMMMX	18
+#define CPU_Cx6x86 	19
+#define CPU_Cx6x86MX 	20
+#define CPU_Cx6x86L 	21
+#define CPU_CxGX1 	22
 #ifdef DEV_BRANCH
 #ifdef USE_AMD_K
-#define CPU_K5		24
-#define CPU_5K86	25
-#define CPU_K6		26
+#define CPU_K5		23
+#define CPU_5K86	24
+#define CPU_K6		25
 #endif
 #endif
 #ifdef DEV_BRANCH
 #ifdef USE_I686
-#define CPU_PENTIUMPRO	27		/* 686 class CPUs */
+#define CPU_PENTIUMPRO	26		/* 686 class CPUs */
 #if 0
-# define CPU_PENTIUM2	28
-# define CPU_PENTIUM2D	29
-#else
+# define CPU_PENTIUM2	27
 # define CPU_PENTIUM2D	28
+#else
+# define CPU_PENTIUM2D	27
 #endif
 #endif
 #endif
@@ -92,7 +91,6 @@ typedef struct {
 
 extern CPU	cpus_8088[];
 extern CPU	cpus_8086[];
-extern CPU	cpus_nec[];
 extern CPU	cpus_286[];
 extern CPU	cpus_i386SX[];
 extern CPU	cpus_i386DX[];
@@ -317,7 +315,7 @@ extern int	cpu_multi;
 extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
-extern int		is8086,	is_nec, is286, is386, is486;
+extern int		is8086,	is286, is386, is486;
 extern int		is_rapidcad, is_pentium;
 extern int		hasfpu;
 extern int		cpu_hasrdtsc;

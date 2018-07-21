@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.c	1.0.7	2018/07/19
+ * Version:	@(#)cpu.c	1.0.6	2018/05/05
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -132,8 +132,7 @@ int		cpu_waitstates;
 int		cpu_cache_int_enabled, cpu_cache_ext_enabled;
 int		cpu_pci_speed;
 
-int		is_nec,
-		is286,
+int		is286,
 		is386,
 		is486,
 		cpu_iscyrix,
@@ -244,7 +243,6 @@ cpu_set(void)
         CPUID    = cpu_s->cpuid_model;
         cpuspeed = cpu_s->speed;
         is8086   = (cpu_s->cpu_type > CPU_8088);
-		is_nec	 = (cpu_s->cpu_type == CPU_NEC);
         is286   = (cpu_s->cpu_type >= CPU_286);
         is386    = (cpu_s->cpu_type >= CPU_386SX);
 	israpidcad = (cpu_s->cpu_type == CPU_RAPIDCAD);
@@ -397,7 +395,6 @@ cpu_set(void)
         {
                 case CPU_8088:
                 case CPU_8086:
-				case CPU_NEC:
                 break;
                 
                 case CPU_286:
