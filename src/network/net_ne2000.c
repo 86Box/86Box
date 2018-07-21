@@ -12,7 +12,7 @@
  *			- Realtek RTL8019AS (ISA 16-bit, PnP);
  *			- Realtek RTL8029AS (PCI).
  *
- * Version:	@(#)net_ne2000.c	1.0.4	2018/04/26
+ * Version:	@(#)net_ne2000.c	1.0.6	2018/07/19
  *
  * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *
@@ -57,6 +57,7 @@
 #include "../io.h"
 #include "../mem.h"
 #include "../rom.h"
+#include "../mca.h"
 #include "../pci.h"
 #include "../pic.h"
 #include "../random.h"
@@ -74,7 +75,6 @@ enum {
 	PNP_PHASE_ISOLATION,
 	PNP_PHASE_SLEEP
 };
-
 
 /* ROM BIOS file paths. */
 #define ROM_PATH_NE1000		L"roms/network/ne1000/ne1000.rom"
@@ -100,7 +100,7 @@ typedef struct {
     dp8390_t dp8390;
 	uint8_t	macaddr[32];		/* ASIC ROM'd MAC address, even bytes */
     int		board;
-    int		is_pci, is_8bit;
+    int		is_pci, is_mca, is_8bit;
     const char	*name;
     uint32_t	base_address;
     int		base_irq;
@@ -134,12 +134,20 @@ typedef struct {
     /* RTL8019AS/RTL8029AS registers */
     uint8_t	config0, config2, config3;
     uint8_t	_9346cr;
+	
+	/* POS registers, MCA boards only */
+	uint8_t pos_regs[8];
 } nic_t;
 
 
 static void	nic_rx(void *, uint8_t *, int);
 static void	nic_tx(nic_t *, uint32_t);
 
+#define ENABLE_NIC_LOG 3
+
+#ifdef ENABLE_NIC_LOG
+int nic_do_log = ENABLE_NIC_LOG;
+#endif
 
 static void
 nelog(int lvl, const char *fmt, ...)
@@ -182,37 +190,40 @@ nic_reset(void *priv)
 
     nelog(1, "%s: reset\n", dev->name);
 
-    if (dev->board >= NE2K_NE2000) {
-	/* Initialize the MAC address area by doubling the physical address */
-	dev->macaddr[0]  = dev->dp8390.physaddr[0];
-	dev->macaddr[1]  = dev->dp8390.physaddr[0];
-	dev->macaddr[2]  = dev->dp8390.physaddr[1];
-	dev->macaddr[3]  = dev->dp8390.physaddr[1];
-	dev->macaddr[4]  = dev->dp8390.physaddr[2];
-	dev->macaddr[5]  = dev->dp8390.physaddr[2];
-	dev->macaddr[6]  = dev->dp8390.physaddr[3];
-	dev->macaddr[7]  = dev->dp8390.physaddr[3];
-	dev->macaddr[8]  = dev->dp8390.physaddr[4];
-	dev->macaddr[9]  = dev->dp8390.physaddr[4];
-	dev->macaddr[10] = dev->dp8390.physaddr[5];
-	dev->macaddr[11] = dev->dp8390.physaddr[5];
+	if (dev->board == NE2K_NE1000)
+	{
+		/* Initialize the MAC address area by doubling the physical address */
+		dev->macaddr[0]  = dev->dp8390.physaddr[0];
+		dev->macaddr[1]  = dev->dp8390.physaddr[1];
+		dev->macaddr[2]  = dev->dp8390.physaddr[2];
+		dev->macaddr[3]  = dev->dp8390.physaddr[3];
+		dev->macaddr[4]  = dev->dp8390.physaddr[4];
+		dev->macaddr[5]  = dev->dp8390.physaddr[5];
 
-	/* ne2k signature */
-	for (i=12; i<32; i++)
-		dev->macaddr[i] = 0x57;
-    } else {
-	/* Initialize the MAC address area by doubling the physical address */
-	dev->macaddr[0]  = dev->dp8390.physaddr[0];
-	dev->macaddr[1]  = dev->dp8390.physaddr[1];
-	dev->macaddr[2]  = dev->dp8390.physaddr[2];
-	dev->macaddr[3]  = dev->dp8390.physaddr[3];
-	dev->macaddr[4]  = dev->dp8390.physaddr[4];
-	dev->macaddr[5]  = dev->dp8390.physaddr[5];
+		/* ne1k signature */
+		for (i=6; i<16; i++)
+			dev->macaddr[i] = 0x57;
+	}
+	else
+	{
+		/* Initialize the MAC address area by doubling the physical address */
+		dev->macaddr[0]  = dev->dp8390.physaddr[0];
+		dev->macaddr[1]  = dev->dp8390.physaddr[0];
+		dev->macaddr[2]  = dev->dp8390.physaddr[1];
+		dev->macaddr[3]  = dev->dp8390.physaddr[1];
+		dev->macaddr[4]  = dev->dp8390.physaddr[2];
+		dev->macaddr[5]  = dev->dp8390.physaddr[2];
+		dev->macaddr[6]  = dev->dp8390.physaddr[3];
+		dev->macaddr[7]  = dev->dp8390.physaddr[3];
+		dev->macaddr[8]  = dev->dp8390.physaddr[4];
+		dev->macaddr[9]  = dev->dp8390.physaddr[4];
+		dev->macaddr[10] = dev->dp8390.physaddr[5];
+		dev->macaddr[11] = dev->dp8390.physaddr[5];
 
-	/* ne1k signature */
-	for (i=6; i<16; i++)
-		dev->macaddr[i] = 0x57;
-    }
+		/* ne2k signature */
+		for (i=12; i<32; i++)
+			dev->macaddr[i] = 0x57;
+	}
 
     /* Zero out registers and memory */
     memset(&dev->dp8390.CR,  0x00, sizeof(dev->dp8390.CR) );
@@ -233,8 +244,10 @@ nic_reset(void *priv)
     dev->dp8390.fifo       = 0;
     dev->dp8390.remote_dma = 0;
     dev->dp8390.remote_start = 0;
-    dev->dp8390.remote_bytes = 0;
-    dev->dp8390.tallycnt_0 = 0;
+	
+	dev->dp8390.remote_bytes = 0;
+
+	dev->dp8390.tallycnt_0 = 0;
     dev->dp8390.tallycnt_1 = 0;
     dev->dp8390.tallycnt_2 = 0;
 
@@ -272,7 +285,7 @@ nic_soft_reset(void *priv)
  * The NE2000 memory is accessed through the data port of the
  * ASIC (offset 0) after setting up a remote-DMA transfer.
  * Both byte and word accesses are allowed.
- * The first 16 bytes contains the MAC address at even locations,
+ * The first 16 bytes contain the MAC address at even locations,
  * and there is 16K of buffer memory starting at 16K.
  */
 static uint32_t
@@ -284,8 +297,10 @@ chipmem_read(nic_t *dev, uint32_t addr, unsigned int len)
 	nelog(3, "%s: unaligned chipmem word read\n", dev->name);
     }
 
+	pclog("Chipmem Read Address=%04x\n", addr);
+	
     /* ROM'd MAC address */
-    if (dev->board >= NE2K_NE2000) {
+    if (dev->board != NE2K_NE1000) {
 	    if (addr <= 31) {
 		retval = dev->macaddr[addr % 32];
 		if ((len == 2) || (len == 4)) {
@@ -351,7 +366,9 @@ chipmem_write(nic_t *dev, uint32_t addr, uint32_t val, unsigned len)
 	nelog(3, "%s: unaligned chipmem word write\n", dev->name);
     }
 
-    if (dev->board >= NE2K_NE2000) {
+	pclog("Chipmem Write Address=%04x\n", addr);
+	
+    if (dev->board != NE2K_NE1000) {
 	if ((addr >= DP8390_DWORD_MEMSTART) && (addr < DP8390_DWORD_MEMEND)) {
 		dev->dp8390.mem[addr-DP8390_DWORD_MEMSTART] = val & 0xff;
 		if ((len == 2) || (len == 4)) {
@@ -444,6 +461,25 @@ asic_read(nic_t *dev, uint32_t off, unsigned int len)
 	case 0x0f:	/* Reset register */
 		nic_soft_reset(dev);
 		break;
+		
+	case 0x10:
+	case 0x11:
+	case 0x12:
+	case 0x13:
+	case 0x14:
+	case 0x15:
+	case 0x16:
+	case 0x17:
+	case 0x18:
+	case 0x19:
+	case 0x1a:
+	case 0x1b:
+	case 0x1c:
+	case 0x1d:
+	case 0x1e:
+	case 0x1f:
+		retval = 0;
+		break;
 
 	default:
 		nelog(3, "%s: ASIC read invalid address %04x\n",
@@ -453,7 +489,6 @@ asic_read(nic_t *dev, uint32_t off, unsigned int len)
 
     return(retval);
 }
-
 
 static void
 asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
@@ -500,6 +535,24 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		/* end of reset pulse */
 		break;
 
+	case 0x10:
+	case 0x11:
+	case 0x12:
+	case 0x13:
+	case 0x14:
+	case 0x15:
+	case 0x16:
+	case 0x17:
+	case 0x18:
+	case 0x19:
+	case 0x1a:
+	case 0x1b:
+	case 0x1c:
+	case 0x1d:
+	case 0x1e:
+	case 0x1f:
+		break;		
+		
 	default: /* this is invalid, but happens under win95 device detection */
 		nelog(3, "%s: ASIC write invalid address %04x, ignoring\n",
 						dev->name, (unsigned)off);
@@ -635,16 +688,6 @@ static void
 page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 {
     uint8_t val2;
-
-    /* It appears to be a common practice to use outw on page0 regs... */
-
-    /* break up outw into two outb's */
-    if (len == 2) {
-	page0_write(dev, off, (val & 0xff), 1);
-	if (off < 0x0f)
-		page0_write(dev, off+1, ((val>>8)&0xff), 1);
-	return;
-    }
 
     nelog(3, "%s: Page0 write to register 0x%02x, value=0x%02x\n",
 						dev->name, off, val);
@@ -1236,7 +1279,7 @@ write_cr(nic_t *dev, uint32_t val)
 	dev->dp8390.ISR.rdma_done = 1;
 	if (dev->dp8390.IMR.rdma_inte) {
 		nic_interrupt(dev, 1);
-		if (! dev->is_pci)
+		if (!dev->is_pci)
 			nic_interrupt(dev, 0);
 	}
     }
@@ -1251,11 +1294,11 @@ nic_read(nic_t *dev, uint32_t addr, unsigned len)
 
     nelog(3, "%s: read addr %x, len %d\n", dev->name, addr, len);
 
-    if (off >= 0x10) {
-	retval = asic_read(dev, off - 0x10, len);
-    } else if (off == 0x00) {
+	if (off >= 0x10) {
+		retval = asic_read(dev, off - 0x10, len);
+	} else if (off == 0x00) {
 	retval = read_cr(dev);
-    } else switch(dev->dp8390.CR.pgsel) {
+	} else switch(dev->dp8390.CR.pgsel) {
 	case 0x00:
 		retval = page0_read(dev, off, len);
 		break;
@@ -1276,8 +1319,8 @@ nic_read(nic_t *dev, uint32_t addr, unsigned len)
 		nelog(3, "%s: unknown value of pgsel in read - %d\n",
 						dev->name, dev->dp8390.CR.pgsel);
 		break;
-    }
-
+	}
+	
     return(retval);
 }
 
@@ -1315,15 +1358,15 @@ nic_write(nic_t *dev, uint32_t addr, uint32_t val, unsigned len)
 
     nelog(3, "%s: write addr %x, value %x len %d\n", dev->name, addr, val, len);
 
-    /* The high 16 bytes of i/o space are for the ne2000 asic -
-       the low 16 bytes are for the DS8390, with the current
-       page being selected by the PS0,PS1 registers in the
-       command register */
-    if (off >= 0x10) {
-	asic_write(dev, off - 0x10, val, len);
-    } else if (off == 0x00) {
+	/* The high 16 bytes of i/o space are for the ne2000 asic -
+	   the low 16 bytes are for the DS8390, with the current
+	   page being selected by the PS0,PS1 registers in the
+	   command register */
+	if (off >= 0x10) {
+		asic_write(dev, off - 0x10, val, len);
+	} else if (off == 0x00) {
 	write_cr(dev, val);
-    } else switch(dev->dp8390.CR.pgsel) {
+	} else switch(dev->dp8390.CR.pgsel) {
 	case 0x00:
 		page0_write(dev, off, val, len);
 		break;
@@ -1344,7 +1387,7 @@ nic_write(nic_t *dev, uint32_t addr, uint32_t val, unsigned len)
 		nelog(3, "%s: unknown value of pgsel in write - %d\n",
 						dev->name, dev->dp8390.CR.pgsel);
 		break;
-    }
+	}
 }
 
 
@@ -1698,32 +1741,43 @@ nic_iocheckremove(nic_t *dev, uint16_t addr)
 static void
 nic_ioset(nic_t *dev, uint16_t addr)
 {	
-    if (dev->is_pci) {
+    if (dev->is_mca) {
 	io_sethandler(addr, 16,
-		      nic_readb, nic_readw, nic_readl,
-		      nic_writeb, nic_writew, nic_writel, dev);
+			nic_readb, nic_readw, nic_readl,
+			nic_writeb, nic_writew, nic_writel, dev);
 	io_sethandler(addr+16, 16,
-		      nic_readb, nic_readw, nic_readl,
-		      nic_writeb, nic_writew, nic_writel, dev);
+			nic_readb, nic_readw, nic_readl,
+			nic_writeb, nic_writew, nic_writel, dev);
+	io_sethandler(addr+0x1f, 16,
+			nic_readb, nic_readw, nic_readl,
+			nic_writeb, nic_writew, nic_writel, dev);
+    }
+    else if (dev->is_pci) {
+	io_sethandler(addr, 16,
+			 nic_readb, nic_readw, nic_readl,
+			 nic_writeb, nic_writew, nic_writel, dev);
+	io_sethandler(addr+16, 16,
+			 nic_readb, nic_readw, nic_readl,
+			 nic_writeb, nic_writew, nic_writel, dev);
 	io_sethandler(addr+0x1f, 1,
-		      nic_readb, nic_readw, nic_readl,
-		      nic_writeb, nic_writew, nic_writel, dev);
+			 nic_readb, nic_readw, nic_readl,
+			 nic_writeb, nic_writew, nic_writel, dev);
     } else {
 	io_sethandler(addr, 16,
-	      nic_readb, NULL, NULL,
-	      nic_writeb, NULL, NULL, dev);
+			 nic_readb, NULL, NULL,
+			 nic_writeb, NULL, NULL, dev);
 	if (dev->is_8bit) {
 		io_sethandler(addr+16, 16,
-		      nic_readb, NULL, NULL,
-		      nic_writeb, NULL, NULL, dev);
+				 nic_readb, NULL, NULL,
+				 nic_writeb, NULL, NULL, dev);
 	} else {
 		io_sethandler(addr+16, 16,
-		      nic_readb, nic_readw, NULL,
-		      nic_writeb, nic_writew, NULL, dev);
+				 nic_readb, nic_readw, NULL,
+				 nic_writeb, nic_writew, NULL, dev);
 	}
 	io_sethandler(addr+0x1f, 1,
-	      nic_readb, NULL, NULL,
-	      nic_writeb, NULL, NULL, dev);
+			 nic_readb, NULL, NULL,
+			 nic_writeb, NULL, NULL, dev);	
     }
 }
 
@@ -1731,7 +1785,18 @@ nic_ioset(nic_t *dev, uint16_t addr)
 static void
 nic_ioremove(nic_t *dev, uint16_t addr)
 {
-    if (dev->is_pci) {
+    if (dev->is_mca) {
+	io_removehandler(addr, 16,
+			nic_readb, nic_readw, nic_readl,
+			nic_writeb, nic_writew, nic_writel, dev);
+	io_removehandler(addr+16, 16,
+			nic_readb, nic_readw, nic_readl,
+			nic_writeb, nic_writew, nic_writel, dev);
+	io_removehandler(addr+0x1f, 16,
+			nic_readb, nic_readw, nic_readl,
+			nic_writeb, nic_writew, nic_writel, dev);
+    }
+    else if (dev->is_pci) {
 	io_removehandler(addr, 16,
 			 nic_readb, nic_readw, nic_readl,
 			 nic_writeb, nic_writew, nic_writel, dev);
@@ -2201,6 +2266,59 @@ nic_rom_init(nic_t *dev, wchar_t *s)
 		dev->name, dev->bios_addr, dev->bios_size);
 }
 
+static uint8_t
+nic_mca_read(int port, void *priv)
+{
+    nic_t *dev = (nic_t *)priv;
+
+    return(dev->pos_regs[port & 7]);
+}
+
+#define MCA_7154_IO_PORTS { 0x1000, 0x2020, 0x8020, 0xa0a0, 0xb0b0, 0xc0c0, \
+			    0xc3d0 }
+
+#define MCA_7154_IRQS { 3, 4, 5, 9 }
+
+static void
+nic_mca_write(int port, uint8_t val, void *priv)
+{
+    nic_t *dev = (nic_t *)priv;
+	uint16_t novell_base[7] = MCA_7154_IO_PORTS;
+	int8_t novell_irq[4] = MCA_7154_IRQS;
+
+    /* MCA does not write registers below 0x0100. */
+    if (port < 0x0102) return;
+
+    /* Save the MCA register value. */
+    dev->pos_regs[port & 7] = val;
+
+	nic_ioremove(dev, dev->base_address);	
+	
+    /* This is always necessary so that the old handler doesn't remain. */
+	/* Get the new assigned I/O base address. */
+	dev->base_address = novell_base[((dev->pos_regs[2] & 0xE) >> 1) - 1];
+
+	/* Save the new IRQ values. */
+	dev->base_irq = novell_irq[(dev->pos_regs[2] & 0x60) >> 5];
+
+	dev->bios_addr = 0x0000;
+	dev->has_bios = 0;
+
+    /*
+     * The PS/2 Model 80 BIOS always enables a card if it finds one,
+     * even if no resources were assigned yet (because we only added
+     * the card, but have not run AutoConfig yet...)
+     *
+     * So, remove current address, if any.
+     */
+
+    /* Initialize the device if fully configured. */
+    if (dev->pos_regs[2] & 0x01) {
+	/* Card enabled; register (new) I/O handler. */
+	
+	nic_ioset(dev, dev->base_address);
+    }
+}
 
 static void *
 nic_init(const device_t *info)
@@ -2237,6 +2355,17 @@ nic_init(const device_t *info)
 		dev->maclocal[2] = 0xD8;
 		rom = (dev->board == NE2K_NE1000) ? NULL : ROM_PATH_NE2000;
 		break;
+		
+	case NE2K_NE2_MCA:
+		pclog("NE/2 adapter\n");
+		dev->is_mca = 1;
+		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Novell OID) */
+		dev->maclocal[1] = 0x00;
+		dev->maclocal[2] = 0xD8;
+		dev->pos_regs[0] = 0x54;
+		dev->pos_regs[1] = 0x71;
+		rom = NULL;
+		break;
 
 	case NE2K_RTL8019AS:
 	case NE2K_RTL8029AS:
@@ -2259,14 +2388,19 @@ nic_init(const device_t *info)
 		dev->has_bios = 0;
 	}
     } else {
-	dev->base_address = device_get_config_hex16("base");
-	dev->base_irq = device_get_config_int("irq");
-	if (dev->board == NE2K_NE2000) {
-		dev->bios_addr = device_get_config_hex20("bios_addr");
-		dev->has_bios = !!dev->bios_addr;
-	} else {
-		dev->bios_addr = 0x00000;
-		dev->has_bios = 0;
+	if (dev->board != NE2K_NE2_MCA) {
+		dev->base_address = device_get_config_hex16("base");
+		dev->base_irq = device_get_config_int("irq");
+		if (dev->board == NE2K_NE2000) {
+			dev->bios_addr = device_get_config_hex20("bios_addr");
+			dev->has_bios = !!dev->bios_addr;
+		} else {
+			dev->bios_addr = 0x00000;
+			dev->has_bios = 0;
+		}		
+	}
+	else {
+		mca_add(nic_mca_read, nic_mca_write, dev);	
 	}
     }
 
@@ -2277,7 +2411,7 @@ nic_init(const device_t *info)
      * Make this device known to the I/O system.
      * PnP and PCI devices start with address spaces inactive.
      */
-    if (dev->board < NE2K_RTL8019AS)
+    if (dev->board < NE2K_RTL8019AS && dev->board != NE2K_NE2_MCA)
 	nic_ioset(dev, dev->base_address);
 
     /* Set up our BIOS ROM space, if any. */
@@ -2439,7 +2573,7 @@ nic_init(const device_t *info)
     }
 
     /* Reset the board. */
-    nic_reset(dev);
+	nic_reset(dev);
 
     /* Attach ourselves to the network module. */
     network_attach(dev, dev->dp8390.physaddr, nic_rx);
@@ -2505,13 +2639,16 @@ static const device_config_t ne1000_config[] =
 				"IRQ 3", 3
 			},
 			{
-				"IRQ 4", 4
-			},
-			{
 				"IRQ 5", 5
 			},
 			{
 				"IRQ 7", 7
+			},
+			{
+				"IRQ 10", 10
+			},
+			{
+				"IRQ 11", 11
 			},
 			{
 				""
@@ -2562,9 +2699,6 @@ static const device_config_t ne2000_config[] =
 			},
 			{
 				"IRQ 3", 3
-			},
-			{
-				"IRQ 4", 4
 			},
 			{
 				"IRQ 5", 5
@@ -2634,6 +2768,17 @@ static const device_config_t rtl8029as_config[] =
 	}
 };
 
+static const device_config_t mca_mac_config[] =
+{
+	{
+		"mac", "MAC Address", CONFIG_MAC, "", -1
+	},
+	{
+		"", "", -1
+	}
+};
+
+
 
 const device_t ne1000_device = {
     "Novell NE1000",
@@ -2651,6 +2796,15 @@ const device_t ne2000_device = {
     nic_init, nic_close, NULL,
     NULL, NULL, NULL,
     ne2000_config
+};
+
+const device_t ne2_device = {
+    "Novell NE/2",
+    DEVICE_MCA,
+    NE2K_NE2_MCA,
+    nic_init, nic_close, NULL,
+    NULL, NULL, NULL,
+    mca_mac_config
 };
 
 const device_t rtl8019as_device = {

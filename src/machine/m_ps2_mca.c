@@ -24,6 +24,7 @@
 #include "../lpt.h"
 #include "../mouse.h"
 #include "../serial.h"
+#include "../video/video.h"
 #include "../video/vid_vga.h"
 #include "machine.h"
 
@@ -841,7 +842,8 @@ static void ps2_mca_board_model_50_init()
 		ps2_mca_mem_fffc_init(2);
         }
 
-	device_add(&ps1vga_device);
+	if (gfxcard == GFX_INTERNAL)	
+		device_add(&ps1vga_device);
 }
 
 static void ps2_mca_board_model_55sx_init()
@@ -905,7 +907,8 @@ static void ps2_mca_board_model_55sx_init()
         ps2.planar_read = model_55sx_read;
         ps2.planar_write = model_55sx_write;
 
-	device_add(&ps1vga_device);
+	if (gfxcard == GFX_INTERNAL)
+		device_add(&ps1vga_device);
 }
 
 static void mem_encoding_update()
@@ -1112,7 +1115,8 @@ static void ps2_mca_board_model_70_type34_init(int is_type4)
 		ps2_mca_mem_fffc_init(8);
         }
 
-	device_add(&ps1vga_device);
+	if (gfxcard == GFX_INTERNAL)	
+		device_add(&ps1vga_device);
 }
 
 static void ps2_mca_board_model_80_type2_init(int is486)
@@ -1181,7 +1185,8 @@ static void ps2_mca_board_model_80_type2_init(int is486)
 		ps2_mca_mem_fffc_init(4);
         }
 
-	device_add(&ps1vga_device);
+	if (gfxcard == GFX_INTERNAL)	
+		device_add(&ps1vga_device);
 }
 
 

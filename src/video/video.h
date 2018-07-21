@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.29	2018/07/17
+ * Version:	@(#)video.h	1.0.30	2018/07/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -44,7 +44,8 @@ enum {
     GFX_SUPER_EGA,		/* Using Chips & Technologies SuperEGA BIOS */
     GFX_VGA,        		/* IBM VGA */
     GFX_TVGA,			/* Using Trident TVGA8900D BIOS */
-    GFX_ET4000,			/* Tseng ET4000 */
+    GFX_ET4000_ISA,			/* Tseng ET4000 */
+    GFX_ET4000_MCA,			/* Tseng ET4000 */
     GFX_ET4000W32_CARDEX_VLB,	/* Tseng ET4000/W32p (Cardex) VLB */
     GFX_ET4000W32_CARDEX_PCI,	/* Tseng ET4000/W32p (Cardex) PCI */
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
