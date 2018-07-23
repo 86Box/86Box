@@ -12,7 +12,7 @@
  *			- Realtek RTL8019AS (ISA 16-bit, PnP);
  *			- Realtek RTL8029AS (PCI).
  *
- * Version:	@(#)net_ne2000.c	1.0.6	2018/07/19
+ * Version:	@(#)net_ne2000.c	1.0.7	2018/07/24
  *
  * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *
@@ -142,8 +142,6 @@ typedef struct {
 
 static void	nic_rx(void *, uint8_t *, int);
 static void	nic_tx(nic_t *, uint32_t);
-
-#define ENABLE_NIC_LOG 3
 
 #ifdef ENABLE_NIC_LOG
 int nic_do_log = ENABLE_NIC_LOG;
@@ -297,8 +295,8 @@ chipmem_read(nic_t *dev, uint32_t addr, unsigned int len)
 	nelog(3, "%s: unaligned chipmem word read\n", dev->name);
     }
 
-	pclog("Chipmem Read Address=%04x\n", addr);
-	
+    nelog(3, "Chipmem Read Address=%04x\n", addr);
+
     /* ROM'd MAC address */
     if (dev->board != NE2K_NE1000) {
 	    if (addr <= 31) {
@@ -366,8 +364,8 @@ chipmem_write(nic_t *dev, uint32_t addr, uint32_t val, unsigned len)
 	nelog(3, "%s: unaligned chipmem word write\n", dev->name);
     }
 
-	pclog("Chipmem Write Address=%04x\n", addr);
-	
+    nelog(3, "Chipmem Write Address=%04x\n", addr);
+
     if (dev->board != NE2K_NE1000) {
 	if ((addr >= DP8390_DWORD_MEMSTART) && (addr < DP8390_DWORD_MEMEND)) {
 		dev->dp8390.mem[addr-DP8390_DWORD_MEMSTART] = val & 0xff;
@@ -2357,7 +2355,7 @@ nic_init(const device_t *info)
 		break;
 		
 	case NE2K_NE2_MCA:
-		pclog("NE/2 adapter\n");
+		nelog(3, "NE/2 adapter\n");
 		dev->is_mca = 1;
 		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Novell OID) */
 		dev->maclocal[1] = 0x00;
