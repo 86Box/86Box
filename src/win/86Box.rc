@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.38	2018/07/19
+ * Version:	@(#)86Box.rc	1.0.39	2018/07/28
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -65,7 +65,9 @@ BEGIN
         POPUP "Re&nderer"
         BEGIN
             MENUITEM "&DirectDraw",             IDM_VID_DDRAW
+#ifdef USE_D2D
             MENUITEM "Direct&2D 1.0",           IDM_VID_D2D
+#endif
             MENUITEM "Direct&3D 9",             IDM_VID_D3D
             MENUITEM "&SDL",                    IDM_VID_SDL
 #ifdef USE_VNC

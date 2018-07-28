@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.51	2018/07/19
+ * Version:	@(#)win.c	1.0.52	2018/07/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -608,9 +608,11 @@ plat_vidapi_name(int api)
 #endif
 		break;
 
+#ifdef USE_D2D
 	case 1:
 		name = "d2d";
 		break;
+#endif
 
 	case 2:
 		name = "d3d";
@@ -624,7 +626,6 @@ plat_vidapi_name(int api)
 	case 4:
 		name = "vnc";
 		break;
-
 #endif
     }
 
@@ -754,9 +755,11 @@ take_screenshot(void)
 		ddraw_take_screenshot(path);
 		break;
 
+#ifdef USE_D2D
 	case 1:		/* d2d */
 		d2d_take_screenshot(path);
 		break;
+#endif
 
 	case 2:		/* d3d9 */
 		d3d_take_screenshot(path);

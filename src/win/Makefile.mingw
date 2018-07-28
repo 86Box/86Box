@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.120	2018/07/19
+# Version:	@(#)Makefile.mingw	1.0.121	2018/07/28
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -40,6 +40,9 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef CRASHDUMP
   CRASHDUMP	:= y
+ endif
+ ifndef D2D
+  D2D		:= y
  endif
  ifndef I686
   I686		:= y
@@ -80,6 +83,9 @@ else
  endif
  ifndef CRASHDUMP
   CRASHDUMP	:= n
+ endif
+ ifndef D2D
+  D2D		:= n
  endif
  ifndef I686
   I686		:= n
@@ -313,6 +319,12 @@ MUNTOBJ		:= midi_mt32.o \
 		    MidiStreamParser.o Part.o Partial.o PartialManager.o \
 		    Poly.o ROMInfo.o SampleRateConverter_dummy.o Synth.o \
 		    Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o
+endif
+
+ifeq ($(D2D), y)
+OPTS		+= -DUSE_D2D
+RFLAGS		+= -DUSE_D2D
+D2DLIB		:= -ld2d1
 endif
 
 ifeq ($(VNC), y)
@@ -560,8 +572,11 @@ endif
 
 LIBS		:= -mwindows \
 		   -lopenal.dll \
-		   -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 -ld2d1\
+		   -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 \
 		   -lcomctl32 -lwinmm
+ifeq ($(D2D), y)
+LIBS		+= $(D2DLIB)
+endif
 ifeq ($(VNC), y)
 LIBS		+= $(VNCLIB) -lws2_32
 endif
