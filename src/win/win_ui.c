@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.29	2018/07/19
+ * Version:	@(#)win_ui.c	1.0.30	2018/07/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -113,6 +113,12 @@ ResetAllMenus(void)
     EnableMenuItem(menuMain, IDM_CONFIG_SAVE, MF_DISABLED);
 #endif
 
+#ifdef USE_D2D
+    /* Disable Direct2D menu option on NT5 */
+    if(LOBYTE(LOWORD(GetVersion())) < 6)
+        EnableMenuItem(menuMain, IDM_VID_D2D, MF_GRAYED);
+#endif
+
     CheckMenuItem(menuMain, IDM_ACTION_RCTRL_IS_LALT, MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_UPDATE_ICONS, MF_UNCHECKED);
@@ -147,10 +153,13 @@ ResetAllMenus(void)
 
     CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_DDRAW+0, MF_UNCHECKED);
+#ifdef USE_D2D
     CheckMenuItem(menuMain, IDM_VID_DDRAW+1, MF_UNCHECKED);
+#endif
     CheckMenuItem(menuMain, IDM_VID_DDRAW+2, MF_UNCHECKED);
-#ifdef USE_VNC
     CheckMenuItem(menuMain, IDM_VID_DDRAW+3, MF_UNCHECKED);
+#ifdef USE_VNC
+    CheckMenuItem(menuMain, IDM_VID_DDRAW+4, MF_UNCHECKED);
 #endif
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+0, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+1, MF_UNCHECKED);
@@ -378,7 +387,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_VID_DDRAW:
+#ifdef USE_D2D
 			case IDM_VID_D2D:
+#endif
 			case IDM_VID_D3D:
 			case IDM_VID_SDL:
 #ifdef USE_VNC

@@ -8,7 +8,7 @@
  *
  *		Rendering module for Microsoft Direct2D.
  *
- * Version:	@(#)win_d2d.cpp	1.0.0	2018/07/19
+ * Version:	@(#)win_d2d.cpp	1.0.1	2018/07/28
  *
  * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
  *
@@ -21,8 +21,10 @@
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
+#ifdef USE_D2D
 #include <d2d1.h>
 #include <d2d1helper.h>
+#endif
 #undef BITMAP
 
 #define PNG_DEBUG 0
@@ -38,12 +40,14 @@
 #include "win_d2d.h"
 
 
+#ifdef USE_D2D
 static HWND			d2d_hwnd, old_hwndMain;
 static ID2D1Factory		*d2d_factory;
 static ID2D1HwndRenderTarget	*d2d_hwndRT;
 static ID2D1BitmapRenderTarget	*d2d_btmpRT;
 static ID2D1Bitmap		*d2d_bitmap;
 static int			d2d_width, d2d_height, d2d_screen_width, d2d_screen_height, d2d_fs;
+#endif
 
 
 #ifdef ENABLE_D2D_LOG
@@ -66,6 +70,7 @@ d2d_log(const char *fmt, ...)
 }
 
 
+#ifdef USE_D2D
 static void
 d2d_stretch(float *w, float *h, float *x, float *y)
 {
@@ -161,8 +166,10 @@ d2d_stretch(float *w, float *h, float *x, float *y)
 			break;
 	}
 }
+#endif
 
 
+#ifdef USE_D2D
 static void
 d2d_blit(int x, int y, int y1, int y2, int w, int h)
 {
@@ -177,7 +184,7 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 	
 	float fs_x, fs_y;
 	float fs_w = w;
-	float fs_h = h;
+	float fs_h = h;	
 
 	d2d_log("Direct2D: d2d_blit(x=%d, y=%d, y1=%d, y2=%d, w=%d, h=%d)\n", x, y, y1, y2, w, h);
 
@@ -310,6 +317,7 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 	free(srcdata);
 	srcdata = NULL;
 }
+#endif
 
 
 void
@@ -317,6 +325,7 @@ d2d_close(void)
 {
 	d2d_log("Direct2D: d2d_close()\n");
 
+#ifdef USE_D2D
 	if (d2d_bitmap)
 	{
 		d2d_bitmap->Release();
@@ -349,9 +358,11 @@ d2d_close(void)
 		d2d_hwnd = NULL;
 		old_hwndMain = NULL;
 	}
+#endif
 }
 
 
+#ifdef USE_D2D
 static int
 d2d_init_common(int fs)
 {
@@ -450,13 +461,19 @@ d2d_init_common(int fs)
 
 	return(1);
 }
+#endif
 
 
 int
 d2d_init(HWND h)
 {
 	d2d_log("Direct2D: d2d_init(h=0x%08lx)\n", h);
+
+#ifdef USE_D2D
 	return d2d_init_common(0);
+#else
+	return(0);
+#endif
 }
 
 
@@ -464,7 +481,12 @@ int
 d2d_init_fs(HWND h)
 {
 	d2d_log("Direct2D: d2d_init_fs(h=0x%08lx)\n", h);
+
+#ifdef USE_D2D
 	return d2d_init_common(1);
+#else
+	return(0);
+#endif
 }
 
 
