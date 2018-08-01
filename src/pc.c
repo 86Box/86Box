@@ -119,7 +119,7 @@ int	cpu_manufacturer = 0,			/* (C) cpu manufacturer */
 	cpu_use_dynarec = 0,			/* (C) cpu uses/needs Dyna */
 	cpu = 3,				/* (C) cpu type */
 	enable_external_fpu = 0;		/* (C) enable external FPU */
-int	enable_sync = 0;			/* (C) enable time sync */
+int	time_sync = 0;			/* (C) enable time sync */
 
 /* Statistics. */
 extern int

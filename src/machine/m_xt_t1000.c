@@ -258,7 +258,7 @@ tc8521_start(nvr_t *nvr)
     struct tm tm;
 
     /* Initialize the internal and chip times. */
-    if (enable_sync & TIME_SYNC_ENABLED) {
+    if (time_sync & TIME_SYNC_ENABLED) {
 	/* Use the internal clock's time. */
 	nvr_time_get(&tm);
 	tc8521_time_set(nvr->regs, &tm);

@@ -528,10 +528,24 @@ load_machine(void)
 
     enable_external_fpu = !!config_get_int(cat, "cpu_enable_fpu", 0);
 
-    enable_sync = !!config_get_int(cat, "enable_sync", 1);
+    p = config_get_string(cat, "time_sync", NULL);
+    if (p != NULL) {        
+	if (!strcmp(p, "disabled"))
+		time_sync = TIME_SYNC_DISABLED;
+	else
+	if (!strcmp(p, "local"))
+		time_sync = TIME_SYNC_ENABLED;
+	else
+	if (!strcmp(p, "utc") || !strcmp(p, "gmt"))
+		time_sync = TIME_SYNC_ENABLED | TIME_SYNC_UTC;
+	else
+		time_sync = TIME_SYNC_ENABLED;
+    } else
+	time_sync = !!config_get_int(cat, "enable_sync", 1);
 
     /* Remove this after a while.. */
     config_delete_var(cat, "nvr_path");
+    config_delete_var(cat, "enable_sync");
 }
 
 
@@ -1278,7 +1292,7 @@ config_load(void)
 	machine = machine_get_machine_from_internal_name("ibmpc");
 	gfxcard = GFX_CGA;
 	vid_api = plat_vidapi("default");
-	enable_sync = 1;
+	time_sync = TIME_SYNC_ENABLED;
 	joystick_type = 7;
 	if (hdc_name) {
 		free(hdc_name);
@@ -1455,10 +1469,13 @@ save_machine(void)
       else
 	config_set_int(cat, "cpu_enable_fpu", enable_external_fpu);
 
-    if (enable_sync == 1)
-	config_delete_var(cat, "enable_sync");
-      else
-	config_set_int(cat, "enable_sync", enable_sync);
+    if (time_sync & TIME_SYNC_ENABLED)
+	if (time_sync & TIME_SYNC_UTC)
+		config_set_string(cat, "time_sync", "utc");
+	else
+		config_set_string(cat, "time_sync", "local");
+    else
+	config_set_string(cat, "time_sync", "disabled");
 
     delete_section_if_empty(cat);
 }
