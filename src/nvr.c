@@ -181,10 +181,13 @@ nvr_init(nvr_t *nvr)
 
     /* Initialize the internal clock as needed. */
     memset(&intclk, 0x00, sizeof(intclk));
-    if (enable_sync) {
+    if (enable_sync & TIME_SYNC_ENABLED) {
 	/* Get the current time of day, and convert to local time. */
 	(void)time(&now);
-	tm = localtime(&now);
+	if(enable_sync & TIME_SYNC_UTC)
+		tm = gmtime(&now);
+	else
+		tm = localtime(&now);
 
 	/* Set the internal clock. */
 	nvr_time_set(tm);

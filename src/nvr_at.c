@@ -554,7 +554,7 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 
 	if ((local->addr < RTC_REGA) || ((local->cent != 0xff) && (local->addr == local->cent))) {
 		if ((local->addr != 1) && (local->addr != 3) && (local->addr != 5)) {
-			if ((old != val) && !enable_sync) {
+			if ((old != val) && !(enable_sync & TIME_SYNC_ENABLED)) {
 				/* Update internal clock. */
 				time_get(nvr, &tm);
 				nvr_time_set(&tm);
@@ -630,7 +630,7 @@ nvr_start(nvr_t *nvr)
     struct tm tm;
 
     /* Initialize the internal and chip times. */
-    if (enable_sync) {
+    if (time_sync & TIME_SYNC_ENABLED) {
 	/* Use the internal clock's time. */
 	nvr_time_get(&tm);
 	time_set(nvr, &tm);

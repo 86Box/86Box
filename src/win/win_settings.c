@@ -202,7 +202,7 @@ win_settings_init(void)
     temp_dynarec = cpu_use_dynarec;
 #endif
     temp_fpu = enable_external_fpu;
-    temp_sync = enable_sync;
+    temp_sync = enable_sync & TIME_SYNC_ENABLED;
 
     /* Video category */
     temp_gfxcard = gfxcard;
@@ -305,7 +305,7 @@ win_settings_changed(void)
     i = i || (temp_dynarec != cpu_use_dynarec);
 #endif
     i = i || (temp_fpu != enable_external_fpu);
-    i = i || (temp_sync != enable_sync);
+    i = i || (temp_sync != (enable_sync & TIME_SYNC_ENABLED));
 
     /* Video category */
     i = i || (gfxcard != temp_gfxcard);

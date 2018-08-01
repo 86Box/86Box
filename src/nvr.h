@@ -55,6 +55,11 @@
 #define RTC_DCB(x)      ((((x) & 0xf0) >> 4) * 10 + ((x) & 0x0f))
 #define RTC_BCDINC(x,y)	RTC_BCD(RTC_DCB(x) + y)
 
+/* Time sync options */
+#define TIME_SYNC_DISABLED	0
+#define TIME_SYNC_ENABLED	1
+#define TIME_SYNC_UTC		2
+
 
 /* Define a generic RTC/NVRAM device. */
 typedef struct _nvr_ {
