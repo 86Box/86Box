@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.121	2018/07/28
+# Version:	@(#)Makefile.mingw	1.0.122	2018/08/01
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -53,9 +53,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef MRTHOR
   MRTHOR	:= y
  endif
- ifndef NV_RIVA
-  NV_RIVA	:= y
- endif
  ifndef PAS16
   PAS16		:= y
  endif
@@ -95,9 +92,6 @@ else
  endif
  ifndef MRTHOR
   MRTHOR	:= n
- endif
- ifndef NV_RIVA
-  NV_RIVA	:= n
  endif
  ifndef PAS16
   PAS16		:= n
@@ -374,11 +368,6 @@ endif
 
 ifeq ($(MRTHOR), y)
 OPTS		+= -DUSE_MRTHOR
-endif
-
-ifeq ($(NV_RIVA), y)
-OPTS		+= -DUSE_RIVA
-DEVBROBJ	+= vid_nvidia.o
 endif
 
 ifeq ($(PAS16), y)
