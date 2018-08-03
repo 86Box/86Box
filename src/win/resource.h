@@ -99,7 +99,10 @@
  */
 #define IDC_SETTINGSCATLIST	1001	/* generic config */
 #define IDC_CFILE		1002	/* Select File dialog */
-#define IDC_CHECK_SYNC		1008
+#define IDC_TIME_SYNC		1005
+#define IDC_RADIO_TS_DISABLED	1006
+#define IDC_RADIO_TS_LOCAL	1007
+#define IDC_RADIO_TS_UTC	1008
 /* Leave this as is until we finally get into localization in 86Box 3.00(?). */
 #if 0
 #define IDC_COMBO_LANG		1009

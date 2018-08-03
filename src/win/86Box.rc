@@ -289,11 +289,7 @@ BEGIN
 #endif
 END
 
-#ifdef USE_DYNAREC
-DLG_CFG_MACHINE DIALOG DISCARDABLE  97, 0, 267, 114
-#else
-DLG_CFG_MACHINE DIALOG DISCARDABLE  97, 0, 267, 99
-#endif
+DLG_CFG_MACHINE DIALOG DISCARDABLE  97, 0, 267, 199
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
@@ -316,13 +312,18 @@ BEGIN
                     12,12
     LTEXT           "MB",IDT_1705,123,64,10,10
     LTEXT           "Memory:",IDT_1706,7,64,30,10
-    CONTROL         "Enable time sync",IDC_CHECK_SYNC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,81,102,10
     CONTROL         "Enable FPU",IDC_CHECK_FPU,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,147,81,113,10
+                    WS_TABSTOP,7,81,113,10
+    GROUPBOX        "Time synchronization",IDC_TIME_SYNC,7,96,100,56
+    CONTROL         "Disabled",IDC_RADIO_TS_DISABLED,"Button",
+                    BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,14,108,84,10
+    CONTROL         "Enabled (local time)", IDC_RADIO_TS_LOCAL,"Button",
+                    BS_AUTORADIOBUTTON | WS_TABSTOP,14,122,84,10
+    CONTROL         "Enabled (UTC)", IDC_RADIO_TS_UTC,"Button",
+                    BS_AUTORADIOBUTTON | WS_TABSTOP,14,136,84,10
 #ifdef USE_DYNAREC
     CONTROL         "Dynamic Recompiler",IDC_CHECK_DYNAREC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,96,94,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,81,94,10
 #endif
 END
 
