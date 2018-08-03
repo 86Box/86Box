@@ -8,11 +8,13 @@
  *
  *		Definitions for the generic NVRAM/CMOS driver.
  *
- * Version:	@(#)nvr.h	1.0.7	2018/06/08
+ * Version:	@(#)nvr.h	1.0.8	2018/08/04
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Author:	Fred N. van Kempen, <decwiz@yahoo.com>,
+ * 		David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2018 David Hrdlička.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the

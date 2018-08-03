@@ -8,11 +8,13 @@
  *
  *		Implement a generic NVRAM/CMOS/RTC device.
  *
- * Version:	@(#)nvr.c	1.0.10	2018/06/08
+ * Version:	@(#)nvr.c	1.0.11	2018/08/04
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>,
+ * 		David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2018 David Hrdlička.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the

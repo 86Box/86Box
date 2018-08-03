@@ -8,11 +8,13 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.51	2018/05/25
+ * Version:	@(#)win_settings.c	1.0.52	2018/08/04
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * 		David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2018 David Hrdlička.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP

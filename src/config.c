@@ -8,16 +8,18 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.48	2018/05/25
+ * Version:	@(#)config.c	1.0.49	2018/08/04
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Overdoze,
+ *		David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2018 David Hrdlička.
  *
  * NOTE:	Forcing config files to be in Unicode encoding breaks
  *		it on Windows XP, and possibly also Vista. Use the
