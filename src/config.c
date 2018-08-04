@@ -8,16 +8,18 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.48	2018/05/25
+ * Version:	@(#)config.c	1.0.49	2018/08/04
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Overdoze,
+ *		David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2018 David Hrdlička.
  *
  * NOTE:	Forcing config files to be in Unicode encoding breaks
  *		it on Windows XP, and possibly also Vista. Use the
@@ -528,10 +530,24 @@ load_machine(void)
 
     enable_external_fpu = !!config_get_int(cat, "cpu_enable_fpu", 0);
 
-    enable_sync = !!config_get_int(cat, "enable_sync", 1);
+    p = config_get_string(cat, "time_sync", NULL);
+    if (p != NULL) {        
+	if (!strcmp(p, "disabled"))
+		time_sync = TIME_SYNC_DISABLED;
+	else
+	if (!strcmp(p, "local"))
+		time_sync = TIME_SYNC_ENABLED;
+	else
+	if (!strcmp(p, "utc") || !strcmp(p, "gmt"))
+		time_sync = TIME_SYNC_ENABLED | TIME_SYNC_UTC;
+	else
+		time_sync = TIME_SYNC_ENABLED;
+    } else
+	time_sync = !!config_get_int(cat, "enable_sync", 1);
 
     /* Remove this after a while.. */
     config_delete_var(cat, "nvr_path");
+    config_delete_var(cat, "enable_sync");
 }
 
 
@@ -1278,7 +1294,7 @@ config_load(void)
 	machine = machine_get_machine_from_internal_name("ibmpc");
 	gfxcard = GFX_CGA;
 	vid_api = plat_vidapi("default");
-	enable_sync = 1;
+	time_sync = TIME_SYNC_ENABLED;
 	joystick_type = 7;
 	if (hdc_name) {
 		free(hdc_name);
@@ -1455,10 +1471,13 @@ save_machine(void)
       else
 	config_set_int(cat, "cpu_enable_fpu", enable_external_fpu);
 
-    if (enable_sync == 1)
-	config_delete_var(cat, "enable_sync");
-      else
-	config_set_int(cat, "enable_sync", enable_sync);
+    if (time_sync & TIME_SYNC_ENABLED)
+	if (time_sync & TIME_SYNC_UTC)
+		config_set_string(cat, "time_sync", "utc");
+	else
+		config_set_string(cat, "time_sync", "local");
+    else
+	config_set_string(cat, "time_sync", "disabled");
 
     delete_section_if_empty(cat);
 }

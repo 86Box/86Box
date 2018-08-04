@@ -8,11 +8,13 @@
  *
  *		Implement a generic NVRAM/CMOS/RTC device.
  *
- * Version:	@(#)nvr.c	1.0.10	2018/06/08
+ * Version:	@(#)nvr.c	1.0.11	2018/08/04
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>,
+ * 		David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2018 David Hrdlička.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -181,10 +183,13 @@ nvr_init(nvr_t *nvr)
 
     /* Initialize the internal clock as needed. */
     memset(&intclk, 0x00, sizeof(intclk));
-    if (enable_sync) {
+    if (time_sync & TIME_SYNC_ENABLED) {
 	/* Get the current time of day, and convert to local time. */
 	(void)time(&now);
-	tm = localtime(&now);
+	if(time_sync & TIME_SYNC_UTC)
+		tm = gmtime(&now);
+	else
+		tm = localtime(&now);
 
 	/* Set the internal clock. */
 	nvr_time_set(tm);

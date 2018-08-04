@@ -8,11 +8,13 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.51	2018/05/25
+ * Version:	@(#)win_settings.c	1.0.52	2018/08/04
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * 		David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2018 David Hrdlička.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -202,7 +204,7 @@ win_settings_init(void)
     temp_dynarec = cpu_use_dynarec;
 #endif
     temp_fpu = enable_external_fpu;
-    temp_sync = enable_sync;
+    temp_sync = time_sync;
 
     /* Video category */
     temp_gfxcard = gfxcard;
@@ -305,7 +307,7 @@ win_settings_changed(void)
     i = i || (temp_dynarec != cpu_use_dynarec);
 #endif
     i = i || (temp_fpu != enable_external_fpu);
-    i = i || (temp_sync != enable_sync);
+    i = i || (temp_sync != time_sync);
 
     /* Video category */
     i = i || (gfxcard != temp_gfxcard);
@@ -403,7 +405,7 @@ win_settings_save(void)
     cpu_use_dynarec = temp_dynarec;
 #endif
     enable_external_fpu = temp_fpu;
-    enable_sync = temp_sync;
+    time_sync = temp_sync;
 
     /* Video category */
     gfxcard = temp_gfxcard;
@@ -658,8 +660,24 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		h2 = GetDlgItem(hdlg, IDC_MEMTEXT);
 		SendMessage(h, UDM_SETBUDDY, (WPARAM)h2, 0);
 
-       	        h=GetDlgItem(hdlg, IDC_CHECK_SYNC);
-                SendMessage(h, BM_SETCHECK, temp_sync, 0);
+		if (temp_sync & TIME_SYNC_ENABLED)
+		{
+			if (temp_sync & TIME_SYNC_UTC)
+			{
+				h=GetDlgItem(hdlg, IDC_RADIO_TS_UTC);
+				SendMessage(h, BM_SETCHECK, BST_CHECKED, 0);
+			}
+			else
+			{
+				h=GetDlgItem(hdlg, IDC_RADIO_TS_LOCAL);
+				SendMessage(h, BM_SETCHECK, BST_CHECKED, 0);
+			}
+		}
+		else
+		{
+			h=GetDlgItem(hdlg, IDC_RADIO_TS_DISABLED);
+			SendMessage(h, BM_SETCHECK, BST_CHECKED, 0);
+		}
 
 		win_settings_machine_recalc_machine(hdlg);
 
@@ -713,8 +731,17 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		temp_dynarec = SendMessage(h, BM_GETCHECK, 0, 0);
 #endif
 
-       	        h=GetDlgItem(hdlg, IDC_CHECK_SYNC);
-		temp_sync = SendMessage(h, BM_GETCHECK, 0, 0);
+		h=GetDlgItem(hdlg, IDC_RADIO_TS_DISABLED);
+		if(SendMessage(h, BM_GETCHECK, 0, 0))
+			temp_sync = TIME_SYNC_DISABLED;
+
+		h=GetDlgItem(hdlg, IDC_RADIO_TS_LOCAL);
+		if(SendMessage(h, BM_GETCHECK, 0, 0))
+			temp_sync = TIME_SYNC_ENABLED;
+
+		h=GetDlgItem(hdlg, IDC_RADIO_TS_UTC);
+		if(SendMessage(h, BM_GETCHECK, 0, 0))
+			temp_sync = TIME_SYNC_ENABLED | TIME_SYNC_UTC;
 
        	        h=GetDlgItem(hdlg, IDC_CHECK_FPU);
 		temp_fpu = SendMessage(h, BM_GETCHECK, 0, 0);

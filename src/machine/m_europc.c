@@ -68,7 +68,7 @@
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *		
- * Version:	@(#)europc.c	1.0.6	2018/04/29
+ * Version:	@(#)europc.c	1.0.7	2018/08/04
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -280,7 +280,7 @@ rtc_start(nvr_t *nvr)
     struct tm tm;
 
     /* Initialize the internal and chip times. */
-    if (enable_sync) {
+    if (time_sync & TIME_SYNC_ENABLED) {
 	/* Use the internal clock's time. */
 	nvr_time_get(&tm);
 	rtc_time_set(nvr->regs, &tm);

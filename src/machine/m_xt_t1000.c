@@ -51,7 +51,7 @@
  * NOTE:	Still need to figure out a way to load/save ConfigSys and
  *		HardRAM stuff. Needs to be linked in to the NVR code.
  *
- * Version:	@(#)m_xt_t1000.c	1.0.6	2018/04/29
+ * Version:	@(#)m_xt_t1000.c	1.0.7	2018/08/04
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -258,7 +258,7 @@ tc8521_start(nvr_t *nvr)
     struct tm tm;
 
     /* Initialize the internal and chip times. */
-    if (enable_sync) {
+    if (time_sync & TIME_SYNC_ENABLED) {
 	/* Use the internal clock's time. */
 	nvr_time_get(&tm);
 	tc8521_time_set(nvr->regs, &tm);

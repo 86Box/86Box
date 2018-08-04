@@ -8,11 +8,13 @@
  *
  *		Definitions for the generic NVRAM/CMOS driver.
  *
- * Version:	@(#)nvr.h	1.0.7	2018/06/08
+ * Version:	@(#)nvr.h	1.0.8	2018/08/04
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Author:	Fred N. van Kempen, <decwiz@yahoo.com>,
+ * 		David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2018 David Hrdlička.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -54,6 +56,11 @@
 #define RTC_BCD(x)      (((x) % 10) | (((x) / 10) << 4))
 #define RTC_DCB(x)      ((((x) & 0xf0) >> 4) * 10 + ((x) & 0x0f))
 #define RTC_BCDINC(x,y)	RTC_BCD(RTC_DCB(x) + y)
+
+/* Time sync options */
+#define TIME_SYNC_DISABLED	0
+#define TIME_SYNC_ENABLED	1
+#define TIME_SYNC_UTC		2
 
 
 /* Define a generic RTC/NVRAM device. */
