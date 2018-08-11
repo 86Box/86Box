@@ -9,10 +9,11 @@
  *		Implementation of the following network controllers:
  *			- Novell NE1000 (ISA 8-bit);
  *			- Novell NE2000 (ISA 16-bit);
+ *			- Novell NE/2 compatible (NetWorth Inc. Ethernext/MC) (MCA 16-bit);
  *			- Realtek RTL8019AS (ISA 16-bit, PnP);
  *			- Realtek RTL8029AS (PCI).
  *
- * Version:	@(#)net_ne2000.c	1.0.7	2018/07/24
+ * Version:	@(#)net_ne2000.c	1.0.8	2018/08/11
  *
  * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *
@@ -459,25 +460,6 @@ asic_read(nic_t *dev, uint32_t off, unsigned int len)
 	case 0x0f:	/* Reset register */
 		nic_soft_reset(dev);
 		break;
-		
-	case 0x10:
-	case 0x11:
-	case 0x12:
-	case 0x13:
-	case 0x14:
-	case 0x15:
-	case 0x16:
-	case 0x17:
-	case 0x18:
-	case 0x19:
-	case 0x1a:
-	case 0x1b:
-	case 0x1c:
-	case 0x1d:
-	case 0x1e:
-	case 0x1f:
-		retval = 0;
-		break;
 
 	default:
 		nelog(3, "%s: ASIC read invalid address %04x\n",
@@ -531,25 +513,7 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 
 	case 0x0f:  /* Reset register */
 		/* end of reset pulse */
-		break;
-
-	case 0x10:
-	case 0x11:
-	case 0x12:
-	case 0x13:
-	case 0x14:
-	case 0x15:
-	case 0x16:
-	case 0x17:
-	case 0x18:
-	case 0x19:
-	case 0x1a:
-	case 0x1b:
-	case 0x1c:
-	case 0x1d:
-	case 0x1e:
-	case 0x1f:
-		break;		
+		break;	
 		
 	default: /* this is invalid, but happens under win95 device detection */
 		nelog(3, "%s: ASIC write invalid address %04x, ignoring\n",
@@ -1739,18 +1703,7 @@ nic_iocheckremove(nic_t *dev, uint16_t addr)
 static void
 nic_ioset(nic_t *dev, uint16_t addr)
 {	
-    if (dev->is_mca) {
-	io_sethandler(addr, 16,
-			nic_readb, nic_readw, nic_readl,
-			nic_writeb, nic_writew, nic_writel, dev);
-	io_sethandler(addr+16, 16,
-			nic_readb, nic_readw, nic_readl,
-			nic_writeb, nic_writew, nic_writel, dev);
-	io_sethandler(addr+0x1f, 16,
-			nic_readb, nic_readw, nic_readl,
-			nic_writeb, nic_writew, nic_writel, dev);
-    }
-    else if (dev->is_pci) {
+    if (dev->is_pci) {
 	io_sethandler(addr, 16,
 			 nic_readb, nic_readw, nic_readl,
 			 nic_writeb, nic_writew, nic_writel, dev);
@@ -1783,18 +1736,7 @@ nic_ioset(nic_t *dev, uint16_t addr)
 static void
 nic_ioremove(nic_t *dev, uint16_t addr)
 {
-    if (dev->is_mca) {
-	io_removehandler(addr, 16,
-			nic_readb, nic_readw, nic_readl,
-			nic_writeb, nic_writew, nic_writel, dev);
-	io_removehandler(addr+16, 16,
-			nic_readb, nic_readw, nic_readl,
-			nic_writeb, nic_writew, nic_writel, dev);
-	io_removehandler(addr+0x1f, 16,
-			nic_readb, nic_readw, nic_readl,
-			nic_writeb, nic_writew, nic_writel, dev);
-    }
-    else if (dev->is_pci) {
+    if (dev->is_pci) {
 	io_removehandler(addr, 16,
 			 nic_readb, nic_readw, nic_readl,
 			 nic_writeb, nic_writew, nic_writel, dev);
@@ -2272,17 +2214,17 @@ nic_mca_read(int port, void *priv)
     return(dev->pos_regs[port & 7]);
 }
 
-#define MCA_7154_IO_PORTS { 0x1000, 0x2020, 0x8020, 0xa0a0, 0xb0b0, 0xc0c0, \
-			    0xc3d0 }
+#define MCA_611F_IO_PORTS { 0x300, 0x340, 0x320, 0x360, 0x1300, 0x1340, \
+			    0x1320, 0x1360 }
 
-#define MCA_7154_IRQS { 3, 4, 5, 9 }
+#define MCA_611F_IRQS { 2, 3, 4, 5, 10, 11, 12, 15 }
 
 static void
 nic_mca_write(int port, uint8_t val, void *priv)
 {
     nic_t *dev = (nic_t *)priv;
-	uint16_t novell_base[7] = MCA_7154_IO_PORTS;
-	int8_t novell_irq[4] = MCA_7154_IRQS;
+	uint16_t base[] = MCA_611F_IO_PORTS;
+	int8_t irq[] = MCA_611F_IRQS;
 
     /* MCA does not write registers below 0x0100. */
     if (port < 0x0102) return;
@@ -2294,10 +2236,10 @@ nic_mca_write(int port, uint8_t val, void *priv)
 	
     /* This is always necessary so that the old handler doesn't remain. */
 	/* Get the new assigned I/O base address. */
-	dev->base_address = novell_base[((dev->pos_regs[2] & 0xE) >> 1) - 1];
+	dev->base_address = base[(dev->pos_regs[2] & 0xE0) >> 4];
 
 	/* Save the new IRQ values. */
-	dev->base_irq = novell_irq[(dev->pos_regs[2] & 0x60) >> 5];
+	dev->base_irq = irq[(dev->pos_regs[2] & 0xE) >> 1];
 
 	dev->bios_addr = 0x0000;
 	dev->has_bios = 0;
@@ -2315,6 +2257,11 @@ nic_mca_write(int port, uint8_t val, void *priv)
 	/* Card enabled; register (new) I/O handler. */
 	
 	nic_ioset(dev, dev->base_address);
+	
+	nic_reset(dev);
+	
+	nelog(2, "EtherNext/MC: Port=%04x, IRQ=%d\n", dev->base_address, dev->base_irq);
+	
     }
 }
 
@@ -2354,14 +2301,12 @@ nic_init(const device_t *info)
 		rom = (dev->board == NE2K_NE1000) ? NULL : ROM_PATH_NE2000;
 		break;
 		
-	case NE2K_NE2_MCA:
-		nelog(3, "NE/2 adapter\n");
-		dev->is_mca = 1;
-		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Novell OID) */
+	case NE2K_ETHERNEXT_MC:
+		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Networth Inc. OID) */
 		dev->maclocal[1] = 0x00;
-		dev->maclocal[2] = 0xD8;
-		dev->pos_regs[0] = 0x54;
-		dev->pos_regs[1] = 0x71;
+		dev->maclocal[2] = 0x79;
+		dev->pos_regs[0] = 0x1F;
+		dev->pos_regs[1] = 0x61;
 		rom = NULL;
 		break;
 
@@ -2386,7 +2331,7 @@ nic_init(const device_t *info)
 		dev->has_bios = 0;
 	}
     } else {
-	if (dev->board != NE2K_NE2_MCA) {
+	if (dev->board != NE2K_ETHERNEXT_MC) {
 		dev->base_address = device_get_config_hex16("base");
 		dev->base_irq = device_get_config_int("irq");
 		if (dev->board == NE2K_NE2000) {
@@ -2409,7 +2354,7 @@ nic_init(const device_t *info)
      * Make this device known to the I/O system.
      * PnP and PCI devices start with address spaces inactive.
      */
-    if (dev->board < NE2K_RTL8019AS && dev->board != NE2K_NE2_MCA)
+    if (dev->board < NE2K_RTL8019AS && dev->board != NE2K_ETHERNEXT_MC)
 	nic_ioset(dev, dev->base_address);
 
     /* Set up our BIOS ROM space, if any. */
@@ -2432,7 +2377,7 @@ nic_init(const device_t *info)
     }
     memcpy(dev->dp8390.physaddr, dev->maclocal, sizeof(dev->maclocal));
 
-    nelog(0, "%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
+    nelog(2, "%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
 	dev->name, dev->base_address, dev->base_irq,
 	dev->dp8390.physaddr[0], dev->dp8390.physaddr[1], dev->dp8390.physaddr[2],
 	dev->dp8390.physaddr[3], dev->dp8390.physaddr[4], dev->dp8390.physaddr[5]);
@@ -2570,8 +2515,9 @@ nic_init(const device_t *info)
 	}
     }
 
-    /* Reset the board. */
-	nic_reset(dev);
+	if (dev->board != NE2K_ETHERNEXT_MC)
+		/* Reset the board. */
+		nic_reset(dev);
 
     /* Attach ourselves to the network module. */
     network_attach(dev, dev->dp8390.physaddr, nic_rx);
@@ -2796,10 +2742,10 @@ const device_t ne2000_device = {
     ne2000_config
 };
 
-const device_t ne2_device = {
-    "Novell NE/2",
+const device_t ethernext_mc_device = {
+    "NetWorth EtherNext/MC",
     DEVICE_MCA,
-    NE2K_NE2_MCA,
+    NE2K_ETHERNEXT_MC,
     nic_init, nic_close, NULL,
     NULL, NULL, NULL,
     mca_mac_config
