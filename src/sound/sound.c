@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.17	2018/04/29
+ * Version:	@(#)sound.c	1.0.18	2018/08/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -100,6 +100,7 @@ static const SOUND_CARD sound_cards[] =
 #endif
     { "[ISA] Windows Sound System", "wss",	&wss_device		},
     { "[MCA] Adlib",                "adlib_mca",	&adlib_mca_device	},
+	{ "[MCA] NCR Business Audio","ncraudio",	&ncr_business_audio_device	},
     { "[MCA] Sound Blaster MCV",    "sbmcv",	&sb_mcv_device		},
     { "[MCA] Sound Blaster Pro MCV","sbpromcv",	&sb_pro_mcv_device	},
     { "[PCI] Ensoniq AudioPCI (ES1371)","es1371",    &es1371_device},

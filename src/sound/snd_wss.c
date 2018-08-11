@@ -1,7 +1,21 @@
-/*PCem v0.8 by Tom Walker
-
-  Windows Sound System emulation*/
-
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Windows Sound System emulation.
+ *
+ * Version:	@(#)snd_wss.c	1.0.0	2018/08/11
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		TheCollector1995, <mariogplayer@gmail.com>
+ *
+ *		Copyright 2012-2018 Sarah Walker.
+ *		Copyright 2018 TheCollector1995.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -10,6 +24,7 @@
 #include <math.h>  
 #include "../86box.h"
 #include "../io.h"
+#include "../mca.h"
 #include "../pic.h"
 #include "../dma.h"
 #include "../device.h"
@@ -40,6 +55,9 @@ typedef struct wss_t
 
         ad1848_t ad1848;        
         opl_t    opl;
+		
+		int opl_enabled;
+		uint8_t pos_regs[8];
 } wss_t;
 
 uint8_t wss_read(uint16_t addr, void *p)
@@ -98,6 +116,66 @@ void *wss_init(const device_t *info)
         return wss;
 }
 
+static uint8_t ncr_audio_mca_read(int port, void *p)
+{
+	wss_t *wss = (wss_t *)p;
+	
+	return wss->pos_regs[port & 7];
+}
+
+static void ncr_audio_mca_write(int port, uint8_t val, void *p)
+{
+    wss_t *wss = (wss_t *)p;
+	uint16_t ports[4] = {0x530, 0xE80, 0xF40, 0x604};
+	uint16_t addr;
+	
+	if (port < 0x102)
+		return;	
+
+	wss->opl_enabled = (wss->pos_regs[2] & 0x20) ? 1 : 0;
+	addr = ports[(wss->pos_regs[2] & 0x18) >> 3];
+	
+	io_removehandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL,  &wss->opl);	
+	io_removehandler(addr, 0x0004, wss_read,    NULL, NULL, wss_write,    NULL, NULL,  wss);
+	io_removehandler(addr+4, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL,  &wss->ad1848);
+	
+	//pclog("WSS MCA: opl=%d, addr=%03x\n", wss->opl_enabled, addr);
+
+	wss->pos_regs[port & 7] = val;
+	
+	if (wss->pos_regs[2] & 1)
+	{
+		addr = ports[(wss->pos_regs[2] & 0x18) >> 3];
+		
+		if (wss->opl_enabled)
+			io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL,  &wss->opl);	
+		
+        io_sethandler(addr, 0x0004, wss_read,    NULL, NULL, wss_write,    NULL, NULL,  wss);
+        io_sethandler(addr+4, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL,  &wss->ad1848);
+	} 
+}
+
+void *ncr_audio_init(const device_t *info)
+{
+        wss_t *wss = malloc(sizeof(wss_t));
+
+        memset(wss, 0, sizeof(wss_t));
+
+        opl3_init(&wss->opl);
+        ad1848_init(&wss->ad1848);
+
+		ad1848_setirq(&wss->ad1848, 7);
+		ad1848_setdma(&wss->ad1848, 3);		
+		
+        mca_add(ncr_audio_mca_read, ncr_audio_mca_write, wss);
+        wss->pos_regs[0] = 0x16;
+        wss->pos_regs[1] = 0x51;		
+		
+        sound_add_handler(wss_get_buffer, wss);		
+		
+        return wss;
+}
+
 void wss_close(void *p)
 {
         wss_t *wss = (wss_t *)p;
@@ -117,6 +195,17 @@ const device_t wss_device =
         "Windows Sound System",
         DEVICE_ISA, 0,
         wss_init, wss_close, NULL,
+        NULL,
+        wss_speed_changed,
+        NULL,
+        NULL
+};
+
+const device_t ncr_business_audio_device =
+{
+        "NCR Business Audio",
+        DEVICE_MCA, 0,
+        ncr_audio_init, wss_close, NULL,
         NULL,
         wss_speed_changed,
         NULL,
