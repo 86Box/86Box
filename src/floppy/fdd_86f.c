@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)fdd_86f.c	1.0.10	2018/06/12
+ * Version:	@(#)fdd_86f.c	1.0.11	2018/08/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -3111,7 +3111,8 @@ d86f_stop(int drive)
 {
     d86f_t *dev = d86f[drive];
 
-    dev->state = STATE_IDLE;
+    if (dev)
+	dev->state = STATE_IDLE;
 }
 
 
