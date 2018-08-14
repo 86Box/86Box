@@ -1,4 +1,4 @@
-/*
+﻿/*
  * VARCem	Virtual ARchaeological Computer EMulator.
  *		An emulator of (mostly) x86-based PC systems and devices,
  *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
@@ -8,7 +8,7 @@
  *
  *		Implement a generic NVRAM/CMOS/RTC device.
  *
- * Version:	@(#)nvr.c	1.0.11	2018/08/04
+ * Version:	@(#)nvr.c	1.0.12	2018/08/14
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>,
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -257,8 +257,10 @@ nvr_load(void)
     if (saved_nvr == NULL) return(0);
 
     /* Clear out any old data. */
-    // memset(saved_nvr->regs, 0x00, sizeof(saved_nvr->regs));
-    memset(saved_nvr->regs, 0xff, sizeof(saved_nvr->regs));
+    if (romset == ROM_AWARD286)
+	memset(saved_nvr->regs, 0xff, sizeof(saved_nvr->regs));
+    else
+	memset(saved_nvr->regs, 0x00, sizeof(saved_nvr->regs));
 
     /* Set the defaults. */
     if (saved_nvr->reset != NULL)
