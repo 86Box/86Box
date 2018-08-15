@@ -8,7 +8,7 @@
  *
  *		SVGA renderers.
  *
- * Version:	@(#)vid_svga_render.c	1.0.11	2018/05/26
+ * Version:	@(#)vid_svga_render.c	1.0.12	2018/08/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -235,12 +235,14 @@ void svga_render_text_80_ksc5601(svga_t *svga)
                                 }
                         }
 
-                        if(x + xinc < svga->hdisp && (chr & nextchr & 0x80))
+                        if(x + xinc < svga->hdisp && (chr & (nextchr | svga->ksc5601_sbyte_mask) & 0x80))
                         {
                                 if((chr == 0xc9 || chr == 0xfe) && (nextchr > 0xa0 && nextchr < 0xff))
                                         dat = fontdatksc5601_user[(chr == 0xfe ? 96 : 0) + (nextchr & 0x7F) - 0x20].chr[svga->sc];
-                                else
+                                else if(nextchr & 0x80)
                                         dat = fontdatksc5601[((chr & 0x7F) << 7) | (nextchr & 0x7F)].chr[svga->sc];
+								else
+										dat = 0xff;
                         }
                         else
                         {
@@ -266,7 +268,7 @@ void svga_render_text_80_ksc5601(svga_t *svga)
                         svga->ma += 4; 
                         p += xinc;
 
-                        if(x + xinc < svga->hdisp && (chr & nextchr & 0x80))
+                        if(x + xinc < svga->hdisp && (chr & (nextchr | svga->ksc5601_sbyte_mask) & 0x80))
                         {
                                 attr = svga->vram[((svga->ma << 1) + 1) & svga->vram_display_mask];
 
@@ -289,8 +291,10 @@ void svga_render_text_80_ksc5601(svga_t *svga)
 
                                 if((chr == 0xc9 || chr == 0xfe) && (nextchr > 0xa0 && nextchr < 0xff))
                                         dat = fontdatksc5601_user[(chr == 0xfe ? 96 : 0) + (nextchr & 0x7F) - 0x20].chr[svga->sc + 16];
-                                else
+                                else if(nextchr & 0x80)
                                         dat = fontdatksc5601[((chr & 0x7F) << 7) | (nextchr & 0x7F)].chr[svga->sc + 16];
+								else
+										dat = 0xFF;
                                 if (svga->seqregs[1] & 1) 
                                 { 
                                         for (xx = 0; xx < 8; xx++) 

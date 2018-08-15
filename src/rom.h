@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.17	2018/05/10
+ * Version:	@(#)rom.h	1.0.18	2018/08/16
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2018 Fred N. van Kempen.
@@ -74,6 +74,7 @@ enum {
     ROM_AMI286,
     ROM_AWARD286,
     ROM_CMDPC30,
+	ROM_TG286M,
     ROM_PORTABLEII,
 #if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
     ROM_PORTABLEIII,
@@ -92,6 +93,7 @@ enum {
 
     ROM_IBMPS2_M50,
 
+	ROM_AMA932J,
     ROM_AMI386SX,
     ROM_KMXC02,
     ROM_MEGAPC,

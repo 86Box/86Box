@@ -8,7 +8,7 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.12	2018/05/26
+ * Version:	@(#)vid_svga.h	1.0.13	2018/08/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -117,6 +117,8 @@ typedef struct svga_t
       card should not attempt to display anything */
     int override;
     void *p;
+	
+	uint8_t ksc5601_sbyte_mask;
 } svga_t;
 
 

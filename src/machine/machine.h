@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.24	2018/05/10
+ * Version:	@(#)machine.h	1.0.25	2018/08/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -211,6 +211,8 @@ extern const device_t	*t1000_get_device(void);
 extern const device_t	*t1200_get_device(void);
 
 extern const device_t	*at_endeavor_get_device(void);
+
+extern const device_t 	*at_headland_get_device(void);
 #endif
 
 

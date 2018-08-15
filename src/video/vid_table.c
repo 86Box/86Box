@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.31	2018/08/01
+ * Version:	@(#)vid_table.c	1.0.32	2018/08/16
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -121,7 +121,8 @@ video_cards[] = {
     { "[ISA] TI CF62011 SVGA",				"ti_cf62011",		&ti_cf62011_device,			GFX_TICF62011,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
 #endif
     {"[ISA] Trident TVGA8900D",				"tvga8900d",		&tvga8900d_device,			GFX_TVGA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
-    {"[ISA] Tseng ET4000AX",				"et4000ax",		&et4000_isa_device,				GFX_ET4000_ISA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
+    {"[ISA] Trigem Korean VGA (ET4000AX)",				"tgkorvga",		&et4000k_isa_device,				GFX_TGKOREANVGA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
+	{"[ISA] Tseng ET4000AX",				"et4000ax",		&et4000_isa_device,				GFX_ET4000_ISA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
     {"[ISA] VGA",					"vga",			&vga_device,				GFX_VGA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     {"[ISA] Wyse 700",					"wy700",		&wy700_device,				GFX_WY700,			VIDEO_FLAG_TYPE_CGA,	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     {"[MCA] Tseng ET4000AX",				"et4000mca",		&et4000_mca_device,				GFX_ET4000_MCA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 3,  3,  6,   5,  5, 10}},
@@ -337,6 +338,7 @@ int video_is_mda(void)
 			case ROM_OLIM24:
 			case ROM_PC2086:
 			case ROM_PC3086:
+			case ROM_AMA932J:
 			case ROM_MEGAPC:
 			case ROM_MEGAPCDX:
 			case ROM_IBMPS1_2011:
@@ -370,6 +372,7 @@ int video_is_cga(void)
 		case ROM_PC1640:
 		case ROM_PC2086:
 		case ROM_PC3086:
+		case ROM_AMA932J:
 		case ROM_MEGAPC:
 		case ROM_MEGAPCDX:
 		case ROM_IBMPS1_2011:
@@ -402,6 +405,7 @@ int video_is_ega_vga(void)
 		case ROM_PC1640:
 		case ROM_PC2086:
 		case ROM_PC3086:
+		case ROM_AMA932J:
 		case ROM_MEGAPC:
 		case ROM_MEGAPCDX:
 		case ROM_IBMPS1_2011:

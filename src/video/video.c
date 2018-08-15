@@ -408,6 +408,7 @@ static video_timings_t timing_m24      = {VIDEO_ISA, 8,16,32, 8,16,32};
 static video_timings_t timing_t1000    = {VIDEO_ISA, 8,16,32, 8,16,32};
 static video_timings_t timing_pvga1a   = {VIDEO_ISA, 6, 8,16, 6, 8,16};
 static video_timings_t timing_wd90c11  = {VIDEO_ISA, 3, 3, 6, 5, 5,10};
+static video_timings_t timing_oti067   = {VIDEO_ISA, 6, 8,16, 6, 8,16};
 static video_timings_t timing_vga      = {VIDEO_ISA, 8,16,32, 8,16,32};
 static video_timings_t timing_ps1_svga = {VIDEO_ISA, 6, 8,16, 6, 8,16};
 static video_timings_t timing_t3100e   = {VIDEO_ISA, 8,16,32, 8,16,32};
@@ -448,6 +449,9 @@ video_update_timing(void)
 	case ROM_T1200:
 		timing = &timing_t1000;
 		break;
+	case ROM_AMA932J:
+		timing = &timing_oti067;
+		break;		
 	case ROM_MEGAPC:
 	case ROM_MEGAPCDX:
 		timing = &timing_wd90c11;
