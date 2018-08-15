@@ -51,7 +51,7 @@
  * NOTE:	Still need to figure out a way to load/save ConfigSys and
  *		HardRAM stuff. Needs to be linked in to the NVR code.
  *
- * Version:	@(#)m_xt_t1000.c	1.0.7	2018/08/04
+ * Version:	@(#)m_xt_t1000.c	1.0.8	2018/08/15
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -145,7 +145,7 @@ typedef struct {
 
     /* CONFIG.SYS drive. */
     uint8_t	t1000_nvram[160];
-    uint8_t	t1200_nvram[160];
+    uint8_t	t1200_nvram[2048];
 
     /* System control registers */
     uint8_t	sys_ctl[16];
@@ -1002,7 +1002,7 @@ t1200_state_load(void)
 {
     FILE *f;
 
-    memset(t1000.t1200_nvram, 0x1a, sizeof(t1000.t1200_nvram));
+    memset(t1000.t1200_nvram, 0, sizeof(t1000.t1200_nvram));
     f = plat_fopen(nvr_path(L"t1200_state.nvr"), L"rb");
     if (f != NULL) {
 	fread(t1000.t1200_nvram, sizeof(t1000.t1200_nvram), 1, f);
