@@ -8,7 +8,7 @@
  *
  *		Oak OTI037C/67/077 emulation.
  *
- * Version:	@(#)vid_oak_oti.c	1.0.12	2018/04/26
+ * Version:	@(#)vid_oak_oti.c	1.0.12	2018/08/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -29,9 +29,11 @@
 #include "video.h"
 #include "vid_oak_oti.h"
 #include "vid_svga.h"
+#include "../machine/machine.h"
 
-#define BIOS_37C_PATH	L"roms/video/oti/bios.bin"
-#define BIOS_77_PATH	L"roms/video/oti/oti077.vbi"
+#define BIOS_37C_PATH			L"roms/video/oti/bios.bin"
+#define BIOS_67_AMA932J_PATH	L"roms/machines/ama932j/oti067.bin"
+#define BIOS_77_PATH			L"roms/video/oti/oti077.vbi"
 
 
 typedef struct {
@@ -271,6 +273,11 @@ oti_init(const device_t *info)
 		break;		
 		
 	case 2:
+		if (romset == ROM_AMA932J) /*In case of any other future board uses another variant*/
+		{
+			romfn = BIOS_67_AMA932J_PATH;
+			break;
+		}
 	case 5:
 		romfn = BIOS_77_PATH;
 		break;
@@ -281,7 +288,7 @@ oti_init(const device_t *info)
 
     oti->vram_size = device_get_config_int("memory");
     oti->vram_mask = (oti->vram_size << 10) - 1;
-
+	
     svga_init(&oti->svga, oti, oti->vram_size << 10,
 	      oti_recalctimings, oti_in, oti_out, NULL, NULL);
 
@@ -332,6 +339,11 @@ oti037c_available(void)
     return(rom_present(BIOS_37C_PATH));
 }
 
+static int
+oti067_ama932j_available(void)
+{
+    return(rom_present(BIOS_67_AMA932J_PATH));
+}
 
 static int
 oti067_077_available(void)
@@ -405,6 +417,18 @@ const device_t oti067_device =
 	2,
 	oti_init, oti_close, NULL,
 	oti067_077_available,
+	oti_speed_changed,
+	oti_force_redraw,
+	oti067_config
+};
+
+const device_t oti067_ama932j_device =
+{
+	"Oak OTI-067 (AMA-932J)",
+	DEVICE_ISA,
+	2,
+	oti_init, oti_close, NULL,
+	oti067_ama932j_available,
 	oti_speed_changed,
 	oti_force_redraw,
 	oti067_config

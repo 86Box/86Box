@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.19	2018/05/20
+ * Version:	@(#)vid_ati28800.c	1.0.20	2018/08/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -130,9 +130,12 @@ static void ati28800_out(uint16_t addr, uint8_t val, void *p)
                         case 0xb3:
                         ati_eeprom_write(&ati28800->eeprom, val & 8, val & 2, val & 1);
                         break;
-			case 0xb6:
-			if((old ^ val) & 0x10) svga_recalctimings(svga);
-			break;
+						case 0xb6:
+						if (val & 1)
+							pclog("Extended 0xB6 bit 0 enabled\n");
+						
+						if((old ^ val) & 0x10) svga_recalctimings(svga);
+						break;
                         case 0xb8:
                         if((old ^ val) & 0x40) svga_recalctimings(svga);
                         break;
@@ -247,14 +250,14 @@ static uint8_t ati28800_in(uint16_t addr, void *p)
                 case 0x1cf:
                 switch (ati28800->index)
                 {
-			case 0xb0:
-			if (ati28800->memory == 256)
-				return 0x08;
-			else if (ati28800->memory == 512)
-				return 0x10;
-			else
-				return 0x18;
-			break;
+						case 0xb0:
+						if (ati28800->memory == 256)
+							return 0x08;
+						else if (ati28800->memory == 512)
+							return 0x10;
+						else
+							return 0x18;
+						break;
 
                         case 0xb7:
                         temp = ati28800->regs[ati28800->index] & ~8;
@@ -422,6 +425,7 @@ ati28800k_init(const device_t *info)
         io_sethandler(0x03c0, 0x0020, ati28800k_in, NULL, NULL, ati28800k_out, NULL, NULL, ati28800);
 
         ati28800->svga.miscout = 1;
+		ati28800->svga.ksc5601_sbyte_mask = 0;
 
         ati_eeprom_load(&ati28800->eeprom, L"atikorvga.nvr", 0);
 
@@ -479,7 +483,23 @@ ati28800_init(const device_t *info)
 
     ati->svga.miscout = 1;
 
-    ati_eeprom_load(&ati->eeprom, L"ati28800.nvr", 0);
+	switch (info->local)
+	{
+		case GFX_VGAWONDERXL:
+			ati_eeprom_load(&ati->eeprom, L"ati28800xl.nvr", 0);
+			break;
+			
+#if defined(DEV_BRANCH) && defined(USE_XL24)
+		case GFX_VGAWONDERXL24:
+			ati_eeprom_load(&ati->eeprom, L"ati28800xl24.nvr", 0);
+			break;
+#endif
+
+		default:
+			ati_eeprom_load(&ati->eeprom, L"ati28800.nvr", 0);
+			break;
+	}	
+		
 
     return(ati);
 }
@@ -556,7 +576,7 @@ static const device_config_t ati28800_config[] =
                                 "512 kB", 512
                         },
                         {
-                                "1024 kB", 1024
+                                "1 MB", 1024
                         },
                         {
                                 ""

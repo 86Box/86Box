@@ -51,7 +51,7 @@
  * NOTE:	Still need to figure out a way to load/save ConfigSys and
  *		HardRAM stuff. Needs to be linked in to the NVR code.
  *
- * Version:	@(#)m_xt_t1000.c	1.0.8	2018/08/15
+ * Version:	@(#)m_xt_t1000.c	1.0.9	2018/08/16
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -419,7 +419,7 @@ ems_set_hardram(t1000_t *sys, uint8_t val)
 #if 0
     t1000_log("EMS base set to %02x\n", val);
 #endif
-    sys->ems_pages = 48 - 4 * sys->ems_base;
+    sys->ems_pages = ((mem_size - 512) / 16) - 4 * sys->ems_base;
     if (sys->ems_pages < 0) sys->ems_pages = 0;
 
     /* Recalculate EMS mappings */
@@ -653,6 +653,15 @@ write_ctl(uint16_t addr, uint8_t val, void *priv)
 		}
 		break;
 
+	/* It looks as if the T1200, like the T3100, can disable
+	 * its builtin video chipset if it detects the presence of
+	 * another video card. */
+	case 6: if (romset == ROM_T1200)
+		{
+			t1000_video_enable(val & 0x01 ? 0 : 1);
+		}
+		break;		
+		
 	case 0x0f:	/* EMS control */
 		switch (sys->sys_ctl[0x0e]) {
 			case 0x50:
@@ -904,7 +913,8 @@ machine_xt_t1000_init(const machine_t *model)
 
     tc8521_init(&t1000.nvr, model->nvrmask + 1);
 
-    device_add(&t1000_video_device);
+    if (gfxcard == GFX_INTERNAL)
+		device_add(&t1000_video_device);
 }
 
 
@@ -957,7 +967,8 @@ machine_xt_t1200_init(const machine_t *model)
 
     tc8521_init(&t1000.nvr, model->nvrmask + 1);
 
-    device_add(&t1200_video_device);
+	if (gfxcard == GFX_INTERNAL)
+		device_add(&t1200_video_device);
 }
 
 
