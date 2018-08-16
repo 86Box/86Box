@@ -8,7 +8,7 @@
  *
  *		Emulation of the Tseng Labs ET4000.
  *
- * Version:	@(#)vid_et4000.c	1.0.8	2018/08/14
+ * Version:	@(#)vid_et4000.c	1.0.9	2018/08/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -432,23 +432,23 @@ void *et4000_mca_init(const device_t *info)
 {
         et4000_t *et4000 = malloc(sizeof(et4000_t));
         memset(et4000, 0, sizeof(et4000_t));
-        
-		et4000->is_mca = 1;
-		
-		/* Enable MCA. */
-		et4000->pos_regs[0] = 0xF2;	/* ET4000 MCA board ID */
-		et4000->pos_regs[1] = 0x80;	
-		mca_add(et4000_mca_read, et4000_mca_write, et4000);
-        
-		rom_init(&et4000->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-		
-		svga_init(&et4000->svga, et4000, 1 << 20, /*1mb*/
-				   et4000_recalctimings,
-				   et4000_in, et4000_out,
-				   NULL,
-				   NULL);	
-		
-		io_sethandler(0x03c0, 0x0020, et4000_in, NULL, NULL, et4000_out, NULL, NULL, et4000);		
+
+	et4000->is_mca = 1;
+
+	/* Enable MCA. */
+	et4000->pos_regs[0] = 0xF2;	/* ET4000 MCA board ID */
+	et4000->pos_regs[1] = 0x80;	
+	mca_add(et4000_mca_read, et4000_mca_write, et4000);
+
+	rom_init(&et4000->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+	svga_init(&et4000->svga, et4000, 1 << 20, /*1mb*/
+			   et4000_recalctimings,
+			   et4000_in, et4000_out,
+			   NULL,
+			   NULL);	
+
+	io_sethandler(0x03c0, 0x0020, et4000_in, NULL, NULL, et4000_out, NULL, NULL, et4000);		
 		
         return et4000;
 }
@@ -521,7 +521,7 @@ const device_t et4000_isa_device =
         et4000_available,
         et4000_speed_changed,
         et4000_force_redraw,
-		et4000_config
+	et4000_config
 };
 
 const device_t et4000k_isa_device =
@@ -532,7 +532,18 @@ const device_t et4000k_isa_device =
         et4000k_available,
         et4000_speed_changed,
         et4000_force_redraw,
-		et4000_config
+	et4000_config
+};
+
+const device_t et4000k_tg286_isa_device =
+{
+        "Trigem Korean VGA (Trigem 286M)",
+        DEVICE_ISA, 0,
+        et4000k_isa_init, et4000_close, NULL,
+        et4000k_available,
+        et4000_speed_changed,
+        et4000_force_redraw,
+	et4000_config
 };
 
 const device_t et4000_mca_device =

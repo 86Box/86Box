@@ -8,7 +8,7 @@
  *
  *		Emulation of the Tseng Labs ET4000.
  *
- * Version:	@(#)vid_et4000.c	1.0.8	2018/08/14
+ * Version:	@(#)vid_et4000.c	1.0.9	2018/08/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,6 +21,7 @@
 
 extern const device_t et4000_isa_device;
 extern const device_t et4000k_isa_device;
+extern const device_t et4000k_tg286_isa_device;
 extern const device_t et4000_mca_device;
 
 #endif	/*EMU_VID_ET4000_H*/
