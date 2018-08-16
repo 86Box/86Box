@@ -542,7 +542,7 @@ machine_at_headland_init(const machine_t *model)
 
     if (romset == ROM_TG286M) {
 	if (gfxcard == GFX_INTERNAL)
-		device_add(&oti067_ama932j_device);
+		device_add(&et4000k_tg286_isa_device);
     } else if (romset == ROM_AMA932J) {
 	if (gfxcard == GFX_INTERNAL)
 		device_add(&oti067_ama932j_device);
