@@ -8,7 +8,7 @@
  *
  *		IBM VGA emulation.
  *
- * Version:	@(#)vid_vga.c	1.0.5	2018/04/26
+ * Version:	@(#)vid_vga.c	1.0.6	2018/08/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -124,33 +124,6 @@ static void *vga_init(const device_t *info)
 }
 
 
-#ifdef DEV_BRANCH
-static void *trigem_unk_init(const device_t *info)
-{
-        vga_t *vga = malloc(sizeof(vga_t));
-        memset(vga, 0, sizeof(vga_t));
-
-        rom_init(&vga->bios_rom, L"roms/video/vga/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
-
-        svga_init(&vga->svga, vga, 1 << 18, /*256kb*/
-                   NULL,
-                   vga_in, vga_out,
-                   NULL,
-                   NULL);
-
-        io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
-
-	io_sethandler(0x22ca, 0x0002, svga_in, NULL, NULL, vga_out, NULL, NULL, vga);
-	io_sethandler(0x22ce, 0x0002, svga_in, NULL, NULL, vga_out, NULL, NULL, vga);
-	io_sethandler(0x32ca, 0x0002, svga_in, NULL, NULL, vga_out, NULL, NULL, vga);
-
-        vga->svga.bpp = 8;
-        vga->svga.miscout = 1;
-        
-        return vga;
-}
-#endif
-
 /*PS/1 uses a standard VGA controller, but with no option ROM*/
 void *ps1vga_init(const device_t *info)
 {
@@ -212,21 +185,7 @@ const device_t vga_device =
         vga_force_redraw,
         NULL
 };
-#ifdef DEV_BRANCH
-const device_t trigem_unk_device =
-{
-        "VGA",
-        DEVICE_ISA,
-	0,
-        trigem_unk_init,
-        vga_close,
-	NULL,
-        vga_available,
-        vga_speed_changed,
-        vga_force_redraw,
-        NULL
-};
-#endif
+
 const device_t ps1vga_device =
 {
         "PS/1 VGA",
