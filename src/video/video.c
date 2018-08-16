@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.23	2018/05/25
+ * Version:	@(#)video.c	1.0.24	2018/08/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -79,8 +79,8 @@ uint8_t		fontdat[2048][8];		/* IBM CGA font */
 uint8_t		fontdatm[2048][16];		/* IBM MDA font */
 uint8_t		fontdatw[512][32];		/* Wyse700 font */
 uint8_t		fontdat8x12[256][16];		/* MDSI Genius font */
-dbcs_font_t	*fontdatksc5601;		/* Korean KSC-5601 font */
-dbcs_font_t	*fontdatksc5601_user;		/* Korean KSC-5601 user defined font */
+dbcs_font_t	*fontdatksc5601 = NULL;		/* Korean KSC-5601 font */
+dbcs_font_t	*fontdatksc5601_user = NULL;	/* Korean KSC-5601 user defined font */
 uint32_t	pal_lookup[256];
 int		xsize = 1,
 		ysize = 1;

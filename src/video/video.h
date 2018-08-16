@@ -243,6 +243,7 @@ extern void	updatewindowsize(int x, int y);
 
 extern void	video_init(void);
 extern void	video_close(void);
+extern void	video_font_reset(void);
 extern void	video_reset(int card);
 extern uint8_t	video_force_resize_get(void);
 extern void	video_force_resize_set(uint8_t res);

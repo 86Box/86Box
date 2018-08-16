@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.32	2018/08/16
+ * Version:	@(#)vid_table.c	1.0.33	2018/08/16
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -197,6 +197,16 @@ vid_table_log(const char *fmt, ...)
 
 
 void
+video_font_reset(void)
+{
+    if (fontdatksc5601) {
+	free(fontdatksc5601);
+	fontdatksc5601 = NULL;
+    }
+}
+
+
+void
 video_reset(int card)
 {
     vid_table_log("VIDEO: reset (romset=%d, gfxcard=%d, internal=%d)\n",
@@ -205,11 +215,6 @@ video_reset(int card)
     /* Reset the CGA palette. */
     cga_palette = 0;
     cgapal_rebuild();
-
-    if (fontdatksc5601) {
-	free(fontdatksc5601);
-	fontdatksc5601 = NULL;
-    }
 
     /* Do not initialize internal cards here. */
     if (!(card == GFX_NONE) && \

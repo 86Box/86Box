@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.74	2018/08/04
+ * Version:	@(#)pc.c	1.0.75	2018/08/16
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -766,6 +766,7 @@ pc_reset_hard_init(void)
     scsi_disk_hard_reset();
 
     /* Initialize the actual machine and its basic modules. */
+    video_font_reset();	/* Reset (deallocate) the video font arrays. */
     machine_init();
 
     fdd_reset();

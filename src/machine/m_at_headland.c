@@ -533,7 +533,10 @@ headland_init(void)
 void
 machine_at_headland_init(const machine_t *model)
 {
-    machine_at_common_ide_init(model);
+    if (romset == ROM_TG286M)
+	machine_at_common_init(model);
+    else
+	machine_at_common_ide_init(model);
 
     device_add(&keyboard_at_ami_device);
     device_add(&fdc_at_device);
