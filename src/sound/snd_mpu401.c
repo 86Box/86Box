@@ -300,6 +300,7 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 		return;
 
 	case 0xb1:	/* Reset relative tempo */
+		mpu->clock.old_tempo_rel=mpu->clock.tempo_rel;
 		mpu->clock.tempo_rel=40;
 		break;
 
@@ -363,8 +364,8 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
 
 	case 0xe1:	/* Set relative tempo */
 		mpu->state.command_byte=0;
-		if (val!=0x40) //default value
-			mpu401_log("MPU-401:Relative tempo change not implemented\n");
+		mpu->clock.old_tempo_rel=mpu->clock.tempo_rel;
+		mpu->clock.tempo_rel=val;
 		return;
 
 	case 0xe7:	/* Set internal clock to host interval */
@@ -773,7 +774,7 @@ mpu401_read(uint16_t addr, void *priv)
 	case 1: //Read Status
 		if (mpu->state.cmd_pending) ret=STATUS_OUTPUT_NOT_READY;
 		if (!mpu->queue_used) ret=STATUS_INPUT_NOT_READY;
-		ret |= 0x3f;	//FIXME: check with MPU401 TechRef
+		ret |= 0x3f;
 
 		mpu401_log("Read Status (0x331) %x\n", ret);
 		break;
@@ -825,8 +826,8 @@ MPU401_Event(void *priv)
 
 next_event:
     /* mpu401_event_callback = 0LL; */
-    new_time = (mpu->clock.tempo * mpu->clock.timebase);
-    if (new_time == 0) {
+    new_time = ((mpu->clock.tempo * mpu->clock.timebase * mpu->clock.tempo_rel)/0x40);
+	if (new_time == 0) {
 	mpu401_event_callback = 0LL;
 	return;
     } else {
@@ -839,13 +840,6 @@ next_event:
 void
 mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode)
 {
-#if 0
-    if (mode != M_INTELLIGENT) {
-	mpu401_uart_init(mpu, addr);
-	return;
-    }
-#endif
-
     mpu->status = STATUS_INPUT_NOT_READY;
     mpu->irq = irq;
     mpu->queue_used = 0;
