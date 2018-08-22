@@ -8,7 +8,7 @@
  *
  *		Emulation of the Tseng Labs ET4000.
  *
- * Version:	@(#)vid_et4000.c	1.0.9	2018/08/16
+ * Version:	@(#)vid_et4000.c	1.0.10	2018/08/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -57,6 +57,7 @@ typedef struct et4000_t
         int get_korean_font_enabled;
         int get_korean_font_index;
         uint16_t get_korean_font_base;
+	uint32_t vram_mask;
 } et4000_t;
 
 static uint8_t crtc_mask[0x40] =
@@ -103,6 +104,10 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
                 old = svga->crtc[svga->crtcreg];
                 val &= crtc_mask[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
+
+		if (svga->crtcreg == 0x36)
+			svga->vram_display_mask = (val & 0x20) ? et4000->vram_mask : 0x3ffff;
+
                 if (old != val)
                 {
                         if (svga->crtcreg < 0xE || svga->crtcreg > 0x10)
@@ -112,8 +117,8 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
                         }
                 }
 				
-				/*Note - Silly hack to determine video memory size automatically by ET4000 BIOS.*/
-                if(svga->crtcreg == 0x37 && !et4000->is_mca)
+		/*Note - Silly hack to determine video memory size automatically by ET4000 BIOS.*/
+                if (svga->crtcreg == 0x37 && !et4000->is_mca)
                 {
                         switch(val & 0x0B)
                         {
@@ -133,25 +138,25 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
                                 case 0x03:
                                 case 0x08:
                                 case 0x09:
-                                if(svga->vram_max == 256 * 1024)
-                                mem_mapping_enable(&svga->mapping);
+                                if (svga->vram_max == 256 * 1024)
+                                	mem_mapping_enable(&svga->mapping);
                                 else
-                                mem_mapping_disable(&svga->mapping);
+                                	mem_mapping_disable(&svga->mapping);
                                 break;
                                 case 0x0A:
-                                if(svga->vram_max == 512 * 1024)
-                                mem_mapping_enable(&svga->mapping);
+                                if (svga->vram_max == 512 * 1024)
+                                	mem_mapping_enable(&svga->mapping);
                                 else
-                                mem_mapping_disable(&svga->mapping);
+                                	mem_mapping_disable(&svga->mapping);
                                 break;
                                 case 0x0B:
-                                if(svga->vram_max == 1024 * 1024)
-                                mem_mapping_enable(&svga->mapping);
+                                if (svga->vram_max == 1024 * 1024)
+                                	mem_mapping_enable(&svga->mapping);
                                 else
-                                mem_mapping_disable(&svga->mapping);
+                                	mem_mapping_disable(&svga->mapping);
                                 break;
                                 default:
-                                mem_mapping_enable(&svga->mapping);
+                                	mem_mapping_enable(&svga->mapping);
                                 break;
                         }
                 }				
@@ -170,15 +175,15 @@ uint8_t et4000_in(uint16_t addr, void *p)
 
         switch (addr)
         {
-				case 0x3c2:
-				if (et4000->is_mca)
-				{
-					if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
-						return 0;
-					else
-						return 0x10;					
-				}
-				break;
+		case 0x3c2:
+		if (et4000->is_mca)
+		{
+			if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
+				return 0;
+			else
+				return 0x10;					
+		}
+		break;
 			
                 case 0x3C5:
                 if ((svga->seqaddr & 0xf) == 7) return svga->seqregs[svga->seqaddr & 0xf] | 4;
@@ -212,7 +217,7 @@ void et4000k_out(uint16_t addr, uint8_t val, void *p)
                         et4000->get_korean_font_index = 0;
                 break;
                 case 0x22CF:
-				switch(et4000->get_korean_font_enabled)
+		switch(et4000->get_korean_font_enabled)
                 {
                         case 1:
                         et4000->get_korean_font_base = ((val & 0x7F) << 7) | (et4000->get_korean_font_base & 0x7F);
@@ -377,6 +382,7 @@ void *et4000_isa_init(const device_t *info)
                    et4000_in, et4000_out,
                    NULL,
                    NULL);
+	et4000->vram_mask = (device_get_config_int("memory") << 10) - 1;
         
         return et4000;
 }
@@ -402,6 +408,7 @@ void *et4000k_isa_init(const device_t *info)
                    et4000k_in, et4000k_out,
                    NULL,
                    NULL);
+	et4000->vram_mask = (device_get_config_int("memory") << 10) - 1;
 
         et4000->svga.ksc5601_sbyte_mask = 0x80;
 
@@ -447,6 +454,7 @@ void *et4000_mca_init(const device_t *info)
 			   et4000_in, et4000_out,
 			   NULL,
 			   NULL);	
+	et4000->vram_mask = (1 << 20) - 1;
 
 	io_sethandler(0x03c0, 0x0020, et4000_in, NULL, NULL, et4000_out, NULL, NULL, et4000);		
 		
