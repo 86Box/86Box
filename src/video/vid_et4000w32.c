@@ -10,7 +10,7 @@
  *
  * Known bugs:	Accelerator doesn't work in planar modes
  *
- * Version:	@(#)vid_et4000w32.c	1.0.11	2018/07/16
+ * Version:	@(#)vid_et4000w32.c	1.0.12	2018/08/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -96,6 +96,7 @@ typedef struct et4000w32p_t
 	int pci;
         uint8_t regs[256];
         uint32_t linearbase, linearbase_old;
+	uint32_t vram_mask;
 
         uint8_t banking, banking2;
 
@@ -201,13 +202,17 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
                 return;
                 
                 case 0x3CB: /*Banking extension*/
-                svga->write_bank = (svga->write_bank & 0xfffff) | ((val & 1) << 20);
-                svga->read_bank  = (svga->read_bank  & 0xfffff) | ((val & 0x10) << 16);
+		if (!(svga->crtc[0x36] & 0x10)) {
+	                svga->write_bank = ((svga->write_bank & 0xfffff) | ((val & 1) << 20)) & svga->vram_display_mask;
+	                svga->read_bank  = ((svga->read_bank  & 0xfffff) | ((val & 0x10) << 16)) & svga->vram_display_mask;
+		}
                 et4000->banking2 = val;
                 return;
                 case 0x3CD: /*Banking*/
-                svga->write_bank = (svga->write_bank & 0x100000) | ((val & 0xf) * 65536);
-                svga->read_bank  = (svga->read_bank  & 0x100000) | (((val >> 4) & 0xf) * 65536);
+		if (!(svga->crtc[0x36] & 0x10)) {
+	                svga->write_bank = ((svga->write_bank & 0x100000) | ((val & 0xf) * 65536)) & svga->vram_display_mask;
+        	        svga->read_bank  = ((svga->read_bank  & 0x100000) | (((val >> 4) & 0xf) * 65536)) & svga->vram_display_mask;
+		}
                 et4000->banking = val;
                 return;
                 case 0x3CF:
@@ -229,6 +234,14 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
                         val = (svga->crtc[7] & ~0x10) | (val & 0x10);
                 old = svga->crtc[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
+		if (svga->crtcreg == 0x36) {
+			svga->vram_display_mask = (val & 0x28) ? et4000->vram_mask : 0x3ffff;	/* Both bits 5 and 3 must be off for 256k wraparound. */
+			if (!(val & 0x10)) {
+		                svga->write_bank = (((et4000->banking2 & 1) << 20) | ((et4000->banking & 0xf) * 65536)) & svga->vram_display_mask;
+		                svga->read_bank  = (((et4000->banking2 & 0x10) << 16) | (((et4000->banking >> 4) & 0xf) * 65536)) & svga->vram_display_mask;
+			} else
+				svga->write_bank = svga->read_bank = 0;
+		}
                 if (old != val)
                 {
                         if (svga->crtcreg < 0xe || svga->crtcreg > 0x10)
@@ -1238,6 +1251,7 @@ void *et4000w32p_init(const device_t *info)
                    et4000w32p_in, et4000w32p_out,
                    et4000w32p_hwcursor_draw,
                    NULL); 
+	et4000->vram_mask = (vram_size << 20) - 1;
 
 	et4000->type = info->local;
 

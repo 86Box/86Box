@@ -8,7 +8,7 @@
  *
  *		Emulation of the Tseng Labs ET4000.
  *
- * Version:	@(#)vid_et4000.c	1.0.10	2018/08/22
+ * Version:	@(#)vid_et4000.c	1.0.11	2018/08/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -87,10 +87,13 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
                 sc1502x_ramdac_out(addr, val, &et4000->ramdac, svga);
                 return;
-                
+
                 case 0x3CD: /*Banking*/
-                svga->write_bank = (val & 0xf) * 0x10000;
-                svga->read_bank = ((val >> 4) & 0xf) * 0x10000;
+		if (!(svga->crtc[0x36] & 0x10)) {
+                	svga->write_bank = ((val & 0xf) * 0x10000) & svga->vram_display_mask;
+                	svga->read_bank = (((val >> 4) & 0xf) * 0x10000) & svga->vram_display_mask;
+			pclog("write bank: %08X, read bank: %08X\n", svga->write_bank, svga->read_bank);
+		}
                 et4000->banking = val;
                 return;
                 case 0x3D4:
@@ -105,8 +108,14 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
                 val &= crtc_mask[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
 
-		if (svga->crtcreg == 0x36)
+		if (svga->crtcreg == 0x36) {
 			svga->vram_display_mask = (val & 0x20) ? et4000->vram_mask : 0x3ffff;
+			if (!(val & 0x10)) {
+        	        	svga->write_bank = ((et4000->banking & 0xf) * 0x10000) & svga->vram_display_mask;
+                		svga->read_bank = (((et4000->banking >> 4) & 0xf) * 0x10000) & svga->vram_display_mask;
+			} else
+				svga->write_bank = svga->read_bank = 0;
+		}
 
                 if (old != val)
                 {
@@ -118,7 +127,7 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
                 }
 				
 		/*Note - Silly hack to determine video memory size automatically by ET4000 BIOS.*/
-                if (svga->crtcreg == 0x37 && !et4000->is_mca)
+                if ((svga->crtcreg == 0x37) && !et4000->is_mca)
                 {
                         switch(val & 0x0B)
                         {
@@ -501,7 +510,11 @@ static device_config_t et4000_config[] =
                 .description = "Memory size",
                 .type = CONFIG_SELECTION,
                 .selection =
-				{
+		{
+                        {
+                                .description = "256 kB",
+                                .value = 256
+                        },
                         {
                                 .description = "512 kB",
                                 .value = 512
