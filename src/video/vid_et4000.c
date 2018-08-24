@@ -8,7 +8,7 @@
  *
  *		Emulation of the Tseng Labs ET4000.
  *
- * Version:	@(#)vid_et4000.c	1.0.11	2018/08/23
+ * Version:	@(#)vid_et4000.c	1.0.12	2018/08/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -57,7 +57,8 @@ typedef struct et4000_t
         int get_korean_font_enabled;
         int get_korean_font_index;
         uint16_t get_korean_font_base;
-	uint32_t vram_mask;
+	uint32_t vram_mask, key;
+	uint8_t hcr, mcr;
 } et4000_t;
 
 static uint8_t crtc_mask[0x40] =
@@ -72,6 +73,8 @@ static uint8_t crtc_mask[0x40] =
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
+uint8_t et4000_in(uint16_t addr, void *p);
+
 void et4000_out(uint16_t addr, uint8_t val, void *p)
 {
         et4000_t *et4000 = (et4000_t *)p;
@@ -84,15 +87,25 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
 
         switch (addr)
         {
+		case 0x3BF: case 0x3DF:
+		et4000->hcr = val;
+		return;
+
+		case 0x3c2:
+		if (val & 1)
+			io_sethandler(0x03bf, 0x0001, et4000_in, NULL, NULL, et4000_out, NULL, NULL, et4000);
+		else
+			io_removehandler(0x03bf, 0x0001, et4000_in, NULL, NULL, et4000_out, NULL, NULL, et4000);
+		break;
+
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
                 sc1502x_ramdac_out(addr, val, &et4000->ramdac, svga);
                 return;
 
                 case 0x3CD: /*Banking*/
-		if (!(svga->crtc[0x36] & 0x10)) {
-                	svga->write_bank = ((val & 0xf) * 0x10000) & svga->vram_display_mask;
-                	svga->read_bank = (((val >> 4) & 0xf) * 0x10000) & svga->vram_display_mask;
-			pclog("write bank: %08X, read bank: %08X\n", svga->write_bank, svga->read_bank);
+		if (et4000->key && !(svga->crtc[0x36] & 0x10)) {
+               		svga->write_bank = (val & 0xf) * 0x10000;
+               		svga->read_bank = ((val >> 4) & 0xf) * 0x10000;
 		}
                 et4000->banking = val;
                 return;
@@ -102,6 +115,10 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
                 case 0x3D5:
                 if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
                         return;
+                if ((svga->crtcreg == 0x35) && (svga->crtc[0x11] & 0x80))
+                        return;
+		if ((svga->crtcreg > 0x18) && (svga->crtcreg != 0x33) && (svga->crtcreg != 0x35) && !et4000->key)
+			return;
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
                         val = (svga->crtc[7] & ~0x10) | (val & 0x10);
                 old = svga->crtc[svga->crtcreg];
@@ -109,12 +126,10 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
                 svga->crtc[svga->crtcreg] = val;
 
 		if (svga->crtcreg == 0x36) {
-			svga->vram_display_mask = (val & 0x20) ? et4000->vram_mask : 0x3ffff;
 			if (!(val & 0x10)) {
-        	        	svga->write_bank = ((et4000->banking & 0xf) * 0x10000) & svga->vram_display_mask;
-                		svga->read_bank = (((et4000->banking >> 4) & 0xf) * 0x10000) & svga->vram_display_mask;
-			} else
-				svga->write_bank = svga->read_bank = 0;
+        	        	svga->write_bank = (et4000->banking & 0xf) * 0x10000;
+                		svga->read_bank = ((et4000->banking >> 4) & 0xf) * 0x10000;
+			}
 		}
 
                 if (old != val)
@@ -170,6 +185,16 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
                         }
                 }				
                 break;
+                case 0x3D8:
+		et4000->mcr = val;
+		if (et4000->hcr == 0x03) {
+			if ((et4000->mcr & 0xa0) == 0xa0)
+				et4000->key = 1;
+		} else {
+			if ((et4000->mcr & 0xa0) != 0xa0)
+				et4000->key = 0;
+		}
+		break;
         }
         svga_out(addr, val, svga);
 }
@@ -202,7 +227,7 @@ uint8_t et4000_in(uint16_t addr, void *p)
                 return sc1502x_ramdac_in(addr, &et4000->ramdac, svga);
                 
                 case 0x3CD: /*Banking*/
-                return et4000->banking;
+               	return et4000->banking;
                 case 0x3D4:
                 return svga->crtcreg;
                 case 0x3D5:
@@ -384,6 +409,7 @@ void *et4000_isa_init(const device_t *info)
 		
         rom_init(&et4000->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 
+        io_sethandler(0x03bf, 0x0001, et4000_in, NULL, NULL, et4000_out, NULL, NULL, et4000);
         io_sethandler(0x03c0, 0x0020, et4000_in, NULL, NULL, et4000_out, NULL, NULL, et4000);
 
         svga_init(&et4000->svga, et4000,  device_get_config_int("memory") << 10, /*1mb default*/
@@ -404,6 +430,7 @@ void *et4000k_isa_init(const device_t *info)
         rom_init(&et4000->bios_rom, KOREAN_BIOS_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         loadfont(KOREAN_FONT_ROM_PATH, 6);
                 
+        io_sethandler(0x03bf, 0x0001, et4000_in, NULL, NULL, et4000_out, NULL, NULL, et4000);
         io_sethandler(0x03c0, 0x0020, et4000_in, NULL, NULL, et4000_out, NULL, NULL, et4000);
 
         io_sethandler(0x22cb, 0x0001, et4000k_in, NULL, NULL, et4000k_out, NULL, NULL, et4000);
@@ -465,6 +492,7 @@ void *et4000_mca_init(const device_t *info)
 			   NULL);	
 	et4000->vram_mask = (1 << 20) - 1;
 
+        io_sethandler(0x03bf, 0x0001, et4000_in, NULL, NULL, et4000_out, NULL, NULL, et4000);
 	io_sethandler(0x03c0, 0x0020, et4000_in, NULL, NULL, et4000_out, NULL, NULL, et4000);		
 		
         return et4000;
