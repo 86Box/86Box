@@ -10,7 +10,7 @@
  *
  * Known bugs:	Accelerator doesn't work in planar modes
  *
- * Version:	@(#)vid_et4000w32.c	1.0.13	2018/08/24
+ * Version:	@(#)vid_et4000w32.c	1.0.15	2018/08/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -194,34 +194,26 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
         
         switch (addr)
         {
-		case 0x3BF: case 0x3DF:
-		et4000->hcr = val;
-		return;
-
-                case 0x3c2:
-		if (val & 1)
-			io_sethandler(0x03bf, 0x0001, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
-		else
-			io_removehandler(0x03bf, 0x0001, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
+                case 0x3c2:
 		if (et4000->type == ET4000W32_DIAMOND)
 	                icd2061_write(&et4000->icd2061, (val >> 2) & 3);
-#endif
                 break;
+#endif
                 
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
                 stg_ramdac_out(addr, val, &et4000->ramdac, svga);
                 return;
                 
                 case 0x3CB: /*Banking extension*/
-		if (et4000->key && !(svga->crtc[0x36] & 0x10)) {
+		if (!(svga->crtc[0x36] & 0x10) && !(svga->gdcreg[6] & 0x08)) {
 	                svga->write_bank = (svga->write_bank & 0xfffff) | ((val & 1) << 20);
 	                svga->read_bank  = (svga->read_bank  & 0xfffff) | ((val & 0x10) << 16);
 		}
                 et4000->banking2 = val;
                 return;
                 case 0x3CD: /*Banking*/
-		if (et4000->key && !(svga->crtc[0x36] & 0x10)) {
+		if (!(svga->crtc[0x36] & 0x10) && !(svga->gdcreg[6] & 0x08)) {
 	                svga->write_bank = (svga->write_bank & 0x100000) | ((val & 0xf) * 65536);
         	        svga->read_bank  = (svga->read_bank  & 0x100000) | (((val >> 4) & 0xf) * 65536);
 		}
@@ -244,8 +236,6 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
                         return;
                 if ((svga->crtcreg == 0x35) && (svga->crtc[0x11] & 0x80))
                         return;
-		if ((svga->crtcreg > 0x18) && (svga->crtcreg != 0x33) && (svga->crtcreg != 0x35) && !et4000->key)
-			return;
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
                         val = (svga->crtc[7] & ~0x10) | (val & 0x10);
                 old = svga->crtc[svga->crtcreg];
@@ -280,16 +270,6 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
                 if (svga->crtcreg == 0x32 || svga->crtcreg == 0x36)
                         et4000w32p_recalcmapping(et4000);
                 break;
-                case 0x3D8:
-		et4000->mcr = val;
-		if (et4000->hcr == 0x03) {
-			if ((et4000->mcr & 0xa0) == 0xa0)
-				et4000->key = 1;
-		} else {
-			if ((et4000->mcr & 0xa0) != 0xa0)
-				et4000->key = 0;
-		}
-		break;
 
                 case 0x210A: case 0x211A: case 0x212A: case 0x213A:
                 case 0x214A: case 0x215A: case 0x216A: case 0x217A:
@@ -1142,7 +1122,6 @@ void et4000w32p_hwcursor_draw(svga_t *svga, int displine)
 
 static void et4000w32p_io_remove(et4000w32p_t *et4000)
 {
-	io_removehandler(0x03bf, 0x0001, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
         io_removehandler(0x03c0, 0x0020, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
 
         io_removehandler(0x210A, 0x0002, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
@@ -1159,8 +1138,6 @@ static void et4000w32p_io_set(et4000w32p_t *et4000)
 {
         et4000w32p_io_remove(et4000);
         
-	if (et4000->svga.miscout & 1)
-		io_sethandler(0x03bf, 0x0001, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
         io_sethandler(0x03c0, 0x0020, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
 
         io_sethandler(0x210A, 0x0002, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
