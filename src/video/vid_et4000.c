@@ -8,7 +8,7 @@
  *
  *		Emulation of the Tseng Labs ET4000.
  *
- * Version:	@(#)vid_et4000.c	1.0.14	2018/08/25
+ * Version:	@(#)vid_et4000.c	1.0.15	2018/08/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -98,6 +98,15 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
 		}
                 et4000->banking = val;
                 return;
+		case 0x3cf:
+		if ((svga->gdcaddr & 15) == 6) {
+			if (!(svga->crtc[0x36] & 0x10) && !(val & 0x08)) {
+               			svga->write_bank = (et4000->banking & 0xf) * 0x10000;
+               			svga->read_bank = ((et4000->banking >> 4) & 0xf) * 0x10000;
+			} else
+				svga->write_bank = svga->read_bank = 0;
+		}
+		break;
                 case 0x3D4:
                 svga->crtcreg = val & 0x3f;
                 return;
@@ -111,6 +120,14 @@ void et4000_out(uint16_t addr, uint8_t val, void *p)
                 old = svga->crtc[svga->crtcreg];
                 val &= crtc_mask[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
+
+		if (svga->crtcreg == 0x36) {
+			if (!(val & 0x10) && !(svga->gdcreg[6] & 0x08)) {
+               			svga->write_bank = (et4000->banking & 0xf) * 0x10000;
+               			svga->read_bank = ((et4000->banking >> 4) & 0xf) * 0x10000;
+			} else
+				svga->write_bank = svga->read_bank = 0;
+		}
 
                 if (old != val)
                 {
