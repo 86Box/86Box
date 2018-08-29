@@ -15,7 +15,7 @@ Community
 We operate an IRC channel and a Discord server for discussing anything related 
 to retro computing and, of course, 86Box. We look forward to hearing from you!
 
-[![Visit our IRC channel](https://kiwiirc.com/buttons/irc.rol.im/softhistory.png)](https://kiwiirc.com/client/irc.rol.im/?nick=86box|?#softhistory)
+[![Visit our IRC channel](https://kiwiirc.com/buttons/irc.ringoflightning.net/softhistory.png)](https://kiwiirc.com/client/irc.rol.im/?nick=86box|?#softhistory)
 
 [![Visit our Discord server](https://discordapp.com/api/guilds/262614059009048590/embed.png)](https://discord.gg/Es3TnUH)
 
