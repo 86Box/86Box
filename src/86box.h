@@ -93,7 +93,9 @@ extern int	vid_cga_contrast,		/* (C) video */
 		gfxcard;			/* (C) graphics/video card */
 extern int	serial_enabled[],		/* (C) enable serial ports */
 		lpt_enabled,			/* (C) enable LPT ports */
-		bugger_enabled;			/* (C) enable ISAbugger */
+		bugger_enabled,			/* (C) enable ISAbugger */
+		isamem_type[],			/* (C) enable ISA mem cards */
+		isartc_type;			/* (C) enable ISA RTC card */
 extern int	sound_is_float,			/* (C) sound uses FP values */
 		GAMEBLASTER,			/* (C) sound option */
 		GUS,				/* (C) sound option */

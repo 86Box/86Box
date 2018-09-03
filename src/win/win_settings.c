@@ -36,6 +36,8 @@
 #include "../nvr.h"
 #include "../machine/machine.h"
 #include "../game/gameport.h"
+#include "../isamem.h"
+#include "../isartc.h"
 #include "../lpt.h"
 #include "../mouse.h"
 #include "../scsi/scsi.h"
@@ -103,6 +105,8 @@ static int temp_scsi_card, temp_ide_ter, temp_ide_qua;
 static char temp_hdc_name[32];
 static char *hdc_names[32];
 static int temp_bugger;
+static int temp_isartc;
+static int temp_isamem[ISAMEM_MAX];
 
 static uint8_t temp_deviceconfig;
 
@@ -243,7 +247,12 @@ win_settings_init(void)
     temp_ide_ter = ide_ter_enabled;
     temp_ide_qua = ide_qua_enabled;
     temp_bugger = bugger_enabled;
-
+	temp_isartc = isartc_type;
+	
+    /* ISA memory boards. */
+     for (i = 0; i < ISAMEM_MAX; i++)
+ 	temp_isamem[i] = isamem_type[i];	
+	
     mfm_tracking = xta_tracking = esdi_tracking = ide_tracking = 0;
     for (i = 0; i < 2; i++)
 	scsi_tracking[i] = 0;
@@ -261,8 +270,8 @@ win_settings_init(void)
 		ide_tracking |= (1 << (hdd[i].ide_channel << 3));
 	else if (hdd[i].bus == HDD_BUS_SCSI)
 		scsi_tracking[hdd[i].scsi_id >> 3] |= (1 << ((hdd[i].scsi_id & 0x07) << 3));
-    }
-
+    }	
+	
     /* Floppy drives category */
     for (i = 0; i < FDD_NUM; i++) {
 	temp_fdd_types[i] = fdd_get_type(i);
@@ -345,7 +354,12 @@ win_settings_changed(void)
     i = i || (temp_ide_ter != ide_ter_enabled);
     i = i || (temp_ide_qua != ide_qua_enabled);
     i = i || (temp_bugger != bugger_enabled);
+	i = i || (temp_isartc != isartc_type);
 
+    /* ISA memory boards. */
+    for (j = 0; j < ISAMEM_MAX; j++)
+ 	i = i || (temp_isamem[j] != isamem_type[j]);
+	
     /* Hard disks category */
     i = i || memcmp(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
 
@@ -451,6 +465,10 @@ win_settings_save(void)
     ide_qua_enabled = temp_ide_qua;
     bugger_enabled = temp_bugger;
 
+    /* ISA memory boards. */
+    for (i = 0; i < ISAMEM_MAX; i++)
+ 	isamem_type[i] = temp_isamem[i];	
+	
     /* Hard disks category */
     memcpy(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
 
@@ -1077,7 +1095,7 @@ mpu401_present(void)
 
     n = sound_card_get_internal_name(temp_sound_card);
     if (n != NULL) {
-	if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))
+	if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32") || !strcmp(n, "replysb16"))
 		return 1;
     }
 
@@ -1093,7 +1111,7 @@ mpu401_standalone_allow(void)
     n = sound_card_get_internal_name(temp_sound_card);
     md = midi_device_get_internal_name(temp_midi_device);
     if (n != NULL) {
-	if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))
+	if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32") || !strcmp(n, "replysb16"))
 		return 0;
     }
 
@@ -1275,8 +1293,22 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDC_CONFIGURE_MPU401:
-				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)&mpu401_device);
-				break;
+			{
+				char *n;
+				
+				n = sound_card_get_internal_name(sound_card_current);
+				
+				if (n != NULL)
+				{
+					if (!strcmp(n, "ncraudio"))
+						mca_version = 1;
+					else
+						mca_version = 0;
+				}
+				
+				temp_deviceconfig |= deviceconfig_open(hdlg, mca_version ? (void *)&mpu401_mca_device : (void *)&mpu401_device);
+			}
+			break;
 		}
 		return FALSE;
 
@@ -1457,7 +1489,7 @@ static BOOL CALLBACK
 win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h;
-    int c, d, temp_hdc_type;
+    int c, d, e, temp_hdc_type;
     LPTSTR lptsTemp;
     const device_t *scsi_dev;
 
@@ -1526,6 +1558,65 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 		h=GetDlgItem(hdlg, IDC_CHECK_BUGGER);
 		SendMessage(h, BM_SETCHECK, temp_bugger, 0);
 
+		/* Populate the ISA RTC card dropdown. */
+		e = 0;
+		h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
+		for (d = 0; ; d++) {
+			char *s = isartc_get_name(d);
+			if (!s[0])
+				break;
+
+			settings_device_to_list[d] = e;	
+			
+			if (d == 0) {
+				/* Translate "None". */
+				SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2112));
+			} else {
+				mbstowcs(lptsTemp, s, strlen(s) + 1);
+				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+			}
+			
+			settings_list_to_device[e] = d;
+			e++;
+		}
+		SendMessage(h, CB_SETCURSEL, temp_isartc, 0);
+		h = GetDlgItem(hdlg, IDC_CONFIGURE_ISARTC);
+		if (temp_isartc != 0)
+			EnableWindow(h, TRUE);
+		else
+			EnableWindow(h, FALSE);	
+		
+		/* Populate the ISA memory card dropdowns. */
+		for (c = 0; c < ISAMEM_MAX; c++) {
+			e = 0;
+			h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_1 + c);
+			for (d = 0; ; d++) {
+				char *s = isamem_get_name(d);
+				
+				if (!s[0])
+					break;
+
+				settings_device_to_list[d] = e;	
+				
+				if (d == 0) {
+					/* Translate "None". */
+					SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2112));
+				} else {
+					mbstowcs(lptsTemp, s, strlen(s) + 1);
+					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+				}
+				
+				settings_list_to_device[e] = d;
+				e++;
+			}
+			SendMessage(h, CB_SETCURSEL, temp_isamem[c], 0);
+			h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_1 + c);
+			if (temp_isamem[c] != 0)
+				EnableWindow(h, TRUE);
+			  else
+				EnableWindow(h, FALSE);
+		}
+		
 		free(lptsTemp);
 
 		return TRUE;
@@ -1560,6 +1651,96 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_SCSI);
 				if (scsi_card_has_config(temp_scsi_card))
+					EnableWindow(h, TRUE);
+				else
+					EnableWindow(h, FALSE);
+				break;
+
+			case IDC_CONFIGURE_ISARTC:
+				h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
+				temp_isartc = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isartc_get_device(temp_isartc));
+				break;				
+				
+			case IDC_COMBO_ISARTC:
+				h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
+				temp_isartc = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				
+				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISARTC);
+				if (temp_isartc != 0)
+					EnableWindow(h, TRUE);
+				else
+					EnableWindow(h, FALSE);
+				break;				
+				
+			case IDC_CONFIGURE_ISAMEM_1:
+				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_1);
+				temp_isamem[0] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isamem_get_device(temp_isamem[0]));
+				break;
+			
+			case IDC_CONFIGURE_ISAMEM_2:
+				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_2);
+				temp_isamem[1] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isamem_get_device(temp_isamem[1]));
+				break;
+			
+			case IDC_CONFIGURE_ISAMEM_3:
+				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_3);
+				temp_isamem[2] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isamem_get_device(temp_isamem[2]));
+				break;
+				
+			case IDC_CONFIGURE_ISAMEM_4:
+				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_4);
+				temp_isamem[3] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isamem_get_device(temp_isamem[3]));
+				break;				
+				
+			case IDC_COMBO_ISAMEM_1:
+				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_1);
+				temp_isamem[0] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				
+				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_1);
+				if (temp_isamem[0] != 0)
+					EnableWindow(h, TRUE);
+				else
+					EnableWindow(h, FALSE);
+				break;		
+				
+			case IDC_COMBO_ISAMEM_2:
+				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_2);
+				temp_isamem[1] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				
+				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_2);
+				if (temp_isamem[1] != 0)
+					EnableWindow(h, TRUE);
+				else
+					EnableWindow(h, FALSE);
+				break;
+
+			case IDC_COMBO_ISAMEM_3:
+				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_3);
+				temp_isamem[2] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				
+				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_3);
+				if (temp_isamem[2] != 0)
+					EnableWindow(h, TRUE);
+				else
+					EnableWindow(h, FALSE);
+				break;
+
+			case IDC_COMBO_ISAMEM_4:
+				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_4);
+				temp_isamem[3] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				
+				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_4);
+				if (temp_isamem[3] != 0)
 					EnableWindow(h, TRUE);
 				else
 					EnableWindow(h, FALSE);

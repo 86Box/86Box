@@ -1,4 +1,4 @@
-﻿/*
+/*
  * VARCem	Virtual ARchaeological Computer EMulator.
  *		An emulator of (mostly) x86-based PC systems and devices,
  *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly

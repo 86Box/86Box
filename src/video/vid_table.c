@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.33	2018/08/16
+ * Version:	@(#)vid_table.c	1.0.35	2018/09/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -62,6 +62,7 @@
 
 enum {
     VIDEO_ISA = 0,
+	VIDEO_MCA,
     VIDEO_BUS
 };
 
@@ -84,7 +85,7 @@ static const VIDEO_CARD
 video_cards[] = {
     { "None",						"none",			NULL,					GFX_NONE			},
     { "Internal",					"internal",		NULL,					GFX_INTERNAL,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_isa",		&mach64gx_isa_device,			GFX_MACH64GX_ISA,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
+	{ "[ISA] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_isa",		&mach64gx_isa_device,			GFX_MACH64GX_ISA,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
     { "[ISA] ATI Korean VGA (ATI-28800-5)",		"ati28800k",		&ati28800k_device,			GFX_ATIKOREANVGA,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
     { "[ISA] ATI VGA-88 (ATI-18800-1)",			"ati18800v",		&ati18800_vga88_device,			GFX_VGA88,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     { "[ISA] ATI VGA Charger (ATI-28800-5)",		"ati28800",		&ati28800_device,			GFX_VGACHARGER,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
@@ -125,7 +126,7 @@ video_cards[] = {
 	{"[ISA] Tseng ET4000AX",				"et4000ax",		&et4000_isa_device,				GFX_ET4000_ISA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
     {"[ISA] VGA",					"vga",			&vga_device,				GFX_VGA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
     {"[ISA] Wyse 700",					"wy700",		&wy700_device,				GFX_WY700,			VIDEO_FLAG_TYPE_CGA,	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    {"[MCA] Tseng ET4000AX",				"et4000mca",		&et4000_mca_device,				GFX_ET4000_MCA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 3,  3,  6,   5,  5, 10}},
+    {"[MCA] Tseng ET4000AX",				"et4000mca",		&et4000_mca_device,				GFX_ET4000_MCA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_MCA, 4,  5,  10,   5,  5, 10}},
 	{"[PCI] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_pci",		&mach64gx_pci_device,			GFX_MACH64GX_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
     {"[PCI] ATI Video Xpression (Mach64 VT2)",		"mach64vt2",		&mach64vt2_device,			GFX_MACH64VT2,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
     {"[PCI] Cardex Tseng ET4000/w32p",			"et4000w32p_pci",	&et4000w32p_cardex_pci_device,		GFX_ET4000W32_CARDEX_PCI,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  4,  10, 10, 10}},

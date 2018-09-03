@@ -12,7 +12,7 @@
  *		the DYNAMIC_TABLES=1 enables this. Will eventually go
  *		away, either way...
  *
- * Version:	@(#)mem.c	1.0.11	2018/08/20
+ * Version:	@(#)mem.c	1.0.12	2018/09/02
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -71,18 +71,22 @@
 #define DYNAMIC_TABLES		0		/* experimental */
 
 
-mem_mapping_t		ram_low_mapping;
-mem_mapping_t		ram_high_mapping;
-mem_mapping_t		ram_mid_mapping;
-mem_mapping_t		bios_mapping[8];
-mem_mapping_t		bios_high_mapping[8];
-mem_mapping_t		romext_mapping;
+mem_mapping_t		base_mapping,
+			ram_low_mapping,	/* 0..640K mapping */
+#if 1
+			ram_mid_mapping,
+#endif
+			ram_remapped_mapping,	/* 640..1024K mapping */
+			ram_high_mapping,	/* 1024K+ mapping */
+			ram_remapped_mapping,
+			ram_split_mapping,
+			bios_mapping[8],
+			bios_high_mapping[8],
+			romext_mapping;
 
 page_t			*pages,			/* RAM page table */
 			**page_lookup;		/* pagetable lookup */
 uint32_t		pages_sz;		/* #pages in table */
-
-uint8_t			isram[0x10000];
 
 uint8_t			*ram;			/* the virtual RAM */
 uint32_t		rammask;
@@ -138,9 +142,6 @@ static void		*_mem_priv_w[0x40000];
 static mem_mapping_t	*_mem_mapping_r[0x40000];
 static mem_mapping_t	*_mem_mapping_w[0x40000];
 static int		_mem_state[0x40000];
-
-static mem_mapping_t	base_mapping;
-static mem_mapping_t	ram_remapped_mapping;
 
 #if FIXME
 static uint8_t		ff_array[0x1000];
@@ -1359,7 +1360,7 @@ mem_mapping_write_allowed(uint32_t flags, int state)
 static void
 mem_mapping_recalc(uint64_t base, uint64_t size)
 {
-    mem_mapping_t *mapping = base_mapping.next;
+    mem_mapping_t *map = base_mapping.next;
     uint64_t c;
 
     if (! size) return;
@@ -1369,7 +1370,6 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
 	_mem_read_b[c >> 14] = NULL;
 	_mem_read_w[c >> 14] = NULL;
 	_mem_read_l[c >> 14] = NULL;
-	_mem_exec[c >> 14] = NULL;
 	_mem_priv_r[c >> 14] = NULL;
 	_mem_mapping_r[c >> 14] = NULL;
 	_mem_write_b[c >> 14] = NULL;
@@ -1380,38 +1380,38 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
     }
 
     /* Walk mapping list. */
-    while (mapping != NULL) {
+    while (map != NULL) {
 	/*In range?*/
-	if (mapping->enable && (uint64_t)mapping->base < ((uint64_t)base + (uint64_t)size) && ((uint64_t)mapping->base + (uint64_t)mapping->size) > (uint64_t)base) {
-		uint64_t start = (mapping->base < base) ? mapping->base : base;
-		uint64_t end   = (((uint64_t)mapping->base + (uint64_t)mapping->size) < (base + size)) ? ((uint64_t)mapping->base + (uint64_t)mapping->size) : (base + size);
-		if (start < mapping->base)
-			start = mapping->base;
+	if (map->enable && (uint64_t)map->base < ((uint64_t)base + (uint64_t)size) && ((uint64_t)map->base + (uint64_t)map->size) > (uint64_t)base) {
+		uint64_t start = (map->base < base) ? map->base : base;
+		uint64_t end   = (((uint64_t)map->base + (uint64_t)map->size) < (base + size)) ? ((uint64_t)map->base + (uint64_t)map->size) : (base + size);
+		if (start < map->base)
+			start = map->base;
 
 		for (c = start; c < end; c += 0x4000) {
-			if ((mapping->read_b || mapping->read_w || mapping->read_l) &&
-			     mem_mapping_read_allowed(mapping->flags, _mem_state[c >> 14])) {
-				_mem_read_b[c >> 14] = mapping->read_b;
-				_mem_read_w[c >> 14] = mapping->read_w;
-				_mem_read_l[c >> 14] = mapping->read_l;
-				if (mapping->exec)
-					_mem_exec[c >> 14] = mapping->exec + (c - mapping->base);
+			if ((map->read_b || map->read_w || map->read_l) &&
+			     mem_mapping_read_allowed(map->flags, _mem_state[c >> 14])) {
+				_mem_read_b[c >> 14] = map->read_b;
+				_mem_read_w[c >> 14] = map->read_w;
+				_mem_read_l[c >> 14] = map->read_l;
+				if (map->exec)
+					_mem_exec[c >> 14] = map->exec + (c - map->base);
 				else
 					_mem_exec[c >> 14] = NULL;
-				_mem_priv_r[c >> 14] = mapping->p;
-				_mem_mapping_r[c >> 14] = mapping;
+				_mem_priv_r[c >> 14] = map->p;
+				_mem_mapping_r[c >> 14] = map;
 			}
-			if ((mapping->write_b || mapping->write_w || mapping->write_l) &&
-			     mem_mapping_write_allowed(mapping->flags, _mem_state[c >> 14])) {
-				_mem_write_b[c >> 14] = mapping->write_b;
-				_mem_write_w[c >> 14] = mapping->write_w;
-				_mem_write_l[c >> 14] = mapping->write_l;
-				_mem_priv_w[c >> 14] = mapping->p;
-				_mem_mapping_w[c >> 14] = mapping;
+			if ((map->write_b || map->write_w || map->write_l) &&
+			     mem_mapping_write_allowed(map->flags, _mem_state[c >> 14])) {
+				_mem_write_b[c >> 14] = map->write_b;
+				_mem_write_w[c >> 14] = map->write_w;
+				_mem_write_l[c >> 14] = map->write_l;
+				_mem_priv_w[c >> 14] = map->p;
+				_mem_mapping_w[c >> 14] = map;
 			}
 		}
 	}
-	mapping = mapping->next;
+	map = map->next;
     }
 
     flushmmucache_cr3();
@@ -1419,7 +1419,24 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
 
 
 void
-mem_mapping_add(mem_mapping_t *mapping,
+mem_mapping_del(mem_mapping_t *map)
+{
+    mem_mapping_t *ptr;
+
+    /* Disable the entry. */
+    mem_mapping_disable(map);
+
+    /* Zap it from the list. */
+    for (ptr = &base_mapping; ptr->next != NULL; ptr = ptr->next) {
+	if (ptr->next == map) {
+		ptr->next = map->next;
+		break;
+	}
+    }
+}
+
+void
+mem_mapping_add(mem_mapping_t *map,
 		uint32_t base, 
 		uint32_t size, 
 		uint8_t  (*read_b)(uint32_t addr, void *p),
@@ -1429,7 +1446,7 @@ mem_mapping_add(mem_mapping_t *mapping,
 		void (*write_w)(uint32_t addr, uint16_t val, void *p),
 		void (*write_l)(uint32_t addr, uint32_t val, void *p),
 		uint8_t *exec,
-		uint32_t flags,
+		uint32_t fl,
 		void *p)
 {
     mem_mapping_t *dest = &base_mapping;
@@ -1437,32 +1454,33 @@ mem_mapping_add(mem_mapping_t *mapping,
     /* Add mapping to the end of the list.*/
     while (dest->next)
 	dest = dest->next;
-    dest->next = mapping;
-    mapping->prev = dest;
+    dest->next = map;
+    map->prev = dest;
 
     if (size)
-	mapping->enable  = 1;
+	map->enable  = 1;
       else
-	mapping->enable  = 0;
-    mapping->base    = base;
-    mapping->size    = size;
-    mapping->read_b  = read_b;
-    mapping->read_w  = read_w;
-    mapping->read_l  = read_l;
-    mapping->write_b = write_b;
-    mapping->write_w = write_w;
-    mapping->write_l = write_l;
-    mapping->exec    = exec;
-    mapping->flags   = flags;
-    mapping->p       = p;
-    mapping->next    = NULL;
+	map->enable  = 0;
+    map->base    = base;
+    map->size    = size;
+    map->read_b  = read_b;
+    map->read_w  = read_w;
+    map->read_l  = read_l;
+    map->write_b = write_b;
+    map->write_w = write_w;
+    map->write_l = write_l;
+    map->exec    = exec;
+    map->flags   = fl;
+    map->p       = p;
+    map->dev     = NULL;
+    map->next    = NULL;
 
-    mem_mapping_recalc(mapping->base, mapping->size);
+    mem_mapping_recalc(map->base, map->size);
 }
 
 
 void
-mem_mapping_set_handler(mem_mapping_t *mapping,
+mem_mapping_set_handler(mem_mapping_t *map,
 			uint8_t  (*read_b)(uint32_t addr, void *p),
 			uint16_t (*read_w)(uint32_t addr, void *p),
 			uint32_t (*read_l)(uint32_t addr, void *p),
@@ -1470,64 +1488,71 @@ mem_mapping_set_handler(mem_mapping_t *mapping,
 			void (*write_w)(uint32_t addr, uint16_t val, void *p),
 			void (*write_l)(uint32_t addr, uint32_t val, void *p))
 {
-    mapping->read_b  = read_b;
-    mapping->read_w  = read_w;
-    mapping->read_l  = read_l;
-    mapping->write_b = write_b;
-    mapping->write_w = write_w;
-    mapping->write_l = write_l;
+    map->read_b  = read_b;
+    map->read_w  = read_w;
+    map->read_l  = read_l;
+    map->write_b = write_b;
+    map->write_w = write_w;
+    map->write_l = write_l;
 
-    mem_mapping_recalc(mapping->base, mapping->size);
+    mem_mapping_recalc(map->base, map->size);
 }
 
 
 void
-mem_mapping_set_addr(mem_mapping_t *mapping, uint32_t base, uint32_t size)
+mem_mapping_set_addr(mem_mapping_t *map, uint32_t base, uint32_t size)
 {
     /* Remove old mapping. */
-    mapping->enable = 0;
-    mem_mapping_recalc(mapping->base, mapping->size);
+    map->enable = 0;
+    mem_mapping_recalc(map->base, map->size);
 
     /* Set new mapping. */
-    mapping->enable = 1;
-    mapping->base = base;
-    mapping->size = size;
+    map->enable = 1;
+    map->base = base;
+    map->size = size;
 
-    mem_mapping_recalc(mapping->base, mapping->size);
+    mem_mapping_recalc(map->base, map->size);
 }
 
 
 void
-mem_mapping_set_exec(mem_mapping_t *mapping, uint8_t *exec)
+mem_mapping_set_exec(mem_mapping_t *map, uint8_t *exec)
 {
-    mapping->exec = exec;
+    map->exec = exec;
 
-    mem_mapping_recalc(mapping->base, mapping->size);
+    mem_mapping_recalc(map->base, map->size);
 }
 
 
 void
-mem_mapping_set_p(mem_mapping_t *mapping, void *p)
+mem_mapping_set_p(mem_mapping_t *map, void *p)
 {
-    mapping->p = p;
+    map->p = p;
 }
 
 
 void
-mem_mapping_disable(mem_mapping_t *mapping)
+mem_mapping_set_dev(mem_mapping_t *map, void *p)
 {
-    mapping->enable = 0;
-
-    mem_mapping_recalc(mapping->base, mapping->size);
+    map->dev = p;
 }
 
 
 void
-mem_mapping_enable(mem_mapping_t *mapping)
+mem_mapping_disable(mem_mapping_t *map)
 {
-    mapping->enable = 1;
+    map->enable = 0;
 
-    mem_mapping_recalc(mapping->base, mapping->size);
+    mem_mapping_recalc(map->base, map->size);
+}
+
+
+void
+mem_mapping_enable(mem_mapping_t *map)
+{
+    map->enable = 1;
+
+    mem_mapping_recalc(map->base, map->size);
 }
 
 
@@ -1754,15 +1779,6 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 	}
     }
 
-    /* Initialize the tables. */
-    memset(isram, 0x00, sizeof(isram));
-    for (c = 0; c < (mem_size / 64); c++) {
-	isram[c] = 1;
-	if ((c >= 0xa && c <= 0xf) ||
-	    (cpu_16bitbus && c >= 0xfe && c <= 0xff))
-		isram[c] = 0;
-    }
-
     memset(_mem_read_b,  0x00, sizeof(_mem_read_b));
     memset(_mem_read_w,  0x00, sizeof(_mem_read_w));
     memset(_mem_read_l,  0x00, sizeof(_mem_read_l));
@@ -1811,18 +1827,18 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 			mem_read_ram,mem_read_ramw,mem_read_raml,
 			mem_write_ram,mem_write_ramw,mem_write_raml,
 			ram + 0xc0000, MEM_MAPPING_INTERNAL, NULL);
-
+			
     if (romset == ROM_IBMPS1_2011)
 	mem_mapping_add(&romext_mapping, 0xc8000, 0x08000,
 			mem_read_romext,mem_read_romextw,mem_read_romextl,
 			NULL,NULL, NULL, romext, 0, NULL);
 
     mem_mapping_add(&ram_remapped_mapping, mem_size * 1024, 256 * 1024,
-		    mem_read_remapped, mem_read_remappedw, mem_read_remappedl,
-		    mem_write_remapped, mem_write_remappedw, mem_write_remappedl,
-		    ram + 0xA0000, MEM_MAPPING_INTERNAL, NULL);
-    mem_mapping_disable(&ram_remapped_mapping);
-
+		    mem_read_remapped,mem_read_remappedw,mem_read_remappedl,
+		    mem_write_remapped,mem_write_remappedw,mem_write_remappedl,
+		    ram + 0xa0000, MEM_MAPPING_INTERNAL, NULL);
+    mem_mapping_disable(&ram_remapped_mapping);			
+			
     mem_a20_init();
 }
 
@@ -1858,44 +1874,32 @@ mem_init(void)
 }
 
 
-static void
-mem_remap_top(int max_size)
+void
+mem_remap_top(int kb)
 {
-    uint32_t c;
+    uint32_t start = (mem_size >= 1024) ? mem_size : 1024;
+    int size = mem_size - 640;
 
-    if (mem_size > 640) {
-	uint32_t start = (mem_size >= 1024) ? mem_size : 1024;
-	int size = mem_size - 640;
-	if (size > max_size)
-		size = max_size;
+pclog("MEM: remapping top %iKB (mem=%i)\n", kb, mem_size);
+    if (mem_size <= 640) return;
 
-       	for (c = (start / 64); c < ((start + size - 1) / 64); c++)
-      		isram[c] = 1;
+    if (kb == 0) {
+ 	/* Called to disable the mapping. */
+ 	mem_mapping_disable(&ram_remapped_mapping);
 
-	mem_set_mem_state(start * 1024, size * 1024,
-			  MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-	mem_mapping_set_addr(&ram_remapped_mapping,
-			     start * 1024, size * 1024);
+ 	return;
+     }	
+	
+    if (size > kb)
+	size = kb;
+
+    mem_set_mem_state(start * 1024, size * 1024,
+		      MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    mem_mapping_set_addr(&ram_remapped_mapping, start * 1024, size * 1024);
 	mem_mapping_set_exec(&ram_remapped_mapping, ram + (start * 1024));
 
-	flushmmucache();
-    }
+    flushmmucache();
 }
-
-
-void
-mem_remap_top_256k(void)
-{
-    mem_remap_top(256);
-}
-
-
-void
-mem_remap_top_384k(void)
-{
-    mem_remap_top(384);
-}
-
 
 void
 mem_reset_page_blocks(void)

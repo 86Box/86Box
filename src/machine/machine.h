@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.26	2018/08/16
+ * Version:	@(#)machine.h	1.0.27	2018/09/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -96,14 +96,11 @@ extern void	machine_common_init(const machine_t *);
 
 extern void	machine_at_common_init(const machine_t *);
 extern void	machine_at_init(const machine_t *);
+extern void	machine_at_ibm_init(const machine_t *);
 extern void	machine_at_ps2_init(const machine_t *);
 extern void	machine_at_common_ide_init(const machine_t *);
 extern void	machine_at_ide_init(const machine_t *);
 extern void	machine_at_ps2_ide_init(const machine_t *);
-extern void	machine_at_top_remap_init(const machine_t *);
-extern void	machine_at_ide_top_remap_init(const machine_t *);
-
-extern void	machine_at_ibm_init(const machine_t *);
 
 extern void	machine_at_t3100e_init(const machine_t *);
 
