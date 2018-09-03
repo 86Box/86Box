@@ -11,7 +11,7 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.35	2018/09/02
+ * Version:	@(#)machine_table.c	1.0.36	2018/09/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -48,7 +48,7 @@ const machine_t machines[] = {
     { "[8088] Tandy 1000 HX",			ROM_TANDY1000HX,	"tandy1000hx",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,												256,  640, 128,   0,		 machine_tandy1k_init, tandy1k_hx_get_device	},
     { "[8088] Toshiba T1000",			ROM_T1000,		"t1000",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO,										512, 1280, 768,  63,		machine_xt_t1000_init, t1000_get_device			},
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
-    { "[8088] VTech Laser Turbo XT",		ROM_LTXT,		"ltxt",			{{"Intel",      cpus_8088},        {"",      NULL},,         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												512,  512, 256,   0,	      machine_xt_laserxt_init, NULL			},
+    { "[8088] VTech Laser Turbo XT",		ROM_LTXT,		"ltxt",			{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												512,  512, 256,   0,	      machine_xt_laserxt_init, NULL			},
 #endif
     { "[8088] Xi8088",				ROM_XI8088,		"xi8088",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_PS2,									 64, 1024, 128, 127,	       machine_xt_xi8088_init, NULL			},
 
@@ -101,7 +101,7 @@ const machine_t machines[] = {
     { "[386DX ISA] AMI 386DX clone",		ROM_AMI386DX_OPTI495,	"ami386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,									  1,   64,   1, 127,	  machine_at_opti495_ami_init, NULL			},
     { "[386DX ISA] Amstrad MegaPC 386DX",	ROM_MEGAPCDX,		"megapcdx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,					  1,   32,   1, 127,	      machine_at_wd76c10_init, NULL			},
     { "[386DX ISA] Award 386DX clone",		ROM_AWARD386DX_OPTI495,	"award386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,							  1,   64,   1, 127,	      machine_at_opti495_init, NULL			},
-	{ "[386DX ISA] MR 386DX clone",		ROM_MR386DX_OPTI495,	"mr386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,									  1,   64,   1, 127,	  machine_at_opti495_ami_init, NULL			},
+    { "[386DX ISA] MR 386DX clone",		ROM_MR386DX_OPTI495,	"mr386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,									  1,   64,   1, 127,	  machine_at_opti495_ami_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
     { "[386DX ISA] Compaq Portable III (386)",  ROM_PORTABLEIII386,     "portableiii386",       {{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_VIDEO,		                		          1,   14,   1, 127,           machine_at_compaq_init, NULL			},
 #endif

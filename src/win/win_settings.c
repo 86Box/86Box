@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.52	2018/08/04
+ * Version:	@(#)win_settings.c	1.0.53	2018/09/03
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -3403,7 +3403,7 @@ hd_bus_skip:
 				return FALSE;
 
 			case IDC_BUTTON_HDD_REMOVE:
-				memcpy(temp_hdd[lv1_current_sel].fn, L"", 4);
+				memcpy(temp_hdd[lv1_current_sel].fn, L"", sizeof(L""));
 				hard_disk_untrack(lv1_current_sel);
 				temp_hdd[lv1_current_sel].bus = HDD_BUS_DISABLED;	/* Only set the bus to zero, the list normalize code below will take care of turning this entire entry to a complete zero. */
 				normalize_hd_list();			/* Normalize the hard disks so that non-disabled hard disks start from index 0, and so they are contiguous. */

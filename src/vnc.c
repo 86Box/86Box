@@ -8,7 +8,7 @@
  *
  *		Implement the VNC remote renderer with LibVNCServer.
  *
- * Version:	@(#)vnc.c	1.0.12	2018/05/26
+ * Version:	@(#)vnc.c	1.0.13	2018/09/03
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>
@@ -169,7 +169,7 @@ vnc_display(rfbClientPtr cl)
 static void
 vnc_blit(int x, int y, int y1, int y2, int w, int h)
 {
-    uint32_t *p, *q;
+    uint32_t *p;
     int yy;
 
     for (yy=y1; yy<y2; yy++) {

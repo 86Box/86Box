@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)fdd_86f.c	1.0.11	2018/08/12
+ * Version:	@(#)fdd_86f.c	1.0.12	2018/09/02
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1082,7 +1082,9 @@ d86f_get_bit(int drive, int side)
 	encoded_data |= (d86f_handler[drive].encoded_data(drive, side)[track_word] >> 8);
     }
 
-    if (d86f_has_surface_desc(drive)) {
+    /* In some cases, misindentification occurs so we need to make sure the surface data array is not
+       not NULL. */
+    if (d86f_has_surface_desc(drive) && dev->track_surface_data && dev->track_surface_data[side]) {
 	if (d86f_reverse_bytes(drive)) {
 		surface_data = dev->track_surface_data[side][track_word] & 0xFF;
 	} else {
@@ -1094,7 +1096,7 @@ d86f_get_bit(int drive, int side)
     current_bit = (encoded_data >> track_bit) & 1;
     dev->last_word[side] <<= 1;
 
-    if (d86f_has_surface_desc(drive)) {
+    if (d86f_has_surface_desc(drive) && dev->track_surface_data && dev->track_surface_data[side]) {
 	surface_bit = (surface_data >> track_bit) & 1;
 	if (! surface_bit) {
 		if (! current_bit) {
