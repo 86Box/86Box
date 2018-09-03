@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.49	2018/08/04
+ * Version:	@(#)config.c	1.0.50	2018/09/02
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -38,6 +38,8 @@
 #include "device.h"
 #include "nvr.h"
 #include "config.h"
+#include "isamem.h"
+#include "isartc.h"
 #include "lpt.h"
 #include "disk/hdd.h"
 #include "disk/hdc.h"
@@ -520,10 +522,14 @@ load_machine(void)
     cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
 
     mem_size = config_get_int(cat, "mem_size", 4096);
+	
+#if 0
     if (mem_size < (((machines[machine].flags & MACHINE_AT) &&
         (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram))
 	mem_size = (((machines[machine].flags & MACHINE_AT) && (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram);
-    if (mem_size > 1048576)
+#endif    
+	
+	if (mem_size > 1048576)
 	mem_size = 1048576;
 
     cpu_use_dynarec = !!config_get_int(cat, "cpu_use_dynarec", 0);
@@ -750,7 +756,9 @@ load_other_peripherals(void)
 {
     char *cat = "Other peripherals";
     char *p;
-
+	char temp[512];
+	int c;
+	
     p = config_get_string(cat, "scsicard", NULL);
     if (p != NULL)
 	scsi_card_current = scsi_card_get_from_internal_name(p);
@@ -785,6 +793,16 @@ load_other_peripherals(void)
     ide_qua_enabled = !!config_get_int(cat, "ide_qua", 0);
 
     bugger_enabled = !!config_get_int(cat, "bugger_enabled", 0);
+
+    for (c = 0; c < ISAMEM_MAX; c++) {
+	sprintf(temp, "isamem%d_type", c);
+
+	p = config_get_string(cat, temp, "none");
+	isamem_type[c] = isamem_get_from_internal_name(p);
+    }
+	
+    p = config_get_string(cat, "isartc_type", "none");
+    isartc_type = isartc_get_from_internal_name(p);	
 }
 
 
@@ -1690,6 +1708,8 @@ static void
 save_other_peripherals(void)
 {
     char *cat = "Other peripherals";
+	char temp[512];
+	int c;
 
     if (scsi_card_current == 0)
 	config_delete_var(cat, "scsicard");
@@ -1714,6 +1734,21 @@ save_other_peripherals(void)
       else
 	config_set_int(cat, "bugger_enabled", bugger_enabled);
 
+    for (c = 0; c < ISAMEM_MAX; c++) {
+	sprintf(temp, "isamem%d_type", c);
+	if (isamem_type[c] == 0)
+		config_delete_var(cat, temp);
+	  else
+		config_set_string(cat, temp,
+				  isamem_get_internal_name(isamem_type[c]));
+    }
+
+    if (isartc_type == 0)
+	config_delete_var(cat, "isartc_type");
+      else
+	config_set_string(cat, "isartc_type",
+			  isartc_get_internal_name(isartc_type));	
+	
     delete_section_if_empty(cat);
 }
 
