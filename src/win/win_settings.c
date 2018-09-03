@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.53	2018/09/03
+ * Version:	@(#)win_settings.c	1.0.54	2018/09/03
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -128,7 +128,7 @@ static uint32_t displayed_category = 0;
 
 extern int is486;
 static int romstolist[ROM_MAX], listtomachine[ROM_MAX], romstomachine[ROM_MAX], machinetolist[ROM_MAX];
-static int settings_device_to_list[20], settings_list_to_device[20];
+static int settings_device_to_list[6][20], settings_list_to_device[6][20];
 static int settings_midi_to_list[20], settings_list_to_midi[20];
 
 static int max_spt = 63, max_hpc = 255, max_tracks = 266305;
@@ -247,10 +247,10 @@ win_settings_init(void)
     temp_ide_ter = ide_ter_enabled;
     temp_ide_qua = ide_qua_enabled;
     temp_bugger = bugger_enabled;
-	temp_isartc = isartc_type;
+    temp_isartc = isartc_type;
 	
     /* ISA memory boards. */
-     for (i = 0; i < ISAMEM_MAX; i++)
+    for (i = 0; i < ISAMEM_MAX; i++)
  	temp_isamem[i] = isamem_type[i];	
 	
     mfm_tracking = xta_tracking = esdi_tracking = ide_tracking = 0;
@@ -354,7 +354,7 @@ win_settings_changed(void)
     i = i || (temp_ide_ter != ide_ter_enabled);
     i = i || (temp_ide_qua != ide_qua_enabled);
     i = i || (temp_bugger != bugger_enabled);
-	i = i || (temp_isartc != isartc_type);
+    i = i || (temp_isartc != isartc_type);
 
     /* ISA memory boards. */
     for (j = 0; j < ISAMEM_MAX; j++)
@@ -464,6 +464,7 @@ win_settings_save(void)
     ide_ter_enabled = temp_ide_ter;
     ide_qua_enabled = temp_ide_qua;
     bugger_enabled = temp_bugger;
+    isartc_type = temp_isartc;
 
     /* ISA memory boards. */
     for (i = 0; i < ISAMEM_MAX; i++)
@@ -976,18 +977,18 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		h = GetDlgItem(hdlg, IDC_COMBO_MOUSE);
 		c = d = 0;
 		for (c = 0; c < mouse_get_ndev(); c++) {
-			settings_device_to_list[c] = d;
+			settings_device_to_list[0][c] = d;
 
 			if (mouse_valid(c, temp_machine)) {
 				mbstowcs(str, mouse_get_name(c), sizeof_w(str));
 				SendMessage(h, CB_ADDSTRING, 0, (LPARAM)str);
 
-				settings_list_to_device[d] = c;
+				settings_list_to_device[0][d] = c;
 				d++;
 			}
 		}
 
-		SendMessage(h, CB_SETCURSEL, settings_device_to_list[temp_mouse], 0);
+		SendMessage(h, CB_SETCURSEL, settings_device_to_list[0][temp_mouse], 0);
 
 		h = GetDlgItem(hdlg, IDC_CONFIGURE_MOUSE);
 		if (mouse_has_config(temp_mouse))
@@ -1019,7 +1020,7 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                	switch (LOWORD(wParam)) {
 			case IDC_COMBO_MOUSE:
 				h = GetDlgItem(hdlg, IDC_COMBO_MOUSE);
-				temp_mouse = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_mouse = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_MOUSE);
 				if (mouse_has_config(temp_mouse))
@@ -1030,7 +1031,7 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDC_CONFIGURE_MOUSE:
 				h = GetDlgItem(hdlg, IDC_COMBO_MOUSE);
-				temp_mouse = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_mouse = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)mouse_get_device(temp_mouse));
 				break;
 
@@ -1076,7 +1077,7 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_SAVESETTINGS:
 		h = GetDlgItem(hdlg, IDC_COMBO_MOUSE);
-		temp_mouse = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+		temp_mouse = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 		h = GetDlgItem(hdlg, IDC_COMBO_JOYSTICK);
 		temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
@@ -1149,7 +1150,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			if (!s[0])
 				break;
 
-			settings_device_to_list[c] = d;
+			settings_device_to_list[0][c] = d;
 
 			if (sound_card_available(c)) {
 				sound_dev = sound_card_getdevice(c);
@@ -1161,14 +1162,14 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 						mbstowcs(lptsTemp, s, strlen(s) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 					}
-					settings_list_to_device[d] = c;
+					settings_list_to_device[0][d] = c;
 					d++;
 				}
 			}
 
 			c++;
 		}
-		SendMessage(h, CB_SETCURSEL, settings_device_to_list[temp_sound_card], 0);
+		SendMessage(h, CB_SETCURSEL, settings_device_to_list[0][temp_sound_card], 0);
 
 		EnableWindow(h, d ? TRUE : FALSE);
 
@@ -1236,7 +1237,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                	switch (LOWORD(wParam)) {
 			case IDC_COMBO_SOUND:
 				h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
-				temp_sound_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_sound_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_SND);
 				if (sound_card_has_config(temp_sound_card))
@@ -1254,7 +1255,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDC_CONFIGURE_SND:
 				h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
-				temp_sound_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_sound_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)sound_card_getdevice(temp_sound_card));
 				break;
@@ -1314,7 +1315,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_SAVESETTINGS:
 		h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
-		temp_sound_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+		temp_sound_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 		h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
 		temp_midi_device = settings_list_to_midi[SendMessage(h, CB_GETCURSEL, 0, 0)];
@@ -1506,7 +1507,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 			if (!s[0])
 				break;
 
-			settings_device_to_list[c] = d;			
+			settings_device_to_list[0][c] = d;			
 
 			if (scsi_card_available(c)) {
 				scsi_dev = scsi_card_getdevice(c);
@@ -1518,14 +1519,14 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 						mbstowcs(lptsTemp, s, strlen(s) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 					}
-					settings_list_to_device[d] = c;
+					settings_list_to_device[0][d] = c;
 					d++;
 				}
 			}
 
 			c++;
 		}
-		SendMessage(h, CB_SETCURSEL, settings_device_to_list[temp_scsi_card], 0);
+		SendMessage(h, CB_SETCURSEL, settings_device_to_list[0][temp_scsi_card], 0);
 
 		EnableWindow(h, d ? TRUE : FALSE);
 
@@ -1566,8 +1567,8 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 			if (!s[0])
 				break;
 
-			settings_device_to_list[d] = e;	
-			
+			settings_device_to_list[1][d] = e;	
+
 			if (d == 0) {
 				/* Translate "None". */
 				SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2112));
@@ -1576,7 +1577,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 			}
 			
-			settings_list_to_device[e] = d;
+			settings_list_to_device[1][e] = d;
 			e++;
 		}
 		SendMessage(h, CB_SETCURSEL, temp_isartc, 0);
@@ -1596,8 +1597,8 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 				if (!s[0])
 					break;
 
-				settings_device_to_list[d] = e;	
-				
+				settings_device_to_list[2 + c][d] = e;	
+
 				if (d == 0) {
 					/* Translate "None". */
 					SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2112));
@@ -1606,7 +1607,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 				}
 				
-				settings_list_to_device[e] = d;
+				settings_list_to_device[2 + c][e] = d;
 				e++;
 			}
 			SendMessage(h, CB_SETCURSEL, temp_isamem[c], 0);
@@ -1640,14 +1641,14 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 			case IDC_CONFIGURE_SCSI:
 				h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
-				temp_scsi_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_scsi_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)scsi_card_getdevice(temp_scsi_card));
 				break;
 
 			case IDC_COMBO_SCSI:
 				h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
-				temp_scsi_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_scsi_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_SCSI);
 				if (scsi_card_has_config(temp_scsi_card))
@@ -1658,65 +1659,65 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 			case IDC_CONFIGURE_ISARTC:
 				h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
-				temp_isartc = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
-				
+				temp_isartc = settings_list_to_device[1][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isartc_get_device(temp_isartc));
 				break;				
-				
+
 			case IDC_COMBO_ISARTC:
 				h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
-				temp_isartc = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
-				
+				temp_isartc = settings_list_to_device[1][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISARTC);
 				if (temp_isartc != 0)
 					EnableWindow(h, TRUE);
 				else
 					EnableWindow(h, FALSE);
 				break;				
-				
+
 			case IDC_CONFIGURE_ISAMEM_1:
 				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_1);
-				temp_isamem[0] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
-				
+				temp_isamem[0] = settings_list_to_device[2][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isamem_get_device(temp_isamem[0]));
 				break;
-			
+
 			case IDC_CONFIGURE_ISAMEM_2:
 				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_2);
-				temp_isamem[1] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
-				
+				temp_isamem[1] = settings_list_to_device[3][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isamem_get_device(temp_isamem[1]));
 				break;
-			
+
 			case IDC_CONFIGURE_ISAMEM_3:
 				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_3);
-				temp_isamem[2] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
-				
+				temp_isamem[2] = settings_list_to_device[4][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isamem_get_device(temp_isamem[2]));
 				break;
-				
+
 			case IDC_CONFIGURE_ISAMEM_4:
 				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_4);
-				temp_isamem[3] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
-				
+				temp_isamem[3] = settings_list_to_device[5][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isamem_get_device(temp_isamem[3]));
 				break;				
-				
+
 			case IDC_COMBO_ISAMEM_1:
 				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_1);
-				temp_isamem[0] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
-				
+				temp_isamem[0] = settings_list_to_device[2][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_1);
 				if (temp_isamem[0] != 0)
 					EnableWindow(h, TRUE);
 				else
 					EnableWindow(h, FALSE);
 				break;		
-				
+
 			case IDC_COMBO_ISAMEM_2:
 				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_2);
-				temp_isamem[1] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
-				
+				temp_isamem[1] = settings_list_to_device[3][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_2);
 				if (temp_isamem[1] != 0)
 					EnableWindow(h, TRUE);
@@ -1726,8 +1727,8 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 			case IDC_COMBO_ISAMEM_3:
 				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_3);
-				temp_isamem[2] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
-				
+				temp_isamem[2] = settings_list_to_device[4][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_3);
 				if (temp_isamem[2] != 0)
 					EnableWindow(h, TRUE);
@@ -1737,8 +1738,8 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 			case IDC_COMBO_ISAMEM_4:
 				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_4);
-				temp_isamem[3] = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
-				
+				temp_isamem[3] = settings_list_to_device[5][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_4);
 				if (temp_isamem[3] != 0)
 					EnableWindow(h, TRUE);
@@ -1876,7 +1877,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			if (s[0] == '\0')
 				break;
 
-			settings_device_to_list[c] = d;
+			settings_device_to_list[0][c] = d;
 
 			if (network_card_available(c) && device_is_valid(network_card_getdevice(c), machines[temp_machine].flags)) {
 				if (c == 0)
@@ -1885,14 +1886,14 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					mbstowcs(lptsTemp, s, strlen(s) + 1);
 					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 				}
-				settings_list_to_device[d] = c;
+				settings_list_to_device[0][d] = c;
 				d++;
 			}
 
 			c++;
 		}
 
-		SendMessage(h, CB_SETCURSEL, settings_device_to_list[temp_net_card], 0);
+		SendMessage(h, CB_SETCURSEL, settings_device_to_list[0][temp_net_card], 0);
 		EnableWindow(h, d ? TRUE : FALSE);
 		network_recalc_combos(hdlg);
 		free(lptsTemp);
@@ -1927,7 +1928,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					return FALSE;
 
 				h = GetDlgItem(hdlg, IDC_COMBO_NET);
-				temp_net_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_net_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 				network_recalc_combos(hdlg);
 				break;
@@ -1937,7 +1938,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					return FALSE;
 
 				h = GetDlgItem(hdlg, IDC_COMBO_NET);
-				temp_net_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_net_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)network_card_getdevice(temp_net_card));
 				break;
@@ -1953,7 +1954,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		strcpy(temp_pcap_dev, network_devs[SendMessage(h, CB_GETCURSEL, 0, 0)].device);
 
 		h = GetDlgItem(hdlg, IDC_COMBO_NET);
-		temp_net_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+		temp_net_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 	default:
 		return FALSE;
