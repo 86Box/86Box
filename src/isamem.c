@@ -32,7 +32,7 @@
  * TODO:	The EV159 is supposed to support 16b EMS transfers, but the
  *		EMM.sys driver for it doesn't seem to want to do that..
  *
- * Version:	@(#)isamem.c	1.0.1	2018/08/18
+ * Version:	@(#)isamem.c	1.0.2	2018/09/03
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -129,6 +129,27 @@ typedef struct {
 
     emsreg_t	ems[EMS_MAXPAGE];		/* EMS controller registers */
 } memdev_t;
+
+#ifdef ENABLE_ISAMEM_LOG
+int isamem_do_log = ENABLE_ISAMEM_LOG;
+#endif
+
+
+static void
+isamem_log(const char *fmt, ...)
+{
+#ifdef ENABLE_ISAMEM_LOG
+	va_list ap;
+
+	if (isamem_do_log)
+	{
+		va_start(ap, fmt);
+		pclog_ex(fmt, ap);
+		va_end(ap);
+	}
+#endif
+}
+
 
 /* Read one byte from onboard RAM. */
 static uint8_t
@@ -280,7 +301,7 @@ ems_read(uint16_t port, void *priv)
     }
 
 #if 0
-    pclog("ISAMEM: read(%04x) = %02x)\n", port, ret);
+    isamem_log("ISAMEM: read(%04x) = %02x)\n", port, ret);
 #endif
 
     return(ret);
@@ -298,7 +319,7 @@ ems_write(uint16_t port, uint8_t val, void *priv)
     vpage = (port / EMS_PGSIZE);
 
 #if 0
-    pclog("ISAMEM: write(%04x, %02x) page=%d\n", port, val, vpage);
+    isamem_log("ISAMEM: write(%04x, %02x) page=%d\n", port, val, vpage);
 #endif
 
     switch(port & 0x02ff) {
@@ -426,18 +447,18 @@ dev->frame_addr = 0xE0000;
     dev->start_addr <<= 10;
 
     /* Say hello! */
-    pclog("ISAMEM: %s (%iKB", info->name, dev->total_size);
-    if (dev->total_size != tot) pclog(", %iKB for RAM", tot);
-    if (dev->flags & FLAG_FAST) pclog(", FAST");
-    if (dev->flags & FLAG_WIDE) pclog(", 16BIT");
-    pclog(")\n");
+    isamem_log("ISAMEM: %s (%iKB", info->name, dev->total_size);
+    if (dev->total_size != tot) isamem_log(", %iKB for RAM", tot);
+    if (dev->flags & FLAG_FAST) isamem_log(", FAST");
+    if (dev->flags & FLAG_WIDE) isamem_log(", 16BIT");
+    isamem_log(")\n");
 
     /* Force (back to) 8-bit bus if needed. */
     if (AT) {
 	if (! cpu_16bitbus)
-		pclog("ISAMEM: *WARNING* this board will slow down your PC!\n");
+		isamem_log("ISAMEM: *WARNING* this board will slow down your PC!\n");
     } else {
-	pclog("ISAMEM: not AT+ system, forcing 8-bit mode!\n");
+	isamem_log("ISAMEM: not AT+ system, forcing 8-bit mode!\n");
 	dev->flags &= ~FLAG_WIDE;
     }
 
@@ -473,7 +494,7 @@ dev->frame_addr = 0xE0000;
 		 */
 		if (t > tot)
 			t = tot;
-		pclog("ISAMEM: RAM at %05iKB (%iKB)\n", addr>>10, t>>10);
+		isamem_log("ISAMEM: RAM at %05iKB (%iKB)\n", addr>>10, t>>10);
 
 		/* Create, initialize and enable the low-memory mapping. */
 		mem_mapping_add(&dev->low_mapping, addr, t,
@@ -506,7 +527,7 @@ dev->frame_addr = 0xE0000;
 		 */
 		t = RAM_UMAMEM;		/* 384KB */
 
-		pclog("ISAMEM: RAM at %05iKB (%iKB)\n", addr>>10, t>>10);
+		isamem_log("ISAMEM: RAM at %05iKB (%iKB)\n", addr>>10, t>>10);
 
 		/* Update and enable the remap. */
 		mem_mapping_del(&ram_remapped_mapping);
@@ -540,7 +561,7 @@ dev->frame_addr = 0xE0000;
      */
     if (AT && addr > 0 && tot > 0) {
 	t = tot;
-	pclog("ISAMEM: RAM at %05iKB (%iKB)\n", addr>>10, t>>10);
+	isamem_log("ISAMEM: RAM at %05iKB (%iKB)\n", addr>>10, t>>10);
 
 	/* Create, initialize and enable the high-memory mapping. */
 	mem_mapping_add(&dev->high_mapping, addr, t,
@@ -569,11 +590,11 @@ dev->frame_addr = 0xE0000;
 	dev->ems_start = ptr - dev->ram;
 	dev->ems_size = t >> 10;
 	dev->ems_pages = t / EMS_PGSIZE;
-	pclog("ISAMEM: EMS enabled, I/O=%04xH, %iKB (%i pages)",
+	isamem_log("ISAMEM: EMS enabled, I/O=%04xH, %iKB (%i pages)",
 		dev->base_addr, dev->ems_size, dev->ems_pages);
 	if (dev->frame_addr > 0)
-		pclog(", Frame=%05XH", dev->frame_addr);
-	pclog("\n");
+		isamem_log(", Frame=%05XH", dev->frame_addr);
+	isamem_log("\n");
 
 	/*
 	 * For each supported page (we can have a maximum of 4),

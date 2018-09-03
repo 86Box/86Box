@@ -10,7 +10,7 @@
 #		settings, so we can avoid changing the main one for all of
 #		our local setups.
 #
-# Version:	@(#)Makefile.local	1.0.16	2018/08/01
+# Version:	@(#)Makefile.local	1.0.17	2018/09/03
 #
 # Author:	Fred N. van Kempen, <decwiz@yahoo.com>
 #
@@ -42,6 +42,8 @@ STUFF	:=
 # -DENABLE_KEYBOARD_AT_LOG=N sets logging level at N.
 # -DENABLE_KEYBOARD_LOG=N sets logging level at N.
 # -DENABLE_IO_LOG=N sets logging level at N.
+# -DENABLE_ISAMEM_LOG=N sets logging level at N.
+# -DENABLE_ISARTC_LOG=N sets logging level at N.
 # -DENABLE_MEM_LOG=N sets logging level at N.
 # -DENABLE_MOUSE_LOG=N sets logging level at N.
 # -DENABLE_MOUSE_BUS_LOG=N sets logging level at N.
@@ -88,6 +90,7 @@ STUFF	:=
 # -DENABLE_AMSTRAD_LOG=N sets logging level at N.
 # -DENABLE_EUROPC_LOG=N sets logging level at N.
 # -DENABLE_MACHINE_LOG=N sets logging level at N.
+# -DENABLE_NEAT_LOG=N sets logging level at N.
 # -DENABLE_PS1_HDC_LOG=N sets logging level at N.
 # -DENABLE_PS2_MCA_LOG=N sets logging level at N.
 # -DENABLE_T1000_LOG=N sets logging level at N.
