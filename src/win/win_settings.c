@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.54	2018/09/03
+ * Version:	@(#)win_settings.c	1.0.55	2018/09/03
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -1782,7 +1782,15 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 			strcpy(temp_hdc_name, "none");
 
 		h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
-		temp_scsi_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+		temp_scsi_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+		h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
+		temp_isartc = settings_list_to_device[1][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+		for (e = 0; e < ISAMEM_MAX; e++) {
+			h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_1 + e);
+			temp_isamem[e] = settings_list_to_device[2 + e][SendMessage(h, CB_GETCURSEL, 0, 0)];
+		}
 
                 h = GetDlgItem(hdlg, IDC_CHECK_IDE_TER);
 		temp_ide_ter = SendMessage(h, BM_GETCHECK, 0, 0);

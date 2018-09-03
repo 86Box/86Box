@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.50	2018/09/02
+ * Version:	@(#)config.c	1.0.51	2018/09/03
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1334,6 +1334,9 @@ config_load(void)
 	}
 	mem_size = 640;
 	opl_type = 0;
+	isartc_type = 0;
+	for (i = 0; i < ISAMEM_MAX; i++)
+		isamem_type[i] = 0;
 
 	config_log("Config file not present or invalid!\n");
 	return;
