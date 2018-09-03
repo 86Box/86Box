@@ -8,7 +8,7 @@
  *
  *		Emulation of various Compaq PC's.
  *
- * Version:	@(#)m_at_compaq.c	1.0.5	2018/03/18
+ * Version:	@(#)m_at_compaq.c	1.0.6	2018/09/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -100,7 +100,10 @@ write_raml(uint32_t addr, uint32_t val, void *priv)
 void
 machine_at_compaq_init(const machine_t *model)
 {
-    machine_at_top_remap_init(model);
+    machine_at_init(model);
+
+    mem_remap_top(384);
+	
     device_add(&fdc_at_device);
 
     mem_mapping_add(&ram_mapping, 0xfa0000, 0x60000,

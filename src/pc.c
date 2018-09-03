@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.75	2018/08/16
+ * Version:	@(#)pc.c	1.0.76	2018/09/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -47,6 +47,8 @@
 #include "nvr.h"
 #include "machine/machine.h"
 #include "bugger.h"
+#include "isamem.h"
+#include "isartc.h"
 #include "lpt.h"
 #include "serial.h"
 #include "keyboard.h"
@@ -107,7 +109,9 @@ int	vid_cga_contrast = 0,			/* (C) video */
 	force_43 = 0;				/* (C) video */
 int	serial_enabled[SERIAL_MAX] = {0,0},	/* (C) enable serial ports */
 	lpt_enabled = 0,			/* (C) enable LPT ports */
-	bugger_enabled = 0;			/* (C) enable ISAbugger */
+	bugger_enabled = 0,			/* (C) enable ISAbugger */
+	isamem_type[ISAMEM_MAX] = { 0,0,0,0 },	/* (C) enable ISA mem cards */
+	isartc_type = 0;			/* (C) enable ISA RTC card */
 int	gfxcard = 0;				/* (C) graphics/video card */
 int	sound_is_float = 1,			/* (C) sound uses FP values */
 	GAMEBLASTER = 0,			/* (C) sound option */
@@ -769,6 +773,12 @@ pc_reset_hard_init(void)
     video_font_reset();	/* Reset (deallocate) the video font arrays. */
     machine_init();
 
+    /* Reset any ISA memory cards. */
+    isamem_reset();	
+	
+    /* Reset any ISA RTC cards. */
+    isartc_reset();	
+	
     fdd_reset();
 
     /*

@@ -1,3 +1,41 @@
+/*
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
+ *
+ *		This file is part of the VARCem Project.
+ *
+ *		Implementation of MCA-based PS/2 machines.
+ *
+ * Version:	@(#)m_ps2_mca.c	1.0.0	2018/09/02
+ *
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *
+ *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free  Software  Foundation; either  version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is  distributed in the hope that it will be useful, but
+ * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the:
+ *
+ *   Free Software Foundation, Inc.
+ *   59 Temple Place - Suite 330
+ *   Boston, MA 02111-1307
+ *   USA.
+*/
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -830,7 +868,7 @@ static void ps2_mca_board_model_50_init()
 {        
         ps2_mca_board_common_init();
 
-        mem_remap_top_384k();
+        mem_remap_top(384);
         mca_init(4);
         
         ps2.planar_read = model_50_read;
@@ -864,7 +902,7 @@ static void ps2_mca_board_model_55sx_init()
                     NULL);
 
 
-        mem_remap_top_256k();
+        mem_remap_top(256);
         ps2.option[3] = 0x10;
         
         memset(ps2.memory_bank, 0xf0, 8);
@@ -1019,10 +1057,13 @@ static void mem_encoding_write_cached(uint16_t addr, uint8_t val, void *p)
                         ps2.pending_cache_miss = 1;
                 if ((val & 0x21) == 0x01 && (old & 0x21) != 0x01)
                         ps2_cache_clean();
+#if 1
+ // FIXME: Look into this!!!
                 if (val & 0x01)
                         ram_mid_mapping.flags |= MEM_MAPPING_ROM;
                 else
                         ram_mid_mapping.flags &= ~MEM_MAPPING_ROM;
+#endif
                 break;
         }
         ps2_mca_log("mem_encoding_write: addr=%02x val=%02x %04x:%04x  %02x %02x\n", addr, val, CS,cpu_state.pc, ps2.mem_regs[1],ps2.mem_regs[2]);

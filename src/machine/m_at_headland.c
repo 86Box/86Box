@@ -523,9 +523,6 @@ headland_init(void)
 	mem_mapping_disable(&headland_ems_mapping[i]);
     }
 
-    for(i=4; i<10; i++)
-	isram[i] = 0;
-
     headland_memmap_state_update();
 }
 

@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.27	2018/08/04
+ * Version:	@(#)resource.h	1.0.28	2018/09/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -92,6 +92,11 @@
 #define IDT_1757		1757	/* Progress: */
 #define IDT_1758		1758	/* Speed: */
 #define IDT_1759		1759	/* ZIP drives: */
+#define IDT_1763		1763	/* Board #1: */
+#define IDT_1764		1764	/* Board #2: */
+#define IDT_1765		1765	/* Board #3: */
+#define IDT_1766		1766	/* Board #4: */
+#define IDT_1767		1767	/* ISA RTC: */
 
 
 /*
@@ -166,69 +171,81 @@
 #define IDC_CHECK_IDE_QUA	1127
 #define IDC_BUTTON_IDE_QUA	1128
 #define IDC_CHECK_BUGGER	1129
+#define IDC_CONFIGURE_BUGGER	1130
+#define IDC_COMBO_ISARTC	1131
+#define IDC_CONFIGURE_ISARTC	1132
+#define IDC_GROUP_ISAMEM	1140
+#define IDC_COMBO_ISAMEM_1	1141
+#define IDC_COMBO_ISAMEM_2	1142
+#define IDC_COMBO_ISAMEM_3	1143
+#define IDC_COMBO_ISAMEM_4	1144
+#define IDC_CONFIGURE_ISAMEM_1	1145
+#define IDC_CONFIGURE_ISAMEM_2	1146
+#define IDC_CONFIGURE_ISAMEM_3	1147
+#define IDC_CONFIGURE_ISAMEM_4	1148
 
-#define IDC_HARD_DISKS		1130	/* hard disk config */
-#define IDC_LIST_HARD_DISKS	1131
-#define IDC_BUTTON_HDD_ADD_NEW	1132
-#define IDC_BUTTON_HDD_ADD	1133
-#define IDC_BUTTON_HDD_REMOVE	1134
-#define IDC_COMBO_HD_BUS	1135
-#define IDC_COMBO_HD_CHANNEL	1136
-#define IDC_COMBO_HD_ID		1137
-#define IDC_COMBO_HD_LUN	1138
-#define IDC_COMBO_HD_CHANNEL_IDE 1139
+#define IDC_HARD_DISKS		1150	/* hard disk config */
+#define IDC_LIST_HARD_DISKS	1151
+#define IDC_BUTTON_HDD_ADD_NEW	1152
+#define IDC_BUTTON_HDD_ADD	1153
+#define IDC_BUTTON_HDD_REMOVE	1154
+#define IDC_COMBO_HD_BUS	1155
+#define IDC_COMBO_HD_CHANNEL	1156
+#define IDC_COMBO_HD_ID		1157
+#define IDC_COMBO_HD_LUN	1158
+#define IDC_COMBO_HD_CHANNEL_IDE 1159
 
-#define IDC_EDIT_HD_FILE_NAME	1140	/* add hard disk dialog */
-#define IDC_EDIT_HD_SPT		1141
-#define IDC_EDIT_HD_HPC		1142
-#define IDC_EDIT_HD_CYL		1143
-#define IDC_EDIT_HD_SIZE	1144
-#define IDC_COMBO_HD_TYPE	1145
-#define IDC_PBAR_IMG_CREATE	1146
+#define IDC_EDIT_HD_FILE_NAME	1160	/* add hard disk dialog */
+#define IDC_EDIT_HD_SPT		1161
+#define IDC_EDIT_HD_HPC		1162
+#define IDC_EDIT_HD_CYL		1163
+#define IDC_EDIT_HD_SIZE	1164
+#define IDC_COMBO_HD_TYPE	1165
+#define IDC_PBAR_IMG_CREATE	1166
 
-#define IDC_REMOV_DEVICES	1150	/* removable dev config */
-#define IDC_LIST_FLOPPY_DRIVES	1151
-#define IDC_COMBO_FD_TYPE	1152
-#define IDC_CHECKTURBO		1153
-#define IDC_CHECKBPB		1154
-#define IDC_LIST_CDROM_DRIVES	1155
-#define IDC_COMBO_CD_BUS	1156
-#define IDC_COMBO_CD_ID		1157
-#define IDC_COMBO_CD_LUN	1158
-#define IDC_COMBO_CD_CHANNEL_IDE 1159
-#define IDC_LIST_ZIP_DRIVES	1160
-#define IDC_COMBO_ZIP_BUS	1161
-#define IDC_COMBO_ZIP_ID	1162
-#define IDC_COMBO_ZIP_LUN	1163
-#define IDC_COMBO_ZIP_CHANNEL_IDE 1164
-#define IDC_CHECK250		1165
-#define IDC_COMBO_CD_SPEED	1166
+#define IDC_REMOV_DEVICES	1170	/* removable dev config */
+#define IDC_LIST_FLOPPY_DRIVES	1171
+#define IDC_COMBO_FD_TYPE	1172
+#define IDC_CHECKTURBO		1173
+#define IDC_CHECKBPB		1174
+#define IDC_LIST_CDROM_DRIVES	1175
+#define IDC_COMBO_CD_BUS	1176
+#define IDC_COMBO_CD_ID		1177
+#define IDC_COMBO_CD_LUN	1178
+#define IDC_COMBO_CD_CHANNEL_IDE 1179
+#define IDC_LIST_ZIP_DRIVES	1180
+#define IDC_COMBO_ZIP_BUS	1181
+#define IDC_COMBO_ZIP_ID	1182
+#define IDC_COMBO_ZIP_LUN	1183
+#define IDC_COMBO_ZIP_CHANNEL_IDE 1184
+#define IDC_CHECK250		1185
+#define IDC_COMBO_CD_SPEED	1186
 
-#define IDC_SLIDER_GAIN		1180	/* sound gain dialog */
+#define IDC_SLIDER_GAIN		1190	/* sound gain dialog */
 
-#define IDC_EDIT_FILE_NAME	1190	/* new floppy image dialog */
-#define IDC_COMBO_DISK_SIZE	1191
-#define IDC_COMBO_RPM_MODE	1192
+#define IDC_EDIT_FILE_NAME	1200	/* new floppy image dialog */
+#define IDC_COMBO_DISK_SIZE	1201
+#define IDC_COMBO_RPM_MODE	1202
 
 
 /* For the DeviceConfig code, re-do later. */
-#define IDC_CONFIG_BASE		1200
-#define  IDC_CONFIGURE_VID	1200
-#define  IDC_CONFIGURE_SND	1201
-#define  IDC_CONFIGURE_VOODOO	1202
-#define  IDC_CONFIGURE_MOD	1203
-#define  IDC_CONFIGURE_NET_TYPE	1204
-#define  IDC_CONFIGURE_BUSLOGIC	1205
-#define  IDC_CONFIGURE_PCAP	1206
-#define  IDC_CONFIGURE_NET	1207
-#define  IDC_CONFIGURE_MIDI	1208
-#define  IDC_JOY1		1210
-#define  IDC_JOY2		1211
-#define  IDC_JOY3		1212
-#define  IDC_JOY4		1213
-#define IDC_HDTYPE		1280
-#define IDC_RENDER		1281
-#define IDC_STATUS		1282
+#define IDC_CONFIG_BASE		1300
+#define  IDC_CONFIGURE_VID	1300
+#define  IDC_CONFIGURE_SND	1301
+#define  IDC_CONFIGURE_VOODOO	1302
+#define  IDC_CONFIGURE_MOD	1303
+#define  IDC_CONFIGURE_NET_TYPE	1304
+#define  IDC_CONFIGURE_BUSLOGIC	1305
+#define  IDC_CONFIGURE_PCAP	1306
+#define  IDC_CONFIGURE_NET	1307
+#define  IDC_CONFIGURE_MIDI	1308
+#define  IDC_JOY1		1310
+#define  IDC_JOY2		1311
+#define  IDC_JOY3		1312
+#define  IDC_JOY4		1313
+#define IDC_HDTYPE		1380
+#define IDC_RENDER		1381
+#define IDC_STATUS		1382
 
 
 #define IDM_ABOUT		40001

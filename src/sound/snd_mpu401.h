@@ -80,15 +80,18 @@ typedef struct mpu_t
 		uint8_t cth_rate,cth_counter;
 		int clock_to_host,cth_active;
 	} clock;
+	
+	uint8_t pos_regs[8];
 } mpu_t;
 
 uint8_t MPU401_ReadData(mpu_t *mpu);
 
 void mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode);
 
+extern int mca_version;
 extern int mpu401_standalone_enable;
 
 void mpu401_device_add(void);
 const device_t mpu401_device;
+const device_t mpu401_mca_device;
 
-void mpu401_uart_init(mpu_t *mpu, uint16_t addr);
