@@ -84,7 +84,8 @@ QueueByte(mpu_t *mpu, uint8_t data)
 	return;
     }
 	
-    if (mpu->queue_used == 0 && mpu->intelligent) {
+    if ((mpu->queue_used == 0) && (mpu->mode == M_INTELLIGENT)) {
+    // if (mpu->queue_used == 0 && mpu->intelligent) {
 	mpu->state.irq_pending=1;
 	picint(1 << mpu->irq);
     }
@@ -339,8 +340,9 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 
 	case 0x3f:	/* UART mode */
 		mpu401_log("MPU-401:Set UART mode %X\n",val);
+		QueueByte(mpu, MSG_MPU_ACK);
 		mpu->mode=M_UART;
-		break;
+		return;
 
 	default:;
 		//mpu401_log("MPU-401:Unhandled command %X",val);
