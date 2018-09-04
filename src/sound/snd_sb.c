@@ -8,7 +8,7 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.9	2018/04/29
+ * Version:	@(#)sound_sb.c	1.0.10	2018/09/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -942,7 +942,7 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
                 case 0x82:
                 /* 0 = none, 1 =  digital 8bit or SBMIDI, 2 = digital 16bit, 4 = MPU-401 */
                 /* 0x02000 DSP v4.04, 0x4000 DSP v4.05 0x8000 DSP v4.12. I haven't seen this making any difference, but I'm keeping it for now. */
-                return ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) | 0x4000;
+                return ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) | ((sb->mpu.state.irq_pending) ? 4 : 0) | 0x4000;
 
                 /* TODO: creative drivers read and write on 0xFE and 0xFF. not sure what they are supposed to be. */
                 
@@ -1272,6 +1272,7 @@ void *sb_pro_mcv_init()
 
 void *sb_16_init()
 {
+	int mpu_irq;
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
         memset(sb, 0, sizeof(sb_t));
@@ -1295,7 +1296,10 @@ void *sb_16_init()
 #if 0
         sound_add_process_handler(sb_process_buffer_sb16, sb);
 #endif
-        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
+	mpu_irq = device_get_config_int("irq401");
+	if (mpu_irq == 255)
+		mpu_irq = device_get_config_int("irq");
+        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), mpu_irq, device_get_config_int("mode401"));
 	sb_dsp_set_mpu(&sb->mpu);
 #if 0
 	memcpy(&sb->temp_mixer_sb16, &sb->mixer_sb16, sizeof(sb_ct1745_mixer_t));
@@ -1311,6 +1315,7 @@ int sb_awe32_available()
 
 void *sb_awe32_init()
 {
+	int mpu_irq;
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
         uint16_t emu_addr = device_get_config_hex16("emu_base");
@@ -1339,7 +1344,10 @@ void *sb_awe32_init()
 #if 0
         sound_add_process_handler(sb_process_buffer_sb16, sb);
 #endif
-        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
+	mpu_irq = device_get_config_int("irq401");
+	if (mpu_irq == 255)
+		mpu_irq = device_get_config_int("irq");
+        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), mpu_irq, device_get_config_int("mode401"));
 	sb_dsp_set_mpu(&sb->mpu);
         emu8k_init(&sb->emu8k, emu_addr, onboard_ram);
 #if 0
@@ -1602,6 +1610,9 @@ static const device_config_t sb_16_config[] =
                 "irq401", "MPU-401 IRQ", CONFIG_SELECTION, "", 9,
                 {
                         {
+                                "Use main IRQ", 255
+                        },
+                        {
                                 "IRQ 9", 9
                         },
                         {
@@ -1759,6 +1770,9 @@ static const device_config_t sb_awe32_config[] =
         {
                 "irq401", "MPU-401 IRQ", CONFIG_SELECTION, "", 9,
                 {
+                        {
+                                "Use main IRQ", 255
+                        },
                         {
                                 "IRQ 9", 9
                         },
