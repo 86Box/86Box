@@ -83,8 +83,6 @@
 #include "plat.h"
 #include "isamem.h"
 
-#define ISAMEM_DEBUG	0
-
 #define RAM_TOPMEM	(640 << 10)		/* end of low memory */
 #define RAM_UMAMEM	(384 << 10)		/* upper memory block */
 #define RAM_EXTMEM	(1024 << 10)		/* start of high memory */
@@ -299,14 +297,7 @@ ems_read(uint16_t port, void *priv)
 		break;
     }
 
-<<<<<<< HEAD
-#if ISAMEM_DEBUG
-    pclog("ISAMEM: read(%04x) = %02x)\n", port, ret);
-=======
-#if 0
     isamem_log("ISAMEM: read(%04x) = %02x)\n", port, ret);
->>>>>>> e60c4e96156542ac06e50372af7269da966854e7
-#endif
 
     return(ret);
 }
@@ -323,16 +314,9 @@ ems_write(uint16_t port, uint8_t val, void *priv)
     vpage = (port / EMS_PGSIZE);
 	port &= (EMS_PGSIZE - 1);
 
-<<<<<<< HEAD
-#if ISAMEM_DEBUG
-    pclog("ISAMEM: write(%04x, %02x) page=%d\n", port, val, vpage);
-=======
-#if 0
     isamem_log("ISAMEM: write(%04x, %02x) page=%d\n", port, val, vpage);
->>>>>>> e60c4e96156542ac06e50372af7269da966854e7
-#endif
-
-    switch(port - dev->base_addr) {
+    
+	switch(port - dev->base_addr) {
 	case 0x0000:		/* page mapping registers */
 		/* Set the page number. */
 		dev->ems[vpage].enabled = (val & 0x80);
@@ -373,9 +357,8 @@ ems_write(uint16_t port, uint8_t val, void *priv)
 		 * -----------------
 		 * 80 c0 e0  E0000
                  */
-#if ISAMEM_DEBUG
-		pclog("EMS: write(%02x) to register 1 !\n");
-#endif		
+
+		isamem_log("EMS: write(%02x) to register 1 !\n");	
 		
 		dev->ems[vpage].frame = val;
 		if (val)
