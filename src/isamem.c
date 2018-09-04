@@ -32,7 +32,7 @@
  * TODO:	The EV159 is supposed to support 16b EMS transfers, but the
  *		EMM.sys driver for it doesn't seem to want to do that..
  *
- * Version:	@(#)isamem.c	1.0.2	2018/09/03
+ * Version:	@(#)isamem.c	1.0.3	2018/09/04
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -82,7 +82,6 @@
 #include "ui.h"
 #include "plat.h"
 #include "isamem.h"
-
 
 #define RAM_TOPMEM	(640 << 10)		/* end of low memory */
 #define RAM_UMAMEM	(384 << 10)		/* upper memory block */
@@ -285,24 +284,20 @@ ems_read(uint16_t port, void *priv)
 
     /* Get the viewport page number. */
     vpage = (port / EMS_PGSIZE);
+	port &= (EMS_PGSIZE - 1);
 
-    switch(port & 0x02ff) {
-	case 0x0208:		/* page number register */
-	case 0x0218:
-	case 0x0258:
-	case 0x0268:
-	case 0x02a8:
-	case 0x02b8:
-	case 0x02e8:
+    switch(port - dev->base_addr) {
+	case 0x0000:		/* page number register */
 		ret = dev->ems[vpage].page;
 		if (dev->ems[vpage].enabled)
 			ret |= 0x80;
 		break;
+		
+	case 0x0001:		/* W/O */
+		break;
     }
 
-#if 0
     isamem_log("ISAMEM: read(%04x) = %02x)\n", port, ret);
-#endif
 
     return(ret);
 }
@@ -317,19 +312,12 @@ ems_write(uint16_t port, uint8_t val, void *priv)
 
     /* Get the viewport page number. */
     vpage = (port / EMS_PGSIZE);
+	port &= (EMS_PGSIZE - 1);
 
-#if 0
     isamem_log("ISAMEM: write(%04x, %02x) page=%d\n", port, val, vpage);
-#endif
-
-    switch(port & 0x02ff) {
-	case 0x0208:		/* page mapping registers */
-	case 0x0218:
-	case 0x0258:
-	case 0x0268:
-	case 0x02a8:
-	case 0x02b8:
-	case 0x02e8:
+    
+	switch(port - dev->base_addr) {
+	case 0x0000:		/* page mapping registers */
 		/* Set the page number. */
 		dev->ems[vpage].enabled = (val & 0x80);
 		dev->ems[vpage].page = (val & 0x7f);
@@ -358,13 +346,7 @@ ems_write(uint16_t port, uint8_t val, void *priv)
 		}
 		break;
 
-	case 0x0209:		/* page frame registers */
-	case 0x0219:
-	case 0x0259:
-	case 0x0269:
-	case 0x02a9:
-	case 0x02b9:
-	case 0x02e9:
+	case 0x0001:		/* page frame registers */
 		/*
 		 * The EV-159 EMM driver configures the frame address
 		 * by setting bits in these registers. The information
@@ -376,6 +358,8 @@ ems_write(uint16_t port, uint8_t val, void *priv)
 		 * 80 c0 e0  E0000
                  */
 
+		isamem_log("EMS: write(%02x) to register 1 !\n");	
+		
 		dev->ems[vpage].frame = val;
 		if (val)
 			dev->flags |= FLAG_CONFIG;
@@ -405,6 +389,7 @@ isamem_init(const device_t *info)
     tot = 0;
     switch(dev->board) {
 	case 0:		/* IBM PC/XT Memory Expansion Card */
+	case 2:		/* Paradise Systems 5-PAK */
 		dev->total_size = device_get_config_int("size");
 		dev->start_addr = device_get_config_int("start");
 		tot = dev->total_size;
@@ -417,6 +402,13 @@ isamem_init(const device_t *info)
 		dev->flags |= FLAG_WIDE;
 		break;
 
+	case 3:		/* Micro Mainframe EMS-5150(T) */
+ 		dev->base_addr = device_get_config_hex16("base");
+ 		dev->total_size = device_get_config_int("size");
+ 		dev->frame_addr = 0xD0000;
+ 		dev->flags |= (FLAG_EMS | FLAG_CONFIG);
+ 		break;		
+		
 	case 10:	/* Everex EV-159 RAM 3000 */
 		dev->base_addr = device_get_config_hex16("base");
 		dev->total_size = device_get_config_int("size");
@@ -713,6 +705,78 @@ static const device_t ibmat_device = {
     ibmat_config
 };
 
+static const device_config_t p5pak_config[] =
+ {
+ 	{
+ 		"size", "Memory Size", CONFIG_SPINNER, "", 128,
+ 		{ { 0 } },
+ 		{ { 0 } },
+ 		{ 0, 384, 64 }
+ 	},
+ 	{
+ 		"start", "Start Address", CONFIG_SPINNER, "", 512,
+ 		{ { 0 } },
+ 		{ { 0 } },
+ 		{ 64, 576, 64 }
+ 	},
+ 	{
+ 		"", "", -1
+ 	}
+ };
+
+static const device_t p5pak_device = {
+    "Paradise Systems 5-PAK",
+    DEVICE_ISA,
+    2,
+    isamem_init, isamem_close, NULL,
+    NULL, NULL, NULL,
+    p5pak_config
+};
+
+static const device_config_t ems5150_config[] =
+{
+ 	{
+ 		"size", "Memory Size", CONFIG_SPINNER, "", 256,
+ 		{ { 0 } },
+ 		{ { 0 } },
+ 		{ 0, 2048, 64 }
+ 	},
+ 	{
+ 		"base", "Address", CONFIG_HEX16, "", 0,
+ 		{
+ 			{
+ 				"Disabled", 0
+ 			},
+ 			{
+ 				"Board 1", 0x0208
+ 			},
+ 			{
+ 				"Board 2", 0x020a
+ 			},
+ 			{
+ 				"Board 3", 0x020c
+ 			},
+ 			{
+ 				"Board 4", 0x020e
+ 			},
+ 			{
+ 				""
+ 			}
+ 		},
+ 	},
+ 	{
+ 		"", "", -1
+ 	}
+};
+
+static const device_t ems5150_device = {
+    "Micro Mainframe EMS-5150(T)",
+    DEVICE_ISA,
+    3,
+    isamem_init, isamem_close, NULL,
+    NULL, NULL, NULL,
+    ems5150_config
+};
 
 static const device_config_t ev159_config[] =
 {
@@ -930,7 +994,9 @@ static const struct {
     { "None",						"none",		NULL,		      },
     { "IBM PC/XT Memory Expansion",	"ibmxt",	&ibmxt_device,		},
     { "IBM PC/AT Memory Expansion",  "ibmat",	&ibmat_device,		},
-    { "Everex EV-159 RAM 3000 Deluxe", "ev159",  &ev159_device,		},
+    { "Micro Mainframe EMS-5150(T)", "ems5150",	&ems5150_device		},
+	{ "Paradise Systems 5-PAK", 	 "p5pak",	&p5pak_device		},
+	{ "Everex EV-159 RAM 3000 Deluxe", "ev159", &ev159_device,		},
     { "",			"",		NULL,		      },
 };
 
