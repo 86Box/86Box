@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.9	2018/09/02
+ * Version:	@(#)device.c	1.0.10	2018/09/04
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -65,7 +65,7 @@ typedef struct clonedev {
 static device_t		*devices[DEVICE_MAX];
 static void		*device_priv[DEVICE_MAX];
 static device_t		*device_current;
-static clonedev_t	*clones;
+static clonedev_t	*clones = NULL;
 
 
 #ifdef ENABLE_DEVICE_LOG
@@ -91,7 +91,19 @@ device_log(const char *format, ...)
 void
 device_init(void)
 {
+	clonedev_t *ptr;
+	
     memset(devices, 0x00, sizeof(devices));
+	
+	ptr = NULL;
+	while (clones != NULL)
+	{
+		ptr = clones->next;
+		free(clones);
+		clones = ptr;
+	}
+	
+	clones = NULL;
 }
 
 
