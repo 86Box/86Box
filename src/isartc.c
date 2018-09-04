@@ -28,7 +28,7 @@
  * NOTE:	The IRQ functionalities have been implemented, but not yet
  *		tested, as I need to write test software for them first :)
  *
- * Version:	@(#)isartc.c	1.0.4	2018/08/31
+ * Version:	@(#)isartc.c	1.0.5	2018/09/03
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -147,6 +147,26 @@ typedef struct {
 #define MM67_GOCMD		21	/* GO Command */
 #define MM67_STBYIRQ		22	/* standby IRQ */
 #define MM67_TEST		31	/* test mode */
+
+#ifdef ENABLE_ISARTC_LOG
+int isartc_do_log = ENABLE_ISARTC_LOG;
+#endif
+
+
+static void
+isartc_log(const char *fmt, ...)
+{
+#ifdef ENABLE_ISARTC_LOG
+	va_list ap;
+
+	if (isartc_do_log)
+	{
+		va_start(ap, fmt);
+		pclog_ex(fmt, ap);
+		va_end(ap);
+	}
+#endif
+}
 
 
 /* Check if the current time matches a set alarm time. */
@@ -286,7 +306,7 @@ mm67_time_get(nvr_t *nvr, struct tm *tm)
 	tm->tm_year += (regs[MM67_CENTURY] * 100) - 1900;
 #endif
 #if ISARTC_DEBUG > 1
-	pclog("ISARTC: get_time: year=%i [%02x]\n", tm->tm_year, regs[dev->year]);
+	isartc_log("ISARTC: get_time: year=%i [%02x]\n", tm->tm_year, regs[dev->year]);
 #endif
     }
 }
@@ -319,7 +339,7 @@ mm67_time_set(nvr_t *nvr, struct tm *tm)
 	regs[MM67_CENTURY] = (year + 1900) / 100;
 #endif
 #if ISARTC_DEBUG > 1
-	pclog("ISARTC: set_time: [%02x] year=%i (%i)\n", regs[dev->year], year, tm->tm_year);
+	isartc_log("ISARTC: set_time: [%02x] year=%i (%i)\n", regs[dev->year], year, tm->tm_year);
 #endif
     }
 }
@@ -383,7 +403,7 @@ mm67_read(uint16_t port, void *priv)
     }
 
 #if  ISARTC_DEBUG
-    pclog("ISARTC: read(%04x) = %02x\n", port-dev->base_addr, ret);
+    isartc_log("ISARTC: read(%04x) = %02x\n", port-dev->base_addr, ret);
 #endif
 
     return(ret);
@@ -399,7 +419,7 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
     int i;
 
 #if  ISARTC_DEBUG
-    pclog("ISARTC: write(%04x, %02x)\n", port-dev->base_addr, val);
+    isartc_log("ISARTC: write(%04x, %02x)\n", port-dev->base_addr, val);
 #endif
 
     /* This chip is directly mapped on I/O. */
@@ -443,15 +463,15 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 		break;
 
 	case MM67_GOCMD:
-pclog("RTC: write gocmd=%02x\n", val);
+isartc_log("RTC: write gocmd=%02x\n", val);
 		break;
 
 	case MM67_STBYIRQ:
-pclog("RTC: write stby=%02x\n", val);
+isartc_log("RTC: write stby=%02x\n", val);
 		break;
 
 	case MM67_TEST:
-pclog("RTC: write test=%02x\n", val);
+isartc_log("RTC: write test=%02x\n", val);
 		break;
 
 	default:
@@ -528,10 +548,10 @@ isartc_init(const device_t *info)
     }
 
     /* Say hello! */
-    pclog("ISARTC: %s (I/O=%04XH", info->name, dev->base_addr);
+    isartc_log("ISARTC: %s (I/O=%04XH", info->name, dev->base_addr);
     if (dev->irq != -1)
-	pclog(", IRQ%i", dev->irq);
-    pclog(")\n");
+	isartc_log(", IRQ%i", dev->irq);
+    isartc_log(")\n");
 
     /* Set up an I/O port handler. */
     io_sethandler(dev->base_addr, dev->base_addrsz,
