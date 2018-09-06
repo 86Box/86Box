@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.55	2018/09/03
+ * Version:	@(#)win_settings.c	1.0.56	2018/09/06
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -1493,6 +1493,8 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
     int c, d, e, temp_hdc_type;
     LPTSTR lptsTemp;
     const device_t *scsi_dev;
+    const device_t *dev;
+    char *s;
 
     switch (message) {
 	case WM_INITDIALOG:
@@ -1563,7 +1565,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 		e = 0;
 		h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
 		for (d = 0; ; d++) {
-			char *s = isartc_get_name(d);
+			s = isartc_get_name(d);
 			if (!s[0])
 				break;
 
@@ -1589,26 +1591,21 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 		
 		/* Populate the ISA memory card dropdowns. */
 		for (c = 0; c < ISAMEM_MAX; c++) {
-			e = 0;
 			h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_1 + c);
 			for (d = 0; ; d++) {
-				char *s = isamem_get_name(d);
-				
-				if (!s[0])
+				s = (char *) isamem_get_internal_name(d);
+				if (s == NULL)
 					break;
-
-				settings_device_to_list[2 + c][d] = e;	
 
 				if (d == 0) {
 					/* Translate "None". */
-					SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2112));
+					SendMessage(h, CB_ADDSTRING, 0,
+						    (LPARAM)win_get_string(IDS_2112));
 				} else {
+					s = (char *) isamem_get_name(d);
 					mbstowcs(lptsTemp, s, strlen(s) + 1);
-					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+					SendMessage(h, CB_ADDSTRING, 0, (LPARAM)lptsTemp);
 				}
-				
-				settings_list_to_device[2 + c][e] = d;
-				e++;
 			}
 			SendMessage(h, CB_SETCURSEL, temp_isamem[c], 0);
 			h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_1 + c);
@@ -1617,7 +1614,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 			  else
 				EnableWindow(h, FALSE);
 		}
-		
+
 		free(lptsTemp);
 
 		return TRUE;
@@ -1675,76 +1672,31 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 					EnableWindow(h, FALSE);
 				break;				
 
-			case IDC_CONFIGURE_ISAMEM_1:
-				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_1);
-				temp_isamem[0] = settings_list_to_device[2][SendMessage(h, CB_GETCURSEL, 0, 0)];
-
-				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isamem_get_device(temp_isamem[0]));
-				break;
-
-			case IDC_CONFIGURE_ISAMEM_2:
-				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_2);
-				temp_isamem[1] = settings_list_to_device[3][SendMessage(h, CB_GETCURSEL, 0, 0)];
-
-				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isamem_get_device(temp_isamem[1]));
-				break;
-
-			case IDC_CONFIGURE_ISAMEM_3:
-				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_3);
-				temp_isamem[2] = settings_list_to_device[4][SendMessage(h, CB_GETCURSEL, 0, 0)];
-
-				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isamem_get_device(temp_isamem[2]));
-				break;
-
-			case IDC_CONFIGURE_ISAMEM_4:
-				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_4);
-				temp_isamem[3] = settings_list_to_device[5][SendMessage(h, CB_GETCURSEL, 0, 0)];
-
-				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isamem_get_device(temp_isamem[3]));
-				break;				
-
 			case IDC_COMBO_ISAMEM_1:
-				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_1);
-				temp_isamem[0] = settings_list_to_device[2][SendMessage(h, CB_GETCURSEL, 0, 0)];
-
-				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_1);
-				if (temp_isamem[0] != 0)
-					EnableWindow(h, TRUE);
-				else
-					EnableWindow(h, FALSE);
-				break;		
-
 			case IDC_COMBO_ISAMEM_2:
-				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_2);
-				temp_isamem[1] = settings_list_to_device[3][SendMessage(h, CB_GETCURSEL, 0, 0)];
-
-				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_2);
-				if (temp_isamem[1] != 0)
-					EnableWindow(h, TRUE);
-				else
-					EnableWindow(h, FALSE);
-				break;
-
 			case IDC_COMBO_ISAMEM_3:
-				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_3);
-				temp_isamem[2] = settings_list_to_device[4][SendMessage(h, CB_GETCURSEL, 0, 0)];
+			case IDC_COMBO_ISAMEM_4:
+				c = LOWORD(wParam) - IDC_COMBO_ISAMEM_1;
+				h = GetDlgItem(hdlg, LOWORD(wParam));
+				temp_isamem[c] = SendMessage(h, CB_GETCURSEL, 0, 0);
 
-				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_3);
-				if (temp_isamem[2] != 0)
+				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_1 + c);
+				if (temp_isamem[c] != 0)
 					EnableWindow(h, TRUE);
 				else
 					EnableWindow(h, FALSE);
 				break;
 
-			case IDC_COMBO_ISAMEM_4:
-				h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_4);
-				temp_isamem[3] = settings_list_to_device[5][SendMessage(h, CB_GETCURSEL, 0, 0)];
-
-				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_4);
-				if (temp_isamem[3] != 0)
-					EnableWindow(h, TRUE);
+			case IDC_CONFIGURE_ISAMEM_1:
+			case IDC_CONFIGURE_ISAMEM_2:
+			case IDC_CONFIGURE_ISAMEM_3:
+			case IDC_CONFIGURE_ISAMEM_4:
+				c = LOWORD(wParam) - IDC_CONFIGURE_ISAMEM_1;
+				dev = isamem_get_device(c);
+				if (dev != NULL)
+					temp_deviceconfig |= deviceconfig_open(hdlg, (void *)dev);
 				else
-					EnableWindow(h, FALSE);
+					ui_msgbox(MBX_INFO, (wchar_t *)IDS_2119);
 				break;
 
 			case IDC_CHECK_IDE_TER:
@@ -1786,11 +1738,6 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 		h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
 		temp_isartc = settings_list_to_device[1][SendMessage(h, CB_GETCURSEL, 0, 0)];
-
-		for (e = 0; e < ISAMEM_MAX; e++) {
-			h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_1 + e);
-			temp_isamem[e] = settings_list_to_device[2 + e][SendMessage(h, CB_GETCURSEL, 0, 0)];
-		}
 
                 h = GetDlgItem(hdlg, IDC_CHECK_IDE_TER);
 		temp_ide_ter = SendMessage(h, BM_GETCHECK, 0, 0);

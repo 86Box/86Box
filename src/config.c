@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.51	2018/09/03
+ * Version:	@(#)config.c	1.0.52	2018/09/06
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1743,7 +1743,7 @@ save_other_peripherals(void)
 		config_delete_var(cat, temp);
 	  else
 		config_set_string(cat, temp,
-				  isamem_get_internal_name(isamem_type[c]));
+				  (char *) isamem_get_internal_name(isamem_type[c]));
     }
 
     if (isartc_type == 0)

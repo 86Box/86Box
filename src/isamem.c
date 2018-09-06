@@ -32,7 +32,7 @@
  * TODO:	The EV159 is supposed to support 16b EMS transfers, but the
  *		EMM.sys driver for it doesn't seem to want to do that..
  *
- * Version:	@(#)isamem.c	1.0.3	2018/09/04
+ * Version:	@(#)isamem.c	1.0.5	2018/09/06
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -82,6 +82,9 @@
 #include "ui.h"
 #include "plat.h"
 #include "isamem.h"
+
+
+#define ISAMEM_DEBUG	0
 
 #define RAM_TOPMEM	(640 << 10)		/* end of low memory */
 #define RAM_UMAMEM	(384 << 10)		/* upper memory block */
@@ -148,6 +151,15 @@ isamem_log(const char *fmt, ...)
 	}
 #endif
 }
+
+
+/* Local variables. */
+static const device_t *instance[ISAMEM_MAX] = {
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
 
 
 /* Read one byte from onboard RAM. */
@@ -218,6 +230,9 @@ ems_readb(uint32_t addr, void *priv)
 
     /* Grab the data. */
     ret = *(uint8_t *)(dev->ems[vpage].addr + (addr - map->base));
+#if ISAMEM_DEBUG
+    if ((addr % 4096)==0) isamem_log("EMS readb(%06x) = %02x\n",addr-map->base,ret);
+#endif
 
     return(ret);
 }
@@ -237,6 +252,9 @@ ems_readw(uint32_t addr, void *priv)
 
     /* Grab the data. */
     ret = *(uint16_t *)(dev->ems[vpage].addr + (addr - map->base));
+#if ISAMEM_DEBUG
+    if ((addr % 4096)==0) isamem_log("EMS readw(%06x) = %04x\n",addr-map->base,ret);
+#endif
 
     return(ret);
 }
@@ -254,6 +272,9 @@ ems_writeb(uint32_t addr, uint8_t val, void *priv)
     vpage = ((addr & 0xffff) / EMS_PGSIZE);
 
     /* Write the data. */
+#if ISAMEM_DEBUG
+    if ((addr % 4096)==0) isamem_log("EMS writeb(%06x, %02x)\n",addr-map->base,val);
+#endif
     *(uint8_t *)(dev->ems[vpage].addr + (addr - map->base)) = val;
 }
 
@@ -270,6 +291,9 @@ ems_writew(uint32_t addr, uint16_t val, void *priv)
     vpage = ((addr & 0xffff) / EMS_PGSIZE);
 
     /* Write the data. */
+#if ISAMEM_DEBUG
+    if ((addr % 4096)==0) isamem_log("EMS writew(%06x, %04x)\n",addr-map->base,val);
+#endif
     *(uint16_t *)(dev->ems[vpage].addr + (addr - map->base)) = val;
 }
 
@@ -284,7 +308,7 @@ ems_read(uint16_t port, void *priv)
 
     /* Get the viewport page number. */
     vpage = (port / EMS_PGSIZE);
-	port &= (EMS_PGSIZE - 1);
+    port &= (EMS_PGSIZE - 1);
 
     switch(port - dev->base_addr) {
 	case 0x0000:		/* page number register */
@@ -292,12 +316,14 @@ ems_read(uint16_t port, void *priv)
 		if (dev->ems[vpage].enabled)
 			ret |= 0x80;
 		break;
-		
+
 	case 0x0001:		/* W/O */
 		break;
     }
 
+#if ISAMEM_DEBUG
     isamem_log("ISAMEM: read(%04x) = %02x)\n", port, ret);
+#endif
 
     return(ret);
 }
@@ -312,11 +338,13 @@ ems_write(uint16_t port, uint8_t val, void *priv)
 
     /* Get the viewport page number. */
     vpage = (port / EMS_PGSIZE);
-	port &= (EMS_PGSIZE - 1);
+    port &= (EMS_PGSIZE - 1);
 
+#if ISAMEM_DEBUG
     isamem_log("ISAMEM: write(%04x, %02x) page=%d\n", port, val, vpage);
-    
-	switch(port - dev->base_addr) {
+#endif
+
+    switch(port - dev->base_addr) {
 	case 0x0000:		/* page mapping registers */
 		/* Set the page number. */
 		dev->ems[vpage].enabled = (val & 0x80);
@@ -355,11 +383,17 @@ ems_write(uint16_t port, uint8_t val, void *priv)
 		 *
 		 * 00 04 08  Address
 		 * -----------------
+		 * 80 c0 e0  C0000
+		 * 80 c0 e0  C4000
+		 * 80 c0 e0  C8000
+		 * 80 c0 e0  CC000
+		 * 80 c0 e0  D0000
+		 * 80 c0 e0  D4000
+		 * 80 c0 e0  D8000
+		 * 80 c0 e0  DC000
 		 * 80 c0 e0  E0000
                  */
-
-		isamem_log("EMS: write(%02x) to register 1 !\n");	
-		
+isamem_log("EMS: write(%02x) to register 1 !\n");
 		dev->ems[vpage].frame = val;
 		if (val)
 			dev->flags |= FLAG_CONFIG;
@@ -380,10 +414,13 @@ isamem_init(const device_t *info)
     int i;
 
     /* Find our device and create an instance. */
+    for (i = 0; i < ISAMEM_MAX; i++)
+	if (instance[i] == info) break;
     dev = (memdev_t *)malloc(sizeof(memdev_t));
     memset(dev, 0x00, sizeof(memdev_t));
     dev->name = info->name;
     dev->board = info->local;
+    dev->instance = i;
 
     /* Do per-board initialization. */
     tot = 0;
@@ -403,12 +440,12 @@ isamem_init(const device_t *info)
 		break;
 
 	case 3:		/* Micro Mainframe EMS-5150(T) */
- 		dev->base_addr = device_get_config_hex16("base");
- 		dev->total_size = device_get_config_int("size");
- 		dev->frame_addr = 0xD0000;
- 		dev->flags |= (FLAG_EMS | FLAG_CONFIG);
- 		break;		
-		
+		dev->base_addr = device_get_config_hex16("base");
+		dev->total_size = device_get_config_int("size");
+		dev->frame_addr = 0xD0000;
+		dev->flags |= (FLAG_EMS | FLAG_CONFIG);
+		break;
+
 	case 10:	/* Everex EV-159 RAM 3000 */
 		dev->base_addr = device_get_config_hex16("base");
 		dev->total_size = device_get_config_int("size");
@@ -440,18 +477,25 @@ dev->frame_addr = 0xE0000;
 
     /* Say hello! */
     isamem_log("ISAMEM: %s (%iKB", info->name, dev->total_size);
-    if (dev->total_size != tot) isamem_log(", %iKB for RAM", tot);
+    if (tot && (dev->total_size != tot))
+	isamem_log(", %iKB for RAM", tot);
     if (dev->flags & FLAG_FAST) isamem_log(", FAST");
     if (dev->flags & FLAG_WIDE) isamem_log(", 16BIT");
     isamem_log(")\n");
 
     /* Force (back to) 8-bit bus if needed. */
-    if (AT) {
-	if (! cpu_16bitbus)
-		isamem_log("ISAMEM: *WARNING* this board will slow down your PC!\n");
+    if (dev->flags & FLAG_WIDE) {
+	if (AT) {
+		if (! cpu_16bitbus)
+			isamem_log("ISAMEM: *WARNING* this board will slow down your PC!\n");
+	} else {
+		isamem_log("ISAMEM: not AT+ system, forcing 8-bit mode!\n");
+		dev->flags &= ~FLAG_WIDE;
+	}
     } else {
-	isamem_log("ISAMEM: not AT+ system, forcing 8-bit mode!\n");
-	dev->flags &= ~FLAG_WIDE;
+	if (AT) {
+		isamem_log("ISAMEM: *WARNING* this board will slow down your PC!\n");
+	}
     }
 
     /* Allocate and initialize our RAM. */
@@ -582,7 +626,7 @@ dev->frame_addr = 0xE0000;
 	dev->ems_start = ptr - dev->ram;
 	dev->ems_size = t >> 10;
 	dev->ems_pages = t / EMS_PGSIZE;
-	isamem_log("ISAMEM: EMS enabled, I/O=%04xH, %iKB (%i pages)",
+	isamem_log("ISAMEM: EMS enabled, I/O=%04XH, %iKB (%i pages)",
 		dev->base_addr, dev->ems_size, dev->ems_pages);
 	if (dev->frame_addr > 0)
 		isamem_log(", Frame=%05XH", dev->frame_addr);
@@ -616,7 +660,7 @@ dev->frame_addr = 0xE0000;
 	}
     }
 
-    /* Just so its not NULL. */
+    /* Let them know our device instance. */
     return((void *)dev);
 }
 
@@ -637,10 +681,11 @@ isamem_close(void *priv)
     }
 
     if (dev->ram != NULL)
-		free(dev->ram);
+	free(dev->ram);
 
-	if (dev != NULL)
-		free(dev);
+    instance[dev->instance] = NULL;
+
+    free(dev);
 }
 
 
@@ -650,7 +695,7 @@ static const device_config_t ibmxt_config[] =
 		"size", "Memory Size", CONFIG_SPINNER, "", 128,
 		{ { 0 } },
 		{ { 0 } },
-		{ 0, 256, 16 }
+		{ 0, 512, 16 }
 	},
 	{
 		"start", "Start Address", CONFIG_SPINNER, "", 256,
@@ -667,12 +712,8 @@ static const device_t ibmxt_device = {
     "IBM PC/XT Memory Expansion",
     DEVICE_ISA,
     0,
-    isamem_init, 
-	isamem_close, 
-	NULL,
-    NULL, 
-	NULL, 
-	NULL,
+    isamem_init, isamem_close, NULL,
+    NULL, NULL, NULL,
     ibmxt_config
 };
 
@@ -705,24 +746,25 @@ static const device_t ibmat_device = {
     ibmat_config
 };
 
+
 static const device_config_t p5pak_config[] =
- {
- 	{
- 		"size", "Memory Size", CONFIG_SPINNER, "", 128,
- 		{ { 0 } },
- 		{ { 0 } },
- 		{ 0, 384, 64 }
- 	},
- 	{
- 		"start", "Start Address", CONFIG_SPINNER, "", 512,
- 		{ { 0 } },
- 		{ { 0 } },
- 		{ 64, 576, 64 }
- 	},
- 	{
- 		"", "", -1
- 	}
- };
+{
+	{
+		"size", "Memory Size", CONFIG_SPINNER, "", 128,
+		{ { 0 } },
+		{ { 0 } },
+		{ 0, 384, 64 }
+	},
+	{
+		"start", "Start Address", CONFIG_SPINNER, "", 512,
+		{ { 0 } },
+		{ { 0 } },
+		{ 64, 576, 64 }
+	},
+	{
+		"", "", -1
+	}
+};
 
 static const device_t p5pak_device = {
     "Paradise Systems 5-PAK",
@@ -733,40 +775,41 @@ static const device_t p5pak_device = {
     p5pak_config
 };
 
+
 static const device_config_t ems5150_config[] =
 {
- 	{
- 		"size", "Memory Size", CONFIG_SPINNER, "", 256,
- 		{ { 0 } },
- 		{ { 0 } },
- 		{ 0, 2048, 64 }
- 	},
- 	{
- 		"base", "Address", CONFIG_HEX16, "", 0,
- 		{
- 			{
- 				"Disabled", 0
- 			},
- 			{
- 				"Board 1", 0x0208
- 			},
- 			{
- 				"Board 2", 0x020a
- 			},
- 			{
- 				"Board 3", 0x020c
- 			},
- 			{
- 				"Board 4", 0x020e
- 			},
- 			{
- 				""
- 			}
- 		},
- 	},
- 	{
- 		"", "", -1
- 	}
+	{
+		"size", "Memory Size", CONFIG_SPINNER, "", 256,
+		{ { 0 } },
+		{ { 0 } },
+		{ 0, 2048, 64 }
+	},
+	{
+		"base", "Address", CONFIG_HEX16, "", 0,
+		{
+			{
+				"Disabled", 0
+			},
+			{
+				"Board 1", 0x0208
+			},
+			{
+				"Board 2", 0x020a
+			},
+			{
+				"Board 3", 0x020c
+			},
+			{
+				"Board 4", 0x020e
+			},
+			{
+				""
+			}
+		},
+	},
+	{
+		"", "", -1
+	}
 };
 
 static const device_t ems5150_device = {
@@ -777,6 +820,7 @@ static const device_t ems5150_device = {
     NULL, NULL, NULL,
     ems5150_config
 };
+
 
 static const device_config_t ev159_config[] =
 {
@@ -987,17 +1031,25 @@ static const device_t isamem_rampage_device = {
 
 
 static const struct {
-	const char		*name;	
     const char		*internal_name;
     const device_t	*dev;
 } boards[] = {
-    { "None",						"none",		NULL,		      },
-    { "IBM PC/XT Memory Expansion",	"ibmxt",	&ibmxt_device,		},
-    { "IBM PC/AT Memory Expansion",  "ibmat",	&ibmat_device,		},
-    { "Micro Mainframe EMS-5150(T)", "ems5150",	&ems5150_device		},
-	{ "Paradise Systems 5-PAK", 	 "p5pak",	&p5pak_device		},
-	{ "Everex EV-159 RAM 3000 Deluxe", "ev159", &ev159_device,		},
-    { "",			"",		NULL,		      },
+    { "none",		NULL			},
+    { "ibmxt",		&ibmxt_device		},
+    { "ibmat",		&ibmat_device		},
+    { "p5pak",		&p5pak_device		},
+    { "ems5150",	&ems5150_device		},
+    { "ev159",		&ev159_device		},
+#ifdef USE_ISAMEM_BRAT
+    { "brat",		&brat_device		},
+#endif
+#ifdef USE_ISAMEM_RAMPAGE
+    { "rampage",	&rampage_device		},
+#endif
+#ifdef USE_ISAMEM_IAB
+    { "iab",		&iab_device		},
+#endif
+    { NULL,		NULL			}
 };
 
 
@@ -1013,35 +1065,40 @@ isamem_reset(void)
 
 	/* Clone the device. */
 	dev = device_clone(boards[k].dev);
-	
+
+	/* Store the device instance. */
+	instance[i] = dev;
+
 	/* Add the instance to the system. */
 	device_add(dev);
     }
 }
 
 
-char *
+const char *
 isamem_get_name(int board)
 {
-    return((char *)boards[board].name);
+    if (boards[board].dev == NULL) return(NULL);
+
+    return(boards[board].dev->name);
 }
 
 
-char *
+const char *
 isamem_get_internal_name(int board)
 {
-    return((char *)boards[board].internal_name);
+    return(boards[board].internal_name);
 }
 
 
 
 int
-isamem_get_from_internal_name(char *s)
+isamem_get_from_internal_name(const char *s)
 {
     int c = 0;
 
-    while (strlen((char *) boards[c].internal_name)) {
-	if (!strcmp((char *)boards[c].internal_name, s))
+    while (boards[c].internal_name != NULL) {
+	if (! strcmp(boards[c].internal_name, s))
 		return(c);
 	c++;
     }
@@ -1054,5 +1111,5 @@ isamem_get_from_internal_name(char *s)
 const device_t *
 isamem_get_device(int board)
 {
-    return(boards[board].dev);
+    return(instance[board]);
 }

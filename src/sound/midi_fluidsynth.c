@@ -258,7 +258,7 @@ void* fluidsynth_init(const device_t *info)
 
         data->synth = f_new_fluid_synth(data->settings);
 
-        char* sound_font = device_get_config_string("sound_font");
+        char* sound_font = (char *) device_get_config_string("sound_font");
         data->sound_font = f_fluid_synth_sfload(data->synth, sound_font, 1);
 
         if (device_get_config_int("chorus"))

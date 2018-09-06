@@ -10,7 +10,7 @@
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
  *
- * Version:	@(#)language.h	1.0.8	2018/05/25
+ * Version:	@(#)language.h	1.0.9	2018/09/06
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -92,6 +92,7 @@
 #define IDS_2116	2116		// "%u MB (CHS: %i, %i, %i)"
 #define IDS_2117	2117		// "Floppy %i (%s): %ls"
 #define IDS_2118	2118		// "All floppy images (*.0??;*.."
+#define IDS_2119	2119		// "You must save the settings.."
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -170,7 +171,7 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	71
+#define STR_NUM_2048	72
 #define STR_NUM_3072	11
 #define STR_NUM_4096	18
 #define STR_NUM_4352	7

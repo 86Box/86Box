@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.10	2018/09/04
+ * Version:	@(#)device.c	1.0.15	2018/09/06
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -91,19 +91,18 @@ device_log(const char *format, ...)
 void
 device_init(void)
 {
-	clonedev_t *ptr;
-	
+    clonedev_t *ptr;
+
     memset(devices, 0x00, sizeof(devices));
-	
-	ptr = NULL;
-	while (clones != NULL)
-	{
-		ptr = clones->next;
-		free(clones);
-		clones = ptr;
-	}
-	
-	clones = NULL;
+
+    ptr = NULL;
+    while (clones != NULL) {
+	ptr = clones->next;
+	free(clones);
+	clones = ptr;
+    }
+
+    clones = NULL;
 }
 
 
@@ -150,14 +149,14 @@ device_clone(const device_t *master)
     return((const device_t *)dev);
 }
 
- 
+
 void *
 device_add(const device_t *d)
 {
     void *priv = NULL;
     int c;
 
-    for (c=0; c<256; c++) {
+    for (c = 0; c < 256; c++) {
 	if (devices[c] == (device_t *)d) {
 		device_log("DEVICE: device already exists!\n");
 		return(NULL);
@@ -169,22 +168,18 @@ device_add(const device_t *d)
 
     device_current = (device_t *)d;
 
-    devices[c] = (device_t *)d;
-
     if (d->init != NULL) {
 	priv = d->init(d);
 	if (priv == NULL) {
 		if (d->name)
 			device_log("DEVICE: device '%s' init failed\n", d->name);
-		else
+		  else
 			device_log("DEVICE: device init failed\n");
-
-		device_priv[c] = NULL;
-
 		return(NULL);
 	}
     }
 
+    devices[c] = (device_t *)d;
     device_priv[c] = priv;
 
     return(priv);
@@ -197,7 +192,7 @@ device_add_ex(const device_t *d, void *priv)
 {
     int c;
 
-    for (c=0; c<256; c++) {
+    for (c = 0; c < 256; c++) {
 	if (devices[c] == (device_t *)d) {
 		fatal("device_add: device already exists!\n");
 		break;
@@ -219,7 +214,7 @@ device_close_all(void)
 {
     int c;
 
-    for (c=0; c<DEVICE_MAX; c++) {
+    for (c = 0; c < DEVICE_MAX; c++) {
 	if (devices[c] != NULL) {
 		if (devices[c]->close != NULL)
 			devices[c]->close(device_priv[c]);
@@ -234,7 +229,7 @@ device_reset_all(void)
 {
     int c;
 
-    for (c=0; c<DEVICE_MAX; c++) {
+    for (c = 0; c < DEVICE_MAX; c++) {
 	if (devices[c] != NULL) {
 		if (devices[c]->reset != NULL)
 			devices[c]->reset(device_priv[c]);
@@ -263,7 +258,7 @@ device_get_priv(const device_t *d)
 {
     int c;
 
-    for (c=0; c<DEVICE_MAX; c++) {
+    for (c = 0; c < DEVICE_MAX; c++) {
 	if (devices[c] != NULL) {
 		if (devices[c] == d)
 			return(device_priv[c]);
@@ -292,7 +287,7 @@ device_speed_changed(void)
 {
     int c;
 
-    for (c=0; c<DEVICE_MAX; c++) {
+    for (c = 0; c < DEVICE_MAX; c++) {
 	if (devices[c] != NULL) {
 		if (devices[c]->speed_changed != NULL)
 			devices[c]->speed_changed(device_priv[c]);
@@ -308,7 +303,7 @@ device_force_redraw(void)
 {
     int c;
 
-    for (c=0; c<DEVICE_MAX; c++) {
+    for (c = 0; c < DEVICE_MAX; c++) {
 	if (devices[c] != NULL) {
 		if (devices[c]->force_redraw != NULL)
                                 devices[c]->force_redraw(device_priv[c]);
@@ -317,14 +312,14 @@ device_force_redraw(void)
 }
 
 
-char *
-device_get_config_string(char *s)
+const char *
+device_get_config_string(const char *s)
 {
     const device_config_t *c = device_current->config;
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name))
-		return(config_get_string((char *)device_current->name, s, (char *)c->default_string));
+		return(config_get_string((char *) device_current->name, (char *) s, (char *) c->default_string));
 
 	c++;
     }
@@ -334,13 +329,13 @@ device_get_config_string(char *s)
 
 
 int
-device_get_config_int(char *s)
+device_get_config_int(const char *s)
 {
     const device_config_t *c = device_current->config;
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name))
-		return(config_get_int((char *)device_current->name, s, c->default_int));
+		return(config_get_int((char *) device_current->name, (char *) s, c->default_int));
 
 	c++;
     }
@@ -350,29 +345,29 @@ device_get_config_int(char *s)
 
 
 int
-device_get_config_int_ex(char *s, int default_int)
+device_get_config_int_ex(const char *s, int def)
 {
     const device_config_t *c = device_current->config;
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name))
-		return(config_get_int((char *)device_current->name, s, default_int));
+		return(config_get_int((char *) device_current->name, (char *) s, def));
 
 	c++;
     }
 
-    return(default_int);
+    return(def);
 }
 
 
 int
-device_get_config_hex16(char *s)
+device_get_config_hex16(const char *s)
 {
     const device_config_t *c = device_current->config;
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name))
-		return(config_get_hex16((char *)device_current->name, s, c->default_int));
+		return(config_get_hex16((char *) device_current->name, (char *) s, c->default_int));
 
 	c++;
     }
@@ -382,13 +377,13 @@ device_get_config_hex16(char *s)
 
 
 int
-device_get_config_hex20(char *s)
+device_get_config_hex20(const char *s)
 {
     const device_config_t *c = device_current->config;
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name))
-		return(config_get_hex20((char *)device_current->name, s, c->default_int));
+		return(config_get_hex20((char *) device_current->name, (char *) s, c->default_int));
 
 	c++;
     }
@@ -398,29 +393,29 @@ device_get_config_hex20(char *s)
 
 
 int
-device_get_config_mac(char *s, int default_int)
+device_get_config_mac(const char *s, int def)
 {
     const device_config_t *c = device_current->config;
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name))
-		return(config_get_mac((char *)device_current->name, s, default_int));
+		return(config_get_mac((char *) device_current->name, (char *) s, def));
 
 	c++;
     }
 
-    return(default_int);
+    return(def);
 }
 
 
 void
-device_set_config_int(char *s, int val)
+device_set_config_int(const char *s, int val)
 {
     const device_config_t *c = device_current->config;
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name)) {
- 		config_set_int((char *)device_current->name, s, val);
+ 		config_set_int((char *) device_current->name, (char *) s, val);
 		break;
 	}
 
@@ -430,13 +425,13 @@ device_set_config_int(char *s, int val)
 
 
 void
-device_set_config_hex16(char *s, int val)
+device_set_config_hex16(const char *s, int val)
 {
     const device_config_t *c = device_current->config;
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name)) {
-		config_set_hex16((char *)device_current->name, s, val);
+		config_set_hex16((char *) device_current->name, (char *) s, val);
 		break;
 	}
 
@@ -446,13 +441,13 @@ device_set_config_hex16(char *s, int val)
 
 
 void
-device_set_config_hex20(char *s, int val)
+device_set_config_hex20(const char *s, int val)
 {
     const device_config_t *c = device_current->config;
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name)) {
-		config_set_hex20((char *)device_current->name, s, val);
+		config_set_hex20((char *) device_current->name, (char *) s, val);
 		break;
 	}
 
@@ -462,13 +457,13 @@ device_set_config_hex20(char *s, int val)
 
 
 void
-device_set_config_mac(char *s, int val)
+device_set_config_mac(const char *s, int val)
 {
     const device_config_t *c = device_current->config;
 
     while (c && c->type != -1) {
 	if (! strcmp(s, c->name)) {
-		config_set_mac((char *)device_current->name, s, val);
+		config_set_mac((char *) device_current->name, (char *) s, val);
 		break;
 	}
 
