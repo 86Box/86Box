@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.56	2018/09/06
+ * Version:	@(#)win_settings.c	1.0.57	2018/09/06
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -128,7 +128,7 @@ static uint32_t displayed_category = 0;
 
 extern int is486;
 static int romstolist[ROM_MAX], listtomachine[ROM_MAX], romstomachine[ROM_MAX], machinetolist[ROM_MAX];
-static int settings_device_to_list[6][20], settings_list_to_device[6][20];
+static int settings_device_to_list[2][20], settings_list_to_device[2][20];
 static int settings_midi_to_list[20], settings_list_to_midi[20];
 
 static int max_spt = 63, max_hpc = 255, max_tracks = 266305;
