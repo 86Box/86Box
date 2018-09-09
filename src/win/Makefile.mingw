@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.123	2018/09/02
+# Version:	@(#)Makefile.mingw	1.0.124	2018/09/09
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -70,7 +70,7 @@ ifeq ($(DEV_BUILD), y)
  endif
 else
  ifndef DEBUG
-  DEBUG		:= y
+  DEBUG		:= n
  endif
  ifndef DEV_BRANCH
   DEV_BRANCH	:= n
