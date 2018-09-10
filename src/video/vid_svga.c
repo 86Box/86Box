@@ -101,6 +101,8 @@ svga_out(uint16_t addr, uint8_t val, void *p)
 				svga_recalctimings(svga);
 			}
 		} else {
+			if ((svga->attraddr == 0x13) && (svga->attrregs[0x13] != val))
+				svga->fullchange = changeframecount;
 			o = svga->attrregs[svga->attraddr & 31];
 			svga->attrregs[svga->attraddr & 31] = val;
 			if (svga->attraddr < 16) 
@@ -661,6 +663,7 @@ svga_poll(void *p)
 
 	if (svga->vc == svga->split) {
 		svga->ma = svga->maback = 0;
+		svga->sc = 0;
 		if (svga->attrregs[0x10] & 0x20) 
 			svga->scrollcache = 0;
 	}
