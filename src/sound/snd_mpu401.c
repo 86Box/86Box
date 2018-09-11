@@ -8,7 +8,7 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)snd_mpu401.c	1.0.15	2018/09/11
+ * Version:	@(#)snd_mpu401.c	1.0.16	2018/09/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
@@ -30,6 +30,7 @@
 #include "../86box.h"
 #include "../device.h"
 #include "../io.h"
+#include "../machine/machine.h"
 #include "../mca.h"
 #include "../pic.h"
 #include "../timer.h"
@@ -74,7 +75,6 @@ mpu401_log(const char *fmt, ...)
 #endif
 }
 
-int mca_version = 0;
 
 static void
 QueueByte(mpu_t *mpu, uint8_t data) 
@@ -900,21 +900,9 @@ mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode)
 void
 mpu401_device_add(void)
 {
-    char *n;
-
     if (!mpu401_standalone_enable) return;
 
-    n = sound_card_get_internal_name(sound_card_current);
-    if (n != NULL) {
-	if (!strcmp(n, "ncraudio"))
-		mca_version = 1;
-	else
-		mca_version = 0;
-
-	if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32") || !strcmp(n, "replysb16")) return;
-    }
-
-    if (mca_version)
+    if (machines[machine].flags & MACHINE_MCA)
 	device_add(&mpu401_mca_device);
     else
 	device_add(&mpu401_device);
