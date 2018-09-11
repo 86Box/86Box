@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.58	2018/09/11
+ * Version:	@(#)win_settings.c	1.0.59	2018/09/11
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -1305,8 +1305,9 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDC_CONFIGURE_MPU401:
 				mca_version = !!(machines[temp_machine].flags & MACHINE_MCA);
-				
-				temp_deviceconfig |= deviceconfig_open(hdlg, mca_version ? (void *)&mpu401_mca_device : (void *)&mpu401_device);
+
+				temp_deviceconfig |= deviceconfig_open(hdlg, (machines[temp_machine].flags & MACHINE_MCA) ?
+								       (void *)&mpu401_mca_device : (void *)&mpu401_device);
 				break;
 		}
 		return FALSE;
