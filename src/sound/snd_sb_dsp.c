@@ -709,7 +709,7 @@ uint8_t sb_read(uint16_t a, void *priv)
         switch (a & 0xf)
         {
                 case 0xA: /*Read data*/
-		if (dsp->uart_midi)
+		if (mpu && dsp->uart_midi)
 		{
 			return MPU401_ReadData(mpu);
 		}
@@ -763,6 +763,7 @@ void sb_dsp_init(sb_dsp_t *dsp, int type)
         dsp->sb_irqnum = 7;
         dsp->sb_8_dmanum = 1;
         dsp->sb_16_dmanum = 5;
+	mpu = NULL;
         
         sb_doreset(dsp);
 

@@ -8,7 +8,7 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.11	2018/09/11
+ * Version:	@(#)sound_sb.c	1.0.12	2018/09/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -862,6 +862,7 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
 {
         sb_t *sb = (sb_t *)p;
         sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
+	uint8_t temp;
 
         if (!(addr & 1))
                 return mixer->index;
@@ -942,7 +943,10 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
                 case 0x82:
                 /* 0 = none, 1 =  digital 8bit or SBMIDI, 2 = digital 16bit, 4 = MPU-401 */
                 /* 0x02000 DSP v4.04, 0x4000 DSP v4.05 0x8000 DSP v4.12. I haven't seen this making any difference, but I'm keeping it for now. */
-                return ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) | ((sb->mpu.state.irq_pending) ? 4 : 0) | 0x4000;
+		temp = ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) | 0x4000;
+		if (sb->mpu)
+			temp |= ((sb->mpu.state.irq_pending) ? 4 : 0);
+                return temp;
 
                 /* TODO: creative drivers read and write on 0xFE and 0xFF. not sure what they are supposed to be. */
                 
@@ -1274,6 +1278,7 @@ void *sb_16_init()
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
+        uint16_t mpu_addr = device_get_config_hex16("base401");
         memset(sb, 0, sizeof(sb_t));
 
 	sb->opl_enabled = device_get_config_int("opl");
@@ -1295,8 +1300,10 @@ void *sb_16_init()
 #if 0
         sound_add_process_handler(sb_process_buffer_sb16, sb);
 #endif
-        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
-	sb_dsp_set_mpu(&sb->mpu);
+	if (mpu_addr) {
+        	mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
+		sb_dsp_set_mpu(&sb->mpu);
+	}
 #if 0
 	memcpy(&sb->temp_mixer_sb16, &sb->mixer_sb16, sizeof(sb_ct1745_mixer_t));
 #endif
@@ -1313,6 +1320,7 @@ void *sb_awe32_init()
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
+        uint16_t mpu_addr = device_get_config_hex16("base401");
         uint16_t emu_addr = device_get_config_hex16("emu_base");
         int onboard_ram = device_get_config_int("onboard_ram");
         memset(sb, 0, sizeof(sb_t));
@@ -1339,8 +1347,10 @@ void *sb_awe32_init()
 #if 0
         sound_add_process_handler(sb_process_buffer_sb16, sb);
 #endif
-        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
-	sb_dsp_set_mpu(&sb->mpu);
+	if (mpu_addr) {
+	        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
+		sb_dsp_set_mpu(&sb->mpu);
+	}
         emu8k_init(&sb->emu8k, emu_addr, onboard_ram);
 #if 0
 	memcpy(&sb->temp_mixer_sb16, &sb->mixer_sb16, sizeof(sb_ct1745_mixer_t));
@@ -1568,6 +1578,9 @@ static const device_config_t sb_16_config[] =
                 "base401", "MPU-401 Address", CONFIG_HEX16, "", 0x330,
                 {
                         {
+                                "Disabled", 0
+                        },
+                        {
                                 "0x300", 0x300
                         },
                         {
@@ -1685,6 +1698,9 @@ static const device_config_t sb_awe32_config[] =
         {
                 "base401", "MPU-401 Address", CONFIG_HEX16, "", 0x330,
                 {
+                        {
+                                "Disabled", 0
+                        },
                         {
                                 "0x300", 0x300
                         },
