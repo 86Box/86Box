@@ -8,7 +8,7 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)snd_mpu401.c	1.0.14	2018/09/11
+ * Version:	@(#)snd_mpu401.c	1.0.15	2018/09/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
@@ -1044,7 +1044,7 @@ static const device_config_t mpu401_standalone_config[] =
 
 
 const device_t mpu401_device = {
-    "MPU-401 (Standalone)",
+    "Roland MPU-IPC-T",
     DEVICE_ISA, 0,
     mpu401_standalone_init, mpu401_standalone_close, NULL,
     NULL,
