@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.18	2018/08/11
+ * Version:	@(#)sound.c	1.0.19	2018/09/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -85,27 +85,27 @@ static volatile int cdaudioon = 0;
 
 static const SOUND_CARD sound_cards[] =
 {
-    { "None",                       "none",	NULL			},
-    { "[ISA] Adlib",                "adlib",	&adlib_device		},
-    { "[ISA] Adlib Gold",           "adlibgold",&adgold_device		},
-    { "[ISA] Sound Blaster 1.0",    "sb",	&sb_1_device		},
-    { "[ISA] Sound Blaster 1.5",    "sb1.5",	&sb_15_device		},
-    { "[ISA] Sound Blaster 2.0",    "sb2.0",	&sb_2_device		},
-    { "[ISA] Sound Blaster Pro v1", "sbprov1",	&sb_pro_v1_device	},
-    { "[ISA] Sound Blaster Pro v2", "sbprov2",	&sb_pro_v2_device	},
-    { "[ISA] Sound Blaster 16",     "sb16",	&sb_16_device		},
-    { "[ISA] Sound Blaster AWE32",  "sbawe32",	&sb_awe32_device	},
+    { "None",					"none",		NULL				},
+    { "[ISA] Adlib",				"adlib",	&adlib_device			},
+    { "[ISA] Adlib Gold",			"adlibgold",	&adgold_device			},
+    { "[ISA] Sound Blaster 1.0",		"sb",		&sb_1_device			},
+    { "[ISA] Sound Blaster 1.5",		"sb1.5",	&sb_15_device			},
+    { "[ISA] Sound Blaster 2.0",		"sb2.0",	&sb_2_device			},
+    { "[ISA] Sound Blaster Pro v1",		"sbprov1",	&sb_pro_v1_device		},
+    { "[ISA] Sound Blaster Pro v2",		"sbprov2",	&sb_pro_v2_device		},
+    { "[ISA] Sound Blaster 16",			"sb16",		&sb_16_device			},
+    { "[ISA] Sound Blaster AWE32",		"sbawe32",	&sb_awe32_device		},
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
-    { "[ISA] Pro Audio Spectrum 16","pas16",	&pas16_device		},
+    { "[ISA] Pro Audio Spectrum 16",		"pas16",	&pas16_device			},
 #endif
-    { "[ISA] Windows Sound System", "wss",	&wss_device		},
-    { "[MCA] Adlib",                "adlib_mca",	&adlib_mca_device	},
-	{ "[MCA] NCR Business Audio","ncraudio",	&ncr_business_audio_device	},
-    { "[MCA] Sound Blaster MCV",    "sbmcv",	&sb_mcv_device		},
-    { "[MCA] Sound Blaster Pro MCV","sbpromcv",	&sb_pro_mcv_device	},
-    { "[PCI] Ensoniq AudioPCI (ES1371)","es1371",    &es1371_device},
-    { "[PCI] Sound Blaster PCI 128",    "sbpci128",  &es1371_device},
-    { "",			"",		NULL			}
+    { "[ISA] Windows Sound System",		"wss",		&wss_device			},
+    { "[MCA] Adlib",                		"adlib_mca",	&adlib_mca_device		},
+    { "[MCA] NCR Business Audio",    		"ncraudio",	&ncr_business_audio_device	},
+    { "[MCA] Sound Blaster MCV",    		"sbmcv",	&sb_mcv_device			},
+    { "[MCA] Sound Blaster Pro MCV",		"sbpromcv",	&sb_pro_mcv_device		},
+    { "[PCI] Ensoniq AudioPCI (ES1371)",	"es1371",	&es1371_device			},
+    { "[PCI] Sound Blaster PCI 128",		"sbpci128",	&es1371_device			},
+    { "",					"",		NULL				}
 };
 
 

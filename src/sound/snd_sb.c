@@ -8,7 +8,7 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.10	2018/09/04
+ * Version:	@(#)sound_sb.c	1.0.11	2018/09/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1272,7 +1272,6 @@ void *sb_pro_mcv_init()
 
 void *sb_16_init()
 {
-	int mpu_irq;
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
         memset(sb, 0, sizeof(sb_t));
@@ -1296,10 +1295,7 @@ void *sb_16_init()
 #if 0
         sound_add_process_handler(sb_process_buffer_sb16, sb);
 #endif
-	mpu_irq = device_get_config_int("irq401");
-	if (mpu_irq == 255)
-		mpu_irq = device_get_config_int("irq");
-        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), mpu_irq, device_get_config_int("mode401"));
+        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
 	sb_dsp_set_mpu(&sb->mpu);
 #if 0
 	memcpy(&sb->temp_mixer_sb16, &sb->mixer_sb16, sizeof(sb_ct1745_mixer_t));
@@ -1315,7 +1311,6 @@ int sb_awe32_available()
 
 void *sb_awe32_init()
 {
-	int mpu_irq;
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
         uint16_t emu_addr = device_get_config_hex16("emu_base");
@@ -1344,10 +1339,7 @@ void *sb_awe32_init()
 #if 0
         sound_add_process_handler(sb_process_buffer_sb16, sb);
 #endif
-	mpu_irq = device_get_config_int("irq401");
-	if (mpu_irq == 255)
-		mpu_irq = device_get_config_int("irq");
-        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), mpu_irq, device_get_config_int("mode401"));
+        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
 	sb_dsp_set_mpu(&sb->mpu);
         emu8k_init(&sb->emu8k, emu_addr, onboard_ram);
 #if 0
@@ -1607,35 +1599,6 @@ static const device_config_t sb_16_config[] =
                 }
         },
         {
-                "irq401", "MPU-401 IRQ", CONFIG_SELECTION, "", 9,
-                {
-                        {
-                                "Use main IRQ", 255
-                        },
-                        {
-                                "IRQ 9", 9
-                        },
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 4", 4
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                "IRQ 10", 10
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
                 "dma", "Low DMA channel", CONFIG_SELECTION, "", 1,
                 {
                         {
@@ -1663,20 +1626,6 @@ static const device_config_t sb_16_config[] =
                         },
                         {
                                 "DMA 7", 7
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "mode401", "MPU-401 mode", CONFIG_SELECTION, "", 1,
-                {
-                        {
-                                "UART", M_UART
-                        },
-                        {
-                                "Intelligent", M_INTELLIGENT
                         },
                         {
                                 ""
@@ -1768,35 +1717,6 @@ static const device_config_t sb_awe32_config[] =
                 }
         },
         {
-                "irq401", "MPU-401 IRQ", CONFIG_SELECTION, "", 9,
-                {
-                        {
-                                "Use main IRQ", 255
-                        },
-                        {
-                                "IRQ 9", 9
-                        },
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 4", 4
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                "IRQ 10", 10
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
                 "dma", "Low DMA channel", CONFIG_SELECTION, "", 1,
                 {
                         {
@@ -1824,20 +1744,6 @@ static const device_config_t sb_awe32_config[] =
                         },
                         {
                                 "DMA 7", 7
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "mode401", "MPU-401 mode", CONFIG_SELECTION, "", 1,
-                {
-                        {
-                                "UART", M_UART
-                        },
-                        {
-                                "Intelligent", M_INTELLIGENT
                         },
                         {
                                 ""

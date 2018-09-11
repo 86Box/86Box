@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.57	2018/09/06
+ * Version:	@(#)win_settings.c	1.0.58	2018/09/11
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -1092,13 +1092,15 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 static int
 mpu401_present(void)
 {
+#if 0
     char *n;
 
     n = sound_card_get_internal_name(temp_sound_card);
     if (n != NULL) {
-	if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32") || !strcmp(n, "replysb16"))
+	if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))
 		return 1;
     }
+#endif
 
     return temp_mpu401 ? 1 : 0;
 }
@@ -1107,14 +1109,22 @@ mpu401_present(void)
 int
 mpu401_standalone_allow(void)
 {
+#if 0
     char *n, *md;
+#else
+    char *md;
+#endif
 
+#if 0
     n = sound_card_get_internal_name(temp_sound_card);
+#endif
     md = midi_device_get_internal_name(temp_midi_device);
+#if 0
     if (n != NULL) {
-	if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32") || !strcmp(n, "replysb16"))
+	if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))
 		return 0;
     }
+#endif
 
     if (md != NULL) {
 	if (!strcmp(md, "none"))
@@ -1294,22 +1304,10 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDC_CONFIGURE_MPU401:
-			{
-				char *n;
-				
-				n = sound_card_get_internal_name(sound_card_current);
-				
-				if (n != NULL)
-				{
-					if (!strcmp(n, "ncraudio"))
-						mca_version = 1;
-					else
-						mca_version = 0;
-				}
+				mca_version = !!(machines[temp_machine].flags & MACHINE_MCA);
 				
 				temp_deviceconfig |= deviceconfig_open(hdlg, mca_version ? (void *)&mpu401_mca_device : (void *)&mpu401_device);
-			}
-			break;
+				break;
 		}
 		return FALSE;
 
