@@ -8,7 +8,7 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.12	2018/09/11
+ * Version:	@(#)sound_sb.c	1.0.13	2018/09/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -134,7 +134,7 @@ typedef struct sb_t
                 sb_ct1345_mixer_t mixer_sbpro;
                 sb_ct1745_mixer_t mixer_sb16;
         };
-        mpu_t		mpu;
+        mpu_t		*mpu;
         emu8k_t         emu8k;
 #if 0
 	sb_ct1745_mixer_t temp_mixer_sb16;
@@ -945,7 +945,7 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
                 /* 0x02000 DSP v4.04, 0x4000 DSP v4.05 0x8000 DSP v4.12. I haven't seen this making any difference, but I'm keeping it for now. */
 		temp = ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) | 0x4000;
 		if (sb->mpu)
-			temp |= ((sb->mpu.state.irq_pending) ? 4 : 0);
+			temp |= ((sb->mpu->state.irq_pending) ? 4 : 0);
                 return temp;
 
                 /* TODO: creative drivers read and write on 0xFE and 0xFF. not sure what they are supposed to be. */
@@ -1073,7 +1073,6 @@ void *sb_1_init()
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-	sb_dsp_set_mpu(&sb->mpu);
         /* CMS I/O handler is activated on the dedicated sound_cms module
            DSP I/O handler is activated in sb_dsp_setaddr */
 	if (sb->opl_enabled) {
@@ -1125,7 +1124,6 @@ void *sb_mcv_init()
         sb_dsp_setaddr(&sb->dsp, 0);//addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-	sb_dsp_set_mpu(&sb->mpu);
         sound_add_handler(sb_get_buffer_sb2, sb);
         /* I/O handlers activated in sb_mcv_write */
         mca_add(sb_mcv_read, sb_mcv_write, sb);
@@ -1159,7 +1157,6 @@ void *sb_2_init()
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1335_mixer_reset(sb);
         /* CMS I/O handler is activated on the dedicated sound_cms module
            DSP I/O handler is activated in sb_dsp_setaddr */
@@ -1201,7 +1198,6 @@ void *sb_pro_v1_init()
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1345_mixer_reset(sb);
         /* DSP I/O handler is activated in sb_dsp_setaddr */
 	if (sb->opl_enabled) {
@@ -1235,7 +1231,6 @@ void *sb_pro_v2_init()
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1345_mixer_reset(sb);
         /* DSP I/O handler is activated in sb_dsp_setaddr */
 	if (sb->opl_enabled) {
@@ -1301,9 +1296,12 @@ void *sb_16_init()
         sound_add_process_handler(sb_process_buffer_sb16, sb);
 #endif
 	if (mpu_addr) {
-        	mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
-		sb_dsp_set_mpu(&sb->mpu);
-	}
+		sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+		memset(sb->mpu, 0, sizeof(mpu_t));
+        	mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
+		sb_dsp_set_mpu(sb->mpu);
+	} else
+		sb->mpu = NULL;
 #if 0
 	memcpy(&sb->temp_mixer_sb16, &sb->mixer_sb16, sizeof(sb_ct1745_mixer_t));
 #endif
@@ -1335,7 +1333,6 @@ void *sb_awe32_init()
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
         sb_dsp_setdma16(&sb->dsp, device_get_config_int("dma16"));
-	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1745_mixer_reset(sb);
 	if (sb->opl_enabled) {
         	io_sethandler(addr, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
@@ -1348,9 +1345,12 @@ void *sb_awe32_init()
         sound_add_process_handler(sb_process_buffer_sb16, sb);
 #endif
 	if (mpu_addr) {
-	        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
-		sb_dsp_set_mpu(&sb->mpu);
-	}
+		sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+		memset(sb->mpu, 0, sizeof(mpu_t));
+	        mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
+		sb_dsp_set_mpu(sb->mpu);
+	} else
+		sb->mpu = NULL;
         emu8k_init(&sb->emu8k, emu_addr, onboard_ram);
 #if 0
 	memcpy(&sb->temp_mixer_sb16, &sb->mixer_sb16, sizeof(sb_ct1745_mixer_t));
