@@ -8,7 +8,7 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)sound_mpu401.h	1.0.2	2018/09/16
+ * Version:	@(#)sound_mpu401.h	1.0.3	2018/09/11
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
@@ -95,7 +95,6 @@ typedef struct mpu_t
     } clock;
 } mpu_t;
 
-extern int	mca_version;
 extern int	mpu401_standalone_enable;
 extern const device_t	mpu401_device;
 extern const device_t	mpu401_mca_device;
