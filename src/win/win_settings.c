@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.60	2018/09/11
+ * Version:	@(#)win_settings.c	1.0.61	2018/09/12
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -2887,15 +2887,15 @@ hdd_add_file_open_error:
 				get_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, &temp);
 				if (tracks != (int64_t) temp) {
 					tracks = temp;
-					size = (tracks * hpc * spt) << 9LL;
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (tracks > max_tracks) {
 					tracks = max_tracks;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, tracks);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, (uint32_t) tracks);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
@@ -2911,15 +2911,15 @@ hdd_add_file_open_error:
 				get_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, &temp);
 				if (hpc != (int64_t) temp) {
 					hpc = temp;
-					size = (tracks * hpc * spt) << 9LL;
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (hpc > max_hpc) {
 					hpc = max_hpc;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, (uint32_t) hpc);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
@@ -2935,14 +2935,14 @@ hdd_add_file_open_error:
 				get_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, &temp);
 				if (spt != (int64_t) temp) {
 					spt = temp;
-					size = (tracks * hpc * spt) << 9LL;
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (spt > max_spt) {
 					spt = max_spt;
-					size = (tracks * hpc * spt) << 9LL;
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
@@ -2961,32 +2961,32 @@ hdd_add_file_open_error:
 					size = ((uint64_t) temp) << 20LL;
 					/* This is needed to ensure VHD standard compliance. */
 					hdd_image_calc_chs((uint32_t *) &tracks, (uint32_t *) &hpc, (uint32_t *) &spt, temp);
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, tracks);
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, (uint32_t) tracks);
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, (uint32_t) hpc);
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, (uint32_t) spt);
 					recalc_selection(hdlg);
 				}
 
 				if (tracks > max_tracks) {
 					tracks = max_tracks;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, tracks);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, (uint32_t) tracks);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (hpc > max_hpc) {
 					hpc = max_hpc;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, (uint32_t) hpc);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (spt > max_spt) {
 					spt = max_spt;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, (uint32_t) spt);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
@@ -3005,10 +3005,10 @@ hdd_add_file_open_error:
 					tracks = hdd_table[selection][0];
 					hpc = hdd_table[selection][1];
 					spt = hdd_table[selection][2];
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, tracks);
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, (uint32_t) tracks);
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, (uint32_t) hpc);
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, (uint32_t) spt);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 				} else if ((temp != selection) && (temp == 127))
 					selection = temp;
@@ -3016,32 +3016,32 @@ hdd_add_file_open_error:
 					selection = temp;
 					hpc = 16;
 					spt = 63;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, (uint32_t) hpc);
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, (uint32_t) spt);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 				}
 
 				if (spt > max_spt) {
 					spt = max_spt;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, (uint32_t) spt);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (hpc > max_hpc) {
 					hpc = max_hpc;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, (uint32_t) hpc);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (tracks > max_tracks) {
 					tracks = max_tracks;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, tracks);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, (uint32_t) tracks);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
@@ -3105,24 +3105,24 @@ hdd_add_file_open_error:
 
 				if (spt > max_spt) {
 					spt = max_spt;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, (uint32_t) spt);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (hpc > max_hpc) {
 					hpc = max_hpc;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, (uint32_t) hpc);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (tracks > max_tracks) {
 					tracks = max_tracks;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, tracks);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, (uint32_t) tracks);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
