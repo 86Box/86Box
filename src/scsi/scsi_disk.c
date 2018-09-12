@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.20	2018/05/28
+ * Version:	@(#)scsi_disk.c	1.0.21	2018/09/12
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -126,7 +126,10 @@ const uint8_t scsi_disk_command_flags[0x100] = {
 };
 
 
-uint64_t scsi_disk_mode_sense_page_flags = (1LL << 0x03) | (1LL << 0x04) | (1LL << 0x30) | (1LL << 0x3F);
+uint64_t scsi_disk_mode_sense_page_flags = (GPMODEP_UNK_PAGE_03 |
+					    GPMODEP_UNK_PAGE_04 |
+					    GPMODEP_UNK_PAGE_30 |
+					    GPMODEP_ALL_PAGES);
 
 /* This should be done in a better way but for time being, it's been done this way so it's not as huge and more readable. */
 static const mode_sense_pages_t scsi_disk_mode_sense_pages_default =
@@ -572,16 +575,29 @@ scsi_disk_request_sense_for_scsi(scsi_disk_t *dev, uint8_t *buffer, uint8_t allo
 }
 
 
+static void
+scsi_disk_set_buf_len(scsi_disk_t *dev, int32_t *BufLen, int32_t *src_len)
+{
+    if (*BufLen == -1)
+	*BufLen = *src_len;
+    else {
+	*BufLen = MIN(*src_len, *BufLen);
+	*src_len = *BufLen;
+    }
+    scsi_disk_log("SCSI HD %i: Actual transfer length: %i\n", dev->id, *BufLen);
+}
+
+
 void
 scsi_disk_command(scsi_disk_t *dev, uint8_t *cdb)
 {
     uint8_t *hdbufferb;
     int32_t *BufLen;
-    uint32_t len;
-    int max_len, pos = 0;
-    unsigned idx = 0;
+    int32_t len, max_len, alloc_length;
+    int pos = 0;
+    int idx = 0;
     unsigned size_idx, preamble_len;
-    uint32_t alloc_length, last_sector = 0;
+    uint32_t last_sector = 0;
     char device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
     char device_identify_ex[15] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', ' ', 'v', '1', '.', '0', '0', 0 };
     int block_desc = 0;
@@ -646,8 +662,8 @@ scsi_disk_command(scsi_disk_t *dev, uint8_t *cdb)
 	case GPCMD_REQUEST_SENSE:
 		/* If there's a unit attention condition and there's a buffered not ready, a standalone REQUEST SENSE
 		   should forget about the not ready, and report unit attention straight away. */
-		if ((*BufLen == -1) || (cdb[4] < *BufLen))
-			*BufLen = cdb[4];
+		len = cdb[4];
+		scsi_disk_set_buf_len(dev, BufLen, &len);
 
 		if (*BufLen < cdb[4])
 			cdb[4] = *BufLen;
@@ -660,10 +676,7 @@ scsi_disk_command(scsi_disk_t *dev, uint8_t *cdb)
 
 	case GPCMD_MECHANISM_STATUS:
 		len = (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
-
-		if ((*BufLen == -1) || (len < *BufLen))
-			*BufLen = len;
-
+		scsi_disk_set_buf_len(dev, BufLen, &len);
 		scsi_disk_set_phase(dev, SCSI_PHASE_DATA_IN);
 		scsi_disk_data_command_finish(dev, 8, 8, len, 0);
 		break;
@@ -704,9 +717,7 @@ scsi_disk_command(scsi_disk_t *dev, uint8_t *cdb)
 
 		alloc_length = dev->packet_len = max_len << 9;
 
-		if ((*BufLen == -1) || (alloc_length < *BufLen))
-			*BufLen = alloc_length;
-
+		scsi_disk_set_buf_len(dev, BufLen, &alloc_length);
 		scsi_disk_set_phase(dev, SCSI_PHASE_DATA_IN);
 
 		if (dev->requested_blocks > 1)
@@ -770,9 +781,7 @@ scsi_disk_command(scsi_disk_t *dev, uint8_t *cdb)
 
 		alloc_length = dev->packet_len = max_len << 9;
 
-		if ((*BufLen == -1) || (alloc_length < *BufLen))
-			*BufLen = alloc_length;
-
+		scsi_disk_set_buf_len(dev, BufLen, &alloc_length);
 		scsi_disk_set_phase(dev, SCSI_PHASE_DATA_OUT);
 
 		if (dev->requested_blocks > 1)
@@ -810,9 +819,7 @@ scsi_disk_command(scsi_disk_t *dev, uint8_t *cdb)
 
 		alloc_length = dev->packet_len = max_len << 9;
 
-		if ((*BufLen == -1) || (alloc_length < *BufLen))
-			*BufLen = alloc_length;
-
+		scsi_disk_set_buf_len(dev, BufLen, &alloc_length);
 		scsi_disk_set_phase(dev, SCSI_PHASE_DATA_OUT);
 
 		if (dev->requested_blocks > 1)
@@ -865,9 +872,7 @@ scsi_disk_command(scsi_disk_t *dev, uint8_t *cdb)
 		else if (len < alloc_length)
 			alloc_length = len;
 
-		if ((*BufLen == -1) || (alloc_length < *BufLen))
-			*BufLen = alloc_length;
-
+		scsi_disk_set_buf_len(dev, BufLen, &alloc_length);
 		scsi_disk_log("SCSI HDD %i: Reading mode page: %02X...\n", dev->id, cdb[2]);
 
 		scsi_disk_data_command_finish(dev, len, len, alloc_length, 0);
@@ -882,12 +887,9 @@ scsi_disk_command(scsi_disk_t *dev, uint8_t *cdb)
 		else
 			len = (cdb[7] << 8) | cdb[8];
 
-		if ((*BufLen == -1) || (len < *BufLen))
-			*BufLen = len;
-
+		scsi_disk_set_buf_len(dev, BufLen, &len);
 		dev->total_length = len;
 		dev->do_page_save = cdb[1] & 1;
-
 		scsi_disk_data_command_finish(dev, len, len, len, 1);
 		return;
 
@@ -989,8 +991,7 @@ atapi_out:
 		if (len > max_len)
 			len = max_len;
 
-		if ((*BufLen == -1) || (len < *BufLen))
-			*BufLen = len;
+		scsi_disk_set_buf_len(dev, BufLen, &len);
 
 		if (len > *BufLen)
 			len = *BufLen;
@@ -1023,13 +1024,12 @@ atapi_out:
 	case GPCMD_READ_CDROM_CAPACITY:
 		dev->temp_buffer = (uint8_t *) malloc(8);
 
-		if (scsi_disk_read_capacity(dev, dev->current_cdb, dev->temp_buffer, &len) == 0) {
+		if (scsi_disk_read_capacity(dev, dev->current_cdb, dev->temp_buffer, (uint32_t *) &len) == 0) {
 			scsi_disk_set_phase(dev, SCSI_PHASE_STATUS);
 			return;
 		}
 
-		if ((*BufLen == -1) || (len < *BufLen))
-			*BufLen = len;
+		scsi_disk_set_buf_len(dev, BufLen, &len);
 
 		scsi_disk_set_phase(dev, SCSI_PHASE_DATA_IN);
 		scsi_disk_data_command_finish(dev, len, len, len, 0);
@@ -1070,7 +1070,7 @@ scsi_disk_phase_data_in(scsi_disk_t *dev)
 	case GPCMD_READ_10:
 	case GPCMD_READ_12:
 		if ((dev->requested_blocks > 0) && (*BufLen > 0)) {
-			if (dev->packet_len > *BufLen)
+			if (dev->packet_len > (uint32_t) *BufLen)
 				hdd_image_read(dev->id, dev->sector_pos, *BufLen >> 9, hdbufferb);
 			else
 				hdd_image_read(dev->id, dev->sector_pos, dev->requested_blocks, hdbufferb);
@@ -1126,7 +1126,7 @@ scsi_disk_phase_data_out(scsi_disk_t *dev)
 	case GPCMD_WRITE_12:
 	case GPCMD_WRITE_AND_VERIFY_12:
 		if ((dev->requested_blocks > 0) && (*BufLen > 0)) {
-			if (dev->packet_len > *BufLen)
+			if (dev->packet_len > (uint32_t) *BufLen)
 				hdd_image_write(dev->id, dev->sector_pos, *BufLen >> 9, hdbufferb);
 			else
 				hdd_image_write(dev->id, dev->sector_pos, dev->requested_blocks, hdbufferb);
@@ -1138,7 +1138,7 @@ scsi_disk_phase_data_out(scsi_disk_t *dev)
 		else
 			last_to_write = dev->sector_pos + dev->sector_len - 1;
 
-		for (i = dev->sector_pos; i <= last_to_write; i++) {
+		for (i = dev->sector_pos; i <= (int) last_to_write; i++) {
 			if (dev->current_cdb[1] & 2) {
 				hdbufferb[0] = (i >> 24) & 0xff;
 				hdbufferb[1] = (i >> 16) & 0xff;

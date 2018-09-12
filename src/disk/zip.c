@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.21	2018/05/28
+ * Version:	@(#)zip.c	1.0.22	2018/09/12
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -129,13 +129,15 @@ const uint8_t zip_command_flags[0x100] =
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-static uint64_t zip_mode_sense_page_flags = (1LL << GPMODE_R_W_ERROR_PAGE) |
-					    (1LL << 0x02LL) | (1LL << 0x2FLL) |
-					    (1LL << GPMODE_ALL_PAGES);
-static uint64_t zip_250_mode_sense_page_flags = (1LL << GPMODE_R_W_ERROR_PAGE) |
-					    (1LL << 0x05LL) | (1LL << 0x08LL) |
-					    (1LL << 0x2FLL) |
-					    (1LL << GPMODE_ALL_PAGES);
+static uint64_t zip_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE |
+					     GPMODEP_UNK_PAGE_02 |
+					     GPMODEP_UNK_PAGE_2F |
+					     GPMODEP_ALL_PAGES);
+static uint64_t zip_250_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE |
+						 GPMODEP_UNK_PAGE_05 |
+						 GPMODEP_UNK_PAGE_08 |
+						 GPMODEP_UNK_PAGE_2F |
+						 GPMODEP_ALL_PAGES);
 
 
 static const mode_sense_pages_t zip_mode_sense_pages_default =
@@ -854,13 +856,13 @@ zip_mode_sense_read(zip_t *dev, uint8_t page_control, uint8_t page, uint8_t pos)
 static uint32_t
 zip_mode_sense(zip_t *dev, uint8_t *buf, uint32_t pos, uint8_t type, uint8_t block_descriptor_len)
 {
-    uint64_t page_flags;
+    uint64_t pf;
     uint8_t page_control = (type >> 6) & 3;
 
     if (dev->drv->is_250)
-	page_flags = zip_250_mode_sense_page_flags;
+	pf = zip_250_mode_sense_page_flags;
     else
-	page_flags = zip_mode_sense_page_flags;
+	pf = zip_mode_sense_page_flags;
 
     int i = 0;
     int j = 0;
@@ -889,7 +891,7 @@ zip_mode_sense(zip_t *dev, uint8_t *buf, uint32_t pos, uint8_t type, uint8_t blo
 
     for (i = 0; i < 0x40; i++) {
         if ((type == GPMODE_ALL_PAGES) || (type == i)) {
-		if (page_flags & (1LL << dev->current_page_code)) {
+		if (pf & (1LL << dev->current_page_code)) {
 			buf[pos++] = zip_mode_sense_read(dev, page_control, i, 0);
 			msplen = zip_mode_sense_read(dev, page_control, i, 1);
 			buf[pos++] = msplen;
@@ -907,7 +909,7 @@ zip_mode_sense(zip_t *dev, uint8_t *buf, uint32_t pos, uint8_t type, uint8_t blo
 static void
 zip_update_request_length(zip_t *dev, int len, int block_len)
 {
-    uint32_t bt, min_len = 0;
+    int bt, min_len = 0;
 
     dev->max_transfer_len = dev->request_length;
 
@@ -1227,7 +1229,7 @@ zip_data_phase_error(zip_t *dev)
 
 
 static int
-zip_blocks(zip_t *dev, uint32_t *len, int first_batch, int out)
+zip_blocks(zip_t *dev, int32_t *len, int first_batch, int out)
 {
     dev->data_pos = 0;
 
@@ -1447,7 +1449,7 @@ zip_request_sense_for_scsi(zip_t *dev, uint8_t *buffer, uint8_t alloc_length)
 
 
 static void
-zip_set_buf_len(zip_t *dev, int32_t *BufLen, uint32_t *src_len)
+zip_set_buf_len(zip_t *dev, int32_t *BufLen, int32_t *src_len)
 {
     if (dev->drv->bus_type == ZIP_BUS_SCSI) {
 	if (*BufLen == -1)
@@ -1485,9 +1487,10 @@ zip_command(zip_t *dev, uint8_t *cdb)
 {
     int pos = 0, block_desc = 0;
     int ret;
-    uint32_t len, max_len;
-    uint32_t alloc_length, i = 0;
-    unsigned size_idx, idx = 0;
+    int32_t len, max_len;
+    int32_t alloc_length;
+    uint32_t i = 0;
+    int size_idx, idx = 0;
     unsigned preamble_len;
     int32_t blen = 0;
     int32_t *BufLen;
@@ -1660,7 +1663,7 @@ zip_command(zip_t *dev, uint8_t *cdb)
 		dev->requested_blocks = max_len;
 		dev->packet_len = alloc_length;
 
-		zip_set_buf_len(dev, BufLen, &dev->packet_len);
+		zip_set_buf_len(dev, BufLen, (int32_t *) &dev->packet_len);
 
 		zip_data_command_finish(dev, alloc_length, 512, alloc_length, 0);
 
@@ -1747,7 +1750,7 @@ zip_command(zip_t *dev, uint8_t *cdb)
 		dev->requested_blocks = max_len;
 		dev->packet_len = max_len << 9;
 
-		zip_set_buf_len(dev, BufLen, &dev->packet_len);
+		zip_set_buf_len(dev, BufLen, (int32_t *) &dev->packet_len);
 
 		zip_data_command_finish(dev, dev->packet_len, 512, dev->packet_len, 1);
 
@@ -1809,7 +1812,7 @@ zip_command(zip_t *dev, uint8_t *cdb)
 		dev->requested_blocks = max_len;
 		dev->packet_len = alloc_length;
 
-		zip_set_buf_len(dev, BufLen, &dev->packet_len);
+		zip_set_buf_len(dev, BufLen, (int32_t *) &dev->packet_len);
 
 		zip_data_command_finish(dev, dev->packet_len, 512, dev->packet_len, 1);
 
@@ -2059,7 +2062,7 @@ atapi_out:
 
 		zip_buf_alloc(dev, 8);
 
-		if (zip_read_capacity(dev, dev->current_cdb, zipbufferb, &len) == 0) {
+		if (zip_read_capacity(dev, dev->current_cdb, zipbufferb, (uint32_t *) &len) == 0) {
 			zip_buf_free(dev);
 			return;
 		}
@@ -2165,8 +2168,10 @@ zip_phase_data_out(zip_t *dev)
 
     uint8_t hdr_len, val, old_val, ch;
 
-    uint32_t last_to_write = 0, len = 0;
+    uint32_t last_to_write = 0;
     uint32_t c, h, s;
+
+    int len = 0;
 
     switch(dev->current_cdb[0]) {
 	case GPCMD_VERIFY_6:
