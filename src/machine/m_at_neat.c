@@ -13,7 +13,7 @@
  *		8MB of DRAM chips', because it works fine with bus-based
  *		memory expansion.
  *
- * Version:	@(#)m_at_neat.c	1.0.2	2018/09/03
+ * Version:	@(#)m_at_neat.c	1.0.3	2018/09/12
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -872,22 +872,22 @@ neat_init(void)
 void
 machine_at_neat_init(const machine_t *model)
 {
-        machine_at_init(model);
-		
-        neat_init();		
-		
-		device_add(&fdc_at_device);
+    machine_at_init(model);
+
+    neat_init();		
+
+    device_add(&fdc_at_device);
 }
 
 
 void
 machine_at_neat_ami_init(const machine_t *model)
 {
-        machine_at_common_init(model);
+    machine_at_common_init(model);
 
-		neat_init();	
-		
-		device_add(&keyboard_at_ami_device);
-		
-		device_add(&fdc_at_device);
+    neat_init();	
+
+    device_add(&keyboard_at_ami_device);
+
+    device_add(&fdc_at_device);
 }

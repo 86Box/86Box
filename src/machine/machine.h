@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.27	2018/09/02
+ * Version:	@(#)machine.h	1.0.28	2018/09/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -124,6 +124,7 @@ extern void	machine_at_plato_init(const machine_t *);
 extern void	machine_at_p55tvp4_init(const machine_t *);
 extern void	machine_at_i430vx_init(const machine_t *);
 extern void	machine_at_p55va_init(const machine_t *);
+extern void	machine_at_j656vxd_init(const machine_t *);
 
 #if defined(DEV_BRANCH) && defined(USE_I686)
 extern void	machine_at_i440fx_init(const machine_t *);
@@ -146,10 +147,6 @@ extern void	machine_at_r418_init(const machine_t *);
 
 extern void	machine_at_wd76c10_init(const machine_t *);
 
-#if defined(DEV_BRANCH) && defined(USE_GREENB)
-extern void	machine_at_4gpv31_init(const machine_t *);
-#endif
-
 extern void	machine_pcjr_init(const machine_t *);
 
 extern void	machine_ps1_m2011_init(const machine_t *);
@@ -166,11 +163,10 @@ extern void	machine_ps2_m30_286_init(const machine_t *);
 extern void	machine_ps2_model_50_init(const machine_t *);
 extern void	machine_ps2_model_55sx_init(const machine_t *);
 extern void machine_ps2_model_70_type3_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
 extern void machine_ps2_model_70_type4_init(const machine_t *);
-extern void	machine_ps2_model_80_init(const machine_t *);
-#ifdef WALTJE
-extern void	machine_ps2_model_80_486_init(const machine_t *);
 #endif
+extern void	machine_ps2_model_80_init(const machine_t *);
 
 extern void	machine_amstrad_init(const machine_t *);
 

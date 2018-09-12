@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.35	2018/09/02
+ * Version:	@(#)vid_table.c	1.0.36	2018/09/12
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -352,7 +352,9 @@ int video_is_mda(void)
 			case ROM_IBMPS2_M50:
 			case ROM_IBMPS2_M55SX:
 			case ROM_IBMPS2_M70_TYPE3:
+#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
 			case ROM_IBMPS2_M70_TYPE4:
+#endif
 			case ROM_IBMPS2_M80:
 			case ROM_IBMPS1_2121:
 			case ROM_T3100E:
@@ -386,7 +388,9 @@ int video_is_cga(void)
 		case ROM_IBMPS2_M50:
 		case ROM_IBMPS2_M55SX:
 		case ROM_IBMPS2_M70_TYPE3:
+#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
 		case ROM_IBMPS2_M70_TYPE4:
+#endif
 		case ROM_IBMPS2_M80:
 		case ROM_IBMPS1_2121:
 		return 0;
@@ -419,7 +423,9 @@ int video_is_ega_vga(void)
 		case ROM_IBMPS2_M50:
 		case ROM_IBMPS2_M55SX:
 		case ROM_IBMPS2_M70_TYPE3:
+#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
 		case ROM_IBMPS2_M70_TYPE4:
+#endif
 		case ROM_IBMPS2_M80:
 		case ROM_IBMPS1_2121:
 		return 1;

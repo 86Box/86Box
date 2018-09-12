@@ -8,7 +8,7 @@
  *
  *		Handling of the PS/2 series CMOS devices.
  *
- * Version:	@(#)nvr_ps2.c	1.0.7	2018/04/26
+ * Version:	@(#)nvr_ps2.c	1.0.8	2018/09/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -118,9 +118,11 @@ ps2_nvr_init(const device_t *info)
 	case ROM_IBMPS2_M70_TYPE3:
 		f = nvr_fopen(L"ibmps2_m70_type3_sec.nvr", L"rb");
 		break;
+#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
 	case ROM_IBMPS2_M70_TYPE4:
 		f = nvr_fopen(L"ibmps2_m70_type4_sec.nvr", L"rb");
 		break;
+#endif
 	case ROM_IBMPS2_M80:
 		f = nvr_fopen(L"ibmps2_m80_sec.nvr", L"rb");
 		break;
@@ -146,9 +148,11 @@ ps2_nvr_close(void *priv)
 	case ROM_IBMPS2_M70_TYPE3:
 		f = nvr_fopen(L"ibmps2_m70_type3_sec.nvr", L"wb");
 		break;
+#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
 	case ROM_IBMPS2_M70_TYPE4:
 		f = nvr_fopen(L"ibmps2_m70_type4_sec.nvr", L"wb");
 		break;
+#endif
 	case ROM_IBMPS2_M80:
 		f = nvr_fopen(L"ibmps2_m80_sec.nvr", L"wb");
 		break;

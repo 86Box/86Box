@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.18	2018/08/16
+ * Version:	@(#)rom.h	1.0.19	2018/09/12
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2018 Fred N. van Kempen.
@@ -18,16 +18,6 @@
 
 
 #define PCJR	(romset==ROM_IBMPCJR)
-#if defined(DEV_BRANCH) && defined(USE_GREENB)
-#define AMIBIOS	(romset==ROM_AMI386SX || \
-		 romset==ROM_AMI486 || \
-		 romset==ROM_WIN486 || \
-		 romset==ROM_4GPV31)
-#else
-#define AMIBIOS	(romset==ROM_AMI386SX || \
-		 romset==ROM_AMI486 || \
-		 romset==ROM_WIN486)
-#endif
 
 
 typedef struct {
@@ -74,7 +64,7 @@ enum {
     ROM_AMI286,
     ROM_AWARD286,
     ROM_CMDPC30,
-	ROM_TG286M,
+    ROM_TG286M,
     ROM_PORTABLEII,
 #if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
     ROM_PORTABLEIII,
@@ -87,13 +77,10 @@ enum {
     ROM_IBMXT286,
     ROM_SPC4200P,	/* Samsung SPC-4200P/SCAT/Phoenix */
     ROM_SPC4216P,	/* Samsung SPC-4216P/SCAT */
-#ifdef WALTJE
-    ROM_OPENAT,		/* PC/AT clone with Open BIOS */
-#endif
 
     ROM_IBMPS2_M50,
 
-	ROM_AMA932J,
+    ROM_AMA932J,
     ROM_AMI386SX,
     ROM_KMXC02,
     ROM_MEGAPC,
@@ -127,7 +114,9 @@ enum {
     ROM_IBMPS1_2133,
 
     ROM_IBMPS2_M70_TYPE3,
-    ROM_IBMPS2_M70_TYPE4,	
+#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
+    ROM_IBMPS2_M70_TYPE4,
+#endif
 
     ROM_R418,		/* Rise Computer R418/SiS 496/497/Award/SMC FDC37C665 */
 
@@ -156,9 +145,10 @@ enum {
     ROM_P55T2P4,	/* ASUS P/I-P55T2P4/430HX/Award/Winbond W8387F*/
     ROM_P55T2S,		/* ASUS P/I-P55T2S/430HX/AMI/NS PC87306 */
 
-    ROM_P55TVP4,	/* ASUS P/I-P55TVP4/430HX/Award/Winbond W8387F*/
+    ROM_P55TVP4,	/* ASUS P/I-P55TVP4/430VX/Award/Winbond W8387F*/
     ROM_430VX,		/* Award 430VX PCI/430VX/Award/UMC UM8669F*/
     ROM_P55VA,		/* Epox P55-VA/430VX/Award/SMC FDC37C932FR*/
+    ROM_J656VXD,	/* Jetway J656VXD/430VX/Award/SMC FDC37C669*/
 
 #if defined(DEV_BRANCH) && defined(USE_I686)
     ROM_440FX,		/* Tyan Titan-Pro AT/440FX/Award BIOS/SMC FDC37C665 */

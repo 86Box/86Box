@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel PCISet chips from 430LX to 440FX.
  *
- * Version:	@(#)m_at_430lx_nx.c	1.0.0	2018/05/09
+ * Version:	@(#)m_at_430lx_nx.c	1.0.1	2018/09/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -866,6 +866,26 @@ machine_at_p55va_init(const machine_t *model)
     device_add(&i430vx_device);
     device_add(&piix3_device);
     fdc37c932fr_init();
+
+    device_add(&intel_flash_bxt_device);
+}
+
+
+void
+machine_at_j656vxd_init(const machine_t *model)
+{
+    machine_at_common_init(model);
+    device_add(&keyboard_ps2_pci_device);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    device_add(&i430vx_device);
+    device_add(&piix3_device);
+    fdc37c669_init();
 
     device_add(&intel_flash_bxt_device);
 }

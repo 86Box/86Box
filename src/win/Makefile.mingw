@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.124	2018/09/09
+# Version:	@(#)Makefile.mingw	1.0.125	2018/09/12
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -59,6 +59,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef PORTABLE3
   PORTABLE3	:= y
  endif
+ ifndef PS2M70T4
+  PS2M70T4	:= y
+ endif
  ifndef STEALTH32
   STEALTH32	:= y
  endif
@@ -98,6 +101,9 @@ else
  endif
  ifndef PORTABLE3
   PORTABLE3	:= n
+ endif
+ ifndef PS2M70T4
+  PS2M70T4	:= n
  endif
  ifndef STEALTH32
   STEALTH32	:= n
@@ -377,6 +383,10 @@ endif
 
 ifeq ($(PORTABLE3), y)
 OPTS		+= -DUSE_PORTABLE3
+endif
+
+ifeq ($(PS2M70T4), y)
+OPTS		+= -DUSE_PS2M70T4
 endif
 
 ifeq ($(STEALTH32), y)

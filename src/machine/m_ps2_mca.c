@@ -8,7 +8,7 @@
  *
  *		Implementation of MCA-based PS/2 machines.
  *
- * Version:	@(#)m_ps2_mca.c	1.0.0	2018/09/02
+ * Version:	@(#)m_ps2_mca.c	1.0.1	2018/09/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1274,6 +1274,7 @@ machine_ps2_model_70_type3_init(const machine_t *model)
         ps2_mca_board_model_70_type34_init(0);
 }
 
+#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
 void
 machine_ps2_model_70_type4_init(const machine_t *model)
 {
@@ -1281,6 +1282,7 @@ machine_ps2_model_70_type4_init(const machine_t *model)
 
         ps2_mca_board_model_70_type34_init(1);
 }
+#endif
 
 void
 machine_ps2_model_80_init(const machine_t *model)
@@ -1289,14 +1291,3 @@ machine_ps2_model_80_init(const machine_t *model)
 
         ps2_mca_board_model_80_type2_init(0);
 }
-
-
-#ifdef WALTJE
-void
-machine_ps2_model_80_486_init(const machine_t *model)
-{
-        machine_ps2_common_init(model);
-
-        ps2_mca_board_model_80_type2_init(1);
-}
-#endif

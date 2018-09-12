@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.38	2018/08/16
+ * Version:	@(#)rom.c	1.0.39	2018/09/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -407,14 +407,6 @@ rom_load_bios(int rom_id)
 			0x000000, 65536, 0, rom)) return(1);
 		break;
 
-#ifdef WALTJE
-	case ROM_OPENAT:	/* PC/AT clone with OpenBIOS */
-		if (rom_load_linear(
-			L"roms/machines/open_at/bios.bin",
-			0x000000, 65536, 0, rom)) return(1);
-		break;
-#endif
-
 	case ROM_GENXT:		/* Generic PC-XT clone */
 		if (rom_load_linear(
 			L"roms/machines/genxt/pcxt.rom",
@@ -756,6 +748,7 @@ rom_load_bios(int rom_id)
 		biosmask = 0x1ffff;
 		return(1);
 	
+#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
 	case ROM_IBMPS2_M70_TYPE4:
 		if (! rom_load_interleaved(
 			L"roms/machines/ibmps2_m70_type4/70-b_even.bin",
@@ -763,6 +756,7 @@ rom_load_bios(int rom_id)
 			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
+#endif
 	
 	case ROM_DTK486:
 		if (rom_load_linear(
@@ -862,6 +856,13 @@ rom_load_bios(int rom_id)
 	case ROM_P55TVP4:
 		if (! rom_load_linear(
 			L"roms/machines/p55tvp4/tv5i0204.awd",
+			0x000000, 131072, 0, rom)) break;
+		biosmask = 0x1ffff;
+		return(1);
+
+	case ROM_J656VXD:
+		if (! rom_load_linear(
+			L"roms/machines/j656vxd/J656VXD.BIN",
 			0x000000, 131072, 0, rom)) break;
 		biosmask = 0x1ffff;
 		return(1);
