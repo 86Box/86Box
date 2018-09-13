@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.37	2018/08/20
+ * Version:	@(#)keyboard_at.c	1.0.38	2018/09/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2133,7 +2133,8 @@ kbd_read(uint16_t port, void *priv)
 	case 0x60:
 		ret = kbd->out;
 		kbd->status &= ~(STAT_OFULL);
-		picintc(kbd->last_irq);
+		if (kbd->last_irq)
+			picintc(kbd->last_irq);
 		kbd->last_irq = 0;
 		break;
 
