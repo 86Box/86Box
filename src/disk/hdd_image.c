@@ -8,7 +8,7 @@
  *
  *		Handling of hard disk image files.
  *
- * Version:	@(#)hdd_image.c	1.0.16	2018/06/09
+ * Version:	@(#)hdd_image.c	1.0.17	2018/09/13
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -415,22 +415,22 @@ hdd_image_calc_chs(uint32_t *c, uint32_t *h, uint32_t *s, uint32_t size)
     if (ts >= 65535 * 16 * 63) {
 	spt = 255;
 	heads = 16;
-	cth = ts / spt;
+	cth = (uint32_t) (ts / spt);
     } else {
 	spt = 17;
-	cth = ts / spt;
+	cth = (uint32_t) (ts / spt);
 	heads = (cth +1023) / 1024;
 	if (heads < 4)
 		heads = 4;
 	if ((cth >= (heads * 1024)) || (heads > 16)) {
 		spt = 31;
 		heads = 16;
-		cth = ts / spt;
+		cth = (uint32_t) (ts / spt);
 	}
 	if (cth >= (heads * 1024)) {
 		spt = 63;
 		heads = 16;
-		cth = ts / spt;
+		cth = (uint32_t) (ts / spt);
 	}
     }
     cyl = cth / heads;
