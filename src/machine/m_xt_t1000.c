@@ -51,7 +51,7 @@
  * NOTE:	Still need to figure out a way to load/save ConfigSys and
  *		HardRAM stuff. Needs to be linked in to the NVR code.
  *
- * Version:	@(#)m_xt_t1000.c	1.0.9	2018/08/16
+ * Version:	@(#)m_xt_t1000.c	1.0.10	2018/09/15
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -913,6 +913,9 @@ machine_xt_t1000_init(const machine_t *model)
 
     tc8521_init(&t1000.nvr, model->nvrmask + 1);
 
+    t1000_nvr_load();
+    nvr_set_ven_save(t1000_nvr_save);
+
     if (gfxcard == GFX_INTERNAL)
 		device_add(&t1000_video_device);
 }
@@ -967,8 +970,11 @@ machine_xt_t1200_init(const machine_t *model)
 
     tc8521_init(&t1000.nvr, model->nvrmask + 1);
 
-	if (gfxcard == GFX_INTERNAL)
-		device_add(&t1200_video_device);
+    t1200_nvr_load();
+    nvr_set_ven_save(t1200_nvr_save);
+
+    if (gfxcard == GFX_INTERNAL)
+	device_add(&t1200_video_device);
 }
 
 

@@ -124,9 +124,11 @@ xi8088_get_device(void)
 void machine_xt_xi8088_init(const machine_t *model)
 {
         /* TODO: set UMBs? See if PCem always sets when we have > 640KB ram and avoids conflicts when a peripheral uses the same memory space */
+	if (xi8088_bios_128kb())
+		mem_add_upper_bios();
         machine_common_init(model);
 	device_add(&fdc_xt_device);
-	device_add(&keyboard_ps2_device);
+	device_add(&keyboard_ps2_xi8088_device);
         nmi_init();
 	device_add(&at_nvr_device);
         pic2_init();

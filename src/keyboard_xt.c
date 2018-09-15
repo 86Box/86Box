@@ -8,7 +8,7 @@
  *
  *		Implementation of the XT-style keyboard.
  *
- * Version:	@(#)keyboard_xt.c	1.0.12	2018/04/26
+ * Version:	@(#)keyboard_xt.c	1.0.13	2018/09/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -56,6 +56,7 @@ typedef struct {
     uint8_t pb;
 
     int tandy;
+    int type;
 } xtkbd_t;
 
 
@@ -460,7 +461,7 @@ kbd_read(uint16_t port, void *priv)
 
     switch (port) {
 	case 0x60:
-		if ((romset == ROM_IBMPC) && (kbd->pb & 0x80)) {
+		if (!kbd->type && (kbd->pb & 0x80)) {
 			if (video_is_ega_vga())
 				ret = 0x4d;
 			  else if (video_is_mda())
@@ -476,7 +477,7 @@ kbd_read(uint16_t port, void *priv)
 		break;
 
 	case 0x62:
-		if (romset == ROM_IBMPC) {
+		if (!kbd->type) {
 			if (kbd->pb & 0x04)
 				ret = ((mem_size-64) / 32) & 0x0f;
 			else
@@ -493,7 +494,7 @@ kbd_read(uint16_t port, void *priv)
 				/* LaserXT = Always 512k RAM;
 				   LaserXT/3 = Bit 0: set = 512k, clear = 256k. */
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
-				if (romset == ROM_LXT3)
+				if (kbd->type == 3)
 					ret = (mem_size == 512) ? 0x0d : 0x0c;
 				else
 #endif
@@ -502,7 +503,7 @@ kbd_read(uint16_t port, void *priv)
 		}
 		ret |= (ppispeakon ? 0x20 : 0);
 
-		if (kbd->tandy)
+		if (kbd->type == 2)
 			ret |= (tandy1k_eeprom_read() ? 0x10 : 0);
 		break;
 
@@ -539,9 +540,7 @@ kbd_init(const device_t *info)
 
     keyboard_set_table(scancode_xt);
 
-    if (info->local == 1) {
-	kbd->tandy = 1;
-    }
+    kbd->type = info->local;
 
     keyboard_scan = 1;
 
@@ -574,10 +573,20 @@ kbd_close(void *priv)
 }
 
 
+const device_t keyboard_pc_device = {
+    "IBM PC Keyboard",
+    0,
+    0,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    NULL, NULL, NULL
+};
+
 const device_t keyboard_xt_device = {
-    "PC/XT Keyboard",
+    "XT Keyboard",
     0,
-    0,
+    1,
     kbd_init,
     kbd_close,
     kbd_reset,
@@ -587,9 +596,21 @@ const device_t keyboard_xt_device = {
 const device_t keyboard_tandy_device = {
     "Tandy 1000 Keyboard",
     0,
-    1,
+    2,
     kbd_init,
     kbd_close,
     kbd_reset,
     NULL, NULL, NULL
 };
+
+#if defined(DEV_BRANCH) && defined(USE_LASERXT)
+const device_t keyboard_xt_lxt3_device = {
+    "VTech Laser XT3 Keyboard",
+    0,
+    3,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    NULL, NULL, NULL
+};
+#endif

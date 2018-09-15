@@ -15,6 +15,21 @@
 
 
 void
+machine_pc_init(const machine_t *model)
+{
+    machine_common_init(model);
+
+    pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
+
+    device_add(&keyboard_pc_device);
+    device_add(&fdc_xt_device);
+    nmi_init();
+    if (joystick_type != 7)
+	device_add(&gameport_device);
+}
+
+
+void
 machine_xt_init(const machine_t *model)
 {
     machine_common_init(model);

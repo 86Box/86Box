@@ -12,7 +12,7 @@
  *		the DYNAMIC_TABLES=1 enables this. Will eventually go
  *		away, either way...
  *
- * Version:	@(#)mem.c	1.0.12	2018/09/02
+ * Version:	@(#)mem.c	1.0.13	2018/09/15
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1569,29 +1569,35 @@ mem_set_mem_state(uint32_t base, uint32_t size, int state)
 
 
 void
+mem_add_upper_bios(void)
+{
+    mem_mapping_add(&bios_mapping[0], 0xe0000, 0x04000,
+		    mem_read_bios,mem_read_biosw,mem_read_biosl,
+		    mem_write_null,mem_write_nullw,mem_write_nulll,
+		    rom,MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
+    mem_mapping_add(&bios_mapping[1], 0xe4000, 0x04000,
+		    mem_read_bios,mem_read_biosw,mem_read_biosl,
+		    mem_write_null,mem_write_nullw,mem_write_nulll,
+		    rom + (0x4000  & biosmask),
+		    MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
+    mem_mapping_add(&bios_mapping[2], 0xe8000, 0x04000,
+		    mem_read_bios,mem_read_biosw,mem_read_biosl,
+		    mem_write_null,mem_write_nullw,mem_write_nulll,
+		    rom + (0x8000  & biosmask),
+		    MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
+    mem_mapping_add(&bios_mapping[3], 0xec000, 0x04000,
+		    mem_read_bios,mem_read_biosw,mem_read_biosl,
+		    mem_write_null,mem_write_nullw,mem_write_nulll,
+		    rom + (0xc000  & biosmask),
+		    MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
+}
+
+
+void
 mem_add_bios(void)
 {
-    if (AT || (romset == ROM_XI8088 && xi8088_bios_128kb())) {
-	mem_mapping_add(&bios_mapping[0], 0xe0000, 0x04000,
-			mem_read_bios,mem_read_biosw,mem_read_biosl,
-			mem_write_null,mem_write_nullw,mem_write_nulll,
-			rom,MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
-	mem_mapping_add(&bios_mapping[1], 0xe4000, 0x04000,
-			mem_read_bios,mem_read_biosw,mem_read_biosl,
-			mem_write_null,mem_write_nullw,mem_write_nulll,
-			rom + (0x4000  & biosmask),
-			MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
-	mem_mapping_add(&bios_mapping[2], 0xe8000, 0x04000,
-			mem_read_bios,mem_read_biosw,mem_read_biosl,
-			mem_write_null,mem_write_nullw,mem_write_nulll,
-			rom + (0x8000  & biosmask),
-			MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
-	mem_mapping_add(&bios_mapping[3], 0xec000, 0x04000,
-			mem_read_bios,mem_read_biosw,mem_read_biosl,
-			mem_write_null,mem_write_nullw,mem_write_nulll,
-			rom + (0xc000  & biosmask),
-			MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
-    }
+    if (AT)
+	mem_add_upper_bios();
 
     mem_mapping_add(&bios_mapping[4], 0xf0000, 0x04000,
 		    mem_read_bios,mem_read_biosw,mem_read_biosl,
@@ -1828,11 +1834,6 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 			mem_write_ram,mem_write_ramw,mem_write_raml,
 			ram + 0xc0000, MEM_MAPPING_INTERNAL, NULL);
 			
-    if (romset == ROM_IBMPS1_2011)
-	mem_mapping_add(&romext_mapping, 0xc8000, 0x08000,
-			mem_read_romext,mem_read_romextw,mem_read_romextl,
-			NULL,NULL, NULL, romext, 0, NULL);
-
     mem_mapping_add(&ram_remapped_mapping, mem_size * 1024, 256 * 1024,
 		    mem_read_remapped,mem_read_remappedw,mem_read_remappedl,
 		    mem_write_remapped,mem_write_remappedw,mem_write_remappedl,

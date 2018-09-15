@@ -8,7 +8,7 @@
  *
  *		Definitions for the keyboard interface.
  *
- * Version:	@(#)keyboard.h	1.0.15	2018/03/26
+ * Version:	@(#)keyboard.h	1.0.16	2018/09/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -60,12 +60,17 @@ extern int	mouse_queue_start, mouse_queue_end;
 extern int	mouse_scan;
 
 #ifdef EMU_DEVICE_H
+extern const device_t	keyboard_pc_device;
 extern const device_t	keyboard_xt_device;
 extern const device_t	keyboard_tandy_device;
+#if defined(DEV_BRANCH) && defined(USE_LASERXT)
+extern const device_t	keyboard_xt_lxt3_device;
+#endif
 extern const device_t	keyboard_at_device;
 extern const device_t	keyboard_at_ami_device;
 extern const device_t	keyboard_at_toshiba_device;
 extern const device_t	keyboard_ps2_device;
+extern const device_t	keyboard_ps2_xi8088_device;
 extern const device_t	keyboard_ps2_ami_device;
 extern const device_t	keyboard_ps2_mca_device;
 extern const device_t	keyboard_ps2_mca_2_device;

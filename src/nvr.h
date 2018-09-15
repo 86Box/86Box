@@ -1,4 +1,4 @@
-/*
+﻿/*
  * VARCem	Virtual ARchaeological Computer EMulator.
  *		An emulator of (mostly) x86-based PC systems and devices,
  *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
@@ -8,7 +8,7 @@
  *
  *		Definitions for the generic NVRAM/CMOS driver.
  *
- * Version:	@(#)nvr.h	1.0.8	2018/08/04
+ * Version:	@(#)nvr.h	1.0.9	2018/09/15
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>,
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -80,6 +80,8 @@ typedef struct _nvr_ {
     void	(*tick)(struct _nvr_ *);
     void	(*recalc)(struct _nvr_ *);
 
+    void	(*ven_save)(void);
+
     uint8_t	regs[NVR_MAXSIZE];	/* these are the registers */
 } nvr_t;
 
@@ -99,6 +101,7 @@ extern void	nvr_init(nvr_t *);
 extern wchar_t	*nvr_path(wchar_t *str);
 extern FILE	*nvr_fopen(wchar_t *str, wchar_t *mode);
 extern int	nvr_load(void);
+extern void	nvr_set_ven_save(void (*ven_save)(void));
 extern int	nvr_save(void);
 
 extern int	nvr_is_leap(int year);

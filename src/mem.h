@@ -8,7 +8,7 @@
  *
  *		Definitions for the memory interface.
  *
- * Version:	@(#)mem.h	1.0.5	2018/09/02
+ * Version:	@(#)mem.h	1.0.6	2018/09/15
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -226,6 +226,10 @@ extern uint8_t	mem_read_bios(uint32_t addr, void *priv);
 extern uint16_t	mem_read_biosw(uint32_t addr, void *priv);
 extern uint32_t	mem_read_biosl(uint32_t addr, void *priv);
 
+extern uint8_t	mem_read_romext(uint32_t addr, void *priv);
+extern uint16_t	mem_read_romextw(uint32_t addr, void *priv);
+extern uint32_t	mem_read_romextl(uint32_t addr, void *priv);
+
 extern void	mem_write_null(uint32_t addr, uint8_t val, void *p);
 extern void	mem_write_nullw(uint32_t addr, uint16_t val, void *p);
 extern void	mem_write_nulll(uint32_t addr, uint32_t val, void *p);
@@ -248,6 +252,7 @@ extern void     mmu_invalidate(uint32_t addr);
 
 extern void	mem_a20_recalc(void);
 
+extern void	mem_add_upper_bios(void);
 extern void	mem_add_bios(void);
 
 extern void	mem_init(void);

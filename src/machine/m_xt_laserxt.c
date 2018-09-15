@@ -7,8 +7,15 @@
 #include "../cpu/cpu.h"
 #include "../io.h"
 #include "../mem.h"
+#include "../nmi.h"
+#include "../pit.h"
 #include "../rom.h"
 #include "machine.h"
+#include "../device.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
+#include "../game/gameport.h"
+#include "../keyboard.h"
 
 
 static int laserxt_emspage[4];
@@ -137,4 +144,21 @@ machine_xt_laserxt_init(const machine_t *model)
         machine_xt_init(model);
 
         laserxt_init();
+}
+
+
+void
+machine_xt_lxt3_init(const machine_t *model)
+{
+    machine_common_init(model);
+
+    pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
+
+    device_add(&keyboard_xt_lxt3_device);
+    device_add(&fdc_xt_device);
+    nmi_init();
+    if (joystick_type != 7)
+	device_add(&gameport_device);
+
+    laserxt_init();
 }

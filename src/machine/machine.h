@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.28	2018/09/12
+ * Version:	@(#)machine.h	1.0.29	2018/09/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -37,6 +37,7 @@
 #define MACHINE_HDC_PS2		0x002000	/* sys has int PS/2 HDC */
 #define MACHINE_MOUSE		0x004000	/* sys has int mouse */
 #define MACHINE_VIDEO		0x008000	/* sys has int video */
+#define MACHINE_NONMI		0x010000	/* sys does not have NMI's */
 
 #define IS_ARCH(m, a)		(machines[(m)].flags & (a)) ? 1 : 0;
 
@@ -147,6 +148,7 @@ extern void	machine_at_r418_init(const machine_t *);
 
 extern void	machine_at_wd76c10_init(const machine_t *);
 
+extern void	machine_pc_init(const machine_t *);
 extern void	machine_pcjr_init(const machine_t *);
 
 extern void	machine_ps1_m2011_init(const machine_t *);
@@ -185,6 +187,7 @@ extern void	machine_xt_init(const machine_t *);
 extern void	machine_xt_compaq_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
 extern void	machine_xt_laserxt_init(const machine_t *);
+extern void	machine_xt_lxt3_init(const machine_t *);
 #endif
 
 extern void	machine_xt_t1000_init(const machine_t *);

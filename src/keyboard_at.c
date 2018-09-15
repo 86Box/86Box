@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.38	2018/09/12
+ * Version:	@(#)keyboard_at.c	1.0.39	2018/09/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -79,6 +79,7 @@
 #define KBC_VEN_IBM_MCA		0x08
 #define KBC_VEN_QUADTEL		0x0c
 #define KBC_VEN_TOSHIBA		0x10
+#define KBC_VEN_XI8088		0x14
 #define KBC_VEN_MASK		0x1c
 
 
@@ -785,7 +786,7 @@ kbd_adddata_keyboard(uint16_t val)
     }
 
     /* Test for T3100E 'Fn' key (Right Alt / Right Ctrl) */
-    if (romset == ROM_T3100E && (keyboard_recv(0xb8) || keyboard_recv(0x9d))) {
+    if (CurrentKbd && ((CurrentKbd->flags & KBC_VEN_MASK) == KBC_VEN_TOSHIBA) && (keyboard_recv(0xb8) || keyboard_recv(0x9d))) {
 	switch (val) {
 		case 0x4f: t3100e_notify_set(0x01); break; /* End */
 		case 0x50: t3100e_notify_set(0x02); break; /* Down */
@@ -1644,7 +1645,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
     int bad = 1;
     uint8_t mask;
 
-    if (romset == ROM_XI8088 && port == 0x63)
+    if (((kbd->flags & KBC_VEN_MASK) == KBC_VEN_XI8088) && (port == 0x63))
 	port = 0x61;
 
 #ifdef _DEBUG
@@ -1952,7 +1953,7 @@ do_command:
 			was_speaker_enable = 1;
 		pit_set_gate(&pit, 2, val & 1);
 
-                if (romset == ROM_XI8088) {
+                if ((kbd->flags & KBC_VEN_MASK) == KBC_VEN_XI8088) {
                         if (val & 0x04)
                                 xi8088_turbo_set(1);
                         else
@@ -2126,7 +2127,7 @@ kbd_read(uint16_t port, void *priv)
     atkbd_t *kbd = (atkbd_t *)priv;
     uint8_t ret = 0xff;
 
-    if (romset == ROM_XI8088 && port == 0x63)
+    if (((kbd->flags & KBC_VEN_MASK) == KBC_VEN_XI8088) && (port == 0x63))
 	port = 0x61;
 
     switch (port) {
@@ -2148,7 +2149,7 @@ kbd_read(uint16_t port, void *priv)
 			else
 				ret &= ~0x10;
 		}
-                if (romset == ROM_XI8088){
+                if ((kbd->flags & KBC_VEN_MASK) == KBC_VEN_XI8088) {
                         if (xi8088_turbo_get())
                                 ret |= 0x04;
                         else
@@ -2346,6 +2347,16 @@ const device_t keyboard_ps2_device = {
     "PS/2 Keyboard",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    NULL, NULL, NULL, NULL
+};
+
+const device_t keyboard_ps2_xi8088_device = {
+    "PS/2 Keyboard (Xi8088)",
+    0,
+    KBC_TYPE_PS2_1 | KBC_VEN_XI8088,
     kbd_init,
     kbd_close,
     kbd_reset,

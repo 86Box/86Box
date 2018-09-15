@@ -8,7 +8,7 @@
  *
  *		Implement a generic NVRAM/CMOS/RTC device.
  *
- * Version:	@(#)nvr.c	1.0.12	2018/08/14
+ * Version:	@(#)nvr.c	1.0.13	2018/09/15
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>,
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -257,10 +257,7 @@ nvr_load(void)
     if (saved_nvr == NULL) return(0);
 
     /* Clear out any old data. */
-    if (romset == ROM_AWARD286)
-	memset(saved_nvr->regs, 0xff, sizeof(saved_nvr->regs));
-    else
-	memset(saved_nvr->regs, 0x00, sizeof(saved_nvr->regs));
+    memset(saved_nvr->regs, 0x00, sizeof(saved_nvr->regs));
 
     /* Set the defaults. */
     if (saved_nvr->reset != NULL)
@@ -278,16 +275,18 @@ nvr_load(void)
 	}
     }
 
-    if (romset == ROM_T1000)
-	t1000_nvr_load();
-    else if (romset == ROM_T1200)
-	t1200_nvr_load();
-
     /* Get the local RTC running! */
     if (saved_nvr->start != NULL)
 	saved_nvr->start(saved_nvr);
 
     return(1);
+}
+
+
+void
+nvr_set_ven_save(void (*ven_save)(void))
+{
+    saved_nvr->ven_save = ven_save;
 }
 
 
@@ -312,10 +311,8 @@ nvr_save(void)
 	}
     }
 
-    if (romset == ROM_T1000)
-	t1000_nvr_save();
-    else if (romset == ROM_T1200)
-	t1200_nvr_save();
+    if (saved_nvr->ven_save)
+	saved_nvr->ven_save();
 
     /* Device is clean again. */
     nvr_dosave = 0;

@@ -28,7 +28,7 @@
  *		boot. Sometimes, they do, and then it shows an "Incorrect
  *		DOS" error message??  --FvK
  *
- * Version:	@(#)m_ps1.c	1.0.10	2018/09/02
+ * Version:	@(#)m_ps1.c	1.0.11	2018/09/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -476,6 +476,10 @@ ps1_setup(int model)
 
 		ps1_hdc_inform(priv, ps);
 	}
+
+	mem_mapping_add(&romext_mapping, 0xc8000, 0x08000,
+			mem_read_romext,mem_read_romextw,mem_read_romextl,
+			NULL,NULL, NULL, romext, 0, NULL);
     }
 
     if (model == 2121) {

@@ -11,7 +11,7 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.37	2018/09/12
+ * Version:	@(#)machine_table.c	1.0.38	2018/09/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -37,16 +37,16 @@ const machine_t machines[] = {
     { "[8088] AMI XT clone",			ROM_AMIXT,		"amixt",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												 64,  640,  64,   0,		      machine_xt_init, NULL			},
     { "[8088] Compaq Portable",			ROM_PORTABLE,		"portable",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO,										128,  640, 128,   0,	       machine_xt_compaq_init, NULL			},
     { "[8088] DTK XT clone",			ROM_DTKXT,		"dtk",			{{"Intel",      cpus_8088},        {"",      NULL},        {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												 64,  640,  64,   0,		      machine_xt_init, NULL			},
-    { "[8088] IBM PC",				ROM_IBMPC,		"ibmpc",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												 64,  640,  32,   0,		      machine_xt_init, NULL			},
+    { "[8088] IBM PC",				ROM_IBMPC,		"ibmpc",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												 64,  640,  32,   0,		      machine_pc_init, NULL			},
     { "[8088] IBM PCjr",			ROM_IBMPCJR,		"ibmpcjr",		{{"Intel",      cpus_pcjr},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO,										128,  640, 128,   0,		    machine_pcjr_init, pcjr_get_device		},
     { "[8088] IBM XT",				ROM_IBMXT,		"ibmxt",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												 64,  640,  64,   0,		      machine_xt_init, NULL			},
     { "[8088] Generic XT clone",		ROM_GENXT,		"genxt",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												 64,  640,  64,   0,		      machine_xt_init, NULL			},
     { "[8088] Juko XT clone",			ROM_JUKOPC,		"jukopc",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												 64,  640,  64,   0,		      machine_xt_init, NULL			},
     { "[8088] Phoenix XT clone",		ROM_PXXT,		"pxxt",			{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												 64,  640,  64,   0,		      machine_xt_init, NULL			},
-    { "[8088] Schneider EuroPC",		ROM_EUROPC,		"europc",		{{"Siemens",	cpus_europc},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_HDC | MACHINE_VIDEO | MACHINE_MOUSE,						512,  640, 128,  15,		  machine_europc_init, NULL			},
+    { "[8088] Schneider EuroPC",		ROM_EUROPC,		"europc",		{{"Siemens",	cpus_europc},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_HDC | MACHINE_VIDEO | MACHINE_MOUSE,							512,  640, 128,  15,		  machine_europc_init, NULL			},
     { "[8088] Tandy 1000",			ROM_TANDY,		"tandy",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,												128,  640, 128,   0,		 machine_tandy1k_init, tandy1k_get_device	},
     { "[8088] Tandy 1000 HX",			ROM_TANDY1000HX,	"tandy1000hx",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,												256,  640, 128,   0,		 machine_tandy1k_init, tandy1k_hx_get_device	},
-    { "[8088] Toshiba T1000",			ROM_T1000,		"t1000",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO,										512, 1280, 768,  63,		machine_xt_t1000_init, t1000_get_device			},
+    { "[8088] Toshiba T1000",			ROM_T1000,		"t1000",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO,										512, 1280, 768,  63,		machine_xt_t1000_init, t1000_get_device		},
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
     { "[8088] VTech Laser Turbo XT",		ROM_LTXT,		"ltxt",			{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												512,  512, 256,   0,	      machine_xt_laserxt_init, NULL			},
 #endif
@@ -59,9 +59,9 @@ const machine_t machines[] = {
     { "[8086] Amstrad PC20(0)",			ROM_PC200,		"pc200",		{{"Intel",      cpus_8086},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,								512,  640, 128,  63,		 machine_amstrad_init, NULL			},
     { "[8086] Olivetti M24",			ROM_OLIM24,		"olivetti_m24",		{{"Intel",      cpus_8086},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,								128,  640, 128,   0,		  machine_olim24_init, NULL			},
     { "[8086] Tandy 1000 SL/2",			ROM_TANDY1000SL2,	"tandy1000sl2",		{{"Intel",      cpus_8086},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA,												512,  768, 128,   0,	         machine_tandy1k_init, NULL			},
-    { "[8086] Toshiba T1200",			ROM_T1200,		"t1200",		{{"Intel",      cpus_8086},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO,									       1024, 2048,1024,  63,		machine_xt_t1200_init, t1200_get_device			},
+    { "[8086] Toshiba T1200",			ROM_T1200,		"t1200",		{{"Intel",      cpus_8086},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO,									       1024, 2048,1024,  63,		machine_xt_t1200_init, t1200_get_device		},
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
-    { "[8086] VTech Laser XT3",			ROM_LXT3,		"lxt3",			{{"Intel",      cpus_8086},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												256,  512, 256,   0,	      machine_xt_laserxt_init, NULL			},
+    { "[8086] VTech Laser XT3",			ROM_LXT3,		"lxt3",			{{"Intel",      cpus_8086},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												256,  512, 256,   0,		 machine_xt_lxt3_init, NULL			},
 #endif
 
     { "[286 ISA] AMI 286 clone",		ROM_AMI286,		"ami286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT,										512,8192, 128, 127,	     machine_at_neat_ami_init, NULL			},
@@ -110,7 +110,7 @@ const machine_t machines[] = {
     { "[486 ISA] AMI WinBIOS 486",		ROM_WIN486,		"win486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,							  1,   64,   1, 127,	      machine_at_ali1429_init, NULL			},
     { "[486 ISA] Award 486 clone",		ROM_AWARD486_OPTI495,	"award486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,							  1,   64,   1, 127,	      machine_at_opti495_init, NULL			},
     { "[486 ISA] DTK PKM-0038S E-2",		ROM_DTK486,		"dtk486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,							  1,  128,   1, 127,	       machine_at_dtk486_init, NULL			},
-    { "[486 ISA] IBM PS/1 model 2133",		ROM_IBMPS1_2133,	"ibmps1_2133",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  1,   64,   1, 127,	       machine_ps1_m2133_init, NULL			},
+    { "[486 ISA] IBM PS/1 model 2133",		ROM_IBMPS1_2133,	"ibmps1_2133",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_NONMI,			  1,   64,   1, 127,	       machine_ps1_m2133_init, NULL			},
 
 #if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
     { "[486 MCA] IBM PS/2 model 70 (type 4)",	ROM_IBMPS2_M70_TYPE4,	"ibmps2_m70_type4",	{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, 0, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC_PS2 | MACHINE_VIDEO,						  2,   16,   2,  63,  machine_ps2_model_70_type4_init, NULL			},
