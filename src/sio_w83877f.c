@@ -11,7 +11,7 @@
  *		Winbond W83877F Super I/O Chip
  *		Used by the Award 430HX
  *
- * Version:	@(#)sio_w83877f.c	1.0.11	2018/04/29
+ * Version:	@(#)sio_w83877f.c	1.0.12	2018/09/12
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -39,6 +39,7 @@ static int w83877f_rw_locked = 0;
 static int w83877f_curreg = 0;
 static uint8_t w83877f_regs[0x2A];
 static uint8_t tries;
+static uint8_t w83877f_reg16init = 5;
 static fdc_t *w83877f_fdc;
 
 static int winbond_port = 0x3f0;
@@ -507,7 +508,7 @@ void w83877f_reset(void)
 	w83877f_regs[0xA] = 0x1F;
 	w83877f_regs[0xC] = 0x28;
 	w83877f_regs[0xD] = 0xA3;
-	w83877f_regs[0x16] = (romset == ROM_PRESIDENT) ? 4 : 5;
+	w83877f_regs[0x16] = w83877f_reg16init;
 	w83877f_regs[0x1E] = 0x81;
 	w83877f_regs[0x20] = (0x3f0 >> 2) & 0xfc;
 	w83877f_regs[0x21] = (0x1f0 >> 2) & 0xfc;
@@ -528,11 +529,12 @@ void w83877f_reset(void)
 }
 
 
-void w83877f_init(void)
+void w83877f_init(uint8_t reg16init)
 {
 	w83877f_fdc = device_add(&fdc_at_winbond_device);
 
 	lpt2_remove();
 
+	w83877f_reg16init = reg16init;
 	w83877f_reset();
 }

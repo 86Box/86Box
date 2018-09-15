@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.11	2018/07/16
+ * Version:	@(#)vid_s3.c	1.0.12	2018/09/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -33,6 +33,24 @@
 #include "vid_svga.h"
 #include "vid_svga_render.h"
 #include "vid_sdac_ramdac.h"
+
+#define ROM_PARADISE_BAHAMAS64	L"roms/video/s3/bahamas64.bin"
+#define ROM_PHOENIX_VISION864	L"roms/video/s3/86c864p.bin"
+#define ROM_PHOENIX_TRIO32	L"roms/video/s3/86c732p.bin"
+#define ROM_NUMBER9_9FX		L"roms/video/s3/s3_764.bin"
+#define ROM_PHOENIX_TRIO64	L"roms/video/s3/86c764x1.bin"
+#define ROM_DIAMOND_STEALTH64	L"roms/video/s3/stealt64.bin"
+
+enum
+{
+	S3_PARADISE_BAHAMAS64,
+	S3_NUMBER9_9FX,
+	S3_PHOENIX_TRIO32,
+	S3_PHOENIX_TRIO64,
+	S3_PHOENIX_TRIO64_ONBOARD,
+	S3_PHOENIX_VISION864,
+	S3_DIAMOND_STEALTH64
+};
 
 enum
 {
@@ -2690,217 +2708,212 @@ static int vram_sizes[] =
         3 /*8 MB*/
 };
 
-static void *s3_init(const device_t *info, wchar_t *bios_fn, int chip)
+static void *s3_init(const device_t *info)
 {
-        s3_t *s3 = malloc(sizeof(s3_t));
+	const wchar_t *bios_fn;
+	int chip;
+	s3_t *s3 = malloc(sizeof(s3_t));
         svga_t *svga = &s3->svga;
         int vram;
         uint32_t vram_size;
-        
-        memset(s3, 0, sizeof(s3_t));
-        
-        vram = device_get_config_int("memory");
-        if (vram)
-                vram_size = vram << 20;
-        else
-                vram_size = 512 << 10;
-        s3->vram_mask = vram_size - 1;
 
-	s3->has_bios = !info->local;
+	switch(info->local) {
+		case S3_PARADISE_BAHAMAS64:
+			bios_fn = ROM_PARADISE_BAHAMAS64;
+			chip = S3_VISION864;
+			break;
+		case S3_PHOENIX_VISION864:
+			bios_fn = ROM_PHOENIX_VISION864;
+			chip = S3_VISION864;
+			break;
+		case S3_PHOENIX_TRIO32:
+			bios_fn = ROM_PHOENIX_TRIO32;
+			chip = S3_TRIO32;
+			break;
+		case S3_PHOENIX_TRIO64:
+			bios_fn = ROM_PHOENIX_TRIO64;
+			chip = S3_TRIO64;
+			break;
+		case S3_PHOENIX_TRIO64_ONBOARD:
+			bios_fn = NULL;
+			chip = S3_TRIO64;
+			break;
+		case S3_DIAMOND_STEALTH64:
+			bios_fn = ROM_DIAMOND_STEALTH64;
+			chip = S3_TRIO64;
+			break;
+		case S3_NUMBER9_9FX:
+			bios_fn = ROM_NUMBER9_9FX;
+			chip = S3_TRIO64;
+			break;
+		default:
+			return NULL;
+	}
+
+	memset(s3, 0, sizeof(s3_t));
+
+	vram = device_get_config_int("memory");
+	if (vram)
+		vram_size = vram << 20;
+	else
+		vram_size = 512 << 10;
+	s3->vram_mask = vram_size - 1;
+
+	s3->has_bios = (bios_fn != NULL);
 	if (s3->has_bios) {
-		rom_init(&s3->bios_rom, bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		rom_init(&s3->bios_rom, (wchar_t *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 		if (info->flags & DEVICE_PCI)
 			mem_mapping_disable(&s3->bios_rom.mapping);
 	}
 
 	s3->pci = !!(info->flags & DEVICE_PCI);
 
-        mem_mapping_add(&s3->linear_mapping, 0,       0,       svga_read_linear, svga_readw_linear, svga_readl_linear, svga_write_linear, svga_writew_linear, svga_writel_linear, NULL, MEM_MAPPING_EXTERNAL, &s3->svga);
-        mem_mapping_add(&s3->mmio_mapping,   0xa0000, 0x10000, s3_accel_read, NULL, NULL, s3_accel_write, s3_accel_write_w, s3_accel_write_l, NULL, MEM_MAPPING_EXTERNAL, s3);
-        mem_mapping_disable(&s3->mmio_mapping);
+	mem_mapping_add(&s3->linear_mapping,	0,			0,
+			svga_read_linear,	svga_readw_linear,	svga_readl_linear,
+			svga_write_linear,	svga_writew_linear,	svga_writel_linear,
+			NULL,			MEM_MAPPING_EXTERNAL,	&s3->svga);
+	mem_mapping_add(&s3->mmio_mapping,	0xa0000,		0x10000,
+			s3_accel_read,		NULL,			NULL,
+			s3_accel_write,		s3_accel_write_w,	s3_accel_write_l,
+			NULL,			MEM_MAPPING_EXTERNAL,	s3);
+	mem_mapping_disable(&s3->mmio_mapping);
 
-        svga_init(&s3->svga, s3, vram_size, /*4mb - 864 supports 8mb but buggy VESA driver reports 0mb*/
-                   s3_recalctimings,
-                   s3_in, s3_out,
-                   s3_hwcursor_draw,
-                   NULL);
+	svga_init(&s3->svga, s3, vram_size,
+		  s3_recalctimings,
+		  s3_in, s3_out,
+		  s3_hwcursor_draw,
+		  NULL);
 
-        svga->decode_mask = (4 << 20) - 1;
-        switch (vram)
-        {
-                case 0: /*512kb*/
-                svga->vram_mask = (1 << 19) - 1;
-                svga->vram_max = 2 << 20;
-                break;
-                case 1: /*1MB*/
-                /*VRAM in first MB, mirrored in 2nd MB, 3rd and 4th MBs are open bus*/
-                /*This works with the #9 9FX BIOS, and matches how my real Trio64 behaves,
-                  but does not work with the Phoenix EDO BIOS. Possibly an FPM/EDO difference?*/
-                svga->vram_mask = (1 << 20) - 1;
-                svga->vram_max = 2 << 20;
-                break;
-                case 2: default: /*2MB*/
-                /*VRAM in first 2 MB, 3rd and 4th MBs are open bus*/
-                svga->vram_mask = (2 << 20) - 1;
-                svga->vram_max = 2 << 20;
-                break;
-                case 4: /*4MB*/
-                svga->vram_mask = (4 << 20) - 1;
-                svga->vram_max = 4 << 20;
-                break;
-                case 8: /*4MB*/
-                svga->vram_mask = (8 << 20) - 1;
-                svga->vram_max = 8 << 20;
-                break;
-        }
-                
-        if (info->flags & DEVICE_PCI)
-                svga->crtc[0x36] = 2 | (3 << 2) | (1 << 4) | (vram_sizes[vram] << 5);
-        else
-                svga->crtc[0x36] = 1 | (3 << 2) | (1 << 4) | (vram_sizes[vram] << 5);
-        svga->crtc[0x37] = 1 | (7 << 5);
-        
+	svga->decode_mask = (4 << 20) - 1;
+	switch (vram) {
+		case 0:		/* 512 kB */
+			svga->vram_mask = (1 << 19) - 1;
+			svga->vram_max = 2 << 20;
+			break;
+		case 1:		/* 1 MB */
+			/* VRAM in first MB, mirrored in 2nd MB, 3rd and 4th MBs are open bus.
+
+			   This works with the #9 9FX BIOS, and matches how my real Trio64 behaves,
+			   but does not work with the Phoenix EDO BIOS. Possibly an FPM/EDO difference? */
+			svga->vram_mask = (1 << 20) - 1;
+			svga->vram_max = 2 << 20;
+			break;
+		case 2:
+		default:	/*2 MB */
+			/* VRAM in first 2 MB, 3rd and 4th MBs are open bus. */
+			svga->vram_mask = (2 << 20) - 1;
+			svga->vram_max = 2 << 20;
+			break;
+		case 4: /*4MB*/
+			svga->vram_mask = (4 << 20) - 1;
+			svga->vram_max = 4 << 20;
+			break;
+		case 8: /*4MB*/
+			svga->vram_mask = (8 << 20) - 1;
+			svga->vram_max = 8 << 20;
+			break;
+	}
+
+	if (info->flags & DEVICE_PCI)
+		svga->crtc[0x36] = 2 | (3 << 2) | (1 << 4) | (vram_sizes[vram] << 5);
+	else
+		svga->crtc[0x36] = 1 | (3 << 2) | (1 << 4) | (vram_sizes[vram] << 5);
+	svga->crtc[0x37] = 1 | (7 << 5);
+
         svga->vblank_start = s3_vblank_start;
 
         s3_io_set(s3);
 
-        if (info->flags & DEVICE_PCI)
-	{
-	        s3->card = pci_add_card(PCI_ADD_VIDEO, s3_pci_read, s3_pci_write, s3);
+	if (info->flags & DEVICE_PCI)
+		s3->card = pci_add_card(PCI_ADD_VIDEO, s3_pci_read, s3_pci_write, s3);
+
+	s3->pci_regs[0x04] = 7;
+
+	s3->pci_regs[0x30] = 0x00;
+	s3->pci_regs[0x32] = 0x0c;
+	s3->pci_regs[0x33] = 0x00;
+
+	s3->chip = chip;
+
+	s3->wake_fifo_thread = thread_create_event();
+	s3->fifo_not_full_event = thread_create_event();
+	s3->fifo_thread = thread_create(fifo_thread, s3);
+
+	s3->int_line = 0;
+
+	switch(info->local) {
+		case S3_PARADISE_BAHAMAS64:
+		case S3_PHOENIX_VISION864:
+			s3->id = 0xc1; /*Vision864P*/
+			s3->id_ext = s3->id_ext_pci = 0xc1;
+			s3->packed_mmio = 0;
+
+			s3->getclock = sdac_getclock;
+			s3->getclock_p = &s3->ramdac;
+			sdac_init(&s3->ramdac);
+			break;
+
+		case S3_PHOENIX_TRIO32:
+			s3->id = 0xe1; /*Trio32*/
+			s3->id_ext = 0x10;
+			s3->id_ext_pci = 0x11;
+			s3->packed_mmio = 1;
+
+			s3->getclock = s3_trio64_getclock;
+			s3->getclock_p = s3;
+			break;
+
+		case S3_PHOENIX_TRIO64:
+		case S3_PHOENIX_TRIO64_ONBOARD:
+		case S3_DIAMOND_STEALTH64:
+			if (device_get_config_int("memory") == 1)
+				s3->svga.vram_max = 1 << 20;	/* Phoenix BIOS does not expect VRAM to be mirrored. */
+				/* Fall over. */
+
+		case S3_NUMBER9_9FX:
+			s3->id = 0xe1; /*Trio64*/
+			s3->id_ext = s3->id_ext_pci = 0x11;
+			s3->packed_mmio = 1;
+
+			s3->getclock = s3_trio64_getclock;
+			s3->getclock_p = s3;
+			break;
+
+		default:
+			return NULL;
 	}
 
-        s3->pci_regs[0x04] = 7;
-        
-        s3->pci_regs[0x30] = 0x00;
-       	s3->pci_regs[0x32] = 0x0c;
-        s3->pci_regs[0x33] = 0x00;
-        
-        s3->chip = chip;
-
-        s3->wake_fifo_thread = thread_create_event();
-        s3->fifo_not_full_event = thread_create_event();
-        s3->fifo_thread = thread_create(fifo_thread, s3);
-        
-        s3->int_line = 0;
- 
-        return s3;
-}
-
-void *s3_vision864_init(const device_t *info, wchar_t *bios_fn)
-{
-	s3_t *s3 = s3_init(info, bios_fn, S3_VISION864);
-
-        s3->id = 0xc1; /*Vision864P*/
-        s3->id_ext = s3->id_ext_pci = 0xc1;
-        s3->packed_mmio = 0;
-        
-        s3->getclock = sdac_getclock;
-        s3->getclock_p = &s3->ramdac;
-        sdac_init(&s3->ramdac);
-
-        return s3;
-}
-
-
-static void *s3_bahamas64_init(const device_t *info)
-{
-	s3_t *s3 = s3_vision864_init(info, L"roms/video/s3/bahamas64.bin");
-	return s3;
-}
-
-static void *s3_phoenix_vision864_init(const device_t *info)
-{
-	s3_t *s3 = s3_vision864_init(info, L"roms/video/s3/86c864p.bin");
 	return s3;
 }
 
 static int s3_bahamas64_available(void)
 {
-        return rom_present(L"roms/video/s3/bahamas64.bin");
+        return rom_present(ROM_PARADISE_BAHAMAS64);
 }
 
 static int s3_phoenix_vision864_available(void)
 {
-        return rom_present(L"roms/video/s3/86c864p.bin");
-}
-
-static void *s3_phoenix_trio32_init(const device_t *info)
-{
-        s3_t *s3 = s3_init(info, L"roms/video/s3/86c732p.bin", S3_TRIO32);
-
-        s3->id = 0xe1; /*Trio32*/
-        s3->id_ext = 0x10;
-        s3->id_ext_pci = 0x11;
-        s3->packed_mmio = 1;
-
-        s3->getclock = s3_trio64_getclock;
-        s3->getclock_p = s3;
-
-        return s3;
+        return rom_present(ROM_PHOENIX_VISION864);
 }
 
 static int s3_phoenix_trio32_available(void)
 {
-        return rom_present(L"roms/video/s3/86c732p.bin");
-}
-
-static void *s3_trio64_init(const device_t *info, wchar_t *bios_fn)
-{
-        s3_t *s3 = s3_init(info, bios_fn, S3_TRIO64);
-
-        s3->id = 0xe1; /*Trio64*/
-       	s3->id_ext = s3->id_ext_pci = 0x11;
-        s3->packed_mmio = 1;
-
-        s3->getclock = s3_trio64_getclock;
-        s3->getclock_p = s3;
-
-        return s3;
-}
-
-static void *s3_9fx_init(const device_t *info)
-{
-	s3_t *s3 = s3_trio64_init(info, L"roms/video/s3/s3_764.bin");
-	return s3;
-}
-
-static void *s3_phoenix_trio64_init(const device_t *info)
-{
-	s3_t *s3 = s3_trio64_init(info, L"roms/video/s3/86c764x1.bin");
-        if (device_get_config_int("memory") == 1)
-                s3->svga.vram_max = 1 << 20; /*Phoenix BIOS does not expect VRAM to be mirrored*/
-	return s3;
-}
-
-static void *s3_phoenix_trio64_onboard_init(const device_t *info)
-{
-	s3_t *s3 = s3_trio64_init(info, NULL);
-        if (device_get_config_int("memory") == 1)
-                s3->svga.vram_max = 1 << 20; /*Phoenix BIOS does not expect VRAM to be mirrored*/
-	return s3;
-}
-
-static void *s3_diamond_stealth64_init(const device_t *info)
-{
-	s3_t *s3 = s3_trio64_init(info, L"roms/video/s3/stealt64.bin");
-        if (device_get_config_int("memory") == 1)
-                s3->svga.vram_max = 1 << 20; /*Phoenix BIOS does not expect VRAM to be mirrored*/
-	return s3;
+        return rom_present(ROM_PHOENIX_TRIO32);
 }
 
 static int s3_9fx_available(void)
 {
-        return rom_present(L"roms/video/s3/s3_764.bin");
+        return rom_present(ROM_NUMBER9_9FX);
 }
 
 static int s3_phoenix_trio64_available(void)
 {
-        return rom_present(L"roms/video/s3/86c764x1.bin");
+        return rom_present(ROM_PHOENIX_TRIO64);
 }
 
 static int s3_diamond_stealth64_available(void)
 {
-        return rom_present(L"roms/video/s3/stealt64.bin");
+        return rom_present(ROM_DIAMOND_STEALTH64);
 }
 
 static void s3_close(void *p)
@@ -3067,8 +3080,8 @@ const device_t s3_bahamas64_vlb_device =
 {
         "Paradise Bahamas 64 (S3 Vision864) VLB",
         DEVICE_VLB,
-	0,
-        s3_bahamas64_init,
+	S3_PARADISE_BAHAMAS64,
+        s3_init,
         s3_close,
 	NULL,
         s3_bahamas64_available,
@@ -3081,8 +3094,8 @@ const device_t s3_bahamas64_pci_device =
 {
         "Paradise Bahamas 64 (S3 Vision864) PCI",
         DEVICE_PCI,
-	0,
-        s3_bahamas64_init,
+	S3_PARADISE_BAHAMAS64,
+        s3_init,
         s3_close,
 	NULL,
         s3_bahamas64_available,
@@ -3095,8 +3108,8 @@ const device_t s3_9fx_vlb_device =
 {
         "Number 9 9FX (S3 Trio64) VLB",
         DEVICE_VLB,
-	0,
-        s3_9fx_init,
+	S3_NUMBER9_9FX,
+        s3_init,
         s3_close,
 	NULL,
         s3_9fx_available,
@@ -3109,8 +3122,8 @@ const device_t s3_9fx_pci_device =
 {
         "Number 9 9FX (S3 Trio64) PCI",
         DEVICE_PCI,
-	0,
-        s3_9fx_init,
+	S3_NUMBER9_9FX,
+        s3_init,
         s3_close,
 	NULL,
         s3_9fx_available,
@@ -3123,8 +3136,8 @@ const device_t s3_phoenix_trio32_vlb_device =
 {
         "Phoenix S3 Trio32 VLB",
         DEVICE_VLB,
-	0,
-        s3_phoenix_trio32_init,
+	S3_PHOENIX_TRIO32,
+        s3_init,
         s3_close,
 	NULL,
         s3_phoenix_trio32_available,
@@ -3137,8 +3150,8 @@ const device_t s3_phoenix_trio32_pci_device =
 {
         "Phoenix S3 Trio32 PCI",
         DEVICE_PCI,
-	0,
-        s3_phoenix_trio32_init,
+	S3_PHOENIX_TRIO32,
+        s3_init,
         s3_close,
 	NULL,
         s3_phoenix_trio32_available,
@@ -3151,8 +3164,8 @@ const device_t s3_phoenix_trio64_vlb_device =
 {
         "Phoenix S3 Trio64 VLB",
         DEVICE_VLB,
-	0,
-        s3_phoenix_trio64_init,
+	S3_PHOENIX_TRIO64,
+        s3_init,
         s3_close,
 	NULL,
         s3_phoenix_trio64_available,
@@ -3165,8 +3178,8 @@ const device_t s3_phoenix_trio64_onboard_pci_device =
 {
         "Phoenix S3 Trio64 On-Board PCI",
         DEVICE_PCI,
-	1,
-        s3_phoenix_trio64_onboard_init,
+	S3_PHOENIX_TRIO64_ONBOARD,
+        s3_init,
         s3_close,
 	NULL,
         NULL,
@@ -3179,8 +3192,8 @@ const device_t s3_phoenix_trio64_pci_device =
 {
         "Phoenix S3 Trio64 PCI",
         DEVICE_PCI,
-	0,
-        s3_phoenix_trio64_init,
+	S3_PHOENIX_TRIO64,
+        s3_init,
         s3_close,
 	NULL,
         s3_phoenix_trio64_available,
@@ -3193,8 +3206,8 @@ const device_t s3_phoenix_vision864_vlb_device =
 {
         "Phoenix S3 Vision864 VLB",
         DEVICE_VLB,
-	0,
-        s3_phoenix_vision864_init,
+	S3_PHOENIX_VISION864,
+        s3_init,
         s3_close,
 	NULL,
         s3_phoenix_vision864_available,
@@ -3207,8 +3220,8 @@ const device_t s3_phoenix_vision864_pci_device =
 {
         "Phoenix S3 Vision864 PCI",
         DEVICE_PCI,
-	0,
-        s3_phoenix_vision864_init,
+	S3_PHOENIX_VISION864,
+        s3_init,
         s3_close,
 	NULL,
         s3_phoenix_vision864_available,
@@ -3221,8 +3234,8 @@ const device_t s3_diamond_stealth64_vlb_device =
 {
         "S3 Trio64 (Diamond Stealth64 DRAM) VLB",
         DEVICE_PCI,
-	0,
-        s3_diamond_stealth64_init,
+	S3_DIAMOND_STEALTH64,
+        s3_init,
         s3_close,
 	NULL,
         s3_diamond_stealth64_available,
@@ -3235,8 +3248,8 @@ const device_t s3_diamond_stealth64_pci_device =
 {
         "S3 Trio64 (Diamond Stealth64 DRAM) PCI",
         DEVICE_PCI,
-	0,
-        s3_diamond_stealth64_init,
+	S3_DIAMOND_STEALTH64,
+        s3_init,
         s3_close,
 	NULL,
         s3_diamond_stealth64_available,
