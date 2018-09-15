@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.125	2018/09/12
+# Version:	@(#)Makefile.mingw	1.0.126	2018/09/15
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -487,8 +487,7 @@ ifeq ($(USB), y)
 USBOBJ		:= usb.o
 endif
 
-SCSIOBJ		:= scsi.o \
-		    scsi_bus.o scsi_device.o \
+SCSIOBJ		:= scsi.o scsi_device.o \
 		    scsi_disk.o \
 		    scsi_x54x.o \
 		    scsi_aha154x.o scsi_buslogic.o \
