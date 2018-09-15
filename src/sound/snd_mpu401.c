@@ -8,7 +8,7 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)snd_mpu401.c	1.0.16	2018/09/11
+ * Version:	@(#)snd_mpu401.c	1.0.17	2018/09/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
@@ -117,7 +117,10 @@ MPU401_Reset(mpu_t *mpu)
 {
     uint8_t i;
 
-    picintc(1 << mpu->irq);
+    if (mpu->mode == M_INTELLIGENT) {
+	picintc(1 << mpu->irq);
+	mpu->state.irq_pending = 0;
+    }
 
     mpu->mode = M_INTELLIGENT;
     mpu->state.eoi_scheduled = 0;
@@ -128,7 +131,6 @@ MPU401_Reset(mpu_t *mpu)
     mpu->state.cond_set = 0;
     mpu->state.playing = 0;
     mpu->state.run_irq = 0;
-    mpu->state.irq_pending = 0;
     mpu->state.cmask = 0xff;
     mpu->state.amask = mpu->state.tmask = 0;
     mpu->state.midi_mask = 0xffff;
@@ -733,11 +735,19 @@ MPU401_ReadData(mpu_t *mpu)
     }
 
     /* Shouldn't this check mpu->mode? */
-    if (mpu->mode == M_UART)
-	return ret;
+    if (mpu->mode == M_UART) {
+	if (mpu->state.irq_pending) {
+		picintc(1 << mpu->irq);
+		mpu->state.irq_pending = 0;
+	}
 
-    if (mpu->queue_used == 0)
+	return ret;
+    }
+
+    if (mpu->queue_used == 0) {
 	picintc(1 << mpu->irq);
+	mpu->state.irq_pending = 0;
+    }
 
     if ((ret >= 0xf0) && (ret <= 0xf7)) {
 	/* MIDI data request */
