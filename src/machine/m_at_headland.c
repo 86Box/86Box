@@ -471,7 +471,7 @@ mem_write_headlandl(uint32_t addr, uint32_t val, void *priv)
 
 
 static void 
-headland_init(void)
+headland_init(int ht386)
 {
     int i;
 
@@ -479,16 +479,11 @@ headland_init(void)
 	headland_regs_cr[i] = 0;
     headland_regs_cr[0] = 4;
 
-    switch(romset) {
-	case ROM_AMI386SX:
-	case ROM_AMA932J:
-		headland_regs_cr[4] = 0x20;
-		io_sethandler(0x0092, 0x0001, headland_read, NULL, NULL, headland_write, NULL, NULL, NULL);
-		break;
-	default:
-		headland_regs_cr[4] = 0;
-		break;
-    }
+    if (ht386) {
+	headland_regs_cr[4] = 0x20;
+	io_sethandler(0x0092, 0x0001, headland_read, NULL, NULL, headland_write, NULL, NULL, NULL);
+    } else
+	headland_regs_cr[4] = 0;
 
     io_sethandler(0x01EC, 0x0001, headland_read, headland_readw, NULL, headland_write, headland_writew, NULL, NULL);
     io_sethandler(0x01ED, 0x0003, headland_read, NULL, NULL, headland_write, NULL, NULL, NULL);
@@ -527,33 +522,40 @@ headland_init(void)
 }
 
 
-void
-machine_at_headland_init(const machine_t *model)
+static void
+machine_at_headland_common_init(int ht386)
 {
-    if (romset == ROM_TG286M)
-	machine_at_common_init(model);
-    else
-	machine_at_common_ide_init(model);
-
     device_add(&keyboard_at_ami_device);
     device_add(&fdc_at_device);
 
-    headland_init();
+    headland_init(ht386);
+}
 
-    if (romset == ROM_TG286M) {
-	if (gfxcard == GFX_INTERNAL)
-		device_add(&et4000k_tg286_isa_device);
-    } else if (romset == ROM_AMA932J) {
-	if (gfxcard == GFX_INTERNAL)
-		device_add(&oti067_ama932j_device);
-    }
+void
+machine_at_heandland_init(const machine_t *model)
+{
+    machine_at_common_ide_init(model);
+
+    machine_at_headland_common_init(1);
 }
 
 
 const device_t *
-at_tg286_get_device(void)
+at_tg286m_get_device(void)
 {
     return &et4000k_tg286_isa_device;
+}
+
+
+void
+machine_at_tg286m_init(const machine_t *model)
+{
+    machine_at_common_init(model);
+
+    machine_at_headland_common_init(0);
+
+    if (gfxcard == GFX_INTERNAL)
+	device_add(&et4000k_tg286_isa_device);
 }
 
 
@@ -561,4 +563,16 @@ const device_t *
 at_ama932j_get_device(void)
 {
     return &oti067_ama932j_device;
+}
+
+
+void
+machine_at_ama932j_init(const machine_t *model)
+{
+    machine_at_common_ide_init(model);
+
+    machine_at_headland_common_init(1);
+
+    if (gfxcard == GFX_INTERNAL)
+	device_add(&oti067_ama932j_device);
 }

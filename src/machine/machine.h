@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.29	2018/09/15
+ * Version:	@(#)machine.h	1.0.30	2018/09/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -135,6 +135,8 @@ extern void	machine_at_ali1429_init(const machine_t *);
 extern void	machine_at_cmdpc_init(const machine_t *);
 
 extern void	machine_at_headland_init(const machine_t *);
+extern void	machine_at_tg286m_init(const machine_t *);
+extern void	machine_at_ama932j_init(const machine_t *);
 extern void	machine_at_neat_init(const machine_t *);
 extern void	machine_at_neat_ami_init(const machine_t *);
 extern void	machine_at_opti495_init(const machine_t *);
@@ -208,7 +210,7 @@ extern const device_t	*t1200_get_device(void);
 
 extern const device_t	*at_endeavor_get_device(void);
 
-extern const device_t 	*at_tg286_get_device(void);
+extern const device_t 	*at_tg286m_get_device(void);
 extern const device_t 	*at_ama932j_get_device(void);
 #endif
 
