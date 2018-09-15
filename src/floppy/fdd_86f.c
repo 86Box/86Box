@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)fdd_86f.c	1.0.13	2018/09/15
+ * Version:	@(#)fdd_86f.c	1.0.14	2018/09/15
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -744,6 +744,9 @@ d86f_valid_bit_rate(int drive)
 	case 3:	/* ED with 2000 kbps support */
 		if (rate < 3)  return 0;
 		return 1;
+
+	default:
+		break;
     }
 
     return 0;
