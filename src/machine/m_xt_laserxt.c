@@ -22,13 +22,14 @@ static int laserxt_emspage[4];
 static int laserxt_emscontrol[4];
 static mem_mapping_t laserxt_ems_mapping[4];
 static int laserxt_ems_baseaddr_index = 0;
+static int laserxt_is_lxt3 = 0;
 
 
 static uint32_t get_laserxt_ems_addr(uint32_t addr)
 {
         if(laserxt_emspage[(addr >> 14) & 3] & 0x80)
         {
-                addr = (romset == ROM_LTXT ? 0x70000 + (((mem_size + 64) & 255) << 10) : 0x30000 + (((mem_size + 320) & 511) << 10)) + ((laserxt_emspage[(addr >> 14) & 3] & 0x0F) << 14) + ((laserxt_emspage[(addr >> 14) & 3] & 0x40) << 12) + (addr & 0x3FFF);
+                addr = (!laserxt_is_lxt3 ? 0x70000 + (((mem_size + 64) & 255) << 10) : 0x30000 + (((mem_size + 320) & 511) << 10)) + ((laserxt_emspage[(addr >> 14) & 3] & 0x0F) << 14) + ((laserxt_emspage[(addr >> 14) & 3] & 0x40) << 12) + (addr & 0x3FFF);
         }
 
         return addr;
@@ -114,7 +115,7 @@ static uint8_t mem_read_laserxtems(uint32_t addr, void *priv)
 }
 
 
-static void laserxt_init(void)
+static void laserxt_init(is_lxt3)
 {
         int i;
 
@@ -124,7 +125,7 @@ static void laserxt_init(void)
                 io_sethandler(0x4208, 0x0002, laserxt_read, NULL, NULL, laserxt_write, NULL, NULL,  NULL);
                 io_sethandler(0x8208, 0x0002, laserxt_read, NULL, NULL, laserxt_write, NULL, NULL,  NULL);
                 io_sethandler(0xc208, 0x0002, laserxt_read, NULL, NULL, laserxt_write, NULL, NULL,  NULL);
-                mem_mapping_set_addr(&ram_low_mapping, 0, romset == ROM_LTXT ? 0x70000 + (((mem_size + 64) & 255) << 10) : 0x30000 + (((mem_size + 320) & 511) << 10));
+                mem_mapping_set_addr(&ram_low_mapping, 0, !is_lxt3 ? 0x70000 + (((mem_size + 64) & 255) << 10) : 0x30000 + (((mem_size + 320) & 511) << 10));
         }
 
         for (i = 0; i < 4; i++)
@@ -135,6 +136,7 @@ static void laserxt_init(void)
                 mem_mapping_disable(&laserxt_ems_mapping[i]);
         }
         mem_set_mem_state(0x0c0000, 0x40000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+	laserxt_is_lxt3 = is_lxt3;
 }
 
 
@@ -143,7 +145,7 @@ machine_xt_laserxt_init(const machine_t *model)
 {
         machine_xt_init(model);
 
-        laserxt_init();
+        laserxt_init(0);
 }
 
 
@@ -160,5 +162,5 @@ machine_xt_lxt3_init(const machine_t *model)
     if (joystick_type != 7)
 	device_add(&gameport_device);
 
-    laserxt_init();
+    laserxt_init(1);
 }

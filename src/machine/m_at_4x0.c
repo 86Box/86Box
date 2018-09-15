@@ -46,12 +46,11 @@ enum
     INTEL_430LX,
     INTEL_430NX,
     INTEL_430FX,
+    INTEL_430FX_PB640,
     INTEL_430HX,
-#if defined(DEV_BRANCH) && defined(USE_I686)
-    INTEL_430VX,
-    INTEL_440FX
-#else
     INTEL_430VX
+#if defined(DEV_BRANCH) && defined(USE_I686)
+    ,INTEL_440FX
 #endif
 };
 
@@ -108,7 +107,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 
 	case 0x04: /*Command register*/
 		if (dev->type >= INTEL_430FX) {
-			if (romset == ROM_PB640)
+			if (dev->type == INTEL_430FX_PB640)
 				val &= 0x06;
 			else
 				val &= 0x02;
@@ -132,7 +131,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			val |= 0x02;
 		} else {
 			val = 0x02;
-			if (romset == ROM_PB640)
+			if (dev->type == INTEL_430FX_PB640)
 				val |= 0x20;
 		}
 		break;
@@ -245,8 +244,9 @@ static void
 		i4x0->regs[0x66] = i4x0->regs[0x67] = 0x02;
 		break;
 	case INTEL_430FX:
+	case INTEL_430FX_PB640:
 		i4x0->regs[0x02] = 0x2d; i4x0->regs[0x03] = 0x12; /*SB82437FX-66*/
-		if (romset == ROM_PB640)
+		if (i4x0->type == INTEL_430FX_PB640)
 			i4x0->regs[0x08] = 0x02; /*???? stepping*/
 		else
 			i4x0->regs[0x08] = 0x00; /*A0 stepping*/
@@ -297,7 +297,7 @@ static void
     if (i4x0->type == INTEL_440FX)
 	i4x0->regs[0x06] = 0x80;
 #endif
-    if ((i4x0->type == INTEL_430FX) && (romset != ROM_PB640))
+    if (i4x0->type == INTEL_430FX)
 	i4x0->regs[0x07] = 0x82;
 #if defined(DEV_BRANCH) && defined(USE_I686)
     else if (i4x0->type != INTEL_440FX)
@@ -356,6 +356,21 @@ const device_t i430fx_device =
     "Intel SB82437FX-66",
     DEVICE_PCI,
     INTEL_430FX,
+    i4x0_init, 
+    i4x0_close, 
+    i4x0_reset,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+
+const device_t i430fx_pb640_device =
+{
+    "Intel SB82437FX-66 (PB640)",
+    DEVICE_PCI,
+    INTEL_430FX_PB640,
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
@@ -671,8 +686,9 @@ machine_at_pb640_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 1, 3, 4);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 2, 1, 4);
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-    device_add(&i430fx_device);
+    device_add(&i430fx_pb640_device);
     device_add(&piix_pb640_device);
+    ide_enable_pio_override();
     pc87306_init();
 
     device_add(&intel_flash_bxt_ami_device);

@@ -51,7 +51,7 @@
  * NOTE:	Still need to figure out a way to load/save ConfigSys and
  *		HardRAM stuff. Needs to be linked in to the NVR code.
  *
- * Version:	@(#)m_xt_t1000.c	1.0.10	2018/09/15
+ * Version:	@(#)m_xt_t1000.c	1.0.11	2018/09/15
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -172,6 +172,7 @@ typedef struct {
     fdc_t	 *fdc;
 
     nvr_t	nvr;
+    int		is_t1200;
 } t1000_t;
 
 
@@ -648,7 +649,7 @@ write_ctl(uint16_t addr, uint8_t val, void *priv)
 		if (sys->sys_ctl[3] == 0x5A) {
 			t1000_video_options_set((val & 0x20) ? 1 : 0);
 			t1000_display_set((val & 0x40) ? 0 : 1);
-			if (romset == ROM_T1200)
+			if (sys->is_t1200)
 				t1200_turbo_set((val & 0x80) ? 1 : 0);
 		}
 		break;
@@ -656,7 +657,7 @@ write_ctl(uint16_t addr, uint8_t val, void *priv)
 	/* It looks as if the T1200, like the T3100, can disable
 	 * its builtin video chipset if it detects the presence of
 	 * another video card. */
-	case 6: if (romset == ROM_T1200)
+	case 6: if (sys->is_t1200)
 		{
 			t1000_video_enable(val & 0x01 ? 0 : 1);
 		}
@@ -853,6 +854,7 @@ machine_xt_t1000_init(const machine_t *model)
     int pg;
 
     memset(&t1000, 0x00, sizeof(t1000));
+    t1000.is_t1200 = 0;
     t1000.turbo = 0xff;
     t1000.ems_port_index = 7;	/* EMS disabled */
 
@@ -934,6 +936,7 @@ machine_xt_t1200_init(const machine_t *model)
     int pg;
 
     memset(&t1000, 0x00, sizeof(t1000));
+    t1000.is_t1200 = 1;
     t1000.ems_port_index = 7;	/* EMS disabled */
 
     /* Load the T1200 CGA Font ROM. */

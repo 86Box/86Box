@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.47	2018/06/02
+ * Version:	@(#)hdc_ide.c	1.0.48	2018/09/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -129,7 +129,7 @@ enum
 };
 #endif
 
-#define IDE_PCI (PCI && (romset != ROM_PB640))
+#define IDE_PCI (PCI && pio_override)
 
 
 typedef struct {
@@ -139,6 +139,7 @@ typedef struct {
 } ide_board_t;
 
 static ide_board_t	*ide_boards[4];
+static int		pio_override = 0;
 
 ide_t	*ide_drives[IDE_NUM];
 int	(*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length, void *priv);
@@ -2724,16 +2725,8 @@ secondary_ide_check(void)
 }
 
 
-/*
- * Initialization of standalone IDE controller instance.
- *
- * Eventually, we should clean up the whole mess by only
- * using const device_t units, with configuration parameters to
- * indicate primary/secondary and all that, rather than
- * keeping a zillion of duplicate functions around.
- */
 static void *
-ide_sainit(const device_t *info)
+ide_init(const device_t *info)
 {
     ide_log("Initializing IDE...\n");
 
@@ -2746,6 +2739,8 @@ ide_sainit(const device_t *info)
 	case 8:		/* PCI, single-channel */
 	case 10:	/* PCI, dual-channel */
 		if (!ide_inited) {
+			pio_override = 0;
+
 			if (!(info->local & 8))
 				ide_clear_bus_master();
 		}
@@ -2797,6 +2792,13 @@ ide_sainit(const device_t *info)
 }
 
 
+void
+ide_enable_pio_override(void)
+{
+    pio_override = 1;
+}
+
+
 static void
 ide_drive_reset(int d)
 {
@@ -2822,7 +2824,7 @@ ide_drive_reset(int d)
 
 /* Reset a standalone IDE unit. */
 static void
-ide_sareset(void *p)
+ide_reset(void *p)
 {
     int d;
 
@@ -2842,7 +2844,7 @@ ide_sareset(void *p)
 
 /* Close a standalone IDE unit. */
 static void
-ide_saclose(void *priv)
+ide_close(void *priv)
 {
     ide_log("Closing IDE...\n");
 
@@ -2868,7 +2870,7 @@ const device_t ide_isa_device = {
     "ISA PC/AT IDE Controller",
     DEVICE_ISA | DEVICE_AT,
     0,
-    ide_sainit, ide_saclose, ide_sareset,
+    ide_init, ide_close, ide_reset,
     NULL, NULL, NULL, NULL
 };
 
@@ -2876,7 +2878,7 @@ const device_t ide_isa_2ch_device = {
     "ISA PC/AT IDE Controller (Dual-Channel)",
     DEVICE_ISA | DEVICE_AT,
     2,
-    ide_sainit, ide_saclose, ide_sareset,
+    ide_init, ide_close, ide_reset,
     NULL, NULL, NULL, NULL
 };
 
@@ -2884,7 +2886,7 @@ const device_t ide_isa_2ch_opt_device = {
     "ISA PC/AT IDE Controller (Single/Dual)",
     DEVICE_ISA | DEVICE_AT,
     3,
-    ide_sainit, ide_saclose, ide_sareset,
+    ide_init, ide_close, ide_reset,
     NULL, NULL, NULL, NULL
 };
 
@@ -2892,7 +2894,7 @@ const device_t ide_vlb_device = {
     "VLB IDE Controller",
     DEVICE_VLB | DEVICE_AT,
     4,
-    ide_sainit, ide_saclose, ide_sareset,
+    ide_init, ide_close, ide_reset,
     NULL, NULL, NULL, NULL
 };
 
@@ -2900,7 +2902,7 @@ const device_t ide_vlb_2ch_device = {
     "VLB IDE Controller (Dual-Channel)",
     DEVICE_VLB | DEVICE_AT,
     6,
-    ide_sainit, ide_saclose, ide_sareset,
+    ide_init, ide_close, ide_reset,
     NULL, NULL, NULL, NULL
 };
 
@@ -2908,7 +2910,7 @@ const device_t ide_pci_device = {
     "PCI IDE Controller",
     DEVICE_PCI | DEVICE_AT,
     8,
-    ide_sainit, ide_saclose, ide_sareset,
+    ide_init, ide_close, ide_reset,
     NULL, NULL, NULL, NULL
 };
 
@@ -2916,7 +2918,7 @@ const device_t ide_pci_2ch_device = {
     "PCI IDE Controller (Dual-Channel)",
     DEVICE_PCI | DEVICE_AT,
     10,
-    ide_sainit, ide_saclose, ide_sareset,
+    ide_init, ide_close, ide_reset,
     NULL, NULL, NULL, NULL
 };
 
