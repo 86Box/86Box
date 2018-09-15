@@ -532,7 +532,7 @@ machine_at_headland_common_init(int ht386)
 }
 
 void
-machine_at_heandland_init(const machine_t *model)
+machine_at_headland_init(const machine_t *model)
 {
     machine_at_common_ide_init(model);
 
