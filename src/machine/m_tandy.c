@@ -8,7 +8,7 @@
  *
  *		Emulation of Tandy models 1000, 1000HX and 1000SL2.
  *
- * Version:	@(#)m_tandy.c	1.0.7	2018/04/29
+ * Version:	@(#)m_tandy.c	1.0.8	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -121,6 +121,8 @@ typedef struct {
 
     t1kvid_t		*vid;
 } tandy_t;
+
+static video_timings_t timing_dram     = {VIDEO_BUS, 0,0,0, 0,0,0}; /*No additional waitstates*/
 
 
 static const scancode scancode_tandy[512] = {
@@ -1351,6 +1353,8 @@ vid_init(tandy_t *dev)
     memset(vid, 0x00, sizeof(t1kvid_t));
     vid->memctrl = -1;
     dev->vid = vid;
+
+    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
 
     display_type = machine_get_config_int("display_type");
     vid->composite = (display_type != TANDY_RGB);

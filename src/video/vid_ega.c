@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.17	2018/04/26
+ * Version:	@(#)vid_ega.c	1.0.18	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -47,6 +47,8 @@ enum {
 	EGA_SUPEREGA
 };
 
+
+static video_timings_t timing_ega	= {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 extern uint8_t edatlookup[4][4];
 
@@ -994,6 +996,8 @@ static void *ega_standalone_init(const device_t *info)
 
         memset(ega, 0, sizeof(ega_t));
 
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ega);
+
 	overscan_x = 16;
 	overscan_y = 28;
 
@@ -1134,7 +1138,7 @@ static void LoadFontxFile(wchar_t *fname)
 
 void *jega_standalone_init(const device_t *info)
 {
-        ega_t *ega = (ega_t *)ega_standalone_init(info);
+        ega_t *ega = (ega_t *) ega_standalone_init(info);
 
 	LoadFontxFile(L"roms/video/ega/JPNHN19X.FNT");
 	LoadFontxFile(L"roms/video/ega/JPNZN16X.FNT");

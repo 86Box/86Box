@@ -8,7 +8,7 @@
  *
  *		ATI 18800 emulation (VGA Edge-16)
  *
- * Version:	@(#)vid_ati18800.c	1.0.12	2018/04/29
+ * Version:	@(#)vid_ati18800.c	1.0.13	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -62,6 +62,8 @@ typedef struct ati18800_t
         uint8_t regs[256];
         int index;
 } ati18800_t;
+
+static video_timings_t timing_ati18800 = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 
 static void ati18800_out(uint16_t addr, uint8_t val, void *p)
@@ -189,6 +191,8 @@ static void *ati18800_init(const device_t *info)
 {
         ati18800_t *ati18800 = malloc(sizeof(ati18800_t));
         memset(ati18800, 0, sizeof(ati18800_t));
+
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati18800);
 
 	switch (info->local) {
 #if defined(DEV_BRANCH) && defined(USE_VGAWONDER)

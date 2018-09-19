@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.20	2018/08/14
+ * Version:	@(#)vid_ati28800.c	1.0.21	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -77,6 +77,8 @@ typedef struct ati28800_t
 	uint16_t	get_korean_font_base;
 	int		ksc5601_mode_enabled;
 } ati28800_t;
+
+static video_timings_t timing_ati28800 = {VIDEO_ISA, 3,  3,  6,   5,  5, 10};
 
 
 #ifdef ENABLE_ATI28800_LOG
@@ -449,6 +451,8 @@ ati28800k_init(const device_t *info)
         ati28800_t *ati28800 = malloc(sizeof(ati28800_t));
         memset(ati28800, 0, sizeof(ati28800_t));
 
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati28800);
+
 	ati28800->memory = device_get_config_int("memory");
 		
         ati28800->port_03dd_val = 0;
@@ -486,10 +490,12 @@ ati28800_init(const device_t *info)
     ati28800 = malloc(sizeof(ati28800_t));
     memset(ati28800, 0x00, sizeof(ati28800_t));
 
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati28800);
+
     ati28800->memory = device_get_config_int("memory");
-	
+
     switch(info->local) {
-	case GFX_VGAWONDERXL:
+	case VID_VGAWONDERXL:
 		ati28800->id = 6;
 		rom_init_interleaved(&ati28800->bios_rom,
 				     BIOS_VGAXL_EVEN_PATH,
@@ -499,7 +505,7 @@ ati28800_init(const device_t *info)
 		break;
 
 #if defined(DEV_BRANCH) && defined(USE_XL24)
-	case GFX_VGAWONDERXL24:
+	case VID_VGAWONDERXL24:
 		ati28800->id = 6;
 		rom_init_interleaved(&ati28800->bios_rom,
 				     BIOS_XL24_EVEN_PATH,
@@ -535,12 +541,12 @@ ati28800_init(const device_t *info)
 
 	switch (info->local)
 	{
-		case GFX_VGAWONDERXL:
+		case VID_VGAWONDERXL:
 			ati_eeprom_load(&ati28800->eeprom, L"ati28800xl.nvr", 0);
 			break;
 			
 #if defined(DEV_BRANCH) && defined(USE_XL24)
-		case GFX_VGAWONDERXL24:
+		case VID_VGAWONDERXL24:
 			ati_eeprom_load(&ati28800->eeprom, L"ati28800xl24.nvr", 0);
 			break;
 #endif
@@ -692,7 +698,7 @@ const device_t compaq_ati28800_device =
 {
         "Compaq ATI-28800",
         DEVICE_ISA,
-	GFX_VGAWONDERXL,
+	VID_VGAWONDERXL,
         ati28800_init, ati28800_close, NULL,
         compaq_ati28800_available,
         ati28800_speed_changed,
@@ -705,7 +711,7 @@ const device_t ati28800_wonderxl24_device =
 {
         "ATI-28800 (VGA Wonder XL24)",
         DEVICE_ISA,
-	GFX_VGAWONDERXL24,
+	VID_VGAWONDERXL24,
         ati28800_init, ati28800_close, NULL,
         ati28800_wonderxl24_available,
         ati28800_speed_changed,

@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.20	2018/07/16
+ * Version:	@(#)vid_cl_54xx.c	1.0.21	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,
@@ -180,6 +180,11 @@ typedef struct gd54xx_t
     uint32_t extpallook[256];
     PALETTE extpal;
 } gd54xx_t;
+
+
+static video_timings_t timing_gd54xx_isa	= {VIDEO_ISA, 3,  3,  6,   8,  8, 12};
+static video_timings_t timing_gd54xx_vlb_pci	= {VIDEO_BUS, 4,  4,  8,  10, 10, 20};
+
 
 static void 
 gd543x_mmio_write(uint32_t addr, uint8_t val, void *p);
@@ -2248,6 +2253,11 @@ static void
 
     if (romfn)
 	rom_init(&gd54xx->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+    if (info->flags & DEVICE_ISA)
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_isa);
+    else
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_vlb_pci);
 
     svga_init(&gd54xx->svga, gd54xx, gd54xx->vram_size << 20,
 	      gd54xx_recalctimings, gd54xx_in, gd54xx_out,

@@ -8,7 +8,7 @@
  *
  *		Emulation of the Tseng Labs ET4000.
  *
- * Version:	@(#)vid_et4000.c	1.0.17	2018/09/15
+ * Version:	@(#)vid_et4000.c	1.0.19	2018/09/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -93,6 +93,9 @@ static const uint8_t crtc_mask[0x40] = {
     0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
+
+static video_timings_t timing_et4000_isa = {VIDEO_ISA, 3,  3,  6,   5,  5, 10};
+static video_timings_t timing_et4000_mca = {VIDEO_MCA, 4,  5, 10,   5,  5, 10};
 
 
 static uint8_t
@@ -490,6 +493,7 @@ et4000_init(const device_t *info)
     switch(dev->type) {
 	case 0:		/* ISA ET4000AX */
 		dev->vram_size = device_get_config_int("memory") << 10;
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_isa);
 		svga_init(&dev->svga, dev, dev->vram_size,
 			  et4000_recalctimings, et4000_in, et4000_out,
 			  NULL, NULL);
@@ -499,6 +503,7 @@ et4000_init(const device_t *info)
 
 	case 1:		/* MCA ET4000AX */
 		dev->vram_size = 1024 << 10;
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_mca);
 		svga_init(&dev->svga, dev, dev->vram_size,
 			  et4000_recalctimings, et4000_in, et4000_out,
 			  NULL, NULL);
@@ -515,6 +520,7 @@ et4000_init(const device_t *info)
 		dev->port_22cb_val = 0x60;
 		dev->port_32cb_val = 0;
 		dev->svga.ksc5601_sbyte_mask = 0x80;
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_isa);
 		svga_init(&dev->svga, dev, dev->vram_size,
 			  et4000_recalctimings, et4000k_in, et4000k_out,
 			  NULL, NULL);
@@ -536,7 +542,7 @@ et4000_init(const device_t *info)
     rom_init(&dev->bios_rom, (wchar_t *) fn,
 	     0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
-    pclog("VIDEO: %s (vram=%dKB)\n", dev->name, dev->vram_size>>10);
+    /* pclog("VIDEO: %s (vram=%dKB)\n", dev->name, dev->vram_size>>10); */
 
     return(dev);
 }

@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.33	2018/08/16
+ * Version:	@(#)video.h	1.0.35	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -27,98 +27,100 @@
 
 
 enum {
-    GFX_NONE = 0,
-    GFX_INTERNAL,
-    GFX_CGA,
-    GFX_COMPAQ_CGA,		/* Compaq CGA */
-    GFX_COMPAQ_CGA_2,		/* Compaq CGA 2 */
-    GFX_COLORPLUS,		/* Plantronics ColorPlus */
-    GFX_WY700,			/* Wyse 700 */
-    GFX_MDA,
-    GFX_GENIUS,			/* MDSI Genius */
-    GFX_HERCULES,
-    GFX_HERCULESPLUS,
-    GFX_INCOLOR,		/* Hercules InColor */
-    GFX_EGA,			/* Using IBM EGA BIOS */
-    GFX_COMPAQ_EGA,		/* Compaq EGA */
-    GFX_SUPER_EGA,		/* Using Chips & Technologies SuperEGA BIOS */
-    GFX_VGA,        		/* IBM VGA */
-    GFX_TVGA,			/* Using Trident TVGA8900D BIOS */
-    GFX_ET4000_ISA,		/* Tseng ET4000 */
-    GFX_ET4000_MCA,		/* Tseng ET4000 */
-    GFX_TGKOREANVGA,		/*Trigem Korean VGA(Tseng ET4000AX)*/	
-    GFX_ET4000W32_CARDEX_VLB,	/* Tseng ET4000/W32p (Cardex) VLB */
-    GFX_ET4000W32_CARDEX_PCI,	/* Tseng ET4000/W32p (Cardex) PCI */
+    VID_NONE = 0,
+    VID_INTERNAL,
+    VID_CGA,
+    VID_COMPAQ_CGA,		/* Compaq CGA */
+    VID_COMPAQ_CGA_2,		/* Compaq CGA 2 */
+    VID_COLORPLUS,		/* Plantronics ColorPlus */
+    VID_WY700,			/* Wyse 700 */
+    VID_MDA,
+    VID_GENIUS,			/* MDSI Genius */
+    VID_HERCULES,
+    VID_HERCULESPLUS,
+    VID_INCOLOR,		/* Hercules InColor */
+    VID_EGA,			/* Using IBM EGA BIOS */
+    VID_COMPAQ_EGA,		/* Compaq EGA */
+    VID_SUPER_EGA,		/* Using Chips & Technologies SuperEGA BIOS */
+    VID_VGA,        		/* IBM VGA */
+    VID_TVGA,			/* Using Trident TVGA8900D BIOS */
+    VID_ET4000_ISA,		/* Tseng ET4000 */
+    VID_ET4000_MCA,		/* Tseng ET4000 */
+    VID_TGKOREANVGA,		/*Trigem Korean VGA(Tseng ET4000AX)*/	
+    VID_ET4000W32_CARDEX_VLB,	/* Tseng ET4000/W32p (Cardex) VLB */
+    VID_ET4000W32_CARDEX_PCI,	/* Tseng ET4000/W32p (Cardex) PCI */
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
-    GFX_ET4000W32_VLB,		/* Tseng ET4000/W32p (Diamond Stealth 32) VLB */
-    GFX_ET4000W32_PCI,		/* Tseng ET4000/W32p (Diamond Stealth 32) PCI */
+    VID_ET4000W32_VLB,		/* Tseng ET4000/W32p (Diamond Stealth 32) VLB */
+    VID_ET4000W32_PCI,		/* Tseng ET4000/W32p (Diamond Stealth 32) PCI */
 #endif
-    GFX_BAHAMAS64_VLB,		/* S3 Vision864 (Paradise Bahamas 64) VLB */
-    GFX_BAHAMAS64_PCI,		/* S3 Vision864 (Paradise Bahamas 64) PCI */
-    GFX_N9_9FX_VLB,		/* S3 764/Trio64 (Number Nine 9FX) VLB */
-    GFX_N9_9FX_PCI,		/* S3 764/Trio64 (Number Nine 9FX) PCI */
-    GFX_TGUI9400CXI,   		/* Trident TGUI9400CXi VLB */
-    GFX_TGUI9440_VLB,   	/* Trident TGUI9440AGi VLB */
-    GFX_TGUI9440_PCI,   	/* Trident TGUI9440AGi PCI */
-    GFX_ATIKOREANVGA,		/*ATI Korean VGA (28800-5)*/
-    GFX_VGA88,  		/* ATI VGA-88 (18800-1) */
-    GFX_VGAEDGE16,  		/* ATI VGA Edge-16 (18800-1) */
-    GFX_VGACHARGER, 		/* ATI VGA Charger (28800-5) */
+    VID_BAHAMAS64_VLB,		/* S3 Vision864 (Paradise Bahamas 64) VLB */
+    VID_BAHAMAS64_PCI,		/* S3 Vision864 (Paradise Bahamas 64) PCI */
+    VID_N9_9FX_VLB,		/* S3 764/Trio64 (Number Nine 9FX) VLB */
+    VID_N9_9FX_PCI,		/* S3 764/Trio64 (Number Nine 9FX) PCI */
+    VID_TGUI9400CXI,   		/* Trident TGUI9400CXi VLB */
+    VID_TGUI9440_VLB,   	/* Trident TGUI9440AGi VLB */
+    VID_TGUI9440_PCI,   	/* Trident TGUI9440AGi PCI */
+    VID_ATIKOREANVGA,		/*ATI Korean VGA (28800-5)*/
+    VID_VGA88,  		/* ATI VGA-88 (18800-1) */
+    VID_VGAEDGE16,  		/* ATI VGA Edge-16 (18800-1) */
+    VID_VGACHARGER, 		/* ATI VGA Charger (28800-5) */
 #if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
-    GFX_VGAWONDER,		/* Compaq ATI VGA Wonder (18800) */
+    VID_VGAWONDER,		/* Compaq ATI VGA Wonder (18800) */
 #endif
-    GFX_VGAWONDERXL,		/* Compaq ATI VGA Wonder XL (28800-5) */
+    VID_VGAWONDERXL,		/* Compaq ATI VGA Wonder XL (28800-5) */
 #if defined(DEV_BRANCH) && defined(USE_XL24)
-    GFX_VGAWONDERXL24,		/* Compaq ATI VGA Wonder XL24 (28800-6) */
+    VID_VGAWONDERXL24,		/* Compaq ATI VGA Wonder XL24 (28800-6) */
 #endif
-    GFX_MACH64GX_ISA,		/* ATI Graphics Pro Turbo (Mach64) ISA */
-    GFX_MACH64GX_VLB,		/* ATI Graphics Pro Turbo (Mach64) VLB */
-    GFX_MACH64GX_PCI,		/* ATI Graphics Pro Turbo (Mach64) PCI */
-    GFX_MACH64VT2,  		/* ATI Mach64 VT2 */
-    GFX_CL_GD5424_ISA, 		/* Cirrus Logic CL-GD 5424 ISA */
-    GFX_CL_GD5424_VLB, 		/* Cirrus Logic CL-GD 5424 VLB */
-    GFX_CL_GD5426_VLB, 		/* Diamond SpeedStar PRO (Cirrus Logic CL-GD 5426) VLB */
-    GFX_CL_GD5428_ISA, 		/* Cirrus Logic CL-GD 5428 ISA */
-    GFX_CL_GD5428_VLB,		/* Cirrus Logic CL-GD 5428 VLB */
-    GFX_CL_GD5429_ISA, 		/* Cirrus Logic CL-GD 5429 ISA */
-    GFX_CL_GD5429_VLB,		/* Cirrus Logic CL-GD 5429 VLB */
-    GFX_CL_GD5430_VLB,		/* Diamond SpeedStar PRO SE (Cirrus Logic CL-GD 5430) VLB */
-    GFX_CL_GD5430_PCI,		/* Cirrus Logic CL-GD 5430 PCI */
-    GFX_CL_GD5434_ISA, 		/* Cirrus Logic CL-GD 5434 ISA */
-    GFX_CL_GD5434_VLB,		/* Cirrus Logic CL-GD 5434 VLB */
-    GFX_CL_GD5434_PCI,		/* Cirrus Logic CL-GD 5434 PCI */
-    GFX_CL_GD5436_PCI,		/* Cirrus Logic CL-GD 5436 PCI */
-    GFX_CL_GD5440_PCI,		/* Cirrus Logic CL-GD 5440 PCI */
-    GFX_CL_GD5446_PCI,		/* Cirrus Logic CL-GD 5446 PCI */
-    GFX_CL_GD5446_STB_PCI,	/* STB Nitro 64V (Cirrus Logic CL-GD 5446) PCI */
-    GFX_CL_GD5480_PCI,		/* Cirrus Logic CL-GD 5480 PCI */
-    GFX_OTI037C,     		/* Oak OTI-037C */
-    GFX_OTI067,     		/* Oak OTI-067 */
-    GFX_OTI077,     		/* Oak OTI-077 */
-    GFX_PVGA1A,			/* Paradise PVGA1A Standalone */
-    GFX_WD90C11,		/* Paradise WD90C11-LR Standalone */
-    GFX_WD90C30,		/* Paradise WD90C30-LR Standalone */
-    GFX_PHOENIX_TRIO32_VLB, 	/* S3 732/Trio32 (Phoenix) VLB */
-    GFX_PHOENIX_TRIO32_PCI, 	/* S3 732/Trio32 (Phoenix) PCI */
-    GFX_PHOENIX_TRIO64_VLB, 	/* S3 764/Trio64 (Phoenix) VLB */
-    GFX_PHOENIX_TRIO64_PCI, 	/* S3 764/Trio64 (Phoenix) PCI */
-    GFX_VIRGE_VLB,      	/* S3 Virge VLB */
-    GFX_VIRGE_PCI,      	/* S3 Virge PCI */
-    GFX_VIRGEDX_VLB,    	/* S3 Virge/DX VLB */
-    GFX_VIRGEDX_PCI,    	/* S3 Virge/DX PCI */
-    GFX_VIRGEDX4_VLB,		/* S3 Virge/DX (VBE 2.0) VLB */
-    GFX_VIRGEDX4_PCI,		/* S3 Virge/DX (VBE 2.0) PCI */
-    GFX_VIRGEVX_VLB,		/* S3 Virge/VX VLB */
-    GFX_VIRGEVX_PCI,		/* S3 Virge/VX PCI */
-    GFX_STEALTH64_VLB,		/* S3 Vision864 (Diamond Stealth 64) VLB */
-    GFX_STEALTH64_PCI,		/* S3 Vision864 (Diamond Stealth 64) PCI */
-    GFX_PHOENIX_VISION864_VLB,	/* S3 Vision864 (Phoenix) VLB */
-    GFX_PHOENIX_VISION864_PCI,	/* S3 Vision864 (Phoenix) PCI */
+    VID_MACH64GX_ISA,		/* ATI Graphics Pro Turbo (Mach64) ISA */
+    VID_MACH64GX_VLB,		/* ATI Graphics Pro Turbo (Mach64) VLB */
+    VID_MACH64GX_PCI,		/* ATI Graphics Pro Turbo (Mach64) PCI */
+    VID_MACH64VT2,  		/* ATI Mach64 VT2 */
+    VID_CL_GD5424_ISA, 		/* Cirrus Logic CL-GD 5424 ISA */
+    VID_CL_GD5424_VLB, 		/* Cirrus Logic CL-GD 5424 VLB */
+    VID_CL_GD5426_VLB, 		/* Diamond SpeedStar PRO (Cirrus Logic CL-GD 5426) VLB */
+    VID_CL_GD5428_ISA, 		/* Cirrus Logic CL-GD 5428 ISA */
+    VID_CL_GD5428_VLB,		/* Cirrus Logic CL-GD 5428 VLB */
+    VID_CL_GD5429_ISA, 		/* Cirrus Logic CL-GD 5429 ISA */
+    VID_CL_GD5429_VLB,		/* Cirrus Logic CL-GD 5429 VLB */
+    VID_CL_GD5430_VLB,		/* Diamond SpeedStar PRO SE (Cirrus Logic CL-GD 5430) VLB */
+    VID_CL_GD5430_PCI,		/* Cirrus Logic CL-GD 5430 PCI */
+    VID_CL_GD5434_ISA, 		/* Cirrus Logic CL-GD 5434 ISA */
+    VID_CL_GD5434_VLB,		/* Cirrus Logic CL-GD 5434 VLB */
+    VID_CL_GD5434_PCI,		/* Cirrus Logic CL-GD 5434 PCI */
+    VID_CL_GD5436_PCI,		/* Cirrus Logic CL-GD 5436 PCI */
+    VID_CL_GD5440_PCI,		/* Cirrus Logic CL-GD 5440 PCI */
+    VID_CL_GD5446_PCI,		/* Cirrus Logic CL-GD 5446 PCI */
+    VID_CL_GD5446_STB_PCI,	/* STB Nitro 64V (Cirrus Logic CL-GD 5446) PCI */
+    VID_CL_GD5480_PCI,		/* Cirrus Logic CL-GD 5480 PCI */
+    VID_EXPERTCOLOR_VLB,	/* S3 Vision868 (ExpertColor DSV3868P CF55) VLB */
+    VID_EXPERTCOLOR_PCI,	/* S3 Vision868 (ExpertColor DSV3868P CF55) PCI */
+    VID_OTI037C,     		/* Oak OTI-037C */
+    VID_OTI067,     		/* Oak OTI-067 */
+    VID_OTI077,     		/* Oak OTI-077 */
+    VID_PVGA1A,			/* Paradise PVGA1A Standalone */
+    VID_WD90C11,		/* Paradise WD90C11-LR Standalone */
+    VID_WD90C30,		/* Paradise WD90C30-LR Standalone */
+    VID_PHOENIX_VISION864_VLB,	/* S3 Vision864 (Phoenix) VLB */
+    VID_PHOENIX_VISION864_PCI,	/* S3 Vision864 (Phoenix) PCI */
+    VID_PHOENIX_TRIO32_VLB, 	/* S3 732/Trio32 (Phoenix) VLB */
+    VID_PHOENIX_TRIO32_PCI, 	/* S3 732/Trio32 (Phoenix) PCI */
+    VID_PHOENIX_TRIO64_VLB, 	/* S3 764/Trio64 (Phoenix) VLB */
+    VID_PHOENIX_TRIO64_PCI, 	/* S3 764/Trio64 (Phoenix) PCI */
+    VID_STEALTH64_VLB,		/* S3 Trio64 (Diamond Stealth 64) VLB */
+    VID_STEALTH64_PCI,		/* S3 Trio64 (Diamond Stealth 64) PCI */
 #if defined(DEV_BRANCH) && defined(USE_TI)
-    GFX_TICF62011,  		/* TI CF62011 */
+    VID_TICF62011,  		/* TI CF62011 */
 #endif
+    VID_VIRGE_VLB,      	/* S3 Virge VLB */
+    VID_VIRGE_PCI,      	/* S3 Virge PCI */
+    VID_VIRGEDX_VLB,    	/* S3 Virge/DX VLB */
+    VID_VIRGEDX_PCI,    	/* S3 Virge/DX PCI */
+    VID_VIRGEDX4_VLB,		/* S3 Virge/DX (VBE 2.0) VLB */
+    VID_VIRGEDX4_PCI,		/* S3 Virge/DX (VBE 2.0) PCI */
+    VID_VIRGEVX_VLB,		/* S3 Virge/VX VLB */
+    VID_VIRGEVX_PCI,		/* S3 Virge/VX PCI */
 
-    GFX_MAX
+    VID_MAX
 };
 
 enum {
@@ -134,6 +136,17 @@ enum {
 extern "C" {
 #endif
 
+
+enum {
+    VIDEO_ISA = 0,
+    VIDEO_MCA,
+    VIDEO_BUS
+};
+
+#define VIDEO_FLAG_TYPE_CGA     0
+#define VIDEO_FLAG_TYPE_MDA     1
+#define VIDEO_FLAG_TYPE_SPECIAL 2
+#define VIDEO_FLAG_TYPE_MASK    3
 
 typedef struct {
     int		type;
@@ -158,7 +171,7 @@ typedef struct {
 typedef rgb_t PALETTE[256];
 
 
-extern int	gfx_present[GFX_MAX];
+extern int	gfx_present[VID_MAX];
 extern int	egareads,
 		egawrites;
 extern int	changeframecount;
@@ -217,7 +230,6 @@ extern char	*video_card_getname(int card);
 extern const device_t	*video_card_getdevice(int card);
 #endif
 extern int	video_card_has_config(int card);
-extern video_timings_t	*video_card_gettiming(int card);
 extern int	video_card_getid(char *s);
 extern int	video_old_to_new(int card);
 extern int	video_new_to_old(int card);
@@ -226,6 +238,8 @@ extern int	video_get_video_from_internal_name(char *s);
 extern int 	video_is_mda(void);
 extern int 	video_is_cga(void);
 extern int 	video_is_ega_vga(void);
+extern void	video_inform(int type, const video_timings_t *ptr);
+extern int	video_get_type(void);
 
 
 extern void	video_setblit(void(*blit)(int,int,int,int,int,int));
@@ -243,7 +257,6 @@ extern void	updatewindowsize(int x, int y);
 
 extern void	video_init(void);
 extern void	video_close(void);
-extern void	video_font_reset(void);
 extern void	video_reset(int card);
 extern uint8_t	video_force_resize_get(void);
 extern void	video_force_resize_set(uint8_t res);

@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.22	2018/07/16
+ * Version:	@(#)vid_ati_mach64.c	1.0.23	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -255,6 +255,9 @@ typedef struct mach64_t
         
         int overlay_v_acc;
 } mach64_t;
+
+static video_timings_t timing_mach64_isa	= {VIDEO_ISA, 3,  3,  6,   5,  5, 10};
+static video_timings_t timing_mach64_vlb_pci	= {VIDEO_BUS, 2,  2,  1,  20, 20, 21};
 
 enum
 {
@@ -3333,6 +3336,11 @@ static void *mach64gx_init(const device_t *info)
 {
         mach64_t *mach64 = mach64_common_init(info);
 
+        if (info->flags & DEVICE_ISA)
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_isa);
+	else
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_vlb_pci);
+
         mach64->type = MACH64_GX;
 	mach64->pci = !!(info->flags & DEVICE_PCI);
         mach64->pci_id = (int)'X' | ((int)'G' << 8);
@@ -3359,6 +3367,8 @@ static void *mach64vt2_init(const device_t *info)
 {
         mach64_t *mach64 = mach64_common_init(info);
         svga_t *svga = &mach64->svga;
+
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_vlb_pci);
 
         mach64->type = MACH64_VT2;
 	mach64->pci = 1;

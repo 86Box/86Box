@@ -8,7 +8,7 @@
  *
  *		MDSI Genius VHR emulation.
  *
- * Version:	@(#)vid_genius.c	1.0.10	2018/05/20
+ * Version:	@(#)vid_genius.c	1.0.11	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -40,7 +40,9 @@
 #define GENIUS_YSIZE 1008
 
 
-extern uint8_t fontdat8x12[256][16];	
+extern uint8_t fontdat8x12[256][16];
+
+static video_timings_t timing_genius = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 
 /* I'm at something of a disadvantage writing this emulation: I don't have an
@@ -573,6 +575,7 @@ void *genius_init(const device_t *info)
         int c;
         genius_t *genius = malloc(sizeof(genius_t));
         memset(genius, 0, sizeof(genius_t));
+	video_inform(VIDEO_FLAG_TYPE_MDA, &timing_genius);
 
 	/* 160k video RAM */
         genius->vram = malloc(0x28000);

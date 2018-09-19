@@ -28,7 +28,7 @@
  *		boot. Sometimes, they do, and then it shows an "Incorrect
  *		DOS" error message??  --FvK
  *
- * Version:	@(#)m_ps1.c	1.0.11	2018/09/15
+ * Version:	@(#)m_ps1.c	1.0.12	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -493,7 +493,7 @@ ps1_setup(int model)
 #endif
 
 	/* Initialize the video controller. */
-	if (gfxcard == GFX_INTERNAL)
+	if (gfxcard == VID_INTERNAL)
 		device_add(&ibm_ps1_2121_device);
 
 	device_add(&fdc_at_ps1_device);

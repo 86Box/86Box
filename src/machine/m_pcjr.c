@@ -8,7 +8,7 @@
  *
  *		Emulation of the IBM PCjr.
  *
- * Version:	@(#)m_pcjr.c	1.0.8	2018/04/29
+ * Version:	@(#)m_pcjr.c	1.0.9	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -91,6 +91,8 @@ typedef struct {
     uint8_t	pa;
     uint8_t	pb;
 } pcjr_t;
+
+static video_timings_t timing_dram     = {VIDEO_BUS, 0,0,0, 0,0,0}; /*No additional waitstates*/
 
 
 static uint8_t crtcmask[32] = {
@@ -757,6 +759,7 @@ machine_pcjr_init(const machine_t *model)
     io_sethandler(0x03d0, 16,
 		  vid_in, NULL, NULL, vid_out, NULL, NULL, pcjr);
     timer_add(vid_poll, &pcjr->vidtime, TIMER_ALWAYS_ENABLED, pcjr);
+    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
     device_add_ex(&pcjr_device, pcjr);
 
     /* Initialize the keyboard. */

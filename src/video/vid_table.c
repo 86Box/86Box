@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.36	2018/09/12
+ * Version:	@(#)vid_table.c	1.0.37	2018/09/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -60,119 +60,110 @@
 #include "vid_wy700.h"
 
 
-enum {
-    VIDEO_ISA = 0,
-	VIDEO_MCA,
-    VIDEO_BUS
-};
-
-#define VIDEO_FLAG_TYPE_CGA     0
-#define VIDEO_FLAG_TYPE_MDA     1
-#define VIDEO_FLAG_TYPE_SPECIAL 2
-#define VIDEO_FLAG_TYPE_MASK    3
-
 typedef struct {
     const char		*name;
     const char		*internal_name;
     const device_t	*device;
     int			legacy_id;
-    int			flags;
-    video_timings_t	timing;
 } VIDEO_CARD;
 
 
+static video_timings_t timing_default = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
+
 static const VIDEO_CARD
 video_cards[] = {
-    { "None",						"none",			NULL,					GFX_NONE			},
-    { "Internal",					"internal",		NULL,					GFX_INTERNAL,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-	{ "[ISA] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_isa",		&mach64gx_isa_device,			GFX_MACH64GX_ISA,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
-    { "[ISA] ATI Korean VGA (ATI-28800-5)",		"ati28800k",		&ati28800k_device,			GFX_ATIKOREANVGA,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
-    { "[ISA] ATI VGA-88 (ATI-18800-1)",			"ati18800v",		&ati18800_vga88_device,			GFX_VGA88,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] ATI VGA Charger (ATI-28800-5)",		"ati28800",		&ati28800_device,			GFX_VGACHARGER,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
-    { "[ISA] ATI VGA Edge-16 (ATI-18800-5)",		"ati18800",		&ati18800_device,			GFX_VGAEDGE16,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
+    { "None",						"none",			NULL,					VID_NONE			},
+    { "Internal",					"internal",		NULL,					VID_INTERNAL			},
+    { "[ISA] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_isa",		&mach64gx_isa_device,			VID_MACH64GX_ISA		},
+    { "[ISA] ATI Korean VGA (ATI-28800-5)",		"ati28800k",		&ati28800k_device,			VID_ATIKOREANVGA		},
+    { "[ISA] ATI VGA-88 (ATI-18800-1)",			"ati18800v",		&ati18800_vga88_device,			VID_VGA88			},
+    { "[ISA] ATI VGA Charger (ATI-28800-5)",		"ati28800",		&ati28800_device,			VID_VGACHARGER			},
+    { "[ISA] ATI VGA Edge-16 (ATI-18800-5)",		"ati18800",		&ati18800_device,			VID_VGAEDGE16			},
 #if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
-    { "[ISA] ATI VGA Wonder (ATI-18800)",		"ati18800w",		&ati18800_wonder_device,		GFX_VGAWONDER,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
+    { "[ISA] ATI VGA Wonder (ATI-18800)",		"ati18800w",		&ati18800_wonder_device,		VID_VGAWONDER			},
 #endif
 #if defined(DEV_BRANCH) && defined(USE_XL24)
-    { "[ISA] ATI VGA Wonder XL24 (ATI-28800-6)",	"ati28800w",		&ati28800_wonderxl24_device,		GFX_VGAWONDERXL24,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
+    { "[ISA] ATI VGA Wonder XL24 (ATI-28800-6)",	"ati28800w",		&ati28800_wonderxl24_device,		VID_VGAWONDERXL24		},
 #endif
-    { "[ISA] CGA",					"cga",			&cga_device,				GFX_CGA,			VIDEO_FLAG_TYPE_CGA, 	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] Chips & Technologies SuperEGA",		"superega",		&sega_device,				GFX_SUPER_EGA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] Cirrus Logic CL-GD 5428",			"cl_gd5428_isa",	&gd5428_isa_device,			GFX_CL_GD5428_ISA,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
-    { "[ISA] Cirrus Logic CL-GD 5429",			"cl_gd5429_isa",	&gd5429_isa_device,			GFX_CL_GD5429_ISA,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
-    { "[ISA] Cirrus Logic CL-GD 5434",			"cl_gd5434_isa",	&gd5434_isa_device,			GFX_CL_GD5434_ISA,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
-    { "[ISA] Compaq ATI VGA Wonder XL (ATI-28800-5)",	"compaq_ati28800",	&compaq_ati28800_device,		GFX_VGAWONDERXL,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
-    { "[ISA] Compaq CGA",				"compaq_cga",		&compaq_cga_device,			GFX_COMPAQ_CGA,			VIDEO_FLAG_TYPE_CGA,	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] Compaq CGA 2",				"compaq_cga_2",		&compaq_cga_2_device,			GFX_COMPAQ_CGA_2,		VIDEO_FLAG_TYPE_CGA,	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] Compaq EGA",				"compaq_ega",		&cpqega_device,				GFX_COMPAQ_EGA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] EGA",					"ega",			&ega_device,				GFX_EGA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] Hercules",					"hercules",		&hercules_device,			GFX_HERCULES,			VIDEO_FLAG_TYPE_MDA,	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] Hercules Plus",				"hercules_plus",	&herculesplus_device,			GFX_HERCULESPLUS,		VIDEO_FLAG_TYPE_MDA, 	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] Hercules InColor",				"incolor",		&incolor_device,			GFX_INCOLOR,			VIDEO_FLAG_TYPE_MDA,	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] MDA",					"mda",			&mda_device,				GFX_MDA,			VIDEO_FLAG_TYPE_MDA, 	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] MDSI Genius",				"genius",		&genius_device,				GFX_GENIUS,			VIDEO_FLAG_TYPE_MDA, 	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] OAK OTI-037C",				"oti037c",		&oti037c_device,			GFX_OTI037C,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 6,  8, 16,   6,  8, 16}},
-    { "[ISA] OAK OTI-067",				"oti067",		&oti067_device,				GFX_OTI067,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 6,  8, 16,   6,  8, 16}},
-    { "[ISA] OAK OTI-077",				"oti077",		&oti077_device,				GFX_OTI077,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 6,  8, 16,   6,  8, 16}},
-    { "[ISA] Paradise PVGA1A",				"pvga1a",		&paradise_pvga1a_device,		GFX_PVGA1A,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] Paradise WD90C11-LR",			"wd90c11",		&paradise_wd90c11_device,		GFX_WD90C11,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    { "[ISA] Paradise WD90C30-LR",			"wd90c30",		&paradise_wd90c30_device,		GFX_WD90C30,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 6,  8, 16,   6,  8, 16}},
-    { "[ISA] Plantronics ColorPlus",			"plantronics",		&colorplus_device,			GFX_COLORPLUS,			VIDEO_FLAG_TYPE_CGA,	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
+    { "[ISA] CGA",					"cga",			&cga_device,				VID_CGA				},
+    { "[ISA] Chips & Technologies SuperEGA",		"superega",		&sega_device,				VID_SUPER_EGA			},
+    { "[ISA] Cirrus Logic CL-GD 5428",			"cl_gd5428_isa",	&gd5428_isa_device,			VID_CL_GD5428_ISA		},
+    { "[ISA] Cirrus Logic CL-GD 5429",			"cl_gd5429_isa",	&gd5429_isa_device,			VID_CL_GD5429_ISA		},
+    { "[ISA] Cirrus Logic CL-GD 5434",			"cl_gd5434_isa",	&gd5434_isa_device,			VID_CL_GD5434_ISA		},
+    { "[ISA] Compaq ATI VGA Wonder XL (ATI-28800-5)",	"compaq_ati28800",	&compaq_ati28800_device,		VID_VGAWONDERXL			},
+    { "[ISA] Compaq CGA",				"compaq_cga",		&compaq_cga_device,			VID_COMPAQ_CGA			},
+    { "[ISA] Compaq CGA 2",				"compaq_cga_2",		&compaq_cga_2_device,			VID_COMPAQ_CGA_2		},
+    { "[ISA] Compaq EGA",				"compaq_ega",		&cpqega_device,				VID_COMPAQ_EGA			},
+    { "[ISA] EGA",					"ega",			&ega_device,				VID_EGA				},
+    { "[ISA] Hercules",					"hercules",		&hercules_device,			VID_HERCULES			},
+    { "[ISA] Hercules Plus",				"hercules_plus",	&herculesplus_device,			VID_HERCULESPLUS		},
+    { "[ISA] Hercules InColor",				"incolor",		&incolor_device,			VID_INCOLOR			},
+    { "[ISA] MDA",					"mda",			&mda_device,				VID_MDA				},
+    { "[ISA] MDSI Genius",				"genius",		&genius_device,				VID_GENIUS			},
+    { "[ISA] OAK OTI-037C",				"oti037c",		&oti037c_device,			VID_OTI037C			},
+    { "[ISA] OAK OTI-067",				"oti067",		&oti067_device,				VID_OTI067			},
+    { "[ISA] OAK OTI-077",				"oti077",		&oti077_device,				VID_OTI077			},
+    { "[ISA] Paradise PVGA1A",				"pvga1a",		&paradise_pvga1a_device,		VID_PVGA1A			},
+    { "[ISA] Paradise WD90C11-LR",			"wd90c11",		&paradise_wd90c11_device,		VID_WD90C11			},
+    { "[ISA] Paradise WD90C30-LR",			"wd90c30",		&paradise_wd90c30_device,		VID_WD90C30			},
+    { "[ISA] Plantronics ColorPlus",			"plantronics",		&colorplus_device,			VID_COLORPLUS			},
 #if defined(DEV_BRANCH) && defined(USE_TI)
-    { "[ISA] TI CF62011 SVGA",				"ti_cf62011",		&ti_cf62011_device,			GFX_TICF62011,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
+    { "[ISA] TI CF62011 SVGA",				"ti_cf62011",		&ti_cf62011_device,			VID_TICF62011			},
 #endif
-    {"[ISA] Trident TVGA8900D",				"tvga8900d",		&tvga8900d_device,			GFX_TVGA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   8,  8, 12}},
-    {"[ISA] Trigem Korean VGA (ET4000AX)",				"tgkorvga",		&et4000k_isa_device,				GFX_TGKOREANVGA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
-	{"[ISA] Tseng ET4000AX",				"et4000ax",		&et4000_isa_device,				GFX_ET4000_ISA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 3,  3,  6,   5,  5, 10}},
-    {"[ISA] VGA",					"vga",			&vga_device,				GFX_VGA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    {"[ISA] Wyse 700",					"wy700",		&wy700_device,				GFX_WY700,			VIDEO_FLAG_TYPE_CGA,	 {VIDEO_ISA, 8, 16, 32,   8, 16, 32}},
-    {"[MCA] Tseng ET4000AX",				"et4000mca",		&et4000_mca_device,				GFX_ET4000_MCA,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_MCA, 4,  5,  10,   5,  5, 10}},
-	{"[PCI] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_pci",		&mach64gx_pci_device,			GFX_MACH64GX_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
-    {"[PCI] ATI Video Xpression (Mach64 VT2)",		"mach64vt2",		&mach64vt2_device,			GFX_MACH64VT2,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
-    {"[PCI] Cardex Tseng ET4000/w32p",			"et4000w32p_pci",	&et4000w32p_cardex_pci_device,		GFX_ET4000W32_CARDEX_PCI,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
-    {"[PCI] Cirrus Logic CL-GD 5430",			"cl_gd5430_pci",	&gd5430_pci_device,			GFX_CL_GD5430_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
-    {"[PCI] Cirrus Logic CL-GD 5434",			"cl_gd5434_pci",	&gd5434_pci_device,			GFX_CL_GD5434_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
-    {"[PCI] Cirrus Logic CL-GD 5436",			"cl_gd5436_pci",	&gd5436_pci_device,			GFX_CL_GD5436_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
-    {"[PCI] Cirrus Logic CL-GD 5440",			"cl_gd5440_pci",	&gd5440_pci_device,			GFX_CL_GD5440_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
-    {"[PCI] Cirrus Logic CL-GD 5446",			"cl_gd5446_pci",	&gd5446_pci_device,			GFX_CL_GD5446_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
-    {"[PCI] Cirrus Logic CL-GD 5480",			"cl_gd5480_pci",	&gd5480_pci_device,			GFX_CL_GD5480_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
+    {"[ISA] Trident TVGA8900D",				"tvga8900d",		&tvga8900d_device,			VID_TVGA			},
+    {"[ISA] Trigem Korean VGA (ET4000AX)",		"tgkorvga",		&et4000k_isa_device,			VID_TGKOREANVGA			},
+    {"[ISA] Tseng ET4000AX",				"et4000ax",		&et4000_isa_device,			VID_ET4000_ISA			},
+    {"[ISA] VGA",					"vga",			&vga_device,				VID_VGA				},
+    {"[ISA] Wyse 700",					"wy700",		&wy700_device,				VID_WY700			},
+    {"[MCA] Tseng ET4000AX",				"et4000mca",		&et4000_mca_device,			VID_ET4000_MCA			},
+    {"[PCI] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_pci",		&mach64gx_pci_device,			VID_MACH64GX_PCI		},
+    {"[PCI] ATI Video Xpression (Mach64 VT2)",		"mach64vt2",		&mach64vt2_device,			VID_MACH64VT2			},
+    {"[PCI] Cardex Tseng ET4000/w32p",			"et4000w32p_pci",	&et4000w32p_cardex_pci_device,		VID_ET4000W32_CARDEX_PCI	},
+    {"[PCI] Cirrus Logic CL-GD 5430",			"cl_gd5430_pci",	&gd5430_pci_device,			VID_CL_GD5430_PCI		},
+    {"[PCI] Cirrus Logic CL-GD 5434",			"cl_gd5434_pci",	&gd5434_pci_device,			VID_CL_GD5434_PCI		},
+    {"[PCI] Cirrus Logic CL-GD 5436",			"cl_gd5436_pci",	&gd5436_pci_device,			VID_CL_GD5436_PCI		},
+    {"[PCI] Cirrus Logic CL-GD 5440",			"cl_gd5440_pci",	&gd5440_pci_device,			VID_CL_GD5440_PCI		},
+    {"[PCI] Cirrus Logic CL-GD 5446",			"cl_gd5446_pci",	&gd5446_pci_device,			VID_CL_GD5446_PCI		},
+    {"[PCI] Cirrus Logic CL-GD 5480",			"cl_gd5480_pci",	&gd5480_pci_device,			VID_CL_GD5480_PCI		},
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
-    {"[PCI] Diamond Stealth 32 (Tseng ET4000/w32p)",	"stealth32_pci",	&et4000w32p_pci_device,			GFX_ET4000W32_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
+    {"[PCI] Diamond Stealth 32 (Tseng ET4000/w32p)",	"stealth32_pci",	&et4000w32p_pci_device,			VID_ET4000W32_PCI		},
 #endif
-    {"[PCI] Diamond Stealth 3D 2000 (S3 ViRGE)",	"stealth3d_2000_pci",	&s3_virge_pci_device,			GFX_VIRGE_PCI,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
-    {"[PCI] Diamond Stealth 3D 3000 (S3 ViRGE/VX)",	"stealth3d_3000_pci",	&s3_virge_988_pci_device,		GFX_VIRGEVX_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  4,  26, 26, 42}},
-    {"[PCI] Diamond Stealth 64 DRAM (S3 Trio64)",	"stealth64d_pci",	&s3_diamond_stealth64_pci_device,	GFX_STEALTH64_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  4,  26, 26, 42}},
-    {"[PCI] Number Nine 9FX (S3 Trio64)",		"n9_9fx_pci",		&s3_9fx_pci_device,			GFX_N9_9FX_PCI,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 3,  2,  4,  25, 25, 40}},
-    {"[PCI] Paradise Bahamas 64 (S3 Vision864)",	"bahamas64_pci",	&s3_bahamas64_pci_device,		GFX_BAHAMAS64_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  5,  20, 20, 35}},
-    {"[PCI] Phoenix S3 Vision864",			"px_vision864_pci",	&s3_phoenix_vision864_pci_device,	GFX_PHOENIX_VISION864_PCI,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  5,  20, 20, 35}},
-    {"[PCI] Phoenix S3 Trio32",				"px_trio32_pci",	&s3_phoenix_trio32_pci_device,		GFX_PHOENIX_TRIO32_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 3,  2,  4,  25, 25, 40}},
-    {"[PCI] Phoenix S3 Trio64",				"px_trio64_pci",	&s3_phoenix_trio64_pci_device,		GFX_PHOENIX_TRIO64_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 3,  2,  4,  25, 25, 40}},
-    {"[PCI] S3 ViRGE/DX",				"virge375_pci",		&s3_virge_375_pci_device,		GFX_VIRGEDX_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
-    {"[PCI] S3 ViRGE/DX (VBE 2.0)",			"virge375_vbe20_pci",	&s3_virge_375_4_pci_device,		GFX_VIRGEDX4_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
-    {"[PCI] STB Nitro 64V (CL-GD 5446)",		"cl_gd5446_stb_pci",	&gd5446_stb_pci_device,			GFX_CL_GD5446_STB_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
-    {"[PCI] Trident TGUI9440",				"tgui9440_pci",		&tgui9440_pci_device,			GFX_TGUI9440_PCI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  8, 16,   4,  8, 16}},
-    {"[VLB] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_vlb",		&mach64gx_vlb_device,			GFX_MACH64GX_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  1,  20, 20, 21}},
-    {"[VLB] Cardex Tseng ET4000/w32p",			"et4000w32p_vlb",	&et4000w32p_cardex_vlb_device,		GFX_ET4000W32_CARDEX_VLB,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
-    {"[VLB] Cirrus Logic CL-GD 5428",			"cl_gd5428_vlb",	&gd5428_vlb_device,			GFX_CL_GD5428_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
-    {"[VLB] Cirrus Logic CL-GD 5429",			"cl_gd5429_vlb",	&gd5429_vlb_device,			GFX_CL_GD5429_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
-    {"[VLB] Cirrus Logic CL-GD 5434",			"cl_gd5434_vlb",	&gd5434_vlb_device,			GFX_CL_GD5434_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
+    {"[PCI] Diamond Stealth 3D 2000 (S3 ViRGE)",	"stealth3d_2000_pci",	&s3_virge_pci_device,			VID_VIRGE_PCI			},
+    {"[PCI] Diamond Stealth 3D 3000 (S3 ViRGE/VX)",	"stealth3d_3000_pci",	&s3_virge_988_pci_device,		VID_VIRGEVX_PCI			},
+    {"[PCI] Diamond Stealth 64 DRAM (S3 Trio64)",	"stealth64d_pci",	&s3_diamond_stealth64_pci_device,	VID_STEALTH64_PCI		},
+    {"[PCI] ExpertColor DSV3868P CF55 (S3 Vision868)",	"expertcolor_pci",	&s3_expertcolor_pci_device,		VID_EXPERTCOLOR_PCI		},
+    {"[PCI] Number Nine 9FX (S3 Trio64)",		"n9_9fx_pci",		&s3_9fx_pci_device,			VID_N9_9FX_PCI			},
+    {"[PCI] Paradise Bahamas 64 (S3 Vision864)",	"bahamas64_pci",	&s3_bahamas64_pci_device,		VID_BAHAMAS64_PCI		},
+    {"[PCI] Phoenix S3 Vision864",			"px_vision864_pci",	&s3_phoenix_vision864_pci_device,	VID_PHOENIX_VISION864_PCI	},
+    {"[PCI] Phoenix S3 Trio32",				"px_trio32_pci",	&s3_phoenix_trio32_pci_device,		VID_PHOENIX_TRIO32_PCI		},
+    {"[PCI] Phoenix S3 Trio64",				"px_trio64_pci",	&s3_phoenix_trio64_pci_device,		VID_PHOENIX_TRIO64_PCI		},
+    {"[PCI] S3 ViRGE/DX",				"virge375_pci",		&s3_virge_375_pci_device,		VID_VIRGEDX_PCI			},
+    {"[PCI] S3 ViRGE/DX (VBE 2.0)",			"virge375_vbe20_pci",	&s3_virge_375_4_pci_device,		VID_VIRGEDX4_PCI		},
+    {"[PCI] STB Nitro 64V (CL-GD 5446)",		"cl_gd5446_stb_pci",	&gd5446_stb_pci_device,			VID_CL_GD5446_STB_PCI		},
+    {"[PCI] Trident TGUI9440",				"tgui9440_pci",		&tgui9440_pci_device,			VID_TGUI9440_PCI		},
+    {"[VLB] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_vlb",		&mach64gx_vlb_device,			VID_MACH64GX_VLB		},
+    {"[VLB] Cardex Tseng ET4000/w32p",			"et4000w32p_vlb",	&et4000w32p_cardex_vlb_device,		VID_ET4000W32_CARDEX_VLB	},
+    {"[VLB] Cirrus Logic CL-GD 5428",			"cl_gd5428_vlb",	&gd5428_vlb_device,			VID_CL_GD5428_VLB		},
+    {"[VLB] Cirrus Logic CL-GD 5429",			"cl_gd5429_vlb",	&gd5429_vlb_device,			VID_CL_GD5429_VLB		},
+    {"[VLB] Cirrus Logic CL-GD 5434",			"cl_gd5434_vlb",	&gd5434_vlb_device,			VID_CL_GD5434_VLB		},
 #if defined(DEV_BRANCH) && defined(USE_STEALTH32)
-    {"[VLB] Diamond Stealth 32 (Tseng ET4000/w32p)",	"stealth32_vlb",	&et4000w32p_vlb_device,			GFX_ET4000W32_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  4,  10, 10, 10}},
+    {"[VLB] Diamond Stealth 32 (Tseng ET4000/w32p)",	"stealth32_vlb",	&et4000w32p_vlb_device,			VID_ET4000W32_VLB		},
 #endif
-    {"[VLB] Diamond SpeedStar PRO (CL-GD 5426)",	"cl_gd5426_vlb",	&gd5426_vlb_device,			GFX_CL_GD5426_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
-    {"[VLB] Diamond SpeedStar PRO SE (CL-GD 5430)",	"cl_gd5430_vlb",	&gd5430_vlb_device,			GFX_CL_GD5430_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  8,  10, 10, 20}},
-    {"[VLB] Diamond Stealth 3D 2000 (S3 ViRGE)",	"stealth3d_2000_vlb",	&s3_virge_vlb_device,			GFX_VIRGE_VLB,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
-    {"[VLB] Diamond Stealth 3D 3000 (S3 ViRGE/VX)",	"stealth3d_3000_vlb",	&s3_virge_988_vlb_device,		GFX_VIRGEVX_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  4,  26, 26, 42}},
-    {"[VLB] Diamond Stealth 64 DRAM (S3 Trio64)",	"stealth64d_vlb",	&s3_diamond_stealth64_vlb_device,	GFX_STEALTH64_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  4,  26, 26, 42}},
-    {"[VLB] Number Nine 9FX (S3 Trio64)",		"n9_9fx_vlb",		&s3_9fx_vlb_device,			GFX_N9_9FX_VLB,			VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 3,  2,  4,  25, 25, 40}},
-    {"[VLB] Paradise Bahamas 64 (S3 Vision864)",	"bahamas64_vlb",	&s3_bahamas64_vlb_device,		GFX_BAHAMAS64_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  5,  20, 20, 35}},
-    {"[VLB] Phoenix S3 Vision864",			"px_vision864_vlb",	&s3_phoenix_vision864_vlb_device,	GFX_PHOENIX_VISION864_VLB,	VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  4,  5,  20, 20, 35}},
-    {"[VLB] Phoenix S3 Trio32",				"px_trio32_vlb",	&s3_phoenix_trio32_vlb_device,		GFX_PHOENIX_TRIO32_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 3,  2,  4,  25, 25, 40}},
-    {"[VLB] Phoenix S3 Trio64",				"px_trio64_vlb",	&s3_phoenix_trio64_vlb_device,		GFX_PHOENIX_TRIO64_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 3,  2,  4,  25, 25, 40}},
-    {"[VLB] S3 ViRGE/DX",				"virge375_vlb",		&s3_virge_375_vlb_device,		GFX_VIRGEDX_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
-    {"[VLB] S3 ViRGE/DX (VBE 2.0)",			"virge375_vbe20_vlb",	&s3_virge_375_4_vlb_device,		GFX_VIRGEDX4_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 2,  2,  3,  28, 28, 45}},
-    {"[VLB] Trident TGUI9400CXi",			"tgui9400cxi_vlb",	&tgui9400cxi_device,			GFX_TGUI9400CXI,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  8, 16,   4,  8, 16}},
-    {"[VLB] Trident TGUI9440",				"tgui9440_vlb",		&tgui9440_vlb_device,			GFX_TGUI9440_VLB,		VIDEO_FLAG_TYPE_SPECIAL, {VIDEO_BUS, 4,  8, 16,   4,  8, 16}},
+    {"[VLB] Diamond SpeedStar PRO (CL-GD 5426)",	"cl_gd5426_vlb",	&gd5426_vlb_device,			VID_CL_GD5426_VLB		},
+    {"[VLB] Diamond SpeedStar PRO SE (CL-GD 5430)",	"cl_gd5430_vlb",	&gd5430_vlb_device,			VID_CL_GD5430_VLB		},
+    {"[VLB] Diamond Stealth 3D 2000 (S3 ViRGE)",	"stealth3d_2000_vlb",	&s3_virge_vlb_device,			VID_VIRGE_VLB			},
+    {"[VLB] Diamond Stealth 3D 3000 (S3 ViRGE/VX)",	"stealth3d_3000_vlb",	&s3_virge_988_vlb_device,		VID_VIRGEVX_VLB			},
+    {"[VLB] Diamond Stealth 64 DRAM (S3 Trio64)",	"stealth64d_vlb",	&s3_diamond_stealth64_vlb_device,	VID_STEALTH64_VLB		},
+    {"[VLB] ExpertColor DSV3868P CF55 (S3 Vision868)",	"expertcolor_vlb",	&s3_expertcolor_vlb_device,		VID_EXPERTCOLOR_VLB		},
+    {"[VLB] Number Nine 9FX (S3 Trio64)",		"n9_9fx_vlb",		&s3_9fx_vlb_device,			VID_N9_9FX_VLB			},
+    {"[VLB] Paradise Bahamas 64 (S3 Vision864)",	"bahamas64_vlb",	&s3_bahamas64_vlb_device,		VID_BAHAMAS64_VLB		},
+    {"[VLB] Phoenix S3 Vision864",			"px_vision864_vlb",	&s3_phoenix_vision864_vlb_device,	VID_PHOENIX_VISION864_VLB	},
+    {"[VLB] Phoenix S3 Trio32",				"px_trio32_vlb",	&s3_phoenix_trio32_vlb_device,		VID_PHOENIX_TRIO32_VLB		},
+    {"[VLB] Phoenix S3 Trio64",				"px_trio64_vlb",	&s3_phoenix_trio64_vlb_device,		VID_PHOENIX_TRIO64_VLB		},
+    {"[VLB] S3 ViRGE/DX",				"virge375_vlb",		&s3_virge_375_vlb_device,		VID_VIRGEDX_VLB			},
+    {"[VLB] S3 ViRGE/DX (VBE 2.0)",			"virge375_vbe20_vlb",	&s3_virge_375_4_vlb_device,		VID_VIRGEDX4_VLB		},
+    {"[VLB] Trident TGUI9400CXi",			"tgui9400cxi_vlb",	&tgui9400cxi_device,			VID_TGUI9400CXI			},
+    {"[VLB] Trident TGUI9440",				"tgui9440_vlb",		&tgui9440_vlb_device,			VID_TGUI9440_VLB		},
     {"",						"",			NULL,                        		-1				}
 };
 
@@ -198,29 +189,29 @@ vid_table_log(const char *fmt, ...)
 
 
 void
-video_font_reset(void)
-{
-    if (fontdatksc5601) {
-	free(fontdatksc5601);
-	fontdatksc5601 = NULL;
-    }
-}
-
-
-void
 video_reset(int card)
 {
     vid_table_log("VIDEO: reset (romset=%d, gfxcard=%d, internal=%d)\n",
        	romset, card, (machines[machine].flags & MACHINE_VIDEO)?1:0);
+
+    /* Reset (deallocate) the video font arrays. */
+    if (fontdatksc5601) {
+	free(fontdatksc5601);
+	fontdatksc5601 = NULL;
+    }
 
     /* Reset the CGA palette. */
     cga_palette = 0;
     cgapal_rebuild();
 
     /* Do not initialize internal cards here. */
-    if (!(card == GFX_NONE) && \
-	!(card == GFX_INTERNAL) && !machines[machine].fixed_gfxcard) {
+    if (!(card == VID_NONE) && \
+	!(card == VID_INTERNAL) && !machines[machine].fixed_gfxcard) {
 	vid_table_log("VIDEO: initializing '%s'\n", video_cards[video_old_to_new(card)].name);
+
+	/* Do an inform on the default values, so that that there's some sane values initialized
+	   even if the device init function does not do an inform of its own. */
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_default);
 
 	/* Initialize the video card. */
 	device_add(video_cards[video_old_to_new(card)].device);
@@ -262,13 +253,6 @@ video_card_has_config(int card)
     if (video_cards[card].device == NULL) return(0);
 
     return(video_cards[card].device->config ? 1 : 0);
-}
-
-
-video_timings_t *
-video_card_gettiming(int card)
-{
-    return((void *) &video_cards[card].timing);
 }
 
 
@@ -330,105 +314,23 @@ video_get_video_from_internal_name(char *s)
     return(0);
 }
 
-int video_is_mda(void)
+
+int
+video_is_mda(void)
 {
-	switch (romset)
-	{
-			case ROM_IBMPCJR:
-			case ROM_TANDY:
-			case ROM_TANDY1000HX:
-			case ROM_TANDY1000SL2:
-			case ROM_PC1512:
-			case ROM_PC1640:
-			case ROM_PC200:
-			case ROM_OLIM24:
-			case ROM_PC2086:
-			case ROM_PC3086:
-			case ROM_AMA932J:
-			case ROM_MEGAPC:
-			case ROM_MEGAPCDX:
-			case ROM_IBMPS1_2011:
-			case ROM_IBMPS2_M30_286:
-			case ROM_IBMPS2_M50:
-			case ROM_IBMPS2_M55SX:
-			case ROM_IBMPS2_M70_TYPE3:
-#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
-			case ROM_IBMPS2_M70_TYPE4:
-#endif
-			case ROM_IBMPS2_M80:
-			case ROM_IBMPS1_2121:
-			case ROM_T3100E:
-			return 0;
-	}
-	return (video_cards[video_old_to_new(gfxcard)].flags & VIDEO_FLAG_TYPE_MASK) == VIDEO_FLAG_TYPE_MDA;
+    return (video_get_type() == VIDEO_FLAG_TYPE_MDA);
 }
 
-int video_is_cga(void)
+
+int
+video_is_cga(void)
 {
-	switch (romset)
-	{
-		case ROM_IBMPCJR:
-		case ROM_TANDY:
-		case ROM_TANDY1000HX:
-		case ROM_TANDY1000SL2:
-		case ROM_PC1512:
-		case ROM_PC200:
-		case ROM_OLIM24:
-		case ROM_T3100E:
-		return 1;
-                
-		case ROM_PC1640:
-		case ROM_PC2086:
-		case ROM_PC3086:
-		case ROM_AMA932J:
-		case ROM_MEGAPC:
-		case ROM_MEGAPCDX:
-		case ROM_IBMPS1_2011:
-		case ROM_IBMPS2_M30_286:
-		case ROM_IBMPS2_M50:
-		case ROM_IBMPS2_M55SX:
-		case ROM_IBMPS2_M70_TYPE3:
-#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
-		case ROM_IBMPS2_M70_TYPE4:
-#endif
-		case ROM_IBMPS2_M80:
-		case ROM_IBMPS1_2121:
-		return 0;
-	}
-	return (video_cards[video_old_to_new(gfxcard)].flags & VIDEO_FLAG_TYPE_MASK) == VIDEO_FLAG_TYPE_CGA;
+    return (video_get_type() == VIDEO_FLAG_TYPE_CGA);
 }
 
-int video_is_ega_vga(void)
+
+int
+video_is_ega_vga(void)
 {
-	switch (romset)
-	{
-		case ROM_IBMPCJR:
-		case ROM_TANDY:
-		case ROM_TANDY1000HX:
-		case ROM_TANDY1000SL2:
-		case ROM_PC1512:
-		case ROM_PC200:
-		case ROM_OLIM24:
-		case ROM_T3100E:
-		return 0;
-		
-		case ROM_PC1640:
-		case ROM_PC2086:
-		case ROM_PC3086:
-		case ROM_AMA932J:
-		case ROM_MEGAPC:
-		case ROM_MEGAPCDX:
-		case ROM_IBMPS1_2011:
-		case ROM_IBMPS2_M30_286:
-		case ROM_IBMPS2_M50:
-		case ROM_IBMPS2_M55SX:
-		case ROM_IBMPS2_M70_TYPE3:
-#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
-		case ROM_IBMPS2_M70_TYPE4:
-#endif
-		case ROM_IBMPS2_M80:
-		case ROM_IBMPS1_2121:
-		return 1;
-	}
-	return (video_cards[video_old_to_new(gfxcard)].flags & VIDEO_FLAG_TYPE_MASK) == VIDEO_FLAG_TYPE_SPECIAL;
+    return (video_get_type() == VIDEO_FLAG_TYPE_SPECIAL);
 }

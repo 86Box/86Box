@@ -8,7 +8,7 @@
  *
  *		MDA emulation.
  *
- * Version:	@(#)vid_mda.c	1.0.11	2018/04/26
+ * Version:	@(#)vid_mda.c	1.0.12	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -59,6 +59,8 @@ typedef struct mda_t
 } mda_t;
 
 static int mdacols[256][2][2];
+
+static video_timings_t timing_mda = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 void mda_recalctimings(mda_t *mda);
 
@@ -285,6 +287,7 @@ void *mda_init(const device_t *info)
         int c;
         mda_t *mda = malloc(sizeof(mda_t));
         memset(mda, 0, sizeof(mda_t));
+	video_inform(VIDEO_FLAG_TYPE_MDA, &timing_mda);
 
         mda->vram = malloc(0x1000);
 

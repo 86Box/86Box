@@ -32,7 +32,7 @@
  *		in alpha mode, but in highres ("ECD350") mode, it displays
  *		some semi-random junk. Video-memory pointer maybe?
  *
- * Version:	@(#)m_amstrad.c	1.0.14	2018/04/29
+ * Version:	@(#)m_amstrad.c	1.0.15	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -150,6 +150,10 @@ static uint8_t	crtc_mask[32] = {
     0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
+
+static video_timings_t timing_pc1512   = {VIDEO_BUS, 0,0,0, 0,0,0}; /*PC1512 video code handles waitstates itself*/
+static video_timings_t timing_pc1640   = {VIDEO_ISA, 8,16,32, 8,16,32};
+static video_timings_t timing_pc200    = {VIDEO_ISA, 8,16,32, 8,16,32};
 
 
 #ifdef ENABLE_AMSTRAD_LOG
@@ -543,6 +547,8 @@ vid_init_1512(amstrad_t *ams)
     vid = (amsvid_t *)malloc(sizeof(amsvid_t));
     memset(vid, 0x00, sizeof(amsvid_t));
 
+    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_pc1512);
+
     vid->vram = malloc(0x10000);
     vid->cgacol = 7;
     vid->cgamode = 0x12;
@@ -700,6 +706,8 @@ vid_init_1640(amstrad_t *ams)
     vid = (amsvid_t *)malloc(sizeof(amsvid_t));
     memset(vid, 0x00, sizeof(amsvid_t));
 
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_pc1640);
+
     rom_init(&vid->bios_rom, L"roms/machines/pc1640/40100",
 	     0xc0000, 0x8000, 0x7fff, 0, 0);
 
@@ -839,6 +847,8 @@ vid_init_200(amstrad_t *ams)
     /* Allocate a video controller block. */
     vid = (amsvid_t *)malloc(sizeof(amsvid_t));
     memset(vid, 0x00, sizeof(amsvid_t));
+
+    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_pc200);
 
     cga = &vid->cga;
     cga->vram = malloc(0x4000);
@@ -1247,7 +1257,7 @@ machine_amstrad_init(const machine_t *model)
 		break;
     }
 
-    if (gfxcard == GFX_INTERNAL) switch(romset) {
+    if (gfxcard == VID_INTERNAL) switch(romset) {
 	case ROM_PC1512:
                 loadfont(L"roms/machines/pc1512/40078", 2);
 		vid_init_1512(ams);

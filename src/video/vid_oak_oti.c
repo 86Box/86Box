@@ -8,7 +8,7 @@
  *
  *		Oak OTI037C/67/077 emulation.
  *
- * Version:	@(#)vid_oak_oti.c	1.0.12	2018/08/14
+ * Version:	@(#)vid_oak_oti.c	1.0.13	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -53,6 +53,8 @@ typedef struct {
 
     uint8_t chip_id;
 } oti_t;
+
+static video_timings_t timing_oti   = {VIDEO_ISA, 6, 8,16, 6, 8,16};
 
 
 static void
@@ -288,18 +290,20 @@ oti_init(const device_t *info)
 
     oti->vram_size = device_get_config_int("memory");
     oti->vram_mask = (oti->vram_size << 10) - 1;
-	
+
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_oti);
+
     svga_init(&oti->svga, oti, oti->vram_size << 10,
 	      oti_recalctimings, oti_in, oti_out, NULL, NULL);
 
     io_sethandler(0x03c0, 32,
 		  oti_in, NULL, NULL, oti_out, NULL, NULL, oti);
-	io_sethandler(0x46e8, 1, oti_pos_in,NULL,NULL, oti_pos_out,NULL,NULL, oti);
-    
-	oti->svga.miscout = 1;
+    io_sethandler(0x46e8, 1, oti_pos_in,NULL,NULL, oti_pos_out,NULL,NULL, oti);
 
-	oti->regs[0] = 0x08; /* fixme: bios wants to read this at index 0? this index is undocumented */
-	
+    oti->svga.miscout = 1;
+
+    oti->regs[0] = 0x08; /* fixme: bios wants to read this at index 0? this index is undocumented */
+
     return(oti);
 }
 

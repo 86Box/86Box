@@ -9,7 +9,7 @@
  *		Emulation of the S3 Trio32, S3 Trio64, and S3 Vision864
  *		graphics cards.
  *
- * Version:	@(#)vid_s3.h	1.0.2	2018/03/18
+ * Version:	@(#)vid_s3.h	1.0.3	2018/09/19
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -19,6 +19,8 @@
 
 const device_t s3_bahamas64_vlb_device;
 const device_t s3_bahamas64_pci_device;
+const device_t s3_expertcolor_vlb_device;
+const device_t s3_expertcolor_pci_device;
 const device_t s3_9fx_vlb_device;
 const device_t s3_9fx_pci_device;
 const device_t s3_phoenix_trio32_vlb_device;

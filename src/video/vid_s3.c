@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.12	2018/09/15
+ * Version:	@(#)vid_s3.c	1.0.13	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -34,17 +34,19 @@
 #include "vid_svga_render.h"
 #include "vid_sdac_ramdac.h"
 
-#define ROM_PARADISE_BAHAMAS64	L"roms/video/s3/bahamas64.bin"
-#define ROM_PHOENIX_VISION864	L"roms/video/s3/86c864p.bin"
-#define ROM_PHOENIX_TRIO32	L"roms/video/s3/86c732p.bin"
-#define ROM_NUMBER9_9FX		L"roms/video/s3/s3_764.bin"
-#define ROM_PHOENIX_TRIO64	L"roms/video/s3/86c764x1.bin"
-#define ROM_DIAMOND_STEALTH64	L"roms/video/s3/stealt64.bin"
+#define ROM_PARADISE_BAHAMAS64		L"roms/video/s3/bahamas64.bin"
+#define ROM_PHOENIX_VISION864		L"roms/video/s3/86c864p.bin"
+#define ROM_EXPERTCOLOR_DSV3868P_CF55	L"roms/video/s3/1-DSV3868.BIN"
+#define ROM_PHOENIX_TRIO32		L"roms/video/s3/86c732p.bin"
+#define ROM_NUMBER9_9FX			L"roms/video/s3/s3_764.bin"
+#define ROM_PHOENIX_TRIO64		L"roms/video/s3/86c764x1.bin"
+#define ROM_DIAMOND_STEALTH64		L"roms/video/s3/stealt64.bin"
 
 enum
 {
-	S3_PARADISE_BAHAMAS64,
+	S3_EXPERTCOLOR_DSV3868P_CF55,
 	S3_NUMBER9_9FX,
+	S3_PARADISE_BAHAMAS64,
 	S3_PHOENIX_TRIO32,
 	S3_PHOENIX_TRIO64,
 	S3_PHOENIX_TRIO64_ONBOARD,
@@ -58,6 +60,12 @@ enum
         S3_TRIO32,
         S3_TRIO64
 };
+
+static video_timings_t timing_s3_stealth64	= {VIDEO_BUS, 2,  2,  4,  26, 26, 42};
+static video_timings_t timing_s3_vision864	= {VIDEO_BUS, 4,  4,  5,  20, 20, 35};
+static video_timings_t timing_s3_vision868	= {VIDEO_BUS, 2,  2,  4,  20, 20, 35};
+static video_timings_t timing_s3_trio32		= {VIDEO_BUS, 4,  3,  5,  26, 26, 42};
+static video_timings_t timing_s3_trio64		= {VIDEO_BUS, 3,  2,  4,  25, 25, 40};
 
 enum
 {
@@ -2721,30 +2729,42 @@ static void *s3_init(const device_t *info)
 		case S3_PARADISE_BAHAMAS64:
 			bios_fn = ROM_PARADISE_BAHAMAS64;
 			chip = S3_VISION864;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864);
 			break;
 		case S3_PHOENIX_VISION864:
 			bios_fn = ROM_PHOENIX_VISION864;
 			chip = S3_VISION864;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864);
+			break;
+		case S3_EXPERTCOLOR_DSV3868P_CF55:
+			bios_fn = ROM_EXPERTCOLOR_DSV3868P_CF55;
+			chip = S3_VISION864;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868);
 			break;
 		case S3_PHOENIX_TRIO32:
 			bios_fn = ROM_PHOENIX_TRIO32;
 			chip = S3_TRIO32;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32);
 			break;
 		case S3_PHOENIX_TRIO64:
 			bios_fn = ROM_PHOENIX_TRIO64;
 			chip = S3_TRIO64;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64);
 			break;
 		case S3_PHOENIX_TRIO64_ONBOARD:
 			bios_fn = NULL;
 			chip = S3_TRIO64;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64);
 			break;
 		case S3_DIAMOND_STEALTH64:
 			bios_fn = ROM_DIAMOND_STEALTH64;
 			chip = S3_TRIO64;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_stealth64);
 			break;
 		case S3_NUMBER9_9FX:
 			bios_fn = ROM_NUMBER9_9FX;
 			chip = S3_TRIO64;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64);
 			break;
 		default:
 			return NULL;
@@ -2853,6 +2873,17 @@ static void *s3_init(const device_t *info)
 			sdac_init(&s3->ramdac);
 			break;
 
+		case S3_EXPERTCOLOR_DSV3868P_CF55:
+			s3->id = 0xe1; /*Vision868*/
+			s3->id_ext = 0x90;
+			s3->id_ext_pci = 0x80;
+			s3->packed_mmio = 0;
+
+			s3->getclock = sdac_getclock;
+			s3->getclock_p = &s3->ramdac;
+			sdac_init(&s3->ramdac);
+			break;
+
 		case S3_PHOENIX_TRIO32:
 			s3->id = 0xe1; /*Trio32*/
 			s3->id_ext = 0x10;
@@ -2894,6 +2925,11 @@ static int s3_bahamas64_available(void)
 static int s3_phoenix_vision864_available(void)
 {
         return rom_present(ROM_PHOENIX_VISION864);
+}
+
+static int s3_expertcolor_dsv3868p_cf55_available(void)
+{
+        return rom_present(ROM_EXPERTCOLOR_DSV3868P_CF55);
 }
 
 static int s3_phoenix_trio32_available(void)
@@ -2942,31 +2978,6 @@ static void s3_force_redraw(void *p)
 
         s3->svga.fullchange = changeframecount;
 }
-
-static const device_config_t s3_bahamas64_config[] =
-{
-        {
-                "memory", "Memory size", CONFIG_SELECTION, "", 4,
-                {
-                        {
-                                "1 MB", 1
-                        },
-                        {
-                                "2 MB", 2
-                        },
-                        {
-                                "4 MB", 4
-                        },
-                        /*Vision864 also supports 8 MB, however the Paradise BIOS is buggy (VESA modes don't work correctly)*/
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "",  "", -1
-        }
-};
 
 static const device_config_t s3_9fx_config[] =
 {
@@ -3052,7 +3063,7 @@ static const device_config_t s3_phoenix_trio64_onboard_config[] =
         }
 };
 
-static const device_config_t s3_phoenix_trio64_config[] =
+static const device_config_t s3_config[] =
 {
         {
                 "memory", "Memory size", CONFIG_SELECTION, "", 4,
@@ -3087,7 +3098,7 @@ const device_t s3_bahamas64_vlb_device =
         s3_bahamas64_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_bahamas64_config
+        s3_config
 };
 
 const device_t s3_bahamas64_pci_device =
@@ -3101,7 +3112,35 @@ const device_t s3_bahamas64_pci_device =
         s3_bahamas64_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_bahamas64_config
+        s3_config
+};
+
+const device_t s3_expertcolor_vlb_device =
+{
+        "ExpertColor DSV3868P CF55 (S3 Vision868) VLB",
+        DEVICE_VLB,
+	S3_EXPERTCOLOR_DSV3868P_CF55,
+        s3_init,
+        s3_close,
+	NULL,
+        s3_expertcolor_dsv3868p_cf55_available,
+        s3_speed_changed,
+        s3_force_redraw,
+        s3_config
+};
+
+const device_t s3_expertcolor_pci_device =
+{
+        "ExpertColor DSV3868P CF55 (S3 Vision868) PCI",
+        DEVICE_PCI,
+	S3_EXPERTCOLOR_DSV3868P_CF55,
+        s3_init,
+        s3_close,
+	NULL,
+        s3_expertcolor_dsv3868p_cf55_available,
+        s3_speed_changed,
+        s3_force_redraw,
+        s3_config
 };
 
 const device_t s3_9fx_vlb_device =
@@ -3171,7 +3210,7 @@ const device_t s3_phoenix_trio64_vlb_device =
         s3_phoenix_trio64_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_phoenix_trio64_config
+        s3_config
 };
 
 const device_t s3_phoenix_trio64_onboard_pci_device =
@@ -3199,7 +3238,7 @@ const device_t s3_phoenix_trio64_pci_device =
         s3_phoenix_trio64_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_phoenix_trio64_config
+        s3_config
 };
 
 const device_t s3_phoenix_vision864_vlb_device =
@@ -3213,7 +3252,7 @@ const device_t s3_phoenix_vision864_vlb_device =
         s3_phoenix_vision864_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_bahamas64_config
+        s3_config
 };
 
 const device_t s3_phoenix_vision864_pci_device =
@@ -3227,7 +3266,7 @@ const device_t s3_phoenix_vision864_pci_device =
         s3_phoenix_vision864_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_bahamas64_config
+        s3_config
 };
 
 const device_t s3_diamond_stealth64_vlb_device =
@@ -3241,7 +3280,7 @@ const device_t s3_diamond_stealth64_vlb_device =
         s3_diamond_stealth64_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_phoenix_trio64_config
+        s3_config
 };
 
 const device_t s3_diamond_stealth64_pci_device =
@@ -3255,5 +3294,5 @@ const device_t s3_diamond_stealth64_pci_device =
         s3_diamond_stealth64_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_phoenix_trio64_config
+        s3_config
 };

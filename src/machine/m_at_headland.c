@@ -554,7 +554,7 @@ machine_at_tg286m_init(const machine_t *model)
 
     machine_at_headland_common_init(0);
 
-    if (gfxcard == GFX_INTERNAL)
+    if (gfxcard == VID_INTERNAL)
 	device_add(&et4000k_tg286_isa_device);
 }
 
@@ -573,6 +573,6 @@ machine_at_ama932j_init(const machine_t *model)
 
     machine_at_headland_common_init(1);
 
-    if (gfxcard == GFX_INTERNAL)
+    if (gfxcard == VID_INTERNAL)
 	device_add(&oti067_ama932j_device);
 }

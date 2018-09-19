@@ -9,7 +9,7 @@
  *		Implementation of the Toshiba T1000 plasma display, which
  *		has a fixed resolution of 640x200 pixels.
  *
- * Version:	@(#)m_xt_t1000_vid.c	1.0.8	2018/08/15
+ * Version:	@(#)m_xt_t1000_vid.c	1.0.9	2018/09/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -63,6 +63,8 @@ static uint8_t  boldcols[256];		/* Which attributes use the bold font */
 static uint32_t blinkcols[256][2];
 static uint32_t normcols[256][2];
 static uint8_t  language;
+
+static video_timings_t timing_t1000    = {VIDEO_ISA, 8,16,32, 8,16,32};
 
 
 /* Video options set by the motherboard; they will be picked up by the card
@@ -674,6 +676,7 @@ static void *t1000_init(const device_t *info)
         t1000_t *t1000 = malloc(sizeof(t1000_t));
         memset(t1000, 0, sizeof(t1000_t));
 	cga_init(&t1000->cga);
+	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t1000);
 
 	t1000->internal = 1;
 

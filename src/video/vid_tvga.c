@@ -8,7 +8,7 @@
  *
  *		Trident TVGA (8900D) emulation.
  *
- * Version:	@(#)vid_tvga.c	1.0.6	2018/04/26
+ * Version:	@(#)vid_tvga.c	1.0.7	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -51,6 +51,8 @@ typedef struct tvga_t
         int vram_size;
         uint32_t vram_mask;
 } tvga_t;
+
+video_timings_t timing_tvga = {VIDEO_ISA, 3,  3,  6,   8,  8, 12};
 
 static uint8_t crtc_mask[0x40] =
 {
@@ -296,6 +298,8 @@ static void *tvga8900d_init(const device_t *info)
 {
         tvga_t *tvga = malloc(sizeof(tvga_t));
         memset(tvga, 0, sizeof(tvga_t));
+
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga);
         
         tvga->vram_size = device_get_config_int("memory") << 10;
         tvga->vram_mask = tvga->vram_size - 1;

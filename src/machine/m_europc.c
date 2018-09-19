@@ -590,22 +590,13 @@ europc_boot(const device_t *info)
      * with values set by the user.
      */
     b = (sys->nvr.regs[MRTC_CONF_D] & ~0x17);
-    switch(gfxcard) {
-	case GFX_CGA:		/* Color, CGA */
-	case GFX_COLORPLUS:	/* Color, Hercules ColorPlus */
-		b |= 0x12;	/* external video, CGA80 */
-		break;
+    if (video_is_cga())
+	b |= 0x12;	/* external video, CGA80 */
+    else if (video_is_mda())
+	b |= 0x03;	/* external video, mono */
+    else
+	b |= 0x10;	/* external video, special */
 
-	case GFX_MDA:		/* Monochrome, MDA */
-	case GFX_HERCULES:	/* Monochrome, Hercules */
-	case GFX_INCOLOR:	/* Color, ? */
-		b |= 0x03;	/* external video, mono */
-		break;
-
-	default:		/* EGA, VGA etc */
-		b |= 0x10;	/* external video, special */
-
-    }
     sys->nvr.regs[MRTC_CONF_D] = b;
 
     /* Update the memory size. */

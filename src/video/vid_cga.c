@@ -8,7 +8,7 @@
  *
  *		Emulation of the old and new IBM CGA graphics cards.
  *
- * Version:	@(#)vid_cga.c	1.0.16	2018/04/29
+ * Version:	@(#)vid_cga.c	1.0.17	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -46,6 +46,8 @@ static uint8_t crtcmask[32] =
         0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f, 0xf3, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff,
         0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
+
+static video_timings_t timing_cga = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 void cga_recalctimings(cga_t *cga);
 
@@ -486,6 +488,7 @@ void *cga_standalone_init(const device_t *info)
         int display_type;
         cga_t *cga = malloc(sizeof(cga_t));
         memset(cga, 0, sizeof(cga_t));
+	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_cga);
 
         display_type = device_get_config_int("display_type");
         cga->composite = (display_type != CGA_RGB);

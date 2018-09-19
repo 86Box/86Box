@@ -8,7 +8,7 @@
  *
  *		Plantronics ColorPlus emulation.
  *
- * Version:	@(#)vid_colorplus.c	1.0.9	2018/04/26
+ * Version:	@(#)vid_colorplus.c	1.0.10	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -50,6 +50,9 @@
 
 #define COMPOSITE_OLD 0
 #define COMPOSITE_NEW 1
+
+
+video_timings_t timing_colorplus = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 
 void cga_recalctimings(cga_t *cga);
@@ -391,6 +394,8 @@ void *colorplus_standalone_init(const device_t *info)
 
         colorplus_t *colorplus = malloc(sizeof(colorplus_t));
         memset(colorplus, 0, sizeof(colorplus_t));
+
+	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_colorplus);
 
 	/* Copied from the CGA init. Ideally this would be done by 
 	 * calling a helper function rather than duplicating code */

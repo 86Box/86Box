@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.76	2018/09/02
+ * Version:	@(#)pc.c	1.0.77	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -139,7 +139,7 @@ int	atfullspeed;
 int	cpuspeed2;
 int	clockrate;
 
-int	gfx_present[GFX_MAX];			/* should not be here */
+int	gfx_present[VID_MAX];			/* should not be here */
 
 wchar_t	exe_path[1024];				/* path (dir) of executable */
 wchar_t	usr_path[1024];				/* path (dir) of user data */
@@ -619,14 +619,14 @@ again:
     }
 
     /* Make sure we have a usable video card. */
-    for (c=0; c<GFX_MAX; c++)
+    for (c=0; c<VID_MAX; c++)
 	gfx_present[c] = video_card_available(video_old_to_new(c));
 again2:
     if (! video_card_available(video_old_to_new(gfxcard))) {
 	if (romset != -1) {
 		ui_msgbox(MBX_INFO, (wchar_t *)IDS_2064);
 	}
-	for (c=GFX_MAX-1; c>=0; c--) {
+	for (c=VID_MAX-1; c>=0; c--) {
 		if (gfx_present[c]) {
 			gfxcard = c;
 			config_save();
@@ -770,7 +770,6 @@ pc_reset_hard_init(void)
     scsi_disk_hard_reset();
 
     /* Initialize the actual machine and its basic modules. */
-    video_font_reset();	/* Reset (deallocate) the video font arrays. */
     machine_init();
 
     /* Reset any ISA memory cards. */
@@ -802,9 +801,6 @@ pc_reset_hard_init(void)
      * the RCR callback to NULL.
      */
     mouse_reset();
-
-    /* Reset the video card. */
-    video_reset(gfxcard);
 
     /* Reset the Hard Disk Controller module. */
     hdc_reset();

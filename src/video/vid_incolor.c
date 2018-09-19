@@ -8,7 +8,7 @@
  *
  *		Hercules InColor emulation.
  *
- * Version:	@(#)vid_incolor.c	1.0.10	2018/04/29
+ * Version:	@(#)vid_incolor.c	1.0.11	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -188,6 +188,8 @@ typedef struct incolor_t
 	uint8_t latch[4];	/* Memory read/write latches */
         uint8_t *vram;
 } incolor_t;
+
+static video_timings_t timing_incolor = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 void incolor_recalctimings(incolor_t *incolor);
 void incolor_write(uint32_t addr, uint8_t val, void *p);
@@ -1028,6 +1030,7 @@ void *incolor_init(const device_t *info)
         int c;
         incolor_t *incolor = malloc(sizeof(incolor_t));
         memset(incolor, 0, sizeof(incolor_t));
+	video_inform(VIDEO_FLAG_TYPE_MDA, &timing_incolor);
 
         incolor->vram = malloc(0x40000);	/* 4 planes of 64k */
 

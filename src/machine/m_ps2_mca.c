@@ -8,7 +8,7 @@
  *
  *		Implementation of MCA-based PS/2 machines.
  *
- * Version:	@(#)m_ps2_mca.c	1.0.1	2018/09/12
+ * Version:	@(#)m_ps2_mca.c	1.0.2	2018/09/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -880,8 +880,8 @@ static void ps2_mca_board_model_50_init()
 		ps2_mca_mem_fffc_init(2);
         }
 
-	if (gfxcard == GFX_INTERNAL)	
-		device_add(&ps1vga_device);
+	if (gfxcard == VID_INTERNAL)	
+		device_add(&ps1vga_mca_device);
 }
 
 static void ps2_mca_board_model_55sx_init()
@@ -945,8 +945,8 @@ static void ps2_mca_board_model_55sx_init()
         ps2.planar_read = model_55sx_read;
         ps2.planar_write = model_55sx_write;
 
-	if (gfxcard == GFX_INTERNAL)
-		device_add(&ps1vga_device);
+	if (gfxcard == VID_INTERNAL)
+		device_add(&ps1vga_mca_device);
 }
 
 static void mem_encoding_update()
@@ -1156,8 +1156,8 @@ static void ps2_mca_board_model_70_type34_init(int is_type4)
 		ps2_mca_mem_fffc_init(8);
         }
 
-	if (gfxcard == GFX_INTERNAL)	
-		device_add(&ps1vga_device);
+	if (gfxcard == VID_INTERNAL)	
+		device_add(&ps1vga_mca_device);
 }
 
 static void ps2_mca_board_model_80_type2_init(int is486)
@@ -1226,8 +1226,8 @@ static void ps2_mca_board_model_80_type2_init(int is486)
 		ps2_mca_mem_fffc_init(4);
         }
 
-	if (gfxcard == GFX_INTERNAL)	
-		device_add(&ps1vga_device);
+	if (gfxcard == VID_INTERNAL)	
+		device_add(&ps1vga_mca_device);
 }
 
 

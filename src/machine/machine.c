@@ -34,6 +34,7 @@
 #include "../lpt.h"
 #include "../serial.h"
 #include "../cpu/cpu.h"
+#include "../video/video.h"
 #include "machine.h"
 
 
@@ -66,11 +67,13 @@ machine_log(const char *fmt, ...)
 void
 machine_init(void)
 {
+    int MCA;
     machine_log("Initializing as \"%s\"\n", machine_getname());
 
     /* Set up the architecture flags. */
     AT = IS_ARCH(machine, MACHINE_AT);
     PCI = IS_ARCH(machine, MACHINE_PCI);
+    MCA = IS_ARCH(machine, MACHINE_MCA);
 
     /* Resize the memory. */
     mem_reset();
@@ -79,8 +82,18 @@ machine_init(void)
     rom_load_bios(romset);
     mem_add_bios();
 
+    /* If it's not a PCI or MCA machine, reset the video card
+       before initializing the machine, to please the EuroPC. */
+    if (!PCI && !MCA)
+	video_reset(gfxcard);
+
     /* All good, boot the machine! */
     machines[machine].init(&machines[machine]);
+
+    /* If it's a PCI or MCA machine, reset the video card
+       after initializing the machine, so the slots work correctly. */
+    if (PCI || MCA)
+	video_reset(gfxcard);
 }
 
 

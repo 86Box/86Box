@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.52	2018/09/06
+ * Version:	@(#)config.c	1.0.53	2018/09/19
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -566,7 +566,7 @@ load_video(void)
 
     if (machines[machine].fixed_gfxcard) {
 	config_delete_var(cat, "gfxcard");
-	gfxcard = GFX_INTERNAL;
+	gfxcard = VID_INTERNAL;
     } else {
 	p = config_get_string(cat, "gfxcard", NULL);
 	if (p == NULL) {
@@ -1310,7 +1310,7 @@ config_load(void)
 #endif
 	scale = 1;
 	machine = machine_get_machine_from_internal_name("ibmpc");
-	gfxcard = GFX_CGA;
+	gfxcard = VID_CGA;
 	vid_api = plat_vidapi("default");
 	time_sync = TIME_SYNC_ENABLED;
 	joystick_type = 7;

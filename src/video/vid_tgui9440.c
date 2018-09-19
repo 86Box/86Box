@@ -47,7 +47,7 @@
  *		access size or host data has any affect, but the Windows 3.1
  *		driver always reads bytes and write words of 0xffff.
  *
- * Version:	@(#)vid_tgui9440.c	1.0.7	2018/07/16
+ * Version:	@(#)vid_tgui9440.c	1.0.8	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -209,6 +209,8 @@ typedef struct tgui_t
         
         volatile int write_blitter;
 } tgui_t;
+
+video_timings_t timing_tgui = {VIDEO_BUS, 4,  8, 16,   4,  8, 16};
 
 void tgui_recalcmapping(tgui_t *tgui);
 
@@ -788,6 +790,8 @@ static void *tgui_init(const device_t *info, wchar_t *bios_fn, int type)
 	tgui->pci = !!(info->flags & DEVICE_PCI);
 
         rom_init(&tgui->bios_rom, bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui);
 
         svga_init(&tgui->svga, tgui, tgui->vram_size,
                    tgui_recalctimings,

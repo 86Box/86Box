@@ -8,7 +8,7 @@
  *
  *		Wyse-700 emulation.
  *
- * Version:	@(#)vid_wy700.c	1.0.9	2018/05/20
+ * Version:	@(#)vid_wy700.c	1.0.10	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -232,6 +232,8 @@ void wy700_recalctimings(wy700_t *wy700);
 void wy700_write(uint32_t addr, uint8_t val, void *p);
 uint8_t wy700_read(uint32_t addr, void *p);
 void wy700_checkchanges(wy700_t *wy700);
+
+static video_timings_t timing_wy700 = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 
 void wy700_out(uint16_t addr, uint8_t val, void *p)
@@ -902,6 +904,7 @@ void *wy700_init(const device_t *info)
         int c;
         wy700_t *wy700 = malloc(sizeof(wy700_t));
         memset(wy700, 0, sizeof(wy700_t));
+	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_wy700);
 
 	/* 128k video RAM */
         wy700->vram = malloc(0x20000);

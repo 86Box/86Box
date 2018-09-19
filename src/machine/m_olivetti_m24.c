@@ -8,7 +8,7 @@
  *
  *		Emulation of the Olivetti M24.
  *
- * Version:	@(#)m_olivetti_m24.c	1.0.14	2018/04/26
+ * Version:	@(#)m_olivetti_m24.c	1.0.19	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -94,6 +94,8 @@ typedef struct {
     int		mouse_mode;
     int		x, y, b;
 } olim24_t;
+
+static video_timings_t timing_m24      = {VIDEO_ISA, 8,16,32, 8,16,32};
 
 
 static uint8_t crtcmask[32] = {
@@ -859,6 +861,8 @@ void machine_olim24_video_init(void) {
 
     m24 = (olim24_t *)malloc(sizeof(olim24_t));
     memset(m24, 0x00, sizeof(olim24_t));
+
+    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_m24);
 
     /* Initialize the video adapter. */
     m24->vram = malloc(0x8000);

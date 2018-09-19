@@ -8,7 +8,7 @@
  *
  *		Hercules emulation.
  *
- * Version:	@(#)vid_hercules.c	1.0.11	2018/04/29
+ * Version:	@(#)vid_hercules.c	1.0.12	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -57,6 +57,8 @@ typedef struct hercules_t
 
         uint8_t *vram;
 } hercules_t;
+
+static video_timings_t timing_hercules = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 static int mdacols[256][2][2];
 
@@ -332,6 +334,7 @@ void *hercules_init(const device_t *info)
         int c;
         hercules_t *hercules = malloc(sizeof(hercules_t));
         memset(hercules, 0, sizeof(hercules_t));
+	video_inform(VIDEO_FLAG_TYPE_MDA, &timing_hercules);
 
         hercules->vram = malloc(0x10000);
 

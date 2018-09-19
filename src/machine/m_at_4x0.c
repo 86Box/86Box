@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel PCISet chips from 430LX to 440FX.
  *
- * Version:	@(#)m_at_430lx_nx.c	1.0.2	2018/09/15
+ * Version:	@(#)m_at_430lx_nx.c	1.0.3	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -573,7 +573,7 @@ machine_at_endeavor_init(const machine_t *model)
 
     device_add(&intel_flash_bxt_ami_device);
 
-    if (gfxcard == GFX_INTERNAL)
+    if (gfxcard == VID_INTERNAL)
 	device_add(&s3_phoenix_trio64_onboard_pci_device);
 }
 
@@ -693,7 +693,7 @@ machine_at_pb640_init(const machine_t *model)
 
     device_add(&intel_flash_bxt_ami_device);
 
-    if (gfxcard == GFX_INTERNAL)
+    if (gfxcard == VID_INTERNAL)
 	device_add(&gd5440_onboard_pci_device);
 }
 

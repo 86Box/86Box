@@ -8,7 +8,7 @@
  *
  *		Hercules InColor emulation.
  *
- * Version:	@(#)vid_herculesplus.c	1.0.9	2018/04/29
+ * Version:	@(#)vid_herculesplus.c	1.0.10	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -74,7 +74,7 @@ typedef struct herculesplus_t
 
         int64_t dispontime, dispofftime;
         int64_t vidtime;
-        
+
         int firstline, lastline;
 
         int linepos, displine;
@@ -87,6 +87,8 @@ typedef struct herculesplus_t
 
         uint8_t *vram;
 } herculesplus_t;
+
+static video_timings_t timing_herculesplus = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 void herculesplus_recalctimings(herculesplus_t *herculesplus);
 void herculesplus_write(uint32_t addr, uint8_t val, void *p);
@@ -681,6 +683,7 @@ void *herculesplus_init(const device_t *info)
         int c;
         herculesplus_t *herculesplus = malloc(sizeof(herculesplus_t));
         memset(herculesplus, 0, sizeof(herculesplus_t));
+	video_inform(VIDEO_FLAG_TYPE_MDA, &timing_herculesplus);
 
         herculesplus->vram = malloc(0x10000);	/* 64k VRAM */
 

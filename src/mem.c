@@ -12,7 +12,7 @@
  *		the DYNAMIC_TABLES=1 enables this. Will eventually go
  *		away, either way...
  *
- * Version:	@(#)mem.c	1.0.13	2018/09/15
+ * Version:	@(#)mem.c	1.0.14	2018/09/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1691,15 +1691,7 @@ mem_reset(void)
     }
     biosmask = 0xffff;
 
-    /*
-     * Always allocate the full 16 MB memory space if memory size
-     * is smaller, we'll need this for stupid things like the PS/2
-     * split mapping.
-     */
-    if (mem_size < 16384)
-	m = 1024UL * 16384;
-    else
-	m = 1024UL * mem_size;
+    m = 1024UL * mem_size;
     if (ram != NULL) {
 	free(ram);
 	ram = NULL;
@@ -1774,15 +1766,6 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 	pages[c].write_b = mem_write_ramb_page;
 	pages[c].write_w = mem_write_ramw_page;
 	pages[c].write_l = mem_write_raml_page;
-    }
-
-    if (pages_sz > 256) {
-	for (c = ((mem_size * 1024) >> 12); c < (((mem_size + 256) * 1024) >> 12); c++) {
-		pages[c].mem = &ram[0xA0000 + ((c - ((mem_size * 1024) >> 12)) << 12)];
-		pages[c].write_b = mem_write_ramb_page;
-		pages[c].write_w = mem_write_ramw_page;
-		pages[c].write_l = mem_write_raml_page;
-	}
     }
 
     memset(_mem_read_b,  0x00, sizeof(_mem_read_b));
@@ -1878,6 +1861,7 @@ mem_init(void)
 void
 mem_remap_top(int kb)
 {
+    int c;
     uint32_t start = (mem_size >= 1024) ? mem_size : 1024;
     int size = mem_size - 640;
 
@@ -1894,10 +1878,17 @@ pclog("MEM: remapping top %iKB (mem=%i)\n", kb, mem_size);
     if (size > kb)
 	size = kb;
 
+    for (c = ((start * 1024) >> 12); c < (((start + size) * 1024) >> 12); c++) {
+	pages[c].mem = &ram[0xA0000 + ((c - ((start * 1024) >> 12)) << 12)];
+	pages[c].write_b = mem_write_ramb_page;
+	pages[c].write_w = mem_write_ramw_page;
+	pages[c].write_l = mem_write_raml_page;
+    }
+
     mem_set_mem_state(start * 1024, size * 1024,
 		      MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
     mem_mapping_set_addr(&ram_remapped_mapping, start * 1024, size * 1024);
-	mem_mapping_set_exec(&ram_remapped_mapping, ram + (start * 1024));
+    mem_mapping_set_exec(&ram_remapped_mapping, ram + (start * 1024));
 
     flushmmucache();
 }
