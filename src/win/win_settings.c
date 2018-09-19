@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.61	2018/09/12
+ * Version:	@(#)win_settings.c	1.0.62	2018/09/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -813,11 +813,11 @@ recalc_vid_list(HWND hdlg)
 	if (!s[0])
 		break;
 
-	if (video_card_available(c) && gfx_present[video_new_to_old(c)] &&
+	if (video_card_available(c) &&
 	    device_is_valid(video_card_getdevice(c), machines[temp_machine].flags)) {
 		mbstowcs(szText, s, strlen(s) + 1);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) szText);
-		if (video_new_to_old(c) == temp_gfxcard) {
+		if (c == temp_gfxcard) {
 			SendMessage(h, CB_SETCURSEL, d, 0);
 			found_card = 1;
 		}
@@ -887,7 +887,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	                        SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
 				wcstombs(stransi, lptsTemp, 512);
 				gfx = video_card_getid(stransi);
-	                        temp_gfxcard = video_new_to_old(gfx);
+	                        temp_gfxcard = gfx;
 
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_VID);
 				if (video_card_has_config(gfx))
@@ -933,7 +933,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
 		SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
 		wcstombs(stransi, lptsTemp, 512);
-		temp_gfxcard = video_new_to_old(video_card_getid(stransi));
+		temp_gfxcard = video_card_getid(stransi);
 
 		h = GetDlgItem(hdlg, IDC_CHECK_VOODOO);
 		temp_voodoo = SendMessage(h, BM_GETCHECK, 0, 0);
@@ -1092,16 +1092,6 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 static int
 mpu401_present(void)
 {
-#if 0
-    char *n;
-
-    n = sound_card_get_internal_name(temp_sound_card);
-    if (n != NULL) {
-	if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))
-		return 1;
-    }
-#endif
-
     return temp_mpu401 ? 1 : 0;
 }
 
@@ -1109,22 +1099,9 @@ mpu401_present(void)
 int
 mpu401_standalone_allow(void)
 {
-#if 0
-    char *n, *md;
-#else
     char *md;
-#endif
 
-#if 0
-    n = sound_card_get_internal_name(temp_sound_card);
-#endif
     md = midi_device_get_internal_name(temp_midi_device);
-#if 0
-    if (n != NULL) {
-	if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))
-		return 0;
-    }
-#endif
 
     if (md != NULL) {
 	if (!strcmp(md, "none"))

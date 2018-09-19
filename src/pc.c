@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.77	2018/09/19
+ * Version:	@(#)pc.c	1.0.78	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -138,8 +138,6 @@ int	output;
 int	atfullspeed;
 int	cpuspeed2;
 int	clockrate;
-
-int	gfx_present[VID_MAX];			/* should not be here */
 
 wchar_t	exe_path[1024];				/* path (dir) of executable */
 wchar_t	usr_path[1024];				/* path (dir) of user data */
@@ -619,21 +617,21 @@ again:
     }
 
     /* Make sure we have a usable video card. */
-    for (c=0; c<VID_MAX; c++)
-	gfx_present[c] = video_card_available(video_old_to_new(c));
 again2:
-    if (! video_card_available(video_old_to_new(gfxcard))) {
+    if (! video_card_available(gfxcard)) {
 	if (romset != -1) {
 		ui_msgbox(MBX_INFO, (wchar_t *)IDS_2064);
 	}
-	for (c=VID_MAX-1; c>=0; c--) {
-		if (gfx_present[c]) {
+	c = 0;
+	while (video_get_internal_name(c) != NULL) {
+		if (video_card_available(c)) {
 			gfxcard = c;
 			config_save();
 
 			/* This can loop if all cards now bad.. */
 			goto again2;
 		}
+		c++;
 	}
     }
 

@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.21	2018/09/19
+ * Version:	@(#)vid_ati28800.c	1.0.22	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -40,6 +40,11 @@
 #include "vid_svga_render.h"
 #include "vid_sc1502x_ramdac.h"
 
+
+#define VGAWONDERXL		1
+#if defined(DEV_BRANCH) && defined(USE_XL24)
+#define VGAWONDERXL24		2
+#endif
 
 #define BIOS_ATIKOR_PATH	L"roms/video/ati28800/atikorvga.bin"
 #define FONT_ATIKOR_PATH	L"roms/video/ati28800/ati_ksc5601.rom"
@@ -495,7 +500,7 @@ ati28800_init(const device_t *info)
     ati28800->memory = device_get_config_int("memory");
 
     switch(info->local) {
-	case VID_VGAWONDERXL:
+	case VGAWONDERXL:
 		ati28800->id = 6;
 		rom_init_interleaved(&ati28800->bios_rom,
 				     BIOS_VGAXL_EVEN_PATH,
@@ -505,7 +510,7 @@ ati28800_init(const device_t *info)
 		break;
 
 #if defined(DEV_BRANCH) && defined(USE_XL24)
-	case VID_VGAWONDERXL24:
+	case VGAWONDERXL24:
 		ati28800->id = 6;
 		rom_init_interleaved(&ati28800->bios_rom,
 				     BIOS_XL24_EVEN_PATH,
@@ -541,12 +546,12 @@ ati28800_init(const device_t *info)
 
 	switch (info->local)
 	{
-		case VID_VGAWONDERXL:
+		case VGAWONDERXL:
 			ati_eeprom_load(&ati28800->eeprom, L"ati28800xl.nvr", 0);
 			break;
 			
 #if defined(DEV_BRANCH) && defined(USE_XL24)
-		case VID_VGAWONDERXL24:
+		case VGAWONDERXL24:
 			ati_eeprom_load(&ati28800->eeprom, L"ati28800xl24.nvr", 0);
 			break;
 #endif
@@ -698,7 +703,7 @@ const device_t compaq_ati28800_device =
 {
         "Compaq ATI-28800",
         DEVICE_ISA,
-	VID_VGAWONDERXL,
+	VGAWONDERXL,
         ati28800_init, ati28800_close, NULL,
         compaq_ati28800_available,
         ati28800_speed_changed,
@@ -711,7 +716,7 @@ const device_t ati28800_wonderxl24_device =
 {
         "ATI-28800 (VGA Wonder XL24)",
         DEVICE_ISA,
-	VID_VGAWONDERXL24,
+	VGAWONDERXL24,
         ati28800_init, ati28800_close, NULL,
         ati28800_wonderxl24_available,
         ati28800_speed_changed,

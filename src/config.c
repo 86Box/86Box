@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.53	2018/09/19
+ * Version:	@(#)config.c	1.0.54	2018/09/19
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -818,8 +818,6 @@ load_hard_disks(void)
     wchar_t *wp;
     uint32_t max_spt, max_hpc, max_tracks;
     uint32_t board = 0, dev = 0;
-    /* FIXME: Remove in a month. */
-    int lun;
 
     memset(temp, '\0', sizeof(temp));
     for (c=0; c<HDD_NUM; c++) {
@@ -890,13 +888,6 @@ load_hard_disks(void)
 		config_delete_var(cat, temp);
 
 	/* IDE */
-	// FIXME: Remove in a month.
-	sprintf(temp, "hdd_%02i_xtide_channel", c+1);
-	if (hdd[c].bus == HDD_BUS_IDE)
-		hdd[c].ide_channel = !!config_get_int(cat, temp, c & 1);
-	  else
-		config_delete_var(cat, temp);
-
 	sprintf(temp, "hdd_%02i_ide_channel", c+1);
 	if (hdd[c].bus == HDD_BUS_IDE) {
 		sprintf(tmp2, "%01u:%01u", c>>1, c&1);
@@ -921,21 +912,6 @@ load_hard_disks(void)
 			hdd[c].scsi_id = 15;
 	} else
 		config_delete_var(cat, temp);
-
-	/* FIXME: Remove in a month. */
-	sprintf(temp, "hdd_%02i_scsi_location", c+1);
-	if (hdd[c].bus == HDD_BUS_SCSI) {
-		p = config_get_string(cat, temp, NULL);
-
-		if (p) {
-			sscanf(p, "%02i:%02i",
-				(int *)&hdd[c].scsi_id, (int *)&lun);
-
-			if (hdd[c].scsi_id > 15)
-				hdd[c].scsi_id = 15;
-		}
-	}
-	config_delete_var(cat, temp);
 
 	memset(hdd[c].fn, 0x00, sizeof(hdd[c].fn));
 	memset(hdd[c].prev_fn, 0x00, sizeof(hdd[c].prev_fn));
@@ -973,10 +949,6 @@ load_hard_disks(void)
 		config_delete_var(cat, temp);
 
 		sprintf(temp, "hdd_%02i_scsi_id", c+1);
-		config_delete_var(cat, temp);
-
-		/* FIXME: Remove in a month. */
-		sprintf(temp, "hdd_%02i_scsi_location", c+1);
 		config_delete_var(cat, temp);
 
 		sprintf(temp, "hdd_%02i_fn", c+1);
@@ -1074,8 +1046,6 @@ load_other_removable_devices(void)
     unsigned int board = 0, dev = 0;
     wchar_t *wp;
     int c;
-    /* FIXME: Remove in a month. */
-    int lun;
 
     memset(temp, 0x00, sizeof(temp));
     for (c=0; c<CDROM_NUM; c++) {
@@ -1117,20 +1087,6 @@ load_other_removable_devices(void)
 				cdrom_drives[c].scsi_device_id = 15;
 		} else
 			config_delete_var(cat, temp);
-
-		/* FIXME: Remove in a month. */
-		sprintf(temp, "cdrom_%02i_scsi_location", c+1);
-		if (cdrom_drives[c].bus_type == CDROM_BUS_SCSI) {
-			p = config_get_string(cat, temp, NULL);
-			if (p) {
-				sscanf(p, "%02u:%02u",
-					&cdrom_drives[c].scsi_device_id, &lun);
-	
-				if (cdrom_drives[c].scsi_device_id > 15)
-					cdrom_drives[c].scsi_device_id = 15;
-			}
-		}
-		config_delete_var(cat, temp);
 	}
 
 	sprintf(temp, "cdrom_%02i_image_path", c+1);
@@ -1176,10 +1132,6 @@ load_other_removable_devices(void)
 		sprintf(temp, "cdrom_%02i_scsi_id", c+1);
 		config_delete_var(cat, temp);
 
-		/* FIXME: Remove in a month. */
-		sprintf(temp, "cdrom_%02i_scsi_location", c+1);
-		config_delete_var(cat, temp);
-
 		sprintf(temp, "cdrom_%02i_image_path", c+1);
 		config_delete_var(cat, temp);
 	}
@@ -1221,20 +1173,6 @@ load_other_removable_devices(void)
 				zip_drives[c].scsi_device_id = 15;
 		} else
 			config_delete_var(cat, temp);
-
-		/* FIXME: Remove in a month. */
-		sprintf(temp, "zip_%02i_scsi_location", c+1);
-		if (zip_drives[c].bus_type == CDROM_BUS_SCSI) {
-			p = config_get_string(cat, temp, NULL);
-			if (p) {
-				sscanf(p, "%02u:%02u",
-					&zip_drives[c].scsi_device_id, &lun);
-	
-				if (zip_drives[c].scsi_device_id > 15)
-					zip_drives[c].scsi_device_id = 15;
-			}
-		}
-		config_delete_var(cat, temp);
 	}
 
 	sprintf(temp, "zip_%02i_image_path", c+1);
@@ -1273,10 +1211,6 @@ load_other_removable_devices(void)
 		sprintf(temp, "zip_%02i_scsi_id", c+1);
 		config_delete_var(cat, temp);
 
-		/* FIXME: Remove in a month. */
-		sprintf(temp, "zip_%02i_scsi_location", c+1);
-		config_delete_var(cat, temp);
-
 		sprintf(temp, "zip_%02i_image_path", c+1);
 		config_delete_var(cat, temp);
 	}
@@ -1310,7 +1244,7 @@ config_load(void)
 #endif
 	scale = 1;
 	machine = machine_get_machine_from_internal_name("ibmpc");
-	gfxcard = VID_CGA;
+	gfxcard = video_get_video_from_internal_name("cga");
 	vid_api = plat_vidapi("default");
 	time_sync = TIME_SYNC_ENABLED;
 	joystick_type = 7;
@@ -1511,7 +1445,7 @@ save_video(void)
     char *cat = "Video";
 
     config_set_string(cat, "gfxcard",
-	video_get_internal_name(video_old_to_new(gfxcard)));
+	video_get_internal_name(gfxcard));
 
     if (voodoo_enabled == 0)
 	config_delete_var(cat, "voodoo");

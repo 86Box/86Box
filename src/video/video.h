@@ -28,99 +28,7 @@
 
 enum {
     VID_NONE = 0,
-    VID_INTERNAL,
-    VID_CGA,
-    VID_COMPAQ_CGA,		/* Compaq CGA */
-    VID_COMPAQ_CGA_2,		/* Compaq CGA 2 */
-    VID_COLORPLUS,		/* Plantronics ColorPlus */
-    VID_WY700,			/* Wyse 700 */
-    VID_MDA,
-    VID_GENIUS,			/* MDSI Genius */
-    VID_HERCULES,
-    VID_HERCULESPLUS,
-    VID_INCOLOR,		/* Hercules InColor */
-    VID_EGA,			/* Using IBM EGA BIOS */
-    VID_COMPAQ_EGA,		/* Compaq EGA */
-    VID_SUPER_EGA,		/* Using Chips & Technologies SuperEGA BIOS */
-    VID_VGA,        		/* IBM VGA */
-    VID_TVGA,			/* Using Trident TVGA8900D BIOS */
-    VID_ET4000_ISA,		/* Tseng ET4000 */
-    VID_ET4000_MCA,		/* Tseng ET4000 */
-    VID_TGKOREANVGA,		/*Trigem Korean VGA(Tseng ET4000AX)*/	
-    VID_ET4000W32_CARDEX_VLB,	/* Tseng ET4000/W32p (Cardex) VLB */
-    VID_ET4000W32_CARDEX_PCI,	/* Tseng ET4000/W32p (Cardex) PCI */
-#if defined(DEV_BRANCH) && defined(USE_STEALTH32)
-    VID_ET4000W32_VLB,		/* Tseng ET4000/W32p (Diamond Stealth 32) VLB */
-    VID_ET4000W32_PCI,		/* Tseng ET4000/W32p (Diamond Stealth 32) PCI */
-#endif
-    VID_BAHAMAS64_VLB,		/* S3 Vision864 (Paradise Bahamas 64) VLB */
-    VID_BAHAMAS64_PCI,		/* S3 Vision864 (Paradise Bahamas 64) PCI */
-    VID_N9_9FX_VLB,		/* S3 764/Trio64 (Number Nine 9FX) VLB */
-    VID_N9_9FX_PCI,		/* S3 764/Trio64 (Number Nine 9FX) PCI */
-    VID_TGUI9400CXI,   		/* Trident TGUI9400CXi VLB */
-    VID_TGUI9440_VLB,   	/* Trident TGUI9440AGi VLB */
-    VID_TGUI9440_PCI,   	/* Trident TGUI9440AGi PCI */
-    VID_ATIKOREANVGA,		/*ATI Korean VGA (28800-5)*/
-    VID_VGA88,  		/* ATI VGA-88 (18800-1) */
-    VID_VGAEDGE16,  		/* ATI VGA Edge-16 (18800-1) */
-    VID_VGACHARGER, 		/* ATI VGA Charger (28800-5) */
-#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
-    VID_VGAWONDER,		/* Compaq ATI VGA Wonder (18800) */
-#endif
-    VID_VGAWONDERXL,		/* Compaq ATI VGA Wonder XL (28800-5) */
-#if defined(DEV_BRANCH) && defined(USE_XL24)
-    VID_VGAWONDERXL24,		/* Compaq ATI VGA Wonder XL24 (28800-6) */
-#endif
-    VID_MACH64GX_ISA,		/* ATI Graphics Pro Turbo (Mach64) ISA */
-    VID_MACH64GX_VLB,		/* ATI Graphics Pro Turbo (Mach64) VLB */
-    VID_MACH64GX_PCI,		/* ATI Graphics Pro Turbo (Mach64) PCI */
-    VID_MACH64VT2,  		/* ATI Mach64 VT2 */
-    VID_CL_GD5424_ISA, 		/* Cirrus Logic CL-GD 5424 ISA */
-    VID_CL_GD5424_VLB, 		/* Cirrus Logic CL-GD 5424 VLB */
-    VID_CL_GD5426_VLB, 		/* Diamond SpeedStar PRO (Cirrus Logic CL-GD 5426) VLB */
-    VID_CL_GD5428_ISA, 		/* Cirrus Logic CL-GD 5428 ISA */
-    VID_CL_GD5428_VLB,		/* Cirrus Logic CL-GD 5428 VLB */
-    VID_CL_GD5429_ISA, 		/* Cirrus Logic CL-GD 5429 ISA */
-    VID_CL_GD5429_VLB,		/* Cirrus Logic CL-GD 5429 VLB */
-    VID_CL_GD5430_VLB,		/* Diamond SpeedStar PRO SE (Cirrus Logic CL-GD 5430) VLB */
-    VID_CL_GD5430_PCI,		/* Cirrus Logic CL-GD 5430 PCI */
-    VID_CL_GD5434_ISA, 		/* Cirrus Logic CL-GD 5434 ISA */
-    VID_CL_GD5434_VLB,		/* Cirrus Logic CL-GD 5434 VLB */
-    VID_CL_GD5434_PCI,		/* Cirrus Logic CL-GD 5434 PCI */
-    VID_CL_GD5436_PCI,		/* Cirrus Logic CL-GD 5436 PCI */
-    VID_CL_GD5440_PCI,		/* Cirrus Logic CL-GD 5440 PCI */
-    VID_CL_GD5446_PCI,		/* Cirrus Logic CL-GD 5446 PCI */
-    VID_CL_GD5446_STB_PCI,	/* STB Nitro 64V (Cirrus Logic CL-GD 5446) PCI */
-    VID_CL_GD5480_PCI,		/* Cirrus Logic CL-GD 5480 PCI */
-    VID_EXPERTCOLOR_VLB,	/* S3 Vision868 (ExpertColor DSV3868P CF55) VLB */
-    VID_EXPERTCOLOR_PCI,	/* S3 Vision868 (ExpertColor DSV3868P CF55) PCI */
-    VID_OTI037C,     		/* Oak OTI-037C */
-    VID_OTI067,     		/* Oak OTI-067 */
-    VID_OTI077,     		/* Oak OTI-077 */
-    VID_PVGA1A,			/* Paradise PVGA1A Standalone */
-    VID_WD90C11,		/* Paradise WD90C11-LR Standalone */
-    VID_WD90C30,		/* Paradise WD90C30-LR Standalone */
-    VID_PHOENIX_VISION864_VLB,	/* S3 Vision864 (Phoenix) VLB */
-    VID_PHOENIX_VISION864_PCI,	/* S3 Vision864 (Phoenix) PCI */
-    VID_PHOENIX_TRIO32_VLB, 	/* S3 732/Trio32 (Phoenix) VLB */
-    VID_PHOENIX_TRIO32_PCI, 	/* S3 732/Trio32 (Phoenix) PCI */
-    VID_PHOENIX_TRIO64_VLB, 	/* S3 764/Trio64 (Phoenix) VLB */
-    VID_PHOENIX_TRIO64_PCI, 	/* S3 764/Trio64 (Phoenix) PCI */
-    VID_STEALTH64_VLB,		/* S3 Trio64 (Diamond Stealth 64) VLB */
-    VID_STEALTH64_PCI,		/* S3 Trio64 (Diamond Stealth 64) PCI */
-#if defined(DEV_BRANCH) && defined(USE_TI)
-    VID_TICF62011,  		/* TI CF62011 */
-#endif
-    VID_VIRGE_VLB,      	/* S3 Virge VLB */
-    VID_VIRGE_PCI,      	/* S3 Virge PCI */
-    VID_VIRGEDX_VLB,    	/* S3 Virge/DX VLB */
-    VID_VIRGEDX_PCI,    	/* S3 Virge/DX PCI */
-    VID_VIRGEDX4_VLB,		/* S3 Virge/DX (VBE 2.0) VLB */
-    VID_VIRGEDX4_PCI,		/* S3 Virge/DX (VBE 2.0) PCI */
-    VID_VIRGEVX_VLB,		/* S3 Virge/VX VLB */
-    VID_VIRGEVX_PCI,		/* S3 Virge/VX PCI */
-
-    VID_MAX
+    VID_INTERNAL
 };
 
 enum {
@@ -171,7 +79,6 @@ typedef struct {
 typedef rgb_t PALETTE[256];
 
 
-extern int	gfx_present[VID_MAX];
 extern int	egareads,
 		egawrites;
 extern int	changeframecount;
@@ -231,8 +138,6 @@ extern const device_t	*video_card_getdevice(int card);
 #endif
 extern int	video_card_has_config(int card);
 extern int	video_card_getid(char *s);
-extern int	video_old_to_new(int card);
-extern int	video_new_to_old(int card);
 extern char	*video_get_internal_name(int card);
 extern int	video_get_video_from_internal_name(char *s);
 extern int 	video_is_mda(void);
