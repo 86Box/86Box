@@ -8,7 +8,7 @@
  *
  *		S3 ViRGE emulation.
  *
- * Version:	@(#)vid_s3_virge.c	1.0.14	2018/09/20
+ * Version:	@(#)vid_s3_virge.c	1.0.15	2018/09/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -777,7 +777,7 @@ static void s3_virge_updatemapping(virge_t *virge)
 		mem_mapping_disable(&virge->mmio_mapping);
 
 	/* New MMIO. */
-	if ((svga->crtc[0x53] & 0x18) == 0x18) /*New MMIO*/
+	if (svga->crtc[0x53] & 0x08) /*New MMIO*/
 		mem_mapping_set_addr(&virge->new_mmio_mapping, virge->linear_base + 0x1000000, 0x10000);
 	else
 		mem_mapping_disable(&virge->new_mmio_mapping);

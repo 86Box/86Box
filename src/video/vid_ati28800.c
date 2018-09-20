@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.22	2018/09/19
+ * Version:	@(#)vid_ati28800.c	1.0.23	2018/09/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -234,7 +234,7 @@ void ati28800k_out(uint16_t addr, uint8_t val, void *p)
                 break;
                 case 0x3DE:
                 ati28800->in_get_korean_font_kind_set = 0;
-                if(ati28800->get_korean_font_enabled && (ati28800->regs[0xBF] & 0x20))
+                if(ati28800->get_korean_font_enabled)
                 {
                         if((ati28800->get_korean_font_base & 0x7F) > 0x20 && (ati28800->get_korean_font_base & 0x7F) < 0x7F)
                                 fontdatksc5601_user[(ati28800->get_korean_font_kind & 4) * 24 + (ati28800->get_korean_font_base & 0x7F) - 0x20].chr[ati28800->get_korean_font_index] = val;
@@ -348,7 +348,7 @@ uint8_t ati28800k_in(uint16_t addr, void *p)
         switch (addr)
         {
                 case 0x3DE:
-                if (ati28800->get_korean_font_enabled && (ati28800->regs[0xBF] & 0x20))
+                if (ati28800->get_korean_font_enabled)
                 {
                         switch(ati28800->get_korean_font_kind >> 8)
                         {
