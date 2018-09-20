@@ -8,7 +8,7 @@
  *
  *		S3 ViRGE emulation.
  *
- * Version:	@(#)vid_s3_virge.c	1.0.13	2018/09/19
+ * Version:	@(#)vid_s3_virge.c	1.0.14	2018/09/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -764,21 +764,23 @@ static void s3_virge_updatemapping(virge_t *virge)
         }
         
         s3_virge_log("Memory mapped IO %02X\n", svga->crtc[0x53] & 0x18);
-        if (svga->crtc[0x53] & 0x10) /*Old MMIO*/
-        {
-                if (svga->crtc[0x53] & 0x20)
-                        mem_mapping_set_addr(&virge->mmio_mapping, 0xb8000, 0x8000);
-                else
-                        mem_mapping_set_addr(&virge->mmio_mapping, 0xa0000, 0x10000);
-        }
-        else
-                mem_mapping_disable(&virge->mmio_mapping);
 
-        if (svga->crtc[0x53] & 0x08) /*New MMIO*/
-                mem_mapping_set_addr(&virge->new_mmio_mapping, virge->linear_base + 0x1000000, 0x10000);
-        else
-                mem_mapping_disable(&virge->new_mmio_mapping);
+	/* Memory mapped I/O. */
 
+	/* Old MMIO. */
+	if (svga->crtc[0x53] & 0x10) {
+		if (svga->crtc[0x53] & 0x20)
+			mem_mapping_set_addr(&virge->mmio_mapping, 0xb8000, 0x8000);
+		else
+			mem_mapping_set_addr(&virge->mmio_mapping, 0xa0000, 0x10000);
+	} else
+		mem_mapping_disable(&virge->mmio_mapping);
+
+	/* New MMIO. */
+	if ((svga->crtc[0x53] & 0x18) == 0x18) /*New MMIO*/
+		mem_mapping_set_addr(&virge->new_mmio_mapping, virge->linear_base + 0x1000000, 0x10000);
+	else
+		mem_mapping_disable(&virge->new_mmio_mapping);
 }
 
 static void s3_virge_vblank_start(svga_t *svga)

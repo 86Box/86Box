@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.14	2018/09/20
+ * Version:	@(#)vid_s3.c	1.0.15	2018/09/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -57,7 +57,7 @@ enum
 enum
 {
         S3_VISION864,
-		S3_VISION868,
+	S3_VISION868,
         S3_TRIO32,
         S3_TRIO64
 };
@@ -109,7 +109,7 @@ typedef struct s3_t
 {
         mem_mapping_t linear_mapping;
         mem_mapping_t mmio_mapping;
-		mem_mapping_t new_mmio_mapping;
+	mem_mapping_t new_mmio_mapping;
         
 	uint8_t has_bios;
         rom_t bios_rom;
@@ -1215,7 +1215,11 @@ uint8_t s3_in(uint16_t addr, void *p)
                         case 0x2d: return 0x88;       /*Extended chip ID*/
                         case 0x2e: return s3->id_ext; /*New chip ID*/
                         case 0x2f: return 0;          /*Revision level*/
-                        case 0x30: return s3->id;     /*Chip ID*/
+                        case 0x30:
+				if (s3->chip == S3_VISION868)
+					return 0xe1;	   /*Vision868 hardwires it to E1h*/
+				else
+					return s3->id;     /*Chip ID*/
                         case 0x31: return (svga->crtc[0x31] & 0xcf) | ((s3->ma_ext & 3) << 4);
                         case 0x35: return (svga->crtc[0x35] & 0xf0) | (s3->bank & 0xf);
                         case 0x45: s3->hwc_col_stack_pos = 0; break;
@@ -1298,7 +1302,7 @@ void s3_updatemapping(s3_t *s3)
                 mem_mapping_disable(&svga->mapping);
                 mem_mapping_disable(&s3->linear_mapping);
                 mem_mapping_disable(&s3->mmio_mapping);
-				mem_mapping_disable(&s3->new_mmio_mapping);
+		mem_mapping_disable(&s3->new_mmio_mapping);
                 return;
         }
 
@@ -1346,7 +1350,16 @@ void s3_updatemapping(s3_t *s3)
                         s3->linear_size = 0x200000;
                         break;
                         case 3: /*8mb*/
-                        s3->linear_size = 0x800000;
+			switch (s3->chip) {
+				case S3_TRIO32:
+				case S3_TRIO64:
+				case S3_VISION868:
+					s3->linear_size = 0x400000;
+					break;
+				default:
+					s3->linear_size = 0x800000;
+					break;
+			}
                         break;
                 }
                 s3->linear_base &= ~(s3->linear_size - 1);
@@ -1365,18 +1378,21 @@ void s3_updatemapping(s3_t *s3)
         else
                 mem_mapping_disable(&s3->linear_mapping);
 		
-        if (svga->crtc[0x53] & 0x10) /*Memory mapped IO*/
-        {
-                mem_mapping_disable(&svga->mapping);
-                mem_mapping_enable(&s3->mmio_mapping);
-        }
-        else
-                mem_mapping_disable(&s3->mmio_mapping);
-			
-        if ((svga->crtc[0x53] & 0x08) && s3->chip == S3_VISION868) /*New MMIO*/
-                mem_mapping_set_addr(&s3->new_mmio_mapping, s3->linear_base + 0x1000000, 0x10000);
-        else
-                mem_mapping_disable(&s3->new_mmio_mapping);
+	/* Memory mapped I/O. */
+	if (svga->crtc[0x53] & 0x10) {
+		/* Old MMIO. */
+		mem_mapping_disable(&svga->mapping);
+		mem_mapping_enable(&s3->mmio_mapping);
+
+		/* New MMIO. */
+		if ((svga->crtc[0x53] & 0x08) && (s3->chip == S3_VISION868))
+			mem_mapping_set_addr(&s3->new_mmio_mapping, s3->linear_base + 0x1000000, 0x10000);
+		else
+			mem_mapping_disable(&s3->new_mmio_mapping);
+	} else {
+		mem_mapping_disable(&s3->mmio_mapping);
+		mem_mapping_disable(&s3->new_mmio_mapping);
+	}
 }
 
 static float s3_trio64_getclock(int clock, void *p)
@@ -2843,7 +2859,7 @@ static void *s3_init(const device_t *info)
 			svga->vram_mask = (4 << 20) - 1;
 			svga->vram_max = 4 << 20;
 			break;
-		case 8: /*4MB*/
+		case 8: /*8MB*/
 			svga->vram_mask = (8 << 20) - 1;
 			svga->vram_max = 8 << 20;
 			break;
@@ -3088,33 +3104,6 @@ static const device_config_t s3_config[] =
         }
 };
 
-static const device_config_t s3_vision868_config[] =
-{
-        {
-                "memory", "Memory size", CONFIG_SELECTION, "", 4,
-                {
-                        {
-                                "1 MB", 1
-                        },
-                        {
-                                "2 MB", 2
-                        },
-                        {
-                                "4 MB", 4
-                        },
-                        {
-                                "8 MB", 8
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
-        }
-};
-
 const device_t s3_bahamas64_vlb_device =
 {
         "Paradise Bahamas 64 (S3 Vision864) VLB",
@@ -3154,7 +3143,7 @@ const device_t s3_expertcolor_vlb_device =
         s3_expertcolor_dsv3868p_cf55_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_vision868_config
+        s3_config
 };
 
 const device_t s3_expertcolor_pci_device =
@@ -3168,7 +3157,7 @@ const device_t s3_expertcolor_pci_device =
         s3_expertcolor_dsv3868p_cf55_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_vision868_config
+        s3_config
 };
 
 const device_t s3_9fx_vlb_device =
