@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.15	2018/09/20
+ * Version:	@(#)vid_s3.c	1.0.16	2018/09/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1353,7 +1353,6 @@ void s3_updatemapping(s3_t *s3)
 			switch (s3->chip) {
 				case S3_TRIO32:
 				case S3_TRIO64:
-				case S3_VISION868:
 					s3->linear_size = 0x400000;
 					break;
 				default:
@@ -2835,7 +2834,6 @@ static void *s3_init(const device_t *info)
 		  s3_hwcursor_draw,
 		  NULL);
 
-	svga->decode_mask = (4 << 20) - 1;
 	switch (vram) {
 		case 0:		/* 512 kB */
 			svga->vram_mask = (1 << 19) - 1;
@@ -2895,6 +2893,7 @@ static void *s3_init(const device_t *info)
 	switch(info->local) {
 		case S3_PARADISE_BAHAMAS64:
 		case S3_PHOENIX_VISION864:
+			svga->decode_mask = (8 << 20) - 1;
 			s3->id = 0xc1; /*Vision864P*/
 			s3->id_ext = s3->id_ext_pci = 0xc1;
 			s3->packed_mmio = 0;
@@ -2905,6 +2904,7 @@ static void *s3_init(const device_t *info)
 			break;
 
 		case S3_EXPERTCOLOR_DSV3868P_CF55:
+			svga->decode_mask = (8 << 20) - 1;
 			s3->id = 0xe1; /*Vision868*/
 			s3->id_ext = 0x90;
 			s3->id_ext_pci = 0x80;
@@ -2916,6 +2916,7 @@ static void *s3_init(const device_t *info)
 			break;
 
 		case S3_PHOENIX_TRIO32:
+			svga->decode_mask = (4 << 20) - 1;
 			s3->id = 0xe1; /*Trio32*/
 			s3->id_ext = 0x10;
 			s3->id_ext_pci = 0x11;
@@ -2933,6 +2934,7 @@ static void *s3_init(const device_t *info)
 				/* Fall over. */
 
 		case S3_NUMBER9_9FX:
+			svga->decode_mask = (4 << 20) - 1;
 			s3->id = 0xe1; /*Trio64*/
 			s3->id_ext = s3->id_ext_pci = 0x11;
 			s3->packed_mmio = 1;
@@ -3104,6 +3106,33 @@ static const device_config_t s3_config[] =
         }
 };
 
+static const device_config_t s3_expertcolor_config[] =
+{
+        {
+                "memory", "Memory size", CONFIG_SELECTION, "", 4,
+                {
+                        {
+                                "1 MB", 1
+                        },
+                        {
+                                "2 MB", 2
+                        },
+                        {
+                                "4 MB", 4
+                        },
+                        {
+                                "8 MB", 8
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "", "", -1
+        }
+};
+
 const device_t s3_bahamas64_vlb_device =
 {
         "Paradise Bahamas 64 (S3 Vision864) VLB",
@@ -3143,7 +3172,7 @@ const device_t s3_expertcolor_vlb_device =
         s3_expertcolor_dsv3868p_cf55_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_config
+        s3_expertcolor_config
 };
 
 const device_t s3_expertcolor_pci_device =
@@ -3157,7 +3186,7 @@ const device_t s3_expertcolor_pci_device =
         s3_expertcolor_dsv3868p_cf55_available,
         s3_speed_changed,
         s3_force_redraw,
-        s3_config
+        s3_expertcolor_config
 };
 
 const device_t s3_9fx_vlb_device =

@@ -8,7 +8,7 @@
  *
  *		286/386+ instruction handlers list.
  *
- * Version:	@(#)386_ops.h	1.0.3	2018/05/21
+ * Version:	@(#)386_ops.h	1.0.4	2018/09/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -175,6 +175,8 @@ static int internal_illegal(char *s)
 	return cpu_state.abrt;
 }
 #endif
+
+extern void	x386_dynarec_log(const char *fmt, ...);
 
 #include "x86seg.h"
 #if defined(DEV_BRANCH) && defined(USE_AMD_K)
