@@ -77,7 +77,7 @@ int x386_dynarec_do_log = ENABLE_386_DYNAREC_LOG;
 #endif
 
 
-static void
+void
 x386_dynarec_log(const char *fmt, ...)
 {
 #ifdef ENABLE_386_DYNAREC_LOG

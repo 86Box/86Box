@@ -111,7 +111,7 @@ static int opFADD(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FADD\n");
+        x386_dynarec_log("FADD\n");
         ST(0) = ST(0) + ST(fetchdat & 7);
         cpu_state.tag[cpu_state.TOP] &= ~TAG_UINT64;
         CLOCK_CYCLES(8);
@@ -121,7 +121,7 @@ static int opFADDr(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FADD\n");
+        x386_dynarec_log("FADD\n");
         ST(fetchdat & 7) = ST(fetchdat & 7) + ST(0);
         cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64;
         CLOCK_CYCLES(8);
@@ -131,7 +131,7 @@ static int opFADDP(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FADDP\n");
+        x386_dynarec_log("FADDP\n");
         ST(fetchdat & 7) = ST(fetchdat & 7) + ST(0);
         cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64;
         x87_pop();
@@ -143,7 +143,7 @@ static int opFCOM(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FCOM\n");
+        x386_dynarec_log("FCOM\n");
         cpu_state.npxs &= ~(C0|C2|C3);
         if (ST(0) == ST(fetchdat & 7))     cpu_state.npxs |= C3;
         else if (ST(0) < ST(fetchdat & 7)) cpu_state.npxs |= C0;
@@ -155,7 +155,7 @@ static int opFCOMP(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FCOMP\n");
+        x386_dynarec_log("FCOMP\n");
         cpu_state.npxs &= ~(C0|C2|C3);
         cpu_state.npxs |= x87_compare(ST(0), ST(fetchdat & 7));
         x87_pop();
@@ -168,7 +168,7 @@ static int opFCOMPP(uint32_t fetchdat)
 	uint64_t *p, *q;
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FCOMPP\n");
+        x386_dynarec_log("FCOMPP\n");
         cpu_state.npxs &= ~(C0|C2|C3);
 	p = (uint64_t *)&ST(0);
 	q = (uint64_t *)&ST(1);
@@ -186,7 +186,7 @@ static int opFUCOMPP(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FUCOMPP\n", easeg, cpu_state.eaaddr);
+        x386_dynarec_log("FUCOMPP\n", easeg, cpu_state.eaaddr);
         cpu_state.npxs &= ~(C0|C2|C3);
         cpu_state.npxs |= x87_ucompare(ST(0), ST(1));
         x87_pop();
@@ -199,7 +199,7 @@ static int opFCOMI(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FICOM\n");
+        x386_dynarec_log("FICOM\n");
         flags_rebuild();
         flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
         if (ST(0) == ST(fetchdat & 7))     flags |= Z_FLAG;
@@ -211,7 +211,7 @@ static int opFCOMIP(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FICOMP\n");
+        x386_dynarec_log("FICOMP\n");
         flags_rebuild();
         flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
         if (ST(0) == ST(fetchdat & 7))     flags |= Z_FLAG;
@@ -225,7 +225,7 @@ static int opFDIV(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FDIV\n");
+        x386_dynarec_log("FDIV\n");
         x87_div(ST(0), ST(0), ST(fetchdat & 7));
         cpu_state.tag[cpu_state.TOP] &= ~TAG_UINT64;
         CLOCK_CYCLES(73);
@@ -235,7 +235,7 @@ static int opFDIVr(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FDIV\n");
+        x386_dynarec_log("FDIV\n");
         x87_div(ST(fetchdat & 7), ST(fetchdat & 7), ST(0));
         cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64;
         CLOCK_CYCLES(73);
@@ -245,7 +245,7 @@ static int opFDIVP(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FDIVP\n");
+        x386_dynarec_log("FDIVP\n");
         x87_div(ST(fetchdat & 7), ST(fetchdat & 7), ST(0));
         cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64;
         x87_pop();
@@ -257,7 +257,7 @@ static int opFDIVR(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FDIVR\n");
+        x386_dynarec_log("FDIVR\n");
         x87_div(ST(0), ST(fetchdat&7), ST(0));
         cpu_state.tag[cpu_state.TOP] &= ~TAG_UINT64;
         CLOCK_CYCLES(73);
@@ -267,7 +267,7 @@ static int opFDIVRr(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FDIVR\n");
+        x386_dynarec_log("FDIVR\n");
         x87_div(ST(fetchdat & 7), ST(0), ST(fetchdat & 7));
         cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64;
         CLOCK_CYCLES(73);
@@ -277,7 +277,7 @@ static int opFDIVRP(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FDIVR\n");
+        x386_dynarec_log("FDIVR\n");
         x87_div(ST(fetchdat & 7), ST(0), ST(fetchdat & 7));
         cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64;
         x87_pop();
@@ -289,7 +289,7 @@ static int opFMUL(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FMUL\n");
+        x386_dynarec_log("FMUL\n");
         ST(0) = ST(0) * ST(fetchdat & 7);
         cpu_state.tag[cpu_state.TOP] &= ~TAG_UINT64;
         CLOCK_CYCLES(16);
@@ -299,7 +299,7 @@ static int opFMULr(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FMUL\n");
+        x386_dynarec_log("FMUL\n");
         ST(fetchdat & 7) = ST(0) * ST(fetchdat & 7);
         cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64;
         CLOCK_CYCLES(16);
@@ -309,7 +309,7 @@ static int opFMULP(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FMULP\n");
+        x386_dynarec_log("FMULP\n");
         ST(fetchdat & 7) = ST(0) * ST(fetchdat & 7);
         cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64;
         x87_pop();
@@ -321,7 +321,7 @@ static int opFSUB(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FSUB\n");
+        x386_dynarec_log("FSUB\n");
         ST(0) = ST(0) - ST(fetchdat & 7);
         cpu_state.tag[cpu_state.TOP] &= ~TAG_UINT64;
         CLOCK_CYCLES(8);
@@ -331,7 +331,7 @@ static int opFSUBr(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FSUB\n");
+        x386_dynarec_log("FSUB\n");
         ST(fetchdat & 7) = ST(fetchdat & 7) - ST(0);
         cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64;
         CLOCK_CYCLES(8);
@@ -341,7 +341,7 @@ static int opFSUBP(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FSUBP\n");
+        x386_dynarec_log("FSUBP\n");
         ST(fetchdat & 7) = ST(fetchdat & 7) - ST(0);
         cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64;
         x87_pop();
@@ -353,7 +353,7 @@ static int opFSUBR(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FSUBR\n");
+        x386_dynarec_log("FSUBR\n");
         ST(0) = ST(fetchdat & 7) - ST(0);
         cpu_state.tag[cpu_state.TOP] &= ~TAG_UINT64;
         CLOCK_CYCLES(8);
@@ -363,7 +363,7 @@ static int opFSUBRr(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FSUBR\n");
+        x386_dynarec_log("FSUBR\n");
         ST(fetchdat & 7) = ST(0) - ST(fetchdat & 7);
         cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64;
         CLOCK_CYCLES(8);
@@ -373,7 +373,7 @@ static int opFSUBRP(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FSUBRP\n");
+        x386_dynarec_log("FSUBRP\n");
         ST(fetchdat & 7) = ST(0) - ST(fetchdat & 7);
         cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64;
         x87_pop();
@@ -385,7 +385,7 @@ static int opFUCOM(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FUCOM\n");
+        x386_dynarec_log("FUCOM\n");
         cpu_state.npxs &= ~(C0|C2|C3);
         cpu_state.npxs |= x87_ucompare(ST(0), ST(fetchdat & 7));
         CLOCK_CYCLES(4);
@@ -396,7 +396,7 @@ static int opFUCOMP(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FUCOMP\n");
+        x386_dynarec_log("FUCOMP\n");
         cpu_state.npxs &= ~(C0|C2|C3);
         cpu_state.npxs |= x87_ucompare(ST(0), ST(fetchdat & 7));
         x87_pop();
@@ -408,7 +408,7 @@ static int opFUCOMI(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FUCOMI\n");
+        x386_dynarec_log("FUCOMI\n");
         flags_rebuild();
         flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
         if (ST(0) == ST(fetchdat & 7))     flags |= Z_FLAG;
@@ -420,7 +420,7 @@ static int opFUCOMIP(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
-        if (fplog) pclog("FUCOMIP\n");
+        x386_dynarec_log("FUCOMIP\n");
         flags_rebuild();
         flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
         if (ST(0) == ST(fetchdat & 7))     flags |= Z_FLAG;
