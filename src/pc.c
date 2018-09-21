@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.78	2018/09/19
+ * Version:	@(#)pc.c	1.0.79	2018/09/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -260,6 +260,10 @@ fatal(const char *fmt, ...)
 
     /* Make sure the message does not have a trailing newline. */
     if ((sp = strchr(temp, '\n')) != NULL) *sp = '\0';
+
+    /* Cleanly terminate all of the emulator's components so as
+       to avoid things like threads getting stuck. */
+    do_stop();
 
     ui_msgbox(MBX_ERROR|MBX_FATAL|MBX_ANSI, temp);
 
