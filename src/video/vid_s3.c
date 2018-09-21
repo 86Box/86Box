@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.16	2018/09/20
+ * Version:	@(#)vid_s3.c	1.0.17	2018/09/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2744,7 +2744,7 @@ static int vram_sizes[] =
 static void *s3_init(const device_t *info)
 {
 	const wchar_t *bios_fn;
-	int chip;
+	int chip, stepping;
 	s3_t *s3 = malloc(sizeof(s3_t));
         svga_t *svga = &s3->svga;
         int vram;
@@ -2894,8 +2894,12 @@ static void *s3_init(const device_t *info)
 		case S3_PARADISE_BAHAMAS64:
 		case S3_PHOENIX_VISION864:
 			svga->decode_mask = (8 << 20) - 1;
-			s3->id = 0xc1; /*Vision864P*/
-			s3->id_ext = s3->id_ext_pci = 0xc1;
+			if (info->local == S3_PARADISE_BAHAMAS64)
+				stepping = 0xc0; /*Vision864*/
+			else
+				stepping = 0xc1; /*Vision864P*/
+			s3->id = stepping;
+			s3->id_ext = s3->id_ext_pci = stepping;
 			s3->packed_mmio = 0;
 
 			s3->getclock = sdac_getclock;
