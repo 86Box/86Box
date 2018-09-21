@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.40	2018/09/17
+ * Version:	@(#)keyboard_at.c	1.0.41	2018/09/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1834,8 +1834,8 @@ do_command:
 						kbd_log("ATkbd: read keyboard id\n");
 #endif
 						kbd_adddata_keyboard(0xfa);
-						/* kbd_adddata_keyboard(0xab);
-						kbd_adddata_keyboard(0x83); */
+						kbd_adddata_keyboard(0xab);
+						kbd_adddata_keyboard(0x83);
 						break;
 
 					case 0xf3: /*Set typematic rate/delay*/
