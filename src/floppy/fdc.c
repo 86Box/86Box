@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.9	2018/06/12
+ * Version:	@(#)fdc.c	1.0.10	2018/09/22
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -2037,6 +2037,8 @@ fdc_set_base(fdc_t *fdc, int base)
 	io_sethandler(base + 0x0002, 0x0001, NULL, NULL, NULL, fdc_write, NULL, NULL, fdc);
 	io_sethandler(base + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
 	io_sethandler(base + 0x0005, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+	if (fdc->flags & FDC_FLAG_TOSHIBA)
+		io_sethandler(base + 0x0007, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     }
     fdc->base_address = base;
     fdc_log("fdc_t Base address set%s (%04X)\n", super_io ? " for Super I/O" : "", fdc->base_address);
@@ -2056,6 +2058,8 @@ fdc_remove(fdc_t *fdc)
 	io_removehandler(fdc->base_address + 0x0002, 0x0001, NULL, NULL, NULL, fdc_write, NULL, NULL, fdc);
 	io_removehandler(fdc->base_address + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
 	io_removehandler(fdc->base_address + 0x0005, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+	if (fdc->flags & FDC_FLAG_TOSHIBA)
+		io_removehandler(fdc->base_address + 0x0007, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     }
 }
 
@@ -2179,6 +2183,16 @@ const device_t fdc_xt_device = {
     "PC/XT Floppy Drive Controller",
     0,
     0,
+    fdc_init,
+    fdc_close,
+    fdc_reset,
+    NULL, NULL, NULL
+};
+
+const device_t fdc_xt_t1x00_device = {
+    "PC/XT Floppy Drive Controller",
+    0,
+    FDC_FLAG_TOSHIBA,
     fdc_init,
     fdc_close,
     fdc_reset,

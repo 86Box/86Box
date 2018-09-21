@@ -968,7 +968,7 @@ machine_xt_t1200_init(const machine_t *model)
 
     pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
     device_add(&keyboard_xt_device);
-    t1000.fdc = device_add(&fdc_xt_device);
+    t1000.fdc = device_add(&fdc_xt_t1x00_device);
     nmi_init();
 
     tc8521_init(&t1000.nvr, model->nvrmask + 1);
