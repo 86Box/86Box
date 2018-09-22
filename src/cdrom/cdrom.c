@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.48	2018/05/28
+ * Version:	@(#)cdrom.c	1.0.49	2018/09/22
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -67,7 +67,7 @@ uint8_t scsi_cdrom_drives[16] =	{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
 
 
 #pragma pack(push,1)
-static struct
+typedef struct
 {
 	uint8_t opcode;
 	uint8_t polled;
@@ -76,16 +76,16 @@ static struct
 	uint8_t reserved3[2];
 	uint16_t len;
 	uint8_t control;
-} *gesn_cdb;
+} gesn_cdb_t;
 #pragma pack(pop)
 
 #pragma pack(push,1)
-static struct
+typedef struct
 {
 	uint16_t len;
 	uint8_t notification_class;
 	uint8_t supported_events;
-} *gesn_event_header;
+} gesn_event_header_t;
 #pragma pack(pop)
 
 
@@ -327,6 +327,9 @@ static const mode_sense_pages_t cdrom_mode_sense_pages_changeable =
 }   };
 
 uint8_t cdrom_read_capacity_cdb[12] = {0x25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+static gesn_cdb_t *gesn_cdb;
+static gesn_event_header_t *gesn_event_header;
 
 
 static void	cdrom_command_complete(cdrom_t *dev);
@@ -2178,7 +2181,7 @@ cdrom_command(cdrom_t *dev, uint8_t *cdb)
 	case GPCMD_GET_EVENT_STATUS_NOTIFICATION:
 		cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
 
-		cdrom_buf_alloc(dev, 8 + sizeof(gesn_event_header));
+		cdrom_buf_alloc(dev, 8 + sizeof(gesn_event_header_t));
 
 		gesn_cdb = (void *) cdb;
 		gesn_event_header = (void *) cdbufferb;
