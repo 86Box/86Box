@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.10	2018/09/22
+ * Version:	@(#)fdc.c	1.0.11	2018/09/22
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -1188,7 +1188,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 		}
 		return;
 	case 7:
-		if (!(fdc->flags & FDC_FLAG_AT))
+		if (!(fdc->flags & FDC_FLAG_TOSHIBA) && !(fdc->flags & FDC_FLAG_AT))
 			return;
 		fdc->rate = val & 0x03;
 		if (fdc->flags & FDC_FLAG_PS1)
@@ -1334,12 +1334,19 @@ fdc_read(uint16_t addr, void *priv)
 			} else
 				ret = 0x00;
 		} else {
-			if (fdc->dor & (0x10 << drive))
-				ret = (fdd_changed[drive] || drive_empty[drive]) ? 0x80 : 0x00;
-			else
+			if (fdc->dor & (0x10 << drive)) {
+				if ((drive == 1) && (fdc->flags & FDC_FLAG_TOSHIBA))
+					ret = 0x00;
+				else
+					ret = (fdd_changed[drive] || drive_empty[drive]) ? 0x80 : 0x00;
+			} else
 				ret = 0x00;
 			if (fdc->flags & FDC_FLAG_DISKCHG_ACTLOW)  /*PC2086/3086 seem to reverse this bit*/
 				ret ^= 0x80;
+
+			/* 0 = ????, 1 = Ext. FDD off, 2 = Ext. FDD = FDD A, 3 = Ext. FDD = FDD B */
+			if (fdc->flags & FDC_FLAG_TOSHIBA)
+				ret |= (3 << 5);
 
 			ret |= 0x01;
 		}
