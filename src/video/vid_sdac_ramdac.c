@@ -8,7 +8,7 @@
  *
  *		87C716 'SDAC' true colour RAMDAC emulation.
  *
- * Version:	@(#)vid_sdac_ramdac.c	1.0.3	2018/03/21
+ * Version:	@(#)vid_sdac_ramdac.c	1.0.5	2018/03/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -34,7 +34,7 @@ static void sdac_control_write(sdac_ramdac_t *ramdac, svga_t *svga, uint8_t val)
                 case 0x2: case 0x3: case 0xa: svga->bpp = 15; break;
                 case 0x4: case 0xe:           svga->bpp = 24; break;
                 case 0x5: case 0x6: case 0xc: svga->bpp = 16; break;
-                case 0x7:                     svga->bpp = 32; break;
+                case 0x7: case 0x8:	      svga->bpp = 32; break;
 
                 case 0: case 1: default: svga->bpp = 8; break;
         }
@@ -69,96 +69,96 @@ static uint8_t sdac_reg_read(sdac_ramdac_t *ramdac, int reg)
         return temp;
 }
 
-void sdac_ramdac_out(uint16_t addr, uint8_t val, sdac_ramdac_t *ramdac, svga_t *svga)
+void sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, sdac_ramdac_t *ramdac, svga_t *svga)
 {
-        switch (addr)
-        {               
-                case 2:
-                if (ramdac->magic_count == 4)
-                        sdac_control_write(ramdac, svga, val);
-                ramdac->magic_count = 0;
-                break;
-                
-                case 3:
-                ramdac->magic_count = 0;
-                break;
-                case 0:
-                ramdac->magic_count = 0;
-                break;
-                case 1:
-                ramdac->magic_count = 0;
-                break;
+	switch (addr)
+	{
+		case 0x3C6:
+		if (rs2)
+			sdac_control_write(ramdac, svga, val);			
+		else {
+			if (ramdac->magic_count == 4)
+				sdac_control_write(ramdac, svga, val);
+			ramdac->magic_count = 0;			
+		}
+		break;
+		
+		case 0x3C7:
+		if (rs2) {
+			ramdac->rindex = val;
+			ramdac->reg_ff = 0;			
+		}
+		else
+			ramdac->magic_count = 0;
+		break;
+		
+		case 0x3C8:
+		if (rs2) {
+			ramdac->windex = val;
+			ramdac->reg_ff = 0;			
+		}
+		else
+			ramdac->magic_count = 0;
+		break;
+		
+		case 0x3C9:
+		if (rs2)
+			sdac_reg_write(ramdac, ramdac->windex & 0xff, val);
+		else
+			ramdac->magic_count = 0;
+		break;
+	}
 
-                case 4:
-                ramdac->windex = val;
-                ramdac->reg_ff = 0;
-                break;
-                case 5:
-                sdac_reg_write(ramdac, ramdac->windex & 0xff, val);
-                break;
-                case 6:
-                sdac_control_write(ramdac, svga, val);
-                break;
-                case 7:
-                ramdac->rindex = val;
-                ramdac->reg_ff = 0;
-                break;
-        }
-        if (!(addr & 4))
-        {
-                if (addr < 2)
-                        svga_out(addr + 0x3c8, val, svga);
-                else
-                        svga_out(addr + 0x3c4, val, svga);
-        }
+        svga_out(addr, val, svga);
 }
 
-uint8_t sdac_ramdac_in(uint16_t addr, sdac_ramdac_t *ramdac, svga_t *svga)
+uint8_t sdac_ramdac_in(uint16_t addr, int rs2, sdac_ramdac_t *ramdac, svga_t *svga)
 {
         uint8_t temp;
-        switch (addr)
-        {
-                case 2:
-                if (ramdac->magic_count < 5)
-                        ramdac->magic_count++;
-                if (ramdac->magic_count == 4)
-                {
-                        temp = 0x70; /*SDAC ID*/
-                        ramdac->rs2 = 1;
-                }
-                if (ramdac->magic_count == 5)
-                {
-                        temp = ramdac->command;
-                        ramdac->magic_count = 0;
-                }
-                return temp;
-                case 3:
-                ramdac->magic_count=0;
-                break;
-                case 0:
-                ramdac->magic_count=0;
-                break;
-                case 1:
-                ramdac->magic_count=0;
-                break;
-
-                case 4:
-                return ramdac->windex;
-                case 5:
-                return sdac_reg_read(ramdac, ramdac->rindex & 0xff);
-                case 6:
-                return ramdac->command;
-                case 7:
-                return ramdac->rindex;
-        }
-        if (!(addr & 4))
-        {
-                if (addr < 2)
-                        return svga_in(addr + 0x3c8, svga);
-                else
-                        return svga_in(addr + 0x3c4, svga);
-        }
-        return 0xff;
+	switch (addr)
+	{
+		case 0x3C6:
+		if (rs2)
+			return ramdac->command;
+		else {
+			if (ramdac->magic_count < 5)
+				ramdac->magic_count++;
+			if (ramdac->magic_count == 4)
+			{
+				temp = 0x70; /*SDAC ID*/
+			}
+			if (ramdac->magic_count == 5)
+			{
+				temp = ramdac->command;
+				ramdac->magic_count = 0;
+			}
+			return temp;			
+		}
+		break;
+		
+		case 0x3C7:
+		if (rs2)
+			return ramdac->rindex;
+		else
+			ramdac->magic_count=0;
+		break;
+		
+		case 0x3C8:
+		if (rs2)
+			return ramdac->windex;
+		else
+			ramdac->magic_count=0;
+		break;
+		
+		case 0x3C9:
+		if (rs2)
+			return sdac_reg_read(ramdac, ramdac->rindex & 0xff);
+		else
+			ramdac->magic_count=0;
+		break;
+	}
+	
+        return svga_in(addr, svga);
 }
 
 float sdac_getclock(int clock, void *p)

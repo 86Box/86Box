@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.17	2018/09/21
+ * Version:	@(#)vid_s3.c	1.0.18	2018/09/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1033,9 +1033,9 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
                 else
                 {
                         if ((svga->crtc[0x55] & 1) || (svga->crtc[0x43] & 2))
-                                sdac_ramdac_out((addr & 3) | 4, val, &s3->ramdac, svga);
+                                sdac_ramdac_out(addr, 1, val, &s3->ramdac, svga);
                         else
-                                sdac_ramdac_out(addr & 3, val, &s3->ramdac, svga);
+                                sdac_ramdac_out(addr, 0, val, &s3->ramdac, svga);
                 }
                 return;
 
@@ -1204,8 +1204,8 @@ uint8_t s3_in(uint16_t addr, void *p)
                 if (s3->chip == S3_TRIO32 || s3->chip == S3_TRIO64)
                         return svga_in(addr, svga);
                 if ((svga->crtc[0x55] & 1) || (svga->crtc[0x43] & 2))
-                        return sdac_ramdac_in((addr & 3) | 4, &s3->ramdac, svga);
-                return sdac_ramdac_in(addr & 3, &s3->ramdac, svga);
+                        return sdac_ramdac_in(addr, 1, &s3->ramdac, svga);
+                return sdac_ramdac_in(addr, 0, &s3->ramdac, svga);
 
                 case 0x3d4:
                 return svga->crtcreg;
