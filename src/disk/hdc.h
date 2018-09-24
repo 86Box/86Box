@@ -8,7 +8,7 @@
  *
  *		Definitions for the common disk controller handler.
  *
- * Version:	@(#)hdc.h	1.0.8	2018/04/05
+ * Version:	@(#)hdc.h	1.0.9	2018/09/24
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -23,7 +23,7 @@
 #define MFM_NUM		2	/* 2 drives per controller supported */
 #define ESDI_NUM	2	/* 2 drives per controller supported */
 #define XTA_NUM		2	/* 2 drives per controller supported */
-#define IDE_NUM		8
+#define IDE_NUM		10	/* 8 drives per AT IDE + 2 for XT IDE */
 #define SCSI_NUM	16	/* theoretically the controller can have at
 				 * least 7 devices, with each device being
 				 * able to support 8 units, but hey... */
