@@ -10,7 +10,7 @@
  *
  * Known bugs:	Accelerator doesn't work in planar modes
  *
- * Version:	@(#)vid_et4000w32.c	1.0.17	2018/09/19
+ * Version:	@(#)vid_et4000w32.c	1.0.18	2018/09/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -35,15 +35,11 @@
 #include "../plat.h"
 #include "video.h"
 #include "vid_svga.h"
-#if defined(DEV_BRANCH) && defined(USE_STEALTH32)
 #include "vid_icd2061.h"
-#endif
 #include "vid_stg_ramdac.h"
 
 
-#if defined(DEV_BRANCH) && defined(USE_STEALTH32)
 #define BIOS_ROM_PATH_DIAMOND	L"roms/video/et4000w32/et4000w32.bin"
-#endif
 #define BIOS_ROM_PATH_CARDEX	L"roms/video/et4000w32/cardex.vbi"
 
 
@@ -61,9 +57,7 @@
 enum
 {
 	ET4000W32_CARDEX = 0,
-#if defined(DEV_BRANCH) && defined(USE_STEALTH32)
 	ET4000W32_DIAMOND
-#endif
 };
 
 enum
@@ -88,9 +82,7 @@ typedef struct et4000w32p_t
         
         svga_t svga;
         stg_ramdac_t ramdac;
-#if defined(DEV_BRANCH) && defined(USE_STEALTH32)
         icd2061_t icd2061;
-#endif
 
         int index;
 	int pci;
@@ -196,12 +188,10 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
         
         switch (addr)
         {
-#if defined(DEV_BRANCH) && defined(USE_STEALTH32)
                 case 0x3c2:
 		if (et4000->type == ET4000W32_DIAMOND)
 	                icd2061_write(&et4000->icd2061, (val >> 2) & 3);
                 break;
-#endif
                 
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
                 stg_ramdac_out(addr, val, &et4000->ramdac, svga);
@@ -366,22 +356,12 @@ void et4000w32p_recalctimings(svga_t *svga)
         if (svga->crtc[0x3F] & 0x01)     svga->htotal      += 256;
         if (svga->attrregs[0x16] & 0x20) svga->hdisp <<= 1;
         
-#if defined(DEV_BRANCH) && defined(USE_STEALTH32)
 	if (et4000->type == ET4000W32_DIAMOND)
 	{        
-	        switch ((svga->miscout >> 2) & 3)
-        	{
-                	case 0: case 1: break;
-	                case 2: case 3: svga->clock = cpuclock / icd2061_getfreq(&et4000->icd2061, 2); break;
-        	}
+		svga->clock = cpuclock / icd2061_getclock((svga->miscout >> 2) & 3, &et4000->icd2061);
 	}
 	else
-	{
-#endif
 		svga->clock = cpuclock / stg_getclock((svga->miscout >> 2) & 3, &et4000->ramdac);
-#if defined(DEV_BRANCH) && defined(USE_STEALTH32)
-	}
-#endif
   
         switch (svga->bpp)
         {
@@ -1275,12 +1255,12 @@ void *et4000w32p_init(const device_t *info)
 		        rom_init(&et4000->bios_rom, BIOS_ROM_PATH_CARDEX, 0xc0000, 0x8000, 0x7fff, 0,
 						    MEM_MAPPING_EXTERNAL);
 			break;
-#if defined(DEV_BRANCH) && defined(USE_STEALTH32)
+
 		case ET4000W32_DIAMOND:
 		        rom_init(&et4000->bios_rom, BIOS_ROM_PATH_DIAMOND, 0xc0000, 0x8000, 0x7fff, 0,
 						    MEM_MAPPING_EXTERNAL);
+			icd2061_init(&et4000->icd2061);
 			break;
-#endif
 	}
 	et4000->pci = !!(info->flags & DEVICE_PCI);
         if (info->flags & DEVICE_PCI)
@@ -1316,12 +1296,10 @@ void *et4000w32p_init(const device_t *info)
         return et4000;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_STEALTH32)
 int et4000w32p_available(void)
 {
         return rom_present(BIOS_ROM_PATH_DIAMOND);
 }
-#endif
 
 int et4000w32p_cardex_available(void)
 {
@@ -1398,7 +1376,6 @@ const device_t et4000w32p_cardex_pci_device =
         et4000w32p_config
 };
 
-#if defined(DEV_BRANCH) && defined(USE_STEALTH32)
 const device_t et4000w32p_vlb_device =
 {
         "Tseng Labs ET4000/w32p VLB (Diamond)",
@@ -1420,4 +1397,3 @@ const device_t et4000w32p_pci_device =
         et4000w32p_force_redraw,
         et4000w32p_config
 };
-#endif

@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.21	2018/09/19
+ * Version:	@(#)vid_cl_54xx.c	1.0.22	2018/09/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,
@@ -308,6 +308,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 					svga_recalctimings(svga);
 					svga->hwcursor.ena = val & CIRRUS_CURSOR_SHOW;
 					svga->hwcursor.xsize = svga->hwcursor.ysize = (val & CIRRUS_CURSOR_LARGE) ? 64 : 32;
+					svga->hwcursor.yoff = (svga->hwcursor.ysize == 32) ? 32 : 0;
 					if (val & CIRRUS_CURSOR_LARGE)
 						svga->hwcursor.addr = (((gd54xx->vram_size<<20)-0x4000) + ((svga->seqregs[0x13] & 0x3c) * 256));
 					else

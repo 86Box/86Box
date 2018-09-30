@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.126	2018/09/15
+# Version:	@(#)Makefile.mingw	1.0.127	2018/09/30
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -62,9 +62,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef PS2M70T4
   PS2M70T4	:= y
  endif
- ifndef STEALTH32
-  STEALTH32	:= y
- endif
  ifndef VNC
   VNC		:= y
  endif
@@ -104,9 +101,6 @@ else
  endif
  ifndef PS2M70T4
   PS2M70T4	:= n
- endif
- ifndef STEALTH32
-  STEALTH32	:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -389,11 +383,6 @@ ifeq ($(PS2M70T4), y)
 OPTS		+= -DUSE_PS2M70T4
 endif
 
-ifeq ($(STEALTH32), y)
-OPTS		+= -DUSE_STEALTH32
-DEVBROBJ	+= vid_icd2061.o
-endif
-
 ifeq ($(VGAWONDER), y)
 OPTS		+= -DUSE_VGAWONDER
 endif
@@ -541,7 +530,8 @@ VIDOBJ		:= video.o \
 		    vid_ati_eeprom.o \
 		    vid_ati18800.o vid_ati28800.o \
 		    vid_ati_mach64.o vid_ati68860_ramdac.o \
-		    vid_ics2595.o \
+		    vid_bt485_ramdac.o \
+		    vid_icd2061.o vid_ics2595.o \
 		    vid_cl54xx.o \
 		    vid_et4000.o vid_sc1502x_ramdac.o \
 		    vid_et4000w32.o vid_stg_ramdac.o \

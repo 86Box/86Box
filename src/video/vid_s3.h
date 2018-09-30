@@ -19,8 +19,6 @@
 
 const device_t s3_bahamas64_vlb_device;
 const device_t s3_bahamas64_pci_device;
-const device_t s3_expertcolor_vlb_device;
-const device_t s3_expertcolor_pci_device;
 const device_t s3_9fx_vlb_device;
 const device_t s3_9fx_pci_device;
 const device_t s3_phoenix_trio32_vlb_device;
@@ -32,4 +30,6 @@ const device_t s3_phoenix_vision864_pci_device;
 const device_t s3_phoenix_vision864_vlb_device;
 const device_t s3_diamond_stealth64_pci_device;
 const device_t s3_diamond_stealth64_vlb_device;
+const device_t s3_diamond_stealth64_964_pci_device;
+const device_t s3_diamond_stealth64_964_vlb_device;
 /* const device_t s3_miro_vision964_device; */

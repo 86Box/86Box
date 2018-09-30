@@ -8,16 +8,14 @@
  *
  *		Brooktree BT485 true colour RAMDAC emulation.
  *
- *		Currently only a dummy stub for logging and passing output
- *		to the generic SVGA handler.
  *
- * Version:	@(#)vid_bt485_ramdac.c	1.0.2	2017/11/04
+ * Version:	@(#)vid_bt485_ramdac.c	1.0.4	2018/09/30
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ *		TheCollector1995,
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2018 TheCollector1995.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -30,163 +28,294 @@
 #include "vid_bt485_ramdac.h"
 
 
-int bt485_get_clock_divider(bt485_ramdac_t *ramdac)
+void
+bt485_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt485_ramdac_t *ramdac, svga_t *svga)
 {
-	return 1;	/* Will be implemented later. */
+    uint32_t o32;
+    uint8_t *cd;
+
+    switch (addr) {
+	case 0x3C6:
+		if (rs2) {
+			if (rs3) { /*REG0E, Hardware Cursor Y-position*/
+				ramdac->hwc_y = (ramdac->hwc_y & 0x0f00) | val;
+				svga->hwcursor.y = ramdac->hwc_y - svga->hwcursor.ysize;
+				/* pclog("BT485 0E Y=%d\n", ramdac->hwc_y); */
+				break;
+			} else { /*REG06, Command Reg 0*/
+				ramdac->cr0 = val;
+				svga->ramdac_type = (val & 0x01) ? RAMDAC_8BIT : RAMDAC_6BIT;
+				break;
+			}
+		} else {
+			if (rs3) { /*REG0A*/
+				switch (ramdac->set_reg0a) {
+					case 0: /*Status, read-only*/
+						break;
+					
+					case 1: /*Command Reg 3*/
+						ramdac->cr3 = val;
+						svga->hwcursor.xsize = svga->hwcursor.ysize = (val & 4) ? 64 : 32;
+						svga->hwcursor.yoff = (svga->hwcursor.ysize == 32) ? 32 : 0;
+						svga->hwcursor.x = ramdac->hwc_x - svga->hwcursor.xsize;
+						svga->hwcursor.y = ramdac->hwc_y - svga->hwcursor.ysize;
+						if (svga->hwcursor.xsize == 64)
+							svga->dac_pos = (svga->dac_pos & 0x00ff) | ((val & 0x03) << 8);
+						svga_recalctimings(svga);
+						break;
+				}
+				break;
+			} else { /*REG02*/
+				svga_out(addr, val, svga);
+				break;
+			}
+		}
+		break;
+
+	case 0x3C7:
+		if (!rs2 && !rs3) { /*REG03*/
+			svga_out(addr, val, svga);
+			break;
+		} else if (rs2 && !rs3) { /*REG07, Cursor/Overscan Read Address*/
+			svga->dac_read = val;
+			svga->dac_pos = 0;
+			break;
+		} else if (!rs2 && rs3) { /*REG0B, Cursor Ram Data*/
+			if (svga->hwcursor.xsize == 64)
+				cd = (uint8_t *) ramdac->cursor64_data;
+			else
+				cd = (uint8_t *) ramdac->cursor32_data;
+
+			cd[svga->dac_pos] = val;
+			svga->dac_pos++;
+			if (svga->hwcursor.xsize == 32)
+				svga->dac_pos &= 0x00ff;
+			else
+				svga->dac_pos &= 0x03ff;
+			break;
+		} else { /*REG0F, Hardware Cursor Y-position*/
+			ramdac->hwc_y = (ramdac->hwc_y & 0x00ff) | ((val & 0x0f) << 8);
+			svga->hwcursor.y = ramdac->hwc_y - svga->hwcursor.ysize;
+			/* pclog("BT485 0F Y=%d\n", ramdac->hwc_y); */
+			break;				
+		}
+		break;
+
+	case 0x3C8:
+		ramdac->set_reg0a = (ramdac->cr0 & 0x80) ? 1 : 0;
+		if (rs2) {
+			if (rs3) { /*REG0C, Hardware Cursor X-position*/
+				ramdac->hwc_x = (ramdac->hwc_x & 0x0f00) | val;
+				svga->hwcursor.x = ramdac->hwc_x - svga->hwcursor.xsize;
+				/* pclog("BT485 0C X=%d\n", ramdac->hwc_x); */
+				break;
+			}
+			else { /*REG04, Cursor/Overscan Write Address*/
+				svga->dac_write = val;
+				svga->dac_read = val - 1;
+				svga->dac_pos = 0;
+				break;
+			}
+		} else {
+			if (rs3) { /*REG08, Command Reg 1*/
+				ramdac->cr1 = val;
+				switch (val >> 5) {
+					case 0:
+						if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10))
+							svga->bpp = 32;
+						else
+							svga->bpp = 8;
+						break;
+
+					case 1:
+						if (ramdac->cr1 & 8)
+							svga->bpp = 16;
+						else
+							svga->bpp = 15;
+						break;
+
+					case 2:
+						svga->bpp = 8;
+						break;
+
+					case 3:
+						svga->bpp = 4;
+						break;
+				}
+				svga_recalctimings(svga);
+				break;			
+			}
+			else { /*REG00*/
+				svga_out(addr, val, svga);
+				break;
+			}
+		}
+		break;
+		
+	case 0x3C9:
+		if (rs2) {
+			if (rs3) { /*REG0D, Hardware Cursor X-position*/
+				ramdac->hwc_x = (ramdac->hwc_x & 0x00ff) | ((val & 0x0f) << 8);
+				svga->hwcursor.x = ramdac->hwc_x - svga->hwcursor.xsize;
+				/* pclog("BT485 0D X=%d\n", ramdac->hwc_x); */
+				break;
+			} else { /*REG05, Cursor/Overscan Data*/
+				svga->dac_status = 0;
+				svga->fullchange = changeframecount;
+				switch (svga->dac_pos) {
+					case 0:
+						svga->dac_r = val;
+						svga->dac_pos++; 
+						break;
+					case 1:
+						svga->dac_g = val;
+						svga->dac_pos++; 
+						break;
+					case 2:
+						ramdac->extpal[svga->dac_write].r = svga->dac_r;
+						ramdac->extpal[svga->dac_write].g = svga->dac_g;
+						ramdac->extpal[svga->dac_write].b = val; 
+						if (svga->ramdac_type == RAMDAC_8BIT)
+							ramdac->extpallook[svga->dac_write & 3] = makecol32(ramdac->extpal[svga->dac_write].r & 0x3f, ramdac->extpal[svga->dac_write].g & 0x3f, ramdac->extpal[svga->dac_write].b & 0x3f);
+						else
+							ramdac->extpallook[svga->dac_write & 3] = makecol32(video_6to8[ramdac->extpal[svga->dac_write].r & 0x3f], video_6to8[ramdac->extpal[svga->dac_write].g & 0x3f], video_6to8[ramdac->extpal[svga->dac_write].b & 0x3f]);
+						
+						if ((svga->crtc[0x33] & 0x40) && ((svga->dac_write & 3) == 0)) {
+							o32 = svga->overscan_color;
+							svga->overscan_color = ramdac->extpallook[0];
+							if (o32 != svga->overscan_color)
+								svga_recalctimings(svga);
+						}
+						svga->dac_write = (svga->dac_write + 1) & 15;
+						svga->dac_pos = 0; 
+					break;
+				}
+				break;				
+			}
+		}
+		else {
+			if (rs3) { /*REG09, Command Reg 2*/
+				ramdac->cr2 = val;
+				svga->hwcursor.ena = ramdac->cr2 & 0x03;
+				svga_recalctimings(svga);
+				break;
+			} else { /*REG01*/
+				svga_out(addr, val, svga);
+				break;				
+			}
+		}
+		break;
+    }
+    return;
 }
 
-void bt485_set_rs2(uint8_t rs2, bt485_ramdac_t *ramdac)
+
+uint8_t
+bt485_ramdac_in(uint16_t addr, int rs2, int rs3, bt485_ramdac_t *ramdac, svga_t *svga)
 {
-	ramdac->rs2 = rs2 ? 1 : 0;
-}
+    uint8_t temp = 0xff;
+    uint8_t *cd;
 
-void bt485_set_rs3(uint8_t rs3, bt485_ramdac_t *ramdac)
-{
-	ramdac->rs3 = rs3 ? 1 : 0;
-}
+    switch (addr) {
+	case 0x3C6:
+		if (rs2) {
+			if (rs3)	/*REG0E, Hardware Cursor Y-position, write only*/
+				return 0xff;
+			else		/*REG06, Command Reg 0*/
+				return ramdac->cr0;	
+		} else {
+			if (rs3) { /*REG0A*/
+				switch (ramdac->set_reg0a) {
+					case 0: /*Status, read-only*/
+						return 0x0b; /*Bt485*/
 
-void bt485_ramdac_out(uint16_t addr, uint8_t val, bt485_ramdac_t *ramdac, svga_t *svga)
-{
-//        /*if (CS!=0xC000) */pclog("OUT RAMDAC %04X %02X %i %04X:%04X  %i\n",addr,val,sdac_ramdac.magic_count,CS,pc, sdac_ramdac.rs2);
-	uint8_t reg = addr & 3;
-	reg |= (ramdac->rs2 ? 4 : 0);
-	reg |= (ramdac->rs3 ? 8 : 0);
-	pclog("BT485 RAMDAC: Writing %02X to register %02X\n", val, reg);
-        svga_out(addr, val, svga);
-	return;
+					case 1: /*Command Reg 3*/
+						if (ramdac->cr2 & 4) {
+							if (ramdac->cr3 & 2)
+								temp = 0xa9;
+							else
+								temp = 0xa8;
+						} else
+							temp = ramdac->cr3;
+						temp &= 0xfc;
+						if (svga->hwcursor.xsize == 64)
+							temp |= (svga->dac_pos >> 8) & 0x03;
+						return temp;
+				}
+				return 0xff;
+			} else /*REG02*/
+				return svga_in(addr, svga);
+		}
+		break;
+		
+	case 0x3C7:
+		if (rs2) {
+			if (rs3)	/*REG0F, Hardware Cursor Y-position, write only*/
+				return 0xff;
+			else		/*REG07, Cursor/Overscan Read Address*/
+				return svga->dac_status;
+		} else {
+			if (rs3) { /*REG0B, Cursor Ram Data*/
+				if (svga->hwcursor.xsize == 64)
+					cd = (uint8_t *) ramdac->cursor64_data;
+				else
+					cd = (uint8_t *) ramdac->cursor32_data;
 
-        switch (addr)
-        {
-                case 0x3C6:
-                if (val == 0xff)
-                {
-                        ramdac->rs2 = 0;
-                        ramdac->magic_count = 0;
-                        break;
-                }
-                if (ramdac->magic_count < 4) break;
-                if (ramdac->magic_count == 4)
-                {
-                        ramdac->command = val;
-//                        pclog("RAMDAC command reg now %02X\n", val);
-                        switch (val >> 4)
-                        {
-                                case 0x2: case 0x3: case 0xa: svga->bpp = 15; break;
-                                case 0x4: case 0xe:           svga->bpp = 24; break;
-                                case 0x5: case 0x6: case 0xc: svga->bpp = 16; break;
-                                case 0x7:                     svga->bpp = 32; break;
+				temp = cd[svga->dac_pos];
+				svga->dac_pos++;
+				if (svga->hwcursor.xsize == 32)
+					svga->dac_pos &= 0x00ff;
+				else
+					svga->dac_pos &= 0x03ff;
+				return temp;
+			} else /*REG03*/
+				return svga_in(addr, svga);
+		}
+		break;
 
-                                case 0: case 1: default: svga->bpp = 8; break;
-                        }
-			svga_recalctimings(svga);
-                }
-                //ramdac->magic_count = 0;
-                break;
-                
-                case 0x3C7:
-                ramdac->magic_count = 0;
-                if (ramdac->rs2)
-                   ramdac->rindex = val;
-                break;
-                case 0x3C8:
-                ramdac->magic_count = 0;
-                if (ramdac->rs2)
-                   ramdac->windex = val;
-                break;
-                case 0x3C9:
-                ramdac->magic_count = 0;
-                if (ramdac->rs2)
-                {
-                        if (!ramdac->reg_ff) ramdac->regs[ramdac->windex] = (ramdac->regs[ramdac->windex] & 0xff00) | val;
-                        else                 ramdac->regs[ramdac->windex] = (ramdac->regs[ramdac->windex] & 0x00ff) | (val << 8);
-                        ramdac->reg_ff = !ramdac->reg_ff;
-//                        pclog("RAMDAC reg %02X now %04X\n", ramdac->windex, ramdac->regs[ramdac->windex]);
-                        if (!ramdac->reg_ff) ramdac->windex++;
-                }
-                break;
-        }
-        svga_out(addr, val, svga);
-}
+	case 0x3C8:
+		if (rs2) {
+			if (rs3) /*REG0C, Hardware Cursor X-position, write only*/
+				return 0xff;
+			else /*REG04, Cursor/Overscan Write Address*/
+				return svga->dac_write;
+		} else {
+			if (rs3) /*REG08, Command Reg 1*/
+				return ramdac->cr1;
+			else /*REG00*/
+				return svga_in(addr, svga);
+		}
+		break;
 
-uint8_t bt485_ramdac_in(uint16_t addr, bt485_ramdac_t *ramdac, svga_t *svga)
-{
-        uint8_t temp;
-//        /*if (CS!=0xC000) */pclog("IN RAMDAC %04X %04X:%04X %i\n",addr,CS,pc, ramdac->rs2);
-	uint8_t reg = addr & 3;
-	reg |= (ramdac->rs2 ? 4 : 0);
-	reg |= (ramdac->rs3 ? 8 : 0);
-	pclog("BT485 RAMDAC: Reading register %02X\n", reg);
-        return svga_in(addr, svga);
+	case 0x3C9:
+		if (rs2) {
+			if (rs3) /*REG0D, Hardware Cursor X-position, write only*/
+				return 0xff;
+			else { /*REG05, Cursor/Overscan Data*/
+				svga->dac_status = 0;
+				switch (svga->dac_pos) {
+					case 0:
+						svga->dac_pos++;
+						return ramdac->extpal[svga->dac_read].r & 0x3f;
+					case 1: 
+						svga->dac_pos++;
+						return ramdac->extpal[svga->dac_read].g & 0x3f;
+					case 2: 
+						svga->dac_pos=0;
+						svga->dac_read = (svga->dac_read + 1) & 15;
+						return ramdac->extpal[(svga->dac_read - 1) & 15].b & 0x3f;
+						
+				}
+				return 0xff;
+			}
+		} else {
+			if (rs3) /*REG09, Command Reg 2*/
+				return ramdac->cr2;
+			else /*REG01*/
+				return svga_in(addr, svga);
+		}
+		break;
+    }
 
-        switch (addr)
-        {
-                case 0x3C6:
-                ramdac->reg_ff = 0;
-                if (ramdac->magic_count < 5)
-                   ramdac->magic_count++;
-                if (ramdac->magic_count == 4)
-                {
-                        temp = 0x70; /*SDAC ID*/
-                        ramdac->rs2 = 1;
-                }
-                if (ramdac->magic_count == 5)
-                {
-                        temp = ramdac->command;
-                        ramdac->magic_count = 0;
-                }
-                return temp;
-                case 0x3C7:
-//                if (ramdac->magic_count < 4)
-//                {
-                        ramdac->magic_count=0;
-//                        break;
-//                }
-                if (ramdac->rs2) return ramdac->rindex;
-                break;
-                case 0x3C8:
-//                if (ramdac->magic_count < 4)
-//                {
-                        ramdac->magic_count=0;
-//                        break;
-//                }
-                if (ramdac->rs2) return ramdac->windex;
-                break;
-                case 0x3C9:
-//                if (ramdac->magic_count < 4)
-//                {
-                        ramdac->magic_count=0;
-//                        break;
-//                }
-                if (ramdac->rs2)
-                {
-                        if (!ramdac->reg_ff) temp = ramdac->regs[ramdac->rindex] & 0xff;
-                        else                 temp = ramdac->regs[ramdac->rindex] >> 8;
-                        ramdac->reg_ff = !ramdac->reg_ff;
-                        if (!ramdac->reg_ff)
-                        {
-                                ramdac->rindex++;
-                                ramdac->magic_count = 0;
-                        }
-                        return temp;
-                }
-                break;
-        }
-        return svga_in(addr, svga);
-}
-
-float bt485_getclock(int clock, void *p)
-{
-        bt485_ramdac_t *ramdac = (bt485_ramdac_t *)p;
-        float t;
-        int m, n1, n2;
-//        pclog("SDAC_Getclock %i %04X\n", clock, ramdac->regs[clock]);
-        if (clock == 0) return 25175000.0;
-        if (clock == 1) return 28322000.0;
-        clock ^= 1; /*Clocks 2 and 3 seem to be reversed*/
-        m  =  (ramdac->regs[clock] & 0x7f) + 2;
-        n1 = ((ramdac->regs[clock] >>  8) & 0x1f) + 2;
-        n2 = ((ramdac->regs[clock] >> 13) & 0x07);
-        t = (14318184.0 * ((float)m / (float)n1)) / (float)(1 << n2);
-//        pclog("BT485 clock %i %i %i %f %04X  %f %i\n", m, n1, n2, t, ramdac->regs[2], 14318184.0 * ((float)m / (float)n1), 1 << n2);
-        return t;
+    return temp;
 }
