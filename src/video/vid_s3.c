@@ -1007,6 +1007,7 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
 	s3_t *s3 = (s3_t *)p;
 	svga_t *svga = &s3->svga;
 	uint8_t old;
+	int rs2, rs3;
 
 	if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
 		addr ^= 0x60;
@@ -1041,26 +1042,14 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
 		break;
 		
 		case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
+		rs2 = (svga->crtc[0x55] & 0x01) || !!(svga->crtc[0x43] & 2);
 		if (s3->chip == S3_TRIO32 || s3->chip == S3_TRIO64)
 			svga_out(addr, val, svga);
-		else if (s3->chip == S3_VISION964)
-		{
-			if (svga->crtc[0x55] == 3)
-				bt485_ramdac_out(addr, 1, 1, val, &s3->bt485_ramdac, svga);
-			else if (svga->crtc[0x55] == 2)
-				bt485_ramdac_out(addr, 0, 1, val, &s3->bt485_ramdac, svga);
-			else if ((svga->crtc[0x55] == 1) || (svga->crtc[0x43] & 2))
-				bt485_ramdac_out(addr, 1, 0, val, &s3->bt485_ramdac, svga);
-			else
-				bt485_ramdac_out(addr, 0, 0, val, &s3->bt485_ramdac, svga);
-		}
-		else
-		{
-			if ((svga->crtc[0x55] & 1) || (svga->crtc[0x43] & 2))
-				sdac_ramdac_out(addr, 1, val, &s3->ramdac, svga);
-			else
-				sdac_ramdac_out(addr, 0, val, &s3->ramdac, svga);
-		}
+		else if (s3->chip == S3_VISION964) {
+			rs3 = !!(svga->crtc[0x55] & 0x02);
+			bt485_ramdac_out(addr, rs2, rs3, val, &s3->bt485_ramdac, svga);
+		} else
+			sdac_ramdac_out(addr, rs2, val, &s3->ramdac, svga);
 		return;
 
 		case 0x3D4:
@@ -1221,6 +1210,7 @@ uint8_t s3_in(uint16_t addr, void *p)
 {
 	s3_t *s3 = (s3_t *)p;
 	svga_t *svga = &s3->svga;
+	int rs2, rs3;
 
 	if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
 		addr ^= 0x60;
@@ -1238,24 +1228,14 @@ uint8_t s3_in(uint16_t addr, void *p)
 		break;
 		
 		case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
+		rs2 = (svga->crtc[0x55] & 0x01) || !!(svga->crtc[0x43] & 2);
 		if (s3->chip == S3_TRIO32 || s3->chip == S3_TRIO64)
 			return svga_in(addr, svga);
-		if (s3->chip == S3_VISION964)
-		{
-			if (svga->crtc[0x55] == 3)
-				return bt485_ramdac_in(addr, 1, 1, &s3->bt485_ramdac, svga);
-			else if (svga->crtc[0x55] == 2)
-				return bt485_ramdac_in(addr, 0, 1, &s3->bt485_ramdac, svga);
-			else if ((svga->crtc[0x55] == 1) || (svga->crtc[0x43] & 2))
-				return bt485_ramdac_in(addr, 1, 0, &s3->bt485_ramdac, svga);
-			return bt485_ramdac_in(addr, 0, 0, &s3->bt485_ramdac, svga);						
-		}
-		else
-		{
-			if ((svga->crtc[0x55] & 1) || (svga->crtc[0x43] & 2))
-				return sdac_ramdac_in(addr, 1, &s3->ramdac, svga);
-			return sdac_ramdac_in(addr, 0, &s3->ramdac, svga);			
-		}
+		else if (s3->chip == S3_VISION964) {
+			rs3 = !!(svga->crtc[0x55] & 0x02);
+			return bt485_ramdac_in(addr, rs2, rs3, &s3->bt485_ramdac, svga);
+		} else
+			return sdac_ramdac_in(addr, rs2, &s3->ramdac, svga);			
 		break;
 
 		case 0x3d4:
