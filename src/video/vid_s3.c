@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.18	2018/09/30
+ * Version:	@(#)vid_s3.c	1.0.19	2018/10/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2792,8 +2792,16 @@ uint8_t s3_pci_read(int func, int addr, void *p)
 		case 0x08: return 0; /*Revision ID*/
 		case 0x09: return 0; /*Programming interface*/
 		
-		case 0x0a: return 0x00; /*Supports VGA interface*/
-		case 0x0b: return 0x03;
+		case 0x0a:
+			if ((s3->chip == S3_TRIO32) || (s3->chip == S3_TRIO64))
+				return 0x00; /*Supports VGA interface*/
+			else
+				return 0x01;
+		case 0x0b:
+			if ((s3->chip == S3_TRIO32) || (s3->chip == S3_TRIO64))
+				return 0x03;
+			else
+				return 0x00;
 		
 		case 0x10: return 0x00; /*Linear frame buffer address*/
 		case 0x11: return 0x00;
@@ -2827,7 +2835,8 @@ void s3_pci_write(int func, int addr, uint8_t val, void *p)
 		break;
 		
 		case 0x12: 
-		svga->crtc[0x5a] = val & 0x80; 
+		svga->crtc[0x5a] = val & 0x80;
+		/* svga->crtc[0x5a] = (svga->crtc[0x5a] & 0x7f) | (val & 0x80); */
 		s3_updatemapping(s3); 
 		break;
 		case 0x13: 
