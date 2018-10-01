@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.19	2018/10/01
+ * Version:	@(#)vid_s3.c	1.0.20	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1042,11 +1042,17 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
 		break;
 		
 		case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
-		rs2 = (svga->crtc[0x55] & 0x01) || !!(svga->crtc[0x43] & 2);
+		if ((svga->crtc[0x55] & 0x03) == 0x00)
+			rs2 = !!(svga->crtc[0x43] & 2);
+		else
+			rs2 = (svga->crtc[0x55] & 0x01);
 		if (s3->chip == S3_TRIO32 || s3->chip == S3_TRIO64)
 			svga_out(addr, val, svga);
 		else if (s3->chip == S3_VISION964) {
-			rs3 = !!(svga->crtc[0x55] & 0x02);
+			if (!(svga->crtc[0x45] & 0x02))
+				rs3 = !!(svga->crtc[0x55] & 0x02);
+			else
+				rs3 = 0;
 			bt485_ramdac_out(addr, rs2, rs3, val, &s3->bt485_ramdac, svga);
 		} else
 			sdac_ramdac_out(addr, rs2, val, &s3->ramdac, svga);

@@ -9,7 +9,7 @@
  *		Brooktree BT485 true colour RAMDAC emulation.
  *
  *
- * Version:	@(#)vid_bt485_ramdac.c	1.0.5	2018/01/10
+ * Version:	@(#)vid_bt485_ramdac.c	1.0.6	2018/10/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995,
@@ -26,6 +26,32 @@
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_bt485_ramdac.h"
+
+
+static void
+bt485_set_bpp(bt485_ramdac_t *ramdac, svga_t *svga)
+{
+    if (!(ramdac->cr2 & 0x20))
+	svga->bpp = 8;
+    else switch ((ramdac->cr1 >> 5) & 0x03) {
+	case 0:
+		svga->bpp = 32;
+		break;
+	case 1:
+		if (ramdac->cr1 & 0x08)
+			svga->bpp = 16;
+		else
+			svga->bpp = 15;
+		break;
+	case 2:
+		svga->bpp = 8;
+		break;
+	case 3:
+		svga->bpp = 4;
+		break;
+    }
+    svga_recalctimings(svga);
+}
 
 
 void
@@ -85,38 +111,12 @@ bt485_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt485_ramdac_t *r
 		break;
 	case 0x08:	/* Command Register 1 (RS value = 1000) */
 		ramdac->cr1 = val;
-		switch ((val >> 5) & 0x03) {
-			case 0:
-				if (val & 0x10)
-					svga->bpp = 32;
-				else
-					svga->bpp = 8;
-				break;
-
-			case 1:
-				if (val & 0x10) {
-					if (val & 0x08)
-						svga->bpp = 16;
-					else
-						svga->bpp = 15;
-				} else
-					svga->bpp = 8;
-				break;
-
-			case 2:
-				svga->bpp = 8;
-				break;
-
-			case 3:
-				svga->bpp = 4;
-				break;
-		}
-		svga_recalctimings(svga);
+		bt485_set_bpp(ramdac, svga);
 		break;
 	case 0x09:	/* Command Register 2 (RS value = 1001) */
 		ramdac->cr2 = val;
 		svga->hwcursor.ena = !!(val & 0x03);
-		svga_recalctimings(svga);
+		bt485_set_bpp(ramdac, svga);
 		break;
 	case 0x0a:
 		switch (ramdac->set_reg0a) {
