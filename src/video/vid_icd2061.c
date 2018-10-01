@@ -10,7 +10,7 @@
  *
  *		Used by ET4000w32/p (Diamond Stealth 32)
  *
- * Version:	@(#)vid_icd2061.c	1.0.3	2018/09/30
+ * Version:	@(#)vid_icd2061.c	1.0.5	2018/01/10
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -61,18 +61,18 @@ icd2061_write(icd2061_t *icd2061, int val)
 		icd2061->bit_count++;
 
 		if (icd2061->bit_count == 26) {
-			icd2061->data >>= 1;
 			/* pclog("26 bits received, data = %08X\n", icd2061->data); */
 	
-			a = ((icd2061->data >> 21) & 0x07);	/* A  */
+			a = ((icd2061->data >> 22) & 0x07);	/* A  */
+			/* pclog("A = %01X\n", a); */
 
 			if (a < 3) {
 #if 0
-				i = ((icd2061->data >> 17) & 0x0f);	/* I  */
+				i = ((icd2061->data >> 18) & 0x0f);	/* I  */
 #endif
-				pa = ((icd2061->data >> 10) & 0x7f);	/* P' */
-				m = ((icd2061->data >> 7) & 0x07);	/* M  */
-				qa = (icd2061->data & 0x7f);		/* Q' */
+				pa = ((icd2061->data >> 11) & 0x7f);	/* P' */
+				m = ((icd2061->data >> 8) & 0x07);	/* M  */
+				qa = ((icd2061->data >> 1) & 0x7f);	/* Q' */
 
 				p = pa + 3;				/* P  */
 				m = 1 << m;
@@ -84,10 +84,12 @@ icd2061_write(icd2061_t *icd2061, int val)
 
 				/* pclog("P = %02X, M = %01X, Q = %02X, freq[%i] = %f\n", p, m, q, a, icd2061->freq[a]); */
 			} else if (a == 6) {
-				icd2061->ctrl = val;
+				icd2061->ctrl = ((icd2061->data >> 13) & 0xff);
 				/* pclog("ctrl = %02X\n", icd2061->ctrl); */
 			}
 			icd2061->count = icd2061->bit_count = icd2061->data = 0;
+			icd2061->unlocked = 0;
+			/* pclog("ICD2061 locked\n"); */
 		}
 	}
     }
@@ -97,6 +99,8 @@ icd2061_write(icd2061_t *icd2061, int val)
 void
 icd2061_init(icd2061_t *icd2061)
 {
+    memset(icd2061, 0, sizeof(icd2061_t));
+
     icd2061->freq[0] = 25175000.0;
     icd2061->freq[1] = 28322000.0;
     icd2061->freq[2] = 28322000.0;
