@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.21	2018/10/02
+ * Version:	@(#)vid_s3.c	1.0.22	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -35,7 +35,6 @@
 #include "vid_sdac_ramdac.h"
 #include "vid_bt485_ramdac.h"
 #include "vid_icd2061.h"
-#include "../cpu/cpu.h"
 
 #define ROM_PARADISE_BAHAMAS64		L"roms/video/s3/bahamas64.bin"
 #define ROM_PHOENIX_VISION864		L"roms/video/s3/86c864p.bin"
