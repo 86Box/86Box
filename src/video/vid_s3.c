@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.20	2018/10/02
+ * Version:	@(#)vid_s3.c	1.0.21	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -35,10 +35,11 @@
 #include "vid_sdac_ramdac.h"
 #include "vid_bt485_ramdac.h"
 #include "vid_icd2061.h"
+#include "../cpu/cpu.h"
 
 #define ROM_PARADISE_BAHAMAS64		L"roms/video/s3/bahamas64.bin"
 #define ROM_PHOENIX_VISION864		L"roms/video/s3/86c864p.bin"
-#define ROM_DIAMOND_STEALTH64_964	L"roms/video/s3/964_107u.rom"
+#define ROM_DIAMOND_STEALTH64_964	L"roms/video/s3/964_107h.rom"
 #define ROM_PHOENIX_TRIO32		L"roms/video/s3/86c732p.bin"
 #define ROM_NUMBER9_9FX			L"roms/video/s3/s3_764.bin"
 #define ROM_PHOENIX_TRIO64		L"roms/video/s3/86c764x1.bin"
@@ -111,7 +112,6 @@ typedef struct s3_t
 {
 	mem_mapping_t linear_mapping;
 	mem_mapping_t mmio_mapping;
-	mem_mapping_t new_mmio_mapping;
 	
 	uint8_t has_bios;
 	rom_t bios_rom;
@@ -1131,10 +1131,8 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
 			if (s3->chip == S3_VISION964)
 				break;
 			svga->hwcursor.x = ((svga->crtc[0x46] << 8) | svga->crtc[0x47]) & 0x7ff;
-			/* pclog("X=%d\n", svga->hwcursor.x); */
 			if (svga->bpp == 32) svga->hwcursor.x >>= 1;
 			svga->hwcursor.y = ((svga->crtc[0x48] << 8) | svga->crtc[0x49]) & 0x7ff;
-			/* pclog("Y=%d\n", svga->hwcursor.y); */
 			svga->hwcursor.xoff = svga->crtc[0x4e] & 63;
 			svga->hwcursor.yoff = svga->crtc[0x4f] & 63;
 			svga->hwcursor.addr = ((((svga->crtc[0x4c] << 8) | svga->crtc[0x4d]) & 0xfff) * 1024) + (svga->hwcursor.yoff * 16);
@@ -1346,7 +1344,6 @@ void s3_updatemapping(s3_t *s3)
 		mem_mapping_disable(&svga->mapping);
 		mem_mapping_disable(&s3->linear_mapping);
 		mem_mapping_disable(&s3->mmio_mapping);
-		mem_mapping_disable(&s3->new_mmio_mapping);
 		return;
 	}
 
@@ -2965,12 +2962,7 @@ static void *s3_init(const device_t *info)
 			s3_accel_read,		NULL,			NULL,
 			s3_accel_write,		s3_accel_write_w,	s3_accel_write_l,
 			NULL,			MEM_MAPPING_EXTERNAL,	s3);
-	mem_mapping_add(&s3->new_mmio_mapping,	0,		0,
-			s3_accel_read,		NULL,		NULL,
-			s3_accel_write,	s3_accel_write_w,	s3_accel_write_l,
-			NULL,			MEM_MAPPING_EXTERNAL,	s3);
 	mem_mapping_disable(&s3->mmio_mapping);
-	mem_mapping_disable(&s3->new_mmio_mapping);
 	
 	if (chip == S3_VISION964)
 		svga_init(&s3->svga, s3, vram_size,
@@ -3060,10 +3052,11 @@ static void *s3_init(const device_t *info)
 
 		case S3_DIAMOND_STEALTH64_964:
 			svga->decode_mask = (8 << 20) - 1;
-			s3->id = 0xd1; /*Vision964P*/
-			s3->id_ext = 0xd1;
-			s3->id_ext_pci = 0xd1;
+			stepping = 0xd0; /*Vision964P*/
+			s3->id = stepping;
+			s3->id_ext = s3->id_ext_pci = stepping;
 			s3->packed_mmio = 1;
+			svga->crtc[0x5a] = 0x0a;
 			
 			icd2061_init(&s3->icd2061);
 			s3->getclock = icd2061_getclock;
