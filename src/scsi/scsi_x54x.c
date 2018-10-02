@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.21	2018/06/12
+ * Version:	@(#)scsi_x54x.c	1.0.22	2018/10/02
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -40,7 +40,6 @@
 #include "../nvr.h"
 #include "../timer.h"
 #include "../plat.h"
-#include "../cpu/cpu.h"
 #include "scsi.h"
 #include "scsi_device.h"
 #include "scsi_aha154x.h"

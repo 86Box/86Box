@@ -13,7 +13,7 @@
  *		8MB of DRAM chips', because it works fine with bus-based
  *		memory expansion.
  *
- * Version:	@(#)m_at_neat.c	1.0.3	2018/09/12
+ * Version:	@(#)m_at_neat.c	1.0.4	2018/10/02
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -57,15 +57,12 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../device.h"
-#include "../cpu/cpu.h"
-#include "../cpu/x86.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
 #include "../keyboard.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../nmi.h"
-#include "../rom.h"
 #include "machine.h"
 
 #define NEAT_DEBUG	0

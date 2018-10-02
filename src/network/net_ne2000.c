@@ -13,7 +13,7 @@
  *			- Realtek RTL8019AS (ISA 16-bit, PnP);
  *			- Realtek RTL8029AS (PCI).
  *
- * Version:	@(#)net_ne2000.c	1.0.8	2018/08/11
+ * Version:	@(#)net_ne2000.c	1.0.9	2018/10/02
  *
  * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *
@@ -53,8 +53,6 @@
 #include <time.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
-#include "../config.h"
-#include "../machine/machine.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../rom.h"
@@ -166,7 +164,7 @@ nelog(int lvl, const char *fmt, ...)
 static void
 nic_interrupt(nic_t *dev, int set)
 {
-    if (PCI && dev->is_pci) {
+    if (dev->is_pci) {
 	if (set)
 		pci_set_irq(dev->card, PCI_INTA);
 	  else
@@ -1775,7 +1773,7 @@ nic_update_bios(nic_t *dev)
 
     if (! dev->has_bios) return;
 
-    if (PCI && dev->is_pci)
+    if (dev->is_pci)
 	reg_bios_enable = dev->pci_bar[1].addr_regs[0] & 0x01;
 	
     /* PCI BIOS stuff, just enable_disable. */

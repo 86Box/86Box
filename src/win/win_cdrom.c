@@ -8,7 +8,7 @@
  *
  *		Handle the platform-side of CDROM drives.
  *
- * Version:	@(#)win_cdrom.c	1.0.8	2018/06/02
+ * Version:	@(#)win_cdrom.c	1.0.9	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -29,7 +29,7 @@
 #include <wchar.h>
 #include "../config.h"
 #include "../disk/hdd.h"
-#include "../scsi/scsi.h"
+#include "../scsi/scsi_device.h"
 #include "../cdrom/cdrom.h"
 #include "../disk/zip.h"
 #include "../cdrom/cdrom_image.h"

@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.h	1.0.11	2018/03/28
+ * Version:	@(#)cpu.h	1.0.12	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -316,7 +316,7 @@ extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
 extern int		is8086,	is286, is386, is486;
-extern int		is_rapidcad, is_pentium;
+extern int		is_rapidcad;
 extern int		hasfpu;
 extern int		cpu_hasrdtsc;
 extern int		cpu_hasMSR;

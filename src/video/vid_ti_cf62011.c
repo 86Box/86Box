@@ -42,7 +42,7 @@
  *		which are the same as the XGA. It supports up to 1MB of VRAM,
  *		but we lock it down to 512K. The PS/1 2122 had 256K.
  *
- * Version:	@(#)vid_ti_cf62011.c	1.0.8	2018/09/19
+ * Version:	@(#)vid_ti_cf62011.c	1.0.9	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -58,7 +58,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../config.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../rom.h"

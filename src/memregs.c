@@ -9,18 +9,16 @@
  *		Emulation of the memory I/O scratch registers on ports 0xE1
  *		and 0xE2, used by just about any emulated machine.
  *
- * Version:	@(#)memregs.c	1.0.6	2018/04/29
+ * Version:	@(#)memregs.c	1.0.7	2018/10/02
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
  *		Copyright 2016-2018 Miran Grca.
  */
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#define HAVE_STDARG_H
 #include "86box.h"
 #include "io.h"
 #include "memregs.h"

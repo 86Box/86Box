@@ -8,7 +8,7 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.4	2018/04/29
+ * Version:	@(#)net_pcap.c	1.0.5	2018/10/02
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -52,7 +52,6 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
-#include "../config.h"
 #include "../device.h"
 #include "../plat.h"
 #include "../plat_dynld.h"

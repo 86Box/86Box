@@ -9,16 +9,13 @@
  *		A better random number generation, used for floppy weak bits
  *		and network MAC address generation.
  *
- * Version:	@(#)random.c	1.0.3	2017/09/24
+ * Version:	@(#)random.c	1.0.4	2018/10/02
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  */
-#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
-#include <limits.h>
 #include "random.h"
 
 

@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.54	2018/09/19
+ * Version:	@(#)config.c	1.0.55	2018/10/02
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -51,6 +51,7 @@
 #include "mouse.h"
 #include "network/network.h"
 #include "scsi/scsi.h"
+#include "scsi/scsi_device.h"
 #include "cdrom/cdrom.h"
 #include "disk/zip.h"
 #include "sound/sound.h"

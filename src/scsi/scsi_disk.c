@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.21	2018/09/12
+ * Version:	@(#)scsi_disk.c	1.0.22	2018/10/02
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -29,7 +29,7 @@
 #include "../disk/hdc_ide.h"
 #include "../plat.h"
 #include "../ui.h"
-#include "scsi.h"
+#include "scsi_device.h"
 #include "../cdrom/cdrom.h"
 #include "scsi_disk.h"
 

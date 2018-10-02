@@ -8,7 +8,7 @@
  *
  *		Implementation of PS/2 series Mouse devices.
  *
- * Version:	@(#)mouse_ps2.c	1.0.10	2018/09/13
+ * Version:	@(#)mouse_ps2.c	1.0.11	2018/10/02
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -20,7 +20,6 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "config.h"
 #include "device.h"
 #include "keyboard.h"
 #include "mouse.h"

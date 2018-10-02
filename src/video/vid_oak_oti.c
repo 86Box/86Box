@@ -8,7 +8,7 @@
  *
  *		Oak OTI037C/67/077 emulation.
  *
- * Version:	@(#)vid_oak_oti.c	1.0.13	2018/09/19
+ * Version:	@(#)vid_oak_oti.c	1.0.14	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,10 +16,9 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
-#include <stdio.h>
 #include <stdint.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
@@ -29,7 +28,6 @@
 #include "video.h"
 #include "vid_oak_oti.h"
 #include "vid_svga.h"
-#include "../machine/machine.h"
 
 #define BIOS_37C_PATH			L"roms/video/oti/bios.bin"
 #define BIOS_67_AMA932J_PATH	L"roms/machines/ama932j/oti067.bin"
@@ -274,16 +272,17 @@ oti_init(const device_t *info)
 		romfn = BIOS_37C_PATH;
 		break;		
 		
+	case 3:
+		romfn = BIOS_67_AMA932J_PATH;
+		break;
 	case 2:
-		if (romset == ROM_AMA932J) /*In case of any other future board uses another variant*/
-		{
-			romfn = BIOS_67_AMA932J_PATH;
-			break;
-		}
 	case 5:
 		romfn = BIOS_77_PATH;
 		break;
     }
+
+    if (oti->chip_id == 3)
+	oti->chip_id = 2;
 
     rom_init(&oti->bios_rom, romfn,
 	     0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -430,7 +429,7 @@ const device_t oti067_ama932j_device =
 {
 	"Oak OTI-067 (AMA-932J)",
 	DEVICE_ISA,
-	2,
+	3,
 	oti_init, oti_close, NULL,
 	oti067_ama932j_available,
 	oti_speed_changed,

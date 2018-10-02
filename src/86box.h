@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.24	2018/08/04
+ * Version:	@(#)86box.h	1.0.25	2018/10/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -110,6 +110,10 @@ extern int	time_sync;			/* (C) enable time sync */
 extern int	network_type;			/* (C) net provider type */
 extern int	network_card;			/* (C) net interface num */
 extern char	network_host[512];		/* (C) host network intf */
+
+
+extern int	is_pentium;			/* TODO: Move back to cpu/cpu.h when it's figured out,
+							 how to remove that hack from the ET4000/W32p. */
 
 
 #ifdef ENABLE_LOG_TOGGLES

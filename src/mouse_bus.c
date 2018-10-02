@@ -51,7 +51,7 @@
  *		  Microsoft Windows NT 3.1
  *		  Microsoft Windows 98 SE
  *
- * Version:	@(#)mouse_bus.c	1.0.0	2018/05/23
+ * Version:	@(#)mouse_bus.c	1.0.1	2018/10/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -69,7 +69,6 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "config.h"
 #include "io.h"
 #include "pic.h"
 #include "timer.h"

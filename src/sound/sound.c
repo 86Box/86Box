@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.19	2018/09/11
+ * Version:	@(#)sound.c	1.0.20	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,7 +26,7 @@
 #include "../86box.h"
 #include "../device.h"
 #include "../timer.h"
-#include "../scsi/scsi.h"
+#include "../scsi/scsi_device.h"
 #include "../cdrom/cdrom.h"
 #include "../plat.h"
 #include "sound.h"

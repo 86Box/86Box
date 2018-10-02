@@ -14,13 +14,6 @@
 #include "pci.h"
 #include "piix.h"
 #include "keyboard.h"
-#if 0
-#include "scsi/scsi.h"
-#include "cdrom/cdrom.h"
-#include "disk/hdc.h"
-#include "disk/hdc_ide.h"
-#include "disk/zip.h"
-#endif
 
 
 static uint64_t pci_irq_hold[16];

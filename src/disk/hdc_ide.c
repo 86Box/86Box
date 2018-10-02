@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.48	2018/09/15
+ * Version:	@(#)hdc_ide.c	1.0.49	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -38,7 +38,7 @@
 #include "../rom.h"
 #include "../timer.h"
 #include "../device.h"
-#include "../scsi/scsi.h"
+#include "../scsi/scsi_device.h"
 #include "../cdrom/cdrom.h"
 #include "../plat.h"
 #include "../ui.h"

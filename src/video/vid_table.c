@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.39	2018/09/30
+ * Version:	@(#)vid_table.c	1.0.40	2018/10/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -19,16 +19,14 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
 #include "../machine/machine.h"
 #include "../mem.h"
-#include "../rom.h"
 #include "../device.h"
-#include "../timer.h"
 #include "../plat.h"
 #include "video.h"
 #include "vid_svga.h"

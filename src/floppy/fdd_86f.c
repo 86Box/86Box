@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)fdd_86f.c	1.0.14	2018/09/15
+ * Version:	@(#)fdd_86f.c	1.0.15	2018/10/02
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -45,8 +45,6 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
-#include "../config.h"
-#include "../device.h"
 #include "../dma.h"
 #include "../nvr.h"
 #include "../random.h"

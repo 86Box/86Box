@@ -8,7 +8,7 @@
  *
  *		Handle the New Floppy Image dialog.
  *
- * Version:	@(#)win_new_floppy.c	1.0.8	2018/05/25
+ * Version:	@(#)win_new_floppy.c	1.0.9	2018/10/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -29,7 +29,7 @@
 #include "../plat.h"
 #include "../random.h"
 #include "../ui.h"
-#include "../scsi/scsi.h"
+#include "../scsi/scsi_device.h"
 #include "../disk/zip.h"
 #include "win.h"
 

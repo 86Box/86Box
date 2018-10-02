@@ -8,7 +8,7 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.20	2018/06/02
+ * Version:	@(#)scsi.c	1.0.21	2018/10/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -25,18 +25,15 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../timer.h"
 #include "../device.h"
 #include "../disk/hdc.h"
 #include "../disk/hdd.h"
 #include "../plat.h"
 #include "scsi.h"
+#include "scsi_device.h"
 #include "../cdrom/cdrom.h"
 #include "../disk/zip.h"
 #include "scsi_disk.h"
-#include "scsi_device.h"
 #include "scsi_aha154x.h"
 #include "scsi_buslogic.h"
 #include "scsi_ncr5380.h"
@@ -44,7 +41,6 @@
 #ifdef WALTJE
 # include "scsi_wd33c93.h"
 #endif
-#include "scsi_x54x.h"
 
 
 scsi_device_t	SCSIDevices[SCSI_ID_MAX];
@@ -55,8 +51,6 @@ int		scsi_card_current = 0;
 int		scsi_card_last = 0;
 
 uint32_t	SCSI_BufferLength;
-static volatile
-mutex_t		*scsiMutex;
 
 
 typedef const struct {
@@ -158,15 +152,6 @@ int scsi_card_get_from_internal_name(char *s)
 }
 
 
-void scsi_mutex(uint8_t start)
-{
-    if (start)
-	scsiMutex = thread_create_mutex(L"86Box.SCSIMutex");
-    else
-	thread_close_mutex((mutex_t *) scsiMutex);
-}
-
-
 void scsi_card_init(void)
 {
     int i;
@@ -198,38 +183,4 @@ void scsi_card_init(void)
     device_add(scsi_cards[scsi_card_current].device);
 
     scsi_card_last = scsi_card_current;
-}
-
-
-/* Initialization function for the SCSI layer */
-void SCSIReset(uint8_t id)
-{
-    uint8_t cdrom_id = scsi_cdrom_drives[id];
-    uint8_t zip_id = scsi_zip_drives[id];
-    uint8_t hdc_id = scsi_disks[id];
-
-    if (hdc_id != 0xff)
-	SCSIDevices[id].LunType = SCSI_DISK;
-    else if (cdrom_id != 0xff)
-	SCSIDevices[id].LunType = SCSI_CDROM;
-    else if (zip_id != 0xff)
-	SCSIDevices[id].LunType = SCSI_ZIP;
-    else
-	SCSIDevices[id].LunType = SCSI_NONE;
-
-    scsi_device_reset(id);
-
-    if (SCSIDevices[id].CmdBuffer)
-	free(SCSIDevices[id].CmdBuffer);
-    SCSIDevices[id].CmdBuffer = NULL;
-}
-
-
-void
-scsi_mutex_wait(uint8_t wait)
-{
-    if (wait)
-	thread_wait_mutex((mutex_t *) scsiMutex);
-    else
-	thread_release_mutex((mutex_t *) scsiMutex);
 }

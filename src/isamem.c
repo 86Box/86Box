@@ -32,7 +32,7 @@
  * TODO:	The EV159 is supposed to support 16b EMS transfers, but the
  *		EMM.sys driver for it doesn't seem to want to do that..
  *
- * Version:	@(#)isamem.c	1.0.5	2018/09/06
+ * Version:	@(#)isamem.c	1.0.6	2018/10/02
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -74,7 +74,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "86box.h"
-#include "cpu/cpu.h"
 #include "machine/machine.h"
 #include "io.h"
 #include "mem.h"
@@ -484,18 +483,9 @@ dev->frame_addr = 0xE0000;
     isamem_log(")\n");
 
     /* Force (back to) 8-bit bus if needed. */
-    if (dev->flags & FLAG_WIDE) {
-	if (AT) {
-		if (! cpu_16bitbus)
-			isamem_log("ISAMEM: *WARNING* this board will slow down your PC!\n");
-	} else {
-		isamem_log("ISAMEM: not AT+ system, forcing 8-bit mode!\n");
-		dev->flags &= ~FLAG_WIDE;
-	}
-    } else {
-	if (AT) {
-		isamem_log("ISAMEM: *WARNING* this board will slow down your PC!\n");
-	}
+    if ((!AT) && (dev->flags & FLAG_WIDE)) {
+	isamem_log("ISAMEM: not AT+ system, forcing 8-bit mode!\n");
+	dev->flags &= ~FLAG_WIDE;
     }
 
     /* Allocate and initialize our RAM. */

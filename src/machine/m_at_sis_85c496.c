@@ -8,7 +8,7 @@
  *
  *		Implementation of the SiS 85c496/85c497 chip.
  *
- * Version:	@(#)m_at_sis_85c496.c	1.0.1	2018/04/26
+ * Version:	@(#)m_at_sis_85c496.c	1.0.2	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,7 +22,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../cpu/cpu.h"
 #include "../device.h"
 #include "../keyboard.h"
 #include "../io.h"

@@ -9,7 +9,7 @@
  *		Implementation of the NCR 5380 series of SCSI Host Adapters
  *		made by NCR. These controllers were designed for the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.16	2018/07/19
+ * Version:	@(#)scsi_ncr5380.c	1.0.17	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -28,7 +28,6 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
-#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../dma.h"
 #include "../pic.h"
@@ -368,7 +367,7 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
     ncr5380_t *ncr_dev = (ncr5380_t *)priv;
 	ncr_t *ncr = &ncr_dev->ncr;
 
-    ncr_log("NCR5380 write(%04x,%02x) @%04X:%04X\n",port & 7,val,CS,cpu_state.pc);
+    ncr_log("NCR5380 write(%04x,%02x)\n",port & 7,val);
 
     switch (port & 7) {
 	case 0:		/* Output data register */
@@ -536,7 +535,7 @@ ncr_read(uint16_t port, void *priv)
 		break;
     }
 
-    ncr_log("NCR5380 read(%04x)=%02x @%04X:%04X\n", port & 7, ret, CS,cpu_state.pc);
+    ncr_log("NCR5380 read(%04x)=%02x\n", port & 7, ret);
 
     return(ret);
 }
@@ -636,7 +635,7 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
 	
     addr &= 0x3fff;
 
-    ncr_log("memio_write(%08x,%02x) @%04X:%04X  %i %02x\n", addr, val, CS,cpu_state.pc,  ncr_dev->buffer_host_pos, ncr_dev->status_ctrl);
+    ncr_log("memio_write(%08x,%02x)  %i %02x\n", addr, val,  ncr_dev->buffer_host_pos, ncr_dev->status_ctrl);
 
     if (addr >= 0x3a00)
 	ncr_dev->ext_ram[addr - 0x3a00] = val;
@@ -670,7 +669,7 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
 	case 0x3980:
 		switch (addr) {
 			case 0x3980:	/* Control */
-				ncr_log("Write 0x3980: val=%02x CS=%04x, pc=%04x\n", val, CS,cpu_state.pc);
+				ncr_log("Write 0x3980: val=%02x\n", val);
 				if (val & 0x80)
 				{
 					ncr_log("Resetting the 53c400\n");
@@ -828,7 +827,7 @@ scsiat_in(uint16_t port, void *priv)
 		break;
     }
 
-	pclog("SCSI AT read=0x%03x, ret=%02x, CS:%08x, PC:%08x\n", port, ret, CS,cpu_state.pc);	
+	ncr_log("SCSI AT read=0x%03x, ret=%02x\n", port, ret);
 	
     return(ret);
 }
@@ -841,7 +840,7 @@ scsiat_out(uint16_t port, uint8_t val, void *priv)
 	ncr_t *ncr = &ncr_dev->ncr;
 	scsi_device_t *dev = &SCSIDevices[ncr->target_id];
 
-	pclog("SCSI AT write=0x%03x, val=%02x, CS:%08x, PC:%08x\n", port, val, CS,cpu_state.pc);
+	ncr_log("SCSI AT write=0x%03x, val=%02x\n", port, val);
     switch (port & 0x0f) {
 	case 0x08:
 		ncr->unk_08 = val;	
@@ -856,7 +855,7 @@ scsiat_out(uint16_t port, uint8_t val, void *priv)
 					
 					temp = ncr_dev->buffer[ncr_dev->buffer_host_pos++];
 					
-					pclog("Read Buffer host=%d\n", ncr_dev->buffer_host_pos);
+					ncr_log("Read Buffer host=%d\n", ncr_dev->buffer_host_pos);
 					
 					ncr->bus_host = get_bus_host(ncr) & ~BUS_DATAMASK;
 					ncr->bus_host |= BUS_SETDATA(temp);					
@@ -878,7 +877,7 @@ scsiat_out(uint16_t port, uint8_t val, void *priv)
 					
 					ncr_dev->buffer[ncr_dev->buffer_host_pos++] = temp;
 					
-					pclog("Write Buffer host=%d\n", ncr_dev->buffer_host_pos);
+					ncr_log("Write Buffer host=%d\n", ncr_dev->buffer_host_pos);
 
 					if (ncr_dev->buffer_host_pos == 128)
 					{
@@ -1338,7 +1337,7 @@ ncr_callback(void *priv)
 				}
 
 				ncr_dev->buffer[ncr_dev->buffer_pos++] = temp;
-				pclog("Buffer pos for reading=%d\n", ncr_dev->buffer_pos);
+				ncr_log("Buffer pos for reading=%d\n", ncr_dev->buffer_pos);
 				
 				c++;
 				
@@ -1347,7 +1346,7 @@ ncr_callback(void *priv)
 					ncr_dev->buffer_pos = 0;
 					ncr_dev->buffer_host_pos = 0;
 					ncr_dev->block_count = (ncr_dev->block_count - 1) & 255;
-					pclog("Remaining blocks to be read=%d\n", ncr_dev->block_count);
+					ncr_log("Remaining blocks to be read=%d\n", ncr_dev->block_count);
 					if (!ncr_dev->block_count) {
 						ncr_dev->block_count_loaded = 0;
 						ncr_log("IO End of read transfer\n");
@@ -1407,7 +1406,7 @@ ncr_callback(void *priv)
 					ncr_dev->buffer_pos = 0;
 					ncr_dev->buffer_host_pos = 0;
 					ncr_dev->block_count = (ncr_dev->block_count - 1) & 255;
-					pclog("Remaining blocks to be written=%d\n", ncr_dev->block_count);
+					ncr_log("Remaining blocks to be written=%d\n", ncr_dev->block_count);
 					if (!ncr_dev->block_count) {
 						ncr_dev->block_count_loaded = 0;
 						ncr_log("IO End of write transfer\n");
@@ -1429,7 +1428,7 @@ ncr_callback(void *priv)
 	
     ncr_wait_process(ncr_dev);
     if (!(ncr->bus_host & BUS_BSY) && (ncr->mode & MODE_MONITOR_BUSY)) {
-	pclog("Updating DMA\n");
+	ncr_log("Updating DMA\n");
 	ncr->mode &= ~MODE_DMA;
 	ncr->dma_mode = DMA_IDLE;
     }

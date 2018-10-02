@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../cpu/cpu.h"
+ #include "../cpu/cpu.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../pci.h"

@@ -8,7 +8,7 @@
  *
  *		Implementation of the floppy drive emulation.
  *
- * Version:	@(#)fdd.c	1.0.10	2018/08/12
+ * Version:	@(#)fdd.c	1.0.11	2018/10/02
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -43,10 +43,6 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
-#include "../machine/machine.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../config.h"
 #include "../timer.h"
 #include "../plat.h"
 #include "../ui.h"

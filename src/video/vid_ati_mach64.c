@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.23	2018/09/19
+ * Version:	@(#)vid_ati_mach64.c	1.0.24	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -24,8 +24,6 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../machine/machine.h"
 #include "../device.h"
 #include "../io.h"
 #include "../mem.h"
@@ -1718,7 +1716,7 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
         uint8_t ret;
         if (!(addr & 0x400))
         {
-                mach64_log("nmach64_ext_readb: addr=%04x %04x(%08x):%08x\n", addr, CS, cs, cpu_state.pc);
+                mach64_log("nmach64_ext_readb: addr=%04x\n", addr);
                 switch (addr & 0x3ff)
                 {
                         case 0x00: case 0x01: case 0x02: case 0x03:
@@ -2085,7 +2083,7 @@ uint16_t mach64_ext_readw(uint32_t addr, void *p)
         uint16_t ret;
         if (!(addr & 0x400))
         {
-                mach64_log("nmach64_ext_readw: addr=%04x %04x(%08x):%08x\n", addr, CS, cs, cpu_state.pc);
+                mach64_log("nmach64_ext_readw: addr=%04x\n", addr);
                 ret = 0xffff;
         }
         else switch (addr & 0x3ff)
@@ -2104,7 +2102,7 @@ uint32_t mach64_ext_readl(uint32_t addr, void *p)
         uint32_t ret;
         if (!(addr & 0x400))
         {
-                mach64_log("nmach64_ext_readl: addr=%04x %04x(%08x):%08x\n", addr, CS, cs, cpu_state.pc);
+                mach64_log("nmach64_ext_readl: addr=%04x\n", addr);
                 ret = 0xffffffff;
         }
         else switch (addr & 0x3ff)
@@ -2136,7 +2134,7 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
         mach64_t *mach64 = (mach64_t *)p;
         svga_t *svga = &mach64->svga;
 
-        mach64_log("mach64_ext_writeb : addr %08X val %02X %04x(%08x):%08x\n", addr, val, CS,cs,cpu_state.pc);
+        mach64_log("mach64_ext_writeb : addr %08X val %02X\n", addr, val);
 
         if (!(addr & 0x400))
         {
@@ -2353,7 +2351,7 @@ void mach64_ext_writew(uint32_t addr, uint16_t val, void *p)
         mach64_log("mach64_ext_writew : addr %08X val %04X\n", addr, val);
         if (!(addr & 0x400))
         {
-                mach64_log("nmach64_ext_writew: addr=%04x val=%04x %04x(%08x):%08x\n", addr, val, CS, cs, cpu_state.pc);
+                mach64_log("nmach64_ext_writew: addr=%04x val=%04x\n", addr, val);
 
                 mach64_ext_writeb(addr, val, p);
                 mach64_ext_writeb(addr + 1, val >> 8, p);
@@ -2377,7 +2375,7 @@ void mach64_ext_writel(uint32_t addr, uint32_t val, void *p)
                 mach64_log("mach64_ext_writel : addr %08X val %08X\n", addr, val);
         if (!(addr & 0x400))
         {
-                mach64_log("nmach64_ext_writel: addr=%04x val=%08x %04x(%08x):%08x\n", addr, val, CS, cs, cpu_state.pc);
+                mach64_log("nmach64_ext_writel: addr=%04x val=%08x\n", addr, val);
 
                 mach64_ext_writew(addr, val, p);
                 mach64_ext_writew(addr + 2, val >> 16, p);
@@ -2513,7 +2511,7 @@ uint8_t mach64_ext_inb(uint16_t port, void *p)
                 ret = 0;
                 break;
         }
-        mach64_log("mach64_ext_inb : port %04X ret %02X  %04X:%04X\n", port, ret, CS,cpu_state.pc);
+        mach64_log("mach64_ext_inb : port %04X ret %02X\n", port, ret);
         return ret;
 }
 uint16_t mach64_ext_inw(uint16_t port, void *p)
@@ -2553,7 +2551,7 @@ uint32_t mach64_ext_inl(uint16_t port, void *p)
 void mach64_ext_outb(uint16_t port, uint8_t val, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
-        mach64_log("mach64_ext_outb : port %04X val %02X  %04X:%04X\n", port, val, CS,cpu_state.pc);
+        mach64_log("mach64_ext_outb : port %04X val %02X\n", port, val);
         switch (port)
         {
                 case 0x02ec: case 0x02ed: case 0x02ee: case 0x02ef:
@@ -2682,7 +2680,7 @@ static uint8_t mach64_block_inb(uint16_t port, void *p)
         uint8_t ret;
         
         ret = mach64_ext_readb(0x400 | (port & 0x3ff), mach64);
-        mach64_log("mach64_block_inb : port %04X ret %02X %04x:%04x\n", port, ret, CS,cpu_state.pc);
+        mach64_log("mach64_block_inb : port %04X ret %02X\n", port, ret);
         return ret;
 }
 static uint16_t mach64_block_inw(uint16_t port, void *p)
@@ -3376,7 +3374,7 @@ static void *mach64vt2_init(const device_t *info)
         mach64->config_chip_id = 0x40005654;
         mach64->dac_cntl = 1 << 16; /*Internal 24-bit DAC*/
         mach64->config_stat0 = 4;
-        mach64->use_block_decoded_io = PCI ? 4 : 0;
+        mach64->use_block_decoded_io = 4;
         
         ati_eeprom_load(&mach64->eeprom, L"mach64vt.nvr", 1);
 

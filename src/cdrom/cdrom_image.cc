@@ -8,7 +8,7 @@
  *
  *		CD-ROM image support.
  *
- * Version:	@(#)cdrom_image.cc	1.0.0	2018/03/29
+ * Version:	@(#)cdrom_image.cc	1.0.1	2018/10/02
  *
  * Author:	RichardG867,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -29,7 +29,7 @@
 #include <wchar.h>
 #include "../config.h"
 #include "../plat.h"
-#include "../scsi/scsi.h"
+#include "../scsi/scsi_device.h"
 #include "cdrom_dosbox.h"
 #include "cdrom.h"
 #include "cdrom_image.h"

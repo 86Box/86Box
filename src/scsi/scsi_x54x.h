@@ -11,7 +11,7 @@
  *		of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.h	1.0.7	2018/04/06
+ * Version:	@(#)scsi_x54x.h	1.0.8	2018/10/02
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -116,6 +116,18 @@
 #define INTR_HACC	0x04		/* HA command complete */
 #define INTR_MBOA	0x02		/* MBO empty */
 #define INTR_MBIF	0x01		/* MBI full */
+
+
+#pragma pack(push,1)
+typedef struct {
+    uint8_t hi;
+    uint8_t mid;
+    uint8_t lo;
+} addr24;
+#pragma pack(pop)
+
+#define ADDR_TO_U32(x)	(((x).hi<<16)|((x).mid<<8)|((x).lo&0xFF))
+#define U32_TO_ADDR(a,x) do {(a).hi=(x)>>16;(a).mid=(x)>>8;(a).lo=(x)&0xFF;}while(0)
 
 
 /* Structure for the INQUIRE_SETUP_INFORMATION reply. */
@@ -489,6 +501,29 @@ typedef struct
 #pragma pack(pop)
 #define lba32_blk(p)	((uint32_t)(p->u.lba.lba0<<24) | (p->u.lba.lba1<<16) | \
 				   (p->u.lba.lba2<<8) | p->u.lba.lba3)
+
+
+/*
+ *
+ * Scatter/Gather Segment List Definitions
+ *
+ * Adapter limits
+ */
+#define MAX_SG_DESCRIPTORS 32	/* Always make the array 32 elements long, if less are used, that's not an issue. */
+
+#pragma pack(push,1)
+typedef struct {
+    uint32_t	Segment;
+    uint32_t	SegmentPointer;
+} SGE32;
+#pragma pack(pop)
+
+#pragma pack(push,1)
+typedef struct {
+    addr24	Segment;
+    addr24	SegmentPointer;
+} SGE;
+#pragma pack(pop)
 
 
 extern void	x54x_reset_ctrl(x54x_t *dev, uint8_t Reset);

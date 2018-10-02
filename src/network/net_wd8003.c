@@ -11,7 +11,7 @@
  *			- SMC/WD 8013EBT (ISA 16-bit);
  *			- SMC/WD 8013EP/A (MCA).
  *
- * Version:	@(#)net_wd8003.c	1.0.0	2018/07/19
+ * Version:	@(#)net_wd8003.c	1.0.1	2018/10/02
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -49,9 +49,6 @@
 #include <time.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../config.h"
-#include "../machine/machine.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../rom.h"
@@ -1008,7 +1005,7 @@ read_cr(wd_t *dev)
 static void
 write_cr(wd_t *dev, uint8_t val)
 {
-    wdlog(3, "%s: wrote 0x%02x to CR, CS=%08x, PC=%08x\n", dev->name, val, CS, cpu_state.pc);
+    wdlog(3, "%s: wrote 0x%02x to CR\n", dev->name, val);
 
     /* Validate remote-DMA */
     if ((val & 0x38) == 0x00) {

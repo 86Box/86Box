@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 1 Mbit 8-bit flash devices.
  *
- * Version:	@(#)intel_flash.c	1.0.16	2018/04/29
+ * Version:	@(#)intel_flash.c	1.0.17	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "86box.h"
-#include "cpu/cpu.h"
 #include "device.h"
 #include "mem.h"
 #include "machine/machine.h"

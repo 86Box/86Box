@@ -10,7 +10,7 @@
  *
  * TODO:	Add the Genius Serial Mouse.
  *
- * Version:	@(#)mouse_serial.c	1.0.23	2018/04/29
+ * Version:	@(#)mouse_serial.c	1.0.24	2018/10/02
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -22,7 +22,6 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "config.h"
 #include "device.h"
 #include "timer.h"
 #include "serial.h"

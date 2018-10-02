@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.23	2018/09/21
+ * Version:	@(#)vid_ati28800.c	1.0.24	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,13 +26,10 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
-#include "../cpu/cpu.h"
 #include "../io.h"
-#include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
-#include "../timer.h"
 #include "video.h"
 #include "vid_ati28800.h"
 #include "vid_ati_eeprom.h"
@@ -113,7 +110,7 @@ static void ati28800_out(uint16_t addr, uint8_t val, void *p)
         svga_t *svga = &ati28800->svga;
         uint8_t old;
         
-        ati28800_log("ati28800_out : %04X %02X  %04X:%04X\n", addr, val, CS, cpu_state.pc);
+        ati28800_log("ati28800_out : %04X %02X\n", addr, val);
 
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) 
                 addr ^= 0x60;
@@ -330,7 +327,7 @@ static uint8_t ati28800_in(uint16_t addr, void *p)
                 temp = svga_in(addr, svga);
                 break;
         }
-        if (addr != 0x3da)  ati28800_log("%02X  %04X:%04X\n", temp, CS,cpu_state.pc);
+        if (addr != 0x3da)  ati28800_log("%02X\n", temp);
         return temp;
 }
 
@@ -372,7 +369,7 @@ uint8_t ati28800k_in(uint16_t addr, void *p)
                 temp = ati28800_in(oldaddr, p);
                 break;
         }
-        if (addr != 0x3da)  ati28800_log("%02X  %04X:%04X\n", temp, CS,cpu_state.pc);
+        if (addr != 0x3da)  ati28800_log("%02X\n", temp);
         return temp;
 }
  

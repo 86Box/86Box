@@ -10,7 +10,7 @@
  *		made by Adaptec, Inc. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.42	2018/06/12
+ * Version:	@(#)scsi_aha154x.c	1.0.43	2018/10/02
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -36,7 +36,7 @@
 #include "../pic.h"
 #include "../timer.h"
 #include "../plat.h"
-#include "../cpu/cpu.h"
+// #include "../cpu/cpu.h"
 #include "scsi.h"
 #include "scsi_aha154x.h"
 #include "scsi_x54x.h"
@@ -92,7 +92,6 @@ aha_log(const char *fmt, ...)
     va_list ap;
 
     if (aha_do_log) {
-	pclog("In %s mode: ",(msw&1)?((eflags&VM_FLAG)?"V86":"protected"):"real");
 	va_start(ap, fmt);
 	pclog_ex(fmt, ap);
 	va_end(ap);

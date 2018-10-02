@@ -8,7 +8,7 @@
  *		Implementation of the following network controllers:
  *			- 3Com Etherlink II 3c503 (ISA 8-bit).
  *
- * Version:	@(#)net_3c503.c	1.0.0	2018/06/08
+ * Version:	@(#)net_3c503.c	1.0.1	2018/10/02
  *
  * Based on	@(#)3c503.cpp Carl (MAME)
  *
@@ -49,8 +49,6 @@
 #include <time.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
-#include "../config.h"
-#include "../machine/machine.h"
 #include "../io.h"
 #include "../dma.h"
 #include "../pic.h"

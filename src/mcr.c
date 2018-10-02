@@ -6,7 +6,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
-#include "cpu/cpu.h"
 #include "mem.h"
 
 

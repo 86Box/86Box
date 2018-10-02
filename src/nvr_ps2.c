@@ -8,7 +8,7 @@
  *
  *		Handling of the PS/2 series CMOS devices.
  *
- * Version:	@(#)nvr_ps2.c	1.0.9	2018/09/15
+ * Version:	@(#)nvr_ps2.c	1.0.10	2018/10/02
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -40,7 +40,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "86box.h"
-#include "cpu/cpu.h"
 #include "machine/machine.h"
 #include "device.h"
 #include "io.h"

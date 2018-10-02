@@ -8,7 +8,7 @@
  *
  *		ATI 18800 emulation (VGA Edge-16)
  *
- * Version:	@(#)vid_ati18800.c	1.0.13	2018/09/19
+ * Version:	@(#)vid_ati18800.c	1.0.14	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../rom.h"

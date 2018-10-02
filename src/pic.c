@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel PIC chip emulation.
  *
- * Version:	@(#)pic.c	1.0.0	2018/04/29
+ * Version:	@(#)pic.c	1.0.1	2018/10/02
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -21,7 +21,6 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "cpu/cpu.h"
 #include "machine/machine.h"
 #include "io.h"
 #include "pci.h"
@@ -351,14 +350,14 @@ uint8_t
 pic2_read(uint16_t addr, void *priv)
 {
     if (addr&1) {
-	pic_log("Read PIC2 mask %02X %04X:%08X\n", pic2.mask, CS, cpu_state.pc);
+	pic_log("Read PIC2 mask %02X\n", pic2.mask);
 	return pic2.mask;
     }
     if (pic2.read) {
-	pic_log("Read PIC2 ins %02X %04X:%08X\n", pic2.ins, CS, cpu_state.pc);
+	pic_log("Read PIC2 ins %02X\n", pic2.ins);
 	return pic2.ins;
     }
-    pic_log("Read PIC2 pend %02X %04X:%08X\n", pic2.pend, CS, cpu_state.pc);
+    pic_log("Read PIC2 pend %02X\n", pic2.pend);
     return pic2.pend;
 }
 

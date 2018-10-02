@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM null interface for unmounted
  *		guest CD-ROM drives.
  *
- * Version:	@(#)cdrom_null.c	1.0.7	2018/03/26
+ * Version:	@(#)cdrom_null.c	1.0.8	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,7 +22,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../scsi/scsi.h"
+#include "../scsi/scsi_device.h"
 #include "cdrom.h"
 
 

@@ -10,7 +10,7 @@
  *
  *		Used by ET4000w32/p (Diamond Stealth 32)
  *
- * Version:	@(#)vid_icd2061.h	1.0.0	2018/09/30
+ * Version:	@(#)vid_icd2061.h	1.0.1	2018/10/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -18,7 +18,6 @@
  */
 typedef struct icd2061_t
 {
-	svga_t svga;
         float freq[3];
 
 	int count, bit_count;

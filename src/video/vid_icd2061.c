@@ -10,7 +10,7 @@
  *
  *		Used by ET4000w32/p (Diamond Stealth 32)
  *
- * Version:	@(#)vid_icd2061.c	1.0.5	2018/01/10
+ * Version:	@(#)vid_icd2061.c	1.0.6	2018/10/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -21,9 +21,6 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../mem.h"
-#include "video.h"
-#include "vid_svga.h"
 #include "vid_icd2061.h"
 
 void
