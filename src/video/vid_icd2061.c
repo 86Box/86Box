@@ -7,10 +7,14 @@
  *		This file is part of the 86Box distribution.
  *
  *		ICD2061 clock generator emulation.
+ *		Also emulates the ICS9161 which is the same as the ICD2016,
+ *		but without the need for tuning (which is irrelevant in
+ *		emulation anyway).
  *
- *		Used by ET4000w32/p (Diamond Stealth 32)
+ *		Used by ET4000w32/p (Diamond Stealth 32) and the S3
+ *		Vision964 family.
  *
- * Version:	@(#)vid_icd2061.c	1.0.6	2018/10/02
+ * Version:	@(#)vid_icd2061.c	1.0.7	2018/10/03
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -27,7 +31,7 @@ void
 icd2061_write(icd2061_t *icd2061, int val)
 {
     int /*od, */nd, oc, nc;
-    int a/*, i*/, qa, q, pa, p, m;
+    int a/*, i*/, qa, q, pa, p, m, ps;
 
 #if 0
     od = (icd2061->state & 2) >> 1;	/* Old data. */
@@ -67,17 +71,16 @@ icd2061_write(icd2061_t *icd2061, int val)
 #if 0
 				i = ((icd2061->data >> 18) & 0x0f);	/* I  */
 #endif
-				pa = ((icd2061->data >> 11) & 0x7f);	/* P' */
-				m = ((icd2061->data >> 8) & 0x07);	/* M  */
-				qa = ((icd2061->data >> 1) & 0x7f);	/* Q' */
+				pa = ((icd2061->data >> 11) & 0x7f);		/* P' (ICD2061) / N' (ICS9161) */
+				m = ((icd2061->data >> 8) & 0x07);		/* M  (ICD2061) / R  (ICS9161) */
+				qa = ((icd2061->data >> 1) & 0x7f);		/* Q' (ICD2061) / M' (ICS9161) */
 
-				p = pa + 3;				/* P  */
+				p = pa + 3;					/* P  (ICD2061) / N  (ICS9161) */
 				m = 1 << m;
-				q = qa + 2;				/* Q  */
+				q = qa + 2;					/* Q  (ICD2061) / M  (ICS9161) */
+				ps = (icd2061->ctrl & (1 << a)) ? 4 : 2;	/* Prescale */
 
-				if (icd2061->ctrl & (1 << a))
-					p <<= 1;
-				icd2061->freq[a] = ((float)p / (float)q) * 2.0 * 14318184.0 / (float)m;
+				icd2061->freq[a] = ((float)(p * ps) / (float)(q * m)) * 14318184.0f;
 
 				/* pclog("P = %02X, M = %01X, Q = %02X, freq[%i] = %f\n", p, m, q, a, icd2061->freq[a]); */
 			} else if (a == 6) {

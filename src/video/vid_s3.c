@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.22	2018/10/02
+ * Version:	@(#)vid_s3.c	1.0.23	2018/10/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -3057,7 +3057,9 @@ static void *s3_init(const device_t *info)
 			s3->packed_mmio = 1;
 			svga->crtc[0x5a] = 0x0a;
 			
+			bt485_init(&s3->bt485_ramdac, BT485);
 			icd2061_init(&s3->icd2061);
+
 			s3->getclock = icd2061_getclock;
 			s3->getclock_p = &s3->icd2061;
 			break;			

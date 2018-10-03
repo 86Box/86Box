@@ -6,10 +6,10 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Brooktree BT485 true colour RAMDAC emulation.
+ *		Emulation of the Brooktree BT485 and BT485A true colour
+ *		RAM DAC's.
  *
- *
- * Version:	@(#)vid_bt485_ramdac.c	1.0.6	2018/10/02
+ * Version:	@(#)vid_bt485_ramdac.c	1.0.7	2018/10/03
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995,
@@ -106,7 +106,6 @@ bt485_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt485_ramdac_t *r
 		break;
 	case 0x06:	/* Command Register 0 (RS value = 0110) */
 		ramdac->cr0 = val;
-		ramdac->set_reg0a = !!(val & 0x80);
 		svga->ramdac_type = (val & 0x01) ? RAMDAC_8BIT : RAMDAC_6BIT;
 		break;
 	case 0x08:	/* Command Register 1 (RS value = 1000) */
@@ -119,11 +118,9 @@ bt485_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt485_ramdac_t *r
 		bt485_set_bpp(ramdac, svga);
 		break;
 	case 0x0a:
-		switch (ramdac->set_reg0a) {
-			case 0:	/* Status Register (RS value = 1010) */
-				break;
-
-			case 1: /* Command Register 3 (RS value = 1010) */
+		if (ramdac->cr0 & 0x80) {
+			if ((ramdac->type == BT485) || (svga->dac_pos == 1)) {
+				/* Command Register 3 (RS value = 1010) */
 				ramdac->cr3 = val;
 				svga->hwcursor.xsize = svga->hwcursor.ysize = (val & 4) ? 64 : 32;
 				svga->hwcursor.yoff = (svga->hwcursor.ysize == 32) ? 32 : 0;
@@ -132,7 +129,8 @@ bt485_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt485_ramdac_t *r
 				if (svga->hwcursor.xsize == 64)
 					svga->dac_pos = (svga->dac_pos & 0x00ff) | ((val & 0x03) << 8);
 				svga_recalctimings(svga);
-				break;
+			} else if (svga->dac_pos == 2)
+				ramdac->cr4 = val;
 		}
 		break;
 	case 0x0b:	/* Cursor RAM Data Register (RS value = 1011) */
@@ -212,10 +210,20 @@ bt485_ramdac_in(uint16_t addr, int rs2, int rs3, bt485_ramdac_t *ramdac, svga_t 
 		temp = ramdac->cr2;
 		break;
 	case 0x0a:
-		if (ramdac->set_reg0a)
-			temp = ramdac->cr3;
-		else
-			temp = 0x60; /*Bt485*/
+		if (ramdac->cr0 & 0x80) {
+			if ((ramdac->type == BT485) || (svga->dac_pos == 1))
+				temp = ramdac->cr3;
+			else if (svga->dac_pos == 2)
+				temp = ramdac->cr4;
+			else if ((svga->dac_pos & 0xf0) == 0x20) {
+				/* TODO: Red, Green, and Blue Signature Analysis Registers */
+				temp = 0xff;
+			}
+		} else
+			if (ramdac->type == BT485)
+				temp = 0x60; /*Bt485*/
+			else
+				temp = 0x20; /*Bt485A*/
 			/* Datasheet says bits 7,6 = 01, bits 5,4 = revision */
 		break;
 	case 0x0b:	/* Cursor RAM Data Register (RS value = 1011) */
@@ -244,4 +252,10 @@ bt485_ramdac_in(uint16_t addr, int rs2, int rs3, bt485_ramdac_t *ramdac, svga_t 
     }
 
     return temp;
+}
+
+void bt485_init(bt485_ramdac_t *ramdac, uint8_t type)
+{
+    memset(ramdac, 0, sizeof(bt485_ramdac_t));
+    ramdac->type = type;
 }

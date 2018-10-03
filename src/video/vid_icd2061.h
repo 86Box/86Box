@@ -7,10 +7,14 @@
  *		This file is part of the 86Box distribution.
  *
  *		ICD2061 clock generator emulation header.
+ *		Also emulates the ICS9161 which is the same as the ICD2016,
+ *		but without the need for tuning (which is irrelevant in
+ *		emulation anyway).
  *
- *		Used by ET4000w32/p (Diamond Stealth 32)
+ *		Used by ET4000w32/p (Diamond Stealth 32) and the S3
+ *		Vision964 family.
  *
- * Version:	@(#)vid_icd2061.h	1.0.1	2018/10/02
+ * Version:	@(#)vid_icd2061.h	1.0.2	2018/10/03
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -28,3 +32,8 @@ typedef struct icd2061_t
 void icd2061_write(icd2061_t *icd2061, int val);
 void icd2061_init(icd2061_t *icd2061);
 float icd2061_getclock(int clock, void *p);
+
+/* The code is the same, the #define's are so that the correct name can be used. */
+#define ics9161_write icd2061_write
+#define ics9161_init icd2061_init
+#define ics9161_getclock icd2061_getclock
