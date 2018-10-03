@@ -9,7 +9,7 @@
  *		Header of the emulation of the Brooktree BT485 and BT485A
  *		true colour RAM DAC's.
  *
- * Version:	@(#)vid_bt485_ramdac.h	1.0.1	2018/10/03
+ * Version:	@(#)vid_bt485_ramdac.h	1.0.2	2018/10/03
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995,
