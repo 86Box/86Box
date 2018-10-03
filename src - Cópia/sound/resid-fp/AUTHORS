@@ -1,0 +1,4 @@
+Authors of reSID.
+
+Dag Lem: Designed and programmed complete emulation engine.
+Antti S. Lankila: Support 6581 filter distortion, envelope & voice nonlinearities, output amp clipping effects.

@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.23	2018/10/03
+ * Version:	@(#)vid_cl_54xx.c	1.0.24	2018/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,
@@ -351,26 +351,26 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 				svga->dac_pos++; 
 				break;
                         case 2:
+				index = svga->dac_addr & 0xff;
 				if (svga->seqregs[0x12] & 2) {
-					index = svga->dac_write & 0x0f;
+					index &= 0x0f;
 					gd54xx->extpal[index].r = svga->dac_r;
 					gd54xx->extpal[index].g = svga->dac_g;
 					gd54xx->extpal[index].b = val; 
 					gd54xx->extpallook[index] = makecol32(video_6to8[gd54xx->extpal[index].r & 0x3f], video_6to8[gd54xx->extpal[index].g & 0x3f], video_6to8[gd54xx->extpal[index].b & 0x3f]);
-					if ((svga->seqregs[0x12] & 0x80) && ((svga->dac_write & 15) == 2)) {
+					if ((svga->seqregs[0x12] & 0x80) && (index == 2)) {
 						o32 = svga->overscan_color;
 						svga->overscan_color = gd54xx->extpallook[2];
 						if (o32 != svga->overscan_color)
 							svga_recalctimings(svga);
 					}
-					svga->dac_write = (svga->dac_write + 1);
 				} else {
-					svga->vgapal[svga->dac_write].r = svga->dac_r;
-					svga->vgapal[svga->dac_write].g = svga->dac_g;
-					svga->vgapal[svga->dac_write].b = val; 
-					svga->pallook[svga->dac_write] = makecol32(video_6to8[svga->vgapal[svga->dac_write].r & 0x3f], video_6to8[svga->vgapal[svga->dac_write].g & 0x3f], video_6to8[svga->vgapal[svga->dac_write].b & 0x3f]);
-					svga->dac_write = (svga->dac_write + 1) & 255;
+					svga->vgapal[index].r = svga->dac_r;
+					svga->vgapal[index].g = svga->dac_g;
+					svga->vgapal[index].b = val; 
+					svga->pallook[index] = makecol32(video_6to8[svga->vgapal[index].r & 0x3f], video_6to8[svga->vgapal[index].g & 0x3f], video_6to8[svga->vgapal[index].b & 0x3f]);
 				}
+				svga->dac_addr = (svga->dac_addr + 1) & 255;
 				svga->dac_pos = 0; 
                         break;
                 }
@@ -596,7 +596,9 @@ gd54xx_in(uint16_t addr, void *p)
 		break;
 	case 0x3c9:
 		svga->dac_status = 3;
-		index = svga->dac_read & 0x0f;
+		index = (svga->dac_addr - 1) & 0xff;
+		if (svga->seqregs[0x12] & 2)
+			index &= 0x0f;
 		switch (svga->dac_pos) {
 			case 0:
 				svga->dac_pos++;
@@ -612,11 +614,11 @@ gd54xx_in(uint16_t addr, void *p)
 					return svga->vgapal[index].g & 0x3f;
                         case 2: 
 				svga->dac_pos=0;
-				svga->dac_read = (svga->dac_read + 1) & 255;
+				svga->dac_addr = (svga->dac_addr + 1) & 255;
 				if (svga->seqregs[0x12] & 2)
                         		return gd54xx->extpal[index].b & 0x3f;
 				else
-                        		return svga->vgapal[(svga->dac_read - 1) & 255].b & 0x3f;
+                        		return svga->vgapal[index].b & 0x3f;
                 }
                 return 0xFF;
 	case 0x3C6:

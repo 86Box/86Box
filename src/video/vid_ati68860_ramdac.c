@@ -28,13 +28,13 @@
  *		    7  If set can remove "snow" in some cases
  *			(A860_Delay_L ?) ??
  *
- * Version:	@(#)vid_ati68860.c	1.0.3	2017/11/04
+ * Version:	@(#)vid_ati68860.c	1.0.4	2018/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -69,7 +69,7 @@ void ati68860_ramdac_out(uint16_t addr, uint8_t val, ati68860_ramdac_t *ramdac, 
                 switch (addr & 0xf)
                 {
                         case 0x4:
-                        ramdac->dac_write = val;
+                        ramdac->dac_addr = val;
                         ramdac->dac_pos = 0;
                         break;
                         case 0x5:
@@ -84,17 +84,17 @@ void ati68860_ramdac_out(uint16_t addr, uint8_t val, ati68860_ramdac_t *ramdac, 
                                 ramdac->dac_pos++; 
                                 break;
                                 case 2: 
-                                if (ramdac->dac_write > 1)
+                                if (ramdac->dac_addr > 1)
                                         break;
-                                ramdac->pal[ramdac->dac_write].r = ramdac->dac_r; 
-                                ramdac->pal[ramdac->dac_write].g = ramdac->dac_g;
-                                ramdac->pal[ramdac->dac_write].b = val; 
+                                ramdac->pal[ramdac->dac_addr].r = ramdac->dac_r; 
+                                ramdac->pal[ramdac->dac_addr].g = ramdac->dac_g;
+                                ramdac->pal[ramdac->dac_addr].b = val; 
                                 if (ramdac->ramdac_type == RAMDAC_8BIT)
-                                        ramdac->pallook[ramdac->dac_write] = makecol32(ramdac->pal[ramdac->dac_write].r, ramdac->pal[ramdac->dac_write].g, ramdac->pal[ramdac->dac_write].b);
+                                        ramdac->pallook[ramdac->dac_addr] = makecol32(ramdac->pal[ramdac->dac_addr].r, ramdac->pal[ramdac->dac_addr].g, ramdac->pal[ramdac->dac_addr].b);
                                 else
-                                        ramdac->pallook[ramdac->dac_write] = makecol32((ramdac->pal[ramdac->dac_write].r & 0x3f) * 4, (ramdac->pal[ramdac->dac_write].g & 0x3f) * 4, (ramdac->pal[ramdac->dac_write].b & 0x3f) * 4); 
+                                        ramdac->pallook[ramdac->dac_addr] = makecol32((ramdac->pal[ramdac->dac_addr].r & 0x3f) * 4, (ramdac->pal[ramdac->dac_addr].g & 0x3f) * 4, (ramdac->pal[ramdac->dac_addr].b & 0x3f) * 4); 
                                 ramdac->dac_pos = 0; 
-                                ramdac->dac_write = (ramdac->dac_write + 1) & 255; 
+                                ramdac->dac_addr = (ramdac->dac_addr + 1) & 255; 
                                 break;
                         }
                         break;

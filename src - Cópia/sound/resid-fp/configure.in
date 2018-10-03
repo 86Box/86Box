@@ -1,0 +1,166 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(sid.h)
+
+dnl Use Automake
+AM_INIT_AUTOMAKE(resid, 0.16vice)
+LTVERSION=5:0:0
+
+dnl Use C++ for tests.
+AC_LANG_CPLUSPLUS
+
+dnl Enable inlining.
+AC_ARG_ENABLE(inline,
+[  --enable-inline         enable inlining of functions [default=yes]])
+AC_ARG_ENABLE(sse,
+[  --enable-sse            enable the use of SSE [default=yes]])
+
+if test "$enable_inline" != no; then
+  RESID_INLINE=inline
+else
+  RESID_INLINE=
+fi
+
+AC_SUBST(RESID_INLINE)
+
+dnl Checks for programs.
+AC_PROG_CXX
+
+dnl Set CXXFLAGS for g++. Use -msse if supported.
+if test x"$enable_sse" != "xno"; then
+  if test "$GXX" = yes; then
+    if test "$ac_test_CXXFLAGS" != set; then
+      CXXFLAGS="-g -Wall -O2 -msse"
+      AC_MSG_CHECKING([whether the C++ compiler ($CXX $CXXFLAGS $LDFLAGS) works])
+      AC_TRY_COMPILE([],
+                     [int test;],
+                     [ AC_MSG_RESULT(yes)
+                       MSSE="-msse"
+                       ],
+                     [ AC_MSG_RESULT(no)
+                       MSSE=""
+                       ])
+    fi
+  fi
+else
+  MSSE=""
+fi
+
+dnl Set CXXFLAGS for g++. Use -fno-exceptions if supported.
+if test "$GXX" = yes; then
+  if test "$ac_test_CXXFLAGS" != set; then
+    CXXFLAGS="-g -Wall -O2 $MSSE -fno-exceptions"
+    AC_MSG_CHECKING([whether the C++ compiler ($CXX $CXXFLAGS $LDFLAGS) works])
+    AC_TRY_COMPILE([],
+                   [int test;],
+                   [ AC_MSG_RESULT(yes)
+                     NO_EXCEPTIONS="-fno-exceptions" ],
+                   [ AC_MSG_RESULT(no)
+                     NO_EXCEPTIONS=""
+                     ])
+  fi
+fi
+
+dnl Set CXXFLAGS for g++. Use -fno-pic if supported.
+if test "$GXX" = yes; then
+  if test "$ac_test_CXXFLAGS" != set; then
+    CXXFLAGS="-g -Wall -O2 $MSSE -fno-exceptions $NO_EXCEPTIONS -fno-pic"
+    AC_MSG_CHECKING([whether the C++ compiler ($CXX $CXXFLAGS $LDFLAGS) works])
+    AC_TRY_COMPILE([],
+                   [int test;],
+                   [ AC_MSG_RESULT(yes)
+                     NO_PIC="-fno-pic" ],
+                   [ AC_MSG_RESULT(no)
+                     NO_PIC=""
+                     ])
+  fi
+fi
+
+CXXFLAGS="-g -Wall -O2 $MSSE $NO_EXCEPTIONS $NO_PIC"
+if test x"$MSSE" = "x-msse"; then
+  AC_MSG_CHECKING([if the xmmintrin.h include can be used])
+  AC_TRY_COMPILE([#include <xmmintrin.h>],
+                 [int test;],
+                 [ AC_MSG_RESULT(yes)
+                   ],
+                 [ AC_MSG_RESULT(no)
+                   MSSE=""
+                   ])
+  CXXFLAGS="-g -Wall -O2 $NO_EXCEPTIONS $NO_PIC"
+fi
+
+AC_CHECK_PROG(AR, ar, ar, ar)
+AC_PROG_RANLIB
+AC_PATH_PROG(PERL, perl)
+
+dnl Libtool
+
+dnl AC_DISABLE_SHARED
+dnl AM_PROG_LIBTOOL
+dnl AC_SUBST(LIBTOOL_DEPS)
+dnl AC_SUBST(LTVERSION)
+
+dnl Checks for libraries.
+
+dnl Checks for header files.
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_CHECK_SIZEOF(int, 4)
+
+if test $ac_cv_sizeof_int -lt 4; then
+  AC_MSG_ERROR([only 32 bit or better CPUs are supported])
+fi
+
+AC_CACHE_CHECK([for working bool], ac_cv_cxx_bool,
+[AC_TRY_COMPILE(,
+[
+bool flag;
+],
+ac_cv_cxx_bool=yes, ac_cv_cxx_bool=no)])
+
+if test $ac_cv_cxx_bool = no; then
+  RESID_HAVE_BOOL=0
+else
+  RESID_HAVE_BOOL=1
+fi
+
+if test x"$MSSE" = "x-msse"; then
+  RESID_USE_SSE=1
+  AM_CONDITIONAL(USE_SSE, true)
+else
+  RESID_USE_SSE=0
+  AM_CONDITIONAL(USE_SSE, false)
+fi
+
+AC_SUBST(RESID_HAVE_BOOL)
+AC_SUBST(RESID_USE_SSE)
+
+dnl Checks for library functions.
+
+AC_CHECK_FUNCS(logf expf)
+
+AC_MSG_CHECKING([if the logf prototype is present])
+AC_TRY_COMPILE([#include <math.h>
+                #include <stdio.h>],
+               [printf("%d",logf);],
+               [ AC_MSG_RESULT(yes)
+                 HAVE_LOGF_PROTOTYPE=1
+                ],
+               [ AC_MSG_RESULT(no)
+                HAVE_LOGF_PROTOTYPE=0
+                ])
+
+AC_MSG_CHECKING([if the expf prototype is present])
+AC_TRY_COMPILE([#include <math.h>
+                #include <stdio.h>],
+               [printf("%d",expf);],
+               [ AC_MSG_RESULT(yes)
+                 HAVE_EXPF_PROTOTYPE=1
+                ],
+               [ AC_MSG_RESULT(no)
+                HAVE_EXPF_PROTOTYPE=0
+                ])
+
+AC_SUBST(HAVE_LOGF_PROTOTYPE)
+AC_SUBST(HAVE_EXPF_PROTOTYPE)
+
+AC_OUTPUT(Makefile siddefs-fp.h)

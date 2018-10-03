@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.31	2018/05/26
+ * Version:	@(#)vid_svga.c	1.0.32	2018/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -88,7 +88,7 @@ svga_out(uint16_t addr, uint8_t val, void *p)
 {
     svga_t *svga = (svga_t *)p;
     int c;
-    uint8_t o;
+    uint8_t o, index;
 
     switch (addr) {
 	case 0x3c0:
@@ -182,17 +182,13 @@ svga_out(uint16_t addr, uint8_t val, void *p)
 	case 0x3c6: 
 		svga->dac_mask = val; 
 		break;
-	case 0x3C7: 
-		svga->dac_read = val; 
-		svga->dac_pos = 0; 
-		break;
-	case 0x3c8: 
-		svga->dac_write = val; 
-		svga->dac_read = val - 1; 
-		svga->dac_pos = 0; 
+	case 0x3c7:
+	case 0x3c8:
+		svga->dac_pos = 0;
+		svga->dac_status = addr & 0x03;
+		svga->dac_addr = (val + (addr & 0x01)) & 255;
 		break;
 	case 0x3c9:
-		svga->dac_status = 0;
 		svga->fullchange = changeframecount;
 		switch (svga->dac_pos) {
 			case 0:
@@ -204,15 +200,16 @@ svga_out(uint16_t addr, uint8_t val, void *p)
 				svga->dac_pos++; 
 				break;
                         case 2:
-				svga->vgapal[svga->dac_write].r = svga->dac_r;
-				svga->vgapal[svga->dac_write].g = svga->dac_g;
-				svga->vgapal[svga->dac_write].b = val; 
+				index = svga->dac_addr & 255;
+				svga->vgapal[index].r = svga->dac_r;
+				svga->vgapal[index].g = svga->dac_g;
+				svga->vgapal[index].b = val; 
 				if (svga->ramdac_type == RAMDAC_8BIT)
-					svga->pallook[svga->dac_write] = makecol32(svga->vgapal[svga->dac_write].r, svga->vgapal[svga->dac_write].g, svga->vgapal[svga->dac_write].b);
+					svga->pallook[index] = makecol32(svga->vgapal[index].r, svga->vgapal[index].g, svga->vgapal[index].b);
 				else
-					svga->pallook[svga->dac_write] = makecol32(video_6to8[svga->vgapal[svga->dac_write].r & 0x3f], video_6to8[svga->vgapal[svga->dac_write].g & 0x3f], video_6to8[svga->vgapal[svga->dac_write].b & 0x3f]);
+					svga->pallook[index] = makecol32(video_6to8[svga->vgapal[index].r & 0x3f], video_6to8[svga->vgapal[index].g & 0x3f], video_6to8[svga->vgapal[index].b & 0x3f]);
 				svga->dac_pos = 0; 
-				svga->dac_write = (svga->dac_write + 1) & 255; 
+				svga->dac_addr = (svga->dac_addr + 1) & 255; 
 				break;
 		}
 		break;
@@ -274,7 +271,7 @@ uint8_t
 svga_in(uint16_t addr, void *p)
 {
     svga_t *svga = (svga_t *)p;
-    uint8_t ret = 0xff;
+    uint8_t index, ret = 0xff;
 
     switch (addr) {
 	case 0x3c0:
@@ -302,32 +299,32 @@ svga_in(uint16_t addr, void *p)
 		ret = svga->dac_status;
 		break;
 	case 0x3c8:
-		ret = svga->dac_write;
+		ret = svga->dac_addr;
 		break;
 	case 0x3c9:
-		svga->dac_status = 3;
+		index = (svga->dac_addr - 1) & 255;
 		switch (svga->dac_pos) {
 			case 0:
 				svga->dac_pos++; 
 				if (svga->ramdac_type == RAMDAC_8BIT)
-					ret = svga->vgapal[svga->dac_read].r;
+					ret = svga->vgapal[index].r;
 				else
-					ret = svga->vgapal[svga->dac_read].r & 0x3f;
+					ret = svga->vgapal[index].r & 0x3f;
 				break;
 			case 1:
 				svga->dac_pos++; 
 				if (svga->ramdac_type == RAMDAC_8BIT)
-					ret = svga->vgapal[svga->dac_read].g;
+					ret = svga->vgapal[index].g;
 				else
-					ret = svga->vgapal[svga->dac_read].g & 0x3f;
+					ret = svga->vgapal[index].g & 0x3f;
 				break;
 			case 2:
 				svga->dac_pos=0; 
-				svga->dac_read = (svga->dac_read + 1) & 255; 
+				svga->dac_addr = (svga->dac_addr + 1) & 255; 
 				if (svga->ramdac_type == RAMDAC_8BIT)
-					ret = svga->vgapal[(svga->dac_read - 1) & 255].b;
+					ret = svga->vgapal[index].b;
 				else
-					ret = svga->vgapal[(svga->dac_read - 1) & 255].b & 0x3f;
+					ret = svga->vgapal[index].b & 0x3f;
 				break;
 		}
 		break;

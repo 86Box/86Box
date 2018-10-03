@@ -1,0 +1,750 @@
+
+---------- 386.O
+
+---------- 386_DYNAREC.O
+
+---------- 386_DYNAREC_OPS.O
+
+---------- 808X.O
+
+---------- 86BOX.EXE
+
+---------- 86BOX.H
+
+---------- 86BOX.RES
+
+---------- ANALOG.O
+
+---------- BOOTP.O
+
+---------- BREVERBMODEL.O
+
+---------- BUGGER.C
+
+---------- BUGGER.H
+
+---------- BUGGER.O
+
+---------- CDROM.O
+
+---------- CDROM_DOSBOX.O
+
+---------- CDROM_IMAGE.O
+
+---------- CDROM_NULL.O
+
+---------- CKSUM.O
+
+---------- CODEGEN.O
+
+---------- CODEGEN_OPS.O
+
+---------- CODEGEN_TIMING_486.O
+
+---------- CODEGEN_TIMING_686.O
+
+---------- CODEGEN_TIMING_COMMON.O
+
+---------- CODEGEN_TIMING_PENTIUM.O
+
+---------- CODEGEN_TIMING_WINCHIP.O
+
+---------- CODEGEN_X86.O
+
+---------- CONFIG.C
+
+---------- CONFIG.H
+
+---------- CONFIG.O
+
+---------- CONVOLVE-SSE.O
+
+---------- CONVOLVE.O
+
+---------- CPU.O
+
+---------- CPU_STATE.C
+
+---------- CPU_TABLE.O
+
+---------- C_INTERFACE.O
+
+---------- DBOPL.O
+
+---------- DEBUG.O
+
+---------- DEVICE.C
+
+---------- DEVICE.H
+
+---------- DEVICE.O
+
+---------- DMA.C
+
+---------- DMA.H
+
+---------- DMA.O
+
+---------- ENVELOPE.O
+
+---------- EXTFILT.O
+
+---------- FDC.O
+
+---------- FDD.O
+
+---------- FDD_86F.O
+
+---------- FDD_COMMON.O
+
+---------- FDD_FDI.O
+
+---------- FDD_IMD.O
+
+---------- FDD_IMG.O
+
+---------- FDD_JSON.O
+
+---------- FDD_TD0.O
+
+---------- FDI2RAW.O
+
+---------- FILE.O
+
+---------- FILESTREAM.O
+
+---------- FILTER.O
+
+---------- GAMEPORT.O
+
+---------- GCC_CHECK.SH
+
+---------- GCC_CHECK_IOCTL.SH
+
+---------- HDC.O
+
+---------- HDC_ESDI_AT.O
+
+---------- HDC_ESDI_MCA.O
+
+---------- HDC_IDE.O
+
+---------- HDC_MFM_AT.O
+
+---------- HDC_MFM_XT.O
+
+---------- HDC_XTA.O
+
+---------- HDC_XTIDE.O
+
+---------- HDD.O
+
+---------- HDD_IMAGE.O
+
+---------- HDD_TABLE.O
+
+---------- I82335.C
+
+---------- I82335.H
+
+---------- IF.O
+
+---------- INTEL.C
+
+---------- INTEL.H
+
+---------- INTEL.O
+
+---------- INTEL_FLASH.C
+
+---------- INTEL_FLASH.H
+
+---------- INTEL_FLASH.O
+
+---------- INTEL_PIIX.C
+
+---------- INTEL_PIIX.O
+
+---------- INTEL_PIIX4.C
+
+---------- INTEL_SIO.C
+
+---------- INTEL_SIO.H
+
+---------- INTEL_SIO.O
+
+---------- IO.C
+
+---------- IO.H
+
+---------- IO.O
+
+---------- IP_ICMP.O
+
+---------- IP_INPUT.O
+
+---------- IP_OUTPUT.O
+
+---------- JOYSTICK_CH_FLIGHTSTICK_PRO.O
+
+---------- JOYSTICK_STANDARD.O
+
+---------- JOYSTICK_SW_PAD.O
+
+---------- JOYSTICK_TM_FCS.O
+
+---------- KEYBOARD.C
+
+---------- KEYBOARD.H
+
+---------- KEYBOARD.O
+
+---------- KEYBOARD_AT - C‡PIA.C
+
+---------- KEYBOARD_AT.C
+
+---------- KEYBOARD_AT.O
+
+---------- KEYBOARD_XT.C
+
+---------- KEYBOARD_XT.O
+
+---------- LA32FLOATWAVEGENERATOR.O
+
+---------- LA32RAMP.O
+
+---------- LA32WAVEGENERATOR.O
+
+---------- LPT.C
+
+---------- LPT.H
+
+---------- LPT.O
+
+---------- MACHINE.O
+
+---------- MACHINE_TABLE.O
+
+---------- MAKEFILE.LOCAL
+
+---------- MBUF.O
+
+---------- MCA.C
+
+---------- MCA.H
+
+---------- MCA.O
+
+---------- MCR.C
+
+---------- MCR.O
+
+---------- MEM.C
+
+---------- MEM.H
+
+---------- MEM.O
+
+---------- MEMREGS.C
+
+---------- MEMREGS.H
+
+---------- MEMREGS.O
+
+---------- MIDI.O
+
+---------- MIDISTREAMPARSER.O
+
+---------- MIDI_FLUIDSYNTH.O
+
+---------- MIDI_MT32.O
+
+---------- MIDI_SYSTEM.O
+
+---------- MISC.O
+
+---------- MOUSE.C
+
+---------- MOUSE.H
+
+---------- MOUSE.O
+
+---------- MOUSE_BUS.C
+
+---------- MOUSE_BUS.O
+
+---------- MOUSE_PS2.C
+
+---------- MOUSE_PS2.O
+
+---------- MOUSE_SERIAL.C
+
+---------- MOUSE_SERIAL.O
+
+---------- M_AMSTRAD.O
+
+---------- M_AT.O
+
+---------- M_AT_4X0.O
+
+---------- M_AT_ALI1429.O
+
+---------- M_AT_COMMODORE.O
+
+---------- M_AT_COMPAQ.O
+
+---------- M_AT_HEADLAND.O
+
+---------- M_AT_NEAT.O
+
+---------- M_AT_OPTI495.O
+
+---------- M_AT_SCAT.O
+
+---------- M_AT_SIS_85C471.O
+
+---------- M_AT_SIS_85C496.O
+
+---------- M_AT_T3100E.O
+
+---------- M_AT_T3100E_VID.O
+
+---------- M_AT_WD76C10.O
+
+---------- M_EUROPC.O
+
+---------- M_OLIVETTI_M24.O
+
+---------- M_PCJR.O
+
+---------- M_PS1.O
+
+---------- M_PS1_HDC.O
+
+---------- M_PS2_ISA.O
+
+---------- M_PS2_MCA.O
+
+---------- M_TANDY.O
+
+---------- M_XT.O
+
+---------- M_XT_COMPAQ.O
+
+---------- M_XT_T1000.O
+
+---------- M_XT_T1000_VID.O
+
+---------- M_XT_XI8088.O
+
+---------- NETWORK.O
+
+---------- NET_3C503.O
+
+---------- NET_DP8390.O
+
+---------- NET_NE2000.O
+
+---------- NET_PCAP.O
+
+---------- NET_SLIRP.O
+
+---------- NET_WD8003.O
+
+---------- NMI.C
+
+---------- NMI.H
+
+---------- NMI.O
+
+---------- NUKEDOPL.O
+
+---------- NVR.C
+
+---------- NVR.H
+
+---------- NVR.O
+
+---------- NVR_AT.C
+
+---------- NVR_AT.O
+
+---------- NVR_PS2.C
+
+---------- NVR_PS2.H
+
+---------- NVR_PS2.O
+
+---------- OPENAL.O
+
+---------- PART.O
+
+---------- PARTIAL.O
+
+---------- PARTIALMANAGER.O
+
+---------- PC.C
+    startblit();
+		startblit();
+
+---------- PC.O
+_startblit
+
+---------- PCAP_IF.EXE
+
+---------- PCAP_IF.O
+
+---------- PCAP_IF.RES
+
+---------- PCI.C
+
+---------- PCI.H
+
+---------- PCI.O
+
+---------- PCI_DUMMY.C
+
+---------- PCI_DUMMY.H
+
+---------- PIC.C
+
+---------- PIC.H
+
+---------- PIC.O
+
+---------- PIIX.H
+
+---------- PIT.C
+
+---------- PIT.H
+
+---------- PIT.O
+
+---------- PLAT.H
+extern void	startblit(void);
+
+---------- PLAT_DYNLD.H
+
+---------- PLAT_MIDI.H
+
+---------- POLY.O
+
+---------- POT.O
+
+---------- PPI.C
+
+---------- PPI.H
+
+---------- PPI.O
+
+---------- QUEUE.O
+
+---------- RANDOM.C
+
+---------- RANDOM.H
+
+---------- RANDOM.O
+
+---------- ROM.C
+
+---------- ROM.H
+
+---------- ROM.O
+
+---------- ROMINFO.O
+
+---------- SAMPLERATECONVERTER_DUMMY.O
+
+---------- SBUF.O
+
+---------- SCSI.O
+
+---------- SCSI_AHA154X.O
+
+---------- SCSI_BUS.O
+
+---------- SCSI_BUSLOGIC.O
+
+---------- SCSI_DEVICE.O
+
+---------- SCSI_DISK.O
+
+---------- SCSI_NCR5380.O
+
+---------- SCSI_NCR53C810.O
+
+---------- SCSI_X54X.O
+
+---------- SERIAL.C
+
+---------- SERIAL.H
+
+---------- SERIAL.O
+
+---------- SHA1.O
+
+---------- SID.O
+
+---------- SIO.H
+
+---------- SIO_DETECT.C
+
+---------- SIO_FDC37C669.C
+
+---------- SIO_FDC37C669.O
+
+---------- SIO_FDC37C66X.C
+
+---------- SIO_FDC37C66X.O
+
+---------- SIO_FDC37C93X.C
+
+---------- SIO_FDC37C93X.O
+
+---------- SIO_PC87306.C
+
+---------- SIO_PC87306.O
+
+---------- SIO_UM8669F.C
+
+---------- SIO_UM8669F.O
+
+---------- SIO_W83877F.C
+
+---------- SIO_W83877F.O
+
+---------- SLIRP.O
+
+---------- SND_AD1848.O
+
+---------- SND_ADLIB.O
+
+---------- SND_ADLIBGOLD.O
+
+---------- SND_AUDIOPCI.O
+
+---------- SND_CMS.O
+
+---------- SND_DBOPL.O
+
+---------- SND_EMU8K.O
+
+---------- SND_GUS.O
+
+---------- SND_LPT_DAC.O
+
+---------- SND_LPT_DSS.O
+
+---------- SND_MPU401.O
+
+---------- SND_OPL.O
+
+---------- SND_PSSJ.O
+
+---------- SND_RESID.O
+
+---------- SND_SB.O
+
+---------- SND_SB_DSP.O
+
+---------- SND_SN76489.O
+
+---------- SND_SPEAKER.O
+
+---------- SND_SSI2001.O
+
+---------- SND_WSS.O
+
+---------- SND_YM7128.O
+
+---------- SOCKET.O
+
+---------- SOUND.O
+
+---------- STARTBLIT.FND
+
+---------- SYNTH.O
+
+---------- TABLES.O
+
+---------- TCP_INPUT.O
+
+---------- TCP_OUTPUT.O
+
+---------- TCP_SUBR.O
+
+---------- TCP_TIMER.O
+
+---------- TIMER.C
+
+---------- TIMER.H
+
+---------- TIMER.O
+
+---------- TVA.O
+
+---------- TVF.O
+
+---------- TVP.O
+
+---------- UDP.O
+
+---------- UI.H
+
+---------- USB.C
+
+---------- USB.H
+
+---------- VIDEO.O
+
+---------- VID_ATI18800.O
+
+---------- VID_ATI28800.O
+
+---------- VID_ATI68860_RAMDAC.O
+
+---------- VID_ATI_EEPROM.O
+
+---------- VID_ATI_MACH64.O
+
+---------- VID_CGA.O
+
+---------- VID_CGA_COMP.O
+
+---------- VID_CL54XX.O
+
+---------- VID_COLORPLUS.O
+
+---------- VID_COMPAQ_CGA.O
+
+---------- VID_EGA.O
+
+---------- VID_EGA_RENDER.O
+
+---------- VID_ET4000.O
+
+---------- VID_ET4000W32.O
+
+---------- VID_GENIUS.O
+
+---------- VID_HERCULES.O
+
+---------- VID_HERCULESPLUS.O
+
+---------- VID_ICS2595.O
+
+---------- VID_INCOLOR.O
+
+---------- VID_MDA.O
+
+---------- VID_OAK_OTI.O
+
+---------- VID_PARADISE.O
+
+---------- VID_S3.O
+
+---------- VID_S3_VIRGE.O
+
+---------- VID_SC1502X_RAMDAC.O
+
+---------- VID_SDAC_RAMDAC.O
+
+---------- VID_STG_RAMDAC.O
+
+---------- VID_SVGA.O
+
+---------- VID_SVGA_RENDER.O
+
+---------- VID_TABLE.O
+
+---------- VID_TGUI9440.O
+
+---------- VID_TI_CF62011.O
+
+---------- VID_TKD8001_RAMDAC.O
+
+---------- VID_TVGA.O
+
+---------- VID_VGA.O
+
+---------- VID_VOODOO.O
+
+---------- VID_WY700.O
+
+---------- VNC.C
+
+---------- VNC.H
+
+---------- VNC_KEYMAP.C
+
+---------- VOICE.O
+
+---------- WAVE.O
+
+---------- WAVE6581_PST.O
+
+---------- WAVE6581_PS_.O
+
+---------- WAVE6581_P_T.O
+
+---------- WAVE6581__ST.O
+
+---------- WAVE8580_PST.O
+
+---------- WAVE8580_PS_.O
+
+---------- WAVE8580_P_T.O
+
+---------- WAVE8580__ST.O
+
+---------- WIN.O
+_startblit
+.gnu.lto_startblit.cf12518e
+.gnu.lto_startblit.cf12518e
+
+---------- WIN_ABOUT.O
+
+---------- WIN_CDROM.O
+
+---------- WIN_D2D.O
+
+---------- WIN_D3D.O
+
+---------- WIN_DDRAW.O
+
+---------- WIN_DEVCONF.O
+
+---------- WIN_DIALOG.O
+
+---------- WIN_DYNLD.O
+
+---------- WIN_JOYSTICK.O
+
+---------- WIN_JSCONF.O
+
+---------- WIN_KEYBOARD.O
+
+---------- WIN_MIDI.O
+
+---------- WIN_MOUSE.O
+
+---------- WIN_NEW_FLOPPY.O
+
+---------- WIN_SDL.O
+
+---------- WIN_SETTINGS.O
+
+---------- WIN_SND_GAIN.O
+
+---------- WIN_STBAR.O
+
+---------- WIN_THREAD.O
+
+---------- WIN_UI.O
+_startblit
+
+---------- X86SEG.O
+
+---------- X87.O
+
+---------- ZIP.O

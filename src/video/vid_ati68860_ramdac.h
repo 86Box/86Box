@@ -6,7 +6,7 @@ typedef struct ati68860_ramdac_t
         uint8_t regs[16];
         void (*render)(struct svga_t *svga);
         
-        int dac_write, dac_pos;
+        int dac_addr, dac_pos;
         int dac_r, dac_g;
         PALETTE pal;
         uint32_t pallook[2];

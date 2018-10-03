@@ -8,7 +8,7 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.13	2018/08/14
+ * Version:	@(#)vid_svga.h	1.0.14	2018/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -58,9 +58,9 @@ typedef struct svga_t
     uint32_t vram_mask;
 
     uint8_t dac_mask, dac_status;
-    int dac_read, dac_write,
-	dac_pos, ramdac_type,
-	dac_r, dac_g;
+    int dac_addr, dac_pos,
+	dac_r, dac_g,
+	ramdac_type;
 
     int readmode, writemode,
 	readplane, extvram,

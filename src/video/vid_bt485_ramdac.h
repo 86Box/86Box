@@ -9,7 +9,7 @@
  *		Header of the emulation of the Brooktree BT485 and BT485A
  *		true colour RAM DAC's.
  *
- * Version:	@(#)vid_bt485_ramdac.h	1.0.2	2018/10/03
+ * Version:	@(#)vid_bt485_ramdac.h	1.0.3	2018/10/04
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995,
@@ -31,6 +31,7 @@ typedef struct bt485_ramdac_t
 	uint8_t cr4;
 	uint8_t status;
 	uint8_t type;
+	uint8_t ext_addr;
 } bt485_ramdac_t;
 
 enum {
