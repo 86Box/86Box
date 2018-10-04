@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.32	2018/10/04
+ * Version:	@(#)vid_svga.c	1.0.33	2018/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -72,14 +72,6 @@ svga_set_override(svga_t *svga, int val)
     if (svga->override && !val)
 	svga->fullchange = changeframecount;
     svga->override = val;
-}
-
-
-/* Used to add custom write modes, eg. by the CL-GD 54xx to add write modes 4 and 5. */
-void
-svga_set_ven_write(svga_t *svga, void (*ven_write)(struct svga_t *svga, uint8_t val, uint32_t addr))
-{
-    svga->ven_write = ven_write;
 }
 
 
@@ -802,6 +794,9 @@ svga_init(svga_t *svga, void *p, int memsize,
     svga->video_out = video_out;
     svga->hwcursor_draw = hwcursor_draw;
     svga->overlay_draw = overlay_draw;
+
+    svga->hwcursor.xsize = svga->hwcursor.ysize = 32;
+    svga->hwcursor.yoff = 32;
 
     mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
 		    svga_read, svga_readw, svga_readl,

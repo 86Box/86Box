@@ -8,7 +8,7 @@
  *
  *		Emulation of the Tseng Labs ET4000.
  *
- * Version:	@(#)vid_et4000.c	1.0.19	2018/09/19
+ * Version:	@(#)vid_et4000.c	1.0.20	2018/10/04
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -65,7 +65,6 @@ typedef struct {
     int			type;
 
     svga_t		svga;
-    sc1502x_ramdac_t	ramdac;
 
     uint8_t		pos_regs[8];
 
@@ -126,7 +125,7 @@ et4000_in(uint16_t addr, void *priv)
 	case 0x3c7:
 	case 0x3c8:
 	case 0x3c9:
-                return sc1502x_ramdac_in(addr, &dev->ramdac, svga);
+                return sc1502x_ramdac_in(addr, svga->ramdac, svga);
 
 	case 0x3cd: /*Banking*/
                 return dev->banking;
@@ -223,7 +222,7 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
 	case 0x3c7:
 	case 0x3c8:
 	case 0x3c9:
-		sc1502x_ramdac_out(addr, val, &dev->ramdac, svga);
+		sc1502x_ramdac_out(addr, val, svga->ramdac, svga);
 		return;
 
 	case 0x3cd: /*Banking*/
@@ -536,6 +535,8 @@ et4000_init(const device_t *info)
         	fn = KOREAN_BIOS_ROM_PATH;
 		break;
     }
+
+    dev->svga.ramdac = device_add(&sc1502x_ramdac_device);
 
     dev->vram_mask = dev->vram_size - 1;
 

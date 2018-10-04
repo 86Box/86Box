@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.24	2018/10/04
+ * Version:	@(#)vid_cl_54xx.c	1.0.25	2018/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,
@@ -126,7 +126,7 @@
 typedef struct gd54xx_t
 {
     mem_mapping_t	mmio_mapping;
-	mem_mapping_t 	linear_mapping;
+    mem_mapping_t 	linear_mapping;
 
     svga_t		svga;
 
@@ -301,7 +301,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 					svga->hwcursor.y = (val << 3) | (svga->seqaddr >> 5);
 					break;
 				case 0x12:
-					if (val & 0x80)
+					svga->ext_overscan = !!(val & 0x80);
+					if (svga->ext_overscan)
 						svga->overscan_color = gd54xx->extpallook[2];
 					else
 						svga->overscan_color = svga->pallook[svga->attrregs[0x11]];
@@ -358,7 +359,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 					gd54xx->extpal[index].g = svga->dac_g;
 					gd54xx->extpal[index].b = val; 
 					gd54xx->extpallook[index] = makecol32(video_6to8[gd54xx->extpal[index].r & 0x3f], video_6to8[gd54xx->extpal[index].g & 0x3f], video_6to8[gd54xx->extpal[index].b & 0x3f]);
-					if ((svga->seqregs[0x12] & 0x80) && (index == 2)) {
+					if (svga->ext_overscan && (index == 2)) {
 						o32 = svga->overscan_color;
 						svga->overscan_color = gd54xx->extpallook[2];
 						if (o32 != svga->overscan_color)
@@ -2265,7 +2266,7 @@ static void
     svga_init(&gd54xx->svga, gd54xx, gd54xx->vram_size << 20,
 	      gd54xx_recalctimings, gd54xx_in, gd54xx_out,
 	      gd54xx_hwcursor_draw, NULL);
-    svga_set_ven_write(&gd54xx->svga, gd54xx_write_modes45);
+    svga->ven_write = gd54xx_write_modes45;
 
     mem_mapping_set_handler(&svga->mapping, gd54xx_read, gd54xx_readw, gd54xx_readl, gd54xx_write, gd54xx_writew, gd54xx_writel);
     mem_mapping_set_p(&svga->mapping, gd54xx);

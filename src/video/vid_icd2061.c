@@ -14,7 +14,7 @@
  *		Used by ET4000w32/p (Diamond Stealth 32) and the S3
  *		Vision964 family.
  *
- * Version:	@(#)vid_icd2061.c	1.0.7	2018/10/03
+ * Version:	@(#)vid_icd2061.c	1.0.8	2018/10/04
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -22,9 +22,11 @@
  */
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../device.h"
 #include "vid_icd2061.h"
 
 void
@@ -96,17 +98,6 @@ icd2061_write(icd2061_t *icd2061, int val)
 }
 
 
-void
-icd2061_init(icd2061_t *icd2061)
-{
-    memset(icd2061, 0, sizeof(icd2061_t));
-
-    icd2061->freq[0] = 25175000.0;
-    icd2061->freq[1] = 28322000.0;
-    icd2061->freq[2] = 28322000.0;
-}
-
-
 float
 icd2061_getclock(int clock, void *p)
 {
@@ -117,3 +108,45 @@ icd2061_getclock(int clock, void *p)
 
     return icd2061->freq[clock];
 }
+
+
+static void *
+icd2061_init(const device_t *info)
+{
+    icd2061_t *icd2061 = (icd2061_t *) malloc(sizeof(icd2061_t));
+    memset(icd2061, 0, sizeof(icd2061_t));
+
+    icd2061->freq[0] = 25175000.0;
+    icd2061->freq[1] = 28322000.0;
+    icd2061->freq[2] = 28322000.0;
+
+    return icd2061;
+}
+
+
+static void
+icd2061_close(void *priv)
+{
+    icd2061_t *icd2061 = (icd2061_t *) priv;
+
+    if (icd2061)
+	free(icd2061);
+}
+
+
+const device_t icd2061_device =
+{
+        "ICD2061 Clock Generator",
+        0, 0,
+        icd2061_init, icd2061_close,
+	NULL, NULL, NULL, NULL
+};
+
+
+const device_t ics9161_device =
+{
+        "ICS9161 Clock Generator",
+        0, 0,
+        icd2061_init, icd2061_close,
+	NULL, NULL, NULL, NULL
+};

@@ -10,7 +10,7 @@
  *
  * Known bugs:	Accelerator doesn't work in planar modes
  *
- * Version:	@(#)vid_et4000w32.c	1.0.19	2018/10/02
+ * Version:	@(#)vid_et4000w32.c	1.0.20	2018/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -80,8 +80,6 @@ typedef struct et4000w32p_t
         rom_t bios_rom;
         
         svga_t svga;
-        stg_ramdac_t ramdac;
-        icd2061_t icd2061;
 
         int index;
 	int pci;
@@ -189,11 +187,11 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
         {
                 case 0x3c2:
 		if (et4000->type == ET4000W32_DIAMOND)
-	                icd2061_write(&et4000->icd2061, (val >> 2) & 3);
+	                icd2061_write(svga->clock_gen, (val >> 2) & 3);
                 break;
                 
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
-                stg_ramdac_out(addr, val, &et4000->ramdac, svga);
+                stg_ramdac_out(addr, val, svga->ramdac, svga);
                 return;
                 
                 case 0x3CB: /*Banking extension*/
@@ -305,7 +303,7 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
                 break;
 
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
-                return stg_ramdac_in(addr, &et4000->ramdac, svga);
+                return stg_ramdac_in(addr, svga->ramdac, svga);
 
                 case 0x3CB:
                 return et4000->banking2;
@@ -344,7 +342,6 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
 
 void et4000w32p_recalctimings(svga_t *svga)
 {
-        et4000w32p_t *et4000 = (et4000w32p_t *)svga->p;
         svga->ma_latch |= (svga->crtc[0x33] & 0x7) << 16;
         if (svga->crtc[0x35] & 0x01)     svga->vblankstart += 0x400;
         if (svga->crtc[0x35] & 0x02)     svga->vtotal      += 0x400;
@@ -355,13 +352,8 @@ void et4000w32p_recalctimings(svga_t *svga)
         if (svga->crtc[0x3F] & 0x01)     svga->htotal      += 256;
         if (svga->attrregs[0x16] & 0x20) svga->hdisp <<= 1;
         
-	if (et4000->type == ET4000W32_DIAMOND)
-	{        
-		svga->clock = cpuclock / icd2061_getclock((svga->miscout >> 2) & 3, &et4000->icd2061);
-	}
-	else
-		svga->clock = cpuclock / stg_getclock((svga->miscout >> 2) & 3, &et4000->ramdac);
-  
+	svga->clock = cpuclock / svga->getclock((svga->miscout >> 2) & 3, svga->clock_gen);
+
         switch (svga->bpp)
         {
                 case 15: case 16:
@@ -1245,6 +1237,9 @@ void *et4000w32p_init(const device_t *info)
                    et4000w32p_in, et4000w32p_out,
                    et4000w32p_hwcursor_draw,
                    NULL); 
+
+	et4000->svga.ramdac = device_add(&stg_ramdac_device);
+
 	et4000->vram_mask = (vram_size << 20) - 1;
 
 	et4000->type = info->local;
@@ -1253,12 +1248,17 @@ void *et4000w32p_init(const device_t *info)
 		case ET4000W32_CARDEX:
 		        rom_init(&et4000->bios_rom, BIOS_ROM_PATH_CARDEX, 0xc0000, 0x8000, 0x7fff, 0,
 						    MEM_MAPPING_EXTERNAL);
+
+			et4000->svga.clock_gen = et4000->svga.ramdac;
+			et4000->svga.getclock = stg_getclock;
 			break;
 
 		case ET4000W32_DIAMOND:
 		        rom_init(&et4000->bios_rom, BIOS_ROM_PATH_DIAMOND, 0xc0000, 0x8000, 0x7fff, 0,
 						    MEM_MAPPING_EXTERNAL);
-			icd2061_init(&et4000->icd2061);
+
+			et4000->svga.clock_gen = device_add(&icd2061_device);
+			et4000->svga.getclock = icd2061_getclock;
 			break;
 	}
 	et4000->pci = !!(info->flags & DEVICE_PCI);

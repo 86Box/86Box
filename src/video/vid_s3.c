@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.24	2018/10/03
+ * Version:	@(#)vid_s3.c	1.0.25	2018/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -33,7 +33,7 @@
 #include "vid_svga.h"
 #include "vid_svga_render.h"
 #include "vid_sdac_ramdac.h"
-#include "vid_bt485_ramdac.h"
+#include "vid_bt48x_ramdac.h"
 #include "vid_icd2061.h"
 
 #define ROM_PARADISE_BAHAMAS64		L"roms/video/s3/bahamas64.bin"
@@ -116,8 +116,6 @@ typedef struct s3_t
 	rom_t bios_rom;
 
 	svga_t svga;
-	sdac_ramdac_t ramdac;
-	bt485_ramdac_t bt485_ramdac;
 	icd2061_t icd2061;
 
 	uint8_t bank;
@@ -142,9 +140,6 @@ typedef struct s3_t
 
 	uint32_t vram_mask;
 	uint8_t status_9ae8;
-	
-	float (*getclock)(int clock, void *p);
-	void *getclock_p;
 
 	struct
 	{
@@ -1052,9 +1047,9 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
 				rs3 = !!(svga->crtc[0x55] & 0x02);
 			else
 				rs3 = 0;
-			bt485_ramdac_out(addr, rs2, rs3, val, &s3->bt485_ramdac, svga);
+			bt48x_ramdac_out(addr, rs2, rs3, val, svga->ramdac, svga);
 		} else
-			sdac_ramdac_out(addr, rs2, val, &s3->ramdac, svga);
+			sdac_ramdac_out(addr, rs2, val, svga->ramdac, svga);
 		return;
 
 		case 0x3D4:
@@ -1214,6 +1209,7 @@ uint8_t s3_in(uint16_t addr, void *p)
 	s3_t *s3 = (s3_t *)p;
 	svga_t *svga = &s3->svga;
 	int rs2, rs3;
+	uint8_t temp;
 
 	if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
 		addr ^= 0x60;
@@ -1236,9 +1232,9 @@ uint8_t s3_in(uint16_t addr, void *p)
 			return svga_in(addr, svga);
 		else if (s3->chip == S3_VISION964) {
 			rs3 = !!(svga->crtc[0x55] & 0x02);
-			return bt485_ramdac_in(addr, rs2, rs3, &s3->bt485_ramdac, svga);
+			return bt48x_ramdac_in(addr, rs2, rs3, svga->ramdac, svga);
 		} else
-			return sdac_ramdac_in(addr, rs2, &s3->ramdac, svga);			
+			return sdac_ramdac_in(addr, rs2, svga->ramdac, svga);			
 		break;
 
 		case 0x3d4:
@@ -1254,6 +1250,13 @@ uint8_t s3_in(uint16_t addr, void *p)
 			case 0x35: return (svga->crtc[0x35] & 0xf0) | (s3->bank & 0xf);
 			case 0x45: s3->hwc_col_stack_pos = 0; break;
 			case 0x51: return (svga->crtc[0x51] & 0xf0) | ((s3->bank >> 2) & 0xc) | ((s3->ma_ext >> 2) & 3);
+			case 0x5c:	/* General Output Port Register */
+				   temp = svga->crtc[svga->crtcreg] & 0xf0;
+				   if (((svga->miscout >> 2) & 3) == 3)
+					temp |= svga->crtc[0x42] & 0x0f;
+				   else
+					temp |= ((svga->miscout >> 2) & 3);
+				   return temp;
 			case 0x69: return s3->ma_ext;
 			case 0x6a: return s3->bank;
 		}
@@ -1265,6 +1268,7 @@ uint8_t s3_in(uint16_t addr, void *p)
 void s3_recalctimings(svga_t *svga)
 {
 	s3_t *s3 = (s3_t *)svga->p;
+	bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) svga->ramdac;
 	svga->hdisp = svga->hdisp_old;
 
 	svga->ma_latch |= (s3->ma_ext << 16);
@@ -1284,16 +1288,16 @@ void s3_recalctimings(svga_t *svga)
 	if (!svga->rowoffset) svga->rowoffset = 256;
 
 	if (s3->chip == S3_VISION964) {
-		svga->interlace = s3->bt485_ramdac.cr2 & 0x08;
-		if (s3->bt485_ramdac.cr3 & 0x08)
+		svga->interlace = ramdac->cr2 & 0x08;
+		if (ramdac->cr3 & 0x08)
 			svga->hdisp *= 2;	/* x2 clock multiplier */
 		if (((svga->miscout >> 2) & 3) == 3)
-			svga->clock = cpuclock / s3->getclock(svga->crtc[0x42] & 0x0f, s3->getclock_p);
+			svga->clock = cpuclock / svga->getclock(svga->crtc[0x42] & 0x0f, svga->clock_gen);
 		else
-			svga->clock = cpuclock / s3->getclock((svga->miscout >> 2) & 3, s3->getclock_p);
+			svga->clock = cpuclock / svga->getclock((svga->miscout >> 2) & 3, svga->clock_gen);
 	} else {
 		svga->interlace = svga->crtc[0x42] & 0x20;
-		svga->clock = cpuclock / s3->getclock((svga->miscout >> 2) & 3, s3->getclock_p);
+		svga->clock = cpuclock / svga->getclock((svga->miscout >> 2) & 3, svga->clock_gen);
 	}
 	
 	switch (svga->crtc[0x67] >> 4)
@@ -2608,105 +2612,6 @@ void s3_hwcursor_draw(svga_t *svga, int displine)
 		svga->hwcursor_latch.addr += 16;
 }
 
-void s3_bt485_hwcursor_draw(svga_t *svga, int displine)
-{
-    s3_t *s3 = (s3_t *)svga->p;
-    int x, xx, comb, b0, b1;
-    uint16_t dat[2];
-    int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
-    int y_add, x_add;
-    int pitch, bppl, mode, x_pos, y_pos;
-    uint32_t clr1, clr2, clr3, *p;
-    uint8_t *cd;
-
-    clr1 = s3->bt485_ramdac.extpallook[1];
-    clr2 = s3->bt485_ramdac.extpallook[2];
-    clr3 = s3->bt485_ramdac.extpallook[3];
-
-    y_add = (enable_overscan && !suppress_overscan) ? (overscan_y >> 1) : 0;
-    x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
-
-    /* The planes come in two parts, and each plane is 1bpp,
-       so a 32x32 cursor has 4 bytes per line, and a 64x64
-       cursor has 8 bytes per line. */
-    pitch = (svga->hwcursor_latch.xsize >> 3);				/* Bytes per line. */
-    /* A 32x32 cursor has 128 bytes per line, and a 64x64
-       cursor has 512 bytes per line. */
-    bppl = (pitch * svga->hwcursor_latch.ysize);			/* Bytes per plane. */
-    mode = s3->bt485_ramdac.cr2 & 0x03;
-
-    if (svga->interlace && svga->hwcursor_oddeven)
-	svga->hwcursor_latch.addr += pitch;
-
-    if (svga->hwcursor_latch.xsize == 64)
-	cd = (uint8_t *) s3->bt485_ramdac.cursor64_data;
-    else
-	cd = (uint8_t *) s3->bt485_ramdac.cursor32_data;
-
-    for (x = 0; x < svga->hwcursor_latch.xsize; x += 16) {
-	dat[0] = (cd[svga->hwcursor_latch.addr]        << 8) |
-		  cd[svga->hwcursor_latch.addr + 1];
-	dat[1] = (cd[svga->hwcursor_latch.addr + bppl] << 8) |
-		  cd[svga->hwcursor_latch.addr + bppl + 1];
-
-	for (xx = 0; xx < 16; xx++) {
-		b0 = (dat[0] >> (15 - xx)) & 1;
-		b1 = (dat[1] >> (15 - xx)) & 1;
-		comb = (b0 | (b1 << 1));
-
-		y_pos = displine + y_add;
-		x_pos = offset + 32 + x_add;
-		p = ((uint32_t *)buffer32->line[y_pos]);
-
-		if (offset >= svga->hwcursor_latch.x) {
-			switch (mode) {
-				case 1:		/* Three Color */
-					switch (comb) {
-						case 1:
-							p[x_pos] = clr1;
-							break;
-						case 2:
-							p[x_pos] = clr2;
-							break;
-						case 3:
-							p[x_pos] = clr3;
-							break;
-					}
-					break;
-				case 2:		/* PM/Windows */
-					switch (comb) {
-						case 0:
-							p[x_pos] = clr1;
-							break;
-						case 1:
-							p[x_pos] = clr2;
-							break;
-						case 3:
-							p[x_pos] ^= 0xffffff;
-							break;
-					}
-					break;
-				case 3:		/* X-Windows */
-					switch (comb) {
-						case 2:
-							p[x_pos] = clr1;
-							break;
-						case 3:
-							p[x_pos] = clr2;
-							break;
-					}
-					break;
-			}
-		}
-		offset++;
-	}
-	svga->hwcursor_latch.addr += 2;
-    }
-
-    if (svga->interlace && !svga->hwcursor_oddeven)
-	svga->hwcursor_latch.addr += pitch;
-}
-
 static void s3_io_remove(s3_t *s3)
 {
 	io_removehandler(0x03c0, 0x0020, s3_in, NULL, NULL, s3_out, NULL, NULL, s3);
@@ -2931,6 +2836,7 @@ static void *s3_init(const device_t *info)
 			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64);
 			break;
 		default:
+			free(s3);
 			return NULL;
 	}
 
@@ -2967,7 +2873,7 @@ static void *s3_init(const device_t *info)
 		svga_init(&s3->svga, s3, vram_size,
 		s3_recalctimings,
 		s3_in, s3_out,
-		s3_bt485_hwcursor_draw,
+		bt48x_hwcursor_draw,
 		NULL);
 	else
 		svga_init(&s3->svga, s3, vram_size,
@@ -3044,9 +2950,9 @@ static void *s3_init(const device_t *info)
 			s3->id_ext = s3->id_ext_pci = stepping;
 			s3->packed_mmio = 0;
 
-			s3->getclock = sdac_getclock;
-			s3->getclock_p = &s3->ramdac;
-			sdac_init(&s3->ramdac);
+			svga->ramdac = device_add(&sdac_ramdac_device);
+			svga->clock_gen = svga->ramdac;
+			svga->getclock = sdac_getclock;
 			break;
 
 		case S3_DIAMOND_STEALTH64_964:
@@ -3057,11 +2963,9 @@ static void *s3_init(const device_t *info)
 			s3->packed_mmio = 1;
 			svga->crtc[0x5a] = 0x0a;
 			
-			bt485_init(&s3->bt485_ramdac, &s3->svga, BT485);
-			icd2061_init(&s3->icd2061);
-
-			s3->getclock = icd2061_getclock;
-			s3->getclock_p = &s3->icd2061;
+			svga->ramdac = device_add(&bt485_ramdac_device);
+			svga->clock_gen = device_add(&icd2061_device);
+			svga->getclock = icd2061_getclock;
 			break;			
 			
 		case S3_PHOENIX_TRIO32:
@@ -3071,8 +2975,8 @@ static void *s3_init(const device_t *info)
 			s3->id_ext_pci = 0x11;
 			s3->packed_mmio = 1;
 
-			s3->getclock = s3_trio64_getclock;
-			s3->getclock_p = s3;
+			svga->clock_gen = s3;
+			svga->getclock = s3_trio64_getclock;
 			break;
 
 		case S3_PHOENIX_TRIO64:
@@ -3088,8 +2992,8 @@ static void *s3_init(const device_t *info)
 			s3->id_ext = s3->id_ext_pci = 0x11;
 			s3->packed_mmio = 1;
 
-			s3->getclock = s3_trio64_getclock;
-			s3->getclock_p = s3;
+			svga->clock_gen = s3;
+			svga->getclock = s3_trio64_getclock;
 			break;
 
 		default:

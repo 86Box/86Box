@@ -8,7 +8,7 @@
  *
  *		Trident TVGA (8900D) emulation.
  *
- * Version:	@(#)vid_tvga.c	1.0.7	2018/09/19
+ * Version:	@(#)vid_tvga.c	1.0.8	2018/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -39,8 +39,7 @@ typedef struct tvga_t
         mem_mapping_t accel_mapping;
 
         svga_t svga;
-        tkd8001_ramdac_t ramdac;
-        
+
         rom_t bios_rom;
 
         uint8_t tvga_3d8, tvga_3d9;
@@ -111,7 +110,7 @@ void tvga_out(uint16_t addr, uint8_t val, void *p)
                 break;
 
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
-                tkd8001_ramdac_out(addr, val, &tvga->ramdac, svga);
+                tkd8001_ramdac_out(addr, val, svga->ramdac, svga);
                 return;
 
                 case 0x3CF:
@@ -199,7 +198,7 @@ uint8_t tvga_in(uint16_t addr, void *p)
                 }
                 break;
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
-                return tkd8001_ramdac_in(addr, &tvga->ramdac, svga);
+                return tkd8001_ramdac_in(addr, svga->ramdac, svga);
                 case 0x3D4:
                 return svga->crtcreg;
                 case 0x3D5:
@@ -311,6 +310,8 @@ static void *tvga8900d_init(const device_t *info)
                    tvga_in, tvga_out,
                    NULL,
                    NULL);
+
+	tvga->svga.ramdac = device_add(&tkd8001_ramdac_device);
        
         io_sethandler(0x03c0, 0x0020, tvga_in, NULL, NULL, tvga_out, NULL, NULL, tvga);
 

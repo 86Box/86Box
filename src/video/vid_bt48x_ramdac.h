@@ -6,10 +6,10 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Header of the emulation of the Brooktree BT485 and BT485A
- *		true colour RAM DAC's.
+ *		Header of the emulation of the Brooktree BT484-BT485A
+ *		true colour RAMDAC family.
  *
- * Version:	@(#)vid_bt485_ramdac.h	1.0.3	2018/10/04
+ * Version:	@(#)vid_bt485_ramdac.h	1.0.4	2018/10/04
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995,
@@ -17,7 +17,7 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2018 TheCollector1995.
  */
-typedef struct bt485_ramdac_t
+typedef struct
 {
 	PALETTE extpal;
 	uint32_t extpallook[256];
@@ -32,16 +32,14 @@ typedef struct bt485_ramdac_t
 	uint8_t status;
 	uint8_t type;
 	uint8_t ext_addr;
-} bt485_ramdac_t;
+} bt48x_ramdac_t;
 
-enum {
-	BT484 = 0,
-	ATT20C504,
-	BT485,
-	ATT20C505,
-	BT485A
-};
+extern void	bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt48x_ramdac_t *ramdac, svga_t *svga);
+extern uint8_t	bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, bt48x_ramdac_t *ramdac, svga_t *svga);
+extern void	bt48x_hwcursor_draw(svga_t *svga, int displine);
 
-extern void	bt485_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt485_ramdac_t *ramdac, svga_t *svga);
-extern uint8_t	bt485_ramdac_in(uint16_t addr, int rs2, int rs3, bt485_ramdac_t *ramdac, svga_t *svga);
-extern void	bt485_init(bt485_ramdac_t *ramdac, svga_t *svga, uint8_t type);
+extern const device_t bt484_ramdac_device;
+extern const device_t att20c504_ramdac_device;
+extern const device_t bt485_ramdac_device;
+extern const device_t att20c505_ramdac_device;
+extern const device_t bt485a_ramdac_device;

@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.24	2018/10/02
+ * Version:	@(#)vid_ati28800.c	1.0.25	2018/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -61,7 +61,6 @@ typedef struct ati28800_t
 {
         svga_t svga;
         ati_eeprom_t eeprom;
-		sc1502x_ramdac_t ramdac;
         
         rom_t bios_rom;
         
@@ -172,9 +171,9 @@ static void ati28800_out(uint16_t addr, uint8_t val, void *p)
                 break;
 
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
-                sc1502x_ramdac_out(addr, val, &ati28800->ramdac, svga);
+                sc1502x_ramdac_out(addr, val, svga->ramdac, svga);
                 return;					
-				
+
                 case 0x3D4:
                 svga->crtcreg = val & 0x3f;
                 return;
@@ -315,8 +314,8 @@ static uint8_t ati28800_in(uint16_t addr, void *p)
                 break;
 				
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
-                return sc1502x_ramdac_in(addr, &ati28800->ramdac, svga);				
-				
+                return sc1502x_ramdac_in(addr, svga->ramdac, svga);				
+
                 case 0x3D4:
                 temp = svga->crtcreg;
                 break;
@@ -474,6 +473,8 @@ ati28800k_init(const device_t *info)
                    NULL,
                    NULL);
 
+	ati28800->svga.ramdac = device_add(&sc1502x_ramdac_device);
+
         io_sethandler(0x01ce, 0x0002, ati28800k_in, NULL, NULL, ati28800k_out, NULL, NULL, ati28800);
         io_sethandler(0x03c0, 0x0020, ati28800k_in, NULL, NULL, ati28800k_out, NULL, NULL, ati28800);
 
@@ -530,7 +531,9 @@ ati28800_init(const device_t *info)
 	      ati28800_recalctimings,
                    ati28800_in, ati28800_out,
                    NULL,
-                   NULL);	
+                   NULL);
+
+    ati28800->svga.ramdac = device_add(&sc1502x_ramdac_device);
 				   
     io_sethandler(0x01ce, 2,
 		  ati28800_in, NULL, NULL,
