@@ -1,1 +1,0 @@
-gcc $1 -Wall -Wclobbered -Wbad-function-cast -Wempty-body -Wignored-qualifiers -Wmissing-field-initializers -Wmissing-parameter-type -Wold-style-declaration -Woverride-init -Wsign-compare -Wtype-limits -Wuninitialized -Wunknown-pragmas -pedantic -Werror -Wshadow -DUSE_IOCTL
