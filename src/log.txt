@@ -1,2 +1,0 @@
-video/vid_s3_virge.c
-Linking 86Box.exe ..
