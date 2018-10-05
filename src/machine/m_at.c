@@ -8,7 +8,7 @@
  *
  *		Standard PC/AT implementation.
  *
- * Version:	@(#)m_at.c	1.0.0	2018/09/02
+ * Version:	@(#)m_at.c	1.0.10	2018/10/06
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -87,7 +87,21 @@ machine_at_init(const machine_t *model)
 void
 machine_at_ibm_init(const machine_t *model)
 {
-    machine_at_init(model);
+    machine_common_init(model);
+
+    pit_set_out_func(&pit, 1, pit_refresh_timer_at);
+    pic2_init();
+    dma16_init();
+
+    if (lpt_enabled)
+	lpt2_remove();
+
+    device_add(&ibmat_nvr_device);
+
+    if (joystick_type != 7)
+	device_add(&gameport_device);
+
+    device_add(&keyboard_at_device);
 
     mem_remap_top(384);
 

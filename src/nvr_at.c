@@ -189,7 +189,7 @@
  *		including the later update (DS12887A) which implemented a
  *		"century" register to be compatible with Y2K.
  *
- * Version:	@(#)nvr_at.c	1.0.12	2018/09/15
+ * Version:	@(#)nvr_at.c	1.0.13	2018/10/06
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -286,9 +286,11 @@
 
 typedef struct {
     int8_t      stat;
-    uint8_t	cent;
 
-    uint16_t	addr;
+    uint8_t	cent;
+    uint8_t	def;
+
+    uint8_t	addr;
 
     int64_t     ecount,
                 rtctime;
@@ -614,7 +616,8 @@ nvr_reset(nvr_t *nvr)
 {
     local_t *local = (local_t *)nvr->data;
 
-    memset(nvr->regs, 0x00, RTC_REGS);
+    /* memset(nvr->regs, local->def, RTC_REGS); */
+    memset(nvr->regs, local->def, nvr->size);
     nvr->regs[RTC_DOM] = 1;
     nvr->regs[RTC_MONTH] = 1;
     nvr->regs[RTC_YEAR] = RTC_BCD(80);
@@ -663,11 +666,6 @@ nvr_at_init(const device_t *info)
     /* Allocate an NVR for this machine. */
     nvr = (nvr_t *)malloc(sizeof(nvr_t));
     if (nvr == NULL) return(NULL);
-    /* FIXME: See which is correct, this or 0xFF. */
-    if (info->local == 0)
-	memset(nvr, 0xff, sizeof(nvr_t));
-    else
-	memset(nvr, 0x00, sizeof(nvr_t));
 
     local = (local_t *)malloc(sizeof(local_t));
     memset(local, 0x00, sizeof(local_t));
@@ -675,6 +673,7 @@ nvr_at_init(const device_t *info)
 
     /* This is machine specific. */
     nvr->size = machines[machine].nvrmask + 1;
+    local->def = 0x00;
     switch(info->local) {
 	case 0:		/* standard AT, no century register */
 		nvr->irq = 8;
@@ -694,7 +693,15 @@ nvr_at_init(const device_t *info)
 	case 3:		/* Amstrad PC's */
 		nvr->irq = 1;
 		local->cent = RTC_CENTURY_AT;
+		local->def = 0xff;
 		break;
+
+	case 4:		/* IBM AT */
+		nvr->irq = 8;
+		local->cent = RTC_CENTURY_AT;
+		local->def = 0xff;
+		break;
+
     }
 
     /* Set up any local handlers here. */
@@ -764,6 +771,15 @@ const device_t amstrad_nvr_device = {
     "Amstrad NVRAM",
     MACHINE_ISA | MACHINE_AT,
     3,
+    nvr_at_init, nvr_at_close, NULL,
+    NULL, NULL,
+    NULL
+};
+
+const device_t ibmat_nvr_device = {
+    "IBM AT NVRAM",
+    DEVICE_ISA | DEVICE_AT,
+    4,
     nvr_at_init, nvr_at_close, NULL,
     NULL, NULL,
     NULL
