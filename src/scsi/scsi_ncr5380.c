@@ -9,7 +9,7 @@
  *		Implementation of the NCR 5380 series of SCSI Host Adapters
  *		made by NCR. These controllers were designed for the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.17	2018/10/02
+ * Version:	@(#)scsi_ncr5380.c	1.0.18	2018/10/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -918,22 +918,12 @@ ncr_callback(void *priv)
 
 	ncr_log("DMA mode=%d\n", ncr->dma_mode);
 	
-	if (!ncr_dev->timer_enabled)
-	{
-		if (ncr->dma_mode == DMA_IDLE)
-		{
-			ncr_dev->timer_period = 10LL * TIMER_USEC;
-			return;
-		}
-		else
-		{
-			ncr_dev->timer_period += 10LL * TIMER_USEC;
-		}
-	}
+	ncr_dev->timer_enabled = 0;
+
+	if (((ncr->state == STATE_DATAIN) || (ncr->state == STATE_DATAOUT)) && (ncr->dma_mode != DMA_IDLE))
+		ncr_dev->timer_period = (int64_t) ncr_dev->period;
 	else
-	{
-		ncr_dev->timer_enabled = 0;
-	}
+		ncr_dev->timer_period += 10LL * TIMER_USEC;
 
 	if (ncr->dma_mode == DMA_IDLE)
 	{	
@@ -1028,9 +1018,13 @@ ncr_callback(void *priv)
 						
 						p = scsi_device_get_callback(ncr->target_id);
 						if (p <= 0LL) {
-							ncr_dev->temp_period += (int64_t)(dev->BufferLength);
+							ncr_dev->temp_period = (int64_t)(dev->BufferLength);
+							ncr_dev->media_period = 0;
+							ncr_dev->period = 0.2 * ((double) TIMER_USEC) * ((double) MIN(64, ncr_dev->temp_period));
 						} else {
 							ncr_dev->media_period += p;
+							ncr_dev->temp_period = dev->BufferLength;
+							ncr_dev->period = (p / ((double) ncr_dev->temp_period)) * ((double) MIN(64, ncr_dev->temp_period));
 						}
 					}
 
@@ -1137,14 +1131,6 @@ ncr_callback(void *priv)
 		
 	if (ncr_dev->type < 3)
 	{
-		if (((ncr_dev->status_ctrl & STATUS_BUFFER_NOT_READY) && 
-			(ncr->dma_mode == DMA_SEND || ncr->dma_mode == DMA_INITIATOR_RECEIVE)))
-		{
-			ncr_dev->period = 0.2 * ((double) TIMER_USEC) * ((double) ncr_dev->temp_period);
-			ncr_dev->timer_period = (ncr_dev->media_period + ((int64_t) ncr_dev->period) + (40LL * TIMER_USEC)) / 450;
-			ncr_log("Temporary period: %" PRId64 " us (%" PRIi64 " periods), media periods = %" PRId64 " \n", ncr_dev->timer_period, ncr_dev->temp_period, ncr_dev->media_period);
-		}	
-		
 		if (ncr->dma_mode == DMA_INITIATOR_RECEIVE)
 		{
 			if (!(ncr_dev->status_ctrl & CTRL_DATA_DIR)) {
@@ -1294,14 +1280,6 @@ ncr_callback(void *priv)
 	}
 	else
 	{
-		if (((ncr->unk_08 & 0x01) && 
-			(ncr->dma_mode == DMA_SEND || ncr->dma_mode == DMA_INITIATOR_RECEIVE)))
-		{
-			ncr_dev->period = 0.2 * ((double) TIMER_USEC) * ((double) ncr_dev->temp_period);
-			ncr_dev->timer_period = (ncr_dev->media_period + ((int64_t) ncr_dev->period) + (40LL * TIMER_USEC)) / 450;
-			ncr_log("Temporary period: %" PRId64 " us (%" PRIi64 " periods), media periods = %" PRId64 " \n", ncr_dev->timer_period, ncr_dev->temp_period, ncr_dev->media_period);
-		}
-		
 		if (ncr->dma_mode == DMA_INITIATOR_RECEIVE)
 		{
 			if (!(ncr_dev->block_count_loaded))
