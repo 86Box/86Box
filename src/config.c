@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.55	2018/10/02
+ * Version:	@(#)config.c	1.0.56	2018/10/06
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1467,13 +1467,10 @@ save_input_devices(void)
 
     config_set_string(cat, "mouse_type", mouse_get_internal_name(mouse_type));
 
-    if ((joystick_type == 0) || (joystick_type == 7)) {
-	if (joystick_type == 7)
-		config_delete_var(cat, "joystick_type");
-	  else
-		config_set_int(cat, "joystick_type", joystick_type);
+    if (joystick_type == 7) {
+	config_delete_var(cat, "joystick_type");
 
-	for (c=0; c<16; c++) {
+	for (c = 0; c < 16; c++) {
 		sprintf(tmp2, "joystick_%i_nr", c);
 		config_delete_var(cat, tmp2);
 
@@ -1493,7 +1490,7 @@ save_input_devices(void)
     } else {
 	config_set_int(cat, "joystick_type", joystick_type);
 
-	for (c=0; c<joystick_get_max_joysticks(joystick_type); c++) {
+	for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {
 		sprintf(tmp2, "joystick_%i_nr", c);
 		config_set_int(cat, tmp2, joystick_state[c].plat_joystick_nr);
 
