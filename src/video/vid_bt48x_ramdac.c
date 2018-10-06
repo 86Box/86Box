@@ -9,7 +9,7 @@
  *		Emulation of the Brooktree BT484-485A true colour RAMDAC
  *		family.
  *
- * Version:	@(#)vid_bt48x_ramdac.c	1.0.11	2018/10/04
+ * Version:	@(#)vid_bt48x_ramdac.c	1.0.12	2018/10/06
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995,
@@ -240,12 +240,14 @@ bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, bt48x_ramdac_t *ramdac, svga_t 
 					temp = ramdac->extpal[index].r;
 				else
 					temp = ramdac->extpal[index].r & 0x3f;
+				break;
 			case 1:
 				svga->dac_pos++;
 				if (svga->ramdac_type == RAMDAC_8BIT)
 					temp = ramdac->extpal[index].g;
 				else
 					temp = ramdac->extpal[index].g & 0x3f;
+				break;
 			case 2:
 				svga->dac_pos=0;
 				ramdac->ext_addr = ramdac->ext_addr + 1;
@@ -253,6 +255,7 @@ bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, bt48x_ramdac_t *ramdac, svga_t 
 					temp = ramdac->extpal[index].b;
 				else
 					temp = ramdac->extpal[index].b & 0x3f;
+				break;
 		}
 		break;
 	case 0x06:	/* Command Register 0 (RS value = 0110) */
