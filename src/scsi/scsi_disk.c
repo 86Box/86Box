@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.22	2018/10/02
+ * Version:	@(#)scsi_disk.c	1.0.23	2018/10/07
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -126,22 +126,22 @@ const uint8_t scsi_disk_command_flags[0x100] = {
 };
 
 
-uint64_t scsi_disk_mode_sense_page_flags = (GPMODEP_UNK_PAGE_03 |
-					    GPMODEP_UNK_PAGE_04 |
-					    GPMODEP_UNK_PAGE_30 |
+uint64_t scsi_disk_mode_sense_page_flags = (GPMODEP_FORMAT_DEVICE_PAGE |
+					    GPMODEP_RIGID_DISK_PAGE |
+					    GPMODEP_UNK_VENDOR_PAGE |
 					    GPMODEP_ALL_PAGES);
 
 /* This should be done in a better way but for time being, it's been done this way so it's not as huge and more readable. */
 static const mode_sense_pages_t scsi_disk_mode_sense_pages_default =
-{	{	[0x03] = {                     0x03, 0x16, 0,    1, 0,  1, 0, 1, 0, 1, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0,    0, 0, 0, 0 },
-		[0x04] = {                     0x04, 0x16, 0, 0x10, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x10, 0, 0, 0 },
-		[0x30] = { 		       0xB0, 0x16, '8', '6', 'B', 'o', 'x', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' }
+{	{	[GPMODE_FORMAT_DEVICE_PAGE] = {	GPMODE_FORMAT_DEVICE_PAGE, 0x16, 0,    1, 0,  1, 0, 1, 0, 1, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0,    0, 0, 0, 0 },
+		[GPMODE_RIGID_DISK_PAGE   ] = {	GPMODE_RIGID_DISK_PAGE, 0x16, 0, 0x10, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x10, 0, 0, 0 },
+		[GPMODE_UNK_VENDOR_PAGE   ] = {	0xB0, 0x16, '8', '6', 'B', 'o', 'x', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' }
 }	};
 
 static const mode_sense_pages_t scsi_disk_mode_sense_pages_changeable =
-{	{	[0x03] = {                     0x03, 0x16, 0,    1, 0,  1, 0, 1, 0, 1, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0,    0, 0, 0, 0 },
-		[0x04] = {                     0x04, 0x16, 0, 0x10, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x10, 0, 0, 0 },
-		[0x30] = { 		       0xB0, 0x16, '8', '6', 'B', 'o', 'x', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' }
+{	{	[GPMODE_FORMAT_DEVICE_PAGE] = {	GPMODE_FORMAT_DEVICE_PAGE, 0x16, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0 },
+		[GPMODE_RIGID_DISK_PAGE   ] = {	GPMODE_RIGID_DISK_PAGE, 0x16, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0 },
+		[GPMODE_UNK_VENDOR_PAGE   ] = {	0xB0, 0x16, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }
 }	};
 
 

@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.50	2018/10/02
+ * Version:	@(#)cdrom.c	1.0.51	2018/10/06
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -282,7 +282,7 @@ static const mode_sense_pages_t cdrom_mode_sense_pages_default_scsi =
 static const mode_sense_pages_t cdrom_mode_sense_pages_changeable =
 {   {
     {                        0,    0 },
-    {    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0,  0 },
+    {    GPMODE_R_W_ERROR_PAGE,    6, 0xFF, 0xFF, 0, 0, 0, 0 },
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
@@ -294,20 +294,8 @@ static const mode_sense_pages_t cdrom_mode_sense_pages_changeable =
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
-    {        GPMODE_CDROM_PAGE,    6, 0, 1, 0, 60, 0, 75 },
-    {                     0x8E,  0xE, 5, 4, 0,128, 0, 75, 1,  255, 2, 255, 0, 0, 0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
+    {        GPMODE_CDROM_PAGE,    6, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    {                     0x8E,  0xE, 0xFF, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
@@ -323,7 +311,19 @@ static const mode_sense_pages_t cdrom_mode_sense_pages_changeable =
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
-    { GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1,  0, 0,  0, 2, 0xC2, 1,   0, 0, 0, 2, 0xC2, 0, 0, 0, 0 }
+    {                        0,    0 },
+    {                        0,    0 },
+    {                        0,    0 },
+    {                        0,    0 },
+    {                        0,    0 },
+    {                        0,    0 },
+    {                        0,    0 },
+    {                        0,    0 },
+    {                        0,    0 },
+    {                        0,    0 },
+    {                        0,    0 },
+    {                        0,    0 },
+    { GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 }   };
 
 uint8_t cdrom_read_capacity_cdb[12] = {0x25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};

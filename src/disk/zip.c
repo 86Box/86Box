@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.24	2018/10/02
+ * Version:	@(#)zip.c	1.0.25	2018/10/07
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -130,13 +130,13 @@ const uint8_t zip_command_flags[0x100] =
 };
 
 static uint64_t zip_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE |
-					     GPMODEP_UNK_PAGE_02 |
-					     GPMODEP_UNK_PAGE_2F |
+					     GPMODEP_DISCONNECT_PAGE |
+					     GPMODEP_IOMEGA_PAGE |
 					     GPMODEP_ALL_PAGES);
 static uint64_t zip_250_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE |
-						 GPMODEP_UNK_PAGE_05 |
-						 GPMODEP_UNK_PAGE_08 |
-						 GPMODEP_UNK_PAGE_2F |
+						 GPMODEP_FLEXIBLE_DISK_PAGE |
+						 GPMODEP_CACHING_PAGE |
+						 GPMODEP_IOMEGA_PAGE |
 						 GPMODEP_ALL_PAGES);
 
 
@@ -144,7 +144,7 @@ static const mode_sense_pages_t zip_mode_sense_pages_default =
 {   {
     {                        0,    0 },
     {    GPMODE_R_W_ERROR_PAGE, 0x0a, 0xc8, 22, 0,  0, 0, 0, 90, 0, 0x50, 0x20 },
-    {                     0x02, 0x0e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    {   GPMODE_DISCONNECT_PAGE, 0x0e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
@@ -189,7 +189,7 @@ static const mode_sense_pages_t zip_mode_sense_pages_default =
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
-    {                     0x2f,    0x04, 0x5c, 0x0f, 0xff, 0x0f }
+    {       GPMODE_IOMEGA_PAGE,    0x04, 0x5c, 0x0f, 0xff, 0x0f }
 }   };
 
 static const mode_sense_pages_t zip_250_mode_sense_pages_default =
@@ -199,10 +199,10 @@ static const mode_sense_pages_t zip_250_mode_sense_pages_default =
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
-    {                     0x05, 0x1e, 0x80, 0, 0x40, 0x20, 2, 0, 0, 0xef, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0b, 0x7d, 0, 0 },
+    {GPMODE_FLEXIBLE_DISK_PAGE, 0x1e, 0x80, 0, 0x40, 0x20, 2, 0, 0, 0xef, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0b, 0x7d, 0, 0 },
     {                        0,    0 },
     {                        0,    0 },
-    {                     0x08, 0x0a, 4, 0, 0xff, 0xff, 0, 0, 0xff, 0xff, 0xff, 0xff },
+    {      GPMODE_CACHING_PAGE, 0x0a, 4, 0, 0xff, 0xff, 0, 0, 0xff, 0xff, 0xff, 0xff },
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
@@ -240,14 +240,14 @@ static const mode_sense_pages_t zip_250_mode_sense_pages_default =
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
-    {                     0x2f,    0x04, 0x5c, 0x0f, 0x3c, 0x0f }
+    {       GPMODE_IOMEGA_PAGE,    0x04, 0x5c, 0x0f, 0x3c, 0x0f }
 }   };
 
 static const mode_sense_pages_t zip_mode_sense_pages_default_scsi =
 {   {
     {                        0,    0 },
     {    GPMODE_R_W_ERROR_PAGE, 0x0a, 0xc8, 22, 0,  0, 0, 0, 90, 0, 0x50, 0x20 },
-    {                     0x02, 0x0e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    {   GPMODE_DISCONNECT_PAGE, 0x0e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
@@ -292,7 +292,7 @@ static const mode_sense_pages_t zip_mode_sense_pages_default_scsi =
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
-    {                     0x2f,    0x04, 0x5c, 0x0f, 0xff, 0x0f }
+    {       GPMODE_IOMEGA_PAGE,    0x04, 0x5c, 0x0f, 0xff, 0x0f }
 }   };
 
 static const mode_sense_pages_t zip_250_mode_sense_pages_default_scsi =
@@ -302,13 +302,10 @@ static const mode_sense_pages_t zip_250_mode_sense_pages_default_scsi =
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
-    {                     0x05, 0x1e, 0x80, 0, 0x40, 0x20, 2, 0, 0, 0xef, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0b, 0x7d, 0, 0 },
+    {GPMODE_FLEXIBLE_DISK_PAGE, 0x1e, 0x80, 0, 0x40, 0x20, 2, 0, 0, 0xef, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0b, 0x7d, 0, 0 },
     {                        0,    0 },
     {                        0,    0 },
-    {                     0x08, 0x0a, 4, 0, 0xff, 0xff, 0, 0, 0xff, 0xff, 0xff, 0xff },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
+    {      GPMODE_CACHING_PAGE, 0x0a, 4, 0, 0xff, 0xff, 0, 0, 0xff, 0xff, 0xff, 0xff },
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
@@ -344,14 +341,18 @@ static const mode_sense_pages_t zip_250_mode_sense_pages_default_scsi =
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
-    {                     0x2f,    0x04, 0x5c, 0x0f, 0x3c, 0x0f }
+    {                        0,    0 },
+    {                        0,    0 },
+    {                        0,    0 },
+    {       GPMODE_IOMEGA_PAGE,    0x04, 0x5c, 0x0f, 0x3c, 0x0f }
 }   };
 
 static const mode_sense_pages_t zip_mode_sense_pages_changeable =
 {   {
     {                        0,    0 },
-    {    GPMODE_R_W_ERROR_PAGE, 0x0a, 0xc8, 22, 0,  0, 0, 0, 90, 0, 0x50, 0x20 },
-    {                     0x02, 0x0e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+
+    {    GPMODE_R_W_ERROR_PAGE, 0x0a, 0xFF, 0xFF, 0,  0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF },
+    {   GPMODE_DISCONNECT_PAGE, 0x0e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
@@ -396,24 +397,20 @@ static const mode_sense_pages_t zip_mode_sense_pages_changeable =
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
-    {                     0x2f,    0x04, 0x5c, 0x0f, 0xff, 0x0f }
+    {       GPMODE_IOMEGA_PAGE,    0x04, 0xff, 0xff, 0xff, 0xff }
 }   };
 
 static const mode_sense_pages_t zip_250_mode_sense_pages_changeable =
 {   {
     {                        0,    0 },
-    {    GPMODE_R_W_ERROR_PAGE, 0x06, 0xc8, 0x64, 0,  0, 0, 0 },
+    {    GPMODE_R_W_ERROR_PAGE, 0x06, 0xFF, 0xFF, 0,  0, 0, 0 },
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
-    {                     0x05, 0x1e, 0x80, 0, 0x40, 0x20, 2, 0, 0, 0xef, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0b, 0x7d, 0, 0 },
+    {GPMODE_FLEXIBLE_DISK_PAGE, 0x1e, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0 },
     {                        0,    0 },
     {                        0,    0 },
-    {                     0x08, 0x0a, 4, 0, 0xff, 0xff, 0, 0, 0xff, 0xff, 0xff, 0xff },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
+    {      GPMODE_CACHING_PAGE, 0x0a, 4, 0, 0xff, 0xff, 0, 0, 0xff, 0xff, 0xff, 0xff },
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
@@ -448,7 +445,11 @@ static const mode_sense_pages_t zip_250_mode_sense_pages_changeable =
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
-    {                     0x2f,    0x04, 0x5c, 0x0f, 0x3c, 0x0f }
+    {                        0,    0 },
+    {                        0,    0 },
+    {                        0,    0 },
+    {                        0,    0 },
+    {       GPMODE_IOMEGA_PAGE,    0x04, 0xff, 0xff, 0xff, 0xff }
 }   };
 
 
