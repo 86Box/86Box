@@ -189,7 +189,7 @@
  *		including the later update (DS12887A) which implemented a
  *		"century" register to be compatible with Y2K.
  *
- * Version:	@(#)nvr_at.c	1.0.13	2018/10/06
+ * Version:	@(#)nvr_at.c	1.0.14	2018/10/06
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -666,6 +666,7 @@ nvr_at_init(const device_t *info)
     /* Allocate an NVR for this machine. */
     nvr = (nvr_t *)malloc(sizeof(nvr_t));
     if (nvr == NULL) return(NULL);
+    memset(nvr, 0x00, sizeof(nvr_t));
 
     local = (local_t *)malloc(sizeof(local_t));
     memset(local, 0x00, sizeof(local_t));
