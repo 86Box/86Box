@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.33	2018/10/04
+ * Version:	@(#)vid_svga.c	1.0.34	2018/10/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -347,7 +347,6 @@ svga_in(uint16_t addr, void *p)
 		}
 		break;
 	case 0x3da:
-		svga->attrff = 0;
 		svga->attrff = 0;
 
 		if (svga->cgastat & 0x01)
@@ -789,6 +788,7 @@ svga_init(svga_t *svga, void *p, int memsize,
     svga->vram_display_mask = svga->vram_mask = memsize - 1;
     svga->decode_mask = 0x7fffff;
     svga->changedvram = malloc(memsize >> 12);
+    svga->changedvram = malloc(0x800000 >> 12);
     svga->recalctimings_ex = recalctimings_ex;
     svga->video_in  = video_in;
     svga->video_out = video_out;
