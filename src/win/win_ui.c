@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.30	2018/07/28
+ * Version:	@(#)win_ui.c	1.0.31	2018/10/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1082,12 +1082,12 @@ plat_set_input(HWND h)
 {
     /* If needed, rest the old one first. */
     if (input_orig_hwnd != NULL) {
-	SetWindowLongPtr(input_orig_hwnd, GWL_WNDPROC,
+	SetWindowLongPtr(input_orig_hwnd, GWLP_WNDPROC,
 			 (LONG_PTR)input_orig_proc);
     }
 
     /* Redirect the window procedure so we can catch WM_INPUT. */
     input_orig_proc = GetWindowLongPtr(h, GWLP_WNDPROC);
     input_orig_hwnd = h;
-    SetWindowLongPtr(h, GWL_WNDPROC, (LONG_PTR)&input_proc);
+    SetWindowLongPtr(h, GWLP_WNDPROC, (LONG_PTR)&input_proc);
 }

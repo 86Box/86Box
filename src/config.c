@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.56	2018/10/06
+ * Version:	@(#)config.c	1.0.57	2018/10/07
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1693,7 +1693,7 @@ static void
 save_hard_disks(void)
 {
     char *cat = "Hard disks";
-    char temp[24], tmp2[64];
+    char temp[32], tmp2[64];
     char *p;
     int c;
 
