@@ -8,7 +8,7 @@
  *
  *		Oak OTI037C/67/077 emulation.
  *
- * Version:	@(#)vid_oak_oti.c	1.0.15	2018/10/07
+ * Version:	@(#)vid_oak_oti.c	1.0.16	2018/10/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -149,7 +149,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 							if (val & 0xc)
 								svga->vram_display_mask = MIN(oti->vram_mask, 0x7ffff);
 							break;
-						case 0x20:	/* 512 kB of memory */
+						case 0x02:	/* 512 kB of memory */
 							enable = (oti->vram_size >= 512);
 							if (val & 0xc)
 								svga->vram_display_mask = MIN(oti->vram_mask, 0xfffff);
