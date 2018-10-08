@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.63	2018/10/02
+ * Version:	@(#)win_settings.c	1.0.64	2018/10/08
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -580,12 +580,14 @@ win_settings_machine_recalc_machine(HWND hdlg)
     LPTSTR lptsTemp;
     const char *stransi;
     UDACCEL accel;
+    device_t *d;
 
     temp_romset = machine_getromset_ex(temp_machine);
     lptsTemp = (LPTSTR) malloc(512);
 
     h = GetDlgItem(hdlg, IDC_CONFIGURE_MACHINE);
-    if (machine_getdevice(temp_machine))
+    d = (device_t *) machine_getdevice(temp_machine);
+    if (d && d->config)
 	EnableWindow(h, TRUE);
     else
 	EnableWindow(h, FALSE);
