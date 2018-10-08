@@ -9,7 +9,7 @@
  *		Implementation of the NCR 5380 series of SCSI Host Adapters
  *		made by NCR. These controllers were designed for the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.18	2018/10/05
+ * Version:	@(#)scsi_ncr5380.c	1.0.19	2018/10/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -210,13 +210,15 @@ get_dev_id(uint8_t data)
 static int 
 get_cmd_len(int cbyte)
 {
-    int len;
+    int len = 12;
     int group;
 
-    group = (cbyte>>5) & 7;
+    group = (cbyte >> 5) & 7;
 
-    if (group == 0) len = 6;
-    if (group == 1 || group == 2) len = 10;
+    if (group == 0)
+	len = 6;
+    if ((group == 1) || (group == 2))
+	len = 10;
 
     return(len);
 }
@@ -915,6 +917,7 @@ ncr_callback(void *priv)
 	ncr_t *ncr = &ncr_dev->ncr;
 	scsi_device_t *dev = &SCSIDevices[ncr->target_id];
 	int c = 0;
+	int64_t p;
 
 	ncr_log("DMA mode=%d\n", ncr->dma_mode);
 	
@@ -969,83 +972,81 @@ ncr_callback(void *priv)
 		}
 		else if (ncr->state == STATE_COMMAND)
 		{
-			int64_t p;
-			
 			/*Command phase, make sure the ICR ACK bit is set to keep on, 
 			because the device must be acknowledged by ICR*/
 			ncr_log("NCR ICR for Command=%02x\n", ncr->bus_host & BUS_ACK);
 			if (ncr->bus_host & BUS_ACK)
 			{
-				/*Write command byte to the output data register*/
-				ncr->command[ncr->command_pos++] = BUS_GETDATA(ncr->bus_host);
+				if (get_cmd_len(ncr->command[0]) < ncr->command_pos) {
+					/*Write command byte to the output data register*/
+					ncr->command[ncr->command_pos++] = BUS_GETDATA(ncr->bus_host);
 
-				ncr->new_phase = ncr->cur_bus & SCSI_PHASE_MESSAGE_IN;
-				ncr->clear_req = 3;
-				ncr_log("Current bus for command request=%02x\n", ncr->cur_bus & BUS_REQ);				
-				ncr->cur_bus &= ~BUS_REQ;
+					ncr->new_phase = ncr->cur_bus & SCSI_PHASE_MESSAGE_IN;
+					ncr->clear_req = 3;
+					ncr_log("Current bus for command request=%02x\n", ncr->cur_bus & BUS_REQ);				
+					ncr->cur_bus &= ~BUS_REQ;
 
-				ncr_log("Command pos=%i, output data=%02x\n", ncr->command_pos, BUS_GETDATA(ncr->bus_host));
-				if (get_cmd_len(ncr->command[0]) == ncr->command_pos) 
-				{
-					/*Reset data position to default*/
-					ncr->data_pos = 0;
-						
-					dev = &SCSIDevices[ncr->target_id];
-					
-					ncr_log("SCSI Command 0x%02X for ID %d, status code=%02x\n", ncr->command[0], ncr->target_id, dev->Status);
-
-					dev->BufferLength = -1;
-					
-					/*Now, execute the given SCSI command*/
-					scsi_device_command_phase0(ncr->target_id, ncr->command);
-
-					ncr_log("SCSI ID %i: Command %02X: Buffer Length %i, SCSI Phase %02X\n", ncr->target_id, ncr->command[0], dev->BufferLength, dev->Phase);
-					
-					if (dev->Status != SCSI_STATUS_OK)
-						ncr_dev->is_non_data_mode = 1;
-					
-					if (ncr_dev->is_non_data_mode)
+					ncr_log("Command pos=%i, output data=%02x\n", ncr->command_pos, BUS_GETDATA(ncr->bus_host));
+					if (get_cmd_len(ncr->command[0]) == ncr->command_pos) 
 					{
-						ncr_dev->is_non_data_mode = 0;
-						ncr->new_phase = SCSI_PHASE_STATUS;
-						ncr->wait_data = 4;
-						return;
-					}
-					
-					/*If the SCSI phase is Data In or Data Out, allocate the SCSI buffer based on the transfer length of the command*/
-					if (dev->BufferLength && (dev->Phase == SCSI_PHASE_DATA_IN || dev->Phase == SCSI_PHASE_DATA_OUT)) {
-						dev->CmdBuffer = (uint8_t *) malloc(dev->BufferLength);
-						
-						p = scsi_device_get_callback(ncr->target_id);
-						if (p <= 0LL) {
-							ncr_dev->temp_period = (int64_t)(dev->BufferLength);
-							ncr_dev->media_period = 0;
-							ncr_dev->period = 0.2 * ((double) TIMER_USEC) * ((double) MIN(64, ncr_dev->temp_period));
-						} else {
-							ncr_dev->media_period += p;
-							ncr_dev->temp_period = dev->BufferLength;
-							ncr_dev->period = (p / ((double) ncr_dev->temp_period)) * ((double) MIN(64, ncr_dev->temp_period));
-						}
-					}
+						/*Reset data position to default*/
+						ncr->data_pos = 0;
+	
+						dev = &SCSIDevices[ncr->target_id];
 
-					if (dev->Phase == SCSI_PHASE_DATA_OUT) {
-						/* Write direction commands have delayed execution - only execute them after the bus has gotten all the data from the host. */
-						ncr_log("Next state is data out\n");
-						ncr->new_phase = SCSI_PHASE_DATA_OUT;
-						ncr->wait_data = 4;
-						ncr->clear_req = 4;
-					} else {
-						/* Other command - execute immediately. */
-						ncr->new_phase = dev->Phase;
+						ncr_log("SCSI Command 0x%02X for ID %d, status code=%02x\n", ncr->command[0], ncr->target_id, dev->Status);
 
-						if (ncr->new_phase == SCSI_PHASE_DATA_IN) 
+						dev->BufferLength = -1;
+
+						/*Now, execute the given SCSI command*/
+						scsi_device_command_phase0(ncr->target_id, ncr->command);
+
+						ncr_log("SCSI ID %i: Command %02X: Buffer Length %i, SCSI Phase %02X\n", ncr->target_id, ncr->command[0], dev->BufferLength, dev->Phase);
+
+						if (dev->Status != SCSI_STATUS_OK)
+							ncr_dev->is_non_data_mode = 1;
+
+						if (ncr_dev->is_non_data_mode)
 						{
-							scsi_device_command_phase1(ncr->target_id);
+							ncr_dev->is_non_data_mode = 0;
+							ncr->new_phase = SCSI_PHASE_STATUS;
+							ncr->wait_data = 4;
+							return;
 						}
-						
-						ncr->wait_data = 4;
+
+						/*If the SCSI phase is Data In or Data Out, allocate the SCSI buffer based on the transfer length of the command*/
+						if (dev->BufferLength && (dev->Phase == SCSI_PHASE_DATA_IN || dev->Phase == SCSI_PHASE_DATA_OUT)) {
+							dev->CmdBuffer = (uint8_t *) malloc(dev->BufferLength);
+
+							p = scsi_device_get_callback(ncr->target_id);
+							if (p <= 0LL) {
+								ncr_dev->temp_period = (int64_t)(dev->BufferLength);
+								ncr_dev->media_period = 0;
+								ncr_dev->period = 0.2 * ((double) TIMER_USEC) * ((double) MIN(64, ncr_dev->temp_period));
+							} else {
+								ncr_dev->media_period += p;
+								ncr_dev->temp_period = dev->BufferLength;
+								ncr_dev->period = (p / ((double) ncr_dev->temp_period)) * ((double) MIN(64, ncr_dev->temp_period));
+							}
+						}
+
+						if (dev->Phase == SCSI_PHASE_DATA_OUT) {
+							/* Write direction commands have delayed execution - only execute them after the bus has gotten all the data from the host. */
+							ncr_log("Next state is data out\n");
+							ncr->new_phase = SCSI_PHASE_DATA_OUT;
+							ncr->wait_data = 4;
+							ncr->clear_req = 4;
+						} else {
+							/* Other command - execute immediately. */
+							ncr->new_phase = dev->Phase;
+
+							if (ncr->new_phase == SCSI_PHASE_DATA_IN) 
+								scsi_device_command_phase1(ncr->target_id);
+
+							ncr->wait_data = 4;
+						}
 					}
-				}	
+				}
 			}
 		}
 		else if (ncr->state == STATE_DATAIN)
