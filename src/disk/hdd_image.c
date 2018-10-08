@@ -8,7 +8,7 @@
  *
  *		Handling of hard disk image files.
  *
- * Version:	@(#)hdd_image.c	1.0.17	2018/09/13
+ * Version:	@(#)hdd_image.c	1.0.18	2018/10/08
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -462,14 +462,19 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
     /* First, write all the 1 MB blocks. */
     if (t > 0) {
 	for (i = 0; i < t; i++) {
-		fwrite(empty_sector_1mb, 1, 1045876, hdd_images[id].file);
+		fseek(hdd_images[id].file, 0, SEEK_END);
+		fwrite(empty_sector_1mb, 1, 1048576, hdd_images[id].file);
 		pclog("#");
 	}
     }
 
     /* Then, write the remainder. */
-    fwrite(empty_sector_1mb, 1, size, hdd_images[id].file);
-    pclog("#]\n");
+    if (size > 0) {
+	fseek(hdd_images[id].file, 0, SEEK_END);
+	fwrite(empty_sector_1mb, 1, size, hdd_images[id].file);
+	pclog("#");
+    }
+    pclog("]\n");
     /* Switch the suppression of seen messages back on. */
     pclog_toggle_suppr();
 
@@ -600,12 +605,13 @@ hdd_image_load(int id)
 			empty_sector_1mb = (char *) malloc(512);
 			new_vhd_footer(&vft);
 			vft->orig_size = vft->curr_size = full_size;
-			vft->geom.cyl = tracks;
-			vft->geom.heads = hpc;
-			vft->geom.spt = spt;
+			vft->geom.cyl = hdd[id].tracks;
+			vft->geom.heads = hdd[id].hpc;
+			vft->geom.spt = hdd[id].spt;
 			generate_vhd_checksum(vft);
 			memset(empty_sector_1mb, 0, 512);
 			vhd_footer_to_bytes((uint8_t *) empty_sector_1mb, vft);
+			fseeko64(hdd_images[id].file, 0, SEEK_END);
 			fwrite(empty_sector_1mb, 1, 512, hdd_images[id].file);
 			free(vft);
 			vft = NULL;
@@ -713,12 +719,38 @@ hdd_image_load(int id)
     fseeko64(hdd_images[id].file, 0, SEEK_END);
     s = ftello64(hdd_images[id].file);
     if (s < (full_size + hdd_images[id].base))
-	return prepare_new_hard_disk(id, full_size);
+	ret = prepare_new_hard_disk(id, full_size);
     else {
 	hdd_images[id].last_sector = (uint32_t) (full_size >> 9) - 1;
 	hdd_images[id].loaded = 1;
-	return 1;
+	ret = 1;
     }
+
+    if (is_vhd[0]) {
+	fseeko64(hdd_images[id].file, 0, SEEK_END);
+	s = ftello64(hdd_images[id].file);
+	if (s == (full_size + hdd_images[id].base)) {
+		/* VHD image. */
+		/* Generate new footer. */
+		empty_sector_1mb = (char *) malloc(512);
+		new_vhd_footer(&vft);
+		vft->orig_size = vft->curr_size = full_size;
+		vft->geom.cyl = hdd[id].tracks;
+		vft->geom.heads = hdd[id].hpc;
+		vft->geom.spt = hdd[id].spt;
+		generate_vhd_checksum(vft);
+		memset(empty_sector_1mb, 0, 512);
+		vhd_footer_to_bytes((uint8_t *) empty_sector_1mb, vft);
+		fwrite(empty_sector_1mb, 1, 512, hdd_images[id].file);
+		free(vft);
+		vft = NULL;
+		free(empty_sector_1mb);
+		empty_sector_1mb = NULL;
+		hdd_images[id].type = 3;
+	}
+    }
+
+    return ret;
 }
 
 
