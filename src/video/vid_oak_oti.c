@@ -8,7 +8,7 @@
  *
  *		Oak OTI037C/67/077 emulation.
  *
- * Version:	@(#)vid_oak_oti.c	1.0.16	2018/10/07
+ * Version:	@(#)vid_oak_oti.c	1.0.17	2018/10/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -356,7 +356,7 @@ oti_init(const device_t *info)
 	case OTI_067_AMA932J:
 		romfn = BIOS_067_AMA932J_PATH;
 		oti->chip_id = 2;
-		oti->vram_size = 512;
+		oti->vram_size = device_get_config_int("memory");
 		oti->dipswitch_val |= 0x20;
 		oti->pos = 0x08;	/* Tell the BIOS the I/O ports are already enabled to avoid a double I/O handler mess. */
 		io_sethandler(0x46e8, 1, oti_pos_in, NULL, NULL, oti_pos_out, NULL, NULL, oti);
@@ -515,7 +515,8 @@ const device_t oti067_ama932j_device =
 	oti_init, oti_close, NULL,
 	oti067_ama932j_available,
 	oti_speed_changed,
-	oti_force_redraw
+	oti_force_redraw,
+	oti067_config
 };
 
 const device_t oti077_device =
