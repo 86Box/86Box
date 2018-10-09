@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)cdrom.c	1.0.51	2018/10/06
+ * Version:	@(#)cdrom.c	1.0.52	2018/10/09
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -1781,6 +1781,15 @@ cdrom_command(cdrom_t *dev, uint8_t *cdb)
 		   should forget about the not ready, and report unit attention straight away. */
 		cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
 		max_len = cdb[4];
+
+		if (!max_len) {
+			cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+			dev->packet_status = CDROM_PHASE_COMPLETE;
+			dev->callback = 20LL * CDROM_TIME;
+			cdrom_set_callback(dev);
+			break;
+		}
+
 		cdrom_buf_alloc(dev, 256);
 		cdrom_set_buf_len(dev, BufLen, &max_len);
 		cdrom_request_sense(dev, cdbufferb, max_len);

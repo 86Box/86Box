@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.25	2018/10/07
+ * Version:	@(#)zip.c	1.0.26	2018/10/09
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -1594,6 +1594,15 @@ zip_command(zip_t *dev, uint8_t *cdb)
 		   should forget about the not ready, and report unit attention straight away. */
 		zip_set_phase(dev, SCSI_PHASE_DATA_IN);
 		max_len = cdb[4];
+
+		if (!max_len) {
+			zip_set_phase(dev, SCSI_PHASE_STATUS);
+			dev->packet_status = ZIP_PHASE_COMPLETE;
+			dev->callback = 20LL * ZIP_TIME;
+			zip_set_callback(dev);
+			break;
+		}
+
 		zip_buf_alloc(dev, 256);
 		zip_set_buf_len(dev, BufLen, &max_len);
 		len = (cdb[1] & 1) ? 8 : 18;
