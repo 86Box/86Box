@@ -51,7 +51,7 @@
  *		  Microsoft Windows NT 3.1
  *		  Microsoft Windows 98 SE
  *
- * Version:	@(#)mouse_bus.c	1.0.1	2018/10/02
+ * Version:	@(#)mouse_bus.c	1.0.2	2018/10/09
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -197,7 +197,6 @@ lt_read(uint16_t port, void *priv)
 	case BUSM_PORT_CONTROL:
 		value = dev->control_val;
 		dev->control_val |= 0x0F;
-
 		/* If the conditions are right, simulate the flakiness of the correct IRQ bit. */
 		if (dev->flags & FLAG_TIMER_INT)
 			dev->control_val = (dev->control_val & ~IRQ_MASK) | (random_generate() & IRQ_MASK);
@@ -269,6 +268,7 @@ static void
 lt_write(uint16_t port, uint8_t val, void *priv)
 {
     mouse_t *dev = (mouse_t *)priv;
+    uint8_t bit;
 
     bm_log("DEBUG: write  to address 0x%04x, value = 0x%02x\n", port, val);
 
@@ -306,6 +306,8 @@ lt_write(uint16_t port, uint8_t val, void *priv)
 		 * explains the value:
 		 *
 		 * D7    =  Mode set flag (1 = active)
+		 * This indicates the mode of operation of D7:
+		 * 1 = Mode set, 0 = Bit set/reset
 		 * D6,D5 =  Mode selection (port A)
 		 *		00 = Mode 0 = Basic I/O
 		 *		01 = Mode 1 = Strobed I/O
@@ -322,17 +324,24 @@ lt_write(uint16_t port, uint8_t val, void *priv)
 		 * port, B is an output port, C is split with upper 4 bits
 		 * being an output port and lower 4 bits an input port, and
 		 * enable the sucker.  Courtesy Intel 8255 databook. Lars
+		 *
+		 * 1001 1011	9B	1111	Default state
+		 * 1001 0001	91	1001	Driver-initialized state
+		 * The only difference is - port C upper and port B go from
+		 * input to output.
 		 */
-		dev->config_val = val;
 		if (val & DEVICE_ACTIVE) {
+			/* Mode set/reset - enable this */
+			dev->config_val = val;
 			dev->flags |= (FLAG_ENABLED | FLAG_TIMER_INT);
 			dev->control_val = 0x0F & ~IRQ_MASK;
-			dev->timer = ((int64_t) dev->period) * TIMER_USEC;
-			dev->timer_enabled = 1LL;
 		} else {
-			dev->flags &= ~(FLAG_ENABLED | FLAG_TIMER_INT);
-			dev->timer = 0LL;
-			dev->timer_enabled = 0LL;
+			/* Single bit set/reset */
+			bit = 1 << ((val >> 1) & 0x07);		/* Bits 3-1 specify the target bit */
+			if (val & 1)
+				dev->control_val |= bit;	/* Set */
+			else
+				dev->control_val &= ~bit;	/* Reset */
 		}
 		break;
     }
@@ -612,17 +621,22 @@ bm_init(const device_t *info)
 
 	io_sethandler(dev->base, 4,
 		      ms_read, NULL, NULL, ms_write, NULL, NULL, dev);
+
+	dev->timer		= 0LL;
+	dev->timer_enabled	= 0LL;
     } else {
 	dev->control_val	= 0x0f;	/* the control port value */
-	dev->config_val		= 0x0e;	/* the config port value */
+	dev->config_val		= 0x9b;	/* the config port value - 0x9b is the
+					   default state of the 8255: all ports
+					   are set to input */
 	dev->period		= 1000000.0 / ((double) device_get_config_int("hz"));
 
 	io_sethandler(dev->base, 4,
 		      lt_read, NULL, NULL, lt_write, NULL, NULL, dev);
-    }
 
-    dev->timer		= 0LL;
-    dev->timer_enabled	= 0LL;
+	dev->timer = ((int64_t) dev->period) * TIMER_USEC;
+	dev->timer_enabled = 1LL;
+    }
 
     timer_add(bm_timer, &dev->timer, &dev->timer_enabled, dev);
 
