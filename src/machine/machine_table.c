@@ -11,7 +11,7 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.41	2018/09/24
+ * Version:	@(#)machine_table.c	1.0.42	2018/10/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -80,7 +80,7 @@ const machine_t machines[] = {
     { "[286 ISA] Samsung SPC-4200P",		ROM_SPC4200P,		"spc4200p",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_PS2,									512, 2048, 128, 127,		 machine_at_scat_init, NULL			},
     { "[286 ISA] Samsung SPC-4216P",		ROM_SPC4216P,		"spc4216p",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_PS2,									  1,    5,   1, 127,		 machine_at_scat_init, NULL			},
     { "[286 ISA] Toshiba T3100e",		ROM_T3100E,		"t3100e",		{{"",      cpus_286},         {"",    NULL},	     {"",      NULL},	     {"",      NULL},	  {"",      NULL}}, 1, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,								       1024, 5120, 256,  63,	       machine_at_t3100e_init, NULL			},
-    { "[286 ISA] Trigem 286M",			ROM_TG286M,		"tg286m",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_VIDEO,							  	512, 8192, 128, 127,	       machine_at_tg286m_init, at_tg286m_get_device	},
+    { "[286 ISA] Trigem 286M",			ROM_TG286M,		"tg286m",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,								  	512, 8192, 128, 127,	       machine_at_tg286m_init, NULL			},
 	
     { "[286 MCA] IBM PS/2 model 50",		ROM_IBMPS2_M50,		"ibmps2_m50",		{{"",      cpus_ps2_m30_286}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC_PS2 | MACHINE_VIDEO,				  1,   10,   1,  63,	    machine_ps2_model_50_init, NULL			},
 

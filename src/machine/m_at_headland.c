@@ -540,22 +540,12 @@ machine_at_headland_init(const machine_t *model)
 }
 
 
-const device_t *
-at_tg286m_get_device(void)
-{
-    return &et4000k_tg286_isa_device;
-}
-
-
 void
 machine_at_tg286m_init(const machine_t *model)
 {
-    machine_at_common_init(model);
+    machine_at_common_ide_init(model);
 
     machine_at_headland_common_init(0);
-
-    if (gfxcard == VID_INTERNAL)
-	device_add(&et4000k_tg286_isa_device);
 }
 
 

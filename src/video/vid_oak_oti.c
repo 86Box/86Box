@@ -8,7 +8,7 @@
  *
  *		Oak OTI037C/67/077 emulation.
  *
- * Version:	@(#)vid_oak_oti.c	1.0.17	2018/10/08
+ * Version:	@(#)vid_oak_oti.c	1.0.18	2018/10/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -460,6 +460,28 @@ static const device_config_t oti067_config[] =
 };
 
 
+static const device_config_t oti067_ama932j_config[] =
+{
+	{
+		"memory", "Memory size", CONFIG_SELECTION, "", 256,
+		{
+			{
+				"256 kB", 256
+			},
+			{
+				"512 kB", 512
+			},
+			{
+				""
+			}
+		}
+	},
+	{
+		"", "", -1
+	}
+};
+
+
 static const device_config_t oti077_config[] =
 {
 	{
@@ -516,7 +538,7 @@ const device_t oti067_ama932j_device =
 	oti067_ama932j_available,
 	oti_speed_changed,
 	oti_force_redraw,
-	oti067_config
+	oti067_ama932j_config
 };
 
 const device_t oti077_device =

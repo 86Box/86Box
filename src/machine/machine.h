@@ -210,7 +210,6 @@ extern const device_t	*t1200_get_device(void);
 
 extern const device_t	*at_endeavor_get_device(void);
 
-extern const device_t 	*at_tg286m_get_device(void);
 extern const device_t 	*at_ama932j_get_device(void);
 #endif
 
