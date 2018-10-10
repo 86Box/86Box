@@ -8,7 +8,7 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.18	2018/10/10
+ * Version:	@(#)scsi_device.c	1.0.19	2018/10/10
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -127,9 +127,9 @@ int scsi_device_present(scsi_device_t *dev)
 int scsi_device_valid(scsi_device_t *dev)
 {
     if (dev->p)
-	return 0;
-    else
 	return 1;
+    else
+	return 0;
 }
 
 
