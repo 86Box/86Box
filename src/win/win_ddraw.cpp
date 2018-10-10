@@ -11,7 +11,7 @@
  * NOTES:	This code should be re-merged into a single init() with a
  *		'fullscreen' argument, indicating FS mode is requested.
  *
- * Version:	@(#)win_ddraw.cpp	1.0.10	2018/07/17
+ * Version:	@(#)win_ddraw.cpp	1.0.11	2018/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -178,7 +178,8 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
 	bmpInfo.bmiHeader.biSizeImage =
 		bmpInfo.bmiHeader.biWidth*abs(bmpInfo.bmiHeader.biHeight)*(bmpInfo.bmiHeader.biBitCount+7)/8;
 
-    if ((pBuf = malloc(bmpInfo.bmiHeader.biSizeImage)) == NULL) {
+    pBuf = malloc(bmpInfo.bmiHeader.biSizeImage);
+    if (pBuf == NULL) {
 	ddraw_log("[SavePNG] Unable to Allocate Bitmap Memory");
 	fclose(fp);
 	return;
@@ -187,7 +188,8 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
     if (ys2 <= 250) {
 	bmpInfo.bmiHeader.biSizeImage <<= 1;
 
-	if ((pBuf2 = malloc(bmpInfo.bmiHeader.biSizeImage)) == NULL) {
+	pBuf2 = malloc(bmpInfo.bmiHeader.biSizeImage);
+	if (pBuf2 == NULL) {
 		ddraw_log("[SavePNG] Unable to Allocate Secondary Bitmap Memory");
 		free(pBuf);
 		fclose(fp);
@@ -207,7 +209,8 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
 	8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
 	PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
-    if ((b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * bmpInfo.bmiHeader.biHeight)) == NULL) {
+    b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * bmpInfo.bmiHeader.biHeight);
+    if (b_rgb == NULL) {
 	ddraw_log("[SavePNG] Unable to Allocate RGB Bitmap Memory");
 	free(pBuf2);
 	free(pBuf);
@@ -215,8 +218,9 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
 	return;
     }
 
-    for (i = 0; i < bmpInfo.bmiHeader.biHeight; i++)
+    for (i = 0; i < bmpInfo.bmiHeader.biHeight; i++) {
 	b_rgb[i] = (png_byte *) malloc(png_get_rowbytes(png_ptr, info_ptr));
+    }
 
     if (pBuf2) {
 	DoubleLines((uint8_t *) pBuf2, (uint8_t *) pBuf);

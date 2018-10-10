@@ -8,7 +8,7 @@
  *
  *		Handle the platform-side of CDROM drives.
  *
- * Version:	@(#)win_cdrom.c	1.0.9	2018/10/02
+ * Version:	@(#)win_cdrom.c	1.0.10	2018/10/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -43,32 +43,35 @@
 void
 cdrom_eject(uint8_t id)
 {
-    if (cdrom_drives[id].host_drive == 0) {
+    cdrom_drive_t *drv = &cdrom_drives[id];
+    cdrom_image_t *img = &cdrom_image[id];
+
+    if (drv->host_drive == 0) {
 	/* Switch from empty to empty. Do nothing. */
 	return;
     }
 
-    if (cdrom_image[id].prev_image_path) {
-	free(cdrom_image[id].prev_image_path);
-	cdrom_image[id].prev_image_path = NULL;
+    if (img->prev_image_path) {
+	free(img->prev_image_path);
+	img->prev_image_path = NULL;
     }
 
-    if (cdrom_drives[id].host_drive == 200) {
-	cdrom_image[id].prev_image_path = (wchar_t *) malloc(1024);
-	wcscpy(cdrom_image[id].prev_image_path, cdrom_image[id].image_path);
+    if (drv->host_drive == 200) {
+	img->prev_image_path = (wchar_t *) malloc(1024);
+	wcscpy(img->prev_image_path, img->image_path);
     }
-    cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
-    cdrom[id]->handler->exit(id);
+    drv->prev_host_drive = drv->host_drive;
+    drv->handler->exit(id);
     cdrom_close_handler(id);
-    memset(cdrom_image[id].image_path, 0, 2048);
+    memset(img->image_path, 0, 2048);
     cdrom_null_open(id);
-    if (cdrom_drives[id].bus_type) {
+    if (drv->insert) {
 	/* Signal disc change to the emulated machine. */
-	cdrom_insert(cdrom[id]);
+	drv->insert(drv->p);
     }
 
     ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_UNCHECKED);
-    cdrom_drives[id].host_drive=0;
+    drv->host_drive=0;
     ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_CHECKED);
     ui_sb_update_icon_state(SB_CDROM|id, 1);
     ui_sb_enable_menu_item(SB_CDROM|id, IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
@@ -81,31 +84,34 @@ cdrom_eject(uint8_t id)
 void
 cdrom_reload(uint8_t id)
 {
-    if ((cdrom_drives[id].host_drive == cdrom_drives[id].prev_host_drive) || (cdrom_drives[id].prev_host_drive == 0) || (cdrom_drives[id].host_drive != 0)) {
+    cdrom_drive_t *drv = &cdrom_drives[id];
+    cdrom_image_t *img = &cdrom_image[id];
+
+    if ((drv->host_drive == drv->prev_host_drive) || !drv->prev_host_drive || drv->host_drive) {
 	/* Switch from empty to empty. Do nothing. */
 	return;
     }
 
     cdrom_close_handler(id);
-    memset(cdrom_image[id].image_path, 0, 2048);
+    memset(img->image_path, 0, 2048);
 
-    if (cdrom_drives[id].prev_host_drive == 200) {
-	wcscpy(cdrom_image[id].image_path, cdrom_image[id].prev_image_path);
-	free(cdrom_image[id].prev_image_path);
-	cdrom_image[id].prev_image_path = NULL;
-	image_open(id, cdrom_image[id].image_path);
-	if (cdrom_drives[id].bus_type) {
+    if (drv->prev_host_drive == 200) {
+	wcscpy(img->image_path, img->prev_image_path);
+	free(img->prev_image_path);
+	img->prev_image_path = NULL;
+	image_open(id, img->image_path);
+	if (drv->insert) {
 		/* Signal disc change to the emulated machine. */
-		cdrom_insert(cdrom[id]);
+		drv->insert(drv->p);
 	}
-	if (wcslen(cdrom_image[id].image_path) == 0) {
+	if (wcslen(img->image_path) == 0) {
 		ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_CHECKED);
-		cdrom_drives[id].host_drive = 0;
+		drv->host_drive = 0;
 		ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_UNCHECKED);
 		ui_sb_update_icon_state(SB_CDROM|id, 1);
 	} else {
 		ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_UNCHECKED);
-		cdrom_drives[id].host_drive = 200;
+		drv->host_drive = 200;
 		ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_CHECKED);
 		ui_sb_update_icon_state(SB_CDROM|id, 0);
 	}

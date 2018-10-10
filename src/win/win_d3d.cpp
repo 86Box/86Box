@@ -20,6 +20,7 @@
  */
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include "../86box.h"
 #include "../device.h"
 #include "../video/video.h"

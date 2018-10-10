@@ -8,7 +8,7 @@
  *
  *		Windows device configuration dialog implementation.
  *
- * Version:	@(#)win_devconf.c	1.0.18	2018/04/01
+ * Version:	@(#)win_devconf.c	1.0.19	2018/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,6 +18,7 @@
  */
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
@@ -459,10 +460,13 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 uint8_t deviceconfig_open(HWND hwnd, const device_t *device)
 {
         const device_config_t *config = device->config;
-        uint16_t *data_block = malloc(16384);
+        uint16_t *data_block;
         uint16_t *data;
-        DLGTEMPLATE *dlg = (DLGTEMPLATE *)data_block;
+        DLGTEMPLATE *dlg;
         DLGITEMTEMPLATE *item;
+
+	data_block = malloc(16384);
+	dlg = (DLGTEMPLATE *)data_block;
         int y = 10;
         int id = IDC_CONFIG_BASE;
 

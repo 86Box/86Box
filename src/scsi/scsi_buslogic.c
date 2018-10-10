@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.39	2018/06/11
+ * Version:	@(#)scsi_buslogic.c	1.0.40	2018/10/09
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -556,6 +556,7 @@ BuslogicSCSIBIOSDMATransfer(ESCMD *ESCSICmd, uint8_t TargetID, int dir)
     int DataLength = ESCSICmd->DataLength;
     uint32_t Address;
     uint32_t TransferLength;
+    scsi_device_t *dev = &scsi_devices[TargetID];
 
     if (ESCSICmd->DataDirection == 0x03) {
 	/* Non-data command. */
@@ -567,16 +568,16 @@ BuslogicSCSIBIOSDMATransfer(ESCMD *ESCSICmd, uint8_t TargetID, int dir)
 
     /* If the control byte is 0x00, it means that the transfer direction is set up by the SCSI command without
        checking its length, so do this procedure for both read/write commands. */
-    if ((DataLength > 0) && (SCSIDevices[TargetID].BufferLength > 0)) {
+    if ((DataLength > 0) && (dev->buffer_length > 0)) {
 	Address = DataPointer;
-	TransferLength = MIN(DataLength, SCSIDevices[TargetID].BufferLength);
+	TransferLength = MIN(DataLength, dev->buffer_length);
 
 	if (dir && ((ESCSICmd->DataDirection == CCB_DATA_XFER_OUT) || (ESCSICmd->DataDirection == 0x00))) {
 		buslogic_log("BusLogic BIOS DMA: Reading %i bytes from %08X\n", TransferLength, Address);
-		DMAPageRead(Address, (uint8_t *)SCSIDevices[TargetID].CmdBuffer, TransferLength);
+		DMAPageRead(Address, (uint8_t *)dev->cmd_buffer, TransferLength);
 	} else if (!dir && ((ESCSICmd->DataDirection == CCB_DATA_XFER_IN) || (ESCSICmd->DataDirection == 0x00))) {
 		buslogic_log("BusLogic BIOS DMA: Writing %i bytes at %08X\n", TransferLength, Address);
-		DMAPageWrite(Address, (uint8_t *)SCSIDevices[TargetID].CmdBuffer, TransferLength);
+		DMAPageWrite(Address, (uint8_t *)dev->cmd_buffer, TransferLength);
 	}
     }
 }
@@ -591,6 +592,7 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
     int target_cdb_len = 12;
     uint8_t target_id = 0;
     int phase;
+    scsi_device_t *sd = &scsi_devices[ESCSICmd->TargetId];
 
     DataInBuf[0] = DataInBuf[1] = 0;
 
@@ -602,9 +604,9 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 		
     buslogic_log("Scanning SCSI Target ID %i\n", ESCSICmd->TargetId);		
 
-    SCSIDevices[ESCSICmd->TargetId].Status = SCSI_STATUS_OK;
+    sd->status = SCSI_STATUS_OK;
 
-    if (!scsi_device_present(ESCSICmd->TargetId)) {
+    if (!scsi_device_present(sd)) {
 	buslogic_log("SCSI Target ID %i has no device attached\n", ESCSICmd->TargetId);
 	DataInBuf[2] = CCB_SELECTION_TIMEOUT;
 	DataInBuf[3] = SCSI_STATUS_OK;
@@ -623,7 +625,7 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 
     target_cdb_len = 12;
 
-    if (!scsi_device_valid(ESCSICmd->TargetId))  fatal("SCSI target on ID %02i has disappeared\n", ESCSICmd->TargetId);
+    if (!scsi_device_valid(sd))  fatal("SCSI target on ID %02i has disappeared\n", ESCSICmd->TargetId);
 
     buslogic_log("SCSI target command being executed on: SCSI ID %i, SCSI LUN %i, Target %i\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit, target_id);
 
@@ -639,26 +641,26 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 	memcpy(temp_cdb, ESCSICmd->CDB, target_cdb_len);
     }
 
-    SCSIDevices[ESCSICmd->TargetId].BufferLength = ESCSICmd->DataLength;
-    scsi_device_command_phase0(ESCSICmd->TargetId, temp_cdb);
+    sd->buffer_length = ESCSICmd->DataLength;
+    scsi_device_command_phase0(sd, temp_cdb);
 
-    phase = SCSIDevices[ESCSICmd->TargetId].Phase;
+    phase = sd->phase;
     if (phase != SCSI_PHASE_STATUS) {
 	if (phase == SCSI_PHASE_DATA_IN)
-		scsi_device_command_phase1(ESCSICmd->TargetId);
+		scsi_device_command_phase1(sd);
 	BuslogicSCSIBIOSDMATransfer(ESCSICmd, ESCSICmd->TargetId, (phase == SCSI_PHASE_DATA_OUT));
 	if (phase == SCSI_PHASE_DATA_OUT)
-		scsi_device_command_phase1(ESCSICmd->TargetId);
+		scsi_device_command_phase1(sd);
     }
 
     x54x_buf_free(ESCSICmd->TargetId);
 
     buslogic_log("BIOS Request complete\n");
 
-    if (SCSIDevices[ESCSICmd->TargetId].Status == SCSI_STATUS_OK) {
+    if (sd->status == SCSI_STATUS_OK) {
 	DataInBuf[2] = CCB_COMPLETE;
 	DataInBuf[3] = SCSI_STATUS_OK;
-    } else if (SCSIDevices[ESCSICmd->TargetId].Status == SCSI_STATUS_CHECK_CONDITION) {
+    } else if (scsi_devices[ESCSICmd->TargetId].status == SCSI_STATUS_CHECK_CONDITION) {
 	DataInBuf[2] = CCB_COMPLETE;
 	DataInBuf[3] = SCSI_STATUS_CHECK_CONDITION;			
     }
@@ -697,15 +699,15 @@ buslogic_cmds(void *p)
 	case 0x23:
 		memset(dev->DataBuf, 0, 8);
 		for (i = 8; i < 15; i++) {
-		    dev->DataBuf[i-8] = 0;
-		    if (scsi_device_present(i) && (i != buslogic_get_host_id(dev)))
-			dev->DataBuf[i-8] |= 1;
+		    dev->DataBuf[i - 8] = 0;
+		    if (scsi_device_present(&scsi_devices[i]) && (i != buslogic_get_host_id(dev)))
+			dev->DataBuf[i - 8] |= 1;
 		}
 		dev->DataReplyLeft = 8;
 		break;
 	case 0x24:						
-		for (i=0; i<15; i++) {
-			if (scsi_device_present(i) && (i != buslogic_get_host_id(dev)))
+		for (i = 0; i < 15; i++) {
+			if (scsi_device_present(&scsi_devices[i]) && (i != buslogic_get_host_id(dev)))
 			    TargetsPresentMask |= (1 << i);
 		}
 		dev->DataBuf[0] = TargetsPresentMask & 0xFF;

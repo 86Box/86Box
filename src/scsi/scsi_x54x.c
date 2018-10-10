@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.22	2018/10/02
+ * Version:	@(#)scsi_x54x.c	1.0.23	2018/10/09
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -155,9 +155,8 @@ clear_irq(x54x_t *dev)
 static void
 target_check(uint8_t id)
 {
-    if (! scsi_device_valid(id)) {
+    if (! scsi_device_valid(&scsi_devices[id]))
 	fatal("BIOS INT13 device on ID %02i has disappeared\n", id);
-    }
 }
 
 
@@ -237,9 +236,10 @@ x54x_bios_command_08(uint8_t id, uint8_t *buffer)
     uint8_t rcbuf[8] = { 0,0,0,0,0,0,0,0 };
     uint32_t len = 0;
     int i, ret, sc;
+    scsi_device_t *sd = &scsi_devices[id];
 
-    ret = scsi_device_read_capacity(id, cdb, rcbuf, &len);
-    sc = completion_code(scsi_device_sense(id));
+    ret = scsi_device_read_capacity(sd, cdb, rcbuf, &len);
+    sc = completion_code(scsi_device_sense(sd));
     if (ret == 0) return(sc);
 
     memset(buffer, 0x00, 6);
@@ -261,15 +261,16 @@ x54x_bios_command_15(uint8_t id, uint8_t *buffer)
     uint8_t rcbuf[8] = { 0,0,0,0,0,0,0,0 };
     uint32_t len = 0;
     int i, ret, sc;
+    scsi_device_t *sd = &scsi_devices[id];
 
-    ret = scsi_device_read_capacity(id, cdb, rcbuf, &len);
-    sc = completion_code(scsi_device_sense(id));
+    ret = scsi_device_read_capacity(sd, cdb, rcbuf, &len);
+    sc = completion_code(scsi_device_sense(sd));
 
     memset(buffer, 0x00, 6);
     for (i=0; i<4; i++)
 	buffer[i] = (ret == 0) ? 0 : rcbuf[i];
 
-    scsi_device_type_data(id, &(buffer[4]), &(buffer[5]));
+    scsi_device_type_data(sd, &(buffer[4]), &(buffer[5]));
 
     x54x_log("BIOS Command 0x15: %02X %02X %02X %02X %02X %02X\n",
 	buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
@@ -308,15 +309,15 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
     }
 
     /* Get pointer to selected device. */
-    dev = &SCSIDevices[cmd->id];
-    dev->BufferLength = 0;
+    dev = &scsi_devices[cmd->id];
+    dev->buffer_length = 0;
 
-    if (! scsi_device_present(cmd->id)) {
+    if (! scsi_device_present(dev)) {
 	x54x_log("BIOS Target ID %i has no device attached\n", cmd->id);
 	return(0x80);
     }
 
-    if ((dev->LunType == SCSI_CDROM) && !x54x->cdrom_boot) {
+    if ((dev->type == SCSI_REMOVABLE_CDROM) && !x54x->cdrom_boot) {
 	x54x_log("BIOS Target ID %i is CD-ROM on unsupported BIOS\n", cmd->id);
 	return(0x80);
     }
@@ -326,9 +327,9 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
     x54x_log("BIOS Data Buffer write: length %d, pointer 0x%04X\n",
 					sector_len, dma_address);
 
-    if (dev->CmdBuffer != NULL) {
-	free(dev->CmdBuffer);
-	dev->CmdBuffer = NULL;
+    if (dev->cmd_buffer != NULL) {
+	free(dev->cmd_buffer);
+	dev->cmd_buffer = NULL;
     }
 
     switch(cmd->command) {
@@ -343,20 +344,20 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		 * length for SCSI sense, and no command-specific
 		 * indication is given.
 		 */
-		dev->BufferLength = 14;
-		dev->CmdBuffer = (uint8_t *)malloc(14);
-		memset(dev->CmdBuffer, 0x00, 14);
+		dev->buffer_length = 14;
+		dev->cmd_buffer = (uint8_t *)malloc(14);
+		memset(dev->cmd_buffer, 0x00, 14);
 
 		if (sector_len > 0) {
 			x54x_log("BIOS DMA: Reading 14 bytes at %08X\n",
 							dma_address);
 			DMAPageWrite(dma_address,
-			    scsi_device_sense(cmd->id), 14);
+			    scsi_device_sense(dev), 14);
 		}
 
-		if (dev->CmdBuffer != NULL) {
-			free(dev->CmdBuffer);
-			dev->CmdBuffer = NULL;
+		if (dev->cmd_buffer != NULL) {
+			free(dev->cmd_buffer);
+			dev->cmd_buffer = NULL;
 		}
 
 		return(0);
@@ -364,7 +365,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 	case 0x02:	/* Read Desired Sectors to Memory */
 		target_check(cmd->id);
 
-		dev->BufferLength = -1;
+		dev->buffer_length = -1;
 
 		cdb[0] = GPCMD_READ_10;
 		cdb[1] = (cmd->lun & 7) << 5;
@@ -378,33 +379,33 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		x54x_log("BIOS CMD(READ, %08lx, %d)\n", lba, cmd->secount);
 #endif
 
-		scsi_device_command_phase0(cmd->id, cdb);
+		scsi_device_command_phase0(dev, cdb);
 
-		if (dev->Phase == SCSI_PHASE_STATUS)
+		if (dev->phase == SCSI_PHASE_STATUS)
 			goto skip_read_phase1;
 
-		dev->CmdBuffer = (uint8_t *)malloc(dev->BufferLength);
+		dev->cmd_buffer = (uint8_t *)malloc(dev->buffer_length);
 
-		scsi_device_command_phase1(cmd->id);
+		scsi_device_command_phase1(dev);
 		if (sector_len > 0) {
 			x54x_log("BIOS DMA: Reading %i bytes at %08X\n",
-					dev->BufferLength, dma_address);
+					dev->buffer_length, dma_address);
 			DMAPageWrite(dma_address,
-				     dev->CmdBuffer, dev->BufferLength);
+				     dev->cmd_buffer, dev->buffer_length);
 		}
 
 skip_read_phase1:
-		if (dev->CmdBuffer != NULL) {
-			free(dev->CmdBuffer);
-			dev->CmdBuffer = NULL;
+		if (dev->cmd_buffer != NULL) {
+			free(dev->cmd_buffer);
+			dev->cmd_buffer = NULL;
 		}
 
-		return(completion_code(scsi_device_sense(cmd->id)));
+		return(completion_code(scsi_device_sense(dev)));
 
 	case 0x03:	/* Write Desired Sectors from Memory */
 		target_check(cmd->id);
 
-		dev->BufferLength = -1;
+		dev->buffer_length = -1;
 
 		cdb[0] = GPCMD_WRITE_10;
 		cdb[1] = (cmd->lun & 7) << 5;
@@ -418,29 +419,29 @@ skip_read_phase1:
 		x54x_log("BIOS CMD(WRITE, %08lx, %d)\n", lba, cmd->secount);
 #endif
 
-		scsi_device_command_phase0(cmd->id, cdb);
+		scsi_device_command_phase0(dev, cdb);
 
-		if (dev->Phase == SCSI_PHASE_STATUS)
+		if (dev->phase == SCSI_PHASE_STATUS)
 			goto skip_write_phase1;
 
-		dev->CmdBuffer = (uint8_t *)malloc(dev->BufferLength);
+		dev->cmd_buffer = (uint8_t *)malloc(dev->buffer_length);
 
 		if (sector_len > 0) {
 			x54x_log("BIOS DMA: Reading %i bytes at %08X\n",
-					dev->BufferLength, dma_address);
+					dev->buffer_length, dma_address);
 			DMAPageRead(dma_address,
-				    dev->CmdBuffer, dev->BufferLength);
+				    dev->cmd_buffer, dev->buffer_length);
 		}
 
-		scsi_device_command_phase1(cmd->id);
+		scsi_device_command_phase1(dev);
 
 skip_write_phase1:
-		if (dev->CmdBuffer != NULL) {
-			free(dev->CmdBuffer);
-			dev->CmdBuffer = NULL;
+		if (dev->cmd_buffer != NULL) {
+			free(dev->cmd_buffer);
+			dev->cmd_buffer = NULL;
 		}
 
-		return(completion_code(scsi_device_sense(cmd->id)));
+		return(completion_code(scsi_device_sense(dev)));
 
 	case 0x04:	/* Verify Desired Sectors */
 		target_check(cmd->id);
@@ -454,9 +455,9 @@ skip_write_phase1:
 		cdb[7] = 0;
 		cdb[8] = sector_len;
 
-		scsi_device_command_phase0(cmd->id, cdb);
+		scsi_device_command_phase0(dev, cdb);
 
-		return(completion_code(scsi_device_sense(cmd->id)));
+		return(completion_code(scsi_device_sense(dev)));
 
 	case 0x05:	/* Format Track, invalid since SCSI has no tracks */
 //FIXME: add a longer delay here --FvK
@@ -472,26 +473,26 @@ skip_write_phase1:
 		cdb[0] = GPCMD_FORMAT_UNIT;
 		cdb[1] = (cmd->lun & 7) << 5;
 
-		scsi_device_command_phase0(cmd->id, cdb);
+		scsi_device_command_phase0(dev, cdb);
 
-		return(completion_code(scsi_device_sense(cmd->id)));
+		return(completion_code(scsi_device_sense(dev)));
 
 	case 0x08:	/* Read Drive Parameters */
 		target_check(cmd->id);
 
-		dev->BufferLength = 6;
-		dev->CmdBuffer = (uint8_t *)malloc(dev->BufferLength);
-		memset(dev->CmdBuffer, 0x00, dev->BufferLength);
+		dev->buffer_length = 6;
+		dev->cmd_buffer = (uint8_t *)malloc(dev->buffer_length);
+		memset(dev->cmd_buffer, 0x00, dev->buffer_length);
 
-		ret = x54x_bios_command_08(cmd->id, dev->CmdBuffer);
+		ret = x54x_bios_command_08(cmd->id, dev->cmd_buffer);
 
 		x54x_log("BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
 		DMAPageWrite(dma_address,
-			     dev->CmdBuffer, 4 /* dev->BufferLength */);
+			     dev->cmd_buffer, 4 /* dev->buffer_length */);
 
-		if (dev->CmdBuffer != NULL) {
-			free(dev->CmdBuffer);
-			dev->CmdBuffer = NULL;
+		if (dev->cmd_buffer != NULL) {
+			free(dev->cmd_buffer);
+			dev->cmd_buffer = NULL;
 		}
 
 		return(ret);
@@ -510,9 +511,9 @@ skip_write_phase1:
 		cdb[4] = (lba >> 8) & 0xff;
 		cdb[5] = lba & 0xff;
 
-		scsi_device_command_phase0(cmd->id, cdb);
+		scsi_device_command_phase0(dev, cdb);
 
-		return((dev->Status == SCSI_STATUS_OK) ? 1 : 0);
+		return((dev->status == SCSI_STATUS_OK) ? 1 : 0);
 
 	case 0x0d:	/* Alternate Disk Reset, in practice it's a nop */
 //FIXME: add a longer delay here --FvK
@@ -524,9 +525,9 @@ skip_write_phase1:
 		cdb[0] = GPCMD_TEST_UNIT_READY;
 		cdb[1] = (cmd->lun & 7) << 5;
 
-		scsi_device_command_phase0(cmd->id, cdb);
+		scsi_device_command_phase0(dev, cdb);
 
-		return(completion_code(scsi_device_sense(cmd->id)));
+		return(completion_code(scsi_device_sense(dev)));
 
 	case 0x11:	/* Recalibrate */
 		target_check(cmd->id);
@@ -534,9 +535,9 @@ skip_write_phase1:
 		cdb[0] = GPCMD_REZERO_UNIT;
 		cdb[1] = (cmd->lun & 7) << 5;
 
-		scsi_device_command_phase0(cmd->id, cdb);
+		scsi_device_command_phase0(dev, cdb);
 
-		return(completion_code(scsi_device_sense(cmd->id)));
+		return(completion_code(scsi_device_sense(dev)));
 
 	case 0x14:	/* Controller Diagnostic */
 //FIXME: add a longer delay here --FvK
@@ -545,19 +546,19 @@ skip_write_phase1:
 	case 0x15:	/* Read DASD Type */
 		target_check(cmd->id);
 
-		dev->BufferLength = 6;
-		dev->CmdBuffer = (uint8_t *)malloc(dev->BufferLength);
-		memset(dev->CmdBuffer, 0x00, dev->BufferLength);
+		dev->buffer_length = 6;
+		dev->cmd_buffer = (uint8_t *)malloc(dev->buffer_length);
+		memset(dev->cmd_buffer, 0x00, dev->buffer_length);
 
-		ret = x54x_bios_command_15(cmd->id, dev->CmdBuffer);
+		ret = x54x_bios_command_15(cmd->id, dev->cmd_buffer);
 
 		x54x_log("BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
 		DMAPageWrite(dma_address,
-			     dev->CmdBuffer, 4 /* dev->BufferLength */);
+			     dev->cmd_buffer, 4 /* dev->buffer_length */);
 
-		if (dev->CmdBuffer != NULL) {
-			free(dev->CmdBuffer);
-			dev->CmdBuffer = NULL;
+		if (dev->cmd_buffer != NULL) {
+			free(dev->cmd_buffer);
+			dev->cmd_buffer = NULL;
 		}
 
 		return(ret);
@@ -761,7 +762,7 @@ x54x_set_residue(Req_t *req, int32_t TransferLength)
 {
     uint32_t Residue = 0;
     addr24 Residue24;
-    int32_t BufLen = SCSIDevices[req->TargetID].BufferLength;
+    int32_t BufLen = scsi_devices[req->TargetID].buffer_length;
 
     if ((req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) ||
 	(req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES)) {
@@ -792,7 +793,7 @@ x54x_buf_dma_transfer(Req_t *req, int Is24bit, int TransferLength, int dir)
     uint32_t DataPointer, DataLength;
     uint32_t SGEntryLength = (Is24bit ? sizeof(SGE) : sizeof(SGE32));
     uint32_t Address, i;
-    int32_t BufLen = SCSIDevices[req->TargetID].BufferLength;
+    int32_t BufLen = scsi_devices[req->TargetID].buffer_length;
     uint8_t read_from_host = (dir && ((req->CmdBlock.common.ControlByte == CCB_DATA_XFER_OUT) || (req->CmdBlock.common.ControlByte == 0x00)));
     uint8_t write_to_host = (!dir && ((req->CmdBlock.common.ControlByte == CCB_DATA_XFER_IN) || (req->CmdBlock.common.ControlByte == 0x00)));
     int sg_pos = 0;
@@ -824,11 +825,11 @@ x54x_buf_dma_transfer(Req_t *req, int Is24bit, int TransferLength, int dir)
 
 				if (read_from_host && DataToTransfer) {
 					x54x_log("Reading S/G segment %i: length %i, pointer %08X\n", i, DataToTransfer, Address);
-					DMAPageRead(Address, &(SCSIDevices[req->TargetID].CmdBuffer[sg_pos]), DataToTransfer);
+					DMAPageRead(Address, &(scsi_devices[req->TargetID].cmd_buffer[sg_pos]), DataToTransfer);
 				}
 				else if (write_to_host && DataToTransfer) {
 					x54x_log("Writing S/G segment %i: length %i, pointer %08X\n", i, DataToTransfer, Address);
-					DMAPageWrite(Address, &(SCSIDevices[req->TargetID].CmdBuffer[sg_pos]), DataToTransfer);
+					DMAPageWrite(Address, &(scsi_devices[req->TargetID].cmd_buffer[sg_pos]), DataToTransfer);
 				}
 				else
 					x54x_log("No action on S/G segment %i: length %i, pointer %08X\n", i, DataToTransfer, Address);
@@ -848,9 +849,9 @@ x54x_buf_dma_transfer(Req_t *req, int Is24bit, int TransferLength, int dir)
 
 		if ((DataLength > 0) && (BufLen > 0) && (req->CmdBlock.common.ControlByte < 0x03)) {
 			if (read_from_host)
-				DMAPageRead(Address, SCSIDevices[req->TargetID].CmdBuffer, MIN(BufLen, (int) DataLength));
+				DMAPageRead(Address, scsi_devices[req->TargetID].cmd_buffer, MIN(BufLen, (int) DataLength));
 			else if (write_to_host)
-				DMAPageWrite(Address, SCSIDevices[req->TargetID].CmdBuffer, MIN(BufLen, (int) DataLength));
+				DMAPageWrite(Address, scsi_devices[req->TargetID].cmd_buffer, MIN(BufLen, (int) DataLength));
 		}
 	}
     }
@@ -860,23 +861,23 @@ x54x_buf_dma_transfer(Req_t *req, int Is24bit, int TransferLength, int dir)
 void
 x54x_buf_alloc(uint8_t id, int length)
 {
-    if (SCSIDevices[id].CmdBuffer != NULL) {
-	free(SCSIDevices[id].CmdBuffer);
-	SCSIDevices[id].CmdBuffer = NULL;
+    if (scsi_devices[id].cmd_buffer != NULL) {
+	free(scsi_devices[id].cmd_buffer);
+	scsi_devices[id].cmd_buffer = NULL;
     }
 
     x54x_log("Allocating data buffer (%i bytes)\n", length);
-    SCSIDevices[id].CmdBuffer = (uint8_t *) malloc(length);
-    memset(SCSIDevices[id].CmdBuffer, 0, length);
+    scsi_devices[id].cmd_buffer = (uint8_t *) malloc(length);
+    memset(scsi_devices[id].cmd_buffer, 0, length);
 }
 
 
 void
 x54x_buf_free(uint8_t id)
 {
-    if (SCSIDevices[id].CmdBuffer != NULL) {
-	free(SCSIDevices[id].CmdBuffer);
-	SCSIDevices[id].CmdBuffer = NULL;
+    if (scsi_devices[id].cmd_buffer != NULL) {
+	free(scsi_devices[id].cmd_buffer);
+	scsi_devices[id].cmd_buffer = NULL;
     }
 }
 
@@ -920,7 +921,7 @@ SenseBufferFree(Req_t *req, int Copy)
     uint8_t temp_sense[256];
 
     if (SenseLength && Copy) {
-        scsi_device_request_sense(req->TargetID, temp_sense, SenseLength);
+        scsi_device_request_sense(&scsi_devices[req->TargetID], temp_sense, SenseLength);
 
 	/*
 	 * The sense address, in 32-bit mode, is located in the
@@ -945,24 +946,22 @@ static void
 x54x_scsi_cmd(x54x_t *dev)
 {
     Req_t *req = &dev->Req;
-    uint8_t id, lun;
+    uint8_t id, lun, phase, bit24 = !!req->Is24bit;
     uint8_t temp_cdb[12];
-    uint32_t i;
-    int target_cdb_len = 12;
-    int target_data_len;
-    uint8_t bit24 = !!req->Is24bit;
+    uint32_t i, SenseBufferAddress;
+    int target_data_len, target_cdb_len = 12;
     int32_t *BufLen;
-    uint8_t phase;
-    uint32_t SenseBufferAddress;
     int64_t p;
+    scsi_device_t *sd;
 
     id = req->TargetID;
+    sd = &scsi_devices[id];
     lun = req->LUN;
 
     target_cdb_len = 12;
     target_data_len = x54x_get_length(req, bit24);
 
-    if (!scsi_device_valid(id))
+    if (!scsi_device_valid(sd))
 	fatal("SCSI target on %02i has disappeared\n", id);
 
     x54x_log("target_data_len = %i\n", target_data_len);
@@ -985,14 +984,14 @@ x54x_scsi_cmd(x54x_t *dev)
 
     dev->Residue = 0;
 
-    BufLen = scsi_device_get_buf_len(id);
+    BufLen = scsi_device_get_buf_len(sd);
     *BufLen = target_data_len;
 
-    x54x_log("Command buffer: %08X\n", SCSIDevices[id].CmdBuffer);
+    x54x_log("Command buffer: %08X\n", scsi_devices[id].cmd_buffer);
 
-    scsi_device_command_phase0(id, temp_cdb);
+    scsi_device_command_phase0(sd, temp_cdb);
 
-    phase = SCSIDevices[id].Phase;
+    phase = sd->phase;
 
     x54x_log("Control byte: %02X\n", (req->CmdBlock.common.ControlByte == 0x03));
 
@@ -1001,14 +1000,14 @@ x54x_scsi_cmd(x54x_t *dev)
 		/* Request sense in non-data mode - sense goes to sense buffer. */
 		*BufLen = ConvertSenseLength(req->CmdBlock.common.RequestSenseLength);
 	    	x54x_buf_alloc(id, *BufLen);
-		scsi_device_command_phase1(id);
-		if ((SCSIDevices[id].Status != SCSI_STATUS_OK) && (*BufLen > 0)) {
+		scsi_device_command_phase1(sd);
+		if ((sd->status != SCSI_STATUS_OK) && (*BufLen > 0)) {
 			SenseBufferAddress = SenseBufferPointer(req);
-			DMAPageWrite(SenseBufferAddress, SCSIDevices[id].CmdBuffer, *BufLen);
+			DMAPageWrite(SenseBufferAddress, scsi_devices[id].cmd_buffer, *BufLen);
 			x54x_add_to_period(*BufLen);
 		}
 	} else {
-		p = scsi_device_get_callback(id);
+		p = scsi_device_get_callback(sd);
 		if (p <= 0LL)
 			x54x_add_to_period(*BufLen);
 		else
@@ -1016,14 +1015,14 @@ x54x_scsi_cmd(x54x_t *dev)
 	    	x54x_buf_alloc(id, MIN(target_data_len, *BufLen));
 		if (phase == SCSI_PHASE_DATA_OUT)
 			x54x_buf_dma_transfer(req, bit24, target_data_len, 1);
-		scsi_device_command_phase1(id);
+		scsi_device_command_phase1(sd);
 		if (phase == SCSI_PHASE_DATA_IN)
 			x54x_buf_dma_transfer(req, bit24, target_data_len, 0);
 
-		SenseBufferFree(req, (SCSIDevices[id].Status != SCSI_STATUS_OK));
+		SenseBufferFree(req, (sd->status != SCSI_STATUS_OK));
 	}
     } else
-	SenseBufferFree(req, (SCSIDevices[id].Status != SCSI_STATUS_OK));
+	SenseBufferFree(req, (sd->status != SCSI_STATUS_OK));
 
     x54x_set_residue(req, target_data_len);
 
@@ -1031,15 +1030,15 @@ x54x_scsi_cmd(x54x_t *dev)
 
     x54x_log("Request complete\n");
 
-    if (SCSIDevices[id].Status == SCSI_STATUS_OK) {
+    if (sd->status == SCSI_STATUS_OK) {
 	x54x_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
 		       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
-    } else if (SCSIDevices[id].Status == SCSI_STATUS_CHECK_CONDITION) {
+    } else if (sd->status == SCSI_STATUS_CHECK_CONDITION) {
 	x54x_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
 		       CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
     }
 
-    x54x_log("SCSIDevices[%02i].Status = %02X\n", id, SCSIDevices[id].Status);
+    x54x_log("scsi_devices[%02i].Status = %02X\n", id, sd->status);
 }
 
 
@@ -1058,6 +1057,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 {	
     Req_t *req = &dev->Req;
     uint8_t id, lun;
+    scsi_device_t *sd;
 
     /* Fetch data from the Command Control Block. */
     DMAPageRead(CCBPointer, (uint8_t *)&req->CmdBlock, sizeof(CCB32));
@@ -1069,6 +1069,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
     req->LUN = dev->Mbx24bit ? req->CmdBlock.old.Lun : req->CmdBlock.new.Lun;
 
     id = req->TargetID;
+    sd = &scsi_devices[id];
     lun = req->LUN;
     if ((id > dev->max_id) || (lun > 7)) {
 	x54x_log("SCSI Target ID %i or LUN %i is not valid\n",id,lun);
@@ -1081,10 +1082,10 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 
     x54x_log("Scanning SCSI Target ID %i\n", id);
 
-    SCSIDevices[id].Status = SCSI_STATUS_OK;
+    sd->status = SCSI_STATUS_OK;
 
     /* If there is no device at ID:0, timeout the selection - the LUN is then checked later. */
-    if (! scsi_device_present(id)) {
+    if (! scsi_device_present(sd)) {
 	x54x_log("SCSI Target ID %i and LUN %i have no device attached\n",id,lun);
 	x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock,
 		       CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
@@ -1106,7 +1107,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 	}
 	if (req->CmdBlock.common.Opcode == 0x81) {
 		x54x_log("Bus reset opcode\n");
-		scsi_device_reset(id);
+		scsi_device_reset(sd);
 		x54x_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
 			       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
 		x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
@@ -1443,7 +1444,7 @@ x54x_reset(x54x_t *dev)
 
     /* Reset all devices on controller reset. */
     for (i = 0; i < 16; i++)
-	scsi_device_reset(i);
+	scsi_device_reset(&scsi_devices[i]);
 
     if (dev->ven_reset)
 	dev->ven_reset(dev);
@@ -1500,7 +1501,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 		if (val & CTRL_SCRST) {
 			/* Reset all devices on SCSI bus reset. */
 			for (i = 0; i < 16; i++)
-				scsi_device_reset(i);
+				scsi_device_reset(&scsi_devices[i]);
 		}
 
 		if (val & CTRL_IRST) {
@@ -1677,7 +1678,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 					    if (i == host_id) continue;
 
 					    /* TODO: Query device for LUN's. */
-					    if (scsi_device_present(i))
+					    if (scsi_device_present(&scsi_devices[i]))
 						dev->DataBuf[i] |= 1;
 					}
 					dev->DataReplyLeft = i;
@@ -1685,9 +1686,9 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 
 				case CMD_RETCONF: /* return Configuration */
 					if (dev->ven_get_dma)
-						dev->DataBuf[0] = (1<<dev->ven_get_dma(dev));
+						dev->DataBuf[0] = (1 << dev->ven_get_dma(dev));
 					else
-						dev->DataBuf[0] = (1<<dev->DmaChannel);
+						dev->DataBuf[0] = (1 << dev->DmaChannel);
 
 					if (dev->ven_get_irq)
 						irq = dev->ven_get_irq(dev);

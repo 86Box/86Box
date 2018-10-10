@@ -8,7 +8,7 @@
  *
  *		Definitions for the generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.h	1.0.10	2018/10/07
+ * Version:	@(#)scsi_device.h	1.0.11	2018/10/09
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -250,6 +250,15 @@
 
 #define BUS_IDLE (1 << 31)
 
+#define PHASE_IDLE		0x00
+#define PHASE_COMMAND		0x01
+#define PHASE_COMPLETE		0x02
+#define PHASE_DATA_IN		0x03
+#define PHASE_DATA_IN_DMA	0x04
+#define PHASE_DATA_OUT		0x05
+#define PHASE_DATA_OUT_DMA	0x06
+#define PHASE_ERROR		0x80
+
 #define SCSI_PHASE_DATA_OUT    0
 #define SCSI_PHASE_DATA_IN     BUS_IO
 #define SCSI_PHASE_COMMAND     BUS_CD
@@ -264,28 +273,38 @@
 #define MODE_SELECT_PHASE_PAGE		4
 
 
+/* This is probably no longer needed. */
+#if 0
 typedef struct
 {
-	int state;
-	int new_state;
-	int clear_req;
-	uint32_t bus_in, bus_out;
-	int dev_id;
+    uint8_t command[20];
 
-	int command_pos;
-	uint8_t command[20];
-	int data_pos;
-	
-	int change_state_delay;
-	int new_req_delay;	
+    int state, new_state,
+	clear_req, dev_id,
+	command_pos, data_pos,
+	change_state_delay,
+	new_req_delay;
+
+    uint32_t bus_in, bus_out;
 } scsi_bus_t;
+#endif
 
 typedef struct {	
-    uint8_t	*CmdBuffer;
-    int		LunType;
-    int32_t	BufferLength;
-    uint8_t	Status;
-    uint8_t	Phase;
+    uint8_t	*cmd_buffer;
+
+    int32_t	buffer_length;
+
+    uint8_t	status, phase;
+    uint16_t	type;
+
+    void	*p;
+
+    void	(*command)(void *p, uint8_t *cdb);
+    void	(*callback)(void *p);
+    int		(*err_stat_to_scsi)(void *p);
+    void	(*request_sense)(void *p, uint8_t *buffer, uint8_t alloc_length);
+    void	(*reset)(void *p);
+    int		(*read_capacity)(void *p, uint8_t *cdb, uint8_t *buffer, uint32_t *len);
 } scsi_device_t;
 
 #pragma pack(push,1)
@@ -294,15 +313,43 @@ typedef struct {
 } mode_sense_pages_t;
 #pragma pack(pop)
 
-enum {
-    SCSI_NONE = 0,
-    SCSI_DISK,
-    SCSI_CDROM,
-    SCSI_ZIP
-};
+/* This is so we can access the common elements to all SCSI device structs
+   without knowing the device type. */
+typedef struct {
+    mode_sense_pages_t ms_pages_saved;
 
+    void *p;
 
-extern scsi_device_t	SCSIDevices[SCSI_ID_MAX];
+    uint8_t *temp_buffer,
+	    pad[16],	/* This is atapi_cdb in ATAPI-supporting devices,
+			   and pad in SCSI-only devices. */
+	    current_cdb[16],
+	    sense[256];
+
+    uint8_t status, phase,
+	    error, id,
+	    features, pad0,
+	    pad1, pad2;
+
+    uint16_t request_length, max_transfer_len;
+
+    int requested_blocks, packet_status,
+	total_length, do_page_save,
+	unit_attention;
+
+    uint32_t sector_pos, sector_len,
+	     packet_len, pos;
+
+    int64_t callback;
+} scsi_device_data_t;
+
+/* These are based on the INQUIRY values. */
+#define SCSI_NONE 0x0060
+#define SCSI_FIXED_DISK 0x0000
+#define SCSI_REMOVABLE_DISK 0x8000
+#define SCSI_REMOVABLE_CDROM 0x8005
+
+extern scsi_device_t	scsi_devices[SCSI_ID_MAX];
 
 
 extern int	cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
@@ -312,20 +359,19 @@ extern int	mode_select_init(uint8_t command, uint16_t pl_length, uint8_t do_save
 extern int	mode_select_terminate(int force);
 extern int	mode_select_write(uint8_t val);
 
-extern uint8_t	*scsi_device_sense(uint8_t id);
-extern void	scsi_device_type_data(uint8_t id, uint8_t *type, uint8_t *rmb);
-extern int64_t	scsi_device_get_callback(uint8_t scsi_id);
-extern void	scsi_device_request_sense(uint8_t scsi_id, uint8_t *buffer,
+extern uint8_t	*scsi_device_sense(scsi_device_t *dev);
+extern void	scsi_device_type_data(scsi_device_t *dev, uint8_t *type, uint8_t *rmb);
+extern int64_t	scsi_device_get_callback(scsi_device_t *dev);
+extern void	scsi_device_request_sense(scsi_device_t *dev, uint8_t *buffer,
 					  uint8_t alloc_length);
-extern void	scsi_device_reset(uint8_t scsi_id);
-extern int	scsi_device_read_capacity(uint8_t id, uint8_t *cdb,
+extern void	scsi_device_reset(scsi_device_t *dev);
+extern int	scsi_device_read_capacity(scsi_device_t *dev, uint8_t *cdb,
 					  uint8_t *buffer, uint32_t *len);
-extern int	scsi_device_present(uint8_t id);
-extern int	scsi_device_valid(uint8_t id);
-extern int	scsi_device_cdb_length(uint8_t id);
-extern void	scsi_device_command(uint8_t id, int cdb_len, uint8_t *cdb);
-extern void	scsi_device_command_phase0(uint8_t scsi_id, uint8_t *cdb);
-extern void	scsi_device_command_phase1(uint8_t scsi_id);
-extern int32_t	*scsi_device_get_buf_len(uint8_t scsi_id);
+extern int	scsi_device_present(scsi_device_t *dev);
+extern int	scsi_device_valid(scsi_device_t *dev);
+extern int	scsi_device_cdb_length(scsi_device_t *dev);
+extern void	scsi_device_command_phase0(scsi_device_t *dev, uint8_t *cdb);
+extern void	scsi_device_command_phase1(scsi_device_t *dev);
+extern int32_t	*scsi_device_get_buf_len(scsi_device_t *dev);
 
 #endif	/*SCSI_DEVICE_H*/

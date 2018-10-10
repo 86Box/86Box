@@ -26,8 +26,9 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "scsi/scsi_device.h"
 #include "cdrom/cdrom.h"
+#include "scsi/scsi_device.h"
+#include "scsi/scsi_cdrom.h"
 #include "dma.h"
 #include "io.h"
 #include "device.h"
@@ -825,7 +826,7 @@ piix_reset(void *p)
 
     for (i = 0; i < CDROM_NUM; i++) {
 	if (cdrom_drives[i].bus_type == CDROM_BUS_ATAPI)
-		cdrom_reset(cdrom[i]);
+		scsi_cdrom_reset(scsi_cdrom[i]);
     }
     for (i = 0; i < ZIP_NUM; i++) {
 	if (zip_drives[i].bus_type == ZIP_BUS_ATAPI)

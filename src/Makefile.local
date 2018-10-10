@@ -106,8 +106,7 @@ STUFF	:=
 # -DENABLE_BUSLOGIC_LOG=N sets logging level at N.
 # -DENABLE_NCR5380_LOG=N sets logging level at N.
 # -DENABLE_NCR53C810_LOG=N sets logging level at N.
-# -DENABLE_SCSI_LOG=N sets logging level at N.
-# -DENABLE_SCSI_BUS_LOG=N sets logging level at N.
+# -DENABLE_SCSI_CDROM_LOG=N sets logging level at N.
 # -DENABLE_SCSI_DISK_LOG=N sets logging level at N.
 # -DENABLE_X54X_LOG=N sets logging level at N.
 # sound/ logging:

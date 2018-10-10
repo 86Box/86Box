@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM null interface for unmounted
  *		guest CD-ROM drives.
  *
- * Version:	@(#)cdrom_null.c	1.0.8	2018/10/02
+ * Version:	@(#)cdrom_null.c	1.0.9	2018/10/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -134,7 +134,7 @@ null_media_type_id(uint8_t id)
 void
 cdrom_set_null_handler(uint8_t id)
 {
-    cdrom[id]->handler = &null_cdrom;
+    cdrom_drives[id].handler = &null_cdrom;
     cdrom_drives[id].host_drive = 0;
     memset(cdrom_image[id].image_path, 0, sizeof(cdrom_image[id].image_path));
 }

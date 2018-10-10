@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.19	2018/10/02
+ * Version:	@(#)win_stbar.c	1.0.20	2018/10/09
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -286,7 +286,7 @@ StatusBarCreateCdromTip(int part)
 	free(sbTips[part]);
 	sbTips[part] = NULL;
     }
-    sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 2);
+    sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 4);
     wcscpy(sbTips[part], tempTip);
 }
 
@@ -882,12 +882,13 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if (!cdrom_image[id].prev_image_path)
 						cdrom_image[id].prev_image_path = (wchar_t *) malloc(1024);
 					wcscpy(cdrom_image[id].prev_image_path, cdrom_image[id].image_path);
-					cdrom[id]->handler->exit(id);
+					cdrom_drives[id].handler->exit(id);
 					cdrom_close_handler(id);
 					memset(cdrom_image[id].image_path, 0, 2048);
 					image_open(id, temp_path);
 					/* Signal media change to the emulated machine. */
-					cdrom_insert(cdrom[id]);
+					if (cdrom_drives[id].insert)
+						cdrom_drives[id].insert(cdrom_drives[id].p);
 					CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
 					cdrom_drives[id].host_drive = (wcslen(cdrom_image[id].image_path) == 0) ? 0 : 200;
 					if (cdrom_drives[id].host_drive == 200) {

@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.80	2018/10/02
+ * Version:	@(#)pc.c	1.0.81	2018/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -665,13 +665,14 @@ again2:
 
     hdc_init(hdc_name);
 
+    scsi_card_init();
+
+    /* These now come after as they now attach to the bus. */
+    scsi_disk_hard_reset();
+
     cdrom_hard_reset();
 
     zip_hard_reset();
-
-    scsi_disk_hard_reset();
-
-    scsi_card_init();
 
     pc_full_speed();
     shadowbios = 0;
@@ -736,6 +737,10 @@ pc_reset_hard_close(void)
 
     cdrom_close();
 
+    zip_close();
+
+    scsi_disk_close();
+
     closeal();
 }
 
@@ -766,14 +771,11 @@ pc_reset_hard_init(void)
     /* This is needed to initialize the serial timer. */
     serial_init();
 
-    cdrom_hard_reset();
-
-    zip_hard_reset();
-
-    scsi_disk_hard_reset();
-
     /* Initialize the actual machine and its basic modules. */
     machine_init();
+
+    /* Reset and reconfigure the Sound Card layer. */
+    sound_card_reset();
 
     /* Reset any ISA memory cards. */
     isamem_reset();	
@@ -811,8 +813,11 @@ pc_reset_hard_init(void)
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
-    /* Reset and reconfigure the Sound Card layer. */
-    sound_card_reset();
+    cdrom_hard_reset();
+
+    zip_hard_reset();
+
+    scsi_disk_hard_reset();
 
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
@@ -917,6 +922,7 @@ pc_close(thread_t *ptr)
     network_close();
 
     sound_cd_thread_end();
+
     cdrom_close();
 
     zip_close();

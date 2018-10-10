@@ -8,7 +8,7 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.21	2018/10/02
+ * Version:	@(#)scsi.c	1.0.22	2018/10/10
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -43,14 +43,8 @@
 #endif
 
 
-scsi_device_t	SCSIDevices[SCSI_ID_MAX];
-char		scsi_fn[SCSI_NUM][512];
-uint16_t	scsi_disk_location[SCSI_NUM];
-
 int		scsi_card_current = 0;
 int		scsi_card_last = 0;
-
-uint32_t	SCSI_BufferLength;
 
 
 typedef const struct {
@@ -81,26 +75,6 @@ static SCSI_CARD scsi_cards[] = {
     { "[VLB] BusLogic BT-445S",	"bt445s",	&buslogic_445s_device,},
     { "",			"",		NULL,		      },
 };
-
-
-#ifdef ENABLE_SCSI_LOG
-int scsi_do_log = ENABLE_SCSI_LOG;
-#endif
-
-
-static void
-scsi_log(const char *fmt, ...)
-{
-#ifdef ENABLE_SCSI_LOG
-    va_list ap;
-
-    if (scsi_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
-    }
-#endif
-}
 
 
 int scsi_card_available(int card)
@@ -159,25 +133,13 @@ void scsi_card_init(void)
     if (!scsi_cards[scsi_card_current].device)
 	return;
 
-    scsi_log("Building SCSI hard disk map...\n");
-    build_scsi_disk_map();
-    scsi_log("Building SCSI CD-ROM map...\n");
-    build_scsi_cdrom_map();
-    scsi_log("Building SCSI ZIP map...\n");
-    build_scsi_zip_map();
+    for (i = 0; i < SCSI_ID_MAX; i++) {
+	if (scsi_devices[i].cmd_buffer)
+		free(scsi_devices[i].cmd_buffer);
+	scsi_devices[i].cmd_buffer = NULL;
 
-    for (i=0; i<SCSI_ID_MAX; i++) {
-	if (scsi_disks[i] != 0xff)
-		SCSIDevices[i].LunType = SCSI_DISK;
-	else if (scsi_cdrom_drives[i] != 0xff)
-		SCSIDevices[i].LunType = SCSI_CDROM;
-	else if (scsi_zip_drives[i] != 0xff)
-		SCSIDevices[i].LunType = SCSI_ZIP;
-	else
-		SCSIDevices[i].LunType = SCSI_NONE;
-	if (SCSIDevices[i].CmdBuffer)
-		free(SCSIDevices[i].CmdBuffer);
-	SCSIDevices[i].CmdBuffer = NULL;
+	memset(&scsi_devices[i], 0, sizeof(scsi_device_t));
+	scsi_devices[i].type = SCSI_NONE;
     }
 
     device_add(scsi_cards[scsi_card_current].device);

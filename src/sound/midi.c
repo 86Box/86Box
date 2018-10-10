@@ -8,7 +8,7 @@
  *
  *		MIDI device core module.
  *
- * Version:	@(#)midi.c	1.0.0	2018/09/06
+ * Version:	@(#)midi.c	1.0.1	2018/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -179,6 +179,11 @@ midi_init(midi_device_t* device)
 void
 midi_close(void)
 {
+    if (midi && midi->m_device) {
+	free(midi->m_device);
+	midi->m_device = NULL;
+    }
+
     if (midi) {
 	free(midi);
 	midi = NULL;

@@ -8,7 +8,7 @@
  *
  *		CD-ROM image support.
  *
- * Version:	@(#)cdrom_image.cc	1.0.1	2018/10/02
+ * Version:	@(#)cdrom_image.cc	1.0.2	2018/10/09
  *
  * Author:	RichardG867,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -138,10 +138,10 @@ cdrom_image_log(const char *format, ...)
 int
 image_audio_callback(uint8_t id, int16_t *output, int len)
 {
-    cdrom_t *dev = cdrom[id];
+    cdrom_drive_t *dev = &cdrom_drives[id];
     int ret = 1;
 
-    if (!cdrom_drives[id].sound_on || (dev->cd_state != CD_PLAYING) || cdrom_image[id].image_is_iso) {
+    if (!dev->sound_on || (dev->cd_state != CD_PLAYING) || cdrom_image[id].image_is_iso) {
 	cdrom_image_log("image_audio_callback(i): Not playing\n", id);
 	if (dev->cd_state == CD_PLAYING)
 		dev->seek_pos += (len >> 11);
@@ -179,7 +179,7 @@ image_audio_callback(uint8_t id, int16_t *output, int len)
 void
 image_audio_stop(uint8_t id)
 {
-    cdrom_t *dev = cdrom[id];
+    cdrom_drive_t *dev = &cdrom_drives[id];
 
     dev->cd_state = CD_STOPPED;
 }
@@ -188,7 +188,7 @@ image_audio_stop(uint8_t id)
 static uint8_t
 image_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
 {
-    cdrom_t *dev = cdrom[id];
+    cdrom_drive_t *dev = &cdrom_drives[id];
     if (!cdimg[id])
 	return 0;
     int number;
@@ -245,7 +245,7 @@ image_playaudio(uint8_t id, uint32_t pos, uint32_t len, int ismsf)
 static void
 image_pause(uint8_t id)
 {
-    cdrom_t *dev = cdrom[id];
+    cdrom_drive_t *dev = &cdrom_drives[id];
 
     if (!cdimg[id] || cdrom_image[id].image_is_iso) return;
     if (dev->cd_state == CD_PLAYING)
@@ -256,7 +256,7 @@ image_pause(uint8_t id)
 static void
 image_resume(uint8_t id)
 {
-    cdrom_t *dev = cdrom[id];
+    cdrom_drive_t *dev = &cdrom_drives[id];
 
     if (!cdimg[id] || cdrom_image[id].image_is_iso)
 	return;
@@ -268,7 +268,7 @@ image_resume(uint8_t id)
 static void
 image_stop(uint8_t id)
 {
-    cdrom_t *dev = cdrom[id];
+    cdrom_drive_t *dev = &cdrom_drives[id];
 
     if (!cdimg[id] || cdrom_image[id].image_is_iso)
 	return;
@@ -322,7 +322,7 @@ image_medium_changed(uint8_t id)
 static uint8_t
 image_getcurrentsubchannel(uint8_t id, uint8_t *b, int msf)
 {
-    cdrom_t *dev = cdrom[id];
+    cdrom_drive_t *dev = &cdrom_drives[id];
     uint8_t ret;
     int pos = 0;
     uint32_t cdpos;
@@ -837,7 +837,7 @@ image_readsector_raw(uint8_t id, uint8_t *buffer, int sector, int ismsf, int cdr
 static uint32_t
 image_size(uint8_t id)
 {
-    cdrom_t *dev = cdrom[id];
+    cdrom_drive_t *dev = &cdrom_drives[id];
 
     return dev->cdrom_capacity;
 }
@@ -987,7 +987,7 @@ image_readtoc_raw(uint8_t id, unsigned char *b, int maxlen)
 static int
 image_status(uint8_t id)
 {
-    cdrom_t *dev = cdrom[id];
+    cdrom_drive_t *dev = &cdrom_drives[id];
 
     if (!cdimg[id])
 	return CD_STATUS_EMPTY;
@@ -1021,7 +1021,7 @@ image_reset(UNUSED(uint8_t id))
 void
 image_close(uint8_t id)
 {
-    cdrom_t *dev = cdrom[id];
+    cdrom_drive_t *dev = &cdrom_drives[id];
 
     dev->cd_state = CD_STOPPED;
     if (cdimg[id]) {
@@ -1034,7 +1034,7 @@ image_close(uint8_t id)
 int
 image_open(uint8_t id, wchar_t *fn)
 {
-    cdrom_t *dev = cdrom[id];
+    cdrom_drive_t *dev = &cdrom_drives[id];
 
     wcscpy(cdrom_image[id].image_path, fn);
 
@@ -1049,14 +1049,14 @@ image_open(uint8_t id, wchar_t *fn)
     if (!cdimg[id]->SetDevice(afn, false)) {
 	image_close(id);
 	cdrom_set_null_handler(id);
-	cdrom_image_log("[f] image_open(): cdrom[%i]->handler = %08X\n", id, cdrom[id]->handler);
+	cdrom_image_log("[f] image_open(): cdrom_drives[%i].handler = %08X\n", id, cdrom_drives[id].handler);
 	return 1;
     }
     dev->cd_state = CD_STOPPED;
     dev->seek_pos = 0;
     dev->cd_buflen = 0;
     dev->cdrom_capacity = image_get_last_block(id) + 1;
-    cdrom[id]->handler = &image_cdrom;
+    cdrom_drives[id].handler = &image_cdrom;
 
     return 0;
 }
@@ -1065,7 +1065,7 @@ image_open(uint8_t id, wchar_t *fn)
 static void
 image_exit(uint8_t id)
 {
-    cdrom_t *dev = cdrom[id];
+    cdrom_drive_t *dev = &cdrom_drives[id];
 
     dev->handler_inited = 0;
 }

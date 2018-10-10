@@ -8,7 +8,7 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.19	2018/07/19
+ * Version:	@(#)win.h	1.0.20	2018/10/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -50,6 +50,8 @@
 #define WM_SHOWSETTINGS		0x8889
 #define WM_PAUSE		0x8890
 #define WM_SENDHWND		0x8891
+#define WM_HARDRESET		0x8892
+#define WM_SHUTDOWN		0x8893
 
 #ifdef USE_VNC
 #define RENDERERS_NUM		5

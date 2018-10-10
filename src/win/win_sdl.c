@@ -12,7 +12,7 @@
  *		we will not use that, but, instead, use a new window which
  *		coverrs the entire desktop.
  *
- * Version:	@(#)win_sdl.c  	1.0.0	2018/05/26
+ * Version:	@(#)win_sdl.c  	1.0.1	2018/10/10
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Michael Drüing, <michael@drueing.de>
@@ -551,7 +551,8 @@ sdl_take_screenshot(const wchar_t *fn)
 	8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
 	PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
-    if ((rgba = (unsigned char *)malloc(width * height * 4)) == NULL) {
+    rgba = (unsigned char *) malloc(width * height * 4);
+    if (rgba == NULL) {
 	sdl_log("[sdl_take_screenshot] Unable to Allocate RGBA Bitmap Memory");
 	fclose(fp);
 	return;
@@ -564,7 +565,8 @@ sdl_take_screenshot(const wchar_t *fn)
 	return;
     }
 
-    if ((b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * height)) == NULL) {
+    b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * height);
+    if (b_rgb == NULL) {
 	sdl_log("[sdl_take_screenshot] Unable to Allocate RGB Bitmap Memory");
 	free(rgba);
 	fclose(fp);
