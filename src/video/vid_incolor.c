@@ -8,7 +8,7 @@
  *
  *		Hercules InColor emulation.
  *
- * Version:	@(#)vid_incolor.c	1.0.12	2018/10/10
+ * Version:	@(#)vid_incolor.c	1.0.13	2018/10/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1061,7 +1061,12 @@ incolor_close(void *priv)
 {
     incolor_t *dev = (incolor_t *)priv;
 
-    free(dev->vram);
+    if (!dev)
+	return;
+
+    if (dev->vram)
+	free(dev->vram);
+
     free(dev);
 }
 

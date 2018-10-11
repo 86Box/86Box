@@ -8,7 +8,7 @@
  *
  *		Definitions for the generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.h	1.0.11	2018/10/09
+ * Version:	@(#)scsi_device.h	1.0.12	2018/10/11
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -129,6 +129,7 @@
 #define SENSE_UNIT_ATTENTION	6
 
 /* SCSI Additional Sense Codes */
+#define ASC_NONE			0x00
 #define ASC_AUDIO_PLAY_OPERATION	0x00
 #define ASC_NOT_READY			0x04
 #define ASC_ILLEGAL_OPCODE		0x20
@@ -144,6 +145,7 @@
 #define ASC_DATA_PHASE_ERROR		0x4b
 #define ASC_ILLEGAL_MODE_FOR_THIS_TRACK	0x64
 
+#define ASCQ_NONE				0x00
 #define ASCQ_UNIT_IN_PROCESS_OF_BECOMING_READY	0x01
 #define ASCQ_INITIALIZING_COMMAND_REQUIRED	0x02
 #define ASCQ_CAPACITY_DATA_CHANGED		0x09
@@ -360,13 +362,10 @@ extern int	mode_select_terminate(int force);
 extern int	mode_select_write(uint8_t val);
 
 extern uint8_t	*scsi_device_sense(scsi_device_t *dev);
-extern void	scsi_device_type_data(scsi_device_t *dev, uint8_t *type, uint8_t *rmb);
 extern int64_t	scsi_device_get_callback(scsi_device_t *dev);
 extern void	scsi_device_request_sense(scsi_device_t *dev, uint8_t *buffer,
 					  uint8_t alloc_length);
 extern void	scsi_device_reset(scsi_device_t *dev);
-extern int	scsi_device_read_capacity(scsi_device_t *dev, uint8_t *cdb,
-					  uint8_t *buffer, uint32_t *len);
 extern int	scsi_device_present(scsi_device_t *dev);
 extern int	scsi_device_valid(scsi_device_t *dev);
 extern int	scsi_device_cdb_length(scsi_device_t *dev);

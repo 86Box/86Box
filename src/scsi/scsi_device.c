@@ -8,7 +8,7 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.19	2018/10/10
+ * Version:	@(#)scsi_device.c	1.0.20	2018/10/11
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -96,22 +96,6 @@ void scsi_device_reset(scsi_device_t *dev)
 {
     if (dev->reset)
 	dev->reset(dev->p);
-}
-
-
-void scsi_device_type_data(scsi_device_t *dev, uint8_t *type, uint8_t *rmb)
-{
-    *rmb = dev->type >> 8;
-    *type = dev->type & 0xff;
-}
-
-
-int scsi_device_read_capacity(scsi_device_t *dev, uint8_t *cdb, uint8_t *buffer, uint32_t *len)
-{
-    if (dev->read_capacity)
-	return dev->read_capacity(dev->p, cdb, buffer, len);
-    else
-	return 0;
 }
 
 

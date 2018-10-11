@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.23	2018/10/09
+ * Version:	@(#)scsi_x54x.c	1.0.24	2018/10/11
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -163,31 +163,48 @@ target_check(uint8_t id)
 static uint8_t
 completion_code(uint8_t *sense)
 {
-    switch (sense[12]) {
-	case 0x00:
-		return(0x00);
+    uint8_t ret = 0xff;
 
-	case 0x20:
-		return(0x01);
+    switch (sense[12]) {
+	case ASC_NONE:
+		ret = 0x00;
+		break;
+
+	case ASC_ILLEGAL_OPCODE:
+	case ASC_INV_FIELD_IN_CMD_PACKET:
+	case ASC_INV_FIELD_IN_PARAMETER_LIST:
+	case ASC_DATA_PHASE_ERROR:
+		ret = 0x01;
+		break;
 
 	case 0x12:
-	case 0x21:
-		return(0x02);
+	case ASC_LBA_OUT_OF_RANGE:
+		ret = 0x02;
+		break;
 
-	case 0x27:
-		return(0x03);
+	case ASC_WRITE_PROTECTED:
+		ret = 0x03;
+		break;
 
 	case 0x14:
 	case 0x16:
-		return(0x04);
+		ret = 0x04;
+		break;
+
+	case ASC_INCOMPATIBLE_FORMAT:
+	case ASC_ILLEGAL_MODE_FOR_THIS_TRACK:
+		ret = 0x0c;
+		break;
 
 	case 0x10:
 	case 0x11:
-		return(0x10);
+		ret = 0x10;
+		break;
 
 	case 0x17:
 	case 0x18:
-		return(0x11);
+		ret = 0x11;
+		break;
 
 	case 0x01:
 	case 0x03:
@@ -209,38 +226,126 @@ completion_code(uint8_t *sense)
 	case 0x47:
 	case 0x48:
 	case 0x49:
-		return(0x20);
+		ret = 0x20;
+		break;
 
 	case 0x15:
 	case 0x02:
-		return(0x40);
+		ret = 0x40;
+		break;
 
-	case 0x04:
-	case 0x28:
+	case 0x25:
+		ret = 0x80;
+		break;
+
+	case ASC_NOT_READY:
+	case ASC_MEDIUM_MAY_HAVE_CHANGED:
 	case 0x29:
-	case 0x2a:
-		return(0xaa);
-
-	default:
+	case ASC_CAPACITY_DATA_CHANGED:
+	case ASC_MEDIUM_NOT_PRESENT:
+		ret = 0xaa;
 		break;
     };
 
-    return(0xff);
+    return(ret);
 }
 
 
 static uint8_t
-x54x_bios_command_08(uint8_t id, uint8_t *buffer)
+x54x_bios_scsi_command(scsi_device_t *dev, uint8_t *cdb, uint8_t *buf, int len, uint32_t addr)
 {
-    uint8_t cdb[12] = { GPCMD_READ_CDROM_CAPACITY, 0,0,0,0,0,0,0,0,0,0,0 };
-    uint8_t rcbuf[8] = { 0,0,0,0,0,0,0,0 };
-    uint32_t len = 0;
-    int i, ret, sc;
-    scsi_device_t *sd = &scsi_devices[id];
+    dev->buffer_length = -1;
 
-    ret = scsi_device_read_capacity(sd, cdb, rcbuf, &len);
-    sc = completion_code(scsi_device_sense(sd));
-    if (ret == 0) return(sc);
+    scsi_device_command_phase0(dev, cdb);
+
+    if (dev->phase == SCSI_PHASE_STATUS)
+	return(completion_code(scsi_device_sense(dev)));
+
+    dev->cmd_buffer = (uint8_t *)malloc(dev->buffer_length);
+
+    if (dev->phase == SCSI_PHASE_DATA_IN) {
+	scsi_device_command_phase1(dev);
+
+	if (len > 0) {
+		if (buf)
+			memcpy(buf, dev->cmd_buffer, dev->buffer_length);
+		else
+			DMAPageWrite(addr, dev->cmd_buffer, dev->buffer_length);
+	}
+    } else if (dev->phase == SCSI_PHASE_DATA_OUT) {
+	if (len > 0) {
+		if (buf)
+			memcpy(dev->cmd_buffer, buf, dev->buffer_length);
+		else
+			DMAPageRead(addr, dev->cmd_buffer, dev->buffer_length);
+	}
+
+	scsi_device_command_phase1(dev);
+    }
+
+    if (dev->cmd_buffer != NULL) {
+	free(dev->cmd_buffer);
+	dev->cmd_buffer = NULL;
+    }
+
+    return(completion_code(scsi_device_sense(dev)));
+}
+
+
+static uint8_t
+x54x_bios_read_capacity(scsi_device_t *sd, uint8_t *buf)
+{
+    uint8_t *cdb;
+    uint8_t ret;
+
+    cdb = (uint8_t *) malloc(12);
+    memset(cdb, 0, 12);
+    cdb[0] = GPCMD_READ_CDROM_CAPACITY;
+
+    memset(buf, 0, 8);
+    ret = x54x_bios_scsi_command(sd, cdb, buf, 8, 0);
+
+    free(cdb);
+
+    return(ret);
+}
+
+
+static uint8_t
+x54x_bios_inquiry(scsi_device_t *sd, uint8_t *buf)
+{
+    uint8_t *cdb;
+    uint8_t ret;
+
+    cdb = (uint8_t *) malloc(12);
+    memset(cdb, 0, 12);
+    cdb[0] = GPCMD_INQUIRY;
+    cdb[4] = 36;
+
+    memset(buf, 0, 36);
+    ret = x54x_bios_scsi_command(sd, cdb, buf, 36, 0);
+
+    free(cdb);
+
+    return(ret);
+}
+
+
+static uint8_t
+x54x_bios_command_08(scsi_device_t *sd, uint8_t *buffer)
+{
+    uint8_t *rcbuf;
+    uint8_t ret;
+    int i;
+
+    memset(buffer, 0x00, 6);
+
+    rcbuf = (uint8_t *) malloc(8);
+    ret = x54x_bios_read_capacity(sd, rcbuf);
+    if (ret) {
+	free(rcbuf);
+	return(ret);
+   }
 
     memset(buffer, 0x00, 6);
     for (i=0; i<4; i++)
@@ -250,32 +355,49 @@ x54x_bios_command_08(uint8_t id, uint8_t *buffer)
     x54x_log("BIOS Command 0x08: %02X %02X %02X %02X %02X %02X\n",
 	buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
 
+    free(rcbuf);
+
     return(0);
 }
 
 
 static int
-x54x_bios_command_15(uint8_t id, uint8_t *buffer)
+x54x_bios_command_15(scsi_device_t *sd, uint8_t *buffer)
 {
-    uint8_t cdb[12] = { GPCMD_READ_CDROM_CAPACITY, 0,0,0,0,0,0,0,0,0,0,0 };
-    uint8_t rcbuf[8] = { 0,0,0,0,0,0,0,0 };
-    uint32_t len = 0;
-    int i, ret, sc;
-    scsi_device_t *sd = &scsi_devices[id];
-
-    ret = scsi_device_read_capacity(sd, cdb, rcbuf, &len);
-    sc = completion_code(scsi_device_sense(sd));
+    uint8_t *inqbuf, *rcbuf;
+    uint8_t ret;
+    int i;
 
     memset(buffer, 0x00, 6);
-    for (i=0; i<4; i++)
-	buffer[i] = (ret == 0) ? 0 : rcbuf[i];
 
-    scsi_device_type_data(sd, &(buffer[4]), &(buffer[5]));
+    inqbuf = (uint8_t *) malloc(36);
+    ret = x54x_bios_inquiry(sd, inqbuf);
+    if (ret) {
+	free(inqbuf);
+	return(ret);
+    }
+
+    buffer[4] = inqbuf[0];
+    buffer[5] = inqbuf[1];
+
+    rcbuf = (uint8_t *) malloc(8);
+    ret = x54x_bios_read_capacity(sd, rcbuf);
+    if (ret) {
+	free(rcbuf);
+	free(inqbuf);
+	return(ret);
+   }
+
+    for (i = 0; i < 4; i++)
+	buffer[i] = rcbuf[i];
 
     x54x_log("BIOS Command 0x15: %02X %02X %02X %02X %02X %02X\n",
 	buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
 
-    return(sc);
+    free(rcbuf);
+    free(inqbuf);
+
+    return(0);
 }
 
 
@@ -283,12 +405,16 @@ x54x_bios_command_15(uint8_t id, uint8_t *buffer)
 static uint8_t
 x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 {
-    uint8_t cdb[12] = { 0,0,0,0,0,0,0,0,0,0,0,0 };
-    scsi_device_t *dev;
-    uint32_t dma_address;
+    const int bios_cmd_to_scsi[18] = { 0, 0, GPCMD_READ_10, GPCMD_WRITE_10, GPCMD_VERIFY_10, 0, 0,
+				       GPCMD_FORMAT_UNIT, 0, 0, 0, 0, GPCMD_SEEK_10, 0, 0, 0,
+				       GPCMD_TEST_UNIT_READY, GPCMD_REZERO_UNIT };
+    uint8_t cdb[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    uint8_t *buf;
+    scsi_device_t *dev = NULL;
+    uint32_t dma_address = 0;
     uint32_t lba;
     int sector_len = cmd->secount;
-    uint8_t ret;
+    uint8_t ret = 0x00;
 
     if (islba)
 	lba = lba32_blk(cmd);
@@ -300,41 +426,44 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
     if ((cmd->id > max_id) || (cmd->lun > 7)) {
 	x54x_log("BIOS Target ID %i or LUN %i are above maximum\n",
 						cmd->id, cmd->lun);
-	return(0x80);
+	ret = 0x80;
     }
 
     if (cmd->lun) {
 	x54x_log("BIOS Target LUN is not 0\n");
-	return(0x80);
+	ret = 0x80;
     }
 
-    /* Get pointer to selected device. */
-    dev = &scsi_devices[cmd->id];
-    dev->buffer_length = 0;
+    if (!ret) {
+	/* Get pointer to selected device. */
+	dev = &scsi_devices[cmd->id];
+	dev->buffer_length = 0;
 
-    if (! scsi_device_present(dev)) {
-	x54x_log("BIOS Target ID %i has no device attached\n", cmd->id);
-	return(0x80);
+	if (dev->cmd_buffer != NULL) {
+		free(dev->cmd_buffer);
+		dev->cmd_buffer = NULL;
+	}
+
+	if (! scsi_device_present(dev)) {
+		x54x_log("BIOS Target ID %i has no device attached\n", cmd->id);
+		ret = 0x80;
+	} else {
+		if ((dev->type == SCSI_REMOVABLE_CDROM) && !x54x->cdrom_boot) {
+			x54x_log("BIOS Target ID %i is CD-ROM on unsupported BIOS\n", cmd->id);
+			return(0x80);
+		} else {
+			dma_address = ADDR_TO_U32(cmd->dma_address);
+
+			x54x_log("BIOS Data Buffer write: length %d, pointer 0x%04X\n",
+				 sector_len, dma_address);
+		}
+	}
     }
 
-    if ((dev->type == SCSI_REMOVABLE_CDROM) && !x54x->cdrom_boot) {
-	x54x_log("BIOS Target ID %i is CD-ROM on unsupported BIOS\n", cmd->id);
-	return(0x80);
-    }
-
-    dma_address = ADDR_TO_U32(cmd->dma_address);
-
-    x54x_log("BIOS Data Buffer write: length %d, pointer 0x%04X\n",
-					sector_len, dma_address);
-
-    if (dev->cmd_buffer != NULL) {
-	free(dev->cmd_buffer);
-	dev->cmd_buffer = NULL;
-    }
-
-    switch(cmd->command) {
+    if (!ret)  switch(cmd->command) {
 	case 0x00:	/* Reset Disk System, in practice it's a nop */
-		return(0);
+		ret = 0x00;
+		break;
 
 	case 0x01:	/* Read Status of Last Operation */
 		target_check(cmd->id);
@@ -355,194 +484,70 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 			    scsi_device_sense(dev), 14);
 		}
 
-		if (dev->cmd_buffer != NULL) {
+		if (dev && (dev->cmd_buffer != NULL)) {
 			free(dev->cmd_buffer);
 			dev->cmd_buffer = NULL;
 		}
 
 		return(0);
+		break;
 
 	case 0x02:	/* Read Desired Sectors to Memory */
-		target_check(cmd->id);
-
-		dev->buffer_length = -1;
-
-		cdb[0] = GPCMD_READ_10;
-		cdb[1] = (cmd->lun & 7) << 5;
-		cdb[2] = (lba >> 24) & 0xff;
-		cdb[3] = (lba >> 16) & 0xff;
-		cdb[4] = (lba >> 8) & 0xff;
-		cdb[5] = lba & 0xff;
-		cdb[7] = 0;
-		cdb[8] = sector_len;
-#if 0
-		x54x_log("BIOS CMD(READ, %08lx, %d)\n", lba, cmd->secount);
-#endif
-
-		scsi_device_command_phase0(dev, cdb);
-
-		if (dev->phase == SCSI_PHASE_STATUS)
-			goto skip_read_phase1;
-
-		dev->cmd_buffer = (uint8_t *)malloc(dev->buffer_length);
-
-		scsi_device_command_phase1(dev);
-		if (sector_len > 0) {
-			x54x_log("BIOS DMA: Reading %i bytes at %08X\n",
-					dev->buffer_length, dma_address);
-			DMAPageWrite(dma_address,
-				     dev->cmd_buffer, dev->buffer_length);
-		}
-
-skip_read_phase1:
-		if (dev->cmd_buffer != NULL) {
-			free(dev->cmd_buffer);
-			dev->cmd_buffer = NULL;
-		}
-
-		return(completion_code(scsi_device_sense(dev)));
-
 	case 0x03:	/* Write Desired Sectors from Memory */
-		target_check(cmd->id);
-
-		dev->buffer_length = -1;
-
-		cdb[0] = GPCMD_WRITE_10;
-		cdb[1] = (cmd->lun & 7) << 5;
-		cdb[2] = (lba >> 24) & 0xff;
-		cdb[3] = (lba >> 16) & 0xff;
-		cdb[4] = (lba >> 8) & 0xff;
-		cdb[5] = lba & 0xff;
-		cdb[7] = 0;
-		cdb[8] = sector_len;
-#if 0
-		x54x_log("BIOS CMD(WRITE, %08lx, %d)\n", lba, cmd->secount);
-#endif
-
-		scsi_device_command_phase0(dev, cdb);
-
-		if (dev->phase == SCSI_PHASE_STATUS)
-			goto skip_write_phase1;
-
-		dev->cmd_buffer = (uint8_t *)malloc(dev->buffer_length);
-
-		if (sector_len > 0) {
-			x54x_log("BIOS DMA: Reading %i bytes at %08X\n",
-					dev->buffer_length, dma_address);
-			DMAPageRead(dma_address,
-				    dev->cmd_buffer, dev->buffer_length);
-		}
-
-		scsi_device_command_phase1(dev);
-
-skip_write_phase1:
-		if (dev->cmd_buffer != NULL) {
-			free(dev->cmd_buffer);
-			dev->cmd_buffer = NULL;
-		}
-
-		return(completion_code(scsi_device_sense(dev)));
-
 	case 0x04:	/* Verify Desired Sectors */
-		target_check(cmd->id);
-
-		cdb[0] = GPCMD_VERIFY_10;
-		cdb[1] = (cmd->lun & 7) << 5;
-		cdb[2] = (lba >> 24) & 0xff;
-		cdb[3] = (lba >> 16) & 0xff;
-		cdb[4] = (lba >> 8) & 0xff;
-		cdb[5] = lba & 0xff;
-		cdb[7] = 0;
-		cdb[8] = sector_len;
-
-		scsi_device_command_phase0(dev, cdb);
-
-		return(completion_code(scsi_device_sense(dev)));
-
-	case 0x05:	/* Format Track, invalid since SCSI has no tracks */
-//FIXME: add a longer delay here --FvK
-		return(1);
-
-	case 0x06:	/* Identify SCSI Devices, in practice it's a nop */
-//FIXME: add a longer delay here --FvK
-		return(0);
-
-	case 0x07:	/* Format Unit */
-		target_check(cmd->id);
-
-		cdb[0] = GPCMD_FORMAT_UNIT;
-		cdb[1] = (cmd->lun & 7) << 5;
-
-		scsi_device_command_phase0(dev, cdb);
-
-		return(completion_code(scsi_device_sense(dev)));
-
-	case 0x08:	/* Read Drive Parameters */
-		target_check(cmd->id);
-
-		dev->buffer_length = 6;
-		dev->cmd_buffer = (uint8_t *)malloc(dev->buffer_length);
-		memset(dev->cmd_buffer, 0x00, dev->buffer_length);
-
-		ret = x54x_bios_command_08(cmd->id, dev->cmd_buffer);
-
-		x54x_log("BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
-		DMAPageWrite(dma_address,
-			     dev->cmd_buffer, 4 /* dev->buffer_length */);
-
-		if (dev->cmd_buffer != NULL) {
-			free(dev->cmd_buffer);
-			dev->cmd_buffer = NULL;
-		}
-
-		return(ret);
-
-	case 0x09:	/* Initialize Drive Pair Characteristics, in practice it's a nop */
-//FIXME: add a longer delay here --FvK
-		return(0);
-
 	case 0x0c:	/* Seek */
 		target_check(cmd->id);
 
-		cdb[0] = GPCMD_SEEK_10;
+		cdb[0] = bios_cmd_to_scsi[cmd->command];
 		cdb[1] = (cmd->lun & 7) << 5;
 		cdb[2] = (lba >> 24) & 0xff;
 		cdb[3] = (lba >> 16) & 0xff;
 		cdb[4] = (lba >> 8) & 0xff;
 		cdb[5] = lba & 0xff;
+		if (cmd->command != 0x0c)
+			cdb[8] = sector_len;
+#if 0
+		x54x_log("BIOS CMD(READ/WRITE/VERIFY, %08lx, %d)\n", lba, cmd->secount);
+#endif
 
-		scsi_device_command_phase0(dev, cdb);
+		ret = x54x_bios_scsi_command(dev, cdb, NULL, sector_len, dma_address);
+		if (cmd->command == 0x0c)
+			ret = !!ret;
+		break;
 
-		return((dev->status == SCSI_STATUS_OK) ? 1 : 0);
-
-	case 0x0d:	/* Alternate Disk Reset, in practice it's a nop */
+	default:
+		x54x_log("BIOS: Unimplemented command: %02X\n", cmd->command);
+	case 0x05:	/* Format Track, invalid since SCSI has no tracks */
+	case 0x0a:	/* ???? */
+	case 0x0b:	/* ???? */
+	case 0x12:	/* ???? */
+	case 0x13:	/* ???? */
 //FIXME: add a longer delay here --FvK
-		return(0);
+		ret = 0x01;
+		break;
 
+	case 0x06:	/* Identify SCSI Devices, in practice it's a nop */
+	case 0x09:	/* Initialize Drive Pair Characteristics, in practice it's a nop */
+	case 0x0d:	/* Alternate Disk Reset, in practice it's a nop */
+	case 0x0e:	/* Read Sector Buffer */
+	case 0x0f:	/* Write Sector Buffer */
+	case 0x14:	/* Controller Diagnostic */
+//FIXME: add a longer delay here --FvK
+		ret = 0x00;
+		break;
+
+	case 0x07:	/* Format Unit */
 	case 0x10:	/* Test Drive Ready */
-		target_check(cmd->id);
-
-		cdb[0] = GPCMD_TEST_UNIT_READY;
-		cdb[1] = (cmd->lun & 7) << 5;
-
-		scsi_device_command_phase0(dev, cdb);
-
-		return(completion_code(scsi_device_sense(dev)));
-
 	case 0x11:	/* Recalibrate */
 		target_check(cmd->id);
 
-		cdb[0] = GPCMD_REZERO_UNIT;
+		cdb[0] = bios_cmd_to_scsi[cmd->command];
 		cdb[1] = (cmd->lun & 7) << 5;
 
-		scsi_device_command_phase0(dev, cdb);
+		ret = x54x_bios_scsi_command(dev, cdb, NULL, sector_len, dma_address);
+		break;
 
-		return(completion_code(scsi_device_sense(dev)));
-
-	case 0x14:	/* Controller Diagnostic */
-//FIXME: add a longer delay here --FvK
-		return(0);
-
+	case 0x08:	/* Read Drive Parameters */
 	case 0x15:	/* Read DASD Type */
 		target_check(cmd->id);
 
@@ -550,25 +555,26 @@ skip_write_phase1:
 		dev->cmd_buffer = (uint8_t *)malloc(dev->buffer_length);
 		memset(dev->cmd_buffer, 0x00, dev->buffer_length);
 
-		ret = x54x_bios_command_15(cmd->id, dev->cmd_buffer);
+		buf = (uint8_t *) malloc(6);
+		if (cmd->command == 0x08)
+			ret = x54x_bios_command_08(dev, buf);
+		else
+			ret = x54x_bios_command_15(dev, buf);
 
 		x54x_log("BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
-		DMAPageWrite(dma_address,
-			     dev->cmd_buffer, 4 /* dev->buffer_length */);
+		DMAPageWrite(dma_address, buf, 4);
+		free(buf);
 
 		if (dev->cmd_buffer != NULL) {
 			free(dev->cmd_buffer);
 			dev->cmd_buffer = NULL;
 		}
 
-		return(ret);
-
-	default:
-		x54x_log("BIOS: Unimplemented command: %02X\n", cmd->command);
-		return(1);
+		break;
     }
 	
-    x54x_log("BIOS Request complete\n");
+    x54x_log("BIOS Request %02X complete: %02X\n", cmd->command, ret);
+    return(ret);
 }
 
 

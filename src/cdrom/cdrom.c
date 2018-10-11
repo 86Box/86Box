@@ -8,7 +8,7 @@
  *
  *		Generic CD-ROM drive core.
  *
- * Version:	@(#)cdrom.c	1.0.0	2018/10/09
+ * Version:	@(#)cdrom.c	1.0.1	2018/10/11
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -160,6 +160,9 @@ void
 cdrom_seek(cdrom_drive_t *dev, uint32_t pos)
 {
     /* cdrom_log("CD-ROM %i: Seek %08X\n", dev->id, pos); */
+    if (!dev)
+	return;
+
     dev->seek_pos   = pos;
     if (dev->handler && dev->handler->stop)
 	dev->handler->stop(dev->id);
@@ -234,6 +237,9 @@ cdrom_close_handler(uint8_t id)
 {
     cdrom_drive_t *dev = &cdrom_drives[id];
 
+    if (!dev)
+	return;
+
     switch (dev->host_drive) {
 	case 200:
 		image_close(id);
@@ -242,6 +248,8 @@ cdrom_close_handler(uint8_t id)
 		null_close(id);
 		break;
     }
+
+    dev->handler = NULL;
 }
 
 

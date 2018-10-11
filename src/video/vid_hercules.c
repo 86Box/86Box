@@ -8,7 +8,7 @@
  *
  *		Hercules emulation.
  *
- * Version:	@(#)vid_hercules.c	1.0.13	2018/10/10
+ * Version:	@(#)vid_hercules.c	1.0.14	2018/10/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -430,7 +430,12 @@ hercules_close(void *priv)
 {
     hercules_t *dev = (hercules_t *)priv;
 
-    free(dev->vram);
+    if (!dev)
+	return;
+
+    if (dev->vram)
+	free(dev->vram);
+
     free(dev);
 }
 

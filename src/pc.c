@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.81	2018/10/10
+ * Version:	@(#)pc.c	1.0.82	2018/10/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -640,7 +640,6 @@ again2:
 	}
     }
 
-    // cpuspeed2 = (AT) ? 2 : 1;
     cpuspeed2 = (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286) ? 2 : 1;
     atfullspeed = 0;
 
@@ -664,15 +663,6 @@ again2:
     sound_init();
 
     hdc_init(hdc_name);
-
-    scsi_card_init();
-
-    /* These now come after as they now attach to the bus. */
-    scsi_disk_hard_reset();
-
-    cdrom_hard_reset();
-
-    zip_hard_reset();
 
     pc_full_speed();
     shadowbios = 0;
