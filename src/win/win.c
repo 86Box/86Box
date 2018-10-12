@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.52	2018/07/28
+ * Version:	@(#)win.c	1.0.53	2018/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -20,6 +20,7 @@
  */
 #define UNICODE
 #include <windows.h>
+#include <shlobj.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -547,7 +548,8 @@ plat_dir_check(wchar_t *path)
 int
 plat_dir_create(wchar_t *path)
 {
-    return((int)CreateDirectory(path, NULL));
+    // return((int)CreateDirectory(path, NULL));
+    return((int)SHCreateDirectory(hwndMain, path));
 }
 
 
