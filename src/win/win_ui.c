@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.32	2018/10/10
+ * Version:	@(#)win_ui.c	1.0.33	2018/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -650,6 +650,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_SHUTDOWN:
 		PostQuitMessage(0);
+		break;
+
+	case WM_CTRLALTDEL:
+		pc_reset(0);
 		break;
 
 	case WM_SYSCOMMAND:
