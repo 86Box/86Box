@@ -8,7 +8,7 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.20	2018/10/11
+ * Version:	@(#)scsi_device.c	1.0.21	2018/10/13
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -86,7 +86,7 @@ uint8_t *scsi_device_sense(scsi_device_t *dev)
 void scsi_device_request_sense(scsi_device_t *dev, uint8_t *buffer, uint8_t alloc_length)
 {
     if (dev->request_sense)
-	dev->request_sense(dev, buffer, alloc_length);
+	dev->request_sense(dev->p, buffer, alloc_length);
     else
 	memcpy(buffer, scsi_null_device_sense, alloc_length);
 }
