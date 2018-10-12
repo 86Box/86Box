@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.82	2018/10/11
+ * Version:	@(#)pc.c	1.0.83	2018/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -426,8 +426,8 @@ usage:
 
 	/* If the specified path does not yet exist,
 	   create it. */
-	if (! plat_dir_check(path))
-		plat_dir_create(path);
+	if (! plat_dir_check(usr_path))
+		plat_dir_create(usr_path);
     }
 
     /* Make sure we have a trailing backslash. */
