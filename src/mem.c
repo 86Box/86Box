@@ -12,7 +12,7 @@
  *		the DYNAMIC_TABLES=1 enables this. Will eventually go
  *		away, either way...
  *
- * Version:	@(#)mem.c	1.0.15	2018/10/06
+ * Version:	@(#)mem.c	1.0.16	2018/10/15
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1305,13 +1305,18 @@ mem_write_nulll(uint32_t addr, uint32_t val, void *p)
 void
 mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 {
+    uint32_t cur_addr;
     start_addr &= ~PAGE_MASK_MASK;
     end_addr = (end_addr + PAGE_MASK_MASK) & ~PAGE_MASK_MASK;	
 
     for (; start_addr <= end_addr; start_addr += (1 << PAGE_MASK_SHIFT)) {
 	uint64_t mask = (uint64_t)1 << ((start_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
 
-	pages[start_addr >> 12].dirty_mask[(start_addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
+	/* Do nothing if the pages array is empty or DMA reads/writes to/from PCI device memory addresses
+	   may crash the emulator. */
+	cur_addr = (start_addr >> 12);
+	if (cur_addr < pages_sz)
+		pages[cur_addr].dirty_mask[(start_addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
     }
 }
 
@@ -1718,7 +1723,8 @@ mem_reset(void)
 	}
     } else {
 	/* 8088/86; maximum address space is 1MB. */
-	m = 256;
+	/* m = 256; */
+	m = 512;	/* This is to accomodate the T1200 which can take up to 2 MB of RAM. */
     }
 
     /*
