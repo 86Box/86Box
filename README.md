@@ -10,6 +10,10 @@ information, see the `LICENSE` file.
 
 The project maintainer is OBattler.
 
+If you need a configuration manager for 86Box, use the [86Box Manager](https://github.com/86Box/86BoxManager), our
+officially endorsed 86Box configuration manager, developed by Overdoze. The
+latest stable version of 86Box Manager is 1.0.0.
+
 Community
 ---------
 We operate an IRC channel and a Discord server for discussing anything related 
