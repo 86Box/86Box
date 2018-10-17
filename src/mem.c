@@ -12,7 +12,7 @@
  *		the DYNAMIC_TABLES=1 enables this. Will eventually go
  *		away, either way...
  *
- * Version:	@(#)mem.c	1.0.17	2018/10/17
+ * Version:	@(#)mem.c	1.0.18	2018/10/17
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1905,10 +1905,7 @@ mem_reset_page_blocks(void)
 
     if (pages == NULL) return;
 
-    for (c = 0; c < ((mem_size * 1024) >> 12); c++) {
-	if (c >= pages_sz)
-		break;
-
+    for (c = 0; c < pages_sz; c++) {
 	pages[c].write_b = mem_write_ramb_page;
 	pages[c].write_w = mem_write_ramw_page;
 	pages[c].write_l = mem_write_raml_page;
