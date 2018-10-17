@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.21	2018/10/09
+ * Version:	@(#)sound.c	1.0.22	2018/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -110,13 +110,11 @@ static const SOUND_CARD sound_cards[] =
 
 #ifdef ENABLE_SOUND_LOG
 int sound_do_log = ENABLE_SOUND_LOG;
-#endif
 
 
 static void
 sound_log(const char *fmt, ...)
 {
-#ifdef ENABLE_SOUND_LOG
     va_list ap;
 
     if (sound_do_log) {
@@ -124,8 +122,10 @@ sound_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define sound_log(fmt, ...)
+#endif
 
 
 int sound_card_available(int card)
@@ -218,27 +218,27 @@ static void sound_cd_thread(void *param)
 
 		for (i = 0; i < CDROM_NUM; i++) {
 			has_audio = 0;
-			if ((cdrom_drives[i].bus_type == CDROM_BUS_DISABLED) || !cdrom_drives[i].handler)
+			if ((cdrom[i].bus_type == CDROM_BUS_DISABLED) || !cdrom[i].ops)
 				continue;
-			if (cdrom_drives[i].handler->audio_callback)
+			if (cdrom[i].ops->audio_callback)
 			{
-				r = cdrom_drives[i].handler->audio_callback(i, cd_buffer[i], CD_BUFLEN*2);
-				has_audio = (cdrom_drives[i].bus_type && cdrom_drives[i].sound_on/* && r*/);
+				r = cdrom[i].ops->audio_callback(&(cdrom[i]), cd_buffer[i], CD_BUFLEN*2);
+				has_audio = (cdrom[i].bus_type && cdrom[i].sound_on/* && r*/);
 			} else
 				continue;
 
 			if (soundon && has_audio) {
-				if (cdrom_drives[i].get_volume) {
-					audio_vol_l = cdrom_drives[i].get_volume(cdrom_drives[i].p, 0);
-					audio_vol_r = cdrom_drives[i].get_volume(cdrom_drives[i].p, 1);
+				if (cdrom[i].get_volume) {
+					audio_vol_l = cdrom[i].get_volume(cdrom[i].p, 0);
+					audio_vol_r = cdrom[i].get_volume(cdrom[i].p, 1);
 				} else {
 					audio_vol_l = 255;
 					audio_vol_r = 255;
 				}
 
-				if (cdrom_drives[i].get_channel) {
-					channel_select[0] = cdrom_drives[i].get_channel(cdrom_drives[i].p, 0);
-					channel_select[1] = cdrom_drives[i].get_channel(cdrom_drives[i].p, 1);
+				if (cdrom[i].get_channel) {
+					channel_select[0] = cdrom[i].get_channel(cdrom[i].p, 0);
+					channel_select[1] = cdrom[i].get_channel(cdrom[i].p, 1);
 				} else {
 					channel_select[0] = 1;
 					channel_select[1] = 2;
@@ -365,7 +365,7 @@ void sound_init(void)
 
 	for (i = 0; i < CDROM_NUM; i++)
 	{
-		if (cdrom_drives[i].bus_type != CDROM_BUS_DISABLED)
+		if (cdrom[i].bus_type != CDROM_BUS_DISABLED)
 		{
 			available_cdrom_drives++;
 		}
@@ -528,10 +528,10 @@ void sound_cd_thread_reset(void)
 	int available_cdrom_drives = 0;
 
 	for (i = 0; i < CDROM_NUM; i++) {
-		if (cdrom_drives[i].handler && cdrom_drives[i].handler->audio_stop)
-	        	cdrom_drives[i].handler->audio_stop(i);
+		if (cdrom[i].ops && cdrom[i].ops->audio_stop)
+	        	cdrom[i].ops->audio_stop(&(cdrom[i]));
 
-		if (cdrom_drives[i].bus_type != CDROM_BUS_DISABLED)
+		if (cdrom[i].bus_type != CDROM_BUS_DISABLED)
 			available_cdrom_drives++;
 	}
 

@@ -10,7 +10,7 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)intel_piix.c	1.0.18	2018/10/02
+ * Version:	@(#)intel_piix.c	1.0.19	2018/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -69,22 +69,22 @@ static void	piix_bus_master_writel(uint16_t port, uint32_t val, void *priv);
 
 #ifdef ENABLE_PIIX_LOG
 int piix_do_log = ENABLE_PIIX_LOG;
-#endif
 
 
 static void
-piix_log(const char *format, ...)
+piix_log(const char *fmt, ...)
 {
-#ifdef ENABLE_PIIX_LOG
     va_list ap;
 
     if (piix_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define piix_log(fmt, ...)
+#endif
 
 
 static void
@@ -427,7 +427,9 @@ static void
 piix_bus_master_write(uint16_t port, uint8_t val, void *priv)
 {
     piix_busmaster_t *dev = (piix_busmaster_t *) priv;
+#ifdef ENABLE_PIIX_LOG
     int channel = (port & 8) ? 1 : 0;
+#endif
 
     piix_log("PIIX Bus master BYTE  write: %04X       %02X\n", port, val);
 
@@ -610,11 +612,15 @@ static int
 piix_bus_master_dma_op(int channel, uint8_t *data, int transfer_length, int out, void *priv)
 {
     piix_busmaster_t *dev = (piix_busmaster_t *) priv;
+#ifdef ENABLE_PIIX_LOG
     char *sop;
+#endif
 
     int force_end = 0, buffer_pos = 0;
 
+#ifdef ENABLE_PIIX_LOG
     sop = out ? "Writ" : "Read";
+#endif
 
     if (!(dev->status & 1))
 	return 2;                                    /*DMA disabled*/
@@ -825,7 +831,7 @@ piix_reset(void *p)
     int i = 0;
 
     for (i = 0; i < CDROM_NUM; i++) {
-	if (cdrom_drives[i].bus_type == CDROM_BUS_ATAPI)
+	if (cdrom[i].bus_type == CDROM_BUS_ATAPI)
 		scsi_cdrom_reset(scsi_cdrom[i]);
     }
     for (i = 0; i < ZIP_NUM; i++) {

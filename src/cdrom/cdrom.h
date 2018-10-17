@@ -8,7 +8,7 @@
  *
  *		Generic CD-ROM drive core header.
  *
- * Version:	@(#)cdrom.h	1.0.14	2018/10/09
+ * Version:	@(#)cdrom.h	1.0.15	2018/10/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -30,6 +30,14 @@
 
 #define CDROM_IMAGE 200
 
+/* This is so that if/when this is changed to something else,
+   changing this one define will be enough. */
+#define CDROM_EMPTY !dev->host_drive
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 enum {
     CDROM_BUS_DISABLED = 0,
@@ -39,85 +47,91 @@ enum {
 };
 
 
+/* To shut up the GCC compilers. */
+struct cdrom;
+
+
+/* Define the various CD-ROM drive operations (ops). */
 typedef struct {
-    int		(*ready)(uint8_t id);
-    int		(*medium_changed)(uint8_t id);
-    int		(*media_type_id)(uint8_t id);
+    int		(*ready)(struct cdrom *dev);
+    int		(*medium_changed)(struct cdrom *dev);
+    int		(*media_type_id)(struct cdrom *dev);
 
-    int		(*audio_callback)(uint8_t id, int16_t *output, int len);
-    void	(*audio_stop)(uint8_t id);
-    int		(*readtoc)(uint8_t id, uint8_t *b, uint8_t starttrack, int msf, int maxlen, int single);
-    int		(*readtoc_session)(uint8_t id, uint8_t *b, int msf, int maxlen);
-    int		(*readtoc_raw)(uint8_t id, uint8_t *b, int maxlen);
-    uint8_t	(*getcurrentsubchannel)(uint8_t id, uint8_t *b, int msf);
-    int		(*readsector_raw)(uint8_t id, uint8_t *buffer, int sector, int ismsf, int cdrom_sector_type, int cdrom_sector_flags, int *len);
-    uint8_t	(*playaudio)(uint8_t id, uint32_t pos, uint32_t len, int ismsf);
-    void	(*pause)(uint8_t id);
-    void	(*resume)(uint8_t id);
-    uint32_t	(*size)(uint8_t id);
-    int		(*status)(uint8_t id);
-    void	(*stop)(uint8_t id);
-    void	(*exit)(uint8_t id);
-} CDROM;
+    int		(*audio_callback)(struct cdrom *dev, int16_t *output, int len);
+    void	(*audio_stop)(struct cdrom *dev);
+    int		(*readtoc)(struct cdrom *dev, uint8_t *b, uint8_t starttrack, int msf, int maxlen, int single);
+    int		(*readtoc_session)(struct cdrom *dev, uint8_t *b, int msf, int maxlen);
+    int		(*readtoc_raw)(struct cdrom *dev, uint8_t *b, int maxlen);
+    uint8_t	(*getcurrentsubchannel)(struct cdrom *dev, uint8_t *b, int msf);
+    int		(*readsector_raw)(struct cdrom *dev, uint8_t *buffer, int sector, int ismsf, int cdrom_sector_type, int cdrom_sector_flags, int *len);
+    uint8_t	(*playaudio)(struct cdrom *dev, uint32_t pos, uint32_t len, int ismsf);
+    void	(*pause)(struct cdrom *dev);
+    void	(*resume)(struct cdrom *dev);
+    uint32_t	(*size)(struct cdrom *dev);
+    int		(*status)(struct cdrom *dev);
+    void	(*stop)(struct cdrom *dev);
+    void	(*exit)(struct cdrom *dev);
+} cdrom_ops_t;
 
-typedef struct {
-    CDROM *handler;
-
-    int16_t cd_buffer[BUF_SIZE];
-
-    uint8_t speed, ide_channel,
-	    pad, bus_mode;	/* Bit 0 = PIO suported;
+typedef struct cdrom {
+    uint8_t id,
+	    speed, cur_speed,
+	    ide_channel, scsi_device_id,
+	    bus_type,		/* 0 = ATAPI, 1 = SCSI */
+	    bus_mode,		/* Bit 0 = PIO suported;
 				   Bit 1 = DMA supportd. */
-    int host_drive, prev_host_drive,
-	cd_status, prev_status,
-	cd_buflen, cd_state,
-	handler_inited, cur_speed,
-	id;
+	    sound_on;
 
-    unsigned int bus_type,	/* 0 = ATAPI, 1 = SCSI */
-		 scsi_device_id, sound_on;
+    FILE* img_fp;
+    int img_is_iso,
+	host_drive, prev_host_drive,
+	cd_status, prev_status,
+	cd_buflen, cd_state;
 
     uint32_t seek_pos, seek_diff,
-	     cd_end, cdrom_capacity;
+	     cd_end,
+	     cdrom_capacity;
+
+    const cdrom_ops_t	*ops;
+
+    void	*image;
 
     void	*p;
 
     void	(*insert)(void *p);
+    void	(*close)(void *p);
     uint32_t	(*get_volume)(void *p, int channel);
     uint32_t	(*get_channel)(void *p, int channel);
-    void	(*close)(void *p);
-} cdrom_drive_t;
 
-typedef struct {
     wchar_t image_path[1024],
 	    *prev_image_path;
-    FILE* image;
 
-    int image_is_iso;
-} cdrom_image_t;
-
-
-extern cdrom_drive_t	cdrom_drives[CDROM_NUM];
-extern cdrom_image_t	cdrom_image[CDROM_NUM];
+    int16_t cd_buffer[BUF_SIZE];
+} cdrom_t;
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+extern cdrom_t	cdrom[CDROM_NUM];
 
 extern int	cdrom_lba_to_msf_accurate(int lba);
-extern double	cdrom_get_short_seek(cdrom_drive_t *dev);
-extern double	cdrom_get_long_seek(cdrom_drive_t *dev);
-extern double	cdrom_seek_time(cdrom_drive_t *dev);
-extern void	cdrom_seek(cdrom_drive_t *dev, uint32_t pos);
-extern int	cdrom_playing_completed(cdrom_drive_t *dev);
+extern double	cdrom_seek_time(cdrom_t *dev);
+extern void	cdrom_seek(cdrom_t *dev, uint32_t pos);
+extern int	cdrom_playing_completed(cdrom_t *dev);
 
 extern void     cdrom_close_handler(uint8_t id);
-extern void     cdrom_close(void);
-extern void	cdrom_update_cdb(uint8_t *cdb, int lba_pos, int number_of_blocks);
+extern void	cdrom_insert(uint8_t id);
+extern void	cdrom_eject(uint8_t id);
+extern void	cdrom_reload(uint8_t id);
+
+extern int	cdrom_image_open(cdrom_t *dev, const wchar_t *fn);
+extern void	cdrom_image_close(cdrom_t *dev);
+extern void	cdrom_image_reset(cdrom_t *dev);
+
+extern void	cdrom_update_cdb(uint8_t *cdb, int lba_pos,
+				 int number_of_blocks);
 
 extern int	find_cdrom_for_scsi_id(uint8_t scsi_id);
 
+extern void     cdrom_close(void);
 extern void	cdrom_global_init(void);
 extern void	cdrom_global_reset(void);
 extern void	cdrom_hard_reset(void);

@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.64	2018/10/08
+ * Version:	@(#)win_settings.c	1.0.65	2018/10/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -120,7 +120,7 @@ static int temp_fdd_turbo[FDD_NUM];
 static int temp_fdd_check_bpb[FDD_NUM];
 
 /* Other removable devices category */
-static cdrom_drive_t temp_cdrom_drives[CDROM_NUM];
+static cdrom_t temp_cdrom[CDROM_NUM];
 static zip_drive_t temp_zip_drives[ZIP_NUM];
 
 static HWND hwndParentDialog, hwndChildDialog;
@@ -281,12 +281,12 @@ win_settings_init(void)
     }
 
     /* Other removable devices category */
-    memcpy(temp_cdrom_drives, cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
+    memcpy(temp_cdrom, cdrom, CDROM_NUM * sizeof(cdrom_t));
     for (i = 0; i < CDROM_NUM; i++) {
-	if (cdrom_drives[i].bus_type == CDROM_BUS_ATAPI)
-		ide_tracking |= (2 << (cdrom_drives[i].ide_channel << 3));
-	else if (cdrom_drives[i].bus_type == CDROM_BUS_SCSI)
-		scsi_tracking[cdrom_drives[i].scsi_device_id >> 3] |= (1 << ((cdrom_drives[i].scsi_device_id & 0x07) << 3));
+	if (cdrom[i].bus_type == CDROM_BUS_ATAPI)
+		ide_tracking |= (2 << (cdrom[i].ide_channel << 3));
+	else if (cdrom[i].bus_type == CDROM_BUS_SCSI)
+		scsi_tracking[cdrom[i].scsi_device_id >> 3] |= (1 << ((cdrom[i].scsi_device_id & 0x07) << 3));
     }
     memcpy(temp_zip_drives, zip_drives, ZIP_NUM * sizeof(zip_drive_t));
     for (i = 0; i < ZIP_NUM; i++) {
@@ -372,7 +372,7 @@ win_settings_changed(void)
     }
 
     /* Other removable devices category */
-    i = i || memcmp(cdrom_drives, temp_cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
+    i = i || memcmp(cdrom, temp_cdrom, CDROM_NUM * sizeof(cdrom_t));
     i = i || memcmp(zip_drives, temp_zip_drives, ZIP_NUM * sizeof(zip_drive_t));
 
     i = i || !!temp_deviceconfig;
@@ -482,7 +482,7 @@ win_settings_save(void)
     }
 
     /* Removable devices category */
-    memcpy(cdrom_drives, temp_cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
+    memcpy(cdrom, temp_cdrom, CDROM_NUM * sizeof(cdrom_t));
     memcpy(zip_drives, temp_zip_drives, ZIP_NUM * sizeof(zip_drive_t));
 
     /* Mark configuration as changed. */
@@ -3435,22 +3435,22 @@ win_settings_cdrom_drives_recalc_list(HWND hwndList)
    lvI.stateMask = lvI.iSubItem = lvI.state = 0;
 
     for (i = 0; i < 4; i++) {
-	fsid = combo_id_to_format_string_id(temp_cdrom_drives[i].bus_type);
+	fsid = combo_id_to_format_string_id(temp_cdrom[i].bus_type);
 
 	lvI.iSubItem = 0;
-	switch (temp_cdrom_drives[i].bus_type) {
+	switch (temp_cdrom[i].bus_type) {
 		case CDROM_BUS_DISABLED:
 		default:
 			lvI.pszText = plat_get_string(fsid);
 			lvI.iImage = 0;
 			break;
 		case CDROM_BUS_ATAPI:
-			wsprintf(szText, plat_get_string(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
+			wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].ide_channel >> 1, temp_cdrom[i].ide_channel & 1);
 			lvI.pszText = szText;
 			lvI.iImage = 1;
 			break;
 		case CDROM_BUS_SCSI:
-			wsprintf(szText, plat_get_string(fsid), temp_cdrom_drives[i].scsi_device_id);
+			wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].scsi_device_id);
 			lvI.pszText = szText;
 			lvI.iImage = 1;
 			break;
@@ -3462,10 +3462,10 @@ win_settings_cdrom_drives_recalc_list(HWND hwndList)
 		return FALSE;
 
 	lvI.iSubItem = 1;
-	if (temp_cdrom_drives[i].bus_type == CDROM_BUS_DISABLED)
+	if (temp_cdrom[i].bus_type == CDROM_BUS_DISABLED)
 		lvI.pszText = plat_get_string(IDS_2112);
 	else {
-		wsprintf(szText, L"%ix", temp_cdrom_drives[i].speed);
+		wsprintf(szText, L"%ix", temp_cdrom[i].speed);
 		lvI.pszText = szText;
 	}
 	lvI.iItem = i;
@@ -3698,21 +3698,21 @@ win_settings_cdrom_drives_update_item(HWND hwndList, int i)
     lvI.iSubItem = 0;
     lvI.iItem = i;
 
-    fsid = combo_id_to_format_string_id(temp_cdrom_drives[i].bus_type);
+    fsid = combo_id_to_format_string_id(temp_cdrom[i].bus_type);
 
-    switch (temp_cdrom_drives[i].bus_type) {
+    switch (temp_cdrom[i].bus_type) {
 	case CDROM_BUS_DISABLED:
 	default:
 		lvI.pszText = plat_get_string(fsid);
 		lvI.iImage = 0;
 		break;
 	case CDROM_BUS_ATAPI:
-		wsprintf(szText, plat_get_string(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
+		wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].ide_channel >> 1, temp_cdrom[i].ide_channel & 1);
 		lvI.pszText = szText;
 		lvI.iImage = 1;
 		break;
 	case CDROM_BUS_SCSI:
-		wsprintf(szText, plat_get_string(fsid), temp_cdrom_drives[i].scsi_device_id);
+		wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].scsi_device_id);
 		lvI.pszText = szText;
 		lvI.iImage = 1;
 		break;
@@ -3722,10 +3722,10 @@ win_settings_cdrom_drives_update_item(HWND hwndList, int i)
 	return;
 
     lvI.iSubItem = 1;
-    if (temp_cdrom_drives[i].bus_type == CDROM_BUS_DISABLED)
+    if (temp_cdrom[i].bus_type == CDROM_BUS_DISABLED)
 	lvI.pszText = plat_get_string(IDS_2112);
     else {
-	wsprintf(szText, L"%ix", temp_cdrom_drives[i].speed);
+	wsprintf(szText, L"%ix", temp_cdrom[i].speed);
 	lvI.pszText = szText;
     }
     lvI.iItem = i;
@@ -3824,7 +3824,7 @@ static void cdrom_recalc_location_controls(HWND hdlg, int assign_id)
     int i = 0;
     HWND h;
 
-    int bus = temp_cdrom_drives[lv1_current_sel].bus_type;
+    int bus = temp_cdrom[lv1_current_sel].bus_type;
 
     for (i = IDT_1741; i < (IDT_1742 + 1); i++) {
 	h = GetDlgItem(hdlg, i);
@@ -3847,7 +3847,7 @@ static void cdrom_recalc_location_controls(HWND hdlg, int assign_id)
     } else {
 	ShowWindow(h, SW_SHOW);
 	EnableWindow(h, TRUE);
-	SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[lv1_current_sel].speed - 1, 0);
+	SendMessage(h, CB_SETCURSEL, temp_cdrom[lv1_current_sel].speed - 1, 0);
     }
 
     h = GetDlgItem(hdlg, IDT_1758);
@@ -3866,12 +3866,12 @@ static void cdrom_recalc_location_controls(HWND hdlg, int assign_id)
 		EnableWindow(h, TRUE);
 
 		if (assign_id)
-			temp_cdrom_drives[lv1_current_sel].ide_channel = next_free_ide_channel();
+			temp_cdrom[lv1_current_sel].ide_channel = next_free_ide_channel();
 
 		h = GetDlgItem(hdlg, IDC_COMBO_CD_CHANNEL_IDE);
 		ShowWindow(h, SW_SHOW);
 		EnableWindow(h, TRUE);
-		SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[lv1_current_sel].ide_channel, 0);
+		SendMessage(h, CB_SETCURSEL, temp_cdrom[lv1_current_sel].ide_channel, 0);
 		break;
 	case CDROM_BUS_SCSI:		/* SCSI */
 		h = GetDlgItem(hdlg, IDT_1741);
@@ -3879,12 +3879,12 @@ static void cdrom_recalc_location_controls(HWND hdlg, int assign_id)
 		EnableWindow(h, TRUE);
 
 		if (assign_id)
-			next_free_scsi_id((uint8_t *) &temp_cdrom_drives[lv1_current_sel].scsi_device_id);
+			next_free_scsi_id((uint8_t *) &temp_cdrom[lv1_current_sel].scsi_device_id);
 
 		h = GetDlgItem(hdlg, IDC_COMBO_CD_ID);
 		ShowWindow(h, SW_SHOW);
 		EnableWindow(h, TRUE);
-		SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[lv1_current_sel].scsi_device_id, 0);
+		SendMessage(h, CB_SETCURSEL, temp_cdrom[lv1_current_sel].scsi_device_id, 0);
 		break;
     }
 }
@@ -3987,20 +3987,20 @@ zip_recalc_location_controls(HWND hdlg, int assign_id)
 static void
 cdrom_track(uint8_t id)
 {
-    if (temp_cdrom_drives[id].bus_type == CDROM_BUS_ATAPI)
-	ide_tracking |= (2 << (temp_cdrom_drives[id].ide_channel << 3));
-    else if (temp_cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
-	scsi_tracking[temp_cdrom_drives[id].scsi_device_id >> 3] |= (1 << (temp_cdrom_drives[id].scsi_device_id & 0x07));
+    if (temp_cdrom[id].bus_type == CDROM_BUS_ATAPI)
+	ide_tracking |= (2 << (temp_cdrom[id].ide_channel << 3));
+    else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI)
+	scsi_tracking[temp_cdrom[id].scsi_device_id >> 3] |= (1 << (temp_cdrom[id].scsi_device_id & 0x07));
 }
 
 
 static void
 cdrom_untrack(uint8_t id)
 {
-    if (temp_cdrom_drives[id].bus_type == CDROM_BUS_ATAPI)
-	ide_tracking &= ~(2 << (temp_cdrom_drives[id].ide_channel << 3));
-    else if (temp_cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
-	scsi_tracking[temp_cdrom_drives[id].scsi_device_id >> 3] &= ~(1 << (temp_cdrom_drives[id].scsi_device_id & 0x07));
+    if (temp_cdrom[id].bus_type == CDROM_BUS_ATAPI)
+	ide_tracking &= ~(2 << (temp_cdrom[id].ide_channel << 3));
+    else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI)
+	scsi_tracking[temp_cdrom[id].scsi_device_id >> 3] &= ~(1 << (temp_cdrom[id].scsi_device_id & 0x07));
 }
 
 
@@ -4157,7 +4157,7 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 
 		h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
 
-		switch (temp_cdrom_drives[lv1_current_sel].bus_type) {
+		switch (temp_cdrom[lv1_current_sel].bus_type) {
 			case CDROM_BUS_DISABLED:
 			default:
 				b = 0;
@@ -4224,7 +4224,7 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 
 			h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
 
-			switch (temp_cdrom_drives[lv1_current_sel].bus_type) {
+			switch (temp_cdrom[lv1_current_sel].bus_type) {
 				case CDROM_BUS_DISABLED:
 				default:
 					b = 0;
@@ -4298,13 +4298,13 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 						b2 = CDROM_BUS_SCSI;
 						break;
 				}
-				if (b2 == temp_cdrom_drives[lv1_current_sel].bus_type)
+				if (b2 == temp_cdrom[lv1_current_sel].bus_type)
 					break;
 				cdrom_untrack(lv1_current_sel);
-				assign = (temp_cdrom_drives[lv1_current_sel].bus_type == b2) ? 0 : 1;
-				if (temp_cdrom_drives[lv1_current_sel].bus_type == CDROM_BUS_DISABLED)
-					temp_cdrom_drives[lv1_current_sel].speed = 8;
-				temp_cdrom_drives[lv1_current_sel].bus_type = b2;
+				assign = (temp_cdrom[lv1_current_sel].bus_type == b2) ? 0 : 1;
+				if (temp_cdrom[lv1_current_sel].bus_type == CDROM_BUS_DISABLED)
+					temp_cdrom[lv1_current_sel].speed = 8;
+				temp_cdrom[lv1_current_sel].bus_type = b2;
 				cdrom_recalc_location_controls(hdlg, assign);
 				cdrom_track(lv1_current_sel);
 				h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
@@ -4314,7 +4314,7 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 			case IDC_COMBO_CD_ID:
 				h = GetDlgItem(hdlg, IDC_COMBO_CD_ID);
 				cdrom_untrack(lv1_current_sel);
-				temp_cdrom_drives[lv1_current_sel].scsi_device_id = SendMessage(h, CB_GETCURSEL, 0, 0);
+				temp_cdrom[lv1_current_sel].scsi_device_id = SendMessage(h, CB_GETCURSEL, 0, 0);
 				cdrom_track(lv1_current_sel);
 				h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
 				win_settings_cdrom_drives_update_item(h, lv1_current_sel);
@@ -4323,7 +4323,7 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 			case IDC_COMBO_CD_CHANNEL_IDE:
 				h = GetDlgItem(hdlg, IDC_COMBO_CD_CHANNEL_IDE);
 				cdrom_untrack(lv1_current_sel);
-				temp_cdrom_drives[lv1_current_sel].ide_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
+				temp_cdrom[lv1_current_sel].ide_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
 				cdrom_track(lv1_current_sel);
 				h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
 				win_settings_cdrom_drives_update_item(h, lv1_current_sel);
@@ -4331,7 +4331,7 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 
 			case IDC_COMBO_CD_SPEED:
 				h = GetDlgItem(hdlg, IDC_COMBO_CD_SPEED);
-				temp_cdrom_drives[lv1_current_sel].speed = SendMessage(h, CB_GETCURSEL, 0, 0) + 1;
+				temp_cdrom[lv1_current_sel].speed = SendMessage(h, CB_GETCURSEL, 0, 0) + 1;
 				h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
 				win_settings_cdrom_drives_update_item(h, lv1_current_sel);
 				break;

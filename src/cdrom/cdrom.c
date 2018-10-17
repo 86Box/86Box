@@ -8,7 +8,7 @@
  *
  *		Generic CD-ROM drive core.
  *
- * Version:	@(#)cdrom.c	1.0.1	2018/10/11
+ * Version:	@(#)cdrom.c	1.0.2	2018/10/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -23,9 +23,10 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
+#include "../config.h"
 #include "cdrom.h"
 #include "cdrom_image.h"
-#include "cdrom_null.h"
+#include "../plat.h"
 #include "../sound/sound.h"
 
 
@@ -33,50 +34,50 @@
 #define MAX_SEEK	      333333
 
 
-cdrom_image_t	cdrom_image[CDROM_NUM];
-cdrom_drive_t	cdrom_drives[CDROM_NUM];
+cdrom_t	cdrom[CDROM_NUM];
+
 
 #ifdef ENABLE_CDROM_LOG
-int cdrom_do_log = ENABLE_CDROM_LOG;
-#endif
+int		cdrom_do_log = ENABLE_CDROM_LOG;
 
 
-static void
-cdrom_log(const char *format, ...)
+void
+cdrom_log(const char *fmt, ...)
 {
-#ifdef ENABLE_CDROM_LOG
     va_list ap;
 
     if (cdrom_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define cdrom_log(fmt, ...)
+#endif
 
 
 int
 cdrom_lba_to_msf_accurate(int lba)
 {
-    int temp_pos;
+    int pos;
     int m, s, f;
 
-    temp_pos = lba + 150;
-    f = temp_pos % 75;
-    temp_pos -= f;
-    temp_pos /= 75;
-    s = temp_pos % 60;
-    temp_pos -= s;
-    temp_pos /= 60;
-    m = temp_pos;
+    pos = lba + 150;
+    f = pos % 75;
+    pos -= f;
+    pos /= 75;
+    s = pos % 60;
+    pos -= s;
+    pos /= 60;
+    m = pos;
 
     return ((m << 16) | (s << 8) | f);
 }
 
 
-double
-cdrom_get_short_seek(cdrom_drive_t *dev)
+static double
+cdrom_get_short_seek(cdrom_t *dev)
 {
     switch(dev->cur_speed) {
 	case 0:
@@ -107,8 +108,8 @@ cdrom_get_short_seek(cdrom_drive_t *dev)
 }
 
 
-double
-cdrom_get_long_seek(cdrom_drive_t *dev)
+static double
+cdrom_get_long_seek(cdrom_t *dev)
 {
     switch(dev->cur_speed) {
 	case 0:
@@ -140,7 +141,7 @@ cdrom_get_long_seek(cdrom_drive_t *dev)
 
 
 double
-cdrom_seek_time(cdrom_drive_t *dev)
+cdrom_seek_time(cdrom_t *dev)
 {
     uint32_t diff = dev->seek_diff;
     double sd = (double) (MAX_SEEK - MIN_SEEK);
@@ -157,28 +158,35 @@ cdrom_seek_time(cdrom_drive_t *dev)
 
 
 void
-cdrom_seek(cdrom_drive_t *dev, uint32_t pos)
+cdrom_seek(cdrom_t *dev, uint32_t pos)
 {
     /* cdrom_log("CD-ROM %i: Seek %08X\n", dev->id, pos); */
     if (!dev)
 	return;
 
     dev->seek_pos   = pos;
-    if (dev->handler && dev->handler->stop)
-	dev->handler->stop(dev->id);
+    if (dev->ops && dev->ops->stop)
+	dev->ops->stop(dev);
 }
 
 
 int
-cdrom_playing_completed(cdrom_drive_t *dev)
+cdrom_playing_completed(cdrom_t *dev)
 {
     dev->prev_status = dev->cd_status;
-    dev->cd_status = dev->handler->status(dev->id);
+
+    if (dev->ops && dev->ops->status)
+	dev->cd_status = dev->ops->status(dev);
+    else {
+	dev->cd_status = CD_STATUS_EMPTY;
+	return 0;
+    }
+
     if (((dev->prev_status == CD_STATUS_PLAYING) || (dev->prev_status == CD_STATUS_PAUSED)) &&
 	((dev->cd_status != CD_STATUS_PLAYING) && (dev->cd_status != CD_STATUS_PAUSED)))
 	return 1;
-    else
-	return 0;
+
+    return 0;
 }
 
 
@@ -187,44 +195,51 @@ void
 cdrom_global_init(void)
 {
     /* Clear the global data. */
-    memset(cdrom_drives, 0x00, sizeof(cdrom_drives));
+    memset(cdrom, 0x00, sizeof(cdrom));
 }
 
 
 static void
-cdrom_drive_reset(cdrom_drive_t *drv)
+cdrom_drive_reset(cdrom_t *dev)
 {
-    drv->p = NULL;
-    drv->insert = NULL;
-    drv->get_volume = NULL;
-    drv->get_channel = NULL;
-    drv->close = NULL;
+    dev->p = NULL;
+    dev->insert = NULL;
+    dev->close = NULL;
+    dev->get_volume = NULL;
+    dev->get_channel = NULL;
 }
 
 
 void
 cdrom_hard_reset(void)
 {
-    int c;
-    cdrom_drive_t *drv;
+    cdrom_t *dev;
+    int i;
 
-    for (c = 0; c < CDROM_NUM; c++) {
-	if (cdrom_drives[c].bus_type) {
-		cdrom_log("CDROM hard_reset drive=%d\n", c);
+    for (i = 0; i < CDROM_NUM; i++) {
+	dev = &cdrom[i];
+	if (dev->bus_type) {
+		cdrom_log("CDROM %i: hard_reset\n", i);
 
-		drv = &cdrom_drives[c];
-		drv->id = c;
+		dev->id = i;
 
-		cdrom_drive_reset(drv);
+		cdrom_drive_reset(dev);
 
-		if ((drv->bus_type == CDROM_BUS_ATAPI) || (drv->bus_type == CDROM_BUS_SCSI))
-			scsi_cdrom_drive_reset(c);
+		switch(dev->bus_type) {
+			case CDROM_BUS_ATAPI:
+			case CDROM_BUS_SCSI:
+				scsi_cdrom_drive_reset(i);
+				break;
 
-		if (drv->host_drive == 200) {
-			image_open(c, cdrom_image[c].image_path);
-			image_reset(c);
-		} else
-			cdrom_null_open(c);
+			default:
+				break;
+		}
+
+
+		if (dev->host_drive == 200) {
+			cdrom_image_open(dev, dev->image_path);
+			cdrom_image_reset(dev);
+		}
 	}
     }
 
@@ -233,38 +248,110 @@ cdrom_hard_reset(void)
 
 
 void
-cdrom_close_handler(uint8_t id)
+cdrom_close(void)
 {
-    cdrom_drive_t *dev = &cdrom_drives[id];
+    cdrom_t *dev;
+    int i;
 
-    if (!dev)
-	return;
+    for (i = 0; i < CDROM_NUM; i++) {
+	dev = &cdrom[i];
 
-    switch (dev->host_drive) {
-	case 200:
-		image_close(id);
-		break;
-	default:
-		null_close(id);
-		break;
+	if (dev->ops && dev->ops->exit)
+		dev->ops->exit(dev);
+
+	dev->ops = NULL;
+
+	if (dev->close)
+		dev->close(dev->p);
+
+	cdrom_drive_reset(dev);
     }
-
-    dev->handler = NULL;
 }
 
 
+/* Signal disc change to the emulated machine. */
 void
-cdrom_close(void)
+cdrom_insert(uint8_t id)
 {
-    int c;
+    cdrom_t *dev = &cdrom[id];
 
-    for (c = 0; c < CDROM_NUM; c++) {
-	if (cdrom_drives[c].handler)
-		cdrom_close_handler(c);
-
-	if (cdrom_drives[c].close)
-		cdrom_drives[c].close(cdrom_drives[c].p);
-
-	cdrom_drive_reset(&cdrom_drives[c]);
+    if (dev->bus_type) {
+	if (dev->insert)
+		dev->insert(dev->p);
     }
+}
+
+
+/* The mechanics of ejecting a CD-ROM from a drive. */
+void
+cdrom_eject(uint8_t id)
+{
+    cdrom_t *dev = &cdrom[id];
+
+    /* This entire block should be in cdrom.c/cdrom_eject(dev*) ... */
+    if (dev->host_drive == 0) {
+	/* Switch from empty to empty. Do nothing. */
+	return;
+    }
+
+    if (dev->prev_image_path) {
+	free(dev->prev_image_path);
+	dev->prev_image_path = NULL;
+    }
+
+    if (dev->host_drive == 200) {
+	dev->prev_image_path = (wchar_t *) malloc(1024);
+	wcscpy(dev->prev_image_path, dev->image_path);
+    }
+
+    dev->prev_host_drive = dev->host_drive;
+    dev->host_drive = 0;
+
+    dev->ops->exit(dev);
+    dev->ops = NULL;
+    memset(dev->image_path, 0, sizeof(dev->image_path));
+
+    cdrom_insert(id);
+
+    plat_cdrom_ui_update(id, 0);
+
+    config_save();
+}
+
+
+/* The mechanics of re-loading a CD-ROM drive. */
+void
+cdrom_reload(uint8_t id)
+{
+    cdrom_t *dev = &cdrom[id];
+
+    if ((dev->host_drive == dev->prev_host_drive) ||
+	(dev->prev_host_drive == 0) || (dev->host_drive != 0)) {
+	/* Switch from empty to empty. Do nothing. */
+	return;
+    }
+
+    if (dev->ops && dev->ops->exit)
+	dev->ops->exit(dev);
+    dev->ops = NULL;
+    memset(dev->image_path, 0, sizeof(dev->image_path));
+
+    if (dev->prev_host_drive == 200) {
+	/* Reload a previous image. */
+	wcscpy(dev->image_path, dev->prev_image_path);
+	free(dev->prev_image_path);
+	dev->prev_image_path = NULL;
+	cdrom_image_open(dev, dev->image_path);
+
+	cdrom_insert(id);
+
+	if (wcslen(dev->image_path) == 0)
+		dev->host_drive = 0;
+	  else
+		dev->host_drive = 200;
+    }
+
+    plat_cdrom_ui_update(id, 1);
+
+    config_save();
 }

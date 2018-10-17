@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.129	2018/10/12
+# Version:	@(#)Makefile.mingw	1.0.130	2018/10/17
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -471,7 +471,7 @@ HDDOBJ		:= hdd.o \
 		    hdc_xtide.o hdc_ide.o
 
 CDROMOBJ	:= cdrom.o \
-		    cdrom_dosbox.o cdrom_image.o cdrom_null.o
+		    cdrom_dosbox.o cdrom_image.o
 
 ZIPOBJ		:= zip.o
 

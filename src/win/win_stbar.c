@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.20	2018/10/09
+ * Version:	@(#)win_stbar.c	1.0.21	2018/10/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -41,7 +41,6 @@
 #include "../cdrom/cdrom.h"
 #include "../disk/zip.h"
 #include "../cdrom/cdrom_image.h"
-#include "../cdrom/cdrom_null.h"
 #include "../scsi/scsi_disk.h"
 #include "../network/network.h"
 #include "../video/video.h"
@@ -153,13 +152,13 @@ StatusBarCreateCdromSubmenu(HMENU m, int id)
     AppendMenu(m, MF_STRING, IDM_CDROM_IMAGE | id,
 	       plat_get_string(IDS_2089));
 
-    if (! cdrom_drives[id].sound_on)
+    if (! cdrom[id].sound_on)
 	CheckMenuItem(m, IDM_CDROM_MUTE | id, MF_CHECKED);
 
-    if (cdrom_drives[id].host_drive == 200)
+    if (cdrom[id].host_drive == 200)
 	CheckMenuItem(m, IDM_CDROM_IMAGE | id, MF_CHECKED);
     else {
-	cdrom_drives[id].host_drive = 0;
+	cdrom[id].host_drive = 0;
 	CheckMenuItem(m, IDM_CDROM_EMPTY | id, MF_CHECKED);
     }
 }
@@ -269,16 +268,16 @@ StatusBarCreateCdromTip(int part)
     WCHAR *szText;
     int id;
     int drive = sb_part_meanings[part] & 0xf;
-    int bus = cdrom_drives[drive].bus_type;
+    int bus = cdrom[drive].bus_type;
 
     id = IDS_5377 + (bus - 1);
     szText = plat_get_string(id);
 
-    if (cdrom_drives[drive].host_drive == 200) {
-	if (wcslen(cdrom_image[drive].image_path) == 0)
+    if (cdrom[drive].host_drive == 200) {
+	if (wcslen(cdrom[drive].image_path) == 0)
 		_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, plat_get_string(IDS_2057));
 	else
-		_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, cdrom_image[drive].image_path);
+		_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, cdrom[drive].image_path);
     } else
 	_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, plat_get_string(IDS_2057));
 
@@ -518,14 +517,14 @@ ui_sb_update_panes(void)
     }
     for (i=0; i<CDROM_NUM; i++) {
 	/* Could be Internal or External IDE.. */
-	if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI) &&
+	if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&
 	    !(hdint || !memcmp(hdc_name, "ide", 3)))
 		continue;
 
-	if ((cdrom_drives[i].bus_type == CDROM_BUS_SCSI) &&
+	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) &&
 	    (scsi_card_current == 0))
 		continue;
-	if (cdrom_drives[i].bus_type != 0)
+	if (cdrom[i].bus_type != 0)
 		sb_parts++;
     }
     for (i=0; i<ZIP_NUM; i++) {
@@ -581,13 +580,13 @@ ui_sb_update_panes(void)
     }
     for (i=0; i<CDROM_NUM; i++) {
 	/* Could be Internal or External IDE.. */
-	if ((cdrom_drives[i].bus_type == CDROM_BUS_ATAPI) &&
+	if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&
 	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
 		continue;
 	}
-	if ((cdrom_drives[i].bus_type == CDROM_BUS_SCSI) && (scsi_card_current == 0))
+	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && (scsi_card_current == 0))
 		continue;
-	if (cdrom_drives[i].bus_type != 0) {
+	if (cdrom[i].bus_type != 0) {
 		edge += SB_ICON_WIDTH;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = SB_CDROM | i;
@@ -681,8 +680,8 @@ ui_sb_update_panes(void)
 
 		case SB_CDROM:		/* CD-ROM */
 			id = sb_part_meanings[i] & 0xf;
-			if (cdrom_drives[id].host_drive == 200)
-				sb_part_icons[i] = (wcslen(cdrom_image[id].image_path) == 0) ? 128 : 0;
+			if (cdrom[id].host_drive == 200)
+				sb_part_icons[i] = (wcslen(cdrom[id].image_path) == 0) ? 128 : 0;
 			else
 				sb_part_icons[i] = 128;
 			sb_part_icons[i] |= 32;
@@ -854,8 +853,8 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if ((part == 0xff) || (sb_menu_handles == NULL))
 						break;
 
-				cdrom_drives[id].sound_on ^= 1;
-				CheckMenuItem(sb_menu_handles[part], IDM_CDROM_MUTE | id, cdrom_drives[id].sound_on ? MF_UNCHECKED : MF_CHECKED);
+				cdrom[id].sound_on ^= 1;
+				CheckMenuItem(sb_menu_handles[part], IDM_CDROM_MUTE | id, cdrom[id].sound_on ? MF_UNCHECKED : MF_CHECKED);
 				config_save();
 				sound_cd_thread_reset();
 				break;
@@ -876,22 +875,23 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if ((part == 0xff) || (sb_menu_handles == NULL))
 						break;
 
-				if (!file_dlg_w_st(hwnd, IDS_2075, cdrom_image[id].image_path, 0)) {
-					cdrom_drives[id].prev_host_drive = cdrom_drives[id].host_drive;
+				if (!file_dlg_w_st(hwnd, IDS_2075, cdrom[id].image_path, 0)) {
+					cdrom[id].prev_host_drive = cdrom[id].host_drive;
 					wcscpy(temp_path, wopenfilestring);
-					if (!cdrom_image[id].prev_image_path)
-						cdrom_image[id].prev_image_path = (wchar_t *) malloc(1024);
-					wcscpy(cdrom_image[id].prev_image_path, cdrom_image[id].image_path);
-					cdrom_drives[id].handler->exit(id);
-					cdrom_close_handler(id);
-					memset(cdrom_image[id].image_path, 0, 2048);
-					image_open(id, temp_path);
+					if (!cdrom[id].prev_image_path)
+						cdrom[id].prev_image_path = (wchar_t *) malloc(1024);
+					wcscpy(cdrom[id].prev_image_path, cdrom[id].image_path);
+					if (cdrom[id].ops && cdrom[id].ops->exit)
+						cdrom[id].ops->exit(&(cdrom[id]));
+					cdrom[id].ops = NULL;
+					memset(cdrom[id].image_path, 0, 2048);
+					cdrom_image_open(&(cdrom[id]), temp_path);
 					/* Signal media change to the emulated machine. */
-					if (cdrom_drives[id].insert)
-						cdrom_drives[id].insert(cdrom_drives[id].p);
+					if (cdrom[id].insert)
+						cdrom[id].insert(cdrom[id].p);
 					CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
-					cdrom_drives[id].host_drive = (wcslen(cdrom_image[id].image_path) == 0) ? 0 : 200;
-					if (cdrom_drives[id].host_drive == 200) {
+					cdrom[id].host_drive = (wcslen(cdrom[id].image_path) == 0) ? 0 : 200;
+					if (cdrom[id].host_drive == 200) {
 						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_CHECKED);
 						ui_sb_update_icon_state(SB_CDROM | id, 0);
 					} else {

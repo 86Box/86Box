@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.h	1.0.0	2018/10/09
+ * Version:	@(#)scsi_cdrom.h	1.0.1	2018/10/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -27,7 +27,7 @@ typedef struct {
     /* Common block. */
     mode_sense_pages_t ms_pages_saved;
 
-    cdrom_drive_t *drv;
+    cdrom_t *drv;
 
     uint8_t *buffer,
 	    atapi_cdb[16],

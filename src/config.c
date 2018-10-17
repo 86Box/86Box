@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.57	2018/10/07
+ * Version:	@(#)config.c	1.0.58	2018/10/17
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -112,22 +112,22 @@ static list_t	config_head;
 
 #ifdef ENABLE_CONFIG_LOG
 int config_do_log = ENABLE_CONFIG_LOG;
-#endif
 
 
 static void
-config_log(const char *format, ...)
+config_log(const char *fmt, ...)
 {
-#ifdef ENABLE_CONFIG_LOG
     va_list ap;
 
     if (config_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define config_log(fmt, ...)
+#endif
 
 
 static section_t *
@@ -1046,46 +1046,47 @@ load_other_removable_devices(void)
     char s[512];
     unsigned int board = 0, dev = 0;
     wchar_t *wp;
-    int c;
+    int c, d = 0;
 
     memset(temp, 0x00, sizeof(temp));
     for (c=0; c<CDROM_NUM; c++) {
 	sprintf(temp, "cdrom_%02i_host_drive", c+1);
-	cdrom_drives[c].host_drive = config_get_int(cat, temp, 0);
-	cdrom_drives[c].prev_host_drive = cdrom_drives[c].host_drive;
+	cdrom[c].host_drive = config_get_int(cat, temp, 0);
+	cdrom[c].prev_host_drive = cdrom[c].host_drive;
 
 	sprintf(temp, "cdrom_%02i_parameters", c+1);
 	p = config_get_string(cat, temp, NULL);
 	if (p != NULL)
-		sscanf(p, "%01u, %s", &cdrom_drives[c].sound_on, s);
+		sscanf(p, "%01u, %s", &d, s);
 	  else
-		sscanf("0, none", "%01u, %s", &cdrom_drives[c].sound_on, s);
-	cdrom_drives[c].bus_type = hdd_string_to_bus(s, 1);
+		sscanf("0, none", "%01u, %s", &d, s);
+	cdrom[c].sound_on = d;
+	cdrom[c].bus_type = hdd_string_to_bus(s, 1);
 
 	sprintf(temp, "cdrom_%02i_speed", c+1);
-	cdrom_drives[c].speed = config_get_int(cat, temp, 8);
+	cdrom[c].speed = config_get_int(cat, temp, 8);
 
 	/* Default values, needed for proper operation of the Settings dialog. */
-	cdrom_drives[c].ide_channel = cdrom_drives[c].scsi_device_id = c + 2;
+	cdrom[c].ide_channel = cdrom[c].scsi_device_id = c + 2;
 
 	sprintf(temp, "cdrom_%02i_ide_channel", c+1);
-	if (cdrom_drives[c].bus_type == CDROM_BUS_ATAPI) {
+	if (cdrom[c].bus_type == CDROM_BUS_ATAPI) {
 		sprintf(tmp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
 		p = config_get_string(cat, temp, tmp2);
 		sscanf(p, "%01u:%01u", &board, &dev);
 		board &= 3;
 		dev &= 1;
-		cdrom_drives[c].ide_channel = (board<<1)+dev;
+		cdrom[c].ide_channel = (board<<1)+dev;
 
-		if (cdrom_drives[c].ide_channel > 7)
-			cdrom_drives[c].ide_channel = 7;
+		if (cdrom[c].ide_channel > 7)
+			cdrom[c].ide_channel = 7;
 	} else {
 		sprintf(temp, "cdrom_%02i_scsi_id", c+1);
-		if (cdrom_drives[c].bus_type == CDROM_BUS_SCSI) {
-			cdrom_drives[c].scsi_device_id = config_get_int(cat, temp, c+2);
+		if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
+			cdrom[c].scsi_device_id = config_get_int(cat, temp, c+2);
 	
-			if (cdrom_drives[c].scsi_device_id > 15)
-				cdrom_drives[c].scsi_device_id = 15;
+			if (cdrom[c].scsi_device_id > 15)
+				cdrom[c].scsi_device_id = 15;
 		} else
 			config_delete_var(cat, temp);
 	}
@@ -1107,20 +1108,20 @@ load_other_removable_devices(void)
 		 * with the EXE path.  Just strip
 		 * that off for now...
 		 */
-		wcsncpy(cdrom_image[c].image_path, &wp[wcslen(usr_path)], sizeof_w(cdrom_image[c].image_path));
+		wcsncpy(cdrom[c].image_path, &wp[wcslen(usr_path)], sizeof_w(cdrom[c].image_path));
 	} else
 #endif
-	wcsncpy(cdrom_image[c].image_path, wp, sizeof_w(cdrom_image[c].image_path));
+	wcsncpy(cdrom[c].image_path, wp, sizeof_w(cdrom[c].image_path));
 
-	if (cdrom_drives[c].host_drive < 'A')
-		cdrom_drives[c].host_drive = 0;
+	if (cdrom[c].host_drive && (cdrom[c].host_drive != 200))
+		cdrom[c].host_drive = 0;
 
-	if ((cdrom_drives[c].host_drive == 0x200) &&
-	    (wcslen(cdrom_image[c].image_path) == 0))
-		cdrom_drives[c].host_drive = 0;
+	if ((cdrom[c].host_drive == 0x200) &&
+	    (wcslen(cdrom[c].image_path) == 0))
+		cdrom[c].host_drive = 0;
 
 	/* If the CD-ROM is disabled, delete all its variables. */
-	if (cdrom_drives[c].bus_type == CDROM_BUS_DISABLED) {
+	if (cdrom[c].bus_type == CDROM_BUS_DISABLED) {
 		sprintf(temp, "cdrom_%02i_host_drive", c+1);
 		config_delete_var(cat, temp);
 
@@ -1231,8 +1232,7 @@ config_load(void)
     config_log("Loading config file '%ls'..\n", cfg_path);
 
     memset(hdd, 0, sizeof(hard_disk_t));
-    memset(cdrom_drives, 0, sizeof(cdrom_drive_t) * CDROM_NUM);
-    memset(cdrom_image, 0, sizeof(cdrom_image_t) * CDROM_NUM);
+    memset(cdrom, 0, sizeof(cdrom_t) * CDROM_NUM);
 #ifdef USE_IOCTL
     memset(cdrom_ioctl, 0, sizeof(cdrom_ioctl_t) * CDROM_NUM);
 #endif
@@ -1813,51 +1813,50 @@ save_other_removable_devices(void)
 
     for (c=0; c<CDROM_NUM; c++) {
 	sprintf(temp, "cdrom_%02i_host_drive", c+1);
-	if ((cdrom_drives[c].bus_type == 0) ||
-	    (cdrom_drives[c].host_drive < 'A') || ((cdrom_drives[c].host_drive > 'Z') && (cdrom_drives[c].host_drive != 200))) {
+	if ((cdrom[c].bus_type == 0) || (cdrom[c].host_drive != 200)) {
 		config_delete_var(cat, temp);
 	} else {
-		config_set_int(cat, temp, cdrom_drives[c].host_drive);
+		config_set_int(cat, temp, cdrom[c].host_drive);
 	}
 
 	sprintf(temp, "cdrom_%02i_speed", c+1);
-	if ((cdrom_drives[c].bus_type == 0) || (cdrom_drives[c].speed == 8)) {
+	if ((cdrom[c].bus_type == 0) || (cdrom[c].speed == 8)) {
 		config_delete_var(cat, temp);
 	} else {
-		config_set_int(cat, temp, cdrom_drives[c].speed);
+		config_set_int(cat, temp, cdrom[c].speed);
 	}
 
 	sprintf(temp, "cdrom_%02i_parameters", c+1);
-	if (cdrom_drives[c].bus_type == 0) {
+	if (cdrom[c].bus_type == 0) {
 		config_delete_var(cat, temp);
 	} else {
-		sprintf(tmp2, "%u, %s", cdrom_drives[c].sound_on,
-			hdd_bus_to_string(cdrom_drives[c].bus_type, 1));
+		sprintf(tmp2, "%u, %s", cdrom[c].sound_on,
+			hdd_bus_to_string(cdrom[c].bus_type, 1));
 		config_set_string(cat, temp, tmp2);
 	}
 
 	sprintf(temp, "cdrom_%02i_ide_channel", c+1);
-	if (cdrom_drives[c].bus_type != CDROM_BUS_ATAPI)
+	if (cdrom[c].bus_type != CDROM_BUS_ATAPI)
 		config_delete_var(cat, temp);
 	else {
-		sprintf(tmp2, "%01u:%01u", cdrom_drives[c].ide_channel>>1,
-					cdrom_drives[c].ide_channel & 1);
+		sprintf(tmp2, "%01u:%01u", cdrom[c].ide_channel>>1,
+					cdrom[c].ide_channel & 1);
 		config_set_string(cat, temp, tmp2);
 	}
 
 	sprintf(temp, "cdrom_%02i_scsi_id", c + 1);
-	if (cdrom_drives[c].bus_type != CDROM_BUS_SCSI) {
+	if (cdrom[c].bus_type != CDROM_BUS_SCSI) {
 		config_delete_var(cat, temp);
 	} else {
-		config_set_int(cat, temp, cdrom_drives[c].scsi_device_id);
+		config_set_int(cat, temp, cdrom[c].scsi_device_id);
 	}
 
 	sprintf(temp, "cdrom_%02i_image_path", c + 1);
-	if ((cdrom_drives[c].bus_type == 0) ||
-	    (wcslen(cdrom_image[c].image_path) == 0)) {
+	if ((cdrom[c].bus_type == 0) ||
+	    (wcslen(cdrom[c].image_path) == 0)) {
 		config_delete_var(cat, temp);
 	} else {
-		config_set_wstring(cat, temp, cdrom_image[c].image_path);
+		config_set_wstring(cat, temp, cdrom[c].image_path);
 	}
     }
 

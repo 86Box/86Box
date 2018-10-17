@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.26	2018/02/14
+ * Version:	@(#)plat.h	1.0.27	2018/10/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -104,14 +104,7 @@ extern void	do_stop(void);
 
 
 /* Platform-specific device support. */
-extern uint8_t	host_cdrom_drive_available[26];
-extern uint8_t	host_cdrom_drive_available_num;
-
-#ifdef USE_IOCTL
-extern void	cdrom_init_host_drives(void);
-#endif
-extern void	cdrom_eject(uint8_t id);
-extern void	cdrom_reload(uint8_t id);
+extern void	plat_cdrom_ui_update(uint8_t id, uint8_t reload);
 extern void	zip_eject(uint8_t id);
 extern void	zip_reload(uint8_t id);
 extern int      ioctl_open(uint8_t id, char d);

@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.50	2018/10/10
+ * Version:	@(#)hdc_ide.c	1.0.51	2018/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -140,13 +140,11 @@ static void	ide_callback(void *priv);
 
 #ifdef ENABLE_IDE_LOG
 int ide_do_log = ENABLE_IDE_LOG;
-#endif
 
 
 static void
 ide_log(const char *fmt, ...)
 {
-#ifdef ENABLE_IDE_LOG
     va_list ap;
 
     if (ide_do_log) {
@@ -154,8 +152,10 @@ ide_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define ide_log(fmt, ...)
+#endif
 
 
 uint8_t
@@ -2427,8 +2427,8 @@ secondary_ide_check(void)
 		secondary_zips++;
     }
     for (i=0; i<CDROM_NUM; i++) {
-	if ((cdrom_drives[i].ide_channel >= 2) && (cdrom_drives[i].ide_channel <= 3) &&
-	    (cdrom_drives[i].bus_type == CDROM_BUS_ATAPI))
+	if ((cdrom[i].ide_channel >= 2) && (cdrom[i].ide_channel <= 3) &&
+	    (cdrom[i].bus_type == CDROM_BUS_ATAPI))
 		secondary_cdroms++;
     }
     if (!secondary_zips && !secondary_cdroms)

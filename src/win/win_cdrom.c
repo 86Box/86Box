@@ -8,7 +8,7 @@
  *
  *		Handle the platform-side of CDROM drives.
  *
- * Version:	@(#)win_cdrom.c	1.0.10	2018/10/09
+ * Version:	@(#)win_cdrom.c	1.0.10	2018/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -32,8 +32,6 @@
 #include "../scsi/scsi_device.h"
 #include "../cdrom/cdrom.h"
 #include "../disk/zip.h"
-#include "../cdrom/cdrom_image.h"
-#include "../cdrom/cdrom_null.h"
 #include "../scsi/scsi_disk.h"
 #include "../plat.h"
 #include "../ui.h"
@@ -41,86 +39,24 @@
 
 
 void
-cdrom_eject(uint8_t id)
+plat_cdrom_ui_update(uint8_t id, uint8_t reload)
 {
-    cdrom_drive_t *drv = &cdrom_drives[id];
-    cdrom_image_t *img = &cdrom_image[id];
+    cdrom_t *drv = &cdrom[id];
 
     if (drv->host_drive == 0) {
-	/* Switch from empty to empty. Do nothing. */
-	return;
+	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_CHECKED);
+	drv->host_drive = 0;
+	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_UNCHECKED);
+	ui_sb_update_icon_state(SB_CDROM|id, 1);
+    } else {
+	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_UNCHECKED);
+	drv->host_drive = 200;
+	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_CHECKED);
+	ui_sb_update_icon_state(SB_CDROM|id, 0);
     }
 
-    if (img->prev_image_path) {
-	free(img->prev_image_path);
-	img->prev_image_path = NULL;
-    }
-
-    if (drv->host_drive == 200) {
-	img->prev_image_path = (wchar_t *) malloc(1024);
-	wcscpy(img->prev_image_path, img->image_path);
-    }
-    drv->prev_host_drive = drv->host_drive;
-    drv->handler->exit(id);
-    cdrom_close_handler(id);
-    memset(img->image_path, 0, 2048);
-    cdrom_null_open(id);
-    if (drv->insert) {
-	/* Signal disc change to the emulated machine. */
-	drv->insert(drv->p);
-    }
-
-    ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_UNCHECKED);
-    drv->host_drive=0;
-    ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_CHECKED);
-    ui_sb_update_icon_state(SB_CDROM|id, 1);
-    ui_sb_enable_menu_item(SB_CDROM|id, IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
+    ui_sb_enable_menu_item(SB_CDROM|id, IDM_CDROM_RELOAD | id, MF_BYCOMMAND | (reload ? MF_GRAYED : MF_ENABLED));
     ui_sb_update_tip(SB_CDROM|id);
-
-    config_save();
-}
-
-
-void
-cdrom_reload(uint8_t id)
-{
-    cdrom_drive_t *drv = &cdrom_drives[id];
-    cdrom_image_t *img = &cdrom_image[id];
-
-    if ((drv->host_drive == drv->prev_host_drive) || !drv->prev_host_drive || drv->host_drive) {
-	/* Switch from empty to empty. Do nothing. */
-	return;
-    }
-
-    cdrom_close_handler(id);
-    memset(img->image_path, 0, 2048);
-
-    if (drv->prev_host_drive == 200) {
-	wcscpy(img->image_path, img->prev_image_path);
-	free(img->prev_image_path);
-	img->prev_image_path = NULL;
-	image_open(id, img->image_path);
-	if (drv->insert) {
-		/* Signal disc change to the emulated machine. */
-		drv->insert(drv->p);
-	}
-	if (wcslen(img->image_path) == 0) {
-		ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_CHECKED);
-		drv->host_drive = 0;
-		ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_UNCHECKED);
-		ui_sb_update_icon_state(SB_CDROM|id, 1);
-	} else {
-		ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_UNCHECKED);
-		drv->host_drive = 200;
-		ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_CHECKED);
-		ui_sb_update_icon_state(SB_CDROM|id, 0);
-	}
-    }
-
-    ui_sb_enable_menu_item(SB_CDROM|id, IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
-    ui_sb_update_tip(SB_CDROM|id);
-
-    config_save();
 }
 
 
