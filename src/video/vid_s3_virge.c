@@ -8,7 +8,7 @@
  *
  *		S3 ViRGE emulation.
  *
- * Version:	@(#)vid_s3_virge.c	1.0.15	2018/09/21
+ * Version:	@(#)vid_s3_virge.c	1.0.16	2018/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -347,22 +347,22 @@ enum
 
 #ifdef ENABLE_S3_VIRGE_LOG
 int s3_virge_do_log = ENABLE_S3_VIRGE_LOG;
-#endif
 
 
 static void
-s3_virge_log(const char *format, ...)
+s3_virge_log(const char *fmt, ...)
 {
-#ifdef ENABLE_S3_VIRGE_LOG
     va_list ap;
 
     if (s3_virge_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define s3_virge_log(fmt, ...)
+#endif
 
 
 static void s3_virge_update_irqs(virge_t *virge)

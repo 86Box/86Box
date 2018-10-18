@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.53	2018/10/12
+ * Version:	@(#)win.c	1.0.54	2018/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -107,13 +107,11 @@ static struct {
 
 #ifdef ENABLE_WIN_LOG
 int win_do_log = ENABLE_WIN_LOG;
-#endif
 
 
 static void
 win_log(const char *fmt, ...)
 {
-#ifdef ENABLE_WIN_LOG
     va_list ap;
 
     if (win_do_log) {
@@ -121,8 +119,10 @@ win_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define win_log(fmt, ...)
+#endif
 
 
 static void

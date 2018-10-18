@@ -73,14 +73,12 @@ uint32_t *mod1seg[8];
 
 
 #ifdef ENABLE_386_DYNAREC_LOG
-int x386_dynarec_do_log = ENABLE_386_DYNAREC_LOG;
-#endif
+int x386_dynarec_do_log = ENABLE_386_DYNAREC_LOG;#endif
 
 
 void
 x386_dynarec_log(const char *fmt, ...)
 {
-#ifdef ENABLE_386_DYNAREC_LOG
     va_list ap;
 
     if (x386_dynarec_do_log) {
@@ -88,8 +86,10 @@ x386_dynarec_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define x86_dynarec_log (fmt, ...)
+#endif
 
 
 static __inline void fetch_ea_32_long(uint32_t rmdat)
@@ -233,7 +233,9 @@ void x86_int(int num)
                                 cpu_state.abrt = 0;
                                 softresetx86();
                                 cpu_set_edx();
+#ifdef ENABLE_386_DYNAREC_LOG
                                 x386_dynarec_log("Triple fault in real mode - reset\n");
+#endif
                         }
                         else
                                 x86_int(8);
@@ -326,9 +328,21 @@ int x86_int_sw_rm(int num)
 
         if (cpu_state.abrt) return 1;
 
-        writememw(ss,((SP-2)&0xFFFF),flags); if (cpu_state.abrt) {x386_dynarec_log("abrt5\n"); return 1; }
+        writememw(ss,((SP-2)&0xFFFF),flags);
+	if (cpu_state.abrt) {
+#ifdef ENABLE_386_DYNAREC_LOG
+		x386_dynarec_log("abrt5\n");
+#endif
+		return 1;
+	}
         writememw(ss,((SP-4)&0xFFFF),CS);
-        writememw(ss,((SP-6)&0xFFFF),cpu_state.pc); if (cpu_state.abrt) {x386_dynarec_log("abrt6\n"); return 1; }
+        writememw(ss,((SP-6)&0xFFFF),cpu_state.pc);
+	if (cpu_state.abrt) {
+#ifdef ENABLE_386_DYNAREC_LOG
+		x386_dynarec_log("abrt6\n");
+#endif
+		return 1;
+	}
         SP-=6;
 
         eflags &= ~VIF_FLAG;
@@ -858,14 +872,18 @@ inrecomp=0;
                                 cpu_state.abrt = 0;
                                 CS = oldcs;
                                 cpu_state.pc = cpu_state.oldpc;
+#ifdef ENABLE_386_DYNAREC_LOG
                                 x386_dynarec_log("Double fault %i\n", ins);
+#endif
                                 pmodeint(8, 0);
                                 if (cpu_state.abrt)
                                 {
                                         cpu_state.abrt = 0;
                                         softresetx86();
 					cpu_set_edx();
+#ifdef ENABLE_386_DYNAREC_LOG
                                         x386_dynarec_log("Triple fault - reset\n");
+#endif
                                 }
                         }
                 }

@@ -8,7 +8,7 @@
  *
  *		Implement I/O ports and their operations.
  *
- * Version:	@(#)io.c	1.0.4	2018/04/29
+ * Version:	@(#)io.c	1.0.5	2018/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -52,23 +52,21 @@ io_t *io[NPORTS], *io_last[NPORTS];
 
 #ifdef ENABLE_IO_LOG
 int io_do_log = ENABLE_IO_LOG;
-#endif
 
 
-#ifdef ENABLE_IO_LOG
 static void
-io_log(const char *format, ...)
+io_log(const char *fmt, ...)
 {
-#ifdef ENABLE_IO_LOG
     va_list ap;
 
     if (io_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define io_log(fmt, ...)
 #endif
 
 

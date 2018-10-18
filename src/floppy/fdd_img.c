@@ -13,7 +13,7 @@
  *		re-merged with the other files. Much of it is generic to
  *		all formats.
  *
- * Version:	@(#)fdd_img.c	1.0.8	2018/05/09
+ * Version:	@(#)fdd_img.c	1.0.9	2018/10/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -301,13 +301,11 @@ const int gap3_sizes[5][8][48] = {	{	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 
 #ifdef ENABLE_IMG_LOG
 int img_do_log = ENABLE_IMG_LOG;
-#endif
 
 
 static void
 img_log(const char *fmt, ...)
 {
-#ifdef ENABLE_IMG_LOG
    va_list ap;
 
    if (img_do_log)
@@ -316,8 +314,10 @@ img_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define img_log(fmt, ...)
+#endif
 
 
 /* Generic */

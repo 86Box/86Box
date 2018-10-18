@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)fdd_86f.c	1.0.15	2018/10/02
+ * Version:	@(#)fdd_86f.c	1.0.16	2018/10/17
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -239,11 +239,6 @@ typedef struct {
 } d86f_t;
 
 
-#ifdef ENABLE_D86F_LOG
-int	d86f_do_log = ENABLE_D86F_LOG;
-#endif
-
-
 static const uint8_t encoded_fm[64] = {
     0xaa, 0xab, 0xae, 0xaf, 0xba, 0xbb, 0xbe, 0xbf,
     0xea, 0xeb, 0xee, 0xef, 0xfa, 0xfb, 0xfe, 0xff,
@@ -280,19 +275,24 @@ void d86f_poll_write_data(int drive, int side, uint16_t pos, uint8_t data);
 int d86f_format_conditions(int drive);
 
 
-static void
-d86f_log(const char *format, ...)
-{
 #ifdef ENABLE_D86F_LOG
+int	d86f_do_log = ENABLE_D86F_LOG;
+
+
+static void
+d86f_log(const char *fmt, ...)
+{
     va_list ap;
 
     if (d86f_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define d86f_log(fmt, ...)
+#endif
 
 
 static void

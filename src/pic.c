@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel PIC chip emulation.
  *
- * Version:	@(#)pic.c	1.0.1	2018/10/02
+ * Version:	@(#)pic.c	1.0.2	2018/10/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -38,22 +38,22 @@ uint16_t pic_current;
 
 #ifdef ENABLE_PIC_LOG
 int pic_do_log = ENABLE_PIC_LOG;
-#endif
 
 
 static void
-pic_log(const char *format, ...)
+pic_log(const char *fmt, ...)
 {
-#ifdef ENABLE_PIC_LOG
     va_list ap;
 
     if (pic_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define pic_log(fmt, ...)
+#endif
 
 
 void

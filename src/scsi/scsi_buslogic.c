@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.40	2018/10/09
+ * Version:	@(#)scsi_buslogic.c	1.0.41	2018/10/18
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -240,13 +240,11 @@ enum {
 
 #ifdef ENABLE_BUSLOGIC_LOG
 int buslogic_do_log = ENABLE_BUSLOGIC_LOG;
-#endif
 
 
 static void
 buslogic_log(const char *fmt, ...)
 {
-#ifdef ENABLE_BUSLOGIC_LOG
     va_list ap;
 
     if (buslogic_do_log) {
@@ -254,8 +252,10 @@ buslogic_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define buslogic_log(fmt, ...)
+#endif
 
 
 static wchar_t *
@@ -590,7 +590,9 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
     uint32_t i;
     uint8_t temp_cdb[12];
     int target_cdb_len = 12;
+#ifdef ENABLE_BUSLOGIC_LOG
     uint8_t target_id = 0;
+#endif
     int phase;
     scsi_device_t *sd = &scsi_devices[ESCSICmd->TargetId];
 
@@ -1112,7 +1114,9 @@ static uint8_t
 BuslogicPCIRead(int func, int addr, void *p)
 {
     x54x_t *dev = (x54x_t *)p;
+#ifdef ENABLE_BUSLOGIC_LOG
     buslogic_data_t *bl = (buslogic_data_t *) dev->ven_data;
+#endif
 
     buslogic_log("BT-958D: Reading register %02X\n", addr & 0xff);
 

@@ -8,7 +8,7 @@
  *
  *		x86 CPU segment emulation.
  *
- * Version:	@(#)x86seg.c	1.0.7	2018/04/29
+ * Version:	@(#)x86seg.c	1.0.8	2018/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -63,13 +63,11 @@ void pmodeint(int num, int soft);
 
 #ifdef ENABLE_X86SEG_LOG
 int x86seg_do_log = ENABLE_X86SEG_LOG;
-#endif
 
 
 static void
 x86seg_log(const char *fmt, ...)
 {
-#ifdef ENABLE_X86SEG_LOG
     va_list ap;
 
     if (x86seg_do_log) {
@@ -77,8 +75,10 @@ x86seg_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define x86seg_log(fmt, ...)
+#endif
 
 
 void x86abort(const char *format, ...)

@@ -19,13 +19,11 @@
 
 #ifdef ENABLE_FPU_LOG
 int fpu_do_log = ENABLE_FPU_LOG;
-#endif
 
 
 static void
 fpu_log(const char *fmt, ...)
 {
-#ifdef ENABLE_FPU_LOG
     va_list ap;
 
     if (fpu_log) {
@@ -33,8 +31,10 @@ fpu_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define fpu_log(fmt, ...)
+#endif
 
 
 uint16_t x87_gettag()

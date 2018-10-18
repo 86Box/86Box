@@ -10,7 +10,7 @@
  *		NCR and later Symbios and LSI. This controller was designed
  *		for the PCI bus.
  *
- * Version:	@(#)scsi_ncr53c810.c	1.0.15	2018/10/09
+ * Version:	@(#)scsi_ncr53c810.c	1.0.16	2018/10/18
  *
  * Authors:	Paul Brook (QEMU)
  *		Artyom Tarasenko (QEMU)
@@ -282,13 +282,11 @@ typedef struct {
 
 #ifdef ENABLE_NCR53C810_LOG
 int ncr53c810_do_log = ENABLE_NCR53C810_LOG;
-#endif
 
 
 static void
 ncr53c810_log(const char *fmt, ...)
 {
-#ifdef ENABLE_NCR53C810_LOG
     va_list ap;
 
     if (ncr53c810_do_log) {
@@ -296,8 +294,10 @@ ncr53c810_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define ncr53c810_log(fmt, ...)
+#endif
 
 
 static uint8_t	ncr53c810_reg_readb(ncr53c810_t *dev, uint32_t offset);
@@ -829,12 +829,16 @@ ncr53c810_do_msgout(ncr53c810_t *dev, uint8_t id)
 {
     uint8_t msg;
     int len;
+#ifdef ENABLE_NCR53C810_LOG
     uint32_t current_tag;
+#endif
     scsi_device_t *sd;
 
     sd = &scsi_devices[id];
 
+#ifdef ENABLE_NCR53C810_LOG
     current_tag = id;
+#endif
 
     ncr53c810_log("MSG out len=%d\n", dev->dbc);
     while (dev->dbc) {
@@ -952,7 +956,10 @@ ncr53c810_process_script(ncr53c810_t *dev)
     uint32_t insn, addr, id, buf[2], dest;
     int opcode, insn_processed = 0, reg, operator, cond, jmp, n, i, c;
     int32_t offset;
-    uint8_t op0, op1, data8, mask, data[7], *pp;
+    uint8_t op0, op1, data8, mask, data[7];
+#ifdef ENABLE_NCR53C810_LOG
+    uint8_t *pp;
+#endif
 
     dev->sstop = 0;
 again:
@@ -1278,7 +1285,9 @@ again:
 			dev->dsp += 4;
 			ncr53c810_memcpy(dev, dest, addr, insn & 0xffffff);
 		} else {
+#ifdef ENABLE_NCR53C810_LOG
 			pp = data;
+#endif
 
 			if (insn & (1 << 28))
 				addr = dev->dsa + sextract32(addr, 0, 24);

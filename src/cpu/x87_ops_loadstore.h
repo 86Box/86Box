@@ -8,7 +8,7 @@
  *
  *		x87 FPU instructions core.
  *
- * Version:	@(#)x87_ops_loadstore.h	1.0.0	2017/05/30
+ * Version:	@(#)x87_ops_loadstore.h	1.0.1	2017/10/17
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,9 +21,9 @@ static int opFILDiw_a16(uint32_t fetchdat)
         int16_t temp;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FILDw %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FILDw %08X:%08X\n", easeg, cpu_state.eaaddr);
         temp = geteaw(); if (cpu_state.abrt) return 1;
-        if (fplog) pclog("  %f\n", (double)temp);
+        fpu_log("  %f\n", (double)temp);
         x87_push((double)temp);
         CLOCK_CYCLES(13);
         return 0;
@@ -33,9 +33,9 @@ static int opFILDiw_a32(uint32_t fetchdat)
         int16_t temp;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FILDw %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FILDw %08X:%08X\n", easeg, cpu_state.eaaddr);
         temp = geteaw(); if (cpu_state.abrt) return 1;
-        if (fplog) pclog("  %f\n", (double)temp);
+        fpu_log("  %f\n", (double)temp);
         x87_push((double)temp);
         CLOCK_CYCLES(13);
         return 0;
@@ -46,7 +46,7 @@ static int opFISTiw_a16(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FISTw %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FISTw %08X:%08X\n", easeg, cpu_state.eaaddr);
         temp64 = x87_fround(ST(0));
 /*                        if (temp64 > 32767 || temp64 < -32768)
                            fatal("FISTw overflow %i\n", temp64);*/
@@ -59,7 +59,7 @@ static int opFISTiw_a32(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FISTw %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FISTw %08X:%08X\n", easeg, cpu_state.eaaddr);
         temp64 = x87_fround(ST(0));
 /*                        if (temp64 > 32767 || temp64 < -32768)
                            fatal("FISTw overflow %i\n", temp64);*/
@@ -73,7 +73,7 @@ static int opFISTPiw_a16(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FISTw %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FISTw %08X:%08X\n", easeg, cpu_state.eaaddr);
         temp64 = x87_fround(ST(0));
 /*                        if (temp64 > 32767 || temp64 < -32768)
                            fatal("FISTw overflow %i\n", temp64);*/
@@ -87,7 +87,7 @@ static int opFISTPiw_a32(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FISTw %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FISTw %08X:%08X\n", easeg, cpu_state.eaaddr);
         temp64 = x87_fround(ST(0));
 /*                        if (temp64 > 32767 || temp64 < -32768)
                            fatal("FISTw overflow %i\n", temp64);*/
@@ -102,9 +102,9 @@ static int opFILDiq_a16(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FILDl %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FILDl %08X:%08X\n", easeg, cpu_state.eaaddr);
         temp64 = geteaq(); if (cpu_state.abrt) return 1;
-        if (fplog) pclog("  %f  %08X %08X\n", (double)temp64, readmeml(easeg,cpu_state.eaaddr), readmeml(easeg,cpu_state.eaaddr+4));
+        fpu_log("  %f  %08X %08X\n", (double)temp64, readmeml(easeg,cpu_state.eaaddr), readmeml(easeg,cpu_state.eaaddr+4));
         x87_push((double)temp64);
         cpu_state.MM[cpu_state.TOP].q = temp64;
         cpu_state.tag[cpu_state.TOP] |= TAG_UINT64;
@@ -117,9 +117,9 @@ static int opFILDiq_a32(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FILDl %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FILDl %08X:%08X\n", easeg, cpu_state.eaaddr);
         temp64 = geteaq(); if (cpu_state.abrt) return 1;
-        if (fplog) pclog("  %f  %08X %08X\n", (double)temp64, readmeml(easeg,cpu_state.eaaddr), readmeml(easeg,cpu_state.eaaddr+4));
+        fpu_log("  %f  %08X %08X\n", (double)temp64, readmeml(easeg,cpu_state.eaaddr), readmeml(easeg,cpu_state.eaaddr+4));
         x87_push((double)temp64);
         cpu_state.MM[cpu_state.TOP].q = temp64;
         cpu_state.tag[cpu_state.TOP] |= TAG_UINT64;
@@ -134,7 +134,7 @@ static int FBSTP_a16(uint32_t fetchdat)
         int c;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FBSTP %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FBSTP %08X:%08X\n", easeg, cpu_state.eaaddr);
         tempd = ST(0);
         if (tempd < 0.0) 
                 tempd = -tempd;
@@ -160,7 +160,7 @@ static int FBSTP_a32(uint32_t fetchdat)
         int c;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FBSTP %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FBSTP %08X:%08X\n", easeg, cpu_state.eaaddr);
         tempd = ST(0);
         if (tempd < 0.0) 
                 tempd = -tempd;
@@ -186,7 +186,7 @@ static int FISTPiq_a16(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FISTPl %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FISTPl %08X:%08X\n", easeg, cpu_state.eaaddr);
         if (cpu_state.tag[cpu_state.TOP] & TAG_UINT64)
                 temp64 = cpu_state.MM[cpu_state.TOP].q;
         else
@@ -201,7 +201,7 @@ static int FISTPiq_a32(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FISTPl %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FISTPl %08X:%08X\n", easeg, cpu_state.eaaddr);
         if (cpu_state.tag[cpu_state.TOP] & TAG_UINT64)
                 temp64 = cpu_state.MM[cpu_state.TOP].q;
         else
@@ -217,9 +217,9 @@ static int opFILDil_a16(uint32_t fetchdat)
         int32_t templ;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FILDs %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FILDs %08X:%08X\n", easeg, cpu_state.eaaddr);
         templ = geteal(); if (cpu_state.abrt) return 1;
-        if (fplog) pclog("  %f %08X %i\n", (double)templ, templ, templ);
+        fpu_log("  %f %08X %i\n", (double)templ, templ, templ);
         x87_push((double)templ);
         CLOCK_CYCLES(9);
         return 0;
@@ -229,9 +229,9 @@ static int opFILDil_a32(uint32_t fetchdat)
         int32_t templ;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FILDs %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FILDs %08X:%08X\n", easeg, cpu_state.eaaddr);
         templ = geteal(); if (cpu_state.abrt) return 1;
-        if (fplog) pclog("  %f %08X %i\n", (double)templ, templ, templ);
+        fpu_log("  %f %08X %i\n", (double)templ, templ, templ);
         x87_push((double)templ);
         CLOCK_CYCLES(9);
         return 0;
@@ -242,7 +242,7 @@ static int opFISTil_a16(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FISTs %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FISTs %08X:%08X\n", easeg, cpu_state.eaaddr);
         temp64 = x87_fround(ST(0));
 /*                        if (temp64 > 2147483647 || temp64 < -2147483647)
                            fatal("FISTl out of range! %i\n", temp64);*/
@@ -255,7 +255,7 @@ static int opFISTil_a32(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FISTs %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FISTs %08X:%08X\n", easeg, cpu_state.eaaddr);
         temp64 = x87_fround(ST(0));
 /*                        if (temp64 > 2147483647 || temp64 < -2147483647)
                            fatal("FISTl out of range! %i\n", temp64);*/
@@ -269,7 +269,7 @@ static int opFISTPil_a16(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FISTs %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FISTs %08X:%08X\n", easeg, cpu_state.eaaddr);
         temp64 = x87_fround(ST(0));
 /*                        if (temp64 > 2147483647 || temp64 < -2147483647)
                            fatal("FISTl out of range! %i\n", temp64);*/
@@ -283,7 +283,7 @@ static int opFISTPil_a32(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FISTs %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FISTs %08X:%08X\n", easeg, cpu_state.eaaddr);
         temp64 = x87_fround(ST(0));
 /*                        if (temp64 > 2147483647 || temp64 < -2147483647)
                            fatal("FISTl out of range! %i\n", temp64);*/
@@ -298,9 +298,9 @@ static int opFLDe_a16(uint32_t fetchdat)
         double t;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FLDe %08X:%08X\n", easeg, cpu_state.eaaddr);                        
+        fpu_log("FLDe %08X:%08X\n", easeg, cpu_state.eaaddr);                        
         t=x87_ld80(); if (cpu_state.abrt) return 1;
-        if (fplog) pclog("  %f\n", t);
+        fpu_log("  %f\n", t);
         x87_push(t);
         CLOCK_CYCLES(6);
         return 0;
@@ -310,9 +310,9 @@ static int opFLDe_a32(uint32_t fetchdat)
         double t;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FLDe %08X:%08X\n", easeg, cpu_state.eaaddr);                        
+        fpu_log("FLDe %08X:%08X\n", easeg, cpu_state.eaaddr);                        
         t=x87_ld80(); if (cpu_state.abrt) return 1;
-        if (fplog) pclog("  %f\n", t);
+        fpu_log("  %f\n", t);
         x87_push(t);
         CLOCK_CYCLES(6);
         return 0;
@@ -322,7 +322,7 @@ static int opFSTPe_a16(uint32_t fetchdat)
 {
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FSTPe %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FSTPe %08X:%08X\n", easeg, cpu_state.eaaddr);
         x87_st80(ST(0)); if (cpu_state.abrt) return 1;
         x87_pop();
         CLOCK_CYCLES(6);
@@ -332,7 +332,7 @@ static int opFSTPe_a32(uint32_t fetchdat)
 {
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FSTPe %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FSTPe %08X:%08X\n", easeg, cpu_state.eaaddr);
         x87_st80(ST(0)); if (cpu_state.abrt) return 1;
         x87_pop();
         CLOCK_CYCLES(6);
@@ -344,9 +344,9 @@ static int opFLDd_a16(uint32_t fetchdat)
         x87_td t;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FLDd %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FLDd %08X:%08X\n", easeg, cpu_state.eaaddr);
         t.i = geteaq(); if (cpu_state.abrt) return 1;
-        if (fplog) pclog("  %f\n", t.d);                        
+        fpu_log("  %f\n", t.d);                        
         x87_push(t.d);
         CLOCK_CYCLES(3);
         return 0;
@@ -356,9 +356,9 @@ static int opFLDd_a32(uint32_t fetchdat)
         x87_td t;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FLDd %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FLDd %08X:%08X\n", easeg, cpu_state.eaaddr);
         t.i = geteaq(); if (cpu_state.abrt) return 1;
-        if (fplog) pclog("  %f\n", t.d);                        
+        fpu_log("  %f\n", t.d);                        
         x87_push(t.d);
         CLOCK_CYCLES(3);
         return 0;
@@ -369,7 +369,7 @@ static int opFSTd_a16(uint32_t fetchdat)
         x87_td t;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FSTd %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FSTd %08X:%08X\n", easeg, cpu_state.eaaddr);
         t.d = ST(0);
         seteaq(t.i);
         CLOCK_CYCLES(8);
@@ -380,7 +380,7 @@ static int opFSTd_a32(uint32_t fetchdat)
         x87_td t;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FSTd %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FSTd %08X:%08X\n", easeg, cpu_state.eaaddr);
         t.d = ST(0);
         seteaq(t.i);
         CLOCK_CYCLES(8);
@@ -393,7 +393,7 @@ static int opFSTPd_a16(uint32_t fetchdat)
         FP_ENTER();
         fetch_ea_16(fetchdat);
         CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);
-        if (fplog) pclog("FSTd %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FSTd %08X:%08X\n", easeg, cpu_state.eaaddr);
         t.d = ST(0);
         seteaq(t.i); if (cpu_state.abrt) return 1;
         x87_pop();
@@ -406,7 +406,7 @@ static int opFSTPd_a32(uint32_t fetchdat)
         FP_ENTER();
         fetch_ea_32(fetchdat);
         CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);
-        if (fplog) pclog("FSTd %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FSTd %08X:%08X\n", easeg, cpu_state.eaaddr);
         t.d = ST(0);
         seteaq(t.i); if (cpu_state.abrt) return 1;
         x87_pop();
@@ -419,9 +419,9 @@ static int opFLDs_a16(uint32_t fetchdat)
         x87_ts ts;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FLDs %08X:%08X\n", easeg, cpu_state.eaaddr);                        
+        fpu_log("FLDs %08X:%08X\n", easeg, cpu_state.eaaddr);                        
         ts.i = geteal(); if (cpu_state.abrt) return 1;
-        if (fplog) pclog("  %f\n", ts.s);
+        fpu_log("  %f\n", ts.s);
         x87_push((double)ts.s);
         CLOCK_CYCLES(3);
         return 0;
@@ -431,9 +431,9 @@ static int opFLDs_a32(uint32_t fetchdat)
         x87_ts ts;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FLDs %08X:%08X\n", easeg, cpu_state.eaaddr);                        
+        fpu_log("FLDs %08X:%08X\n", easeg, cpu_state.eaaddr);                        
         ts.i = geteal(); if (cpu_state.abrt) return 1;
-        if (fplog) pclog("  %f\n", ts.s);
+        fpu_log("  %f\n", ts.s);
         x87_push((double)ts.s);
         CLOCK_CYCLES(3);
         return 0;
@@ -444,7 +444,7 @@ static int opFSTs_a16(uint32_t fetchdat)
         x87_ts ts;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FSTs %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FSTs %08X:%08X\n", easeg, cpu_state.eaaddr);
         ts.s = (float)ST(0);
         seteal(ts.i);
         CLOCK_CYCLES(7);
@@ -455,7 +455,7 @@ static int opFSTs_a32(uint32_t fetchdat)
         x87_ts ts;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FSTs %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FSTs %08X:%08X\n", easeg, cpu_state.eaaddr);
         ts.s = (float)ST(0);
         seteal(ts.i);
         CLOCK_CYCLES(7);
@@ -467,7 +467,7 @@ static int opFSTPs_a16(uint32_t fetchdat)
         x87_ts ts;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-        if (fplog) pclog("FSTs %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FSTs %08X:%08X\n", easeg, cpu_state.eaaddr);
         ts.s = (float)ST(0);
         seteal(ts.i); if (cpu_state.abrt) return 1;
         x87_pop();
@@ -479,7 +479,7 @@ static int opFSTPs_a32(uint32_t fetchdat)
         x87_ts ts;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-        if (fplog) pclog("FSTs %08X:%08X\n", easeg, cpu_state.eaaddr);
+        fpu_log("FSTs %08X:%08X\n", easeg, cpu_state.eaaddr);
         ts.s = (float)ST(0);
         seteal(ts.i); if (cpu_state.abrt) return 1;
         x87_pop();

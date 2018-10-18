@@ -8,7 +8,7 @@
  *
  *		Handling of hard disk image files.
  *
- * Version:	@(#)hdd_image.c	1.0.18	2018/10/08
+ * Version:	@(#)hdd_image.c	1.0.19	2018/10/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -72,13 +72,11 @@ static char *empty_sector_1mb;
 
 #ifdef ENABLE_HDD_IMAGE_LOG
 int hdd_image_do_log = ENABLE_HDD_IMAGE_LOG;
-#endif
 
 
 static void
 hdd_image_log(const char *fmt, ...)
 {
-#ifdef ENABLE_HDD_IMAGE_LOG
     va_list ap;
 
     if (hdd_image_do_log) {
@@ -86,8 +84,10 @@ hdd_image_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define hdd_image_log(fmt, ...)
+#endif
 
 
 int

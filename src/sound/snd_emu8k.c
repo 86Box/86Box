@@ -295,13 +295,11 @@ uint32_t rep_count_w = 0;
 
 #ifdef ENABLE_EMU8K_LOG
 int emu8k_do_log = ENABLE_EMU8K_LOG;
-#endif
 
 
 static void
 emu8k_log(const char *fmt, ...)
 {
-#ifdef ENABLE_EMU8K_LOG
     va_list ap;
 
     if (emu8k_do_log) {
@@ -309,8 +307,10 @@ emu8k_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define emu8k_log(fmt, ...)
+#endif
 
 
 static inline int16_t EMU8K_READ(emu8k_t *emu8k, uint32_t addr)

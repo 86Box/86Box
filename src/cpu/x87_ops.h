@@ -8,7 +8,7 @@
  *
  *		x87 FPU instructions core.
  *
- * Version:	@(#)x87_ops.h	1.0.6	2018/08/01
+ * Version:	@(#)x87_ops.h	1.0.7	2018/10/17
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -44,7 +44,13 @@
 # include <intrin.h>
 #endif
 
-#define fplog 0
+#ifdef ENABLE_FPU_LOG
+extern void	fpu_log(const char *fmt, ...);
+#else
+#ifndef fpu_log
+#define fpu_log(fmt, ...)
+#endif
+#endif
 
 static int rounding_modes[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
 
@@ -66,7 +72,7 @@ static int rounding_modes[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZ
                                 dst = src1 / (double)src2;      \
                         else                                    \
                         {                                       \
-                                x386_dynarec_log("FPU : divide by zero\n"); \
+                                fpu_log("FPU : divide by zero\n"); \
                                 picint(1 << 13);                \
                         }                                       \
                         return 1;                               \
@@ -289,7 +295,7 @@ static __inline uint16_t x87_compare(double a, double b)
 	{
 		if (((a == INFINITY) || (a == -INFINITY)) && ((b == INFINITY) || (b == -INFINITY)))
 		{
-			/* x386_dynarec_log("Comparing infinity\n"); */
+			/* fpu_log("Comparing infinity\n"); */
 #ifndef _MSC_VER
 		        __asm volatile ("" : : : "memory");
         

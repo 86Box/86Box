@@ -12,7 +12,7 @@
  *		we will not use that, but, instead, use a new window which
  *		coverrs the entire desktop.
  *
- * Version:	@(#)win_sdl.c  	1.0.1	2018/10/10
+ * Version:	@(#)win_sdl.c  	1.0.2	2018/10/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Michael Drüing, <michael@drueing.de>
@@ -146,13 +146,11 @@ static dllimp_t sdl_imports[] = {
 
 #ifdef ENABLE_SDL_LOG
 int sdl_do_log = ENABLE_SDL_LOG;
-#endif
 
 
 static void
 sdl_log(const char *fmt, ...)
 {
-#ifdef ENABLE_SDL_LOG
     va_list ap;
 
     if (sdl_do_log) {
@@ -160,8 +158,10 @@ sdl_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define sdl_log(fmt, ...)
+#endif
 
 
 static void

@@ -32,7 +32,7 @@
  * TODO:	The EV159 is supposed to support 16b EMS transfers, but the
  *		EMM.sys driver for it doesn't seem to want to do that..
  *
- * Version:	@(#)isamem.c	1.0.6	2018/10/02
+ * Version:	@(#)isamem.c	1.0.7	2018/10/17
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -133,23 +133,22 @@ typedef struct {
 
 #ifdef ENABLE_ISAMEM_LOG
 int isamem_do_log = ENABLE_ISAMEM_LOG;
-#endif
 
 
 static void
 isamem_log(const char *fmt, ...)
 {
-#ifdef ENABLE_ISAMEM_LOG
-	va_list ap;
+    va_list ap;
 
-	if (isamem_do_log)
-	{
-		va_start(ap, fmt);
-		pclog_ex(fmt, ap);
-		va_end(ap);
-	}
-#endif
+    if (isamem_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
 }
+#else
+#define isamem_log(fmt, ...)
+#endif
 
 
 /* Local variables. */

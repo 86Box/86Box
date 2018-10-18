@@ -9,7 +9,7 @@
  *		Implementation of the FDI floppy stream image format
  *		interface to the FDI2RAW module.
  *
- * Version:	@(#)fdd_fdi.c	1.0.3	2018/04/29
+ * Version:	@(#)fdd_fdi.c	1.0.4	2018/10/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -75,13 +75,11 @@ static fdc_t	*fdi_fdc;
 
 #ifdef ENABLE_FDI_LOG
 int fdi_do_log = ENABLE_FDI_LOG;
-#endif
 
 
 static void
 fdi_log(const char *fmt, ...)
 {
-#ifdef ENABLE_FDI_LOG
    va_list ap;
 
    if (fdi_do_log)
@@ -90,8 +88,10 @@ fdi_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define fdi_log(fmt, ...)
+#endif
 
 
 static uint16_t

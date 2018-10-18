@@ -138,13 +138,11 @@ static void update_legacy(es1371_t *es1371);
 
 #ifdef ENABLE_AUDIOPCI_LOG
 int audiopci_do_log = ENABLE_AUDIOPCI_LOG;
-#endif
 
 
 static void
 audiopci_log(const char *fmt, ...)
 {
-#ifdef ENABLE_AUDIOPCI_LOG
     va_list ap;
 
     if (audiopci_do_log) {
@@ -152,8 +150,10 @@ audiopci_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define audiopci_log(fmt, ...)
+#endif
 
 
 static void es1371_update_irqs(es1371_t *es1371)

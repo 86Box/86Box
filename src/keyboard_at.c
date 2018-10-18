@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.41	2018/09/21
+ * Version:	@(#)keyboard_at.c	1.0.42	2018/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -581,15 +581,12 @@ static const scancode scancode_set3[512] = {
 
 
 #ifdef ENABLE_KEYBOARD_AT_LOG
-#define ENABLE_KEYBOARD_LOG
 int keyboard_at_do_log = ENABLE_KEYBOARD_AT_LOG;
-#endif
 
 
 static void
 kbd_log(const char *fmt, ...)
 {
-#ifdef ENABLE_KEYBOARD_AT_LOG
     va_list ap;
 
     if (keyboard_at_do_log) {
@@ -597,8 +594,10 @@ kbd_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define kbd_log(fmt, ...)
+#endif
 
 static void
 kbd_setmap(atkbd_t *kbd)

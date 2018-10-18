@@ -8,7 +8,7 @@
  *
  *		Driver for the ESDI controller (WD1007-vse1) for PC/AT.
  *
- * Version:	@(#)hdc_esdi_at.c	1.0.13	2018/05/02
+ * Version:	@(#)hdc_esdi_at.c	1.0.14	2018/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -108,13 +108,11 @@ typedef struct {
 
 #ifdef ENABLE_ESDI_AT_LOG
 int esdi_at_do_log = ENABLE_ESDI_AT_LOG;
-#endif
 
 
 static void
 esdi_at_log(const char *fmt, ...)
 {
-#ifdef ENABLE_ESDI_AT_LOG
     va_list ap;
 
     if (esdi_at_do_log) {
@@ -122,8 +120,10 @@ esdi_at_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define esdi_at_log(fmt, ...)
+#endif
 
 
 static inline void

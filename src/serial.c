@@ -30,22 +30,22 @@ int serial_do_log = 0;
 
 #ifdef ENABLE_SERIAL_LOG
 int serial_do_log = ENABLE_SERIAL_LOG;
-#endif
 
 
 static void
-serial_log(const char *format, ...)
+serial_log(const char *fmt, ...)
 {
-#ifdef ENABLE_SERIAL_LOG
     va_list ap;
 
     if (serial_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define serial_log(fmt, ...)
+#endif
 
 
 void serial_reset()

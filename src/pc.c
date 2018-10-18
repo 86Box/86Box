@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.84	2018/10/17
+ * Version:	@(#)pc.c	1.0.85	2018/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -275,22 +275,22 @@ fatal(const char *fmt, ...)
 
 #ifdef ENABLE_PC_LOG
 int pc_do_log = ENABLE_PC_LOG;
-#endif
 
 
 static void
-pc_log(const char *format, ...)
+pc_log(const char *fmt, ...)
 {
-#ifdef ENABLE_PC_LOG
     va_list ap;
 
     if (pc_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define pc_log(fmt, ...)
+#endif
 
 
 /*

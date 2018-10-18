@@ -8,7 +8,7 @@
  *
  *		Emulation of the 3DFX Voodoo Graphics controller.
  *
- * Version:	@(#)vid_voodoo.c	1.0.14	2018/04/26
+ * Version:	@(#)vid_voodoo.c	1.0.15	2018/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei
@@ -1044,13 +1044,11 @@ enum
 
 #ifdef ENABLE_VOODOO_LOG
 int voodoo_do_log = ENABLE_VOODOO_LOG;
-#endif
 
 
 static void
 voodoo_log(const char *fmt, ...)
 {
-#ifdef ENABLE_VOODOO_LOG
     va_list ap;
 
     if (voodoo_do_log) {
@@ -1058,8 +1056,10 @@ voodoo_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define voodoo_log(fmt, ...)
+#endif
 
 
 static void voodoo_threshold_check(voodoo_t *voodoo);
@@ -2802,7 +2802,10 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
         {
                 int x, x2;
                 int real_y = (state->y << 4) + 8;
-                int start_x, start_x2;
+                int start_x;
+#ifdef ENABLE_VOODOO_LOG
+		int start_x2;
+#endif
                 int dx;
                 uint16_t *fb_mem, *aux_mem;
 
@@ -2849,7 +2852,9 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                 else
                         x -= (1 << 16);
                 dx = ((x + 0x7000) >> 16) - (((state->vertexAx << 12) + 0x7000) >> 16);
+#ifdef ENABLE_VOODOO_LOG
                 start_x2 = x + 0x7000;
+#endif
                 x = (x + 0x7000) >> 16;
                 x2 = (x2 + 0x7000) >> 16;
 

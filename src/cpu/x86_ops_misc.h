@@ -8,7 +8,7 @@
  *
  *		Miscellaneous x86 CPU Instructions.
  *
- * Version:	@(#)x86_ops_misc.h	1.0.1	2018/04/12
+ * Version:	@(#)x86_ops_misc.h	1.0.2	2018/10/17
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -160,7 +160,7 @@ static int opF6_a16(uint32_t fetchdat)
                 break;
 
                 default:
-                pclog("Bad F6 opcode %02X\n", rmdat & 0x38);
+                x386_dynarec_log("Bad F6 opcode %02X\n", rmdat & 0x38);
                 x86illegal();
         }
         return 0;
@@ -259,7 +259,7 @@ static int opF6_a32(uint32_t fetchdat)
                 break;
 
                 default:
-                pclog("Bad F6 opcode %02X\n", rmdat & 0x38);
+                x386_dynarec_log("Bad F6 opcode %02X\n", rmdat & 0x38);
                 x86illegal();
         }
         return 0;
@@ -354,7 +354,7 @@ static int opF7_w_a16(uint32_t fetchdat)
                 break;
 
                 default:
-                pclog("Bad F7 opcode %02X\n", rmdat & 0x38);
+                x386_dynarec_log("Bad F7 opcode %02X\n", rmdat & 0x38);
                 x86illegal();
         }
         return 0;
@@ -446,7 +446,7 @@ static int opF7_w_a32(uint32_t fetchdat)
                 break;
 
                 default:
-                pclog("Bad F7 opcode %02X\n", rmdat & 0x38);
+                x386_dynarec_log("Bad F7 opcode %02X\n", rmdat & 0x38);
                 x86illegal();
         }
         return 0;
@@ -517,7 +517,7 @@ static int opF7_l_a16(uint32_t fetchdat)
                 break;
 
                 default:
-                pclog("Bad F7 opcode %02X\n", rmdat & 0x38);
+                x386_dynarec_log("Bad F7 opcode %02X\n", rmdat & 0x38);
                 x86illegal();
         }
         return 0;
@@ -587,7 +587,7 @@ static int opF7_l_a32(uint32_t fetchdat)
                 break;
 
                 default:
-                pclog("Bad F7 opcode %02X\n", rmdat & 0x38);
+                x386_dynarec_log("Bad F7 opcode %02X\n", rmdat & 0x38);
                 x86illegal();
         }
         return 0;
@@ -714,7 +714,7 @@ static int opCLTS(uint32_t fetchdat)
 {
         if ((CPL || (eflags&VM_FLAG)) && (cr0&1))
         {
-                pclog("Can't CLTS\n");
+                x386_dynarec_log("Can't CLTS\n");
                 x86gpf(NULL,0);
                 return 1;
         }

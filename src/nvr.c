@@ -8,7 +8,7 @@
  *
  *		Implement a generic NVRAM/CMOS/RTC device.
  *
- * Version:	@(#)nvr.c	1.0.14	2018/10/02
+ * Version:	@(#)nvr.c	1.0.15	2018/10/17
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>,
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -72,22 +72,22 @@ static nvr_t	*saved_nvr = NULL;
 
 #ifdef ENABLE_NVR_LOG
 int nvr_do_log = ENABLE_NVR_LOG;
-#endif
 
 
 static void
-nvr_log(const char *format, ...)
+nvr_log(const char *fmt, ...)
 {
-#ifdef ENABLE_NVR_LOG
     va_list ap;
 
     if (nvr_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define nvr_log(fmt, ...)
+#endif
 
 
 /* Determine whether or not the year is leap. */

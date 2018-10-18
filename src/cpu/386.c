@@ -111,13 +111,11 @@ extern int dontprint;
 
 #ifdef ENABLE_386_LOG
 int x386_do_log = ENABLE_386_LOG;
-#endif
 
 
 static void
 x386_log(const char *fmt, ...)
 {
-#ifdef ENABLE_386_LOG
     va_list ap;
 
     if (x386_do_log) {
@@ -125,8 +123,10 @@ x386_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define x386_log(fmt, ...)
+#endif
 
 
 void exec386(int cycs)

@@ -16,13 +16,11 @@
 
 #ifdef ENABLE_ADLIB_LOG
 int adlib_do_log = ENABLE_ADLIB_LOG;
-#endif
 
 
 static void
 adlib_log(const char *fmt, ...)
 {
-#ifdef ENABLE_ADLIB_LOG
     va_list ap;
 
     if (adlib_do_log) {
@@ -30,8 +28,10 @@ adlib_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define adlib_log(fmt, ...)
+#endif
 
 
 typedef struct adlib_t

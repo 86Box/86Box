@@ -18,7 +18,7 @@
  *		2 clocks - fetch opcode 1       2 clocks - execute
  *		2 clocks - fetch opcode 2  etc
  *
- * Version:	@(#)808x.c	1.0.6	2018/09/20
+ * Version:	@(#)808x.c	1.0.7	2018/10/17
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -86,13 +86,11 @@ void writememll(uint32_t seg, uint32_t addr, uint32_t val);
 
 #ifdef ENABLE_808X_LOG
 int x808x_do_log = ENABLE_808X_LOG;
-#endif
 
 
 static void
 x808x_log(const char *fmt, ...)
 {
-#ifdef ENABLE_808X_LOG
     va_list ap;
 
     if (x808x_do_log) {
@@ -100,8 +98,10 @@ x808x_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define x808x_log(fmt, ...)
+#endif
 
 
 #undef readmemb

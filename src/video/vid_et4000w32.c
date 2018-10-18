@@ -10,7 +10,7 @@
  *
  * Known bugs:	Accelerator doesn't work in planar modes
  *
- * Version:	@(#)vid_et4000w32.c	1.0.20	2018/10/04
+ * Version:	@(#)vid_et4000w32.c	1.0.21	2018/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -154,22 +154,22 @@ void et4000w32_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et400
 
 #ifdef ENABLE_ET4000W32_LOG
 int et4000w32_do_log = ENABLE_ET4000W32_LOG;
-#endif
 
 
 static void
-et4000w32_log(const char *format, ...)
+et4000w32_log(const char *fmt, ...)
 {
-#ifdef ENABLE_ET4000W32_LOG
     va_list ap;
 
     if (et4000w32_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define et4000w32_log(fmt, ...)
+#endif
 
 
 uint8_t et4000w32p_in(uint16_t addr, void *p);

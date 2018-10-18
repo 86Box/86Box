@@ -8,7 +8,7 @@
  *
  *		x86 i686 (Pentium Pro/Pentium II) CPU Instructions.
  *
- * Version:	@(#)x86_ops_i686.h	1.0.4	2018/04/25
+ * Version:	@(#)x86_ops_i686.h	1.0.5	2018/10/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -40,18 +40,18 @@ static int opSYSENTER(uint32_t fetchdat)
 	uint16_t sysenter_ss_seg_data[4];
 
 #ifdef SYSENTER_LOG
-	pclog("SYSENTER called\n");
+	x386_dynarec_log("SYSENTER called\n");
 #endif
 
 	if (!(cr0 & 1))  return internal_illegal("SYSENTER: CPU not in protected mode");
 	if (!(cs_msr & 0xFFFC))  return internal_illegal("SYSENTER: CS MSR is zero");
 
 #ifdef SYSENTER_LOG
-	pclog("SYSENTER started:\n");
-	pclog("CS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", CS, _cs.base, _cs.limit, _cs.access, _cs.seg, _cs.limit_low, _cs.limit_high, _cs.checked);
-	pclog("SS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", SS, _ss.base, _ss.limit, _ss.access, _ss.seg, _ss.limit_low, _ss.limit_high, _ss.checked);
-	pclog("Model specific registers: cs_msr=%04X, esp_msr=%08X, eip_msr=%08X\n", cs_msr, esp_msr, eip_msr);
-	pclog("Other information: eip=%08X esp=%08X eflags=%04X flags=%04X use32=%04X stack32=%i\n", cpu_state.pc, ESP, eflags, flags, use32, stack32);
+	x386_dynarec_log("SYSENTER started:\n");
+	x386_dynarec_log("CS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", CS, _cs.base, _cs.limit, _cs.access, _cs.seg, _cs.limit_low, _cs.limit_high, _cs.checked);
+	x386_dynarec_log("SS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", SS, _ss.base, _ss.limit, _ss.access, _ss.seg, _ss.limit_low, _ss.limit_high, _ss.checked);
+	x386_dynarec_log("Model specific registers: cs_msr=%04X, esp_msr=%08X, eip_msr=%08X\n", cs_msr, esp_msr, eip_msr);
+	x386_dynarec_log("Other information: eip=%08X esp=%08X eflags=%04X flags=%04X use32=%04X stack32=%i\n", cpu_state.pc, ESP, eflags, flags, use32, stack32);
 #endif
 
 	if (cpu_state.abrt)  return 1;
@@ -83,11 +83,11 @@ static int opSYSENTER(uint32_t fetchdat)
 	CPU_BLOCK_END();
 
 #ifdef SYSENTER_LOG
-	pclog("SYSENTER completed:\n");
-	pclog("CS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", CS, _cs.base, _cs.limit, _cs.access, _cs.seg, _cs.limit_low, _cs.limit_high, _cs.checked);
-	pclog("SS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", SS, _ss.base, _ss.limit, _ss.access, _ss.seg, _ss.limit_low, _ss.limit_high, _ss.checked);
-	pclog("Model specific registers: cs_msr=%04X, esp_msr=%08X, eip_msr=%08X\n", cs_msr, esp_msr, eip_msr);
-	pclog("Other information: eip=%08X esp=%08X eflags=%04X flags=%04X use32=%04X stack32=%i\n", cpu_state.pc, ESP, eflags, flags, use32, stack32);
+	x386_dynarec_log("SYSENTER completed:\n");
+	x386_dynarec_log("CS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", CS, _cs.base, _cs.limit, _cs.access, _cs.seg, _cs.limit_low, _cs.limit_high, _cs.checked);
+	x386_dynarec_log("SS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", SS, _ss.base, _ss.limit, _ss.access, _ss.seg, _ss.limit_low, _ss.limit_high, _ss.checked);
+	x386_dynarec_log("Model specific registers: cs_msr=%04X, esp_msr=%08X, eip_msr=%08X\n", cs_msr, esp_msr, eip_msr);
+	x386_dynarec_log("Other information: eip=%08X esp=%08X eflags=%04X flags=%04X use32=%04X stack32=%i\n", cpu_state.pc, ESP, eflags, flags, use32, stack32);
 #endif
 
 	return 0;
@@ -99,7 +99,7 @@ static int opSYSEXIT(uint32_t fetchdat)
 	uint16_t sysexit_ss_seg_data[4];
 
 #ifdef SYSEXIT_LOG
-	pclog("SYSEXIT called\n");
+	x386_dynarec_log("SYSEXIT called\n");
 #endif
 
 	if (!(cs_msr & 0xFFFC))  return internal_illegal("SYSEXIT: CS MSR is zero");
@@ -107,11 +107,11 @@ static int opSYSEXIT(uint32_t fetchdat)
 	if (CS & 3)  return internal_illegal("SYSEXIT: CPL not 0");
 
 #ifdef SYSEXIT_LOG
-	pclog("SYSEXIT start:\n");
-	pclog("CS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", CS, _cs.base, _cs.limit, _cs.access, _cs.seg, _cs.limit_low, _cs.limit_high, _cs.checked);
-	pclog("SS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", SS, _ss.base, _ss.limit, _ss.access, _ss.seg, _ss.limit_low, _ss.limit_high, _ss.checked);
-	pclog("Model specific registers: cs_msr=%04X, esp_msr=%08X, eip_msr=%08X\n", cs_msr, esp_msr, eip_msr);
-	pclog("Other information: eip=%08X esp=%08X eflags=%04X flags=%04X use32=%04X stack32=%i ECX=%08X EDX=%08X\n", cpu_state.pc, ESP, eflags, flags, use32, stack32, ECX, EDX);
+	x386_dynarec_log("SYSEXIT start:\n");
+	x386_dynarec_log("CS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", CS, _cs.base, _cs.limit, _cs.access, _cs.seg, _cs.limit_low, _cs.limit_high, _cs.checked);
+	x386_dynarec_log("SS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", SS, _ss.base, _ss.limit, _ss.access, _ss.seg, _ss.limit_low, _ss.limit_high, _ss.checked);
+	x386_dynarec_log("Model specific registers: cs_msr=%04X, esp_msr=%08X, eip_msr=%08X\n", cs_msr, esp_msr, eip_msr);
+	x386_dynarec_log("Other information: eip=%08X esp=%08X eflags=%04X flags=%04X use32=%04X stack32=%i ECX=%08X EDX=%08X\n", cpu_state.pc, ESP, eflags, flags, use32, stack32, ECX, EDX);
 #endif
 
 	if (cpu_state.abrt)  return 1;
@@ -141,11 +141,11 @@ static int opSYSEXIT(uint32_t fetchdat)
 	CPU_BLOCK_END();
 
 #ifdef SYSEXIT_LOG
-	pclog("SYSEXIT completed:\n");
-	pclog("CS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", CS, _cs.base, _cs.limit, _cs.access, _cs.seg, _cs.limit_low, _cs.limit_high, _cs.checked);
-	pclog("SS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", SS, _ss.base, _ss.limit, _ss.access, _ss.seg, _ss.limit_low, _ss.limit_high, _ss.checked);
-	pclog("Model specific registers: cs_msr=%04X, esp_msr=%08X, eip_msr=%08X\n", cs_msr, esp_msr, eip_msr);
-	pclog("Other information: eip=%08X esp=%08X eflags=%04X flags=%04X use32=%04X stack32=%i ECX=%08X EDX=%08X\n", cpu_state.pc, ESP, eflags, flags, use32, stack32, ECX, EDX);
+	x386_dynarec_log("SYSEXIT completed:\n");
+	x386_dynarec_log("CS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", CS, _cs.base, _cs.limit, _cs.access, _cs.seg, _cs.limit_low, _cs.limit_high, _cs.checked);
+	x386_dynarec_log("SS (%04X): base=%08X, limit=%08X, access=%02X, seg=%04X, limit_low=%08X, limit_high=%08X, checked=%i\n", SS, _ss.base, _ss.limit, _ss.access, _ss.seg, _ss.limit_low, _ss.limit_high, _ss.checked);
+	x386_dynarec_log("Model specific registers: cs_msr=%04X, esp_msr=%08X, eip_msr=%08X\n", cs_msr, esp_msr, eip_msr);
+	x386_dynarec_log("Other information: eip=%08X esp=%08X eflags=%04X flags=%04X use32=%04X stack32=%i ECX=%08X EDX=%08X\n", cpu_state.pc, ESP, eflags, flags, use32, stack32, ECX, EDX);
 #endif
 
 	return 0;
@@ -169,7 +169,7 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 
 	if (cpu_state.eaaddr & 0xf)
 	{
-		pclog("Effective address %04X not on 16-byte boundary\n", cpu_state.eaaddr);
+		x386_dynarec_log("Effective address %04X not on 16-byte boundary\n", cpu_state.eaaddr);
 		x86gpf(NULL, 0);
 		return cpu_state.abrt;
 	}
@@ -262,7 +262,7 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 
 	        CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
 
-		if(cpu_state.abrt)  pclog("FXRSTOR: abrt != 0\n");
+		if(cpu_state.abrt)  x386_dynarec_log("FXRSTOR: abrt != 0\n");
 	}
 	else
 	{
@@ -323,7 +323,7 @@ static int opFXSAVESTOR_a16(uint32_t fetchdat)
 
 		CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
 
-		if(cpu_state.abrt)  pclog("FXSAVE: abrt != 0\n");
+		if(cpu_state.abrt)  x386_dynarec_log("FXSAVE: abrt != 0\n");
 	}
 
 	return cpu_state.abrt;
@@ -347,7 +347,7 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 
 	if (cpu_state.eaaddr & 0xf)
 	{
-		pclog("Effective address %08X not on 16-byte boundary\n", cpu_state.eaaddr);
+		x386_dynarec_log("Effective address %08X not on 16-byte boundary\n", cpu_state.eaaddr);
 		x86gpf(NULL, 0);
 		return cpu_state.abrt;
 	}
@@ -440,7 +440,7 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 
 	        CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
 
-		if(cpu_state.abrt)  pclog("FXRSTOR: abrt != 0\n");
+		if(cpu_state.abrt)  x386_dynarec_log("FXRSTOR: abrt != 0\n");
 	}
 	else
 	{
@@ -501,7 +501,7 @@ static int opFXSAVESTOR_a32(uint32_t fetchdat)
 
 		CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
 
-		if(cpu_state.abrt)  pclog("FXSAVE: abrt != 0\n");
+		if(cpu_state.abrt)  x386_dynarec_log("FXSAVE: abrt != 0\n");
 	}
 
 	return cpu_state.abrt;

@@ -8,7 +8,7 @@
  *
  *		Implementation of the Teledisk floppy image format.
  *
- * Version:	@(#)fdd_td0.c	1.0.6	2018/04/29
+ * Version:	@(#)fdd_td0.c	1.0.7	2018/10/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -222,13 +222,11 @@ static td0_t	*td0[FDD_NUM];
 
 #ifdef ENABLE_TD0_LOG
 int td0_do_log = ENABLE_TD0_LOG;
-#endif
 
 
 static void
 td0_log(const char *fmt, ...)
 {
-#ifdef ENABLE_TD0_LOG
    va_list ap;
 
    if (td0_do_log)
@@ -237,8 +235,10 @@ td0_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define td0_log(fmt, ...)
+#endif
 
 
 static void

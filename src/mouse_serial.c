@@ -10,7 +10,7 @@
  *
  * TODO:	Add the Genius Serial Mouse.
  *
- * Version:	@(#)mouse_serial.c	1.0.24	2018/10/02
+ * Version:	@(#)mouse_serial.c	1.0.25	2018/10/17
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -53,22 +53,22 @@ typedef struct {
 
 #ifdef ENABLE_MOUSE_SERIAL_LOG
 int mouse_serial_do_log = ENABLE_MOUSE_SERIAL_LOG;
-#endif
 
 
 static void
-mouse_serial_log(const char *format, ...)
+mouse_serial_log(const char *fmt, ...)
 {
-#ifdef ENABLE_MOUSE_SERIAL_LOG
     va_list ap;
 
     if (mouse_serial_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define mouse_serial_log(fmt, ...)
+#endif
 
 
 /* Callback from serial driver: RTS was toggled. */

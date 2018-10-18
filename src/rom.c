@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.40	2018/10/02
+ * Version:	@(#)rom.c	1.0.41	2018/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -43,22 +43,22 @@ int	romspresent[ROM_MAX];
 
 #ifdef ENABLE_ROM_LOG
 int rom_do_log = ENABLE_ROM_LOG;
-#endif
 
 
 static void
-rom_log(const char *format, ...)
+rom_log(const char *fmt, ...)
 {
-#ifdef ENABLE_ROM_LOG
     va_list ap;
 
     if (rom_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define rom_log(fmt, ...)
+#endif
 
 
 FILE *

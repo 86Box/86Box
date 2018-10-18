@@ -8,7 +8,7 @@
  *
  *		Try to load a support DLL.
  *
- * Version:	@(#)win_dynld.c	1.0.7	2018/04/29
+ * Version:	@(#)win_dynld.c	1.0.8	2018/10/18
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -28,13 +28,11 @@
 
 #ifdef ENABLE_DYNLD_LOG
 int dynld_do_log = ENABLE_DYNLD_LOG;
-#endif
 
 
 static void
 dynld_log(const char *fmt, ...)
 {
-#ifdef ENABLE_DYNLD_LOG
     va_list ap;
 
     if (dynld_do_log) {
@@ -42,8 +40,10 @@ dynld_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define dynld_log(fmt, ...)
+#endif
 
 
 void *

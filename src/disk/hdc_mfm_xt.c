@@ -41,7 +41,7 @@
  *		Since all controllers (including the ones made by DTC) use
  *		(mostly) the same API, we keep them all in this module.
  *
- * Version:	@(#)hdc_mfm_xt.c	1.0.17	2018/04/29
+ * Version:	@(#)hdc_mfm_xt.c	1.0.18	2018/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -157,13 +157,11 @@ typedef struct {
 
 #ifdef ENABLE_MFM_XT_LOG
 int mfm_xt_do_log = ENABLE_MFM_XT_LOG;
-#endif
 
 
 static void
 mfm_xt_log(const char *fmt, ...)
 {
-#ifdef ENABLE_MFM_XT_LOG
     va_list ap;
 
     if (mfm_xt_do_log) {
@@ -171,8 +169,10 @@ mfm_xt_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define mfm_xt_log(fmt, ...)
+#endif
 
 
 static uint8_t

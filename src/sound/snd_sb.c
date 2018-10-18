@@ -8,7 +8,7 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.13	2018/09/11
+ * Version:	@(#)sound_sb.c	1.0.14	2018/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -173,13 +173,11 @@ const int32_t sb_att_7dbstep_2bits[]=
 
 #ifdef ENABLE_SB_LOG
 int sb_do_log = ENABLE_SB_LOG;
-#endif
 
 
 static void
 sb_log(const char *fmt, ...)
 {
-#ifdef ENABLE_SB_LOG
     va_list ap;
 
     if (sb_do_log) {
@@ -187,8 +185,10 @@ sb_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define sb_log(fmt, ...)
+#endif
 
 
 /* sb 1, 1.5, 2, 2 mvc do not have a mixer, so signal is hardwired */

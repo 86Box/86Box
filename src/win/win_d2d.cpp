@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -8,7 +8,7 @@
  *
  *		Rendering module for Microsoft Direct2D.
  *
- * Version:	@(#)win_d2d.cpp	1.0.1	2018/07/28
+ * Version:	@(#)win_d2d.cpp	1.0.2	2018/10/18
  *
  * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
  *
@@ -52,13 +52,11 @@ static int			d2d_width, d2d_height, d2d_screen_width, d2d_screen_height, d2d_fs;
 
 #ifdef ENABLE_D2D_LOG
 int d2d_do_log = ENABLE_D2D_LOG;
-#endif
 
 
 static void
 d2d_log(const char *fmt, ...)
 {
-#ifdef ENABLE_D2D_LOG
 	va_list ap;
 
 	if (d2d_do_log) {
@@ -66,8 +64,10 @@ d2d_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
 	}
-#endif
 }
+#else
+#define d2d_log(fmt, ...)
+#endif
 
 
 #ifdef USE_D2D

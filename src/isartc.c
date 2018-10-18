@@ -28,7 +28,7 @@
  * NOTE:	The IRQ functionalities have been implemented, but not yet
  *		tested, as I need to write test software for them first :)
  *
- * Version:	@(#)isartc.c	1.0.6	2018/10/07
+ * Version:	@(#)isartc.c	1.0.7	2018/10/17
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -151,23 +151,22 @@ typedef struct {
 
 #ifdef ENABLE_ISARTC_LOG
 int isartc_do_log = ENABLE_ISARTC_LOG;
-#endif
 
 
 static void
 isartc_log(const char *fmt, ...)
 {
-#ifdef ENABLE_ISARTC_LOG
-	va_list ap;
+    va_list ap;
 
-	if (isartc_do_log)
-	{
-		va_start(ap, fmt);
-		pclog_ex(fmt, ap);
-		va_end(ap);
-	}
-#endif
+    if (isartc_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
 }
+#else
+#define isartc_log(fmt, ...)
+#endif
 
 
 /* Check if the current time matches a set alarm time. */

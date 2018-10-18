@@ -8,7 +8,7 @@
  *
  *		Joystick interface to host device.
  *
- * Version:	@(#)win_joystick.cpp	1.0.9	2018/04/29
+ * Version:	@(#)win_joystick.cpp	1.0.10	2018/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -42,13 +42,11 @@ static GUID joystick_guids[MAX_JOYSTICKS];
 
 #ifdef ENABLE_JOYSTICK_LOG
 int joystick_do_log = ENABLE_JOYSTICK_LOG;
-#endif
 
 
 static void
 joystick_log(const char *fmt, ...)
 {
-#ifdef ENABLE_JOYSTICK_LOG
     va_list ap;
 
     if (joystick_do_log) {
@@ -56,8 +54,10 @@ joystick_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define joystick_log(fmt, ...)
+#endif
 
 
 static BOOL CALLBACK joystick_enum_callback(LPCDIDEVICEINSTANCE lpddi, UNUSED(LPVOID data))

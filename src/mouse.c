@@ -11,7 +11,7 @@
  * TODO:	Add the Genius bus- and serial mouse.
  *		Remove the '3-button' flag from mouse types.
  *
- * Version:	@(#)mouse.c	1.0.27	2018/04/29
+ * Version:	@(#)mouse.c	1.0.28	2018/10/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -82,22 +82,22 @@ static int	(*mouse_dev_poll)();
 
 #ifdef ENABLE_MOUSE_LOG
 int mouse_do_log = ENABLE_MOUSE_LOG;
-#endif
 
 
 static void
-mouse_log(const char *format, ...)
+mouse_log(const char *fmt, ...)
 {
-#ifdef ENABLE_MOUSE_LOG
     va_list ap;
 
     if (mouse_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define mouse_log(fmt, ...)
+#endif
 
 
 /* Initialize the mouse module. */

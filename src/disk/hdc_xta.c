@@ -46,7 +46,7 @@
  *
  * NOTE:	The XTA interface is 0-based for sector numbers !!
  *
- * Version:	@(#)hdc_ide_xta.c	1.0.8	2018/04/29
+ * Version:	@(#)hdc_ide_xta.c	1.0.9	2018/10/17
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -281,13 +281,11 @@ typedef struct {
 
 #ifdef ENABLE_XTA_LOG
 int xta_do_log = ENABLE_XTA_LOG;
-#endif
 
 
 static void
 xta_log(const char *fmt, ...)
 {
-#ifdef ENABLE_XTA_LOG
     va_list ap;
 
     if (xta_do_log) {
@@ -295,8 +293,10 @@ xta_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define xta_log(fmt, ...)
+#endif
 
 
 static void

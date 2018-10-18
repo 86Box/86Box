@@ -8,7 +8,7 @@
  *
  *		ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- * Version:	@(#)vid_ati28800.c	1.0.25	2018/10/04
+ * Version:	@(#)vid_ati28800.c	1.0.26	2018/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -84,13 +84,11 @@ static video_timings_t timing_ati28800 = {VIDEO_ISA, 3,  3,  6,   5,  5, 10};
 
 #ifdef ENABLE_ATI28800_LOG
 int ati28800_do_log = ENABLE_ATI28800_LOG;
-#endif
 
 
 static void
 ati28800_log(const char *fmt, ...)
 {
-#ifdef ENABLE_ATI28800_LOG
     va_list ap;
 
     if (ati28800_do_log) {
@@ -98,8 +96,11 @@ ati28800_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define ati28800_log(fmt, ...)
+#endif
+
 
 static void ati28800_recalctimings(svga_t *svga);
 

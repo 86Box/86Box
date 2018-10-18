@@ -40,6 +40,8 @@
  *		  Logitech Mouse.exe 6.50
  *		  Microsoft Mouse.com 2.00
  *		  Microsoft Mouse.sys 3.00
+ *		  Microsoft Mouse.com 7.04
+ *		  Microsoft Mouse.com 8.21J
  *		  Microsoft Windows 1.00 DR5
  *		  Microsoft Windows 3.10.026
  *		  Microsoft Windows NT 3.1
@@ -51,7 +53,7 @@
  *		  Microsoft Windows NT 3.1
  *		  Microsoft Windows 98 SE
  *
- * Version:	@(#)mouse_bus.c	1.0.2	2018/10/09
+ * Version:	@(#)mouse_bus.c	1.0.3	2018/10/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -144,22 +146,22 @@ typedef struct mouse {
 
 #ifdef ENABLE_MOUSE_BUS_LOG
 int bm_do_log = ENABLE_MOUSE_BUS_LOG;
-#endif
 
 
 static void
-bm_log(const char *format, ...)
+bm_log(const char *fmt, ...)
 {
-#ifdef ENABLE_MOUSE_BUS_LOG
     va_list ap;
 
     if (bm_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define bm_log(fmt, ...)
+#endif
 
 
 /* Handle a READ operation from one of our registers. */

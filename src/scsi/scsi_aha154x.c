@@ -10,7 +10,7 @@
  *		made by Adaptec, Inc. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.43	2018/10/02
+ * Version:	@(#)scsi_aha154x.c	1.0.44	2018/10/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -82,13 +82,11 @@ typedef struct {
 
 #ifdef ENABLE_AHA154X_LOG
 int aha_do_log = ENABLE_AHA154X_LOG;
-#endif
 
 
 static void
 aha_log(const char *fmt, ...)
 {
-#ifdef ENABLE_AHA154X_LOG
     va_list ap;
 
     if (aha_do_log) {
@@ -96,8 +94,10 @@ aha_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define aha_log(fmt, ...)
+#endif
 
 
 /*

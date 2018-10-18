@@ -12,7 +12,7 @@
  *		addition of get_last_head and C++ callability by Thomas
  *		Harte.
  *
- * Version:	@(#)fdi2raw.c	1.0.3	2018/04/29
+ * Version:	@(#)fdi2raw.c	1.0.4	2018/10/18
  *
  * Authors:	Toni Wilen, <twilen@arabuusimiehet.com>
  *		and Vincent Joguin,
@@ -66,13 +66,11 @@
 
 #ifdef ENABLE_FDI2RAW_LOG
 int fdi2raw_do_log = ENABLE_FDI2RAW_LOG;
-#endif
 
 
 static void
 fdi2raw_log(const char *fmt, ...)
 {
-#ifdef ENABLE_FDI2RAW_LOG
    va_list ap;
 
    if (fdi2raw_do_log)
@@ -81,10 +79,13 @@ fdi2raw_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define fdi2raw_log(fmt, ...)
+#endif
 
 
+#ifdef ENABLE_FDI2RAW_LOG
 #ifdef DEBUG
 static char *datalog(uae_u8 *src, int len)
 {
@@ -110,6 +111,8 @@ static char *datalog(uae_u8 *src, int len) { return ""; }
 #endif
 
 static int fdi_allocated;
+#endif
+
 #ifdef DEBUG
 static void fdi_free (void *p)
 {
@@ -1329,8 +1332,10 @@ static void fix_mfm_sync (FDI *fdi)
 
 static int handle_sectors_described_track (FDI *fdi)
 {
+#ifdef ENABLE_FDI2RAW_LOG
 	int oldout;
 	uae_u8 *start_src = fdi->track_src ;
+#endif
 	fdi->encoding_type = *fdi->track_src++;
 	fdi->index_offset = get_u32(fdi->track_src);
 	fdi->index_offset >>= 8;
@@ -1340,10 +1345,14 @@ static int handle_sectors_described_track (FDI *fdi)
 	do {
 		fdi->track_type = *fdi->track_src++;
 		fdi2raw_log("%06.6X %06.6X %02.2X:",fdi->track_src - start_src + 0x200, fdi->out/8, fdi->track_type);
+#ifdef ENABLE_FDI2RAW_LOG
 		oldout = fdi->out;
+#endif
 		decode_sectors_described_track[fdi->track_type](fdi);
 		fdi2raw_log(" %d\n", fdi->out - oldout);
+#ifdef ENABLE_FDI2RAW_LOG
 		oldout = fdi->out;
+#endif
 		if (fdi->out < 0 || fdi->err) {
 			fdi2raw_log("\nin %d bytes, out %d bits\n", fdi->track_src - fdi->track_src_buffer, fdi->out);
 			return -1;

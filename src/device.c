@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.19	2018/10/10
+ * Version:	@(#)device.c	1.0.20	2018/10/17
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -69,22 +69,22 @@ static clonedev_t	*clones = NULL;
 
 #ifdef ENABLE_DEVICE_LOG
 int device_do_log = ENABLE_DEVICE_LOG;
-#endif
 
 
 static void
-device_log(const char *format, ...)
+device_log(const char *fmt, ...)
 {
-#ifdef ENABLE_DEVICE_LOG
     va_list ap;
 
     if (device_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define device_log(fmt, ...)
+#endif
 
 /* Initialize the module for use. */
 void
@@ -154,6 +154,7 @@ device_add(const device_t *d)
 {
     void *priv = NULL;
     int c;
+    device_t *old;
 
     for (c = 0; c < 256; c++) {
 	if (devices[c] == (device_t *)d) {
@@ -165,6 +166,7 @@ device_add(const device_t *d)
     if (c >= DEVICE_MAX)
 	fatal("DEVICE: too many devices\n");
 
+    old = device_current;
     device_current = (device_t *)d;
 
     devices[c] = (device_t *)d;
@@ -184,6 +186,7 @@ device_add(const device_t *d)
     }
 
     device_priv[c] = priv;
+    device_current = old;
 
     return(priv);
 }
@@ -204,8 +207,6 @@ device_add_ex(const device_t *d, void *priv)
     }
     if (c >= DEVICE_MAX)
 	fatal("device_add: too many devices\n");
-
-    device_current = (device_t *)d;
 
     devices[c] = (device_t *)d;
     device_priv[c] = priv;

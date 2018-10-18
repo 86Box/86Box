@@ -8,7 +8,7 @@
  *
  *		ATi Mach64 graphics card emulation.
  *
- * Version:	@(#)vid_ati_mach64.c	1.0.25	2018/10/04
+ * Version:	@(#)vid_ati_mach64.c	1.0.26	2018/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -344,13 +344,11 @@ void     mach64_ext_writel(uint32_t addr, uint32_t val, void *priv);
 
 #ifdef ENABLE_MACH64_LOG
 int mach64_do_log = ENABLE_MACH64_LOG;
-#endif
 
 
 static void
 mach64_log(const char *fmt, ...)
 {
-#ifdef ENABLE_MACH64_LOG
     va_list ap;
 
     if (mach64_do_log) {
@@ -358,8 +356,10 @@ mach64_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define mach64_log(fmt, ...)
+#endif
 
 
 void mach64_out(uint16_t addr, uint8_t val, void *p)

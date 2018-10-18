@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.24	2018/10/11
+ * Version:	@(#)scsi_x54x.c	1.0.25	2018/10/18
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -57,13 +57,11 @@ x54x_t	*x54x_dev;
 
 #ifdef ENABLE_X54X_LOG
 int x54x_do_log = ENABLE_X54X_LOG;
-#endif
 
 
 static void
 x54x_log(const char *fmt, ...)
 {
-#ifdef ENABLE_X54X_LOG
     va_list ap;
 
     if (x54x_do_log) {
@@ -72,8 +70,10 @@ x54x_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define x54x_log(fmt, ...)
+#endif
 
 
 static void
@@ -952,7 +952,10 @@ static void
 x54x_scsi_cmd(x54x_t *dev)
 {
     Req_t *req = &dev->Req;
-    uint8_t id, lun, phase, bit24 = !!req->Is24bit;
+    uint8_t id, phase, bit24 = !!req->Is24bit;
+#ifdef ENABLE_X54X_LOG
+    uint8_t lun;
+#endif
     uint8_t temp_cdb[12];
     uint32_t i, SenseBufferAddress;
     int target_data_len, target_cdb_len = 12;
@@ -962,7 +965,9 @@ x54x_scsi_cmd(x54x_t *dev)
 
     id = req->TargetID;
     sd = &scsi_devices[id];
+#ifdef ENABLE_X54X_LOG
     lun = req->LUN;
+#endif
 
     target_cdb_len = 12;
     target_data_len = x54x_get_length(req, bit24);

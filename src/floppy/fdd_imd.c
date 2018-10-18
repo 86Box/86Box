@@ -8,7 +8,7 @@
  *
  *		Implementation of the IMD floppy image format.
  *
- * Version:	@(#)fdd_imd.c	1.0.7	2018/04/29
+ * Version:	@(#)fdd_imd.c	1.0.8	2018/10/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -86,13 +86,11 @@ static fdc_t	*imd_fdc;
 
 #ifdef ENABLE_IMD_LOG
 int imd_do_log = ENABLE_IMD_LOG;
-#endif
 
 
 static void
 imd_log(const char *fmt, ...)
 {
-#ifdef ENABLE_IMD_LOG
    va_list ap;
 
    if (imd_do_log)
@@ -101,8 +99,10 @@ imd_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define imd_log(fmt, ...)
+#endif
 
 
 static uint32_t

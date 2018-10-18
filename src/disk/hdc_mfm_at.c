@@ -12,7 +12,7 @@
  *		based design. Most cards were WD1003-WA2 or -WAH, where the
  *		-WA2 cards had a floppy controller as well (to save space.)
  *
- * Version:	@(#)hdc_mfm_at.c	1.0.17	2018/05/02
+ * Version:	@(#)hdc_mfm_at.c	1.0.18	2018/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -114,13 +114,11 @@ typedef struct {
 
 #ifdef ENABLE_MFM_AT_LOG
 int mfm_at_do_log = ENABLE_MFM_AT_LOG;
-#endif
 
 
 static void
 mfm_at_log(const char *fmt, ...)
 {
-#ifdef ENABLE_MFM_AT_LOG
     va_list ap;
 
     if (mfm_at_do_log) {
@@ -128,8 +126,10 @@ mfm_at_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define mfm_at_log(fmt, ...)
+#endif
 
 
 static inline void

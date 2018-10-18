@@ -52,7 +52,7 @@
  *		however, are auto-configured by the system software as
  *		shown above.
  *
- * Version:	@(#)hdc_esdi_mca.c	1.0.13	2018/04/29
+ * Version:	@(#)hdc_esdi_mca.c	1.0.14	2018/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -196,13 +196,11 @@ typedef struct esdi {
 
 #ifdef ENABLE_ESDI_MCA_LOG
 int esdi_mca_do_log = ENABLE_ESDI_MCA_LOG;
-#endif
 
 
 static void
 esdi_mca_log(const char *fmt, ...)
 {
-#ifdef ENABLE_ESDI_MCA_LOG
     va_list ap;
 
     if (esdi_mca_do_log) {
@@ -210,8 +208,10 @@ esdi_mca_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define esdi_mca_log(fmt, ...)
+#endif
 
 
 static __inline void

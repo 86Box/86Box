@@ -8,7 +8,7 @@
  *
  *		AMD SYSCALL and SYSRET CPU Instructions.
  *
- * Version:	@(#)x86_ops_amd.h	1.0.3	2018/04/25
+ * Version:	@(#)x86_ops_amd.h	1.0.4	2018/10/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -55,7 +55,7 @@ static int opSYSCALL(uint32_t fetchdat)
 	{
 		if (_cs.seg >= ldt.limit)
 		{
-			pclog("Bigger than LDT limit %04X %04X CS\n",AMD_SYSCALL_SB,ldt.limit);
+			x386_dynarec_log("Bigger than LDT limit %04X %04X CS\n",AMD_SYSCALL_SB,ldt.limit);
 			x86gpf(NULL, AMD_SYSCALL_SB & ~3);
 			return 1;
 		}
@@ -65,7 +65,7 @@ static int opSYSCALL(uint32_t fetchdat)
 	{
 		if (_cs.seg >= gdt.limit)
 		{
-			pclog("Bigger than GDT limit %04X %04X CS\n",AMD_SYSCALL_SB,gdt.limit);
+			x386_dynarec_log("Bigger than GDT limit %04X %04X CS\n",AMD_SYSCALL_SB,gdt.limit);
 			x86gpf(NULL, AMD_SYSCALL_SB & ~3);
 			return 1;
 		}
@@ -133,7 +133,7 @@ static int opSYSRET(uint32_t fetchdat)
 	{
 		if (_cs.seg >= ldt.limit)
 		{
-			pclog("Bigger than LDT limit %04X %04X CS\n",AMD_SYSRET_SB,ldt.limit);
+			x386_dynarec_log("Bigger than LDT limit %04X %04X CS\n",AMD_SYSRET_SB,ldt.limit);
 			x86gpf(NULL, AMD_SYSRET_SB & ~3);
 			return 1;
 		}
@@ -143,7 +143,7 @@ static int opSYSRET(uint32_t fetchdat)
 	{
 		if (_cs.seg >= gdt.limit)
 		{
-			pclog("Bigger than GDT limit %04X %04X CS\n",AMD_SYSRET_SB,gdt.limit);
+			x386_dynarec_log("Bigger than GDT limit %04X %04X CS\n",AMD_SYSRET_SB,gdt.limit);
 			x86gpf(NULL, AMD_SYSRET_SB & ~3);
 			return 1;
 		}

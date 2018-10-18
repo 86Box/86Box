@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of disk controllers.
  *
- * Version:	@(#)hdc.c	1.0.15	2018/04/29
+ * Version:	@(#)hdc.c	1.0.16	2018/10/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -36,13 +36,11 @@ int	hdc_current;
 
 #ifdef ENABLE_HDC_LOG
 int hdc_do_log = ENABLE_HDC_LOG;
-#endif
 
 
 static void
 hdc_log(const char *fmt, ...)
 {
-#ifdef ENABLE_HDC_LOG
     va_list ap;
 
     if (hdc_do_log) {
@@ -50,8 +48,10 @@ hdc_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define hdc_log(fmt, ...)
+#endif
 
 
 static void *

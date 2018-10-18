@@ -113,13 +113,11 @@ float low_fir_sb16_coef[SB16_NCoef];
 
 #ifdef ENABLE_SB_DSP_LOG
 int sb_dsp_do_log = ENABLE_SB_DSP_LOG;
-#endif
 
 
 static void
 sb_dsp_log(const char *fmt, ...)
 {
-#ifdef ENABLE_SB_DSP_LOG
     va_list ap;
 
     if (sb_dsp_do_log) {
@@ -127,8 +125,10 @@ sb_dsp_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define sb_dsp_log(fmt, ...)
+#endif
 
 
 static inline double sinc(double x)

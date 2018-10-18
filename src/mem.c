@@ -154,22 +154,22 @@ static int		port_92_reg = 0;
 
 #ifdef ENABLE_MEM_LOG
 int mem_do_log = ENABLE_MEM_LOG;
-#endif
 
 
 static void
-mem_log(const char *format, ...)
+mem_log(const char *fmt, ...)
 {
-#ifdef ENABLE_MEM_LOG
     va_list ap;
 
     if (mem_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define mem_log(fmt, ...)
+#endif
 
 
 void

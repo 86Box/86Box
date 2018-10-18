@@ -171,7 +171,7 @@ static int opBA_w_a16(uint32_t fetchdat)
                 break;
 
                 default:
-                pclog("Bad 0F BA opcode %02X\n", rmdat & 0x38);
+                x386_dynarec_log("Bad 0F BA opcode %02X\n", rmdat & 0x38);
                 cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 break;
@@ -213,7 +213,7 @@ static int opBA_w_a32(uint32_t fetchdat)
                 break;
 
                 default:
-                pclog("Bad 0F BA opcode %02X\n", rmdat & 0x38);
+                x386_dynarec_log("Bad 0F BA opcode %02X\n", rmdat & 0x38);
                 cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 break;
@@ -256,7 +256,7 @@ static int opBA_l_a16(uint32_t fetchdat)
                 break;
 
                 default:
-                pclog("Bad 0F BA opcode %02X\n", rmdat & 0x38);
+                x386_dynarec_log("Bad 0F BA opcode %02X\n", rmdat & 0x38);
                 cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 break;
@@ -298,7 +298,7 @@ static int opBA_l_a32(uint32_t fetchdat)
                 break;
 
                 default:
-                pclog("Bad 0F BA opcode %02X\n", rmdat & 0x38);
+                x386_dynarec_log("Bad 0F BA opcode %02X\n", rmdat & 0x38);
                 cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 break;

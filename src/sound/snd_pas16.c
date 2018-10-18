@@ -181,13 +181,11 @@ enum
 
 #ifdef ENABLE_PAS16_LOG
 int pas16_do_log = ENABLE_PAS16_LOG;
-#endif
 
 
 static void
 pas16_log(const char *fmt, ...)
 {
-#ifdef ENABLE_PAS16_LOG
     va_list ap;
 
     if (pas16_do_log) {
@@ -195,8 +193,10 @@ pas16_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define pas16_log(fmt, ...)
+#endif
 
 
 static uint8_t pas16_in(uint16_t port, void *p)

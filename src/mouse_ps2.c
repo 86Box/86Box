@@ -8,7 +8,7 @@
  *
  *		Implementation of PS/2 series Mouse devices.
  *
- * Version:	@(#)mouse_ps2.c	1.0.11	2018/10/02
+ * Version:	@(#)mouse_ps2.c	1.0.12	2018/10/17
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -60,22 +60,22 @@ int mouse_scan = 0;
 
 #ifdef ENABLE_MOUSE_PS2_LOG
 int mouse_ps2_do_log = ENABLE_MOUSE_PS2_LOG;
-#endif
 
 
 static void
-mouse_ps2_log(const char *format, ...)
+mouse_ps2_log(const char *fmt, ...)
 {
-#ifdef ENABLE_MOUSE_PS2_LOG
     va_list ap;
 
     if (mouse_ps2_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define mouse_ps2_log(fmt, ...)
+#endif
 
 
 void

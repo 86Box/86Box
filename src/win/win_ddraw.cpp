@@ -11,7 +11,7 @@
  * NOTES:	This code should be re-merged into a single init() with a
  *		'fullscreen' argument, indicating FS mode is requested.
  *
- * Version:	@(#)win_ddraw.cpp	1.0.11	2018/10/10
+ * Version:	@(#)win_ddraw.cpp	1.0.12	2018/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -60,13 +60,11 @@ static png_infop		info_ptr;
 
 #ifdef ENABLE_DDRAW_LOG
 int ddraw_do_log = ENABLE_DDRAW_LOG;
-#endif
 
 
 static void
 ddraw_log(const char *fmt, ...)
 {
-#ifdef ENABLE_DDRAW_LOG
     va_list ap;
 
     if (ddraw_do_log) {
@@ -74,8 +72,10 @@ ddraw_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define ddraw_log(fmt, ...)
+#endif
 
 
 static void

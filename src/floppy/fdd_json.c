@@ -8,7 +8,7 @@
  *
  *		Implementation of the PCjs JSON floppy image format.
  *
- * Version:	@(#)fdd_json.c	1.0.5	2018/04/29
+ * Version:	@(#)fdd_json.c	1.0.6	2018/10/18
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -108,13 +108,11 @@ static json_t	*images[FDD_NUM];
 
 #ifdef ENABLE_JSON_LOG
 int json_do_log = ENABLE_JSON_LOG;
-#endif
 
 
 static void
 json_log(const char *fmt, ...)
 {
-#ifdef ENABLE_JSON_LOG
    va_list ap;
 
    if (json_do_log)
@@ -123,8 +121,10 @@ json_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define json_log(fmt, ...)
+#endif
 
 
 static void

@@ -8,7 +8,7 @@
  *
  *		Implement the VNC remote renderer with LibVNCServer.
  *
- * Version:	@(#)vnc.c	1.0.13	2018/09/03
+ * Version:	@(#)vnc.c	1.0.14	2018/10/17
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>
@@ -49,22 +49,22 @@ static int	ptr_x, ptr_y, ptr_but;
 
 #ifdef ENABLE_VNC_LOG
 int vnc_do_log = ENABLE_VNC_LOG;
-#endif
 
 
 static void
-vnc_log(const char *format, ...)
+vnc_log(const char *fmt, ...)
 {
-#ifdef ENABLE_VNC_LOG
     va_list ap;
 
     if (vnc_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define vnc_log(fmt, ...)
+#endif
 
 
 static void

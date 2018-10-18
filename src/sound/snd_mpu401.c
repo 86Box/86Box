@@ -8,7 +8,7 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)snd_mpu401.c	1.0.17	2018/09/15
+ * Version:	@(#)snd_mpu401.c	1.0.18	2018/10/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
@@ -58,13 +58,11 @@ static void MPU401_EOIHandlerDispatch(void *p);
 
 #ifdef ENABLE_MPU401_LOG
 int mpu401_do_log = ENABLE_MPU401_LOG;
-#endif
 
 
 static void
 mpu401_log(const char *fmt, ...)
 {
-#ifdef ENABLE_MPU401_LOG
     va_list ap;
 
     if (mpu401_do_log) {
@@ -72,8 +70,10 @@ mpu401_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define mpu401_log(fmt, ...)
+#endif
 
 
 static void
