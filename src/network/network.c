@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.7	2018/08/11
+ * Version:	@(#)network.c	1.0.8	2018/10/17
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -116,22 +116,22 @@ static struct {
 
 #ifdef ENABLE_NETWORK_LOG
 int network_do_log = ENABLE_NETWORK_LOG;
-#endif
 
 
 static void
-network_log(const char *format, ...)
+network_log(const char *fmt, ...)
 {
-#ifdef ENABLE_NETWORK_LOG
     va_list ap;
 
     if (network_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define network_log(fmt, ...)
+#endif
 
 
 void

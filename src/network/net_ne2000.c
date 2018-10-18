@@ -13,7 +13,7 @@
  *			- Realtek RTL8019AS (ISA 16-bit, PnP);
  *			- Realtek RTL8029AS (PCI).
  *
- * Version:	@(#)net_ne2000.c	1.0.9	2018/10/02
+ * Version:	@(#)net_ne2000.c	1.0.10	2018/10/17
  *
  * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *
@@ -61,7 +61,6 @@
 #include "../pic.h"
 #include "../random.h"
 #include "../device.h"
-#include "../ui.h"
 #include "network.h"
 #include "net_dp8390.h"
 #include "net_ne2000.h"
@@ -96,25 +95,23 @@ uint8_t pnp_init_key[32] = { 0x6A, 0xB5, 0xDA, 0xED, 0xF6, 0xFB, 0x7D, 0xBE,
 
 
 typedef struct {
-    dp8390_t dp8390;
-	uint8_t	macaddr[32];		/* ASIC ROM'd MAC address, even bytes */
+    dp8390_t	*dp8390;
+    const char	*name;
     int		board;
     int		is_pci, is_mca, is_8bit;
-    const char	*name;
     uint32_t	base_address;
     int		base_irq;
     uint32_t	bios_addr,
 		bios_size,
 		bios_mask;
+    int		card;			/* PCI card slot */
+    int		has_bios, pad;
     uint8_t	pnp_regs[256];
     uint8_t	pnp_res_data[256];
     bar_t	pci_bar[2];
     uint8_t	pci_regs[PCI_REGSIZE];
-    uint8_t	maclocal[6];		/* configured MAC (local) address */
     uint8_t	eeprom[128];		/* for RTL8029AS */
     rom_t	bios_rom;
-    int		card;			/* PCI card slot */
-    int		has_bios;
     uint8_t	pnp_phase;
     uint8_t	pnp_magic_count;
     uint8_t	pnp_address;
@@ -123,33 +120,30 @@ typedef struct {
     uint8_t	pnp_activate;
     uint8_t	pnp_io_check;
     uint8_t	pnp_csnsav;
-    uint16_t	pnp_read;
-    uint64_t	pnp_id;
     uint8_t	pnp_id_checksum;
     uint8_t	pnp_serial_read_pos;
     uint8_t	pnp_serial_read_pair;
     uint8_t	pnp_serial_read;
+    uint8_t	maclocal[6];		/* configured MAC (local) address */
+    uint16_t	pnp_read;
+    uint64_t	pnp_id;
 
     /* RTL8019AS/RTL8029AS registers */
     uint8_t	config0, config2, config3;
     uint8_t	_9346cr;
-	
-	/* POS registers, MCA boards only */
-	uint8_t pos_regs[8];
+    uint32_t	pad0;
+
+    /* POS registers, MCA boards only */
+    uint8_t pos_regs[8];
 } nic_t;
 
 
-static void	nic_rx(void *, uint8_t *, int);
-static void	nic_tx(nic_t *, uint32_t);
-
 #ifdef ENABLE_NIC_LOG
 int nic_do_log = ENABLE_NIC_LOG;
-#endif
 
 static void
 nelog(int lvl, const char *fmt, ...)
 {
-#ifdef ENABLE_NIC_LOG
     va_list ap;
 
     if (nic_do_log >= lvl) {
@@ -157,13 +151,17 @@ nelog(int lvl, const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define nelog(lvl, fmt, ...)
+#endif
 
 
 static void
-nic_interrupt(nic_t *dev, int set)
+nic_interrupt(void *priv, int set)
 {
+    nic_t *dev = (nic_t *) priv;
+
     if (dev->is_pci) {
 	if (set)
 		pci_set_irq(dev->card, PCI_INTA);
@@ -183,86 +181,10 @@ static void
 nic_reset(void *priv)
 {
     nic_t *dev = (nic_t *)priv;
-    int i;
 
     nelog(1, "%s: reset\n", dev->name);
 
-	if (dev->board == NE2K_NE1000)
-	{
-		/* Initialize the MAC address area by doubling the physical address */
-		dev->macaddr[0]  = dev->dp8390.physaddr[0];
-		dev->macaddr[1]  = dev->dp8390.physaddr[1];
-		dev->macaddr[2]  = dev->dp8390.physaddr[2];
-		dev->macaddr[3]  = dev->dp8390.physaddr[3];
-		dev->macaddr[4]  = dev->dp8390.physaddr[4];
-		dev->macaddr[5]  = dev->dp8390.physaddr[5];
-
-		/* ne1k signature */
-		for (i=6; i<16; i++)
-			dev->macaddr[i] = 0x57;
-	}
-	else
-	{
-		/* Initialize the MAC address area by doubling the physical address */
-		dev->macaddr[0]  = dev->dp8390.physaddr[0];
-		dev->macaddr[1]  = dev->dp8390.physaddr[0];
-		dev->macaddr[2]  = dev->dp8390.physaddr[1];
-		dev->macaddr[3]  = dev->dp8390.physaddr[1];
-		dev->macaddr[4]  = dev->dp8390.physaddr[2];
-		dev->macaddr[5]  = dev->dp8390.physaddr[2];
-		dev->macaddr[6]  = dev->dp8390.physaddr[3];
-		dev->macaddr[7]  = dev->dp8390.physaddr[3];
-		dev->macaddr[8]  = dev->dp8390.physaddr[4];
-		dev->macaddr[9]  = dev->dp8390.physaddr[4];
-		dev->macaddr[10] = dev->dp8390.physaddr[5];
-		dev->macaddr[11] = dev->dp8390.physaddr[5];
-
-		/* ne2k signature */
-		for (i=12; i<32; i++)
-			dev->macaddr[i] = 0x57;
-	}
-
-    /* Zero out registers and memory */
-    memset(&dev->dp8390.CR,  0x00, sizeof(dev->dp8390.CR) );
-    memset(&dev->dp8390.ISR, 0x00, sizeof(dev->dp8390.ISR));
-    memset(&dev->dp8390.IMR, 0x00, sizeof(dev->dp8390.IMR));
-    memset(&dev->dp8390.DCR, 0x00, sizeof(dev->dp8390.DCR));
-    memset(&dev->dp8390.TCR, 0x00, sizeof(dev->dp8390.TCR));
-    memset(&dev->dp8390.TSR, 0x00, sizeof(dev->dp8390.TSR));
-    memset(&dev->dp8390.RSR, 0x00, sizeof(dev->dp8390.RSR));
-    dev->dp8390.tx_timer_active = 0;
-    dev->dp8390.local_dma  = 0;
-    dev->dp8390.page_start = 0;
-    dev->dp8390.page_stop  = 0;
-    dev->dp8390.bound_ptr  = 0;
-    dev->dp8390.tx_page_start = 0;
-    dev->dp8390.num_coll   = 0;
-    dev->dp8390.tx_bytes   = 0;
-    dev->dp8390.fifo       = 0;
-    dev->dp8390.remote_dma = 0;
-    dev->dp8390.remote_start = 0;
-	
-	dev->dp8390.remote_bytes = 0;
-
-	dev->dp8390.tallycnt_0 = 0;
-    dev->dp8390.tallycnt_1 = 0;
-    dev->dp8390.tallycnt_2 = 0;
-
-    dev->dp8390.curr_page = 0;
-
-    dev->dp8390.rempkt_ptr   = 0;
-    dev->dp8390.localpkt_ptr = 0;
-    dev->dp8390.address_cnt  = 0;
-
-    memset(&dev->dp8390.mem, 0x00, sizeof(dev->dp8390.mem));
-
-    /* Set power-up conditions */
-    dev->dp8390.CR.stop      = 1;
-    dev->dp8390.CR.rdma_cmd  = 4;
-    dev->dp8390.ISR.reset    = 1;
-    dev->dp8390.DCR.longaddr = 1;
-
-    nic_interrupt(dev, 0);
+    dp8390_reset(dev->dp8390);
 }
 
 
@@ -271,123 +193,7 @@ nic_soft_reset(void *priv)
 {
     nic_t *dev = (nic_t *)priv;
 
-    memset(&(dev->dp8390.ISR), 0x00, sizeof(dev->dp8390.ISR));
-    dev->dp8390.ISR.reset = 1;
-}
-
-
-/*
- * Access the 32K private RAM.
- *
- * The NE2000 memory is accessed through the data port of the
- * ASIC (offset 0) after setting up a remote-DMA transfer.
- * Both byte and word accesses are allowed.
- * The first 16 bytes contain the MAC address at even locations,
- * and there is 16K of buffer memory starting at 16K.
- */
-static uint32_t
-chipmem_read(nic_t *dev, uint32_t addr, unsigned int len)
-{
-    uint32_t retval = 0;
-
-    if ((len == 2) && (addr & 0x1)) {
-	nelog(3, "%s: unaligned chipmem word read\n", dev->name);
-    }
-
-    nelog(3, "Chipmem Read Address=%04x\n", addr);
-
-    /* ROM'd MAC address */
-    if (dev->board != NE2K_NE1000) {
-	    if (addr <= 31) {
-		retval = dev->macaddr[addr % 32];
-		if ((len == 2) || (len == 4)) {
-			retval |= (dev->macaddr[(addr + 1) % 32] << 8);
-		}
-		if (len == 4) {
-			retval |= (dev->macaddr[(addr + 2) % 32] << 16);
-			retval |= (dev->macaddr[(addr + 3) % 32] << 24);
-		}
-		return(retval);
-	    }
-
-	    if ((addr >= DP8390_DWORD_MEMSTART) && (addr < DP8390_DWORD_MEMEND)) {
-		retval = dev->dp8390.mem[addr - DP8390_DWORD_MEMSTART];
-		if ((len == 2) || (len == 4)) {
-			retval |= (dev->dp8390.mem[addr - DP8390_DWORD_MEMSTART + 1] << 8);
-		}
-		if (len == 4) {
-			retval |= (dev->dp8390.mem[addr - DP8390_DWORD_MEMSTART + 2] << 16);
-			retval |= (dev->dp8390.mem[addr - DP8390_DWORD_MEMSTART + 3] << 24);
-		}
-		return(retval);
-	    }
-    } else {
-	    if (addr <= 15) {
-		retval = dev->macaddr[addr % 16];
-		if (len == 2) {
-			retval |= (dev->macaddr[(addr + 1) % 16] << 8);
-		}
-		return(retval);
-	    }
-
-	    if ((addr >= DP8390_WORD_MEMSTART) && (addr < DP8390_WORD_MEMEND)) {
-		retval = dev->dp8390.mem[addr - DP8390_WORD_MEMSTART];
-		if (len == 2) {
-			retval |= (dev->dp8390.mem[addr - DP8390_WORD_MEMSTART + 1] << 8);
-		}
-		return(retval);
-	    }
-    }
-
-    nelog(3, "%s: out-of-bounds chipmem read, %04X\n", dev->name, addr);
-
-    if (dev->is_pci) {
-	return(0xff);
-    } else {
-	switch(len) {
-		case 1:
-			return(0xff);
-		case 2:
-			return(0xffff);
-	}
-    }
-
-    return(0xffff);
-}
-
-
-static void
-chipmem_write(nic_t *dev, uint32_t addr, uint32_t val, unsigned len)
-{
-    if ((len == 2) && (addr & 0x1)) {
-	nelog(3, "%s: unaligned chipmem word write\n", dev->name);
-    }
-
-    nelog(3, "Chipmem Write Address=%04x\n", addr);
-
-    if (dev->board != NE2K_NE1000) {
-	if ((addr >= DP8390_DWORD_MEMSTART) && (addr < DP8390_DWORD_MEMEND)) {
-		dev->dp8390.mem[addr-DP8390_DWORD_MEMSTART] = val & 0xff;
-		if ((len == 2) || (len == 4)) {
-			dev->dp8390.mem[addr-DP8390_DWORD_MEMSTART+1] = val >> 8;
-		}
-		if (len == 4) {
-			dev->dp8390.mem[addr-DP8390_DWORD_MEMSTART+2] = val >> 16;
-			dev->dp8390.mem[addr-DP8390_DWORD_MEMSTART+3] = val >> 24;
-		}
-	} else {
-		nelog(3, "%s: out-of-bounds chipmem write, %04X\n", dev->name, addr);
-	}
-    } else {
-	if ((addr >= DP8390_WORD_MEMSTART) && (addr < DP8390_WORD_MEMEND)) {
-		dev->dp8390.mem[addr-DP8390_WORD_MEMSTART] = val & 0xff;
-		if (len == 2) {
-			dev->dp8390.mem[addr-DP8390_WORD_MEMSTART+1] = val >> 8;
-		}
-	} else {
-		nelog(3, "%s: out-of-bounds chipmem write, %04X\n", dev->name, addr);
-	}
-    }
+    dp8390_soft_reset(dev->dp8390);
 }
 
 
@@ -414,43 +220,43 @@ asic_read(nic_t *dev, uint32_t off, unsigned int len)
 		/* A read remote-DMA command must have been issued,
 		   and the source-address and length registers must
 		   have been initialised. */
-		if (len > dev->dp8390.remote_bytes) {
+		if (len > dev->dp8390->remote_bytes) {
 			nelog(3, "%s: DMA read underrun iolen=%d remote_bytes=%d\n",
-					dev->name, len, dev->dp8390.remote_bytes);
+					dev->name, len, dev->dp8390->remote_bytes);
 		}
 
 		nelog(3, "%s: DMA read: addr=%4x remote_bytes=%d\n",
-			dev->name, dev->dp8390.remote_dma,dev->dp8390.remote_bytes);
-		retval = chipmem_read(dev, dev->dp8390.remote_dma, len);
+			dev->name, dev->dp8390->remote_dma,dev->dp8390->remote_bytes);
+		retval = dp8390_chipmem_read(dev->dp8390, dev->dp8390->remote_dma, len);
 
 		/* The 8390 bumps the address and decreases the byte count
 		   by the selected word size after every access, not by
 		   the amount of data requested by the host (io_len). */
 		if (len == 4) {
-			dev->dp8390.remote_dma += len;
+			dev->dp8390->remote_dma += len;
 		} else {
-			dev->dp8390.remote_dma += (dev->dp8390.DCR.wdsize + 1);
+			dev->dp8390->remote_dma += (dev->dp8390->DCR.wdsize + 1);
 		}
 
-		if (dev->dp8390.remote_dma == dev->dp8390.page_stop << 8) {
-			dev->dp8390.remote_dma = dev->dp8390.page_start << 8;
+		if (dev->dp8390->remote_dma == dev->dp8390->page_stop << 8) {
+			dev->dp8390->remote_dma = dev->dp8390->page_start << 8;
 		}
 
 		/* keep s.remote_bytes from underflowing */
-		if (dev->dp8390.remote_bytes > dev->dp8390.DCR.wdsize) {
+		if (dev->dp8390->remote_bytes > dev->dp8390->DCR.wdsize) {
 			if (len == 4) {
-				dev->dp8390.remote_bytes -= len;
+				dev->dp8390->remote_bytes -= len;
 			} else {
-				dev->dp8390.remote_bytes -= (dev->dp8390.DCR.wdsize + 1);
+				dev->dp8390->remote_bytes -= (dev->dp8390->DCR.wdsize + 1);
 			}
 		} else {
-			dev->dp8390.remote_bytes = 0;
+			dev->dp8390->remote_bytes = 0;
 		}
 
 		/* If all bytes have been written, signal remote-DMA complete */
-		if (dev->dp8390.remote_bytes == 0) {
-			dev->dp8390.ISR.rdma_done = 1;
-			if (dev->dp8390.IMR.rdma_inte)
+		if (dev->dp8390->remote_bytes == 0) {
+			dev->dp8390->ISR.rdma_done = 1;
+			if (dev->dp8390->IMR.rdma_inte)
 				nic_interrupt(dev, 1);
 		}
 		break;
@@ -476,35 +282,35 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 
     switch(off) {
 	case 0x00:	/* Data register - see asic_read for a description */
-		if ((len > 1) && (dev->dp8390.DCR.wdsize == 0)) {
+		if ((len > 1) && (dev->dp8390->DCR.wdsize == 0)) {
 			nelog(3, "%s: DMA write length %d on byte mode operation\n",
 							dev->name, len);
 			break;
 		}
-		if (dev->dp8390.remote_bytes == 0)
+		if (dev->dp8390->remote_bytes == 0)
 			nelog(3, "%s: DMA write, byte count 0\n", dev->name);
 
-		chipmem_write(dev, dev->dp8390.remote_dma, val, len);
+		dp8390_chipmem_write(dev->dp8390, dev->dp8390->remote_dma, val, len);
 		if (len == 4)
-			dev->dp8390.remote_dma += len;
-		  else
-			dev->dp8390.remote_dma += (dev->dp8390.DCR.wdsize + 1);
+			dev->dp8390->remote_dma += len;
+		else
+			dev->dp8390->remote_dma += (dev->dp8390->DCR.wdsize + 1);
 
-		if (dev->dp8390.remote_dma == dev->dp8390.page_stop << 8)
-			dev->dp8390.remote_dma = dev->dp8390.page_start << 8;
+		if (dev->dp8390->remote_dma == dev->dp8390->page_stop << 8)
+			dev->dp8390->remote_dma = dev->dp8390->page_start << 8;
 
 		if (len == 4)
-			dev->dp8390.remote_bytes -= len;
-		  else
-			dev->dp8390.remote_bytes -= (dev->dp8390.DCR.wdsize + 1);
+			dev->dp8390->remote_bytes -= len;
+		else
+			dev->dp8390->remote_bytes -= (dev->dp8390->DCR.wdsize + 1);
 
-		if (dev->dp8390.remote_bytes > DP8390_DWORD_MEMSIZ)
-			dev->dp8390.remote_bytes = 0;
+		if (dev->dp8390->remote_bytes > DP8390_DWORD_MEMSIZ)
+			dev->dp8390->remote_bytes = 0;
 
 		/* If all bytes have been written, signal remote-DMA complete */
-		if (dev->dp8390.remote_bytes == 0) {
-			dev->dp8390.ISR.rdma_done = 1;
-			if (dev->dp8390.IMR.rdma_inte)
+		if (dev->dp8390->remote_bytes == 0) {
+			dev->dp8390->ISR.rdma_done = 1;
+			if (dev->dp8390->IMR.rdma_inte)
 				nic_interrupt(dev, 1);
 		}
 		break;
@@ -516,550 +322,6 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 	default: /* this is invalid, but happens under win95 device detection */
 		nelog(3, "%s: ASIC write invalid address %04x, ignoring\n",
 						dev->name, (unsigned)off);
-		break;
-    }
-}
-
-
-/* Handle reads/writes to the 'zeroth' page of the DS8390 register file. */
-static uint32_t
-page0_read(nic_t *dev, uint32_t off, unsigned int len)
-{
-    uint8_t retval = 0;
-
-    if (len > 1) {
-	/* encountered with win98 hardware probe */
-	nelog(3, "%s: bad length! Page0 read from register 0x%02x, len=%u\n",
-							dev->name, off, len);
-	return(retval);
-    }
-
-    switch(off) {
-	case 0x01:	/* CLDA0 */
-		retval = (dev->dp8390.local_dma & 0xff);
-		break;
-
-	case 0x02:	/* CLDA1 */
-		retval = (dev->dp8390.local_dma >> 8);
-		break;
-
-	case 0x03:	/* BNRY */
-		retval = dev->dp8390.bound_ptr;
-		break;
-
-	case 0x04:	/* TSR */
-		retval = ((dev->dp8390.TSR.ow_coll    << 7) |
-			  (dev->dp8390.TSR.cd_hbeat   << 6) |
-			  (dev->dp8390.TSR.fifo_ur    << 5) |
-			  (dev->dp8390.TSR.no_carrier << 4) |
-			  (dev->dp8390.TSR.aborted    << 3) |
-			  (dev->dp8390.TSR.collided   << 2) |
-			  (dev->dp8390.TSR.tx_ok));
-		break;
-
-	case 0x05:	/* NCR */
-		retval = dev->dp8390.num_coll;
-		break;
-
-	case 0x06:	/* FIFO */
-		/* reading FIFO is only valid in loopback mode */
-		nelog(3, "%s: reading FIFO not supported yet\n", dev->name);
-		retval = dev->dp8390.fifo;
-		break;
-
-	case 0x07:	/* ISR */
-		retval = ((dev->dp8390.ISR.reset     << 7) |
-			  (dev->dp8390.ISR.rdma_done << 6) |
-			  (dev->dp8390.ISR.cnt_oflow << 5) |
-			  (dev->dp8390.ISR.overwrite << 4) |
-			  (dev->dp8390.ISR.tx_err    << 3) |
-			  (dev->dp8390.ISR.rx_err    << 2) |
-			  (dev->dp8390.ISR.pkt_tx    << 1) |
-			  (dev->dp8390.ISR.pkt_rx));
-		break;
-
-	case 0x08:	/* CRDA0 */
-		retval = (dev->dp8390.remote_dma & 0xff);
-		break;
-
-	case 0x09:	/* CRDA1 */
-		retval = (dev->dp8390.remote_dma >> 8);
-		break;
-
-	case 0x0a:	/* reserved / RTL8029ID0 */
-		if (dev->board == NE2K_RTL8019AS) {
-			retval = 0x50;
-		} else if (dev->board == NE2K_RTL8029AS) {
-			retval = 0x50;
-		} else {
-			nelog(3, "%s: reserved Page0 read - 0x0a\n", dev->name);
-			retval = 0xff;
-		}
-		break;
-
-	case 0x0b:	/* reserved / RTL8029ID1 */
-		if (dev->board == NE2K_RTL8019AS) {
-			retval = 0x70;
-		} else if (dev->board == NE2K_RTL8029AS) {
-			retval = 0x43;
-		} else {
-			nelog(3, "%s: reserved Page0 read - 0x0b\n", dev->name);
-			retval = 0xff;
-		}
-		break;
-
-	case 0x0c:	/* RSR */
-		retval = ((dev->dp8390.RSR.deferred    << 7) |
-			  (dev->dp8390.RSR.rx_disabled << 6) |
-			  (dev->dp8390.RSR.rx_mbit     << 5) |
-			  (dev->dp8390.RSR.rx_missed   << 4) |
-			  (dev->dp8390.RSR.fifo_or     << 3) |
-			  (dev->dp8390.RSR.bad_falign  << 2) |
-			  (dev->dp8390.RSR.bad_crc     << 1) |
-			  (dev->dp8390.RSR.rx_ok));
-		break;
-
-	case 0x0d:	/* CNTR0 */
-		retval = dev->dp8390.tallycnt_0;
-		break;
-
-	case 0x0e:	/* CNTR1 */
-		retval = dev->dp8390.tallycnt_1;
-		break;
-
-	case 0x0f:	/* CNTR2 */
-		retval = dev->dp8390.tallycnt_2;
-		break;
-
-	default:
-		nelog(3, "%s: Page0 register 0x%02x out of range\n",
-							dev->name, off);
-		break;
-    }
-
-    nelog(3, "%s: Page0 read from register 0x%02x, value=0x%02x\n",
-						dev->name, off, retval);
-
-    return(retval);
-}
-
-
-static void
-page0_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
-{
-    uint8_t val2;
-
-    nelog(3, "%s: Page0 write to register 0x%02x, value=0x%02x\n",
-						dev->name, off, val);
-
-    switch(off) {
-	case 0x01:	/* PSTART */
-		dev->dp8390.page_start = val;
-		break;
-
-	case 0x02:	/* PSTOP */
-		dev->dp8390.page_stop = val;
-		break;
-
-	case 0x03:	/* BNRY */
-		dev->dp8390.bound_ptr = val;
-		break;
-
-	case 0x04:	/* TPSR */
-		dev->dp8390.tx_page_start = val;
-		break;
-
-	case 0x05:	/* TBCR0 */
-		/* Clear out low byte and re-insert */
-		dev->dp8390.tx_bytes &= 0xff00;
-		dev->dp8390.tx_bytes |= (val & 0xff);
-		break;
-
-	case 0x06:	/* TBCR1 */
-		/* Clear out high byte and re-insert */
-		dev->dp8390.tx_bytes &= 0x00ff;
-		dev->dp8390.tx_bytes |= ((val & 0xff) << 8);
-		break;
-
-	case 0x07:	/* ISR */
-		val &= 0x7f;  /* clear RST bit - status-only bit */
-		/* All other values are cleared iff the ISR bit is 1 */
-		dev->dp8390.ISR.pkt_rx    &= !((int)((val & 0x01) == 0x01));
-		dev->dp8390.ISR.pkt_tx    &= !((int)((val & 0x02) == 0x02));
-		dev->dp8390.ISR.rx_err    &= !((int)((val & 0x04) == 0x04));
-		dev->dp8390.ISR.tx_err    &= !((int)((val & 0x08) == 0x08));
-		dev->dp8390.ISR.overwrite &= !((int)((val & 0x10) == 0x10));
-		dev->dp8390.ISR.cnt_oflow &= !((int)((val & 0x20) == 0x20));
-		dev->dp8390.ISR.rdma_done &= !((int)((val & 0x40) == 0x40));
-		val = ((dev->dp8390.ISR.rdma_done << 6) |
-		       (dev->dp8390.ISR.cnt_oflow << 5) |
-		       (dev->dp8390.ISR.overwrite << 4) |
-		       (dev->dp8390.ISR.tx_err    << 3) |
-		       (dev->dp8390.ISR.rx_err    << 2) |
-		       (dev->dp8390.ISR.pkt_tx    << 1) |
-		       (dev->dp8390.ISR.pkt_rx));
-		val &= ((dev->dp8390.IMR.rdma_inte << 6) |
-		        (dev->dp8390.IMR.cofl_inte << 5) |
-		        (dev->dp8390.IMR.overw_inte << 4) |
-		        (dev->dp8390.IMR.txerr_inte << 3) |
-		        (dev->dp8390.IMR.rxerr_inte << 2) |
-		        (dev->dp8390.IMR.tx_inte << 1) |
-		        (dev->dp8390.IMR.rx_inte));
-		if (val == 0x00)
-			nic_interrupt(dev, 0);
-		break;
-
-	case 0x08:	/* RSAR0 */
-		/* Clear out low byte and re-insert */
-		dev->dp8390.remote_start &= 0xff00;
-		dev->dp8390.remote_start |= (val & 0xff);
-		dev->dp8390.remote_dma = dev->dp8390.remote_start;
-		break;
-
-	case 0x09:	/* RSAR1 */
-		/* Clear out high byte and re-insert */
-		dev->dp8390.remote_start &= 0x00ff;
-		dev->dp8390.remote_start |= ((val & 0xff) << 8);
-		dev->dp8390.remote_dma = dev->dp8390.remote_start;
-		break;
-
-	case 0x0a:	/* RBCR0 */
-		/* Clear out low byte and re-insert */
-		dev->dp8390.remote_bytes &= 0xff00;
-		dev->dp8390.remote_bytes |= (val & 0xff);
-		break;
-
-	case 0x0b:	/* RBCR1 */
-		/* Clear out high byte and re-insert */
-		dev->dp8390.remote_bytes &= 0x00ff;
-		dev->dp8390.remote_bytes |= ((val & 0xff) << 8);
-		break;
-
-	case 0x0c:	/* RCR */
-		/* Check if the reserved bits are set */
-		if (val & 0xc0) {
-			nelog(3, "%s: RCR write, reserved bits set\n",
-							dev->name);
-		}
-
-		/* Set all other bit-fields */
-		dev->dp8390.RCR.errors_ok = ((val & 0x01) == 0x01);
-		dev->dp8390.RCR.runts_ok  = ((val & 0x02) == 0x02);
-		dev->dp8390.RCR.broadcast = ((val & 0x04) == 0x04);
-		dev->dp8390.RCR.multicast = ((val & 0x08) == 0x08);
-		dev->dp8390.RCR.promisc   = ((val & 0x10) == 0x10);
-		dev->dp8390.RCR.monitor   = ((val & 0x20) == 0x20);
-
-		/* Monitor bit is a little suspicious... */
-		if (val & 0x20) nelog(3, "%s: RCR write, monitor bit set!\n",
-								dev->name);
-		break;
-
-	case 0x0d:	/* TCR */
-		/* Check reserved bits */
-		if (val & 0xe0) nelog(3, "%s: TCR write, reserved bits set\n",
-								dev->name);
-
-		/* Test loop mode (not supported) */
-		if (val & 0x06) {
-			dev->dp8390.TCR.loop_cntl = (val & 0x6) >> 1;
-			nelog(3, "%s: TCR write, loop mode %d not supported\n",
-						dev->name, dev->dp8390.TCR.loop_cntl);
-		} else {
-			dev->dp8390.TCR.loop_cntl = 0;
-		}
-
-		/* Inhibit-CRC not supported. */
-		if (val & 0x01) nelog(3,
-			"%s: TCR write, inhibit-CRC not supported\n",dev->name);
-
-		/* Auto-transmit disable very suspicious */
-		if (val & 0x08) nelog(3,
-			"%s: TCR write, auto transmit disable not supported\n",
-								dev->name);
-
-		/* Allow collision-offset to be set, although not used */
-		dev->dp8390.TCR.coll_prio = ((val & 0x08) == 0x08);
-		break;
-
-	case 0x0e:	/* DCR */
-		/* the loopback mode is not suppported yet */
-		if (! (val & 0x08)) nelog(3,
-			"%s: DCR write, loopback mode selected\n", dev->name);
-
-		/* It is questionable to set longaddr and auto_rx, since
-		 * they are not supported on the NE2000. Print a warning
-		 * and continue. */
-		if (val & 0x04)
-			nelog(3, "%s: DCR write - LAS set ???\n", dev->name);
-		if (val & 0x10)
-			nelog(3, "%s: DCR write - AR set ???\n", dev->name);
-
-		/* Set other values. */
-		dev->dp8390.DCR.wdsize   = ((val & 0x01) == 0x01);
-		dev->dp8390.DCR.endian   = ((val & 0x02) == 0x02);
-		dev->dp8390.DCR.longaddr = ((val & 0x04) == 0x04); /* illegal ? */
-		dev->dp8390.DCR.loop     = ((val & 0x08) == 0x08);
-		dev->dp8390.DCR.auto_rx  = ((val & 0x10) == 0x10); /* also illegal ? */
-		dev->dp8390.DCR.fifo_size = (val & 0x50) >> 5;
-		break;
-
-	case 0x0f:  /* IMR */
-		/* Check for reserved bit */
-		if (val & 0x80)
-			nelog(3, "%s: IMR write, reserved bit set\n",dev->name);
-
-		/* Set other values */
-		dev->dp8390.IMR.rx_inte    = ((val & 0x01) == 0x01);
-		dev->dp8390.IMR.tx_inte    = ((val & 0x02) == 0x02);
-		dev->dp8390.IMR.rxerr_inte = ((val & 0x04) == 0x04);
-		dev->dp8390.IMR.txerr_inte = ((val & 0x08) == 0x08);
-		dev->dp8390.IMR.overw_inte = ((val & 0x10) == 0x10);
-		dev->dp8390.IMR.cofl_inte  = ((val & 0x20) == 0x20);
-		dev->dp8390.IMR.rdma_inte  = ((val & 0x40) == 0x40);
-		val2 = ((dev->dp8390.ISR.rdma_done << 6) |
-		        (dev->dp8390.ISR.cnt_oflow << 5) |
-		        (dev->dp8390.ISR.overwrite << 4) |
-		        (dev->dp8390.ISR.tx_err    << 3) |
-		        (dev->dp8390.ISR.rx_err    << 2) |
-		        (dev->dp8390.ISR.pkt_tx    << 1) |
-		        (dev->dp8390.ISR.pkt_rx));
-		if (((val & val2) & 0x7f) == 0)
-			nic_interrupt(dev, 0);
-		  else
-			nic_interrupt(dev, 1);
-		break;
-
-	default:
-		nelog(3, "%s: Page0 write, bad register 0x%02x\n",
-						dev->name, off);
-		break;
-    }
-}
-
-
-/* Handle reads/writes to the first page of the DS8390 register file. */
-static uint32_t
-page1_read(nic_t *dev, uint32_t off, unsigned int len)
-{
-    nelog(3, "%s: Page1 read from register 0x%02x, len=%u\n",
-					dev->name, off, len);
-
-    switch(off) {
-	case 0x01:	/* PAR0-5 */
-	case 0x02:
-	case 0x03:
-	case 0x04:
-	case 0x05:
-	case 0x06:
-		return(dev->dp8390.physaddr[off - 1]);
-
-	case 0x07:	/* CURR */
-		nelog(3, "%s: returning current page: 0x%02x\n",
-				dev->name, (dev->dp8390.curr_page));
-		return(dev->dp8390.curr_page);
-
-	case 0x08:	/* MAR0-7 */
-	case 0x09:
-	case 0x0a:
-	case 0x0b:
-	case 0x0c:
-	case 0x0d:
-	case 0x0e:
-	case 0x0f:
-		return(dev->dp8390.mchash[off - 8]);
-
-	default:
-		nelog(3, "%s: Page1 read register 0x%02x out of range\n",
-							dev->name, off);
-		return(0);
-    }
-}
-
-
-static void
-page1_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
-{
-    nelog(3, "%s: Page1 write to register 0x%02x, len=%u, value=0x%04x\n",
-						dev->name, off, len, val);
-
-    switch(off) {
-	case 0x01:	/* PAR0-5 */
-	case 0x02:
-	case 0x03:
-	case 0x04:
-	case 0x05:
-	case 0x06:
-		dev->dp8390.physaddr[off - 1] = val;
-		if (off == 6) nelog(3,
-		  "%s: physical address set to %02x:%02x:%02x:%02x:%02x:%02x\n",
-			dev->name,
-			dev->dp8390.physaddr[0], dev->dp8390.physaddr[1],
-			dev->dp8390.physaddr[2], dev->dp8390.physaddr[3],
-			dev->dp8390.physaddr[4], dev->dp8390.physaddr[5]);
-		break;
-
-	case 0x07:	/* CURR */
-		dev->dp8390.curr_page = val;
-		break;
-
-	case 0x08:	/* MAR0-7 */
-	case 0x09:
-	case 0x0a:
-	case 0x0b:
-	case 0x0c:
-	case 0x0d:
-	case 0x0e:
-	case 0x0f:
-		dev->dp8390.mchash[off - 8] = val;
-		break;
-
-	default:
-		nelog(3, "%s: Page1 write register 0x%02x out of range\n",
-							dev->name, off);
-		break;
-    }
-}
-
-
-/* Handle reads/writes to the second page of the DS8390 register file. */
-static uint32_t
-page2_read(nic_t *dev, uint32_t off, unsigned int len)
-{
-    nelog(3, "%s: Page2 read from register 0x%02x, len=%u\n",
-					dev->name, off, len);
-  
-    switch(off) {
-	case 0x01:	/* PSTART */
-		return(dev->dp8390.page_start);
-
-	case 0x02:	/* PSTOP */
-		return(dev->dp8390.page_stop);
-
-	case 0x03:	/* Remote Next-packet pointer */
-		return(dev->dp8390.rempkt_ptr);
-
-	case 0x04:	/* TPSR */
-		return(dev->dp8390.tx_page_start);
-
-	case 0x05:	/* Local Next-packet pointer */
-		return(dev->dp8390.localpkt_ptr);
-
-	case 0x06:	/* Address counter (upper) */
-		return(dev->dp8390.address_cnt >> 8);
-
-	case 0x07:	/* Address counter (lower) */
-		return(dev->dp8390.address_cnt & 0xff);
-
-	case 0x08:	/* Reserved */
-	case 0x09:
-	case 0x0a:
-	case 0x0b:
-		nelog(3, "%s: reserved Page2 read - register 0x%02x\n",
-							dev->name, off);
-		return(0xff);
-
-	case 0x0c:	/* RCR */
-		return	((dev->dp8390.RCR.monitor   << 5) |
-			 (dev->dp8390.RCR.promisc   << 4) |
-			 (dev->dp8390.RCR.multicast << 3) |
-			 (dev->dp8390.RCR.broadcast << 2) |
-			 (dev->dp8390.RCR.runts_ok  << 1) |
-			 (dev->dp8390.RCR.errors_ok));
-
-	case 0x0d:	/* TCR */
-		return	((dev->dp8390.TCR.coll_prio   << 4) |
-			 (dev->dp8390.TCR.ext_stoptx  << 3) |
-			 ((dev->dp8390.TCR.loop_cntl & 0x3) << 1) |
-			 (dev->dp8390.TCR.crc_disable));
-
-	case 0x0e:	/* DCR */
-		return	(((dev->dp8390.DCR.fifo_size & 0x3) << 5) |
-			 (dev->dp8390.DCR.auto_rx  << 4) |
-			 (dev->dp8390.DCR.loop     << 3) |
-			 (dev->dp8390.DCR.longaddr << 2) |
-			 (dev->dp8390.DCR.endian   << 1) |
-			 (dev->dp8390.DCR.wdsize));
-
-	case 0x0f:	/* IMR */
-		return	((dev->dp8390.IMR.rdma_inte  << 6) |
-			 (dev->dp8390.IMR.cofl_inte  << 5) |
-			 (dev->dp8390.IMR.overw_inte << 4) |
-			 (dev->dp8390.IMR.txerr_inte << 3) |
-			 (dev->dp8390.IMR.rxerr_inte << 2) |
-			 (dev->dp8390.IMR.tx_inte    << 1) |
-			 (dev->dp8390.IMR.rx_inte));
-
-	default:
-		nelog(3, "%s: Page2 register 0x%02x out of range\n",
-						dev->name, off);
-		break;
-    }
-
-    return(0);
-}
-
-
-static void
-page2_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
-{
-/* Maybe all writes here should be BX_PANIC()'d, since they
-   affect internal operation, but let them through for now
-   and print a warning. */
-    nelog(3, "%s: Page2 write to register 0x%02x, len=%u, value=0x%04x\n",
-						dev->name, off, len, val);
-    switch(off) {
-	case 0x01:	/* CLDA0 */
-		/* Clear out low byte and re-insert */
-		dev->dp8390.local_dma &= 0xff00;
-		dev->dp8390.local_dma |= (val & 0xff);
-		break;
-
-	case 0x02:	/* CLDA1 */
-		/* Clear out high byte and re-insert */
-		dev->dp8390.local_dma &= 0x00ff;
-		dev->dp8390.local_dma |= ((val & 0xff) << 8);
-		break;
-
-	case 0x03:	/* Remote Next-pkt pointer */
-		dev->dp8390.rempkt_ptr = val;
-		break;
-
-	case 0x04:
-		nelog(3, "page 2 write to reserved register 0x04\n");
-		break;
-
-	case 0x05:	/* Local Next-packet pointer */
-		dev->dp8390.localpkt_ptr = val;
-		break;
-
-	case 0x06:	/* Address counter (upper) */
-		/* Clear out high byte and re-insert */
-		dev->dp8390.address_cnt &= 0x00ff;
-		dev->dp8390.address_cnt |= ((val & 0xff) << 8);
-		break;
-
-	case 0x07:	/* Address counter (lower) */
-		/* Clear out low byte and re-insert */
-		dev->dp8390.address_cnt &= 0xff00;
-		dev->dp8390.address_cnt |= (val & 0xff);
-		break;
-
-	case 0x08:
-	case 0x09:
-	case 0x0a:
-	case 0x0b:
-	case 0x0c:
-	case 0x0d:
-	case 0x0e:
-	case 0x0f:
-		nelog(3, "%s: Page2 write to reserved register 0x%02x\n",
-							dev->name, off);
-		break;
-
-	default:
-		nelog(3, "%s: Page2 write, illegal register 0x%02x\n",
-							dev->name, off);
 		break;
     }
 }
@@ -1133,119 +395,6 @@ page3_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 }
 
 
-/* Routines for handling reads/writes to the Command Register. */
-static uint32_t
-read_cr(nic_t *dev)
-{
-    uint32_t retval;
-
-    retval =	(((dev->dp8390.CR.pgsel    & 0x03) << 6) |
-		 ((dev->dp8390.CR.rdma_cmd & 0x07) << 3) |
-		  (dev->dp8390.CR.tx_packet << 2) |
-		  (dev->dp8390.CR.start     << 1) |
-		  (dev->dp8390.CR.stop));
-    nelog(3, "%s: read CR returns 0x%02x\n", dev->name, retval);
-
-    return(retval);
-}
-
-
-static void
-write_cr(nic_t *dev, uint32_t val)
-{
-    nelog(3, "%s: wrote 0x%02x to CR\n", dev->name, val);
-
-    /* Validate remote-DMA */
-    if ((val & 0x38) == 0x00) {
-	nelog(3, "%s: CR write - invalid rDMA value 0\n", dev->name);
-	val |= 0x20; /* dma_cmd == 4 is a safe default */
-    }
-
-    /* Check for s/w reset */
-    if (val & 0x01) {
-	dev->dp8390.ISR.reset = 1;
-	dev->dp8390.CR.stop   = 1;
-    } else {
-	dev->dp8390.CR.stop = 0;
-    }
-
-    dev->dp8390.CR.rdma_cmd = (val & 0x38) >> 3;
-
-    /* If start command issued, the RST bit in the ISR */
-    /* must be cleared */
-    if ((val & 0x02) && !dev->dp8390.CR.start)
-	dev->dp8390.ISR.reset = 0;
-
-    dev->dp8390.CR.start = ((val & 0x02) == 0x02);
-    dev->dp8390.CR.pgsel = (val & 0xc0) >> 6;
-
-    /* Check for send-packet command */
-    if (dev->dp8390.CR.rdma_cmd == 3) {
-	/* Set up DMA read from receive ring */
-	dev->dp8390.remote_start = dev->dp8390.remote_dma = dev->dp8390.bound_ptr * 256;
-	dev->dp8390.remote_bytes = (uint16_t) chipmem_read(dev, dev->dp8390.bound_ptr * 256 + 2, 2);
-	nelog(3, "%s: sending buffer #x%x length %d\n",
-		dev->name, dev->dp8390.remote_start, dev->dp8390.remote_bytes);
-    }
-
-    /* Check for start-tx */
-    if ((val & 0x04) && dev->dp8390.TCR.loop_cntl) {
-	if (dev->dp8390.TCR.loop_cntl != 1) {
-		nelog(3, "%s: loop mode %d not supported\n",
-				dev->name, dev->dp8390.TCR.loop_cntl);
-	} else {
-		if (dev->board >= NE2K_NE2000) {
-			nic_rx(dev,
-				  &dev->dp8390.mem[dev->dp8390.tx_page_start*256 - DP8390_DWORD_MEMSTART],
-				  dev->dp8390.tx_bytes);
-		} else {
-			nic_rx(dev,
-				  &dev->dp8390.mem[dev->dp8390.tx_page_start*256 - DP8390_WORD_MEMSTART],
-				  dev->dp8390.tx_bytes);
-		}
-	}
-    } else if (val & 0x04) {
-	if (dev->dp8390.CR.stop || (!dev->dp8390.CR.start && (dev->board < NE2K_RTL8019AS))) {
-		if (dev->dp8390.tx_bytes == 0) /* njh@bandsman.co.uk */ {
-			return; /* Solaris9 probe */
-		}
-		nelog(3, "%s: CR write - tx start, dev in reset\n", dev->name);
-	}
-
-	if (dev->dp8390.tx_bytes == 0)
-		nelog(3, "%s: CR write - tx start, tx bytes == 0\n", dev->name);
-
-	/* Send the packet to the system driver */
-	dev->dp8390.CR.tx_packet = 1;
-	if (dev->board >= NE2K_NE2000) {
-		network_tx(&dev->dp8390.mem[dev->dp8390.tx_page_start*256 - DP8390_DWORD_MEMSTART],
-			   dev->dp8390.tx_bytes);
-	} else {
-		network_tx(&dev->dp8390.mem[dev->dp8390.tx_page_start*256 - DP8390_WORD_MEMSTART],
-			   dev->dp8390.tx_bytes);
-	}
-
-	/* some more debug */
-	if (dev->dp8390.tx_timer_active)
-		nelog(3, "%s: CR write, tx timer still active\n", dev->name);
-
-	nic_tx(dev, val);
-    }
-
-    /* Linux probes for an interrupt by setting up a remote-DMA read
-     * of 0 bytes with remote-DMA completion interrupts enabled.
-     * Detect this here */
-    if (dev->dp8390.CR.rdma_cmd == 0x01 && dev->dp8390.CR.start && dev->dp8390.remote_bytes == 0) {
-	dev->dp8390.ISR.rdma_done = 1;
-	if (dev->dp8390.IMR.rdma_inte) {
-		nic_interrupt(dev, 1);
-		if (!dev->is_pci)
-			nic_interrupt(dev, 0);
-	}
-    }
-}
-
-
 static uint32_t
 nic_read(nic_t *dev, uint32_t addr, unsigned len)
 {
@@ -1254,33 +403,29 @@ nic_read(nic_t *dev, uint32_t addr, unsigned len)
 
     nelog(3, "%s: read addr %x, len %d\n", dev->name, addr, len);
 
-	if (off >= 0x10) {
-		retval = asic_read(dev, off - 0x10, len);
-	} else if (off == 0x00) {
-	retval = read_cr(dev);
-	} else switch(dev->dp8390.CR.pgsel) {
+    if (off >= 0x10)
+	retval = asic_read(dev, off - 0x10, len);
+    else if (off == 0x00)
+	retval = dp8390_read_cr(dev->dp8390);
+    else switch(dev->dp8390->CR.pgsel) {
 	case 0x00:
-		retval = page0_read(dev, off, len);
+		retval = dp8390_page0_read(dev->dp8390, off, len);
 		break;
-
 	case 0x01:
-		retval = page1_read(dev, off, len);
+		retval = dp8390_page1_read(dev->dp8390, off, len);
 		break;
-
 	case 0x02:
-		retval = page2_read(dev, off, len);
+		retval = dp8390_page2_read(dev->dp8390, off, len);
 		break;
-
 	case 0x03:
 		retval = page3_read(dev, off, len);
 		break;
-
 	default:
 		nelog(3, "%s: unknown value of pgsel in read - %d\n",
-						dev->name, dev->dp8390.CR.pgsel);
+						dev->name, dev->dp8390->CR.pgsel);
 		break;
-	}
-	
+    }
+
     return(retval);
 }
 
@@ -1295,12 +440,7 @@ nic_readb(uint16_t addr, void *priv)
 static uint16_t
 nic_readw(uint16_t addr, void *priv)
 {
-    nic_t *dev = (nic_t *)priv;
-
-    if (dev->dp8390.DCR.wdsize & 1)
-	return(nic_read(dev, addr, 2));
-      else
-	return(nic_read(dev, addr, 1));
+    return(nic_read((nic_t *)priv, addr, 2));
 }
 
 
@@ -1318,34 +458,30 @@ nic_write(nic_t *dev, uint32_t addr, uint32_t val, unsigned len)
 
     nelog(3, "%s: write addr %x, value %x len %d\n", dev->name, addr, val, len);
 
-	/* The high 16 bytes of i/o space are for the ne2000 asic -
-	   the low 16 bytes are for the DS8390, with the current
-	   page being selected by the PS0,PS1 registers in the
-	   command register */
-	if (off >= 0x10) {
-		asic_write(dev, off - 0x10, val, len);
-	} else if (off == 0x00) {
-	write_cr(dev, val);
-	} else switch(dev->dp8390.CR.pgsel) {
+    /* The high 16 bytes of i/o space are for the ne2000 asic -
+       the low 16 bytes are for the DS8390, with the current
+       page being selected by the PS0,PS1 registers in the
+       command register */
+    if (off >= 0x10)
+	asic_write(dev, off - 0x10, val, len);
+    else if (off == 0x00)
+	dp8390_write_cr(dev->dp8390, val);
+    else switch(dev->dp8390->CR.pgsel) {
 	case 0x00:
-		page0_write(dev, off, val, len);
+		dp8390_page0_write(dev->dp8390, off, val, len);
 		break;
-
 	case 0x01:
-		page1_write(dev, off, val, len);
+		dp8390_page1_write(dev->dp8390, off, val, len);
 		break;
-
 	case 0x02:
-		page2_write(dev, off, val, len);
+		dp8390_page2_write(dev->dp8390, off, val, len);
 		break;
-
 	case 0x03:
 		page3_write(dev, off, val, len);
 		break;
-
 	default:
 		nelog(3, "%s: unknown value of pgsel in write - %d\n",
-						dev->name, dev->dp8390.CR.pgsel);
+						dev->name, dev->dp8390->CR.pgsel);
 		break;
 	}
 }
@@ -1361,12 +497,7 @@ nic_writeb(uint16_t addr, uint8_t val, void *priv)
 static void
 nic_writew(uint16_t addr, uint16_t val, void *priv)
 {
-    nic_t *dev = (nic_t *)priv;
-
-    if (dev->dp8390.DCR.wdsize & 1)
-	nic_write(dev, addr, val, 2);
-      else
-	nic_write(dev, addr, val, 1);
+    nic_write((nic_t *)priv, addr, val, 2);
 }
 
 
@@ -1830,21 +961,6 @@ nic_pci_read(int func, int addr, void *priv)
 		ret = dev->pci_regs[addr];
 		break;
 
-#if 0
-	case 0x0C:			/* (reserved) */
-		ret = dev->pci_regs[addr];
-		break;
-
-	case 0x0D:			/* PCI_LTR */
-	case 0x0E:			/* PCI_HTR */
-		ret = dev->pci_regs[addr];
-		break;
-
-	case 0x0F:			/* (reserved) */
-		ret = dev->pci_regs[addr];
-		break;
-#endif
-
 	case 0x10:			/* PCI_BAR 7:5 */
 		ret = (dev->pci_bar[0].addr_regs[0] & 0xe0) | 0x01;
 		break;
@@ -1915,31 +1031,8 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 				nic_ioset(dev, dev->base_address);
 			}
 		}
-#if 0
-		if (val & PCI_COMMAND_MEMORY) {
-			...
-		}
-#endif
 		dev->pci_regs[addr] = val & 0x03;
 		break;
-
-#if 0
-	case 0x0C:			/* (reserved) */
-		dev->pci_regs[addr] = val;
-		break;
-
-	case 0x0D:			/* PCI_LTR */
-		dev->pci_regs[addr] = val;
-		break;
-
-	case 0x0E:			/* PCI_HTR */
-		dev->pci_regs[addr] = val;
-		break;
-
-	case 0x0F:			/* (reserved) */
-		dev->pci_regs[addr] = val;
-		break;
-#endif
 
 	case 0x10:			/* PCI_BAR */
 		val &= 0xe0;	/* 0xe0 acc to RTL DS */
@@ -1988,182 +1081,6 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 		dev->pci_regs[addr] = dev->base_irq;
 		return;
     }
-}
-
-
-static void
-nic_tx(nic_t *dev, uint32_t val)
-{
-    dev->dp8390.CR.tx_packet = 0;
-    dev->dp8390.TSR.tx_ok = 1;
-    dev->dp8390.ISR.pkt_tx = 1;
-
-    /* Generate an interrupt if not masked */
-    if (dev->dp8390.IMR.tx_inte)
-	nic_interrupt(dev, 1);
-    dev->dp8390.tx_timer_active = 0;
-}
-
-
-/*
- * Called by the platform-specific code when an Ethernet frame
- * has been received. The destination address is tested to see
- * if it should be accepted, and if the RX ring has enough room,
- * it is copied into it and the receive process is updated.
- */
-static void
-nic_rx(void *priv, uint8_t *buf, int io_len)
-{
-    static uint8_t bcast_addr[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
-    nic_t *dev = (nic_t *)priv;
-    uint8_t pkthdr[4];
-    uint8_t *startptr;
-    int pages, avail;
-    int idx, nextpage;
-    int endbytes;
-
-    //FIXME: move to upper layer
-    ui_sb_update_icon(SB_NETWORK, 1);
-
-    if (io_len != 60)
-	nelog(2, "%s: rx_frame with length %d\n", dev->name, io_len);
-
-    if ((dev->dp8390.CR.stop != 0) || (dev->dp8390.page_start == 0)) return;
-
-    /*
-     * Add the pkt header + CRC to the length, and work
-     * out how many 256-byte pages the frame would occupy.
-     */
-    pages = (io_len + sizeof(pkthdr) + sizeof(uint32_t) + 255)/256;
-    if (dev->dp8390.curr_page < dev->dp8390.bound_ptr) {
-	avail = dev->dp8390.bound_ptr - dev->dp8390.curr_page;
-    } else {
-	avail = (dev->dp8390.page_stop - dev->dp8390.page_start) -
-		(dev->dp8390.curr_page - dev->dp8390.bound_ptr);
-    }
-
-    /*
-     * Avoid getting into a buffer overflow condition by
-     * not attempting to do partial receives. The emulation
-     * to handle this condition seems particularly painful.
-     */
-    if	((avail < pages)
-#if NE2K_NEVER_FULL_RING
-		 || (avail == pages)
-#endif
-		) {
-	nelog(1, "%s: no space\n", dev->name);
-
-    //FIXME: move to upper layer
-	ui_sb_update_icon(SB_NETWORK, 0);
-	return;
-    }
-
-    if ((io_len < 40/*60*/) && !dev->dp8390.RCR.runts_ok) {
-	nelog(1, "%s: rejected small packet, length %d\n", dev->name, io_len);
-
-    //FIXME: move to upper layer
-	ui_sb_update_icon(SB_NETWORK, 0);
-	return;
-    }
-
-    /* Some computers don't care... */
-    if (io_len < 60)
-	io_len = 60;
-
-    nelog(2, "%s: RX %x:%x:%x:%x:%x:%x > %x:%x:%x:%x:%x:%x len %d\n",
-	dev->name,
-	buf[6], buf[7], buf[8], buf[9], buf[10], buf[11],
-	buf[0], buf[1], buf[2], buf[3], buf[4], buf[5],
- 	io_len);
-
-    /* Do address filtering if not in promiscuous mode. */
-    if (! dev->dp8390.RCR.promisc) {
-	/* If this is a broadcast frame.. */
-	if (! memcmp(buf, bcast_addr, 6)) {
-		/* Broadcast not enabled, we're done. */
-		if (! dev->dp8390.RCR.broadcast) {
-			nelog(2, "%s: RX BC disabled\n", dev->name);
-
-    //FIXME: move to upper layer
-			ui_sb_update_icon(SB_NETWORK, 0);
-			return;
-		}
-	}
-
-	/* If this is a multicast frame.. */
-	else if (buf[0] & 0x01) {
-		/* Multicast not enabled, we're done. */
-		if (! dev->dp8390.RCR.multicast) {
-#if 1
-			nelog(2, "%s: RX MC disabled\n", dev->name);
-#endif
-
-    //FIXME: move to upper layer
-			ui_sb_update_icon(SB_NETWORK, 0);
-			return;
-		}
-
-		/* Are we listening to this multicast address? */
-		idx = mcast_index(buf);
-		if (! (dev->dp8390.mchash[idx>>3] & (1<<(idx&0x7)))) {
-			nelog(2, "%s: RX MC not listed\n", dev->name);
-
-    //FIXME: move to upper layer
-			ui_sb_update_icon(SB_NETWORK, 0);
-			return;
-		}
-	}
-
-	/* Unicast, must be for us.. */
-	else if (memcmp(buf, dev->dp8390.physaddr, 6)) return;
-    } else {
-	nelog(2, "%s: RX promiscuous receive\n", dev->name);
-    }
-
-    nextpage = dev->dp8390.curr_page + pages;
-    if (nextpage >= dev->dp8390.page_stop)
-	nextpage -= (dev->dp8390.page_stop - dev->dp8390.page_start);
-
-    /* Set up packet header. */
-    pkthdr[0] = 0x01;			/* RXOK - packet is OK */
-    if (buf[0] & 0x01)
-	pkthdr[0] |= 0x20;		/* MULTICAST packet */
-    pkthdr[1] = nextpage;		/* ptr to next packet */
-    pkthdr[2] = (io_len + sizeof(pkthdr))&0xff;	/* length-low */
-    pkthdr[3] = (io_len + sizeof(pkthdr))>>8;	/* length-hi */
-    nelog(2, "%s: RX pkthdr [%02x %02x %02x %02x]\n",
-	dev->name, pkthdr[0], pkthdr[1], pkthdr[2], pkthdr[3]);
-
-    /* Copy into buffer, update curpage, and signal interrupt if config'd */
-    if (dev->board >= NE2K_NE2000)
-	startptr = &dev->dp8390.mem[(dev->dp8390.curr_page * 256) - DP8390_DWORD_MEMSTART];
-    else
-	startptr = &dev->dp8390.mem[(dev->dp8390.curr_page * 256) - DP8390_WORD_MEMSTART];
-    memcpy(startptr, pkthdr, sizeof(pkthdr));
-    if ((nextpage > dev->dp8390.curr_page) ||
-	((dev->dp8390.curr_page + pages) == dev->dp8390.page_stop)) {
-	memcpy(startptr+sizeof(pkthdr), buf, io_len);
-    } else {
-	endbytes = (dev->dp8390.page_stop - dev->dp8390.curr_page) * 256;
-	memcpy(startptr+sizeof(pkthdr), buf, endbytes-sizeof(pkthdr));
-	if (dev->board >= NE2K_NE2000)
-		startptr = &dev->dp8390.mem[(dev->dp8390.page_start * 256) - DP8390_DWORD_MEMSTART];
-	else
-		startptr = &dev->dp8390.mem[(dev->dp8390.page_start * 256) - DP8390_WORD_MEMSTART];
-	memcpy(startptr, buf+endbytes-sizeof(pkthdr), io_len-endbytes+8);
-    }
-    dev->dp8390.curr_page = nextpage;
-
-    dev->dp8390.RSR.rx_ok = 1;
-    dev->dp8390.RSR.rx_mbit = (buf[0] & 0x01) ? 1 : 0;
-    dev->dp8390.ISR.pkt_rx = 1;
-
-    if (dev->dp8390.IMR.rx_inte)
-	nic_interrupt(dev, 1);
-
-    //FIXME: move to upper layer
-    ui_sb_update_icon(SB_NETWORK, 0);
 }
 
 
@@ -2221,8 +1138,8 @@ static void
 nic_mca_write(int port, uint8_t val, void *priv)
 {
     nic_t *dev = (nic_t *)priv;
-	uint16_t base[] = MCA_611F_IO_PORTS;
-	int8_t irq[] = MCA_611F_IRQS;
+    uint16_t base[] = MCA_611F_IO_PORTS;
+    int8_t irq[] = MCA_611F_IRQS;
 
     /* MCA does not write registers below 0x0100. */
     if (port < 0x0102) return;
@@ -2287,36 +1204,6 @@ nic_init(const device_t *info)
     dev->name = info->name;
     dev->board = info->local;
     rom = NULL;
-    switch(dev->board) {
-	case NE2K_NE1000:
-		dev->is_8bit = 1;
-		/*FALLTHROUGH*/
-
-	case NE2K_NE2000:
-		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Novell OID) */
-		dev->maclocal[1] = 0x00;
-		dev->maclocal[2] = 0xD8;
-		rom = (dev->board == NE2K_NE1000) ? NULL : ROM_PATH_NE2000;
-		break;
-		
-	case NE2K_ETHERNEXT_MC:
-		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Networth Inc. OID) */
-		dev->maclocal[1] = 0x00;
-		dev->maclocal[2] = 0x79;
-		dev->pos_regs[0] = 0x1F;
-		dev->pos_regs[1] = 0x61;
-		rom = NULL;
-		break;
-
-	case NE2K_RTL8019AS:
-	case NE2K_RTL8029AS:
-		dev->is_pci = (dev->board == NE2K_RTL8029AS) ? 1 : 0;
-		dev->maclocal[0] = 0x00;  /* 00:E0:4C (Realtek OID) */
-		dev->maclocal[1] = 0xE0;
-		dev->maclocal[2] = 0x4C;
-		rom = (dev->board == NE2K_RTL8019AS) ? ROM_PATH_RTL8019 : ROM_PATH_RTL8029;
-		break;
-    }
 
     if (dev->board >= NE2K_RTL8019AS) {
 	dev->base_address = 0x340;
@@ -2348,16 +1235,6 @@ nic_init(const device_t *info)
     /* See if we have a local MAC address configured. */
     mac = device_get_config_mac("mac", -1);
 
-    /*
-     * Make this device known to the I/O system.
-     * PnP and PCI devices start with address spaces inactive.
-     */
-    if (dev->board < NE2K_RTL8019AS && dev->board != NE2K_ETHERNEXT_MC)
-	nic_ioset(dev, dev->base_address);
-
-    /* Set up our BIOS ROM space, if any. */
-    nic_rom_init(dev, rom);
-
     /* Set up our BIA. */
     if (mac & 0xff000000) {
 	/* Generate new local MAC. */
@@ -2373,12 +1250,68 @@ nic_init(const device_t *info)
 	dev->maclocal[4] = (mac>>8) & 0xff;
 	dev->maclocal[5] = (mac & 0xff);
     }
-    memcpy(dev->dp8390.physaddr, dev->maclocal, sizeof(dev->maclocal));
+
+    dev->dp8390 = device_add(&dp8390_device);
+    dev->dp8390->priv = dev;
+    dev->dp8390->interrupt = nic_interrupt;
+
+    memcpy(dev->dp8390->physaddr, dev->maclocal, sizeof(dev->maclocal));
 
     nelog(2, "%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
 	dev->name, dev->base_address, dev->base_irq,
-	dev->dp8390.physaddr[0], dev->dp8390.physaddr[1], dev->dp8390.physaddr[2],
-	dev->dp8390.physaddr[3], dev->dp8390.physaddr[4], dev->dp8390.physaddr[5]);
+	dev->dp8390->physaddr[0], dev->dp8390->physaddr[1], dev->dp8390->physaddr[2],
+	dev->dp8390->physaddr[3], dev->dp8390->physaddr[4], dev->dp8390->physaddr[5]);
+
+    switch(dev->board) {
+	case NE2K_NE1000:
+		dev->is_8bit = 1;
+		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
+		/*FALLTHROUGH*/
+
+	case NE2K_NE2000:
+		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Novell OID) */
+		dev->maclocal[1] = 0x00;
+		dev->maclocal[2] = 0xD8;
+		rom = (dev->board == NE2K_NE1000) ? NULL : ROM_PATH_NE2000;
+		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_DWORD_MEM | DP8390_FLAG_CHECK_CR |
+				    DP8390_FLAG_CLEAR_IRQ);
+		break;
+		
+	case NE2K_ETHERNEXT_MC:
+		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Networth Inc. OID) */
+		dev->maclocal[1] = 0x00;
+		dev->maclocal[2] = 0x79;
+		dev->pos_regs[0] = 0x1F;
+		dev->pos_regs[1] = 0x61;
+		rom = NULL;
+		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_DWORD_MEM | DP8390_FLAG_CHECK_CR |
+				    DP8390_FLAG_CLEAR_IRQ);
+		break;
+
+	case NE2K_RTL8019AS:
+	case NE2K_RTL8029AS:
+		dev->is_pci = (dev->board == NE2K_RTL8029AS) ? 1 : 0;
+		dev->maclocal[0] = 0x00;  /* 00:E0:4C (Realtek OID) */
+		dev->maclocal[1] = 0xE0;
+		dev->maclocal[2] = 0x4C;
+		rom = (dev->board == NE2K_RTL8019AS) ? ROM_PATH_RTL8019 : ROM_PATH_RTL8029;
+		if (dev->is_pci)
+			dp8390_set_defaults(dev->dp8390, DP8390_FLAG_DWORD_MEM);
+		else
+			dp8390_set_defaults(dev->dp8390, DP8390_FLAG_DWORD_MEM | DP8390_FLAG_CLEAR_IRQ);
+		dp8390_set_id(dev->dp8390, 0x50, (dev->board == NE2K_RTL8019AS) ? 0x70 : 0x43);
+		break;
+    }
+
+    /*
+     * Make this device known to the I/O system.
+     * PnP and PCI devices start with address spaces inactive.
+     */
+    if (dev->board < NE2K_RTL8019AS && dev->board != NE2K_ETHERNEXT_MC)
+	nic_ioset(dev, dev->base_address);
+
+    /* Set up our BIOS ROM space, if any. */
+    nic_rom_init(dev, rom);
 
     if (dev->board >= NE2K_RTL8019AS) {
 	if (dev->is_pci) {
@@ -2513,12 +1446,12 @@ nic_init(const device_t *info)
 	}
     }
 
-	if (dev->board != NE2K_ETHERNEXT_MC)
-		/* Reset the board. */
-		nic_reset(dev);
+    if (dev->board != NE2K_ETHERNEXT_MC)
+	/* Reset the board. */
+	nic_reset(dev);
 
     /* Attach ourselves to the network module. */
-    network_attach(dev, dev->dp8390.physaddr, nic_rx);
+    network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx);
 
     nelog(1, "%s: %s attached IO=0x%X IRQ=%d\n", dev->name,
 	dev->is_pci?"PCI":"ISA", dev->base_address, dev->base_irq);
@@ -2531,11 +1464,6 @@ static void
 nic_close(void *priv)
 {
     nic_t *dev = (nic_t *)priv;
-
-    /* Make sure the platform layer is shut down. */
-    network_close();
-
-    nic_ioremove(dev, dev->base_address);
 
     nelog(1, "%s: closed\n", dev->name);
 
