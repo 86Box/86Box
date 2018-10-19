@@ -8,7 +8,7 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.6	2018/10/19
+ * Version:	@(#)net_slirp.c	1.0.7	2018/10/19
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -56,7 +56,7 @@
 #include "../86box.h"
 #include "../device.h"
 #include "../plat.h"
-// #include "../ui.h"
+#include "../ui.h"
 #include "network.h"
 
 
@@ -150,7 +150,7 @@ poll_thread(void *arg)
 
 	if (QueuePeek(slirpq) != 0) {
 		/* Grab a packet from the queue. */
-		// ui_sb_update_icon(SB_NETWORK, 1);
+		ui_sb_update_icon(SB_NETWORK, 1);
 
 		qp = QueueDelete(slirpq);
 		slirp_log("SLiRP: inQ:%d  got a %dbyte packet @%08lx\n",
@@ -176,7 +176,7 @@ poll_thread(void *arg)
 
 	/* If we did not get anything, wait a while. */
 	if (!data_valid) {
-		// ui_sb_update_icon(SB_NETWORK, 0);
+		ui_sb_update_icon(SB_NETWORK, 0);
 		thread_wait_event(evt, 10);
 	}
 
@@ -218,7 +218,7 @@ net_slirp_init(void)
 int
 net_slirp_reset(const netcard_t *card, uint8_t *mac)
 {
-    // ui_sb_update_icon(SB_NETWORK, 0);
+    ui_sb_update_icon(SB_NETWORK, 0);
 
     /* Save the callback info. */
     poll_card = card;
@@ -237,7 +237,7 @@ net_slirp_close(void)
 {
     queueADT sl;
 
-    // ui_sb_update_icon(SB_NETWORK, 0);
+    ui_sb_update_icon(SB_NETWORK, 0);
 
     if (slirpq == NULL) return;
 
@@ -273,7 +273,7 @@ net_slirp_in(uint8_t *pkt, int pkt_len)
 {
     if (slirpq == NULL) return;
 
-    // ui_sb_update_icon(SB_NETWORK, 1);
+    ui_sb_update_icon(SB_NETWORK, 1);
 
     network_busy(1);
 
@@ -281,7 +281,7 @@ net_slirp_in(uint8_t *pkt, int pkt_len)
 
     network_busy(0);
 
-    // ui_sb_update_icon(SB_NETWORK, 0);
+    ui_sb_update_icon(SB_NETWORK, 0);
 }
 
 

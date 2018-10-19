@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.21	2018/10/17
+ * Version:	@(#)win_stbar.c	1.0.22	2018/10/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -197,10 +197,10 @@ ui_sb_update_icon(int tag, int active)
 {
     uint8_t found = 0xff;
 
-    if (!update_icons)
+    if (!update_icons || !sb_ready)
 	return;
 
-    if (((tag & 0xf0) >= SB_TEXT) || !sb_ready)
+    if (((tag & 0xf0) >= SB_TEXT))
 	return;
 
     found = sb_map[tag];
@@ -220,7 +220,7 @@ ui_sb_update_icon_state(int tag, int state)
 {
     uint8_t found = 0xff;
 
-    if (((tag & 0xf0) >= SB_HDD) || !sb_ready)
+    if (!sb_ready || ((tag & 0xf0) >= SB_HDD))
 	return;
 
     found = sb_map[tag];
@@ -374,7 +374,8 @@ ui_sb_update_tip(int meaning)
 {
     uint8_t part = 0xff;
 
-    if (!sb_ready || (sb_parts == 0) || (sb_part_meanings == NULL)) return;
+    if (!sb_ready || (sb_parts == 0) || (sb_part_meanings == NULL))
+	return;
 
     part = sb_map[meaning];
 
@@ -467,6 +468,14 @@ StatusBarCreatePopupMenu(int part)
 }
 
 
+/* API: mark the status bar as not ready. */
+void
+ui_sb_set_not_ready(void)
+{
+    sb_ready = 0;
+}
+
+
 /* API: update the status bar panes. */
 void
 ui_sb_update_panes(void)
@@ -477,7 +486,8 @@ ui_sb_update_panes(void)
     int c_ide, c_scsi;
     int do_net;
 
-    sb_ready = 0;
+    if (sb_ready)
+	sb_ready = 0;
 
     hdint = (machines[machine].flags & MACHINE_HDC) ? 1 : 0;
     c_mfm = hdd_count(HDD_BUS_MFM);
@@ -753,10 +763,12 @@ ui_sb_mount_floppy_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name)
     fdd_close(id);
     ui_writeprot[id] = wp;
     fdd_load(id, file_name);
-    ui_sb_update_icon_state(SB_FLOPPY | id, wcslen(floppyfns[id]) ? 0 : 1);
-    EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
-    EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EXPORT_TO_86F | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
-    ui_sb_update_tip(SB_FLOPPY | id);
+    if (sb_ready) {
+	ui_sb_update_icon_state(SB_FLOPPY | id, wcslen(floppyfns[id]) ? 0 : 1);
+	EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
+    	EnableMenuItem(sb_menu_handles[part], IDM_FLOPPY_EXPORT_TO_86F | id, MF_BYCOMMAND | (wcslen(floppyfns[id]) ? MF_ENABLED : MF_GRAYED));
+	ui_sb_update_tip(SB_FLOPPY | id);
+    }
     config_save();
 }
 
@@ -768,10 +780,12 @@ ui_sb_mount_zip_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name)
     zip_drives[id].ui_writeprot = wp;
     zip_load(zip[id], file_name);
     zip_insert(zip[id]);
-    ui_sb_update_icon_state(SB_ZIP | id, wcslen(zip_drives[id].image_path) ? 0 : 1);
-    EnableMenuItem(sb_menu_handles[part], IDM_ZIP_EJECT | id, MF_BYCOMMAND | (wcslen(zip_drives[id].image_path) ? MF_ENABLED : MF_GRAYED));
-    EnableMenuItem(sb_menu_handles[part], IDM_ZIP_RELOAD | id, MF_BYCOMMAND | (wcslen(zip_drives[id].image_path) ? MF_GRAYED : MF_ENABLED));
-    ui_sb_update_tip(SB_ZIP | id);
+    if (sb_ready) {
+	ui_sb_update_icon_state(SB_ZIP | id, wcslen(zip_drives[id].image_path) ? 0 : 1);
+	EnableMenuItem(sb_menu_handles[part], IDM_ZIP_EJECT | id, MF_BYCOMMAND | (wcslen(zip_drives[id].image_path) ? MF_ENABLED : MF_GRAYED));
+	EnableMenuItem(sb_menu_handles[part], IDM_ZIP_RELOAD | id, MF_BYCOMMAND | (wcslen(zip_drives[id].image_path) ? MF_GRAYED : MF_ENABLED));
+	ui_sb_update_tip(SB_ZIP | id);
+    }
     config_save();
 }
 
@@ -1063,6 +1077,9 @@ ui_sb_check_menu_item(int tag, int id, int chk)
 {
     uint8_t part;
 
+    if (!sb_ready)
+	return;
+
     part = sb_map[tag];
     if ((part == 0xff) || (sb_menu_handles == NULL))
         return;
@@ -1076,6 +1093,9 @@ void
 ui_sb_enable_menu_item(int tag, int id, int flg)
 {
     uint8_t part;
+
+    if (!sb_ready)
+	return;
 
     part = sb_map[tag];
     if ((part == 0xff) || (sb_menu_handles == NULL))

@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.85	2018/10/17
+ * Version:	@(#)pc.c	1.0.86	2018/10/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -712,6 +712,8 @@ pc_send_cae(void)
 void
 pc_reset_hard_close(void)
 {
+    ui_sb_set_not_ready();
+
     suppress_overscan = 0;
 
     nvr_save();
