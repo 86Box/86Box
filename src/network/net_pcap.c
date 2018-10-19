@@ -8,7 +8,7 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.6	2018/10/17
+ * Version:	@(#)net_pcap.c	1.0.7	2018/10/19
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -55,7 +55,7 @@
 #include "../device.h"
 #include "../plat.h"
 #include "../plat_dynld.h"
-#include "../ui.h"
+// #include "../ui.h"
 #include "network.h"
 
 
@@ -187,7 +187,7 @@ poll_thread(void *arg)
 	/* Wait for the next packet to arrive. */
 	data = (uint8_t *)f_pcap_next((void *)pcap, &h);
 	if (data != NULL) {
-		ui_sb_update_icon(SB_NETWORK, 1);
+		// ui_sb_update_icon(SB_NETWORK, 1);
 
 		/* Received MAC. */
 		mac_cmp32[0] = *(uint32_t *)(data+6);
@@ -208,7 +208,7 @@ poll_thread(void *arg)
 
 	/* If we did not get anything, wait a while. */
 	if (data == NULL) {
-		ui_sb_update_icon(SB_NETWORK, 0);
+		// ui_sb_update_icon(SB_NETWORK, 0);
 		thread_wait_event(evt, 10);
 	}
 
@@ -324,7 +324,7 @@ net_pcap_close(void)
 {
     void *pc;
 
-    ui_sb_update_icon(SB_NETWORK, 0);
+    // ui_sb_update_icon(SB_NETWORK, 0);
 
     if (pcap == NULL) return;
 
@@ -381,7 +381,7 @@ net_pcap_reset(const netcard_t *card, uint8_t *mac)
     char filter_exp[255];
     struct bpf_program fp;
 
-    ui_sb_update_icon(SB_NETWORK, 0);
+    // ui_sb_update_icon(SB_NETWORK, 0);
 
     /* Open a PCAP live channel. */
     if ((pcap = f_pcap_open_live(network_host,		/* interface name */
@@ -431,7 +431,7 @@ net_pcap_in(uint8_t *bufp, int len)
 {
     if (pcap == NULL) return;
 
-    ui_sb_update_icon(SB_NETWORK, 1);
+    // ui_sb_update_icon(SB_NETWORK, 1);
 
     network_busy(1);
 
@@ -439,5 +439,5 @@ net_pcap_in(uint8_t *bufp, int len)
 
     network_busy(0);
 
-    ui_sb_update_icon(SB_NETWORK, 0);
+    // ui_sb_update_icon(SB_NETWORK, 0);
 }
