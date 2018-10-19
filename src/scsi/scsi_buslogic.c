@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.41	2018/10/18
+ * Version:	@(#)scsi_buslogic.c	1.0.42	2018/10/19
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -612,6 +612,7 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 	buslogic_log("SCSI Target ID %i has no device attached\n", ESCSICmd->TargetId);
 	DataInBuf[2] = CCB_SELECTION_TIMEOUT;
 	DataInBuf[3] = SCSI_STATUS_OK;
+	return;
     } else {
 	buslogic_log("SCSI Target ID %i detected and working\n", ESCSICmd->TargetId);
 
