@@ -13,7 +13,7 @@
  *			- Realtek RTL8019AS (ISA 16-bit, PnP);
  *			- Realtek RTL8029AS (PCI).
  *
- * Version:	@(#)net_ne2000.c	1.0.10	2018/10/17
+ * Version:	@(#)net_ne2000.c	1.0.11	2018/10/20
  *
  * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *
@@ -304,7 +304,7 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 		else
 			dev->dp8390->remote_bytes -= (dev->dp8390->DCR.wdsize + 1);
 
-		if (dev->dp8390->remote_bytes > DP8390_DWORD_MEMSIZ)
+		if (dev->dp8390->remote_bytes > dev->dp8390->mem_size)
 			dev->dp8390->remote_bytes = 0;
 
 		/* If all bytes have been written, signal remote-DMA complete */
@@ -1266,6 +1266,7 @@ nic_init(const device_t *info)
 	case NE2K_NE1000:
 		dev->is_8bit = 1;
 		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
+		dp8390_mem_alloc(dev->dp8390, 0x2000, 0x2000);
 		/*FALLTHROUGH*/
 
 	case NE2K_NE2000:
@@ -1273,8 +1274,9 @@ nic_init(const device_t *info)
 		dev->maclocal[1] = 0x00;
 		dev->maclocal[2] = 0xD8;
 		rom = (dev->board == NE2K_NE1000) ? NULL : ROM_PATH_NE2000;
-		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_DWORD_MEM | DP8390_FLAG_CHECK_CR |
+		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC | DP8390_FLAG_CHECK_CR |
 				    DP8390_FLAG_CLEAR_IRQ);
+		dp8390_mem_alloc(dev->dp8390, 0x4000, 0x4000);
 		break;
 		
 	case NE2K_ETHERNEXT_MC:
@@ -1284,8 +1286,9 @@ nic_init(const device_t *info)
 		dev->pos_regs[0] = 0x1F;
 		dev->pos_regs[1] = 0x61;
 		rom = NULL;
-		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_DWORD_MEM | DP8390_FLAG_CHECK_CR |
+		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC | DP8390_FLAG_CHECK_CR |
 				    DP8390_FLAG_CLEAR_IRQ);
+		dp8390_mem_alloc(dev->dp8390, 0x4000, 0x4000);
 		break;
 
 	case NE2K_RTL8019AS:
@@ -1296,10 +1299,11 @@ nic_init(const device_t *info)
 		dev->maclocal[2] = 0x4C;
 		rom = (dev->board == NE2K_RTL8019AS) ? ROM_PATH_RTL8019 : ROM_PATH_RTL8029;
 		if (dev->is_pci)
-			dp8390_set_defaults(dev->dp8390, DP8390_FLAG_DWORD_MEM);
+			dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC);
 		else
-			dp8390_set_defaults(dev->dp8390, DP8390_FLAG_DWORD_MEM | DP8390_FLAG_CLEAR_IRQ);
+			dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC | DP8390_FLAG_CLEAR_IRQ);
 		dp8390_set_id(dev->dp8390, 0x50, (dev->board == NE2K_RTL8019AS) ? 0x70 : 0x43);
+		dp8390_mem_alloc(dev->dp8390, 0x4000, 0x8000);
 		break;
     }
 

@@ -8,7 +8,7 @@
  *		Controller used by the WD family, NE1000/NE2000 family, and
  *		3Com 3C503 NIC's.
  *
- * Version:	@(#)net_dp8390.h	1.0.0	2018/10/17
+ * Version:	@(#)net_dp8390.h	1.0.1	2018/10/20
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Bochs project,
@@ -31,10 +31,9 @@
 #define DP8390_WORD_MEMSTART   (8*1024)
 #define DP8390_WORD_MEMEND     (DP8390_WORD_MEMSTART+DP8390_WORD_MEMSIZ)
 
-#define DP8390_FLAG_DWORD_MEM	0x01
+#define DP8390_FLAG_EVEN_MAC	0x01
 #define DP8390_FLAG_CHECK_CR	0x02
 #define DP8390_FLAG_CLEAR_IRQ	0x04
-#define DP8390_FLAG_NO_CHIPMEM	0x08
 
 typedef struct {
     /* Page 0 */
@@ -168,8 +167,8 @@ typedef struct {
 
     /* Page 3  - should never be modified. */
 
-    /* Novell ASIC state */
-    uint8_t	mem[DP8390_DWORD_MEMSIZ];	/* on-chip packet memory */
+    /* DP8390 memory */
+    uint8_t	*mem;				/* on-chip packet memory */
 
     uint8_t	macaddr[32];			/* ASIC ROM'd MAC address, even bytes */
     uint8_t	macaddr_size,			/* Defaults to 16 but can be 32 */
@@ -207,6 +206,7 @@ extern uint32_t	dp8390_page2_read(dp8390_t *dev, uint32_t off, unsigned int len)
 extern void	dp8390_page2_write(dp8390_t *dev, uint32_t off, uint32_t val, unsigned len);
 
 extern void	dp8390_set_defaults(dp8390_t *dev, uint8_t flags);
+extern void	dp8390_mem_alloc(dp8390_t *dev, uint32_t start, uint32_t size);
 extern void	dp8390_set_id(dp8390_t *dev, uint8_t id0, uint8_t id1);
 extern void	dp8390_reset(dp8390_t *dev);
 extern void	dp8390_soft_reset(dp8390_t *dev);

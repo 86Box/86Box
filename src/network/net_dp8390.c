@@ -7,7 +7,7 @@
  *		Emulation of the DP8390 Network Interface Controller used by
  *		the WD family, NE1000/NE2000 family, and 3Com 3C503 NIC's.
  *
- * Version:	@(#)net_dp8390.c	1.0.0	2018/10/17
+ * Version:	@(#)net_dp8390.c	1.0.1	2018/10/20
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Bochs project,
@@ -104,10 +104,10 @@ dp8390_chipmem_read(dp8390_t *dev, uint32_t addr, unsigned int len)
 
     /* ROM'd MAC address */
     for (i = 0; i < len; i++) {
-	if (addr < dev->macaddr_size)
-		retval |= ((uint32_t) dev->macaddr[addr & (dev->macaddr_size - 1)]) << (i << 3);
-	else if ((addr >= dev->mem_start) && (addr < dev->mem_end) && !(dev->flags & DP8390_FLAG_NO_CHIPMEM))
+	if ((addr >= dev->mem_start) && (addr < dev->mem_end))
 		retval |= (uint32_t) (dev->mem[addr - dev->mem_start]) << (i << 3);
+	else if (addr < dev->macaddr_size)
+		retval |= ((uint32_t) dev->macaddr[addr & (dev->macaddr_size - 1)]) << (i << 3);
 	else {
 		dp8390_log("DP8390: out-of-bounds chipmem read, %04X\n", addr);
 		retval |= 0xff << (i << 3);
@@ -123,9 +123,6 @@ void
 dp8390_chipmem_write(dp8390_t *dev, uint32_t addr, uint32_t val, unsigned len)
 {
     int i;
-
-    if (dev->flags & DP8390_FLAG_NO_CHIPMEM)
-	return;
 
 #ifdef ENABLE_DP8390_LOG
     if ((len > 1) && (addr & (len - 1))
@@ -534,10 +531,12 @@ dp8390_page0_write(dp8390_t *dev, uint32_t off, uint32_t val, unsigned len)
     switch(off) {
 	case 0x01:	/* PSTART */
 		dev->page_start = val;
+		dp8390_log("DP8390: Starting RAM address: %04X\n", val << 8);
 		break;
 
 	case 0x02:	/* PSTOP */
 		dev->page_stop = val;
+		dp8390_log("DP8390: Stopping RAM address: %04X\n", val << 8);
 		break;
 
 	case 0x03:	/* BNRY */
@@ -962,22 +961,22 @@ dp8390_page2_write(dp8390_t *dev, uint32_t off, uint32_t val, unsigned len)
 void
 dp8390_set_defaults(dp8390_t *dev, uint8_t flags)
 {
-    if (flags & DP8390_FLAG_DWORD_MEM) {
-	dev->mem_size = DP8390_DWORD_MEMSIZ;
-	dev->mem_start = DP8390_DWORD_MEMSTART;
-	dev->mem_end = DP8390_DWORD_MEMEND;
-	dev->macaddr_size = 32;
-    } else {
-	dev->mem_size = DP8390_WORD_MEMSIZ;
-	dev->mem_start = DP8390_WORD_MEMSTART;
-	dev->mem_end = DP8390_WORD_MEMEND;
-	dev->macaddr_size = 16;
-    }
-
-    if (flags & DP8390_FLAG_NO_CHIPMEM)
-	dev->mem_start = 0;
+    dev->macaddr_size = (flags & DP8390_FLAG_EVEN_MAC) ? 32 : 16;
 
     dev->flags = flags;
+}
+
+
+void
+dp8390_mem_alloc(dp8390_t *dev, uint32_t start, uint32_t size)
+{
+    dev->mem = (uint8_t *) malloc(size * sizeof(uint8_t));
+    memset(dev->mem, 0, size * sizeof(uint8_t));
+    dev->mem_start = start;
+    dev->mem_end = start + size;
+    dev->mem_size = size;
+    dp8390_log("DP8390: Mapped %i bytes of memory at address %04X in the address space\n", size, start);
+    pclog("DP8390: Mapped %i bytes of memory at address %04X in the address space\n", size, start);
 }
 
 
@@ -994,7 +993,7 @@ dp8390_reset(dp8390_t *dev)
 {
     int i, max, shift = 0;
 
-    if (dev->flags & DP8390_FLAG_DWORD_MEM)
+    if (dev->flags & DP8390_FLAG_EVEN_MAC)
 	shift = 1;
 
     max = 16 << shift;
@@ -1039,7 +1038,7 @@ dp8390_reset(dp8390_t *dev)
     dev->localpkt_ptr = 0;
     dev->address_cnt  = 0;
 
-    memset(&dev->mem, 0x00, sizeof(dev->mem));
+    memset(dev->mem, 0x00, dev->mem_size);
 
     /* Set power-up conditions */
     dev->CR.stop      = 1;
@@ -1087,8 +1086,12 @@ dp8390_close(void *priv)
     /* Make sure the platform layer is shut down. */
     network_close();
 
-    if (dp8390)
+    if (dp8390) {
+	if (dp8390->mem)
+		free(dp8390->mem);
+
 	free(dp8390);
+    }
 }
 
 

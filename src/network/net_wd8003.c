@@ -11,7 +11,7 @@
  *			- SMC/WD 8013EBT (ISA 16-bit);
  *			- SMC/WD 8013EP/A (MCA).
  *
- * Version:	@(#)net_wd8003.c	1.0.3	2018/10/20
+ * Version:	@(#)net_wd8003.c	1.0.4	2018/10/20
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -151,9 +151,6 @@ wd_reset(void *priv)
     wdlog("%s: reset\n", dev->name);
 
     dp8390_reset(dev->dp8390);
-
-    dev->msr &= 0x3f;
-    mem_mapping_disable(&dev->ram_mapping);
 }
 
 
@@ -676,14 +673,14 @@ wd_init(const device_t *info)
 	case WD8003E:
 		dev->board_chip = WE_TYPE_WD8003E;
 		dev->ram_size = 0x2000;
-		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CLEAR_IRQ | DP8390_FLAG_NO_CHIPMEM);
+		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CLEAR_IRQ);
 		dev->msr |= 0x40;
 		break;
 	
 	case WD8013EBT:
 		dev->board_chip = WE_TYPE_WD8013EBT;
 		dev->ram_size = device_get_config_int("ram_size");
-		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CLEAR_IRQ | DP8390_FLAG_NO_CHIPMEM);
+		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CLEAR_IRQ);
 		irq = 255;
 		for (i = 0; i < 8; i++) {
 			if (we_int_table[i] == dev->base_irq)
@@ -714,13 +711,15 @@ wd_init(const device_t *info)
 		dev->ram_size = 0x4000;
 		dev->pos_regs[0] = 0xC8;
 		dev->pos_regs[1] = 0x61;
-		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CLEAR_IRQ | DP8390_FLAG_NO_CHIPMEM);
+		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CLEAR_IRQ);
 		dev->bit16 = 1;
 		break;
     }
 
     dev->irr |= 0x80;
     dev->icr |= dev->bit16;
+
+    dp8390_mem_alloc(dev->dp8390, 0x0000, dev->ram_size);
 
     if (dev->base_address)
 	wd_io_set(dev, dev->base_address);
@@ -736,7 +735,7 @@ wd_init(const device_t *info)
     wd_reset(dev);
 
     /* Map this system into the memory map. */
-    if (!dev->bit16) {
+    if (dev->bit16) {
 	mem_mapping_add(&dev->ram_mapping, dev->ram_addr, dev->ram_size,
 			wd_ram_readb, wd_ram_readw, NULL,
 			wd_ram_writeb, wd_ram_writew, NULL,

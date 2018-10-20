@@ -596,6 +596,7 @@ threec503_nic_init(const device_t *info)
     dev->dp8390->priv = dev;
     dev->dp8390->interrupt = threec503_interrupt;
     dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
+    dp8390_mem_alloc(dev->dp8390, 0x2000, 0x2000);
 	
     memcpy(dev->dp8390->physaddr, dev->maclocal, sizeof(dev->maclocal));
 
