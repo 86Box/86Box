@@ -11,7 +11,7 @@
  *			- SMC/WD 8013EBT (ISA 16-bit);
  *			- SMC/WD 8013EP/A (MCA).
  *
- * Version:	@(#)net_wd8003.c	1.0.2	2018/10/17
+ * Version:	@(#)net_wd8003.c	1.0.3	2018/10/20
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -52,6 +52,7 @@
 #include "../io.h"
 #include "../mem.h"
 #include "../rom.h"
+#include "../machine/machine.h"
 #include "../mca.h"
 #include "../pci.h"
 #include "../pic.h"
@@ -96,8 +97,10 @@ typedef struct {
     uint8_t	pos_regs[8];
 
     /* Memory for WD cards*/
-    uint8_t	reg0, reg1,
-		reg4, reg5,
+    uint8_t	msr,			/* Memory Select Register (MSR) */
+		icr,			/* Interface Configuration Register (ICR) */
+		irr,			/* Interrupt Request Register (IRR) */
+		laar,			/* LA Address Register (read by Windows 98!) */
 		if_chip, board_chip;
 } wd_t;
 
@@ -129,7 +132,7 @@ wd_interrupt(void *priv, int set)
 {
     wd_t *dev = (wd_t *) priv;
 
-    if (dev->reg4 & 0x80)
+    if (!(dev->irr & 0x80))
 	return;
 
     if (set)
@@ -148,6 +151,9 @@ wd_reset(void *priv)
     wdlog("%s: reset\n", dev->name);
 
     dp8390_reset(dev->dp8390);
+
+    dev->msr &= 0x3f;
+    mem_mapping_disable(&dev->ram_mapping);
 }
 
 
@@ -170,7 +176,7 @@ wd_ram_read(uint32_t addr, unsigned len, void *priv)
     ret = dev->dp8390->mem[addr & ram_mask];
 
     if (len == 2)
-		ret |= dev->dp8390->mem[(addr + 1) & ram_mask] << 8;
+	ret |= dev->dp8390->mem[(addr + 1) & ram_mask] << 8;
 
     return ret;	
 }
@@ -231,30 +237,26 @@ wd_smc_read(wd_t *dev, uint32_t off)
     uint32_t retval = 0;
     uint32_t checksum = 0;
 
-    if (dev->board == WD8003E) {
-	if ((off >= 0x01) && (off <= 0x06))
-		off += 0x07;	/* On the WD8003E, ports 00-06 shadow ports 08-0D. */
-	else if (off == 0x07)
-		off = 0x0f;	/* Port 07 shadows port 0F (checksum). */
-    }
+    if (dev->board == WD8003E)
+	off |= 0x08;
 
     switch(off) {
 	case 0x00:
 		if (dev->board == WD8013EBT)
-			retval = dev->reg0;
+			retval = dev->msr;
 		break;
 
 	case 0x01:
-		retval = dev->reg1;
+		retval = dev->icr;
 		break;
 
 	case 0x04:
 		if (dev->board == WD8013EBT)
-			retval = dev->reg4;
+			retval = dev->irr;
 		break;
 
 	case 0x05:
-		retval = dev->reg5;
+		retval = dev->laar;
 		break;
 		
 	case 0x07:
@@ -263,7 +265,8 @@ wd_smc_read(wd_t *dev, uint32_t off)
 				retval = 0;
 			else
 				retval = dev->if_chip;
-		}
+		} else
+			retval = dev->if_chip;
 		break;
 
 	case 0x08:
@@ -301,7 +304,7 @@ wd_smc_read(wd_t *dev, uint32_t off)
 				dev->board_chip);
 
 		retval = 0xff - (checksum & 0xff);
-	break;
+		break;
     }
 
     wdlog("%s: ASIC read addr=0x%02x, value=0x%04x\n",
@@ -312,74 +315,103 @@ wd_smc_read(wd_t *dev, uint32_t off)
 
 
 static void
-wd_set_irq(wd_t *dev)
+wd_set_ram(wd_t *dev)
 {
-    uint8_t irq;
+    uint32_t a13, a19;
 
-    irq = (dev->reg4 & 0x60) >> 5;
-    irq |= (dev->reg1 & 0x04);
+    a13 = dev->msr & 0x3f;
+    a13 <<= 13;
+    a19 = dev->laar & 0x1f;
+    a19 <<= 19;
 
-    dev->base_irq = we_int_table[irq];
+    dev->ram_addr = a13 | a19;
+    mem_mapping_set_addr(&dev->ram_mapping, dev->ram_addr, dev->ram_size);
+
+    if (dev->msr & 0x40)
+	mem_mapping_enable(&dev->ram_mapping);
+    else
+	mem_mapping_disable(&dev->ram_mapping);
 }
 
 
 static void
 wd_smc_write(wd_t *dev, uint32_t off, uint32_t val)
 {
+    uint8_t old;
+
     wdlog("%s: ASIC write addr=0x%02x, value=0x%04x\n",
 	  dev->name, (unsigned)off, (unsigned) val);
 
+    if (dev->board == WD8003E)
+	off |= 0x08;
+
     switch(off) {
+	/* Bits 0-5: Bits 13-18 of memory address (writable?):
+		     Windows 98 requires this to be preloaded with the initial
+		     addresss to work correctly;
+	   Bit 6: Enable memory if set;
+	   Bit 7: Software reset if set. */
 	case 0x00:	/* WD Control register */
-		dev->reg0 = val;
+		old = dev->msr;
 
-		if (val & 0x80)
+		if (!(old & 0x80) && (val & 0x80)) {
 			wd_soft_reset(dev);
+			wdlog("WD80x3: Soft reset\n");
+		}
 
-		if (val & 0x40)
-			mem_mapping_enable(&dev->ram_mapping);
-		else
-			mem_mapping_disable(&dev->ram_mapping);
+		dev->msr = val;
+
+		if ((old &= 0x7f) != (val & 0x7f)) {
+			wd_set_ram(dev);
+			wdlog("WD80x3: Memory now %sabled (addr = %08X)\n", (val & 0x40) ? "en" : "dis", dev->ram_addr);
+		}
 		break;
 		
+	/* Bit 1: 0 = 8-bit slot, 1 = 16-bit slot;
+	   Bit 2: Bit 2 of encoded IRQ;
+	   Bit 3: 0 = 8k RAM, 1 = 32k RAM (only on revision < 2). */
 	case 0x01:
 		if (dev->board == WD8003E)
 			break;
 
-		dev->reg1 &= 0x60;
-		dev->reg1 |= (val & ~0x60);
-		if (!dev->bit16)
-			dev->reg1 &= ~0x01;
-
-		if (dev->board == WD8013EBT) {
-			wd_set_irq(dev);
-
-			dev->ram_size = (dev->reg1 & 0x08) ? 0x8000 : 0x4000;
-
-			mem_mapping_set_addr(&dev->ram_mapping, dev->ram_addr, dev->ram_size);
-			if (!(dev->reg0 & 0x40))
-				mem_mapping_disable(&dev->ram_mapping);
-		}
+		dev->icr = val;
 		break;
 		
+	/* Bit 5: Bit 0 of encoded IRQ;
+	   Bit 6: Bit 1 of encoded IRQ;
+	   Bit 7: Enable interrupts. */
 	case 0x04:
 		if (dev->board != WD8013EBT)
 			break;
 
-		dev->reg4 = val;
-		wd_set_irq(dev);
+		dev->irr = (dev->irr & 0xe0) | (val & 0x1f);
 		break;
-		
+
+	/* Bits 0-4: Bits 19-23 of memory address (writable?):
+		     Windows 98 requires this to be preloaded with the initial
+		     addresss to work correctly;
+	   Bit 5: Enable software interrupt;
+	   Bit 6: Enable 16-bit RAM for LAN if set;
+	   Bit 7: Enable 16-bit RAM for host if set. */
 	case 0x05:
+		old = dev->laar;
+
 		if (dev->board == WD8003E)
 			break;
 
-		dev->reg5 = val;
+		dev->laar = val;
+
+		if (dev->board == WD8013EBT) {
+			if ((old &= 0x1f) != (val & 0x1f)) {
+				wd_set_ram(dev);
+				wdlog("WD80x3: Memory now %sabled (addr = %08X)\n", (val & 0x40) ? "en" : "dis", dev->ram_addr);
+			}
+		}
 		break;
-		
-	case 0x06:
-		break;
-		
+
+	/* Bits 0-4: Chip ID;
+	   Bit 5: Software configuration is supported if present;
+	   Bit 6: 0 = 16k RAM, 1 = 32k RAM. */
 	case 0x07:
 		dev->if_chip = val;
 		break;
@@ -645,11 +677,12 @@ wd_init(const device_t *info)
 		dev->board_chip = WE_TYPE_WD8003E;
 		dev->ram_size = 0x2000;
 		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CLEAR_IRQ | DP8390_FLAG_NO_CHIPMEM);
+		dev->msr |= 0x40;
 		break;
 	
 	case WD8013EBT:
 		dev->board_chip = WE_TYPE_WD8013EBT;
-		dev->ram_size = 0x4000;
+		dev->ram_size = device_get_config_int("ram_size");
 		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CLEAR_IRQ | DP8390_FLAG_NO_CHIPMEM);
 		irq = 255;
 		for (i = 0; i < 8; i++) {
@@ -657,11 +690,23 @@ wd_init(const device_t *info)
 				irq = i;
 		}
 		if (irq != 255) {
-			dev->reg4 = (irq & 0x03) << 5;
-			dev->reg1 = irq & 0x04;
+			dev->irr = (irq & 0x03) << 5;
+			dev->icr = irq & 0x04;
 		}
 
-		dev->bit16 = 1;
+		dev->msr |= (dev->ram_addr >> 13) & 0x3f;
+		dev->laar |= (dev->ram_addr >> 19) & 0x1f;
+
+		if (dev->ram_size == 0x8000)
+			dev->board_chip |= 0x40;
+
+		if (AT)
+			dev->bit16 = 1;
+		else {
+			dev->bit16 = 0;
+			if (dev->base_irq == 9)
+				dev->base_irq = 2;
+		}
 		break;
 
 	case WD8013EPA:
@@ -673,6 +718,9 @@ wd_init(const device_t *info)
 		dev->bit16 = 1;
 		break;
     }
+
+    dev->irr |= 0x80;
+    dev->icr |= dev->bit16;
 
     if (dev->base_address)
 	wd_io_set(dev, dev->base_address);
@@ -688,7 +736,7 @@ wd_init(const device_t *info)
     wd_reset(dev);
 
     /* Map this system into the memory map. */
-    if (dev->bit16) {
+    if (!dev->bit16) {
 	mem_mapping_add(&dev->ram_mapping, dev->ram_addr, dev->ram_size,
 			wd_ram_readb, wd_ram_readw, NULL,
 			wd_ram_writeb, wd_ram_writew, NULL,
@@ -699,7 +747,10 @@ wd_init(const device_t *info)
 			wd_ram_writeb, NULL, NULL,
 			NULL, MEM_MAPPING_EXTERNAL, dev);
     }
-    mem_mapping_disable(&dev->ram_mapping);		
+    if (dev->msr & 0x40)
+	mem_mapping_enable(&dev->ram_mapping);		
+    else
+	mem_mapping_disable(&dev->ram_mapping);		
 
     /* Attach ourselves to the network module. */
     network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx);
@@ -767,9 +818,6 @@ static const device_config_t wd8003_config[] =
 		},
 	},
 	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
 		"ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000,
 		{
 			{
@@ -796,23 +844,46 @@ static const device_config_t wd8003_config[] =
 		},
 	},
 	{
+		"mac", "MAC Address", CONFIG_MAC, "", -1
+	},
+	{
 		"", "", -1
 	}
 };
 
+/* WD8013EBT configuration and defaults set according to this site:
+   http://www.stack.nl/~marcolz/network/wd80x3.html#WD8013EBT */
 static const device_config_t wd8013_config[] =
 {
 	{
-		"base", "Address", CONFIG_HEX16, "", 0x300,
+		"base", "Address", CONFIG_HEX16, "", 0x280,
 		{
 			{
+				"0x200", 0x200
+			},
+			{
+				"0x220", 0x220
+			},
+			{
 				"0x240", 0x240
+			},
+			{
+				"0x260", 0x260
 			},
 			{
 				"0x280", 0x280
 			},
 			{
+				"0x2A0", 0x2A0
+			},
+			{
+				"0x2C0", 0x2C0
+			},
+			{
 				"0x300", 0x300
+			},
+			{
+				"0x340", 0x340
 			},
 			{
 				"0x380", 0x380
@@ -826,6 +897,9 @@ static const device_config_t wd8013_config[] =
 		"irq", "IRQ", CONFIG_SELECTION, "", 3,
 		{
 			{
+				"IRQ 2/9", 9
+			},
+			{
 				"IRQ 3", 3
 			},
 			{
@@ -836,9 +910,6 @@ static const device_config_t wd8013_config[] =
 			},
 			{
 				"IRQ 7", 7
-			},
-			{
-				"IRQ 9", 9
 			},
 			{
 				"IRQ 10", 10
@@ -855,11 +926,14 @@ static const device_config_t wd8013_config[] =
 		},
 	},
 	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
 		"ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000,
 		{
+			{
+				"C000", 0xC0000
+			},
+			{
+				"C400", 0xC4000
+			},
 			{
 				"C800", 0xC8000
 			},
@@ -882,6 +956,23 @@ static const device_config_t wd8013_config[] =
 				""
 			}
 		},
+	},
+	{
+		"ram_size", "RAM size", CONFIG_SELECTION, "", 16384,
+		{
+			{
+				"16 kB", 16384
+			},
+			{
+				"32 kB", 32768
+			},
+			{
+				""
+			}
+		},
+	},
+	{
+		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
 	{
 		"", "", -1

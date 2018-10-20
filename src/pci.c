@@ -141,13 +141,9 @@ static void elcr_write(uint16_t port, uint8_t val, void *priv)
 {
 	/* pci_log("ELCR%i: WRITE %02X\n", port & 1, val); */
 	if (port & 1)
-	{
 		val &= 0xDE;
-	}
 	else
-	{
 		val &= 0xF8;
-	}
 	elcr[port & 1] = val;
 
 	pci_log("ELCR %i: %c %c %c %c %c %c %c %c\n", port & 1, (val & 1) ? 'L' : 'E', (val & 2) ? 'L' : 'E', (val & 4) ? 'L' : 'E', (val & 8) ? 'L' : 'E', (val & 0x10) ? 'L' : 'E', (val & 0x20) ? 'L' : 'E', (val & 0x40) ? 'L' : 'E', (val & 0x80) ? 'L' : 'E');
@@ -162,9 +158,7 @@ static uint8_t elcr_read(uint16_t port, void *priv)
 static void elcr_reset(void)
 {
 	pic_reset();
-	/* elcr[0] = elcr[1] = 0; */
-	elcr[0] = 0x98;
-	elcr[1] = 0x00;
+	elcr[0] = elcr[1] = 0x00;
 }
 
 static void pci_type2_write(uint16_t port, uint8_t val, void *priv);
@@ -174,33 +168,24 @@ static void pci_type2_write(uint16_t port, uint8_t val, void *priv)
 {
 	uint8_t slot = 0;
 
-        if (port == 0xcf8)
-        {
+        if (port == 0xcf8) {
                 pci_func = (val >> 1) & 7;
                 if (!pci_key && (val & 0xf0))
                         io_sethandler(0xc000, 0x1000, pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
                 else
                         io_removehandler(0xc000, 0x1000, pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
                 pci_key = val & 0xf0;
-        }
-        else if (port == 0xcfa)
-        {
+        } else if (port == 0xcfa)
                 pci_bus = val;
-        }
-        else
-        {
+        else {
                 pci_card = (port >> 8) & 0xf;
                 pci_index = port & 0xff;
 
-		if (!pci_bus)
-		{
+		if (!pci_bus) {
 			slot = pci_card_to_slot_mapping[pci_card];
-			if (slot != 0xFF)
-			{
+			if (slot != 0xFF) {
 				if (pci_cards[slot].write)
-				{
 					pci_cards[slot].write(pci_func, pci_index | (port & 3), val, pci_cards[slot].priv);
-				}
 			}
 		}
         }
@@ -211,30 +196,21 @@ static uint8_t pci_type2_read(uint16_t port, void *priv)
 	uint8_t slot = 0;
 
         if (port == 0xcf8)
-        {
                 return pci_key | (pci_func << 1);
-        }
         else if (port == 0xcfa)
-        {
                 return pci_bus;
-        }
-        else
-        {
-                pci_card = (port >> 8) & 0xf;
-                pci_index = port & 0xff;
 
-		if (!pci_bus)
-		{
-			slot = pci_card_to_slot_mapping[pci_card];
-			if (slot != 0xFF)
-			{
-				if (pci_cards[slot].read)
-				{
-					return pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
-				}
-			}
+	pci_card = (port >> 8) & 0xf;
+	pci_index = port & 0xff;
+
+	if (!pci_bus) {
+		slot = pci_card_to_slot_mapping[pci_card];
+		if (slot != 0xFF) {
+			if (pci_cards[slot].read)
+				return pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
 		}
-        }
+	}
+
         return 0xff;
 }
 
@@ -258,31 +234,21 @@ int pci_irq_is_level(int irq)
 	int real_irq = irq & 7;
 
 	if ((irq <= 2) || (irq == 8) || (irq == 13))
-	{
 		return 0;
-	}
 
 	if (irq > 7)
-	{
 		return !!(elcr[1] & (1 << real_irq));
-	}
 	else
-	{
 		return !!(elcr[0] & (1 << real_irq));
-	}
 }
 
 uint8_t pci_use_mirq(uint8_t mirq)
 {
 	if (!PCI || !pci_mirqs[0].enabled)
-	{
 		return 0;
-	}
 
 	if (pci_mirqs[mirq].irq_line & 0x80)
-	{
 		return 0;
-	}
 
 	return 1;
 }
@@ -441,8 +407,6 @@ void pci_clear_mirq(uint8_t mirq)
 {
 	uint8_t irq_line = 0;
 	uint8_t level = 0;
-
-	mirq = 0;
 
 	if (mirq > 1)
 	{
