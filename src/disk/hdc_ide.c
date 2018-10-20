@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.51	2018/10/17
+ * Version:	@(#)hdc_ide.c	1.0.52	2018/10/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1458,7 +1458,7 @@ static uint32_t
 ide_read_data(ide_t *ide, int length)
 {
     scsi_device_data_t *atapi = (scsi_device_data_t *) ide->p;
-    uint32_t temp;
+    uint32_t temp = 0;
 
     if (!ide->buffer) {
 	switch (length) {
@@ -1479,12 +1479,12 @@ ide_read_data(ide_t *ide, int length)
 
     if (ide->command == WIN_PACKETCMD) {
 	ide->pos = 0;
-	if (!ide_drive_is_atapi(ide)) {
+	if (ide_drive_is_atapi(ide))
+		temp = ide->packet_read(ide->p, length);
+	else {
 		ide_log("Drive not ATAPI (position: %i)\n", ide->pos);
 		return 0;
 	}
-	if (ide_drive_is_atapi(ide))
-		temp = ide->packet_read(ide->p, length);
     } else {
 	switch (length) {
 		case 1:

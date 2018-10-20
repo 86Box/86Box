@@ -8,7 +8,7 @@
  *
  *		CD-ROM image support.
  *
- * Version:	@(#)cdrom_image.cc	1.0.3	2018/10/17
+ * Version:	@(#)cdrom_image.cc	1.0.4	2018/10/20
  *
  * Author:	RichardG867,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -723,13 +723,8 @@ image_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf, int c
     if (!is_legal(dev->id, cdrom_sector_type, cdrom_sector_flags, audio, mode2))
 	return 0;
 
-    if ((cdrom_sector_type == 3) || ((cdrom_sector_type > 4) && (cdrom_sector_type != 8))) {
-	if (cdrom_sector_type == 3) {
-		cdrom_image_log("CD-ROM %i: Attempting to read a Yellowbook Mode 2 data sector from an image\n", dev->id);
-	}
-	if (cdrom_sector_type > 4) {
-		cdrom_image_log("CD-ROM %i: Attempting to read a XA Mode 2 Form 2 data sector from an image\n", dev->id);
-	}
+    if ((cdrom_sector_type > 5) && (cdrom_sector_type != 8)) {
+	cdrom_image_log("CD-ROM %i: Attempting to read an unrecognized sector type from an image\n", dev->id);
 	return 0;
     } else if (cdrom_sector_type == 1) {
 	if (!audio || dev->img_is_iso) {
