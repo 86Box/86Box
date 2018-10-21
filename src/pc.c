@@ -712,7 +712,7 @@ pc_send_cae(void)
 void
 pc_reset_hard_close(void)
 {
-    ui_sb_set_not_ready();
+    ui_sb_set_ready(0);
 
     suppress_overscan = 0;
 
@@ -822,7 +822,8 @@ pc_reset_hard_init(void)
         config_save();
 
 	config_changed = 0;
-    }
+    } else
+	ui_sb_set_ready(1);
 
     /* Needs the status bar... */
     if (bugger_enabled)

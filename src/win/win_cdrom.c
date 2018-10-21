@@ -8,7 +8,7 @@
  *
  *		Handle the platform-side of CDROM drives.
  *
- * Version:	@(#)win_cdrom.c	1.0.10	2018/10/17
+ * Version:	@(#)win_cdrom.c	1.0.11	2018/10/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -45,12 +45,10 @@ plat_cdrom_ui_update(uint8_t id, uint8_t reload)
 
     if (drv->host_drive == 0) {
 	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_CHECKED);
-	drv->host_drive = 0;
 	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_UNCHECKED);
 	ui_sb_update_icon_state(SB_CDROM|id, 1);
     } else {
 	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_UNCHECKED);
-	drv->host_drive = 200;
 	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_CHECKED);
 	ui_sb_update_icon_state(SB_CDROM|id, 0);
     }

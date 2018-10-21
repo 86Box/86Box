@@ -8,7 +8,7 @@
  *
  *		CD-ROM image support.
  *
- * Version:	@(#)cdrom_image.cc	1.0.5	2018/10/21
+ * Version:	@(#)cdrom_image.cc	1.0.6	2018/10/21
  *
  * Author:	RichardG867,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1084,6 +1084,7 @@ cdrom_image_open(cdrom_t *dev, const wchar_t *fn)
     if (!img->SetDevice(temp, false)) {
 	cdrom_image_close(dev);
 	cdrom->ops = NULL;
+	cdrom->host_drive = 0;
 	cdrom_image_log("[f] image_open(): cdrom[%i]->ops = %08X\n", dev->id, dev->ops);
 	return 1;
     }

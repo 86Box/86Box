@@ -470,9 +470,9 @@ StatusBarCreatePopupMenu(int part)
 
 /* API: mark the status bar as not ready. */
 void
-ui_sb_set_not_ready(void)
+ui_sb_set_ready(int ready)
 {
-    sb_ready = 0;
+    sb_ready = ready;
 }
 
 
@@ -486,8 +486,9 @@ ui_sb_update_panes(void)
     int c_ide, c_scsi;
     int do_net;
 
-    if (sb_ready)
+    if (sb_ready) {
 	sb_ready = 0;
+    }
 
     hdint = (machines[machine].flags & MACHINE_HDC) ? 1 : 0;
     c_mfm = hdd_count(HDD_BUS_MFM);
@@ -816,6 +817,9 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_FLOPPY_IMAGE_NEW:
 				id = item_params & 0x0003;
 				part = sb_map[SB_FLOPPY | id];
+				if ((part == 0xff) || (sb_menu_handles == NULL))
+					break;
+
 				NewFloppyDialogCreate(hwnd, id, part);
 				break;
 
@@ -875,11 +879,19 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_CDROM_EMPTY:
 				id = item_params & 0x0007;
+				part = sb_map[SB_CDROM | id];
+				if ((part == 0xff) || (sb_menu_handles == NULL))
+					break;
+
 				cdrom_eject(id);
 				break;
 
 			case IDM_CDROM_RELOAD:
 				id = item_params & 0x0007;
+				part = sb_map[SB_CDROM | id];
+				if ((part == 0xff) || (sb_menu_handles == NULL))
+					break;
+
 				cdrom_reload(id);
 				break;
 
@@ -887,30 +899,30 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				id = item_params & 0x0007;
 				part = sb_map[SB_CDROM | id];
 				if ((part == 0xff) || (sb_menu_handles == NULL))
-						break;
+					break;
 
 				if (!file_dlg_w_st(hwnd, IDS_2075, cdrom[id].image_path, 0)) {
 					cdrom[id].prev_host_drive = cdrom[id].host_drive;
 					wcscpy(temp_path, wopenfilestring);
 					if (!cdrom[id].prev_image_path)
-						cdrom[id].prev_image_path = (wchar_t *) malloc(1024);
+						cdrom[id].prev_image_path = (wchar_t *) malloc(1024 * sizeof(wchar_t));
 					wcscpy(cdrom[id].prev_image_path, cdrom[id].image_path);
 					if (cdrom[id].ops && cdrom[id].ops->exit)
 						cdrom[id].ops->exit(&(cdrom[id]));
 					cdrom[id].ops = NULL;
-					memset(cdrom[id].image_path, 0, 2048);
+					memset(cdrom[id].image_path, 0, sizeof(cdrom[id].image_path));
 					cdrom_image_open(&(cdrom[id]), temp_path);
 					/* Signal media change to the emulated machine. */
 					if (cdrom[id].insert)
 						cdrom[id].insert(cdrom[id].p);
-					CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
 					cdrom[id].host_drive = (wcslen(cdrom[id].image_path) == 0) ? 0 : 200;
 					if (cdrom[id].host_drive == 200) {
+						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
 						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_CHECKED);
 						ui_sb_update_icon_state(SB_CDROM | id, 0);
 					} else {
 						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_IMAGE | id, MF_UNCHECKED);
-						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);
+						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_CHECKED);
 						ui_sb_update_icon_state(SB_CDROM | id, 1);
 					}
 					EnableMenuItem(sb_menu_handles[part], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);

@@ -8,7 +8,7 @@
  *
  *		Generic CD-ROM drive core.
  *
- * Version:	@(#)cdrom.c	1.0.2	2018/10/17
+ * Version:	@(#)cdrom.c	1.0.3	2018/10/21
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -300,7 +300,7 @@ cdrom_eject(uint8_t id)
     }
 
     if (dev->host_drive == 200) {
-	dev->prev_image_path = (wchar_t *) malloc(1024);
+	dev->prev_image_path = (wchar_t *) malloc(1024 * sizeof(wchar_t));
 	wcscpy(dev->prev_image_path, dev->image_path);
     }
 
