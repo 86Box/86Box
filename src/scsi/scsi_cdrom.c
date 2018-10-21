@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.53	2018/10/17
+ * Version:	@(#)scsi_cdrom.c	1.0.54	2018/10/21
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -68,9 +68,7 @@ typedef struct
 	uint16_t len;
 	uint8_t control;
 } gesn_cdb_t;
-#pragma pack(pop)
 
-#pragma pack(push,1)
 typedef struct
 {
 	uint16_t len;

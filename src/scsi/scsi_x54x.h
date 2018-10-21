@@ -11,7 +11,7 @@
  *		of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.h	1.0.8	2018/10/02
+ * Version:	@(#)scsi_x54x.h	1.0.9	2018/10/21
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -118,49 +118,8 @@
 #define INTR_MBIF	0x01		/* MBI full */
 
 
-#pragma pack(push,1)
-typedef struct {
-    uint8_t hi;
-    uint8_t mid;
-    uint8_t lo;
-} addr24;
-#pragma pack(pop)
-
 #define ADDR_TO_U32(x)	(((x).hi<<16)|((x).mid<<8)|((x).lo&0xFF))
 #define U32_TO_ADDR(a,x) do {(a).hi=(x)>>16;(a).mid=(x)>>8;(a).lo=(x)&0xFF;}while(0)
-
-
-/* Structure for the INQUIRE_SETUP_INFORMATION reply. */
-#pragma pack(push,1)
-typedef struct {
-    uint8_t	uOffset		:4,
-		uTransferPeriod :3,
-		fSynchronous	:1;
-} ReplyInquireSetupInformationSynchronousValue;
-#pragma pack(pop)
-
-#pragma pack(push,1)
-typedef struct {
-    uint8_t	fSynchronousInitiationEnabled	:1,
-		fParityCheckingEnabled		:1,
-		uReserved1			:6;
-    uint8_t	uBusTransferRate;
-    uint8_t	uPreemptTimeOnBus;
-    uint8_t	uTimeOffBus;
-    uint8_t	cMailbox;
-    addr24	MailboxAddress;
-    ReplyInquireSetupInformationSynchronousValue SynchronousValuesId0To7[8];
-    uint8_t	uDisconnectPermittedId0To7;
-    uint8_t	VendorSpecificData[28];
-} ReplyInquireSetupInformation;
-#pragma pack(pop)
-
-#pragma pack(push,1)
-typedef struct {
-    uint8_t	Count;
-    addr24	Address;
-} MailboxInit_t;
-#pragma pack(pop)
 
 /*
  * Mailbox Definitions.
@@ -177,31 +136,6 @@ typedef struct {
 #define MBI_ABORT                 0x02
 #define MBI_NOT_FOUND             0x03
 #define MBI_ERROR                 0x04
-
-#pragma pack(push,1)
-typedef struct {
-    uint8_t	CmdStatus;
-    addr24	CCBPointer;
-} Mailbox_t;
-#pragma pack(pop)
-
-#pragma pack(push,1)
-typedef struct {
-    uint32_t	CCBPointer;
-    union {
-	struct {
-		uint8_t Reserved[3];
-		uint8_t ActionCode;
-	} out;
-	struct {
-		uint8_t HostStatus;
-		uint8_t TargetStatus;
-		uint8_t Reserved;
-		uint8_t CompletionCode;
-	} in;
-    }		u;
-} Mailbox32_t;
-#pragma pack(pop)
 
 /*
  *
@@ -250,13 +184,78 @@ typedef struct {
 #define CCB_DUPLICATE_CCB		0x19	/* Duplicate CCB */
 #define CCB_INVALID_CCB			0x1A	/* Invalid CCB - bad parameter */
 
+#define lba32_blk(p)	((uint32_t)(p->u.lba.lba0<<24) | (p->u.lba.lba1<<16) | \
+				   (p->u.lba.lba2<<8) | p->u.lba.lba3)
+
+/*
+ *
+ * Scatter/Gather Segment List Definitions
+ *
+ * Adapter limits
+ */
+#define MAX_SG_DESCRIPTORS 32	/* Always make the array 32 elements long, if less are used, that's not an issue. */
+
+
+#pragma pack(push,1)
+typedef struct {
+    uint8_t hi;
+    uint8_t mid;
+    uint8_t lo;
+} addr24;
+
+/* Structure for the INQUIRE_SETUP_INFORMATION reply. */
+typedef struct {
+    uint8_t	uOffset		:4,
+		uTransferPeriod :3,
+		fSynchronous	:1;
+} ReplyInquireSetupInformationSynchronousValue;
+
+typedef struct {
+    uint8_t	fSynchronousInitiationEnabled	:1,
+		fParityCheckingEnabled		:1,
+		uReserved1			:6;
+    uint8_t	uBusTransferRate;
+    uint8_t	uPreemptTimeOnBus;
+    uint8_t	uTimeOffBus;
+    uint8_t	cMailbox;
+    addr24	MailboxAddress;
+    ReplyInquireSetupInformationSynchronousValue SynchronousValuesId0To7[8];
+    uint8_t	uDisconnectPermittedId0To7;
+    uint8_t	VendorSpecificData[28];
+} ReplyInquireSetupInformation;
+
+typedef struct {
+    uint8_t	Count;
+    addr24	Address;
+} MailboxInit_t;
+
+typedef struct {
+    uint8_t	CmdStatus;
+    addr24	CCBPointer;
+} Mailbox_t;
+
+typedef struct {
+    uint32_t	CCBPointer;
+    union {
+	struct {
+		uint8_t Reserved[3];
+		uint8_t ActionCode;
+	} out;
+	struct {
+		uint8_t HostStatus;
+		uint8_t TargetStatus;
+		uint8_t Reserved;
+		uint8_t CompletionCode;
+	} in;
+    }		u;
+} Mailbox32_t;
+
 /*    Byte 15   Target Status
 
       See scsi.h files for these statuses.
       Bytes 16 and 17   Reserved (must be 0)
       Bytes 18 through 18+n-1, where n=size of CDB  Command Descriptor Block */
 
-#pragma pack(push,1)
 typedef struct {
     uint8_t	Opcode;
     uint8_t	Reserved1	:3,
@@ -278,9 +277,7 @@ typedef struct {
     uint8_t	Reserved3[6];
     uint32_t	SensePointer;
 } CCB32;
-#pragma pack(pop)
 
-#pragma pack(push,1)
 typedef struct {
     uint8_t	Opcode;
     uint8_t	Lun		:3,
@@ -297,9 +294,7 @@ typedef struct {
     uint8_t	Reserved[2];
     uint8_t	Cdb[12];
 } CCB;
-#pragma pack(pop)
 
-#pragma pack(push,1)
 typedef struct {
     uint8_t	Opcode;
     uint8_t	Pad1		:3,
@@ -314,17 +309,13 @@ typedef struct {
     uint8_t	Pad4[2];
     uint8_t	Cdb[12];
 } CCBC;
-#pragma pack(pop)
 
-#pragma pack(push,1)
 typedef union {
     CCB32	new;
     CCB		old;
     CCBC	common;
 } CCBU;
-#pragma pack(pop)
 
-#pragma pack(push,1)
 typedef struct {
     CCBU	CmdBlock;
     uint8_t	*RequestSenseBuffer;
@@ -336,6 +327,39 @@ typedef struct {
 		TargetStatus,
 		MailboxCompletionCode;
 } Req_t;
+
+typedef struct
+{
+	uint8_t	command;
+	uint8_t	lun:3,
+		reserved:2,
+		id:3;
+	union {
+	    struct {
+		uint16_t cyl;
+		uint8_t	head;
+		uint8_t	sec;
+	    } chs;
+	    struct {
+		uint8_t lba0;	/* MSB */
+		uint8_t lba1;
+		uint8_t lba2;
+		uint8_t lba3;	/* LSB */
+	    } lba;
+	}	u;
+	uint8_t	secount;
+	addr24	dma_address;
+} BIOSCMD;
+
+typedef struct {
+    uint32_t	Segment;
+    uint32_t	SegmentPointer;
+} SGE32;
+
+typedef struct {
+    addr24	Segment;
+    addr24	SegmentPointer;
+} SGE;
 #pragma pack(pop)
 
 typedef struct {
@@ -473,57 +497,6 @@ typedef struct {
     /* Pointer to a function that resets vendor-specific data */
     void	(*ven_reset)(void *p);
 } x54x_t;
-
-
-#pragma pack(push,1)
-typedef struct
-{
-	uint8_t	command;
-	uint8_t	lun:3,
-		reserved:2,
-		id:3;
-	union {
-	    struct {
-		uint16_t cyl;
-		uint8_t	head;
-		uint8_t	sec;
-	    } chs;
-	    struct {
-		uint8_t lba0;	/* MSB */
-		uint8_t lba1;
-		uint8_t lba2;
-		uint8_t lba3;	/* LSB */
-	    } lba;
-	}	u;
-	uint8_t	secount;
-	addr24	dma_address;
-} BIOSCMD;
-#pragma pack(pop)
-#define lba32_blk(p)	((uint32_t)(p->u.lba.lba0<<24) | (p->u.lba.lba1<<16) | \
-				   (p->u.lba.lba2<<8) | p->u.lba.lba3)
-
-
-/*
- *
- * Scatter/Gather Segment List Definitions
- *
- * Adapter limits
- */
-#define MAX_SG_DESCRIPTORS 32	/* Always make the array 32 elements long, if less are used, that's not an issue. */
-
-#pragma pack(push,1)
-typedef struct {
-    uint32_t	Segment;
-    uint32_t	SegmentPointer;
-} SGE32;
-#pragma pack(pop)
-
-#pragma pack(push,1)
-typedef struct {
-    addr24	Segment;
-    addr24	SegmentPointer;
-} SGE;
-#pragma pack(pop)
 
 
 extern void	x54x_reset_ctrl(x54x_t *dev, uint8_t Reset);
