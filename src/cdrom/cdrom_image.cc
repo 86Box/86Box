@@ -8,7 +8,7 @@
  *
  *		CD-ROM image support.
  *
- * Version:	@(#)cdrom_image.cc	1.0.4	2018/10/20
+ * Version:	@(#)cdrom_image.cc	1.0.5	2018/10/21
  *
  * Author:	RichardG867,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -119,7 +119,7 @@ enum {
 
 
 static int		cdrom_sector_size;
-static uint8_t		raw_buffer[2448];
+static uint8_t		raw_buffer[2856];	/* Needs to be the same size as sector_buffer_t in the structs. */
 static uint8_t		extra_buffer[296];
 
 
