@@ -12,7 +12,7 @@
  *		we will not use that, but, instead, use a new window which
  *		coverrs the entire desktop.
  *
- * Version:	@(#)win_sdl.c  	1.0.2	2018/10/18
+ * Version:	@(#)win_sdl.c  	1.0.3	2018/10/21
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Michael Drüing, <michael@drueing.de>
@@ -610,7 +610,7 @@ sdl_pause(void)
 void
 sdl_resize(int x, int y)
 {
-    int ww, wh, wx, wy;
+    int ww = 0, wh = 0, wx = 0, wy = 0;
 
     if ((x == cur_w) && (y == cur_h))
 	return;
