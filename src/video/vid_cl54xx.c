@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.25	2018/10/04
+ * Version:	@(#)vid_cl_54xx.c	1.0.26	2018/10/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Barry Rodewald,
@@ -1009,8 +1009,13 @@ gd54xx_write(uint32_t addr, uint8_t val, void *p)
 {
     gd54xx_t *gd54xx = (gd54xx_t *)p;
     svga_t *svga = &gd54xx->svga;	
-	
-	if (gd54xx->blt.sys_tx) {
+
+    if ((svga->seqregs[0x07] & 0x01) == 0) {
+	svga_write(addr, val, svga);
+	return;
+    }
+
+    if (gd54xx->blt.sys_tx) {
 	if (gd54xx->blt.mode == CIRRUS_BLTMODE_MEMSYSSRC) {
 		gd54xx->blt.sys_buf &= ~(0xff << (gd54xx->blt.sys_cnt * 8));
 		gd54xx->blt.sys_buf |= (val << (gd54xx->blt.sys_cnt * 8));
@@ -1021,7 +1026,7 @@ gd54xx_write(uint32_t addr, uint8_t val, void *p)
 		}
 	}
 	return;
-	}
+    }
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + gd54xx->bank[(addr >> 15) & 1];
@@ -1035,14 +1040,18 @@ gd54xx_writew(uint32_t addr, uint16_t val, void *p)
 {
     gd54xx_t *gd54xx = (gd54xx_t *)p;
     svga_t *svga = &gd54xx->svga;
-	
-	if (gd54xx->blt.sys_tx)
-	{
-		gd54xx_write(addr, val, gd54xx);
-		gd54xx_write(addr+1, val >> 8, gd54xx);
-		return;
-	}
-	
+
+    if ((svga->seqregs[0x07] & 0x01) == 0) {
+	svga_writew(addr, val, svga);
+	return;
+    }
+
+    if (gd54xx->blt.sys_tx) {
+	gd54xx_write(addr, val, gd54xx);
+	gd54xx_write(addr+1, val >> 8, gd54xx);
+	return;
+    }
+
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + gd54xx->bank[(addr >> 15) & 1];
 
@@ -1061,14 +1070,18 @@ gd54xx_writel(uint32_t addr, uint32_t val, void *p)
     gd54xx_t *gd54xx = (gd54xx_t *)p;
     svga_t *svga = &gd54xx->svga;
 
-	if (gd54xx->blt.sys_tx)
-	{
-		gd54xx_write(addr, val, gd54xx);
-		gd54xx_write(addr+1, val >> 8, gd54xx);
-		gd54xx_write(addr+2, val >> 16, gd54xx);
-		gd54xx_write(addr+3, val >> 24, gd54xx);
-		return;
-	}
+    if ((svga->seqregs[0x07] & 0x01) == 0) {
+	svga_writel(addr, val, svga);
+	return;
+    }
+
+    if (gd54xx->blt.sys_tx) {
+	gd54xx_write(addr, val, gd54xx);
+	gd54xx_write(addr+1, val >> 8, gd54xx);
+	gd54xx_write(addr+2, val >> 16, gd54xx);
+	gd54xx_write(addr+3, val >> 24, gd54xx);
+	return;
+    }
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + gd54xx->bank[(addr >> 15) & 1];
@@ -1525,6 +1538,10 @@ gd54xx_read(uint32_t addr, void *p)
 {
     gd54xx_t *gd54xx = (gd54xx_t *)p;
     svga_t *svga = &gd54xx->svga;
+
+    if ((svga->seqregs[0x07] & 0x01) == 0)
+	return svga_read(addr, svga);
+
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + gd54xx->bank[(addr >> 15) & 1];
     return svga_read_linear(addr, svga);
@@ -1537,6 +1554,9 @@ gd54xx_readw(uint32_t addr, void *p)
     gd54xx_t *gd54xx = (gd54xx_t *)p;
     svga_t *svga = &gd54xx->svga;
 
+    if ((svga->seqregs[0x07] & 0x01) == 0)
+	return svga_readw(addr, svga);
+
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + gd54xx->bank[(addr >> 15) & 1];
     return svga_readw_linear(addr, svga);
@@ -1548,6 +1568,9 @@ gd54xx_readl(uint32_t addr, void *p)
 {
     gd54xx_t *gd54xx = (gd54xx_t *)p;
     svga_t *svga = &gd54xx->svga;
+
+    if ((svga->seqregs[0x07] & 0x01) == 0)
+	return svga_readl(addr, svga);
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + gd54xx->bank[(addr >> 15) & 1];
