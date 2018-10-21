@@ -7,7 +7,7 @@
  *		Emulation of the DP8390 Network Interface Controller used by
  *		the WD family, NE1000/NE2000 family, and 3Com 3C503 NIC's.
  *
- * Version:	@(#)net_dp8390.c	1.0.1	2018/10/20
+ * Version:	@(#)net_dp8390.c	1.0.2	2018/10/21
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Bochs project,
@@ -976,7 +976,6 @@ dp8390_mem_alloc(dp8390_t *dev, uint32_t start, uint32_t size)
     dev->mem_end = start + size;
     dev->mem_size = size;
     dp8390_log("DP8390: Mapped %i bytes of memory at address %04X in the address space\n", size, start);
-    pclog("DP8390: Mapped %i bytes of memory at address %04X in the address space\n", size, start);
 }
 
 
