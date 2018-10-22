@@ -8,7 +8,7 @@
  *
  *		Sigma Color 400 emulation.
  *
- * Version:	@(#)vid_sigma.c	1.0.1	2018/10/23
+ * Version:	@(#)vid_sigma.c	1.0.2	2018/10/23
  *
  * Authors:	John Elliott,
  *
@@ -429,9 +429,9 @@ static void sigma_text80(sigma_t *sigma)
 	if (drawcursor && !(x & 1)) {
 		for (c = 0; c < 8; c++) {
 			if (sigma->sigmamode & MODE_FONT16)
-				buffer->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xff;
+				buffer->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0x0f;
 			else
-				buffer->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdat[chr][sigma->sc & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xffffff;
+				buffer->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdat[chr][sigma->sc & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 0x0f;
 		}
 	} else {
 		for (c = 0; c < 8; c++) {
@@ -485,7 +485,7 @@ sigma_text40(sigma_t *sigma)
 	if (drawcursor) {
 		for (c = 0; c < 8; c++) { 
 			buffer->line[sigma->displine][(x << 4) + 2*c + 8] = 
-			buffer->line[sigma->displine][(x << 4) + 2*c + 9] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xffffff;
+			buffer->line[sigma->displine][(x << 4) + 2*c + 9] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0x0f;
 		}
 	} else {
 		for (c = 0; c < 8; c++) {
@@ -524,10 +524,10 @@ sigma_gfx400(sigma_t *sigma)
 		col |= 16;
 		buffer->line[sigma->displine][(x << 3) + c + 8] = col;
 	}
-	if (x & 1) ++sigma->ma;
+	if (x & 1)
+		++sigma->ma;
     }
 }
-
 
 /* Draw a line in the 640x200 graphics mode.
  * This is actually a 640x200x16 mode; on startup, the BIOS selects plane 2,
@@ -584,7 +584,6 @@ sigma_gfx4col(sigma_t *sigma)
 	for (c = 0; c < 4; c++) {
 		col = ((plane[3] & mask) ? 2 : 0) | 
 		      ((plane[2] & mask) ? 1 : 0);
-		col |= 16;
 		mask = mask >> 1;
 		col |= ((plane[3] & mask) ? 8 : 0) | 
 		       ((plane[2] & mask) ? 4 : 0);
@@ -658,6 +657,9 @@ sigma_poll(void *p)
 		x = (sigma->crtc[1] << 4) + 16;
 	else
 		x = (sigma->crtc[1] << 5) + 16;
+
+	for (c = 0; c < x; c++)
+		buffer->line[sigma->displine][c] = sigma->palette[buffer->line[sigma->displine][c] & 0xf] | 16;
 
 	sigma->sc = oldsc;
 	if (sigma->vc == sigma->crtc[7] && !sigma->sc)
@@ -805,7 +807,7 @@ static void
 		    sigma_read, NULL, NULL, 
 		    sigma_write, NULL, NULL,  
 		    NULL, MEM_MAPPING_EXTERNAL, sigma);
-    mem_mapping_add(&sigma->bios_ram, 0xC0000, 0x4000,
+    mem_mapping_add(&sigma->bios_ram, 0xC1800, 0x0800,
 		    sigma_bread, NULL, NULL, 
 		    sigma_bwrite, NULL, NULL,  
 		    sigma->bios_rom.rom, MEM_MAPPING_EXTERNAL, sigma);
