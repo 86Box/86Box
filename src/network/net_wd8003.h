@@ -11,7 +11,7 @@
  *			- SMC/WD 8013EBT (ISA 16-bit);
  *			- SMC/WD 8013EP/A (MCA).
  *
- * Version:	@(#)net_wd8003.c	1.0.0	2018/07/19
+ * Version:	@(#)net_wd8003.c	1.0.1	2018/10/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -45,13 +45,17 @@
 
 enum {
     WD_NONE = 0,
-	WD8003E = 1,				/* 8-bit ISA WD8003E */
-	WD8013EBT = 2,				/* 16-bit ISA WD8013EBT */
-	WD8013EPA = 3				/* MCA WD8013EP/A */
+    WD8003E,			/* WD8003E   :  8-bit ISA, no  interface chip */
+    WD8003EB,			/* WD8003EB  :  8-bit ISA, 5x3 interface chip */
+    WD8013EBT,			/* WD8013EBT : 16-bit ISA, no  interface chip */
+    WD8003ETA,			/* WD8003ET/A: 16-bit MCA, no  interface chip */
+    WD8003EA			/* WD8003E/A : 16-bit MCA, 5x3 interface chip */
 };
 
 extern const device_t 	wd8003e_device;
+extern const device_t 	wd8003eb_device;
 extern const device_t 	wd8013ebt_device;
-extern const device_t 	wd8013epa_device;
+extern const device_t 	wd8003eta_device;
+extern const device_t 	wd8003ea_device;
 
 #endif	/*NET_WD8003_H*/

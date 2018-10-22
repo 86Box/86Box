@@ -11,7 +11,7 @@
  *			- SMC/WD 8013EBT (ISA 16-bit);
  *			- SMC/WD 8013EP/A (MCA).
  *
- * Version:	@(#)net_wd8003.c	1.0.4	2018/10/20
+ * Version:	@(#)net_wd8003.c	1.0.5	2018/10/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -82,6 +82,18 @@
 #define	WE_TYPE_SMC8216C	0x2b
 #define WE_TYPE_WD8013EBP	0x2c
 
+#define WE_ICR_16BIT_SLOT	0x01
+
+#define WE_MSR_ENABLE_RAM	0x40
+#define WE_MSR_SOFT_RESET	0x80
+
+#define WE_IRR_ENABLE_IRQ	0x80
+
+#define WE_ID_ETHERNET		0x01
+#define WE_ID_SOFT_CONFIG	0x20
+#define WE_ID_EXTRA_RAM		0x40
+#define WE_ID_BUS_MCA		0x80
+
 typedef struct {
     dp8390_t	*dp8390;
     mem_mapping_t	ram_mapping;
@@ -91,7 +103,7 @@ typedef struct {
     int		board;
     const char	*name;
     uint32_t	base_address;
-    int		base_irq;
+    int		irq;
 
     /* POS registers, MCA boards only */
     uint8_t	pos_regs[8];
@@ -106,7 +118,7 @@ typedef struct {
 
 
 #ifdef ENABLE_WD_LOG
-int wd_do_log = ENABLE_WD_LOG;
+int WE_do_log = ENABLE_WD_LOG;
 
 static void
 wdlog(const char *fmt, ...)
@@ -124,7 +136,7 @@ wdlog(const char *fmt, ...)
 #endif
 
 
-static const int we_int_table[8] = {9, 3, 5, 7, 10, 11, 15, 4};
+static const int we_int_table[4] = {2, 3, 4, 7};
 
 
 static void
@@ -132,13 +144,13 @@ wd_interrupt(void *priv, int set)
 {
     wd_t *dev = (wd_t *) priv;
 
-    if (!(dev->irr & 0x80))
+    if (!(dev->irr & WE_IRR_ENABLE_IRQ))
 	return;
 
     if (set)
-	picint(1 << dev->base_irq);
+	picint(1 << dev->irq);
     else
-	picintc(1 << dev->base_irq);
+	picintc(1 << dev->irq);
 }
 
 
@@ -228,6 +240,23 @@ wd_ram_writew(uint32_t addr, uint16_t val, void *priv)
 }
 
 
+static int
+wd_get_irq_index(wd_t *dev)
+{
+    uint8_t i, irq = 255;
+
+    for (i = 0; i < 4; i++) {
+	if (we_int_table[i] == dev->irq)
+		irq = i;
+    }
+    if (irq != 255)
+	return ((irq & 0x03) << 5);
+    else
+
+	return 0;
+}
+
+
 static uint32_t
 wd_smc_read(wd_t *dev, uint32_t off)
 {
@@ -239,30 +268,31 @@ wd_smc_read(wd_t *dev, uint32_t off)
 
     switch(off) {
 	case 0x00:
-		if (dev->board == WD8013EBT)
+		if (dev->board_chip & WE_ID_BUS_MCA)
+			retval = (dev->msr & 0xc0) | ((dev->ram_addr >> 13) & 0x3f);
+		else
 			retval = dev->msr;
 		break;
 
 	case 0x01:
-		retval = dev->icr;
+		if (dev->board_chip & WE_ID_SOFT_CONFIG)
+			retval = dev->icr;
+		else
+			retval = dev->icr & WE_ICR_16BIT_SLOT;
 		break;
 
 	case 0x04:
-		if (dev->board == WD8013EBT)
-			retval = dev->irr;
+		if (dev->board_chip & WE_ID_SOFT_CONFIG)
+			retval = (dev->irr & 0x9f) | wd_get_irq_index(dev);
 		break;
 
 	case 0x05:
-		retval = dev->laar;
+		if (dev->board_chip & WE_ID_SOFT_CONFIG)
+			retval = dev->laar;
 		break;
 		
 	case 0x07:
-		if (dev->board == WD8013EPA) {
-			if ((dev->if_chip != 0x35) && (dev->if_chip != 0x3A))
-				retval = 0;
-			else
-				retval = dev->if_chip;
-		} else
+		if (dev->board_chip & WE_ID_SOFT_CONFIG)
 			retval = dev->if_chip;
 		break;
 
@@ -314,20 +344,22 @@ wd_smc_read(wd_t *dev, uint32_t off)
 static void
 wd_set_ram(wd_t *dev)
 {
-    uint32_t a13, a19;
+    uint32_t a13;
 
-    a13 = dev->msr & 0x3f;
-    a13 <<= 13;
-    a19 = dev->laar & 0x1f;
-    a19 <<= 19;
+    if ((dev->board_chip & 0xa0) == 0x20) {
+	a13 = dev->msr & 0x3f;
+	a13 <<= 13;
 
-    dev->ram_addr = a13 | a19;
-    mem_mapping_set_addr(&dev->ram_mapping, dev->ram_addr, dev->ram_size);
+	dev->ram_addr = a13 | (1 << 19);
+	mem_mapping_set_addr(&dev->ram_mapping, dev->ram_addr, dev->ram_size);
+	wdlog("%s: RAM address set to %08X\n", dev->name, dev->ram_addr);
+    }
 
-    if (dev->msr & 0x40)
+    if (dev->msr & WE_MSR_ENABLE_RAM)
 	mem_mapping_enable(&dev->ram_mapping);
     else
 	mem_mapping_disable(&dev->ram_mapping);
+    wdlog("%s: RAM now %sabled\n", dev->name, (dev->msr & WE_MSR_ENABLE_RAM) ? "en" : "dis");
 }
 
 
@@ -339,8 +371,8 @@ wd_smc_write(wd_t *dev, uint32_t off, uint32_t val)
     wdlog("%s: ASIC write addr=0x%02x, value=0x%04x\n",
 	  dev->name, (unsigned)off, (unsigned) val);
 
-    if (dev->board == WD8003E)
-	off |= 0x08;
+    if (off && (dev->board == WD8003E))
+	return;
 
     switch(off) {
 	/* Bits 0-5: Bits 13-18 of memory address (writable?):
@@ -351,37 +383,37 @@ wd_smc_write(wd_t *dev, uint32_t off, uint32_t val)
 	case 0x00:	/* WD Control register */
 		old = dev->msr;
 
-		if (!(old & 0x80) && (val & 0x80)) {
+		if (!(old & WE_MSR_SOFT_RESET) && (val & WE_MSR_SOFT_RESET)) {
 			wd_soft_reset(dev);
 			wdlog("WD80x3: Soft reset\n");
 		}
 
-		dev->msr = val;
+		if ((dev->board_chip & 0xa0) == 0x20)
+			dev->msr = val;
+		else
+			dev->msr = (dev->msr & 0x3f) | (val & 0xc0);
 
 		if ((old &= 0x7f) != (val & 0x7f)) {
 			wd_set_ram(dev);
-			wdlog("WD80x3: Memory now %sabled (addr = %08X)\n", (val & 0x40) ? "en" : "dis", dev->ram_addr);
+			wdlog("WD80x3: Memory now %sabled (addr = %08X)\n", (val & WE_MSR_ENABLE_RAM) ? "en" : "dis", dev->ram_addr);
 		}
 		break;
 		
 	/* Bit 1: 0 = 8-bit slot, 1 = 16-bit slot;
-	   Bit 2: Bit 2 of encoded IRQ;
 	   Bit 3: 0 = 8k RAM, 1 = 32k RAM (only on revision < 2). */
 	case 0x01:
-		if (dev->board == WD8003E)
-			break;
-
-		dev->icr = val;
+		if (dev->bit16 & 2)
+			dev->icr = (dev->icr & WE_ICR_16BIT_SLOT) | (val & WE_ICR_16BIT_SLOT);
+		else
+			dev->icr = val;
 		break;
 		
 	/* Bit 5: Bit 0 of encoded IRQ;
 	   Bit 6: Bit 1 of encoded IRQ;
 	   Bit 7: Enable interrupts. */
 	case 0x04:
-		if (dev->board != WD8013EBT)
-			break;
-
-		dev->irr = (dev->irr & 0xe0) | (val & 0x1f);
+		if (dev->board_chip & WE_ID_SOFT_CONFIG)
+			dev->irr = (dev->irr & 0xe0) | (val & 0x1f);
 		break;
 
 	/* Bits 0-4: Bits 19-23 of memory address (writable?):
@@ -391,26 +423,16 @@ wd_smc_write(wd_t *dev, uint32_t off, uint32_t val)
 	   Bit 6: Enable 16-bit RAM for LAN if set;
 	   Bit 7: Enable 16-bit RAM for host if set. */
 	case 0x05:
-		old = dev->laar;
-
-		if (dev->board == WD8003E)
-			break;
-
-		dev->laar = val;
-
-		if (dev->board == WD8013EBT) {
-			if ((old &= 0x1f) != (val & 0x1f)) {
-				wd_set_ram(dev);
-				wdlog("WD80x3: Memory now %sabled (addr = %08X)\n", (val & 0x40) ? "en" : "dis", dev->ram_addr);
-			}
-		}
+		if (dev->board_chip & WE_ID_SOFT_CONFIG)
+			dev->laar = val;
 		break;
 
 	/* Bits 0-4: Chip ID;
 	   Bit 5: Software configuration is supported if present;
 	   Bit 6: 0 = 16k RAM, 1 = 32k RAM. */
 	case 0x07:
-		dev->if_chip = val;
+		if (dev->board_chip & WE_ID_SOFT_CONFIG)
+			dev->if_chip = val;
 		break;
 		
 	default:
@@ -524,7 +546,7 @@ wd_writew(uint16_t addr, uint16_t val, void *priv)
 static void
 wd_io_set(wd_t *dev, uint16_t addr)
 {	
-    if (dev->bit16) {
+    if (dev->bit16 & 1) {
 	io_sethandler(addr, 0x20,
 		      wd_readb, wd_readw, NULL,
 		      wd_writeb, wd_writew, NULL, dev);
@@ -539,7 +561,7 @@ wd_io_set(wd_t *dev, uint16_t addr)
 static void
 wd_io_remove(wd_t *dev, uint16_t addr)
 {	
-    if (dev->bit16) {
+    if (dev->bit16 & 1) {
 	io_removehandler(addr, 0x20,
 			 wd_readb, wd_readw, NULL,
 			 wd_writeb, wd_writew, NULL, dev);
@@ -560,14 +582,14 @@ wd_mca_read(int port, void *priv)
 }
 
 
-#define MCA_61C8_IRQS { 3, 4, 10, 14 }
+#define MCA_6FC0_IRQS { 3, 4, 10, 15 }
 
 
 static void
 wd_mca_write(int port, uint8_t val, void *priv)
 {
     wd_t *dev = (wd_t *)priv;
-    int8_t irq[4] = MCA_61C8_IRQS;
+    int8_t irq[4] = MCA_6FC0_IRQS;
 
     /* MCA does not write registers below 0x0100. */
     if (port < 0x0102) return;
@@ -582,24 +604,12 @@ wd_mca_write(int port, uint8_t val, void *priv)
      *
      * So, remove current address, if any.
      */
-    wd_io_remove(dev, dev->base_address);	
+    if (dev->base_address)
+	wd_io_remove(dev, dev->base_address);	
 
-    dev->base_address = 0x800 + ((dev->pos_regs[2] & 0xf0) << 8);
-
-    dev->ram_addr = (dev->pos_regs[3] & 0x0f);
-    dev->ram_addr <<= 13;
-    dev->ram_addr |= 0xC0000;
-    if (dev->pos_regs[3] & 0x80) {
-	dev->ram_size = 0x4000;
-	dev->ram_addr |= 0xF00000;
-    } else {
-	if (dev->pos_regs[3] & 0x10)
-		dev->ram_size = 0x2000;
-	else
-		dev->ram_size = 0x4000;
-    }
-
-    dev->base_irq = irq[(dev->pos_regs[5] & 0x0c) >> 2];
+    dev->base_address = (dev->pos_regs[2] & 0xfe) << 4;
+    dev->ram_addr = (dev->pos_regs[3] & 0xfc) << 12;
+    dev->irq = irq[dev->pos_regs[5] & 0x02];
 
     /* Initialize the device if fully configured. */
     if (dev->pos_regs[2] & 0x01) {
@@ -607,10 +617,13 @@ wd_mca_write(int port, uint8_t val, void *priv)
 	wd_io_set(dev, dev->base_address);
 
 	mem_mapping_set_addr(&dev->ram_mapping, dev->ram_addr, dev->ram_size);
-	mem_mapping_disable(&dev->ram_mapping);
+	if (dev->msr & WE_MSR_ENABLE_RAM)
+		mem_mapping_enable(&dev->ram_mapping);
+	else
+		mem_mapping_disable(&dev->ram_mapping);
 
 	wdlog("%s: attached IO=0x%X IRQ=%d, RAM addr=0x%06x\n", dev->name,
-	      dev->base_address, dev->base_irq, dev->ram_addr);
+	      dev->base_address, dev->irq, dev->ram_addr);
     }
 }
 
@@ -620,13 +633,11 @@ wd_init(const device_t *info)
 {
     uint32_t mac;
     wd_t *dev;
-    int i;
-    uint8_t irq;
 
     /* Get the desired debug level. */
 #ifdef ENABLE_NIC_LOG
     i = device_get_config_int("debug");
-    if (i > 0) wd_do_log = i;
+    if (i > 0) WE_do_log = i;
 #endif
 
     dev = malloc(sizeof(wd_t));
@@ -657,67 +668,71 @@ wd_init(const device_t *info)
 	dev->maclocal[5] = (mac & 0xff);
     }
 
-    if (dev->board == WD8013EPA)
-	mca_add(wd_mca_read, wd_mca_write, dev);	
+    if ((dev->board == WD8003ETA) || (dev->board == WD8003EA))
+	mca_add(wd_mca_read, wd_mca_write, dev);
     else {
 	dev->base_address = device_get_config_hex16("base");
-	dev->base_irq = device_get_config_int("irq");
+	dev->irq = device_get_config_int("irq");
 	dev->ram_addr = device_get_config_hex20("ram_addr");
     }
 
     dev->dp8390 = device_add(&dp8390_device);
     dev->dp8390->priv = dev;
     dev->dp8390->interrupt = wd_interrupt;
+    dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CLEAR_IRQ);
 
     switch(dev->board) {
+	/* Ethernet, ISA, no interface chip, RAM 8k */
 	case WD8003E:
 		dev->board_chip = WE_TYPE_WD8003E;
 		dev->ram_size = 0x2000;
-		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CLEAR_IRQ);
-		dev->msr |= 0x40;
 		break;
-	
+
+	/* Ethernet, ISA, 5x3 interface chip, RAM 8k or 32k */
+	case WD8003EB:
+		dev->board_chip = WE_TYPE_WD8003EB;
+		dev->if_chip = 1;
+		dev->ram_size = device_get_config_int("ram_size");
+		if (dev->ram_size == 0x8000)
+			dev->board_chip |= WE_ID_EXTRA_RAM;
+
+		/* Bit A19 is implicit 1. */
+		dev->msr |= (dev->ram_addr >> 13) & 0x3f;
+		break;
+
+	/* Ethernet, ISA, no interface chip, RAM 8k or 32k (8-bit slot) / 16k or 64k (16-bit slot) */
 	case WD8013EBT:
 		dev->board_chip = WE_TYPE_WD8013EBT;
 		dev->ram_size = device_get_config_int("ram_size");
-		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CLEAR_IRQ);
-		irq = 255;
-		for (i = 0; i < 8; i++) {
-			if (we_int_table[i] == dev->base_irq)
-				irq = i;
-		}
-		if (irq != 255) {
-			dev->irr = (irq & 0x03) << 5;
-			dev->icr = irq & 0x04;
-		}
+		if (dev->ram_size == 0x10000)
+			dev->board_chip |= WE_ID_EXTRA_RAM;
 
-		dev->msr |= (dev->ram_addr >> 13) & 0x3f;
-		dev->laar |= (dev->ram_addr >> 19) & 0x1f;
-
-		if (dev->ram_size == 0x8000)
-			dev->board_chip |= 0x40;
-
+		dev->bit16 = 2;
 		if (AT)
-			dev->bit16 = 1;
+			dev->bit16 |= 1;
 		else {
-			dev->bit16 = 0;
-			if (dev->base_irq == 9)
-				dev->base_irq = 2;
+			dev->bit16 |= 0;
+			if (dev->irq == 9)
+				dev->irq = 2;
+			dev->ram_size >>= 1;	/* Half the RAM when in 8-bit slot. */
 		}
 		break;
 
-	case WD8013EPA:
-		dev->board_chip = WE_TYPE_WD8013EP | 0x80;
+	/* Ethernet, MCA, 5x3 interface chip, RAM 16k */
+	case WD8003EA:
+		dev->board_chip = WE_ID_SOFT_CONFIG;
+	/* Ethernet, MCA, no interface chip, RAM 16k */
+	case WD8003ETA:
+		dev->board_chip |= 0x05 | WE_ID_BUS_MCA;
 		dev->ram_size = 0x4000;
-		dev->pos_regs[0] = 0xC8;
-		dev->pos_regs[1] = 0x61;
-		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CLEAR_IRQ);
-		dev->bit16 = 1;
+		dev->pos_regs[0] = 0xC0;
+		dev->pos_regs[1] = 0x6F;
+		dev->bit16 = 3;
 		break;
     }
 
-    dev->irr |= 0x80;
-    dev->icr |= dev->bit16;
+    dev->irr |= WE_IRR_ENABLE_IRQ;
+    dev->icr |= (dev->bit16 & 0x01);
 
     dp8390_mem_alloc(dev->dp8390, 0x0000, dev->ram_size);
 
@@ -727,7 +742,7 @@ wd_init(const device_t *info)
     memcpy(dev->dp8390->physaddr, dev->maclocal, sizeof(dev->maclocal));
 
     wdlog("%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
-	  dev->name, dev->base_address, dev->base_irq,
+	  dev->name, dev->base_address, dev->irq,
 	  dev->dp8390->physaddr[0], dev->dp8390->physaddr[1], dev->dp8390->physaddr[2],
 	  dev->dp8390->physaddr[3], dev->dp8390->physaddr[4], dev->dp8390->physaddr[5]);
 
@@ -735,7 +750,7 @@ wd_init(const device_t *info)
     wd_reset(dev);
 
     /* Map this system into the memory map. */
-    if (dev->bit16) {
+    if (dev->bit16 & 1) {
 	mem_mapping_add(&dev->ram_mapping, dev->ram_addr, dev->ram_size,
 			wd_ram_readb, wd_ram_readw, NULL,
 			wd_ram_writeb, wd_ram_writew, NULL,
@@ -746,7 +761,7 @@ wd_init(const device_t *info)
 			wd_ram_writeb, NULL, NULL,
 			NULL, MEM_MAPPING_EXTERNAL, dev);
     }
-    if (dev->msr & 0x40)
+    if (dev->msr & WE_MSR_ENABLE_RAM)
 	mem_mapping_enable(&dev->ram_mapping);		
     else
 	mem_mapping_disable(&dev->ram_mapping);		
@@ -754,9 +769,9 @@ wd_init(const device_t *info)
     /* Attach ourselves to the network module. */
     network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx);
 
-    if (dev->board != WD8013EPA) {
+    if (!(dev->board_chip & WE_ID_BUS_MCA)) {
 	wdlog("%s: attached IO=0x%X IRQ=%d, RAM addr=0x%06x\n", dev->name,
-	      dev->base_address, dev->base_irq, dev->ram_addr);		
+	      dev->base_address, dev->irq, dev->ram_addr);		
     }
 
     return(dev);
@@ -836,6 +851,120 @@ static const device_config_t wd8003_config[] =
 			},
 			{
 				"DC00", 0xDC000
+			},
+			{
+				""
+			}
+		},
+	},
+	{
+		"mac", "MAC Address", CONFIG_MAC, "", -1
+	},
+	{
+		"", "", -1
+	}
+};
+
+static const device_config_t wd8003eb_config[] =
+{
+	{
+		"base", "Address", CONFIG_HEX16, "", 0x280,
+		{
+			{
+				"0x200", 0x200
+			},
+			{
+				"0x220", 0x220
+			},
+			{
+				"0x240", 0x240
+			},
+			{
+				"0x260", 0x260
+			},
+			{
+				"0x280", 0x280
+			},
+			{
+				"0x2A0", 0x2A0
+			},
+			{
+				"0x2C0", 0x2C0
+			},
+			{
+				"0x300", 0x300
+			},
+			{
+				"0x340", 0x340
+			},
+			{
+				"0x380", 0x380
+			},
+			{
+				""
+			}
+		},
+	},
+	{
+		"irq", "IRQ", CONFIG_SELECTION, "", 3,
+		{
+			{
+				"IRQ 2/9", 9
+			},
+			{
+				"IRQ 3", 3
+			},
+			{
+				"IRQ 4", 4
+			},
+			{
+				"IRQ 7", 7
+			},
+			{
+				""
+			}
+		},
+	},
+	{
+		"ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000,
+		{
+			{
+				"C000", 0xC0000
+			},
+			{
+				"C400", 0xC4000
+			},
+			{
+				"C800", 0xC8000
+			},
+			{
+				"CC00", 0xCC000
+			},
+			{
+				"D000", 0xD0000
+			},
+			{
+				"D400", 0xD4000
+			},
+			{
+				"D800", 0xD8000
+			},
+			{
+				"DC00", 0xDC000
+			},
+			{
+				""
+			}
+		},
+	},
+	{
+		"ram_size", "RAM size", CONFIG_SELECTION, "", 8192,
+		{
+			{
+				"8 kB", 8192
+			},
+			{
+				"32 kB", 32768
 			},
 			{
 				""
@@ -963,7 +1092,7 @@ static const device_config_t wd8013_config[] =
 				"16 kB", 16384
 			},
 			{
-				"32 kB", 32768
+				"64 kB", 65536
 			},
 			{
 				""
@@ -998,6 +1127,15 @@ const device_t wd8003e_device = {
     wd8003_config
 };
 
+const device_t wd8003eb_device = {
+    "Western Digital WD8003EB",
+    DEVICE_ISA,
+    WD8003EB,
+    wd_init, wd_close, NULL,
+    NULL, NULL, NULL,
+    wd8003eb_config
+};
+
 const device_t wd8013ebt_device = {
     "Western Digital WD8013EBT",
     DEVICE_ISA,
@@ -1007,10 +1145,19 @@ const device_t wd8013ebt_device = {
     wd8013_config
 };
 
-const device_t wd8013epa_device = {
-    "Western Digital WD8013EP/A",
+const device_t wd8003eta_device = {
+    "Western Digital WD8003ET/A",
     DEVICE_MCA,
-    WD8013EPA,
+    WD8003ETA,
+    wd_init, wd_close, NULL,
+    NULL, NULL, NULL,
+    mca_mac_config
+};
+
+const device_t wd8003ea_device = {
+    "Western Digital WD8003E/A",
+    DEVICE_MCA,
+    WD8003EA,
     wd_init, wd_close, NULL,
     NULL, NULL, NULL,
     mca_mac_config

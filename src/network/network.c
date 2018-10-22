@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.8	2018/10/17
+ * Version:	@(#)network.c	1.0.9	2018/10/22
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -76,13 +76,17 @@ static netcard_t net_cards[] = {
       NULL								},
     { "[ISA] Realtek RTL8019AS",	"ne2kpnp",	&rtl8019as_device,
       NULL								},
-    { "[ISA] Western Digital WD8003E","wd8003e",	&wd8003e_device,
+    { "[ISA] Western Digital WD8003E",  "wd8003e",	&wd8003e_device,
+      NULL								},
+    { "[ISA] Western Digital WD8003EB", "wd8003eb",	&wd8003eb_device,
       NULL								},
     { "[ISA] Western Digital WD8013EBT","wd8013ebt",	&wd8013ebt_device,
       NULL								},
-    { "[MCA] NetWorth Ethernet/MC",		"ethernextmc",		&ethernext_mc_device,
+    { "[MCA] NetWorth Ethernet/MC",	"ethernextmc",	&ethernext_mc_device,
       NULL								},
-    { "[MCA] Western Digital WD8013EP/A","wd8013epa",	&wd8013epa_device,
+    { "[MCA] Western Digital WD8003ET/A","wd8003eta",	&wd8003eta_device,
+      NULL								},
+    { "[MCA] Western Digital WD8003E/A", "wd8003ea",	&wd8003ea_device,
       NULL								},
     { "[PCI] Realtek RTL8029AS",	"ne2kpci",	&rtl8029as_device,
       NULL								},
