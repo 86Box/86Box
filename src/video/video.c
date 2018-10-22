@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.27	2018/10/02
+ * Version:	@(#)video.c	1.0.28	2018/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -767,6 +767,17 @@ loadfont(wchar_t *s, int format)
 			for (d = 0; d < 32; d++)
 				fontdatksc5601[c].chr[d]=getc(f);
 		}
+		break;
+
+	case 7: /* Sigma Color 400 */
+		/* The first 4k of the character ROM holds an 8x8 font */
+		for (c = 0; c < 256; c++) {
+			fread(&fontdat[c][0], 1, 8, f);
+			fseek(f, 8, SEEK_CUR);
+		}
+		/* The second 4k holds an 8x16 font */
+		for (c = 0; c < 256; c++)
+			fread(&fontdatm[c][0], 1, 16, f);
 		break;
     }
 

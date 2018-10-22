@@ -112,13 +112,11 @@ static int	key_queue_start = 0,
 		
 #ifdef ENABLE_M24VID_LOG
 int m24vid_do_log = ENABLE_M24VID_LOG;
-#endif
 
 
 static void
 m24_log(const char *fmt, ...)
 {
-#ifdef ENABLE_M24VID_LOG
     va_list ap;
 
     if (m24vid_do_log) {
@@ -127,9 +125,12 @@ m24_log(const char *fmt, ...)
 	va_end(ap);
 	fflush(stdlog);
     }
+}
+#else
+#define m24_log(fmt, ...)
 #endif
-}		
-		
+
+
 static void
 recalc_timings(olim24_t *m24)
 {

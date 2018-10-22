@@ -117,7 +117,7 @@
  *                       bit 2 set for single-pixel LCD font
  *                       bits 0,1 for display font
  *
- * Version:	@(#)m_at_t3100e.c	1.0.5	2018/04/29
+ * Version:	@(#)m_at_t3100e.c	1.0.6	2018/10/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -215,13 +215,11 @@ void t3100e_ems_out(uint16_t addr, uint8_t val, void *p);
 
 #ifdef ENABLE_T3100E_LOG
 int t3100e_do_log = ENABLE_T3100E_LOG;
-#endif
 
 
 static void
 t3100e_log(const char *fmt, ...)
 {
-#ifdef ENABLE_T3100E_LOG
    va_list ap;
 
    if (t3100e_do_log)
@@ -230,8 +228,10 @@ t3100e_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define t3100e_log(fmt, ...)
+#endif
 
 
 /* Given a memory address (which ought to be in the page frame at 0xD0000), 

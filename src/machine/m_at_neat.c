@@ -13,7 +13,7 @@
  *		8MB of DRAM chips', because it works fine with bus-based
  *		memory expansion.
  *
- * Version:	@(#)m_at_neat.c	1.0.4	2018/10/02
+ * Version:	@(#)m_at_neat.c	1.0.5	2018/10/22
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -261,13 +261,11 @@ typedef struct {
 
 #ifdef ENABLE_NEAT_LOG
 int neat_do_log = ENABLE_NEAT_LOG;
-#endif
 
 
 static void
 neat_log(const char *fmt, ...)
 {
-#ifdef ENABLE_NEAT_LOG
 	va_list ap;
 
 	if (neat_do_log)
@@ -276,8 +274,10 @@ neat_log(const char *fmt, ...)
 		pclog_ex(fmt, ap);
 		va_end(ap);
 	}
-#endif
 }
+#else
+#define neat_log(fmt, ...)
+#endif
 
 /* Read one byte from paged RAM. */
 static uint8_t

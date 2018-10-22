@@ -32,7 +32,7 @@
  *		in alpha mode, but in highres ("ECD350") mode, it displays
  *		some semi-random junk. Video-memory pointer maybe?
  *
- * Version:	@(#)m_amstrad.c	1.0.15	2018/09/19
+ * Version:	@(#)m_amstrad.c	1.0.16	2018/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -158,13 +158,11 @@ static video_timings_t timing_pc200    = {VIDEO_ISA, 8,16,32, 8,16,32};
 
 #ifdef ENABLE_AMSTRAD_LOG
 int amstrad_do_log = ENABLE_AMSTRAD_LOG;
-#endif
 
 
 static void
 amstrad_log(const char *fmt, ...)
 {
-#ifdef ENABLE_AMSTRAD_LOG
    va_list ap;
 
    if (amstrad_do_log)
@@ -173,8 +171,10 @@ amstrad_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define amstrad_log(fmt, ...)
+#endif
 
 
 static void

@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.40	2018/10/02
+ * Version:	@(#)vid_table.c	1.0.41	2018/10/22
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -50,6 +50,7 @@
 #include "vid_paradise.h"
 #include "vid_s3.h"
 #include "vid_s3_virge.h"
+#include "vid_sigma.h"
 #include "vid_tgui9440.h"
 #include "vid_ti_cf62011.h"
 #include "vid_tvga.h"
@@ -104,72 +105,71 @@ video_cards[] = {
     { "[ISA] Paradise WD90C11-LR",			"wd90c11",		&paradise_wd90c11_device		},
     { "[ISA] Paradise WD90C30-LR",			"wd90c30",		&paradise_wd90c30_device		},
     { "[ISA] Plantronics ColorPlus",			"plantronics",		&colorplus_device			},
+    { "[ISA] Sigma Color 400",				"sigma400",		&sigma_device				},
 #if defined(DEV_BRANCH) && defined(USE_TI)
     { "[ISA] TI CF62011 SVGA",				"ti_cf62011",		&ti_cf62011_device			},
 #endif
-    {"[ISA] Trident TVGA8900D",				"tvga8900d",		&tvga8900d_device			},
-    {"[ISA] Trigem Korean VGA (ET4000AX)",		"tgkorvga",		&et4000k_isa_device			},
-    {"[ISA] Tseng ET4000AX",				"et4000ax",		&et4000_isa_device			},
-    {"[ISA] VGA",					"vga",			&vga_device				},
-    {"[ISA] Wyse 700",					"wy700",		&wy700_device				},
-    {"[MCA] Tseng ET4000AX",				"et4000mca",		&et4000_mca_device			},
-    {"[PCI] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_pci",		&mach64gx_pci_device			},
-    {"[PCI] ATI Video Xpression (Mach64 VT2)",		"mach64vt2",		&mach64vt2_device			},
-    {"[PCI] Cardex Tseng ET4000/w32p",			"et4000w32p_pci",	&et4000w32p_cardex_pci_device		},
-    {"[PCI] Cirrus Logic CL-GD 5430",			"cl_gd5430_pci",	&gd5430_pci_device,			},
-    {"[PCI] Cirrus Logic CL-GD 5434",			"cl_gd5434_pci",	&gd5434_pci_device			},
-    {"[PCI] Cirrus Logic CL-GD 5436",			"cl_gd5436_pci",	&gd5436_pci_device			},
-    {"[PCI] Cirrus Logic CL-GD 5440",			"cl_gd5440_pci",	&gd5440_pci_device			},
-    {"[PCI] Cirrus Logic CL-GD 5446",			"cl_gd5446_pci",	&gd5446_pci_device			},
-    {"[PCI] Cirrus Logic CL-GD 5480",			"cl_gd5480_pci",	&gd5480_pci_device			},
-    {"[PCI] Diamond Stealth 32 (Tseng ET4000/w32p)",	"stealth32_pci",	&et4000w32p_pci_device			},
-    {"[PCI] Diamond Stealth 3D 2000 (S3 ViRGE)",	"stealth3d_2000_pci",	&s3_virge_pci_device			},
-    {"[PCI] Diamond Stealth 3D 3000 (S3 ViRGE/VX)",	"stealth3d_3000_pci",	&s3_virge_988_pci_device		},
-    {"[PCI] Diamond Stealth 64 DRAM (S3 Trio64)",	"stealth64d_pci",	&s3_diamond_stealth64_pci_device	},
-    {"[PCI] Diamond Stealth 64 VRAM (S3 Vision964)",	"stealth64v_pci",	&s3_diamond_stealth64_964_pci_device	},
-    {"[PCI] Number Nine 9FX (S3 Trio64)",		"n9_9fx_pci",		&s3_9fx_pci_device			},
-    {"[PCI] Paradise Bahamas 64 (S3 Vision864)",	"bahamas64_pci",	&s3_bahamas64_pci_device		},
-    {"[PCI] Phoenix S3 Vision864",			"px_vision864_pci",	&s3_phoenix_vision864_pci_device	},
-    {"[PCI] Phoenix S3 Trio32",				"px_trio32_pci",	&s3_phoenix_trio32_pci_device		},
-    {"[PCI] Phoenix S3 Trio64",				"px_trio64_pci",	&s3_phoenix_trio64_pci_device		},
-    {"[PCI] S3 ViRGE/DX",				"virge375_pci",		&s3_virge_375_pci_device		},
-    {"[PCI] S3 ViRGE/DX (VBE 2.0)",			"virge375_vbe20_pci",	&s3_virge_375_4_pci_device		},
-    {"[PCI] STB Nitro 64V (CL-GD 5446)",		"cl_gd5446_stb_pci",	&gd5446_stb_pci_device			},
-    {"[PCI] Trident TGUI9440",				"tgui9440_pci",		&tgui9440_pci_device			},
-    {"[VLB] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_vlb",		&mach64gx_vlb_device			},
-    {"[VLB] Cardex Tseng ET4000/w32p",			"et4000w32p_vlb",	&et4000w32p_cardex_vlb_device		},
-    {"[VLB] Cirrus Logic CL-GD 5428",			"cl_gd5428_vlb",	&gd5428_vlb_device			},
-    {"[VLB] Cirrus Logic CL-GD 5429",			"cl_gd5429_vlb",	&gd5429_vlb_device			},
-    {"[VLB] Cirrus Logic CL-GD 5434",			"cl_gd5434_vlb",	&gd5434_vlb_device			},
-    {"[VLB] Diamond Stealth 32 (Tseng ET4000/w32p)",	"stealth32_vlb",	&et4000w32p_vlb_device			},
-    {"[VLB] Diamond SpeedStar PRO (CL-GD 5426)",	"cl_gd5426_vlb",	&gd5426_vlb_device			},
-    {"[VLB] Diamond SpeedStar PRO SE (CL-GD 5430)",	"cl_gd5430_vlb",	&gd5430_vlb_device			},
-    {"[VLB] Diamond Stealth 3D 2000 (S3 ViRGE)",	"stealth3d_2000_vlb",	&s3_virge_vlb_device			},
-    {"[VLB] Diamond Stealth 3D 3000 (S3 ViRGE/VX)",	"stealth3d_3000_vlb",	&s3_virge_988_vlb_device		},
-    {"[VLB] Diamond Stealth 64 DRAM (S3 Trio64)",	"stealth64d_vlb",	&s3_diamond_stealth64_vlb_device	},
-    {"[VLB] Diamond Stealth 64 VRAM (S3 Vision964)",	"stealth64v_vlb",	&s3_diamond_stealth64_964_vlb_device	},
-    {"[VLB] Number Nine 9FX (S3 Trio64)",		"n9_9fx_vlb",		&s3_9fx_vlb_device			},
-    {"[VLB] Paradise Bahamas 64 (S3 Vision864)",	"bahamas64_vlb",	&s3_bahamas64_vlb_device		},
-    {"[VLB] Phoenix S3 Vision864",			"px_vision864_vlb",	&s3_phoenix_vision864_vlb_device	},
-    {"[VLB] Phoenix S3 Trio32",				"px_trio32_vlb",	&s3_phoenix_trio32_vlb_device		},
-    {"[VLB] Phoenix S3 Trio64",				"px_trio64_vlb",	&s3_phoenix_trio64_vlb_device		},
-    {"[VLB] S3 ViRGE/DX",				"virge375_vlb",		&s3_virge_375_vlb_device		},
-    {"[VLB] S3 ViRGE/DX (VBE 2.0)",			"virge375_vbe20_vlb",	&s3_virge_375_4_vlb_device		},
-    {"[VLB] Trident TGUI9400CXi",			"tgui9400cxi_vlb",	&tgui9400cxi_device			},
-    {"[VLB] Trident TGUI9440",				"tgui9440_vlb",		&tgui9440_vlb_device			},
-    {"",						"",			NULL                        		}
+    { "[ISA] Trident TVGA8900D",			"tvga8900d",		&tvga8900d_device			},
+    { "[ISA] Trigem Korean VGA (ET4000AX)",		"tgkorvga",		&et4000k_isa_device			},
+    { "[ISA] Tseng ET4000AX",				"et4000ax",		&et4000_isa_device			},
+    { "[ISA] VGA",					"vga",			&vga_device				},
+    { "[ISA] Wyse 700",					"wy700",		&wy700_device				},
+    { "[MCA] Tseng ET4000AX",				"et4000mca",		&et4000_mca_device			},
+    { "[PCI] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_pci",		&mach64gx_pci_device			},
+    { "[PCI] ATI Video Xpression (Mach64 VT2)",		"mach64vt2",		&mach64vt2_device			},
+    { "[PCI] Cardex Tseng ET4000/w32p",			"et4000w32p_pci",	&et4000w32p_cardex_pci_device		},
+    { "[PCI] Cirrus Logic CL-GD 5430",			"cl_gd5430_pci",	&gd5430_pci_device,			},
+    { "[PCI] Cirrus Logic CL-GD 5434",			"cl_gd5434_pci",	&gd5434_pci_device			},
+    { "[PCI] Cirrus Logic CL-GD 5436",			"cl_gd5436_pci",	&gd5436_pci_device			},
+    { "[PCI] Cirrus Logic CL-GD 5440",			"cl_gd5440_pci",	&gd5440_pci_device			},
+    { "[PCI] Cirrus Logic CL-GD 5446",			"cl_gd5446_pci",	&gd5446_pci_device			},
+    { "[PCI] Cirrus Logic CL-GD 5480",			"cl_gd5480_pci",	&gd5480_pci_device			},
+    { "[PCI] Diamond Stealth 32 (Tseng ET4000/w32p)",	"stealth32_pci",	&et4000w32p_pci_device			},
+    { "[PCI] Diamond Stealth 3D 2000 (S3 ViRGE)",	"stealth3d_2000_pci",	&s3_virge_pci_device			},
+    { "[PCI] Diamond Stealth 3D 3000 (S3 ViRGE/VX)",	"stealth3d_3000_pci",	&s3_virge_988_pci_device		},
+    { "[PCI] Diamond Stealth 64 DRAM (S3 Trio64)",	"stealth64d_pci",	&s3_diamond_stealth64_pci_device	},
+    { "[PCI] Diamond Stealth 64 VRAM (S3 Vision964)",	"stealth64v_pci",	&s3_diamond_stealth64_964_pci_device	},
+    { "[PCI] Number Nine 9FX (S3 Trio64)",		"n9_9fx_pci",		&s3_9fx_pci_device			},
+    { "[PCI] Paradise Bahamas 64 (S3 Vision864)",	"bahamas64_pci",	&s3_bahamas64_pci_device		},
+    { "[PCI] Phoenix S3 Vision864",			"px_vision864_pci",	&s3_phoenix_vision864_pci_device	},
+    { "[PCI] Phoenix S3 Trio32",			"px_trio32_pci",	&s3_phoenix_trio32_pci_device		},
+    { "[PCI] Phoenix S3 Trio64",			"px_trio64_pci",	&s3_phoenix_trio64_pci_device		},
+    { "[PCI] S3 ViRGE/DX",				"virge375_pci",		&s3_virge_375_pci_device		},
+    { "[PCI] S3 ViRGE/DX (VBE 2.0)",			"virge375_vbe20_pci",	&s3_virge_375_4_pci_device		},
+    { "[PCI] STB Nitro 64V (CL-GD 5446)",		"cl_gd5446_stb_pci",	&gd5446_stb_pci_device			},
+    { "[PCI] Trident TGUI9440",				"tgui9440_pci",		&tgui9440_pci_device			},
+    { "[VLB] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_vlb",		&mach64gx_vlb_device			},
+    { "[VLB] Cardex Tseng ET4000/w32p",			"et4000w32p_vlb",	&et4000w32p_cardex_vlb_device		},
+    { "[VLB] Cirrus Logic CL-GD 5428",			"cl_gd5428_vlb",	&gd5428_vlb_device			},
+    { "[VLB] Cirrus Logic CL-GD 5429",			"cl_gd5429_vlb",	&gd5429_vlb_device			},
+    { "[VLB] Cirrus Logic CL-GD 5434",			"cl_gd5434_vlb",	&gd5434_vlb_device			},
+    { "[VLB] Diamond Stealth 32 (Tseng ET4000/w32p)",	"stealth32_vlb",	&et4000w32p_vlb_device			},
+    { "[VLB] Diamond SpeedStar PRO (CL-GD 5426)",	"cl_gd5426_vlb",	&gd5426_vlb_device			},
+    { "[VLB] Diamond SpeedStar PRO SE (CL-GD 5430)",	"cl_gd5430_vlb",	&gd5430_vlb_device			},
+    { "[VLB] Diamond Stealth 3D 2000 (S3 ViRGE)",	"stealth3d_2000_vlb",	&s3_virge_vlb_device			},
+    { "[VLB] Diamond Stealth 3D 3000 (S3 ViRGE/VX)",	"stealth3d_3000_vlb",	&s3_virge_988_vlb_device		},
+    { "[VLB] Diamond Stealth 64 DRAM (S3 Trio64)",	"stealth64d_vlb",	&s3_diamond_stealth64_vlb_device	},
+    { "[VLB] Diamond Stealth 64 VRAM (S3 Vision964)",	"stealth64v_vlb",	&s3_diamond_stealth64_964_vlb_device	},
+    { "[VLB] Number Nine 9FX (S3 Trio64)",		"n9_9fx_vlb",		&s3_9fx_vlb_device			},
+    { "[VLB] Paradise Bahamas 64 (S3 Vision864)",	"bahamas64_vlb",	&s3_bahamas64_vlb_device		},
+    { "[VLB] Phoenix S3 Vision864",			"px_vision864_vlb",	&s3_phoenix_vision864_vlb_device	},
+    { "[VLB] Phoenix S3 Trio32",			"px_trio32_vlb",	&s3_phoenix_trio32_vlb_device		},
+    { "[VLB] Phoenix S3 Trio64",			"px_trio64_vlb",	&s3_phoenix_trio64_vlb_device		},
+    { "[VLB] S3 ViRGE/DX",				"virge375_vlb",		&s3_virge_375_vlb_device		},
+    { "[VLB] S3 ViRGE/DX (VBE 2.0)",			"virge375_vbe20_vlb",	&s3_virge_375_4_vlb_device		},
+    { "[VLB] Trident TGUI9400CXi",			"tgui9400cxi_vlb",	&tgui9400cxi_device			},
+    { "[VLB] Trident TGUI9440",				"tgui9440_vlb",		&tgui9440_vlb_device			},
+    { "",						"",			NULL                        		}
 };
 
 
 #ifdef ENABLE_VID_TABLE_LOG
 int vid_table_do_log = ENABLE_VID_TABLE_LOG;
-#endif
 
 
 static void
 vid_table_log(const char *fmt, ...)
 {
-#ifdef ENABLE_VID_TABLE_LOG
     va_list ap;
 
     if (vid_table_do_log) {
@@ -177,8 +177,10 @@ vid_table_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define vid_table_log(fmt, ...)
+#endif
 
 
 void

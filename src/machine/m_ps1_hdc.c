@@ -43,7 +43,7 @@
  *		Type table with the main code, so the user can only select
  *		items from that list...
  *
- * Version:	@(#)m_ps1_hdc.c	1.0.6	2018/04/29
+ * Version:	@(#)m_ps1_hdc.c	1.0.7	2018/10/22
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -474,13 +474,11 @@ static const geom_t ibm_type_table[] = {
 
 #ifdef ENABLE_PS1_HDC_LOG
 int ps1_hdc_do_log = ENABLE_PS1_HDC_LOG;
-#endif
 
 
 static void
 ps1_hdc_log(const char *fmt, ...)
 {
-#ifdef ENABLE_PS1_HDC_LOG
    va_list ap;
 
    if (ps1_hdc_do_log)
@@ -489,8 +487,10 @@ ps1_hdc_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define ps1_hdc_log(fmt, ...)
+#endif
 
 
 /* FIXME: we should use the disk/hdd_table.c code with custom tables! */

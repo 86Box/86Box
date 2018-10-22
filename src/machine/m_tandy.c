@@ -8,7 +8,7 @@
  *
  *		Emulation of Tandy models 1000, 1000HX and 1000SL2.
  *
- * Version:	@(#)m_tandy.c	1.0.8	2018/09/19
+ * Version:	@(#)m_tandy.c	1.0.9	2018/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -404,13 +404,11 @@ static void	vid_out(uint16_t addr, uint8_t val, void *priv);
 
 #ifdef ENABLE_TANDY_LOG
 int tandy_do_log = ENABLE_TANDY_LOG;
-#endif
 
 
 static void
 tandy_log(const char *fmt, ...)
 {
-#ifdef ENABLE_TANDY_LOG
    va_list ap;
 
    if (tandy_do_log)
@@ -419,8 +417,10 @@ tandy_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define tandy_log(fmt, ...)
+#endif
 
 
 static void

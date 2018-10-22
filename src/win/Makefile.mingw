@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.132	2018/10/19
+# Version:	@(#)Makefile.mingw	1.0.133	2018/10/22
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -526,6 +526,7 @@ VIDOBJ		:= video.o \
 		    vid_hercules.o vid_herculesplus.o vid_incolor.o \
 		    vid_colorplus.o \
 		    vid_genius.o \
+		    vid_sigma.o \
 		    vid_wy700.o \
 		    vid_ega.o vid_ega_render.o \
 		    vid_svga.o vid_svga_render.o \

@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.34	2018/04/29
+ * Version:	@(#)machine.c	1.0.35	2018/10/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -45,13 +45,11 @@ int romset;
 
 #ifdef ENABLE_MACHINE_LOG
 int machine_do_log = ENABLE_MACHINE_LOG;
-#endif
 
 
 static void
 machine_log(const char *fmt, ...)
 {
-#ifdef ENABLE_TANDY_LOG
    va_list ap;
 
    if (machine_do_log)
@@ -60,8 +58,10 @@ machine_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define machine_log(fmt, ...)
+#endif
 
 
 void

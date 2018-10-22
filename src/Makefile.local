@@ -10,7 +10,7 @@
 #		settings, so we can avoid changing the main one for all of
 #		our local setups.
 #
-# Version:	@(#)Makefile.local	1.0.18	2018/10/17
+# Version:	@(#)Makefile.local	1.0.19	2018/10/22
 #
 # Author:	Fred N. van Kempen, <decwiz@yahoo.com>
 #
@@ -87,6 +87,7 @@ STUFF	:=
 # machine/ logging:
 # -DENABLE_AMSTRAD_LOG=N sets logging level at N.
 # -DENABLE_EUROPC_LOG=N sets logging level at N.
+# -DENABLE_M24VID_LOG=N sets logging level at N.
 # -DENABLE_MACHINE_LOG=N sets logging level at N.
 # -DENABLE_NEAT_LOG=N sets logging level at N.
 # -DENABLE_PS1_HDC_LOG=N sets logging level at N.

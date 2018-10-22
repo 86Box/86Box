@@ -68,7 +68,7 @@
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *		
- * Version:	@(#)europc.c	1.0.7	2018/08/04
+ * Version:	@(#)europc.c	1.0.8	2018/10/22
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -171,13 +171,11 @@ static europc_t europc;
 
 #ifdef ENABLE_EUROPC_LOG
 int europc_do_log = ENABLE_EUROPC_LOG;
-#endif
 
 
 static void
 europc_log(const char *fmt, ...)
 {
-#ifdef ENABLE_EUROPC_LOG
    va_list ap;
 
    if (europc_do_log)
@@ -186,8 +184,10 @@ europc_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define europc_log(fmt, ...)
+#endif
 
 
 /*

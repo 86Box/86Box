@@ -51,7 +51,7 @@
  * NOTE:	Still need to figure out a way to load/save ConfigSys and
  *		HardRAM stuff. Needs to be linked in to the NVR code.
  *
- * Version:	@(#)m_xt_t1000.c	1.0.12	2018/09/19
+ * Version:	@(#)m_xt_t1000.c	1.0.13	2018/10/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -181,13 +181,11 @@ static t1000_t	t1000;
 
 #ifdef ENABLE_T1000_LOG
 int t1000_do_log = ENABLE_T1000_LOG;
-#endif
 
 
 static void
 t1000_log(const char *fmt, ...)
 {
-#ifdef ENABLE_TANDY_LOG
    va_list ap;
 
    if (t1000_do_log)
@@ -196,8 +194,10 @@ t1000_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define t1000_log(fmt, ...)
+#endif
 
 
 /* Set the chip time. */

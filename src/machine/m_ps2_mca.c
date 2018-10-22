@@ -8,7 +8,7 @@
  *
  *		Implementation of MCA-based PS/2 machines.
  *
- * Version:	@(#)m_ps2_mca.c	1.0.2	2018/09/19
+ * Version:	@(#)m_ps2_mca.c	1.0.3	2018/10/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -138,22 +138,22 @@ static int ps2_cache_valid[65536/8];
 
 #ifdef ENABLE_PS2_MCA_LOG
 int ps2_mca_do_log = ENABLE_PS2_MCA_LOG;
-#endif
 
 
 static void
-ps2_mca_log(const char *format, ...)
+ps2_mca_log(const char *fmt, ...)
 {
-#ifdef ENABLE_PS2_MCA_LOG
     va_list ap;
 
     if (ps2_mca_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define ps2_mca_log(fmt, ...)
+#endif
 
 
 static uint8_t ps2_read_cache_ram(uint32_t addr, void *priv)
