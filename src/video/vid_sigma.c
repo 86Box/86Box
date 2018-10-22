@@ -8,7 +8,7 @@
  *
  *		Sigma Color 400 emulation.
  *
- * Version:	@(#)vid_sigma.c	1.0.0	2018/09/22
+ * Version:	@(#)vid_sigma.c	1.0.1	2018/10/23
  *
  * Authors:	John Elliott,
  *
@@ -417,13 +417,13 @@ static void sigma_text80(sigma_t *sigma)
 	drawcursor = ((ma == ca) && sigma->con && sigma->cursoron);
 
 	if (!(sigma->sigmamode & MODE_NOBLINK)) {
-		cols[1] = attr & 15;
-		cols[0] = (attr >> 4) & 7;
+		cols[1] = (attr & 15) | 16;
+		cols[0] = ((attr >> 4) & 7) | 16;
 		if ((sigma->cgablink & 8) && (attr & 0x80) && !sigma->drawcursor) 
 			cols[1] = cols[0];
 	} else {	/* No blink */
-		cols[1] = attr & 15;
-		cols[0] = attr >> 4;
+		cols[1] = (attr & 15) | 16;
+		cols[0] = (attr >> 4) | 16;
 	}
 
 	if (drawcursor && !(x & 1)) {
@@ -473,13 +473,13 @@ sigma_text40(sigma_t *sigma)
 	drawcursor = ((ma == ca) && sigma->con && sigma->cursoron);
 
 	if (!(sigma->sigmamode & MODE_NOBLINK)) {
-		cols[1] = attr & 15;
-		cols[0] = (attr >> 4) & 7;
+		cols[1] = (attr & 15) | 16;
+		cols[0] = ((attr >> 4) & 7) | 16;
 		if ((sigma->cgablink & 8) && (attr & 0x80) && !sigma->drawcursor) 
 			cols[1] = cols[0];
 	} else {	/* No blink */
-		cols[1] = attr & 15;
-		cols[0] = attr >> 4;
+		cols[1] = (attr & 15) | 16;
+		cols[0] = (attr >> 4) | 16;
 	}
 
 	if (drawcursor) {
@@ -521,6 +521,7 @@ sigma_gfx400(sigma_t *sigma)
 		      ((plane[2] & mask) ? 4 : 0) | 
 		      ((plane[1] & mask) ? 2 : 0) | 
 		      ((plane[0] & mask) ? 1 : 0);
+		col |= 16;
 		buffer->line[sigma->displine][(x << 3) + c + 8] = col;
 	}
 	if (x & 1) ++sigma->ma;
@@ -553,6 +554,7 @@ sigma_gfx200(sigma_t *sigma)
 		      ((plane[2] & mask) ? 4 : 0) | 
 		      ((plane[1] & mask) ? 2 : 0) | 
 		      ((plane[0] & mask) ? 1 : 0);
+		col |= 16;
 		buffer->line[sigma->displine][(x << 3) + c + 8] = col;
 	}
 
@@ -582,9 +584,11 @@ sigma_gfx4col(sigma_t *sigma)
 	for (c = 0; c < 4; c++) {
 		col = ((plane[3] & mask) ? 2 : 0) | 
 		      ((plane[2] & mask) ? 1 : 0);
+		col |= 16;
 		mask = mask >> 1;
 		col |= ((plane[3] & mask) ? 8 : 0) | 
 		       ((plane[2] & mask) ? 4 : 0);
+		col |= 16;
 		mask = mask >> 1;
 
 		buffer->line[sigma->displine][(x << 3) + (c << 1) + 8] = 
@@ -620,7 +624,7 @@ sigma_poll(void *p)
 		}
 		sigma->lastline = sigma->displine;
 
-		cols[0] = 0; 
+		cols[0] = 16;
 		/* Left overscan */
 		for (c = 0; c < 8; c++) {
 			((uint32_t *)buffer32->line[sigma->displine])[c] = cols[0];
@@ -643,7 +647,7 @@ sigma_poll(void *p)
 				sigma_text40(sigma);
 		}
 	} else {
-		cols[0] = 0;
+		cols[0] = 16;
 		if (sigma->sigmamode & MODE_80COLS) 
 			hline(buffer32, 0, sigma->displine, (sigma->crtc[1] << 4) + 16, cols[0]);
 		else
@@ -725,7 +729,10 @@ sigma_poll(void *p)
 						xsize = 656;
 					if (ysize < 32)
 						ysize = 200;
-					set_screen_size(xsize, (ysize << 1) + 16);
+					if (ysize <= 250)
+						set_screen_size(xsize, (ysize << 1) + 16);
+					else
+						set_screen_size(xsize, ysize + 8);
 
 					if (video_force_resize_get())
 						video_force_resize_set(0);
