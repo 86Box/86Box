@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.65	2018/10/17
+ * Version:	@(#)win_settings.c	1.0.66	2018/10/23
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -4469,6 +4469,38 @@ win_settings_main_insert_categories(HWND hwndList)
 }
 
 
+
+static void
+win_settings_communicate_closure(void)
+{
+    if (source_hwnd)
+	SendMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSSTATUS, (WPARAM) 0, (LPARAM) 0);
+}
+
+
+#ifdef __amd64__
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_confirm(HWND hdlg, int button)
+{
+    SendMessage(hwndChildDialog, WM_SAVESETTINGS, 0, 0);
+    i = settings_msgbox_reset();
+    if (i > 0) {
+	if (i == 2)
+		win_settings_save();
+
+	DestroyWindow(hwndChildDialog);
+	EndDialog(hdlg, 0);
+	plat_pause(0);
+	win_settings_communicate_closure();
+	return button ? TRUE : FALSE;
+    } else
+	return button ? FALSE : TRUE;
+}
+
+
 #ifdef __amd64__
 static LRESULT CALLBACK
 #else
@@ -4505,25 +4537,17 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				win_settings_show_child(hdlg, category);
 		}
 		break;
+	case WM_CLOSE:
+		return win_settings_confirm(hdlg, 0);
 	case WM_COMMAND:
                	switch (LOWORD(wParam)) {
 			case IDOK:
-				SendMessage(hwndChildDialog, WM_SAVESETTINGS, 0, 0);
-				i = settings_msgbox_reset();
-				if (i > 0) {
-					if (i == 2)
-						win_settings_save();
-
-					DestroyWindow(hwndChildDialog);
-                                        EndDialog(hdlg, 0);
-       	                                plat_pause(0);
-                                        return TRUE;
-				} else
-					return FALSE;
+				return win_settings_confirm(hdlg, 1);
 			case IDCANCEL:
 				DestroyWindow(hwndChildDialog);
                		        EndDialog(hdlg, 0);
        	                	plat_pause(0);
+				win_settings_communicate_closure();
 	                        return TRUE;
 		}
 		break;
@@ -4539,4 +4563,7 @@ void
 win_settings_open(HWND hwnd)
 {
     DialogBox(hinstance, (LPCWSTR)DLG_CONFIG, hwnd, win_settings_main_proc);
+
+    if (source_hwnd)
+	SendMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSSTATUS, (WPARAM) 1, (LPARAM) 0);
 }
