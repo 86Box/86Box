@@ -32,7 +32,7 @@
  * TODO:	The EV159 is supposed to support 16b EMS transfers, but the
  *		EMM.sys driver for it doesn't seem to want to do that..
  *
- * Version:	@(#)isamem.c	1.0.7	2018/10/17
+ * Version:	@(#)isamem.c	1.0.8	2018/10/23
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -106,7 +106,7 @@ typedef struct {
 typedef struct {
     const char	*name;
     uint8_t	board    : 6,			/* board type */
-		instance : 2;			/* device instance */
+		reserved : 2;
 
     uint8_t	flags;
 #define FLAG_CONFIG	0x01			/* card is configured */
@@ -149,15 +149,6 @@ isamem_log(const char *fmt, ...)
 #else
 #define isamem_log(fmt, ...)
 #endif
-
-
-/* Local variables. */
-static const device_t *instance[ISAMEM_MAX] = {
-    NULL,
-    NULL,
-    NULL,
-    NULL
-};
 
 
 /* Read one byte from onboard RAM. */
@@ -412,13 +403,10 @@ isamem_init(const device_t *info)
     int i;
 
     /* Find our device and create an instance. */
-    for (i = 0; i < ISAMEM_MAX; i++)
-	if (instance[i] == info) break;
     dev = (memdev_t *)malloc(sizeof(memdev_t));
     memset(dev, 0x00, sizeof(memdev_t));
     dev->name = info->name;
     dev->board = info->local;
-    dev->instance = i;
 
     /* Do per-board initialization. */
     tot = 0;
@@ -650,7 +638,7 @@ dev->frame_addr = 0xE0000;
     }
 
     /* Let them know our device instance. */
-    return((void *)dev);
+    return((void *) dev);
 }
 
 
@@ -671,8 +659,6 @@ isamem_close(void *priv)
 
     if (dev->ram != NULL)
 	free(dev->ram);
-
-    instance[dev->instance] = NULL;
 
     free(dev);
 }
@@ -1045,21 +1031,14 @@ static const struct {
 void
 isamem_reset(void)
 {
-    const device_t *dev;
     int k, i;
 
     for (i = 0; i < ISAMEM_MAX; i++) {
 	k = isamem_type[i];
 	if (k == 0) continue;
 
-	/* Clone the device. */
-	dev = device_clone(boards[k].dev);
-
-	/* Store the device instance. */
-	instance[i] = dev;
-
 	/* Add the instance to the system. */
-	device_add(dev);
+	device_add_inst(boards[k].dev, i + 1);
     }
 }
 
@@ -1100,5 +1079,6 @@ isamem_get_from_internal_name(const char *s)
 const device_t *
 isamem_get_device(int board)
 {
-    return(instance[board]);
+    /* Add the instance to the system. */
+    return boards[board].dev;
 }

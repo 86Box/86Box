@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.67	2018/10/23
+ * Version:	@(#)win_settings.c	1.0.68	2018/10/23
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -1669,11 +1669,8 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 			case IDC_CONFIGURE_ISAMEM_3:
 			case IDC_CONFIGURE_ISAMEM_4:
 				c = LOWORD(wParam) - IDC_CONFIGURE_ISAMEM_1;
-				dev = isamem_get_device(c);
-				if (dev != NULL)
-					temp_deviceconfig |= deviceconfig_open(hdlg, (void *)dev);
-				else
-					ui_msgbox(MBX_INFO, (wchar_t *)IDS_2119);
+				dev = isamem_get_device(temp_isamem[c]);
+				temp_deviceconfig |= deviceconfig_inst_open(hdlg, (void *)dev, c + 1);
 				break;
 
 			case IDC_CHECK_IDE_TER:

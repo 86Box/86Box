@@ -8,7 +8,7 @@
  *
  *		Definitions for the device handler.
  *
- * Version:	@(#)device.h	1.0.9	2018/09/06
+ * Version:	@(#)device.h	1.0.10	2018/10/23
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -108,15 +108,22 @@ typedef struct _device_ {
     const device_config_t *config;
 } device_t;
 
+typedef struct {
+    const device_t	*dev;
+    char		name[2048];
+} device_context_t;
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 extern void		device_init(void);
-extern const device_t * device_clone(const device_t *master);
+extern void		device_set_context(device_context_t *c, const device_t *d, int inst);
 extern void		*device_add(const device_t *);
 extern void		device_add_ex(const device_t *d, void *priv);
+extern void		*device_add_inst(const device_t *, int inst);
+extern void		device_add_inst_ex(const device_t *d, void *priv, int inst);
 extern void		device_close_all(void);
 extern void		device_reset_all(void);
 extern void		device_reset_all_pci(void);
