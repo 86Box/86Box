@@ -8,7 +8,7 @@
  *
  *		Sigma Color 400 emulation.
  *
- * Version:	@(#)vid_sigma.c	1.0.2	2018/10/23
+ * Version:	@(#)vid_sigma.c	1.0.3	2018/10/23
  *
  * Authors:	John Elliott,
  *
@@ -626,11 +626,11 @@ sigma_poll(void *p)
 		cols[0] = 16;
 		/* Left overscan */
 		for (c = 0; c < 8; c++) {
-			((uint32_t *)buffer32->line[sigma->displine])[c] = cols[0];
+			buffer->line[sigma->displine][c] = cols[0];
 			if (sigma->sigmamode & MODE_80COLS)
-				((uint32_t *)buffer32->line[sigma->displine])[c + (sigma->crtc[1] << 4) + 8] = cols[0];
+				buffer->line[sigma->displine][c + (sigma->crtc[1] << 4) + 8] = cols[0];
 			else
-				((uint32_t *)buffer32->line[sigma->displine])[c + (sigma->crtc[1] << 5) + 8] = cols[0];
+				buffer->line[sigma->displine][c + (sigma->crtc[1] << 5) + 8] = cols[0];
 		}
 		if (sigma->sigmamode & MODE_GRAPHICS) {
 			if (sigma->sigmamode & MODE_640x400)
@@ -648,9 +648,9 @@ sigma_poll(void *p)
 	} else {
 		cols[0] = 16;
 		if (sigma->sigmamode & MODE_80COLS) 
-			hline(buffer32, 0, sigma->displine, (sigma->crtc[1] << 4) + 16, cols[0]);
+			hline(buffer, 0, sigma->displine, (sigma->crtc[1] << 4) + 16, cols[0]);
 		else
-			hline(buffer32, 0, sigma->displine, (sigma->crtc[1] << 5) + 16, cols[0]);
+			hline(buffer, 0, sigma->displine, (sigma->crtc[1] << 5) + 16, cols[0]);
 	}
 
 	if (sigma->sigmamode & MODE_80COLS) 
