@@ -8,7 +8,7 @@
  *
  *		Implementation of the Teledisk floppy image format.
  *
- * Version:	@(#)fdd_td0.c	1.0.7	2018/10/18
+ * Version:	@(#)fdd_td0.c	1.0.8	2018/10/24
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -387,9 +387,11 @@ state_reconst(td0dsk_t *state)
 	k++;
 	l = (j - k) * 2;
 
-	memcpy(&state->freq[k + 1], &state->freq[k], l);
+	/* These *HAVE* to be memmove's as destination and source
+	   can overlap, which memcpy can't handle. */
+	memmove(&state->freq[k + 1], &state->freq[k], l);
 	state->freq[k] = f;
-	memcpy(&state->son[k + 1], &state->son[k], l);
+	memmove(&state->son[k + 1], &state->son[k], l);
 	state->son[k] = i;
     }
 
@@ -758,7 +760,7 @@ td0_initialize(int drive)
 			offset += 3;
 			switch (hs[8]) {
 				default:
-					td0_log("TD0: Image uses an unsupported sector data encoding\n");
+					td0_log("TD0: Image uses an unsupported sector data encoding: %i\n", hs[8]);
 					return(0);
 
 				case 0:
@@ -1137,6 +1139,23 @@ td0_init(void)
 
 
 void
+td0_abort(int drive)
+{
+    td0_t *dev = td0[drive];
+
+    if (dev->imagebuf)
+	free(dev->imagebuf);
+    if (dev->processed_buf)
+	free(dev->processed_buf);
+    if (dev->f)
+	fclose(dev->f);
+    memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+    free(dev);
+    td0[drive] = NULL;
+}
+
+
+void
 td0_load(int drive, wchar_t *fn)
 {
     td0_t *dev;
@@ -1160,9 +1179,7 @@ td0_load(int drive, wchar_t *fn)
 
     if (! dsk_identify(drive)) {
 	td0_log("TD0: Not a valid Teledisk image\n");
-	fclose(dev->f);
-	dev->f = NULL;
-	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+	td0_abort(drive);
 	return;
     } else {
 	td0_log("TD0: Valid Teledisk image\n");
@@ -1177,10 +1194,7 @@ td0_load(int drive, wchar_t *fn)
 
     if (! td0_initialize(drive)) {
 	td0_log("TD0: Failed to initialize\n");
-	fclose(dev->f);
-	free(dev->imagebuf);
-	free(dev->processed_buf);
-	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+	td0_abort(drive);
 	return;
     } else {
 	td0_log("TD0: Initialized successfully\n");
@@ -1218,8 +1232,10 @@ td0_close(int drive)
 
     d86f_unregister(drive);
 
-    free(dev->imagebuf);
-    free(dev->processed_buf);
+    if (dev->imagebuf)
+	free(dev->imagebuf);
+    if (dev->processed_buf)
+	free(dev->processed_buf);
 
     for (i = 0; i < 256; i++) {
 	for (j = 0; j < 2; j++) {
