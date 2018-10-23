@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.66	2018/10/23
+ * Version:	@(#)win_settings.c	1.0.67	2018/10/23
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -4485,6 +4485,8 @@ static BOOL CALLBACK
 #endif
 win_settings_confirm(HWND hdlg, int button)
 {
+    int i;
+
     SendMessage(hwndChildDialog, WM_SAVESETTINGS, 0, 0);
     i = settings_msgbox_reset();
     if (i > 0) {

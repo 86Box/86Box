@@ -8,7 +8,7 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.22	2018/10/23
+ * Version:	@(#)win.h	1.0.23	2018/10/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -53,7 +53,9 @@
 #define WM_HARDRESET		0x8892
 #define WM_SHUTDOWN		0x8893
 #define WM_CTRLALTDEL		0x8894
+/* Pause/resume status: WPARAM = 1 for paused, 0 for resumed. */
 #define WM_SENDSTATUS		0x8895
+/* Settings status: WPARAM = 1 for open, 0 for closed. */
 #define WM_SENDSSTATUS		0x8896
 
 #ifdef USE_VNC
