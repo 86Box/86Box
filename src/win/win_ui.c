@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.34	2018/10/23
+ * Version:	@(#)win_ui.c	1.0.35	2018/10/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -868,7 +868,7 @@ ui_init(int nCmdShow)
      * the hWnd and unique ID the application has given
      * us. */
     if (source_hwnd)
-	SendMessage((HWND) (uintptr_t) source_hwnd, WM_SENDHWND, (WPARAM) unique_id, (LPARAM) hwndMain);
+	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDHWND, (WPARAM) unique_id, (LPARAM) hwndMain);
 
     /*
      * Everything has been configured, and all seems to work,
@@ -975,7 +975,7 @@ plat_pause(int p)
 
     /* Send the WM to a manager if needed. */
     if (source_hwnd)
-	SendMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!dopause, (LPARAM) 0);
+	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!dopause, (LPARAM) 0);
 }
 
 

@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.68	2018/10/23
+ * Version:	@(#)win_settings.c	1.0.69	2018/10/24
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -162,7 +162,11 @@ image_list_init(HWND hwndList, const uint8_t *icon_ids)
 	if (icon_ids[i] == 0)
 		break;
 
+#ifdef __amd64__
+	hiconItem = LoadIcon(hinstance, (LPCWSTR) ((uint64_t) icon_ids[i]));
+#else
 	hiconItem = LoadIcon(hinstance, (LPCWSTR) ((uint32_t) icon_ids[i]));
+#endif
 	ImageList_AddIcon(hSmall, hiconItem);
 	DestroyIcon(hiconItem);
 
@@ -2102,7 +2106,7 @@ recalc_location_controls(HWND hdlg, int is_add_dlg, int assign_id)
 			EnableWindow(h, TRUE);
 
 			if (assign_id)
-				next_free_scsi_id((uint8_t *) is_add_dlg ? &new_hdd.scsi_id : &temp_hdd[lv1_current_sel].scsi_id);
+				next_free_scsi_id((uint8_t *) (is_add_dlg ? &(new_hdd.scsi_id) : &(temp_hdd[lv1_current_sel].scsi_id)));
 
 			h = GetDlgItem(hdlg, IDC_COMBO_HD_ID);
 			ShowWindow(h, SW_SHOW);
@@ -4471,7 +4475,7 @@ static void
 win_settings_communicate_closure(void)
 {
     if (source_hwnd)
-	SendMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSSTATUS, (WPARAM) 0, (LPARAM) 0);
+	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSSTATUS, (WPARAM) 0, (LPARAM) 0);
 }
 
 
@@ -4564,5 +4568,5 @@ win_settings_open(HWND hwnd)
     DialogBox(hinstance, (LPCWSTR)DLG_CONFIG, hwnd, win_settings_main_proc);
 
     if (source_hwnd)
-	SendMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSSTATUS, (WPARAM) 1, (LPARAM) 0);
+	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSSTATUS, (WPARAM) 1, (LPARAM) 0);
 }
