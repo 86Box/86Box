@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.35	2018/10/24
+ * Version:	@(#)win_ui.c	1.0.36	2018/10/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -975,7 +975,7 @@ plat_pause(int p)
 
     /* Send the WM to a manager if needed. */
     if (source_hwnd)
-	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!dopause, (LPARAM) 0);
+	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!dopause, (LPARAM) hwndMain);
 }
 
 
