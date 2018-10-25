@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.53	2018/10/25
+ * Version:	@(#)hdc_ide.c	1.0.54	2018/10/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -387,29 +387,24 @@ ide_get_max(ide_t *ide, int type)
 			return 0;	/* Maximum PIO 0 for legacy PIO-only drive. */
 		else
 			return 4;
-		break;
 	case TYPE_SDMA:	/* SDMA */
 		if (!IDE_PCI)
 			return -1;
 		else
 			return 2;
-		break;
 	case TYPE_MDMA:	/* MDMA */
 		if (!IDE_PCI)
 			return -1;
 		else
 			return 2;
-		break;
 	case TYPE_UDMA:	/* UDMA */
 		if (!IDE_PCI)
 			return -1;
 		else
 			return 2;
-		break;
 	default:
 		fatal("Unknown transfer type: %i\n", type);
 		return -1;
-		break;
     }
 }
 
@@ -426,16 +421,13 @@ ide_get_timings(ide_t *ide, int type)
 			return 0;
 		else
 			return 120;
-		break;
 	case TIMINGS_PIO:
 		if (!IDE_PCI)
 			return 0;
 		else
 			return 120;
-		break;
 	case TIMINGS_PIO_FC:
 		return 0;
-		break;
 	default:
 		fatal("Unknown transfer type: %i\n", type);
 		return 0;
