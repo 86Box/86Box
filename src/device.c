@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.21	2018/10/23
+ * Version:	@(#)device.c	1.0.22	2018/10/25
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -116,6 +116,10 @@ device_add_common(const device_t *d, void *p, int inst)
     if (c >= DEVICE_MAX)
 	fatal("DEVICE: too many devices\n");
 
+    /* Do this so that a chained device_add will not identify the same ID
+       its master device is already trying to assign. */
+    devices[c] = (device_t *)d;
+
     if (p == NULL) {
 	memcpy(&old, &device_current, sizeof(device_context_t));
 	device_set_context(&device_current, d, inst);
@@ -128,6 +132,7 @@ device_add_common(const device_t *d, void *p, int inst)
 			else
 				device_log("DEVICE: device init failed\n");
 
+			devices[c] = NULL;
 			device_priv[c] = NULL;
 
 			return(NULL);
@@ -138,8 +143,6 @@ device_add_common(const device_t *d, void *p, int inst)
 	device_priv[c] = priv;
     } else
 	device_priv[c] = p;
-
-    devices[c] = (device_t *)d;
 
     return(priv);
 }
