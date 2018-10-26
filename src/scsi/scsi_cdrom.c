@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.60	2018/10/26
+ * Version:	@(#)scsi_cdrom.c	1.0.61	2018/10/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -740,7 +740,7 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
 			/*FALLTHROUGH*/
 		case 0x25:
 		case 0x42:
-		case 0x43
+		case 0x43:
 		case 0x44:
 		case 0x51:
 		case 0x52:
