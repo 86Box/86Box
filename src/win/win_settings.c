@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.70	2018/10/24
+ * Version:	@(#)win_settings.c	1.0.71	2018/10/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -4565,8 +4565,8 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 void
 win_settings_open(HWND hwnd)
 {
-    DialogBox(hinstance, (LPCWSTR)DLG_CONFIG, hwnd, win_settings_main_proc);
-
     if (source_hwnd)
 	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSSTATUS, (WPARAM) 1, (LPARAM) hwndMain);
+
+    DialogBox(hinstance, (LPCWSTR)DLG_CONFIG, hwnd, win_settings_main_proc);
 }
