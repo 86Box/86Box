@@ -8,7 +8,7 @@
  *
  *		Generic CD-ROM drive core.
  *
- * Version:	@(#)cdrom.c	1.0.4	2018/10/26
+ * Version:	@(#)cdrom.c	1.0.5	2018/10/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -202,7 +202,7 @@ cdrom_global_init(void)
 static void
 cdrom_drive_reset(cdrom_t *dev)
 {
-    dev->p = NULL;
+    dev->priv = NULL;
     dev->insert = NULL;
     dev->close = NULL;
     dev->get_volume = NULL;
@@ -262,9 +262,9 @@ cdrom_close(void)
 	dev->ops = NULL;
 
 	if (dev->close)
-		dev->close(dev->p);
+		dev->close(dev->priv);
 
-	dev->p = NULL;
+	dev->priv = NULL;
 
 	cdrom_drive_reset(dev);
     }
@@ -279,7 +279,7 @@ cdrom_insert(uint8_t id)
 
     if (dev->bus_type) {
 	if (dev->insert)
-		dev->insert(dev->p);
+		dev->insert(dev->priv);
     }
 }
 

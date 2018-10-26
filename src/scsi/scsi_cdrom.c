@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.57	2018/10/26
+ * Version:	@(#)scsi_cdrom.c	1.0.58	2018/10/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -371,9 +371,6 @@ scsi_cdrom_init(scsi_cdrom_t *dev)
 {
     if (!dev)
 	return;
-
-    /* Tell the scsi_cdrom_t struct what cdrom element corresponds to it. */
-    dev->drv = &(cdrom[dev->id]);
 
     /* Do a reset (which will also rezero it). */
     scsi_cdrom_reset(dev);

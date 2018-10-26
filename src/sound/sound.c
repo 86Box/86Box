@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.23	2018/10/26
+ * Version:	@(#)sound.c	1.0.24	2018/10/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -240,8 +240,8 @@ sound_cd_thread(void *param)
 			continue;
 
 		if (cdrom[i].get_volume) {
-			audio_vol_l = (float) (cdrom[i].get_volume(cdrom[i].p, 0));
-			audio_vol_r = (float) (cdrom[i].get_volume(cdrom[i].p, 1));
+			audio_vol_l = (float) (cdrom[i].get_volume(cdrom[i].priv, 0));
+			audio_vol_r = (float) (cdrom[i].get_volume(cdrom[i].priv, 1));
 		} else {
 			audio_vol_l = 255.0;
 			audio_vol_r = 255.0;
@@ -251,8 +251,8 @@ sound_cd_thread(void *param)
 		audio_vol_r /= 511.0;
 
 		if (cdrom[i].get_channel) {
-			channel_select[0] = cdrom[i].get_channel(cdrom[i].p, 0);
-			channel_select[1] = cdrom[i].get_channel(cdrom[i].p, 1);
+			channel_select[0] = cdrom[i].get_channel(cdrom[i].priv, 0);
+			channel_select[1] = cdrom[i].get_channel(cdrom[i].priv, 1);
 		} else {
 			channel_select[0] = 1;
 			channel_select[1] = 2;
