@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.61	2018/10/26
+ * Version:	@(#)scsi_cdrom.c	1.0.62	2018/10/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -50,8 +50,6 @@
 /* Bits of 'error' */
 #define ABRT_ERR		0x04 /* Command aborted */
 #define MCR_ERR			0x08 /* Media change request */
-
-#define cdbufferb	 dev->buffer
 
 
 #pragma pack(push,1)
@@ -1103,7 +1101,7 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, int msf, int type, int flags, int32_t *l
 
     for (i = 0; i < dev->requested_blocks; i++) {
 	if (dev->drv->ops && dev->drv->ops->readsector_raw)
-		ret = dev->drv->ops->readsector_raw(dev->drv, cdbufferb + dev->data_pos,
+		ret = dev->drv->ops->readsector_raw(dev->drv, dev->buffer + dev->data_pos,
 						    dev->sector_pos + i, msf, type, flags, &temp_len);
 	else {
 		scsi_cdrom_not_ready(dev);
@@ -1515,17 +1513,17 @@ static void
 scsi_cdrom_buf_alloc(scsi_cdrom_t *dev, uint32_t len)
 {
     scsi_cdrom_log("CD-ROM %i: Allocated buffer length: %i\n", dev->id, len);
-    cdbufferb = (uint8_t *) malloc(len);
+    dev->buffer = (uint8_t *) malloc(len);
 }
 
 
 static void
 scsi_cdrom_buf_free(scsi_cdrom_t *dev)
 {
-    if (cdbufferb) {
+    if (dev->buffer) {
 	scsi_cdrom_log("CD-ROM %i: Freeing buffer...\n", dev->id);
-	free(cdbufferb);
-	cdbufferb = NULL;
+	free(dev->buffer);
+	dev->buffer = NULL;
     }
 }
 
@@ -1624,7 +1622,7 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 
 		scsi_cdrom_buf_alloc(dev, 256);
 		scsi_cdrom_set_buf_len(dev, BufLen, &max_len);
-		scsi_cdrom_request_sense(dev, cdbufferb, max_len);
+		scsi_cdrom_request_sense(dev, dev->buffer, max_len);
 		scsi_cdrom_data_command_finish(dev, 18, 18, cdb[4], 0);
 		break;
 
@@ -1647,8 +1645,8 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 
 		scsi_cdrom_set_buf_len(dev, BufLen, &len);
 
-		memset(cdbufferb, 0, 8);
-		cdbufferb[5] = 1;
+		memset(dev->buffer, 0, 8);
+		dev->buffer[5] = 1;
 
 		scsi_cdrom_data_command_finish(dev, 8, 8, len, 0);
 		break;
@@ -1678,7 +1676,7 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 					scsi_cdrom_not_ready(dev);
 					return;
 				}
-				len = dev->drv->ops->readtoc(dev->drv, cdbufferb, cdb[6], msf, max_len,
+				len = dev->drv->ops->readtoc(dev->drv, dev->buffer, cdb[6], msf, max_len,
 							    0);
 				break;
 			case 1: /*Multi session*/
@@ -1686,15 +1684,15 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 					scsi_cdrom_not_ready(dev);
 					return;
 				}
-				len = dev->drv->ops->readtoc_session(dev->drv, cdbufferb, msf, max_len);
-				cdbufferb[0] = 0; cdbufferb[1] = 0xA;
+				len = dev->drv->ops->readtoc_session(dev->drv, dev->buffer, msf, max_len);
+				dev->buffer[0] = 0; dev->buffer[1] = 0xA;
 				break;
 			case 2: /*Raw*/
 				if (!dev->drv->ops->readtoc_raw) {
 					scsi_cdrom_not_ready(dev);
 					return;
 				}
-				len = dev->drv->ops->readtoc_raw(dev->drv, cdbufferb, max_len);
+				len = dev->drv->ops->readtoc_raw(dev->drv, dev->buffer, max_len);
 				break;
 			default:
 				scsi_cdrom_invalid_field(dev);
@@ -1705,15 +1703,15 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 		if (len > max_len) {
 			len = max_len;
 
-			cdbufferb[0] = ((len - 2) >> 8) & 0xff;
-			cdbufferb[1] = (len - 2) & 0xff;
+			dev->buffer[0] = ((len - 2) >> 8) & 0xff;
+			dev->buffer[1] = (len - 2) & 0xff;
 		}
 
 		scsi_cdrom_set_buf_len(dev, BufLen, &len);
 
 		scsi_cdrom_data_command_finish(dev, len, len, len, 0);
 		/* scsi_cdrom_log("CD-ROM %i: READ_TOC_PMA_ATIP format %02X, length %i (%i)\n", dev->id,
-			     toc_format, ide->cylinder, cdbufferb[1]); */
+			     toc_format, ide->cylinder, dev->buffer[1]); */
 		return;
 
 	case GPCMD_READ_CD_OLD:
@@ -1819,12 +1817,12 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 			real_pos = cdrom_lba_to_msf_accurate(dev->sector_pos);
 		else
 			real_pos = dev->sector_pos;
-		cdbufferb[0] = 1; /*2048 bytes user data*/
-		cdbufferb[1] = cdbufferb[2] = cdbufferb[3] = 0;
-		cdbufferb[4] = (real_pos >> 24);
-		cdbufferb[5] = ((real_pos >> 16) & 0xff);
-		cdbufferb[6] = ((real_pos >> 8) & 0xff);
-		cdbufferb[7] = real_pos & 0xff;
+		dev->buffer[0] = 1; /*2048 bytes user data*/
+		dev->buffer[1] = dev->buffer[2] = dev->buffer[3] = 0;
+		dev->buffer[4] = (real_pos >> 24);
+		dev->buffer[5] = ((real_pos >> 16) & 0xff);
+		dev->buffer[6] = ((real_pos >> 8) & 0xff);
+		dev->buffer[7] = real_pos & 0xff;
 
 		len = 8;
 		len = MIN(len, alloc_length);
@@ -1857,31 +1855,31 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 			return;
 		}
 
-		memset(cdbufferb, 0, len);
+		memset(dev->buffer, 0, len);
 		alloc_length = len;
 
 		if (cdb[0] == GPCMD_MODE_SENSE_6) {
-			len = scsi_cdrom_mode_sense(dev, cdbufferb, 4, cdb[2], block_desc);
+			len = scsi_cdrom_mode_sense(dev, dev->buffer, 4, cdb[2], block_desc);
 			len = MIN(len, alloc_length);
-			cdbufferb[0] = len - 1;
+			dev->buffer[0] = len - 1;
 			if (dev->drv->ops && dev->drv->ops->media_type_id)
-				cdbufferb[1] = dev->drv->ops->media_type_id(dev->drv);
+				dev->buffer[1] = dev->drv->ops->media_type_id(dev->drv);
 			else
-				cdbufferb[1] = 0x70;
+				dev->buffer[1] = 0x70;
 			if (block_desc)
-				cdbufferb[3] = 8;
+				dev->buffer[3] = 8;
 		} else {
-			len = scsi_cdrom_mode_sense(dev, cdbufferb, 8, cdb[2], block_desc);
+			len = scsi_cdrom_mode_sense(dev, dev->buffer, 8, cdb[2], block_desc);
 			len = MIN(len, alloc_length);
-			cdbufferb[0]=(len - 2) >> 8;
-			cdbufferb[1]=(len - 2) & 255;
+			dev->buffer[0]=(len - 2) >> 8;
+			dev->buffer[1]=(len - 2) & 255;
 			if (dev->drv->ops && dev->drv->ops->media_type_id)
-				cdbufferb[2] = dev->drv->ops->media_type_id(dev->drv);
+				dev->buffer[2] = dev->drv->ops->media_type_id(dev->drv);
 			else
-				cdbufferb[2] = 0x70;
+				dev->buffer[2] = 0x70;
 			if (block_desc) {
-				cdbufferb[6] = 0;
-				cdbufferb[7] = 8;
+				dev->buffer[6] = 0;
+				dev->buffer[7] = 8;
 			}
 		}
 
@@ -1927,10 +1925,10 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 		}
 
 		scsi_cdrom_buf_alloc(dev, 65536);
-		memset(cdbufferb, 0, max_len);
+		memset(dev->buffer, 0, max_len);
 
 		alloc_length = 0;
-		b = cdbufferb;
+		b = dev->buffer;
 
 		/*
 		 * the number of sectors from the media tells us which profile
@@ -1997,10 +1995,10 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 			b += 8;
 		}
 
-		cdbufferb[0] = ((alloc_length - 4) >> 24) & 0xff;
-		cdbufferb[1] = ((alloc_length - 4) >> 16) & 0xff;
-		cdbufferb[2] = ((alloc_length - 4) >> 8) & 0xff;
-		cdbufferb[3] = (alloc_length - 4) & 0xff;
+		dev->buffer[0] = ((alloc_length - 4) >> 24) & 0xff;
+		dev->buffer[1] = ((alloc_length - 4) >> 16) & 0xff;
+		dev->buffer[2] = ((alloc_length - 4) >> 8) & 0xff;
+		dev->buffer[3] = (alloc_length - 4) & 0xff;
 
 		alloc_length = MIN(alloc_length, max_len);
 
@@ -2015,7 +2013,7 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 		scsi_cdrom_buf_alloc(dev, 8 + sizeof(gesn_event_header_t));
 
 		gesn_cdb = (void *) cdb;
-		gesn_event_header = (void *) cdbufferb;
+		gesn_event_header = (void *) dev->buffer;
 
 		/* It is fine by the MMC spec to not support async mode operations. */
 		if (!(gesn_cdb->polled & 0x01)) {
@@ -2051,10 +2049,10 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 		if (gesn_cdb->class & (1 << GESN_MEDIA)) {
 			gesn_event_header->notification_class |= GESN_MEDIA;
 
-			cdbufferb[4] = dev->media_status;	/* Bits 7-4 = Reserved, Bits 4-1 = Media Status */
-			cdbufferb[5] = 1;			/* Power Status (1 = Active) */
-			cdbufferb[6] = 0;
-			cdbufferb[7] = 0;
+			dev->buffer[4] = dev->media_status;	/* Bits 7-4 = Reserved, Bits 4-1 = Media Status */
+			dev->buffer[5] = 1;			/* Power Status (1 = Active) */
+			dev->buffer[6] = 0;
+			dev->buffer[7] = 0;
 			used_len = 8;
 		} else {
 			gesn_event_header->notification_class = 0x80; /* No event available */
@@ -2062,7 +2060,7 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 		}
 		gesn_event_header->len = used_len - sizeof(*gesn_event_header);
 
-		memcpy(cdbufferb, gesn_event_header, 4);
+		memcpy(dev->buffer, gesn_event_header, 4);
 
 		scsi_cdrom_set_buf_len(dev, BufLen, &used_len);
 
@@ -2078,13 +2076,13 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 
 		scsi_cdrom_buf_alloc(dev, 65536);
 
-		memset(cdbufferb, 0, 34);
-		memset(cdbufferb, 1, 9);
-		cdbufferb[0] = 0;
-		cdbufferb[1] = 32;
-		cdbufferb[2] = 0xe; /* last session complete, disc finalized */
-		cdbufferb[7] = 0x20; /* unrestricted use */
-		cdbufferb[8] = 0x00; /* CD-ROM */
+		memset(dev->buffer, 0, 34);
+		memset(dev->buffer, 1, 9);
+		dev->buffer[0] = 0;
+		dev->buffer[1] = 32;
+		dev->buffer[2] = 0xe; /* last session complete, disc finalized */
+		dev->buffer[7] = 0x20; /* unrestricted use */
+		dev->buffer[8] = 0x00; /* CD-ROM */
 
 		len=34;
 		len = MIN(len, max_len);
@@ -2116,19 +2114,19 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 
 		len = 36;
 
-		memset(cdbufferb, 0, 36);
-		cdbufferb[0] = 0;
-		cdbufferb[1] = 34;
-		cdbufferb[2] = 1; /* track number (LSB) */
-		cdbufferb[3] = 1; /* session number (LSB) */
-		cdbufferb[5] = (0 << 5) | (0 << 4) | (4 << 0); /* not damaged, primary copy, data track */
-		cdbufferb[6] = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 6) | (1 << 0); /* not reserved track, not blank, not packet writing, not fixed packet, data mode 1 */
-		cdbufferb[7] = (0 << 1) | (0 << 0); /* last recorded address not valid, next recordable address not valid */
+		memset(dev->buffer, 0, 36);
+		dev->buffer[0] = 0;
+		dev->buffer[1] = 34;
+		dev->buffer[2] = 1; /* track number (LSB) */
+		dev->buffer[3] = 1; /* session number (LSB) */
+		dev->buffer[5] = (0 << 5) | (0 << 4) | (4 << 0); /* not damaged, primary copy, data track */
+		dev->buffer[6] = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 6) | (1 << 0); /* not reserved track, not blank, not packet writing, not fixed packet, data mode 1 */
+		dev->buffer[7] = (0 << 1) | (0 << 0); /* last recorded address not valid, next recordable address not valid */
 		if (dev->drv->ops && dev->drv->ops->size) {
-			cdbufferb[24] = (dev->drv->ops->size(dev->drv) >> 24) & 0xff; /* track size */
-			cdbufferb[25] = (dev->drv->ops->size(dev->drv) >> 16) & 0xff; /* track size */
-			cdbufferb[26] = (dev->drv->ops->size(dev->drv) >> 8) & 0xff; /* track size */
-			cdbufferb[27] = dev->drv->ops->size(dev->drv) & 0xff; /* track size */
+			dev->buffer[24] = (dev->drv->ops->size(dev->drv) >> 24) & 0xff; /* track size */
+			dev->buffer[25] = (dev->drv->ops->size(dev->drv) >> 16) & 0xff; /* track size */
+			dev->buffer[26] = (dev->drv->ops->size(dev->drv) >> 8) & 0xff; /* track size */
+			dev->buffer[27] = dev->drv->ops->size(dev->drv) & 0xff; /* track size */
 		} else {
 			scsi_cdrom_not_ready(dev);
 			scsi_cdrom_buf_free(dev);
@@ -2137,8 +2135,8 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 
 		if (len > max_len) {
 			len = max_len;
-			cdbufferb[0] = ((max_len - 2) >> 8) & 0xff;
-			cdbufferb[1] = (max_len - 2) & 0xff;
+			dev->buffer[0] = ((max_len - 2) >> 8) & 0xff;
+			dev->buffer[1] = (max_len - 2) & 0xff;
 		}
 
 		scsi_cdrom_set_buf_len(dev, BufLen, &len);
@@ -2225,15 +2223,15 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 				break;
 		}
 
-		memset(cdbufferb, 0, 24);
+		memset(dev->buffer, 0, 24);
 		pos = 0;
-		cdbufferb[pos++] = 0;
-		cdbufferb[pos++] = 0; /*Audio status*/
-		cdbufferb[pos++] = 0; cdbufferb[pos++] = 0; /*Subchannel length*/
-		cdbufferb[pos++] = cdb[3] & 3; /*Format code*/
+		dev->buffer[pos++] = 0;
+		dev->buffer[pos++] = 0; /*Audio status*/
+		dev->buffer[pos++] = 0; dev->buffer[pos++] = 0; /*Subchannel length*/
+		dev->buffer[pos++] = cdb[3] & 3; /*Format code*/
 		if (cdb[3] == 1) {
 			if (dev->drv->ops && dev->drv->ops->getcurrentsubchannel)
-				cdbufferb[1] = dev->drv->ops->getcurrentsubchannel(dev->drv, &cdbufferb[5], msf);
+				dev->buffer[1] = dev->drv->ops->getcurrentsubchannel(dev->drv, &dev->buffer[5], msf);
 			else {
 				scsi_cdrom_not_ready(dev);
 				scsi_cdrom_buf_free(dev);
@@ -2241,16 +2239,16 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 			}
 			switch(dev->drv->cd_status) {
 				case CD_STATUS_PLAYING:
-					cdbufferb[1] = 0x11;
+					dev->buffer[1] = 0x11;
 					break;
 				case CD_STATUS_PAUSED:
-					cdbufferb[1] = 0x12;
+					dev->buffer[1] = 0x12;
 					break;
 				case CD_STATUS_DATA_ONLY:
-					cdbufferb[1] = 0x15;
+					dev->buffer[1] = 0x15;
 					break;
 				default:
-					cdbufferb[1] = 0x13;
+					dev->buffer[1] = 0x13;
 					break;
 			}
 		}
@@ -2287,11 +2285,11 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 			return;
 		}
 
-		memset(cdbufferb, 0, alloc_length);
+		memset(dev->buffer, 0, alloc_length);
 
 		if ((cdb[7] <= 0x7f) || (cdb[7] == 0xff)) {
 			if (cdb[1] == 0) {
-				ret = scsi_cdrom_read_dvd_structure(dev, format, cdb, cdbufferb);
+				ret = scsi_cdrom_read_dvd_structure(dev, format, cdb, dev->buffer);
 					if (ret) {
 					scsi_cdrom_set_buf_len(dev, BufLen, &alloc_length);
 					scsi_cdrom_data_command_finish(dev, alloc_length, alloc_length,
@@ -2345,16 +2343,16 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 			preamble_len = 4;
 			size_idx = 3;
 
-			cdbufferb[idx++] = 05;
-			cdbufferb[idx++] = cdb[2];
-			cdbufferb[idx++] = 0;
+			dev->buffer[idx++] = 05;
+			dev->buffer[idx++] = cdb[2];
+			dev->buffer[idx++] = 0;
 
 			idx++;
 
 			switch (cdb[2]) {
 				case 0x00:
-					cdbufferb[idx++] = 0x00;
-					cdbufferb[idx++] = 0x83;
+					dev->buffer[idx++] = 0x00;
+					dev->buffer[idx++] = 0x83;
 					break;
 				case 0x83:
 					if (idx + 24 > max_len) {
@@ -2363,24 +2361,24 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 						return;
 					}
 
-					cdbufferb[idx++] = 0x02;
-					cdbufferb[idx++] = 0x00;
-					cdbufferb[idx++] = 0x00;
-					cdbufferb[idx++] = 20;
-					ide_padstr8(cdbufferb + idx, 20, "53R141");	/* Serial */
+					dev->buffer[idx++] = 0x02;
+					dev->buffer[idx++] = 0x00;
+					dev->buffer[idx++] = 0x00;
+					dev->buffer[idx++] = 20;
+					ide_padstr8(dev->buffer + idx, 20, "53R141");	/* Serial */
 					idx += 20;
 
 					if (idx + 72 > cdb[4])
 						goto atapi_out;
-					cdbufferb[idx++] = 0x02;
-					cdbufferb[idx++] = 0x01;
-					cdbufferb[idx++] = 0x00;
-					cdbufferb[idx++] = 68;
-					ide_padstr8(cdbufferb + idx, 8, EMU_NAME); /* Vendor */
+					dev->buffer[idx++] = 0x02;
+					dev->buffer[idx++] = 0x01;
+					dev->buffer[idx++] = 0x00;
+					dev->buffer[idx++] = 68;
+					ide_padstr8(dev->buffer + idx, 8, EMU_NAME); /* Vendor */
 					idx += 8;
-					ide_padstr8(cdbufferb + idx, 40, device_identify_ex); /* Product */
+					ide_padstr8(dev->buffer + idx, 40, device_identify_ex); /* Product */
 					idx += 40;
-					ide_padstr8(cdbufferb + idx, 20, "53R141"); /* Product */
+					ide_padstr8(dev->buffer + idx, 20, "53R141"); /* Product */
 					idx += 20;
 					break;
 				default:
@@ -2393,30 +2391,30 @@ scsi_cdrom_command(void *p, uint8_t *cdb)
 			preamble_len = 5;
 			size_idx = 4;
 
-			memset(cdbufferb, 0, 8);
-			cdbufferb[0] = 5; /*CD-ROM*/
-			cdbufferb[1] = 0x80; /*Removable*/
-			cdbufferb[2] = (dev->drv->bus_type == CDROM_BUS_SCSI) ? 0x02 : 0x00; /*SCSI-2 compliant*/
-			cdbufferb[3] = (dev->drv->bus_type == CDROM_BUS_SCSI) ? 0x12 : 0x21;
-			cdbufferb[4] = 31;
+			memset(dev->buffer, 0, 8);
+			dev->buffer[0] = 5; /*CD-ROM*/
+			dev->buffer[1] = 0x80; /*Removable*/
+			dev->buffer[2] = (dev->drv->bus_type == CDROM_BUS_SCSI) ? 0x02 : 0x00; /*SCSI-2 compliant*/
+			dev->buffer[3] = (dev->drv->bus_type == CDROM_BUS_SCSI) ? 0x12 : 0x21;
+			dev->buffer[4] = 31;
 			if (dev->drv->bus_type == CDROM_BUS_SCSI) {
-				cdbufferb[6] = 1;	/* 16-bit transfers supported */
-				cdbufferb[7] = 0x20;	/* Wide bus supported */
+				dev->buffer[6] = 1;	/* 16-bit transfers supported */
+				dev->buffer[7] = 0x20;	/* Wide bus supported */
 			}
 
-			ide_padstr8(cdbufferb + 8, 8, EMU_NAME); /* Vendor */
-			ide_padstr8(cdbufferb + 16, 16, device_identify); /* Product */
-			ide_padstr8(cdbufferb + 32, 4, EMU_VERSION); /* Revision */
+			ide_padstr8(dev->buffer + 8, 8, EMU_NAME); /* Vendor */
+			ide_padstr8(dev->buffer + 16, 16, device_identify); /* Product */
+			ide_padstr8(dev->buffer + 32, 4, EMU_VERSION); /* Revision */
 			idx = 36;
 
 			if (max_len == 96) {
-				cdbufferb[4] = 91;
+				dev->buffer[4] = 91;
 				idx = 96;
 			}
 		}
 
 atapi_out:
-		cdbufferb[size_idx] = idx - preamble_len;
+		dev->buffer[size_idx] = idx - preamble_len;
 		len=idx;
 
 		len = MIN(len, max_len);
@@ -2474,7 +2472,7 @@ atapi_out:
 
 		scsi_cdrom_buf_alloc(dev, 8);
 
-		if (scsi_cdrom_read_capacity(dev, dev->current_cdb, cdbufferb, (uint32_t *) &len) == 0) {
+		if (scsi_cdrom_read_capacity(dev, dev->current_cdb, dev->buffer, (uint32_t *) &len) == 0) {
 			scsi_cdrom_buf_free(dev);
 			return;
 		}
@@ -2528,13 +2526,13 @@ scsi_cdrom_phase_data_out(scsi_cdrom_t *dev)
 
 		if (dev->drv->bus_type == CDROM_BUS_SCSI) {
 			if (dev->current_cdb[0] == GPCMD_MODE_SELECT_6) {
-				block_desc_len = cdbufferb[2];
+				block_desc_len = dev->buffer[2];
 				block_desc_len <<= 8;
-				block_desc_len |= cdbufferb[3];
+				block_desc_len |= dev->buffer[3];
 			} else {
-				block_desc_len = cdbufferb[6];
+				block_desc_len = dev->buffer[6];
 				block_desc_len <<= 8;
-				block_desc_len |= cdbufferb[7];
+				block_desc_len |= dev->buffer[7];
 			}
 		} else
 			block_desc_len = 0;
@@ -2542,8 +2540,8 @@ scsi_cdrom_phase_data_out(scsi_cdrom_t *dev)
 		pos = hdr_len + block_desc_len;
 
 		while(1) {
-			page = cdbufferb[pos] & 0x3F;
-			page_len = cdbufferb[pos + 1];
+			page = dev->buffer[pos] & 0x3F;
+			page_len = dev->buffer[pos + 1];
 
 			pos += 2;
 
@@ -2553,7 +2551,7 @@ scsi_cdrom_phase_data_out(scsi_cdrom_t *dev)
 			} else {
 				for (i = 0; i < page_len; i++) {
 					ch = scsi_cdrom_mode_sense_pages_changeable.pages[page][i + 2];
-					val = cdbufferb[pos + i];
+					val = dev->buffer[pos + i];
 					old_val = dev->ms_pages_saved.pages[page][i + 2];
 					if (val != old_val) {
 						if (ch)
@@ -2652,7 +2650,7 @@ scsi_cdrom_read_from_ide_dma(scsi_cdrom_t *dev)
 
     if (ide_bus_master_write) {
 	ret = ide_bus_master_write(dev->drv->ide_channel >> 1,
-				   cdbufferb, dev->packet_len,
+				   dev->buffer, dev->packet_len,
 				   ide_bus_master_priv[dev->drv->ide_channel >> 1]);
 	if (ret == 2)		/* DMA not enabled, wait for it to be enabled. */
 		return 2;
@@ -2674,11 +2672,11 @@ scsi_cdrom_read_from_scsi_dma(uint8_t scsi_id)
     scsi_cdrom_t *dev = scsi_devices[scsi_id].p;
     int32_t *BufLen = &scsi_devices[scsi_id].buffer_length;
 
-    if (dev)
+    if (!dev)
 	return 0;
 
     scsi_cdrom_log("Reading from SCSI DMA: SCSI ID %02X, init length %i\n", scsi_id, *BufLen);
-    memcpy(cdbufferb, scsi_devices[scsi_id].cmd_buffer, *BufLen);
+    memcpy(dev->buffer, scsi_devices[scsi_id].cmd_buffer, *BufLen);
     return 1;
 }
 
@@ -2731,7 +2729,7 @@ scsi_cdrom_write_to_ide_dma(scsi_cdrom_t *dev)
 
     if (ide_bus_master_read) {
 	ret = ide_bus_master_read(dev->drv->ide_channel >> 1,
-				  cdbufferb, dev->packet_len,
+				  dev->buffer, dev->packet_len,
 				  ide_bus_master_priv[dev->drv->ide_channel >> 1]);
 	if (ret == 2)		/* DMA not enabled, wait for it to be enabled. */
 		return 2;
@@ -2755,10 +2753,10 @@ scsi_cdrom_write_to_scsi_dma(uint8_t scsi_id)
 	return 0;
 
     scsi_cdrom_log("Writing to SCSI DMA: SCSI ID %02X, init length %i\n", scsi_id, *BufLen);
-    memcpy(scsi_devices[scsi_id].cmd_buffer, cdbufferb, *BufLen);
+    memcpy(scsi_devices[scsi_id].cmd_buffer, dev->buffer, *BufLen);
     scsi_cdrom_log("CD-ROM %i: Data from CD buffer:  %02X %02X %02X %02X %02X %02X %02X %02X\n", dev->id,
-	      cdbufferb[0], cdbufferb[1], cdbufferb[2], cdbufferb[3], cdbufferb[4], cdbufferb[5],
-	      cdbufferb[6], cdbufferb[7]);
+	      dev->buffer[0], dev->buffer[1], dev->buffer[2], dev->buffer[3], dev->buffer[4], dev->buffer[5],
+	      dev->buffer[6], dev->buffer[7]);
     return 1;
 }
 
@@ -2802,7 +2800,7 @@ scsi_cdrom_callback(void *p)
 	case PHASE_COMMAND:
 		scsi_cdrom_log("CD-ROM %i: PHASE_COMMAND\n", dev->id);
 		dev->status = BUSY_STAT | (dev->status & ERR_STAT);
-		memcpy(dev->atapi_cdb, cdbufferb, 12);
+		memcpy(dev->atapi_cdb, dev->buffer, 12);
 		scsi_cdrom_command(dev, dev->atapi_cdb);
 		return;
 	case PHASE_COMPLETE:
@@ -2881,10 +2879,10 @@ scsi_cdrom_packet_read(void *p, int length)
     if (!dev)
 	return 0;
 
-    cdbufferw = (uint16_t *) cdbufferb;
-    cdbufferl = (uint32_t *) cdbufferb;
+    cdbufferw = (uint16_t *) dev->buffer;
+    cdbufferl = (uint32_t *) dev->buffer;
 
-    if (!cdbufferb)
+    if (!dev->buffer)
 	return 0;
 
     /* Make sure we return a 0 and don't attempt to read from the buffer if we're transferring bytes beyond it,
@@ -2892,7 +2890,7 @@ scsi_cdrom_packet_read(void *p, int length)
        (which is 1 sector = 2048 bytes). */
     switch(length) {
 	case 1:
-		temp = (dev->pos < dev->packet_len) ? cdbufferb[dev->pos] : 0;
+		temp = (dev->pos < dev->packet_len) ? dev->buffer[dev->pos] : 0;
 		dev->pos++;
 		dev->request_pos++;
 		break;
@@ -2932,18 +2930,18 @@ scsi_cdrom_packet_write(void *p, uint32_t val, int length)
     if (!dev)
 	return;
 
-    if ((dev->packet_status == PHASE_IDLE) && !cdbufferb)
+    if ((dev->packet_status == PHASE_IDLE) && !dev->buffer)
 	scsi_cdrom_buf_alloc(dev, 12);
 
-    cdbufferw = (uint16_t *) cdbufferb;
-    cdbufferl = (uint32_t *) cdbufferb;
+    cdbufferw = (uint16_t *) dev->buffer;
+    cdbufferl = (uint32_t *) dev->buffer;
 
-    if (!cdbufferb)
+    if (!dev->buffer)
 	return;
 
     switch(length) {
 	case 1:
-		cdbufferb[dev->pos] = val & 0xff;
+		dev->buffer[dev->pos] = val & 0xff;
 		dev->pos++;
 		dev->request_pos++;
 		break;

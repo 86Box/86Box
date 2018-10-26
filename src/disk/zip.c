@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.31	2018/10/26
+ * Version:	@(#)zip.c	1.0.32	2018/10/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -47,8 +47,6 @@
 /* Bits of 'error' */
 #define ABRT_ERR		0x04 /* Command aborted */
 #define MCR_ERR			0x08 /* Media change request */
-
-#define zipbufferb		dev->buffer
 
 
 zip_drive_t	zip_drives[ZIP_NUM];
@@ -1213,9 +1211,9 @@ zip_blocks(zip_t *dev, int32_t *len, int first_batch, int out)
 
     fseek(dev->drv->f, dev->drv->base + (dev->sector_pos << 9), SEEK_SET);
     if (out)
-	fwrite(zipbufferb, 1, *len, dev->drv->f);
+	fwrite(dev->buffer, 1, *len, dev->drv->f);
     else
-	fread(zipbufferb, 1, *len, dev->drv->f);
+	fread(dev->buffer, 1, *len, dev->drv->f);
 
     zip_log("%s %i bytes of blocks...\n", out ? "Written" : "Read", *len);
 
@@ -1427,17 +1425,17 @@ static void
 zip_buf_alloc(zip_t *dev, uint32_t len)
 {
     zip_log("ZIP %i: Allocated buffer length: %i\n", dev->id, len);
-    zipbufferb = (uint8_t *) malloc(len);
+    dev->buffer = (uint8_t *) malloc(len);
 }
 
 
 static void
 zip_buf_free(zip_t *dev)
 {
-    if (zipbufferb) {
+    if (dev->buffer) {
 	zip_log("ZIP %i: Freeing buffer...\n", dev->id);
-	free(zipbufferb);
-	zipbufferb = NULL;
+	free(dev->buffer);
+	dev->buffer = NULL;
     }
 }
 
@@ -1515,24 +1513,24 @@ zip_command(void *p, uint8_t *cdb)
 		max_len = cdb[4];
 		zip_buf_alloc(dev, 256);
 		zip_set_buf_len(dev, BufLen, &max_len);
-		memset(zipbufferb, 0, 256);
+		memset(dev->buffer, 0, 256);
 		if (cdb[2] == 1) {
 			/* This page is related to disk health status - setting
 			   this page to 0 makes disk health read as "marginal". */
-			zipbufferb[0] = 0x58;
-			zipbufferb[1] = 0x00;
+			dev->buffer[0] = 0x58;
+			dev->buffer[1] = 0x00;
 			for (i = 0x00; i < 0x58; i++)
-				zipbufferb[i + 0x02] = 0xff;
+				dev->buffer[i + 0x02] = 0xff;
 		} else if (cdb[2] == 2) {
-			zipbufferb[0] = 0x3d;
-			zipbufferb[1] = 0x00;
+			dev->buffer[0] = 0x3d;
+			dev->buffer[1] = 0x00;
 			for (i = 0x00; i < 0x13; i++)
-				zipbufferb[i + 0x02] = 0x00;
-			zipbufferb[0x15] = 0x00;
+				dev->buffer[i + 0x02] = 0x00;
+			dev->buffer[0x15] = 0x00;
 			if (dev->drv->read_only)
-				zipbufferb[0x15] |= 0x02;
+				dev->buffer[0x15] |= 0x02;
 			for (i = 0x00; i < 0x27; i++)
-				zipbufferb[i + 0x16] = 0x00;
+				dev->buffer[i + 0x16] = 0x00;
 		} else {
 			zip_invalid_field(dev);
 			zip_buf_free(dev);
@@ -1564,7 +1562,7 @@ zip_command(void *p, uint8_t *cdb)
 		zip_buf_alloc(dev, 256);
 		zip_set_buf_len(dev, BufLen, &max_len);
 		len = (cdb[1] & 1) ? 8 : 18;
-		zip_request_sense(dev, zipbufferb, max_len, cdb[1] & 1);
+		zip_request_sense(dev, dev->buffer, max_len, cdb[1] & 1);
 		zip_data_command_finish(dev, len, len, cdb[4], 0);
 		break;
 
@@ -1576,8 +1574,8 @@ zip_command(void *p, uint8_t *cdb)
 
 		zip_set_buf_len(dev, BufLen, &len);
 
-		memset(zipbufferb, 0, 8);
-		zipbufferb[5] = 1;
+		memset(dev->buffer, 0, 8);
+		dev->buffer[5] = 1;
 
 		zip_data_command_finish(dev, 8, 8, len, 0);
 		break;
@@ -1811,25 +1809,25 @@ zip_command(void *p, uint8_t *cdb)
 			return;
 		}
 
-		memset(zipbufferb, 0, len);
+		memset(dev->buffer, 0, len);
 		alloc_length = len;
 
 		if (cdb[0] == GPCMD_MODE_SENSE_6) {
-			len = zip_mode_sense(dev, zipbufferb, 4, cdb[2], block_desc);
+			len = zip_mode_sense(dev, dev->buffer, 4, cdb[2], block_desc);
 			len = MIN(len, alloc_length);
-			zipbufferb[0] = len - 1;
-			zipbufferb[1] = 0;
+			dev->buffer[0] = len - 1;
+			dev->buffer[1] = 0;
 			if (block_desc)
-				zipbufferb[3] = 8;
+				dev->buffer[3] = 8;
 		} else {
-			len = zip_mode_sense(dev, zipbufferb, 8, cdb[2], block_desc);
+			len = zip_mode_sense(dev, dev->buffer, 8, cdb[2], block_desc);
 			len = MIN(len, alloc_length);
-			zipbufferb[0]=(len - 2) >> 8;
-			zipbufferb[1]=(len - 2) & 255;
-			zipbufferb[2] = 0;
+			dev->buffer[0]=(len - 2) >> 8;
+			dev->buffer[1]=(len - 2) & 255;
+			dev->buffer[2] = 0;
 			if (block_desc) {
-				zipbufferb[6] = 0;
-				zipbufferb[7] = 8;
+				dev->buffer[6] = 0;
+				dev->buffer[7] = 8;
 			}
 		}
 
@@ -1893,16 +1891,16 @@ zip_command(void *p, uint8_t *cdb)
 			preamble_len = 4;
 			size_idx = 3;
 
-			zipbufferb[idx++] = 05;
-			zipbufferb[idx++] = cdb[2];
-			zipbufferb[idx++] = 0;
+			dev->buffer[idx++] = 05;
+			dev->buffer[idx++] = cdb[2];
+			dev->buffer[idx++] = 0;
 
 			idx++;
 
 			switch (cdb[2]) {
 				case 0x00:
-					zipbufferb[idx++] = 0x00;
-					zipbufferb[idx++] = 0x83;
+					dev->buffer[idx++] = 0x00;
+					dev->buffer[idx++] = 0x83;
 					break;
 				case 0x83:
 					if (idx + 24 > max_len) {
@@ -1911,27 +1909,27 @@ zip_command(void *p, uint8_t *cdb)
 						return;
 					}
 
-					zipbufferb[idx++] = 0x02;
-					zipbufferb[idx++] = 0x00;
-					zipbufferb[idx++] = 0x00;
-					zipbufferb[idx++] = 20;
-					ide_padstr8(zipbufferb + idx, 20, "53R141");	/* Serial */
+					dev->buffer[idx++] = 0x02;
+					dev->buffer[idx++] = 0x00;
+					dev->buffer[idx++] = 0x00;
+					dev->buffer[idx++] = 20;
+					ide_padstr8(dev->buffer + idx, 20, "53R141");	/* Serial */
 					idx += 20;
 
 					if (idx + 72 > cdb[4])
 						goto atapi_out;
-					zipbufferb[idx++] = 0x02;
-					zipbufferb[idx++] = 0x01;
-					zipbufferb[idx++] = 0x00;
-					zipbufferb[idx++] = 68;
-					ide_padstr8(zipbufferb + idx, 8, "IOMEGA  "); /* Vendor */
+					dev->buffer[idx++] = 0x02;
+					dev->buffer[idx++] = 0x01;
+					dev->buffer[idx++] = 0x00;
+					dev->buffer[idx++] = 68;
+					ide_padstr8(dev->buffer + idx, 8, "IOMEGA  "); /* Vendor */
 					idx += 8;
 					if (dev->drv->is_250)
-						ide_padstr8(zipbufferb + idx, 40, "ZIP 250         "); /* Product */
+						ide_padstr8(dev->buffer + idx, 40, "ZIP 250         "); /* Product */
 					else
-						ide_padstr8(zipbufferb + idx, 40, "ZIP 100         "); /* Product */
+						ide_padstr8(dev->buffer + idx, 40, "ZIP 100         "); /* Product */
 					idx += 40;
-					ide_padstr8(zipbufferb + idx, 20, "53R141"); /* Product */
+					ide_padstr8(dev->buffer + idx, 20, "53R141"); /* Product */
 					idx += 20;
 					break;
 				default:
@@ -1944,45 +1942,45 @@ zip_command(void *p, uint8_t *cdb)
 			preamble_len = 5;
 			size_idx = 4;
 
-			memset(zipbufferb, 0, 8);
+			memset(dev->buffer, 0, 8);
 			if (cdb[1] & 0xe0)
-				zipbufferb[0] = 0x60; /*No physical device on this LUN*/
+				dev->buffer[0] = 0x60; /*No physical device on this LUN*/
 			else
-				zipbufferb[0] = 0x00; /*Hard disk*/
-			zipbufferb[1] = 0x80; /*Removable*/
-			zipbufferb[2] = (dev->drv->bus_type == ZIP_BUS_SCSI) ? 0x02 : 0x00; /*SCSI-2 compliant*/
-			zipbufferb[3] = (dev->drv->bus_type == ZIP_BUS_SCSI) ? 0x02 : 0x21;
-			zipbufferb[4] = 31;
+				dev->buffer[0] = 0x00; /*Hard disk*/
+			dev->buffer[1] = 0x80; /*Removable*/
+			dev->buffer[2] = (dev->drv->bus_type == ZIP_BUS_SCSI) ? 0x02 : 0x00; /*SCSI-2 compliant*/
+			dev->buffer[3] = (dev->drv->bus_type == ZIP_BUS_SCSI) ? 0x02 : 0x21;
+			dev->buffer[4] = 31;
 			if (dev->drv->bus_type == ZIP_BUS_SCSI) {
-				zipbufferb[6] = 1;	/* 16-bit transfers supported */
-				zipbufferb[7] = 0x20;	/* Wide bus supported */
+				dev->buffer[6] = 1;	/* 16-bit transfers supported */
+				dev->buffer[7] = 0x20;	/* Wide bus supported */
 			}
 
-			ide_padstr8(zipbufferb + 8, 8, "IOMEGA  "); /* Vendor */
+			ide_padstr8(dev->buffer + 8, 8, "IOMEGA  "); /* Vendor */
 			if (dev->drv->is_250) {
-				ide_padstr8(zipbufferb + 16, 16, "ZIP 250         "); /* Product */
-				ide_padstr8(zipbufferb + 32, 4, "42.S"); /* Revision */
+				ide_padstr8(dev->buffer + 16, 16, "ZIP 250         "); /* Product */
+				ide_padstr8(dev->buffer + 32, 4, "42.S"); /* Revision */
 				if (max_len >= 44)
-					ide_padstr8(zipbufferb + 36, 8, "08/08/01"); /* Date? */
+					ide_padstr8(dev->buffer + 36, 8, "08/08/01"); /* Date? */
 				if (max_len >= 122)
-					ide_padstr8(zipbufferb + 96, 26, "(c) Copyright IOMEGA 2000 "); /* Copyright string */
+					ide_padstr8(dev->buffer + 96, 26, "(c) Copyright IOMEGA 2000 "); /* Copyright string */
 			} else {
-				ide_padstr8(zipbufferb + 16, 16, "ZIP 100         "); /* Product */
-				ide_padstr8(zipbufferb + 32, 4, "E.08"); /* Revision */
+				ide_padstr8(dev->buffer + 16, 16, "ZIP 100         "); /* Product */
+				ide_padstr8(dev->buffer + 32, 4, "E.08"); /* Revision */
 			}
 			idx = 36;
 
 			if (max_len == 96) {
-				zipbufferb[4] = 91;
+				dev->buffer[4] = 91;
 				idx = 96;
 			} else if (max_len == 128) {
-				zipbufferb[4] = 0x75;
+				dev->buffer[4] = 0x75;
 				idx = 128;
 			}
 		}
 
 atapi_out:
-		zipbufferb[size_idx] = idx - preamble_len;
+		dev->buffer[size_idx] = idx - preamble_len;
 		len=idx;
 
 		len = MIN(len, max_len);
@@ -2017,7 +2015,7 @@ atapi_out:
 
 		zip_buf_alloc(dev, 8);
 
-		if (zip_read_capacity(dev, dev->current_cdb, zipbufferb, (uint32_t *) &len) == 0) {
+		if (zip_read_capacity(dev, dev->current_cdb, dev->buffer, (uint32_t *) &len) == 0) {
 			zip_buf_free(dev);
 			return;
 		}
@@ -2037,59 +2035,59 @@ atapi_out:
 		len = (cdb[7] << 8) | cdb[8];
 
 		zip_buf_alloc(dev, len);
-		memset(zipbufferb, 0, len);
+		memset(dev->buffer, 0, len);
 
 		pos = 0;
 
 		/* List header */
-		zipbufferb[pos++] = 0;
-		zipbufferb[pos++] = 0;
-		zipbufferb[pos++] = 0;
+		dev->buffer[pos++] = 0;
+		dev->buffer[pos++] = 0;
+		dev->buffer[pos++] = 0;
 		if (dev->drv->f != NULL)
-			zipbufferb[pos++] = 16;
+			dev->buffer[pos++] = 16;
 		else
-			zipbufferb[pos++] = 8;
+			dev->buffer[pos++] = 8;
 
 		/* Current/Maximum capacity header */
 		if (dev->drv->is_250) {
 			if (dev->drv->f != NULL) {
-				zipbufferb[pos++] = (dev->drv->medium_size >> 24) & 0xff;
-				zipbufferb[pos++] = (dev->drv->medium_size >> 16) & 0xff;
-				zipbufferb[pos++] = (dev->drv->medium_size >> 8)  & 0xff;
-				zipbufferb[pos++] =  dev->drv->medium_size        & 0xff;
-				zipbufferb[pos++] = 2;	/* Current medium capacity */
+				dev->buffer[pos++] = (dev->drv->medium_size >> 24) & 0xff;
+				dev->buffer[pos++] = (dev->drv->medium_size >> 16) & 0xff;
+				dev->buffer[pos++] = (dev->drv->medium_size >> 8)  & 0xff;
+				dev->buffer[pos++] =  dev->drv->medium_size        & 0xff;
+				dev->buffer[pos++] = 2;	/* Current medium capacity */
 			} else {
-				zipbufferb[pos++] = (ZIP_250_SECTORS >> 24) & 0xff;
-				zipbufferb[pos++] = (ZIP_250_SECTORS >> 16) & 0xff;
-				zipbufferb[pos++] = (ZIP_250_SECTORS >> 8)  & 0xff;
-				zipbufferb[pos++] =  ZIP_250_SECTORS        & 0xff;
-				zipbufferb[pos++] = 3;	/* Maximum medium capacity */
+				dev->buffer[pos++] = (ZIP_250_SECTORS >> 24) & 0xff;
+				dev->buffer[pos++] = (ZIP_250_SECTORS >> 16) & 0xff;
+				dev->buffer[pos++] = (ZIP_250_SECTORS >> 8)  & 0xff;
+				dev->buffer[pos++] =  ZIP_250_SECTORS        & 0xff;
+				dev->buffer[pos++] = 3;	/* Maximum medium capacity */
 			}
 		} else {
-			zipbufferb[pos++] = (ZIP_SECTORS >> 24) & 0xff;
-			zipbufferb[pos++] = (ZIP_SECTORS >> 16) & 0xff;
-			zipbufferb[pos++] = (ZIP_SECTORS >> 8)  & 0xff;
-			zipbufferb[pos++] =  ZIP_SECTORS        & 0xff;
+			dev->buffer[pos++] = (ZIP_SECTORS >> 24) & 0xff;
+			dev->buffer[pos++] = (ZIP_SECTORS >> 16) & 0xff;
+			dev->buffer[pos++] = (ZIP_SECTORS >> 8)  & 0xff;
+			dev->buffer[pos++] =  ZIP_SECTORS        & 0xff;
 			if (dev->drv->f != NULL)
-				zipbufferb[pos++] = 2;
+				dev->buffer[pos++] = 2;
 			else
-				zipbufferb[pos++] = 3;
+				dev->buffer[pos++] = 3;
 		}
 
-		zipbufferb[pos++] = 512 >> 16;
-		zipbufferb[pos++] = 512 >> 8;
-		zipbufferb[pos++] = 512 & 0xff;
+		dev->buffer[pos++] = 512 >> 16;
+		dev->buffer[pos++] = 512 >> 8;
+		dev->buffer[pos++] = 512 & 0xff;
 
 		if (dev->drv->f != NULL) {
 			/* Formattable capacity descriptor */
-			zipbufferb[pos++] = (dev->drv->medium_size >> 24) & 0xff;
-			zipbufferb[pos++] = (dev->drv->medium_size >> 16) & 0xff;
-			zipbufferb[pos++] = (dev->drv->medium_size >> 8)  & 0xff;
-			zipbufferb[pos++] =  dev->drv->medium_size        & 0xff;
-			zipbufferb[pos++] = 0;
-			zipbufferb[pos++] = 512 >> 16;
-			zipbufferb[pos++] = 512 >> 8;
-			zipbufferb[pos++] = 512 & 0xff;
+			dev->buffer[pos++] = (dev->drv->medium_size >> 24) & 0xff;
+			dev->buffer[pos++] = (dev->drv->medium_size >> 16) & 0xff;
+			dev->buffer[pos++] = (dev->drv->medium_size >> 8)  & 0xff;
+			dev->buffer[pos++] =  dev->drv->medium_size        & 0xff;
+			dev->buffer[pos++] = 0;
+			dev->buffer[pos++] = 512 >> 16;
+			dev->buffer[pos++] = 512 >> 8;
+			dev->buffer[pos++] = 512 & 0xff;
 		}
 
 		zip_set_buf_len(dev, BufLen, &len);
@@ -2152,26 +2150,26 @@ zip_phase_data_out(zip_t *dev)
 
 		for (i = dev->sector_pos; i <= last_to_write; i++) {
 			if (dev->current_cdb[1] & 2) {
-				zipbufferb[0] = (i >> 24) & 0xff;
-				zipbufferb[1] = (i >> 16) & 0xff;
-				zipbufferb[2] = (i >> 8) & 0xff;
-				zipbufferb[3] = i & 0xff;
+				dev->buffer[0] = (i >> 24) & 0xff;
+				dev->buffer[1] = (i >> 16) & 0xff;
+				dev->buffer[2] = (i >> 8) & 0xff;
+				dev->buffer[3] = i & 0xff;
 			} else if (dev->current_cdb[1] & 4) {
 				/* CHS are 96,1,2048 (ZIP 100) and 239,1,2048 (ZIP 250) */
 				s = (i % 2048);
 				h = ((i - s) / 2048) % 1;
 				c = ((i - s) / 2048) / 1;
-				zipbufferb[0] = (c >> 16) & 0xff;
-				zipbufferb[1] = (c >> 8) & 0xff;
-				zipbufferb[2] = c & 0xff;
-				zipbufferb[3] = h & 0xff;
-				zipbufferb[4] = (s >> 24) & 0xff;
-				zipbufferb[5] = (s >> 16) & 0xff;
-				zipbufferb[6] = (s >> 8) & 0xff;
-				zipbufferb[7] = s & 0xff;
+				dev->buffer[0] = (c >> 16) & 0xff;
+				dev->buffer[1] = (c >> 8) & 0xff;
+				dev->buffer[2] = c & 0xff;
+				dev->buffer[3] = h & 0xff;
+				dev->buffer[4] = (s >> 24) & 0xff;
+				dev->buffer[5] = (s >> 16) & 0xff;
+				dev->buffer[6] = (s >> 8) & 0xff;
+				dev->buffer[7] = s & 0xff;
 			}
 			fseek(dev->drv->f, dev->drv->base + (i << 9), SEEK_SET);
-			fwrite(zipbufferb, 1, 512, dev->drv->f);
+			fwrite(dev->buffer, 1, 512, dev->drv->f);
 		}
 		break;
 	case GPCMD_MODE_SELECT_6:
@@ -2183,13 +2181,13 @@ zip_phase_data_out(zip_t *dev)
 
 		if (dev->drv->bus_type == ZIP_BUS_SCSI) {
 			if (dev->current_cdb[0] == GPCMD_MODE_SELECT_6) {
-				block_desc_len = zipbufferb[2];
+				block_desc_len = dev->buffer[2];
 				block_desc_len <<= 8;
-				block_desc_len |= zipbufferb[3];
+				block_desc_len |= dev->buffer[3];
 			} else {
-				block_desc_len = zipbufferb[6];
+				block_desc_len = dev->buffer[6];
 				block_desc_len <<= 8;
-				block_desc_len |= zipbufferb[7];
+				block_desc_len |= dev->buffer[7];
 			}
 		} else
 			block_desc_len = 0;
@@ -2197,8 +2195,8 @@ zip_phase_data_out(zip_t *dev)
 		pos = hdr_len + block_desc_len;
 
 		while(1) {
-			page = zipbufferb[pos] & 0x3F;
-			page_len = zipbufferb[pos + 1];
+			page = dev->buffer[pos] & 0x3F;
+			page_len = dev->buffer[pos + 1];
 
 			pos += 2;
 
@@ -2207,7 +2205,7 @@ zip_phase_data_out(zip_t *dev)
 			else {
 				for (i = 0; i < page_len; i++) {
 					ch = zip_mode_sense_pages_changeable.pages[page][i + 2];
-					val = zipbufferb[pos + i];
+					val = dev->buffer[pos + i];
 					old_val = dev->ms_pages_saved.pages[page][i + 2];
 					if (val != old_val) {
 						if (ch)
@@ -2303,7 +2301,7 @@ zip_read_from_ide_dma(zip_t *dev)
 
     if (ide_bus_master_write) {
 	ret = ide_bus_master_write(dev->drv->ide_channel >> 1,
-				   zipbufferb, dev->packet_len,
+				   dev->buffer, dev->packet_len,
 				   ide_bus_master_priv[dev->drv->ide_channel >> 1]);
 	if (ret == 2)		/* DMA not enabled, wait for it to be enabled. */
 		return 2;
@@ -2327,7 +2325,7 @@ zip_read_from_scsi_dma(uint8_t scsi_id)
 	return 0;
 
     zip_log("Reading from SCSI DMA: SCSI ID %02X, init length %i\n", scsi_id, *BufLen);
-    memcpy(zipbufferb, scsi_devices[scsi_id].cmd_buffer, *BufLen);
+    memcpy(dev->buffer, scsi_devices[scsi_id].cmd_buffer, *BufLen);
     return 1;
 }
 
@@ -2380,7 +2378,7 @@ zip_write_to_ide_dma(zip_t *dev)
 
     if (ide_bus_master_read) {
 	ret = ide_bus_master_read(dev->drv->ide_channel >> 1,
-				  zipbufferb, dev->packet_len,
+				  dev->buffer, dev->packet_len,
 				  ide_bus_master_priv[dev->drv->ide_channel >> 1]);
 	if (ret == 2)		/* DMA not enabled, wait for it to be enabled. */
 		return 2;
@@ -2404,10 +2402,10 @@ zip_write_to_scsi_dma(uint8_t scsi_id)
 	return 0;
 
     zip_log("Writing to SCSI DMA: SCSI ID %02X, init length %i\n", scsi_id, *BufLen);
-    memcpy(scsi_devices[scsi_id].cmd_buffer, zipbufferb, *BufLen);
+    memcpy(scsi_devices[scsi_id].cmd_buffer, dev->buffer, *BufLen);
     zip_log("ZIP %i: Data from CD buffer:  %02X %02X %02X %02X %02X %02X %02X %02X\n", dev->id,
-	    zipbufferb[0], zipbufferb[1], zipbufferb[2], zipbufferb[3], zipbufferb[4], zipbufferb[5],
-	    zipbufferb[6], zipbufferb[7]);
+	    dev->buffer[0], dev->buffer[1], dev->buffer[2], dev->buffer[3], dev->buffer[4], dev->buffer[5],
+	    dev->buffer[6], dev->buffer[7]);
     return 1;
 }
 
@@ -2451,7 +2449,7 @@ zip_callback(void *p)
 	case PHASE_COMMAND:
 		zip_log("ZIP %i: PHASE_COMMAND\n", dev->id);
 		dev->status = BUSY_STAT | (dev->status & ERR_STAT);
-		memcpy(dev->atapi_cdb, zipbufferb, 12);
+		memcpy(dev->atapi_cdb, dev->buffer, 12);
 		zip_command(dev, dev->atapi_cdb);
 		return;
 	case PHASE_COMPLETE:
@@ -2531,10 +2529,10 @@ zip_packet_read(void *p, int length)
     if (!dev)
 	return 0;
 
-    zipbufferw = (uint16_t *) zipbufferb;
-    zipbufferl = (uint32_t *) zipbufferb;
+    zipbufferw = (uint16_t *) dev->buffer;
+    zipbufferl = (uint32_t *) dev->buffer;
 
-    if (!zipbufferb)
+    if (!dev->buffer)
 	return 0;
 
     /* Make sure we return a 0 and don't attempt to read from the buffer if we're transferring bytes beyond it,
@@ -2542,7 +2540,7 @@ zip_packet_read(void *p, int length)
        (which is 1 sector = 512 bytes). */
     switch(length) {
 	case 1:
-		temp = (dev->pos < dev->packet_len) ? zipbufferb[dev->pos] : 0;
+		temp = (dev->pos < dev->packet_len) ? dev->buffer[dev->pos] : 0;
 		dev->pos++;
 		dev->request_pos++;
 		break;
@@ -2583,19 +2581,19 @@ zip_packet_write(void *p, uint32_t val, int length)
 	return;
 
     if (dev->packet_status == PHASE_IDLE) {
-	if (!zipbufferb)
+	if (!dev->buffer)
 		zip_buf_alloc(dev, 12);
     }
 
-    zipbufferw = (uint16_t *) zipbufferb;
-    zipbufferl = (uint32_t *) zipbufferb;
+    zipbufferw = (uint16_t *) dev->buffer;
+    zipbufferl = (uint32_t *) dev->buffer;
 
-    if (!zipbufferb)
+    if (!dev->buffer)
 	return;
 
     switch(length) {
 	case 1:
-		zipbufferb[dev->pos] = val & 0xff;
+		dev->buffer[dev->pos] = val & 0xff;
 		dev->pos++;
 		dev->request_pos++;
 		break;
