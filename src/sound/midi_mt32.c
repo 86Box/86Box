@@ -115,8 +115,6 @@ void mt32_poll()
         }
 }
 
-extern int soundon;
-
 static void mt32_thread(void *param)
 {
 	int buf_pos = 0;
@@ -139,8 +137,7 @@ static void mt32_thread(void *param)
 			buf_pos += bsize;
 			if (buf_pos >= buf_size)
 			{
-		                if (soundon)
-					givealbuffer_midi(buffer, buf_size / sizeof(float));
+				givealbuffer_midi(buffer, buf_size / sizeof(float));
 				buf_pos = 0;
 			}
 		}
@@ -152,8 +149,7 @@ static void mt32_thread(void *param)
 			buf_pos += bsize;
 			if (buf_pos >= buf_size)
 			{
-		                if (soundon)
-					givealbuffer_midi(buffer_int16, buf_size / sizeof(int16_t));
+				givealbuffer_midi(buffer_int16, buf_size / sizeof(int16_t));
 				buf_pos = 0;
 			}
 		}

@@ -43,7 +43,6 @@ enum fluid_interp {
 
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
-extern int soundon;
 
 static void	*fluidsynth_handle;		/* handle to FluidSynth DLL */
 
@@ -152,8 +151,7 @@ static void fluidsynth_thread(void *param)
 			buf_pos += buf_size;
 			if (buf_pos >= data->buf_size)
 			{
-		                if (soundon)
-        		                givealbuffer_midi(data->buffer, data->buf_size / sizeof(float));
+       		                givealbuffer_midi(data->buffer, data->buf_size / sizeof(float));
 				buf_pos = 0;
 			}
 		}
@@ -166,30 +164,10 @@ static void fluidsynth_thread(void *param)
 			buf_pos += buf_size;
 			if (buf_pos >= data->buf_size)
 			{
-		                if (soundon)
-        		                givealbuffer_midi(data->buffer_int16, data->buf_size / sizeof(int16_t));
+       		                givealbuffer_midi(data->buffer_int16, data->buf_size / sizeof(int16_t));
 				buf_pos = 0;
 			}
 		}
-
-#if 0
-		if (sound_is_float)
-		{
-	                memset(data->buffer, 0, data->buf_size * sizeof(float));
-	                if (data->synth)
-        	                f_fluid_synth_write_float(data->synth, data->buf_size/2, data->buffer, 0, 2, data->buffer, 1, 2);
-	                if (soundon)
-        	                givealbuffer_midi(data->buffer, data->buf_size);
-		}
-		else
-		{
-	                memset(data->buffer, 0, data->buf_size * sizeof(int16_t));
-	                if (data->synth)
-        	                f_fluid_synth_write_s16(data->synth, data->buf_size/2, data->buffer_int16, 0, 2, data->buffer_int16, 1, 2);
-	                if (soundon)
-        	                givealbuffer_midi(data->buffer_int16, data->buf_size);
-		}
-#endif
         }
 }
 
