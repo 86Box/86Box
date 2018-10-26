@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.86	2018/10/19
+ * Version:	@(#)pc.c	1.0.87	2018/10/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -495,7 +495,6 @@ usage:
     mouse_init();
     cdrom_global_init();
     zip_global_init();
-    scsi_disk_global_init();
 
     /* Load the configuration file. */
     config_load();

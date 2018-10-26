@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.22	2018/10/19
+ * Version:	@(#)win_stbar.c	1.0.23	2018/10/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -777,10 +777,12 @@ ui_sb_mount_floppy_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name)
 void
 ui_sb_mount_zip_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name)
 {
-    zip_disk_close(zip[id]);
+    zip_t *dev = (zip_t *) zip_drives[id].priv;
+
+    zip_disk_close(dev);
     zip_drives[id].ui_writeprot = wp;
-    zip_load(zip[id], file_name);
-    zip_insert(zip[id]);
+    zip_load(dev, file_name);
+    zip_insert(dev);
     if (sb_ready) {
 	ui_sb_update_icon_state(SB_ZIP | id, wcslen(zip_drives[id].image_path) ? 0 : 1);
 	EnableMenuItem(sb_menu_handles[part], IDM_ZIP_EJECT | id, MF_BYCOMMAND | (wcslen(zip_drives[id].image_path) ? MF_ENABLED : MF_GRAYED));
@@ -914,7 +916,7 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					cdrom_image_open(&(cdrom[id]), temp_path);
 					/* Signal media change to the emulated machine. */
 					if (cdrom[id].insert)
-						cdrom[id].insert(cdrom[id].p);
+						cdrom[id].insert(cdrom[id].priv);
 					cdrom[id].host_drive = (wcslen(cdrom[id].image_path) == 0) ? 0 : 200;
 					if (cdrom[id].host_drive == 200) {
 						CheckMenuItem(sb_menu_handles[part], IDM_CDROM_EMPTY | id, MF_UNCHECKED);

@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.29	2018/10/25
+ * Version:	@(#)zip.c	1.0.30	2018/10/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -51,7 +51,6 @@
 #define zipbufferb		dev->buffer
 
 
-zip_t		*zip[ZIP_NUM] = { NULL, NULL, NULL, NULL };
 zip_drive_t	zip_drives[ZIP_NUM];
 
 
@@ -2638,7 +2637,6 @@ void
 zip_global_init(void)
 {
     /* Clear the global data. */
-    memset(zip, 0x00, sizeof(zip));
     memset(zip_drives, 0x00, sizeof(zip_drives));
 }
 
@@ -2738,21 +2736,24 @@ zip_identify(void *p, int ide_has_dma)
 static void
 zip_drive_reset(int c)
 {
+    zip_t *dev;
     scsi_device_t *sd;
     ide_t *id;
 
-    if (!zip[c]) {
-	zip[c] = (zip_t *) malloc(sizeof(zip_t));
-	memset(zip[c], 0, sizeof(zip_t));
+    if (!zip_drives[c].priv) {
+	zip_drives[c].priv = (zip_t *) malloc(sizeof(zip_t));
+	memset(zip_drives[c].priv, 0, sizeof(zip_t));
     }
 
-    zip[c]->id = c;
+    dev = (zip_t *) zip_drives[c].priv;
+
+    dev->id = c;
 
     if (zip_drives[c].bus_type == ZIP_BUS_SCSI) {
 	/* SCSI ZIP, attach to the SCSI bus. */
 	sd = &scsi_devices[zip_drives[c].scsi_device_id];
 
-	sd->p = zip[c];
+	sd->p = dev;
 	sd->command = zip_command;
 	sd->callback = zip_callback;
 	sd->err_stat_to_scsi = zip_err_stat_to_scsi;
@@ -2767,7 +2768,7 @@ zip_drive_reset(int c)
 	   otherwise, we do nothing - it's going to be a drive
 	   that's not attached to anything. */
 	if (id) {
-		id->p = zip[c];
+		id->p = dev;
 		id->get_max = zip_get_max;
 		id->get_timings = zip_get_timings;
 		id->identify = zip_identify;
@@ -2788,6 +2789,7 @@ zip_drive_reset(int c)
 void
 zip_hard_reset(void)
 {
+    zip_t *dev;
     int c;
 
     for (c = 0; c < ZIP_NUM; c++) {
@@ -2804,15 +2806,17 @@ zip_hard_reset(void)
 
 		zip_drive_reset(c);
 
-		zip[c]->id = c;
-		zip[c]->drv = &zip_drives[c];
+		dev = (zip_t *) zip_drives[c].priv;
 
-		zip_init(zip[c]);
+		dev->id = c;
+		dev->drv = &zip_drives[c];
+
+		zip_init(dev);
 
 		if (wcslen(zip_drives[c].image_path))
-			zip_load(zip[c], zip_drives[c].image_path);
+			zip_load(dev, zip_drives[c].image_path);
 
-		zip_mode_sense_load(zip[c]);
+		zip_mode_sense_load(dev);
 
 		if (zip_drives[c].bus_type == ZIP_BUS_SCSI)
 			zip_log("SCSI ZIP drive %i attached to SCSI ID %i\n", c, zip_drives[c].scsi_device_id);
@@ -2830,13 +2834,13 @@ zip_close(void)
     int c;
 
     for (c = 0; c < ZIP_NUM; c++) {
-	dev = zip[c];
+	dev = (zip_t *) zip_drives[c].priv;
 
 	if (dev) {
 		zip_disk_close(dev);
 
-		free(zip[c]);
-		zip[c] = NULL;
+		free(dev);
+		zip_drives[c].priv = NULL;
 	}
     }
 }

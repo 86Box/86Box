@@ -10,7 +10,7 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)intel_piix.c	1.0.19	2018/10/17
+ * Version:	@(#)intel_piix.c	1.0.20	2018/10/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -831,12 +831,12 @@ piix_reset(void *p)
     int i = 0;
 
     for (i = 0; i < CDROM_NUM; i++) {
-	if (cdrom[i].bus_type == CDROM_BUS_ATAPI)
-		scsi_cdrom_reset(scsi_cdrom[i]);
+	if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && cdrom[i].priv)
+		scsi_cdrom_reset(cdrom[i].priv);
     }
     for (i = 0; i < ZIP_NUM; i++) {
-	if (zip_drives[i].bus_type == ZIP_BUS_ATAPI)
-		zip_reset(zip[i]);
+	if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && zip_drives[i].priv)
+		zip_reset(zip_drives[i].priv);
     }
 }
 

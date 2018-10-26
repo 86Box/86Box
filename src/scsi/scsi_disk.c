@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.25	2018/10/18
+ * Version:	@(#)scsi_disk.c	1.0.26	2018/10/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -51,10 +51,6 @@
 #define scsi_disk_sense_key dev->sense[2]
 #define scsi_disk_asc dev->sense[12]
 #define scsi_disk_ascq dev->sense[13]
-
-
-scsi_disk_t *scsi_disk[HDD_NUM] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-				    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 
 
 /* Table of all SCSI commands and their flags, needed for the new disc change / not ready handler. */
@@ -1238,19 +1234,11 @@ scsi_disk_callback(void *p)
 }
 
 
-/* Peform a master init on the entire module. */
-void
-scsi_disk_global_init(void)
-{
-    /* Clear the global data. */
-    memset(scsi_disk, 0x00, sizeof(scsi_disk));
-}
-
-
 void
 scsi_disk_hard_reset(void)
 {
     int c;
+    scsi_disk_t *dev;
     scsi_device_t *sd;
 
     for (c = 0; c < HDD_NUM; c++) {
@@ -1269,15 +1257,17 @@ scsi_disk_hard_reset(void)
 		if (! hdd_image_load(c))
 			continue;
 
-		if (!scsi_disk[c]) {
-			scsi_disk[c] = (scsi_disk_t *) malloc(sizeof(scsi_disk_t));
-			memset(scsi_disk[c], 0, sizeof(scsi_disk_t));
+		if (!hdd[c].priv) {
+			hdd[c].priv = (scsi_disk_t *) malloc(sizeof(scsi_disk_t));
+			memset(hdd[c].priv, 0, sizeof(scsi_disk_t));
 		}
+
+		dev = (scsi_disk_t *) hdd[c].priv;
 
 		/* SCSI disk, attach to the SCSI bus. */
 		sd = &scsi_devices[hdd[c].scsi_id];
 
-		sd->p = scsi_disk[c];
+		sd->p = dev;
 		sd->command = scsi_disk_command;
 		sd->callback = scsi_disk_callback;
 		sd->err_stat_to_scsi = scsi_disk_err_stat_to_scsi;
@@ -1286,10 +1276,10 @@ scsi_disk_hard_reset(void)
 		sd->read_capacity = scsi_disk_read_capacity;
 		sd->type = SCSI_FIXED_DISK;
 
-		scsi_disk[c]->id = c;
-		scsi_disk[c]->drv = &hdd[c];
+		dev->id = c;
+		dev->drv = &hdd[c];
 
-		scsi_disk_mode_sense_load(scsi_disk[c]);
+		scsi_disk_mode_sense_load(dev);
 
 		scsi_disk_log("SCSI disk %i attached to SCSI ID %i\n", c, hdd[c].scsi_id);
 	}
@@ -1304,13 +1294,13 @@ scsi_disk_close(void)
     int c;
 
     for (c = 0; c < HDD_NUM; c++) {
-	dev = scsi_disk[c];
+	dev = hdd[c].priv;
 
 	if (dev) {
 		hdd_image_close(c);
 
-		free(scsi_disk[c]);
-		scsi_disk[c] = NULL;
+		free(dev);
+		hdd[c].priv = NULL;
 	}
     }
 }

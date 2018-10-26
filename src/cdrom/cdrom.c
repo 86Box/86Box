@@ -8,7 +8,7 @@
  *
  *		Generic CD-ROM drive core.
  *
- * Version:	@(#)cdrom.c	1.0.3	2018/10/21
+ * Version:	@(#)cdrom.c	1.0.4	2018/10/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -263,6 +263,8 @@ cdrom_close(void)
 
 	if (dev->close)
 		dev->close(dev->p);
+
+	dev->p = NULL;
 
 	cdrom_drive_reset(dev);
     }

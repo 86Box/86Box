@@ -8,7 +8,7 @@
  *
  *		Generic CD-ROM drive core header.
  *
- * Version:	@(#)cdrom.h	1.0.15	2018/10/17
+ * Version:	@(#)cdrom.h	1.0.16	2018/10/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -96,7 +96,7 @@ typedef struct cdrom {
 
     void	*image;
 
-    void	*p;
+    void	*priv;
 
     void	(*insert)(void *p);
     void	(*close)(void *p);

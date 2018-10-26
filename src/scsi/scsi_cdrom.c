@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.56	2018/10/26
+ * Version:	@(#)scsi_cdrom.c	1.0.57	2018/10/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -52,9 +52,6 @@
 #define MCR_ERR			0x08 /* Media change request */
 
 #define cdbufferb	 dev->buffer
-
-
-scsi_cdrom_t	*scsi_cdrom[CDROM_NUM] = { NULL, NULL, NULL, NULL };
 
 
 #pragma pack(push,1)
@@ -2989,13 +2986,9 @@ static void
 scsi_cdrom_close(void *p)
 {
     scsi_cdrom_t *dev = (scsi_cdrom_t *) p;
-    uint8_t id;
 
-    if (dev) {
-	id = dev->id;
-	free(scsi_cdrom[id]);
-	scsi_cdrom[id] = NULL;
-    }
+    if (dev)
+	free(dev);
 }
 
 
@@ -3100,6 +3093,7 @@ void
 scsi_cdrom_drive_reset(int c)
 {
     cdrom_t *drv = &cdrom[c];
+    scsi_cdrom_t *dev;
     scsi_device_t *sd;
     ide_t *id;
 
@@ -3111,26 +3105,27 @@ scsi_cdrom_drive_reset(int c)
     if ((drv->bus_type == CDROM_BUS_ATAPI) && (drv->ide_channel > 7))
 	return;
 
-    if (!scsi_cdrom[c]) {
-	scsi_cdrom[c] = (scsi_cdrom_t *) malloc(sizeof(scsi_cdrom_t));
-	memset(scsi_cdrom[c], 0, sizeof(scsi_cdrom_t));
+    if (!drv->priv) {
+	drv->priv = (scsi_cdrom_t *) malloc(sizeof(scsi_cdrom_t));
+	memset(drv->priv, 0, sizeof(scsi_cdrom_t));
     }
 
-    scsi_cdrom[c]->id = c;
-    scsi_cdrom[c]->drv = drv;
-    drv->p = scsi_cdrom[c];
+    dev = (scsi_cdrom_t *) drv->priv;
+
+    dev->id = c;
+    dev->drv = drv;
     drv->insert = scsi_cdrom_insert;
     drv->get_volume = scsi_cdrom_get_volume;
     drv->get_channel = scsi_cdrom_get_channel;
     drv->close = scsi_cdrom_close;
 
-    scsi_cdrom_init(scsi_cdrom[c]);
+    scsi_cdrom_init(dev);
 
     if (drv->bus_type == CDROM_BUS_SCSI) {
 	/* SCSI CD-ROM, attach to the SCSI bus. */
 	sd = &scsi_devices[drv->scsi_device_id];
 
-	sd->p = scsi_cdrom[c];
+	sd->p = dev;
 	sd->command = scsi_cdrom_command;
 	sd->callback = scsi_cdrom_callback;
 	sd->err_stat_to_scsi = scsi_cdrom_err_stat_to_scsi;
@@ -3147,7 +3142,7 @@ scsi_cdrom_drive_reset(int c)
 	   otherwise, we do nothing - it's going to be a drive
 	   that's not attached to anything. */
 	if (id) {
-		id->p = scsi_cdrom[c];
+		id->p = dev;
 		id->get_max = scsi_cdrom_get_max;
 		id->get_timings = scsi_cdrom_get_timings;
 		id->identify = scsi_cdrom_identify;
