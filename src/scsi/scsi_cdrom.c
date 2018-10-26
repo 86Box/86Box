@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.55	2018/10/25
+ * Version:	@(#)scsi_cdrom.c	1.0.56	2018/10/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -2989,10 +2989,12 @@ static void
 scsi_cdrom_close(void *p)
 {
     scsi_cdrom_t *dev = (scsi_cdrom_t *) p;
+    uint8_t id;
 
     if (dev) {
-	free(scsi_cdrom[dev->id]);
-	scsi_cdrom[dev->id] = NULL;
+	id = dev->id;
+	free(scsi_cdrom[id]);
+	scsi_cdrom[id] = NULL;
     }
 }
 
