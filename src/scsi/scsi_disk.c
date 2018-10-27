@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.26	2018/10/26
+ * Version:	@(#)scsi_disk.c	1.0.27	2018/10/27
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -177,14 +177,10 @@ scsi_disk_mode_sense_load(scsi_disk_t *dev)
 {
     FILE *f;
     wchar_t file_name[512];
-    int i;
+
     memset(&dev->ms_pages_saved, 0, sizeof(mode_sense_pages_t));
-    for (i = 0; i < 0x3f; i++) {
-	if (scsi_disk_mode_sense_pages_default.pages[i][1] != 0) {
-		memcpy(dev->ms_pages_saved.pages[i], scsi_disk_mode_sense_pages_default.pages[i],
-		       scsi_disk_mode_sense_pages_default.pages[i][1] + 2);
-	}
-    }
+    memcpy(&dev->ms_pages_saved, &scsi_disk_mode_sense_pages_default, sizeof(mode_sense_pages_t));
+
     swprintf(file_name, 512, L"scsi_disk_%02i_mode_sense.bin", dev->id);
     memset(file_name, 0, 512 * sizeof(wchar_t));
     f = plat_fopen(nvr_path(file_name), L"rb");

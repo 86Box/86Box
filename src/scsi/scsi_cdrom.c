@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.62	2018/10/26
+ * Version:	@(#)scsi_cdrom.c	1.0.63	2018/10/27
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -477,21 +477,13 @@ scsi_cdrom_mode_sense_load(scsi_cdrom_t *dev)
 {
     FILE *f;
     wchar_t file_name[512];
-    int i;
 
     memset(&dev->ms_pages_saved, 0, sizeof(mode_sense_pages_t));
-    for (i = 0; i < 0x3f; i++) {
-	if (scsi_cdrom_mode_sense_pages_default.pages[i][1] != 0) {
-		if (dev->drv->bus_type == CDROM_BUS_SCSI)
-			memcpy(dev->ms_pages_saved.pages[i],
-			       scsi_cdrom_mode_sense_pages_default_scsi.pages[i],
-			       scsi_cdrom_mode_sense_pages_default_scsi.pages[i][1] + 2);
-		else
-			memcpy(dev->ms_pages_saved.pages[i],
-			       scsi_cdrom_mode_sense_pages_default.pages[i],
-			       scsi_cdrom_mode_sense_pages_default.pages[i][1] + 2);
-	}
-    }
+    if (dev->drv->bus_type == CDROM_BUS_SCSI)
+	memcpy(&dev->ms_pages_saved, &scsi_cdrom_mode_sense_pages_default_scsi, sizeof(mode_sense_pages_t));
+    else
+	memcpy(&dev->ms_pages_saved, &scsi_cdrom_mode_sense_pages_default, sizeof(mode_sense_pages_t));
+
     memset(file_name, 0, 512 * sizeof(wchar_t));
     if (dev->drv->bus_type == CDROM_BUS_SCSI)
 	swprintf(file_name, 512, L"scsi_cdrom_%02i_mode_sense_bin", dev->id);

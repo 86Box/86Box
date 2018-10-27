@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.33	2018/10/26
+ * Version:	@(#)zip.c	1.0.34	2018/10/27
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -561,11 +561,20 @@ zip_disk_reload(zip_t *dev)
 
 
 void
-zip_disk_close(zip_t *dev)
+zip_disk_unload(zip_t *dev)
 {
     if (dev->drv->f) {
 	fclose(dev->drv->f);
 	dev->drv->f = NULL;
+    }
+}
+
+
+void
+zip_disk_close(zip_t *dev)
+{
+    if (dev->drv->f) {
+	zip_disk_unload(dev);
 
 	memcpy(dev->drv->prev_image_path, dev->drv->image_path, sizeof(dev->drv->prev_image_path));
 	memset(dev->drv->image_path, 0, sizeof(dev->drv->image_path));
@@ -698,36 +707,20 @@ zip_mode_sense_load(zip_t *dev)
 {
     FILE *f;
     wchar_t file_name[512];
-    int i;
 
     memset(&dev->ms_pages_saved, 0, sizeof(mode_sense_pages_t));
-    for (i = 0; i < 0x3f; i++) {
-	if (dev->drv->is_250) {
-		if (zip_250_mode_sense_pages_default.pages[i][1] != 0) {
-			if (zip_drives[dev->id].bus_type == ZIP_BUS_SCSI) {
-				memcpy(dev->ms_pages_saved.pages[i],
-				       zip_250_mode_sense_pages_default_scsi.pages[i],
-				       zip_250_mode_sense_pages_default_scsi.pages[i][1] + 2);
-			} else {
-				memcpy(dev->ms_pages_saved.pages[i],
-				       zip_250_mode_sense_pages_default.pages[i],
-				       zip_250_mode_sense_pages_default.pages[i][1] + 2);
-			}
-		}
-	} else {
-		if (zip_mode_sense_pages_default.pages[i][1] != 0) {
-			if (dev->drv->bus_type == ZIP_BUS_SCSI) {
-				memcpy(dev->ms_pages_saved.pages[i],
-				       zip_mode_sense_pages_default_scsi.pages[i],
-				       zip_mode_sense_pages_default_scsi.pages[i][1] + 2);
-			} else {
-				memcpy(dev->ms_pages_saved.pages[i],
-				       zip_mode_sense_pages_default.pages[i],
-				       zip_mode_sense_pages_default.pages[i][1] + 2);
-			}
-		}
-	}
+    if (dev->drv->is_250) {
+	if (zip_drives[dev->id].bus_type == ZIP_BUS_SCSI)
+	    memcpy(&dev->ms_pages_saved, &zip_250_mode_sense_pages_default_scsi, sizeof(mode_sense_pages_t));
+	else
+	    memcpy(&dev->ms_pages_saved, &zip_250_mode_sense_pages_default, sizeof(mode_sense_pages_t));
+    } else {
+	if (zip_drives[dev->id].bus_type == ZIP_BUS_SCSI)
+	    memcpy(&dev->ms_pages_saved, &zip_mode_sense_pages_default_scsi, sizeof(mode_sense_pages_t));
+	else
+	    memcpy(&dev->ms_pages_saved, &zip_mode_sense_pages_default, sizeof(mode_sense_pages_t));
     }
+
     memset(file_name, 0, 512 * sizeof(wchar_t));
     if (dev->drv->bus_type == ZIP_BUS_SCSI)
 	swprintf(file_name, 512, L"scsi_zip_%02i_mode_sense_bin", dev->id);
@@ -2815,7 +2808,7 @@ zip_close(void)
 	dev = (zip_t *) zip_drives[c].priv;
 
 	if (dev) {
-		zip_disk_close(dev);
+		zip_disk_unload(dev);
 
 		free(dev);
 		zip_drives[c].priv = NULL;
