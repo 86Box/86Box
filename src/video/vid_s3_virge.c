@@ -8,7 +8,7 @@
  *
  *		S3 ViRGE emulation.
  *
- * Version:	@(#)vid_s3_virge.c	1.0.16	2018/10/18
+ * Version:	@(#)vid_s3_virge.c	1.0.17	2018/10/27
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -620,7 +620,7 @@ static void s3_virge_recalctimings(svga_t *svga)
                         }
                 }
 
-		if (virge->chip == S3_VIRGEVX)
+		if (virge->chip != S3_VIRGEVX)
 		{
 	                if ((svga->bpp == 15) || (svga->bpp == 16))
         	        {
