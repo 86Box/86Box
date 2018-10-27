@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.32	2018/10/26
+ * Version:	@(#)zip.c	1.0.33	2018/10/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -734,8 +734,10 @@ zip_mode_sense_load(zip_t *dev)
     else
 	swprintf(file_name, 512, L"zip_%02i_mode_sense_bin", dev->id);
     f = plat_fopen(nvr_path(file_name), L"rb");
-    if (f)
+    if (f) {
+	/* Nothing to read, not used by ZIP. */
 	fclose(f);
+    }
 }
 
 
@@ -751,8 +753,10 @@ zip_mode_sense_save(zip_t *dev)
     else
 	swprintf(file_name, 512, L"zip_%02i_mode_sense_bin", dev->id);
     f = plat_fopen(nvr_path(file_name), L"wb");
-    if (f)
+    if (f) {
+	/* Nothing to write, not used by ZIP. */
 	fclose(f);
+    }
 }
 
 
@@ -762,10 +766,7 @@ zip_read_capacity(void *p, uint8_t *cdb, uint8_t *buffer, uint32_t *len)
     zip_t *dev = (zip_t *) p;
     int size = 0;
 
-    if (dev->drv->is_250)
-	size = dev->drv->medium_size - 1;	/* IMPORTANT: What's returned is the last LBA block. */
-    else
-	size = ZIP_SECTORS - 1;			/* IMPORTANT: What's returned is the last LBA block. */
+    size = dev->drv->medium_size - 1;	/* IMPORTANT: What's returned is the last LBA block. */
     memset(buffer, 0, 8);
     buffer[0] = (size >> 24) & 0xff;
     buffer[1] = (size >> 16) & 0xff;
@@ -835,17 +836,10 @@ zip_mode_sense(zip_t *dev, uint8_t *buf, uint32_t pos, uint8_t page, uint8_t blo
     page &= 0x3f;
 
     if (block_descriptor_len) {
-	if (dev->drv->is_250) {
-		buf[pos++] = ((dev->drv->medium_size >> 24) & 0xff);
-		buf[pos++] = ((dev->drv->medium_size >> 16) & 0xff);
-		buf[pos++] = ((dev->drv->medium_size >>  8) & 0xff);
-		buf[pos++] = ( dev->drv->medium_size        & 0xff);
-	} else {
-		buf[pos++] = ((ZIP_SECTORS >> 24) & 0xff);
-		buf[pos++] = ((ZIP_SECTORS >> 16) & 0xff);
-		buf[pos++] = ((ZIP_SECTORS >>  8) & 0xff);
-		buf[pos++] = ( ZIP_SECTORS        & 0xff);
-	}
+	buf[pos++] = ((dev->drv->medium_size >> 24) & 0xff);
+	buf[pos++] = ((dev->drv->medium_size >> 16) & 0xff);
+	buf[pos++] = ((dev->drv->medium_size >>  8) & 0xff);
+	buf[pos++] = ( dev->drv->medium_size        & 0xff);
 	buf[pos++] = 0;		/* Reserved. */
 	buf[pos++] = 0;		/* Block length (0x200 = 512 bytes). */
 	buf[pos++] = 2;
@@ -1499,7 +1493,7 @@ zip_command(void *p, uint8_t *cdb)
 		break;
 
 	case GPCMD_FORMAT_UNIT:
-		if ((dev->drv->bus_type == ZIP_BUS_SCSI) && dev->drv->read_only) {
+		if (dev->drv->read_only) {
 			zip_write_protected(dev);
 			return;
 		}
@@ -1655,7 +1649,7 @@ zip_command(void *p, uint8_t *cdb)
 		zip_set_phase(dev, SCSI_PHASE_DATA_OUT);
 		alloc_length = 512;
 
-		if ((dev->drv->bus_type == ZIP_BUS_SCSI) && dev->drv->read_only) {
+		if (dev->drv->read_only) {
 			zip_write_protected(dev);
 			return;
 		}
@@ -1681,18 +1675,10 @@ zip_command(void *p, uint8_t *cdb)
 				break;
 		}
 
-		if (dev->drv->is_250) {
-			if ((dev->sector_pos >= dev->drv->medium_size) ||
-			    ((dev->sector_pos + dev->sector_len - 1) >= dev->drv->medium_size)) {
-				zip_lba_out_of_range(dev);
-				return;
-			}
-		} else {
-			if ((dev->sector_pos >= ZIP_SECTORS) ||
-			    ((dev->sector_pos + dev->sector_len - 1) >= ZIP_SECTORS)) {
-				zip_lba_out_of_range(dev);
-				return;
-			}
+		if ((dev->sector_pos >= dev->drv->medium_size) ||
+		    ((dev->sector_pos + dev->sector_len - 1) >= dev->drv->medium_size)) {
+			zip_lba_out_of_range(dev);
+			return;
 		}
 
 		if (!dev->sector_len) {
@@ -1734,7 +1720,7 @@ zip_command(void *p, uint8_t *cdb)
 			return;
 		}
 
-		if ((dev->drv->bus_type == ZIP_BUS_SCSI) && dev->drv->read_only) {
+		if (dev->drv->read_only) {
 			zip_write_protected(dev);
 			return;
 		}
@@ -1742,18 +1728,10 @@ zip_command(void *p, uint8_t *cdb)
 		dev->sector_len = (cdb[7] << 8) | cdb[8];
 		dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
 
-		if (dev->drv->is_250) {
-			if ((dev->sector_pos >= dev->drv->medium_size) ||
-			    ((dev->sector_pos + dev->sector_len - 1) >= dev->drv->medium_size)) {
-				zip_lba_out_of_range(dev);
-				return;
-			}
-		} else {
-			if ((dev->sector_pos >= ZIP_SECTORS) ||
-			    ((dev->sector_pos + dev->sector_len - 1) >= ZIP_SECTORS)) {
-				zip_lba_out_of_range(dev);
-				return;
-			}
+		if ((dev->sector_pos >= dev->drv->medium_size) ||
+		    ((dev->sector_pos + dev->sector_len - 1) >= dev->drv->medium_size)) {
+			zip_lba_out_of_range(dev);
+			return;
 		}
 
 		if (!dev->sector_len) {
@@ -2050,6 +2028,8 @@ atapi_out:
 
 		/* Current/Maximum capacity header */
 		if (dev->drv->is_250) {
+			/* ZIP 250 also supports ZIP 100 media, so if the medium is inserted,
+			   we return the inserted medium's size, otherwise, the ZIP 250 size. */
 			if (dev->drv->f != NULL) {
 				dev->buffer[pos++] = (dev->drv->medium_size >> 24) & 0xff;
 				dev->buffer[pos++] = (dev->drv->medium_size >> 16) & 0xff;
@@ -2064,6 +2044,8 @@ atapi_out:
 				dev->buffer[pos++] = 3;	/* Maximum medium capacity */
 			}
 		} else {
+			/* ZIP 100 only supports ZIP 100 media as well, so we always return
+			   the ZIP 100 size. */
 			dev->buffer[pos++] = (ZIP_SECTORS >> 24) & 0xff;
 			dev->buffer[pos++] = (ZIP_SECTORS >> 16) & 0xff;
 			dev->buffer[pos++] = (ZIP_SECTORS >> 8)  & 0xff;
@@ -2141,10 +2123,7 @@ zip_phase_data_out(zip_t *dev)
 		break;
 	case GPCMD_WRITE_SAME_10:
 		if (!dev->current_cdb[7] && !dev->current_cdb[8]) {
-			if (dev->drv->is_250)
-				last_to_write = (dev->drv->medium_size - 1);
-			else
-				last_to_write = (ZIP_SECTORS - 1);
+			last_to_write = (dev->drv->medium_size - 1);
 		} else
 			last_to_write = dev->sector_pos + dev->sector_len - 1;
 
