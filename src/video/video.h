@@ -8,7 +8,7 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.35	2018/09/19
+ * Version:	@(#)video.h	1.0.36	2018/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -115,7 +115,8 @@ extern int	video_res_x,
 		video_res_y,
 		video_bpp;
 extern int	vid_resize;
-extern int	cga_palette;
+extern int	cga_palette,
+		herc_blend;
 extern int	vid_cga_contrast;
 extern int	video_grayscale;
 extern int	video_graytype;
@@ -148,8 +149,9 @@ extern int	video_get_type(void);
 
 
 extern void	video_setblit(void(*blit)(int,int,int,int,int,int));
-extern void	video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
+extern void	video_blend(int x, int y);
 extern void	video_blit_memtoscreen_8(int x, int y, int y1, int y2, int w, int h);
+extern void	video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
 extern void	video_blit_complete(void);
 extern void	video_wait_for_blit(void);
 extern void	video_wait_for_buffer(void);

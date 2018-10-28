@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.28	2018/10/22
+ * Version:	@(#)video.c	1.0.29	2018/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -78,7 +78,8 @@ dbcs_font_t	*fontdatksc5601_user = NULL;	/* Korean KSC-5601 user defined font */
 uint32_t	pal_lookup[256];
 int		xsize = 1,
 		ysize = 1;
-int		cga_palette = 0;
+int		cga_palette = 0,
+		herc_blend = 0;
 uint32_t	*video_6to8 = NULL,
 		*video_15to32 = NULL,
 		*video_16to32 = NULL;
@@ -106,6 +107,7 @@ int		video_grayscale = 0;
 int		video_graytype = 0;
 static int	vid_type;
 static const video_timings_t	*vid_timings;
+static uint32_t cga_2_table[16];
 
 
 PALETTE		cgapal = {
@@ -320,6 +322,63 @@ video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
     blit_data.h = h;
 
     thread_set_event(blit_data.wake_blit_thread);
+}
+
+
+uint8_t pixels8(uint8_t *pixels)
+{
+    int i;
+    uint8_t temp = 0;
+
+    for (i = 0; i < 8; i++)
+	temp |= (!!*(pixels + i) << (i ^ 7));
+
+    return temp;
+}
+
+
+uint32_t pixel_to_color(uint8_t *pixels32, uint8_t pos)
+{
+    uint32_t temp;
+    temp = *(pixels32 + pos) & 0x03;
+    switch (temp) {
+	case 0:
+	default:
+		return 0x00;
+	case 1:
+		return 0x07;
+	case 2:
+		return 0x0f;
+    }
+}
+
+
+static unsigned int carry = 0;
+
+
+void
+video_blend(int x, int y)
+{
+    int xx;
+
+    uint32_t pixels32_1, pixels32_2;
+    unsigned int val1, val2;
+
+    if (!herc_blend)
+	return;
+
+    if (!x)
+	carry = 0;
+
+    val1 = pixels8(&(buffer->line[y][x]));
+    val2 = (val1 >> 1) + carry;
+    carry = (val1 & 1) << 7;
+    pixels32_1 = cga_2_table[val1 >> 4] + cga_2_table[val2 >> 4];
+    pixels32_2 = cga_2_table[val1 & 0xf] + cga_2_table[val2 & 0xf];
+    for (xx = 0; xx < 4; xx++) {
+	buffer->line[y][x + xx] = pixel_to_color((uint8_t *) &pixels32_1, xx);
+	buffer->line[y][x + (xx | 4)] = pixel_to_color((uint8_t *) &pixels32_2, xx);
+    }
 }
 
 
@@ -564,6 +623,12 @@ void
 video_init(void)
 {
     int c, d, e;
+    uint8_t total[2] = { 0, 1 };
+
+    for (c = 0; c < 16; c++) {
+	cga_2_table[c] = (total[(c >> 3) & 1] << 0 ) | (total[(c >> 2) & 1] << 8 ) |
+			 (total[(c >> 1) & 1] << 16) | (total[(c >> 0) & 1] << 24);
+    }
 
     /* Account for overscan. */
     buffer32 = create_bitmap(2048, 2048);

@@ -8,7 +8,7 @@
  *
  *		Hercules emulation.
  *
- * Version:	@(#)vid_hercules.c	1.0.14	2018/10/11
+ * Version:	@(#)vid_hercules.c	1.0.15	2018/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -223,8 +223,11 @@ hercules_poll(void *priv)
 			for (x = 0; x < dev->crtc[1]; x++) {
 				dat = (dev->vram[((dev->ma << 1) & 0x1fff) + ca] << 8) | dev->vram[((dev->ma << 1) & 0x1fff) + ca + 1];
 				dev->ma++;
-				for (c = 0; c < 16; c++)
+				for (c = 0; c < 16; c++) {
 				    buffer->line[dev->displine][(x << 4) + c] = (dat & (32768 >> c)) ? 7 : 0;
+				}
+				for (c = 0; c < 16; c += 8)
+					video_blend((x << 4) + c, dev->displine);
 			}
 		} else {
 			for (x = 0; x < dev->crtc[1]; x++) {
@@ -416,6 +419,8 @@ hercules_init(const device_t *info)
 	cga_palette = 0;
     cgapal_rebuild();
 
+    herc_blend = device_get_config_int("blend");
+
     video_inform(VIDEO_FLAG_TYPE_MDA, &timing_hercules);
 
     /* Force the LPT3 port to be enabled. */
@@ -469,6 +474,9 @@ static const device_config_t hercules_config[] = {
 			""
 		}
 	}
+    },
+    {
+	"blend", "Blend", CONFIG_BINARY, "", 1
     },
     {
 	"", "", -1

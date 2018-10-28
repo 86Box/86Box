@@ -8,7 +8,7 @@
  *
  *		Hercules Plus emulation.
  *
- * Version:	@(#)vid_herculesplus.c	1.0.12	2018/10/11
+ * Version:	@(#)vid_herculesplus.c	1.0.13	2018/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -440,7 +440,7 @@ text_line(herculesplus_t *dev, uint16_t ca)
 
 		col = dev->cols[attr][0][1];
 		for (c = 0; c < cw; c++)
-			((uint32_t *)buffer32->line[dev->displine])[x * cw + c] = col;
+			buffer->line[dev->displine][x * cw + c] = col;
 	}
     }
 }
@@ -466,8 +466,11 @@ graphics_line(herculesplus_t *dev)
 	for (c = 0; c < 16; c++) {
 		val >>= 1;
 
-		((uint32_t *)buffer32->line[dev->displine])[(x << 4) + c] = (val & 1) ? 7 : 0;
+		buffer->line[dev->displine][(x << 4) + c] = (val & 1) ? 7 : 0;
 	}
+
+	for (c = 0; c < 16; c += 8)
+		video_blend((x << 4) + c, dev->displine);
     }
 }
 
@@ -566,7 +569,7 @@ herculesplus_poll(void *priv)
 					if (video_force_resize_get())
 						video_force_resize_set(0);
 				}
-				video_blit_memtoscreen(0, dev->firstline, 0, dev->lastline - dev->firstline, xsize, dev->lastline - dev->firstline);
+				video_blit_memtoscreen_8(0, dev->firstline, 0, dev->lastline - dev->firstline, xsize, dev->lastline - dev->firstline);
 				frames++;
 				if ((dev->ctrl & HERCULESPLUS_CTRL_GRAPH) && (dev->ctrl2 & HERCULESPLUS_CTRL2_GRAPH)) {
 					video_res_x = dev->crtc[1] * 16;
@@ -639,6 +642,13 @@ herculesplus_init(const device_t *info)
     dev->cols[0x80][0][1] = dev->cols[0x80][1][1] = 16;
     dev->cols[0x88][0][1] = dev->cols[0x88][1][1] = 16;
 
+    herc_blend = device_get_config_int("blend");
+
+    cga_palette = device_get_config_int("rgb_type") << 1;
+    if (cga_palette > 6)
+	cga_palette = 0;
+    cgapal_rebuild();
+
     video_inform(VIDEO_FLAG_TYPE_MDA, &timing_herculesplus);
 
     /* Force the LPT3 port to be enabled. */
@@ -672,6 +682,35 @@ speed_changed(void *priv)
 }
 
 
+static const device_config_t herculesplus_config[] = {
+    {
+	"rgb_type", "Display type", CONFIG_SELECTION, "", 0,
+	{
+		{
+			"Default", 0
+		},
+		{
+			"Green", 1
+		},
+		{
+			"Amber", 2
+		},
+		{
+			"Gray", 3
+		},
+		{
+			""
+		}
+	}
+    },
+    {
+	"blend", "Blend", CONFIG_BINARY, "", 1
+    },
+    {
+	"", "", -1
+    }
+};
+
 const device_t herculesplus_device = {
     "Hercules Plus",
     DEVICE_ISA,
@@ -680,5 +719,5 @@ const device_t herculesplus_device = {
     NULL,
     speed_changed,
     NULL,
-    NULL
+    herculesplus_config
 };
