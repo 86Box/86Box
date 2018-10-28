@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.36	2018/10/24
+ * Version:	@(#)win_ui.c	1.0.37	2018/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -52,6 +52,7 @@ HICON		hIcon[256];		/* icon data loaded from resources */
 RECT		oldclip;		/* mouse rect */
 int		infocus = 1;
 int		rctrl_is_lalt = 0;
+int		user_resize = 0;
 
 char		openfilestring[260];
 WCHAR		wopenfilestring[260];
@@ -543,6 +544,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_SIZE:
+		if (user_resize && !vid_resize)
+			break;
+
 		SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
 
 		temp_x = (lParam & 0xFFFF);
@@ -588,11 +592,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_MOVE:
-		/* If window is not resizable, then tell the main thread to
-		   resize it, as sometimes, moves can mess up the window size. */
-		if (!vid_resize)
-			doresize = 1;
-
 		if (window_remember) {
 			GetWindowRect(hwnd, &rect);
 			window_x = rect.left;
@@ -687,6 +686,19 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			UnhookWindowsHookEx(hKeyboardHook);
 			hook_enabled = 0;
 		}
+		break;
+
+	case WM_ENTERSIZEMOVE:
+		user_resize = 1;
+		break;
+
+	case WM_EXITSIZEMOVE:
+		user_resize = 0;
+
+		/* If window is not resizable, then tell the main thread to
+		   resize it, as sometimes, moves can mess up the window size. */
+		if (!vid_resize)
+			doresize = 1;
 		break;
     }
 
@@ -989,6 +1001,7 @@ plat_resize(int x, int y)
     /* First, see if we should resize the UI window. */
     if (!vid_resize) {
 	video_wait_for_blit();
+
 	SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
 
 	GetWindowRect(hwndMain, &r);
