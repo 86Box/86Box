@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.34	2018/10/28
+ * Version:	@(#)zip.c	1.0.35	2018/10/30
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -1871,11 +1871,13 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
 			dev->buffer[1] = 0x80; /*Removable*/
 			dev->buffer[2] = (dev->drv->bus_type == ZIP_BUS_SCSI) ? 0x02 : 0x00; /*SCSI-2 compliant*/
 			dev->buffer[3] = (dev->drv->bus_type == ZIP_BUS_SCSI) ? 0x02 : 0x21;
-			dev->buffer[4] = 31;
+			// dev->buffer[4] = 31;
+			dev->buffer[4] = 0;
 			if (dev->drv->bus_type == ZIP_BUS_SCSI) {
 				dev->buffer[6] = 1;	/* 16-bit transfers supported */
 				dev->buffer[7] = 0x20;	/* Wide bus supported */
 			}
+			dev->buffer[7] |= 0x02;
 
 			ide_padstr8(dev->buffer + 8, 8, "IOMEGA  "); /* Vendor */
 			if (dev->drv->is_250) {

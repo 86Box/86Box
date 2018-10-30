@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.64	2018/10/28
+ * Version:	@(#)scsi_cdrom.c	1.0.65	2018/10/30
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -2275,7 +2275,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 			dev->buffer[0] = 5; /*CD-ROM*/
 			dev->buffer[1] = 0x80; /*Removable*/
 			dev->buffer[2] = (dev->drv->bus_type == CDROM_BUS_SCSI) ? 0x02 : 0x00; /*SCSI-2 compliant*/
-			dev->buffer[3] = (dev->drv->bus_type == CDROM_BUS_SCSI) ? 0x12 : 0x21;
+			dev->buffer[3] = (dev->drv->bus_type == CDROM_BUS_SCSI) ? 0x02 : 0x21;
 			dev->buffer[4] = 31;
 			if (dev->drv->bus_type == CDROM_BUS_SCSI) {
 				dev->buffer[6] = 1;	/* 16-bit transfers supported */

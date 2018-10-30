@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel 1 Mbit 8-bit flash devices.
  *
- * Version:	@(#)intel_flash.c	1.0.17	2018/10/02
+ * Version:	@(#)intel_flash.c	1.0.18	2018/10/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -55,6 +55,7 @@ typedef struct flash_t
         uint8_t command, status;
 	uint8_t flash_id;
 	int invert_high_pin;
+        uint32_t program_addr;
 	mem_mapping_t mapping[8], mapping_h[8];
 	uint32_t block_start[4], block_end[4], block_len[4];
 	uint8_t array[131072];
@@ -114,7 +115,7 @@ static void flash_write(uint32_t addr, uint8_t val, void *p)
 
         switch (flash->command) {
                 case CMD_ERASE_SETUP:
-                if (val == CMD_ERASE_CONFIRM) {
+                 if (val == CMD_ERASE_CONFIRM) {
 			for (i = 0; i < 3; i++) {
                         	if ((addr >= flash->block_start[i]) && (addr <= flash->block_end[i]))
                                 	memset(&(flash->array[flash->block_start[i]]), 0xff, flash->block_len[i]);
@@ -127,7 +128,7 @@ static void flash_write(uint32_t addr, uint8_t val, void *p)
                 
                 case CMD_PROGRAM_SETUP:
                 case CMD_PROGRAM_SETUP_ALT:
-                if ((addr & 0x1e000) != (flash->block_start[3] & 0x1e000))
+                if (((addr & 0x1e000) != (flash->block_start[3] & 0x1e000)) && (addr == flash->program_addr))
        	                flash->array[addr] = val;
                 flash->command = CMD_READ_STATUS;
                 flash->status = 0x80;
@@ -137,8 +138,12 @@ static void flash_write(uint32_t addr, uint8_t val, void *p)
                 flash->command = val;
                 switch (val) {
                         case CMD_CLEAR_STATUS:
-                        flash->status = 0;
-                        break;
+                	        flash->status = 0;
+                        	break;
+	                case CMD_PROGRAM_SETUP:
+        	        case CMD_PROGRAM_SETUP_ALT:
+				flash->program_addr = addr;
+				break;
                 }
         }
 }
