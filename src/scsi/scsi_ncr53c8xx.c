@@ -808,6 +808,21 @@ ncr53c8xx_do_status(ncr53c8xx_t *dev)
 }
 
 
+#ifdef USE_WDTR
+static void
+ncr53c8xx_do_wdtr(ncr53c8xx_t *dev, int exponent)
+{
+    ncr53c8xx_log("Target-initiated WDTR (%08X)\n", dev);
+    ncr53c8xx_set_phase(dev, PHASE_MI);
+    dev->msg_action = 4;
+    ncr53c8xx_add_msg_byte(dev, 0x01);	/* EXTENDED MESSAGE */
+    ncr53c8xx_add_msg_byte(dev, 0x02);	/* EXTENDED MESSAGE LENGTH */
+    ncr53c8xx_add_msg_byte(dev, 0x03);	/* WIDE DATA TRANSFER REQUEST */
+    ncr53c8xx_add_msg_byte(dev, exponent);	/* TRANSFER WIDTH EXPONENT (16-bit) */
+}
+#endif
+
+
 static void
 ncr53c8xx_do_msgin(ncr53c8xx_t *dev)
 {
@@ -838,6 +853,9 @@ ncr53c8xx_do_msgin(ncr53c8xx_t *dev)
 			break;
 		case 3:
 			ncr53c8xx_set_phase(dev, PHASE_DI);
+			break;
+		case 4:
+			ncr53c8xx_set_phase(dev, PHASE_MO);
 			break;
 		default:
 			abort();
@@ -881,15 +899,15 @@ static void
 ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
 {
     uint8_t msg;
-    int len;
-#ifdef ENABLE_NCR53C8xx_LOG
+    int len, arg;
+#ifdef ENABLE_NCR53C8XX_LOG
     uint32_t current_tag;
 #endif
     scsi_device_t *sd;
 
     sd = &scsi_devices[id];
 
-#ifdef ENABLE_NCR53C8xx_LOG
+#ifdef ENABLE_NCR53C8XX_LOG
     current_tag = id;
 #endif
 
@@ -910,20 +928,27 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
 		case 0x01:
 			len = ncr53c8xx_get_msgbyte(dev);
 			msg = ncr53c8xx_get_msgbyte(dev);
+			arg = ncr53c8xx_get_msgbyte(dev);
 			(void) len; /* avoid a warning about unused variable*/
 			ncr53c8xx_log("Extended message 0x%x (len %d)\n", msg, len);
 			switch (msg) {
 				case 1:
 					ncr53c8xx_log("SDTR (ignored)\n");
-					ncr53c8xx_skip_msgbytes(dev, 2);
+					ncr53c8xx_skip_msgbytes(dev, 1);
 					break;
 				case 3:
 					ncr53c8xx_log("WDTR (ignored)\n");
-					ncr53c8xx_skip_msgbytes(dev, 1);
+					if (arg > 0x01) {
+						ncr53c8xx_bad_message(dev, msg);
+						return;
+					}
+#ifdef USE_WDTR
+					ncr53c8xx_set_phase(dev, PHASE_CMD);
+#endif
 					break;
 				case 5:
 					ncr53c8xx_log("PPR (ignored)\n");
-					ncr53c8xx_skip_msgbytes(dev, 5);
+					ncr53c8xx_skip_msgbytes(dev, 4);
 					break;
 				default:
 					ncr53c8xx_bad_message(dev, msg);
@@ -964,7 +989,11 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
 				ncr53c8xx_log("MSG: Identify\n");
 				dev->current_lun = msg & 7;
 				ncr53c8xx_log("Select LUN %d\n", dev->current_lun);
+#ifdef USE_WDTR
+				ncr53c8xx_do_wdtr(dev, 0x01);
+#else
 				ncr53c8xx_set_phase(dev, PHASE_CMD);
+#endif
 			}
 			break;
 	}
@@ -997,7 +1026,7 @@ ncr53c8xx_process_script(ncr53c8xx_t *dev)
     int opcode, insn_processed = 0, reg, operator, cond, jmp, n, i, c;
     int32_t offset;
     uint8_t op0, op1, data8, mask, data[7];
-#ifdef ENABLE_NCR53C8xx_LOG
+#ifdef ENABLE_NCR53C8XX_LOG
     uint8_t *pp;
 #endif
 
@@ -1324,7 +1353,7 @@ again:
 			dev->dsp += 4;
 			ncr53c8xx_memcpy(dev, dest, addr, insn & 0xffffff);
 		} else {
-#ifdef ENABLE_NCR53C8xx_LOG
+#ifdef ENABLE_NCR53C8XX_LOG
 			pp = data;
 #endif
 
@@ -2496,6 +2525,11 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 			ncr53c8xx_mem_disable(dev);
 			if ((dev->MMIOBase != 0) && (val & PCI_COMMAND_MEM))
 				ncr53c8xx_mem_set_addr(dev, dev->MMIOBase);
+			if (dev->chip >= CHIP_825) {
+				ncr53c8xx_ram_disable(dev);
+				if ((dev->RAMBase != 0) && (val & PCI_COMMAND_MEM))
+					ncr53c8xx_ram_set_addr(dev, dev->RAMBase);
+			}
 		}
 		ncr53c8xx_pci_regs[addr] = val & 0x57;
 		break;
@@ -2541,9 +2575,8 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 		ncr53c8xx_log("NCR53c8xx: New MMIO base is %08X\n" , dev->MMIOBase);
 		/* We're done, so get out of the here. */
 		if (ncr53c8xx_pci_regs[4] & PCI_COMMAND_MEM) {
-			if (dev->MMIOBase != 0) {
+			if (dev->MMIOBase != 0)
 				ncr53c8xx_mem_set_addr(dev, dev->MMIOBase);
-			}
 		}
 		return;	
 
@@ -2561,8 +2594,10 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 		/* Log the new base. */
 		ncr53c8xx_log("NCR53c8xx: New RAM base is %08X\n" , dev->RAMBase);
 		/* We're done, so get out of the here. */
-		if (dev->RAMBase != 0)
-			ncr53c8xx_ram_set_addr(dev, dev->RAMBase);
+		if (ncr53c8xx_pci_regs[4] & PCI_COMMAND_MEM) {
+			if (dev->RAMBase != 0)
+				ncr53c8xx_ram_set_addr(dev, dev->RAMBase);
+		}
 		return;	
 
 #ifdef USE_BIOS_BAR
