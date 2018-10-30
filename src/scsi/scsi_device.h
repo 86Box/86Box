@@ -8,7 +8,7 @@
  *
  *		Definitions for the generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.h	1.0.14	2018/10/28
+ * Version:	@(#)scsi_device.h	1.0.15	2018/10/30
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -76,6 +76,7 @@
 #define GPCMD_GET_CONFIGURATION			0x46
 #define GPCMD_PLAY_AUDIO_MSF			0x47
 #define GPCMD_PLAY_AUDIO_TRACK_INDEX		0x48
+#define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10	0x49
 #define GPCMD_GET_EVENT_STATUS_NOTIFICATION	0x4a
 #define GPCMD_PAUSE_RESUME			0x4b
 #define GPCMD_STOP_PLAY_SCAN			0x4e
@@ -85,6 +86,7 @@
 #define GPCMD_MODE_SENSE_10			0x5a
 #define GPCMD_PLAY_AUDIO_12			0xa5
 #define GPCMD_READ_12				0xa8
+#define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12	0xa9
 #define GPCMD_WRITE_12				0xaa
 #define GPCMD_READ_DVD_STRUCTURE 		0xad	/* For reading. */
 #define GPCMD_WRITE_AND_VERIFY_12		0xae

@@ -8,7 +8,7 @@
  *
  *		Generic CD-ROM drive core.
  *
- * Version:	@(#)cdrom.c	1.0.6	2018/10/28
+ * Version:	@(#)cdrom.c	1.0.7	2018/10/30
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -293,7 +293,11 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
 	return 0;
 
     cdrom_log("CD-ROM %i: Play audio - %08X %08X %i\n", dev->id, pos, len, ismsf);
-    if (ismsf == 2) {
+    if (ismsf & 0x100) {
+	/* Track-relative audio play. */
+	dev->ops->get_track_info(dev, ismsf & 0xff, 0, &ti);
+	pos += MSFtoLBA(ti.m, ti.s, ti.f) - 150;
+    } else if (ismsf == 2) {
 	dev->ops->get_track_info(dev, pos, 0, &ti);
 	pos = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
 	/* We have to end at the *end* of the specified track,

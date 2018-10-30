@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.65	2018/10/30
+ * Version:	@(#)scsi_cdrom.c	1.0.66	2018/10/30
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -102,7 +102,7 @@ const uint8_t scsi_cdrom_command_flags[0x100] =
     IMPLEMENTED | ALLOW_UA,					/* 0x46 */
     IMPLEMENTED | CHECK_READY,					/* 0x47 */
     IMPLEMENTED | CHECK_READY,					/* 0x48 */
-    0,								/* 0x49 */
+    IMPLEMENTED | CHECK_READY,					/* 0x49 */
     IMPLEMENTED | ALLOW_UA,					/* 0x4A */
     IMPLEMENTED | CHECK_READY,					/* 0x4B */
     0, 0,							/* 0x4C-0x4D */
@@ -123,7 +123,8 @@ const uint8_t scsi_cdrom_command_flags[0x100] =
     IMPLEMENTED | CHECK_READY,					/* 0xA5 */
     0, 0,							/* 0xA6-0xA7 */
     IMPLEMENTED | CHECK_READY,					/* 0xA8 */
-    0, 0, 0, 0,							/* 0xA9-0xAC */
+    IMPLEMENTED | CHECK_READY,					/* 0xA9 */
+    0, 0, 0,							/* 0xAA-0xAC */
     IMPLEMENTED | CHECK_READY,					/* 0xAD */
     0,								/* 0xAE */
     IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,		/* 0xAF */
@@ -2046,6 +2047,8 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 	case GPCMD_PLAY_AUDIO_12:
 	case GPCMD_PLAY_AUDIO_MSF:
 	case GPCMD_PLAY_AUDIO_TRACK_INDEX:
+	case GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10:
+	case GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12:
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
 
 		switch(cdb[0]) {
@@ -2068,8 +2071,22 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 				break;
 			case GPCMD_PLAY_AUDIO_TRACK_INDEX:
 				msf = 2;
-				pos = (cdb[4] << 8) | cdb[5];
+				if ((cdb[5] != 1) || (cdb[8] != 1)) {
+					scsi_cdrom_illegal_mode(dev);
+					break;
+				}
+				pos = cdb[4];
+				len = cdb[7];
+				break;
+			case GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10:
+				msf = 0x100 | cdb[6];
+				pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
 				len = (cdb[7] << 8) | cdb[8];
+				break;
+			case GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12:
+				msf = 0x100 | cdb[10];
+				pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+				len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
 				break;
 		}
 
