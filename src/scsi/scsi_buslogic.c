@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.42	2018/10/19
+ * Version:	@(#)scsi_buslogic.c	1.0.43	2018/10/28
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -574,10 +574,10 @@ BuslogicSCSIBIOSDMATransfer(ESCMD *ESCSICmd, uint8_t TargetID, int dir)
 
 	if (dir && ((ESCSICmd->DataDirection == CCB_DATA_XFER_OUT) || (ESCSICmd->DataDirection == 0x00))) {
 		buslogic_log("BusLogic BIOS DMA: Reading %i bytes from %08X\n", TransferLength, Address);
-		DMAPageRead(Address, (uint8_t *)dev->cmd_buffer, TransferLength);
+		DMAPageRead(Address, (uint8_t *)dev->sc->temp_buffer, TransferLength);
 	} else if (!dir && ((ESCSICmd->DataDirection == CCB_DATA_XFER_IN) || (ESCSICmd->DataDirection == 0x00))) {
 		buslogic_log("BusLogic BIOS DMA: Writing %i bytes at %08X\n", TransferLength, Address);
-		DMAPageWrite(Address, (uint8_t *)dev->cmd_buffer, TransferLength);
+		DMAPageWrite(Address, (uint8_t *)dev->sc->temp_buffer, TransferLength);
 	}
     }
 }
@@ -624,8 +624,6 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 	}
     }
 
-    x54x_buf_alloc(ESCSICmd->TargetId, ESCSICmd->DataLength);
-
     target_cdb_len = 12;
 
     if (!scsi_device_valid(sd))  fatal("SCSI target on ID %02i has disappeared\n", ESCSICmd->TargetId);
@@ -645,18 +643,14 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
     }
 
     sd->buffer_length = ESCSICmd->DataLength;
+
     scsi_device_command_phase0(sd, temp_cdb);
 
     phase = sd->phase;
     if (phase != SCSI_PHASE_STATUS) {
-	if (phase == SCSI_PHASE_DATA_IN)
-		scsi_device_command_phase1(sd);
 	BuslogicSCSIBIOSDMATransfer(ESCSICmd, ESCSICmd->TargetId, (phase == SCSI_PHASE_DATA_OUT));
-	if (phase == SCSI_PHASE_DATA_OUT)
-		scsi_device_command_phase1(sd);
+	scsi_device_command_phase1(sd);
     }
-
-    x54x_buf_free(ESCSICmd->TargetId);
 
     buslogic_log("BIOS Request complete\n");
 
@@ -1155,7 +1149,8 @@ BuslogicPCIRead(int func, int addr, void *p)
 	case 0x13:
 		return buslogic_pci_bar[0].addr_regs[3];
 	case 0x14:
-		return (buslogic_pci_bar[1].addr_regs[0] & 0xe0);	/*Memory space*/
+		// return (buslogic_pci_bar[1].addr_regs[0] & 0xe0);	/*Memory space*/
+		return 0x00;
 	case 0x15:
 		return buslogic_pci_bar[1].addr_regs[1];
 	case 0x16:
@@ -1255,7 +1250,10 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 		/* Then let's set the PCI regs. */
 		buslogic_pci_bar[1].addr_regs[addr & 3] = val;
 		/* Then let's calculate the new I/O base. */
-		bl->MMIOBase = buslogic_pci_bar[1].addr & 0xffffffe0;
+		// bl->MMIOBase = buslogic_pci_bar[1].addr & 0xffffffe0;
+		/* Give it a 4 kB alignment as that's this emulator's granularity. */
+		buslogic_pci_bar[1].addr &= 0xffffc000;
+		bl->MMIOBase = buslogic_pci_bar[1].addr & 0xffffc000;
 		/* Log the new base. */
 		buslogic_log("BusLogic PCI: New MMIO base is %04X\n" , bl->MMIOBase);
 		/* We're done, so get out of the here. */

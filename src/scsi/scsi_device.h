@@ -8,7 +8,7 @@
  *
  *		Definitions for the generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.h	1.0.12	2018/10/11
+ * Version:	@(#)scsi_device.h	1.0.14	2018/10/28
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -27,6 +27,18 @@
 #define SCSI_TIME (5 * 100 * (1 << TIMER_SHIFT))
 #endif
 
+
+/* Bits of 'status' */
+#define ERR_STAT		0x01
+#define DRQ_STAT		0x08 /* Data request */
+#define DSC_STAT		0x10
+#define SERVICE_STAT		0x10
+#define READY_STAT		0x40
+#define BUSY_STAT		0x80
+
+/* Bits of 'error' */
+#define ABRT_ERR		0x04 /* Command aborted */
+#define MCR_ERR			0x08 /* Media change request */
 
 /* SCSI commands. */
 #define GPCMD_TEST_UNIT_READY			0x00
@@ -291,59 +303,55 @@ typedef struct
 } scsi_bus_t;
 #endif
 
-typedef struct {	
-    uint8_t	*cmd_buffer;
-
-    int32_t	buffer_length;
-
-    uint8_t	status, phase;
-    uint16_t	type;
-
-    void	*p;
-
-    void	(*command)(void *p, uint8_t *cdb);
-    void	(*callback)(void *p);
-    int		(*err_stat_to_scsi)(void *p);
-    void	(*request_sense)(void *p, uint8_t *buffer, uint8_t alloc_length);
-    void	(*reset)(void *p);
-    int		(*read_capacity)(void *p, uint8_t *cdb, uint8_t *buffer, uint32_t *len);
-} scsi_device_t;
-
-#pragma pack(push,1)
 typedef struct {
-	uint8_t pages[0x40][0x40];
+    uint8_t pages[0x40][0x40];
 } mode_sense_pages_t;
-#pragma pack(pop)
 
 /* This is so we can access the common elements to all SCSI device structs
    without knowing the device type. */
-typedef struct {
+typedef struct scsi_common_s {
     mode_sense_pages_t ms_pages_saved;
 
     void *p;
 
     uint8_t *temp_buffer,
-	    pad[16],	/* This is atapi_cdb in ATAPI-supporting devices,
-			   and pad in SCSI-only devices. */
+	    atapi_cdb[16],	/* This is atapi_cdb in ATAPI-supporting devices,
+				   and pad in SCSI-only devices. */
 	    current_cdb[16],
 	    sense[256];
 
     uint8_t status, phase,
 	    error, id,
-	    features, pad0,
-	    pad1, pad2;
+	    features, pad,
+	    pad0, pad1;
 
     uint16_t request_length, max_transfer_len;
 
     int requested_blocks, packet_status,
 	total_length, do_page_save,
-	unit_attention;
+	unit_attention, request_pos,
+	old_len, media_status;
 
     uint32_t sector_pos, sector_len,
 	     packet_len, pos;
 
     int64_t callback;
-} scsi_device_data_t;
+} scsi_common_t;
+
+typedef struct {	
+    int32_t	buffer_length;
+
+    uint8_t	status, phase;
+    uint16_t	type;
+
+    scsi_common_t *sc;
+
+    void	(*command)(scsi_common_t *sc, uint8_t *cdb);
+    void	(*callback)(scsi_common_t *sc);
+    void	(*request_sense)(scsi_common_t *sc, uint8_t *buffer, uint8_t alloc_length);
+    void	(*reset)(scsi_common_t *sc);
+    void	(*command_stop)(scsi_common_t *sc);
+} scsi_device_t;
 
 /* These are based on the INQUIRY values. */
 #define SCSI_NONE 0x0060
@@ -371,6 +379,7 @@ extern int	scsi_device_valid(scsi_device_t *dev);
 extern int	scsi_device_cdb_length(scsi_device_t *dev);
 extern void	scsi_device_command_phase0(scsi_device_t *dev, uint8_t *cdb);
 extern void	scsi_device_command_phase1(scsi_device_t *dev);
-extern int32_t	*scsi_device_get_buf_len(scsi_device_t *dev);
+extern void	scsi_device_command_stop(scsi_device_t *dev);
+extern void	scsi_device_close_all(void);
 
 #endif	/*SCSI_DEVICE_H*/

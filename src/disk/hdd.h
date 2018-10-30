@@ -8,7 +8,7 @@
  *
  *		Definitions for the hard disk image handler.
  *
- * Version:	@(#)hdd.h	1.0.7	2018/10/26
+ * Version:	@(#)hdd.h	1.0.8	2018/10/28
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -74,30 +74,28 @@ enum {
 
 /* Define the virtual Hard Disk. */
 typedef struct {
-    int8_t	is_hdi;			/* image type (should rename) */
-    int8_t	wp;			/* disk has been mounted READ-ONLY */
-
-    uint8_t	bus;
-
-    uint8_t	mfm_channel;		/* should rename and/or unionize */
+    uint8_t	id;
+    uint8_t	mfm_channel;		/* Should rename and/or unionize */
     uint8_t	esdi_channel;
     uint8_t	xta_channel;
     uint8_t	ide_channel;
     uint8_t	scsi_id;
+    uint8_t	bus,
+		res;			/* Reserved for bus mode */
+    uint8_t	wp;			/* Disk has been mounted READ-ONLY */
+    uint8_t	pad, pad0;
 
-    uint32_t	base,
-		spt,
-		hpc,			/* physical geometry parameters */
-		tracks,
-		at_spt,			/* [Translation] parameters */
-		at_hpc;
-
+    FILE	*f;			/* Current file handle to image */
     void	*priv;
 
-    FILE	*f;			/* current file handle to image */
+    wchar_t	fn[1024],		/* Name of current image file */
+		prev_fn[1024];		/* Name of previous image file */
 
-    wchar_t	fn[260];		/* name of current image file */
-    wchar_t	prev_fn[260];		/* name of previous image file */
+    uint32_t	res0, pad1,
+		base,
+		spt,
+		hpc,			/* Physical geometry parameters */
+		tracks;
 } hard_disk_t;
 
 
@@ -147,7 +145,6 @@ extern int	hdd_image_zero_ex(uint8_t id, uint32_t sector, uint32_t count);
 extern uint32_t	hdd_image_get_last_sector(uint8_t id);
 extern uint32_t	hdd_image_get_pos(uint8_t id);
 extern uint8_t	hdd_image_get_type(uint8_t id);
-extern void	hdd_image_specify(uint8_t id, uint64_t hpc, uint64_t spt);
 extern void	hdd_image_unload(uint8_t id, int fn_preserve);
 extern void	hdd_image_close(uint8_t id);
 extern void	hdd_image_calc_chs(uint32_t *c, uint32_t *h, uint32_t *s, uint32_t size);

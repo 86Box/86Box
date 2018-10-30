@@ -135,6 +135,15 @@ bool CDROM_Interface_Image::GetAudioTrackInfo(int track, int& track_number, TMSF
 	return true;
 }
 
+bool CDROM_Interface_Image::GetAudioTrackEndInfo(int track, int& track_number, TMSF& start, unsigned char& attr)
+{
+	if (track < 1 || track > (int)tracks.size()) return false;
+	FRAMES_TO_MSF(tracks[track - 1].start + tracks[track - 1].length + 150, &start.min, &start.sec, &start.fr);
+	track_number = tracks[track - 1].track_number;
+	attr = tracks[track - 1].attr;
+	return true;
+}
+
 bool CDROM_Interface_Image::GetAudioSub(int sector, unsigned char& attr, unsigned char& track, unsigned char& index, TMSF& relPos, TMSF& absPos)
 {
         int cur_track = GetTrack(sector);

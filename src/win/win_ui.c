@@ -870,7 +870,7 @@ ui_init(int nCmdShow)
     plat_resize(scrnsz_x, scrnsz_y);
 
     /* Fire up the machine. */
-    pc_reset_hard();
+    pc_reset_hard_init();
 
     /* Set the PAUSE mode depending on the renderer. */
     plat_pause(0);

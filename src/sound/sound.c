@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.24	2018/10/26
+ * Version:	@(#)sound.c	1.0.25	2018/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -205,9 +205,9 @@ static void
 sound_cd_clean_buffers(void)
 {
     if (sound_is_float)
-	memset(cd_out_buffer, 0, 2 * sizeof(float));
+	memset(cd_out_buffer, 0, (CD_BUFLEN * 2) * sizeof(float));
     else
-	memset(cd_out_buffer_int16, 0, 2 * sizeof(int16_t));
+	memset(cd_out_buffer_int16, 0, (CD_BUFLEN * 2) * sizeof(int16_t));
 }
 
 
@@ -230,14 +230,12 @@ sound_cd_thread(void *param)
 	sound_cd_clean_buffers();
 
 	for (i = 0; i < CDROM_NUM; i++) {
-		if ((cdrom[i].bus_type == CDROM_BUS_DISABLED) || !cdrom[i].ops)
+		if ((cdrom[i].bus_type == CDROM_BUS_DISABLED) ||
+		    (cdrom[i].cd_status == CD_STATUS_EMPTY))
 			continue;
-		if (cdrom[i].ops->audio_callback) {
-			r = cdrom[i].ops->audio_callback(&(cdrom[i]), cd_buffer[i], CD_BUFLEN * 2);
-			if (!cdrom[i].bus_type || !cdrom[i].sound_on || !r)
+		r = cdrom_audio_callback(&(cdrom[i]), cd_buffer[i], CD_BUFLEN * 2);
+		if (!cdrom[i].bus_type || !cdrom[i].sound_on || !r)
 				continue;
-		} else
-			continue;
 
 		if (cdrom[i].get_volume) {
 			audio_vol_l = (float) (cdrom[i].get_volume(cdrom[i].priv, 0));
@@ -480,8 +478,7 @@ sound_cd_thread_reset(void)
     int available_cdrom_drives = 0;
 
     for (i = 0; i < CDROM_NUM; i++) {
-	if (cdrom[i].ops && cdrom[i].ops->audio_stop)
-        	cdrom[i].ops->audio_stop(&(cdrom[i]));
+	cdrom_stop(&(cdrom[i]));
 
 	if (cdrom[i].bus_type != CDROM_BUS_DISABLED)
 		available_cdrom_drives++;

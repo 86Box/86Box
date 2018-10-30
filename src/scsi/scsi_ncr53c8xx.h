@@ -6,11 +6,11 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the NCR 53C810 SCSI Host Adapter made by
- *		NCR and later Symbios and LSI. This controller was designed
- *		for the PCI bus.
+ *		Implementation of the NCR 53C810 and 53C875 SCSI Host
+ *		Adapters made by NCR and later Symbios and LSI. These
+ *		controllers were designed for the PCI bus.
  *
- * Version:	@(#)scsi_ncr53c810.c	1.0.1	2018/03/18
+ * Version:	@(#)scsi_ncr53c8xx.c	1.0.2	2018/10/30
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,11 +21,13 @@
  *		Copyright 2009-2018 Artyom Tarasenko.
  *		Copyright 2017,2018 Miran Grca.
  */
-#ifndef SCSI_NCR5C3810_H
-# define SCSI_NCR53C810_H
+#ifndef SCSI_NCR5C38XX_H
+# define SCSI_NCR53C8XX_H
 
 
 extern const device_t ncr53c810_pci_device;
+extern const device_t ncr53c825a_pci_device;
+extern const device_t ncr53c875_pci_device;
 
   
-#endif	/*SCSI_NCR53C810_H*/
+#endif	/*SCSI_NCR53C8XX_H*/

@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.23	2018/10/26
+ * Version:	@(#)win_stbar.c	1.0.24	2018/10/28
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -780,7 +780,7 @@ ui_sb_mount_zip_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name)
     zip_t *dev = (zip_t *) zip_drives[id].priv;
 
     zip_disk_close(dev);
-    zip_drives[id].ui_writeprot = wp;
+    zip_drives[id].read_only = wp;
     zip_load(dev, file_name);
     zip_insert(dev);
     if (sb_ready) {
@@ -906,8 +906,6 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (!file_dlg_w_st(hwnd, IDS_2075, cdrom[id].image_path, 0)) {
 					cdrom[id].prev_host_drive = cdrom[id].host_drive;
 					wcscpy(temp_path, wopenfilestring);
-					if (!cdrom[id].prev_image_path)
-						cdrom[id].prev_image_path = (wchar_t *) malloc(1024 * sizeof(wchar_t));
 					wcscpy(cdrom[id].prev_image_path, cdrom[id].image_path);
 					if (cdrom[id].ops && cdrom[id].ops->exit)
 						cdrom[id].ops->exit(&(cdrom[id]));

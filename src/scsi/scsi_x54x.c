@@ -11,7 +11,7 @@
  *		series of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.c	1.0.25	2018/10/18
+ * Version:	@(#)scsi_x54x.c	1.0.26	2018/10/28
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -261,34 +261,23 @@ x54x_bios_scsi_command(scsi_device_t *dev, uint8_t *cdb, uint8_t *buf, int len, 
     if (dev->phase == SCSI_PHASE_STATUS)
 	return(completion_code(scsi_device_sense(dev)));
 
-    dev->cmd_buffer = (uint8_t *)malloc(dev->buffer_length);
-
-    if (dev->phase == SCSI_PHASE_DATA_IN) {
-	scsi_device_command_phase1(dev);
-
-	if (len > 0) {
+    if (len > 0) {
+	if (dev->phase == SCSI_PHASE_DATA_IN) {
 		if (buf)
-			memcpy(buf, dev->cmd_buffer, dev->buffer_length);
+			memcpy(buf, dev->sc->temp_buffer, dev->buffer_length);
 		else
-			DMAPageWrite(addr, dev->cmd_buffer, dev->buffer_length);
-	}
-    } else if (dev->phase == SCSI_PHASE_DATA_OUT) {
-	if (len > 0) {
+			DMAPageWrite(addr, dev->sc->temp_buffer, dev->buffer_length);
+	} else if (dev->phase == SCSI_PHASE_DATA_OUT) {
 		if (buf)
-			memcpy(dev->cmd_buffer, buf, dev->buffer_length);
+			memcpy(dev->sc->temp_buffer, buf, dev->buffer_length);
 		else
-			DMAPageRead(addr, dev->cmd_buffer, dev->buffer_length);
+			DMAPageRead(addr, dev->sc->temp_buffer, dev->buffer_length);
 	}
-
-	scsi_device_command_phase1(dev);
     }
 
-    if (dev->cmd_buffer != NULL) {
-	free(dev->cmd_buffer);
-	dev->cmd_buffer = NULL;
-    }
+    scsi_device_command_phase1(dev);
 
-    return(completion_code(scsi_device_sense(dev)));
+    return (completion_code(scsi_device_sense(dev)));
 }
 
 
@@ -439,11 +428,6 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 	dev = &scsi_devices[cmd->id];
 	dev->buffer_length = 0;
 
-	if (dev->cmd_buffer != NULL) {
-		free(dev->cmd_buffer);
-		dev->cmd_buffer = NULL;
-	}
-
 	if (! scsi_device_present(dev)) {
 		x54x_log("BIOS Target ID %i has no device attached\n", cmd->id);
 		ret = 0x80;
@@ -473,20 +457,11 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		 * length for SCSI sense, and no command-specific
 		 * indication is given.
 		 */
-		dev->buffer_length = 14;
-		dev->cmd_buffer = (uint8_t *)malloc(14);
-		memset(dev->cmd_buffer, 0x00, 14);
-
 		if (sector_len > 0) {
 			x54x_log("BIOS DMA: Reading 14 bytes at %08X\n",
 							dma_address);
 			DMAPageWrite(dma_address,
 			    scsi_device_sense(dev), 14);
-		}
-
-		if (dev && (dev->cmd_buffer != NULL)) {
-			free(dev->cmd_buffer);
-			dev->cmd_buffer = NULL;
 		}
 
 		return(0);
@@ -506,9 +481,6 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		cdb[5] = lba & 0xff;
 		if (cmd->command != 0x0c)
 			cdb[8] = sector_len;
-#if 0
-		x54x_log("BIOS CMD(READ/WRITE/VERIFY, %08lx, %d)\n", lba, cmd->secount);
-#endif
 
 		ret = x54x_bios_scsi_command(dev, cdb, NULL, sector_len, dma_address);
 		if (cmd->command == 0x0c)
@@ -552,8 +524,6 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		target_check(cmd->id);
 
 		dev->buffer_length = 6;
-		dev->cmd_buffer = (uint8_t *)malloc(dev->buffer_length);
-		memset(dev->cmd_buffer, 0x00, dev->buffer_length);
 
 		buf = (uint8_t *) malloc(6);
 		if (cmd->command == 0x08)
@@ -564,11 +534,6 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		x54x_log("BIOS DMA: Reading 6 bytes at %08X\n", dma_address);
 		DMAPageWrite(dma_address, buf, 4);
 		free(buf);
-
-		if (dev->cmd_buffer != NULL) {
-			free(dev->cmd_buffer);
-			dev->cmd_buffer = NULL;
-		}
 
 		break;
     }
@@ -831,11 +796,11 @@ x54x_buf_dma_transfer(Req_t *req, int Is24bit, int TransferLength, int dir)
 
 				if (read_from_host && DataToTransfer) {
 					x54x_log("Reading S/G segment %i: length %i, pointer %08X\n", i, DataToTransfer, Address);
-					DMAPageRead(Address, &(scsi_devices[req->TargetID].cmd_buffer[sg_pos]), DataToTransfer);
+					DMAPageRead(Address, &(scsi_devices[req->TargetID].sc->temp_buffer[sg_pos]), DataToTransfer);
 				}
 				else if (write_to_host && DataToTransfer) {
 					x54x_log("Writing S/G segment %i: length %i, pointer %08X\n", i, DataToTransfer, Address);
-					DMAPageWrite(Address, &(scsi_devices[req->TargetID].cmd_buffer[sg_pos]), DataToTransfer);
+					DMAPageWrite(Address, &(scsi_devices[req->TargetID].sc->temp_buffer[sg_pos]), DataToTransfer);
 				}
 				else
 					x54x_log("No action on S/G segment %i: length %i, pointer %08X\n", i, DataToTransfer, Address);
@@ -855,35 +820,11 @@ x54x_buf_dma_transfer(Req_t *req, int Is24bit, int TransferLength, int dir)
 
 		if ((DataLength > 0) && (BufLen > 0) && (req->CmdBlock.common.ControlByte < 0x03)) {
 			if (read_from_host)
-				DMAPageRead(Address, scsi_devices[req->TargetID].cmd_buffer, MIN(BufLen, (int) DataLength));
+				DMAPageRead(Address, scsi_devices[req->TargetID].sc->temp_buffer, MIN(BufLen, (int) DataLength));
 			else if (write_to_host)
-				DMAPageWrite(Address, scsi_devices[req->TargetID].cmd_buffer, MIN(BufLen, (int) DataLength));
+				DMAPageWrite(Address, scsi_devices[req->TargetID].sc->temp_buffer, MIN(BufLen, (int) DataLength));
 		}
 	}
-    }
-}
-
-
-void
-x54x_buf_alloc(uint8_t id, int length)
-{
-    if (scsi_devices[id].cmd_buffer != NULL) {
-	free(scsi_devices[id].cmd_buffer);
-	scsi_devices[id].cmd_buffer = NULL;
-    }
-
-    x54x_log("Allocating data buffer (%i bytes)\n", length);
-    scsi_devices[id].cmd_buffer = (uint8_t *) malloc(length);
-    memset(scsi_devices[id].cmd_buffer, 0, length);
-}
-
-
-void
-x54x_buf_free(uint8_t id)
-{
-    if (scsi_devices[id].cmd_buffer != NULL) {
-	free(scsi_devices[id].cmd_buffer);
-	scsi_devices[id].cmd_buffer = NULL;
     }
 }
 
@@ -959,7 +900,6 @@ x54x_scsi_cmd(x54x_t *dev)
     uint8_t temp_cdb[12];
     uint32_t i, SenseBufferAddress;
     int target_data_len, target_cdb_len = 12;
-    int32_t *BufLen;
     int64_t p;
     scsi_device_t *sd;
 
@@ -995,10 +935,7 @@ x54x_scsi_cmd(x54x_t *dev)
 
     dev->Residue = 0;
 
-    BufLen = scsi_device_get_buf_len(sd);
-    *BufLen = target_data_len;
-
-    x54x_log("Command buffer: %08X\n", scsi_devices[id].cmd_buffer);
+    sd->buffer_length = target_data_len;
 
     scsi_device_command_phase0(sd, temp_cdb);
 
@@ -1009,26 +946,21 @@ x54x_scsi_cmd(x54x_t *dev)
     if (phase != SCSI_PHASE_STATUS) {
 	if ((temp_cdb[0] == 0x03) && (req->CmdBlock.common.ControlByte == 0x03)) {
 		/* Request sense in non-data mode - sense goes to sense buffer. */
-		*BufLen = ConvertSenseLength(req->CmdBlock.common.RequestSenseLength);
-	    	x54x_buf_alloc(id, *BufLen);
-		scsi_device_command_phase1(sd);
-		if ((sd->status != SCSI_STATUS_OK) && (*BufLen > 0)) {
+		sd->buffer_length = ConvertSenseLength(req->CmdBlock.common.RequestSenseLength);
+		if ((sd->status != SCSI_STATUS_OK) && (sd->buffer_length > 0)) {
 			SenseBufferAddress = SenseBufferPointer(req);
-			DMAPageWrite(SenseBufferAddress, scsi_devices[id].cmd_buffer, *BufLen);
-			x54x_add_to_period(*BufLen);
+			DMAPageWrite(SenseBufferAddress, scsi_devices[id].sc->temp_buffer, sd->buffer_length);
+			x54x_add_to_period(sd->buffer_length);
 		}
+		scsi_device_command_phase1(sd);
 	} else {
 		p = scsi_device_get_callback(sd);
 		if (p <= 0LL)
-			x54x_add_to_period(*BufLen);
+			x54x_add_to_period(sd->buffer_length);
 		else
 			dev->media_period += p;
-	    	x54x_buf_alloc(id, MIN(target_data_len, *BufLen));
-		if (phase == SCSI_PHASE_DATA_OUT)
-			x54x_buf_dma_transfer(req, bit24, target_data_len, 1);
+		x54x_buf_dma_transfer(req, bit24, target_data_len, (phase == SCSI_PHASE_DATA_OUT));
 		scsi_device_command_phase1(sd);
-		if (phase == SCSI_PHASE_DATA_IN)
-			x54x_buf_dma_transfer(req, bit24, target_data_len, 0);
 
 		SenseBufferFree(req, (sd->status != SCSI_STATUS_OK));
 	}
@@ -1036,8 +968,6 @@ x54x_scsi_cmd(x54x_t *dev)
 	SenseBufferFree(req, (sd->status != SCSI_STATUS_OK));
 
     x54x_set_residue(req, target_data_len);
-
-    x54x_buf_free(id);
 
     x54x_log("Request complete\n");
 
@@ -1378,9 +1308,6 @@ x54x_in(uint16_t port, void *priv)
 		break;
     }
 
-#if 0
-    x54x_log("%s: Read Port 0x%02X, Value %02X\n", dev->name, port, ret);
-#endif
     return(ret);
 }
 

@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.87	2018/10/26
+ * Version:	@(#)pc.c	1.0.88	2018/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -651,19 +651,14 @@ again2:
 
     keyboard_init();
     joystick_init();
-    video_init();
-    device_init();
 
-    timer_reset();
+    video_init();
 
     fdd_init();
 
     sound_init();
 
     hdc_init(hdc_name);
-
-    pc_full_speed();
-    shadowbios = 0;
 
     return(1);
 }
@@ -722,6 +717,8 @@ pc_reset_hard_close(void)
     lpt_devices_close();
 
     device_close_all();
+
+    scsi_device_close_all();
 
     midi_close();
 
@@ -834,6 +831,8 @@ pc_reset_hard_init(void)
     pic_reset();
     cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
 
+    pc_full_speed();
+
     if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
 	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
     else
@@ -907,6 +906,8 @@ pc_close(thread_t *ptr)
     video_close();
 
     device_close_all();
+
+    scsi_device_close_all();
 
     midi_close();
 

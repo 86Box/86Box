@@ -83,6 +83,7 @@ public:
 
 	virtual bool	GetAudioTracks		(int& stTrack, int& end, TMSF& leadOut) = 0;
 	virtual bool	GetAudioTrackInfo	(int track, int& number, TMSF& start, unsigned char& attr) = 0;
+	virtual bool	GetAudioTrackEndInfo	(int track, int& number, TMSF& start, unsigned char& attr) = 0;
 	virtual bool    GetAudioSub             (int sector, unsigned char& attr, unsigned char& track, unsigned char& index, TMSF& relPos, TMSF& absPos) = 0;
 	virtual bool	GetMediaTrayStatus	(bool& mediaPresent, bool& mediaChanged, bool& trayOpen) = 0;
 
@@ -136,6 +137,7 @@ public:
 	bool	GetUPC			(unsigned char& attr, char* upc);
 	bool	GetAudioTracks		(int& stTrack, int& end, TMSF& leadOut);
 	bool	GetAudioTrackInfo	(int track, int& number, TMSF& start, unsigned char& attr);
+	bool	GetAudioTrackEndInfo	(int track, int& number, TMSF& start, unsigned char& attr);
 	bool    GetAudioSub             (int sector, unsigned char& attr, unsigned char& track, unsigned char& index, TMSF& relPos, TMSF& absPos);
 	bool	GetMediaTrayStatus	(bool& mediaPresent, bool& mediaChanged, bool& trayOpen);
 	bool	ReadSectors		(PhysPt buffer, bool raw, unsigned long sector, unsigned long num);

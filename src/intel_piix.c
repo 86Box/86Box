@@ -10,7 +10,7 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)intel_piix.c	1.0.20	2018/10/26
+ * Version:	@(#)intel_piix.c	1.0.21	2018/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -652,27 +652,28 @@ piix_bus_master_dma_op(int channel, uint8_t *data, int transfer_length, int out,
 	if (force_end) {
 		piix_log("Total transfer length smaller than sum of all blocks, partial block\n");
 		dev->status &= ~2;
-		return 0;		/* This block has exhausted the data to transfer and it was smaller than the count, break. */
+		return 1;		/* This block has exhausted the data to transfer and it was smaller than the count, break. */
 	} else {
 		if (!transfer_length && !dev->eot) {
 			piix_log("Total transfer length smaller than sum of all blocks, full block\n");
 			dev->status &= ~2;
-			return 0;	/* We have exhausted the data to transfer but there's more blocks left, break. */
+			return 1;	/* We have exhausted the data to transfer but there's more blocks left, break. */
 		} else if (transfer_length && dev->eot) {
 			piix_log("Total transfer length greater than sum of all blocks\n");
 			dev->status |= 2;
-			return 1;	/* There is data left to transfer but we have reached EOT - return with error. */
+			return 0;	/* There is data left to transfer but we have reached EOT - return with error. */
 		} else if (dev->eot) {
 			piix_log("Regular EOT\n");
 			dev->status &= ~3;
-			return 0;	/* We have regularly reached EOT - clear status and break. */
+			return 1;	/* We have regularly reached EOT - clear status and break. */
 		} else {
 			/* We have more to transfer and there are blocks left, get next block. */
 			piix_bus_master_next_addr(dev);
 		}
 	}
     }
-    return 0;
+
+    return 1;
 }
 
 
@@ -832,11 +833,11 @@ piix_reset(void *p)
 
     for (i = 0; i < CDROM_NUM; i++) {
 	if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && cdrom[i].priv)
-		scsi_cdrom_reset(cdrom[i].priv);
+		scsi_cdrom_reset((scsi_common_t *) cdrom[i].priv);
     }
     for (i = 0; i < ZIP_NUM; i++) {
 	if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && zip_drives[i].priv)
-		zip_reset(zip_drives[i].priv);
+		zip_reset((scsi_common_t *) zip_drives[i].priv);
     }
 }
 

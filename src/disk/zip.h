@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.h	1.0.7	2018/10/26
+ * Version:	@(#)zip.h	1.0.8	2018/10/28
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -39,22 +39,25 @@ enum {
 
 
 typedef struct {
-    unsigned int bus_type;	/* 0 = ATAPI, 1 = SCSI */
-    uint8_t ide_channel,
-	    bus_mode;		/* Bit 0 = PIO suported;
+    uint8_t id,
+	    res, res0,		/* Reserved for other ID's. */
+	    res1,
+	    ide_channel, scsi_device_id,
+	    bus_type,		/* 0 = ATAPI, 1 = SCSI */
+	    bus_mode,		/* Bit 0 = PIO suported;
 				   Bit 1 = DMA supportd. */
+	    read_only,		/* Struct variable reserved for
+				   media status. */
+	    pad, pad0;
 
-    unsigned int scsi_device_id, is_250;
+    FILE *f;
+    void *priv;
 
     wchar_t image_path[1024],
 	    prev_image_path[1024];
 
-    int read_only, ui_writeprot;
-
-    uint32_t medium_size, base;
-
-    FILE *f;
-    void *priv;
+    uint32_t is_250, medium_size,
+	     base;
 } zip_drive_t;
 
 typedef struct {
@@ -76,16 +79,13 @@ typedef struct {
 
     int requested_blocks, packet_status,
 	total_length, do_page_save,
-	unit_attention;
+	unit_attention, request_pos,
+	old_len, pad3;
 
     uint32_t sector_pos, sector_len,
 	     packet_len, pos;
 
     int64_t callback;
-
-    int request_pos, old_len;
-
-    uint32_t seek_pos;
 } zip_t;
 
 
@@ -116,7 +116,7 @@ extern void	zip_insert(zip_t *dev);
 extern void	zip_global_init(void);
 extern void	zip_hard_reset(void);
 
-extern void	zip_reset(void *p);
+extern void	zip_reset(scsi_common_t *sc);
 extern int	zip_load(zip_t *dev, wchar_t *fn);
 extern void	zip_close();
 

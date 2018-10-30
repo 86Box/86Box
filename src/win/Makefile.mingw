@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.133	2018/10/22
+# Version:	@(#)Makefile.mingw	1.0.134	2018/10/26
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -483,7 +483,7 @@ SCSIOBJ		:= scsi.o scsi_device.o \
 		    scsi_cdrom.o scsi_disk.o \
 		    scsi_x54x.o \
 		    scsi_aha154x.o scsi_buslogic.o \
-		    scsi_ncr5380.o scsi_ncr53c810.o
+		    scsi_ncr5380.o scsi_ncr53c8xx.o
 
 NETOBJ		:= network.o \
 		    net_pcap.o \

@@ -43,19 +43,13 @@ typedef struct {
 
     int requested_blocks, packet_status,
 	total_length, do_page_save,
-	unit_attention;
+	unit_attention, request_pos,
+	old_len, media_status;
 
     uint32_t sector_pos, sector_len,
 	     packet_len, pos;
 
     int64_t callback;
-
-    int media_status, data_pos,
-	request_pos, total_read,
-	old_len;
-
-    uint8_t previous_command,
-	    pad3, pad4, pad5;
 } scsi_cdrom_t;
 #endif
 
@@ -69,7 +63,7 @@ extern scsi_cdrom_t	*scsi_cdrom[CDROM_NUM];
 #define scsi_cdrom_drive cdrom_drives[id].host_drive
 
 
-extern void	scsi_cdrom_reset(void *p);
+extern void	scsi_cdrom_reset(scsi_common_t *sc);
 
 
 #endif	/*EMU_SCSI_CDROM_H*/

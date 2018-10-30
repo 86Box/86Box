@@ -8,7 +8,7 @@
  *
  *		Handling of hard disk image files.
  *
- * Version:	@(#)hdd_image.c	1.0.19	2018/10/17
+ * Version:	@(#)hdd_image.c	1.0.20	2018/10/28
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -182,14 +182,14 @@ image_is_vhd(const wchar_t *s, int check_signature)
 static uint64_t
 be_to_u64(uint8_t *bytes, int start)
 {
-    uint64_t n = ((uint64_t)bytes[start+7] << 0) | 
-		 ((uint64_t)bytes[start+6] << 8) |
-		 ((uint64_t)bytes[start+5] << 16) | 
-		 ((uint64_t)bytes[start+4] << 24) | 
-		 ((uint64_t)bytes[start+3] << 32) | 
-		 ((uint64_t)bytes[start+2] << 40) | 
-		 ((uint64_t)bytes[start+1] << 48) | 
-		 ((uint64_t)bytes[start] << 56);
+    uint64_t n = ((uint64_t) bytes[start + 7] <<  0) | 
+		 ((uint64_t) bytes[start + 6] <<  8) |
+		 ((uint64_t) bytes[start + 5] << 16) | 
+		 ((uint64_t) bytes[start + 4] << 24) | 
+		 ((uint64_t) bytes[start + 3] << 32) | 
+		 ((uint64_t) bytes[start + 2] << 40) | 
+		 ((uint64_t) bytes[start + 1] << 48) | 
+		 ((uint64_t) bytes[start    ] << 56);
     return n;
 }
 
@@ -197,10 +197,10 @@ be_to_u64(uint8_t *bytes, int start)
 static uint32_t
 be_to_u32(uint8_t *bytes, int start)
 {
-    uint32_t n = ((uint32_t)bytes[start+3] << 0) | 
-		 ((uint32_t)bytes[start+2] << 8) | 
-		 ((uint32_t)bytes[start+1] << 16) | 
-		 ((uint32_t)bytes[start] << 24);
+    uint32_t n = ((uint32_t) bytes[start + 3] <<  0) | 
+		 ((uint32_t) bytes[start + 2] <<  8) | 
+		 ((uint32_t) bytes[start + 1] << 16) | 
+		 ((uint32_t) bytes[start    ] << 24);
     return n;
 }
 
@@ -208,8 +208,8 @@ be_to_u32(uint8_t *bytes, int start)
 static uint16_t
 be_to_u16(uint8_t *bytes, int start)
 {
-    uint16_t n = ((uint16_t)bytes[start+1] << 0) | 
-		 ((uint16_t)bytes[start] <<8);
+    uint16_t n = ((uint16_t) bytes[start + 1] << 0) | 
+		 ((uint16_t) bytes[start    ] << 8);
     return n;
 }
 
@@ -222,11 +222,11 @@ u64_to_be(uint64_t value, int is_be)
 	res = value;
     else {
 	uint64_t mask = 0xff00000000000000;
-	res = ((value & (mask >> 0)) >> 56) |
-	      ((value & (mask >> 8)) >> 40) |
+	res = ((value & (mask >>  0)) >> 56) |
+	      ((value & (mask >>  8)) >> 40) |
 	      ((value & (mask >> 16)) >> 24) |
-	      ((value & (mask >> 24)) >> 8) |
-	      ((value & (mask >> 32)) << 8) |
+	      ((value & (mask >> 24)) >>  8) |
+	      ((value & (mask >> 32)) <<  8) |
 	      ((value & (mask >> 40)) << 24) |
 	      ((value & (mask >> 48)) << 40) |
 	      ((value & (mask >> 56)) << 56);
@@ -243,9 +243,9 @@ u32_to_be(uint32_t value, int is_be)
 	res = value;
     else {
 	uint32_t mask = 0xff000000;
-	res = ((value & (mask >> 0)) >> 24) |
-	      ((value & (mask >> 8)) >> 8) |
-	      ((value & (mask >> 16)) << 8) |
+	res = ((value & (mask >>  0)) >> 24) |
+	      ((value & (mask >>  8)) >>  8) |
+	      ((value & (mask >> 16)) <<  8) |
 	      ((value & (mask >> 24)) << 24);
     }
     return res;
@@ -286,7 +286,7 @@ calc_vhd_timestamp()
     time_t start_time;
     time_t curr_time;
     double vhd_time;
-    start_time = 946684800; /* 1 Jan 2000 00:00 */
+    start_time = 946684800;	/* 1 Jan 2000 00:00 */
     curr_time = time(NULL);
     vhd_time = difftime(curr_time, start_time);
 
@@ -498,6 +498,25 @@ hdd_image_init(void)
 }
 
 
+static void
+hdd_image_gen_vft(int id, vhd_footer_t **vft, uint64_t full_size)
+{
+    /* Generate new footer. */
+    new_vhd_footer(vft);
+    (*vft)->orig_size = (*vft)->curr_size = full_size;
+    (*vft)->geom.cyl = hdd[id].tracks;
+    (*vft)->geom.heads = hdd[id].hpc;
+    (*vft)->geom.spt = hdd[id].spt;
+    generate_vhd_checksum(*vft);
+    vhd_footer_to_bytes((uint8_t *) empty_sector, *vft);
+    fseeko64(hdd_images[id].file, 0, SEEK_END);
+    fwrite(empty_sector, 1, 512, hdd_images[id].file);
+    free(*vft);
+    *vft = NULL;
+    hdd_images[id].type = 3;
+}
+
+
 int
 hdd_image_load(int id)
 {
@@ -601,23 +620,7 @@ hdd_image_load(int id)
 
 		if (is_vhd[0]) {
 			/* VHD image. */
-			/* Generate new footer. */
-			empty_sector_1mb = (char *) malloc(512);
-			new_vhd_footer(&vft);
-			vft->orig_size = vft->curr_size = full_size;
-			vft->geom.cyl = hdd[id].tracks;
-			vft->geom.heads = hdd[id].hpc;
-			vft->geom.spt = hdd[id].spt;
-			generate_vhd_checksum(vft);
-			memset(empty_sector_1mb, 0, 512);
-			vhd_footer_to_bytes((uint8_t *) empty_sector_1mb, vft);
-			fseeko64(hdd_images[id].file, 0, SEEK_END);
-			fwrite(empty_sector_1mb, 1, 512, hdd_images[id].file);
-			free(vft);
-			vft = NULL;
-			free(empty_sector_1mb);
-			empty_sector_1mb = NULL;
-			hdd_images[id].type = 3;
+			hdd_image_gen_vft(id, &vft, full_size);
 		}
 
 		return ret;
@@ -671,23 +674,17 @@ hdd_image_load(int id)
 		hdd[id].spt = spt;
 		hdd[id].hpc = hpc;
 		hdd[id].tracks = tracks;
-		fread(&(hdd[id].at_spt), 1, 4, hdd_images[id].file);
-		fread(&(hdd[id].at_hpc), 1, 4, hdd_images[id].file);
 		hdd_images[id].type = 2;
 	} else if (is_vhd[1]) {
-		empty_sector_1mb = (char *) malloc(512);
-		memset(empty_sector_1mb, 0, 512);
 		fseeko64(hdd_images[id].file, -512, SEEK_END);
-		fread(empty_sector_1mb, 1, 512, hdd_images[id].file);
+		fread(empty_sector, 1, 512, hdd_images[id].file);
 		new_vhd_footer(&vft);
-		vhd_footer_from_bytes(vft, (uint8_t *) empty_sector_1mb);
+		vhd_footer_from_bytes(vft, (uint8_t *) empty_sector);
 		if (vft->type != 2) {
 			/* VHD is not fixed size */
 			hdd_image_log("VHD: Image is not fixed size\n");
 			free(vft);
 			vft = NULL;
-			free(empty_sector_1mb);
-			empty_sector_1mb = NULL;
 			fclose(hdd_images[id].file);
 			hdd_images[id].file = NULL;
 			memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
@@ -699,8 +696,6 @@ hdd_image_load(int id)
 		hdd[id].spt = vft->geom.spt;
 		free(vft);
 		vft = NULL;
-		free(empty_sector_1mb);
-		empty_sector_1mb = NULL;
 		hdd_images[id].type = 3;
 		/* If we're here, this means there is a valid VHD footer in the
 		   image, which means that by definition, all valid sectors
@@ -731,22 +726,7 @@ hdd_image_load(int id)
 	s = ftello64(hdd_images[id].file);
 	if (s == (full_size + hdd_images[id].base)) {
 		/* VHD image. */
-		/* Generate new footer. */
-		empty_sector_1mb = (char *) malloc(512);
-		new_vhd_footer(&vft);
-		vft->orig_size = vft->curr_size = full_size;
-		vft->geom.cyl = hdd[id].tracks;
-		vft->geom.heads = hdd[id].hpc;
-		vft->geom.spt = hdd[id].spt;
-		generate_vhd_checksum(vft);
-		memset(empty_sector_1mb, 0, 512);
-		vhd_footer_to_bytes((uint8_t *) empty_sector_1mb, vft);
-		fwrite(empty_sector_1mb, 1, 512, hdd_images[id].file);
-		free(vft);
-		vft = NULL;
-		free(empty_sector_1mb);
-		empty_sector_1mb = NULL;
-		hdd_images[id].type = 3;
+		hdd_image_gen_vft(id, &vft, full_size);
 	}
     }
 
@@ -791,9 +771,7 @@ hdd_image_read_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
     if ((sectors - sector) < transfer_sectors)
 	transfer_sectors = sectors - sector;
 
-    hdd_images[id].pos = sector;
-    fseeko64(hdd_images[id].file, ((uint64_t)sector << 9LL) + hdd_images[id].base, SEEK_SET);
-    fread(buffer, 1, transfer_sectors << 9, hdd_images[id].file);
+    hdd_image_read(id, sector, transfer_sectors, buffer);
 
     if (count != transfer_sectors)
 	return 1;
@@ -819,9 +797,7 @@ hdd_image_write_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
     if ((sectors - sector) < transfer_sectors)
 	transfer_sectors = sectors - sector;
 
-    hdd_images[id].pos = sector;
-    fseeko64(hdd_images[id].file, ((uint64_t)sector << 9LL) + hdd_images[id].base, SEEK_SET);
-    fwrite(buffer, transfer_sectors << 9, 1, hdd_images[id].file);
+    hdd_image_write(id, sector, transfer_sectors, buffer);
 
     if (count != transfer_sectors)
 	return 1;
@@ -836,6 +812,7 @@ hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
 
     hdd_images[id].pos = sector;
     fseeko64(hdd_images[id].file, ((uint64_t)sector << 9LL) + hdd_images[id].base, SEEK_SET);
+    memset(empty_sector, 0, 512);
     for (i = 0; i < count; i++)
 	fwrite(empty_sector, 512, 1, hdd_images[id].file);
 }
@@ -844,18 +821,13 @@ hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
 int
 hdd_image_zero_ex(uint8_t id, uint32_t sector, uint32_t count)
 {
-    uint32_t i = 0;
-
     uint32_t transfer_sectors = count;
     uint32_t sectors = hdd_sectors(id);
 
     if ((sectors - sector) < transfer_sectors)
 	transfer_sectors = sectors - sector;
 
-    hdd_images[id].pos = sector;
-    fseeko64(hdd_images[id].file, ((uint64_t)sector << 9LL) + hdd_images[id].base, SEEK_SET);
-    for (i = 0; i < transfer_sectors; i++)
-	fwrite(empty_sector, 1, 512, hdd_images[id].file);
+    hdd_image_zero(id, sector, transfer_sectors);
 
     if (count != transfer_sectors)
 	return 1;
@@ -881,19 +853,6 @@ uint8_t
 hdd_image_get_type(uint8_t id)
 {
     return hdd_images[id].type;
-}
-
-
-void
-hdd_image_specify(uint8_t id, uint64_t hpc, uint64_t spt)
-{
-    if (hdd_images[id].type == 2) {
-	hdd[id].at_hpc = hpc;
-	hdd[id].at_spt = spt;
-	fseeko64(hdd_images[id].file, 0x20, SEEK_SET);
-	fwrite(&(hdd[id].at_spt), 1, 4, hdd_images[id].file);
-	fwrite(&(hdd[id].at_hpc), 1, 4, hdd_images[id].file);
-    }
 }
 
 

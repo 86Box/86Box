@@ -8,7 +8,7 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.21	2018/10/13
+ * Version:	@(#)scsi_device.c	1.0.22	2018/10/28
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -35,71 +35,81 @@ uint8_t scsi_null_device_sense[18] = { 0x70,0,SENSE_ILLEGAL_REQUEST,0,0,0,0,0,0,
 static uint8_t
 scsi_device_target_command(scsi_device_t *dev, uint8_t *cdb)
 {
-    if (dev->command && dev->err_stat_to_scsi) {
-	dev->command(dev->p, cdb);
-	return dev->err_stat_to_scsi(dev->p);
+    if (dev->command) {
+	dev->command(dev->sc, cdb);
+
+	if (dev->sc->status & ERR_STAT)
+		return SCSI_STATUS_CHECK_CONDITION;
+	else
+		return SCSI_STATUS_OK;
     } else
 	return SCSI_STATUS_CHECK_CONDITION;
 }
 
 
-static void scsi_device_target_callback(scsi_device_t *dev)
+static void
+scsi_device_target_callback(scsi_device_t *dev)
 {
     if (dev->callback)
-	dev->callback(dev->p);
+	dev->callback(dev->sc);
 
     return;
 }
 
 
-static int scsi_device_target_err_stat_to_scsi(scsi_device_t *dev)
+static int
+scsi_device_target_err_stat_to_scsi(scsi_device_t *dev)
 {
-    if (dev->err_stat_to_scsi)
-	return dev->err_stat_to_scsi(dev->p);
+    if (dev->sc)
+	if (dev->sc->status & ERR_STAT)
+		return SCSI_STATUS_CHECK_CONDITION;
+	else
+		return SCSI_STATUS_OK;
     else
 	return SCSI_STATUS_CHECK_CONDITION;
 }
 
 
-int64_t scsi_device_get_callback(scsi_device_t *dev)
+int64_t
+scsi_device_get_callback(scsi_device_t *dev)
 {
-    scsi_device_data_t *sdd = (scsi_device_data_t *) dev->p;
-
-    if (sdd)
-	return sdd->callback;
+    if (dev->sc)
+	return dev->sc->callback;
     else
 	return -1LL;
 }
 
 
-uint8_t *scsi_device_sense(scsi_device_t *dev)
+uint8_t *
+scsi_device_sense(scsi_device_t *dev)
 {
-    scsi_device_data_t *sdd = (scsi_device_data_t *) dev->p;
-
-    if (sdd)
-	return sdd->sense;
+    if (dev->sc)
+	return dev->sc->sense;
     else
 	return scsi_null_device_sense;
 }
 
 
-void scsi_device_request_sense(scsi_device_t *dev, uint8_t *buffer, uint8_t alloc_length)
+void
+scsi_device_request_sense(scsi_device_t *dev, uint8_t *buffer, uint8_t alloc_length)
 {
     if (dev->request_sense)
-	dev->request_sense(dev->p, buffer, alloc_length);
+	dev->request_sense(dev->sc, buffer, alloc_length);
     else
 	memcpy(buffer, scsi_null_device_sense, alloc_length);
 }
 
 
-void scsi_device_reset(scsi_device_t *dev)
+void
+scsi_device_reset(scsi_device_t *dev)
 {
     if (dev->reset)
-	dev->reset(dev->p);
+	dev->reset(dev->sc);
 }
 
 
-int scsi_device_present(scsi_device_t *dev)
+int
+scsi_device_present(scsi_device_t *dev)
 {
     if (dev->type == SCSI_NONE)
 	return 0;
@@ -108,25 +118,28 @@ int scsi_device_present(scsi_device_t *dev)
 }
 
 
-int scsi_device_valid(scsi_device_t *dev)
+int
+scsi_device_valid(scsi_device_t *dev)
 {
-    if (dev->p)
+    if (dev->sc)
 	return 1;
     else
 	return 0;
 }
 
 
-int scsi_device_cdb_length(scsi_device_t *dev)
+int
+scsi_device_cdb_length(scsi_device_t *dev)
 {
     /* Right now, it's 12 for all devices. */
     return 12;
 }
 
 
-void scsi_device_command_phase0(scsi_device_t *dev, uint8_t *cdb)
+void
+scsi_device_command_phase0(scsi_device_t *dev, uint8_t *cdb)
 {
-    if (!dev->p) {
+    if (!dev->sc) {
 	dev->phase = SCSI_PHASE_STATUS;
 	dev->status = SCSI_STATUS_CHECK_CONDITION;
 	return;
@@ -143,9 +156,11 @@ void scsi_device_command_phase0(scsi_device_t *dev, uint8_t *cdb)
     /* If the phase is DATA IN or DATA OUT, finish this here. */
 }
 
-void scsi_device_command_phase1(scsi_device_t *dev)
+
+void
+scsi_device_command_phase1(scsi_device_t *dev)
 {
-    if (!dev->p)
+    if (!dev->sc)
 	return;
 
     /* Call the second phase. */
@@ -155,7 +170,25 @@ void scsi_device_command_phase1(scsi_device_t *dev)
     scsi_device_target_callback(dev);
 }
 
-int32_t *scsi_device_get_buf_len(scsi_device_t *dev)
+
+void
+scsi_device_command_stop(scsi_device_t *dev)
 {
-    return &dev->buffer_length;
+    if (!dev->command_stop)
+	dev->command_stop(dev->sc);
+    scsi_device_target_callback(dev);
+}
+
+
+void
+scsi_device_close_all(void)
+{
+    int i;
+    scsi_device_t *dev;
+
+    for (i = 0; i < SCSI_ID_MAX; i++) {
+	dev = &(scsi_devices[i]);
+	if (dev->command_stop && dev->sc)
+		dev->command_stop(dev->sc);
+    }
 }

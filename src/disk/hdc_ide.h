@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_ide.h	1.0.12	2018/10/10
+ * Version:	@(#)hdd_ide.h	1.0.13	2018/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -27,7 +27,8 @@ enum
     IDE_ATAPI
 };
 
-typedef struct {
+#ifdef SCSI_DEVICE_H
+typedef struct ide_s {
     uint8_t atastat, error,
 	    command, fdisk;
     int type, board,
@@ -49,19 +50,19 @@ typedef struct {
     uint8_t *sector_buffer;
 
     /* Stuff mostly used by ATAPI */
-    void	*p;
+    scsi_common_t	*sc;
     int		interrupt_drq;
 
     int		(*get_max)(int ide_has_dma, int type);
     int		(*get_timings)(int ide_has_dma, int type);
-    void	(*identify)(void *p, int ide_has_dma);
-    void	(*set_signature)(void *p);
-    void	(*packet_write)(void *p, uint32_t val, int length);
-    uint32_t	(*packet_read)(void *p, int length);
-    void	(*stop)(void *p);
-    void	(*packet_callback)(void *p);
-    void	(*device_reset)(void *p);
+    void	(*identify)(struct ide_s *ide, int ide_has_dma);
+    void	(*stop)(scsi_common_t *sc);
+    void	(*packet_callback)(scsi_common_t *sc);
+    void	(*device_reset)(scsi_common_t *sc);
+    uint8_t	(*phase_data_out)(scsi_common_t *sc);
+    void	(*command_stop)(scsi_common_t *sc);
 } ide_t;
+#endif
 
 /* Type:
 	0 = PIO,
@@ -95,12 +96,18 @@ enum {
 extern int ideboard;
 extern int ide_ter_enabled, ide_qua_enabled;
 
+#ifdef SCSI_DEVICE_H
 extern ide_t *ide_drives[IDE_NUM];
+#endif
 extern int64_t idecallback[5];
 
 
+#ifdef SCSI_DEVICE_H
 extern void	ide_irq_raise(ide_t *ide);
 extern void	ide_irq_lower(ide_t *ide);
+extern void	ide_allocate_buffer(ide_t *dev);
+extern void	ide_atapi_attach(ide_t *dev);
+#endif
 
 extern void *	ide_xtide_init(void);
 extern void	ide_xtide_close(void);
@@ -140,8 +147,6 @@ extern void	(*ide_bus_master_set_irq)(int channel, void *priv);
 extern void	*ide_bus_master_priv[2];
 
 extern void	ide_enable_pio_override(void);
-extern void	ide_allocate_buffer(ide_t *dev);
-extern void	ide_atapi_attach(ide_t *dev);
 
 
 #endif	/*EMU_IDE_H*/

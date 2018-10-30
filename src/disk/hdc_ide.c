@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.55	2018/10/25
+ * Version:	@(#)hdc_ide.c	1.0.56	2018/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -109,7 +109,7 @@
 #define FEATURE_DISABLE_IRQ_OVERLAPPED	0xdd
 #define FEATURE_DISABLE_IRQ_SERVICE	0xde
 
-#define IDE_PCI (PCI && pio_override && (ide->board < 2))
+#define IDE_PCI (PCI && !pio_override && (ide->board < 2))
 
 
 typedef struct {
@@ -379,7 +379,7 @@ static int
 ide_get_max(ide_t *ide, int type)
 {
     if (ide_drive_is_atapi(ide))
-	return ide->get_max(!IDE_PCI, type);
+	return ide->get_max(IDE_PCI, type);
 
     switch(type) {
 	case TYPE_PIO:	/* PIO */
@@ -413,7 +413,7 @@ static int
 ide_get_timings(ide_t *ide, int type)
 {
     if (ide_drive_is_atapi(ide))
-	return ide->get_timings(!IDE_PCI, type);
+	return ide->get_timings(IDE_PCI, type);
 
     switch(type) {
 	case TIMINGS_DMA:
@@ -551,6 +551,8 @@ ide_identify(ide_t *ide)
     max_sdma = ide_get_max(ide, TYPE_SDMA);
     max_mdma = ide_get_max(ide, TYPE_MDMA);
     max_udma = ide_get_max(ide, TYPE_UDMA);
+    ide_log("IDE %i: max_pio = %i, max_sdma = %i, max_mdma = %i, max_udma = %i\n",
+	    ide->channel, max_pio, max_sdma, max_mdma, max_udma);
 
     if (ide_boards[ide->board]->bit32)
 	ide->buffer[48] |= 1;   /*Dword transfers supported*/
@@ -669,18 +671,17 @@ loadhd(ide_t *ide, int d, const wchar_t *fn)
 void
 ide_set_signature(ide_t *ide)
 {
-    scsi_device_data_t *atapi = (scsi_device_data_t *) ide->p;
-
     ide->sector=1;
     ide->head=0;
 
     if (ide_drive_is_atapi(ide)) {
-	ide->set_signature(ide->p);
-	ide->secount = atapi->phase;
-	ide->cylinder = atapi->request_length;
+	ide->sc->phase = 1;
+	ide->sc->request_length = 0xEB14;
+	ide->secount = ide->sc->phase;
+	ide->cylinder = ide->sc->request_length;
     } else {
-	ide->secount=1;
-	ide->cylinder=((ide->type == IDE_HDD) ? 0 : 0xFFFF);
+	ide->secount = 1;
+	ide->cylinder = ((ide->type == IDE_HDD) ? 0 : 0xFFFF);
 	if (ide->type == IDE_HDD)
 		ide->drive = 0;
     }
@@ -813,7 +814,6 @@ ide_board_close(int board)
 {
     ide_t *dev;
     int c, d;
-    scsi_device_data_t *atapi;
 
     /* Close hard disk image files (if previously open) */
     for (d = 0; d < 2; d++) {
@@ -824,10 +824,8 @@ ide_board_close(int board)
 		hdd_image_close(dev->hdd_num);
 
 	if (board < 4) {
-		if (ide_drive_is_atapi(dev)) {
-			atapi = (scsi_device_data_t *) dev->p;
-			atapi->status = DRDY_STAT | DSC_STAT;
-		}
+		if (ide_drive_is_atapi(dev))
+			dev->sc->status = DRDY_STAT | DSC_STAT;
 	}
 
 	if (dev->buffer)
@@ -943,6 +941,164 @@ ide_set_callback(uint8_t board, int64_t callback)
 }
 
 
+/* This is the general ATAPI PIO request function. */
+static void
+ide_atapi_pio_request(ide_t *ide, uint8_t out)
+{
+    scsi_common_t *dev = ide->sc;
+
+    ide_irq_lower(ide_drives[ide->board]);
+
+    dev->status = BSY_STAT;
+
+    if (dev->pos >= dev->packet_len) {
+	ide_log("%i bytes %s, command done\n", dev->pos, out ? "written" : "read");
+
+	dev->pos = dev->request_pos = 0;
+	if (out && ide->phase_data_out)
+		ide->phase_data_out(dev);
+	else if (ide->command_stop)
+		ide->command_stop(dev);
+    } else {
+	ide_log("%i bytes %s, %i bytes are still left\n", dev->pos,
+		out ? "written" : "read", dev->packet_len - dev->pos);
+
+	/* If less than (packet length) bytes are remaining, update packet length
+	   accordingly. */
+	if ((dev->packet_len - dev->pos) < (dev->max_transfer_len))
+		dev->max_transfer_len = dev->packet_len - dev->pos;
+	ide_log("CD-ROM %i: Packet length %i, request length %i\n", dev->id, dev->packet_len,
+		dev->max_transfer_len);
+
+	dev->packet_status = out ? PHASE_DATA_OUT : PHASE_DATA_IN;
+
+	dev->status = BSY_STAT;
+	dev->phase = 1;
+	if (ide->packet_callback)
+		ide->packet_callback(dev);
+	dev->callback = 0LL;
+	ide_set_callback(ide->board >> 1, dev->callback);
+
+	dev->request_pos = 0;
+    }
+}
+
+
+static uint32_t
+ide_atapi_packet_read(ide_t *ide, int length)
+{
+    scsi_common_t *dev = ide->sc;
+
+    uint16_t *bufferw;
+    uint32_t *bufferl;
+
+    uint32_t temp = 0;
+
+    if (!dev || !dev->temp_buffer || (dev->packet_status != PHASE_DATA_IN))
+	return 0;
+
+    bufferw = (uint16_t *) dev->temp_buffer;
+    bufferl = (uint32_t *) dev->temp_buffer;
+
+    /* Make sure we return a 0 and don't attempt to read from the buffer if we're transferring bytes beyond it,
+       which can happen when issuing media access commands with an allocated length below minimum request length
+       (which is 1 sector = 2048 bytes). */
+    switch(length) {
+	case 1:
+		temp = (dev->pos < dev->packet_len) ? dev->temp_buffer[dev->pos] : 0;
+		dev->pos++;
+		dev->request_pos++;
+		break;
+	case 2:
+		temp = (dev->pos < dev->packet_len) ? bufferw[dev->pos >> 1] : 0;
+		dev->pos += 2;
+		dev->request_pos += 2;
+		break;
+	case 4:
+		temp = (dev->pos < dev->packet_len) ? bufferl[dev->pos >> 2] : 0;
+		dev->pos += 4;
+		dev->request_pos += 4;
+		break;
+	default:
+		return 0;
+    }
+
+    if (dev->packet_status == PHASE_DATA_IN) {
+	if ((dev->request_pos >= dev->max_transfer_len) || (dev->pos >= dev->packet_len)) {
+		/* Time for a DRQ. */
+		ide_atapi_pio_request(ide, 0);
+	}
+	return temp;
+    } else
+	return 0;
+}
+
+
+static void
+ide_atapi_packet_write(ide_t *ide, uint32_t val, int length)
+{
+    scsi_common_t *dev = ide->sc;
+
+    uint8_t *bufferb;
+    uint16_t *bufferw;
+    uint32_t *bufferl;
+
+    if (!dev)
+	return;
+
+    if (dev->packet_status == PHASE_IDLE)
+	bufferb = dev->atapi_cdb;
+    else {
+	if (dev->temp_buffer)
+		bufferb = dev->temp_buffer;
+	else
+		return;
+    }
+
+    bufferw = (uint16_t *) bufferb;
+    bufferl = (uint32_t *) bufferb;
+
+    switch(length) {
+	case 1:
+		bufferb[dev->pos] = val & 0xff;
+		dev->pos++;
+		dev->request_pos++;
+		break;
+	case 2:
+		bufferw[dev->pos >> 1] = val & 0xffff;
+		dev->pos += 2;
+		dev->request_pos += 2;
+		break;
+	case 4:
+		bufferl[dev->pos >> 2] = val;
+		dev->pos += 4;
+		dev->request_pos += 4;
+		break;
+	default:
+		return;
+    }
+
+    if (dev->packet_status == PHASE_DATA_OUT) {
+	if ((dev->request_pos >= dev->max_transfer_len) || (dev->pos >= dev->packet_len)) {
+		/* Time for a DRQ. */
+		ide_atapi_pio_request(ide, 1);
+	}
+	return;
+    } else if (dev->packet_status == PHASE_IDLE) {
+	if (dev->pos >= 12) {
+		dev->pos = 0;
+		dev->status = BSY_STAT;
+		dev->packet_status = PHASE_COMMAND;
+		timer_process();
+		if (ide->packet_callback)
+			ide->packet_callback(dev);
+		timer_update_outstanding();
+	}
+	return;
+    }
+}
+
+
 void
 ide_write_data(ide_t *ide, uint32_t val, int length)
 {
@@ -957,7 +1113,7 @@ ide_write_data(ide_t *ide, uint32_t val, int length)
 		return;
 
 	if (ide_drive_is_atapi(ide))
-		ide->packet_write(ide->p, val, length);
+		ide_atapi_packet_write(ide, val, length);
 	return;
     } else {
 	switch(length) {
@@ -1048,7 +1204,6 @@ void
 ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 {
     ide_board_t *dev = (ide_board_t *) priv;
-    scsi_device_data_t *atapi;
 
     ide_t *ide, *ide_other;
     int ch;
@@ -1060,11 +1215,9 @@ ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
     ide_log("ide_write_devctl %04X %02X from %04X(%08X):%08X\n", addr, val, CS, cs, cpu_state.pc);
 
     if ((ide->fdisk & 4) && !(val&4) && (ide->type != IDE_NONE || ide_other->type != IDE_NONE)) {
-	atapi = (scsi_device_data_t *) ide->p;
-
 	timer_process();
 	if (ide_drive_is_atapi(ide))
-		atapi->callback = 0LL;
+		ide->sc->callback = 0LL;
 	ide_set_callback(ide->board, 500LL * IDE_TIME);
 	timer_update_outstanding();
 
@@ -1073,7 +1226,7 @@ ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 	if (ide_other->type != IDE_NONE)
 		ide->reset = 1;
 	if (ide_drive_is_atapi(ide))
-		atapi->status = BSY_STAT;
+		ide->sc->status = BSY_STAT;
 	ide->atastat = ide_other->atastat = BSY_STAT;
     }
 
@@ -1093,7 +1246,6 @@ void
 ide_writeb(uint16_t addr, uint8_t val, void *priv)
 {
     ide_board_t *dev = (ide_board_t *) priv;
-    scsi_device_data_t *atapi, *atapi_other;
 
     ide_t *ide, *ide_other;
     int ch;
@@ -1109,9 +1261,6 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
     if ((ide->type == IDE_NONE) && ((addr == 0x0) || (addr == 0x7)))
 	return;
 
-    atapi = (scsi_device_data_t *) ide->p;
-    atapi_other = (scsi_device_data_t *) ide_other->p;
-
     switch (addr) {
 	case 0x0: /* Data */
 		ide_write_data(ide, val | (val << 8), 2);
@@ -1121,25 +1270,25 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 	case 0x1: /* Features */
 		if (ide_drive_is_atapi(ide)) {
 			ide_log("ATAPI transfer mode: %s\n", (val & 1) ? "DMA" : "PIO");
-			atapi->features = val;
+			ide->sc->features = val;
 		}
 		ide->cylprecomp = val;
 
 		if (ide_drive_is_atapi(ide_other))
-			atapi_other->features = val;
+			ide_other->sc->features = val;
 		ide_other->cylprecomp = val;
 		return;
 
 	case 0x2: /* Sector count */
 		if (ide_drive_is_atapi(ide)) {
 			ide_log("Sector count write: %i\n", val);
-			atapi->phase = val;
+			ide->sc->phase = val;
 		}
 		ide->secount = val;
 
 		if (ide_drive_is_atapi(ide_other)) {
 			ide_log("Other sector count write: %i\n", val);
-			atapi_other->phase = val;
+			ide_other->sc->phase = val;
 		}
 		ide_other->secount = val;
 		return;
@@ -1153,15 +1302,15 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
 	case 0x4: /* Cylinder low */
 		if (ide_drive_is_atapi(ide)) {
-			atapi->request_length &= 0xFF00;
-			atapi->request_length |= val;
+			ide->sc->request_length &= 0xFF00;
+			ide->sc->request_length |= val;
 		}
 		ide->cylinder = (ide->cylinder & 0xFF00) | val;
 		ide->lba_addr = (ide->lba_addr & 0xFFF00FF) | (val << 8);
 
 		if (ide_drive_is_atapi(ide_other)) {
-			atapi_other->request_length &= 0xFF00;
-			atapi_other->request_length |= val;
+			ide_other->sc->request_length &= 0xFF00;
+			ide_other->sc->request_length |= val;
 		}
 		ide_other->cylinder = (ide_other->cylinder & 0xFF00) | val;
 		ide_other->lba_addr = (ide_other->lba_addr & 0xFFF00FF) | (val << 8);
@@ -1169,15 +1318,15 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
 	case 0x5: /* Cylinder high */
 		if (ide_drive_is_atapi(ide)) {
-			atapi->request_length &= 0xFF;
-			atapi->request_length |= (val << 8);
+			ide->sc->request_length &= 0xFF;
+			ide->sc->request_length |= (val << 8);
 		}
 		ide->cylinder = (ide->cylinder & 0xFF) | (val << 8);
 		ide->lba_addr = (ide->lba_addr & 0xF00FFFF) | (val << 16);
 
 		if (ide_drive_is_atapi(ide_other)) {
-			atapi_other->request_length &= 0xFF;
-			atapi_other->request_length |= (val << 8);
+			ide_other->sc->request_length &= 0xFF;
+			ide_other->sc->request_length |= (val << 8);
 		}
 		ide_other->cylinder = (ide_other->cylinder & 0xFF) | (val << 8);
 		ide_other->lba_addr = (ide_other->lba_addr & 0xF00FFFF) | (val << 16);
@@ -1198,20 +1347,20 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				ide->reset = ide_other->reset = 0;
 
 				if (ide_drive_is_atapi(ide)) {
-					atapi->status = DRDY_STAT | DSC_STAT;
-					atapi->error = 1;
-					atapi->phase = 1;
-					atapi->request_length = 0xEB14;
-					atapi->callback = 0LL;
+					ide->sc->status = DRDY_STAT | DSC_STAT;
+					ide->sc->error = 1;
+					ide->sc->phase = 1;
+					ide->sc->request_length = 0xEB14;
+					ide->sc->callback = 0LL;
 					ide->cylinder = 0xEB14;
 				}
 
 				if (ide_drive_is_atapi(ide_other)) {
-					atapi_other->status = DRDY_STAT | DSC_STAT;
-					atapi_other->error = 1;
-					atapi_other->phase = 1;
-					atapi_other->request_length = 0xEB14;
-					atapi_other->callback = 0LL;
+					ide_other->sc->status = DRDY_STAT | DSC_STAT;
+					ide_other->sc->error = 1;
+					ide_other->sc->phase = 1;
+					ide_other->sc->request_length = 0xEB14;
+					ide_other->sc->callback = 0LL;
 					ide->cylinder = 0xEB14;
 				}
 
@@ -1241,17 +1390,17 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
 		ide->error=0;
 		if (ide_drive_is_atapi(ide))
-			atapi->error = 0;
+			ide->sc->error = 0;
 
 		if (((val >= WIN_RECAL) && (val <= 0x1F)) || ((val >= WIN_SEEK) && (val <= 0x7F))) {
 			if (ide_drive_is_atapi(ide))
-				atapi->status = DRDY_STAT;
+				ide->sc->status = DRDY_STAT;
 			else
 				ide->atastat = BSY_STAT;
 			timer_process();
 
 			if (ide_drive_is_atapi(ide))
-				atapi->callback = 100LL * IDE_TIME;
+				ide->sc->callback = 100LL * IDE_TIME;
 			ide_set_callback(ide->board, 100LL * IDE_TIME);
 			timer_update_outstanding();
 			return;
@@ -1260,13 +1409,13 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 		switch (val) {
 			case WIN_SRST: /* ATAPI Device Reset */
 				if (ide_drive_is_atapi(ide))
-					atapi->status = BSY_STAT;
+					ide->sc->status = BSY_STAT;
 				else
 					ide->atastat = DRDY_STAT;
 				timer_process();
 
 				if (ide_drive_is_atapi(ide))
-					atapi->callback = 100LL * IDE_TIME;
+					ide->sc->callback = 100LL * IDE_TIME;
 				ide_set_callback(ide->board, 100LL * IDE_TIME);
 				timer_update_outstanding();
 				return;
@@ -1287,13 +1436,13 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 			case WIN_READ_DMA:
 			case WIN_READ_DMA_ALT:
 				if (ide_drive_is_atapi(ide))
-					atapi->status = BSY_STAT;
+					ide->sc->status = BSY_STAT;
 				else
 					ide->atastat = BSY_STAT;
 				timer_process();
 
 				if (ide_drive_is_atapi(ide))
-					atapi->callback = 200LL * IDE_TIME;
+					ide->sc->callback = 200LL * IDE_TIME;
 
 				if (ide->type == IDE_HDD) {
 					if ((val == WIN_READ_DMA) || (val == WIN_READ_DMA_ALT)) {
@@ -1320,8 +1469,8 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 			case WIN_WRITE:
 			case WIN_WRITE_NORETRY:
 				if (ide_drive_is_atapi(ide)) {
-					atapi->status = DRQ_STAT | DSC_STAT | DRDY_STAT;
-					atapi->pos = 0;
+					ide->sc->status = DRQ_STAT | DSC_STAT | DRDY_STAT;
+					ide->sc->pos = 0;
 				} else {
 					ide->atastat = DRQ_STAT | DSC_STAT | DRDY_STAT;
 					ide->pos=0;
@@ -1336,13 +1485,13 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 			case WIN_SET_FEATURES: /* Set Features */
 			case WIN_READ_NATIVE_MAX:
 				if (ide_drive_is_atapi(ide))
-					atapi->status = BSY_STAT;
+					ide->sc->status = BSY_STAT;
 				else
 					ide->atastat = BSY_STAT;
 				timer_process();
 
 				if (ide_drive_is_atapi(ide))
-					atapi->callback = 200LL * IDE_TIME;
+					ide->sc->callback = 200LL * IDE_TIME;
 				if ((ide->type == IDE_HDD) &&
 				    ((val == WIN_WRITE_DMA) || (val == WIN_WRITE_DMA_ALT))) {
 					if (ide->secount)
@@ -1368,31 +1517,31 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
 			case WIN_SPECIFY: /* Initialize Drive Parameters */
 				if (ide_drive_is_atapi(ide))
-					atapi->status = BSY_STAT;
+					ide->sc->status = BSY_STAT;
 				else
 					ide->atastat = BSY_STAT;
 				timer_process();
 
 				if (ide_drive_is_atapi(ide))
-					atapi->callback = 30LL * IDE_TIME;
+					ide->sc->callback = 30LL * IDE_TIME;
 				ide_set_callback(ide->board, 30LL * IDE_TIME);
 				timer_update_outstanding();
 				return;
 
 			case WIN_DRIVE_DIAGNOSTICS: /* Execute Drive Diagnostics */
 				if (ide_drive_is_atapi(ide))
-					atapi->status = BSY_STAT;
+					ide->sc->status = BSY_STAT;
 				else
 					ide->atastat = BSY_STAT;
 
 				if (ide_drive_is_atapi(ide_other))
-					atapi_other->status = BSY_STAT;
+					ide_other->sc->status = BSY_STAT;
 				else
 					ide_other->atastat = BSY_STAT;
 
 				timer_process();
 				if (ide_drive_is_atapi(ide))
-					atapi->callback = 200LL * IDE_TIME;
+					ide->sc->callback = 200LL * IDE_TIME;
 				ide_set_callback(ide->board, 200LL * IDE_TIME);
 				timer_update_outstanding();
 				return;
@@ -1406,7 +1555,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 			case WIN_CHECKPOWERMODE1:
 			case WIN_SLEEP1:
 				if (ide_drive_is_atapi(ide))
-					atapi->status = BSY_STAT;
+					ide->sc->status = BSY_STAT;
 				else
 					ide->atastat = BSY_STAT;
 				timer_process();
@@ -1417,10 +1566,10 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 			case WIN_PACKETCMD: /* ATAPI Packet */
 				/* Skip the command callback wait, and process immediately. */
 				if (ide_drive_is_atapi(ide)) {
-					atapi->packet_status = PHASE_IDLE;
-					atapi->pos = 0;
-					atapi->phase = 1;
-					atapi->status = DRDY_STAT | DRQ_STAT;
+					ide->sc->packet_status = PHASE_IDLE;
+					ide->sc->pos = 0;
+					ide->sc->phase = 1;
+					ide->sc->status = DRDY_STAT | DRQ_STAT;
 					if (ide->interrupt_drq)
 						ide_irq_raise(ide);	/* Interrupt DRQ, requires IRQ on any DRQ. */
 				} else {
@@ -1436,8 +1585,8 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 			default:
 ide_bad_command:
 				if (ide_drive_is_atapi(ide)) {
-					atapi->status = DRDY_STAT | ERR_STAT | DSC_STAT;
-					atapi->error = ABRT_ERR;
+					ide->sc->status = DRDY_STAT | ERR_STAT | DSC_STAT;
+					ide->sc->error = ABRT_ERR;
 				} else {
 					ide->atastat = DRDY_STAT | ERR_STAT | DSC_STAT;
 					ide->error = ABRT_ERR;
@@ -1453,7 +1602,6 @@ ide_bad_command:
 static uint32_t
 ide_read_data(ide_t *ide, int length)
 {
-    scsi_device_data_t *atapi = (scsi_device_data_t *) ide->p;
     uint32_t temp = 0;
 
     if (!ide->buffer) {
@@ -1476,7 +1624,7 @@ ide_read_data(ide_t *ide, int length)
     if (ide->command == WIN_PACKETCMD) {
 	ide->pos = 0;
 	if (ide_drive_is_atapi(ide))
-		temp = ide->packet_read(ide->p, length);
+		temp = ide_atapi_packet_read(ide, length);
 	else {
 		ide_log("Drive not ATAPI (position: %i)\n", ide->pos);
 		return 0;
@@ -1503,8 +1651,8 @@ ide_read_data(ide_t *ide, int length)
 	ide->pos = 0;
 	ide->atastat = DRDY_STAT | DSC_STAT;
 	if (ide_drive_is_atapi(ide)) {
-		atapi->status = DRDY_STAT | DSC_STAT;
-		atapi->packet_status = PHASE_IDLE;
+		ide->sc->status = DRDY_STAT | DSC_STAT;
+		ide->sc->packet_status = PHASE_IDLE;
 	}
 	if ((ide->command == WIN_READ) || (ide->command == WIN_READ_NORETRY) || (ide->command == WIN_READ_MULTIPLE)) {
 		ide->secount = (ide->secount - 1) & 0xff;
@@ -1517,10 +1665,8 @@ ide_read_data(ide_t *ide, int length)
 			else
 				ide_set_callback(ide->board, ide_get_period(ide, 512));
 			timer_update_outstanding();
-		} else {
-			if (ide->command != WIN_READ_MULTIPLE)
-				ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
-		}
+		} else if (ide->command != WIN_READ_MULTIPLE)
+			ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 	}
     }
 
@@ -1531,13 +1677,11 @@ ide_read_data(ide_t *ide, int length)
 static uint8_t
 ide_status(ide_t *ide, int ch)
 {
-    scsi_device_data_t *atapi = (scsi_device_data_t *) ide->p;
-
     if (ide->type == IDE_NONE)
 	return 0;
     else {
 	if (ide_drive_is_atapi(ide))
-		return (atapi->status & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
+		return (ide->sc->status & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
 	else
 		return ide->atastat;
     }
@@ -1547,7 +1691,6 @@ ide_status(ide_t *ide, int ch)
 uint8_t
 ide_readb(uint16_t addr, void *priv)
 {
-    scsi_device_data_t *atapi;
     ide_board_t *dev = (ide_board_t *) priv;
 
     int ch;
@@ -1555,7 +1698,6 @@ ide_readb(uint16_t addr, void *priv)
 
     ch = dev->cur_dev;
     ide = ide_drives[ch];
-    atapi = (scsi_device_data_t *) ide->p;
 
     uint8_t temp = 0xff;
     uint16_t tempw;
@@ -1577,7 +1719,7 @@ ide_readb(uint16_t addr, void *priv)
 			temp = 0;
 		else {
 			if (ide_drive_is_atapi(ide))
-				temp = atapi->error;
+				temp = ide->sc->error;
 			else
 				temp = ide->error;
 		}
@@ -1598,7 +1740,7 @@ ide_readb(uint16_t addr, void *priv)
 		1		0		1		Status. */
 	case 0x2: /* Sector count */
 		if (ide_drive_is_atapi(ide))
-			temp = atapi->phase;
+			temp = ide->sc->phase;
 		else
 			temp = ide->secount;
 		break;
@@ -1612,7 +1754,7 @@ ide_readb(uint16_t addr, void *priv)
 			temp = 0xFF;
 		else {
 			if (ide_drive_is_atapi(ide))
-				temp = atapi->request_length & 0xff;
+				temp = ide->sc->request_length & 0xff;
 			else
 				temp = ide->cylinder & 0xff;
 		}
@@ -1623,7 +1765,7 @@ ide_readb(uint16_t addr, void *priv)
 			temp = 0xFF;
 		else {
 			if (ide_drive_is_atapi(ide))
-				temp = atapi->request_length >> 8;
+				temp = ide->sc->request_length >> 8;
 			else
 				temp = ide->cylinder >> 8;
 		}
@@ -1725,13 +1867,10 @@ ide_callback(void *priv)
     int snum, ret, ch;
 
     ide_board_t *dev = (ide_board_t *) priv;
-    scsi_device_data_t *atapi, *atapi_other;
     ch = dev->cur_dev;
 
     ide = ide_drives[ch];
-    atapi = (scsi_device_data_t *) ide->p;
     ide_other = ide_drives[ch ^ 1];
-    atapi_other = (scsi_device_data_t *) ide_other->p;
 
     ide_set_callback(ide->board, 0LL);
 
@@ -1752,18 +1891,18 @@ ide_callback(void *priv)
 
 	ide_set_signature(ide);
 	if (ide_drive_is_atapi(ide)) {
-		atapi->status = DRDY_STAT | DSC_STAT;
-		atapi->error = 1;
+		ide->sc->status = DRDY_STAT | DSC_STAT;
+		ide->sc->error = 1;
 		if (ide->stop)
-			ide->stop(ide->p);
+			ide->stop(ide->sc);
 	}
 
 	ide_set_signature(ide_other);
 	if (ide_drive_is_atapi(ide_other)) {
-		atapi_other->status = DRDY_STAT | DSC_STAT;
-		atapi_other->error = 1;
+		ide_other->sc->status = DRDY_STAT | DSC_STAT;
+		ide_other->sc->error = 1;
 		if (ide_other->stop)
-			ide_other->stop(ide_other->p);
+			ide_other->stop(ide_other->sc);
 	}
 
 	return;
@@ -1798,10 +1937,10 @@ ide_callback(void *priv)
 		ide_set_signature(ide);
 
 		if (ide_drive_is_atapi(ide)) {
-			atapi->status = DRDY_STAT | DSC_STAT;
-			atapi->error = 1;
+			ide->sc->status = DRDY_STAT | DSC_STAT;
+			ide->sc->error = 1;
 			if (ide->device_reset)
-				ide->device_reset(ide->p);
+				ide->device_reset(ide->sc);
 		}
 		ide_irq_raise(ide);
 		if (ide_drive_is_atapi(ide))
@@ -1813,7 +1952,7 @@ ide_callback(void *priv)
 	case WIN_IDLENOW1:
 	case WIN_SETIDLE1:
 		if (ide_drive_is_atapi(ide))
-			atapi->status = DRDY_STAT | DSC_STAT;
+			ide->sc->status = DRDY_STAT | DSC_STAT;
 		else
 			ide->atastat = DRDY_STAT | DSC_STAT;
 		ide_irq_raise(ide);
@@ -1822,8 +1961,8 @@ ide_callback(void *priv)
 	case WIN_CHECKPOWERMODE1:
 	case WIN_SLEEP1:
 		if (ide_drive_is_atapi(ide)) {
-			atapi->phase = 0xFF;
-			atapi->status = DRDY_STAT | DSC_STAT;
+			ide->sc->phase = 0xFF;
+			ide->sc->status = DRDY_STAT | DSC_STAT;
 		}
 		ide->secount = 0xFF;
 		ide->atastat = DRDY_STAT | DSC_STAT;
@@ -1891,10 +2030,6 @@ ide_callback(void *priv)
 				ide_set_callback(ide->board, 6LL * IDE_TIME);
 				return;
 			} else if (ret == 1) {
-				/* Bus master DMAS error, abort the command. */
-				ide_log("IDE %i: DMA read aborted (failed)\n", ide->channel);
-				goto abort_cmd;
-			} else {
 				/*DMA successful*/
 				ide_log("IDE %i: DMA read successful\n", ide->channel);
 
@@ -1902,6 +2037,10 @@ ide_callback(void *priv)
 
 				ide_irq_raise(ide);
 				ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
+			} else {
+				/* Bus master DMAS error, abort the command. */
+				ide_log("IDE %i: DMA read aborted (failed)\n", ide->channel);
+				goto abort_cmd;
 			}
 		} else {
 			ide_log("IDE %i: DMA read aborted (no bus master)\n", ide->channel);
@@ -1974,7 +2113,7 @@ ide_callback(void *priv)
 			goto id_not_found;
 		}
 
-		if (ide_bus_master_read) {
+		if (ide_bus_master_write) {
 			if (ide->secount)
 				ide->sector_pos = ide->secount;
 			else
@@ -1990,10 +2129,6 @@ ide_callback(void *priv)
 				ide_set_callback(ide->board, 6LL * IDE_TIME);
 				return;
 			} else if (ret == 1) {
-				/* Bus master DMA error, abort the command. */
-				ide_log("IDE %i: DMA read aborted (failed)\n", ide->channel);
-				goto abort_cmd;
-			} else {
 				/*DMA successful*/
 				ide_log("IDE %i: DMA write successful\n", ide->channel);
 
@@ -2003,6 +2138,10 @@ ide_callback(void *priv)
 
 				ide_irq_raise(ide);
 				ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
+			} else {
+				/* Bus master DMA error, abort the command. */
+				ide_log("IDE %i: DMA read aborted (failed)\n", ide->channel);
+				goto abort_cmd;
 			}
 		} else {
 			ide_log("IDE %i: DMA write aborted (no bus master)\n", ide->channel);
@@ -2060,11 +2199,11 @@ ide_callback(void *priv)
 
 	case WIN_DRIVE_DIAGNOSTICS:
 		ide_set_signature(ide);
-		ide->error=1; /*No error detected*/
+		ide->error = 1; /*No error detected*/
 
 		if (ide_drive_is_atapi(ide)) {
-			atapi->status = 0;
-			atapi->error = 1;
+			ide->sc->status = 0;
+			ide->sc->error = 1;
 			ide_irq_raise(ide);
 		} else {
 			ide->atastat = DRDY_STAT | DSC_STAT;
@@ -2073,11 +2212,11 @@ ide_callback(void *priv)
 		}
 
 		ide_set_signature(ide_other);
-		ide_other->error=1; /*No error detected*/
+		ide_other->error = 1; /*No error detected*/
 
 		if (ide_drive_is_atapi(ide_other)) {
-			atapi_other->status = 0;
-			atapi_other->error = 1;
+			ide_other->sc->status = 0;
+			ide_other->sc->error = 1;
 		} else {
 			ide_other->atastat = DRDY_STAT | DSC_STAT;
 			ide_other->error = 1;
@@ -2105,10 +2244,10 @@ ide_callback(void *priv)
 		if (ide_drive_is_atapi(ide)) {
 			ide_identify(ide);
 			ide->pos = 0;
-			atapi->phase = 2;
-			atapi->pos = 0;
-			atapi->error = 0;
-			atapi->status = DRQ_STAT | DRDY_STAT | DSC_STAT;
+			ide->sc->phase = 2;
+			ide->sc->pos = 0;
+			ide->sc->error = 0;
+			ide->sc->status = DRQ_STAT | DRDY_STAT | DSC_STAT;
 			ide_irq_raise(ide);
 			return;
 		}
@@ -2123,19 +2262,16 @@ ide_callback(void *priv)
 		return;
 
 	case WIN_SET_FEATURES:
-		if (ide->type == IDE_NONE)
+		if ((ide->type == IDE_NONE) || !ide_set_features(ide))
 			goto abort_cmd;
 
-		if (!ide_set_features(ide))
-				goto abort_cmd;
-		else {
-			if (ide_drive_is_atapi(ide)) {
-				atapi->status = DRDY_STAT | DSC_STAT;
-				atapi->pos = 0;
-			}
-			ide->atastat = DRDY_STAT | DSC_STAT;
-			ide_irq_raise(ide);
+		if (ide_drive_is_atapi(ide)) {
+			ide->sc->status = DRDY_STAT | DSC_STAT;
+			ide->sc->pos = 0;
 		}
+
+		ide->atastat = DRDY_STAT | DSC_STAT;
+		ide_irq_raise(ide);
 		return;
 
 	case WIN_READ_NATIVE_MAX:
@@ -2165,7 +2301,7 @@ ide_callback(void *priv)
 		if (!ide_drive_is_atapi(ide) || !ide->packet_callback)
 			goto abort_cmd;
 
-		ide->packet_callback(ide->p);
+		ide->packet_callback(ide->sc);
 		return;
 
 	case 0xFF:
@@ -2175,9 +2311,9 @@ ide_callback(void *priv)
 abort_cmd:
     ide->command = 0;
     if (ide_drive_is_atapi(ide)) {
-	atapi->status = DRDY_STAT | ERR_STAT | DSC_STAT;
-	atapi->error = ABRT_ERR;
-	atapi->pos = 0;
+	ide->sc->status = DRDY_STAT | ERR_STAT | DSC_STAT;
+	ide->sc->error = ABRT_ERR;
+	ide->sc->pos = 0;
     } else {
 	ide->atastat = DRDY_STAT | ERR_STAT | DSC_STAT;
 	ide->error = ABRT_ERR;

@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.72	2018/10/26
+ * Version:	@(#)win_settings.c	1.0.73	2018/10/30
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -477,6 +477,10 @@ win_settings_save(void)
 	
     /* Hard disks category */
     memcpy(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
+    for (i = 0; i < HDD_NUM; i++) {
+	hdd[i].f = NULL;
+	hdd[i].priv = NULL;
+    }
 
     /* Floppy drives category */
     for (i = 0; i < FDD_NUM; i++) {
@@ -487,7 +491,21 @@ win_settings_save(void)
 
     /* Removable devices category */
     memcpy(cdrom, temp_cdrom, CDROM_NUM * sizeof(cdrom_t));
+    for (i = 0; i < CDROM_NUM; i++) {
+	cdrom[i].img_fp = NULL;
+	cdrom[i].priv = NULL;
+	cdrom[i].ops = NULL;
+	cdrom[i].image = NULL;
+	cdrom[i].insert = NULL;
+	cdrom[i].close = NULL;
+	cdrom[i].get_volume = NULL;
+	cdrom[i].get_channel = NULL;
+    }
     memcpy(zip_drives, temp_zip_drives, ZIP_NUM * sizeof(zip_drive_t));
+    for (i = 0; i < ZIP_NUM; i++) {
+	zip_drives[i].f = NULL;
+	zip_drives[i].priv = NULL;
+    }
 
     /* Mark configuration as changed. */
     config_changed = 1;

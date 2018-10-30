@@ -33,7 +33,8 @@ typedef struct {
 
     int requested_blocks, packet_status,
 	total_length, do_page_save,
-	unit_attention;
+	unit_attention, pad5,
+	pad6, pad7;
 
     uint32_t sector_pos, sector_len,
 	     packet_len, pos;

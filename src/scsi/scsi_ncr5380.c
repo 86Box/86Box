@@ -9,7 +9,7 @@
  *		Implementation of the NCR 5380 series of SCSI Host Adapters
  *		made by NCR. These controllers were designed for the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.23	2018/10/18
+ * Version:	@(#)scsi_ncr5380.c	1.0.24	2018/10/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -286,7 +286,7 @@ ncr_wait_process(ncr5380_t *ncr_dev)
 
 		if (ncr->new_phase == SCSI_PHASE_DATA_IN) {
 			ncr_log("Data In bus phase\n");
-			ncr->tx_data = dev->cmd_buffer[ncr->data_pos++];
+			ncr->tx_data = dev->sc->temp_buffer[ncr->data_pos++];
 			ncr->state = STATE_DATAIN;
 			ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->tx_data) | BUS_DBP;
 		} else if (ncr->new_phase == SCSI_PHASE_STATUS) {
@@ -963,8 +963,6 @@ ncr_callback(void *priv)
 
 				/*If the SCSI phase is Data In or Data Out, allocate the SCSI buffer based on the transfer length of the command*/
 				if (dev->buffer_length && (dev->phase == SCSI_PHASE_DATA_IN || dev->phase == SCSI_PHASE_DATA_OUT)) {
-					dev->cmd_buffer = (uint8_t *) malloc(dev->buffer_length);
-
 					p = scsi_device_get_callback(dev);
 					req_len = MIN(64, dev->buffer_length);
 					if (p <= 0LL)
@@ -982,10 +980,6 @@ ncr_callback(void *priv)
 				} else {
 					/* Other command - execute immediately. */
 					ncr->new_phase = dev->phase;
-
-					if (ncr->new_phase == SCSI_PHASE_DATA_IN) 
-						scsi_device_command_phase1(dev);
-
 					ncr->wait_data = 4;
 				}
 			}
@@ -995,17 +989,13 @@ ncr_callback(void *priv)
 		ncr_log("Data In ACK=%02x\n", ncr->bus_host & BUS_ACK);
 		if (ncr->bus_host & BUS_ACK) {
 			if (ncr->data_pos >= dev->buffer_length) {
-				if (dev->cmd_buffer != NULL) {
-					free(dev->cmd_buffer);
-					dev->cmd_buffer = NULL;	
-				}
-
+				scsi_device_command_phase1(dev);
 				ncr->cur_bus &= ~BUS_REQ;
 				ncr->new_phase = SCSI_PHASE_STATUS;
 				ncr->wait_data = 4;
 				ncr->wait_complete = 8;
 			} else {
-				ncr->tx_data = dev->cmd_buffer[ncr->data_pos++];
+				ncr->tx_data = dev->sc->temp_buffer[ncr->data_pos++];
 				ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->tx_data) | BUS_DBP | BUS_REQ;
 				ncr->clear_req = 3;
 				ncr->cur_bus &= ~BUS_REQ;
@@ -1017,16 +1007,10 @@ ncr_callback(void *priv)
 
 		ncr_log("Data Out ACK=%02x\n", ncr->bus_host & BUS_ACK);
 		if (ncr->bus_host & BUS_ACK) {
-			dev->cmd_buffer[ncr->data_pos++] = BUS_GETDATA(ncr->bus_host);
+			dev->sc->temp_buffer[ncr->data_pos++] = BUS_GETDATA(ncr->bus_host);
 
 			if (ncr->data_pos >= dev->buffer_length) {
 				scsi_device_command_phase1(dev);
-
-				if (dev->cmd_buffer != NULL) {
-					free(dev->cmd_buffer);
-					dev->cmd_buffer = NULL;	
-				}
-
 				ncr->cur_bus &= ~BUS_REQ;
 				ncr_log("CurBus ~REQ_DataOutDone=%02x\n", ncr->cur_bus);
 				ncr->new_phase = SCSI_PHASE_STATUS;
@@ -1076,17 +1060,13 @@ ncr_callback(void *priv)
 			ncr->bus_host = get_bus_host(ncr);
 
 			if (ncr->data_pos >= dev->buffer_length) {
-				if (dev->cmd_buffer != NULL) {
-					free(dev->cmd_buffer);
-					dev->cmd_buffer = NULL;	
-				}
-
+				scsi_device_command_phase1(dev);
 				ncr->cur_bus &= ~BUS_REQ;
 				ncr->new_phase = SCSI_PHASE_STATUS;
 				ncr->wait_data = 4;
 				ncr->wait_complete = 8;
 			} else {
-				ncr->tx_data = dev->cmd_buffer[ncr->data_pos++];
+				ncr->tx_data = dev->sc->temp_buffer[ncr->data_pos++];
 				ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->tx_data) | BUS_DBP | BUS_REQ;
 				ncr->clear_req = 3;
 				ncr->cur_bus &= ~BUS_REQ;
@@ -1141,16 +1121,10 @@ ncr_callback(void *priv)
 				ncr->bus_host = get_bus_host(ncr) & ~BUS_DATAMASK;
 				ncr->bus_host |= BUS_SETDATA(data);
 
-				dev->cmd_buffer[ncr->data_pos++] = BUS_GETDATA(ncr->bus_host);
+				dev->sc->temp_buffer[ncr->data_pos++] = BUS_GETDATA(ncr->bus_host);
 
 				if (ncr->data_pos >= dev->buffer_length) {
 					scsi_device_command_phase1(dev);
-
-					if (dev->cmd_buffer != NULL) {
-						free(dev->cmd_buffer);
-						dev->cmd_buffer = NULL;	
-					}
-
 					ncr->cur_bus &= ~BUS_REQ;
 					ncr_log("CurBus ~REQ_DataOutDone=%02x\n", ncr->cur_bus);
 					ncr->new_phase = SCSI_PHASE_STATUS;
@@ -1199,17 +1173,13 @@ ncr_callback(void *priv)
 			ncr->bus_host = get_bus_host(ncr);
 
 			if (ncr->data_pos >= dev->buffer_length) {
-				if (dev->cmd_buffer != NULL) {
-					free(dev->cmd_buffer);
-					dev->cmd_buffer = NULL;	
-				}
-
+				scsi_device_command_phase1(dev);
 				ncr->cur_bus &= ~BUS_REQ;
 				ncr->new_phase = SCSI_PHASE_STATUS;
 				ncr->wait_data = 4;
 				ncr->wait_complete = 8;
 			} else {
-				ncr->tx_data = dev->cmd_buffer[ncr->data_pos++];
+				ncr->tx_data = dev->sc->temp_buffer[ncr->data_pos++];
 				ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->tx_data) | BUS_DBP | BUS_REQ;
 				ncr->clear_req = 3;
 				ncr->cur_bus &= ~BUS_REQ;
@@ -1250,16 +1220,10 @@ ncr_callback(void *priv)
 			ncr->bus_host = get_bus_host(ncr) & ~BUS_DATAMASK;
 			ncr->bus_host |= BUS_SETDATA(data);
 
-			dev->cmd_buffer[ncr->data_pos++] = BUS_GETDATA(ncr->bus_host);
+			dev->sc->temp_buffer[ncr->data_pos++] = BUS_GETDATA(ncr->bus_host);
 
 			if (ncr->data_pos >= dev->buffer_length) {
 				scsi_device_command_phase1(dev);
-
-				if (dev->cmd_buffer != NULL) {
-					free(dev->cmd_buffer);
-					dev->cmd_buffer = NULL;	
-				}
-
 				ncr->cur_bus &= ~BUS_REQ;
 				ncr_log("CurBus ~REQ_DataOutDone=%02x\n", ncr->cur_bus);
 				ncr->new_phase = SCSI_PHASE_STATUS;
