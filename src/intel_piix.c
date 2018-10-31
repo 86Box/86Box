@@ -10,7 +10,7 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)intel_piix.c	1.0.21	2018/10/28
+ * Version:	@(#)intel_piix.c	1.0.22	2018/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -609,7 +609,7 @@ piix_bus_master_readl(uint16_t port, void *priv)
 
 
 static int
-piix_bus_master_dma_op(int channel, uint8_t *data, int transfer_length, int out, void *priv)
+piix_bus_master_dma(int channel, uint8_t *data, int transfer_length, int out, void *priv)
 {
     piix_busmaster_t *dev = (piix_busmaster_t *) priv;
 #ifdef ENABLE_PIIX_LOG
@@ -619,29 +619,29 @@ piix_bus_master_dma_op(int channel, uint8_t *data, int transfer_length, int out,
     int force_end = 0, buffer_pos = 0;
 
 #ifdef ENABLE_PIIX_LOG
-    sop = out ? "Writ" : "Read";
+    sop = out ? "Read" : "Writ";
 #endif
 
     if (!(dev->status & 1))
 	return 2;                                    /*DMA disabled*/
 
-    piix_log("PIIX Bus master %s: %i bytes\n", out ? "read" : "write", transfer_length);
+    piix_log("PIIX Bus master %s: %i bytes\n", out ? "write" : "read", transfer_length);
 
     while (1) {
 	if (dev->count <= transfer_length) {
 		piix_log("%sing %i bytes to %08X\n", sop, dev->count, dev->addr);
 		if (out)
-			DMAPageWrite(dev->addr, (uint8_t *)(data + buffer_pos), dev->count);
-		else
 			DMAPageRead(dev->addr, (uint8_t *)(data + buffer_pos), dev->count);
+		else
+			DMAPageWrite(dev->addr, (uint8_t *)(data + buffer_pos), dev->count);
 		transfer_length -= dev->count;
 		buffer_pos += dev->count;
 	} else {
 		piix_log("%sing %i bytes to %08X\n", sop, transfer_length, dev->addr);
 		if (out)
-			DMAPageWrite(dev->addr, (uint8_t *)(data + buffer_pos), transfer_length);
-		else
 			DMAPageRead(dev->addr, (uint8_t *)(data + buffer_pos), transfer_length);
+		else
+			DMAPageWrite(dev->addr, (uint8_t *)(data + buffer_pos), transfer_length);
 		/* Increase addr and decrease count so that resumed transfers do not mess up. */
 		dev->addr += transfer_length;
 		dev->count -= transfer_length;
@@ -674,20 +674,6 @@ piix_bus_master_dma_op(int channel, uint8_t *data, int transfer_length, int out,
     }
 
     return 1;
-}
-
-
-int
-piix_bus_master_dma_read(int channel, uint8_t *data, int transfer_length, void *priv)
-{
-    return piix_bus_master_dma_op(channel, data, transfer_length, 1, priv);
-}
-
-
-int
-piix_bus_master_dma_write(int channel, uint8_t *data, int transfer_length, void *priv)
-{
-    return piix_bus_master_dma_op(channel, data, transfer_length, 0, priv);
 }
 
 
@@ -864,8 +850,7 @@ static void
     piix->type = info->local;
     piix_reset_hard(piix);
 
-    ide_set_bus_master(piix_bus_master_dma_read, piix_bus_master_dma_write,
-		       piix_bus_master_set_irq,
+    ide_set_bus_master(piix_bus_master_dma, piix_bus_master_set_irq,
 		       &piix->bm[0], &piix->bm[1]);
 
     port_92_reset();

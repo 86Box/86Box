@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_ide.h	1.0.14	2018/10/31
+ * Version:	@(#)hdd_ide.h	1.0.15	2018/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -120,8 +120,7 @@ extern uint8_t	ide_readb(uint16_t addr, void *priv);
 extern uint8_t	ide_read_alt_status(uint16_t addr, void *priv);
 extern uint16_t	ide_readw(uint16_t addr, void *priv);
 
-extern void	ide_set_bus_master(int (*read)(int channel, uint8_t *data, int transfer_length, void *priv),
-				   int (*write)(int channel, uint8_t *data, int transfer_length, void *priv),
+extern void	ide_set_bus_master(int (*dmna)(int channel, uint8_t *data, int transfer_length, int out, void *priv),
 				   void (*set_irq)(int channel, void *priv),
 				   void *priv0, void *priv1);
 
@@ -142,8 +141,7 @@ extern void	secondary_ide_check(void);
 extern void	ide_padstr(char *str, const char *src, int len);
 extern void	ide_padstr8(uint8_t *buf, int buf_size, const char *src);
 
-extern int	(*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length, void *priv);
-extern int	(*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length, void *priv);
+extern int	(*ide_bus_master_dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv);
 extern void	(*ide_bus_master_set_irq)(int channel, void *priv);
 extern void	*ide_bus_master_priv[2];
 

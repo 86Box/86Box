@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.57	2018/10/31
+ * Version:	@(#)hdc_ide.c	1.0.58	2018/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -122,8 +122,7 @@ static ide_board_t	*ide_boards[4];
 static int		pio_override = 0;
 
 ide_t	*ide_drives[IDE_NUM];
-int	(*ide_bus_master_read)(int channel, uint8_t *data, int transfer_length, void *priv);
-int	(*ide_bus_master_write)(int channel, uint8_t *data, int transfer_length, void *priv);
+int	(*ide_bus_master_dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv);
 void	(*ide_bus_master_set_irq)(int channel, void *priv);
 void	*ide_bus_master_priv[2];
 int	ide_inited = 0;
@@ -953,44 +952,10 @@ ide_atapi_command_bus(ide_t *ide)
 }
 
 
-static int
-ide_atapi_dma(ide_t *ide, int out)
-{
-    int ret = 1;
-
-    ret = 0;
-
-    if (out && ide && ide_bus_master_write) {
-	ret = ide_bus_master_write(ide->board,
-				   ide->sc->temp_buffer, ide->sc->packet_len,
-				   ide_bus_master_priv[ide->board]);
-    } else if (!out && ide && ide_bus_master_read) {
-	ret = ide_bus_master_read(ide->board,
-				  ide->sc->temp_buffer, ide->sc->packet_len,
-				  ide_bus_master_priv[ide->board]);
-    }
-
-    if (ret == 0) {
-        if (ide->bus_master_error)
-		ide->bus_master_error(ide->sc);
-    } else if (ret == 1) {
-	if (out && ide->phase_data_out)
-		ret = ide->phase_data_out(ide->sc);
-	else if (!out && ide->command_stop)
-		ide->command_stop(ide->sc);
-
-	if ((ide->sc->packet_status == PHASE_COMPLETE) && !ide->sc->callback)
-		ide_atapi_callback(ide);
-    }
-
-    return ret;
-}
-
-
 static void
 ide_atapi_callback(ide_t *ide)
 {
-    int ret;
+    int out, ret = 0;
 
     switch(ide->sc->packet_status) {
 	case PHASE_IDLE:
@@ -1020,12 +985,26 @@ ide_atapi_callback(ide_t *ide)
 		return;
 	case PHASE_DATA_IN_DMA:
 	case PHASE_DATA_OUT_DMA:
-		ret = ide_atapi_dma(ide, ide->sc->packet_status & 0x01);
+		out = (ide->sc->packet_status & 0x01);
 
-		if (ret == 2)
+		ret = ide_bus_master_dma(ide->board,
+					 ide->sc->temp_buffer, ide->sc->packet_len,
+					 out, ide_bus_master_priv[ide->board]);
+
+		if (ret == 0) {
+	        	if (ide->bus_master_error)
+				ide->bus_master_error(ide->sc);
+		} else if (ret == 1) {
+			if (out && ide->phase_data_out)
+				ret = ide->phase_data_out(ide->sc);
+			else if (!out && ide->command_stop)
+				ide->command_stop(ide->sc);
+
+			if ((ide->sc->packet_status == PHASE_COMPLETE) && !ide->sc->callback)
+				ide_atapi_callback(ide);
+		} else if (ret == 2)
 			ide_atapi_command_bus(ide);
-		else if ((ide->sc->packet_status == PHASE_COMPLETE) && !ide->sc->callback)
-			ide_atapi_callback(ide);
+
 		return;
 	case PHASE_ERROR:
 		ide->sc->status = READY_STAT | ERR_STAT;
@@ -2116,11 +2095,11 @@ ide_callback(void *priv)
 
 		ide->pos=0;
 
-		if (ide_bus_master_read) {
+		if (ide_bus_master_dma) {
 			/* We should not abort - we should simply wait for the host to start DMA. */
-			ret = ide_bus_master_read(ide->board,
-						  ide->sector_buffer, ide->sector_pos * 512,
-						  ide_bus_master_priv[ide->board]);
+			ret = ide_bus_master_dma(ide->board,
+						 ide->sector_buffer, ide->sector_pos * 512,
+						 0, ide_bus_master_priv[ide->board]);
 			if (ret == 2) {
 				/* Bus master DMA disabled, simply wait for the host to enable DMA. */
 				ide->atastat = DRQ_STAT | DRDY_STAT | DSC_STAT;
@@ -2210,15 +2189,15 @@ ide_callback(void *priv)
 			goto id_not_found;
 		}
 
-		if (ide_bus_master_write) {
+		if (ide_bus_master_dma) {
 			if (ide->secount)
 				ide->sector_pos = ide->secount;
 			else
 				ide->sector_pos = 256;
 
-			ret = ide_bus_master_write(ide->board,
-						   ide->sector_buffer, ide->sector_pos * 512,
-						   ide_bus_master_priv[ide->board]);
+			ret = ide_bus_master_dma(ide->board,
+						 ide->sector_buffer, ide->sector_pos * 512,
+						 1, ide_bus_master_priv[ide->board]);
 
 			if (ret == 2) {
 				/* Bus master DMA disabled, simply wait for the host to enable DMA. */
@@ -2590,7 +2569,7 @@ ide_qua_close(void *priv)
 static void
 ide_clear_bus_master(void)
 {
-    ide_bus_master_read = ide_bus_master_write = NULL;
+    ide_bus_master_dma = NULL;
     ide_bus_master_set_irq = NULL;
     ide_bus_master_priv[0] = ide_bus_master_priv[1] = NULL;
 }
@@ -2630,13 +2609,11 @@ ide_xtide_close(void)
 
 
 void
-ide_set_bus_master(int (*read)(int channel, uint8_t *data, int transfer_length, void *priv),
-		   int (*write)(int channel, uint8_t *data, int transfer_length, void *priv),
+ide_set_bus_master(int (*dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv),
 		   void (*set_irq)(int channel, void *priv),
 		   void *priv0, void *priv1)
 {
-    ide_bus_master_read = read;
-    ide_bus_master_write = write;
+    ide_bus_master_dma = dma;
     ide_bus_master_set_irq = set_irq;
     ide_bus_master_priv[0] = priv0;
     ide_bus_master_priv[1] = priv1;
