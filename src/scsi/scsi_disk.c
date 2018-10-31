@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.28	2018/10/28
+ * Version:	@(#)scsi_disk.c	1.0.29	2018/10/31
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -120,9 +120,6 @@ static const mode_sense_pages_t scsi_disk_mode_sense_pages_changeable =
 		[GPMODE_RIGID_DISK_PAGE   ] = {	GPMODE_RIGID_DISK_PAGE, 0x16, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0 },
 		[GPMODE_UNK_VENDOR_PAGE   ] = {	0xB0, 0x16, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }
 }	};
-
-
-static void	scsi_disk_callback(scsi_common_t *sc);
 
 
 #ifdef ENABLE_SCSI_DISK_LOG
@@ -245,10 +242,9 @@ scsi_disk_command_common(scsi_disk_t *dev)
 {
     dev->status = BUSY_STAT;
     dev->phase = 1;
-    if (dev->packet_status == PHASE_COMPLETE) {
-	scsi_disk_callback((scsi_common_t *) dev);
+    if (dev->packet_status == PHASE_COMPLETE)
 	dev->callback = 0LL;
-    } else
+    else
 	dev->callback = -1LL;	/* Speed depends on SCSI controller */
 }
 
@@ -323,7 +319,7 @@ scsi_disk_cmd_error(scsi_disk_t *dev)
     dev->error = ((scsi_disk_sense_key & 0xf) << 4) | ABRT_ERR;
     dev->status = READY_STAT | ERR_STAT;
     dev->phase = 3;
-    dev->packet_status = 0x80;
+    dev->packet_status = PHASE_ERROR;
     dev->callback = 50 * SCSI_TIME;
     scsi_disk_log("SCSI HD %i: ERROR: %02X/%02X/%02X\n", dev->id, scsi_disk_sense_key, scsi_disk_asc, scsi_disk_ascq);
 }
@@ -446,7 +442,7 @@ scsi_disk_reset(scsi_common_t *sc)
     scsi_disk_rezero(dev);
     dev->status = 0;
     dev->callback = 0;
-    dev->packet_status = 0xff;
+    dev->packet_status = PHASE_NONE;
 }
 
 
@@ -1015,7 +1011,7 @@ scsi_disk_command_stop(scsi_common_t *sc)
 }
 
 
-static void
+static uint8_t
 scsi_disk_phase_data_out(scsi_common_t *sc)
 {
     scsi_disk_t *dev = (scsi_disk_t *) sc;
@@ -1030,7 +1026,7 @@ scsi_disk_phase_data_out(scsi_common_t *sc)
     if (!*BufLen) {
 	scsi_disk_set_phase(dev, SCSI_PHASE_STATUS);
 
-	return;
+	return 1;
     }
 
     switch (dev->current_cdb[0]) {
@@ -1140,39 +1136,7 @@ scsi_disk_phase_data_out(scsi_common_t *sc)
     }
 
     scsi_disk_command_stop((scsi_common_t *) dev);
-}
-
-
-/* If the result is 1, issue an IRQ, otherwise not. */
-static void
-scsi_disk_callback(scsi_common_t *sc)
-{
-    switch(sc->packet_status) {
-	case PHASE_IDLE:
-		scsi_disk_log("SCSI HD %i: PHASE_IDLE\n", dev->id);
-		sc->phase = 1;
-		sc->status = READY_STAT | DRQ_STAT | (sc->status & ERR_STAT);
-		return;
-	case PHASE_COMPLETE:
-		scsi_disk_log("SCSI HD %i: PHASE_COMPLETE\n", dev->id);
-		sc->status = READY_STAT;
-		sc->phase = 3;
-		sc->packet_status = 0xFF;
-		return;
-	case PHASE_DATA_OUT_DMA:
-		scsi_disk_log("SCSI HD %i: PHASE_DATA_OUT_DMA\n", dev->id);
-		scsi_disk_phase_data_out(sc);
-		return;
-	case PHASE_DATA_IN_DMA:
-		scsi_disk_log("SCSI HD %i: PHASE_DATA_IN_DMA\n", dev->id);
-		scsi_disk_command_stop(sc);
-		return;
-	case PHASE_ERROR:
-		scsi_disk_log("SCSI HD %i: PHASE_ERROR\n", dev->id);
-		sc->status = READY_STAT | ERR_STAT;
-		sc->phase = 3;
-		return;
-    }
+    return 1;
 }
 
 
@@ -1211,9 +1175,9 @@ scsi_disk_hard_reset(void)
 
 		sd->sc = (scsi_common_t *) dev;
 		sd->command = scsi_disk_command;
-		sd->callback = scsi_disk_callback;
 		sd->request_sense = scsi_disk_request_sense_for_scsi;
 		sd->reset = scsi_disk_reset;
+		sd->phase_data_out = scsi_disk_phase_data_out;
 		sd->command_stop = scsi_disk_command_stop;
 		sd->type = SCSI_FIXED_DISK;
 

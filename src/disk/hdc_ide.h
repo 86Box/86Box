@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_ide.h	1.0.13	2018/10/28
+ * Version:	@(#)hdd_ide.h	1.0.14	2018/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -57,10 +57,11 @@ typedef struct ide_s {
     int		(*get_timings)(int ide_has_dma, int type);
     void	(*identify)(struct ide_s *ide, int ide_has_dma);
     void	(*stop)(scsi_common_t *sc);
-    void	(*packet_callback)(scsi_common_t *sc);
+    void	(*packet_command)(scsi_common_t *sc, uint8_t *cdb);
     void	(*device_reset)(scsi_common_t *sc);
     uint8_t	(*phase_data_out)(scsi_common_t *sc);
     void	(*command_stop)(scsi_common_t *sc);
+    void	(*bus_master_error)(scsi_common_t *sc);
 } ide_t;
 #endif
 

@@ -8,7 +8,7 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.22	2018/10/28
+ * Version:	@(#)scsi_device.c	1.0.23	2018/10/31
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -43,29 +43,6 @@ scsi_device_target_command(scsi_device_t *dev, uint8_t *cdb)
 	else
 		return SCSI_STATUS_OK;
     } else
-	return SCSI_STATUS_CHECK_CONDITION;
-}
-
-
-static void
-scsi_device_target_callback(scsi_device_t *dev)
-{
-    if (dev->callback)
-	dev->callback(dev->sc);
-
-    return;
-}
-
-
-static int
-scsi_device_target_err_stat_to_scsi(scsi_device_t *dev)
-{
-    if (dev->sc)
-	if (dev->sc->status & ERR_STAT)
-		return SCSI_STATUS_CHECK_CONDITION;
-	else
-		return SCSI_STATUS_OK;
-    else
 	return SCSI_STATUS_CHECK_CONDITION;
 }
 
@@ -148,12 +125,16 @@ scsi_device_command_phase0(scsi_device_t *dev, uint8_t *cdb)
     /* Finally, execute the SCSI command immediately and get the transfer length. */
     dev->phase = SCSI_PHASE_COMMAND;
     dev->status = scsi_device_target_command(dev, cdb);
+}
 
-    if (dev->phase == SCSI_PHASE_STATUS) {
-	/* Command completed (either OK or error) - call the phase callback to complete the command. */
-	scsi_device_target_callback(dev);
+
+void
+scsi_device_command_stop(scsi_device_t *dev)
+{
+    if (dev->command_stop) {
+	dev->command_stop(dev->sc);
+	dev->status = SCSI_STATUS_OK;
     }
-    /* If the phase is DATA IN or DATA OUT, finish this here. */
 }
 
 
@@ -164,19 +145,16 @@ scsi_device_command_phase1(scsi_device_t *dev)
 	return;
 
     /* Call the second phase. */
-    scsi_device_target_callback(dev);
-    dev->status = scsi_device_target_err_stat_to_scsi(dev);
-    /* Command second phase complete - call the callback to complete the command. */
-    scsi_device_target_callback(dev);
-}
+    if (dev->phase == SCSI_PHASE_DATA_OUT) {
+	    if (dev->phase_data_out)
+		dev->phase_data_out(dev->sc);
+    } else
+	scsi_device_command_stop(dev);
 
-
-void
-scsi_device_command_stop(scsi_device_t *dev)
-{
-    if (!dev->command_stop)
-	dev->command_stop(dev->sc);
-    scsi_device_target_callback(dev);
+    if (dev->sc->status & ERR_STAT)
+	dev->status = SCSI_STATUS_CHECK_CONDITION;
+    else
+	dev->status = SCSI_STATUS_OK;
 }
 
 

@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.56	2018/10/28
+ * Version:	@(#)hdc_ide.c	1.0.57	2018/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -132,6 +132,7 @@ int	ide_ter_enabled = 0, ide_qua_enabled = 0;
 static uint16_t	ide_base_main[4] = { 0x1f0, 0x170, 0x168, 0x1e8 };
 static uint16_t	ide_side_main[4] = { 0x3f6, 0x376, 0x36e, 0x3ee };
 
+static void	ide_atapi_callback(ide_t *ide);
 static void	ide_callback(void *priv);
 
 
@@ -941,6 +942,101 @@ ide_set_callback(uint8_t board, int64_t callback)
 }
 
 
+static void
+ide_atapi_command_bus(ide_t *ide)
+{
+    ide->sc->status = BUSY_STAT;
+    ide->sc->phase = 1;
+    ide->sc->pos = 0;
+    ide->sc->callback = 1LL * IDE_TIME;
+    ide_set_callback(ide->board, ide->sc->callback);
+}
+
+
+static int
+ide_atapi_dma(ide_t *ide, int out)
+{
+    int ret = 1;
+
+    ret = 0;
+
+    if (out && ide && ide_bus_master_write) {
+	ret = ide_bus_master_write(ide->board,
+				   ide->sc->temp_buffer, ide->sc->packet_len,
+				   ide_bus_master_priv[ide->board]);
+    } else if (!out && ide && ide_bus_master_read) {
+	ret = ide_bus_master_read(ide->board,
+				  ide->sc->temp_buffer, ide->sc->packet_len,
+				  ide_bus_master_priv[ide->board]);
+    }
+
+    if (ret == 0) {
+        if (ide->bus_master_error)
+		ide->bus_master_error(ide->sc);
+    } else if (ret == 1) {
+	if (out && ide->phase_data_out)
+		ret = ide->phase_data_out(ide->sc);
+	else if (!out && ide->command_stop)
+		ide->command_stop(ide->sc);
+
+	if ((ide->sc->packet_status == PHASE_COMPLETE) && !ide->sc->callback)
+		ide_atapi_callback(ide);
+    }
+
+    return ret;
+}
+
+
+static void
+ide_atapi_callback(ide_t *ide)
+{
+    int ret;
+
+    switch(ide->sc->packet_status) {
+	case PHASE_IDLE:
+		ide->sc->pos = 0;
+		ide->sc->phase = 1;
+		ide->sc->status = READY_STAT | DRQ_STAT | (ide->sc->status & ERR_STAT);
+		return;
+	case PHASE_COMMAND:
+		ide->sc->status = BUSY_STAT | (ide->sc->status & ERR_STAT);
+		if (ide->packet_command) {
+			ide->packet_command(ide->sc, ide->sc->atapi_cdb);
+			if ((ide->sc->packet_status == PHASE_COMPLETE) && !ide->sc->callback)
+				ide_atapi_callback(ide);
+		}
+		return;
+	case PHASE_COMPLETE:
+		ide->sc->status = READY_STAT;
+		ide->sc->phase = 3;
+		ide->sc->packet_status = PHASE_NONE;
+		ide_irq_raise(ide);
+		return;
+	case PHASE_DATA_IN:
+	case PHASE_DATA_OUT:
+		ide->sc->status = READY_STAT | DRQ_STAT | (ide->sc->status & ERR_STAT);
+		ide->sc->phase = !(ide->sc->packet_status & 0x01) << 1;
+		ide_irq_raise(ide);
+		return;
+	case PHASE_DATA_IN_DMA:
+	case PHASE_DATA_OUT_DMA:
+		ret = ide_atapi_dma(ide, ide->sc->packet_status & 0x01);
+
+		if (ret == 2)
+			ide_atapi_command_bus(ide);
+		else if ((ide->sc->packet_status == PHASE_COMPLETE) && !ide->sc->callback)
+			ide_atapi_callback(ide);
+		return;
+	case PHASE_ERROR:
+		ide->sc->status = READY_STAT | ERR_STAT;
+		ide->sc->phase = 3;
+		ide->sc->packet_status = PHASE_NONE;
+		ide_irq_raise(ide);
+		return;
+    }
+}
+
+
 /* This is the general ATAPI PIO request function. */
 static void
 ide_atapi_pio_request(ide_t *ide, uint8_t out)
@@ -957,8 +1053,11 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
 	dev->pos = dev->request_pos = 0;
 	if (out && ide->phase_data_out)
 		ide->phase_data_out(dev);
-	else if (ide->command_stop)
+	else if (!out && ide->command_stop)
 		ide->command_stop(dev);
+
+	if ((ide->sc->packet_status == PHASE_COMPLETE) && !ide->sc->callback)
+		ide_atapi_callback(ide);
     } else {
 	ide_log("%i bytes %s, %i bytes are still left\n", dev->pos,
 		out ? "written" : "read", dev->packet_len - dev->pos);
@@ -970,12 +1069,11 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
 	ide_log("CD-ROM %i: Packet length %i, request length %i\n", dev->id, dev->packet_len,
 		dev->max_transfer_len);
 
-	dev->packet_status = out ? PHASE_DATA_OUT : PHASE_DATA_IN;
+	dev->packet_status = PHASE_DATA_IN | out;
 
 	dev->status = BSY_STAT;
 	dev->phase = 1;
-	if (ide->packet_callback)
-		ide->packet_callback(dev);
+	ide_atapi_callback(ide);
 	dev->callback = 0LL;
 	ide_set_callback(ide->board >> 1, dev->callback);
 
@@ -1090,8 +1188,7 @@ ide_atapi_packet_write(ide_t *ide, uint32_t val, int length)
 		dev->status = BSY_STAT;
 		dev->packet_status = PHASE_COMMAND;
 		timer_process();
-		if (ide->packet_callback)
-			ide->packet_callback(dev);
+		ide_atapi_callback(ide);
 		timer_update_outstanding();
 	}
 	return;
@@ -2298,10 +2395,10 @@ ide_callback(void *priv)
 		return;
 
 	case WIN_PACKETCMD: /* ATAPI Packet */
-		if (!ide_drive_is_atapi(ide) || !ide->packet_callback)
+		if (!ide_drive_is_atapi(ide))
 			goto abort_cmd;
 
-		ide->packet_callback(ide->sc);
+		ide_atapi_callback(ide);
 		return;
 
 	case 0xFF:

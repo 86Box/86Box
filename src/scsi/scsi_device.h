@@ -8,7 +8,7 @@
  *
  *		Definitions for the generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.h	1.0.15	2018/10/30
+ * Version:	@(#)scsi_device.h	1.0.16	2018/10/31
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -268,12 +268,13 @@
 
 #define PHASE_IDLE		0x00
 #define PHASE_COMMAND		0x01
-#define PHASE_COMPLETE		0x02
-#define PHASE_DATA_IN		0x03
+#define PHASE_DATA_IN		0x02
+#define PHASE_DATA_OUT		0x03
 #define PHASE_DATA_IN_DMA	0x04
-#define PHASE_DATA_OUT		0x05
-#define PHASE_DATA_OUT_DMA	0x06
+#define PHASE_DATA_OUT_DMA	0x05
+#define PHASE_COMPLETE		0x06
 #define PHASE_ERROR		0x80
+#define PHASE_NONE		0xff
 
 #define SCSI_PHASE_DATA_OUT    0
 #define SCSI_PHASE_DATA_IN     BUS_IO
@@ -349,9 +350,9 @@ typedef struct {
     scsi_common_t *sc;
 
     void	(*command)(scsi_common_t *sc, uint8_t *cdb);
-    void	(*callback)(scsi_common_t *sc);
     void	(*request_sense)(scsi_common_t *sc, uint8_t *buffer, uint8_t alloc_length);
     void	(*reset)(scsi_common_t *sc);
+    uint8_t	(*phase_data_out)(scsi_common_t *sc);
     void	(*command_stop)(scsi_common_t *sc);
 } scsi_device_t;
 
