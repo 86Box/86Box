@@ -68,7 +68,7 @@
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *		
- * Version:	@(#)europc.c	1.0.8	2018/10/22
+ * Version:	@(#)europc.c	1.0.9	2018/11/01
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -738,8 +738,6 @@ machine_europc_init(const machine_t *model)
     /* Clear the machine state. */
     memset(&europc, 0x00, sizeof(europc_t));
     europc.jim = 0x0250;
-
-    mem_add_bios();
 
     /* This is machine specific. */
     europc.nvr.size = model->nvrmask + 1;

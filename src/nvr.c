@@ -8,7 +8,7 @@
  *
  *		Implement a generic NVRAM/CMOS/RTC device.
  *
- * Version:	@(#)nvr.c	1.0.15	2018/10/17
+ * Version:	@(#)nvr.c	1.0.16	2018/11/01
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>,
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -322,7 +322,7 @@ nvr_period_recalc(void)
     /* Make sure we have been initialized. */
     if (saved_nvr == NULL) return;
 
-    if (saved_nvr->size != 0)
+    if ((saved_nvr->size != 0) && saved_nvr->recalc)
 	saved_nvr->recalc(saved_nvr);
 }
 
