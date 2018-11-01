@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.30	2018/10/28
+ * Version:	@(#)video.c	1.0.31	2018/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -106,7 +106,6 @@ int		invert_display = 0;
 int		video_grayscale = 0;
 int		video_graytype = 0;
 static int	vid_type;
-static unsigned int carry = 0;
 static const video_timings_t	*vid_timings;
 static uint32_t cga_2_table[16];
 
@@ -358,9 +357,9 @@ void
 video_blend(int x, int y)
 {
     int xx;
-
     uint32_t pixels32_1, pixels32_2;
     unsigned int val1, val2;
+    static unsigned int carry = 0;
 
     if (!herc_blend)
 	return;

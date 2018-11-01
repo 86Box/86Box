@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.41	2018/10/22
+ * Version:	@(#)vid_table.c	1.0.42	2018/11/01
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -198,6 +198,9 @@ video_reset(int card)
     /* Reset the CGA palette. */
     cga_palette = 0;
     cgapal_rebuild();
+
+    /* Reset the blend. */
+    herc_blend = 0;
 
     /* Do not initialize internal cards here. */
     if (!(card == VID_NONE) && \
