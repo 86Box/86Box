@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.19	2018/09/12
+ * Version:	@(#)rom.h	1.0.20	2018/11/02
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2018 Fred N. van Kempen.
@@ -81,9 +81,11 @@ enum {
     ROM_IBMPS2_M50,
 
     ROM_AMA932J,
+    ROM_AMI386SX_OPTI495,
     ROM_AMI386SX,
     ROM_KMXC02,
     ROM_MEGAPC,
+    ROM_MR386SX_OPTI495,
     ROM_AWARD386SX_OPTI495,
 #if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
     ROM_DESKPRO_386,
@@ -104,6 +106,7 @@ enum {
 
     ROM_IBMPS2_M80,
 
+    ROM_AMI486_OPTI495,
     ROM_AMI486,
     ROM_WIN486,
 #ifdef UNIMPLEMENTED_MACHINES
@@ -112,6 +115,7 @@ enum {
     ROM_AWARD486_OPTI495,
     ROM_DTK486,		/* DTK PKM-0038S E-2/SiS 471/Award/SiS 85C471 */
     ROM_IBMPS1_2133,
+    ROM_MR486_OPTI495,
 
     ROM_IBMPS2_M70_TYPE3,
 #if defined(DEV_BRANCH) && defined(USE_PS2M70T4)

@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.41	2018/10/17
+ * Version:	@(#)rom.c	1.0.42	2018/11/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -545,15 +545,19 @@ rom_load_bios(int rom_id)
 			0x000000, 65536, 0, rom)) return(1);
 		break;
 
+	case ROM_AMI386SX_OPTI495:	/* uses the OPTi 82C495 chipset */
 	case ROM_AMI386DX_OPTI495:	/* uses the OPTi 82C495 chipset */
+	case ROM_AMI486_OPTI495:	/* uses the OPTi 82C495 chipset */
 		if (rom_load_linear(
-			L"roms/machines/ami386dx/opt495sx.ami",
+			L"roms/machines/ami495/opt495sx.ami",
 			0x000000, 65536, 0, rom)) return(1);
 		break;
 
+	case ROM_MR386SX_OPTI495:	/* uses the OPTi 82C495 chipset */
 	case ROM_MR386DX_OPTI495:	/* uses the OPTi 82C495 chipset */
+	case ROM_MR486_OPTI495:		/* uses the OPTi 82C495 chipset */
 		if (rom_load_linear(
-			L"roms/machines/mr386dx/opt495sx.mr",
+			L"roms/machines/mr495/opt495sx.mr",
 			0x000000, 65536, 0, rom)) return(1);
 		break;
 
