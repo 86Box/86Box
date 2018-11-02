@@ -9,7 +9,7 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.36	2018/10/31
+ * Version:	@(#)zip.c	1.0.37	2018/11/02
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -2124,6 +2124,11 @@ zip_phase_data_out(scsi_common_t *sc)
 		pos = hdr_len + block_desc_len;
 
 		while(1) {
+			if (pos >= dev->current_cdb[4]) {
+				zip_log("ZIP %i: Buffer has only block descriptor\n", dev->id);
+				break;
+			}
+
 			page = dev->buffer[pos] & 0x3F;
 			page_len = dev->buffer[pos + 1];
 

@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.67	2018/10/31
+ * Version:	@(#)scsi_cdrom.c	1.0.68	2018/11/02
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -380,19 +380,6 @@ scsi_cdrom_current_mode(scsi_cdrom_t *dev)
     }
 
     return 0;
-}
-
-
-/* Translates ATAPI status (ERR_STAT flag) to SCSI status. */
-int
-scsi_cdrom_err_stat_to_scsi(scsi_common_t *sc)
-{
-    scsi_cdrom_t *dev = (scsi_cdrom_t *) sc;
-
-    if (dev->status & ERR_STAT)
-	return SCSI_STATUS_CHECK_CONDITION;
-    else
-	return SCSI_STATUS_OK;
 }
 
 
@@ -2426,13 +2413,18 @@ scsi_cdrom_phase_data_out(scsi_common_t *sc)
 		pos = hdr_len + block_desc_len;
 
 		while(1) {
+			if (pos >= dev->current_cdb[4]) {
+				scsi_cdrom_log("CD-ROM %i: Buffer has only block descriptor\n", dev->id);
+				break;
+			}
+
 			page = dev->buffer[pos] & 0x3F;
 			page_len = dev->buffer[pos + 1];
 
 			pos += 2;
 
 			if (!(scsi_cdrom_mode_sense_page_flags & (1LL << ((uint64_t) page)))) {
-				scsi_cdrom_log("Unimplemented page %02X\n", page);
+				scsi_cdrom_log("CD-ROM %i: Unimplemented page %02X\n", dev->id, page);
 				error |= 1;
 			} else {
 				for (i = 0; i < page_len; i++) {
@@ -2443,7 +2435,7 @@ scsi_cdrom_phase_data_out(scsi_common_t *sc)
 						if (ch)
 							dev->ms_pages_saved.pages[page][i + 2] = val;
 						else {
-							scsi_cdrom_log("Unchangeable value on position %02X on page %02X\n", i + 2, page);
+							scsi_cdrom_log("CD-ROM %i: Unchangeable value on position %02X on page %02X\n", dev->id, i + 2, page);
 							error |= 1;
 						}
 					}
