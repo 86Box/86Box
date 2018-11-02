@@ -8,7 +8,7 @@
  *
  *		Implementation of the XT-style keyboard.
  *
- * Version:	@(#)keyboard_xt.c	1.0.13	2018/09/15
+ * Version:	@(#)keyboard_xt.c	1.0.14	2018/11/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -411,7 +411,7 @@ kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
 }
 
 
-void
+static void
 kbd_adddata_ex(uint16_t val)
 {
 	kbd_adddata_process(val, kbd_adddata);
