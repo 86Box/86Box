@@ -426,7 +426,7 @@ static void sigma_text80(sigma_t *sigma)
 		cols[0] = (attr >> 4) | 16;
 	}
 
-	if (drawcursor && !(x & 1)) {
+	if (drawcursor) {
 		for (c = 0; c < 8; c++) {
 			if (sigma->sigmamode & MODE_FONT16)
 				buffer->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0x0f;
