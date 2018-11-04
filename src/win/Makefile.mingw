@@ -199,6 +199,7 @@ endif
 #########################################################################
 VPATH		:= $(EXPATH) . cpu \
 		   cdrom disk floppy game machine \
+		   printer \
 		   sound \
 		    sound/munt sound/munt/c_interface sound/munt/sha1 \
 		    sound/munt/srchelper \
@@ -495,6 +496,9 @@ NETOBJ		:= network.o \
 		    net_3c503.o net_ne2000.o \
 			net_wd8003.o
 
+PRINTOBJ	:= png.o prt_cpmap.o \
+		    prt_escp.o prt_text.o			
+			
 SNDOBJ		:= sound.o \
 		    openal.o \
 		    snd_opl.o snd_dbopl.o \
@@ -555,7 +559,7 @@ PLATOBJ		:= win.o \
 
 OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
 		   $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(HDDOBJ) \
-		   $(USBOBJ) $(NETOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
+		   $(USBOBJ) $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
 		   $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) \
 		   $(DEVBROBJ)
 ifdef EXOBJ

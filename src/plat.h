@@ -71,6 +71,7 @@ extern FILE	*plat_fopen(wchar_t *path, wchar_t *mode);
 extern void	plat_remove(wchar_t *path);
 extern int	plat_getcwd(wchar_t *bufp, int max);
 extern int	plat_chdir(wchar_t *path);
+extern void	plat_tempfile(wchar_t *bufp, wchar_t *prefix, wchar_t *suffix);
 extern void	plat_get_exe_name(wchar_t *s, int size);
 extern wchar_t	*plat_get_filename(wchar_t *s);
 extern wchar_t	*plat_get_extension(wchar_t *s);
