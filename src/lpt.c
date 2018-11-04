@@ -10,7 +10,7 @@
 #include "lpt.h"
 #include "sound/snd_lpt_dac.h"
 #include "sound/snd_lpt_dss.h"
-
+#include "printer/prt_devs.h"
 
 char lpt_device_names[3][16];
 
@@ -26,6 +26,8 @@ static const struct
         {"Disney Sound Source",          "dss",            &dss_device},
         {"LPT DAC / Covox Speech Thing", "lpt_dac",        &lpt_dac_device},
         {"Stereo LPT DAC",               "lpt_dac_stereo", &lpt_dac_stereo_device},
+	{"Generic Text Printer",	 "text_prt",       &lpt_prt_text_device},
+	{"Generic ESC/P Dot-Matrix",     "dot_matrix",     &lpt_prt_escp_device},
         {"", "", NULL}
 };
 
