@@ -402,6 +402,7 @@ serial_init(const device_t *info)
     memset(dev, 0, sizeof(serial_t));
 
     dev->base_address = next_inst ? 0x03f8 : 0x02f8;
+    dev->inst = next_inst;
 
     if (serial_enabled[next_inst]) {
 	serial_log("Adding serial port %i...\n", next_inst);
@@ -409,7 +410,6 @@ serial_init(const device_t *info)
 		      serial_read,  NULL, NULL, serial_write,  NULL, NULL, dev);
 	dev->irq = next_inst ? 4 : 3;
 	dev->type = info->local;
-	dev->inst = next_inst;
 	memset(&(serial_devices[next_inst]), 0, sizeof(serial_device_t));
 	dev->sd = &(serial_devices[next_inst]);
 	dev->sd->serial = dev;
