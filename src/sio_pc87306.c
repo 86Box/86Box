@@ -8,13 +8,14 @@
  *
  *		Emulation of the NatSemi PC87306 Super I/O chip.
  *
- * Version:	@(#)sio_pc87306.c	1.0.13	2018/10/02
+ * Version:	@(#)sio_pc87306.c	1.0.14	2018/11/05
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
@@ -32,423 +33,383 @@
 #include "sio.h"
 
 
-static int pc87306_curreg;
-static uint8_t pc87306_regs[29];
-static uint8_t pc87306_gpio[2] = {0xFF, 0xFB};
-static fdc_t *pc87306_fdc;
-static uint8_t tries;
-static uint16_t lpt_port;
+typedef struct {
+    uint8_t tries,
+	    regs[29], gpio[2];
+    int cur_reg;
+    fdc_t *fdc;
+    serial_t *uart[2];
+} pc87306_t;
 
-void pc87306_gpio_remove();
-void pc87306_gpio_init();
 
-void pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
+static void
+pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 {
-	pc87306_gpio[port & 1] = val;
+    pc87306_t *dev = (pc87306_t *) priv;
+
+    dev->gpio[port & 1] = val;
 }
 
-uint8_t uart1_int()
+
+uint8_t
+pc87306_gpio_read(uint16_t port, void *priv)
 {
-	uint8_t fer_irq, pnp1_irq;
-	fer_irq = ((pc87306_regs[1] >> 2) & 1) ? 3 : 4;	/* 0 = COM1 (IRQ 4), 1 = COM2 (IRQ 3), 2 = COM3 (IRQ 4), 3 = COM4 (IRQ 3) */
-	pnp1_irq = ((pc87306_regs[0x1C] >> 2) & 1) ? 4 : 3;
-	return (pc87306_regs[0x1C] & 1) ? pnp1_irq : fer_irq;
+    pc87306_t *dev = (pc87306_t *) priv;
+
+    return dev->gpio[port & 1];
 }
 
-uint8_t uart2_int()
+
+static void
+pc87306_gpio_remove(pc87306_t *dev)
 {
-	uint8_t fer_irq, pnp1_irq;
-	fer_irq = ((pc87306_regs[1] >> 4) & 1) ? 3 : 4;	/* 0 = COM1 (IRQ 4), 1 = COM2 (IRQ 3), 2 = COM3 (IRQ 4), 3 = COM4 (IRQ 3) */
-	pnp1_irq = ((pc87306_regs[0x1C] >> 6) & 1) ? 4 : 3;
-	return (pc87306_regs[0x1C] & 1) ? pnp1_irq : fer_irq;
+    io_removehandler(dev->regs[0x0f] << 2, 0x0001,
+		     pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL, dev);
+    io_removehandler((dev->regs[0x0f] << 2) + 1, 0x0001,
+		     pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL, dev);
 }
 
-void lpt1_handler()
+
+static void
+pc87306_gpio_init(pc87306_t *dev)
 {
-        int temp;
-        uint16_t lptba;
-	temp = pc87306_regs[0x01] & 3;
-        lptba = ((uint16_t) pc87306_regs[0x19]) << 2;
-	if (pc87306_regs[0x1B] & 0x10) {
-		if (pc87306_regs[0x1B] & 0x20)
-			lpt_port = 0x278;
-		else
-			lpt_port = 0x378;
-	} else {
-		switch (temp) {
-			case 0:
-				lpt_port = 0x378;
-				break;
-			case 1:
-				lpt_port = lptba;
-				break;
-			case 2:
-				lpt_port = 0x278;
-				break;
-			case 3:
-				lpt_port = 0x000;
-				break;
-		}
-	}
-	if (lpt_port)
-		lpt1_init(lpt_port);
+    if ((dev->regs[0x12]) & 0x10)
+        io_sethandler(dev->regs[0x0f] << 2, 0x0001,
+		      pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL, dev);
+
+    if ((dev->regs[0x12]) & 0x20)
+        io_sethandler((dev->regs[0x0f] << 2) + 1, 0x0001,
+		      pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL, dev);
 }
 
-void serial1_handler()
+
+static void
+lpt1_handler(pc87306_t *dev)
 {
-        int temp;
-	temp = (pc87306_regs[1] >> 2) & 3;
-	switch (temp)
-	{
-		case 0: serial_setup(1, SERIAL1_ADDR, uart1_int()); break;
-		case 1: serial_setup(1, SERIAL2_ADDR, uart1_int()); break;
-		case 2:
-			switch ((pc87306_regs[1] >> 6) & 3)
-			{
-				case 0: serial_setup(1, 0x3e8, uart1_int()); break;
-				case 1: serial_setup(1, 0x338, uart1_int()); break;
-				case 2: serial_setup(1, 0x2e8, uart1_int()); break;
-				case 3: serial_setup(1, 0x220, uart1_int()); break;
-			}
-			break;
-		case 3:
-			switch ((pc87306_regs[1] >> 6) & 3)
-			{
-				case 0: serial_setup(1, 0x2e8, uart1_int()); break;
-				case 1: serial_setup(1, 0x238, uart1_int()); break;
-				case 2: serial_setup(1, 0x2e0, uart1_int()); break;
-				case 3: serial_setup(1, 0x228, uart1_int()); break;
-			}
-			break;
-	}
-}
+    int temp;
+    uint16_t lptba, lpt_port = 0x378;
 
-void serial2_handler()
-{
-        int temp;
-	temp = (pc87306_regs[1] >> 4) & 3;
-	switch (temp)
-	{
-		case 0: serial_setup(2, SERIAL1_ADDR, uart2_int()); break;
-		case 1: serial_setup(2, SERIAL2_ADDR, uart2_int()); break;
-		case 2:
-			switch ((pc87306_regs[1] >> 6) & 3)
-			{
-				case 0: serial_setup(2, 0x3e8, uart2_int()); break;
-				case 1: serial_setup(2, 0x338, uart2_int()); break;
-				case 2: serial_setup(2, 0x2e8, uart2_int()); break;
-				case 3: serial_setup(2, 0x220, uart2_int()); break;
-			}
-			break;
-		case 3:
-			switch ((pc87306_regs[1] >> 6) & 3)
-			{
-				case 0: serial_setup(2, 0x2e8, uart2_int()); break;
-				case 1: serial_setup(2, 0x238, uart2_int()); break;
-				case 2: serial_setup(2, 0x2e0, uart2_int()); break;
-				case 3: serial_setup(2, 0x228, uart2_int()); break;
-			}
-			break;
-	}
-}
+    temp = dev->regs[0x01] & 3;
+    lptba = ((uint16_t) dev->regs[0x19]) << 2;
 
-void pc87306_write(uint16_t port, uint8_t val, void *priv)
-{
-	uint8_t index, valxor;
-
-	index = (port & 1) ? 0 : 1;
-
-	if (index)
-	{
-		pc87306_curreg = val & 0x1f;
-		tries = 0;
-		return;
-	}
+    if (dev->regs[0x1b] & 0x10) {
+	if (dev->regs[0x1b] & 0x20)
+		lpt_port = 0x278;
 	else
-	{
-		if (tries)
-		{
-			if ((pc87306_curreg == 0) && (val == 8))
-			{
-				val = 0x4b;
-			}
-			valxor = val ^ pc87306_regs[pc87306_curreg];
-			tries = 0;
-			if ((pc87306_curreg == 0x19) && !(pc87306_regs[0x1B] & 0x40))
-			{
-				return;
-			}
-			if ((pc87306_curreg <= 28) && (pc87306_curreg != 8)/* && (pc87306_curreg != 0x18)*/)
-			{
-				if (pc87306_curreg == 0)
-				{
-					val &= 0x5f;
-				}
-				if (((pc87306_curreg == 0x0F) || (pc87306_curreg == 0x12)) && valxor)
-				{
-					pc87306_gpio_remove();
-				}
-				pc87306_regs[pc87306_curreg] = val;
-				goto process_value;
-			}
-		}
-		else
-		{
-			tries++;
-			return;
-		}
-	}
-	return;
-
-process_value:
-	switch(pc87306_curreg)
-	{
+		lpt_port = 0x378;
+    } else {
+	switch (temp) {
 		case 0:
-			if (valxor & 1)
-			{
-				lpt1_remove();
-				if (val & 1)
-				{
-					lpt1_handler();
-				}
-			}
-
-			if (valxor & 2)
-			{
-				serial_remove(1);
-				if (val & 2)
-				{
-					serial1_handler();
-				}
-			}
-			if (valxor & 4)
-			{
-				serial_remove(2);
-				if (val & 4)
-				{
-					serial2_handler();
-				}
-			}
-			if (valxor & 0x28)
-			{
-				fdc_remove(pc87306_fdc);
-				if (val & 8)
-				{
-					fdc_set_base(pc87306_fdc, (val & 0x20) ? 0x370 : 0x3f0);
-				}
-			}
+			lpt_port = 0x378;
 			break;
 		case 1:
-			if (valxor & 3)
-			{
-				lpt1_remove();
-				if (pc87306_regs[0] & 1)
-				{
-					lpt1_handler();
-				}
-			}
-
-			if (valxor & 0xcc)
-			{
-				if (pc87306_regs[0] & 2)
-				{
-					serial1_handler();
-				}
-				else
-				{
-					serial_remove(1);
-				}
-			}
-
-			if (valxor & 0xf0)
-			{
-				if (pc87306_regs[0] & 4)
-				{
-					serial2_handler();
-				}
-				else
-				{
-					serial_remove(2);
-				}
-			}
+			lpt_port = lptba;
 			break;
 		case 2:
-			if (valxor & 1)
-			{
-				if (val & 1)
-				{
-					lpt1_remove();
-					serial_remove(1);
-					serial_remove(2);
-					fdc_remove(pc87306_fdc);
-				}
-				else
-				{
-					if (pc87306_regs[0] & 1)
-					{
-						lpt1_handler();
-					}
-					if (pc87306_regs[0] & 2)
-					{
-						serial1_handler();
-					}
-					if (pc87306_regs[0] & 4)
-					{
-						serial2_handler();
-					}
-					if (pc87306_regs[0] & 8)
-					{
-						fdc_set_base(pc87306_fdc, (pc87306_regs[0] & 0x20) ? 0x370 : 0x3f0);
-					}
-				}
-			}
+			lpt_port = 0x278;
 			break;
-		case 9:
-			if (valxor & 0x44)
-			{
-				fdc_update_enh_mode(pc87306_fdc, (val & 4) ? 1 : 0);
-				fdc_update_densel_polarity(pc87306_fdc, (val & 0x40) ? 1 : 0);
-			}
-			break;
-		case 0xF:
-			if (valxor)
-			{
-				pc87306_gpio_init();
-			}
-			break;
-		case 0x12:
-			if (valxor & 0x30)
-			{
-				pc87306_gpio_init();
-			}
-			break;
-		case 0x19:
-			if (valxor)
-			{
-				lpt1_remove();
-				if (pc87306_regs[0] & 1)
-				{
-					lpt1_handler();
-				}
-			}
-			break;
-		case 0x1B:
-			if (valxor & 0x70)
-			{
-				lpt1_remove();
-				if (!(val & 0x40))
-				{
-					pc87306_regs[0x19] = 0xEF;
-				}
-				if (pc87306_regs[0] & 1)
-				{
-					lpt1_handler();
-				}
-			}
-			break;
-		case 0x1C:
-			if (valxor)
-			{
-				if (pc87306_regs[0] & 2)
-				{
-					serial1_handler();
-				}
-				if (pc87306_regs[0] & 4)
-				{
-					serial2_handler();
-				}
-			}
+		case 3:
+			lpt_port = 0x000;
 			break;
 	}
+    }
+
+    if (lpt_port)
+	lpt1_init(lpt_port);
 }
 
-uint8_t pc87306_gpio_read(uint16_t port, void *priv)
+
+static void
+serial_handler(pc87306_t *dev, int uart)
 {
-	return pc87306_gpio[port & 1];
-}
+    int temp;
+    uint8_t fer_irq, pnp1_irq;
+    uint8_t fer_shift, pnp_shift;
+    uint8_t irq;
 
-uint8_t pc87306_read(uint16_t port, void *priv)
-{
-	uint8_t index;
-	index = (port & 1) ? 0 : 1;
+    temp = (dev->regs[1] >> (2 << uart)) & 3;
 
-	tries = 0;
+    fer_shift = 2 << uart;		/* 2 for UART 1, 4 for UART 2 */
+    pnp_shift = 2 + (uart << 2);	/* 2 for UART 1, 6 for UART 2 */
 
-	if (index)
-	{
-		return pc87306_curreg & 0x1f;
-	}
-	else
-	{
-	        if (pc87306_curreg >= 28)
-		{
-			return 0xff;
+    /* 0 = COM1 (IRQ 4), 1 = COM2 (IRQ 3), 2 = COM3 (IRQ 4), 3 = COM4 (IRQ 3) */
+    fer_irq = ((dev->regs[1] >> fer_shift) & 1) ? 3 : 4;
+    pnp1_irq = ((dev->regs[0x1c] >> pnp_shift) & 1) ? 4 : 3;
+
+    irq = (dev->regs[0x1c] & 1) ? pnp1_irq : fer_irq;
+
+    switch (temp) {
+	case 0:
+		serial_setup(dev->uart[uart], SERIAL1_ADDR, irq);
+		break;
+	case 1:
+		serial_setup(dev->uart[uart], SERIAL2_ADDR, irq);
+		break;
+	case 2:
+		switch ((dev->regs[1] >> 6) & 3) {
+			case 0:
+				serial_setup(dev->uart[uart], 0x3e8, irq);
+				break;
+			case 1:
+				serial_setup(dev->uart[uart], 0x338, irq);
+				break;
+			case 2:
+				serial_setup(dev->uart[uart], 0x2e8, irq);
+				break;
+			case 3:
+				serial_setup(dev->uart[uart], 0x220, irq);
+				break;
 		}
-		else if (pc87306_curreg == 8)
-		{
-			return 0x70;
+		break;
+	case 3:
+		switch ((dev->regs[1] >> 6) & 3) {
+			case 0:
+				serial_setup(dev->uart[uart], 0x2e8, irq);
+				break;
+			case 1:
+				serial_setup(dev->uart[uart], 0x238, irq);
+				break;
+			case 2:
+				serial_setup(dev->uart[uart], 0x2e0, irq);
+				break;
+			case 3:
+				serial_setup(dev->uart[uart], 0x228, irq);
+				break;
 		}
-		else
-		{
-			return pc87306_regs[pc87306_curreg];
+		break;
+    }
+}
+
+
+static void
+pc87306_write(uint16_t port, uint8_t val, void *priv)
+{
+    pc87306_t *dev = (pc87306_t *) priv;
+    uint8_t index, valxor;
+
+    index = (port & 1) ? 0 : 1;
+
+    if (index) {
+	dev->cur_reg = val & 0x1f;
+	dev->tries = 0;
+	return;
+    } else {
+	if (dev->tries) {
+		if ((dev->cur_reg == 0) && (val == 8))
+			val = 0x4b;
+		valxor = val ^ dev->regs[dev->cur_reg];
+		dev->tries = 0;
+		if ((dev->cur_reg == 0x19) && !(dev->regs[0x1B] & 0x40))
+			return;
+		if ((dev->cur_reg <= 28) && (dev->cur_reg != 8)) {
+			if (dev->cur_reg == 0)
+				val &= 0x5f;
+			if (((dev->cur_reg == 0x0F) || (dev->cur_reg == 0x12)) && valxor)
+				pc87306_gpio_remove(dev);
+			dev->regs[dev->cur_reg] = val;
+		} else
+			return;
+	} else {
+		dev->tries++;
+		return;
+	}
+    }
+
+    switch(dev->cur_reg) {
+	case 0:
+		if (valxor & 1) {
+			lpt1_remove();
+			if (val & 1)
+				lpt1_handler(dev);
 		}
-	}
+		if (valxor & 2) {
+			serial_remove(dev->uart[0]);
+			if (val & 2)
+				serial_handler(dev, 0);
+		}
+		if (valxor & 4) {
+			serial_remove(dev->uart[1]);
+			if (val & 4)
+				serial_handler(dev, 1);
+		}
+		if (valxor & 0x28) {
+			fdc_remove(dev->fdc);
+			if (val & 8)
+				fdc_set_base(dev->fdc, (val & 0x20) ? 0x370 : 0x3f0);
+		}
+		break;
+	case 1:
+		if (valxor & 3) {
+			lpt1_remove();
+			if (dev->regs[0] & 1)
+				lpt1_handler(dev);
+		}
+		if (valxor & 0xcc) {
+			if (dev->regs[0] & 2)
+				serial_handler(dev, 0);
+			else
+				serial_remove(dev->uart[0]);
+		}
+		if (valxor & 0xf0) {
+			if (dev->regs[0] & 4)
+				serial_handler(dev, 1);
+			else
+				serial_remove(dev->uart[1]);
+		}
+		break;
+	case 2:
+		if (valxor & 1) {
+			lpt1_remove();
+			serial_remove(dev->uart[0]);
+			serial_remove(dev->uart[1]);
+			fdc_remove(dev->fdc);
+
+			if (!(val & 1)) {
+				if (dev->regs[0] & 1)
+					lpt1_handler(dev);
+				if (dev->regs[0] & 2)
+					serial_handler(dev, 0);
+				if (dev->regs[0] & 4)
+					serial_handler(dev, 1);
+				if (dev->regs[0] & 8)
+					fdc_set_base(dev->fdc, (dev->regs[0] & 0x20) ? 0x370 : 0x3f0);
+			}
+		}
+		break;
+	case 9:
+		if (valxor & 0x44) {
+			fdc_update_enh_mode(dev->fdc, (val & 4) ? 1 : 0);
+			fdc_update_densel_polarity(dev->fdc, (val & 0x40) ? 1 : 0);
+		}
+		break;
+	case 0xF:
+		if (valxor)
+			pc87306_gpio_init(dev);
+		break;
+	case 0x12:
+		if (valxor & 0x30)
+			pc87306_gpio_init(dev);
+		break;
+	case 0x19:
+		if (valxor) {
+			lpt1_remove();
+			if (dev->regs[0] & 1)
+				lpt1_handler(dev);
+		}
+		break;
+	case 0x1B:
+		if (valxor & 0x70) {
+			lpt1_remove();
+			if (!(val & 0x40))
+				dev->regs[0x19] = 0xEF;
+			if (dev->regs[0] & 1)
+				lpt1_handler(dev);
+		}
+		break;
+	case 0x1C:
+		if (valxor) {
+			if (dev->regs[0] & 2)
+				serial_handler(dev, 0);
+			if (dev->regs[0] & 4)
+				serial_handler(dev, 1);
+		}
+		break;
+    }
 }
 
-void pc87306_gpio_remove()
+
+uint8_t
+pc87306_read(uint16_t port, void *priv)
 {
-        io_removehandler(pc87306_regs[0xF] << 2, 0x0002, pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL,  NULL);
+    pc87306_t *dev = (pc87306_t *) priv;
+    uint8_t ret = 0xff, index;
+
+    index = (port & 1) ? 0 : 1;
+
+    dev->tries = 0;
+
+    if (index)
+	ret = dev->cur_reg & 0x1f;
+    else {
+	if (dev->cur_reg == 8)
+		ret = 0x70;
+	else if (dev->cur_reg < 28)
+		ret = dev->regs[dev->cur_reg];
+    }
+
+    return ret;
 }
 
-void pc87306_gpio_init()
+
+void
+pc87306_reset(pc87306_t *dev)
 {
-	if ((pc87306_regs[0x12]) & 0x10)
-	{
-	        io_sethandler(pc87306_regs[0xF] << 2, 0x0001, pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL,  NULL);
-	}
+    memset(dev->regs, 0, 29);
 
-	if ((pc87306_regs[0x12]) & 0x20)
-	{
-	        io_sethandler((pc87306_regs[0xF] << 2) + 1, 0x0001, pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL,  NULL);
-	}
+    dev->regs[0x00] = 0x0B;
+    dev->regs[0x01] = 0x01;
+    dev->regs[0x03] = 0x01;
+    dev->regs[0x05] = 0x0D;
+    dev->regs[0x08] = 0x70;
+    dev->regs[0x09] = 0xC0;
+    dev->regs[0x0b] = 0x80;
+    dev->regs[0x0f] = 0x1E;
+    dev->regs[0x12] = 0x30;
+    dev->regs[0x19] = 0xEF;
+
+    dev->gpio[0] = 0xff;
+    dev->gpio[1] = 0xfb;
+
+    /*
+	0 = 360 rpm @ 500 kbps for 3.5"
+	1 = Default, 300 rpm @ 500,300,250,1000 kbps for 3.5"
+    */
+    lpt1_remove();
+    lpt2_remove();
+    lpt1_handler(dev);
+    serial_remove(dev->uart[0]);
+    serial_remove(dev->uart[1]);
+    serial_handler(dev, 0);
+    serial_handler(dev, 0);
+    fdc_reset(dev->fdc);
+    pc87306_gpio_init(dev);
 }
 
-void pc87306_reset(void)
+
+static void
+pc87306_close(void *priv)
 {
-	memset(pc87306_regs, 0, 29);
+    pc87306_t *dev = (pc87306_t *) priv;
 
-	pc87306_regs[0] = 0x0B;
-	pc87306_regs[1] = 0x01;
-	pc87306_regs[3] = 0x01;
-	pc87306_regs[5] = 0x0D;
-	pc87306_regs[8] = 0x70;
-	pc87306_regs[9] = 0xC0;
-	pc87306_regs[0xB] = 0x80;
-	pc87306_regs[0xF] = 0x1E;
-	pc87306_regs[0x12] = 0x30;
-	pc87306_regs[0x19] = 0xEF;
-	/*
-		0 = 360 rpm @ 500 kbps for 3.5"
-		1 = Default, 300 rpm @ 500,300,250,1000 kbps for 3.5"
-	*/
-	lpt1_remove();
-	lpt2_remove();
-	lpt1_handler();
-	serial_remove(1);
-	serial_remove(2);
-	serial1_handler();
-	serial2_handler();
-	fdc_reset(pc87306_fdc);
-	pc87306_gpio_init();
+    free(dev);
 }
 
-void pc87306_init()
+
+static void *
+pc87306_init(const device_t *info)
 {
-	pc87306_fdc = device_add(&fdc_at_nsc_device);
+    pc87306_t *dev = (pc87306_t *) malloc(sizeof(pc87306_t));
+    memset(dev, 0, sizeof(pc87306_t));
 
-	lpt2_remove();
+    dev->fdc = device_add(&fdc_at_nsc_device);
 
-	pc87306_reset();
+    dev->uart[0] = device_add_inst(&ns16550_device, 1);
+    dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-        io_sethandler(0x02e, 0x0002, pc87306_read, NULL, NULL, pc87306_write, NULL, NULL,  NULL);
+    pc87306_reset(dev);
+
+    io_sethandler(0x02e, 0x0002,
+		  pc87306_read, NULL, NULL, pc87306_write, NULL, NULL, dev);
+
+    return dev;
 }
+
+
+const device_t pc87306_device = {
+    "National Semiconductor PC87306 Super I/O",
+    0,
+    0,
+    pc87306_init, pc87306_close, NULL,
+    NULL, NULL, NULL,
+    NULL
+};

@@ -8,7 +8,7 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.24	2018/10/30
+ * Version:	@(#)scsi.c	1.0.25	2018/10/31
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -55,27 +55,27 @@ typedef const struct {
 
 
 static SCSI_CARD scsi_cards[] = {
-    { "None",			"none",		NULL,			},
-    { "[ISA] Adaptec AHA-1540B","aha1540b",	&aha1540b_device,	},
-    { "[ISA] Adaptec AHA-1542C","aha1542c",	&aha1542c_device,	},
-    { "[ISA] Adaptec AHA-1542CF","aha1542cf",	&aha1542cf_device,	},
-    { "[ISA] BusLogic BT-542BH","bt542bh",	&buslogic_device,	},
-    { "[ISA] BusLogic BT-545S",	"bt545s",	&buslogic_545s_device,	},
-    { "[ISA] Longshine LCS-6821N","lcs6821n",	&scsi_lcs6821n_device,	},
-    { "[ISA] Ranco RT1000B",	"rt1000b",	&scsi_rt1000b_device,	},
-    { "[ISA] Trantor T130B",	"t130b",	&scsi_t130b_device,	},
-    { "[ISA] Sumo SCSI-AT",	"scsiat",	&scsi_scsiat_device,	},
+    { "None",				"none",		NULL,			},
+    { "[ISA] Adaptec AHA-1540B",	"aha1540b",	&aha1540b_device,	},
+    { "[ISA] Adaptec AHA-1542C",	"aha1542c",	&aha1542c_device,	},
+    { "[ISA] Adaptec AHA-1542CF",	"aha1542cf",	&aha1542cf_device,	},
+    { "[ISA] BusLogic BT-542BH",	"bt542bh",	&buslogic_device,	},
+    { "[ISA] BusLogic BT-545S",		"bt545s",	&buslogic_545s_device,	},
+    { "[ISA] Longshine LCS-6821N",	"lcs6821n",	&scsi_lcs6821n_device,	},
+    { "[ISA] Ranco RT1000B",		"rt1000b",	&scsi_rt1000b_device,	},
+    { "[ISA] Trantor T130B",		"t130b",	&scsi_t130b_device,	},
+    { "[ISA] Sumo SCSI-AT",		"scsiat",	&scsi_scsiat_device,	},
 #ifdef WALTJE
-    { "[ISA] Generic WDC33C93",	"wd33c93",	&scsi_wd33c93_device,	},
+    { "[ISA] Generic WDC33C93",		"wd33c93",	&scsi_wd33c93_device,	},
 #endif
-    { "[MCA] Adaptec AHA-1640",	"aha1640",	&aha1640_device,	},
-    { "[MCA] BusLogic BT-640A",	"bt640a",	&buslogic_640a_device,	},
-    { "[PCI] BusLogic BT-958D",	"bt958d",	&buslogic_pci_device,	},
-    { "[PCI] NCR 53C810",	"ncr53c810",	&ncr53c810_pci_device,	},
-    { "[PCI] NCR 53C825A",	"ncr53c825a",	&ncr53c825a_pci_device,	},
-    { "[PCI] NCR 53C875",	"ncr53c875",	&ncr53c875_pci_device,	},
-    { "[VLB] BusLogic BT-445S",	"bt445s",	&buslogic_445s_device,	},
-    { "",			"",		NULL,			},
+    { "[MCA] Adaptec AHA-1640",		"aha1640",	&aha1640_device,	},
+    { "[MCA] BusLogic BT-640A",		"bt640a",	&buslogic_640a_device,	},
+    { "[PCI] BusLogic BT-958D",		"bt958d",	&buslogic_pci_device,	},
+    { "[PCI] NCR 53C810",		"ncr53c810",	&ncr53c810_pci_device,	},
+    { "[PCI] NCR 53C825A",		"ncr53c825a",	&ncr53c825a_pci_device,	},
+    { "[PCI] NCR 53C875",		"ncr53c875",	&ncr53c875_pci_device,	},
+    { "[VLB] BusLogic BT-445S",		"bt445s",	&buslogic_445s_device,	},
+    { "",				"",		NULL,			},
 };
 
 

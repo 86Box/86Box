@@ -70,6 +70,8 @@ static uint8_t ps2_read(uint16_t port, void *p)
 
 static void ps2_write(uint16_t port, uint8_t val, void *p)
 {
+	serial_t *uart = machine_get_serial(0);
+
         switch (port)
         {
                 case 0x94:
@@ -78,9 +80,9 @@ static void ps2_write(uint16_t port, uint8_t val, void *p)
                 case 0x102:
                 lpt1_remove();
                 if (val & 0x04)
-                        serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+                        serial_setup(uart, SERIAL1_ADDR, SERIAL1_IRQ);
                 else
-                        serial_remove(1);
+                        serial_remove(uart);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)

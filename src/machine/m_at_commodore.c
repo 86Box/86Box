@@ -8,7 +8,7 @@
  *
  *		Implementation of the Commodore PC3 system.
  *
- * Version:	@(#)m_at_commodore.c	1.0.0	2018/09/02
+ * Version:	@(#)m_at_commodore.c	1.0.1	2018/11/06
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -53,6 +53,8 @@
 
 static void cbm_io_write(uint16_t port, uint8_t val, void *p)
 {
+	serial_t *uart = machine_get_serial(0);
+
         lpt1_remove();
         lpt2_remove();
         switch (val & 3)
@@ -70,10 +72,10 @@ static void cbm_io_write(uint16_t port, uint8_t val, void *p)
         switch (val & 0xc)
         {
                 case 0x4:
-                serial_setup(1, 0x2f8, 3);
+                serial_setup(uart, 0x2f8, 3);
                 break;
                 case 0x8:
-                serial_setup(1, 0x3f8, 4);
+                serial_setup(uart, 0x3f8, 4);
                 break;
         }
 }

@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.88	2018/10/28
+ * Version:	@(#)pc.c	1.0.89	2018/11/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -755,9 +755,6 @@ pc_reset_hard_init(void)
 
     sound_reset();
 
-    /* This is needed to initialize the serial timer. */
-    serial_init();
-
     /* Initialize the actual machine and its basic modules. */
     machine_init();
 
@@ -783,14 +780,11 @@ pc_reset_hard_init(void)
 
     /* Reset some basic devices. */
     speaker_init();
-    serial_reset();
     lpt_devices_init();
     shadowbios = 0;
 
     /*
-     * This has to be after the serial initialization so that
-     * serial_init() doesn't break the serial mouse by resetting
-     * the RCR callback to NULL.
+     * Reset the mouse, this will attach it to any port needed.
      */
     mouse_reset();
 

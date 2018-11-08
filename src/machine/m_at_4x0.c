@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel PCISet chips from 430LX to 440FX.
  *
- * Version:	@(#)m_at_430lx_nx.c	1.0.3	2018/09/19
+ * Version:	@(#)m_at_430lx_nx.c	1.0.4	2018/11/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -505,9 +505,8 @@ machine_at_premiere_common_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 3, 2, 4);
     pci_register_slot(0x02, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&sio_device);
-    fdc37c665_init();
-    intel_batman_init();
-
+    device_add(&fdc37c665_device);
+    device_add(&intel_batman_device);
     device_add(&intel_flash_bxt_ami_device);
 }
 
@@ -546,8 +545,7 @@ machine_at_p54tp4xe_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    fdc37c665_init();
-
+    device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
 }
 
@@ -569,8 +567,7 @@ machine_at_endeavor_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    pc87306_init();
-
+    device_add(&pc87306_device);
     device_add(&intel_flash_bxt_ami_device);
 
     if (gfxcard == VID_INTERNAL)
@@ -600,8 +597,7 @@ machine_at_zappa_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    pc87306_init();
-
+    device_add(&pc87306_device);
     device_add(&intel_flash_bxt_ami_device);
 }
 
@@ -621,8 +617,7 @@ machine_at_mb500n_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    fdc37c665_init();
-
+    device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
 }
 
@@ -643,8 +638,7 @@ machine_at_president_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    w83877f_init(4);
-
+    device_add(&w83877f_president_device);
     device_add(&intel_flash_bxt_device);
 }
 
@@ -666,9 +660,8 @@ machine_at_thor_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    pc87306_init();
-
-   device_add(&intel_flash_bxt_ami_device);
+    device_add(&pc87306_device);
+    device_add(&intel_flash_bxt_ami_device);
 }
 
 
@@ -689,8 +682,7 @@ machine_at_pb640_init(const machine_t *model)
     device_add(&i430fx_pb640_device);
     device_add(&piix_pb640_device);
     ide_enable_pio_override();
-    pc87306_init();
-
+    device_add(&pc87306_device);
     device_add(&intel_flash_bxt_ami_device);
 
     if (gfxcard == VID_INTERNAL)
@@ -722,7 +714,7 @@ machine_at_acerm3a_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_ONBOARD, 4, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    fdc37c932fr_init();
+    device_add(&fdc37c932fr_device);
     device_add(&acerm3a_device);
 
     device_add(&intel_flash_bxb_device);
@@ -746,7 +738,7 @@ machine_at_acerv35n_init(const machine_t *model)
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    fdc37c932fr_init();
+    device_add(&fdc37c932fr_device);
     device_add(&acerm3a_device);
 
     device_add(&intel_flash_bxb_device);
@@ -771,8 +763,7 @@ machine_at_ap53_init(const machine_t *model)
     pci_register_slot(0x06, PCI_CARD_ONBOARD, 1, 2, 3, 4);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    fdc37c669_init();
-
+    device_add(&fdc37c669_device);
     device_add(&intel_flash_bxt_device);
 }
 
@@ -793,8 +784,7 @@ machine_at_p55t2p4_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    w83877f_init(5);
-
+    device_add(&w83877f_device);
     device_add(&intel_flash_bxt_device);
 }
 
@@ -816,8 +806,7 @@ machine_at_p55t2s_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    pc87306_init();
-
+    device_add(&pc87306_device);
     device_add(&intel_flash_bxt_device);
 }
 
@@ -838,8 +827,7 @@ machine_at_p55tvp4_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    w83877f_init(5);
-
+    device_add(&w83877f_device);
     device_add(&intel_flash_bxt_device);
 }
 
@@ -860,8 +848,7 @@ machine_at_i430vx_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    um8669f_init();
-
+    device_add(&um8669f_device);
     device_add(&intel_flash_bxt_device);
 }
 
@@ -881,8 +868,7 @@ machine_at_p55va_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    fdc37c932fr_init();
-
+    device_add(&fdc37c932fr_device);
     device_add(&intel_flash_bxt_device);
 }
 
@@ -901,8 +887,7 @@ machine_at_j656vxd_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    fdc37c669_init();
-
+    device_add(&fdc37c669_device);
     device_add(&intel_flash_bxt_device);
 }
 
@@ -925,8 +910,7 @@ machine_at_i440fx_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    fdc37c665_init();
-
+    device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
 }
 
@@ -948,8 +932,7 @@ machine_at_s1668_init(const machine_t *model)
     pci_register_slot(0x0A, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    fdc37c665_init();
-
+    device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
 }
 #endif

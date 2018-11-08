@@ -28,7 +28,7 @@
  *		boot. Sometimes, they do, and then it shows an "Incorrect
  *		DOS" error message??  --FvK
  *
- * Version:	@(#)m_ps1.c	1.0.12	2018/09/19
+ * Version:	@(#)m_ps1.c	1.0.13	2018/11/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -292,6 +292,7 @@ static void
 ps1_write(uint16_t port, uint8_t val, void *priv)
 {
     ps1_t *ps = (ps1_t *)priv;
+    serial_t *uart;
 
     switch (port) {
 	case 0x0092:
@@ -327,10 +328,11 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
 
 	case 0x0102:
 		lpt1_remove();
+		uart = machine_get_serial(0); 
 		if (val & 0x04)
-			serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+			serial_setup(uart, SERIAL1_ADDR, SERIAL1_IRQ);
 		else
-			serial_remove(1);
+			serial_remove(uart);
 		if (val & 0x10) {
 			switch ((val >> 5) & 3) {
 				case 0:
@@ -457,8 +459,8 @@ ps1_setup(int model)
 
 	lpt2_remove();
 
-	serial_remove(1);
-	serial_remove(2);
+	serial_remove(machine_get_serial(0));
+	serial_remove(machine_get_serial(1));
 
 	/* Enable the PS/1 VGA controller. */
 	if (model == 2011)

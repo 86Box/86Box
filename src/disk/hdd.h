@@ -85,7 +85,6 @@ typedef struct {
     uint8_t	wp;			/* Disk has been mounted READ-ONLY */
     uint8_t	pad, pad0;
 
-    FILE	*f;			/* Current file handle to image */
     void	*priv;
 
     wchar_t	fn[1024],		/* Name of current image file */

@@ -8,7 +8,7 @@
  *
  *		Definitions for the mouse driver.
  *
- * Version:	@(#)mouse.h	1.0.15	2018/03/18
+ * Version:	@(#)mouse.h	1.0.14	2018/11/04
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -28,10 +28,12 @@
 # define MOUSE_TYPE_GENIBUS	4	/* Genius Bus Mouse */
 #endif
 #define MOUSE_TYPE_MSYSTEMS	5	/* Mouse Systems mouse */
-#define MOUSE_TYPE_MICROSOFT	6	/* Microsoft Serial Mouse */
-#define MOUSE_TYPE_LOGITECH	7	/* Logitech Serial Mouse */
-#define MOUSE_TYPE_MSWHEEL	8	/* Serial Wheel Mouse */
-#define MOUSE_TYPE_PS2		9	/* PS/2 series Bus Mouse */
+#define MOUSE_TYPE_MICROSOFT	6	/* Microsoft 2-button Serial Mouse */
+#define MOUSE_TYPE_MS3BUTTON	7	/* Microsoft 3-button Serial Mouse */
+#define MOUSE_TYPE_MSWHEEL	8	/* Microsoft Serial Wheel Mouse */
+#define MOUSE_TYPE_LOGITECH	9	/* Logitech 2-button Serial Mouse */
+#define MOUSE_TYPE_LT3BUTTON	10	/* Logitech 3-button Serial Mouse */
+#define MOUSE_TYPE_PS2		11	/* PS/2 series Bus Mouse */
 
 
 #ifdef __cplusplus
@@ -54,6 +56,7 @@ extern const device_t	mouse_genibus_device;
 #endif
 extern const device_t	mouse_mssystems_device;
 extern const device_t	mouse_msserial_device;
+extern const device_t	mouse_ltserial_device;
 extern const device_t	mouse_ps2_device;
 #endif
 

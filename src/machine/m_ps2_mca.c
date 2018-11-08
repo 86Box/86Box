@@ -8,7 +8,7 @@
  *
  *		Implementation of MCA-based PS/2 machines.
  *
- * Version:	@(#)m_ps2_mca.c	1.0.3	2018/10/22
+ * Version:	@(#)m_ps2_mca.c	1.0.4	2018/11/06
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -372,6 +372,8 @@ static uint8_t model_80_read(uint16_t port)
 
 static void model_50_write(uint16_t port, uint8_t val)
 {
+	serial_t *uart = machine_get_serial(0);
+
         switch (port)
         {
                 case 0x100:
@@ -381,16 +383,14 @@ static void model_50_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial_remove(1);
+                serial_remove(uart);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(uart, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial_setup(1, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(uart, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
-                else
-                        serial_remove(1);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
@@ -428,6 +428,8 @@ static void model_50_write(uint16_t port, uint8_t val)
 
 static void model_55sx_write(uint16_t port, uint8_t val)
 {
+	serial_t *uart = machine_get_serial(0);
+
         switch (port)
         {
                 case 0x100:
@@ -437,16 +439,14 @@ static void model_55sx_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial_remove(1);
+                serial_remove(uart);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(uart, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial_setup(1, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(uart, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
-                else
-                        serial_remove(1);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
@@ -505,6 +505,8 @@ static void model_55sx_write(uint16_t port, uint8_t val)
 
 static void model_70_type3_write(uint16_t port, uint8_t val)
 {
+	serial_t *uart = machine_get_serial(0);
+
         switch (port)
         {
                 case 0x100:
@@ -513,16 +515,14 @@ static void model_70_type3_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial_remove(1);
+                serial_remove(uart);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(uart, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial_setup(1, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(uart, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
-                else
-                        serial_remove(1);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
@@ -555,6 +555,8 @@ static void model_70_type3_write(uint16_t port, uint8_t val)
 
 static void model_80_write(uint16_t port, uint8_t val)
 {
+	serial_t *uart = machine_get_serial(0);
+
         switch (port)
         {
                 case 0x100:
@@ -563,16 +565,14 @@ static void model_80_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial_remove(1);
+                serial_remove(uart);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(uart, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial_setup(1, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(uart, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
-                else
-                        serial_remove(1);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)

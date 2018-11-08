@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.35	2018/10/22
+ * Version:	@(#)machine.c	1.0.36	2018/11/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -41,6 +41,8 @@
 int machine;
 int AT, PCI;
 int romset;
+
+static serial_t *uart[2];
 
 
 #ifdef ENABLE_MACHINE_LOG
@@ -90,10 +92,23 @@ machine_init(void)
     /* All good, boot the machine! */
     machines[machine].init(&machines[machine]);
 
+    /* For non-PCI machines, add two regular 8250 UART's. */
+    if (!PCI) {
+	uart[0] = device_add_inst(&i8250_device, 1);
+	uart[1] = device_add_inst(&i8250_device, 2);
+    }
+
     /* If it's a PCI or MCA machine, reset the video card
        after initializing the machine, so the slots work correctly. */
     if (PCI || MCA)
 	video_reset(gfxcard);
+}
+
+
+serial_t *
+machine_get_serial(int port)
+{
+    return uart[port];
 }
 
 
@@ -113,10 +128,4 @@ machine_common_init(const machine_t *model)
 
     if (lpt_enabled)
 	lpt_init();
-
-    if (serial_enabled[0])
-	serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
-
-    if (serial_enabled[1])
-	serial_setup(2, SERIAL2_ADDR, SERIAL2_IRQ);
 }

@@ -8,7 +8,7 @@
  *
  *		Emulation of the IBM PCjr.
  *
- * Version:	@(#)m_pcjr.c	1.0.10	2018/11/02
+ * Version:	@(#)m_pcjr.c	1.0.11	2018/11/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -757,7 +757,7 @@ machine_pcjr_init(const machine_t *model)
 	setrtcconst(14318184.0);
 
     if (serial_enabled[0])
-	serial_setup(1, 0x2f8, 3);
+	serial_setup(machine_get_serial(0), 0x2f8, 3);
 
     /* Initialize the video controller. */
     mem_mapping_add(&pcjr->mapping, 0xb8000, 0x08000,

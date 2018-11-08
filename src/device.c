@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.22	2018/10/25
+ * Version:	@(#)device.c	1.0.23	2018/11/06
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -107,9 +107,9 @@ device_add_common(const device_t *d, void *p, int inst)
     device_context_t old;
 
     for (c = 0; c < 256; c++) {
-	if (devices[c] == (device_t *)d) {
+	if (!inst && (devices[c] == (device_t *) d)) {
 		device_log("DEVICE: device already exists!\n");
-		return(NULL);
+		return (NULL);
 	}
 	if (devices[c] == NULL) break;
     }

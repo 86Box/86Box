@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.73	2018/10/30
+ * Version:	@(#)win_settings.c	1.0.74	2018/11/04
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -477,10 +477,8 @@ win_settings_save(void)
 	
     /* Hard disks category */
     memcpy(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
-    for (i = 0; i < HDD_NUM; i++) {
-	hdd[i].f = NULL;
+    for (i = 0; i < HDD_NUM; i++)
 	hdd[i].priv = NULL;
-    }
 
     /* Floppy drives category */
     for (i = 0; i < FDD_NUM; i++) {
