@@ -431,6 +431,25 @@ plat_get_exe_name(wchar_t *s, int size)
     GetModuleFileName(hinstance, s, size);
 }
 
+void
+plat_tempfile(wchar_t *bufp, wchar_t *prefix, wchar_t *suffix)
+{
+    SYSTEMTIME SystemTime;
+    char temp[1024];
+
+    if (prefix != NULL)
+	sprintf(temp, "%ls-", prefix);
+      else
+	strcpy(temp, "");
+
+    GetSystemTime(&SystemTime);
+    sprintf(&temp[strlen(temp)], "%d%02d%02d-%02d%02d%02d-%03d%ls",
+        SystemTime.wYear, SystemTime.wMonth, SystemTime.wDay,
+	SystemTime.wHour, SystemTime.wMinute, SystemTime.wSecond,
+	SystemTime.wMilliseconds,
+	suffix);
+    mbstowcs(bufp, temp, strlen(temp)+1);
+}
 
 int
 plat_getcwd(wchar_t *bufp, int max)
