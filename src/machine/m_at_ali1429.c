@@ -108,6 +108,4 @@ machine_at_ali1429_init(const machine_t *model)
 	device_add(&fdc_at_device);
 
         ali1429_init();
-
-	secondary_ide_check();
 }
