@@ -8,7 +8,7 @@
  *
  *		Implementation of the Generic ESC/P Dot-Matrix printer.
  *
- * Version:	@(#)prt_escp.c	1.0.3	2018/10/06
+ * Version:	@(#)prt_escp.c	1.0.4	2018/11/09
  *
  * Authors:	Michael Drüing, <michael@drueing.de>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -192,6 +192,7 @@ typedef struct {
     uint16_t	pitch;
 
     uint8_t	*pixels;	/* grayscale pixel data */
+    uint8_t	ctrl;
 } psurface_t;
 
 
@@ -1865,7 +1866,7 @@ write_ctrl(uint8_t val, void *priv)
 	dev->select = 1;
     }
 
-    if ((val & 0x04) == 0) {
+    if ((val & 0x04) && !(dev->ctrl & 0x04)) {
 	/* reset printer */
 	dev->select = 0;
 
@@ -1874,13 +1875,15 @@ write_ctrl(uint8_t val, void *priv)
     
     //pclog("Write control %02x\n", val & 1);
 
-    if (val & 0x01) {		/* STROBE */
+    if (!(val & 0x01) && (dev->ctrl & 0x01)) {		/* STROBE */
 	/* Process incoming character. */
 	handle_char(dev);
 
 	/* ACK it, will be read on next READ STATUS. */
 	dev->ack = 1;
     }
+
+    dev->ctrl = val;
 }
 
 

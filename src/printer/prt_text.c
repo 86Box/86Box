@@ -15,7 +15,7 @@
  *		printer mechanics. This would lead to a page being 66 lines
  *		of 80 characters each.
  *
- * Version:	@(#)prt_text.c	1.0.3	2018/10/05
+ * Version:	@(#)prt_text.c	1.0.4	2018/11/09
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -92,6 +92,7 @@ typedef struct {
     uint8_t	h;
 
     char	*chars;		/* character data */
+    uint8_t	ctrl;
 } psurface_t;
 
 
@@ -361,20 +362,22 @@ write_ctrl(uint8_t val, void *priv)
 	dev->select = 1;
     }
 
-    if ((val & 0x04) == 0) {
+    if ((val & 0x04) && !(dev->ctrl & 0x04)) {
 	/* reset printer */
 	dev->select = 0;
 
 	reset_printer(dev);
     }
 
-    if (val & 0x01) {		/* STROBE */
+    if (!(val & 0x01) && (dev->ctrl & 0x01)) {		/* STROBE */
 	/* Process incoming character. */
 	handle_char(dev);
 
 	/* ACK it, will be read on next READ STATUS. */
 	dev->ack = 1;
     }
+
+    dev->ctrl = val;
 }
 
 
