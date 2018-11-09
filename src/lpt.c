@@ -80,7 +80,7 @@ void lpt_devices_close()
 	}
 }
 
-static uint8_t lpt_dats[3], lpt_ctrls[3];
+static uint8_t lpt_dats[3], lpt_ctrls[3] = { 0x04, 0x04, 0x04 };
 
 void lpt_write(int i, uint16_t port, uint8_t val, void *priv)
 {

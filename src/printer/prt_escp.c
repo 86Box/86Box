@@ -8,7 +8,7 @@
  *
  *		Implementation of the Generic ESC/P Dot-Matrix printer.
  *
- * Version:	@(#)prt_escp.c	1.0.5	2018/11/09
+ * Version:	@(#)prt_escp.c	1.0.6	2018/11/09
  *
  * Authors:	Michael Drüing, <michael@drueing.de>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -1948,6 +1948,7 @@ escp_init(const lpt_device_t *INFO)
     dev = (escp_t *)malloc(sizeof(escp_t));
     memset(dev, 0x00, sizeof(escp_t));
     dev->name = INFO->name;
+    dev->ctrl = 0x04;
 
     /* Create a full pathname for the font files. */
     wcscpy(dev->fontpath, exe_path);

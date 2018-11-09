@@ -15,7 +15,7 @@
  *		printer mechanics. This would lead to a page being 66 lines
  *		of 80 characters each.
  *
- * Version:	@(#)prt_text.c	1.0.5	2018/11/09
+ * Version:	@(#)prt_text.c	1.0.6	2018/11/09
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -411,6 +411,7 @@ prnt_init(const lpt_device_t *INFO)
     dev = (prnt_t *)malloc(sizeof(prnt_t));
     memset(dev, 0x00, sizeof(prnt_t));
     dev->name = INFO->name;
+    dev->ctrl = 0x04;
 
     //INFO("PRNT: LPT printer '%s' initializing\n", dev->name);
 
