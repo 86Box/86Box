@@ -27,6 +27,7 @@
 #include "../device.h"
 #include "../timer.h"
 #include "../cdrom/cdrom.h"
+#include "../disk/hdc_ide.h"
 #include "../plat.h"
 #include "sound.h"
 #include "midi.h"
@@ -498,4 +499,6 @@ sound_cd_thread_reset(void)
 	sound_cd_thread_end();
 
     cd_thread_enable = available_cdrom_drives ? 1 : 0;
+
+    secondary_ide_check();
 }

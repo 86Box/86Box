@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.58	2018/10/31
+ * Version:	@(#)hdc_ide.c	1.0.59	2018/11/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -126,6 +126,7 @@ int	(*ide_bus_master_dma)(int channel, uint8_t *data, int transfer_length, int o
 void	(*ide_bus_master_set_irq)(int channel, void *priv);
 void	*ide_bus_master_priv[2];
 int	ide_inited = 0;
+int	ide_sec_optional = 0;
 int	ide_ter_enabled = 0, ide_qua_enabled = 0;
 
 static uint16_t	ide_base_main[4] = { 0x1f0, 0x170, 0x168, 0x1e8 };
@@ -2623,21 +2624,9 @@ ide_set_bus_master(int (*dma)(int channel, uint8_t *data, int transfer_length, i
 void
 secondary_ide_check(void)
 {
-    int i = 0;
-    int secondary_cdroms = 0;
-    int secondary_zips = 0;
-
-    for (i=0; i<ZIP_NUM; i++) {
-	if ((zip_drives[i].ide_channel >= 2) && (zip_drives[i].ide_channel <= 3) &&
-	    (zip_drives[i].bus_type == ZIP_BUS_ATAPI))
-		secondary_zips++;
-    }
-    for (i=0; i<CDROM_NUM; i++) {
-	if ((cdrom[i].ide_channel >= 2) && (cdrom[i].ide_channel <= 3) &&
-	    (cdrom[i].bus_type == CDROM_BUS_ATAPI))
-		secondary_cdroms++;
-    }
-    if (!secondary_zips && !secondary_cdroms)
+    /* If secondary IDE is optional and the secondary master is not present or not ATAPI,
+       disable secondary IDE. */
+    if (ide_sec_optional && (!ide_drives[4] || (ide_drives[4]->type != IDE_ATAPI)))
 	ide_remove_handlers(1);
 }
 
@@ -2697,8 +2686,7 @@ ide_init(const device_t *info)
 
 			ide_board_init(1);
 
-			if (info->local & 1)
-				secondary_ide_check();
+			ide_sec_optional = (info->local & 1);
 
 			ide_inited |= 2;
 		}
