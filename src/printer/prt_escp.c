@@ -8,7 +8,7 @@
  *
  *		Implementation of the Generic ESC/P Dot-Matrix printer.
  *
- * Version:	@(#)prt_escp.c	1.0.4	2018/11/09
+ * Version:	@(#)prt_escp.c	1.0.5	2018/11/09
  *
  * Authors:	Michael Drüing, <michael@drueing.de>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -192,7 +192,6 @@ typedef struct {
     uint16_t	pitch;
 
     uint8_t	*pixels;	/* grayscale pixel data */
-    uint8_t	ctrl;
 } psurface_t;
 
 
@@ -283,6 +282,7 @@ typedef struct {
 					 * commands. -1 = use default */
 
     int8_t	msb;			/* MSB mode, -1 = off */
+    uint8_t	ctrl;
 } escp_t;
 
 
