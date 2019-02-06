@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.89	2018/11/05
+ * Version:	@(#)pc.c	1.0.91	2018/11/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -256,7 +256,9 @@ fatal(const char *fmt, ...)
     config_save();
 
     dumppic();
+#ifdef ENABLE_808X_LOG
     dumpregs(1);
+#endif
 
     /* Make sure the message does not have a trailing newline. */
     if ((sp = strchr(temp, '\n')) != NULL) *sp = '\0';
@@ -658,7 +660,7 @@ again2:
 
     sound_init();
 
-    hdc_init(hdc_name);
+    hdc_init();
 
     return(1);
 }
@@ -757,6 +759,9 @@ pc_reset_hard_init(void)
 
     /* Initialize the actual machine and its basic modules. */
     machine_init();
+
+    /* Reset and reconfigure the serial ports. */
+    serial_standalone_init();
 
     /* Reset and reconfigure the Sound Card layer. */
     sound_card_reset();
@@ -895,7 +900,9 @@ pc_close(thread_t *ptr)
 
     if (dump_on_exit)
 	dumppic();
+#ifdef ENABLE_808X_LOG
     dumpregs(0);
+#endif
 
     video_close();
 

@@ -485,6 +485,7 @@ ui_sb_update_panes(void)
     int c_mfm, c_esdi, c_xta;
     int c_ide, c_scsi;
     int do_net;
+    char *hdc_name;
 
     if (sb_ready) {
 	sb_ready = 0;
@@ -526,6 +527,7 @@ ui_sb_update_panes(void)
 	if (fdd_get_type(i) != 0)
 		sb_parts++;
     }
+    hdc_name = hdc_get_internal_name(hdc_current);
     for (i=0; i<CDROM_NUM; i++) {
 	/* Could be Internal or External IDE.. */
 	if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&

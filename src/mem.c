@@ -12,7 +12,7 @@
  *		the DYNAMIC_TABLES=1 enables this. Will eventually go
  *		away, either way...
  *
- * Version:	@(#)mem.c	1.0.18	2018/10/17
+ * Version:	@(#)mem.c	1.0.19	2018/11/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -494,10 +494,12 @@ getpccache(uint32_t a)
     a &= rammask;
 
     if (_mem_exec[a >> 14]) {
-	if (_mem_mapping_r[a >> 14]->flags & MEM_MAPPING_ROM)
-		cpu_prefetch_cycles = cpu_rom_prefetch_cycles;
-	else
-		cpu_prefetch_cycles = cpu_mem_prefetch_cycles;
+	if (is286) {
+		if (_mem_mapping_r[a >> 14]->flags & MEM_MAPPING_ROM)
+			cpu_prefetch_cycles = cpu_rom_prefetch_cycles;
+		else
+			cpu_prefetch_cycles = cpu_mem_prefetch_cycles;
+	}
 	
 	return &_mem_exec[a >> 14][(uintptr_t)(a & 0x3000) - (uintptr_t)(a2 & ~0xfff)];
     }
@@ -996,26 +998,6 @@ writememql(uint32_t seg, uint32_t addr, uint64_t val)
 uint8_t
 mem_readb_phys(uint32_t addr)
 {
-    mem_logical_addr = 0xffffffff;
-
-    if (_mem_read_b[addr >> 14]) 
-	return _mem_read_b[addr >> 14](addr, _mem_priv_r[addr >> 14]);
-
-    return 0xff;
-}
-
-
-/*
- * Version of mem_readby_phys that doesn't go through
- * the CPU paging mechanism.
- */
-uint8_t
-mem_readb_phys_dma(uint32_t addr)
-{
-#if 0
-    mem_logical_addr = 0xffffffff;
-#endif
-
     if (_mem_exec[addr >> 14])
 	return _mem_exec[addr >> 14][addr & 0x3fff];
     else if (_mem_read_b[addr >> 14])
@@ -1028,50 +1010,28 @@ mem_readb_phys_dma(uint32_t addr)
 uint16_t
 mem_readw_phys(uint32_t addr)
 {
-    mem_logical_addr = 0xffffffff;
+    uint16_t temp;
 
-    if (_mem_read_w[addr >> 14]) 
-	return _mem_read_w[addr >> 14](addr, _mem_priv_r[addr >> 14]);
+    if (_mem_exec[addr >> 14])
+	return ((uint16_t *) _mem_exec[addr >> 14])[(addr >> 1) & 0x1fff];
+    else if (_mem_read_w[addr >> 14])
+       	return _mem_read_w[addr >> 14](addr, _mem_priv_r[addr >> 14]);
+    else {
+	temp = mem_readb_phys(addr + 1) << 8;
+	temp |=  mem_readb_phys(addr);
+    }
 
-    return 0xff;
+    return temp;
 }
 
 
 void
 mem_writeb_phys(uint32_t addr, uint8_t val)
 {
-    mem_logical_addr = 0xffffffff;
-
-    if (_mem_write_b[addr >> 14]) 
-	_mem_write_b[addr >> 14](addr, val, _mem_priv_w[addr >> 14]);
-}
-
-
-/*
- * Version of mem_readby_phys that doesn't go through
- * the CPU paging mechanism.
- */
-void
-mem_writeb_phys_dma(uint32_t addr, uint8_t val)
-{
-#if 0
-    mem_logical_addr = 0xffffffff;
-#endif
-
     if (_mem_exec[addr >> 14])
 	_mem_exec[addr >> 14][addr & 0x3fff] = val;
     else if (_mem_write_b[addr >> 14])
        	_mem_write_b[addr >> 14](addr, val, _mem_priv_w[addr >> 14]);
-}
-
-
-void
-mem_writew_phys(uint32_t addr, uint16_t val)
-{
-    mem_logical_addr = 0xffffffff;
-
-    if (_mem_write_w[addr >> 14])
-	_mem_write_w[addr >> 14](addr, val, _mem_priv_w[addr >> 14]);
 }
 
 

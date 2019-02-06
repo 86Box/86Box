@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.68	2018/11/02
+ * Version:	@(#)scsi_cdrom.c	1.0.69	2018/11/11
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -2025,6 +2025,8 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 	case GPCMD_PLAY_AUDIO_TRACK_INDEX:
 	case GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10:
 	case GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12:
+		len = 0;
+
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
 
 		switch(cdb[0]) {
@@ -2168,7 +2170,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 					if (ret) {
 					scsi_cdrom_set_buf_len(dev, BufLen, &alloc_length);
 					scsi_cdrom_data_command_finish(dev, alloc_length, alloc_length,
-								       len, 0);
+								       alloc_length, 0);
 				} else
 					scsi_cdrom_buf_free(dev);
 				return;

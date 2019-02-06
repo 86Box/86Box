@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel PIC chip emulation.
  *
- * Version:	@(#)pic.c	1.0.2	2018/10/17
+ * Version:	@(#)pic.c	1.0.4	2019/01/21
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -61,7 +61,7 @@ pic_updatepending()
 {
     uint16_t temp_pending = 0;
     if (AT) {
-	if ((pic2.pend&~pic2.mask)&~pic2.mask2)
+	if ((pic2.pend & ~pic2.mask) & ~pic2.mask2)
 		pic.pend |= pic.icw3;
 	else
 		pic.pend &= ~pic.icw3;
@@ -135,7 +135,7 @@ pic_autoeoi()
 		pic_update_mask(&pic.mask2, pic.ins);
 
 		if (AT) {
-			if (((1 << c) == pic.icw3) && (pic2.pend&~pic2.mask)&~pic2.mask2)
+			if (((1 << c) == pic.icw3) && (pic2.pend & ~pic2.mask) & ~pic2.mask2)
 				pic.pend |= pic.icw3;
 		}
 
@@ -180,9 +180,9 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
     } else {
 	if (val & 16) { /*ICW1*/
 		pic.mask = 0;
-		pic.mask2=0;
-		pic.icw=1;
-		pic.icw1=val;
+		pic.mask2 = 0;
+		pic.icw = 1;
+		pic.icw1 = val;
 		pic.ins = 0;
 		pic_updatepending();
 	}
@@ -208,7 +208,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 					pic_update_mask(&pic.mask2, pic.ins);
 
 					if (AT) {
-						if (((1 << c) == pic.icw3) && (pic2.pend&~pic2.mask)&~pic2.mask2)
+						if (((1 << c) == pic.icw3) && (pic2.pend & ~pic2.mask) & ~pic2.mask2)
 							pic.pend |= pic.icw3;
 					}
 
@@ -217,8 +217,8 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 							pic.pend |= 1 << c;
 					}
 
-					if (c==1 && keywaiting)
-						intclear&=~1;
+					if ((c == 1) && keywaiting)
+						intclear &= ~1;
 					pic_updatepending();
 					return;
 				}
@@ -241,7 +241,10 @@ pic_read(uint16_t addr, void *priv)
     }
     if (pic.read) {
 	pic_log("Read PIC ins %02X\n", pic.ins);
-	return pic.ins | (pic2.ins ? 4 : 0);
+	if (AT)
+		return pic.ins | (pic2.ins ? 4 : 0);
+	else
+		return pic.ins;
     }
     return pic.pend;
 }
@@ -481,12 +484,27 @@ pic_process_interrupt(PIC* target_pic, int c)
     int pic_int = c & 7;
     int pic_int_num = 1 << pic_int;
 
-    if (pending & pic_int_num) {
+    int in_service = 0;
+#if 0
+    if (AT) {
+	in_service = (target_pic->ins & (pic_int_num - 1));
+	if (c >= 8)
+		in_service |= (pic.ins & 0x03);
+    }
+    if (!AT)
+	in_service = (target_pic->ins & (pic_int_num - 1));
+#else
+    in_service = (target_pic->ins & (pic_int_num - 1));
+    if (AT && (c >= 8))
+	in_service |= (pic.ins & 0x03);
+#endif
+
+    if ((pending & pic_int_num) && !in_service) {
 	target_pic->pend &= ~pic_int_num;
 	target_pic->ins |= pic_int_num;
 	pic_update_mask(&target_pic->mask2, target_pic->ins);
 
-	if (c >= 8) {
+	if (AT && (c >= 8)) {
 		pic.ins |= (1 << pic2.icw3); /*Cascade IRQ*/
 		pic_update_mask(&pic.mask2, pic.ins);
 	}
@@ -494,7 +512,7 @@ pic_process_interrupt(PIC* target_pic, int c)
 	pic_updatepending();
 
 	if (target_pic->icw4 & 0x02)
-		(c >= 8) ? pic2_autoeoi() : pic_autoeoi();
+		(AT && (c >= 8)) ? pic2_autoeoi() : pic_autoeoi();
 
 	if (!c)
 		pit_set_gate(&pit2, 0, 0);

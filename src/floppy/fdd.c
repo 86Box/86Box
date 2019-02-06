@@ -8,7 +8,7 @@
  *
  *		Implementation of the floppy drive emulation.
  *
- * Version:	@(#)fdd.c	1.0.12	2018/10/18
+ * Version:	@(#)fdd.c	1.0.13	2018/11/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -52,6 +52,7 @@
 #include "fdd_imd.h"
 #include "fdd_img.h"
 #include "fdd_json.h"
+#include "fdd_mfm.h"
 #include "fdd_td0.h"
 #include "fdc.h"
 
@@ -122,6 +123,7 @@ static const struct
         {L"IMD", imd_load,       imd_close, -1},
         {L"IMG", img_load,       img_close, -1},
 	{L"JSON", json_load,    json_close, -1},
+	{L"MFM", mfm_load,       mfm_close, -1},
 	{L"TD0", td0_load,       td0_close, -1},
         {L"VFD", img_load,       img_close, -1},
 	{L"XDF", img_load,       img_close, -1},
@@ -464,14 +466,7 @@ int fdd_get_check_bpb(int drive)
 
 int fdd_get_densel(int drive)
 {
-	if (drive_types[fdd[drive].type].flags & FLAG_INVERT_DENSEL)
-	{
-		return fdd[drive].densel ^ 1;
-	}
-	else
-	{
-		return fdd[drive].densel;
-	}
+	return fdd[drive].densel;
 }
 
 void fdd_load(int drive, wchar_t *fn)

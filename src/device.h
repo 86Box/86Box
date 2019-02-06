@@ -8,7 +8,7 @@
  *
  *		Definitions for the device handler.
  *
- * Version:	@(#)device.h	1.0.10	2018/10/23
+ * Version:	@(#)device.h	1.0.11	2018/11/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -54,15 +54,16 @@
 
 enum {
     DEVICE_NOT_WORKING = 1,	/* does not currently work correctly and will be disabled in a release build */
-    DEVICE_AT = 2,		/* requires an AT-compatible system */
-    DEVICE_PS2 = 4,		/* requires a PS/1 or PS/2 system */
-    DEVICE_ISA = 8,		/* requires the ISA bus */
-    DEVICE_CBUS = 0x10,		/* requires the C-BUS bus */
-    DEVICE_MCA = 0x20,		/* requires the MCA bus */
-    DEVICE_EISA = 0x40,		/* requires the EISA bus */
-    DEVICE_VLB = 0x80,		/* requires the PCI bus */
-    DEVICE_PCI = 0x100,		/* requires the VLB bus */
-    DEVICE_AGP = 0x200		/* requires the AGP bus */
+    DEVICE_PCJR = 2,		/* requires an IBM PCjr */
+    DEVICE_AT = 4,		/* requires an AT-compatible system */
+    DEVICE_PS2 = 8,		/* requires a PS/1 or PS/2 system */
+    DEVICE_ISA = 0x10,		/* requires the ISA bus */
+    DEVICE_CBUS = 0x20,		/* requires the C-BUS bus */
+    DEVICE_MCA = 0x40,		/* requires the MCA bus */
+    DEVICE_EISA = 0x80,		/* requires the EISA bus */
+    DEVICE_VLB = 0x100,		/* requires the PCI bus */
+    DEVICE_PCI = 0x200,		/* requires the VLB bus */
+    DEVICE_AGP = 0x400		/* requires the AGP bus */
 };
 
 

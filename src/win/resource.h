@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.28	2018/09/02
+ * Version:	@(#)resource.h	1.0.30	2019/01/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -149,6 +149,7 @@
 #define IDC_CHECK_MPU401	1077
 #define IDC_CONFIGURE_MPU401	1078
 #define IDC_CHECK_FLOAT		1079
+#define IDC_CHECK_GUSMAX	1080
 
 #define IDC_COMBO_NET_TYPE	1090	/* network config */
 #define IDC_COMBO_PCAP		1091
@@ -264,10 +265,18 @@
 #define IDM_VID_RESIZE		40040
 #define IDM_VID_REMEMBER	40041
 #define IDM_VID_DDRAW		40050
+#ifdef USE_D2D
 #define IDM_VID_D2D		40051
 #define IDM_VID_D3D		40052
 #define IDM_VID_SDL		40053
 #define IDM_VID_VNC		40054
+#else
+#define IDM_VID_D3D		40051
+#define IDM_VID_SDL		40052
+#ifdef USE_VNC
+#define IDM_VID_VNC		40053
+#endif
+#endif
 #define IDM_VID_SCALE_1X	40055
 #define IDM_VID_SCALE_2X	40056
 #define IDM_VID_SCALE_3X	40057

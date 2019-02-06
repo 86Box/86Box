@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.25	2018/10/02
+ * Version:	@(#)86box.h	1.0.27	2019/01/13
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -98,7 +98,7 @@ extern int	serial_enabled[],		/* (C) enable serial ports */
 		isartc_type;			/* (C) enable ISA RTC card */
 extern int	sound_is_float,			/* (C) sound uses FP values */
 		GAMEBLASTER,			/* (C) sound option */
-		GUS,				/* (C) sound option */
+		GUS, GUSMAX,			/* (C) sound option */
 		SSI2001,			/* (C) sound option */
 		voodoo_enabled;			/* (C) video option */
 extern uint32_t	mem_size;			/* (C) memory size */
@@ -109,8 +109,8 @@ extern int	cpu_manufacturer,		/* (C) cpu manufacturer */
 extern int	time_sync;			/* (C) enable time sync */
 extern int	network_type;			/* (C) net provider type */
 extern int	network_card;			/* (C) net interface num */
-extern char	network_host[512];		/* (C) host network intf */
-
+extern char	network_host[522];		/* (C) host network intf */
+extern int	hdd_format_type;		/* (C) hard disk file format */
 
 extern int	is_pentium;			/* TODO: Move back to cpu/cpu.h when it's figured out,
 							 how to remove that hack from the ET4000/W32p. */

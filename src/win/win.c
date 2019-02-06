@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.54	2018/10/18
+ * Version:	@(#)win.c	1.0.55	2018/11/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -86,7 +86,9 @@ static struct {
 } vid_apis[2][RENDERERS_NUM] = {
   {
     {	"DDraw", 1, (int(*)(void*))ddraw_init, ddraw_close, NULL, ddraw_pause		},
+#ifdef USE_D2D
     {	"D2D", 1, (int(*)(void*))d2d_init, d2d_close, NULL, d2d_pause			},
+#endif
     {	"D3D", 1, (int(*)(void*))d3d_init, d3d_close, d3d_resize, d3d_pause		},
     {	"SDL", 1, (int(*)(void*))sdl_init, sdl_close, NULL, sdl_pause			}
 #ifdef USE_VNC
@@ -95,7 +97,9 @@ static struct {
   },
   {
     {	"DDraw", 1, (int(*)(void*))ddraw_init_fs, ddraw_close, NULL, ddraw_pause	},
+#ifdef USE_D2D
     {	"D2D", 1, (int(*)(void*))d2d_init_fs, d2d_close, NULL, d2d_pause		},
+#endif
     {	"D3D", 1, (int(*)(void*))d3d_init_fs, d3d_close, NULL, d3d_pause		},
     {	"SDL", 1, (int(*)(void*))sdl_init_fs, sdl_close, sdl_resize, sdl_pause		}
 #ifdef USE_VNC
@@ -633,7 +637,6 @@ plat_vidapi_name(int api)
 	case 1:
 		name = "d2d";
 		break;
-#endif
 
 	case 2:
 		name = "d3d";
@@ -642,9 +645,22 @@ plat_vidapi_name(int api)
 	case 3:
 		name = "sdl";
 		break;
+#else
+	case 1:
+		name = "d3d";
+		break;
+
+	case 2:
+		name = "sdl";
+		break;
+#endif
 
 #ifdef USE_VNC
+#ifdef USE_D2D
 	case 4:
+#else
+	case 3:
+#endif
 		name = "vnc";
 		break;
 #endif
@@ -753,7 +769,7 @@ take_screenshot(void)
     time_t now;
 
     win_log("Screenshot: video API is: %i\n", vid_api);
-    if ((vid_api < 0) || (vid_api > 2)) return;
+    if ((vid_api < 0) || (vid_api >= RENDERERS_NUM)) return;
 
     memset(fn, 0, sizeof(fn));
     memset(path, 0, sizeof(path));
@@ -780,7 +796,6 @@ take_screenshot(void)
 	case 1:		/* d2d */
 		d2d_take_screenshot(path);
 		break;
-#endif
 
 	case 2:		/* d3d9 */
 		d3d_take_screenshot(path);
@@ -789,9 +804,22 @@ take_screenshot(void)
 	case 3:		/* sdl */
 		sdl_take_screenshot(path);
 		break;
+#else
+	case 1:		/* d3d9 */
+		d3d_take_screenshot(path);
+		break;
+
+	case 2:		/* sdl */
+		sdl_take_screenshot(path);
+		break;
+#endif
 
 #ifdef USE_VNC
+#ifdef USE_D2D
 	case 4:		/* vnc */
+#else
+	case 3:		/* vnc */
+#endif
 		vnc_take_screenshot(path);
 		break;
 #endif

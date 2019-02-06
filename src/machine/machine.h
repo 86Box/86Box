@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.30	2018/09/15
+ * Version:	@(#)machine.h	1.0.32	2019/01/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -82,9 +82,6 @@ extern int	machine_getmachine(int romset);
 extern char	*machine_getname(void);
 extern char	*machine_get_internal_name(void);
 extern int	machine_get_machine_from_internal_name(char *s);
-#ifdef EMU_SERIAL_H
-extern serial_t *machine_get_serial(int port);
-#endif
 extern void	machine_init(void);
 #ifdef EMU_DEVICE_H
 extern const device_t	*machine_getdevice(int machine);
@@ -199,6 +196,7 @@ extern void	machine_xt_t1000_init(const machine_t *);
 extern void	machine_xt_t1200_init(const machine_t *);
 
 extern void	machine_xt_xi8088_init(const machine_t *);
+extern void	machine_xt_zenith_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*xi8088_get_device(void);

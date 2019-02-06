@@ -8,7 +8,7 @@
  *
  *		CD-ROM image support.
  *
- * Version:	@(#)cdrom_image.cc	1.0.7	2018/10/28
+ * Version:	@(#)cdrom_image.cc	1.0.9	2019/02/01
  *
  * Author:	RichardG867,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -292,6 +292,6 @@ cdrom_image_close(cdrom_t *dev)
 {
     cdrom_image_log("CDROM: image_close(%ls)\n", dev->image_path);
 
-    if (dev->ops->exit)
+    if (dev && dev->ops && dev->ops->exit)
 	dev->ops->exit(dev);
 }

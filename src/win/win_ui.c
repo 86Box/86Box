@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.37	2018/10/28
+ * Version:	@(#)win_ui.c	1.0.38	2018/11/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -156,11 +156,17 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_DDRAW+0, MF_UNCHECKED);
 #ifdef USE_D2D
     CheckMenuItem(menuMain, IDM_VID_DDRAW+1, MF_UNCHECKED);
-#endif
     CheckMenuItem(menuMain, IDM_VID_DDRAW+2, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_DDRAW+3, MF_UNCHECKED);
 #ifdef USE_VNC
     CheckMenuItem(menuMain, IDM_VID_DDRAW+4, MF_UNCHECKED);
+#endif
+#else
+    CheckMenuItem(menuMain, IDM_VID_DDRAW+1, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_DDRAW+2, MF_UNCHECKED);
+#ifdef USE_VNC
+    CheckMenuItem(menuMain, IDM_VID_DDRAW+3, MF_UNCHECKED);
+#endif
 #endif
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+0, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+1, MF_UNCHECKED);

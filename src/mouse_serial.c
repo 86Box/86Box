@@ -10,7 +10,7 @@
  *
  * TODO:	Add the Genius Serial Mouse.
  *
- * Version:	@(#)mouse_serial.c	1.0.26	2018/11/05
+ * Version:	@(#)mouse_serial.c	1.0.27	2018/11/11
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -30,12 +30,21 @@
 
 #define SERMOUSE_PORT			0			/* attach to Serial0 */
 
-#define PHASE_IDLE			0
-#define PHASE_ID			1
-#define PHASE_DATA			2
-#define PHASE_STATUS			3
-#define PHASE_DIAGNOSTIC		4
-#define PHASE_FORMAT_AND_REVISION	5
+enum {
+    PHASE_IDLE,
+    PHASE_ID,
+    PHASE_DATA,
+    PHASE_STATUS,
+    PHASE_DIAGNOSTIC,
+    PHASE_FORMAT_AND_REVISION,
+    PHASE_COPYRIGHT_STRING,
+    PHASE_BUTTONS
+};
+
+enum {
+    REPORT_PHASE_PREPARE,
+    REPORT_PHASE_TRANSMIT
+};
 
 
 typedef struct {
@@ -45,16 +54,18 @@ typedef struct {
     uint8_t	flags, but,			/* device flags */
 		want_data,
 		status, format,
-		prompt, continuous,
+		prompt, on_change,
 		id_len, id[255],
 		data_len, data[5];
-    int		abs_x, abs_y;
+    int		abs_x, abs_y,
+		rel_x, rel_y,
+		rel_z,
+		oldb, lastb;
 
-    int		pos;
-    int64_t	delay;
-    int64_t	period;
-    int		oldb;
-    int		phase;
+    int		command_pos, command_phase,
+		report_pos, report_phase;
+    int64_t	command_delay, transmit_period,
+		report_delay, report_period;
 
     serial_t	*serial;
 } mouse_t;
@@ -93,9 +104,9 @@ sermouse_callback(struct serial_s *serial, void *priv)
     mouse_t *dev = (mouse_t *)priv;
 
     /* Start a timer to wake us up in a little while. */
-    dev->pos = 0;
-    dev->phase = PHASE_ID;
-    dev->delay = dev->period;
+    dev->command_pos = 0;
+    dev->command_phase = PHASE_ID;
+    dev->command_delay = dev->transmit_period;
 }
 
 
@@ -234,114 +245,256 @@ sermouse_report(int x, int y, int z, int b, mouse_t *dev)
 
     memset(dev->data, 0, 5);
 
-    switch(dev->type) {
-	case MOUSE_TYPE_MSYSTEMS:
+    switch (dev->format) {
+	case 0:
 		len = sermouse_data_msystems(dev, x, y, b);
 		break;
-
-	case MOUSE_TYPE_MICROSOFT:
-	case MOUSE_TYPE_MS3BUTTON:
-	case MOUSE_TYPE_MSWHEEL:
-		len = sermouse_data_ms(dev, x, y, z, b);
+	case 1:
+		len = sermouse_data_3bp(dev, x, y, b);
 		break;
-
-	case MOUSE_TYPE_LOGITECH:
-	case MOUSE_TYPE_LT3BUTTON:
-		switch (dev->format) {
-			case 0:
-				len = sermouse_data_msystems(dev, x, y, b);
-				break;
-			case 1:
-				len = sermouse_data_3bp(dev, x, y, b);
-				break;
-			case 2:
-				len = sermouse_data_hex(dev, x, y, b);
-				break;
-			case 3:	/* Relative */
-				len = sermouse_data_bp1(dev, x, y, b);
-				break;
-			case 5:
-				len = sermouse_data_mmseries(dev, x, y, b);
-				break;
-			case 6:	/* Absolute */
-				len = sermouse_data_bp1(dev, dev->abs_x, dev->abs_y, b);
-				break;
-			case 7:
-				len = sermouse_data_ms(dev, x, y, z, b);
-				break;
-		}
+	case 2:
+		len = sermouse_data_hex(dev, x, y, b);
+		break;
+	case 3:	/* Relative */
+		len = sermouse_data_bp1(dev, x, y, b);
+		break;
+	case 5:
+		len = sermouse_data_mmseries(dev, x, y, b);
+		break;
+	case 6:	/* Absolute */
+		len = sermouse_data_bp1(dev, dev->abs_x, dev->abs_y, b);
+		break;
+	case 7:
+		len = sermouse_data_ms(dev, x, y, z, b);
 		break;
     }
 
-    dev->oldb = b;
     dev->data_len = len;
+}
 
-    dev->pos = 0;
 
-    if (dev->phase != PHASE_DATA)
-	dev->phase = PHASE_DATA;
+static void
+sermouse_command_phase_idle(mouse_t *dev)
+{
+    dev->command_delay = 0LL;
+    dev->command_pos = 0;
+    dev->command_phase = PHASE_IDLE;
+}
 
-    if (!dev->delay)
-	dev->delay = dev->period;
+
+static void
+sermouse_command_pos_check(mouse_t *dev, int len)
+{
+    if (++dev->command_pos == len)
+	sermouse_command_phase_idle(dev);
+    else
+	dev->command_delay += dev->transmit_period;
+}
+
+
+static uint8_t
+sermouse_last_button_status(mouse_t *dev)
+{
+    uint8_t ret = 0x00;
+
+    if (dev->oldb & 0x01)
+	ret |= 0x04;
+    if (dev->oldb & 0x02)
+	ret |= 0x02;
+    if (dev->oldb & 0x04)
+	ret |= 0x01;
+
+    return ret;
+}
+
+
+static int64_t
+sermouse_transmit_period(mouse_t *dev, int bps, int rps)
+{
+    double dbps = (double) bps;
+    double dusec = (double) TIMER_USEC;
+    double temp = 0.0;
+    int word_len;
+
+    switch (dev->format) {
+	case 0:
+	case 1:		/* Mouse Systems and Three Byte Packed formats: 8 data, no parity, 2 stop, 1 start */
+		word_len = 11;
+		break;
+	case 2:		/* Hexadecimal format - 8 data, no parity, 1 stop, 1 start - number of stop bits is a guess because
+			   it is not documented anywhere. */
+		word_len = 10;
+		break;
+	case 3:
+	case 6:		/* Bit Pad One formats: 7 data, even parity, 2 stop, 1 start */
+		word_len = 11;
+		break;
+	case 5:		/* MM Series format: 8 data, odd parity, 1 stop, 1 start */
+		word_len = 11;
+		break;
+	default:
+	case 7:		/* Microsoft-compatible format: 7 data, no parity, 1 stop, 1 start */
+		word_len = 9;
+		break;
+    }
+
+    if (rps == -1)
+	temp = (double) word_len;
+    else {
+	temp = (double) rps;
+	temp = (9600.0 - (temp * 33.0));
+	temp /= rps;
+    }
+    temp = (1000000.0 / dbps) * temp;
+    temp *= dusec;
+
+    return (int64_t) temp;
+}
+
+
+static void
+sermouse_update_delta(mouse_t *dev, int *local, int *global)
+{
+    int min, max;
+
+    if (dev->format == 3) {
+	min = -2048;
+	max = 2047;
+    } else {
+	min = -128;
+	max = 127;
+    }
+
+    if (*global > max) {
+	*local = max;
+	*global -= max;
+    } else if (*global < min) {
+	*local = min;
+	*global += -min;
+    } else {
+	*local = *global;
+	*global = 0;
+    }
+}
+
+
+static uint8_t
+sermouse_update_data(mouse_t *dev)
+{
+    uint8_t ret = 0;
+    int delta_x, delta_y, delta_z;
+
+    /* Update the deltas and the delays. */
+    sermouse_update_delta(dev, &delta_x, &dev->rel_x);
+    sermouse_update_delta(dev, &delta_y, &dev->rel_y);
+    sermouse_update_delta(dev, &delta_z, &dev->rel_z);
+
+    sermouse_report(delta_x, delta_y, delta_z, dev->oldb, dev);
+
+    mouse_serial_log("delta_x = %i, delta_y = %i, delta_z = %i, dev->oldb = %02X\n",
+		     delta_x, delta_y, delta_z, dev->oldb);
+
+    if (delta_x || delta_y || delta_z || (dev->oldb != dev->lastb) || !dev->on_change)
+	ret = 1;
+
+    dev->lastb = dev->oldb;
+
+    return ret;
+}
+
+
+static void
+sermouse_report_prepare(mouse_t *dev)
+{
+    if (sermouse_update_data(dev)) {
+	/* Start sending data. */
+	dev->report_phase = REPORT_PHASE_TRANSMIT;
+	dev->report_pos = 0;
+	dev->report_delay += dev->transmit_period;
+    } else {
+	dev->report_phase = REPORT_PHASE_PREPARE;
+	if (dev->report_period == 0LL)
+		dev->report_delay += dev->transmit_period;
+	else
+		dev->report_delay += dev->report_period;
+    }
+}
+
+
+static void
+sermouse_report_timer(void *priv)
+{
+    mouse_t *dev = (mouse_t *)priv;
+
+    if (dev->report_phase == REPORT_PHASE_PREPARE)
+	sermouse_report_prepare(dev);
+    else {
+	/* If using the Mouse Systems format, update data because
+	   the last two bytes are the X and Y delta since bytes 1
+	   and 2 were transmitted. */
+	if (!dev->format && (dev->report_pos == 3))
+		sermouse_update_data(dev);
+	serial_write_fifo(dev->serial, dev->data[dev->report_pos]);
+	if (++dev->report_pos == dev->data_len) {
+		if (dev->report_delay == 0LL)
+			sermouse_report_prepare(dev);
+		else {
+			if (dev->report_period == 0LL)
+				dev->report_delay += dev->transmit_period;
+			else
+				dev->report_delay += dev->report_period;
+			dev->report_phase = REPORT_PHASE_PREPARE;
+		}
+	} else
+		dev->report_delay += dev->transmit_period;
+    }
 }
 
 
 /* Callback timer expired, now send our "mouse ID" to the serial port. */
 static void
-sermouse_timer(void *priv)
+sermouse_command_timer(void *priv)
 {
     mouse_t *dev = (mouse_t *)priv;
 
-    switch (dev->phase) {
+    switch (dev->command_phase) {
 	case PHASE_ID:
-		serial_write_fifo(dev->serial, dev->id[dev->pos]);
-		dev->pos++;
-		if (dev->pos == dev->id_len) {
-			dev->delay = 0LL;
-			dev->pos = 0;
-			dev->phase = PHASE_IDLE;
-		} else
-			dev->delay += dev->period;
+		serial_write_fifo(dev->serial, dev->id[dev->command_pos]);
+		sermouse_command_pos_check(dev, dev->id_len);
+		if ((dev->command_phase == PHASE_IDLE) && (dev->type != MOUSE_TYPE_MSYSTEMS)) {
+			/* This resets back to Microsoft-compatible mode. */
+			dev->report_delay = 0LL;
+			dev->report_phase = REPORT_PHASE_PREPARE;
+			dev->format = 7;
+			dev->transmit_period = sermouse_transmit_period(dev, 1200, -1);
+			sermouse_report_timer((void *) dev);
+		}
 		break;
 	case PHASE_DATA:
-		serial_write_fifo(dev->serial, dev->data[dev->pos]);
-		dev->pos++;
-		if (dev->pos == dev->data_len) {
-			dev->delay = 0LL;
-			dev->pos = 0;
-			dev->phase = PHASE_IDLE;
-		} else
-			dev->delay += dev->period;
+		serial_write_fifo(dev->serial, dev->data[dev->command_pos]);
+		sermouse_command_pos_check(dev, dev->data_len);
 		break;
 	case PHASE_STATUS:
 		serial_write_fifo(dev->serial, dev->status);
-		dev->delay = 0LL;
-		dev->pos = 0;
-		dev->phase = PHASE_IDLE;
+		sermouse_command_phase_idle(dev);
 		break;
 	case PHASE_DIAGNOSTIC:
-		if (dev->pos)
+		if (dev->command_pos)
 			serial_write_fifo(dev->serial, 0x00);
-		else /* This should return the last button status, bits 2,1,0 = L,M,R. */
-			serial_write_fifo(dev->serial, 0x00);
-		dev->pos++;
-		if (dev->pos == 3) {
-			dev->delay = 0LL;
-			dev->pos = 0;
-			dev->phase = PHASE_IDLE;
-		} else
-			dev->delay += dev->period;
+		else
+			serial_write_fifo(dev->serial, sermouse_last_button_status(dev));
+		sermouse_command_pos_check(dev, 3);
 		break;
 	case PHASE_FORMAT_AND_REVISION:
 		serial_write_fifo(dev->serial, 0x10 | (dev->format << 1));
-		dev->delay = 0LL;
-		dev->pos = 0;
-		dev->phase = PHASE_IDLE;
+		sermouse_command_phase_idle(dev);
+		break;
+	case PHASE_BUTTONS:
+		serial_write_fifo(dev->serial, dev->but);
+		sermouse_command_phase_idle(dev);
 		break;
 	default:
-		dev->delay = 0LL;
-		dev->pos = 0;
-		dev->phase = PHASE_IDLE;
+		sermouse_command_phase_idle(dev);
 		break;
     }
 }
@@ -352,8 +505,10 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
 {
     mouse_t *dev = (mouse_t *)priv;
 
-    if (!x && !y && (b == dev->oldb) && dev->continuous)
+    if (!x && !y && !z && (b == dev->oldb)) {
+	dev->oldb = b;
 	return(1);
+    }
 
     dev->oldb = b;
     dev->abs_x += x;
@@ -379,12 +534,39 @@ sermouse_poll(int x, int y, int z, int b, void *priv)
 	if (y <- 128) y = -128;
     }
 
-    /* No report if we're either in prompt mode,
-       or the mouse wants data. */
-    if (!dev->prompt && !dev->want_data)
-	sermouse_report(x, y, z, b, dev);
+    dev->rel_x += x;
+    dev->rel_y += y;
+    dev->rel_z += z;
 
     return(0);
+}
+
+
+static void
+ltsermouse_prompt_mode(mouse_t *dev, int prompt)
+{
+    dev->prompt = prompt;
+    dev->status &= 0xBF;
+    if (prompt)
+	dev->status |= 0x40;
+}
+
+
+static void
+ltsermouse_command_phase(mouse_t *dev, int phase)
+{
+    dev->command_pos = 0;
+    dev->command_phase = phase;
+    dev->command_delay = dev->transmit_period;
+}
+
+
+static void
+ltsermouse_set_report_period(mouse_t *dev, int rps)
+{
+    dev->report_delay = dev->report_period = sermouse_transmit_period(dev, 9600, rps);
+    ltsermouse_prompt_mode(dev, 0);
+    dev->report_phase = REPORT_PHASE_PREPARE;
 }
 
 
@@ -393,37 +575,30 @@ ltsermouse_write(struct serial_s *serial, void *priv, uint8_t data)
 {
     mouse_t *dev = (mouse_t *)priv;
 
-#if 0
-    /* Make sure to stop any transmission when we receive a byte. */
-    if (dev->phase != PHASE_IDLE) {
-	dev->delay = 0LL;
-	dev->phase = PHASE_IDLE;
-    }
-#endif
+    /* Stop reporting when we're processing a command. */
+    dev->report_phase = REPORT_PHASE_PREPARE;
+    dev->report_delay = 0LL;
 
     if (dev->want_data)  switch (dev->want_data) {
 	case 0x2A:
 		dev->data_len--;
 		dev->want_data = 0;
-		dev->delay = 0LL;
-		dev->phase = PHASE_IDLE;
 		switch (data) {
 			default:
 				mouse_serial_log("Serial mouse: Invalid period %02X, using 1200 bps\n", data);
 			case 0x6E:
-				dev->period = 7500LL;	/* 1200 bps */
+				dev->transmit_period = sermouse_transmit_period(dev, 1200, -1);
 				break;
 			case 0x6F:
-				dev->period = 3750LL;	/* 2400 bps */
+				dev->transmit_period = sermouse_transmit_period(dev, 2400, -1);
 				break;
 			case 0x70:
-				dev->period = 1875LL;	/* 4800 bps */
+				dev->transmit_period = sermouse_transmit_period(dev, 4800, -1);
 				break;
 			case 0x71:
-				dev->period = 938LL;	/* 9600 bps */
+				dev->transmit_period = sermouse_transmit_period(dev, 9600, -1);
 				break;
 		}
-		dev->period *= TIMER_USEC;
 		break;
     } else  switch (data) {
 	case 0x2A:
@@ -431,33 +606,43 @@ ltsermouse_write(struct serial_s *serial, void *priv, uint8_t data)
 		dev->data_len = 1;
 		break;
 	case 0x44:	/* Set prompt mode */
-		dev->prompt = 1;
-		dev->status |= 0x40;
+		ltsermouse_prompt_mode(dev, 1);
 		break;
 	case 0x50:
-		if (!dev->prompt) {
-			dev->prompt = 1;
-			dev->status |= 0x40;
-		}
-		/* TODO: Here we should send the current position. */
+		if (!dev->prompt)
+			ltsermouse_prompt_mode(dev, 1);
+		sermouse_update_data(dev);
+		ltsermouse_command_phase(dev, PHASE_DATA);
 		break;
 	case 0x73:	/* Status */
-		dev->pos = 0;
-		dev->phase = PHASE_STATUS;
-		if (!dev->delay)
-			dev->delay = dev->period;
+		ltsermouse_command_phase(dev, PHASE_STATUS);
 		break;
 	case 0x4A:	/* Report Rate Selection commands */
+		ltsermouse_set_report_period(dev, 10);
+		break;
 	case 0x4B:
+		ltsermouse_set_report_period(dev, 20);
+		break;
 	case 0x4C:
+		ltsermouse_set_report_period(dev, 35);
+		break;
 	case 0x52:
+		ltsermouse_set_report_period(dev, 50);
+		break;
 	case 0x4D:
+		ltsermouse_set_report_period(dev, 70);
+		break;
 	case 0x51:
+		ltsermouse_set_report_period(dev, 100);
+		break;
 	case 0x4E:
+		ltsermouse_set_report_period(dev, 150);
+		break;
 	case 0x4F:
-		dev->prompt = 0;
-		dev->status &= 0xBF;
-		// dev->continuous = (data == 0x4F);
+		ltsermouse_prompt_mode(dev, 0);
+		dev->report_delay = dev->report_period = 0LL;
+		dev->report_phase = REPORT_PHASE_PREPARE;
+		sermouse_report_timer((void *) dev);
 		break;
 	case 0x41:
 		dev->format = 6;	/* Aboslute Bit Pad One Format */
@@ -482,16 +667,13 @@ ltsermouse_write(struct serial_s *serial, void *priv, uint8_t data)
 		dev->format = 2;	/* Hexadecimal Format */
 		break;
 	case 0x05:
-		dev->pos = 0;
-		dev->phase = PHASE_DIAGNOSTIC;
-		if (!dev->delay)
-			dev->delay = dev->period;
+		ltsermouse_command_phase(dev, PHASE_DIAGNOSTIC);
 		break;
 	case 0x66:
-		dev->pos = 0;
-		dev->phase = PHASE_FORMAT_AND_REVISION;
-		if (!dev->delay)
-			dev->delay = dev->period;
+		ltsermouse_command_phase(dev, PHASE_FORMAT_AND_REVISION);
+		break;
+	case 0x6B:
+		ltsermouse_command_phase(dev, PHASE_BUTTONS);
 		break;
     }
 }
@@ -520,19 +702,19 @@ sermouse_init(const device_t *info)
     memset(dev, 0x00, sizeof(mouse_t));
     dev->name = info->name;
     dev->but = device_get_config_int("buttons");
-    dev->continuous = 1;
     if (dev->but > 2)
 	dev->flags |= FLAG_3BTN;
 
     if (info->local == MOUSE_TYPE_MSYSTEMS) {
-	dev->period = 8333LL * TIMER_USEC;	/* 1200 bps, 8 data bits, 1 start bit, 1 stop bit, no parity bit */
+	dev->on_change = 1;
+	dev->format = 0;
 	dev->type = info->local;
 	dev->id_len = 1;
 	dev->id[0] = 'H';
     } else {
+	dev->on_change = !info->local;
 	dev->format = 7;
 	dev->status = 0x0f;
-	dev->period = 7500LL * TIMER_USEC;	/* 1200 bps, 7 data bits, 1 start bit, 1 stop bit, no parity bit */
 	dev->id_len = 1;
 	dev->id[0] = 'M';
 	switch(dev->but) {
@@ -554,6 +736,21 @@ sermouse_init(const device_t *info)
 	}
     }
 
+    dev->transmit_period = sermouse_transmit_period(dev, 1200, -1);
+
+    /* Default: Continuous reporting = no delay between reports. */
+    dev->report_phase = REPORT_PHASE_PREPARE;
+    dev->report_period = 0LL;
+
+    if (info->local == MOUSE_TYPE_MSYSTEMS)
+	dev->report_delay = dev->transmit_period;
+    else
+	dev->report_delay = 0LL;
+
+    /* Default: Doing nothing - command transmit timer deactivated. */
+    dev->command_phase = PHASE_IDLE;
+    dev->command_delay = 0LL;
+
     dev->port = device_get_config_int("port");
 
     /* Attach a serial port to the mouse. */
@@ -564,7 +761,8 @@ sermouse_init(const device_t *info)
 
     mouse_serial_log("%s: port=COM%d\n", dev->name, dev->port + 1);
 
-    timer_add(sermouse_timer, &dev->delay, &dev->delay, dev);
+    timer_add(sermouse_report_timer, &dev->report_delay, &dev->report_delay, dev);
+    timer_add(sermouse_command_timer, &dev->command_delay, &dev->command_delay, dev);
 
     /* Tell them how many buttons we have. */
     mouse_set_buttons((dev->flags & FLAG_3BTN) ? 3 : 2);

@@ -123,37 +123,20 @@ static void ati28800_out(uint16_t addr, uint8_t val, void *p)
                 case 0x1cf:
 				old=ati28800->regs[ati28800->index];
                 ati28800->regs[ati28800->index] = val;
-				pclog("ATI write reg=%02x\n", ati28800->index);
+		ati28800_log("ATI write reg=%02x\n", ati28800->index);
                 switch (ati28800->index)
                 {
-                        case 0xb2:
 						case 0xbe:
 						case 0xbd:
                         if (ati28800->regs[0xbe] & 8) /*Read/write bank mode*/
                         {
-							if (ati28800->regs[0xbd] & 4)
-							{
-                                svga->read_bank  = (((ati28800->regs[0xb2] >> 5) & 7) * 0x20000);
-                                svga->write_bank = (((ati28800->regs[0xb2] >> 1) & 7) * 0x20000);
-							}
-							else
-							{
                                 svga->read_bank  = (((ati28800->regs[0xb2] >> 5) & 7) * 0x10000);
                                 svga->write_bank = (((ati28800->regs[0xb2] >> 1) & 7) * 0x10000);
-							}
                         }
                         else                    /*Single bank mode*/
 						{
-							if (ati28800->regs[0xbd] & 4)
-							{
-                                svga->read_bank =  (((ati28800->regs[0xb2] >> 1) & 7) * 0x20000);
-								svga->write_bank = (((ati28800->regs[0xb2] >> 1) & 7) * 0x20000);
-							}
-							else
-							{
                                 svga->read_bank  = (((ati28800->regs[0xb2] >> 1) & 7) * 0x10000);
                                 svga->write_bank = (((ati28800->regs[0xb2] >> 1) & 7) * 0x10000);
-							}
 						}
                         break;
                         case 0xb3:
@@ -183,6 +166,7 @@ static void ati28800_out(uint16_t addr, uint8_t val, void *p)
                         return;
                 if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
                         val = (svga->crtc[7] & ~0x10) | (val & 0x10);
+		
                 old = svga->crtc[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
                 if (old != val)
@@ -321,7 +305,7 @@ static uint8_t ati28800_in(uint16_t addr, void *p)
                 temp = svga->crtcreg;
                 break;
                 case 0x3D5:
-                temp = svga->crtc[svga->crtcreg];
+		temp = svga->crtc[svga->crtcreg];
                 break;
                 default:
                 temp = svga_in(addr, svga);
@@ -381,9 +365,11 @@ static void ati28800_recalctimings(svga_t *svga)
         {
                 case 0x00: svga->clock = cpuclock / 42954000.0; break;
                 case 0x01: svga->clock = cpuclock / 48771000.0; break;
+		case 0x02: pclog ("clock 2\n"); break;
                 case 0x03: svga->clock = cpuclock / 36000000.0; break;
                 case 0x04: svga->clock = cpuclock / 50350000.0; break;
                 case 0x05: svga->clock = cpuclock / 56640000.0; break;
+		case 0x06: pclog ("clock 2\n"); break;
                 case 0x07: svga->clock = cpuclock / 44900000.0; break;
                 case 0x08: svga->clock = cpuclock / 30240000.0; break;
                 case 0x09: svga->clock = cpuclock / 32000000.0; break;
@@ -396,15 +382,15 @@ static void ati28800_recalctimings(svga_t *svga)
                 default: break;
         }
 
-        if(ati28800->regs[0xb8] & 0x40) svga->clock *= 2;
+        if(ati28800->regs[0xb8] & 0x40) 
+		svga->clock *= 2;
 
-
-		if (ati28800->regs[0xb6] & 0x10)
-		{
-					svga->hdisp <<= 1;
-					svga->htotal <<= 1;
-					svga->rowoffset <<= 1;			
-		}
+	if (ati28800->regs[0xb6] & 0x10)
+	{
+		svga->hdisp <<= 1;
+		svga->htotal <<= 1;
+		svga->rowoffset <<= 1;
+	}
 		
         if(svga->crtc[0x17] & 4)
         {

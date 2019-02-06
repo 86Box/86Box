@@ -8,7 +8,7 @@
  *
  *		Implementation of the XT-style keyboard.
  *
- * Version:	@(#)keyboard_xt.c	1.0.14	2018/11/02
+ * Version:	@(#)keyboard_xt.c	1.0.15	2019/01/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -50,13 +50,14 @@
 
 
 typedef struct {
+    int want_irq;        
     int blocked;
+    int tandy;
 
     uint8_t pa;
     uint8_t pb;
-
-    int tandy;
-    int type;
+    uint8_t key_waiting;
+    uint8_t type;
 } xtkbd_t;
 
 
@@ -333,15 +334,24 @@ kbd_poll(void *priv)
 
     keyboard_delay += (1000LL * TIMER_USEC);
 
-    if (key_queue_start != key_queue_end && !kbd->blocked) {
-	kbd->pa = key_queue[key_queue_start];
+    if (!(kbd->pb & 0x40) && (romset != ROM_TANDY))
+	return;
+
+    if (kbd->want_irq) {
+	kbd->want_irq = 0;
+	kbd->pa = kbd->key_waiting;
+	kbd->blocked = 1;
 	picint(2);
+    }
+
+    if (key_queue_start != key_queue_end && !kbd->blocked) {
+	kbd->key_waiting = key_queue[key_queue_start];
 #if ENABLE_KEYBOARD_LOG
 	pclog("XTkbd: reading %02X from the key queue at %i\n",
 				kbd->pa, key_queue_start);
 #endif
 	key_queue_start = (key_queue_start + 1) & 0x0f;
-	kbd->blocked = 1;
+	kbd->want_irq = 1;
     }
 }
 
@@ -423,33 +433,34 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     xtkbd_t *kbd = (xtkbd_t *)priv;
 
-    if (port != 0x61) return;
+    switch (port) {
+	case 0x61:
+		if (!(kbd->pb & 0x40) && (val & 0x40)) {
+			key_queue_start = key_queue_end = 0;
+			kbd->want_irq = 0;
+			kbd->blocked = 0;
+			kbd_adddata(0xaa);
+		}
+		kbd->pb = val;
+		ppi.pb = val;
 
-    if (!(kbd->pb & 0x40) && (val & 0x40)) { /*Reset keyboard*/
-#if ENABLE_KEYBOARD_LOG
-	pclog("XTkbd: reset keyboard\n");
-#endif
-	key_queue_end = key_queue_start;
-	kbd_adddata(0xaa);
+		timer_process();
+		timer_update_outstanding();
+
+		speaker_update();
+		speaker_gated = val & 1;
+		speaker_enable = val & 2;
+		if (speaker_enable) 
+			was_speaker_enable = 1;
+		pit_set_gate(&pit, 2, val & 1);
+
+		if (val & 0x80) {
+			kbd->pa = 0;
+			kbd->blocked = 0;
+			picintc(2);
+		}
+		break;
     }
-
-    if ((kbd->pb & 0x80)==0 && (val & 0x80)!=0) {
-	kbd->pa = 0;
-	kbd->blocked = 0;
-	picintc(2);
-    }
-    kbd->pb = val;
-    ppi.pb = val;
-
-    timer_process();
-    timer_update_outstanding();
-
-    speaker_update();
-    speaker_gated = val & 1;
-    speaker_enable = val & 2;
-    if (speaker_enable) 
-	was_speaker_enable = 1;
-    pit_set_gate(&pit, 2, val & 1);
 }
 
 
@@ -468,7 +479,9 @@ kbd_read(uint16_t port, void *priv)
 				ret = 0x7d;
 			  else
 				ret = 0x6d;
-		} else
+		} else if ((kbd->type == 1) && (kbd->pb & 0x80))
+			ret = 0xff;	/* According to Ruud on the PCem forum, this is supposed to return 0xFF on the XT. */
+		else
 			ret = kbd->pa;
 		break;
 
@@ -521,9 +534,12 @@ kbd_reset(void *priv)
 {
     xtkbd_t *kbd = (xtkbd_t *)priv;
 
+    kbd->want_irq = 0;
     kbd->blocked = 0;
     kbd->pa = 0x00;
     kbd->pb = 0x00;
+
+    keyboard_scan = 1;
 
     key_queue_start = 0,
     key_queue_end = 0;
@@ -538,16 +554,15 @@ kbd_init(const device_t *info)
     kbd = (xtkbd_t *)malloc(sizeof(xtkbd_t));
     memset(kbd, 0x00, sizeof(xtkbd_t));
 
-    keyboard_set_table(scancode_xt);
-
-    kbd->type = info->local;
-
-    keyboard_scan = 1;
-
     io_sethandler(0x0060, 4,
 		  kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
     keyboard_send = kbd_adddata_ex;
+    kbd_reset(kbd);
+    kbd->type = info->local;
+
     timer_add(kbd_poll, &keyboard_delay, TIMER_ALWAYS_ENABLED, kbd);
+
+    keyboard_set_table(scancode_xt);
 
     return(kbd);
 }

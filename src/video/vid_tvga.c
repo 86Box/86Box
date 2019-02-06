@@ -8,7 +8,7 @@
  *
  *		Trident TVGA (8900D) emulation.
  *
- * Version:	@(#)vid_tvga.c	1.0.8	2018/10/04
+ * Version:	@(#)vid_tvga.c	1.0.9	2018/12/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -32,6 +32,11 @@
 #include "vid_tkd8001_ramdac.h"
 #include "vid_tvga.h"
 
+#define TVGA8900B_ID		0x03
+#define TVGA8900CLD_ID		0x33
+
+#define ROM_TVGA_8900B		L"roms/video/tvga/tvga8900B.VBI"
+#define ROM_TVGA_8900CLD	L"roms/video/tvga/trident.bin"
 
 typedef struct tvga_t
 {
@@ -41,6 +46,7 @@ typedef struct tvga_t
         svga_t svga;
 
         rom_t bios_rom;
+	uint8_t	card_id;
 
         uint8_t tvga_3d8, tvga_3d9;
         int oldmode;
@@ -184,7 +190,7 @@ uint8_t tvga_in(uint16_t addr, void *p)
                 if ((svga->seqaddr & 0xf) == 0xb)
                 {
                         tvga->oldmode = 0;
-                        return 0x33; /*TVGA8900D*/
+                        return tvga->card_id; /*Must be at least a TVGA8900*/
                 }
                 if ((svga->seqaddr & 0xf) == 0xd)
                 {
@@ -237,15 +243,16 @@ void tvga_recalctimings(svga_t *svga)
         if (svga->bpp == 24)
                 svga->hdisp = (svga->crtc[1] + 1) * 8;
         
-        if ((svga->crtc[0x1e] & 0xA0) == 0xA0) svga->ma_latch |= 0x10000;
-        if ((svga->crtc[0x27] & 0x01) == 0x01) svga->ma_latch |= 0x20000;
-        if ((svga->crtc[0x27] & 0x02) == 0x02) svga->ma_latch |= 0x40000;
-        
+	if ((svga->crtc[0x1e] & 0xA0) == 0xA0) svga->ma_latch |= 0x10000;
+	if ((svga->crtc[0x27] & 0x01) == 0x01) svga->ma_latch |= 0x20000;
+	if ((svga->crtc[0x27] & 0x02) == 0x02) svga->ma_latch |= 0x40000;
+	
         if (tvga->oldctrl2 & 0x10)
         {
                 svga->rowoffset <<= 1;
                 svga->ma_latch <<= 1;
         }
+	
         if (svga->gdcreg[0xf] & 0x08)
         {
                 svga->htotal *= 2;
@@ -253,7 +260,7 @@ void tvga_recalctimings(svga_t *svga)
                 svga->hdisp_time *= 2;
         }
 	   
-		svga->interlace = (svga->crtc[0x1e] & 4);
+	svga->interlace = (svga->crtc[0x1e] & 4);
 	   
         if (svga->interlace)
                 svga->rowoffset >>= 1;
@@ -273,7 +280,7 @@ void tvga_recalctimings(svga_t *svga)
                 switch (svga->bpp)
                 {
                         case 8: 
-                        svga->render = svga_render_8bpp_highres; 
+                        svga->render = svga_render_8bpp_highres;
                         break;
                         case 15: 
                         svga->render = svga_render_15bpp_highres; 
@@ -293,8 +300,9 @@ void tvga_recalctimings(svga_t *svga)
 }
 
 
-static void *tvga8900d_init(const device_t *info)
+static void *tvga_init(const device_t *info)
 {
+	const wchar_t *bios_fn;
         tvga_t *tvga = malloc(sizeof(tvga_t));
         memset(tvga, 0, sizeof(tvga_t));
 
@@ -302,8 +310,23 @@ static void *tvga8900d_init(const device_t *info)
         
         tvga->vram_size = device_get_config_int("memory") << 10;
         tvga->vram_mask = tvga->vram_size - 1;
-        
-        rom_init(&tvga->bios_rom, L"roms/video/tvga/trident.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+	tvga->card_id = info->local;
+	
+	switch (info->local)
+	{
+		case TVGA8900B_ID:
+			bios_fn = ROM_TVGA_8900B;
+			break;
+		case TVGA8900CLD_ID:
+			bios_fn = ROM_TVGA_8900CLD;
+			break;
+		default:
+			free(tvga);
+			return NULL;
+	}
+	
+        rom_init(&tvga->bios_rom, (wchar_t *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         
         svga_init(&tvga->svga, tvga, tvga->vram_size,
                    tvga_recalctimings,
@@ -318,9 +341,14 @@ static void *tvga8900d_init(const device_t *info)
         return tvga;
 }
 
+static int tvga8900b_available(void)
+{
+        return rom_present(ROM_TVGA_8900B);
+}
+
 static int tvga8900d_available(void)
 {
-        return rom_present(L"roms/video/tvga/trident.bin");
+        return rom_present(ROM_TVGA_8900CLD);
 }
 
 void tvga_close(void *p)
@@ -371,12 +399,26 @@ static const device_config_t tvga_config[] =
         }
 };
 
+const device_t tvga8900b_device =
+{
+        "Trident TVGA 8900B",
+        DEVICE_ISA,
+	TVGA8900B_ID,
+        tvga_init,
+        tvga_close,
+	NULL,
+        tvga8900b_available,
+        tvga_speed_changed,
+        tvga_force_redraw,
+        tvga_config
+};
+
 const device_t tvga8900d_device =
 {
         "Trident TVGA 8900D",
         DEVICE_ISA,
-	0,
-        tvga8900d_init,
+	TVGA8900CLD_ID,
+        tvga_init,
         tvga_close,
 	NULL,
         tvga8900d_available,

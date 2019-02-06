@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.43	2018/10/28
+ * Version:	@(#)scsi_buslogic.c	1.0.44	2018/11/11
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1575,6 +1575,7 @@ buslogic_init(const device_t *info)
 		has_scam_rom = 0;
 		dev->fw_rev = "AA335";
 		dev->ha_bps = 5000000.0;	/* normal SCSI */
+		dev->max_id = 15;		/* wide SCSI */
 		break;
 	case CHIP_BUSLOGIC_ISA:
 	default:
@@ -1588,6 +1589,7 @@ buslogic_init(const device_t *info)
 		has_scam_rom = 0;
 		dev->fw_rev = "AA421E";
 		dev->ha_bps = 10000000.0;	/* fast SCSI */
+		dev->max_id = 15;		/* wide SCSI */
 		break;
 	case CHIP_BUSLOGIC_MCA:
 		strcpy(dev->name, "BT-640A");
@@ -1602,6 +1604,7 @@ buslogic_init(const device_t *info)
 		dev->pos_regs[1] = 0x07;	
 		mca_add(buslogic_mca_read, buslogic_mca_write, dev);
 		dev->ha_bps = 5000000.0;	/* normal SCSI */
+		dev->max_id = 15;		/* wide SCSI */
 		break;
 	case CHIP_BUSLOGIC_VLB:
 		strcpy(dev->name, "BT-445S");
@@ -1610,11 +1613,14 @@ buslogic_init(const device_t *info)
 		bios_rom_mask = 0x3fff;
 		has_autoscsi_rom = 1;
 		autoscsi_rom_name = L"roms/scsi/buslogic/BT-445S_AutoSCSI.rom";
-		autoscsi_rom_size = 0x4000;
-		has_scam_rom = 0;
-		dev->fw_rev = "AA421E";
+		autoscsi_rom_size = 0x8000;
+		has_scam_rom = 1;
+		scam_rom_name = L"roms/scsi/buslogic/BT-445S_SCAM.rom";
+		scam_rom_size = 0x0200;
+		dev->fw_rev = "AA507B";
 		dev->bit32 = 1;
 		dev->ha_bps = 10000000.0;	/* fast SCSI */
+		dev->max_id = 15;		/* wide SCSI */
 		break;
 	case CHIP_BUSLOGIC_PCI:
 		strcpy(dev->name, "BT-958D");

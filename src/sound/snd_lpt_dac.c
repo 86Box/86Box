@@ -111,7 +111,9 @@ const lpt_device_t lpt_dac_device =
         dac_close,
         dac_write_data,
         dac_write_ctrl,
-        dac_read_status
+	NULL,
+        dac_read_status,
+	NULL
 };
 const lpt_device_t lpt_dac_stereo_device =
 {
@@ -120,5 +122,7 @@ const lpt_device_t lpt_dac_stereo_device =
         dac_close,
         dac_write_data,
         dac_write_ctrl,
-        dac_read_status
+	NULL,
+        dac_read_status,
+	NULL
 };

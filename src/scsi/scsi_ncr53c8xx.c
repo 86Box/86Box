@@ -2652,6 +2652,7 @@ ncr53c8xx_init(const device_t *info)
     if (dev->has_bios)
 	rom_init(&dev->bios, NCR53C8XX_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
     if (dev->chip >= CHIP_825) {
+
         if (dev->chip == CHIP_875) {
 		dev->chip_rev = 0x04;
 		dev->nvr_path = L"ncr53c875.nvr";

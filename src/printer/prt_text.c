@@ -101,6 +101,9 @@ typedef struct {
     /* Output file name. */
     wchar_t	filename[1024];
 
+    /* Printer timeout. */
+    int64_t	timeout;
+
     /* page data (TODO: make configurable) */
     double	page_width,	/* all in inches */
 		page_height,
@@ -194,6 +197,18 @@ new_page(prnt_t *dev)
 
 
 static void
+timeout_timer(void *priv)
+{
+    prnt_t *dev = (prnt_t *) priv;
+
+    if (dev->page->dirty)
+	new_page(dev);
+
+    dev->timeout = 0LL;
+}
+
+
+static void
 reset_printer(prnt_t *dev)
 {
     /* TODO: these three should be configurable */
@@ -221,6 +236,8 @@ reset_printer(prnt_t *dev)
 
     /* Create a file for this page. */
     plat_tempfile(dev->filename, NULL, L".txt");
+
+    dev->timeout = 0LL;
 }
 
 
@@ -280,7 +297,7 @@ process_char(prnt_t *dev, uint8_t ch)
 
 	case 0x11:	/* select printer (DC1) */
 		/* Ignore. */
-		return 1;
+		return 0;
 
 	case 0x12:	/* cancel condensed printing (DC2) */
 		/* Ignore. */
@@ -375,6 +392,8 @@ write_ctrl(uint8_t val, void *priv)
 
 	/* ACK it, will be read on next READ STATUS. */
 	dev->ack = 1;
+
+	dev->timeout = 500000LL * TIMER_USEC;
     }
 
     dev->ctrl = val;
@@ -427,6 +446,8 @@ prnt_init(const lpt_device_t *INFO)
 
     //DEBUG("PRNT: created a virtual %ix%i page.\n", dev->page->w, dev->page->h);
 
+    timer_add(timeout_timer, &dev->timeout, &dev->timeout, dev);
+
     return(dev);
 }
 
@@ -458,5 +479,7 @@ const lpt_device_t lpt_prt_text_device = {
     prnt_close,
     write_data,
     write_ctrl,
-    read_status
+    NULL,
+    read_status,
+    NULL
 };

@@ -21,6 +21,9 @@
 #include <windows.h>
 #include <windowsx.h>
 #undef BITMAP
+#ifdef ENABLE_SETTINGS_LOG
+#include <assert.h>
+#endif
 #include <commctrl.h>
 #include <inttypes.h>
 #include <stdint.h>
@@ -95,16 +98,14 @@ static int temp_float;
 
 /* Network category */
 static int temp_net_type, temp_net_card;
-static char temp_pcap_dev[520];
+static char temp_pcap_dev[522];
 
 /* Ports category */
 static char temp_lpt_device_names[3][16];
 static int temp_serial[2], temp_lpt;
 
 /* Other peripherals category */
-static int temp_scsi_card, temp_ide_ter, temp_ide_qua;
-static char temp_hdc_name[32];
-static char *hdc_names[32];
+static int temp_hdc, temp_scsi_card, temp_ide_ter, temp_ide_qua;
 static int temp_bugger;
 static int temp_isartc;
 static int temp_isamem[ISAMEM_MAX];
@@ -236,19 +237,29 @@ win_settings_init(void)
     /* Network category */
     temp_net_type = network_type;
     memset(temp_pcap_dev, 0, sizeof(temp_pcap_dev));
-    strcpy(temp_pcap_dev, network_host);
+#ifdef ENABLE_SETTINGS_LOG
+    assert(sizeof(temp_pcap_dev) == sizeof(network_host));
+#endif
+    memcpy(temp_pcap_dev, network_host, sizeof(network_host));
     temp_net_card = network_card;
 
     /* Ports category */
-    for (i = 0; i < 3; i++)
-	strncpy(temp_lpt_device_names[i], lpt_device_names[i], sizeof(temp_lpt_device_names[i]) - 1);
+#ifdef ENABLE_SETTINGS_LOG
+    assert(sizeof(temp_lpt_device_names) == sizeof(lpt_device_names));
+#endif
+    for (i = 0; i < 3; i++) {
+#ifdef ENABLE_SETTINGS_LOG
+	assert(sizeof(temp_lpt_device_names[i]) == sizeof(lpt_device_names[i]));
+#endif
+	memcpy(temp_lpt_device_names[i], lpt_device_names[i], sizeof(lpt_device_names[i]));
+    }
     temp_serial[0] = serial_enabled[0];
     temp_serial[1] = serial_enabled[1];
     temp_lpt = lpt_enabled;
 
     /* Other peripherals category */
     temp_scsi_card = scsi_card_current;
-    strncpy(temp_hdc_name, hdc_name, sizeof(temp_hdc_name) - 1);
+    temp_hdc = hdc_current;
     temp_ide_ter = ide_ter_enabled;
     temp_ide_qua = ide_qua_enabled;
     temp_bugger = bugger_enabled;
@@ -355,7 +366,7 @@ win_settings_changed(void)
 
     /* Peripherals category */
     i = i || (scsi_card_current != temp_scsi_card);
-    i = i || strncmp(temp_hdc_name, hdc_name, sizeof(temp_hdc_name) - 1);
+    i = i || (hdc_current != temp_hdc);
     i = i || (temp_ide_ter != ide_ter_enabled);
     i = i || (temp_ide_qua != ide_qua_enabled);
     i = i || (temp_bugger != bugger_enabled);
@@ -452,20 +463,14 @@ win_settings_save(void)
 
     /* Ports category */
     for (i = 0; i < 3; i++)
-	strncpy(lpt_device_names[i], temp_lpt_device_names[i], sizeof(temp_lpt_device_names[i]) - 1);
+	memcpy(lpt_device_names[i], temp_lpt_device_names[i], sizeof(temp_lpt_device_names[i]));
     serial_enabled[0] = temp_serial[0];
     serial_enabled[1] = temp_serial[1];
     lpt_enabled = temp_lpt;
 
     /* Peripherals category */
     scsi_card_current = temp_scsi_card;
-    if (hdc_name) {
-	free(hdc_name);
-	hdc_name = NULL;
-    }
-    hdc_name = (char *) malloc(sizeof(temp_hdc_name));
-    strncpy(hdc_name, temp_hdc_name, sizeof(temp_hdc_name) - 1);
-    hdc_init(hdc_name);
+    hdc_current = temp_hdc;
     ide_ter_enabled = temp_ide_ter;
     ide_qua_enabled = temp_ide_qua;
     bugger_enabled = temp_bugger;
@@ -570,7 +575,7 @@ win_settings_machine_recalc_cpu_m(HWND hdlg)
     char *stransi;
 
     temp_romset = machine_getromset_ex(temp_machine);
-    lptsTemp = (LPTSTR) malloc(512);
+    lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_COMBO_CPU);
     SendMessage(h, CB_RESETCONTENT, 0, 0);
@@ -603,7 +608,7 @@ win_settings_machine_recalc_machine(HWND hdlg)
     device_t *d;
 
     temp_romset = machine_getromset_ex(temp_machine);
-    lptsTemp = (LPTSTR) malloc(512);
+    lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_CONFIGURE_MACHINE);
     d = (device_t *) machine_getdevice(temp_machine);
@@ -662,7 +667,7 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message) {
 	case WM_INITDIALOG:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
 		h = GetDlgItem(hdlg, IDC_COMBO_MACHINE);
 		for (c = 0; c < ROM_MAX; c++)
@@ -765,7 +770,7 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		return FALSE;
 
 	case WM_SAVESETTINGS:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 		stransi = (char *)malloc(512);
 
 #ifdef USE_DYNAREC
@@ -872,11 +877,10 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
     HWND h;
     LPTSTR lptsTemp;
     char *stransi;
-    int gfx;
 
     switch (message) {
 	case WM_INITDIALOG:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 		stransi = (char *) malloc(512);
 
 		recalc_vid_list(hdlg);
@@ -887,10 +891,9 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
 		SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
 		wcstombs(stransi, lptsTemp, 512);
-		gfx = video_card_getid(stransi);
 
 		h = GetDlgItem(hdlg, IDC_CONFIGURE_VID);
-		if (video_card_has_config(gfx))
+		if (video_card_has_config(temp_gfxcard))
 			EnableWindow(h, TRUE);
 		else
 			EnableWindow(h, FALSE);
@@ -903,17 +906,16 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
                	switch (LOWORD(wParam)) {
 			case IDC_COMBO_VIDEO:
-				lptsTemp = (LPTSTR) malloc(512);
+				lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 				stransi = (char *) malloc(512);
 
 	                        h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
 	                        SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
 				wcstombs(stransi, lptsTemp, 512);
-				gfx = video_card_getid(stransi);
-	                        temp_gfxcard = gfx;
+	                        temp_gfxcard = video_card_getid(stransi);
 
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_VID);
-				if (video_card_has_config(gfx))
+				if (video_card_has_config(temp_gfxcard))
 					EnableWindow(h, TRUE);
 				else
 					EnableWindow(h, FALSE);
@@ -935,7 +937,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDC_CONFIGURE_VID:
-				lptsTemp = (LPTSTR) malloc(512);
+				lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 				stransi = (char *) malloc(512);
 
 				h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
@@ -950,7 +952,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		return FALSE;
 
 	case WM_SAVESETTINGS:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 		stransi = (char *) malloc(512);
 
 		h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
@@ -1150,7 +1152,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message) {
 	case WM_INITDIALOG:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
 		h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
 		c = d = 0;
@@ -1356,7 +1358,7 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message) {
 	case WM_INITDIALOG:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
 		for (i = 0; i < 3; i++) {
 			h = GetDlgItem(hdlg, IDC_COMBO_LPT1 + i);
@@ -1419,63 +1421,44 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 static void
-recalc_hdc_list(HWND hdlg, int machine, int use_selected_hdc)
+recalc_hdc_list(HWND hdlg)
 {
-    HWND h;
-    char *s, old_name[32];
-    int valid, c, d;
-
-    LPTSTR lptsTemp;
-
-    lptsTemp = (LPTSTR) malloc(512);
-
-    h = GetDlgItem(hdlg, IDC_COMBO_HDC);
-
-    valid = 0;
-
-    if (use_selected_hdc) {
-	c = SendMessage(h, CB_GETCURSEL, 0, 0);
-
-	if (c != -1 && hdc_names[c])
-		strncpy(old_name, hdc_names[c], sizeof(old_name) - 1);
-	else
-		strcpy(old_name, "none");
-    } else
-	strncpy(old_name, temp_hdc_name, sizeof(old_name) - 1);
+    HWND h = GetDlgItem(hdlg, IDC_COMBO_HDC);
+    int c = 0, d = 0;
+    int found_card = 0;
+    WCHAR szText[512];
 
     SendMessage(h, CB_RESETCONTENT, 0, 0);
-    c = d = 0;
+    SendMessage(h, CB_SETCURSEL, 0, 0);
+
     while (1) {
-	s = hdc_get_name(c);
-	if (s[0] == 0)
+	/* Skip "internal" if machine doesn't have it. */
+	if ((c == 1) && !(machines[temp_machine].flags & MACHINE_HDC)) {
+		c++;
+		continue;
+	}
+
+	char *s = hdc_get_name(c);
+
+	if (!s[0])
 		break;
-	if (c==1 && !(machines[temp_machine].flags&MACHINE_HDC)) {
-		/* Skip "Internal" if machine doesn't have one. */
-		c++;
-		continue;
-	}
-	if (!hdc_available(c) || !device_is_valid(hdc_get_device(c), machines[temp_machine].flags)) {
-		c++;
-		continue;
-	}
-	mbstowcs(lptsTemp, s, strlen(s) + 1);
-	SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 
-	hdc_names[d] = hdc_get_internal_name(c);
-	if (!strcmp(old_name, hdc_names[d])) {
-		SendMessage(h, CB_SETCURSEL, d, 0);
-		valid = 1;
+	if (hdc_available(c) &&
+	    device_is_valid(hdc_get_device(c), machines[temp_machine].flags)) {
+		mbstowcs(szText, s, strlen(s) + 1);
+		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) szText);
+		if (c == temp_hdc) {
+			SendMessage(h, CB_SETCURSEL, d, 0);
+			found_card = 1;
+		}
+
+		d++;
 	}
+
 	c++;
-	d++;
     }
-
-    if (!valid)
+    if (!found_card)
 	SendMessage(h, CB_SETCURSEL, 0, 0);
-
-    EnableWindow(h, d ? TRUE : FALSE);
-
-    free(lptsTemp);
 }
 
 
@@ -1487,15 +1470,27 @@ static BOOL CALLBACK
 win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h;
-    int c, d, e, temp_hdc_type;
+    int c, d;
+    int e;
     LPTSTR lptsTemp;
+    char *stransi;
     const device_t *scsi_dev;
     const device_t *dev;
     char *s;
 
     switch (message) {
 	case WM_INITDIALOG:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
+		stransi = (char *) malloc(512);
+
+		/*HD controller config*/
+		recalc_hdc_list(hdlg);
+
+		h = GetDlgItem(hdlg, IDC_CONFIGURE_HDC);
+		if (hdc_has_config(temp_hdc))
+			EnableWindow(h, TRUE);
+		else
+			EnableWindow(h, FALSE);
 
 		/*SCSI config*/
 		h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
@@ -1531,11 +1526,6 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 		h = GetDlgItem(hdlg, IDC_CONFIGURE_SCSI);
 		EnableWindow(h, scsi_card_has_config(temp_scsi_card) ? TRUE : FALSE);
-
-		recalc_hdc_list(hdlg, temp_machine, 0);
-
-		h = GetDlgItem(hdlg, IDC_CONFIGURE_HDC);
-		EnableWindow(h, hdc_has_config(hdc_get_from_internal_name(temp_hdc_name)) ? TRUE : FALSE);
 
 		h = GetDlgItem(hdlg, IDC_CHECK_IDE_TER);
 	        EnableWindow(h, (machines[temp_machine].flags & MACHINE_AT) ? TRUE : FALSE);
@@ -1612,25 +1602,43 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 				EnableWindow(h, FALSE);
 		}
 
+		free(stransi);
 		free(lptsTemp);
 
 		return TRUE;
 
 	case WM_COMMAND:
                	switch (LOWORD(wParam)) {
-			case IDC_COMBO_HDC:
-				h = GetDlgItem(hdlg, IDC_COMBO_HDC);
-				temp_hdc_type = hdc_get_from_internal_name(hdc_names[SendMessage(h, CB_GETCURSEL, 0, 0)]);
+			case IDC_CONFIGURE_HDC:
+				lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
+				stransi = (char *) malloc(512);
 
-				h = GetDlgItem(hdlg, IDC_CONFIGURE_HDC);
-				EnableWindow(h, hdc_has_config(temp_hdc_type) ? TRUE : FALSE);
+				h = GetDlgItem(hdlg, IDC_COMBO_HDC);
+	                        SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
+				wcstombs(stransi, lptsTemp, 512);
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)hdc_get_device(hdc_get_id(stransi)));
+
+				free(stransi);
+				free(lptsTemp);
 				break;
 
-			case IDC_CONFIGURE_HDC:
-				h = GetDlgItem(hdlg, IDC_COMBO_HDC);
-				temp_hdc_type = hdc_get_from_internal_name(hdc_names[SendMessage(h, CB_GETCURSEL, 0, 0)]);
+			case IDC_COMBO_HDC:
+				lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
+				stransi = (char *) malloc(512);
 
-				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)hdc_get_device(temp_hdc_type));
+	                        h = GetDlgItem(hdlg, IDC_COMBO_HDC);
+	                        SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
+				wcstombs(stransi, lptsTemp, 512);
+	                        temp_hdc = hdc_get_id(stransi);
+
+				h = GetDlgItem(hdlg, IDC_CONFIGURE_HDC);
+				if (hdc_has_config(temp_hdc))
+					EnableWindow(h, TRUE);
+				else
+					EnableWindow(h, FALSE);
+
+				free(stransi);
+				free(lptsTemp);
 				break;
 
 			case IDC_CONFIGURE_SCSI:
@@ -1720,12 +1728,13 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 		return FALSE;
 
 	case WM_SAVESETTINGS:
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
+		stransi = (char *) malloc(512);
+
 		h = GetDlgItem(hdlg, IDC_COMBO_HDC);
-		c = SendMessage(h, CB_GETCURSEL, 0, 0);
-		if (hdc_names[c])
-			strncpy(temp_hdc_name, hdc_names[c], sizeof(temp_hdc_name) - 1);
-		else
-			strcpy(temp_hdc_name, "none");
+		SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
+		wcstombs(stransi, lptsTemp, 512);
+		temp_hdc = hdc_get_id(stransi);
 
 		h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
 		temp_scsi_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
@@ -1741,6 +1750,9 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 		h = GetDlgItem(hdlg, IDC_CHECK_BUGGER);
 		temp_bugger = SendMessage(h, BM_GETCHECK, 0, 0);
+
+		free(stransi);
+		free(lptsTemp);
 
 	default:
 		return FALSE;
@@ -1796,7 +1808,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message) {
 	case WM_INITDIALOG:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
 		h = GetDlgItem(hdlg, IDC_COMBO_NET_TYPE);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) L"None");
@@ -1961,7 +1973,7 @@ add_locations(HWND hdlg)
     HWND h;
     int i = 0;
 
-    lptsTemp = (LPTSTR) malloc(512);
+    lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_COMBO_HD_BUS);
     for (i = 0; i < 5; i++)
@@ -3806,7 +3818,7 @@ cdrom_add_locations(HWND hdlg)
     HWND h;
     int i = 0;
 
-    lptsTemp = (LPTSTR) malloc(512);
+    lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
     for (i = CDROM_BUS_DISABLED; i <= CDROM_BUS_SCSI; i++) {
@@ -3914,7 +3926,7 @@ zip_add_locations(HWND hdlg)
     HWND h;
     int i = 0;
 
-    lptsTemp = (LPTSTR) malloc(512);
+    lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_COMBO_ZIP_BUS);
     for (i = ZIP_BUS_DISABLED; i <= ZIP_BUS_SCSI; i++) {
@@ -4514,6 +4526,7 @@ win_settings_confirm(HWND hdlg, int button)
 	EndDialog(hdlg, 0);
 	plat_pause(0);
 	win_settings_communicate_closure();
+
 	return button ? TRUE : FALSE;
     } else
 	return button ? FALSE : TRUE;

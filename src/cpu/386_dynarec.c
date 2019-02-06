@@ -34,42 +34,9 @@ uint32_t cpu_cur_status = 0;
 int cpu_reps, cpu_reps_latched;
 int cpu_notreps, cpu_notreps_latched;
 
-int inrecomp = 0;
+int inrecomp = 0, cpu_block_end = 0;
 int cpu_recomp_blocks, cpu_recomp_full_ins, cpu_new_blocks;
 int cpu_recomp_blocks_latched, cpu_recomp_ins_latched, cpu_recomp_full_ins_latched, cpu_new_blocks_latched;
-
-int cpu_block_end = 0;
-
-int nmi_enable = 1;
-
-int inscounts[256];
-uint32_t oldpc2;
-
-int trap;
-
-
-
-int cpl_override=0;
-
-int fpucount=0;
-uint16_t rds;
-uint16_t ea_rseg;
-
-int cgate32;
-
-uint32_t rmdat32;
-uint32_t backupregs[16];
-int oddeven=0;
-int inttype;
-
-
-uint32_t oldcs2;
-uint32_t oldecx;
-
-uint32_t *eal_r, *eal_w;
-
-uint16_t *mod1add[2][8];
-uint32_t *mod1seg[8];
 
 
 #ifdef ENABLE_386_DYNAREC_LOG

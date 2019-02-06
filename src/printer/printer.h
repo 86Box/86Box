@@ -58,7 +58,8 @@
 #define FONT_FILE_OCRB		L"ocra.ttf"
 
 
-extern const uint16_t		*select_codepage(uint16_t num);
+extern const void
+select_codepage(uint16_t code, uint16_t *curmap);
 
 
 #endif	/*PRINTER_H*/

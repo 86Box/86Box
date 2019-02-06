@@ -9,7 +9,7 @@
  *		Header of the emulation of the Brooktree BT484-BT485A
  *		true colour RAMDAC family.
  *
- * Version:	@(#)vid_bt485_ramdac.h	1.0.4	2018/10/04
+ * Version:	@(#)vid_bt485_ramdac.h	1.0.5	2019/01/12
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995,
@@ -31,7 +31,6 @@ typedef struct
 	uint8_t cr4;
 	uint8_t status;
 	uint8_t type;
-	uint8_t ext_addr;
 } bt48x_ramdac_t;
 
 extern void	bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt48x_ramdac_t *ramdac, svga_t *svga);

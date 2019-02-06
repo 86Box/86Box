@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.25	2018/10/28
+ * Version:	@(#)sound.c	1.0.26	2019/01/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -439,6 +439,10 @@ sound_card_reset(void)
 	mpu401_device_add();
     if (GUS)
 	device_add(&gus_device);
+#if defined(DEV_BRANCH) && defined(USE_GUSMAX)
+    if (GUSMAX)
+	device_add(&gusmax_device);
+#endif
     if (GAMEBLASTER)
 	device_add(&cms_device);
     if (SSI2001)

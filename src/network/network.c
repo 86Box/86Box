@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.9	2018/10/22
+ * Version:	@(#)network.c	1.0.10	2018/11/18
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -99,7 +99,7 @@ static netcard_t net_cards[] = {
 int		network_type;
 int		network_ndev;
 int		network_card;
-char		network_host[512];
+char		network_host[522];
 netdev_t	network_devs[32];
 #ifdef ENABLE_NIC_LOG
 int		nic_do_log = ENABLE_NIC_LOG;

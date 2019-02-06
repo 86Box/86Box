@@ -8,7 +8,7 @@
  *
  *		Definitions for the memory interface.
  *
- * Version:	@(#)mem.h	1.0.6	2018/09/15
+ * Version:	@(#)mem.h	1.0.8	2018/11/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -139,7 +139,6 @@ extern int		shadowbios,
 extern int		readlnum,
 			writelnum;
 
-extern int		nopageerrors;
 extern int		memspeed[11];
 
 extern int		mmu_perm;
@@ -209,11 +208,8 @@ extern void	mem_set_mem_state(uint32_t base, uint32_t size, int state);
 extern uint8_t	mem_readb_phys(uint32_t addr);
 extern uint8_t	mem_readb_phys_dma(uint32_t addr);
 extern uint16_t	mem_readw_phys(uint32_t addr);
-extern uint32_t	mem_readl_phys(uint32_t addr);
 extern void	mem_writeb_phys(uint32_t addr, uint8_t val);
 extern void	mem_writeb_phys_dma(uint32_t addr, uint8_t val);
-extern void	mem_writew_phys(uint32_t addr, uint16_t val);
-extern void	mem_writel_phys(uint32_t addr, uint32_t val);
 
 extern uint8_t	mem_read_ram(uint32_t addr, void *priv);
 extern uint16_t	mem_read_ramw(uint32_t addr, void *priv);

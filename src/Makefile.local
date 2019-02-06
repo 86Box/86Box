@@ -10,7 +10,7 @@
 #		settings, so we can avoid changing the main one for all of
 #		our local setups.
 #
-# Version:	@(#)Makefile.local	1.0.19	2018/10/22
+# Version:	@(#)Makefile.local	1.0.20	2018/11/18
 #
 # Author:	Fred N. van Kempen, <decwiz@yahoo.com>
 #
@@ -133,6 +133,7 @@ STUFF	:=
 # -DENABLE_DYNLD_LOG=N sets logging level at N.
 # -DENABLE_JOYSTICK_LOG=N sets logging level at N.
 # -DENABLE_SDL_LOG=N sets logging level at N.
+# -DENABLE_SETTINGS_LOG=N sets logging level at N.
 # -DENABLE_WIN_LOG=N sets logging level at N.
 EXTRAS		:=
 

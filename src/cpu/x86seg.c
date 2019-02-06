@@ -8,7 +8,7 @@
  *
  *		x86 CPU segment emulation.
  *
- * Version:	@(#)x86seg.c	1.0.8	2018/10/17
+ * Version:	@(#)x86seg.c	1.0.9	2018/11/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -46,7 +46,7 @@ int dtimes = 0;
 int btimes = 0;
 
 uint32_t abrt_error;
-int cgate16,cgate32;
+int cgate16, cgate32;
 
 #define breaknullsegs 0
 
@@ -55,7 +55,6 @@ int intgatesize;
 void taskswitch286(uint16_t seg, uint16_t *segdat, int is32);
 void taskswitch386(uint16_t seg, uint16_t *segdat);
 
-int output;
 void pmodeint(int num, int soft);
 /*NOT PRESENT is INT 0B
   GPF is INT 0D*/
@@ -89,7 +88,9 @@ void x86abort(const char *format, ...)
    va_end(ap);
    fflush(stdlog);
    nvr_save();
+#ifdef ENABLE_808X_LOG
    dumpregs(1);
+#endif
    fflush(stdlog);
    exit(-1);
 }

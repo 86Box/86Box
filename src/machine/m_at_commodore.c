@@ -8,7 +8,7 @@
  *
  *		Implementation of the Commodore PC3 system.
  *
- * Version:	@(#)m_at_commodore.c	1.0.1	2018/11/06
+ * Version:	@(#)m_at_commodore.c	1.0.2	2018/11/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -51,49 +51,54 @@
 #include "machine.h"
 
 
-static void cbm_io_write(uint16_t port, uint8_t val, void *p)
-{
-	serial_t *uart = machine_get_serial(0);
+static serial_t *cmd_uart;
 
-        lpt1_remove();
-        lpt2_remove();
-        switch (val & 3)
-        {
-                case 1:
-                lpt1_init(0x3bc);
-                break;
-                case 2:
-       	        lpt1_init(0x378);
-                break;
-                case 3:
-                lpt1_init(0x278);
-                break;
-        }
-        switch (val & 0xc)
-        {
-                case 0x4:
-                serial_setup(uart, 0x2f8, 3);
-                break;
-                case 0x8:
-                serial_setup(uart, 0x3f8, 4);
-                break;
-        }
+
+static void
+cbm_io_write(uint16_t port, uint8_t val, void *p)
+{
+    lpt1_remove();
+    lpt2_remove();
+
+    switch (val & 3) {
+	case 1:
+		lpt1_init(0x3bc);
+		break;
+	case 2:
+		lpt1_init(0x378);
+		break;
+	case 3:
+		lpt1_init(0x278);
+		break;
+    }
+
+    switch (val & 0xc) {
+	case 0x4:
+		serial_setup(cmd_uart, 0x2f8, 3);
+		break;
+	case 0x8:
+		serial_setup(cmd_uart, 0x3f8, 4);
+		break;
+    }
 }
 
-static void cbm_io_init()
+
+static void
+cbm_io_init()
 {
-        io_sethandler(0x0230, 0x0001, NULL,NULL,NULL, cbm_io_write,NULL,NULL, NULL);
+    io_sethandler(0x0230, 0x0001, NULL,NULL,NULL, cbm_io_write,NULL,NULL, NULL);
 }
 
 
 void
 machine_at_cmdpc_init(const machine_t *model)
 {
-	machine_at_ide_init(model);
-	
-	mem_remap_top(384);
-	
-	device_add(&fdc_at_device);
+    machine_at_ide_init(model);
 
-	cbm_io_init();
+    mem_remap_top(384);
+
+    device_add(&fdc_at_device);
+    cmd_uart = device_add(&i8250_device);
+
+    cbm_io_init();
 }

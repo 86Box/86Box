@@ -572,18 +572,22 @@ static const struct {
 
 
 /* Select a ASCII->Unicode mapping by CP number */
-const uint16_t *
-select_codepage(uint16_t code)
+const void
+select_codepage(uint16_t code, uint16_t *curmap)
 {
-    int i;
+    int i = 0;
+    const uint16_t *map_to_use;
 
-    for (i = 0; maps[i].code != -1; i++)
-	if (maps[i].code == code) return(maps[i].map);
+    map_to_use = maps[0].map;
 
-    if (code == 0)
-	return(maps[0].map);
-
-    //ERRLOG("CPMAP: unsupported code page %i, using CP437...\n", code);
-
-    return(maps[0].map);
+    while (maps[i].code != 0) {
+	if (maps[i].code == code) {
+		map_to_use = maps[i].map;
+		break;
+	}
+	i++;
+    }
+    
+    for (i = 0; i < 256; i++)
+	curmap[i] = map_to_use[i];
 }

@@ -376,7 +376,7 @@ void *compaq_cga_init(const device_t *info)
 
 	cga_comp_init(self->cga.revision);
         timer_add(compaq_cga_poll, &self->cga.vidtime, TIMER_ALWAYS_ENABLED, self);
-        mem_mapping_add(&self->cga.mapping, 0xb8000, 0x08000, cga_read, NULL, NULL, cga_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, self);
+        mem_mapping_add(&self->cga.mapping, 0xb8000, 0x08000, cga_read, NULL, NULL, cga_write, NULL, NULL, self->cga.vram, MEM_MAPPING_EXTERNAL, self);
         io_sethandler(0x03d0, 0x0010, cga_in, NULL, NULL, cga_out, NULL, NULL, self);
 
 	if (info->local) {

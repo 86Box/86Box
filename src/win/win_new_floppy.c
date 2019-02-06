@@ -8,7 +8,7 @@
  *
  *		Handle the New Floppy Image dialog.
  *
- * Version:	@(#)win_new_floppy.c	1.0.9	2018/10/02
+ * Version:	@(#)win_new_floppy.c	1.0.10	2019/01/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -75,7 +75,7 @@ create_86f(WCHAR *file_name, disk_size_t disk_size, uint8_t rpm_mode)
     FILE *f;
 
     uint32_t magic = 0x46423638;
-    uint16_t version = 0x020B;
+    uint16_t version = 0x020C;
     uint16_t dflags = 0;
     uint16_t tflags = 0;
     uint32_t index_hole_pos = 0;

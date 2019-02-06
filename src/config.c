@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.58	2018/10/17
+ * Version:	@(#)config.c	1.0.60	2019/01/13
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -208,7 +208,7 @@ create_section(char *name)
     section_t *ns = malloc(sizeof(section_t));
 
     memset(ns, 0x00, sizeof(section_t));
-    strncpy(ns->name, name, sizeof(ns->name));
+    memcpy(ns->name, name, strlen(name) + 1);
     list_add(&ns->list, &config_head);
 
     return(ns);
@@ -221,7 +221,7 @@ create_entry(section_t *section, char *name)
     entry_t *ne = malloc(sizeof(entry_t));
 
     memset(ne, 0x00, sizeof(entry_t));
-    strncpy(ne->name, name, sizeof(ne->name));
+    memcpy(ne->name, name, strlen(name) + 1);
     list_add(&ne->list, &section->entry_head);
 
     return(ne);
@@ -652,7 +652,7 @@ load_sound(void)
     SSI2001 = !!config_get_int(cat, "ssi2001", 0);
     GAMEBLASTER = !!config_get_int(cat, "gameblaster", 0);
     GUS = !!config_get_int(cat, "gus", 0);
-
+    
     memset(temp, '\0', sizeof(temp));
     p = config_get_string(cat, "opl_type", "dbopl");
     strcpy(temp, p);
@@ -766,29 +766,17 @@ load_other_peripherals(void)
       else
 	scsi_card_current = 0;
 
-    if (hdc_name) {
-	free(hdc_name);
-	hdc_name = NULL;
-    }
     p = config_get_string(cat, "hdc", NULL);
     if (p == NULL) {
-	p = config_get_string(cat, "hdd_controller", NULL);
-	if (p != NULL)
-		config_delete_var(cat, "hdd_controller");
-    }
-    if (p == NULL) {
 	if (machines[machine].flags & MACHINE_HDC) {
-		hdc_name = (char *) malloc((strlen("internal") + 1) * sizeof(char));
-		strcpy(hdc_name, "internal");
+		p = (char *)malloc((strlen("internal")+1)*sizeof(char));
+		strcpy(p, "internal");
 	} else {
-		hdc_name = (char *) malloc((strlen("none") + 1) * sizeof(char));
-		strcpy(hdc_name, "none");
+		p = (char *)malloc((strlen("none")+1)*sizeof(char));
+		strcpy(p, "none");
 	}
-    } else {
-	hdc_name = (char *) malloc((strlen(p) + 1) * sizeof(char));
-	strcpy(hdc_name, p);
     }
-    config_set_string(cat, "hdc", hdc_name);
+    hdc_current = hdc_get_from_internal_name(p);
 
     ide_ter_enabled = !!config_get_int(cat, "ide_ter", 0);
     ide_qua_enabled = !!config_get_int(cat, "ide_qua", 0);
@@ -1249,12 +1237,7 @@ config_load(void)
 	vid_api = plat_vidapi("default");
 	time_sync = TIME_SYNC_ENABLED;
 	joystick_type = 7;
-	if (hdc_name) {
-		free(hdc_name);
-		hdc_name = NULL;
-	}
-	hdc_name = (char *) malloc((strlen("none")+1) * sizeof(char));
-	strcpy(hdc_name, "none");
+	hdc_current = hdc_get_from_internal_name("none");
 	serial_enabled[0] = 1;
 	serial_enabled[1] = 1;
 	lpt_enabled = 1;
@@ -1652,7 +1635,8 @@ save_other_peripherals(void)
 	config_set_string(cat, "scsicard",
 			  scsi_card_get_internal_name(scsi_card_current));
 
-    config_set_string(cat, "hdc", hdc_name);
+    config_set_string(cat, "hdc",
+	hdc_get_internal_name(hdc_current));
 
     if (ide_ter_enabled == 0)
 	config_delete_var(cat, "ide_ter");
@@ -2170,7 +2154,7 @@ config_set_string(char *head, char *name, char *val)
     if (ent == NULL)
 	ent = create_entry(section, name);
 
-    strncpy(ent->data, val, sizeof(ent->data));
+    memcpy(ent->data, val, sizeof(ent->data));
     mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
 }
 

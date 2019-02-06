@@ -12,7 +12,7 @@
  *		we will not use that, but, instead, use a new window which
  *		coverrs the entire desktop.
  *
- * Version:	@(#)win_sdl.c  	1.0.3	2018/10/21
+ * Version:	@(#)win_sdl.c  	1.0.4	2018/11/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Michael Drüing, <michael@drueing.de>
@@ -67,11 +67,12 @@
 #include "../plat.h"
 #include "../plat_dynld.h"
 #include "../video/video.h"
+#include "../ui.h"
 #include "win.h"
 #include "win_sdl.h"
 
 
-#define PATH_SDL_DLL	"sdl2.dll"
+#define PATH_SDL_DLL	"SDL2.dll"
 
 
 static void		*sdl_handle = NULL;	/* handle to libSDL2 DLL */
@@ -289,10 +290,10 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
     sdl_UnlockTexture(sdl_tex);
 
     if (sdl_fs) {
-	pclog("sdl_blit(%i, %i, %i, %i, %i, %i) (%i, %i)\n", x, y, y1, y2, w, h, unscaled_size_x, efscrnsz_y);
+	sdl_log("sdl_blit(%i, %i, %i, %i, %i, %i) (%i, %i)\n", x, y, y1, y2, w, h, unscaled_size_x, efscrnsz_y);
 	if (w == unscaled_size_x)
 		sdl_resize(w, h);
-	pclog("(%08X, %08X, %08X)\n", sdl_win, sdl_render, sdl_tex);
+	sdl_log("(%08X, %08X, %08X)\n", sdl_win, sdl_render, sdl_tex);
     }
 
     r_src.x = 0;
@@ -373,7 +374,7 @@ sdl_init_common(int fs)
     /* Try loading the DLL. */
     sdl_handle = dynld_module(PATH_SDL_DLL, sdl_imports);
     if (sdl_handle == NULL) {
-	sdl_log("SDL: unable to load '%s', SDL not available.\n", PATH_SDL_DLL);
+	ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2121);
 	return(0);
     }
 
@@ -615,7 +616,7 @@ sdl_resize(int x, int y)
     if ((x == cur_w) && (y == cur_h))
 	return;
 
-    pclog("sdl_resize(%i, %i)\n", x, y);
+    sdl_log("sdl_resize(%i, %i)\n", x, y);
     ww = x;
     wh = y;
     sdl_stretch(&ww, &wh, &wx, &wy);

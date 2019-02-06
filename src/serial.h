@@ -8,7 +8,7 @@
  *
  *		Definitions for the SERIAL card.
  *
- * Version:	@(#)serial.h	1.0.8	2018/11/04
+ * Version:	@(#)serial.h	1.0.9	2018/11/12
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017,2018 Fred N. van Kempen.
@@ -35,7 +35,7 @@ typedef struct serial_s
 {
     uint8_t lsr, thr, mctrl, rcr,
 	    iir, ier, lcr, msr;
-    uint8_t dlab1, dlab2;
+    uint16_t dlab;
     uint8_t dat;
     uint8_t int_status;
     uint8_t scratch;
@@ -45,11 +45,11 @@ typedef struct serial_s
 	    inst;
     uint16_t base_address;
 
-    uint8_t fifo_len, fifo_enabled;
+    uint8_t fifo_enabled, rcvr_fifo_len;
     uint8_t rcvr_fifo_pos, rcvr_fifo[14];
-    uint8_t xmit_fifo_pos, xmit_fifo[14];
+    uint8_t xmit_fifo_pos, xmit_fifo[16];
 
-    int64_t recieve_delay;
+    int64_t transmit_delay, transmit_period;
 
     struct serial_device_s	*sd;
 } serial_t;
@@ -68,11 +68,14 @@ extern serial_t *	serial_attach(int port,
 			      void (*dev_write)(struct serial_s *serial, void *p, uint8_t data),
 			      void *priv);
 extern void	serial_remove(serial_t *dev);
+extern void	serial_set_type(serial_t *dev, int type);
 extern void	serial_setup(serial_t *dev, uint16_t addr, int irq);
 extern void	serial_clear_fifo(serial_t *dev);
 extern void	serial_write_fifo(serial_t *dev, uint8_t dat);
+extern void	serial_standalone_init(void);
 
 extern const device_t	i8250_device;
+extern const device_t	i8250_pcjr_device;
 extern const device_t	ns16540_device;
 extern const device_t	ns16550_device;
 

@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.42	2018/11/02
+ * Version:	@(#)rom.c	1.0.43	2019/01/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -519,6 +519,13 @@ rom_load_bios(int rom_id)
 		biosmask = 0x3fff;		
 		return(1);
 
+	case ROM_ZD_SUPERS:  /* [8088] Zenith Data Systems SupersPort */
+		if (!rom_load_linear(
+			L"roms/machines/zdsupers/z184m v3.1d.10d",
+			0x000000, 32768, 0, rom)) break;
+		biosmask = 0x7fff;
+		return(1);		
+		
 	case ROM_CMDPC30:
 		if (! rom_load_interleaved(
 			L"roms/machines/cmdpc30/commodore pc 30 iii even.bin",

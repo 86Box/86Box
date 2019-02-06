@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.134	2018/10/26
+# Version:	@(#)Makefile.mingw	1.0.136	2019/01/13
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -46,6 +46,9 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef D2D
   D2D		:= y
+ endif
+ ifndef GUS_MAX
+  GUS_MAX	:= y
  endif
  ifndef I686
   I686		:= y
@@ -86,6 +89,9 @@ else
  endif
  ifndef D2D
   D2D		:= n
+ endif
+ ifndef GUS_MAX
+  GUS_MAX	:= n
  endif
  ifndef I686
   I686		:= n
@@ -295,7 +301,7 @@ ifneq ($(WX), n)
  UIOBJ		:= wx_main.o wx_ui.o wx_stbar.o wx_render.o
 else
  UIOBJ		:= win_ui.o win_stbar.o \
-		   win_ddraw.o win_d2d.o win_d3d.o win_sdl.o \
+		   win_ddraw.o win_d3d.o win_sdl.o \
 		   win_dialog.o win_about.o \
 		   win_settings.o win_devconf.o win_snd_gain.o \
 		   win_new_floppy.o win_jsconf.o
@@ -323,6 +329,7 @@ ifeq ($(D2D), y)
 OPTS		+= -DUSE_D2D
 RFLAGS		+= -DUSE_D2D
 D2DLIB		:= -ld2d1
+D2DOBJ		:= win_d2d.o
 endif
 
 ifeq ($(VNC), y)
@@ -359,6 +366,11 @@ endif
 ifeq ($(CRASHDUMPOBJ), y)
 OPTS		+= -DUSE_CRASHDUMP
 DEVBROBJ	+= win_crashdump.o
+endif
+
+ifeq ($(GUS_MAX), y)
+  OPTS		+= -DUSE_GUSMAX
+  DEVBROBJ	+= snd_cs423x.o
 endif
 
 ifeq ($(I686), y)
@@ -431,6 +443,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_xt.o m_xt_compaq.o \
 		    m_xt_t1000.o m_xt_t1000_vid.o \
 		    m_xt_xi8088.o \
+		    m_xt_zenith.o \
 		    m_pcjr.o \
 		    m_amstrad.o \
 		    m_europc.o \
@@ -461,7 +474,7 @@ DEVOBJ		:= bugger.o isamem.o isartc.o lpt.o $(SERIAL) \
 FDDOBJ		:= fdd.o fdc.o fdi2raw.o \
 		   fdd_common.o fdd_86f.o \
 		   fdd_fdi.o fdd_imd.o fdd_img.o fdd_json.o \
-		   fdd_td0.o
+		   fdd_mfm.o fdd_td0.o
 
 HDDOBJ		:= hdd.o \
 		    hdd_image.o hdd_table.o \
@@ -470,7 +483,7 @@ HDDOBJ		:= hdd.o \
 		    hdc_xta.o \
 		    hdc_esdi_at.o hdc_esdi_mca.o \
 		    hdc_xtide.o hdc_ide.o
-
+		    
 CDROMOBJ	:= cdrom.o \
 		    cdrom_dosbox.o cdrom_image.o
 
@@ -539,6 +552,7 @@ VIDOBJ		:= video.o \
 		    vid_ati18800.o vid_ati28800.o \
 		    vid_ati_mach64.o vid_ati68860_ramdac.o \
 		    vid_bt48x_ramdac.o \
+		    vid_av9194.o \
 		    vid_icd2061.o vid_ics2595.o \
 		    vid_cl54xx.o \
 		    vid_et4000.o vid_sc1502x_ramdac.o \
@@ -548,6 +562,7 @@ VIDOBJ		:= video.o \
 		    vid_ti_cf62011.o \
 		    vid_tvga.o \
 		    vid_tgui9440.o vid_tkd8001_ramdac.o \
+		    vid_att20c49x_ramdac.o \
 		    vid_s3.o vid_s3_virge.o \
 		    vid_sdac_ramdac.o \
 		    vid_voodoo.o
@@ -560,7 +575,7 @@ PLATOBJ		:= win.o \
 OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
 		   $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(HDDOBJ) \
 		   $(USBOBJ) $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
-		   $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) \
+		   $(PLATOBJ) $(UIOBJ) $(D2DOBJ) $(FSYNTHOBJ) $(MUNTOBJ) \
 		   $(DEVBROBJ)
 ifdef EXOBJ
 OBJ		+= $(EXOBJ)

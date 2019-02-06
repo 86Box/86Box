@@ -225,7 +225,7 @@ void* fluidsynth_init(const device_t *info)
 
 	/* Try loading the DLL. */
 #ifdef _WIN32
-	fluidsynth_handle = dynld_module("libfluidsynth-1.dll", fluidsynth_imports);
+	fluidsynth_handle = dynld_module("libfluidsynth.dll", fluidsynth_imports);
 #else
 	fluidsynth_handle = dynld_module("libfluidsynth.so", fluidsynth_imports);
 #endif

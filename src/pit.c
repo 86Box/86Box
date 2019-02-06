@@ -48,19 +48,43 @@ void setrtcconst(float clock)
 
 void setpitclock(float clock)
 {
+	/* Some calculations are done differently 4.77 MHz, 7.16 MHz, and 9.54 MHz CPU's, so that
+	   loss of precision is avoided and the various component kept in better synchronization. */
+
         cpuclock=clock;
-        PITCONST=clock/(1193181.0 + (2.0 / 3.0));
-        CGACONST=(clock/(19687503.0/11.0));
+	if (clock == 4772728.0) {
+        	PITCONST=4.0;
+	        CGACONST=(8.0 / 3.0);
+	} else if (clock == 7159092.0) {
+		/* 7.16 MHz CPU - simplify the calculation to avoid
+		   loss of precision. */
+        	PITCONST=6.0;
+	        CGACONST=4.0;
+	} else if (clock == 9545456.0) {
+		/* 9.54 MHz CPU - simplify the calculation to avoid
+		   loss of precision. */
+        	PITCONST=8.0;
+	        CGACONST=(8.0 / 1.5);
+	} else {
+	        PITCONST=clock/1193182.0;
+	        CGACONST=(clock/(19687503.0/11.0));
+	}
         MDACONST=(clock/2032125.0);
         VGACONST1=(clock/25175000.0);
         VGACONST2=(clock/28322000.0);
         isa_timing = clock/8000000.0;
         bus_timing = clock/(double)cpu_busspeed;
         video_update_timing();
-        
-        xt_cpu_multi = (int64_t)((14318184.0*(double)(1 << TIMER_SHIFT)) / (double)machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
-        /* RTCCONST=clock/32768.0;
-        TIMER_USEC = (int64_t)((clock / 1000000.0f) * (float)(1 << TIMER_SHIFT)); */
+
+	if (clock == 4772728.0)
+	        xt_cpu_multi = 3 * (1 << TIMER_SHIFT);
+	else if (clock == 7159092.0)
+	        xt_cpu_multi = 2 * (1 << TIMER_SHIFT);
+	else if (clock == 9545456.0)
+	        xt_cpu_multi = (int64_t)(1.5*(double)(1 << TIMER_SHIFT));
+	else
+		xt_cpu_multi = (int64_t)((14318184.0*(double)(1 << TIMER_SHIFT)) / (double)machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
+
         device_speed_changed();
 }
 
@@ -89,14 +113,6 @@ void pit_reset(PIT *pit)
 void clearpit()
 {
         pit.c[0]=(pit.l[0]<<2);
-}
-
-float pit_timer0_freq()
-{
-        if (pit.l[0])
-                return (1193181.0 + (2.0 / 3.0))/(float)pit.l[0];
-        else
-                return (1193181.0 + (2.0 / 3.0))/(float)0x10000;
 }
 
 static void pit_set_out(PIT *pit, int t, int out)
@@ -306,7 +322,7 @@ static void pit_over(PIT *pit, int t)
 
 int pit_get_timer_0()
 {
-        int read = (int)((int64_t)((pit.c[0] + ((1LL << TIMER_SHIFT) - 1)) / PITCONST) >> TIMER_SHIFT);
+	int read = (int)((pit.c[0] + ((1 << TIMER_SHIFT) - 1)) / PITCONST) >> TIMER_SHIFT;
         if (pit.m[0] == 2)
                 read++;
         if (read < 0)
@@ -323,7 +339,7 @@ static int pit_read_timer(PIT *pit, int t)
         timer_clock();
         if (pit->using_timer[t] && !(pit->m[t] == 3 && !pit->gate[t]))
         {
-                int read = (int)((int64_t)((pit->c[t] + ((1LL << TIMER_SHIFT) - 1)) / PITCONST) >> TIMER_SHIFT);
+                int read = (int)((pit->c[t] + ((1 << TIMER_SHIFT) - 1)) / PITCONST) >> TIMER_SHIFT;
                 if (pit->m[t] == 2)
                         read++;
                 if (read < 0)
@@ -343,6 +359,7 @@ void pit_write(uint16_t addr, uint8_t val, void *p)
 {
         PIT *pit = (PIT *)p;
         int t;
+	double sv = 0.0;
         
         switch (addr&3)
         {
@@ -439,7 +456,9 @@ void pit_write(uint16_t addr, uint8_t val, void *p)
                         pit->wm[t]=0;
                         break;
                 }
-                speakval=(((float)pit->l[2]/(float)pit->l[0])*0x4000)-0x2000;
+		/* PIT latches are in fractions of 60 ms, so convert to sample using the formula below. */
+		sv = (((double) pit->l[2]) / 60.0) * 16384.0;
+		speakval = ((int) sv) - 0x2000;
                 if (speakval>0x2000) speakval=0x2000;
                 break;
         }
@@ -527,7 +546,7 @@ void pit_set_using_timer(PIT *pit, int t, int using_timer)
         if (pit->using_timer[t] && !using_timer)
                 pit->count[t] = pit_read_timer(pit, t);
         if (!pit->using_timer[t] && using_timer)
-                pit->c[t] = (int64_t)((((int64_t) pit->count[t]) << TIMER_SHIFT) * PITCONST);
+               	pit->c[t] = (int64_t)((((int64_t) pit->count[t]) << TIMER_SHIFT) * PITCONST);
         pit->using_timer[t] = using_timer;
         pit->running[t] = pit->enabled[t] && pit->using_timer[t] && !pit->disabled[t];
         timer_update_outstanding();

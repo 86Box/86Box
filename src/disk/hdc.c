@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of disk controllers.
  *
- * Version:	@(#)hdc.c	1.0.16	2018/10/17
+ * Version:	@(#)hdc.c	1.0.17	2018/11/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -30,7 +30,6 @@
 #include "hdd.h"
 
 
-char	*hdc_name;		/* configured HDC name */
 int	hdc_current;
 
 
@@ -160,18 +159,9 @@ static const struct {
 
 /* Initialize the 'hdc_current' value based on configured HDC name. */
 void
-hdc_init(char *name)
+hdc_init(void)
 {
-    int c;
-
     hdc_log("HDC: initializing..\n");
-
-    for (c = 0; controllers[c].device; c++) {
-	if (! strcmp(name, (char *) controllers[c].internal_name)) {
-		hdc_current = c;
-		break;
-	}
-    }
 
     /* Zero all the hard disk image arrays. */
     hdd_image_init();
@@ -208,6 +198,22 @@ char *
 hdc_get_internal_name(int hdc)
 {
     return((char *) controllers[hdc].internal_name);
+}
+
+
+int
+hdc_get_id(char *s)
+{
+	int c = 0;
+	
+	while (strlen((char *) controllers[c].name))
+	{
+		if (!strcmp((char *) controllers[c].name, s))
+			return c;
+		c++;
+	}
+	
+	return 0;
 }
 
 

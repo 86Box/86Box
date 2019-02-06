@@ -11,7 +11,7 @@
  * NOTES:	This code should be re-merged into a single init() with a
  *		'fullscreen' argument, indicating FS mode is requested.
  *
- * Version:	@(#)win_ddraw.cpp	1.0.12	2018/10/18
+ * Version:	@(#)win_ddraw.cpp	1.0.13	2018/11/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -186,9 +186,7 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
     }
 
     if (ys2 <= 250) {
-	bmpInfo.bmiHeader.biSizeImage <<= 1;
-
-	pBuf2 = malloc(bmpInfo.bmiHeader.biSizeImage);
+	pBuf2 = malloc(bmpInfo.bmiHeader.biSizeImage << 1);
 	if (pBuf2 == NULL) {
 		ddraw_log("[SavePNG] Unable to Allocate Secondary Bitmap Memory");
 		free(pBuf);
@@ -196,7 +194,6 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
 		return;
 	}
 
-	bmpInfo.bmiHeader.biHeight <<= 1;
     }
 
     ddraw_log("save png w=%i h=%i\n", bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight);
@@ -204,6 +201,11 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
     bmpInfo.bmiHeader.biCompression = BI_RGB;
 
     GetDIBits(hdc, hBitmap, 0, bmpInfo.bmiHeader.biHeight, pBuf, &bmpInfo, DIB_RGB_COLORS);
+
+    if (pBuf2) {
+	bmpInfo.bmiHeader.biSizeImage <<= 1;
+	bmpInfo.bmiHeader.biHeight <<= 1;
+    }
 
     png_set_IHDR(png_ptr, info_ptr, bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight,
 	8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,

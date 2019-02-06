@@ -8,7 +8,7 @@
  *
  *		Hercules emulation.
  *
- * Version:	@(#)vid_hercules.c	1.0.15	2018/10/28
+ * Version:	@(#)vid_hercules.c	1.0.16	2018/11/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -382,7 +382,7 @@ hercules_init(const device_t *info)
 
     mem_mapping_add(&dev->mapping, 0xb0000, 0x08000,
 		    hercules_read,NULL,NULL, hercules_write,NULL,NULL,
-		    NULL, MEM_MAPPING_EXTERNAL, dev);
+		    dev->vram, MEM_MAPPING_EXTERNAL, dev);
 
     io_sethandler(0x03b0, 16,
 		  hercules_in,NULL,NULL, hercules_out,NULL,NULL, dev);

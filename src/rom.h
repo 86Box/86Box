@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.20	2018/11/02
+ * Version:	@(#)rom.h	1.0.21	2019/01/13
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2018 Fred N. van Kempen.
@@ -58,7 +58,8 @@ enum {
     ROM_PC3086,        
     ROM_OLIM24,
     ROM_TANDY1000SL2,
-
+    ROM_ZD_SUPERS,
+    
     ROM_T3100E,
 
     ROM_AMI286,

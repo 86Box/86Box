@@ -9,7 +9,7 @@
  *		Emulation of the Brooktree BT484-485A true colour RAMDAC
  *		family.
  *
- * Version:	@(#)vid_bt48x_ramdac.c	1.0.14	2018/10/19
+ * Version:	@(#)vid_bt48x_ramdac.c	1.0.16	2019/01/12
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995,
@@ -42,22 +42,24 @@ enum {
 static void
 bt48x_set_bpp(bt48x_ramdac_t *ramdac, svga_t *svga)
 {
-    if (!(ramdac->cr2 & 0x20))
+    if ((!(ramdac->cr2 & 0x20)) || ((ramdac->type >= BT485A) && ((ramdac->cr3 & 0x60) == 0x60)))
 	svga->bpp = 8;
-    else switch ((ramdac->cr1 >> 5) & 0x03) {
-	case 0:
+    else if ((ramdac->type >= BT485A) && ((ramdac->cr3 & 0x60) == 0x40))
+	svga->bpp = 24;
+    else switch (ramdac->cr1 & 0x60) {
+	case 0x00:
 		svga->bpp = 32;
 		break;
-	case 1:
+	case 0x20:
 		if (ramdac->cr1 & 0x08)
 			svga->bpp = 16;
 		else
 			svga->bpp = 15;
 		break;
-	case 2:
+	case 0x40:
 		svga->bpp = 8;
 		break;
-	case 3:
+	case 0x60:
 		svga->bpp = 4;
 		break;
     }
@@ -80,7 +82,9 @@ bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt48x_ramdac_t *r
 
     switch (rs) {
 	case 0x00:	/* Palette Write Index Register (RS value = 0000) */
+	case 0x04:	/* Ext Palette Write Index Register (RS value = 0100) */
 	case 0x03:
+	case 0x07:	/* Ext Palette Read Index Register (RS value = 0111) */
 		svga->dac_pos = 0;
 		svga->dac_status = addr & 0x03;
 		svga->dac_addr = val;
@@ -92,12 +96,6 @@ bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt48x_ramdac_t *r
 	case 0x01:	/* Palette Data Register (RS value = 0001) */
 	case 0x02:	/* Pixel Read Mask Register (RS value = 0010) */
 		svga_out(addr, val, svga);
-		break;
-	case 0x04:	/* Ext Palette Write Index Register (RS value = 0100) */
-	case 0x07:	/* Ext Palette Read Index Register (RS value = 0111) */
-		svga->dac_pos = 0;
-		svga->dac_status = rs & 0x03;
-		ramdac->ext_addr = (val + (rs & 0x01)) & 255;
 		break;
 	case 0x05:	/* Ext Palette Data Register (RS value = 0101) */
 		svga->dac_status = 0;
@@ -112,7 +110,7 @@ bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt48x_ramdac_t *r
 				svga->dac_pos++;
 				break;
 			case 2:
-				index = ramdac->ext_addr & 3;
+				index = svga->dac_addr & 3;
 				ramdac->extpal[index].r = svga->dac_r;
 				ramdac->extpal[index].g = svga->dac_g;
 				ramdac->extpal[index].b = val;
@@ -127,7 +125,7 @@ bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt48x_ramdac_t *r
 					if (o32 != svga->overscan_color)
 						svga_recalctimings(svga);
 				}
-				ramdac->ext_addr = (ramdac->ext_addr + 1) & 0xff;
+				svga->dac_addr = (svga->dac_addr + 1) & 0xff;
 				svga->dac_pos = 0;
 				break;
 		}
@@ -147,10 +145,12 @@ bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt48x_ramdac_t *r
 		break;
 	case 0x0a:
 		if ((ramdac->type >= BT485) && (ramdac->cr0 & 0x80)) {
-			switch ((svga->dac_addr & 0xff)) {
+			switch ((svga->dac_addr & ((ramdac->type >= BT485A) ? 0xff : 0x3f))) {
 				case 0x01:
 					/* Command Register 3 (RS value = 1010) */
 					ramdac->cr3 = val;
+					if (ramdac->type >= BT485A)
+						bt48x_set_bpp(ramdac, svga);
 					svga->hwcursor.xsize = svga->hwcursor.ysize = (val & 4) ? 64 : 32;
 					svga->hwcursor.yoff = (svga->hwcursor.ysize == 32) ? 32 : 0;
 					svga->hwcursor.x = ramdac->hwc_x - svga->hwcursor.xsize;
@@ -224,16 +224,15 @@ bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, bt48x_ramdac_t *ramdac, svga_t 
 	case 0x00:	/* Palette Write Index Register (RS value = 0000) */
 	case 0x01:	/* Palette Data Register (RS value = 0001) */
 	case 0x02:	/* Pixel Read Mask Register (RS value = 0010) */
+	case 0x04:	/* Ext Palette Write Index Register (RS value = 0100) */
 		temp = svga_in(addr, svga);
 		break;
 	case 0x03:	/* Palette Read Index Register (RS value = 0011) */
+	case 0x07:	/* Ext Palette Read Index Register (RS value = 0111) */
 		temp = svga->dac_addr & 0xff;
 		break;
-	case 0x04:	/* Ext Palette Write Index Register (RS value = 0100) */
-		temp = ramdac->ext_addr;
-		break;
 	case 0x05:	/* Ext Palette Data Register (RS value = 0101) */
-		index = (ramdac->ext_addr - 1) & 3;
+		index = (svga->dac_addr - 1) & 3;
 		svga->dac_status = 3;
 		switch (svga->dac_pos) {
 			case 0:
@@ -252,7 +251,7 @@ bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, bt48x_ramdac_t *ramdac, svga_t 
 				break;
 			case 2:
 				svga->dac_pos=0;
-				ramdac->ext_addr = ramdac->ext_addr + 1;
+				svga->dac_addr = svga->dac_addr + 1;
 				if (svga->ramdac_type == RAMDAC_8BIT)
 					temp = ramdac->extpal[index].b;
 				else
@@ -263,9 +262,6 @@ bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, bt48x_ramdac_t *ramdac, svga_t 
 	case 0x06:	/* Command Register 0 (RS value = 0110) */
 		temp = ramdac->cr0;
 		break;
-	case 0x07:	/* Ext Palette Read Index Register (RS value = 0111) */
-		temp = ramdac->ext_addr;
-		break;
 	case 0x08:	/* Command Register 1 (RS value = 1000) */
 		temp = ramdac->cr1;
 		break;
@@ -274,8 +270,9 @@ bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, bt48x_ramdac_t *ramdac, svga_t 
 		break;
 	case 0x0a:
 		if ((ramdac->type >= BT485) && (ramdac->cr0 & 0x80)) {
-			switch ((svga->dac_addr & 0xff)) {
+			switch ((svga->dac_addr & ((ramdac->type >= BT485A) ? 0xff : 0x3f))) {
 				case 0x00:
+				default:
 					temp = ramdac->status | (svga->dac_status ? 0x04 : 0x00);
 					break;
 				case 0x01:

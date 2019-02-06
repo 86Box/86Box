@@ -11,7 +11,7 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.44	2018/11/03
+ * Version:	@(#)machine_table.c	1.0.45	2019/01/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -51,7 +51,8 @@ const machine_t machines[] = {
     { "[8088] VTech Laser Turbo XT",		ROM_LTXT,		"ltxt",			{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												512,  512, 256,   0,	      machine_xt_laserxt_init, NULL			},
 #endif
     { "[8088] Xi8088",				ROM_XI8088,		"xi8088",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_AT | MACHINE_PS2,									 64, 1024, 128, 127,	       machine_xt_xi8088_init, NULL			},
-
+    { "[8088] Zenith Data SupersPort",		ROM_ZD_SUPERS,		"zdsupers",		{{"Intel",      cpus_8088},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA,												128,  640, 128,   0,	       machine_xt_zenith_init, NULL			},
+    
     { "[8086] Amstrad PC1512",			ROM_PC1512,		"pc1512",		{{"Intel",      cpus_pc1512},      {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,								512,  640, 128,  63,		 machine_amstrad_init, NULL			},
     { "[8086] Amstrad PC1640",			ROM_PC1640,		"pc1640",		{{"Intel",      cpus_8086},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 0, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,								640,  640,   0,  63,		 machine_amstrad_init, NULL			},
     { "[8086] Amstrad PC2086",			ROM_PC2086,		"pc2086",		{{"Intel",      cpus_8086},        {"",      NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, 1, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,								640,  640,   0,  63,		 machine_amstrad_init, NULL			},

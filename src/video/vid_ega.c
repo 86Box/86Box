@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.18	2018/09/19
+ * Version:	@(#)vid_ega.c	1.0.19	2018/12/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -200,7 +200,7 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
                 ega->attrff ^= 1;
                 break;
                 case 0x3c2:
-                egaswitchread = val & 0xc;
+                egaswitchread = (val & 0xc) >> 2;
                 ega->vres = !(val & 0x80);
                 ega->pallook = ega->vres ? pallook16 : pallook64;
                 ega->vidclock = val & 4; /*printf("3C2 write %02X\n",val);*/
@@ -308,13 +308,7 @@ uint8_t ega_in(uint16_t addr, void *p)
                 case 0x3c1: 
                 return ega->attrregs[ega->attraddr];
                 case 0x3c2:
-                switch (egaswitchread)
-                {
-                        case 0xc: return (egaswitches & 1) ? 0x10 : 0;
-                        case 0x8: return (egaswitches & 2) ? 0x10 : 0;
-                        case 0x4: return (egaswitches & 4) ? 0x10 : 0;
-                        case 0x0: return (egaswitches & 8) ? 0x10 : 0;
-                }
+		return (egaswitches & (8 >> egaswitchread)) ? 0x10 : 0x00;
                 break;
                 case 0x3c4: 
                 return ega->seqaddr;
@@ -968,7 +962,7 @@ void ega_init(ega_t *ega, int monitor_type, int is_mono)
         egaswitches = monitor_type & 0xf;
 
         ega->vram_limit = 256 * 1024;
-        ega->vrammask = ega->vram_limit-1;
+        ega->vrammask = ega->vram_limit - 1;
 
 	old_overscan_color = 0;
 
@@ -1030,10 +1024,10 @@ static void *ega_standalone_init(const device_t *info)
         }
 
         monitor_type = device_get_config_int("monitor_type");
-        ega_init(ega, monitor_type, (monitor_type & 0xf) == 10);
+        ega_init(ega, monitor_type, (monitor_type & 0x0F) == 0x0B);
 
         ega->vram_limit = device_get_config_int("memory") * 1024;
-        ega->vrammask = ega->vram_limit-1;
+        ega->vrammask = ega->vram_limit - 1;
 
         mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
         timer_add(ega_poll, &ega->vidtime, TIMER_ALWAYS_ENABLED, ega);
@@ -1185,6 +1179,15 @@ static void ega_speed_changed(void *p)
 }
 
 
+/* SW1 SW2 SW3 SW4
+   OFF OFF  ON OFF	Monochrome			(5151)		1011	0x0B
+    ON OFF OFF  ON	Color 40x25			(5153)		0110	0x06
+   OFF OFF OFF  ON	Color 80x25			(5153)		0111	0x07
+    ON  ON  ON OFF	Enhanced Color - Normal Mode	(5154)		1000	0x08
+   OFF  ON  ON OFF	Enhanced Color - Enhanced Mode	(5154)		1001	0x09
+
+   0 = Switch closed (ON);
+   1 = Switch open   (OFF). */
 static const device_config_t ega_config[] =
 {
         {
@@ -1211,28 +1214,32 @@ static const device_config_t ega_config[] =
                 .selection =
                 {
                         {
-                                .description = "EGA Colour, 40x25",
-                                .value = 6
+                                .description = "Monochrome (5151/MDA) (white)",
+                                .value = 0x0B | (DISPLAY_WHITE << 4)
                         },
                         {
-                                .description = "EGA Colour, 80x25",
-                                .value = 7
+                                .description = "Monochrome (5151/MDA) (green)",
+                                .value = 0x0B | (DISPLAY_GREEN << 4)
                         },
                         {
-                                .description = "EGA Colour, ECD",
-                                .value = 9
+                                .description = "Monochrome (5151/MDA) (amber)",
+                                .value = 0x0B | (DISPLAY_AMBER << 4)
                         },
                         {
-                                .description = "EGA Monochrome (white)",
-                                .value = 10 | (DISPLAY_WHITE << 4)
+                                .description = "Color 40x25 (5153/CGA)",
+                                .value = 0x06
                         },
                         {
-                                .description = "EGA Monochrome (green)",
-                                .value = 10 | (DISPLAY_GREEN << 4)
+                                .description = "Color 80x25 (5153/CGA)",
+                                .value = 0x07
                         },
                         {
-                                .description = "EGA Monochrome (amber)",
-                                .value = 10 | (DISPLAY_AMBER << 4)
+                                .description = "Enhanced Color - Normal Mode (5154/ECD)",
+                                .value = 0x08
+                        },
+                        {
+                               .description = "Enhanced Color - Enhanced Mode (5154/ECD)",
+                                .value = 0x09
                         },
                         {
                                 .description = ""

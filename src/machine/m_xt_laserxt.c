@@ -115,7 +115,7 @@ static uint8_t mem_read_laserxtems(uint32_t addr, void *priv)
 }
 
 
-static void laserxt_init(is_lxt3)
+static void laserxt_init(int is_lxt3)
 {
         int i;
 

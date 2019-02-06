@@ -258,7 +258,7 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
                         break;
                         case 0xC: 
                         if (svga->seqregs[0xe] & 0x80) 
-                        svga->seqregs[0xc] = val; 
+				svga->seqregs[0xc] = val; 
                         break;
                         case 0xd: 
                         if (tgui->oldmode)
@@ -517,15 +517,6 @@ void tgui_recalctimings(svga_t *svga)
         svga->interlace = svga->crtc[0x1e] & 4;
         if (svga->interlace && tgui->type < TGUI_9440)
                 svga->rowoffset >>= 1;
-
-        if (svga->crtc[0x17] & 4)
-        {
-                svga->vtotal *= 2;
-                svga->dispend *= 2;
-                svga->vsyncstart *= 2;
-                svga->split *= 2;
-                svga->vblankstart *= 2;
-        }
         
         if (tgui->type >= TGUI_9440)
         {

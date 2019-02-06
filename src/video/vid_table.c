@@ -33,6 +33,7 @@
 
 #include "vid_ati18800.h"
 #include "vid_ati28800.h"
+//#include "vid_ati_mach8.h"
 #include "vid_ati_mach64.h"
 #include "vid_cga.h"
 #include "vid_cl54xx.h"
@@ -49,6 +50,7 @@
 #include "vid_oak_oti.h"
 #include "vid_paradise.h"
 #include "vid_s3.h"
+//#include "vid_s3_911.h"
 #include "vid_s3_virge.h"
 #include "vid_sigma.h"
 #include "vid_tgui9440.h"
@@ -73,6 +75,7 @@ video_cards[] = {
     { "None",						"none",			NULL					},
     { "Internal",					"internal",		NULL					},
     { "[ISA] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_isa",		&mach64gx_isa_device			},
+    //{ "[ISA] ATI Graphics Ultra (Mach8)",		"mach8_isa",		&mach8_device				},
     { "[ISA] ATI Korean VGA (ATI-28800-5)",		"ati28800k",		&ati28800k_device			},
     { "[ISA] ATI VGA-88 (ATI-18800-1)",			"ati18800v",		&ati18800_vga88_device			},
     { "[ISA] ATI VGA Charger (ATI-28800-5)",		"ati28800",		&ati28800_device			},
@@ -85,6 +88,11 @@ video_cards[] = {
 #endif
     { "[ISA] CGA",					"cga",			&cga_device				},
     { "[ISA] Chips & Technologies SuperEGA",		"superega",		&sega_device				},
+#if defined(DEV_BRANCH)   
+    { "[ISA] Cirrus Logic CL-GD 5402",			"cl_gd5402_isa",	&gd5402_isa_device			},
+    { "[ISA] Cirrus Logic CL-GD 5420",			"cl_gd5420_isa",	&gd5420_isa_device			},
+    { "[ISA] Cirrus Logic CL-GD 5422",			"cl_gd5422_isa",	&gd5422_isa_device			},
+#endif
     { "[ISA] Cirrus Logic CL-GD 5428",			"cl_gd5428_isa",	&gd5428_isa_device			},
     { "[ISA] Cirrus Logic CL-GD 5429",			"cl_gd5429_isa",	&gd5429_isa_device			},
     { "[ISA] Cirrus Logic CL-GD 5434",			"cl_gd5434_isa",	&gd5434_isa_device			},
@@ -106,9 +114,11 @@ video_cards[] = {
     { "[ISA] Paradise WD90C30-LR",			"wd90c30",		&paradise_wd90c30_device		},
     { "[ISA] Plantronics ColorPlus",			"plantronics",		&colorplus_device			},
     { "[ISA] Sigma Color 400",				"sigma400",		&sigma_device				},
+    { "[ISA] SPEA V7 Mirage (S3 86c801)",		"px_s3_v7_801_isa",	&s3_v7mirage_86c801_isa_device		},
 #if defined(DEV_BRANCH) && defined(USE_TI)
     { "[ISA] TI CF62011 SVGA",				"ti_cf62011",		&ti_cf62011_device			},
 #endif
+    { "[ISA] Trident TVGA8900B",			"tvga8900b",		&tvga8900b_device			},
     { "[ISA] Trident TVGA8900D",			"tvga8900d",		&tvga8900d_device			},
     { "[ISA] Trigem Korean VGA (ET4000AX)",		"tgkorvga",		&et4000k_isa_device			},
     { "[ISA] Tseng ET4000AX",				"et4000ax",		&et4000_isa_device			},
@@ -140,6 +150,9 @@ video_cards[] = {
     { "[PCI] Trident TGUI9440",				"tgui9440_pci",		&tgui9440_pci_device			},
     { "[VLB] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_vlb",		&mach64gx_vlb_device			},
     { "[VLB] Cardex Tseng ET4000/w32p",			"et4000w32p_vlb",	&et4000w32p_cardex_vlb_device		},
+#if defined(DEV_BRANCH)    
+    { "[VLB] Cirrus Logic CL-GD 5424",			"cl_gd5424_vlb",	&gd5424_vlb_device			},
+#endif    
     { "[VLB] Cirrus Logic CL-GD 5428",			"cl_gd5428_vlb",	&gd5428_vlb_device			},
     { "[VLB] Cirrus Logic CL-GD 5429",			"cl_gd5429_vlb",	&gd5429_vlb_device			},
     { "[VLB] Cirrus Logic CL-GD 5434",			"cl_gd5434_vlb",	&gd5434_vlb_device			},
@@ -152,6 +165,7 @@ video_cards[] = {
     { "[VLB] Diamond Stealth 64 VRAM (S3 Vision964)",	"stealth64v_vlb",	&s3_diamond_stealth64_964_vlb_device	},
     { "[VLB] Number Nine 9FX (S3 Trio64)",		"n9_9fx_vlb",		&s3_9fx_vlb_device			},
     { "[VLB] Paradise Bahamas 64 (S3 Vision864)",	"bahamas64_vlb",	&s3_bahamas64_vlb_device		},
+    { "[VLB] Phoenix S3 86c805",			"px_86c805_vlb",	&s3_phoenix_86c805_vlb_device		},
     { "[VLB] Phoenix S3 Vision864",			"px_vision864_vlb",	&s3_phoenix_vision864_vlb_device	},
     { "[VLB] Phoenix S3 Trio32",			"px_trio32_vlb",	&s3_phoenix_trio32_vlb_device		},
     { "[VLB] Phoenix S3 Trio64",			"px_trio64_vlb",	&s3_phoenix_trio64_vlb_device		},

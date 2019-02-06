@@ -177,7 +177,7 @@ static void ati18800_recalctimings(svga_t *svga)
                 svga->vblankstart <<= 1;
         }
 
-        if (!svga->scrblank && (ati18800->regs[0xb0] & 0x20)) /*Extended 256 colour modes*/
+        if (!svga->scrblank && ((ati18800->regs[0xb0] & 0x02) || (ati18800->regs[0xb0] & 0x04))) /*Extended 256 colour modes*/
         {
                 svga->render = svga_render_8bpp_highres;
 				svga->bpp = 8;
@@ -210,7 +210,7 @@ static void *ati18800_init(const device_t *info)
 			break;
 	};
         
-        svga_init(&ati18800->svga, ati18800, 1 << 19, /*512kb*/
+        svga_init(&ati18800->svga, ati18800, 1 << 20, /*512kb*/
                    ati18800_recalctimings,
                    ati18800_in, ati18800_out,
                    NULL,

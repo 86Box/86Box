@@ -9,7 +9,7 @@
  *		Implementation of the SMC FDC37C663 and FDC37C665 Super
  *		I/O Chips.
  *
- * Version:	@(#)sio_fdc37c66x.c	1.0.13	2018/11/05
+ * Version:	@(#)sio_fdc37c66x.c	1.0.14	2018/11/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -208,8 +208,8 @@ fdc37c66x_reset(fdc37c66x_t *dev)
     serial_remove(dev->uart[0]);
     serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
 
-    serial_remove(dev->uart[0]);
-    serial_setup(dev->uart[0], SERIAL2_ADDR, SERIAL2_IRQ);
+    serial_remove(dev->uart[1]);
+    serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
 
     lpt2_remove();
 

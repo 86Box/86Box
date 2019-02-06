@@ -22,6 +22,7 @@
 
 
 static uint8_t ps2_94, ps2_102, ps2_103, ps2_104, ps2_105, ps2_190;
+static serial_t *ps2_uart;
 
 
 static struct
@@ -70,8 +71,6 @@ static uint8_t ps2_read(uint16_t port, void *p)
 
 static void ps2_write(uint16_t port, uint8_t val, void *p)
 {
-	serial_t *uart = machine_get_serial(0);
-
         switch (port)
         {
                 case 0x94:
@@ -80,9 +79,9 @@ static void ps2_write(uint16_t port, uint8_t val, void *p)
                 case 0x102:
                 lpt1_remove();
                 if (val & 0x04)
-                        serial_setup(uart, SERIAL1_ADDR, SERIAL1_IRQ);
+                        serial_setup(ps2_uart, SERIAL1_ADDR, SERIAL1_IRQ);
                 else
-                        serial_remove(uart);
+                        serial_remove(ps2_uart);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
@@ -142,6 +141,8 @@ static void ps2board_init(void)
         port_92_add();
 
         ps2_190 = 0;
+
+	ps2_uart = device_add_inst(&i8250_device, 1);
 
         lpt1_init(0x3bc);
         

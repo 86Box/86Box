@@ -59,9 +59,17 @@
 #define WM_SENDSSTATUS		0x8896
 
 #ifdef USE_VNC
+#ifdef USE_D2D
 #define RENDERERS_NUM		5
 #else
 #define RENDERERS_NUM		4
+#endif
+#else
+#ifdef USE_D2D
+#define RENDERERS_NUM		4
+#else
+#define RENDERERS_NUM		3
+#endif
 #endif
 
 

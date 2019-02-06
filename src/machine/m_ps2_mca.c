@@ -8,7 +8,7 @@
  *
  *		Implementation of MCA-based PS/2 machines.
  *
- * Version:	@(#)m_ps2_mca.c	1.0.4	2018/11/06
+ * Version:	@(#)m_ps2_mca.c	1.0.5	2018/11/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -97,6 +97,8 @@ static struct
         uint8_t mem_2mb_pos_regs[8];
 		
 	int pending_cache_miss;
+
+	serial_t *uart;
 } ps2;
 
 /*The model 70 type 3/4 BIOS performs cache testing. Since 86Box doesn't have any
@@ -372,8 +374,6 @@ static uint8_t model_80_read(uint16_t port)
 
 static void model_50_write(uint16_t port, uint8_t val)
 {
-	serial_t *uart = machine_get_serial(0);
-
         switch (port)
         {
                 case 0x100:
@@ -383,13 +383,13 @@ static void model_50_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial_remove(uart);
+                serial_remove(ps2.uart);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(uart, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(ps2.uart, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial_setup(uart, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(ps2.uart, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
                 if (val & 0x10)
                 {
@@ -428,8 +428,6 @@ static void model_50_write(uint16_t port, uint8_t val)
 
 static void model_55sx_write(uint16_t port, uint8_t val)
 {
-	serial_t *uart = machine_get_serial(0);
-
         switch (port)
         {
                 case 0x100:
@@ -439,13 +437,13 @@ static void model_55sx_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial_remove(uart);
+                serial_remove(ps2.uart);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(uart, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(ps2.uart, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial_setup(uart, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(ps2.uart, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
                 if (val & 0x10)
                 {
@@ -505,8 +503,6 @@ static void model_55sx_write(uint16_t port, uint8_t val)
 
 static void model_70_type3_write(uint16_t port, uint8_t val)
 {
-	serial_t *uart = machine_get_serial(0);
-
         switch (port)
         {
                 case 0x100:
@@ -515,13 +511,13 @@ static void model_70_type3_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial_remove(uart);
+                serial_remove(ps2.uart);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(uart, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(ps2.uart, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial_setup(uart, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(ps2.uart, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
                 if (val & 0x10)
                 {
@@ -555,8 +551,6 @@ static void model_70_type3_write(uint16_t port, uint8_t val)
 
 static void model_80_write(uint16_t port, uint8_t val)
 {
-	serial_t *uart = machine_get_serial(0);
-
         switch (port)
         {
                 case 0x100:
@@ -565,13 +559,13 @@ static void model_80_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial_remove(uart);
+                serial_remove(ps2.uart);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(uart, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(ps2.uart, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial_setup(uart, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(ps2.uart, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
                 if (val & 0x10)
                 {
@@ -1246,6 +1240,8 @@ machine_ps2_common_init(const machine_t *model)
         pit_ps2_init();
 
 	nmi_mask = 0x80;
+
+	ps2.uart = device_add_inst(&i8250_device, 1);
 }
 
 

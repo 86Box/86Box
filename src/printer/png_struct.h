@@ -8,7 +8,7 @@
  *
  *		Definitions for the centralized PNG image handler.
  *
- * Version:	@(#)png_struct.h	1.0.1	2018/09/01
+ * Version:	@(#)png_struct.h	1.0.2	2018/11/19
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -52,14 +52,11 @@
 extern "C" {
 #endif
 
-extern int	png_load(void);
-extern void	png_unload(void);
-
 extern int	png_write_gray(wchar_t *path, int invert,
 			       uint8_t *pix, int16_t w, int16_t h);
 
-extern int	png_write_rgb(wchar_t *fn,
-			      uint8_t *pix, int16_t w, int16_t h);
+extern void	png_write_rgb(wchar_t *fn,
+			      uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, PALETTE palcol);
 
 #ifdef __cplusplus
 }

@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.h	1.0.12	2018/10/02
+ * Version:	@(#)cpu.h	1.0.13	2018/11/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -442,7 +442,6 @@ extern void	codegen_block_end(void);
 extern void	codegen_reset(void);
 extern void	cpu_set_edx(void);
 extern int	divl(uint32_t val);
-extern void	dumpregs(int __force);
 extern void	execx86(int cycs);
 extern void	exec386(int cycs);
 extern void	exec386_dynarec(int cycs);
@@ -463,8 +462,12 @@ extern void	x86gpf(char *s, uint16_t error);
 extern void	x86np(char *s, uint16_t error);
 extern void	x86ss(char *s, uint16_t error);
 extern void	x86ts(char *s, uint16_t error);
+
+#ifdef ENABLE_808X_LOG
+extern void	dumpregs(int __force);
 extern void	x87_dumpregs(void);
 extern void	x87_reset(void);
+#endif
 
 extern int	cpu_effective;
 extern void	cpu_dynamic_switch(int new_cpu);

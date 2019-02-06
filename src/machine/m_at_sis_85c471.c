@@ -9,7 +9,7 @@
  *		SiS sis85c471 Super I/O Chip
  *		Used by DTK PKM-0038S E-2
  *
- * Version:	@(#)m_at_sis85c471.c	1.0.12	2018/11/09
+ * Version:	@(#)m_at_sis85c471.c	1.0.13	2018/11/12
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -36,6 +36,7 @@
 typedef struct {
     uint8_t cur_reg,
 	    regs[39];
+    serial_t *uart[2];
 } sis_85c471_t;
 
 
@@ -45,7 +46,6 @@ sis_85c471_write(uint16_t port, uint8_t val, void *priv)
     sis_85c471_t *dev = (sis_85c471_t *) priv;
     uint8_t index = (port & 1) ? 0 : 1;
     uint8_t valxor;
-    serial_t *uart[2];
 
     if (index) {
 	if ((val >= 0x50) && (val <= 0x76))
@@ -68,13 +68,11 @@ sis_85c471_write(uint16_t port, uint8_t val, void *priv)
 				ide_pri_enable();
 		}
 		if (valxor & 0x20) {
-			uart[0] = machine_get_serial(0);
-			uart[1] = machine_get_serial(1);
-			serial_remove(uart[0]);
-			serial_remove(uart[1]);
+			serial_remove(dev->uart[0]);
+			serial_remove(dev->uart[1]);
 			if (val & 0x20) {
-				serial_setup(uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
-				serial_setup(uart[0], SERIAL2_ADDR, SERIAL2_IRQ);
+				serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
+				serial_setup(dev->uart[0], SERIAL2_ADDR, SERIAL2_IRQ);
 			}
 		}
 		if (valxor & 0x10) {
@@ -203,6 +201,9 @@ sis_85c471_init(const device_t *info)
     dev->regs[0x12] = 0xFF;
     dev->regs[0x23] = 0xF0;
     dev->regs[0x26] = 1;
+
+    dev->uart[0] = device_add_inst(&i8250_device, 1);
+    dev->uart[1] = device_add_inst(&i8250_device, 2);
 
     io_sethandler(0x0022, 0x0002,
 		  sis_85c471_read, NULL, NULL, sis_85c471_write, NULL, NULL, dev);

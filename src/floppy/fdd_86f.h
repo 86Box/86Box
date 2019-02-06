@@ -8,7 +8,7 @@
  *
  *		Definitions for the 86F floppy image format.
  *
- * Version:	@(#)floppy_86f.h	1.0.4	2018/03/17
+ * Version:	@(#)floppy_86f.h	1.0.5	2018/11/14
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -38,7 +38,7 @@
 # define EMU_FLOPPY_86F_H
 
 
-#define D86FVER		0x020B
+#define D86FVER		0x020C
 
 
 extern void	d86f_init(void);

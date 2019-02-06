@@ -29,6 +29,7 @@ static void rebuild_axis_button_selections(HWND hdlg)
         HWND h;
         int joystick;
         int c, d;
+	char s[269];
 
         h = GetDlgItem(hdlg, IDC_CONFIG_BASE);
         joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
@@ -53,8 +54,6 @@ static void rebuild_axis_button_selections(HWND hdlg)
                         }
                         for (d = 0; d < plat_joystick_state[joystick-1].nr_povs; d++)
                         {
-                                char s[80];
-                                
                                 sprintf(s, "%s (X axis)", plat_joystick_state[joystick-1].pov[d].name);
                                 SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)s);
                                 sprintf(s, "%s (Y axis)", plat_joystick_state[joystick-1].pov[d].name);
@@ -98,8 +97,6 @@ static void rebuild_axis_button_selections(HWND hdlg)
                 {
                         for (d = 0; d < plat_joystick_state[joystick-1].nr_povs; d++)
                         {
-                                char s[80];
-                                
                                 sprintf(s, "%s (X axis)", plat_joystick_state[joystick-1].pov[d].name);
                                 SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)s);
                                 sprintf(s, "%s (Y axis)", plat_joystick_state[joystick-1].pov[d].name);
@@ -294,6 +291,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
         int y = 10;
         int id = IDC_CONFIG_BASE;
         int c;
+	char s[269];
 
 	joystickconfig_changed = 0;
         
@@ -462,8 +460,6 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
  
         for (c = 0; c < joystick_get_pov_count(type)*2; c++)
         {
-                char s[80];
-                
                 /*Combo box*/
                 item = (DLGITEMTEMPLATE *)data;
                 item->x = 70;

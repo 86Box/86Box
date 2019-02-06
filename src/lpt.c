@@ -12,6 +12,7 @@
 #include "sound/snd_lpt_dss.h"
 #include "printer/prt_devs.h"
 
+
 char lpt_device_names[3][16];
 
 
@@ -64,7 +65,7 @@ void lpt_devices_init()
         	{
                 	lpt_device_ts[i] = (lpt_device_t *) lpt_devices[c].device;
 	                if (lpt_device_ts[i])
-        	                lpt_device_ps[i] = lpt_device_ts[i]->init();
+        	                lpt_device_ps[i] = lpt_device_ts[i]->init(lpt_device_ts[i]);
 	        }
 	}
 }
@@ -87,12 +88,16 @@ void lpt_write(int i, uint16_t port, uint8_t val, void *priv)
         switch (port & 3)
         {
                 case 0:
-                if (lpt_device_ts[i])
+                if (lpt_device_ts[i] && lpt_device_ts[i]->write_data)
                         lpt_device_ts[i]->write_data(val, lpt_device_ps[i]);
                 lpt_dats[i] = val;
                 break;
+		
+		case 1:
+		break;
+		
                 case 2:
-                if (lpt_device_ts[i])
+                if (lpt_device_ts[i] && lpt_device_ts[i]->write_ctrl)
                         lpt_device_ts[i]->write_ctrl(val, lpt_device_ps[i]);
                 lpt_ctrls[i] = val;
                 break;
@@ -100,18 +105,35 @@ void lpt_write(int i, uint16_t port, uint8_t val, void *priv)
 }
 uint8_t lpt_read(int i, uint16_t port, void *priv)
 {
+	uint8_t retval = 0xff;
+	
         switch (port & 3)
         {
                 case 0:
-                return lpt_dats[i];
+                if (lpt_device_ts[i] && lpt_device_ts[i]->read_data) {
+			retval = lpt_device_ts[i]->read_data(lpt_device_ps[i]);
+			break;
+		}
+		retval = lpt_dats[i];
+		break;
+		
                 case 1:
-                if (lpt_device_ts[i])
-                        return lpt_device_ts[i]->read_status(lpt_device_ps[i]);
-                return 0;
+		if (lpt_device_ts[i] && lpt_device_ts[i]->read_status) {
+			retval = lpt_device_ts[i]->read_status(lpt_device_ps[i]);
+			break;
+		}
+		retval = 0xdf;
+                break;
+		
                 case 2:
-                return lpt_ctrls[i];
+		if (lpt_device_ts[i] && lpt_device_ts[i]->read_ctrl) {
+			retval = lpt_device_ts[i]->read_ctrl(lpt_device_ps[i]);
+			break;
+		}
+		retval = 0xe0 | lpt_ctrls[i];
+		break;
         }
-        return 0xff;
+        return retval;
 }
 
 void lpt1_write(uint16_t port, uint8_t val, void *priv)
@@ -123,6 +145,7 @@ uint8_t lpt1_read(uint16_t port, void *priv)
 {
 	return lpt_read(0, port, priv);
 }
+
 
 void lpt2_write(uint16_t port, uint8_t val, void *priv)
 {

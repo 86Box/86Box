@@ -28,7 +28,7 @@
  *		boot. Sometimes, they do, and then it shows an "Incorrect
  *		DOS" error message??  --FvK
  *
- * Version:	@(#)m_ps1.c	1.0.13	2018/11/06
+ * Version:	@(#)m_ps1.c	1.0.14	2018/11/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -98,6 +98,8 @@ typedef struct {
 		ps1_190;
     int		ps1_e0_addr;
     uint8_t	ps1_e0_regs[256];
+
+    serial_t	*uart;
 } ps1_t;
 
 
@@ -292,7 +294,6 @@ static void
 ps1_write(uint16_t port, uint8_t val, void *priv)
 {
     ps1_t *ps = (ps1_t *)priv;
-    serial_t *uart;
 
     switch (port) {
 	case 0x0092:
@@ -328,11 +329,10 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
 
 	case 0x0102:
 		lpt1_remove();
-		uart = machine_get_serial(0); 
 		if (val & 0x04)
-			serial_setup(uart, SERIAL1_ADDR, SERIAL1_IRQ);
+			serial_setup(ps->uart, SERIAL1_ADDR, SERIAL1_IRQ);
 		else
-			serial_remove(uart);
+			serial_remove(ps->uart);
 		if (val & 0x10) {
 			switch ((val >> 5) & 3) {
 				case 0:
@@ -449,6 +449,8 @@ ps1_setup(int model)
     io_sethandler(0x0190, 1,
 		  ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
 
+    ps->uart = device_add_inst(&i8250_device, 1);
+
     lpt1_remove();
     lpt1_init(0x3bc);
 
@@ -458,9 +460,6 @@ ps1_setup(int model)
 		 0xf80000, 0x80000, 0x7ffff, 0, MEM_MAPPING_EXTERNAL);
 
 	lpt2_remove();
-
-	serial_remove(machine_get_serial(0));
-	serial_remove(machine_get_serial(1));
 
 	/* Enable the PS/1 VGA controller. */
 	if (model == 2011)

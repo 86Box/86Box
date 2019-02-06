@@ -10,7 +10,7 @@
  *
  * NOTE:	This module needs a good cleanup someday.
  *
- * Version:	@(#)gameport.h	1.0.3	2018/03/15
+ * Version:	@(#)gameport.h	1.0.4	2018/11/11
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -52,24 +52,24 @@
 
 
 typedef struct {
-    char	name[64];
+    char	name[260];
 
     int		a[8];
     int		b[32];
     int		p[4];
 
     struct {
-	char	name[32];
+	char	name[260];
 	int	id;
     }		axis[8];
 
     struct {
-	char	name[32];
+	char	name[260];
 	int	id;
     }		button[32];
 
     struct {
-	char	name[32];
+	char	name[260];
 	int	id;
     }		pov[4];
 

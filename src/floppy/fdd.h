@@ -8,7 +8,7 @@
  *
  *		Definitions for the floppy drive emulation.
  *
- * Version:	@(#)fdd.h	1.0.4	2018/04/12
+ * Version:	@(#)fdd.h	1.0.5	2018/11/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -254,6 +254,7 @@ void fdi_set_fdc(void *fdc);
 void fdd_set_fdc(void *fdc);
 void imd_set_fdc(void *fdc);
 void img_set_fdc(void *fdc);
+void mfm_set_fdc(void *fdc);
 
 
 #ifdef __cplusplus

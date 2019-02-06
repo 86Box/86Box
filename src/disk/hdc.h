@@ -8,7 +8,7 @@
  *
  *		Definitions for the common disk controller handler.
  *
- * Version:	@(#)hdc.h	1.0.9	2018/09/24
+ * Version:	@(#)hdc.h	1.0.10	2018/11/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -28,7 +28,6 @@
 				 * least 7 devices, with each device being
 				 * able to support 8 units, but hey... */
 
-extern char	*hdc_name;
 extern int	hdc_current;
 
 
@@ -59,11 +58,12 @@ extern const device_t	xtide_acculogic_device;		/* xtide_ps2 */
 extern const device_t	xtide_at_ps2_device;		/* xtide_at_ps2 */
 
 
-extern void	hdc_init(char *name);
+extern void	hdc_init(void);
 extern void	hdc_reset(void);
 
 extern char	*hdc_get_name(int hdc);
 extern char	*hdc_get_internal_name(int hdc);
+extern int	hdc_get_id(char *s);
 extern int	hdc_get_from_internal_name(char *s);
 extern int	hdc_has_config(int hdc);
 extern const device_t	*hdc_get_device(int hdc);

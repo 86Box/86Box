@@ -27,52 +27,32 @@
 
 extern int codegen_flags_changed;
 
-extern int nmi_enable;
+int cpl_override = 0, fpucount = 0;
+int tempc, oldcpl, optype, inttype, oddeven = 0;
+int use32, stack32;
 
-int inscounts[256];
-uint32_t oldpc2;
+uint16_t flags, eflags;
+uint16_t rds, ea_rseg;
+uint16_t oldcs;
 
-int trap;
-
-uint16_t flags,eflags;
-uint32_t oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
+uint32_t oldds, oldss, olddslimit, oldsslimit,
+	 olddslimitw, oldsslimitw;
+uint32_t *eal_r, *eal_w;
+uint32_t oxpc, cr2, cr3, cr4;
+uint32_t dr[8];
+uint32_t rmdat32;
+uint32_t backupregs[16];
 
 x86seg gdt,ldt,idt,tr;
 x86seg _cs,_ds,_es,_ss,_fs,_gs;
 x86seg _oldds;
 
-
-
-extern int cpl_override;
-
-extern int fpucount;
-uint16_t rds;
-uint16_t ea_rseg;
-
-int cgate32;
-
-uint32_t cr2, cr3, cr4;
-uint32_t dr[8];
-
-uint32_t rmdat32;
 #define rmdat rmdat32
 #define fetchdat rmdat32
-uint32_t backupregs[16];
-extern int oddeven;
-int inttype;
-
-
-uint32_t oldcs2;
-uint32_t oldecx;
-
-uint32_t *eal_r, *eal_w;
-
-uint16_t *mod1add[2][8];
-uint32_t *mod1seg[8];
-
 
 #define fetch_ea_16(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_16_long(rmdat); if (cpu_state.abrt) return 0; } 
 #define fetch_ea_32(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_32_long(rmdat); } if (cpu_state.abrt) return 0
+
 
 #include "x86_flags.h"
 
@@ -149,11 +129,6 @@ void exec386(int cycs)
                 timer_start_period(cycles << TIMER_SHIFT);
                 while (cycdiff < cycle_period)
                 {
-            /*            testr[0]=EAX; testr[1]=EBX; testr[2]=ECX; testr[3]=EDX;
-                        testr[4]=ESI; testr[5]=EDI; testr[6]=EBP; testr[7]=ESP;*/
-/*                        testr[8]=flags;*/
-                /* oldcs2=oldcs; */
-                /* oldpc2=oldpc; */
                 oldcs=CS;
                 cpu_state.oldpc = cpu_state.pc;
                 oldcpl=CPL;
