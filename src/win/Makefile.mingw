@@ -47,9 +47,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef D2D
   D2D		:= y
  endif
- ifndef GUS_MAX
-  GUS_MAX	:= y
- endif
  ifndef I686
   I686		:= y
  endif
@@ -89,9 +86,6 @@ else
  endif
  ifndef D2D
   D2D		:= n
- endif
- ifndef GUS_MAX
-  GUS_MAX	:= n
  endif
  ifndef I686
   I686		:= n
@@ -366,11 +360,6 @@ endif
 ifeq ($(CRASHDUMPOBJ), y)
 OPTS		+= -DUSE_CRASHDUMP
 DEVBROBJ	+= win_crashdump.o
-endif
-
-ifeq ($(GUS_MAX), y)
-  OPTS		+= -DUSE_GUSMAX
-  DEVBROBJ	+= snd_cs423x.o
 endif
 
 ifeq ($(I686), y)
