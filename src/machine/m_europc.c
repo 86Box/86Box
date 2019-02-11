@@ -68,7 +68,7 @@
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *		
- * Version:	@(#)europc.c	1.0.9	2018/11/01
+ * Version:	@(#)europc.c	1.0.10	2019/02/11
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -121,6 +121,7 @@
 #include "../io.h"
 #include "../nmi.h"
 #include "../mem.h"
+#include "../pit.h"
 #include "../rom.h"
 #include "../device.h"
 #include "../nvr.h"
@@ -733,6 +734,8 @@ void
 machine_europc_init(const machine_t *model)
 {
     machine_common_init(model);
+    pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
+
     nmi_init();
 
     /* Clear the machine state. */
