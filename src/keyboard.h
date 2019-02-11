@@ -8,15 +8,15 @@
  *
  *		Definitions for the keyboard interface.
  *
- * Version:	@(#)keyboard.h	1.0.16	2018/09/15
+ * Version:	@(#)keyboard.h	1.0.17	2019/02/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #ifndef EMU_KEYBOARD_H
 # define EMU_KEYBOARD_H
@@ -61,7 +61,9 @@ extern int	mouse_scan;
 
 #ifdef EMU_DEVICE_H
 extern const device_t	keyboard_pc_device;
+extern const device_t	keyboard_pc82_device;
 extern const device_t	keyboard_xt_device;
+extern const device_t	keyboard_xt86_device;
 extern const device_t	keyboard_tandy_device;
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
 extern const device_t	keyboard_xt_lxt3_device;

@@ -85,7 +85,7 @@ BOOL CALLBACK DIEnumDeviceObjectsCallback(
             lpddoi->guidType == GUID_RxAxis || lpddoi->guidType == GUID_RyAxis || lpddoi->guidType == GUID_RzAxis ||
             lpddoi->guidType == GUID_Slider)
         {
-                memcpy(state->axis[state->nr_axes].name, lpddoi->tszName, strlen(state->axis[state->nr_axes].name) + 1);
+                memcpy(state->axis[state->nr_axes].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
                 joystick_log("Axis %i : %s  %x %x\n", state->nr_axes, state->axis[state->nr_axes].name, lpddoi->dwOfs, lpddoi->dwType);
                 if (lpddoi->guidType == GUID_XAxis)
                         state->axis[state->nr_axes].id = 0;
@@ -103,13 +103,13 @@ BOOL CALLBACK DIEnumDeviceObjectsCallback(
         }
         else if (lpddoi->guidType == GUID_Button)
         {
-                memcpy(state->button[state->nr_buttons].name, lpddoi->tszName, strlen(state->button[state->nr_buttons].name) + 1);
+                memcpy(state->button[state->nr_buttons].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
                 joystick_log("Button %i : %s  %x %x\n", state->nr_buttons, state->button[state->nr_buttons].name, lpddoi->dwOfs, lpddoi->dwType);
                 state->nr_buttons++;
         }
         else if (lpddoi->guidType == GUID_POV)
         {
-                memcpy(state->pov[state->nr_povs].name, lpddoi->tszName, strlen(state->pov[state->nr_povs].name) + 1);
+                memcpy(state->pov[state->nr_povs].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
                 joystick_log("POV %i : %s  %x %x\n", state->nr_povs, state->pov[state->nr_povs].name, lpddoi->dwOfs, lpddoi->dwType);
                 state->nr_povs++;
         }        
@@ -155,7 +155,7 @@ void joystick_init()
                 joystick_log("Joystick %i :\n", c);
                 joystick_log(" tszInstanceName = %s\n", device_instance.tszInstanceName);
                 joystick_log(" tszProductName = %s\n", device_instance.tszProductName);
-                memcpy(plat_joystick_state[c].name, device_instance.tszInstanceName, 260);
+                memcpy(plat_joystick_state[c].name, device_instance.tszInstanceName, strlen(device_instance.tszInstanceName) + 1);
 
                 memset(&devcaps, 0, sizeof(devcaps));
                 devcaps.dwSize = sizeof(devcaps);

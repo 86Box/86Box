@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.59	2018/11/09
+ * Version:	@(#)hdc_ide.c	1.0.60	2019/02/10
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2439,6 +2439,9 @@ ide_set_handlers(uint8_t board)
 static void
 ide_remove_handlers(uint8_t board)
 {
+    if (!ide_boards[board])
+	return;
+
     if (ide_boards[board]->bit32) {
 	io_removehandler(ide_base_main[board], 1,
 			 ide_readb,           ide_readw,  ide_readl,

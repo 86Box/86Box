@@ -8,7 +8,7 @@
  *
  *		Definitions for the ROM image handler.
  *
- * Version:	@(#)rom.h	1.0.21	2019/01/13
+ * Version:	@(#)rom.h	1.0.22	2019/02/08
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2018 Fred N. van Kempen.
@@ -28,10 +28,12 @@ typedef struct {
 
 
 enum {
-    ROM_IBMPC = 0,	/* 301 keyboard error, 131 cassette (!!!) error */
+    ROM_IBMPC = 0,	/* 1981 - 16-64 variant */
+    ROM_IBMPC82,	/* 1982 - 64-256 variant */
     ROM_AMIXT,		/* XT Clone with AMI BIOS */
     ROM_DTKXT,
-    ROM_IBMXT,		/* 301 keyboard error */
+    ROM_IBMXT,
+    ROM_IBMXT86,
     ROM_GENXT,		/* 'Generic XT BIOS' */
     ROM_JUKOPC,
     ROM_PORTABLE,

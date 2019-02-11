@@ -513,10 +513,7 @@ pc_full_speed(void)
 
     if (! atfullspeed) {
 	pc_log("Set fullspeed - %i %i %i\n", is386, AT, cpuspeed2);
-	if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
-		setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
-	else
-		setpitclock(14318184.0);
+	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
     }
     atfullspeed = 1;
 
@@ -527,52 +524,10 @@ pc_full_speed(void)
 void
 pc_speed_changed(void)
 {
-    if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
-	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
-    else
-	setpitclock(14318184.0);
+    setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
 
     nvr_period_recalc();
 }
-
-
-#if 0
-/* Re-load system configuration and restart. */
-/* FIXME: this has to be reviewed! */
-void
-pc_reload(wchar_t *fn)
-{
-    int i;
-
-    config_write(cfg_path);
-
-    for (i=0; i<FDD_NUM; i++)
-	fdd_close(i);
-
-    cdrom_close();
-
-    pc_reset_hard_close();
-
-    // FIXME: set up new config file path 'fn'... --FvK
-
-    config_load();
-
-    cdrom_hard_reset();
-
-    zip_hard_reset();
-
-    scsi_disk_hard_reset();
-
-    fdd_load(0, floppyfns[0]);
-    fdd_load(1, floppyfns[1]);
-    fdd_load(2, floppyfns[2]);
-    fdd_load(3, floppyfns[3]);
-
-    network_init();
-
-    pc_reset_hard_init();
-}
-#endif
 
 
 /* Initialize modules, ran once, after pc_init. */
@@ -795,7 +750,6 @@ pc_reset_hard_init(void)
 
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
-
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
@@ -832,10 +786,7 @@ pc_reset_hard_init(void)
 
     pc_full_speed();
 
-    if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
-	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
-    else
-	setpitclock(14318184.0);
+    setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
 }
 
 

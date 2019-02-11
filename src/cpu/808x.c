@@ -80,14 +80,10 @@ uint32_t easeg;
 static uint8_t pfq[6];
 
 /* Variables to aid with the prefetch queue operation. */
-static int fetchcycles = 0;
-static int fetchclocks, pfq_pos = 0;
+static int fetchcycles = 0, pfq_pos = 0;
 
 /* The IP equivalent of the current prefetch queue position. */
 static uint16_t pfq_ip;
-
-/* Where is this even used?! */
-static int nextcyc = 0;
 
 /* Pointer tables needed for segment overrides. */
 static uint32_t *opseg[4];
@@ -196,6 +192,24 @@ wait(int c, int bus)
 #undef readmemb
 #undef readmemw
 
+/* Common read function. */
+static uint8_t
+readmemb_common(uint32_t a)
+{
+    uint8_t ret;
+
+    if (readlookup2 == NULL)
+	ret = readmembl(a);
+    else {
+	if (readlookup2[(a) >> 12] == ((uintptr_t) -1))
+		ret = readmembl(a);
+	else
+		ret = *(uint8_t *)(readlookup2[(a) >> 12] + (a));
+    }
+
+    return ret;
+}
+
 /* Reads a byte from the memory and accounts for memory transfer cycles to
    subtract from the cycles to use for adding to the prefetch queue. */
 static uint8_t
@@ -204,15 +218,7 @@ readmemb(uint32_t a)
     uint8_t ret;
 
     wait(4, 1);
-
-    if (readlookup2 == NULL)
-	ret = readmembl(a);
-    else {
-	if (readlookup2[(a) >> 12] == -1)
-		ret = readmembl(a);
-	else
-		ret = *(uint8_t *)(readlookup2[(a) >> 12] + (a));
-    }
+    ret = readmemb_common(a);
 
     return ret;
 }
@@ -227,15 +233,7 @@ readmembf(uint32_t a)
     uint8_t ret;
 
     a = cs + (a & 0xffff);
-
-    if (readlookup2 == NULL)
-	ret = readmembl(a);
-    else {
-	if (readlookup2[(a) >> 12] == -1)
-		ret = readmembl(a);
-	else
-		ret = *(uint8_t *)(readlookup2[(a) >> 12] + (a));
-    }
+    ret = readmemb_common(a);
 
     return ret;
 }
@@ -244,45 +242,65 @@ readmembf(uint32_t a)
 /* Reads a word from the memory and accounts for memory transfer cycles to
    subtract from the cycles to use for adding to the prefetch queue. */
 static uint16_t
-readmemw(uint32_t s, uint16_t a)
+readmemw_common(uint32_t s, uint16_t a)
 {
     uint16_t ret;
 
-    if (!is8086 || (a & 1)) {
-	ret = readmemb(s + a);
-	ret |= readmemb(s + ((a + 1) & 0xffff)) << 8;
-    } else {
-	wait(4, 1);
-
-	if (readlookup2 == NULL)
-		ret = readmemwl(s, a);
-	else {
-		if ((readlookup2[((s) + (a)) >> 12] == -1 || (s) == 0xFFFFFFFF))
-			ret = readmemwl(s, a);
-		else
-			ret = *(uint16_t *)(readlookup2[(s + a) >> 12] + s + a);
-	}
-    }
+    ret = readmemb_common(s + a);
+    ret |= readmemb_common(s + ((a + 1) & 0xffff)) << 8;
 
     return ret;
 }
 
 
+static uint16_t
+readmemw(uint32_t s, uint16_t a)
+{
+    uint16_t ret;
+
+    if (is8086 && !(a & 1))
+	wait(4, 1);
+    else
+	wait(8, 1);
+    ret = readmemw_common(s, a);
+
+    return ret;
+}
+
+
+static uint16_t
+readmemwf(uint16_t a)
+{
+    uint16_t ret;
+
+    ret = readmemw_common(cs, a & 0xffff);
+
+    return ret;
+}
+
+
+
 /* Writes a byte from the memory and accounts for memory transfer cycles to
    subtract from the cycles to use for adding to the prefetch queue. */
 static void
-writememb(uint32_t a, uint8_t v)
+writememb_common(uint32_t a, uint8_t v)
 {
-    wait(4, 1);
-
     if (writelookup2 == NULL)
 	writemembl(a, v);
     else {
-	if (writelookup2[(a) >> 12] == -1)
+	if (writelookup2[(a) >> 12] == ((uintptr_t) -1))
 		writemembl(a, v);
 	else
 		*(uint8_t *)(writelookup2[a >> 12] + a) = v;
     }
+}
+
+
+static void
+writememb(uint32_t a, uint8_t v)
+{
+    wait(4, 1);
+    writememb_common(a, v);
 }
 
 
@@ -291,21 +309,49 @@ writememb(uint32_t a, uint8_t v)
 static void
 writememw(uint32_t s, uint32_t a, uint16_t v)
 {
-    if (!is8086 || (a & 1)) {
-	writememb(s + a, v & 0xff);
-	writememb(s + ((a + 1) & 0xffff), v >> 8);
-    } else {
-	    wait(4, 1);
+    if (is8086 && !(a & 1))
+	wait(4, 1);
+    else
+	wait(8, 1);
+    writememb_common(s + a, v & 0xff);
+    writememb_common(s + ((a + 1) & 0xffff), v >> 8);
+}
 
-	    if (writelookup2 == NULL)
-		writememwl(s, a, v);
-	    else {
-		if ((writelookup2[((s) + (a)) >> 12]== -1) || ((s) == 0xFFFFFFFF))
-			writememwl(s, a, v);
-		else
-			*(uint16_t *) (writelookup2[(s + a) >> 12] + s + a) = v;
-	    }
+
+static void
+pfq_write(void)
+{
+    uint16_t tempw;
+
+    /* On 8086 and even IP, fetch *TWO* bytes at once. */
+    if (pfq_pos < pfq_size) {
+	/* If we're filling the last byte of the prefetch queue, do *NOT*
+	   read more than one byte even on the 8086. */
+	if (is8086 && !(pfq_ip & 1) && !(pfq_pos & 1)) {
+		tempw = readmemwf(pfq_ip);
+		*(uint16_t *) &(pfq[pfq_pos]) = tempw;
+		pfq_ip += 2;
+		pfq_pos += 2;
+    	} else {
+		pfq[pfq_pos] = readmembf(pfq_ip);
+		pfq_ip++;
+		pfq_pos++;
+	}
     }
+}
+
+
+static uint8_t
+pfq_read(void)
+{
+    uint8_t temp, i;
+
+    temp = pfq[0];
+    for (i = 0; i < (pfq_size - 1); i++)
+	pfq[i] = pfq[i + 1];
+    pfq_pos--;
+    cpu_state.pc++;
+    return temp;
 }
 
 
@@ -314,27 +360,21 @@ writememw(uint32_t s, uint32_t a, uint16_t v)
 static uint8_t
 pfq_fetchb(void)
 {
-    uint8_t temp, i;
+    uint8_t temp;
 
     if (pfq_pos == 0) {
-	cycles -= (4 - (fetchcycles & 3));
-	fetchclocks += (4 - (fetchcycles & 3));
+	/* Extra cycles due to having to fetch on read. */
+	wait(4 - (fetchcycles & 3), 1);
 	fetchcycles = 4;
-	temp = readmembf(cpu_state.pc);
-	pfq_ip = cpu_state.pc = cpu_state.pc + 1;
-	if (is8086 && (cpu_state.pc & 1)) {
-		pfq[0] = readmembf(cpu_state.pc);
-		pfq_ip++;
-		pfq_pos++;
-	}
-    } else {
-	temp = pfq[0];
-	for (i = 0; i < (pfq_size - 1); i++)
-		pfq[i] = pfq[i + 1];
-	pfq_pos--;
+	/* Reset prefetch queue internal position. */
+	pfq_ip = cpu_state.pc;
+	/* Fill the queue. */
+	pfq_write();
+    } else
 	fetchcycles -= 4;
-	cpu_state.pc++;
-    }
+
+    /* Fetch. */
+    temp = pfq_read();
     wait(1, 0);
     return temp;
 }
@@ -362,46 +402,11 @@ pfq_add(int c)
     d = c + (fetchcycles & 3);
     while ((d > 3) && (pfq_pos < pfq_size)) {
 	d -= 4;
-	if (is8086 && !(pfq_ip & 1)) {
-		pfq[pfq_pos] = readmembf(pfq_ip);
-		pfq_ip++;
-		pfq_pos++;
-	}
-	if (pfq_pos < pfq_size) {
-		pfq[pfq_pos] = readmembf(pfq_ip);
-		pfq_ip++;
-		pfq_pos++;
-	}
+	pfq_write();
     }
     fetchcycles += c;
     if (fetchcycles > 16)
 	fetchcycles = 16;
-}
-
-
-/* Completes a fetch (called by refreshread()). */
-static void
-pfq_complete(void)
-{
-    if (!(fetchcycles & 3))
-	return;
-    if (pfq_pos >= pfq_size)
-	return;
-    if (!pfq_pos)
-	nextcyc = (4 - (fetchcycles & 3));
-    cycles -= (4 - (fetchcycles & 3));
-    fetchclocks += (4 - (fetchcycles & 3));
-    if (is8086 && !(pfq_ip & 1)) {
-	pfq[pfq_pos] = readmembf(pfq_ip);
-	pfq_ip++;
-	pfq_pos++;
-    }
-    if (pfq_pos < pfq_size) {
-	pfq[pfq_pos] = readmembf(pfq_ip);
-	pfq_ip++;
-	pfq_pos++;
-    }
-    fetchcycles += (4 - (fetchcycles & 3));
 }
 
 
@@ -411,14 +416,28 @@ pfq_clear()
 {
     pfq_ip = cpu_state.pc;
     pfq_pos = 0;
-    fetchclocks = 0;
 }
 
 
 /* Memory refresh read - called by reads and writes on DMA channel 0. */
 void
 refreshread(void) {
-    pfq_complete();
+    if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed > 4772728)
+	wait(8, 1);	/* Insert extra wait states. */
+
+    /* Do the actual refresh stuff. */
+    /* If there's no extra cycles left to consume, return. */
+    if (!(fetchcycles & 3))
+	return;
+    /* If the prefetch queue is full, return. */
+    if (pfq_pos >= pfq_size)
+	return;
+    /* Subtract from 1 to 8 cycles. */
+    wait(8 - (fetchcycles % 7), 1);
+    /* Write to the prefetch queue. */
+    pfq_write();
+    /* Add those cycles to fetchcycles. */
+    fetchcycles += (4 - (fetchcycles & 3));
 }
 
 
@@ -516,12 +535,21 @@ do_mod_rm(void)
 }
 
 
+#undef getr8
+#define getr8(r)   ((r & 4) ? cpu_state.regs[r & 3].b.h : cpu_state.regs[r & 3].b.l)
+
+#undef setr8
+#define setr8(r,v) if (r & 4) cpu_state.regs[r & 3].b.h = v; \
+                   else       cpu_state.regs[r & 3].b.l = v;
+
+
 /* Reads a byte from the effective address. */
 static uint8_t
 geteab(void)
 {
-    if (cpu_mod == 3)
-	return (cpu_rm & 4) ? cpu_state.regs[cpu_rm & 3].b.h : cpu_state.regs[cpu_rm & 3].b.l;
+    if (cpu_mod == 3) {
+	return (getr8(cpu_rm));
+    }
 
     return readmemb(easeg + cpu_state.eaaddr);
 }
@@ -548,9 +576,9 @@ read_ea(int memory_only, int bits)
 	return;
     }
     if (!memory_only) {
-	if (bits == 8)
-		cpu_data = (cpu_rm & 4) ? cpu_state.regs[cpu_rm & 3].b.h : cpu_state.regs[cpu_rm & 3].b.l;
-	else
+	if (bits == 8) {
+		cpu_data = getr8(cpu_rm);
+	} else
 		cpu_data = cpu_state.regs[cpu_rm].w;
     }
 }
@@ -571,10 +599,7 @@ static void
 seteab(uint8_t val)
 {
     if (cpu_mod == 3) {
-	if (cpu_rm & 4)
-		cpu_state.regs[cpu_rm & 3].b.h = val;
-	else
-		cpu_state.regs[cpu_rm & 3].b.l = val;
+	setr8(cpu_rm, val);
     } else
 	writememb(easeg + cpu_state.eaaddr, val);
 }
@@ -589,14 +614,6 @@ seteaw(uint16_t val)
     else
 	writememw(easeg, cpu_state.eaaddr, val);
 }
-
-#undef getr8
-#define getr8(r)   ((r & 4) ? cpu_state.regs[r & 3].b.h : cpu_state.regs[r & 3].b.l)
-
-#undef setr8
-#define setr8(r,v) if (r & 4) cpu_state.regs[r & 3].b.h = v; \
-                   else       cpu_state.regs[r & 3].b.l = v;
-
 
 /* Prepare the ZNP table needed to speed up the setting of the Z, N, and P flags. */
 static void
@@ -625,8 +642,10 @@ makeznptable(void)
 		znptable8[c] = 0;
 	else
 		znptable8[c] = P_FLAG;
+#ifdef ENABLE_808X_LOG
 	if (c == 0xb1)
 		x808x_log("znp8 b1 = %i %02X\n", d, znptable8[c]);
+#endif
 	if (!c)
 		znptable8[c] |= Z_FLAG;
 	if (c & 0x80)
@@ -655,10 +674,12 @@ makeznptable(void)
 		znptable16[c] = 0;
 	else
 		znptable16[c] = P_FLAG;
+#ifdef ENABLE_808X_LOG
 	if (c == 0xb1)
 		x808x_log("znp16 b1 = %i %02X\n", d, znptable16[c]);
 	if (c == 0x65b1)
 		x808x_log("znp16 65b1 = %i %02X\n", d, znptable16[c]);
+#endif
 	if (!c)
 		znptable16[c] |= Z_FLAG;
 	if (c & 0x8000)
@@ -672,7 +693,9 @@ static void
 reset_common(int hard)
 {
     if (hard) {
+#ifdef ENABLE_808X_LOG
 	x808x_log("x86 reset\n");
+#endif
 	ins = 0;
     }
     use32 = 0;
@@ -746,11 +769,18 @@ softresetx86(void)
 
 /* Pushes a word to the stack. */
 static void
+push_ex(uint16_t val)
+{
+    writememw(ss, (SP & 0xFFFF), val);
+    cpu_state.last_ea = SP;
+}
+
+
+static void
 push(uint16_t val)
 {
-    writememw(ss, ((SP - 2) & 0xFFFF), val);
     SP -= 2;
-    cpu_state.last_ea = SP;
+    push_ex(val);
 }
 
 
@@ -1323,7 +1353,7 @@ div(uint16_t l, uint16_t h)
 	}
 	wait(3, 0);
     }
-    cycles -= 8;
+    wait(8, 0);
     cpu_src &= size_mask;
     if (h >= cpu_src) {
 	if (opcode != 0xd4)
@@ -1408,7 +1438,7 @@ stos(int bits)
     if (bits == 16)
 	writememw(es, DI, cpu_data);
     else
-	writememb(es + DI, cpu_data);
+	writememb(es + DI, (uint8_t) (cpu_data & 0xff));
     if (flags & D_FLAG)
 	DI -= (bits >> 3);
     else
@@ -1464,9 +1494,6 @@ execx86(int cycs)
 
     while (cycles > 0) {
 	timer_start_period(cycles * xt_cpu_multi);
-	wait(nextcyc, 0);
-	nextcyc = 0;
-	fetchclocks = 0;
 	cpu_state.oldpc = cpu_state.pc;
 	in_rep = repeating = 0;
 	completed = 0;
@@ -1482,10 +1509,10 @@ opcodestart:
 		oldc = flags & C_FLAG;
 		trap = flags & T_FLAG;
 		wait(1, 0);
-	}
 
-        /* if ((CS >= 0xc800) && (CS <= 0xcfff))
-		pclog("%04X:%04X %02X (%04X)\n", CS, cpu_state.pc, opcode, flags); */
+		/* if (!in_rep && !ovr_seg && (CS < 0xf000))
+			pclog("%04X:%04X %02X\n", CS, (cpu_state.pc - 1) & 0xFFFF, opcode); */
+	}
 
 	switch (opcode) {
 		case 0x06: case 0x0E: case 0x16: case 0x1E:	/* PUSH seg */
@@ -1545,14 +1572,14 @@ opcodestart:
 					if (opcode & 1)
 						seteaw(cpu_data);
 					else
-						seteab(cpu_data);
+						seteab((uint8_t) (cpu_data & 0xff));
 					if (cpu_mod == 3)
 						wait(1, 0);
 				} else {
 					if (opcode & 1)
 						cpu_state.regs[cpu_reg].w = cpu_data;
 					else
-					       setr8(cpu_reg, cpu_data);
+					       setr8(cpu_reg, (uint8_t) (cpu_data & 0xff));
 					wait(1, 0);
 				}
 			} else
@@ -1580,7 +1607,7 @@ opcodestart:
 				if (opcode & 1)
 					AX = cpu_data;
 				else
-					AL = cpu_data & 0xff;
+					AL = (uint8_t) (cpu_data & 0xff);
 			}
 			wait(1, 0);
 			break;
@@ -1665,7 +1692,11 @@ opcodestart:
 		case 0x50: case 0x51: case 0x52: case 0x53:	/*PUSH r16*/
 		case 0x54: case 0x55: case 0x56: case 0x57:
 			access(30, 16);
-			push(cpu_state.regs[opcode & 0x07].w);
+			if (opcode == 0x54) {
+				SP -= 2;
+				push_ex(cpu_state.regs[opcode & 0x07].w);
+			} else
+				push(cpu_state.regs[opcode & 0x07].w);
 			break;
 		case 0x58: case 0x59: case 0x5A: case 0x5B:	/*POP r16*/
 		case 0x5C: case 0x5D: case 0x5E: case 0x5F:
@@ -1759,7 +1790,7 @@ opcodestart:
 				if (opcode & 1)
 					seteaw(cpu_data);
 				else
-					seteab(cpu_data);
+					seteab((uint8_t) (cpu_data & 0xff));
 			} else {
 				if (cpu_mod != 3)
 					wait(1, 0);
@@ -1801,7 +1832,7 @@ opcodestart:
 			if (opcode & 1)
 				seteaw(cpu_src);
 			else
-				seteab(cpu_src);
+				seteab((uint8_t) (cpu_src & 0xff));
 			break;
 
 		case 0x88: case 0x89:
@@ -1813,7 +1844,7 @@ opcodestart:
 			if (opcode & 1)
 				seteaw(cpu_state.regs[cpu_reg].w);
 			else
-				seteab(getr8(cpu_reg));
+				seteab(getr8((uint8_t) (cpu_reg & 0xff)));
 			break;
 		case 0x8A: case 0x8B:
 			/* MOV reg, rm */
@@ -1936,8 +1967,7 @@ opcodestart:
 			pfq_clear();
 			break;
 		case 0x9B:	/*WAIT*/
-			pclog("PCem: %02X\n", opcode);
-			cycles -= 4;
+			wait(4, 0);
 			break;
 		case 0x9C:	/*PUSHF*/
 			access(33, 16);
@@ -2007,7 +2037,7 @@ opcodestart:
 				if (opcode & 1)
 					AX = cpu_data;
 				else
-					AL = cpu_data;
+					AL = (uint8_t) (cpu_data & 0xff);
 				if (in_rep != 0)
 					wait(2, 0);
 			}
@@ -2182,7 +2212,7 @@ opcodestart:
 			if (opcode & 1)
 				seteaw(cpu_data);
 			else
-				seteab(cpu_data);
+				seteab((uint8_t) (cpu_data & 0xff));
 			break;
 
 		case 0xCC:	/*INT 3*/
@@ -2305,7 +2335,7 @@ opcodestart:
 			if (opcode & 1)
 				seteaw(cpu_data);
 			else
-				seteab(cpu_data);
+				seteab((uint8_t) (cpu_data & 0xff));
 			break;
 
 		case 0xD4:	/*AAM*/
@@ -2381,7 +2411,7 @@ opcodestart:
 				cpu_data = DX;
 			if ((opcode & 2) == 0) {
 				access(3, bits);
-				if ((opcode & 1) && is8086) {
+				if ((opcode & 1) && is8086 && !(cpu_data & 1)) {
 					AX = inw(cpu_data);
 					wait(4, 1);		/* I/O access and wait state. */
 				} else {
@@ -2396,7 +2426,7 @@ opcodestart:
 					access(8, bits);
 				else
 					access(9, bits);
-				if ((opcode & 1) && is8086) {
+				if ((opcode & 1) && is8086 && !(cpu_data & 1)) {
 					outw(cpu_data, AX);
 					wait(4, 1);
 				} else {
@@ -2497,7 +2527,7 @@ opcodestart:
 					if (opcode & 1)
 						seteaw(cpu_data);
 					else
-						seteab(cpu_data);
+						seteab((uint8_t) (cpu_data & 0xff));
 					break;
 				case 0x20:	/* MUL */
 				case 0x28:	/* IMUL */
@@ -2550,7 +2580,7 @@ opcodestart:
 			bits = 8 << (opcode & 1);
 			do_mod_rm();
 			access(56, bits);
-			read_ea((rmdat & 0x38) == 0x18 || (rmdat & 0x38) == 0x28, bits);
+			read_ea(((rmdat & 0x38) == 0x18) || ((rmdat & 0x38) == 0x28), bits);
 			switch (rmdat & 0x38) {
 				case 0x00:	/* INC rm */
 				case 0x08:	/* DEC rm */
@@ -2570,7 +2600,7 @@ opcodestart:
 					if (opcode & 1)
 						seteaw(cpu_data);
 					else
-						seteab(cpu_data);
+						seteab((uint8_t) (cpu_data & 0xff));
 					break;
 				case 0x10:	/* CALL rm */
 					if (!(opcode & 1)) {
@@ -2637,7 +2667,10 @@ opcodestart:
 					if (cpu_mod != 3)
 						wait(1, 0);
 					access(38, bits);
-					push(cpu_data);
+					if ((cpu_mod == 3) && (cpu_rm == 4))
+						push(cpu_data - 2);
+					else
+						push(cpu_data);
 					break;
 			}
 			break;
@@ -2659,7 +2692,8 @@ on_halt:
 		in_lock = 0;
 
 	/* FIXME: Find out why this is needed. */
-	if ((romset == ROM_IBMPC) && ((cs + cpu_state.pc) == 0xFE4A7)) {
+	if (((romset == ROM_IBMPC) && ((cs + cpu_state.pc) == 0xFE545)) || 
+	    ((romset == ROM_IBMPC82) && ((cs + cpu_state.pc) == 0xFE4A7))) {
 		/* You didn't seriously think I was going to emulate the cassette, did you? */
 		CX = 1;
 		BX = 0x500;

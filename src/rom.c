@@ -13,7 +13,7 @@
  *		- c386sx16 BIOS fails checksum
  *		- the loadfont() calls should be done elsewhere
  *
- * Version:	@(#)rom.c	1.0.43	2019/01/13
+ * Version:	@(#)rom.c	1.0.44	2019/02/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -330,9 +330,9 @@ rom_load_bios(int rom_id)
     mem_mapping_disable(&romext_mapping);
 
     switch (rom_id) {
-	case ROM_IBMPC:		/* IBM PC */
+	case ROM_IBMPC:		/* IBM PC (1981) */
 		if (! rom_load_linear(
-			L"roms/machines/ibmpc/pc102782.bin",
+			L"roms/machines/ibmpc/BIOS_5150_24APR81_U33.BIN",
 			0x00e000, 8192, 0, rom)) break;
 
 		/* Try to load the (full) BASIC ROM. */
@@ -355,7 +355,32 @@ rom_load_bios(int rom_id)
 			0x00c000, 8192, 0, rom)) break;		/* nope */
 		return(1);
 
-	case ROM_IBMXT:		/* IBM PX-XT */
+	case ROM_IBMPC82:		/* IBM PC (1982) */
+		if (! rom_load_linear(
+			L"roms/machines/ibmpc82/pc102782.bin",
+			0x00e000, 8192, 0, rom)) break;
+
+		/* Try to load the (full) BASIC ROM. */
+		if (rom_load_linear(
+			L"roms/machines/ibmpc82/ibm-basic-1.10.rom",
+			0x006000, 32768, 0, rom)) return(1);
+
+		/* Nope. Try to load the first BASIC ROM image. */
+		if (! rom_load_linear(
+			L"roms/machines/ibmpc82/basicc11.f6",
+			0x006000, 8192, 0, rom)) return(1);	/* nope */
+		if (! rom_load_linear(
+			L"roms/machines/ibmpc82/basicc11.f8",
+			0x008000, 8192, 0, rom)) break;		/* nope */
+		if (! rom_load_linear(
+			L"roms/machines/ibmpc82/basicc11.fa",
+			0x00a000, 8192, 0, rom)) break;		/* nope */
+		if (! rom_load_linear(
+			L"roms/machines/ibmpc82/basicc11.fc",
+			0x00c000, 8192, 0, rom)) break;		/* nope */
+		return(1);
+
+	case ROM_IBMXT:		/* IBM PX-XT (1982) */
 		if (rom_load_linear(
 			L"roms/machines/ibmxt/xt.rom",
 			0x000000, 65536, 0, rom)) return(1);
@@ -365,6 +390,15 @@ rom_load_bios(int rom_id)
 			0x000000, 32768, 0, rom)) break;
 		if (rom_load_linear(
 			L"roms/machines/ibmxt/1501512.u18",
+			0x008000, 32768, 0, rom)) return(1);
+		break;
+
+	case ROM_IBMXT86:	/* IBM PX-XT (1986) */
+		if (! rom_load_linear(
+			L"roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN",
+			0x000000, 32768, 0, rom)) break;
+		if (rom_load_linear(
+			L"roms/machines/ibmxt86/BIOS_5160_09MAY86_U18_59X7268_62X0890_27256_F800.BIN",
 			0x008000, 32768, 0, rom)) return(1);
 		break;
 

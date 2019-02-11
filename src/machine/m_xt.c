@@ -14,14 +14,13 @@
 #include "machine.h"
 
 
-void
-machine_pc_init(const machine_t *model)
+static void
+machine_xt_common_init(const machine_t *model)
 {
     machine_common_init(model);
 
     pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
 
-    device_add(&keyboard_pc_device);
     device_add(&fdc_xt_device);
     nmi_init();
     if (joystick_type != 7)
@@ -30,15 +29,36 @@ machine_pc_init(const machine_t *model)
 
 
 void
+machine_pc_init(const machine_t *model)
+{
+    machine_xt_common_init(model);
+
+    device_add(&keyboard_pc_device);
+}
+
+
+void
+machine_pc82_init(const machine_t *model)
+{
+    machine_xt_common_init(model);
+
+    device_add(&keyboard_pc82_device);
+}
+
+
+void
 machine_xt_init(const machine_t *model)
 {
-    machine_common_init(model);
-
-    pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
+    machine_xt_common_init(model);
 
     device_add(&keyboard_xt_device);
-    device_add(&fdc_xt_device);
-    nmi_init();
-    if (joystick_type != 7)
-	device_add(&gameport_device);
+}
+
+
+void
+machine_xt86_init(const machine_t *model)
+{
+    machine_xt_common_init(model);
+
+    device_add(&keyboard_xt86_device);
 }

@@ -8,13 +8,13 @@
  *
  *		Hercules emulation.
  *
- * Version:	@(#)vid_hercules.c	1.0.16	2018/11/18
+ * Version:	@(#)vid_hercules.c	1.0.17	2019/02/07
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -22,6 +22,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../cpu/cpu.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../io.h"
@@ -92,6 +93,7 @@ static void
 hercules_out(uint16_t addr, uint8_t val, void *priv)
 {
     hercules_t *dev = (hercules_t *)priv;
+    uint8_t old;
 
     switch (addr) {
 	case 0x03b0:
@@ -105,6 +107,7 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
 	case 0x03b3:
 	case 0x03b5:
 	case 0x03b7:
+		old = dev->crtc[dev->crtcreg];
 		dev->crtc[dev->crtcreg] = val;
 
 		/*
@@ -115,11 +118,15 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
 			dev->crtc[10] = 0xb;
 			dev->crtc[11] = 0xc;
 		}
-		recalc_timings(dev);
+		if (old ^ val)
+			recalc_timings(dev);
 		break;
 
 	case 0x03b8:
+		old = dev->ctrl;
 		dev->ctrl = val;
+		if (old ^ val)
+			recalc_timings(dev);
 		break;
 
 	case 0x03bf:
@@ -158,7 +165,9 @@ hercules_in(uint16_t addr, void *priv)
 		break;
 
 	case 0x03ba:
-		ret = (dev->stat & 0xf) | ((dev->stat & 8) << 4);
+		ret = 0x72;	/* Hercules ident */
+		if (dev->stat & 0x08)
+			ret |= 0x88;
 		break;
 
 	default:
@@ -170,11 +179,23 @@ hercules_in(uint16_t addr, void *priv)
 
 
 static void
+hercules_waitstates(void *p)
+{
+    int ws_array[16] = {3, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8};
+    int ws;
+
+    ws = ws_array[cycles & 0xf];
+    cycles -= ws;
+}
+
+
+static void
 hercules_write(uint32_t addr, uint8_t val, void *priv)
 {
     hercules_t *dev = (hercules_t *)priv;
 
     dev->vram[addr & 0xffff] = val;
+    hercules_waitstates(dev);
 }
 
 
@@ -184,6 +205,7 @@ hercules_read(uint32_t addr, void *priv)
     hercules_t *dev = (hercules_t *)priv;
 
     return(dev->vram[addr & 0xffff]);
+    hercules_waitstates(dev);
 }
 
 
@@ -221,7 +243,10 @@ hercules_poll(void *priv)
 				ca += 0x8000;
 
 			for (x = 0; x < dev->crtc[1]; x++) {
-				dat = (dev->vram[((dev->ma << 1) & 0x1fff) + ca] << 8) | dev->vram[((dev->ma << 1) & 0x1fff) + ca + 1];
+				if (dev->ctrl & 8)
+					dat = (dev->vram[((dev->ma << 1) & 0x1fff) + ca] << 8) | dev->vram[((dev->ma << 1) & 0x1fff) + ca + 1];
+				else
+					dat = 0;
 				dev->ma++;
 				for (c = 0; c < 16; c++) {
 				    buffer->line[dev->displine][(x << 4) + c] = (dat & (32768 >> c)) ? 7 : 0;
@@ -231,8 +256,11 @@ hercules_poll(void *priv)
 			}
 		} else {
 			for (x = 0; x < dev->crtc[1]; x++) {
-				chr  = dev->vram[(dev->ma << 1) & 0xfff];
-				attr = dev->vram[((dev->ma << 1) + 1) & 0xfff];
+				if (dev->ctrl & 8) {
+					chr  = dev->vram[(dev->ma << 1) & 0xfff];
+					attr = dev->vram[((dev->ma << 1) + 1) & 0xfff];
+				} else
+					chr = attr = 0;
 				drawcursor = ((dev->ma == ca) && dev->con && dev->cursoron);
 				blink = ((dev->blink & 16) && (dev->ctrl & 0x20) && (attr & 0x80) && !drawcursor);
 
@@ -266,9 +294,6 @@ hercules_poll(void *priv)
 		dev->displine = 0;
     } else {
 	dev->vidtime += dev->dispontime;
-
-	if (dev->dispon) 
-		dev->stat &= ~1;
 
 	dev->linepos = 0;
 	if (dev->vsynctime) {
@@ -327,7 +352,8 @@ hercules_poll(void *priv)
 					x = dev->crtc[1] * 9;
 
 				dev->lastline++;
-				if ((x != xsize) || ((dev->lastline - dev->firstline) != ysize) || video_force_resize_get()) {
+				if ((dev->ctrl & 8) &&
+				    ((x != xsize) || ((dev->lastline - dev->firstline) != ysize) || video_force_resize_get())) {
 					xsize = x;
 					ysize = dev->lastline - dev->firstline;
 					if (xsize < 64) xsize = 656;
@@ -359,6 +385,9 @@ hercules_poll(void *priv)
 		dev->sc &= 31;
 		dev->ma = dev->maback;
 	}
+
+	if (dev->dispon)
+		dev->stat &= ~1;
 
 	if ((dev->sc == (dev->crtc[10] & 31) ||
 	    ((dev->crtc[8] & 3)==3 && dev->sc == ((dev->crtc[10] & 31) >> 1))))

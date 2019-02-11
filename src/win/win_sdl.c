@@ -12,7 +12,7 @@
  *		we will not use that, but, instead, use a new window which
  *		coverrs the entire desktop.
  *
- * Version:	@(#)win_sdl.c  	1.0.4	2018/11/18
+ * Version:	@(#)win_sdl.c  	1.0.5	2019/02/08
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Michael Drüing, <michael@drueing.de>
@@ -62,6 +62,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+/* This #undef is needed because a SDL include header redefines HAVE_STDARG_H. */
+#undef HAVE_STDARG_H
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
 #include "../plat.h"

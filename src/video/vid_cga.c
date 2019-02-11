@@ -463,10 +463,17 @@ cga_poll(void *p)
 				cga->cgadispon = 1;
 				cga->ma = cga->maback = (cga->crtc[13] | (cga->crtc[12] << 8)) & 0x3fff;
 			}
-			if ((cga->crtc[10] & 0x60) == 0x20)
-				cga->cursoron = 0;
-			else
-				cga->cursoron = cga->cgablink & 8;
+			switch (cga->crtc[10] & 0x60) {
+				case 0x20:
+					cga->cursoron = 0;
+					break;
+				case 0x60:
+					cga->cursoron = cga->cgablink & 0x10;
+					break;
+				default:
+					cga->cursoron = cga->cgablink & 0x08;
+					break;
+			}
 		}
 
 		if (cga->vc == cga->crtc[7]) {

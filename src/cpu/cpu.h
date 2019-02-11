@@ -71,6 +71,7 @@
 
 #define CPU_SUPPORTS_DYNAREC 1
 #define CPU_REQUIRES_DYNAREC 2
+#define CPU_ALTERNATE_XTAL   4
 
 
 typedef struct {

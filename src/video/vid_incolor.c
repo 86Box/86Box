@@ -8,7 +8,7 @@
  *
  *		Hercules InColor emulation.
  *
- * Version:	@(#)vid_incolor.c	1.0.13	2018/10/11
+ * Version:	@(#)vid_incolor.c	1.0.14	2019/02/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -210,6 +210,7 @@ static void
 incolor_out(uint16_t port, uint8_t val, void *priv)
 {
     incolor_t *dev = (incolor_t *)priv;
+    uint8_t old;
 
     switch (port) {
 	case 0x3b0:
@@ -226,6 +227,7 @@ incolor_out(uint16_t port, uint8_t val, void *priv)
 			dev->palette[dev->palette_idx % 16] = val;
 			++dev->palette_idx;
 		} 
+		old = dev->crtc[dev->crtcreg];
 		dev->crtc[dev->crtcreg] = val;
 
 		if (dev->crtc[10] == 6 && dev->crtc[11] == 7) {
@@ -234,11 +236,15 @@ incolor_out(uint16_t port, uint8_t val, void *priv)
 			dev->crtc[10] = 0xb;
 			dev->crtc[11] = 0xc;
 		}
-		recalc_timings(dev);
+		if (old ^ val)
+			recalc_timings(dev);
 		return;
 
 	case 0x3b8:
+		old = dev->ctrl;
 		dev->ctrl = val;
+		if (old ^ val)
+			recalc_timings(dev);
 		return;
 
 	case 0x3bf:
@@ -795,8 +801,11 @@ text_line(incolor_t *dev, uint16_t ca)
     uint32_t col;
 
     for (x = 0; x < dev->crtc[1]; x++) {
-	chr  = dev->vram[(dev->ma << 1) & 0xfff];
-	attr = dev->vram[((dev->ma << 1) + 1) & 0xfff];
+	if (dev->ctrl & 8) {
+		chr  = dev->vram[(dev->ma << 1) & 0xfff];
+		attr = dev->vram[((dev->ma << 1) + 1) & 0xfff];
+	} else
+		chr = attr = 0;
 
 	drawcursor = ((dev->ma == ca) && dev->con && dev->cursoron);
 
@@ -862,10 +871,13 @@ graphics_line(incolor_t *dev)
 	mask = dev->crtc[INCOLOR_CRTC_MASK];	/* Planes to display */
 	for (plane = 0; plane < 4; plane++, mask = mask >> 1)
 	{
-		if (mask & 1) 
-			val[plane] = (dev->vram[((dev->ma << 1) & 0x1fff) + ca + 0x10000 * plane] << 8) | 
-				      dev->vram[((dev->ma << 1) & 0x1fff) + ca + 0x10000 * plane + 1];
-		else	val[plane] = 0;
+		if (dev->ctrl & 8) {
+			if (mask & 1) 
+				val[plane] = (dev->vram[((dev->ma << 1) & 0x1fff) + ca + 0x10000 * plane] << 8) | 
+					      dev->vram[((dev->ma << 1) & 0x1fff) + ca + 0x10000 * plane + 1];
+			else	val[plane] = 0;
+		} else
+			val[plane] = 0;
 	}
 	dev->ma++;
 
@@ -976,7 +988,8 @@ incolor_poll(void *priv)
 				else
 				       x = dev->crtc[1] * 9;
 				dev->lastline++;
-				if ((x != xsize) || ((dev->lastline - dev->firstline) != ysize) || video_force_resize_get()) {
+				if ((dev->ctrl & 8) &&
+				   ((x != xsize) || ((dev->lastline - dev->firstline) != ysize) || video_force_resize_get())) {
 					xsize = x;
 					ysize = dev->lastline - dev->firstline;
 					if (xsize < 64) xsize = 656;

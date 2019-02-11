@@ -22,7 +22,7 @@ uint8_t opl2_read(uint16_t a, void *priv)
 {
         opl_t *opl = (opl_t *)priv;
 
-        cycles -= (int)(isa_timing * 8);
+        cycles -= ISA_CYCLES(8);
         opl2_update2(opl);
         return opl_read(0, a);
 }
@@ -39,7 +39,7 @@ uint8_t opl2_l_read(uint16_t a, void *priv)
 {
         opl_t *opl = (opl_t *)priv;
 
-        cycles -= (int)(isa_timing * 8);
+        cycles -= ISA_CYCLES(8);
         opl2_update2(opl);
         return opl_read(0, a);
 }
@@ -55,7 +55,7 @@ uint8_t opl2_r_read(uint16_t a, void *priv)
 {
         opl_t *opl = (opl_t *)priv;
 
-        cycles -= (int)(isa_timing * 8);
+        cycles -= ISA_CYCLES(8);
         opl2_update2(opl);
         return opl_read(1, a);
 }
@@ -71,7 +71,7 @@ uint8_t opl3_read(uint16_t a, void *priv)
 {
         opl_t *opl = (opl_t *)priv;
 
-        cycles -= (int)(isa_timing * 8);
+        cycles -= ISA_CYCLES(8);
         opl3_update2(opl);
         return opl_read(0, a);
 }
