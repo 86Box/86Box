@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.74	2018/11/04
+ * Version:	@(#)win_settings.c	1.0.54	2019/02/11
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -64,20 +64,11 @@
 #include "win.h"
 
 
-#define SETTINGS_PAGE_MACHINE			0
-#define SETTINGS_PAGE_VIDEO			1
-#define SETTINGS_PAGE_INPUT			2
-#define SETTINGS_PAGE_SOUND			3
-#define SETTINGS_PAGE_NETWORK			4
-#define SETTINGS_PAGE_PORTS			5
-#define SETTINGS_PAGE_PERIPHERALS		6
-#define SETTINGS_PAGE_HARD_DISKS		7
-#define SETTINGS_PAGE_FLOPPY_DRIVES		8
-#define SETTINGS_PAGE_OTHER_REMOVABLE_DEVICES	9
-
 /* Icon, Bus, File, C, H, S, Size */
 #define C_COLUMNS_HARD_DISKS			6
 
+
+static int first_cat = 0;
 
 /* Machine category */
 static int temp_machine, temp_cpu_m, temp_cpu, temp_wait_states, temp_fpu, temp_sync;
@@ -4553,7 +4544,7 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		h = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
 		image_list_init(h, (const uint8_t *) cat_icons);
 		win_settings_main_insert_categories(h);
-		ListView_SetItemState(h, 0, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
+		ListView_SetItemState(h, first_cat, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
 		return TRUE;
 	case WM_NOTIFY:
 		if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_SETTINGSCATLIST)) {
@@ -4591,12 +4582,20 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 void
-win_settings_open(HWND hwnd)
+win_settings_open_ex(HWND hwnd, int category)
 {
     plat_pause(1);
 
     if (source_hwnd)
 	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSSTATUS, (WPARAM) 1, (LPARAM) hwndMain);
 
+    first_cat = category;
     DialogBox(hinstance, (LPCWSTR)DLG_CONFIG, hwnd, win_settings_main_proc);
+}
+
+
+void
+win_settings_open(HWND hwnd)
+{
+    win_settings_open_ex(hwnd, SETTINGS_PAGE_MACHINE);
 }

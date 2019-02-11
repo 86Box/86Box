@@ -8,7 +8,7 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.24	2018/10/23
+ * Version:	@(#)win.h	1.0.25	2019/02/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -126,8 +126,6 @@ extern uint8_t	joystickconfig_open(HWND hwnd, int joy_nr, int type);
 extern int	getfile(HWND hwnd, char *f, char *fn);
 extern int	getsfile(HWND hwnd, char *f, char *fn);
 
-extern void	win_settings_open(HWND hwnd);
-
 extern void	hard_disk_add_open(HWND hwnd, int is_existing);
 extern int	hard_disk_was_added(void);
 
@@ -147,6 +145,22 @@ extern void	SoundGainDialogCreate(HWND hwnd);
 
 /* Functions in win_new_floppy.c: */
 extern void	NewFloppyDialogCreate(HWND hwnd, int id, int part);
+
+
+/* Functions in win_settings.c: */
+#define SETTINGS_PAGE_MACHINE			0
+#define SETTINGS_PAGE_VIDEO			1
+#define SETTINGS_PAGE_INPUT			2
+#define SETTINGS_PAGE_SOUND			3
+#define SETTINGS_PAGE_NETWORK			4
+#define SETTINGS_PAGE_PORTS			5
+#define SETTINGS_PAGE_PERIPHERALS		6
+#define SETTINGS_PAGE_HARD_DISKS		7
+#define SETTINGS_PAGE_FLOPPY_DRIVES		8
+#define SETTINGS_PAGE_OTHER_REMOVABLE_DEVICES	9
+
+extern void	win_settings_open(HWND hwnd);
+extern void	win_settings_open_ex(HWND hwnd, int category);
 
 
 /* Functions in win_stbar.c: */
