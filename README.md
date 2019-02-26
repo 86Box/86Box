@@ -11,8 +11,7 @@ information, see the `LICENSE` file.
 The project maintainer is OBattler.
 
 If you need a configuration manager for 86Box, use the [86Box Manager](https://github.com/86Box/86BoxManager), our
-officially endorsed 86Box configuration manager, developed by Overdoze. The
-latest stable version of 86Box Manager is 1.0.0.
+officially endorsed 86Box configuration manager, developed by Overdoze (daviunic).
 
 Community
 ---------
@@ -41,7 +40,7 @@ guide:
    to keep the enviroment up-to-date by re-running the command periodically.
 4. Once the environment is fully updated, `cd` into your cloned `86box\src`
    directory.
-5. Run `make -jN -fmakefile.mingw` to start the actual compilation process.
+5. Run `make -jN -f win/makefile.mingw` to start the actual compilation process.
    Substitute `N` with the number of threads you want to use for the compilation
    process. The optimal number depends entirely on your processor, and it is
    up to you to determine the optimal number. A good starting point is the total
@@ -51,7 +50,7 @@ guide:
 7. In order to test your fresh build, replace the `86Box.exe` in your current
    86Box enviroment with your freshly built one. If you do not have a
    pre-existing 86Box environment, download the latest successful build from
-   http://ci.86box.net, and the ROM set from http://tinyurl.com/rs20181008.
+   http://ci.86box.net, and the ROM set from https://tinyurl.com/rs20190213.
 8. Enjoy using and testing the emulator! :)
 
 If you encounter issues at any step or have additional questions, please join
