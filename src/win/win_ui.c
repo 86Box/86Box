@@ -1089,6 +1089,9 @@ input_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message) {
 	case WM_INPUT:
 		keyboard_handle(lParam, infocus);
+#ifndef USE_DINPUT
+		win_mouse_handle(lParam, infocus);
+#endif
 		break;
 
 	case WM_SETFOCUS:
