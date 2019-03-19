@@ -20,7 +20,7 @@
 #include <dinput.h>
 #include <stdio.h>
 #include <stdint.h>
-#include "../86Box.h"
+#include "../86box.h"
 #include "../mouse.h"
 #include "../plat.h"
 #include "win.h"
@@ -60,10 +60,10 @@ win_mouse_init(void)
 void
 win_mouse_close(void)
 {
-    if (lpdi_mouse != NULL) {
+	if (lpdi_mouse != NULL) {
 	lpdi_mouse->Release();
 	lpdi_mouse = NULL;
-    }
+	}
 }
 
 
@@ -71,8 +71,8 @@ void
 mouse_poll(void)
 {
     static int buttons = 0;
-    static int x = 0, y = 0, z = 0;
-    int b;
+	static int x = 0, y = 0, z = 0;
+	int b;
 
     if (FAILED(lpdi_mouse->GetDeviceState(sizeof(DIMOUSESTATE),
 				(LPVOID)&mousestate))) {
@@ -81,23 +81,23 @@ mouse_poll(void)
     }                
 
     if (mouse_capture || video_fullscreen) {
-	if (x != mousestate.lX || y != mousestate.lY || z != mousestate.lZ) {
-		mouse_x += mousestate.lX;
-		mouse_y += mousestate.lY;
-		mouse_z += mousestate.lZ/120;
+		if (x != mousestate.lX || y != mousestate.lY || z != mousestate.lZ) {
+			mouse_x += mousestate.lX;
+			mouse_y += mousestate.lY;
+			mouse_z += mousestate.lZ/120;
 
-		x = mousestate.lX;
-		y = mousestate.lY;        
-		z = mousestate.lZ/120;
-	}
+			x = mousestate.lX;
+			y = mousestate.lY;        
+			z = mousestate.lZ/120;
+		}
 
-	b = 0;
-	if (mousestate.rgbButtons[0] & 0x80) b |= 1;
-	if (mousestate.rgbButtons[1] & 0x80) b |= 2;
-	if (mousestate.rgbButtons[2] & 0x80) b |= 4;
-	if (buttons != b) {
-		mouse_buttons = b;
-		buttons = b;
-	}
+		b = 0;
+		if (mousestate.rgbButtons[0] & 0x80) b |= 1;
+		if (mousestate.rgbButtons[1] & 0x80) b |= 2;
+		if (mousestate.rgbButtons[2] & 0x80) b |= 4;
+		if (buttons != b) {
+			mouse_buttons = b;
+			buttons = b;
+		}
     }
 }

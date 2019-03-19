@@ -150,7 +150,7 @@ static int get_pov(HWND hdlg, int id)
         return axis_sel - nr_povs;
 }
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK

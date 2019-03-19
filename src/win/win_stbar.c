@@ -796,7 +796,7 @@ ui_sb_mount_zip_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name)
 
 
 /* Handle messages for the Status Bar window. */
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK

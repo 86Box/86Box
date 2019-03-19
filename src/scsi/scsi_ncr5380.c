@@ -910,7 +910,7 @@ ncr_callback(void *priv)
 			ncr_log("Select - target ID = %i\n", ncr->target_id);
 
 			/*Once the device has been found and selected, mark it as busy*/
-			if ((ncr->target_id != -1) && scsi_device_present(&scsi_devices[ncr->target_id])) {
+			if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr->target_id])) {
 				ncr->cur_bus |= BUS_BSY;
 				ncr_log("Device found at ID %i\n", ncr->target_id);
 				ncr_log("Current Bus BSY=%02x\n", ncr->cur_bus);

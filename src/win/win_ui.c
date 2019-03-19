@@ -349,7 +349,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				/* Main Window. */
                         	MoveWindow(hwnd, rect.left, rect.top,
 					unscaled_size_x + (GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
-					unscaled_size_y + (GetSystemMetrics(SM_CYEDGE) * 2) + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 17 + sb_borders[1] + 1,
+unscaled_size_y + (GetSystemMetrics(SM_CYEDGE) * 2) + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENUSIZE) + GetSystemMetrics(SM_CYCAPTION) + 17 + sb_borders[1] + 1,
 					TRUE);
 
 				/* Render window. */
@@ -726,7 +726,7 @@ ui_init(int nCmdShow)
     WNDCLASSEX wincl;			/* buffer for main window's class */
     RAWINPUTDEVICE ridev;		/* RawInput device */
     MSG messages;			/* received-messages buffer */
-    HWND hwnd;				/* handle for our window */
+    HWND hwnd = NULL;				/* handle for our window */
     HACCEL haccel;			/* handle to accelerator table */
     int bRet;
 
@@ -1060,7 +1060,7 @@ plat_mouse_capture(int on)
 /* Catch WM_INPUT messages for 'current focus' window. */
 static LONG_PTR	input_orig_proc;
 static HWND input_orig_hwnd = NULL;
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK

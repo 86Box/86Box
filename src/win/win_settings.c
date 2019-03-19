@@ -154,7 +154,7 @@ image_list_init(HWND hwndList, const uint8_t *icon_ids)
 	if (icon_ids[i] == 0)
 		break;
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 	hiconItem = LoadIcon(hinstance, (LPCWSTR) ((uint64_t) icon_ids[i]));
 #else
 	hiconItem = LoadIcon(hinstance, (LPCWSTR) ((uint32_t) icon_ids[i]));
@@ -644,7 +644,7 @@ win_settings_machine_recalc_machine(HWND hdlg)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -858,7 +858,7 @@ recalc_vid_list(HWND hdlg)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -977,7 +977,7 @@ mouse_valid(int num, int m)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -1128,7 +1128,7 @@ mpu401_standalone_allow(void)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -1335,7 +1335,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -1453,7 +1453,7 @@ recalc_hdc_list(HWND hdlg)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -1785,7 +1785,7 @@ static void network_recalc_combos(HWND hdlg)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -2513,7 +2513,7 @@ recalc_selection(HWND hdlg)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -3211,14 +3211,14 @@ hard_disk_track_all(void)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
 win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    HWND h;
+    HWND h = NULL;
     int old_sel = 0, b = 0, assign = 0;
     const uint8_t hd_icons[2] = { 64, 0 };
 
@@ -4044,14 +4044,14 @@ zip_untrack(uint8_t id)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
 win_settings_floppy_drives_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    HWND h;
+    HWND h = NULL;
     int i = 0, old_sel = 0;
     WCHAR szText[256];
     const uint8_t fd_icons[15] = { 248, 16, 16, 16, 16, 16, 16, 24, 24, 24, 24, 24, 24, 24, 0 };
@@ -4150,14 +4150,14 @@ win_settings_floppy_drives_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM l
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
 win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    HWND h;
+    HWND h = NULL;
     int old_sel = 0, b = 0, assign = 0;
     uint32_t b2 = 0;
     const uint8_t cd_icons[3] = { 249, 32, 0 };
@@ -4498,7 +4498,7 @@ win_settings_communicate_closure(void)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -4524,14 +4524,14 @@ win_settings_confirm(HWND hdlg, int button)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
 win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    HWND h;
+    HWND h = NULL;
     int category, i = 0, j = 0;
     const uint8_t cat_icons[11] = { 240, 241, 242, 243, 80, 244, 245, 64, 246, 247, 0 };
 

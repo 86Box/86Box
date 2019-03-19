@@ -36,7 +36,7 @@ static device_context_t config_device;
 static uint8_t deviceconfig_changed = 0;
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK

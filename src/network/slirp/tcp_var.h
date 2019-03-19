@@ -36,7 +36,7 @@
 #include "tcpip.h"
 #include "tcp_timer.h"
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 typedef uintptr_t tcpiphdrp_32;
 #else
 #if SIZEOF_CHAR_P == 4
@@ -178,7 +178,7 @@ struct tcpcb {
  * port numbers (which are no longer needed once we've located the
  * tcpcb) are overlayed with an mbuf pointer.
  */
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 typedef uintptr_t mbufp_32;
 #else
 #if SIZEOF_CHAR_P == 4

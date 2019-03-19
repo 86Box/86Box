@@ -10,12 +10,12 @@
  *
  * Version:	@(#)prt_cpmap.c	1.0.2	2018/10/05
  *
- * Authors:	Michael Drüing, <michael@drueing.de>
+ * Authors:	Michael Drï¿½ing, <michael@drueing.de>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Based on code by Frederic Weymann (originally for DosBox.)
  *
- *		Copyright 2018 Michael Drüing.
+ *		Copyright 2018 Michael Drï¿½ing.
  *		Copyright 2018 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
@@ -572,7 +572,7 @@ static const struct {
 
 
 /* Select a ASCII->Unicode mapping by CP number */
-const void
+void
 select_codepage(uint16_t code, uint16_t *curmap)
 {
     int i = 0;

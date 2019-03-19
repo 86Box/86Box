@@ -1911,7 +1911,7 @@ config_dump(void)
     while (sec != NULL) {
 	entry_t *ent;
 
-	if (sec->name && sec->name[0])
+	if (sec->name[0])
 		config_log("[%s]\n", sec->name);
 	
 	ent = (entry_t *)sec->entry_head.next;
