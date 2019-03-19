@@ -18,6 +18,9 @@
 #include <stdlib.h>
 #include "random.h"
 
+#if !(defined(__i386__) || defined (__x86_64__))
+#include <time.h>
+#endif
 
 uint32_t preconst = 0x6ED9EBA1;
 
@@ -44,6 +47,7 @@ static __inline__ uint32_t rotr32c (uint32_t x, uint32_t n)
 
 static __inline__ unsigned long long rdtsc(void)
 {
+#if defined(__i386__) || defined (__x86_64__)
     unsigned hi, lo;
 #ifdef __MSC__
     __asm {
@@ -55,6 +59,9 @@ static __inline__ unsigned long long rdtsc(void)
       __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
 #endif
     return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+#else
+		return time(NULL);
+#endif
 }
 
 static uint32_t RDTSC(void)
