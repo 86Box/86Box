@@ -33,6 +33,7 @@ typedef struct {
 	int buttons;
 	int dx;
 	int dy;
+	int dwheel;
 } MOUSESTATE;
 
 MOUSESTATE mousestate;
@@ -62,6 +63,7 @@ win_mouse_handle(LPARAM lParam, int infocus)
     uint32_t ri_size = 0;
     UINT size;
     RAWINPUT *raw;
+	RAWMOUSE state;
  
     if (! infocus) return;
 
@@ -74,35 +76,51 @@ win_mouse_handle(LPARAM lParam, int infocus)
     /* Here we read the raw input data for the mouse */
     ri_size = GetRawInputData((HRAWINPUT)(lParam), RID_INPUT,
 			      raw, &size, sizeof(RAWINPUTHEADER));
-    if (ri_size != size) return;
+    if (ri_size != size) goto err;
 
-    /* If the input is mouse, we process it */
-    if (raw->header.dwType == RIM_TYPEMOUSE) {
-		RAWMOUSE state = raw->data.mouse;
+	/* If the input is not a mouse, we ignore it */	
+	if (raw->header.dwType != RIM_TYPEMOUSE) goto err;
 
-		if (state.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
-			mousestate.buttons |= 1;
-		else if (state.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
-			mousestate.buttons &= ~1;
-		
-		if (state.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
-			mousestate.buttons |= 4;
-		else if (state.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
-			mousestate.buttons &= ~4;
+	state = raw->data.mouse;
 
-		if (state.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
-			mousestate.buttons |= 2;
-		else if (state.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
-			mousestate.buttons &= ~2;
+	/* read mouse buttons and wheel */
+	if (state.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
+		mousestate.buttons |= 1;
+	else if (state.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
+		mousestate.buttons &= ~1;
 
-		static int x = 0, y = 0;
-		if (x != state.lLastX || y != state.lLastY) {
-			mousestate.dx += state.lLastX;
-			mousestate.dy += state.lLastY;	
-			x = state.lLastX;
-			y = state.lLastY;
-		}
+	if (state.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
+		mousestate.buttons |= 4;
+	else if (state.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
+		mousestate.buttons &= ~4;
+
+	if (state.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
+		mousestate.buttons |= 2;
+	else if (state.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
+		mousestate.buttons &= ~2;
+
+	if (state.usButtonFlags & RI_MOUSE_WHEEL) {
+		mousestate.dwheel += (SHORT)state.usButtonData / 120;
 	}
+
+	
+    if (state.usFlags & MOUSE_MOVE_RELATIVE) {
+		/* relative mouse, i.e. regular mouse */
+		mousestate.dx += state.lLastX;
+		mousestate.dy += state.lLastY;
+	} else if (state.usFlags & MOUSE_MOVE_ABSOLUTE) {
+		/* absolute mouse, i.e. RDP or VNC 
+		 * seems to work fine for RDP on Windows 10
+		 * Not sure about other environments.
+		 */
+		static int x=state.lLastX, y=state.lLastY;
+		mousestate.dx += (state.lLastX - x)/100;
+		mousestate.dy += (state.lLastY - y)/100;
+		x=state.lLastX; 
+		y=state.lLastY;
+	}
+
+	err:
 	free(raw);
 }
 
@@ -122,13 +140,16 @@ mouse_poll(void)
 {
     static int b = 0;
     if (mouse_capture || video_fullscreen) {
-		if (mousestate.dx != 0 || mousestate.dy != 0) {
+		if (mousestate.dx != 0 || mousestate.dy != 0 || mousestate.dwheel != 0) {
 			mouse_x += mousestate.dx;
 			mouse_y += mousestate.dy;
-			mouse_z = 0;
+			mouse_z = mousestate.dwheel;
 
 			mousestate.dx=0;
 			mousestate.dy=0;
+			mousestate.dwheel=0;
+
+			//pclog("dx=%d, dy=%d, dwheel=%d\n", mouse_x, mouse_y, mouse_z);
 		}
 
 		if (b != mousestate.buttons) {
