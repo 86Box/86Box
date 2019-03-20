@@ -103,12 +103,8 @@ win_mouse_handle(LPARAM lParam, int infocus)
 		mousestate.dwheel += (SHORT)state.usButtonData / 120;
 	}
 
-	
-    if (state.usFlags & MOUSE_MOVE_RELATIVE) {
-		/* relative mouse, i.e. regular mouse */
-		mousestate.dx += state.lLastX;
-		mousestate.dy += state.lLastY;
-	} else if (state.usFlags & MOUSE_MOVE_ABSOLUTE) {
+
+    if (state.usFlags & MOUSE_MOVE_ABSOLUTE) {
 		/* absolute mouse, i.e. RDP or VNC 
 		 * seems to work fine for RDP on Windows 10
 		 * Not sure about other environments.
@@ -118,6 +114,10 @@ win_mouse_handle(LPARAM lParam, int infocus)
 		mousestate.dy += (state.lLastY - y)/100;
 		x=state.lLastX; 
 		y=state.lLastY;
+	} else {
+		/* relative mouse, i.e. regular mouse */
+		mousestate.dx += state.lLastX;
+		mousestate.dy += state.lLastY;
 	}
 
 	err:
@@ -148,7 +148,7 @@ mouse_poll(void)
 			mousestate.dx=0;
 			mousestate.dy=0;
 			mousestate.dwheel=0;
-
+			
 			//pclog("dx=%d, dy=%d, dwheel=%d\n", mouse_x, mouse_y, mouse_z);
 		}
 
