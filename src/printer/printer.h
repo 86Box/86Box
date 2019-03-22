@@ -58,7 +58,7 @@
 #define FONT_FILE_OCRB		L"ocra.ttf"
 
 
-extern const void
+extern void
 select_codepage(uint16_t code, uint16_t *curmap);
 
 

@@ -112,6 +112,9 @@ extern void	keyboard_handle(LPARAM lParam, int infocus);
 
 extern void     win_mouse_init(void);
 extern void     win_mouse_close(void);
+#ifndef USE_DINPUT
+extern void     win_mouse_handle(LPARAM lParam, int infocus);
+#endif
 
 extern LPARAM	win_get_string(int id);
 

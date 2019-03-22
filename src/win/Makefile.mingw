@@ -28,7 +28,7 @@ ifndef DEV_BUILD
 DEV_BUILD	:= n
 endif
 ifndef FLTO
-FLTO		:= 1
+FLTO		:= full
 endif
 
 ifeq ($(DEV_BUILD), y)
@@ -129,6 +129,12 @@ endif
 ifndef X64
 X64		:= n
 endif
+ifndef ARM
+ARM := n
+endif
+ifndef ARM64
+ARM64 := n
+endif
 ifndef WX
 WX		:= n
 endif
@@ -137,6 +143,21 @@ USB		:= n
 endif
 ifndef RDP
 RDP		:= n
+endif
+ifndef DINPUT
+ DINPUT		:= y
+ ifeq ($(ARM), y)
+  DINPUT		:= n
+ endif
+endif
+ifndef D3DX
+ D3DX		:= y
+ ifeq ($(ARM), y)
+  D3DX		:= n
+ endif
+ ifeq ($(ARM64), y)
+  D3DX		:= n
+ endif
 endif
 ifndef OPENAL
 OPENAL		:= y
@@ -148,7 +169,13 @@ ifndef MUNT
 MUNT		:= y
 endif
 ifndef DYNAREC
-DYNAREC		:= y
+ DYNAREC		:= y
+ ifeq ($(ARM), y)
+  DYNAREC		:= n
+ endif
+ ifeq ($(ARM64), y)
+  DYNAREC   := n
+ endif
 endif
 
 
@@ -213,6 +240,19 @@ CPP		:= g++ -m32
 CC		:= gcc -m32
 endif
 WINDRES		:= windres
+STRIP := strip
+ifeq ($(ARM64), y)
+CPP		:= aarch64-w64-mingw32-g++
+CC		:= aarch64-w64-mingw32-gcc
+WINDRES		:= aarch64-w64-mingw32-windres
+STRIP := aarch64-w64-mingw32-strip
+endif
+ifeq ($(ARM), y)
+CPP		:= armv7-w64-mingw32-g++
+CC		:= armv7-w64-mingw32-gcc
+WINDRES		:= armv7-w64-mingw32-windres
+STRIP := armv7-w64-mingw32-strip
+endif
 DEPS		= -MMD -MF $*.d -c $<
 DEPFILE		:= win/.depends
 
@@ -257,6 +297,16 @@ else
  endif
 endif
 AFLAGS		:= -msse2 -mfpmath=sse
+ifeq ($(ARM), y)
+ DFLAGS	  := -march=armv7-a
+ AOPTIM	  :=
+ AFLAGS		:= -mfloat-abi=hard
+endif
+ifeq ($(ARM64), y)
+ DFLAGS	  := -march=armv8-a
+ AOPTIM	  :=
+ AFLAGS		:= -mfloat-abi=hard
+endif
 RFLAGS		:= --input-format=rc -O coff
 ifeq ($(RELEASE), y)
 OPTS		+= -DRELEASE_BUILD
@@ -346,6 +396,14 @@ RFLAGS		+= -DUSE_RDP
  endif
 RDPLIB		+= -lrdp
 RDPOBJ		:= rdp.o
+endif
+
+ifeq ($(DINPUT), y)
+OPTS		+= -DUSE_DINPUT
+endif
+
+ifeq ($(D3DX), y)
+OPTS		+= -DUSE_D3DX
 endif
 
 # Options for the DEV branch.
@@ -559,7 +617,12 @@ VIDOBJ		:= video.o \
 PLATOBJ		:= win.o \
 		    win_dynld.o win_thread.o \
 		    win_cdrom.o win_keyboard.o \
-		    win_mouse.o win_joystick.o win_midi.o
+		    win_midi.o
+ifeq ($(DINPUT), y)
+ PLATOBJ += win_mouse.o win_joystick.o
+else
+ PLATOBJ += win_mouse_rawinput.o win_joystick_xinput.o
+endif
 
 OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
 		   $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(HDDOBJ) \
@@ -572,7 +635,7 @@ endif
 
 LIBS		:= -mwindows \
 		   -lopenal.dll \
-		   -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 \
+		   -lddraw -ldxguid -ld3d9 \
 		   -lcomctl32 -lwinmm
 ifeq ($(D2D), y)
 LIBS		+= $(D2DLIB)
@@ -587,11 +650,18 @@ ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
 LIBS		+= -lpng -lz -lwsock32 -liphlpapi
-LIBS		+= -static -lstdc++ -lgcc
+LIBS		+= -static -lstdc++ 
 ifneq ($(X64), y)
 LIBS		+= -Wl,--large-address-aware
 endif
-
+ifeq ($(DINPUT), y)
+ LIBS    += -ldinput8
+else
+ LIBS    += -lxinput
+endif
+ifeq ($(D3DX), y)
+LIBS    += -ld3dx9
+endif
 
 # Build module rules.
 ifeq ($(AUTODEP), y)
@@ -644,7 +714,7 @@ $(PROG).exe:	$(OBJ) 86Box.res
 		@echo Linking $(PROG).exe ..
 		@$(CC) -o $(PROG).exe $(OBJ) 86Box.res $(LIBS)
 ifneq ($(DEBUG), y)
-		@strip $(PROG).exe
+		@$(STRIP) $(PROG).exe
 endif
 
 pcap_if.res:	pcap_if.rc
@@ -655,13 +725,13 @@ pcap_if.exe:	pcap_if.o win_dynld.o pcap_if.res
 		@echo Linking pcap_if.exe ..
 		@$(CC) -o pcap_if.exe pcap_if.o win_dynld.o pcap_if.res
 ifneq ($(DEBUG), y)
-		@strip pcap_if.exe
+		@$(STRIP) pcap_if.exe
 endif
 
 hello.exe:	hello.o
 		$(CXX) $(LDFLAGS) -o hello.exe hello.o $(WXLIBS) $(LIBS)
 ifneq ($(DEBUG), y)
-		@strip hello.exe
+		@$(STRIP) hello.exe
 endif
 
 

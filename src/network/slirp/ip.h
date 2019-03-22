@@ -209,7 +209,7 @@ typedef u_int32_t caddr32_t;
 #endif
 #endif
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 typedef uintptr_t ipqp_32;
 typedef uintptr_t ipasfragp_32;
 #else
@@ -230,7 +230,7 @@ typedef caddr32_t ipasfragp_32;
 #endif
 
 struct ipovly {
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 	uintptr_t	ih_next, ih_prev;	/* for protocol sequence q's */
 #else
 	caddr32_t	ih_next, ih_prev;	/* for protocol sequence q's */
@@ -258,7 +258,7 @@ struct ipovly {
  * size 28 bytes
  */
 struct ipq {
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 	uintptr_t next,prev;	/* to other reass headers */
 #else
 	ipqp_32 next,prev;	/* to other reass headers */

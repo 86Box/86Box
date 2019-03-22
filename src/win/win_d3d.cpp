@@ -637,6 +637,7 @@ d3d_pause(void)
 void
 d3d_take_screenshot(wchar_t *fn)
 {
+#ifdef USE_D3DX
     LPDIRECT3DSURFACE9 d3dSurface = NULL;
 
     if (! d3dTexture) return;
@@ -646,4 +647,9 @@ d3d_take_screenshot(wchar_t *fn)
 
     d3dSurface->Release();
     d3dSurface = NULL;
+#else
+    /* TODO: how to take screenshot without d3dx? 
+       just a stub for now */
+    pclog("Direct3D: d3d_take_screenshot(%s)\n", fn);
+#endif
 }

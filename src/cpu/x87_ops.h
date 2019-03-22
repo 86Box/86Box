@@ -288,7 +288,7 @@ static __inline void x87_stmmx(MMX_REG r)
 
 static __inline uint16_t x87_compare(double a, double b)
 {
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _WIN32
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64
         uint32_t result;
 
 	if (!is386)
@@ -354,7 +354,7 @@ static __inline uint16_t x87_compare(double a, double b)
 #else
         /* Generic C version is known to give incorrect results in some
          * situations, eg comparison of infinity (Unreal) */
-        uint32_t out = 0;
+        uint32_t result = 0;
 
 	if (is386)
 	{
@@ -383,9 +383,9 @@ static __inline uint16_t x87_compare(double a, double b)
 
 static __inline uint16_t x87_ucompare(double a, double b)
 {
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _WIN32
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64
         uint32_t result;
-        
+
 #ifndef _MSC_VER
         /* Memory barrier, to force GCC to write to the input parameters
          * before the compare rather than after */

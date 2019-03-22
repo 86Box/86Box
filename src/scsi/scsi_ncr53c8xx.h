@@ -21,7 +21,7 @@
  *		Copyright 2009-2018 Artyom Tarasenko.
  *		Copyright 2017,2018 Miran Grca.
  */
-#ifndef SCSI_NCR5C38XX_H
+#ifndef SCSI_NCR53C8XX_H
 # define SCSI_NCR53C8XX_H
 
 

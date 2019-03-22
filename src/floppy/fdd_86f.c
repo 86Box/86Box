@@ -1112,7 +1112,7 @@ d86f_get_bit(int drive, int side)
 
     /* In some cases, misindentification occurs so we need to make sure the surface data array is not
        not NULL. */
-    if (d86f_has_surface_desc(drive) && dev->track_surface_data && dev->track_surface_data[side]) {
+    if (d86f_has_surface_desc(drive) && dev->track_surface_data[side]) {
 	if (d86f_reverse_bytes(drive)) {
 		surface_data = dev->track_surface_data[side][track_word] & 0xFF;
 	} else {
@@ -1124,7 +1124,7 @@ d86f_get_bit(int drive, int side)
     current_bit = (encoded_data >> track_bit) & 1;
     dev->last_word[side] <<= 1;
 
-    if (d86f_has_surface_desc(drive) && dev->track_surface_data && dev->track_surface_data[side]) {
+    if (d86f_has_surface_desc(drive) && dev->track_surface_data[side]) {
 	surface_bit = (surface_data >> track_bit) & 1;
 	if (! surface_bit)
 		dev->last_word[side] |= current_bit;

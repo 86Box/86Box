@@ -542,7 +542,7 @@ new_floppy_msgbox(HWND hwnd, int type, void *arg)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
