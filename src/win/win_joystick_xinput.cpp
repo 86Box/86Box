@@ -147,11 +147,11 @@ void joystick_poll(void)
                 if (value != ERROR_SUCCESS) continue;
                         
                 plat_joystick_state[c].a[0] = controllers[c].Gamepad.sThumbLX;
-                plat_joystick_state[c].a[1] = controllers[c].Gamepad.sThumbLY;
+                plat_joystick_state[c].a[1] = - controllers[c].Gamepad.sThumbLY;
                 plat_joystick_state[c].a[3] = controllers[c].Gamepad.sThumbRX;
-                plat_joystick_state[c].a[4] = controllers[c].Gamepad.sThumbRY;
-                plat_joystick_state[c].a[6] = controllers[c].Gamepad.bLeftTrigger << 7;
-                plat_joystick_state[c].a[7] = controllers[c].Gamepad.bLeftTrigger << 7;
+                plat_joystick_state[c].a[4] = - controllers[c].Gamepad.sThumbRY;
+                plat_joystick_state[c].a[6] = (double)controllers[c].Gamepad.bLeftTrigger / 255 * 32767;
+                plat_joystick_state[c].a[7] = (double)controllers[c].Gamepad.bRightTrigger / 255 * 32767;
 
                 plat_joystick_state[c].b[0] = (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_A) ? 128 : 0;
                 plat_joystick_state[c].b[1] = (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_B) ? 128 : 0;
@@ -168,16 +168,23 @@ void joystick_poll(void)
                 
                 int dpad_x = 0, dpad_y = 0;
                 if (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP)
-                        dpad_y+=32767;
-                if (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN)
                         dpad_y-=32767;
-                if (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT)
-                        dpad_x+=32767;
+                if (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN)
+                        dpad_y+=32767;
                 if (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT)
                         dpad_x-=32767;
+                if (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT)
+                        dpad_x+=32767;
 
                 plat_joystick_state[c].a[2] = dpad_x;
                 plat_joystick_state[c].a[5] = dpad_y;
+
+                for (int a=0; a<8; a++) {
+                        if (plat_joystick_state[c].a[a] == -32768)
+                                plat_joystick_state[c].a[a] = -32767;
+                        if (plat_joystick_state[c].a[a] == 32768)
+                                plat_joystick_state[c].a[a] = 32767;
+                }
         }
 }
 
