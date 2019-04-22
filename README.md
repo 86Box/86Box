@@ -22,6 +22,10 @@ to retro computing and, of course, 86Box. We look forward to hearing from you!
 
 [![Visit our Discord server](https://discordapp.com/api/guilds/262614059009048590/embed.png)](https://discord.gg/myzwyfX)
 
+Getting started
+---------------
+See [this](86box.github.io/gettingstarted) page on our website for a quick guide that should help you get started with the emulator.
+
 Building
 --------
 In order to compile 86Box from this repository, please follow this step-by-step 

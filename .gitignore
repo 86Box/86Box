@@ -1,3 +1,4 @@
 src/*.o
 src/*.exe
 src/*.res
+src/NUL
