@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.39	2019/3/20
+ * Version:	@(#)win_ui.c	1.0.40	2019/7/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -51,7 +51,7 @@ HWND		hwndMain,		/* application main window */
 HMENU		menuMain;		/* application main menu */
 HICON		hIcon[256];		/* icon data loaded from resources */
 RECT		oldclip;		/* mouse rect */
-int        sbar_height = 23;     /* statusbar height */
+int 		sbar_height = 23;     /* statusbar height */
 int		infocus = 1;
 int		rctrl_is_lalt = 0;
 int		user_resize = 0;
@@ -275,10 +275,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     HMENU hmenu;
 
     int sb_borders[3];
-    RECT rect, rc;
+    RECT rect;
 
     int temp_x, temp_y;
-	int non_client_width, non_client_height;
 
     switch (message) {
 	case WM_CREATE:
@@ -349,15 +348,22 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
 
 				GetWindowRect(hwnd, &rect);
-				GetClientRect(hwnd, &rc);
-				non_client_width = (rect.right-rect.left) - (rc.right-rc.left);
-				non_client_height = (rect.bottom-rect.top) - (rc.bottom-rc.top);
-
 				/* Main Window. */
-				MoveWindow(hwnd, rect.left, rect.top,
-					unscaled_size_x + non_client_width,
-					unscaled_size_y + non_client_height + sbar_height,
-					TRUE);
+				if (GetSystemMetrics(SM_CXPADDEDBORDER) == 0) {
+					/* For platforms that subsystem version < 6.0 (default on mingw/msys2) */
+					/* In this case, border sizes are different between resizable and non-resizable window */
+					MoveWindow(hwnd, rect.left, rect.top,
+						unscaled_size_x + (GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
+						unscaled_size_y + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + (GetSystemMetrics(SM_CYBORDER) + GetSystemMetrics(SM_CYMENUSIZE)) + GetSystemMetrics(SM_CYCAPTION) + sbar_height,
+						TRUE);
+				} else {
+					/* For platforms that subsystem version >= 6.0 (default on llvm-mingw, mainly for Windows/ARM) */
+					/* In this case, border sizes are the same between resizable and non-resizable window */
+					MoveWindow(hwnd, rect.left, rect.top,
+						unscaled_size_x + ((GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER)) * 2),
+						unscaled_size_y + ((GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER)) * 2) + (GetSystemMetrics(SM_CYBORDER) + GetSystemMetrics(SM_CYMENUSIZE)) + GetSystemMetrics(SM_CYCAPTION) + sbar_height,
+						TRUE);
+				}
 
 				/* Render window. */
 				MoveWindow(hwndRender, 0, 0, unscaled_size_x, unscaled_size_y, TRUE);
@@ -846,11 +852,11 @@ ui_init(int nCmdShow)
     /* Create the status bar window. */
     StatusBarCreate(hwndMain, IDC_STATUS, hinstance);
 
-	/* Get the actual height of the statusbar, 
-	 * since that is not something we can change.
-	 */
-	GetWindowRect(hwndSBAR, &sbar_rect);
-	sbar_height = sbar_rect.bottom - sbar_rect.top;
+    /* Get the actual height of the statusbar, 
+     * since that is not something we can change.
+     */
+    GetWindowRect(hwndSBAR, &sbar_rect);
+    sbar_height = sbar_rect.bottom - sbar_rect.top;
 
     /*
      * Before we can create the Render window, we first have
@@ -1016,9 +1022,7 @@ void
 plat_resize(int x, int y)
 {
     int sb_borders[3];
-    RECT r, rc;
-	int non_client_width;
-	int non_client_height;
+    RECT r;
 
     /* First, see if we should resize the UI window. */
     if (!vid_resize) {
@@ -1027,14 +1031,22 @@ plat_resize(int x, int y)
 	SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
 
 	GetWindowRect(hwndMain, &r);
-	GetClientRect(hwndMain, &rc);
-	non_client_width = (r.right-r.left) - (rc.right-rc.left);
-	non_client_height = (r.bottom-r.top) - (rc.bottom-rc.top);
-
-	MoveWindow(hwndMain, r.left, r.top,
-		   x + non_client_width,
-		   y + non_client_height + sbar_height,
-		   TRUE);
+	
+	if (GetSystemMetrics(SM_CXPADDEDBORDER) == 0) {
+		/* For platforms that subsystem version < 6.0 (gcc on mingw/msys2) */
+		/* In this case, border sizes are different between resizable and non-resizable window */
+		MoveWindow(hwndMain, r.left, r.top,
+			x + (GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
+			y + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + (GetSystemMetrics(SM_CYBORDER) + GetSystemMetrics(SM_CYMENUSIZE)) + GetSystemMetrics(SM_CYCAPTION) + sbar_height,
+			TRUE);
+	} else {
+		/* For platforms that subsystem version >= 6.0 (clang/llvm on llvm-mingw, mainly for Windows/ARM) */
+		/* In this case, border sizes are the same between resizable and non-resizable window */
+		MoveWindow(hwndMain, r.left, r.top,
+			x + ((GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER)) * 2),
+			y + ((GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER)) * 2) + (GetSystemMetrics(SM_CYBORDER) + GetSystemMetrics(SM_CYMENUSIZE)) + GetSystemMetrics(SM_CYCAPTION) + sbar_height,
+			TRUE);
+	}
 
 	MoveWindow(hwndRender, 0, 0, x, y, TRUE);
 	GetWindowRect(hwndRender, &r);
