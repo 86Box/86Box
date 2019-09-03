@@ -233,14 +233,14 @@ VPATH		:= $(EXPATH) . cpu \
 		    sound/resid-fp \
 		   scsi video network network/slirp win
 ifeq ($(X64), y)
-CPP		:= g++ -m64
-CC		:= gcc -m64
+TOOL_PREFIX     := x86_64-w64-mingw32-
 else
-CPP		:= g++ -m32
-CC		:= gcc -m32
+TOOL_PREFIX     := i686-w64-mingw32-
 endif
+CPP             := ${TOOL_PREFIX}g++
+CC              := ${TOOL_PREFIX}gcc
 WINDRES		:= windres
-STRIP := strip
+STRIP           := strip
 ifeq ($(ARM64), y)
 CPP		:= aarch64-w64-mingw32-g++
 CC		:= aarch64-w64-mingw32-gcc
@@ -467,6 +467,10 @@ endif
 CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
 		   -fno-strict-aliasing
+
+# Add freetyp2 references through pkgconfig
+CFLAGS          := $(CFLAGS)  `pkg-config.exe --cflags freetype2`
+
 CXXFLAGS	:= $(CFLAGS)
 
 
