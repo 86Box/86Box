@@ -71,9 +71,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef PS2M70T4
   PS2M70T4	:= y
  endif
- ifndef RIVA128
-  RIVA128	:= y
- endif
  ifndef TC430HX
   TC430HX	:= y
  endif
@@ -128,9 +125,6 @@ else
  endif
  ifndef PS2M70T4
   PS2M70T4	:= n
- endif
- ifndef RIVA128
-  RIVA128	:= n
  endif
  ifndef TC430HX
   TC430HX	:= n
@@ -480,11 +474,6 @@ endif
 
 ifeq ($(PS2M70T4), y)
 OPTS		+= -DUSE_PS2M70T4
-endif
-
-ifeq ($(RIVA128), y)
-OPTS		+= -DUSE_RIVA128
-DEVBROBJ	+= vid_riva128.o
 endif
 
 ifeq ($(TC430HX), y)

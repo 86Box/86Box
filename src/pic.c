@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel PIC chip emulation.
  *
- * Version:	@(#)pic.c	1.0.4	2019/01/21
+ * Version:	@(#)pic.c	1.0.5	2019/09/20
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -142,13 +142,6 @@ pic_autoeoi()
 				pic.pend |= pic.icw3;
 		}
 
-#if 0
-		if ((pic_current & (1 << c)) && picint_is_level(c)) {
-			if (((1 << c) != pic.icw3) || !AT)
-				pic.pend |= 1 << c;
-		}
-#endif
-
 		pic_updatepending();
 		return;
 	}
@@ -213,13 +206,6 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 					pic.pend |= pic.icw3;
 			}
 
-#if 0
-			if ((pic_current & (1 << (val & 7))) && picint_is_level(val & 7)) {
-				if ((((1 << (val & 7)) != pic.icw3) || !AT))
-					pic.pend |= 1 << (val & 7);
-			}
-#endif
-
 			pic_updatepending();
 		} else {
 			for (c = 0; c < 8; c++) {
@@ -231,13 +217,6 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 						if (((1 << c) == pic.icw3) && (pic2.pend & ~pic2.mask) & ~pic2.mask2)
 							pic.pend |= pic.icw3;
 					}
-
-#if 0
-					if ((pic_current & (1 << c)) && picint_is_level(c)) {
-						if ((((1 << c) != pic.icw3) || !AT))
-							pic.pend |= 1 << c;
-					}
-#endif
 
 					if ((c == 1) && keywaiting)
 						intclear &= ~1;
@@ -266,14 +245,10 @@ pic_read(uint16_t addr, void *priv)
     }
     if (pic.read) {
 	pic_log("Read PIC ins %02X\n", pic.ins);
-#if 0
 	if (AT)
 		return pic.ins | (pic2.ins ? 4 : 0);
 	else
 		return pic.ins;
-#else
-	return pic.ins | (pic2.ins ? 4 : 0);
-#endif
     }
     return pic.pend;
 }
@@ -302,13 +277,6 @@ pic2_autoeoi()
 	if (pic2.ins & (1 << c)) {
 		pic2.ins &= ~(1 << c);
 		pic_update_mask(&pic2.mask2, pic2.ins);
-
-#if 0
-		if (pic_current & (0x100 << c) && picint_is_level(c + 8)) {
-			pic2.pend |= (1 << c);
-			pic.pend |= (1 << pic2.icw3);
-		}
-#endif
 
 		pic_updatepending();
 		return;
@@ -359,27 +327,12 @@ pic2_write(uint16_t addr, uint8_t val, void *priv)
 			pic2.ins &= ~(1 << (val & 7));
 			pic_update_mask(&pic2.mask2, pic2.ins);
 
-#if 0
-			if (pic_current & (0x100 << (val & 7)) && picint_is_level((val & 7) + 8)) {
-				pic2.pend |= (1 << (val & 7));
-				pic.pend |= (1 << pic2.icw3);
-			}
-#endif
-
 			pic_updatepending();
 		} else {
 			for (c = 0; c < 8; c++) {
 				if (pic2.ins&(1<<c)) {
 					pic2.ins &= ~(1<<c);
 					pic_update_mask(&pic2.mask2, pic2.ins);
-
-#if 0
-					if (pic_current & (0x100 << c) && picint_is_level(c + 8)) {
-						pic2.pend |= (1 << c);
-						pic.pend |= (1 << pic2.icw3);
-					}
-#endif
-
 					pic_updatepending();
 					return;
 				}
