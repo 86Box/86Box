@@ -39,69 +39,40 @@ typedef struct ega_t {
 
     rom_t bios_rom;
 
-    uint8_t crtcreg;
+    uint8_t crtcreg, gdcaddr, attraddr, attrff,
+	    attr_palette_enable, seqaddr, miscout,
+	    writemask, la, lb, lc, ld,
+	    stat, colourcompare, colournocare, scrblank;
     uint8_t crtc[32];
     uint8_t gdcreg[16];
-    int gdcaddr;
     uint8_t attrregs[32];
-    int attraddr, attrff;
-    int attr_palette_enable;
     uint8_t seqregs[64];
-    int seqaddr;
-
-    uint8_t miscout;
-    int vidclock;
-
-    uint8_t la, lb, lc, ld;
-
-    uint8_t stat;
-
-    int fast;
-    uint8_t colourcompare, colournocare;
-    int readmode, writemode, readplane;
-    int chain4, chain2_read, chain2_write;
-    int oddeven_page, oddeven_chain;
-    int extvram;
-    uint8_t writemask;
-    uint32_t charseta, charsetb;
-
     uint8_t egapal[16];
+
+    uint8_t *vram;
+
+    int vidclock, fast, extvram, vres,
+	readmode, writemode, readplane, vrammask,
+	chain4, chain2_read, chain2_write, con,
+	oddeven_page, oddeven_chain, vc, sc,
+	dispon, hdisp_on, cursoron, blink,
+	linepos, vslines, linecountff, oddeven,
+	lowres, interlace, lindebl, rowcount,
+	vtotal, dispend, vsyncstart, split,
+	hdisp, htotal, hdisp_time, rowoffset,
+	vblankstart, scrollcache, firstline, lastline,
+	firstline_draw, lastline_draw,
+	displine, video_res_x, video_res_y, video_bpp;
+
+    uint32_t charseta, charsetb, ma_latch, ma,
+	     maback, ca, vram_limit, overscan_color;
+
     uint32_t *pallook;
 
-    int vtotal, dispend, vsyncstart, split, vblankstart;
-    int hdisp,  htotal,  hdisp_time, rowoffset;
-    int lowres, interlace;
-    int linedbl, rowcount;
+    uint64_t dispontime, dispofftime;
+	pc_timer_t timer;
+
     double clock;
-    uint32_t ma_latch;
-        
-    int vres;
-        
-    int64_t dispontime, dispofftime;
-    int64_t vidtime;
-        
-    uint8_t scrblank;
-        
-    int dispon;
-    int hdisp_on;
-
-    uint32_t ma, maback, ca;
-    int vc;
-    int sc;
-    int linepos, vslines, linecountff, oddeven;
-    int con, cursoron, blink;
-    int scrollcache;
-        
-    int firstline, lastline;
-    int firstline_draw, lastline_draw;
-    int displine;
-        
-    uint8_t *vram;
-    int vrammask;
-
-    uint32_t vram_limit;
-
-    int video_res_x, video_res_y, video_bpp;
 
 #ifdef JEGA
     uint8_t RMOD1, RMOD2, RDAGS, RDFFB, RDFSB, RDFAP, RPESL, RPULP, RPSSC, RPSSU, RPSSL;

@@ -26,6 +26,7 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
+#include "../timer.h"
 #include "video.h"
 #include "vid_ati18800.h"
 #include "vid_ati_eeprom.h"

@@ -6,15 +6,16 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the Intel 1 Mbit 8-bit flash devices.
+ *		Implementation of the Intel 1 Mbit and 2 Mbit, 8-bit and
+ *		16-bit flash devices.
  *
- * Version:	@(#)intel_flash.c	1.0.18	2018/10/30
+ * Version:	@(#)intel_flash.c	1.0.19	2019/06/25
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -25,307 +26,473 @@
 #include "device.h"
 #include "mem.h"
 #include "machine/machine.h"
+#include "timer.h"
 #include "nvr.h"
 #include "plat.h"
 
 
-#define FLASH_IS_BXB	2
-#define FLASH_INVERT	1
+#define FLAG_WORD	4
+#define FLAG_BXB	2
+#define FLAG_INV_A16	1
 
-#define BLOCK_MAIN	0
-#define BLOCK_DATA1	1
-#define BLOCK_DATA2	2
-#define BLOCK_BOOT	3
 
 enum
 {
-        CMD_READ_ARRAY = 0xff,
-        CMD_IID = 0x90,
-        CMD_READ_STATUS = 0x70,
-        CMD_CLEAR_STATUS = 0x50,
-        CMD_ERASE_SETUP = 0x20,
-        CMD_ERASE_CONFIRM = 0xd0,
-        CMD_ERASE_SUSPEND = 0xb0,
-        CMD_PROGRAM_SETUP = 0x40,
-        CMD_PROGRAM_SETUP_ALT = 0x10
+    BLOCK_MAIN1,
+    BLOCK_MAIN2,
+    BLOCK_DATA1,
+    BLOCK_DATA2,
+    BLOCK_BOOT,
+    BLOCKS_NUM
 };
+
+enum
+{
+    CMD_READ_ARRAY = 0xff,
+    CMD_IID = 0x90,
+    CMD_READ_STATUS = 0x70,
+    CMD_CLEAR_STATUS = 0x50,
+    CMD_ERASE_SETUP = 0x20,
+    CMD_ERASE_CONFIRM = 0xd0,
+    CMD_ERASE_SUSPEND = 0xb0,
+    CMD_PROGRAM_SETUP = 0x40,
+    CMD_PROGRAM_SETUP_ALT = 0x10
+};
+
 
 typedef struct flash_t
 {
-        uint8_t command, status;
-	uint8_t flash_id;
-	int invert_high_pin;
-        uint32_t program_addr;
-	mem_mapping_t mapping[8], mapping_h[8];
-	uint32_t block_start[4], block_end[4], block_len[4];
-	uint8_t array[131072];
+    uint8_t		command, status,
+			flash_id, flags,
+			*array;
+
+    uint32_t		program_addr,
+			block_start[BLOCKS_NUM], block_end[BLOCKS_NUM],
+			block_len[BLOCKS_NUM];
+
+    mem_mapping_t	mapping[4], mapping_h[8];
 } flash_t;
 
-static wchar_t flash_path[1024];
 
-static uint8_t flash_read(uint32_t addr, void *p)
+static wchar_t	flash_path[1024];
+
+
+static uint8_t
+flash_read(uint32_t addr, void *p)
 {
-        flash_t *flash = (flash_t *)p;
-	if (flash->invert_high_pin)
-		addr ^= 0x10000;
-	addr &= 0x1ffff;
-        switch (flash->command) {
-		case CMD_READ_ARRAY:
-                default:
-                return flash->array[addr];
+    flash_t *dev = (flash_t *) p;
+    uint8_t ret = 0xff;
 
-                case CMD_IID:
-                if (addr & 1)
-                        return flash->flash_id;
-                return 0x89;
+    if (dev->flags & FLAG_INV_A16)
+	addr ^= 0x10000;
+    addr &= biosmask;
 
-                case CMD_READ_STATUS:
-                return flash->status;                
-        }
+    switch (dev->command) {
+	case CMD_READ_ARRAY:
+	default:
+		ret = dev->array[addr];
+		break;
+
+	case CMD_IID:
+		if (addr & 1)
+                        ret = dev->flash_id & 0xff;
+		else
+			ret = 0x89;
+		break;
+
+	case CMD_READ_STATUS:
+		ret = dev->status;
+		break;
+    }
+
+    return ret;
 }
 
-static uint16_t flash_readw(uint32_t addr, void *p)
+
+static uint16_t
+flash_readw(uint32_t addr, void *p)
 {
-        flash_t *flash = (flash_t *)p;
-	uint16_t *q;
-	addr &= 0x1ffff;
-	if (flash->invert_high_pin)  addr ^= 0x10000;
-	q = (uint16_t *)&(flash->array[addr]);
-	return *q;
+    flash_t *dev = (flash_t *) p;
+    uint16_t *q;
+    uint16_t ret = 0xffff;
+
+    if (dev->flags & FLAG_INV_A16)
+	addr ^= 0x10000;
+    addr &= biosmask;
+
+    if (dev->flags & FLAG_WORD)
+	addr &= 0xfffffffe;
+
+    q = (uint16_t *)&(dev->array[addr]);
+    ret = *q;
+
+    if (dev->flags & FLAG_WORD)  switch (dev->command) {
+	case CMD_READ_ARRAY:
+	default:
+		break;
+
+	case CMD_IID:
+		if (addr & 2)
+			ret = dev->flash_id;
+		else		
+			ret = 0x0089;
+		break;
+
+	case CMD_READ_STATUS:
+		ret = dev->status;
+		break;
+    }
+
+    return ret;
 }
 
-static uint32_t flash_readl(uint32_t addr, void *p)
+
+static uint32_t
+flash_readl(uint32_t addr, void *p)
 {
-        flash_t *flash = (flash_t *)p;
-	uint32_t *q;
-	addr &= 0x1ffff;
-	if (flash->invert_high_pin)  addr ^= 0x10000;
-	q = (uint32_t *)&(flash->array[addr]);
-	return *q;
+    flash_t *dev = (flash_t *)p;
+    uint32_t *q;
+
+    if (dev->flags & FLAG_INV_A16)
+	addr ^= 0x10000;
+    addr &= biosmask;
+
+    q = (uint32_t *)&(dev->array[addr]);
+
+    return *q;
 }
 
-static void flash_write(uint32_t addr, uint8_t val, void *p)
+
+static void
+flash_write(uint32_t addr, uint8_t val, void *p)
 {
-        flash_t *flash = (flash_t *)p;
-	int i;
+    flash_t *dev = (flash_t *) p;
+    int i;
+    uint32_t bb_mask = biosmask & 0xffffe000;
+    if (biosmask == 0x3ffff)
+	bb_mask &= 0xffffc000;
 
-	if (flash->invert_high_pin)
-		addr ^= 0x10000;
-	addr &= 0x1ffff;
+    if (dev->flags & FLAG_INV_A16)
+	addr ^= 0x10000;
+    addr &= biosmask;
 
-        switch (flash->command) {
-                case CMD_ERASE_SETUP:
-                 if (val == CMD_ERASE_CONFIRM) {
+    switch (dev->command) {
+	case CMD_ERASE_SETUP:
+		if (val == CMD_ERASE_CONFIRM) {
 			for (i = 0; i < 3; i++) {
-                        	if ((addr >= flash->block_start[i]) && (addr <= flash->block_end[i]))
-                                	memset(&(flash->array[flash->block_start[i]]), 0xff, flash->block_len[i]);
+				if ((addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
+					memset(&(dev->array[dev->block_start[i]]), 0xff, dev->block_len[i]);
 			}
 
-                        flash->status = 0x80;
-                }
-                flash->command = CMD_READ_STATUS;
-                break;
-                
-                case CMD_PROGRAM_SETUP:
-                case CMD_PROGRAM_SETUP_ALT:
-                if (((addr & 0x1e000) != (flash->block_start[3] & 0x1e000)) && (addr == flash->program_addr))
-       	                flash->array[addr] = val;
-                flash->command = CMD_READ_STATUS;
-                flash->status = 0x80;
-                break;
-                
-                default:
-                flash->command = val;
-                switch (val) {
-                        case CMD_CLEAR_STATUS:
-                	        flash->status = 0;
-                        	break;
-	                case CMD_PROGRAM_SETUP:
-        	        case CMD_PROGRAM_SETUP_ALT:
-				flash->program_addr = addr;
+			dev->status = 0x80;
+		}
+		dev->command = CMD_READ_STATUS;
+		break;
+
+	case CMD_PROGRAM_SETUP:
+	case CMD_PROGRAM_SETUP_ALT:
+		if (((addr & bb_mask) != (dev->block_start[4] & bb_mask)) && (addr == dev->program_addr))
+			dev->array[addr] = val;
+		dev->command = CMD_READ_STATUS;
+		dev->status = 0x80;
+		break;
+
+	default:
+		dev->command = val;
+		switch (val) {
+			case CMD_CLEAR_STATUS:
+				dev->status = 0;
 				break;
-                }
-        }
+			case CMD_PROGRAM_SETUP:
+			case CMD_PROGRAM_SETUP_ALT:
+				dev->program_addr = addr;
+				break;
+		}
+    }
 }
 
-static void intel_flash_add_mappings(flash_t *flash)
-{
-	int i = 0;
 
-	for (i = 0; i <= 7; i++) {
-		mem_mapping_add(&(flash->mapping[i]), 0xe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + ((i << 14) & 0x1ffff),                       MEM_MAPPING_EXTERNAL, (void *)flash);
-		mem_mapping_add(&(flash->mapping_h[i]), 0xfffe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + ((i << 14) & 0x1ffff),                       0, (void *)flash);
+static void
+flash_writew(uint32_t addr, uint16_t val, void *p)
+{
+    flash_t *dev = (flash_t *) p;
+    int i;
+    uint32_t bb_mask = biosmask & 0xffffe000;
+    if (biosmask == 0x3ffff)
+	bb_mask &= 0xffffc000;
+
+    if (dev->flags & FLAG_INV_A16)
+	addr ^= 0x10000;
+    addr &= biosmask;
+
+    if (dev->flags & FLAG_WORD)  switch (dev->command) {
+	case CMD_ERASE_SETUP:
+		if (val == CMD_ERASE_CONFIRM) {
+			for (i = 0; i < 3; i++) {
+				if ((addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
+					memset(&(dev->array[dev->block_start[i]]), 0xff, dev->block_len[i]);
+			}
+
+			dev->status = 0x80;
+		}
+		dev->command = CMD_READ_STATUS;
+		break;
+
+	case CMD_PROGRAM_SETUP:
+	case CMD_PROGRAM_SETUP_ALT:
+		if (((addr & bb_mask) != (dev->block_start[4] & bb_mask)) && (addr == dev->program_addr))
+			*(uint16_t *) (&dev->array[addr]) = val;
+		dev->command = CMD_READ_STATUS;
+		dev->status = 0x80;
+		break;
+
+	default:
+		dev->command = val & 0xff;
+		switch (val) {
+			case CMD_CLEAR_STATUS:
+				dev->status = 0;
+				break;
+			case CMD_PROGRAM_SETUP:
+			case CMD_PROGRAM_SETUP_ALT:
+				dev->program_addr = addr;
+				break;
+		}
+    }
+}
+
+
+static void
+flash_writel(uint32_t addr, uint32_t val, void *p)
+{
+#if 0
+    flash_writew(addr, val & 0xffff, p);
+    flash_writew(addr + 2, (val >> 16) & 0xffff, p);
+#endif
+}
+
+
+static void
+intel_flash_add_mappings(flash_t *dev)
+{
+    int max = 2, i = 0;
+    uint32_t base, fbase;
+
+    if (biosmask == 0x3ffff)
+	max = 4;
+
+    for (i = 0; i < max; i++) {
+	if (biosmask == 0x3ffff)
+		base = 0xc0000 + (i << 16);
+	else
+		base = 0xe0000 + (i << 16);
+	fbase = base & biosmask; 
+	if (dev->flags & FLAG_INV_A16)
+		fbase ^= 0x10000;
+
+	memcpy(&dev->array[fbase], &rom[base & biosmask], 0x10000);
+
+	if ((max == 2) || (i >= 2)) {
+		mem_mapping_add(&(dev->mapping[i]), base, 0x10000,
+				flash_read, flash_readw, flash_readl,
+				flash_write, flash_writew, flash_writel,
+				dev->array + fbase, MEM_MAPPING_EXTERNAL, (void *) dev);
 	}
+	mem_mapping_add(&(dev->mapping_h[i]), (base | 0xfff00000) - 0x40000, 0x10000,
+			flash_read, flash_readw, flash_readl,
+			flash_write, flash_writew, flash_writel,
+			dev->array + fbase, MEM_MAPPING_EXTERNAL, (void *) dev);
+	mem_mapping_add(&(dev->mapping_h[i + 4]), (base | 0xfff00000), 0x10000,
+			flash_read, flash_readw, flash_readl,
+			flash_write, flash_writew, flash_writel,
+			dev->array + fbase, MEM_MAPPING_EXTERNAL, (void *) dev);
+    }
 }
 
-/* This is for boards which invert the high pin - the flash->array pointers need to pointer invertedly in order for INTERNAL writes to go to the right part of the array. */
-static void intel_flash_add_mappings_inverted(flash_t *flash)
+
+static void *
+intel_flash_init(const device_t *info)
 {
-	int i = 0;
+    FILE *f;
+    int l;
+    flash_t *dev;
+    wchar_t *machine_name, *flash_name;
+    uint8_t type = info->local & 0xff;
 
-	for (i = 0; i <= 7; i++) {
-		mem_mapping_add(&(flash->mapping[i]), 0xe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + (((i << 14) ^ 0x10000) & 0x1ffff),                       MEM_MAPPING_EXTERNAL, (void *)flash);
-		mem_mapping_add(&(flash->mapping_h[i]), 0xfffe0000 + (i << 14), 0x04000, flash_read,   flash_readw,   flash_readl,   flash_write, mem_write_nullw, mem_write_nulll, flash->array + (((i << 14) ^ 0x10000) & 0x1ffff),                       0, (void *)flash);
-	}
-}
+    dev = malloc(sizeof(flash_t));
+    memset(dev, 0, sizeof(flash_t));
 
-void *intel_flash_init(uint8_t type)
-{
-        FILE *f;
-	int i, l;
-        flash_t *flash;
-	wchar_t *machine_name;
-	wchar_t *flash_name;
+    l = strlen(machine_get_internal_name_ex(machine))+1;
+    machine_name = (wchar_t *) malloc(l * sizeof(wchar_t));
+    mbstowcs(machine_name, machine_get_internal_name_ex(machine), l);
+    l = wcslen(machine_name)+5;
+    flash_name = (wchar_t *)malloc(l*sizeof(wchar_t));
+    swprintf(flash_name, l, L"%ls.bin", machine_name);
 
-	flash = malloc(sizeof(flash_t));
-        memset(flash, 0, sizeof(flash_t));
+    wcscpy(flash_path, flash_name);
 
-	l = strlen(machine_get_internal_name_ex(machine))+1;
-	machine_name = (wchar_t *) malloc(l * sizeof(wchar_t));
-	mbstowcs(machine_name, machine_get_internal_name_ex(machine), l);
-	l = wcslen(machine_name)+5;
-	flash_name = (wchar_t *)malloc(l*sizeof(wchar_t));
-	swprintf(flash_name, l, L"%ls.bin", machine_name);
+    dev->flags = info->local & 0xff;
 
-	wcscpy(flash_path, flash_name);
+    mem_mapping_disable(&bios_mapping);
+    mem_mapping_disable(&bios_high_mapping);
 
-	flash->flash_id = (type & FLASH_IS_BXB) ? 0x95 : 0x94;
-	flash->invert_high_pin = (type & FLASH_INVERT);
+    dev->array = (uint8_t *) malloc(biosmask + 1);
+    memset(dev->array, 0xff, biosmask + 1);
+
+    if (biosmask == 0x3ffff) {
+	if (dev->flags & FLAG_WORD)
+		dev->flash_id = (dev->flags & FLAG_BXB) ? 0x2275 : 0x2274;
+	else
+		dev->flash_id = (dev->flags & FLAG_BXB) ? 0x7D : 0x7C;
 
 	/* The block lengths are the same both flash types. */
-	flash->block_len[BLOCK_MAIN] = 0x1c000;
-	flash->block_len[BLOCK_DATA1] = 0x01000;
-	flash->block_len[BLOCK_DATA2] = 0x01000;
-	flash->block_len[BLOCK_BOOT] = 0x02000;
+	dev->block_len[BLOCK_MAIN1] = 0x20000;
+	dev->block_len[BLOCK_MAIN2] = 0x18000;
+	dev->block_len[BLOCK_DATA1] = 0x02000;
+	dev->block_len[BLOCK_DATA2] = 0x02000;
+	dev->block_len[BLOCK_BOOT] = 0x04000;
 
-	if (type & FLASH_IS_BXB) {			/* 28F001BX-B */
-		flash->block_start[BLOCK_MAIN] = 0x04000;	/* MAIN BLOCK */
-		flash->block_end[BLOCK_MAIN] = 0x1ffff;
-		flash->block_start[BLOCK_DATA1] = 0x03000;	/* DATA AREA 1 BLOCK */
-		flash->block_end[BLOCK_DATA1] = 0x03fff;
-		flash->block_start[BLOCK_DATA2] = 0x04000;	/* DATA AREA 2 BLOCK */
-		flash->block_end[BLOCK_DATA2] = 0x04fff;
-		flash->block_start[BLOCK_BOOT] = 0x00000;	/* BOOT BLOCK */
-		flash->block_end[BLOCK_BOOT] = 0x01fff;
-	} else {					/* 28F001BX-T */
-		flash->block_start[BLOCK_MAIN] = 0x00000;	/* MAIN BLOCK */
-		flash->block_end[BLOCK_MAIN] = 0x1bfff;
-		flash->block_start[BLOCK_DATA1] = 0x1c000;	/* DATA AREA 1 BLOCK */
-		flash->block_end[BLOCK_DATA1] = 0x1cfff;
-		flash->block_start[BLOCK_DATA2] = 0x1d000;	/* DATA AREA 2 BLOCK */
-		flash->block_end[BLOCK_DATA2] = 0x1dfff;
-		flash->block_start[BLOCK_BOOT] = 0x1e000;	/* BOOT BLOCK */
-		flash->block_end[BLOCK_BOOT] = 0x1ffff;
+	if (dev->flags & FLAG_BXB) {		/* 28F002BX-B/28F200BX-B */
+		dev->block_start[BLOCK_MAIN1] = 0x20000;	/* MAIN BLOCK 1 */
+		dev->block_end[BLOCK_MAIN1] = 0x3ffff;
+		dev->block_start[BLOCK_MAIN2] = 0x08000;	/* MAIN BLOCK 2 */
+		dev->block_end[BLOCK_MAIN2] = 0x1ffff;
+		dev->block_start[BLOCK_DATA1] = 0x06000;	/* DATA AREA 1 BLOCK */
+		dev->block_end[BLOCK_DATA1] = 0x07fff;
+		dev->block_start[BLOCK_DATA2] = 0x04000;	/* DATA AREA 2 BLOCK */
+		dev->block_end[BLOCK_DATA2] = 0x05fff;
+		dev->block_start[BLOCK_BOOT] = 0x00000;		/* BOOT BLOCK */
+		dev->block_end[BLOCK_BOOT] = 0x03fff;
+	} else {					/* 28F002BX-T/28F200BX-T */
+		dev->block_start[BLOCK_MAIN1] = 0x00000;	/* MAIN BLOCK 1 */
+		dev->block_end[BLOCK_MAIN1] = 0x1ffff;
+		dev->block_start[BLOCK_MAIN2] = 0x20000;	/* MAIN BLOCK 2 */
+		dev->block_end[BLOCK_MAIN2] = 0x37fff;
+		dev->block_start[BLOCK_DATA1] = 0x38000;	/* DATA AREA 1 BLOCK */
+		dev->block_end[BLOCK_DATA1] = 0x39fff;
+		dev->block_start[BLOCK_DATA2] = 0x3a000;	/* DATA AREA 2 BLOCK */
+		dev->block_end[BLOCK_DATA2] = 0x3bfff;
+		dev->block_start[BLOCK_BOOT] = 0x3c000;		/* BOOT BLOCK */
+		dev->block_end[BLOCK_BOOT] = 0x3ffff;
 	}
+    } else {
+	dev->flash_id = (type & FLAG_BXB) ? 0x95 : 0x94;
 
-	for (i = 0; i < 8; i++) {
-		mem_mapping_disable(&bios_mapping[i]);
-		mem_mapping_disable(&bios_high_mapping[i]);
+	/* The block lengths are the same both flash types. */
+	dev->block_len[BLOCK_MAIN1] = 0x1c000;
+	dev->block_len[BLOCK_MAIN2] = 0x00000;
+	dev->block_len[BLOCK_DATA1] = 0x01000;
+	dev->block_len[BLOCK_DATA2] = 0x01000;
+	dev->block_len[BLOCK_BOOT] = 0x02000;
+
+	if (dev->flags & FLAG_BXB) {		/* 28F001BX-B/28F100BX-B */
+		dev->block_start[BLOCK_MAIN1] = 0x04000;	/* MAIN BLOCK 1 */
+		dev->block_end[BLOCK_MAIN1] = 0x1ffff;
+		dev->block_start[BLOCK_MAIN2] = 0xfffff;	/* MAIN BLOCK 2 */
+		dev->block_end[BLOCK_MAIN2] = 0xfffff;
+		dev->block_start[BLOCK_DATA1] = 0x02000;	/* DATA AREA 1 BLOCK */
+		dev->block_end[BLOCK_DATA1] = 0x02fff;
+		dev->block_start[BLOCK_DATA2] = 0x03000;	/* DATA AREA 2 BLOCK */
+		dev->block_end[BLOCK_DATA2] = 0x03fff;
+		dev->block_start[BLOCK_BOOT] = 0x00000;		/* BOOT BLOCK */
+		dev->block_end[BLOCK_BOOT] = 0x01fff;
+	} else {					/* 28F001BX-T/28F100BX-T */
+		dev->block_start[BLOCK_MAIN1] = 0x00000;	/* MAIN BLOCK 1 */
+		dev->block_end[BLOCK_MAIN1] = 0x1bfff;
+		dev->block_start[BLOCK_MAIN2] = 0xfffff;	/* MAIN BLOCK 2 */
+		dev->block_end[BLOCK_MAIN2] = 0xfffff;
+		dev->block_start[BLOCK_DATA1] = 0x1c000;	/* DATA AREA 1 BLOCK */
+		dev->block_end[BLOCK_DATA1] = 0x1cfff;
+		dev->block_start[BLOCK_DATA2] = 0x1d000;	/* DATA AREA 2 BLOCK */
+		dev->block_end[BLOCK_DATA2] = 0x1dfff;
+		dev->block_start[BLOCK_BOOT] = 0x1e000;		/* BOOT BLOCK */
+		dev->block_end[BLOCK_BOOT] = 0x1ffff;
 	}
+    }
 
-	if (flash->invert_high_pin) {
-		memcpy(flash->array, rom + 65536, 65536);
-		memcpy(flash->array + 65536, rom, 65536);
-	}
-	else
-		memcpy(flash->array, rom, 131072);
+    intel_flash_add_mappings(dev);
 
-	if (flash->invert_high_pin)
-		intel_flash_add_mappings_inverted(flash);
-	else
-		intel_flash_add_mappings(flash);
+    dev->command = CMD_READ_ARRAY;
+    dev->status = 0;
 
-        flash->command = CMD_READ_ARRAY;
-        flash->status = 0;
+    f = nvr_fopen(flash_path, L"rb");
+    if (f) {
+	fread(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, f);
+	if (dev->block_len[BLOCK_MAIN2])
+		fread(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, f);
+	fread(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, f);
+	fread(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, f);
+	fclose(f);
+    }
 
-        f = nvr_fopen(flash_path, L"rb");
-        if (f) {
-                fread(&(flash->array[flash->block_start[BLOCK_MAIN]]), flash->block_len[BLOCK_MAIN], 1, f);
-       	        fread(&(flash->array[flash->block_start[BLOCK_DATA1]]), flash->block_len[BLOCK_DATA1], 1, f);
-                fread(&(flash->array[flash->block_start[BLOCK_DATA2]]), flash->block_len[BLOCK_DATA2], 1, f);
-                fclose(f);
-        }
+    free(flash_name);
+    free(machine_name);
 
-	free(flash_name);
-	free(machine_name);
-
-        return flash;
+    return dev;
 }
 
-void *intel_flash_bxb_ami_init()
+
+static void
+intel_flash_close(void *p)
 {
-	return intel_flash_init(FLASH_IS_BXB | FLASH_INVERT);
-}
+    FILE *f;
+    flash_t *dev = (flash_t *)p;
 
-/* For AMI BIOS'es - Intel 28F001BXT with high address pin inverted. */
-void *intel_flash_bxt_ami_init()
-{
-	return intel_flash_init(FLASH_INVERT);
-}
+    f = nvr_fopen(flash_path, L"wb");
+    fwrite(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, f);
+    if (dev->block_len[BLOCK_MAIN2])
+	fwrite(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, f);
+    fwrite(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, f);
+    fwrite(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, f);
+    fclose(f);
 
-/* For Award BIOS'es - Intel 28F001BXT with high address pin not inverted. */
-void *intel_flash_bxt_init()
-{
-	return intel_flash_init(0);
-}
-
-/* For Acer BIOS'es - Intel 28F001BXB. */
-void *intel_flash_bxb_init()
-{
-	return intel_flash_init(FLASH_IS_BXB);
-}
-
-void intel_flash_close(void *p)
-{
-        FILE *f;
-        flash_t *flash = (flash_t *)p;
-
-        f = nvr_fopen(flash_path, L"wb");
-        fwrite(&(flash->array[flash->block_start[BLOCK_MAIN]]), flash->block_len[BLOCK_MAIN], 1, f);
-        fwrite(&(flash->array[flash->block_start[BLOCK_DATA1]]), flash->block_len[BLOCK_DATA1], 1, f);
-        fwrite(&(flash->array[flash->block_start[BLOCK_DATA2]]), flash->block_len[BLOCK_DATA2], 1, f);
-        fclose(f);
-        
-        free(flash);
+    free(dev);
 }
 
 
+/* For AMI BIOS'es - Intel 28F001BXT with A16 pin inverted. */
 const device_t intel_flash_bxt_ami_device =
 {
-        "Intel 28F001BXT Flash BIOS",
-        0, 0,
-        intel_flash_bxt_ami_init,
-        intel_flash_close,
-	NULL,
-        NULL, NULL, NULL, NULL
+    "Intel 28F001BXT/28F002BXT Flash BIOS",
+    0,
+    FLAG_INV_A16,
+    intel_flash_init,
+    intel_flash_close,
+    NULL,
+    NULL, NULL, NULL, NULL
 };
 
-const device_t intel_flash_bxb_ami_device =
+
+#if defined(DEV_BRANCH) && defined(USE_TC430HX)
+const device_t intel_flash_bxtw_ami_device =
 {
-        "Intel 28F001BXB Flash BIOS",
-        0, 0,
-        intel_flash_bxb_ami_init,
-        intel_flash_close,
-	NULL,
-        NULL, NULL, NULL, NULL
+    "Intel 28F100BXT/28F200BXT Flash BIOS",
+    0,
+    FLAG_INV_A16 | FLAG_WORD,
+    intel_flash_init,
+    intel_flash_close,
+    NULL,
+    NULL, NULL, NULL, NULL
 };
+#endif
+
 
 const device_t intel_flash_bxt_device =
 {
-        "Intel 28F001BXT Flash BIOS",
-        0, 0,
-        intel_flash_bxt_init,
-        intel_flash_close,
-	NULL,
-        NULL, NULL, NULL, NULL
+    "Intel 28F001BXT/28F002BXT Flash BIOS",
+    0, 0,
+    intel_flash_init,
+    intel_flash_close,
+    NULL,
+    NULL, NULL, NULL, NULL
 };
+
 
 const device_t intel_flash_bxb_device =
 {
-        "Intel 28F001BXB Flash BIOS",
-        0, 0,
-        intel_flash_bxb_init,
-        intel_flash_close,
-	NULL,
-        NULL, NULL, NULL, NULL
+    "Intel 28F001BXB/28F002BXB Flash BIOS",
+    0, FLAG_BXB,
+    intel_flash_init,
+    intel_flash_close,
+    NULL,
+    NULL, NULL, NULL, NULL
 };

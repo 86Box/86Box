@@ -53,7 +53,7 @@
 
 
 typedef struct {
-    int64_t	count;
+    pc_timer_t	timer;
     int		axis_nr;
     struct _gameport_ *gameport;
 } g_axis_t;
@@ -157,16 +157,17 @@ joystick_get_pov_name(int js, int id)
 }
 
 
-static int
-gameport_time(int axis)
+static void
+gameport_time(gameport_t *gameport, int nr, int axis)
 {
-    if (axis == AXIS_NOT_PRESENT) return(0);
-
-    axis += 32768;
-    axis = (axis * 100) / 65; /*Axis now in ohms*/
-    axis = (axis * 11) / 1000;
-
-    return(TIMER_USEC * (axis + 24)); /*max = 11.115 ms*/
+    if (axis == AXIS_NOT_PRESENT)
+	timer_disable(&gameport->axis[nr].timer);
+    else {
+	axis += 32768;
+	axis = (axis * 100) / 65; /*Axis now in ohms*/
+	axis = (axis * 11) / 1000;
+	timer_set_delay_u64(&gameport->axis[nr].timer, TIMER_USEC * (axis + 24)); /*max = 11.115 ms*/
+    }
 }
 
 
@@ -175,17 +176,16 @@ gameport_write(uint16_t addr, uint8_t val, void *priv)
 {
     gameport_t *p = (gameport_t *)priv;
 
-    timer_clock();
     p->state |= 0x0f;
 
-    p->axis[0].count = gameport_time(p->joystick->read_axis(p->joystick_dat, 0));
-    p->axis[1].count = gameport_time(p->joystick->read_axis(p->joystick_dat, 1));
-    p->axis[2].count = gameport_time(p->joystick->read_axis(p->joystick_dat, 2));
-    p->axis[3].count = gameport_time(p->joystick->read_axis(p->joystick_dat, 3));
-
+    gameport_time(p, 0, p->joystick->read_axis(p->joystick_dat, 0));
+    gameport_time(p, 1, p->joystick->read_axis(p->joystick_dat, 1));
+    gameport_time(p, 2, p->joystick->read_axis(p->joystick_dat, 2));
+    gameport_time(p, 3, p->joystick->read_axis(p->joystick_dat, 3));
+	
     p->joystick->write(p->joystick_dat);
 
-    cycles -= ISA_CYCLES(8);
+    sub_cycles(ISA_CYCLES(8));
 }
 
 
@@ -195,10 +195,9 @@ gameport_read(uint16_t addr, void *priv)
     gameport_t *p = (gameport_t *)priv;
     uint8_t ret;
 
-    timer_clock();
     ret = p->state | p->joystick->read(p->joystick_dat);
 
-    cycles -= ISA_CYCLES(8);
+    sub_cycles(ISA_CYCLES(8));
 
     return(ret);
 }
@@ -211,7 +210,6 @@ timer_over(void *priv)
     gameport_t *p = axis->gameport;
 
     p->state &= ~(1 << axis->axis_nr);
-    axis->count = 0;
 
     if (axis == &p->axis[0])
 	p->joystick->a0_over(p->joystick_dat);
@@ -235,10 +233,10 @@ init_common(void)
     p->axis[2].axis_nr = 2;
     p->axis[3].axis_nr = 3;
 
-    timer_add(timer_over, &p->axis[0].count, &p->axis[0].count, &p->axis[0]);
-    timer_add(timer_over, &p->axis[1].count, &p->axis[1].count, &p->axis[1]);
-    timer_add(timer_over, &p->axis[2].count, &p->axis[2].count, &p->axis[2]);
-    timer_add(timer_over, &p->axis[3].count, &p->axis[3].count, &p->axis[3]);
+    timer_add(&p->axis[0].timer, timer_over, &p->axis[0], 0);
+    timer_add(&p->axis[1].timer, timer_over, &p->axis[1], 0);
+    timer_add(&p->axis[2].timer, timer_over, &p->axis[2], 0);
+    timer_add(&p->axis[3].timer, timer_over, &p->axis[3], 0);
 
     p->joystick = joystick_list[joystick_type];
     p->joystick_dat = p->joystick->init();

@@ -26,6 +26,7 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
+#include "../timer.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_vga.h"

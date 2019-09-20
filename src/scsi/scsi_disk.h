@@ -39,7 +39,7 @@ typedef struct {
     uint32_t sector_pos, sector_len,
 	     packet_len, pos;
 
-    int64_t callback;
+    double callback;
 } scsi_disk_t;
 
 

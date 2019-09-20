@@ -23,11 +23,11 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../lpt.h"
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
-#include "../timer.h"
 #include "../device.h"
 #include "video.h"
 #include "vid_incolor.h"
@@ -164,8 +164,8 @@ typedef struct {
 
     uint8_t	ctrl, ctrl2, stat;
 
-    int64_t	dispontime, dispofftime;
-    int64_t	vidtime;
+    uint64_t	dispontime, dispofftime;
+    pc_timer_t	timer;
 
     int		firstline, lastline;
 
@@ -174,7 +174,7 @@ typedef struct {
     uint16_t	ma, maback;
     int		con, coff, cursoron;
     int		dispon, blink;
-    int64_t	vsynctime;
+    int	vsynctime;
     int		vadj;
 
     uint8_t	palette[16];	/* EGA-style 16 -> 64 palette registers */
@@ -198,11 +198,11 @@ recalc_timings(incolor_t *dev)
     disptime = dev->crtc[0] + 1;
     _dispontime  = dev->crtc[1];
     _dispofftime = disptime - _dispontime;
-    _dispontime  *= MDACONST;
-    _dispofftime *= MDACONST;
+    _dispontime  *= HERCCONST;
+    _dispofftime *= HERCCONST;
 
-    dev->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
-    dev->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
+    dev->dispontime  = (uint64_t)(_dispontime);
+    dev->dispofftime = (uint64_t)(_dispofftime);
 }
 
 
@@ -505,7 +505,7 @@ draw_char_rom(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
 	}
 	for (i = 0; i < cw; i++) 
 	{
-		((uint32_t *)buffer32->line[dev->displine])[x * cw + i] = (val & 0x100) ? fg : bg;
+		buffer32->line[dev->displine][x * cw + i] = (val & 0x100) ? fg : bg;
 		val = val << 1;
 	}
 }
@@ -623,7 +623,7 @@ draw_char_ram4(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
 			fg = dev->rgb[defpal[cfg]];
 		}
 		
-		((uint32_t *)buffer32->line[dev->displine])[x * cw + i] = fg;
+		buffer32->line[dev->displine][x * cw + i] = fg;
 		val[0] = val[0] << 1;
 		val[1] = val[1] << 1;
 		val[2] = val[2] << 1;
@@ -783,7 +783,7 @@ draw_char_ram48(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
 			fg = dev->rgb[defpal[cfg]];
 		}
 		
-		((uint32_t *)buffer32->line[dev->displine])[x * cw + i] = fg;
+		buffer32->line[dev->displine][x * cw + i] = fg;
 		val[0] = val[0] << 1;
 		val[1] = val[1] << 1;
 		val[2] = val[2] << 1;
@@ -846,7 +846,7 @@ text_line(incolor_t *dev, uint16_t ca)
 		}
 		for (c = 0; c < cw; c++)
 		{
-			((uint32_t *)buffer32->line[dev->displine])[x * cw + c] = col;
+			buffer32->line[dev->displine][x * cw + c] = col;
 		}
 	}
     }
@@ -895,7 +895,7 @@ graphics_line(incolor_t *dev)
 			col = dev->palette[ink];
 		else	col = defpal[ink];
 
-		((uint32_t *)buffer32->line[dev->displine])[(x << 4) + c] = dev->rgb[col];
+		buffer32->line[dev->displine][(x << 4) + c] = dev->rgb[col];
 	}
     }
 }
@@ -911,7 +911,7 @@ incolor_poll(void *priv)
     int oldsc;
 
     if (! dev->linepos) {
-	dev->vidtime += dev->dispofftime;
+	timer_advance_u64(&dev->timer, dev->dispofftime);
 	dev->stat |= 1;
 	dev->linepos = 1;
 	oldsc = dev->sc;
@@ -936,7 +936,7 @@ incolor_poll(void *priv)
 	if (dev->displine >= 500) 
 		dev->displine = 0;
     } else {
-	dev->vidtime += dev->dispontime;
+	timer_advance_u64(&dev->timer, dev->dispontime);
 	if (dev->dispon) 
 		dev->stat &= ~1;
 	dev->linepos = 0;
@@ -1038,7 +1038,7 @@ incolor_init(const device_t *info)
 
     dev->vram = (uint8_t *)malloc(0x40000);	/* 4 planes of 64k */
 
-    timer_add(incolor_poll, &dev->vidtime, TIMER_ALWAYS_ENABLED, dev);
+	timer_add(&dev->timer, incolor_poll, dev, 1);
 
     mem_mapping_add(&dev->mapping, 0xb0000, 0x08000,
 		    incolor_read,NULL,NULL, incolor_write,NULL,NULL,

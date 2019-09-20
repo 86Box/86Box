@@ -1,28 +1,33 @@
+#ifdef USE_NEW_DYNAREC
+#include "../cpu_new/x86.h"
+#else
+
 extern uint8_t	opcode, opcode2;
 extern uint8_t	flags_p;
 extern uint8_t	znptable8[256];
 
 extern uint16_t	zero, oldcs;
 extern uint16_t	lastcs, lastpc;
-extern uint16_t rds, ea_rseg;
-extern uint16_t	znptable16[65536];
 extern uint16_t *mod1add[2][8];
+extern uint16_t znptable16[65536];
 
-extern int	x86_was_reset, codegen_flat_ds;
-extern int	codegen_flat_ss, nmi_enable;
+extern int	x86_was_reset, trap;
+extern int	codegen_flat_ss, codegen_flat_ds;
 extern int	timetolive, keyboardtimer, trap;
-extern int	tempc, optype, use32, stack32;
+extern int	optype, stack32;
 extern int	oldcpl, cgate32, cpl_override, fpucount;
-extern int	gpf, nmi_enable;
+extern int	nmi_enable;
 extern int	oddeven, inttype;
 
-extern uint32_t rmdat32, easeg;
+extern uint32_t use32;
+extern uint32_t rmdat, easeg;
 extern uint32_t	oxpc, flags_zn;
 extern uint32_t abrt_error;
 extern uint32_t	backupregs[16];
 extern uint32_t *mod1seg[8];
 extern uint32_t *eal_r, *eal_w;
 
+#define fetchdat rmdat
 
 #define setznp168 setznp16
 
@@ -50,10 +55,6 @@ extern uint32_t *eal_r, *eal_w;
 #define IRET 3
 #define OPTYPE_INT 4
 
-#define FLAG_N (flags_zn>>31)
-#define FLAG_Z (flags_zn)
-#define FLAG_P (znptable8[flags_p]&P_FLAG)
-
 
 enum
 {
@@ -71,3 +72,4 @@ extern void	x86_doabrt(int x86_abrt);
 extern void	x86illegal();
 extern void	x86seg_reset();
 extern void	x86gpf(char *s, uint16_t error);
+#endif

@@ -34,9 +34,8 @@ enum {
 enum {
     FULLSCR_SCALE_FULL = 0,
     FULLSCR_SCALE_43,
-    FULLSCR_SCALE_SQ,
-    FULLSCR_SCALE_INT,
-    FULLSCR_SCALE_KEEPRATIO
+    FULLSCR_SCALE_KEEPRATIO,
+    FULLSCR_SCALE_INT
 };
 
 
@@ -54,6 +53,7 @@ enum {
 #define VIDEO_FLAG_TYPE_CGA     0
 #define VIDEO_FLAG_TYPE_MDA     1
 #define VIDEO_FLAG_TYPE_SPECIAL 2
+#define VIDEO_FLAG_TYPE_NONE	3
 #define VIDEO_FLAG_TYPE_MASK    3
 
 typedef struct {
@@ -64,8 +64,8 @@ typedef struct {
 
 typedef struct {
     int		w, h;
-    uint8_t	*dat;
-    uint8_t	*line[2048];
+    uint32_t	*dat;
+    uint32_t	*line[2048];
 } bitmap_t;
 
 typedef struct {
@@ -83,9 +83,7 @@ extern int	egareads,
 		egawrites;
 extern int	changeframecount;
 
-extern bitmap_t	*screen,
-		*buffer,
-		*buffer32;
+extern bitmap_t	*buffer32;
 extern PALETTE	cgapal,
 		cgapal_mono[6];
 extern uint32_t	pal_lookup[256];
@@ -95,6 +93,9 @@ extern int	video_fullscreen,
 extern int	fullchange;
 extern uint8_t	fontdat[2048][8];
 extern uint8_t	fontdatm[2048][16];
+extern uint8_t	fontdatw[512][32];
+extern uint8_t	fontdat8x12[256][16];
+extern uint8_t	fontdat12x18[256][36];
 extern dbcs_font_t	*fontdatksc5601;
 extern dbcs_font_t	*fontdatksc5601_user;
 extern uint32_t	*video_6to8,
@@ -121,7 +122,7 @@ extern int	vid_cga_contrast;
 extern int	video_grayscale;
 extern int	video_graytype;
 
-extern float	cpuclock;
+extern double	cpuclock;
 extern int	emu_fps,
 		frames;
 extern int	readflash;
@@ -164,6 +165,7 @@ extern void	updatewindowsize(int x, int y);
 
 extern void	video_init(void);
 extern void	video_close(void);
+extern void	video_reset_close(void);
 extern void	video_reset(int card);
 extern uint8_t	video_force_resize_get(void);
 extern void	video_force_resize_set(uint8_t res);

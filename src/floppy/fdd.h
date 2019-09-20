@@ -8,7 +8,7 @@
  *
  *		Definitions for the floppy drive emulation.
  *
- * Version:	@(#)fdd.h	1.0.5	2018/11/12
+ * Version:	@(#)fdd.h	1.0.6	2019/02/11
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -50,7 +50,7 @@ extern "C" {
 
 extern int	fdd_swap;
 
-
+extern void fdd_set_motor_enable(int drive, int motor_enable);
 extern void	fdd_do_seek(int drive, int track);
 extern void	fdd_forced_seek(int drive, int track_diff);
 extern void	fdd_seek(int drive, int track_diff);
@@ -85,6 +85,8 @@ extern int	fdd_current_track(int drive);
 
 
 typedef struct {
+    int		id;
+
     void	(*seek)(int drive, int track);
     void	(*readsector)(int drive, int sector, int track, int side,
 			      int density, int sector_size);
@@ -95,17 +97,16 @@ typedef struct {
     void	(*readaddress)(int drive, int side, int density);
     void	(*format)(int drive, int side, int density, uint8_t fill);
     int		(*hole)(int drive);
-    double	(*byteperiod)(int drive);
+    uint64_t	(*byteperiod)(int drive);
     void	(*stop)(int drive);
     void	(*poll)(int drive);
 } DRIVE;
 
 
-extern DRIVE	drives[FDD_NUM];
-extern wchar_t	floppyfns[FDD_NUM][512];
-extern int	driveempty[FDD_NUM];
-extern int64_t	fdd_poll_time[FDD_NUM];
-extern int	ui_writeprot[FDD_NUM];
+extern DRIVE		drives[FDD_NUM];
+extern wchar_t		floppyfns[FDD_NUM][512];
+extern pc_timer_t	fdd_poll_time[FDD_NUM];
+extern int		ui_writeprot[FDD_NUM];
 
 extern int	curdrive;
 
@@ -118,11 +119,6 @@ extern void	fdd_new(int drive, char *fn);
 extern void	fdd_close(int drive);
 extern void	fdd_init(void);
 extern void	fdd_reset(void);
-extern void	fdd_poll(int drive);
-extern void	fdd_poll_0(void* priv);
-extern void	fdd_poll_1(void* priv);
-extern void	fdd_poll_2(void* priv);
-extern void	fdd_poll_3(void* priv);
 extern void	fdd_seek(int drive, int track);
 extern void	fdd_readsector(int drive, int sector, int track,
 				int side, int density, int sector_size);
@@ -133,12 +129,10 @@ extern void	fdd_comparesector(int drive, int sector, int track,
 extern void	fdd_readaddress(int drive, int side, int density);
 extern void	fdd_format(int drive, int side, int density, uint8_t fill);
 extern int	fdd_hole(int drive);
-extern double	fdd_byteperiod(int drive);
 extern void	fdd_stop(int drive);
-extern void	fdd_set_rate(int drive, int drvden, int rate);
 
 extern int	motorspin;
-extern int64_t	motoron[FDD_NUM];
+extern uint64_t	motoron[FDD_NUM];
 
 extern int	swwp;
 extern int	disable_write;
@@ -146,10 +140,8 @@ extern int	disable_write;
 extern int	defaultwriteprot;
 
 extern int	writeprot[FDD_NUM], fwriteprot[FDD_NUM];
-extern int	fdd_cur_track[FDD_NUM];
 extern int	fdd_changed[FDD_NUM];
 extern int	drive_empty[FDD_NUM];
-extern int	drive_type[FDD_NUM];
 
 /*Used in the Read A Track command. Only valid for fdd_readsector(). */
 #define SECTOR_FIRST -2

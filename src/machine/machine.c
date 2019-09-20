@@ -26,6 +26,7 @@
 #define HAVE_STDARG_H
 #include "../86box.h"
 #include "../device.h"
+#include "../timer.h"
 #include "../dma.h"
 #include "../pic.h"
 #include "../pit.h"
@@ -38,9 +39,9 @@
 #include "machine.h"
 
 
+int bios_only = 0;
 int machine;
 int AT, PCI;
-int romset;
 
 
 #ifdef ENABLE_MACHINE_LOG
@@ -64,36 +65,57 @@ machine_log(const char *fmt, ...)
 #endif
 
 
+static int
+machine_init_ex(int m)
+{
+    int ret = 0;
+
+    if (!bios_only) {
+	machine_log("Initializing as \"%s\"\n", machine_getname_ex(m));
+
+	/* Set up the architecture flags. */
+	AT = IS_ARCH(machine, MACHINE_AT);
+	PCI = IS_ARCH(machine, MACHINE_PCI);
+
+	/* Resize the memory. */
+	mem_reset();
+
+	lpt_init();
+    }
+
+    /* All good, boot the machine! */
+    if (machines[m].init)
+	ret = machines[m].init(&machines[m]);
+
+    if (bios_only || !ret)
+	return ret;
+
+    /* Reset the graphics card (or do nothing if it was already done
+       by the machine's init function). */
+    video_reset(gfxcard);
+
+    return ret;
+}
+
+
 void
 machine_init(void)
 {
-    int MCA;
-    machine_log("Initializing as \"%s\"\n", machine_getname());
+    bios_only = 0;
+    (void) machine_init_ex(machine);
+}
 
-    /* Set up the architecture flags. */
-    AT = IS_ARCH(machine, MACHINE_AT);
-    PCI = IS_ARCH(machine, MACHINE_PCI);
-    MCA = IS_ARCH(machine, MACHINE_MCA);
 
-    /* Resize the memory. */
-    mem_reset();
+int
+machine_available(int m)
+{
+    int ret;
 
-    /* Load the machine's ROM BIOS. */
-    rom_load_bios(romset);
-    mem_add_bios();
+    bios_only = 1;
+    ret = machine_init_ex(m);
 
-    /* If it's not a PCI or MCA machine, reset the video card
-       before initializing the machine, to please the EuroPC. */
-    if (!PCI && !MCA)
-	video_reset(gfxcard);
-
-    /* All good, boot the machine! */
-    machines[machine].init(&machines[machine]);
-
-    /* If it's a PCI or MCA machine, reset the video card
-       after initializing the machine, so the slots work correctly. */
-    if (PCI || MCA)
-	video_reset(gfxcard);
+    bios_only = 0;
+    return ret;
 }
 
 
@@ -103,14 +125,8 @@ machine_common_init(const machine_t *model)
     /* System devices first. */
     pic_init();
     dma_init();
-    pit_init();
 
     cpu_set();
-    if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
-	setrtcconst(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
-    else
-	setrtcconst(14318184.0);
 
-    if (lpt_enabled)
-	lpt_init();
+    pit_init();
 }

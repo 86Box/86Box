@@ -41,8 +41,13 @@
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
+#ifdef USE_NEW_DYNAREC
+#include "cpu_new/cpu.h"
+#include "cpu_new/x86.h"
+#else
 #include "cpu/cpu.h"
 #include "cpu/x86.h"
+#endif
 #include "machine/machine.h"
 #include "mca.h"
 #include "mem.h"
@@ -61,6 +66,7 @@ static int	dma_wp,
 static uint8_t	dma_m;
 static uint8_t	dma_stat;
 static uint8_t	dma_stat_rq;
+static uint8_t	dma_stat_rq_pc;
 static uint8_t	dma_command,
 		dma16_command;
 static struct {	
@@ -81,6 +87,22 @@ static struct {
 
 
 static void dma_ps2_run(int channel);
+
+
+int
+dma_get_drq(int channel)
+{
+    return !!(dma_stat_rq_pc & (1 << channel));
+}
+
+
+void
+dma_set_drq(int channel, int set)
+{
+    dma_stat_rq_pc &= ~(1 << channel);
+    if (set)
+	dma_stat_rq_pc |= (1 << channel);
+}
 
 
 static uint8_t
@@ -111,11 +133,13 @@ dma_read(uint16_t addr, void *priv)
 		return(temp);
 
 	case 8: /*Status register*/
-		temp = dma_stat & 0xf;
+		temp = dma_stat_rq_pc & 0xf;
+		temp <<= 4;
+		temp |= dma_stat & 0xf;
 		dma_stat &= ~0xf;
 		return(temp);
 
-	case 0xd:
+	case 0xd: /*Temporary register*/
 		return(0);
     }
 
@@ -156,7 +180,17 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
 
 	case 8: /*Control register*/
 		dma_command = val;
+		if (val & 0x01)
+			fatal("Memory-to-memory enable\n");
 		return;
+
+	case 9: /*Request register */
+		channel = (val & 3);
+		if (val & 4)
+			dma_stat_rq_pc |= (1 << channel);
+		else
+			dma_stat_rq_pc &= ~(1 << channel);
+		break;
 
 	case 0xa: /*Mask*/
 		if (val & 4)
@@ -186,6 +220,11 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
 	case 0xd: /*Master clear*/
 		dma_wp = 0;
 		dma_m |= 0xf;
+		dma_stat_rq_pc &= ~0x0f;
+		return;
+
+	case 0xe: /*Clear mask*/
+		dma_m &= 0xf0;
 		return;
 
 	case 0xf: /*Mask write*/
@@ -387,7 +426,8 @@ dma16_read(uint16_t addr, void *priv)
 		return(temp);
 
 	case 8: /*Status register*/
-		temp = dma_stat >> 4;
+		temp = (dma_stat_rq_pc & 0xf0);
+		temp |= dma_stat >> 4;
 		dma_stat &= ~0xf0;
 		return(temp);
     }
@@ -438,6 +478,14 @@ dma16_write(uint16_t addr, uint8_t val, void *priv)
 	case 8: /*Control register*/
 		return;
 
+	case 9: /*Request register */
+		channel = (val & 3) + 4;
+		if (val & 4)
+			dma_stat_rq_pc |= (1 << channel);
+		else
+			dma_stat_rq_pc &= ~(1 << channel);
+		break;
+
 	case 0xa: /*Mask*/
 		if (val & 4)
 			dma_m |=  (0x10 << (val & 3));
@@ -466,6 +514,11 @@ dma16_write(uint16_t addr, uint8_t val, void *priv)
 	case 0xd: /*Master clear*/
 		dma16_wp = 0;
 		dma_m |= 0xf0;
+		dma_stat_rq_pc &= ~0xf0;
+		return;
+
+	case 0xe: /*Clear mask*/
+		dma_m &= 0x0f;
 		return;
 
 	case 0xf: /*Mask write*/
@@ -557,12 +610,18 @@ dma_reset(void)
 	dma[c].cb = 0;
 	dma[c].size = (c & 4) ? 1 : 0;
     }
+
+    dma_stat = 0x00;
+    dma_stat_rq = 0x00;
+    dma_stat_rq_pc = 0x00;
 }
 
 
 void
 dma_init(void)
 {
+    dma_reset();
+
     io_sethandler(0x0000, 16,
 		  dma_read,NULL,NULL, dma_write,NULL,NULL, NULL);
     io_sethandler(0x0080, 8,
@@ -574,6 +633,8 @@ dma_init(void)
 void
 dma16_init(void)
 {
+    dma_reset();
+
     io_sethandler(0x00C0, 32,
 		  dma16_read,NULL,NULL, dma16_write,NULL,NULL, NULL);
     io_sethandler(0x0088, 8,
@@ -614,6 +675,8 @@ dma_alias_remove_piix(void)
 void
 ps2_dma_init(void)
 {
+    dma_reset();
+
     io_sethandler(0x0018, 1,
 		  dma_ps2_read,NULL,NULL, dma_ps2_write,NULL,NULL, NULL);
     io_sethandler(0x001a, 1,
@@ -659,8 +722,10 @@ dma_channel_read(int channel)
     if ((dma_c->mode & 0xC) != 8)
 	return(DMA_NODATA);
 
-    if (!AT)
+    if (!AT && !channel)
 	refreshread();
+    /* if (!AT && channel)
+	pclog("DMA refresh read on channel %i\n", channel); */
 
     if (! dma_c->size) {
 	temp = _dma_read(dma_c->ac);
@@ -730,8 +795,10 @@ dma_channel_write(int channel, uint16_t val)
     if ((dma_c->mode & 0xC) != 4)
 	return(DMA_NODATA);
 
-    if (!AT)
+    /* if (!AT)
 	refreshread();
+    if (!AT)
+	pclog("DMA refresh write on channel %i\n", channel); */
 
     if (! dma_c->size) {
 	_dma_write(dma_c->ac, val & 0xff);

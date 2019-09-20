@@ -276,6 +276,10 @@ struct ipq {
  *
  * Note: ipf_next must be at same offset as ipq_next above
  */
+#ifdef PRAGMA_PACK_SUPPORTED
+#pragma pack(1)
+#endif
+
 struct	ipasfrag {
 #ifdef WORDS_BIGENDIAN
 	u_char	ip_v:4,
@@ -298,7 +302,11 @@ struct	ipasfrag {
 	u_int16_t	ip_sum;
 	ipasfragp_32 ipf_next;		/* next fragment */
 	ipasfragp_32 ipf_prev;		/* previous fragment */
-};
+} PACKED__;
+
+#ifdef PRAGMA_PACK_SUPPORTED
+#pragma pack(PACK_END)	//WAS 0
+#endif
 
 /*
  * Structure stored in mbuf in inpcb.ip_options

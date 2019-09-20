@@ -6,7 +6,7 @@ typedef struct sb_dsp_t
         int sb_8_dmanum;
         int sb_16_length, sb_16_format, sb_16_autoinit, sb_16_pause, sb_16_enable, sb_16_autolen, sb_16_output;
         int sb_16_dmanum;
-        int64_t sb_pausetime;
+        int sb_pausetime;
 
         uint8_t sb_read_data[256];
         int sb_read_wp, sb_read_rp;
@@ -42,17 +42,17 @@ typedef struct sb_dsp_t
         uint8_t sbreaddat;
         uint8_t sb_command;
         uint8_t sb_test;
-        int64_t sb_timei, sb_timeo;
+        int sb_timei, sb_timeo;
 
         int sb_irq8, sb_irq16;
 
         uint8_t sb_asp_regs[256];
         
-        int64_t sbenable, sb_enable_i;
+        int sbenable, sb_enable_i;
         
-        int64_t sbcount, sb_count_i;
+        pc_timer_t output_timer, input_timer;
         
-        int64_t sblatcho, sblatchi;
+        uint64_t sblatcho, sblatchi;
         
         uint16_t sb_addr;
         
@@ -60,7 +60,8 @@ typedef struct sb_dsp_t
         
         int asp_data_len;
         
-        int64_t wb_time, wb_full;
+        pc_timer_t wb_timer;
+		int wb_full;
 
 	int busy_count;
 

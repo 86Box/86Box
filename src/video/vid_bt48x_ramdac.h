@@ -24,11 +24,11 @@ typedef struct
 	uint8_t cursor32_data[256];
 	uint8_t cursor64_data[1024];
 	int hwc_y, hwc_x;
-	uint8_t cr0;
-        uint8_t cr1;
-        uint8_t cr2;
-	uint8_t cr3;
-	uint8_t cr4;
+	uint8_t cmd_r0;
+        uint8_t cmd_r1;
+        uint8_t cmd_r2;
+	uint8_t cmd_r3;
+	uint8_t cmd_r4;
 	uint8_t status;
 	uint8_t type;
 } bt48x_ramdac_t;

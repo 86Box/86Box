@@ -98,7 +98,8 @@ typedef struct {
     uint16_t	buffer[256];
     int		irqstat;
 
-    int64_t	callback;
+    uint64_t callback;
+	pc_timer_t timer;
 
     drive_t	drives[2];
 
@@ -208,6 +209,21 @@ next_sector(esdi_t *esdi)
     }
 }
 
+static void
+esdi_set_callback(esdi_t *esdi, uint64_t callback)
+{
+    if (!esdi) {
+	return;
+    }
+
+    if (callback) {
+	esdi->callback = callback;
+	timer_set_delay_u64(&esdi->timer, esdi->callback);
+	} else {
+	esdi->callback = 0;
+	timer_disable(&esdi->timer);
+	}
+}
 
 static void
 esdi_writew(uint16_t port, uint16_t val, void *priv)
@@ -220,10 +236,8 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
     if (esdi->pos >= 512) {
 	esdi->pos = 0;
 	esdi->status = STAT_BUSY;
-	timer_clock();
 	/* 390.625 us per sector at 10 Mbit/s = 1280 kB/s. */
-	esdi->callback = (3125LL * TIMER_USEC) / 8LL;
-	timer_update_outstanding();
+	esdi_set_callback(esdi, (3125 * TIMER_USEC) / 8);
     }
 }
 
@@ -281,26 +295,20 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 			case CMD_RESTORE:
 				esdi->command &= ~0x0f; /*mask off step rate*/
 				esdi->status = STAT_BUSY;
-				timer_clock();
-				esdi->callback = 200LL*HDC_TIME;
-				timer_update_outstanding();
+				esdi_set_callback(esdi, 200 * HDC_TIME);
 				break;
 
 			case CMD_SEEK:
 				esdi->command &= ~0x0f; /*mask off step rate*/
 				esdi->status = STAT_BUSY;
-				timer_clock();
-				esdi->callback = 200LL*HDC_TIME;
-				timer_update_outstanding();
+				esdi_set_callback(esdi, 200 * HDC_TIME);
 				break;
 
 			default:
 				switch (val) {
 					case CMD_NOP:
 						esdi->status = STAT_BUSY;
-						timer_clock();
-						esdi->callback = 200LL*HDC_TIME;
-						timer_update_outstanding();
+						esdi_set_callback(esdi, 200 * HDC_TIME);
 						break;
 
 					case CMD_READ:
@@ -313,9 +321,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
 					case 0xa0:
 						esdi->status = STAT_BUSY;
-						timer_clock();
-						esdi->callback = 200LL*HDC_TIME;
-						timer_update_outstanding();
+						esdi_set_callback(esdi, 200 * HDC_TIME);
 						break;
 
 					case CMD_WRITE:
@@ -333,9 +339,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 					case CMD_VERIFY+1:
 						esdi->command &= ~0x01;
 						esdi->status = STAT_BUSY;
-						timer_clock();
-						esdi->callback = 200LL*HDC_TIME;
-						timer_update_outstanding();
+						esdi_set_callback(esdi, 200 * HDC_TIME);
 						break;
 
 					case CMD_FORMAT:
@@ -345,33 +349,25 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
 					case CMD_SET_PARAMETERS: /* Initialize Drive Parameters */
 						esdi->status = STAT_BUSY;
-						timer_clock();
-						esdi->callback = 30LL*HDC_TIME;
-						timer_update_outstanding();
+						esdi_set_callback(esdi, 30 * HDC_TIME);
 						break;
 
 					case CMD_DIAGNOSE: /* Execute Drive Diagnostics */
 						esdi->status = STAT_BUSY;
-						timer_clock();
-						esdi->callback = 200LL*HDC_TIME;
-						timer_update_outstanding();
+						esdi_set_callback(esdi, 200 * HDC_TIME);
 						break;
 
 					case 0xe0: /*???*/
 					case CMD_READ_PARAMETERS:
 						esdi->status = STAT_BUSY;
-						timer_clock();
-						esdi->callback = 200LL*HDC_TIME;
-						timer_update_outstanding();
+						esdi_set_callback(esdi, 200 * HDC_TIME);
 						break;
 
 					default:
 						esdi_at_log("WD1007: bad command %02X\n", val);
 					case 0xe8: /*???*/
 						esdi->status = STAT_BUSY;
-						timer_clock();
-						esdi->callback = 200LL*HDC_TIME;
-						timer_update_outstanding();
+						esdi_set_callback(esdi, 200 * HDC_TIME);
 						break;
 				}
 		}
@@ -379,18 +375,14 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
 	case 0x3f6: /* Device control */
 		if ((esdi->fdisk & 0x04) && !(val & 0x04)) {
-			timer_clock();
-			esdi->callback = 500LL*HDC_TIME;
-			timer_update_outstanding();
+			esdi_set_callback(esdi, 500 * HDC_TIME);
 			esdi->reset = 1;
 			esdi->status = STAT_BUSY;
 		}
 
 		if (val & 0x04) {
 			/*Drive held in reset*/
-			timer_clock();
-			esdi->callback = 0LL;
-			timer_update_outstanding();
+			esdi_set_callback(esdi, 0);
 			esdi->status = STAT_BUSY;
 		}
 		esdi->fdisk = val;
@@ -419,10 +411,8 @@ esdi_readw(uint16_t port, void *priv)
 		if (esdi->secount) {
 			next_sector(esdi);
 			esdi->status = STAT_BUSY;
-			timer_clock();
 			/* 390.625 us per sector at 10 Mbit/s = 1280 kB/s. */
-			esdi->callback = (3125LL * TIMER_USEC) / 8LL;
-			timer_update_outstanding();
+			esdi_set_callback(esdi, (3125 * TIMER_USEC) / 8);
 		} else {
 			ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 		}
@@ -487,7 +477,8 @@ esdi_callback(void *priv)
     drive_t *drive = &esdi->drives[esdi->drive_sel];
     off64_t addr;
 
-    esdi->callback = 0LL;
+	esdi_set_callback(esdi, 0);
+	
     if (esdi->reset) {
 	esdi->status = STAT_READY|STAT_DSC;
 	esdi->error = 1;
@@ -602,7 +593,7 @@ esdi_callback(void *priv)
 		next_sector(esdi);
 		esdi->secount = (esdi->secount - 1) & 0xff;
 		if (esdi->secount)
-			esdi->callback = 6LL*HDC_TIME;
+			esdi_set_callback(esdi, 6 * HDC_TIME);
 		else {
 			esdi->pos = 0;
 			esdi->status = STAT_READY|STAT_DSC;
@@ -811,7 +802,7 @@ wd1007vse1_init(const device_t *info)
     io_sethandler(0x03f6, 1, NULL, NULL, NULL,
 		  esdi_write, NULL, NULL, esdi);
 
-    timer_add(esdi_callback, &esdi->callback, &esdi->callback, esdi);
+	timer_add(&esdi->timer, esdi_callback, esdi, 0);
 
     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
 

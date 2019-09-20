@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.136	2019/01/13
+# Version:	@(#)Makefile.mingw	1.0.137	2019/03/03
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -53,6 +53,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef LASERXT
   LASERXT	:= y
  endif
+ ifndef MR495
+  MR495		:= y
+ endif
  ifndef MRTHOR
   MRTHOR	:= y
  endif
@@ -62,8 +65,23 @@ ifeq ($(DEV_BUILD), y)
  ifndef PORTABLE3
   PORTABLE3	:= y
  endif
+ ifndef PS1M2133
+  PS1M2133	:= y
+ endif
  ifndef PS2M70T4
   PS2M70T4	:= y
+ endif
+ ifndef RIVA128
+  RIVA128	:= y
+ endif
+ ifndef TC430HX
+  TC430HX	:= y
+ endif
+ ifndef VECTRA54
+  VECTRA54	:= y
+ endif
+ ifndef VGAWONDER
+  VGAWONDER	:= y
  endif
  ifndef VNC
   VNC		:= y
@@ -93,6 +111,9 @@ else
  ifndef LASERXT
   LASERXT	:= n
  endif
+ ifndef MR495
+  MR495		:= n
+ endif
  ifndef MRTHOR
   MRTHOR	:= n
  endif
@@ -102,8 +123,20 @@ else
  ifndef PORTABLE3
   PORTABLE3	:= n
  endif
+ ifndef PS1M2133
+  PS1M2133	:= n
+ endif
  ifndef PS2M70T4
   PS2M70T4	:= n
+ endif
+ ifndef RIVA128
+  RIVA128	:= n
+ endif
+ ifndef TC430HX
+  TC430HX	:= n
+ endif
+ ifndef VECTRA54
+  VECTRA54	:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -145,10 +178,7 @@ ifndef RDP
 RDP		:= n
 endif
 ifndef DINPUT
- DINPUT		:= y
- ifeq ($(ARM), y)
-  DINPUT		:= n
- endif
+ DINPUT		:= n
 endif
 ifndef D3DX
  D3DX		:= y
@@ -225,7 +255,7 @@ endif
 #		Nothing should need changing from here on..		#
 #########################################################################
 VPATH		:= $(EXPATH) . cpu \
-		   cdrom disk floppy game machine \
+		   cdrom chipset disk floppy game machine \
 		   printer \
 		   sound \
 		    sound/munt sound/munt/c_interface sound/munt/sha1 \
@@ -240,7 +270,7 @@ endif
 CPP             := ${TOOL_PREFIX}g++
 CC              := ${TOOL_PREFIX}gcc
 WINDRES		:= windres
-STRIP           := strip
+STRIP		:= strip
 ifeq ($(ARM64), y)
 CPP		:= aarch64-w64-mingw32-g++
 CC		:= aarch64-w64-mingw32-gcc
@@ -316,19 +346,16 @@ ifeq ($(VRAMDUMP), y)
 OPTS		+= -DENABLE_VRAM_DUMP
 RFLAGS		+= -DENABLE_VRAM_DUMP
 endif
-ifeq ($(X64), y)
-PLATCG		:= codegen_x86-64.o
-CGOPS		:= codegen_ops_x86-64.h
-VCG		:= vid_voodoo_codegen_x86-64.h
-else
-PLATCG		:= codegen_x86.o
-CGOPS		:= codegen_ops_x86.h
-VCG		:= vid_voodoo_codegen_x86.h
-endif
 
 
 # Optional modules.
 ifeq ($(DYNAREC), y)
+ifeq ($(X64), y)
+PLATCG		:= codegen_x86-64.o
+else
+PLATCG		:= codegen_x86.o
+endif
+
 OPTS		+= -DUSE_DYNAREC
 RFLAGS		+= -DUSE_DYNAREC
 DYNARECOBJ	:= 386_dynarec_ops.o \
@@ -422,11 +449,16 @@ endif
 
 ifeq ($(I686), y)
 OPTS		+= -DUSE_I686
+DEVBROBJ	+= m_at_socket8.o
 endif
 
 ifeq ($(LASERXT), y)
 OPTS		+= -DUSE_LASERXT
 DEVBROBJ	+= m_xt_laserxt.o
+endif
+
+ifeq ($(MR495), y)
+OPTS		+= -DUSE_MR495
 endif
 
 ifeq ($(MRTHOR), y)
@@ -442,8 +474,25 @@ ifeq ($(PORTABLE3), y)
 OPTS		+= -DUSE_PORTABLE3
 endif
 
+ifeq ($(PS1M2133), y)
+OPTS		+= -DUSE_PS1M2133
+endif
+
 ifeq ($(PS2M70T4), y)
 OPTS		+= -DUSE_PS2M70T4
+endif
+
+ifeq ($(RIVA128), y)
+OPTS		+= -DUSE_RIVA128
+DEVBROBJ	+= vid_riva128.o
+endif
+
+ifeq ($(TC430HX), y)
+OPTS		+= -DUSE_TC430HX
+endif
+
+ifeq ($(VECTRA54), y)
+OPTS		+= -DUSE_VECTRA54
 endif
 
 ifeq ($(VGAWONDER), y)
@@ -477,42 +526,45 @@ CXXFLAGS	:= $(CFLAGS)
 #########################################################################
 #		Create the (final) list of objects to build.		#
 #########################################################################
-MAINOBJ		:= pc.o config.o random.o timer.o io.o dma.o nmi.o pic.o \
-		   pit.o ppi.o pci.o mca.o mcr.o mem.o memregs.o rom.o \
-		   device.o nvr.o nvr_at.o nvr_ps2.o $(VNCOBJ) $(RDPOBJ)
+MAINOBJ		:= pc.o config.o random.o timer.o io.o apm.o dma.o nmi.o \
+		   pic.o pit.o port_92.o ppi.o pci.o mca.o mcr.o mem.o \
+		   rom.o device.o nvr.o nvr_at.o nvr_ps2.o $(VNCOBJ) $(RDPOBJ)
 
-INTELOBJ	:= intel.o \
-		    intel_flash.o \
+INTELOBJ	:= intel_flash.o \
 		    intel_sio.o intel_piix.o
 
 CPUOBJ		:= cpu.o cpu_table.o \
-		    808x.o 386.o 386_dynarec.o \
+		    808x.o 386.o \
+		    386_dynarec.o \
 		    x86seg.o x87.o \
 		    $(DYNARECOBJ)
+
+CHIPSETOBJ	:= acc2168.o acer_m3a.o ali1429.o headland.o \
+		    intel_4x0.o neat.o opti495.o scat.o \
+		    sis_85c471.o sis_85c496.o \
+		    wd76c10.o
 
 MCHOBJ		:= machine.o machine_table.o \
 		    m_xt.o m_xt_compaq.o \
 		    m_xt_t1000.o m_xt_t1000_vid.o \
-		    m_xt_xi8088.o \
-		    m_xt_zenith.o \
+		    m_xt_xi8088.o m_xt_zenith.o \
 		    m_pcjr.o \
-		    m_amstrad.o \
-		    m_europc.o \
+		    m_amstrad.o m_europc.o \
 		    m_olivetti_m24.o m_tandy.o \
-		    m_at.o \
-		    m_at_ali1429.o m_at_commodore.o \
-		    m_at_neat.o m_at_headland.o \
+		    m_at.o m_at_commodore.o \
 		    m_at_t3100e.o m_at_t3100e_vid.o \
 		    m_ps1.o m_ps1_hdc.o \
 		    m_ps2_isa.o m_ps2_mca.o \
-		    m_at_opti495.o m_at_scat.o \
-		    m_at_compaq.o m_at_wd76c10.o \
-		    m_at_sis_85c471.o m_at_sis_85c496.o \
-		    m_at_4x0.o
+		    m_at_compaq.o \
+		    m_at_286_386sx.o m_at_386dx_486.o \
+		    m_at_socket4_5.o m_at_socket7_s7.o
 
-DEVOBJ		:= bugger.o isamem.o isartc.o lpt.o $(SERIAL) \
-		    sio_fdc37c66x.o sio_fdc37c669.o sio_fdc37c93x.o \
-		    sio_pc87306.o sio_w83877f.o sio_um8669f.o \
+DEVOBJ		:= bugger.o ibm_5161.o isamem.o isartc.o lpt.o $(SERIAL) \
+		    sio_acc3221.o \
+		    sio_fdc37c66x.o sio_fdc37c669.o \
+		    sio_fdc37c93x.o \
+		    sio_pc87306.o sio_w83877f.o \
+		    sio_um8669f.o \
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o \
 		   gameport.o \
@@ -530,11 +582,12 @@ FDDOBJ		:= fdd.o fdc.o fdi2raw.o \
 HDDOBJ		:= hdd.o \
 		    hdd_image.o hdd_table.o \
 		   hdc.o \
-		    hdc_mfm_xt.o hdc_mfm_at.o \
+		    hdc_st506_xt.o hdc_st506_at.o \
 		    hdc_xta.o \
 		    hdc_esdi_at.o hdc_esdi_mca.o \
-		    hdc_xtide.o hdc_ide.o
-		    
+		    hdc_xtide.o hdc_ide.o \
+		    hdc_ide_sff8038i.o
+
 CDROMOBJ	:= cdrom.o \
 		    cdrom_dosbox.o cdrom_image.o
 
@@ -594,6 +647,7 @@ VIDOBJ		:= video.o \
 		    vid_hercules.o vid_herculesplus.o vid_incolor.o \
 		    vid_colorplus.o \
 		    vid_genius.o \
+		    vid_pgc.o vid_im1024.o \
 		    vid_sigma.o \
 		    vid_wy700.o \
 		    vid_ega.o vid_ega_render.o \
@@ -608,6 +662,7 @@ VIDOBJ		:= video.o \
 		    vid_cl54xx.o \
 		    vid_et4000.o vid_sc1502x_ramdac.o \
 		    vid_et4000w32.o vid_stg_ramdac.o \
+		    vid_ht216.o \
 		    vid_oak_oti.o \
 		    vid_paradise.o \
 		    vid_ti_cf62011.o \
@@ -628,8 +683,8 @@ else
  PLATOBJ += win_mouse_rawinput.o win_joystick_xinput.o
 endif
 
-OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
-		   $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(HDDOBJ) \
+OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) \
+		   $(DEVOBJ) $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(HDDOBJ) \
 		   $(USBOBJ) $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
 		   $(PLATOBJ) $(UIOBJ) $(D2DOBJ) $(FSYNTHOBJ) $(MUNTOBJ) \
 		   $(DEVBROBJ)
@@ -639,12 +694,12 @@ endif
 
 LIBS		:= -mwindows \
 		   -lddraw -ldxguid -ld3d9 \
-		   -lcomctl32 -lwinmm
+		   -lcomctl32
 
 ifeq ($(STATIC), y)
-LIBS            += -lopenal -lole32
+LIBS            += -lopenal -lole32 -lwinmm
 else
-LIBS            += -lopenal.dll
+LIBS            += -lwinmm -lopenal.dll
 endif
 
 ifeq ($(D2D), y)

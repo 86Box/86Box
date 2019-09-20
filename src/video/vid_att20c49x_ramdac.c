@@ -24,6 +24,7 @@
 #include "../86box.h"
 #include "../device.h"
 #include "../mem.h"
+#include "../timer.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_att20c49x_ramdac.h"

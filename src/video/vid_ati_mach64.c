@@ -27,6 +27,7 @@
 #include "../device.h"
 #include "../io.h"
 #include "../mem.h"
+#include "../timer.h"
 #include "../pci.h"
 #include "../rom.h"
 #include "../plat.h"
@@ -470,7 +471,7 @@ void mach64_recalctimings(svga_t *svga)
                 svga->hdisp_time = svga->hdisp = ((mach64->crtc_h_total_disp >> 16) & 255) + 1;
                 svga->vsyncstart = (mach64->crtc_v_sync_strt_wid & 2047) + 1;
                 svga->rowoffset = (mach64->crtc_off_pitch >> 22);
-                svga->clock = cpuclock / clock_gen->output_clock;
+                svga->clock = (cpuclock * (double)(1ull << 32)) / clock_gen->output_clock;
                 svga->ma_latch = (mach64->crtc_off_pitch & 0x1fffff) * 2;
                 svga->linedbl = svga->rowcount = 0;
                 svga->split = 0xffffff;
@@ -2798,17 +2799,17 @@ void mach64_hwcursor_draw(svga_t *svga, int displine)
         for (x = 0; x < 64 - svga->hwcursor_latch.xoff; x += 4)
         {
                 dat = svga->vram[svga->hwcursor_latch.addr + (offset >> 2)];
-                if (!(dat & 2))          ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 32 + x_add]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 32 + x_add] ^= 0xFFFFFF;
+                if (!(dat & 2))          buffer32->line[displine + y_add][svga->hwcursor_latch.x + x + 32 + x_add]  = (dat & 1) ? col1 : col0;
+                else if ((dat & 3) == 3) buffer32->line[displine + y_add][svga->hwcursor_latch.x + x + 32 + x_add] ^= 0xFFFFFF;
                 dat >>= 2;
-                if (!(dat & 2))          ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 33 + x_add]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 33 + x_add] ^= 0xFFFFFF;
+                if (!(dat & 2))          buffer32->line[displine + y_add][svga->hwcursor_latch.x + x + 33 + x_add]  = (dat & 1) ? col1 : col0;
+                else if ((dat & 3) == 3) buffer32->line[displine + y_add][svga->hwcursor_latch.x + x + 33 + x_add] ^= 0xFFFFFF;
                 dat >>= 2;
-                if (!(dat & 2))          ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 34 + x_add]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 34 + x_add] ^= 0xFFFFFF;
+                if (!(dat & 2))          buffer32->line[displine + y_add][svga->hwcursor_latch.x + x + 34 + x_add]  = (dat & 1) ? col1 : col0;
+                else if ((dat & 3) == 3) buffer32->line[displine + y_add][svga->hwcursor_latch.x + x + 34 + x_add] ^= 0xFFFFFF;
                 dat >>= 2;
-                if (!(dat & 2))          ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 35 + x_add]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) ((uint32_t *)buffer32->line[displine + y_add])[svga->hwcursor_latch.x + x + 35 + x_add] ^= 0xFFFFFF;
+                if (!(dat & 2))          buffer32->line[displine + y_add][svga->hwcursor_latch.x + x + 35 + x_add]  = (dat & 1) ? col1 : col0;
+                else if ((dat & 3) == 3) buffer32->line[displine + y_add][svga->hwcursor_latch.x + x + 35 + x_add] ^= 0xFFFFFF;
                 dat >>= 2;
                 offset += 4;
         }
@@ -2967,7 +2968,7 @@ void mach64_overlay_draw(svga_t *svga, int displine)
         int graphics_key_fn = (mach64->overlay_key_cntl >> 4) & 5;
         int overlay_cmp_mix = (mach64->overlay_key_cntl >> 8) & 0xf;
 
-        p = &((uint32_t *)buffer32->line[displine])[32 + mach64->svga.overlay_latch.x];
+        p = &buffer32->line[displine][32 + mach64->svga.overlay_latch.x];
 
         if (mach64->scaler_update)
         {

@@ -126,8 +126,8 @@ void joystick_init()
                 memcpy(plat_joystick_state[c].button[7].name, XINPUT_NAME_RT, sizeof(XINPUT_NAME_RT));
                 memcpy(plat_joystick_state[c].button[8].name, XINPUT_NAME_BACK, sizeof(XINPUT_NAME_BACK));
                 memcpy(plat_joystick_state[c].button[9].name, XINPUT_NAME_START, sizeof(XINPUT_NAME_START));
-                memcpy(plat_joystick_state[c].button[10].name, XINPUT_NAME_LS, sizeof(XINPUT_NAME_RS));
-                memcpy(plat_joystick_state[c].button[11].name, XINPUT_NAME_RS, sizeof(XINPUT_NAME_LS));
+                memcpy(plat_joystick_state[c].button[10].name, XINPUT_NAME_LS, sizeof(XINPUT_NAME_LS));
+                memcpy(plat_joystick_state[c].button[11].name, XINPUT_NAME_RS, sizeof(XINPUT_NAME_RS));
 
                 plat_joystick_state[c].nr_povs = 0;
 

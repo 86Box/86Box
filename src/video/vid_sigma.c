@@ -8,7 +8,7 @@
  *
  *		Sigma Color 400 emulation.
  *
- * Version:	@(#)vid_sigma.c	1.0.3	2018/10/23
+ * Version:	@(#)vid_sigma.c	1.0.4	2019/05/23
  *
  * Authors:	John Elliott,
  *
@@ -22,11 +22,11 @@
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../pit.h"
 #include "../mem.h"
 #include "../nmi.h"
 #include "../rom.h"
-#include "../timer.h"
 #include "../device.h"
 #include "video.h"
 #include "vid_sigma.h"
@@ -149,7 +149,8 @@ typedef struct sigma_t
 
     uint8_t crtc_value;	/* Value to return from a CRTC register read */
 
-    uint8_t sigmastat;	/* Status register [0x2DA] */
+    uint8_t sigmastat,	/* Status register [0x2DA] */
+	    fake_stat;	/* see sigma_in() for comment */
 
     uint8_t sigmamode;	/* Mode control register [0x2D8] */
 
@@ -164,13 +165,13 @@ typedef struct sigma_t
     int vsynctime, vadj;
     int oddeven;
 
-    int64_t dispontime, dispofftime;
+    uint64_t dispontime, dispofftime;
 
     int firstline, lastline;
 
     int drawcursor;
 
-    int64_t vidtime;
+    pc_timer_t timer;
 
     uint8_t *vram;
     uint8_t bram[2048];       
@@ -211,7 +212,8 @@ sigma_out(uint16_t addr, uint8_t val, void *p)
 	}
 	/* For CRTC emulation, the card BIOS sets the value to be
 	 * read from port 0x3D1 like this */
-	if (addr == 0x3D1) sigma->crtc_value = val;
+	if (addr == 0x3D1)
+		sigma->crtc_value = val;
     } else switch (addr) {
 	case 0x2D0:
 	case 0x2D2:
@@ -249,7 +251,7 @@ sigma_out(uint16_t addr, uint8_t val, void *p)
 	case 0x2DD:	/* Page in RAM at 0xC1800 */
 		if (sigma->rom_paged != 0)
 			mmu_invalidate(0xC0000);
-		sigma->rom_paged = 0;
+		sigma->rom_paged = 0x00;
 		return;
 
 	case 0x2DE:
@@ -306,8 +308,29 @@ sigma_in(uint16_t addr, void *p)
 	/* For CGA compatibility we have to return something palatable on this port.
 	   On a real card this functionality can be turned on or off with SW1/6 */
 	case 0x3DA:
-		result = sigma->sigmastat & 7;
-		if (sigma->sigmastat & STATUS_RETR_V) result |= 8;
+		if (sigma->sigmamode & MODE_ENABLE) {
+			result = sigma->sigmastat & 0x07;
+			if (sigma->sigmastat & STATUS_RETR_V)
+				result |= 0x08;
+		} else {
+			/*
+			 * The card is not running yet, and someone
+			 * (probably the system BIOS) is trying to
+			 * read our status in CGA mode.
+			 *
+			 * One of the systems that do this, is the
+			 * DTK XT (PIM-10TB-Z board) with ERSO 2.42
+			 * BIOS. If this test fails (i.e. it doesnt
+			 * see valid HS and VS bits alternate) it
+			 * will generate lots of annoying beeps..
+			 *
+			 * So, the trick here is to just send it
+			 * some alternating bits, making it think
+			 * the CGA circuitry is operational.
+			 */
+			sigma->fake_stat ^= (0x08 | 0x01);
+			result = sigma->fake_stat;
+		}
 		break;
     }
 
@@ -322,7 +345,7 @@ sigma_write(uint32_t addr, uint8_t val, void *p)
 
     sigma->vram[sigma->plane * 0x8000 + (addr & 0x7fff)] = val;
     egawrites++;
-    cycles -= 4;
+    sub_cycles(4);
 }
 
 
@@ -331,7 +354,7 @@ sigma_read(uint32_t addr, void *p)
 {
     sigma_t *sigma = (sigma_t *)p;
 
-    cycles -= 4;        
+    sub_cycles(4);
     egareads++;
     return sigma->vram[sigma->plane * 0x8000 + (addr & 0x7fff)];
 }
@@ -343,9 +366,6 @@ sigma_bwrite(uint32_t addr, uint8_t val, void *p)
     sigma_t *sigma = (sigma_t *)p;
 
     addr &= 0x3FFF;
-#if 0
-    if ((addr >= 0x1800) && !sigma->rom_paged && (addr < 0x2000))
-#endif
     if ((addr < 0x1800) || sigma->rom_paged || (addr >= 0x2000))
 	;
     else
@@ -388,8 +408,8 @@ sigma_recalctimings(sigma_t *sigma)
     _dispofftime = disptime - _dispontime;
     _dispontime *= CGACONST;
     _dispofftime *= CGACONST;
-    sigma->dispontime = (int)(_dispontime * (1 << TIMER_SHIFT));
-    sigma->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+    sigma->dispontime = (uint64_t)(_dispontime);
+    sigma->dispofftime = (uint64_t)(_dispofftime);
 }
 
 
@@ -399,10 +419,10 @@ static void sigma_text80(sigma_t *sigma)
     int x, c;
     uint8_t chr, attr;
     uint16_t ca = (sigma->crtc[15] | (sigma->crtc[14] << 8));
-    uint16_t ma = ((sigma->ma & 0x3FFF) << 1);
+    uint16_t ma = ((sigma->ma << 1) & 0x3FFF);
     int drawcursor;
     uint32_t cols[4];
-    uint8_t *vram = sigma->vram + (ma << 1);
+    uint8_t *vram = sigma->vram + ((ma << 1) % 4000);
 
     ca = ca << 1;
     if (sigma->sigma_ctl & CTL_CURSOR)
@@ -429,16 +449,16 @@ static void sigma_text80(sigma_t *sigma)
 	if (drawcursor) {
 		for (c = 0; c < 8; c++) {
 			if (sigma->sigmamode & MODE_FONT16)
-				buffer->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0x0f;
+				buffer32->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xf;
 			else
-				buffer->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdat[chr][sigma->sc & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 0x0f;
+				buffer32->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdat[chr][sigma->sc & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xf;
 		}
 	} else {
 		for (c = 0; c < 8; c++) {
 			if (sigma->sigmamode & MODE_FONT16)
-				buffer->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
+				buffer32->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
 			else
-				buffer->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdat[chr][sigma->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+				buffer32->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdat[chr][sigma->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
 		}
 	}
 	++ma;
@@ -484,14 +504,14 @@ sigma_text40(sigma_t *sigma)
 
 	if (drawcursor) {
 		for (c = 0; c < 8; c++) { 
-			buffer->line[sigma->displine][(x << 4) + 2*c + 8] = 
-			buffer->line[sigma->displine][(x << 4) + 2*c + 9] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0x0f;
+			buffer32->line[sigma->displine][(x << 4) + 2*c + 8] = 
+			buffer32->line[sigma->displine][(x << 4) + 2*c + 9] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xf;
 		}
 	} else {
 		for (c = 0; c < 8; c++) {
-			buffer->line[sigma->displine][(x << 4) + 2*c + 8] = 
-			buffer->line[sigma->displine][(x << 4) + 2*c + 9] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
-		}	
+			buffer32->line[sigma->displine][(x << 4) + 2*c + 8] = 
+			buffer32->line[sigma->displine][(x << 4) + 2*c + 9] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
+		}
 	}
 	ma++;
     }
@@ -522,7 +542,7 @@ sigma_gfx400(sigma_t *sigma)
 		      ((plane[1] & mask) ? 2 : 0) | 
 		      ((plane[0] & mask) ? 1 : 0);
 		col |= 16;
-		buffer->line[sigma->displine][(x << 3) + c + 8] = col;
+		buffer32->line[sigma->displine][(x << 3) + c + 8] = col;
 	}
 	if (x & 1)
 		++sigma->ma;
@@ -555,7 +575,7 @@ sigma_gfx200(sigma_t *sigma)
 		      ((plane[1] & mask) ? 2 : 0) | 
 		      ((plane[0] & mask) ? 1 : 0);
 		col |= 16;
-		buffer->line[sigma->displine][(x << 3) + c + 8] = col;
+		buffer32->line[sigma->displine][(x << 3) + c + 8] = col;
 	}
 
 	if (x & 1)
@@ -590,8 +610,8 @@ sigma_gfx4col(sigma_t *sigma)
 		col |= 16;
 		mask = mask >> 1;
 
-		buffer->line[sigma->displine][(x << 3) + (c << 1) + 8] = 
-		buffer->line[sigma->displine][(x << 3) + (c << 1) + 9] = col;
+		buffer32->line[sigma->displine][(x << 3) + (c << 1) + 8] = 
+		buffer32->line[sigma->displine][(x << 3) + (c << 1) + 9] = col;
 	}
 
 	if (x & 1)
@@ -610,7 +630,7 @@ sigma_poll(void *p)
     int oldsc;
 
     if (!sigma->linepos) {
-	sigma->vidtime += sigma->dispofftime;
+	timer_advance_u64(&sigma->timer, sigma->dispofftime);
 	sigma->sigmastat |= STATUS_RETR_H;
 	sigma->linepos = 1;
 	oldsc = sigma->sc;
@@ -626,11 +646,11 @@ sigma_poll(void *p)
 		cols[0] = 16;
 		/* Left overscan */
 		for (c = 0; c < 8; c++) {
-			buffer->line[sigma->displine][c] = cols[0];
+			buffer32->line[sigma->displine][c] = cols[0];
 			if (sigma->sigmamode & MODE_80COLS)
-				buffer->line[sigma->displine][c + (sigma->crtc[1] << 4) + 8] = cols[0];
+				buffer32->line[sigma->displine][c + (sigma->crtc[1] << 4) + 8] = cols[0];
 			else
-				buffer->line[sigma->displine][c + (sigma->crtc[1] << 5) + 8] = cols[0];
+				buffer32->line[sigma->displine][c + (sigma->crtc[1] << 5) + 8] = cols[0];
 		}
 		if (sigma->sigmamode & MODE_GRAPHICS) {
 			if (sigma->sigmamode & MODE_640x400)
@@ -648,9 +668,9 @@ sigma_poll(void *p)
 	} else {
 		cols[0] = 16;
 		if (sigma->sigmamode & MODE_80COLS) 
-			hline(buffer, 0, sigma->displine, (sigma->crtc[1] << 4) + 16, cols[0]);
+			hline(buffer32, 0, sigma->displine, (sigma->crtc[1] << 4) + 16, cols[0]);
 		else
-			hline(buffer, 0, sigma->displine, (sigma->crtc[1] << 5) + 16, cols[0]);
+			hline(buffer32, 0, sigma->displine, (sigma->crtc[1] << 5) + 16, cols[0]);
 	}
 
 	if (sigma->sigmamode & MODE_80COLS) 
@@ -659,7 +679,7 @@ sigma_poll(void *p)
 		x = (sigma->crtc[1] << 5) + 16;
 
 	for (c = 0; c < x; c++)
-		buffer->line[sigma->displine][c] = sigma->palette[buffer->line[sigma->displine][c] & 0xf] | 16;
+		buffer32->line[sigma->displine][c] = sigma->palette[buffer32->line[sigma->displine][c] & 0xf] | 16;
 
 	sigma->sc = oldsc;
 	if (sigma->vc == sigma->crtc[7] && !sigma->sc)
@@ -668,7 +688,7 @@ sigma_poll(void *p)
 	if (sigma->displine >= 560) 
 		sigma->displine = 0;
     } else {
-	sigma->vidtime += sigma->dispontime;
+	timer_advance_u64(&sigma->timer, sigma->dispontime);
 	sigma->linepos = 0;
 	if (sigma->vsynctime) {
 		sigma->vsynctime--;
@@ -706,7 +726,8 @@ sigma_poll(void *p)
 			sigma->vc = 0;
 			sigma->vadj = sigma->crtc[5];
 			if (!sigma->vadj) sigma->cgadispon = 1;
-			if (!sigma->vadj) sigma->ma = sigma->maback = (sigma->crtc[13] | (sigma->crtc[12] << 8)) & 0x3fff;
+			if (!sigma->vadj)
+				sigma->ma = sigma->maback = (sigma->crtc[13] | (sigma->crtc[12] << 8)) & 0x3fff;
 			if ((sigma->crtc[10] & 0x60) == 0x20)
 				sigma->cursoron = 0;
 			else
@@ -786,14 +807,18 @@ sigma_poll(void *p)
 static void
 *sigma_init(const device_t *info)
 {
+    int bios_addr;
     sigma_t *sigma = malloc(sizeof(sigma_t));
     memset(sigma, 0, sizeof(sigma_t));
+
+    bios_addr = device_get_config_hex20("bios_addr");
+
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_sigma);
 
     sigma->enable_nmi = device_get_config_int("enable_nmi");
 
     loadfont(ROM_SIGMA_FONT, 7);
-    rom_init(&sigma->bios_rom, ROM_SIGMA_BIOS, 0xC0000, 0x2000, 
+    rom_init(&sigma->bios_rom, ROM_SIGMA_BIOS, bios_addr, 0x2000, 
 	     0x1FFF, 0, MEM_MAPPING_EXTERNAL);
     /* The BIOS ROM is overlaid by RAM, so remove its default mapping
        and access it through sigma_bread() / sigma_bwrite() below */
@@ -802,12 +827,12 @@ static void
 
     sigma->vram = malloc(0x8000 * 4);
 
-    timer_add(sigma_poll, &sigma->vidtime, TIMER_ALWAYS_ENABLED, sigma);
+    timer_add(&sigma->timer, sigma_poll, sigma, 1);
     mem_mapping_add(&sigma->mapping, 0xb8000, 0x08000, 
 		    sigma_read, NULL, NULL, 
 		    sigma_write, NULL, NULL,  
 		    NULL, MEM_MAPPING_EXTERNAL, sigma);
-    mem_mapping_add(&sigma->bios_ram, 0xC1800, 0x0800,
+    mem_mapping_add(&sigma->bios_ram, bios_addr, 0x2000,
 		    sigma_bread, NULL, NULL, 
 		    sigma_bwrite, NULL, NULL,  
 		    sigma->bios_rom.rom, MEM_MAPPING_EXTERNAL, sigma);
@@ -886,6 +911,47 @@ device_config_t sigma_config[] =
     },
     {
 	"enable_nmi", "Enable NMI for CGA emulation", CONFIG_BINARY, "", 1
+    },
+    {
+	"bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xc0000,
+	{
+		{
+			"C000H", 0xc0000
+		},
+		{
+			"C800H", 0xc8000
+		},
+		{
+			"CC00H", 0xcc000
+		},
+		{
+			"D000H", 0xd0000
+		},
+		{
+			"D400H", 0xd4000
+		},
+		{
+			"D800H", 0xd8000
+		},
+		{
+			"DC00H", 0xdc000
+		},
+		{
+			"E000H", 0xe0000
+		},
+		{
+			"E400H", 0xe4000
+		},
+		{
+			"E800H", 0xe8000
+		},
+		{
+			"EC00H", 0xec000
+		},
+		{
+			""
+		}
+	},
     },
     {
 	"", "", -1

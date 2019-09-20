@@ -6,6 +6,7 @@
         }                                                               \
         else                                                            \
         {                                                               \
+				SEG_CHECK_READ(cpu_state.ea_seg);                       \
                 shift = readmemb(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 0;    \
                 CLOCK_CYCLES(2);                                        \
         }

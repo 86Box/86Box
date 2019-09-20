@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.40	2019/7/28
+ * Version:	@(#)win_ui.c	1.0.39	2019/3/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -51,7 +51,8 @@ HWND		hwndMain,		/* application main window */
 HMENU		menuMain;		/* application main menu */
 HICON		hIcon[256];		/* icon data loaded from resources */
 RECT		oldclip;		/* mouse rect */
-int 		sbar_height = 23;     /* statusbar height */
+int		sbar_height = 23;     /* statusbar height */
+int		minimized = 0;
 int		infocus = 1;
 int		rctrl_is_lalt = 0;
 int		user_resize = 0;
@@ -348,6 +349,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
 
 				GetWindowRect(hwnd, &rect);
+
 				/* Main Window. */
 				if (GetSystemMetrics(SM_CXPADDEDBORDER) == 0) {
 					/* For platforms that subsystem version < 6.0 (default on mingw/msys2) */
@@ -428,9 +430,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_VID_FS_FULL:
 			case IDM_VID_FS_43:
-			case IDM_VID_FS_SQ:                                
+			case IDM_VID_FS_KEEPRATIO:                              
 			case IDM_VID_FS_INT:
-			case IDM_VID_FS_KEEPRATIO:
 				CheckMenuItem(hmenu, IDM_VID_FS_FULL+video_fullscreen_scale, MF_UNCHECKED);
 				video_fullscreen_scale = LOWORD(wParam) - IDM_VID_FS_FULL;
 				CheckMenuItem(hmenu, IDM_VID_FS_FULL+video_fullscreen_scale, MF_CHECKED);
@@ -569,7 +570,18 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
 
 		temp_x = (lParam & 0xFFFF);
-		temp_y = (lParam >> 16) - sbar_height;
+		temp_y = (lParam >> 16);
+
+		if ((temp_x <= 0) || (temp_y <= 0)) {
+			minimized = 1;
+			break;
+		} else if (minimized == 1) {
+			minimized = 0;
+			video_force_resize_set(1);
+		}
+
+		plat_vidapi_enable(0);
+		temp_y -= sbar_height;
 		if (temp_x < 1)
 			temp_x = 1;
 		if (temp_y < 1)
@@ -606,6 +618,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			window_h = rect.bottom - rect.top;
 			save_window_pos = 1;
 		}
+		plat_vidapi_enable(1);
 
 		config_save();
 		break;
@@ -622,9 +635,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
                 
 	case WM_TIMER:
-		if (wParam == TIMER_1SEC) {
+		if (wParam == TIMER_1SEC)
 			pc_onesec();
-		}
+		else if ((wParam >= 0x8000) && (wParam <= 0x80ff))
+			ui_sb_timer_callback(wParam & 0xff);
 		break;
 		
 	case WM_RESETD3D:
@@ -852,11 +866,11 @@ ui_init(int nCmdShow)
     /* Create the status bar window. */
     StatusBarCreate(hwndMain, IDC_STATUS, hinstance);
 
-    /* Get the actual height of the statusbar, 
-     * since that is not something we can change.
-     */
-    GetWindowRect(hwndSBAR, &sbar_rect);
-    sbar_height = sbar_rect.bottom - sbar_rect.top;
+	/* Get the actual height of the statusbar, 
+	 * since that is not something we can change.
+	 */
+	GetWindowRect(hwndSBAR, &sbar_rect);
+	sbar_height = sbar_rect.bottom - sbar_rect.top;
 
     /*
      * Before we can create the Render window, we first have
@@ -1031,7 +1045,7 @@ plat_resize(int x, int y)
 	SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
 
 	GetWindowRect(hwndMain, &r);
-	
+
 	if (GetSystemMetrics(SM_CXPADDEDBORDER) == 0) {
 		/* For platforms that subsystem version < 6.0 (gcc on mingw/msys2) */
 		/* In this case, border sizes are different between resizable and non-resizable window */

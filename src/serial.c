@@ -7,13 +7,13 @@
 #define HAVE_STDARG_H
 #include "86box.h"
 #include "device.h"
+#include "timer.h"
 #include "machine/machine.h"
 #include "io.h"
 #include "pic.h"
 #include "mem.h"
 #include "rom.h"
 #include "serial.h"
-#include "timer.h"
 #include "mouse.h"
 
 
@@ -64,11 +64,12 @@ serial_reset_port(serial_t *dev)
 void
 serial_transmit_period(serial_t *dev)
 {
-    double ddlab, byte_period, bits, dusec;
+    double ddlab, byte_period, bits;
 
     ddlab = (double) dev->dlab;
     /* Bit period based on DLAB. */
-    byte_period = (16000000.0 * ddlab) / 1846200.0;
+    /* correct: 833.333333... */
+    byte_period = (16000000.0 * ddlab) / 1843200.0;
     /* Data bits according to LCR 1,0. */
     bits = (double) ((dev->lcr & 0x03) + 5);
     /* Stop bits. */
@@ -80,10 +81,8 @@ serial_transmit_period(serial_t *dev)
     if (dev->lcr & 0x08)
 	bits += 1.0;
     byte_period *= bits;
-    dusec = (double) TIMER_USEC;
-    byte_period *= dusec;
 
-    dev->transmit_period = (int64_t) byte_period;
+    dev->transmit_period = byte_period;
 }
 
 
@@ -112,8 +111,8 @@ serial_update_ints(serial_t *dev)
 	dev->iir = 0;
     }
 
-    if (stat && ((dev->mctrl & 8) || PCJR)) {
-	if (dev->type >= SERIAL_NS16540)
+    if (stat && ((dev->mctrl & 8) || (dev->type == SERIAL_8250_PCJR))) {
+	if (dev->type >= SERIAL_NS16450)
 		picintlevel(1 << dev->irq);
 	else
 		picint(1 << dev->irq);
@@ -133,7 +132,7 @@ serial_write_fifo(serial_t *dev, uint8_t dat)
 	dev->rcvr_fifo_pos %= dev->rcvr_fifo_len;
 	dev->lsr &= 0xfe;
 	dev->lsr |= (!dev->rcvr_fifo_pos);
-	dev->int_status &= SERIAL_INT_RECEIVE;
+	dev->int_status &= ~SERIAL_INT_RECEIVE;
 	if (!dev->rcvr_fifo_pos) {
 		dev->int_status |= SERIAL_INT_RECEIVE;
 		serial_update_ints(dev);
@@ -166,17 +165,27 @@ serial_transmit_timer(void *priv)
     if (dev->fifo_enabled) {
 	serial_transmit(dev, dev->xmit_fifo[dev->xmit_fifo_pos++]);
 	if (dev->xmit_fifo_pos == 16) {
-		dev->transmit_delay = 0LL;
 		dev->xmit_fifo_pos = 0;
 		/* Mark both FIFO and shift register as empty. */
 		dev->lsr |= 0x40;
+		dev->transmit_enabled = 0;
 	} else
-		dev->transmit_delay += dev->transmit_period;
+		timer_advance_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
     } else {
 	serial_transmit(dev, dev->thr);
-	dev->transmit_delay = 0LL;
 	/* Mark both THR and shift register as empty. */
 	dev->lsr |= 0x40;
+	dev->transmit_enabled = 0;
+    }
+}
+
+
+static void
+serial_update_speed(serial_t *dev)
+{
+    if (dev->transmit_enabled) {
+	timer_disable(&dev->transmit_timer);
+	timer_set_delay_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
     }
 }
 
@@ -189,11 +198,14 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 
     serial_log("UART: Write %02X to port %02X\n", val, addr);
 
+    sub_cycles(ISA_CYCLES(8));
+
     switch (addr & 7) {
 	case 0:
 		if (dev->lcr & 0x80) {
 			dev->dlab = (dev->dlab & 0xff00) | val;
 			serial_transmit_period(dev);
+			serial_update_speed(dev);
 			return;
                 }
 
@@ -211,7 +223,9 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 					serial_update_ints(dev);
 			} else {
 				/* FIFO full, begin transmitting. */
-				dev->transmit_delay = dev->transmit_period;
+				timer_disable(&dev->transmit_timer);
+				timer_set_delay_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
+				dev->transmit_enabled = 1;
 				dev->lsr &= 0xbf;
 				/* Update interrupts. */
 				dev->lsr |= 0x20;
@@ -221,7 +235,9 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 		} else {
 			/* Non-FIFO mode. */
 			/* Begin transmitting. */
-			dev->transmit_delay = dev->transmit_period;
+			timer_disable(&dev->transmit_timer);
+			timer_set_delay_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
+			dev->transmit_enabled = 1;
 			dev->thr = val;
 			/* Clear bit 6 because shift register is full. */
 			dev->lsr &= 0xbf;
@@ -236,6 +252,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 		if (dev->lcr & 0x80) {
 			dev->dlab = (dev->dlab & 0x00ff) | (val << 8);
 			serial_transmit_period(dev);
+			serial_update_speed(dev);
 			return;
 		}
 		dev->ier = val & 0xf;
@@ -247,7 +264,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 			dev->fifo_enabled = val & 0x01;
 			if (!dev->fifo_enabled) {
 				memset(dev->rcvr_fifo, 0, 14);
-				memset(dev->xmit_fifo, 0, 14);
+				memset(dev->xmit_fifo, 0, 16);
 				dev->rcvr_fifo_pos = dev->xmit_fifo_pos = 0;
 				dev->rcvr_fifo_len = 1;
 				break;
@@ -257,7 +274,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 				dev->rcvr_fifo_pos = 0;
 			}
 			if (val & 0x04) {
-				memset(dev->xmit_fifo, 0, 14);
+				memset(dev->xmit_fifo, 0, 16);
 				dev->xmit_fifo_pos = 0;
 			}
 			switch ((val >> 6) & 0x03) {
@@ -279,8 +296,10 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 	case 3:
 		old = dev->lcr;
 		dev->lcr = val;
-		if ((old ^ val) & 0x0f)
+		if ((old ^ val) & 0x0f) {
 			serial_transmit_period(dev);
+			serial_update_speed(dev);
+		}
 		break;
 	case 4:
 		if ((val & 2) && !(dev->mctrl & 2)) {
@@ -303,6 +322,8 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 				new_msr |= 0x04;
 
 			dev->msr = new_msr;
+
+			dev->xmit_fifo_pos = dev->rcvr_fifo_pos = 0;
 		}
 		break;
 	case 5:
@@ -322,7 +343,8 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 		serial_update_ints(dev);
 		break;
 	case 7:
-		dev->scratch = val;
+		if (dev->type >= SERIAL_NS16450)
+			dev->scratch = val;
 		break;
     }
 }
@@ -334,6 +356,8 @@ serial_read(uint16_t addr, void *p)
     serial_t *dev = (serial_t *)p;
     uint8_t ret = 0;
 
+    sub_cycles(ISA_CYCLES(8));
+
     switch (addr & 7) {
 	case 0:
 		if (dev->lcr & 0x80) {
@@ -343,12 +367,22 @@ serial_read(uint16_t addr, void *p)
 
 		if ((dev->type >= SERIAL_NS16550) && dev->fifo_enabled) {
 			/* FIFO mode. */
-			ret = dev->rcvr_fifo[dev->rcvr_fifo_pos++];
-			dev->rcvr_fifo_pos %= dev->rcvr_fifo_len;
-			if (!dev->rcvr_fifo_pos) {
-				dev->lsr &= 0xfe;
-				dev->int_status &= ~SERIAL_INT_RECEIVE;
-				serial_update_ints(dev);
+			if (dev->mctrl & 0x10) {
+				ret = dev->xmit_fifo[dev->xmit_fifo_pos++];
+				dev->xmit_fifo_pos %= 16;
+				if (!dev->xmit_fifo_pos) {
+					dev->lsr &= 0xfe;
+					dev->int_status &= ~SERIAL_INT_RECEIVE;
+					serial_update_ints(dev);
+				}
+			} else {
+				ret = dev->rcvr_fifo[dev->rcvr_fifo_pos++];
+				dev->rcvr_fifo_pos %= dev->rcvr_fifo_len;
+				if (!dev->rcvr_fifo_pos) {
+					dev->lsr &= 0xfe;
+					dev->int_status &= ~SERIAL_INT_RECEIVE;
+					serial_update_ints(dev);
+				}
 			}
 		} else {
 			ret = dev->dat;
@@ -455,6 +489,15 @@ serial_attach(int port,
 
 
 static void
+serial_speed_changed(void *priv)
+{
+    serial_t *dev = (serial_t *) priv;
+
+    serial_update_speed(dev);
+}
+
+
+static void
 serial_close(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
@@ -489,8 +532,7 @@ serial_init(const device_t *info)
 	dev->dlab = 96;
 	dev->fcr = 0x06;
 	serial_transmit_period(dev);
-	dev->transmit_delay = 0LL;
-	timer_add(serial_transmit_timer, &dev->transmit_delay, &dev->transmit_delay, dev);
+	timer_add(&dev->transmit_timer, serial_transmit_timer, dev, 0);
     }
 
     next_inst++;
@@ -500,14 +542,17 @@ serial_init(const device_t *info)
 
 
 void
+serial_set_next_inst(int ni)
+{
+    next_inst = ni;
+}
+
+
+void
 serial_standalone_init(void) {
     if (next_inst == 0) {
-	if (PCJR)
-		device_add(&i8250_pcjr_device);
-	else {
-		device_add_inst(&i8250_device, 1);
-		device_add_inst(&i8250_device, 2);
-	}
+	device_add_inst(&i8250_device, 1);
+	device_add_inst(&i8250_device, 2);
     } else if (next_inst == 1)
 	device_add_inst(&i8250_device, 2);
 };
@@ -518,25 +563,25 @@ const device_t i8250_device = {
     0,
     SERIAL_8250,
     serial_init, serial_close, NULL,
-    NULL, NULL, NULL,
+    NULL, serial_speed_changed, NULL,
     NULL
 };
 
 const device_t i8250_pcjr_device = {
     "Intel 8250(-compatible) UART for PCjr",
     DEVICE_PCJR,
-    SERIAL_8250,
+    SERIAL_8250_PCJR,
     serial_init, serial_close, NULL,
-    NULL, NULL, NULL,
+    NULL, serial_speed_changed, NULL,
     NULL
 };
 
-const device_t ns16540_device = {
-    "National Semiconductor NS16540(-compatible) UART",
+const device_t ns16450_device = {
+    "National Semiconductor NS16450(-compatible) UART",
     0,
-    SERIAL_NS16540,
+    SERIAL_NS16450,
     serial_init, serial_close, NULL,
-    NULL, NULL, NULL,
+    NULL, serial_speed_changed, NULL,
     NULL
 };
 
@@ -545,6 +590,6 @@ const device_t ns16550_device = {
     0,
     SERIAL_NS16550,
     serial_init, serial_close, NULL,
-    NULL, NULL, NULL,
+    NULL, serial_speed_changed, NULL,
     NULL
 };

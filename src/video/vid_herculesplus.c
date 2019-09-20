@@ -24,10 +24,10 @@
 #include "../86box.h"
 #include "../io.h"
 #include "../lpt.h"
+#include "../timer.h"
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
-#include "../timer.h"
 #include "../device.h"
 #include "video.h"
 #include "vid_herculesplus.h"
@@ -71,8 +71,8 @@ typedef struct {
 
     uint8_t	ctrl, ctrl2, stat;
 
-    int64_t	dispontime, dispofftime;
-    int64_t	vidtime;
+    uint64_t	dispontime, dispofftime;
+    pc_timer_t	timer;
 
     int		firstline, lastline;
 
@@ -81,7 +81,7 @@ typedef struct {
     uint16_t	ma, maback;
     int		con, coff, cursoron;
     int		dispon, blink;
-    int64_t	vsynctime;
+    int	vsynctime;
     int		vadj;
 
     int		cols[256][2][2];
@@ -101,11 +101,11 @@ recalc_timings(herculesplus_t *dev)
     disptime = dev->crtc[0] + 1;
     _dispontime  = dev->crtc[1];
     _dispofftime = disptime - _dispontime;
-    _dispontime  *= MDACONST;
-    _dispofftime *= MDACONST;
+    _dispontime  *= HERCCONST;
+    _dispofftime *= HERCCONST;
 
-    dev->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
-    dev->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
+    dev->dispontime  = (uint64_t)(_dispontime);
+    dev->dispofftime = (uint64_t)(_dispofftime);
 }
 
 
@@ -257,7 +257,7 @@ draw_char_rom(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
     }
 
     for (i = 0; i < cw; i++) {
-	buffer->line[dev->displine][x * cw + i] = (val & 0x100) ? ifg : ibg;
+	buffer32->line[dev->displine][x * cw + i] = (val & 0x100) ? ifg : ibg;
 	val = val << 1;
     }
 }
@@ -320,7 +320,7 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 	if ((attr & 0x77) == 0)
 		cfg = ibg;	/* 'blank' attribute */
 
-	buffer->line[dev->displine][x * cw + i] = dev->cols[attr][blink][cfg];
+	buffer32->line[dev->displine][x * cw + i] = dev->cols[attr][blink][cfg];
 	val = val << 1;
     }
 }
@@ -405,7 +405,7 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 	else
 	   	cfg |= ibg;
 		
-	buffer->line[dev->displine][(x * cw) + i] = dev->cols[attr][blink][cfg];
+	buffer32->line[dev->displine][(x * cw) + i] = dev->cols[attr][blink][cfg];
 	val = val << 1;
     }
 }
@@ -449,7 +449,7 @@ text_line(herculesplus_t *dev, uint16_t ca)
 
 		col = dev->cols[attr][0][1];
 		for (c = 0; c < cw; c++)
-			buffer->line[dev->displine][x * cw + c] = col;
+			buffer32->line[dev->displine][x * cw + c] = col;
 	}
     }
 }
@@ -478,7 +478,7 @@ graphics_line(herculesplus_t *dev)
 	for (c = 0; c < 16; c++) {
 		val >>= 1;
 
-		buffer->line[dev->displine][(x << 4) + c] = (val & 1) ? 7 : 0;
+		buffer32->line[dev->displine][(x << 4) + c] = (val & 1) ? 7 : 0;
 	}
 
 	for (c = 0; c < 16; c += 8)
@@ -495,7 +495,7 @@ herculesplus_poll(void *priv)
     int x, oldvc, oldsc;
 
     if (! dev->linepos) {
-	dev->vidtime += dev->dispofftime;
+	timer_advance_u64(&dev->timer, dev->dispofftime);
 	dev->stat |= 1;
 	dev->linepos = 1;
 	oldsc = dev->sc;
@@ -519,7 +519,7 @@ herculesplus_poll(void *priv)
 	if (dev->displine >= 500) 
 		dev->displine = 0;
     } else {
-	dev->vidtime += dev->dispontime;
+	timer_advance_u64(&dev->timer, dev->dispontime);
 	if (dev->dispon) 
 		dev->stat &= ~1;
 	dev->linepos = 0;
@@ -621,7 +621,7 @@ herculesplus_init(const device_t *info)
 
     dev->vram = (uint8_t *)malloc(0x10000);	/* 64k VRAM */
 
-    timer_add(herculesplus_poll, &dev->vidtime, TIMER_ALWAYS_ENABLED, dev);
+    timer_add(&dev->timer, herculesplus_poll, dev, 1);
 
     mem_mapping_add(&dev->mapping, 0xb0000, 0x10000,
 		    herculesplus_read,NULL,NULL,

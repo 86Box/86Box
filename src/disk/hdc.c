@@ -104,14 +104,26 @@ static const struct {
     { "Internal Controller",				"internal",
       &inthdc_device			},
 
-    { "[ISA] [MFM] IBM PC Fixed Disk Adapter",		"mfm_xt",
-      &mfm_xt_xebec_device		},
+    { "[ISA] [MFM] IBM PC Fixed Disk Adapter",		"st506_xt",
+      &st506_xt_xebec_device		},
 
-    { "[ISA] [MFM] DTC-5150X Fixed Disk Adapter",	"mfm_dtc5150x",
-      &mfm_xt_dtc5150x_device		},
+    { "[ISA] [MFM] DTC-5150X Fixed Disk Adapter",	"st506_xt_dtc5150x",
+      &st506_xt_dtc5150x_device		},
 
-    { "[ISA] [MFM] IBM PC/AT Fixed Disk Adapter",	"mfm_at",
-      &mfm_at_wd1003_device		},
+    { "[ISA] [MFM] ST-11M Fixed Disk Adapter",		"st506_xt_st11_m",
+      &st506_xt_st11_m_device		},
+
+    { "[ISA] [MFM] WD1002A-WX1 Fixed Disk Adapter",	"st506_xt_wd1002a_wx1",
+      &st506_xt_wd1002a_wx1_device	},
+
+    { "[ISA] [MFM/RLL] IBM PC/AT Fixed Disk Adapter",	"st506_at",
+      &st506_at_wd1003_device		},
+
+    { "[ISA] [RLL] ST-11R Fixed Disk Adapter",		"st506_xt_st11_r",
+      &st506_xt_st11_r_device		},
+
+    { "[ISA] [RLL] WD1002A-27X Fixed Disk Adapter",	"st506_xt_wd1002a_27x",
+      &st506_xt_wd1002a_27x_device	},
 
     { "[ISA] [ESDI] PC/AT ESDI Fixed Disk Adapter",	"esdi_at",
       &esdi_at_wd1007vse1_device	},

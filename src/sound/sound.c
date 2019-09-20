@@ -74,7 +74,8 @@ static int32_t *outbuffer;
 static float *outbuffer_ex;
 static int16_t *outbuffer_ex_int16;
 static int sound_handlers_num;
-static int64_t sound_poll_time = 0LL, sound_poll_latch;
+static pc_timer_t sound_poll_timer;
+static uint64_t sound_poll_latch;
 
 static int16_t cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
 static float cd_out_buffer[CD_BUFLEN * 2];
@@ -261,6 +262,7 @@ sound_cd_thread(void *param)
 			/*Apply ATAPI channel select*/
 			cd_buffer_temp[0] = cd_buffer_temp[1] = 0.0;
 
+#if 0
 			if (channel_select[0] & 1)
 				cd_buffer_temp[0] += ((float) cd_buffer[i][c]) * audio_vol_l;
 			if (channel_select[0] & 2)
@@ -269,6 +271,25 @@ sound_cd_thread(void *param)
 				cd_buffer_temp[0] += ((float) cd_buffer[i][c + 1]) * audio_vol_r;
 			if (channel_select[1] & 2)
 				cd_buffer_temp[1] += ((float) cd_buffer[i][c + 1]) * audio_vol_r;
+#else
+			if ((audio_vol_l != 0.0) && (channel_select[0] != 0)) {
+				if (channel_select[0] & 1)
+					cd_buffer_temp[0] += ((float) cd_buffer[i][c]);		/* Channel 0 => Port 0 */
+				if (channel_select[0] & 2)
+					cd_buffer_temp[0] += ((float) cd_buffer[i][c + 1]);	/* Channel 1 => Port 0 */
+
+				cd_buffer_temp[0] *= audio_vol_l;				/* Multiply Port 0 by Port 0 volume */
+			}
+
+			if ((audio_vol_r != 0.0) && (channel_select[1] != 0)) {
+				if (channel_select[1] & 1)
+					cd_buffer_temp[1] += ((float) cd_buffer[i][c]);		/* Channel 0 => Port 1 */
+				if (channel_select[1] & 2)
+					cd_buffer_temp[1] += ((float) cd_buffer[i][c + 1]);	/* Channel 1 => Port 1 */
+
+				cd_buffer_temp[1] *= audio_vol_r;				/* Multiply Port 1 by Port 1 volume */
+			}
+#endif
 
 			/*Apply sound card CD volume*/
 			cd_buffer_temp[0] *= ((float) cd_vol_l) / 65535.0;
@@ -364,7 +385,7 @@ sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), void *p
 void
 sound_poll(void *priv)
 {
-    sound_poll_time += sound_poll_latch;
+    timer_advance_u64(&sound_poll_timer, sound_poll_latch);
 
     midi_poll();
 
@@ -411,7 +432,7 @@ sound_poll(void *priv)
 void
 sound_speed_changed(void)
 {
-    sound_poll_latch = (int64_t)((double)TIMER_USEC * (1000000.0 / 48000.0));
+    sound_poll_latch = (uint64_t)((double)TIMER_USEC * (1000000.0 / 48000.0));
 }
 
 
@@ -423,7 +444,7 @@ sound_reset(void)
     midi_device_init();
     inital();
 
-    timer_add(sound_poll, &sound_poll_time, TIMER_ALWAYS_ENABLED, NULL);
+    timer_add(&sound_poll_timer, sound_poll, NULL, 1);
 
     sound_handlers_num = 0;
 
@@ -499,6 +520,4 @@ sound_cd_thread_reset(void)
 	sound_cd_thread_end();
 
     cd_thread_enable = available_cdrom_drives ? 1 : 0;
-
-    secondary_ide_check();
 }

@@ -26,7 +26,10 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../cpu/cpu.h"
+#include "../timer.h"
+#include "../dma.h"
 #include "../nmi.h"
+#include "../pic.h"
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
@@ -36,23 +39,31 @@
 #include "../game/gameport.h"
 #include "../keyboard.h"
 #include "../lpt.h"
+#include "../serial.h"
 #include "machine.h"
+
 
 typedef struct {
     mem_mapping_t scratchpad_mapping;
     uint8_t *scratchpad_ram;
 } zenith_t;
 
-static uint8_t zenith_scratchpad_read(uint32_t addr, void *p)
+
+static uint8_t
+zenith_scratchpad_read(uint32_t addr, void *p)
 {
-	zenith_t *dev = (zenith_t *)p;
-        return dev->scratchpad_ram[addr & 0x3fff];
+    zenith_t *dev = (zenith_t *)p;
+    return dev->scratchpad_ram[addr & 0x3fff];
 }
-static void zenith_scratchpad_write(uint32_t addr, uint8_t val, void *p)
+
+
+static void
+zenith_scratchpad_write(uint32_t addr, uint8_t val, void *p)
 {
-	zenith_t *dev = (zenith_t *)p;
-        dev->scratchpad_ram[addr & 0x3fff] = val;
+    zenith_t *dev = (zenith_t *)p;
+    dev->scratchpad_ram[addr & 0x3fff] = val;
 }
+
 
 static void *
 zenith_scratchpad_init(const device_t *info)
@@ -64,9 +75,6 @@ zenith_scratchpad_init(const device_t *info)
 	
     dev->scratchpad_ram = malloc(0x4000);
     
-    mem_mapping_disable(&bios_mapping[4]);
-    mem_mapping_disable(&bios_mapping[5]);
-
     mem_mapping_add(&dev->scratchpad_mapping, 0xf0000, 0x4000,
 			zenith_scratchpad_read, NULL, NULL,
 			zenith_scratchpad_write, NULL, NULL,
@@ -75,13 +83,14 @@ zenith_scratchpad_init(const device_t *info)
     return dev;
 }
 
+
 static void 
 zenith_scratchpad_close(void *p)
 {
-        zenith_t *dev = (zenith_t *)p;
+    zenith_t *dev = (zenith_t *)p;
 
-	free(dev->scratchpad_ram);
-        free(dev);
+    free(dev->scratchpad_ram);
+    free(dev);
 }
 
 
@@ -94,20 +103,30 @@ static const device_t zenith_scratchpad_device = {
     NULL
 };
 
-void
+
+int
 machine_xt_zenith_init(const machine_t *model)
 {		
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/zdsupers/z184m v3.1d.10d",
+			   0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
     machine_common_init(model);
 
-    lpt2_remove(); /* only one parallel port */    
-    
-    device_add(&zenith_scratchpad_device);
-    
-    pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
-
-    device_add(&keyboard_xt_device);
     device_add(&fdc_xt_device);
+    lpt1_remove();	/* only one parallel port */
+    lpt2_remove();
+    lpt1_init(0x278);
+    device_add(&i8250_device);
+    serial_set_next_inst(2);	/* So that serial_standalone_init() won't do anything. */
+    device_add(&zenith_scratchpad_device);
+    pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
+    device_add(&keyboard_xt_compaq_device);
     nmi_init();
-    if (joystick_type != 7)
-	device_add(&gameport_device);
+
+    return ret;
 }

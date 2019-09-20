@@ -92,7 +92,6 @@ extern int	vid_cga_contrast,		/* (C) video */
 		force_43,			/* (C) video */
 		gfxcard;			/* (C) graphics/video card */
 extern int	serial_enabled[],		/* (C) enable serial ports */
-		lpt_enabled,			/* (C) enable LPT ports */
 		bugger_enabled,			/* (C) enable ISAbugger */
 		isamem_type[],			/* (C) enable ISA mem cards */
 		isartc_type;			/* (C) enable ISA RTC card */
@@ -129,7 +128,9 @@ extern int	nic_do_log;
 extern wchar_t	exe_path[1024];			/* path (dir) of executable */
 extern wchar_t	usr_path[1024];			/* path (dir) of user data */
 extern wchar_t  cfg_path[1024];			/* full path of config file */
+#ifndef USE_NEW_DYNAREC
 extern FILE	*stdlog;			/* file to log output to */
+#endif
 extern int	scrnsz_x,			/* current screen size, X */
 		scrnsz_y;			/* current screen size, Y */
 extern int	efscrnsz_y;
@@ -163,6 +164,16 @@ extern void	pc_send_cab(void);
 extern void	pc_thread(void *param);
 extern void	pc_start(void);
 extern void	pc_onesec(void);
+
+extern uint16_t	get_last_addr(void);
+
+/* This is for external subtraction of cycles;
+   should be in cpu.c but I put it here to avoid
+   having to include cpu.c everywhere. */
+extern void	sub_cycles(int c);
+
+extern double	isa_timing;
+extern int	io_delay;
 
 #ifdef __cplusplus
 }

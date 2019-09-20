@@ -96,13 +96,15 @@ typedef struct {
 
 
 typedef struct {
-    const char	*name;
+    const char *name;
+
+    void *	lpt;
 
     /* Output file name. */
     wchar_t	filename[1024];
 
     /* Printer timeout. */
-    int64_t	timeout;
+    pc_timer_t	timeout_timer;
 
     /* page data (TODO: make configurable) */
     double	page_width,	/* all in inches */
@@ -204,7 +206,7 @@ timeout_timer(void *priv)
     if (dev->page->dirty)
 	new_page(dev);
 
-    dev->timeout = 0LL;
+    timer_disable(&dev->timeout_timer);
 }
 
 
@@ -237,7 +239,7 @@ reset_printer(prnt_t *dev)
     /* Create a file for this page. */
     plat_tempfile(dev->filename, NULL, L".txt");
 
-    dev->timeout = 0LL;
+	timer_disable(&dev->timeout_timer);
 }
 
 
@@ -392,8 +394,9 @@ write_ctrl(uint8_t val, void *priv)
 
 	/* ACK it, will be read on next READ STATUS. */
 	dev->ack = 1;
+	lpt_irq(dev->lpt, 1);
 
-	dev->timeout = 500000LL * TIMER_USEC;
+	timer_set_delay_u64(&dev->timeout_timer, 500000 * TIMER_USEC);
     }
 
     dev->ctrl = val;
@@ -422,17 +425,15 @@ read_status(void *priv)
 
 
 static void *
-prnt_init(const lpt_device_t *INFO)
+prnt_init(void *lpt)
 {
     prnt_t *dev;
 
     /* Initialize a device instance. */
     dev = (prnt_t *)malloc(sizeof(prnt_t));
     memset(dev, 0x00, sizeof(prnt_t));
-    dev->name = INFO->name;
     dev->ctrl = 0x04;
-
-    //INFO("PRNT: LPT printer '%s' initializing\n", dev->name);
+    dev->lpt = lpt;
 
     /* Initialize parameters. */
     reset_printer(dev);
@@ -444,9 +445,7 @@ prnt_init(const lpt_device_t *INFO)
     dev->page->chars = (char *)malloc(dev->page->w * dev->page->h);
     memset(dev->page->chars, 0x00, dev->page->w * dev->page->h);
 
-    //DEBUG("PRNT: created a virtual %ix%i page.\n", dev->page->w, dev->page->h);
-
-    timer_add(timeout_timer, &dev->timeout, &dev->timeout, dev);
+    timer_add(&dev->timeout_timer, timeout_timer, dev, 0);
 
     return(dev);
 }

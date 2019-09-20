@@ -153,11 +153,13 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
+#include "../timer.h"
 #include "../io.h"
 #include "../mouse.h"
 #include "../mem.h"
 #include "../device.h"
 #include "../keyboard.h"
+#include "../rom.h"
 #include "../cpu/cpu.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
@@ -734,8 +736,16 @@ static void upper_write_raml(uint32_t addr, uint32_t val, void *priv)
 
 
 
-void machine_at_t3100e_init(const machine_t *model)
+int machine_at_t3100e_init(const machine_t *model)
 {
+	int ret;
+
+	ret = bios_load_linear(L"roms/machines/t3100e/t3100e.rom",
+			       0x000f0000, 65536, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
 	int pg;
 
         memset(&t3100e_ems, 0, sizeof(t3100e_ems));
@@ -779,4 +789,6 @@ void machine_at_t3100e_init(const machine_t *model)
 	mem_mapping_disable(&t3100e_ems.upper_mapping);
 
 	device_add(&t3100e_device);
+
+	return ret;
 }

@@ -8,15 +8,15 @@
  *
  *		Definitions for the device handler.
  *
- * Version:	@(#)device.h	1.0.11	2018/11/12
+ * Version:	@(#)device.h	1.0.12	2019/03/14
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -121,15 +121,22 @@ extern "C" {
 
 extern void		device_init(void);
 extern void		device_set_context(device_context_t *c, const device_t *d, int inst);
-extern void		*device_add(const device_t *);
+extern void		device_context(const device_t *d);
+extern void		device_context_inst(const device_t *d, int inst);
+extern void		device_context_restore(void);
+extern void		*device_add(const device_t *d);
 extern void		device_add_ex(const device_t *d, void *priv);
-extern void		*device_add_inst(const device_t *, int inst);
+extern void		*device_add_inst(const device_t *d, int inst);
 extern void		device_add_inst_ex(const device_t *d, void *priv, int inst);
+extern void		*device_cadd(const device_t *d, const device_t *cd);
+extern void		device_cadd_ex(const device_t *d, const device_t *cd, void *priv);
+extern void		*device_cadd_inst(const device_t *d, const device_t *cd, int inst);
+extern void		device_cadd_inst_ex(const device_t *d, const device_t *cd, void *priv, int inst);
 extern void		device_close_all(void);
 extern void		device_reset_all(void);
 extern void		device_reset_all_pci(void);
-extern void		*device_get_priv(const device_t *);
-extern int		device_available(const device_t *);
+extern void		*device_get_priv(const device_t *d);
+extern int		device_available(const device_t *d);
 extern void		device_speed_changed(void);
 extern void		device_force_redraw(void);
 

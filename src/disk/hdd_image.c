@@ -748,9 +748,17 @@ hdd_image_seek(uint8_t id, uint32_t sector)
 void
 hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
-    hdd_images[id].pos = sector;
-    fseeko64(hdd_images[id].file, ((uint64_t)sector << 9LL) + hdd_images[id].base, SEEK_SET);
-    fread(buffer, 1, count << 9, hdd_images[id].file);
+    int i;
+
+    fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET);
+
+    for (i = 0; i < count; i++) {
+	if (feof(hdd_images[id].file))
+		break;
+
+	hdd_images[id].pos = sector + i;
+	fread(buffer + (i << 9), 1, 512, hdd_images[id].file);
+    }
 }
 
 
@@ -782,9 +790,17 @@ hdd_image_read_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 void
 hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
-    hdd_images[id].pos = sector;
-    fseeko64(hdd_images[id].file, ((uint64_t)sector << 9LL) + hdd_images[id].base, SEEK_SET);
-    fwrite(buffer, count << 9, 1, hdd_images[id].file);
+    int i;
+
+    fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET);
+
+    for (i = 0; i < count; i++) {
+	if (feof(hdd_images[id].file))
+		break;
+
+	hdd_images[id].pos = sector + i;
+	fwrite(buffer + (i << 9), 512, 1, hdd_images[id].file);
+    }
 }
 
 
@@ -810,11 +826,17 @@ hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
 {
     uint32_t i = 0;
 
-    hdd_images[id].pos = sector;
-    fseeko64(hdd_images[id].file, ((uint64_t)sector << 9LL) + hdd_images[id].base, SEEK_SET);
     memset(empty_sector, 0, 512);
-    for (i = 0; i < count; i++)
+
+    fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET);
+
+    for (i = 0; i < count; i++) {
+	if (feof(hdd_images[id].file))
+		break;
+
+	hdd_images[id].pos = sector + i;
 	fwrite(empty_sector, 512, 1, hdd_images[id].file);
+    }
 }
 
 

@@ -11,15 +11,15 @@
  * NOTES:	This code should be re-merged into a single init() with a
  *		'fullscreen' argument, indicating FS mode is requested.
  *
- * Version:	@(#)win_ddraw.cpp	1.0.13	2018/11/18
+ * Version:	@(#)win_ddraw.cpp	1.0.14	2019/03/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -53,6 +53,7 @@ static HWND			ddraw_hwnd;
 static HBITMAP			hbitmap;
 static int			ddraw_w, ddraw_h,
 				xs, ys, ys2;
+static volatile int		ddraw_enabled = 0;
 
 static png_structp		png_ptr;
 static png_infop		info_ptr;
@@ -133,7 +134,7 @@ DoubleLines(uint8_t *dst, uint8_t *src)
 
 
 static void
-SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
+SavePNG(const wchar_t *szFilename, HBITMAP hBitmap)
 {
     BITMAPINFO bmpInfo;
     HDC hdc;
@@ -143,7 +144,7 @@ SavePNG(wchar_t *szFilename, HBITMAP hBitmap)
     int i;
 
     /* create file */
-    FILE *fp = plat_fopen(szFilename, (wchar_t *) L"wb");
+    FILE *fp = plat_fopen((wchar_t *) szFilename, (wchar_t *) L"wb");
     if (!fp) {
 	ddraw_log("[SavePNG] File %ls could not be opened for writing", szFilename);
 	return;
@@ -266,9 +267,14 @@ static void
 ddraw_fs_size(RECT w_rect, RECT *r_dest, int w, int h)
 {
     int ratio_w, ratio_h;
-    double hsr, gsr, ra, d;
+    double hsr, gsr, d, sh, sw, wh, ww, mh, mw;
 
     ddraw_log("video_fullscreen_scale = %i\n", video_fullscreen_scale);
+
+    sh = (double) (w_rect.bottom - w_rect.top);
+    sw = (double) (w_rect.right - w_rect.left);
+    wh = (double) h;
+    ww = (double) w;
 
     switch (video_fullscreen_scale) {
 	case FULLSCR_SCALE_FULL:
@@ -276,28 +282,37 @@ ddraw_fs_size(RECT w_rect, RECT *r_dest, int w, int h)
 		break;
 
 	case FULLSCR_SCALE_43:
-		r_dest->top    = 0;
-		r_dest->bottom = (w_rect.bottom - w_rect.top) - 1;
-		r_dest->left   = ((w_rect.right  - w_rect.left) / 2) - (((w_rect.bottom - w_rect.top) * 4) / (3 * 2));
-		r_dest->right  = ((w_rect.right  - w_rect.left) / 2) + (((w_rect.bottom - w_rect.top) * 4) / (3 * 2)) - 1;
-		if (r_dest->left < 0) {
-			r_dest->left   = 0;
-			r_dest->right  = (w_rect.right  - w_rect.left) - 1;
-			r_dest->top    = ((w_rect.bottom - w_rect.top) / 2) - (((w_rect.right - w_rect.left) * 3) / (4 * 2));
-			r_dest->bottom = ((w_rect.bottom - w_rect.top) / 2) + (((w_rect.right - w_rect.left) * 3) / (4 * 2)) - 1;
+	case FULLSCR_SCALE_KEEPRATIO:
+		if (video_fullscreen_scale == FULLSCR_SCALE_43) {
+			mw = 4.0;
+			mh = 3.0;
+		} else {
+			mw = ww;
+			mh = wh;
 		}
-		break;
 
-	case FULLSCR_SCALE_SQ:
-		r_dest->top    = 0;
-		r_dest->bottom = (w_rect.bottom - w_rect.top) - 1;
-		r_dest->left   = ((w_rect.right  - w_rect.left) / 2) - (((w_rect.bottom - w_rect.top) * w) / (h * 2));
-		r_dest->right  = ((w_rect.right  - w_rect.left) / 2) + (((w_rect.bottom - w_rect.top) * w) / (h * 2)) - 1;
-		if (r_dest->left < 0) {
+		hsr = sw / sh;
+		gsr = mw / mh;
+
+		if (hsr > gsr) {
+			/* Host ratio is bigger than guest ratio. */
+			d = (sw - (mw * (sh / mh))) / 2.0;
+
+			r_dest->left   = (int) d;
+			r_dest->right  = (int) (sw - d - 1.0);
+			r_dest->top    = 0;
+			r_dest->bottom = (int) (sh - 1.0);
+		} else if (hsr < gsr) {
+			/* Host ratio is smaller or rqual than guest ratio. */
+			d = (sh - (mh * (sw / mw))) / 2.0;
+
 			r_dest->left   = 0;
-			r_dest->right  = (w_rect.right  - w_rect.left) - 1;
-			r_dest->top    = ((w_rect.bottom - w_rect.top) / 2) - (((w_rect.right - w_rect.left) * h) / (w * 2));
-			r_dest->bottom = ((w_rect.bottom - w_rect.top) / 2) + (((w_rect.right - w_rect.left) * h) / (w * 2)) - 1;
+			r_dest->right  = (int) (sw - 1.0);
+			r_dest->top    = (int) d;
+			r_dest->bottom = (int) (sh - d - 1.0);
+		} else {
+			/* Host ratio is equal to guest ratio. */
+			ddraw_fs_size_default(w_rect, r_dest);
 		}
 		break;
 
@@ -310,38 +325,6 @@ ddraw_fs_size(RECT w_rect, RECT *r_dest, int w, int h)
 		r_dest->right  = ((w_rect.right  - w_rect.left) / 2) + ((w * ratio_w) / 2) - 1;
 		r_dest->top    = ((w_rect.bottom - w_rect.top)  / 2) - ((h * ratio_w) / 2);
 		r_dest->bottom = ((w_rect.bottom - w_rect.top)  / 2) + ((h * ratio_w) / 2) - 1;
-		break;
-
-	case FULLSCR_SCALE_KEEPRATIO:
-		hsr = ((double) (w_rect.right  - w_rect.left)) / ((double) (w_rect.bottom - w_rect.top));
-		gsr = ((double) w) / ((double) h);
-
-		if (hsr > gsr) {
-			/* Host ratio is bigger than guest ratio. */
-			ra = ((double) (w_rect.bottom - w_rect.top)) / ((double) h);
-
-			d = ((double) w) * ra;
-			d = (((double) (w_rect.right  - w_rect.left)) - d) / 2.0;
-
-			r_dest->left   = ((int) d);
-			r_dest->right  = (w_rect.right  - w_rect.left) - ((int) d) - 1;
-			r_dest->top    = 0;
-			r_dest->bottom = (w_rect.bottom - w_rect.top)  - 1;
-		} else if (hsr < gsr) {
-			/* Host ratio is smaller or rqual than guest ratio. */
-			ra = ((double) (w_rect.right  - w_rect.left)) / ((double) w);
-
-			d = ((double) h) * ra;
-			d = (((double) (w_rect.bottom - w_rect.top)) - d) / 2.0;
-
-			r_dest->left   = 0;
-			r_dest->right  = (w_rect.right  - w_rect.left) - 1;
-			r_dest->top    = ((int) d);
-			r_dest->bottom = (w_rect.bottom - w_rect.top)  - ((int) d) - 1;
-		} else {
-			/* Host ratio is equal to guest ratio. */
-			ddraw_fs_size_default(w_rect, r_dest);
-		}
 		break;
     }
 }
@@ -356,6 +339,11 @@ ddraw_blit_fs(int x, int y, int y1, int y2, int w, int h)
     int yy;
     HRESULT hr;
     DDBLTFX ddbltfx;
+
+    if (!ddraw_enabled) {
+	video_blit_complete();
+	return;
+    }
 
     if (lpdds_back == NULL) {
 	video_blit_complete();
@@ -386,9 +374,9 @@ ddraw_blit_fs(int x, int y, int y1, int y2, int w, int h)
     for (yy = y1; yy < y2; yy++) {
 	if (buffer32) {
 		if (video_grayscale || invert_display)
-			video_transform_copy((uint32_t *)((uintptr_t)ddsd.lpSurface + (yy * ddsd.lPitch)), &(((uint32_t *)buffer32->line[y + yy])[x]), w);
+			video_transform_copy((uint32_t *)((uintptr_t)ddsd.lpSurface + (yy * ddsd.lPitch)), &(buffer32->line[y + yy][x]), w);
 		else
-			memcpy((void *)((uintptr_t)ddsd.lpSurface + (yy * ddsd.lPitch)), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
+			memcpy((void *)((uintptr_t)ddsd.lpSurface + (yy * ddsd.lPitch)), &(buffer32->line[y + yy][x]), w * 4);
 	}
     }
     video_blit_complete();
@@ -434,6 +422,11 @@ ddraw_blit(int x, int y, int y1, int y2, int w, int h)
     HRESULT hr;
     int yy;
 
+    if (!ddraw_enabled) {
+	video_blit_complete();
+	return;
+    }
+
     if (lpdds_back == NULL) {
 	video_blit_complete();
 	return; /*Nothing to do*/
@@ -465,9 +458,9 @@ ddraw_blit(int x, int y, int y1, int y2, int w, int h)
 	if (buffer32) {
 		if ((y + yy) >= 0 && (y + yy) < buffer32->h) {
 			if (video_grayscale || invert_display)
-				video_transform_copy((uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]), &(((uint32_t *)buffer32->line[y + yy])[x]), w);
+				video_transform_copy((uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]), &(buffer32->line[y + yy][x]), w);
 			else
-				memcpy((uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
+				memcpy((uint32_t *) &(((uint8_t *) ddsd.lpSurface)[yy * ddsd.lPitch]), &(buffer32->line[y + yy][x]), w * 4);
 		}
 	}
     }
@@ -503,7 +496,7 @@ ddraw_blit(int x, int y, int y1, int y2, int w, int h)
 
 
 void
-ddraw_take_screenshot(wchar_t *fn)
+ddraw_take_screenshot(const wchar_t *fn)
 {
 #if 0
     xs = xsize;
@@ -541,8 +534,6 @@ ddraw_take_screenshot(wchar_t *fn)
 int
 ddraw_init(HWND h)
 {
-    cgapal_rebuild();
-
     if (FAILED(DirectDrawCreate(NULL, &lpdd, NULL))) return(0);
 
     if (FAILED(lpdd->QueryInterface(IID_IDirectDraw4, (LPVOID *)&lpdd4)))
@@ -600,6 +591,8 @@ ddraw_init(HWND h)
 
     video_setblit(ddraw_blit);
 
+    ddraw_enabled = 1;
+
     return(1);
 }
 
@@ -609,8 +602,6 @@ ddraw_init_fs(HWND h)
 {
     ddraw_w = GetSystemMetrics(SM_CXSCREEN);
     ddraw_h = GetSystemMetrics(SM_CYSCREEN);
-
-    cgapal_rebuild();
 
     if (FAILED(DirectDrawCreate(NULL, &lpdd, NULL))) return 0;
 
@@ -658,6 +649,8 @@ ddraw_init_fs(HWND h)
 
     video_setblit(ddraw_blit_fs);
 
+    ddraw_enabled = 1;
+
     return(1);
 }
 
@@ -666,6 +659,9 @@ void
 ddraw_close(void)
 {
     video_setblit(NULL);
+
+    if (ddraw_enabled)
+	ddraw_enabled = 0;
 
     if (lpdds_back2) {
 	lpdds_back2->Release();
@@ -694,4 +690,11 @@ int
 ddraw_pause(void)
 {
     return(0);
+}
+
+
+void
+ddraw_enable(int enable)
+{
+    ddraw_enabled = enable;
 }

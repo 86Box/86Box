@@ -29,6 +29,7 @@ PnP registers :
 #include "86box.h"
 #include "device.h"
 #include "io.h"
+#include "timer.h"
 #include "pci.h"
 #include "lpt.h"
 #include "serial.h"
@@ -77,6 +78,7 @@ um8669f_pnp_write(uint16_t port, uint8_t val, void *priv)
     um8669f_t *dev = (um8669f_t *) priv;
 
     uint8_t valxor = 0;
+    uint8_t lpt_irq = 0xff;
 
     if (port == 0x279)
 	dev->cur_reg = val;
@@ -138,6 +140,9 @@ um8669f_pnp_write(uint16_t port, uint8_t val, void *priv)
 					if (dev->dev[DEV_LPT1].enable & 1)
 						lpt1_init(dev->dev[DEV_LPT1].addr);
 				}
+				if (dev->dev[DEV_LPT1].irq <= 15)
+					lpt_irq = dev->dev[DEV_LPT1].irq;
+				lpt1_irq(lpt_irq);
 				break;
 		}
 	}
@@ -245,8 +250,6 @@ um8669f_reset(um8669f_t *dev)
 
     serial_remove(dev->uart[1]);
     serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
-
-    lpt2_remove();
 
     lpt1_remove();
     lpt1_init(0x378);

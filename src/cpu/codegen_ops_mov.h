@@ -588,16 +588,16 @@ static uint32_t ropMOV_seg_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, 
         switch (fetchdat & 0x38)
         {
                 case 0x00: /*ES*/
-                LOAD_SEG(host_reg, &_es);
+                LOAD_SEG(host_reg, &cpu_state.seg_es);
                 break;
                 case 0x18: /*DS*/
-                LOAD_SEG(host_reg, &_ds);
+                LOAD_SEG(host_reg, &cpu_state.seg_ds);
                 break;
                 case 0x20: /*FS*/
-                LOAD_SEG(host_reg, &_fs);
+                LOAD_SEG(host_reg, &cpu_state.seg_fs);
                 break;
                 case 0x28: /*GS*/
-                LOAD_SEG(host_reg, &_gs);
+                LOAD_SEG(host_reg, &cpu_state.seg_gs);
                 break;
         }
                 
@@ -644,13 +644,13 @@ static uint32_t ropL ## seg(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, u
                 STORE_REG_TARGET_W_RELEASE(host_reg, dest_reg);                                                         \
         }                                                                                                               \
                                                                                                                         \
-        if (&rseg == &_ss)                                                                                              \
+        if (&rseg == &cpu_state.seg_ss)                                                                                              \
                 CPU_BLOCK_END(); /*Instruction might change stack size, so end block here*/                             \
         return op_pc + 1;                                                                                               \
 }
 
-ropLseg(DS, _ds)
-ropLseg(ES, _es)
-ropLseg(FS, _fs)
-ropLseg(GS, _gs)
-ropLseg(SS, _ss)
+ropLseg(DS, cpu_state.seg_ds)
+ropLseg(ES, cpu_state.seg_es)
+ropLseg(FS, cpu_state.seg_fs)
+ropLseg(GS, cpu_state.seg_gs)
+ropLseg(SS, cpu_state.seg_ss)

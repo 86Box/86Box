@@ -23,7 +23,7 @@
 
 #define BUF_SIZE 32768
 
-#define ZIP_TIME (5LL * 100LL * (1LL << TIMER_SHIFT))
+#define ZIP_TIME	500.0
 
 #define ZIP_SECTORS (96*2048)
 
@@ -85,7 +85,7 @@ typedef struct {
     uint32_t sector_pos, sector_len,
 	     packet_len, pos;
 
-    int64_t callback;
+    double callback;
 } zip_t;
 
 

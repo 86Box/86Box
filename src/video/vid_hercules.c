@@ -26,9 +26,9 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../lpt.h"
 #include "../pit.h"
-#include "../timer.h"
 #include "../device.h"
 #include "video.h"
 #include "vid_hercules.h"
@@ -44,9 +44,9 @@ typedef struct {
 		ctrl2,
 		stat;
 
-    int64_t	dispontime,
+    uint64_t	dispontime,
 		dispofftime;
-    int64_t	vidtime;
+    pc_timer_t	timer;
 
     int		firstline,
 		lastline;
@@ -61,7 +61,7 @@ typedef struct {
 		cursoron;
     int		dispon,
 		blink;
-    int64_t	vsynctime;
+    int	vsynctime;
     int		vadj;
 
     int		cols[256][2][2];
@@ -81,13 +81,19 @@ recalc_timings(hercules_t *dev)
     disptime = dev->crtc[0] + 1;
     _dispontime  = dev->crtc[1];
     _dispofftime = disptime - _dispontime;
-    _dispontime  *= MDACONST;
-    _dispofftime *= MDACONST;
+    _dispontime  *= HERCCONST;
+    _dispofftime *= HERCCONST;
 
-    dev->dispontime  = (int64_t)(_dispontime  * (1LL << TIMER_SHIFT));
-    dev->dispofftime = (int64_t)(_dispofftime * (1LL << TIMER_SHIFT));
+    dev->dispontime  = (uint64_t)(_dispontime);
+    dev->dispofftime = (uint64_t)(_dispofftime);
 }
 
+
+static uint8_t crtcmask[32] = 
+{
+	0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f, 0xf3, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff,
+	0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
 
 static void
 hercules_out(uint16_t addr, uint8_t val, void *priv)
@@ -108,7 +114,7 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
 	case 0x03b5:
 	case 0x03b7:
 		old = dev->crtc[dev->crtcreg];
-		dev->crtc[dev->crtcreg] = val;
+		dev->crtc[dev->crtcreg] = val & crtcmask[dev->crtcreg];
 
 		/*
 		 * Fix for Generic Turbo XT BIOS, which
@@ -118,23 +124,36 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
 			dev->crtc[10] = 0xb;
 			dev->crtc[11] = 0xc;
 		}
+#if 0
 		if (old ^ val)
 			recalc_timings(dev);
+#else
+		if (old != val) {
+			if ((dev->crtcreg < 0xe) || (dev->crtcreg > 0x10)) {
+				fullchange = changeframecount;
+				recalc_timings(dev);
+			}
+		}
+#endif
 		break;
 
 	case 0x03b8:
 		old = dev->ctrl;
+		if (!(dev->ctrl2 & 0x01) && !(val & 0x02))
+			val = (val & 0xfd) | (dev->ctrl & 0x02);
+		if (!(dev->ctrl2 & 0x02) && !(val & 0x80))
+			val = (val & 0x7f) | (dev->ctrl & 0x80);
 		dev->ctrl = val;
+		if (val & 0x80)
+			mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x10000);
+		else
+			mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x08000);
 		if (old ^ val)
 			recalc_timings(dev);
 		break;
 
 	case 0x03bf:
 		dev->ctrl2 = val;
-		if (val & 0x02)
-			mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x10000);
-		  else
-			mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x08000);
 		break;
 
 	default:
@@ -166,8 +185,17 @@ hercules_in(uint16_t addr, void *priv)
 
 	case 0x03ba:
 		ret = 0x72;	/* Hercules ident */
+#if 0
 		if (dev->stat & 0x08)
 			ret |= 0x88;
+#else
+		if (dev->stat & 0x08)
+			ret |= 0x80;
+#endif
+		if ((dev->stat & 0x09) == 0x01)
+			ret |= (dev->stat & 0x01);
+		if ((ret & 0x81) == 0x80)
+			ret |= 0x08;
 		break;
 
 	default:
@@ -185,7 +213,7 @@ hercules_waitstates(void *p)
     int ws;
 
     ws = ws_array[cycles & 0xf];
-    cycles -= ws;
+    sub_cycles(ws);
 }
 
 
@@ -194,7 +222,11 @@ hercules_write(uint32_t addr, uint8_t val, void *priv)
 {
     hercules_t *dev = (hercules_t *)priv;
 
-    dev->vram[addr & 0xffff] = val;
+    if (dev->ctrl2 & 0x01)
+	dev->vram[addr & 0xffff] = val;
+    else
+	dev->vram[addr & 0x0fff] = val;
+
     hercules_waitstates(dev);
 }
 
@@ -204,7 +236,11 @@ hercules_read(uint32_t addr, void *priv)
 {
     hercules_t *dev = (hercules_t *)priv;
 
-    return(dev->vram[addr & 0xffff]);
+    if (dev->ctrl2 & 0x01)
+	return(dev->vram[addr & 0xffff]);
+    else
+	return(dev->vram[addr & 0x0fff]);
+
     hercules_waitstates(dev);
 }
 
@@ -222,7 +258,7 @@ hercules_poll(void *priv)
     ca = (dev->crtc[15] | (dev->crtc[14] << 8)) & 0x3fff;
 
     if (! dev->linepos) {
-	dev->vidtime += dev->dispofftime;
+	timer_advance_u64(&dev->timer, dev->dispofftime);
 	dev->stat |= 1;
 	dev->linepos = 1;
 	oldsc = dev->sc;
@@ -237,20 +273,22 @@ hercules_poll(void *priv)
 		}
 		dev->lastline = dev->displine;
 
-		if ((dev->ctrl & 2) && (dev->ctrl2 & 1)) {
+		// if ((dev->ctrl & 2) && (dev->ctrl2 & 1)) {
+		if (dev->ctrl & 2) {
 			ca = (dev->sc & 3) * 0x2000;
-			if ((dev->ctrl & 0x80) && (dev->ctrl2 & 2)) 
+			// if ((dev->ctrl & 0x80) && (dev->ctrl2 & 2)) 
+			if (dev->ctrl & 0x80)
 				ca += 0x8000;
 
 			for (x = 0; x < dev->crtc[1]; x++) {
 				if (dev->ctrl & 8)
+					// dat = (dev->vram[((dev->ma << 1) & 0x1fff) + ca] << 8) | dev->vram[((dev->ma << 1) & 0x1fff) + ca + 1];
 					dat = (dev->vram[((dev->ma << 1) & 0x1fff) + ca] << 8) | dev->vram[((dev->ma << 1) & 0x1fff) + ca + 1];
 				else
 					dat = 0;
 				dev->ma++;
-				for (c = 0; c < 16; c++) {
-				    buffer->line[dev->displine][(x << 4) + c] = (dat & (32768 >> c)) ? 7 : 0;
-				}
+				for (c = 0; c < 16; c++)
+					buffer32->line[dev->displine][(x << 4) + c] = (dat & (32768 >> c)) ? 7 : 0;
 				for (c = 0; c < 16; c += 8)
 					video_blend((x << 4) + c, dev->displine);
 			}
@@ -266,21 +304,21 @@ hercules_poll(void *priv)
 
 				if (dev->sc == 12 && ((attr & 7) == 1)) {
 					for (c = 0; c < 9; c++)
-					    buffer->line[dev->displine][(x * 9) + c] = dev->cols[attr][blink][1];
+						buffer32->line[dev->displine][(x * 9) + c] = dev->cols[attr][blink][1];
 				} else {
 					for (c = 0; c < 8; c++)
-					    buffer->line[dev->displine][(x * 9) + c] = dev->cols[attr][blink][(fontdatm[chr][dev->sc] & (1 << (c ^ 7))) ? 1 : 0];
+						buffer32->line[dev->displine][(x * 9) + c] = dev->cols[attr][blink][(fontdatm[chr][dev->sc] & (1 << (c ^ 7))) ? 1 : 0];
 
 					if ((chr & ~0x1f) == 0xc0)
-						buffer->line[dev->displine][(x * 9) + 8] = dev->cols[attr][blink][fontdatm[chr][dev->sc] & 1];
-					  else
-						buffer->line[dev->displine][(x * 9) + 8] = dev->cols[attr][blink][0];
+						buffer32->line[dev->displine][(x * 9) + 8] = dev->cols[attr][blink][fontdatm[chr][dev->sc] & 1];
+					else
+						buffer32->line[dev->displine][(x * 9) + 8] = dev->cols[attr][blink][0];
 				}
 				dev->ma++;
 
 				if (drawcursor) {
 					for (c = 0; c < 9; c++)
-					    buffer->line[dev->displine][(x * 9) + c] ^= dev->cols[attr][0][1];
+						buffer32->line[dev->displine][(x * 9) + c] ^= dev->cols[attr][0][1];
 				}
 			}
 		}
@@ -293,7 +331,7 @@ hercules_poll(void *priv)
 	if (dev->displine >= 500) 
 		dev->displine = 0;
     } else {
-	dev->vidtime += dev->dispontime;
+	timer_advance_u64(&dev->timer, dev->dispontime);
 
 	dev->linepos = 0;
 	if (dev->vsynctime) {
@@ -346,13 +384,14 @@ hercules_poll(void *priv)
 			dev->displine = 0;
 			dev->vsynctime = 16;//(crtcm[3]>>4)+1;
 			if (dev->crtc[7]) {
-				if ((dev->ctrl & 2) && (dev->ctrl2 & 1))
+				// if ((dev->ctrl & 2) && (dev->ctrl2 & 1))
+				if (dev->ctrl & 2)
 					x = dev->crtc[1] << 4;
 				else
 					x = dev->crtc[1] * 9;
 
 				dev->lastline++;
-				if ((dev->ctrl & 8) &&
+				if ((dev->ctrl & 8) && x && (dev->lastline - dev->firstline) &&
 				    ((x != xsize) || ((dev->lastline - dev->firstline) != ysize) || video_force_resize_get())) {
 					xsize = x;
 					ysize = dev->lastline - dev->firstline;
@@ -407,7 +446,7 @@ hercules_init(const device_t *info)
 
     dev->vram = (uint8_t *)malloc(0x10000);
 
-    timer_add(hercules_poll, &dev->vidtime, TIMER_ALWAYS_ENABLED, dev);
+    timer_add(&dev->timer, hercules_poll, dev, 1);
 
     mem_mapping_add(&dev->mapping, 0xb0000, 0x08000,
 		    hercules_read,NULL,NULL, hercules_write,NULL,NULL,

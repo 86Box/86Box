@@ -29,17 +29,26 @@
 #define HAVE_STDARG_H
 #include "86box.h"
 #include "config.h"
+#include "mem.h"
+#ifdef USE_NEW_DYNAREC
+#ifdef USE_DYNAREC
+#include "cpu_new/cpu.h"
+# include "cpu_new/codegen.h"
+#endif
+#include "cpu_new/x86_ops.h"
+#else
 #include "cpu/cpu.h"
 #ifdef USE_DYNAREC
 # include "cpu/codegen.h"
 #endif
 #include "cpu/x86_ops.h"
+#endif
 #include "io.h"
-#include "mem.h"
 #include "rom.h"
 #include "dma.h"
 #include "pci.h"
 #include "pic.h"
+#include "timer.h"
 #include "pit.h"
 #include "random.h"
 #include "timer.h"
@@ -108,7 +117,6 @@ int	vid_cga_contrast = 0,			/* (C) video */
 	enable_overscan = 0,			/* (C) video */
 	force_43 = 0;				/* (C) video */
 int	serial_enabled[SERIAL_MAX] = {0,0},	/* (C) enable serial ports */
-	lpt_enabled = 0,			/* (C) enable LPT ports */
 	bugger_enabled = 0,			/* (C) enable ISAbugger */
 	isamem_type[ISAMEM_MAX] = { 0,0,0,0 },	/* (C) enable ISA mem cards */
 	isartc_type = 0;			/* (C) enable ISA RTC card */
@@ -136,7 +144,6 @@ int	fps, framecount;			/* emulator % */
 int	CPUID;
 int	output;
 int	atfullspeed;
-int	cpuspeed2;
 int	clockrate;
 
 wchar_t	exe_path[1024];				/* path (dir) of executable */
@@ -146,7 +153,6 @@ FILE	*stdlog = NULL;				/* file to log output to */
 int	scrnsz_x = SCREEN_RES_X,		/* current screen size, X */
 	scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
 int	config_changed;				/* config has changed */
-int	romset;					/* current machine ID */
 int	title_update;
 int64_t	main_time;
 
@@ -465,9 +471,6 @@ usage:
 		wcscpy(usr_path, cfg);
 	  else
 		wcscat(usr_path, cfg);
-
-	/* Make sure we have a trailing backslash. */
-	plat_path_slash(usr_path);
     }
 
     /* At this point, we can safely create the full path name. */
@@ -507,26 +510,23 @@ usage:
 
 
 void
-pc_full_speed(void)
+pc_speed_changed(void)
 {
-    cpuspeed2 = cpuspeed;
-
-    if (! atfullspeed) {
-	pc_log("Set fullspeed - %i %i %i\n", is386, AT, cpuspeed2);
-	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
-    }
-    atfullspeed = 1;
-
-    nvr_period_recalc();
+    if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
+	pit_set_clock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
+    else
+	pit_set_clock(14318184.0);
 }
 
 
 void
-pc_speed_changed(void)
+pc_full_speed(void)
 {
-    setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
-
-    nvr_period_recalc();
+    if (! atfullspeed) {
+	pc_log("Set fullspeed - %i %i\n", is386, AT);
+	pc_speed_changed();
+    }
+    atfullspeed = 1;
 }
 
 
@@ -534,12 +534,13 @@ pc_speed_changed(void)
 int
 pc_init_modules(void)
 {
-    int c, i;
+    int c, m;
 
     pc_log("Scanning for ROM images:\n");
-    for (c=0,i=0; i<ROM_MAX; i++) {
-	romspresent[i] = rom_load_bios(i);
-	c += romspresent[i];
+    c = m = 0;
+    while (machine_get_internal_name_ex(m) != NULL) {
+	c += machine_available(m);
+	m++;
     }
     if (c == 0) {
 	/* No usable ROMs found, aborting. */
@@ -548,54 +549,45 @@ pc_init_modules(void)
     pc_log("A total of %d ROM sets have been loaded.\n", c);
 
     /* Load the ROMs for the selected machine. */
-again:
-    if (! rom_load_bios(romset)) {
-	/* Whoops, ROMs not found. */
-	if (romset != -1)
-		ui_msgbox(MBX_INFO, (wchar_t *)IDS_2063);
-
-	/*
-	 * Select another machine to use.
-	 *
-	 * FIXME:
-	 * We should not do that here.  If something turns out
-	 * to be wrong with the configuration (such as missing
-	 * ROM images, we should just display a fatal message
-	 * in the render window's center, let them click OK,
-	 * and then exit so they can remedy the situation.
-	 */
-	for (c=0; c<ROM_MAX; c++) {
-		if (romspresent[c]) {
-			romset = c;
-			machine = machine_getmachine(romset);
+    if (! machine_available(machine)) {
+	c = 0;
+	while (machine_get_internal_name_ex(c) != NULL) {
+		machine = -1;
+		if (machine_available(c)) {
+			ui_msgbox(MBX_INFO, (wchar_t *)IDS_2063);
+			machine = c;
 			config_save();
-
-			/* This can loop if all ROMs are now bad.. */
-			goto again;
+			break;
 		}
+		c++;
+	}
+	if (machine == -1) {
+		fatal("No available machines\n");
+		exit(-1);
+		return(0);
 	}
     }
 
     /* Make sure we have a usable video card. */
-again2:
     if (! video_card_available(gfxcard)) {
-	if (romset != -1) {
-		ui_msgbox(MBX_INFO, (wchar_t *)IDS_2064);
-	}
 	c = 0;
 	while (video_get_internal_name(c) != NULL) {
+		gfxcard = -1;
 		if (video_card_available(c)) {
+			ui_msgbox(MBX_INFO, (wchar_t *)IDS_2064);
 			gfxcard = c;
 			config_save();
-
-			/* This can loop if all cards now bad.. */
-			goto again2;
+			break;
 		}
 		c++;
 	}
+	if (gfxcard == -1) {
+		fatal("No available video cards\n");
+		exit(-1);
+		return(0);
+	}
     }
 
-    cpuspeed2 = (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286) ? 2 : 1;
     atfullspeed = 0;
 
     random_init();
@@ -616,6 +608,8 @@ again2:
     sound_init();
 
     hdc_init();
+
+    video_reset_close();
 
     return(1);
 }
@@ -665,9 +659,13 @@ pc_reset_hard_close(void)
 {
     ui_sb_set_ready(0);
 
+    /* Turn off timer processing to avoid potential segmentation faults. */
+    timer_close();
+
     suppress_overscan = 0;
 
     nvr_save();
+    nvr_close();
 
     mouse_close();
 
@@ -686,6 +684,8 @@ pc_reset_hard_close(void)
     scsi_disk_close();
 
     closeal();
+
+    video_reset_close();
 }
 
 
@@ -706,7 +706,9 @@ pc_reset_hard_init(void)
 
     /* Reset the general machine support modules. */
     io_init();
-    timer_reset();
+
+    /* Turn on and (re)initialize timer processing. */
+    timer_init();
 
     device_init();
 
@@ -765,9 +767,9 @@ pc_reset_hard_init(void)
     if (joystick_type != 7)
 	gameport_update_joystick_type();
 
-    if (config_changed) {
-	ui_sb_update_panes();
+    ui_sb_update_panes();
 
+    if (config_changed) {
         config_save();
 
 	config_changed = 0;
@@ -784,9 +786,8 @@ pc_reset_hard_init(void)
     pic_reset();
     cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
 
+    atfullspeed = 0;
     pc_full_speed();
-
-    setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
 }
 
 
@@ -838,11 +839,17 @@ pc_close(thread_t *ptr)
 	plat_delay_ms(200);
     }
 
+#ifdef USE_NEW_DYNAREC
+    codegen_close();
+#endif
+
     nvr_save();
 
     config_save();
 
     plat_mouse_capture(0);
+
+    timer_close();
 
     lpt_devices_close();
 

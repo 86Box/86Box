@@ -23,6 +23,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../device.h"
+#include "../timer.h"
 #include "../mem.h"
 #include "video.h"
 #include "vid_svga.h"

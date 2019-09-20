@@ -65,6 +65,7 @@ void x87_settag(uint16_t new_tag)
         cpu_state.tag[7] = (new_tag >> 14) & 3;
 }
 
+
 #ifdef ENABLE_808X_LOG
 void x87_dumpregs()
 {

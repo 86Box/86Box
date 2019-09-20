@@ -20,6 +20,7 @@
 #include <wchar.h>
 #include "86box.h"
 #include "io.h"
+#include "timer.h"
 #include "device.h"
 #include "pci.h"
 #include "lpt.h"
@@ -184,6 +185,10 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
 				serial_setup(dev->uart[1], make_port(dev, 0x25), dev->regs[0x28] & 0x0f);
 		}
 		break;
+	case 0x27:
+		if (valxor & 0xf)
+			lpt1_irq(val & 0xf);
+		break;
 	case 0x28:
 		if (valxor & 0xf) {
 			serial_remove(dev->uart[1]);
@@ -228,8 +233,6 @@ fdc37c669_reset(fdc37c669_t *dev)
 
     serial_remove(dev->uart[1]);
     serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
-
-    lpt2_remove();
 
     lpt1_remove();
     lpt1_init(0x378);

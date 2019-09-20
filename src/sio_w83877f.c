@@ -11,7 +11,7 @@
  *		Winbond W83877F Super I/O Chip
  *		Used by the Award 430HX
  *
- * Version:	@(#)sio_w83877f.c	1.0.14	2018/11/05
+ * Version:	@(#)sio_w83877f.c	1.0.15	2019/05/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.
@@ -24,6 +24,7 @@
 #include "86box.h"
 #include "device.h"
 #include "io.h"
+#include "timer.h"
 #include "pci.h"
 #include "mem.h"
 #include "rom.h"
@@ -53,10 +54,13 @@
 
 #define HEFRAS		(dev->regs[0x16] & 1)
 
+#define PRTIQS		(dev->regs[0x27] & 0x0f)
+#define ECPIRQ		((dev->regs[0x27] >> 5) & 0x07)
+
 
 typedef struct {
-    uint8_t tries, reg16_init,
-	    regs[42];
+    uint8_t tries, regs[42];
+    uint16_t reg_init;
     int locked, rw_locked,
 	cur_reg,
 	base_address, key,
@@ -166,6 +170,7 @@ w83877f_write(uint16_t port, uint8_t val, void *priv)
     uint8_t index = (port & 1) ? 0 : 1;
     uint8_t valxor = 0;
     uint8_t max = 0x2A;
+    uint8_t lpt_irq;
 
     if (index) {
 	if ((val == dev->key) && !dev->locked) {
@@ -302,6 +307,16 @@ w83877f_write(uint16_t port, uint8_t val, void *priv)
 		if (valxor & 0xfe)
 			w83877f_serial_handler(dev, 1);
 		break;
+	case 0x27:
+		if (valxor & 0xef) {
+			lpt_irq = 0xff;
+
+			if (PRTIQS != 0x00)
+				lpt_irq = ECPIRQ;
+
+			lpt1_irq(lpt_irq);
+		}
+		break;
 	case 0x28:
 		if (valxor & 0xf) {
 			if ((dev->regs[0x28] & 0x0f) == 0)
@@ -345,8 +360,6 @@ w83877f_read(uint16_t port, void *priv)
 static void
 w83877f_reset(w83877f_t *dev)
 {
-    lpt2_remove();
-
     lpt1_remove();
     lpt1_init(0x378);
 
@@ -355,11 +368,11 @@ w83877f_reset(w83877f_t *dev)
     memset(dev->regs, 0, 0x2A);
     dev->regs[0x03] = 0x30;
     dev->regs[0x07] = 0xF5;
-    dev->regs[0x09] = 0x0A;
+    dev->regs[0x09] = (dev->reg_init >> 8) & 0xff;
     dev->regs[0x0a] = 0x1F;
     dev->regs[0x0c] = 0x28;
     dev->regs[0x0d] = 0xA3;
-    dev->regs[0x16] = dev->reg16_init;
+    dev->regs[0x16] = dev->reg_init & 0xff;
     dev->regs[0x1e] = 0x81;
     dev->regs[0x20] = (0x3f0 >> 2) & 0xfc;
     dev->regs[0x21] = (0x1f0 >> 2) & 0xfc;
@@ -406,7 +419,7 @@ w83877f_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    dev->reg16_init = info->local;
+    dev->reg_init = info->local;
 
     w83877f_reset(dev);
 
@@ -417,7 +430,7 @@ w83877f_init(const device_t *info)
 const device_t w83877f_device = {
     "Winbond W83877F Super I/O",
     0,
-    5,
+    0x0a05,
     w83877f_init, w83877f_close, NULL,
     NULL, NULL, NULL,
     NULL
@@ -427,7 +440,17 @@ const device_t w83877f_device = {
 const device_t w83877f_president_device = {
     "Winbond W83877F Super I/O (President)",
     0,
-    4,
+    0x0a04,
+    w83877f_init, w83877f_close, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
+
+
+const device_t w83877tf_device = {
+    "Winbond W83877TF Super I/O",
+    0,
+    0x0c04,
     w83877f_init, w83877f_close, NULL,
     NULL, NULL, NULL,
     NULL

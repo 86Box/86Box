@@ -8,13 +8,13 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.24	2018/10/28
+ * Version:	@(#)win_stbar.c	1.0.25	2019/03/15
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -33,6 +33,7 @@
 #include "../cpu/cpu.h"
 #include "../device.h"
 #include "../machine/machine.h"
+#include "../timer.h"
 #include "../disk/hdd.h"
 #include "../disk/hdc.h"
 #include "../floppy/fdd.h"
@@ -190,6 +191,19 @@ StatusBarCreateZIPSubmenu(HMENU m, int id)
 }
 
 
+void
+ui_sb_timer_callback(int pane)
+{
+    sb_part_icons[pane] &= ~1;
+
+    if (sb_part_icons && sb_part_icons[pane]) {
+	SendMessage(hwndSBAR, SB_SETICON, pane,
+		    (LPARAM)hIcon[sb_part_icons[pane]]);
+    }
+}
+
+
+
 /* API */
 /* API: update one of the icons after activity. */
 void
@@ -204,12 +218,13 @@ ui_sb_update_icon(int tag, int active)
 	return;
 
     found = sb_map[tag];
-    if (found != 0xff) {
-	sb_part_icons[found] &= ~1;
-	sb_part_icons[found] |= (uint8_t) active;
+    if ((found != 0xff) && ((sb_part_icons[found] ^ active) & 1) && active) {
+	sb_part_icons[found] |= 1;
 
 	SendMessage(hwndSBAR, SB_SETICON, found,
 		    (LPARAM)hIcon[sb_part_icons[found]]);
+
+	SetTimer(hwndMain, 0x8000 | found, 75, NULL);
     }
 }
 
@@ -487,6 +502,9 @@ ui_sb_update_panes(void)
     int do_net;
     char *hdc_name;
 
+    if (!config_changed)
+	return;
+
     if (sb_ready) {
 	sb_ready = 0;
     }
@@ -534,7 +552,7 @@ ui_sb_update_panes(void)
 	    !(hdint || !memcmp(hdc_name, "ide", 3)))
 		continue;
 
-	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) &&
+	if ((cdrom[i].bus_type == CDROM_BUS_SCSI || cdrom[i].bus_type == CDROM_BUS_SCSI_CHINON) &&
 	    (scsi_card_current == 0))
 		continue;
 	if (cdrom[i].bus_type != 0)
@@ -552,7 +570,7 @@ ui_sb_update_panes(void)
 	if (zip_drives[i].bus_type != 0)
 		sb_parts++;
     }
-    if (c_mfm && (hdint || !memcmp(hdc_name, "mfm", 3))) {
+    if (c_mfm && (hdint || !memcmp(hdc_name, "st506", 5))) {
 	/* MFM drives, and MFM or Internal controller. */
 	sb_parts++;
     }
@@ -597,7 +615,7 @@ ui_sb_update_panes(void)
 	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
 		continue;
 	}
-	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && (scsi_card_current == 0))
+	if ((cdrom[i].bus_type == CDROM_BUS_SCSI || cdrom[i].bus_type == CDROM_BUS_SCSI_CHINON) && (scsi_card_current == 0))
 		continue;
 	if (cdrom[i].bus_type != 0) {
 		edge += SB_ICON_WIDTH;
@@ -622,7 +640,7 @@ ui_sb_update_panes(void)
 		sb_parts++;
 	}
     }
-    if (c_mfm && (hdint || !memcmp(hdc_name, "mfm", 3))) {
+    if (c_mfm && (hdint || !memcmp(hdc_name, "st506", 5))) {
 	edge += SB_ICON_WIDTH;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_MFM;

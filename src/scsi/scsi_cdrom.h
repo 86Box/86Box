@@ -19,7 +19,7 @@
 #define EMU_SCSI_CDROM_H
 
 
-#define CDROM_TIME (5LL * 100LL * (1LL << TIMER_SHIFT))
+#define CDROM_TIME	500.0
 
 
 #ifdef SCSI_DEVICE_H
@@ -49,7 +49,7 @@ typedef struct {
     uint32_t sector_pos, sector_len,
 	     packet_len, pos;
 
-    int64_t callback;
+    double callback;
 } scsi_cdrom_t;
 #endif
 

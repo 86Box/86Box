@@ -7,10 +7,10 @@
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
-#include "../timer.h"
 #include "../device.h"
 #include "video.h"
 #include "vid_cga.h"
@@ -19,10 +19,11 @@
 #define CGA_RGB 0
 #define CGA_COMPOSITE 1
 
+static uint32_t vflags;
+
 typedef struct compaq_cga_t 
 {
 	cga_t cga;
-	uint32_t flags;
 } compaq_cga_t;
 
 static uint8_t mdaattr[256][2][2];
@@ -35,8 +36,8 @@ void compaq_cga_recalctimings(compaq_cga_t *self)
         _dispofftime = disptime - _dispontime;
         _dispontime *= MDACONST;
         _dispofftime *= MDACONST;
-	self->cga.dispontime = (int)(_dispontime * (1 << TIMER_SHIFT));
-	self->cga.dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	self->cga.dispontime = (uint64_t)(_dispontime);
+	self->cga.dispofftime = (uint64_t)(_dispofftime);
 }
 
 void compaq_cga_poll(void *p)
@@ -47,7 +48,8 @@ void compaq_cga_poll(void *p)
         int x, c;
         int oldvc;
         uint8_t chr, attr;
-        uint32_t cols[4];
+	uint8_t border;
+        uint8_t cols[4];
         int oldsc;
 	int underline = 0;
 	int blink = 0;
@@ -64,7 +66,7 @@ void compaq_cga_poll(void *p)
 /* We are in Compaq 350-line CGA territory */
         if (!self->cga.linepos)
         {
-                self->cga.vidtime += self->cga.dispofftime;
+                timer_advance_u64(&self->cga.timer, self->cga.dispofftime);
                 self->cga.cgastat |= 1;
                 self->cga.linepos = 1;
                 oldsc = self->cga.sc;
@@ -80,15 +82,15 @@ void compaq_cga_poll(void *p)
                         }
                         self->cga.lastline = self->cga.displine;
                        
-                        cols[0] = (self->cga.cgacol & 15);
+                        cols[0] = (self->cga.cgacol & 15) + 16;
 
                         for (c = 0; c < 8; c++)
                         {
-                                ((uint32_t *)buffer32->line[self->cga.displine])[c] = cols[0];
+                                buffer32->line[self->cga.displine][c] = cols[0];
                                 if (self->cga.cgamode & 1)
-                                        ((uint32_t *)buffer32->line[self->cga.displine])[c + (self->cga.crtc[1] << 3) + 8] = cols[0];
+                                        buffer32->line[self->cga.displine][c + (self->cga.crtc[1] << 3) + 8] = cols[0];
                                 else
-                                        ((uint32_t *)buffer32->line[self->cga.displine])[c + (self->cga.crtc[1] << 4) + 8] = cols[0];
+                                        buffer32->line[self->cga.displine][c + (self->cga.crtc[1] << 4) + 8] = cols[0];
                         }
                         if (self->cga.cgamode & 1)
                         {
@@ -97,11 +99,11 @@ void compaq_cga_poll(void *p)
                                         chr = self->cga.charbuffer[x << 1];
                                         attr = self->cga.charbuffer[(x << 1) + 1];
                                         drawcursor = ((self->cga.ma == ca) && self->cga.con && self->cga.cursoron);
-					if (self->flags) {
+					if (vflags) {
 						underline = 0;
 						blink = ((self->cga.cgablink & 8) && (self->cga.cgamode & 0x20) && (attr & 0x80) && !drawcursor);
 					}
-					if (self->flags && (self->cga.cgamode & 0x80))
+					if (vflags && (self->cga.cgamode & 0x80))
 					{
 						cols[0] = mdaattr[attr][blink][0];
 						cols[1] = mdaattr[attr][blink][1];
@@ -111,7 +113,7 @@ void compaq_cga_poll(void *p)
                                         {
                                                 cols[1] = (attr & 15) + 16;
                                                 cols[0] = ((attr >> 4) & 7) + 16;
-						if (self->flags) {
+						if (vflags) {
                                                 	if (blink)
                                                         	cols[1] = cols[0];
 						} else {
@@ -124,20 +126,20 @@ void compaq_cga_poll(void *p)
                                                 cols[1] = (attr & 15) + 16;
                                                 cols[0] = (attr >> 4) + 16;
                                         }
-					if (self->flags && underline)
+					if (vflags && underline)
 					{
                                                 for (c = 0; c < 8; c++)
-                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 3) + c + 8] = mdaattr[attr][blink][1];
+                                                        buffer32->line[self->cga.displine][(x << 3) + c + 8] = mdaattr[attr][blink][1];
 					}
                                         else if (drawcursor)
                                         {
                                                 for (c = 0; c < 8; c++)
-                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 3) + c + 8] = cols[(fontdatm[chr + self->cga.fontbase][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xffffff;
+                                                        buffer32->line[self->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr + self->cga.fontbase][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
                                         }
                                         else
                                         {
                                                 for (c = 0; c < 8; c++)
-                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 3) + c + 8] = cols[(fontdatm[chr + self->cga.fontbase][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
+                                                        buffer32->line[self->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr + self->cga.fontbase][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
                                         }
                                         self->cga.ma++;
                                 }
@@ -149,11 +151,11 @@ void compaq_cga_poll(void *p)
                                         chr  = self->cga.vram[((self->cga.ma << 1) & 0x3fff)];
                                         attr = self->cga.vram[(((self->cga.ma << 1) + 1) & 0x3fff)];
                                         drawcursor = ((self->cga.ma == ca) && self->cga.con && self->cga.cursoron);
-					if (self->flags) {
+					if (vflags) {
 						underline = 0;
 						blink = ((self->cga.cgablink & 8) && (self->cga.cgamode & 0x20) && (attr & 0x80) && !drawcursor);
 					}
-					if (self->flags && (self->cga.cgamode & 0x80))
+					if (vflags && (self->cga.cgamode & 0x80))
 					{
 						cols[0] = mdaattr[attr][blink][0];
 						cols[1] = mdaattr[attr][blink][1];
@@ -163,7 +165,7 @@ void compaq_cga_poll(void *p)
                                         {
                                                 cols[1] = (attr & 15) + 16;
                                                 cols[0] = ((attr >> 4) & 7) + 16;
-						if (self->flags) {
+						if (vflags) {
                                                 	if (blink)
                                                         	cols[1] = cols[0];
 						} else {
@@ -177,23 +179,26 @@ void compaq_cga_poll(void *p)
                                                 cols[0] = (attr >> 4) + 16;
                                         }
                                         self->cga.ma++;
-					if (self->flags && underline)
+					if (vflags && underline)
 					{
                                                 for (c = 0; c < 8; c++)
-                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 4)+(c << 1) + 8] =
-                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 4)+(c << 1) + 9] = mdaattr[attr][blink][1];
+                                                        buffer32->line[self->cga.displine][(x << 4)+(c << 1) + 8] =
+                                                        buffer32->line[self->cga.displine][(x << 4)+(c << 1) + 9] =
+								mdaattr[attr][blink][1];
 					}
                                         else if (drawcursor)
                                         {
                                                 for (c = 0; c < 8; c++)
-                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 4)+(c << 1) + 8] =
-                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr + self->cga.fontbase][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+                                                        buffer32->line[self->cga.displine][(x << 4)+(c << 1) + 8] =
+                                                        buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1 + 8] =
+								cols[(fontdatm[chr + self->cga.fontbase][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
                                         }
                                         else
                                         {
                                                 for (c = 0; c < 8; c++)
-                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 4) + (c << 1) + 8] =
-                                                        ((uint32_t *)buffer32->line[self->cga.displine])[(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr + self->cga.fontbase][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
+                                                        buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 8] =
+                                                        buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1 + 8] =
+								cols[(fontdatm[chr + self->cga.fontbase][self->cga.sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
                                         }
                                 }
                         }
@@ -201,8 +206,8 @@ void compaq_cga_poll(void *p)
                 else
                 {
                         cols[0] = (self->cga.cgacol & 15) + 16;
-                        if (self->cga.cgamode & 1) hline(buffer32, 0, self->cga.displine, (self->cga.crtc[1] << 3) + 16, cols[0]);
-                        else                  hline(buffer32, 0, self->cga.displine, (self->cga.crtc[1] << 4) + 16, cols[0]);
+                        if (self->cga.cgamode & 1)	hline(buffer32, 0, self->cga.displine, (self->cga.crtc[1] << 3) + 16, cols[0]);
+                        else				hline(buffer32, 0, self->cga.displine, (self->cga.crtc[1] << 4) + 16, cols[0]);
                 }
 
                 if (self->cga.cgamode & 1) x = (self->cga.crtc[1] << 3) + 16;
@@ -210,19 +215,16 @@ void compaq_cga_poll(void *p)
 
                 if (self->cga.composite)
                 {
-			for (c = 0; c < x; c++)
-				buffer32->line[self->cga.displine][c] = ((uint32_t *)buffer32->line[self->cga.displine])[c] & 0xf;
-
-			if (self->flags)
-				Composite_Process(self->cga.cgamode & 0x7F, 0, x >> 2, buffer32->line[self->cga.displine]);
+			if (self->cga.cgamode & 0x10)
+				border = 0x00;
 			else
-				Composite_Process(self->cga.cgamode, 0, x >> 2, buffer32->line[self->cga.displine]);
+				border = self->cga.cgacol & 0x0f;
+
+			if (vflags)
+				Composite_Process(self->cga.cgamode & 0x7F, border, x >> 2, buffer32->line[self->cga.displine]);
+			else
+				Composite_Process(self->cga.cgamode, border, x >> 2, buffer32->line[self->cga.displine]);
                 }
-                else
-                {
-			for (c = 0; c < x; c++)
-				buffer->line[self->cga.displine][c] = ((uint32_t *)buffer32->line[self->cga.displine])[c];
-                }                        
 
                 self->cga.sc = oldsc;
                 if (self->cga.vc == self->cga.crtc[7] && !self->cga.sc)
@@ -233,7 +235,7 @@ void compaq_cga_poll(void *p)
         }
         else
         {
-                self->cga.vidtime += self->cga.dispontime;
+                timer_advance_u64(&self->cga.timer, self->cga.dispontime);
                 self->cga.linepos = 0;
                 if (self->cga.vsynctime)
                 {
@@ -375,8 +377,8 @@ void *compaq_cga_init(const device_t *info)
         self->cga.vram = malloc(0x4000);
 
 	cga_comp_init(self->cga.revision);
-        timer_add(compaq_cga_poll, &self->cga.vidtime, TIMER_ALWAYS_ENABLED, self);
-        mem_mapping_add(&self->cga.mapping, 0xb8000, 0x08000, cga_read, NULL, NULL, cga_write, NULL, NULL, self->cga.vram, MEM_MAPPING_EXTERNAL, self);
+        timer_add(&self->cga.timer, compaq_cga_poll, self, 1);
+        mem_mapping_add(&self->cga.mapping, 0xb8000, 0x08000, cga_read, NULL, NULL, cga_write, NULL, NULL, NULL /*self->cga.vram*/, MEM_MAPPING_EXTERNAL, self);
         io_sethandler(0x03d0, 0x0010, cga_in, NULL, NULL, cga_out, NULL, NULL, self);
 
 	if (info->local) {
@@ -399,13 +401,15 @@ void *compaq_cga_init(const device_t *info)
         	mdaattr[0x88][0][1] = mdaattr[0x88][1][1] = 16;
 	}
 
-	self->flags = info->local;
+	vflags = info->local;
 
         overscan_x = overscan_y = 16;
 
         self->cga.rgb_type = device_get_config_int("rgb_type");
 	cga_palette = (self->cga.rgb_type << 1);
 	cgapal_rebuild();
+
+	self->cga.crtc[9] = 13;
 
         return self;
 }

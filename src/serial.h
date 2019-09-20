@@ -8,18 +8,19 @@
  *
  *		Definitions for the SERIAL card.
  *
- * Version:	@(#)serial.h	1.0.9	2018/11/12
+ * Version:	@(#)serial.h	1.0.10	2019/03/24
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #ifndef EMU_SERIAL_H
 # define EMU_SERIAL_H
 
 
-#define SERIAL_8250	0
-#define SERIAL_NS16540	1
-#define SERIAL_NS16550	2
+#define SERIAL_8250		0
+#define SERIAL_8250_PCJR	1
+#define SERIAL_NS16450		2
+#define SERIAL_NS16550		3
 
 /* Default settings for the standard ports. */
 #define SERIAL1_ADDR		0x03f8
@@ -34,22 +35,18 @@ struct serial_s;
 typedef struct serial_s
 {
     uint8_t lsr, thr, mctrl, rcr,
-	    iir, ier, lcr, msr;
-    uint16_t dlab;
-    uint8_t dat;
-    uint8_t int_status;
-    uint8_t scratch;
-    uint8_t fcr;
+	    iir, ier, lcr, msr,
+	    dat, int_status, scratch, fcr,
+	    irq, type, inst, transmit_enabled,
+	    fifo_enabled, rcvr_fifo_len, pad, pad0;
 
-    uint8_t irq, type,
-	    inst;
-    uint16_t base_address;
+    uint16_t dlab, base_address;
 
-    uint8_t fifo_enabled, rcvr_fifo_len;
     uint8_t rcvr_fifo_pos, rcvr_fifo[14];
     uint8_t xmit_fifo_pos, xmit_fifo[16];
 
-    int64_t transmit_delay, transmit_period;
+    pc_timer_t transmit_timer;
+    double transmit_period;
 
     struct serial_device_s	*sd;
 } serial_t;
@@ -72,11 +69,12 @@ extern void	serial_set_type(serial_t *dev, int type);
 extern void	serial_setup(serial_t *dev, uint16_t addr, int irq);
 extern void	serial_clear_fifo(serial_t *dev);
 extern void	serial_write_fifo(serial_t *dev, uint8_t dat);
+extern void	serial_set_next_inst(int ni);
 extern void	serial_standalone_init(void);
 
 extern const device_t	i8250_device;
 extern const device_t	i8250_pcjr_device;
-extern const device_t	ns16540_device;
+extern const device_t	ns16450_device;
 extern const device_t	ns16550_device;
 
 

@@ -21,7 +21,7 @@ static struct
         uint8_t status;
         int is_opl3;
 
-        void (*timer_callback)(void *param, int timer, int64_t period);
+        void (*timer_callback)(void *param, int timer, uint64_t period);
         void *timer_param;
 } opl[2];
 
@@ -41,7 +41,7 @@ enum
         CTRL_TIMER1_CTRL = 0x01
 };
 
-void opl_init(void (*timer_callback)(void *param, int timer, int64_t period), void *timer_param, int nr, int is_opl3)
+void opl_init(void (*timer_callback)(void *param, int timer, uint64_t period), void *timer_param, int nr, int is_opl3)
 {
 	opl[nr].timer_callback = timer_callback;
 	opl[nr].timer_param = timer_param;

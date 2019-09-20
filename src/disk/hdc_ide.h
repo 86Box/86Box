@@ -94,16 +94,11 @@ enum {
 };
 
 
-extern int ideboard;
 extern int ide_ter_enabled, ide_qua_enabled;
 
-#ifdef SCSI_DEVICE_H
-extern ide_t *ide_drives[IDE_NUM];
-#endif
-extern int64_t idecallback[5];
-
 
 #ifdef SCSI_DEVICE_H
+extern ide_t *	ide_get_drive(int ch);
 extern void	ide_irq_raise(ide_t *ide);
 extern void	ide_irq_lower(ide_t *ide);
 extern void	ide_allocate_buffer(ide_t *dev);
@@ -120,23 +115,22 @@ extern uint8_t	ide_readb(uint16_t addr, void *priv);
 extern uint8_t	ide_read_alt_status(uint16_t addr, void *priv);
 extern uint16_t	ide_readw(uint16_t addr, void *priv);
 
-extern void	ide_set_bus_master(int (*dmna)(int channel, uint8_t *data, int transfer_length, int out, void *priv),
-				   void (*set_irq)(int channel, void *priv),
-				   void *priv0, void *priv1);
+extern void	ide_set_bus_master(int board,
+				   int (*dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv),
+				   void (*set_irq)(int channel, void *priv), void *priv);
 
 extern void	win_cdrom_eject(uint8_t id);
 extern void	win_cdrom_reload(uint8_t id);
 
-extern void	ide_set_base(int controller, uint16_t port);
-extern void	ide_set_side(int controller, uint16_t port);
+extern void	ide_set_base(int board, uint16_t port);
+extern void	ide_set_side(int board, uint16_t port);
 
 extern void	ide_pri_enable(void);
 extern void	ide_pri_disable(void);
 extern void	ide_sec_enable(void);
 extern void	ide_sec_disable(void);
 
-extern void	ide_set_callback(uint8_t channel, int64_t callback);
-extern void	secondary_ide_check(void);
+extern void	ide_set_callback(uint8_t channel, double callback);
 
 extern void	ide_padstr(char *str, const char *src, int len);
 extern void	ide_padstr8(uint8_t *buf, int buf_size, const char *src);
@@ -144,8 +138,6 @@ extern void	ide_padstr8(uint8_t *buf, int buf_size, const char *src);
 extern int	(*ide_bus_master_dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv);
 extern void	(*ide_bus_master_set_irq)(int channel, void *priv);
 extern void	*ide_bus_master_priv[2];
-
-extern void	ide_enable_pio_override(void);
 
 
 #endif	/*EMU_IDE_H*/

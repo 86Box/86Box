@@ -612,19 +612,24 @@ wd_mca_write(int port, uint8_t val, void *priv)
     dev->irq = irq[dev->pos_regs[5] & 0x02];
 
     /* Initialize the device if fully configured. */
-    if (dev->pos_regs[2] & 0x01) {
-	/* Card enabled; register (new) I/O handler. */
-	wd_io_set(dev, dev->base_address);
+    /* Register (new) I/O handler. */
+    wd_io_set(dev, dev->base_address);
 
-	mem_mapping_set_addr(&dev->ram_mapping, dev->ram_addr, dev->ram_size);
-	if (dev->msr & WE_MSR_ENABLE_RAM)
-		mem_mapping_enable(&dev->ram_mapping);
-	else
-		mem_mapping_disable(&dev->ram_mapping);
+    mem_mapping_set_addr(&dev->ram_mapping, dev->ram_addr, dev->ram_size);
+    if (dev->msr & WE_MSR_ENABLE_RAM)
+	mem_mapping_enable(&dev->ram_mapping);
+    else
+	mem_mapping_disable(&dev->ram_mapping);
 
-	wdlog("%s: attached IO=0x%X IRQ=%d, RAM addr=0x%06x\n", dev->name,
-	      dev->base_address, dev->irq, dev->ram_addr);
-    }
+    wdlog("%s: attached IO=0x%X IRQ=%d, RAM addr=0x%06x\n", dev->name,
+	  dev->base_address, dev->irq, dev->ram_addr);
+}
+
+
+static uint8_t
+wd_mca_feedb(void *priv)
+{
+    return 1;
 }
 
 
@@ -669,7 +674,7 @@ wd_init(const device_t *info)
     }
 
     if ((dev->board == WD8003ETA) || (dev->board == WD8003EA))
-	mca_add(wd_mca_read, wd_mca_write, dev);
+	mca_add(wd_mca_read, wd_mca_write, wd_mca_feedb, dev);
     else {
 	dev->base_address = device_get_config_hex16("base");
 	dev->irq = device_get_config_int("irq");
@@ -761,10 +766,8 @@ wd_init(const device_t *info)
 			wd_ram_writeb, NULL, NULL,
 			NULL, MEM_MAPPING_EXTERNAL, dev);
     }
-    if (dev->msr & WE_MSR_ENABLE_RAM)
-	mem_mapping_enable(&dev->ram_mapping);		
-    else
-	mem_mapping_disable(&dev->ram_mapping);		
+
+    mem_mapping_disable(&dev->ram_mapping);		
 
     /* Attach ourselves to the network module. */
     network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx);

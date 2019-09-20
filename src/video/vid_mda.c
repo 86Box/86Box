@@ -8,7 +8,7 @@
  *
  *		MDA emulation.
  *
- * Version:	@(#)vid_mda.c	1.0.12	2018/09/19
+ * Version:	@(#)vid_mda.c	1.0.13	2019/09/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,40 +23,14 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../lpt.h"
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
-#include "../timer.h"
 #include "../device.h"
 #include "video.h"
 #include "vid_mda.h"
-
-
-typedef struct mda_t
-{
-        mem_mapping_t mapping;
-        
-        uint8_t crtc[32];
-        int crtcreg;
-        
-        uint8_t ctrl, stat;
-        
-        int64_t dispontime, dispofftime;
-        int64_t vidtime;
-        
-        int firstline, lastline;
-
-        int linepos, displine;
-        int vc, sc;
-        uint16_t ma, maback;
-        int con, coff, cursoron;
-        int dispon, blink;
-        int64_t vsynctime;
-	int vadj;
-
-        uint8_t *vram;
-} mda_t;
 
 static int mdacols[256][2][2];
 
@@ -124,8 +98,8 @@ void mda_recalctimings(mda_t *mda)
         _dispofftime = disptime - _dispontime;
         _dispontime *= MDACONST;
         _dispofftime *= MDACONST;
-	mda->dispontime = (int64_t)(_dispontime * (1 << TIMER_SHIFT));
-	mda->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
+	mda->dispontime = (uint64_t)(_dispontime);
+	mda->dispofftime = (uint64_t)(_dispofftime);
 }
 
 void mda_poll(void *p)
@@ -140,7 +114,7 @@ void mda_poll(void *p)
         int blink;
         if (!mda->linepos)
         {
-                mda->vidtime += mda->dispofftime;
+				timer_advance_u64(&mda->timer, mda->dispofftime);
                 mda->stat |= 1;
                 mda->linepos = 1;
                 oldsc = mda->sc;
@@ -162,20 +136,20 @@ void mda_poll(void *p)
                                 if (mda->sc == 12 && ((attr & 7) == 1))
                                 {
                                         for (c = 0; c < 9; c++)
-                                            buffer->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][1];
+						buffer32->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][1];
                                 }
                                 else
                                 {
                                         for (c = 0; c < 8; c++)
-                                            buffer->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][(fontdatm[chr][mda->sc] & (1 << (c ^ 7))) ? 1 : 0];
-                                        if ((chr & ~0x1f) == 0xc0) buffer->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][fontdatm[chr][mda->sc] & 1];
-                                        else                       buffer->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][0];
+						buffer32->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][(fontdatm[chr][mda->sc] & (1 << (c ^ 7))) ? 1 : 0];
+                                        if ((chr & ~0x1f) == 0xc0) buffer32->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][fontdatm[chr][mda->sc] & 1];
+                                        else                       buffer32->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][0];
                                 }
                                 mda->ma++;
                                 if (drawcursor)
                                 {
                                         for (c = 0; c < 9; c++)
-                                            buffer->line[mda->displine][(x * 9) + c] ^= mdacols[attr][0][1];
+						buffer32->line[mda->displine][(x * 9) + c] ^= mdacols[attr][0][1];
                                 }
                         }
                 }
@@ -190,7 +164,7 @@ void mda_poll(void *p)
         }
         else
         {
-                mda->vidtime += mda->dispontime;
+                timer_advance_u64(&mda->timer, mda->dispontime);
                 if (mda->dispon) mda->stat&=~1;
                 mda->linepos=0;
                 if (mda->vsynctime)
@@ -281,19 +255,9 @@ void mda_poll(void *p)
         }
 }
 
-
-void *mda_init(const device_t *info)
+void mda_init(mda_t *mda)
 {
-        int c;
-        mda_t *mda = malloc(sizeof(mda_t));
-        memset(mda, 0, sizeof(mda_t));
-	video_inform(VIDEO_FLAG_TYPE_MDA, &timing_mda);
-
-        mda->vram = malloc(0x1000);
-
-        timer_add(mda_poll, &mda->vidtime, TIMER_ALWAYS_ENABLED, mda);
-        mem_mapping_add(&mda->mapping, 0xb0000, 0x08000, mda_read, NULL, NULL, mda_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, mda);
-        io_sethandler(0x03b0, 0x0010, mda_in, NULL, NULL, mda_out, NULL, NULL, mda);
+	int c;
 
         for (c = 0; c < 256; c++)
         {
@@ -321,11 +285,32 @@ void *mda_init(const device_t *info)
 	{
 		cga_palette = 0;
 	}
-	cgapal_rebuild();
+	cgapal_rebuild();	
+
+        timer_add(&mda->timer, mda_poll, mda, 1);
+}
+
+void *mda_standalone_init(const device_t *info)
+{
+        mda_t *mda = malloc(sizeof(mda_t));
+        memset(mda, 0, sizeof(mda_t));
+	video_inform(VIDEO_FLAG_TYPE_MDA, &timing_mda);
+
+        mda->vram = malloc(0x1000);
+
+        mem_mapping_add(&mda->mapping, 0xb0000, 0x08000, mda_read, NULL, NULL, mda_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, mda);
+        io_sethandler(0x03b0, 0x0010, mda_in, NULL, NULL, mda_out, NULL, NULL, mda);
+
+	mda_init(mda);
 
 	lpt3_init(0x3BC);
 
         return mda;
+}
+
+void mda_setcol(int chr, int blink, int fg, uint8_t cga_ink)
+{
+	mdacols[chr][blink][fg] = 16 + cga_ink;
 }
 
 void mda_close(void *p)
@@ -375,7 +360,7 @@ const device_t mda_device =
 {
         "MDA",
         DEVICE_ISA, 0,
-        mda_init, mda_close, NULL,
+        mda_standalone_init, mda_close, NULL,
         NULL,
         mda_speed_changed,
         NULL,

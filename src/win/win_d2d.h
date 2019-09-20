@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -25,7 +25,8 @@ extern void	d2d_close(void);
 extern int	d2d_init(HWND h);
 extern int	d2d_init_fs(HWND h);
 extern int	d2d_pause(void);
-extern void	d2d_take_screenshot(wchar_t *fn);
+extern void	d2d_take_screenshot(const wchar_t *fn);
+extern void	d2d_enable(int enable);
 
 #ifdef __cplusplus
 }

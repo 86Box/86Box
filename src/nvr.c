@@ -8,13 +8,13 @@
  *
  *		Implement a generic NVRAM/CMOS/RTC device.
  *
- * Version:	@(#)nvr.c	1.0.17	2018/11/02
+ * Version:	@(#)nvr.c	1.0.18	2019/03/16
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>,
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2018 David Hrdlička.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2018,2019 David Hrdlička.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -156,7 +156,7 @@ onesec_timer(void *priv)
 	nvr->onesec_cnt = 0;
     }
 
-    nvr->onesec_time += (int64_t)(10000 * TIMER_USEC);
+    timer_advance_u64(&nvr->onesec_time, (10000ULL * TIMER_USEC));
 }
 
 
@@ -194,7 +194,7 @@ nvr_init(nvr_t *nvr)
     }
 
     /* Set up our timer. */
-    timer_add(onesec_timer, &nvr->onesec_time, TIMER_ALWAYS_ENABLED, nvr);
+    timer_add(&nvr->onesec_time, onesec_timer, nvr, 1);
 
     /* It does not need saving yet. */
     nvr_dosave = 0;
@@ -316,13 +316,9 @@ nvr_save(void)
 
 
 void
-nvr_period_recalc(void)
+nvr_close(void)
 {
-    /* Make sure we have been initialized. */
-    if (saved_nvr == NULL) return;
-
-    if ((saved_nvr->size != 0) && saved_nvr->recalc)
-	saved_nvr->recalc(saved_nvr);
+    saved_nvr = NULL;
 }
 
 

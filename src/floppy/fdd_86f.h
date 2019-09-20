@@ -46,7 +46,7 @@ extern void	d86f_load(int drive, wchar_t *fn);
 extern void	d86f_close(int drive);
 extern void	d86f_seek(int drive, int track);
 extern int	d86f_hole(int drive);
-extern double	d86f_byteperiod(int drive);
+extern uint64_t	d86f_byteperiod(int drive);
 extern void	d86f_stop(int drive);
 extern void	d86f_poll(int drive);
 extern int	d86f_realtrack(int track, int drive);

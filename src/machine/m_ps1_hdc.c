@@ -43,14 +43,14 @@
  *		Type table with the main code, so the user can only select
  *		items from that list...
  *
- * Version:	@(#)m_ps1_hdc.c	1.0.7	2018/10/22
+ * Version:	@(#)m_ps1_hdc.c	1.0.8	2019/03/08
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Based on my earlier HD20 driver for the EuroPC.
  *		Thanks to Marco Bortolin for the help and feedback !!
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -93,11 +93,11 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
+#include "../timer.h"
 #include "../io.h"
 #include "../dma.h"
 #include "../pic.h"
 #include "../device.h"
-#include "../timer.h"
 #include "../disk/hdc.h"
 #include "../disk/hdd.h"
 #include "../plat.h"
@@ -105,7 +105,7 @@
 #include "machine.h"
 
 
-#define HDC_TIME	(200*TIMER_USEC)
+#define HDC_TIME	(50*TIMER_USEC)
 #define HDC_TYPE_USER	47			/* user drive type */
 
 
@@ -387,10 +387,11 @@ typedef struct {
 		status,			/* Status register (ASR) */
 		intstat;		/* Interrupt Status register (ISR) */
 
-    void	*sys;			/* handle to system board */
+    uint8_t	*reg_91;		/* handle to system board's register 0x91 */
 
     /* Controller state. */
-    int64_t	callback;
+    uint64_t	callback;
+	pc_timer_t timer;
     int8_t	state,			/* controller state */
 		reset;			/* reset state counter */
 
@@ -492,6 +493,21 @@ ps1_hdc_log(const char *fmt, ...)
 #define ps1_hdc_log(fmt, ...)
 #endif
 
+static void
+hdc_set_callback(hdc_t *dev, uint64_t callback)
+{
+    if (!dev) {
+	return;
+    }
+
+    if (callback) {
+	dev->callback = callback;
+	timer_set_delay_u64(&dev->timer, dev->callback);
+	} else {
+	dev->callback = 0;
+	timer_disable(&dev->timer);
+	}
+}
 
 /* FIXME: we should use the disk/hdd_table.c code with custom tables! */
 static int
@@ -635,7 +651,7 @@ do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
 		/* Enable for PIO or DMA, as needed. */
 #if NOT_USED
 		if (dev->ctrl & ACR_DMA_EN)
-			dev->callback = HDC_TIME;
+			hdc_set_callback(dev, HDC_TIME);
 		  else
 #endif
 			dev->status |= ASR_DATA_REQ;
@@ -655,7 +671,7 @@ do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
 			dev->buf_idx++;
 		}
 		dev->state = STATE_RDONE;
-		dev->callback = HDC_TIME;
+		hdc_set_callback(dev, HDC_TIME);
 		break;
 
 	case STATE_RDONE:
@@ -813,20 +829,20 @@ do_send:
 				dev->buf_idx = 0;
 				if (no_data) {
 					/* Delay a bit, no actual transfer. */
-					dev->callback = HDC_TIME;
+					hdc_set_callback(dev, HDC_TIME);
 				} else {
 					if (dev->ctrl & ACR_DMA_EN) {
 						/* DMA enabled. */
 						dev->buf_ptr = dev->sector_buf;
-						dev->callback = HDC_TIME;
+						hdc_set_callback(dev, HDC_TIME);
 					} else {
 						/* No DMA, do PIO. */
 						dev->status |= (ASR_DATA_REQ|ASR_DIR);
 
 						/* Copy from sector to data. */
 						memcpy(dev->data,
-						    dev->sector_buf,
-						    (128<<dev->ssb.sect_size));
+						       dev->sector_buf,
+						       dev->buf_len);
 						dev->buf_ptr = dev->data;
 					}
 				}
@@ -853,7 +869,7 @@ do_send:
 					}
 				}
 				dev->state = STATE_SDONE;
-				dev->callback = HDC_TIME;
+				hdc_set_callback(dev, HDC_TIME);
 				break;
 
 			case STATE_SDONE:
@@ -941,12 +957,12 @@ do_recv:
 				dev->buf_idx = 0;
 				if (no_data) {
 					/* Delay a bit, no actual transfer. */
-					dev->callback = HDC_TIME;
+					hdc_set_callback(dev, HDC_TIME);
 				} else {
 					if (dev->ctrl & ACR_DMA_EN) {
 						/* DMA enabled. */
 						dev->buf_ptr = dev->sector_buf;
-						dev->callback = HDC_TIME;
+						hdc_set_callback(dev, HDC_TIME);
 					} else {
 						/* No DMA, do PIO. */
 						dev->buf_ptr = dev->data;
@@ -976,14 +992,15 @@ do_recv:
 					}
 				}
 				dev->state = STATE_RDONE;
-				dev->callback = HDC_TIME;
+				hdc_set_callback(dev, HDC_TIME);
 				break;
 
 			case STATE_RDONE:
 				/* Copy from data to sector if PIO. */
 				if (! (dev->ctrl & ACR_DMA_EN))
-					memcpy(dev->sector_buf, dev->data,
-					       (128<<dev->ssb.sect_size));
+					memcpy(dev->sector_buf,
+					       dev->data,
+					       dev->buf_len);
 
 				/* Get address of sector to write. */
 				if (get_sector(dev, drive, &addr)) {
@@ -1100,7 +1117,7 @@ hdc_read(uint16_t port, void *priv)
     uint8_t ret = 0xff;
 
     /* TRM: tell system board we are alive. */
-    ps1_set_feedback(dev->sys);
+    *dev->reg_91 |= 0x01;
 
     switch (port & 7) {
 	case 0:		/* DATA register */
@@ -1143,7 +1160,7 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
     hdc_t *dev = (hdc_t *)priv;
 
     /* TRM: tell system board we are alive. */
-    ps1_set_feedback(dev->sys);
+    *dev->reg_91 |= 0x01;
 
     switch (port & 7) {
 	case 0:		/* DATA register */
@@ -1176,7 +1193,7 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
 						dev->status |= ASR_BUSY;
 
 					/* Schedule command execution. */
-					dev->callback = HDC_TIME;
+					hdc_set_callback(dev, HDC_TIME);
 				}
 			}
 		}
@@ -1303,7 +1320,7 @@ ps1_hdc_init(const device_t *info)
 		  hdc_read,NULL,NULL, hdc_write,NULL,NULL, dev);
 
     /* Create a timer for command delays. */
-    timer_add(hdc_callback, &dev->callback, &dev->callback, dev);
+	timer_add(&dev->timer, hdc_callback, dev, 0);
 
     return(dev);
 }
@@ -1356,9 +1373,9 @@ const device_t ps1_hdc_device = {
  * agree that the current solution is nasty.
  */
 void
-ps1_hdc_inform(void *priv, void *arg)
+ps1_hdc_inform(void *priv, uint8_t *reg_91)
 {
     hdc_t *dev = (hdc_t *)priv;
 
-    dev->sys = arg;
+    dev->reg_91 = reg_91;
 }

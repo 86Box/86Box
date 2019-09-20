@@ -9,7 +9,7 @@
  *		Implementation of the Toshiba T1000 plasma display, which
  *		has a fixed resolution of 640x200 pixels.
  *
- * Version:	@(#)m_xt_t1000_vid.c	1.0.9	2018/09/19
+ * Version:	@(#)m_xt_t1000_vid.c	1.0.10	2018/02/16
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -112,7 +112,7 @@ typedef struct t1000_t
 	int internal;		/* Using internal display? */
 	uint8_t	attrmap;	/* Attribute mapping register */
 
-        int dispontime, dispofftime;
+        uint64_t dispontime, dispofftime;
         
         int linepos, displine;
         int vc;
@@ -194,14 +194,14 @@ static void t1000_write(uint32_t addr, uint8_t val, void *p)
         egawrites++;
 
         t1000->vram[addr & 0x3fff] = val;
-        cycles -= 4;
+        sub_cycles(4);
 }
 	
 static uint8_t t1000_read(uint32_t addr, void *p)
 {
         t1000_t *t1000 = (t1000_t *)p;
         egareads++;
-	cycles -= 4;
+	sub_cycles(4);
 
         return t1000->vram[addr & 0x3fff];
 }
@@ -221,8 +221,8 @@ static void t1000_recalctimings(t1000_t *t1000)
 	disptime = 651;
 	_dispontime = 640;
         _dispofftime = disptime - _dispontime;
-	t1000->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	t1000->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	t1000->dispontime  = (uint64_t)(_dispontime  * xt_cpu_multi);
+	t1000->dispofftime = (uint64_t)(_dispofftime * xt_cpu_multi);
 }
 
 /* Draw a row of text in 80-column mode */
@@ -493,7 +493,7 @@ static void t1000_poll(void *p)
 
         if (!t1000->linepos)
         {
-                t1000->cga.vidtime += t1000->dispofftime;
+		timer_advance_u64(&t1000->cga.timer, t1000->dispofftime);
                 t1000->cga.cgastat |= 1;
                 t1000->linepos = 1;
                 if (t1000->dispon)
@@ -540,7 +540,7 @@ static void t1000_poll(void *p)
 		{
                 	t1000->cga.cgastat &= ~1;
 		}
-                t1000->cga.vidtime += t1000->dispontime;
+                timer_advance_u64(&t1000->cga.timer, t1000->dispontime);
                 t1000->linepos = 0;
 
 		if (t1000->displine == 200)
@@ -675,6 +675,7 @@ static void *t1000_init(const device_t *info)
 {
         t1000_t *t1000 = malloc(sizeof(t1000_t));
         memset(t1000, 0, sizeof(t1000_t));
+	loadfont(L"roms/machines/t1000/t1000font.bin", 2);
 	cga_init(&t1000->cga);
 	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t1000);
 
@@ -683,7 +684,8 @@ static void *t1000_init(const device_t *info)
 	/* 16k video RAM */
         t1000->vram = malloc(0x4000);
 
-        timer_add(t1000_poll, &t1000->cga.vidtime, TIMER_ALWAYS_ENABLED, t1000);
+        timer_set_callback(&t1000->cga.timer, t1000_poll);
+        timer_set_p(&t1000->cga.timer, t1000);
 
 	/* Occupy memory between 0xB8000 and 0xBFFFF */
         mem_mapping_add(&t1000->mapping, 0xb8000, 0x8000, t1000_read, NULL, NULL, t1000_write, NULL, NULL,  NULL, 0, t1000);

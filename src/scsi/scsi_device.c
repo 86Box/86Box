@@ -47,13 +47,13 @@ scsi_device_target_command(scsi_device_t *dev, uint8_t *cdb)
 }
 
 
-int64_t
+double
 scsi_device_get_callback(scsi_device_t *dev)
 {
     if (dev->sc)
 	return dev->sc->callback;
     else
-	return -1LL;
+	return -1.0;
 }
 
 

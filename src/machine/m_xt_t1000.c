@@ -90,6 +90,7 @@
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../pit.h"
 #include "../nmi.h"
 #include "../mem.h"
@@ -601,7 +602,7 @@ read_ctl(uint16_t addr, void *priv)
 	case 0x0f:	/* Detect EMS board */
 		switch (sys->sys_ctl[0x0e]) {
 			case 0x50:
-				if (mem_size > 512) break;
+				if (mem_size > 512)
 					ret = (0x90 | sys->ems_port_index);
 				break;
 
@@ -847,11 +848,19 @@ t1000_get_device(void)
 }
 
 
-void
+int
 machine_xt_t1000_init(const machine_t *model)
 {
     FILE *f;
     int pg;
+
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/t1000/t1000.rom",
+			   0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	return ret;
 
     memset(&t1000, 0x00, sizeof(t1000));
     t1000.is_t1200 = 0;
@@ -920,6 +929,8 @@ machine_xt_t1000_init(const machine_t *model)
 
     if (gfxcard == VID_INTERNAL)
 		device_add(&t1000_video_device);
+
+    return ret;
 }
 
 
@@ -930,10 +941,18 @@ t1200_get_device(void)
 }
 
 
-void
+int
 machine_xt_t1200_init(const machine_t *model)
 {
     int pg;
+
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/t1200/t1200_019e.ic15.bin",
+			   0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	return ret;
 
     memset(&t1000, 0x00, sizeof(t1000));
     t1000.is_t1200 = 1;
@@ -978,6 +997,8 @@ machine_xt_t1200_init(const machine_t *model)
 
     if (gfxcard == VID_INTERNAL)
 	device_add(&t1200_video_device);
+
+    return ret;
 }
 
 

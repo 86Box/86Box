@@ -47,13 +47,14 @@ typedef struct gus_t
         int16_t buffer[2][SOUNDBUFLEN];
         int pos;
         
-        int64_t samp_timer, samp_latch;
+        pc_timer_t samp_timer; 
+		uint64_t samp_latch;
         
         uint8_t *ram;
         
         int irqnext;
         
-        int64_t timer_1, timer_2;
+        pc_timer_t timer_1, timer_2;
         
         int irq, dma, irq_midi;
         int latch_enable;
@@ -745,7 +746,7 @@ void gus_poll_timer_1(void *p)
 {
         gus_t *gus = (gus_t *)p;
         
-	gus->timer_1 += (TIMER_USEC * 80LL);
+		timer_advance_u64(&gus->timer_1, TIMER_USEC * 80);
         if (gus->t1on)
         {
                 gus->t1++;
@@ -776,7 +777,7 @@ void gus_poll_timer_2(void *p)
 {
         gus_t *gus = (gus_t *)p;
         
-	gus->timer_2 += (TIMER_USEC * 320LL);
+		timer_advance_u64(&gus->timer_2, TIMER_USEC * 320);
         if (gus->t2on)
         {
                 gus->t2++;
@@ -832,7 +833,7 @@ void gus_poll_wave(void *p)
         
         gus_update(gus);
         
-        gus->samp_timer += gus->samp_latch;
+		timer_advance_u64(&gus->samp_timer, gus->samp_latch);
         
         gus->out_l = gus->out_r = 0;
 
@@ -1021,8 +1022,8 @@ void *gus_init(const device_t *info)
 	}
 
 	gus->voices=14;
-
-        gus->samp_timer = gus->samp_latch = (int64_t)(TIMER_USEC * (1000000.0 / 44100.0));
+		
+		gus->samp_latch = (uint64_t)(TIMER_USEC * (1000000.0 / 44100.0));
 
         gus->t1l = gus->t2l = 0xff;
                 
@@ -1030,9 +1031,9 @@ void *gus_init(const device_t *info)
         io_sethandler(0x0340, 0x0010, readgus, NULL, NULL, writegus, NULL, NULL,  gus);
         io_sethandler(0x0746, 0x0001, readgus, NULL, NULL, writegus, NULL, NULL,  gus);        
         io_sethandler(0x0388, 0x0002, readgus, NULL, NULL, writegus, NULL, NULL,  gus);
-        timer_add(gus_poll_wave, &gus->samp_timer, TIMER_ALWAYS_ENABLED,  gus);
-        timer_add(gus_poll_timer_1, &gus->timer_1, TIMER_ALWAYS_ENABLED,  gus);
-        timer_add(gus_poll_timer_2, &gus->timer_2, TIMER_ALWAYS_ENABLED,  gus);
+		timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
+		timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
+		timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
 
         sound_add_handler(gus_get_buffer, gus);
         
@@ -1052,9 +1053,9 @@ void gus_speed_changed(void *p)
         gus_t *gus = (gus_t *)p;
 
         if (gus->voices < 14)
-                gus->samp_latch = (int)(TIMER_USEC * (1000000.0 / 44100.0));
+                gus->samp_latch = (uint64_t)(TIMER_USEC * (1000000.0 / 44100.0));
         else
-                gus->samp_latch = (int)(TIMER_USEC * (1000000.0 / gusfreqs[gus->voices - 14]));
+                gus->samp_latch = (uint64_t)(TIMER_USEC * (1000000.0 / gusfreqs[gus->voices - 14]));
 }
 
 const device_t gus_device =

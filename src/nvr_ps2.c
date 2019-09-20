@@ -44,6 +44,7 @@
 #include "device.h"
 #include "io.h"
 #include "mem.h"
+#include "timer.h"
 #include "nvr.h"
 #include "nvr_ps2.h"
 #include "rom.h"

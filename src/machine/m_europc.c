@@ -119,6 +119,7 @@
 #define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../nmi.h"
 #include "../mem.h"
 #include "../pit.h"
@@ -591,6 +592,7 @@ europc_boot(const device_t *info)
      * with values set by the user.
      */
     b = (sys->nvr.regs[MRTC_CONF_D] & ~0x17);
+    video_reset(gfxcard);
     if (video_is_cga())
 	b |= 0x12;	/* external video, CGA80 */
     else if (video_is_mda())
@@ -730,9 +732,17 @@ const device_t europc_device = {
  * allows it to reset (dev init) and configured by the
  * user.
  */
-void
+int
 machine_europc_init(const machine_t *model)
 {
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/europc/50145",
+			   0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
     machine_common_init(model);
     pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
 
@@ -756,4 +766,6 @@ machine_europc_init(const machine_t *model)
 
     /* Enable and set up the mainboard device. */
     device_add(&europc_device);
+
+    return ret;
 }

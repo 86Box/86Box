@@ -10,13 +10,13 @@
  *		 PC2086, PC3086 use PVGA1A
  *		 MegaPC uses W90C11A
  *
- * Version:	@(#)vid_paradise.c	1.0.8	2018/09/19
+ * Version:	@(#)vid_paradise.c	1.0.9	2019/03/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -25,6 +25,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"

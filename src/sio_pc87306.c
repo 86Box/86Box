@@ -20,6 +20,7 @@
 #include <wchar.h>
 #include "86box.h"
 #include "io.h"
+#include "timer.h"
 #include "device.h"
 #include "lpt.h"
 #include "mem.h"
@@ -88,34 +89,44 @@ lpt1_handler(pc87306_t *dev)
 {
     int temp;
     uint16_t lptba, lpt_port = 0x378;
+    uint8_t lpt_irq = 5;
 
     temp = dev->regs[0x01] & 3;
     lptba = ((uint16_t) dev->regs[0x19]) << 2;
 
     if (dev->regs[0x1b] & 0x10) {
-	if (dev->regs[0x1b] & 0x20)
+	if (dev->regs[0x1b] & 0x20) {
 		lpt_port = 0x278;
-	else
+		lpt_irq = 7;
+	} else {
 		lpt_port = 0x378;
+		lpt_irq = 5;
+	}
     } else {
 	switch (temp) {
 		case 0:
 			lpt_port = 0x378;
+			lpt_irq = (dev->regs[0x02] & 0x08) ? 7 : 5;
 			break;
 		case 1:
 			lpt_port = lptba;
+			lpt_irq = 7;
 			break;
 		case 2:
 			lpt_port = 0x278;
+			lpt_irq = 5;
 			break;
 		case 3:
 			lpt_port = 0x000;
+			lpt_irq = 0xff;
 			break;
 	}
     }
 
     if (lpt_port)
 	lpt1_init(lpt_port);
+
+    lpt1_irq(lpt_irq);
 }
 
 
@@ -365,7 +376,6 @@ pc87306_reset(pc87306_t *dev)
 	1 = Default, 300 rpm @ 500,300,250,1000 kbps for 3.5"
     */
     lpt1_remove();
-    lpt2_remove();
     lpt1_handler(dev);
     serial_remove(dev->uart[0]);
     serial_remove(dev->uart[1]);

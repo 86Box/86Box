@@ -75,13 +75,21 @@ void ad1848_write(uint16_t addr, uint8_t val, void *p)
                                 case 7: freq /= 2560; break;
                         }
                         ad1848->freq = freq;
-                        ad1848->timer_latch = (int64_t)((double)TIMER_USEC * (1000000.0 / (double)ad1848->freq));
+                        ad1848->timer_latch = (uint64_t)((double)TIMER_USEC * (1000000.0 / (double)ad1848->freq));
                         break;
                         
                         case 9:
+			if (!ad1848->enable && (val & 0x41) == 0x01) {
+				if (ad1848->timer_latch)
+					timer_set_delay_u64(&ad1848->timer_count, ad1848->timer_latch);
+				else
+					timer_set_delay_u64(&ad1848->timer_count, TIMER_USEC);
+			}
                         ad1848->enable = ((val & 0x41) == 0x01);
-                        if (!ad1848->enable)
+                        if (!ad1848->enable) {
+				timer_disable(&ad1848->timer_count);
                                 ad1848->out_l = ad1848->out_r = 0;
+			}
                         break;
                                 
                         case 12:
@@ -101,7 +109,7 @@ void ad1848_write(uint16_t addr, uint8_t val, void *p)
 
 void ad1848_speed_changed(ad1848_t *ad1848)
 {
-        ad1848->timer_latch = (int64_t)((double)TIMER_USEC * (1000000.0 / (double)ad1848->freq));
+        ad1848->timer_latch = (uint64_t)((double)TIMER_USEC * (1000000.0 / (double)ad1848->freq));
 }
 
 void ad1848_update(ad1848_t *ad1848)
@@ -118,10 +126,10 @@ static void ad1848_poll(void *p)
         ad1848_t *ad1848 = (ad1848_t *)p;
  
         if (ad1848->timer_latch)
-                ad1848->timer_count += ad1848->timer_latch;
+		timer_advance_u64(&ad1848->timer_count, ad1848->timer_latch);
         else
-                ad1848->timer_count = TIMER_USEC;
-        
+		timer_advance_u64(&ad1848->timer_count, TIMER_USEC * 1000);
+
         ad1848_update(ad1848);
         
         if (ad1848->enable)
@@ -183,8 +191,6 @@ void ad1848_init(ad1848_t *ad1848)
 {
         int c;
         double attenuation;
-
-        ad1848->enable = 0;
                         
         ad1848->status = 0xcc;
         ad1848->index = ad1848->trd = 0;
@@ -219,5 +225,5 @@ void ad1848_init(ad1848_t *ad1848)
                 ad1848_vols[c] = (int)(attenuation * 65536);
         }
         
-        timer_add(ad1848_poll, &ad1848->timer_count, &ad1848->enable, ad1848);
+		timer_add(&ad1848->timer_count, ad1848_poll, ad1848, 0);
 }

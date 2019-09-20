@@ -12,13 +12,13 @@
  *		we will not use that, but, instead, use a new window which
  *		coverrs the entire desktop.
  *
- * Version:	@(#)win_sdl.c  	1.0.5	2019/02/08
+ * Version:	@(#)win_sdl.c  	1.0.6	2019/03/09
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Michael Drüing, <michael@drueing.de>
  *
- *		Copyright 2018 Fred N. van Kempen.
- *		Copyright 2018 Michael Drüing.
+ *		Copyright 2018,2019 Fred N. van Kempen.
+ *		Copyright 2018,2019 Michael Drüing.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -87,9 +87,11 @@ static HWND		sdl_hwnd = NULL;
 static int		sdl_w, sdl_h;
 static int		sdl_fs;
 static int		cur_w, cur_h;
+static volatile int	sdl_enabled = 0;
+static SDL_mutex*	sdl_mutex = NULL;
 
-static png_structp		png_ptr;
-static png_infop		info_ptr;
+static png_structp	png_ptr;
+static png_infop	info_ptr;
 
 
 /* Pointers to the real functions. */
@@ -125,6 +127,11 @@ static int		(*sdl_RenderReadPixels)(SDL_Renderer*   renderer,
 						int             pitch);
 static SDL_bool		(*sdl_SetHint)(const char* name,
 				       const char* value);
+static SDL_mutex*	(*sdl_CreateMutex)(void);
+static void		(*sdl_DestroyMutex)(SDL_mutex* mutex);
+static int		(*sdl_LockMutex)(SDL_mutex* mutex);
+static int		(*sdl_UnlockMutex)(SDL_mutex* mutex);
+
 
 static dllimp_t sdl_imports[] = {
   { "SDL_GetVersion",		&sdl_GetVersion		},
@@ -144,6 +151,10 @@ static dllimp_t sdl_imports[] = {
   { "SDL_GetWindowSize",	&sdl_GetWindowSize	},
   { "SDL_RenderReadPixels",	&sdl_RenderReadPixels	},
   { "SDL_SetHint",		&sdl_SetHint		},
+  { "SDL_CreateMutex",		&sdl_CreateMutex	},
+  { "SDL_DestroyMutex",		&sdl_DestroyMutex	},
+  { "SDL_LockMutex",		&sdl_LockMutex		},
+  { "SDL_UnlockMutex",		&sdl_UnlockMutex	},
   { NULL,			NULL			}
 };
 
@@ -181,33 +192,31 @@ sdl_stretch(int *w, int *h, int *x, int *y)
 		*y = 0;
 		break;
 	case FULLSCR_SCALE_43:
+	case FULLSCR_SCALE_KEEPRATIO:
 		dw = (double) sdl_w;
 		dh = (double) sdl_h;
-		temp = (dh / 3.0) * 4.0;
-		dx = (dw - temp) / 2.0;
-		dw = temp;
-		*w = (int) dw;
-		*h = (int) dh;
-		*x = (int) dx;
-		*y = 0;
-		break;
-	case FULLSCR_SCALE_SQ:
-		dw = (double) sdl_w;
-		dh = (double) sdl_h;
-		temp = ((double) *w);
-		temp2 = ((double) *h);
-		dx = (dw / 2.0) - ((dh * temp) / (temp2 * 2.0));
-		dy = 0.0;
-		if (dx < 0.0) {
-			dx = 0.0;
-			dy = (dw / 2.0) - ((dh * temp2) / (temp * 2.0));
+		hsr = dw / dh;
+		if (video_fullscreen_scale == FULLSCR_SCALE_43)
+			gsr = 4.0 / 3.0;
+		else
+			gsr = ((double) *w) / ((double) *h);
+		if (gsr <= hsr) {
+			temp = dh * gsr;
+			dx = (dw - temp) / 2.0;
+			dw = temp;
+			*w = (int) dw;
+			*h = (int) dh;
+			*x = (int) dx;
+			*y = 0;
+		} else {
+			temp = dw / gsr;
+			dy = (dh - temp) / 2.0;
+			dh = temp;
+			*w = (int) dw;
+			*h = (int) dh;
+			*x = 0;
+			*y = (int) dy;
 		}
-		dw -= (dx * 2.0);
-		dh -= (dy * 2.0);
-		*w = (int) dw;
-		*h = (int) dh;
-		*x = (int) dx;
-		*y = (int) dy;
 		break;
 	case FULLSCR_SCALE_INT:
 		dw = (double) sdl_w;
@@ -227,29 +236,6 @@ sdl_stretch(int *w, int *h, int *x, int *y)
 		*x = (int) dx;
 		*y = (int) dy;
 		break;
-	case FULLSCR_SCALE_KEEPRATIO:
-		dw = (double) sdl_w;
-		dh = (double) sdl_h;
-		hsr = dw / dh;
-		gsr = ((double) *w) / ((double) *h);
-		if (gsr <= hsr) {
-			temp = dh * gsr;
-			dx = (dw - temp) / 2.0;
-			dw = temp;
-			*w = (int) dw;
-			*h = (int) dh;
-			*x = (int) dx;
-			*y = 0;
-		} else {
-			temp = dw / gsr;
-			dy = (dh - temp) / 2.0;
-			dh = temp;
-			*w = (int) dw;
-			*h = (int) dh;
-			*x = 0;
-			*y = (int) dy;
-		}
-		break;
     }
 }
 
@@ -262,7 +248,12 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
     int pitch;
     int yy, ret;
 
-    if (y1 == y2) {
+    if (!sdl_enabled) {
+	video_blit_complete();
+	return;
+    }
+
+    if ((y1 == y2) || (h <= 0)) {
 	video_blit_complete();
 	return;
     }
@@ -271,6 +262,8 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
 	video_blit_complete();
 	return;
     }
+
+    sdl_LockMutex(sdl_mutex);
 
     /*
      * TODO:
@@ -282,9 +275,9 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
     for (yy = y1; yy < y2; yy++) {
        	if ((y + yy) >= 0 && (y + yy) < buffer32->h) {
 		if (video_grayscale || invert_display)
-			video_transform_copy((uint32_t *) &(((uint8_t *)pixeldata)[yy * pitch]), &(((uint32_t *)buffer32->line[y + yy])[x]), w);
+			video_transform_copy((uint32_t *) &(((uint8_t *)pixeldata)[yy * pitch]), &(buffer32->line[y + yy][x]), w);
 		else
-			memcpy((uint32_t *) &(((uint8_t *)pixeldata)[yy * pitch]), &(((uint32_t *)buffer32->line[y + yy])[x]), w * 4);
+			memcpy((uint32_t *) &(((uint8_t *)pixeldata)[yy * pitch]), &(buffer32->line[y + yy][x]), w * 4);
 	}
     }
 
@@ -309,6 +302,8 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
 	sdl_log("SDL: unable to copy texture to renderer (%s)\n", sdl_GetError());
 
     sdl_RenderPresent(sdl_render);
+
+    sdl_UnlockMutex(sdl_mutex);
 }
 
 
@@ -317,6 +312,14 @@ sdl_close(void)
 {
     /* Unregister our renderer! */
     video_setblit(NULL);
+
+    if (sdl_enabled)
+	sdl_enabled = 0;
+
+    if (sdl_mutex != NULL) {
+	sdl_DestroyMutex(sdl_mutex);
+	sdl_mutex = NULL;
+    }
 
     if (sdl_tex != NULL) {
 	sdl_DestroyTexture(sdl_tex);
@@ -340,7 +343,8 @@ sdl_close(void)
 
 	SetFocus(hwndMain);
 
-	DestroyWindow(sdl_hwnd);
+	if (sdl_fs)
+		DestroyWindow(sdl_hwnd);
 	sdl_hwnd = NULL;
     }
 
@@ -371,8 +375,6 @@ sdl_init_common(int fs)
     RECT rect;
 
     sdl_log("SDL: init (fs=%d)\n", fs);
-
-    cgapal_rebuild();
 
     /* Try loading the DLL. */
     sdl_handle = dynld_module(PATH_SDL_DLL, sdl_imports);
@@ -498,6 +500,10 @@ sdl_init_common(int fs)
 
     sdl_fs = fs;
 
+    sdl_enabled = 1;
+
+    sdl_mutex = sdl_CreateMutex();
+
     return(1);
 }
 
@@ -619,13 +625,20 @@ sdl_resize(int x, int y)
     if ((x == cur_w) && (y == cur_h))
 	return;
 
-    sdl_log("sdl_resize(%i, %i)\n", x, y);
     ww = x;
     wh = y;
     sdl_stretch(&ww, &wh, &wx, &wy);
 
-    MoveWindow(sdl_hwnd, wx, wy, ww, wh, TRUE);
+    if (sdl_fs)
+	MoveWindow(sdl_hwnd, wx, wy, ww, wh, TRUE);
 
     cur_w = x;
     cur_h = y;
+}
+
+
+void
+sdl_enable(int enable)
+{
+    sdl_enabled = enable;
 }

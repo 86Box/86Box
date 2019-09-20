@@ -177,9 +177,9 @@ vnc_blit(int x, int y, int y1, int y2, int w, int h)
 
 	if ((y+yy) >= 0 && (y+yy) < VNC_MAX_Y) {
 		if (video_grayscale || invert_display)
-			video_transform_copy(p, &(((uint32_t *)buffer32->line[y+yy])[x]), w);
+			video_transform_copy(p, &(buffer32->line[y+yy][x]), w);
 		else
-			memcpy(p, &(((uint32_t *)buffer32->line[y+yy])[x]), w*4);
+			memcpy(p, &(buffer32->line[y+yy][x]), w*4);
 	}
     }
  

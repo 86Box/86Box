@@ -48,6 +48,7 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
+#include "../timer.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
@@ -146,8 +147,6 @@ et4000k_in(uint16_t addr, void *priv)
 {
     et4000_t *dev = (et4000_t *)priv;
     uint8_t val = 0xff;
-        
-//  if (addr != 0x3da) pclog("IN ET4000 %04X\n", addr);
         
     switch (addr) {
 	case 0x22cb:
@@ -334,8 +333,6 @@ et4000k_out(uint16_t addr, uint8_t val, void *priv)
 {
     et4000_t *dev = (et4000_t *)priv;
 
-//  pclog("ET4000k out %04X %02X\n", addr, val);
-
     switch (addr) {
 	case 0x22cb:
 		dev->port_22cb_val = (dev->port_22cb_val & 0xf0) | (val & 0x0f);
@@ -420,15 +417,15 @@ et4000_recalctimings(svga_t *svga)
 		break;
 
 	case 3:
-		svga->clock = cpuclock / 40000000.0;
+		svga->clock = (cpuclock * (double)(1ull << 32)) / 40000000.0;
 		break;
 
 	case 5:
-		svga->clock = cpuclock / 65000000.0;
+		svga->clock = (cpuclock * (double)(1ull << 32)) / 65000000.0;
 		break;
 
 	default:
-		svga->clock = cpuclock / 36000000.0;
+		svga->clock = (cpuclock * (double)(1ull << 32)) / 36000000.0;
 		break;
     }
         
@@ -477,6 +474,13 @@ et4000_mca_write(int port, uint8_t val, void *priv)
 }
 
 
+static uint8_t
+et4000_mca_feedb(void *priv)
+{
+    return 1;
+}
+
+
 static void *
 et4000_init(const device_t *info)
 {
@@ -510,7 +514,7 @@ et4000_init(const device_t *info)
 			      et4000_in,NULL,NULL, et4000_out,NULL,NULL, dev);
 		dev->pos_regs[0] = 0xf2;	/* ET4000 MCA board ID */
 		dev->pos_regs[1] = 0x80;	
-		mca_add(et4000_mca_read, et4000_mca_write, dev);
+		mca_add(et4000_mca_read, et4000_mca_write, et4000_mca_feedb, dev);
 		break;
 
 	case 2:		/* Korean ET4000 */
@@ -542,8 +546,6 @@ et4000_init(const device_t *info)
 
     rom_init(&dev->bios_rom, (wchar_t *) fn,
 	     0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-
-    /* pclog("VIDEO: %s (vram=%dKB)\n", dev->name, dev->vram_size>>10); */
 
     return(dev);
 }

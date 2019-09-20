@@ -132,7 +132,7 @@ mouse_close(void)
 void
 mouse_reset(void)
 {
-    if ((mouse_curr != NULL) || (mouse_type == MOUSE_TYPE_INTERNAL))
+    if (mouse_curr != NULL)
 	return;		/* Mouse already initialized. */
 
     mouse_log("MOUSE: reset(type=%d, '%s')\n",
@@ -165,7 +165,7 @@ mouse_process(void)
 {
     static int poll_delay = 2;
 
-    if ((mouse_curr == NULL) || (mouse_type == MOUSE_TYPE_INTERNAL))
+    if (mouse_curr == NULL)
 	return;
 
     if (--poll_delay) return;

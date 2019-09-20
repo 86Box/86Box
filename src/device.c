@@ -9,15 +9,15 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.23	2018/11/06
+ * Version:	@(#)device.c	1.0.24	2019/03/014
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@
 
 static device_t		*devices[DEVICE_MAX];
 static void		*device_priv[DEVICE_MAX];
-static device_context_t	device_current;
+static device_context_t	device_current, device_prev;
 
 
 #ifdef ENABLE_DEVICE_LOG
@@ -99,12 +99,40 @@ device_set_context(device_context_t *c, const device_t *d, int inst)
 }
 
 
-void *
-device_add_common(const device_t *d, void *p, int inst)
+static void
+device_context_common(const device_t *d, int inst)
+{
+    memcpy(&device_prev, &device_current, sizeof(device_context_t));
+    device_set_context(&device_current, d, inst);
+}
+
+
+void
+device_context(const device_t *d)
+{
+    device_context_common(d, 0);
+}
+
+
+void
+device_context_inst(const device_t *d, int inst)
+{
+    device_context_common(d, inst);
+}
+
+
+void
+device_context_restore(void)
+{
+    memcpy(&device_current, &device_prev, sizeof(device_context_t));
+}
+
+
+static void *
+device_add_common(const device_t *d, const device_t *cd, void *p, int inst)
 {
     void *priv = NULL;
     int c;
-    device_context_t old;
 
     for (c = 0; c < 256; c++) {
 	if (!inst && (devices[c] == (device_t *) d)) {
@@ -121,8 +149,8 @@ device_add_common(const device_t *d, void *p, int inst)
     devices[c] = (device_t *)d;
 
     if (p == NULL) {
-	memcpy(&old, &device_current, sizeof(device_context_t));
-	device_set_context(&device_current, d, inst);
+	memcpy(&device_prev, &device_current, sizeof(device_context_t));
+	device_set_context(&device_current, cd, inst);
 
 	if (d->init != NULL) {
 		priv = d->init(d);
@@ -139,7 +167,12 @@ device_add_common(const device_t *d, void *p, int inst)
 		}
 	}
 
-	memcpy(&device_current, &old, sizeof(device_context_t));
+	if (d->name)
+		device_log("DEVICE: device '%s' init successful\n", d->name);
+	else
+		device_log("DEVICE: device init successful\n");
+
+	memcpy(&device_current, &device_prev, sizeof(device_context_t));
 	device_priv[c] = priv;
     } else
 	device_priv[c] = p;
@@ -151,7 +184,7 @@ device_add_common(const device_t *d, void *p, int inst)
 void *
 device_add(const device_t *d)
 {
-    return device_add_common(d, NULL, 0);
+    return device_add_common(d, d, NULL, 0);
 }
 
 
@@ -159,14 +192,14 @@ device_add(const device_t *d)
 void
 device_add_ex(const device_t *d, void *priv)
 {
-    device_add_common(d, priv, 0);
+    device_add_common(d, d, priv, 0);
 }
 
 
 void *
 device_add_inst(const device_t *d, int inst)
 {
-    return device_add_common(d, NULL, inst);
+    return device_add_common(d, d, NULL, inst);
 }
 
 
@@ -174,7 +207,39 @@ device_add_inst(const device_t *d, int inst)
 void
 device_add_inst_ex(const device_t *d, void *priv, int inst)
 {
-    device_add_common(d, priv, inst);
+    device_add_common(d, d, priv, inst);
+}
+
+
+/* These four are to add a device with another device's context - will be
+   used to add machines' internal devices. */
+void *
+device_cadd(const device_t *d, const device_t *cd)
+{
+    return device_add_common(d, cd, NULL, 0);
+}
+
+
+/* For devices that do not have an init function (internal video etc.) */
+void
+device_cadd_ex(const device_t *d, const device_t *cd, void *priv)
+{
+    device_add_common(d, cd, priv, 0);
+}
+
+
+void *
+device_cadd_inst(const device_t *d, const device_t *cd, int inst)
+{
+    return device_add_common(d, cd, NULL, inst);
+}
+
+
+/* For devices that do not have an init function (internal video etc.) */
+void
+device_cadd_inst_ex(const device_t *d, const device_t *cd, void *priv, int inst)
+{
+    device_add_common(d, cd, priv, inst);
 }
 
 
@@ -462,7 +527,6 @@ device_is_valid(const device_t *device, int mflags)
 
     if ((device->flags & DEVICE_PCI) && !(mflags & MACHINE_PCI)) return(0);
 
-    if ((device->flags & DEVICE_PS2) && !(mflags & MACHINE_HDC_PS2)) return(0);
     if ((device->flags & DEVICE_AGP) && !(mflags & MACHINE_AGP)) return(0);
 
     return(1);

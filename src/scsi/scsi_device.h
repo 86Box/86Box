@@ -22,9 +22,9 @@
 #define SCSI_LUN_MAX		8		/* always 8 */
 
 #ifdef WALTJE
-#define SCSI_TIME (50 * (1 << TIMER_SHIFT))
+#define SCSI_TIME	50.0
 #else
-#define SCSI_TIME (5 * 100 * (1 << TIMER_SHIFT))
+#define SCSI_TIME	500.0
 #endif
 
 
@@ -100,7 +100,9 @@
 #define GPCMD_MECHANISM_STATUS			0xbd
 #define GPCMD_READ_CD				0xbe
 #define GPCMD_SEND_DVD_STRUCTURE		0xbf	/* This is for writing only, irrelevant to PCem. */
-#define GPCMD_PAUSE_RESUME_ALT			0xc2
+#define GPCMD_CHINON_EJECT			0xc0		/*Vendor Unique*/
+#define GPCMD_PAUSE_RESUME_ALT		0xc2
+#define GPCMD_CHINON_STOP			0xc6 		/*Vendor Unique*/
 #define GPCMD_SCAN_ALT				0xcd	/* Should be equivalent to 0xba */
 #define GPCMD_SET_SPEED_ALT			0xda	/* Should be equivalent to 0xbb */
 
@@ -289,23 +291,6 @@
 #define MODE_SELECT_PHASE_PAGE_HEADER	3
 #define MODE_SELECT_PHASE_PAGE		4
 
-
-/* This is probably no longer needed. */
-#if 0
-typedef struct
-{
-    uint8_t command[20];
-
-    int state, new_state,
-	clear_req, dev_id,
-	command_pos, data_pos,
-	change_state_delay,
-	new_req_delay;
-
-    uint32_t bus_in, bus_out;
-} scsi_bus_t;
-#endif
-
 typedef struct {
     uint8_t pages[0x40][0x40];
 } mode_sense_pages_t;
@@ -338,7 +323,7 @@ typedef struct scsi_common_s {
     uint32_t sector_pos, sector_len,
 	     packet_len, pos;
 
-    int64_t callback;
+    double callback;
 } scsi_common_t;
 
 typedef struct {	
@@ -373,7 +358,7 @@ extern int	mode_select_terminate(int force);
 extern int	mode_select_write(uint8_t val);
 
 extern uint8_t	*scsi_device_sense(scsi_device_t *dev);
-extern int64_t	scsi_device_get_callback(scsi_device_t *dev);
+extern double	scsi_device_get_callback(scsi_device_t *dev);
 extern void	scsi_device_request_sense(scsi_device_t *dev, uint8_t *buffer,
 					  uint8_t alloc_length);
 extern void	scsi_device_reset(scsi_device_t *dev);

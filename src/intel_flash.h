@@ -8,15 +8,17 @@
  *
  *		Implementation of the Intel 1 Mbit 8-bit flash devices.
  *
- * Version:	@(#)intel_flash.h	1.0.1	2018/03/14
+ * Version:	@(#)intel_flash.h	1.0.2	2019/06/25
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016-2017 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 
 extern const device_t intel_flash_bxt_ami_device;
-extern const device_t intel_flash_bxb_ami_device;
+#if defined(DEV_BRANCH) && defined(USE_TC430HX)
+extern const device_t intel_flash_bxtw_ami_device;
+#endif
 extern const device_t intel_flash_bxt_device;
 extern const device_t intel_flash_bxb_device;

@@ -17,6 +17,9 @@
  *		Copyright 2016-2018 Miran Grca.
  */
 
+const device_t s3_orchid_86c911_isa_device;
+const device_t s3_metheus_premier_86c928_isa_device;
+const device_t s3_metheus_premier_86c928_vlb_device;
 const device_t s3_v7mirage_86c801_isa_device;
 const device_t s3_phoenix_86c805_vlb_device;
 const device_t s3_bahamas64_vlb_device;

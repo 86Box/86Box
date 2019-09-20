@@ -10,7 +10,7 @@
 #		settings, so we can avoid changing the main one for all of
 #		our local setups.
 #
-# Version:	@(#)Makefile.local	1.0.20	2018/11/18
+# Version:	@(#)Makefile.local	1.0.21	2019/03/03
 #
 # Author:	Fred N. van Kempen, <decwiz@yahoo.com>
 #
@@ -70,8 +70,8 @@ STUFF	:=
 # -DENABLE_HDC_LOG=N sets logging level at N.
 # -DENABLE_HDD_IMAGE_LOG=N sets logging level at N.
 # -DENABLE_IDE_LOG=N sets logging level at N.
-# -DENABLE_MFM_AT_LOG=N sets logging level at N.
-# -DENABLE_MFM_XT_LOG=N sets logging level at N.
+# -DENABLE_ST506_AT_LOG=N sets logging level at N.
+# -DENABLE_ST506_XT_LOG=N sets logging level at N.
 # -DENABLE_XTA_LOG=N sets logging level at N.
 # -DENABLE_ZIP_LOG=N sets logging level at N.
 # floppy/ logging:
@@ -123,6 +123,10 @@ STUFF	:=
 # -DENABLE_ATI28800_LOG=N sets logging level at N.
 # -DENABLE_MACH64_LOG=N sets logging level at N.
 # -DENABLE_ET4000W32_LOG=N sets logging level at N.
+# -DENABLE_HT216_LOG=N sets logging level at N.
+# -DENABLE_ICD2061_LOG=N sets logging level at N.
+# -DENABLE_IM1024_LOG=N sets logging level at N.
+# -DENABLE_PGC_LOG=N sets logging level at N.
 # -DENABLE_S3_VIRGE_LOG=N sets logging level at N.
 # -DENABLE_VID_TABLE_LOG=N sets logging level at N.
 # -DENABLE_VOODOO_LOG=N sets logging level at N.

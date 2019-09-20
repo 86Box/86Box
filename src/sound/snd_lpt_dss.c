@@ -14,12 +14,15 @@
 
 typedef struct dss_t
 {
+	void *lpt;
+
         uint8_t fifo[16];
         int read_idx, write_idx;
         
-        uint8_t dac_val;
+        uint8_t dac_val,
+		status;
         
-        int64_t time;
+        pc_timer_t timer;
         
         int16_t buffer[SOUNDBUFLEN];
         int pos;
@@ -32,16 +35,29 @@ static void dss_update(dss_t *dss)
 }
 
 
+static void dss_update_status(dss_t *dss)
+{
+	uint8_t old = dss->status;
+
+	dss->status &= ~0x40;
+
+        if ((dss->write_idx - dss->read_idx) >= 16)
+                dss->status |= 0x40;
+
+	if ((old & 0x40) && !(dss->status & 0x40))
+		lpt_irq(dss->lpt, 1);
+}
+
+
 static void dss_write_data(uint8_t val, void *p)
 {
         dss_t *dss = (dss_t *)p;
-
-        timer_clock();
 
         if ((dss->write_idx - dss->read_idx) < 16)
         {
                 dss->fifo[dss->write_idx & 15] = val;
                 dss->write_idx++;
+		dss_update_status(dss);
         }
 }
 
@@ -53,9 +69,7 @@ static uint8_t dss_read_status(void *p)
 {
         dss_t *dss = (dss_t *)p;
 
-        if ((dss->write_idx - dss->read_idx) >= 16)
-                return 0x40;
-        return 0;
+	return dss->status;
 }
 
 
@@ -63,12 +77,15 @@ static void dss_get_buffer(int32_t *buffer, int len, void *p)
 {
         dss_t *dss = (dss_t *)p;
         int c;
+	int16_t val;
+	float fval;
         
         dss_update(dss);
         
         for (c = 0; c < len*2; c += 2)
         {
-                int16_t val = (int16_t)dss_iir((float)dss->buffer[c >> 1]);
+		fval = dss_iir((float)dss->buffer[c >> 1]);
+                val = (float) fval;
                 
                 buffer[c] += val;
                 buffer[c+1] += val;
@@ -87,19 +104,22 @@ static void dss_callback(void *p)
         {
                 dss->dac_val = dss->fifo[dss->read_idx & 15];
                 dss->read_idx++;
+		dss_update_status(dss);
         }
-        
-        dss->time += (int64_t) (TIMER_USEC * (1000000.0 / 7000.0));
+
+	timer_advance_u64(&dss->timer, (TIMER_USEC * (1000000.0 / 7000.0)));
 }
 
-static void *dss_init()
+static void *dss_init(void *lpt)
 {
         dss_t *dss = malloc(sizeof(dss_t));
         memset(dss, 0, sizeof(dss_t));
 
+	dss->lpt = lpt;
+
         sound_add_handler(dss_get_buffer, dss);
-        timer_add(dss_callback, &dss->time, TIMER_ALWAYS_ENABLED, dss);
-                
+	timer_add(&dss->timer, dss_callback, dss, 1);
+
         return dss;
 }
 static void dss_close(void *p)

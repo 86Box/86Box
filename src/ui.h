@@ -58,6 +58,7 @@ extern void	ui_sb_update_panes(void);
 extern void	ui_sb_update_tip(int meaning);
 extern void	ui_sb_check_menu_item(int tag, int id, int chk);
 extern void	ui_sb_enable_menu_item(int tag, int id, int val);
+extern void	ui_sb_timer_callback(int pane);
 extern void	ui_sb_update_icon(int tag, int val);
 extern void	ui_sb_update_icon_state(int tag, int active);
 extern void	ui_sb_set_text_w(wchar_t *wstr);

@@ -29,6 +29,7 @@
 #define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../dma.h"
 #include "../pic.h"
 #include "../mca.h"
@@ -36,7 +37,6 @@
 #include "../rom.h"
 #include "../device.h"
 #include "../nvr.h"
-#include "../timer.h"
 #include "../plat.h"
 #include "scsi.h"
 #include "scsi_device.h"
@@ -46,7 +46,9 @@
 #define LCS6821N_ROM	L"roms/scsi/ncr5380/Longshine LCS-6821N - BIOS version 1.04.bin"
 #define RT1000B_ROM	L"roms/scsi/ncr5380/Rancho_RT1000_RTBios_version_8.10R.bin"
 #define T130B_ROM	L"roms/scsi/ncr5380/trantor_t130b_bios_v2.14.bin"
+#if defined(DEV_BRANCH) && defined(USE_SUMO)
 #define SCSIAT_ROM	L"roms/scsi/ncr5380/sumo_scsiat_bios_v6.3.bin"
+#endif
 
 
 #define NCR_CURDATA	0		/* current SCSI data (read only) */
@@ -146,10 +148,9 @@ typedef struct {
 
     int		dma_enabled;
 
-    int64_t	timer_period;
-    int64_t	timer_enabled;
-
+    pc_timer_t	timer;
     double	period;
+    int		timer_enabled;
 
     int		ncr_busy;	
 } ncr5380_t;
@@ -167,6 +168,7 @@ typedef struct {
 #define DMA_INITIATOR_RECEIVE 2
 
 static int cmd_len[8] = {6, 10, 10, 6, 16, 12, 6, 6};
+
 
 #ifdef ENABLE_NCR5380_LOG
 int ncr5380_do_log = ENABLE_NCR5380_LOG;
@@ -210,8 +212,8 @@ get_dev_id(uint8_t data)
 static void
 ncr_reset(ncr_t *ncr)
 {
-	memset(ncr, 0x00, sizeof(ncr_t));
-	ncr_log("NCR reset\n");
+    memset(ncr, 0x00, sizeof(ncr_t));
+    ncr_log("NCR reset\n");
 }
 
 
@@ -770,6 +772,8 @@ t130b_out(uint16_t port, uint8_t val, void *priv)
     }
 }
 
+
+#if defined(DEV_BRANCH) && defined(USE_SUMO)
 static uint8_t 
 scsiat_in(uint16_t port, void *priv)
 {
@@ -869,6 +873,7 @@ scsiat_out(uint16_t port, uint8_t val, void *priv)
 		break;
     }
 }
+#endif
 
 
 static void
@@ -878,7 +883,7 @@ ncr_callback(void *priv)
     ncr_t *ncr = &ncr_dev->ncr;
     scsi_device_t *dev = &scsi_devices[ncr->target_id];
     int req_len, c = 0;
-    int64_t p;
+    double p;
     uint8_t temp, data;
 
     ncr_log("DMA mode=%d\n", ncr->dma_mode);
@@ -886,9 +891,9 @@ ncr_callback(void *priv)
     ncr_dev->timer_enabled = 0;
 
     if (((ncr->state == STATE_DATAIN) || (ncr->state == STATE_DATAOUT)) && (ncr->dma_mode != DMA_IDLE))
-	ncr_dev->timer_period = (int64_t) ncr_dev->period;
+	timer_on(&ncr_dev->timer, ncr_dev->period, 0);
     else
-	ncr_dev->timer_period += 40LL * TIMER_USEC;
+	timer_on(&ncr_dev->timer, 40.0, 0);
 
     if (ncr->dma_mode == DMA_IDLE) {	
 	ncr->bus_host = get_bus_host(ncr);	
@@ -965,8 +970,8 @@ ncr_callback(void *priv)
 				if (dev->buffer_length && (dev->phase == SCSI_PHASE_DATA_IN || dev->phase == SCSI_PHASE_DATA_OUT)) {
 					p = scsi_device_get_callback(dev);
 					req_len = MIN(64, dev->buffer_length);
-					if (p <= 0LL)
-						ncr_dev->period = 0.2 * ((double) TIMER_USEC) * ((double) req_len);
+					if (p <= 0.0)
+						ncr_dev->period = 0.2 * ((double) req_len);
 					else
 						ncr_dev->period = (p / ((double) dev->buffer_length)) * ((double) req_len);
 				}
@@ -1282,7 +1287,7 @@ ncr_init(const device_t *info)
 
     switch(ncr_dev->type) {
 	case 0:		/* Longshine LCS6821N */
-		ncr_dev->rom_addr = 0xDC000;
+		ncr_dev->rom_addr = device_get_config_hex20("bios_addr");
 		rom_init(&ncr_dev->bios_rom, LCS6821N_ROM,
 			 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 			 
@@ -1295,7 +1300,7 @@ ncr_init(const device_t *info)
 		break;
 
 	case 1:		/* Rancho RT1000B */
-		ncr_dev->rom_addr = 0xDC000;
+		ncr_dev->rom_addr = device_get_config_hex20("bios_addr");
 		rom_init(&ncr_dev->bios_rom, RT1000B_ROM,
 			 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
@@ -1308,12 +1313,14 @@ ncr_init(const device_t *info)
 		break;
 
 	case 2:		/* Trantor T130B */
-		ncr_dev->rom_addr = 0xDC000;
+		ncr_dev->rom_addr = device_get_config_hex20("bios_addr");
 		ncr_dev->base = device_get_config_hex16("base");
 		ncr_dev->irq = device_get_config_int("irq");
 		rom_init(&ncr_dev->bios_rom, T130B_ROM,
 			 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
+		mem_mapping_disable(&ncr_dev->bios_rom.mapping);	 
+			 
 		mem_mapping_add(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000, 
 				t130b_read, NULL, NULL,
 				t130b_write, NULL, NULL,
@@ -1323,6 +1330,7 @@ ncr_init(const device_t *info)
 			      t130b_in,NULL,NULL, t130b_out,NULL,NULL, ncr_dev);
 		break;
 
+#if defined(DEV_BRANCH) && defined(USE_SUMO)
 	case 3:		/* Sumo SCSI-AT */
 		ncr_dev->base = device_get_config_hex16("base");
 		ncr_dev->irq = device_get_config_int("irq");
@@ -1340,6 +1348,7 @@ ncr_init(const device_t *info)
 		io_sethandler(ncr_dev->base, 16,
 			      scsiat_in,NULL,NULL, scsiat_out,NULL,NULL, ncr_dev);
 		break;
+#endif
     }
 
     sprintf(temp, "%s: BIOS=%05X", ncr_dev->name, ncr_dev->rom_addr);
@@ -1349,13 +1358,14 @@ ncr_init(const device_t *info)
 	sprintf(&temp[strlen(temp)], " IRQ=%d", ncr_dev->irq);
     ncr_log("%s\n", temp);
 
-	ncr_reset(&ncr_dev->ncr);
+    ncr_reset(&ncr_dev->ncr);
     ncr_dev->status_ctrl = STATUS_BUFFER_NOT_READY;
-	ncr_dev->buffer_host_pos = 128;
-	
-	ncr_dev->timer_period = 10LL * TIMER_USEC;
-    timer_add(ncr_callback, &ncr_dev->timer_period, TIMER_ALWAYS_ENABLED, ncr_dev);
-	
+    ncr_dev->buffer_host_pos = 128;
+
+    timer_add(&ncr_dev->timer, ncr_callback, ncr_dev, 1);
+    ncr_dev->timer.period = 10.0;
+    timer_set_delay_u64(&ncr_dev->timer, (uint64_t) (ncr_dev->timer.period * ((double) TIMER_USEC)));
+
     return(ncr_dev);
 }
 
@@ -1365,15 +1375,14 @@ ncr_close(void *priv)
 {
     ncr5380_t *ncr_dev = (ncr5380_t *)priv;
 
-	if (ncr_dev)
-	{
-		/* Tell the timer to terminate. */
-		ncr_dev->timer_period = 0LL;
-		ncr_dev->timer_enabled = 0LL;
-		
-		free(ncr_dev);
-		ncr_dev = NULL;
-	}
+    if (ncr_dev) {
+	/* Tell the timer to terminate. */
+	timer_stop(&ncr_dev->timer);
+	ncr_dev->timer_enabled = 0;
+
+	free(ncr_dev);
+	ncr_dev = NULL;
+    }
 }
 
 
@@ -1398,13 +1407,68 @@ t130b_available(void)
 }
 
 
+#if defined(DEV_BRANCH) && defined(USE_SUMO)
 static int
 scsiat_available(void)
 {
     return(rom_present(SCSIAT_ROM));
 }
+#endif
+
+
+static const device_config_t ncr5380_mmio_config[] = {
+        {
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000,
+                {
+                        {
+                                "Disabled", 0
+                        },
+                        {
+                                "C800H", 0xc8000
+                        },
+                        {
+                                "CC00H", 0xcc000
+                        },
+                        {
+                                "D800H", 0xd8000
+                        },
+                        {
+                                "DC00H", 0xdc000
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+	{
+		"", "", -1
+	}
+};
 
 static const device_config_t t130b_config[] = {
+        {
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000,
+                {
+                        {
+                                "Disabled", 0
+                        },
+                        {
+                                "C800H", 0xc8000
+                        },
+                        {
+                                "CC00H", 0xcc000
+                        },
+                        {
+                                "D800H", 0xd8000
+                        },
+                        {
+                                "DC00H", 0xdc000
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
         {
 		"base", "Address", CONFIG_HEX16, "", 0x0350,
                 {
@@ -1447,6 +1511,7 @@ static const device_config_t t130b_config[] = {
 	}
 };
 
+#if defined(DEV_BRANCH) && defined(USE_SUMO)
 static const device_config_t scsiat_config[] = {
         {
 		"base", "Address", CONFIG_HEX16, "", 0x0310,
@@ -1542,6 +1607,7 @@ static const device_config_t scsiat_config[] = {
 		"", "", -1
 	}
 };
+#endif
 
 
 const device_t scsi_lcs6821n_device =
@@ -1552,7 +1618,7 @@ const device_t scsi_lcs6821n_device =
     ncr_init, ncr_close, NULL,
     lcs6821n_available,
     NULL, NULL,
-    NULL
+    ncr5380_mmio_config
 };
 
 const device_t scsi_rt1000b_device =
@@ -1563,7 +1629,7 @@ const device_t scsi_rt1000b_device =
     ncr_init, ncr_close, NULL,
     rt1000b_available,
     NULL, NULL,
-    NULL
+    ncr5380_mmio_config
 };
 
 const device_t scsi_t130b_device =
@@ -1577,6 +1643,7 @@ const device_t scsi_t130b_device =
     t130b_config
 };
 
+#if defined(DEV_BRANCH) && defined(USE_SUMO)
 const device_t scsi_scsiat_device =
 {
     "Sumo SCSI-AT",
@@ -1587,3 +1654,4 @@ const device_t scsi_scsiat_device =
     NULL, NULL,
     scsiat_config
 };
+#endif

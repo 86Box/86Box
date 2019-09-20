@@ -23,8 +23,16 @@ typedef struct {
 } dllimp_t;
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void	*dynld_module(const char *, dllimp_t *);
 extern void	dynld_close(void *);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif	/*PLAT_DYNLD_H*/

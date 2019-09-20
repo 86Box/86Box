@@ -8,15 +8,15 @@
  *
  *		CD-ROM image support.
  *
- * Version:	@(#)cdrom_image.cc	1.0.9	2019/02/01
+ * Version:	@(#)cdrom_image.cc	1.0.10	2019/03/06
  *
  * Author:	RichardG867,
  *		Miran Grca, <mgrca8@gmail.com>
  *		bit,
  *
- *		Copyright 2015-2018 Richardg867.
- *		Copyright 2015-2018 Miran Grca.
- *		Copyright 2017,2018 bit.
+ *		Copyright 2015-2019 Richardg867.
+ *		Copyright 2015-2019 Miran Grca.
+ *		Copyright 2017-2019 bit.
  */
 #define __USE_LARGEFILE64
 #define _LARGEFILE_SOURCE
@@ -27,6 +27,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
+#include "../86box.h"
 #include "../config.h"
 #include "../plat.h"
 #include "../scsi/scsi_device.h"
@@ -108,7 +110,7 @@ image_get_subchannel(cdrom_t *dev, uint32_t lba, subchannel_t *subc)
 
 
 static int
-image_get_last_block(cdrom_t *dev)
+image_get_capacity(cdrom_t *dev)
 {
     CDROM_Interface_Image *img = (CDROM_Interface_Image *)dev->image;
     int first_track, last_track;
@@ -250,7 +252,6 @@ image_open_abort(cdrom_t *dev)
 int
 cdrom_image_open(cdrom_t *dev, const wchar_t *fn)
 {
-    char temp[1024];
     CDROM_Interface_Image *img;
 
     wcscpy(dev->image_path, fn);
@@ -265,10 +266,8 @@ cdrom_image_open(cdrom_t *dev, const wchar_t *fn)
 
     dev->image = img;
 
-    /* Convert filename and open the image. */
-    memset(temp, '\0', sizeof(temp));
-    wcstombs(temp, fn, sizeof(temp));
-    if (!img->SetDevice(temp, false))
+    /* Open the image. */
+    if (! img->SetDevice(fn, false))
 	return image_open_abort(dev);
 
     /* All good, reset state. */
@@ -278,7 +277,8 @@ cdrom_image_open(cdrom_t *dev, const wchar_t *fn)
 	dev->cd_status = CD_STATUS_STOPPED;
     dev->seek_pos = 0;
     dev->cd_buflen = 0;
-    dev->cdrom_capacity = image_get_last_block(dev) + 1;
+    dev->cdrom_capacity = image_get_capacity(dev);
+    cdrom_image_log("CD-ROM capacity: %i sectors (%i bytes)\n", dev->cdrom_capacity, dev->cdrom_capacity << 11);
 
     /* Attach this handler to the drive. */
     dev->ops = &cdrom_image_ops;

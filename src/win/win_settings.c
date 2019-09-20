@@ -8,13 +8,13 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.54	2019/02/11
+ * Version:	@(#)win_settings.c	1.0.55	2019/03/03
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2018 David Hrdlička.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2018,2019 David Hrdlička.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -36,6 +36,7 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
+#include "../timer.h"
 #include "../nvr.h"
 #include "../machine/machine.h"
 #include "../game/gameport.h"
@@ -92,8 +93,8 @@ static int temp_net_type, temp_net_card;
 static char temp_pcap_dev[522];
 
 /* Ports category */
-static char temp_lpt_device_names[3][16];
-static int temp_serial[2], temp_lpt;
+static int temp_lpt_devices[3];
+static int temp_serial[2], temp_lpt[3];
 
 /* Other peripherals category */
 static int temp_hdc, temp_scsi_card, temp_ide_ter, temp_ide_qua;
@@ -120,7 +121,7 @@ static HWND hwndParentDialog, hwndChildDialog;
 static uint32_t displayed_category = 0;
 
 extern int is486;
-static int romstolist[ROM_MAX], listtomachine[ROM_MAX], romstomachine[ROM_MAX], machinetolist[ROM_MAX];
+static int listtomachine[256], machinetolist[256];
 static int settings_device_to_list[2][20], settings_list_to_device[2][20];
 static int settings_midi_to_list[20], settings_list_to_midi[20];
 
@@ -235,18 +236,12 @@ win_settings_init(void)
     temp_net_card = network_card;
 
     /* Ports category */
-#ifdef ENABLE_SETTINGS_LOG
-    assert(sizeof(temp_lpt_device_names) == sizeof(lpt_device_names));
-#endif
     for (i = 0; i < 3; i++) {
-#ifdef ENABLE_SETTINGS_LOG
-	assert(sizeof(temp_lpt_device_names[i]) == sizeof(lpt_device_names[i]));
-#endif
-	memcpy(temp_lpt_device_names[i], lpt_device_names[i], sizeof(lpt_device_names[i]));
+	temp_lpt_devices[i] = lpt_ports[i].device;
+	temp_lpt[i] = lpt_ports[i].enabled;
     }
-    temp_serial[0] = serial_enabled[0];
-    temp_serial[1] = serial_enabled[1];
-    temp_lpt = lpt_enabled;
+    for (i = 0; i < 2; i++)
+	temp_serial[i] = serial_enabled[i];
 
     /* Other peripherals category */
     temp_scsi_card = scsi_card_current;
@@ -291,7 +286,7 @@ win_settings_init(void)
     for (i = 0; i < CDROM_NUM; i++) {
 	if (cdrom[i].bus_type == CDROM_BUS_ATAPI)
 		ide_tracking |= (2 << (cdrom[i].ide_channel << 3));
-	else if (cdrom[i].bus_type == CDROM_BUS_SCSI)
+	else if (cdrom[i].bus_type == CDROM_BUS_SCSI || cdrom[i].bus_type == CDROM_BUS_SCSI_CHINON)
 		scsi_tracking[cdrom[i].scsi_device_id >> 3] |= (1 << ((cdrom[i].scsi_device_id & 0x07) << 3));
     }
     memcpy(temp_zip_drives, zip_drives, ZIP_NUM * sizeof(zip_drive_t));
@@ -349,11 +344,12 @@ win_settings_changed(void)
     i = i || (network_card != temp_net_card);
 
     /* Ports category */
-    for (j = 0; j < 3; j++)
-	i = i || strncmp(temp_lpt_device_names[j], lpt_device_names[j], sizeof(temp_lpt_device_names[j]) - 1);
-    i = i || (temp_serial[0] != serial_enabled[0]);
-    i = i || (temp_serial[1] != serial_enabled[1]);
-    i = i || (temp_lpt != lpt_enabled);
+    for (j = 0; j < 3; j++) {
+	i = i || (temp_lpt_devices[j] != lpt_ports[j].device);
+	i = i || (temp_lpt[j] != lpt_ports[j].enabled);
+    }
+    for (j = 0; j < 2; j++)
+	i = i || (temp_serial[j] != serial_enabled[j]);
 
     /* Peripherals category */
     i = i || (scsi_card_current != temp_scsi_card);
@@ -417,7 +413,6 @@ win_settings_save(void)
 
     /* Machine category */
     machine = temp_machine;
-    romset = machine_getromset();
     cpu_manufacturer = temp_cpu_m;
     cpu_waitstates = temp_wait_states;
     cpu = temp_cpu;
@@ -453,11 +448,12 @@ win_settings_save(void)
     network_card = temp_net_card;
 
     /* Ports category */
-    for (i = 0; i < 3; i++)
-	memcpy(lpt_device_names[i], temp_lpt_device_names[i], sizeof(temp_lpt_device_names[i]));
-    serial_enabled[0] = temp_serial[0];
-    serial_enabled[1] = temp_serial[1];
-    lpt_enabled = temp_lpt;
+    for (i = 0; i < 3; i++) {
+	lpt_ports[i].device = temp_lpt_devices[i];
+	lpt_ports[i].enabled = temp_lpt[i];
+    }
+    for (i = 0; i < 2; i++)
+	serial_enabled[i] = temp_serial[i];
 
     /* Peripherals category */
     scsi_card_current = temp_scsi_card;
@@ -512,15 +508,13 @@ static void
 win_settings_machine_recalc_cpu(HWND hdlg)
 {
     HWND h;
-    int cpu_type, temp_romset;
+    int cpu_type;
 #ifdef USE_DYNAREC
     int cpu_flags;
 #endif
 
-    temp_romset = machine_getromset_ex(temp_machine);
-
     h = GetDlgItem(hdlg, IDC_COMBO_WS);
-    cpu_type = machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
+    cpu_type = machines[temp_machine].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
     if ((cpu_type >= CPU_286) && (cpu_type <= CPU_386DX))
 	EnableWindow(h, TRUE);
     else
@@ -528,7 +522,7 @@ win_settings_machine_recalc_cpu(HWND hdlg)
 
 #ifdef USE_DYNAREC
     h=GetDlgItem(hdlg, IDC_CHECK_DYNAREC);
-    cpu_flags = machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[temp_cpu].cpu_flags;
+    cpu_flags = machines[temp_machine].cpu[temp_cpu_m].cpus[temp_cpu].cpu_flags;
     if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) && (cpu_flags & CPU_REQUIRES_DYNAREC))
 	fatal("Attempting to select a CPU that requires the recompiler and does not support it at the same time\n");
     if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) || (cpu_flags & CPU_REQUIRES_DYNAREC)) {
@@ -543,8 +537,9 @@ win_settings_machine_recalc_cpu(HWND hdlg)
 #endif
 
     h = GetDlgItem(hdlg, IDC_CHECK_FPU);
-    cpu_type = machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
-    if ((cpu_type < CPU_i486DX) && (cpu_type >= CPU_286))
+    cpu_type = machines[temp_machine].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
+    // if ((cpu_type < CPU_i486DX) && (cpu_type >= CPU_286))
+    if (cpu_type < CPU_i486DX)
 	EnableWindow(h, TRUE);
     else if (cpu_type < CPU_286) {
 	temp_fpu = 0;
@@ -561,18 +556,17 @@ static void
 win_settings_machine_recalc_cpu_m(HWND hdlg)
 {
     HWND h;
-    int c, temp_romset;
+    int c;
     LPTSTR lptsTemp;
     char *stransi;
 
-    temp_romset = machine_getromset_ex(temp_machine);
     lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_COMBO_CPU);
     SendMessage(h, CB_RESETCONTENT, 0, 0);
     c = 0;
-    while (machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[c].cpu_type != -1) {
-	stransi = (char *) machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[c].name;
+    while (machines[temp_machine].cpu[temp_cpu_m].cpus[c].cpu_type != -1) {
+	stransi = (char *) machines[temp_machine].cpu[temp_cpu_m].cpus[c].name;
 	mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 	SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 	c++;
@@ -592,13 +586,12 @@ static void
 win_settings_machine_recalc_machine(HWND hdlg)
 {
     HWND h;
-    int c, temp_romset;
+    int c;
     LPTSTR lptsTemp;
     const char *stransi;
     UDACCEL accel;
     device_t *d;
 
-    temp_romset = machine_getromset_ex(temp_machine);
     lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_CONFIGURE_MACHINE);
@@ -611,8 +604,8 @@ win_settings_machine_recalc_machine(HWND hdlg)
     h = GetDlgItem(hdlg, IDC_COMBO_CPU_TYPE);
     SendMessage(h, CB_RESETCONTENT, 0, 0);
     c = 0;
-    while (machines[romstomachine[temp_romset]].cpu[c].cpus != NULL && c < 4) {
-	stransi = machines[romstomachine[temp_romset]].cpu[c].name;
+    while (machines[temp_machine].cpu[c].cpus != NULL && c < 4) {
+	stransi = machines[temp_machine].cpu[c].name;
 	mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 	SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 	c++;
@@ -626,11 +619,11 @@ win_settings_machine_recalc_machine(HWND hdlg)
     win_settings_machine_recalc_cpu_m(hdlg);
 
     h = GetDlgItem(hdlg, IDC_MEMSPIN);
-    SendMessage(h, UDM_SETRANGE, 0, (machines[romstomachine[temp_romset]].min_ram << 16) | machines[romstomachine[temp_romset]].max_ram);
+    SendMessage(h, UDM_SETRANGE, 0, (machines[temp_machine].min_ram << 16) | machines[temp_machine].max_ram);
     accel.nSec = 0;
-    accel.nInc = machines[romstomachine[temp_romset]].ram_granularity;
+    accel.nInc = machines[temp_machine].ram_granularity;
     SendMessage(h, UDM_SETACCEL, 1, (LPARAM)&accel);
-    if (!(machines[romstomachine[temp_romset]].flags & MACHINE_AT) || (machines[romstomachine[temp_romset]].ram_granularity >= 128)) {
+    if (!(machines[temp_machine].flags & MACHINE_AT) || (machines[temp_machine].ram_granularity >= 128)) {
 	SendMessage(h, UDM_SETPOS, 0, temp_mem_size);
 	h = GetDlgItem(hdlg, IDC_TEXT_MB);
 	SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2094));
@@ -661,18 +654,14 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
 		h = GetDlgItem(hdlg, IDC_COMBO_MACHINE);
-		for (c = 0; c < ROM_MAX; c++)
-			romstolist[c] = 0;
 		c = d = 0;
-		while (machines[c].id != -1) {
-			if (romspresent[machines[c].id]) {
+		while (machine_get_internal_name_ex(c) != NULL) {
+			if (machine_available(c)) {
 				stransi = (char *)machines[c].name;
 				mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 				machinetolist[c] = d;
 				listtomachine[d] = c;
-				romstolist[machines[c].id] = d;
-				romstomachine[machines[c].id] = c;
 				d++;
 			}
 			c++;
@@ -848,7 +837,7 @@ recalc_vid_list(HWND hdlg)
     }
     if (!found_card)
 	SendMessage(h, CB_SETCURSEL, 0, 0);
-    EnableWindow(h, machines[temp_machine].fixed_gfxcard ? FALSE : TRUE);
+    EnableWindow(h, (machines[temp_machine].flags & MACHINE_VIDEO_FIXED) ? FALSE : TRUE);
 
     h = GetDlgItem(hdlg, IDC_CHECK_VOODOO);
     EnableWindow(h, (machines[temp_machine].flags & MACHINE_PCI) ? TRUE : FALSE);
@@ -1343,7 +1332,7 @@ static BOOL CALLBACK
 win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h;
-    int c, d, i;
+    int c, i;
     char *s;
     LPTSTR lptsTemp;
 
@@ -1353,7 +1342,7 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 		for (i = 0; i < 3; i++) {
 			h = GetDlgItem(hdlg, IDC_COMBO_LPT1 + i);
-			c = d = 0;
+			c = 0;
 			while (1) {
 				s = lpt_device_get_name(c);
 
@@ -1367,22 +1356,18 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 				}
 
-				if (!strcmp(temp_lpt_device_names[i], lpt_device_get_internal_name(c)))
-					d = c;
-
 				c++;
 			}
-			SendMessage(h, CB_SETCURSEL, d, 0);
+			SendMessage(h, CB_SETCURSEL, temp_lpt_devices[i], 0);
+
+			h=GetDlgItem(hdlg, IDC_CHECK_PARALLEL1 + i);
+			SendMessage(h, BM_SETCHECK, temp_lpt[i], 0);
 		}
 
-		h=GetDlgItem(hdlg, IDC_CHECK_SERIAL1);
-		SendMessage(h, BM_SETCHECK, temp_serial[0], 0);
-
-		h=GetDlgItem(hdlg, IDC_CHECK_SERIAL2);
-		SendMessage(h, BM_SETCHECK, temp_serial[1], 0);
-
-		h=GetDlgItem(hdlg, IDC_CHECK_PARALLEL);
-		SendMessage(h, BM_SETCHECK, temp_lpt, 0);
+		for (i = 0; i < 2; i++) {
+			h=GetDlgItem(hdlg, IDC_CHECK_SERIAL1 + i);
+			SendMessage(h, BM_SETCHECK, temp_serial[i], 0);
+		}
 
 		free(lptsTemp);
 
@@ -1391,18 +1376,16 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_SAVESETTINGS:
 		for (i = 0; i < 3; i++) {
 			h = GetDlgItem(hdlg, IDC_COMBO_LPT1 + i);
-			c = SendMessage(h, CB_GETCURSEL, 0, 0);
-			strcpy(temp_lpt_device_names[i], lpt_device_get_internal_name(c));
+			temp_lpt_devices[i] = SendMessage(h, CB_GETCURSEL, 0, 0);
+
+			h = GetDlgItem(hdlg, IDC_CHECK_PARALLEL1 + i);
+			temp_lpt[i] = SendMessage(h, BM_GETCHECK, 0, 0);
 		}
 
-		h = GetDlgItem(hdlg, IDC_CHECK_SERIAL1);
-		temp_serial[0] = SendMessage(h, BM_GETCHECK, 0, 0);
-
-		h = GetDlgItem(hdlg, IDC_CHECK_SERIAL2);
-		temp_serial[1] = SendMessage(h, BM_GETCHECK, 0, 0);
-
-		h = GetDlgItem(hdlg, IDC_CHECK_PARALLEL);
-		temp_lpt = SendMessage(h, BM_GETCHECK, 0, 0);
+		for (i = 0; i < 2; i++) {
+			h = GetDlgItem(hdlg, IDC_CHECK_SERIAL1 + i);
+			temp_serial[i] = SendMessage(h, BM_GETCHECK, 0, 0);
+		}
 
 	default:
 		return FALSE;
@@ -3068,11 +3051,15 @@ hdd_add_file_open_error:
 						max_spt = max_hpc = max_tracks = 0;
 						break;
 					case HDD_BUS_MFM:
-						max_spt = 17;
+						max_spt = 26;	/* 17 for MFM, 26 for RLL. */
 						max_hpc = 15;
 						max_tracks = 1023;
 						break;
 					case HDD_BUS_ESDI:
+						max_spt = 43;	/* ESDI drives usually had 32 to 43 sectors per track. */
+						max_hpc = 16;
+						max_tracks = 1023;
+						break;
 					case HDD_BUS_XTA:
 						max_spt = 63;
 						max_hpc = 16;
@@ -3470,6 +3457,7 @@ win_settings_cdrom_drives_recalc_list(HWND hwndList)
 			lvI.iImage = 1;
 			break;
 		case CDROM_BUS_SCSI:
+		case CDROM_BUS_SCSI_CHINON:
 			wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].scsi_device_id);
 			lvI.pszText = szText;
 			lvI.iImage = 1;
@@ -3732,6 +3720,7 @@ win_settings_cdrom_drives_update_item(HWND hwndList, int i)
 		lvI.iImage = 1;
 		break;
 	case CDROM_BUS_SCSI:
+	case CDROM_BUS_SCSI_CHINON:
 		wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].scsi_device_id);
 		lvI.pszText = szText;
 		lvI.iImage = 1;
@@ -3812,7 +3801,7 @@ cdrom_add_locations(HWND hdlg)
     lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
-    for (i = CDROM_BUS_DISABLED; i <= CDROM_BUS_SCSI; i++) {
+    for (i = CDROM_BUS_DISABLED; i <= CDROM_BUS_SCSI_CHINON; i++) {
 	if ((i == CDROM_BUS_DISABLED) || (i >= CDROM_BUS_ATAPI))
 		SendMessage(h, CB_ADDSTRING, 0, win_get_string(combo_id_to_string_id(i)));
     }
@@ -3894,6 +3883,7 @@ static void cdrom_recalc_location_controls(HWND hdlg, int assign_id)
 		SendMessage(h, CB_SETCURSEL, temp_cdrom[lv1_current_sel].ide_channel, 0);
 		break;
 	case CDROM_BUS_SCSI:		/* SCSI */
+	case CDROM_BUS_SCSI_CHINON:
 		h = GetDlgItem(hdlg, IDT_1741);
 		ShowWindow(h, SW_SHOW);
 		EnableWindow(h, TRUE);
@@ -4009,7 +3999,7 @@ cdrom_track(uint8_t id)
 {
     if (temp_cdrom[id].bus_type == CDROM_BUS_ATAPI)
 	ide_tracking |= (2 << (temp_cdrom[id].ide_channel << 3));
-    else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI)
+    else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI || temp_cdrom[id].bus_type == CDROM_BUS_SCSI_CHINON)
 	scsi_tracking[temp_cdrom[id].scsi_device_id >> 3] |= (1 << (temp_cdrom[id].scsi_device_id & 0x07));
 }
 
@@ -4019,7 +4009,7 @@ cdrom_untrack(uint8_t id)
 {
     if (temp_cdrom[id].bus_type == CDROM_BUS_ATAPI)
 	ide_tracking &= ~(2 << (temp_cdrom[id].ide_channel << 3));
-    else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI)
+    else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI || temp_cdrom[id].bus_type == CDROM_BUS_SCSI_CHINON)
 	scsi_tracking[temp_cdrom[id].scsi_device_id >> 3] &= ~(1 << (temp_cdrom[id].scsi_device_id & 0x07));
 }
 
@@ -4188,6 +4178,9 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 			case CDROM_BUS_SCSI:
 				b = 2;
 				break;
+			case CDROM_BUS_SCSI_CHINON:
+				b = 3;
+				break;
 		}
 
 		SendMessage(h, CB_SETCURSEL, b, 0);
@@ -4255,6 +4248,9 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 				case CDROM_BUS_SCSI:
 					b = 2;
 					break;
+				case CDROM_BUS_SCSI_CHINON:
+					b = 3;
+					break;
 			}
 
 			SendMessage(h, CB_SETCURSEL, b, 0);
@@ -4316,6 +4312,9 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 						break;
 					case 2:
 						b2 = CDROM_BUS_SCSI;
+						break;
+					case 3:
+						b2 = CDROM_BUS_SCSI_CHINON;
 						break;
 				}
 				if (b2 == temp_cdrom[lv1_current_sel].bus_type)

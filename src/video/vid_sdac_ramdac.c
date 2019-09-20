@@ -8,13 +8,13 @@
  *
  *		87C716 'SDAC' true colour RAMDAC emulation.
  *
- * Version:	@(#)vid_sdac_ramdac.c	1.0.5	2018/10/04
+ * Version:	@(#)vid_sdac_ramdac.c	1.0.6	2019/09/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -24,6 +24,7 @@
 #include "../86box.h"
 #include "../device.h"
 #include "../mem.h"
+#include "../timer.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_sdac_ramdac.h"
@@ -37,9 +38,11 @@ sdac_control_write(sdac_ramdac_t *ramdac, svga_t *svga, uint8_t val)
 	case 0x2:
 	case 0x3:
 	case 0xa:
+	case 0x8:
 		svga->bpp = 15;
 		break;
 	case 0x4:
+	case 0x9:
 	case 0xe:
 		svga->bpp = 24;
 		break;
@@ -98,7 +101,7 @@ sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, sdac_ramdac_t *ramdac, svga
     uint8_t rs = (addr & 0x03);
     rs |= (!!rs2 << 8);
 
-    switch (rs) {
+    if ((rs >= 0x04) || (ramdac->type == 7))  switch (rs) {
 	case 0x02:
 		if (ramdac->magic_count == 4)
 			sdac_control_write(ramdac, svga, val);
@@ -135,7 +138,9 @@ sdac_ramdac_in(uint16_t addr, int rs2, sdac_ramdac_t *ramdac, svga_t *svga)
     uint8_t rs = (addr & 0x03);
     rs |= (!!rs2 << 8);
 
-    switch (rs) {
+    if ((rs < 0x04) && (ramdac->type != 7))
+	temp = svga_in(addr, svga);
+    else switch (rs) {
 	case 0x02:
 		if (ramdac->magic_count < 5)
 			ramdac->magic_count++;
@@ -150,7 +155,7 @@ sdac_ramdac_in(uint16_t addr, int rs2, sdac_ramdac_t *ramdac, svga_t *svga)
 	case 0x00:
 	case 0x01:
 	case 0x03:
-		ramdac->magic_count=0;
+		ramdac->magic_count = 0;
 		temp = svga_in(addr, svga);
 		break;
 	case 0x04:
@@ -178,12 +183,16 @@ sdac_getclock(int clock, void *p)
     float t;
     int m, n1, n2;
 
+    if (ramdac->regs[0xe] & (1 << 5))
+	clock = ramdac->regs[0xe] & 7;
+
+    clock &= 7;
+
     if (clock == 0)
 	return 25175000.0;
     if (clock == 1)
 	return 28322000.0;
 
-    clock ^= 1; /*Clocks 2 and 3 seem to be reversed*/
     m  =  (ramdac->regs[clock] & 0x7f) + 2;
     n1 = ((ramdac->regs[clock] >>  8) & 0x1f) + 2;
     n2 = ((ramdac->regs[clock] >> 13) & 0x07);
@@ -199,6 +208,8 @@ sdac_ramdac_init(const device_t *info)
 {
     sdac_ramdac_t *ramdac = (sdac_ramdac_t *) malloc(sizeof(sdac_ramdac_t));
     memset(ramdac, 0, sizeof(sdac_ramdac_t));
+
+    ramdac->type = info->local;
 
     ramdac->regs[0] = 0x6128;
     ramdac->regs[1] = 0x623d;
@@ -217,10 +228,19 @@ sdac_ramdac_close(void *priv)
 }
 
 
+const device_t gendac_ramdac_device =
+{
+    "S3 GENDAC 86c708 RAMDAC",
+    0, 0,
+    sdac_ramdac_init, sdac_ramdac_close,
+    NULL, NULL, NULL, NULL
+};
+
+
 const device_t sdac_ramdac_device =
 {
-        "S3 SDAC 86c716 RAMDAC",
-        0, 0,
-        sdac_ramdac_init, sdac_ramdac_close,
-	NULL, NULL, NULL, NULL
+    "S3 SDAC 86c716 RAMDAC",
+    0, 7,
+    sdac_ramdac_init, sdac_ramdac_close,
+    NULL, NULL, NULL, NULL
 };

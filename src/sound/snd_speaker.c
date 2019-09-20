@@ -3,6 +3,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../timer.h"
 #include "../pit.h"
 #include "sound.h"
 #include "snd_speaker.h"
@@ -45,16 +46,19 @@ speaker_update(void)
 }
 
 
-static void
+void
 speaker_get_buffer(int32_t *buffer, int len, void *p)
 {
-    int c;
+    int32_t c, val;
 
     speaker_update();
 
     if (!speaker_mute) {
-	for (c = 0; c < len * 2; c++)
-		buffer[c] += speaker_buffer[c >> 1];
+	for (c = 0; c < len * 2; c += 2) {
+		val = speaker_buffer[c >> 1];
+		buffer[c] += val;
+		buffer[c + 1] += val;
+	}
     }
 
     speaker_pos = 0;

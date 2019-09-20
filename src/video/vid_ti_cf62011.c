@@ -59,6 +59,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"

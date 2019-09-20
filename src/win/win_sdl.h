@@ -55,6 +55,7 @@ extern int	sdl_init(HWND h);
 extern int	sdl_init_fs(HWND h);
 extern int	sdl_pause(void);
 extern void	sdl_resize(int x, int y);
+extern void	sdl_enable(int enable);
 
 extern void	sdl_take_screenshot(const wchar_t *fn);
 

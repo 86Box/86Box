@@ -1147,8 +1147,8 @@ nic_mca_write(int port, uint8_t val, void *priv)
     /* Save the MCA register value. */
     dev->pos_regs[port & 7] = val;
 
-	nic_ioremove(dev, dev->base_address);	
-	
+    nic_ioremove(dev, dev->base_address);	
+
     /* This is always necessary so that the old handler doesn't remain. */
 	/* Get the new assigned I/O base address. */
 	dev->base_address = base[(dev->pos_regs[2] & 0xE0) >> 4];
@@ -1179,6 +1179,16 @@ nic_mca_write(int port, uint8_t val, void *priv)
 	
     }
 }
+
+
+static uint8_t
+nic_mca_feedb(void *priv)
+{
+    nic_t *dev = (nic_t *)priv;
+
+    return (dev->pos_regs[2] & 0x01);
+}
+
 
 static void *
 nic_init(const device_t *info)
@@ -1228,7 +1238,7 @@ nic_init(const device_t *info)
 		}		
 	}
 	else {
-		mca_add(nic_mca_read, nic_mca_write, dev);	
+		mca_add(nic_mca_read, nic_mca_write, nic_mca_feedb, dev);	
 	}
     }
 

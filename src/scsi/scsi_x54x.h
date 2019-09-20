@@ -362,111 +362,87 @@ typedef struct {
 } SGE;
 #pragma pack(pop)
 
+#define		X54X_CDROM_BOOT		 1
+#define		X54X_32BIT		 2
+#define		X54X_LBA_BIOS		 4
+#define		X54X_INT_GEOM_WRITABLE	 8
+#define		X54X_MBX_24BIT		16
+
 typedef struct {
-    int8_t	type;				/* type of device */
+    /* 32 bytes */
+    char	vendor[16],			/* name of device vendor */
+		name[16];			/* name of device */
 
-    char	vendor[16];			/* name of device vendor */
-    char	name[16];			/* name of device */
+    /* 24 bytes */
+    int8_t	type,				/* type of device */
+		IrqEnabled, Irq,
+		DmaChannel,
+		HostID;
 
-    int64_t	timer_period, temp_period;
-    uint8_t	callback_phase;
-    int64_t	media_period;
-    double	ha_bps;				/* bytes per second */
-
-    int8_t	Irq;
-    uint8_t	IrqEnabled;
-
-    int8_t	DmaChannel;
-    int8_t	HostID;
-    uint32_t	Base;
-    uint8_t	pos_regs[8];			/* MCA */
-
-    wchar_t	*bios_path;			/* path to BIOS image file */
-    uint32_t	rom_addr;			/* address of BIOS ROM */
-    uint16_t	rom_ioaddr;			/* offset in BIOS of I/O addr */
-    uint16_t	rom_shram;			/* index to shared RAM */
-    uint16_t	rom_shramsz;			/* size of shared RAM */
-    uint16_t	rom_fwhigh;			/* offset in BIOS of ver ID */
-    rom_t	bios;				/* BIOS memory descriptor */
-    rom_t	uppersck;			/* BIOS memory descriptor */
-    uint8_t	*rom1;				/* main BIOS image */
-    uint8_t	*rom2;				/* SCSI-Select image */
-
-    wchar_t	*nvr_path;			/* path to NVR image file */
-    uint8_t	*nvr;				/* EEPROM buffer */
-
-    int64_t	ResetCB;
+    uint8_t	callback_phase, sync,
+		parity, shram_mode,
+		Geometry, Control,
+		Command, CmdParam,
+		BusOnTime, BusOffTime,
+		ATBusSpeed, setup_info_len,
+		max_id, pci_slot;
 
     volatile uint8_t				/* for multi-threading, keep */
-		Status,				/* these volatile */
-		Interrupt;
+		Status, Interrupt,		/* these volatile */
+		MailboxIsBIOS, ToRaise,
+		flags;
 
-    Req_t	Req;
-    uint8_t	Geometry;
-    uint8_t	Control;
-    uint8_t	Command;
-    uint8_t	CmdBuf[128];
-    uint8_t	CmdParam;
-    uint32_t	CmdParamLeft;
-    uint8_t	DataBuf[65536];
-    uint16_t	DataReply;
-    uint16_t	DataReplyLeft;
+    /* 65928 bytes */
+    uint8_t	pos_regs[8],			/* MCA */
+		CmdBuf[128],
+		DataBuf[65536],
+		shadow_ram[128],
+		dma_buffer[128];
+
+    /* 16 bytes */
+    char	*fw_rev;			/* The 4 bytes of the revision command information + 2 extra bytes for BusLogic */
+
+    uint8_t	*rom1,				/* main BIOS image */
+		*rom2,				/* SCSI-Select image */
+		*nvr;				/* EEPROM buffer */
+
+    /* 6 words = 12 bytes */
+    uint16_t	DataReply, DataReplyLeft,
+		rom_ioaddr,			/* offset in BIOS of I/O addr */
+		rom_shram,			/* index to shared RAM */
+		rom_shramsz,			/* size of shared RAM */
+		rom_fwhigh;			/* offset in BIOS of ver ID */
+
+    /* 16 + 20 + 52 = 88 bytes */
+    volatile int
+		MailboxOutInterrupts,
+		PendingInterrupt, Lock;
+
+    uint32_t	Base, rom_addr,			/* address of BIOS ROM */
+		CmdParamLeft, Outgoing,
+		pad32;
 
     volatile uint32_t
-		MailboxInit,
-		MailboxCount,
-		MailboxOutAddr,
-		MailboxOutPosCur,
-		MailboxInAddr,
-		MailboxInPosCur,
-		MailboxReq;
-
-    volatile int
-		Mbx24bit,
-		MailboxOutInterrupts;
-
-    volatile int
-		PendingInterrupt,
-		Lock;
-
-    uint8_t	shadow_ram[128];
-
-    volatile uint8_t
-		MailboxIsBIOS,
-		ToRaise;
-
-    uint8_t	shram_mode;
-
-    uint8_t	sync;
-    uint8_t	parity;
-
-    uint8_t	dma_buffer[128];
-
-    volatile
-    uint32_t	BIOSMailboxInit,
-		BIOSMailboxCount,
-		BIOSMailboxOutAddr,
-		BIOSMailboxOutPosCur,
+		MailboxInit, MailboxCount,
+		MailboxOutAddr, MailboxOutPosCur,
+		MailboxInAddr, MailboxInPosCur,
+		MailboxReq,
+		BIOSMailboxInit, BIOSMailboxCount,
+		BIOSMailboxOutAddr, BIOSMailboxOutPosCur,
 		BIOSMailboxReq,
-		Residue;
+		Residue, bus;			/* Basically a copy of device flags */
 
-    uint8_t	BusOnTime,
-		BusOffTime,
-		ATBusSpeed;
+    /* 8 bytes */
+    uint64_t	temp_period;
 
-    char	*fw_rev;	/* The 4 bytes of the revision command information + 2 extra bytes for BusLogic */
-    uint16_t	bus;		/* Basically a copy of device flags */
-    uint8_t	setup_info_len;
-    uint8_t	max_id;
-    uint8_t	pci_slot;
-    uint8_t	bit32;
-    uint8_t	lba_bios;
+    /* 16 bytes */
+    double	media_period, ha_bps;		/* bytes per second */
 
-    mem_mapping_t mmio_mapping;
+    /* 8 bytes */
+    wchar_t	*bios_path,			/* path to BIOS image file */
+		*nvr_path;			/* path to NVR image file */
 
-    uint8_t	int_geom_writable;
-    uint8_t	cdrom_boot;
-
+    /* 56 bytes */
     /* Pointer to a structure of vendor-specific data that only the vendor-specific code can understand */
     void	*ven_data;
 
@@ -496,6 +472,15 @@ typedef struct {
     uint8_t	(*interrupt_type)(void *p);
     /* Pointer to a function that resets vendor-specific data */
     void	(*ven_reset)(void *p);
+
+    rom_t	bios,				/* BIOS memory descriptor */
+		uppersck;			/* BIOS memory descriptor */
+
+    mem_mapping_t mmio_mapping;
+
+    pc_timer_t	timer, ResetCB;
+
+    Req_t	Req;
 } x54x_t;
 
 

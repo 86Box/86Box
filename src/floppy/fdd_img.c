@@ -49,6 +49,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
+#include "../timer.h"
 #include "../config.h"
 #include "../plat.h"
 #include "fdd.h"
@@ -620,6 +621,16 @@ img_init(void)
 }
 
 
+int
+is_divisible(uint16_t total, uint8_t what)
+{
+    if ((total != 0) && (what != 0))
+	return ((total % what) == 0);
+    else
+	return 0;
+}
+
+
 void
 img_load(int drive, wchar_t *fn)
 {
@@ -968,10 +979,13 @@ jump_if_fdf:
     img_log("BPB reports %i sides and %i bytes per sector (%i sectors total)\n",
 	bpb_sides, bpb_bps, bpb_total);
 
-    guess = (bpb_sides < 1);
-    guess = guess || (bpb_sides > 2);
-    guess = guess || !bps_is_valid(bpb_bps);
-    guess = guess || !first_byte_is_valid(first_byte);
+								/* Invalid conditions:						*/
+    guess = (bpb_sides < 1);					/*     Sides < 1;						*/
+    guess = guess || (bpb_sides > 2);				/*     Sides > 2;						*/
+    guess = guess || !bps_is_valid(bpb_bps);			/*     Invalid number of bytes per sector;			*/
+    guess = guess || !first_byte_is_valid(first_byte);		/*     Invalid first bytes;					*/
+    guess = guess || !is_divisible(bpb_total, bpb_sectors);	/*     Total sectors not divisible by sectors per track;	*/
+    guess = guess || !is_divisible(bpb_total, bpb_sides);	/*     Total sectors not divisible by sides.			*/
     guess = guess || !fdd_get_check_bpb(drive);
     guess = guess && !fdi;
     guess = guess && !cqm;

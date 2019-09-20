@@ -359,7 +359,7 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
 {
     uint8_t ret;
     subchannel_t subc;
-    int pos = 0;
+    int pos = 1;
 
     dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
     cdrom_log("CD-ROM %i: Returned subchannel at %02i:%02i.%02i\n", subc.abs_m, subc.abs_s, subc.abs_f);
@@ -374,6 +374,9 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
 	else
 		ret = 0x13;
     }
+
+    if (b[pos] > 1)
+	return ret;
 
     b[pos++] = subc.attr;
     b[pos++] = subc.track;
@@ -1003,6 +1006,7 @@ cdrom_hard_reset(void)
 		switch(dev->bus_type) {
 			case CDROM_BUS_ATAPI:
 			case CDROM_BUS_SCSI:
+			case CDROM_BUS_SCSI_CHINON:
 				scsi_cdrom_drive_reset(i);
 				break;
 

@@ -43,8 +43,14 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
+#ifdef USE_NEW_DYNAREC
+#include "../cpu_new/cpu.h"
+#include "../cpu_new/x86.h"
+#else
 #include "../cpu/cpu.h"
 #include "../cpu/x86.h"
+#endif
+#include "../timer.h"
 #include "../io.h"
 #include "../dma.h"
 #include "../pic.h"
@@ -61,6 +67,7 @@
 #include "../keyboard.h"
 #include "../lpt.h"
 #include "../mouse.h"
+#include "../port_92.h"
 #include "../serial.h"
 #include "../video/video.h"
 #include "../video/vid_vga.h"
@@ -609,7 +616,17 @@ uint8_t ps2_mca_read(uint16_t port, void *p)
         switch (port)
         {
                 case 0x91:
-                fatal("Read 91 setup=%02x adapter=%02x\n", ps2.setup, ps2.adapter_setup);
+                // fatal("Read 91 setup=%02x adapter=%02x\n", ps2.setup, ps2.adapter_setup);
+                if (!(ps2.setup & PS2_SETUP_IO))
+                        temp = 0x00;
+                else if (!(ps2.setup & PS2_SETUP_VGA))
+                        temp = 0x00;
+                else if (ps2.adapter_setup & PS2_ADAPTER_SETUP)
+                        temp = 0x00;
+                else
+                        temp = !mca_feedb();
+		temp |= 0xfe;
+		break;
                 case 0x94:
                 temp = ps2.setup;
                 break;
@@ -769,10 +786,8 @@ static void ps2_mca_board_common_init()
         io_sethandler(0x0094, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
         io_sethandler(0x0096, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
         io_sethandler(0x0100, 0x0008, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
-        
-	port_92_reset();
 
-        port_92_add();
+	device_add(&port_92_device);        
 
         ps2.setup = 0xff;
         
@@ -795,6 +810,11 @@ static void ps2_mem_expansion_write(int port, uint8_t val, void *p)
                 mem_mapping_enable(&ps2.expansion_mapping);
         else
                 mem_mapping_disable(&ps2.expansion_mapping);
+}
+
+static uint8_t ps2_mem_expansion_feedb(void *p)
+{
+	return (ps2.mem_pos_regs[2] & 1);
 }
 
 static void ps2_mca_mem_fffc_init(int start_mb)
@@ -842,7 +862,7 @@ static void ps2_mca_mem_fffc_init(int start_mb)
 			break;
 	}
 
-	mca_add(ps2_mem_expansion_read, ps2_mem_expansion_write, NULL);
+	mca_add(ps2_mem_expansion_read, ps2_mem_expansion_write, ps2_mem_expansion_feedb, NULL);
 	mem_mapping_add(&ps2.expansion_mapping,
 			expansion_start,
 			(mem_size - (start_mb << 10)) << 10,
@@ -864,7 +884,8 @@ static void ps2_mca_board_model_50_init()
 
         mem_remap_top(384);
         mca_init(4);
-        
+	device_add(&keyboard_ps2_mca_2_device);
+
         ps2.planar_read = model_50_read;
         ps2.planar_write = model_50_write;
 
@@ -935,7 +956,8 @@ static void ps2_mca_board_model_55sx_init()
         }                
         
         mca_init(4);
-        
+	device_add(&keyboard_ps2_mca_device);
+
         ps2.planar_read = model_55sx_read;
         ps2.planar_write = model_55sx_write;
 
@@ -1082,7 +1104,8 @@ static void ps2_mca_board_model_70_type34_init(int is_type4)
 
         ps2.split_addr = mem_size * 1024;
         mca_init(4);
-        
+	device_add(&keyboard_ps2_mca_device);
+
         ps2.planar_read = model_70_type3_read;
         ps2.planar_write = model_70_type3_write;
         
@@ -1160,6 +1183,7 @@ static void ps2_mca_board_model_80_type2_init(int is486)
 
         ps2.split_addr = mem_size * 1024;
         mca_init(8);
+	device_add(&keyboard_ps2_mca_device);
         
         ps2.planar_read = model_80_read;
         ps2.planar_write = model_80_write;
@@ -1233,7 +1257,6 @@ machine_ps2_common_init(const machine_t *model)
 
         dma16_init();
         ps2_dma_init();
-	device_add(&keyboard_ps2_mca_device);
 	device_add(&ps_nvr_device);
         pic2_init();
 
@@ -1241,49 +1264,110 @@ machine_ps2_common_init(const machine_t *model)
 
 	nmi_mask = 0x80;
 
-	ps2.uart = device_add_inst(&i8250_device, 1);
+	ps2.uart = device_add_inst(&ns16550_device, 1);
 }
 
 
-void
+int
 machine_ps2_model_50_init(const machine_t *model)
 {
+	int ret;
+
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m50/90x7420.zm13",
+				    L"roms/machines/ibmps2_m50/90x7429.zm18",
+				    0x000f0000, 131072, 0);
+	ret &= bios_load_aux_interleaved(L"roms/machines/ibmps2_m50/90x7423.zm14",
+					 L"roms/machines/ibmps2_m50/90x7426.zm16",
+					 0x000e0000, 65536, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
         machine_ps2_common_init(model);
 
         ps2_mca_board_model_50_init();
+
+	return ret;
 }
 
 
-void
+int
 machine_ps2_model_55sx_init(const machine_t *model)
 {
+	int ret;
+
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m55sx/33f8146.zm41",
+				    L"roms/machines/ibmps2_m55sx/33f8145.zm40",
+				    0x000e0000, 131072, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
         machine_ps2_common_init(model);
 
         ps2_mca_board_model_55sx_init();
+
+	return ret;
 }
 
-void
+
+int
 machine_ps2_model_70_type3_init(const machine_t *model)
 {
+	int ret;
+
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m70_type3/70-a_even.bin",
+				    L"roms/machines/ibmps2_m70_type3/70-a_odd.bin",
+				    0x000e0000, 131072, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
         machine_ps2_common_init(model);
 
         ps2_mca_board_model_70_type34_init(0);
+
+	return ret;
 }
 
+
 #if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
-void
+int
 machine_ps2_model_70_type4_init(const machine_t *model)
 {
+	int ret;
+
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m70_type4/70-b_even.bin",
+				    L"roms/machines/ibmps2_m70_type4/70-b_odd.bin",
+				    0x000e0000, 131072, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
         machine_ps2_common_init(model);
 
         ps2_mca_board_model_70_type34_init(1);
+
+	return ret;
 }
 #endif
 
-void
+
+int
 machine_ps2_model_80_init(const machine_t *model)
 {
+	int ret;
+
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m80/15f6637.bin",
+				    L"roms/machines/ibmps2_m80/15f6639.bin",
+				    0x000e0000, 131072, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
         machine_ps2_common_init(model);
 
         ps2_mca_board_model_80_type2_init(0);
+
+	return ret;
 }

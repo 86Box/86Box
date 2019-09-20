@@ -53,9 +53,11 @@ typedef struct {
 	uint32_t addr, addr_latch;
 	uint16_t count, size;
 
-	uint16_t samp_ct, curr_samp_ct;
+	uint16_t samp_ct;
+	int curr_samp_ct;
 
-	int64_t time, latch;
+	pc_timer_t timer;
+	uint64_t latch;
 
 	uint32_t vf, ac;
 
@@ -606,8 +608,6 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 			case 0xc:
 			es1371->dac[0].size = val & 0xffff;
 			es1371->dac[0].count = val >> 16;
-			if (es1371->dac[0].count)
-				es1371->dac[0].count -= 4;
 			break;
 			
 			case 0xd:
@@ -1105,8 +1105,8 @@ static void es1371_poll(void *p)
 {
 	es1371_t *es1371 = (es1371_t *)p;
 	
-	es1371->dac[1].time += es1371->dac[1].latch;
-	
+	timer_advance_u64(&es1371->dac[1].timer, es1371->dac[1].latch);
+
         es1371_update(es1371);
         
 	if (es1371->int_ctrl & INT_DAC1_EN)
@@ -1120,7 +1120,6 @@ static void es1371_poll(void *p)
                 
                 es1371->dac[0].out_l = ((samp1_l * (0x8000 - frac)) + (samp2_l * frac)) >> 15;
                 es1371->dac[0].out_r = ((samp1_r * (0x8000 - frac)) + (samp2_r * frac)) >> 15;
-//		audiopci_log("1Samp %i %i  %08x\n", es1371->dac[0].curr_samp_ct, es1371->dac[0].samp_ct, es1371->dac[0].ac);
                 es1371->dac[0].ac += es1371->dac[0].vf;
                 es1371->dac[0].ac &= ((32 << 15) - 1);
                 if ((es1371->dac[0].ac >> (15+4)) != es1371->dac[0].f_pos)
@@ -1128,16 +1127,12 @@ static void es1371_poll(void *p)
                         es1371_next_sample_filtered(es1371, 0, es1371->dac[0].f_pos ? 16 : 0);
                         es1371->dac[0].f_pos = (es1371->dac[0].f_pos + 1) & 1;
 
-			es1371->dac[0].curr_samp_ct++;
-			if (es1371->dac[0].curr_samp_ct == es1371->dac[0].samp_ct)
+                        es1371->dac[0].curr_samp_ct--;
+                        if (es1371->dac[0].curr_samp_ct < 0)
 			{
-//				audiopci_log("DAC1 IRQ\n");
 				es1371->int_status |= INT_STATUS_DAC1;
 				es1371_update_irqs(es1371);
-			}
-			if (es1371->dac[0].curr_samp_ct > es1371->dac[0].samp_ct)
-			{
-				es1371->dac[0].curr_samp_ct = 0;
+				es1371->dac[0].curr_samp_ct = es1371->dac[0].samp_ct;
 			}
 		}
 	}
@@ -1153,7 +1148,6 @@ static void es1371_poll(void *p)
                 
                 es1371->dac[1].out_l = ((samp1_l * (0x8000 - frac)) + (samp2_l * frac)) >> 15;
                 es1371->dac[1].out_r = ((samp1_r * (0x8000 - frac)) + (samp2_r * frac)) >> 15;
-//		audiopci_log("2Samp %i %i  %08x\n", es1371->dac[1].curr_samp_ct, es1371->dac[1].samp_ct, es1371->dac[1].ac);
 		es1371->dac[1].ac += es1371->dac[1].vf;
                 es1371->dac[1].ac &= ((32 << 15) - 1);
                 if ((es1371->dac[1].ac >> (15+4)) != es1371->dac[1].f_pos)
@@ -1161,16 +1155,13 @@ static void es1371_poll(void *p)
                         es1371_next_sample_filtered(es1371, 1, es1371->dac[1].f_pos ? 16 : 0);
                         es1371->dac[1].f_pos = (es1371->dac[1].f_pos + 1) & 1;
 
-			es1371->dac[1].curr_samp_ct++;
-			if (es1371->dac[1].curr_samp_ct > es1371->dac[1].samp_ct)
+                        es1371->dac[1].curr_samp_ct--;
+                        if (es1371->dac[1].curr_samp_ct < 0)
 			{
-//				es1371->dac[1].curr_samp_ct = 0;
-//				audiopci_log("DAC2 IRQ\n");
 				es1371->int_status |= INT_STATUS_DAC2;
 				es1371_update_irqs(es1371);
+                                es1371->dac[1].curr_samp_ct = es1371->dac[1].samp_ct;
 			}
-                        if (es1371->dac[1].curr_samp_ct > es1371->dac[1].samp_ct)
-                                es1371->dac[1].curr_samp_ct = 0;
 		}
 	}
 }
@@ -1232,8 +1223,8 @@ static void *es1371_init()
 	sound_add_handler(es1371_get_buffer, es1371);
 
 	es1371->card = pci_add_card(PCI_ADD_NORMAL, es1371_pci_read, es1371_pci_write, es1371);
-
-	timer_add(es1371_poll, &es1371->dac[1].time, TIMER_ALWAYS_ENABLED, es1371);
+	
+	timer_add(&es1371->dac[1].timer, es1371_poll, es1371, 1); 
         
         generate_es1371_filter();
 		
@@ -1251,7 +1242,7 @@ static void es1371_speed_changed(void *p)
 {
 	es1371_t *es1371 = (es1371_t *)p;
 	
-	es1371->dac[1].latch = (int)((double)TIMER_USEC * (1000000.0 / 48000.0));
+	es1371->dac[1].latch = (uint64_t)((double)TIMER_USEC * (1000000.0 / 48000.0));
 }
  
 void es1371_add_status_info_dac(es1371_t *es1371, char *s, int max_len, int dac_nr)

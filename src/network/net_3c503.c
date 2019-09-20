@@ -430,11 +430,10 @@ threec503_nic_hi_write(uint16_t addr, uint8_t val, void *priv)
 
 	case 0x05:
 		if ((dev->regs.gacfr & 0x0f) != (val & 0x0f)) {
-			mem_mapping_disable(&dev->ram_mapping);
-
 			switch (val & 0x0f) {
 				case 0: /*ROM mapping*/
 					/* FIXME: Implement this when a BIOS is found/generated. */
+					mem_mapping_disable(&dev->ram_mapping);
 					break;
 
 				case 9: /*RAM mapping*/
@@ -442,6 +441,7 @@ threec503_nic_hi_write(uint16_t addr, uint8_t val, void *priv)
 					break;
 
 				default: /*No ROM mapping*/
+					mem_mapping_disable(&dev->ram_mapping);
 					break;
 			}
 		}
@@ -613,7 +613,8 @@ threec503_nic_init(const device_t *info)
 		    threec503_ram_read, NULL, NULL,
 		    threec503_ram_write, NULL, NULL,
 		    NULL, MEM_MAPPING_EXTERNAL, dev);
-    mem_mapping_disable(&dev->ram_mapping);
+    // mem_mapping_disable(&dev->ram_mapping);
+    dev->regs.gacfr = 0x09;	/* Start with RAM mapping enabled. */
 
     /* Attach ourselves to the network module. */
     network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx);

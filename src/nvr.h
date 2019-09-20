@@ -8,13 +8,13 @@
  *
  *		Definitions for the generic NVRAM/CMOS driver.
  *
- * Version:	@(#)nvr.h	1.0.10	2018/10/06
+ * Version:	@(#)nvr.h	1.0.11	2019/03/16
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>,
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2018 David Hrdlička.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2018,2019 David Hrdlička.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -70,7 +70,7 @@ typedef struct _nvr_ {
     int8_t	irq;
 
     uint8_t	onesec_cnt;
-    int64_t	onesec_time;
+    pc_timer_t	onesec_time;
 
     void	*data;			/* local data */
 
@@ -78,8 +78,6 @@ typedef struct _nvr_ {
     void	(*reset)(struct _nvr_ *);
     void	(*start)(struct _nvr_ *);
     void	(*tick)(struct _nvr_ *);
-    void	(*recalc)(struct _nvr_ *);
-
     void	(*ven_save)(void);
 
     uint8_t	regs[NVR_MAXSIZE];	/* these are the registers */
@@ -102,6 +100,7 @@ extern void	nvr_init(nvr_t *);
 extern wchar_t	*nvr_path(wchar_t *str);
 extern FILE	*nvr_fopen(wchar_t *str, wchar_t *mode);
 extern int	nvr_load(void);
+extern void	nvr_close(void);
 extern void	nvr_set_ven_save(void (*ven_save)(void));
 extern int	nvr_save(void);
 
@@ -109,7 +108,6 @@ extern int	nvr_is_leap(int year);
 extern int	nvr_get_days(int month, int year);
 extern void	nvr_time_get(struct tm *);
 extern void	nvr_time_set(struct tm *);
-extern void	nvr_period_recalc(void);
 
 
 #endif	/*EMU_NVR_H*/

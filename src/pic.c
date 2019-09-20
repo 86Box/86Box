@@ -21,10 +21,12 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
+#include "cpu/cpu.h"
 #include "machine/machine.h"
 #include "io.h"
 #include "pci.h"
 #include "pic.h"
+#include "timer.h"
 #include "pit.h"
 
 
@@ -124,6 +126,7 @@ picint_is_level(uint16_t irq)
 }
 
 
+/* Should this really EOI *ALL* IRQ's at once? */
 static void
 pic_autoeoi()
 {
@@ -139,10 +142,12 @@ pic_autoeoi()
 				pic.pend |= pic.icw3;
 		}
 
+#if 0
 		if ((pic_current & (1 << c)) && picint_is_level(c)) {
 			if (((1 << c) != pic.icw3) || !AT)
 				pic.pend |= 1 << c;
 		}
+#endif
 
 		pic_updatepending();
 		return;
@@ -155,7 +160,11 @@ void
 pic_write(uint16_t addr, uint8_t val, void *priv)
 {
     int c;
+
+    addr &= ~0x06;
+
     if (addr&1) {
+	pic_log("%04X:%04X: write: %02X\n", CS, cpu_state.pc, val);
 	switch (pic.icw) {
 		case 0: /*OCW1*/
 			pic.mask=val;
@@ -163,27 +172,36 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 			break;
 		case 1: /*ICW2*/
 			pic.vector=val&0xF8;
+			pic_log("ICW%i ->", pic.icw + 1);
 			if (pic.icw1 & 2) pic.icw=3;
 			else		  pic.icw=2;
+			pic_log("ICW%i\n", pic.icw + 1);
 			break;
 		case 2: /*ICW3*/
 			pic.icw3 = val;
 			pic_log("PIC1 ICW3 now %02X\n", val);
+			pic_log("ICW%i ->", pic.icw + 1);
 			if (pic.icw1 & 1) pic.icw=3;
 			else		  pic.icw=0;
+			pic_log("ICW%i\n", pic.icw + 1);
 			break;
 		case 3: /*ICW4*/
+			pic_log("ICW%i ->", pic.icw + 1);
 			pic.icw4 = val;
 			pic.icw=0;
+			pic_log("ICW%i\n", pic.icw + 1);
 			break;
 	}
     } else {
 	if (val & 16) { /*ICW1*/
 		pic.mask = 0;
 		pic.mask2 = 0;
+		pic_log("ICW%i ->", pic.icw + 1);
 		pic.icw = 1;
 		pic.icw1 = val;
+		pic_log("ICW%i\n", pic.icw + 1);
 		pic.ins = 0;
+		pic.pend = 0;	/* Pending IRQ's are cleared. */
 		pic_updatepending();
 	}
 	else if (!(val & 8)) { /*OCW2*/
@@ -195,10 +213,12 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 					pic.pend |= pic.icw3;
 			}
 
+#if 0
 			if ((pic_current & (1 << (val & 7))) && picint_is_level(val & 7)) {
 				if ((((1 << (val & 7)) != pic.icw3) || !AT))
 					pic.pend |= 1 << (val & 7);
 			}
+#endif
 
 			pic_updatepending();
 		} else {
@@ -212,10 +232,12 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 							pic.pend |= pic.icw3;
 					}
 
+#if 0
 					if ((pic_current & (1 << c)) && picint_is_level(c)) {
 						if ((((1 << c) != pic.icw3) || !AT))
 							pic.pend |= 1 << c;
 					}
+#endif
 
 					if ((c == 1) && keywaiting)
 						intclear &= ~1;
@@ -235,16 +257,23 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 pic_read(uint16_t addr, void *priv)
 {
+    addr &= ~0x06;
+
     if (addr & 1) {
 	pic_log("Read PIC mask %02X\n", pic.mask);
+	pic_log("%04X:%04X: Read PIC mask %02X\n", CS, cpu_state.pc, pic.mask);
 	return pic.mask;
     }
     if (pic.read) {
 	pic_log("Read PIC ins %02X\n", pic.ins);
+#if 0
 	if (AT)
 		return pic.ins | (pic2.ins ? 4 : 0);
 	else
 		return pic.ins;
+#else
+	return pic.ins | (pic2.ins ? 4 : 0);
+#endif
     }
     return pic.pend;
 }
@@ -254,6 +283,13 @@ void
 pic_init()
 {
     io_sethandler(0x0020, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, NULL);
+}
+
+
+void
+pic_init_pcjr()
+{
+    io_sethandler(0x0020, 0x0008, pic_read, NULL, NULL, pic_write, NULL, NULL, NULL);
 }
 
 
@@ -267,10 +303,12 @@ pic2_autoeoi()
 		pic2.ins &= ~(1 << c);
 		pic_update_mask(&pic2.mask2, pic2.ins);
 
+#if 0
 		if (pic_current & (0x100 << c) && picint_is_level(c + 8)) {
 			pic2.pend |= (1 << c);
 			pic.pend |= (1 << pic2.icw3);
 		}
+#endif
 
 		pic_updatepending();
 		return;
@@ -309,20 +347,24 @@ pic2_write(uint16_t addr, uint8_t val, void *priv)
     } else {
 	if (val & 16) { /*ICW1*/
 		pic2.mask = 0;
-		pic2.mask2=0;
-		pic2.icw=1;
+		pic2.mask2 = 0;
+		pic2.icw = 1;
 		pic2.icw1 = val;
 		pic2.ins = 0;
+		pic2.pend = 0;	/* Pending IRQ's are cleared. */
+		pic.pend &= ~4;
 		pic_updatepending();
 	} else if (!(val & 8)) { /*OCW2*/
 		if ((val & 0xE0) == 0x60) {
 			pic2.ins &= ~(1 << (val & 7));
 			pic_update_mask(&pic2.mask2, pic2.ins);
 
+#if 0
 			if (pic_current & (0x100 << (val & 7)) && picint_is_level((val & 7) + 8)) {
 				pic2.pend |= (1 << (val & 7));
 				pic.pend |= (1 << pic2.icw3);
 			}
+#endif
 
 			pic_updatepending();
 		} else {
@@ -331,10 +373,12 @@ pic2_write(uint16_t addr, uint8_t val, void *priv)
 					pic2.ins &= ~(1<<c);
 					pic_update_mask(&pic2.mask2, pic2.ins);
 
+#if 0
 					if (pic_current & (0x100 << c) && picint_is_level(c + 8)) {
 						pic2.pend |= (1 << c);
 						pic.pend |= (1 << pic2.icw3);
 					}
+#endif
 
 					pic_updatepending();
 					return;
@@ -476,35 +520,37 @@ picintc(uint16_t num)
 }
 
 
-static uint8_t
+static int
 pic_process_interrupt(PIC* target_pic, int c)
 {
     uint8_t pending = target_pic->pend & ~target_pic->mask;
+    int ret = -1;
 
     int pic_int = c & 7;
     int pic_int_num = 1 << pic_int;
 
     int in_service = 0;
-#if 0
+
+    in_service = (target_pic->ins & (pic_int_num - 1));	/* Is anything of higher priority already in service? */
+    in_service |= (target_pic->ins & pic_int_num);	/* Is the current IRQ already in service? */
     if (AT) {
-	in_service = (target_pic->ins & (pic_int_num - 1));
+	/* AT-specific stuff. */
 	if (c >= 8)
-		in_service |= (pic.ins & 0x03);
+		in_service |= (pic.ins & 0x03);		/* IRQ 8 to 15, are IRQ's with higher priorities than the
+							   cascade IRQ already in service? */
+	/* For IRQ 0 to 7, the cascade IRQ's in service bit indicates that one or
+	   more IRQ's between 8 and 15 are already in service. */
     }
-    if (!AT)
-	in_service = (target_pic->ins & (pic_int_num - 1));
-#else
-    in_service = (target_pic->ins & (pic_int_num - 1));
-    if (AT && (c >= 8))
-	in_service |= (pic.ins & 0x03);
-#endif
 
     if ((pending & pic_int_num) && !in_service) {
-	target_pic->pend &= ~pic_int_num;
+	if (!((pic_current & (1 << c)) && picint_is_level(c)))
+		target_pic->pend &= ~pic_int_num;
 	target_pic->ins |= pic_int_num;
 	pic_update_mask(&target_pic->mask2, target_pic->ins);
 
 	if (AT && (c >= 8)) {
+		if (!((target_pic->pend & ~target_pic->mask) & ~target_pic->mask2))
+			pic.pend &= ~(1 << pic2.icw3);
 		pic.ins |= (1 << pic2.icw3); /*Cascade IRQ*/
 		pic_update_mask(&pic.mask2, pic.ins);
 	}
@@ -517,30 +563,31 @@ pic_process_interrupt(PIC* target_pic, int c)
 	if (!c)
 		pit_set_gate(&pit2, 0, 0);
 
-	return pic_int + target_pic->vector;
-    } else
-	return 0xFF;
+	ret = pic_int + target_pic->vector;
+    }
+
+    return ret;
 }
 
 
-uint8_t
+int
 picinterrupt()
 {
     int c, d;
-    uint8_t ret;
+    int ret;
 
     for (c = 0; c <= 7; c++) {
 	if (AT && ((1 << c) == pic.icw3)) {
 		for (d = 8; d <= 15; d++) {
 			ret = pic_process_interrupt(&pic2, d);
-			if (ret != 0xFF)  return ret;
+			if (ret != -1)  return ret;
 		}
 	} else {
 		ret = pic_process_interrupt(&pic, c);
-		if (ret != 0xFF)  return ret;
+		if (ret != -1)  return ret;
 	}
     }
-    return 0xFF;
+    return -1;
 }
 
 

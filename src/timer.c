@@ -6,132 +6,242 @@
 #include "timer.h"
 
 
-#define TIMERS_MAX 64
+uint64_t TIMER_USEC;
+uint32_t timer_target;
+
+/*Enabled timers are stored in a linked list, with the first timer to expire at
+  the head.*/
+static pc_timer_t *timer_head = NULL;
+
+/* Are we initialized? */
+static int timer_inited = 0;
 
 
-static struct
+void
+timer_enable(pc_timer_t *timer)
 {
-	int64_t present;
-	void (*callback)(void *priv);
-	void *priv;
-	int64_t *enable;
-	int64_t *count;
-} timers[TIMERS_MAX];
+    pc_timer_t *timer_node = timer_head;
 
+    if (!timer_inited || (timer == NULL))
+	return;
 
-int64_t TIMER_USEC;
-int64_t timers_present = 0;
-int64_t timer_one = 1;
-	
-int64_t timer_count = 0, timer_latch = 0;
-int64_t timer_start = 0;
+    if (timer->flags & TIMER_ENABLED)
+	timer_disable(timer);
 
+    if (timer->next || timer->prev)
+	fatal("timer_enable - timer->next\n");
 
-void timer_process(void)
-{
-	int64_t c;
-	int64_t process = 0;
-	/*Get actual elapsed time*/
-	int64_t diff = timer_latch - timer_count;
-	int64_t enable[TIMERS_MAX];
+    timer->flags |= TIMER_ENABLED;
 
-	timer_latch = 0;
+    /*List currently empty - add to head*/
+    if (!timer_head) {
+	timer_head = timer;
+	timer->next = timer->prev = NULL;
+#if 0
+	timer_target = timer_head->ts_integer;
+#else
+	timer_target = timer_head->ts.ts32.integer;
+#endif
+	return;
+    }
 
-        for (c = 0; c < timers_present; c++)
-        {
-		/* This is needed to avoid timer crashes on hard reset. */
-		if ((timers[c].enable == NULL) || (timers[c].count == NULL))
-		{
-			continue;
+    timer_node = timer_head;
+
+    while(1) {
+	/*Timer expires before timer_node. Add to list in front of timer_node*/
+	if (TIMER_LESS_THAN(timer, timer_node)) {
+		timer->next = timer_node;
+		timer->prev = timer_node->prev;
+		timer_node->prev = timer;
+		if (timer->prev)
+			timer->prev->next = timer;
+		else {
+			timer_head = timer;
+#if 0
+			timer_target = timer_head->ts_integer;
+#else
+			timer_target = timer_head->ts.ts32.integer;
+#endif
 		}
-                enable[c] = *timers[c].enable;
-                if (*timers[c].enable)
-                {
-                        *timers[c].count = *timers[c].count - diff;
-                        if (*timers[c].count <= 0)
-                                process = 1;
-                }
-        }
-        
-        if (!process)
-                return;
-
-        while (1)
-        {
-                int64_t lowest = 1, lowest_c;
-                
-                for (c = 0; c < timers_present; c++)
-                {
-                        if (enable[c])
-                        {
-                                if (*timers[c].count < lowest)
-                                {
-                                        lowest = *timers[c].count;
-                                        lowest_c = c;
-                                }
-                        }
-                }
-                
-                if (lowest > 0)
-                        break;
-
-                timers[lowest_c].callback(timers[lowest_c].priv);
-                enable[lowest_c] = *timers[lowest_c].enable;
-        }              
-}
-
-
-void timer_update_outstanding(void)
-{
-	int64_t c;
-	timer_latch = 0x7fffffffffffffff;
-	for (c = 0; c < timers_present; c++)
-	{
-		if (*timers[c].enable && *timers[c].count < timer_latch)
-			timer_latch = *timers[c].count;
+		return;
 	}
-	timer_count = timer_latch = (timer_latch + ((1 << TIMER_SHIFT) - 1));
-}
 
-
-void timer_reset(void)
-{
-	timers_present = 0;
-	timer_latch = timer_count = 0;
-}
-
-
-int64_t timer_add(void (*callback)(void *priv), int64_t *count, int64_t *enable, void *priv)
-{
-	int64_t i = 0;
-
-	if (timers_present < TIMERS_MAX)
-	{
-		if (timers_present != 0)
-		{
-			/* This is the sanity check - it goes through all present timers and makes sure we're not adding a timer that already exists. */
-			for (i = 0; i < timers_present; i++)
-			{
-				if (timers[i].present && (timers[i].callback == callback) && (timers[i].priv == priv) && (timers[i].count == count) && (timers[i].enable == enable))
-				{
-					return 0;
-				}
-			}
-		}
-
-		timers[timers_present].present = 1;
-		timers[timers_present].callback = callback;
-		timers[timers_present].priv = priv;
-		timers[timers_present].count = count;
-		timers[timers_present].enable = enable;
-		timers_present++;
-		return timers_present - 1;
+	/*timer_node is last in the list. Add timer to end of list*/
+	if (!timer_node->next) {
+		timer_node->next = timer;
+		timer->prev = timer_node;
+		return;
 	}
-	return -1;
+
+	timer_node = timer_node->next;
+    }
 }
 
 
-void timer_set_callback(int64_t timer, void (*callback)(void *priv))
+void
+timer_disable(pc_timer_t *timer)
 {
-	timers[timer].callback = callback;
+    if (!timer_inited || (timer == NULL) || !(timer->flags & TIMER_ENABLED))
+	return;
+
+    if (!timer->next && !timer->prev && timer != timer_head)
+	fatal("timer_disable - !timer->next\n");
+
+    timer->flags &= ~TIMER_ENABLED;
+
+    if (timer->prev)
+	timer->prev->next = timer->next;
+    else
+	timer_head = timer->next;
+    if (timer->next)
+	timer->next->prev = timer->prev;
+    timer->prev = timer->next = NULL;
+}
+
+
+static void
+timer_remove_head(void)
+{
+    pc_timer_t *timer;
+
+    if (!timer_inited)
+	return;
+
+    if (timer_head) {
+	timer = timer_head;
+	timer_head = timer->next;
+	if (timer_head)
+		timer_head->prev = NULL;
+	timer->next = timer->prev = NULL;
+	timer->flags &= ~TIMER_ENABLED;
+    }
+}
+
+
+void
+timer_process(void)
+{
+    pc_timer_t *timer;
+
+    if (!timer_inited || !timer_head)
+	return;
+
+    while(1) {
+	timer = timer_head;
+
+	if (!TIMER_LESS_THAN_VAL(timer, (uint32_t)tsc))
+		break;
+
+	timer_remove_head();
+
+	if (timer->flags & TIMER_SPLIT)
+		timer_advance_ex(timer, 0);	/* We're splitting a > 1 s period into multiple <= 1 s periods. */
+	else if (timer->callback != NULL)	/* Make sure it's no NULL, so that we can have a NULL callback when no operation is needed. */
+		timer->callback(timer->p);
+    }
+
+#if 0
+    timer_target = timer_head->ts_integer;
+#else
+    timer_target = timer_head->ts.ts32.integer;
+#endif
+}
+
+
+void
+timer_close(void)
+{
+    timer_head = NULL;
+
+    timer_inited = 0;
+}
+
+
+void
+timer_init(void)
+{
+    timer_target = 0ULL;
+    tsc = 0;
+
+    timer_inited = 1;
+}
+
+
+void
+timer_add(pc_timer_t *timer, void (*callback)(void *p), void *p, int start_timer)
+{
+    memset(timer, 0, sizeof(pc_timer_t));
+
+    timer->callback = callback;
+    timer->p = p;
+    timer->flags = 0;
+    timer->prev = timer->next = NULL;
+    if (start_timer)
+	timer_set_delay_u64(timer, 0);
+}
+
+
+/* The API for big timer periods starts here. */
+void
+timer_stop(pc_timer_t *timer)
+{
+    if (!timer_inited || (timer == NULL))
+	return;
+
+    timer->period = 0.0;
+    timer_disable(timer);
+    timer->flags &= ~TIMER_SPLIT;
+}
+
+
+static void
+timer_do_period(pc_timer_t *timer, uint64_t period, int start)
+{
+    if (!timer_inited || (timer == NULL))
+	return;
+
+    if (start)
+	timer_set_delay_u64(timer, period);
+    else
+	timer_advance_u64(timer, period);
+}
+
+
+void
+timer_advance_ex(pc_timer_t *timer, int start)
+{
+    if (!timer_inited || (timer == NULL))
+	return;
+
+    if (timer->period > MAX_USEC) {
+	timer_do_period(timer, MAX_USEC64 * TIMER_USEC, start);
+	timer->period -= MAX_USEC;
+	timer->flags |= TIMER_SPLIT;
+    } else {
+	if (timer->period > 0.0)
+		timer_do_period(timer, (uint64_t) (timer->period * ((double) TIMER_USEC)), start);
+	timer->period = 0.0;
+	timer->flags &= ~TIMER_SPLIT;
+    }
+}
+
+
+void
+timer_on(pc_timer_t *timer, double period, int start)
+{
+    if (!timer_inited || (timer == NULL))
+	return;
+
+    timer->period = period;
+    timer_advance_ex(timer, start);
+}
+
+
+void
+timer_on_auto(pc_timer_t *timer, double period)
+{
+    if (!timer_inited || (timer == NULL))
+	return;
+
+    timer_on(timer, period, (timer->period == 0.0));
 }

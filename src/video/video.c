@@ -66,13 +66,12 @@
 #include "vid_svga.h"
 
 
-bitmap_t	*screen = NULL,
-		*buffer = NULL,
-		*buffer32 = NULL;
+bitmap_t	*buffer32 = NULL;
 uint8_t		fontdat[2048][8];		/* IBM CGA font */
 uint8_t		fontdatm[2048][16];		/* IBM MDA font */
 uint8_t		fontdatw[512][32];		/* Wyse700 font */
 uint8_t		fontdat8x12[256][16];		/* MDSI Genius font */
+uint8_t		fontdat12x18[256][36];		/* IM1024 font */
 dbcs_font_t	*fontdatksc5601 = NULL;		/* Korean KSC-5601 font */
 dbcs_font_t	*fontdatksc5601_user = NULL;	/* Korean KSC-5601 user defined font */
 uint32_t	pal_lookup[256];
@@ -325,7 +324,7 @@ video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 }
 
 
-uint8_t pixels8(uint8_t *pixels)
+uint8_t pixels8(uint32_t *pixels)
 {
     int i;
     uint8_t temp = 0;
@@ -367,14 +366,14 @@ video_blend(int x, int y)
     if (!x)
 	carry = 0;
 
-    val1 = pixels8(&(buffer->line[y][x]));
+    val1 = pixels8(&(buffer32->line[y][x]));
     val2 = (val1 >> 1) + carry;
     carry = (val1 & 1) << 7;
     pixels32_1 = cga_2_table[val1 >> 4] + cga_2_table[val2 >> 4];
     pixels32_2 = cga_2_table[val1 & 0xf] + cga_2_table[val2 & 0xf];
     for (xx = 0; xx < 4; xx++) {
-	buffer->line[y][x + xx] = pixel_to_color((uint8_t *) &pixels32_1, xx);
-	buffer->line[y][x + (xx | 4)] = pixel_to_color((uint8_t *) &pixels32_2, xx);
+	buffer32->line[y][x + xx] = pixel_to_color((uint8_t *) &pixels32_1, xx);
+	buffer32->line[y][x + (xx | 4)] = pixel_to_color((uint8_t *) &pixels32_2, xx);
     }
 }
 
@@ -388,10 +387,14 @@ video_blit_memtoscreen_8(int x, int y, int y1, int y2, int w, int h)
 
     for (yy = 0; yy < h; yy++)
     {
-	if ((y + yy) >= 0 && (y + yy) < buffer->h)
+	if ((y + yy) >= 0 && (y + yy) < buffer32->h)
 	{
-		for (xx = 0; xx < w; xx++)
-			*(uint32_t *) &(buffer32->line[y + yy][(x + xx) << 2]) = pal_lookup[buffer->line[y + yy][x + xx]];
+		for (xx = 0; xx < w; xx++) {
+			if (buffer32->line[y + yy][x + xx] <= 0xff)
+				buffer32->line[y + yy][x + xx] = pal_lookup[buffer32->line[y + yy][x + xx]];
+			else
+				buffer32->line[y + yy][x + xx] = 0x00000000;
+		}
 	}
     }
 
@@ -557,13 +560,13 @@ calc_16to32(int c)
 void
 hline(bitmap_t *b, int x1, int y, int x2, uint32_t col)
 {
-    if (y < 0 || y >= buffer->h)
+    int x;
+
+    if (y < 0 || y >= buffer32->h)
 	   return;
 
-    if (b == buffer)
-	memset(&b->line[y][x1], col, x2 - x1);
-      else
-	memset(&((uint32_t *)b->line[y])[x1], col, (x2 - x1) * 4);
+    for (x = x1; x < x2; x++)
+	b->line[y][x] = col;
 }
 
 
@@ -603,12 +606,12 @@ destroy_bitmap(bitmap_t *b)
 bitmap_t *
 create_bitmap(int x, int y)
 {
-    bitmap_t *b = malloc(sizeof(bitmap_t) + (y * sizeof(uint8_t *)));
+    bitmap_t *b = malloc(sizeof(bitmap_t) + (y * sizeof(uint32_t *)));
     int c;
 
     b->dat = malloc(x * y * 4);
     for (c = 0; c < y; c++)
-	b->line[c] = b->dat + (c * x * 4);
+	b->line[c] = &(b->dat[c * x]);
     b->w = x;
     b->h = y;
 
@@ -630,7 +633,6 @@ video_init(void)
     /* Account for overscan. */
     buffer32 = create_bitmap(2048, 2048);
 
-    buffer = create_bitmap(2048, 2048);
     for (c = 0; c < 64; c++) {
 	cgapal[c + 64].r = (((c & 4) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
 	cgapal[c + 64].g = (((c & 2) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
@@ -699,7 +701,6 @@ video_close(void)
     free(video_15to32);
     free(video_16to32);
 
-    destroy_bitmap(buffer);
     destroy_bitmap(buffer32);
 
     if (fontdatksc5601) {
@@ -753,17 +754,14 @@ loadfont(wchar_t *s, int format)
 		break;
 
 	case 1:		/* PC200 */
-		for (c=0; c<256; c++)
-			for (d=0; d<8; d++)
-				fontdatm[c][d] = fgetc(f);
-		for (c=0; c<256; c++)
-		       	for (d=0; d<8; d++)
-				fontdatm[c][d+8] = fgetc(f);
-		(void)fseek(f, 4096, SEEK_SET);
-		for (c=0; c<256; c++) {
-			for (d=0; d<8; d++)
-				fontdat[c][d] = fgetc(f);
-			for (d=0; d<8; d++) (void)fgetc(f);		
+		for (d = 0; d < 4; d++) {
+			/* There are 4 fonts in the ROM */
+			for (c = 0; c < 256; c++)	/* 8x14 MDA in 8x16 cell */
+				fread(&fontdatm[256*d + c][0], 1, 16, f);
+			for (c = 0; c < 256; c++) {	/* 8x8 CGA in 8x16 cell */
+				fread(&fontdat[256*d + c][0], 1, 8, f);
+				fseek(f, 8, SEEK_CUR);
+			}
 		}
 		break;
 
@@ -840,6 +838,17 @@ loadfont(wchar_t *s, int format)
 		/* The second 4k holds an 8x16 font */
 		for (c = 0; c < 256; c++)
 			fread(&fontdatm[c][0], 1, 16, f);
+		break;
+
+	case 8:	/* Amstrad PC1512 */
+		for (c = 0; c < 2048; c++)	/* Allow up to 2048 chars */
+		       	for (d=0; d<8; d++)
+				fontdat[c][d] = fgetc(f);
+		break;
+
+	case 9:	/* Image Manager 1024 native font */
+		for (c = 0; c < 256; c++)
+			fread(&fontdat12x18[c][0], 1, 36, f);
 		break;
     }
 

@@ -8,11 +8,11 @@
  *
  *		Rendering module for Microsoft Direct2D.
  *
- * Version:	@(#)win_d2d.cpp	1.0.2	2018/10/18
+ * Version:	@(#)win_d2d.cpp	1.0.3	2019/03/09
  *
  * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *		Copyright 2018 David Hrdlička.
+ *		Copyright 2018,2019 David Hrdlička.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -35,6 +35,7 @@
 #include "../device.h"
 #include "../video/video.h"
 #include "../plat.h"
+#include "../plat_dynld.h"
 #include "../ui.h"
 #include "win.h"
 #include "win_d2d.h"
@@ -47,7 +48,22 @@ static ID2D1HwndRenderTarget	*d2d_hwndRT;
 static ID2D1BitmapRenderTarget	*d2d_btmpRT;
 static ID2D1Bitmap		*d2d_bitmap;
 static int			d2d_width, d2d_height, d2d_screen_width, d2d_screen_height, d2d_fs;
+static volatile int		d2d_enabled = 0;
 #endif
+
+
+/* Pointers to the real functions. */
+static HRESULT (*D2D1_CreateFactory)(D2D1_FACTORY_TYPE facType,
+				     REFIID riid,
+				     CONST D2D1_FACTORY_OPTIONS *pFacOptions,
+				     void **ppIFactory);
+static dllimp_t d2d_imports[] = {
+  { "D2D1CreateFactory",	&D2D1_CreateFactory		},
+  { NULL,			NULL				}
+};
+
+
+static volatile void		*d2d_handle;	/* handle to WinPcap DLL */
 
 
 #ifdef ENABLE_D2D_LOG
@@ -76,7 +92,7 @@ d2d_stretch(float *w, float *h, float *x, float *y)
 {
 	double dw, dh, dx, dy, temp, temp2, ratio_w, ratio_h, gsr, hsr;
 
-	switch (video_fullscreen_scale) 
+	switch (video_fullscreen_scale)
 	{
 		case FULLSCR_SCALE_FULL:
 			*w = d2d_screen_width;
@@ -86,35 +102,34 @@ d2d_stretch(float *w, float *h, float *x, float *y)
 			break;
 
 		case FULLSCR_SCALE_43:
+		case FULLSCR_SCALE_KEEPRATIO:
 			dw = (double) d2d_screen_width;
 			dh = (double) d2d_screen_height;
-			temp = (dh / 3.0) * 4.0;
-			dx = (dw - temp) / 2.0;
-			dw = temp;
-			*w = (float) dw;
-			*h = (float) dh;
-			*x = (float) dx;
-			*y = 0;
-			break;
-
-		case FULLSCR_SCALE_SQ:
-			dw = (double) d2d_screen_width;
-			dh = (double) d2d_screen_height;
-			temp = ((double) *w);
-			temp2 = ((double) *h);
-			dx = (dw / 2.0) - ((dh * temp) / (temp2 * 2.0));
-			dy = 0.0;
-			if (dx < 0.0) 
+			hsr = dw / dh;
+			if (video_fullscreen_scale == FULLSCR_SCALE_43)
+				gsr = 4.0 / 3.0;
+			else
+				gsr = ((double) *w) / ((double) *h);
+			if (gsr <= hsr)
 			{
-				dx = 0.0;
-				dy = (dw / 2.0) - ((dh * temp2) / (temp * 2.0));
+				temp = dh * gsr;
+				dx = (dw - temp) / 2.0;
+				dw = temp;
+				*w = (float) dw;
+				*h = (float) dh;
+				*x = (float) dx;
+				*y = 0;
 			}
-			dw -= (dx * 2.0);
-			dh -= (dy * 2.0);
-			*w = (float) dw;
-			*h = (float) dh;
-			*x = (float) dx;
-			*y = (float) dy;
+			else
+			{
+				temp = dw / gsr;
+				dy = (dh - temp) / 2.0;
+				dh = temp;
+				*w = (float) dw;
+				*h = (float) dh;
+				*x = 0;
+				*y = (float) dy;
+			}
 			break;
 
 		case FULLSCR_SCALE_INT:
@@ -137,33 +152,6 @@ d2d_stretch(float *w, float *h, float *x, float *y)
 			*x = (float) dx;
 			*y = (float) dy;
 			break;
-
-		case FULLSCR_SCALE_KEEPRATIO:
-			dw = (double) d2d_screen_width;
-			dh = (double) d2d_screen_height;
-			hsr = dw / dh;
-			gsr = ((double) *w) / ((double) *h);
-			if (gsr <= hsr)
-			{
-				temp = dh * gsr;
-				dx = (dw - temp) / 2.0;
-				dw = temp;
-				*w = (float) dw;
-				*h = (float) dh;
-				*x = (float) dx;
-				*y = 0;
-			}
-			else
-			{
-				temp = dw / gsr;
-				dy = (dh - temp) / 2.0;
-				dh = temp;
-				*w = (float) dw;
-				*h = (float) dh;
-				*x = 0;
-				*y = (float) dy;
-			}
-			break;
 	}
 }
 #endif
@@ -179,7 +167,7 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 	int yy;	
 	D2D1_RECT_U rectU;
 
-	ID2D1Bitmap *fs_bitmap;
+	ID2D1Bitmap *fs_bitmap = 0;
 	ID2D1RenderTarget *RT;
 	
 	float fs_x, fs_y;
@@ -187,6 +175,11 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 	float fs_h = h;	
 
 	d2d_log("Direct2D: d2d_blit(x=%d, y=%d, y1=%d, y2=%d, w=%d, h=%d)\n", x, y, y1, y2, w, h);
+
+	if (!d2d_enabled) {
+		video_blit_complete();
+		return;
+	}
 
 	// TODO: Detect double scanned mode and resize render target
 	// appropriately for more clear picture
@@ -244,12 +237,12 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 			if (video_grayscale || invert_display)
 				video_transform_copy(
 					(uint32_t *) &(((uint8_t *)srcdata)[yy * w * 4]),
-					&(((uint32_t *)buffer32->line[y + yy])[x]),
+					&(buffer32->line[y + yy][x]),
 					w);
 			else
 				memcpy(
 					(uint32_t *) &(((uint8_t *)srcdata)[yy * w * 4]),
-					&(((uint32_t *)buffer32->line[y + yy])[x]),
+					&(buffer32->line[y + yy][x]),
 					w * 4);
 		}
 	}
@@ -325,6 +318,12 @@ d2d_close(void)
 {
 	d2d_log("Direct2D: d2d_close()\n");
 
+	/* Unregister our renderer! */
+	video_setblit(NULL);
+
+	if (d2d_enabled)
+		d2d_enabled = 0;
+
 #ifdef USE_D2D
 	if (d2d_bitmap)
 	{
@@ -358,6 +357,12 @@ d2d_close(void)
 		d2d_hwnd = NULL;
 		old_hwndMain = NULL;
 	}
+
+	/* Unload the DLL if possible. */
+	if (d2d_handle != NULL) {
+		dynld_close((void *)d2d_handle);
+		d2d_handle = NULL;
+	}
 #endif
 }
 
@@ -372,7 +377,7 @@ d2d_init_common(int fs)
 
 	d2d_log("Direct2D: d2d_init_common(fs=%d)\n", fs);
 
-	cgapal_rebuild();
+	d2d_handle = dynld_module("d2d1.dll", d2d_imports);
 
 	if (fs)
 	{
@@ -404,10 +409,8 @@ d2d_init_common(int fs)
 		SetWindowPos(d2d_hwnd, HWND_TOPMOST, 0, 0, d2d_screen_width, d2d_screen_height, SWP_SHOWWINDOW);	
 	}
 
-	if (SUCCEEDED(hr))
-	{
-		hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, &d2d_factory);
-	}
+	hr = D2D1_CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, __uuidof(ID2D1Factory),
+				NULL, reinterpret_cast <void **>(&d2d_factory));
 
 	if (fs)
 	{
@@ -459,6 +462,8 @@ d2d_init_common(int fs)
 		return(0);
 	}
 
+	d2d_enabled = 1;
+
 	return(1);
 }
 #endif
@@ -501,7 +506,7 @@ d2d_pause(void)
 
 
 void
-d2d_take_screenshot(wchar_t *fn)
+d2d_take_screenshot(const wchar_t *fn)
 {
 	// Saving a screenshot of a Direct2D render target is harder than
 	// one would think. Keeping this stubbed for the moment
@@ -509,4 +514,11 @@ d2d_take_screenshot(wchar_t *fn)
 
 	d2d_log("Direct2D: d2d_take_screenshot(%s)\n", fn);
 	return;
+}
+
+
+void
+d2d_enable(int enable)
+{
+    d2d_enabled = enable;
 }

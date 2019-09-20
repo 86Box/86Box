@@ -29,15 +29,33 @@
 #include "../device.h"
 #include "vid_icd2061.h"
 
+
+#ifdef ENABLE_ICD2061_LOG
+int icd2061_do_log = ENABLE_ICD2061_LOG;
+
+
+static void
+icd2061_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (icd2061_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+}
+#else
+#define icd2061_log(fmt, ...)
+#endif
+
+
 void
 icd2061_write(icd2061_t *icd2061, int val)
 {
-    int /*od, */nd, oc, nc;
-    int a/*, i*/, qa, q, pa, p, m, ps;
+    int nd, oc, nc;
+    int a, qa, q, pa, p, m, ps;
 
-#if 0
-    od = (icd2061->state & 2) >> 1;	/* Old data. */
-#endif
     nd = (val & 2) >> 1;		/* Old data. */
     oc = icd2061->state & 1;		/* Old clock. */
     nc = val & 1;			/* New clock. */
@@ -48,15 +66,19 @@ icd2061_write(icd2061_t *icd2061, int val)
 	if (!icd2061->unlocked) {
 		if (nd) {			/* DATA high. */
 			icd2061->count++;
-			/* pclog("Low-to-high transition of CLK with DATA high, %i total\n", icd2061->count); */
+			icd2061_log("Low-to-high transition of CLK with DATA high, %i total\n", icd2061->count);
 		} else {			/* DATA low. */
 			if (icd2061->count >= 5) {
 				icd2061->unlocked = 1;
 				icd2061->bit_count = icd2061->data = 0;
-				/* pclog("ICD2061 unlocked\n"); */
+#ifdef ENABLE_ICD2061_LOG
+				icd2061_log("ICD2061 unlocked\n");
+#endif
 			} else {
 				icd2061->count = 0;
-				/* pclog("ICD2061 locked\n"); */
+#ifdef ENABLE_ICD2061_LOG
+				icd2061_log("ICD2061 locked\n");
+#endif
 			}
 		}
 	} else if (nc) {
@@ -64,15 +86,12 @@ icd2061_write(icd2061_t *icd2061, int val)
 		icd2061->bit_count++;
 
 		if (icd2061->bit_count == 26) {
-			/* pclog("26 bits received, data = %08X\n", icd2061->data); */
+			icd2061_log("26 bits received, data = %08X\n", icd2061->data);
 	
 			a = ((icd2061->data >> 22) & 0x07);	/* A  */
-			/* pclog("A = %01X\n", a); */
+			icd2061_log("A = %01X\n", a);
 
 			if (a < 3) {
-#if 0
-				i = ((icd2061->data >> 18) & 0x0f);	/* I  */
-#endif
 				pa = ((icd2061->data >> 11) & 0x7f);		/* P' (ICD2061) / N' (ICS9161) */
 				m = ((icd2061->data >> 8) & 0x07);		/* M  (ICD2061) / R  (ICS9161) */
 				qa = ((icd2061->data >> 1) & 0x7f);		/* Q' (ICD2061) / M' (ICS9161) */
@@ -84,14 +103,16 @@ icd2061_write(icd2061_t *icd2061, int val)
 
 				icd2061->freq[a] = ((float)(p * ps) / (float)(q * m)) * 14318184.0f;
 
-				/* pclog("P = %02X, M = %01X, Q = %02X, freq[%i] = %f\n", p, m, q, a, icd2061->freq[a]); */
+				icd2061_log("P = %02X, M = %01X, Q = %02X, freq[%i] = %f\n", p, m, q, a, icd2061->freq[a]);
 			} else if (a == 6) {
 				icd2061->ctrl = ((icd2061->data >> 13) & 0xff);
-				/* pclog("ctrl = %02X\n", icd2061->ctrl); */
+				icd2061_log("ctrl = %02X\n", icd2061->ctrl);
 			}
 			icd2061->count = icd2061->bit_count = icd2061->data = 0;
 			icd2061->unlocked = 0;
-			/* pclog("ICD2061 locked\n"); */
+#ifdef ENABLE_ICD2061_LOG
+			icd2061_log("ICD2061 locked\n");
+#endif
 		}
 	}
     }

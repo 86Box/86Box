@@ -24,6 +24,7 @@
 #include <math.h>  
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../mca.h"
 #include "../pic.h"
 #include "../dma.h"
@@ -150,9 +151,16 @@ static void ncr_audio_mca_write(int port, uint8_t val, void *p)
 		if (wss->opl_enabled)
 			io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL,  &wss->opl);	
 		
-        io_sethandler(addr, 0x0004, wss_read,    NULL, NULL, wss_write,    NULL, NULL,  wss);
-        io_sethandler(addr+4, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL,  &wss->ad1848);
+		io_sethandler(addr, 0x0004, wss_read,    NULL, NULL, wss_write,    NULL, NULL,  wss);
+		io_sethandler(addr+4, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL,  &wss->ad1848);
 	} 
+}
+
+static uint8_t ncr_audio_mca_feedb(void *p)
+{
+	wss_t *wss = (wss_t *)p;
+
+	return (wss->pos_regs[2] & 1);
 }
 
 void *ncr_audio_init(const device_t *info)
@@ -164,14 +172,14 @@ void *ncr_audio_init(const device_t *info)
         opl3_init(&wss->opl);
         ad1848_init(&wss->ad1848);
 
-		ad1848_setirq(&wss->ad1848, 7);
-		ad1848_setdma(&wss->ad1848, 3);		
+	ad1848_setirq(&wss->ad1848, 7);
+	ad1848_setdma(&wss->ad1848, 3);		
 		
-        mca_add(ncr_audio_mca_read, ncr_audio_mca_write, wss);
+        mca_add(ncr_audio_mca_read, ncr_audio_mca_write, ncr_audio_mca_feedb, wss);
         wss->pos_regs[0] = 0x16;
         wss->pos_regs[1] = 0x51;		
 		
-        sound_add_handler(wss_get_buffer, wss);		
+        sound_add_handler(wss_get_buffer, wss);
 		
         return wss;
 }

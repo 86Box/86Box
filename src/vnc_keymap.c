@@ -22,12 +22,12 @@
  * NOTE:	The values are as defined in the Microsoft document named
  *		"Keyboard Scan Code Specification", version 1.3a of 2000/03/16.
  *
- * Version:	@(#)vnc_keymap.c	1.0.3	2018/04/29
+ * Version:	@(#)vnc_keymap.c	1.0.4	2019/03/24
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -668,5 +668,30 @@ vnc_kbinput(int down, int k)
     }
 
     /* Send this scancode sequence to the PC keyboard. */
-    keyboard_input(down, scan);
+    switch (scan >> 8) {
+	case 0x00:
+	default:
+		if (scan & 0xff)
+			keyboard_input(down, scan & 0xff);
+		break;
+	case 0x2a:
+		if (scan & 0xff) {
+			if (down) {
+				keyboard_input(down, 0x2a);
+				keyboard_input(down, scan & 0xff);
+			} else {
+				keyboard_input(down, scan & 0xff);
+				keyboard_input(down, 0x2a);
+			}
+		}
+		break;
+	case 0xe0:
+		if (scan & 0xff)
+			keyboard_input(down, (scan & 0xff) | 0x100);
+		break;
+	case 0xe1:
+		if (scan == 0x1d)
+			keyboard_input(down, 0x100);
+		break;
+    }
 }

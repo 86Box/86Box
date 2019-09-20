@@ -199,7 +199,9 @@ typedef struct {
 typedef struct {
     const char	*name;
 
-    int64_t	timeout;
+    void	*lpt;
+
+    pc_timer_t	timeout_timer;
 
     wchar_t	page_fn[260];
     uint8_t 	color;
@@ -431,7 +433,7 @@ timeout_timer(void *priv)
     if (dev->page->dirty)
 	new_page(dev, 1, 1);
 
-    dev->timeout = 0LL;
+    timer_disable(&dev->timeout_timer);
 }
 
 
@@ -517,7 +519,7 @@ static void
 reset_printer_hard(escp_t *dev)
 {
     dev->char_read = 0;
-    dev->timeout = 0LL;
+    timer_disable(&dev->timeout_timer);
     reset_printer(dev);
 }
 
@@ -1588,6 +1590,7 @@ handle_char(escp_t *dev, uint8_t ch)
     double x_advance;
 
     dev->char_read = 1;
+    lpt_irq(dev->lpt, 1);
 
     if (dev->page == NULL)
 	return;
@@ -1977,7 +1980,7 @@ write_ctrl(uint8_t val, void *priv)
 	/* ACK it, will be read on next READ STATUS. */
 	dev->ack = 1;
 
-	dev->timeout = 500000LL * TIMER_USEC;
+	timer_set_delay_u64(&dev->timeout_timer, 500000 * TIMER_USEC);
     }
 
     dev->ctrl = val;
@@ -2020,13 +2023,11 @@ read_status(void *priv)
 
 
 static void *
-escp_init(const lpt_device_t *INFO)
+escp_init(void *lpt)
 {
     const char *fn = PATH_FREETYPE_DLL;
     escp_t *dev;
     int i;
-
-    escp_log("ESC/P: LPT printer '%s' initializing\n", INFO->name);
 
     /* Dynamically load FreeType. */
     if (ft_handle == NULL) {
@@ -2050,8 +2051,8 @@ escp_init(const lpt_device_t *INFO)
     /* Initialize a device instance. */
     dev = (escp_t *)malloc(sizeof(escp_t));
     memset(dev, 0x00, sizeof(escp_t));
-    dev->name = INFO->name;
     dev->ctrl = 0x04;
+    dev->lpt = lpt;
 
     /* Create a full pathname for the font files. */
     wcscpy(dev->fontpath, exe_path);
@@ -2109,7 +2110,7 @@ escp_init(const lpt_device_t *INFO)
     escp_log("ESC/P: created a virtual page of dimensions %d x %d pixels.\n",
 	     dev->page->w, dev->page->h);
 
-    timer_add(timeout_timer, &dev->timeout, &dev->timeout, dev);
+	timer_add(&dev->timeout_timer, timeout_timer, dev, 0);
 
     return(dev);
 }

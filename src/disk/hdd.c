@@ -24,6 +24,7 @@
 #include "../plat.h"
 #include "../ui.h"
 #include "hdd.h"
+#include "../cdrom/cdrom.h"
 
 
 hard_disk_t	hdd[HDD_NUM];
@@ -92,6 +93,9 @@ no_cdrom:
     if (! strcmp(str, "scsi"))
 	return(HDD_BUS_SCSI);
 
+    if (! strcmp(str, "scsi_chinon"))
+	return(CDROM_BUS_SCSI_CHINON);
+
     if (! strcmp(str, "usb"))
 	ui_msgbox(MBX_ERROR, (wchar_t *)IDS_4110);
 
@@ -127,6 +131,10 @@ hdd_bus_to_string(int bus, int cdrom)
 
 	case HDD_BUS_SCSI:
 		s = "scsi";
+		break;
+		
+	case CDROM_BUS_SCSI_CHINON:
+		s = "scsi_chinon";
 		break;
     }
 

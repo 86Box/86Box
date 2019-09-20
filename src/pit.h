@@ -3,13 +3,13 @@
 
 
 typedef struct {
-    int64_t	nr;
+    int		nr;
     struct PIT	*pit;
 } PIT_nr;
 
 typedef struct PIT {
     uint32_t	l[3];
-    int64_t	c[3];
+    pc_timer_t	timer[3];
     uint8_t	m[3];
     uint8_t	ctrl,
 		ctrls[3];
@@ -22,7 +22,7 @@ typedef struct PIT {
     int		rereadlatch[3];
     int		gate[3];
     int		out[3];
-    int64_t	running[3];
+    int		running[3];
     int		enabled[3];
     int		newcount[3];
     int		count[3];
@@ -42,9 +42,13 @@ typedef struct PIT {
 
 extern PIT	pit,
 		pit2;
-extern double	PITCONST;
-extern float	CGACONST,
+
+extern double	SYSCLK;
+
+extern uint64_t	PITCONST,
+		CGACONST,
 		MDACONST,
+		HERCCONST,
 		VGACONST1,
 		VGACONST2,
 		RTCCONST;
@@ -56,19 +60,13 @@ extern void	pit_reset(PIT *pit);
 extern void	pit_set_gate(PIT *pit, int channel, int gate);
 extern void	pit_set_using_timer(PIT *pit, int t, int using_timer);
 extern void	pit_set_out_func(PIT *pit, int t, void (*func)(int new_out, int old_out));
-extern void	pit_clock(PIT *pit, int t);
 
-extern void     setrtcconst(float clock);
-
-extern void     setpitclock(float clock);
 extern float    pit_timer0_freq(void);
-
-extern void	pit_null_timer(int new_out, int old_out);
-extern void	pit_irq0_timer(int new_out, int old_out);
 extern void	pit_irq0_timer_pcjr(int new_out, int old_out);
 extern void	pit_refresh_timer_xt(int new_out, int old_out);
 extern void	pit_refresh_timer_at(int new_out, int old_out);
-extern void	pit_speaker_timer(int new_out, int old_out);
+
+extern void     pit_set_clock(int clock);
 
 
 #endif	/*EMU_PIT_H*/

@@ -22,7 +22,7 @@ uint8_t opl2_read(uint16_t a, void *priv)
 {
         opl_t *opl = (opl_t *)priv;
 
-        cycles -= ISA_CYCLES(8);
+        sub_cycles((int)(isa_timing * 8));
         opl2_update2(opl);
         return opl_read(0, a);
 }
@@ -39,7 +39,7 @@ uint8_t opl2_l_read(uint16_t a, void *priv)
 {
         opl_t *opl = (opl_t *)priv;
 
-        cycles -= ISA_CYCLES(8);
+        sub_cycles((int)(isa_timing * 8));
         opl2_update2(opl);
         return opl_read(0, a);
 }
@@ -55,7 +55,7 @@ uint8_t opl2_r_read(uint16_t a, void *priv)
 {
         opl_t *opl = (opl_t *)priv;
 
-        cycles -= ISA_CYCLES(8);
+        sub_cycles((int)(isa_timing * 8));
         opl2_update2(opl);
         return opl_read(1, a);
 }
@@ -71,7 +71,7 @@ uint8_t opl3_read(uint16_t a, void *priv)
 {
         opl_t *opl = (opl_t *)priv;
 
-        cycles -= ISA_CYCLES(8);
+        sub_cycles((int)(isa_timing * 8));
         opl3_update2(opl);
         return opl_read(0, a);
 }
@@ -111,58 +111,49 @@ void opl3_update2(opl_t *opl)
         }
 }
 
-void ym3812_timer_set_0(void *param, int timer, int64_t period)
+void ym3812_timer_set_0(void *param, int timer, uint64_t period)
 {
         opl_t *opl = (opl_t *)param;
         
-        opl->timers[0][timer] = period * TIMER_USEC * 20LL;
-        if (!opl->timers[0][timer]) opl->timers[0][timer] = 1;
-        opl->timers_enable[0][timer] = period ? 1 : 0;
+		if (period)
+			timer_set_delay_u64(&opl->timers[0][timer], period * TIMER_USEC * 20);
+		else
+			timer_disable(&opl->timers[0][timer]);
 }
-void ym3812_timer_set_1(void *param, int timer, int64_t period)
+void ym3812_timer_set_1(void *param, int timer, uint64_t period)
 {
         opl_t *opl = (opl_t *)param;
 
-        opl->timers[1][timer] = period * TIMER_USEC * 20LL;
-        if (!opl->timers[1][timer]) opl->timers[1][timer] = 1;
-        opl->timers_enable[1][timer] = period ? 1 : 0;
+		if (period)
+			timer_set_delay_u64(&opl->timers[1][timer], period * TIMER_USEC * 20);
+		else
+			timer_disable(&opl->timers[1][timer]);
 }
 
-void ymf262_timer_set(void *param, int timer, int64_t period)
+void ymf262_timer_set(void *param, int timer, uint64_t period)
 {
         opl_t *opl = (opl_t *)param;
 
-        opl->timers[0][timer] = period * TIMER_USEC * 20LL;
-        if (!opl->timers[0][timer]) opl->timers[0][timer] = 1;
-        opl->timers_enable[0][timer] = period ? 1 : 0;
+		if (period)
+			timer_set_delay_u64(&opl->timers[0][timer], period * TIMER_USEC * 20);
+		else
+			timer_disable(&opl->timers[0][timer]);
 }
 
 static void opl_timer_callback00(void *p)
 {
-        opl_t *opl = (opl_t *)p;
-        
-        opl->timers_enable[0][0] = 0;
         opl_timer_over(0, 0);
 }
 static void opl_timer_callback01(void *p)
 {
-        opl_t *opl = (opl_t *)p;
-        
-        opl->timers_enable[0][1] = 0;
         opl_timer_over(0, 1);
 }
 static void opl_timer_callback10(void *p)
 {
-        opl_t *opl = (opl_t *)p;
-        
-        opl->timers_enable[1][0] = 0;
         opl_timer_over(1, 0);
 }
 static void opl_timer_callback11(void *p)
 {
-        opl_t *opl = (opl_t *)p;
-        
-        opl->timers_enable[1][1] = 0;
         opl_timer_over(1, 1);
 }
         
@@ -170,16 +161,16 @@ void opl2_init(opl_t *opl)
 {
         opl_init(ym3812_timer_set_0, opl, 0, 0);
         opl_init(ym3812_timer_set_1, opl, 1, 0);
-        timer_add(opl_timer_callback00, &opl->timers[0][0], &opl->timers_enable[0][0], (void *)opl);
-        timer_add(opl_timer_callback01, &opl->timers[0][1], &opl->timers_enable[0][1], (void *)opl);
-        timer_add(opl_timer_callback10, &opl->timers[1][0], &opl->timers_enable[1][0], (void *)opl);
-        timer_add(opl_timer_callback11, &opl->timers[1][1], &opl->timers_enable[1][1], (void *)opl);
+		timer_add(&opl->timers[0][0], opl_timer_callback00, (void *)opl, 0);
+		timer_add(&opl->timers[0][1], opl_timer_callback01, (void *)opl, 0);
+		timer_add(&opl->timers[1][0], opl_timer_callback10, (void *)opl, 0);
+		timer_add(&opl->timers[1][1], opl_timer_callback11, (void *)opl, 0);
 }
 
 void opl3_init(opl_t *opl)
 {
         opl_init(ymf262_timer_set, opl, 0, 1);
-        timer_add(opl_timer_callback00, &opl->timers[0][0], &opl->timers_enable[0][0], (void *)opl);
-        timer_add(opl_timer_callback01, &opl->timers[0][1], &opl->timers_enable[0][1], (void *)opl);
+		timer_add(&opl->timers[0][0], opl_timer_callback00, (void *)opl, 0);
+		timer_add(&opl->timers[0][1], opl_timer_callback01, (void *)opl, 0);
 }
 

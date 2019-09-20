@@ -45,6 +45,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
+#include "../timer.h"
 #include "../plat.h"
 #include "fdd.h"
 #include "fdd_86f.h"

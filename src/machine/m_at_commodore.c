@@ -42,9 +42,11 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../device.h"
+#include "../timer.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../lpt.h"
+#include "../rom.h"
 #include "../serial.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
@@ -90,10 +92,19 @@ cbm_io_init()
 }
 
 
-void
+int
 machine_at_cmdpc_init(const machine_t *model)
 {
-    machine_at_ide_init(model);
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/cmdpc30/commodore pc 30 iii even.bin",
+				L"roms/machines/cmdpc30/commodore pc 30 iii odd.bin",
+				0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_init(model);
 
     mem_remap_top(384);
 
@@ -101,4 +112,6 @@ machine_at_cmdpc_init(const machine_t *model)
     cmd_uart = device_add(&i8250_device);
 
     cbm_io_init();
+
+    return ret;
 }

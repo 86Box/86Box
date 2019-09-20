@@ -22,6 +22,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../device.h"
+#include "../timer.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "video.h"
@@ -53,16 +54,16 @@ void ega_render_blank(ega_t *ega)
 		switch (ega->seqregs[1] & 9)
 		{
 			case 0:
-				for (xx = 0; xx < 9; xx++)  ((uint32_t *)buffer32->line[dl])[(x * 9) + xx + 32 + x_add] = 0;
+				for (xx = 0; xx < 9; xx++)  buffer32->line[dl][(x * 9) + xx + 32 + x_add] = 0;
 				break;
 			case 1:
-				for (xx = 0; xx < 8; xx++)  ((uint32_t *)buffer32->line[dl])[(x * 8) + xx + 32 + x_add] = 0;
+				for (xx = 0; xx < 8; xx++)  buffer32->line[dl][(x * 8) + xx + 32 + x_add] = 0;
 				break;
 			case 8:
-				for (xx = 0; xx < 18; xx++) ((uint32_t *)buffer32->line[dl])[(x * 18) + xx + 32 + x_add] = 0;
+				for (xx = 0; xx < 18; xx++) buffer32->line[dl][(x * 18) + xx + 32 + x_add] = 0;
 				break;
 			case 9:
-				for (xx = 0; xx < 16; xx++) ((uint32_t *)buffer32->line[dl])[(x * 16) + xx + 32 + x_add] = 0;
+				for (xx = 0; xx < 16; xx++) buffer32->line[dl][(x * 16) + xx + 32 + x_add] = 0;
 				break;
 		}
 	}
@@ -111,20 +112,20 @@ void ega_render_text_standard(ega_t *ega, int drawcursor)
                         if (ega->seqregs[1] & 1) 
                         { 
                                 for (xx = 0; xx < 8; xx++) 
-                                        ((uint32_t *)buffer32->line[dl])[((x << 4) + 32 + (xx << 1) + x_add) & 2047] =
-                                        ((uint32_t *)buffer32->line[dl])[((x << 4) + 33 + (xx << 1) + x_add) & 2047] = (dat & (0x80 >> xx)) ? fg : bg; 
+                                        buffer32->line[dl][((x << 4) + 32 + (xx << 1) + x_add) & 2047] =
+                                        buffer32->line[dl][((x << 4) + 33 + (xx << 1) + x_add) & 2047] = (dat & (0x80 >> xx)) ? fg : bg; 
                         }
                         else
                         {
                                 for (xx = 0; xx < 8; xx++) 
-                                        ((uint32_t *)buffer32->line[dl])[((x * 18) + 32 + (xx << 1) + x_add) & 2047] = 
-                                        ((uint32_t *)buffer32->line[dl])[((x * 18) + 33 + (xx << 1) + x_add) & 2047] = (dat & (0x80 >> xx)) ? fg : bg;
+                                        buffer32->line[dl][((x * 18) + 32 + (xx << 1) + x_add) & 2047] = 
+                                        buffer32->line[dl][((x * 18) + 33 + (xx << 1) + x_add) & 2047] = (dat & (0x80 >> xx)) ? fg : bg;
                                 if ((chr & ~0x1f) != 0xc0 || !(ega->attrregs[0x10] & 4)) 
-                                        ((uint32_t *)buffer32->line[dl])[((x * 18) + 32 + 16 + x_add) & 2047] = 
-                                        ((uint32_t *)buffer32->line[dl])[((x * 18) + 32 + 17 + x_add) & 2047] = bg;
+                                        buffer32->line[dl][((x * 18) + 32 + 16 + x_add) & 2047] = 
+                                        buffer32->line[dl][((x * 18) + 32 + 17 + x_add) & 2047] = bg;
                                 else
-                                        ((uint32_t *)buffer32->line[dl])[((x * 18) + 32 + 16 + x_add) & 2047] = 
-                                        ((uint32_t *)buffer32->line[dl])[((x * 18) + 32 + 17 + x_add) & 2047] = (dat & 1) ? fg : bg;
+                                        buffer32->line[dl][((x * 18) + 32 + 16 + x_add) & 2047] = 
+                                        buffer32->line[dl][((x * 18) + 32 + 17 + x_add) & 2047] = (dat & 1) ? fg : bg;
                         }
                 }
                 else
@@ -132,16 +133,16 @@ void ega_render_text_standard(ega_t *ega, int drawcursor)
                         if (ega->seqregs[1] & 1) 
                         { 
                                 for (xx = 0; xx < 8; xx++) 
-                                        ((uint32_t *)buffer32->line[dl])[((x << 3) + 32 + xx + x_add) & 2047] = (dat & (0x80 >> xx)) ? fg : bg; 
+                                        buffer32->line[dl][((x << 3) + 32 + xx + x_add) & 2047] = (dat & (0x80 >> xx)) ? fg : bg; 
                         }
                         else
                         {
                                 for (xx = 0; xx < 8; xx++) 
-                                        ((uint32_t *)buffer32->line[dl])[((x * 9) + 32 + xx + x_add) & 2047] = (dat & (0x80 >> xx)) ? fg : bg;
+                                        buffer32->line[dl][((x * 9) + 32 + xx + x_add) & 2047] = (dat & (0x80 >> xx)) ? fg : bg;
                                 if ((chr & ~0x1f) != 0xc0 || !(ega->attrregs[0x10] & 4)) 
-                                        ((uint32_t *)buffer32->line[dl])[((x * 9) + 32 + 8 + x_add) & 2047] = bg;
+                                        buffer32->line[dl][((x * 9) + 32 + 8 + x_add) & 2047] = bg;
                                 else                  
-                                        ((uint32_t *)buffer32->line[dl])[((x * 9) + 32 + 8 + x_add) & 2047] = (dat & 1) ? fg : bg;
+                                        buffer32->line[dl][((x * 9) + 32 + 8 + x_add) & 2047] = (dat & 1) ? fg : bg;
                         }
                 }
                 ega->ma += 4; 
@@ -171,13 +172,13 @@ void ega_jega_render_blit_text(ega_t *ega, int x, int dl, int start, int width, 
 	{
 		for (xx = start; xx < (start + width); xx++) 
 			for (xxx = 0; xxx < cw; xxx++)
-				((uint32_t *)buffer32->line[dl])[(((x * width) + 32 + (xxx << 1) + ((xx << 1) * cw)) & 2047) + x_add] = 
-				((uint32_t *)buffer32->line[dl])[(((x * width) + 33 + (xxx << 1) + ((xx << 1) * cw)) & 2047) + x_add] = (dat & (0x80 >> xx)) ? fg : bg;
+				buffer32->line[dl][(((x * width) + 32 + (xxx << 1) + ((xx << 1) * cw)) & 2047) + x_add] = 
+				buffer32->line[dl][(((x * width) + 33 + (xxx << 1) + ((xx << 1) * cw)) & 2047) + x_add] = (dat & (0x80 >> xx)) ? fg : bg;
 	}
 	else
 	{
 		for (xx = start; xx < (start + width); xx++) 
-			((uint32_t *)buffer32->line[dl])[(((x * width) + 32 + xxx + (xx * cw)) & 2047) + x_add] = (dat & (0x80 >> xx)) ? fg : bg;
+			buffer32->line[dl][(((x * width) + 32 + xxx + (xx * cw)) & 2047) + x_add] = (dat & (0x80 >> xx)) ? fg : bg;
 	}
 }
 
@@ -414,14 +415,14 @@ void ega_render_2bpp(ega_t *ega)
 
                 ega->ma &= ega->vrammask;
 
-                ((uint32_t *)buffer32->line[dl])[(x << 4) + 14 + offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) + 15 + offset] = ega->pallook[ega->egapal[edat[1] & 3]];
-                ((uint32_t *)buffer32->line[dl])[(x << 4) + 12 + offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) + 13 + offset] = ega->pallook[ega->egapal[(edat[1] >> 2) & 3]];
-                ((uint32_t *)buffer32->line[dl])[(x << 4) + 10 + offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) + 11 + offset] = ega->pallook[ega->egapal[(edat[1] >> 4) & 3]];
-                ((uint32_t *)buffer32->line[dl])[(x << 4) +  8 + offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) +  9 + offset] = ega->pallook[ega->egapal[(edat[1] >> 6) & 3]];
-                ((uint32_t *)buffer32->line[dl])[(x << 4) +  6 + offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) +  7 + offset] = ega->pallook[ega->egapal[(edat[0] >> 0) & 3]];
-                ((uint32_t *)buffer32->line[dl])[(x << 4) +  4 + offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) +  5 + offset] = ega->pallook[ega->egapal[(edat[0] >> 2) & 3]];
-                ((uint32_t *)buffer32->line[dl])[(x << 4) +  2 + offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) +  3 + offset] = ega->pallook[ega->egapal[(edat[0] >> 4) & 3]];
-                ((uint32_t *)buffer32->line[dl])[(x << 4) +      offset] = ((uint32_t *)buffer32->line[ega->displine])[(x << 4) +  1 + offset] = ega->pallook[ega->egapal[(edat[0] >> 6) & 3]];
+                buffer32->line[dl][(x << 4) + 14 + offset] = buffer32->line[ega->displine][(x << 4) + 15 + offset] = ega->pallook[ega->egapal[edat[1] & 3]];
+                buffer32->line[dl][(x << 4) + 12 + offset] = buffer32->line[ega->displine][(x << 4) + 13 + offset] = ega->pallook[ega->egapal[(edat[1] >> 2) & 3]];
+                buffer32->line[dl][(x << 4) + 10 + offset] = buffer32->line[ega->displine][(x << 4) + 11 + offset] = ega->pallook[ega->egapal[(edat[1] >> 4) & 3]];
+                buffer32->line[dl][(x << 4) +  8 + offset] = buffer32->line[ega->displine][(x << 4) +  9 + offset] = ega->pallook[ega->egapal[(edat[1] >> 6) & 3]];
+                buffer32->line[dl][(x << 4) +  6 + offset] = buffer32->line[ega->displine][(x << 4) +  7 + offset] = ega->pallook[ega->egapal[(edat[0] >> 0) & 3]];
+                buffer32->line[dl][(x << 4) +  4 + offset] = buffer32->line[ega->displine][(x << 4) +  5 + offset] = ega->pallook[ega->egapal[(edat[0] >> 2) & 3]];
+                buffer32->line[dl][(x << 4) +  2 + offset] = buffer32->line[ega->displine][(x << 4) +  3 + offset] = ega->pallook[ega->egapal[(edat[0] >> 4) & 3]];
+                buffer32->line[dl][(x << 4) +      offset] = buffer32->line[ega->displine][(x << 4) +  1 + offset] = ega->pallook[ega->egapal[(edat[0] >> 6) & 3]];
         }
 }
 
@@ -473,17 +474,17 @@ void ega_render_4bpp_lowres(ega_t *ega)
                 ega->ma &= ega->vrammask;
 
 		dat = edatlookup[edat[0] & 3][edat[1] & 3] | (edatlookup[edat[2] & 3][edat[3] & 3] << 2);
-		((uint32_t *)buffer32->line[dl])[(x << 4) + 14 + offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) + 15 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) + 12 + offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) + 13 + offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 4) + 14 + offset + x_add] = buffer32->line[dl][(x << 4) + 15 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 4) + 12 + offset + x_add] = buffer32->line[dl][(x << 4) + 13 + offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
 		dat = edatlookup[(edat[0] >> 2) & 3][(edat[1] >> 2) & 3] | (edatlookup[(edat[2] >> 2) & 3][(edat[3] >> 2) & 3] << 2);
-		((uint32_t *)buffer32->line[dl])[(x << 4) + 10 + offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) + 11 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) +  8 + offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) +  9 + offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 4) + 10 + offset + x_add] = buffer32->line[dl][(x << 4) + 11 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 4) +  8 + offset + x_add] = buffer32->line[dl][(x << 4) +  9 + offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
 		dat = edatlookup[(edat[0] >> 4) & 3][(edat[1] >> 4) & 3] | (edatlookup[(edat[2] >> 4) & 3][(edat[3] >> 4) & 3] << 2);
-		((uint32_t *)buffer32->line[dl])[(x << 4) +  6 + offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) +  7 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) +  4 + offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) +  5 + offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 4) +  6 + offset + x_add] = buffer32->line[dl][(x << 4) +  7 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 4) +  4 + offset + x_add] = buffer32->line[dl][(x << 4) +  5 + offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
 		dat = edatlookup[edat[0] >> 6][edat[1] >> 6] | (edatlookup[edat[2] >> 6][edat[3] >> 6] << 2);
-		((uint32_t *)buffer32->line[dl])[(x << 4) +  2 + offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) +  3 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
-		((uint32_t *)buffer32->line[dl])[(x << 4) +      offset + x_add] = ((uint32_t *)buffer32->line[dl])[(x << 4) +  1 + offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 4) +  2 + offset + x_add] = buffer32->line[dl][(x << 4) +  3 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 4) +      offset + x_add] = buffer32->line[dl][(x << 4) +  1 + offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
 	}
 }
 
@@ -535,16 +536,16 @@ void ega_render_4bpp_highres(ega_t *ega)
                 ega->ma &= ega->vrammask;
 
 		dat = edatlookup[edat[0] & 3][edat[1] & 3] | (edatlookup[edat[2] & 3][edat[3] & 3] << 2);
-		((uint32_t *)buffer32->line[dl])[(x << 3) + 7 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
-		((uint32_t *)buffer32->line[dl])[(x << 3) + 6 + offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 3) + 7 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 3) + 6 + offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
 		dat = edatlookup[(edat[0] >> 2) & 3][(edat[1] >> 2) & 3] | (edatlookup[(edat[2] >> 2) & 3][(edat[3] >> 2) & 3] << 2);
-		((uint32_t *)buffer32->line[dl])[(x << 3) + 5 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
-		((uint32_t *)buffer32->line[dl])[(x << 3) + 4 + offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 3) + 5 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 3) + 4 + offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
 		dat = edatlookup[(edat[0] >> 4) & 3][(edat[1] >> 4) & 3] | (edatlookup[(edat[2] >> 4) & 3][(edat[3] >> 4) & 3] << 2);
-		((uint32_t *)buffer32->line[dl])[(x << 3) + 3 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
-		((uint32_t *)buffer32->line[dl])[(x << 3) + 2 + offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 3) + 3 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 3) + 2 + offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
 		dat = edatlookup[edat[0] >> 6][edat[1] >> 6] | (edatlookup[edat[2] >> 6][edat[3] >> 6] << 2);
-		((uint32_t *)buffer32->line[dl])[(x << 3) + 1 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
-		((uint32_t *)buffer32->line[dl])[(x << 3) +     offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 3) + 1 + offset + x_add] = ega->pallook[ega->egapal[(dat & 0xf) & ega->attrregs[0x12]]];
+		buffer32->line[dl][(x << 3) +     offset + x_add] = ega->pallook[ega->egapal[(dat >> 4)  & ega->attrregs[0x12]]];
 	}
 }

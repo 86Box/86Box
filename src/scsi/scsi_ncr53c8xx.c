@@ -34,6 +34,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../dma.h"
 #include "../pic.h"
 #include "../mem.h"
@@ -41,7 +42,6 @@
 #include "../pci.h"
 #include "../device.h"
 #include "../nvr.h"
-#include "../timer.h"
 #include "../plat.h"
 #include "scsi.h"
 #include "scsi_device.h"
@@ -301,8 +301,7 @@ typedef struct {
     uint8_t regop;
     uint32_t adder;
 
-    int64_t timer_period;
-    int64_t timer_enabled;
+    pc_timer_t timer;
 } ncr53c8xx_t;
 
 
@@ -363,7 +362,7 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
     int i;
 
     ncr53c8xx_log("LSI Reset\n");
-    dev->timer_period = dev->timer_enabled = 0;
+    timer_stop(&dev->timer);
 
     dev->carry = 0;
 
@@ -566,7 +565,7 @@ ncr53c8xx_script_scsi_interrupt(ncr53c8xx_t *dev, int stat0, int stat1)
     if ((dev->sist0 & mask0) || (dev->sist1 & mask1)) {
 	ncr53c8xx_log("NCR 810: IRQ-mandated stop\n");
 	dev->sstop = 1;
-	dev->timer_period = dev->timer_enabled = 0;
+	timer_stop(&dev->timer);
     }
     ncr53c8xx_update_irq(dev);
 }
@@ -580,7 +579,7 @@ ncr53c8xx_script_dma_interrupt(ncr53c8xx_t *dev, int stat)
     dev->dstat |= stat;
     ncr53c8xx_update_irq(dev);
     dev->sstop = 1;
-    dev->timer_period = dev->timer_enabled = 0;
+    timer_stop(&dev->timer);
 }
 
 
@@ -598,7 +597,7 @@ ncr53c8xx_bad_phase(ncr53c8xx_t *dev, int out, int new_phase)
     ncr53c8xx_log("Phase mismatch interrupt\n");
     ncr53c8xx_script_scsi_interrupt(dev, NCR_SIST0_MA, 0);
     dev->sstop = 1;
-    dev->timer_period = dev->timer_enabled = 0;
+    timer_stop(&dev->timer);
     ncr53c8xx_set_phase(dev, new_phase);
 }
 
@@ -713,15 +712,21 @@ ncr53c8xx_add_msg_byte(ncr53c8xx_t *dev, uint8_t data)
 }
 
 
+static void
+ncr53c8xx_timer_on(ncr53c8xx_t *dev, scsi_device_t *sd, double p)
+{
+    if (p <= 0)
+	timer_on_auto(&dev->timer, ((double) sd->buffer_length) * 0.1);	/* Fast SCSI: 10000000 bytes per second */
+    else
+	timer_on_auto(&dev->timer, p);
+}
+
+
 static int
 ncr53c8xx_do_command(ncr53c8xx_t *dev, uint8_t id)
 {
     scsi_device_t *sd;
     uint8_t buf[12];
-
-    int64_t p;
-
-    double period;
 
     memset(buf, 0, 12);
     DMAPageRead(dev->dnad, buf, MIN(12, dev->dbc));
@@ -767,22 +772,12 @@ ncr53c8xx_do_command(ncr53c8xx_t *dev, uint8_t id)
     if ((sd->phase == SCSI_PHASE_DATA_IN) && (sd->buffer_length > 0)) {
 	ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: PHASE_DI\n", id, dev->current_lun, buf[0]);
 	ncr53c8xx_set_phase(dev, PHASE_DI);
-	p = scsi_device_get_callback(&scsi_devices[dev->current->tag]);
-	if (p <= 0LL) {
-	        period = ((double) sd->buffer_length) * 0.1 * ((double) TIMER_USEC);	/* Fast SCSI: 10000000 bytes per second */
-		dev->timer_period += (int64_t) period;
-	} else
-		dev->timer_period += p;
+	ncr53c8xx_timer_on(dev, sd, scsi_device_get_callback(&scsi_devices[dev->current->tag]));
 	return 1;
     } else if ((sd->phase == SCSI_PHASE_DATA_OUT) && (sd->buffer_length > 0)) {
 	ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: PHASE_DO\n", id, buf[0]);
 	ncr53c8xx_set_phase(dev, PHASE_DO);
-	p = scsi_device_get_callback(&scsi_devices[dev->current->tag]);
-	if (p <= 0LL) {
-	        period = ((double) sd->buffer_length) * 0.1 * ((double) TIMER_USEC);	/* Fast SCSI: 10000000 bytes per second */
-		dev->timer_period += (int64_t) period;
-	} else
-		dev->timer_period += p;
+	ncr53c8xx_timer_on(dev, sd, scsi_device_get_callback(&scsi_devices[dev->current->tag]));
 	return 1;
     } else {
 	ncr53c8xx_command_complete(dev, sd->status);
@@ -1038,7 +1033,7 @@ again:
 	/* If we receive an empty opcode increment the DSP by 4 bytes
 	   instead of 8 and execute the next opcode at that location */
 	dev->dsp += 4;
-	dev->timer_period += (10LL * TIMER_USEC);
+	timer_on_auto(&dev->timer, 10.0);
 	if (insn_processed < 100)
 		goto again;
 	else
@@ -1108,7 +1103,7 @@ again:
 				dev->dfifo = dev->dbc & 0xff;
 				dev->ctest5 = (dev->ctest5 & 0xfc) | ((dev->dbc >> 8) & 3);
 
-				dev->timer_period += (40LL * TIMER_USEC);
+				timer_on_auto(&dev->timer, 40.0);
 
 				if (dev->dcntl & NCR_DCNTL_SSM)
 					ncr53c8xx_script_dma_interrupt(dev, NCR_DSTAT_SSI);
@@ -1378,7 +1373,7 @@ again:
 		ncr53c8xx_log("%02X: Unknown command\n", (uint8_t) (insn >> 30));
     }
 
-    dev->timer_period += (40LL * TIMER_USEC);
+    timer_on_auto(&dev->timer, 40.0);
 
     ncr53c8xx_log("instructions processed %i\n", insn_processed);
     if (insn_processed > 10000 && !dev->waiting) {
@@ -1416,8 +1411,7 @@ static void
 ncr53c8xx_execute_script(ncr53c8xx_t *dev)
 {
     dev->sstop = 0;
-    dev->timer_period = 40LL * TIMER_USEC;
-    dev->timer_enabled = 1;
+    timer_on_auto(&dev->timer, 40.0);
 }
 
 
@@ -1426,19 +1420,17 @@ ncr53c8xx_callback(void *p)
 {
     ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
 
-    dev->timer_period = 0;
     if (!dev->sstop) {
 	if (dev->waiting)
-		dev->timer_period = 40LL * TIMER_USEC;
+		timer_on_auto(&dev->timer, 40.0);
 	else
     		ncr53c8xx_process_script(dev);
     }
 
-    if (dev->sstop) {
-	dev->timer_enabled = 0;
-	dev->timer_period = 0;
-    } else
-	dev->timer_enabled = 1;
+    if (dev->sstop)
+	timer_stop(&dev->timer);
+    else
+	timer_on_auto(&dev->timer, 10.0);
 }
 
 
@@ -2638,6 +2630,7 @@ ncr53c8xx_init(const device_t *info)
     memset(dev, 0x00, sizeof(ncr53c8xx_t));
 
     dev->chip_rev = 0;
+    // dev->pci_slot = pci_add_card(PCI_ADD_SCSI, ncr53c8xx_pci_read, ncr53c8xx_pci_write, dev);
     dev->pci_slot = pci_add_card(PCI_ADD_NORMAL, ncr53c8xx_pci_read, ncr53c8xx_pci_write, dev);
 
     ncr53c8xx_pci_bar[0].addr_regs[0] = 1;
@@ -2685,7 +2678,7 @@ ncr53c8xx_init(const device_t *info)
 
     ncr53c8xx_soft_reset(dev);
 
-    timer_add(ncr53c8xx_callback, &dev->timer_period, &dev->timer_enabled, dev);
+    timer_add(&dev->timer, ncr53c8xx_callback, dev, 0);
 
     return(dev);
 }

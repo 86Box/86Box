@@ -24,6 +24,7 @@
 #include <wchar.h>
 #include "86box.h"
 #include "io.h"
+#include "timer.h"
 #include "device.h"
 #include "pci.h"
 #include "lpt.h"
@@ -114,12 +115,15 @@ lpt1_handler(fdc37c66x_t *dev)
     switch (dev->regs[1] & 3) {
 	case 1:
 		lpt1_init(0x3bc);
+		lpt1_irq(7);
 		break;
 	case 2:
 		lpt1_init(0x378);
+		lpt1_irq(5);
 		break;
 	case 3:
 		lpt1_init(0x278);
+		lpt1_irq(5);
 		break;
     }
 }
@@ -210,8 +214,6 @@ fdc37c66x_reset(fdc37c66x_t *dev)
 
     serial_remove(dev->uart[1]);
     serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
-
-    lpt2_remove();
 
     lpt1_remove();
     lpt1_init(0x378);

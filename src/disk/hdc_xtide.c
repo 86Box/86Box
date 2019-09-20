@@ -276,7 +276,7 @@ const device_t xtide_acculogic_device = {
 
 const device_t xtide_at_ps2_device = {
     "XTIDE (AT) (1.1.5)",
-    DEVICE_ISA | DEVICE_PS2,
+    DEVICE_AT,
     0,
     xtide_at_ps2_init, xtide_at_close, NULL,
     xtide_at_ps2_available, NULL, NULL,

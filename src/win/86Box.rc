@@ -88,11 +88,10 @@ BEGIN
         MENUITEM "&Fullscreen\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
         POPUP "Fullscreen &stretch mode"
         BEGIN
-            MENUITEM "&Full screen stretch",    IDM_VID_FS_FULL
-            MENUITEM "&4:3",                    IDM_VID_FS_43
-            MENUITEM "&Square pixels",          IDM_VID_FS_SQ
-            MENUITEM "&Integer scale",          IDM_VID_FS_INT
-            MENUITEM "&Keep size",              IDM_VID_FS_KEEPRATIO
+            MENUITEM "&Full screen stretch",        IDM_VID_FS_FULL
+            MENUITEM "&4:3",                        IDM_VID_FS_43
+            MENUITEM "&Square pixels (Keep ratio)", IDM_VID_FS_KEEPRATIO
+            MENUITEM "&Integer scale",              IDM_VID_FS_INT
         END
         POPUP "E&GA/(S)VGA settings"
         BEGIN
@@ -409,7 +408,7 @@ BEGIN
     PUSHBUTTON      "Configure",IDC_CONFIGURE_NET,214,43,46,12
 END
 
-DLG_CFG_PORTS DIALOG DISCARDABLE  97, 0, 267, 99
+DLG_CFG_PORTS DIALOG DISCARDABLE  97, 0, 267, 117
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
@@ -430,8 +429,12 @@ BEGIN
     CONTROL         "Serial port 2",IDC_CHECK_SERIAL2,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,147,64,94,10
 
-    CONTROL         "Parallel port",IDC_CHECK_PARALLEL,"Button",
+    CONTROL         "Parallel port 1",IDC_CHECK_PARALLEL1,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,82,94,10
+    CONTROL         "Parallel port 2",IDC_CHECK_PARALLEL2,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,82,94,10
+    CONTROL         "Parallel port 3",IDC_CHECK_PARALLEL3,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,100,94,10
 END
 
 DLG_CFG_PERIPHERALS DIALOG DISCARDABLE  97, 0, 267, 200
@@ -931,10 +934,12 @@ BEGIN
     IDS_5376	"Disabled"
     IDS_5380	"ATAPI"
     IDS_5381    "SCSI"
+	IDS_5382    "SCSI (Chinon)"
 
     IDS_5632	"Disabled"
     IDS_5636	"ATAPI (%01i:%01i)"
     IDS_5637    "SCSI (ID %02i)"
+	IDS_5638    "SCSI (ID %02i)"
 
     IDS_5888	"160 kB"
     IDS_5889	"180 kB"
@@ -982,7 +987,7 @@ VS_VERSION_INFO VERSIONINFO
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "0409fde9"
+        BLOCK "040904b0"
         BEGIN
             VALUE "Comments", "\0"
             VALUE "CompanyName", "IRC #SoftHistory\0"

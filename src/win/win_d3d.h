@@ -36,7 +36,8 @@ extern void	d3d_reset(void);
 extern void	d3d_reset_fs(void);
 extern int	d3d_pause(void);
 extern void	d3d_resize(int x, int y);
-extern void	d3d_take_screenshot(wchar_t *fn);
+extern void	d3d_take_screenshot(const wchar_t *fn);
+extern void	d3d_enable(int enable);
 
 #ifdef __cplusplus
 }

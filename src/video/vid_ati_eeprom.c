@@ -23,6 +23,7 @@
 #include "../86box.h"
 #include "../device.h"
 #include "../mem.h"
+#include "../timer.h"
 #include "../nvr.h"
 #include "vid_ati_eeprom.h"
 

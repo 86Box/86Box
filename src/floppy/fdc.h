@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.h	1.0.5	2018/09/22
+ * Version:	@(#)fdc.h	1.0.6	2019/03/23
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -50,6 +50,7 @@
 #define FDC_FLAG_MORE_TRACKS	0x40	/* W83877F, W83977F, PC87306, PC87309 */
 #define FDC_FLAG_NSC		0x80	/* PC87306, PC87309 */
 #define FDC_FLAG_TOSHIBA	0x100	/* T1000, T1200 */
+#define FDC_FLAG_AMSTRAD	0x200	/* Non-AT Amstrad machines */
 
 
 typedef struct {
@@ -99,8 +100,9 @@ typedef struct {
 
     sector_id_t	read_track_sector;
 
-    int64_t	time;
-    int64_t	watchdog_timer, watchdog_count;
+	uint64_t watchdog_count;
+	
+	pc_timer_t	timer, watchdog_timer;
 } fdc_t;
 
 
@@ -180,11 +182,12 @@ extern void	fdc_sectorid(fdc_t *fdc, uint8_t track, uint8_t side,
 extern uint8_t	fdc_read(uint16_t addr, void *priv);
 extern void	fdc_reset(void *priv);
 
-extern uint8_t	fdc_ps1_525(void);
+extern uint8_t	fdc_get_current_drive(void);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	fdc_xt_device;
 extern const device_t	fdc_xt_t1x00_device;
+extern const device_t	fdc_xt_amstrad_device;
 extern const device_t	fdc_pcjr_device;
 extern const device_t	fdc_at_device;
 extern const device_t	fdc_at_actlow_device;

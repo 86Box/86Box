@@ -23,6 +23,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
@@ -267,12 +268,12 @@ void tvga_recalctimings(svga_t *svga)
 
         switch (((svga->miscout >> 2) & 3) | ((tvga->newctrl2 << 2) & 4))
         {
-                case 2: svga->clock = cpuclock/44900000.0; break;
-                case 3: svga->clock = cpuclock/36000000.0; break;
-                case 4: svga->clock = cpuclock/57272000.0; break;
-                case 5: svga->clock = cpuclock/65000000.0; break;
-                case 6: svga->clock = cpuclock/50350000.0; break;
-                case 7: svga->clock = cpuclock/40000000.0; break;
+                case 2: svga->clock = (cpuclock * (double)(1ull << 32))/44900000.0; break;
+                case 3: svga->clock = (cpuclock * (double)(1ull << 32))/36000000.0; break;
+                case 4: svga->clock = (cpuclock * (double)(1ull << 32))/57272000.0; break;
+                case 5: svga->clock = (cpuclock * (double)(1ull << 32))/65000000.0; break;
+                case 6: svga->clock = (cpuclock * (double)(1ull << 32))/50350000.0; break;
+                case 7: svga->clock = (cpuclock * (double)(1ull << 32))/40000000.0; break;
         }
 
         if (tvga->oldctrl2 & 0x10)

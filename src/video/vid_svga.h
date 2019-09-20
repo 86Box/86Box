@@ -28,25 +28,23 @@ typedef struct svga_t
 {
     mem_mapping_t mapping;
 
-    int enabled, fast, vidclock, fb_only,
-	dac_addr, dac_pos, dac_r, dac_g,
-	ramdac_type, ext_overscan,
-	readmode, writemode, readplane, extvram,
-	chain4, chain2_write, chain2_read,
-	oddeven_page, oddeven_chain,
-	set_reset_disabled,
+    uint8_t fast, chain4, chain2_write, chain2_read,
+	    ext_overscan, bus_size,
+	    lowres, interlace, linedbl, rowcount,
+	    set_reset_disabled, bpp, ramdac_type, fb_only,
+	    readmode, writemode, readplane,
+	    hwcursor_oddeven, dac_hwcursor_oddeven, overlay_oddeven;
+
+    int dac_addr, dac_pos, dac_r, dac_g,
 	vtotal, dispend, vsyncstart, split, vblankstart,
 	hdisp,  hdisp_old, htotal,  hdisp_time, rowoffset,
-	lowres, interlace, linedbl, rowcount, bpp,
 	dispon, hdisp_on,
 	vc, sc, linepos, vslines, linecountff, oddeven,
 	con, cursoron, blink, scrollcache,
 	firstline, lastline, firstline_draw, lastline_draw,
 	displine, fullchange,
-	video_res_x, video_res_y, video_bpp, frames, fps,
-	vram_display_mask,
-	hwcursor_on, overlay_on,
-	hwcursor_oddeven, overlay_oddeven;
+	vram_display_mask, vidclock,
+	hwcursor_on, dac_hwcursor_on, overlay_on;
 
     /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
       0MB-1MB - VRAM
@@ -69,12 +67,13 @@ typedef struct svga_t
 
     PALETTE vgapal;
 
-    int64_t dispontime, dispofftime,
-	    vidtime;
+    uint64_t dispontime, dispofftime;
+	pc_timer_t timer;
 
     double clock;
 
     hwcursor_t hwcursor, hwcursor_latch,
+	       dac_hwcursor, dac_hwcursor_latch,
 	       overlay, overlay_latch;
 
     void (*render)(struct svga_t *svga);
@@ -84,6 +83,8 @@ typedef struct svga_t
     uint8_t (*video_in) (uint16_t addr, void *p);
 
     void (*hwcursor_draw)(struct svga_t *svga, int displine);
+
+    void (*dac_hwcursor_draw)(struct svga_t *svga, int displine);
 
     void (*overlay_draw)(struct svga_t *svga, int displine);
 

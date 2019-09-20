@@ -910,6 +910,7 @@ const OpFn OP_TABLE(k6_0f)[1024] =
 };
 #endif
 
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 const OpFn OP_TABLE(c6x86mx_0f)[1024] = 
 {
         /*16-bit data, 16-bit addr*/
@@ -1000,6 +1001,7 @@ const OpFn OP_TABLE(c6x86mx_0f)[1024] =
 /*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 };
+#endif
 
 #ifdef DEV_BRANCH
 #ifdef USE_I686

@@ -8,11 +8,11 @@
  *
  *		Implementation of the HxC MFM image format.
  *
- * Version:	@(#)fdd_mfm.c	1.0.0	2018/11/12
+ * Version:	@(#)fdd_mfm.c	1.0.1	2019/03/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2018 Miran Grca.
+ *		Copyright 2018,2019 Miran Grca.
  */
 #include <math.h>
 #include <stdarg.h>
@@ -23,6 +23,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
+#include "../timer.h"
 #include "../plat.h"
 #include "fdd.h"
 #include "fdd_86f.h"
@@ -69,6 +70,9 @@ typedef struct {
     mfm_track_t		*tracks;
     mfm_adv_track_t	*adv_tracks;
 
+    uint16_t	disk_flags, pad;
+    uint16_t	side_flags[2];
+
     int		br_rounded, rpm_rounded,
 		total_tracks, cur_track;
 
@@ -101,15 +105,81 @@ mfm_log(const char *fmt, ...)
 #endif
 
 
-static uint16_t
-disk_flags(int drive)
+static int
+get_track_index(int drive, int side, int track)
 {
+    mfm_t *dev = mfm[drive];
+    int i, ret = -1;
+
+    for (i = 0; i < dev->total_tracks; i++) {
+	if ((dev->tracks[i].track_no == track) &&
+	    (dev->tracks[i].side_no == side)) {
+		ret = i;
+		break;
+	}
+    }
+
+    return ret;
+}
+
+
+static int
+get_adv_track_index(int drive, int side, int track)
+{
+    mfm_t *dev = mfm[drive];
+    int i, ret = -1;
+
+    for (i = 0; i < dev->total_tracks; i++) {
+	if ((dev->adv_tracks[i].track_no == track) &&
+	    (dev->adv_tracks[i].side_no == side)) {
+		ret = i;
+		break;
+	}
+    }
+
+    return ret;
+}
+
+
+static void
+get_adv_track_bitrate(int drive, int side, int track, int *br, int *rpm)
+{
+    mfm_t *dev = mfm[drive];
+    int track_index;
+    double dbr;
+
+    track_index = get_adv_track_index(drive, side, track);
+
+    if (track_index == -1) {
+	*br = 250;
+	*rpm = 300;
+    } else {
+	dbr = round(((double) dev->adv_tracks[track_index].bit_rate) / 50.0) * 50.0;
+	*br = ((int) dbr);
+	dbr = round(((double) dev->adv_tracks[track_index].rpm) / 60.0) * 60.0;
+	*rpm = ((int) dbr);
+    }
+}
+
+
+static void
+set_disk_flags(int drive)
+{
+    int br = 250, rpm = 300;
     mfm_t *dev = mfm[drive];
     uint16_t temp_disk_flags = 0x1080;	/* We ALWAYS claim to have extra bit cells, even if the actual amount is 0;
 					   Bit 12 = 1, bits 6, 5 = 0 - extra bit cells field specifies the entire
 					   amount of bit cells per track. */
 
-    switch (dev->br_rounded) {
+    /* If this is the modified MFM format, get bit rate (and RPM) from track 0 instead. */
+    if (dev->hdr.if_type & 0x80)
+	get_adv_track_bitrate(drive, 0, 0, &br, &rpm);
+    else {
+	br = dev->br_rounded;
+	rpm = dev->rpm_rounded;
+    }
+
+    switch (br) {
 	case 500:
 		temp_disk_flags |= 2;
 		break;
@@ -128,84 +198,35 @@ disk_flags(int drive)
     if (dev->hdr.sides_no == 2)
 	temp_disk_flags |= 8;
 
-    return(temp_disk_flags);
-}
-
-
-static int
-get_track_index(int drive, int side)
-{
-    mfm_t *dev = mfm[drive];
-    int i, ret = -1;
-
-    for (i = 0; i < dev->total_tracks; i++) {
-	if ((dev->tracks[i].track_no == dev->cur_track) &&
-	    (dev->tracks[i].side_no == side)) {
-		ret = i;
-		break;
-	}
-    }
-
-    return ret;
-}
-
-
-static int
-get_adv_track_index(int drive, int side)
-{
-    mfm_t *dev = mfm[drive];
-    int i, ret = -1;
-
-    for (i = 0; i < dev->total_tracks; i++) {
-	if ((dev->adv_tracks[i].track_no == dev->cur_track) &&
-	    (dev->adv_tracks[i].side_no == side)) {
-		ret = i;
-		break;
-	}
-    }
-
-    return ret;
-}
-
-
-static void
-get_adv_track_bitrate(int drive, int side, int *br, int *rpm)
-{
-    mfm_t *dev = mfm[drive];
-    int track_index;
-    double dbr;
-
-    track_index = get_adv_track_index(drive, side);
-
-    if (track_index == -1) {
-	*br = 250;
-	*rpm = 300;
-    } else {
-	dbr = round(((double) dev->adv_tracks[track_index].bit_rate) / 50.0) * 50.0;
-	*br = ((int) dbr);
-	dbr = round(((double) dev->adv_tracks[track_index].rpm) / 60.0) * 60.0;
-	*rpm = ((int) dbr);
-    }
+    dev->disk_flags = temp_disk_flags;
 }
 
 
 static uint16_t
-side_flags(int drive)
+disk_flags(int drive)
+{
+    mfm_t *dev = mfm[drive];
+
+    return dev->disk_flags;
+}
+
+
+static void
+set_side_flags(int drive, int side)
 {
     mfm_t *dev = mfm[drive];
     uint16_t temp_side_flags = 0;
-    int side, br = 250, rpm = 300;
+    int br = 250, rpm = 300;
 
-    if (dev->hdr.if_type & 0x80) {
-	side = fdd_get_head(drive);
-	get_adv_track_bitrate(drive, side, &br, &rpm);
-    } else {
+    if (dev->hdr.if_type & 0x80)
+	get_adv_track_bitrate(drive, side, dev->cur_track, &br, &rpm);
+    else {
 	br = dev->br_rounded;
 	rpm = dev->rpm_rounded;
     }
 
     /* 300 kbps @ 360 rpm = 250 kbps @ 200 rpm */
-    if ((rpm >= 352) && (rpm <= 367) && (br == 300)) {
+    if ((br == 300) && (rpm == 360)) {
 	br = 250;
 	rpm = 300;
     }
@@ -229,7 +250,7 @@ side_flags(int drive)
 		break;
     }
 
-    if ((rpm >= 352) && (rpm <= 367))
+    if (rpm == 360)
 	temp_side_flags |= 0x20;
 
     /*
@@ -238,7 +259,19 @@ side_flags(int drive)
      */
     temp_side_flags |= 0x08;
 
-    return(temp_side_flags);
+    dev->side_flags[side] = temp_side_flags;
+}
+
+
+static uint16_t
+side_flags(int drive)
+{
+    mfm_t *dev = mfm[drive];
+    int side;
+
+    side = fdd_get_head(drive);
+
+    return dev->side_flags[side];
 }
 
 
@@ -247,17 +280,32 @@ get_raw_size(int drive, int side)
 {
     mfm_t *dev = mfm[drive];
     int track_index, is_300_rpm;
+    int br = 250, rpm = 300;
 
-    if (dev->hdr.if_type & 0x80)
-	track_index = get_adv_track_index(drive, side);
-    else
-	track_index = get_track_index(drive, side);
+    if (dev->hdr.if_type & 0x80) {
+	track_index = get_adv_track_index(drive, side, dev->cur_track);
+	get_adv_track_bitrate(drive, 0, 0, &br, &rpm);
+    } else {
+	track_index = get_track_index(drive, side, dev->cur_track);
+	br = dev->br_rounded;
+	rpm = dev->rpm_rounded;
+    }
 
-    is_300_rpm = (dev->hdr.rpm < 352);
+    is_300_rpm = (rpm == 300);
 
     if (track_index == -1) {
 	mfm_log("MFM: Unable to find track (%i, %i)\n", dev->cur_track, side);
-	return is_300_rpm ? 100000 : 83333;
+	switch (br) {
+		case 250:
+		default:
+			return is_300_rpm ? 100000 : 83333;
+		case 300:
+			return is_300_rpm ? 120000 : 100000;
+		case 500:
+			return is_300_rpm ? 200000 : 166666;
+		case 1000:
+			return is_300_rpm ? 400000 : 333333;
+	}
     }
 
     /* Bit 7 on - my extension of the HxC MFM format to output exact bitcell counts
@@ -293,9 +341,9 @@ mfm_read_side(int drive, int side)
     int track_bytes;
 
     if (dev->hdr.if_type & 0x80)
-	track_index = get_adv_track_index(drive, side);
+	track_index = get_adv_track_index(drive, side, dev->cur_track);
     else
-	track_index = get_track_index(drive, side);
+	track_index = get_track_index(drive, side, dev->cur_track);
 
     track_size = get_raw_size(drive, side);
     track_bytes = track_size >> 3;
@@ -309,7 +357,7 @@ mfm_read_side(int drive, int side)
 		fseek(dev->f, dev->adv_tracks[track_index].track_offset, SEEK_SET);
 	else
 		fseek(dev->f, dev->tracks[track_index].track_offset, SEEK_SET);
-	fread(dev->track_data[side], 1, track_size, dev->f);
+	fread(dev->track_data[side], 1, track_bytes, dev->f);
     }
 
     mfm_log("drive = %i, side = %i, dev->cur_track = %i, track_index = %i, track_size = %i\n",
@@ -340,6 +388,9 @@ mfm_seek(int drive, int track)
 
     mfm_read_side(drive, 0);
     mfm_read_side(drive, 1);
+
+    set_side_flags(drive, 0);
+    set_side_flags(drive, 1);
 }
 
 
@@ -403,15 +454,17 @@ mfm_load(int drive, wchar_t *fn)
     if (!(dev->hdr.if_type & 0x80)) {
 	dbr = round(((double) dev->hdr.bit_rate) / 50.0) * 50.0;
 	dev->br_rounded = (int) dbr;
-	mfm_log("Round bit rate: %i kbps\n", dev->br_rounded);
+	mfm_log("Rounded bit rate: %i kbps\n", dev->br_rounded);
 
 	dbr = round(((double) dev->hdr.rpm) / 60.0) * 60.0;
 	dev->rpm_rounded = (int) dbr;
-	mfm_log("Round RPM: %i kbps\n", dev->rpm_rounded);
+	mfm_log("Rounded RPM: %i kbps\n", dev->rpm_rounded);
     }
 
     /* Set up the drive unit. */
     mfm[drive] = dev;
+
+    set_disk_flags(drive);
 
     /* Attach this format to the D86F engine. */
     d86f_handler[drive].disk_flags = disk_flags;

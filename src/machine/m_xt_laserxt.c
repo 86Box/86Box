@@ -8,10 +8,12 @@
 #include "../io.h"
 #include "../mem.h"
 #include "../nmi.h"
+#include "../timer.h"
 #include "../pit.h"
 #include "../rom.h"
 #include "machine.h"
 #include "../device.h"
+#include "../timer.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
 #include "../game/gameport.h"
@@ -63,14 +65,6 @@ static void laserxt_write(uint16_t port, uint8_t val, void *priv)
                 for(i=0; i<4; i++)
                 {
                         laserxt_ems_baseaddr_index |= (laserxt_emscontrol[i] & 0x80) >> (7 - i);
-                }
-                if(laserxt_ems_baseaddr_index < 3)
-                {
-                        mem_mapping_disable(&romext_mapping);
-                }
-                else
-                {
-                        mem_mapping_enable(&romext_mapping);
                 }
 
                 mem_mapping_set_addr(&laserxt_ems_mapping[0], 0xC0000 + (((laserxt_ems_baseaddr_index + 4) & 0x0C) << 14), 0x4000);
@@ -140,18 +134,36 @@ static void laserxt_init(int is_lxt3)
 }
 
 
-void
+int
 machine_xt_laserxt_init(const machine_t *model)
 {
+	int ret;
+
+	ret = bios_load_linear(L"roms/machines/ltxt/27c64.bin",
+			       0x000fe000, 8192, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
         machine_xt_init(model);
 
         laserxt_init(0);
+
+	return ret;
 }
 
 
-void
+int
 machine_xt_lxt3_init(const machine_t *model)
 {
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/lxt3/27c64d.bin",
+			   0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
     machine_common_init(model);
 
     pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
@@ -163,4 +175,6 @@ machine_xt_lxt3_init(const machine_t *model)
 	device_add(&gameport_device);
 
     laserxt_init(1);
+
+    return ret;
 }

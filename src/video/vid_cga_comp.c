@@ -9,13 +9,13 @@
  *		IBM CGA composite filter, borrowed from reenigne's DOSBox
  *		patch and ported to C.
  *
- * Version:	@(#)vid_cga_comp.c	1.0.4	2018/10/02
+ * Version:	@(#)vid_cga_comp.c	1.0.5	2019/03/24
  *
  * Authors:	reenigne,
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2015-2018 reenigne.
- *		Copyright 2015-2018 Miran Grca.
+ *		Copyright 2015-2019 reenigne.
+ *		Copyright 2015-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -24,6 +24,7 @@
 #include <wchar.h>
 #include <math.h>
 #include "../86box.h"
+#include "../timer.h"
 #include "../mem.h"
 #include "vid_cga.h"
 #include "vid_cga_comp.h"
@@ -168,7 +169,7 @@ static int temp[SCALER_MAXWIDTH + 10]={0};
 static int atemp[SCALER_MAXWIDTH + 2]={0};
 static int btemp[SCALER_MAXWIDTH + 2]={0};
 
-Bit8u * Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit8u *TempLine)
+Bit32u * Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit32u *TempLine)
 {
 	int x;
 	Bit32u x2;
@@ -176,7 +177,7 @@ Bit8u * Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks/*, bool d
         int w = blocks*4;
 
 	int *o;
-	Bit8u *rgbi;
+	Bit32u *rgbi;
 	int *b;
 	int *i;
 	Bit32u* srgb;
@@ -207,12 +208,12 @@ Bit8u * Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks/*, bool d
         b = &CGA_Composite_Table[border*68];
         for (x = 0; x < 4; ++x)
                 OUT(b[(x+3)&3]);
-        OUT(CGA_Composite_Table[(border<<6) | ((*rgbi)<<2) | 3]);
+        OUT(CGA_Composite_Table[(border<<6) | ((*rgbi & 0x0f)<<2) | 3]);
         for (x = 0; x < w-1; ++x) {
-                OUT(CGA_Composite_Table[(rgbi[0]<<6) | (rgbi[1]<<2) | (x&3)]);
+                OUT(CGA_Composite_Table[((rgbi[0] & 0x0f)<<6) | ((rgbi[1] & 0x0f)<<2) | (x&3)]);
                 ++rgbi;
         }
-        OUT(CGA_Composite_Table[((*rgbi)<<6) | (border<<2) | 3]);
+        OUT(CGA_Composite_Table[((*rgbi & 0x0f)<<6) | (border<<2) | 3]);
         for (x = 0; x < 5; ++x)
                 OUT(b[x&3]);
 

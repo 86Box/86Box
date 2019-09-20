@@ -26,10 +26,10 @@
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
-#include "../timer.h"
 #include "../device.h"
 #include "video.h"
 #include "vid_ega.h"
@@ -185,6 +185,7 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
                    ega->attraddr = val & 31;
                 else
                 {
+						o = ega->attrregs[ega->attraddr & 31];
                         ega->attrregs[ega->attraddr & 31] = val;
                         if (ega->attraddr < 16) 
                                 fullchange = changeframecount;
@@ -196,15 +197,26 @@ void ega_out(uint16_t addr, uint8_t val, void *p)
                                         else                            ega->egapal[c] = (ega->attrregs[c] & 0x3f) | ((ega->attrregs[0x14] & 0xc) << 4);
                                 }
                         }
+			/* Recalculate timings on change of attribute register 0x11
+			   (overscan border color) too. */
+			if ((ega->attraddr == 0x10) || (ega->attraddr == 0x11)) {
+				ega->overscan_color = ega->vres ? pallook16[val & 0x0f] : pallook64[val & 0x3f];
+				if (o != val)
+					ega_recalctimings(ega);
+			}
                 }
                 ega->attrff ^= 1;
                 break;
                 case 0x3c2:
+				o = ega->miscout;
                 egaswitchread = (val & 0xc) >> 2;
                 ega->vres = !(val & 0x80);
                 ega->pallook = ega->vres ? pallook16 : pallook64;
                 ega->vidclock = val & 4; /*printf("3C2 write %02X\n",val);*/
                 ega->miscout=val;
+				ega->overscan_color = ega->vres ? pallook16[ega->attrregs[0x11] & 0x0f] : pallook64[ega->attrregs[0x11] & 0x3f];
+				if ((o ^ val) & 0x80)
+					ega_recalctimings(ega);
                 break;
                 case 0x3c4: 
                 ega->seqaddr = val; 
@@ -368,31 +380,32 @@ void ega_recalctimings(ega_t *ega)
 
         ega->rowoffset = ega->crtc[0x13];
         ega->rowcount = ega->crtc[9] & 0x1f;
-	overscan_y = (ega->rowcount + 1) << 1;
 
         if (ega->vidclock) crtcconst = (ega->seqregs[1] & 1) ? MDACONST : (MDACONST * (9.0 / 8.0));
         else               crtcconst = (ega->seqregs[1] & 1) ? CGACONST : (CGACONST * (9.0 / 8.0));
 
-        if (ega->seqregs[1] & 8) 
-        { 
+	if (enable_overscan) {
+		overscan_y = (ega->rowcount + 1) << 1;
+
+	        if (ega->seqregs[1] & 8) 
+			overscan_y <<= 1;
+		if (overscan_y < 16)
+			overscan_y = 16;
+        }
+
+        if (ega->seqregs[1] & 8) {
 	        disptime = (double) ((ega->crtc[0] + 2) << 1);
         	_dispontime = (double) ((ega->crtc[1] + 1) << 1);
-
-		overscan_y <<= 1;
         } else {
         	disptime = (double) (ega->crtc[0] + 2);
 	        _dispontime = (double) (ega->crtc[1] + 1);
-	}
-	if (overscan_y < 16)
-	{
-		overscan_y = 16;
 	}
         _dispofftime = disptime - _dispontime;
         _dispontime  = _dispontime * crtcconst;
         _dispofftime = _dispofftime * crtcconst;
 
-	ega->dispontime  = (int64_t)(_dispontime  * (1LL << TIMER_SHIFT));
-	ega->dispofftime = (int64_t)(_dispofftime * (1LL << TIMER_SHIFT));
+	ega->dispontime  = (uint64_t)(_dispontime);
+	ega->dispofftime = (uint64_t)(_dispofftime);
 }
 
 
@@ -410,7 +423,7 @@ void ega_poll(void *p)
 
         if (!ega->linepos)
         {
-                ega->vidtime += ega->dispofftime;
+                timer_advance_u64(&ega->timer, ega->dispofftime);
 
                 ega->stat |= 1;
                 ega->linepos = 1;
@@ -479,7 +492,7 @@ void ega_poll(void *p)
         }
         else
         {
-                ega->vidtime += ega->dispontime;
+                timer_advance_u64(&ega->timer, ega->dispontime);
                 if (ega->dispon) 
                         ega->stat &= ~1;
                 ega->linepos = 0;
@@ -536,27 +549,25 @@ void ega_poll(void *p)
                         if (ega->interlace && !ega->oddeven) ega->lastline++;
                         if (ega->interlace &&  ega->oddeven) ega->firstline--;
 
-                        if ((x != xsize || (ega->lastline - ega->firstline + 1) != ysize) || update_overscan || video_force_resize_get())
-                        {
+			x_add = enable_overscan ? 8 : 0;
+			y_add = enable_overscan ? overscan_y : 0;
+			x_add_ex = enable_overscan ? 16 : 0;
+			y_add_ex = y_add << 1;
+
+			if ((xsize > 2032) || ((ysize + y_add_ex) > 2048)) {
+				x_add = x_add_ex = 0;
+				y_add = y_add_ex = 0;
+				suppress_overscan = 1;
+			} else
+				suppress_overscan = 0;
+
+			if ((x != xsize) || ((ega->lastline - ega->firstline + 1) != ysize) || video_force_resize_get()) {
                                 xsize = x;
                                 ysize = ega->lastline - ega->firstline + 1;
-                                if (xsize < 64) xsize = 640;
-                                if (ysize < 32) ysize = 200;
-				y_add = enable_overscan ? 14 : 0;
-				x_add = enable_overscan ? 8 : 0;
-				y_add_ex = enable_overscan ? 28 : 0;
-				x_add_ex = enable_overscan ? 16 : 0;
-
-				if ((xsize > 2032) || ((ysize + y_add_ex) > 2048))
-				{
-					x_add = x_add_ex = 0;
-					y_add = y_add_ex = 0;
-					suppress_overscan = 1;
-				}
-				else
-				{
-					suppress_overscan = 0;
-				}
+                                if (xsize < 64)
+					xsize = 640;
+                                if (ysize < 32)
+					ysize = 200;
 
                                 if (ega->vres)
                                         set_screen_size(xsize + x_add_ex, (ysize << 1) + y_add_ex);
@@ -567,56 +578,30 @@ void ega_poll(void *p)
 					video_force_resize_set(0);
                         }
 
-			if (enable_overscan)
-			{
-				if ((x >= 160) && ((ega->lastline - ega->firstline) >= 120))
-				{
+			if (enable_overscan && !suppress_overscan) {
+				if ((x >= 160) && ((ega->lastline - ega->firstline + 1) >= 120)) {
 					/* Draw (overscan_size - scroll size) lines of overscan on top. */
-					for (i  = 0; i < (y_add - (ega->crtc[8] & 0x1f)); i++)
-					{
-						q = &((uint32_t *)buffer32->line[i & 0x7ff])[32];
+					for (i  = 0; i < y_add; i++) {
+						q = &buffer32->line[i & 0x7ff][32];
 
 						for (j = 0; j < (xsize + x_add_ex); j++)
-						{
-							q[j] = ega->pallook[ega->attrregs[0x11]];
-						}
+							q[j] = ega->overscan_color;
 					}
 
 					/* Draw (overscan_size + scroll size) lines of overscan on the bottom. */
-					for (i  = 0; i < (y_add + (ega->crtc[8] & 0x1f)); i++)
-					{
-						q = &((uint32_t *)buffer32->line[(ysize + y_add + i - (ega->crtc[8] & 0x1f)) & 0x7ff])[32];
+					for (i  = 0; i < y_add_ex; i++) {
+						q = &buffer32->line[(ysize + y_add + i) & 0x7ff][32];
 
 						for (j = 0; j < (xsize + x_add_ex); j++)
-						{
-							q[j] = ega->pallook[ega->attrregs[0x11]];
-						}
+							q[j] = ega->overscan_color;
 					}
 
-					for (i = (y_add - (ega->crtc[8] & 0x1f)); i < (ysize + y_add - (ega->crtc[8] & 0x1f)); i ++)
-					{
-						q = &((uint32_t *)buffer32->line[(i - (ega->crtc[8] & 0x1f)) & 0x7ff])[32];
+					for (i = y_add_ex; i < (ysize + y_add); i ++) {
+						q = &buffer32->line[i & 0x7ff][32];
 
-						for (j = 0; j < x_add; j++)
-						{
-							q[j] = ega->pallook[ega->attrregs[0x11]];
-							q[xsize + x_add + j] = ega->pallook[ega->attrregs[0x11]];
-						}
-					}
-				}
-			}
-			else
-			{
-				if (ega->crtc[8] & 0x1f)
-				{
-					/* Draw (scroll size) lines of overscan on the bottom. */
-					for (i  = 0; i < (ega->crtc[8] & 0x1f); i++)
-					{
-						q = &((uint32_t *)buffer32->line[(ysize + i - (ega->crtc[8] & 0x1f)) & 0x7ff])[32];
-
-						for (j = 0; j < xsize; j++)
-						{
-							q[j] = ega->pallook[ega->attrregs[0x11]];
+						for (j = 0; j < x_add; j++) {
+							q[j] = ega->overscan_color;
+							q[xsize + x_add + j] = ega->overscan_color;
 						}
 					}
 				}
@@ -660,7 +645,7 @@ void ega_poll(void *p)
                 if (ega->vc == ega->vtotal)
                 {
                         ega->vc = 0;
-                        ega->sc = 0;
+                        ega->sc = ega->crtc[8] & 0x1f;
                         ega->dispon = 1;
                         ega->displine = (ega->interlace && ega->oddeven) ? 1 : 0;
                         ega->scrollcache = ega->attrregs[0x13] & 7;
@@ -678,7 +663,7 @@ void ega_write(uint32_t addr, uint8_t val, void *p)
         int writemask2 = ega->writemask;
 
         egawrites++;
-        cycles -= video_timing_write_b;
+        sub_cycles(video_timing_write_b);
         
         if (addr >= 0xB0000) addr &= 0x7fff;
         else                 addr &= 0xffff;
@@ -814,7 +799,7 @@ uint8_t ega_read(uint32_t addr, void *p)
         int readplane = ega->readplane;
         
         egareads++;
-        cycles -= video_timing_read_b;
+        sub_cycles(video_timing_read_b);
         if (addr >= 0xb0000) addr &= 0x7fff;
         else                 addr &= 0xffff;
 
@@ -980,6 +965,8 @@ void ega_init(ega_t *ega, int monitor_type, int is_mono)
 #ifdef JEGA
 	ega->is_jega = 0;
 #endif
+
+        timer_add(&ega->timer, ega_poll, ega, 1);
 }
 
 
@@ -1030,118 +1017,9 @@ static void *ega_standalone_init(const device_t *info)
         ega->vrammask = ega->vram_limit - 1;
 
         mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
-        timer_add(ega_poll, &ega->vidtime, TIMER_ALWAYS_ENABLED, ega);
         io_sethandler(0x03a0, 0x0040, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
         return ega;
 }
-
-#ifdef JEGA
-uint16_t chrtosht(FILE *fp)
-{
-	uint16_t i, j;
-	i = (uint8_t) getc(fp);
-	j = (uint8_t) getc(fp) << 8;
-	return (i | j);
-}
-
-unsigned int getfontx2header(FILE *fp, fontx_h *header)
-{
-	fread(header->id, ID_LEN, 1, fp);
-	if (strncmp(header->id, "FONTX2", ID_LEN) != 0)
-	{
-		return 1;
-	}
-	fread(header->name, NAME_LEN, 1, fp);
-	header->width = (uint8_t)getc(fp);
-	header->height = (uint8_t)getc(fp);
-	header->type = (uint8_t)getc(fp);
-	return 0;
-}
-
-void readfontxtbl(fontxTbl *table, unsigned int size, FILE *fp)
-{
-	while (size > 0)
-	{
-		table->start = chrtosht(fp);
-		table->end = chrtosht(fp);
-		++table;
-		--size;
-	}
-}
-
-static void LoadFontxFile(wchar_t *fname)
-{
-	fontx_h head;
-	fontxTbl *table;
-	unsigned int code;
-	uint8_t size;
-	unsigned int i;
-
-	if (!fname) return;
-	if(*fname=='\0') return;
-	FILE * mfile=romfopen(fname,L"rb");
-	if (!mfile)
-	{
-		pclog("MSG: Can't open FONTX2 file: %s\n",fname);
-		return;
-	}
-	if (getfontx2header(mfile, &head) != 0)
-	{
-		fclose(mfile);
-		pclog("MSG: FONTX2 header is incorrect\n");
-		return;
-	}
-	/* switch whether the font is DBCS or not */
-	if (head.type == DBCS)
-	{
-		if (head.width == 16 && head.height == 16)
-		{
-			size = getc(mfile);
-			table = (fontxTbl *)calloc(size, sizeof(fontxTbl));
-			readfontxtbl(table, size, mfile);
-			for (i = 0; i < size; i++)
-			{
-				for (code = table[i].start; code <= table[i].end; code++)
-				{
-					fread(&jfont_dbcs_16[(code * 32)], sizeof(uint8_t), 32, mfile);
-				}
-			}
-		}
-		else
-		{
-			fclose(mfile);
-			pclog("MSG: FONTX2 DBCS font size is not correct\n");
-			return;
-		}
-	}
-	else
-	{
-		if (head.width == 8 && head.height == 19)
-		{
-			fread(jfont_sbcs_19, sizeof(uint8_t), SBCS19_LEN, mfile);
-		}
-		else
-		{
-			fclose(mfile);
-			pclog("MSG: FONTX2 SBCS font size is not correct\n");
-			return;
-		}
-	}
-	fclose(mfile);
-}
-
-void *jega_standalone_init(const device_t *info)
-{
-        ega_t *ega = (ega_t *) ega_standalone_init(info);
-
-	LoadFontxFile(L"roms/video/ega/JPNHN19X.FNT");
-	LoadFontxFile(L"roms/video/ega/JPNZN16X.FNT");
-
-	ega->is_jega = 1;
-
-	return ega;
-}
-#endif
 
 
 static int ega_standalone_available(void)

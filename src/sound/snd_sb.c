@@ -26,6 +26,7 @@
 #define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../mca.h"
 #include "../mem.h"
 #include "../rom.h"
@@ -518,8 +519,8 @@ void sb_ct1335_mixer_write(uint16_t addr, uint8_t val, void *p)
                 mixer->cd     = sb_att_4dbstep_3bits[(mixer->regs[0x08] >> 1)&0x7];
                 mixer->voice  = sb_att_7dbstep_2bits[(mixer->regs[0x0A] >> 1)&0x3];
 
-                sound_set_cd_volume(((uint32_t)mixer->master * (uint32_t)mixer->cd * 4) / 65535,
-                                    ((uint32_t)mixer->master * (uint32_t)mixer->cd * 4) / 65535);
+                sound_set_cd_volume(((uint32_t)mixer->master * (uint32_t)mixer->cd) / 65535,
+                                    ((uint32_t)mixer->master * (uint32_t)mixer->cd) / 65535);
         }
 }
 
@@ -639,8 +640,8 @@ void sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p)
                 }
                 
                 /* TODO: pcspeaker volume? Or is it not worth? */
-                sound_set_cd_volume(((uint32_t)mixer->master_l * (uint32_t)mixer->cd_l * 4) / 65535,
-                                    ((uint32_t)mixer->master_r * (uint32_t)mixer->cd_r * 4) / 65535);
+                sound_set_cd_volume(((uint32_t)mixer->master_l * (uint32_t)mixer->cd_l) / 65535,
+                                    ((uint32_t)mixer->master_r * (uint32_t)mixer->cd_r) / 65535);
         }
 }
 
@@ -805,8 +806,8 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
                 mixer->treble_r = mixer->regs[0x45] >> 4;
 
                 /*TODO: pcspeaker volume, with "output_selector" check? or better not? */
-                sound_set_cd_volume(((uint32_t)mixer->master_l * (uint32_t)mixer->cd_l * 4) / 65535,
-                                    ((uint32_t)mixer->master_r * (uint32_t)mixer->cd_r * 4) / 65535);
+                sound_set_cd_volume(((uint32_t)mixer->master_l * (uint32_t)mixer->cd_l) / 65535,
+                                    ((uint32_t)mixer->master_r * (uint32_t)mixer->cd_r) / 65535);
                 sb_log("sb_ct1745: Received register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
         }
 }
@@ -963,6 +964,14 @@ void sb_mcv_write(int port, uint8_t val, void *p)
         }
 }
 
+uint8_t sb_mcv_feedb(void *p)
+{
+        sb_t *sb = (sb_t *)p;
+
+	return (sb->pos_regs[2] & 1);
+}
+
+
 static int sb_pro_mcv_irqs[4] = {7, 5, 3, 3};
 
 uint8_t sb_pro_mcv_read(int port, void *p)
@@ -1079,7 +1088,7 @@ void *sb_mcv_init()
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
         sound_add_handler(sb_get_buffer_sb2, sb);
         /* I/O handlers activated in sb_mcv_write */
-        mca_add(sb_mcv_read, sb_mcv_write, sb);
+        mca_add(sb_mcv_read, sb_mcv_write, sb_mcv_feedb, sb);
         sb->pos_regs[0] = 0x84;
         sb->pos_regs[1] = 0x50;
         return sb;
@@ -1215,7 +1224,7 @@ void *sb_pro_mcv_init()
         sound_add_handler(sb_get_buffer_sbpro, sb);
 
         /* I/O handlers activated in sb_pro_mcv_write */
-        mca_add(sb_pro_mcv_read, sb_pro_mcv_write, sb);
+        mca_add(sb_pro_mcv_read, sb_pro_mcv_write, sb_mcv_feedb, sb);
         sb->pos_regs[0] = 0x03;
         sb->pos_regs[1] = 0x51;
 

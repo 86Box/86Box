@@ -4,6 +4,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../cpu/cpu.h"
+#include "../timer.h"
 #include "../io.h"
 #include "../dma.h"
 #include "../pic.h"
@@ -14,14 +15,16 @@
 #include "../nvr.h"
 #include "../keyboard.h"
 #include "../lpt.h"
+#include "../port_92.h"
 #include "../serial.h"
+#include "../disk/hdc.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
 #include "../video/vid_vga.h"
 #include "machine.h"
 
 
-static uint8_t ps2_94, ps2_102, ps2_103, ps2_104, ps2_105, ps2_190;
+static uint8_t ps2_91, ps2_94, ps2_102, ps2_103, ps2_104, ps2_105, ps2_190;
 static serial_t *ps2_uart;
 
 
@@ -39,7 +42,9 @@ static uint8_t ps2_read(uint16_t port, void *p)
         switch (port)
         {
                 case 0x91:
-                return 0;
+		temp = ps2_91;
+		ps2_91 = 0;
+                return temp;
                 case 0x94:
                 return ps2_94;
                 case 0x102:
@@ -136,9 +141,7 @@ static void ps2board_init(void)
         io_sethandler(0x0322, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         io_sethandler(0x0324, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         
-	port_92_reset();
-
-        port_92_add();
+	device_add(&port_92_device);
 
         ps2_190 = 0;
 
@@ -150,17 +153,36 @@ static void ps2board_init(void)
 }
 
 
-void
+int
 machine_ps2_m30_286_init(const machine_t *model)
 {
+	void *priv;
+
+	int ret;
+
+	ret = bios_load_linear(L"roms/machines/ibmps2_m30_286/33f5381a.bin",
+			       0x000e0000, 131072, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
         machine_common_init(model);
 	device_add(&fdc_at_ps1_device);
 
         pit_set_out_func(&pit, 1, pit_refresh_timer_at);
         dma16_init();
-	device_add(&keyboard_ps2_device);
+	device_add(&keyboard_ps2_ps2_device);
 	device_add(&ps_nvr_device);
         pic2_init();
         ps2board_init();
 	device_add(&ps1vga_device);
+
+ 	/* Enable the builtin HDC. */
+	if (hdc_current == 1) {
+		priv = device_add(&ps1_hdc_device);
+
+		ps1_hdc_inform(priv, &ps2_91);
+	}
+
+	return ret;
 }

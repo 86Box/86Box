@@ -8,15 +8,15 @@
  *
  *		Rendering module for Microsoft Direct3D 9.
  *
- * Version:	@(#)win_d3d.cpp	1.0.11	2018/05/26
+ * Version:	@(#)win_d3d.cpp	1.0.12	2019/03/09
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -45,6 +45,7 @@ static HWND			d3d_hwnd;
 static HWND			d3d_device_window;
 static int			d3d_w,
 				d3d_h;
+static volatile int		d3d_enabled = 0;
 
 static CUSTOMVERTEX d3d_verts[] = {
     {   0.0f,    0.0f, 1.0f, 1.0f, 0xffffff, 0.0f, 0.0f},
@@ -79,7 +80,12 @@ static void
 d3d_size(RECT w_rect, double *l, double *t, double *r, double *b, int w, int h)
 {
     int ratio_w, ratio_h;
-    double hsr, gsr, ra, d;
+    double hsr, gsr, d, sh, sw, wh, ww, mh, mw;
+
+    sh = (double) (w_rect.bottom - w_rect.top);
+    sw = (double) (w_rect.right - w_rect.left);
+    wh = (double) h;
+    ww = (double) w;
 
     switch (video_fullscreen_scale) {
 	case FULLSCR_SCALE_FULL:
@@ -87,28 +93,37 @@ d3d_size(RECT w_rect, double *l, double *t, double *r, double *b, int w, int h)
 		break;
 
 	case FULLSCR_SCALE_43:
-		*t = -0.5;
-		*b = (w_rect.bottom - w_rect.top) - 0.5;
-		*l = ((w_rect.right  - w_rect.left) / 2) - (((w_rect.bottom - w_rect.top) * 4) / (3 * 2)) - 0.5;
-		*r = ((w_rect.right  - w_rect.left) / 2) + (((w_rect.bottom - w_rect.top) * 4) / (3 * 2)) - 0.5;
-		if (*l < -0.5) {
-			*l = -0.5;
-			*r = (w_rect.right  - w_rect.left) - 0.5;
-			*t = ((w_rect.bottom - w_rect.top) / 2) - (((w_rect.right - w_rect.left) * 3) / (4 * 2)) - 0.5;
-			*b = ((w_rect.bottom - w_rect.top) / 2) + (((w_rect.right - w_rect.left) * 3) / (4 * 2)) - 0.5;
+	case FULLSCR_SCALE_KEEPRATIO:
+		if (video_fullscreen_scale == FULLSCR_SCALE_43) {
+			mw = 4.0;
+			mh = 3.0;
+		} else {
+			mw = ww;
+			mh = wh;
 		}
-		break;
 
-	case FULLSCR_SCALE_SQ:
-		*t = -0.5;
-		*b = (w_rect.bottom - w_rect.top) - 0.5;
-		*l = ((w_rect.right  - w_rect.left) / 2) - (((w_rect.bottom - w_rect.top) * w) / (h * 2)) - 0.5;
-		*r = ((w_rect.right  - w_rect.left) / 2) + (((w_rect.bottom - w_rect.top) * w) / (h * 2)) - 0.5;
-		if (*l < -0.5) {
+		hsr = sw / sh;
+		gsr = mw / mh;
+
+		if (hsr > gsr) {
+			/* Host ratio is bigger than guest ratio. */
+			d = (sw - (mw * (sh / mh))) / 2.0;
+
+			*l = ((int) d) - 0.5;
+			*r = ((int) (sw - d)) - 0.5;
+			*t = -0.5;
+			*b = ((int) sh)  - 0.5;
+		} else if (hsr < gsr) {
+			/* Host ratio is smaller or rqual than guest ratio. */
+			d = (sh - (mh * (sw / mw))) / 2.0;
+
 			*l = -0.5;
-			*r = (w_rect.right  - w_rect.left) - 0.5;
-			*t = ((w_rect.bottom - w_rect.top) / 2) - (((w_rect.right - w_rect.left) * h) / (w * 2)) - 0.5;
-			*b = ((w_rect.bottom - w_rect.top) / 2) + (((w_rect.right - w_rect.left) * h) / (w * 2)) - 0.5;
+			*r = ((int) sw) - 0.5;
+			*t = ((int) d) - 0.5;
+			*b = ((int) (sh - d)) - 0.5;
+		} else {
+			/* Host ratio is equal to guest ratio. */
+			d3d_size_default(w_rect, l, t, r, b);
 		}
 		break;
 
@@ -123,37 +138,6 @@ d3d_size(RECT w_rect, double *l, double *t, double *r, double *b, int w, int h)
 		*b = ((w_rect.bottom - w_rect.top)  / 2) + ((h * ratio_w) / 2) - 0.5;
 		break;
 
-	case FULLSCR_SCALE_KEEPRATIO:
-		hsr = ((double) (w_rect.right  - w_rect.left)) / ((double) (w_rect.bottom - w_rect.top));
-		gsr = ((double) w) / ((double) h);
-
-		if (hsr > gsr) {
-			/* Host ratio is bigger than guest ratio. */
-			ra = ((double) (w_rect.bottom - w_rect.top)) / ((double) h);
-
-			d = ((double) w) * ra;
-			d = (((double) (w_rect.right  - w_rect.left)) - d) / 2.0;
-
-			*l = ((int) d) - 0.5;
-			*r = (w_rect.right  - w_rect.left) - ((int) d) - 0.5;
-			*t = -0.5;
-			*b = (w_rect.bottom - w_rect.top)  - 0.5;
-		} else if (hsr < gsr) {
-			/* Host ratio is smaller or rqual than guest ratio. */
-			ra = ((double) (w_rect.right  - w_rect.left)) / ((double) w);
-
-			d = ((double) h) * ra;
-			d = (((double) (w_rect.bottom - w_rect.top)) - d) / 2.0;
-
-			*l = -0.5;
-			*r = (w_rect.right  - w_rect.left) - 0.5;
-			*t = ((int) d) - 0.5;
-			*b = (w_rect.bottom - w_rect.top)  - ((int) d) - 0.5;
-		} else {
-			/* Host ratio is equal to guest ratio. */
-			d3d_size_default(w_rect, l, t, r, b);
-		}
-		break;
     }
 }
 
@@ -168,6 +152,11 @@ d3d_blit_fs(int x, int y, int y1, int y2, int w, int h)
     RECT w_rect;
     int yy;
     double l = 0, t = 0, r = 0, b = 0;
+
+    if (!d3d_enabled) {
+	video_blit_complete();
+	return;
+    }
 
     if ((y1 == y2) || (h <= 0)) {
 	video_blit_complete();
@@ -187,9 +176,9 @@ d3d_blit_fs(int x, int y, int y1, int y2, int w, int h)
 		for (yy = y1; yy < y2; yy++) {
 			if (buffer32) {
 				if (video_grayscale || invert_display)
-					video_transform_copy((uint32_t *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w);
+					video_transform_copy((uint32_t *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(buffer32->line[yy + y][x]), w);
 				else
-					memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
+					memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(buffer32->line[yy + y][x]), w * 4);
 			}
 		}
 
@@ -282,6 +271,11 @@ d3d_blit(int x, int y, int y1, int y2, int w, int h)
     RECT r;
     int yy;
 
+    if (!d3d_enabled) {
+	video_blit_complete();
+	return;
+    }
+
     if ((y1 == y2) || (h <= 0)) {
 	video_blit_complete();
 	return; /*Nothing to do*/
@@ -298,9 +292,9 @@ d3d_blit(int x, int y, int y1, int y2, int w, int h)
 		if (buffer32) {
 			if ((y + yy) >= 0 && (y + yy) < buffer32->h) {
 				if (video_grayscale || invert_display)
-					video_transform_copy((uint32_t *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w);
+					video_transform_copy((uint32_t *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(buffer32->line[yy + y][x]), w);
 				else
-					memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(((uint32_t *)buffer32->line[yy + y])[x]), w * 4);
+					memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(buffer32->line[yy + y][x]), w * 4);
 			}
 		}
 	}
@@ -415,8 +409,6 @@ d3d_init(HWND h)
 {
     d3d_hwnd = h;
 
-    cgapal_rebuild();
-
     d3d = Direct3DCreate9(D3D_SDK_VERSION);
 
     memset(&d3dpp, 0, sizeof(d3dpp));      
@@ -444,6 +436,8 @@ d3d_init(HWND h)
 
     video_setblit(d3d_blit);
 
+    d3d_enabled = 1;
+
     return(1);
 }
 
@@ -452,8 +446,6 @@ int
 d3d_init_fs(HWND h)
 {
     WCHAR title[200];
-
-    cgapal_rebuild();
 
     d3d_w = GetSystemMetrics(SM_CXSCREEN);
     d3d_h = GetSystemMetrics(SM_CYSCREEN);
@@ -504,6 +496,8 @@ d3d_init_fs(HWND h)
 
     video_setblit(d3d_blit_fs);
 
+    d3d_enabled = 1;
+
     return(1);
 }
 
@@ -526,6 +520,9 @@ void
 d3d_close(void)
 {       
     video_setblit(NULL);
+
+    if (d3d_enabled)
+	d3d_enabled = 0;
 
     d3d_close_objects();
 
@@ -634,8 +631,130 @@ d3d_pause(void)
 }
 
 
+#ifndef USE_D3DX
+static void
+SavePNG(wchar_t *szFilename, D3DSURFACE_DESC *surfaceDesc, D3DLOCKED_RECT *d3dlr)
+{
+    BITMAPINFO bmpInfo;
+    HDC hdc;
+    LPVOID pBuf = NULL;
+    LPVOID pBuf2 = NULL;
+    png_bytep *b_rgb = NULL;
+    int i;
+
+    /* create file */
+    FILE *fp = plat_fopen(szFilename, (wchar_t *) L"wb");
+    if (!fp) {
+	ddraw_log("[SavePNG] File %ls could not be opened for writing", szFilename);
+	return;
+    }
+
+    /* initialize stuff */
+    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+
+    if (!png_ptr) {
+	ddraw_log("[SavePNG] png_create_write_struct failed");
+	fclose(fp);
+	return;
+    }
+
+    info_ptr = png_create_info_struct(png_ptr);
+    if (!info_ptr) {
+	ddraw_log("[SavePNG] png_create_info_struct failed");
+	fclose(fp);
+	return;
+    }
+
+    png_init_io(png_ptr, fp);
+
+    hdc = GetDC(NULL);
+
+    ZeroMemory(&bmpInfo, sizeof(BITMAPINFO));
+    bmpInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+
+    GetDIBits(hdc, hBitmap, 0, 0, NULL, &bmpInfo, DIB_RGB_COLORS); 
+
+    if (bmpInfo.bmiHeader.biSizeImage <= 0)
+	bmpInfo.bmiHeader.biSizeImage =
+		bmpInfo.bmiHeader.biWidth*abs(bmpInfo.bmiHeader.biHeight)*(bmpInfo.bmiHeader.biBitCount+7)/8;
+
+    pBuf = malloc(bmpInfo.bmiHeader.biSizeImage);
+    if (pBuf == NULL) {
+	ddraw_log("[SavePNG] Unable to Allocate Bitmap Memory");
+	fclose(fp);
+	return;
+    }
+
+    if (ys2 <= 250) {
+	pBuf2 = malloc(bmpInfo.bmiHeader.biSizeImage << 1);
+	if (pBuf2 == NULL) {
+		ddraw_log("[SavePNG] Unable to Allocate Secondary Bitmap Memory");
+		free(pBuf);
+		fclose(fp);
+		return;
+	}
+
+    }
+
+    ddraw_log("save png w=%i h=%i\n", bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight);
+
+    bmpInfo.bmiHeader.biCompression = BI_RGB;
+
+    GetDIBits(hdc, hBitmap, 0, bmpInfo.bmiHeader.biHeight, pBuf, &bmpInfo, DIB_RGB_COLORS);
+
+    if (pBuf2) {
+	bmpInfo.bmiHeader.biSizeImage <<= 1;
+	bmpInfo.bmiHeader.biHeight <<= 1;
+    }
+
+    png_set_IHDR(png_ptr, info_ptr, bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight,
+	8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
+	PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+
+    b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * bmpInfo.bmiHeader.biHeight);
+    if (b_rgb == NULL) {
+	ddraw_log("[SavePNG] Unable to Allocate RGB Bitmap Memory");
+	free(pBuf2);
+	free(pBuf);
+	fclose(fp);
+	return;
+    }
+
+    for (i = 0; i < bmpInfo.bmiHeader.biHeight; i++) {
+	b_rgb[i] = (png_byte *) malloc(png_get_rowbytes(png_ptr, info_ptr));
+    }
+
+    if (pBuf2) {
+	DoubleLines((uint8_t *) pBuf2, (uint8_t *) pBuf);
+	bgra_to_rgb(b_rgb, (uint8_t *) pBuf2, bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight);
+    } else
+	bgra_to_rgb(b_rgb, (uint8_t *) pBuf, bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight);
+
+    png_write_info(png_ptr, info_ptr);
+
+    png_write_image(png_ptr, b_rgb);
+
+    png_write_end(png_ptr, NULL);
+
+    /* cleanup heap allocation */
+    if (hdc) ReleaseDC(NULL,hdc); 
+
+    for (i = 0; i < bmpInfo.bmiHeader.biHeight; i++)
+	if (b_rgb[i])  free(b_rgb[i]);
+
+    if (b_rgb) free(b_rgb);
+
+    if (pBuf2) free(pBuf2); 
+
+    if (pBuf) free(pBuf);
+
+    if (fp) fclose(fp);
+}
+#endif
+
+
 void
-d3d_take_screenshot(wchar_t *fn)
+d3d_take_screenshot(const wchar_t *fn)
 {
 #ifdef USE_D3DX
     LPDIRECT3DSURFACE9 d3dSurface = NULL;
@@ -650,6 +769,28 @@ d3d_take_screenshot(wchar_t *fn)
 #else
     /* TODO: how to take screenshot without d3dx? 
        just a stub for now */
-    pclog("Direct3D: d3d_take_screenshot(%s)\n", fn);
+    LPDIRECT3DSURFACE9 d3dSurface = NULL;
+    D3DSURFACE_DESC surfaceDesc;
+    D3DLOCKED_RECT d3dlr;
+    BYTE *pSurfaceBuffer;
+
+    if (! d3dTexture) return;
+
+    d3ddev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &d3dSurface);
+    d3dSurface->GetDesc(&surfaceDesc);
+    d3dSurface->LockRect(&d3dlr, 0, D3DLOCK_DONOTWAIT);
+    pSurfaceBuffer = (BYTE *) d3dlr.pBits + d3dlr.Pitch * (surfaceDesc.Height - 1);
+
+    D3DXSaveSurfaceToFile(fn, D3DXIFF_PNG, d3dSurface, NULL, NULL);
+
+    d3dSurface->Release();
+    d3dSurface = NULL;
 #endif
+}
+
+
+void
+d3d_enable(int enable)
+{
+    d3d_enabled = enable;
 }

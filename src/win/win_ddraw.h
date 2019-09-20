@@ -32,7 +32,8 @@ extern int	ddraw_init(HWND h);
 extern int	ddraw_init_fs(HWND h);
 extern void	ddraw_close(void);
 extern int	ddraw_pause(void);
-extern void	ddraw_take_screenshot(wchar_t *fn);
+extern void	ddraw_take_screenshot(const wchar_t *fn);
+extern void	ddraw_enable(int enable);
 
 #ifdef __cplusplus
 }

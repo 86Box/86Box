@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../timer.h"
 #include "fdd.h"
 #include "fdd_common.h"
 

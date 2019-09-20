@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.60	2019/01/13
+ * Version:	@(#)config.c	1.0.61	2019/03/03
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -16,10 +16,10 @@
  *		Overdoze,
  *		David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2018 David Hrdlička.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2018,2019 David Hrdlička.
  *
  * NOTE:	Forcing config files to be in Unicode encoding breaks
  *		it on Windows XP, and possibly also Vista. Use the
@@ -36,6 +36,7 @@
 #include "86box.h"
 #include "cpu/cpu.h"
 #include "device.h"
+#include "timer.h"
 #include "nvr.h"
 #include "config.h"
 #include "isamem.h"
@@ -517,7 +518,6 @@ load_machine(void)
     if (machine >= machine_count())
 	machine = machine_count() - 1;
 
-    romset = machine_getromset();
     cpu_manufacturer = config_get_int(cat, "cpu_manufacturer", 0);
     cpu = config_get_int(cat, "cpu", 0);
     cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
@@ -565,7 +565,7 @@ load_video(void)
     char *cat = "Video";
     char *p;
 
-    if (machines[machine].fixed_gfxcard) {
+    if (machines[machine].flags & MACHINE_VIDEO_FIXED) {
 	config_delete_var(cat, "gfxcard");
 	gfxcard = VID_INTERNAL;
     } else {
@@ -726,28 +726,30 @@ load_ports(void)
 {
     char *cat = "Ports (COM & LPT)";
     char *p;
+    char temp[512];
+    int c, d;
 
-    serial_enabled[0] = !!config_get_int(cat, "serial1_enabled", 1);
-    serial_enabled[1] = !!config_get_int(cat, "serial2_enabled", 1);
-    lpt_enabled = !!config_get_int(cat, "lpt_enabled", 1);
+    for (c = 0; c < 2; c++) {
+	sprintf(temp, "serial%d_enabled", c + 1);
+	serial_enabled[c] = !!config_get_int(cat, temp, 1);
+    }
 
-    p = (char *)config_get_string(cat, "lpt1_device", NULL);
-    if (p != NULL)
-	strcpy(lpt_device_names[0], p);
-      else
-	strcpy(lpt_device_names[0], "none");
+    for (c = 0; c < 3; c++) {
+	sprintf(temp, "lpt%d_enabled", c + 1);
+	lpt_ports[c].enabled = !!config_get_int(cat, temp, (c == 0) ? 1 : 0);
 
-    p = (char *)config_get_string(cat, "lpt2_device", NULL);
-    if (p != NULL)
-	strcpy(lpt_device_names[1], p);
-      else
-	strcpy(lpt_device_names[1], "none");
+	sprintf(temp, "lpt%d_device", c + 1);
+	p = (char *) config_get_string(cat, temp, "none");
+	lpt_ports[c].device = lpt_device_get_from_internal_name(p);
+    }
 
-    p = (char *)config_get_string(cat, "lpt3_device", NULL);
-    if (p != NULL)
-	strcpy(lpt_device_names[2], p);
-      else
-	strcpy(lpt_device_names[2], "none");
+    /* Legacy config compatibility. */
+    d = config_get_int(cat, "lpt_enabled", 2);
+    if (d < 2) {
+	for (c = 0; c < 3; c++)
+		lpt_ports[c].enabled = d;
+    }
+    config_delete_var(cat, "lpt_enabled");
 }
 
 
@@ -757,8 +759,8 @@ load_other_peripherals(void)
 {
     char *cat = "Other peripherals";
     char *p;
-	char temp[512];
-	int c;
+    char temp[512];
+    int c;
 	
     p = config_get_string(cat, "scsicard", NULL);
     if (p != NULL)
@@ -776,7 +778,14 @@ load_other_peripherals(void)
 		strcpy(p, "none");
 	}
     }
-    hdc_current = hdc_get_from_internal_name(p);
+    if (!strcmp(p, "mfm_xt"))
+	hdc_current = hdc_get_from_internal_name("st506_xt");
+    else if (!strcmp(p, "mfm_xt_dtc5150x"))
+	hdc_current = hdc_get_from_internal_name("st506_xt_dtc5150x");
+    else if (!strcmp(p, "mfm_at"))
+	hdc_current = hdc_get_from_internal_name("st506_at");
+    else
+	hdc_current = hdc_get_from_internal_name(p);
 
     ide_ter_enabled = !!config_get_int(cat, "ide_ter", 0);
     ide_qua_enabled = !!config_get_int(cat, "ide_qua", 0);
@@ -789,7 +798,7 @@ load_other_peripherals(void)
 	p = config_get_string(cat, temp, "none");
 	isamem_type[c] = isamem_get_from_internal_name(p);
     }
-	
+
     p = config_get_string(cat, "isartc_type", "none");
     isartc_type = isartc_get_from_internal_name(p);	
 }
@@ -823,7 +832,7 @@ load_hard_disks(void)
 			break;
 
 		case HDD_BUS_MFM:
-			max_spt = 17;	/* 26 for RLL */
+			max_spt = 26;	/* 26 for RLL */
 			max_hpc = 15;
 			max_tracks = 1023;
 			break;
@@ -1069,8 +1078,11 @@ load_other_removable_devices(void)
 		if (cdrom[c].ide_channel > 7)
 			cdrom[c].ide_channel = 7;
 	} else {
-		sprintf(temp, "cdrom_%02i_scsi_id", c+1);
-		if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
+		if (cdrom[c].bus_type == CDROM_BUS_SCSI_CHINON)
+			sprintf(temp, "cdrom_%02i_scsi_id_chinon", c+1);
+		else
+			sprintf(temp, "cdrom_%02i_scsi_id", c+1);
+		if (cdrom[c].bus_type == CDROM_BUS_SCSI || cdrom[c].bus_type == CDROM_BUS_SCSI_CHINON) {
 			cdrom[c].scsi_device_id = config_get_int(cat, temp, c+2);
 	
 			if (cdrom[c].scsi_device_id > 15)
@@ -1120,6 +1132,9 @@ load_other_removable_devices(void)
 		config_delete_var(cat, temp);
 
 		sprintf(temp, "cdrom_%02i_scsi_id", c+1);
+		config_delete_var(cat, temp);
+		
+		sprintf(temp, "cdrom_%02i_scsi_id_chinon", c+1);
 		config_delete_var(cat, temp);
 
 		sprintf(temp, "cdrom_%02i_image_path", c+1);
@@ -1240,7 +1255,9 @@ config_load(void)
 	hdc_current = hdc_get_from_internal_name("none");
 	serial_enabled[0] = 1;
 	serial_enabled[1] = 1;
-	lpt_enabled = 1;
+	lpt_ports[0].enabled = 1;
+	lpt_ports[1].enabled = 0;
+	lpt_ports[2].enabled = 0;
 	for (i = 0; i < FDD_NUM; i++) {
 		if (i < 2)
 			fdd_set_type(i, 2);
@@ -1586,36 +1603,32 @@ static void
 save_ports(void)
 {
     char *cat = "Ports (COM & LPT)";
+    char temp[512];
+    int c, d;
 
-    if (serial_enabled[0])
-	config_delete_var(cat, "serial1_enabled");
-      else
-	config_set_int(cat, "serial1_enabled", serial_enabled[0]);
+    for (c = 0; c < 2; c++) {
+	sprintf(temp, "serial%d_enabled", c + 1);
+	if (serial_enabled[c])
+		config_delete_var(cat, temp);
+	else
+		config_set_int(cat, temp, serial_enabled[c]);
+    }
 
-    if (serial_enabled[1])
-	config_delete_var(cat, "serial2_enabled");
-      else
-	config_set_int(cat, "serial2_enabled", serial_enabled[1]);
+    for (c = 0; c < 3; c++) {
+	sprintf(temp, "lpt%d_enabled", c + 1);
+	d = (c == 0) ? 1 : 0;
+	if (lpt_ports[c].enabled == d)
+		config_delete_var(cat, temp);
+	else
+		config_set_int(cat, temp, lpt_ports[c].enabled);
 
-    if (lpt_enabled)
-	config_delete_var(cat, "lpt_enabled");
-      else
-	config_set_int(cat, "lpt_enabled", lpt_enabled);
-
-    if (!strcmp(lpt_device_names[0], "none"))
-	config_delete_var(cat, "lpt1_device");
-      else
-	config_set_string(cat, "lpt1_device", lpt_device_names[0]);
-
-    if (!strcmp(lpt_device_names[1], "none"))
-	config_delete_var(cat, "lpt2_device");
-      else
-	config_set_string(cat, "lpt2_device", lpt_device_names[1]);
-
-    if (!strcmp(lpt_device_names[2], "none"))
-	config_delete_var(cat, "lpt3_device");
-      else
-	config_set_string(cat, "lpt3_device", lpt_device_names[2]);
+	sprintf(temp, "lpt%d_device", c + 1);
+	if (lpt_ports[c].device == 0)
+		config_delete_var(cat, temp);
+	  else
+		config_set_string(cat, temp,
+				  (char *) lpt_device_get_internal_name(lpt_ports[c].device));
+    }
 
     delete_section_if_empty(cat);
 }
@@ -1626,8 +1639,8 @@ static void
 save_other_peripherals(void)
 {
     char *cat = "Other peripherals";
-	char temp[512];
-	int c;
+    char temp[512];
+    int c;
 
     if (scsi_card_current == 0)
 	config_delete_var(cat, "scsicard");
@@ -1827,9 +1840,13 @@ save_other_removable_devices(void)
 					cdrom[c].ide_channel & 1);
 		config_set_string(cat, temp, tmp2);
 	}
-
-	sprintf(temp, "cdrom_%02i_scsi_id", c + 1);
-	if (cdrom[c].bus_type != CDROM_BUS_SCSI) {
+	
+	if (cdrom[c].bus_type == CDROM_BUS_SCSI_CHINON)
+		sprintf(temp, "cdrom_%02i_scsi_id_chinon", c + 1);
+	else
+		sprintf(temp, "cdrom_%02i_scsi_id", c + 1);
+	
+	if (cdrom[c].bus_type != CDROM_BUS_SCSI && cdrom[c].bus_type != CDROM_BUS_SCSI_CHINON) {
 		config_delete_var(cat, temp);
 	} else {
 		config_set_int(cat, temp, cdrom[c].scsi_device_id);

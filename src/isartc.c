@@ -72,6 +72,7 @@
 #include <wchar.h>
 #include "86box.h"
 #include "cpu/cpu.h"
+#include "timer.h"
 #include "machine/machine.h"
 #include "io.h"
 #include "device.h"
@@ -387,7 +388,7 @@ mm67_read(uint16_t port, void *priv)
     uint8_t ret = 0xff;
 
     /* This chip is directly mapped on I/O. */
-    cycles -= ISA_CYCLES(4);
+    sub_cycles(ISA_CYCLES(4));
 
     switch(reg) {
 	case MM67_ISTAT:		/* IRQ status (RO) */
@@ -423,7 +424,7 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 #endif
 
     /* This chip is directly mapped on I/O. */
-    cycles -= ISA_CYCLES(4);
+    sub_cycles(ISA_CYCLES(4));
 
     switch(reg) {
 	case MM67_ISTAT:		/* intr status (RO) */

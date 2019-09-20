@@ -24,6 +24,7 @@
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../nmi.h"
+#include "../timer.h"
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
@@ -36,23 +37,29 @@
 #include "machine.h"
 
 
-void
+int
 machine_xt_compaq_init(const machine_t *model)
 {
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/portable/compaq portable plus 100666-001 rev c u47.bin",
+			   0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
     machine_common_init(model);
 
     pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
 
-    device_add(&keyboard_xt_device);
+    device_add(&keyboard_xt_compaq_device);
     device_add(&fdc_xt_device);
     nmi_init();
     if (joystick_type != 7)
 	device_add(&gameport_device);
 
-    switch(model->id) {
-	case ROM_PORTABLE:
-		lpt1_remove();
-		lpt1_init(0x03bc);
-		break;
-    }
+    lpt1_remove();
+    lpt1_init(0x03bc);
+
+    return ret;
 }

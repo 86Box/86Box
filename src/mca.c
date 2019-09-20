@@ -8,6 +8,7 @@
 
 void    (*mca_card_write[8])(int addr, uint8_t val, void *priv);
 uint8_t  (*mca_card_read[8])(int addr, void *priv);
+uint8_t (*mca_card_feedb[8])(void *priv);
 void           *mca_priv[8];
 
 static int mca_index;
@@ -51,7 +52,15 @@ void mca_write(uint16_t port, uint8_t val)
                 mca_card_write[mca_index](port, val, mca_priv[mca_index]);
 }
 
-void mca_add(uint8_t (*read)(int addr, void *priv), void (*write)(int addr, uint8_t val, void *priv), void *priv)
+uint8_t mca_feedb(void)
+{
+    if (mca_card_feedb[mca_index])
+	return !!(mca_card_feedb[mca_index](mca_priv[mca_index]));
+    else
+	return 0;
+}
+
+void mca_add(uint8_t (*read)(int addr, void *priv), void (*write)(int addr, uint8_t val, void *priv), uint8_t (*feedb)(void *priv), void *priv)
 {
         int c;
         
@@ -61,6 +70,7 @@ void mca_add(uint8_t (*read)(int addr, void *priv), void (*write)(int addr, uint
                 {
                          mca_card_read[c] = read;
                         mca_card_write[c] = write;
+                        mca_card_feedb[c] = feedb;
                               mca_priv[c] = priv;
                         return;
                 }

@@ -41,6 +41,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../timer.h"
 #include "../pic.h"
 #include "../pit.h"
 #include "../dma.h"
@@ -52,12 +53,13 @@
 #include "../game/gameport.h"
 #include "../keyboard.h"
 #include "../lpt.h"
+#include "../rom.h"
 #include "../disk/hdc.h"
 #include "machine.h"
 
 
 void
-machine_at_common_init(const machine_t *model)
+machine_at_common_init_ex(const machine_t *model, int is_ibm)
 {
     machine_common_init(model);
 
@@ -65,13 +67,20 @@ machine_at_common_init(const machine_t *model)
     pic2_init();
     dma16_init();
 
-    if (lpt_enabled)
-	lpt2_remove();
-
-    device_add(&at_nvr_device);
+    if (is_ibm)
+	device_add(&ibmat_nvr_device);
+    else
+	device_add(&at_nvr_device);
 
     if (joystick_type != 7)
 	device_add(&gameport_device);
+}
+
+
+void
+machine_at_common_init(const machine_t *model)
+{
+    machine_at_common_init_ex(model, 0);
 }
 
 
@@ -84,22 +93,10 @@ machine_at_init(const machine_t *model)
 }
 
 
-void
-machine_at_ibm_init(const machine_t *model)
+static void
+machine_at_ibm_common_init(const machine_t *model)
 {
-    machine_common_init(model);
-
-    pit_set_out_func(&pit, 1, pit_refresh_timer_at);
-    pic2_init();
-    dma16_init();
-
-    if (lpt_enabled)
-	lpt2_remove();
-
-    device_add(&ibmat_nvr_device);
-
-    if (joystick_type != 7)
-	device_add(&gameport_device);
+    machine_at_common_init_ex(model, 1);
 
     device_add(&keyboard_at_device);
 
@@ -107,6 +104,7 @@ machine_at_ibm_init(const machine_t *model)
 
     device_add(&fdc_at_device);
 }
+
 
 void
 machine_at_ps2_init(const machine_t *model)
@@ -122,7 +120,16 @@ machine_at_common_ide_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    device_add(&ide_isa_2ch_opt_device);
+    device_add(&ide_isa_device);
+}
+
+
+void
+machine_at_ibm_common_ide_init(const machine_t *model)
+{
+    machine_at_common_init_ex(model, 1);
+
+    device_add(&ide_isa_device);
 }
 
 
@@ -131,7 +138,7 @@ machine_at_ide_init(const machine_t *model)
 {
     machine_at_init(model);
 
-    device_add(&ide_isa_2ch_opt_device);
+    device_add(&ide_isa_device);
 }
 
 
@@ -140,5 +147,60 @@ machine_at_ps2_ide_init(const machine_t *model)
 {
     machine_at_ps2_init(model);
 
-    device_add(&ide_isa_2ch_opt_device);
+    device_add(&ide_isa_device);
 }
+
+
+int
+machine_at_ibm_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/ibmat/62x0820.u27",
+				L"roms/machines/ibmat/62x0821.u47",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_ibm_common_init(model);
+
+    return ret;
+}
+
+
+int
+machine_at_ibmxt286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/ibmxt286/bios_5162_21apr86_u34_78x7460_27256.bin",
+				L"roms/machines/ibmxt286/bios_5162_21apr86_u35_78x7461_27256.bin",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_ibm_common_init(model);
+
+    return ret;
+}
+
+
+#if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
+int
+machine_at_open_at_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/open_at/bios.bin",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_ibm_common_init(model);
+
+    return ret;
+}
+#endif

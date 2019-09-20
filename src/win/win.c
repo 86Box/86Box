@@ -8,15 +8,15 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.55	2018/11/19
+ * Version:	@(#)win.c	1.0.57	2019/03/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #define UNICODE
 #include <windows.h>
@@ -76,34 +76,36 @@ static rc_str_t	*lpRCstr2048,
 static int	vid_api_inited = 0;
 
 
-static struct {
-    char	*name;
+static const struct {
+    const char	*name;
     int		local;
     int		(*init)(void *);
     void	(*close)(void);
     void	(*resize)(int x, int y);
     int		(*pause)(void);
+    void	(*enable)(int enable);
+    void	(*screenshot)(const wchar_t *fn);
 } vid_apis[2][RENDERERS_NUM] = {
   {
-    {	"DDraw", 1, (int(*)(void*))ddraw_init, ddraw_close, NULL, ddraw_pause		},
+    {	"DDraw", 1, (int(*)(void*))ddraw_init, ddraw_close, NULL, ddraw_pause, ddraw_enable, ddraw_take_screenshot	},
 #ifdef USE_D2D
-    {	"D2D", 1, (int(*)(void*))d2d_init, d2d_close, NULL, d2d_pause			},
+    {	"D2D", 1, (int(*)(void*))d2d_init, d2d_close, NULL, d2d_pause, d2d_enable, d2d_take_screenshot			},
 #endif
-    {	"D3D", 1, (int(*)(void*))d3d_init, d3d_close, d3d_resize, d3d_pause		},
-    {	"SDL", 1, (int(*)(void*))sdl_init, sdl_close, NULL, sdl_pause			}
+    {	"D3D", 1, (int(*)(void*))d3d_init, d3d_close, d3d_resize, d3d_pause, d3d_enable, d3d_take_screenshot		},
+    {	"SDL", 1, (int(*)(void*))sdl_init, sdl_close, NULL, sdl_pause, sdl_enable, sdl_take_screenshot			}
 #ifdef USE_VNC
-    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause				}
+    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, vnc_take_screenshot					}
 #endif
   },
   {
-    {	"DDraw", 1, (int(*)(void*))ddraw_init_fs, ddraw_close, NULL, ddraw_pause	},
+    {	"DDraw", 1, (int(*)(void*))ddraw_init_fs, ddraw_close, NULL, ddraw_pause, ddraw_enable, ddraw_take_screenshot	},
 #ifdef USE_D2D
-    {	"D2D", 1, (int(*)(void*))d2d_init_fs, d2d_close, NULL, d2d_pause		},
+    {	"D2D", 1, (int(*)(void*))d2d_init_fs, d2d_close, NULL, d2d_pause, d2d_enable, d2d_take_screenshot		},
 #endif
-    {	"D3D", 1, (int(*)(void*))d3d_init_fs, d3d_close, NULL, d3d_pause		},
-    {	"SDL", 1, (int(*)(void*))sdl_init_fs, sdl_close, sdl_resize, sdl_pause		}
+    {	"D3D", 1, (int(*)(void*))d3d_init_fs, d3d_close, NULL, d3d_pause, d3d_enable, d3d_take_screenshot		},
+    {	"SDL", 1, (int(*)(void*))sdl_init_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable, sdl_take_screenshot		}
 #ifdef USE_VNC
-    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause				}
+    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, vnc_take_screenshot					}
 #endif
   },
 };
@@ -348,6 +350,9 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 {
     wchar_t **argw = NULL;
     int	argc, i;
+    wchar_t * AppID = L"86Box.86Box\0";
+
+    SetCurrentProcessExplicitAppUserModelID(AppID);
 
     /* Set this to the default value (windowed mode). */
     video_fullscreen = 0;
@@ -435,6 +440,7 @@ plat_get_exe_name(wchar_t *s, int size)
     GetModuleFileName(hinstance, s, size);
 }
 
+
 void
 plat_tempfile(wchar_t *bufp, wchar_t *prefix, wchar_t *suffix)
 {
@@ -455,6 +461,7 @@ plat_tempfile(wchar_t *bufp, wchar_t *prefix, wchar_t *suffix)
     mbstowcs(bufp, temp, strlen(temp)+1);
 }
 
+
 int
 plat_getcwd(wchar_t *bufp, int max)
 {
@@ -473,6 +480,14 @@ plat_chdir(wchar_t *path)
 
 FILE *
 plat_fopen(wchar_t *path, wchar_t *mode)
+{
+    return(_wfopen(path, mode));
+}
+
+
+/* Open a file, using Unicode pathname, with 64bit pointers. */
+FILE *
+plat_fopen64(const wchar_t *path, const wchar_t *mode)
 {
     return(_wfopen(path, mode));
 }
@@ -504,6 +519,46 @@ plat_path_abs(wchar_t *path)
 	return(1);
 
     return(0);
+}
+
+
+/* Return the last element of a pathname. */
+wchar_t *
+plat_get_basename(const wchar_t *path)
+{
+    int c = (int)wcslen(path);
+
+    while (c > 0) {
+	if (path[c] == L'/' || path[c] == L'\\')
+	   return((wchar_t *)&path[c]);
+       c--;
+    }
+
+    return((wchar_t *)path);
+}
+
+
+/* Return the 'directory' element of a pathname. */
+void
+plat_get_dirname(wchar_t *dest, const wchar_t *path)
+{
+    int c = (int)wcslen(path);
+    wchar_t *ptr;
+
+    ptr = (wchar_t *)path;
+
+    while (c > 0) {
+	if (path[c] == L'/' || path[c] == L'\\') {
+		ptr = (wchar_t *)&path[c];
+		break;
+	}
+ 	c--;
+    }
+
+    /* Copy to destination. */
+    while (path < ptr)
+	*dest++ = *path++;
+    *dest = L'\0';
 }
 
 
@@ -544,6 +599,7 @@ void
 plat_append_filename(wchar_t *dest, wchar_t *s1, wchar_t *s2)
 {
     wcscat(dest, s1);
+    plat_path_slash(dest);
     wcscat(dest, s2);
 }
 
@@ -607,7 +663,11 @@ plat_vidapi(char *name)
 {
     int i;
 
-    if (!strcasecmp(name, "default") || !strcasecmp(name, "system")) return(0);
+#ifdef USE_D2D
+    if (!strcasecmp(name, "default") || !strcasecmp(name, "system")) return(2);
+#else
+    if (!strcasecmp(name, "default") || !strcasecmp(name, "system")) return(1);
+#endif
 
     for (i = 0; i < RENDERERS_NUM; i++) {
 	if (vid_apis[0][i].name &&
@@ -627,10 +687,7 @@ plat_vidapi_name(int api)
 
     switch(api) {
 	case 0:
-#if 0
-		/* DirectDraw is default. */
 		name = "ddraw";
-#endif
 		break;
 
 #ifdef USE_D2D
@@ -639,7 +696,10 @@ plat_vidapi_name(int api)
 		break;
 
 	case 2:
+#if 0
+		/* Direct3D is default. */
 		name = "d3d";
+#endif
 		break;
 
 	case 3:
@@ -647,7 +707,10 @@ plat_vidapi_name(int api)
 		break;
 #else
 	case 1:
+#if 0
+		/* Direct3D is default. */
 		name = "d3d";
+#endif
 		break;
 
 	case 2:
@@ -714,6 +777,17 @@ plat_vidsize(int x, int y)
 }
 
 
+void
+plat_vidapi_enable(int enable)
+{
+    if (!vid_api_inited || !vid_apis[video_fullscreen][vid_api].enable) return;
+
+    startblit();
+    video_wait_for_blit();
+    vid_apis[video_fullscreen][vid_api].enable(enable);
+    endblit();
+}
+
 int
 get_vidpause(void)
 {
@@ -768,6 +842,7 @@ take_screenshot(void)
     struct tm *info;
     time_t now;
 
+    if (!vid_api_inited || !vid_apis[video_fullscreen][vid_api].screenshot) return;
     win_log("Screenshot: video API is: %i\n", vid_api);
     if ((vid_api < 0) || (vid_api >= RENDERERS_NUM)) return;
 
@@ -786,44 +861,7 @@ take_screenshot(void)
 
     wcsftime(fn, 128, L"%Y%m%d_%H%M%S.png", info);
     wcscat(path, fn);
-
-    switch(vid_api) {
-	case 0:		/* ddraw */
-		ddraw_take_screenshot(path);
-		break;
-
-#ifdef USE_D2D
-	case 1:		/* d2d */
-		d2d_take_screenshot(path);
-		break;
-
-	case 2:		/* d3d9 */
-		d3d_take_screenshot(path);
-		break;
-
-	case 3:		/* sdl */
-		sdl_take_screenshot(path);
-		break;
-#else
-	case 1:		/* d3d9 */
-		d3d_take_screenshot(path);
-		break;
-
-	case 2:		/* sdl */
-		sdl_take_screenshot(path);
-		break;
-#endif
-
-#ifdef USE_VNC
-#ifdef USE_D2D
-	case 4:		/* vnc */
-#else
-	case 3:		/* vnc */
-#endif
-		vnc_take_screenshot(path);
-		break;
-#endif
-    }
+    vid_apis[video_fullscreen][vid_api].screenshot((const wchar_t *) path);
 }
 
 

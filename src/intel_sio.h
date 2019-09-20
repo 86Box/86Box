@@ -15,3 +15,4 @@
  */
 
 extern const device_t sio_device;
+extern const device_t sio_zb_device;

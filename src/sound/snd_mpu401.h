@@ -93,6 +93,9 @@ typedef struct mpu_t
 		cth_rate, cth_counter;
 	int clock_to_host,cth_active;
     } clock;
+	
+	pc_timer_t mpu401_event_callback, mpu401_eoi_callback, 
+			mpu401_reset_callback;
 } mpu_t;
 
 extern int	mpu401_standalone_enable;

@@ -22,6 +22,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
@@ -147,12 +148,12 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 						case 0x03:
 							enable = (oti->vram_size >= 1024);
 							if (val & 0xc)
-								svga->vram_display_mask = MIN(oti->vram_mask, 0x7ffff);
+								svga->vram_display_mask = MIN(oti->vram_mask, 0xfffff);
 							break;
 						case 0x02:	/* 512 kB of memory */
 							enable = (oti->vram_size >= 512);
 							if (val & 0xc)
-								svga->vram_display_mask = MIN(oti->vram_mask, 0xfffff);
+								svga->vram_display_mask = MIN(oti->vram_mask, 0x7ffff);
 							break;
 					}
 
