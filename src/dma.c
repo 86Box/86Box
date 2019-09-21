@@ -1,40 +1,22 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *		This file is part of the 86Box distribution.
  *
  *		Implementation of the Intel DMA controllers.
  *
- * Version:	@(#)dma.c	1.0.5	2019/02/07
+ * Version:	@(#)dma.c	1.0.6	2019/09/21
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free  Software  Foundation; either  version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is  distributed in the hope that it will be useful, but
- * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
- * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the:
- *
- *   Free Software Foundation, Inc.
- *   59 Temple Place - Suite 330
- *   Boston, MA 02111-1307
- *   USA.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -945,10 +927,7 @@ dma_ps2_run(int channel)
 int
 dma_mode(int channel)
 {
-    if (channel < 4)
-	return(dma[channel].mode);
-      else
-	return(dma[channel & 3].mode);
+    return(dma[channel].mode);
 }
 
 

@@ -391,7 +391,6 @@ static int opFSTPd_a16(uint32_t fetchdat)
         FP_ENTER();
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-        CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);
         t.d = ST(0);
         seteaq(t.i); if (cpu_state.abrt) return 1;
         x87_pop();
@@ -405,7 +404,6 @@ static int opFSTPd_a32(uint32_t fetchdat)
         FP_ENTER();
         fetch_ea_32(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-        CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);
         t.d = ST(0);
         seteaq(t.i); if (cpu_state.abrt) return 1;
         x87_pop();

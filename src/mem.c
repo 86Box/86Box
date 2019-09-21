@@ -532,12 +532,6 @@ writemembl(uint32_t addr, uint8_t val)
 uint8_t
 readmemb386l(uint32_t seg, uint32_t addr)
 {
-    if (seg == (uint32_t) -1) {
-	x86gpf("NULL segment", 0);
-
-	return -1;
-    }
-
     return readmembl(addr + seg);
 }
 
@@ -545,11 +539,6 @@ readmemb386l(uint32_t seg, uint32_t addr)
 void
 writememb386l(uint32_t seg, uint32_t addr, uint8_t val)
 {
-    if (seg == (uint32_t) -1) {
-	x86gpf("NULL segment", 0);
-	return;
-    }
-
     writemembl(addr + seg, val);
 }
 
@@ -559,11 +548,6 @@ readmemwl(uint32_t seg, uint32_t addr)
 {
     mem_mapping_t *map;
     uint32_t addr2 = mem_logical_addr = seg + addr;
-
-    if (seg == (uint32_t) -1) {
-	x86gpf("NULL segment", 0);
-	return -1;
-    }
 
     if (addr2 & 1) {
 	if (!cpu_cyrix_alignment || (addr2 & 7) == 7)
@@ -611,11 +595,6 @@ writememwl(uint32_t seg, uint32_t addr, uint16_t val)
 {
     mem_mapping_t *map;
     uint32_t addr2 = mem_logical_addr = seg + addr;
-
-    if (seg == (uint32_t) -1) {
-	x86gpf("NULL segment", 0);
-	return;
-    }
 
     if (addr2 & 1) {
 	if (!cpu_cyrix_alignment || (addr2 & 7) == 7)
@@ -672,11 +651,6 @@ readmemll(uint32_t seg, uint32_t addr)
     mem_mapping_t *map;
     uint32_t addr2 = mem_logical_addr = seg + addr;
 
-    if (seg == (uint32_t) -1) {
-	x86gpf("NULL segment", 0);
-	return -1;
-    }
-
     if (addr2 & 3) {
 	if (!cpu_cyrix_alignment || (addr2 & 7) > 4)
 		sub_cycles(timing_misaligned);
@@ -722,11 +696,6 @@ writememll(uint32_t seg, uint32_t addr, uint32_t val)
 {
     mem_mapping_t *map;
     uint32_t addr2 = mem_logical_addr = seg + addr;
-
-    if (seg == (uint32_t) -1) {
-	x86gpf("NULL segment", 0);
-	return;
-    }
 
     if (addr2 & 3) {
 	if (!cpu_cyrix_alignment || (addr2 & 7) > 4)
@@ -784,11 +753,6 @@ readmemql(uint32_t seg, uint32_t addr)
     mem_mapping_t *map;
     uint32_t addr2 = mem_logical_addr = seg + addr;
 
-    if (seg == (uint32_t) -1) {
-	x86gpf("NULL segment", 0);
-	return -1;
-    }
-
     if (addr2 & 7) {
 	sub_cycles(timing_misaligned);
 	if ((addr2 & 0xfff) > 0xff8) {
@@ -822,11 +786,6 @@ writememql(uint32_t seg, uint32_t addr, uint64_t val)
 {
     mem_mapping_t *map;
     uint32_t addr2 = mem_logical_addr = seg + addr;
-
-    if (seg == (uint32_t) -1) {
-	x86gpf("NULL segment", 0);
-	return;
-    }
 
     if (addr2 & 7) {
 	sub_cycles(timing_misaligned);

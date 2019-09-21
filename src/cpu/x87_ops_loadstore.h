@@ -46,10 +46,8 @@ static int opFISTiw_a16(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp64 = x87_fround(ST(0));
-/*                        if (temp64 > 32767 || temp64 < -32768)
-                           fatal("FISTw overflow %i\n", temp64);*/
         seteaw((int16_t)temp64);
         CLOCK_CYCLES(29);
         return cpu_state.abrt;
@@ -60,10 +58,8 @@ static int opFISTiw_a32(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp64 = x87_fround(ST(0));
-/*                        if (temp64 > 32767 || temp64 < -32768)
-                           fatal("FISTw overflow %i\n", temp64);*/
         seteaw((int16_t)temp64);
         CLOCK_CYCLES(29);
         return cpu_state.abrt;
@@ -75,10 +71,8 @@ static int opFISTPiw_a16(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp64 = x87_fround(ST(0));
-/*                        if (temp64 > 32767 || temp64 < -32768)
-                           fatal("FISTw overflow %i\n", temp64);*/
         seteaw((int16_t)temp64); if (cpu_state.abrt) return 1;
         x87_pop();
         CLOCK_CYCLES(29);
@@ -90,10 +84,8 @@ static int opFISTPiw_a32(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp64 = x87_fround(ST(0));
-/*                        if (temp64 > 32767 || temp64 < -32768)
-                           fatal("FISTw overflow %i\n", temp64);*/
         seteaw((int16_t)temp64); if (cpu_state.abrt) return 1;
         x87_pop();
         CLOCK_CYCLES(29);
@@ -138,7 +130,7 @@ static int FBSTP_a16(uint32_t fetchdat)
         int c;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         tempd = ST(0);
         if (tempd < 0.0) 
                 tempd = -tempd;
@@ -165,7 +157,7 @@ static int FBSTP_a32(uint32_t fetchdat)
         int c;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         tempd = ST(0);
         if (tempd < 0.0) 
                 tempd = -tempd;
@@ -192,7 +184,7 @@ static int FISTPiq_a16(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         if (cpu_state.tag[cpu_state.TOP] & TAG_UINT64)
                 temp64 = cpu_state.MM[cpu_state.TOP].q;
         else
@@ -208,7 +200,7 @@ static int FISTPiq_a32(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         if (cpu_state.tag[cpu_state.TOP] & TAG_UINT64)
                 temp64 = cpu_state.MM[cpu_state.TOP].q;
         else
@@ -250,10 +242,8 @@ static int opFISTil_a16(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp64 = x87_fround(ST(0));
-/*                        if (temp64 > 2147483647 || temp64 < -2147483647)
-                           fatal("FISTl out of range! %i\n", temp64);*/
         seteal((int32_t)temp64);
         CLOCK_CYCLES(28);
         return cpu_state.abrt;
@@ -264,10 +254,8 @@ static int opFISTil_a32(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp64 = x87_fround(ST(0));
-/*                        if (temp64 > 2147483647 || temp64 < -2147483647)
-                           fatal("FISTl out of range! %i\n", temp64);*/
         seteal((int32_t)temp64);
         CLOCK_CYCLES(28);
         return cpu_state.abrt;
@@ -279,10 +267,8 @@ static int opFISTPil_a16(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp64 = x87_fround(ST(0));
-/*                        if (temp64 > 2147483647 || temp64 < -2147483647)
-                           fatal("FISTl out of range! %i\n", temp64);*/
         seteal((int32_t)temp64); if (cpu_state.abrt) return 1;
         x87_pop();
         CLOCK_CYCLES(28);
@@ -294,10 +280,8 @@ static int opFISTPil_a32(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp64 = x87_fround(ST(0));
-/*                        if (temp64 > 2147483647 || temp64 < -2147483647)
-                           fatal("FISTl out of range! %i\n", temp64);*/
         seteal((int32_t)temp64); if (cpu_state.abrt) return 1;
         x87_pop();
         CLOCK_CYCLES(28);
@@ -310,7 +294,7 @@ static int opFLDe_a16(uint32_t fetchdat)
         double t;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_READ(cpu_state.ea_seg);		
+	SEG_CHECK_READ(cpu_state.ea_seg);		
         t=x87_ld80(); if (cpu_state.abrt) return 1;
         x87_push(t);
         CLOCK_CYCLES(6);
@@ -322,7 +306,7 @@ static int opFLDe_a32(uint32_t fetchdat)
         double t;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_READ(cpu_state.ea_seg);
+	SEG_CHECK_READ(cpu_state.ea_seg);
         t=x87_ld80(); if (cpu_state.abrt) return 1;
         x87_push(t);
         CLOCK_CYCLES(6);
@@ -334,7 +318,7 @@ static int opFSTPe_a16(uint32_t fetchdat)
 {
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         x87_st80(ST(0)); if (cpu_state.abrt) return 1;
         x87_pop();
         CLOCK_CYCLES(6);
@@ -345,7 +329,7 @@ static int opFSTPe_a32(uint32_t fetchdat)
 {
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         x87_st80(ST(0)); if (cpu_state.abrt) return 1;
         x87_pop();
         CLOCK_CYCLES(6);
@@ -358,7 +342,7 @@ static int opFLDd_a16(uint32_t fetchdat)
         x87_td t;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_READ(cpu_state.ea_seg);
+	SEG_CHECK_READ(cpu_state.ea_seg);
         t.i = geteaq(); if (cpu_state.abrt) return 1;
         x87_push(t.d);
         CLOCK_CYCLES(3);
@@ -383,7 +367,7 @@ static int opFSTd_a16(uint32_t fetchdat)
         x87_td t;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         t.d = ST(0);
         seteaq(t.i);
         CLOCK_CYCLES(8);
@@ -395,7 +379,7 @@ static int opFSTd_a32(uint32_t fetchdat)
         x87_td t;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         t.d = ST(0);
         seteaq(t.i);
         CLOCK_CYCLES(8);
@@ -408,8 +392,7 @@ static int opFSTPd_a16(uint32_t fetchdat)
         x87_td t;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
-        CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         t.d = ST(0);
         seteaq(t.i); if (cpu_state.abrt) return 1;
         x87_pop();
@@ -422,8 +405,7 @@ static int opFSTPd_a32(uint32_t fetchdat)
         x87_td t;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
-        CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         t.d = ST(0);
         seteaq(t.i); if (cpu_state.abrt) return 1;
         x87_pop();
@@ -449,7 +431,7 @@ static int opFLDs_a32(uint32_t fetchdat)
         x87_ts ts;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_READ(cpu_state.ea_seg);
+	SEG_CHECK_READ(cpu_state.ea_seg);
         ts.i = geteal(); if (cpu_state.abrt) return 1;
         x87_push((double)ts.s);
         CLOCK_CYCLES(3);
@@ -462,7 +444,7 @@ static int opFSTs_a16(uint32_t fetchdat)
         x87_ts ts;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         ts.s = (float)ST(0);
         seteal(ts.i);
         CLOCK_CYCLES(7);
@@ -474,7 +456,7 @@ static int opFSTs_a32(uint32_t fetchdat)
         x87_ts ts;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         ts.s = (float)ST(0);
         seteal(ts.i);
         CLOCK_CYCLES(7);
@@ -487,7 +469,7 @@ static int opFSTPs_a16(uint32_t fetchdat)
         x87_ts ts;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         ts.s = (float)ST(0);
         seteal(ts.i); if (cpu_state.abrt) return 1;
         x87_pop();
@@ -500,7 +482,7 @@ static int opFSTPs_a32(uint32_t fetchdat)
         x87_ts ts;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_WRITE(cpu_state.ea_seg);
+	SEG_CHECK_WRITE(cpu_state.ea_seg);
         ts.s = (float)ST(0);
         seteal(ts.i); if (cpu_state.abrt) return 1;
         x87_pop();

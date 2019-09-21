@@ -11,15 +11,15 @@
  *			- SMC/WD 8013EBT (ISA 16-bit);
  *			- SMC/WD 8013EP/A (MCA).
  *
- * Version:	@(#)net_wd8003.c	1.0.5	2018/10/22
+ * Version:	@(#)net_wd8003.c	1.0.6	2019/09/21
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Peter Grehan, <grehan@iprg.nokia.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
  *		Portions Copyright (C) 2002  MandrakeSoft S.A.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -613,13 +613,14 @@ wd_mca_write(int port, uint8_t val, void *priv)
 
     /* Initialize the device if fully configured. */
     /* Register (new) I/O handler. */
-    wd_io_set(dev, dev->base_address);
+    if (dev->pos_regs[2] & 0x01)
+	wd_io_set(dev, dev->base_address);
 
     mem_mapping_set_addr(&dev->ram_mapping, dev->ram_addr, dev->ram_size);
-    if (dev->msr & WE_MSR_ENABLE_RAM)
+
+    mem_mapping_disable(&dev->ram_mapping);
+    if ((dev->msr & WE_MSR_ENABLE_RAM) && (dev->pos_regs[2] & 0x01))
 	mem_mapping_enable(&dev->ram_mapping);
-    else
-	mem_mapping_disable(&dev->ram_mapping);
 
     wdlog("%s: attached IO=0x%X IRQ=%d, RAM addr=0x%06x\n", dev->name,
 	  dev->base_address, dev->irq, dev->ram_addr);

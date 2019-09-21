@@ -103,7 +103,7 @@
 			break;		\
 	}
 
-#define CHECK_WRITE(chseg, low, high)  \
+#define CHECK_WRITE_COMMON(chseg, low, high)  \
         if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high) || !((chseg)->access & 2) || ((msw & 1) && !(cpu_state.eflags & VM_FLAG) && ((chseg)->access & 8)))       \
         {                                       \
                 x86gpf("Limit check (WRITE)", 0);       \
@@ -116,7 +116,10 @@
 		else				\
 			x86np("Write to seg not present", (chseg)->seg & 0xfffc);	\
 		return 1;			\
-        }					\
+	}
+
+#define CHECK_WRITE(chseg, low, high)  \
+	CHECK_WRITE_COMMON(chseg, low, high)	\
 	if (cr0 >> 31) {			\
 		(void) mmutranslatereal((chseg)->base + low, 1);	\
 		(void) mmutranslatereal((chseg)->base + high, 1);	\
@@ -296,14 +299,22 @@ static __inline uint32_t geteal_mem()
         return readmeml(easeg,cpu_state.eaaddr);
 }
 
+static __inline int seteaq_cwc(void)
+{
+	CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
+	return 0;
+}
+
 static __inline void seteaq(uint64_t v)
 {
+	if (seteaq_cwc())
+		return;
         writememql(easeg, cpu_state.eaaddr, v);
 }
 
-#define seteab(v) if (cpu_mod!=3) { CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr); if (eal_w) *(uint8_t *)eal_w=v;  else { writememb386l(easeg,cpu_state.eaaddr,v); } } else if (cpu_rm&4) cpu_state.regs[cpu_rm&3].b.h=v; else cpu_state.regs[cpu_rm].b.l=v
-#define seteaw(v) if (cpu_mod!=3) { CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1); if (eal_w) *(uint16_t *)eal_w=v; else { writememwl(easeg,cpu_state.eaaddr,v); } } else cpu_state.regs[cpu_rm].w=v
-#define seteal(v) if (cpu_mod!=3) { CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3); if (eal_w) *eal_w=v;             else { writememll(easeg,cpu_state.eaaddr,v); } } else cpu_state.regs[cpu_rm].l=v
+#define seteab(v) if (cpu_mod!=3) { CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr); if (eal_w) *(uint8_t *)eal_w=v;  else { writememb386l(easeg,cpu_state.eaaddr,v); } } else if (cpu_rm&4) cpu_state.regs[cpu_rm&3].b.h=v; else cpu_state.regs[cpu_rm].b.l=v
+#define seteaw(v) if (cpu_mod!=3) { CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1); if (eal_w) *(uint16_t *)eal_w=v; else { writememwl(easeg,cpu_state.eaaddr,v); } } else cpu_state.regs[cpu_rm].w=v
+#define seteal(v) if (cpu_mod!=3) { CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3); if (eal_w) *eal_w=v;             else { writememll(easeg,cpu_state.eaaddr,v); } } else cpu_state.regs[cpu_rm].l=v
 
 
 #define seteab_mem(v) if (eal_w) *(uint8_t *)eal_w=v;  else writememb386l(easeg,cpu_state.eaaddr,v);
