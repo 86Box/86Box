@@ -694,6 +694,7 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
 static void
 scsi_cdrom_command_complete(scsi_cdrom_t *dev)
 {
+    ui_sb_update_icon(SB_CDROM | dev->id, 0);
     dev->packet_status = PHASE_COMPLETE;
     scsi_cdrom_command_common(dev);
 }
@@ -804,6 +805,7 @@ scsi_cdrom_cmd_error(scsi_cdrom_t *dev)
     dev->packet_status = PHASE_ERROR;
     dev->callback = 50.0 * CDROM_TIME;
     scsi_cdrom_set_callback(dev);
+    ui_sb_update_icon(SB_CDROM | dev->id, 0);
     scsi_cdrom_log("CD-ROM %i: ERROR: %02X/%02X/%02X\n", dev->id, scsi_cdrom_sense_key, scsi_cdrom_asc, scsi_cdrom_ascq);
 }
 
@@ -821,6 +823,7 @@ scsi_cdrom_unit_attention(scsi_cdrom_t *dev)
     dev->packet_status = PHASE_ERROR;
     dev->callback = 50.0 * CDROM_TIME;
     scsi_cdrom_set_callback(dev);
+    ui_sb_update_icon(SB_CDROM | dev->id, 0);
     scsi_cdrom_log("CD-ROM %i: UNIT ATTENTION\n", dev->id);
 }
 

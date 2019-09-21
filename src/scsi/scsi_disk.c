@@ -294,6 +294,7 @@ scsi_disk_command_common(scsi_disk_t *dev)
 static void
 scsi_disk_command_complete(scsi_disk_t *dev)
 {
+    ui_sb_update_icon(SB_HDD | dev->drv->bus, 0);
     dev->packet_status = PHASE_COMPLETE;
     scsi_disk_command_common(dev);
 }
@@ -363,6 +364,7 @@ scsi_disk_cmd_error(scsi_disk_t *dev)
     dev->phase = 3;
     dev->packet_status = PHASE_ERROR;
     dev->callback = 50.0 * SCSI_TIME;
+    ui_sb_update_icon(SB_HDD | dev->drv->bus, 0);
     scsi_disk_log("SCSI HD %i: ERROR: %02X/%02X/%02X\n", dev->id, scsi_disk_sense_key, scsi_disk_asc, scsi_disk_ascq);
 }
 
@@ -715,6 +717,11 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
 			scsi_disk_data_command_finish(dev, alloc_length, alloc_length / dev->requested_blocks, alloc_length, 0);
 		else
 			scsi_disk_data_command_finish(dev, alloc_length, alloc_length, alloc_length, 0);
+
+		if (dev->packet_status != PHASE_COMPLETE)
+			ui_sb_update_icon(SB_HDD | dev->drv->bus, 1);
+		else
+			ui_sb_update_icon(SB_HDD | dev->drv->bus, 0);
 		return;
 
 	case GPCMD_VERIFY_6:
@@ -782,6 +789,11 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
 			scsi_disk_data_command_finish(dev, alloc_length, alloc_length / dev->requested_blocks, alloc_length, 1);
 		else
 			scsi_disk_data_command_finish(dev, alloc_length, alloc_length, alloc_length, 1);
+
+		if (dev->packet_status != PHASE_COMPLETE)
+			ui_sb_update_icon(SB_HDD | dev->drv->bus, 1);
+		else
+			ui_sb_update_icon(SB_HDD | dev->drv->bus, 0);
 		return;
 
 	case GPCMD_WRITE_SAME_10:
@@ -819,6 +831,11 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
 		scsi_disk_set_phase(dev, SCSI_PHASE_DATA_OUT);
 
 		scsi_disk_data_command_finish(dev, 512, 512, alloc_length, 1);
+
+		if (dev->packet_status != PHASE_COMPLETE)
+			ui_sb_update_icon(SB_HDD | dev->drv->bus, 1);
+		else
+			ui_sb_update_icon(SB_HDD | dev->drv->bus, 0);
 		return;
 
 	case GPCMD_MODE_SENSE_6:

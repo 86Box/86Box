@@ -1392,7 +1392,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				ide->blockcount = 0;
 				/* Turn on the activity indicator *here* so that it gets turned on
 				   less times. */
-				/* ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1); */
+				ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 
 			case WIN_READ:
 			case WIN_READ_NORETRY:
@@ -1425,7 +1425,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				ide->blockcount = 0;
 				/* Turn on the activity indicator *here* so that it gets turned on
 				   less times. */
-				/* ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1); */
+				ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 
 			case WIN_WRITE:
 			case WIN_WRITE_NORETRY:
@@ -2130,7 +2130,7 @@ ide_callback(void *priv)
 		ide->atastat = DRDY_STAT | DSC_STAT;
 		ide_irq_raise(ide);
 
-		/* ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1); */
+		ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 		return;
 
 	case WIN_DRIVE_DIAGNOSTICS:

@@ -886,6 +886,7 @@ zip_command_common(zip_t *dev)
 static void
 zip_command_complete(zip_t *dev)
 {
+    ui_sb_update_icon(SB_ZIP | dev->id, 0);
     dev->packet_status = PHASE_COMPLETE;
     zip_command_common(dev);
 }
@@ -998,6 +999,7 @@ zip_cmd_error(zip_t *dev)
     dev->packet_status = PHASE_ERROR;
     dev->callback = 50.0 * ZIP_TIME;
     zip_set_callback(dev);
+    ui_sb_update_icon(SB_ZIP | dev->id, 0);
     zip_log("ZIP %i: [%02X] ERROR: %02X/%02X/%02X\n", dev->id, dev->current_cdb[0], zip_sense_key, zip_asc, zip_ascq);
 }
 
@@ -1015,6 +1017,7 @@ zip_unit_attention(zip_t *dev)
     dev->packet_status = PHASE_ERROR;
     dev->callback = 50.0 * ZIP_TIME;
     zip_set_callback(dev);
+    ui_sb_update_icon(SB_ZIP | dev->id, 0);
     zip_log("ZIP %i: UNIT ATTENTION\n", dev->id);
 }
 
