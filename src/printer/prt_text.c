@@ -394,7 +394,6 @@ write_ctrl(uint8_t val, void *priv)
 
 	/* ACK it, will be read on next READ STATUS. */
 	dev->ack = 1;
-	lpt_irq(dev->lpt, 1);
 
 	timer_set_delay_u64(&dev->timeout_timer, 500000 * TIMER_USEC);
     }
@@ -419,6 +418,7 @@ read_status(void *priv)
 
     /* Clear ACK after reading status. */
     dev->ack = 0;
+    lpt_irq(dev->lpt, 1);
 
     return(ret);
 }

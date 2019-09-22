@@ -519,6 +519,7 @@ static void
 reset_printer_hard(escp_t *dev)
 {
     dev->char_read = 0;
+    lpt_irq(dev->lpt, 1);
     timer_disable(&dev->timeout_timer);
     reset_printer(dev);
 }
@@ -1590,7 +1591,6 @@ handle_char(escp_t *dev, uint8_t ch)
     double x_advance;
 
     dev->char_read = 1;
-    lpt_irq(dev->lpt, 1);
 
     if (dev->page == NULL)
 	return;
@@ -1762,6 +1762,7 @@ print_ack(escp_t *dev)
 {
     if (dev->char_read) {
 	dev->char_read = 0;
+	lpt_irq(dev->lpt, 1);
 	return 1;
     }
 
