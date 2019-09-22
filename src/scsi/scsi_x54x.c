@@ -1148,14 +1148,7 @@ x54x_mbo_process(x54x_t *dev)
     } */
 
     if ((mb32.u.out.ActionCode == MBO_START) || (!dev->MailboxIsBIOS && (mb32.u.out.ActionCode == MBO_ABORT))) {
-	/* We got the mailbox, mark it as free in the guest. */
-#if 0
-	x54x_add_to_period(dev, 1);
-
-	if (dev->ToRaise)
-		raise_irq(dev, 0, dev->ToRaise);
-#endif
-
+	/* We got the mailbox, decrease the number of pending requests. */
 	if (dev->MailboxIsBIOS)
 		dev->BIOSMailboxReq--;
 	else
