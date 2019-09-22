@@ -177,7 +177,7 @@ lpt_init(void)
 {
     int i;
     uint16_t default_ports[3] = { 0x378, 0x278, 0x3bc };
-    uint8_t default_irqs[3] = { 7, 5, 7 };
+    uint8_t default_irqs[3] = { 5, 7, 5 };
 
     for (i = 0; i < 3; i++) {
 	lpt_ports[i].addr = 0xffff;
