@@ -379,7 +379,9 @@ typedef struct {
 		DmaChannel,
 		HostID;
 
-    uint8_t	callback_phase, sync,
+    uint8_t	callback_phase		:4,
+		callback_sub_phase	:4,
+		sync,
 		parity, shram_mode,
 		Geometry, Control,
 		Command, CmdParam,

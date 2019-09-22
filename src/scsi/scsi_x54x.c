@@ -1029,8 +1029,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 	x54x_log("SCSI Target ID %i or LUN %i is not valid\n",id,lun);
 	x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock,
 		      CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
-	x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
-	x54x_notify(dev);
+	dev->callback_sub_phase = 2;
 	return;
     }
 
@@ -1043,8 +1042,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 	x54x_log("SCSI Target ID %i and LUN %i have no device attached\n",id,lun);
 	x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock,
 		       CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
-	x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
-	x54x_notify(dev);
+	dev->callback_sub_phase = 2;
     } else {
 	x54x_log("SCSI Target ID %i detected and working\n", id);
 
@@ -1055,8 +1053,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 		x54x_log("Invalid opcode: %02X\n",
 			req->CmdBlock.common.ControlByte);
 		x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock, CCB_INVALID_OP_CODE, SCSI_STATUS_OK, MBI_ERROR);
-		x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
-		x54x_notify(dev);
+		dev->callback_sub_phase = 2;
 		return;
 	}
 	if (req->CmdBlock.common.Opcode == 0x81) {
@@ -1064,8 +1061,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 		scsi_device_reset(sd);
 		x54x_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
 			       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
-		x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
-		x54x_notify(dev);
+		dev->callback_sub_phase = 2;
 		return;
 	}
 
@@ -1073,16 +1069,11 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 		x54x_log("Invalid control byte: %02X\n",
 			req->CmdBlock.common.ControlByte);
 		x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock, CCB_INVALID_DIRECTION, SCSI_STATUS_OK, MBI_ERROR);
-		x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
-		x54x_notify(dev);
+		dev->callback_sub_phase = 2;
 		return;
 	}
 
-	x54x_log("%s: Callback: Process SCSI request\n", dev->name);
-	x54x_scsi_cmd(dev);
-
-	x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
-	x54x_notify(dev);
+	dev->callback_sub_phase = 1;
     }
 }
 
@@ -1098,8 +1089,7 @@ x54x_req_abort(x54x_t *dev, uint32_t CCBPointer)
 
     x54x_mbi_setup(dev, CCBPointer, &CmdBlock,
 		  0x26, SCSI_STATUS_OK, MBI_NOT_FOUND);
-    x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
-    x54x_notify(dev);
+    dev->callback_sub_phase = 2;
 }
 
 
@@ -1159,14 +1149,16 @@ x54x_mbo_process(x54x_t *dev)
 
     if ((mb32.u.out.ActionCode == MBO_START) || (!dev->MailboxIsBIOS && (mb32.u.out.ActionCode == MBO_ABORT))) {
 	/* We got the mailbox, mark it as free in the guest. */
+#if 0
 	x54x_add_to_period(dev, 1);
 
 	if (dev->ToRaise)
 		raise_irq(dev, 0, dev->ToRaise);
+#endif
 
 	if (dev->MailboxIsBIOS)
 		dev->BIOSMailboxReq--;
-	  else
+	else
 		dev->MailboxReq--;
 
 	return(1);
@@ -1220,7 +1212,7 @@ x54x_cmd_done(x54x_t *dev, int suppress);
 static void
 x54x_cmd_callback(void *priv)
 {
-    double period;
+    double period, cb_period = 10.0;
     x54x_t *dev = (x54x_t *) priv;
 
     int mailboxes_present, bios_mailboxes_present;
@@ -1228,33 +1220,56 @@ x54x_cmd_callback(void *priv)
     mailboxes_present = (!(dev->Status & STAT_INIT) && dev->MailboxInit && dev->MailboxReq);
     bios_mailboxes_present = (dev->ven_callback && dev->BIOSMailboxInit && dev->BIOSMailboxReq);
 
-    if (!mailboxes_present && !bios_mailboxes_present) {
-	/* If we did not get anything, do nothing and wait 10 us. */
-	timer_on(&dev->timer, 10.0, 0);
-	return;
-    }
-
     dev->temp_period = 0;
     dev->media_period = 0.0;
 
-    if (!mailboxes_present) {
-	/* Do only BIOS mailboxes. */
-	dev->ven_callback(dev);
-    } else if (!bios_mailboxes_present) {
-	/* Do only normal mailboxes. */
-	x54x_do_mail(dev);
-    } else {
-	/* Do both kinds of mailboxes. */
-	if (dev->callback_phase)
-		dev->ven_callback(dev);
-	else
-		x54x_do_mail(dev);
+    switch (dev->callback_sub_phase) {
+	case 0:
+		/* Sub-phase 0 - Look for mailbox. */
+		if ((dev->callback_phase == 0) && mailboxes_present)
+			x54x_do_mail(dev);
+		else if ((dev->callback_phase == 1) && bios_mailboxes_present)
+			dev->ven_callback(dev);
 
-	dev->callback_phase = (dev->callback_phase + 1) & 0x01;
+		if (dev->ven_callback && (dev->callback_sub_phase == 0))
+			dev->callback_phase ^= 1;
+		break;
+	case 1:
+		/* Sub-phase 1 - Do SCSI command. */
+		x54x_log("%s: Callback: Process SCSI request\n", dev->name);
+		x54x_scsi_cmd(dev);
+
+		/* Go to notify phase. */
+		dev->callback_sub_phase = 2;
+
+		cb_period = 20.0;
+		break;
+	case 2:	
+		/* Sub-phase 2 - Notify. */
+		x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
+		x54x_notify(dev);
+
+		/* Go back to lookup phase. */
+		dev->callback_sub_phase = 0;
+
+		/* Toggle normal/BIOS mailbox - only has an effect if both types of mailboxes
+		   have been initialized. */
+		if (dev->ven_callback)
+			dev->callback_phase ^= 1;
+
+		/* Add to period and raise the IRQ if needed. */
+		x54x_add_to_period(dev, 1);
+
+		if (dev->ToRaise)
+			raise_irq(dev, 0, dev->ToRaise);
+		break;
+	default:
+		x54x_log("Invalid sub-phase: %02X\n", dev->callback_sub_phase);
+		break;
     }
 
     period = (1000000.0 / dev->ha_bps) * ((double) dev->temp_period);
-    timer_on(&dev->timer, dev->media_period + period + 40.0, 0);
+    timer_on(&dev->timer, dev->media_period + period + cb_period, 0);
     x54x_log("Temporary period: %lf us (%" PRIi64 " periods)\n", dev->timer.period, dev->temp_period);
 }
 
@@ -1375,6 +1390,7 @@ x54x_reset(x54x_t *dev)
     else
 	dev->Geometry = 0x00;
     dev->callback_phase = 0;
+    dev->callback_sub_phase = 0;
     timer_stop(&dev->timer);
     timer_set_delay_u64(&dev->timer, (uint64_t) (dev->timer.period * ((double) TIMER_USEC)));
     dev->Command = 0xFF;
