@@ -444,7 +444,6 @@ CPU cpus_PentiumPro[] = {
     {"Pentium II Overdrive 300/66", CPU_PENTIUM2D,  300000000, 5, 33333333, 0x1632, 0x1632, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
     {"Pentium II Overdrive 300/60", CPU_PENTIUM2D,  300000000, 5, 30000000, 0x1632, 0x1632, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 36},
     {"Pentium II Overdrive 333",    CPU_PENTIUM2D,  333333333, 5, 33333333, 0x1632, 0x1632, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 40},
-    {"Pentium II 75",     	    CPU_PENTIUM2D,   75000000, 2, 25000000,  0x654,  0x654, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7, 4, 4, 9},
     {"",                                       -1,          0, 0,        0,      0,      0, 0,                                           0,  0, 0, 0, 0,  0}
 };
 #endif
