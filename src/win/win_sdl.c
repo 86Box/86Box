@@ -379,7 +379,7 @@ sdl_init_common(int fs)
     /* Try loading the DLL. */
     sdl_handle = dynld_module(PATH_SDL_DLL, sdl_imports);
     if (sdl_handle == NULL) {
-	ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2121);
+	ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2120);
 	return(0);
     }
 

@@ -815,7 +815,7 @@ BEGIN
     2048	"86Box"
     IDS_2049	"86Box Error"
     IDS_2050	"86Box Fatal Error"
-    IDS_2051	"This will reset 86Box.\nAre you sure you want to save the settings?"
+    IDS_2051	"This will hard reset the emulated machine.\nAre you sure you want to save the settings?"
     IDS_2052	"Use CTRL+ALT+PAGE DOWN to return to windowed mode"
     IDS_2053	"Speed"
     IDS_2054	"ZIP %03i %i (%s): %ls"
@@ -891,9 +891,10 @@ BEGIN
     IDS_2116	"%u MB (CHS: %i, %i, %i)"
     IDS_2117	"Floppy %i (%s): %ls"
     IDS_2118	"All images (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Advanced sector images (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basic sector images (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Surface images (*.86F;*.MFM)\0*.86F;*.MFM\0All files (*.*)\0*.*\0"
-    IDS_2119	"You must save the settings first before attempting to configure the memory boards"
-    IDS_2120	"Unable to initialize FreeType, freetype.dll is required"
-    IDS_2121	"Unable to initialize SDL, SDL2.dll is required"
+    IDS_2119	"Unable to initialize FreeType, freetype.dll is required"
+    IDS_2120	"Unable to initialize SDL, SDL2.dll is required"
+    IDS_2121	"Are you sure you want to hard reset the emulated machine?"
+    IDS_2122	"Are you sure you want to quit 86Box?"
 END
 
 STRINGTABLE DISCARDABLE 

@@ -275,7 +275,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HMENU hmenu;
 
-    int sb_borders[3];
+    int i, sb_borders[3];
     RECT rect;
 
     int temp_x, temp_y;
@@ -297,7 +297,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_ACTION_HRESET:
-				pc_reset(1);
+				i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2121);
+				if (i == 0)
+					pc_reset(1);
 				break;
 
 			case IDM_ACTION_RESET_CAD:
@@ -305,7 +307,12 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_ACTION_EXIT:
-				PostQuitMessage(0);
+				i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
+				if (i == 0) {
+					UnhookWindowsHookEx(hKeyboardHook);
+					KillTimer(hwnd, TIMER_1SEC);
+					PostQuitMessage(0);
+				}
 				break;
 
 			case IDM_ACTION_CTRL_ALT_ESC:
@@ -661,6 +668,15 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_SYSKEYUP:
 		return(0);
 
+	case WM_CLOSE:
+		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
+		if (i == 0) {
+			UnhookWindowsHookEx(hKeyboardHook);
+			KillTimer(hwnd, TIMER_1SEC);
+			PostQuitMessage(0);
+		}
+		break;
+
 	case WM_DESTROY:
 		UnhookWindowsHookEx(hKeyboardHook);
 		KillTimer(hwnd, TIMER_1SEC);
@@ -681,6 +697,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_SHUTDOWN:
+		UnhookWindowsHookEx(hKeyboardHook);
+		KillTimer(hwnd, TIMER_1SEC);
 		PostQuitMessage(0);
 		break;
 

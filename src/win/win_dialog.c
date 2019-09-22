@@ -8,13 +8,13 @@
  *
  *		Several dialogs for the application.
  *
- * Version:	@(#)win_dialog.c	1.0.10	2018/04/29
+ * Version:	@(#)win_dialog.c	1.0.11	2019/09/22
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #define UNICODE
 #include <windows.h>
@@ -65,6 +65,11 @@ ui_msgbox(int flags, void *arg)
 
 	case MBX_QUESTION:	/* question */
 		fl = (MB_YESNOCANCEL | MB_ICONQUESTION);
+		cap = plat_get_string(IDS_STRINGS);	    /* "86Box" */
+		break;
+
+	case MBX_QUESTION_YN:	/* question */
+		fl = (MB_YESNO | MB_ICONQUESTION);
 		cap = plat_get_string(IDS_STRINGS);	    /* "86Box" */
 		break;
     }

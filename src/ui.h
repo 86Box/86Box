@@ -8,13 +8,13 @@
  *
  *		Define the various UI functions.
  *
- * Version:	@(#)ui.h	1.0.15	2018/10/19
+ * Version:	@(#)ui.h	1.0.16	2019/09/22
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #ifndef EMU_UI_H
 # define EMU_UI_H
@@ -33,6 +33,7 @@ extern "C" {
 #define MBX_INFO	1
 #define MBX_ERROR	2
 #define MBX_QUESTION	3
+#define MBX_QUESTION_YN	4
 #define MBX_FATAL	0x20
 #define MBX_ANSI	0x80
 
