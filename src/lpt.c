@@ -118,6 +118,7 @@ lpt_write(uint16_t port, uint8_t val, void *priv)
 		if (dev->dt && dev->dt->write_ctrl)
 			dev->dt->write_ctrl(val, dev->priv);
 		dev->ctrl = val;
+		dev->enable_irq = val & 0x10;
 		break;
     }
 }
@@ -139,17 +140,22 @@ lpt_read(uint16_t port, void *priv)
 
 	case 1:
 		if (dev->dt && dev->dt->read_status)
-			ret = dev->dt->read_status(dev->priv);
+			ret = dev->dt->read_status(dev->priv) | 0x0f;
 		else
 			ret = 0xdf;
 		break;
 
 	case 2:
 		if (dev->dt && dev->dt->read_ctrl)
-			ret = dev->dt->read_ctrl(dev->priv);
+			ret = (dev->dt->read_ctrl(dev->priv) & 0xef) | dev->enable_irq;
 		else
-			ret = 0xe0 | dev->ctrl;
+			ret = 0xe0 | dev->ctrl | dev->enable_irq;
 		break;
+    }
+
+    if (port < 0x278) {
+	uint32_t *p = NULL;
+	*p = 5;
     }
 
     return ret;
@@ -161,9 +167,7 @@ lpt_irq(void *priv, int raise)
 {
     lpt_port_t *dev = (lpt_port_t *) priv;
 
-    uint8_t ctrl = lpt_read(2, priv);
-
-    if ((ctrl & 0x10) && (dev->irq != 0xff)) {
+    if (dev->enable_irq && (dev->irq != 0xff)) {
 	if (raise)
 		picint(1 << dev->irq);
 	else
@@ -177,11 +181,12 @@ lpt_init(void)
 {
     int i;
     uint16_t default_ports[3] = { 0x378, 0x278, 0x3bc };
-    uint8_t default_irqs[3] = { 5, 7, 5 };
+    uint8_t default_irqs[3] = { 7, 5, 7 };
 
     for (i = 0; i < 3; i++) {
 	lpt_ports[i].addr = 0xffff;
 	lpt_ports[i].irq = 0xff;
+	lpt_ports[i].enable_irq = 0x10;
 
 	if (lpt_ports[i].enabled) {
 		lpt_port_init(i, default_ports[i]);

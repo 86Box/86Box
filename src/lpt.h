@@ -37,7 +37,7 @@ typedef struct {
     uint8_t		enabled, irq,
 			dat, ctrl;
     uint16_t		addr, pad0;
-    int			device;
+    int			device, enable_irq;
     lpt_device_t *	dt;
     void *		priv;
 } lpt_port_t;

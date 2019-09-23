@@ -32,7 +32,7 @@ double		cpuclock, PITCONSTD,
 		SYSCLK,
 		isa_timing, bus_timing;
 
-uint64_t	PITCONST,
+uint64_t	PITCONST, ISACONST,
 		CGACONST,
 		MDACONST, HERCCONST,
 		VGACONST1, VGACONST2,
@@ -620,30 +620,21 @@ pit_set_clock(int clock)
 {
     /* Set default CPU/crystal clock and xt_cpu_multi. */
     if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286) {
-#if 0
-	cpuclock = (double) clock;
-#else
 	if (clock == 66666666)
 		cpuclock = 200000000.0 / 3.0;
 	else if (clock == 33333333)
 		cpuclock = 100000000.0 / 3.0;
 	else
 		cpuclock = (double) clock;
-#endif
 
-#if 0
-	PITCONST = (uint64_t) (cpuclock / 1193182.0 * (double)(1ull << 32));
-#else
 	PITCONSTD = (cpuclock / 1193182.0);
 	PITCONST = (uint64_t) (PITCONSTD * (double)(1ull << 32));
-#endif
 	CGACONST = (uint64_t) ((cpuclock / (19687503.0/11.0)) * (double)(1ull << 32));
+	ISACONST = (uint64_t) ((cpuclock / 8000000.0) * (double)(1ull << 32));
 	xt_cpu_multi = 1ULL;
     } else {
 	cpuclock = 14318184.0;
-#if 1
 	PITCONSTD = 12.0;
-#endif
        	PITCONST = (12ULL << 32ULL);
         CGACONST = (8ULL << 32ULL);
 	xt_cpu_multi = 3ULL;
@@ -682,20 +673,16 @@ pit_set_clock(int clock)
 	}
 
 	if (cpuclock == 28636368.0) {
-#if 1
 		PITCONSTD = 24.0;
-#endif
         	PITCONST = (24ULL << 32LL);
 	        CGACONST = (16ULL << 32LL);
 	} else if (cpuclock != 14318184.0) {
-#if 0
-		PITCONST = (uint64_t) ((cpuclock/1193182.0 * (double)(1ull << 32)));
-#else
 		PITCONSTD = (cpuclock / 1193182.0);
 		PITCONST = (uint64_t) (PITCONSTD * (double)(1ull << 32));
-#endif
 		CGACONST = (uint64_t) (((cpuclock/(19687503.0/11.0)) * (double)(1ull << 32)));
 	}
+
+	ISACONST = (1ULL << 32ULL);
     }
     xt_cpu_multi <<= 32ULL;
 

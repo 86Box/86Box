@@ -8,15 +8,15 @@
  *
  *		Implementation of the Generic ESC/P Dot-Matrix printer.
  *
- * Version:	@(#)prt_escp.c	1.0.6	2018/11/09
+ * Version:	@(#)prt_escp.c	1.0.7	2019/09/23
  *
  * Authors:	Michael Drüing, <michael@drueing.de>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Based on code by Frederic Weymann (originally for DosBox.)
  *
- *		Copyright 2018 Michael Drüing.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2018,2019 Michael Drüing.
+ *		Copyright 2019,2019 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -62,6 +62,7 @@
 #include "../timer.h"
 #include "../mem.h"
 #include "../rom.h" 
+#include "../pit.h"
 #include "../plat.h"
 #include "../plat_dynld.h"
 #include "../ui.h"
@@ -201,6 +202,7 @@ typedef struct {
 
     void	*lpt;
 
+    pc_timer_t	pulse_timer;
     pc_timer_t	timeout_timer;
 
     wchar_t	page_fn[260];
@@ -289,8 +291,6 @@ typedef struct {
 
     uint8_t	msb;			/* MSB mode, -1 = off */
     uint8_t	ctrl;
-    
-    uint8_t	char_read;
     
     PALETTE	palcol;
 } escp_t;
@@ -426,6 +426,20 @@ new_page(escp_t *dev, int8_t save, int8_t resetx)
 
 
 static void
+pulse_timer(void *priv)
+{
+    escp_t *dev = (escp_t *) priv;
+
+    if (dev->ack) {
+	dev->ack = 0;
+	lpt_irq(dev->lpt, 1);
+    }
+
+    timer_disable(&dev->pulse_timer);
+}
+
+
+static void
 timeout_timer(void *priv)
 {
     escp_t *dev = (escp_t *) priv;
@@ -518,8 +532,8 @@ reset_printer(escp_t *dev)
 static void
 reset_printer_hard(escp_t *dev)
 {
-    dev->char_read = 0;
-    lpt_irq(dev->lpt, 1);
+    dev->ack = 0;
+    timer_disable(&dev->pulse_timer);
     timer_disable(&dev->timeout_timer);
     reset_printer(dev);
 }
@@ -1590,8 +1604,6 @@ handle_char(escp_t *dev, uint8_t ch)
     uint16_t line_start, line_y;
     double x_advance;
 
-    dev->char_read = 1;
-
     if (dev->page == NULL)
 	return;
 
@@ -1754,19 +1766,6 @@ draw_hline(escp_t *dev, unsigned from_x, unsigned to_x, unsigned y, int8_t broke
 			*((uint8_t*)dev->page->pixels + x + (y + 1) * (unsigned)dev->page->pitch) = 240;
 	}
     }
-}
-
-
-static int8_t
-print_ack(escp_t *dev)
-{
-    if (dev->char_read) {
-	dev->char_read = 0;
-	lpt_irq(dev->lpt, 1);
-	return 1;
-    }
-
-    return 0;
 }
 
 
@@ -1980,6 +1979,7 @@ write_ctrl(uint8_t val, void *priv)
 
 	/* ACK it, will be read on next READ STATUS. */
 	dev->ack = 1;
+	timer_set_delay_u64(&dev->pulse_timer, ISACONST);
 
 	timer_set_delay_u64(&dev->timeout_timer, 500000 * TIMER_USEC);
     }
@@ -2016,7 +2016,7 @@ read_status(void *priv)
 
     ret |= 0x80;
 
-    if (!print_ack(dev))
+    if (!dev->ack)
 	ret |= 0x40;
 
     return(ret);
@@ -2111,7 +2111,8 @@ escp_init(void *lpt)
     escp_log("ESC/P: created a virtual page of dimensions %d x %d pixels.\n",
 	     dev->page->w, dev->page->h);
 
-	timer_add(&dev->timeout_timer, timeout_timer, dev, 0);
+    timer_add(&dev->pulse_timer, pulse_timer, dev, 0);
+    timer_add(&dev->timeout_timer, timeout_timer, dev, 0);
 
     return(dev);
 }

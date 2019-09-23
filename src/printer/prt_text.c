@@ -15,11 +15,11 @@
  *		printer mechanics. This would lead to a page being 66 lines
  *		of 80 characters each.
  *
- * Version:	@(#)prt_text.c	1.0.6	2018/11/09
+ * Version:	@(#)prt_text.c	1.0.7	2019/09/23
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2018,2019 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -59,6 +59,7 @@
 #include "../86box.h"
 #include "../device.h"
 #include "../timer.h"
+#include "../pit.h"
 #include "../plat.h" 
 #include "../lpt.h"
 #include "printer.h"
@@ -104,6 +105,7 @@ typedef struct {
     wchar_t	filename[1024];
 
     /* Printer timeout. */
+    pc_timer_t	pulse_timer;
     pc_timer_t	timeout_timer;
 
     /* page data (TODO: make configurable) */
@@ -199,6 +201,20 @@ new_page(prnt_t *dev)
 
 
 static void
+pulse_timer(void *priv)
+{
+    prnt_t *dev = (prnt_t *) priv;
+
+    if (dev->ack) {
+	dev->ack = 0;
+	lpt_irq(dev->lpt, 1);
+    }
+
+    timer_disable(&dev->pulse_timer);
+}
+
+
+static void
 timeout_timer(void *priv)
 {
     prnt_t *dev = (prnt_t *) priv;
@@ -222,14 +238,11 @@ reset_printer(prnt_t *dev)
     dev->bot_margin = PAGE_BMARGIN;
     dev->cpi = PAGE_CPI;
     dev->lpi = PAGE_LPI;
+    dev->ack = 0;
 
     /* Default page layout. */
     dev->max_chars = (int) ((dev->page_width - dev->left_margin - dev->right_margin) * dev->cpi);
     dev->max_lines = (int) ((dev->page_height -dev->top_margin - dev->bot_margin) * dev->lpi);
-
-    //INFO("PRNT: width=%.1fin,height=%.1fin cpi=%i lpi=%i cols=%i lines=%i\n",
-	// dev->page_width, dev->page_height, (int)dev->cpi,
-	// (int)dev->lpi, dev->max_chars, dev->max_lines);
 
     dev->curr_x = dev->curr_y = 0;
 
@@ -239,7 +252,8 @@ reset_printer(prnt_t *dev)
     /* Create a file for this page. */
     plat_tempfile(dev->filename, NULL, L".txt");
 
-	timer_disable(&dev->timeout_timer);
+    timer_disable(&dev->pulse_timer);
+    timer_disable(&dev->timeout_timer);
 }
 
 
@@ -395,6 +409,7 @@ write_ctrl(uint8_t val, void *priv)
 	/* ACK it, will be read on next READ STATUS. */
 	dev->ack = 1;
 
+	timer_set_delay_u64(&dev->pulse_timer, ISACONST);
 	timer_set_delay_u64(&dev->timeout_timer, 500000 * TIMER_USEC);
     }
 
@@ -406,19 +421,12 @@ static uint8_t
 read_status(void *priv)
 {
     prnt_t *dev = (prnt_t *)priv;
-    uint8_t ret = 0xff;
+    uint8_t ret = 0x1f;
 
-    if (dev == NULL) return(ret);
+    ret |= 0x80;
 
-    ret = (dev->ack ? 0x00 : 0x40) |
-	  (dev->select ? 0x10 : 0x00) |
-	  (dev->busy ? 0x00 : 0x80) |
-	  (dev->int_pending ? 0x00 : 0x04) |
-	  (dev->error ? 0x00 : 0x08);
-
-    /* Clear ACK after reading status. */
-    dev->ack = 0;
-    lpt_irq(dev->lpt, 1);
+    if (!dev->ack)
+	ret |= 0x40;
 
     return(ret);
 }
@@ -445,6 +453,7 @@ prnt_init(void *lpt)
     dev->page->chars = (char *)malloc(dev->page->w * dev->page->h);
     memset(dev->page->chars, 0x00, dev->page->w * dev->page->h);
 
+    timer_add(&dev->pulse_timer, pulse_timer, dev, 0);
     timer_add(&dev->timeout_timer, timeout_timer, dev, 0);
 
     return(dev);

@@ -45,7 +45,7 @@ extern PIT	pit,
 
 extern double	SYSCLK;
 
-extern uint64_t	PITCONST,
+extern uint64_t	PITCONST, ISACONST,
 		CGACONST,
 		MDACONST,
 		HERCCONST,
