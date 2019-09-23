@@ -153,11 +153,6 @@ lpt_read(uint16_t port, void *priv)
 		break;
     }
 
-    if (port < 0x278) {
-	uint32_t *p = NULL;
-	*p = 5;
-    }
-
     return ret;
 }
 
