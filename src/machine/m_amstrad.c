@@ -807,8 +807,6 @@ vid_init_1640(amstrad_t *ams)
     vid = (amsvid_t *)malloc(sizeof(amsvid_t));
     memset(vid, 0x00, sizeof(amsvid_t));
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_pc1640);
-
     rom_init(&vid->bios_rom, L"roms/machines/pc1640/40100",
 	     0xc0000, 0x8000, 0x7fff, 0, 0);
 
@@ -818,6 +816,8 @@ vid_init_1640(amstrad_t *ams)
     cga_init(&vid->cga);
     timer_disable(&vid->ega.timer);
 
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_pc1640);
+
     mem_mapping_add(&vid->cga.mapping, 0xb8000, 0x08000,
 	cga_read, NULL, NULL, cga_write, NULL, NULL, NULL, 0, &vid->cga);
     mem_mapping_add(&vid->ega.mapping, 0,       0,
@@ -826,6 +826,11 @@ vid_init_1640(amstrad_t *ams)
 		  vid_in_1640, NULL, NULL, vid_out_1640, NULL, NULL, vid);
 
     overscan_x = overscan_y = 16;
+
+    vid->fontbase = 768;
+
+    cga_palette = 0;
+    cgapal_rebuild();
 
     ams->vid = vid;
 }
@@ -2401,6 +2406,7 @@ machine_amstrad_init(const machine_t *model, int type)
 		break;
 	
 	case AMS_PC1640:
+		loadfont(L"roms/video/mda/mda.rom", 0);
 		device_context(&vid_1640_device);
 		ams->language = device_get_config_int("language");
 		vid_init_1640(ams);
