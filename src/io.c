@@ -8,7 +8,7 @@
  *
  *		Implement I/O ports and their operations.
  *
- * Version:	@(#)io.c	1.0.6	2019/03/21
+ * Version:	@(#)io.c	1.0.4	2019/09/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -330,13 +330,11 @@ inb(uint16_t port)
 
 #ifdef ENABLE_IO_LOG
     if (CS == IO_TRACE)
-	io_log("IOTRACE(%04X): inb(%04x)=%02x\n", IO_TRACE, port, r);
+	io_log("IOTRACE(%04X): inb(%04x)=%02x\n", IO_TRACE, port, ret);
 #endif
 
     if (!found)
 	sub_cycles(io_delay);
-
-    // pclog("[%04X:%08X] inb(%04X) = %02X\n", CS, cpu_state.pc, port, ret);
 
     return(ret);
 }
@@ -367,8 +365,6 @@ outb(uint16_t port, uint8_t val)
     if (!found)
 	sub_cycles(io_delay);
 
-    // pclog("[%04X:%08X] outb(%04X) = %02X\n", CS, cpu_state.pc, port, val);
-
     return;
 }
 
@@ -393,8 +389,6 @@ inw(uint16_t port)
 
     if (!found)
 	ret = (inb(port) | (inb(port + 1) << 8));
-    // else
-	// pclog("[%04X:%08X] inw(%04X) = %04X\n", CS, cpu_state.pc, port, ret);
 
     return ret;
 }
@@ -410,8 +404,6 @@ outw(uint16_t port, uint16_t val)
 	while(p) {
 		if (p->outw) {
 			p->outw(port, val, p->priv);
-
-			// pclog("[%04X:%08X] outw(%04X) = %04X\n", CS, cpu_state.pc, port, val);
 			return;
 		}
 		p = p->next;
@@ -445,8 +437,6 @@ inl(uint16_t port)
 
     if (!found)
 	ret = (inw(port) | (inw(port + 2) << 16));
-    // else
-	// pclog("[%04X:%08X] inl(%04X) = %08X\n", CS, cpu_state.pc, port, ret);
 
     return ret;
 }
@@ -462,8 +452,6 @@ outl(uint16_t port, uint32_t val)
 	while(p) {
 		if (p->outl) {
 			p->outl(port, val, p->priv);
-
-			// pclog("[%04X:%08X] outl(%04X) = %08X\n", CS, cpu_state.pc, port, val);
 			return;
 		}
 		p = p->next;
