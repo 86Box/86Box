@@ -1188,11 +1188,9 @@ x54x_do_mail(x54x_t *dev)
 	}
     } else {
 	/* Strict round robin mode - only process the current mailbox and advance the pointer if successful. */
-x54x_do_mail_again:
 	if (x54x_mbo_process(dev)) {
 		dev->MailboxOutPosCur++;
 		dev->MailboxOutPosCur %= dev->MailboxCount;
-		goto x54x_do_mail_again;
 	}
     }
 }
