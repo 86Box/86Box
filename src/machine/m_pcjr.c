@@ -763,6 +763,7 @@ machine_pcjr_init(const machine_t *model)
     cpu_set();
 
     /* Initialize the video controller. */
+    loadfont(L"roms/video/mda/mda.rom", 0);
     mem_mapping_add(&pcjr->mapping, 0xb8000, 0x08000,
 		    vid_read, NULL, NULL,
 		    vid_write, NULL, NULL,  NULL, 0, pcjr);
@@ -771,6 +772,8 @@ machine_pcjr_init(const machine_t *model)
     timer_add(&pcjr->timer, vid_poll, pcjr, 1);
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
     device_add_ex(&pcjr_device, pcjr);
+    cga_palette = 0;
+    cgapal_rebuild();
 
     /* Initialize the keyboard. */
     keyboard_scan = 1;
