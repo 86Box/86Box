@@ -381,13 +381,15 @@ typedef struct {
 
     uint8_t	callback_phase		:4,
 		callback_sub_phase	:4,
+		scsi_cmd_phase, pad,
 		sync,
 		parity, shram_mode,
 		Geometry, Control,
 		Command, CmdParam,
 		BusOnTime, BusOffTime,
 		ATBusSpeed, setup_info_len,
-		max_id, pci_slot;
+		max_id, pci_slot,
+		temp_cdb[12];
 
     volatile uint8_t				/* for multi-threading, keep */
 		Status, Interrupt,		/* these volatile */
@@ -418,7 +420,8 @@ typedef struct {
     /* 16 + 20 + 52 = 88 bytes */
     volatile int
 		MailboxOutInterrupts,
-		PendingInterrupt, Lock;
+		PendingInterrupt, Lock,
+		target_data_len, pad0;
 
     uint32_t	Base, rom_addr,			/* address of BIOS ROM */
 		CmdParamLeft, Outgoing,

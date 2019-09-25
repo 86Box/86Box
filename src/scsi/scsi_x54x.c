@@ -891,81 +891,106 @@ static void
 x54x_scsi_cmd(x54x_t *dev)
 {
     Req_t *req = &dev->Req;
-    uint8_t id, phase, bit24 = !!req->Is24bit;
-#ifdef ENABLE_X54X_LOG
-    uint8_t lun;
-#endif
-    uint8_t temp_cdb[12];
-    uint32_t i, SenseBufferAddress;
-    int target_data_len, target_cdb_len = 12;
-    double p;
+    uint8_t bit24 = !!req->Is24bit;
+    uint32_t i, target_cdb_len = 12;
     scsi_device_t *sd;
 
-    id = req->TargetID;
-    sd = &scsi_devices[id];
-#ifdef ENABLE_X54X_LOG
-    lun = req->LUN;
-#endif
+    sd = &scsi_devices[req->TargetID];
 
     target_cdb_len = 12;
-    target_data_len = x54x_get_length(dev, req, bit24);
+    dev->target_data_len = x54x_get_length(dev, req, bit24);
 
     if (!scsi_device_valid(sd))
-	fatal("SCSI target on %02i has disappeared\n", id);
+	fatal("SCSI target on %02i has disappeared\n", req->TargetID);
 
-    x54x_log("target_data_len = %i\n", target_data_len);
+    x54x_log("dev->target_data_len = %i\n", dev->target_data_len);
 
-    x54x_log("SCSI command being executed on ID %i, LUN %i\n", id, lun);
+    x54x_log("SCSI command being executed on ID %i, LUN %i\n", req->TargetID, req->LUN);
 
     x54x_log("SCSI CDB[0]=0x%02X\n", req->CmdBlock.common.Cdb[0]);
     for (i=1; i<req->CmdBlock.common.CdbLength; i++)
 	x54x_log("SCSI CDB[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
 
-    memset(temp_cdb, 0x00, target_cdb_len);
+    memset(dev->temp_cdb, 0x00, target_cdb_len);
     if (req->CmdBlock.common.CdbLength <= target_cdb_len) {
-	memcpy(temp_cdb, req->CmdBlock.common.Cdb,
+	memcpy(dev->temp_cdb, req->CmdBlock.common.Cdb,
 	       req->CmdBlock.common.CdbLength);
 	x54x_add_to_period(dev, req->CmdBlock.common.CdbLength);
     } else {
-	memcpy(temp_cdb, req->CmdBlock.common.Cdb, target_cdb_len);
+	memcpy(dev->temp_cdb, req->CmdBlock.common.Cdb, target_cdb_len);
 	x54x_add_to_period(dev, target_cdb_len);
     }
 
     dev->Residue = 0;
 
-    sd->buffer_length = target_data_len;
+    sd->buffer_length = dev->target_data_len;
 
-    scsi_device_command_phase0(sd, temp_cdb);
-
-    phase = sd->phase;
+    scsi_device_command_phase0(sd, dev->temp_cdb);
+    dev->scsi_cmd_phase = sd->phase;
 
     x54x_log("Control byte: %02X\n", (req->CmdBlock.common.ControlByte == 0x03));
 
-    if (phase != SCSI_PHASE_STATUS) {
-	if ((temp_cdb[0] == 0x03) && (req->CmdBlock.common.ControlByte == 0x03)) {
-		/* Request sense in non-data mode - sense goes to sense buffer. */
-		sd->buffer_length = ConvertSenseLength(req->CmdBlock.common.RequestSenseLength);
-		if ((sd->status != SCSI_STATUS_OK) && (sd->buffer_length > 0)) {
-			SenseBufferAddress = SenseBufferPointer(req);
-			DMAPageWrite(SenseBufferAddress, scsi_devices[id].sc->temp_buffer, sd->buffer_length);
-			x54x_add_to_period(dev, sd->buffer_length);
-		}
-		scsi_device_command_phase1(sd);
-	} else {
+    if (dev->scsi_cmd_phase == SCSI_PHASE_STATUS)
+	dev->callback_sub_phase = 3;
+    else
+	dev->callback_sub_phase = 2;
+
+    x54x_log("scsi_devices[%02i].Status = %02X\n", id, sd->status);
+}
+
+
+static void
+x54x_scsi_cmd_phase1(x54x_t *dev)
+{
+    Req_t *req = &dev->Req;
+    double p;
+    uint8_t bit24 = !!req->Is24bit;
+    scsi_device_t *sd;
+
+    sd = &scsi_devices[req->TargetID];
+
+    if (dev->scsi_cmd_phase != SCSI_PHASE_STATUS) {
+	if ((dev->temp_cdb[0] != 0x03) || (req->CmdBlock.common.ControlByte != 0x03)) {
 		p = scsi_device_get_callback(sd);
 		if (p <= 0.0)
 			x54x_add_to_period(dev, sd->buffer_length);
 		else
 			dev->media_period += p;
-		x54x_buf_dma_transfer(dev, req, bit24, target_data_len, (phase == SCSI_PHASE_DATA_OUT));
+		x54x_buf_dma_transfer(dev, req, bit24, dev->target_data_len, (dev->scsi_cmd_phase == SCSI_PHASE_DATA_OUT));
 		scsi_device_command_phase1(sd);
-
-		SenseBufferFree(dev, req, (sd->status != SCSI_STATUS_OK));
 	}
+    }
+
+    dev->callback_sub_phase = 3;
+    x54x_log("scsi_devices[%02i].Status = %02X\n", req->TargetID, sd->status);
+}
+
+
+static void
+x54x_request_sense(x54x_t *dev)
+{
+    Req_t *req = &dev->Req;
+    uint32_t SenseBufferAddress;
+    scsi_device_t *sd;
+
+    sd = &scsi_devices[req->TargetID];
+
+    if (dev->scsi_cmd_phase != SCSI_PHASE_STATUS) {
+	if ((dev->temp_cdb[0] == 0x03) && (req->CmdBlock.common.ControlByte == 0x03)) {
+		/* Request sense in non-data mode - sense goes to sense buffer. */
+		sd->buffer_length = ConvertSenseLength(req->CmdBlock.common.RequestSenseLength);
+		if ((sd->status != SCSI_STATUS_OK) && (sd->buffer_length > 0)) {
+			SenseBufferAddress = SenseBufferPointer(req);
+			DMAPageWrite(SenseBufferAddress, scsi_devices[req->TargetID].sc->temp_buffer, sd->buffer_length);
+			x54x_add_to_period(dev, sd->buffer_length);
+		}
+		scsi_device_command_phase1(sd);
+	} else
+		SenseBufferFree(dev, req, (sd->status != SCSI_STATUS_OK));
     } else
 	SenseBufferFree(dev, req, (sd->status != SCSI_STATUS_OK));
 
-    x54x_set_residue(dev, req, target_data_len);
+    x54x_set_residue(dev, req, dev->target_data_len);
 
     x54x_log("Request complete\n");
 
@@ -977,7 +1002,8 @@ x54x_scsi_cmd(x54x_t *dev)
 		       CCB_COMPLETE, SCSI_STATUS_CHECK_CONDITION, MBI_ERROR);
     }
 
-    x54x_log("scsi_devices[%02i].Status = %02X\n", id, sd->status);
+    dev->callback_sub_phase = 4;
+    x54x_log("scsi_devices[%02i].Status = %02X\n", req->TargetID, sd->status);
 }
 
 
@@ -1029,7 +1055,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 	x54x_log("SCSI Target ID %i or LUN %i is not valid\n",id,lun);
 	x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock,
 		      CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
-	dev->callback_sub_phase = 2;
+	dev->callback_sub_phase = 4;
 	return;
     }
 
@@ -1042,7 +1068,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 	x54x_log("SCSI Target ID %i and LUN %i have no device attached\n",id,lun);
 	x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock,
 		       CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
-	dev->callback_sub_phase = 2;
+	dev->callback_sub_phase = 4;
     } else {
 	x54x_log("SCSI Target ID %i detected and working\n", id);
 
@@ -1053,7 +1079,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 		x54x_log("Invalid opcode: %02X\n",
 			req->CmdBlock.common.ControlByte);
 		x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock, CCB_INVALID_OP_CODE, SCSI_STATUS_OK, MBI_ERROR);
-		dev->callback_sub_phase = 2;
+		dev->callback_sub_phase = 4;
 		return;
 	}
 	if (req->CmdBlock.common.Opcode == 0x81) {
@@ -1061,7 +1087,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 		scsi_device_reset(sd);
 		x54x_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
 			       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
-		dev->callback_sub_phase = 2;
+		dev->callback_sub_phase = 4;
 		return;
 	}
 
@@ -1069,7 +1095,7 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 		x54x_log("Invalid control byte: %02X\n",
 			req->CmdBlock.common.ControlByte);
 		x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock, CCB_INVALID_DIRECTION, SCSI_STATUS_OK, MBI_ERROR);
-		dev->callback_sub_phase = 2;
+		dev->callback_sub_phase = 4;
 		return;
 	}
 
@@ -1089,7 +1115,7 @@ x54x_req_abort(x54x_t *dev, uint32_t CCBPointer)
 
     x54x_mbi_setup(dev, CCBPointer, &CmdBlock,
 		  0x26, SCSI_STATUS_OK, MBI_NOT_FOUND);
-    dev->callback_sub_phase = 2;
+    dev->callback_sub_phase = 4;
 }
 
 
@@ -1203,7 +1229,7 @@ x54x_cmd_done(x54x_t *dev, int suppress);
 static void
 x54x_cmd_callback(void *priv)
 {
-    double period, cb_period = 10.0;
+    double period;
     x54x_t *dev = (x54x_t *) priv;
 
     int mailboxes_present, bios_mailboxes_present;
@@ -1226,17 +1252,22 @@ x54x_cmd_callback(void *priv)
 			dev->callback_phase ^= 1;
 		break;
 	case 1:
-		/* Sub-phase 1 - Do SCSI command. */
+		/* Sub-phase 1 - Do SCSI command phase 0. */
 		x54x_log("%s: Callback: Process SCSI request\n", dev->name);
 		x54x_scsi_cmd(dev);
-
-		/* Go to notify phase. */
-		dev->callback_sub_phase = 2;
-
-		cb_period = 20.0;
 		break;
-	case 2:	
-		/* Sub-phase 2 - Notify. */
+	case 2:
+		/* Sub-phase 2 - Do SCSI command phase 1. */
+		x54x_log("%s: Callback: Process SCSI request\n", dev->name);
+		x54x_scsi_cmd_phase1(dev);
+		break;
+	case 3:
+		/* Sub-phase 3 - Request sense. */
+		x54x_log("%s: Callback: Process SCSI request\n", dev->name);
+		x54x_request_sense(dev);
+		break;
+	case 4:
+		/* Sub-phase 4 - Notify. */
 		x54x_log("%s: Callback: Send incoming mailbox\n", dev->name);
 		x54x_notify(dev);
 
@@ -1260,7 +1291,7 @@ x54x_cmd_callback(void *priv)
     }
 
     period = (1000000.0 / dev->ha_bps) * ((double) dev->temp_period);
-    timer_on(&dev->timer, dev->media_period + period + cb_period, 0);
+    timer_on(&dev->timer, dev->media_period + period + 10.0, 0);
     x54x_log("Temporary period: %lf us (%" PRIi64 " periods)\n", dev->timer.period, dev->temp_period);
 }
 
