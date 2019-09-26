@@ -8,11 +8,11 @@
  *
  *		Generic CD-ROM drive core.
  *
- * Version:	@(#)cdrom.c	1.0.7	2018/10/30
+ * Version:	@(#)cdrom.c	1.0.8	2019/09/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2018 Miran Grca.
+ *		Copyright 2018,2019 Miran Grca.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -1006,7 +1006,6 @@ cdrom_hard_reset(void)
 		switch(dev->bus_type) {
 			case CDROM_BUS_ATAPI:
 			case CDROM_BUS_SCSI:
-			case CDROM_BUS_SCSI_CHINON:
 				scsi_cdrom_drive_reset(i);
 				break;
 

@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.25	2019/03/15
+ * Version:	@(#)win_stbar.c	1.0.26	2019/09/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -552,7 +552,7 @@ ui_sb_update_panes(void)
 	    !(hdint || !memcmp(hdc_name, "ide", 3)))
 		continue;
 
-	if ((cdrom[i].bus_type == CDROM_BUS_SCSI || cdrom[i].bus_type == CDROM_BUS_SCSI_CHINON) &&
+	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) &&
 	    (scsi_card_current == 0))
 		continue;
 	if (cdrom[i].bus_type != 0)
@@ -615,7 +615,7 @@ ui_sb_update_panes(void)
 	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
 		continue;
 	}
-	if ((cdrom[i].bus_type == CDROM_BUS_SCSI || cdrom[i].bus_type == CDROM_BUS_SCSI_CHINON) && (scsi_card_current == 0))
+	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && (scsi_card_current == 0))
 		continue;
 	if (cdrom[i].bus_type != 0) {
 		edge += SB_ICON_WIDTH;

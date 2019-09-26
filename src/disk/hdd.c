@@ -8,13 +8,13 @@
  *
  *		Common code to handle all sorts of hard disk images.
  *
- * Version:	@(#)hdd.c	1.0.9	2018/05/25
+ * Version:	@(#)hdd.c	1.0.10	2019/09/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -93,9 +93,6 @@ no_cdrom:
     if (! strcmp(str, "scsi"))
 	return(HDD_BUS_SCSI);
 
-    if (! strcmp(str, "scsi_chinon"))
-	return(CDROM_BUS_SCSI_CHINON);
-
     if (! strcmp(str, "usb"))
 	ui_msgbox(MBX_ERROR, (wchar_t *)IDS_4110);
 
@@ -131,10 +128,6 @@ hdd_bus_to_string(int bus, int cdrom)
 
 	case HDD_BUS_SCSI:
 		s = "scsi";
-		break;
-		
-	case CDROM_BUS_SCSI_CHINON:
-		s = "scsi_chinon";
 		break;
     }
 

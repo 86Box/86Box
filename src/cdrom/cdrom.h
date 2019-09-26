@@ -8,11 +8,11 @@
  *
  *		Generic CD-ROM drive core header.
  *
- * Version:	@(#)cdrom.h	1.0.17	2018/10/28
+ * Version:	@(#)cdrom.h	1.0.18	2019/09/26
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #ifndef EMU_CDROM_H
 #define EMU_CDROM_H
@@ -58,7 +58,6 @@ enum {
     CDROM_BUS_DISABLED = 0,
     CDROM_BUS_ATAPI = 4,
     CDROM_BUS_SCSI,
-	CDROM_BUS_SCSI_CHINON,
     CDROM_BUS_USB
 };
 

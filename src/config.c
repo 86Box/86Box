@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.61	2019/03/03
+ * Version:	@(#)config.c	1.0.62	2019/09/26
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1078,11 +1078,8 @@ load_other_removable_devices(void)
 		if (cdrom[c].ide_channel > 7)
 			cdrom[c].ide_channel = 7;
 	} else {
-		if (cdrom[c].bus_type == CDROM_BUS_SCSI_CHINON)
-			sprintf(temp, "cdrom_%02i_scsi_id_chinon", c+1);
-		else
-			sprintf(temp, "cdrom_%02i_scsi_id", c+1);
-		if (cdrom[c].bus_type == CDROM_BUS_SCSI || cdrom[c].bus_type == CDROM_BUS_SCSI_CHINON) {
+		sprintf(temp, "cdrom_%02i_scsi_id", c+1);
+		if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
 			cdrom[c].scsi_device_id = config_get_int(cat, temp, c+2);
 	
 			if (cdrom[c].scsi_device_id > 15)
@@ -1132,9 +1129,6 @@ load_other_removable_devices(void)
 		config_delete_var(cat, temp);
 
 		sprintf(temp, "cdrom_%02i_scsi_id", c+1);
-		config_delete_var(cat, temp);
-		
-		sprintf(temp, "cdrom_%02i_scsi_id_chinon", c+1);
 		config_delete_var(cat, temp);
 
 		sprintf(temp, "cdrom_%02i_image_path", c+1);
@@ -1840,13 +1834,10 @@ save_other_removable_devices(void)
 					cdrom[c].ide_channel & 1);
 		config_set_string(cat, temp, tmp2);
 	}
+
+	sprintf(temp, "cdrom_%02i_scsi_id", c + 1);
 	
-	if (cdrom[c].bus_type == CDROM_BUS_SCSI_CHINON)
-		sprintf(temp, "cdrom_%02i_scsi_id_chinon", c + 1);
-	else
-		sprintf(temp, "cdrom_%02i_scsi_id", c + 1);
-	
-	if (cdrom[c].bus_type != CDROM_BUS_SCSI && cdrom[c].bus_type != CDROM_BUS_SCSI_CHINON) {
+	if (cdrom[c].bus_type != CDROM_BUS_SCSI && cdrom[c].bus_type) {
 		config_delete_var(cat, temp);
 	} else {
 		config_set_int(cat, temp, cdrom[c].scsi_device_id);

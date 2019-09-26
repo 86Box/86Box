@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.55	2019/03/03
+ * Version:	@(#)win_settings.c	1.0.56	2019/09/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -286,7 +286,7 @@ win_settings_init(void)
     for (i = 0; i < CDROM_NUM; i++) {
 	if (cdrom[i].bus_type == CDROM_BUS_ATAPI)
 		ide_tracking |= (2 << (cdrom[i].ide_channel << 3));
-	else if (cdrom[i].bus_type == CDROM_BUS_SCSI || cdrom[i].bus_type == CDROM_BUS_SCSI_CHINON)
+	else if (cdrom[i].bus_type == CDROM_BUS_SCSI)
 		scsi_tracking[cdrom[i].scsi_device_id >> 3] |= (1 << ((cdrom[i].scsi_device_id & 0x07) << 3));
     }
     memcpy(temp_zip_drives, zip_drives, ZIP_NUM * sizeof(zip_drive_t));
@@ -3457,7 +3457,6 @@ win_settings_cdrom_drives_recalc_list(HWND hwndList)
 			lvI.iImage = 1;
 			break;
 		case CDROM_BUS_SCSI:
-		case CDROM_BUS_SCSI_CHINON:
 			wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].scsi_device_id);
 			lvI.pszText = szText;
 			lvI.iImage = 1;
@@ -3720,7 +3719,6 @@ win_settings_cdrom_drives_update_item(HWND hwndList, int i)
 		lvI.iImage = 1;
 		break;
 	case CDROM_BUS_SCSI:
-	case CDROM_BUS_SCSI_CHINON:
 		wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].scsi_device_id);
 		lvI.pszText = szText;
 		lvI.iImage = 1;
@@ -3801,7 +3799,7 @@ cdrom_add_locations(HWND hdlg)
     lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
-    for (i = CDROM_BUS_DISABLED; i <= CDROM_BUS_SCSI_CHINON; i++) {
+    for (i = CDROM_BUS_DISABLED; i <= CDROM_BUS_SCSI; i++) {
 	if ((i == CDROM_BUS_DISABLED) || (i >= CDROM_BUS_ATAPI))
 		SendMessage(h, CB_ADDSTRING, 0, win_get_string(combo_id_to_string_id(i)));
     }
@@ -3883,7 +3881,6 @@ static void cdrom_recalc_location_controls(HWND hdlg, int assign_id)
 		SendMessage(h, CB_SETCURSEL, temp_cdrom[lv1_current_sel].ide_channel, 0);
 		break;
 	case CDROM_BUS_SCSI:		/* SCSI */
-	case CDROM_BUS_SCSI_CHINON:
 		h = GetDlgItem(hdlg, IDT_1741);
 		ShowWindow(h, SW_SHOW);
 		EnableWindow(h, TRUE);
@@ -3999,7 +3996,7 @@ cdrom_track(uint8_t id)
 {
     if (temp_cdrom[id].bus_type == CDROM_BUS_ATAPI)
 	ide_tracking |= (2 << (temp_cdrom[id].ide_channel << 3));
-    else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI || temp_cdrom[id].bus_type == CDROM_BUS_SCSI_CHINON)
+    else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI)
 	scsi_tracking[temp_cdrom[id].scsi_device_id >> 3] |= (1 << (temp_cdrom[id].scsi_device_id & 0x07));
 }
 
@@ -4009,7 +4006,7 @@ cdrom_untrack(uint8_t id)
 {
     if (temp_cdrom[id].bus_type == CDROM_BUS_ATAPI)
 	ide_tracking &= ~(2 << (temp_cdrom[id].ide_channel << 3));
-    else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI || temp_cdrom[id].bus_type == CDROM_BUS_SCSI_CHINON)
+    else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI)
 	scsi_tracking[temp_cdrom[id].scsi_device_id >> 3] &= ~(1 << (temp_cdrom[id].scsi_device_id & 0x07));
 }
 
@@ -4178,9 +4175,6 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 			case CDROM_BUS_SCSI:
 				b = 2;
 				break;
-			case CDROM_BUS_SCSI_CHINON:
-				b = 3;
-				break;
 		}
 
 		SendMessage(h, CB_SETCURSEL, b, 0);
@@ -4248,9 +4242,6 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 				case CDROM_BUS_SCSI:
 					b = 2;
 					break;
-				case CDROM_BUS_SCSI_CHINON:
-					b = 3;
-					break;
 			}
 
 			SendMessage(h, CB_SETCURSEL, b, 0);
@@ -4312,9 +4303,6 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 						break;
 					case 2:
 						b2 = CDROM_BUS_SCSI;
-						break;
-					case 3:
-						b2 = CDROM_BUS_SCSI_CHINON;
 						break;
 				}
 				if (b2 == temp_cdrom[lv1_current_sel].bus_type)
