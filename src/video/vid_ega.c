@@ -9,14 +9,14 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.19	2018/12/31
+ * Version:	@(#)vid_ega.c	1.0.20	2019/09/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		akm
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -413,6 +413,7 @@ void ega_poll(void *p)
 {
         ega_t *ega = (ega_t *)p;
         int x;
+	int xs_temp, ys_temp;
         int drawcursor = 0;
 	int y_add = enable_overscan ? (overscan_y >> 1) : 0;
 	int x_add = enable_overscan ? 8 : 0;
@@ -549,65 +550,70 @@ void ega_poll(void *p)
                         if (ega->interlace && !ega->oddeven) ega->lastline++;
                         if (ega->interlace &&  ega->oddeven) ega->firstline--;
 
-			x_add = enable_overscan ? 8 : 0;
-			y_add = enable_overscan ? overscan_y : 0;
-			x_add_ex = enable_overscan ? 16 : 0;
-			y_add_ex = y_add << 1;
+			xs_temp = x;
+			ys_temp = ega->lastline - ega->firstline + 1;
 
-			if ((xsize > 2032) || ((ysize + y_add_ex) > 2048)) {
-				x_add = x_add_ex = 0;
-				y_add = y_add_ex = 0;
-				suppress_overscan = 1;
-			} else
-				suppress_overscan = 0;
+			if ((xs_temp > 0) && (ys_temp > 1)) {
+				x_add = enable_overscan ? 8 : 0;
+				y_add = enable_overscan ? overscan_y : 0;
+				x_add_ex = enable_overscan ? 16 : 0;
+				y_add_ex = y_add << 1;
 
-			if ((x != xsize) || ((ega->lastline - ega->firstline + 1) != ysize) || video_force_resize_get()) {
-                                xsize = x;
-                                ysize = ega->lastline - ega->firstline + 1;
-                                if (xsize < 64)
-					xsize = 640;
-                                if (ysize < 32)
-					ysize = 200;
+				if ((xsize > 2032) || ((ysize + y_add_ex) > 2048)) {
+					x_add = x_add_ex = 0;
+					y_add = y_add_ex = 0;
+					suppress_overscan = 1;
+				} else
+					suppress_overscan = 0;
 
-                                if (ega->vres)
-                                        set_screen_size(xsize + x_add_ex, (ysize << 1) + y_add_ex);
-                                else
-                                        set_screen_size(xsize + x_add_ex, ysize + y_add_ex);
+				xs_temp = x;
+				ys_temp = ega->lastline - ega->firstline + 1;
+				if (xs_temp < 64)
+					xs_temp = 640;
+				if (ys_temp < 32)
+					ys_temp = 200;
 
-				if (video_force_resize_get())
-					video_force_resize_set(0);
-                        }
+				if ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get()) {
+	                                if (ega->vres)
+        	                                set_screen_size(xsize + x_add_ex, (ysize << 1) + y_add_ex);
+                	                else
+                        	                set_screen_size(xsize + x_add_ex, ysize + y_add_ex);
 
-			if (enable_overscan && !suppress_overscan) {
-				if ((x >= 160) && ((ega->lastline - ega->firstline + 1) >= 120)) {
-					/* Draw (overscan_size - scroll size) lines of overscan on top. */
-					for (i  = 0; i < y_add; i++) {
-						q = &buffer32->line[i & 0x7ff][32];
+					if (video_force_resize_get())
+						video_force_resize_set(0);
+                	        }
 
-						for (j = 0; j < (xsize + x_add_ex); j++)
-							q[j] = ega->overscan_color;
-					}
+				if (enable_overscan && !suppress_overscan) {
+					if ((x >= 160) && ((ega->lastline - ega->firstline + 1) >= 120)) {
+						/* Draw (overscan_size - scroll size) lines of overscan on top. */
+						for (i  = 0; i < y_add; i++) {
+							q = &buffer32->line[i & 0x7ff][32];
 
-					/* Draw (overscan_size + scroll size) lines of overscan on the bottom. */
-					for (i  = 0; i < y_add_ex; i++) {
-						q = &buffer32->line[(ysize + y_add + i) & 0x7ff][32];
+							for (j = 0; j < (xsize + x_add_ex); j++)
+								q[j] = ega->overscan_color;
+						}
 
-						for (j = 0; j < (xsize + x_add_ex); j++)
-							q[j] = ega->overscan_color;
-					}
+						/* Draw (overscan_size + scroll size) lines of overscan on the bottom. */
+						for (i  = 0; i < y_add_ex; i++) {
+							q = &buffer32->line[(ysize + y_add + i) & 0x7ff][32];
 
-					for (i = y_add_ex; i < (ysize + y_add); i ++) {
-						q = &buffer32->line[i & 0x7ff][32];
+							for (j = 0; j < (xsize + x_add_ex); j++)
+								q[j] = ega->overscan_color;
+						}
 
-						for (j = 0; j < x_add; j++) {
-							q[j] = ega->overscan_color;
-							q[xsize + x_add + j] = ega->overscan_color;
+						for (i = y_add_ex; i < (ysize + y_add); i ++) {
+							q = &buffer32->line[i & 0x7ff][32];
+
+							for (j = 0; j < x_add; j++) {
+								q[j] = ega->overscan_color;
+								q[xsize + x_add + j] = ega->overscan_color;
+							}
 						}
 					}
 				}
+
+	                        video_blit_memtoscreen(32, 0, ega->firstline, ega->lastline + 1 + y_add_ex, xsize + x_add_ex, ega->lastline - ega->firstline + 1 + y_add_ex);
 			}
-         
-                        video_blit_memtoscreen(32, 0, ega->firstline, ega->lastline + 1 + y_add_ex, xsize + x_add_ex, ega->lastline - ega->firstline + 1 + y_add_ex);
 
                         frames++;
                         

@@ -11,13 +11,13 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.35	2018/10/21
+ * Version:	@(#)vid_svga.c	1.0.36	2019/09/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <inttypes.h>
 #include <stdio.h>
@@ -711,7 +711,7 @@ svga_poll(void *p)
 		wx = x;
 		wy = svga->lastline - svga->firstline;
 
-		if (!svga->override)
+		if (!svga->override && (wx > 0) && (wy > 0))
 			svga_doblit(svga->firstline_draw, svga->lastline_draw + 1, wx, wy, svga);
 
 		svga->firstline = 2000;
@@ -1123,6 +1123,7 @@ svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
     int x_add = (enable_overscan) ? 16 : 0;
     uint32_t *p;
     int i, j;
+    int xs_temp, ys_temp;
 
     if ((xsize > 2032) || (ysize > 2032)) {
 	x_add = 0;
@@ -1136,14 +1137,17 @@ svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 	return;
     }
 
-    if ((wx != xsize) || ((wy + 1) != ysize) || video_force_resize_get()) {
+    xs_temp = wx;
+    ys_temp = wy + 1;
+    if (xs_temp < 64)
+	xs_temp = 640;
+    if (ys_temp < 32)
+	ys_temp = 200;
+
+    if ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get()) {
 	/* Screen res has changed.. fix up, and let them know. */
-	xsize = wx;
-	ysize = wy + 1;
-	if (xsize < 64)
-		xsize = 640;
-	if (ysize < 32)
-		ysize = 200;
+	xsize = xs_temp;
+	ysize = ys_temp;
 
 	set_screen_size(xsize+x_add,ysize+y_add);
 
