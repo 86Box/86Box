@@ -9,13 +9,13 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.18	2019/03/23
+ * Version:	@(#)fdc.c	1.0.19	2019/09/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -324,7 +324,7 @@ fdc_fifo_buf_read(fdc_t *fdc)
 
 
 static
-void fdc_int(fdc_t *fdc)
+void fdc_int(fdc_t *fdc, int set_fintr)
 {
     int ienable = 0;
 
@@ -334,7 +334,9 @@ void fdc_int(fdc_t *fdc)
     if (ienable)
 	picint(1 << fdc->irq);
 
-    fdc->fintr = 1;
+    if (set_fintr)
+	fdc->fintr = 1;
+    fdc_log("fdc_int(%i): fdc->fintr = %i\n", set_fintr, fdc->fintr);
 }
 
 
@@ -711,7 +713,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 } else {
 			if (!(val & 8) && (fdc->dor & 8)) {
 				fdc->tc = 1;
-				fdc_int(fdc);
+				fdc_int(fdc, 1);
 			}
 			if (!(val&4)) {
 				fdd_stop(real_drive(fdc, val & 3));
@@ -942,7 +944,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 				/* Disable timer if enabled. */
 				timer_disable(&fdc->timer);
 				/* Start timer if needed at this point. */
-				switch (fdc->interrupt & 0x1F) {
+				switch (fdc->interrupt & 0x1f) {
 					case 0x02:	/* Read a track */
 					case 0x03:	/* Specify */
 					case 0x0a:	/* Read sector ID */
@@ -959,7 +961,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						break;
                                         case 0x07:	/* Recalibrate */
 					case 0x0f:	/* Seek */
-						timer_set_delay_u64(&fdc->timer, 2048 * TIMER_USEC);
+						timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
 						break;
 					default:
 						timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
@@ -1029,7 +1031,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                         
                                         case 0x07:	/* Recalibrate */
 						fdc->rw_drive = fdc->params[0] & 3;
-						fdc->stat =  (1 << real_drive(fdc, fdc->drive)) | 0x80;
+						fdc->stat =  (1 << real_drive(fdc, fdc->drive));
+						if (!(fdc->flags & FDC_FLAG_PCJR))
+							fdc->stat |= 0x80;
 						fdc->st0 = fdc->params[0] & 3;
 						fdc->st0 |= fdd_get_head(real_drive(fdc, fdc->drive)) ? 0x04 : 0x00;
 						fdc->st0 |= 0x80;
@@ -1042,7 +1046,11 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 							else
 								fdc->st0 = 0x20 | (fdc->params[0] & 3);
 							fdc->pcn[fdc->params[0] & 3] = 0;
-							fdc->interrupt = -3;
+							if (fdc->flags & FDC_FLAG_PCJR) {
+								fdc->fintr = 1;
+								fdc->interrupt = -4;
+							} else
+								fdc->interrupt = -3;
 							break;
 						}
 						if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en)
@@ -1078,7 +1086,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						break;
 					case 0x0f:	/* Seek */
 						fdc->rw_drive = fdc->params[0] & 3;
-						fdc->stat =  (1 << fdc->drive) | 0x80;
+						fdc->stat =  (1 << fdc->drive);
+						if (!(fdc->flags & FDC_FLAG_PCJR))
+							fdc->stat |= 0x80;
 						fdc->head = (fdc->params[0] & 4) ? 1 : 0;
 						fdc->st0 = fdc->params[0] & 0x03;
 						fdc->st0 |= (fdc->params[0] & 4);
@@ -1133,7 +1143,6 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 							fdc_seek(fdc, fdc->drive, fdc->params[1] - fdc->pcn[fdc->params[0] & 3]);
 							fdc->pcn[fdc->params[0] & 3] = fdc->params[1];
 							fdc->step = 1;
-							fdc_log("fdc->time = %i\n", fdc->time);
 						}
 						break;
 					case 0x12:	/* Perpendicular mode */
@@ -1337,7 +1346,7 @@ fdc_read(uint16_t addr, void *priv)
 static void
 fdc_poll_common_finish(fdc_t *fdc, int compare, int st5)
 {
-    fdc_int(fdc);
+    fdc_int(fdc, 1);
     if (!(fdc->flags & FDC_FLAG_PS1))
 	fdc->fintr = 0;
     fdc->stat = 0xD0;
@@ -1410,14 +1419,15 @@ fdc_callback(void *priv)
     fdc_log("fdc_callback(): %i\n", fdc->interrupt);
     switch (fdc->interrupt) {
 	case -3: /*End of command with interrupt*/
-		fdc_int(fdc);
+	case -4: /*Recalibrate/seek interrupt (PCjr only)*/
+		fdc_int(fdc, fdc->interrupt & 1);
 		fdc->stat = (fdc->stat & 0xf) | 0x80;
 		return;
 	case -2: /*End of command*/
 		fdc->stat = (fdc->stat & 0xf) | 0x80;
 		return;
 	case -1: /*Reset*/
-		fdc_int(fdc);
+		fdc_int(fdc, 1);
 		fdc->fintr = 0;
 		memset(fdc->pcn, 0, 4 * sizeof(int));
 		fdc->reset_stat = 4;
@@ -1584,7 +1594,11 @@ fdc_callback(void *priv)
 		fdc->st0 = 0x20 | (fdc->params[0] & 3);
 		if (!fdd_track0(drive_num))
 			fdc->st0 |= 0x50;
-		fdc->interrupt = -3;
+		if (fdc->flags & FDC_FLAG_PCJR) {
+			fdc->fintr = 1;
+			fdc->interrupt = -4;
+		} else
+			fdc->interrupt = -3;
 		timer_set_delay_u64(&fdc->timer, 2048 * TIMER_USEC);
 		fdc->stat = 0x80 | (1 << fdc->rw_drive);
 		return;
@@ -1597,7 +1611,7 @@ fdc_callback(void *priv)
 			fdc->format_state = 3;
 		} else {
 			fdc->interrupt = -2;
-			fdc_int(fdc);
+			fdc_int(fdc, 1);
 			if (!(fdc->flags & FDC_FLAG_PS1))
 				fdc->fintr = 0;
 			fdc->stat = 0xD0;
@@ -1629,9 +1643,15 @@ fdc_callback(void *priv)
 		return;
 	case 0x0f: /*Seek*/
 		fdc->st0 = 0x20 | (fdc->params[0] & 7);
-		fdc->interrupt = -3;
 		fdc->stat = 0x80 | (1 << fdc->rw_drive);
-		fdc_callback(fdc);
+		if (fdc->flags & FDC_FLAG_PCJR) {
+			fdc->fintr = 1;
+			fdc->interrupt = -4;
+			timer_set_delay_u64(&fdc->timer, 1024 * TIMER_USEC);
+		} else {
+			fdc->interrupt = -3;
+			fdc_callback(fdc);
+		}
 		return;
 	case 0x10: /*Version*/
 	case 0x18: /*NSC*/
@@ -1671,7 +1691,7 @@ fdc_error(fdc_t *fdc, int st5, int st6)
 {
     timer_disable(&fdc->timer);
 
-    fdc_int(fdc);
+    fdc_int(fdc, 1);
     if (!(fdc->flags & FDC_FLAG_PS1))
 	fdc->fintr = 0;
     fdc->stat = 0xD0;
@@ -1932,7 +1952,7 @@ int fdc_getdata(fdc_t *fdc, int last)
 void
 fdc_sectorid(fdc_t *fdc, uint8_t track, uint8_t side, uint8_t sector, uint8_t size, uint8_t crc1, uint8_t crc2)
 {
-    fdc_int(fdc);
+    fdc_int(fdc, 1);
     fdc->stat = 0xD0;
     fdc->st0 = fdc->res[4] = (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->drive;
     fdc->res[5] = 0;
@@ -2011,7 +2031,7 @@ fdc_set_base(fdc_t *fdc, int base)
 	}
     }
     fdc->base_address = base;
-    fdc_log("fdc_t Base address set%s (%04X)\n", super_io ? " for Super I/O" : "", fdc->base_address);
+    fdc_log("FDC Base address set%s (%04X)\n", super_io ? " for Super I/O" : "", fdc->base_address);
 }
 
 
@@ -2020,7 +2040,7 @@ fdc_remove(fdc_t *fdc)
 {
     int super_io = (fdc->flags & FDC_FLAG_SUPERIO);
 
-    fdc_log("fdc_t Removed (%04X)\n", fdc->base_address);
+    fdc_log("FDC Removed (%04X)\n", fdc->base_address);
     if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
 	io_removehandler(fdc->base_address + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
 	io_removehandler(fdc->base_address + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
