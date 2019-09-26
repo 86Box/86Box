@@ -8,10 +8,13 @@
  *
  *		Definitions for the generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.h	1.0.16	2018/10/31
+ * Version:	@(#)scsi_device.h	1.0.17	2019/09/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #ifndef SCSI_DEVICE_H
 # define SCSI_DEVICE_H
@@ -100,9 +103,7 @@
 #define GPCMD_MECHANISM_STATUS			0xbd
 #define GPCMD_READ_CD				0xbe
 #define GPCMD_SEND_DVD_STRUCTURE		0xbf	/* This is for writing only, irrelevant to PCem. */
-#define GPCMD_CHINON_EJECT			0xc0		/*Vendor Unique*/
-#define GPCMD_PAUSE_RESUME_ALT		0xc2
-#define GPCMD_CHINON_STOP			0xc6 		/*Vendor Unique*/
+#define GPCMD_PAUSE_RESUME_ALT			0xc2
 #define GPCMD_SCAN_ALT				0xcd	/* Should be equivalent to 0xba */
 #define GPCMD_SET_SPEED_ALT			0xda	/* Should be equivalent to 0xbb */
 
