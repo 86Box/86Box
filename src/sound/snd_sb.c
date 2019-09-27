@@ -8,14 +8,14 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.15	2018/10/26
+ * Version:	@(#)sound_sb.c	1.0.16	2019/09/27
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -583,7 +583,7 @@ void sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p)
                         {
                                 /* Compatibility: chain registers 0x02 and 0x22 as well as 0x06 and 0x26 */
                                 case 0x02: case 0x06: case 0x08:
-                                mixer->regs[mixer->index+0x20]=((val&0xE) << 4)|(val&0xE) << 4;
+                                mixer->regs[mixer->index+0x20]=((val&0xE) << 4)|(val&0xE);
                                 break;
                                 
                                 case 0x22: case 0x26: case 0x28:
