@@ -57,14 +57,14 @@
  *		  Microsoft Windows NT 3.1
  *		  Microsoft Windows 98 SE
  *
- * Version:	@(#)mouse_bus.c	1.0.3	2018/10/17
+ * Version:	@(#)mouse_bus.c	1.0.4	2019/09/27
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 200?-2018 Bochs.
- *		Copyright 2017,2018 Miran Grca.
- *		Copyright 1989-2018 Fred N. van Kempen.
+ *		Copyright 200?-2019 Bochs.
+ *		Copyright 2017-2019 Miran Grca.
+ *		Copyright 1989-2019 Fred N. van Kempen.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -305,7 +305,8 @@ lt_write(uint16_t port, uint8_t val, void *priv)
 		else
 			dev->flags &= ~FLAG_HOLD;
 
-		picintc(1 << dev->irq);
+		if (dev->irq != -1)
+			picintc(1 << dev->irq);
 
 		break;
 	case BUSM_PORT_CONFIG:
@@ -391,7 +392,8 @@ ms_write(uint16_t port, uint8_t val, void *priv)
 		}
 		break;
 	case INP_PORT_DATA:
-		picintc(1 << dev->irq);
+		if (dev->irq != -1)
+			picintc(1 << dev->irq);
 		switch(dev->command_val) {
 			case INP_CTRL_COMMAND:
 				if (val & INP_HOLD_COUNTER)
@@ -429,7 +431,7 @@ ms_write(uint16_t port, uint8_t val, void *priv)
 						break;
 
 					case 6:
-						if (val & INP_ENABLE_TIMER_IRQ)
+						if ((val & INP_ENABLE_TIMER_IRQ) && (dev->irq != -1))
 							picint(1 << dev->irq);
 						dev->control_val &= INP_PERIOD_MASK;
 						dev->control_val |= (val & ~INP_PERIOD_MASK);
@@ -509,7 +511,7 @@ bm_poll(int x, int y, int z, int b, void *priv)
 	}
 
 	/* Send interrupt. */
-	if (dev->flags & FLAG_DATA_INT) {
+	if ((dev->flags & FLAG_DATA_INT) && (dev->irq != -1)) {
 		picint(1 << dev->irq);
 		bm_log("DEBUG: Data Interrupt Fired...\n");
 	}
@@ -583,7 +585,7 @@ bm_timer(void *priv)
        or via software (for InPort mouse). */
     timer_advance_u64(&dev->timer, (uint64_t) (dev->period * (double)TIMER_USEC));
 
-    if (dev->flags & FLAG_TIMER_INT) {
+    if ((dev->flags & FLAG_TIMER_INT) && (dev->irq != -1)) {
 	picint(1 << dev->irq);
 	bm_log("DEBUG: Timer Interrupt Fired...\n");
     }
@@ -603,6 +605,16 @@ bm_close(void *priv)
 }
 
 
+/* Set the mouse's IRQ. */
+void
+mouse_bus_set_irq(void *priv, int irq)
+{
+    mouse_t *dev = (mouse_t *)priv;
+
+    dev->irq = irq;
+}
+
+
 /* Initialize the device for use by the user. */
 static void *
 bm_init(const device_t *info)
@@ -613,14 +625,20 @@ bm_init(const device_t *info)
     dev = (mouse_t *)malloc(sizeof(mouse_t));
     memset(dev, 0x00, sizeof(mouse_t));
 
-    if (info->local == MOUSE_TYPE_INPORT)
+    if ((info->local & ~MOUSE_TYPE_ONBOARD) == MOUSE_TYPE_INPORT)
 	dev->flags = FLAG_INPORT;
     else
 	dev->flags = 0;
 
-    dev->base = device_get_config_hex16("base");
-    dev->irq = device_get_config_int("irq");
-    dev->bn = device_get_config_int("buttons");
+    if (info->local & MOUSE_TYPE_ONBOARD) {
+	dev->base = 0x023c;
+	dev->irq = -1;
+	dev->bn = 2;
+    } else {
+	dev->base = device_get_config_hex16("base");
+	dev->irq = device_get_config_int("irq");
+	dev->bn = device_get_config_int("buttons");
+    }
     mouse_set_buttons(dev->bn);
 
     dev->mouse_delayed_dx	= 0;
@@ -820,6 +838,14 @@ const device_t mouse_logibus_device = {
     bm_init, bm_close, NULL,
     bm_poll, NULL, NULL,
     lt_config
+};
+
+const device_t mouse_logibus_onboard_device = {
+    "Logitech Bus Mouse (On-Board)",
+    DEVICE_ISA,
+    MOUSE_TYPE_LOGIBUS | MOUSE_TYPE_ONBOARD,
+    bm_init, bm_close, NULL,
+    bm_poll, NULL, NULL
 };
 
 const device_t mouse_msinport_device = {
