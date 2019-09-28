@@ -8,7 +8,7 @@
  *
  *		Video 7 VGA 1024i emulation.
  *
- * Version:	@(#)vid_ht216.c	1.0.0	2019/04/05
+ * Version:	@(#)vid_ht216.c	1.0.1	2019/09/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1058,7 +1058,7 @@ void
 
     mem_mapping_set_handler(&ht216->svga.mapping, ht216_read, NULL, NULL, ht216_write, ht216_writew, ht216_writel);
     mem_mapping_set_p(&ht216->svga.mapping, ht216);
-    mem_mapping_add(&ht216->linear_mapping, 0, 0, ht216_read_linear, NULL, NULL, ht216_write_linear, ht216_writew_linear, ht216_writel_linear, NULL, 0, &ht216->svga);
+    mem_mapping_add(&ht216->linear_mapping, 0, 0, ht216_read_linear, NULL, NULL, ht216_write_linear, ht216_writew_linear, ht216_writel_linear, NULL, MEM_MAPPING_EXTERNAL, &ht216->svga);
 
     svga->bpp = 8;
     svga->miscout = 1;

@@ -42,6 +42,7 @@
 #define MEM_MAPPING_INTERNAL	2	/* on internal bus (RAM) */
 #define MEM_MAPPING_ROM		4	/* Executing from ROM may involve
 					 * additional wait states. */
+#define MEM_MAPPING_ROMCS	8	/* respond to ROMCS* */
 
 #define MEM_MAP_TO_SHADOW_RAM_MASK 1
 #define MEM_MAP_TO_RAM_ADDR_MASK   2
@@ -271,6 +272,7 @@ extern void	mem_mapping_set_addr(mem_mapping_t *,
 extern void	mem_mapping_set_exec(mem_mapping_t *, uint8_t *exec);
 extern void	mem_mapping_disable(mem_mapping_t *);
 extern void	mem_mapping_enable(mem_mapping_t *);
+extern int	mem_mapping_is_romcs(uint32_t addr, int write);
 
 extern void	mem_set_mem_state(uint32_t base, uint32_t size, int state);
 

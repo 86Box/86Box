@@ -44,7 +44,7 @@
  *
  *		This is expected to be done shortly.
  *
- * Version:	@(#)vid_pgc.c	1.0.2	2019/03/03
+ * Version:	@(#)vid_pgc.c	1.0.3	2019/09/28
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		John Elliott, <jce@seasip.info>
@@ -2633,7 +2633,6 @@ pgc_init(pgc_t *dev, int maxw, int maxh, int visw, int vish,
     /* Make it a 16k mapping at C4000 (will be C4000-C7FFF),
        because of the emulator's granularity - the original
        mapping will conflict with hard disk controller BIOS'es. */
-    // mem_mapping_add(&dev->mapping, 0xc6000, 2048,
     mem_mapping_add(&dev->mapping, 0xc4000, 16384,
 		    pgc_read,NULL,NULL, pgc_write,NULL,NULL,
 		    NULL, MEM_MAPPING_EXTERNAL, dev);

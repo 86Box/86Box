@@ -92,8 +92,6 @@ typedef struct scat_t {
     mem_mapping_t	high_mapping[16];
     mem_mapping_t	remap_mapping[6];
     mem_mapping_t	efff_mapping[44];
-    mem_mapping_t	romcs_mapping[8];
-    mem_mapping_t	bios_mapping[8];
     mem_mapping_t	ems_mapping[32];
 } scat_t;
 
@@ -124,42 +122,37 @@ static void	scat_out(uint16_t port, uint8_t val, void *priv);
 
 
 static void
-romcs_state_update(scat_t *dev, uint8_t val)
-{
-    int i;
-
-    for (i = 0; i < 4; i++) {
-	if (val & 1) {
-		mem_mapping_enable(&dev->romcs_mapping[i << 1]);
-		mem_mapping_enable(&dev->romcs_mapping[(i << 1) + 1]);
-	} else {
-		mem_mapping_disable(&dev->romcs_mapping[i << 1]);
-		mem_mapping_disable(&dev->romcs_mapping[(i << 1) + 1]);
-	}
-	val >>= 1;
-    }
-
-    for (i = 0; i < 4; i++) {
-	if (val & 1) {
-		mem_mapping_enable(&dev->bios_mapping[i << 1]);
-		mem_mapping_enable(&dev->bios_mapping[(i << 1) + 1]);
-	} else {
-		mem_mapping_disable(&dev->bios_mapping[i << 1]);
-		mem_mapping_disable(&dev->bios_mapping[(i << 1) + 1]);
-	}
-	val >>= 1;
-    }
-}
-
-
-static void
 shadow_state_update(scat_t *dev)
 {
     int i, val;
 
+    uint32_t base, bit, romcs, rommap_r, rommap_w, wp, shflags = 0;
+
     for (i = 0; i < 24; i++) {
-	val = ((dev->regs[SCAT_SHADOW_RAM_ENABLE_1 + (i >> 3)] >> (i & 7)) & 1) ? MEM_READ_INTERNAL | MEM_WRITE_INTERNAL : MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL;
-	mem_set_mem_state((i + 40) << 14, 0x4000, val);
+	val = (dev->regs[SCAT_SHADOW_RAM_ENABLE_1 + (i >> 3)] >> (i & 7)) & 1;
+
+	base = 0xa0000 + (i << 14);
+	bit = (base - 0xc0000) >> 15;
+	romcs = 0;
+	wp = 0;
+
+	if (base >= 0xc0000) {
+		romcs = dev->regs[SCAT_ROM_ENABLE] & (1 << bit);
+
+		wp = dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << bit);
+	}
+
+	rommap_r = mem_mapping_is_romcs(base, 0) ? romcs : 1;
+	rommap_w = mem_mapping_is_romcs(base, 1) ? romcs : 1;
+
+	shflags = val ? MEM_READ_INTERNAL : (rommap_r ? MEM_READ_EXTERNAL : MEM_READ_DISABLED);
+
+	if (wp)
+		shflags |= MEM_WRITE_DISABLED;
+	else
+		shflags |= (val ? MEM_WRITE_INTERNAL : (rommap_w ? MEM_WRITE_EXTERNAL : MEM_WRITE_DISABLED));
+
+	mem_set_mem_state(base, 0x4000, shflags);
     }
 
     flushmmucache();
@@ -1037,6 +1030,8 @@ memmap_state_update(scat_t *dev)
     }
 
     set_global_EMS_state(dev, dev->regs[SCAT_EMS_CONTROL] & 0x80);
+
+    flushmmucache_cr3();
 }
 
 
@@ -1118,15 +1113,7 @@ scat_out(uint16_t port, uint8_t val, void *priv)
 				break;
 
 			case SCAT_ROM_ENABLE:
-				romcs_state_update(dev, val);
-				reg_valid = 1;
-				break;
-
 			case SCAT_RAM_WRITE_PROTECT:
-				reg_valid = 1;
-				flushmmucache_cr3();
-				break;
-
 			case SCAT_SHADOW_RAM_ENABLE_1:
 			case SCAT_SHADOW_RAM_ENABLE_2:
 			case SCAT_SHADOW_RAM_ENABLE_3:
@@ -1468,7 +1455,9 @@ scat_init(const device_t *info)
     if (! sx)
 	mem_mapping_disable(&ram_mid_mapping);
     mem_mapping_disable(&ram_high_mapping);
+#if 0
     mem_mapping_disable(&bios_mapping);
+#endif
 
     k = (sx) ? 0x80000 : 0x40000;
 
@@ -1512,25 +1501,6 @@ scat_init(const device_t *info)
 
 	if (sx)
 		mem_mapping_enable(&dev->efff_mapping[i]);
-    }
-
-    for (i = 0; i < 8; i++) {
-	mem_mapping_add(&dev->romcs_mapping[i], 0xc0000 + (i << 14), 0x4000,
-			mem_read_bios, mem_read_biosw, mem_read_biosl,
-			mem_write_null, mem_write_nullw, mem_write_nulll,
-			rom + ((i << 14) & biosmask),
-			MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, NULL);
-	mem_mapping_disable(&dev->romcs_mapping[i]);
-    }
-
-    for (i = 0; i < 8; i++) {
-	mem_mapping_add(&dev->bios_mapping[i], 0xe0000 + (i << 14), 0x4000,
-			mem_read_bios, mem_read_biosw, mem_read_biosl,
-			mem_write_null, mem_write_nullw, mem_write_nulll,
-			rom + ((i << 14) & biosmask),
-			MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, NULL);
-	if (i < 4)
-		mem_mapping_disable(&dev->bios_mapping[i]);
     }
 
     if (sx) {

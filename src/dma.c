@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel DMA controllers.
  *
- * Version:	@(#)dma.c	1.0.6	2019/09/21
+ * Version:	@(#)dma.c	1.0.7	2019/09/28
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -51,6 +51,10 @@ static uint8_t	dma_stat_rq;
 static uint8_t	dma_stat_rq_pc;
 static uint8_t	dma_command,
 		dma16_command;
+static uint8_t	dma_req_is_soft;
+static uint8_t	dma_buffer[65536];
+static uint16_t	dma16_buffer[65536];
+
 static struct {	
     int	xfr_command,
 	xfr_channel;
@@ -84,6 +88,31 @@ dma_set_drq(int channel, int set)
     dma_stat_rq_pc &= ~(1 << channel);
     if (set)
 	dma_stat_rq_pc |= (1 << channel);
+}
+
+
+static void
+dma_block_transfer(int channel)
+{
+    int i, bit16;
+
+    bit16 = (channel >= 4);
+
+    dma_req_is_soft = 1;
+    for (i = 0; i <= dma[channel].cb; i++) {
+	if ((dma[channel].mode & 0x8c) == 0x84) {
+		if (bit16)
+			dma_channel_write(channel, dma16_buffer[i]);
+		else
+			dma_channel_write(channel, dma_buffer[i]);
+	} else if ((dma[channel].mode & 0x8c) == 0x88) {
+		if (bit16)
+			dma16_buffer[i] = dma_channel_read(channel);
+		else
+			dma_buffer[i] = dma_channel_read(channel);
+	}
+    }
+    dma_req_is_soft = 0;
 }
 
 
@@ -168,17 +197,19 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
 
 	case 9: /*Request register */
 		channel = (val & 3);
-		if (val & 4)
+		if (val & 4) {
 			dma_stat_rq_pc |= (1 << channel);
-		else
+			dma_block_transfer(channel);
+		} else
 			dma_stat_rq_pc &= ~(1 << channel);
 		break;
 
 	case 0xa: /*Mask*/
+		channel = (val & 3);
 		if (val & 4)
-			dma_m |=  (1 << (val & 3));
-		  else
-			dma_m &= ~(1 << (val & 3));
+			dma_m |=  (1 << channel);
+		else
+			dma_m &= ~(1 << channel);
 		return;
 
 	case 0xb: /*Mode*/
@@ -462,17 +493,19 @@ dma16_write(uint16_t addr, uint8_t val, void *priv)
 
 	case 9: /*Request register */
 		channel = (val & 3) + 4;
-		if (val & 4)
+		if (val & 4) {
 			dma_stat_rq_pc |= (1 << channel);
-		else
+			dma_block_transfer(channel);
+		} else
 			dma_stat_rq_pc &= ~(1 << channel);
 		break;
 
 	case 0xa: /*Mask*/
+		channel = (val & 3);
 		if (val & 4)
-			dma_m |=  (0x10 << (val & 3));
-		  else
-			dma_m &= ~(0x10 << (val & 3));
+			dma_m |=  (0x10 << channel);
+		else
+			dma_m &= ~(0x10 << channel);
 		return;
 
 	case 0xb: /*Mode*/
@@ -582,8 +615,8 @@ dma_reset(void)
     dma_wp = dma16_wp = 0;
     dma_m = 0;
 
-    for (c = 0; c < 16; c++) 
-	dmaregs[c] = 0;
+    for (c = 0; c < 16; c++)
+	dmaregs[c] = dma16regs[c] = 0;
     for (c = 0; c < 8; c++) {
 	dma[c].mode = 0;
 	dma[c].ac = 0;
@@ -596,6 +629,10 @@ dma_reset(void)
     dma_stat = 0x00;
     dma_stat_rq = 0x00;
     dma_stat_rq_pc = 0x00;
+    dma_req_is_soft = 0;
+
+    memset(dma_buffer, 0x00, sizeof(dma_buffer));
+    memset(dma16_buffer, 0x00, sizeof(dma16_buffer));
 }
 
 
@@ -699,7 +736,7 @@ dma_channel_read(int channel)
 		return(DMA_NODATA);
     }
 
-    if (dma_m & (1 << channel))
+    if ((dma_m & (1 << channel)) && !dma_req_is_soft)
 	return(DMA_NODATA);
     if ((dma_c->mode & 0xC) != 8)
 	return(DMA_NODATA);
@@ -772,7 +809,7 @@ dma_channel_write(int channel, uint16_t val)
 		return(DMA_NODATA);
     }
 
-    if (dma_m & (1 << channel))
+    if ((dma_m & (1 << channel)) && !dma_req_is_soft)
 	return(DMA_NODATA);
     if ((dma_c->mode & 0xC) != 4)
 	return(DMA_NODATA);

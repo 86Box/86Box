@@ -844,6 +844,23 @@ writememql(uint32_t seg, uint32_t addr, uint64_t val)
 }
 
 
+int
+mem_mapping_is_romcs(uint32_t addr, int write)
+{
+    mem_mapping_t *map;
+
+    if (write)
+	map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+    else
+	map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+
+    if (map)
+	return !!(map->flags & MEM_MAPPING_ROMCS);
+    else
+	return 0;
+}
+
+
 #if 0
 uint8_t
 mem_readb_phys(uint32_t addr)
@@ -1420,19 +1437,19 @@ mem_add_bios(void)
 	mem_mapping_add(&bios_mapping, 0xe0000, 0x20000,
 			mem_read_bios,mem_read_biosw,mem_read_biosl,
 			mem_write_null,mem_write_nullw,mem_write_nulll,
-			&rom[0x20000], MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
+			&rom[0x20000], MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
     } else {
 	mem_mapping_add(&bios_mapping, biosaddr, biosmask + 1,
 			mem_read_bios,mem_read_biosw,mem_read_biosl,
 			mem_write_null,mem_write_nullw,mem_write_nulll,
-			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
+			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
     }
 
     if (AT) {
 	mem_mapping_add(&bios_high_mapping, biosaddr | (cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
 			mem_read_bios,mem_read_biosw,mem_read_biosl,
 			mem_write_null,mem_write_nullw,mem_write_nulll,
-			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM, 0);
+			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
     }
 }
 
