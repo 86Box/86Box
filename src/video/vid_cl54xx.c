@@ -914,7 +914,7 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
 	
     gd54xx->mmio_vram_overlap = 0;
 
-    if (!gd54xx_is_5422(svga) || !(svga->seqregs[7] & 0xf0)) {
+    if (!gd54xx_is_5422(svga) || !(svga->seqregs[7] & 0xf0) || !(svga->seqregs[0x07] & 0x01)) {
 	mem_mapping_disable(&gd54xx->linear_mapping);
 	mem_mapping_disable(&gd54xx->aperture2_mapping);
 	switch (svga->gdcreg[6] & 0x0c) {
@@ -936,7 +936,7 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
 			gd54xx->mmio_vram_overlap = 1;
 			break;
 	}
-	if (svga->seqregs[0x17] & CIRRUS_MMIO_ENABLE) {
+	if ((svga->seqregs[0x17] & CIRRUS_MMIO_ENABLE) && (svga->seqregs[0x07] & 0x01)) {
 		if (gd54xx->mmio_vram_overlap) {
 			mem_mapping_disable(&svga->mapping);
 			mem_mapping_set_addr(&gd54xx->mmio_mapping, 0xb8000, 0x08000);
