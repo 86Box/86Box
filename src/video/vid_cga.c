@@ -8,13 +8,13 @@
  *
  *		Emulation of the old and new IBM CGA graphics cards.
  *
- * Version:	@(#)vid_cga.c	1.0.19	2019/01/18
+ * Version:	@(#)vid_cga.c	1.0.20	2019/09/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -451,8 +451,6 @@ cga_poll(void *p)
 					    video_force_resize_get())) {
 						xsize = xs_temp;
 						ysize = ys_temp;
-						if (xsize < 64) xsize = 656;
-						if (ysize < 32) ysize = 400;
 						set_screen_size(xsize, ysize + 16);
 
 						if (video_force_resize_get())

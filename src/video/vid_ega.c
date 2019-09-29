@@ -9,7 +9,7 @@
  *		Emulation of the EGA, Chips & Technologies SuperEGA, and
  *		AX JEGA graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.20	2019/09/26
+ * Version:	@(#)vid_ega.c	1.0.21	2019/09/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -554,6 +554,11 @@ void ega_poll(void *p)
 			ys_temp = ega->lastline - ega->firstline + 1;
 
 			if ((xs_temp > 0) && (ys_temp > 1)) {
+				if (xs_temp < 64)
+					xs_temp = 640;
+				if (ys_temp < 32)
+					ys_temp = 200;
+
 				x_add = enable_overscan ? 8 : 0;
 				y_add = enable_overscan ? overscan_y : 0;
 				x_add_ex = enable_overscan ? 16 : 0;
@@ -566,14 +571,10 @@ void ega_poll(void *p)
 				} else
 					suppress_overscan = 0;
 
-				xs_temp = x;
-				ys_temp = ega->lastline - ega->firstline + 1;
-				if (xs_temp < 64)
-					xs_temp = 640;
-				if (ys_temp < 32)
-					ys_temp = 200;
-
 				if ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get()) {
+					xsize = xs_temp;
+					ysize = ys_temp;
+
 	                                if (ega->vres)
         	                                set_screen_size(xsize + x_add_ex, (ysize << 1) + y_add_ex);
                 	                else
