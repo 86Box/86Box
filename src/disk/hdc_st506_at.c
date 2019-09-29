@@ -12,7 +12,7 @@
  *		based design. Most cards were WD1003-WA2 or -WAH, where the
  *		-WA2 cards had a floppy controller as well (to save space.)
  *
- * Version:	@(#)hdc_st506_at.c	1.0.19	2019/03/03
+ * Version:	@(#)hdc_st506_at.c	1.0.20	2019/09/29
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -180,10 +180,14 @@ get_sector(mfm_t *mfm, off64_t *addr)
 {
     drive_t *drive = &mfm->drives[mfm->drvsel];
 
+/* FIXME: See if this is even needed - if the code is present, IBM AT
+	  diagnostics v2.07 will error with: ERROR 152 - SYSTEM BOARD. */
+#ifdef FIXME
     if (drive->curcyl != mfm->cylinder) {
 	st506_at_log("WD1003(%d) sector: wrong cylinder\n");
 	return(1);
     }
+#endif
 
     if (mfm->head > drive->cfg_hpc) {
 	st506_at_log("WD1003(%d) get_sector: past end of configured heads\n",
