@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.29	2019/09/29
+ * Version:	@(#)vid_cl_54xx.c	1.0.30	2019/09/30
  *
  * Authors:	TheCollector1995,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -161,7 +161,7 @@ typedef struct gd54xx_t
 
 	uint8_t			status;
 	uint8_t			mask, mode, rop, modeext;
-	uint8_t			ms_is_dest, msd_buf[16];
+	uint8_t			ms_is_dest, msd_buf[32];
 
 	uint32_t		fg_col, bg_col;
 	uint32_t		dst_addr_backup, src_addr_backup;
@@ -1179,22 +1179,48 @@ gd54xx_rop(gd54xx_t *gd54xx, uint8_t *res, uint8_t *dst, const uint8_t *src) {
 }
 
 
+static uint8_t
+gd54xx_mem_sys_dest_read(gd54xx_t *gd54xx)
+{
+    uint8_t ret = 0xff;
+
+    if (gd54xx->blt.msd_buf_cnt != 0) {
+	ret = gd54xx->blt.msd_buf[gd54xx->blt.msd_buf_pos++];
+	gd54xx->blt.msd_buf_cnt--;
+
+	if (gd54xx->blt.msd_buf_cnt == 0) {
+		if (gd54xx->countminusone == 1) {
+			gd54xx->blt.msd_buf_pos = 0;
+			if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) &&
+			    !(gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY))
+				gd54xx_start_blit(0xff, 8, gd54xx, &gd54xx->svga);
+			else
+				gd54xx_start_blit(0xffffffff, 32, gd54xx, &gd54xx->svga);
+		} else
+			gd54xx_reset_blit(gd54xx);	/* End of blit, do no more. */
+	}
+    }
+
+    return ret;
+}
+
+
 static void
 gd54xx_mem_sys_src_write(gd54xx_t *gd54xx, uint8_t val)
 {
-    if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) &&
-	!(gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY)) {
-	gd54xx_start_blit(val, 8, gd54xx, &gd54xx->svga);
-    } else {
-	if (gd54xx->blt.ms_is_dest)
-		gd54xx_start_blit(0xffffffff, 32, gd54xx, &gd54xx->svga);
-	else {
-		gd54xx->blt.sys_src32 &= ~(0xff << (gd54xx->blt.sys_cnt << 3));
-		gd54xx->blt.sys_src32 |= (val << (gd54xx->blt.sys_cnt << 3));
-		gd54xx->blt.sys_cnt = (gd54xx->blt.sys_cnt + 1) & 3;
-		if (gd54xx->blt.sys_cnt == 0)
-			gd54xx_start_blit(gd54xx->blt.sys_src32, 32, gd54xx, &gd54xx->svga);
-	}
+    int i;
+
+    gd54xx->blt.sys_src32 &= ~(0xff << (gd54xx->blt.sys_cnt << 3));
+    gd54xx->blt.sys_src32 |= (val << (gd54xx->blt.sys_cnt << 3));
+    gd54xx->blt.sys_cnt = (gd54xx->blt.sys_cnt + 1) & 3;
+
+    if (gd54xx->blt.sys_cnt == 0) {
+	if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) &&
+	    !(gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY)) {
+		for (i = 0; i < 32; i += 8)
+			gd54xx_start_blit((gd54xx->blt.sys_src32 >> i) & 0xff, 8, gd54xx, &gd54xx->svga);
+	} else
+		gd54xx_start_blit(gd54xx->blt.sys_src32, 32, gd54xx, &gd54xx->svga);
     }
 }
 
@@ -1374,7 +1400,6 @@ gd54xx_readb_linear(uint32_t addr, void *p)
 {
     gd54xx_t *gd54xx = (gd54xx_t *)p;
     svga_t *svga = &gd54xx->svga;
-    uint8_t ret = 0xff;
 
     uint8_t ap = gd54xx_get_aperture(addr);
     addr &= 0x003fffff;	/* 4 MB mask */
@@ -1389,16 +1414,8 @@ gd54xx_readb_linear(uint32_t addr, void *p)
 
     /* Do mem sys dest reads here if the blitter is neither paused, nor is there a second aperture. */
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
-	!gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
-	if (gd54xx->blt.msd_buf_cnt != 0) {
-		ret = gd54xx->blt.msd_buf[gd54xx->blt.msd_buf_pos++];
-		gd54xx->blt.msd_buf_cnt--;
-	}
-	ret = ret;	/* Need to put a dummy line so the compiler doesn't mess up. */
-	if (gd54xx->blt.msd_buf_cnt == 0)
-		gd54xx_mem_sys_src_write(gd54xx, 0xff);
-	return ret;
-    }
+	!gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED))
+	return gd54xx_mem_sys_dest_read(gd54xx);
 
     switch (ap) {
 	case 0:
@@ -1535,20 +1552,12 @@ static uint8_t
 gd5436_aperture2_readb(uint32_t addr, void *p)
 {
     gd54xx_t *gd54xx = (gd54xx_t *)p;
-    uint8_t ret = 0xff;
 
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
-	gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
-	if (gd54xx->blt.msd_buf_cnt != 0) {
-		ret = gd54xx->blt.msd_buf[gd54xx->blt.msd_buf_pos++];
-		gd54xx->blt.msd_buf_cnt--;
-	}
-	ret = ret;	/* Need to put a dummy line so the compiler doesn't mess up. */
-	if (gd54xx->blt.msd_buf_cnt == 0)
-		gd54xx_mem_sys_src_write(gd54xx, 0xff);
-    }
+	gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED))
+	return gd54xx_mem_sys_dest_read(gd54xx);
 
-    return ret;
+    return 0xff;
 }
 
 
@@ -1562,6 +1571,7 @@ gd5436_aperture2_readw(uint32_t addr, void *p)
 	gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
 	ret = gd5436_aperture2_readb(addr, p);
 	ret |= gd5436_aperture2_readb(addr + 1, p) << 8;
+	return ret;
     }
 
     return ret;
@@ -1580,6 +1590,7 @@ gd5436_aperture2_readl(uint32_t addr, void *p)
 	ret |= gd5436_aperture2_readb(addr + 1, p) << 8;
 	ret |= gd5436_aperture2_readb(addr + 2, p) << 16;
 	ret |= gd5436_aperture2_readb(addr + 3, p) << 24;
+	return ret;
     }
 
     return ret;
@@ -1827,22 +1838,13 @@ gd54xx_read(uint32_t addr, void *p)
 {
     gd54xx_t *gd54xx = (gd54xx_t *)p;
     svga_t *svga = &gd54xx->svga;
-    uint8_t ret = 0xff;
 
     if ((svga->seqregs[0x07] & 0x01) == 0)
 	return svga_read(addr, svga);
 
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
-	!(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
-	if (gd54xx->blt.msd_buf_cnt != 0) {
-		ret = gd54xx->blt.msd_buf[gd54xx->blt.msd_buf_pos++];
-		gd54xx->blt.msd_buf_cnt--;
-	}
-	ret = ret;	/* Need to put a dummy line so the compiler doesn't mess up. */
-	if (gd54xx->blt.msd_buf_cnt == 0)
-		gd54xx_mem_sys_src_write(gd54xx, 0xff);
-	return ret;
-    }
+	!(gd54xx->blt.status & CIRRUS_BLT_PAUSED))
+	return gd54xx_mem_sys_dest_read(gd54xx);
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + gd54xx->bank[(addr >> 15) & 1];
@@ -2276,13 +2278,7 @@ gd543x_mmio_read(uint32_t addr, void *p)
 	ret = gd54xx_read(addr, gd54xx);
     else if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
 	     !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
-	if (gd54xx->blt.msd_buf_cnt != 0) {
-		ret = gd54xx->blt.msd_buf[gd54xx->blt.msd_buf_pos++];
-		gd54xx->blt.msd_buf_cnt--;
-	}
-	ret = ret;	/* Need to put a dummy line so the compiler doesn't mess up. */
-	if (gd54xx->blt.msd_buf_cnt == 0)
-		gd54xx_mem_sys_src_write(gd54xx, 0xff);
+	ret = gd54xx_mem_sys_dest_read(gd54xx);
     }
 
     return ret;
@@ -2304,6 +2300,7 @@ gd543x_mmio_readw(uint32_t addr, void *p)
 	     !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
 	ret = gd543x_mmio_read(addr, p);
 	ret |= gd543x_mmio_read(addr + 1, p) << 8;
+	return ret;
     }
 
     return ret;
@@ -2327,6 +2324,7 @@ gd543x_mmio_readl(uint32_t addr, void *p)
 	ret |= gd543x_mmio_read(addr + 1, p) << 8;
 	ret |= gd543x_mmio_read(addr + 2, p) << 16;
 	ret |= gd543x_mmio_read(addr + 3, p) << 24;
+	return ret;
     }
 
     return ret;
@@ -2374,13 +2372,21 @@ gd54xx_get_pixel_width(gd54xx_t *gd54xx)
 static void
 gd54xx_blit(gd54xx_t *gd54xx, uint8_t mask, uint8_t *dst, uint8_t target, int skip)
 {
+    int is_transp, is_bgonly;
+
     /* skip indicates whether or not it is a pixel to be skipped (used for left skip);
        mask indicates transparency or not (only when transparent comparison is enabled):
 	color expand: direct pattern bit; 1 = write, 0 = do not write
 		      (the other way around in inverse mode);
 	normal 8-bpp or 16-bpp: does not match transparent color = write,
 				matches transparent color = do not write */
-    if (gd54xx->blt.mode & CIRRUS_BLTMODE_TRANSPARENTCOMP) {
+
+    /* Make sure to always ignore transparency and skip in case of mem sys dest. */
+    is_transp = (gd54xx->blt.mode & CIRRUS_BLTMODE_MEMSYSDEST) ? 0 : (gd54xx->blt.mode & CIRRUS_BLTMODE_TRANSPARENTCOMP);
+    is_bgonly = (gd54xx->blt.mode & CIRRUS_BLTMODE_MEMSYSDEST) ? 0 : (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_BACKGROUNDONLY);
+    skip = (gd54xx->blt.mode & CIRRUS_BLTMODE_MEMSYSDEST) ? 0 : skip;
+
+    if (is_transp) {
 	if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) &&
 	    (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_COLOREXPINV))
 		mask = !mask;
@@ -2388,8 +2394,7 @@ gd54xx_blit(gd54xx_t *gd54xx, uint8_t mask, uint8_t *dst, uint8_t target, int sk
 	/* If mask is 1 and it is not a pixel to be skipped, write it. */
 	if (mask && !skip)
 		*dst = target;
-    } else if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) &&
-	       (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_BACKGROUNDONLY)) {
+    } else if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) && is_bgonly) {
 	/* If mask is 1 or it is not a pixel to be skipped, write it.
 	   (Skip only background pixels.) */
 	if (mask || !skip)
@@ -2495,21 +2500,22 @@ gd54xx_reset_blit(gd54xx_t *gd54xx)
 }
 
 
+/* Each blit is either 1 byte -> 1 byte (non-color expand blit)
+   or 1 byte -> 8/16/24/32 bytes (color expand blit). */
 static void
-gd54xx_mem_sys(gd54xx_t *gd54xx, int dest, uint32_t cpu_dat, uint32_t count)
+gd54xx_mem_sys_src(gd54xx_t *gd54xx, uint32_t cpu_dat, uint32_t count)
 {
     uint8_t *dst, exp, target;
     int mask_shift;
     uint32_t byte_pos, bitmask = 0;
     svga_t *svga = &gd54xx->svga;
 
-    gd54xx->blt.ms_is_dest = dest;
+    gd54xx->blt.ms_is_dest = 0;
 
     if (gd54xx->blt.mode & (CIRRUS_BLTMODE_MEMSYSDEST | CIRRUS_BLTMODE_PATTERNCOPY))
 	gd54xx_reset_blit(gd54xx);
     else if (count == 0xffffffff) {
 	gd54xx->blt.dst_addr_backup = gd54xx->blt.dst_addr;
-	gd54xx->blt.msd_buf_pos = gd54xx->blt.msd_buf_cnt = 0;
 	gd54xx->blt.src_addr_backup = gd54xx->blt.src_addr;
 	gd54xx->blt.x_count = gd54xx->blt.xx_count = 0;
 	gd54xx->blt.y_count = 0;
@@ -2518,9 +2524,6 @@ gd54xx_mem_sys(gd54xx_t *gd54xx, int dest, uint32_t cpu_dat, uint32_t count)
 	gd54xx->blt.sys_cnt = 0;
 	return;
     } else if (gd54xx->countminusone) {
-	if (dest)
-		cpu_dat = svga->vram[gd54xx->blt.src_addr_backup & svga->vram_mask];
-
 	if (!(gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) || (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY)) {
 		if (!gd54xx->blt.xx_count && !gd54xx->blt.x_count)
 			byte_pos = (((gd54xx->blt.mask >> 5) & 3) << 3);
@@ -2541,10 +2544,7 @@ gd54xx_mem_sys(gd54xx_t *gd54xx, int dest, uint32_t cpu_dat, uint32_t count)
 			bitmask = gd54xx_transparent_comp(gd54xx, gd54xx->blt.xx_count, exp);
 		}
 
-		if (dest)
-			dst = &(gd54xx->blt.msd_buf[gd54xx->blt.msd_buf_pos & 15]);
-		else
-			dst = &(svga->vram[gd54xx->blt.dst_addr_backup & svga->vram_mask]);
+		dst = &(svga->vram[gd54xx->blt.dst_addr_backup & svga->vram_mask]);
 		target = *dst;
 		gd54xx_rop(gd54xx, &target, &target, &exp);
 		if ((gd54xx->blt.pixel_width == 3) && (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND))
@@ -2552,23 +2552,14 @@ gd54xx_mem_sys(gd54xx_t *gd54xx, int dest, uint32_t cpu_dat, uint32_t count)
 		else
 			gd54xx_blit(gd54xx, bitmask, dst, target, (gd54xx->blt.x_count < gd54xx->blt.pattern_x));
 
-		if (dest && (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND))
-			gd54xx->blt.src_addr_backup += gd54xx->blt.dir;
-		gd54xx->blt.msd_buf_pos++;
-
-		if (!dest)
-			gd54xx->blt.dst_addr_backup += gd54xx->blt.dir;
+		gd54xx->blt.dst_addr_backup += gd54xx->blt.dir;
 
 		if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND)
 			gd54xx->blt.xx_count = (gd54xx->blt.xx_count + 1) % gd54xx->blt.pixel_width;
 
-		if (!dest)
-			svga->changedvram[(gd54xx->blt.dst_addr_backup & svga->vram_mask) >> 12] = changeframecount;
+		svga->changedvram[(gd54xx->blt.dst_addr_backup & svga->vram_mask) >> 12] = changeframecount;
 
 		if (!gd54xx->blt.xx_count) {
-			if (dest && (gd54xx->blt.mode & !CIRRUS_BLTMODE_COLOREXPAND))
-				gd54xx->blt.src_addr_backup += gd54xx->blt.dir;
-
 			/* 1 mask bit = 1 blitted pixel */
 			if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND)
 				mask_shift--;
@@ -2584,27 +2575,17 @@ gd54xx_mem_sys(gd54xx_t *gd54xx, int dest, uint32_t cpu_dat, uint32_t count)
 
 			if (!gd54xx->blt.x_count) {
 				gd54xx->blt.y_count = (gd54xx->blt.y_count + 1) % (gd54xx->blt.height + 1);
-				if (gd54xx->blt.y_count) {
-					if (dest)
-						gd54xx->blt.src_addr_backup = gd54xx->blt.src_addr + (gd54xx->blt.src_pitch * gd54xx->blt.y_count * gd54xx->blt.dir);
-					else
-						gd54xx->blt.dst_addr_backup = gd54xx->blt.dst_addr + (gd54xx->blt.dst_pitch * gd54xx->blt.y_count * gd54xx->blt.dir);
-				} else {
+				if (gd54xx->blt.y_count)
+					gd54xx->blt.dst_addr_backup = gd54xx->blt.dst_addr + (gd54xx->blt.dst_pitch * gd54xx->blt.y_count * gd54xx->blt.dir);
+				else {
 				    /* If we're here, the blit is over, reset. */
 				    gd54xx_reset_blit(gd54xx);
 				}
 				/* Stop blitting and request new data if end of line reached. */
-				goto request_more_data;
+				return;
 			}
 		}
 	}
-	/* End of while. */
-request_more_data:
-	if (dest) {
-		gd54xx->blt.msd_buf_cnt = gd54xx->blt.msd_buf_pos;
-		gd54xx->blt.msd_buf_pos = 0;
-	}
-	return;
     }
 }
 
@@ -2701,6 +2682,62 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
 }
 
 
+static void
+gd54xx_mem_sys_dest(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
+{
+    gd54xx->blt.ms_is_dest = 1;
+
+    if (gd54xx->blt.mode & CIRRUS_BLTMODE_PATTERNCOPY) {
+	fatal("mem sys dest pattern copy not allowed (see 1994 manual)\n");
+	gd54xx_reset_blit(gd54xx);
+    } else if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) {
+	fatal("mem sys dest color expand not allowed (see 1994 manual)\n");
+	gd54xx_reset_blit(gd54xx);
+    } else {
+	if (count == 0xffffffff) {
+		gd54xx->blt.dst_addr_backup = gd54xx->blt.dst_addr;
+		gd54xx->blt.msd_buf_cnt = 0;
+		gd54xx->blt.src_addr_backup = gd54xx->blt.src_addr;
+		gd54xx->blt.x_count = gd54xx->blt.xx_count = 0;
+		gd54xx->blt.y_count = 0;
+		gd54xx->countminusone = 1;
+		count = 32;
+	}
+
+	gd54xx->blt.msd_buf_pos = 0;
+
+	while (gd54xx->blt.msd_buf_pos < 32) {
+		gd54xx->blt.msd_buf[gd54xx->blt.msd_buf_pos & 0x1f] = svga->vram[gd54xx->blt.src_addr_backup & svga->vram_mask];
+		gd54xx->blt.src_addr_backup += gd54xx->blt.dir;
+		gd54xx->blt.msd_buf_pos++;
+
+		gd54xx->blt.x_count = (gd54xx->blt.x_count + 1) % (gd54xx->blt.width + 1);
+
+		if (!gd54xx->blt.x_count) {
+			gd54xx->blt.y_count = (gd54xx->blt.y_count + 1) % (gd54xx->blt.height + 1);
+
+			if (gd54xx->blt.y_count)
+				gd54xx->blt.src_addr_backup = gd54xx->blt.src_addr + (gd54xx->blt.src_pitch * gd54xx->blt.y_count * gd54xx->blt.dir);
+			else
+				gd54xx->countminusone = 2;	/* Signal end of blit. */
+			/* End of line reached, stop and notify regardless of how much we already transferred. */
+			goto request_more_data;
+		}
+	}
+
+	/* End of while. */
+request_more_data:
+	/* If the byte count we have blitted are not divisible by 4, round them up. */
+	if (gd54xx->blt.msd_buf_pos & 3)
+		gd54xx->blt.msd_buf_cnt = (gd54xx->blt.msd_buf_pos & ~3) + 4;
+	else
+		gd54xx->blt.msd_buf_cnt = gd54xx->blt.msd_buf_pos;
+	gd54xx->blt.msd_buf_pos = 0;
+	return;
+    }
+}
+
+
 static void 
 gd54xx_start_blit(uint32_t cpu_dat, uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
 {
@@ -2722,9 +2759,9 @@ gd54xx_start_blit(uint32_t cpu_dat, uint32_t count, gd54xx_t *gd54xx, svga_t *sv
 	gd54xx->blt.pattern_x = 0;								/* No skip in normal blit mode. */
 
     if (gd54xx->blt.mode & CIRRUS_BLTMODE_MEMSYSSRC)
-	gd54xx_mem_sys(gd54xx, 0, cpu_dat, count);
+	gd54xx_mem_sys_src(gd54xx, cpu_dat, count);
     else if (gd54xx->blt.mode & CIRRUS_BLTMODE_MEMSYSDEST)
-	gd54xx_mem_sys(gd54xx, 1, cpu_dat, count);
+	gd54xx_mem_sys_dest(count, gd54xx, svga);
     else if (gd54xx->blt.mode & CIRRUS_BLTMODE_PATTERNCOPY) {
 	gd54xx_pattern_copy(gd54xx);
 	gd54xx_reset_blit(gd54xx);
@@ -3068,7 +3105,7 @@ void
 gd54xx_close(void *p)
 {
     gd54xx_t *gd54xx = (gd54xx_t *)p;
-	
+
     svga_close(&gd54xx->svga);
     
     free(gd54xx);
