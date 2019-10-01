@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.43	2019/03/03
+ * Version:	@(#)vid_table.c	1.0.44	2019/10/01
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -106,7 +106,6 @@ video_cards[] = {
     { "[ISA] Compaq EGA",				"compaq_ega",		&cpqega_device				},
     { "[ISA] EGA",					"ega",			&ega_device				},
     { "[ISA] G2 GC205",					"g2_gc205",		&g2_gc205_device			},
-    { "[ISA] Headland HT216-32",			"ht216_32",		&ht216_32_device			},
     { "[ISA] Hercules",					"hercules",		&hercules_device			},
     { "[ISA] Hercules Plus",				"hercules_plus",	&herculesplus_device			},
     { "[ISA] Hercules InColor",				"incolor",		&incolor_device				},

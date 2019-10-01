@@ -8,7 +8,7 @@
  *
  *		Video 7 VGA 1024i emulation.
  *
- * Version:	@(#)vid_ht216.c	1.0.1	2019/09/28
+ * Version:	@(#)vid_ht216.c	1.0.2	2019/10/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -93,7 +93,6 @@ uint8_t ht216_in(uint16_t addr, void *p);
 
 #define BIOS_G2_GC205_PATH			L"roms/video/video7/BIOS.BIN"
 #define BIOS_VIDEO7_VGA_1024I_PATH		L"roms/video/video7/Video Seven VGA 1024i - BIOS - v2.19 - 435-0062-05 - U17 - 27C256.BIN"
-#define BIOS_HT216_32_PATH			L"roms/video/video7/ht216-32.bin"
 
 static video_timings_t	timing_v7vga = {VIDEO_ISA, 5,  5,  9,  20, 20, 30};
 
@@ -1042,8 +1041,6 @@ void
 	rom_init(&ht216->bios_rom, BIOS_VIDEO7_VGA_1024I_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     else if (has_rom == 2)
 	rom_init(&ht216->bios_rom, BIOS_G2_GC205_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-    else if (has_rom == 3)
-	rom_init(&ht216->bios_rom, BIOS_HT216_32_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_v7vga);
 
@@ -1097,15 +1094,6 @@ ht216_pb410a_init(const device_t *info)
 }
 
 
-static void *
-ht216_32_init(const device_t *info)
-{
-    ht216_t *ht216 = ht216_init(info, device_get_config_int("memory") << 10, 3);
-
-    return ht216;
-}
-
-
 static int
 g2_gc205_available(void)
 {
@@ -1117,13 +1105,6 @@ static int
 v7_vga_1024i_available(void)
 {
     return rom_present(BIOS_VIDEO7_VGA_1024I_PATH);
-}
-
-
-static int
-ht216_32_available(void)
-{
-    return rom_present(BIOS_HT216_32_PATH);
 }
 
 
@@ -1215,18 +1196,4 @@ const device_t ht216_32_pb410a_device =
     NULL,
     ht216_speed_changed,
     ht216_force_redraw
-};
-
-const device_t ht216_32_device =
-{
-    "Headland HT216-32",
-    DEVICE_ISA,
-    0x7861,	/*HT216-32*/
-    ht216_32_init,
-    ht216_close,
-    NULL,
-    ht216_32_available,
-    ht216_speed_changed,
-    ht216_force_redraw,
-    v7_vga_1024i_config
 };
