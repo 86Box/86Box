@@ -22,7 +22,7 @@
  *		61 50 52 0F 19 06 19 19 02 0D 0B 0C   MONO
  *		2D 28 22 0A 67 00 64 67 02 03 06 07   640x400
  *
- * Version:	@(#)m_at_t3100e_vid.c	1.0.7	2018/09/19
+ * Version:	@(#)m_at_t3100e_vid.c	1.0.8	2019/10/01
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -581,13 +581,16 @@ void t3100e_poll(void *p)
 		if (t3100e->displine == 400)
                 {
 /* Hardcode 640x400 window size */
-			if (T3100E_XSIZE != xsize || T3100E_YSIZE != ysize)
+			if ((T3100E_XSIZE != xsize) || (T3100E_YSIZE != ysize) || video_force_resize_get())
 			{
                                 xsize = T3100E_XSIZE;
                                 ysize = T3100E_YSIZE;
                                 if (xsize < 64) xsize = 656;
                                 if (ysize < 32) ysize = 200;
                                 set_screen_size(xsize, ysize);
+
+				if (video_force_resize_get())
+					video_force_resize_set(0);
                         }
                         video_blit_memtoscreen(0, 0, 0, ysize, xsize, ysize);
 

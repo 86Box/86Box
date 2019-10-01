@@ -9,15 +9,15 @@
  *		Implementation of the Toshiba T1000 plasma display, which
  *		has a fixed resolution of 640x200 pixels.
  *
- * Version:	@(#)m_xt_t1000_vid.c	1.0.10	2018/02/16
+ * Version:	@(#)m_xt_t1000_vid.c	1.0.11	2019/10/01
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2018 Fred N. van Kempen.
- *		Copyright 2018 Miran Grca.
- *		Copyright 2018 Sarah Walker.
+ *		Copyright 2018,2019 Fred N. van Kempen.
+ *		Copyright 2018,2019 Miran Grca.
+ *		Copyright 2018,2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -546,13 +546,16 @@ static void t1000_poll(void *p)
 		if (t1000->displine == 200)
                 {
                         /* Hardcode 640x200 window size */
-			if (T1000_XSIZE != xsize || T1000_YSIZE != ysize)
+			if ((T1000_XSIZE != xsize) || (T1000_YSIZE != ysize) || video_force_resize_get())
 			{
                                 xsize = T1000_XSIZE;
                                 ysize = T1000_YSIZE;
                                 if (xsize < 64) xsize = 656;
                                 if (ysize < 32) ysize = 200;
                                 set_screen_size(xsize, ysize);
+
+				if (video_force_resize_get())
+					video_force_resize_set(0);
                         }
                         video_blit_memtoscreen(0, 0, 0, ysize, xsize, ysize);
 
