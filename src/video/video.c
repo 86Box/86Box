@@ -80,6 +80,8 @@ int		xsize = 1,
 int		cga_palette = 0,
 		herc_blend = 0;
 uint32_t	*video_6to8 = NULL,
+		*video_8togs = NULL,
+		*video_8to32 = NULL,
 		*video_15to32 = NULL,
 		*video_16to32 = NULL;
 int		egareads = 0,
@@ -518,6 +520,26 @@ calc_6to8(int c)
 
 
 int
+calc_8to32(int c)
+{
+    int b, g, r;
+    double db, dg, dr;
+
+    b = (c & 3);
+    g = ((c >> 2) & 7);
+    r = ((c >> 5) & 7);
+    db = (((double) b) /  3.0) * 255.0;
+    dg = (((double) g) /  7.0) * 255.0;
+    dr = (((double) r) /  7.0) * 255.0;
+    b = (int) db;
+    g = ((int) dg) << 8;
+    r = ((int) dr) << 16;
+
+    return(b | g | r);
+}
+
+
+int
 calc_15to32(int c)
 {
     int b, g, r;
@@ -666,19 +688,20 @@ video_init(void)
     video_6to8 = malloc(4 * 256);
     for (c = 0; c < 256; c++)
 	video_6to8[c] = calc_6to8(c);
+
+    video_8togs = malloc(4 * 256);
+    for (c = 0; c < 256; c++)
+	video_8togs[c] = c | (c << 16) | (c << 24);
+
+    video_8to32 = malloc(4 * 256);
+    for (c = 0; c < 256; c++)
+	video_8to32[c] = calc_8to32(c);
+
     video_15to32 = malloc(4 * 65536);
-#if 0
-    for (c = 0; c < 65536; c++)
-	video_15to32[c] = ((c & 31) << 3) | (((c >> 5) & 31) << 11) | (((c >> 10) & 31) << 19);
-#endif
     for (c = 0; c < 65536; c++)
 	video_15to32[c] = calc_15to32(c);
 
     video_16to32 = malloc(4 * 65536);
-#if 0
-    for (c = 0; c < 65536; c++)
-	video_16to32[c] = ((c & 31) << 3) | (((c >> 5) & 63) << 10) | (((c >> 11) & 31) << 19);
-#endif
     for (c = 0; c < 65536; c++)
 	video_16to32[c] = calc_16to32(c);
 
@@ -697,9 +720,11 @@ video_close(void)
     thread_destroy_event(blit_data.blit_complete);
     thread_destroy_event(blit_data.wake_blit_thread);
 
-    free(video_6to8);
-    free(video_15to32);
     free(video_16to32);
+    free(video_15to32);
+    free(video_8to32);
+    free(video_8togs);
+    free(video_6to8);
 
     destroy_bitmap(buffer32);
 

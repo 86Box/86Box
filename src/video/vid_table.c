@@ -92,7 +92,7 @@ video_cards[] = {
 #endif
     { "[ISA] CGA",					"cga",			&cga_device				},
     { "[ISA] Chips & Technologies SuperEGA",		"superega",		&sega_device				},
-#if defined(DEV_BRANCH)   
+#if defined(DEV_BRANCH) && defined(USE_CL5422)
     { "[ISA] Cirrus Logic CL-GD 5402",			"cl_gd5402_isa",	&gd5402_isa_device			},
     { "[ISA] Cirrus Logic CL-GD 5420",			"cl_gd5420_isa",	&gd5420_isa_device			},
     { "[ISA] Cirrus Logic CL-GD 5422",			"cl_gd5422_isa",	&gd5422_isa_device			},
@@ -160,9 +160,9 @@ video_cards[] = {
     { "[PCI] Trident TGUI9440",				"tgui9440_pci",		&tgui9440_pci_device			},
     { "[VLB] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_vlb",		&mach64gx_vlb_device			},
     { "[VLB] Cardex Tseng ET4000/w32p",			"et4000w32p_vlb",	&et4000w32p_cardex_vlb_device		},
-#if defined(DEV_BRANCH)    
+#if defined(DEV_BRANCH) && defined(USE_CL5422)
     { "[VLB] Cirrus Logic CL-GD 5424",			"cl_gd5424_vlb",	&gd5424_vlb_device			},
-#endif    
+#endif
     { "[VLB] Cirrus Logic CL-GD 5428",			"cl_gd5428_vlb",	&gd5428_vlb_device			},
     { "[VLB] Cirrus Logic CL-GD 5429",			"cl_gd5429_vlb",	&gd5429_vlb_device			},
     { "[VLB] Cirrus Logic CL-GD 5434",			"cl_gd5434_vlb",	&gd5434_vlb_device			},

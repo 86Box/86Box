@@ -1,7 +1,7 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
-#if defined(DEV_BRANCH)
+#if defined(DEV_BRANCH) && defined(USE_CL5422)
 extern const device_t	gd5402_isa_device;
 extern const device_t	gd5420_isa_device;
 extern const device_t	gd5422_isa_device;

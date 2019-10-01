@@ -99,6 +99,8 @@ extern uint8_t	fontdat12x18[256][36];
 extern dbcs_font_t	*fontdatksc5601;
 extern dbcs_font_t	*fontdatksc5601_user;
 extern uint32_t	*video_6to8,
+		*video_8togs,
+		*video_8to32,
 		*video_15to32,
 		*video_16to32;
 extern int	xsize,ysize;

@@ -41,6 +41,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef AMD_K
   AMD_K		:= y
  endif
+ ifndef CL5422
+  CL5422	:= y
+ endif
  ifndef CRASHDUMP
   CRASHDUMP	:= y
  endif
@@ -71,6 +74,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef PS2M70T4
   PS2M70T4	:= y
  endif
+ ifndef TI
+  TI		:= y
+ endif
  ifndef TC430HX
   TC430HX	:= y
  endif
@@ -95,6 +101,9 @@ else
  endif
  ifndef AMD_K
   AMD_K		:= n
+ endif
+ ifndef CL5422
+  CL5422	:= n
  endif
  ifndef CRASHDUMP
   CRASHDUMP	:= n
@@ -125,6 +134,9 @@ else
  endif
  ifndef PS2M70T4
   PS2M70T4	:= n
+ endif
+ ifndef TI
+  TI		:= n
  endif
  ifndef TC430HX
   TC430HX	:= n
@@ -442,6 +454,10 @@ ifeq ($(AMD_K), y)
 OPTS		+= -DUSE_AMD_K
 endif
 
+ifeq ($(CL5422), y)
+OPTS		+= -DUSE_CL5422
+endif
+
 ifeq ($(CRASHDUMPOBJ), y)
 OPTS		+= -DUSE_CRASHDUMP
 DEVBROBJ	+= win_crashdump.o
@@ -482,6 +498,10 @@ ifeq ($(PS2M70T4), y)
 OPTS		+= -DUSE_PS2M70T4
 endif
 
+ifeq ($(TI), y)
+OPTS		+= -DUSE_TI
+endif
+
 ifeq ($(TC430HX), y)
 OPTS		+= -DUSE_TC430HX
 endif
@@ -510,7 +530,7 @@ endif
 # Final versions of the toolchain flags.
 CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
-		   -fno-strict-aliasing
+		   -fno-strict-aliasing -funroll-loops
 
 # Add freetyp2 references through pkgconfig
 CFLAGS          := $(CFLAGS)  `pkg-config.exe --cflags freetype2`

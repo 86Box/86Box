@@ -17,6 +17,12 @@
  *		Copyright 2016-2018 Miran Grca.
  */
 
+
+#define FLAG_EXTRA_BANKS	1
+#define	FLAG_ADDR_BY8		2
+#define FLAG_LATCH8		4
+
+
 typedef struct {
     int ena,
 	x, y, xoff, yoff, xsize, ysize,
@@ -58,17 +64,20 @@ typedef struct svga_t
     uint32_t decode_mask, vram_max,
 	     vram_mask,
 	     charseta, charsetb,
-	     latch, ma_latch,
+	     adv_flags, ma_latch,
 	     ma, maback,
 	     write_bank, read_bank,
+	     extra_banks[2],
 	     banked_mask,
 	     ca, overscan_color,
 	     pallook[256];
 
     PALETTE vgapal;
 
-    uint64_t dispontime, dispofftime;
-	pc_timer_t timer;
+    uint64_t latch,
+	     dispontime, dispofftime;
+
+    pc_timer_t timer;
 
     double clock;
 
