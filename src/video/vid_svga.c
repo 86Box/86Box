@@ -881,25 +881,17 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
     if (!(svga->gdcreg[6] & 1))
 	svga->fullchange = 2;
 
-    if ((svga->adv_flags & FLAG_ADDR_BY8) && (svga->writemode < 4)) {
-	if (svga->fb_only)
-		fatal("BY8 write in fb_only\n");
-	if (svga->chain2_write)
-		fatal("BY8 write in chain2\n");
+    if ((svga->adv_flags & FLAG_ADDR_BY8) && (svga->writemode < 4))
 	addr <<= 3;
-    } else if ((svga->chain4 || svga->fb_only) && (svga->writemode < 4)) {
+    else if ((svga->chain4 || svga->fb_only) && (svga->writemode < 4)) {
 	writemask2 = 1 << (addr & 3);
 	addr &= ~3;
-	if (svga->writemode >= 4)
-		fatal("write mode %i in chain4 mode\n", svga->writemode);
     } else if (svga->chain2_write) {
 	writemask2 &= ~0xa;
 	if (addr & 1)
 		writemask2 <<= 1;
 	addr &= ~1;
 	addr <<= 2;
-	if (svga->writemode >= 4)
-		fatal("write mode %i in chain odd/even\n", svga->writemode);
     } else
 	addr <<= 2;
 
@@ -1102,13 +1094,9 @@ svga_read_common(uint32_t addr, uint8_t linear, void *p)
 		latch_addr = (addr << 2) & svga->decode_mask;
     }
 
-    if (svga->adv_flags & FLAG_ADDR_BY8) {
-	if (svga->fb_only)
-		fatal("BY8 read in fb_only\n");
-	if (svga->chain2_read)
-		fatal("BY8 read in chain2\n");
+    if (svga->adv_flags & FLAG_ADDR_BY8)
 	addr <<= 3;
-    } else if (svga->chain4 || svga->fb_only) {
+    else if (svga->chain4 || svga->fb_only) {
 	addr &= svga->decode_mask;
 	if (addr >= svga->vram_max)
 		return 0xff;

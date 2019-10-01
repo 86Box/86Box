@@ -539,7 +539,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 				svga_recalctimings(svga);
 		} else {
 			switch (svga->gdcaddr) {
-				case 0x09: case 0x0a: /* case 0x0b: */
+				case 0x09: case 0x0a: case 0x0b:
 					gd54xx_recalc_banking(gd54xx);
 					if (svga->gdcreg[0xb] & 0x04)
 						svga->writemode = svga->gdcreg[5] & 7;
