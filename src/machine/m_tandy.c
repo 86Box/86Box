@@ -74,7 +74,11 @@ typedef struct {
     int			crtcreg;
 
     int			array_index;
+#if 0
     uint8_t		array[32];
+#else
+    uint8_t		array[256];
+#endif
     int			memctrl;
     uint8_t		mode, col;
     uint8_t		stat;
@@ -745,8 +749,8 @@ vid_poll(void *priv)
 				       vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000) + 1];
 				vid->ma++;
 				for (c = 0; c < 8; c++) {
-					chr  =  (dat >>  7) & 1;
-					chr |= ((dat >> 14) & 2);
+					chr  =  (dat >>  6) & 2;
+					chr |= ((dat >> 15) & 1);
 					((uint32_t *)buffer32->line[vid->displine])[(x << 3) + 8 + c] = vid->array[(chr & vid->array[1]) + 16] + 16;
 					dat <<= 1;
 				}
@@ -760,7 +764,7 @@ vid_poll(void *priv)
 					cols[1] = vid->array[ ((attr & 15) & vid->array[1]) + 16] + 16;
 					cols[0] = vid->array[(((attr >> 4) & 7) & vid->array[1]) + 16] + 16;
 					if ((vid->blink & 16) && (attr & 0x80) && !drawcursor) 
-						cols[1] = cols[0];
+ 						cols[1] = cols[0];
 				} else {
 					cols[1] = vid->array[((attr & 15) & vid->array[1]) + 16] + 16;
 					cols[0] = vid->array[((attr >> 4) & vid->array[1]) + 16] + 16;
@@ -1085,8 +1089,8 @@ vid_poll_sl(void *priv)
 				       vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000) + 1];
 				vid->ma++;
 				for (c = 0; c < 8; c++) {
-					chr  =  (dat >>  7) & 1;
-					chr |= ((dat >> 14) & 2);
+					chr  =  (dat >>  6) & 2;
+					chr |= ((dat >> 15) & 1);
 					((uint32_t *)buffer32->line[vid->displine])[(x << 3) + 8 + c] = vid->array[(chr & vid->array[1]) + 16] + 16;
 					dat <<= 1;
 				}
