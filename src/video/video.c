@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.32	2019/10/01
+ * Version:	@(#)video.c	1.0.33	2019/10/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -87,7 +87,6 @@ uint32_t	*video_6to8 = NULL,
 int		egareads = 0,
 		egawrites = 0,
 		changeframecount = 2;
-uint8_t		rotatevga[8][256];
 int		frames = 0;
 int		fullchange = 0;
 uint8_t		edatlookup[4][4];
@@ -644,7 +643,7 @@ create_bitmap(int x, int y)
 void
 video_init(void)
 {
-    int c, d, e;
+    int c, d;
     uint8_t total[2] = { 0, 1 };
 
     for (c = 0; c < 16; c++) {
@@ -668,13 +667,6 @@ video_init(void)
 	cgapal[c + 128].b = (((c & 1) ? 2 : 0) | ((c & 0x08) ? 1 : 0)) * 21;
     }
 
-    for (c = 0; c < 256; c++) {
-	e = c;
-	for (d = 0; d < 8; d++) {
-		rotatevga[d][c] = e;
-		e = (e >> 1) | ((e & 1) ? 0x80 : 0);
-	}
-    }
     for (c = 0; c < 4; c++) {
 	for (d = 0; d < 4; d++) {
 		edatlookup[c][d] = 0;
