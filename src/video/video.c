@@ -40,13 +40,13 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.31	2018/11/01
+ * Version:	@(#)video.c	1.0.32	2019/10/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -865,7 +865,7 @@ loadfont(wchar_t *s, int format)
 			fread(&fontdatm[c][0], 1, 16, f);
 		break;
 
-	case 8:	/* Amstrad PC1512 */
+	case 8:	/* Amstrad PC1512, Toshiba T1000/T1200 */
 		for (c = 0; c < 2048; c++)	/* Allow up to 2048 chars */
 		       	for (d=0; d<8; d++)
 				fontdat[c][d] = fgetc(f);
