@@ -144,16 +144,16 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
 		if (!(dev->ctrl2 & 0x02) && !(val & 0x80))
 			val = (val & 0x7f) | (dev->ctrl & 0x80);
 		dev->ctrl = val;
-		if (val & 0x80)
-			mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x10000);
-		else
-			mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x08000);
 		if (old ^ val)
 			recalc_timings(dev);
 		break;
 
 	case 0x03bf:
 		dev->ctrl2 = val;
+		if (val & 0x02)
+			mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x10000);
+		else
+			mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x08000);
 		break;
 
 	default:
@@ -448,7 +448,7 @@ hercules_init(const device_t *info)
 
     timer_add(&dev->timer, hercules_poll, dev, 1);
 
-    mem_mapping_add(&dev->mapping, 0xb0000, 0x08000,
+    mem_mapping_add(&dev->mapping, 0xb0000, 0x10000,
 		    hercules_read,NULL,NULL, hercules_write,NULL,NULL,
 		    dev->vram, MEM_MAPPING_EXTERNAL, dev);
 
