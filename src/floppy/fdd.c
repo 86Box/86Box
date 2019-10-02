@@ -594,7 +594,7 @@ fdd_set_motor_enable(int drive, int motor_enable)
 static void
 fdd_poll(void *priv)
 {
-    int drive;
+    int drive, i;
     DRIVE *drv = (DRIVE *) priv;
 
     drive = drv->id;
@@ -602,15 +602,17 @@ fdd_poll(void *priv)
     if (drive >= FDD_NUM)
 	fatal("Attempting to poll floppy drive %i that is not supposed to be there\n", drive);
 
-    timer_advance_u64(&fdd_poll_time[drive], fdd_byteperiod(drive));
+    timer_advance_u64(&fdd_poll_time[drive], fdd_byteperiod(drive) << 5ULL);
 
-    if (drv->poll)
-	drv->poll(drive);
+    for (i = 0; i < 32; i++) {
+	if (drv->poll)
+		drv->poll(drive);
 
-    if (fdd_notfound) {
-	fdd_notfound--;
-	if (!fdd_notfound)
-		fdc_noidam(fdd_fdc);
+	if (fdd_notfound) {
+		fdd_notfound--;
+		if (!fdd_notfound)
+			fdc_noidam(fdd_fdc);
+	}
     }
 }
 
