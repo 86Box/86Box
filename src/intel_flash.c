@@ -63,8 +63,10 @@ enum
 typedef struct flash_t
 {
     uint8_t		command, status,
-			flash_id, flags,
+			pad, flags,
 			*array;
+
+    uint16_t		flash_id, pad16;
 
     uint32_t		program_addr,
 			block_start[BLOCKS_NUM], block_end[BLOCKS_NUM],
