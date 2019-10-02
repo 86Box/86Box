@@ -339,16 +339,6 @@ sextract32(uint32_t value, int start, int length)
 }
 
 
-static __inline__ uint32_t
-deposit32(uint32_t value, int start, int length,
-                                 uint32_t fieldval)
-{
-    uint32_t mask;
-    mask = (~0U >> (32 - length)) << start;
-    return (value & ~mask) | ((fieldval << start) & mask);
-}
-
-
 static __inline__ int
 ncr53c8xx_irq_on_rsl(ncr53c8xx_t *dev)
 {
