@@ -8,15 +8,15 @@
  *
  *		Emulation of the Olivetti M24.
  *
- * Version:	@(#)m_olivetti_m24.c	1.0.19	2018/09/19
+ * Version:	@(#)m_olivetti_m24.c	1.0.20	2018/10/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -857,6 +857,8 @@ machine_olim24_init(const machine_t *model)
     timer_add(&m24->timer, vid_poll, m24, 1);
     device_add_ex(&m24_device, m24);
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_m24);
+    cga_palette = 0;
+    cgapal_rebuild();
 
     /* Initialize the keyboard. */
     io_sethandler(0x0060, 2,
