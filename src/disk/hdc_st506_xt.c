@@ -93,12 +93,16 @@
 
 #define XEBEC_BIOS_FILE		L"roms/hdd/st506/ibm_xebec_62x0822_1985.bin"
 #define DTC_BIOS_FILE		L"roms/hdd/st506/dtc_cxd21a.bin"
-#define ST11_BIOS_FILE		L"roms/hdd/st506/st11_bios_vers_1.7.bin"
+#define ST11_BIOS_FILE_OLD	L"roms/hdd/st506/st11_bios_vers_1.7.bin"
+#define ST11_BIOS_FILE_NEW	L"roms/hdd/st506/st11_bios_vers_2.0.bin"
 #define WD1002A_WX1_BIOS_FILE	L"roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
-#define WD1002A_27X_BIOS_FILE	L"roms/hdd/st506/wd1002a_27x-62-000215-060.bin"
+/* SuperBIOS was for both the WX1 and 27X, users jumpers readout to determine
+   if to use 26 sectors per track, 26 -> 17 sectors per track translation, or
+   17 sectors per track. */
+#define WD1002A_27X_BIOS_FILE	L"roms/hdd/st506/wd1002a_27x-62-000094-032.bin"
 
 
-#define ST506_TIME		(50 * TIMER_USEC)
+#define ST506_TIME		(250 * TIMER_USEC)
 #define ST506_TIME_MS		(1000 * TIMER_USEC)
 
 /* MFM and RLL use different sectors/track. */
@@ -189,15 +193,15 @@
 #define CMD_READ_LONG		0xe5
 #define CMD_WRITE_LONG		0xe6
 
-#define CMD_FORMAT_DRIVE_ST11	0xf6		/* ST-11 BIOS */
+#define CMD_FORMAT_ST11		0xf6		/* ST-11 BIOS */
 #define CMD_GET_GEOMETRY_ST11	0xf8		/* ST-11 BIOS */
 #define CMD_SET_GEOMETRY_ST11	0xfa		/* ST-11 BIOS */
+#define CMD_WRITE_GEOMETRY_ST11	0xfc		/* ST-11 BIOS 2.0 */
 
 #define CMD_GET_DRIVE_PARAMS_DTC 0xfb		/* DTC */
 #define CMD_SET_STEP_RATE_DTC	0xfc		/* DTC */
 #define CMD_SET_GEOMETRY_DTC	0xfe		/* DTC */
 #define CMD_GET_GEOMETRY_DTC	0xff		/* DTC */
-
 
 enum {
     STATE_IDLE,
@@ -241,6 +245,7 @@ typedef struct {
 		dma;
     uint8_t	switches;
     uint8_t	misc;
+    uint8_t	nr_err, err_bv, cur_sec, pad;
     uint32_t	bios_addr,
 		bios_size,
 		bios_ram;
@@ -251,8 +256,7 @@ typedef struct {
     uint8_t	error;
     uint8_t	status;
     int8_t	cyl_off;		/* for ST-11, cylinder0 offset */
-    uint64_t	callback;
-	pc_timer_t 	timer;
+    pc_timer_t	timer;
 
     uint8_t	command[6];		/* current command request */
     int		drive_sel;
@@ -285,7 +289,18 @@ hd_type_t hd_types[4] = {
     { 306, 8, MFM_SECTORS } 	/* type 13	*/
 };
 
-hd_type_t wd1002a_hd_types[4] = {
+hd_type_t wd1002a_wx1_hd_types[8] = {
+    { 306, 4, MFM_SECTORS },	/* 1023, ? */
+    { 612, 4, MFM_SECTORS },	/* 1023, ? */
+    { 612, 2, MFM_SECTORS },	/* 1023, ? */
+    { 820, 6, MFM_SECTORS },	/* 934, ? */
+    { 1024, 8, MFM_SECTORS },	/* 934, ? */
+    { 640, 6, MFM_SECTORS },	/* 939, ? */
+    { 733, 5, MFM_SECTORS },	/* 939, ? */
+    { 977, 5, MFM_SECTORS }	/* 1023, ? */
+};
+
+hd_type_t wd1002a_27x_hd_types[4] = {
     { 981, 5, RLL_SECTORS },	/* type 0	*/
     { 987, 7, RLL_SECTORS },	/* type 16	*/
     { 612, 4, RLL_SECTORS },	/* type 2	*/
@@ -342,10 +357,11 @@ get_sector(hdc_t *dev, drive_t *drive, off64_t *addr)
 {
     if (! drive->present) {
 	/* No need to log this. */
-	dev->error = ERR_NOT_AVAILABLE;
+	dev->error = dev->nr_err;
 	return(0);
     }
 
+#if 0
     if (drive->cylinder != dev->cylinder) {
 #ifdef ENABLE_ST506_XT_LOG
 	st506_xt_log("ST506: get_sector: wrong cylinder\n");
@@ -353,6 +369,7 @@ get_sector(hdc_t *dev, drive_t *drive, off64_t *addr)
 	dev->error = ERR_ILLEGAL_ADDR;
 	return(0);
     }
+#endif
 
     if (dev->head >= drive->cfg_hpc) {
 #ifdef ENABLE_ST506_XT_LOG
@@ -400,11 +417,18 @@ next_sector(hdc_t *dev, drive_t *drive)
 static int
 get_chs(hdc_t *dev, drive_t *drive)
 {
-    dev->cylinder = dev->command[3] | ((dev->command[2] & 0xc0) << 2);
+    dev->err_bv = 0x80;
+
     dev->head = dev->command[1] & 0x1f;
-    dev->sector = dev->command[2] & 0x1f;	/* 0x3f on some */
+    /* 6 bits are used for the sector number even on the IBM PC controller. */
+    dev->sector = dev->command[2] & 0x3f;
     dev->count = dev->command[4];
-    dev->cylinder += dev->cyl_off;		/* for ST-11 */
+    if (((dev->type == 11) || (dev->type == 12)) && (dev->command[0] >= 0xf0))
+	dev->cylinder = 0;
+    else {
+	dev->cylinder = dev->command[3] | ((dev->command[2] & 0xc0) << 2);
+	dev->cylinder += dev->cyl_off;		/* for ST-11 */
+    }
 
     if (dev->cylinder >= drive->cfg_cyl) {
 	/*
@@ -421,21 +445,6 @@ get_chs(hdc_t *dev, drive_t *drive)
     return(1);
 }
 
-static void
-st506_set_callback(hdc_t *dev, uint64_t callback)
-{
-    if (!dev) {
-	return;
-    }
-
-    if (callback) {
-	dev->callback = callback;
-	timer_set_delay_u64(&dev->timer, dev->callback);
-	} else {
-	dev->callback = 0;
-	timer_disable(&dev->timer);
-	}
-}
 
 static void
 st506_callback(void *priv)
@@ -443,10 +452,8 @@ st506_callback(void *priv)
     hdc_t *dev = (hdc_t *)priv;
     drive_t *drive;
     off64_t addr;
+    uint32_t capac;
     int val;
-
-    /* Cancel the timer for now. */
-    st506_set_callback(dev, 0);
 
     /* Get the drive info. Note that the API supports up to 8 drives! */
     dev->drive_sel = (dev->command[1] >> 5) & 0x07;
@@ -455,12 +462,15 @@ st506_callback(void *priv)
     /* Preset the completion byte to "No error" and the selected drive. */
     dev->compl = (dev->drive_sel << 5) | ERR_NONE;
 
+    if (dev->command[0] != 3)
+	dev->err_bv = 0x00;
+
     switch (dev->command[0]) {
 	case CMD_TEST_DRIVE_READY:
 		st506_xt_log("ST506: TEST_READY(%i) = %i\n",
 			     dev->drive_sel, drive->present);
 		if (! drive->present)
-			st506_error(dev, ERR_NOT_AVAILABLE);
+			st506_error(dev, dev->nr_err);
 		st506_complete(dev);
 		break;
 
@@ -470,13 +480,13 @@ st506_callback(void *priv)
 				st506_xt_log("ST506: RECALIBRATE(%i) [%i]\n",
 					     dev->drive_sel, drive->present);
 				if (! drive->present) {
-					st506_error(dev, ERR_NOT_AVAILABLE);
+					st506_error(dev, dev->nr_err);
 					st506_complete(dev);
 					break;
 				}
 
 				/* Wait 20msec. */
-				st506_set_callback(dev, ST506_TIME_MS * 20);
+				timer_advance_u64(&dev->timer, ST506_TIME_MS * 20);
 
 				dev->cylinder = dev->cyl_off;
 				drive->cylinder = dev->cylinder;
@@ -492,17 +502,13 @@ st506_callback(void *priv)
 
 	case CMD_STATUS:
 		switch (dev->state) {
-			case STATE_RECEIVE_COMMAND:
-				dev->status |= STAT_REQ;
-				break;
-
 			case STATE_START_COMMAND:
 #ifdef ENABLE_ST506_XT_LOG
 				st506_xt_log("ST506: STATUS\n");
 #endif
 				dev->buff_pos = 0;
 				dev->buff_cnt = 4;
-				dev->buff[0] = ERR_BV | dev->error;
+				dev->buff[0] = dev->err_bv | dev->error;
 				dev->error = 0;
 
 				/* Give address of last operation. */
@@ -523,15 +529,13 @@ st506_callback(void *priv)
 		break;
 
 	case CMD_FORMAT_DRIVE:
-	case CMD_FORMAT_DRIVE_ST11:
 		switch (dev->state) {
 			case STATE_START_COMMAND:
 				(void)get_chs(dev, drive);
-				st506_xt_log("ST506: FORMAT_DRIVE%s(%i) interleave=%i\n",
-					     (dev->command[0] == CMD_FORMAT_DRIVE_ST11) ? "_ST11" : "",
+				st506_xt_log("ST506: FORMAT_DRIVE(%i) interleave=%i\n",
 					     dev->drive_sel, dev->command[4]);
 				ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
-				st506_set_callback(dev, ST506_TIME);
+				timer_advance_u64(&dev->timer, ST506_TIME);
 				dev->state = STATE_SEND_DATA;
 				break;
 
@@ -544,11 +548,11 @@ st506_callback(void *priv)
 				}
 
 				/* FIXME: should be drive->capac, not ->spt */
-				hdd_image_zero(drive->hdd_num,
-					       addr, drive->cfg_spt);
+				capac = (drive->tracks - 1) * drive->hpc * drive->spt;
+				hdd_image_zero(drive->hdd_num, addr, capac);
 
-				/* Wait 5msec per cylinder. */
-				st506_set_callback(dev, ST506_TIME_MS * 5 * drive->cfg_cyl);
+				/* Wait 20msec per cylinder. */
+				timer_advance_u64(&dev->timer, ST506_TIME_MS * 20);
 
 				dev->state = STATE_SENT_DATA;
 				break;
@@ -568,7 +572,7 @@ st506_callback(void *priv)
 					     dev->drive_sel, dev->cylinder,
 					     dev->head, dev->sector, dev->count);
 				ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
-				st506_set_callback(dev, ST506_TIME);
+				timer_advance_u64(&dev->timer, ST506_TIME);
 				dev->state = STATE_SEND_DATA;
 				break;
 
@@ -587,11 +591,17 @@ st506_callback(void *priv)
 
 				next_sector(dev, drive);
 
-				st506_set_callback(dev, ST506_TIME);
+				timer_advance_u64(&dev->timer, ST506_TIME);
 				break;
 		}
 		break;
 
+	case CMD_FORMAT_ST11:	/* This is really "Format cylinder 0" */
+		if ((dev->type < 11) || (dev->type > 12)) {
+			st506_error(dev, ERR_BAD_COMMAND);
+			st506_complete(dev);
+			break;
+		}
 	case CMD_FORMAT_TRACK:
 	case CMD_FORMAT_BAD_TRACK:
 		switch (dev->state) {
@@ -601,7 +611,7 @@ st506_callback(void *priv)
 					     (dev->command[0] == CMD_FORMAT_BAD_TRACK) ? "BAD_" : "",
 					     dev->drive_sel, dev->cylinder, dev->head);
 				ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
-				st506_set_callback(dev, ST506_TIME);
+				timer_advance_u64(&dev->timer, ST506_TIME);
 				dev->state = STATE_SEND_DATA;
 				break;
 
@@ -616,8 +626,8 @@ st506_callback(void *priv)
 				hdd_image_zero(drive->hdd_num,
 					       addr, drive->cfg_spt);
 
-				/* Wait 5msec per cylinder. */
-				st506_set_callback(dev, ST506_TIME_MS * 5);
+				/* Wait 20 msec per cylinder. */
+				timer_advance_u64(&dev->timer, ST506_TIME_MS * 20);
 
 				dev->state = STATE_SENT_DATA;
 				break;
@@ -629,15 +639,17 @@ st506_callback(void *priv)
 		}
 		break;			       
 
+	case CMD_GET_GEOMETRY_ST11:	/* "Get geometry" is really "Read cylinder 0" */
+		if ((dev->type < 11) || (dev->type > 12)) {
+			st506_error(dev, ERR_BAD_COMMAND);
+			st506_complete(dev);
+			break;
+		}
 	case CMD_READ:
 #if 0
 	case CMD_READ_LONG:
 #endif
 		switch (dev->state) {
-			case STATE_RECEIVE_COMMAND:
-				dev->status |= STAT_REQ;
-				break;
-
 			case STATE_START_COMMAND:
 				(void)get_chs(dev, drive);
 				st506_xt_log("ST506: READ%s(%i, %i/%i/%i, %i)\n",
@@ -663,7 +675,7 @@ st506_callback(void *priv)
 					dev->buff_cnt += 4;
 				dev->status = STAT_BSY | STAT_IO | STAT_REQ;
 				if (dev->irq_dma & DMA_ENA) {
-					st506_set_callback(dev, ST506_TIME);
+					timer_advance_u64(&dev->timer, ST506_TIME);
 					dma_set_drq(dev->dma, 1);
 				}
 				dev->state = STATE_SEND_DATA;
@@ -682,7 +694,7 @@ st506_callback(void *priv)
 					}
 				}
 				dma_set_drq(dev->dma, 0);
-				st506_set_callback(dev, ST506_TIME);
+				timer_advance_u64(&dev->timer, ST506_TIME);
 				dev->state = STATE_SENT_DATA;
 				break;
 
@@ -708,9 +720,10 @@ st506_callback(void *priv)
 
 				/* Set up the data transfer. */
 				dev->buff_pos = 0;
+				dev->buff_cnt = SECTOR_SIZE;
 				dev->status = STAT_BSY | STAT_IO | STAT_REQ;
 				if (dev->irq_dma & DMA_ENA) {
-					st506_set_callback(dev, ST506_TIME);
+					timer_advance_u64(&dev->timer, ST506_TIME);
 					dma_set_drq(dev->dma, 1);
 				}
 				dev->state = STATE_SEND_DATA;
@@ -718,15 +731,21 @@ st506_callback(void *priv)
 		}
 		break;
 
+	case CMD_SET_GEOMETRY_ST11:	/* "Set geometry" is really "Write cylinder 0" */
+		if (dev->type == 1) {
+			/* DTC sends this... */
+			st506_complete(dev);
+			break;
+		} else if ((dev->type < 11) || (dev->type > 12)) {
+			st506_error(dev, ERR_BAD_COMMAND);
+			st506_complete(dev);
+			break;
+		}
 	case CMD_WRITE:
 #if 0
 	case CMD_WRITE_LONG:
 #endif
 		switch (dev->state) {
-			case STATE_RECEIVE_COMMAND:
-				dev->status |= STAT_REQ;
-				break;
-
 			case STATE_START_COMMAND:
 				(void)get_chs(dev, drive);
 				st506_xt_log("ST506: WRITE%s(%i, %i/%i/%i, %i)\n",
@@ -735,7 +754,7 @@ st506_callback(void *priv)
 					     dev->head, dev->sector, dev->count);
 
 				if (! get_sector(dev, drive, &addr)) {
-					st506_error(dev, dev->error);
+					st506_error(dev, ERR_BAD_PARAMETER);
 					st506_complete(dev);
 					return;
 				}
@@ -749,7 +768,7 @@ st506_callback(void *priv)
 					dev->buff_cnt += 4;
 				dev->status = STAT_BSY | STAT_REQ;
 				if (dev->irq_dma & DMA_ENA) {
-					st506_set_callback(dev, ST506_TIME);
+					timer_advance_u64(&dev->timer, ST506_TIME);
 					dma_set_drq(dev->dma, 1);
 				}
 				dev->state = STATE_RECEIVE_DATA;
@@ -770,7 +789,7 @@ st506_callback(void *priv)
 				}
 
 				dma_set_drq(dev->dma, 0);
-				st506_set_callback(dev, ST506_TIME);
+				timer_advance_u64(&dev->timer, ST506_TIME);
 				dev->state = STATE_RECEIVED_DATA;
 				break;
 
@@ -796,9 +815,10 @@ st506_callback(void *priv)
 
 				/* Set up the data transfer. */
 				dev->buff_pos = 0;
+				dev->buff_cnt = SECTOR_SIZE;
 				dev->status = STAT_BSY | STAT_REQ;
 				if (dev->irq_dma & DMA_ENA) {
-					st506_set_callback(dev, ST506_TIME);
+					timer_advance_u64(&dev->timer, ST506_TIME);
 					dma_set_drq(dev->dma, 1);
 				}
 				dev->state = STATE_RECEIVE_DATA;
@@ -814,16 +834,12 @@ st506_callback(void *priv)
 			if (! val)
 				st506_error(dev, ERR_SEEK_ERROR);
 		} else
-			st506_error(dev, ERR_NOT_AVAILABLE);
+			st506_error(dev, dev->nr_err);
 		st506_complete(dev);
 		break;
 
 	case CMD_SPECIFY:
 		switch (dev->state) {
-			case STATE_RECEIVE_COMMAND:
-				dev->status |= STAT_REQ;
-				break;
-
 			case STATE_START_COMMAND:
 				dev->buff_pos = 0;
 				dev->buff_cnt = 8;
@@ -834,6 +850,7 @@ st506_callback(void *priv)
 			case STATE_RECEIVED_DATA:
 				drive->cfg_cyl = dev->buff[1] | (dev->buff[0] << 8);
 				drive->cfg_hpc = dev->buff[2];
+				/* For a 615/4/26 we get 666/2/31 geometry. */
 				st506_xt_log("ST506: drive%i: cyls=%i, heads=%i\n",
 					     dev->drive_sel, drive->cfg_cyl, drive->cfg_hpc);
 				st506_complete(dev);
@@ -843,10 +860,6 @@ st506_callback(void *priv)
 
 	case CMD_READ_ECC_BURST_LEN:
 		switch (dev->state) {
-			case STATE_RECEIVE_COMMAND:
-				dev->status |= STAT_REQ;
-				break;
-
 			case STATE_START_COMMAND:
 #ifdef ENABLE_ST506_XT_LOG
 				st506_xt_log("ST506: READ_ECC_BURST_LEN\n");
@@ -866,10 +879,6 @@ st506_callback(void *priv)
 
 	case CMD_READ_BUFFER:
 		switch (dev->state) {
-			case STATE_RECEIVE_COMMAND:
-				dev->status |= STAT_REQ;
-				break;
-
 			case STATE_START_COMMAND:
 				dev->buff_pos = 0;
 				dev->buff_cnt = SECTOR_SIZE;
@@ -878,7 +887,7 @@ st506_callback(void *priv)
 
 				dev->status = STAT_BSY | STAT_IO | STAT_REQ;
 				if (dev->irq_dma & DMA_ENA) {
-					st506_set_callback(dev, ST506_TIME);
+					timer_advance_u64(&dev->timer, ST506_TIME);
 					dma_set_drq(dev->dma, 1);
 				}
 				dev->state = STATE_SEND_DATA;
@@ -898,7 +907,7 @@ st506_callback(void *priv)
 				}
 
 				dma_set_drq(dev->dma, 0);
-				st506_set_callback(dev, ST506_TIME);
+				timer_advance_u64(&dev->timer, ST506_TIME);
 				dev->state = STATE_SENT_DATA;
 				break;
 
@@ -910,10 +919,6 @@ st506_callback(void *priv)
 
 	case CMD_WRITE_BUFFER:
 		switch (dev->state) {
-			case STATE_RECEIVE_COMMAND:
-				dev->status |= STAT_REQ;
-				break;
-
 			case STATE_START_COMMAND:
 				dev->buff_pos = 0;
 				dev->buff_cnt = SECTOR_SIZE;
@@ -922,7 +927,7 @@ st506_callback(void *priv)
 
 				dev->status = STAT_BSY | STAT_REQ;
 				if (dev->irq_dma & DMA_ENA) {
-					st506_set_callback(dev, ST506_TIME);
+					timer_advance_u64(&dev->timer, ST506_TIME);
 					dma_set_drq(dev->dma, 1);
 				}
 				dev->state = STATE_RECEIVE_DATA;
@@ -943,7 +948,7 @@ st506_callback(void *priv)
 				}
 
 				dma_set_drq(dev->dma, 0);
-				st506_set_callback(dev, ST506_TIME);
+				timer_advance_u64(&dev->timer, ST506_TIME);
 				dev->state = STATE_RECEIVED_DATA;
 				break;
 
@@ -955,15 +960,13 @@ st506_callback(void *priv)
 
 	case CMD_INQUIRY_ST11:
 		if (dev->type == 11 || dev->type == 12) switch (dev->state) {
-			case STATE_RECEIVE_COMMAND:
-				dev->status |= STAT_REQ;
-				break;
-
 			case STATE_START_COMMAND:
 				st506_xt_log("ST506: INQUIRY (type=%i)\n", dev->type);
 				dev->buff_pos = 0;
 				dev->buff_cnt = 2;
 				dev->buff[0] = 0x80;		/* "ST-11" */
+				if (dev->spt == 17)
+					dev->buff[0] |= 0x40;	/* MFM */
 				dev->buff[1] = dev->misc;	/* revision */
 				dev->status = STAT_BSY | STAT_IO | STAT_REQ;
 				dev->state = STATE_SEND_DATA;
@@ -992,129 +995,61 @@ st506_callback(void *priv)
 		st506_complete(dev);
 		break;
 
-	case CMD_GET_GEOMETRY_ST11:
-		if (dev->type == 11 || dev->type == 12) switch (dev->state) {
-			case STATE_RECEIVE_COMMAND:
-				dev->status |= STAT_REQ;
-				break;
-
-			/*
-			 *  [0] = 0xda;			// magic
-			 *  [1] = 0xbe;			// magic
-			 *  [2] = cyl_hi
-			 *  [3] = cyl_lo
-			 *  [4] = heads
-			 *  [5] = sectors
-			 *  [6] = interleave
-			 *  [7] = 00			// ??
-			 *  [8] = 01			// ??
-			 *  [9] = 03			// ??
-			 *  [10] = landing_hi
-			 *  [11] = landing_lo
-			 *  [12] = 'SEAGATESTxxxxxx'	// magic
-			 *  [29] .. = 00
-			 *  [41] = 02			// ??
-			 *
-			 * This is the data block written to cylinder 0
-			 * somewhere by the ST-11 BIOS, and which we
-			 * read back here, and then send to the caller.
-			 *
-			 * We do not yet know where this block is, so
-			 * for now, we just fake it. Of course, since
-			 * we do not with real drives, we could simply
-			 * write it anywhere on that cylinder, but OK..
-			 */
-			case STATE_START_COMMAND:
-				/* Send geometry data. */
-				dev->buff_pos = 0;
-				dev->buff_cnt = SECTOR_SIZE;
-				memset(dev->buff, 0x00, dev->buff_cnt);
-				dev->buff[0] = 0xda;
-				dev->buff[1] = 0xbe;
-				dev->buff[2] = (drive->tracks >> 8) & 0xff;
-				dev->buff[3] = drive->tracks & 0xff;
-				dev->buff[4] = drive->hpc;
-				dev->buff[5] = drive->spt;
-				dev->buff[6] = drive->interleave;
-				dev->buff[7] = 0x00;
-				dev->buff[8] = 0x01;
-				dev->buff[9] = 0x03;
-				dev->buff[10] = (drive->tracks >> 8) & 0xff;
-				dev->buff[11] = drive->tracks & 0xff;
-				memcpy(&dev->buff[12], "SEAGATESTxxxxxx", 15);
-				dev->buff[41] = 0x02;
-				dev->state = STATE_SEND_DATA;
-				dev->status = STAT_BSY | STAT_IO | STAT_REQ;
-				break;
-
-			case STATE_SENT_DATA:
-				st506_complete(dev);
-				break;
-		} else {
-			st506_error(dev, ERR_BAD_COMMAND);
-			st506_complete(dev);
-		}
-		break;
-
-	case CMD_SET_GEOMETRY_ST11:
-		if (dev->type == 11 || dev->type == 12) switch (dev->state) {
-			case STATE_RECEIVE_COMMAND:
-				dev->status |= STAT_REQ;
-				break;
-
-			case STATE_START_COMMAND:
-				dev->buff_pos = 0;
-				dev->buff_cnt = 512;	// 42
-				memset(dev->buff, 0x00, dev->buff_cnt);
-				dev->state = STATE_RECEIVE_DATA;
-				dev->status = STAT_BSY | STAT_REQ;
-				break;
-
-			case STATE_RECEIVED_DATA:
-				/*
-				 * See above as well.
-				 *
-				 * This is the data block written to cylinder 0
-				 * somewhere by the ST-11 BIOS, and which we
-				 * read back here, and then send to the caller.
-				 *
-				 * We do not yet know where this block is, so
-				 * for now, we just fake it. Of course, since
-				 * we do not with real drives, we could simply
-				 * write it anywhere on that cylinder, but OK..
-				 */
-				st506_xt_log("ST506: GEO data for drive %i:\n",
-					     dev->drive_sel);
-				st506_xt_log("ST506: [ %02x %02x %02x %02x %02x %02x %02x %02x ]\n",
-					     dev->buff[0], dev->buff[1], dev->buff[2], dev->buff[3],
-					     dev->buff[4], dev->buff[5], dev->buff[6], dev->buff[7]);
-				st506_complete(dev);
-				break;
-		} else if (dev->type == 1) {
-			/* DTC sends this.. */
-			st506_complete(dev);
-		} else {
-			st506_error(dev, ERR_BAD_COMMAND);
-			st506_complete(dev);
-		}
-		break;
-
 	case CMD_SET_STEP_RATE_DTC:
-		st506_complete(dev);
+		if (dev->type == 1) {
+			/* For DTC, we are done. */
+			st506_complete(dev);
+		} else if (dev->type == 11 || dev->type == 12) {
+			/*
+			 * For Seagate ST-11, this is WriteGeometry.
+			 *
+			 * This writes the contents of the buffer to track 0.
+			 *
+			 * By the time this command is sent, it will have
+			 * formatted the first track, so it should be good,
+			 * and our sector buffer contains the magic data
+			 * (see above) we need to write to it.
+			 */
+			(void)get_chs(dev, drive);
+			st506_xt_log("ST506: WRITE BUFFER (%i, %i/%i/%i, %i)\n",
+				     dev->drive_sel, dev->cylinder,
+				     dev->head, dev->sector, dev->count);
+
+			if (! get_sector(dev, drive, &addr)) {
+				st506_error(dev, ERR_BAD_PARAMETER);
+				st506_complete(dev);
+				return;
+			}
+
+			ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
+
+			/* Write data to image. */
+			hdd_image_write(drive->hdd_num, addr, 1,
+					(uint8_t *)dev->buff);
+
+			if (--dev->count == 0) {
+				ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+				st506_complete(dev);
+				break;
+			}
+
+			next_sector(dev, drive);
+			timer_advance_u64(&dev->timer, ST506_TIME);
+			break;
+		} else {
+			st506_error(dev, ERR_BAD_COMMAND);
+			st506_complete(dev);
+		}
 		break;
 
 	case CMD_GET_DRIVE_PARAMS_DTC:
 		switch (dev->state) {
-			case STATE_RECEIVE_COMMAND:
-				dev->status |= STAT_REQ;
-				break;
-
 			case STATE_START_COMMAND:
 				dev->buff_pos = 0;
 				dev->buff_cnt = 4;
 				memset(dev->buff, 0x00, dev->buff_cnt);
 				dev->buff[0] = drive->tracks & 0xff;
-				dev->buff[1] = 17 | ((drive->tracks >> 2) & 0xc0);
+				dev->buff[1] = ((drive->tracks >> 2) & 0xc0) | dev->spt;
 				dev->buff[2] = drive->hpc - 1;
 				dev->status = STAT_BSY | STAT_IO | STAT_REQ;
 				dev->state = STATE_SEND_DATA;
@@ -1128,10 +1063,6 @@ st506_callback(void *priv)
 
 	case CMD_SET_GEOMETRY_DTC:
 		switch (dev->state) {
-			case STATE_RECEIVE_COMMAND:
-				dev->status |= STAT_REQ;
-				break;
-
 			case STATE_START_COMMAND:
 				val = dev->command[1] & 0x01;
 				st506_xt_log("ST506: DTC_GET_GEOMETRY(%i) %i\n",
@@ -1151,10 +1082,6 @@ st506_callback(void *priv)
 
 	case CMD_GET_GEOMETRY_DTC:
 		switch (dev->state) {
-			case STATE_RECEIVE_COMMAND:
-				dev->status |= STAT_REQ;
-				break;
-
 			case STATE_START_COMMAND:
 				val = dev->command[1] & 0x01;
 				st506_xt_log("ST506: DTC_GET_GEOMETRY(%i) %i\n",
@@ -1176,9 +1103,8 @@ st506_callback(void *priv)
 		break;
 
 	default:
-		if (dev->state == STATE_RECEIVE_COMMAND)
-			break;
-
+		if (dev->command[0] == CMD_WRITE_GEOMETRY_ST11)
+			fatal("CMD_WRITE_GEOMETRY_ST11\n");
 #ifdef ENABLE_ST506_XT_LOG
 		st506_xt_log("ST506: unknown command:\n");
 #endif
@@ -1215,7 +1141,7 @@ st506_read(uint16_t port, void *priv)
 					dev->buff_cnt = 0;
 					dev->status = STAT_BSY;
 					dev->state = STATE_SENT_DATA;
-					st506_set_callback(dev, ST506_TIME);
+					timer_set_delay_u64(&dev->timer, ST506_TIME);
 				}
 				break;
 		}
@@ -1248,16 +1174,16 @@ st506_write(uint16_t port, uint8_t val, void *priv)
 	case 0:		/* write data */
 		switch (dev->state) {
 			case STATE_RECEIVE_COMMAND:	/* command data */
-				dev->buff[dev->buff_pos++] = val;
+				/* Write directly to the command buffer to avoid overwriting
+				   the data buffer. */
+				dev->command[dev->buff_pos++] = val;
 				if (dev->buff_pos == dev->buff_cnt) {
 					/* We have a new command. */
-					memcpy(dev->command, dev->buff, dev->buff_cnt);
 					dev->buff_pos = 0;
 					dev->buff_cnt = 0;
 					dev->status = STAT_BSY;
-					st506_callback(dev);
 					dev->state = STATE_START_COMMAND;
-					st506_set_callback(dev, ST506_TIME);
+					timer_set_delay_u64(&dev->timer, ST506_TIME);
 				}
 				break;
 
@@ -1268,7 +1194,7 @@ st506_write(uint16_t port, uint8_t val, void *priv)
 					dev->buff_cnt = 0;
 					dev->status = STAT_BSY;
 					dev->state = STATE_RECEIVED_DATA;
-					st506_set_callback(dev, ST506_TIME);
+					timer_set_delay_u64(&dev->timer, ST506_TIME);
 				}
 				break;
 		}
@@ -1308,11 +1234,11 @@ mem_write(uint32_t addr, uint8_t val, void *priv)
     uint32_t ptr, mask = 0;
 
     /* Ignore accesses to anything below the configured address,
-       needed because of the emulator's 16k mapping granularity. */
+       needed because of the emulator's 4k mapping granularity. */
     if (addr < dev->bios_addr)
 	return;
 
-    addr &= dev->bios_rom.mask;
+    addr -= dev->bios_addr;
 
     switch(dev->type) {
 	case 11:	/* ST-11M */
@@ -1324,11 +1250,12 @@ mem_write(uint32_t addr, uint8_t val, void *priv)
 		break;
     }
 
+    addr &= dev->bios_rom.mask;
+
     ptr = (dev->bios_rom.mask & mask) - dev->bios_ram;
     if (mask && ((addr & mask) > ptr) &&
-		((addr & mask) < (ptr + dev->bios_ram))) {
+		((addr & mask) <= (ptr + dev->bios_ram)))
 	dev->scratch[addr & (dev->bios_ram - 1)] = val;
-    }
 }
 
 
@@ -1340,11 +1267,11 @@ mem_read(uint32_t addr, void *priv)
     uint8_t ret = 0xff;
 
     /* Ignore accesses to anything below the configured address,
-       needed because of the emulator's 16k mapping granularity. */
+       needed because of the emulator's 4k mapping granularity. */
     if (addr < dev->bios_addr)
 	return 0xff;
 
-    addr &= dev->bios_rom.mask;
+    addr -= dev->bios_addr;
 
     switch(dev->type) {
 	case 0:		/* Xebec */
@@ -1375,11 +1302,13 @@ mem_read(uint32_t addr, void *priv)
 		break; */
     }
 
+    addr = addr & dev->bios_rom.mask;
+
     ptr = (dev->bios_rom.mask & mask) - dev->bios_ram;
     if (mask && ((addr & mask) > ptr) &&
-		((addr & mask) < (ptr + dev->bios_ram))) {
+		((addr & mask) <= (ptr + dev->bios_ram)))
 	ret = dev->scratch[addr & (dev->bios_ram - 1)];
-    } else
+    else
 	ret = dev->bios_rom.rom[addr];
 
     return(ret);
@@ -1412,17 +1341,6 @@ loadrom(hdc_t *dev, const wchar_t *fn)
     size = ftell(fp);
     (void)fseek(fp, 0L, SEEK_SET);
 
-#if 1
-    /*
-     * The Xebec and DTC-5150X ROMs seem to be probing for
-     * (other) ROMs at addresses between their own size and
-     * 16K, at 2K blocks. So, we must enable all of that..
-     */
-    // if (dev->type < 2)
-    if ((dev->type != 11) && (dev->type != 12))
-	size = 16384;
-#endif
-
     /* Load the ROM data. */
     dev->bios_rom.rom = (uint8_t *)malloc(size);
     memset(dev->bios_rom.rom, 0xff, size);
@@ -1451,7 +1369,9 @@ loadhd(hdc_t *dev, int c, int d, const wchar_t *fn)
     }
 	
     /* Make sure we can do this. */
-    if (hdd[d].spt != dev->spt) {
+    /* Allow 31 sectors per track on RLL controllers, for the
+       ST225R, which is 667/2/31. */
+    if ((hdd[d].spt != dev->spt) && (hdd[d].spt != 31) && (dev->spt != 26)) {
 	/*
 	 * Uh-oh, MFM/RLL mismatch.
 	 *
@@ -1490,22 +1410,11 @@ set_switches(hdc_t *dev)
 	if (! drive->present) continue;
 
 	for (c = 0; c < 4; c++) {
-		if (dev->type == 21) {
-			if ((drive->hpc == wd1002a_hd_types[c].hpc) &&
-			    (drive->tracks == wd1002a_hd_types[c].tracks)) {
-				dev->switches |= (c << (d ? 0 : 2));
-				break;
-			}
-
-			if (drive->spt == RLL_SECTORS)
-				dev->switches |= 0x20;
-		} else {
-			if ((drive->spt == hd_types[c].spt) &&
-			    (drive->hpc == hd_types[c].hpc) &&
-			    (drive->tracks == hd_types[c].tracks)) {
-				dev->switches |= (c << (d ? 0 : 2));
-				break;
-			}
+		if ((drive->spt == hd_types[c].spt) &&
+		    (drive->hpc == hd_types[c].hpc) &&
+		    (drive->tracks == hd_types[c].tracks)) {
+			dev->switches |= (c << (d ? 0 : 2));
+			break;
 		}
 	}
 
@@ -1517,11 +1426,6 @@ set_switches(hdc_t *dev)
 		st506_xt_log("drive%i is type %i", d, c);
 	st506_xt_log(" (%i/%i/%i)\n", drive->tracks, drive->hpc, drive->spt);
 #endif
-    }
-
-    if (dev->type == 21) {
-	if (dev->irq == 5)
-		dev->switches |= 0x40;
     }
 }
 
@@ -1543,6 +1447,7 @@ st506_init(const device_t *info)
     dev->irq = 5;
     dev->dma = 3;
     dev->bios_addr = 0xc8000;
+    dev->nr_err = ERR_NOT_READY;
 
     switch(dev->type) {
 	case 0:		/* Xebec (MFM) */
@@ -1559,9 +1464,18 @@ st506_init(const device_t *info)
 		/*FALLTHROUGH*/
 
 	case 11:	/* Seagate ST-11M (MFM) */
-		fn = ST11_BIOS_FILE;
+		dev->nr_err = ERR_NOT_AVAILABLE;
 		dev->switches = 0x01;	/* fixed */
 		dev->misc = device_get_config_int("revision");
+		switch (dev->misc) {
+			case 5:		/* v1.7 */
+				fn = ST11_BIOS_FILE_OLD;
+				break;
+
+			case 19:	/* v2.0 */
+				fn = ST11_BIOS_FILE_NEW;
+				break;
+		}
 		dev->base = device_get_config_hex16("base");
 		dev->irq = device_get_config_int("irq");
 		dev->bios_addr = device_get_config_hex20("bios_addr");
@@ -1580,19 +1494,30 @@ st506_init(const device_t *info)
 		break;
 
 	case 21:	/* Western Digital WD1002A-WX1 (MFM) */
+		dev->nr_err = ERR_NOT_AVAILABLE;
 		fn = WD1002A_WX1_BIOS_FILE;
-		dev->switches = 0x10;	/* autobios */
+		/* The switches are read in reverse: 0 = closed, 1 = open.
+		   Both open means MFM, 17 sectors per track. */
+		dev->switches = 0x30;	/* autobios */
 		dev->base = device_get_config_hex16("base");
 		dev->irq = device_get_config_int("irq");
+		if (dev->irq == 2)
+			dev->switches |= 0x40;
 		dev->bios_addr = device_get_config_hex20("bios_addr");
 		break;
 
 	case 22:	/* Western Digital WD1002A-27X (RLL) */
+		dev->nr_err = ERR_NOT_AVAILABLE;
 		fn = WD1002A_27X_BIOS_FILE;
-		dev->switches = 0x10;	/* autobios */
+		/* The switches are read in reverse: 0 = closed, 1 = open.
+		   Both closed means translate 26 sectors per track to 17,
+		   SW6 closed, SW5 open means 26 sectors per track. */
+		dev->switches = device_get_config_int("translate") ? 0x00 : 0x10;	/* autobios */
 		dev->spt = RLL_SECTORS;
 		dev->base = device_get_config_hex16("base");
 		dev->irq = device_get_config_int("irq");
+		if (dev->irq == 2)
+			dev->switches |= 0x40;
 		dev->bios_addr = device_get_config_hex20("bios_addr");
 		break;
     }
@@ -1605,7 +1530,7 @@ st506_init(const device_t *info)
 		  st506_read,NULL,NULL, st506_write,NULL,NULL, dev);
 
     /* Add the timer. */
-	timer_add(&dev->timer, st506_callback, dev, 0);
+    timer_add(&dev->timer, st506_callback, dev, 0);
 
     st506_xt_log("ST506: %s (I/O=%03X, IRQ=%i, DMA=%i, BIOS @0x%06lX, size %lu)\n",
 		 info->name,dev->base,dev->irq,dev->dma, dev->bios_addr,dev->bios_size);
@@ -1626,7 +1551,7 @@ st506_init(const device_t *info)
     st506_xt_log("ST506: %i disks loaded.\n", c);
 
     /* For the Xebec, set the switches now. */
-    if ((dev->type == 0) || (dev->type == 21))
+    if (dev->type == 0)
 	set_switches(dev);
 
     /* Initial "active" drive parameters. */
@@ -1678,13 +1603,13 @@ dtc5150x_available(void)
 static int
 st11_m_available(void)
 {
-    return(rom_present(ST11_BIOS_FILE));
+    return(rom_present(ST11_BIOS_FILE_OLD) && rom_present(ST11_BIOS_FILE_NEW));
 }
 
 static int
 st11_r_available(void)
 {
-    return(rom_present(ST11_BIOS_FILE));
+    return(rom_present(ST11_BIOS_FILE_OLD) && rom_present(ST11_BIOS_FILE_NEW));
 }
 
 static int
@@ -1788,16 +1713,13 @@ static const device_config_t st11_config[] = {
 	}
     },
     {
-	"revision", "Board Revision", CONFIG_SELECTION, "", 5,
+	"revision", "Board Revision", CONFIG_SELECTION, "", 19,
 	{
 		{
-			"Rev. 00", 0
+			"Rev. 05 (v1.7)", 5
 		},
 		{
-			"Rev. 01", 1
-		},
-		{
-			"Rev. 05", 5
+			"Rev. 19 (v2.0)", 19
 		},
 		{
 			""
@@ -1846,6 +1768,68 @@ static const device_config_t wd_config[] = {
 		},
 		{
 			"IRQ 5", 5
+		},
+		{
+			""
+		}
+	}
+    },
+    {
+	"", "", -1
+    }
+};
+
+static const device_config_t wd_rll_config[] = {
+    {
+	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000,
+	{
+		{
+			"Disabled", 0x00000
+		},
+		{
+			"C800H", 0xc8000
+		},
+		{
+			""
+		}
+	}
+    },
+    {
+	"base", "Address", CONFIG_HEX16, "", 0x0320,
+	{
+		{
+			"320H", 0x0320
+		},
+		{
+			"324H", 0x0324
+		},
+		{
+			""
+		}
+	}
+    },
+    {
+	"irq", "IRQ", CONFIG_SELECTION, "", 5,
+	{
+		{
+			"IRQ 2", 2
+		},
+		{
+			"IRQ 5", 5
+		},
+		{
+			""
+		}
+	}
+    },
+    {
+	"translate", "Translate 26 -> 17", CONFIG_SELECTION, "", 0,
+	{
+		{
+			"Off", 0
+		},
+		{
+			"On", 1
 		},
 		{
 			""
@@ -1915,5 +1899,5 @@ const device_t st506_xt_wd1002a_27x_device = {
     st506_init, st506_close, NULL,
     wd1002a_27x_available,
     NULL, NULL,
-    wd_config
+    wd_rll_config
 };
