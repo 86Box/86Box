@@ -9,7 +9,7 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.19	2019/09/26
+ * Version:	@(#)fdc.c	1.0.20	2019/10/09
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -245,6 +245,13 @@ int
 fdc_is_mfm(fdc_t *fdc)
 {
     return fdc->mfm ? 1 : 0;
+}
+
+
+int
+fdc_is_dma(fdc_t *fdc)
+{
+    return ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma) ? 0 : 1;
 }
 
 

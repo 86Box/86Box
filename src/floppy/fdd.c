@@ -595,6 +595,7 @@ static void
 fdd_poll(void *priv)
 {
     int drive, i;
+    uint64_t shift;
     DRIVE *drv = (DRIVE *) priv;
 
     drive = drv->id;
@@ -602,9 +603,11 @@ fdd_poll(void *priv)
     if (drive >= FDD_NUM)
 	fatal("Attempting to poll floppy drive %i that is not supposed to be there\n", drive);
 
-    timer_advance_u64(&fdd_poll_time[drive], fdd_byteperiod(drive) << 5ULL);
+    shift = fdc_is_dma(fdd_fdc) ? 5ULL : 0ULL;
+    timer_advance_u64(&fdd_poll_time[drive], fdd_byteperiod(drive) << shift);
 
-    for (i = 0; i < 32; i++) {
+    shift = 1ULL << shift;
+    for (i = 0; i < shift; i++) {
 	if (drv->poll)
 		drv->poll(drive);
 

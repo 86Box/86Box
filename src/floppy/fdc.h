@@ -9,15 +9,15 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.h	1.0.6	2019/03/23
+ * Version:	@(#)fdc.h	1.0.7	2019/10/09
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2018,2019 Fred N. van Kempen.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -148,6 +148,7 @@ extern int	fdc_get_drive(fdc_t *fdc);
 extern int	fdc_get_perp(fdc_t *fdc);
 extern int	fdc_get_format_n(fdc_t *fdc);
 extern int	fdc_is_mfm(fdc_t *fdc);
+extern int	fdc_is_dma(fdc_t *fdc);
 extern double	fdc_get_hut(fdc_t *fdc);
 extern double	fdc_get_hlt(fdc_t *fdc);
 extern void	fdc_request_next_sector_id(fdc_t *fdc);
