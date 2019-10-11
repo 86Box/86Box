@@ -6,11 +6,16 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Definitions for the SERIAL card.
+ *		Definitions for the NS8250/16450/16550 UART emulation.
  *
- * Version:	@(#)serial.h	1.0.10	2019/03/24
+ * Version:	@(#)serial.h	1.0.11	2019/10/11
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #ifndef EMU_SERIAL_H
@@ -38,7 +43,8 @@ typedef struct serial_s
 	    iir, ier, lcr, msr,
 	    dat, int_status, scratch, fcr,
 	    irq, type, inst, transmit_enabled,
-	    fifo_enabled, rcvr_fifo_len, pad, pad0;
+	    fifo_enabled, rcvr_fifo_len, bits, data_bits,
+	    baud_cycles, bytes_transmitted, txsr, pad;
 
     uint16_t dlab, base_address;
 

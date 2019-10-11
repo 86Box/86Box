@@ -1,3 +1,23 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		NS8250/16450/16550 UART emulation.
+ *
+ * Version:	@(#)serial.h	1.0.11	2019/10/11
+ *
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ */
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -53,9 +73,12 @@ serial_log(const char *fmt, ...)
 void
 serial_reset_port(serial_t *dev)
 {
+    dev->lsr = 0x60;	/* Mark that both THR/FIFO and TXSR are empty. */
     dev->iir = dev->ier = dev->lcr = dev->fcr = 0;
     dev->fifo_enabled = 0;
     dev->xmit_fifo_pos = dev->rcvr_fifo_pos = 0;
+    dev->baud_cycles = 0;
+    dev->bytes_transmitted = 0;
     memset(dev->xmit_fifo, 0, 16);
     memset(dev->rcvr_fifo, 0, 14);
 }
@@ -64,25 +87,12 @@ serial_reset_port(serial_t *dev)
 void
 serial_transmit_period(serial_t *dev)
 {
-    double ddlab, byte_period, bits;
+    double ddlab;
 
     ddlab = (double) dev->dlab;
-    /* Bit period based on DLAB. */
-    /* correct: 833.333333... */
-    byte_period = (16000000.0 * ddlab) / 1843200.0;
-    /* Data bits according to LCR 1,0. */
-    bits = (double) ((dev->lcr & 0x03) + 5);
-    /* Stop bits. */
-    if (dev->lcr & 0x04)
-	bits += !(dev->lcr & 0x03) ? 1.5 : 2.0;
-    else
-	bits += 1.0;
-    /* Parity bits. */
-    if (dev->lcr & 0x08)
-	bits += 1.0;
-    byte_period *= bits;
 
-    dev->transmit_period = byte_period;
+    /* Bit period based on DLAB. */
+    dev->transmit_period = (16000000.0 * ddlab) / 1843200.0;
 }
 
 
@@ -157,25 +167,71 @@ serial_transmit(serial_t *dev, uint8_t val)
 }
 
 
+/* Transmit_enable flags:
+	Bit 0 = Do move if set;
+	Bit 1 = Do transmit if set. */
 static void
 serial_transmit_timer(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
+    int delay = 8;			/* STOP to THRE delay is 8 BAUDOUT cycles. */
 
-    if (dev->fifo_enabled) {
-	serial_transmit(dev, dev->xmit_fifo[dev->xmit_fifo_pos++]);
-	if (dev->xmit_fifo_pos == 16) {
+    if ((dev->transmit_enabled & 1) && (dev->transmit_enabled & 2))
+	delay = dev->data_bits;		/* Delay by less if already transmitting. */
+
+    if ((dev->baud_cycles == delay) && (dev->transmit_enabled & 1)) {
+	/* We have processed (data bits) BAUDOUT cycles. */
+	if (dev->fifo_enabled) {
+		dev->txsr = dev->xmit_fifo[dev->xmit_fifo_pos];
+		dev->xmit_fifo[dev->xmit_fifo_pos++] = 0;
+	} else {
+		dev->txsr = dev->thr;
+		dev->thr = 0;
+	}
+
+	dev->bytes_transmitted++;
+
+	if (!dev->fifo_enabled || (dev->xmit_fifo_pos == 16)) {
+		/* Update interrupts to signal THRE. */
 		dev->xmit_fifo_pos = 0;
-		/* Mark both FIFO and shift register as empty. */
-		dev->lsr |= 0x40;
-		dev->transmit_enabled = 0;
-	} else
+		dev->lsr |= 0x20;
+		dev->int_status |= SERIAL_INT_TRANSMIT;
+		serial_update_ints(dev);
+	}
+	if (dev->transmit_enabled & 2)
+		dev->baud_cycles++;
+	else
+		dev->baud_cycles = 0;	/* If not moving while transmitting, reset BAUDOUT cycle count. */
+	dev->transmit_enabled &= ~1;	/* Stop moving. */
+	dev->transmit_enabled |= 2;	/* Start transmitting. */
+	timer_advance_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
+    } else if ((dev->baud_cycles == dev->bits) && (dev->transmit_enabled & 2)) {
+	/* We have processed (total bits) BAUDOUT cycles, transmit the byte. */
+	serial_transmit(dev, dev->txsr);
+	dev->txsr = 0;
+	/* Reset BAUDOUT cycle count. */
+	dev->baud_cycles = 0;
+	/* If FIFO is enabled and there are bytes left to transmit,
+	   continue with the FIFO, otherwise stop. */
+	if (dev->fifo_enabled && (dev->bytes_transmitted == 16)) {
+		dev->transmit_enabled |= 1;
 		timer_advance_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
+	} else {
+		/* Both FIFO/THR and TXSR are empty. */
+		/* If bit 5 is set, also set bit 6 to mark both THR and shift register as empty. */
+		if (dev->lsr & 0x20)
+			dev->lsr |= 0x40;
+		dev->transmit_enabled &= ~2;
+		dev->bytes_transmitted = 0;
+	}
+	dev->int_status &= ~SERIAL_INT_TRANSMIT;
+	serial_update_ints(dev);
+    } else if (dev->transmit_enabled & 3) {
+	dev->baud_cycles++;
+	timer_advance_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
     } else {
-	serial_transmit(dev, dev->thr);
-	/* Mark both THR and shift register as empty. */
-	dev->lsr |= 0x40;
-	dev->transmit_enabled = 0;
+	dev->baud_cycles = 0;
+	dev->bytes_transmitted = 0;
     }
 }
 
@@ -183,7 +239,7 @@ serial_transmit_timer(void *priv)
 static void
 serial_update_speed(serial_t *dev)
 {
-    if (dev->transmit_enabled) {
+    if (dev->transmit_enabled & 3) {
 	timer_disable(&dev->transmit_timer);
 	timer_set_delay_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
     }
@@ -194,7 +250,7 @@ void
 serial_write(uint16_t addr, uint8_t val, void *p)
 {
     serial_t *dev = (serial_t *)p;
-    uint8_t new_msr, old_lsr, old;
+    uint8_t new_msr, old;
 
     serial_log("UART: Write %02X to port %02X\n", val, addr);
 
@@ -209,43 +265,30 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 			return;
                 }
 
+		/* Indicate FIFO/THR is no longer empty. */
+		dev->lsr &= 0x9f;
+		dev->int_status &= ~SERIAL_INT_TRANSMIT;
+		serial_update_ints(dev);
+
 		if ((dev->type >= SERIAL_NS16550) && dev->fifo_enabled) {
 			/* FIFO mode. */
 			dev->xmit_fifo[dev->xmit_fifo_pos++] = val;
 			dev->xmit_fifo_pos &= 0x0f;
-			old_lsr = dev->lsr;
-			/* Indicate FIFO is no longer empty. */
-			if (dev->xmit_fifo_pos) {
-				/* FIFO not yet full. */
-				/* Update interrupts. */
-				dev->lsr &= 0x9f;
-				if ((old_lsr ^ dev->lsr) & 0x20)
-					serial_update_ints(dev);
-			} else {
+
+			if (dev->xmit_fifo_pos == 0) {
 				/* FIFO full, begin transmitting. */
 				timer_disable(&dev->transmit_timer);
 				timer_set_delay_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
-				dev->transmit_enabled = 1;
-				dev->lsr &= 0xbf;
-				/* Update interrupts. */
-				dev->lsr |= 0x20;
-				dev->int_status |= SERIAL_INT_TRANSMIT;
-				serial_update_ints(dev);
+				dev->bytes_transmitted = 0;
+				dev->transmit_enabled |= 1;	/* Start moving. */
 			}
 		} else {
-			/* Non-FIFO mode. */
-			/* Begin transmitting. */
+			/* Non-FIFO mode, begin transmitting. */
+			dev->bytes_transmitted = 0;
 			timer_disable(&dev->transmit_timer);
 			timer_set_delay_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
-			dev->transmit_enabled = 1;
+			dev->transmit_enabled |= 1;	/* Start moving. */
 			dev->thr = val;
-			/* Clear bit 6 because shift register is full. */
-			dev->lsr &= 0xbf;
-			/* But set bit 5 before THR is empty. */
-			dev->lsr |= 0x20;
-			/* Update interrupts. */
-			dev->int_status |= SERIAL_INT_TRANSMIT;
-			serial_update_ints(dev);
 		}
 		break;
 	case 1:
@@ -260,6 +303,8 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 		break;
 	case 2:
 		if (dev->type >= SERIAL_NS16550) {
+			if ((val ^ dev->fcr) & 0x04)
+				dev->lsr |= 0x60;
 			dev->fcr = val & 0xf9;
 			dev->fifo_enabled = val & 0x01;
 			if (!dev->fifo_enabled) {
@@ -297,6 +342,16 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 		old = dev->lcr;
 		dev->lcr = val;
 		if ((old ^ val) & 0x0f) {
+			/* Data bits + start bit. */
+			dev->bits = ((dev->lcr & 0x03) + 5) + 1;
+			/* Stop bits. */
+			dev->bits++;		/* First stop bit. */
+			if (dev->lcr & 0x04)
+				dev->bits++;	/* Second stop bit. */
+			/* Parity bit. */
+			if (dev->lcr & 0x08)
+				dev->bits++;
+
 			serial_transmit_period(dev);
 			serial_update_speed(dev);
 		}
@@ -414,9 +469,6 @@ serial_read(uint16_t addr, void *p)
 		ret = dev->mctrl;
 		break;
 	case 5:
-		if (dev->lsr & 0x20)
-			dev->lsr |= 0x40;
-		dev->lsr |= 0x20;
 		ret = dev->lsr;
 		if (dev->lsr & 0x1f)
 			dev->lsr &= ~0x1e;
