@@ -8,7 +8,7 @@
  *
  *		Implementation of the WD76C10 System Controller chip.
  *
- * Version:	@(#)wd76c10.c	1.0.0	2019/05/14
+ * Version:	@(#)wd76c10.c	1.0.1	2019/10/19
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -135,13 +135,13 @@ wd76c10_write(uint16_t port, uint16_t val, void *priv)
 		dev->reg_f872 = val;
 		switch (val & 3) {
 		case 0:
-			mem_set_mem_state(0xd0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+			mem_set_mem_state(0xd0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 			break;
 		case 1:
-			mem_set_mem_state(0xd0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
+			mem_set_mem_state(0xd0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
 			break;
 		case 2:
-			mem_set_mem_state(0xd0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+			mem_set_mem_state(0xd0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
 			break;
 		case 3:
 			mem_set_mem_state(0xd0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);

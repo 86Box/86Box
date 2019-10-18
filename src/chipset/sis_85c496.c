@@ -8,7 +8,7 @@
  *
  *		Implementation of the SiS 85c496/85c497 chip.
  *
- * Version:	@(#)sis_85c496.c	1.0.0	2019/05/13
+ * Version:	@(#)sis_85c496.c	1.0.1	2019/10/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -96,11 +96,11 @@ sis_85c496_recalcmapping(sis_85c496_t *dev)
 	if (dev->pci_conf[0x44] & (1 << i)) {
 		shadowbios |= (base >= 0xe0000) && (dev->pci_conf[0x45] & 0x02);
 		shadowbios_write |= (base >= 0xe0000) && !(dev->pci_conf[0x45] & 0x01);
-		shflags = (dev->pci_conf[0x45] & 0x02) ? MEM_READ_INTERNAL : MEM_READ_EXTERNAL;
-		shflags |= (dev->pci_conf[0x45] & 0x01) ? MEM_WRITE_EXTERNAL : MEM_WRITE_INTERNAL;
+		shflags = (dev->pci_conf[0x45] & 0x02) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+		shflags |= (dev->pci_conf[0x45] & 0x01) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL;
 		mem_set_mem_state(base, 0x8000, shflags);
 	} else
-		mem_set_mem_state(base, 0x8000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+		mem_set_mem_state(base, 0x8000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
     }
 
     flushmmucache();
@@ -185,7 +185,7 @@ sis_85c496_write(int func, int addr, uint8_t val, void *priv)
 			if (val & 0x04)
 				mem_set_mem_state(0xa0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 			else
-				mem_set_mem_state(0xa0000, 0x20000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+				mem_set_mem_state(0xa0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 		}
 		break;
 

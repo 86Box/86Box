@@ -11,7 +11,7 @@
  *		SiS sis85c471 Super I/O Chip
  *		Used by DTK PKM-0038S E-2
  *
- * Version:	@(#)sis_85c471.c	1.0.0	2019/05/13
+ * Version:	@(#)sis_85c471.c	1.0.1	2019/10/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <http://pcem-emulator.co.uk/>
@@ -63,11 +63,11 @@ sis_85c471_recalcmapping(sis_85c471_t *dev)
 	if ((i > 5) || (dev->regs[0x02] & (1 << i))) {
 		shadowbios |= (base >= 0xe0000) && (dev->regs[0x02] & 0x80);
 		shadowbios_write |= (base >= 0xe0000) && !(dev->regs[0x02] & 0x40);
-		shflags = (dev->regs[0x02] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTERNAL;
-		shflags |= (dev->regs[0x02] & 0x40) ? MEM_WRITE_EXTERNAL : MEM_WRITE_INTERNAL;
+		shflags = (dev->regs[0x02] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+		shflags |= (dev->regs[0x02] & 0x40) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL;
 		mem_set_mem_state(base, 0x8000, shflags);
 	} else
-		mem_set_mem_state(base, 0x8000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+		mem_set_mem_state(base, 0x8000, MEM_READ_EXTANY | MEM_WRITE_EXTERNAL);
     }
 
     flushmmucache();
@@ -125,7 +125,7 @@ sis_85c471_write(uint16_t port, uint8_t val, void *priv)
 			if (dev->regs[0x13] & 0x10)
 				mem_set_mem_state(0xa0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 			else
-				mem_set_mem_state(0xa0000, 0x20000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+				mem_set_mem_state(0xa0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 		}
 		break;
 

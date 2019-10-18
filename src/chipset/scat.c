@@ -10,7 +10,7 @@
  *
  *		Re-worked version based on the 82C235 datasheet and errata.
  *
- * Version:	@(#)scat.c	1.0.0	2019/05/13
+ * Version:	@(#)scat.c	1.0.1	2019/10/19
  *
  * Authors:	Original by GreatPsycho for PCem.
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -126,7 +126,7 @@ shadow_state_update(scat_t *dev)
 {
     int i, val;
 
-    uint32_t base, bit, romcs, rommap_r, rommap_w, wp, shflags = 0;
+    uint32_t base, bit, romcs, wp, shflags = 0;
 
     for (i = 0; i < 24; i++) {
 	val = (dev->regs[SCAT_SHADOW_RAM_ENABLE_1 + (i >> 3)] >> (i & 7)) & 1;
@@ -142,15 +142,12 @@ shadow_state_update(scat_t *dev)
 		wp = dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << bit);
 	}
 
-	rommap_r = mem_mapping_is_romcs(base, 0) ? romcs : 1;
-	rommap_w = mem_mapping_is_romcs(base, 1) ? romcs : 1;
-
-	shflags = val ? MEM_READ_INTERNAL : (rommap_r ? MEM_READ_EXTERNAL : MEM_READ_DISABLED);
+	shflags = val ? MEM_READ_INTERNAL : (romcs ? MEM_READ_ROMCS : MEM_READ_EXTERNAL);
 
 	if (wp)
 		shflags |= MEM_WRITE_DISABLED;
 	else
-		shflags |= (val ? MEM_WRITE_INTERNAL : (rommap_w ? MEM_WRITE_EXTERNAL : MEM_WRITE_DISABLED));
+		shflags |= (val ? MEM_WRITE_INTERNAL : (romcs ? MEM_WRITE_ROMCS : MEM_WRITE_EXTERNAL));
 
 	mem_set_mem_state(base, 0x4000, shflags);
     }
