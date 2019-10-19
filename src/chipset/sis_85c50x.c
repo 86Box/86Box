@@ -8,7 +8,7 @@
  *
  *		Implementation of the SiS 85c501/85c503 chip.
  *
- * Version:	@(#)sis_85c50x.c	1.0.0	2019/05/13
+ * Version:	@(#)sis_85c50x.c	1.0.1	2019/10/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -59,20 +59,20 @@ sis_85c501_recalcmapping(sis_85c50x_t *dev)
 		if (dev->pci_conf[0][0x54 + c] & (1 << (d + 4))) {
 			switch (dev->pci_conf[0][0x53] & 0x60) {
 				case 0x00:
-					mem_set_mem_state(base, 0x4000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+					mem_set_mem_state(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
 					break;
 				case 0x20:
-					mem_set_mem_state(base, 0x4000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+					mem_set_mem_state(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 					break;
 				case 0x40:
 					mem_set_mem_state(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 					break;
 				case 0x60:
-					mem_set_mem_state(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
+					mem_set_mem_state(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
 					break;
 			}
 		} else
-			mem_set_mem_state(base, 0x4000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+			mem_set_mem_state(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 	}
     }
 

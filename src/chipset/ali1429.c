@@ -8,7 +8,7 @@
  *
  *		Implementation of the ALi M-1429/1431 chipset.
  *
- * Version:	@(#)ali1429.c	1.0.8	2019/04/08
+ * Version:	@(#)ali1429.c	1.0.9	2019/10/09
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -59,11 +59,11 @@ ali1429_recalc(ali1429_t *dev)
 	if (dev->regs[0x13] & (1 << i)) {
 		shadowbios |= (base >= 0xe8000) && !!(dev->regs[0x14] & 0x01);
 		shadowbios_write |= (base >= 0xe8000) && !!(dev->regs[0x14] & 0x02);
-		shflags = (dev->regs[0x14] & 0x01) ? MEM_READ_INTERNAL : MEM_READ_EXTERNAL;
-		shflags |= !(dev->regs[0x14] & 0x02) ? MEM_WRITE_EXTERNAL : MEM_WRITE_INTERNAL;
+		shflags = (dev->regs[0x14] & 0x01) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+		shflags |= !(dev->regs[0x14] & 0x02) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL;
 		mem_set_mem_state(base, 0x8000, shflags);
 	} else
-		mem_set_mem_state(base, 0x8000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+		mem_set_mem_state(base, 0x8000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
     }
 
     flushmmucache();

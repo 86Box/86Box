@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel PCISet chips from 420TX to 440FX.
  *
- * Version:	@(#)intel_4x0.c	1.0.0	2019/05/13
+ * Version:	@(#)intel_4x0.c	1.0.1	2019/10/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -54,13 +54,13 @@ i4x0_map(uint32_t addr, uint32_t size, int state)
 {
     switch (state & 3) {
 	case 0:
-		mem_set_mem_state(addr, size, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+		mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 		break;
 	case 1:
-		mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
+		mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
 		break;
 	case 2:
-		mem_set_mem_state(addr, size, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+		mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
 		break;
 	case 3:
 		mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);

@@ -8,7 +8,7 @@
  *
  *		Implementation of the HEADLAND AT286 chipset.
  *
- * Version:	@(#)headland.c	1.0.0	2019/05/14
+ * Version:	@(#)headland.c	1.0.1	2019/10/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -17,8 +17,8 @@
  *
  *		Copyright 2010-2019 Sarah Walker.
  *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2017,2018 Miran Grca.
- *		Copyright 2017,2018 GreatPsycho.
+ *		Copyright 2017-2019 Miran Grca.
+ *		Copyright 2017-2019 GreatPsycho.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -176,7 +176,7 @@ memmap_state_update(headland_t *dev)
 	addr = get_addr(dev, 0x40000 + (i << 14), NULL);
 	mem_mapping_set_exec(&dev->upper_mapping[i], addr < ((uint32_t)mem_size << 10) ? ram + addr : NULL);
     }
-    mem_set_mem_state(0xA0000, 0x40000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+    mem_set_mem_state(0xA0000, 0x40000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
     if (mem_size > 640) {
 	if ((dev->cr[0] & 4) == 0) {
 		mem_mapping_set_addr(&dev->mid_mapping, 0x100000, mem_size > 1024 ? 0x60000 : (mem_size - 640) << 10);
@@ -222,7 +222,7 @@ hl_write(uint16_t addr, uint8_t val, void *priv)
 			if (shadowbios)
 				mem_set_mem_state(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
 			else
-				mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+				mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
 		} else if (dev->indx == 0x87) {
 			if ((val & 1) && !(old_val & 1))
 				softresetx86();
@@ -263,8 +263,8 @@ hl_write(uint16_t addr, uint8_t val, void *priv)
 		switch(dev->cri) {
 			case 0:
 				dev->cr[0] = (val & 0x1f) | mem_conf_cr0[(mem_size > 640 ? mem_size : mem_size - 128) >> 9];
-				mem_set_mem_state(0xe0000, 0x10000, (val & 8 ? MEM_READ_INTERNAL : MEM_READ_EXTERNAL) | MEM_WRITE_DISABLED);
-				mem_set_mem_state(0xf0000, 0x10000, (val & 0x10 ? MEM_READ_INTERNAL: MEM_READ_EXTERNAL) | MEM_WRITE_DISABLED);
+				mem_set_mem_state(0xe0000, 0x10000, (val & 8 ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | MEM_WRITE_DISABLED);
+				mem_set_mem_state(0xf0000, 0x10000, (val & 0x10 ? MEM_READ_INTERNAL: MEM_READ_EXTANY) | MEM_WRITE_DISABLED);
 				memmap_state_update(dev);
 				break;
 

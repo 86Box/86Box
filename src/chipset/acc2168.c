@@ -9,7 +9,7 @@
  *		Implementation of the ACC 2168 chipset 
  *		used by the Packard Bell Legend 760 Supreme (PB410A or PB430).
  *
- * Version:	@(#)acc2168.c	1.0.0	2019/05/13
+ * Version:	@(#)acc2168.c	1.0.1	2019/10/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *
@@ -50,38 +50,38 @@ acc2168_shadow_recalc(acc2168_t *dev)
     if (dev->regs[0x02] & 8) {
 	switch (dev->regs[0x02] & 0x30) {
 		case 0x00:
-			mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+			mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
 			break;
 		case 0x10:
 			mem_set_mem_state(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 			break;
 		case 0x20:
-			mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+			mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 			break;
 		case 0x30:
-			mem_set_mem_state(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
+			mem_set_mem_state(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
 			break;
 	}
     } else
-	mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+	mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 
     if (dev->regs[0x02] & 4) {
 	switch (dev->regs[0x02] & 0x30) {
 		case 0x00:
-			mem_set_mem_state(0xe0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+			mem_set_mem_state(0xe0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
 			break;
 		case 0x10:
 			mem_set_mem_state(0xe0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 			break;
 		case 0x20:
-			mem_set_mem_state(0xe0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+			mem_set_mem_state(0xe0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 			break;
 		case 0x30:
-			mem_set_mem_state(0xe0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
+			mem_set_mem_state(0xe0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
 			break;
 	}
     } else
-	mem_set_mem_state(0xe0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+	mem_set_mem_state(0xe0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 }
 
 

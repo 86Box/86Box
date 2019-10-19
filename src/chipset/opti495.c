@@ -298,7 +298,7 @@ opti495_write(uint16_t addr, uint8_t val, void *priv)
 				if (!(val & 0x80))
 					mem_set_mem_state(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
 				else
-					mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+					mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
 			}
 		}
 		break;

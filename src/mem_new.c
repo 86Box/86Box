@@ -12,7 +12,7 @@
  *		the DYNAMIC_TABLES=1 enables this. Will eventually go
  *		away, either way...
  *
- * Version:	@(#)mem.c	1.0.20	2019/03/24
+ * Version:	@(#)mem.c	1.0.21	2019/10/19
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1194,7 +1194,16 @@ mem_mapping_read_allowed(uint32_t flags, int state)
 	case MEM_READ_ANY:
 		return 1;
 
+	/* On external and 0 mappings without ROMCS. */
 	case MEM_READ_EXTERNAL:
+		return !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_ROMCS);
+
+	/* On external and 0 mappings with ROMCS. */
+	case MEM_READ_ROMCS:
+		return !(flags & MEM_MAPPING_INTERNAL) && (flags & MEM_MAPPING_ROMCS);
+
+	/* On any external mappings. */
+	case MEM_READ_EXTANY:
 		return !(flags & MEM_MAPPING_INTERNAL);
 
 	case MEM_READ_INTERNAL:
@@ -1214,12 +1223,25 @@ mem_mapping_write_allowed(uint32_t flags, int state)
     switch (state & MEM_WRITE_MASK) {
 	case MEM_WRITE_DISABLED:
 		return 0;
+
 	case MEM_WRITE_ANY:
 		return 1;
+
+	/* On external and 0 mappings without ROMCS. */
 	case MEM_WRITE_EXTERNAL:
+		return !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_ROMCS);
+
+	/* On external and 0 mappings with ROMCS. */
+	case MEM_WRITE_ROMCS:
+		return !(flags & MEM_MAPPING_INTERNAL) && (flags & MEM_MAPPING_ROMCS);
+
+	/* On any external mappings. */
+	case MEM_WRITE_EXTANY:
 		return !(flags & MEM_MAPPING_INTERNAL);
+
 	case MEM_WRITE_INTERNAL:
 		return !(flags & MEM_MAPPING_EXTERNAL);
+
 	default:
 		fatal("mem_mapping_write_allowed : bad state %x\n", state);
     }
@@ -1433,19 +1455,27 @@ mem_add_bios(void)
 			mem_read_bios,mem_read_biosw,mem_read_biosl,
 			mem_write_null,mem_write_nullw,mem_write_nulll,
 			&rom[0x20000], MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
+
+	mem_set_mem_state(0x0e0000, 0x20000,
+			  MEM_READ_ROMCS | MEM_WRITE_ROMCS);
     } else {
 	mem_mapping_add(&bios_mapping, biosaddr, biosmask + 1,
 			mem_read_bios,mem_read_biosw,mem_read_biosl,
 			mem_write_null,mem_write_nullw,mem_write_nulll,
 			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
+
+	mem_set_mem_state(biosaddr, biosmask + 1,
+			  MEM_READ_ROMCS | MEM_WRITE_ROMCS);
     }
 
     if (AT) {
 	mem_mapping_add(&bios_high_mapping, biosaddr | (cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
 			mem_read_bios,mem_read_biosw,mem_read_biosl,
 			mem_write_null,mem_write_nullw,mem_write_nulll,
-			rom,
-			MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
+			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
+
+	mem_set_mem_state(biosaddr | (cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
+			  MEM_READ_ROMCS | MEM_WRITE_ROMCS);
     }
 }
 
