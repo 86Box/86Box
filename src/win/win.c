@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.57	2019/03/06
+ * Version:	@(#)win.c	1.0.58	2019/10/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -33,6 +33,7 @@
 #include "../86box.h"
 #include "../config.h"
 #include "../device.h"
+#include "../keyboard.h"
 #include "../mouse.h"
 #include "../video/video.h"
 #define GLOBAL
@@ -84,28 +85,27 @@ static const struct {
     void	(*resize)(int x, int y);
     int		(*pause)(void);
     void	(*enable)(int enable);
-    void	(*screenshot)(const wchar_t *fn);
 } vid_apis[2][RENDERERS_NUM] = {
   {
-    {	"DDraw", 1, (int(*)(void*))ddraw_init, ddraw_close, NULL, ddraw_pause, ddraw_enable, ddraw_take_screenshot	},
+    {	"DDraw", 1, (int(*)(void*))ddraw_init, ddraw_close, NULL, ddraw_pause, ddraw_enable	},
 #ifdef USE_D2D
-    {	"D2D", 1, (int(*)(void*))d2d_init, d2d_close, NULL, d2d_pause, d2d_enable, d2d_take_screenshot			},
+    {	"D2D", 1, (int(*)(void*))d2d_init, d2d_close, NULL, d2d_pause, d2d_enable		},
 #endif
-    {	"D3D", 1, (int(*)(void*))d3d_init, d3d_close, d3d_resize, d3d_pause, d3d_enable, d3d_take_screenshot		},
-    {	"SDL", 1, (int(*)(void*))sdl_init, sdl_close, NULL, sdl_pause, sdl_enable, sdl_take_screenshot			}
+    {	"D3D", 1, (int(*)(void*))d3d_init, d3d_close, d3d_resize, d3d_pause, d3d_enable		},
+    {	"SDL", 1, (int(*)(void*))sdl_init, sdl_close, NULL, sdl_pause, sdl_enable		}
 #ifdef USE_VNC
-    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, vnc_take_screenshot					}
+    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL				}
 #endif
   },
   {
-    {	"DDraw", 1, (int(*)(void*))ddraw_init_fs, ddraw_close, NULL, ddraw_pause, ddraw_enable, ddraw_take_screenshot	},
+    {	"DDraw", 1, (int(*)(void*))ddraw_init_fs, ddraw_close, NULL, ddraw_pause, ddraw_enable	},
 #ifdef USE_D2D
-    {	"D2D", 1, (int(*)(void*))d2d_init_fs, d2d_close, NULL, d2d_pause, d2d_enable, d2d_take_screenshot		},
+    {	"D2D", 1, (int(*)(void*))d2d_init_fs, d2d_close, NULL, d2d_pause, d2d_enable		},
 #endif
-    {	"D3D", 1, (int(*)(void*))d3d_init_fs, d3d_close, NULL, d3d_pause, d3d_enable, d3d_take_screenshot		},
-    {	"SDL", 1, (int(*)(void*))sdl_init_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable, sdl_take_screenshot		}
+    {	"D3D", 1, (int(*)(void*))d3d_init_fs, d3d_close, NULL, d3d_pause, d3d_enable		},
+    {	"SDL", 1, (int(*)(void*))sdl_init_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable	}
 #ifdef USE_VNC
-    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, vnc_take_screenshot					}
+    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL				}
 #endif
   },
 };
@@ -815,6 +815,8 @@ plat_setfullscreen(int on)
     startblit();
     video_wait_for_blit();
 
+    plat_vidapi_enable(0);
+
     win_mouse_close();
 
     /* Close the current mode, and open the new one. */
@@ -825,9 +827,14 @@ plat_setfullscreen(int on)
 
     win_mouse_init();
 
+    plat_vidapi_enable(1);
+
     /* Release video and make it redraw the screen. */
     endblit();
     device_force_redraw();
+
+    /* Send a CTRL break code so CTRL does not get stuck. */
+    keyboard_input(0, 0x01D);
 
     /* Finally, handle the host's mouse cursor. */
     /* win_log("%s full screen, %s cursor\n", on ? "enter" : "leave", on ? "hide" : "show"); */
@@ -838,30 +845,10 @@ plat_setfullscreen(int on)
 void
 take_screenshot(void)
 {
-    wchar_t path[1024], fn[128];
-    struct tm *info;
-    time_t now;
-
-    if (!vid_api_inited || !vid_apis[video_fullscreen][vid_api].screenshot) return;
-    win_log("Screenshot: video API is: %i\n", vid_api);
-    if ((vid_api < 0) || (vid_api >= RENDERERS_NUM)) return;
-
-    memset(fn, 0, sizeof(fn));
-    memset(path, 0, sizeof(path));
-
-    (void)time(&now);
-    info = localtime(&now);
-
-    plat_append_filename(path, usr_path, SCREENSHOT_PATH);
-
-    if (! plat_dir_check(path))
-	plat_dir_create(path);
-
-    wcscat(path, L"\\");
-
-    wcsftime(fn, 128, L"%Y%m%d_%H%M%S.png", info);
-    wcscat(path, fn);
-    vid_apis[video_fullscreen][vid_api].screenshot((const wchar_t *) path);
+    startblit();
+    screenshots++;
+    endblit();
+    device_force_redraw();
 }
 
 

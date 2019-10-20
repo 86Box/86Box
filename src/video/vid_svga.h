@@ -48,7 +48,7 @@ typedef struct svga_t
 	vc, sc, linepos, vslines, linecountff, oddeven,
 	con, cursoron, blink, scrollcache,
 	firstline, lastline, firstline_draw, lastline_draw,
-	displine, fullchange,
+	displine, fullchange, x_add, y_add, pan,
 	vram_display_mask, vidclock,
 	hwcursor_on, dac_hwcursor_on, overlay_on;
 
@@ -70,7 +70,7 @@ typedef struct svga_t
 	     extra_banks[2],
 	     banked_mask,
 	     ca, overscan_color,
-	     pallook[256];
+	     *map8, pallook[256];
 
     PALETTE vgapal;
 

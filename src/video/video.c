@@ -48,12 +48,16 @@
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
  */
+#define PNG_DEBUG 0
+#include <png.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
@@ -66,6 +70,7 @@
 #include "vid_svga.h"
 
 
+volatile int	screenshots = 0;
 bitmap_t	*buffer32 = NULL;
 uint8_t		fontdat[2048][8];		/* IBM CGA font */
 uint8_t		fontdatm[2048][16];		/* IBM MDA font */
@@ -253,6 +258,26 @@ static struct {
 static void (*blit_func)(int x, int y, int y1, int y2, int w, int h);
 
 
+#ifdef ENABLE_VIDEO_LOG
+int sdl_do_log = ENABLE_VIDEO_LOG;
+
+
+static void
+video_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (video_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+}
+#else
+#define video_log(fmt, ...)
+#endif
+
+
 static
 void blit_thread(void *param)
 {
@@ -305,10 +330,120 @@ video_wait_for_buffer(void)
 }
 
 
+static png_structp	png_ptr;
+static png_infop	info_ptr;
+
+
+static void
+video_take_screenshot(const wchar_t *fn, int startx, int starty, int w, int h)
+{
+    int i, x, y;
+    png_bytep *b_rgb = NULL;
+    FILE *fp = NULL;
+    uint32_t temp = 0x00000000;
+
+    /* create file */
+    fp = plat_fopen((wchar_t *) fn, (wchar_t *) L"wb");
+    if (!fp) {
+	video_log("[video_take_screenshot] File %ls could not be opened for writing", fn);
+	return;
+    }
+
+    /* initialize stuff */
+    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+
+    if (!png_ptr) {
+	video_log("[video_take_screenshot] png_create_write_struct failed");
+	fclose(fp);
+	return;
+    }
+
+    info_ptr = png_create_info_struct(png_ptr);
+    if (!info_ptr) {
+	video_log("[video_take_screenshot] png_create_info_struct failed");
+	fclose(fp);
+	return;
+    }
+
+    png_init_io(png_ptr, fp);
+
+    png_set_IHDR(png_ptr, info_ptr, w, h,
+	8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
+	PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+
+    b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * h);
+    if (b_rgb == NULL) {
+	video_log("[video_take_screenshot] Unable to Allocate RGB Bitmap Memory");
+	fclose(fp);
+	return;
+    }
+
+    for (y = 0; y < h; ++y) {
+	b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr, info_ptr));
+    	for (x = 0; x < w; ++x) {
+		if (video_grayscale || invert_display)
+			video_transform_copy(&temp, &(buffer32->line[y + starty][x + startx]), 1);
+		else
+			temp = buffer32->line[y + starty][x + startx];
+
+		b_rgb[y][(x) * 3 + 0] = (temp >> 16) & 0xff;
+		b_rgb[y][(x) * 3 + 1] = (temp >> 8) & 0xff;
+		b_rgb[y][(x) * 3 + 2] = temp & 0xff;
+	}
+    }
+
+    png_write_info(png_ptr, info_ptr);
+
+    png_write_image(png_ptr, b_rgb);
+
+    png_write_end(png_ptr, NULL);
+
+    /* cleanup heap allocation */
+    for (i = 0; i < h; i++)
+	if (b_rgb[i])  free(b_rgb[i]);
+
+    if (b_rgb) free(b_rgb);
+
+    if (fp) fclose(fp);
+}
+
+
+static void
+video_screenshot(int x, int y, int w, int h)
+{
+    wchar_t path[1024], fn[128];
+
+    memset(fn, 0, sizeof(fn));
+    memset(path, 0, sizeof(path));
+
+    plat_append_filename(path, usr_path, SCREENSHOT_PATH);
+
+    if (! plat_dir_check(path))
+	plat_dir_create(path);
+
+    wcscat(path, L"\\");
+
+    plat_tempfile(fn, NULL, L".png");
+    wcscat(path, fn);
+
+    video_log("taking screenshot to: %S\n", path);
+
+    video_take_screenshot((const wchar_t *) path, x, y, w, h);
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+}
+
+
 void
 video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
-    if (h <= 0) return;
+    if (screenshots) {
+	video_screenshot(x, y, w, h);
+	screenshots--;
+	video_log("screenshot taken, %i left\n", screenshots);
+    }
+
+    if ((w <= 0) || (h <= 0))
+	return;
 
     video_wait_for_blit();
 
@@ -652,7 +787,8 @@ video_init(void)
     }
 
     /* Account for overscan. */
-    buffer32 = create_bitmap(2048, 2048);
+    // buffer32 = create_bitmap(2048 + 64, 2048 + 64);
+    buffer32 = create_bitmap(4096 + 64, 4096 + 64);
 
     for (c = 0; c < 64; c++) {
 	cgapal[c + 64].r = (((c & 4) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
@@ -691,7 +827,7 @@ video_init(void)
 
     video_15to32 = malloc(4 * 65536);
     for (c = 0; c < 65536; c++)
-	video_15to32[c] = calc_15to32(c);
+	video_15to32[c] = calc_15to32(c & 0x7fff);
 
     video_16to32 = malloc(4 * 65536);
     for (c = 0; c < 65536; c++)

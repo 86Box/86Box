@@ -406,7 +406,7 @@ ht216_hwcursor_draw(svga_t *svga, int displine)
 {
     int x;
     uint32_t dat[2];
-    int offset = svga->hwcursor_latch.x + 32;
+    int offset = svga->hwcursor_latch.x + svga->x_add;
 
     if (svga->interlace && svga->hwcursor_oddeven)
 	svga->hwcursor_latch.addr += 4;
@@ -1140,13 +1140,13 @@ ht216_force_redraw(void *p)
 static const device_config_t v7_vga_1024i_config[] =
 {
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 1024,
+                "memory", "Memory size", CONFIG_SELECTION, "", 512,
                 {
                         {
-                                "512 kB", 512
+                                "256 kB", 256
                         },
                         {
-                                "1 MB", 1024
+                                "512 kB", 512
                         },
 			{
 				""
@@ -1175,7 +1175,7 @@ const device_t v7_vga_1024i_device =
 {
     "Video 7 VGA 1024i",
     DEVICE_ISA,
-    0x7010,
+    0x7140,
     v7_vga_1024i_init,
     ht216_close,
     NULL,

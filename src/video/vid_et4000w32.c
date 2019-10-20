@@ -35,6 +35,7 @@
 #include "../plat.h"
 #include "video.h"
 #include "vid_svga.h"
+#include "vid_svga_render.h"
 #include "vid_icd2061.h"
 #include "vid_stg_ramdac.h"
 
@@ -364,6 +365,66 @@ void et4000w32p_recalctimings(svga_t *svga)
                 svga->hdisp /= 3;
                 break;
         }
+
+	svga->render = svga_render_blank;
+	if (!svga->scrblank && svga->attr_palette_enable) {
+		if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
+			if (svga->seqregs[1] & 8) /*40 column*/
+				svga->render = svga_render_text_40;
+			else
+				svga->render = svga_render_text_80;
+		} else {
+			switch (svga->gdcreg[5] & 0x60) {
+				case 0x00: 
+					if (svga->seqregs[1] & 8) /*Low res (320)*/
+						svga->render = svga_render_4bpp_lowres;
+					else
+						svga->render = svga_render_4bpp_highres;
+					break;
+				case 0x20:		/*4 colours*/
+					if (svga->seqregs[1] & 8) /*Low res (320)*/
+						svga->render = svga_render_2bpp_lowres;
+					else
+						svga->render = svga_render_2bpp_highres;
+					break;
+				case 0x40: case 0x60:	/*256+ colours*/
+					switch (svga->bpp) {
+						case 8:
+							svga->map8 = svga->pallook;
+							if (svga->lowres)
+								svga->render = svga_render_8bpp_lowres;
+							else
+								svga->render = svga_render_8bpp_highres;
+							break;
+						case 15:
+							if (svga->lowres || (svga->seqregs[1] & 8))
+								svga->render = svga_render_15bpp_lowres;
+							else
+								svga->render = svga_render_15bpp_highres;
+							break;
+						case 16:
+							if (svga->lowres || (svga->seqregs[1] & 8))
+								svga->render = svga_render_16bpp_lowres;
+							else
+								svga->render = svga_render_16bpp_highres;
+							break;
+						case 24:
+							if (svga->lowres || (svga->seqregs[1] & 8))
+								svga->render = svga_render_24bpp_lowres;
+							else
+								svga->render = svga_render_24bpp_highres;
+							break;
+						case 32:
+							if (svga->lowres || (svga->seqregs[1] & 8))
+								svga->render = svga_render_32bpp_lowres;
+							else
+								svga->render = svga_render_32bpp_highres;
+							break;
+					}
+					break;
+			}
+		}
+	}
 }
 
 void et4000w32p_recalcmapping(et4000w32p_t *et4000)
@@ -1075,26 +1136,22 @@ void et4000w32p_hwcursor_draw(svga_t *svga, int displine)
 {
         int x, offset;
         uint8_t dat;
-	int y_add, x_add;
         offset = svga->hwcursor_latch.xoff;
-
-	y_add = (enable_overscan && !suppress_overscan) ? (overscan_y >> 1) : 0;
-	x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
 
         for (x = 0; x < 64 - svga->hwcursor_latch.xoff; x += 4)
         {
                 dat = svga->vram[svga->hwcursor_latch.addr + (offset >> 2)];
-                if (!(dat & 2))          buffer32->line[displine + y_add][svga->hwcursor_latch.x + x_add + x + 32]  = (dat & 1) ? 0xFFFFFF : 0;
-                else if ((dat & 3) == 3) buffer32->line[displine + y_add][svga->hwcursor_latch.x + x_add + x + 32] ^= 0xFFFFFF;
+                if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x]  = (dat & 1) ? 0xFFFFFF : 0;
+                else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x] ^= 0xFFFFFF;
                 dat >>= 2;
-                if (!(dat & 2))          buffer32->line[displine + y_add][svga->hwcursor_latch.x + x_add + x + 33 + x_add]  = (dat & 1) ? 0xFFFFFF : 0;
-                else if ((dat & 3) == 3) buffer32->line[displine + y_add][svga->hwcursor_latch.x + x_add + x + 33 + x_add] ^= 0xFFFFFF;
+                if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x + 1]  = (dat & 1) ? 0xFFFFFF : 0;
+                else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x + 1] ^= 0xFFFFFF;
                 dat >>= 2;
-                if (!(dat & 2))          buffer32->line[displine + y_add][svga->hwcursor_latch.x + x_add + x + 34]  = (dat & 1) ? 0xFFFFFF : 0;
-                else if ((dat & 3) == 3) buffer32->line[displine + y_add][svga->hwcursor_latch.x + x_add + x + 34] ^= 0xFFFFFF;
+                if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x + 2]  = (dat & 1) ? 0xFFFFFF : 0;
+                else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x + 2] ^= 0xFFFFFF;
                 dat >>= 2;
-                if (!(dat & 2))          buffer32->line[displine + y_add][svga->hwcursor_latch.x + x_add + x + 35]  = (dat & 1) ? 0xFFFFFF : 0;
-                else if ((dat & 3) == 3) buffer32->line[displine + y_add][svga->hwcursor_latch.x + x_add + x + 35] ^= 0xFFFFFF;
+                if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x + 3]  = (dat & 1) ? 0xFFFFFF : 0;
+                else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x + 3] ^= 0xFFFFFF;
                 dat >>= 2;
                 offset += 4;
         }

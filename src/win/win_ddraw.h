@@ -8,13 +8,13 @@
  *
  *		Definitions for the DirectDraw 9 rendering module.
  *
- * Version:	@(#)win_ddraw.h	1.0.1	2017/11/12
+ * Version:	@(#)win_ddraw.h	1.0.2	2019/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #ifndef WIN_DDRAW_H
 # define WIN_DDRAW_H
@@ -32,7 +32,6 @@ extern int	ddraw_init(HWND h);
 extern int	ddraw_init_fs(HWND h);
 extern void	ddraw_close(void);
 extern int	ddraw_pause(void);
-extern void	ddraw_take_screenshot(const wchar_t *fn);
 extern void	ddraw_enable(int enable);
 
 #ifdef __cplusplus

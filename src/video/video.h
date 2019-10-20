@@ -83,6 +83,7 @@ extern int	egareads,
 		egawrites;
 extern int	changeframecount;
 
+extern volatile int screenshots;
 extern bitmap_t	*buffer32;
 extern PALETTE	cgapal,
 		cgapal_mono[6];

@@ -8,13 +8,13 @@
  *
  *		Definitions for the libSDL2 rendering module.
  *
- * Version:	@(#)win_sdl.h	    1.0.0	2018/05/26
+ * Version:	@(#)win_sdl.h	    1.0.1	2019/10/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Michael Drüing, <michael@drueing.de>
  *
- *		Copyright 2018 Fred N. van Kempen.
- *		Copyright 2018 Michael Drüing.
+ *		Copyright 2018,2019 Fred N. van Kempen.
+ *		Copyright 2018,2019 Michael Drüing.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -56,8 +56,6 @@ extern int	sdl_init_fs(HWND h);
 extern int	sdl_pause(void);
 extern void	sdl_resize(int x, int y);
 extern void	sdl_enable(int enable);
-
-extern void	sdl_take_screenshot(const wchar_t *fn);
 
 
 #endif	/*WIN_SDL_H*/

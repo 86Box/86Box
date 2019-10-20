@@ -443,31 +443,40 @@ cga_poll(void *p)
 				ys_temp = (cga->lastline - cga->firstline) << 1;
 
 				if ((xs_temp > 0) && (ys_temp > 0)) {
-					if (xsize < 64) xs_temp = 656;
-					if (ysize < 32) ys_temp = 400;
+					if (xs_temp < 64) xs_temp = 656;
+					if (ys_temp < 32) ys_temp = 400;
+					if (!enable_overscan)
+						xs_temp -= 16;
 
-					if ((cga->cgamode & 8) && x && (cga->lastline - cga->firstline) &&
-					    ((xs_temp != xsize) || (ys_temp != ysize) ||
-					    video_force_resize_get())) {
+					if ((cga->cgamode & 8) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
 						xsize = xs_temp;
 						ysize = ys_temp;
-						set_screen_size(xsize, ysize + 16);
+						set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
 
 						if (video_force_resize_get())
 							video_force_resize_set(0);
 					}
 
-					if (cga->composite) 
-						video_blit_memtoscreen(0, (cga->firstline - 4) << 1, 0, ((cga->lastline - cga->firstline) + 8) << 1,
+					if (enable_overscan) {
+						if (cga->composite) 
+							video_blit_memtoscreen(0, (cga->firstline - 4) << 1, 0, ((cga->lastline - cga->firstline) + 8) << 1,
 								       xsize, ((cga->lastline - cga->firstline) + 8) << 1);
-					else
-						video_blit_memtoscreen_8(0, (cga->firstline - 4) << 1, 0, ((cga->lastline - cga->firstline) + 8) << 1,
-									 xsize, ((cga->lastline - cga->firstline) + 8) << 1);
+						else
+							video_blit_memtoscreen_8(0, (cga->firstline - 4) << 1, 0, ((cga->lastline - cga->firstline) + 8) << 1,
+										 xsize, ((cga->lastline - cga->firstline) + 8) << 1);
+					} else {
+						if (cga->composite) 
+							video_blit_memtoscreen(8, cga->firstline << 1, 0, (cga->lastline - cga->firstline) << 1,
+								       xsize, (cga->lastline - cga->firstline) << 1);
+						else
+							video_blit_memtoscreen_8(8, cga->firstline << 1, 0, (cga->lastline - cga->firstline) << 1,
+										 xsize, (cga->lastline - cga->firstline) << 1);
+					}
 				}
 
 				frames++;
 
-				video_res_x = xsize - 16;
+				video_res_x = xsize;
 				video_res_y = ysize;
 				if (cga->cgamode & 1) {
 					video_res_x /= 8;

@@ -210,7 +210,7 @@ void
 video_reset_close(void)
 {
     video_inform(VIDEO_FLAG_TYPE_NONE, &timing_default);
-    was_reset = 1;
+    was_reset = 0;
 }
 
 
