@@ -340,7 +340,7 @@ vid_poll_1512(void *priv)
     amsvid_t *vid = (amsvid_t *)priv;
     uint16_t ca = (vid->crtc[15] | (vid->crtc[14] << 8)) & 0x3fff;
     int drawcursor;
-    int x, c;
+    int x, c, xs_temp, ys_temp;
     uint8_t chr, attr;
     uint16_t dat, dat2, dat3, dat4;
     int cols[4];
@@ -360,17 +360,23 @@ vid_poll_1512(void *priv)
 		vid->lastline = vid->displine;
 		for (c = 0; c < 8; c++) {
 			if ((vid->cgamode & 0x12) == 0x12) {
-				((uint32_t *)buffer32->line[vid->displine])[c] = (vid->border & 15) + 16;
-				if (vid->cgamode & 1)
-					((uint32_t *)buffer32->line[vid->displine])[c + (vid->crtc[1] << 3) + 8] = 0;
-				  else
-					((uint32_t *)buffer32->line[vid->displine])[c + (vid->crtc[1] << 4) + 8] = 0;
+				buffer32->line[(vid->displine << 1)][c] = buffer32->line[(vid->displine << 1) + 1][c] = (vid->border & 15) + 16;
+				if (vid->cgamode & 1) {
+					buffer32->line[(vid->displine << 1)][c + (vid->crtc[1] << 3) + 8] =
+					buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 3) + 8] = 0;
+				} else {
+					buffer32->line[(vid->displine << 1)][c + (vid->crtc[1] << 4) + 8] =
+					buffer32->line[(vid->displine << 1)+ 1][c + (vid->crtc[1] << 4) + 8] = 0;
+				}
 			} else {
-				((uint32_t *)buffer32->line[vid->displine])[c] = (vid->cgacol & 15) + 16;
-				if (vid->cgamode & 1)
-					((uint32_t *)buffer32->line[vid->displine])[c + (vid->crtc[1] << 3) + 8] = (vid->cgacol & 15) + 16;
-				  else
-					((uint32_t *)buffer32->line[vid->displine])[c + (vid->crtc[1] << 4) + 8] = (vid->cgacol & 15) + 16;
+				buffer32->line[(vid->displine << 1)][c] = buffer32->line[(vid->displine << 1) + 1][c] = (vid->cgacol & 15) + 16;
+				if (vid->cgamode & 1) {
+					buffer32->line[(vid->displine << 1)][c + (vid->crtc[1] << 3) + 8] =
+					buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 3) + 8] = (vid->cgacol & 15) + 16;
+				} else {
+					buffer32->line[(vid->displine << 1)][c + (vid->crtc[1] << 4) + 8] =
+					buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 4) + 8] = (vid->cgacol & 15) + 16;
+				}
 			}
 		}
 		if (vid->cgamode & 1) {
@@ -388,11 +394,17 @@ vid_poll_1512(void *priv)
 					cols[0] = (attr >> 4) + 16;
 				}
 				if (drawcursor) {
-					for (c = 0; c < 8; c++)
-					    ((uint32_t *)buffer32->line[vid->displine])[(x << 3) + c + 8] = cols[(fontdat[vid->fontbase + chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+					for (c = 0; c < 8; c++) {
+						buffer32->line[(vid->displine << 1)][(x << 3) + c + 8] =
+						buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] =
+							cols[(fontdat[vid->fontbase + chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+					}
 				} else {
-					for (c = 0; c < 8; c++)
-					    ((uint32_t *)buffer32->line[vid->displine])[(x << 3) + c + 8] = cols[(fontdat[vid->fontbase + chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+					for (c = 0; c < 8; c++) {
+						buffer32->line[(vid->displine << 1)][(x << 3) + c + 8] =
+						buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] =
+							cols[(fontdat[vid->fontbase + chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+					}
 				}
 				vid->ma++;
 			}
@@ -412,13 +424,21 @@ vid_poll_1512(void *priv)
 				}
 				vid->ma++;
 				if (drawcursor) {
-					for (c = 0; c < 8; c++)
-						((uint32_t *)buffer32->line[vid->displine])[(x << 4) + (c << 1) + 8] = 
-						((uint32_t *)buffer32->line[vid->displine])[(x << 4) + (c << 1) + 1 + 8] = cols[(fontdat[vid->fontbase + chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+					for (c = 0; c < 8; c++) {
+						buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] =
+						buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] =
+						buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] =
+						buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] =
+							cols[(fontdat[vid->fontbase + chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+						}
 				} else {
-					for (c = 0; c < 8; c++)
-						((uint32_t *)buffer32->line[vid->displine])[(x << 4) + (c << 1) + 8] = 
-					    	((uint32_t *)buffer32->line[vid->displine])[(x << 4) + (c << 1) + 1 + 8] = cols[(fontdat[vid->fontbase + chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+					for (c = 0; c < 8; c++) {
+						buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] = 
+						buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] =
+						buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = 
+						buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] =
+							cols[(fontdat[vid->fontbase + chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+					}
 				}
 			}
 		} else if (! (vid->cgamode & 16)) {
@@ -441,8 +461,11 @@ vid_poll_1512(void *priv)
 				dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000)] << 8) | vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000) + 1];
 				vid->ma++;
 				for (c = 0; c < 8; c++) {
-					((uint32_t *)buffer32->line[vid->displine])[(x << 4) + (c << 1) + 8] =
-					((uint32_t *)buffer32->line[vid->displine])[(x << 4) + (c << 1) + 1 + 8] = cols[dat >> 14];
+					buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] =
+					buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] =
+					buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] =
+					buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] =
+						cols[dat >> 14];
 					dat <<= 2;
 				}
 			}
@@ -456,7 +479,8 @@ vid_poll_1512(void *priv)
 
 				vid->ma++;
 				for (c = 0; c < 16; c++) {
-					((uint32_t *)buffer32->line[vid->displine])[(x << 4) + c + 8] = (((dat >> 15) | ((dat2 >> 15) << 1) | ((dat3 >> 15) << 2) | ((dat4 >> 15) << 3)) & (vid->cgacol & 15)) + 16;
+					buffer32->line[(vid->displine << 1)][(x << 4) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + c + 8] =
+						(((dat >> 15) | ((dat2 >> 15) << 1) | ((dat3 >> 15) << 2) | ((dat4 >> 15) << 3)) & (vid->cgacol & 15)) + 16;
 					dat  <<= 1;
 					dat2 <<= 1;
 					dat3 <<= 1;
@@ -466,10 +490,13 @@ vid_poll_1512(void *priv)
 		}
 	} else {
 		cols[0] = ((vid->cgamode & 0x12) == 0x12) ? 0 : (vid->cgacol & 15) + 16;
-		if (vid->cgamode & 1)
-			hline(buffer32, 0, vid->displine, (vid->crtc[1] << 3) + 16, cols[0]);
-		else
-			hline(buffer32, 0, vid->displine, (vid->crtc[1] << 4) + 16, cols[0]);
+		if (vid->cgamode & 1) {
+			hline(buffer32, 0, (vid->displine << 1), (vid->crtc[1] << 3) + 16, cols[0]);
+			hline(buffer32, 0, (vid->displine << 1) + 1, (vid->crtc[1] << 3) + 16, cols[0]);
+		} else {
+			hline(buffer32, 0, (vid->displine << 1), (vid->crtc[1] << 4) + 16, cols[0]);
+			hline(buffer32, 0, (vid->displine << 1), (vid->crtc[1] << 4) + 16, cols[0]);
+		}
 	}
 
 	vid->sc = oldsc;
@@ -530,20 +557,34 @@ vid_poll_1512(void *priv)
 				x = (vid->crtc[1] << 4) + 16;
 			vid->lastline++;
 
-			if ((x != xsize) || ((vid->lastline - vid->firstline) != ysize) || video_force_resize_get()) {
-				xsize = x;
-				ysize = vid->lastline - vid->firstline;
-				if (xsize < 64) xsize = 656;
-				if (ysize < 32) ysize = 200;
-				set_screen_size(xsize, (ysize << 1) + 16);
+			xs_temp = x;
+			ys_temp = (vid->lastline - vid->firstline) << 1;
 
-				if (video_force_resize_get())
-					video_force_resize_set(0);
+			if ((xs_temp > 0) && (ys_temp > 0)) {
+				if (xs_temp < 64) xs_temp = 656;
+				if (ys_temp < 32) ys_temp = 400;
+				if (!enable_overscan)
+					xs_temp -= 16;
+
+				if ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get()) {
+					xsize = xs_temp;
+					ysize = ys_temp;
+					set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
+
+					if (video_force_resize_get())
+						video_force_resize_set(0);
+				}
+
+				if (enable_overscan) {
+					video_blit_memtoscreen_8(0, (vid->firstline - 4) << 1, 0, ((vid->lastline - vid->firstline) + 8) << 1,
+								 xsize, ((vid->lastline - vid->firstline) + 8) << 1);
+				} else {
+					video_blit_memtoscreen_8(8, vid->firstline << 1, 0, (vid->lastline - vid->firstline) << 1,
+								 xsize, (vid->lastline - vid->firstline) << 1);
+				}
 			}
 
-			video_blit_memtoscreen_8(0, vid->firstline - 4, 0, (vid->lastline - vid->firstline) + 8, xsize, (vid->lastline - vid->firstline) + 8);
-
-			video_res_x = xsize - 16;
+			video_res_x = xsize;
 			video_res_y = ysize;
 			if (vid->cgamode & 1) {
 			video_res_x /= 8;
@@ -1387,7 +1428,7 @@ lcdc_poll(amsvid_t *vid)
 {
     cga_t *cga = &vid->cga;
     int drawcursor;
-    int x, c;
+    int x, c, xs_temp, ys_temp;
     int oldvc;
     uint8_t chr, attr;
     uint16_t dat;
@@ -1417,7 +1458,8 @@ lcdc_poll(amsvid_t *vid)
 				attr = cga->charbuffer[(x << 1) + 1];
 				drawcursor = ((cga->ma == ca) && cga->con && cga->cursoron);
 				blink = ((cga->cgablink & 16) && (cga->cgamode & 0x20) && (attr & 0x80) && !drawcursor);
-				lcd_draw_char_80(vid, &((uint32_t *)(buffer32->line[cga->displine]))[x * 8], chr, attr, drawcursor, blink, cga->sc, cga->cgamode & 0x40, cga->cgamode);
+				lcd_draw_char_80(vid, &(buffer32->line[(cga->displine << 1)])[x * 8], chr, attr, drawcursor, blink, cga->sc, cga->cgamode & 0x40, cga->cgamode);
+				lcd_draw_char_80(vid, &(buffer32->line[(cga->displine << 1) + 1])[x * 8], chr, attr, drawcursor, blink, cga->sc, cga->cgamode & 0x40, cga->cgamode);
 				cga->ma++;
 			}
 		} else if (!(cga->cgamode & 2)) {
@@ -1426,7 +1468,8 @@ lcdc_poll(amsvid_t *vid)
 				attr = cga->vram[(((cga->ma << 1) + 1) & 0x3fff)];
 				drawcursor = ((cga->ma == ca) && cga->con && cga->cursoron);
 				blink = ((cga->cgablink & 16) && (cga->cgamode & 0x20) && (attr & 0x80) && !drawcursor);
-				lcd_draw_char_40(vid, &((uint32_t *)(buffer32->line[cga->displine]))[x * 16], chr, attr, drawcursor, blink, cga->sc, cga->cgamode);
+				lcd_draw_char_40(vid, &(buffer32->line[(cga->displine << 1)])[x * 16], chr, attr, drawcursor, blink, cga->sc, cga->cgamode);
+				lcd_draw_char_40(vid, &(buffer32->line[(cga->displine << 1) + 1])[x * 16], chr, attr, drawcursor, blink, cga->sc, cga->cgamode);
 				cga->ma++;
 			}
 		} else {	/* Graphics mode */
@@ -1434,14 +1477,20 @@ lcdc_poll(amsvid_t *vid)
 				dat = (cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000)] << 8) | cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000) + 1];
 				cga->ma++;
 				for (c = 0; c < 16; c++) {
-					((uint32_t *)buffer32->line[cga->displine])[(x << 4) + c] = (dat & 0x8000) ? blue : green;
+					buffer32->line[(cga->displine << 1)][(x << 4) + c] = buffer32->line[(cga->displine << 1) + 1][(x << 4) + c] =
+						(dat & 0x8000) ? blue : green;
 					dat <<= 1;
 				}
 			}
 		}
 	} else {
-		if (cga->cgamode & 1) hline(buffer32, 0, cga->displine, (cga->crtc[1] << 3), green);
-		else                  hline(buffer32, 0, cga->displine, (cga->crtc[1] << 4), green);
+		if (cga->cgamode & 1) {
+			hline(buffer32, 0, (cga->displine << 1), (cga->crtc[1] << 3), green);
+			hline(buffer32, 0, (cga->displine << 1) + 1, (cga->crtc[1] << 3), green);
+		} else {
+			hline(buffer32, 0, (cga->displine << 1), (cga->crtc[1] << 4), green);
+			hline(buffer32, 0, (cga->displine << 1) + 1, (cga->crtc[1] << 4), green);
+		}
 	}
 
 	if (cga->cgamode & 1) x = (cga->crtc[1] << 3);
@@ -1504,24 +1553,30 @@ lcdc_poll(amsvid_t *vid)
 				if (cga->cgamode & 1) x = (cga->crtc[1] << 3);
 				else                  x = (cga->crtc[1] << 4);
 				cga->lastline++;
-				if ((cga->cgamode & 8) && x && (cga->lastline - cga->firstline) &&
-				    ((x != xsize) || (((cga->lastline - cga->firstline) << 1) != ysize) ||
-				    video_force_resize_get())) {
-					xsize = x;
-					ysize = (cga->lastline - cga->firstline) << 1;
-					if (xsize < 64) xsize = 656;
-					if (ysize < 32) ysize = 400;
-					set_screen_size(xsize, ysize + 16);
 
-					if (video_force_resize_get())
-						video_force_resize_set(0);
+				xs_temp = x;
+				ys_temp = (cga->lastline - cga->firstline) << 1;
+
+				if ((xs_temp > 0) && (ys_temp > 0)) {
+					if (xs_temp < 64) xs_temp = 640;
+					if (ys_temp < 32) ys_temp = 400;
+
+					if ((cga->cgamode & 8) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
+						xsize = xs_temp;
+						ysize = ys_temp;
+						set_screen_size(xsize, ysize);
+
+						if (video_force_resize_get())
+							video_force_resize_set(0);
+					}
+
+					video_blit_memtoscreen(0, cga->firstline << 1, 0, (cga->lastline - cga->firstline) << 1,
+							       xsize, (cga->lastline - cga->firstline) << 1);
 				}
-       
-				video_blit_memtoscreen(0, cga->firstline, 0, (cga->lastline - cga->firstline),
-							 xsize, (cga->lastline - cga->firstline));
+
 				frames++;
 
-				video_res_x = xsize - 16;
+				video_res_x = xsize;
 				video_res_y = ysize;
 				if (cga->cgamode & 1) {
 					video_res_x /= 8;
@@ -2000,9 +2055,9 @@ ms_write(uint16_t addr, uint8_t val, void *priv)
 {
     amstrad_t *ams = (amstrad_t *)priv;
 
-    if (addr == 0x78)
+    if ((addr == 0x78) || (addr == 0x79))
 	ams->mousex = 0;
-      else
+    else
 	ams->mousey = 0;
 }
 
@@ -2011,11 +2066,17 @@ static uint8_t
 ms_read(uint16_t addr, void *priv)
 {
     amstrad_t *ams = (amstrad_t *)priv;
+    uint8_t ret;
 
-    if (addr == 0x78)
-	return(ams->mousex);
+    if ((addr == 0x78) || (addr == 0x79)) {
+	ret = ams->mousex;
+	ams->mousex = 0;
+    } else {
+	ret = ams->mousey;
+	ams->mousey = 0;
+    }
 
-    return(ams->mousey);
+    return(ret);
 }
 
 
@@ -2029,10 +2090,11 @@ ms_poll(int x, int y, int z, int b, void *priv)
 
     if ((b & 1) && !(ams->oldb & 1))
 	keyboard_send(0x7e);
-    if ((b & 2) && !(ams->oldb & 2))
-	keyboard_send(0x7d);
     if (!(b & 1) && (ams->oldb & 1))
 	keyboard_send(0xfe);
+
+    if ((b & 2) && !(ams->oldb & 2))
+	keyboard_send(0x7d);
     if (!(b & 2) && (ams->oldb & 2))
 	keyboard_send(0xfd);
 
@@ -2046,8 +2108,6 @@ static void
 kbd_adddata(uint16_t val)
 {
     key_queue[key_queue_end] = val;
-    amstrad_log("keyboard_amstrad : %02X added to key queue at %i\n",
-					val, key_queue_end);
     key_queue_end = (key_queue_end + 1) & 0xf;
 }
 
@@ -2055,7 +2115,8 @@ kbd_adddata(uint16_t val)
 static void
 kbd_adddata_ex(uint16_t val)
 {
-    kbd_adddata_process(val, kbd_adddata);
+    kbd_adddata(val);
+    // kbd_adddata_process(val, kbd_adddata);
 }
 
 
@@ -2115,7 +2176,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		break;
 
 	case 0x66:
-		pc_reset(1);
+		softresetx86();
+		cpu_set_edx();
 		break;
 
 	default:
@@ -2219,21 +2281,18 @@ static void
 kbd_poll(void *priv)
 {
     amstrad_t *ams = (amstrad_t *)priv;
-	
-	timer_advance_u64(&ams->send_delay_timer, 1000 * TIMER_USEC);
 
-    if (ams->wantirq) {
+    timer_advance_u64(&ams->send_delay_timer, 1000 * TIMER_USEC);
+
+    if (ams->wantirq) {
 	ams->wantirq = 0;
 	ams->pa = ams->key_waiting;
 	picint(2);
-	amstrad_log("keyboard_amstrad : take IRQ\n");
     }
 
     if (key_queue_start != key_queue_end && !ams->pa) {
 	ams->key_waiting = key_queue[key_queue_start];
-	amstrad_log("Reading %02X from the key queue at %i\n",
-			ams->key_waiting, key_queue_start);
-	key_queue_start = (key_queue_start + 1) & 0xf;
+	key_queue_start = (key_queue_start + 1) & 0x0f;
 	ams->wantirq = 1;
     }
 }
@@ -2346,6 +2405,7 @@ machine_amstrad_init(const machine_t *model, int type)
 
     ams = (amstrad_t *)malloc(sizeof(amstrad_t));
     memset(ams, 0x00, sizeof(amstrad_t));
+    ams->type = type;
 
     device_add(&amstrad_nvr_device);
 
@@ -2358,17 +2418,8 @@ machine_amstrad_init(const machine_t *model, int type)
 
     io_sethandler(0x0378, 3,
 		  ams_read, NULL, NULL, ams_write, NULL, NULL, ams);
-
     io_sethandler(0xdead, 1,
 		  ams_read, NULL, NULL, ams_write, NULL, NULL, ams);
-
-    io_sethandler(0x0078, 1,
-		  ms_read, NULL, NULL, ms_write, NULL, NULL, ams);
-
-    io_sethandler(0x007a, 1,
-		  ms_read, NULL, NULL, ms_write, NULL, NULL, ams);
-
-    ams->type = type;
 
     switch(type) {
 	case AMS_PC1512:
@@ -2442,16 +2493,23 @@ machine_amstrad_init(const machine_t *model, int type)
 
     /* Initialize the (custom) keyboard/mouse interface. */
     ams->wantirq = 0;
-    io_sethandler(0x0060, 6,
+    io_sethandler(0x0060, 7,
 		  kbd_read, NULL, NULL, kbd_write, NULL, NULL, ams);
     timer_add(&ams->send_delay_timer, kbd_poll, ams, 1);
     keyboard_set_table(scancode_xt);
     keyboard_send = kbd_adddata_ex;
     keyboard_scan = 1;
 
-    /* Tell mouse driver about our internal mouse. */
-    mouse_reset();
-    mouse_set_poll(ms_poll, ams);
+    io_sethandler(0x0078, 2,
+		  ms_read, NULL, NULL, ms_write, NULL, NULL, ams);
+    io_sethandler(0x007a, 2,
+		  ms_read, NULL, NULL, ms_write, NULL, NULL, ams);
+
+    if (mouse_type == MOUSE_TYPE_INTERNAL) {
+	/* Tell mouse driver about our internal mouse. */
+	mouse_reset();
+	mouse_set_poll(ms_poll, ams);
+    }
 
     if (joystick_type != 7)
 	device_add(&gameport_device);
