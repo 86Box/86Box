@@ -30,7 +30,8 @@ typedef struct ega_t {
     uint8_t crtcreg, gdcaddr, attraddr, attrff,
 	    attr_palette_enable, seqaddr, miscout,
 	    writemask, la, lb, lc, ld,
-	    stat, colourcompare, colournocare, scrblank;
+	    stat, colourcompare, colournocare, scrblank,
+	    plane_mask, pad, pad0, pad1;
     uint8_t crtc[32];
     uint8_t gdcreg[16];
     uint8_t attrregs[32];

@@ -10,7 +10,7 @@
 #		settings, so we can avoid changing the main one for all of
 #		our local setups.
 #
-# Version:	@(#)Makefile.local	1.0.21	2019/03/03
+# Version:	@(#)Makefile.local	1.0.22	2019/10/20
 #
 # Author:	Fred N. van Kempen, <decwiz@yahoo.com>
 #
@@ -35,13 +35,15 @@ STUFF	:=
 # -DENABLE_VRAM_DUMP enables Video Ram dumping.
 # -DENABLE_LOG_BREAKPOINT enables extra logging.
 # Root logging:
+# -DENABLE_APM_LOG=N sets logging level at N.
 # -DENABLE_BUGGER_LOG=N sets logging level at N.
 # -DENABLE_CONFIG_LOG=N sets logging level at N.
 # -DENABLE_DEVICE_LOG=N sets logging level at N.
-# -DENABLE_KEYBOARD_AT_LOG=N sets logging level at N.
 # -DENABLE_IO_LOG=N sets logging level at N.
+# -DENABLE_PIIX_LOG=N sets logging level at N.
 # -DENABLE_ISAMEM_LOG=N sets logging level at N.
 # -DENABLE_ISARTC_LOG=N sets logging level at N.
+# -DENABLE_KEYBOARD_AT_LOG=N sets logging level at N.
 # -DENABLE_MEM_LOG=N sets logging level at N.
 # -DENABLE_MOUSE_LOG=N sets logging level at N.
 # -DENABLE_MOUSE_BUS_LOG=N sets logging level at N.
@@ -51,12 +53,13 @@ STUFF	:=
 # -DENABLE_PC_LOG=N sets logging level at N.
 # -DENABLE_PCI_LOG=N sets logging level at N.
 # -DENABLE_PIC_LOG=N sets logging level at N.
-# -DENABLE_PIIX_LOG=N sets logging level at N.
 # -DENABLE_ROM_LOG=N sets logging level at N.
 # -DENABLE_SERIAL_LOG=N sets logging level at N.
 # -DENABLE_VNC_LOG=N sets logging level at N.
+# -DENABLE_VNC_KEYMAP_LOG=N sets logging level at N.
 # cdrom/ logging:
 # -DENABLE_CDROM_LOG=N sets logging level at N.
+# -DENABLE_CDROM_DOSBOX_LOG=N sets logging level at N.
 # -DENABLE_CDROM_IMAGE_LOG=N sets logging level at N.
 # cpu/ logging:
 # -DENABLE_386_LOG=N sets logging level at N.
@@ -64,12 +67,17 @@ STUFF	:=
 # -DENABLE_808X_LOG=N sets logging level at N.
 # -DENABLE_FPU_LOG=N sets logging level at N.
 # -DENABLE_X86SEG_LOG=N sets logging level at N.
+# cpu_new/ logging:
+# -DENABLE_386_COMMON_LOG=N sets logging level at N.
+# chipset/ logging:
+# -DENABLE_NEAT_LOG=N sets logging level at N.
 # disk/ logging:
 # -DENABLE_ESDI_AT_LOG=N sets logging level at N.
 # -DENABLE_ESDI_MCA_LOG=N sets logging level at N.
 # -DENABLE_HDC_LOG=N sets logging level at N.
 # -DENABLE_HDD_IMAGE_LOG=N sets logging level at N.
 # -DENABLE_IDE_LOG=N sets logging level at N.
+# -DENABLE_SFF_LOG=N sets logging level at N.
 # -DENABLE_ST506_AT_LOG=N sets logging level at N.
 # -DENABLE_ST506_XT_LOG=N sets logging level at N.
 # -DENABLE_XTA_LOG=N sets logging level at N.
@@ -83,20 +91,21 @@ STUFF	:=
 # -DENABLE_IMD_LOG=N sets logging level at N.
 # -DENABLE_IMG_LOG=N sets logging level at N.
 # -DENABLE_JSON_LOG=N sets logging level at N.
+# -DENABLE_MFM_LOG=N sets logging level at N.
 # -DENABLE_TD0_LOG=N sets logging level at N.
 # machine/ logging:
 # -DENABLE_AMSTRAD_LOG=N sets logging level at N.
 # -DENABLE_EUROPC_LOG=N sets logging level at N.
 # -DENABLE_M24VID_LOG=N sets logging level at N.
 # -DENABLE_MACHINE_LOG=N sets logging level at N.
-# -DENABLE_NEAT_LOG=N sets logging level at N.
 # -DENABLE_PS1_HDC_LOG=N sets logging level at N.
 # -DENABLE_PS2_MCA_LOG=N sets logging level at N.
+# -DENABLE_TANDY_LOG=N sets logging level at N.
 # -DENABLE_T1000_LOG=N sets logging level at N.
 # -DENABLE_T3100E_LOG=N sets logging level at N.
-# -DENABLE_TANDY_LOG=N sets logging level at N.
 # network/ logging:
 # -DENABLE_3COM503_LOG=N sets logging level at N.
+# -DENABLE_DP8390_LOG=N sets logging level at N.
 # -DENABLE_NETWORK_LOG=N sets logging level at N.
 # -DENABLE_NIC_LOG=N sets logging level at N.
 # -DENABLE_PCAP_LOG=N sets logging level at N.
@@ -105,10 +114,10 @@ STUFF	:=
 # scsi/ logging:
 # -DENABLE_AHA154X_LOG=N sets logging level at N.
 # -DENABLE_BUSLOGIC_LOG=N sets logging level at N.
-# -DENABLE_NCR5380_LOG=N sets logging level at N.
-# -DENABLE_NCR53C810_LOG=N sets logging level at N.
 # -DENABLE_SCSI_CDROM_LOG=N sets logging level at N.
 # -DENABLE_SCSI_DISK_LOG=N sets logging level at N.
+# -DENABLE_NCR5380_LOG=N sets logging level at N.
+# -DENABLE_NCR53C8XX_LOG=N sets logging level at N.
 # -DENABLE_X54X_LOG=N sets logging level at N.
 # sound/ logging:
 # -DENABLE_ADLIB_LOG=N sets logging level at N.
@@ -122,6 +131,7 @@ STUFF	:=
 # video/ logging:
 # -DENABLE_ATI28800_LOG=N sets logging level at N.
 # -DENABLE_MACH64_LOG=N sets logging level at N.
+# -DENABLE_COMPAQ_CGA_LOG=N sets logging level at N.
 # -DENABLE_ET4000W32_LOG=N sets logging level at N.
 # -DENABLE_HT216_LOG=N sets logging level at N.
 # -DENABLE_ICD2061_LOG=N sets logging level at N.
@@ -132,13 +142,15 @@ STUFF	:=
 # -DENABLE_VOODOO_LOG=N sets logging level at N.
 # -DENABLE_VRAM_DUMP=N sets logging level at N.
 # win/ logging:
+# -DENABLE_WIN_LOG=N sets logging level at N.
 # -DENABLE_D2D_LOG=N sets logging level at N.
 # -DENABLE_DDRAW_LOG=N sets logging level at N.
 # -DENABLE_DYNLD_LOG=N sets logging level at N.
 # -DENABLE_JOYSTICK_LOG=N sets logging level at N.
+# -DENABLE_LOG_BREAKPOINT=N sets logging level at N.
+# -DENABLE_LOG_TOGGLES=N sets logging level at N.
 # -DENABLE_SDL_LOG=N sets logging level at N.
 # -DENABLE_SETTINGS_LOG=N sets logging level at N.
-# -DENABLE_WIN_LOG=N sets logging level at N.
 EXTRAS		:=
 
 

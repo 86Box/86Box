@@ -35,7 +35,8 @@ void ega_render_overscan_right(ega_t *ega);
 void ega_render_text_40(ega_t *ega);
 void ega_render_text_80(ega_t *ega);
 
-void ega_render_2bpp(ega_t *ega);
+void ega_render_2bpp_lowres(ega_t *ega);
+void ega_render_2bpp_highres(ega_t *ega);
 
 void ega_render_4bpp_lowres(ega_t *ega);
 void ega_render_4bpp_highres(ega_t *ega);

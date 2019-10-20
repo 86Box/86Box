@@ -102,7 +102,8 @@ ega_out(uint16_t addr, uint8_t val, void *p)
 				ega->overscan_color = ega->vres ? pallook16[val & 0x0f] : pallook64[val & 0x3f];
 				if (o != val)
 					ega_recalctimings(ega);
-			}
+			} else if (ega->attraddr == 0x12)
+				ega->plane_mask = val & 0xf;
 		}
 		ega->attrff ^= 1;
 		break;
@@ -320,7 +321,10 @@ ega_recalctimings(ega_t *ega)
 					ega->render = ega_render_4bpp_highres;
 				break;
 			case 0x20:
-				ega->render = ega_render_2bpp;
+				if (ega->seqregs[1] & 8)
+					ega->render = ega_render_2bpp_lowres;
+				else
+					ega->render = ega_render_2bpp_highres;
 				break;
 		}
 	}
@@ -379,29 +383,29 @@ ega_poll(void *p)
 			video_wait_for_buffer();
 		}
 
-		ega_render_overscan_left(ega);
-		if (ega->scrblank || fullchange) {
-			if (ega->firstline_draw == 2000)
-				ega->firstline_draw = ega->displine;
-			ega->lastline_draw = ega->displine;
-			if (ega->vres) {
-				old_ma = ega->ma;
+		if (ega->vres) {
+			old_ma = ega->ma;
 
-				ega->displine <<= 1;
-				ega->y_add <<= 1;
+			ega->displine <<= 1;
+			ega->y_add <<= 1;
 
-				ega->render(ega);
-				ega->displine++;
+			ega_render_overscan_left(ega);
+			ega->render(ega);
+			ega_render_overscan_right(ega);
+			ega->displine++;
 
-				ega->ma = old_ma;
-				ega->render(ega);
+			ega->ma = old_ma;
+			ega_render_overscan_left(ega);
+			ega->render(ega);
+			ega_render_overscan_right(ega);
 
-				ega->y_add >>= 1;
-				ega->displine >>= 1;
-			} else
-				ega->render(ega);
+			ega->y_add >>= 1;
+			ega->displine >>= 1;
+		} else {
+			ega_render_overscan_left(ega);
+			ega->render(ega);
+			ega_render_overscan_right(ega);
 		}
-		ega_render_overscan_right(ega);
 
 		if (ega->lastline < ega->displine) 
 			ega->lastline = ega->displine;
