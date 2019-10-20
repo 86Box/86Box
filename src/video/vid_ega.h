@@ -6,31 +6,19 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Emulation of the EGA, Chips & Technologies SuperEGA, and
- *		AX JEGA graphics cards.
+ *		Emulation of the EGA and Chips & Technologies SuperEGA
+ *		graphics cards.
  *
- * Version:	@(#)vid_ega.h	1.0.7	2018/03/18
+ * Version:	@(#)vid_ega.h	1.0.8	2019/10/03
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
- *		akm,
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 akm.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #ifndef VIDEO_EGA_H
 # define VIDEO_EGA_H
-
-
-#ifdef JEGA
-# define SBCS		0
-# define DBCS		1
-# define ID_LEN		6
-# define NAME_LEN	8
-# define SBCS19_LEN	256 * 19
-# define DBCS16_LEN	65536 * 32
-#endif
 
 
 #if defined(EMU_MEM_H) && defined(EMU_ROM_H)
@@ -57,11 +45,11 @@ typedef struct ega_t {
 	oddeven_page, oddeven_chain, vc, sc,
 	dispon, hdisp_on, cursoron, blink,
 	linepos, vslines, linecountff, oddeven,
-	lowres, interlace, lindebl, rowcount,
+	lowres, interlace, linedbl, lindebl, rowcount,
 	vtotal, dispend, vsyncstart, split,
-	hdisp, htotal, hdisp_time, rowoffset,
+	hdisp,  hdisp_old, htotal, hdisp_time, rowoffset,
 	vblankstart, scrollcache, firstline, lastline,
-	firstline_draw, lastline_draw,
+	firstline_draw, lastline_draw, x_add, y_add,
 	displine, video_res_x, video_res_y, video_bpp;
 
     uint32_t charseta, charsetb, ma_latch, ma,
@@ -74,13 +62,7 @@ typedef struct ega_t {
 
     double clock;
 
-#ifdef JEGA
-    uint8_t RMOD1, RMOD2, RDAGS, RDFFB, RDFSB, RDFAP, RPESL, RPULP, RPSSC, RPSSU, RPSSL;
-    uint8_t RPPAJ;
-    uint8_t RCMOD, RCCLH, RCCLL, RCCSL, RCCEL, RCSKW, ROMSL, RSTAT;
-    int is_jega, font_index;
-    int chr_left, chr_wide;
-#endif
+    void (*render)(struct ega_t *svga);
 } ega_t;
 #endif
 
@@ -89,10 +71,6 @@ typedef struct ega_t {
 extern const device_t ega_device;
 extern const device_t cpqega_device;
 extern const device_t sega_device;
-#endif
-#ifdef JEGA
-extern uint8_t jfont_sbcs_19[SBCS19_LEN];	/* 256 * 19( * 8) */
-extern uint8_t jfont_dbcs_16[DBCS16_LEN];	/* 65536 * 16 * 2 (* 8) */
 #endif
 
 extern int update_overscan;

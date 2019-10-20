@@ -1069,11 +1069,7 @@ void s3_hwcursor_draw(svga_t *svga, int displine)
 	uint16_t dat[2];
 	int xx;
 	int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
-	int y_add, x_add;
 	uint32_t fg, bg;
-
-	y_add = (enable_overscan && !suppress_overscan) ? (overscan_y >> 1) : 0;
-	x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
 
 	switch (svga->bpp)
 	{	       
@@ -1118,9 +1114,9 @@ void s3_hwcursor_draw(svga_t *svga, int displine)
 			if (offset >= svga->hwcursor_latch.x)
 			{
 				if (!(dat[0] & 0x8000))
-					buffer32->line[displine + y_add][offset + 32 + x_add]  = (dat[1] & 0x8000) ? fg : bg;
+					buffer32->line[displine][offset + svga->x_add]  = (dat[1] & 0x8000) ? fg : bg;
 				else if (dat[1] & 0x8000)
-					buffer32->line[displine + y_add][offset + 32 + x_add] ^= 0xffffff;
+					buffer32->line[displine][offset + svga->x_add] ^= 0xffffff;
 			}
 			   
 			offset++;
@@ -1383,7 +1379,7 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
 				svga->write_bank = svga->read_bank = s3->bank << 14;
 			break;
 			case 0x51:
-			if ((s3->chip != S3_86C801) && (s3->chip != S3_86C805))
+			if ((s3->chip == S3_86C801) || (s3->chip == S3_86C805))
 				s3->bank = (s3->bank & 0x6f) | ((val & 0x4) << 2);
 			else
 				s3->bank = (s3->bank & 0x4f) | ((val & 0xc) << 2);
@@ -1391,7 +1387,7 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
 				svga->write_bank = svga->read_bank = s3->bank << 16;
 			else
 				svga->write_bank = svga->read_bank = s3->bank << 14;
-			if ((s3->chip != S3_86C801) && (s3->chip != S3_86C805))
+			if ((s3->chip == S3_86C801) || (s3->chip == S3_86C805))
 				s3->ma_ext = (s3->ma_ext & ~0x4) | ((val & 1) << 2);
 			else
 				s3->ma_ext = (s3->ma_ext & ~0xc) | ((val & 3) << 2);

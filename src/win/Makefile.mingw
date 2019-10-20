@@ -186,15 +186,6 @@ endif
 ifndef DINPUT
  DINPUT		:= n
 endif
-ifndef D3DX
- D3DX		:= y
- ifeq ($(ARM), y)
-  D3DX		:= n
- endif
- ifeq ($(ARM64), y)
-  D3DX		:= n
- endif
-endif
 ifndef OPENAL
 OPENAL		:= y
 endif
@@ -274,7 +265,7 @@ else
 TOOL_PREFIX     := i686-w64-mingw32-
 endif
 CPP             := ${TOOL_PREFIX}g++
-CC              := ${TOOL_PREFIX}gcc
+CC              := gcc
 WINDRES		:= windres
 STRIP		:= strip
 ifeq ($(ARM64), y)
@@ -433,10 +424,6 @@ endif
 
 ifeq ($(DINPUT), y)
 OPTS		+= -DUSE_DINPUT
-endif
-
-ifeq ($(D3DX), y)
-OPTS		+= -DUSE_D3DX
 endif
 
 # Options for the DEV branch.
@@ -732,9 +719,6 @@ ifeq ($(DINPUT), y)
  LIBS    += -ldinput8
 else
  LIBS    += -lxinput
-endif
-ifeq ($(D3DX), y)
-LIBS    += -ld3dx9
 endif
 
 ifeq ($(STATIC), y)

@@ -609,16 +609,18 @@ CDROM_Interface_Image::CueLoadSheet(const wchar_t *cuefile)
 	char *line = buf;
 
 	/* Read a line from the cuesheet file. */
-	if (fgets(buf, sizeof(buf), fp) == NULL || ferror(fp) || feof(fp))
+	if (feof(fp) || fgets(buf, sizeof(buf), fp) == NULL || ferror(fp))
 		break;
 
 	/* Do two iterations to make sure to nuke even if it's \r\n or \n\r,
 	   but do checks to make sure we're not nuking other bytes. */
 	for (i = 0; i < 2; i++) {
-		if (buf[strlen(buf) - 1] == '\n')
-			buf[strlen(buf) - 1] = '\0';	/* nuke trailing newline */
-		else if (buf[strlen(buf) - 1] == '\r')
-			buf[strlen(buf) - 1] = '\0';	/* nuke trailing newline */
+		if (strlen(buf) > 0) {
+			if (buf[strlen(buf) - 1] == '\n')
+				buf[strlen(buf) - 1] = '\0';	/* nuke trailing newline */
+			else if (buf[strlen(buf) - 1] == '\r')
+				buf[strlen(buf) - 1] = '\0';	/* nuke trailing newline */
+		}
 	}
 
 	string command;

@@ -186,11 +186,11 @@ ati28800_out(uint16_t addr, uint8_t val, void *p)
 			return;
 		if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
 			val = (svga->crtc[7] & ~0x10) | (val & 0x10);
-		if ((ati28800->regs[0xb4] & 0x10) && (svga->crtcreg == 0x0a && svga->crtcreg == 0x0b))
+		if ((ati28800->regs[0xb4] & 0x10) && ((svga->crtcreg == 0x0a) || (svga->crtcreg == 0x0b)))
 			return;
 		if ((ati28800->regs[0xb4] & 0x20) && ((svga->crtc[0x08] & 0x7f) && (svga->crtc[0x14] & 0x1f)))
 			return;
-		if ((ati28800->regs[0xb4] & 0x40) && ((svga->crtcreg >= 0x00 && svga->crtcreg <= 0x06) && 
+		if ((ati28800->regs[0xb4] & 0x40) && (((svga->crtcreg >= 0x00) && (svga->crtcreg <= 0x06)) && 
 		    (svga->crtc[0x07] & 0x10) != 0x10))
 			return;
 

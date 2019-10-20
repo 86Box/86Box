@@ -7352,8 +7352,6 @@ static void voodoo_filterline_v2(voodoo_t *voodoo, uint8_t *fil, int column, uin
 void voodoo_callback(void *p)
 {
         voodoo_t *voodoo = (voodoo_t *)p;
-	int y_add = (enable_overscan && !suppress_overscan) ? (overscan_y >> 1) : 0;
-	int x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
 
         if (voodoo->fbiInit0 & FBIINIT0_VGA_PASS)
         {
@@ -7383,12 +7381,12 @@ void voodoo_callback(void *p)
                         
                         if (draw_voodoo->dirty_line[draw_line])
                         {
-                                uint32_t *p = &buffer32->line[voodoo->line + y_add][32 + x_add];
+                                uint32_t *p = &buffer32->line[voodoo->line + 8][8];
                                 uint16_t *src = (uint16_t *)&draw_voodoo->fb_mem[draw_voodoo->front_offset + draw_line*draw_voodoo->row_width];
                                 int x;
 
                                 draw_voodoo->dirty_line[draw_line] = 0;
-                                
+
                                 if (voodoo->line < voodoo->dirty_line_low)
                                 {
                                         voodoo->dirty_line_low = voodoo->line;
@@ -7396,7 +7394,11 @@ void voodoo_callback(void *p)
                                 }
                                 if (voodoo->line > voodoo->dirty_line_high)
                                         voodoo->dirty_line_high = voodoo->line;
-                                
+
+				/* Draw left overscan. */
+				for (x = 0; x < 8; x++)
+					buffer32->line[voodoo->line + 8][x] = 0x00000000;
+
                                 if (voodoo->scrfilter && voodoo->scrfilterEnabled)
                                 {
                                         uint8_t fil[(voodoo->h_disp) * 3];              /* interleaved 24-bit RGB */
@@ -7418,6 +7420,10 @@ void voodoo_callback(void *p)
                                                 p[x] = draw_voodoo->video_16to32[src[x]];
                                         }
                                 }
+
+				/* Draw right overscan. */
+				for (x = 0; x < 8; x++)
+					buffer32->line[voodoo->line + 8][voodoo->h_disp + x + 8] = 0x00000000;
                         }
                 }
         }

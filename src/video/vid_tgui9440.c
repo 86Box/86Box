@@ -681,10 +681,6 @@ void tgui_hwcursor_draw(svga_t *svga, int displine)
         uint32_t dat[2];
         int xx;
         int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
-	int y_add, x_add;
-
-	y_add = (enable_overscan && !suppress_overscan) ? (overscan_y >> 1) : 0;
-	x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
         
         if (svga->interlace && svga->hwcursor_oddeven)
                 svga->hwcursor_latch.addr += 8;
@@ -696,9 +692,9 @@ void tgui_hwcursor_draw(svga_t *svga, int displine)
                 if (offset >= svga->hwcursor_latch.x)
                 {
                         if (!(dat[0] & 0x80000000))
-                                buffer32->line[displine + y_add][offset + 32 + x_add]  = (dat[1] & 0x80000000) ? 0xffffff : 0;
+                                buffer32->line[displine][offset + svga->x_add]  = (dat[1] & 0x80000000) ? 0xffffff : 0;
                         else if (dat[1] & 0x80000000)
-                                buffer32->line[displine + y_add][offset + 32 + x_add] ^= 0xffffff;
+                                buffer32->line[displine][offset + svga->x_add] ^= 0xffffff;
                 }
                            
                 offset++;

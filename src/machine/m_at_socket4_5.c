@@ -8,7 +8,7 @@
  *
  *		Implementation of Socket 4 and 5 machines.
  *
- * Version:	@(#)m_at_socket4_5.c	1.0.0	2019/05/16
+ * Version:	@(#)m_at_socket4_5.c	1.0.1	2019/10/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -214,14 +214,15 @@ machine_at_endeavor_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x10, PCI_CARD_NORMAL, 4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&s3_phoenix_trio64_onboard_pci_device);
+
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
     device_add(&pc87306_device);
     device_add(&intel_flash_bxt_ami_device);
-
-    if (gfxcard == VID_INTERNAL)
-	device_add(&s3_phoenix_trio64_onboard_pci_device);
 
     return ret;
 }

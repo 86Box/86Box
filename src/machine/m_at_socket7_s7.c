@@ -8,7 +8,7 @@
  *
  *		Implementation of Socket 7 and Super Socket 7 machines.
  *
- * Version:	@(#)m_at_socket7_s7.c	1.0.0	2019/05/16
+ * Version:	@(#)m_at_socket7_s7.c	1.0.1	2019/10/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -121,12 +121,13 @@ machine_at_pb640_init(const machine_t *model)
     device_add(&i430fx_pb640_device);
     device_add(&piix_pb640_device);
     device_add(&ide_isa_2ch_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&pc87306_device);
-    device_add(&intel_flash_bxt_ami_device);
 
     if (gfxcard == VID_INTERNAL)
 	device_add(&gd5440_onboard_pci_device);
+
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&pc87306_device);
+    device_add(&intel_flash_bxt_ami_device);
 
     return ret;
 }
@@ -158,7 +159,7 @@ machine_at_acerm3a_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x1F, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 4, 1, 2, 3);
     pci_register_slot(0x10, PCI_CARD_ONBOARD, 4, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);

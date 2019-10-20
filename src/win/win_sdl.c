@@ -12,7 +12,7 @@
  *		we will not use that, but, instead, use a new window which
  *		coverrs the entire desktop.
  *
- * Version:	@(#)win_sdl.c  	1.0.6	2019/03/09
+ * Version:	@(#)win_sdl.c  	1.0.7	2019/10/12
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Michael Drüing, <michael@drueing.de>
@@ -55,9 +55,6 @@
 #include <windows.h>
 #include <SDL2/SDL.h>
 
-#define PNG_DEBUG 0
-#include <png.h>
-
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -89,9 +86,6 @@ static int		sdl_fs;
 static int		cur_w, cur_h;
 static volatile int	sdl_enabled = 0;
 static SDL_mutex*	sdl_mutex = NULL;
-
-static png_structp	png_ptr;
-static png_infop	info_ptr;
 
 
 /* Pointers to the real functions. */
@@ -519,94 +513,6 @@ int
 sdl_init_fs(HWND h)
 {
     return sdl_init_common(1);
-}
-
-
-void
-sdl_take_screenshot(const wchar_t *fn)
-{
-    int i, res, x, y, width = 0, height = 0;
-    unsigned char* rgba = NULL;
-    png_bytep *b_rgb = NULL;
-    FILE *fp = NULL;
-
-    sdl_GetWindowSize(sdl_win, &width, &height);
-
-    /* create file */
-    fp = plat_fopen((wchar_t *) fn, (wchar_t *) L"wb");
-    if (!fp) {
-	sdl_log("[sdl_take_screenshot] File %ls could not be opened for writing", fn);
-	return;
-    }
-
-    /* initialize stuff */
-    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-
-    if (!png_ptr) {
-	sdl_log("[sdl_take_screenshot] png_create_write_struct failed");
-	fclose(fp);
-	return;
-    }
-
-    info_ptr = png_create_info_struct(png_ptr);
-    if (!info_ptr) {
-	sdl_log("[sdl_take_screenshot] png_create_info_struct failed");
-	fclose(fp);
-	return;
-    }
-
-    png_init_io(png_ptr, fp);
-
-    png_set_IHDR(png_ptr, info_ptr, width, height,
-	8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
-	PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
-
-    rgba = (unsigned char *) malloc(width * height * 4);
-    if (rgba == NULL) {
-	sdl_log("[sdl_take_screenshot] Unable to Allocate RGBA Bitmap Memory");
-	fclose(fp);
-	return;
-    }
-
-    res = sdl_RenderReadPixels(sdl_render, NULL, SDL_PIXELFORMAT_ABGR8888, rgba, width * 4);
-    if (res) {
-	sdl_log("[sdl_take_screenshot] Error reading render pixels\n");
-	fclose(fp);
-	return;
-    }
-
-    b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * height);
-    if (b_rgb == NULL) {
-	sdl_log("[sdl_take_screenshot] Unable to Allocate RGB Bitmap Memory");
-	free(rgba);
-	fclose(fp);
-	return;
-    }
-
-    for (y = 0; y < height; ++y) {
-	b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr, info_ptr));
-    	for (x = 0; x < width; ++x) {
-		b_rgb[y][(x) * 3 + 0] = rgba[(y * width + x) * 4 + 0];
-		b_rgb[y][(x) * 3 + 1] = rgba[(y * width + x) * 4 + 1];
-		b_rgb[y][(x) * 3 + 2] = rgba[(y * width + x) * 4 + 2];
-	}
-    }
-
-    png_write_info(png_ptr, info_ptr);
-
-    png_write_image(png_ptr, b_rgb);
-
-    png_write_end(png_ptr, NULL);
-
-    /* cleanup heap allocation */
-    for (i = 0; i < height; i++)
-	if (b_rgb[i])  free(b_rgb[i]);
-
-    if (b_rgb) free(b_rgb);
-
-    if (rgba) free(rgba);
-
-    if (fp) fclose(fp);
 }
 
 

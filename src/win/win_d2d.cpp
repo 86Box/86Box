@@ -8,7 +8,7 @@
  *
  *		Rendering module for Microsoft Direct2D.
  *
- * Version:	@(#)win_d2d.cpp	1.0.3	2019/03/09
+ * Version:	@(#)win_d2d.cpp	1.0.4	2019/10/12
  *
  * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
  *
@@ -502,18 +502,6 @@ d2d_pause(void)
 
 	d2d_log("Direct2D: d2d_pause()\n");
 	return(0);
-}
-
-
-void
-d2d_take_screenshot(const wchar_t *fn)
-{
-	// Saving a screenshot of a Direct2D render target is harder than
-	// one would think. Keeping this stubbed for the moment
-	//	-ryu
-
-	d2d_log("Direct2D: d2d_take_screenshot(%s)\n", fn);
-	return;
 }
 
 

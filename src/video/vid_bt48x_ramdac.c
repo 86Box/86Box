@@ -336,7 +336,6 @@ bt48x_hwcursor_draw(svga_t *svga, int displine)
     int x, xx, comb, b0, b1;
     uint16_t dat[2];
     int offset = svga->dac_hwcursor_latch.x - svga->dac_hwcursor_latch.xoff;
-    int y_add, x_add;
     int pitch, bppl, mode, x_pos, y_pos;
     uint32_t clr1, clr2, clr3, *p;
     uint8_t *cd;
@@ -345,9 +344,6 @@ bt48x_hwcursor_draw(svga_t *svga, int displine)
     clr1 = ramdac->extpallook[1];
     clr2 = ramdac->extpallook[2];
     clr3 = ramdac->extpallook[3];
-
-    y_add = (enable_overscan && !suppress_overscan) ? (overscan_y >> 1) : 0;
-    x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
 
     /* The planes come in two parts, and each plane is 1bpp,
        so a 32x32 cursor has 4 bytes per line, and a 64x64
@@ -377,8 +373,8 @@ bt48x_hwcursor_draw(svga_t *svga, int displine)
 		b1 = (dat[1] >> (15 - xx)) & 1;
 		comb = (b0 | (b1 << 1));
 
-		y_pos = displine + y_add;
-		x_pos = offset + 32 + x_add;
+		y_pos = displine;
+		x_pos = offset + svga->x_add;
 		p = buffer32->line[y_pos];
 
 		if (offset >= svga->dac_hwcursor_latch.x) {

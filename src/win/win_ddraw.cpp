@@ -11,7 +11,7 @@
  * NOTES:	This code should be re-merged into a single init() with a
  *		'fullscreen' argument, indicating FS mode is requested.
  *
- * Version:	@(#)win_ddraw.cpp	1.0.14	2019/03/09
+ * Version:	@(#)win_ddraw.cpp	1.0.15	2019/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -28,9 +28,6 @@
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #undef BITMAP
-
-#define PNG_DEBUG 0
-#include <png.h>
 
 #define HAVE_STDARG_H
 #include "../86box.h"
@@ -50,13 +47,8 @@ static LPDIRECTDRAWSURFACE4	lpdds_pri = NULL,
 static LPDIRECTDRAWCLIPPER	lpdd_clipper = NULL;
 static DDSURFACEDESC2		ddsd;
 static HWND			ddraw_hwnd;
-static HBITMAP			hbitmap;
-static int			ddraw_w, ddraw_h,
-				xs, ys, ys2;
+static int			ddraw_w, ddraw_h;
 static volatile int		ddraw_enabled = 0;
-
-static png_structp		png_ptr;
-static png_infop		info_ptr;
 
 
 #ifdef ENABLE_DDRAW_LOG
@@ -77,180 +69,6 @@ ddraw_log(const char *fmt, ...)
 #else
 #define ddraw_log(fmt, ...)
 #endif
-
-
-static void
-CopySurface(IDirectDrawSurface4 *pDDSurface)
-{ 
-    HDC hdc, hmemdc;
-    HBITMAP hprevbitmap;
-    DDSURFACEDESC2 ddsd2;
-
-    pDDSurface->GetDC(&hdc);
-    hmemdc = CreateCompatibleDC(hdc); 
-    ZeroMemory(&ddsd2 ,sizeof( ddsd2 )); // better to clear before using
-    ddsd2.dwSize = sizeof( ddsd2 ); //initialize with size 
-    pDDSurface->GetSurfaceDesc(&ddsd2);
-    hbitmap = CreateCompatibleBitmap( hdc ,xs ,ys);
-    hprevbitmap = (HBITMAP) SelectObject( hmemdc, hbitmap );
-    BitBlt(hmemdc,0 ,0 ,xs ,ys ,hdc ,0 ,0,SRCCOPY);    
-    SelectObject(hmemdc,hprevbitmap); // restore the old bitmap 
-    DeleteDC(hmemdc);
-    pDDSurface->ReleaseDC(hdc);
-}
-
-
-static void
-bgra_to_rgb(png_bytep *b_rgb, uint8_t *bgra, int width, int height)
-{
-    int i, j;
-    uint8_t *r, *b;
-
-    if (video_grayscale || invert_display)
-	*bgra = video_color_transform(*bgra);
-
-    for (i = 0; i < height; i++) {
-	for (j = 0; j < width; j++) {
-		r = &b_rgb[(height - 1) - i][j * 3];
-		b = &bgra[((i * width) + j) * 4];
-		r[0] = b[2];
-		r[1] = b[1];
-		r[2] = b[0];
-	}
-    }
-}
-
-
-static void
-DoubleLines(uint8_t *dst, uint8_t *src)
-{
-    int i = 0;
-
-    for (i = 0; i < ys; i++) {
-	memcpy(dst + (i * xs * 8), src + (i * xs * 4), xs * 4);
-	memcpy(dst + ((i * xs * 8) + (xs * 4)), src + (i * xs * 4), xs * 4);
-    }
-}
-
-
-static void
-SavePNG(const wchar_t *szFilename, HBITMAP hBitmap)
-{
-    BITMAPINFO bmpInfo;
-    HDC hdc;
-    LPVOID pBuf = NULL;
-    LPVOID pBuf2 = NULL;
-    png_bytep *b_rgb = NULL;
-    int i;
-
-    /* create file */
-    FILE *fp = plat_fopen((wchar_t *) szFilename, (wchar_t *) L"wb");
-    if (!fp) {
-	ddraw_log("[SavePNG] File %ls could not be opened for writing", szFilename);
-	return;
-    }
-
-    /* initialize stuff */
-    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-
-    if (!png_ptr) {
-	ddraw_log("[SavePNG] png_create_write_struct failed");
-	fclose(fp);
-	return;
-    }
-
-    info_ptr = png_create_info_struct(png_ptr);
-    if (!info_ptr) {
-	ddraw_log("[SavePNG] png_create_info_struct failed");
-	fclose(fp);
-	return;
-    }
-
-    png_init_io(png_ptr, fp);
-
-    hdc = GetDC(NULL);
-
-    ZeroMemory(&bmpInfo, sizeof(BITMAPINFO));
-    bmpInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-
-    GetDIBits(hdc, hBitmap, 0, 0, NULL, &bmpInfo, DIB_RGB_COLORS); 
-
-    if (bmpInfo.bmiHeader.biSizeImage <= 0)
-	bmpInfo.bmiHeader.biSizeImage =
-		bmpInfo.bmiHeader.biWidth*abs(bmpInfo.bmiHeader.biHeight)*(bmpInfo.bmiHeader.biBitCount+7)/8;
-
-    pBuf = malloc(bmpInfo.bmiHeader.biSizeImage);
-    if (pBuf == NULL) {
-	ddraw_log("[SavePNG] Unable to Allocate Bitmap Memory");
-	fclose(fp);
-	return;
-    }
-
-    if (ys2 <= 250) {
-	pBuf2 = malloc(bmpInfo.bmiHeader.biSizeImage << 1);
-	if (pBuf2 == NULL) {
-		ddraw_log("[SavePNG] Unable to Allocate Secondary Bitmap Memory");
-		free(pBuf);
-		fclose(fp);
-		return;
-	}
-
-    }
-
-    ddraw_log("save png w=%i h=%i\n", bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight);
-
-    bmpInfo.bmiHeader.biCompression = BI_RGB;
-
-    GetDIBits(hdc, hBitmap, 0, bmpInfo.bmiHeader.biHeight, pBuf, &bmpInfo, DIB_RGB_COLORS);
-
-    if (pBuf2) {
-	bmpInfo.bmiHeader.biSizeImage <<= 1;
-	bmpInfo.bmiHeader.biHeight <<= 1;
-    }
-
-    png_set_IHDR(png_ptr, info_ptr, bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight,
-	8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
-	PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
-
-    b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * bmpInfo.bmiHeader.biHeight);
-    if (b_rgb == NULL) {
-	ddraw_log("[SavePNG] Unable to Allocate RGB Bitmap Memory");
-	free(pBuf2);
-	free(pBuf);
-	fclose(fp);
-	return;
-    }
-
-    for (i = 0; i < bmpInfo.bmiHeader.biHeight; i++) {
-	b_rgb[i] = (png_byte *) malloc(png_get_rowbytes(png_ptr, info_ptr));
-    }
-
-    if (pBuf2) {
-	DoubleLines((uint8_t *) pBuf2, (uint8_t *) pBuf);
-	bgra_to_rgb(b_rgb, (uint8_t *) pBuf2, bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight);
-    } else
-	bgra_to_rgb(b_rgb, (uint8_t *) pBuf, bmpInfo.bmiHeader.biWidth, bmpInfo.bmiHeader.biHeight);
-
-    png_write_info(png_ptr, info_ptr);
-
-    png_write_image(png_ptr, b_rgb);
-
-    png_write_end(png_ptr, NULL);
-
-    /* cleanup heap allocation */
-    if (hdc) ReleaseDC(NULL,hdc); 
-
-    for (i = 0; i < bmpInfo.bmiHeader.biHeight; i++)
-	if (b_rgb[i])  free(b_rgb[i]);
-
-    if (b_rgb) free(b_rgb);
-
-    if (pBuf2) free(pBuf2); 
-
-    if (pBuf) free(pBuf);
-
-    if (fp) fclose(fp);
-}
 
 
 static void
@@ -492,42 +310,6 @@ ddraw_blit(int x, int y, int y1, int y2, int w, int h)
 	lpdds_pri->Restore();
 	lpdds_pri->Blt(&r_dest, lpdds_back2, &r_src, DDBLT_WAIT, NULL);
     }
-}
-
-
-void
-ddraw_take_screenshot(const wchar_t *fn)
-{
-#if 0
-    xs = xsize;
-    ys = ys2 = ysize;
-
-    /* For EGA/(S)VGA, the size is NOT adjusted for overscan. */
-    if ((overscan_y > 16) && enable_overscan) {
-	xs += overscan_x;
-	ys += overscan_y;
-    }
-
-    /* For CGA, the width is adjusted for overscan, but the height is not. */
-    if (overscan_y == 16) {
-	if (ys2 <= 250)
-		ys += (overscan_y >> 1);
-	  else
-		ys += overscan_y;
-    }
-#endif
-
-    xs = get_actual_size_x();
-    ys = ys2 = get_actual_size_y();
-
-    if (ysize <= 250) {
-	ys >>= 1;
-	ys2 >>= 1;
-    }
-
-    CopySurface(lpdds_back2);
-
-    SavePNG(fn, hbitmap);
 }
 
 

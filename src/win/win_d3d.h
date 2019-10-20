@@ -8,20 +8,19 @@
  *
  *		Direct3D 9 rendererer and screenshots taking.
  *
- * Version:	@(#)win_d3d.h	1.0.3	2017/11/12
+ * Version:	@(#)win_d3d.h	1.0.4	2019/10/12
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #ifndef WIN_D3D_H
 # define WIN_D3D_H
 # define UNICODE
 # define BITMAP WINDOWS_BITMAP
 # include <d3d9.h>
-# include <d3dx9tex.h>
 # undef BITMAP
 
 
@@ -36,7 +35,6 @@ extern void	d3d_reset(void);
 extern void	d3d_reset_fs(void);
 extern int	d3d_pause(void);
 extern void	d3d_resize(int x, int y);
-extern void	d3d_take_screenshot(const wchar_t *fn);
 extern void	d3d_enable(int enable);
 
 #ifdef __cplusplus
