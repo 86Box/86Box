@@ -9,7 +9,7 @@
  *		808x CPU emulation, mostly ported from reenigne's XTCE, which
  *		is cycle-accurate.
  *
- * Version:	@(#)808x.c	1.0.9	2019/02/13
+ * Version:	@(#)808x.c	1.0.10	2019/10/20
  *
  * Authors:	Andrew Jenner, <https://www.reenigne.org>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -258,8 +258,10 @@ fetch_and_bus(int c, int bus)
     }
 
     pfq_add(c, !bus);
-    clock_end();
-    clock_start();
+    if (bus < 2) {
+	clock_end();
+	clock_start();
+    }
 }
 
 
@@ -276,10 +278,13 @@ wait(int c, int bus)
 void
 sub_cycles(int c)
 {
+    if (c <= 0)
+	return;
+
     cycles -= c;
 
     if (!is286)
-	fetch_and_bus(c, 1);
+	fetch_and_bus(c, 2);
 }
 
 

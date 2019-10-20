@@ -260,7 +260,7 @@ vid_poll(void *priv)
     olim24_t *m24 = (olim24_t *)priv;
     uint16_t ca = (m24->crtc[15] | (m24->crtc[14] << 8)) & 0x3fff;
     int drawcursor;
-    int x, c;
+    int x, c, xs_temp, ys_temp;
     int oldvc;
     uint8_t chr, attr;
     uint16_t dat, dat2;
@@ -462,21 +462,36 @@ vid_poll(void *priv)
 					else
 						x = (m24->crtc[1] << 4) + 16;
 					m24->lastline++;
-					if ((x != xsize) || ((m24->lastline - m24->firstline) != ysize) || video_force_resize_get()) {
-						xsize = x;
-						ysize = m24->lastline - m24->firstline;
-						if (xsize < 64) xsize = 656;
-						if (ysize < 32) ysize = 200;
-						set_screen_size(xsize, ysize + 16);
 
-						if (video_force_resize_get())
-							video_force_resize_set(0);
+					xs_temp = x;
+					ys_temp = (m24->lastline - m24->firstline);
+
+					if ((xs_temp > 0) && (ys_temp > 0)) {
+						if (xsize < 64) xs_temp = 656;
+						if (ysize < 32) ys_temp = 200;
+						if (!enable_overscan)
+							xs_temp -= 16;
+
+						if ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get()) {
+							xsize = xs_temp;
+							ysize = ys_temp;
+							set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
+
+							if (video_force_resize_get())
+								video_force_resize_set(0);
+						}
+
+						if (enable_overscan) {
+							video_blit_memtoscreen_8(0, m24->firstline - 8, 0, (m24->lastline - m24->firstline) + 16,
+										 xsize, (m24->lastline - m24->firstline) + 16);
+						} else
+							video_blit_memtoscreen_8(8, m24->firstline, 0, (m24->lastline - m24->firstline),
+										 xsize, (m24->lastline - m24->firstline));
 					}
 
-					video_blit_memtoscreen_8(0, m24->firstline - 8, 0, (m24->lastline - m24->firstline) + 16, xsize, (m24->lastline - m24->firstline) + 16);
 					frames++;
 
-					video_res_x = xsize - 16;
+					video_res_x = xsize;
 					video_res_y = ysize;
 					if (m24->cgamode & 1) {
 						video_res_x /= 8;
@@ -848,6 +863,8 @@ machine_olim24_init(const machine_t *model)
     io_sethandler(0x0066, 2, m24_read, NULL, NULL, NULL, NULL, NULL, m24);
 
     /* Initialize the video adapter. */
+    // loadfont(L"roms/machines/olivetti_m24/ATT-FONT-DUMPED-VERIFIED.BIN", 1);
+    loadfont(L"roms/machines/olivetti_m24/m24 graphics board go380 258 pqbq.bin", 1);
     m24->vram = malloc(0x8000);
     overscan_x = overscan_y = 16;
     mem_mapping_add(&m24->mapping, 0xb8000, 0x08000,

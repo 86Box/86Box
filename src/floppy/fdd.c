@@ -8,15 +8,15 @@
  *
  *		Implementation of the floppy drive emulation.
  *
- * Version:	@(#)fdd.c	1.0.14	2019/02/11
+ * Version:	@(#)fdd.c	1.0.15	2019/10/20
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2018,2019 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -594,8 +594,7 @@ fdd_set_motor_enable(int drive, int motor_enable)
 static void
 fdd_poll(void *priv)
 {
-    int drive, i;
-    uint64_t shift;
+    int drive;
     DRIVE *drv = (DRIVE *) priv;
 
     drive = drv->id;
@@ -603,19 +602,15 @@ fdd_poll(void *priv)
     if (drive >= FDD_NUM)
 	fatal("Attempting to poll floppy drive %i that is not supposed to be there\n", drive);
 
-    shift = fdc_is_dma(fdd_fdc) ? 5ULL : 0ULL;
-    timer_advance_u64(&fdd_poll_time[drive], fdd_byteperiod(drive) << shift);
+    timer_advance_u64(&fdd_poll_time[drive], fdd_byteperiod(drive));
 
-    shift = 1ULL << shift;
-    for (i = 0; i < shift; i++) {
-	if (drv->poll)
-		drv->poll(drive);
+    if (drv->poll)
+	drv->poll(drive);
 
-	if (fdd_notfound) {
-		fdd_notfound--;
-		if (!fdd_notfound)
-			fdc_noidam(fdd_fdc);
-	}
+    if (fdd_notfound) {
+	fdd_notfound--;
+	if (!fdd_notfound)
+		fdc_noidam(fdd_fdc);
     }
 }
 
