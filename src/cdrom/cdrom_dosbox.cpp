@@ -585,6 +585,7 @@ CDROM_Interface_Image::CueLoadSheet(const wchar_t *cuefile)
     uint64_t currPregap = 0;
     uint64_t totalPregap = 0;
     uint64_t prestart = 0;
+    int i;
     bool canAddTrack = false;
     bool success;
     FILE *fp;
@@ -610,7 +611,15 @@ CDROM_Interface_Image::CueLoadSheet(const wchar_t *cuefile)
 	/* Read a line from the cuesheet file. */
 	if (fgets(buf, sizeof(buf), fp) == NULL || ferror(fp) || feof(fp))
 		break;
-	buf[strlen(buf) - 1] = '\0';	/* nuke trailing newline */
+
+	/* Do two iterations to make sure to nuke even if it's \r\n or \n\r,
+	   but do checks to make sure we're not nuking other bytes. */
+	for (i = 0; i < 2; i++) {
+		if (buf[strlen(buf) - 1] == '\n')
+			buf[strlen(buf) - 1] = '\0';	/* nuke trailing newline */
+		else if (buf[strlen(buf) - 1] == '\r')
+			buf[strlen(buf) - 1] = '\0';	/* nuke trailing newline */
+	}
 
 	string command;
 	success = CueGetKeyword(command, &line);
