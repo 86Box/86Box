@@ -9,13 +9,13 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.60	2019/02/10
+ * Version:	@(#)hdc_ide.c	1.0.61	2019/10/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #define __USE_LARGEFILE64
 #define _LARGEFILE_SOURCE
@@ -949,8 +949,11 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
 
 	/* If less than (packet length) bytes are remaining, update packet length
 	   accordingly. */
-	if ((dev->packet_len - dev->pos) < (dev->max_transfer_len))
+	if ((dev->packet_len - dev->pos) < (dev->max_transfer_len)) {
 		dev->max_transfer_len = dev->packet_len - dev->pos;
+		/* Also update the request length so the host knows how many bytes to transfer. */
+		dev->request_length = dev->max_transfer_len;
+        }
 	ide_log("CD-ROM %i: Packet length %i, request length %i\n", dev->id, dev->packet_len,
 		dev->max_transfer_len);
 
