@@ -9,7 +9,7 @@
  *		808x CPU emulation, mostly ported from reenigne's XTCE, which
  *		is cycle-accurate.
  *
- * Version:	@(#)808x.c	1.0.10	2019/10/20
+ * Version:	@(#)808x.c	1.0.11	2019/10/21
  *
  * Authors:	Andrew Jenner, <https://www.reenigne.org>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -943,7 +943,6 @@ reset_common(int hard)
 	resetreadlookup();
 	makemod1table();
 	resetmcr();
-	pfq_clear();
 	cpu_set_edx();
 	mmu_perm = 4;
 	pfq_size = (is8086) ? 6 : 4;
@@ -953,12 +952,14 @@ reset_common(int hard)
     if (hard)
 	codegen_reset();
 #endif
-	if (!hard)
-		flushmmucache();
+    if (!hard)
+	flushmmucache();
     x86_was_reset = 1;
     cpu_alt_reset = 0;
 
+    pfq_clear();
     prefetching = 1;
+
     takeint = 0;
 }
 

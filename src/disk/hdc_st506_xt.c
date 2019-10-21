@@ -41,13 +41,13 @@
  *		Since all controllers (including the ones made by DTC) use
  *		(mostly) the same API, we keep them all in this module.
  *
- * Version:	@(#)hdc_st506_xt.c	1.0.16	2019/03/02
+ * Version:	@(#)hdc_st506_xt.c	1.0.17	2019/10/20
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
  *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2008-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -287,24 +287,6 @@ hd_type_t hd_types[4] = {
     { 612, 4, MFM_SECTORS },	/* type 16	*/
     { 615, 4, MFM_SECTORS },	/* type 2	*/
     { 306, 8, MFM_SECTORS } 	/* type 13	*/
-};
-
-hd_type_t wd1002a_wx1_hd_types[8] = {
-    { 306, 4, MFM_SECTORS },	/* 1023, ? */
-    { 612, 4, MFM_SECTORS },	/* 1023, ? */
-    { 612, 2, MFM_SECTORS },	/* 1023, ? */
-    { 820, 6, MFM_SECTORS },	/* 934, ? */
-    { 1024, 8, MFM_SECTORS },	/* 934, ? */
-    { 640, 6, MFM_SECTORS },	/* 939, ? */
-    { 733, 5, MFM_SECTORS },	/* 939, ? */
-    { 977, 5, MFM_SECTORS }	/* 1023, ? */
-};
-
-hd_type_t wd1002a_27x_hd_types[4] = {
-    { 981, 5, RLL_SECTORS },	/* type 0	*/
-    { 987, 7, RLL_SECTORS },	/* type 16	*/
-    { 612, 4, RLL_SECTORS },	/* type 2	*/
-    { 615, 4, RLL_SECTORS } 	/* type 13	*/
 };
 
 
