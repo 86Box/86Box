@@ -11,13 +11,11 @@
  *		SiS sis85c471 Super I/O Chip
  *		Used by DTK PKM-0038S E-2
  *
- * Version:	@(#)sis_85c471.c	1.0.1	2019/10/19
+ * Version:	@(#)sis_85c471.c	1.0.2	2019/10/21
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Sarah Walker, <http://pcem-emulator.co.uk/>
  *
  *		Copyright 2019 Miran Grca.
- *		Copyright 2008-2019 Sarah Walker.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -25,6 +23,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../cpu/cpu.h"
 #include "../mem.h"
 #include "../io.h"
 #include "../lpt.h"
@@ -95,6 +94,11 @@ sis_85c471_write(uint16_t port, uint8_t val, void *priv)
     }
 
     switch(dev->cur_reg) {
+	case 0x51:
+		cpu_cache_ext_enabled = ((val & 0x84) == 0x84);
+		cpu_update_waitstates();
+		break;
+
 	case 0x52:
 		sis_85c471_recalcmapping(dev);
 		break;

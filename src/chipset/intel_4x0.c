@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel PCISet chips from 420TX to 440FX.
  *
- * Version:	@(#)intel_4x0.c	1.0.1	2019/10/19
+ * Version:	@(#)intel_4x0.c	1.0.2	2019/10/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../cpu/cpu.h"
 #include "../mem.h"
 #include "../io.h"
 #include "../rom.h"
@@ -116,6 +117,17 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			if (dev->type == INTEL_430FX_PB640)
 				val |= 0x20;
 		}
+		break;
+
+	case 0x52: /*Cache Control Register*/
+#if defined(DEV_BRANCH) && defined(USE_I686)
+		if (dev->type < INTEL_440FX) {
+#endif
+			cpu_cache_ext_enabled = (val & 0x01);
+			cpu_update_waitstates();
+#if defined(DEV_BRANCH) && defined(USE_I686)
+		}
+#endif
 		break;
 
 	case 0x59: /*PAM0*/
@@ -304,6 +316,13 @@ static void
     i4x0->regs[0x64] = 0x02;
     if (i4x0->type >= INTEL_430FX)
 	i4x0->regs[0x72] = 0x02;
+
+#if defined(DEV_BRANCH) && defined(USE_I686)
+    if (i4x0->type == INTEL_440FX) {
+	cpu_cache_ext_enabled = 1;
+	cpu_update_waitstates();
+    }
+#endif
 
     pci_add_card(0, i4x0_read, i4x0_write, i4x0);
 
