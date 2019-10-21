@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.36	2019/09/26
+ * Version:	@(#)vid_svga.c	1.0.37	2019/10/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -269,8 +269,6 @@ svga_out(uint16_t addr, uint8_t val, void *p)
 		if (((svga->gdcaddr & 15) == 5  && (val ^ o) & 0x70) ||
 		    ((svga->gdcaddr & 15) == 6 && (val ^ o) & 1))
 			svga_recalctimings(svga);
-		break;
-	case 0x3d8:
 		break;
     }
 }
@@ -1260,7 +1258,7 @@ svga_read_linear(uint32_t addr, void *p)
 void
 svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 {
-    int ox, y_add, x_add, y_start, x_start, bottom;
+    int y_add, x_add, y_start, x_start, bottom;
     uint32_t *p;
     int i, j;
     int xs_temp, ys_temp;
@@ -1484,7 +1482,7 @@ svga_readw_common(uint32_t addr, uint8_t linear, void *p)
 	if ((memory_map_mode == 1) && (svga->adv_flags & FLAG_EXTRA_BANKS))
 		addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
 	else
-		addr = (addr & svga->banked_mask) + svga->write_bank;
+		addr = (addr & svga->banked_mask) + svga->read_bank;
     }
 
     addr &= svga->decode_mask;
@@ -1529,7 +1527,7 @@ svga_readl_common(uint32_t addr, uint8_t linear, void *p)
 	if ((memory_map_mode == 1) && (svga->adv_flags & FLAG_EXTRA_BANKS))
 		addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
 	else
-		addr = (addr & svga->banked_mask) + svga->write_bank;
+		addr = (addr & svga->banked_mask) + svga->read_bank;
     }
 
     addr &= svga->decode_mask;
