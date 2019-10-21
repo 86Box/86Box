@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.33	2019/10/01
+ * Version:	@(#)video.c	1.0.34	2019/10/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -437,7 +437,8 @@ void
 video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
     if (screenshots) {
-	video_screenshot(x, y, w, h);
+	if (buffer32 != NULL)
+		video_screenshot(x, y, w, h);
 	screenshots--;
 	video_log("screenshot taken, %i left\n", screenshots);
     }

@@ -29,17 +29,17 @@
  *		16 = 180 MHz
  *		17 = 200 MHz
  *
- * Version:	@(#)cpu_table.c	1.0.6	2018/07/24
+ * Version:	@(#)cpu_table.c	1.0.7	2019/10/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 leilei.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 leilei.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -58,7 +58,6 @@ CPU cpus_8088[] = {
     {"8088/10",      CPU_8088,  10000000,   1, 0, 0, 0, 0, 0, 0,0,0,0, 1},
     {"8088/12",      CPU_8088,  12000000,   1, 0, 0, 0, 0, 0, 0,0,0,0, 1},
     {"8088/16",      CPU_8088,  16000000,   1, 0, 0, 0, 0, 0, 0,0,0,0, 1},
-    {"286/6",        CPU_286,    6000000,    1, 0, 0, 0, 0, 0, 2,2,2,2, 1},
     {"",             -1,               0,   0, 0, 0, 0, 0, 0, 0,0,0,0, 0}
 };
 

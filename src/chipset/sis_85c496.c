@@ -8,11 +8,12 @@
  *
  *		Implementation of the SiS 85c496/85c497 chip.
  *
- * Version:	@(#)sis_85c496.c	1.0.1	2019/10/19
+ * Version:	@(#)sis_85c496.c	1.0.2	2019/10/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
+ *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2019 Miran Grca.
  */
 #include <stdio.h>
@@ -21,6 +22,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../cpu/cpu.h"
 #include "../mem.h"
 #include "../io.h"
 #include "../rom.h"
@@ -121,6 +123,11 @@ sis_85c496_write(int func, int addr, uint8_t val, void *priv)
     valxor = old ^ val;
 
     switch (addr) {
+	case 0x42: /*Cache configure*/
+		cpu_cache_ext_enabled = (val & 0x01);
+		cpu_update_waitstates();
+		break;
+
 	case 0x44: /*Shadow configure*/
 		if (valxor & 0xff)
 			sis_85c496_recalcmapping(dev);
