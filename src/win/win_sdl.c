@@ -12,7 +12,7 @@
  *		we will not use that, but, instead, use a new window which
  *		coverrs the entire desktop.
  *
- * Version:	@(#)win_sdl.c  	1.0.7	2019/10/12
+ * Version:	@(#)win_sdl.c  	1.0.8	2019/10/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Michael Drüing, <michael@drueing.de>
@@ -365,7 +365,7 @@ sdl_init_common(int fs)
 {
     wchar_t temp[128];
     SDL_version ver;
-    int w, h, x, y;
+    int w = 0, h = 0, x = 0, y = 0;
     RECT rect;
 
     sdl_log("SDL: init (fs=%d)\n", fs);
