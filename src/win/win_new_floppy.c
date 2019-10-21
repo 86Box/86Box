@@ -8,7 +8,7 @@
  *
  *		Handle the New Floppy Image dialog.
  *
- * Version:	@(#)win_new_floppy.c	1.0.11	2019/10/21
+ * Version:	@(#)win_new_floppy.c	1.0.12	2019/10/22
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -376,9 +376,9 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
 	*(uint64_t *) &(empty[0x0020]) = 0x202D206E6F697461LL;
 	*(uint64_t *) &(empty[0x0028]) = 0x30392F33322F3131LL;
 
-	*(uint64_t *) &(empty[0x01AE]) = 0x0116010100E90598LL;
-	*(uint64_t *) &(empty[0x01B6]) = 0xEC1945BE014E0135LL;
-	*(uint64_t *) &(empty[0x01BE]) = 0xFFFFFE0BFFFFFE80LL;
+	*(uint64_t *) &(empty[0x01AE]) = 0x0116010100E90644LL;
+	*(uint64_t *) &(empty[0x01B6]) = 0xED08BBE5014E0135LL;
+	*(uint64_t *) &(empty[0x01BE]) = 0xFFFFFE06FFFFFE80LL;
 	*(uint64_t *) &(empty[0x01C6]) = 0x0002FFE000000020LL;
 
 	*(uint16_t *) &(empty[0x01FE]) = 0xAA55;
@@ -388,9 +388,9 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
 
 	/* Boot sector */
 	*(uint64_t *) &(empty[0x4000]) = 0x584F4236389058EBLL;
-	*(uint64_t *) &(empty[0x4008]) = 0x0001040200302E35LL;
+	*(uint64_t *) &(empty[0x4008]) = 0x0008040200302E35LL;
 	*(uint64_t *) &(empty[0x4010]) = 0x00C0F80000020002LL;
-	*(uint64_t *) &(empty[0x4018]) = 0x0000002000100020LL;
+	*(uint64_t *) &(empty[0x4018]) = 0x0000002000FF003FLL;
 	*(uint32_t *) &(empty[0x4020]) = 0x0002FFE0;
 	*(uint16_t *) &(empty[0x4024]) = 0x0080;
 
@@ -413,13 +413,13 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
 	empty[0x41FE] = 0x55;
 	empty[0x41FF] = 0xAA;
 
-	empty[0x4200] = empty[0x1C200] = empty[0x4015];
-	empty[0x4201] = empty[0x1C201] = 0xFF;
-	empty[0x4202] = empty[0x1C202] = 0xFF;
-	empty[0x4203] = empty[0x1C203] = 0xFF;
+	empty[0x5000] = empty[0x1D000] = empty[0x4015];
+	empty[0x5001] = empty[0x1D001] = 0xFF;
+	empty[0x5002] = empty[0x1D002] = 0xFF;
+	empty[0x5003] = empty[0x1D003] = 0xFF;
 
-	/* Root directory = 0x34200
-	   Data = 0x38200 */
+	/* Root directory = 0x35000
+	   Data = 0x39000 */
     } else {
 	/* ZIP 250 */
 	/* MBR */
