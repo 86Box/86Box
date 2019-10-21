@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.62	2019/09/26
+ * Version:	@(#)config.c	1.0.63	2019/10/21
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1836,8 +1836,7 @@ save_other_removable_devices(void)
 	}
 
 	sprintf(temp, "cdrom_%02i_scsi_id", c + 1);
-	
-	if (cdrom[c].bus_type != CDROM_BUS_SCSI && cdrom[c].bus_type) {
+	if (cdrom[c].bus_type != CDROM_BUS_SCSI) {
 		config_delete_var(cat, temp);
 	} else {
 		config_set_int(cat, temp, cdrom[c].scsi_device_id);
