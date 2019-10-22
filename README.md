@@ -65,9 +65,9 @@ Nightly builds
 For your convenience, we compile a number of 86Box builds per revision on our
 Jenkins instance.
 
-| Regular | Optimized | Experimental |
-|:-------:|:---------:|:------------:|
-|[![Build Status](http://ci.86box.net/job/86Box/badge/icon)](http://ci.86box.net/job/86Box)|[![Build Status](http://ci.86box.net/job/86Box-Optimized/badge/icon)](http://ci.86box.net/job/86Box-Optimized)|[![Build Status](http://ci.86box.net/job/86Box-Dev/badge/icon)](http://ci.86box.net/job/86Box-Dev)
+| Regular | Optimized | Experimental | Debug |
+|:-------:|:---------:|:------------:|:-----:|
+|[![Build Status](http://ci.86box.net/job/86Box/badge/icon)](http://ci.86box.net/job/86Box)|[![Build Status](http://ci.86box.net/job/86Box-Optimized/badge/icon)](http://ci.86box.net/job/86Box-Optimized)|[![Build Status](http://ci.86box.net/job/86Box-Dev/badge/icon)](http://ci.86box.net/job/86Box-Dev)|[![Build Status](http://ci.86box.net/job/86Box-Debug/badge/icon)](http://ci.86box.net/job/86Box-Debug)
 
 ### Legend
 * **Regular** builds are compiled using the settings in the building guide
@@ -77,6 +77,8 @@ Jenkins instance.
   improve the emulator's performance in certain scenarios.
 * **Experimental (Dev)** builds are similar to regular builds but are compiled
   certain unfinished features enabled. These builds are not optimized.
+* **Debug** builds are similar to regular builds but they have debug symbols included.
+  These builds are not optimized.
 
 Donations
 ---------
