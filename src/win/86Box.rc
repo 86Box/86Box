@@ -8,14 +8,14 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.44	2018/11/19
+ * Version:	@(#)86Box.rc	1.0.47	2019/10/22
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2018 David Hrdlička.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2018,2019 David Hrdlička.
  */
 #include <inttypes.h>
 #define IN_RESOURCE_H
@@ -77,6 +77,7 @@ BEGIN
 #endif
         END
         MENUITEM SEPARATOR
+        MENUITEM "F&orce 4:3 display ratio",    IDM_VID_FORCE43
         POPUP "&Window scale factor"
         BEGIN
             MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
@@ -96,7 +97,6 @@ BEGIN
         POPUP "E&GA/(S)VGA settings"
         BEGIN
             MENUITEM "&Inverted VGA monitor",   IDM_VID_INVERT
-            MENUITEM "E&GA/(S)VGA overscan",    IDM_VID_OVERSCAN
             POPUP "VGA screen &type"
             BEGIN
                 MENUITEM "RGB &Color",          IDM_VID_GRAY_RGB
@@ -113,7 +113,7 @@ BEGIN
             END
         END
         MENUITEM SEPARATOR
-        MENUITEM "F&orce 4:3 display ratio",    IDM_VID_FORCE43
+        MENUITEM "CGA/PCjr/Tandy/E&GA/(S)VGA overscan",     IDM_VID_OVERSCAN
         MENUITEM "Change contrast for &monochrome display", IDM_VID_CGACON
     END
     POPUP "&Tools"
@@ -224,8 +224,13 @@ FONT 9, "Segoe UI"
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,129,94,71,12
     ICON            100,IDC_ABOUT_ICON,7,7,20,20
-    LTEXT           "86Box v2.00 - A fork of PCem\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.",
+#ifdef RELEASE_BUILD
+    LTEXT           "86Box v2.00 - An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.",
                     IDC_ABOUT_ICON,54,7,146,73
+#else
+    LTEXT           "86Box v2.10 - An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.",
+                    IDC_ABOUT_ICON,54,7,146,73
+#endif
     CONTROL         "",IDC_ABOUT_ICON,"Static",SS_BLACKFRAME | SS_SUNKEN,0,
                     86,208,1
 END
@@ -974,8 +979,13 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
+#ifdef RELEASE_BUILD
  FILEVERSION 2,0,0,0
  PRODUCTVERSION 2,0,0,0
+#else
+ FILEVERSION 2,10,0,0
+ PRODUCTVERSION 2,10,0,0
+#endif
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -993,14 +1003,22 @@ BEGIN
             VALUE "Comments", "\0"
             VALUE "CompanyName", "IRC #SoftHistory\0"
             VALUE "FileDescription", "86Box - an emulator for X86-based systems\0"
+#ifdef RELEASE_BUILD
             VALUE "FileVersion", "2.00\0"
+#else
+            VALUE "FileVersion", "2.10\0"
+#endif
             VALUE "InternalName", "86Box\0"
             VALUE "LegalCopyright", "Copyright (C)SoftHistory, Sarah Walker, 2007-2017, Released under the GNU GPL v2\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "86Box.exe\0"
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "86Box Emulator\0"
+#ifdef RELEASE_BUILD
             VALUE "ProductVersion", "2.00\0"
+#else
+            VALUE "ProductVersion", "2.10\0"
+#endif
             VALUE "SpecialBuild", "\0"
         END
     END

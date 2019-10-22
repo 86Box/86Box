@@ -8,13 +8,13 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.27	2019/01/13
+ * Version:	@(#)86box.h	1.0.28	2019/10/22
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #ifndef EMU_86BOX_H
 # define EMU_86BOX_H
@@ -29,8 +29,13 @@
 /* Version info. */
 #define EMU_NAME	"86Box"
 #define EMU_NAME_W	L"86Box"
+#ifdef RELEASE_BUILD
 #define EMU_VERSION	"2.00"
 #define EMU_VERSION_W	L"2.00"
+#else
+#define EMU_VERSION	"2.10"
+#define EMU_VERSION_W	L"2.10"
+#endif
 
 /* Filename and pathname info. */
 #define CONFIG_FILE	L"86box.cfg"

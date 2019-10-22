@@ -15,15 +15,15 @@
  * **NOTE**	This code will very soon be replaced with a C variant, so
  *		no more changes will be done.
  *
- * Version:	@(#)cdrom_dosbox.cpp	1.0.11	2019/03/05
+ * Version:	@(#)cdrom_dosbox.cpp	1.0.12	2019/10/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		The DOSBox Team, <unknown>
  *
  *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2002-2015 The DOSBox Team.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2002-2019 The DOSBox Team.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -693,7 +693,7 @@ CDROM_Interface_Image::CueLoadSheet(const wchar_t *cuefile)
 
 		canAddTrack = true;
 	} else if (command == "INDEX") {
-		uint64_t frame, index;
+		uint64_t frame = 0ULL, index;
 		index = CueGetNumber(&line);
 		success = CueGetFrame(frame, &line);
 
