@@ -153,7 +153,7 @@ uint8_t opl_read(int nr, uint16_t addr)
 void opl2_update(int nr, int16_t *buffer, int samples)
 {
         int c;
-        Bit32s buffer_32[SOUNDBUFLEN];
+        Bit32s buffer_32[samples];
 
 	if (opl_type)
 	{
@@ -171,7 +171,7 @@ void opl2_update(int nr, int16_t *buffer, int samples)
 void opl3_update(int nr, int16_t *buffer, int samples)
 {
         int c;
-        Bit32s buffer_32[SOUNDBUFLEN*2];
+        Bit32s buffer_32[samples*2];
 
 	if (opl_type)
 	{
