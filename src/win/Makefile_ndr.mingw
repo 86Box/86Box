@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.137	2019/03/03
+# Version:	@(#)Makefile.mingw	1.0.138	2019/10/23
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -682,7 +682,7 @@ PLATOBJ		:= win.o \
 ifeq ($(DINPUT), y)
  PLATOBJ += win_mouse.o win_joystick.o
 else
- PLATOBJ += win_mouse_rawinput.o win_joystick_xinput.o
+ PLATOBJ += win_mouse_rawinput.o win_joystick.o
 endif
 
 OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) \
@@ -716,14 +716,12 @@ endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
-LIBS		+= -lpng -lz -lwsock32 -liphlpapi
+LIBS		+= -lpng -lz -lwsock32 -liphlpapi -ldinput8
 LIBS		+= -static -lstdc++ 
 ifneq ($(X64), y)
 LIBS		+= -Wl,--large-address-aware
 endif
-ifeq ($(DINPUT), y)
- LIBS    += -ldinput8
-else
+ifneq ($(DINPUT), y)
  LIBS    += -lxinput
 endif
 
