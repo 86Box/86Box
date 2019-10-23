@@ -8,13 +8,13 @@
  *
  *		Joystick interface to host device.
  *
- * Version:	@(#)win_joystick.cpp	1.0.11	2018/11/11
+ * Version:	@(#)win_joystick.cpp	1.0.12	2019/10/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
@@ -120,8 +120,6 @@ BOOL CALLBACK DIEnumDeviceObjectsCallback(
 void joystick_init()
 {
         int c;
-
-	if (joystick_type == 7)  return;
 
         atexit(joystick_close);
         
