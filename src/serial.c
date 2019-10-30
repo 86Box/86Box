@@ -8,7 +8,7 @@
  *
  *		NS8250/16450/16550 UART emulation.
  *
- * Version:	@(#)serial.h	1.0.11	2019/10/11
+ * Version:	@(#)serial.h	1.0.12	2019/10/29
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -167,6 +167,59 @@ serial_transmit(serial_t *dev, uint8_t val)
 }
 
 
+static void
+serial_move_to_txsr(serial_t *dev)
+{
+    if (dev->fifo_enabled) {
+	dev->txsr = dev->xmit_fifo[dev->xmit_fifo_pos];
+	dev->xmit_fifo[dev->xmit_fifo_pos++] = 0;
+    } else {
+	dev->txsr = dev->thr;
+	dev->thr = 0;
+    }
+
+    dev->bytes_transmitted++;
+
+    if (!dev->fifo_enabled || (dev->xmit_fifo_pos == 16)) {
+	/* Update interrupts to signal THRE. */
+	dev->xmit_fifo_pos = 0;
+	dev->lsr |= 0x20;
+	dev->int_status |= SERIAL_INT_TRANSMIT;
+	serial_update_ints(dev);
+    }
+    if (dev->transmit_enabled & 2)
+	dev->baud_cycles++;
+    else
+	dev->baud_cycles = 0;	/* If not moving while transmitting, reset BAUDOUT cycle count. */
+    dev->transmit_enabled &= ~1;	/* Stop moving. */
+    dev->transmit_enabled |= 2;	/* Start transmitting. */
+}
+
+
+static void
+serial_process_txsr(serial_t *dev)
+{
+    serial_transmit(dev, dev->txsr);
+    dev->txsr = 0;
+    /* Reset BAUDOUT cycle count. */
+    dev->baud_cycles = 0;
+    /* If FIFO is enabled and there are bytes left to transmit,
+       continue with the FIFO, otherwise stop. */
+    if (dev->fifo_enabled && (dev->bytes_transmitted < 16))
+	dev->transmit_enabled |= 1;
+    else {
+	/* Both FIFO/THR and TXSR are empty. */
+	/* If bit 5 is set, also set bit 6 to mark both THR and shift register as empty. */
+	if (dev->lsr & 0x20)
+		dev->lsr |= 0x40;
+	dev->transmit_enabled &= ~2;
+	dev->bytes_transmitted = 0;
+    }
+    dev->int_status &= ~SERIAL_INT_TRANSMIT;
+    serial_update_ints(dev);
+}
+
+
 /* Transmit_enable flags:
 	Bit 0 = Do move if set;
 	Bit 1 = Do transmit if set. */
@@ -176,62 +229,26 @@ serial_transmit_timer(void *priv)
     serial_t *dev = (serial_t *) priv;
     int delay = 8;			/* STOP to THRE delay is 8 BAUDOUT cycles. */
 
-    if ((dev->transmit_enabled & 1) && (dev->transmit_enabled & 2))
-	delay = dev->data_bits;		/* Delay by less if already transmitting. */
+    if (dev->transmit_enabled & 3) {
+	if ((dev->transmit_enabled & 1) && (dev->transmit_enabled & 2))
+		delay = dev->data_bits;		/* Delay by less if already transmitting. */
 
-    if ((dev->baud_cycles == delay) && (dev->transmit_enabled & 1)) {
-	/* We have processed (data bits) BAUDOUT cycles. */
-	if (dev->fifo_enabled) {
-		dev->txsr = dev->xmit_fifo[dev->xmit_fifo_pos];
-		dev->xmit_fifo[dev->xmit_fifo_pos++] = 0;
-	} else {
-		dev->txsr = dev->thr;
-		dev->thr = 0;
-	}
-
-	dev->bytes_transmitted++;
-
-	if (!dev->fifo_enabled || (dev->xmit_fifo_pos == 16)) {
-		/* Update interrupts to signal THRE. */
-		dev->xmit_fifo_pos = 0;
-		dev->lsr |= 0x20;
-		dev->int_status |= SERIAL_INT_TRANSMIT;
-		serial_update_ints(dev);
-	}
-	if (dev->transmit_enabled & 2)
-		dev->baud_cycles++;
-	else
-		dev->baud_cycles = 0;	/* If not moving while transmitting, reset BAUDOUT cycle count. */
-	dev->transmit_enabled &= ~1;	/* Stop moving. */
-	dev->transmit_enabled |= 2;	/* Start transmitting. */
-	timer_advance_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
-    } else if ((dev->baud_cycles == dev->bits) && (dev->transmit_enabled & 2)) {
-	/* We have processed (total bits) BAUDOUT cycles, transmit the byte. */
-	serial_transmit(dev, dev->txsr);
-	dev->txsr = 0;
-	/* Reset BAUDOUT cycle count. */
-	dev->baud_cycles = 0;
-	/* If FIFO is enabled and there are bytes left to transmit,
-	   continue with the FIFO, otherwise stop. */
-	if (dev->fifo_enabled && (dev->bytes_transmitted == 16)) {
-		dev->transmit_enabled |= 1;
-		timer_advance_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
-	} else {
-		/* Both FIFO/THR and TXSR are empty. */
-		/* If bit 5 is set, also set bit 6 to mark both THR and shift register as empty. */
-		if (dev->lsr & 0x20)
-			dev->lsr |= 0x40;
-		dev->transmit_enabled &= ~2;
-		dev->bytes_transmitted = 0;
-	}
-	dev->int_status &= ~SERIAL_INT_TRANSMIT;
-	serial_update_ints(dev);
-    } else if (dev->transmit_enabled & 3) {
 	dev->baud_cycles++;
-	timer_advance_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
+
+	/* We have processed (total bits) BAUDOUT cycles, transmit the byte. */
+	if ((dev->baud_cycles == dev->bits) && (dev->transmit_enabled & 2))
+		serial_process_txsr(dev);
+
+	/* We have processed (data bits) BAUDOUT cycles. */
+	if ((dev->baud_cycles == delay) && (dev->transmit_enabled & 1))
+		serial_move_to_txsr(dev);
+
+	if (dev->transmit_enabled & 3)
+		timer_on_auto(&dev->transmit_timer, dev->transmit_period);
     } else {
 	dev->baud_cycles = 0;
 	dev->bytes_transmitted = 0;
+	return;
     }
 }
 
@@ -240,8 +257,7 @@ static void
 serial_update_speed(serial_t *dev)
 {
     if (dev->transmit_enabled & 3) {
-	timer_disable(&dev->transmit_timer);
-	timer_set_delay_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
+	timer_on_auto(&dev->transmit_timer, dev->transmit_period);
     }
 }
 
@@ -277,16 +293,14 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 
 			if (dev->xmit_fifo_pos == 0) {
 				/* FIFO full, begin transmitting. */
-				timer_disable(&dev->transmit_timer);
-				timer_set_delay_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
+				timer_on_auto(&dev->transmit_timer, dev->transmit_period);
 				dev->bytes_transmitted = 0;
 				dev->transmit_enabled |= 1;	/* Start moving. */
 			}
 		} else {
 			/* Non-FIFO mode, begin transmitting. */
 			dev->bytes_transmitted = 0;
-			timer_disable(&dev->transmit_timer);
-			timer_set_delay_u64(&dev->transmit_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
+			timer_on_auto(&dev->transmit_timer, dev->transmit_period);
 			dev->transmit_enabled |= 1;	/* Start moving. */
 			dev->thr = val;
 		}
