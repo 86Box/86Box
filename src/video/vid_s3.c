@@ -8,13 +8,13 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.26	2019/01/12
+ * Version:	@(#)vid_s3.c	1.0.27	2019/10/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -2379,23 +2379,6 @@ int s3_data_len(s3_t *s3)
 	return 4;
 }
 
-void s3_data_swap(s3_t *s3)
-{
-	uint8_t i, temp_array[4];
-	uint8_t c = s3_data_len(s3);
-
-	for (i = 0; i < 4; i++)
-		temp_array[i] = s3->accel.pix_trans[i];
-
-	if (s3_data_len(s3) < 2)
-		return;
-
-	if (s3->accel.cmd & 0x1000) {
-		for (i = 0; i < c; i++)
-			s3->accel.pix_trans[i] = temp_array[i ^ (c - 1)];
-	}
-}
-
 void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_t *s3)
 {
 	svga_t *svga = &s3->svga;
@@ -2645,7 +2628,17 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 			if (s3->accel.cx >= clip_l && s3->accel.cx <= clip_r &&
 			    s3->accel.cy >= clip_t && s3->accel.cy <= clip_b)
 			{
-				switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix)
+				if (s3_cpu_dest(s3) && ((s3->accel.multifunc[0xa] & 0xc0) == 0x00))
+					mix_dat = mix_mask;					/* Mix data = forced to foreground register. */
+				else if (s3_cpu_dest(s3) && vram_mask) {
+					/* Mix data = current video memory value. */
+					READ_SRC(s3->accel.dest + s3->accel.cx, mix_dat);
+					mix_dat = mix_dat ? mix_mask : 0;
+				}
+
+				if (s3_cpu_dest(s3)) {
+					READ_SRC(s3->accel.dest + s3->accel.cx, src_dat);
+				} else  switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix)
 				{
 					case 0: src_dat = s3->accel.bkgd_color; break;
 					case 1: src_dat = s3->accel.frgd_color; break;
@@ -2657,11 +2650,11 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 				    (compare_mode == 3 && src_dat == compare) ||
 				     compare_mode < 2)
 				{
-					if (s3_cpu_dest(s3)) {
-						READ_SRC(s3->accel.dest + s3->accel.cx, src_dat);
+					if (s3_cpu_dest(s3))
 						dest_dat = 0xffffffff;
-					} else
+					else {
 						READ_DST(s3->accel.dest + s3->accel.cx, dest_dat);
+					}
 
 					MIX
 
@@ -2700,28 +2693,22 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 				s3->accel.sy--;
 
 				if (cpu_input/* && (s3->accel.multifunc[0xa] & 0xc0) == 0x80*/) {
-					if (s3_cpu_dest(s3)) {
+					if (s3_cpu_dest(s3))
 						s3->data_available = 1;
-						s3_data_swap(s3);
-					}
 					return;
 				}
 				if (s3->accel.sy < 0)
 				{
 					s3->accel.cur_x = s3->accel.cx;
 					s3->accel.cur_y = s3->accel.cy;
-					if (s3_cpu_dest(s3)) {
+					if (s3_cpu_dest(s3))
 						s3->data_available = 1;
-						s3_data_swap(s3);
-					}
 					return;
 				}
 			}
 
-			if (s3_cpu_dest(s3) && s3->data_available) {
-				s3_data_swap(s3);
+			if (s3_cpu_dest(s3) && s3->data_available)
 				return;
-			}
 		}
 		break;
 
