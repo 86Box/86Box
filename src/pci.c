@@ -8,7 +8,7 @@
  *
  *		Implementation the PCI bus.
  *
- * Version:	@(#)pci.c	1.0.2	2019/10/30
+ * Version:	@(#)pci.c	1.0.3	2019/10/30
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -620,6 +620,7 @@ trc_reset(uint8_t val)
 	flushmmucache();
 
 	pci_reset();
+	keyboard_at_reset();
     }
 
     resetx86();

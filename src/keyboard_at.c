@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.43	2019/03/05
+ * Version:	@(#)keyboard_at.c	1.0.44	2019/10/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2295,6 +2295,15 @@ kbd_reset(void *priv)
     memset(keyboard_set3_flags, 0, 512);
 
     set_scancode_map(dev);
+}
+
+
+/* Reset the AT keyboard - this is needed for the PCI TRC and is done
+   until a better solution is found. */
+void
+keyboard_at_reset(void)
+{
+    kbd_reset(SavedKbd);
 }
 
 

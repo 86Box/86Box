@@ -8,7 +8,7 @@
  *
  *		Definitions for the keyboard interface.
  *
- * Version:	@(#)keyboard.h	1.0.18	2019/03/05
+ * Version:	@(#)keyboard.h	1.0.19	2019/10/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -103,6 +103,7 @@ extern void	keyboard_at_adddata_mouse(uint8_t val);
 extern void	keyboard_at_set_mouse(void (*mouse_write)(uint8_t val,void *), void *);
 extern uint8_t	keyboard_at_get_mouse_scan(void);
 extern void	keyboard_at_set_mouse_scan(uint8_t val);
+extern void	keyboard_at_reset(void);
 
 #ifdef __cplusplus
 }
