@@ -8,7 +8,7 @@
  *
  *		S3 emulation.
  *
- * Version:	@(#)vid_s3.c	1.0.27	2019/10/30
+ * Version:	@(#)vid_s3.c	1.0.28	2019/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2660,7 +2660,8 @@ void s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
 					if (s3_cpu_dest(s3)) {
 						for (i = 0; i <= s3->bpp; i++)
-							s3->accel.pix_trans[read + i] = (dest_dat >> (i << 3)) & 0xff;
+							s3->accel.pix_trans[read + i] = (src_dat >> (i << 3)) & 0xff;
+							/* Yes, src_dat is correct, there is no mixing/ROP's done on PIX_TRANS reads. */
 					} else
 						WRITE(s3->accel.dest + s3->accel.cx);
 				}
