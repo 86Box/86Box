@@ -8,7 +8,9 @@
  *
  *		NS8250/16450/16550 UART emulation.
  *
- * Version:	@(#)serial.h	1.0.12	2019/10/29
+ *		Now passes all the AMIDIAG tests.
+ *
+ * Version:	@(#)serial.h	1.0.13	2019/10/31
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -42,7 +44,8 @@ enum
     SERIAL_INT_LSR = 1,
     SERIAL_INT_RECEIVE = 2,
     SERIAL_INT_TRANSMIT = 4,
-    SERIAL_INT_MSR = 8
+    SERIAL_INT_MSR = 8,
+    SERIAL_INT_TIMEOUT = 16
 };
 
 
@@ -77,8 +80,8 @@ serial_reset_port(serial_t *dev)
     dev->iir = dev->ier = dev->lcr = dev->fcr = 0;
     dev->fifo_enabled = 0;
     dev->xmit_fifo_pos = dev->rcvr_fifo_pos = 0;
+    dev->rcvr_fifo_full = 0;
     dev->baud_cycles = 0;
-    dev->bytes_transmitted = 0;
     memset(dev->xmit_fifo, 0, 16);
     memset(dev->rcvr_fifo, 0, 14);
 }
@@ -107,6 +110,10 @@ serial_update_ints(serial_t *dev)
 	/* Line status interrupt */
 	stat = 1;
 	dev->iir = 6;
+    } else if ((dev->ier & 1) && (dev->int_status & SERIAL_INT_TIMEOUT)) {
+	/* Received data available */
+	stat = 1;
+	dev->iir = 0x0c;
     } else if ((dev->ier & 1) && (dev->int_status & SERIAL_INT_RECEIVE)) {
 	/* Received data available */
 	stat = 1;
@@ -131,26 +138,48 @@ serial_update_ints(serial_t *dev)
 }
 
 
-void
-serial_write_fifo(serial_t *dev, uint8_t dat)
+static void
+serial_clear_timeout(serial_t *dev)
 {
-    serial_log("serial_write_fifo(%08X, %02X, %i)\n", dev, dat, (dev->type >= SERIAL_NS16550) && dev->fifo_enabled);
+    /* Disable timeout timer and clear timeout condition. */
+    timer_disable(&dev->timeout_timer);
+    dev->int_status &= ~SERIAL_INT_TIMEOUT;
+    serial_update_ints(dev);
+}
+
+
+static void
+write_fifo(serial_t *dev, uint8_t dat)
+{
+    serial_log("write_fifo(%08X, %02X, %i, %i)\n", dev, dat, (dev->type >= SERIAL_NS16550) && dev->fifo_enabled, dev->rcvr_fifo_pos & 0x0f);
 
     if ((dev->type >= SERIAL_NS16550) && dev->fifo_enabled) {
 	/* FIFO mode. */
-	dev->rcvr_fifo[dev->rcvr_fifo_pos++] = dat;
-	dev->rcvr_fifo_pos %= dev->rcvr_fifo_len;
+	timer_disable(&dev->timeout_timer);
+	/* Indicate overrun. */
+	if (dev->rcvr_fifo_full)
+		dev->lsr |= 0x02;
+	else
+		dev->rcvr_fifo[dev->rcvr_fifo_pos] = dat;
 	dev->lsr &= 0xfe;
-	dev->lsr |= (!dev->rcvr_fifo_pos);
 	dev->int_status &= ~SERIAL_INT_RECEIVE;
-	if (!dev->rcvr_fifo_pos) {
+	if (dev->rcvr_fifo_pos == (dev->rcvr_fifo_len - 1)) {
+		dev->lsr |= 0x01;
 		dev->int_status |= SERIAL_INT_RECEIVE;
-		serial_update_ints(dev);
 	}
+	if (dev->rcvr_fifo_pos < 15)
+		dev->rcvr_fifo_pos++;
+	else
+		dev->rcvr_fifo_full = 1;
+	serial_update_ints(dev);
+        timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
     } else {
 	/* Non-FIFO mode. */
+	/* Indicate overrun. */
+	if (dev->lsr & 0x01)
+		dev->lsr |= 0x02;
 	dev->dat = dat;
-	dev->lsr |= 1;
+	dev->lsr |= 0x01;
 	dev->int_status |= SERIAL_INT_RECEIVE;
 	serial_update_ints(dev);
     }
@@ -158,10 +187,20 @@ serial_write_fifo(serial_t *dev, uint8_t dat)
 
 
 void
+serial_write_fifo(serial_t *dev, uint8_t dat)
+{
+    serial_log("serial_write_fifo(%08X, %02X, %i, %i)\n", dev, dat, (dev->type >= SERIAL_NS16550) && dev->fifo_enabled, dev->rcvr_fifo_pos & 0x0f);
+
+    if (!(dev->mctrl & 0x10))
+	write_fifo(dev, dat);
+}
+
+
+void
 serial_transmit(serial_t *dev, uint8_t val)
 {
     if (dev->mctrl & 0x10)
-	serial_write_fifo(dev, val);
+	write_fifo(dev, val);
     else if (dev->sd->dev_write)
 	dev->sd->dev_write(dev, dev->sd->priv, val);
 }
@@ -170,19 +209,27 @@ serial_transmit(serial_t *dev, uint8_t val)
 static void
 serial_move_to_txsr(serial_t *dev)
 {
+    int i = 0;
+
     if (dev->fifo_enabled) {
-	dev->txsr = dev->xmit_fifo[dev->xmit_fifo_pos];
-	dev->xmit_fifo[dev->xmit_fifo_pos++] = 0;
+	dev->txsr = dev->xmit_fifo[0];
+	if (dev->xmit_fifo_pos > 0) {
+		/* Move the entire fifo forward by one byte. */
+		for (i = 1; i < 16; i++)
+			dev->xmit_fifo[i - 1] = dev->xmit_fifo[i];
+		/* Decrease FIFO position. */
+		dev->xmit_fifo_pos--;
+	}
     } else {
 	dev->txsr = dev->thr;
 	dev->thr = 0;
     }
 
-    dev->bytes_transmitted++;
+    dev->lsr &= ~0x40;
+    serial_log("serial_move_to_txsr(): FIFO %sabled, FIFO pos = %i\n", dev->fifo_enabled ? "en" : "dis", dev->xmit_fifo_pos & 0x0f);
 
-    if (!dev->fifo_enabled || (dev->xmit_fifo_pos == 16)) {
-	/* Update interrupts to signal THRE. */
-	dev->xmit_fifo_pos = 0;
+    if (!dev->fifo_enabled || (dev->xmit_fifo_pos == 0x0)) {
+	/* Update interrupts to signal THRE and that TXSR is no longer empty. */
 	dev->lsr |= 0x20;
 	dev->int_status |= SERIAL_INT_TRANSMIT;
 	serial_update_ints(dev);
@@ -191,7 +238,8 @@ serial_move_to_txsr(serial_t *dev)
 	dev->baud_cycles++;
     else
 	dev->baud_cycles = 0;	/* If not moving while transmitting, reset BAUDOUT cycle count. */
-    dev->transmit_enabled &= ~1;	/* Stop moving. */
+    if (!dev->fifo_enabled || (dev->xmit_fifo_pos == 0x0))
+	dev->transmit_enabled &= ~1;	/* Stop moving. */
     dev->transmit_enabled |= 2;	/* Start transmitting. */
 }
 
@@ -199,13 +247,14 @@ serial_move_to_txsr(serial_t *dev)
 static void
 serial_process_txsr(serial_t *dev)
 {
+    serial_log("serial_process_txsr(): FIFO %sabled\n", dev->fifo_enabled ? "en" : "dis");
     serial_transmit(dev, dev->txsr);
     dev->txsr = 0;
     /* Reset BAUDOUT cycle count. */
     dev->baud_cycles = 0;
     /* If FIFO is enabled and there are bytes left to transmit,
        continue with the FIFO, otherwise stop. */
-    if (dev->fifo_enabled && (dev->bytes_transmitted < 16))
+    if (dev->fifo_enabled && (dev->xmit_fifo_pos != 0x0))
 	dev->transmit_enabled |= 1;
     else {
 	/* Both FIFO/THR and TXSR are empty. */
@@ -213,7 +262,6 @@ serial_process_txsr(serial_t *dev)
 	if (dev->lsr & 0x20)
 		dev->lsr |= 0x40;
 	dev->transmit_enabled &= ~2;
-	dev->bytes_transmitted = 0;
     }
     dev->int_status &= ~SERIAL_INT_TRANSMIT;
     serial_update_ints(dev);
@@ -247,18 +295,45 @@ serial_transmit_timer(void *priv)
 		timer_on_auto(&dev->transmit_timer, dev->transmit_period);
     } else {
 	dev->baud_cycles = 0;
-	dev->bytes_transmitted = 0;
 	return;
     }
 }
 
 
 static void
+serial_timeout_timer(void *priv)
+{
+    serial_t *dev = (serial_t *) priv;
+
+#ifdef ENABLE_SERIAL_LOG
+    serial_log("serial_timeout_timer()\n");
+#endif
+
+    dev->lsr |= 0x01;
+    dev->int_status |= SERIAL_INT_TIMEOUT;
+    serial_update_ints(dev);
+}
+
+
+static void
 serial_update_speed(serial_t *dev)
 {
-    if (dev->transmit_enabled & 3) {
+    if (dev->transmit_enabled & 3)
 	timer_on_auto(&dev->transmit_timer, dev->transmit_period);
-    }
+
+    if (timer_is_enabled(&dev->timeout_timer))
+	timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
+}
+
+
+static void
+serial_reset_fifo(serial_t *dev)
+{
+    dev->lsr = (dev->lsr & 0xfe) | 0x60;
+    dev->int_status = (dev->int_status & ~SERIAL_INT_RECEIVE) | SERIAL_INT_TRANSMIT;
+    serial_update_ints(dev);
+    dev->xmit_fifo_pos = dev->rcvr_fifo_pos = 0;
+    dev->rcvr_fifo_full = 0;
 }
 
 
@@ -286,20 +361,13 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 		dev->int_status &= ~SERIAL_INT_TRANSMIT;
 		serial_update_ints(dev);
 
-		if ((dev->type >= SERIAL_NS16550) && dev->fifo_enabled) {
-			/* FIFO mode. */
+		if ((dev->type >= SERIAL_NS16550) && dev->fifo_enabled && (dev->xmit_fifo_pos < 16)) {
+			/* FIFO mode, begin transmitting. */
+			timer_on_auto(&dev->transmit_timer, dev->transmit_period);
+			dev->transmit_enabled |= 1;	/* Start moving. */
 			dev->xmit_fifo[dev->xmit_fifo_pos++] = val;
-			dev->xmit_fifo_pos &= 0x0f;
-
-			if (dev->xmit_fifo_pos == 0) {
-				/* FIFO full, begin transmitting. */
-				timer_on_auto(&dev->transmit_timer, dev->transmit_period);
-				dev->bytes_transmitted = 0;
-				dev->transmit_enabled |= 1;	/* Start moving. */
-			}
 		} else {
 			/* Non-FIFO mode, begin transmitting. */
-			dev->bytes_transmitted = 0;
 			timer_on_auto(&dev->transmit_timer, dev->transmit_period);
 			dev->transmit_enabled |= 1;	/* Start moving. */
 			dev->thr = val;
@@ -312,25 +380,29 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 			serial_update_speed(dev);
 			return;
 		}
+		if ((val & 2) && (dev->lsr & 0x20))
+			dev->int_status |= SERIAL_INT_TRANSMIT;
 		dev->ier = val & 0xf;
 		serial_update_ints(dev);
 		break;
 	case 2:
 		if (dev->type >= SERIAL_NS16550) {
-			if ((val ^ dev->fcr) & 0x04)
-				dev->lsr |= 0x60;
+			if ((val ^ dev->fcr) & 0x01)
+				serial_reset_fifo(dev);
 			dev->fcr = val & 0xf9;
 			dev->fifo_enabled = val & 0x01;
 			if (!dev->fifo_enabled) {
 				memset(dev->rcvr_fifo, 0, 14);
 				memset(dev->xmit_fifo, 0, 16);
-				dev->rcvr_fifo_pos = dev->xmit_fifo_pos = 0;
+				dev->xmit_fifo_pos = dev->rcvr_fifo_pos = 0;
+				dev->rcvr_fifo_full = 0;
 				dev->rcvr_fifo_len = 1;
 				break;
 			}
 			if (val & 0x02) {
 				memset(dev->rcvr_fifo, 0, 14);
 				dev->rcvr_fifo_pos = 0;
+				dev->rcvr_fifo_full = 0;
 			}
 			if (val & 0x04) {
 				memset(dev->xmit_fifo, 0, 16);
@@ -350,6 +422,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 					dev->rcvr_fifo_len = 14;
 					break;
 			}
+			serial_log("FIFO now %sabled, receive FIFO length = %i\n", dev->fifo_enabled ? "en" : "dis", dev->rcvr_fifo_len);
 		}
 		break;
 	case 3:
@@ -375,6 +448,10 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 			if (dev->sd->rcr_callback)
 				dev->sd->rcr_callback(dev, dev->sd->priv);
 		}
+		if (!(val & 8) && (dev->mctrl & 8))
+			picintc(1 << dev->irq);
+		if ((val ^ dev->mctrl) & 0x10)
+			serial_reset_fifo(dev);
 		dev->mctrl = val;
 		if (val & 0x10) {
 			new_msr = (val & 0x0c) << 4;
@@ -393,6 +470,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 			dev->msr = new_msr;
 
 			dev->xmit_fifo_pos = dev->rcvr_fifo_pos = 0;
+			dev->rcvr_fifo_full = 0;
 		}
 		break;
 	case 5:
@@ -423,7 +501,7 @@ uint8_t
 serial_read(uint16_t addr, void *p)
 {
     serial_t *dev = (serial_t *)p;
-    uint8_t ret = 0;
+    uint8_t i, ret = 0;
 
     sub_cycles(ISA_CYCLES(8));
 
@@ -436,22 +514,23 @@ serial_read(uint16_t addr, void *p)
 
 		if ((dev->type >= SERIAL_NS16550) && dev->fifo_enabled) {
 			/* FIFO mode. */
-			if (dev->mctrl & 0x10) {
-				ret = dev->xmit_fifo[dev->xmit_fifo_pos++];
-				dev->xmit_fifo_pos %= 16;
-				if (!dev->xmit_fifo_pos) {
-					dev->lsr &= 0xfe;
-					dev->int_status &= ~SERIAL_INT_RECEIVE;
-					serial_update_ints(dev);
-				}
+
+			serial_clear_timeout(dev);
+
+			ret = dev->rcvr_fifo[0];
+			dev->rcvr_fifo_full = 0;
+			if (dev->rcvr_fifo_pos > 0) {
+				for (i = 1; i < 16; i++)
+					dev->rcvr_fifo[i - 1] = dev->rcvr_fifo[i];
+				serial_log("FIFO position %i: read %02X, next %02X\n", dev->rcvr_fifo_pos, ret, dev->rcvr_fifo[0]);
+				dev->rcvr_fifo_pos--;
+				/* At least one byte remains to be read, start the timeout
+				   timer so that a timeout is indicated in case of no read. */
+				timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
 			} else {
-				ret = dev->rcvr_fifo[dev->rcvr_fifo_pos++];
-				dev->rcvr_fifo_pos %= dev->rcvr_fifo_len;
-				if (!dev->rcvr_fifo_pos) {
-					dev->lsr &= 0xfe;
-					dev->int_status &= ~SERIAL_INT_RECEIVE;
-					serial_update_ints(dev);
-				}
+				dev->lsr &= 0xfe;
+				dev->int_status &= ~SERIAL_INT_RECEIVE;
+				serial_update_ints(dev);
 			}
 		} else {
 			ret = dev->dat;
@@ -599,6 +678,7 @@ serial_init(const device_t *info)
 	dev->fcr = 0x06;
 	serial_transmit_period(dev);
 	timer_add(&dev->transmit_timer, serial_transmit_timer, dev, 0);
+	timer_add(&dev->timeout_timer, serial_timeout_timer, dev, 0);
     }
 
     next_inst++;

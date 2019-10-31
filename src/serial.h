@@ -8,7 +8,7 @@
  *
  *		Definitions for the NS8250/16450/16550 UART emulation.
  *
- * Version:	@(#)serial.h	1.0.11	2019/10/11
+ * Version:	@(#)serial.h	1.0.12	2019/10/31
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -44,14 +44,15 @@ typedef struct serial_s
 	    dat, int_status, scratch, fcr,
 	    irq, type, inst, transmit_enabled,
 	    fifo_enabled, rcvr_fifo_len, bits, data_bits,
-	    baud_cycles, bytes_transmitted, txsr, pad;
+	    baud_cycles, rcvr_fifo_full, txsr, pad;
 
     uint16_t dlab, base_address;
 
-    uint8_t rcvr_fifo_pos, rcvr_fifo[14];
-    uint8_t xmit_fifo_pos, xmit_fifo[16];
+    uint8_t rcvr_fifo_pos, xmit_fifo_pos,
+	    pad0, pad1,
+	    rcvr_fifo[16], xmit_fifo[16];
 
-    pc_timer_t transmit_timer;
+    pc_timer_t transmit_timer, timeout_timer;
     double transmit_period;
 
     struct serial_device_s	*sd;
