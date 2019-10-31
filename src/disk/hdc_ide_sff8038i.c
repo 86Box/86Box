@@ -10,13 +10,13 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)hdc_ide_sff8038i.c	1.0.0	2019/05/12
+ * Version:	@(#)hdc_ide_sff8038i.c	1.0.1	2019/10/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -371,12 +371,12 @@ sff_bus_master_set_irq(int channel, void *priv)
     channel &= 0x01;
     if (dev->status & 0x04) {
 	if (channel && pci_use_mirq(0))
-		pci_set_mirq(0);
+		pci_set_mirq(0, 0);
 	else
 		picint(1 << (14 + channel));
     } else {
 	if ((channel & 1) && pci_use_mirq(0))
-		pci_clear_mirq(0);
+		pci_clear_mirq(0, 0);
 	else
 		picintc(1 << (14 + channel));
     }

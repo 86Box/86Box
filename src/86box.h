@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.30	2019/10/23
+ * Version:	@(#)86box.h	1.0.31	2019/10/31
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *f		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -30,8 +30,8 @@
 #define EMU_NAME	"86Box"
 #define EMU_NAME_W	L"86Box"
 #ifdef RELEASE_BUILD
-#define EMU_VERSION	"2.02"
-#define EMU_VERSION_W	L"2.02"
+#define EMU_VERSION	"2.03"
+#define EMU_VERSION_W	L"2.03"
 #else
 #define EMU_VERSION	"2.10"
 #define EMU_VERSION_W	L"2.10"

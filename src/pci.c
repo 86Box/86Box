@@ -8,15 +8,15 @@
  *
  *		Implementation the PCI bus.
  *
- * Version:	@(#)pci.c	1.0.1	2018/11/05
+ * Version:	@(#)pci.c	1.0.3	2019/10/30
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -321,10 +321,9 @@ pci_use_mirq(uint8_t mirq)
 
 
 void
-pci_set_mirq(uint8_t mirq)
+pci_set_mirq(uint8_t mirq, int level)
 {
     uint8_t irq_line = 0;
-    uint8_t level = 0;
 
     if (! pci_mirqs[mirq].enabled) {
 	pci_log("pci_set_mirq(%02X): MIRQ0 disabled\n", mirq);
@@ -339,20 +338,21 @@ pci_set_mirq(uint8_t mirq)
     irq_line = pci_mirqs[mirq].irq_line;
     pci_log("pci_set_mirq(%02X): Using IRQ %i\n", mirq, irq_line);
 
-    if (pci_irq_is_level(irq_line) &&
-	(pci_irq_hold[irq_line] & (1ULL << (0x1E + mirq)))) {
+    if (level && (pci_irq_hold[irq_line] & (1ULL << (0x1E + mirq)))) {
 	/* IRQ already held, do nothing. */
 	pci_log("pci_set_mirq(%02X): MIRQ is already holding the IRQ\n", mirq);
 	return;
     }
     pci_log("pci_set_mirq(%02X): MIRQ not yet holding the IRQ\n", mirq);
 
-    level = pci_irq_is_level(irq_line);
     if (!level || !pci_irq_hold[irq_line]) {
 	pci_log("pci_set_mirq(%02X): Issuing %s-triggered IRQ (%sheld)\n", mirq, level ? "level" : "edge", pci_irq_hold[irq_line] ? "" : "not ");
 
 	/* Only raise the interrupt if it's edge-triggered or level-triggered and not yet being held. */
-	picintlevel(1 << irq_line);
+	if (level)
+		picintlevel(1 << irq_line);
+	else
+		picint(1 << irq_line);
     } else if (level && pci_irq_hold[irq_line]) {
 	pci_log("pci_set_mirq(%02X): IRQ line already being held\n", mirq);
     }
@@ -375,7 +375,6 @@ pci_set_irq(uint8_t card, uint8_t pci_int)
     uint8_t pci_int_index = pci_int - PCI_INTA;
     uint8_t irq_line = 0;
     uint8_t level = 0;
-
 
     if (! last_pci_card) {
 	pci_log("pci_set_irq(%02X, %02X): No PCI slots (how are we even here?!)\n", card, pci_int);
@@ -418,9 +417,9 @@ pci_set_irq(uint8_t card, uint8_t pci_int)
     pci_log("pci_set_irq(%02X, %02X): Card not yet holding the IRQ\n", card, pci_int);
 
     if (pci_type & PCI_NO_IRQ_STEERING)
-	level = 0;
+	level = 0;	/* PCI without IRQ steering - IRQ always edge. */
     else
-	level = pci_irq_is_level(irq_line);
+	level = 1;	/* PCI with IRQ steering - IRQ always level per the Intel datasheets. */
     if (!level || !pci_irq_hold[irq_line]) {
 	pci_log("pci_set_irq(%02X, %02X): Issuing %s-triggered IRQ (%sheld)\n", card, pci_int, level ? "level" : "edge", pci_irq_hold[irq_line] ? "" : "not ");
 
@@ -444,10 +443,9 @@ pci_set_irq(uint8_t card, uint8_t pci_int)
 
 
 void
-pci_clear_mirq(uint8_t mirq)
+pci_clear_mirq(uint8_t mirq, int level)
 {
     uint8_t irq_line = 0;
-    uint8_t level = 0;
 
     if (mirq > 1) {
 	pci_log("pci_clear_mirq(%02X): Invalid MIRQ\n", mirq);
@@ -467,14 +465,12 @@ pci_clear_mirq(uint8_t mirq)
     irq_line = pci_mirqs[mirq].irq_line;
     pci_log("pci_clear_mirq(%02X): Using IRQ %i\n", mirq, irq_line);
 
-    if (pci_irq_is_level(irq_line) &&
-	!(pci_irq_hold[irq_line] & (1ULL << (0x1E + mirq)))) {
+    if (level && !(pci_irq_hold[irq_line] & (1ULL << (0x1E + mirq)))) {
 	/* IRQ not held, do nothing. */
 	pci_log("pci_clear_mirq(%02X): MIRQ is not holding the IRQ\n", mirq);
 	return;
     }
 
-    level = pci_irq_is_level(irq_line);
     if (level) {
 	pci_log("pci_clear_mirq(%02X): Releasing this MIRQ's hold on the IRQ\n", mirq);
 	pci_irq_hold[irq_line] &= ~(1 << (0x1E + mirq));
@@ -543,9 +539,9 @@ pci_clear_irq(uint8_t card, uint8_t pci_int)
     }
 
     if (pci_type & PCI_NO_IRQ_STEERING)
-	level = 0;
+	level = 0;	/* PCI without IRQ steering - IRQ always edge. */
     else
-	level = pci_irq_is_level(irq_line);
+	level = 1;	/* PCI with IRQ steering - IRQ always level per the Intel datasheets. */
     if (level) {
 	pci_log("pci_clear_irq(%02X, %02X): Releasing this card's hold on the IRQ\n", card, pci_int);
 	pci_irq_hold[irq_line] &= ~(1 << card);
@@ -624,6 +620,7 @@ trc_reset(uint8_t val)
 	flushmmucache();
 
 	pci_reset();
+	keyboard_at_reset();
     }
 
     resetx86();

@@ -10,7 +10,7 @@
  *
  * TODO:	Add the Genius Serial Mouse.
  *
- * Version:	@(#)mouse_serial.c	1.0.28	2019/03/23
+ * Version:	@(#)mouse_serial.c	1.0.29	2019/10/31
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -112,10 +112,7 @@ sermouse_timer_on(mouse_t *dev, double period, int report)
 	enabled = &dev->command_enabled;
     }
 
-    if (*enabled)
-	timer_advance_u64(timer, (uint64_t) (period * (double)TIMER_USEC));
-    else
-	timer_set_delay_u64(timer, (uint64_t) (period * (double)TIMER_USEC));
+    timer_on_auto(timer, period);
 
     *enabled = 1;
 }
@@ -175,7 +172,7 @@ sermouse_callback(struct serial_s *serial, void *priv)
     if (dev->id[0] != 'H')
 	dev->format = 7;
     dev->transmit_period = sermouse_transmit_period(dev, 1200, -1);
-    timer_disable(&dev->command_timer);
+    timer_stop(&dev->command_timer);
     sub_cycles(ISA_CYCLES(8));
 #ifdef USE_NEW_DYNAREC
     sermouse_timer_on(dev, 5000.0, 0);
@@ -367,7 +364,7 @@ sermouse_command_pos_check(mouse_t *dev, int len)
     if (++dev->command_pos == len)
 	sermouse_command_phase_idle(dev);
     else
-	timer_advance_u64(&dev->command_timer, (uint64_t) (dev->transmit_period * (double)TIMER_USEC));
+	timer_on_auto(&dev->command_timer, dev->transmit_period);
 }
 
 
@@ -433,6 +430,8 @@ sermouse_update_data(mouse_t *dev)
 	ret = 1;
 
     dev->lastb = dev->oldb;
+
+    mouse_serial_log("sermouse_update_data(): ret = %i\n", ret);
 
     return ret;
 }
@@ -585,8 +584,6 @@ ltsermouse_prompt_mode(mouse_t *dev, int prompt)
     dev->status &= 0xBF;
     if (prompt)
 	dev->status |= 0x40;
-    /* timer_disable(&dev->report_timer);
-    dev->report_enabled = 0; */
 }
 
 
@@ -595,7 +592,7 @@ ltsermouse_command_phase(mouse_t *dev, int phase)
 {
     dev->command_pos = 0;
     dev->command_phase = phase;
-    timer_disable(&dev->command_timer);
+    timer_stop(&dev->command_timer);
     sermouse_timer_on(dev, dev->transmit_period, 0);
 }
 
@@ -604,7 +601,7 @@ static void
 ltsermouse_set_report_period(mouse_t *dev, int rps)
 {
     dev->report_period = sermouse_transmit_period(dev, 9600, rps);
-    timer_disable(&dev->report_timer);
+    timer_stop(&dev->report_timer);
     sermouse_timer_on(dev, dev->report_period, 1);
     ltsermouse_prompt_mode(dev, 0);
     dev->report_phase = REPORT_PHASE_PREPARE;
@@ -681,7 +678,7 @@ ltsermouse_write(struct serial_s *serial, void *priv, uint8_t data)
 	case 0x4F:
 		ltsermouse_prompt_mode(dev, 0);
 		dev->report_period = 0;
-		timer_disable(&dev->report_timer);
+		timer_stop(&dev->report_timer);
 		dev->report_phase = REPORT_PHASE_PREPARE;
 		sermouse_report_timer((void *) dev);
 		break;
@@ -726,7 +723,7 @@ sermouse_speed_changed(void *priv)
     mouse_t *dev = (mouse_t *)priv;
 
     if (dev->report_enabled) {
-	timer_disable(&dev->report_timer);
+	timer_stop(&dev->report_timer);
 	if (dev->report_phase == REPORT_PHASE_TRANSMIT)	
 		sermouse_timer_on(dev, dev->transmit_period, 1);
 	else
@@ -734,7 +731,7 @@ sermouse_speed_changed(void *priv)
     }
 
     if (dev->command_enabled) {
-	timer_disable(&dev->command_timer);
+	timer_stop(&dev->command_timer);
 	sermouse_timer_on(dev, dev->transmit_period, 0);
     }
 }

@@ -8,15 +8,15 @@
  *
  *		Definitions for the PCI handler module.
  *
- * Version:	@(#)pci.h	1.0.0	2018/10/21
+ * Version:	@(#)pci.h	1.0.1	2019/10/30
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
  */
 #ifndef EMU_PCI_H
 # define EMU_PCI_H
@@ -76,9 +76,9 @@ extern uint8_t	pci_use_mirq(uint8_t mirq);
 
 extern int	pci_irq_is_level(int irq);
 
-extern void	pci_set_mirq(uint8_t mirq);
+extern void	pci_set_mirq(uint8_t mirq, int level);
 extern void	pci_set_irq(uint8_t card, uint8_t pci_int);
-extern void	pci_clear_mirq(uint8_t mirq);
+extern void	pci_clear_mirq(uint8_t mirq, int level);
 extern void	pci_clear_irq(uint8_t card, uint8_t pci_int);
 
 extern void	pci_reset(void);
