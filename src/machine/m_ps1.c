@@ -28,7 +28,7 @@
  *		boot. Sometimes, they do, and then it shows an "Incorrect
  *		DOS" error message??  --FvK
  *
- * Version:	@(#)m_ps1.c	1.0.15	2019/03/08
+ * Version:	@(#)m_ps1.c	1.0.16	2019/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -284,13 +284,13 @@ recalc_memory(ps1_t *ps)
     mem_set_mem_state(0x00000, 0x80000,
 		      (ps->ps1_e0_regs[0] & 0x01) ?
 			(MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) :
-			(MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL));
+			(MEM_READ_EXTANY | MEM_WRITE_EXTANY));
 
     /* Enable 512-640K */
     mem_set_mem_state(0x80000, 0x20000,
 		      (ps->ps1_e0_regs[1] & 0x01) ?
 			(MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) :
-			(MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL));
+			(MEM_READ_EXTANY | MEM_WRITE_EXTANY));
 }
 
 

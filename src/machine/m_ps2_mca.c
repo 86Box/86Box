@@ -8,15 +8,15 @@
  *
  *		Implementation of MCA-based PS/2 machines.
  *
- * Version:	@(#)m_ps2_mca.c	1.0.5	2018/11/12
+ * Version:	@(#)m_ps2_mca.c	1.0.6	2019/11/01
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -490,14 +490,14 @@ static void model_55sx_write(uint16_t port, uint8_t val)
                 }
                 else
                 {
-                        mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+                        mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
                         mem_mapping_enable(&ps2.shadow_mapping);
                 }
 
                 if ((ps2.option[1] & 1) && !(ps2.option[3] & 0x20))
                         mem_set_mem_state(mem_size * 1024, 256 * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                 else
-                        mem_set_mem_state(mem_size * 1024, 256 * 1024, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+                        mem_set_mem_state(mem_size * 1024, 256 * 1024, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
                 break;
                 case 0x106:
                 ps2.subaddr_lo = val;
@@ -972,7 +972,7 @@ static void mem_encoding_update()
         ps2.split_addr = ((uint32_t) (ps2.mem_regs[0] & 0xf)) << 20;
         
         if (ps2.mem_regs[1] & 2) {
-                mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+                mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
 		ps2_mca_log("PS/2 Model 80-111: ROM space enabled\n");
         } else {
                 mem_set_mem_state(0xe0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
