@@ -48,7 +48,7 @@ typedef struct gus_t
         int pos;
         
         pc_timer_t samp_timer; 
-		uint64_t samp_latch;
+	uint64_t samp_latch;
         
         uint8_t *ram;
         
@@ -333,9 +333,9 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                         if (gus->voices<14) gus->voices=14;
                         gus->global=val;
                         if (gus->voices < 14)
-                                gus->samp_latch = (int)(TIMER_USEC * (1000000.0 / 44100.0));
+                                gus->samp_latch = (uint64_t)(TIMER_USEC * (1000000.0 / 44100.0));
                         else
-                                gus->samp_latch = (int)(TIMER_USEC * (1000000.0 / gusfreqs[gus->voices - 14]));
+                                gus->samp_latch = (uint64_t)(TIMER_USEC * (1000000.0 / gusfreqs[gus->voices - 14]));
                         break;
 
                         case 0x41: /*DMA*/
@@ -746,7 +746,7 @@ void gus_poll_timer_1(void *p)
 {
         gus_t *gus = (gus_t *)p;
         
-		timer_advance_u64(&gus->timer_1, TIMER_USEC * 80);
+	timer_advance_u64(&gus->timer_1, (uint64_t)(TIMER_USEC * 80));
         if (gus->t1on)
         {
                 gus->t1++;
@@ -777,7 +777,7 @@ void gus_poll_timer_2(void *p)
 {
         gus_t *gus = (gus_t *)p;
         
-		timer_advance_u64(&gus->timer_2, TIMER_USEC * 320);
+	timer_advance_u64(&gus->timer_2, (uint64_t)(TIMER_USEC * 320));
         if (gus->t2on)
         {
                 gus->t2++;
@@ -833,7 +833,7 @@ void gus_poll_wave(void *p)
         
         gus_update(gus);
         
-		timer_advance_u64(&gus->samp_timer, gus->samp_latch);
+	timer_advance_u64(&gus->samp_timer, gus->samp_latch);
         
         gus->out_l = gus->out_r = 0;
 
@@ -1022,8 +1022,8 @@ void *gus_init(const device_t *info)
 	}
 
 	gus->voices=14;
-		
-		gus->samp_latch = (uint64_t)(TIMER_USEC * (1000000.0 / 44100.0));
+
+	gus->samp_latch = (uint64_t)(TIMER_USEC * (1000000.0 / 44100.0));
 
         gus->t1l = gus->t2l = 0xff;
                 

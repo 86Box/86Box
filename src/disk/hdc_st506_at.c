@@ -12,7 +12,7 @@
  *		based design. Most cards were WD1003-WA2 or -WAH, where the
  *		-WA2 cards had a floppy controller as well (to save space.)
  *
- * Version:	@(#)hdc_st506_at.c	1.0.20	2019/09/29
+ * Version:	@(#)hdc_st506_at.c	1.0.21	2019/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -112,8 +112,7 @@ typedef struct {
 		pad;
 
     int		pos;			/* offset within data buffer */
-    uint64_t	callback;		/* callback delay timer */
-    pc_timer_t	timer;
+    pc_timer_t	callback_timer;		/* callback delay timer */
 
     uint16_t	buffer[256];		/* data buffer (16b wide) */
 
@@ -154,12 +153,16 @@ irq_raise(mfm_t *mfm)
 static inline void
 irq_lower(mfm_t *mfm)
 {
-    if (mfm->irqstat) {
-	if (!(mfm->fdisk & 2))
-		picintc(1 << 14);
+    picintc(1 << 14);
+}
 
-	mfm->irqstat = 0;
-    }
+
+
+static void
+irq_update(mfm_t *mfm)
+{
+    if (mfm->irqstat && !((pic2.pend | pic2.ins) & 0x40) && !(mfm->fdisk & 2))
+	picint(1 << 14);
 }
 
 
@@ -182,12 +185,10 @@ get_sector(mfm_t *mfm, off64_t *addr)
 
 /* FIXME: See if this is even needed - if the code is present, IBM AT
 	  diagnostics v2.07 will error with: ERROR 152 - SYSTEM BOARD. */
-#ifdef FIXME
     if (drive->curcyl != mfm->cylinder) {
 	st506_at_log("WD1003(%d) sector: wrong cylinder\n");
 	return(1);
     }
-#endif
 
     if (mfm->head > drive->cfg_hpc) {
 	st506_at_log("WD1003(%d) get_sector: past end of configured heads\n",
@@ -201,7 +202,6 @@ get_sector(mfm_t *mfm, off64_t *addr)
 	return(1);
     }
 
-#if 1
     /* We should check this in the SET_DRIVE_PARAMETERS command!  --FvK */
     if (mfm->head > drive->hpc) {
 	st506_at_log("WD1003(%d) get_sector: past end of heads\n", mfm->drvsel);
@@ -212,7 +212,6 @@ get_sector(mfm_t *mfm, off64_t *addr)
 	st506_at_log("WD1003(%d) get_sector: past end of sectors\n", mfm->drvsel);
 	return(1);
     }
-#endif
 
     *addr = ((((off64_t) mfm->cylinder * drive->cfg_hpc) + mfm->head) *
 			 drive->cfg_spt) + (mfm->sector - 1);
@@ -238,20 +237,6 @@ next_sector(mfm_t *mfm)
     }
 }
 
-static void
-mfm_set_callback(mfm_t *mfm, uint64_t callback)
-{
-    if (!mfm)
-	return;
-
-    if (callback) {
-	mfm->callback = callback;
-	timer_set_delay_u64(&mfm->timer, mfm->callback);
-    } else {
-	mfm->callback = 0ULL;
-	timer_disable(&mfm->timer);
-    }
-}
 
 static void
 mfm_cmd(mfm_t *mfm, uint8_t val)
@@ -264,7 +249,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 		     mfm->drvsel, val);
 	mfm->command = 0xff;
 	mfm->status = STAT_BUSY;
-	mfm_set_callback(mfm, 200 * MFM_TIME);
+	timer_set_delay_u64(&mfm->callback_timer, 200 * MFM_TIME);
 	return;
     }
 
@@ -278,6 +263,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 		st506_at_log("WD1003(%d) restore, step=%d\n",
 			     mfm->drvsel, drive->steprate);
 		drive->curcyl = 0;
+		mfm->cylinder = 0;
 		mfm->status = STAT_READY|STAT_DSC;
 		mfm->command &= 0xf0;
 		irq_raise(mfm);
@@ -287,7 +273,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 		drive->steprate = (val & 0x0f);
 		mfm->command &= 0xf0;
 		mfm->status = STAT_BUSY;
-		mfm_set_callback(mfm, 200 * MFM_TIME);
+		timer_set_delay_u64(&mfm->callback_timer, 200 * MFM_TIME);
 		break;
 
 	default:
@@ -303,7 +289,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 				if (val & 2)
 					fatal("WD1003: READ with ECC\n");
 				mfm->status = STAT_BUSY;
-				mfm_set_callback(mfm, 200 * MFM_TIME);
+				timer_set_delay_u64(&mfm->callback_timer, 200 * MFM_TIME);
 				break;
 
 			case CMD_WRITE:
@@ -323,7 +309,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 			case CMD_VERIFY+1:
 				mfm->command &= 0xfe;
 				mfm->status = STAT_BUSY;
-				mfm_set_callback(mfm, 200 * MFM_TIME);
+				timer_set_delay_u64(&mfm->callback_timer, 200 * MFM_TIME);
 				break;
 
 			case CMD_FORMAT:
@@ -333,7 +319,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 
 			case CMD_DIAGNOSE:
 				mfm->status = STAT_BUSY;
-				mfm_set_callback(mfm, 200 * MFM_TIME);
+				timer_set_delay_u64(&mfm->callback_timer, 200 * MFM_TIME);
 				break;
 
 			case CMD_SET_PARAMETERS:
@@ -374,7 +360,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 			default:
 				st506_at_log("WD1003: bad command %02X\n", val);
 				mfm->status = STAT_BUSY;
-				mfm_set_callback(mfm, 200 * MFM_TIME);
+				timer_set_delay_u64(&mfm->callback_timer, 200 * MFM_TIME);
 				break;
 		}
     }
@@ -392,7 +378,7 @@ mfm_writew(uint16_t port, uint16_t val, void *priv)
     if (mfm->pos >= 512) {
 	mfm->pos = 0;
 	mfm->status = STAT_BUSY;
-	mfm_set_callback(mfm, SECTOR_TIME);
+	timer_set_delay_u64(&mfm->callback_timer, SECTOR_TIME);
     }
 }
 
@@ -445,20 +431,18 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 	case 0x03f6:	/* device control */
 		val &= 0x0f;
 		if ((mfm->fdisk & 0x04) && !(val & 0x04)) {
-			mfm_set_callback(mfm, 500 * MFM_TIME);
+			timer_set_delay_u64(&mfm->callback_timer, 500 * MFM_TIME);
 			mfm->reset = 1;
 			mfm->status = STAT_BUSY;
 		}
 
 		if (val & 0x04) {
 			/* Drive held in reset. */
-			mfm_set_callback(mfm, 0);
+			timer_disable(&mfm->callback_timer);
 			mfm->status = STAT_BUSY;
 		}
 		mfm->fdisk = val;
-		/* Lower IRQ on IRQ disable. */
-		if ((val & 2) && !(mfm->fdisk & 0x02))
-			picintc(1 << 14);
+		irq_update(mfm);
 		break;
     }
 }
@@ -480,7 +464,7 @@ mfm_readw(uint16_t port, void *priv)
 		if (mfm->secount) {
 			next_sector(mfm);
 			mfm->status = STAT_BUSY;
-			mfm_set_callback(mfm, SECTOR_TIME);
+			timer_set_delay_u64(&mfm->callback_timer, SECTOR_TIME);
 		} else
 			ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 0);
 	}
@@ -562,7 +546,6 @@ do_callback(void *priv)
     drive_t *drive = &mfm->drives[mfm->drvsel];
     off64_t addr;
 
-    mfm_set_callback(mfm, 0);
     if (mfm->reset) {
 	st506_at_log("WD1003(%d) reset\n", mfm->drvsel);
 
@@ -667,6 +650,12 @@ do_callback(void *priv)
 
 	case CMD_DIAGNOSE:
 		st506_at_log("WD1003(%d) diag\n", mfm->drvsel);
+
+		/* This is basically controller diagnostics - it resets drive select to 0,
+		   and resets error and status to ready, DSC, and no error detected. */
+		mfm->drvsel = 0;
+		drive = &mfm->drives[mfm->drvsel];
+
 		drive->steprate = 0x0f;
 		mfm->error = 1;
 		mfm->status = STAT_READY|STAT_DSC;
@@ -735,7 +724,7 @@ mfm_init(const device_t *info)
     io_sethandler(0x03f6, 1,
 		  NULL,     NULL,      NULL, mfm_write, NULL,       NULL, mfm);
 
-    timer_add(&mfm->timer, do_callback, mfm, 0);	
+    timer_add(&mfm->callback_timer, do_callback, mfm, 0);	
 
     ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 0);
 

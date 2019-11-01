@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.56	2019/09/26
+ * Version:	@(#)win_settings.c	1.0.57	2019/11/01
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -3058,7 +3058,7 @@ hdd_add_file_open_error:
 					case HDD_BUS_ESDI:
 						max_spt = 43;	/* ESDI drives usually had 32 to 43 sectors per track. */
 						max_hpc = 16;
-						max_tracks = 1023;
+						max_tracks = 266305;
 						break;
 					case HDD_BUS_XTA:
 						max_spt = 63;

@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.61	2019/10/20
+ * Version:	@(#)hdc_ide.c	1.0.62	2019/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -114,7 +114,8 @@
 
 typedef struct {
     int		bit32, cur_dev,
-		irq, inited;
+		irq, inited,
+		diag;
     uint16_t	base_main, side_main;
     pc_timer_t	timer;
 } ide_board_t;
@@ -250,34 +251,6 @@ ide_get_period(ide_t *ide, int size)
     period = ((double) size) / period;		/* size / period to get seconds */
     return period * 1000000.0;			/* return seconds * 1000000 to convert to us */
 }
-
-
-#if 0
-int64_t
-ide_get_seek_time(ide_t *ide, uint32_t new_pos)
-{
-    double dusec, time;
-    uint32_t pos = hdd_image_get_pos(ide->hdd_num);
-    uint32_t t, nt;
-    t = pos / ide->spt;
-    nt = new_pos / ide->spt;
-
-    dusec = (double) TIMER_USEC;
-    time = (1000000.0 / 2800.0) * dusec;	/* Revolution (1/2800 s). */
-
-    if ((t % ide->hpc) != (pos % ide->hpc))	/* Head change. */
-	time += (dusec / 250.0);		/* 4ns */
-
-    t /= ide->hpc;
-    nt /= ide->hpc;
-
-    if (t != nt) {
-	t = ABS(t - nt);
-	time += ((40000.0 * dusec) / ((double) ide->tracks)) * ((double) t);
-    }
-    return (int64_t) time;
-}
-#endif
 
 
 void
@@ -836,7 +809,10 @@ ide_set_callback(uint8_t board, double callback)
 	return;
     }
 
-    timer_on_auto(&dev->timer, callback);
+    if (callback == 0.0)
+	timer_stop(&dev->timer);
+    else
+    	timer_on_auto(&dev->timer, callback);
 }
 
 
@@ -1176,6 +1152,25 @@ ide_writel(uint16_t addr, uint32_t val, void *priv)
 }
 
 
+static void
+dev_reset(ide_t *ide)
+{
+    ide_set_signature(ide);
+    ide->error = 1; /*No error detected*/
+
+    if (ide->type == IDE_ATAPI) {
+	ide->sc->status = 0;
+	ide->sc->error = 1;
+	ide_irq_raise(ide);
+	if (ide->stop)
+		ide->stop(ide->sc);
+    } else {
+	ide->atastat = DRDY_STAT | DSC_STAT;
+	ide->error = 1;
+    }
+}
+
+
 void
 ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 {
@@ -1190,27 +1185,39 @@ ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 
     ide_log("ide_write_devctl %04X %02X from %04X(%08X):%08X\n", addr, val, CS, cs, cpu_state.pc);
 
-    if ((ide->fdisk & 4) && !(val&4) && (ide->type != IDE_NONE || ide_other->type != IDE_NONE)) {
+    if ((ide->type == IDE_NONE) && (ide_other->type == IDE_NONE))
+		return;
+
+    dev->diag = 0;
+
+    if ((val & 4) && !(ide->fdisk & 4)) {
+	/* Reset toggled from 0 to 1, initiate reset procedure. */
 	if (ide->type == IDE_ATAPI)
 		ide->sc->callback = 0.0;
-	ide_set_callback(ide->board, 500 * IDE_TIME);
-
-	if (ide->type != IDE_NONE)
-		ide->reset = 1;
-	if (ide_other->type != IDE_NONE)
-		ide->reset = 1;
+	ide_set_callback(ide->board, 0.0);
+	ide->atastat = BSY_STAT;
 	if (ide->type == IDE_ATAPI)
 		ide->sc->status = BSY_STAT;
-	ide->atastat = ide_other->atastat = BSY_STAT;
+	dev_reset(ide);
+    } else if (!(val & 4) && (ide->fdisk & 4)) {
+	/* Reset toggled from 1 to 0. */
+	if (!(ch & 1)) {
+		/* Currently active device is 0, fire the timer. */
+		if (ide->type == IDE_ATAPI)
+			ide->sc->callback = 0.4;
+		ide_set_callback(ide->board, 0.4);
+		ide->reset = 1;
+	} else {
+		/* Currently active device is 1, simply reset the status and the active device. */
+		ide->atastat = 0x50;
+		if (ide->type == IDE_ATAPI)
+			ide->sc->status = DRDY_STAT | DSC_STAT;
+		ide->atastat = DRDY_STAT | DSC_STAT;
+		dev->cur_dev &= ~1;
+	}
     }
 
-    if (val & 4) {
-	/*Drive held in reset*/
-	ide_set_callback(ide->board, 0.0);
-	ide->atastat = ide_other->atastat = BSY_STAT;
-    }
     ide->fdisk = ide_other->fdisk = val;
-    return;
 }
 
 
@@ -1487,18 +1494,18 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				return;
 
 			case WIN_DRIVE_DIAGNOSTICS: /* Execute Drive Diagnostics */
+				ide->atastat = BSY_STAT;
+				dev_reset(ide);
+				if (!(ch & 1))
+					dev_reset(ide_other);
+				dev->diag = 1;
+
 				if (ide->type == IDE_ATAPI) {
 					ide->sc->status = BSY_STAT;
-					ide->sc->callback = 200.0 * IDE_TIME;
-				} else
-					ide->atastat = BSY_STAT;
-
-				if (ide_other->type == IDE_ATAPI)
-					ide_other->sc->status = BSY_STAT;
-				else
-					ide_other->atastat = BSY_STAT;
-
-				ide_set_callback(ide->board, 200.0 * IDE_TIME);
+					ide->sc->callback = 0.4;
+				}
+				ide_set_callback(ide->board, 0.4);
+				ide->reset = 1;
 				return;
 
 			case WIN_PIDENTIFY: /* Identify Packet Device */
@@ -1816,34 +1823,33 @@ ide_callback(void *priv)
     if (ide->reset) {
 	ide_log("CALLBACK RESET %i  %i\n", ide->reset,ch);
 
-	ide->atastat = ide_other->atastat = DRDY_STAT | DSC_STAT;
-	ide->error = ide_other->error = 1;
-	ide->secount = ide_other->secount = 1;
-	ide->sector = ide_other->sector = 1;
-	ide->head = ide_other->head = 0;
-	ide->cylinder = ide_other->cylinder = 0;
+	ide = ide_drives[ch & ~1];
+	ide_other = ide_drives[ch | 1];
 
-	// ide->cfg_spt = ide->cfg_hpc = 0;		/* need new parameters (drive 0) */
-	// ide_other->cfg_spt = ide_other->cfg_hpc = 0;	/* need new parameters (drive 1) */
+	if (!dev->diag)
+		dev_reset(ide_other);
 
-	ide->reset = ide_other->reset = 0;
-
-	ide_set_signature(ide);
-	if (ide->type == IDE_ATAPI) {
+	ide->atastat = DRDY_STAT | DSC_STAT;
+	if (ide->type == IDE_ATAPI)
 		ide->sc->status = DRDY_STAT | DSC_STAT;
-		ide->sc->error = 1;
-		if (ide->stop)
-			ide->stop(ide->sc);
-	}
 
-	ide_set_signature(ide_other);
-	if (ide_other->type == IDE_ATAPI) {
+	ide_other->atastat = DRDY_STAT | DSC_STAT;
+	if (ide_other->type == IDE_ATAPI)
 		ide_other->sc->status = DRDY_STAT | DSC_STAT;
-		ide_other->sc->error = 1;
-		if (ide_other->stop)
-			ide_other->stop(ide_other->sc);
+
+	dev->cur_dev &= ~1;
+
+	if (dev->diag) {
+		dev->diag = 0;
+		ide_irq_raise(ide);
 	}
 
+	if (ide->type == IDE_ATAPI)
+		ide->sc->callback = 0.0;
+	if (ide_other->type == IDE_ATAPI)
+		ide_other->sc->callback = 0.0;
+	ide_set_callback(ide->board, 0.0);
+	ide->reset = 0;
 	return;
     }
 
@@ -2134,35 +2140,6 @@ ide_callback(void *priv)
 		ide_irq_raise(ide);
 
 		ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
-		return;
-
-	case WIN_DRIVE_DIAGNOSTICS:
-		ide_set_signature(ide);
-		ide->error = 1; /*No error detected*/
-
-		if (ide->type == IDE_ATAPI) {
-			ide->sc->status = 0;
-			ide->sc->error = 1;
-			ide_irq_raise(ide);
-		} else {
-			ide->atastat = DRDY_STAT | DSC_STAT;
-			ide->error = 1;
-			ide_irq_raise(ide);
-		}
-
-		ide_set_signature(ide_other);
-		ide_other->error = 1; /*No error detected*/
-
-		if (ide_other->type == IDE_ATAPI) {
-			ide_other->sc->status = 0;
-			ide_other->sc->error = 1;
-		} else {
-			ide_other->atastat = DRDY_STAT | DSC_STAT;
-			ide_other->error = 1;
-		}
-
-		ide_boards[ide->board]->cur_dev &= ~1;
-		ch = ide_boards[ide->board]->cur_dev;
 		return;
 
 	case WIN_SPECIFY: /* Initialize Drive Parameters */
