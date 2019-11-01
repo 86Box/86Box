@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.62	2019/10/31
+ * Version:	@(#)hdc_ide.c	1.0.63	2019/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1631,10 +1631,12 @@ ide_read_data(ide_t *ide, int length)
 
 
 static uint8_t
-ide_status(ide_t *ide, int ch)
+ide_status(ide_t *ide, ide_t *ide_other, int ch)
 {
-    if (ide->type == IDE_NONE)
+    if ((ide->type == IDE_NONE) && ((ide_other->type == IDE_NONE) || !(ch & 1)))
 	return 0x7F;	/* Bit 7 pulled down, all other bits pulled up, per the spec. */
+    else if ((ide->type == IDE_NONE) && (ch & 1))
+	return 0x00;	/* On real hardware, a slave with a present master always returns a status of 0x00. */
     else if (ide->type == IDE_ATAPI)
 	return (ide->sc->status & ~DSC_STAT) | (ide->service ? SERVICE_STAT : 0);
     else
@@ -1727,7 +1729,7 @@ ide_readb(uint16_t addr, void *priv)
 		      DF (drive fault). */
 	case 0x7: /* Status */
 		ide_irq_lower(ide);
-		temp = ide_status(ide, ch);
+		temp = ide_status(ide, ide_drives[ch ^ 1], ch);
 		break;
     }
 
@@ -1751,7 +1753,7 @@ ide_read_alt_status(uint16_t addr, void *priv)
 
     /* Per the Seagate ATA-3 specification:
        Reading the alternate status does *NOT* clear the IRQ. */
-    temp = ide_status(ide, ch);
+    temp = ide_status(ide, ide_drives[ch ^ 1], ch);
 
     ide_log("ide_read_alt_status(%04X, %08X) = %02X\n", addr, priv, temp);
     return temp;

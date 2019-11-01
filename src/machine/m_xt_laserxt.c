@@ -129,7 +129,7 @@ static void laserxt_init(int is_lxt3)
                 mem_mapping_add(&laserxt_ems_mapping[i], 0xE0000 + (i << 14), 0x4000, mem_read_laserxtems, NULL, NULL, mem_write_laserxtems, NULL, NULL, ram + 0xA0000 + (i << 14), 0, NULL);
                 mem_mapping_disable(&laserxt_ems_mapping[i]);
         }
-        mem_set_mem_state(0x0c0000, 0x40000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+        mem_set_mem_state(0x0c0000, 0x40000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 	laserxt_is_lxt3 = is_lxt3;
 }
 
