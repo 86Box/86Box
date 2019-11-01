@@ -2142,35 +2142,6 @@ ide_callback(void *priv)
 		ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 		return;
 
-	case WIN_DRIVE_DIAGNOSTICS:
-		ide_set_signature(ide);
-		ide->error = 1; /*No error detected*/
-
-		if (ide->type == IDE_ATAPI) {
-			ide->sc->status = 0;
-			ide->sc->error = 1;
-			ide_irq_raise(ide);
-		} else {
-			ide->atastat = DRDY_STAT | DSC_STAT;
-			ide->error = 1;
-			ide_irq_raise(ide);
-		}
-
-		ide_set_signature(ide_other);
-		ide_other->error = 1; /*No error detected*/
-
-		if (ide_other->type == IDE_ATAPI) {
-			ide_other->sc->status = 0;
-			ide_other->sc->error = 1;
-		} else {
-			ide_other->atastat = DRDY_STAT | DSC_STAT;
-			ide_other->error = 1;
-		}
-
-		ide_boards[ide->board]->cur_dev &= ~1;
-		ch = ide_boards[ide->board]->cur_dev;
-		return;
-
 	case WIN_SPECIFY: /* Initialize Drive Parameters */
 		if (ide->type == IDE_ATAPI)
 			goto abort_cmd;
