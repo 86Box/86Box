@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.40	2019/10/31
+ * Version:	@(#)win_ui.c	1.0.41	2019/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -309,6 +309,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_ACTION_EXIT:
 				i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
 				if (i == 0) {
+					if (source_hwnd)
+						PostMessage((HWND) (uintptr_t) source_hwnd, WM_SHUTDOWN_DONE, (WPARAM) 0, (LPARAM) hwndMain);
 					UnhookWindowsHookEx(hKeyboardHook);
 					KillTimer(hwnd, TIMER_1SEC);
 					PostQuitMessage(0);
@@ -671,6 +673,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CLOSE:
 		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
 		if (i == 0) {
+			if (source_hwnd)
+				PostMessage((HWND) (uintptr_t) source_hwnd, WM_SHUTDOWN_DONE, (WPARAM) 0, (LPARAM) hwndMain);
 			UnhookWindowsHookEx(hKeyboardHook);
 			KillTimer(hwnd, TIMER_1SEC);
 			PostQuitMessage(0);
@@ -678,6 +682,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_DESTROY:
+		if (source_hwnd)
+			PostMessage((HWND) (uintptr_t) source_hwnd, WM_SHUTDOWN_DONE, (WPARAM) 0, (LPARAM) hwndMain);
 		UnhookWindowsHookEx(hKeyboardHook);
 		KillTimer(hwnd, TIMER_1SEC);
 		PostQuitMessage(0);
@@ -693,12 +699,16 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_HARDRESET:
-		pc_reset(1);
+		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2121);
+		if (i == 0)
+			pc_reset(1);
 		break;
 
 	case WM_SHUTDOWN:
 		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
 		if (i == 0) {
+			if (source_hwnd)
+				PostMessage((HWND) (uintptr_t) source_hwnd, WM_SHUTDOWN_DONE, (WPARAM) 0, (LPARAM) hwndMain);
 			UnhookWindowsHookEx(hKeyboardHook);
 			KillTimer(hwnd, TIMER_1SEC);
 			PostQuitMessage(0);
