@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.41	2019/11/01
+ * Version:	@(#)win_ui.c	1.0.42	2019/11/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -64,7 +64,7 @@ WCHAR		wopenfilestring[260];
 /* Local data. */
 static wchar_t	wTitle[512];
 static HHOOK	hKeyboardHook;
-static int	hook_enabled = 0;
+static int	hook_enabled = 0, manager_wm = 0;
 static int	save_window_pos = 0;
 
 
@@ -309,8 +309,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_ACTION_EXIT:
 				i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
 				if (i == 0) {
-					if (source_hwnd)
-						PostMessage((HWND) (uintptr_t) source_hwnd, WM_SHUTDOWN_DONE, (WPARAM) 0, (LPARAM) hwndMain);
 					UnhookWindowsHookEx(hKeyboardHook);
 					KillTimer(hwnd, TIMER_1SEC);
 					PostQuitMessage(0);
@@ -673,8 +671,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CLOSE:
 		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
 		if (i == 0) {
-			if (source_hwnd)
-				PostMessage((HWND) (uintptr_t) source_hwnd, WM_SHUTDOWN_DONE, (WPARAM) 0, (LPARAM) hwndMain);
 			UnhookWindowsHookEx(hKeyboardHook);
 			KillTimer(hwnd, TIMER_1SEC);
 			PostQuitMessage(0);
@@ -682,41 +678,65 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_DESTROY:
-		if (source_hwnd)
-			PostMessage((HWND) (uintptr_t) source_hwnd, WM_SHUTDOWN_DONE, (WPARAM) 0, (LPARAM) hwndMain);
 		UnhookWindowsHookEx(hKeyboardHook);
 		KillTimer(hwnd, TIMER_1SEC);
 		PostQuitMessage(0);
 		break;
 
 	case WM_SHOWSETTINGS:
+		if (manager_wm)
+			break;
+		manager_wm = 1;
 		win_settings_open(hwnd);
+		manager_wm = 0;
 		break;
 
 	case WM_PAUSE:
+		if (manager_wm)
+			break;
+		manager_wm = 1;
 		plat_pause(dopause ^ 1);
 		CheckMenuItem(menuMain, IDM_ACTION_PAUSE, dopause ? MF_CHECKED : MF_UNCHECKED);
+		plat_pause(dopause);
+		manager_wm = 0;
 		break;
 
 	case WM_HARDRESET:
+		if (manager_wm)
+			break;
+		manager_wm = 1;
+		plat_pause(1);
 		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2121);
+		plat_pause(dopause);
 		if (i == 0)
 			pc_reset(1);
+		manager_wm = 0;
 		break;
 
 	case WM_SHUTDOWN:
+		if (manager_wm)
+			break;
+		manager_wm = 1;
+		plat_pause(1);
 		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
+		plat_pause(dopause);
 		if (i == 0) {
-			if (source_hwnd)
-				PostMessage((HWND) (uintptr_t) source_hwnd, WM_SHUTDOWN_DONE, (WPARAM) 0, (LPARAM) hwndMain);
 			UnhookWindowsHookEx(hKeyboardHook);
 			KillTimer(hwnd, TIMER_1SEC);
 			PostQuitMessage(0);
+		} else {
+			if (source_hwnd)
+				PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSDSTATUS, (WPARAM) 0, (LPARAM) hwndMain);
 		}
+		manager_wm = 0;
 		break;
 
 	case WM_CTRLALTDEL:
+		if (manager_wm)
+			break;
+		manager_wm = 1;
 		pc_reset(0);
+		manager_wm = 0;
 		break;
 
 	case WM_SYSCOMMAND:

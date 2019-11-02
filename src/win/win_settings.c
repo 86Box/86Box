@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.57	2019/11/01
+ * Version:	@(#)win_settings.c	1.0.58	2019/11/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -4502,7 +4502,7 @@ win_settings_confirm(HWND hdlg, int button)
 
 	DestroyWindow(hwndChildDialog);
 	EndDialog(hdlg, 0);
-	plat_pause(0);
+	plat_pause(dopause);
 	win_settings_communicate_closure();
 
 	return button ? TRUE : FALSE;
@@ -4555,7 +4555,7 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDCANCEL:
 				DestroyWindow(hwndChildDialog);
                		        EndDialog(hdlg, 0);
-       	                	plat_pause(0);
+       	                	plat_pause(dopause);
 				win_settings_communicate_closure();
 	                        return TRUE;
 		}

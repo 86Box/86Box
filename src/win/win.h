@@ -8,7 +8,7 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.26	2019/11/01
+ * Version:	@(#)win.h	1.0.27	2019/11/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -57,8 +57,8 @@
 #define WM_SENDSTATUS		0x8895
 /* Settings status: WPARAM = 1 for open, 0 for closed. */
 #define WM_SENDSSTATUS		0x8896
-/* Emulator shut down. */
-#define WM_SHUTDOWN_DONE	0x8897
+/* Emulator shut down status: WPARAM = 1 for user said yes, 0 for use said no. */
+#define WM_SENDSDSTATUS		0x8897
 
 #ifdef USE_VNC
 #ifdef USE_D2D
