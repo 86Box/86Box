@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.43	2019/11/02
+ * Version:	@(#)win_ui.c	1.0.44	2019/11/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -65,7 +65,7 @@ WCHAR		wopenfilestring[260];
 static wchar_t	wTitle[512];
 static HHOOK	hKeyboardHook;
 static int	hook_enabled = 0, manager_wm = 0;
-static int	save_window_pos = 0;
+static int	save_window_pos = 0, pause_state = 0;
 
 
 static int vis = -1;
@@ -270,6 +270,27 @@ LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 }
 
 
+void
+win_notify_dlg_open(void)
+{
+    manager_wm = 1;
+    pause_state = dopause;
+    plat_pause(1);
+    if (source_hwnd)
+	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDDLGSTATUS, (WPARAM) 1, (LPARAM) hwndMain);
+}
+
+
+void
+win_notify_dlg_closed(void)
+{
+    if (source_hwnd)
+	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDDLGSTATUS, (WPARAM) 0, (LPARAM) hwndMain);
+    plat_pause(pause_state);
+    manager_wm = 0;
+}
+
+
 static LRESULT CALLBACK
 MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -297,13 +318,11 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_ACTION_HRESET:
-				manager_wm = 1;
-				plat_pause(1);
+				win_notify_dlg_open();
 				i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2121);
 				if (i == 0)
 					pc_reset(1);
-				plat_pause(dopause);
-				manager_wm = 0;
+				win_notify_dlg_closed();
 				break;
 
 			case IDM_ACTION_RESET_CAD:
@@ -311,16 +330,14 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_ACTION_EXIT:
-				manager_wm = 1;
-				plat_pause(1);
+				win_notify_dlg_open();
 				i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
 				if (i == 0) {
 					UnhookWindowsHookEx(hKeyboardHook);
 					KillTimer(hwnd, TIMER_1SEC);
 					PostQuitMessage(0);
-				} else
-					plat_pause(dopause);
-				manager_wm = 0;
+				}
+				win_notify_dlg_closed();
 				break;
 
 			case IDM_ACTION_CTRL_ALT_ESC:
@@ -677,16 +694,14 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		return(0);
 
 	case WM_CLOSE:
-		manager_wm = 1;
-		plat_pause(1);
+		win_notify_dlg_open();
 		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
 		if (i == 0) {
 			UnhookWindowsHookEx(hKeyboardHook);
 			KillTimer(hwnd, TIMER_1SEC);
 			PostQuitMessage(0);
-		} else
-			plat_pause(dopause);
-		manager_wm = 0;
+		}
+		win_notify_dlg_closed();
 		break;
 
 	case WM_DESTROY:
@@ -709,38 +724,30 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		manager_wm = 1;
 		plat_pause(dopause ^ 1);
 		CheckMenuItem(menuMain, IDM_ACTION_PAUSE, dopause ? MF_CHECKED : MF_UNCHECKED);
-		plat_pause(dopause);
 		manager_wm = 0;
 		break;
 
 	case WM_HARDRESET:
 		if (manager_wm)
 			break;
-		manager_wm = 1;
-		plat_pause(1);
+		win_notify_dlg_open();
 		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2121);
 		if (i == 0)
 			pc_reset(1);
-		plat_pause(dopause);
-		manager_wm = 0;
+		win_notify_dlg_closed();
 		break;
 
 	case WM_SHUTDOWN:
 		if (manager_wm)
 			break;
-		manager_wm = 1;
-		plat_pause(1);
+		win_notify_dlg_open();
 		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
 		if (i == 0) {
 			UnhookWindowsHookEx(hKeyboardHook);
 			KillTimer(hwnd, TIMER_1SEC);
 			PostQuitMessage(0);
-		} else {
-			if (source_hwnd)
-				PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSDSTATUS, (WPARAM) 0, (LPARAM) hwndMain);
-			plat_pause(dopause);
 		}
-		manager_wm = 0;
+		win_notify_dlg_closed();
 		break;
 
 	case WM_CTRLALTDEL:
@@ -1071,7 +1078,13 @@ plat_pause(int p)
 	p = get_vidpause();
 
     /* If already so, done. */
-    if (dopause == p) return;
+    if (dopause == p) {
+	/* Send the WM to a manager if needed. */
+	if (source_hwnd)
+		PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!dopause, (LPARAM) hwndMain);
+
+	return;
+    }
 
     if (p) {
 	wcscpy(oldtitle, ui_window_title(NULL));

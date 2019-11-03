@@ -339,14 +339,6 @@ ProcessCommandLine(wchar_t ***argw)
 }
 
 
-static void
-shutdown_notify(void)
-{
-    if (source_hwnd)
-	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSDSTATUS, (WPARAM) 1, (LPARAM) hwndMain);
-}
-
-
 /* For the Windows platform, this is the start of the application. */
 int WINAPI
 WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
@@ -386,7 +378,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 	CreateConsole(0);
 
 	if (source_hwnd)
-		PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSDSTATUS, (WPARAM) 1, (LPARAM) hwndMain);
+		PostMessage((HWND) (uintptr_t) source_hwnd, WM_HAS_SHUTDOWN, (WPARAM) 0, (LPARAM) hwndMain);
 
 	return(1);
     }
@@ -397,8 +389,6 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 
     /* Handle our GUI. */
     i = ui_init(nCmdShow);
-
-    atexit(shutdown_notify);
 
     return(i);
 }
@@ -437,7 +427,8 @@ do_stop(void)
 
     plat_delay_ms(100);
 
-    shutdown_notify();
+    if (source_hwnd)
+	PostMessage((HWND) (uintptr_t) source_hwnd, WM_HAS_SHUTDOWN, (WPARAM) 0, (LPARAM) hwndMain);
 
     pc_close(thMain);
 
