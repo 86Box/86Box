@@ -44,7 +44,7 @@
  *
  *		This is expected to be done shortly.
  *
- * Version:	@(#)vid_pgc.c	1.0.3	2019/09/28
+ * Version:	@(#)vid_pgc.c	1.0.4	2019/11/04
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		John Elliott, <jce@seasip.info>
@@ -2311,7 +2311,7 @@ pgc_cga_text(pgc_t *dev, int w)
     uint32_t val;
     int cw = (w == 80) ? 8 : 16;
 
-    addr = &dev->cga_vram[(((ma << 1) + ((dev->displine / pitch)*w)) * 2) & 0x3ffe];
+    addr = &dev->cga_vram[((ma + ((dev->displine / pitch) * w)) * 2) & 0x3ffe];
     ma += (dev->displine / pitch) * w;	
 
     for (x = 0; x < w; x++) {
