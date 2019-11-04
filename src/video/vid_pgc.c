@@ -44,7 +44,7 @@
  *
  *		This is expected to be done shortly.
  *
- * Version:	@(#)vid_pgc.c	1.0.4	2019/11/04
+ * Version:	@(#)vid_pgc.c	1.0.5	2019/11/04
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		John Elliott, <jce@seasip.info>
@@ -2698,13 +2698,6 @@ pgc_standalone_init(const device_t *info)
 }
 
 
-static const device_config_t pgc_config[] = {
-    {
-	"", "", -1
-    }
-};
-
-
 const device_t pgc_device = {
     "PGC",
     DEVICE_ISA, 0,
@@ -2714,5 +2707,5 @@ const device_t pgc_device = {
     NULL,
     pgc_speed_changed,
     NULL,
-    pgc_config
+    NULL
 };
