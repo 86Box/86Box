@@ -261,10 +261,10 @@ ide_irq_raise(ide_t *ide)
 
     /* ide_log("Raising IRQ %i (board %i)\n", ide_boards[ide->board]->irq, ide->board); */
 
-    if (!(ide->fdisk & 2) && (ide_boards[ide->board]->irq != -1)) {
+    if (!(ide->fdisk & 2)) {
 	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
 		ide_bm[ide->board]->set_irq(ide->board | 0x40, ide_bm[ide->board]->priv);
-	else
+	else if (ide_boards[ide->board]->irq != -1)
 		picint(1 << ide_boards[ide->board]->irq);
     }
 
@@ -281,14 +281,39 @@ ide_irq_lower(ide_t *ide)
 
     /* ide_log("Lowering IRQ %i (board %i)\n", ide_boards[ide->board]->irq, ide->board); */
 
-    if ((ide_boards[ide->board]->irq != -1) && ide->irqstat) {
+    if (ide->irqstat) {
 	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
 		ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
-	else
+	else if (ide_boards[ide->board]->irq != -1)
 		picintc(1 << ide_boards[ide->board]->irq);
     }
 
-    ide->irqstat=0;
+    ide->irqstat = 0;
+}
+
+
+static void
+ide_irq_update(ide_t *ide)
+{
+    if (!ide_boards[ide->board])
+	return;
+
+    /* ide_log("Raising IRQ %i (board %i)\n", ide_boards[ide->board]->irq, ide->board); */
+
+    if (!(ide->fdisk & 2) && ide->irqstat) {
+	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq) {
+		ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
+		ide_bm[ide->board]->set_irq(ide->board | 0x40, ide_bm[ide->board]->priv);
+	} else if (ide_boards[ide->board]->irq != -1) {
+		picintc(1 << ide_boards[ide->board]->irq);
+		picint(1 << ide_boards[ide->board]->irq);
+	}
+    } else if (ide->fdisk & 2) {
+	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
+		ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
+	else if (ide_boards[ide->board]->irq != -1)
+		picintc(1 << ide_boards[ide->board]->irq);
+    }
 }
 
 
@@ -1169,6 +1194,7 @@ ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 
     ide_t *ide, *ide_other;
     int ch;
+    uint8_t old;
 
     ch = dev->cur_dev;
     ide = ide_drives[ch];
@@ -1225,7 +1251,10 @@ ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 	}
     }
 
+    old = ide->fdisk;
     ide->fdisk = ide_other->fdisk = val;
+    if (!(val & 0x02) && (old & 0x02) && ide->irqstat)
+	ide_irq_update(ide);
 }
 
 
@@ -1365,6 +1394,8 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
 		ide->lba_addr = (ide->lba_addr & 0x0FFFFFF) | ((val & 0xF) << 24);
 		ide_other->lba_addr = (ide_other->lba_addr & 0x0FFFFFF)|((val & 0xF) << 24);
+
+		ide_irq_update(ide);
 		return;
 
 	case 0x7: /* Command register */
