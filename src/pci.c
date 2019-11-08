@@ -8,7 +8,7 @@
  *
  *		Implementation the PCI bus.
  *
- * Version:	@(#)pci.c	1.0.3	2019/10/30
+ * Version:	@(#)pci.c	1.0.4	2019/11/06
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -635,7 +635,7 @@ trc_write(uint16_t port, uint8_t val, void *priv)
     if (!(trc_reg & 4) && (val & 4))
 	trc_reset(val);
 
-    trc_reg = val & 0xfd;
+    trc_reg = val & 0xfb;
 }
 
 
