@@ -8,7 +8,7 @@
  *
  *		Sigma Color 400 emulation.
  *
- * Version:	@(#)vid_sigma.c	1.0.4	2019/05/23
+ * Version:	@(#)vid_sigma.c	1.0.5	2019/11/08
  *
  * Authors:	John Elliott,
  *
@@ -422,7 +422,7 @@ static void sigma_text80(sigma_t *sigma)
     uint16_t ma = ((sigma->ma << 1) & 0x3FFF);
     int drawcursor;
     uint32_t cols[4];
-    uint8_t *vram = sigma->vram + ((ma << 1) % 4000);
+    uint8_t *vram = sigma->vram + (ma & 0x3FFF);
 
     ca = ca << 1;
     if (sigma->sigma_ctl & CTL_CURSOR)
@@ -475,10 +475,10 @@ sigma_text40(sigma_t *sigma)
     int x, c;
     uint8_t chr, attr;
     uint16_t ca = (sigma->crtc[15] | (sigma->crtc[14] << 8));
-    uint16_t ma = ((sigma->ma & 0x3FFF) << 1);
+    uint16_t ma = ((sigma->ma << 1) & 0x3FFF);
     int drawcursor;
     uint32_t cols[4];
-    uint8_t *vram = sigma->vram + ((ma << 1) & 0x3FFF);
+    uint8_t *vram = sigma->vram + (ma & 0x3FFF);
 
     ca = ca << 1;
     if (sigma->sigma_ctl & CTL_CURSOR)
