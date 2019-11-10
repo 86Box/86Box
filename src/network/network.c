@@ -62,6 +62,7 @@
 #include "network.h"
 #include "net_3c503.h"
 #include "net_ne2000.h"
+#include "net_pcnet.h"
 #include "net_wd8003.h"
 
 
@@ -69,6 +70,8 @@ static netcard_t net_cards[] = {
     { "None",				"none",		NULL,
       NULL								},
     { "[ISA] 3Com EtherLink II (3C503)","3c503",	&threec503_device,
+      NULL								},
+    { "[ISA] AMD PCnet-ISA",	"pcnetisa",	&pcnet_isa_device,
       NULL								},
     { "[ISA] Novell NE1000",		"ne1k",		&ne1000_device,
       NULL								},
@@ -88,7 +91,11 @@ static netcard_t net_cards[] = {
       NULL								},
     { "[MCA] Western Digital WD8003E/A", "wd8003ea",	&wd8003ea_device,
       NULL								},
+    { "[PCI] AMD PCnet-PCI",	"pcnetpci",	&pcnet_pci_device,
+      NULL								},
     { "[PCI] Realtek RTL8029AS",	"ne2kpci",	&rtl8029as_device,
+      NULL								},
+    { "[VLB] AMD PCnet-VL",	"pcnetvlb",	&pcnet_vlb_device,
       NULL								},
     { "",				"",		NULL,
       NULL								}
@@ -137,6 +144,32 @@ network_log(const char *fmt, ...)
 #define network_log(fmt, ...)
 #endif
 
+/*
+ * Return the 6-bit index into the multicast
+ * table. Stolen unashamedly from FreeBSD's if_ed.c
+ */
+int
+mcast_index(const void *dst)
+{
+#define POLYNOMIAL 0x04c11db6
+    uint32_t crc = 0xffffffffL;
+    int carry, i, j;
+    uint8_t b;
+    uint8_t *ep = (uint8_t *)dst;
+
+    for (i=6; --i>=0;) {
+	b = *ep++;
+	for (j = 8; --j >= 0;) {
+		carry = ((crc & 0x80000000L) ? 1 : 0) ^ (b & 0x01);
+		crc <<= 1;
+		b >>= 1;
+		if (carry)
+			crc = ((crc ^ POLYNOMIAL) | carry);
+	}
+    }
+    return(crc >> 26);
+#undef POLYNOMIAL
+}
 
 void
 network_wait(uint8_t wait)
