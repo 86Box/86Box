@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.57	2019/11/01
+ * Version:	@(#)win_settings.c	1.0.60	2019/11/02
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -4477,14 +4477,6 @@ win_settings_main_insert_categories(HWND hwndList)
 
 
 
-static void
-win_settings_communicate_closure(void)
-{
-    if (source_hwnd)
-	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSSTATUS, (WPARAM) 0, (LPARAM) hwndMain);
-}
-
-
 #if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
@@ -4502,8 +4494,7 @@ win_settings_confirm(HWND hdlg, int button)
 
 	DestroyWindow(hwndChildDialog);
 	EndDialog(hdlg, 0);
-	plat_pause(0);
-	win_settings_communicate_closure();
+	win_notify_dlg_closed();
 
 	return button ? TRUE : FALSE;
     } else
@@ -4555,8 +4546,7 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDCANCEL:
 				DestroyWindow(hwndChildDialog);
                		        EndDialog(hdlg, 0);
-       	                	plat_pause(0);
-				win_settings_communicate_closure();
+				win_notify_dlg_closed();
 	                        return TRUE;
 		}
 		break;
@@ -4571,10 +4561,7 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 void
 win_settings_open_ex(HWND hwnd, int category)
 {
-    plat_pause(1);
-
-    if (source_hwnd)
-	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSSTATUS, (WPARAM) 1, (LPARAM) hwndMain);
+    win_notify_dlg_open();
 
     first_cat = category;
     DialogBox(hinstance, (LPCWSTR)DLG_CONFIG, hwnd, win_settings_main_proc);

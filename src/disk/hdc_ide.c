@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.63	2019/11/01
+ * Version:	@(#)hdc_ide.c	1.0.64	2019/11/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -261,10 +261,10 @@ ide_irq_raise(ide_t *ide)
 
     /* ide_log("Raising IRQ %i (board %i)\n", ide_boards[ide->board]->irq, ide->board); */
 
-    if (!(ide->fdisk & 2) && (ide_boards[ide->board]->irq != -1)) {
+    if (!(ide->fdisk & 2)) {
 	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
 		ide_bm[ide->board]->set_irq(ide->board | 0x40, ide_bm[ide->board]->priv);
-	else
+	else if (ide_boards[ide->board]->irq != -1)
 		picint(1 << ide_boards[ide->board]->irq);
     }
 
@@ -281,14 +281,39 @@ ide_irq_lower(ide_t *ide)
 
     /* ide_log("Lowering IRQ %i (board %i)\n", ide_boards[ide->board]->irq, ide->board); */
 
-    if ((ide_boards[ide->board]->irq != -1) && ide->irqstat) {
+    if (ide->irqstat) {
 	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
 		ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
-	else
+	else if (ide_boards[ide->board]->irq != -1)
 		picintc(1 << ide_boards[ide->board]->irq);
     }
 
-    ide->irqstat=0;
+    ide->irqstat = 0;
+}
+
+
+static void
+ide_irq_update(ide_t *ide)
+{
+    if (!ide_boards[ide->board])
+	return;
+
+    /* ide_log("Raising IRQ %i (board %i)\n", ide_boards[ide->board]->irq, ide->board); */
+
+    if (!(ide->fdisk & 2) && ide->irqstat) {
+	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq) {
+		ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
+		ide_bm[ide->board]->set_irq(ide->board | 0x40, ide_bm[ide->board]->priv);
+	} else if (ide_boards[ide->board]->irq != -1) {
+		picintc(1 << ide_boards[ide->board]->irq);
+		picint(1 << ide_boards[ide->board]->irq);
+	}
+    } else if (ide->fdisk & 2) {
+	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
+		ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
+	else if (ide_boards[ide->board]->irq != -1)
+		picintc(1 << ide_boards[ide->board]->irq);
+    }
 }
 
 
@@ -1156,18 +1181,9 @@ static void
 dev_reset(ide_t *ide)
 {
     ide_set_signature(ide);
-    ide->error = 1; /*No error detected*/
 
-    if (ide->type == IDE_ATAPI) {
-	ide->sc->status = 0;
-	ide->sc->error = 1;
-	ide_irq_raise(ide);
-	if (ide->stop)
-		ide->stop(ide->sc);
-    } else {
-	ide->atastat = DRDY_STAT | DSC_STAT;
-	ide->error = 1;
-    }
+    if ((ide->type == IDE_ATAPI) && ide->stop)
+	ide->stop(ide->sc);
 }
 
 
@@ -1178,6 +1194,7 @@ ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 
     ide_t *ide, *ide_other;
     int ch;
+    uint8_t old;
 
     ch = dev->cur_dev;
     ide = ide_drives[ch];
@@ -1189,35 +1206,55 @@ ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 		return;
 
     dev->diag = 0;
-
+ 
     if ((val & 4) && !(ide->fdisk & 4)) {
 	/* Reset toggled from 0 to 1, initiate reset procedure. */
 	if (ide->type == IDE_ATAPI)
 		ide->sc->callback = 0.0;
 	ide_set_callback(ide->board, 0.0);
-	ide->atastat = BSY_STAT;
-	if (ide->type == IDE_ATAPI)
-		ide->sc->status = BSY_STAT;
-	dev_reset(ide);
     } else if (!(val & 4) && (ide->fdisk & 4)) {
 	/* Reset toggled from 1 to 0. */
 	if (!(ch & 1)) {
-		/* Currently active device is 0, fire the timer. */
-		if (ide->type == IDE_ATAPI)
-			ide->sc->callback = 0.4;
-		ide_set_callback(ide->board, 0.4);
+		/* Currently active device is 0, use the device 0 reset protocol. */
+		/* Device 0. */
+		dev_reset(ide);
+		ide->atastat = BSY_STAT;
+		ide->error = 1;
+		if (ide->type == IDE_ATAPI) {
+			ide->sc->status = BSY_STAT;
+			ide->sc->error = 1;
+		}
+
+		/* Device 1. */
+		dev_reset(ide_other);
+		ide_other->atastat = BSY_STAT;
+		ide_other->error = 1;
+		if (ide_other->type == IDE_ATAPI) {
+			ide_other->sc->status = BSY_STAT;
+			ide_other->sc->error = 1;
+		}
+
+		/* Fire the timer. */
+		dev->diag = 0;
 		ide->reset = 1;
+		ide_set_callback(ide->board, 500 * IDE_TIME);
 	} else {
 		/* Currently active device is 1, simply reset the status and the active device. */
-		ide->atastat = 0x50;
-		if (ide->type == IDE_ATAPI)
-			ide->sc->status = DRDY_STAT | DSC_STAT;
+		dev_reset(ide);
 		ide->atastat = DRDY_STAT | DSC_STAT;
+		ide->error = 1;
+		if (ide->type == IDE_ATAPI) {
+			ide->sc->status = DRDY_STAT | DSC_STAT;
+			ide->sc->error = 1;
+		}
 		dev->cur_dev &= ~1;
 	}
     }
 
+    old = ide->fdisk;
     ide->fdisk = ide_other->fdisk = val;
+    if (!(val & 0x02) && (old & 0x02) && ide->irqstat)
+	ide_irq_update(ide);
 }
 
 
@@ -1357,6 +1394,8 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
 		ide->lba_addr = (ide->lba_addr & 0x0FFFFFF) | ((val & 0xF) << 24);
 		ide_other->lba_addr = (ide_other->lba_addr & 0x0FFFFFF)|((val & 0xF) << 24);
+
+		ide_irq_update(ide);
 		return;
 
 	case 0x7: /* Command register */
@@ -1494,18 +1533,32 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				return;
 
 			case WIN_DRIVE_DIAGNOSTICS: /* Execute Drive Diagnostics */
-				ide->atastat = BSY_STAT;
-				dev_reset(ide);
-				if (!(ch & 1))
-					dev_reset(ide_other);
-				dev->diag = 1;
+				dev->cur_dev &= ~1;
+				ide = ide_drives[ch & ~1];
+				ide_other = ide_drives[ch | 1];
 
+				/* Device 0. */
+				dev_reset(ide);
+				ide->atastat = BSY_STAT;
+				ide->error = 1;
 				if (ide->type == IDE_ATAPI) {
 					ide->sc->status = BSY_STAT;
-					ide->sc->callback = 0.4;
+					ide->sc->error = 1;
 				}
-				ide_set_callback(ide->board, 0.4);
+
+				/* Device 1. */
+				dev_reset(ide_other);
+				ide_other->atastat = BSY_STAT;
+				ide_other->error = 1;
+				if (ide_other->type == IDE_ATAPI) {
+					ide_other->sc->status = BSY_STAT;
+					ide_other->sc->error = 1;
+				}
+
+				/* Fire the timer. */
+				dev->diag = 1;
 				ide->reset = 1;
+				ide_set_callback(ide->board, 200 * IDE_TIME);
 				return;
 
 			case WIN_PIDENTIFY: /* Identify Packet Device */
@@ -1825,12 +1878,6 @@ ide_callback(void *priv)
     if (ide->reset) {
 	ide_log("CALLBACK RESET %i  %i\n", ide->reset,ch);
 
-	ide = ide_drives[ch & ~1];
-	ide_other = ide_drives[ch | 1];
-
-	if (!dev->diag)
-		dev_reset(ide_other);
-
 	ide->atastat = DRDY_STAT | DSC_STAT;
 	if (ide->type == IDE_ATAPI)
 		ide->sc->status = DRDY_STAT | DSC_STAT;
@@ -1845,13 +1892,8 @@ ide_callback(void *priv)
 		dev->diag = 0;
 		ide_irq_raise(ide);
 	}
-
-	if (ide->type == IDE_ATAPI)
-		ide->sc->callback = 0.0;
-	if (ide_other->type == IDE_ATAPI)
-		ide_other->sc->callback = 0.0;
-	ide_set_callback(ide->board, 0.0);
 	ide->reset = 0;
+	ide_set_callback(ide->board, 0.0);
 	return;
     }
 
