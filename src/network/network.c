@@ -12,11 +12,11 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.10	2018/11/18
+ * Version:	@(#)network.c	1.0.11	2019/11/14
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -99,6 +99,7 @@ static netcard_t net_cards[] = {
 int		network_type;
 int		network_ndev;
 int		network_card;
+volatile int	network_wait;
 char		network_host[522];
 netdev_t	network_devs[32];
 #ifdef ENABLE_NIC_LOG
@@ -441,4 +442,11 @@ network_card_get_from_internal_name(char *s)
     }
 	
     return(-1);
+}
+
+
+void
+network_set_wait(int wait)
+{
+    network_wait = wait;
 }

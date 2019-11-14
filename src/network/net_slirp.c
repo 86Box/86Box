@@ -8,11 +8,11 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.8	2018/10/19
+ * Version:	@(#)net_slirp.c	1.0.9	2019/11/14
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -148,7 +148,7 @@ poll_thread(void *arg)
 	/* Wait for the next packet to arrive. */
 	data_valid = 0;
 
-	if (QueuePeek(slirpq) != 0) {
+	if (!network_wait && (QueuePeek(slirpq) != 0)) {
 		/* Grab a packet from the queue. */
 		// ui_sb_update_icon(SB_NETWORK, 1);
 

@@ -8,11 +8,11 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.9	2018/10/19
+ * Version:	@(#)net_pcap.c	1.0.10	2019/11/14
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -185,7 +185,10 @@ poll_thread(void *arg)
 	if (pcap == NULL) break;
 
 	/* Wait for the next packet to arrive. */
-	data = (uint8_t *)f_pcap_next((void *)pcap, &h);
+	if (network_wait)
+		data = NULL;
+	else
+		data = (uint8_t *)f_pcap_next((void *)pcap, &h);
 	if (data != NULL) {
 		// ui_sb_update_icon(SB_NETWORK, 1);
 

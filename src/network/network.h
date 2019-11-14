@@ -8,11 +8,11 @@
  *
  *		Definitions for the network module.
  *
- * Version:	@(#)network.h	1.0.2	2018/03/15
+ * Version:	@(#)network.h	1.0.3	2019/11/14
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -89,6 +89,7 @@ extern "C" {
 /* Global variables. */
 extern int	nic_do_log;				/* config */
 extern int      network_ndev;
+extern volatile int	network_wait;
 extern netdev_t network_devs[32];
 
 
@@ -123,6 +124,8 @@ extern int	network_card_has_config(int);
 extern char	*network_card_get_internal_name(int);
 extern int	network_card_get_from_internal_name(char *);
 extern const device_t	*network_card_getdevice(int);
+
+extern void	network_set_wait(int wait);
 
 #ifdef __cplusplus
 }
