@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.11	2019/11/14
+ * Version:	@(#)network.c	1.0.12	2019/11/14
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -99,7 +99,7 @@ static netcard_t net_cards[] = {
 int		network_type;
 int		network_ndev;
 int		network_card;
-volatile int	network_wait;
+volatile int	network_wait = 0;
 char		network_host[522];
 netdev_t	network_devs[32];
 #ifdef ENABLE_NIC_LOG
@@ -220,6 +220,8 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx)
     net_cards[network_card].priv = dev;
     net_cards[network_card].rx = rx;
     network_mac = mac;
+
+    network_wait = 0;
 
     /* Create the network events. */
     poll_data.wake_poll_thread = thread_create_event();
