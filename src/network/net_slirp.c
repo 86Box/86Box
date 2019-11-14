@@ -148,7 +148,7 @@ poll_thread(void *arg)
 	/* Wait for the next packet to arrive. */
 	data_valid = 0;
 
-	if (!network_wait && (QueuePeek(slirpq) != 0)) {
+	if (!network_get_wait() && (QueuePeek(slirpq) != 0)) {
 		/* Grab a packet from the queue. */
 		// ui_sb_update_icon(SB_NETWORK, 1);
 

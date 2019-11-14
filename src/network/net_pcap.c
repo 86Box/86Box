@@ -185,7 +185,7 @@ poll_thread(void *arg)
 	if (pcap == NULL) break;
 
 	/* Wait for the next packet to arrive. */
-	if (network_wait)
+	if (network_get_wait())
 		data = NULL;
 	else
 		data = (uint8_t *)f_pcap_next((void *)pcap, &h);

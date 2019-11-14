@@ -89,7 +89,6 @@ extern "C" {
 /* Global variables. */
 extern int	nic_do_log;				/* config */
 extern int      network_ndev;
-extern volatile int	network_wait;
 extern netdev_t network_devs[32];
 
 
@@ -126,6 +125,7 @@ extern int	network_card_get_from_internal_name(char *);
 extern const device_t	*network_card_getdevice(int);
 
 extern void	network_set_wait(int wait);
+extern int	network_get_wait(void);
 
 #ifdef __cplusplus
 }
