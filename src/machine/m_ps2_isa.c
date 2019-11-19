@@ -151,7 +151,7 @@ static void ps2board_init(void)
 
         ps2_190 = 0;
 
-	ps2_uart = device_add_inst(&i16450_device, 1);
+	ps2_uart = device_add_inst(&ns16450_device, 1);
 
         lpt1_init(0x3bc);
         
