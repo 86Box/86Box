@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.60	2019/11/02
+ * Version:	@(#)win_settings.c	1.0.61	2019/11/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -2515,6 +2515,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
     uint8_t id = 0;
     wchar_t *twcs;
     vhd_footer_t *vft = NULL;
+    MSG msg;
 
     switch (message) {
 	case WM_INITDIALOG:
@@ -2672,7 +2673,8 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 						fwrite(&zero, 1, 4, f);			/* 00000004: [Translation] Heads per cylinder */
 					}
 
-					memset(buf, 0, 512);
+					big_buf = (char *) malloc(1048576);
+					memset(big_buf, 0, 1048576);
 
 					temp_size = size;
 
@@ -2703,19 +2705,23 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 						ShowWindow(h, SW_SHOW);
 					}
 
+					h = GetDlgItem(hdlg, IDC_PBAR_IMG_CREATE);
+
 					if (size) {
-						fwrite(buf, 1, size, f);
+						fwrite(big_buf, 1, size, f);
 						SendMessage(h, PBM_SETPOS, (WPARAM) 1, (LPARAM) 0);
 					}
 
 					if (r) {
-						big_buf = (char *) malloc(1048576);
-						memset(big_buf, 0, 1048576);
 						for (i = 0; i < r; i++) {
 							fwrite(big_buf, 1, 1048576, f);
 							SendMessage(h, PBM_SETPOS, (WPARAM) (size + 1), (LPARAM) 0);
+
+							while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+								TranslateMessage(&msg); 
+								DispatchMessage(&msg);
+							}
 						}
-						free(big_buf);
 					}
 
 					if (image_is_vhd(hd_file_name, 0)) {
@@ -2727,13 +2733,13 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 						vft->geom.heads = hpc;
 						vft->geom.spt = spt;
 						generate_vhd_checksum(vft);
-						memset(buf, 0, 512);
-						vhd_footer_to_bytes((uint8_t *) buf, vft);
-						fwrite(buf, 1, 512, f);
-						memset(buf, 0, 512);
+						vhd_footer_to_bytes((uint8_t *) big_buf, vft);
+						fwrite(big_buf, 1, 512, f);
 						free(vft);
 						vft = NULL;
 					}
+
+					free(big_buf);
 
 					fclose(f);
 					settings_msgbox(MBX_INFO, (wchar_t *)IDS_4113);	                        

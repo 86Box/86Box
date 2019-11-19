@@ -8,7 +8,7 @@
  *
  *		Handle the New Floppy Image dialog.
  *
- * Version:	@(#)win_new_floppy.c	1.0.12	2019/10/22
+ * Version:	@(#)win_new_floppy.c	1.0.13	2019/11/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -302,6 +302,7 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
     uint16_t base = 0x1000;
     uint32_t pbar_max = 0;
     uint32_t i;
+    MSG msg;
     
     f = plat_fopen(file_name, L"wb");
     if (!f)
@@ -496,6 +497,11 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
     for (i = 0; i < pbar_max; i++) {
 	fwrite(&empty[i << 11], 1, 2048, f);
 	SendMessage(h, PBM_SETPOS, (WPARAM) i + 2, (LPARAM) 0);
+
+	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+		TranslateMessage(&msg); 
+		DispatchMessage(&msg); 
+	}
     }
 
     free(empty);
