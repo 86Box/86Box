@@ -361,7 +361,7 @@ static int old_capture = 0;
 
 
 static int
-sdl_init_common(int fs)
+sdl_init_common(int fs, int hw)
 {
     wchar_t temp[128];
     SDL_version ver;
@@ -460,12 +460,16 @@ sdl_init_common(int fs)
 
     /*
      * TODO:
-     * SDL_RENDERER_SOFTWARE, because SDL tries to do funky stuff
-     * otherwise (it turns off Win7 Aero and it looks like it's
-     * trying to switch to fullscreen even though the window is
-     * not a fullscreen window?)
+     * SDL HW tries to do funky stuff on Windows (turns off Win7 Aero
+     * and it looks like it's trying to switch to fullscreen even
+     * though the window is not a fullscreen window?)
      */
-    sdl_render = sdl_CreateRenderer(sdl_win, -1, SDL_RENDERER_SOFTWARE);
+    if (hw) {
+        sdl_render = sdl_CreateRenderer(sdl_win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
+        sdl_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+    } else {
+        sdl_render = sdl_CreateRenderer(sdl_win, -1, SDL_RENDERER_SOFTWARE);
+    }
     if (sdl_render == NULL) {
 	sdl_log("SDL: unable to create renderer (%s)\n", sdl_GetError());
 	sdl_close();
@@ -505,16 +509,28 @@ sdl_init_common(int fs)
 int
 sdl_init(HWND h)
 {
-    return sdl_init_common(0);
+    return sdl_init_common(0, 0);
 }
 
 
 int
-sdl_init_fs(HWND h)
+sdl_init_hw(HWND h)
 {
-    return sdl_init_common(1);
+    return sdl_init_common(0, 1);
 }
 
+int
+sdl_init_fs(HWND h)
+{
+    return sdl_init_common(1, 0);
+}
+
+
+int
+sdl_init_hw_fs(HWND h)
+{
+    return sdl_init_common(1, 1);
+}
 
 int
 sdl_pause(void)

@@ -92,7 +92,8 @@ static const struct {
     {	"D2D", 1, (int(*)(void*))d2d_init, d2d_close, NULL, d2d_pause, d2d_enable		},
 #endif
     {	"D3D", 1, (int(*)(void*))d3d_init, d3d_close, d3d_resize, d3d_pause, d3d_enable		},
-    {	"SDL", 1, (int(*)(void*))sdl_init, sdl_close, NULL, sdl_pause, sdl_enable		}
+    {	"SDL_SW", 1, (int(*)(void*))sdl_init, sdl_close, NULL, sdl_pause, sdl_enable		},
+    {	"SDL_HW", 1, (int(*)(void*))sdl_init_hw, sdl_close, NULL, sdl_pause, sdl_enable         }
 #ifdef USE_VNC
     ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL				}
 #endif
@@ -103,7 +104,8 @@ static const struct {
     {	"D2D", 1, (int(*)(void*))d2d_init_fs, d2d_close, NULL, d2d_pause, d2d_enable		},
 #endif
     {	"D3D", 1, (int(*)(void*))d3d_init_fs, d3d_close, NULL, d3d_pause, d3d_enable		},
-    {	"SDL", 1, (int(*)(void*))sdl_init_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable	}
+    {	"SDL_SW", 1, (int(*)(void*))sdl_init_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable	},
+    {	"SDL_HW", 1, (int(*)(void*))sdl_init_hw_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable}
 #ifdef USE_VNC
     ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL				}
 #endif
@@ -703,7 +705,10 @@ plat_vidapi_name(int api)
 		break;
 
 	case 3:
-		name = "sdl";
+		name = "sdl_sw";
+		break;
+	case 4:
+		name = "sdl_hw";
 		break;
 #else
 	case 1:
@@ -714,7 +719,10 @@ plat_vidapi_name(int api)
 		break;
 
 	case 2:
-		name = "sdl";
+		name = "sdl_sw";
+		break;
+	case 3:
+		name = "sdl_hw";
 		break;
 #endif
 

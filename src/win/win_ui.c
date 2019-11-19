@@ -161,14 +161,16 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_DDRAW+1, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_DDRAW+2, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_DDRAW+3, MF_UNCHECKED);
-#ifdef USE_VNC
     CheckMenuItem(menuMain, IDM_VID_DDRAW+4, MF_UNCHECKED);
+#ifdef USE_VNC
+    CheckMenuItem(menuMain, IDM_VID_DDRAW+5, MF_UNCHECKED);
 #endif
 #else
     CheckMenuItem(menuMain, IDM_VID_DDRAW+1, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_DDRAW+2, MF_UNCHECKED);
-#ifdef USE_VNC
     CheckMenuItem(menuMain, IDM_VID_DDRAW+3, MF_UNCHECKED);
+#ifdef USE_VNC
+    CheckMenuItem(menuMain, IDM_VID_DDRAW+4, MF_UNCHECKED);
 #endif
 #endif
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+0, MF_UNCHECKED);
@@ -422,7 +424,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_D2D:
 #endif
 			case IDM_VID_D3D:
-			case IDM_VID_SDL:
+			case IDM_VID_SDL_SW:
+			case IDM_VID_SDL_HW:
 #ifdef USE_VNC
 			case IDM_VID_VNC:
 #endif

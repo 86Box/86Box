@@ -62,15 +62,15 @@
 
 #ifdef USE_VNC
 #ifdef USE_D2D
-#define RENDERERS_NUM		5
+#define RENDERERS_NUM		6
 #else
-#define RENDERERS_NUM		4
+#define RENDERERS_NUM		5
 #endif
 #else
 #ifdef USE_D2D
-#define RENDERERS_NUM		4
+#define RENDERERS_NUM		5
 #else
-#define RENDERERS_NUM		3
+#define RENDERERS_NUM		4
 #endif
 #endif
 
