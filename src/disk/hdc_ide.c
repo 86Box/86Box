@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.64	2019/11/06
+ * Version:	@(#)hdc_ide.c	1.0.65	2019/11/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -109,7 +109,7 @@
 #define FEATURE_DISABLE_IRQ_OVERLAPPED	0xdd
 #define FEATURE_DISABLE_IRQ_SERVICE	0xde
 
-#define IDE_TIME 20.0 / 3.0
+#define IDE_TIME 10.0
 
 
 typedef struct {
@@ -175,70 +175,72 @@ ide_get_drive(int ch)
 double
 ide_get_period(ide_t *ide, int size)
 {
-    double period = 10.0 / 3.0;
+    double period = (10.0 / 3.0);
 
+    /* We assume that 1 MB = 1000000 B in this case, so we have as
+       many B/us as there are MB/s because 1 s = 1000000 us. */
     switch(ide->mdma_mode & 0x300) {
 	case 0x000:	/* PIO */
 		switch(ide->mdma_mode & 0xff) {
 			case 0:
-				period = 10.0 / 3.0;
+				period = (10.0 / 3.0);
 				break;
 			case 1:
-				period = (period * 600.0) / 383.0;
+				period = (20.0 / 3.83);
 				break;
 			case 2:
-				period = 25.0 / 3.0;
+				period = (25.0 / 3.0);
 				break;
 			case 3:
-				period = 100.0 / 9.0;
+				period = (100.0 / 9.0);
 				break;
 			case 4:
-				period = 50.0 / 3.0;
+				period = (50.0 / 3.0);
 				break;
 		}
 		break;
 	case 0x100:	/* Single Word DMA */
 		switch(ide->mdma_mode & 0xff) {
 			case 0:
-				period = 25.0 / 12.0;
+				period = (25.0 / 12.0);
 				break;
 			case 1:
-				period = 25.0 / 6.0;
+				period = (25.0 / 6.0);
 				break;
 			case 2:
-				period = 25.0 / 3.0;
+				period = (25.0 / 3.0);
 				break;
 		}
 		break;
 	case 0x200:	/* Multiword DMA */
 		switch(ide->mdma_mode & 0xff) {
 			case 0:
-				period = 25.0 / 6.0;
+				period = (25.0 / 6.0);
 				break;
 			case 1:
-				period = 40.0 / 3.0;
+				period = (40.0 / 3.0);
 				break;
 			case 2:
-				period = 50.0 / 3.0;
+				period = (50.0 / 3.0);
 				break;
 		}
 		break;
 	case 0x300:	/* Ultra DMA */
 		switch(ide->mdma_mode & 0xff) {
 			case 0:
-				period = 50.0 / 3.0;
+				period = (50.0 / 3.0);
 				break;
 			case 1:
 				period = 25.0;
 				break;
 			case 2:
-				period = 100.0 / 3.0;
+				period = (100.0 / 3.0);
 				break;
 			case 3:
-				period = 400.0 / 9.0;
+				period = (400.0 / 9.0);
 				break;
 			case 4:
-				period = 200.0 / 3.0;
+				period = (200.0 / 3.0);
 				break;
 			case 5:
 				period = 100.0;
@@ -247,9 +249,26 @@ ide_get_period(ide_t *ide, int size)
 		break;
     }
 
-    period *= 1048576.0;			/* period * MB - get bytes per second */
-    period = ((double) size) / period;		/* size / period to get seconds */
-    return period * 1000000.0;			/* return seconds * 1000000 to convert to us */
+    period = (10.0 / 3.0);
+
+    period = (1.0 / period);		/* get us for 1 byte */
+    return period * ((double) size);	/* multiply by bytes to get period for the entire transfer */
+}
+
+
+double
+ide_atapi_get_period(uint8_t channel)
+{
+    ide_t *ide = ide_drives[channel];
+ 
+    ide_log("ide_atapi_get_period(%i)\n", channel);
+
+    if (!ide) {
+	ide_log("Get period failed\n");
+	return -1.0;
+    }
+
+    return ide_get_period(ide, 1);
 }
 
 

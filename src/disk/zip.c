@@ -9,11 +9,11 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.c	1.0.37	2018/11/02
+ * Version:	@(#)zip.c	1.0.38	2019/11/19
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2018 Miran Grca.
+ *		Copyright 2018,2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -854,6 +854,26 @@ zip_update_request_length(zip_t *dev, int len, int block_len)
 }
 
 
+static double
+zip_bus_speed(zip_t *dev)
+{
+    double ret = -1.0;
+
+    if (dev->drv->bus_type == ZIP_BUS_SCSI) {
+	dev->callback = -1.0;	/* Speed depends on SCSI controller */
+	return 0.0;
+    } else {
+	if (dev && dev->drv)
+		ret = ide_atapi_get_period(dev->drv->ide_channel);
+	if (ret == -1.0) {
+		dev->callback = -1.0;
+		return 0.0;
+	} else
+		return ret * 1000000.0;
+    }
+}
+
+
 static void
 zip_command_common(zip_t *dev)
 {
@@ -868,12 +888,8 @@ zip_command_common(zip_t *dev)
 	if (dev->drv->bus_type == ZIP_BUS_SCSI) {
 		dev->callback = -1.0;	/* Speed depends on SCSI controller */
 		return;
-	} else {
-		if (zip_current_mode(dev) == 2)
-			bytes_per_second = 66666666.666666666666666;	/* 66 MB/s MDMA-2 speed */
-		else
-			bytes_per_second =  8333333.333333333333333;	/* 8.3 MB/s PIO-2 speed */
-	}
+	} else
+		bytes_per_second = zip_bus_speed(dev);
 
 	period = 1000000.0 / bytes_per_second;
 	dev->callback = period * (double) (dev->packet_len);

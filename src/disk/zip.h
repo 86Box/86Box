@@ -9,11 +9,11 @@
  *		Implementation of the Iomega ZIP drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)zip.h	1.0.9	2018/10/31
+ * Version:	@(#)zip.h	1.0.10	2019/11/19
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2018 Miran Grca.
+ *		Copyright 2018,2019 Miran Grca.
  */
 #ifndef EMU_ZIP_H
 #define EMU_ZIP_H
@@ -23,7 +23,7 @@
 
 #define BUF_SIZE 32768
 
-#define ZIP_TIME	500.0
+#define ZIP_TIME	10.0
 
 #define ZIP_SECTORS (96*2048)
 
