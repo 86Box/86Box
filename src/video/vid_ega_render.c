@@ -8,7 +8,7 @@
  *
  *		EGA renderers.
  *
- * Version:	@(#)vid_ega_render.c	1.0.6	2019/10/03
+ * Version:	@(#)vid_ega_render.c	1.0.7	2019/11/19
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -53,7 +53,7 @@ ega_render_blank(ega_t *ega)
     if ((ega->displine + ega->y_add) < 0)
 	return;
 
-    for (x = 0; x < ega->hdisp; x++) {
+    for (x = 0; x < (ega->hdisp + ega->scrollcache); x++) {
 	switch (ega->seqregs[1] & 9) {
 		case 0:
 			for (xx = 0; xx < 9; xx++)  buffer32->line[ega->displine + ega->y_add][ega->x_add + (x * 9) + xx] = 0;
@@ -120,7 +120,7 @@ ega_render_text_40(ega_t *ega)
 	p = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
 	xinc = (ega->seqregs[1] & 1) ? 16 : 18;
 
-	for (x = 0; x < ega->hdisp; x += xinc) {
+	for (x = 0; x < (ega->hdisp + ega->scrollcache); x += xinc) {
 		drawcursor = ((ega->ma == ega->ca) && ega->con && ega->cursoron);
 		chr  = ega->vram[(ega->ma << 1) & ega->vrammask];
 		attr = ega->vram[((ega->ma << 1) + 1) & ega->vrammask];
@@ -183,7 +183,7 @@ ega_render_text_80(ega_t *ega)
 	p = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
 	xinc = (ega->seqregs[1] & 1) ? 8 : 9;
 
-	for (x = 0; x < ega->hdisp; x += xinc) {
+	for (x = 0; x < (ega->hdisp + ega->scrollcache); x += xinc) {
 		drawcursor = ((ega->ma == ega->ca) && ega->con && ega->cursoron);
 		chr  = ega->vram[(ega->ma << 1) & ega->vrammask];
 		attr = ega->vram[((ega->ma << 1) + 1) & ega->vrammask];
@@ -240,7 +240,7 @@ ega_render_2bpp_lowres(ega_t *ega)
 	ega->firstline_draw = ega->displine;
     ega->lastline_draw = ega->displine;
 
-    for (x = 0; x <= ega->hdisp; x += 16) {
+    for (x = 0; x <= (ega->hdisp + ega->scrollcache); x += 16) {
 	addr = ega->ma;
 
 	if (!(ega->crtc[0x17] & 0x40)) {
@@ -299,7 +299,7 @@ ega_render_2bpp_highres(ega_t *ega)
 	ega->firstline_draw = ega->displine;
     ega->lastline_draw = ega->displine;
 
-    for (x = 0; x <= ega->hdisp; x += 8) {
+    for (x = 0; x <= (ega->hdisp + ega->scrollcache); x += 8) {
 	addr = ega->ma;
 
 	if (!(ega->crtc[0x17] & 0x40)) {
@@ -358,7 +358,7 @@ ega_render_4bpp_lowres(ega_t *ega)
 	ega->firstline_draw = ega->displine;
     ega->lastline_draw = ega->displine;
 
-    for (x = 0; x <= ega->hdisp; x += 16) {
+    for (x = 0; x <= (ega->hdisp + ega->scrollcache); x += 16) {
 	addr = ega->ma;
 	oddeven = 0;
 
@@ -431,7 +431,7 @@ ega_render_4bpp_highres(ega_t *ega)
 	ega->firstline_draw = ega->displine;
     ega->lastline_draw = ega->displine;
 
-    for (x = 0; x <= ega->hdisp; x += 8) {
+    for (x = 0; x <= (ega->hdisp + ega->scrollcache); x += 8) {
 	addr = ega->ma;
 	oddeven = 0;
 
