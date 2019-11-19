@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.53	2019/11/01
+ * Version:	@(#)86Box.rc	1.0.54	2019/11/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -225,7 +225,7 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,129,94,71,12
     ICON            100,IDC_ABOUT_ICON,7,7,20,20
 #ifdef RELEASE_BUILD
-    LTEXT           "86Box v2.06 - An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.",
+    LTEXT           "86Box v2.07 - An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.",
                     IDC_ABOUT_ICON,54,7,146,73
 #else
     LTEXT           "86Box v2.10 - An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.",
@@ -980,8 +980,8 @@ END
 
 VS_VERSION_INFO VERSIONINFO
 #ifdef RELEASE_BUILD
- FILEVERSION 2,6,0,0
- PRODUCTVERSION 2,6,0,0
+ FILEVERSION 2,7,0,0
+ PRODUCTVERSION 2,7,0,0
 #else
  FILEVERSION 2,10,0,0
  PRODUCTVERSION 2,10,0,0
@@ -1004,7 +1004,7 @@ BEGIN
             VALUE "CompanyName", "IRC #SoftHistory\0"
             VALUE "FileDescription", "86Box - an emulator for X86-based systems\0"
 #ifdef RELEASE_BUILD
-            VALUE "FileVersion", "2.06\0"
+            VALUE "FileVersion", "2.07\0"
 #else
             VALUE "FileVersion", "2.10\0"
 #endif
@@ -1015,7 +1015,7 @@ BEGIN
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "86Box Emulator\0"
 #ifdef RELEASE_BUILD
-            VALUE "ProductVersion", "2.06\0"
+            VALUE "ProductVersion", "2.07\0"
 #else
             VALUE "ProductVersion", "2.10\0"
 #endif
