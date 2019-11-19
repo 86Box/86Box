@@ -8,7 +8,7 @@
  *
  *		Implement a generic NVRAM/CMOS/RTC device.
  *
- * Version:	@(#)nvr.c	1.0.18	2019/03/16
+ * Version:	@(#)nvr.c	1.0.19	2019/11/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>,
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -156,7 +156,7 @@ onesec_timer(void *priv)
 	nvr->onesec_cnt = 0;
     }
 
-    timer_advance_u64(&nvr->onesec_time, (10000ULL * TIMER_USEC));
+    timer_advance_u64(&nvr->onesec_time, (uint64_t)(10000ULL * TIMER_USEC));
 }
 
 

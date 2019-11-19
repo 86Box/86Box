@@ -189,7 +189,7 @@
  *		including the later update (DS12887A) which implemented a
  *		"century" register to be compatible with Y2K.
  *
- * Version:	@(#)nvr_at.c	1.0.15	2019/03/16
+ * Version:	@(#)nvr_at.c	1.0.16	2019/11/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -291,6 +291,8 @@ typedef struct {
     uint8_t	def;
 
     uint8_t	addr;
+
+    int16_t	count, state;
 
     uint64_t	ecount,
 		rtc_time;
@@ -450,43 +452,29 @@ timer_update(void *priv)
 }
 
 
-static double
-timer_nvr_period(nvr_t *nvr)
+static void
+timer_load_count(nvr_t *nvr)
 {
-    double dusec = (double) TIMER_USEC;
+    int c = nvr->regs[RTC_REGA] & REGA_RS;
+    local_t *local = (local_t *) nvr->data;
 
-    switch (nvr->regs[RTC_REGA] & REGA_RS) {
+    if ((nvr->regs[RTC_REGA] & 0x70) != 0x20) {
+	local->state = 0;
+	return;
+    }
+
+    local->state = 1;
+
+    switch (c) {
 	case 0:
+		local->state = 0;
+		break;
+	case 1: case 2:
+		local->count = 1 << (c + 6);
+		break;
 	default:
-		return 0.0;
-	case 1:
-	case 8:
-		return 3906.25 * dusec;
-	case 2:
-	case 9:
-		return 7812.5 * dusec;
-	case 3:
-		return 122.070 * dusec;
-	case 4:
-		return 244.141 * dusec;
-	case 5:
-		return 488.281 * dusec;
-	case 6:
-		return 976.5625 * dusec;
-	case 7:
-		return 1953.125 * dusec;
-	case 10:
-		return 15625.0 * dusec;
-	case 11:
-		return 31250.0 * dusec;
-	case 12:
-		return 62500.0 * dusec;
-	case 13:
-		return 125000.0 * dusec;
-	case 14:
-		return 250000.0 * dusec;
-	case 15:
-		return 500000.0 * dusec;
+		local->count = 1 << (c - 1);
+		break;
     }
 }
 
@@ -497,13 +485,16 @@ timer_intr(void *priv)
     nvr_t *nvr = (nvr_t *)priv;
     local_t *local = (local_t *)nvr->data;
 
-    if (nvr->regs[RTC_REGA] & REGA_RS) {
-	local->rtc_time = timer_nvr_period(nvr);
-	timer_advance_u64(&local->rtc_timer, (uint64_t) local->rtc_time);
-    } else {
-	local->rtc_time = 0ULL;
+    timer_advance_u64(&local->rtc_timer, RTCCONST);
+
+    if (local->state == 1) {
+	local->count--;
+	if (local->count == 0)
+		timer_load_count(nvr);
+	else
+		return;
+    } else
 	return;
-    }
 
     nvr->regs[RTC_REGC] |= REGC_PF;
     if (nvr->regs[RTC_REGB] & REGB_PIE) {
@@ -536,20 +527,6 @@ timer_tick(nvr_t *nvr)
 }
 
 
-static void
-nvr_pie_start(nvr_t *nvr)
-{
-    local_t *local = (local_t *)nvr->data;
-
-    local->rtc_time = 0ULL;
-    timer_disable(&local->rtc_timer);
-    if ((nvr->regs[RTC_REGA] & REGA_RS) && ((nvr->regs[RTC_REGA] & 0x70) == 0x20)) {
-	local->rtc_time = timer_nvr_period(nvr);
-	timer_set_delay_u64(&local->rtc_timer, local->rtc_time);
-    }
-}
-
-
 /* Write to one of the NVR registers. */
 static void
 nvr_write(uint16_t addr, uint8_t val, void *priv)
@@ -566,7 +543,7 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 	switch(local->addr) {
 		case RTC_REGA:
 			nvr->regs[RTC_REGA] = val;
-			nvr_pie_start(nvr);
+			timer_load_count(nvr);
 			break;
 
 		case RTC_REGB:
@@ -704,8 +681,7 @@ nvr_at_speed_changed(void *priv)
     local_t *local = (local_t *) nvr->data;
 
     timer_disable(&local->rtc_timer);
-    if (local->rtc_time > 0ULL)
-	timer_set_delay_u64(&local->rtc_timer, local->rtc_time);
+    timer_set_delay_u64(&local->rtc_timer, RTCCONST);
 
     timer_disable(&local->update_timer);
     if (local->ecount > 0ULL)
@@ -774,7 +750,10 @@ nvr_at_init(const device_t *info)
 
     /* Start the timers. */
     timer_add(&local->update_timer, timer_update, nvr, 0);
+
     timer_add(&local->rtc_timer, timer_intr, nvr, 0);
+    timer_load_count(nvr);
+    timer_set_delay_u64(&local->rtc_timer, RTCCONST);
 
     /* Set up the I/O handler for this device. */
     io_sethandler(0x0070, 2,
