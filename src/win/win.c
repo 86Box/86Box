@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.58	2019/10/19
+ * Version:	@(#)win.c	1.0.59	2019/11/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -199,11 +199,6 @@ set_language(int id)
 
 	/* Load the strings table for this ID. */
 	LoadCommonStrings();
-
-#if 0
-	/* Update the menus for this ID. */
-	MenuUpdate();
-#endif
     }
 }
 
@@ -383,6 +378,10 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
     if (! pc_init(argc, argw)) {
 	/* Detach from console. */
 	CreateConsole(0);
+
+	if (source_hwnd)
+		PostMessage((HWND) (uintptr_t) source_hwnd, WM_HAS_SHUTDOWN, (WPARAM) 0, (LPARAM) hwndMain);
+
 	return(1);
     }
 
@@ -429,6 +428,9 @@ do_stop(void)
     quited = 1;
 
     plat_delay_ms(100);
+
+    if (source_hwnd)
+	PostMessage((HWND) (uintptr_t) source_hwnd, WM_HAS_SHUTDOWN, (WPARAM) 0, (LPARAM) hwndMain);
 
     pc_close(thMain);
 
@@ -629,7 +631,6 @@ plat_dir_check(wchar_t *path)
 int
 plat_dir_create(wchar_t *path)
 {
-    // return((int)CreateDirectory(path, NULL));
     return((int)SHCreateDirectory(hwndMain, path));
 }
 
@@ -698,10 +699,6 @@ plat_vidapi_name(int api)
 		break;
 
 	case 2:
-#if 0
-		/* Direct3D is default. */
-		name = "d3d";
-#endif
 		break;
 
 	case 3:
@@ -712,10 +709,6 @@ plat_vidapi_name(int api)
 		break;
 #else
 	case 1:
-#if 0
-		/* Direct3D is default. */
-		name = "d3d";
-#endif
 		break;
 
 	case 2:

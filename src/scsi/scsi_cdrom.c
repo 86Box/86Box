@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.71	2019/09/26
+ * Version:	@(#)scsi_cdrom.c	1.0.72	2019/11/19
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -604,15 +604,19 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
 static double
 scsi_cdrom_bus_speed(scsi_cdrom_t *dev)
 {
+    double ret = -1.0;
+
     if (dev->drv->bus_type == CDROM_BUS_SCSI) {
 	dev->callback = -1.0;	/* Speed depends on SCSI controller */
 	return 0.0;
     } else {
-	/* TODO: Get the actual selected speed from IDE. */
-	if (scsi_cdrom_current_mode(dev) == 2)
-		return 66666666.666666666666666;	/* 66 MB/s MDMA-2 speed */
-	else
-		return  8333333.333333333333333;	/* 8.3 MB/s PIO-2 speed */
+	if (dev && dev->drv)
+		ret = ide_atapi_get_period(dev->drv->ide_channel);
+	if (ret == -1.0) {
+		dev->callback = -1.0;
+		return 0.0;
+	} else
+		return ret * 1000000.0;
     }
 }
 
@@ -663,7 +667,7 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
 		case 0xb9:
 		case 0xbe:
 			if (dev->current_cdb[0] == 0x42)
-				dev->callback += 200.0 * CDROM_TIME;
+				dev->callback += 40.0;
 			/* Account for seek time. */
 			bytes_per_second = 176.0 * 1024.0;
 			bytes_per_second *= (double) dev->drv->cur_speed;

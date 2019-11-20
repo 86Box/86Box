@@ -22,15 +22,12 @@
  * PC200:	CGA with some NMI stuff. But we don't need that as it's only
  *		used for TV and LCD displays, and we're emulating a CRT.
  *
+ * PPC512/640:	Portable with both CGA-compatible and MDA-compatible monitors.
+ *
  * TODO:	This module is not complete yet:
  *
- * PC1512:	The BIOS assumes 512K RAM, because I cannot figure out how to
- *		read the status of the LK4 jumper on the mainboard, which is
- *		somehow linked to the bus gate array on the NDMACS line...
- *
- * PC1612:	EGA mode does not seem to work in the PC1640; it works fine
- *		in alpha mode, but in highres ("ECD350") mode, it displays
- *		some semi-random junk. Video-memory pointer maybe?
+ * All models:	The internal mouse controller does not work correctly with
+ *		version 7.04 of the mouse driver.
  *
  * Version:	@(#)m_amstrad.c	1.0.20	2019/03/09
  *

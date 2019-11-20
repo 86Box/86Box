@@ -10,13 +10,13 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)fdd_86f.c	1.0.17	2018/11/12
+ * Version:	@(#)fdd_86f.c	1.0.18	2019/11/08
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2018,2019 Fred N. van Kempen.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1140,10 +1140,8 @@ d86f_get_bit(int drive, int side)
 	if (! surface_bit)
 		dev->last_word[side] |= current_bit;
 	else {
-		if (current_bit) {
-			/* Bit is 1 and is set to fuzzy, we randomly generate it. */
-			dev->last_word[side] |= (random_generate() & 1);
-		}
+		/* Bit is either 0 or 1 and is set to fuzzy, we randomly generate it. */
+		dev->last_word[side] |= (random_generate() & 1);
 	}
     } else
 	dev->last_word[side] |= current_bit;

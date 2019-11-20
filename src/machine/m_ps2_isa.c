@@ -57,7 +57,8 @@ static uint8_t ps2_read(uint16_t port, void *p)
                 return ps2_105;
                 case 0x190:
                 return ps2_190;
-                
+
+#ifdef FIXME                
                 case 0x322:
                 temp = ps2_hd.status;
                 break;
@@ -65,6 +66,7 @@ static uint8_t ps2_read(uint16_t port, void *p)
                 temp = ps2_hd.int_status;
                 ps2_hd.int_status &= ~0x02;
                 break;
+#endif
                 
                 default:
                 temp = 0xff;
@@ -116,7 +118,8 @@ static void ps2_write(uint16_t port, uint8_t val, void *p)
                 case 0x190:
                 ps2_190 = val;
                 break;
-                
+      
+#ifdef FIXME          
                 case 0x322:
                 ps2_hd.ctrl = val;
                 if (val & 0x80)
@@ -127,6 +130,7 @@ static void ps2_write(uint16_t port, uint8_t val, void *p)
                 if (ps2_hd.attention)
                         ps2_hd.status = 0x14;
                 break;
+#endif
         }
 }
 
@@ -137,15 +141,17 @@ static void ps2board_init(void)
         io_sethandler(0x0094, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         io_sethandler(0x0102, 0x0004, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         io_sethandler(0x0190, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
+#ifdef FIXME
         io_sethandler(0x0320, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         io_sethandler(0x0322, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         io_sethandler(0x0324, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
+#endif
         
 	device_add(&port_92_device);
 
         ps2_190 = 0;
 
-	ps2_uart = device_add_inst(&i8250_device, 1);
+	ps2_uart = device_add_inst(&ns16450_device, 1);
 
         lpt1_init(0x3bc);
         

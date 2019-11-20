@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.37	2019/10/21
+ * Version:	@(#)vid_svga.c	1.0.38	2019/11/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -530,10 +530,13 @@ svga_recalctimings(svga_t *svga)
 		overscan_y = 16;
     }
 
-    overscan_x = (svga->seqregs[1] & 1) ? 16 : 18;
+    if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) {
+	overscan_x = (svga->seqregs[1] & 1) ? 16 : 18;
 
-    if (svga->seqregs[1] & 8) 
-	overscan_x <<= 1;
+	if (svga->seqregs[1] & 8) 
+		overscan_x <<= 1;
+    } else
+	overscan_x  = 16;
 
     if (svga->recalctimings_ex) 
 	svga->recalctimings_ex(svga);
@@ -553,6 +556,7 @@ svga_recalctimings(svga_t *svga)
 	disptime *= 2;
 	_dispontime *= 2;
     }
+
     _dispofftime = disptime - _dispontime;
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
@@ -572,6 +576,7 @@ svga_poll(void *p)
     svga_t *svga = (svga_t *)p;
     uint32_t x, blink_delay;
     int wx, wy;
+    int skip = (svga->crtc[8] >> 5) & 0x03;
 
     if (!svga->linepos) {
 	if (svga->displine == svga->hwcursor_latch.y && svga->hwcursor_latch.ena) {
@@ -625,9 +630,12 @@ svga_poll(void *p)
 		}
 
 		if (!svga->override) {
-			svga_render_overscan_left(svga);
 			svga->render(svga);
+
+			svga->x_add = (overscan_x >> 1);
+			svga_render_overscan_left(svga);
 			svga_render_overscan_right(svga);
+			svga->x_add = (overscan_x >> 1) - svga->scrollcache;
 		}
 
 		if (svga->overlay_on) {
@@ -702,8 +710,10 @@ svga_poll(void *p)
 	if (svga->vc == svga->split) {
 		svga->ma = svga->maback = 0;
 		svga->sc = 0;
-		if (svga->attrregs[0x10] & 0x20) 
+		if (svga->attrregs[0x10] & 0x20) {
 			svga->scrollcache = 0;
+			svga->x_add = (overscan_x >> 1);
+		}
 	}
 	if (svga->vc == svga->dispend) {
 		if (svga->vblank_start)
@@ -761,9 +771,9 @@ svga_poll(void *p)
 			svga->ma = svga->maback = svga->ma_latch;
 		svga->ca = (svga->crtc[0xe] << 8) | svga->crtc[0xf];
 
-		svga->ma <<= 2;
-		svga->maback <<= 2;
-		svga->ca <<= 2;
+		svga->ma = (svga->ma << 2) + (skip << 2);
+		svga->maback = (svga->maback << 2) + (skip << 2);
+		svga->ca = (svga->ca << 2) + (skip << 2);
 	}
 	if (svga->vc == svga->vtotal) {
 		svga->vc = 0;
@@ -786,7 +796,7 @@ svga_poll(void *p)
 		else
 			svga->scrollcache = (svga->scrollcache & 0x06) >> 1;
 
-		if (svga->seqregs[1] & 8)
+		if ((svga->seqregs[1] & 8) || (svga->render == svga_render_8bpp_lowres))
 			svga->scrollcache <<= 1;
 
 		svga->x_add = (overscan_x >> 1) - svga->scrollcache;
