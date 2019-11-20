@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.63	2019/10/21
+ * Version:	@(#)config.c	1.0.64	2019/11/19
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -837,11 +837,16 @@ load_hard_disks(void)
 			max_tracks = 1023;
 			break;
 
-		case HDD_BUS_ESDI:
 		case HDD_BUS_XTA:
 			max_spt = 63;
 			max_hpc = 16;
 			max_tracks = 1023;
+			break;
+
+		case HDD_BUS_ESDI:
+			max_spt = 99;
+			max_hpc = 16;
+			max_tracks = 266305;
 			break;
 
 		case HDD_BUS_IDE:

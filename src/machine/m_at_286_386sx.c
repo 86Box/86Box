@@ -8,7 +8,7 @@
  *
  *		Implementation of 286 and 386SX machines.
  *
- * Version:	@(#)m_at_286_386sx.c	1.0.1	2019/11/01
+ * Version:	@(#)m_at_286_386sx.c	1.0.2	2019/11/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -202,8 +202,6 @@ machine_at_award286_init(const machine_t *model)
 	return ret;
 
     machine_at_scat_init(model, 0);
-
-    device_add(&ide_isa_device);
 
     return ret;
 }

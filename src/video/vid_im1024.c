@@ -38,7 +38,7 @@
  *		This is implemented by holding a FIFO of unlimited depth in
  *		the IM1024 to receive the data.
  *
- * Version:	@(#)vid_im1024.c	1.0.3	2019/03/03
+ * Version:	@(#)vid_im1024.c	1.0.4	2019/11/04
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		John Elliott, <jce@seasip.info>
@@ -1008,13 +1008,6 @@ im1024_speed_changed(void *priv)
 }
 
 
-static const device_config_t im1024_config[] = {
-    {
-	"", "", -1
-    }
-};
-
-
 const device_t im1024_device = {
     "ImageManager 1024",
     DEVICE_ISA, 0,
@@ -1022,5 +1015,5 @@ const device_t im1024_device = {
     im1024_available,
     im1024_speed_changed,
     NULL,
-    im1024_config
+    NULL
 };

@@ -11,7 +11,7 @@
  * NOTES:	This code should be re-merged into a single init() with a
  *		'fullscreen' argument, indicating FS mode is requested.
  *
- * Version:	@(#)win_ddraw.cpp	1.0.15	2019/10/12
+ * Version:	@(#)win_ddraw.cpp	1.0.16	2019/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -48,6 +48,7 @@ static LPDIRECTDRAWCLIPPER	lpdd_clipper = NULL;
 static DDSURFACEDESC2		ddsd;
 static HWND			ddraw_hwnd;
 static int			ddraw_w, ddraw_h;
+static int			ddraw_fs;
 static volatile int		ddraw_enabled = 0;
 
 
@@ -149,96 +150,16 @@ ddraw_fs_size(RECT w_rect, RECT *r_dest, int w, int h)
 
 
 static void
-ddraw_blit_fs(int x, int y, int y1, int y2, int w, int h)
-{
-    RECT r_src;
-    RECT r_dest;
-    RECT w_rect;
-    int yy;
-    HRESULT hr;
-    DDBLTFX ddbltfx;
-
-    if (!ddraw_enabled) {
-	video_blit_complete();
-	return;
-    }
-
-    if (lpdds_back == NULL) {
-	video_blit_complete();
-	return; /*Nothing to do*/
-    }
-
-    if ((y1 == y2) || (h <= 0)) {
-	video_blit_complete();
-	return;
-    }
-
-    memset(&ddsd, 0, sizeof(ddsd));
-    ddsd.dwSize = sizeof(ddsd);
-
-    hr = lpdds_back->Lock(NULL, &ddsd,
-			  DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
-    if (hr == DDERR_SURFACELOST) {
-	lpdds_back->Restore();
-	lpdds_back->Lock(NULL, &ddsd,
-			 DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
-	device_force_redraw();
-    }
-    if (! ddsd.lpSurface) {
-	video_blit_complete();
-	return;
-    }
-
-    for (yy = y1; yy < y2; yy++) {
-	if (buffer32) {
-		if (video_grayscale || invert_display)
-			video_transform_copy((uint32_t *)((uintptr_t)ddsd.lpSurface + (yy * ddsd.lPitch)), &(buffer32->line[y + yy][x]), w);
-		else
-			memcpy((void *)((uintptr_t)ddsd.lpSurface + (yy * ddsd.lPitch)), &(buffer32->line[y + yy][x]), w * 4);
-	}
-    }
-    video_blit_complete();
-    lpdds_back->Unlock(NULL);
-
-    w_rect.left = 0;
-    w_rect.top = 0;
-    w_rect.right = ddraw_w;
-    w_rect.bottom = ddraw_h;
-    ddraw_fs_size(w_rect, &r_dest, w, h);
-
-    r_src.left   = 0;
-    r_src.top    = 0;       
-    r_src.right  = w;
-    r_src.bottom = h;
-
-    ddbltfx.dwSize = sizeof(ddbltfx);
-    ddbltfx.dwFillColor = 0;
-
-    lpdds_back2->Blt(&w_rect, NULL, NULL,
-		     DDBLT_WAIT | DDBLT_COLORFILL, &ddbltfx);
-
-    hr = lpdds_back2->Blt(&r_dest, lpdds_back, &r_src, DDBLT_WAIT, NULL);
-    if (hr == DDERR_SURFACELOST) {
-	lpdds_back2->Restore();
-	lpdds_back2->Blt(&r_dest, lpdds_back, &r_src, DDBLT_WAIT, NULL);
-    }
-	
-    hr = lpdds_pri->Flip(NULL, DDFLIP_NOVSYNC);	
-    if (hr == DDERR_SURFACELOST) {
-	lpdds_pri->Restore();
-	lpdds_pri->Flip(NULL, DDFLIP_NOVSYNC);
-    }
-}
-
-
-static void
 ddraw_blit(int x, int y, int y1, int y2, int w, int h)
 {
     RECT r_src;
     RECT r_dest;
     POINT po;
-    HRESULT hr;
+    RECT w_rect;
     int yy;
+    HRESULT hr;
+    DDBLTFX ddbltfx;
+    RECT *r_tgt = ddraw_fs ? &r_dest : &r_src;
 
     if (!ddraw_enabled) {
 	video_blit_complete();
@@ -286,29 +207,53 @@ ddraw_blit(int x, int y, int y1, int y2, int w, int h)
     video_blit_complete();
     lpdds_back->Unlock(NULL);
 
-    po.x = po.y = 0;
-	
-    ClientToScreen(ddraw_hwnd, &po);
-    GetClientRect(ddraw_hwnd, &r_dest);
-    OffsetRect(&r_dest, po.x, po.y);	
-	
+    if (ddraw_fs) {
+	w_rect.left = 0;
+	w_rect.top = 0;
+	w_rect.right = ddraw_w;
+	w_rect.bottom = ddraw_h;
+	ddraw_fs_size(w_rect, &r_dest, w, h);
+    } else {
+	po.x = po.y = 0;
+
+	ClientToScreen(ddraw_hwnd, &po);
+	GetClientRect(ddraw_hwnd, &r_dest);
+	OffsetRect(&r_dest, po.x, po.y);	
+    }
+
     r_src.left   = 0;
     r_src.top    = 0;       
     r_src.right  = w;
     r_src.bottom = h;
 
-    hr = lpdds_back2->Blt(&r_src, lpdds_back, &r_src, DDBLT_WAIT, NULL);
-    if (hr == DDERR_SURFACELOST) {
-	lpdds_back2->Restore();
-	lpdds_back2->Blt(&r_src, lpdds_back, &r_src, DDBLT_WAIT, NULL);
+    if (ddraw_fs) {
+	ddbltfx.dwSize = sizeof(ddbltfx);
+	ddbltfx.dwFillColor = 0;
+
+	lpdds_back2->Blt(&w_rect, NULL, NULL,
+			 DDBLT_WAIT | DDBLT_COLORFILL, &ddbltfx);
     }
 
-    lpdds_back2->Unlock(NULL);
-	
-    hr = lpdds_pri->Blt(&r_dest, lpdds_back2, &r_src, DDBLT_WAIT, NULL);
+    hr = lpdds_back2->Blt(r_tgt, lpdds_back, &r_src, DDBLT_WAIT, NULL);
+    if (hr == DDERR_SURFACELOST) {
+	lpdds_back2->Restore();
+	lpdds_back2->Blt(r_tgt, lpdds_back, &r_src, DDBLT_WAIT, NULL);
+    }
+
+    if (ddraw_fs)
+	hr = lpdds_pri->Flip(NULL, DDFLIP_NOVSYNC);	
+    else {
+	lpdds_back2->Unlock(NULL);
+
+	hr = lpdds_pri->Blt(&r_dest, lpdds_back2, &r_src, DDBLT_WAIT, NULL);
+    }
+
     if (hr == DDERR_SURFACELOST) {
 	lpdds_pri->Restore();
-	lpdds_pri->Blt(&r_dest, lpdds_back2, &r_src, DDBLT_WAIT, NULL);
+	if (ddraw_fs)
+		lpdds_pri->Flip(NULL, DDFLIP_NOVSYNC);
+	else
+		lpdds_pri->Blt(&r_dest, lpdds_back2, &r_src, DDBLT_WAIT, NULL);
     }
 }
 
@@ -373,6 +318,7 @@ ddraw_init(HWND h)
 
     video_setblit(ddraw_blit);
 
+    ddraw_fs = 0;
     ddraw_enabled = 1;
 
     return(1);
@@ -429,8 +375,9 @@ ddraw_init_fs(HWND h)
 
     ddraw_hwnd = h;
 
-    video_setblit(ddraw_blit_fs);
+    video_setblit(ddraw_blit);
 
+    ddraw_fs = 1;
     ddraw_enabled = 1;
 
     return(1);

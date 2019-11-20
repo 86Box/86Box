@@ -8,7 +8,7 @@
  *
  *		Rendering module for Microsoft Direct3D 9.
  *
- * Version:	@(#)win_d3d.cpp	1.0.13	2019/10/12
+ * Version:	@(#)win_d3d.cpp	1.0.14	2019/11/01
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -43,8 +43,8 @@ static LPDIRECT3DTEXTURE9	d3dTexture = NULL;
 static D3DPRESENT_PARAMETERS	d3dpp;
 static HWND			d3d_hwnd;
 static HWND			d3d_device_window;
-static int			d3d_w,
-				d3d_h;
+static int			d3d_w, d3d_h;
+static int			d3d_fs;
 static volatile int		d3d_enabled = 0;
 
 static CUSTOMVERTEX d3d_verts[] = {
@@ -143,17 +143,15 @@ d3d_size(RECT w_rect, double *l, double *t, double *r, double *b, int w, int h)
 
 
 static void
-d3d_blit_fs(int x, int y, int y1, int y2, int w, int h)
+d3d_blit(int x, int y, int y1, int y2, int w, int h)
 {
-#if 0
     HRESULT hr = D3D_OK;
     HRESULT hbsr = D3D_OK;
     VOID* pVoid;
     D3DLOCKED_RECT dr;
-    RECT w_rect;
+    RECT r;
     int yy;
-    double l = 0, t = 0, r = 0, b = 0;
-    RECT lock_rect;
+    double l = 0, t = 0, rr = 0, b = 0;	/* FS_ONLY */
 
     if (!d3d_enabled) {
 	video_blit_complete();
@@ -165,19 +163,21 @@ d3d_blit_fs(int x, int y, int y1, int y2, int w, int h)
 	return; /*Nothing to do*/
     }
 
-    lock_rect.top    = y1;
-    lock_rect.left   = 0;
-    lock_rect.bottom = y2;
-    lock_rect.right  = 2047;
+    r.top    = y1;
+    r.left   = 0;
+    r.bottom = y2;
+    r.right  = 2047;
 
-    hr = d3dTexture->LockRect(0, &dr, &lock_rect, 0);
-    if (hr == D3D_OK) {
+    hr = d3dTexture->LockRect(0, &dr, &r, 0);
+    if (hr == D3D_OK) {	
 	for (yy = y1; yy < y2; yy++) {
 		if (buffer32) {
-			if (video_grayscale || invert_display)
-				video_transform_copy((uint32_t *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(buffer32->line[yy + y][x]), w);
-			else
-				memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(buffer32->line[yy + y][x]), w * 4);
+			if ((y + yy) >= 0 && (y + yy) < buffer32->h) {
+				if (video_grayscale || invert_display)
+					video_transform_copy((uint32_t *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(buffer32->line[yy + y][x]), w);
+				else
+					memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(buffer32->line[yy + y][x]), w * 4);
+			}
 		}
 	}
 
@@ -188,8 +188,8 @@ d3d_blit_fs(int x, int y, int y1, int y2, int w, int h)
 	return;
     }
 
-    d3d_verts[0].tu = d3d_verts[2].tu = d3d_verts[3].tu = 0;
-    d3d_verts[0].tv = d3d_verts[3].tv = d3d_verts[4].tv = 0;
+    d3d_verts[0].tu = d3d_verts[2].tu = d3d_verts[3].tu = 0;//0.5 / 2048.0;
+    d3d_verts[0].tv = d3d_verts[3].tv = d3d_verts[4].tv = 0;//0.5 / 2048.0;
     d3d_verts[1].tu = d3d_verts[4].tu = d3d_verts[5].tu = (float)w / 2048.0;
     d3d_verts[1].tv = d3d_verts[2].tv = d3d_verts[5].tv = (float)h / 2048.0;
     d3d_verts[0].color = d3d_verts[1].color = d3d_verts[2].color =
@@ -197,32 +197,35 @@ d3d_blit_fs(int x, int y, int y1, int y2, int w, int h)
     d3d_verts[6].color = d3d_verts[7].color = d3d_verts[8].color =
     d3d_verts[9].color = d3d_verts[10].color = d3d_verts[11].color = 0xffffff;
 
-    GetClientRect(d3d_device_window, &w_rect);
-    d3d_size(w_rect, &l, &t, &r, &b, w, h);
+    if (d3d_fs) {
+	GetClientRect(d3d_device_window, &r);
+	d3d_size(r, &l, &t, &rr, &b, w, h);
+	d3d_verts[0].x = d3d_verts[2].x = d3d_verts[3].x = l;
+	d3d_verts[0].y = d3d_verts[3].y = d3d_verts[4].y = t;
+	d3d_verts[1].x = d3d_verts[4].x = d3d_verts[5].x = rr;
+	d3d_verts[1].y = d3d_verts[2].y = d3d_verts[5].y = b;
+	d3d_verts[6].x = d3d_verts[8].x = d3d_verts[9].x = rr - 40.5;
+	d3d_verts[6].y = d3d_verts[9].y = d3d_verts[10].y = t + 8.5;
+	d3d_verts[7].x = d3d_verts[10].x = d3d_verts[11].x = rr - 8.5;
+	d3d_verts[7].y = d3d_verts[8].y = d3d_verts[11].y = t + 14.5;
+    } else {
+	GetClientRect(d3d_hwnd, &r);
+	d3d_verts[0].x = d3d_verts[2].x = d3d_verts[3].x = -0.5;
+	d3d_verts[0].y = d3d_verts[3].y = d3d_verts[4].y = -0.5;
+	d3d_verts[1].x = d3d_verts[4].x = d3d_verts[5].x = (r.right-r.left)-0.5;
+	d3d_verts[1].y = d3d_verts[2].y = d3d_verts[5].y = (r.bottom-r.top)-0.5;
+	d3d_verts[6].x = d3d_verts[8].x = d3d_verts[9].x = (r.right-r.left)-40.5;
+	d3d_verts[6].y = d3d_verts[9].y = d3d_verts[10].y = 8.5;
+	d3d_verts[7].x = d3d_verts[10].x = d3d_verts[11].x = (r.right-r.left)-8.5;
+	d3d_verts[7].y = d3d_verts[8].y = d3d_verts[11].y = 14.5;
+    }
 
-    d3d_verts[0].x = l;
-    d3d_verts[0].y = t;
-    d3d_verts[1].x = r;
-    d3d_verts[1].y = b;
-    d3d_verts[2].x = l;
-    d3d_verts[2].y = b;
-    d3d_verts[3].x = l;
-    d3d_verts[3].y = t;
-    d3d_verts[4].x = r;
-    d3d_verts[4].y = t;
-    d3d_verts[5].x = r;
-    d3d_verts[5].y = b;
-    d3d_verts[6].x = d3d_verts[8].x = d3d_verts[9].x = r - 40.5;
-    d3d_verts[6].y = d3d_verts[9].y = d3d_verts[10].y = t + 8.5;
-    d3d_verts[7].x = d3d_verts[10].x = d3d_verts[11].x = r - 8.5;
-    d3d_verts[7].y = d3d_verts[8].y = d3d_verts[11].y = t + 14.5;
-
     if (hr == D3D_OK)
-	hr = v_buffer->Lock(0, 0, (void**)&pVoid, 0);
+	hr = v_buffer->Lock(0, 0, (void**)&pVoid, 0);    // lock the vertex buffer
     if (hr == D3D_OK)
-	memcpy(pVoid, d3d_verts, sizeof(d3d_verts));
+	memcpy(pVoid, d3d_verts, sizeof(d3d_verts));    // copy the vertices to the locked buffer
     if (hr == D3D_OK)
-	hr = v_buffer->Unlock();
+	hr = v_buffer->Unlock();    // unlock the vertex buffer
 
     if (hr == D3D_OK)	
 	hbsr = hr = d3ddev->BeginScene();
@@ -252,217 +255,6 @@ d3d_blit_fs(int x, int y, int y1, int y2, int w, int h)
 
     if (hr == D3D_OK)
 	hr = d3ddev->Present(NULL, NULL, d3d_device_window, NULL);
-
-    if (hr == D3DERR_DEVICELOST || hr == D3DERR_INVALIDCALL)
-	PostMessage(hwndMain, WM_RESETD3D, 0, 0);
-#else
-    HRESULT hr = D3D_OK;
-    HRESULT hbsr = D3D_OK;
-    VOID* pVoid;
-    D3DLOCKED_RECT dr;
-    RECT r, w_rect;
-    int yy;
-    double l = 0, t = 0, rr = 0, b = 0;
-
-    if (!d3d_enabled) {
-	video_blit_complete();
-	return;
-    }
-
-    if ((y1 == y2) || (h <= 0)) {
-	video_blit_complete();
-	return; /*Nothing to do*/
-    }
-
-    r.top    = y1;
-    r.left   = 0;
-    r.bottom = y2;
-    r.right  = 2047;
-
-    hr = d3dTexture->LockRect(0, &dr, &r, 0);
-    if (hr == D3D_OK) {	
-	for (yy = y1; yy < y2; yy++) {
-		if (buffer32) {
-			if ((y + yy) >= 0 && (y + yy) < buffer32->h) {
-				if (video_grayscale || invert_display)
-					video_transform_copy((uint32_t *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(buffer32->line[yy + y][x]), w);
-				else
-					memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(buffer32->line[yy + y][x]), w * 4);
-			}
-		}
-	}
-
-	video_blit_complete();
-	d3dTexture->UnlockRect(0);
-    } else {
-	video_blit_complete();
-	return;
-    }
-
-    d3d_verts[0].tu = d3d_verts[2].tu = d3d_verts[3].tu = 0;//0.5 / 2048.0;
-    d3d_verts[0].tv = d3d_verts[3].tv = d3d_verts[4].tv = 0;//0.5 / 2048.0;
-    d3d_verts[1].tu = d3d_verts[4].tu = d3d_verts[5].tu = (float)w / 2048.0;
-    d3d_verts[1].tv = d3d_verts[2].tv = d3d_verts[5].tv = (float)h / 2048.0;
-    d3d_verts[0].color = d3d_verts[1].color = d3d_verts[2].color =
-    d3d_verts[3].color = d3d_verts[4].color = d3d_verts[5].color =
-    d3d_verts[6].color = d3d_verts[7].color = d3d_verts[8].color =
-    d3d_verts[9].color = d3d_verts[10].color = d3d_verts[11].color = 0xffffff;
-
-    GetClientRect(d3d_device_window, &w_rect);
-    d3d_size(w_rect, &l, &t, &rr, &b, w, h);
-
-    d3d_verts[0].x = l;
-    d3d_verts[0].y = t;
-    d3d_verts[1].x = rr;
-    d3d_verts[1].y = b;
-    d3d_verts[2].x = l;
-    d3d_verts[2].y = b;
-    d3d_verts[3].x = l;
-    d3d_verts[3].y = t;
-    d3d_verts[4].x = rr;
-    d3d_verts[4].y = t;
-    d3d_verts[5].x = rr;
-    d3d_verts[5].y = b;
-    d3d_verts[6].x = d3d_verts[8].x = d3d_verts[9].x = rr - 40.5;
-    d3d_verts[6].y = d3d_verts[9].y = d3d_verts[10].y = t + 8.5;
-    d3d_verts[7].x = d3d_verts[10].x = d3d_verts[11].x = rr - 8.5;
-    d3d_verts[7].y = d3d_verts[8].y = d3d_verts[11].y = t + 14.5;
-
-    if (hr == D3D_OK)
-	hr = v_buffer->Lock(0, 0, (void**)&pVoid, 0);    // lock the vertex buffer
-    if (hr == D3D_OK)
-	memcpy(pVoid, d3d_verts, sizeof(d3d_verts));    // copy the vertices to the locked buffer
-    if (hr == D3D_OK)
-	hr = v_buffer->Unlock();    // unlock the vertex buffer
-
-    if (hr == D3D_OK)	
-	hbsr = hr = d3ddev->BeginScene();
-
-    if (hr == D3D_OK) {
-	if (hr == D3D_OK)
-		hr = d3ddev->SetTexture(0, d3dTexture);
-
-	if (hr == D3D_OK)
-		hr = d3ddev->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1);
-
-	if (hr == D3D_OK)
-		hr = d3ddev->SetStreamSource(0, v_buffer, 0, sizeof(CUSTOMVERTEX));
-
-	if (hr == D3D_OK)
-		hr = d3ddev->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 2);
-
-	if (hr == D3D_OK)
-		hr = d3ddev->SetTexture(0, NULL);
-    }
-
-    if (hbsr == D3D_OK)
-	hr = d3ddev->EndScene();
-
-    if (hr == D3D_OK)
-	hr = d3ddev->Present(NULL, NULL, d3d_device_window, NULL);
-
-    if (hr == D3DERR_DEVICELOST || hr == D3DERR_INVALIDCALL)
-		PostMessage(d3d_hwnd, WM_RESETD3D, 0, 0);
-#endif
-}
-
-
-static void
-d3d_blit(int x, int y, int y1, int y2, int w, int h)
-{
-    HRESULT hr = D3D_OK;
-    HRESULT hbsr = D3D_OK;
-    VOID* pVoid;
-    D3DLOCKED_RECT dr;
-    RECT r;
-    int yy;
-
-    if (!d3d_enabled) {
-	video_blit_complete();
-	return;
-    }
-
-    if ((y1 == y2) || (h <= 0)) {
-	video_blit_complete();
-	return; /*Nothing to do*/
-    }
-
-    r.top    = y1;
-    r.left   = 0;
-    r.bottom = y2;
-    r.right  = 2047;
-
-    hr = d3dTexture->LockRect(0, &dr, &r, 0);
-    if (hr == D3D_OK) {	
-	for (yy = y1; yy < y2; yy++) {
-		if (buffer32) {
-			if ((y + yy) >= 0 && (y + yy) < buffer32->h) {
-				if (video_grayscale || invert_display)
-					video_transform_copy((uint32_t *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(buffer32->line[yy + y][x]), w);
-				else
-					memcpy((void *)((uintptr_t)dr.pBits + ((yy - y1) * dr.Pitch)), &(buffer32->line[yy + y][x]), w * 4);
-			}
-		}
-	}
-
-	video_blit_complete();
-	d3dTexture->UnlockRect(0);
-    } else {
-	video_blit_complete();
-	return;
-    }
-
-    d3d_verts[0].tu = d3d_verts[2].tu = d3d_verts[3].tu = 0;//0.5 / 2048.0;
-    d3d_verts[0].tv = d3d_verts[3].tv = d3d_verts[4].tv = 0;//0.5 / 2048.0;
-    d3d_verts[1].tu = d3d_verts[4].tu = d3d_verts[5].tu = (float)w / 2048.0;
-    d3d_verts[1].tv = d3d_verts[2].tv = d3d_verts[5].tv = (float)h / 2048.0;
-    d3d_verts[0].color = d3d_verts[1].color = d3d_verts[2].color =
-    d3d_verts[3].color = d3d_verts[4].color = d3d_verts[5].color =
-    d3d_verts[6].color = d3d_verts[7].color = d3d_verts[8].color =
-    d3d_verts[9].color = d3d_verts[10].color = d3d_verts[11].color = 0xffffff;
-
-    GetClientRect(d3d_hwnd, &r);
-    d3d_verts[0].x = d3d_verts[2].x = d3d_verts[3].x = -0.5;
-    d3d_verts[0].y = d3d_verts[3].y = d3d_verts[4].y = -0.5;
-    d3d_verts[1].x = d3d_verts[4].x = d3d_verts[5].x = (r.right-r.left)-0.5;
-    d3d_verts[1].y = d3d_verts[2].y = d3d_verts[5].y = (r.bottom-r.top)-0.5;
-    d3d_verts[6].x = d3d_verts[8].x = d3d_verts[9].x = (r.right-r.left)-40.5;
-    d3d_verts[6].y = d3d_verts[9].y = d3d_verts[10].y = 8.5;
-    d3d_verts[7].x = d3d_verts[10].x = d3d_verts[11].x = (r.right-r.left)-8.5;
-    d3d_verts[7].y = d3d_verts[8].y = d3d_verts[11].y = 14.5;
-
-    if (hr == D3D_OK)
-	hr = v_buffer->Lock(0, 0, (void**)&pVoid, 0);    // lock the vertex buffer
-    if (hr == D3D_OK)
-	memcpy(pVoid, d3d_verts, sizeof(d3d_verts));    // copy the vertices to the locked buffer
-    if (hr == D3D_OK)
-	hr = v_buffer->Unlock();    // unlock the vertex buffer
-
-    if (hr == D3D_OK)	
-	hbsr = hr = d3ddev->BeginScene();
-
-    if (hr == D3D_OK) {
-	if (hr == D3D_OK)
-		hr = d3ddev->SetTexture(0, d3dTexture);
-
-	if (hr == D3D_OK)
-		hr = d3ddev->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1);
-
-	if (hr == D3D_OK)
-		hr = d3ddev->SetStreamSource(0, v_buffer, 0, sizeof(CUSTOMVERTEX));
-
-	if (hr == D3D_OK)
-		hr = d3ddev->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 2);
-
-	if (hr == D3D_OK)
-		hr = d3ddev->SetTexture(0, NULL);
-    }
-
-    if (hbsr == D3D_OK)
-	hr = d3ddev->EndScene();
-
-    if (hr == D3D_OK)
-	hr = d3ddev->Present(NULL, NULL, d3d_hwnd, NULL);
 
     if (hr == D3DERR_DEVICELOST || hr == D3DERR_INVALIDCALL)
 		PostMessage(d3d_hwnd, WM_RESETD3D, 0, 0);
@@ -557,6 +349,7 @@ d3d_init(HWND h)
 
     video_setblit(d3d_blit);
 
+    d3d_fs = 0;
     d3d_enabled = 1;
 
     return(1);
@@ -629,8 +422,9 @@ d3d_init_fs(HWND h)
 
     mouse_capture = 1;
 
-    video_setblit(d3d_blit_fs);
+    video_setblit(d3d_blit);
 
+    d3d_fs = 1;
     d3d_enabled = 1;
 
     return(1);

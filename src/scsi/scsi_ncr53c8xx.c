@@ -13,7 +13,7 @@
  *		To do: Identify the type of serial EEPROM used and its
  *		interface.
  *
- * Version:	@(#)scsi_ncr53c8xx.c	1.0.17	2018/10/30
+ * Version:	@(#)scsi_ncr53c8xx.c	1.0.18	2019/11/19
  *
  * Authors:	Paul Brook (QEMU)
  *		Artyom Tarasenko (QEMU)
@@ -705,10 +705,12 @@ ncr53c8xx_add_msg_byte(ncr53c8xx_t *dev, uint8_t data)
 static void
 ncr53c8xx_timer_on(ncr53c8xx_t *dev, scsi_device_t *sd, double p)
 {
-    if (p <= 0)
-	timer_on_auto(&dev->timer, ((double) sd->buffer_length) * 0.1);	/* Fast SCSI: 10000000 bytes per second */
-    else
-	timer_on_auto(&dev->timer, p);
+    double period;
+
+    /* Fast SCSI: 10000000 bytes per second */
+    period = (p > 0.0) ? p : (((double) sd->buffer_length) * 0.1);
+
+    timer_on_auto(&dev->timer, period + 40.0);
 }
 
 
@@ -1023,11 +1025,12 @@ again:
 	/* If we receive an empty opcode increment the DSP by 4 bytes
 	   instead of 8 and execute the next opcode at that location */
 	dev->dsp += 4;
-	timer_on_auto(&dev->timer, 10.0);
 	if (insn_processed < 100)
 		goto again;
-	else
+	else {
+		timer_on_auto(&dev->timer, 10.0);
 		return;
+	}
     }
     addr = read_dword(dev, dev->dsp + 4);
     ncr53c8xx_log("SCRIPTS dsp=%08x opcode %08x arg %08x\n", dev->dsp, insn, addr);
@@ -1092,8 +1095,6 @@ again:
 
 				dev->dfifo = dev->dbc & 0xff;
 				dev->ctest5 = (dev->ctest5 & 0xfc) | ((dev->dbc >> 8) & 3);
-
-				timer_on_auto(&dev->timer, 40.0);
 
 				if (dev->dcntl & NCR_DCNTL_SSM)
 					ncr53c8xx_script_dma_interrupt(dev, NCR_DSTAT_SSI);
@@ -1363,8 +1364,6 @@ again:
 		ncr53c8xx_log("%02X: Unknown command\n", (uint8_t) (insn >> 30));
     }
 
-    timer_on_auto(&dev->timer, 40.0);
-
     ncr53c8xx_log("instructions processed %i\n", insn_processed);
     if (insn_processed > 10000 && !dev->waiting) {
 	/* Some windows drivers make the device spin waiting for a memory
@@ -1393,6 +1392,8 @@ again:
 		ncr53c8xx_log("NCR 810: SCRIPTS: Waiting\n");
     }
 
+    timer_on_auto(&dev->timer, 40.0);
+
     ncr53c8xx_log("SCRIPTS execution stopped\n");
 }
 
@@ -1419,8 +1420,6 @@ ncr53c8xx_callback(void *p)
 
     if (dev->sstop)
 	timer_stop(&dev->timer);
-    else
-	timer_on_auto(&dev->timer, 10.0);
 }
 
 

@@ -9,7 +9,7 @@
  *		Emulation of the EGA and Chips & Technologies SuperEGA
  *		graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.22	2019/10/03
+ * Version:	@(#)vid_ega.c	1.0.23	2019/11/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -389,9 +389,13 @@ ega_poll(void *p)
 			ega->displine <<= 1;
 			ega->y_add <<= 1;
 
-			ega_render_overscan_left(ega);
 			ega->render(ega);
+
+			ega->x_add = (overscan_x >> 1);
+			ega_render_overscan_left(ega);
 			ega_render_overscan_right(ega);
+			ega->x_add = (overscan_x >> 1) - ega->scrollcache;
+
 			ega->displine++;
 
 			ega->ma = old_ma;
@@ -454,8 +458,10 @@ ega_poll(void *p)
 	if (ega->vc == ega->split) {
 		ega->ma = ega->maback = 0;
 		ega->sc = 0;
-		if (ega->attrregs[0x10] & 0x20)
+		if (ega->attrregs[0x10] & 0x20) {
 			ega->scrollcache = 0;
+			ega->x_add = (overscan_x >> 1);
+		}
 	}
 	if (ega->vc == ega->dispend) {
 		ega->dispon = 0;

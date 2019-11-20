@@ -8,7 +8,7 @@
  *
  *		Implementation of the XT-style keyboard.
  *
- * Version:	@(#)keyboard_xt.c	1.0.17	2019/03/05
+ * Version:	@(#)keyboard_xt.c	1.0.18	2019/11/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -532,7 +532,7 @@ kbd_read(uint16_t port, void *priv)
     switch (port) {
 	case 0x60:
 		if ((kbd->type <= 1) && (kbd->pb & 0x80))
-			ret = kbd->pd;
+			ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
 		else if (((kbd->type == 2) || (kbd->type == 3)) && (kbd->pb & 0x80))
 			ret = 0xff;	/* According to Ruud on the PCem forum, this is supposed to return 0xFF on the XT. */
 		else
@@ -559,10 +559,10 @@ kbd_read(uint16_t port, void *priv)
 				   LaserXT/3 = Bit 0: set = 512k, clear = 256k. */
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
 				if (kbd->type == 6)
-					ret = (mem_size == 512) ? 0x0d : 0x0c;
+					ret = ((mem_size == 512) ? 0x0d : 0x0c) | (hasfpu ? 0x02 : 0x00);
 				else
 #endif
-					ret = kbd->pd & 0x0f;
+					ret = (kbd->pd & 0x0d) | (hasfpu ? 0x02 : 0x00);
 			}
 		}
 		ret |= (ppispeakon ? 0x20 : 0);
