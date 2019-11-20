@@ -387,6 +387,8 @@ sdl_init_common(int fs, int hw)
 	return(0);
     }
 
+    sdl_SetHint(SDL_HINT_RENDER_DRIVER, "direct3d"); // TODO: why is this necessary to avoid black screen on Win7/8/10?
+
     if (fs) {
 	/* Get the size of the (current) desktop. */
 	sdl_w = GetSystemMetrics(SM_CXSCREEN);
@@ -465,7 +467,7 @@ sdl_init_common(int fs, int hw)
      * though the window is not a fullscreen window?)
      */
     if (hw) {
-        sdl_render = sdl_CreateRenderer(sdl_win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
+        sdl_render = sdl_CreateRenderer(sdl_win, -1, SDL_RENDERER_ACCELERATED);
         sdl_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
     } else {
         sdl_render = sdl_CreateRenderer(sdl_win, -1, SDL_RENDERER_SOFTWARE);
