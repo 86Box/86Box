@@ -125,31 +125,36 @@ static SDL_mutex*	(*sdl_CreateMutex)(void);
 static void		(*sdl_DestroyMutex)(SDL_mutex* mutex);
 static int		(*sdl_LockMutex)(SDL_mutex* mutex);
 static int		(*sdl_UnlockMutex)(SDL_mutex* mutex);
+static int              (*sdl_GetRenderDriverInfo)(int index,
+                                                   SDL_RendererInfo* info);
+static int              (*sdl_GetNumRenderDrivers)(void);
 
 
 static dllimp_t sdl_imports[] = {
-  { "SDL_GetVersion",		&sdl_GetVersion		},
-  { "SDL_GetError",		&sdl_GetError		},
-  { "SDL_Init",			&sdl_Init		},
-  { "SDL_Quit",			&sdl_Quit		},
-  { "SDL_CreateWindowFrom",	&sdl_CreateWindowFrom	},
-  { "SDL_DestroyWindow",	&sdl_DestroyWindow	},
-  { "SDL_CreateRenderer",	&sdl_CreateRenderer	},
-  { "SDL_DestroyRenderer",	&sdl_DestroyRenderer	},
-  { "SDL_CreateTexture",	&sdl_CreateTexture	},
-  { "SDL_DestroyTexture",	&sdl_DestroyTexture	},
-  { "SDL_LockTexture",		&sdl_LockTexture	},
-  { "SDL_UnlockTexture",	&sdl_UnlockTexture	},
-  { "SDL_RenderCopy",		&sdl_RenderCopy		},
-  { "SDL_RenderPresent",	&sdl_RenderPresent	},
-  { "SDL_GetWindowSize",	&sdl_GetWindowSize	},
-  { "SDL_RenderReadPixels",	&sdl_RenderReadPixels	},
-  { "SDL_SetHint",		&sdl_SetHint		},
-  { "SDL_CreateMutex",		&sdl_CreateMutex	},
-  { "SDL_DestroyMutex",		&sdl_DestroyMutex	},
-  { "SDL_LockMutex",		&sdl_LockMutex		},
-  { "SDL_UnlockMutex",		&sdl_UnlockMutex	},
-  { NULL,			NULL			}
+  { "SDL_GetVersion",		&sdl_GetVersion		 },
+  { "SDL_GetError",		&sdl_GetError		 },
+  { "SDL_Init",		&sdl_Init		 },
+  { "SDL_Quit",		&sdl_Quit		 },
+  { "SDL_CreateWindowFrom",	&sdl_CreateWindowFrom	 },
+  { "SDL_DestroyWindow",	&sdl_DestroyWindow	 },
+  { "SDL_CreateRenderer",	&sdl_CreateRenderer	 },
+  { "SDL_DestroyRenderer",	&sdl_DestroyRenderer	 },
+  { "SDL_CreateTexture",	&sdl_CreateTexture	 },
+  { "SDL_DestroyTexture",	&sdl_DestroyTexture	 },
+  { "SDL_LockTexture",		&sdl_LockTexture	 },
+  { "SDL_UnlockTexture",	&sdl_UnlockTexture	 },
+  { "SDL_RenderCopy",		&sdl_RenderCopy		 },
+  { "SDL_RenderPresent",	&sdl_RenderPresent	 },
+  { "SDL_GetWindowSize",	&sdl_GetWindowSize	 },
+  { "SDL_RenderReadPixels",	&sdl_RenderReadPixels	 },
+  { "SDL_SetHint",		&sdl_SetHint		 },
+  { "SDL_CreateMutex",		&sdl_CreateMutex	 },
+  { "SDL_DestroyMutex", 	&sdl_DestroyMutex	 },
+  { "SDL_LockMutex",		&sdl_LockMutex		 },
+  { "SDL_UnlockMutex",		&sdl_UnlockMutex	 },
+  { "SDL_GetRenderDriverInfo",	&sdl_GetRenderDriverInfo },
+  { "SDL_GetNumRenderDrivers",	&sdl_GetNumRenderDrivers },
+  { NULL,			NULL			 }
 };
 
 
@@ -359,6 +364,19 @@ sdl_close(void)
 
 static int old_capture = 0;
 
+static void sdl_select_best_hw_driver()
+{
+    int i;
+    SDL_RendererInfo renderInfo;
+    for (i = 0; i < sdl_GetNumRenderDrivers(); ++i)
+    {
+        sdl_GetRenderDriverInfo(i, &renderInfo);
+        if (renderInfo.flags & SDL_RENDERER_ACCELERATED) {
+            sdl_SetHint(SDL_HINT_RENDER_DRIVER, renderInfo.name);
+            return;
+        }
+    }
+}
 
 static int
 sdl_init_common(int fs, int hw)
@@ -387,7 +405,8 @@ sdl_init_common(int fs, int hw)
 	return(0);
     }
 
-    sdl_SetHint(SDL_HINT_RENDER_DRIVER, "direct3d"); // TODO: why is this necessary to avoid black screen on Win7/8/10?
+    if (hw)
+        sdl_select_best_hw_driver();
 
     if (fs) {
 	/* Get the size of the (current) desktop. */
