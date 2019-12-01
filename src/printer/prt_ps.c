@@ -27,7 +27,38 @@
 #include "../timer.h"
 #include "../pit.h"
 #include "../plat.h"
+#include "../plat_dynld.h"
+#include "../ui.h"
 #include "prt_devs.h"
+
+#if defined(_WIN32) && !defined(__WINDOWS__)
+#define __WINDOWS__
+#endif
+#include <ghostscript/iapi.h>
+#include <ghostscript/ierrors.h>
+
+
+#define PATH_GHOSTSCRIPT_DLL	"gsdll32.dll"
+
+static GSDLLAPI int	(*ghostscript_revision)(gsapi_revision_t *pr, int len);
+static GSDLLAPI int	(*ghostscript_new_instance)(void **pinstance, void *caller_handle);
+static GSDLLAPI void	(*ghostscript_delete_instance)(void *instance);
+static GSDLLAPI int	(*ghostscript_set_arg_encoding)(void *instance, int encoding);
+static GSDLLAPI int	(*ghostscript_init_with_args)(void *instance, int argc, char **argv);
+static GSDLLAPI int	(*ghostscript_exit)(void *instance);
+
+static dllimp_t ghostscript_imports[] = {
+  { "gsapi_revision",			&ghostscript_revision			},
+  { "gsapi_new_instance",		&ghostscript_new_instance		},
+  { "gsapi_delete_instance",		&ghostscript_delete_instance		},
+  { "gsapi_set_arg_encoding",		&ghostscript_set_arg_encoding		},
+  { "gsapi_init_with_args",		&ghostscript_init_with_args		},
+  { "gsapi_exit",			&ghostscript_exit			},
+  { NULL,				NULL					}
+};
+
+static void	*ghostscript_handle = NULL;
+static bool	ghostscript_initialized = false;
 
 typedef struct
 {
@@ -62,7 +93,7 @@ reset_ps(ps_t *dev)
 
     dev->ack = false;
 
-    memset(&dev->buffer, 0x00, sizeof(dev->buffer));
+    dev->buffer[0] = 0;
     dev->buffer_pos = 0;
 
     timer_disable(&dev->pulse_timer);
@@ -82,10 +113,60 @@ pulse_timer(void *priv)
     timer_disable(&dev->pulse_timer);
 }
 
+static int
+convert_to_pdf(ps_t *dev)
+{
+    volatile int code;
+    void *instance = NULL;
+    wchar_t input_fn[1024], output_fn[1024], *gsargv[9];
+
+    input_fn[0] = 0;
+    wcscat(input_fn, dev->printer_path);
+    wcscat(input_fn, dev->filename);
+
+    output_fn[0] = 0;
+    wcscat(output_fn, input_fn);
+    wcscpy(output_fn + wcslen(output_fn) - 3, L".pdf");
+
+    gsargv[0] = L"";
+    gsargv[1] = L"-dNOPAUSE";
+    gsargv[2] = L"-dBATCH";
+    gsargv[3] = L"-dSAFER";
+    gsargv[4] = L"-sDEVICE=pdfwrite";
+    gsargv[5] = L"-q";
+    gsargv[6] = L"-o";
+    gsargv[7] = output_fn;
+    gsargv[8] = input_fn;
+
+    code = ghostscript_new_instance(&instance, dev);
+    if(code < 0)
+	return code;
+
+    code = ghostscript_set_arg_encoding(instance, GS_ARG_ENCODING_UTF16LE);
+
+    if (code == 0)
+	code = ghostscript_init_with_args(instance, 9, gsargv);
+
+    if (code == 0 || code == gs_error_Quit)
+	code = ghostscript_exit(instance);
+    else
+	ghostscript_exit(instance);
+
+    ghostscript_delete_instance(instance);
+
+    if (code == 0 || code == gs_error_Quit)
+	plat_remove(input_fn);
+    else
+	plat_remove(output_fn);
+
+    return code;
+}
+
 static void
 finish_document(ps_t *dev)
 {
-    // todo: convert to PDF
+    if (ghostscript_handle != NULL)
+	convert_to_pdf(dev);
 
     dev->filename[0] = 0;
 }
@@ -210,6 +291,30 @@ ps_read_status(void *p)
     return(ret);
 }
 
+static void
+ghostscript_init()
+{
+    gsapi_revision_t rev;
+
+    ghostscript_initialized = true;
+
+    /* Try loading the DLL. */
+    ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
+    if (ghostscript_handle == NULL) {
+	ui_msgbox(MBX_ERROR, L"Couldn't initialize Ghostscript!");
+	return;
+    }
+
+    if (ghostscript_revision(&rev, sizeof(rev)) == 0)
+    {
+	pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
+    }
+    else
+    {
+	ghostscript_handle = NULL;
+    }
+}
+
 static void *
 ps_init(void *lpt)
 {
@@ -221,6 +326,9 @@ ps_init(void *lpt)
     dev->lpt = lpt;
 
     reset_ps(dev);
+
+    if(! ghostscript_initialized)
+	ghostscript_init();
 
     // Cache print folder path
     memset(dev->printer_path, 0x00, sizeof(dev->printer_path));
@@ -242,8 +350,11 @@ ps_close(void *p)
 
     if (dev == NULL) return;
 
-    write_buffer(dev);
-    finish_document(dev);
+    if (dev->buffer[0] != 0)
+    {
+	write_buffer(dev);
+	finish_document(dev);
+    }
 
     free(dev);
 }
