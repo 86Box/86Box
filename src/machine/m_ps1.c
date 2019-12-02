@@ -22,7 +22,7 @@
  *		The reserved 384K is remapped to the top of extended memory.
  *		If this is not done then you get an error on startup.
  *
- * Version:	@(#)m_ps1.c	1.0.16	2019/11/01
+ * Version:	@(#)m_ps1.c	1.0.17	2019/11/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -515,7 +515,7 @@ ps1_common_init(const machine_t *model)
 
     mem_remap_top(384);
 
-    pit_set_out_func(&pit, 1, pit_refresh_timer_at);
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_at);
 
     dma16_init();
     pic2_init();

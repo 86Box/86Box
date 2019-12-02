@@ -8,15 +8,15 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.91	2018/11/14
+ * Version:	@(#)pc.c	1.0.92	2018/11/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -49,10 +49,10 @@
 #include "pci.h"
 #include "pic.h"
 #include "timer.h"
+#include "device.h"
 #include "pit.h"
 #include "random.h"
 #include "timer.h"
-#include "device.h"
 #include "nvr.h"
 #include "machine/machine.h"
 #include "bugger.h"

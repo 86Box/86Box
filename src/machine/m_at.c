@@ -8,15 +8,15 @@
  *
  *		Standard PC/AT implementation.
  *
- * Version:	@(#)m_at.c	1.0.10	2018/10/06
+ * Version:	@(#)m_at.c	1.0.11	2019/11/15
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,7 +63,7 @@ machine_at_common_init_ex(const machine_t *model, int is_ibm)
 {
     machine_common_init(model);
 
-    pit_set_out_func(&pit, 1, pit_refresh_timer_at);
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_at);
     pic2_init();
     dma16_init();
 

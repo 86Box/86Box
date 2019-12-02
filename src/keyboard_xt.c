@@ -8,7 +8,7 @@
  *
  *		Implementation of the XT-style keyboard.
  *
- * Version:	@(#)keyboard_xt.c	1.0.18	2019/11/14
+ * Version:	@(#)keyboard_xt.c	1.0.19	2019/11/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -500,7 +500,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		}
 		if (speaker_enable) 
 			was_speaker_enable = 1;
-		pit_set_gate(&pit, 2, val & 1);
+		pit_ctr_set_gate(&pit->counters[2], val & 1);
 
 		if (val & 0x80) {
 			kbd->pa = 0;

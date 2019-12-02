@@ -58,7 +58,7 @@ static uint8_t ps2_read(uint16_t port, void *p)
                 case 0x190:
                 return ps2_190;
 
-#ifdef FIXME                
+#ifdef FIXME
                 case 0x322:
                 temp = ps2_hd.status;
                 break;
@@ -67,7 +67,7 @@ static uint8_t ps2_read(uint16_t port, void *p)
                 ps2_hd.int_status &= ~0x02;
                 break;
 #endif
-                
+
                 default:
                 temp = 0xff;
                 break;
@@ -118,8 +118,8 @@ static void ps2_write(uint16_t port, uint8_t val, void *p)
                 case 0x190:
                 ps2_190 = val;
                 break;
-      
-#ifdef FIXME          
+
+#ifdef FIXME
                 case 0x322:
                 ps2_hd.ctrl = val;
                 if (val & 0x80)
@@ -146,7 +146,7 @@ static void ps2board_init(void)
         io_sethandler(0x0322, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
         io_sethandler(0x0324, 0x0001, ps2_read, NULL, NULL, ps2_write, NULL, NULL, NULL);
 #endif
-        
+
 	device_add(&port_92_device);
 
         ps2_190 = 0;
@@ -173,9 +173,12 @@ machine_ps2_m30_286_init(const machine_t *model)
 		return ret;
 
         machine_common_init(model);
+
+	mem_remap_top(384);
+
 	device_add(&fdc_at_ps1_device);
 
-        pit_set_out_func(&pit, 1, pit_refresh_timer_at);
+        pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_at);
         dma16_init();
 	device_add(&keyboard_ps2_ps2_device);
 	device_add(&ps_nvr_device);

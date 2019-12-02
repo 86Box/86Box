@@ -8,7 +8,7 @@
  *
  *		Emulation of the IBM PCjr.
  *
- * Version:	@(#)m_pcjr.c	1.0.13	2019/10/11
+ * Version:	@(#)m_pcjr.c	1.0.14	2019/11/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -621,7 +621,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		speaker_enable = val & 2;
 		if (speaker_enable) 
 			was_speaker_enable = 1;
-		pit_set_gate(&pit, 2, val & 1);
+		pit_ctr_set_gate(&pit->counters[2], val & 1);
 		sn76489_mute = speaker_mute = 1;
 		switch (val & 0x60) {
 			case 0x00:
@@ -636,7 +636,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
 	case 0xa0:
 		nmi_mask = val & 0x80;
-		pit_set_using_timer(&pit, 1, !(val & 0x20));
+		pit_ctr_set_using_timer(&pit->counters[1], !(val & 0x20));
 		break;
     }
 }
@@ -821,8 +821,7 @@ machine_pcjr_init(const machine_t *model)
     pcjr->composite = (display_type != PCJR_RGB);
 
     pic_init_pcjr();
-    pit_init();
-    pit_set_out_func(&pit, 0, pit_irq0_timer_pcjr);
+    pit_common_init(0, pit_irq0_timer_pcjr, NULL);
 
     cpu_set();
 

@@ -8,14 +8,14 @@
  *
  *		Emulation of various Compaq XT-class PC's.
  *
- * Version:	@(#)m_xt_compaq.c	1.0.4	2018/03/18
+ * Version:	@(#)m_xt_compaq.c	1.0.5	2019/11/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -50,7 +50,7 @@ machine_xt_compaq_init(const machine_t *model)
 
     machine_common_init(model);
 
-    pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
 
     device_add(&keyboard_xt_compaq_device);
     device_add(&fdc_xt_device);

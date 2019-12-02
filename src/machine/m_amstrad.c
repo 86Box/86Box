@@ -29,7 +29,7 @@
  * All models:	The internal mouse controller does not work correctly with
  *		version 7.04 of the mouse driver.
  *
- * Version:	@(#)m_amstrad.c	1.0.20	2019/03/09
+ * Version:	@(#)m_amstrad.c	1.0.21	2019/11/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2153,7 +2153,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		speaker_enable = val & 0x02;
 		if (speaker_enable) 
 			was_speaker_enable = 1;
-		pit_set_gate(&pit, 2, val & 0x01);
+		pit_ctr_set_gate(&pit->counters[2], val & 0x01);
 
 		if (val & 0x80) {
 			/* Keyboard enabled, so enable PA reading. */
