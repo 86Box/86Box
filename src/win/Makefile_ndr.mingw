@@ -616,7 +616,7 @@ NETOBJ		:= network.o \
 			net_wd8003.o
 
 PRINTOBJ	:= png.o prt_cpmap.o \
-		    prt_escp.o prt_text.o			
+		    prt_escp.o prt_text.o prt_ps.o
 			
 SNDOBJ		:= sound.o \
 		    openal.o \
