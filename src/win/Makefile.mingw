@@ -63,7 +63,7 @@ ifeq ($(DEV_BUILD), y)
   MRTHOR	:= y
  endif
  ifndef PAS16
-  PAS16		:= y
+  PAS16		:= n
  endif
  ifndef PORTABLE3
   PORTABLE3	:= y
