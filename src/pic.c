@@ -498,6 +498,8 @@ pic_process_interrupt(PIC* target_pic, int c)
     if ((pending & pic_int_num) && !in_service) {
 	if (!((pic_current & (1 << c)) && picint_is_level(c)))
 		target_pic->pend &= ~pic_int_num;
+	else if (!picint_is_level(c))
+		target_pic->pend &= ~pic_int_num;
 	target_pic->ins |= pic_int_num;
 	pic_update_mask(&target_pic->mask2, target_pic->ins);
 
@@ -513,8 +515,8 @@ pic_process_interrupt(PIC* target_pic, int c)
 	if (target_pic->icw4 & 0x02)
 		(AT && (c >= 8)) ? pic2_autoeoi() : pic_autoeoi();
 
-	if (!c)
-		pit_set_gate(&pit2, 0, 0);
+	if (!c && (pit2 != NULL))
+		pit_ctr_set_gate(&pit2->counters[0], 0);
 
 	ret = pic_int + target_pic->vector;
     }

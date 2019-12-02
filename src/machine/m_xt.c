@@ -22,7 +22,7 @@ machine_xt_common_init(const machine_t *model)
 {
     machine_common_init(model);
 
-    pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
 
     device_add(&fdc_xt_device);
     nmi_init();
@@ -52,9 +52,9 @@ machine_pc_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_xt_common_init(model);
-
     device_add(&keyboard_pc_device);
+
+    machine_xt_common_init(model);
 
     return ret;
 }
@@ -85,10 +85,10 @@ machine_pc82_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_xt_common_init(model);
-
     device_add(&keyboard_pc82_device);
     device_add(&ibm_5161_device);
+
+    machine_xt_common_init(model);
 
     return ret;
 }
@@ -97,9 +97,9 @@ machine_pc82_init(const machine_t *model)
 static void
 machine_xt_init_ex(const machine_t *model)
 {
-    machine_xt_common_init(model);
-
     device_add(&keyboard_xt_device);
+
+    machine_xt_common_init(model);
 }
 
 
@@ -166,10 +166,10 @@ machine_xt86_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_xt_common_init(model);
-
     device_add(&keyboard_xt86_device);
     device_add(&ibm_5161_device);
+
+    machine_xt_common_init(model);
 
     return ret;
 }
@@ -178,9 +178,9 @@ machine_xt86_init(const machine_t *model)
 static void
 machine_xt_clone_init(const machine_t *model)
 {
-    machine_xt_common_init(model);
-
     device_add(&keyboard_xt86_device);
+
+    machine_xt_common_init(model);
 }
 
 

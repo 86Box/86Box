@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.37	2018/11/12
+ * Version:	@(#)machine.c	1.0.38	2019/11/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -128,5 +128,5 @@ machine_common_init(const machine_t *model)
 
     cpu_set();
 
-    pit_init();
+    pit_common_init(!!AT, pit_irq0_timer, NULL);
 }

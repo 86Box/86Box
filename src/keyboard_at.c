@@ -8,7 +8,7 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.44	2019/10/30
+ * Version:	@(#)keyboard_at.c	1.0.45	2019/11/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -2013,7 +2013,7 @@ do_command:
 		speaker_enable = val & 2;
 		if (speaker_enable) 
 			was_speaker_enable = 1;
-		pit_set_gate(&pit, 2, val & 1);
+		pit_ctr_set_gate(&pit->counters[2], val & 1);
 
                 if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_XI8088)
 #ifdef USE_NEW_STUFF

@@ -9,14 +9,14 @@
  *		Emulation of various Zenith PC compatible machines.
  *		Currently only the Zenith Data Systems Supersport is emulated.
  *
- * Version:	@(#)m_xt_compaq.c	1.0.0	2019/01/13
+ * Version:	@(#)m_xt_compaq.c	1.0.1	2019/11/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -124,7 +124,7 @@ machine_xt_zenith_init(const machine_t *model)
     device_add(&i8250_device);
     serial_set_next_inst(2);	/* So that serial_standalone_init() won't do anything. */
     device_add(&zenith_scratchpad_device);
-    pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
     device_add(&keyboard_xt_compaq_device);
     nmi_init();
 

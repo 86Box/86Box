@@ -51,15 +51,15 @@
  * NOTE:	Still need to figure out a way to load/save ConfigSys and
  *		HardRAM stuff. Needs to be linked in to the NVR code.
  *
- * Version:	@(#)m_xt_t1000.c	1.0.13	2018/10/22
+ * Version:	@(#)m_xt_t1000.c	1.0.14	2019/11/15
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2018 Fred N. van Kempen.
- *		Copyright 2018 Miran Grca.
- *		Copyright 2018 Sarah Walker.
+ *		Copyright 2018,2019 Fred N. van Kempen.
+ *		Copyright 2018,2019 Miran Grca.
+ *		Copyright 2018,2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -917,7 +917,7 @@ machine_xt_t1000_init(const machine_t *model)
 
     machine_common_init(model);
 
-    pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
     device_add(&keyboard_xt_device);
     t1000.fdc = device_add(&fdc_xt_device);
     nmi_init();
@@ -985,7 +985,7 @@ machine_xt_t1200_init(const machine_t *model)
 		    write_t1200_nvram, NULL, NULL, 
 		    NULL, 0, &t1000);
 
-    pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
     device_add(&keyboard_xt_device);
     t1000.fdc = device_add(&fdc_xt_t1x00_device);
     nmi_init();

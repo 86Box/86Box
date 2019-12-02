@@ -1,47 +1,53 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Header of the implementation of the Intel 8253/8254
+ *		Programmable Interval Timer.
+ *
+ * Version:	@(#)pit.h	1.0.0	2019/12/02
+ *
+ * Author:	Miran Grca, <mgrca8@gmail.com>
+ *		Copyright 2019 Miran Grca.
+ */
 #ifndef EMU_PIT_H
 # define EMU_PIT_H
 
 
 typedef struct {
-    int		nr;
-    struct PIT	*pit;
-} PIT_nr;
+    uint8_t	m, ctrl,
+		read_status, latch,
+		s1_det, l_det;
+
+    uint16_t	rl;
+
+    int		rm, wm, gate, out,
+		newcount, count, using_timer, latched,
+		state, null_count, do_read_status, pad1;
+
+    uint32_t	l;
+
+    void	(*load_func)(uint8_t new_m, int new_count);
+    void	(*out_func)(int new_out, int old_out);
+} ctr_t;
+
 
 typedef struct PIT {
-    uint32_t	l[3];
-    pc_timer_t	timer[3];
-    uint8_t	m[3];
-    uint8_t	ctrl,
-		ctrls[3];
-    int		wp,
-		rm[3],
-		wm[3];
-    uint16_t	rl[3];
-    int		thit[3];
-    int		delay[3];
-    int		rereadlatch[3];
-    int		gate[3];
-    int		out[3];
-    int		running[3];
-    int		enabled[3];
-    int		newcount[3];
-    int		count[3];
-    int		using_timer[3];
-    int		initial[3];
-    int		latched[3];
-    int		disabled[3];
+    int		flags, clock;
+    pc_timer_t	callback_timer;
 
-    uint8_t	read_status[3];
-    int		do_read_status[3];
+    ctr_t	counters[3];
 
-    PIT_nr	pit_nr[3];
-
-    void	(*set_out_funcs[3])(int new_out, int old_out);
-} PIT;
+    uint8_t	ctrl;
+} pit_t;
 
 
-extern PIT	pit,
-		pit2;
+extern pit_t	*pit,
+		*pit2;
 
 extern double	SYSCLK;
 
@@ -54,19 +60,37 @@ extern uint64_t	PITCONST, ISACONST,
 		RTCCONST;
 
 
-extern void	pit_init(void);
-extern void	pit_ps2_init(void);
-extern void	pit_reset(PIT *pit);
-extern void	pit_set_gate(PIT *pit, int channel, int gate);
-extern void	pit_set_using_timer(PIT *pit, int t, int using_timer);
-extern void	pit_set_out_func(PIT *pit, int t, void (*func)(int new_out, int old_out));
+extern uint16_t	pit_ctr_get_count(ctr_t *ctr);
+extern void	pit_ctr_set_load_func(ctr_t *ctr, void (*func)(uint8_t new_m, int new_count));
+extern void	pit_ctr_set_out_func(ctr_t *ctr, void (*func)(int new_out, int old_out));
+extern void	pit_ctr_set_gate(ctr_t *ctr, int gate);
+extern void	pit_ctr_set_using_timer(ctr_t *ctr, int using_timer);
 
-extern float    pit_timer0_freq(void);
+extern pit_t *	pit_common_init(int type, void (*out0)(int new_out, int old_out), void (*out1)(int new_out, int old_out));
+extern pit_t *	pit_ps2_init(void);
+extern void	pit_reset(pit_t *dev);
+
+extern void	pit_irq0_timer(int new_out, int old_out);
 extern void	pit_irq0_timer_pcjr(int new_out, int old_out);
+extern void	pit_irq0_timer_ps2(int new_out, int old_out);
+
 extern void	pit_refresh_timer_xt(int new_out, int old_out);
 extern void	pit_refresh_timer_at(int new_out, int old_out);
 
+extern void	pit_speaker_timer(int new_out, int old_out);
+
+extern void	pit_nmi_timer_ps2(int new_out, int old_out);
+
 extern void     pit_set_clock(int clock);
+extern void	pit_handler(int set, uint16_t base, int size, void *priv);
+
+
+#ifdef EMU_DEVICE_H
+extern const device_t	i8253_device;
+extern const device_t	i8254_device;
+extern const device_t	i8254_ext_io_device;
+extern const device_t	i8254_ps2_device;
+#endif
 
 
 #endif	/*EMU_PIT_H*/

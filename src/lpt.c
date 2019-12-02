@@ -30,7 +30,6 @@ static const struct
         {"Stereo LPT DAC",               "lpt_dac_stereo", &lpt_dac_stereo_device},
 	{"Generic Text Printer",	 "text_prt",       &lpt_prt_text_device},
 	{"Generic ESC/P Dot-Matrix",     "dot_matrix",     &lpt_prt_escp_device},
-	{"Generic PostScript Printer",   "postscript",     &lpt_prt_ps_device},
         {"", "", NULL}
 };
 

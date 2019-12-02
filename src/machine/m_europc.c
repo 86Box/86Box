@@ -68,7 +68,7 @@
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *		
- * Version:	@(#)europc.c	1.0.11	2019/09/27
+ * Version:	@(#)europc.c	1.0.12	2019/11/15
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -717,7 +717,7 @@ machine_europc_init(const machine_t *model)
 	return ret;
 
     machine_common_init(model);
-    pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
 
     nmi_init();
 

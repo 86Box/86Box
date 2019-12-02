@@ -8,7 +8,7 @@
  *
  *		Emulation of the Olivetti M24.
  *
- * Version:	@(#)m_olivetti_m24.c	1.0.20	2018/10/08
+ * Version:	@(#)m_olivetti_m24.c	1.0.21	2019/11/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -658,7 +658,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		speaker_enable = val & 2;
 		if (speaker_enable) 
 			was_speaker_enable = 1;
-		pit_set_gate(&pit, 2, val & 1);
+		pit_ctr_set_gate(&pit->counters[2], val & 1);
 		break;
     }
 }
