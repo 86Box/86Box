@@ -12,7 +12,7 @@
  *		the DYNAMIC_TABLES=1 enables this. Will eventually go
  *		away, either way...
  *
- * Version:	@(#)mem.c	1.0.21	2019/10/19
+ * Version:	@(#)mem.c	1.0.22	2019/12/02
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -866,12 +866,12 @@ mem_readb_phys(uint32_t addr)
 {
     mem_mapping_t *map = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
-    mem_logical_addr = 0xffffffff;
-
-    if (map && map->read_b)
-	return map->read_b(addr, map->p);
-
-    return 0xff;
+    if (_mem_exec[addr >> MEM_GRANULARITY_BITS])
+	return _mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK];
+    else if (map && map->read_b)
+       	return map->read_b(addr, map->p);
+    else
+	return 0xff;
 }
 
 
@@ -879,13 +879,18 @@ uint16_t
 mem_readw_phys(uint32_t addr)
 {
     mem_mapping_t *map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    uint16_t temp;
 
-    mem_logical_addr = 0xffffffff;
+    if (_mem_exec[addr >> MEM_GRANULARITY_BITS])
+	return ((uint16_t *) _mem_exec[addr >> MEM_GRANULARITY_BITS])[(addr >> 1) & MEM_GRANULARITY_HMASK];
+    else if (map && map->read_w)
+       	return map->read_w(addr, map->p);
+    else {
+	temp = mem_readb_phys(addr + 1) << 8;
+	temp |=  mem_readb_phys(addr);
+    }
 
-    if (map && map->read_w)
-	return map->read_w(addr, map->p);
-
-    return mem_readb_phys(addr) | (mem_readb_phys(addr + 1) << 8);
+    return temp;
 }
 
 
@@ -894,10 +899,10 @@ mem_writeb_phys(uint32_t addr, uint8_t val)
 {
     mem_mapping_t *map = write_mapping[addr >> MEM_GRANULARITY_BITS];
 
-    mem_logical_addr = 0xffffffff;
-
-    if (map && map->write_b)
-	map->write_b(addr, val, map->p);
+    if (_mem_exec[addr >> MEM_GRANULARITY_BITS])
+	_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK] = val;
+    else if (map && map->write_b)
+       	map->write_b(addr, val, map->p);
 }
 
 
