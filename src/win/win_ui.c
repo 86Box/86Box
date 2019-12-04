@@ -40,6 +40,9 @@
 #include "../ui.h"
 #include "win.h"
 #include "win_d3d.h"
+#ifdef USE_DISCORD
+# include "win_discord.h"
+#endif
 
 
 #define TIMER_1SEC	1		/* ID of the one-second timer */
@@ -992,6 +995,14 @@ ui_init(int nCmdShow)
     if (source_hwnd)
 	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDHWND, (WPARAM) unique_id, (LPARAM) hwndMain);
 
+#ifdef USE_DISCORD
+    /* Initialize the Discord API */
+    discord_init();
+
+    /* Update Discord status */
+    discord_update_activity(dopause);
+#endif
+
     /*
      * Everything has been configured, and all seems to work,
      * so now it is time to start the main thread to do some
@@ -1028,6 +1039,11 @@ ui_init(int nCmdShow)
 		/* Signal "exit fullscreen mode". */
 		plat_setfullscreen(0);
 	}
+
+#ifdef USE_DISCORD
+	/* Run Discord API callbacks */
+	discord_run_callbacks();
+#endif
     }
 
     timeEndPeriod(1);
@@ -1042,6 +1058,11 @@ ui_init(int nCmdShow)
     UnregisterClass(CLASS_NAME, hinstance);
 
     win_mouse_close();
+
+#ifdef USE_DISCORD
+    /* Shut down the Discord integration */
+    discord_close();
+#endif
 
     return(messages.wParam);
 }
@@ -1100,6 +1121,11 @@ plat_pause(int p)
     /* Update the actual menu. */
     CheckMenuItem(menuMain, IDM_ACTION_PAUSE,
 		  (dopause) ? MF_CHECKED : MF_UNCHECKED);
+
+#if USE_DISCORD
+    /* Update Discord status */
+    discord_update_activity(dopause);
+#endif
 
     /* Send the WM to a manager if needed. */
     if (source_hwnd)
