@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.59	2019/11/02
+ * Version:	@(#)win.c	1.0.60	2019/12/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -43,9 +43,7 @@
 #ifdef USE_VNC
 # include "../vnc.h"
 #endif
-# include "win_ddraw.h"
 # include "win_d2d.h"
-# include "win_d3d.h"
 # include "win_sdl.h"
 #include "win.h"
 
@@ -87,25 +85,23 @@ static const struct {
     void	(*enable)(int enable);
 } vid_apis[2][RENDERERS_NUM] = {
   {
-    {	"DDraw", 1, (int(*)(void*))ddraw_init, ddraw_close, NULL, ddraw_pause, ddraw_enable	},
+    {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable		},
+    {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable		}
 #ifdef USE_D2D
-    {	"D2D", 1, (int(*)(void*))d2d_init, d2d_close, NULL, d2d_pause, d2d_enable		},
+    ,{	"D2D", 1, (int(*)(void*))d2d_init, d2d_close, NULL, d2d_pause, d2d_enable			}
 #endif
-    {	"D3D", 1, (int(*)(void*))d3d_init, d3d_close, d3d_resize, d3d_pause, d3d_enable		},
-    {	"SDL", 1, (int(*)(void*))sdl_init, sdl_close, NULL, sdl_pause, sdl_enable		}
 #ifdef USE_VNC
-    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL				}
+    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL					}
 #endif
   },
   {
-    {	"DDraw", 1, (int(*)(void*))ddraw_init_fs, ddraw_close, NULL, ddraw_pause, ddraw_enable	},
+    {	"SDL_Software", 1, (int(*)(void*))sdl_inits_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable	},
+    {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable	}
 #ifdef USE_D2D
-    {	"D2D", 1, (int(*)(void*))d2d_init_fs, d2d_close, NULL, d2d_pause, d2d_enable		},
+    ,{	"D2D", 1, (int(*)(void*))d2d_init_fs, d2d_close, NULL, d2d_pause, d2d_enable			}
 #endif
-    {	"D3D", 1, (int(*)(void*))d3d_init_fs, d3d_close, NULL, d3d_pause, d3d_enable		},
-    {	"SDL", 1, (int(*)(void*))sdl_init_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable	}
 #ifdef USE_VNC
-    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL				}
+    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL					}
 #endif
   },
 };
@@ -664,11 +660,11 @@ plat_vidapi(char *name)
 {
     int i;
 
-#ifdef USE_D2D
-    if (!strcasecmp(name, "default") || !strcasecmp(name, "system")) return(2);
-#else
+    /* Default/System is SDL Hardware. */
     if (!strcasecmp(name, "default") || !strcasecmp(name, "system")) return(1);
-#endif
+
+    /* If DirectDraw or plain SDL was specified, return SDL Software. */
+    if (!strcasecmp(name, "ddraw") || !strcasecmp(name, "sdl")) return(1);
 
     for (i = 0; i < RENDERERS_NUM; i++) {
 	if (vid_apis[0][i].name &&
@@ -676,7 +672,7 @@ plat_vidapi(char *name)
     }
 
     /* Default value. */
-    return(0);
+    return(1);
 }
 
 
@@ -688,38 +684,29 @@ plat_vidapi_name(int api)
 
     switch(api) {
 	case 0:
-		name = "ddraw";
+		name = "sdl_software";
+		break;
+	case 1:
 		break;
 
 #ifdef USE_D2D
-	case 1:
+	case 2:
 		name = "d2d";
-		break;
-
-	case 2:
-		break;
-
-	case 3:
-		name = "sdl";
-		break;
-#else
-	case 1:
-		break;
-
-	case 2:
-		name = "sdl";
 		break;
 #endif
 
 #ifdef USE_VNC
 #ifdef USE_D2D
-	case 4:
-#else
 	case 3:
+#else
+	case 2:
 #endif
 		name = "vnc";
 		break;
 #endif
+	default:
+		fatal("Unknown renderer: %i\n", api);
+		break;
     }
 
     return(name);

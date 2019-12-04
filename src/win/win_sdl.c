@@ -12,7 +12,7 @@
  *		we will not use that, but, instead, use a new window which
  *		coverrs the entire desktop.
  *
- * Version:	@(#)win_sdl.c  	1.0.8	2019/10/22
+ * Version:	@(#)win_sdl.c  	1.0.9	2019/12/05
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Michael Drüing, <michael@drueing.de>
@@ -72,10 +72,10 @@
 #include "win_sdl.h"
 
 
-#define PATH_SDL_DLL	"SDL2.dll"
+#define RENDERER_FULL_SCREEN	1
+#define RENDERER_HARDWARE	2
 
 
-static void		*sdl_handle = NULL;	/* handle to libSDL2 DLL */
 static SDL_Window	*sdl_win = NULL;
 static SDL_Renderer	*sdl_render = NULL;
 static SDL_Texture	*sdl_tex = NULL;
@@ -86,71 +86,6 @@ static int		sdl_fs;
 static int		cur_w, cur_h;
 static volatile int	sdl_enabled = 0;
 static SDL_mutex*	sdl_mutex = NULL;
-
-
-/* Pointers to the real functions. */
-static void 		(*sdl_GetVersion)(SDL_version *ver);
-static char		*const (*sdl_GetError)(void);
-static int 		(*sdl_Init)(Uint32 flags);
-static void	 	(*sdl_Quit)(void);
-static SDL_Window	*(*sdl_CreateWindowFrom)(const void *data);
-static void	 	(*sdl_DestroyWindow)(SDL_Window *window);
-static SDL_Renderer	*(*sdl_CreateRenderer)(SDL_Window *window,
-						int index, Uint32 flags);
-static void	 	(*sdl_DestroyRenderer)(SDL_Renderer *renderer);
-static SDL_Texture	*(*sdl_CreateTexture)(SDL_Renderer *renderer,
-						Uint32 format, int access,
-						int w, int h);
-static void	 	(*sdl_DestroyTexture)(SDL_Texture *texture);
-static int 		(*sdl_LockTexture)(SDL_Texture *texture,
-						const SDL_Rect *rect,
-						void **pixels, int *pitch);
-static void	 	(*sdl_UnlockTexture)(SDL_Texture *texture);
-static int 		(*sdl_RenderCopy)(SDL_Renderer *renderer,
-						SDL_Texture *texture,
-						const SDL_Rect *srcrect,
-						const SDL_Rect *dstrect);
-static void	 	(*sdl_RenderPresent)(SDL_Renderer *renderer);
-static void		(*sdl_GetWindowSize)(SDL_Window* window,
-					     int*        w,
-					     int*        h);
-static int		(*sdl_RenderReadPixels)(SDL_Renderer*   renderer,
-						const SDL_Rect* rect,
-						Uint32          format,
-						void*           pixels,
-						int             pitch);
-static SDL_bool		(*sdl_SetHint)(const char* name,
-				       const char* value);
-static SDL_mutex*	(*sdl_CreateMutex)(void);
-static void		(*sdl_DestroyMutex)(SDL_mutex* mutex);
-static int		(*sdl_LockMutex)(SDL_mutex* mutex);
-static int		(*sdl_UnlockMutex)(SDL_mutex* mutex);
-
-
-static dllimp_t sdl_imports[] = {
-  { "SDL_GetVersion",		&sdl_GetVersion		},
-  { "SDL_GetError",		&sdl_GetError		},
-  { "SDL_Init",			&sdl_Init		},
-  { "SDL_Quit",			&sdl_Quit		},
-  { "SDL_CreateWindowFrom",	&sdl_CreateWindowFrom	},
-  { "SDL_DestroyWindow",	&sdl_DestroyWindow	},
-  { "SDL_CreateRenderer",	&sdl_CreateRenderer	},
-  { "SDL_DestroyRenderer",	&sdl_DestroyRenderer	},
-  { "SDL_CreateTexture",	&sdl_CreateTexture	},
-  { "SDL_DestroyTexture",	&sdl_DestroyTexture	},
-  { "SDL_LockTexture",		&sdl_LockTexture	},
-  { "SDL_UnlockTexture",	&sdl_UnlockTexture	},
-  { "SDL_RenderCopy",		&sdl_RenderCopy		},
-  { "SDL_RenderPresent",	&sdl_RenderPresent	},
-  { "SDL_GetWindowSize",	&sdl_GetWindowSize	},
-  { "SDL_RenderReadPixels",	&sdl_RenderReadPixels	},
-  { "SDL_SetHint",		&sdl_SetHint		},
-  { "SDL_CreateMutex",		&sdl_CreateMutex	},
-  { "SDL_DestroyMutex",		&sdl_DestroyMutex	},
-  { "SDL_LockMutex",		&sdl_LockMutex		},
-  { "SDL_UnlockMutex",		&sdl_UnlockMutex	},
-  { NULL,			NULL			}
-};
 
 
 #ifdef ENABLE_SDL_LOG
@@ -257,14 +192,14 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
 	return;
     }
 
-    sdl_LockMutex(sdl_mutex);
+    SDL_LockMutex(sdl_mutex);
 
     /*
      * TODO:
      * SDL_UpdateTexture() might be better here, as it is
      * (reportedly) slightly faster.
      */
-    sdl_LockTexture(sdl_tex, 0, &pixeldata, &pitch);
+    SDL_LockTexture(sdl_tex, 0, &pixeldata, &pitch);
 
     for (yy = y1; yy < y2; yy++) {
        	if ((y + yy) >= 0 && (y + yy) < buffer32->h) {
@@ -277,7 +212,7 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
 
     video_blit_complete();
 
-    sdl_UnlockTexture(sdl_tex);
+    SDL_UnlockTexture(sdl_tex);
 
     if (sdl_fs) {
 	sdl_log("sdl_blit(%i, %i, %i, %i, %i, %i) (%i, %i)\n", x, y, y1, y2, w, h, unscaled_size_x, efscrnsz_y);
@@ -291,13 +226,13 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
     r_src.w = w;
     r_src.h = h;
 
-    ret = sdl_RenderCopy(sdl_render, sdl_tex, &r_src, 0);
+    ret = SDL_RenderCopy(sdl_render, sdl_tex, &r_src, 0);
     if (ret)
 	sdl_log("SDL: unable to copy texture to renderer (%s)\n", sdl_GetError());
 
-    sdl_RenderPresent(sdl_render);
+    SDL_RenderPresent(sdl_render);
 
-    sdl_UnlockMutex(sdl_mutex);
+    SDL_UnlockMutex(sdl_mutex);
 }
 
 
@@ -311,22 +246,22 @@ sdl_close(void)
 	sdl_enabled = 0;
 
     if (sdl_mutex != NULL) {
-	sdl_DestroyMutex(sdl_mutex);
+	SDL_DestroyMutex(sdl_mutex);
 	sdl_mutex = NULL;
     }
 
     if (sdl_tex != NULL) {
-	sdl_DestroyTexture(sdl_tex);
+	SDL_DestroyTexture(sdl_tex);
 	sdl_tex = NULL;
     }
 
     if (sdl_render != NULL) {
-	sdl_DestroyRenderer(sdl_render);
+	SDL_DestroyRenderer(sdl_render);
 	sdl_render = NULL;
     }
 
     if (sdl_win != NULL) {
-	sdl_DestroyWindow(sdl_win);
+	SDL_DestroyWindow(sdl_win);
 	sdl_win = NULL;
     }
 
@@ -347,13 +282,8 @@ sdl_close(void)
 	sdl_parent_hwnd = NULL;
     }
 
-    /* Quit and unload the DLL if possible. */
-    if (sdl_handle != NULL) {
-	sdl_Quit();
-
-	dynld_close(sdl_handle);
-	sdl_handle = NULL;
-    }
+    /* Quit. */
+    SDL_Quit();
 }
 
 
@@ -361,7 +291,7 @@ static int old_capture = 0;
 
 
 static int
-sdl_init_common(int fs)
+sdl_init_common(int flags)
 {
     wchar_t temp[128];
     SDL_version ver;
@@ -370,24 +300,21 @@ sdl_init_common(int fs)
 
     sdl_log("SDL: init (fs=%d)\n", fs);
 
-    /* Try loading the DLL. */
-    sdl_handle = dynld_module(PATH_SDL_DLL, sdl_imports);
-    if (sdl_handle == NULL) {
-	ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2120);
-	return(0);
-    }
-
     /* Get and log the version of the DLL we are using. */
-    sdl_GetVersion(&ver);
+    SDL_GetVersion(&ver);
     sdl_log("SDL: version %d.%d.%d\n", ver.major, ver.minor, ver.patch);
 
     /* Initialize the SDL system. */
-    if (sdl_Init(SDL_INIT_VIDEO) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 	sdl_log("SDL: initialization failed (%s)\n", sdl_GetError());
 	return(0);
     }
 
-    if (fs) {
+    if (flags & RENDERER_HARDWARE)
+	SDL_SetHint(SDL_HINT_RENDER_DRIVER, "direct3d");
+	/* TODO: why is this necessary to avoid black screen on Win7/8/10? */
+
+    if (flags & RENDERER_FULL_SCREEN) {
 	/* Get the size of the (current) desktop. */
 	sdl_w = GetSystemMetrics(SM_CXSCREEN);
 	sdl_h = GetSystemMetrics(SM_CYSCREEN);
@@ -431,7 +358,7 @@ sdl_init_common(int fs)
 		     x, y, w, h, SWP_SHOWWINDOW);
 
 	/* Now create the SDL window from that. */
-	sdl_win = sdl_CreateWindowFrom((void *)sdl_hwnd);
+	sdl_win = SDL_CreateWindowFrom((void *)sdl_hwnd);
 
 	old_capture = mouse_capture;
 
@@ -442,7 +369,7 @@ sdl_init_common(int fs)
 	mouse_capture = 1;
     } else {
 	/* Create the SDL window from the render window. */
-	sdl_win = sdl_CreateWindowFrom((void *)hwndRender);
+	sdl_win = SDL_CreateWindowFrom((void *)hwndRender);
 
 	mouse_capture = old_capture;
 
@@ -453,7 +380,7 @@ sdl_init_common(int fs)
 	}
     }
     if (sdl_win == NULL) {
-	sdl_log("SDL: unable to CreateWindowFrom (%s)\n", sdl_GetError());
+	sdl_log("SDL: unable to CreateWindowFrom (%s)\n", SDL_GetError());
 	sdl_close();
 	return(0);
     }
@@ -465,9 +392,14 @@ sdl_init_common(int fs)
      * trying to switch to fullscreen even though the window is
      * not a fullscreen window?)
      */
-    sdl_render = sdl_CreateRenderer(sdl_win, -1, SDL_RENDERER_SOFTWARE);
+    if (flags & RENDERER_HARDWARE) {
+	sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_ACCELERATED);
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+    } else
+	sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_SOFTWARE);
+
     if (sdl_render == NULL) {
-	sdl_log("SDL: unable to create renderer (%s)\n", sdl_GetError());
+	sdl_log("SDL: unable to create renderer (%s)\n", SDL_GetError());
 	sdl_close();
         return(0);
     }
@@ -478,10 +410,10 @@ sdl_init_common(int fs)
      * channel seems to be set to 255 everywhere, so ARGB8888 works
      * just as well.
      */
-    sdl_tex = sdl_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
+    sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
 				SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
     if (sdl_tex == NULL) {
-	sdl_log("SDL: unable to create texture (%s)\n", sdl_GetError());
+	sdl_log("SDL: unable to create texture (%s)\n", SDL_GetError());
 	sdl_close();
         return(0);
     }
@@ -492,27 +424,41 @@ sdl_init_common(int fs)
     /* Register our renderer! */
     video_setblit(sdl_blit);
 
-    sdl_fs = fs;
+    sdl_fs = !!(flags & RENDERER_FULL_SCREEN);
 
     sdl_enabled = 1;
 
-    sdl_mutex = sdl_CreateMutex();
+    sdl_mutex = SDL_CreateMutex();
 
     return(1);
 }
 
 
 int
-sdl_init(HWND h)
+sdl_inits(HWND h)
 {
     return sdl_init_common(0);
 }
 
 
 int
-sdl_init_fs(HWND h)
+sdl_inith(HWND h)
 {
-    return sdl_init_common(1);
+    return sdl_init_common(RENDERER_HARDWARE);
+}
+
+
+int
+sdl_inits_fs(HWND h)
+{
+    return sdl_init_common(RENDERER_FULL_SCREEN);
+}
+
+
+int
+sdl_inith_fs(HWND h)
+{
+    return sdl_init_common(RENDERER_FULL_SCREEN | RENDERER_HARDWARE);
 }
 
 
@@ -533,10 +479,11 @@ sdl_resize(int x, int y)
 
     ww = x;
     wh = y;
-    sdl_stretch(&ww, &wh, &wx, &wy);
 
-    if (sdl_fs)
+    if (sdl_fs) {
+	sdl_stretch(&ww, &wh, &wx, &wy);
 	MoveWindow(sdl_hwnd, wx, wy, ww, wh, TRUE);
+    }
 
     cur_w = x;
     cur_h = y;
