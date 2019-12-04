@@ -30,6 +30,13 @@ typedef struct {
     uint32_t addr, pitch;
 } hwcursor_t;
 
+typedef union {
+    uint64_t	q;
+    uint32_t	d[2];
+    uint16_t	w[4];
+    uint8_t	b[8];
+} latch_t;
+
 typedef struct svga_t
 {
     mem_mapping_t mapping;
@@ -74,8 +81,8 @@ typedef struct svga_t
 
     PALETTE vgapal;
 
-    uint64_t latch,
-	     dispontime, dispofftime;
+    uint64_t dispontime, dispofftime;
+    latch_t latch;
 
     pc_timer_t timer;
 
