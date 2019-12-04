@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.44	2019/11/02
+ * Version:	@(#)win_ui.c	1.0.45	2019/12/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

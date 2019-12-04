@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.30	2019/01/19
+ * Version:	@(#)resource.h	1.0.31	2019/12/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

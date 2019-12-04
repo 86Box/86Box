@@ -8,7 +8,7 @@
  *
  *		Definitions for the Discord integration module.
  *
- * Version:	@(#)win_discord.h	1.0.0	2019/xx/xx
+ * Version:	@(#)win_discord.h	1.0.0	2019/12/05
  *
  * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
  *
