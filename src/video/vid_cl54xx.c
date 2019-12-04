@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.30	2019/09/30
+ * Version:	@(#)vid_cl_54xx.c	1.0.31	2019/12/03
  *
  * Authors:	TheCollector1995,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -338,28 +338,6 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 					if (svga->crtc[0x27] < CIRRUS_ID_CLGD5429)
 						gd54xx->unlocked = (svga->seqregs[6] == 0x12);
 					break;
-
-				case 0x0a:
-					if (gd54xx_is_5434(svga))
-						svga->seqregs[0x0a] = val;
-					else { /* Hack to force memory size on some GD-542x BIOSes*/
-						val &= 0xe7;
-						switch (gd54xx->vram_size) {
-							case 0x80000:
-								svga->seqregs[0x0a] = val | 0x08;
-								break;
-
-							case 0x100000:
-								svga->seqregs[0x0a] = val | 0x10;
-								break;
-
-							case 0x200000:
-								svga->seqregs[0x0a] = val | 0x18;
-								break;
-						}
-					}
-					break;					
-
 				case 0x0b: case 0x0c: case 0x0d: case 0x0e: /* VCLK stuff */
 					gd54xx->vclk_n[svga->seqaddr-0x0b] = val;
 					break;
@@ -400,26 +378,6 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 					else
 						svga->hwcursor.addr = ((gd54xx->vram_size - 0x4000) + ((val & 0x3f) * 256));
 					break;
-				case 0x15:
-					if (gd54xx_is_5434(svga)) {
-						/* Hack to force memory size on some GD-543x BIOSes*/
-						val &= 0xf8;
-						switch (gd54xx->vram_size) {				
-							case 0x100000:
-								svga->seqregs[0x15] = val | 0x2;
-								break;
-
-							case 0x200000:
-								svga->seqregs[0x15] = val | 0x3;
-								break;
-
-							case 0x400000:
-								svga->seqregs[0x15] = val | 0x4;
-								break;
-						}
-					} else
-						return;
-					break;
 				case 0x07:
 					if (gd54xx_is_5422(svga))
 						gd543x_recalc_mapping(gd54xx);
@@ -448,7 +406,11 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 		}
 		gd54xx->ramdac.state = 0;
 		break;
+	case 0x3c7: case 0x3c8:
+		gd54xx->ramdac.state = 0;
+		break;
 	case 0x3c9:
+		gd54xx->ramdac.state = 0;
 		svga->dac_status = 0;
 		svga->fullchange = changeframecount;
 		switch (svga->dac_pos) {
@@ -540,16 +502,18 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 		} else {
 			switch (svga->gdcaddr) {
 				case 0x09: case 0x0a: case 0x0b:
-					gd54xx_recalc_banking(gd54xx);
 					if (svga->gdcreg[0xb] & 0x04)
 						svga->writemode = svga->gdcreg[5] & 7;
 					else
 						svga->writemode = svga->gdcreg[5] & 3;
-					svga->adv_flags = FLAG_EXTRA_BANKS;
+					svga->adv_flags = 0;
+					if (svga->gdcreg[0xb] & 0x01)
+						svga->adv_flags = FLAG_EXTRA_BANKS;
 					if (svga->gdcreg[0xb] & 0x02)
 						svga->adv_flags |= FLAG_ADDR_BY8;
 					if (svga->gdcreg[0xb] & 0x08)
 						svga->adv_flags |= FLAG_LATCH8;
+					gd54xx_recalc_banking(gd54xx);
 					break;
 
 				case 0x10:
@@ -751,14 +715,24 @@ gd54xx_in(uint16_t addr, void *p)
 		if (!gd54xx->unlocked)
 			ret = svga_in(addr, svga);
 		else if (gd54xx->ramdac.state == 4) {
-			gd54xx->ramdac.state = 0;
+			/* CL-GD 5428 does not lock the register when it's read. */
+			if (svga->crtc[0x27] != CIRRUS_ID_CLGD5428)
+				gd54xx->ramdac.state = 0;
 			ret = gd54xx->ramdac.ctrl;
 		} else {
 			gd54xx->ramdac.state++;
-			ret = svga_in(addr, svga);
+			if (gd54xx->ramdac.state == 4)
+				ret = gd54xx->ramdac.ctrl;
+			else
+				ret = svga_in(addr, svga);
 		}
 		break;
+	case 0x3c7: case 0x3c8:
+		gd54xx->ramdac.state = 0;
+		ret = svga_in(addr, svga);
+		break;
 	case 0x3c9:
+		gd54xx->ramdac.state = 0;
 		svga->dac_status = 3;
 		index = (svga->dac_addr - 1) & 0xff;
 		if (svga->seqregs[0x12] & 2)
@@ -918,7 +892,7 @@ gd54xx_in(uint16_t addr, void *p)
 		else switch (svga->crtcreg) {
 			case 0x22: /*Graphis Data Latches Readback Register*/
 				/*Should this be & 7 if 8 byte latch is enabled? */
-				ret = (svga->latch >> ((svga->gdcreg[4] & 3) << 3)) & 0xff;
+				ret = svga->latch.b[svga->gdcreg[4] & 3];
 				break;
 			case 0x24: /*Attribute controller toggle readback (R)*/
 				ret = svga->attrff << 7;
@@ -972,6 +946,8 @@ gd54xx_recalc_banking(gd54xx_t *gd54xx)
 	} else
 		svga->extra_banks[1] = svga->extra_banks[0] + 0x8000;
     }
+
+    svga->write_bank = svga->read_bank = svga->extra_banks[0];
 }
 
 
@@ -1163,10 +1139,7 @@ gd54xx_recalctimings(svga_t *svga)
 	svga->clock = (cpuclock * (double)(1ull << 32)) / freq;
     }
 
-    if (gd54xx->vram_size == (1 << 19)) /* Note : why 512Kb VRAM cards do not wrap */
-	svga->vram_display_mask = gd54xx->vram_mask;
-    else
-	svga->vram_display_mask = (svga->crtc[0x1b] & 2) ? gd54xx->vram_mask : 0x3ffff;
+    svga->vram_display_mask = (svga->crtc[0x1b] & 2) ? gd54xx->vram_mask : 0x3ffff;
 }
 
 
@@ -3094,7 +3067,6 @@ static void
     gd54xx->pci_regs[0x33] = 0x00;
 	
     svga->crtc[0x27] = id;
-    svga->adv_flags = FLAG_EXTRA_BANKS;
 
     svga->seqregs[6] = 0x0f;
     if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5429)
