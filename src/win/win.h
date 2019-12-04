@@ -8,7 +8,7 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.28	2019/11/02
+ * Version:	@(#)win.h	1.0.29	2019/12/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -49,8 +49,7 @@
    and 0x8895 with WPARAM = <previous pause status> followed by 0x8896 with WPARAM = 0.
 
    All shutdowns will send an 0x8897. */
-#define WM_RESETD3D		WM_USER
-#define WM_LEAVEFULLSCREEN	WM_USER+1
+#define WM_LEAVEFULLSCREEN	WM_USER
 #define WM_SAVESETTINGS		0x8888
 #define WM_SHOWSETTINGS		0x8889
 #define WM_PAUSE		0x8890
@@ -67,15 +66,15 @@
 
 #ifdef USE_VNC
 #ifdef USE_D2D
-#define RENDERERS_NUM		5
-#else
-#define RENDERERS_NUM		4
-#endif
-#else
-#ifdef USE_D2D
 #define RENDERERS_NUM		4
 #else
 #define RENDERERS_NUM		3
+#endif
+#else
+#ifdef USE_D2D
+#define RENDERERS_NUM		3
+#else
+#define RENDERERS_NUM		2
 #endif
 #endif
 

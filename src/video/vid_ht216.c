@@ -8,7 +8,7 @@
  *
  *		Video 7 VGA 1024i emulation.
  *
- * Version:	@(#)vid_ht216.c	1.0.2	2019/10/01
+ * Version:	@(#)vid_ht216.c	1.0.3	2019/12/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -168,16 +168,16 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 					break;
 
 				case 0xa0:
-					svga->latch = (svga->latch & 0xffffff00) | val;
+					svga->latch.b[0] = val;
 					break;
 				case 0xa1:
-					svga->latch = (svga->latch & 0xffff00ff) | (val << 8);
+					svga->latch.b[1] = val;
 					break;
 				case 0xa2:
-					svga->latch = (svga->latch & 0xff00ffff) | (val << 16);
+					svga->latch.b[2] = val;
 					break;
 				case 0xa3:
-					svga->latch = (svga->latch & 0x00ffffff) | (val << 24);
+					svga->latch.b[3] = val;
 					break;
 				case 0xa4:
 					ht216->clk_sel = (val >> 2) & 0xf;
@@ -305,20 +305,13 @@ ht216_in(uint16_t addr, void *p)
 					case 0x8f: return (ht216->id >> 8) & 0xff;
 
 					case 0xa0:
-						return svga->latch & 0xff;
+						return svga->latch.b[0];
 					case 0xa1:
-						return (svga->latch >> 8) & 0xff;
+						return svga->latch.b[1];
 					case 0xa2:
-						return (svga->latch >> 16) & 0xff;
+						return svga->latch.b[2];
 					case 0xa3:
-						return (svga->latch >> 24) & 0xff;
-
-#if 0
-					case 0xf7:
-						return 0x01;
-					case 0xff:
-						return 0x80;
-#endif
+						return svga->latch.b[3];
 				}
 				return ht216->ht_regs[svga->seqaddr & 0xff];
 			} else
@@ -537,10 +530,10 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
 
     switch (svga->writemode) {
 	case 1:
-		if (writemask2 & 1) svga->vram[addr]       = svga->latch & 0xff;
-		if (writemask2 & 2) svga->vram[addr | 0x1] = (svga->latch >> 8) & 0xff;
-		if (writemask2 & 4) svga->vram[addr | 0x2] = (svga->latch >> 16) & 0xff;
-		if (writemask2 & 8) svga->vram[addr | 0x3] = (svga->latch >> 24) & 0xff;
+		if (writemask2 & 1) svga->vram[addr]       = svga->latch.b[0];
+		if (writemask2 & 2) svga->vram[addr | 0x1] = svga->latch.b[1];
+		if (writemask2 & 4) svga->vram[addr | 0x2] = svga->latch.b[2];
+		if (writemask2 & 8) svga->vram[addr | 0x3] = svga->latch.b[3];
 		break;
 	case 0:
 		if (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) &&
@@ -561,38 +554,38 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
 
 			switch (svga->gdcreg[3] & 0x18) {
 				case 0: /*Set*/
-					if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) | ((svga->latch & 0xff) & ~svga->gdcreg[8]);
-					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) | (((svga->latch >> 8) & 0xff) & ~svga->gdcreg[8]);
-					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) | (((svga->latch >> 16) & 0xff) & ~svga->gdcreg[8]);
-					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) | (((svga->latch >> 24) & 0xff) & ~svga->gdcreg[8]);
+					if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) | (svga->latch.b[0] & ~svga->gdcreg[8]);
+					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) | (svga->latch.b[1] & ~svga->gdcreg[8]);
+					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) | (svga->latch.b[2] & ~svga->gdcreg[8]);
+					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) | (svga->latch.b[3] & ~svga->gdcreg[8]);
 					break;
 				case 8: /*AND*/
-					if (writemask2 & 1) svga->vram[addr]       = (vala | ~svga->gdcreg[8]) & (svga->latch & 0xff);
-					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb | ~svga->gdcreg[8]) & ((svga->latch >> 8) & 0xff);
-					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc | ~svga->gdcreg[8]) & ((svga->latch >> 16) & 0xff);
-					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald | ~svga->gdcreg[8]) & ((svga->latch >> 24) & 0xff);
+					if (writemask2 & 1) svga->vram[addr]       = (vala | ~svga->gdcreg[8]) & svga->latch.b[0];
+					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb | ~svga->gdcreg[8]) & svga->latch.b[1];
+					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc | ~svga->gdcreg[8]) & svga->latch.b[2];
+					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald | ~svga->gdcreg[8]) & svga->latch.b[3];
 					break;
 				case 0x10: /*OR*/
-					if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) | (svga->latch & 0xff);
-					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) | ((svga->latch >> 8) & 0xff);
-					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) | ((svga->latch >> 16) & 0xff);
-					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) | ((svga->latch >> 24) & 0xff);
+					if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) | svga->latch.b[0];
+					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) | svga->latch.b[1];
+					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) | svga->latch.b[2];
+					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) | svga->latch.b[3];
 					break;
 				case 0x18: /*XOR*/
-					if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) ^ (svga->latch & 0xff);
-					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) ^ ((svga->latch >> 8) & 0xff);
-					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) ^ ((svga->latch >> 16) & 0xff);
-					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) ^ ((svga->latch >> 24) & 0xff);
+					if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) ^ svga->latch.b[0];
+					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) ^ svga->latch.b[1];
+					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) ^ svga->latch.b[2];
+					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) ^ svga->latch.b[3];
 					break;
 			}
 		}
 		break;
 	case 2:
 		if (!(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled)) {
-			if (writemask2 & 1) svga->vram[addr]       = (((cpu_dat & 1) ? 0xff : 0) & svga->gdcreg[8]) | ((svga->latch & 0xff) & ~svga->gdcreg[8]);
-			if (writemask2 & 2) svga->vram[addr | 0x1] = (((cpu_dat & 2) ? 0xff : 0) & svga->gdcreg[8]) | (((svga->latch >> 8) & 0xff) & ~svga->gdcreg[8]);
-			if (writemask2 & 4) svga->vram[addr | 0x2] = (((cpu_dat & 4) ? 0xff : 0) & svga->gdcreg[8]) | (((svga->latch >> 16) & 0xff) & ~svga->gdcreg[8]);
-			if (writemask2 & 8) svga->vram[addr | 0x3] = (((cpu_dat & 8) ? 0xff : 0) & svga->gdcreg[8]) | (((svga->latch >> 24) & 0xff) & ~svga->gdcreg[8]);
+			if (writemask2 & 1) svga->vram[addr]       = (((cpu_dat & 1) ? 0xff : 0) & svga->gdcreg[8]) | (svga->latch.b[0] & ~svga->gdcreg[8]);
+			if (writemask2 & 2) svga->vram[addr | 0x1] = (((cpu_dat & 2) ? 0xff : 0) & svga->gdcreg[8]) | (svga->latch.b[1] & ~svga->gdcreg[8]);
+			if (writemask2 & 4) svga->vram[addr | 0x2] = (((cpu_dat & 4) ? 0xff : 0) & svga->gdcreg[8]) | (svga->latch.b[2] & ~svga->gdcreg[8]);
+			if (writemask2 & 8) svga->vram[addr | 0x3] = (((cpu_dat & 8) ? 0xff : 0) & svga->gdcreg[8]) | (svga->latch.b[3] & ~svga->gdcreg[8]);
 		} else {
 			vala = ((cpu_dat & 1) ? 0xff : 0);
 			valb = ((cpu_dat & 2) ? 0xff : 0);
@@ -600,28 +593,28 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
 			vald = ((cpu_dat & 8) ? 0xff : 0);
 			switch (svga->gdcreg[3] & 0x18) {
 				case 0: /*Set*/
-					if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) | ((svga->latch & 0xff) & ~svga->gdcreg[8]);
-					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) | (((svga->latch >> 8) & 0xff) & ~svga->gdcreg[8]);
-					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) | (((svga->latch >> 16) & 0xff) & ~svga->gdcreg[8]);
-					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) | (((svga->latch >> 24) & 0xff) & ~svga->gdcreg[8]);
+					if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) | (svga->latch.b[0] & ~svga->gdcreg[8]);
+					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) | (svga->latch.b[1] & ~svga->gdcreg[8]);
+					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) | (svga->latch.b[2] & ~svga->gdcreg[8]);
+					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) | (svga->latch.b[3] & ~svga->gdcreg[8]);
 					break;
 				case 8: /*AND*/
-					if (writemask2 & 1) svga->vram[addr]       = (vala | ~svga->gdcreg[8]) & (svga->latch & 0xff);
-					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb | ~svga->gdcreg[8]) & ((svga->latch >> 8) & 0xff);
-					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc | ~svga->gdcreg[8]) & ((svga->latch >> 16) & 0xff);
-					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald | ~svga->gdcreg[8]) & ((svga->latch >> 24) & 0xff);
+					if (writemask2 & 1) svga->vram[addr]       = (vala | ~svga->gdcreg[8]) & svga->latch.b[0];
+					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb | ~svga->gdcreg[8]) & svga->latch.b[1];
+					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc | ~svga->gdcreg[8]) & svga->latch.b[2];
+					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald | ~svga->gdcreg[8]) & svga->latch.b[3];
 					break;
 				case 0x10: /*OR*/
-					if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) | (svga->latch & 0xff);
-					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) | ((svga->latch >> 8) & 0xff);
-					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) | ((svga->latch >> 16) & 0xff);
-					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) | ((svga->latch >> 24) & 0xff);
+					if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) | svga->latch.b[0];
+					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) | svga->latch.b[1];
+					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) | svga->latch.b[2];
+					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) | svga->latch.b[3];
 					break;
 				case 0x18: /*XOR*/
-					if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) ^ (svga->latch & 0xff);
-					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) ^ ((svga->latch >> 8) & 0xff);
-					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) ^ ((svga->latch >> 16) & 0xff);
-					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) ^ ((svga->latch >> 24) & 0xff);
+					if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) ^ svga->latch.b[0];
+					if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) ^ svga->latch.b[1];
+					if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) ^ svga->latch.b[2];
+					if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) ^ svga->latch.b[3];
 					break;
 			}
 		}
@@ -636,28 +629,28 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
 		vald = (svga->gdcreg[0] & 8) ? 0xff : 0;
 		switch (svga->gdcreg[3] & 0x18) {
 			case 0: /*Set*/
-				if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) | ((svga->latch & 0xff) & ~svga->gdcreg[8]);
-				if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) | (((svga->latch >> 8) & 0xff) & ~svga->gdcreg[8]);
-				if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) | (((svga->latch >> 16) & 0xff) & ~svga->gdcreg[8]);
-				if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) | (((svga->latch >> 24) & 0xff) & ~svga->gdcreg[8]);
+				if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) | (svga->latch.b[0] & ~svga->gdcreg[8]);
+				if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) | (svga->latch.b[1] & ~svga->gdcreg[8]);
+				if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) | (svga->latch.b[2] & ~svga->gdcreg[8]);
+				if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) | (svga->latch.b[3] & ~svga->gdcreg[8]);
 				break;
 			case 8: /*AND*/
-				if (writemask2 & 1) svga->vram[addr]       = (vala | ~svga->gdcreg[8]) & (svga->latch & 0xff);
-				if (writemask2 & 2) svga->vram[addr | 0x1] = (valb | ~svga->gdcreg[8]) & ((svga->latch >> 8) & 0xff);
-				if (writemask2 & 4) svga->vram[addr | 0x2] = (valc | ~svga->gdcreg[8]) & ((svga->latch >> 16) & 0xff);
-				if (writemask2 & 8) svga->vram[addr | 0x3] = (vald | ~svga->gdcreg[8]) & ((svga->latch >> 24) & 0xff);
+				if (writemask2 & 1) svga->vram[addr]       = (vala | ~svga->gdcreg[8]) & svga->latch.b[0];
+				if (writemask2 & 2) svga->vram[addr | 0x1] = (valb | ~svga->gdcreg[8]) & svga->latch.b[1];
+				if (writemask2 & 4) svga->vram[addr | 0x2] = (valc | ~svga->gdcreg[8]) & svga->latch.b[2];
+				if (writemask2 & 8) svga->vram[addr | 0x3] = (vald | ~svga->gdcreg[8]) & svga->latch.b[3];
 				break;
 			case 0x10: /*OR*/
-				if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) | (svga->latch & 0xff);
-				if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) | ((svga->latch >> 8) & 0xff);
-				if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) | ((svga->latch >> 16) & 0xff);
-				if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) | ((svga->latch >> 24) & 0xff);
+				if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) | svga->latch.b[0];
+				if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) | svga->latch.b[1];
+				if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) | svga->latch.b[2];
+				if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) | svga->latch.b[3];
 				break;
 			case 0x18: /*XOR*/
-				if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) ^ (svga->latch & 0xff);
-				if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) ^ ((svga->latch >> 8) & 0xff);
-				if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) ^ ((svga->latch >> 16) & 0xff);
-				if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) ^ ((svga->latch >> 24) & 0xff);
+				if (writemask2 & 1) svga->vram[addr]       = (vala & svga->gdcreg[8]) ^ svga->latch.b[0];
+				if (writemask2 & 2) svga->vram[addr | 0x1] = (valb & svga->gdcreg[8]) ^ svga->latch.b[1];
+				if (writemask2 & 4) svga->vram[addr | 0x2] = (valc & svga->gdcreg[8]) ^ svga->latch.b[2];
+				if (writemask2 & 8) svga->vram[addr | 0x3] = (vald & svga->gdcreg[8]) ^ svga->latch.b[3];
 				break;
 		}
 		svga->gdcreg[8] = wm;
@@ -977,19 +970,19 @@ ht216_read_common(ht216_t *ht216, uint32_t addr)
 	ht216->bg_latch[7] = svga->vram[latch_addr | 7];
     }
     or = addr & 4;
-    svga->latch = ht216->bg_latch[0 | or] | (ht216->bg_latch[1 | or] << 8) |
-		  (ht216->bg_latch[2 | or] << 16) | (ht216->bg_latch[3 | or] << 24);
+    svga->latch.d[0] = ht216->bg_latch[0 | or] | (ht216->bg_latch[1 | or] << 8) |
+		       (ht216->bg_latch[2 | or] << 16) | (ht216->bg_latch[3 | or] << 24);
     if (svga->readmode) {
-	temp   = svga->latch & 0xff;
+	temp   = svga->latch.b[0];
 	temp  ^= (svga->colourcompare & 1) ? 0xff : 0;
 	temp  &= (svga->colournocare & 1)  ? 0xff : 0;
-	temp2  = (svga->latch >> 8) & 0xff;
+	temp2  = svga->latch.b[1];
 	temp2 ^= (svga->colourcompare & 2) ? 0xff : 0;
 	temp2 &= (svga->colournocare & 2)  ? 0xff : 0;
-	temp3  = (svga->latch >> 16) & 0xff;
+	temp3  = svga->latch.b[2];
 	temp3 ^= (svga->colourcompare & 4) ? 0xff : 0;
 	temp3 &= (svga->colournocare & 4)  ? 0xff : 0;
-	temp4  = (svga->latch >> 24) & 0xff;
+	temp4  = svga->latch.b[3];
 	temp4 ^= (svga->colourcompare & 8) ? 0xff : 0;
 	temp4 &= (svga->colournocare & 8)  ? 0xff : 0;
 	return ~(temp | temp2 | temp3 | temp4);

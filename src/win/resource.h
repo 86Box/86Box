@@ -15,9 +15,9 @@
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2018 David Hrdlička.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2018,2019 David Hrdlička.
  */
 #ifndef WIN_RESOURCE_H
 # define WIN_RESOURCE_H
@@ -266,17 +266,16 @@
 #define IDM_UPDATE_ICONS	40030
 #define IDM_VID_RESIZE		40040
 #define IDM_VID_REMEMBER	40041
-#define IDM_VID_DDRAW		40050
+#define IDM_VID_SDL_SW		40050
+#define IDM_VID_SDL_HW		40051
 #ifdef USE_D2D
-#define IDM_VID_D2D		40051
-#define IDM_VID_D3D		40052
-#define IDM_VID_SDL		40053
-#define IDM_VID_VNC		40054
-#else
-#define IDM_VID_D3D		40051
-#define IDM_VID_SDL		40052
+#define IDM_VID_D2D		40052
 #ifdef USE_VNC
 #define IDM_VID_VNC		40053
+#endif
+#else
+#ifdef USE_VNC
+#define IDM_VID_VNC		40052
 #endif
 #endif
 #define IDM_VID_SCALE_1X	40055

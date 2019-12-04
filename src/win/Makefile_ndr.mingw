@@ -378,7 +378,7 @@ ifneq ($(WX), n)
  UIOBJ		:= wx_main.o wx_ui.o wx_stbar.o wx_render.o
 else
  UIOBJ		:= win_ui.o win_stbar.o \
-		   win_ddraw.o win_d3d.o win_sdl.o \
+		   win_sdl.o \
 		   win_dialog.o win_about.o \
 		   win_settings.o win_devconf.o win_snd_gain.o \
 		   win_new_floppy.o win_jsconf.o
@@ -703,15 +703,8 @@ ifdef EXOBJ
 OBJ		+= $(EXOBJ)
 endif
 
-LIBS		:= -mwindows \
-		   -lddraw -ldxguid -ld3d9 \
-		   -lcomctl32
-
-ifeq ($(STATIC), y)
-LIBS            += -lopenal -lole32 -lwinmm
-else
-LIBS            += -lwinmm -lopenal.dll
-endif
+LIBS		:= -mwindows -lcomctl32 \
+		   -lopenal -lole32
 
 ifeq ($(D2D), y)
 LIBS		+= $(D2DLIB)
@@ -725,8 +718,7 @@ endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
-LIBS		+= -lpng -lz -lwsock32 -liphlpapi -ldinput8
-LIBS		+= -static -lstdc++ 
+LIBS		+= -lpng -lz -lwsock32 -liphlpapi -ldinput8 -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -lversion -lwinmm -static -lstdc++ 
 ifneq ($(X64), y)
 LIBS		+= -Wl,--large-address-aware
 endif
@@ -734,9 +726,7 @@ ifneq ($(DINPUT), y)
  LIBS    += -lxinput
 endif
 
-ifeq ($(STATIC), y)
 LIBS    += -static
-endif
 
 # Build module rules.
 ifeq ($(AUTODEP), y)

@@ -66,12 +66,11 @@ BEGIN
         MENUITEM SEPARATOR
         POPUP "Re&nderer"
         BEGIN
-            MENUITEM "&DirectDraw",             IDM_VID_DDRAW
+            MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
+            MENUITEM "&SDL (Hardware)",         IDM_VID_SDL_HW
 #ifdef USE_D2D
             MENUITEM "Direct&2D 1.0",           IDM_VID_D2D
 #endif
-            MENUITEM "Direct&3D 9",             IDM_VID_D3D
-            MENUITEM "&SDL",                    IDM_VID_SDL
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif
