@@ -39,6 +39,7 @@
 
 
 #define PATH_GHOSTSCRIPT_DLL	"gsdll32.dll"
+#define PATH_GHOSTSCRIPT_SO	"libgs.so"
 
 static GSDLLAPI int	(*ghostscript_revision)(gsapi_revision_t *pr, int len);
 static GSDLLAPI int	(*ghostscript_new_instance)(void **pinstance, void *caller_handle);
@@ -192,9 +193,12 @@ write_buffer(ps_t *dev)
 
     fseek(fp, 0, SEEK_END);
 
-    fprintf(fp, "%s\n", dev->buffer);
+    fprintf(fp, "%s65536\n", dev->buffer);
 
     fclose(fp);
+
+    dev->buffer[0] = 0;
+    dev->buffer_pos = 0;
 }
 
 static void
@@ -255,10 +259,13 @@ ps_write_ctrl(uint8_t val, void *p)
 				dev->buffer_pos = 0;
 				if(!dev->autofeed)
 					break;
+				// fallthrough
 			case '\n':
 				write_buffer(dev);
-				dev->buffer[0] = 0;
-				dev->buffer_pos = 0;
+				break;
+			case 0x04:	// Ctrl+D
+				write_buffer(dev);
+				finish_document(dev);
 				break;
 		}
 	}
