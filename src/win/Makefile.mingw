@@ -204,6 +204,9 @@ ifndef DYNAREC
   DYNAREC   := n
  endif
 endif
+ifndef DISCORD
+ DISCORD	:= y
+endif
 
 
 # Name of the executable.
