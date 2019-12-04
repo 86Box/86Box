@@ -23,6 +23,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../lang/language.h"
 #include "../lpt.h"
 #include "../timer.h"
 #include "../pit.h"
@@ -308,7 +309,7 @@ ghostscript_init()
     /* Try loading the DLL. */
     ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
     if (ghostscript_handle == NULL) {
-	ui_msgbox(MBX_ERROR, L"Couldn't initialize Ghostscript!");
+	ui_msgbox(MBX_ERROR, (wchar_t *) IDS_2123);
 	return;
     }
 
