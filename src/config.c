@@ -486,6 +486,10 @@ load_general(void)
      */
     plat_langid = config_get_hex16(cat, "language", 0x0409);
 #endif
+
+#if USE_DISCORD
+    enable_discord = !!config_get_int(cat, "enable_discord", 0);
+#endif
 }
 
 
@@ -1385,6 +1389,13 @@ save_general(void)
 	config_delete_var(cat, "language");
       else
 	config_set_hex16(cat, "language", plat_langid);
+#endif
+
+#if USE_DISCORD
+    if (enable_discord)
+	config_set_int(cat, "enable_discord", enable_discord);
+    else
+	config_delete_var(cat, "enable_discord");
 #endif
 
     delete_section_if_empty(cat);

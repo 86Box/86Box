@@ -36,6 +36,8 @@
 
 #define PATH_DISCORD_DLL	"discord_game_sdk.dll"
 
+int	discord_loaded = 0;
+
 static void				*discord_handle = NULL;
 static struct IDiscordCore		*discord_core = NULL;
 static struct IDiscordActivityManager	*discord_activities = NULL;
@@ -114,24 +116,35 @@ discord_update_activity(int paused)
     discord_activities->update_activity(discord_activities, &activity, NULL, NULL);
 }
 
-void
-discord_init()
+int
+discord_load()
 {
-    enum EDiscordResult result;
-    struct DiscordCreateParams params;
-    
-    discord_log("win_discord: init\n");
+    if (discord_handle != NULL)
+	return(1);
 
     // Try to load the DLL
-    if (discord_handle == NULL)
-	discord_handle = dynld_module(PATH_DISCORD_DLL, discord_imports);
+    discord_handle = dynld_module(PATH_DISCORD_DLL, discord_imports);
 
     if (discord_handle == NULL)
     {
 	discord_log("win_discord: couldn't load " PATH_DISCORD_DLL "\n");
 	discord_close();
-	return;
+
+	return(0);
     }
+
+    discord_loaded = 1;
+    return(1);
+}
+
+void
+discord_init()
+{
+    enum EDiscordResult result;
+    struct DiscordCreateParams params;
+
+    if(discord_handle == NULL)
+	return;
 
     DiscordCreateParamsSetDefault(&params);
     params.client_id = 651478134352248832;

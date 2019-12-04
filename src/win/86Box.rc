@@ -120,6 +120,10 @@ BEGIN
     BEGIN
         MENUITEM "&Settings...",                IDM_CONFIG
         MENUITEM "&Update status bar icons",	IDM_UPDATE_ICONS
+# ifdef USE_DISCORD
+        MENUITEM SEPARATOR
+        MENUITEM "Enable &Discord integration", IDM_DISCORD
+# endif
         MENUITEM SEPARATOR
         MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_ACTION_SCREENSHOT
     END

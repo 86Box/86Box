@@ -428,6 +428,7 @@ endif
 
 ifeq ($(DISCORD), y)
 OPTS		+= -DUSE_DISCORD
+RFLAGS		+= -DUSE_DISCORD
 DISCORDOBJ	:= win_discord.o
 endif
 

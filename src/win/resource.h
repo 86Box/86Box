@@ -301,6 +301,10 @@
 #define IDM_VID_GRAY_GREEN	40083
 #define IDM_VID_GRAY_WHITE	40084
 
+#ifdef USE_DISCORD
+#define IDM_DISCORD		40090
+#endif
+
 #define IDM_LOG_BREAKPOINT	51201
 #define IDM_DUMP_VRAM		51202	// should be an Action
 

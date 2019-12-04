@@ -237,6 +237,13 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_CGACON, vid_cga_contrast?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_GRAYCT_601+video_graytype, MF_CHECKED);
     CheckMenuItem(menuMain, IDM_VID_GRAY_RGB+video_grayscale, MF_CHECKED);
+
+#ifdef USE_DISCORD
+    if (discord_loaded)
+	CheckMenuItem(menuMain, IDM_DISCORD, enable_discord ? MF_CHECKED : MF_UNCHECKED);
+    else
+	EnableMenuItem(menuMain, IDM_DISCORD, MF_DISABLED);
+#endif
 }
 
 
@@ -529,6 +536,19 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				device_force_redraw();
 				config_save();
 				break;
+
+#ifdef USE_DISCORD
+			case IDM_DISCORD:
+				if (! discord_loaded) break;
+				enable_discord ^= 1;
+				CheckMenuItem(hmenu, IDM_DISCORD, enable_discord ? MF_CHECKED : MF_UNCHECKED);
+				if(enable_discord) {
+					discord_init();
+					discord_update_activity(dopause);
+				} else
+					discord_close();
+				break;
+#endif
 
 #ifdef ENABLE_LOG_TOGGLES
 # ifdef ENABLE_BUSLOGIC_LOG
@@ -845,6 +865,18 @@ ui_init(int nCmdShow)
 	return(0);
     }
 
+#ifdef USE_DISCORD
+    if(! discord_load()) {
+	enable_discord = 0;
+    } else if (enable_discord) {
+	/* Initialize the Discord API */
+	discord_init();
+
+	/* Update Discord status */
+	discord_update_activity(dopause);
+    }
+#endif
+
     /* Create our main window's class and register it. */
     wincl.hInstance = hinstance;
     wincl.lpszClassName = CLASS_NAME;
@@ -995,14 +1027,6 @@ ui_init(int nCmdShow)
     if (source_hwnd)
 	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDHWND, (WPARAM) unique_id, (LPARAM) hwndMain);
 
-#ifdef USE_DISCORD
-    /* Initialize the Discord API */
-    discord_init();
-
-    /* Update Discord status */
-    discord_update_activity(dopause);
-#endif
-
     /*
      * Everything has been configured, and all seems to work,
      * so now it is time to start the main thread to do some
@@ -1042,7 +1066,8 @@ ui_init(int nCmdShow)
 
 #ifdef USE_DISCORD
 	/* Run Discord API callbacks */
-	discord_run_callbacks();
+	if (enable_discord)
+		discord_run_callbacks();
 #endif
     }
 
@@ -1124,7 +1149,8 @@ plat_pause(int p)
 
 #if USE_DISCORD
     /* Update Discord status */
-    discord_update_activity(dopause);
+    if(enable_discord)
+	discord_update_activity(dopause);
 #endif
 
     /* Send the WM to a manager if needed. */
