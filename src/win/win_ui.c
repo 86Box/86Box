@@ -8,7 +8,7 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.44	2019/11/02
+ * Version:	@(#)win_ui.c	1.0.45	2019/12/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -39,7 +39,6 @@
 #include "../plat_midi.h"
 #include "../ui.h"
 #include "win.h"
-#include "win_d3d.h"
 
 
 #define TIMER_1SEC	1		/* ID of the one-second timer */
@@ -156,20 +155,13 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_INVERT, MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_DDRAW+0, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SDL_SW, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SDL_HW, MF_UNCHECKED);
 #ifdef USE_D2D
-    CheckMenuItem(menuMain, IDM_VID_DDRAW+1, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_DDRAW+2, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_DDRAW+3, MF_UNCHECKED);
-#ifdef USE_VNC
-    CheckMenuItem(menuMain, IDM_VID_DDRAW+4, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_D2D, MF_UNCHECKED);
 #endif
-#else
-    CheckMenuItem(menuMain, IDM_VID_DDRAW+1, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_DDRAW+2, MF_UNCHECKED);
 #ifdef USE_VNC
-    CheckMenuItem(menuMain, IDM_VID_DDRAW+3, MF_UNCHECKED);
-#endif
+    CheckMenuItem(menuMain, IDM_VID_VNC, MF_UNCHECKED);
 #endif
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+0, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+1, MF_UNCHECKED);
@@ -226,7 +218,7 @@ ResetAllMenus(void)
 
     if (vid_resize)
 	CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_CHECKED);
-    CheckMenuItem(menuMain, IDM_VID_DDRAW+vid_api, MF_CHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SDL_SW+vid_api, MF_CHECKED);
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+video_fullscreen_scale, MF_CHECKED);
     CheckMenuItem(menuMain, IDM_VID_REMEMBER, window_remember?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X+scale, MF_CHECKED);
@@ -440,18 +432,17 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				config_save();
 				break;
 
-			case IDM_VID_DDRAW:
+			case IDM_VID_SDL_SW:
+			case IDM_VID_SDL_HW:
 #ifdef USE_D2D
 			case IDM_VID_D2D:
 #endif
-			case IDM_VID_D3D:
-			case IDM_VID_SDL:
 #ifdef USE_VNC
 			case IDM_VID_VNC:
 #endif
-				CheckMenuItem(hmenu, IDM_VID_DDRAW+vid_api, MF_UNCHECKED);
-				plat_setvid(LOWORD(wParam) - IDM_VID_DDRAW);
-				CheckMenuItem(hmenu, IDM_VID_DDRAW+vid_api, MF_CHECKED);
+				CheckMenuItem(hmenu, IDM_VID_SDL_SW + vid_api, MF_UNCHECKED);
+				plat_setvid(LOWORD(wParam) - IDM_VID_SDL_SW);
+				CheckMenuItem(hmenu, IDM_VID_SDL_SW + vid_api, MF_CHECKED);
 				config_save();
 				break;
 
@@ -673,15 +664,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ui_sb_timer_callback(wParam & 0xff);
 		break;
 		
-	case WM_RESETD3D:
-		startblit();
-		if (video_fullscreen)
-			d3d_reset_fs();
-		  else
-			d3d_reset();
-		endblit();
-		break;
-
 	case WM_LEAVEFULLSCREEN:
 		plat_setfullscreen(0);
 		config_save();

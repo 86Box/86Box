@@ -8,7 +8,7 @@
  *
  *		Definitions for the libSDL2 rendering module.
  *
- * Version:	@(#)win_sdl.h	    1.0.1	2019/10/12
+ * Version:	@(#)win_sdl.h	    1.0.2	2019/12/05
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Michael Drüing, <michael@drueing.de>
@@ -51,8 +51,10 @@
 
 
 extern void	sdl_close(void);
-extern int	sdl_init(HWND h);
-extern int	sdl_init_fs(HWND h);
+extern int	sdl_inits(HWND h);
+extern int	sdl_inith(HWND h);
+extern int	sdl_inits_fs(HWND h);
+extern int	sdl_inith_fs(HWND h);
 extern int	sdl_pause(void);
 extern void	sdl_resize(int x, int y);
 extern void	sdl_enable(int enable);
