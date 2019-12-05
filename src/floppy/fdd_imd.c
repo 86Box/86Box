@@ -1,38 +1,20 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *		This file is part of the 86Box distribution.
  *
  *		Implementation of the IMD floppy image format.
  *
- * Version:	@(#)fdd_imd.c	1.0.8	2018/10/18
+ * Version:	@(#)fdd_imd.c	1.0.9	2019/12/05
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free  Software  Foundation; either  version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is  distributed in the hope that it will be useful, but
- * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
- * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the:
- *
- *   Free Software Foundation, Inc.
- *   59 Temple Place - Suite 330
- *   Boston, MA 02111-1307
- *   USA.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2018,2019 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -45,6 +27,7 @@
 #include "../timer.h"
 #include "../plat.h"
 #include "fdd.h"
+#include "fdd_86f.h"
 #include "fdd_imd.h"
 #include "fdc.h"
 
@@ -62,6 +45,7 @@ typedef struct {
     uint32_t	sector_data_size[255];
     uint32_t	gap3_len;
     uint16_t	side_flags;
+    uint8_t	max_sector_size;
 } imd_track_t;
 
 typedef struct {
@@ -301,7 +285,7 @@ imd_seek(int drive, int track)
 {
     uint32_t track_buf_pos[2] = { 0, 0 };
     uint8_t id[4] = { 0, 0, 0, 0 };
-    uint8_t type, deleted, bad_crc;
+    uint8_t type;
     imd_t *dev = imd[drive];
     int sector, current_pos;
     int side, c = 0, h, n;
@@ -322,6 +306,7 @@ imd_seek(int drive, int track)
     char *r_map;
     char *n_map = NULL;
     uint8_t *data;
+    int flags = 0x00;
 
     if (dev->f == NULL) return;
 
@@ -395,16 +380,22 @@ imd_seek(int drive, int track)
 			id[1] = (h & 0x40) ? h_map[actual_sector] : (h & 1);
 			id[2] = real_sector;
 			id[3] = (n == 0xFF) ? n_map[actual_sector] : n;
-			ssize = 128 << ((uint32_t) id[3]);
 			data = dev->track_buffer[side] + track_buf_pos[side];
 			type = dev->buffer[dev->tracks[track][side].sector_data_offs[actual_sector]];
 			type = (type >> 1) & 7;
-			deleted = bad_crc = 0;
-			if ((type == 2) || (type == 4)) deleted = 1;
-			if ((type == 3) || (type == 4)) bad_crc = 1;
+			flags = 0x00;
+			if ((type == 2) || (type == 4))
+				flags |= SECTOR_DELETED_DATA;
+			if ((type == 3) || (type == 4))
+				flags |= SECTOR_CRC_ERROR;
+
+			if (((flags & 0x02) || (id[3] > dev->tracks[track][side].max_sector_size)) && !fdd_get_turbo(drive))
+				ssize = 3;
+			else
+				ssize = 128 << ((uint32_t) id[3]);
 
 			sector_to_buffer(drive, track, side, data, actual_sector, ssize);
-			current_pos = d86f_prepare_sector(drive, side, current_pos, id, data, ssize, 22, track_gap3, deleted, bad_crc);
+			current_pos = d86f_prepare_sector(drive, side, current_pos, id, data, ssize, 22, track_gap3, flags);
 			track_buf_pos[side] += ssize;
 
 			if (sector == 0)
@@ -419,21 +410,28 @@ imd_seek(int drive, int track)
 			id[1] = side;
 			id[2] = xdf_disk_layout[xdf_type][is_trackx][xdf_sector].id.r;
 			id[3] = is_trackx ? (id[2] & 7) : 2;
-			ssize = 128 << ((uint32_t) id[3]);
 			ordered_pos = dev->xdf_ordered_pos[id[2]][side];
 
 			data = dev->track_buffer[side] + track_buf_pos[side];
 			type = dev->buffer[dev->tracks[track][side].sector_data_offs[ordered_pos]];
 			type = (type >> 1) & 7;
-			deleted = bad_crc = 0;
-			if ((type == 2) || (type == 4)) deleted = 1;
-			if ((type == 3) || (type == 4)) bad_crc = 1;
+			flags = 0x00;
+			if ((type == 2) || (type == 4))
+				flags |= SECTOR_DELETED_DATA;
+			if ((type == 3) || (type == 4))
+				flags |= SECTOR_CRC_ERROR;
+
+			if (((flags & 0x02) || (id[3] > dev->tracks[track][side].max_sector_size)) && !fdd_get_turbo(drive))
+				ssize = 3;
+			else
+				ssize = 128 << ((uint32_t) id[3]);
+
 			sector_to_buffer(drive, track, side, data, ordered_pos, ssize);
 
 			if (is_trackx)
-				current_pos = d86f_prepare_sector(drive, side, xdf_trackx_spos[xdf_type][xdf_sector], id, data, ssize, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], deleted, bad_crc);
-			  else
-				current_pos = d86f_prepare_sector(drive, side, current_pos, id, data, ssize, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], deleted, bad_crc);
+				current_pos = d86f_prepare_sector(drive, side, xdf_trackx_spos[xdf_type][xdf_sector], id, data, ssize, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], flags);
+			else
+				current_pos = d86f_prepare_sector(drive, side, current_pos, id, data, ssize, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], flags);
 
 			track_buf_pos[side] += ssize;
 
@@ -615,6 +613,8 @@ imd_load(int drive, wchar_t *fn)
     uint32_t minimum_gap3 = 0;
     uint32_t minimum_gap4 = 0;
     uint8_t converted_rate;
+    uint8_t type;
+    int size_diff, gap_sum;
 
     d86f_unregister(drive);
 
@@ -643,12 +643,11 @@ imd_load(int drive, wchar_t *fn)
     if (magic != 0x20444D49) {
 	imd_log("IMD: Not a valid ImageDisk image\n");
 	fclose(dev->f);
-	free(dev);;
+	free(dev);
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
 	return;
-    } else {
+    } else
 	imd_log("IMD: Valid ImageDisk image\n");
-    }
 
     fseek(dev->f, 0, SEEK_END);
     fsize = ftell(dev->f);
@@ -715,6 +714,12 @@ imd_load(int drive, wchar_t *fn)
 		dev->tracks[track][side].side_flags |= 0x20;
 	if ((dev->tracks[track][side].side_flags & 7) == 1)
 		dev->tracks[track][side].side_flags |= 0x20;
+	if ((dev->tracks[track][side].side_flags & 0x07) == 0x00)
+		dev->tracks[track][side].max_sector_size = 6;
+	else
+		dev->tracks[track][side].max_sector_size = 5;
+	if (!mfm)
+		dev->tracks[track][side].max_sector_size--;
 	/* imd_log("Side flags for (%02i)(%01i): %02X\n", track, side, dev->tracks[track][side].side_flags); */
 	dev->tracks[track][side].is_present = 1;
 	dev->tracks[track][side].file_offs = (buffer2 - buffer);
@@ -749,7 +754,12 @@ imd_load(int drive, wchar_t *fn)
 			last_offset += dev->tracks[track][side].sector_data_size[i];
 			if (!(buffer[dev->tracks[track][side].sector_data_offs[i]] & 1))
 				fwriteprot[drive] = writeprot[drive] = 1;
-			track_total += (pre_sector + data_size + 2);
+			type = dev->buffer[dev->tracks[track][side].sector_data_offs[i]];
+			type = (type >> 1) & 7;
+			if ((type == 3) || (type == 4) || (data_size > (128 << dev->tracks[track][side].max_sector_size)))
+				track_total += (pre_sector + 3);
+			else
+				track_total += (pre_sector + data_size + 2);
 		}
 	} else {
 		dev->tracks[track][side].data_offs = last_offset;
@@ -764,7 +774,12 @@ imd_load(int drive, wchar_t *fn)
 			last_offset += dev->tracks[track][side].sector_data_size[i];
 			if (!(buffer[dev->tracks[track][side].sector_data_offs[i]] & 1))
 				fwriteprot[drive] = writeprot[drive] = 1;
-			track_total += (pre_sector + data_size + 2);
+			type = dev->buffer[dev->tracks[track][side].sector_data_offs[i]];
+			type = (type >> 1) & 7;
+			if ((type == 3) || (type == 4) || (sector_size > dev->tracks[track][side].max_sector_size))
+				track_total += (pre_sector + 3);
+			else
+				track_total += (pre_sector + data_size + 2);
 		}
 	}
 	buffer2 = buffer + last_offset;
@@ -783,12 +798,15 @@ imd_load(int drive, wchar_t *fn)
 		converted_rate = dev->tracks[track][side].side_flags & 0x03;
 
 	if (gap3_sizes[converted_rate][sector_size][track_spt] == 0x00) {
-		if ((raw_tsize - track_total + (mfm ? 146 : 73)) < (minimum_gap3 + minimum_gap4)) {
+		size_diff = raw_tsize - track_total;
+		gap_sum = minimum_gap3 + minimum_gap4;
+		if (size_diff < gap_sum) {
 			/* If we can't fit the sectors with a reasonable minimum gap at perfect RPM, let's try 2% slower. */
 			raw_tsize = get_raw_tsize(dev->tracks[track][side].side_flags, 1);
 			/* Set disk flags so that rotation speed is 2% slower. */
 			dev->disk_flags |= (3 << 5);
-			if ((raw_tsize - track_total + (mfm ? 146 : 73)) < (minimum_gap3 + minimum_gap4)) {
+			size_diff = raw_tsize - track_total;
+			if (size_diff < gap_sum) {
 				/* If we can't fit the sectors with a reasonable minimum gap even at 2% slower RPM, abort. */
 				imd_log("IMD: Unable to fit the %i sectors in a track\n", track_spt);
 				fclose(dev->f);
@@ -799,7 +817,7 @@ imd_load(int drive, wchar_t *fn)
 			}
 		}
 
-		dev->tracks[track][side].gap3_len = (raw_tsize - track_total - minimum_gap4 + (mfm ? 146 : 73)) / track_spt;
+		dev->tracks[track][side].gap3_len = (size_diff - minimum_gap4) / track_spt;
 	} else if (gap3_sizes[converted_rate][sector_size][track_spt] != 0x00)
 		dev->tracks[track][side].gap3_len = gap3_sizes[converted_rate][sector_size][track_spt];
 
