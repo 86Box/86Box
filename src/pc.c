@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.92	2018/11/15
+ * Version:	@(#)pc.c	1.0.93	2019/12/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -131,7 +131,10 @@ int	cpu_manufacturer = 0,			/* (C) cpu manufacturer */
 	cpu_use_dynarec = 0,			/* (C) cpu uses/needs Dyna */
 	cpu = 3,				/* (C) cpu type */
 	enable_external_fpu = 0;		/* (C) enable external FPU */
-int	time_sync = 0;			/* (C) enable time sync */
+int	time_sync = 0;				/* (C) enable time sync */
+#ifdef USE_DISCORD
+int	enable_discord = 0;			/* (C) enable Discord integration */
+#endif
 
 /* Statistics. */
 extern int

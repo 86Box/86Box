@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.35	2019/11/19
+ * Version:	@(#)86box.h	1.0.36	2019/12/05
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *f		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -115,6 +115,9 @@ extern int	network_type;			/* (C) net provider type */
 extern int	network_card;			/* (C) net interface num */
 extern char	network_host[522];		/* (C) host network intf */
 extern int	hdd_format_type;		/* (C) hard disk file format */
+#ifdef USE_DISCORD
+extern int	enable_discord;			/* (C) enable Discord integration */
+#endif
 
 extern int	is_pentium;			/* TODO: Move back to cpu/cpu.h when it's figured out,
 							 how to remove that hack from the ET4000/W32p. */

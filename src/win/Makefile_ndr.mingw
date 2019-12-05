@@ -204,6 +204,9 @@ ifndef DYNAREC
   DYNAREC   := n
  endif
 endif
+ifndef DISCORD
+ DISCORD	:= y
+endif
 
 
 # Name of the executable.
@@ -430,6 +433,12 @@ endif
 
 ifeq ($(DINPUT), y)
 OPTS		+= -DUSE_DINPUT
+endif
+
+ifeq ($(DISCORD), y)
+OPTS		+= -DUSE_DISCORD
+RFLAGS		+= -DUSE_DISCORD
+DISCORDOBJ	:= win_discord.o
 endif
 
 # Options for the DEV branch.
@@ -689,7 +698,7 @@ OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) \
 		   $(DEVOBJ) $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(HDDOBJ) \
 		   $(USBOBJ) $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
 		   $(PLATOBJ) $(UIOBJ) $(D2DOBJ) $(FSYNTHOBJ) $(MUNTOBJ) \
-		   $(DEVBROBJ)
+		   $(DEVBROBJ) $(DISCORDOBJ)
 ifdef EXOBJ
 OBJ		+= $(EXOBJ)
 endif
