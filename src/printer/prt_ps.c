@@ -39,8 +39,10 @@
 #include <ghostscript/ierrors.h>
 
 
-#define PATH_GHOSTSCRIPT_DLL	"gsdll32.dll"
-#define PATH_GHOSTSCRIPT_SO	"libgs.so"
+#define PATH_GHOSTSCRIPT_DLL		"gsdll32.dll"
+#define PATH_GHOSTSCRIPT_SO		"libgs.so"
+
+#define POSTSCRIPT_BUFFER_LENGTH	65536
 
 static GSDLLAPI int	(*ghostscript_revision)(gsapi_revision_t *pr, int len);
 static GSDLLAPI int	(*ghostscript_new_instance)(void **pinstance, void *caller_handle);
@@ -84,7 +86,7 @@ typedef struct
 
     wchar_t	filename[260];
 
-    char	buffer[65536];
+    char	buffer[POSTSCRIPT_BUFFER_LENGTH];
     uint16_t	buffer_pos;
 } ps_t;
 
@@ -156,7 +158,7 @@ convert_to_pdf(ps_t *dev)
 
     ghostscript_delete_instance(instance);
 
-    if (code == 0 || code == gs_error_Quit)
+    if (code == 0)
 	plat_remove(input_fn);
     else
 	plat_remove(output_fn);
@@ -179,10 +181,11 @@ write_buffer(ps_t *dev)
     wchar_t path[1024];
     FILE *fp;
 
+    if (dev->buffer[0] == 0)
+	return;
+
     if (dev->filename[0] == 0)
-    {
 	plat_tempfile(dev->filename, NULL, L".ps");
-    }
 
     path[0] = 0;
     wcscat(path, dev->printer_path);
@@ -194,7 +197,7 @@ write_buffer(ps_t *dev)
 
     fseek(fp, 0, SEEK_END);
 
-    fprintf(fp, "%s65536\n", dev->buffer);
+    fprintf(fp, "%.*s\n", POSTSCRIPT_BUFFER_LENGTH, dev->buffer);
 
     fclose(fp);
 
@@ -206,8 +209,6 @@ static void
 timeout_timer(void *priv)
 {
     ps_t *dev = (ps_t *) priv;
-
-    if (dev == NULL) return;
 
     write_buffer(dev);
     finish_document(dev);
@@ -234,25 +235,20 @@ ps_write_ctrl(uint8_t val, void *p)
 
     dev->autofeed = val & 0x02 ? true : false;
 
-    if (val & 0x08)
-    {
+    if (val & 0x08) {
 	dev->select = true;
     }
 
-    if((val & 0x04) && !(dev->ctrl & 0x04))
-    {
+    if((val & 0x04) && !(dev->ctrl & 0x04)) {
 	// reset printer
 	dev->select = false;
 
 	reset_ps(dev);
     }
 
-    if(!(val & 0x01) && (dev->ctrl & 0x01))
-    {
-	if (dev->data < 0x20 && dev->data != '\t')
-	{
-		switch (dev->data)
-		{
+    if(!(val & 0x01) && (dev->ctrl & 0x01)) {
+	if (dev->data < 0x20 && dev->data != '\t') {
+		switch (dev->data) {
 			case '\b':
 				dev->buffer[dev->buffer_pos--] = 0;
 				break;
@@ -313,12 +309,9 @@ ghostscript_init()
 	return;
     }
 
-    if (ghostscript_revision(&rev, sizeof(rev)) == 0)
-    {
+    if (ghostscript_revision(&rev, sizeof(rev)) == 0) {
 	pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
-    }
-    else
-    {
+    } else {
 	ghostscript_handle = NULL;
     }
 }
@@ -358,8 +351,7 @@ ps_close(void *p)
 
     if (dev == NULL) return;
 
-    if (dev->buffer[0] != 0)
-    {
+    if (dev->buffer[0] != 0) {
 	write_buffer(dev);
 	finish_document(dev);
     }
