@@ -1,50 +1,32 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *		This file is part of the 86Box distribution.
  *
  *		Implementation of the Teledisk floppy image format.
  *
- * Version:	@(#)fdd_td0.c	1.0.8	2018/10/24
+ * Version:	@(#)fdd_td0.c	1.0.9	2019/12/05
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Milodrag Milanovic,
+ * Authors:	Milodrag Milanovic,
  *		Haruhiko OKUMURA,
  *		Haruyasu YOSHIZAKI,
  *		Kenji RIKITAKE,
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Based on Japanese version 29-NOV-1988
  *		LZSS coded by Haruhiko OKUMURA
  *		Adaptive Huffman Coding coded by Haruyasu YOSHIZAKI
  *		Edited and translated to English by Kenji RIKITAKE
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2013-2018 Milodrag Milanovic.
- *		Copyright 1988-2018 Haruhiko OKUMURA.
- *		Copyright 1988-2018 Haruyasu YOSHIZAKI.
- *		Copyright 1988-2018 Kenji RIKITAKE.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free  Software  Foundation; either  version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is  distributed in the hope that it will be useful, but
- * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
- * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the:
- *
- *   Free Software Foundation, Inc.
- *   59 Temple Place - Suite 330
- *   Boston, MA 02111-1307
- *   USA.
+ *		Copyright 2013-2019 Milodrag Milanovic.
+ *		Copyright 1988-2019 Haruhiko OKUMURA.
+ *		Copyright 1988-2019 Haruyasu YOSHIZAKI.
+ *		Copyright 1988-2019 Kenji RIKITAKE.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -57,6 +39,7 @@
 #include "../timer.h"
 #include "../plat.h"
 #include "fdd.h"
+#include "fdd_86f.h"
 #include "fdd_td0.h"
 #include "fdc.h"
 
@@ -113,8 +96,8 @@ typedef struct {
     uint8_t	head;
     uint8_t	sector;
     uint8_t	size;
-    uint8_t	deleted;
-    uint8_t	bad_crc;
+    uint8_t	flags;
+    uint8_t	fm;
     uint8_t	*data;
 } td0_sector_t;
 
@@ -127,6 +110,7 @@ typedef struct {
     uint16_t	disk_flags;
     uint16_t	default_track_flags;
     uint16_t	side_flags[256][2];
+    uint8_t	max_sector_size;
     uint8_t	track_in_file[256][2];
     td0_sector_t sects[256][2][256];
     uint8_t	track_spt[256][2];
@@ -618,7 +602,7 @@ td0_initialize(int drive)
     int fm, head, track;
     int track_count = 0;
     int head_count = 0;
-    int track_spt;
+    int track_spt, track_spt_adjusted;
     int offset = 0;
     int density = 0;
     int temp_rate = 0;
@@ -629,12 +613,14 @@ td0_initialize(int drive)
     uint16_t size;
     uint8_t *dbuf = dev->processed_buf;
     uint32_t total_size = 0;
+    uint32_t id_field = 0;
     uint32_t pre_sector = 0;
-    uint32_t track_size = 0;
-    uint32_t raw_tsize = 0;
+    int32_t track_size = 0;
+    int32_t raw_tsize = 0;
     uint32_t minimum_gap3 = 0;
     uint32_t minimum_gap4 = 0;
     int i, j, k;
+    int size_diff, gap_sum;
 
     if (dev->f == NULL) {
 	td0_log("TD0: Attempted to initialize without loading a file first\n");
@@ -699,19 +685,23 @@ td0_initialize(int drive)
 	case 2:		/* 5.25" 1.2M			360 rpm */
 	case 5:		/* 8"/5.25"/3.5" 1.25M		360 rpm */
 		dev->default_track_flags = (density == 1) ? 0x20 : 0x21;
+		dev->max_sector_size = (density == 1) ? 6 : 5;		/* 8192 or 4096 bytes. */
 		break;
 
 	case 1:		/* 5.25" 360k:			300 rpm */
 	case 3:		/* 3.5" 720k:			300 rpm */
 		dev->default_track_flags = 0x02;
+		dev->max_sector_size = 5;				/* 4096 bytes. */
 		break;
 
 	case 4:		/* 3.5" 1.44M:			300 rpm */
 		dev->default_track_flags = (density == 1) ? 0x00 : 0x02;
+		dev->max_sector_size = (density == 1) ? 6 : 5;		/* 8192 or 4096 bytes. */
 		break;
 
 	case 6:		/* 3.5" 2.88M:			300 rpm */
 		dev->default_track_flags = (density == 1) ? 0x00 : ((density == 2) ? 0x03 : 0x02);
+		dev->max_sector_size = (density == 1) ? 6 : ((density == 2) ? 7 : 5);	/* 16384, 8192, or 4096 bytes. */
 		break;
     }
 
@@ -728,6 +718,8 @@ td0_initialize(int drive)
     }
 
     while (track_spt != 255) {
+	track_spt_adjusted = track_spt;
+
 	track = dev->imagebuf[offset + 1];
 	head = dev->imagebuf[offset + 2] & 1;
 	fm = (header[5] & 0x80) || (dev->imagebuf[offset + 2] & 0x80); /* ? */
@@ -735,7 +727,11 @@ td0_initialize(int drive)
 	dev->track_in_file[track][head] = 1;
 	offset += 4;
 	track_size = fm ? 73 : 146;
-	pre_sector = fm ? 42 : 60;
+	if (density == 2)
+		id_field = fm ? 54 : 63;
+	else
+		id_field = fm ? 35 : 44;
+	pre_sector = id_field + (fm ? 7 : 16);
 
 	for (i = 0; i < track_spt; i++) {
 		hs = &dev->imagebuf[offset];
@@ -745,8 +741,8 @@ td0_initialize(int drive)
 		dev->sects[track][head][i].head	= hs[1];
 		dev->sects[track][head][i].sector = hs[2];
 		dev->sects[track][head][i].size	= hs[3];
-		dev->sects[track][head][i].deleted = (hs[4] & 4) == 4;
-		dev->sects[track][head][i].bad_crc = (hs[4] & 2) == 2;
+		dev->sects[track][head][i].flags = hs[4];
+		dev->sects[track][head][i].fm = !!fm;
 		dev->sects[track][head][i].data	= dbuf;
 
 		size = 128 << hs[3];
@@ -755,9 +751,9 @@ td0_initialize(int drive)
 			return(0);
 		}
 
-		if (hs[4] & 0x30) {
-			memset(dbuf, 0, size);
-		} else {
+		if (hs[4] & 0x30)
+			memset(dbuf, (hs[4] & 0x10) ? 0xf6 : 0x00, size);
+		else {
 			offset += 3;
 			switch (hs[8]) {
 				default:
@@ -807,7 +803,18 @@ td0_initialize(int drive)
 
 		dbuf += size;
 		total_size += size;
-		track_size += (pre_sector + size + 2);
+
+		if (hs[4] & 0x20) {
+			track_size += id_field;
+			track_spt_adjusted--;
+		} else if (hs[4] & 0x40)
+			track_size += (pre_sector - id_field + size + 2);
+		else {
+			if ((hs[4] & 0x02) || (hs[3] > (dev->max_sector_size - fm)))
+				track_size += (pre_sector + 3);
+			else
+				track_size += (pre_sector + size + 2);
+		}
 	}
 
 	if (track > track_count)
@@ -816,24 +823,26 @@ td0_initialize(int drive)
 	if (track_spt != 255) {
 		dev->track_spt[track][head] = track_spt;
 
-		if ((dev->track_spt[track][head] == 8) && (dev->sects[track][head][0].size == 3)) {
-			dev->side_flags[track][head] |= 0x20;
-		}
+		if ((dev->track_spt[track][head] == 8) && (dev->sects[track][head][0].size == 3))
+			dev->side_flags[track][head] = (dev->side_flags[track][head] & ~0x67) | 0x20;
 
 		raw_tsize = get_raw_tsize(dev->side_flags[track][head], 0);
-		minimum_gap3 = 12 * track_spt;
-		if ((raw_tsize - track_size + (fm ? 73 : 146)) < (minimum_gap3 + minimum_gap4)) {
+		minimum_gap3 = 12 * track_spt_adjusted;
+		size_diff = raw_tsize - track_size;
+		gap_sum = minimum_gap3 + minimum_gap4;
+		if (size_diff < gap_sum) {
 			/* If we can't fit the sectors with a reasonable minimum gap at perfect RPM, let's try 2% slower. */
 			raw_tsize = get_raw_tsize(dev->side_flags[track][head], 1);
 			/* Set disk flags so that rotation speed is 2% slower. */
 			dev->disk_flags |= (3 << 5);
-			if ((raw_tsize - track_size + (fm ? 73 : 146)) < (minimum_gap3 + minimum_gap4)) {
+			size_diff = raw_tsize - track_size;
+			if (size_diff < gap_sum) {
 				/* If we can't fit the sectors with a reasonable minimum gap even at 2% slower RPM, abort. */
-				td0_log("TD0: Unable to fit the %i sectors in a track\n", track_spt);
+				td0_log("TD0: Unable to fit the %i sectors in a track\n", track_spt_adjusted);
 				return 0;
 			}
 		}
-		dev->calculated_gap3_lengths[track][head] = (raw_tsize - track_size - minimum_gap4 + (fm ? 73 : 146)) / track_spt;
+		dev->calculated_gap3_lengths[track][head] = (size_diff - minimum_gap4) / track_spt_adjusted;
 
 		track_spt = dev->imagebuf[offset];
 	}
@@ -1046,6 +1055,7 @@ td0_seek(int drive, int track)
     int ordered_pos = 0;
     int real_sector = 0;
     int actual_sector = 0;
+    int fm;
 
     if (dev->f == NULL) return;
 
@@ -1101,8 +1111,12 @@ td0_seek(int drive, int track)
 			id[1] = dev->sects[track][side][actual_sector].head;
 			id[2] = real_sector;
 			id[3] = dev->sects[track][side][actual_sector].size;
-			ssize = 128 << ((uint32_t) dev->sects[track][side][actual_sector].size);
-			current_pos = d86f_prepare_sector(drive, side, current_pos, id, dev->sects[track][side][actual_sector].data, ssize, track_gap2, track_gap3, dev->sects[track][side][actual_sector].deleted, dev->sects[track][side][actual_sector].bad_crc);
+			fm = dev->sects[track][side][actual_sector].fm;
+			if (((dev->sects[track][side][actual_sector].flags & 0x02) || (id[3] > (dev->max_sector_size - fm))) && !fdd_get_turbo(drive))
+				ssize = 3;
+			else
+				ssize = 128 << ((uint32_t) id[3]);
+			current_pos = d86f_prepare_sector(drive, side, current_pos, id, dev->sects[track][side][actual_sector].data, ssize, track_gap2, track_gap3, dev->sects[track][side][actual_sector].flags);
 
 			if (sector == 0)
 				d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
@@ -1116,13 +1130,16 @@ td0_seek(int drive, int track)
 			id[1] = side;
 			id[2] = xdf_disk_layout[xdf_type][is_trackx][xdf_sector].id.r;
 			id[3] = is_trackx ? (id[2] & 7) : 2;
-			ssize = 128 << ((uint32_t) id[3]);
 			ordered_pos = dev->xdf_ordered_pos[id[2]][side];
-			if (is_trackx) {
-				current_pos = d86f_prepare_sector(drive, side, xdf_trackx_spos[xdf_type][xdf_sector], id, dev->sects[track][side][ordered_pos].data, ssize, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], dev->sects[track][side][ordered_pos].deleted, dev->sects[track][side][ordered_pos].bad_crc);
-			} else {
-				current_pos = d86f_prepare_sector(drive, side, current_pos, id, dev->sects[track][side][ordered_pos].data, ssize, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], dev->sects[track][side][ordered_pos].deleted, dev->sects[track][side][ordered_pos].bad_crc);
-			}
+			fm = dev->sects[track][side][ordered_pos].fm;
+			if (((dev->sects[track][side][ordered_pos].flags & 0x02) || (id[3] > (dev->max_sector_size - fm))) && !fdd_get_turbo(drive))
+				ssize = 3;
+			else
+				ssize = 128 << ((uint32_t) id[3]);
+			if (is_trackx)
+				current_pos = d86f_prepare_sector(drive, side, xdf_trackx_spos[xdf_type][xdf_sector], id, dev->sects[track][side][ordered_pos].data, ssize, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], dev->sects[track][side][ordered_pos].flags);
+			else
+				current_pos = d86f_prepare_sector(drive, side, current_pos, id, dev->sects[track][side][ordered_pos].data, ssize, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], dev->sects[track][side][ordered_pos].flags);
 
 			if (sector == 0)
 				d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
