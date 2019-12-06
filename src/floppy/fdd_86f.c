@@ -10,7 +10,7 @@
  *		data in the form of FM/MFM-encoded transitions) which also
  *		forms the core of the emulator's floppy disk emulation.
  *
- * Version:	@(#)fdd_86f.c	1.0.19	2019/12/05
+ * Version:	@(#)fdd_86f.c	1.0.20	2019/12/06
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -1260,18 +1260,19 @@ d86f_word_is_aligned(int drive, int side, uint32_t base_pos)
     d86f_t *dev = d86f[drive];
     uint32_t adjusted_track_pos = dev->track_pos;
 
-    if (base_pos == 0xFFFFFFFF) return 0;
+    if (base_pos == 0xFFFFFFFF)
+	return 0;
 
     /*
      * This is very important, it makes sure alignment is detected
      * correctly even across the index hole of a track whose length
      * is not divisible by 16.
      */
-    if (adjusted_track_pos < base_pos) {
+    if (adjusted_track_pos < base_pos)
 	adjusted_track_pos += d86f_handler[drive].get_raw_size(drive, side);
-    }
 
-    if ((adjusted_track_pos & 15) == (base_pos & 15)) return 1;
+    if ((adjusted_track_pos & 15) == (base_pos & 15))
+	return 1;
 
     return 0;
 }
