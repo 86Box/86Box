@@ -8,7 +8,7 @@
  *
  *		Implementation of the Teledisk floppy image format.
  *
- * Version:	@(#)fdd_td0.c	1.0.9	2019/12/05
+ * Version:	@(#)fdd_td0.c	1.0.10	2019/12/06
  *
  * Authors:	Milodrag Milanovic,
  *		Haruhiko OKUMURA,
@@ -808,7 +808,7 @@ td0_initialize(int drive)
 			track_size += id_field;
 			track_spt_adjusted--;
 		} else if (hs[4] & 0x40)
-			track_size += (pre_sector - id_field + size + 2);
+			track_size += (pre_sector - id_field + 3);
 		else {
 			if ((hs[4] & 0x02) || (hs[3] > (dev->max_sector_size - fm)))
 				track_size += (pre_sector + 3);
@@ -836,9 +836,9 @@ td0_initialize(int drive)
 			/* Set disk flags so that rotation speed is 2% slower. */
 			dev->disk_flags |= (3 << 5);
 			size_diff = raw_tsize - track_size;
-			if (size_diff < gap_sum) {
+			if ((size_diff < gap_sum) && !fdd_get_turbo(drive)) {
 				/* If we can't fit the sectors with a reasonable minimum gap even at 2% slower RPM, abort. */
-				td0_log("TD0: Unable to fit the %i sectors in a track\n", track_spt_adjusted);
+				td0_log("TD0: Unable to fit the %i sectors into drive %i, track %i, side %i\n", track_spt_adjusted, drive, track, head);
 				return 0;
 			}
 		}
@@ -1055,7 +1055,7 @@ td0_seek(int drive, int track)
     int ordered_pos = 0;
     int real_sector = 0;
     int actual_sector = 0;
-    int fm;
+    int fm, sector_adjusted;
 
     if (dev->f == NULL) return;
 
@@ -1083,8 +1083,11 @@ td0_seek(int drive, int track)
 
     for (side = 0; side < dev->sides; side++) {
 	track_rate = dev->current_side_flags[side] & 7;
+	/* Make sure 300 kbps @ 360 rpm is treated the same as 250 kbps @ 300 rpm. */
 	if (!track_rate && (dev->current_side_flags[side] & 0x20))
 		track_rate = 4;
+	if ((dev->current_side_flags[side] & 0x27) == 0x21)
+		track_rate = 2;
 	track_gap3 = gap3_sizes[track_rate][dev->sects[track][side][0].size][dev->track_spt[track][side]];
 	if (! track_gap3)
 		track_gap3 = dev->calculated_gap3_lengths[track][side];
@@ -1096,6 +1099,7 @@ td0_seek(int drive, int track)
 	interleave_type = track_is_interleave(drive, side, track);
 
 	current_pos = d86f_prepare_pretrack(drive, side, 0);
+	sector_adjusted = 0;
 
 	if (! xdf_type) {
 		for (sector = 0; sector < dev->track_spt[track][side]; sector++) {
@@ -1112,14 +1116,17 @@ td0_seek(int drive, int track)
 			id[2] = real_sector;
 			id[3] = dev->sects[track][side][actual_sector].size;
 			fm = dev->sects[track][side][actual_sector].fm;
-			if (((dev->sects[track][side][actual_sector].flags & 0x02) || (id[3] > (dev->max_sector_size - fm))) && !fdd_get_turbo(drive))
+			if (((dev->sects[track][side][actual_sector].flags & 0x42) || (id[3] > (dev->max_sector_size - fm))) && !fdd_get_turbo(drive))
 				ssize = 3;
 			else
 				ssize = 128 << ((uint32_t) id[3]);
 			current_pos = d86f_prepare_sector(drive, side, current_pos, id, dev->sects[track][side][actual_sector].data, ssize, track_gap2, track_gap3, dev->sects[track][side][actual_sector].flags);
 
-			if (sector == 0)
+			if (sector_adjusted == 0)
 				d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
+
+			if (!(dev->sects[track][side][actual_sector].flags & 0x40))
+				sector_adjusted++;
 		}
 	} else {
 		xdf_type--;
@@ -1132,7 +1139,7 @@ td0_seek(int drive, int track)
 			id[3] = is_trackx ? (id[2] & 7) : 2;
 			ordered_pos = dev->xdf_ordered_pos[id[2]][side];
 			fm = dev->sects[track][side][ordered_pos].fm;
-			if (((dev->sects[track][side][ordered_pos].flags & 0x02) || (id[3] > (dev->max_sector_size - fm))) && !fdd_get_turbo(drive))
+			if (((dev->sects[track][side][ordered_pos].flags & 0x42) || (id[3] > (dev->max_sector_size - fm))) && !fdd_get_turbo(drive))
 				ssize = 3;
 			else
 				ssize = 128 << ((uint32_t) id[3]);
@@ -1141,8 +1148,11 @@ td0_seek(int drive, int track)
 			else
 				current_pos = d86f_prepare_sector(drive, side, current_pos, id, dev->sects[track][side][ordered_pos].data, ssize, track_gap2, xdf_gap3_sizes[xdf_type][is_trackx], dev->sects[track][side][ordered_pos].flags);
 
-			if (sector == 0)
+			if (sector_adjusted == 0)
 				d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
+
+			if (!(dev->sects[track][side][ordered_pos].flags & 0x40))
+				sector_adjusted++;
 		}
 	}
     }
