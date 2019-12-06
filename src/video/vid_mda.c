@@ -8,13 +8,13 @@
  *
  *		MDA emulation.
  *
- * Version:	@(#)vid_mda.c	1.0.13	2019/09/03
+ * Version:	@(#)vid_mda.c	1.0.14	2019/11/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -114,7 +114,7 @@ void mda_poll(void *p)
         int blink;
         if (!mda->linepos)
         {
-				timer_advance_u64(&mda->timer, mda->dispofftime);
+		timer_advance_u64(&mda->timer, mda->dispofftime);
                 mda->stat |= 1;
                 mda->linepos = 1;
                 oldsc = mda->sc;
@@ -125,6 +125,7 @@ void mda_poll(void *p)
                         if (mda->displine < mda->firstline)
                         {
                                 mda->firstline = mda->displine;
+                                video_wait_for_buffer();
                         }
                         mda->lastline = mda->displine;
                         for (x = 0; x < mda->crtc[1]; x++)

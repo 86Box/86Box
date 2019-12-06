@@ -8,7 +8,7 @@
  *
  *		Implementation of a generic PostScript printer.
  *
- * Version:	@(#)prt_ps.c	1.0.0	2019/xx/xx
+ * Version:	@(#)prt_ps.c	1.0.1	2019/12/06
  *
  * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
  *
@@ -145,7 +145,7 @@ convert_to_pdf(ps_t *dev)
     code = ghostscript_set_arg_encoding(instance, GS_ARG_ENCODING_UTF16LE);
 
     if (code == 0)
-	code = ghostscript_init_with_args(instance, 9, gsargv);
+	code = ghostscript_init_with_args(instance, 9, (char **) gsargv);
 
     if (code == 0 || code == gs_error_Quit)
 	code = ghostscript_exit(instance);
