@@ -40,7 +40,7 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.34	2019/10/20
+ * Version:	@(#)video.c	1.0.35	2019/12/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -72,6 +72,7 @@
 
 volatile int	screenshots = 0;
 bitmap_t	*buffer32 = NULL;
+bitmap_t	*render_buffer = NULL;
 uint8_t		fontdat[2048][8];		/* IBM CGA font */
 uint8_t		fontdatm[2048][16];		/* IBM MDA font */
 uint8_t		fontdatw[512][32];		/* Wyse700 font */
@@ -381,10 +382,7 @@ video_take_screenshot(const wchar_t *fn, int startx, int starty, int w, int h)
     for (y = 0; y < h; ++y) {
 	b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr, info_ptr));
     	for (x = 0; x < w; ++x) {
-		if (video_grayscale || invert_display)
-			video_transform_copy(&temp, &(buffer32->line[y + starty][x + startx]), 1);
-		else
-			temp = buffer32->line[y + starty][x + startx];
+		temp = render_buffer->line[y + starty][x + startx];
 
 		b_rgb[y][(x) * 3 + 0] = (temp >> 16) & 0xff;
 		b_rgb[y][(x) * 3 + 1] = (temp >> 8) & 0xff;
@@ -433,11 +431,37 @@ video_screenshot(int x, int y, int w, int h)
 }
 
 
+static void
+video_transform_copy(uint32_t *dst, uint32_t *src, int len)
+{
+    int i;
+
+    for (i = 0; i < len; i++) {
+	*dst = video_color_transform(*src);
+	dst++;
+	src++;
+    }
+}
+
+
 void
 video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
+    int yy;
+
+    if ((w > 0) && (h > 0)) {
+	for (yy = 0; yy < h; yy++) {
+		if (((y + yy) >= 0) && ((y + yy) < buffer32->h)) {
+			if (video_grayscale || invert_display)
+				video_transform_copy(&(render_buffer->line[y + yy][x]), &(buffer32->line[y + yy][x]), w);
+			else
+				memcpy(&(render_buffer->line[y + yy][x]), &(buffer32->line[y + yy][x]), w << 2);
+		}
+	}
+    }
+
     if (screenshots) {
-	if (buffer32 != NULL)
+	if (render_buffer != NULL)
 		video_screenshot(x, y, w, h);
 	screenshots--;
 	video_log("screenshot taken, %i left\n", screenshots);
@@ -520,17 +544,15 @@ video_blit_memtoscreen_8(int x, int y, int y1, int y2, int w, int h)
 {
     int yy, xx;
 
-    if (h <= 0) return;
-
-    for (yy = 0; yy < h; yy++)
-    {
-	if ((y + yy) >= 0 && (y + yy) < buffer32->h)
-	{
-		for (xx = 0; xx < w; xx++) {
-			if (buffer32->line[y + yy][x + xx] <= 0xff)
-				buffer32->line[y + yy][x + xx] = pal_lookup[buffer32->line[y + yy][x + xx]];
-			else
-				buffer32->line[y + yy][x + xx] = 0x00000000;
+    if ((w > 0) && (h > 0)) {
+	for (yy = 0; yy < h; yy++) {
+		if ((y + yy) >= 0 && (y + yy) < buffer32->h) {
+			for (xx = 0; xx < w; xx++) {
+				if (buffer32->line[y + yy][x + xx] <= 0xff)
+					buffer32->line[y + yy][x + xx] = pal_lookup[buffer32->line[y + yy][x + xx]];
+				else
+					buffer32->line[y + yy][x + xx] = 0x00000000;
+			}
 		}
 	}
     }
@@ -555,7 +577,7 @@ cgapal_rebuild(void)
 
     if ((cga_palette > 1) && (cga_palette < 8)) {
 	if (vid_cga_contrast != 0) {
-		for (c=0; c<16; c++) {
+		for (c = 0; c < 16; c++) {
 			pal_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r],
 						video_6to8[cgapal_mono[cga_palette - 2][c].g],
 						video_6to8[cgapal_mono[cga_palette - 2][c].b]);
@@ -570,7 +592,7 @@ cgapal_rebuild(void)
 						   video_6to8[cgapal_mono[cga_palette - 2][c].b]);
 		}
 	} else {
-		for (c=0; c<16; c++) {
+		for (c = 0; c < 16; c++) {
 			pal_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r],
 						video_6to8[cgapal_mono[cga_palette - 1][c].g],
 						video_6to8[cgapal_mono[cga_palette - 1][c].b]);
@@ -788,8 +810,8 @@ video_init(void)
     }
 
     /* Account for overscan. */
-    // buffer32 = create_bitmap(2048 + 64, 2048 + 64);
-    buffer32 = create_bitmap(4096 + 64, 4096 + 64);
+    buffer32 = create_bitmap(2048 + 64, 2048 + 64);
+    render_buffer = create_bitmap(2048 + 64, 2048 + 64);
 
     for (c = 0; c < 64; c++) {
 	cgapal[c + 64].r = (((c & 4) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
@@ -855,6 +877,7 @@ video_close(void)
     free(video_8togs);
     free(video_6to8);
 
+    destroy_bitmap(render_buffer);
     destroy_bitmap(buffer32);
 
     if (fontdatksc5601) {
@@ -1038,16 +1061,4 @@ video_color_transform(uint32_t color)
     if (invert_display)
 	color ^= 0x00ffffff;
     return color;
-}
-
-void
-video_transform_copy(uint32_t *dst, uint32_t *src, int len)
-{
-    int i;
-
-    for (i = 0; i < len; i++) {
-	*dst = video_color_transform(*src);
-	dst++;
-	src++;
-    }
 }

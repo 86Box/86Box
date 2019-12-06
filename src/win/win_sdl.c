@@ -12,7 +12,7 @@
  *		we will not use that, but, instead, use a new window which
  *		coverrs the entire desktop.
  *
- * Version:	@(#)win_sdl.c  	1.0.9	2019/12/05
+ * Version:	@(#)win_sdl.c  	1.0.10	2019/12/06
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Michael Drüing, <michael@drueing.de>
@@ -187,7 +187,7 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
 	return;
     }
 
-    if (buffer32 == NULL) {
+    if (render_buffer == NULL) {
 	video_blit_complete();
 	return;
     }
@@ -202,12 +202,8 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
     SDL_LockTexture(sdl_tex, 0, &pixeldata, &pitch);
 
     for (yy = y1; yy < y2; yy++) {
-       	if ((y + yy) >= 0 && (y + yy) < buffer32->h) {
-		if (video_grayscale || invert_display)
-			video_transform_copy((uint32_t *) &(((uint8_t *)pixeldata)[yy * pitch]), &(buffer32->line[y + yy][x]), w);
-		else
-			memcpy((uint32_t *) &(((uint8_t *)pixeldata)[yy * pitch]), &(buffer32->line[y + yy][x]), w * 4);
-	}
+       	if ((y + yy) >= 0 && (y + yy) < render_buffer->h)
+		memcpy((uint32_t *) &(((uint8_t *)pixeldata)[yy * pitch]), &(render_buffer->line[y + yy][x]), w * 4);
     }
 
     video_blit_complete();
@@ -290,6 +286,23 @@ sdl_close(void)
 static int old_capture = 0;
 
 
+static void
+sdl_select_best_hw_driver(void)
+{
+    int i;
+    SDL_RendererInfo renderInfo;
+
+    for (i = 0; i < SDL_GetNumRenderDrivers(); ++i)
+    {
+	SDL_GetRenderDriverInfo(i, &renderInfo);
+	if (renderInfo.flags & SDL_RENDERER_ACCELERATED) {
+		SDL_SetHint(SDL_HINT_RENDER_DRIVER, renderInfo.name);
+		return;
+	}
+    }
+}
+
+
 static int
 sdl_init_common(int flags)
 {
@@ -311,8 +324,7 @@ sdl_init_common(int flags)
     }
 
     if (flags & RENDERER_HARDWARE)
-	SDL_SetHint(SDL_HINT_RENDER_DRIVER, "direct3d");
-	/* TODO: why is this necessary to avoid black screen on Win7/8/10? */
+	sdl_select_best_hw_driver();
 
     if (flags & RENDERER_FULL_SCREEN) {
 	/* Get the size of the (current) desktop. */

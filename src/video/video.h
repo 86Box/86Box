@@ -8,15 +8,15 @@
  *
  *		Definitions for the video controller module.
  *
- * Version:	@(#)video.h	1.0.36	2018/10/28
+ * Version:	@(#)video.h	1.0.37	2019/12/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #ifndef EMU_VIDEO_H
 # define EMU_VIDEO_H
@@ -84,7 +84,7 @@ extern int	egareads,
 extern int	changeframecount;
 
 extern volatile int screenshots;
-extern bitmap_t	*buffer32;
+extern bitmap_t	*buffer32, *render_buffer;
 extern PALETTE	cgapal,
 		cgapal_mono[6];
 extern uint32_t	pal_lookup[256];
@@ -184,7 +184,6 @@ extern void	svga_dump_vram(void);
 #endif
 
 extern uint32_t	video_color_transform(uint32_t color);
-extern void	video_transform_copy(uint32_t *dst, uint32_t *src, int len);
 
 #ifdef __cplusplus
 }

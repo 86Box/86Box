@@ -8,7 +8,7 @@
  *
  *		Rendering module for Microsoft Direct2D.
  *
- * Version:	@(#)win_d2d.cpp	1.0.4	2019/10/12
+ * Version:	@(#)win_d2d.cpp	1.0.5	2019/12/06
  *
  * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
  *
@@ -221,29 +221,23 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 		return;
 	}
 
-	if (buffer32 == NULL) {
+	if (render_buffer == NULL) {
 		video_blit_complete();
 		return;
 	}
 
-	// TODO: Copy data directly from buffer32 to d2d_bitmap
+	// TODO: Copy data directly from render_buffer to d2d_bitmap
 
 	srcdata = malloc(h * w * 4);
 
 	for (yy = y1; yy < y2; yy++)
 	{
-		if ((y + yy) >= 0 && (y + yy) < buffer32->h)
+		if ((y + yy) >= 0 && (y + yy) < render_buffer->h)
 		{
-			if (video_grayscale || invert_display)
-				video_transform_copy(
-					(uint32_t *) &(((uint8_t *)srcdata)[yy * w * 4]),
-					&(buffer32->line[y + yy][x]),
-					w);
-			else
-				memcpy(
-					(uint32_t *) &(((uint8_t *)srcdata)[yy * w * 4]),
-					&(buffer32->line[y + yy][x]),
-					w * 4);
+			memcpy(
+				(uint32_t *) &(((uint8_t *)srcdata)[yy * w * 4]),
+				&(render_buffer->line[y + yy][x]),
+				w * 4);
 		}
 	}
 
