@@ -8,7 +8,7 @@
  *
  *		Implementation of a generic PostScript printer.
  *
- * Version:	@(#)prt_ps.c	1.0.1	2019/12/06
+ * Version:	@(#)prt_ps.c	1.0.2	2019/12/08
  *
  * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
  *
