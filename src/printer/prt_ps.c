@@ -93,7 +93,9 @@ typedef struct
 static void
 reset_ps(ps_t *dev)
 {
-    if (dev == NULL) return;
+    if (dev == NULL) { 
+	return;
+    }
 
     dev->ack = false;
 
@@ -143,25 +145,29 @@ convert_to_pdf(ps_t *dev)
     gsargv[8] = input_fn;
 
     code = ghostscript_new_instance(&instance, dev);
-    if(code < 0)
+    if (code < 0) {
 	return code;
+    }
 
     code = ghostscript_set_arg_encoding(instance, GS_ARG_ENCODING_UTF16LE);
 
-    if (code == 0)
+    if (code == 0) {
 	code = ghostscript_init_with_args(instance, 9, (char **) gsargv);
+    }
 
-    if (code == 0 || code == gs_error_Quit)
+    if (code == 0 || code == gs_error_Quit) {
 	code = ghostscript_exit(instance);
-    else
+    } else {
 	ghostscript_exit(instance);
+    }
 
     ghostscript_delete_instance(instance);
 
-    if (code == 0)
+    if (code == 0) {
 	plat_remove(input_fn);
-    else
+    } else {
 	plat_remove(output_fn);
+    }
 
     return code;
 }
@@ -169,35 +175,39 @@ convert_to_pdf(ps_t *dev)
 static void
 finish_document(ps_t *dev)
 {
-    if (ghostscript_handle != NULL)
+    if (ghostscript_handle != NULL) {
 	convert_to_pdf(dev);
+    }
 
     dev->filename[0] = 0;
 }
 
 static void
-write_buffer(ps_t *dev)
+write_buffer(ps_t *dev, bool newline)
 {
     wchar_t path[1024];
     FILE *fp;
 
-    if (dev->buffer[0] == 0)
+    if (dev->buffer[0] == 0) {
 	return;
+    }
 
-    if (dev->filename[0] == 0)
+    if (dev->filename[0] == 0) {
 	plat_tempfile(dev->filename, NULL, L".ps");
+    }
 
     path[0] = 0;
     wcscat(path, dev->printer_path);
     wcscat(path, dev->filename);
 
     fp = plat_fopen(path, L"a");
-    if (fp == NULL)
+    if (fp == NULL) {
 	return;
+    }
 
     fseek(fp, 0, SEEK_END);
 
-    fprintf(fp, "%.*s\n", POSTSCRIPT_BUFFER_LENGTH, dev->buffer);
+    fprintf(fp, "%.*s%s", POSTSCRIPT_BUFFER_LENGTH, dev->buffer, newline ? "\n" : "");
 
     fclose(fp);
 
@@ -210,7 +220,7 @@ timeout_timer(void *priv)
 {
     ps_t *dev = (ps_t *) priv;
 
-    write_buffer(dev);
+    write_buffer(dev, false);
     finish_document(dev);
 
     timer_disable(&dev->timeout_timer);
@@ -221,9 +231,57 @@ ps_write_data(uint8_t val, void *p)
 {
     ps_t *dev = (ps_t *) p;
 
-    if (dev == NULL) return;
+    if (dev == NULL) { 
+	return;
+    }
 
     dev->data = (char) val;
+}
+
+static bool
+process_nonprintable(ps_t *dev)
+{
+	switch (dev->data) {
+		case '\b':
+			dev->buffer_pos--;
+			break;
+		case '\r':
+			dev->buffer_pos = 0;
+			if (dev->autofeed)
+				write_buffer(dev, true);
+			break;
+		case '\n':
+			write_buffer(dev, true);
+			break;
+		case 0x04:	// Ctrl+D
+			write_buffer(dev, false);
+			finish_document(dev);
+			break;
+		
+		/* Characters that should be written to the buffer as-is */
+		case '\t':
+		case '\v':
+			return false;
+	}
+
+	return true;
+}
+
+static void
+process_data(ps_t *dev)
+{
+    if (dev->data < 0x20 || dev->data == 0x7F) {
+	if (process_nonprintable(dev)) {
+		return;
+	}
+    }
+
+    if (dev->buffer_pos == POSTSCRIPT_BUFFER_LENGTH) {
+	write_buffer(dev, false);
+    }
+
+    dev->buffer[dev->buffer_pos++] = dev->data;
+    dev->buffer[dev->buffer_pos] = 0;
 }
 
 static void
@@ -231,7 +289,9 @@ ps_write_ctrl(uint8_t val, void *p)
 {
     ps_t *dev = (ps_t *) p;
 
-    if (dev == NULL) return;
+    if (dev == NULL) { 
+	return;
+    }
 
     dev->autofeed = val & 0x02 ? true : false;
 
@@ -239,38 +299,15 @@ ps_write_ctrl(uint8_t val, void *p)
 	dev->select = true;
     }
 
-    if((val & 0x04) && !(dev->ctrl & 0x04)) {
+    if ((val & 0x04) && !(dev->ctrl & 0x04)) {
 	// reset printer
 	dev->select = false;
 
 	reset_ps(dev);
     }
 
-    if(!(val & 0x01) && (dev->ctrl & 0x01)) {
-	if (dev->data < 0x20 && dev->data != '\t') {
-		switch (dev->data) {
-			case '\b':
-				dev->buffer[dev->buffer_pos--] = 0;
-				break;
-			case '\r':
-				dev->buffer_pos = 0;
-				if(!dev->autofeed)
-					break;
-				// fallthrough
-			case '\n':
-				write_buffer(dev);
-				break;
-			case 0x04:	// Ctrl+D
-				write_buffer(dev);
-				finish_document(dev);
-				break;
-		}
-	}
-	else
-	{
-		dev->buffer[dev->buffer_pos++] = dev->data;
-		dev->buffer[dev->buffer_pos] = 0;
-	}
+    if (!(val & 0x01) && (dev->ctrl & 0x01)) {
+	process_data(dev);
 
 	dev->ack = true;
 
@@ -289,8 +326,9 @@ ps_read_status(void *p)
 
     ret |= 0x80;
 
-    if(!dev->ack)
+    if (!dev->ack) {
 	ret |= 0x40;
+    }
 
     return(ret);
 }
@@ -328,14 +366,16 @@ ps_init(void *lpt)
 
     reset_ps(dev);
 
-    if(! ghostscript_initialized)
+    if (!ghostscript_initialized) {
 	ghostscript_init();
+    }
 
     // Cache print folder path
     memset(dev->printer_path, 0x00, sizeof(dev->printer_path));
     plat_append_filename(dev->printer_path, usr_path, L"printer");
-    if (! plat_dir_check(dev->printer_path))
+    if (!plat_dir_check(dev->printer_path)) {
 	plat_dir_create(dev->printer_path);
+    }
     plat_path_slash(dev->printer_path);
 
     timer_add(&dev->pulse_timer, pulse_timer, dev, 0);
@@ -349,10 +389,12 @@ ps_close(void *p)
 {
     ps_t *dev = (ps_t *) p;
 
-    if (dev == NULL) return;
+    if (dev == NULL) { 
+	return;
+    }
 
     if (dev->buffer[0] != 0) {
-	write_buffer(dev);
+	write_buffer(dev, false);
 	finish_document(dev);
     }
 
