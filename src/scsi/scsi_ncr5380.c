@@ -44,7 +44,8 @@
 
 
 #define LCS6821N_ROM	L"roms/scsi/ncr5380/Longshine LCS-6821N - BIOS version 1.04.bin"
-#define RT1000B_ROM	L"roms/scsi/ncr5380/Rancho_RT1000_RTBios_version_8.10R.bin"
+#define RT1000B_810R_ROM	L"roms/scsi/ncr5380/Rancho_RT1000_RTBios_version_8.10R.bin"
+#define RT1000B_820R_ROM	L"roms/scsi/ncr5380/RTBIOS82.rom"
 #define T130B_ROM	L"roms/scsi/ncr5380/trantor_t130b_bios_v2.14.bin"
 
 
@@ -95,8 +96,12 @@
 typedef struct {	
     uint8_t	icr, mode, tcr, data_wait;
     uint8_t	isr, output_data, target_id, tx_data;
+	uint8_t msglun;
 
     uint8_t	command[20];
+	uint8_t msgout[4];
+	int msgout_pos;
+	int is_msgout;
 
     int		dma_mode, cur_bus, bus_in, new_phase;
     int 	state, clear_req, wait_data, wait_complete;
@@ -116,6 +121,7 @@ typedef struct {
 
     int8_t	irq;
     int8_t	type;
+	int8_t  bios_ver;
     uint8_t	block_count;
     uint8_t	status_ctrl;
     uint8_t	pad[2];
@@ -143,6 +149,8 @@ typedef struct {
 #define STATE_STATUS	4
 #define STATE_MESSAGEIN	5
 #define STATE_SELECT	6
+#define STATE_MESSAGEOUT 7
+#define STATE_MESSAGE_ID 8
 
 #define DMA_IDLE		0
 #define DMA_SEND		1
@@ -189,6 +197,18 @@ get_dev_id(uint8_t data)
     return(-1);
 }
 
+static int 
+getmsglen(uint8_t *msgp, int len)
+{
+	uint8_t msg = msgp[0];
+	if (msg == 0 || (msg >= 0x02 && msg <= 0x1f) ||msg >= 0x80)
+		return 1;
+	if (msg >= 0x20 && msg <= 0x2f)
+		return 2;
+	if (len < 2)
+		return 3;
+	return msgp[1];
+}
 
 static void
 ncr_reset(ncr_t *ncr)
@@ -326,8 +346,11 @@ ncr_bus_read(ncr5380_t *ncr_dev)
 		} else if (phase == SCSI_PHASE_MESSAGE_IN) {
 			ncr->state = STATE_MESSAGEIN;
 			ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(0) | BUS_DBP;
-		} else
-			fatal("Bad new phase: %i\n", phase);
+		} else if (phase == SCSI_PHASE_MESSAGE_OUT) {
+			ncr->cur_bus |= BUS_REQ;
+			ncr->state = STATE_MESSAGEOUT;
+			ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->target_id >> 5) | BUS_DBP;
+		}
 	}
     }
 
@@ -347,6 +370,7 @@ ncr_bus_update(void *priv, int bus)
     scsi_device_t *dev = &scsi_devices[ncr->target_id];
     double p;
     uint8_t sel_data;
+    int msglen;
 
     /*Start the SCSI command layer, which will also make the timings*/
     if (bus & BUS_ARB)
@@ -366,9 +390,13 @@ ncr_bus_update(void *priv, int bus)
 		if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr->target_id])) {
 			ncr->cur_bus |= BUS_BSY;
 			ncr->state = STATE_SELECT;
+		} else {
+			ncr_log("Device not found at ID %i, Current Bus BSY=%02x\n", ncr->target_id, ncr->cur_bus);
+			if (ncr_dev->type == 1 && ncr_dev->bios_ver == 1)
+				ncr->cur_bus = 0;
 		}
-	}
-    } else if (ncr->state == STATE_SELECT) {
+		}
+	} else if (ncr->state == STATE_SELECT) {
 	if (!(bus & BUS_SEL)) {
 		if (!(bus & BUS_ATN)) {
 			if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr->target_id])) {
@@ -383,8 +411,13 @@ ncr_bus_update(void *priv, int bus)
 				ncr->state = STATE_IDLE;
 				ncr->cur_bus = 0;
 			}
-		} else
-			fatal("Dropped selection with ATN\n");
+		} else {
+			ncr_log("Set to SCSI Message Out\n");
+			ncr->new_phase = SCSI_PHASE_MESSAGE_OUT;
+			ncr->wait_data = 4;
+			ncr->msgout_pos = 0;
+			ncr->is_msgout = 1;
+		}
 	}
     } else if (ncr->state == STATE_COMMAND) {
 	if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
@@ -397,6 +430,12 @@ ncr_bus_update(void *priv, int bus)
 		ncr_log("Command pos=%i, output data=%02x\n", ncr->command_pos, BUS_GETDATA(bus));
 
 		if (ncr->command_pos == cmd_len[(ncr->command[0] >> 5) & 7]) {
+			if (ncr->msglun >= 0 && ncr->is_msgout) {
+				ncr->is_msgout = 0;
+				ncr->command[1] &= ~(0x80 | 0x40 | 0x20);
+				ncr->command[1] |= ncr->msglun << 5;
+			}
+			
 			/*Reset data position to default*/
 			ncr->data_pos = 0;
 
@@ -486,7 +525,28 @@ ncr_bus_update(void *priv, int bus)
 		ncr->new_phase = BUS_IDLE;
 		ncr->wait_data = 4;
 	}
-    }
+    } else if (ncr->state == STATE_MESSAGEOUT) {
+	ncr_log("Ack on MSGOUT = %02x\n", (bus & BUS_ACK));
+	if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
+		ncr->msgout[ncr->msgout_pos++] = BUS_GETDATA(bus);
+		msglen = getmsglen(ncr->msgout, ncr->msgout_pos);
+		if (ncr->msgout_pos >= msglen) {
+			if ((ncr->msgout[0] & (0x80 | 0x20)) == 0x80)
+				ncr->msglun = ncr->msgout[0] & 7;			
+			ncr->cur_bus &= ~BUS_REQ;
+			ncr->state = STATE_MESSAGE_ID;
+		}
+	}
+	} else if (ncr->state == STATE_MESSAGE_ID) {
+		if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr->target_id])) {
+			ncr_log("Device found at ID %i on MSGOUT, Current Bus BSY=%02x\n", ncr->target_id, ncr->cur_bus);
+			ncr->state = STATE_COMMAND;
+			ncr->cur_bus = BUS_BSY | BUS_REQ;
+			ncr_log("CurBus BSY|REQ=%02x\n", ncr->cur_bus);
+			ncr->command_pos = 0;
+			SET_BUS_STATE(ncr, SCSI_PHASE_COMMAND);
+		}
+	}
 
     ncr->bus_in = bus;
 }
@@ -510,8 +570,7 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 	case 1:		/* Initiator Command Register */
 		ncr_log("Write: Initiator command register\n");
 		if ((val & 0x80) && !(ncr->icr & 0x80)) {
-			ncr_log("Resetting the 53c400\n");
-			picint(1 << ncr_dev->irq);
+			ncr_log("Resetting the 5380\n");
 			ncr_reset(&ncr_dev->ncr);
 		}
 		ncr->icr = val;
@@ -525,10 +584,13 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		}
 
 		ncr->mode = val;
-		dma_changed(ncr_dev, ncr->dma_mode, ncr->mode & MODE_DMA);
+		
+		/*Don't stop the timer until it finishes the transfer*/
+		if (ncr_dev->block_count_loaded && (ncr->mode & MODE_DMA))	
+			dma_changed(ncr_dev, ncr->dma_mode, ncr->mode & MODE_DMA);
 
-		/*If it's not DMA mode, don't do anything*/
-		if (!(ncr->mode & MODE_DMA)) {
+		/*When a pseudo-DMA transfer has completed (Send or Initiator Receive), mark it as complete and idle the status*/
+		if (!ncr_dev->block_count_loaded && !(ncr->mode & MODE_DMA)) {
 			ncr_log("No DMA mode\n");
 			ncr->tcr &= ~TCR_LAST_BYTE_SENT;
 			ncr->isr &= ~STATUS_END_OF_DMA;
@@ -788,12 +850,6 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
 	case 0x3980:
 		switch (addr) {
 			case 0x3980:	/* Control */
-				if (val & 0x80) {
-					ncr_log("Resetting the 53c400\n");
-					picint(1 << ncr_dev->irq);
-					ncr_reset(&ncr_dev->ncr);
-				}
-
 				if ((val & CTRL_DATA_DIR) && !(ncr_dev->status_ctrl & CTRL_DATA_DIR)) {
 					ncr_dev->buffer_host_pos = 128;
 					ncr_dev->status_ctrl |= STATUS_BUFFER_NOT_READY;
@@ -809,7 +865,7 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
 				ncr_log("Write block counter register: val=%d\n", val);
 				ncr_dev->block_count = val;
 				ncr_dev->block_count_loaded = 1;
-	                        set_dma_enable(ncr_dev, ncr_dev->dma_enabled && ncr_dev->block_count_loaded);
+				set_dma_enable(ncr_dev, ncr_dev->dma_enabled && ncr_dev->block_count_loaded);
 
 				if (ncr_dev->status_ctrl & CTRL_DATA_DIR) {
 					ncr_dev->buffer_host_pos = 128;
@@ -951,10 +1007,10 @@ ncr_callback(void *priv)
 				if (ncr->cur_bus & BUS_REQ)
 					break;
 			}
-
+			
 			if (c == 10)
-				break;
-
+				break;			
+			
 			/* Data ready. */
 			data = ncr_dev->buffer[ncr_dev->buffer_pos];
 			bus = get_bus_host(ncr) & ~BUS_DATAMASK;
@@ -964,8 +1020,10 @@ ncr_callback(void *priv)
 			ncr_bus_update(priv, bus & ~BUS_ACK);
 
 			bt++;
-
-			if (++ncr_dev->buffer_pos == 128) {
+			ncr_dev->buffer_pos++;
+			ncr_log("Buffer pos for writing = %d\n", ncr_dev->buffer_pos);
+			
+			if (ncr_dev->buffer_pos == 128) {
 				ncr_dev->buffer_pos = 0;
 				ncr_dev->buffer_host_pos = 0;
 				ncr_dev->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
@@ -1010,7 +1068,7 @@ ncr_callback(void *priv)
 				if (ncr->cur_bus & BUS_REQ)
 					break;
 			}
-
+			
 			if (c == 10)
 				break;
 
@@ -1066,6 +1124,7 @@ ncr_callback(void *priv)
 static void *
 ncr_init(const device_t *info)
 {
+	wchar_t *fn = NULL;
     char temp[128];
     ncr5380_t *ncr_dev;
 
@@ -1077,40 +1136,44 @@ ncr_init(const device_t *info)
     switch(ncr_dev->type) {
 	case 0:		/* Longshine LCS6821N */
 		ncr_dev->rom_addr = device_get_config_hex20("bios_addr");
+		ncr_dev->irq = device_get_config_int("irq");
 		rom_init(&ncr_dev->bios_rom, LCS6821N_ROM,
 			 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
-			 
-		mem_mapping_disable(&ncr_dev->bios_rom.mapping);
 
 		mem_mapping_add(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000, 
 				memio_read, NULL, NULL,
 				memio_write, NULL, NULL,
-				ncr_dev->bios_rom.rom, 0, ncr_dev);
+				ncr_dev->bios_rom.rom, MEM_MAPPING_EXTERNAL, ncr_dev);
 		break;
 
 	case 1:		/* Rancho RT1000B */
 		ncr_dev->rom_addr = device_get_config_hex20("bios_addr");
-		rom_init(&ncr_dev->bios_rom, RT1000B_ROM,
+		ncr_dev->irq = device_get_config_int("irq");
+		ncr_dev->bios_ver = device_get_config_int("bios_ver");
+		
+		if (ncr_dev->bios_ver == 1)
+			fn = RT1000B_820R_ROM;
+		else
+			fn = RT1000B_810R_ROM;
+		
+		rom_init(&ncr_dev->bios_rom, fn,
 			 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
-
-		mem_mapping_disable(&ncr_dev->bios_rom.mapping);
 
 		mem_mapping_add(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000, 
 				memio_read, NULL, NULL,
 				memio_write, NULL, NULL,
-				ncr_dev->bios_rom.rom, 0, ncr_dev);
+				ncr_dev->bios_rom.rom, MEM_MAPPING_EXTERNAL, ncr_dev);
 		break;
 
 	case 2:		/* Trantor T130B */
 		ncr_dev->rom_addr = device_get_config_hex20("bios_addr");
 		ncr_dev->base = device_get_config_hex16("base");
 		ncr_dev->irq = device_get_config_int("irq");
-		rom_init(&ncr_dev->bios_rom, T130B_ROM,
-			 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
-		mem_mapping_disable(&ncr_dev->bios_rom.mapping);	 
+		if (ncr_dev->rom_addr > 0x00000) {
+			rom_init(&ncr_dev->bios_rom, T130B_ROM,
+				 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
-		if (ncr_dev->rom_addr > 0x00000) {			 
 			mem_mapping_add(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000, 
 					t130b_read, NULL, NULL,
 					t130b_write, NULL, NULL,
@@ -1164,9 +1227,8 @@ lcs6821n_available(void)
 static int
 rt1000b_available(void)
 {
-    return(rom_present(RT1000B_ROM));
+    return(rom_present(RT1000B_820R_ROM) && rom_present(RT1000B_810R_ROM));
 }
-
 
 static int
 t130b_available(void)
@@ -1180,8 +1242,46 @@ static const device_config_t ncr5380_mmio_config[] = {
                 "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000,
                 {
                         {
-                                "Disabled", 0
+                                "C800H", 0xc8000
                         },
+                        {
+                                "CC00H", 0xcc000
+                        },
+                        {
+                                "D800H", 0xd8000
+                        },
+                        {
+                                "DC00H", 0xdc000
+                        },
+                        {
+                                ""
+                        }
+                },
+
+        },
+        {
+		"irq", "IRQ", CONFIG_SELECTION, "", 5,
+                {
+                        {
+                                "IRQ 3", 3
+                        },
+                        {
+                                "IRQ 5", 5
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+	{
+		"", "", -1
+	}
+};
+
+static const device_config_t rancho_config[] = {
+        {
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000,
+                {
                         {
                                 "C800H", 0xc8000
                         },
@@ -1193,6 +1293,35 @@ static const device_config_t ncr5380_mmio_config[] = {
                         },
                         {
                                 "DC00H", 0xdc000
+                        },
+                        {
+                                ""
+                        }
+                },
+
+        },
+        {
+		        "irq", "IRQ", CONFIG_SELECTION, "", 5,
+                {
+                        {
+                                "IRQ 3", 3
+                        },
+                        {
+                                "IRQ 5", 5
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+        {
+		        "bios_ver", "BIOS Version", CONFIG_SELECTION, "", 1,
+                {
+                        {
+                                "8.20R", 1
+                        },
+                        {
+                                "8.10R", 0
                         },
                         {
                                 ""
@@ -1290,7 +1419,7 @@ const device_t scsi_rt1000b_device =
     ncr_init, ncr_close, NULL,
     rt1000b_available,
     NULL, NULL,
-    ncr5380_mmio_config
+    rancho_config
 };
 
 const device_t scsi_t130b_device =
