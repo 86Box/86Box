@@ -250,6 +250,8 @@ process_nonprintable(ps_t *dev)
 			if (dev->autofeed)
 				write_buffer(dev, true);
 			break;
+		case '\v':
+		case '\f':
 		case '\n':
 			write_buffer(dev, true);
 			break;
@@ -260,7 +262,6 @@ process_nonprintable(ps_t *dev)
 		
 		/* Characters that should be written to the buffer as-is */
 		case '\t':
-		case '\v':
 			return false;
 	}
 
