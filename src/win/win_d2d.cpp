@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -163,8 +163,6 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 {
 	HRESULT hr = S_OK;
 
-	void *srcdata;
-	int yy;	
 	D2D1_RECT_U rectU;
 
 	ID2D1Bitmap *fs_bitmap = 0;
@@ -226,25 +224,13 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 		return;
 	}
 
-	// TODO: Copy data directly from render_buffer to d2d_bitmap
-
-	srcdata = malloc(h * w * 4);
-
-	for (yy = y1; yy < y2; yy++)
-	{
-		if ((y + yy) >= 0 && (y + yy) < render_buffer->h)
-		{
-			memcpy(
-				(uint32_t *) &(((uint8_t *)srcdata)[yy * w * 4]),
-				&(render_buffer->line[y + yy][x]),
-				w * 4);
-		}
-	}
+	rectU = D2D1::RectU(x, y + y1, x + w, y + y2);
+	hr = d2d_bitmap->CopyFromMemory(
+		&rectU,
+		&(render_buffer->line[y + y1][x]),
+		render_buffer->w << 2);
 
 	video_blit_complete();
-
-	rectU = D2D1::RectU(0, 0, w, h);
-	hr = d2d_bitmap->CopyFromMemory(&rectU, srcdata, w * 4);
 
 	// In fullscreen mode we first draw offscreen to an intermediate
 	// BitmapRenderTarget, which then gets rendered to the actual
@@ -263,7 +249,7 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 			D2D1::RectF(0, y1, w, y2),
 			1.0f,
 			D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
-			D2D1::RectF(0, y1, w, y2));
+			D2D1::RectF(x, y + y1, x + w, y + y2));
 
 		hr = RT->EndDraw();
 	}
@@ -299,10 +285,6 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 	{
 		d2d_log("Direct2D: d2d_blit: error 0x%08lx\n", hr);
 	}
-
-	// Tidy up
-	free(srcdata);
-	srcdata = NULL;
 }
 #endif
 
