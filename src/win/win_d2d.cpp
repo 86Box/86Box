@@ -8,7 +8,7 @@
  *
  *		Rendering module for Microsoft Direct2D.
  *
- * Version:	@(#)win_d2d.cpp	1.0.5	2019/12/06
+ * Version:	@(#)win_d2d.cpp	1.0.6	2019/12/10
  *
  * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
  *
