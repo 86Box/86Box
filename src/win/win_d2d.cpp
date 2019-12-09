@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -224,11 +224,21 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 		return;
 	}
 
-	rectU = D2D1::RectU(x, y + y1, x + w, y + y2);
-	hr = d2d_bitmap->CopyFromMemory(
-		&rectU,
-		&(render_buffer->line[y + y1][x]),
-		render_buffer->w << 2);
+	if (d2d_bitmap == NULL) {
+		// Create a bitmap for storing intermediate data
+		hr = d2d_hwndRT->CreateBitmap(
+			D2D1::SizeU(render_buffer->w, render_buffer->h),
+			D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)),	
+			&d2d_bitmap);
+	}
+
+	if (SUCCEEDED(hr)) {
+		rectU = D2D1::RectU(x, y + y1, x + w, y + y2);
+		hr = d2d_bitmap->CopyFromMemory(
+			&rectU,
+			&(render_buffer->line[y + y1][x]),
+			render_buffer->w << 2);
+	}
 
 	video_blit_complete();
 
@@ -406,15 +416,6 @@ d2d_init_common(int fs)
 			D2D1::RenderTargetProperties(),
 			props,
 			&d2d_hwndRT);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		// Create a bitmap for storing intermediate data
-		hr = d2d_hwndRT->CreateBitmap(
-			D2D1::SizeU(2048, 2048),
-			D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)),	
-			&d2d_bitmap);
 	}	
 
 	if (SUCCEEDED(hr)) 
