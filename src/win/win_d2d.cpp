@@ -44,9 +44,8 @@
 #ifdef USE_D2D
 static HWND			d2d_hwnd, old_hwndMain;
 static ID2D1Factory		*d2d_factory;
-static ID2D1HwndRenderTarget	*d2d_hwndRT;
-static ID2D1BitmapRenderTarget	*d2d_btmpRT;
-static ID2D1Bitmap		*d2d_bitmap;
+static ID2D1HwndRenderTarget	*d2d_target;
+static ID2D1Bitmap		*d2d_buffer;
 static int			d2d_width, d2d_height, d2d_screen_width, d2d_screen_height, d2d_fs;
 static volatile int		d2d_enabled = 0;
 #endif
@@ -165,9 +164,6 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 
 	D2D1_RECT_U rectU;
 
-	ID2D1Bitmap *fs_bitmap = 0;
-	ID2D1RenderTarget *RT;
-	
 	float fs_x, fs_y;
 	float fs_w = w;
 	float fs_h = h;	
@@ -179,38 +175,14 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 		return;
 	}
 
-	// TODO: Detect double scanned mode and resize render target
-	// appropriately for more clear picture
-
-	if (w != d2d_width || h != d2d_height)
+	if ((w != d2d_width || h != d2d_height) && !d2d_fs)
 	{
-		if (d2d_fs)
+		hr = d2d_target->Resize(D2D1::SizeU(w, h));
+
+		if (SUCCEEDED(hr))
 		{
-			if (d2d_btmpRT)
-			{
-				d2d_btmpRT->Release();
-				d2d_btmpRT = NULL;
-			}
-
-			hr = d2d_hwndRT->CreateCompatibleRenderTarget(
-				D2D1::SizeF(w, h),
-				&d2d_btmpRT);
-
-			if (SUCCEEDED(hr))
-			{
-				d2d_width = w;
-				d2d_height = h;
-			}
-		}
-		else
-		{
-			hr = d2d_hwndRT->Resize(D2D1::SizeU(w, h));
-
-			if (SUCCEEDED(hr))
-			{
-				d2d_width = w;
-				d2d_height = h;
-			}
+			d2d_width = w;
+			d2d_height = h;
 		}
 	}
 
@@ -224,17 +196,20 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 		return;
 	}
 
-	if (d2d_bitmap == NULL) {
-		// Create a bitmap for storing intermediate data
-		hr = d2d_hwndRT->CreateBitmap(
-			D2D1::SizeU(render_buffer->w, render_buffer->h),
-			D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)),	
-			&d2d_bitmap);
+	/* Create a bitmap to store intermediate data */
+	if (d2d_buffer == NULL) {
+		if (SUCCEEDED(hr)) {
+			hr = d2d_target->CreateBitmap(
+				D2D1::SizeU(render_buffer->w, render_buffer->h),
+				D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)),	
+				&d2d_buffer);
+		}
 	}
 
+	/* Copy data from render_buffer */
 	if (SUCCEEDED(hr)) {
 		rectU = D2D1::RectU(x, y + y1, x + w, y + y2);
-		hr = d2d_bitmap->CopyFromMemory(
+		hr = d2d_buffer->CopyFromMemory(
 			&rectU,
 			&(render_buffer->line[y + y1][x]),
 			render_buffer->w << 2);
@@ -242,53 +217,25 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 
 	video_blit_complete();
 
-	// In fullscreen mode we first draw offscreen to an intermediate
-	// BitmapRenderTarget, which then gets rendered to the actual
-	// HwndRenderTarget in order to implement different scaling modes
+	/* Draw! */
+	if (SUCCEEDED(hr)) {
+		d2d_target->BeginDraw();
 
-	// In windowed mode we draw directly to the HwndRenderTarget
-
-	if (SUCCEEDED(hr))
-	{
-		RT = d2d_fs ? (ID2D1RenderTarget *) d2d_btmpRT : (ID2D1RenderTarget *) d2d_hwndRT;
-
-		RT->BeginDraw();
-
-		RT->DrawBitmap(
-			d2d_bitmap,
-			D2D1::RectF(0, y1, w, y2),
-			1.0f,
-			D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
-			D2D1::RectF(x, y + y1, x + w, y + y2));
-
-		hr = RT->EndDraw();
-	}
-
-	if (d2d_fs)
-	{
-		if (SUCCEEDED(hr))
-		{
-			hr = d2d_btmpRT->GetBitmap(&fs_bitmap);
-		}
-
-		if (SUCCEEDED(hr))
-		{
-			d2d_stretch(&fs_w, &fs_h, &fs_x, &fs_y);
-
-			d2d_hwndRT->BeginDraw();
-
-			d2d_hwndRT->Clear(
+		if (d2d_fs) {
+			d2d_target->Clear(
 				D2D1::ColorF(D2D1::ColorF::Black));
 
-			d2d_hwndRT->DrawBitmap(
-				fs_bitmap,
-				D2D1::RectF(fs_x, fs_y, fs_x + fs_w, fs_y + fs_h),
-				1.0f,
-				D2D1_BITMAP_INTERPOLATION_MODE_LINEAR,
-				D2D1::RectF(0, 0, w, h));
-
-			hr = d2d_hwndRT->EndDraw();
+			d2d_stretch(&fs_w, &fs_h, &fs_x, &fs_y);
 		}
+
+		d2d_target->DrawBitmap(
+			d2d_buffer,
+			d2d_fs ? D2D1::RectF(fs_x, fs_y, fs_x + fs_w, fs_y + fs_h) : D2D1::RectF(0, 0, w, h),
+			1.0f,
+			D2D1_BITMAP_INTERPOLATION_MODE_LINEAR,
+			D2D1::RectF(x, y, x + w, y + h));
+
+		hr = d2d_target->EndDraw();
 	}
 
 	if (FAILED(hr))
@@ -311,22 +258,16 @@ d2d_close(void)
 		d2d_enabled = 0;
 
 #ifdef USE_D2D
-	if (d2d_bitmap)
+	if (d2d_buffer)
 	{
-		d2d_bitmap->Release();
-		d2d_bitmap = NULL;
-	}
-
-	if (d2d_btmpRT)
-	{
-		d2d_btmpRT->Release();
-		d2d_btmpRT = NULL;
+		d2d_buffer->Release();
+		d2d_buffer = NULL;
 	}
 	
-	if (d2d_hwndRT)
+	if (d2d_target)
 	{
-		d2d_hwndRT->Release();
-		d2d_hwndRT = NULL;
+		d2d_target->Release();
+		d2d_target = NULL;
 	}
 
 	if (d2d_factory)
@@ -415,7 +356,7 @@ d2d_init_common(int fs)
 		hr = d2d_factory->CreateHwndRenderTarget(
 			D2D1::RenderTargetProperties(),
 			props,
-			&d2d_hwndRT);
+			&d2d_target);
 	}	
 
 	if (SUCCEEDED(hr)) 
