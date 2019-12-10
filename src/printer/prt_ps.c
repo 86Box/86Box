@@ -62,7 +62,6 @@ static dllimp_t ghostscript_imports[] = {
 };
 
 static void	*ghostscript_handle = NULL;
-static bool	ghostscript_initialized = false;
 
 typedef struct
 {
@@ -334,31 +333,11 @@ ps_read_status(void *p)
     return(ret);
 }
 
-static void
-ghostscript_init()
-{
-    gsapi_revision_t rev;
-
-    ghostscript_initialized = true;
-
-    /* Try loading the DLL. */
-    ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
-    if (ghostscript_handle == NULL) {
-	ui_msgbox(MBX_ERROR, (wchar_t *) IDS_2123);
-	return;
-    }
-
-    if (ghostscript_revision(&rev, sizeof(rev)) == 0) {
-	pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
-    } else {
-	ghostscript_handle = NULL;
-    }
-}
-
 static void *
 ps_init(void *lpt)
 {
     ps_t *dev;
+    gsapi_revision_t rev;
 
     dev = (ps_t *) malloc(sizeof(ps_t));
     memset(dev, 0x00, sizeof(ps_t));
@@ -367,8 +346,17 @@ ps_init(void *lpt)
 
     reset_ps(dev);
 
-    if (!ghostscript_initialized) {
-	ghostscript_init();
+    /* Try loading the DLL. */
+    ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
+    if (ghostscript_handle == NULL) {
+	ui_msgbox(MBX_ERROR, (wchar_t *) IDS_2123);
+    } else {
+	if (ghostscript_revision(&rev, sizeof(rev)) == 0) {
+		pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
+	} else {
+		dynld_close(ghostscript_handle);
+		ghostscript_handle = NULL;
+	}
     }
 
     // Cache print folder path
@@ -397,6 +385,11 @@ ps_close(void *p)
     if (dev->buffer[0] != 0) {
 	write_buffer(dev, false);
 	finish_document(dev);
+    }
+
+    if (ghostscript_handle != NULL) {
+	dynld_close(ghostscript_handle);
+	ghostscript_handle = NULL;
     }
 
     free(dev);
