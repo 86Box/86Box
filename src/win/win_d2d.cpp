@@ -21,14 +21,9 @@
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
-#ifdef USE_D2D
 #include <d2d1.h>
 #include <d2d1helper.h>
-#endif
 #undef BITMAP
-
-#define PNG_DEBUG 0
-#include <png.h>
 
 #define HAVE_STDARG_H
 #include "../86box.h"
@@ -41,14 +36,12 @@
 #include "win_d2d.h"
 
 
-#ifdef USE_D2D
 static HWND			d2d_hwnd, old_hwndMain;
 static ID2D1Factory		*d2d_factory;
 static ID2D1HwndRenderTarget	*d2d_target;
 static ID2D1Bitmap		*d2d_buffer;
 static int			d2d_width, d2d_height, d2d_screen_width, d2d_screen_height, d2d_fs;
 static volatile int		d2d_enabled = 0;
-#endif
 
 
 /* Pointers to the real functions. */
@@ -85,7 +78,6 @@ d2d_log(const char *fmt, ...)
 #endif
 
 
-#ifdef USE_D2D
 static void
 d2d_stretch(float *w, float *h, float *x, float *y)
 {
@@ -153,10 +145,8 @@ d2d_stretch(float *w, float *h, float *x, float *y)
 			break;
 	}
 }
-#endif
 
 
-#ifdef USE_D2D
 static void
 d2d_blit(int x, int y, int y1, int y2, int w, int h)
 {
@@ -243,7 +233,6 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 		d2d_log("Direct2D: d2d_blit: error 0x%08lx\n", hr);
 	}
 }
-#endif
 
 
 void
@@ -257,7 +246,6 @@ d2d_close(void)
 	if (d2d_enabled)
 		d2d_enabled = 0;
 
-#ifdef USE_D2D
 	if (d2d_buffer)
 	{
 		d2d_buffer->Release();
@@ -290,11 +278,9 @@ d2d_close(void)
 		dynld_close((void *)d2d_handle);
 		d2d_handle = NULL;
 	}
-#endif
 }
 
 
-#ifdef USE_D2D
 static int
 d2d_init_common(int fs)
 {
@@ -384,19 +370,13 @@ d2d_init_common(int fs)
 
 	return(1);
 }
-#endif
 
 
 int
 d2d_init(HWND h)
 {
 	d2d_log("Direct2D: d2d_init(h=0x%08lx)\n", h);
-
-#ifdef USE_D2D
 	return d2d_init_common(0);
-#else
-	return(0);
-#endif
 }
 
 
@@ -404,12 +384,7 @@ int
 d2d_init_fs(HWND h)
 {
 	d2d_log("Direct2D: d2d_init_fs(h=0x%08lx)\n", h);
-
-#ifdef USE_D2D
 	return d2d_init_common(1);
-#else
-	return(0);
-#endif
 }
 
 
