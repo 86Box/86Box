@@ -142,6 +142,24 @@ machine_at_plato_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_gwplato_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/gwplato/OLDBIOS.BIN",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_premiere_common_init(model);
+
+    device_add(&i430nx_device);
+
+    return ret;
+}
+
 
 int
 machine_at_430nx_init(const machine_t *model)

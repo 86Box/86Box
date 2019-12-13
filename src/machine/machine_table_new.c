@@ -147,6 +147,7 @@ const machine_t machines[] = {
 
     { "[Socket 5 NX] Intel Premiere/PCI II",	"plato",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,		machine_at_plato_init, NULL			},
     { "[Socket 5 NX] Gigabyte GA-586IP",	"430nx",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,		machine_at_430nx_init, NULL			},
+    { "[Socket 5 NX] Gateway 2000 (Plato)",	"gwplato",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,		machine_at_gwplato_init, NULL			},
 
     { "[Socket 5 FX] ASUS P/I-P54TP4XE",	"p54tp4xe",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,					  8,  128,   8, 127,	     machine_at_p54tp4xe_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_VECTRA54)

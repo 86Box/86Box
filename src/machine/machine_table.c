@@ -26,28 +26,15 @@
 #include <string.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../cpu/cpu.h"
+#include "../cpu_new/cpu.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
 #include "machine.h"
 
 
-#if defined(DEV_BRANCH) && defined(USE_AMD_K)
 #define MACHINE_CPUS_PENTIUM_S5		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"AMD",   cpus_K5},     {"",      NULL},     {"",      NULL}}
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 #define MACHINE_CPUS_PENTIUM_S7		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"Cyrix", cpus_6x86},{"",      NULL}}
-#else
-#define MACHINE_CPUS_PENTIUM_S7		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"",      NULL},     {"",      NULL}}
-#endif
-#else
-#define MACHINE_CPUS_PENTIUM_S5		{{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"",      NULL},        {"",      NULL},     {"",      NULL}}
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
-#define MACHINE_CPUS_PENTIUM_S7		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}
-#else
-#define MACHINE_CPUS_PENTIUM_S7		{{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"",      NULL},        {"",      NULL},     {"",      NULL}}
-#endif
-#endif
 
 const machine_t machines[] = {
     { "[8088] AMI XT clone",			"amixt",		{{"Intel",      cpus_8088},   {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA,											 64,  640,  64,   0,		machine_xt_amixt_init, NULL			},
@@ -160,6 +147,7 @@ const machine_t machines[] = {
 
     { "[Socket 5 NX] Intel Premiere/PCI II",	"plato",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,		machine_at_plato_init, NULL			},
     { "[Socket 5 NX] Gigabyte GA-586IP",	"430nx",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,		machine_at_430nx_init, NULL			},
+    { "[Socket 5 NX] Gateway 2000 (Plato)",	"gwplato",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,		machine_at_gwplato_init, NULL			},
 
     { "[Socket 5 FX] ASUS P/I-P54TP4XE",	"p54tp4xe",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,					  8,  128,   8, 127,	     machine_at_p54tp4xe_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_VECTRA54)
