@@ -109,8 +109,8 @@ machine_at_ambradp60_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined(L"roms/machines/ambrapci/1004AF1P.BIO",
-				    L"roms/machines/ambrapci/1004AF1P.BI1", 0x1c000, 128);
+    ret = bios_load_linear_combined(L"roms/machines/ambradp60/1004AF1P.BIO",
+				    L"roms/machines/ambradp60/1004AF1P.BI1", 0x1c000, 128);
 
     if (bios_only || !ret)
 	return ret;
@@ -164,8 +164,8 @@ machine_at_ambradp90_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined(L"roms/machines/ambrapciii/1002AX1P.BIO",
-				    L"roms/machines/ambrapciii/1002AX1P.BI1", 0x1d000, 128);
+    ret = bios_load_linear_combined(L"roms/machines/ambradp90/1002AX1P.BIO",
+				    L"roms/machines/ambradp90/1002AX1P.BI1", 0x1d000, 128);
 
     if (bios_only || !ret)
 	return ret;
