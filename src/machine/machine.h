@@ -222,9 +222,11 @@ extern int	machine_at_portableiii386_init(const machine_t *);
 
 /* m_at_socket4_5.c */
 extern int	machine_at_batman_init(const machine_t *);
+extern int	machine_at_ambradp60_init(const machine_t *);
 extern int	machine_at_586mc1_init(const machine_t *);
 
 extern int	machine_at_plato_init(const machine_t *);
+extern int	machine_at_ambradp90_init(const machine_t *);
 extern int	machine_at_430nx_init(const machine_t *);
 
 extern int	machine_at_p54tp4xe_init(const machine_t *);
