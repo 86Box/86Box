@@ -104,6 +104,23 @@ machine_at_batman_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_ambradp60_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined(L"roms/machines/ambradp60/1004AF1P.BIO",
+				    L"roms/machines/ambradp60/1004AF1P.BI1", 0x1c000, 128);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_premiere_common_init(model);
+
+    device_add(&i430lx_device);
+
+    return ret;
+}
 
 int
 machine_at_586mc1_init(const machine_t *model)
@@ -142,6 +159,23 @@ machine_at_plato_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_ambradp90_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined(L"roms/machines/ambradp90/1002AX1P.BIO",
+				    L"roms/machines/ambradp90/1002AX1P.BI1", 0x1d000, 128);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_premiere_common_init(model);
+
+    device_add(&i430nx_device);
+
+    return ret;
+}
 
 int
 machine_at_430nx_init(const machine_t *model)
