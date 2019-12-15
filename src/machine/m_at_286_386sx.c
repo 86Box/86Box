@@ -122,6 +122,62 @@ machine_at_ama932j_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_headlandpho_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/headlandpho/286-Headland-LO.BIN",
+				L"roms/machines/headlandpho/286-Headland-HI.BIN",
+				0x000f0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+
+    machine_at_headland_common_init(1);
+
+    return ret;
+}
+
+int
+machine_at_headlandquadtel_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/headlandquadtel/Amiht-l.BIN",
+				L"roms/machines/headlandquadtel/AMIHT-H.BIN",
+				0x000f0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+
+    machine_at_headland_common_init(1);
+
+    return ret;
+}
+
+int
+machine_at_iqs_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/iqs/286-Headland-IQS-LO.BIN",
+				L"roms/machines/iqs/286-Headland-IQS-HI.BIN",
+				0x000f0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+
+    machine_at_headland_common_init(1);
+
+    return ret;
+}
 
 int
 machine_at_neat_init(const machine_t *model)
@@ -164,6 +220,27 @@ machine_at_neat_ami_init(const machine_t *model)
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(USE_MICRONICS386)
+int
+machine_at_micronics386_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/micronics386/386-Micronics 09-00021-LO.BIN",
+				L"roms/machines/micronics386/386-Micronics 09-00021-HI.BIN",
+				0x000f0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_init(model);
+
+    device_add(&neat_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
+#endif
 
 static void
 machine_at_scat_init(const machine_t *model, int is_v4)
@@ -292,6 +369,21 @@ machine_at_kmxc02_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_deskmaster286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/deskmaster286/SAMSUNG-DESKMASTER-28612-ROM.BIN",
+			   0x000f0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_scat_init(model, 0);
+
+    return ret;
+}
 
 int
 machine_at_wd76c10_init(const machine_t *model)

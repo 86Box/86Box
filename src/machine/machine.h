@@ -161,6 +161,12 @@ extern void	machine_at_ide_init(const machine_t *);
 extern void	machine_at_ps2_ide_init(const machine_t *);
 
 extern int	machine_at_ibm_init(const machine_t *);
+
+//IBM AT with custom BIOS
+extern int	machine_at_ibmatami_init(const machine_t *); // IBM AT with AMI BIOS
+extern int	machine_at_ibmatpx_init(const machine_t *); //IBM AT with Phoenix BIOS
+extern int	machine_at_ibmatquadtel_init(const machine_t *); // IBM AT with Quadtel BIOS
+
 extern int	machine_at_ibmxt286_init(const machine_t *);
 
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
@@ -173,9 +179,15 @@ extern int	machine_at_headland_init(const machine_t *);
 #endif
 extern int	machine_at_tg286m_init(const machine_t *);
 extern int	machine_at_ama932j_init(const machine_t *);
+extern int	machine_at_headlandpho_init(const machine_t *);
+extern int	machine_at_headlandquadtel_init(const machine_t *);
+extern int	machine_at_iqs_init(const machine_t *);
 
 extern int	machine_at_neat_init(const machine_t *);
 extern int	machine_at_neat_ami_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_MICRONICS386)
+extern int	machine_at_micronics386_init(const machine_t *); //Neat based Phoenix 80386 board. It has memory related issues.
+#endif
 
 extern int	machine_at_award286_init(const machine_t *);
 extern int	machine_at_gw286ct_init(const machine_t *);
@@ -183,6 +195,7 @@ extern int	machine_at_super286tr_init(const machine_t *);
 extern int	machine_at_spc4200p_init(const machine_t *);
 extern int	machine_at_spc4216p_init(const machine_t *);
 extern int	machine_at_kmxc02_init(const machine_t *);
+extern int	machine_at_deskmaster286_init(const machine_t *);
 
 extern int	machine_at_wd76c10_init(const machine_t *);
 
