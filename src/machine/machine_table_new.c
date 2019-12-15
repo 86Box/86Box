@@ -171,6 +171,7 @@ const machine_t machines[] = {
     { "[Socket 7 HX] SuperMicro Super P55T2S",	"p55t2s",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  768,   8, 127,	       machine_at_p55t2s_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_TC430HX)
     { "[Socket 7 HX] TC430HX",			"tc430hx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,	      machine_at_tc430hx_init, NULL			},
+    { "[Socket 7 HX] HP Pavilion 7320",			"pavl7320",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,	      machine_at_pavl7320_init, NULL			},
 #endif
 
     { "[Socket 7 VX] ASUS P/I-P55TVP4",		"p55tvp4",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,	      machine_at_p55tvp4_init, NULL			},
