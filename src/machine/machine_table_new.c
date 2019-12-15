@@ -141,11 +141,13 @@ const machine_t machines[] = {
 
     { "[486 PCI] Intel Classic/PCI",		"alfredo",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,	      machine_at_alfredo_init, NULL			},
     { "[486 PCI] Rise Computer R418",		"r418",			{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,					  1,  255,   1, 127,		 machine_at_r418_init, NULL			},
-
+    
     { "[Socket 4 LX] Intel Premiere/PCI",	"revenge",		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,	       machine_at_batman_init, NULL			},
+    { "[Socket 4 LX] IBM Ambra DP60 PCI",	"ambradp60",		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,	       machine_at_ambradp60_init, NULL			},
     { "[Socket 4 LX] Micro Star 586MC1",	"586mc1",		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,	       machine_at_586mc1_init, NULL			},
 
     { "[Socket 5 NX] Intel Premiere/PCI II",	"plato",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,		machine_at_plato_init, NULL			},
+    { "[Socket 5 NX] IBM Ambra DP90 PCI",	"ambradp90",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,		machine_at_ambradp90_init, NULL			},
     { "[Socket 5 NX] Gigabyte GA-586IP",	"430nx",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,		machine_at_430nx_init, NULL			},
     { "[Socket 5 NX] Gateway 2000 (Plato)",	"gwplato",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  2,  128,   2, 127,		machine_at_gwplato_init, NULL			},
 

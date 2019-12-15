@@ -8,7 +8,7 @@
  *
  *		Definitions for the Direct2D rendering module.
  *
- * Version:	@(#)win_d2d.h	1.0.1	2019/10/12
+ * Version:	@(#)win_d2d.h	1.0.2	2019/12/13
  *
  * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
  *
@@ -17,19 +17,10 @@
 #ifndef WIN_D2D_H
 # define WIN_D2D_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern void	d2d_close(void);
 extern int	d2d_init(HWND h);
 extern int	d2d_init_fs(HWND h);
 extern int	d2d_pause(void);
 extern void	d2d_enable(int enable);
-
-#ifdef __cplusplus
-}
-#endif
-
 
 #endif	/*WIN_D2D_H*/

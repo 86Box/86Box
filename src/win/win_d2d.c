@@ -8,7 +8,7 @@
  *
  *		Rendering module for Microsoft Direct2D.
  *
- * Version:	@(#)win_d2d.cpp	1.0.5	2019/12/06
+ * Version:	@(#)win_d2d.c	1.0.7	2019/12/13
  *
  * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
  *
@@ -18,17 +18,13 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <initguid.h>
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
-#ifdef USE_D2D
 #include <d2d1.h>
 #include <d2d1helper.h>
-#endif
 #undef BITMAP
-
-#define PNG_DEBUG 0
-#include <png.h>
 
 #define HAVE_STDARG_H
 #include "../86box.h"
@@ -41,29 +37,29 @@
 #include "win_d2d.h"
 
 
-#ifdef USE_D2D
 static HWND			d2d_hwnd, old_hwndMain;
 static ID2D1Factory		*d2d_factory;
-static ID2D1HwndRenderTarget	*d2d_hwndRT;
-static ID2D1BitmapRenderTarget	*d2d_btmpRT;
-static ID2D1Bitmap		*d2d_bitmap;
-static int			d2d_width, d2d_height, d2d_screen_width, d2d_screen_height, d2d_fs;
+static ID2D1HwndRenderTarget	*d2d_target;
+static ID2D1Bitmap		*d2d_buffer;
+static int			d2d_width, d2d_height, d2d_screen_width, 
+				d2d_screen_height, d2d_fs;
 static volatile int		d2d_enabled = 0;
-#endif
 
 
 /* Pointers to the real functions. */
-static HRESULT (*D2D1_CreateFactory)(D2D1_FACTORY_TYPE facType,
-				     REFIID riid,
-				     CONST D2D1_FACTORY_OPTIONS *pFacOptions,
-				     void **ppIFactory);
+static HRESULT WINAPI (*D2D1_CreateFactory)(
+	D2D1_FACTORY_TYPE facType,
+	REFIID riid,
+	const D2D1_FACTORY_OPTIONS *pFacOptions,
+	void **ppIFactory);
+
 static dllimp_t d2d_imports[] = {
   { "D2D1CreateFactory",	&D2D1_CreateFactory		},
   { NULL,			NULL				}
 };
 
 
-static volatile void		*d2d_handle;	/* handle to WinPcap DLL */
+static volatile void		*d2d_handle;	/* handle to Direct2D DLL */
 
 
 #ifdef ENABLE_D2D_LOG
@@ -76,9 +72,9 @@ d2d_log(const char *fmt, ...)
 	va_list ap;
 
 	if (d2d_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+		va_start(ap, fmt);
+		pclog_ex(fmt, ap);
+		va_end(ap);
 	}
 }
 #else
@@ -86,7 +82,6 @@ d2d_log(const char *fmt, ...)
 #endif
 
 
-#ifdef USE_D2D
 static void
 d2d_stretch(float *w, float *h, float *x, float *y)
 {
@@ -154,65 +149,30 @@ d2d_stretch(float *w, float *h, float *x, float *y)
 			break;
 	}
 }
-#endif
 
 
-#ifdef USE_D2D
 static void
 d2d_blit(int x, int y, int y1, int y2, int w, int h)
 {
 	HRESULT hr = S_OK;
 
-	void *srcdata;
-	int yy;	
-	D2D1_RECT_U rectU;
-
-	ID2D1Bitmap *fs_bitmap = 0;
-	ID2D1RenderTarget *RT;
-	
-	float fs_x, fs_y;
-	float fs_w = w;
-	float fs_h = h;	
-
-	d2d_log("Direct2D: d2d_blit(x=%d, y=%d, y1=%d, y2=%d, w=%d, h=%d)\n", x, y, y1, y2, w, h);
+	d2d_log("Direct2D: d2d_blit(x=%d, y=%d, y1=%d, y2=%d, w=%d, h=%d)\n", 
+		x, y, y1, y2, w, h);
 
 	if (!d2d_enabled) {
 		video_blit_complete();
 		return;
 	}
 
-	// TODO: Detect double scanned mode and resize render target
-	// appropriately for more clear picture
-
-	if (w != d2d_width || h != d2d_height)
+	if ((w != d2d_width || h != d2d_height) && !d2d_fs)
 	{
-		if (d2d_fs)
+		D2D1_SIZE_U size = { .width = w, .height = h };
+		hr = ID2D1HwndRenderTarget_Resize(d2d_target, &size);
+
+		if (SUCCEEDED(hr))
 		{
-			if (d2d_btmpRT)
-			{
-				d2d_btmpRT->Release();
-				d2d_btmpRT = NULL;
-			}
-
-			hr = d2d_hwndRT->CreateCompatibleRenderTarget(
-				D2D1::SizeF(w, h),
-				&d2d_btmpRT);
-
-			if (SUCCEEDED(hr))
-			{
-				d2d_width = w;
-				d2d_height = h;
-			}
-		}
-		else
-		{
-			hr = d2d_hwndRT->Resize(D2D1::SizeU(w, h));
-
-			if (SUCCEEDED(hr))
-			{
-				d2d_width = w;
-				d2d_height = h;
-			}
+			d2d_width = w;
+			d2d_height = h;
 		}
 	}
 
@@ -226,85 +186,106 @@ d2d_blit(int x, int y, int y1, int y2, int w, int h)
 		return;
 	}
 
-	// TODO: Copy data directly from render_buffer to d2d_bitmap
+	/* Create a bitmap to store intermediate data */
+	if (d2d_buffer == NULL) {
+		if (SUCCEEDED(hr)) {
+			D2D1_SIZE_U size = { 
+				.width = render_buffer->w, 
+				.height = render_buffer->h };
 
-	srcdata = malloc(h * w * 4);
+			D2D1_BITMAP_PROPERTIES bitmap_props = {
+				.pixelFormat = { 
+					.format = DXGI_FORMAT_B8G8R8A8_UNORM,
+					.alphaMode = D2D1_ALPHA_MODE_IGNORE
+				},
+				.dpiX = 96.0f,
+				.dpiY = 96.0f
+			};
 
-	for (yy = y1; yy < y2; yy++)
-	{
-		if ((y + yy) >= 0 && (y + yy) < render_buffer->h)
-		{
-			memcpy(
-				(uint32_t *) &(((uint8_t *)srcdata)[yy * w * 4]),
-				&(render_buffer->line[y + yy][x]),
-				w * 4);
+			hr = ID2D1HwndRenderTarget_CreateBitmap(
+				d2d_target,
+				size,
+				NULL,
+				0,
+				&bitmap_props,
+				&d2d_buffer);
 		}
+	}
+
+	/* Copy data from render_buffer */
+	if (SUCCEEDED(hr)) {
+		D2D1_RECT_U rectU = {
+			.left =		x,
+			.top =		y + y1,
+			.right =	x + w,
+			.bottom =	y + y2
+		};
+
+		hr = ID2D1Bitmap_CopyFromMemory(
+			d2d_buffer,
+			&rectU,
+			&(render_buffer->line[y + y1][x]),
+			render_buffer->w << 2);
 	}
 
 	video_blit_complete();
 
-	rectU = D2D1::RectU(0, 0, w, h);
-	hr = d2d_bitmap->CopyFromMemory(&rectU, srcdata, w * 4);
+	/* Draw! */
+	if (SUCCEEDED(hr)) {
+		D2D1_RECT_F destRect;
+		ID2D1HwndRenderTarget_BeginDraw(d2d_target);
 
-	// In fullscreen mode we first draw offscreen to an intermediate
-	// BitmapRenderTarget, which then gets rendered to the actual
-	// HwndRenderTarget in order to implement different scaling modes
+		if (d2d_fs) {
+			float fs_x = 0, fs_y = 0, fs_w = 0, fs_h = 0;
 
-	// In windowed mode we draw directly to the HwndRenderTarget
+			D2D1_COLOR_F black = {
+				.r = 0.0, .g = 0.0, .b = 0.0, .a = 1.0 };
 
-	if (SUCCEEDED(hr))
-	{
-		RT = d2d_fs ? (ID2D1RenderTarget *) d2d_btmpRT : (ID2D1RenderTarget *) d2d_hwndRT;
+			ID2D1HwndRenderTarget_Clear(
+				d2d_target,
+				&black
+			);
 
-		RT->BeginDraw();
-
-		RT->DrawBitmap(
-			d2d_bitmap,
-			D2D1::RectF(0, y1, w, y2),
-			1.0f,
-			D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
-			D2D1::RectF(0, y1, w, y2));
-
-		hr = RT->EndDraw();
-	}
-
-	if (d2d_fs)
-	{
-		if (SUCCEEDED(hr))
-		{
-			hr = d2d_btmpRT->GetBitmap(&fs_bitmap);
-		}
-
-		if (SUCCEEDED(hr))
-		{
 			d2d_stretch(&fs_w, &fs_h, &fs_x, &fs_y);
 
-			d2d_hwndRT->BeginDraw();
-
-			d2d_hwndRT->Clear(
-				D2D1::ColorF(D2D1::ColorF::Black));
-
-			d2d_hwndRT->DrawBitmap(
-				fs_bitmap,
-				D2D1::RectF(fs_x, fs_y, fs_x + fs_w, fs_y + fs_h),
-				1.0f,
-				D2D1_BITMAP_INTERPOLATION_MODE_LINEAR,
-				D2D1::RectF(0, 0, w, h));
-
-			hr = d2d_hwndRT->EndDraw();
+			destRect = (D2D1_RECT_F) {
+				.left =		fs_x,
+				.top =		fs_y,
+				.right =	fs_x + fs_w,
+				.bottom =	fs_y + fs_h
+			};
+		} else {
+			destRect = (D2D1_RECT_F) {
+				.left =		0,
+				.top =		0,
+				.right =	w,
+				.bottom =	h
+			};
 		}
+
+		D2D1_RECT_F srcRect = {
+			.left =		x,
+			.top =		y,
+			.right =	x + w,
+			.bottom =	y + h
+		};
+
+		ID2D1HwndRenderTarget_DrawBitmap(
+			d2d_target,
+			d2d_buffer,
+			&destRect,
+			1.0f,
+			D2D1_BITMAP_INTERPOLATION_MODE_LINEAR,
+			&srcRect);
+
+		hr = ID2D1HwndRenderTarget_EndDraw(d2d_target, NULL, NULL);
 	}
 
 	if (FAILED(hr))
 	{
 		d2d_log("Direct2D: d2d_blit: error 0x%08lx\n", hr);
 	}
-
-	// Tidy up
-	free(srcdata);
-	srcdata = NULL;
 }
-#endif
 
 
 void
@@ -318,28 +299,21 @@ d2d_close(void)
 	if (d2d_enabled)
 		d2d_enabled = 0;
 
-#ifdef USE_D2D
-	if (d2d_bitmap)
+	if (d2d_buffer)
 	{
-		d2d_bitmap->Release();
-		d2d_bitmap = NULL;
-	}
-
-	if (d2d_btmpRT)
-	{
-		d2d_btmpRT->Release();
-		d2d_btmpRT = NULL;
+		ID2D1Bitmap_Release(d2d_buffer);
+		d2d_buffer = NULL;
 	}
 	
-	if (d2d_hwndRT)
+	if (d2d_target)
 	{
-		d2d_hwndRT->Release();
-		d2d_hwndRT = NULL;
+		ID2D1HwndRenderTarget_Release(d2d_target);
+		d2d_target = NULL;
 	}
 
 	if (d2d_factory)
 	{
-		d2d_factory->Release();
+		ID2D1Factory_Release(d2d_factory);
 		d2d_factory = NULL;
 	}
 
@@ -357,17 +331,14 @@ d2d_close(void)
 		dynld_close((void *)d2d_handle);
 		d2d_handle = NULL;
 	}
-#endif
 }
 
 
-#ifdef USE_D2D
 static int
 d2d_init_common(int fs)
 {
 	HRESULT hr = S_OK;
 	WCHAR title[200];
-	D2D1_HWND_RENDER_TARGET_PROPERTIES props;
 
 	d2d_log("Direct2D: d2d_init_common(fs=%d)\n", fs);
 
@@ -400,39 +371,43 @@ d2d_init_common(int fs)
 		plat_set_input(d2d_hwnd);
 
 		SetFocus(d2d_hwnd);
-		SetWindowPos(d2d_hwnd, HWND_TOPMOST, 0, 0, d2d_screen_width, d2d_screen_height, SWP_SHOWWINDOW);	
+		SetWindowPos(
+			d2d_hwnd, HWND_TOPMOST,
+			0, 0, d2d_screen_width, d2d_screen_height,
+			SWP_SHOWWINDOW);	
 	}
 
-	hr = D2D1_CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, __uuidof(ID2D1Factory),
-				NULL, reinterpret_cast <void **>(&d2d_factory));
-
-	if (fs)
-	{
-		props = D2D1::HwndRenderTargetProperties(d2d_hwnd,
-			D2D1::SizeU(d2d_screen_width, d2d_screen_height));
-	}
-	else
-	{
-		// HwndRenderTarget will get resized appropriately by d2d_blit,
-		// so it's fine to let D2D imply size of 0x0 for now
-		props = D2D1::HwndRenderTargetProperties(hwndRender);
-	}
+	hr = D2D1_CreateFactory(
+		D2D1_FACTORY_TYPE_MULTI_THREADED,
+		&IID_ID2D1Factory, NULL, (void **) &d2d_factory);
 
 	if (SUCCEEDED(hr))
 	{
-		hr = d2d_factory->CreateHwndRenderTarget(
-			D2D1::RenderTargetProperties(),
-			props,
-			&d2d_hwndRT);
-	}
+		D2D1_HWND_RENDER_TARGET_PROPERTIES hwnd_props;
 
-	if (SUCCEEDED(hr))
-	{
-		// Create a bitmap for storing intermediate data
-		hr = d2d_hwndRT->CreateBitmap(
-			D2D1::SizeU(2048, 2048),
-			D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)),	
-			&d2d_bitmap);
+		if (fs)
+		{
+			hwnd_props = (D2D1_HWND_RENDER_TARGET_PROPERTIES) {
+				.hwnd = d2d_hwnd,
+				.pixelSize = {
+					.width = d2d_screen_width,
+					.height = d2d_screen_height
+				}
+			};
+		}
+		else
+		{
+			// HwndRenderTarget will get resized appropriately by d2d_blit,
+			// so it's fine to let D2D imply size of 0x0 for now
+			hwnd_props = (D2D1_HWND_RENDER_TARGET_PROPERTIES) {
+				.hwnd = hwndRender
+			};
+		}
+
+		D2D1_RENDER_TARGET_PROPERTIES target_props = { 0 };
+
+		hr = ID2D1Factory_CreateHwndRenderTarget(
+			d2d_factory, &target_props, &hwnd_props, &d2d_target);
 	}	
 
 	if (SUCCEEDED(hr)) 
@@ -460,19 +435,13 @@ d2d_init_common(int fs)
 
 	return(1);
 }
-#endif
 
 
 int
 d2d_init(HWND h)
 {
 	d2d_log("Direct2D: d2d_init(h=0x%08lx)\n", h);
-
-#ifdef USE_D2D
 	return d2d_init_common(0);
-#else
-	return(0);
-#endif
 }
 
 
@@ -480,12 +449,7 @@ int
 d2d_init_fs(HWND h)
 {
 	d2d_log("Direct2D: d2d_init_fs(h=0x%08lx)\n", h);
-
-#ifdef USE_D2D
 	return d2d_init_common(1);
-#else
-	return(0);
-#endif
 }
 
 
