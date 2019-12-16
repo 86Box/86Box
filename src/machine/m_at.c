@@ -168,6 +168,57 @@ machine_at_ibm_init(const machine_t *model)
     return ret;
 }
 
+//IBM AT machines with custom BIOSes
+int
+machine_at_ibmatquadtel_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/ibmatquadtel/BIOS_30MAR90_U27_QUADTEL_ENH_286_BIOS_3.05.01_27256.BIN",
+				L"roms/machines/ibmatquadtel/BIOS_30MAR90_U47_QUADTEL_ENH_286_BIOS_3.05.01_27256.BIN",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_ibm_common_init(model);
+
+    return ret;
+}
+
+int
+machine_at_ibmatami_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/ibmatami/BIOS_5170_30APR89_U27_AMI_27256.BIN",
+				L"roms/machines/ibmatami/BIOS_5170_30APR89_U47_AMI_27256.BIN",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_ibm_common_init(model);
+
+    return ret;
+}
+
+int
+machine_at_ibmatpx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/ibmatpx/BIOS ROM - PhoenixBIOS A286 - Version 1.01 - Even.bin",
+				L"roms/machines/ibmatpx/BIOS ROM - PhoenixBIOS A286 - Version 1.01 - Odd.bin",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_ibm_common_init(model);
+
+    return ret;
+}
 
 int
 machine_at_ibmxt286_init(const machine_t *model)
