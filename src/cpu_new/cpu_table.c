@@ -186,6 +186,34 @@ CPU cpus_486SLC[] = {
     {"",             -1,                0, 0, 0,     0, 0,      0, 0, 0,0,0,0, 0}
 };
 
+CPU cpus_IBM386SLC[] = {
+    /*IBM 386SLC*/	
+    {"386SLC/16",  CPU_IBM386SLC, 16000000, 1, 0, 0x300, 0, 0, 0, 3,3,3,3, 2},
+    {"386SLC/20",  CPU_IBM386SLC, 20000000, 1, 0, 0x300, 0, 0, 0, 4,4,3,3, 3},
+    {"386SLC/25",  CPU_IBM386SLC, 25000000, 1, 0, 0x300, 0, 0, 0, 4,4,3,3, 3},	
+    {"",             -1,                0, 0, 0,     0, 0,      0, 0, 0,0,0,0, 0}
+};
+
+CPU cpus_IBM486SLC[] = {
+    /*IBM 486SLC*/	
+    {"486SLC/33",  CPU_IBM486SLC, 33333333, 1, 0, 0x400, 0, 0, CPU_SUPPORTS_DYNAREC, 6,6,3,3, 4},
+    {"486SLC2/50", CPU_IBM486SLC, 50000000, 2, 0, 0x400, 0, 0, CPU_SUPPORTS_DYNAREC, 8,8,6,6, 6},
+    {"486SLC2/66", CPU_IBM486SLC, 66666666, 2, 0, 0x400, 0, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6, 8},
+    {"486SLC3/60", CPU_IBM486SLC, 60000000, 3, 0, 0x400, 0, 0, CPU_SUPPORTS_DYNAREC, 12,12,9,9, 7},
+    {"486SLC3/75", CPU_IBM486SLC, 75000000, 3, 0, 0x400, 0, 0, CPU_SUPPORTS_DYNAREC, 12,12,9,9, 9},
+    {"486SLC3/100", CPU_IBM486SLC, 100000000, 3, 0, 0x400, 0, 0, CPU_SUPPORTS_DYNAREC, 18,18,9,9, 12},	
+    {"",             -1,                0, 0, 0,     0, 0,      0, 0, 0,0,0,0, 0}
+};
+
+CPU cpus_IBM486BL[] = {
+    /*IBM Blue Lightning*/	
+    {"486BL2/50",  CPU_IBM486BL, 50000000, 2, 0, 0x400, 0, 0, CPU_SUPPORTS_DYNAREC, 8,8,6,6, 6},
+    {"486BL2/66", CPU_IBM486BL, 66666666, 2, 0, 0x400, 0, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6, 8},
+    {"486BL3/75", CPU_IBM486BL, 75000000, 3, 0, 0x400, 0, 0, CPU_SUPPORTS_DYNAREC, 12,12,9,9, 9},
+    {"486BL3/100", CPU_IBM486BL, 100000000, 3, 0, 0x400, 0, 0, CPU_SUPPORTS_DYNAREC, 18,18,9,9, 12},	
+    {"",             -1,                0, 0, 0,     0, 0,      0, 0, 0,0,0,0, 0}
+};
+
 CPU cpus_486DLC[] = {
     /*Cx486DLC*/
     {"Cx486DLC/25",  CPU_486DLC, 25000000, 1, 0, 0x401, 0, 0x0001, 0,  4, 4,3,3, 3},
