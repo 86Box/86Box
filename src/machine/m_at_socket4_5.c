@@ -123,6 +123,24 @@ machine_at_ambradp60_init(const machine_t *model)
 }
 
 int
+machine_at_valuepointp60_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined(L"roms/machines/valuepointp60/1006AV0M.BIO",
+				    L"roms/machines/valuepointp60/1006AV0M.BI1", 0x1d000, 128);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_premiere_common_init(model);
+
+    device_add(&i430lx_device);
+
+    return ret;
+}
+
+int
 machine_at_586mc1_init(const machine_t *model)
 {
     int ret;
