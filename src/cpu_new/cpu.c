@@ -260,7 +260,7 @@ cpu_set(void)
         is8086   = (cpu_s->cpu_type > CPU_8088);
         is286   = (cpu_s->cpu_type >= CPU_286);
         is386    = (cpu_s->cpu_type >= CPU_386SX);
-		isibmcpu = (cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
+	isibmcpu = (cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
 	israpidcad = (cpu_s->cpu_type == CPU_RAPIDCAD);
         is486    = (cpu_s->cpu_type >= CPU_i486SX) || (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_RAPIDCAD || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL );
         is_pentium = (cpu_s->cpu_type >= CPU_WINCHIP);
@@ -487,7 +487,7 @@ cpu_set(void)
                 timing_jmp_pm_gate = 38;
                 break;
 				
-				case CPU_IBM386SLC:
+		case CPU_IBM386SLC:
                 case CPU_386SX:
                 timing_rr  = 2;   /*register dest - register src*/
                 timing_rm  = 6;   /*register dest - memory src*/
