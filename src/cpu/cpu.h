@@ -335,7 +335,7 @@ extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
 extern int		is8086,	is286, is386, is486;
-extern int      isibmcpu;
+extern int      	isibmcpu;
 extern int		is_rapidcad;
 extern int		hasfpu;
 #define CPU_FEATURE_RDTSC (1 << 0)
