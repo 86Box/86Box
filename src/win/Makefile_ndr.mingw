@@ -83,8 +83,8 @@ ifeq ($(DEV_BUILD), y)
  ifndef VECTRA54
   VECTRA54	:= y
  endif
- ifndef MICRONICS386
-  MICRONICS386	:= y
+ ifndef GOLDSTAR386
+  GOLDSTAR386	:= y
  endif
  ifndef VGAWONDER
   VGAWONDER	:= y
@@ -147,8 +147,8 @@ else
  ifndef VECTRA54
   VECTRA54	:= n
  endif
- ifndef MICRONICS386
-  MICRONICS386	:= n
+ ifndef GOLDSTAR386
+  GOLDSTAR386	:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -512,8 +512,8 @@ ifeq ($(VECTRA54), y)
 OPTS		+= -DUSE_VECTRA54
 endif
 
-ifeq ($(MICRONICS386), y)
-OPTS		+= -DUSE_MICRONICS386
+ifeq ($(GOLDSTAR386), y)
+OPTS		+= -DUSE_GOLDSTAR386
 endif
 
 ifeq ($(VGAWONDER), y)
