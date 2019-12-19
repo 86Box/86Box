@@ -142,32 +142,13 @@ machine_at_headlandpho_init(const machine_t *model)
 }
 
 int
-machine_at_headlandquadtel_init(const machine_t *model)
+machine_at_g212hs_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/headlandquadtel/Amiht-l.BIN",
-				L"roms/machines/headlandquadtel/AMIHT-H.BIN",
-				0x000f0000, 131072, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_common_ide_init(model);
-
-    machine_at_headland_common_init(1);
-
-    return ret;
-}
-
-int
-machine_at_iqs_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleaved(L"roms/machines/iqs/286-Headland-IQS-LO.BIN",
-				L"roms/machines/iqs/286-Headland-IQS-HI.BIN",
-				0x000f0000, 131072, 0);
+    ret = bios_load_interleaved(L"roms/machines/g212hs/BIOS-LO.BIN",
+				L"roms/machines/g212hs/BIOS-HI.BIN",
+				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
 	return ret;
