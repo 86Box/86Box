@@ -180,7 +180,7 @@ extern int	machine_at_headland_init(const machine_t *);
 extern int	machine_at_tg286m_init(const machine_t *);
 extern int	machine_at_ama932j_init(const machine_t *);
 extern int	machine_at_headlandpho_init(const machine_t *);
-extern int	machine_at_g212hs_init(const machine_t *);
+extern int	machine_at_headlandquadtel_init(const machine_t *);
 
 extern int	machine_at_neat_init(const machine_t *);
 extern int	machine_at_neat_ami_init(const machine_t *);
