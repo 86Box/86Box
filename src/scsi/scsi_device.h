@@ -248,7 +248,7 @@
 #define CHECK_READY		2
 #define ALLOW_UA		1
 
-#define MSFtoLBA(m,s,f)  ((((m*60)+s)*75)+f)
+#define MSFtoLBA(m,s,f)  ((((m * 60) + s) * 75) + f)
 
 #define MSG_COMMAND_COMPLETE 0x00
 

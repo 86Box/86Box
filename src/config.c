@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.65	2019/12/05
+ * Version:	@(#)config.c	1.0.66	2019/12/21
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -57,9 +57,7 @@
 #include "disk/zip.h"
 #include "sound/sound.h"
 #include "sound/midi.h"
-#include "sound/snd_dbopl.h"
 #include "sound/snd_mpu401.h"
-#include "sound/snd_opl.h"
 #include "sound/sound.h"
 #include "video/video.h"
 #include "plat.h"
@@ -657,14 +655,6 @@ load_sound(void)
     GAMEBLASTER = !!config_get_int(cat, "gameblaster", 0);
     GUS = !!config_get_int(cat, "gus", 0);
     
-    memset(temp, '\0', sizeof(temp));
-    p = config_get_string(cat, "opl_type", "dbopl");
-    strcpy(temp, p);
-    if (!strcmp(temp, "nukedopl") || !strcmp(temp, "1"))
-	opl_type = 1;
-    else
-	opl_type = 0;
-
     memset(temp, '\0', sizeof(temp));
     p = config_get_string(cat, "sound_type", "float");
     strcpy(temp, p);
@@ -1271,7 +1261,6 @@ config_load(void)
 		fdd_set_check_bpb(i, 1);
 	}
 	mem_size = 640;
-	opl_type = 0;
 	isartc_type = 0;
 	for (i = 0; i < ISAMEM_MAX; i++)
 		isamem_type[i] = 0;
@@ -1561,11 +1550,6 @@ save_sound(void)
 	config_delete_var(cat, "gus");
       else
 	config_set_int(cat, "gus", GUS);
-
-    if (opl_type == 0)
-	config_delete_var(cat, "opl_type");
-      else
-	config_set_string(cat, "opl_type", (opl_type == 1) ? "nukedopl" : "dbopl");
 
     if (sound_is_float == 1)
 	config_delete_var(cat, "sound_type");

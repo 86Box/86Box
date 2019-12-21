@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.139	2019/12/05
+# Version:	@(#)Makefile.mingw	1.0.140	2019/12/21
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -610,7 +610,7 @@ HDDOBJ		:= hdd.o \
 		    hdc_ide_sff8038i.o
 
 CDROMOBJ	:= cdrom.o \
-		    cdrom_dosbox.o cdrom_image.o
+		    cdrom_image_backend.o cdrom_image.o
 
 ZIPOBJ		:= zip.o
 
@@ -639,8 +639,8 @@ PRINTOBJ	:= png.o prt_cpmap.o \
 			
 SNDOBJ		:= sound.o \
 		    openal.o \
-		    snd_opl.o snd_dbopl.o \
-		    dbopl.o nukedopl.o \
+		    snd_opl.o snd_opl_backend.o \
+		    nukedopl.o \
 		    snd_resid.o \
 		     convolve.o convolve-sse.o envelope.o extfilt.o \
 		     filter.o pot.o sid.o voice.o wave6581__ST.o \
@@ -697,12 +697,8 @@ VIDOBJ		:= video.o \
 PLATOBJ		:= win.o \
 		    win_dynld.o win_thread.o \
 		    win_cdrom.o win_keyboard.o \
-		    win_midi.o
-ifeq ($(DINPUT), y)
- PLATOBJ += win_mouse.o win_joystick.o
-else
- PLATOBJ += win_mouse_rawinput.o win_joystick.o
-endif
+		    win_midi.o \
+		    win_mouse.o win_joystick.o
 
 OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) \
 		   $(DEVOBJ) $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(HDDOBJ) \
