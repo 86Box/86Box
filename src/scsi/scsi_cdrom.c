@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.72	2019/11/19
+ * Version:	@(#)scsi_cdrom.c	1.0.73	2019/12/13
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -2076,10 +2076,13 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 		dev->buffer[pos++] = 0; dev->buffer[pos++] = 0; /*Subchannel length*/
 		/* Mode 0 = Q subchannel mode, first 16 bytes are indentical to mode 1 (current position),
 			    the rest are stuff like ISRC etc., which can be all zeroes. */
-		if ((cdb[3] <= 3) && (alloc_length != 4)) {
+		if (cdb[3] <= 3) {
 			dev->buffer[pos++] = cdb[3]; /*Format code*/
-			dev->buffer[1] = cdrom_get_current_subchannel(dev->drv, &dev->buffer[4], msf);
-			dev->buffer[2] = alloc_length - 4;
+
+			if (alloc_length != 4) {
+				dev->buffer[1] = cdrom_get_current_subchannel(dev->drv, &dev->buffer[4], msf);
+				dev->buffer[2] = alloc_length - 4;
+			}
 
 			switch(dev->drv->cd_status) {
 				case CD_STATUS_PLAYING:
