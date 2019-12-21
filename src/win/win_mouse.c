@@ -63,8 +63,9 @@ win_mouse_handle(LPARAM lParam, int infocus)
     uint32_t ri_size = 0;
     UINT size;
     RAWINPUT *raw;
-	RAWMOUSE state;
- 
+    RAWMOUSE state;
+    static int x, y;
+
     if (! infocus) return;
 
     GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL,
@@ -109,7 +110,7 @@ win_mouse_handle(LPARAM lParam, int infocus)
 		 * seems to work fine for RDP on Windows 10
 		 * Not sure about other environments.
 		 */
-		static int x=state.lLastX, y=state.lLastY;
+		x=state.lLastX, y=state.lLastY;
 		mousestate.dx += (state.lLastX - x)/100;
 		mousestate.dy += (state.lLastY - y)/100;
 		x=state.lLastX; 

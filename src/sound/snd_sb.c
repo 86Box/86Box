@@ -33,7 +33,6 @@
 #include "../device.h"
 #include "sound.h"
 #include "filters.h"
-#include "snd_dbopl.h"
 #include "snd_emu8k.h"
 #include "snd_mpu401.h"
 #include "snd_opl.h"
@@ -203,7 +202,7 @@ static void sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
         {
                 int32_t out = 0;
 		if (sb->opl_enabled)
-                	out = ((sb->opl.buffer[c]     * 51000) >> 16);
+                	out = ((sb->opl.buffer[c]     * (sb->opl_emu ? 47000 : 51000)) >> 16);
                 //TODO: Recording: Mic and line In with AGC
                 out += (int32_t)(((sb_iir(0, (float)sb->dsp.buffer[c]) / 1.3) * 65536) / 3) >> 16;
         
@@ -231,7 +230,7 @@ static void sb_get_buffer_sb2_mixer(int32_t *buffer, int len, void *p)
                 int32_t out = 0;
                 
 		if (sb->opl_enabled)
-                	out = ((((sb->opl.buffer[c]     * mixer->fm) >> 16) * 51000) >> 15);
+                	out = ((((sb->opl.buffer[c]     * mixer->fm) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
                 /* TODO: Recording : I assume it has direct mic and line in like sb2 */
                 /* It is unclear from the docs if it has a filter, but it probably does */
                 out += (int32_t)(((sb_iir(0, (float)sb->dsp.buffer[c])     / 1.3) * mixer->voice) / 3) >> 15;

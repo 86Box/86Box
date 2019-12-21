@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.62	2019/11/19
+ * Version:	@(#)win_settings.c	1.0.63	2019/12/21
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -55,7 +55,6 @@
 #include "../network/network.h"
 #include "../sound/sound.h"
 #include "../sound/midi.h"
-#include "../sound/snd_dbopl.h"
 #include "../sound/snd_mpu401.h"
 #include "../video/video.h"
 #include "../video/vid_voodoo.h"
@@ -85,7 +84,7 @@ static int temp_gfxcard, temp_voodoo;
 static int temp_mouse, temp_joystick;
 
 /* Sound category */
-static int temp_sound_card, temp_midi_device, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS, temp_opl_type;
+static int temp_sound_card, temp_midi_device, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS;
 static int temp_float;
 
 /* Network category */
@@ -223,7 +222,6 @@ win_settings_init(void)
     temp_SSI2001 = SSI2001;
     temp_GAMEBLASTER = GAMEBLASTER;
     temp_GUS = GUS;
-    temp_opl_type = opl_type;
     temp_float = sound_is_float;
 
     /* Network category */
@@ -335,7 +333,6 @@ win_settings_changed(void)
     i = i || (SSI2001 != temp_SSI2001);
     i = i || (GAMEBLASTER != temp_GAMEBLASTER);
     i = i || (GUS != temp_GUS);
-    i = i || (opl_type != temp_opl_type);
     i = i || (sound_is_float != temp_float);
 
     /* Network category */
@@ -438,7 +435,6 @@ win_settings_save(void)
     SSI2001 = temp_SSI2001;
     GAMEBLASTER = temp_GAMEBLASTER;
     GUS = temp_GUS;
-    opl_type = temp_opl_type;
     sound_is_float = temp_float;
 
     /* Network category */
@@ -1215,9 +1211,6 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		h=GetDlgItem(hdlg, IDC_CHECK_SSI);
 		SendMessage(h, BM_SETCHECK, temp_SSI2001, 0);
 
-		h=GetDlgItem(hdlg, IDC_CHECK_NUKEDOPL);
-		SendMessage(h, BM_SETCHECK, temp_opl_type, 0);
-
 		h=GetDlgItem(hdlg, IDC_CHECK_FLOAT);
 		SendMessage(h, BM_SETCHECK, temp_float, 0);
 
@@ -1310,9 +1303,6 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 		h = GetDlgItem(hdlg, IDC_CHECK_SSI);
 		temp_SSI2001 = SendMessage(h, BM_GETCHECK, 0, 0);
-
-		h = GetDlgItem(hdlg, IDC_CHECK_NUKEDOPL);
-		temp_opl_type = SendMessage(h, BM_GETCHECK, 0, 0);
 
 		h = GetDlgItem(hdlg, IDC_CHECK_FLOAT);
 		temp_float = SendMessage(h, BM_GETCHECK, 0, 0);

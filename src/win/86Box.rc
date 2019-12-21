@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.55	2019/12/05
+ * Version:	@(#)86Box.rc	1.0.56	2019/12/21
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -391,11 +391,8 @@ BEGIN
 
     CONTROL         "Gravis Ultrasound",IDC_CHECK_GUS,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,81,94,10
-    CONTROL         "Use Nuked OPL",IDC_CHECK_NUKEDOPL,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,147,81,94,10
-
     CONTROL         "Use FLOAT32 sound",IDC_CHECK_FLOAT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,99,94,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,81,94,10
 END
 
 DLG_CFG_NETWORK DIALOG DISCARDABLE  97, 0, 267, 63
@@ -903,7 +900,6 @@ BEGIN
     IDS_2120	"Unable to initialize SDL, SDL2.dll is required"
     IDS_2121	"Are you sure you want to hard reset the emulated machine?"
     IDS_2122	"Are you sure you want to quit 86Box?"
-    IDS_2123	"Unable to initialize Ghostscript, gsdll32.dll is required for automatic convertion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript files (.ps)."
 END
 
 STRINGTABLE DISCARDABLE 
