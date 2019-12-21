@@ -9,7 +9,7 @@
  *		CD-ROM image file handling module header , translated to C
  *		from cdrom_dosbox.h.
  *
- * Version:	@(#)cdrom_image_backend.h	1.0.0	2019/12/19
+ * Version:	@(#)cdrom_image_backend.h	1.0.1	2019/12/21
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -83,7 +83,6 @@ extern int	cdi_read_sector_sub(cd_img_t *cdi, uint8_t *buffer, uint32_t sector);
 extern int	cdi_get_sector_size(cd_img_t *cdi, uint32_t sector);
 extern int	cdi_is_mode2(cd_img_t *cdi, uint32_t sector);
 extern int	cdi_get_mode2_form(cd_img_t *cdi, uint32_t sector);
-extern int	cdi_can_read_pvd(track_file_t *file, uint64_t sector_size, int mode2);
 extern int	cdi_load_iso(cd_img_t *cdi, const wchar_t *filename);
 extern int	cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile);
 extern int	cdi_has_data_track(cd_img_t *cdi);

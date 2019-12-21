@@ -9,7 +9,7 @@
  *		CD-ROM image file handling module, translated to C from
  *		cdrom_dosbox.cpp.
  *
- * Version:	@(#)cdrom_image_backend.c	1.0.0	2019/12/19
+ * Version:	@(#)cdrom_image_backend.c	1.0.1	2019/12/21
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -39,6 +39,8 @@
 #include "../plat.h"
 #include "cdrom_image_backend.h"
 
+
+#define CDROM_BCD(x)      (((x) % 10) | (((x) / 10) << 4))
 
 #define MAX_LINE_LENGTH		512
 #define MAX_FILENAME_LENGTH	256
@@ -308,33 +310,61 @@ cdi_read_sector(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector)
 {
     size_t length;
     int track = cdi_get_track(cdi, sector) - 1;
-    uint64_t s = (uint64_t) sector, seek;
+    uint64_t sect = (uint64_t) sector, seek;
     track_t *trk;
+    int track_is_raw, ret;
+    int raw_size, cooked_size;
+    uint64_t offset = 0ULL;
+    int m = 0, s = 0, f = 0;
 
     if (track < 0)
 	return 0;
 
     trk = &cdi->tracks[track];
-    seek = trk->skip + ((s - trk->start) * trk->sector_size);
+    track_is_raw = ((trk->sector_size == RAW_SECTOR_SIZE) || (trk->sector_size == 2448));
+    if (raw && !track_is_raw)
+	return 0;
+    seek = trk->skip + ((sect - trk->start) * trk->sector_size);
 
-    /* TODO: Is this correct? Is cooked sector size 2336 for all Mode 2 variants? */
+    if (track_is_raw)
+	raw_size = trk->sector_size;
+    else
+	raw_size = 2448;
+
     if (trk->mode2 && (trk->form != 1)) {
 	if (trk->form == 2)
-		length = (raw ? RAW_SECTOR_SIZE : 2324);
+		cooked_size = (track_is_raw ? 2328 : trk->sector_size);	/* Both 2324 + ECC and 2328 variants are valid. */
 	else
-		length = (raw ? RAW_SECTOR_SIZE : 2336);
+		cooked_size = 2336;
     } else
-	length = (raw ? RAW_SECTOR_SIZE : COOKED_SECTOR_SIZE);
+	cooked_size = COOKED_SECTOR_SIZE;
 
-    if (raw && (trk->sector_size != RAW_SECTOR_SIZE))
-	return 0;
-    if (!raw && !trk->mode2 && (trk->sector_size == RAW_SECTOR_SIZE))
-	seek += 16ULL;
-    /* TODO: See if Mode 2 is handled correctly here. */
-    if (!raw && trk->mode2)
-	seek += 24ULL;
+    length = (raw ? raw_size : cooked_size);
 
-    return trk->file->read(trk->file, buffer, seek, length);
+    if (trk->mode2 && (trk->form >= 1))
+	offset = 24ULL;
+    else
+	offset = 16ULL;
+
+    if (raw && !track_is_raw) {
+	memset(buffer, 0x00, 2448);
+    	ret = trk->file->read(trk->file, buffer + offset, seek, length);
+	if (!ret)
+		return 0;
+	/* Construct the rest of the raw sector. */
+	memset(buffer + 1, 0xff, 10);
+	buffer += 12;
+	FRAMES_TO_MSF(sector + 150, &m, &s, &f);
+	/* These have to be BCD. */
+	buffer[12] = CDROM_BCD(m & 0xff);
+	buffer[13] = CDROM_BCD(s & 0xff);
+	buffer[14] = CDROM_BCD(f & 0xff);
+	buffer[15] = trk->mode2 ? 2 : 1;	/* Data, should reflect the actual sector type. */
+	return 1;
+    } else if (!raw && track_is_raw)
+    	return trk->file->read(trk->file, buffer, seek + offset, length);
+    else
+    	return trk->file->read(trk->file, buffer, seek, length);
 }
 
 
@@ -429,15 +459,15 @@ cdi_get_mode2_form(cd_img_t *cdi, uint32_t sector)
 }
 
 
-int
-cdi_can_read_pvd(track_file_t *file, uint64_t sector_size, int mode2)
+static int
+cdi_can_read_pvd(track_file_t *file, uint64_t sector_size, int mode2, int form)
 {
     uint8_t pvd[COOKED_SECTOR_SIZE];
     uint64_t seek = 16ULL * sector_size;	/* First VD is located at sector 16. */
 
-    if (!mode2 && (sector_size == RAW_SECTOR_SIZE))
+    if ((!mode2 || (form == 0)) && (sector_size == RAW_SECTOR_SIZE))
 	seek += 16;
-    if (mode2)
+    if (mode2 && (form >= 1))
 	seek += 24;
 
     file->read(file, pvd, seek, COOKED_SECTOR_SIZE);
@@ -490,16 +520,16 @@ cdi_load_iso(cd_img_t *cdi, const wchar_t *filename)
     trk.form = 0;
     trk.mode2 = 0;
     /* TODO: Merge the first and last cases since they result in the same thing. */
-    if (cdi_can_read_pvd(trk.file, RAW_SECTOR_SIZE, 0))
+    if (cdi_can_read_pvd(trk.file, RAW_SECTOR_SIZE, 0, 0))
 	trk.sector_size = RAW_SECTOR_SIZE;
-    else if (cdi_can_read_pvd(trk.file, 2336, 1)) {
+    else if (cdi_can_read_pvd(trk.file, 2336, 1, 0)) {
 	trk.sector_size = 2336;
 	trk.mode2 = 1;
-    } else if (cdi_can_read_pvd(trk.file, 2324, 1)) {
+    } else if (cdi_can_read_pvd(trk.file, 2324, 1, 2)) {
 	trk.sector_size = 2324;
 	trk.mode2 = 1;
 	trk.form = 2;
-    } else if (cdi_can_read_pvd(trk.file, RAW_SECTOR_SIZE, 1)) {
+    } else if (cdi_can_read_pvd(trk.file, RAW_SECTOR_SIZE, 1, 0)) {
 	trk.sector_size = RAW_SECTOR_SIZE;
 	trk.mode2 = 1;
     } else {
@@ -771,6 +801,9 @@ cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
 		} else if (!strcmp(type, "MODE1/2352")) {
 			trk.sector_size = RAW_SECTOR_SIZE;
 			trk.attr = DATA_TRACK;
+		} else if (!strcmp(type, "MODE1/2448")) {
+			trk.sector_size = 2448;
+			trk.attr = DATA_TRACK;
 		} else if (!strcmp(type, "MODE2/2048")) {
 			trk.form = 1;
 			trk.sector_size = COOKED_SECTOR_SIZE;
@@ -781,6 +814,11 @@ cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
 			trk.sector_size = 2324;
 			trk.attr = DATA_TRACK;
 			trk.mode2 = 1;
+		} else if (!strcmp(type, "MODE2/2328")) {
+			trk.form = 2;
+			trk.sector_size = 2328;
+			trk.attr = DATA_TRACK;
+			trk.mode2 = 1;
 		} else if (!strcmp(type, "MODE2/2336")) {
 			trk.sector_size = 2336;
 			trk.attr = DATA_TRACK;
@@ -788,6 +826,11 @@ cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
 		} else if (!strcmp(type, "MODE2/2352")) {
 			trk.form = 1;		/* Assume this is XA Mode 2 Form 1. */
 			trk.sector_size = RAW_SECTOR_SIZE;
+			trk.attr = DATA_TRACK;
+			trk.mode2 = 1;
+		} else if (!strcmp(type, "MODE2/2448")) {
+			trk.form = 1;		/* Assume this is XA Mode 2 Form 1. */
+			trk.sector_size = 2448;
 			trk.attr = DATA_TRACK;
 			trk.mode2 = 1;
 		} else if (!strcmp(type, "CDG/2448")) {
