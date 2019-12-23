@@ -46,11 +46,12 @@ typedef uint64_t Bit64u;
 
 struct opl3_slot;
 struct opl3_channel;
+struct opl3_writebuf;
 struct opl3_chip;
 
 struct opl3_slot {
-    opl3_channel *channel;
-    opl3_chip *chip;
+    struct opl3_channel *channel;
+    struct opl3_chip *chip;
     Bit16s out;
     Bit16s fbmod;
     Bit16s *mod;
@@ -81,9 +82,9 @@ struct opl3_slot {
 };
 
 struct opl3_channel {
-    opl3_slot *slots[2];
-    opl3_channel *pair;
-    opl3_chip *chip;
+    struct opl3_slot *slots[2];
+    struct opl3_channel *pair;
+    struct opl3_chip *chip;
     Bit16s *out[4];
     Bit8u chtype;
     Bit16u f_num;
@@ -103,8 +104,8 @@ struct opl3_writebuf {
 };
 
 struct opl3_chip {
-    opl3_channel channel[18];
-    opl3_slot slot[36];
+    struct opl3_channel channel[18];
+    struct opl3_slot slot[36];
     Bit16u timer;
     Bit64u eg_timer;
     Bit8u eg_timerrem;
@@ -137,14 +138,14 @@ struct opl3_chip {
     Bit32u writebuf_cur;
     Bit32u writebuf_last;
     Bit64u writebuf_lasttime;
-    opl3_writebuf writebuf[OPL_WRITEBUF_SIZE];
+    struct opl3_writebuf writebuf[OPL_WRITEBUF_SIZE];
 };
 
-void OPL3_Generate(opl3_chip *chip, Bit16s *buf);
-void OPL3_GenerateResampled(opl3_chip *chip, Bit16s *buf);
-void OPL3_Reset(opl3_chip *chip, Bit32u samplerate);
-Bit32u OPL3_WriteAddr(opl3_chip *chip, Bit32u port, Bit8u val);
-void OPL3_WriteReg(opl3_chip *chip, Bit16u reg, Bit8u v);
-void OPL3_WriteRegBuffered(opl3_chip *chip, Bit16u reg, Bit8u v);
-void OPL3_GenerateStream(opl3_chip *chip, Bit16s *sndptr, Bit32u numsamples);
+void OPL3_Generate(struct opl3_chip *chip, Bit16s *buf);
+void OPL3_GenerateResampled(struct opl3_chip *chip, Bit32s *buf);
+void OPL3_Reset(struct opl3_chip *chip, Bit32u samplerate);
+Bit32u OPL3_WriteAddr(struct opl3_chip *chip, Bit32u port, Bit8u val);
+void OPL3_WriteReg(struct opl3_chip *chip, Bit16u reg, Bit8u v);
+void OPL3_WriteRegBuffered(struct opl3_chip *chip, Bit16u reg, Bit8u v);
+void OPL3_GenerateStream(struct opl3_chip *chip, Bit32s *sndptr, Bit32u numsamples);
 #endif

@@ -915,7 +915,10 @@ reset_common(int hard)
 	cr0 = 1 << 30;
     else
 	cr0 = 0;
-    cpu_cache_int_enabled = 0;
+    if (isibmcpu)
+        cpu_cache_int_enabled = 1;
+    else
+	cpu_cache_int_enabled = 0;
     cpu_update_waitstates();
     cr4 = 0;
     cpu_state.eflags = 0;

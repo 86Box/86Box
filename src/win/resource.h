@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.31	2019/12/05
+ * Version:	@(#)resource.h	1.0.32	2019/12/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -144,12 +144,11 @@
 #define IDC_CHECK_SSI		1072
 #define IDC_CHECK_CMS		1073
 #define IDC_CHECK_GUS		1074
-#define IDC_CHECK_NUKEDOPL	1075
-#define IDC_COMBO_MIDI		1076
-#define IDC_CHECK_MPU401	1077
-#define IDC_CONFIGURE_MPU401	1078
-#define IDC_CHECK_FLOAT		1079
-#define IDC_CHECK_GUSMAX	1080
+#define IDC_COMBO_MIDI		1075
+#define IDC_CHECK_MPU401	1076
+#define IDC_CONFIGURE_MPU401	1077
+#define IDC_CHECK_FLOAT		1078
+#define IDC_CHECK_GUSMAX	1079
 
 #define IDC_COMBO_NET_TYPE	1090	/* network config */
 #define IDC_COMBO_PCAP		1091
