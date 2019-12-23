@@ -88,6 +88,9 @@ const machine_t machines[] = {
     { "[286 ISA] IBM PS/1 model 2011",		"ibmps1es",		{{"",      cpus_ps1_m2011},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_VIDEO | MACHINE_VIDEO_FIXED | MACHINE_HDC | MACHINE_PS2,		512,16384, 512,  63,	       machine_ps1_m2011_init, NULL			},
     { "[286 ISA] IBM PS/2 model 30-286",	"ibmps2_m30_286",	{{"",      cpus_ps2_m30_286}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_VIDEO | MACHINE_VIDEO_FIXED | MACHINE_HDC | MACHINE_PS2,		  1,   16,   1, 127,	     machine_ps2_m30_286_init, NULL			},
     { "[286 ISA] IBM XT Model 286",		"ibmxt286",		{{"",      cpus_ibmxt286},    {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										256,15872, 128, 127,	     machine_at_ibmxt286_init, NULL			},
+#if defined(DEV_BRANCH) && defined(USE_SIEMENS)
+    { "[286 ISA] Siemens PCD-2L",			"siemens",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										256,15872, 128,  63,	      machine_at_siemens_init, NULL			},
+#endif
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
     { "[286 ISA] OpenAT",			"open_at",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										256,15872, 128,  63,	      machine_at_open_at_init, NULL			},
 #endif

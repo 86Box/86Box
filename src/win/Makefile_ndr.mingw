@@ -86,6 +86,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef GOLDSTAR386
   GOLDSTAR386	:= y
  endif
+ ifndef SIEMENS
+  SIEMENS	:= y
+ endif
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
@@ -149,6 +152,9 @@ else
  endif
  ifndef GOLDSTAR386
   GOLDSTAR386	:= n
+ endif
+ ifndef SIEMENS
+  SIEMENS	:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -514,6 +520,10 @@ endif
 
 ifeq ($(GOLDSTAR386), y)
 OPTS		+= -DUSE_GOLDSTAR386
+endif
+
+ifeq ($(SIEMENS), y)
+OPTS		+= -DUSE_SIEMENS
 endif
 
 ifeq ($(VGAWONDER), y)
