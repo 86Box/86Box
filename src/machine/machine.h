@@ -211,6 +211,7 @@ extern int	machine_at_winbios1429_init(const machine_t *);
 
 extern int	machine_at_opti495_init(const machine_t *);
 extern int	machine_at_opti495_ami_init(const machine_t *);
+extern int	machine_at_px486p3_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_MR495)
 extern int	machine_at_opti495_mr_init(const machine_t *);
 #endif

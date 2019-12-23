@@ -164,6 +164,22 @@ machine_at_opti495_ami_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_px486p3_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/px486p3/px486p3.bin",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_opti495_ami_common_init(model);
+
+    return ret;
+}
+
 
 #if defined(DEV_BRANCH) && defined(USE_MR495)
 int
