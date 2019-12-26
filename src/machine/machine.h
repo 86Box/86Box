@@ -188,9 +188,10 @@ extern int	machine_at_headlandquadtel_init(const machine_t *);
 
 extern int	machine_at_neat_init(const machine_t *);
 extern int	machine_at_neat_ami_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_GOLDSTAR386)
-extern int	machine_at_goldstar386_init(const machine_t *); //Neat based Phoenix 80386 board. It has memory related issues.
-#endif
+
+extern int	machine_at_goldstar386_init(const machine_t *);
+extern int	machine_at_micronics386_init(const machine_t *);
+
 
 extern int	machine_at_award286_init(const machine_t *);
 extern int	machine_at_gw286ct_init(const machine_t *);

@@ -83,9 +83,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef VECTRA54
   VECTRA54	:= y
  endif
- ifndef GOLDSTAR386
-  GOLDSTAR386	:= y
- endif
  ifndef SIEMENS
   SIEMENS	:= y
  endif
@@ -149,9 +146,6 @@ else
  endif
  ifndef VECTRA54
   VECTRA54	:= n
- endif
- ifndef GOLDSTAR386
-  GOLDSTAR386	:= n
  endif
  ifndef SIEMENS
   SIEMENS	:= n
@@ -516,10 +510,6 @@ endif
 
 ifeq ($(VECTRA54), y)
 OPTS		+= -DUSE_VECTRA54
-endif
-
-ifeq ($(GOLDSTAR386), y)
-OPTS		+= -DUSE_GOLDSTAR386
 endif
 
 ifeq ($(SIEMENS), y)
