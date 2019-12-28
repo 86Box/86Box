@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.39	2019/12/03
+ * Version:	@(#)vid_svga.c	1.0.40	2019/12/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1119,30 +1119,20 @@ svga_read_common(uint32_t addr, uint8_t linear, void *p)
     addr &= svga->decode_mask;
 
     /* standard VGA latched access */
-    if (linear) {
-	if (addr >= svga->vram_max)
-		return 0xff;
-
-	addr &= svga->vram_mask;
+    if (latch_addr >= svga->vram_max) {
+	for (i = 0; i < count; i++)
+		svga->latch.b[i] = 0xff;
+    } else {
+	latch_addr &= svga->vram_mask;
 
 	for (i = 0; i < count; i++)
-		svga->latch.b[i] = svga->vram[addr | i];
-    } else {
-	if (latch_addr >= svga->vram_max) {
-		for (i = 0; i < count; i++)
-			svga->latch.b[i] = 0xff;
-	} else {
-		latch_addr &= svga->vram_mask;
-
-		for (i = 0; i < count; i++)
-			svga->latch.b[i] = svga->vram[latch_addr | i];
-	}
-
-    	if (addr >= svga->vram_max)
-		return 0xff;
-
-	addr &= svga->vram_mask;
+		svga->latch.b[i] = svga->vram[latch_addr | i];
     }
+
+    if (addr >= svga->vram_max)
+	return 0xff;
+
+    addr &= svga->vram_mask;
 
     if (svga->readmode) {
 	temp = 0xff;
