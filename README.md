@@ -42,20 +42,25 @@ guide:
    Depending on the state of the downloaded DE, you may need to run it twice
    (once initially, and then again after re-entering the environment). Make sure
    to keep the enviroment up-to-date by re-running the command periodically.
-4. Once the environment is fully updated, `cd` into your cloned `86box\src`
+4. Run the following commands to install the missing packages:
+   * `pacman -S mingw-w64-i686-libpng`
+   * `pacman -S mingw-w64-i686-freetype`
+   * `pacman -S mingw-w64-i686-ghostscript`
+   * `pacman -S mingw-w64-i686-SDL2`
+5. Once the environment is fully updated, `cd` into your cloned `86box\src`
    directory.
-5. Run `make -jN -f win/makefile.mingw` to start the actual compilation process.
+6. Run `make -jN -f win/makefile.mingw` to start the actual compilation process.
    Substitute `N` with the number of threads you want to use for the compilation
    process. The optimal number depends entirely on your processor, and it is
    up to you to determine the optimal number. A good starting point is the total
    number of threads (AKA Logical Processors) you have available.
-6. If the compilation succeeded (which it almost always should), you will find
+7. If the compilation succeeded (which it almost always should), you will find
    `86Box.exe` in the src directory.
-7. In order to test your fresh build, replace the `86Box.exe` in your current
+8. In order to test your fresh build, replace the `86Box.exe` in your current
    86Box enviroment with your freshly built one. If you do not have a
    pre-existing 86Box environment, download the latest successful build from
    http://ci.86box.net, and the ROM set from https://tinyurl.com/rs20191022.
-8. Enjoy using and testing the emulator! :)
+9. Enjoy using and testing the emulator! :)
 
 If you encounter issues at any step or have additional questions, please join
 the IRC channel and wait patiently for someone to help you.
