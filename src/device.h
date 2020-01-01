@@ -50,6 +50,7 @@
 #define CONFIG_HEX16		7
 #define CONFIG_HEX20		8
 #define CONFIG_MAC		9
+#define CONFIG_MIDI_IN  10
 
 
 enum {

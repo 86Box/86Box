@@ -2,18 +2,34 @@
 # define EMU_SOUND_MIDI_H
 
 
-extern int midi_device_current;
+#define SYSEX_SIZE 8192
 
+extern uint8_t MIDI_InSysexBuf[SYSEX_SIZE];
+extern uint8_t MIDI_evt_len[256];
+
+extern int midi_device_current;
+extern int midi_input_device_current;
+
+extern void (*input_msg)(uint8_t *msg);
+extern int (*input_sysex)(uint8_t *buffer, uint32_t len, int abort);
 
 int midi_device_available(int card);
+int midi_in_device_available(int card);
 char *midi_device_getname(int card);
+char *midi_in_device_getname(int card);
 #ifdef EMU_DEVICE_H
 const device_t *midi_device_getdevice(int card);
+const device_t *midi_in_device_getdevice(int card);
 #endif
 int midi_device_has_config(int card);
+int midi_in_device_has_config(int card);
 char *midi_device_get_internal_name(int card);
+char *midi_in_device_get_internal_name(int card);
 int midi_device_get_from_internal_name(char *s);
+int midi_in_device_get_from_internal_name(char *s);
 void midi_device_init();
+void midi_in_device_init();
+
 
 typedef struct midi_device_t
 {
@@ -23,9 +39,27 @@ typedef struct midi_device_t
         int (*write)(uint8_t val);
 } midi_device_t;
 
+typedef struct midi_t
+{
+    uint8_t midi_rt_buf[8], midi_cmd_buf[8],
+	    midi_status, midi_sysex_data[SYSEX_SIZE];
+    int midi_cmd_pos, midi_cmd_len, midi_cmd_r,
+		midi_realtime, thruchan, midi_clockout;
+    unsigned int midi_sysex_start, midi_sysex_delay,
+		 midi_pos;
+		 midi_device_t *m_out_device, *m_in_device;
+} midi_t;
+
+extern midi_t *midi;
+
 void midi_init(midi_device_t* device);
+void midi_in_init(midi_device_t* device, midi_t **mididev);
 void midi_close();
-void midi_write(uint8_t val);
+void midi_in_close(void);
+void midi_raw_out_rt_byte(uint8_t val);
+void midi_raw_out_thru_rt_byte(uint8_t val);
+void midi_raw_out_byte(uint8_t val);
+void midi_clear_buffer(void);
 void midi_poll();
 
 #if 0
@@ -41,5 +75,7 @@ void midi_poll();
 #define SYSTEM_MIDI_INTERNAL_NAME "system_midi"
 #endif
 
+#define MIDI_INPUT_NAME "MIDI Input Device"
+#define MIDI_INPUT_INTERNAL_NAME "midi_in"
 
 #endif	/*EMU_SOUND_MIDI_H*/

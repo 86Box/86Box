@@ -9,14 +9,18 @@ typedef struct sb_dsp_t
         int sb_pausetime;
 
         uint8_t sb_read_data[256];
-        int sb_read_wp, sb_read_rp;
+		int sb_read_wp, sb_read_rp;
         int sb_speaker;
         int muted;
 
         int sb_data_stat;
-	int uart_midi;
-	int uart_irq;
-	int onebyte_midi;
+		
+		int midi_in_sysex;
+		int midi_in_poll;
+		int uart_midi;
+		int uart_irq;
+		int onebyte_midi;
+		int midi_in_timestamp;
 
         int sb_irqnum;
 
@@ -71,6 +75,12 @@ typedef struct sb_dsp_t
         int16_t buffer[SOUNDBUFLEN * 2];
         int pos;
 } sb_dsp_t;
+
+extern sb_dsp_t *dspin;
+
+void sb_dsp_input_msg(uint8_t *msg);
+
+int sb_dsp_input_sysex(uint8_t *buffer, uint32_t len, int abort);
 
 void sb_dsp_set_mpu(mpu_t *src_mpu);
 

@@ -119,7 +119,7 @@ uint8_t adjustMap2[24] = {
 };
 
 float low_fir_sb16_coef[SB16_NCoef];
-
+sb_dsp_t *dspin;
 
 #ifdef ENABLE_SB_DSP_LOG
 int sb_dsp_do_log = ENABLE_SB_DSP_LOG;
@@ -146,7 +146,6 @@ sinc(double x)
 {
     return sin(M_PI * x) / (M_PI * x);
 }
-
 
 static void
 recalc_sb16_filter(int playback_freq)
@@ -207,6 +206,8 @@ sb_irqc(sb_dsp_t *dsp, int irq8)
 void
 sb_dsp_reset(sb_dsp_t *dsp)
 {
+	midi_clear_buffer();
+	
     timer_disable(&dsp->output_timer);
     timer_disable(&dsp->input_timer);
 
@@ -218,7 +219,7 @@ sb_dsp_reset(sb_dsp_t *dsp)
     sb_irqc(dsp, 0);
     sb_irqc(dsp, 1);
     dsp->sb_16_pause = 0;
-    dsp->sb_read_wp = dsp->sb_read_rp = 0;
+	dsp->sb_read_wp = dsp->sb_read_rp = 0;
     dsp->sb_data_stat = -1;
     dsp->sb_speaker = 0;
     dsp->sb_pausetime = -1LL;
@@ -393,7 +394,6 @@ sb_dsp_setdma16(sb_dsp_t *dsp, int dma)
     dsp->sb_16_dmanum = dma;
 }
 
-
 void
 sb_exec_command(sb_dsp_t *dsp)
 {
@@ -457,19 +457,35 @@ sb_exec_command(sb_dsp_t *dsp)
 		if (dsp->sb_type >= SB15)
 			sb_start_dma_i(dsp, 1, 1, 0, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
 		break;
-	case 0x30: case 0x31:
+	case 0x30: /* MIDI Polling mode input */
+		pclog("MIDI polling mode input\n");
+		dsp->midi_in_poll = 1;
+		dsp->uart_irq = 0;
 		break;
-	case 0x34:	/* MIDI (UART mode) */
+	case 0x31: /* MIDI Interrupt mode input */
+		pclog("MIDI interrupt mode input\n");
+		dsp->midi_in_poll = 0;
+		dsp->uart_irq = 1;
+		break;
+	case 0x34: /* MIDI In poll  */
+		if (dsp->sb_type < SB2)
+			break;
+		pclog("MIDI poll in\n");
+		dsp->midi_in_poll = 1;
 		dsp->uart_midi = 1;
 		dsp->uart_irq = 0;
 		break;
-	case 0x35:	/* MIDI (UART mode) */
+	case 0x35: /* MIDI In irq */
+		if (dsp->sb_type < SB2)
+			break;
+		pclog("MIDI irq in\n");
+		dsp->midi_in_poll = 0;
 		dsp->uart_midi = 1;
 		dsp->uart_irq = 1;
 		break;
-	case 0x36: case 0x37:
+	case 0x36: case 0x37: /* MIDI timestamps */
 		break;
-	case 0x38:	/* MIDI (Normal mode) */
+	case 0x38:	/* Write to SB MIDI Output (Raw) */
 		dsp->onebyte_midi = 1;
 		break;				
 	case 0x40:	/* Set time constant */
@@ -724,17 +740,22 @@ sb_write(uint16_t a, uint8_t v, void *priv)
 
     switch (a & 0xF) {
 	case 6:		/* Reset */
-		if (!(v & 1) && (dsp->sbreset & 1)) {
-			sb_dsp_reset(dsp);
-			sb_add_data(dsp, 0xAA);
+		if (!dsp->uart_midi) {
+			if (!(v & 1) && (dsp->sbreset & 1)) {
+				sb_dsp_reset(dsp);
+				sb_add_data(dsp, 0xAA);
+			}
+			dsp->sbreset = v;
 		}
-		dsp->sbreset = v;
+		dsp->uart_midi = 0;
+		dsp->uart_irq = 0;
+		dsp->onebyte_midi = 0;
 		return;
 	case 0xC:	/* Command/data write */
-		if (dsp->uart_midi || dsp->onebyte_midi) {
-			midi_write(v);
+		if (dsp->uart_midi || dsp->onebyte_midi ) {
+			midi_raw_out_byte(v);
 			dsp->onebyte_midi = 0;
-				return;
+			return;
 		}
 		timer_set_delay_u64(&dsp->wb_timer, TIMER_USEC * 1);
 		if (dsp->asp_data_len) {
@@ -768,9 +789,9 @@ sb_read(uint16_t a, void *priv)
 
     switch (a & 0xf) {
 	case 0xA:	/* Read data */
-		if (mpu && dsp->uart_midi)
+		if (mpu && dsp->uart_midi) {
 			ret = MPU401_ReadData(mpu);
-		else {
+		} else {
 			dsp->sbreaddat = dsp->sb_read_data[dsp->sb_read_rp];
 			if (dsp->sb_read_rp != dsp->sb_read_wp) {
 				dsp->sb_read_rp++;
@@ -814,6 +835,47 @@ sb_dsp_set_mpu(mpu_t *src_mpu)
     mpu = src_mpu;
 }
 
+void 
+sb_dsp_input_msg(uint8_t *msg) 
+{
+	pclog("MIDI in sysex = %d, uart irq = %d, midi in = %d\n", dspin->midi_in_sysex, dspin->uart_irq, dspin->midi_in_poll);
+	
+	if (dspin->midi_in_sysex) {
+		return;
+	}
+	
+	uint8_t len = msg[3];
+	uint8_t i = 0;
+	if (dspin->uart_irq) {
+		for (i=0;i<len;i++)
+			sb_add_data(dspin, msg[i]);
+		if (!dspin->sb_irq8) sb_irq(dspin, 1);
+	} else if (dspin->midi_in_poll) {
+		for (i=0;i<len;i++) 
+			sb_add_data(dspin, msg[i]);
+	}
+}
+
+int 
+sb_dsp_input_sysex(uint8_t *buffer, uint32_t len, int abort) 
+{
+	uint32_t i;
+	
+	if (abort) {
+		dspin->midi_in_sysex = 0;
+		return 0;
+	}
+	dspin->midi_in_sysex = 1;
+	for (i=0;i<len;i++) {
+		if (dspin->sb_read_rp == dspin->sb_read_wp) {
+			pclog("Length sysex SB = %d\n", len-i);
+			return (len-i);
+		}
+		sb_add_data(dspin, buffer[i]);
+	}
+	dspin->midi_in_sysex = 0;
+	return 0;
+}
 
 void
 sb_dsp_init(sb_dsp_t *dsp, int type)
