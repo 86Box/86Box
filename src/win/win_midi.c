@@ -16,15 +16,14 @@ typedef struct
     int midi_id, midi_input_id;
 
     HANDLE m_event;
-	HANDLE m_callback;
 
     HMIDIOUT midi_out_device;
 	HMIDIIN midi_in_device;
 
-    MIDIHDR m_hdr, m_hdr_in;
+    MIDIHDR m_hdr;
 } plat_midi_t;
 
-plat_midi_t *pm = NULL;
+plat_midi_t *pm = NULL, *pm_in = NULL;
 
 
 void
@@ -41,7 +40,6 @@ plat_midi_init(void)
 
     pm->m_event = CreateEvent(NULL, TRUE, TRUE, NULL);
 
-	pclog("Plat MIDI Out init\n");
     hr = midiOutOpen(&pm->midi_out_device, pm->midi_id,
 		     (uintptr_t) pm->m_event, 0, CALLBACK_EVENT);
     if (hr != MMSYSERR_NOERROR) {
@@ -140,30 +138,29 @@ plat_midi_write(uint8_t val)
 }
 
 void CALLBACK
-plat_midi_in_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
-	pclog("MIDI: wMsg:%x %x %x\n",wMsg, dwParam1, dwParam2);
+plat_midi_in_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) 
+{
 	uint8_t msg[4] = {((dwParam1&0xff)),(((dwParam1&0xff00)>>8)),
 					(((dwParam1&0xff0000)>>16)),MIDI_evt_len[((dwParam1&0xff))]};
 	uint8_t *sysex;
-	int len;
+	uint32_t len;
 	int cnt;
-	MIDIHDR *t_hdr;
+	MIDIHDR *hdr;
 	switch (wMsg) {
 		case MM_MIM_DATA:  /* 0x3C3 - midi message */
-			input_msg(msg);
+			input_msg(midi_in_p, msg);
 			break;
 		case MM_MIM_OPEN:  /* 0x3C1 */
 			break;
 		case MM_MIM_CLOSE: /* 0x3C2 */
 			break;
 		case MM_MIM_LONGDATA: /* 0x3C4 - sysex */
-			pclog("MIDI sysex\n");
-			t_hdr = (MIDIHDR *)dwParam1;
-			sysex = (uint8_t *)t_hdr->lpData; 
-			len = (unsigned int)t_hdr->dwBytesRecorded;
+			hdr = (MIDIHDR *)dwParam1;
+			sysex = (uint8_t *)hdr->lpData; 
+			len = (uint32_t)hdr->dwBytesRecorded;
 			cnt = 5;
 			while (cnt) { /*abort if timed out*/
-				int ret = input_sysex(sysex, len, 0);
+				int ret = input_sysex(midi_in_p, sysex, len, 0);
 				if (!ret) {
 					len = 0;
 					break;
@@ -177,11 +174,11 @@ plat_midi_in_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PT
 				Sleep(5);/*msec*/
 			}
 			if (len) 
-				input_sysex(sysex, 0, 0);
+				input_sysex(midi_in_p, sysex, 0, 0);
 			
-			midiInUnprepareHeader(hMidiIn, t_hdr, sizeof(*t_hdr));
-			t_hdr->dwBytesRecorded = 0;
-			midiInPrepareHeader(hMidiIn, t_hdr, sizeof(*t_hdr));
+			midiInUnprepareHeader(hMidiIn, hdr, sizeof(*hdr));
+			hdr->dwBytesRecorded = 0;
+			midiInPrepareHeader(hMidiIn, hdr, sizeof(*hdr));
 			break;
 		case MM_MIM_ERROR:
 		case MM_MIM_LONGERROR:
@@ -196,46 +193,45 @@ plat_midi_input_init(void)
 {
     MMRESULT hr;
 
-    pm = (plat_midi_t *) malloc(sizeof(plat_midi_t));
-    memset(pm, 0, sizeof(plat_midi_t));
+    pm_in = (plat_midi_t *) malloc(sizeof(plat_midi_t));
+    memset(pm_in, 0, sizeof(plat_midi_t));
 
-	pclog("Plat MIDI Input init\n");
-
-    pm->midi_input_id = config_get_int(MIDI_INPUT_NAME, "midi_input", 0);
+    pm_in->midi_input_id = config_get_int(MIDI_INPUT_NAME, "midi_input", 0);
 	
-    hr = midiInOpen(&pm->midi_in_device, pm->midi_input_id,
+	hr = MMSYSERR_NOERROR;	
+	
+    hr = midiInOpen(&pm_in->midi_in_device, pm_in->midi_input_id,
 		     (uintptr_t) plat_midi_in_callback, 0, CALLBACK_FUNCTION);
     if (hr != MMSYSERR_NOERROR) {
-	pclog("midiInOpen error - %08X\n", hr);
-	pm->midi_input_id = 0;
-	hr = midiInOpen(&pm->midi_in_device, pm->midi_input_id,
+	printf("midiInOpen error - %08X\n", hr);
+	pm_in->midi_input_id = 0;
+	hr = midiInOpen(&pm_in->midi_in_device, pm_in->midi_input_id,
 			 (uintptr_t) plat_midi_in_callback, 0, CALLBACK_FUNCTION);
 	if (hr != MMSYSERR_NOERROR) {
-		pclog("midiInOpen error - %08X\n", hr);
+		printf("midiInOpen error - %08X\n", hr);
 		return;
 	}
     }
 	
-	pm->m_hdr_in.lpData = (char*)&MIDI_InSysexBuf[0];
-	pm->m_hdr_in.dwBufferLength = SYSEX_SIZE;
-	pm->m_hdr_in.dwBytesRecorded = 0 ;
-	pm->m_hdr_in.dwUser = 0;
-	pclog("Prepare MIDI In\n");
-	midiInPrepareHeader(pm->midi_in_device,&pm->m_hdr_in,sizeof(pm->m_hdr_in));
-	midiInStart(pm->midi_in_device);
+	pm_in->m_hdr.lpData = (char*)&MIDI_InSysexBuf[0];
+	pm_in->m_hdr.dwBufferLength = SYSEX_SIZE;
+	pm_in->m_hdr.dwBytesRecorded = 0;
+	pm_in->m_hdr.dwUser = 0;
+	midiInPrepareHeader(pm_in->midi_in_device,&pm_in->m_hdr,sizeof(pm_in->m_hdr));
+	midiInStart(pm_in->midi_in_device);
 }
 
 void
 plat_midi_input_close(void)
 {
-    if (pm) {
-	if (pm->midi_in_device != NULL) {
-		midiInStop(pm->midi_in_device);
-		midiInClose(pm->midi_in_device);
+    if (pm_in) {
+	if (pm_in->midi_in_device != NULL) {
+		midiInStop(pm_in->midi_in_device);
+		midiInClose(pm_in->midi_in_device);
 	}
 	
-	free(pm);
-	pm = NULL;
+	free(pm_in);
+	pm_in = NULL;
     }
 }
 

@@ -17,8 +17,6 @@ void* system_midi_init(const device_t *info)
         midi_device_t* dev = malloc(sizeof(midi_device_t));
         memset(dev, 0, sizeof(midi_device_t));
 
-		pclog("MIDI Output\n");
-
         dev->play_msg = plat_midi_play_msg;
         dev->play_sysex = plat_midi_play_sysex;
         dev->write = plat_midi_write;
@@ -35,15 +33,13 @@ void* midi_input_init(const device_t *info)
         midi_device_t* dev = malloc(sizeof(midi_device_t));
         memset(dev, 0, sizeof(midi_device_t));
 
-		pclog("MIDI Input\n");
-
         plat_midi_input_init();
 
-        midi_in_init(dev, &midi);
+        midi_in_init(dev, &midi_in);
 
-		midi->midi_realtime = device_get_config_int("realtime");
-		midi->thruchan = device_get_config_int("thruchan");
-		midi->midi_clockout = device_get_config_int("clockout");
+		midi_in->midi_realtime = device_get_config_int("realtime");
+		midi_in->thruchan = device_get_config_int("thruchan");
+		midi_in->midi_clockout = device_get_config_int("clockout");
 
         return dev;
 }

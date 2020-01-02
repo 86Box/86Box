@@ -45,10 +45,11 @@ static int midi_device_last = 0;
 int midi_input_device_current = 0;
 static int midi_input_device_last = 0;
 
-midi_t *midi = NULL;
+midi_t *midi = NULL, *midi_in = NULL;
 
-void (*input_msg)(uint8_t *msg);
-int (*input_sysex)(uint8_t *buffer, uint32_t len, int abort);
+void (*input_msg)(void *p, uint8_t *msg);
+int (*input_sysex)(void *p, uint8_t *buffer, uint32_t len, int abort);
+void *midi_in_p;
 
 uint8_t MIDI_InSysexBuf[SYSEX_SIZE];
 
@@ -202,14 +203,14 @@ midi_close(void)
 void
 midi_in_close(void)
 {
-    if (midi && midi->m_in_device) {
-	free(midi->m_in_device);
-	midi->m_in_device = NULL;
+    if (midi_in && midi_in->m_in_device) {
+	free(midi_in->m_in_device);
+	midi_in->m_in_device = NULL;
     }
 
-    if (midi) {
-	free(midi);
-	midi = NULL;
+    if (midi_in) {
+	free(midi_in);
+	midi_in = NULL;
     }
 }
 
@@ -300,24 +301,21 @@ midi_in_device_init()
 void
 midi_raw_out_rt_byte(uint8_t val)
 {
-    if (!midi || !midi->m_out_device || !midi->m_in_device)
+	if (!midi_in->midi_realtime)
 		return;
 
-	if (!midi->midi_realtime)
-		return;
-
-	if ((!midi->midi_clockout && (val == 0xf8)))
+	if ((!midi_in->midi_clockout && (val == 0xf8)))
 	return;
 
-	midi->midi_cmd_r = val << 24;
+	midi_in->midi_cmd_r = val << 24;
 	pclog("Play RT Byte msg\n");
-	play_msg((uint8_t *)&midi->midi_cmd_r);
+	play_msg((uint8_t *)&midi_in->midi_cmd_r);
 }
 
 void
 midi_raw_out_thru_rt_byte(uint8_t val)
 {
-	if (midi->thruchan)
+	if (midi_in->thruchan)
 		midi_raw_out_rt_byte(val);
 }
 
@@ -326,11 +324,13 @@ midi_raw_out_byte(uint8_t val)
 {
     uint32_t passed_ticks;
 
-    if (!midi || !midi->m_out_device)
+    if (!midi || !midi->m_out_device) {
 	return;
+	}
 
-    if ((midi->m_out_device->write && midi->m_out_device->write(val)))
+    if ((midi->m_out_device->write && midi->m_out_device->write(val))) {
 	return;
+	}
 
     if (midi->midi_sysex_start) {
 	passed_ticks = plat_get_ticks() - midi->midi_sysex_start;

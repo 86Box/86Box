@@ -76,11 +76,10 @@ typedef struct sb_dsp_t
         int pos;
 } sb_dsp_t;
 
-extern sb_dsp_t *dspin;
 
-void sb_dsp_input_msg(uint8_t *msg);
+void sb_dsp_input_msg(void *p, uint8_t *msg);
 
-int sb_dsp_input_sysex(uint8_t *buffer, uint32_t len, int abort);
+int sb_dsp_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort);
 
 void sb_dsp_set_mpu(mpu_t *src_mpu);
 

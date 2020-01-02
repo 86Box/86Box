@@ -56,8 +56,6 @@ static void MPU401_EOIHandler(void *priv);
 static void MPU401_EOIHandlerDispatch(void *p);
 static void MPU401_NotesOff(mpu_t *mpu, int i);
 
-static mpu_t *mpuin;
-static mutex_t *mpu_lock;
 
 #ifdef ENABLE_MPU401_LOG
 int mpu401_do_log = ENABLE_MPU401_LOG;
@@ -78,12 +76,6 @@ mpu401_log(const char *fmt, ...)
 #define mpu401_log(fmt, ...)
 #endif
 
-
-void
-mpu401_set_midi_in(mpu_t *src_mpu_in)
-{
-    mpuin = src_mpu_in;
-}
 
 static void
 MPU401_ReCalcClock(mpu_t *mpu)
@@ -169,14 +161,7 @@ static void
 MPU401_RecQueueBuffer(mpu_t *mpu, uint8_t *buf, uint32_t len, int block)
 {
 	uint32_t cnt;
-	
-	if (block) {
-		if (mpu_lock)
-			thread_wait_mutex(mpu_lock);
-		else
-			return;
-	}
-	
+
 	cnt = 0;
 	while (cnt < len) {
 	if (mpu->rec_queue_used < MPU401_INPUT_QUEUE) {
@@ -195,8 +180,6 @@ MPU401_RecQueueBuffer(mpu_t *mpu, uint8_t *buf, uint32_t len, int block)
 	
 	if (mpu->queue_used == 0) {
 	if (mpu->state.rec_copy || mpu->state.irq_pending) {
-		if (block && mpu_lock)
-			thread_release_mutex(mpu_lock);
 		if (mpu->state.irq_pending) {
 		picintc(1 << mpu->irq);
 		mpu->state.irq_pending = 0;		
@@ -210,9 +193,6 @@ MPU401_RecQueueBuffer(mpu_t *mpu, uint8_t *buf, uint32_t len, int block)
 	mpu->rec_queue_used--;
 	mpu->rec_queue_pos++;
 	}
-	
-	if (block && mpu_lock)
-		thread_release_mutex(mpu_lock);	
 }
 
 static void
@@ -341,8 +321,6 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
     if ((val != 0x3f) && (val != 0xff) && !mpu->intelligent)
 		return;
 
-	thread_wait_mutex(mpu_lock);
-
 	/*hack:enable midi through after the first mpu401 command is written*/
 	mpu->midi_thru = 1;
 
@@ -402,7 +380,6 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 				MPU401_QueueByte(mpu, MSG_MPU_END);
 				mpu->filter.prchg_mask = 0;
 				mpu->clock.rec_counter = 0;
-				thread_release_mutex(mpu_lock);
 				return;
 			case 0x20: /* Start */
 				if (!(mpu->state.rec == M_RECON)) {
@@ -430,7 +407,6 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 	MPU401_RecQueueBuffer(mpu, recmsg, 3, 0);
 	mpu->filter.prchg_mask &= ~(1 << i);
 	}
-	thread_release_mutex(mpu_lock);
     } else if ((val >= 0xa0) && (val <= 0xa7)) {	/* Request play counter */
 	MPU401_QueueByte(mpu, mpu->playbuf[val & 7].counter);
     } else if ((val >= 0xd0) && (val <= 0xd7)) {	/* Send data */
@@ -545,22 +521,18 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 	case 0xab:	/* Request and clear recording counter */
 		MPU401_QueueByte(mpu, MSG_MPU_ACK);
 		MPU401_QueueByte(mpu, 0);
-		thread_release_mutex(mpu_lock);
 		return;
 	case 0xac:	/* Request version */
 		MPU401_QueueByte(mpu, MSG_MPU_ACK);
 		MPU401_QueueByte(mpu, MPU401_VERSION);
-		thread_release_mutex(mpu_lock);
 		return;
 	case 0xad:	/* Request revision */
 		MPU401_QueueByte(mpu, MSG_MPU_ACK);
 		MPU401_QueueByte(mpu, MPU401_REVISION);
-		thread_release_mutex(mpu_lock);
 		return;
 	case 0xaf:	/* Request tempo */
 		MPU401_QueueByte(mpu, MSG_MPU_ACK);
 		MPU401_QueueByte(mpu, mpu->clock.tempo);
-		thread_release_mutex(mpu_lock);
 		return;
 	case 0xb1:	/* Reset relative tempo */
 		mpu->clock.old_tempo_rel = mpu->clock.tempo_rel;
@@ -623,7 +595,6 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
     }
 
     MPU401_QueueByte(mpu, MSG_MPU_ACK);
-	thread_release_mutex(mpu_lock);
 }
 
 
@@ -790,13 +761,10 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
 	return;
     }
 
-	thread_wait_mutex(mpu_lock);
-	
     if (mpu->state.cond_req) {
 	/* Command */
 	switch (mpu->state.data_onoff) {
 		case -1:
-			thread_release_mutex(mpu_lock);
 			return;
 		case  0: /* Timing byte */
 			mpu->condbuf.length = 0;
@@ -833,7 +801,6 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
 			mpu->state.cond_req = 0;
 			break;
 	}
-	thread_release_mutex(mpu_lock);
 	return;
     }
 
@@ -848,7 +815,6 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
 			mpu->state.data_onoff = -1;
 			MPU401_EOIHandlerDispatch(mpu);
 			mpu->state.track_req = 0;
-			thread_release_mutex(mpu_lock);
 			return;
 		}
 		mpu->state.send_now = !val ? 1 : 0;
@@ -879,7 +845,6 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
 				mpu->state.data_onoff = -1;
 				MPU401_EOIHandler(mpu);
 				mpu->state.track_req = 0;
-				thread_release_mutex(mpu_lock);
 				return;
 			default: /* MIDI with running status */
 				cnt++;
@@ -901,7 +866,6 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
 		break;
     }
 	
-	thread_release_mutex(mpu_lock);
 	return;
 }
 
@@ -1070,8 +1034,7 @@ MPU401_ReadData(mpu_t *mpu)
     uint8_t ret;
 	
     ret = MSG_MPU_ACK;
-	thread_wait_mutex(mpu_lock);
-	
+
     if (mpu->queue_used) {
 	if (mpu->queue_pos >= MPU401_QUEUE)
 		mpu->queue_pos -= MPU401_QUEUE;
@@ -1085,7 +1048,6 @@ MPU401_ReadData(mpu_t *mpu)
 	if (mpu->state.irq_pending) {
 		picintc(1 << mpu->irq);
 		mpu->state.irq_pending = 0;
-		thread_release_mutex(mpu_lock);
 	}
 
 	return ret;
@@ -1094,7 +1056,6 @@ MPU401_ReadData(mpu_t *mpu)
 	if (mpu->state.rec_copy && !mpu->rec_queue_used) {
 	mpu->state.rec_copy = 0;
 	MPU401_EOIHandler(mpu);
-	thread_release_mutex(mpu_lock);
 	return ret;
 	}
 
@@ -1136,8 +1097,6 @@ MPU401_ReadData(mpu_t *mpu)
     if ((ret == MSG_MPU_END) || (ret == MSG_MPU_CLOCK) || (ret == MSG_MPU_ACK) || (ret == MSG_MPU_OVERFLOW)) {
 	MPU401_EOIHandlerDispatch(mpu);
     }
-
-	thread_release_mutex(mpu_lock);
 
     return(ret);
 }
@@ -1251,9 +1210,7 @@ MPU401_Event(void *priv)
 		}
 	}
     if (!mpu->state.irq_pending && mpu->state.req_mask) {
-	thread_wait_mutex(mpu_lock);
 	MPU401_EOIHandler(mpu);
-	thread_release_mutex(mpu_lock);
 	}
 
 next_event:
@@ -1291,42 +1248,44 @@ MPU401_NotesOff(mpu_t *mpu, int i)
 
 /*Input handler for SysEx */
 static int 
-MPU401_InputSysex(uint8_t *buffer, uint32_t len, int abort) 
+MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort) 
 {
-	pclog("MPU401 Input Sysex\n");
+	mpu_t *mpu = (mpu_t *)p;
+	
+	mpu401_log("MPU401 Input Sysex\n");
 	
 	int i;
 	
-	if (mpuin->filter.sysex_in) {
+	if (mpu->filter.sysex_in) {
 		if (abort) {
-			mpuin->state.sysex_in_finished=1;
-			mpuin->rec_queue_used=0;/*reset also the input queue*/
+			mpu->state.sysex_in_finished=1;
+			mpu->rec_queue_used=0;/*reset also the input queue*/
 			return 0;
 		}
-		if (mpuin->state.sysex_in_finished) {
-			if (mpuin->rec_queue_used>=MPU401_INPUT_QUEUE) 
+		if (mpu->state.sysex_in_finished) {
+			if (mpu->rec_queue_used>=MPU401_INPUT_QUEUE) 
 				return len;
 			uint8_t val_ff=0xff;
-			MPU401_RecQueueBuffer(mpuin,&val_ff,1,1);
-			mpuin->state.sysex_in_finished=0;
-			mpuin->clock.rec_counter=0;
+			MPU401_RecQueueBuffer(mpu,&val_ff,1,1);
+			mpu->state.sysex_in_finished=0;
+			mpu->clock.rec_counter=0;
 		}
-		if (mpuin->rec_queue_used>=MPU401_INPUT_QUEUE) 
+		if (mpu->rec_queue_used>=MPU401_INPUT_QUEUE) 
 			return len;
-		int available=MPU401_INPUT_QUEUE-mpuin->rec_queue_used;
+		int available=MPU401_INPUT_QUEUE-mpu->rec_queue_used;
 
 		if (available>=len) {
-			MPU401_RecQueueBuffer(mpuin,buffer,len,1);
+			MPU401_RecQueueBuffer(mpu,buffer,len,1);
 			return 0;
 		}
 		else {
-			MPU401_RecQueueBuffer(mpuin,buffer,available,1);
-			if (mpuin->state.sysex_in_finished) 
+			MPU401_RecQueueBuffer(mpu,buffer,available,1);
+			if (mpu->state.sysex_in_finished) 
 				return 0;
 			return (len-available);
 		}
 	}
-	else if (mpuin->filter.sysex_thru && mpuin->midi_thru) {
+	else if (mpu->filter.sysex_thru && mpu->midi_thru) {
 		midi_raw_out_byte(0xf0);
 		for (i=0;i<len;i++) 
 			midi_raw_out_byte(*(buffer+i));
@@ -1337,15 +1296,17 @@ MPU401_InputSysex(uint8_t *buffer, uint32_t len, int abort)
 
 /*Input handler for MIDI*/
 static void 
-MPU401_InputMsg(uint8_t *msg) 
+MPU401_InputMsg(void *p, uint8_t *msg) 
 {
-	pclog("MPU401 Input Msg\n");
+	mpu_t *mpu = (mpu_t *)p;
 
 	/*abort if sysex transfer is in progress*/
-	if (!mpuin->state.sysex_in_finished) {
-		pclog("SYSEX in progress\n");
+	if (!mpu->state.sysex_in_finished) {
+		mpu401_log("SYSEX in progress\n");
 		return;
 	}
+
+	mpu401_log("MPU401 Input Msg\n");
 	
 	int i;
 	static uint8_t old_msg=0;
@@ -1354,41 +1315,41 @@ MPU401_InputMsg(uint8_t *msg)
 	int send_thru=0;
 	int retrigger_thru=0;
 	int midistatus=0;
-	if (mpuin->mode==M_INTELLIGENT) {
+	if (mpu->mode==M_INTELLIGENT) {
 		if (msg[0]<0x80) {			/* Expand running status */
 			midistatus=1;
 			msg[2]=msg[1];msg[1]=msg[0];msg[0]=old_msg;
 		}
 		old_msg=msg[0];
 		int chan=msg[0]&0xf;
-		int chrefnum=mpuin->ch_toref[chan];
+		int chrefnum=mpu->ch_toref[chan];
 		uint8_t key=msg[1]&0x7f;
 		if (msg[0]<0xf0) { //if non-system msg
-			if (!(mpuin->state.midi_mask&(1<<chan)) && mpuin->filter.all_thru) 
+			if (!(mpu->state.midi_mask&(1<<chan)) && mpu->filter.all_thru) 
 				send_thru=1;
-			else if (mpuin->filter.midi_thru) 
+			else if (mpu->filter.midi_thru) 
 				send_thru=1;
 			switch (msg[0]&0xf0) {
 				case 0x80: /*note off*/
 					if (send_thru) {
-						if (mpuin->chanref[chrefnum].on && (mpuin->chanref[chrefnum].M_GETKEY))
+						if (mpu->chanref[chrefnum].on && (mpu->chanref[chrefnum].M_GETKEY))
 							send_thru=0;
-						if (!mpuin->filter.midi_thru) 
+						if (!mpu->filter.midi_thru) 
 							break;
-						if  (!(mpuin->inputref[chan].M_GETKEY)) 
+						if  (!(mpu->inputref[chan].M_GETKEY)) 
 							send_thru=0;
-						 mpuin->inputref[chan].M_DELKEY;
+						 mpu->inputref[chan].M_DELKEY;
 					}
 					break;
 				case 0x90: /*note on*/
 					if (send_thru) {
-						if (mpuin->chanref[chrefnum].on && (mpuin->chanref[chrefnum].M_GETKEY))
+						if (mpu->chanref[chrefnum].on && (mpu->chanref[chrefnum].M_GETKEY))
 							retrigger_thru=1;
-						if (!mpuin->filter.midi_thru) 
+						if (!mpu->filter.midi_thru) 
 							break;
-						if (mpuin->inputref[chan].M_GETKEY) 
+						if (mpu->inputref[chan].M_GETKEY) 
 							retrigger_thru=1;
-						mpuin->inputref[chan].M_SETKEY;
+						mpu->inputref[chan].M_SETKEY;
 					}
 					break;
 				case 0xb0:
@@ -1396,112 +1357,112 @@ MPU401_InputMsg(uint8_t *msg)
 						send_thru=0;
 						if (msg[1]==123) { /* All notes off */
 							for (key=0;key<128;key++) {
-								if (!(mpuin->chanref[chrefnum].on && (mpuin->chanref[chrefnum].M_GETKEY)))
-									if (mpuin->inputref[chan].on && mpuin->inputref[chan].M_GETKEY) {
+								if (!(mpu->chanref[chrefnum].on && (mpu->chanref[chrefnum].M_GETKEY)))
+									if (mpu->inputref[chan].on && mpu->inputref[chan].M_GETKEY) {
 										midi_raw_out_byte(0x80|chan);
 										midi_raw_out_byte(key);
 										midi_raw_out_byte(0);
 									}
-								mpuin->inputref[chan].M_DELKEY;
+								mpu->inputref[chan].M_DELKEY;
 							}
 						}
 					}
 					break;
 			}
 		}
-		if (msg[0]>=0xf0 || (mpuin->state.midi_mask&(1<<chan)))
+		if (msg[0]>=0xf0 || (mpu->state.midi_mask&(1<<chan)))
 			switch (msg[0]&0xf0) {
 				case 0xa0: /*aftertouch*/
-					if (!mpuin->filter.bender_in) 
+					if (!mpu->filter.bender_in) 
 						send=0;
 					break;
 				case 0xb0: /*control change*/
-					if (!mpuin->filter.bender_in && msg[1]<64) 
+					if (!mpu->filter.bender_in && msg[1]<64) 
 						send=0;
 					if (msg[1]>=120) { 
-						if (mpuin->filter.modemsgs_in) 
+						if (mpu->filter.modemsgs_in) 
 							send=1;
 					}
 					break;
 				case 0xc0: /*program change*/
-					if ((mpuin->state.rec!=M_RECON) && !mpuin->filter.data_in_stop) {
-						mpuin->filter.prchg_buf[chan]=msg[1];
-						mpuin->filter.prchg_mask|=1<<chan;
+					if ((mpu->state.rec!=M_RECON) && !mpu->filter.data_in_stop) {
+						mpu->filter.prchg_buf[chan]=msg[1];
+						mpu->filter.prchg_mask|=1<<chan;
 					}
 					break;
 				case 0xd0: /*ch pressure*/
 				case 0xe0: /*pitch wheel*/
-					if (!mpuin->filter.bender_in) 
+					if (!mpu->filter.bender_in) 
 						send=0;
 					break;
 				case 0xf0: //system message
 					if (msg[0]==0xf8) {
 						send=0;
-						if (mpuin->clock.active && mpuin->state.sync_in) {
+						if (mpu->clock.active && mpu->state.sync_in) {
 							send = 0;/*don't pass to host in this mode?*/
-							int tick=mpuin->clock.timebase/24;
-							if (mpuin->clock.ticks_in!=tick) {
-								if (!mpuin->clock.ticks_in || (mpuin->clock.ticks_in>tick*2)) 
-									mpuin->clock.freq_mod*=2.0;
+							int tick=mpu->clock.timebase/24;
+							if (mpu->clock.ticks_in!=tick) {
+								if (!mpu->clock.ticks_in || (mpu->clock.ticks_in>tick*2)) 
+									mpu->clock.freq_mod*=2.0;
 								else {
-									if (ABS(mpuin->clock.ticks_in-tick)==1)
-										mpuin->clock.freq_mod/=mpuin->clock.ticks_in/(float)(tick*2);
+									if (ABS(mpu->clock.ticks_in-tick)==1)
+										mpu->clock.freq_mod/=mpu->clock.ticks_in/(float)(tick*2);
 									else
-										mpuin->clock.freq_mod/=mpuin->clock.ticks_in/(float)(tick);
+										mpu->clock.freq_mod/=mpu->clock.ticks_in/(float)(tick);
 								}
-								MPU401_ReCalcClock(mpuin);
+								MPU401_ReCalcClock(mpu);
 							}
-							mpuin->clock.ticks_in=0;
+							mpu->clock.ticks_in=0;
 						}
 					}
 					else if (msg[0]>0xf8) { /*realtime*/
-						if (!(mpuin->filter.rt_in && msg[0]<=0xfc && msg[0]>=0xfa)) {
+						if (!(mpu->filter.rt_in && msg[0]<=0xfc && msg[0]>=0xfa)) {
 							uint8_t recdata[2]={0xff,msg[0]};
-							MPU401_RecQueueBuffer(mpuin,recdata,2,1);
+							MPU401_RecQueueBuffer(mpu,recdata,2,1);
 							send=0;
 						}
 					}
 					else { /*common or system*/
 						send=0;
 						if (msg[0]==0xf2 || msg[0]==0xf3 || msg[0]==0xf6) {
-							if (mpuin->filter.commonmsgs_in) 
+							if (mpu->filter.commonmsgs_in) 
 								send=1;
-							if (mpuin->filter.commonmsgs_thru) 
+							if (mpu->filter.commonmsgs_thru) 
 								for (i=0;i<len;i++) 
 									midi_raw_out_byte(msg[i]);
 						}
 					}
 					if (send) {
 						uint8_t recmsg[4]={0xff,msg[0],msg[1],msg[2]};
-						MPU401_RecQueueBuffer(mpuin,recmsg,len+1,1);
+						MPU401_RecQueueBuffer(mpu,recmsg,len+1,1);
 					}
-					if (mpuin->filter.rt_affection) switch(msg[0]) {
+					if (mpu->filter.rt_affection) switch(msg[0]) {
 						case 0xf2:case 0xf3:
-							mpuin->state.block_ack=1;
-							MPU401_WriteCommand(mpuin,0xb8);/*clear play counters*/
+							mpu->state.block_ack=1;
+							MPU401_WriteCommand(mpu,0xb8);/*clear play counters*/
 							break;
 						case 0xfa:
-							mpuin->state.block_ack=1;
-							MPU401_WriteCommand(mpuin,0xa);/*start,play*/
-							if (mpuin->filter.rt_out)
+							mpu->state.block_ack=1;
+							MPU401_WriteCommand(mpu,0xa);/*start,play*/
+							if (mpu->filter.rt_out)
 								midi_raw_out_rt_byte(msg[0]);
 							break;
 						case 0xfb:
-							mpuin->state.block_ack=1;
-							MPU401_WriteCommand(mpuin,0xb);/*continue,play*/
-							if (mpuin->filter.rt_out)
+							mpu->state.block_ack=1;
+							MPU401_WriteCommand(mpu,0xb);/*continue,play*/
+							if (mpu->filter.rt_out)
 								midi_raw_out_rt_byte(msg[0]);
 							break;
 						case 0xfc:
-							mpuin->state.block_ack=1;
-							MPU401_WriteCommand(mpuin,0xd);/*stop: play,rec,midi*/
-							if (mpuin->filter.rt_out)
+							mpu->state.block_ack=1;
+							MPU401_WriteCommand(mpu,0xd);/*stop: play,rec,midi*/
+							if (mpu->filter.rt_out)
 								midi_raw_out_rt_byte(msg[0]);
 							break;
 					}
 					return;
 			}
-		if (send_thru && mpuin->midi_thru) {
+		if (send_thru && mpu->midi_thru) {
 			if (retrigger_thru) {
 				midi_raw_out_byte(0x80|(msg[0]&0xf));
 				midi_raw_out_byte(msg[1]);
@@ -1511,29 +1472,29 @@ MPU401_InputMsg(uint8_t *msg)
 				midi_raw_out_byte(msg[i]);
 		}
 		if (send) {
-			if (mpuin->state.rec==M_RECON) {
-				uint8_t recmsg[4]={mpuin->clock.rec_counter,msg[0],msg[1],msg[2]};
-				MPU401_RecQueueBuffer(mpuin,recmsg,len+1,1);
-				mpuin->clock.rec_counter=0;
+			if (mpu->state.rec==M_RECON) {
+				uint8_t recmsg[4]={mpu->clock.rec_counter,msg[0],msg[1],msg[2]};
+				MPU401_RecQueueBuffer(mpu,recmsg,len+1,1);
+				mpu->clock.rec_counter=0;
 			}
-			else if (mpuin->filter.data_in_stop) {
-				if (mpuin->filter.timing_in_stop) {
+			else if (mpu->filter.data_in_stop) {
+				if (mpu->filter.timing_in_stop) {
 					uint8_t recmsg[4]={0,msg[0],msg[1],msg[2]};
-					MPU401_RecQueueBuffer(mpuin,recmsg,len+1,1);
+					MPU401_RecQueueBuffer(mpu,recmsg,len+1,1);
 				}
 				else {
 					uint8_t recmsg[4]={msg[0],msg[1],msg[2],0};
-					MPU401_RecQueueBuffer(mpuin,recmsg,len,1);
+					MPU401_RecQueueBuffer(mpu,recmsg,len,1);
 				}
 			}
 		}
 		return;
 	}
 	/*UART mode input*/
-	thread_wait_mutex(mpu_lock);
-	for (i=0;i<len;i++) 
-		MPU401_QueueByte(mpuin, msg[i]);
-	thread_release_mutex(mpu_lock);
+	for (i=0;i<len;i++) {
+		MPU401_QueueByte(mpu, msg[i]);
+		picint(1 << mpu->irq);
+	}
 }
 
 
@@ -1644,10 +1605,9 @@ mpu401_standalone_init(const device_t *info)
 	irq = device_get_config_int("irq");
     }
 
-	mpu401_set_midi_in(mpu);
-	mpu_lock = thread_create_mutex(L"86Box.MPU401Mutex");
 	input_msg = MPU401_InputMsg;
 	input_sysex = MPU401_InputSysex;
+	midi_in_p = mpu;
 
     mpu401_init(mpu, base, irq, M_INTELLIGENT);
 	
@@ -1659,8 +1619,6 @@ static void
 mpu401_standalone_close(void *priv)
 {
     mpu_t *mpu = (mpu_t *)priv;
-
-	thread_close_mutex(mpu_lock);
 
     free(mpu);
 }

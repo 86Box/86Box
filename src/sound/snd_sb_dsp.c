@@ -119,7 +119,7 @@ uint8_t adjustMap2[24] = {
 };
 
 float low_fir_sb16_coef[SB16_NCoef];
-sb_dsp_t *dspin;
+
 
 #ifdef ENABLE_SB_DSP_LOG
 int sb_dsp_do_log = ENABLE_SB_DSP_LOG;
@@ -458,19 +458,19 @@ sb_exec_command(sb_dsp_t *dsp)
 			sb_start_dma_i(dsp, 1, 1, 0, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
 		break;
 	case 0x30: /* MIDI Polling mode input */
-		pclog("MIDI polling mode input\n");
+		sb_dsp_log("MIDI polling mode input\n");
 		dsp->midi_in_poll = 1;
 		dsp->uart_irq = 0;
 		break;
 	case 0x31: /* MIDI Interrupt mode input */
-		pclog("MIDI interrupt mode input\n");
+		sb_dsp_log("MIDI interrupt mode input\n");
 		dsp->midi_in_poll = 0;
 		dsp->uart_irq = 1;
 		break;
 	case 0x34: /* MIDI In poll  */
 		if (dsp->sb_type < SB2)
 			break;
-		pclog("MIDI poll in\n");
+		sb_dsp_log("MIDI poll in\n");
 		dsp->midi_in_poll = 1;
 		dsp->uart_midi = 1;
 		dsp->uart_irq = 0;
@@ -478,7 +478,7 @@ sb_exec_command(sb_dsp_t *dsp)
 	case 0x35: /* MIDI In irq */
 		if (dsp->sb_type < SB2)
 			break;
-		pclog("MIDI irq in\n");
+		sb_dsp_log("MIDI irq in\n");
 		dsp->midi_in_poll = 0;
 		dsp->uart_midi = 1;
 		dsp->uart_irq = 1;
@@ -836,44 +836,50 @@ sb_dsp_set_mpu(mpu_t *src_mpu)
 }
 
 void 
-sb_dsp_input_msg(uint8_t *msg) 
+sb_dsp_input_msg(void *p, uint8_t *msg) 
 {
-	pclog("MIDI in sysex = %d, uart irq = %d, midi in = %d\n", dspin->midi_in_sysex, dspin->uart_irq, dspin->midi_in_poll);
+	sb_dsp_t *dsp = (sb_dsp_t *) p;
 	
-	if (dspin->midi_in_sysex) {
+	sb_dsp_log("MIDI in sysex = %d, uart irq = %d, msg = %d\n", dsp->midi_in_sysex, dsp->uart_irq, msg[3]);
+	
+	if (dsp->midi_in_sysex) {
 		return;
 	}
 	
 	uint8_t len = msg[3];
 	uint8_t i = 0;
-	if (dspin->uart_irq) {
+	if (dsp->uart_irq) {
 		for (i=0;i<len;i++)
-			sb_add_data(dspin, msg[i]);
-		if (!dspin->sb_irq8) sb_irq(dspin, 1);
-	} else if (dspin->midi_in_poll) {
+			sb_add_data(dsp, msg[i]);
+		sb_dsp_log("SB IRQ8 = %d\n", dsp->sb_irq8);
+		if (!dsp->sb_irq8) 
+			picint(1 << dsp->sb_irqnum);
+	} else if (dsp->midi_in_poll) { 
 		for (i=0;i<len;i++) 
-			sb_add_data(dspin, msg[i]);
+			sb_add_data(dsp, msg[i]);
 	}
 }
 
 int 
-sb_dsp_input_sysex(uint8_t *buffer, uint32_t len, int abort) 
+sb_dsp_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort) 
 {
+	sb_dsp_t *dsp = (sb_dsp_t *) p;
+	
 	uint32_t i;
 	
 	if (abort) {
-		dspin->midi_in_sysex = 0;
+		dsp->midi_in_sysex = 0;
 		return 0;
 	}
-	dspin->midi_in_sysex = 1;
+	dsp->midi_in_sysex = 1;
 	for (i=0;i<len;i++) {
-		if (dspin->sb_read_rp == dspin->sb_read_wp) {
-			pclog("Length sysex SB = %d\n", len-i);
+		if (dsp->sb_read_rp == dsp->sb_read_wp) {
+			sb_dsp_log("Length sysex SB = %d\n", len-i);
 			return (len-i);
 		}
-		sb_add_data(dspin, buffer[i]);
+		sb_add_data(dsp, buffer[i]);
 	}
-	dspin->midi_in_sysex = 0;
+	dsp->midi_in_sysex = 0;
 	return 0;
 }
 
@@ -943,7 +949,7 @@ pollsb(void *p)
 				break;
 			dsp->sbdat = (data[0] ^ 0x80) << 8;
 			if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
-				pclog("pollsb: Mono unsigned, dsp->stereo, %s channel, %04X\n",
+				sb_dsp_log("pollsb: Mono unsigned, dsp->stereo, %s channel, %04X\n",
 				      dsp->sbleftright ? "left" : "right", dsp->sbdat);
 				if (dsp->sbleftright)
 					dsp->sbdatl = dsp->sbdat;
@@ -960,7 +966,7 @@ pollsb(void *p)
 				break;
 			dsp->sbdat = data[0] << 8;
 			if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
-				pclog("pollsb: Mono signed, dsp->stereo, %s channel, %04X\n",
+				sb_dsp_log("pollsb: Mono signed, dsp->stereo, %s channel, %04X\n",
 				      dsp->sbleftright ? "left" : "right", data[0], dsp->sbdat);
 				if (dsp->sbleftright)
 					dsp->sbdatl = dsp->sbdat;
@@ -1020,7 +1026,7 @@ pollsb(void *p)
 			}
 
 			if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
-				pclog("pollsb: ADPCM 4, dsp->stereo, %s channel, %04X\n",
+				sb_dsp_log("pollsb: ADPCM 4, dsp->stereo, %s channel, %04X\n",
 				      dsp->sbleftright ? "left" : "right", dsp->sbdat);
 				if (dsp->sbleftright)
 					dsp->sbdatl = dsp->sbdat;
@@ -1063,7 +1069,7 @@ pollsb(void *p)
 			}
 
 			if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
-				pclog("pollsb: ADPCM 26, dsp->stereo, %s channel, %04X\n",
+				sb_dsp_log("pollsb: ADPCM 26, dsp->stereo, %s channel, %04X\n",
 				      dsp->sbleftright ? "left" : "right", dsp->sbdat);
 				if (dsp->sbleftright)
 					dsp->sbdatl = dsp->sbdat;
@@ -1099,7 +1105,7 @@ pollsb(void *p)
 			}
 
 			if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
-				pclog("pollsb: ADPCM 2, dsp->stereo, %s channel, %04X\n",
+				sb_dsp_log("pollsb: ADPCM 2, dsp->stereo, %s channel, %04X\n",
 				      dsp->sbleftright ? "left" : "right", dsp->sbdat);
 				if (dsp->sbleftright)
 					dsp->sbdatl = dsp->sbdat;

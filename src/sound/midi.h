@@ -10,8 +10,9 @@ extern uint8_t MIDI_evt_len[256];
 extern int midi_device_current;
 extern int midi_input_device_current;
 
-extern void (*input_msg)(uint8_t *msg);
-extern int (*input_sysex)(uint8_t *buffer, uint32_t len, int abort);
+extern void (*input_msg)(void *p, uint8_t *msg);
+extern int (*input_sysex)(void *p, uint8_t *buffer, uint32_t len, int abort);
+extern void *midi_in_p;
 
 int midi_device_available(int card);
 int midi_in_device_available(int card);
@@ -50,7 +51,7 @@ typedef struct midi_t
 		 midi_device_t *m_out_device, *m_in_device;
 } midi_t;
 
-extern midi_t *midi;
+extern midi_t *midi, *midi_in;
 
 void midi_init(midi_device_t* device);
 void midi_in_init(midi_device_t* device, midi_t **mididev);
