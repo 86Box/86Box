@@ -147,6 +147,7 @@ const machine_t machines[] = {
 #endif
     { "[486 ISA] Packard Bell PB410A",		"pb410a",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,			  1,   64,   1, 127,	       machine_at_pb410a_init, NULL			},
     { "[486 ISA] Phoenix SiS 471",		"px471",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,  128,   1, 127,	        machine_at_px471_init, NULL			},
+    { "[486 ISA] IBM PS/ValuePoint 433DX/Si",		"valuepoint433",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,						  1,   64,   1, 127,	       machine_at_valuepoint433_init, NULL			},
 
 #if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
     { "[486 MCA] IBM PS/2 model 70 (type 4)",	"ibmps2_m70_type4",	{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_VIDEO,						  2,   16,   2,  63,  machine_ps2_model_70_type4_init, NULL			},

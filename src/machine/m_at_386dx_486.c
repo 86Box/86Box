@@ -281,6 +281,22 @@ machine_at_win471_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_valuepoint433_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/valuepoint433/$IMAGEP.FLH",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_sis_85c471_common_init(model);
+    device_add(&keyboard_ps2_device);
+
+    return ret;
+}
 
 static void
 machine_at_sis_85c496_common_init(const machine_t *model)

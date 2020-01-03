@@ -220,6 +220,7 @@ extern int	machine_at_ami471_init(const machine_t *);
 extern int	machine_at_dtk486_init(const machine_t *);
 extern int	machine_at_px471_init(const machine_t *);
 extern int	machine_at_win471_init(const machine_t *);
+extern int	machine_at_valuepoint433_init(const machine_t *);
 
 extern int	machine_at_r418_init(const machine_t *);
 extern int	machine_at_alfredo_init(const machine_t *);
