@@ -498,3 +498,13 @@ const device_t intel_flash_bxb_device =
     NULL,
     NULL, NULL, NULL, NULL
 };
+
+const device_t intel_flash_bxb_ast_device =
+{
+    "Intel 28F001BXB/28F002BXB Flash BIOS (AST Adventure!)",
+    0, FLAG_BXB | FLAG_INV_A16,
+    intel_flash_init,
+    intel_flash_close,
+    NULL,
+    NULL, NULL, NULL, NULL
+};

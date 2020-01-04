@@ -22,3 +22,4 @@ extern const device_t intel_flash_bxtw_ami_device;
 #endif
 extern const device_t intel_flash_bxt_device;
 extern const device_t intel_flash_bxb_device;
+extern const device_t intel_flash_bxb_ast_device;

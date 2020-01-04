@@ -280,6 +280,7 @@ extern int	machine_at_p55tvp4_init(const machine_t *);
 extern int	machine_at_i430vx_init(const machine_t *);
 extern int	machine_at_p55va_init(const machine_t *);
 extern int	machine_at_j656vxd_init(const machine_t *);
+extern int	machine_at_adventure_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_pb640_get_device(void);
