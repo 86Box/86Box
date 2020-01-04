@@ -2798,14 +2798,14 @@ void mach64_hwcursor_draw(svga_t *svga, int displine)
                 if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add]  = (dat & 1) ? col1 : col0;
                 else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add] ^= 0xFFFFFF;
                 dat >>= 2;
-                if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add] ^= 0xFFFFFF;
+                if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add + 1]  = (dat & 1) ? col1 : col0;
+                else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add + 1] ^= 0xFFFFFF;
                 dat >>= 2;
-                if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add] ^= 0xFFFFFF;
+                if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add + 2]  = (dat & 1) ? col1 : col0;
+                else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add + 2] ^= 0xFFFFFF;
                 dat >>= 2;
-                if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add] ^= 0xFFFFFF;
+                if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add + 3]  = (dat & 1) ? col1 : col0;
+                else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add + 3] ^= 0xFFFFFF;
                 dat >>= 2;
                 offset += 4;
         }

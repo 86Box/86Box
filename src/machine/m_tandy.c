@@ -8,7 +8,7 @@
  *
  *		Emulation of Tandy models 1000, 1000HX and 1000SL2.
  *
- * Version:	@(#)m_tandy.c	1.0.10	2019/10/20
+ * Version:	@(#)m_tandy.c	1.0.11	2019/12/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -74,11 +74,7 @@ typedef struct {
     int			crtcreg;
 
     int			array_index;
-#if 0
-    uint8_t		array[32];
-#else
     uint8_t		array[256];
-#endif
     int			memctrl;
     uint8_t		mode, col;
     uint8_t		stat;
@@ -95,13 +91,13 @@ typedef struct {
     int			con, coff,
 			cursoron,
 			blink;
-    int		vsynctime;
+    int			vsynctime;
     int			vadj;
     uint16_t		ma, maback;
 
     uint64_t		dispontime,
 			dispofftime;
-	pc_timer_t timer;
+    pc_timer_t		timer;
     int			firstline,
 			lastline;
 
@@ -857,8 +853,8 @@ vid_poll(void *priv)
 				}
 			}
 		} else if (! (vid->mode & 16)) {
-			cols[0] = (vid->col & 15) | 16;
-			col = (vid->col & 16) ? 24 : 16;
+			cols[0] = (vid->col & 15);
+			col = (vid->col & 16) ? 8 : 0;
 			if (vid->mode & 4) {
 				cols[1] = col | 3;
 				cols[2] = col | 4;
@@ -872,6 +868,10 @@ vid_poll(void *priv)
 				cols[2] = col | 4;
 				cols[3] = col | 6;
 			}
+			cols[0] = vid->array[(cols[0] & vid->array[1]) + 16] + 16;
+			cols[1] = vid->array[(cols[1] & vid->array[1]) + 16] + 16;
+			cols[2] = vid->array[(cols[2] & vid->array[1]) + 16] + 16;
+			cols[3] = vid->array[(cols[3] & vid->array[1]) + 16] + 16;
 			for (x = 0; x < vid->crtc[1]; x++) {
 				dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000)] << 8) | 
 				       vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000) + 1];
