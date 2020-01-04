@@ -33,7 +33,7 @@
 #define CPU_RAPIDCAD	8
 #define CPU_486SLC	9
 #define CPU_486DLC	10
-#define CPU_i486SX 11		/* 486 class CPUs */
+#define CPU_i486SX 11	/* 486 class CPUs */
 #define CPU_Am486SX	12
 #define CPU_Cx486S	13
 #define CPU_i486DX	14
@@ -96,6 +96,9 @@ extern CPU	cpus_486DLC[];
 extern CPU  cpus_IBM386SLC[];
 extern CPU  cpus_IBM486SLC[];
 extern CPU  cpus_IBM486BL[];
+extern CPU  cpus_i486S1[];
+extern CPU	cpus_Am486S1[];
+extern CPU	cpus_Cx486S1[];
 extern CPU	cpus_i486[];
 extern CPU	cpus_Am486[];
 extern CPU	cpus_Cx486[];
@@ -104,11 +107,14 @@ extern CPU	cpus_WinChip_SS7[];
 extern CPU	cpus_Pentium5V[];
 extern CPU	cpus_Pentium5V50[];
 extern CPU	cpus_PentiumS5[];
+extern CPU	cpus_Pentium3V[];
 extern CPU	cpus_K5[];
 extern CPU	cpus_K56[];
 extern CPU	cpus_K56_SS7[];
 extern CPU	cpus_Pentium[];
+extern CPU	cpus_6x863V[];
 extern CPU	cpus_6x86[];
+extern CPU	cpus_6x86SS7[];
 #ifdef DEV_BRANCH
 #ifdef USE_I686
 extern CPU	cpus_PentiumPro[];

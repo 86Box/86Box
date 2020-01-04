@@ -108,6 +108,9 @@ extern CPU	cpus_486DLC[];
 extern CPU  cpus_IBM386SLC[];
 extern CPU  cpus_IBM486SLC[];
 extern CPU  cpus_IBM486BL[];
+extern CPU  cpus_i486S1[];
+extern CPU	cpus_Am486S1[];
+extern CPU	cpus_Cx486S1[];
 extern CPU	cpus_i486[];
 extern CPU	cpus_Am486[];
 extern CPU	cpus_Cx486[];
@@ -115,14 +118,20 @@ extern CPU	cpus_WinChip[];
 extern CPU	cpus_Pentium5V[];
 extern CPU	cpus_Pentium5V50[];
 extern CPU	cpus_PentiumS5[];
+extern CPU	cpus_Pentium3V[];
+extern CPU	cpus_Pentium[];
 #ifdef DEV_BRANCH
 #ifdef USE_AMD_K
 extern CPU	cpus_K5[];
 extern CPU	cpus_K56[];
 #endif
 #endif
-extern CPU	cpus_Pentium[];
+#ifdef DEV_BRANCH
+#ifdef USE_CYRIX_6X86
+extern CPU	cpus_6x863V[];
 extern CPU	cpus_6x86[];
+#endif
+#endif
 #ifdef DEV_BRANCH
 #ifdef USE_I686
 extern CPU	cpus_PentiumPro[];
