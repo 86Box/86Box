@@ -70,18 +70,18 @@
 
 
 typedef struct {
-    const char	*name;
-    int		cpu_type;
-    int		rspeed;
-    int		multi;
-    int		pci_speed;
-    uint32_t	edx_reset;
-    uint32_t	cpuid_model;
-    uint16_t	cyrix_id;
-    uint8_t	cpu_flags;
-    int8_t	mem_read_cycles, mem_write_cycles;
-    int8_t	cache_read_cycles, cache_write_cycles;
-    int8_t	atclk_div;
+    const char*name;
+    int       cpu_type;
+    int       rspeed;
+    double    multi;
+    int       pci_speed;
+    uint32_t  edx_reset;
+    uint32_t  cpuid_model;
+    uint16_t  cyrix_id;
+    uint8_t   cpu_flags;
+    int8_t    mem_read_cycles, mem_write_cycles;
+    int8_t    cache_read_cycles, cache_write_cycles;
+    int8_t    atclk_div;
 } CPU;
 
 extern CPU	cpus_8088[];
