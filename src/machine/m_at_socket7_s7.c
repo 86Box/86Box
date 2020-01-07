@@ -331,6 +331,41 @@ machine_at_tc430hx_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_at_equium5200_init(const machine_t *model) // Information about that machine on machine.h
+{
+    int ret;
+
+    ret = bios_load_linear_combined2(L"roms/machines/equium5200/1003DK08.BIO",
+				     L"roms/machines/equium5200/1003DK08.BI1",
+				     L"roms/machines/equium5200/1003DK08.BI2",
+				     L"roms/machines/equium5200/1003DK08.BI3",
+				     L"roms/machines/equium5200/1003DK08.RCV",
+				     0x3a000, 128);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_ONBOARD, 4, 0, 0, 0);
+	pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+	pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 0, 0, 0); // riser
+    device_add(&i430hx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&pc87306_device);
+    device_add(&intel_flash_bxtw_ami_device);
+
+    return ret;
+}
+
 #endif
 
 
