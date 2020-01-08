@@ -1394,7 +1394,7 @@ MPU401_InputMsg(void *p, uint8_t *msg)
 					if (msg[1] == 123) {
 						/* All notes off. */
 						for (key = 0; key < 128; key++) {
-							if (!(mpu->chanref[chrefnum].on && (mpu->chanref[chrefnum].M_GETKEY)))
+							if (!(mpu->chanref[chrefnum].on && (mpu->chanref[chrefnum].M_GETKEY))) {
 								if (mpu->inputref[chan].on && mpu->inputref[chan].M_GETKEY) {
 									midi_raw_out_byte(0x80 | chan);
 									midi_raw_out_byte(key);
