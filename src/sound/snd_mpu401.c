@@ -1216,7 +1216,8 @@ MPU401_Event(void *priv)
 	mpu->clock.cth_counter++;
 	if (mpu->clock.cth_counter >= mpu->clock.cth_rate[mpu->clock.cth_mode]) {
 		mpu->clock.cth_counter = 0;
-		mpu->clock.cth_mode= (++mpu->clock.cth_mode) % 4;
+		mpu->clock.cth_mode++;
+		mpu->clock.cth_mode %= 4;
 		mpu->state.req_mask |= (1 << 13);
 	}
     }
