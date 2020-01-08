@@ -332,6 +332,40 @@ machine_at_tc430hx_init(const machine_t *model)
 }
 
 int
+machine_at_pcv90_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined2(L"roms/machines/pcv90/1010dd04.bio",
+				     L"roms/machines/pcv90/1010dd04.bi1",
+				     L"roms/machines/pcv90/1010dd04.bi2",
+				     L"roms/machines/pcv90/1010dd04.bi3",
+				     L"roms/machines/pcv90/1010dd04.rcv",
+				     0x40000, 128);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_ONBOARD, 4, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    device_add(&i430hx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&pc87306_device);
+    device_add(&intel_flash_bxt_ami_device);
+
+    return ret;
+}
+
+int
 machine_at_pavl7320_init(const machine_t *model)
 {
     int ret;

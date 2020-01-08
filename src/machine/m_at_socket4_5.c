@@ -213,6 +213,23 @@ machine_at_430nx_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_pb540_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined(L"roms/machines/pb540/1012bb0r.bio",
+				    L"roms/machines/pb540/1012bb0r.bi1", 0x1c000, 128);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_premiere_common_init(model);
+
+    device_add(&i430nx_device);
+
+    return ret;
+}
 
 int
 machine_at_p54tp4xe_init(const machine_t *model)
