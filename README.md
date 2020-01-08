@@ -63,7 +63,7 @@ guide:
 9. Enjoy using and testing the emulator! :)
 
 If you encounter issues at any step or have additional questions, please join
-the IRC channel and wait patiently for someone to help you.
+the IRC channel or the appropriate channel on our Discord server and wait patiently for someone to help you.
 
 Nightly builds
 --------------
@@ -83,7 +83,7 @@ Jenkins instance.
   optimized for every modern Intel and AMD processor architecture, which might
   improve the emulator's performance in certain scenarios.
 * **Experimental (Dev)** builds are similar to regular builds but are compiled
-  with certain unfinished features enabled. These builds are not optimized.
+  with certain unfinished features enabled. These builds are not optimized for maximum performance.
 
 Donations
 ---------
