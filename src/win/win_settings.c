@@ -56,6 +56,7 @@
 #include "../sound/sound.h"
 #include "../sound/midi.h"
 #include "../sound/snd_mpu401.h"
+#include "../sound/snd_gus.h"
 #include "../video/video.h"
 #include "../video/vid_voodoo.h"
 #include "../plat.h"
@@ -1117,7 +1118,6 @@ mpu401_standalone_allow(void)
     return 1;
 }
 
-
 #if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
@@ -1245,7 +1245,10 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 		h=GetDlgItem(hdlg, IDC_CHECK_GUS);
 		SendMessage(h, BM_SETCHECK, temp_GUS, 0);
-
+		
+		h = GetDlgItem(hdlg, IDC_CONFIGURE_GUS);
+	        EnableWindow(h, (temp_GUS) ? TRUE : FALSE);
+		
 		h=GetDlgItem(hdlg, IDC_CHECK_SSI);
 		SendMessage(h, BM_SETCHECK, temp_SSI2001, 0);
 
@@ -1344,6 +1347,18 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDC_CONFIGURE_MPU401:
 				temp_deviceconfig |= deviceconfig_open(hdlg, (machines[temp_machine].flags & MACHINE_MCA) ?
 								       (void *)&mpu401_mca_device : (void *)&mpu401_device);
+				break;
+				
+			case IDC_CHECK_GUS:
+        		        h = GetDlgItem(hdlg, IDC_CHECK_GUS);
+				temp_GUS = SendMessage(h, BM_GETCHECK, 0, 0);
+
+        		        h = GetDlgItem(hdlg, IDC_CONFIGURE_GUS);
+				EnableWindow(h, temp_GUS ? TRUE : FALSE);
+				break;
+
+			case IDC_CONFIGURE_GUS:
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)&gus_device);
 				break;
 		}
 		return FALSE;
