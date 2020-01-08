@@ -1216,7 +1216,8 @@ MPU401_Event(void *priv)
 	mpu->clock.cth_counter++;
 	if (mpu->clock.cth_counter >= mpu->clock.cth_rate[mpu->clock.cth_mode]) {
 		mpu->clock.cth_counter = 0;
-		mpu->clock.cth_mode= (++mpu->clock.cth_mode) % 4;
+		mpu->clock.cth_mode++;
+		mpu->clock.cth_mode %= 4;
 		mpu->state.req_mask |= (1 << 13);
 	}
     }
@@ -1393,7 +1394,7 @@ MPU401_InputMsg(void *p, uint8_t *msg)
 					if (msg[1] == 123) {
 						/* All notes off. */
 						for (key = 0; key < 128; key++) {
-							if (!(mpu->chanref[chrefnum].on && (mpu->chanref[chrefnum].M_GETKEY)))
+							if (!(mpu->chanref[chrefnum].on && (mpu->chanref[chrefnum].M_GETKEY))) {
 								if (mpu->inputref[chan].on && mpu->inputref[chan].M_GETKEY) {
 									midi_raw_out_byte(0x80 | chan);
 									midi_raw_out_byte(key);
