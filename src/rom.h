@@ -62,6 +62,9 @@ extern int	bios_load_linear_combined(wchar_t *fn1, wchar_t *fn2,
 extern int	bios_load_linear_combined2(wchar_t *fn1, wchar_t *fn2,
 					   wchar_t *fn3, wchar_t *fn4, wchar_t *fn5,
 					   int sz, int off);
+extern int	bios_load_linear_combined2_norcv(wchar_t *fn1, wchar_t *fn2,
+					   wchar_t *fn3, wchar_t *fn4,
+					   int sz, int off);
 #endif
 
 extern int	rom_init(rom_t *rom, wchar_t *fn, uint32_t address, int size,

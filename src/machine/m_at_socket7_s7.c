@@ -370,7 +370,7 @@ machine_at_pavl7320_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2(L"roms/machines/pavl7320/1005dl0l.bio",
+    ret = bios_load_linear_combined2_norcv(L"roms/machines/pavl7320/1005dl0l.bio",
 				     L"roms/machines/pavl7320/1005dl0l.bi1",
 				     L"roms/machines/pavl7320/1005dl0l.bi2",
 				     L"roms/machines/pavl7320/1005dl0l.bi3",
