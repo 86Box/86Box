@@ -101,8 +101,8 @@ typedef struct gus_t
         uint8_t ad_status, ad_data;
         uint8_t ad_timer_ctrl;
         
-        uint8_t uart_queue[64];
-		int uart_pos, uart_used;
+		uint8_t midi_ctrl, midi_status, midi_queue[64], midi_data;
+		int midi_r, midi_w;
 		int uart_in, uart_out, sysex;
         
         uint8_t gp1, gp2;
@@ -111,7 +111,8 @@ typedef struct gus_t
         uint8_t usrr;
 } gus_t;
 
-static int gus_irqs[8] = {-1, 2, 5, 3, 7, 11, 12, 15};
+static int gus_gf1_irqs[8] = {0, 2, 5, 3, 7, 11, 12, 15};
+static int gus_midi_irqs[8] = {0, 2, 5, 3, 7, 11, 12, 15};
 static int gus_dmas[8] = {-1, 1, 3, 5, 6, 7, -1, -1};
 
 int gusfreqs[]=
@@ -134,21 +135,49 @@ void pollgusirqs(gus_t *gus)
                         gus->irqstatus2=0x60|c;
                         if (gus->rampirqs[c]) gus->irqstatus2 |= 0x80;
                         gus->irqstatus|=0x20;
-                        if (gus->irq != -1)
-                                picint(1 << gus->irq);
+			if (gus->irq != 0)
+				picint(1 << gus->irq);
                         return;
                 }
                 if (gus->rampirqs[c])
                 {
                         gus->irqstatus2=0xA0|c;
                         gus->irqstatus|=0x40;
-                        if (gus->irq != -1)
-                                picint(1 << gus->irq);
+			if (gus->irq != 0)
+				picint(1 << gus->irq);
                         return;
                 }
         }
         gus->irqstatus2=0xE0;
-        if (!gus->irqstatus && gus->irq != -1) picintc(1 << gus->irq);
+        if (!gus->irqstatus) {
+		if (gus->irq != 0)
+			picintc(1 << gus->irq);
+	}
+}
+
+void gus_midi_update_int_status(gus_t *gus)
+{
+        gus->midi_status &= ~MIDI_INT_MASTER;
+        if ((gus->midi_ctrl & MIDI_CTRL_TRANSMIT_MASK) == MIDI_CTRL_TRANSMIT && (gus->midi_status & MIDI_INT_TRANSMIT))
+        {
+                gus->midi_status |= MIDI_INT_MASTER;
+                gus->irqstatus |= GUS_INT_MIDI_TRANSMIT;
+        }
+        else
+                gus->irqstatus &= ~GUS_INT_MIDI_TRANSMIT;
+                
+        if ((gus->midi_ctrl & MIDI_CTRL_RECEIVE) && (gus->midi_status & MIDI_INT_RECEIVE))
+        {
+		gus->midi_status |= MIDI_INT_MASTER;
+		gus->irqstatus |= GUS_INT_MIDI_RECEIVE;
+        }
+        else
+                gus->irqstatus &= ~GUS_INT_MIDI_RECEIVE;
+
+        if ((gus->midi_status & MIDI_INT_MASTER) && (gus->irq_midi != 0))
+        {
+                picint(1 << gus->irq_midi);
+        }
 }
 
 void writegus(uint16_t addr, uint8_t val, void *p)
@@ -166,33 +195,30 @@ void writegus(uint16_t addr, uint8_t val, void *p)
         switch (port)
         {
                 case 0x300: /*MIDI control*/
-			gus->uart_out = 1;
-			if (val == 3 || !val) {
-				gus->uart_in = 0;
-				gus->irqstatus &= ~0x03;
-				gus->uart_used = 0;
-				return;
-			}
+		gus->midi_ctrl = val;
+		gus->uart_out = 1;
 				
-			if (val & 0x20) {
-				gus->irqstatus |= 0x01;
-			} else {
-				gus->irqstatus &= ~0x01;
-			}
-				
-			if (val & 0x80)
-				gus->uart_in = 1;
-			else
-				gus->uart_in = 0;
+		if (((gus->midi_ctrl & 3) == 3) || !gus->midi_ctrl) { /*Master reset*/
+			gus->uart_in = 0;
+			gus->midi_status = 0;
+			gus->midi_r = 0;
+			gus->midi_w = 0;
+		} else if (gus->midi_ctrl & MIDI_CTRL_TRANSMIT) {
+			gus->midi_status |= MIDI_INT_TRANSMIT;
+		} else if (gus->midi_ctrl & MIDI_CTRL_RECEIVE) {
+			gus->uart_in = 1;
+		}	
+		gus_midi_update_int_status(gus);
                 break;
                 case 0x301: /*MIDI data*/
+		gus->midi_data = val;
                 if (gus->uart_out) {
-				midi_raw_out_byte(val);
-				picint(1 << gus->irq_midi);
+			midi_raw_out_byte(val);
                 }
-                break;              
-                case 0x302: /*Voice select*/
-                gus->voice=val&31;
+		if (gus->latch_enable & 0x20) {
+			gus->midi_status |= MIDI_INT_RECEIVE;
+		} else 
+		gus->midi_status |= MIDI_INT_TRANSMIT;
                 break;
                 case 0x303: /*Global select*/
                 gus->global=val;
@@ -453,7 +479,7 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                         {
                                 if (gus->sb_nmi)
                                         nmi = 1;
-                                else if (gus->irq != -1)
+                                else
                                         picint(1 << gus->irq);
                         }
                 }
@@ -513,14 +539,14 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
 							//
 							//     "If both channels are sharing an IRQ, channel 2's IRQ must be set to 0 and turn on bit 6. A
 							//      bus conflict will occur if both latches are programmed with the same IRQ #."
-							if (gus_irqs[val & 7] != -1)
-								gus->irq = gus_irqs[val & 7];
-							
+							if ((val & 7) != 0)
+								gus->irq = gus_gf1_irqs[val & 7];
+
 							if (val & 0x40) // "Combine both IRQs"
 								gus->irq_midi = gus->irq;
 							else
-								gus->irq_midi = gus_irqs[(val >> 3) & 7];
-							
+								gus->irq_midi = gus_midi_irqs[(val >> 3) & 7];
+
 							gus->sb_nmi = val & 0x80;
 						} else {
 							// GUS SDK: DMA Control Register
@@ -576,7 +602,7 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
 			gus->ad_status |= 0x08;
                         if (gus->sb_nmi)
 				nmi = 1;
-                        else if (gus->irq != -1)
+                        else if (gus->irq != 0)
 				picint(1 << gus->irq);
                 }
                 break;
@@ -589,7 +615,7 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                 {
                         if (gus->sb_nmi)
                                 nmi = 1;
-                        else if (gus->irq != -1)
+                        else if (gus->irq != 0)
                                 picint(1 << gus->irq);
                 }
                 case 0x20d:
@@ -619,23 +645,23 @@ uint8_t readgus(uint16_t addr, void *p)
         switch (port)
         {
                 case 0x300: /*MIDI status*/
-                val = ((gus->irqstatus & 0x03 ? 0x80 : 0) |
-					(gus->uart_in && gus->uart_used >= 64 ? 0x20:0) |
-					((gus->uart_used && gus->uart_in) ? 1 : 0) | (gus->uart_out ? 2 : 0));
+				val = gus->midi_status;
                 break;
 
                 case 0x301: /*MIDI data*/
 				val = 0;
 				if (gus->uart_in) {
-					if (gus->uart_used) {
-						if (gus->uart_pos >= 64)
-							gus->uart_pos -= 64;
-						val = gus->uart_queue[gus->uart_pos];
-						gus->uart_pos++;
-						gus->uart_used--;
+					if ((gus->midi_data == 0xaa) && (gus->midi_ctrl & MIDI_CTRL_RECEIVE)) /*Handle master reset*/
+						val = gus->midi_data;
+					else {
+						val = gus->midi_queue[gus->midi_r];
+						if (gus->midi_r != gus->midi_w) {
+							gus->midi_r++;
+							gus->midi_r &= 63;
+						}
 					}
-					if (!gus->uart_used)
-						gus->irqstatus &= ~0x02;
+					gus->midi_status &= ~MIDI_INT_RECEIVE;
+					gus_midi_update_int_status(gus);
 				}
                 break;
                 
@@ -819,9 +845,9 @@ void gus_poll_timer_1(void *p)
                         gus->ad_status |= 0x40;
                         if (gus->tctrl&4)
                         {
-                                if (gus->irq != -1)
-                                        picint(1 << gus->irq);
-                                gus->ad_status |= 0x04;
+				if (gus->irq != 0)	
+					picint(1 << gus->irq);
+				gus->ad_status |= 0x04;
                                 gus->irqstatus |= 0x04;
                         }
                 }
@@ -830,9 +856,11 @@ void gus_poll_timer_1(void *p)
         {
                 gus->irqnext=0;
                 gus->irqstatus|=0x80;
-                if (gus->irq != -1)
-                        picint(1 << gus->irq);
+		if (gus->irq != 0)
+			picint(1 << gus->irq);
         }
+
+		gus_midi_update_int_status(gus);
 }
 
 void gus_poll_timer_2(void *p)
@@ -849,8 +877,8 @@ void gus_poll_timer_2(void *p)
                         gus->ad_status |= 0x20;
                         if (gus->tctrl&8)
                         {
-                                if (gus->irq != -1)
-                                        picint(1 << gus->irq);
+				if (gus->irq != 0)
+					picint(1 << gus->irq);
                                 gus->ad_status |= 0x02;
                                 gus->irqstatus |= 0x08;
                         }
@@ -860,8 +888,8 @@ void gus_poll_timer_2(void *p)
         {
                 gus->irqnext=0;
                 gus->irqstatus|=0x80;
-                if (gus->irq != -1)
-                        picint(1 << gus->irq);
+                if (gus->irq != 0)
+			picint(1 << gus->irq);
         }
 }
 
@@ -1060,19 +1088,6 @@ static void gus_get_buffer(int32_t *buffer, int len, void *p)
         gus->pos = 0;
 }
 
-static void gus_queue(gus_t *gus, uint8_t val)
-{
-	int pos;
-	
-	if (gus->uart_used < 64) {
-		pos = gus->uart_used + gus->uart_pos;
-		if (pos >= 64) 
-			pos -= 64;
-		gus->uart_queue[pos] = val;
-		gus->uart_used++;
-	}
-}
-
 static void gus_input_msg(void *p, uint8_t *msg) 
 {
 	gus_t *gus = (gus_t *)p;
@@ -1082,10 +1097,14 @@ static void gus_input_msg(void *p, uint8_t *msg)
 		return;
 	
 	if (gus->uart_in) {
-		gus->irqstatus |= 0x02;
-		for (i=0;i<msg[3];i++) 
-			gus_queue(gus, msg[i]);
-		picint(1 << gus->irq_midi);
+		gus->midi_status |= MIDI_INT_RECEIVE;
+
+		for (i=0;i<msg[3];i++) {
+			gus->midi_queue[gus->midi_w++] = msg[i];
+			gus->midi_w &= 63;
+		}
+		
+		gus_midi_update_int_status(gus);
 	}
 }
 
@@ -1095,16 +1114,15 @@ static int gus_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 	uint32_t i;
 	
 	if (abort) {
-		gus->uart_used = 0;
 		gus->sysex = 0;
 		return 0;
 	}
 	gus->sysex = 1;
 	for (i=0;i<len;i++) {
-		if (gus->uart_used >= 64) {
+		if (gus->midi_r == gus->midi_w)
 			return (len-i);
-		}
-		gus_queue(gus, buffer[i]);
+		gus->midi_queue[gus->midi_w++] = buffer[i];
+		gus->midi_w &= 63;
 	}
 	gus->sysex = 0;
 	return 0;
@@ -1140,12 +1158,13 @@ void *gus_init(const device_t *info)
 
         gus->t1l = gus->t2l = 0xff;
 	
+	gus->uart_out = 1;
+	
 	gus->base = device_get_config_hex16("base");
                 
         io_sethandler(gus->base, 0x0010, readgus, NULL, NULL, writegus, NULL, NULL,  gus);
         io_sethandler(0x0100+gus->base, 0x0010, readgus, NULL, NULL, writegus, NULL, NULL,  gus);
         io_sethandler(0x0506+gus->base, 0x0001, readgus, NULL, NULL, writegus, NULL, NULL,  gus);        
-
         io_sethandler(0x0388, 0x0002, readgus, NULL, NULL, writegus, NULL, NULL,  gus);
 		timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
 		timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
