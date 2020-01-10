@@ -181,15 +181,16 @@ void writegus(uint16_t addr, uint8_t val, void *p)
         switch (addr)
         {
                 case 0x340: /*MIDI control*/
+				old = gus->midi_ctrl;
 				gus->midi_ctrl = val;
 				gus->uart_out = 1;
 				
-				if (((gus->midi_ctrl & 3) == 3) || !gus->midi_ctrl) { /*Master reset*/
+				if ((val & 3) == 3) { /*Master reset*/
 					gus->uart_in = 0;
 					gus->midi_status = 0;
 					gus->midi_r = 0;
 					gus->midi_w = 0;
-				} else if (gus->midi_ctrl & MIDI_CTRL_TRANSMIT) {
+				} else if ((old & 3) == 3) {
 					gus->midi_status |= MIDI_INT_TRANSMIT;
 				} else if (gus->midi_ctrl & MIDI_CTRL_RECEIVE) {
 					gus->uart_in = 1;
