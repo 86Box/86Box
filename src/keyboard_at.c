@@ -8,15 +8,15 @@
  *
  *		Intel 8042 (AT keyboard controller) emulation.
  *
- * Version:	@(#)keyboard_at.c	1.0.45	2019/11/15
+ * Version:	@(#)keyboard_at.c	1.0.46	2020/01/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -668,7 +668,7 @@ kbd_poll(void *priv)
 	dev->out_new = mouse_queue[mouse_queue_start] | 0x100;
 	mouse_queue_start = (mouse_queue_start + 1) & 0xf;
     } else if (!(dev->status&STAT_OFULL) && dev->out_new == -1 &&
-	       !(dev->mem[0]&0x10) && (key_queue_start != key_queue_end) && !kbc_busy) {
+	       !(dev->mem[0]&0x10) && (key_queue_start != key_queue_end)) {
 	dev->out_new = key_queue[key_queue_start];
 	key_queue_start = (key_queue_start + 1) & 0xf;
     }
