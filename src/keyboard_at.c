@@ -623,7 +623,7 @@ kbd_poll(void *priv)
 {
     atkbd_t *dev = (atkbd_t *)priv;
 
-    timer_advance_u64(&dev->send_delay_timer, (1000 * TIMER_USEC));
+    timer_advance_u64(&dev->send_delay_timer, (100ULL * TIMER_USEC));
 
     if ((dev->out_new != -1) && !dev->last_irq) {
 	dev->wantirq = 0;
@@ -658,17 +658,17 @@ kbd_poll(void *priv)
 	dev->out_new = key_ctrl_queue[key_ctrl_queue_start] | 0x200;
 	key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0xf;
     } else if (!(dev->status & STAT_OFULL) && dev->out_new == -1 && dev->out_delayed != -1) {
-            dev->out_new = dev->out_delayed;
-            dev->out_delayed = -1;
+	dev->out_new = dev->out_delayed;
+	dev->out_delayed = -1;
     } else if (!(dev->status & STAT_OFULL) && dev->out_new == -1 && !(dev->mem[0] & 0x10) && dev->out_delayed != -1) {
-            dev->out_new = dev->out_delayed;
-            dev->out_delayed = -1;
+	dev->out_new = dev->out_delayed;
+	dev->out_delayed = -1;
     } else if (!(dev->status & STAT_OFULL) && dev->out_new == -1/* && !(dev->mem[0] & 0x20)*/ &&
 	    (mouse_queue_start != mouse_queue_end)) {
 	dev->out_new = mouse_queue[mouse_queue_start] | 0x100;
 	mouse_queue_start = (mouse_queue_start + 1) & 0xf;
     } else if (!(dev->status&STAT_OFULL) && dev->out_new == -1 &&
-	       !(dev->mem[0]&0x10) && (key_queue_start != key_queue_end)) {
+	       !(dev->mem[0]&0x10) && (key_queue_start != key_queue_end) && !kbc_busy) {
 	dev->out_new = key_queue[key_queue_start];
 	key_queue_start = (key_queue_start + 1) & 0xf;
     }
@@ -1931,6 +1931,8 @@ do_command:
 #ifdef ENABLE_KEYBOARD_AT_LOG
 						kbd_log("ATkbd: set defaults\n");
 #endif
+						dev->out_new = -1;
+						dev->out_delayed = -1;
 						add_data_kbd(0xfa);
 
 						keyboard_set3_all_break = 0;
@@ -2273,6 +2275,7 @@ kbd_reset(void *priv)
     dev->wantirq = 0;
     write_output(dev, 0xcf);
     dev->out_new = -1;
+    dev->out_delayed = -1;
     dev->last_irq = 0;
     dev->secr_phase = 0;
     dev->key_wantdata = 0;
