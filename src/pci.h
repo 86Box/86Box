@@ -8,15 +8,15 @@
  *
  *		Definitions for the PCI handler module.
  *
- * Version:	@(#)pci.h	1.0.1	2019/10/30
+ * Version:	@(#)pci.h	1.0.2	2020/01/11
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2008-2020 Sarah Walker.
  */
 #ifndef EMU_PCI_H
 # define EMU_PCI_H
@@ -68,6 +68,7 @@ extern int	pci_burst_time,
 
 
 extern void	pci_set_irq_routing(int pci_int, int irq);
+extern void	pci_set_irq_level(int pci_int, int level);
 
 extern void	pci_enable_mirq(int mirq);
 extern void	pci_set_mirq_routing(int mirq, int irq);
@@ -89,6 +90,7 @@ extern void	pci_close(void);
 extern uint8_t	pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv);
 
 extern void     trc_init(void);
+extern void	pci_elcr_set_enabled(int enabled);
 
 
 #endif	/*EMU_PCI_H*/
