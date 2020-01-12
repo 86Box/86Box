@@ -9,15 +9,15 @@
  *		CD-ROM image file handling module, translated to C from
  *		cdrom_dosbox.cpp.
  *
- * Version:	@(#)cdrom_image_backend.c	1.0.1	2019/12/21
+ * Version:	@(#)cdrom_image_backend.c	1.0.2	2020/01/11
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		The DOSBox Team, <unknown>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2002-2019 The DOSBox Team.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2002-2020 The DOSBox Team.
  */
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
@@ -903,7 +903,7 @@ cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
 			}
 			success = 0;
 		}
-	} else if (!strcmp(command, "FILE"))
+	} else if (!strcmp(command, "PREGAP"))
 		success = cdi_cue_get_frame(&cur_pregap, &line);
 	else if (!strcmp(command, "CATALOG") || !strcmp(command, "CDTEXTFILE") || !strcmp(command, "FLAGS") || !strcmp(command, "ISRC") ||
 		 !strcmp(command, "PERFORMER") || !strcmp(command, "POSTGAP") || !strcmp(command, "REM") ||

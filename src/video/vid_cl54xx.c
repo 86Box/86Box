@@ -9,13 +9,13 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.31	2019/12/03
+ * Version:	@(#)vid_cl_54xx.c	1.0.32	2020/01/11
  *
  * Authors:	TheCollector1995,
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016-2019 TheCollector1995.
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2016-2020 TheCollector1995.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -334,7 +334,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 					if (val == 0x12)
 						svga->seqregs[6] = 0x12;
 					else
-						svga->seqregs[6] = (svga->crtc[0x27] >= CIRRUS_ID_CLGD5446) ? 0xff : 0x0f;
+						svga->seqregs[6] = 0x0f;
 					if (svga->crtc[0x27] < CIRRUS_ID_CLGD5429)
 						gd54xx->unlocked = (svga->seqregs[6] == 0x12);
 					break;
