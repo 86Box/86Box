@@ -273,9 +273,6 @@ cpu_set(void)
         cpu_16bitbus = (cpu_s->cpu_type == CPU_286 || cpu_s->cpu_type == CPU_386SX || cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC );
 
         if (cpu_s->multi) {
-		if (cpu_s->pci_speed)
-			cpu_busspeed = cpu_s->pci_speed;
-		else
 			cpu_busspeed = cpu_s->rspeed / cpu_s->multi;
 	}
         cpu_multi = cpu_s->multi;
