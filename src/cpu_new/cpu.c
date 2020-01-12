@@ -128,6 +128,9 @@ const OpFn	*x86_opcodes_REPE;
 const OpFn	*x86_opcodes_REPNE;
 const OpFn	*x86_opcodes_3DNOW;
 
+int in_smm = 0, smi_line = 0, smi_latched = 0;
+uint32_t smbase = 0x30000;
+
 CPU		*cpu_s;
 int		cpu_effective;
 int		cpu_multi;

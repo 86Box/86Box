@@ -1,21 +1,3 @@
-/*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
- *
- *		This file is part of the 86Box distribution.
- *
- *		Miscellaneous x86 CPU Instructions.
- *
- * Version:	@(#)x86_ops_misc.h	1.0.2	2018/10/17
- *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- */
-
 static int opCBW(uint32_t fetchdat)
 {
         AH = (AL & 0x80) ? 0xff : 0;
@@ -71,14 +53,14 @@ static int opF6_a16(uint32_t fetchdat)
         
         fetch_ea_16(fetchdat);
         if (cpu_mod != 3) {
-				SEG_CHECK_READ(cpu_state.ea_seg);
+		SEG_CHECK_READ(cpu_state.ea_seg);
                 CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
         }
         dst = geteab();                 if (cpu_state.abrt) return 1;
         switch (rmdat & 0x38)
         {
                 case 0x00: /*TEST b,#8*/
-				case 0x08:
+		case 0x08:
                 src = readmemb(cs, cpu_state.pc); cpu_state.pc++;           if (cpu_state.abrt) return 1;
                 setznp8(src & dst);
                 if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
@@ -128,7 +110,7 @@ static int opF6_a16(uint32_t fetchdat)
                         {
                                 flags_rebuild();
                                 cpu_state.flags |= 0x8D5; /*Not a Cyrix*/
-				cpu_state.flags &= ~1;
+                                cpu_state.flags &= ~1;
                         }
                 }
                 else
@@ -151,7 +133,7 @@ static int opF6_a16(uint32_t fetchdat)
                         {
                                 flags_rebuild();
                                 cpu_state.flags|=0x8D5; /*Not a Cyrix*/
-				cpu_state.flags &= ~1;
+                                cpu_state.flags &= ~1;
                         }
                 }
                 else
@@ -164,7 +146,6 @@ static int opF6_a16(uint32_t fetchdat)
                 break;
 
                 default:
-                x386_dynarec_log("Bad F6 opcode %02X\n", rmdat & 0x38);
                 x86illegal();
         }
         return 0;
@@ -183,7 +164,7 @@ static int opF6_a32(uint32_t fetchdat)
         switch (rmdat & 0x38)
         {
                 case 0x00: /*TEST b,#8*/
-				case 0x08:
+                case 0x08:
                 src = readmemb(cs, cpu_state.pc); cpu_state.pc++;           if (cpu_state.abrt) return 1;
                 setznp8(src & dst);
                 if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
@@ -233,7 +214,7 @@ static int opF6_a32(uint32_t fetchdat)
                         {
                                 flags_rebuild();
                                 cpu_state.flags |= 0x8D5; /*Not a Cyrix*/
-				cpu_state.flags &= ~1;
+                                cpu_state.flags &= ~1;
                         }
                 }
                 else
@@ -255,8 +236,8 @@ static int opF6_a32(uint32_t fetchdat)
                         if (!cpu_iscyrix) 
                         {
                                 flags_rebuild();
-                                cpu_state.flags|=0x8D5; /*Not a Cyrix*/
-				cpu_state.flags &= ~1;
+                                cpu_state.flags |= 0x8D5; /*Not a Cyrix*/
+                                cpu_state.flags &= ~1;
                         }
                 }
                 else
@@ -269,7 +250,6 @@ static int opF6_a32(uint32_t fetchdat)
                 break;
 
                 default:
-                x386_dynarec_log("Bad F6 opcode %02X\n", rmdat & 0x38);
                 x86illegal();
         }
         return 0;
@@ -291,7 +271,7 @@ static int opF7_w_a16(uint32_t fetchdat)
         switch (rmdat & 0x38)
         {
                 case 0x00: /*TEST w*/
-		case 0x08:
+                case 0x08:
                 src = getword();        if (cpu_state.abrt) return 1;
                 setznp16(src & dst);
                 if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
@@ -370,7 +350,6 @@ static int opF7_w_a16(uint32_t fetchdat)
                 break;
 
                 default:
-                x386_dynarec_log("Bad F7 opcode %02X\n", rmdat & 0x38);
                 x86illegal();
         }
         return 0;
@@ -389,7 +368,7 @@ static int opF7_w_a32(uint32_t fetchdat)
         switch (rmdat & 0x38)
         {
                 case 0x00: /*TEST w*/
-		case 0x08:
+                case 0x08:
                 src = getword();        if (cpu_state.abrt) return 1;
                 setznp16(src & dst);
                 if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
@@ -442,6 +421,7 @@ static int opF7_w_a32(uint32_t fetchdat)
                 }
                 else
                 {
+//                        fatal("DIVw BY 0 %04X:%04X %i\n",cs>>4,pc,ins);
                         x86_int(0);
                         return 1;
                 }
@@ -468,7 +448,6 @@ static int opF7_w_a32(uint32_t fetchdat)
                 break;
 
                 default:
-                x386_dynarec_log("Bad F7 opcode %02X\n", rmdat & 0x38);
                 x86illegal();
         }
         return 0;
@@ -487,7 +466,7 @@ static int opF7_l_a16(uint32_t fetchdat)
         switch (rmdat & 0x38)
         {
                 case 0x00: /*TEST l*/
-		case 0x08:
+                case 0x08:
                 src = getlong();        if (cpu_state.abrt) return 1;
                 setznp32(src & dst);
                 if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
@@ -545,7 +524,6 @@ static int opF7_l_a16(uint32_t fetchdat)
                 break;
 
                 default:
-                x386_dynarec_log("Bad F7 opcode %02X\n", rmdat & 0x38);
                 x86illegal();
         }
         return 0;
@@ -563,7 +541,7 @@ static int opF7_l_a32(uint32_t fetchdat)
         switch (rmdat & 0x38)
         {
                 case 0x00: /*TEST l*/
-		case 0x08:
+                case 0x08:
                 src = getlong();        if (cpu_state.abrt) return 1;
                 setznp32(src & dst);
                 if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
@@ -621,7 +599,6 @@ static int opF7_l_a32(uint32_t fetchdat)
                 break;
 
                 default:
-                x386_dynarec_log("Bad F7 opcode %02X\n", rmdat & 0x38);
                 x86illegal();
         }
         return 0;
@@ -635,7 +612,7 @@ static int opHLT(uint32_t fetchdat)
                 x86gpf(NULL,0);
                 return 1;
         }
-        if (!((cpu_state.flags&I_FLAG) && pic_intpending))
+        if (!((cpu_state.flags & I_FLAG) && pic_intpending))
         {
                 CLOCK_CYCLES_ALWAYS(100);
                 cpu_state.pc--;
@@ -655,8 +632,8 @@ static int opLOCK(uint32_t fetchdat)
         fetchdat = fastreadl(cs + cpu_state.pc);
         if (cpu_state.abrt) return 0;
         cpu_state.pc++;
-
-	ILLEGAL_ON((fetchdat & 0xff) == 0x90);
+        
+        ILLEGAL_ON((fetchdat & 0xff) == 0x90);
 
         CLOCK_CYCLES(4);
         PREFETCH_PREFIX();
@@ -671,7 +648,7 @@ static int opBOUND_w_a16(uint32_t fetchdat)
         
         fetch_ea_16(fetchdat);
         ILLEGAL_ON(cpu_mod == 3);
-	SEG_CHECK_READ(cpu_state.ea_seg);
+        SEG_CHECK_READ(cpu_state.ea_seg);
         low = geteaw();
         high = readmemw(easeg, cpu_state.eaaddr + 2);     if (cpu_state.abrt) return 1;
         
@@ -691,7 +668,7 @@ static int opBOUND_w_a32(uint32_t fetchdat)
         
         fetch_ea_32(fetchdat);
         ILLEGAL_ON(cpu_mod == 3);
-	SEG_CHECK_READ(cpu_state.ea_seg);
+        SEG_CHECK_READ(cpu_state.ea_seg);
         low = geteaw();
         high = readmemw(easeg, cpu_state.eaaddr + 2);     if (cpu_state.abrt) return 1;
         
@@ -712,7 +689,7 @@ static int opBOUND_l_a16(uint32_t fetchdat)
         
         fetch_ea_16(fetchdat);
         ILLEGAL_ON(cpu_mod == 3);
-	SEG_CHECK_READ(cpu_state.ea_seg);
+        SEG_CHECK_READ(cpu_state.ea_seg);
         low = geteal();
         high = readmeml(easeg, cpu_state.eaaddr + 4);     if (cpu_state.abrt) return 1;
         
@@ -732,7 +709,7 @@ static int opBOUND_l_a32(uint32_t fetchdat)
         
         fetch_ea_32(fetchdat);
         ILLEGAL_ON(cpu_mod == 3);
-	SEG_CHECK_READ(cpu_state.ea_seg);
+        SEG_CHECK_READ(cpu_state.ea_seg);
         low = geteal();
         high = readmeml(easeg, cpu_state.eaaddr + 4);     if (cpu_state.abrt) return 1;
         
@@ -752,7 +729,6 @@ static int opCLTS(uint32_t fetchdat)
 {
         if ((CPL || (cpu_state.eflags&VM_FLAG)) && (cr0&1))
         {
-                x386_dynarec_log("Can't CLTS\n");
                 x86gpf(NULL,0);
                 return 1;
         }
@@ -867,8 +843,11 @@ static void loadall_load_segment(uint32_t addr, x86seg *s)
 	s->base = readmeml(0, addr + 4);
 	s->limit = readmeml(0, addr + 8);
 
-	if (s == &cpu_state.seg_cs)  use32 = (segdat3 & 0x40) ? 0x300 : 0;
-	if (s == &cpu_state.seg_ss)  stack32 = (segdat3 & 0x40) ? 1 : 0;
+	if (s == &cpu_state.seg_cs)
+                use32 = (segdat3 & 0x40) ? 0x300 : 0;
+	if (s == &cpu_state.seg_ss)
+                stack32 = (segdat3 & 0x40) ? 1 : 0;
+                
 	cpu_cur_status &= ~(CPU_STATUS_USE32 | CPU_STATUS_STACK32);
 	if (use32)
 	       cpu_cur_status |= CPU_STATUS_USE32;
@@ -880,16 +859,16 @@ static void loadall_load_segment(uint32_t addr, x86seg *s)
         if (s == &cpu_state.seg_ds)
         {
                 if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
-	                cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
-        	else
-                	cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+                        cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
+                else
+                        cpu_cur_status |= CPU_STATUS_NOTFLATDS;
         }
         if (s == &cpu_state.seg_ss)
         {
                 if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
-	                cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
-        	else
-                	cpu_cur_status |= CPU_STATUS_NOTFLATSS;
+                        cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
+                else
+                        cpu_cur_status |= CPU_STATUS_NOTFLATSS;
         }
 }
 
@@ -933,6 +912,7 @@ static int opLOADALL386(uint32_t fetchdat)
 	loadall_load_segment(la_addr + 0xc0, &cpu_state.seg_es);
 
 	if (CPL==3 && oldcpl!=3) flushmmucache_cr3();
+	oldcpl = CPL;
 
 	CLOCK_CYCLES(350);
         return 0;
@@ -977,3 +957,16 @@ static int opWRMSR(uint32_t fetchdat)
         return 1;
 }
 
+static int opRSM(uint32_t fetchdat)
+{
+        if(!in_smm)
+        {
+                leave_smm();
+                if(smi_latched) enter_smm();
+                CPU_BLOCK_END();
+                return 0;
+        }
+        cpu_state.pc = cpu_state.oldpc;
+        x86illegal();
+        return 1;
+}

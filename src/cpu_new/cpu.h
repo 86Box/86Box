@@ -343,6 +343,9 @@ extern int		hasfpu;
 
 extern uint32_t		cpu_features;
 
+extern int in_smm, smi_line, smi_latched;
+extern uint32_t smbase;
+
 extern uint16_t		cpu_cur_status;
 extern uint64_t		cpu_CR4_mask;
 extern uint64_t		tsc;
@@ -457,6 +460,8 @@ extern void	codegen_reset(void);
 extern void	cpu_set_edx(void);
 extern int	divl(uint32_t val);
 extern void	execx86(int cycs);
+extern void enter_smm();
+extern void leave_smm();
 extern void	exec386(int cycs);
 extern void	exec386_dynarec(int cycs);
 extern int	idivl(int32_t val);
