@@ -194,21 +194,22 @@ void writegus(uint16_t addr, uint8_t val, void *p)
 		
         switch (port)
         {
-                case 0x300: /*MIDI control*/
-		gus->midi_ctrl = val;
-		gus->uart_out = 1;
-				
-		if (((gus->midi_ctrl & 3) == 3) || !gus->midi_ctrl) { /*Master reset*/
-			gus->uart_in = 0;
-			gus->midi_status = 0;
-			gus->midi_r = 0;
-			gus->midi_w = 0;
-		} else if (gus->midi_ctrl & MIDI_CTRL_TRANSMIT) {
-			gus->midi_status |= MIDI_INT_TRANSMIT;
-		} else if (gus->midi_ctrl & MIDI_CTRL_RECEIVE) {
-			gus->uart_in = 1;
-		}	
-		gus_midi_update_int_status(gus);
+            case 0x300: /*MIDI control*/
+                old = gus->midi_ctrl;
+                gus->midi_ctrl = val;
+                gus->uart_out = 1;
+               
+                if ((val & 3) == 3) { /*Master reset*/
+                    gus->uart_in = 0;
+                    gus->midi_status = 0;
+                    gus->midi_r = 0;
+                    gus->midi_w = 0;
+                } else if ((old & 3) == 3) {
+                    gus->midi_status |= MIDI_INT_TRANSMIT;
+                } else if (gus->midi_ctrl & MIDI_CTRL_RECEIVE) {
+                    gus->uart_in = 1;
+                }  
+                gus_midi_update_int_status(gus);
                 break;
                 case 0x301: /*MIDI data*/
 		gus->midi_data = val;
