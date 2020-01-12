@@ -399,6 +399,7 @@ midi_raw_out_byte(uint8_t val)
 void 
 midi_clear_buffer(void)
 {
+    if (!midi) return;
 	midi->midi_pos = 0;
 	midi->midi_status = 0x00;
 	midi->midi_cmd_pos = 0;
