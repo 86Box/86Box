@@ -61,6 +61,11 @@ extern const device_t	sis_85c496_device;
 extern const device_t	sis_85c50x_device;
 #endif
 
+#if defined(DEV_BRANCH) && defined(USE_SS7)
+/* VIA */
+extern const device_t   via_mvp3_device;
+#endif
+
 /* WD */
 extern const device_t	wd76c10_device;
 

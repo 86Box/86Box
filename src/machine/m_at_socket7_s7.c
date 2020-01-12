@@ -12,9 +12,11 @@
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *      Melissa Goad, <mszoopers@protonmail.com>
  *
- *		Copyright 2010-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2010-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *      Copyright 2020 Melissa Goad.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -35,6 +37,8 @@
 #include "../intel_sio.h"
 #include "../piix.h"
 #include "../sio.h"
+#include "../sst_flash.h"
+#include "../via_mvp3_sb.h"
 #include "../video/video.h"
 #include "../video/vid_cl54xx.h"
 #include "../video/vid_s3.h"
@@ -451,3 +455,33 @@ machine_at_j656vxd_init(const machine_t *model)
 
     return ret;
 }
+
+#if defined(DEV_BRANCH) && defined(USE_SS7)
+int
+machine_at_mvp3_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/ficva503p/je4333.bin",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0a, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    device_add(&via_mvp3_device);
+    device_add(&via_mvp3_sb_device);
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&w83877tf_device);
+    device_add(&sst_flash_39sf010_device);
+
+    return ret;
+}
+#endif

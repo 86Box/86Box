@@ -276,6 +276,10 @@ extern int	machine_at_i430vx_init(const machine_t *);
 extern int	machine_at_p55va_init(const machine_t *);
 extern int	machine_at_j656vxd_init(const machine_t *);
 
+#if defined(DEV_BRANCH) && defined(USE_SS7)
+extern int	machine_at_mvp3_init(const machine_t *);
+#endif
+
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_pb640_get_device(void);
 #endif
