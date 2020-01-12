@@ -512,7 +512,8 @@ writemembl(uint32_t addr, uint8_t val)
     mem_mapping_t *map;
     mem_logical_addr = addr;
 
-    if (page_lookup[addr>>12]) {
+    if (page_lookup[addr>>12])
+ {
 	page_lookup[addr>>12]->write_b(addr, val, page_lookup[addr>>12]);
 
 	return;
@@ -893,6 +894,25 @@ mem_readw_phys(uint32_t addr)
     return temp;
 }
 
+uint32_t
+mem_readl_phys(uint32_t addr)
+{
+    mem_mapping_t *map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    uint32_t temp;
+
+    if (_mem_exec[addr >> MEM_GRANULARITY_BITS])
+	return ((uint32_t *) _mem_exec[addr >> MEM_GRANULARITY_BITS])[(addr >> 1) & MEM_GRANULARITY_HMASK];
+    else if (map && map->read_l)
+       	return map->read_l(addr, map->p);
+    else {
+	temp = mem_readb_phys(addr + 3) << 24;		
+	temp |= mem_readb_phys(addr + 2) << 16;
+	temp |= mem_readb_phys(addr + 1) << 8;
+	temp |= mem_readb_phys(addr);
+    }
+
+    return temp;
+}
 
 void
 mem_writeb_phys(uint32_t addr, uint8_t val)
@@ -905,6 +925,23 @@ mem_writeb_phys(uint32_t addr, uint8_t val)
        	map->write_b(addr, val, map->p);
 }
 
+void
+mem_writel_phys(uint32_t addr, uint32_t val)
+{
+    mem_mapping_t *map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+
+    if (_mem_exec[addr >> MEM_GRANULARITY_BITS])
+	_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK] = val;
+    else if (map && map->write_l)
+       	map->write_l(addr, val, map->p);
+	else
+	{
+		mem_writeb_phys(addr, val & 0xff);
+		mem_writeb_phys(addr + 1, (val >> 8) & 0xff);
+		mem_writeb_phys(addr + 2, (val >> 16) & 0xff);
+		mem_writeb_phys(addr + 3, (val >> 24) & 0xff);
+	}
+}
 
 uint8_t
 mem_read_ram(uint32_t addr, void *priv)
@@ -1533,7 +1570,8 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
     memset(page_lookup, 0x00, (1 << 20) * sizeof(page_t *));
 #endif
 
-    memset(pages, 0x00, pages_sz*sizeof(page_t));
+    memset(pages, 0x00, pages_sz*sizeof(page_t));
+
 
     for (c = 0; c < pages_sz; c++) {
 	pages[c].mem = &ram[c << 12];
