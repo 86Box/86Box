@@ -122,6 +122,9 @@ const OpFn	*x86_opcodes_df_a32;
 const OpFn	*x86_opcodes_REPE;
 const OpFn	*x86_opcodes_REPNE;
 
+int in_smm = 0, smi_line = 0, smi_latched = 0;
+uint32_t smbase = 0x30000;
+
 CPU		*cpu_s;
 int		cpu_effective;
 int		cpu_multi;
@@ -270,9 +273,6 @@ cpu_set(void)
         cpu_16bitbus = (cpu_s->cpu_type == CPU_286 || cpu_s->cpu_type == CPU_386SX || cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC );
 
         if (cpu_s->multi) {
-		if (cpu_s->pci_speed)
-			cpu_busspeed = cpu_s->pci_speed;
-		else
 			cpu_busspeed = cpu_s->rspeed / cpu_s->multi;
 	}
         cpu_multi = cpu_s->multi;

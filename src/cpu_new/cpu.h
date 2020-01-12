@@ -33,7 +33,7 @@
 #define CPU_RAPIDCAD	8
 #define CPU_486SLC	9
 #define CPU_486DLC	10
-#define CPU_i486SX 11		/* 486 class CPUs */
+#define CPU_i486SX 11	/* 486 class CPUs */
 #define CPU_Am486SX	12
 #define CPU_Cx486S	13
 #define CPU_i486DX	14
@@ -70,18 +70,18 @@
 
 
 typedef struct {
-    const char	*name;
-    int		cpu_type;
-    int		rspeed;
-    int		multi;
-    int		pci_speed;
-    uint32_t	edx_reset;
-    uint32_t	cpuid_model;
-    uint16_t	cyrix_id;
-    uint8_t	cpu_flags;
-    int8_t	mem_read_cycles, mem_write_cycles;
-    int8_t	cache_read_cycles, cache_write_cycles;
-    int8_t	atclk_div;
+    const char*name;
+    int       cpu_type;
+    int       rspeed;
+    double    multi;
+    int       pci_speed;
+    uint32_t  edx_reset;
+    uint32_t  cpuid_model;
+    uint16_t  cyrix_id;
+    uint8_t   cpu_flags;
+    int8_t    mem_read_cycles, mem_write_cycles;
+    int8_t    cache_read_cycles, cache_write_cycles;
+    int8_t    atclk_div;
 } CPU;
 
 extern CPU	cpus_8088[];
@@ -96,6 +96,9 @@ extern CPU	cpus_486DLC[];
 extern CPU  cpus_IBM386SLC[];
 extern CPU  cpus_IBM486SLC[];
 extern CPU  cpus_IBM486BL[];
+extern CPU  cpus_i486S1[];
+extern CPU	cpus_Am486S1[];
+extern CPU	cpus_Cx486S1[];
 extern CPU	cpus_i486[];
 extern CPU	cpus_Am486[];
 extern CPU	cpus_Cx486[];
@@ -104,11 +107,14 @@ extern CPU	cpus_WinChip_SS7[];
 extern CPU	cpus_Pentium5V[];
 extern CPU	cpus_Pentium5V50[];
 extern CPU	cpus_PentiumS5[];
+extern CPU	cpus_Pentium3V[];
 extern CPU	cpus_K5[];
 extern CPU	cpus_K56[];
 extern CPU	cpus_K56_SS7[];
 extern CPU	cpus_Pentium[];
+extern CPU	cpus_6x863V[];
 extern CPU	cpus_6x86[];
+extern CPU	cpus_6x86SS7[];
 #ifdef DEV_BRANCH
 #ifdef USE_I686
 extern CPU	cpus_PentiumPro[];
@@ -343,6 +349,9 @@ extern int		hasfpu;
 
 extern uint32_t		cpu_features;
 
+extern int in_smm, smi_line, smi_latched;
+extern uint32_t smbase;
+
 extern uint16_t		cpu_cur_status;
 extern uint64_t		cpu_CR4_mask;
 extern uint64_t		tsc;
@@ -457,6 +466,8 @@ extern void	codegen_reset(void);
 extern void	cpu_set_edx(void);
 extern int	divl(uint32_t val);
 extern void	execx86(int cycs);
+extern void enter_smm();
+extern void leave_smm();
 extern void	exec386(int cycs);
 extern void	exec386_dynarec(int cycs);
 extern int	idivl(int32_t val);

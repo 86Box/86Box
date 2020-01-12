@@ -9,13 +9,13 @@
  *		Implementation of the SMC FDC37C663 and FDC37C665 Super
  *		I/O Chips.
  *
- * Version:	@(#)sio_fdc37c66x.c	1.0.14	2018/11/12
+ * Version:	@(#)sio_fdc37c66x.c	1.0.15	2020/01/11
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -129,7 +129,17 @@ lpt1_handler(fdc37c66x_t *dev)
 }
 
 
-static void fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
+static void
+fdc_handler(fdc37c66x_t *dev)
+{
+    fdc_remove(dev->fdc);
+    if (dev->regs[0] & 0x10)
+	fdc_set_base(dev->fdc, (dev->regs[5] & 0x01) ? 0x0370 : 0x03f0);
+}
+
+
+static void
+fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
 {
     fdc37c66x_t *dev = (fdc37c66x_t *) priv;
     uint8_t valxor = 0;
@@ -148,6 +158,10 @@ static void fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
 		dev->regs[dev->cur_reg] = val;
 
 		switch(dev->cur_reg) {
+			case 0:
+				if (valxor & 0x10)
+					fdc_handler(dev);
+				break;
 			case 1:
 				if (valxor & 3)
 					lpt1_handler(dev);
@@ -173,7 +187,9 @@ static void fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
 				if (valxor & 2)
 					fdc_update_enh_mode(dev->fdc, (dev->regs[3] & 2) ? 1 : 0);
 				break;
-				case 5:
+			case 5:
+				if (valxor & 0x01)
+					fdc_handler(dev);
 				if (valxor & 0x18)
 					fdc_update_densel_force(dev->fdc, (dev->regs[5] & 0x18) >> 3);
 				if (valxor & 0x20)

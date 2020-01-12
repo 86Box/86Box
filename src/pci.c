@@ -8,15 +8,15 @@
  *
  *		Implementation the PCI bus.
  *
- * Version:	@(#)pci.c	1.0.4	2019/11/06
+ * Version:	@(#)pci.c	1.0.6	2020/01/11
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2008-2020 Sarah Walker.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -58,7 +58,7 @@ static pci_card_t	pci_cards[32];
 static uint8_t		last_pci_card = 0;
 static uint8_t		pci_card_to_slot_mapping[32];
 static uint8_t		elcr[2] = { 0, 0 };
-static uint8_t		pci_irqs[4];
+static uint8_t		pci_irqs[4], pci_irq_level[4];
 static uint64_t		pci_irq_hold[16];
 static pci_mirq_t	pci_mirqs[3];
 static int		pci_type,
@@ -68,7 +68,7 @@ static int		pci_type,
 			pci_bus,
 			pci_enable,
 			pci_key;
-static int		trc_reg = 0;
+static int		trc_reg = 0, elcr_enabled = 1;
 
 
 #ifdef ENABLE_PCI_LOG
@@ -279,6 +279,13 @@ pci_set_irq_routing(int pci_int, int irq)
 
 
 void
+pci_set_irq_level(int pci_int, int level)
+{
+    pci_irq_level[pci_int - 1] = !!level;
+}
+
+
+void
 pci_enable_mirq(int mirq)
 {
     pci_mirqs[mirq].enabled = 1;
@@ -297,13 +304,20 @@ pci_irq_is_level(int irq)
 {
     int real_irq = irq & 7;
 
-    if ((irq <= 2) || (irq == 8) || (irq == 13))
-	return 0;
+    if (elcr_enabled) {
+	if ((irq <= 2) || (irq == 8) || (irq == 13))
+		return 0;
 
-    if (irq > 7)
-	return !!(elcr[1] & (1 << real_irq));
+	if (irq > 7)
+		return !!(elcr[1] & (1 << real_irq));
 
-    return !!(elcr[0] & (1 << real_irq));
+	return !!(elcr[0] & (1 << real_irq));
+    } else {
+	if (irq < 8)
+		return (pic.icw1 & 8) ? 1 : 0;
+	else
+		return (pic2.icw1 & 8) ? 1 : 0;
+    }
 }
 
 
@@ -401,6 +415,7 @@ pci_set_irq(uint8_t card, uint8_t pci_int)
 	pci_log("pci_set_irq(%02X, %02X): IRQ routing for this slot and INT pin combination: %02X\n", card, pci_int, irq_routing);
 
 	irq_line = pci_irqs[irq_routing];
+	level = pci_irq_level[irq_routing];
     }
 
     if (irq_line > 0x0f) {
@@ -416,10 +431,6 @@ pci_set_irq(uint8_t card, uint8_t pci_int)
     }
     pci_log("pci_set_irq(%02X, %02X): Card not yet holding the IRQ\n", card, pci_int);
 
-    if (pci_type & PCI_NO_IRQ_STEERING)
-	level = 0;	/* PCI without IRQ steering - IRQ always edge. */
-    else
-	level = 1;	/* PCI with IRQ steering - IRQ always level per the Intel datasheets. */
     if (!level || !pci_irq_hold[irq_line]) {
 	pci_log("pci_set_irq(%02X, %02X): Issuing %s-triggered IRQ (%sheld)\n", card, pci_int, level ? "level" : "edge", pci_irq_hold[irq_line] ? "" : "not ");
 
@@ -433,7 +444,7 @@ pci_set_irq(uint8_t card, uint8_t pci_int)
     }
 
     /* If the IRQ is level-triggered, mark that this card is holding it. */
-    if (pci_irq_is_level(irq_line)) {
+    if (level) {
 	pci_log("pci_set_irq(%02X, %02X): Marking that this card is holding the IRQ\n", card, pci_int);
 	pci_irq_hold[irq_line] |= (1ULL << card);
     } else {
@@ -522,6 +533,7 @@ pci_clear_irq(uint8_t card, uint8_t pci_int)
 	pci_log("pci_clear_irq(%02X, %02X): IRQ routing for this slot and INT pin combination: %02X\n", card, pci_int, irq_routing);
 
 	irq_line = pci_irqs[irq_routing];
+	level = pci_irq_level[irq_routing];
     }
 
     if (irq_line > 0x0f) {
@@ -531,17 +543,12 @@ pci_clear_irq(uint8_t card, uint8_t pci_int)
 
     pci_log("pci_clear_irq(%02X, %02X): Using IRQ %i\n", card, pci_int, irq_line);
 
-    if (pci_irq_is_level(irq_line) &&
-	!(pci_irq_hold[irq_line] & (1ULL << card))) {
+    if (level && !(pci_irq_hold[irq_line] & (1ULL << card))) {
 	/* IRQ not held, do nothing. */
 	pci_log("pci_clear_irq(%02X, %02X): Card is not holding the IRQ\n", card, pci_int);
 	return;
     }
 
-    if (pci_type & PCI_NO_IRQ_STEERING)
-	level = 0;	/* PCI without IRQ steering - IRQ always edge. */
-    else
-	level = 1;	/* PCI with IRQ steering - IRQ always level per the Intel datasheets. */
     if (level) {
 	pci_log("pci_clear_irq(%02X, %02X): Releasing this card's hold on the IRQ\n", card, pci_int);
 	pci_irq_hold[irq_line] &= ~(1 << card);
@@ -556,6 +563,13 @@ pci_clear_irq(uint8_t card, uint8_t pci_int)
 	pci_log("pci_clear_irq(%02X, %02X): Clearing edge-triggered interrupt\n", card, pci_int);
 	picintc(1 << irq_line);
     }
+}
+
+
+void
+pci_elcr_set_enabled(int enabled)
+{
+    elcr_enabled = enabled;
 }
 
 
@@ -635,7 +649,10 @@ trc_write(uint16_t port, uint8_t val, void *priv)
     if (!(trc_reg & 4) && (val & 4))
 	trc_reset(val);
 
-    trc_reg = val & 0xfb;
+    trc_reg = val & 0xfd;
+
+    if (val & 2)
+	trc_reg &= 0xfb;
 }
 
 
@@ -681,13 +698,17 @@ pci_init(int type)
 		      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
     }
 
-    for (c = 0; c < 4; c++)
+    for (c = 0; c < 4; c++) {
 	pci_irqs[c] = PCI_IRQ_DISABLED;
+	pci_irq_level[c] = (type & PCI_NO_IRQ_STEERING) ? 0 : 1;
+    }
 
     for (c = 0; c < 3; c++) {
 	pci_mirqs[c].enabled = 0;
 	pci_mirqs[c].irq_line = PCI_IRQ_DISABLED;
     }
+
+    elcr_enabled = 1;
 }
 
 
