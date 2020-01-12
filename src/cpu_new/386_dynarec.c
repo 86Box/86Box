@@ -260,12 +260,221 @@ static void prefetch_flush()
 #define PREFETCH_FLUSH() prefetch_flush()
 
 
+void enter_smm()
+{
+        uint32_t smram_state = smbase + 0xfe00;
+        uint32_t old_cr0 = cr0;
+        uint32_t old_flags = cpu_state.flags | ((uint32_t)cpu_state.eflags << 16);
+
+        cr0 &= ~0x8000000d;
+        cpu_state.flags = 2;
+        cpu_state.eflags = 0;
+
+        in_smm = 1;
+        smi_latched = 1;
+
+        mem_writel_phys(smram_state + 0xf8, smbase);
+        mem_writel_phys(smram_state + 0x128, cr4);
+        mem_writel_phys(smram_state + 0x130, cpu_state.seg_es.limit);
+        mem_writel_phys(smram_state + 0x134, cpu_state.seg_es.base);
+        mem_writel_phys(smram_state + 0x138, cpu_state.seg_es.access);
+        mem_writel_phys(smram_state + 0x13c, cpu_state.seg_cs.limit);
+        mem_writel_phys(smram_state + 0x140, cpu_state.seg_cs.base);
+        mem_writel_phys(smram_state + 0x144, cpu_state.seg_cs.access);
+        mem_writel_phys(smram_state + 0x148, cpu_state.seg_ss.limit);
+        mem_writel_phys(smram_state + 0x14c, cpu_state.seg_ss.base);
+        mem_writel_phys(smram_state + 0x150, cpu_state.seg_ss.access);
+        mem_writel_phys(smram_state + 0x154, cpu_state.seg_ds.limit);
+        mem_writel_phys(smram_state + 0x158, cpu_state.seg_ds.base);
+        mem_writel_phys(smram_state + 0x15c, cpu_state.seg_ds.access);
+        mem_writel_phys(smram_state + 0x160, cpu_state.seg_fs.limit);
+        mem_writel_phys(smram_state + 0x164, cpu_state.seg_fs.base);
+        mem_writel_phys(smram_state + 0x168, cpu_state.seg_fs.access);
+        mem_writel_phys(smram_state + 0x16c, cpu_state.seg_gs.limit);
+        mem_writel_phys(smram_state + 0x170, cpu_state.seg_gs.base);
+        mem_writel_phys(smram_state + 0x174, cpu_state.seg_gs.access);
+        mem_writel_phys(smram_state + 0x178, ldt.limit);
+        mem_writel_phys(smram_state + 0x17c, ldt.base);
+        mem_writel_phys(smram_state + 0x180, ldt.access);
+        mem_writel_phys(smram_state + 0x184, gdt.limit);
+        mem_writel_phys(smram_state + 0x188, gdt.base);
+        mem_writel_phys(smram_state + 0x18c, gdt.access);
+        mem_writel_phys(smram_state + 0x190, idt.limit);
+        mem_writel_phys(smram_state + 0x194, idt.base);
+        mem_writel_phys(smram_state + 0x198, idt.access);
+        mem_writel_phys(smram_state + 0x19c, tr.limit);
+        mem_writel_phys(smram_state + 0x1a0, tr.base);
+        mem_writel_phys(smram_state + 0x1a4, tr.access);
+
+        mem_writel_phys(smram_state + 0x1a8, cpu_state.seg_es.seg);
+        mem_writel_phys(smram_state + 0x1ac, cpu_state.seg_cs.seg);
+        mem_writel_phys(smram_state + 0x1b0, cpu_state.seg_ss.seg);
+        mem_writel_phys(smram_state + 0x1b4, cpu_state.seg_ds.seg);
+        mem_writel_phys(smram_state + 0x1b8, cpu_state.seg_fs.seg);
+        mem_writel_phys(smram_state + 0x1bc, cpu_state.seg_gs.seg);
+        mem_writel_phys(smram_state + 0x1c0, ldt.seg);
+        mem_writel_phys(smram_state + 0x1c4, tr.seg);
+
+        mem_writel_phys(smram_state + 0x1c8, dr[7]);
+        mem_writel_phys(smram_state + 0x1cc, dr[6]);
+        mem_writel_phys(smram_state + 0x1d0, EAX);
+        mem_writel_phys(smram_state + 0x1d4, ECX);
+        mem_writel_phys(smram_state + 0x1d8, EDX);
+        mem_writel_phys(smram_state + 0x1dc, EBX);
+        mem_writel_phys(smram_state + 0x1e0, ESP);
+        mem_writel_phys(smram_state + 0x1e4, EBP);
+        mem_writel_phys(smram_state + 0x1e8, ESI);
+        mem_writel_phys(smram_state + 0x1ec, EDI);
+        mem_writel_phys(smram_state + 0x1f0, cpu_state.pc);
+        mem_writel_phys(smram_state + 0x1d0, old_flags);
+        mem_writel_phys(smram_state + 0x1f8, cr3);
+        mem_writel_phys(smram_state + 0x1fc, old_cr0);
+
+        ds = es = fs_seg = gs = ss = 0;
+
+        DS = ES = FS = GS = SS = 0;
+
+        cpu_state.seg_ds.limit = cpu_state.seg_es.limit = cpu_state.seg_fs.limit = cpu_state.seg_gs.limit
+        = cpu_state.seg_ss.limit = 0xffffffff;
+
+        cpu_state.seg_ds.limit_high = cpu_state.seg_es.limit_high = cpu_state.seg_fs.limit_high
+        = cpu_state.seg_gs.limit_high = cpu_state.seg_ss.limit_high = 0xffffffff;
+
+        cpu_state.seg_ds.limit_low = cpu_state.seg_es.limit_low = cpu_state.seg_fs.limit_low
+        = cpu_state.seg_gs.limit_low = cpu_state.seg_ss.limit_low = 0;
+
+        cpu_state.seg_ds.access = cpu_state.seg_es.access = cpu_state.seg_fs.access
+        = cpu_state.seg_gs.access = cpu_state.seg_ss.access = 0x93;
+
+        cpu_state.seg_ds.checked = cpu_state.seg_es.checked = cpu_state.seg_fs.checked
+        = cpu_state.seg_gs.checked = cpu_state.seg_ss.checked = 1;
+
+        CS = 0x3000;
+        cs = smbase;
+        cpu_state.seg_cs.limit = cpu_state.seg_cs.limit_high = 0xffffffff;
+        cpu_state.seg_cs.limit_low = 0;
+        cpu_state.seg_cs.access = 0x93;
+        cpu_state.seg_cs.checked = 1;
+
+        cr4 = 0;
+        dr[7] = 0x400;
+        cpu_state.pc = 0x8000;
+
+        nmi_mask = 0;
+}
+
+void leave_smm()
+{
+        uint32_t smram_state = smbase + 0xfe00;
+
+        smbase = mem_readl_phys(smram_state + 0xf8);
+        cr4 = mem_readl_phys(smram_state + 0x128);
+
+        cpu_state.seg_es.limit = cpu_state.seg_es.limit_high = mem_readl_phys(smram_state + 0x130);
+        cpu_state.seg_es.base = mem_readl_phys(smram_state + 0x134);
+        cpu_state.seg_es.limit_low = cpu_state.seg_es.base;
+        cpu_state.seg_es.access = mem_readl_phys(smram_state + 0x138);
+
+        cpu_state.seg_cs.limit = cpu_state.seg_cs.limit_high = mem_readl_phys(smram_state + 0x13c);
+        cpu_state.seg_cs.base = mem_readl_phys(smram_state + 0x140);
+        cpu_state.seg_cs.limit_low = cpu_state.seg_cs.base;
+        cpu_state.seg_cs.access = mem_readl_phys(smram_state + 0x144);
+
+        cpu_state.seg_ss.limit = cpu_state.seg_ss.limit_high = mem_readl_phys(smram_state + 0x148);
+        cpu_state.seg_ss.base = mem_readl_phys(smram_state + 0x14c);
+        cpu_state.seg_ss.limit_low = cpu_state.seg_ss.base;     
+        cpu_state.seg_ss.access = mem_readl_phys(smram_state + 0x150);
+
+        cpu_state.seg_ds.limit = cpu_state.seg_ds.limit_high = mem_readl_phys(smram_state + 0x154);
+        cpu_state.seg_ds.base = mem_readl_phys(smram_state + 0x158);
+        cpu_state.seg_ds.limit_low = cpu_state.seg_ds.base;
+        cpu_state.seg_ds.access = mem_readl_phys(smram_state + 0x15c);
+
+        cpu_state.seg_fs.limit = cpu_state.seg_fs.limit_high = mem_readl_phys(smram_state + 0x160);
+        cpu_state.seg_fs.base = mem_readl_phys(smram_state + 0x164);
+        cpu_state.seg_fs.limit_low = cpu_state.seg_fs.base;
+        cpu_state.seg_fs.access = mem_readl_phys(smram_state + 0x168);
+
+        cpu_state.seg_gs.limit = cpu_state.seg_gs.limit_high = mem_readl_phys(smram_state + 0x16c);
+        cpu_state.seg_gs.base = mem_readl_phys(smram_state + 0x170);
+        cpu_state.seg_gs.limit_low = cpu_state.seg_gs.base;
+        cpu_state.seg_gs.access = mem_readl_phys(smram_state + 0x174);
+
+        ldt.limit = ldt.limit_high = mem_readl_phys(smram_state + 0x178);
+        ldt.base = mem_readl_phys(smram_state + 0x17c);
+        ldt.limit_low = ldt.base;
+        ldt.access = mem_readl_phys(smram_state + 0x180);
+
+        gdt.limit = gdt.limit_high = mem_readl_phys(smram_state + 0x184);
+        gdt.base = mem_readl_phys(smram_state + 0x188);
+        gdt.limit_low = gdt.base;
+        gdt.access = mem_readl_phys(smram_state + 0x18c);
+
+        idt.limit = idt.limit_high = mem_readl_phys(smram_state + 0x190);
+        idt.base = mem_readl_phys(smram_state + 0x194);
+        idt.limit_low = idt.base;
+        idt.access = mem_readl_phys(smram_state + 0x198);
+
+        tr.limit = tr.limit_high = mem_readl_phys(smram_state + 0x19c);
+        tr.base = mem_readl_phys(smram_state + 0x1a0);
+        tr.limit_low = tr.base;
+        tr.access = mem_readl_phys(smram_state + 0x1a4);
+
+        ES = mem_readl_phys(smram_state + 0x1a8);
+        CS = mem_readl_phys(smram_state + 0x1ac);
+        SS = mem_readl_phys(smram_state + 0x1b0);
+        DS = mem_readl_phys(smram_state + 0x1b4);
+        FS = mem_readl_phys(smram_state + 0x1b8);
+        GS = mem_readl_phys(smram_state + 0x1bc);
+        ldt.seg = mem_readl_phys(smram_state + 0x1c0);
+        tr.seg = mem_readl_phys(smram_state + 0x1c4);
+
+        dr[7] = mem_readl_phys(smram_state + 0x1c8);
+        dr[6] = mem_readl_phys(smram_state + 0x1cc);
+        EAX = mem_readl_phys(smram_state + 0x1d0);
+        ECX = mem_readl_phys(smram_state + 0x1d4);
+        EDX = mem_readl_phys(smram_state + 0x1d8);
+        EBX = mem_readl_phys(smram_state + 0x1dc);
+        ESP = mem_readl_phys(smram_state + 0x1e0);
+        EBP = mem_readl_phys(smram_state + 0x1e4);
+        ESI = mem_readl_phys(smram_state + 0x1e8);
+        EDI = mem_readl_phys(smram_state + 0x1ec);
+
+        cpu_state.pc = mem_readl_phys(smram_state + 0x1f0);
+        uint32_t new_flags = mem_readl_phys(smram_state + 0x1f4);
+        cpu_state.flags = new_flags & 0xffff;
+        cpu_state.eflags = new_flags >> 16;
+        cr3 = mem_readl_phys(smram_state + 0x1f8);
+        cr0 = mem_readl_phys(smram_state + 0x1fc);
+
+        cpu_state.seg_cs.access &= ~0x60;
+        cpu_state.seg_cs.access |= cpu_state.seg_ss.access & 0x60; //cpl is dpl of ss
+
+        if((cr0 & 1) && !(cpu_state.eflags&VM_FLAG))
+        {
+                cpu_state.seg_cs.checked = CS ? 1 : 0;
+                cpu_state.seg_ds.checked = DS ? 1 : 0;
+                cpu_state.seg_es.checked = ES ? 1 : 0;
+                cpu_state.seg_fs.checked = FS ? 1 : 0;
+                cpu_state.seg_gs.checked = GS ? 1 : 0;
+                cpu_state.seg_ss.checked = SS ? 1 : 0;
+        }
+        else
+        {
+                cpu_state.seg_cs.checked = cpu_state.seg_ds.checked = cpu_state.seg_es.checked
+                = cpu_state.seg_fs.checked = cpu_state.seg_gs.checked = cpu_state.seg_ss.checked = 1;
+        }
+
+        in_smm = 0;
+
+        nmi_mask = 1;
+}
+
 #define OP_TABLE(name) ops_ ## name
 #define CLOCK_CYCLES(c) cycles -= (c)
 #define CLOCK_CYCLES_ALWAYS(c) cycles -= (c)
 
 #include "386_ops.h"
-
 
 #define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
 
@@ -318,6 +527,9 @@ void exec386_dynarec(int cycs)
                                         }
 
                                         if (((cs + cpu_state.pc) >> 12) != pccache)
+                                                CPU_BLOCK_END();
+
+                                        if (in_smm && smi_line && is_pentium)
                                                 CPU_BLOCK_END();
 
                                         if (cpu_state.abrt)
@@ -473,6 +685,9 @@ void exec386_dynarec(int cycs)
                                                   hit, as host block size is only 2kB*/
                                                 if (((cs+cpu_state.pc) - start_pc) >= max_block_size)
                                                         CPU_BLOCK_END();
+                                                
+                                                if (in_smm && smi_line && is_pentium)
+                                                        CPU_BLOCK_END();
                                         
                                                 if (trap)
                                                         CPU_BLOCK_END();
@@ -540,6 +755,9 @@ void exec386_dynarec(int cycs)
                                                   hit, as host block size is only 2kB*/
                                                 if (((cs+cpu_state.pc) - start_pc) >= max_block_size)
                                                         CPU_BLOCK_END();
+
+                                                if (in_smm && smi_line && is_pentium)
+                                                        CPU_BLOCK_END();
                                         
                                                 if (trap)
                                                         CPU_BLOCK_END();
@@ -593,8 +811,13 @@ void exec386_dynarec(int cycs)
                                         }
                                 }
                         }
-                
-                        if (trap)
+
+                        if (in_smm && smi_line && is_pentium)
+                        {
+                                enter_smm();
+                        }
+
+                        else if (trap)
                         {
                                 trap = 0;
                                 flags_rebuild();

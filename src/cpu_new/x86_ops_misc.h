@@ -957,3 +957,15 @@ static int opWRMSR(uint32_t fetchdat)
         return 1;
 }
 
+static int opRSM(uint32_t fetchdat)
+{
+        if(!in_smm)
+        {
+                leave_smm();
+                if(smi_latched) enter_smm();
+                return 0;
+        }
+        cpu_state.pc = cpu_state.oldpc;
+        x86illegal();
+        return 1;
+}
