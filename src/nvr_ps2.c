@@ -8,7 +8,7 @@
  *
  *		Handling of the PS/2 series CMOS devices.
  *
- * Version:	@(#)nvr_ps2.c	1.0.7	2018/04/26
+ * Version:	@(#)nvr_ps2.c	1.0.10	2018/10/02
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -40,11 +40,11 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "86box.h"
-#include "cpu/cpu.h"
 #include "machine/machine.h"
 #include "device.h"
 #include "io.h"
 #include "mem.h"
+#include "timer.h"
 #include "nvr.h"
 #include "nvr_ps2.h"
 #include "rom.h"
@@ -54,6 +54,8 @@ typedef struct {
     int		addr;
 
     uint8_t	ram[8192];
+
+    wchar_t	*fn;
 } ps2_nvr_t;
 
 
@@ -105,26 +107,24 @@ ps2_nvr_write(uint16_t port, uint8_t val, void *priv)
 static void *
 ps2_nvr_init(const device_t *info)
 {
+    char temp[64];
     ps2_nvr_t *nvr;
     FILE *f = NULL;
+    int c;
 
     nvr = (ps2_nvr_t *)malloc(sizeof(ps2_nvr_t));
     memset(nvr, 0x00, sizeof(ps2_nvr_t));
-	
+
+    /* Set up the NVR file's name. */
+    sprintf(temp, "%s_sec.nvr", machine_get_internal_name());
+    c = strlen(temp);
+    nvr->fn = (wchar_t *)malloc((c + 1) * sizeof(wchar_t));
+    mbstowcs(nvr->fn, temp, c + 1);
+
     io_sethandler(0x0074, 3,
 		  ps2_nvr_read,NULL,NULL, ps2_nvr_write,NULL,NULL, nvr);
 
-    switch (romset) {
-	case ROM_IBMPS2_M70_TYPE3:
-		f = nvr_fopen(L"ibmps2_m70_type3_sec.nvr", L"rb");
-		break;
-	case ROM_IBMPS2_M70_TYPE4:
-		f = nvr_fopen(L"ibmps2_m70_type4_sec.nvr", L"rb");
-		break;
-	case ROM_IBMPS2_M80:
-		f = nvr_fopen(L"ibmps2_m80_sec.nvr", L"rb");
-		break;
-    }
+    f = nvr_fopen(nvr->fn, L"rb");
 
     memset(nvr->ram, 0xff, 8192);
     if (f != NULL) {
@@ -142,17 +142,7 @@ ps2_nvr_close(void *priv)
     ps2_nvr_t *nvr = (ps2_nvr_t *)priv;
     FILE *f = NULL;
 
-    switch (romset) {
-	case ROM_IBMPS2_M70_TYPE3:
-		f = nvr_fopen(L"ibmps2_m70_type3_sec.nvr", L"wb");
-		break;
-	case ROM_IBMPS2_M70_TYPE4:
-		f = nvr_fopen(L"ibmps2_m70_type4_sec.nvr", L"wb");
-		break;
-	case ROM_IBMPS2_M80:
-		f = nvr_fopen(L"ibmps2_m80_sec.nvr", L"wb");
-		break;
-    }
+    f = nvr_fopen(nvr->fn, L"wb");
 
     if (f != NULL) {
 	(void)fwrite(nvr->ram, 8192, 1, f);

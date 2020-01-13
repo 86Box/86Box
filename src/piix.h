@@ -19,8 +19,3 @@
 extern const device_t piix_device;
 extern const device_t piix_pb640_device;
 extern const device_t piix3_device;
-
-extern int	piix_bus_master_dma_read(int channel, uint8_t *data, int transfer_length, void *priv);
-extern int	piix_bus_master_dma_write(int channel, uint8_t *data, int transfer_length, void *priv);
-
-extern void	piix_bus_master_set_irq(int channel, void *priv);

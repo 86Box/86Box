@@ -46,7 +46,7 @@
  *
  * NOTE:	The XTA interface is 0-based for sector numbers !!
  *
- * Version:	@(#)hdc_ide_xta.c	1.0.8	2018/04/29
+ * Version:	@(#)hdc_ide_xta.c	1.0.9	2018/10/17
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -257,7 +257,8 @@ typedef struct {
     uint8_t	sense;			/* current SENSE ERROR value	*/
     uint8_t	status;			/* current operational status	*/
     uint8_t	intr;
-    int64_t	callback;
+    uint64_t	callback;
+	pc_timer_t timer;
 
     /* Data transfer. */
     int16_t	buf_idx,		/* buffer index and pointer */
@@ -281,13 +282,11 @@ typedef struct {
 
 #ifdef ENABLE_XTA_LOG
 int xta_do_log = ENABLE_XTA_LOG;
-#endif
 
 
 static void
 xta_log(const char *fmt, ...)
 {
-#ifdef ENABLE_XTA_LOG
     va_list ap;
 
     if (xta_do_log) {
@@ -295,8 +294,10 @@ xta_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define xta_log(fmt, ...)
+#endif
 
 
 static void
@@ -355,6 +356,22 @@ next_sector(hdc_t *dev, drive_t *drive)
 			drive->cur_cyl = (drive->tracks - 1);
 	}
     }
+}
+
+static void
+xta_set_callback(hdc_t *dev, uint64_t callback)
+{
+    if (!dev) {
+	return;
+    }
+
+    if (callback) {
+	dev->callback = callback;
+	timer_set_delay_u64(&dev->timer, dev->callback);
+	} else {
+	dev->callback = 0;
+	timer_disable(&dev->timer);
+	}
 }
 
 
@@ -456,7 +473,7 @@ hdc_callback(void *priv)
     int val;
 
     /* Cancel timer. */
-    dev->callback = 0;
+    xta_set_callback(dev, 0);
 
     drive = &dev->drives[dcb->drvsel];
     dev->comp = (dcb->drvsel) ? COMP_DRIVE : 0x00;
@@ -553,12 +570,12 @@ do_send:
 				dev->buf_idx = 0;
 				if (no_data) {
 					/* Delay a bit, no actual transfer. */
-					dev->callback = HDC_TIME;
+					xta_set_callback(dev, HDC_TIME);
 				} else {
 					if (dev->intr & DMA_ENA) {
 						/* DMA enabled. */
 						dev->buf_ptr = dev->sector_buf;
-						dev->callback = HDC_TIME;
+						xta_set_callback(dev, HDC_TIME);
 					} else {
 						/* Copy from sector to data. */
 						memcpy(dev->data,
@@ -581,14 +598,14 @@ do_send:
 							xta_log("%s: CMD_READ_SECTORS out of data (idx=%d, len=%d)!\n", dev->name, dev->buf_idx, dev->buf_len);
 
 							dev->status |= (STAT_CD | STAT_IO| STAT_REQ);
-							dev->callback = HDC_TIME;
+							xta_set_callback(dev, HDC_TIME);
 							return;
 						}
 						dev->buf_ptr++;
 						dev->buf_idx++;
 					}
 				}
-				dev->callback = HDC_TIME;
+				xta_set_callback(dev, HDC_TIME);
 				dev->state = STATE_SDONE;
 				break;
 
@@ -651,12 +668,12 @@ do_recv:
 				dev->buf_idx = 0;
 				if (no_data) {
 					/* Delay a bit, no actual transfer. */
-					dev->callback = HDC_TIME;
+					xta_set_callback(dev, HDC_TIME);
 				} else {
 					if (dev->intr & DMA_ENA) {
 						/* DMA enabled. */
 						dev->buf_ptr = dev->sector_buf;
-						dev->callback = HDC_TIME;
+						xta_set_callback(dev, HDC_TIME);
 					} else {
 						/* No DMA, do PIO. */
 						dev->buf_ptr = dev->data;
@@ -676,7 +693,7 @@ do_recv:
 
 							xta_log("%s: CMD_WRITE_SECTORS out of data!\n", dev->name);
 							dev->status |= (STAT_CD | STAT_IO | STAT_REQ);
-							dev->callback = HDC_TIME;
+							xta_set_callback(dev, HDC_TIME);
 							return;
 						}
 
@@ -684,7 +701,7 @@ do_recv:
 						dev->buf_idx++;
 					}
 					dev->state = STATE_RDONE;
-					dev->callback = HDC_TIME;
+					xta_set_callback(dev, HDC_TIME);
 				}
 				break;
 
@@ -783,7 +800,7 @@ do_recv:
 				dev->state = STATE_RDATA;
 				if (dev->intr & DMA_ENA) {
 					dev->buf_ptr = dev->sector_buf;
-					dev->callback = HDC_TIME;
+					xta_set_callback(dev, HDC_TIME);
 				} else {
 					dev->buf_ptr = dev->data;
 					dev->status |= STAT_REQ;
@@ -798,7 +815,7 @@ do_recv:
 						if (val == DMA_NODATA) {
 							xta_log("%s: CMD_WRITE_BUFFER out of data!\n", dev->name);
 							dev->status |= (STAT_CD | STAT_IO | STAT_REQ);
-							dev->callback = HDC_TIME;
+							xta_set_callback(dev, HDC_TIME);
 							return;
 						}
 
@@ -806,7 +823,7 @@ do_recv:
 						dev->buf_idx++;
 					}
 					dev->state = STATE_RDONE;
-					dev->callback = HDC_TIME;
+					xta_set_callback(dev, HDC_TIME);
 				}
 				break;
 
@@ -823,7 +840,7 @@ do_recv:
 		switch(dev->state) {
 			case STATE_IDLE:
 				dev->state = STATE_RDONE;
-				dev->callback = 5*HDC_TIME;
+				xta_set_callback(dev, 5 * HDC_TIME);
 				break;
 
 			case STATE_RDONE:
@@ -837,7 +854,7 @@ do_recv:
 			case STATE_IDLE:
 				if (drive->present) {
 					dev->state = STATE_RDONE;
-					dev->callback = 5*HDC_TIME;
+					xta_set_callback(dev, 5 * HDC_TIME);
 				} else {
 					dev->comp |= COMP_ERR;
 					dev->sense = ERR_NOTRDY;
@@ -855,7 +872,7 @@ do_recv:
 		switch(dev->state) {
 			case STATE_IDLE:
 				dev->state = STATE_RDONE;
-				dev->callback = 10*HDC_TIME;
+				xta_set_callback(dev, 10 * HDC_TIME);
 				break;
 
 			case STATE_RDONE:
@@ -898,7 +915,7 @@ hdc_read(uint16_t port, void *priv)
 				/* All data sent. */
 				dev->status &= ~STAT_REQ;
 				dev->state = STATE_SDONE;
-				dev->callback = HDC_TIME;
+				xta_set_callback(dev, HDC_TIME);
 			}
 		} else if (dev->state == STATE_COMPL) {
 xta_log("DCB=%02X  status=%02X comp=%02X\n", dev->dcb.cmd, dev->status, dev->comp);
@@ -954,7 +971,7 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
 				  else
 					dev->state = STATE_IDLE;
 				dev->status &= ~STAT_CD;
-				dev->callback = HDC_TIME;
+				xta_set_callback(dev, HDC_TIME);
 			}
 		}
 		break;
@@ -978,6 +995,13 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
 		dev->intr = val;
 		break;
     }
+}
+
+
+static int
+xta_available(void)
+{
+    return(rom_present(WD_BIOS_FILE));
 }
 
 
@@ -1063,7 +1087,7 @@ xta_init(const device_t *info)
 		 dev->rom_addr, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 		
     /* Create a timer for command delays. */
-    timer_add(hdc_callback, &dev->callback, &dev->callback, dev);
+	timer_add(&dev->timer, hdc_callback, dev, 0);
 
     return(dev);
 }
@@ -1146,7 +1170,7 @@ const device_t xta_wdxt150_device = {
     DEVICE_ISA,
     0,
     xta_init, xta_close, NULL,
-    NULL, NULL, NULL,
+    xta_available, NULL, NULL,
     wdxt150_config
 };
 

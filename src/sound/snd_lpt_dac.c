@@ -14,6 +14,8 @@
 
 typedef struct lpt_dac_t
 {
+	void *lpt;
+
         uint8_t dac_val_l, dac_val_r;
         
         int is_stereo;
@@ -36,8 +38,6 @@ static void dac_update(lpt_dac_t *lpt_dac)
 static void dac_write_data(uint8_t val, void *p)
 {
         lpt_dac_t *lpt_dac = (lpt_dac_t *)p;
-        
-        timer_clock();
 
         if (lpt_dac->is_stereo)
         {
@@ -80,18 +80,20 @@ static void dac_get_buffer(int32_t *buffer, int len, void *p)
         lpt_dac->pos = 0;
 }
 
-static void *dac_init()
+static void *dac_init(void *lpt)
 {
         lpt_dac_t *lpt_dac = malloc(sizeof(lpt_dac_t));
         memset(lpt_dac, 0, sizeof(lpt_dac_t));
+
+	lpt_dac->lpt = lpt;
 
         sound_add_handler(dac_get_buffer, lpt_dac);
                 
         return lpt_dac;
 }
-static void *dac_stereo_init()
+static void *dac_stereo_init(void *lpt)
 {
-        lpt_dac_t *lpt_dac = dac_init();
+        lpt_dac_t *lpt_dac = dac_init(lpt);
         
         lpt_dac->is_stereo = 1;
                 
@@ -111,7 +113,9 @@ const lpt_device_t lpt_dac_device =
         dac_close,
         dac_write_data,
         dac_write_ctrl,
-        dac_read_status
+	NULL,
+        dac_read_status,
+	NULL
 };
 const lpt_device_t lpt_dac_stereo_device =
 {
@@ -120,5 +124,7 @@ const lpt_device_t lpt_dac_stereo_device =
         dac_close,
         dac_write_data,
         dac_write_ctrl,
-        dac_read_status
+	NULL,
+        dac_read_status,
+	NULL
 };

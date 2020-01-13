@@ -8,13 +8,13 @@
  *
  *		Common code to handle all sorts of hard disk images.
  *
- * Version:	@(#)hdd.c	1.0.9	2018/05/25
+ * Version:	@(#)hdd.c	1.0.10	2019/09/26
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -24,6 +24,7 @@
 #include "../plat.h"
 #include "../ui.h"
 #include "hdd.h"
+#include "../cdrom/cdrom.h"
 
 
 hard_disk_t	hdd[HDD_NUM];

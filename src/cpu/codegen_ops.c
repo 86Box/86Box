@@ -16,7 +16,7 @@
 
 #ifdef __amd64__
 #include "codegen_ops_x86-64.h"
-#elif defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _WIN32
+#elif defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64
 #include "codegen_ops_x86.h"
 #endif
 

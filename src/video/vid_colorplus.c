@@ -8,7 +8,7 @@
  *
  *		Plantronics ColorPlus emulation.
  *
- * Version:	@(#)vid_colorplus.c	1.0.9	2018/04/26
+ * Version:	@(#)vid_colorplus.c	1.0.10	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -25,10 +25,10 @@
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../lpt.h"
 #include "../pit.h"
 #include "../mem.h"
-#include "../timer.h"
 #include "../device.h"
 #include "video.h"
 #include "vid_cga.h"
@@ -50,6 +50,9 @@
 
 #define COMPOSITE_OLD 0
 #define COMPOSITE_NEW 1
+
+
+video_timings_t timing_colorplus = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 
 void cga_recalctimings(cga_t *cga);
@@ -92,11 +95,12 @@ void colorplus_write(uint32_t addr, uint8_t val, void *p)
         colorplus->cga.vram[addr & 0x7fff] = val;
         if (colorplus->cga.snow_enabled)
         {
-                colorplus->cga.charbuffer[ ((int)(((colorplus->cga.dispontime - colorplus->cga.vidtime) * 2) / CGACONST)) & 0xfc] = val;
-                colorplus->cga.charbuffer[(((int)(((colorplus->cga.dispontime - colorplus->cga.vidtime) * 2) / CGACONST)) & 0xfc) | 1] = val;
+				int offset = ((timer_get_remaining_u64(&colorplus->cga.timer) / CGACONST) * 2) & 0xfc;
+				colorplus->cga.charbuffer[offset] = colorplus->cga.vram[addr & 0x7fff];
+				colorplus->cga.charbuffer[offset | 1] = colorplus->cga.vram[addr & 0x7fff];
         }
         egawrites++;
-        cycles -= 4;
+        sub_cycles(4);
 }
 
 uint8_t colorplus_read(uint32_t addr, void *p)
@@ -113,11 +117,12 @@ uint8_t colorplus_read(uint32_t addr, void *p)
 	{
 		addr &= 0x3FFF;
 	}
-        cycles -= 4;        
+        sub_cycles(4);        
         if (colorplus->cga.snow_enabled)
         {
-                colorplus->cga.charbuffer[ ((int)(((colorplus->cga.dispontime - colorplus->cga.vidtime) * 2) / CGACONST)) & 0xfc] = colorplus->cga.vram[addr & 0x7fff];
-                colorplus->cga.charbuffer[(((int)(((colorplus->cga.dispontime - colorplus->cga.vidtime) * 2) / CGACONST)) & 0xfc) | 1] = colorplus->cga.vram[addr & 0x7fff];
+				int offset = ((timer_get_remaining_u64(&colorplus->cga.timer) / CGACONST) * 2) & 0xfc;
+				colorplus->cga.charbuffer[offset] = colorplus->cga.vram[addr & 0x7fff];
+				colorplus->cga.charbuffer[offset | 1] = colorplus->cga.vram[addr & 0x7fff];
         }
         egareads++;
         return colorplus->cga.vram[addr & 0x7fff];
@@ -155,7 +160,7 @@ void colorplus_poll(void *p)
 
         if (!colorplus->cga.linepos)
         {
-                colorplus->cga.vidtime += colorplus->cga.dispofftime;
+                timer_advance_u64(&colorplus->cga.timer, colorplus->cga.dispofftime);
                 colorplus->cga.cgastat |= 1;
                 colorplus->cga.linepos = 1;
                 oldsc = colorplus->cga.sc;
@@ -172,8 +177,9 @@ void colorplus_poll(void *p)
 			/* Left / right border */
                         for (c = 0; c < 8; c++)
                         {
-                                buffer->line[colorplus->cga.displine][c] = 
-                                buffer->line[colorplus->cga.displine][c + (colorplus->cga.crtc[1] << 4) + 8] = (colorplus->cga.cgacol & 15) + 16;
+                                buffer32->line[colorplus->cga.displine][c] =
+                                buffer32->line[colorplus->cga.displine][c + (colorplus->cga.crtc[1] << 4) + 8] =
+					(colorplus->cga.cgacol & 15) + 16;
                         }
 			if (colorplus->control & COLORPLUS_320x200_MODE)
 			{
@@ -186,9 +192,9 @@ void colorplus_poll(void *p)
                                         colorplus->cga.ma++;
                                         for (c = 0; c < 8; c++)
                                         {
-                                                buffer->line[colorplus->cga.displine][(x << 4) + (c << 1) + 8] =
-                                                buffer->line[colorplus->cga.displine][(x << 4) + (c << 1) + 1 + 8] = 
-                                                  cols16[(dat0 >> 14) | ((dat1 >> 14) << 2)];
+                                                buffer32->line[colorplus->cga.displine][(x << 4) + (c << 1) + 8] =
+                                                buffer32->line[colorplus->cga.displine][(x << 4) + (c << 1) + 1 + 8] = 
+                                                	cols16[(dat0 >> 14) | ((dat1 >> 14) << 2)];
                                                 dat0 <<= 2;
                                                 dat1 <<= 2;
                                         }
@@ -225,8 +231,8 @@ void colorplus_poll(void *p)
                                         colorplus->cga.ma++;
                                         for (c = 0; c < 16; c++)
                                         {
-                                                buffer->line[colorplus->cga.displine][(x << 4) + c + 8] =
-                                                  cols[(dat0 >> 15) | ((dat1 >> 15) << 1)];
+                                                buffer32->line[colorplus->cga.displine][(x << 4) + c + 8] =
+                                                	cols[(dat0 >> 15) | ((dat1 >> 15) << 1)];
                                                 dat0 <<= 1;
                                                 dat1 <<= 1;
                                         }
@@ -236,18 +242,13 @@ void colorplus_poll(void *p)
                 else	/* Top / bottom border */
                 {
                         cols[0] = (colorplus->cga.cgacol & 15) + 16;
-                        hline(buffer, 0, colorplus->cga.displine, (colorplus->cga.crtc[1] << 4) + 16, cols[0]);
+                        hline(buffer32, 0, colorplus->cga.displine, (colorplus->cga.crtc[1] << 4) + 16, cols[0]);
                 }
 
                 x = (colorplus->cga.crtc[1] << 4) + 16;
 
                 if (colorplus->cga.composite)
-                {
-			for (c = 0; c < x; c++)
-				buffer32->line[colorplus->cga.displine][c] = buffer->line[colorplus->cga.displine][c] & 0xf;
-
 			Composite_Process(colorplus->cga.cgamode, 0, x >> 2, buffer32->line[colorplus->cga.displine]);
-                }
 
                 colorplus->cga.sc = oldsc;
                 if (colorplus->cga.vc == colorplus->cga.crtc[7] && !colorplus->cga.sc)
@@ -258,7 +259,7 @@ void colorplus_poll(void *p)
         }
         else
         {
-                colorplus->cga.vidtime += colorplus->cga.dispontime;
+                timer_advance_u64(&colorplus->cga.timer, colorplus->cga.dispontime);
                 colorplus->cga.linepos = 0;
                 if (colorplus->cga.vsynctime)
                 {
@@ -392,6 +393,8 @@ void *colorplus_standalone_init(const device_t *info)
         colorplus_t *colorplus = malloc(sizeof(colorplus_t));
         memset(colorplus, 0, sizeof(colorplus_t));
 
+	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_colorplus);
+
 	/* Copied from the CGA init. Ideally this would be done by 
 	 * calling a helper function rather than duplicating code */
         display_type = device_get_config_int("display_type");
@@ -401,8 +404,8 @@ void *colorplus_standalone_init(const device_t *info)
 
         colorplus->cga.vram = malloc(0x8000);
                 
-	cga_comp_init(1);
-        timer_add(colorplus_poll, &colorplus->cga.vidtime, TIMER_ALWAYS_ENABLED, colorplus);
+	cga_comp_init(colorplus->cga.revision);
+        timer_add(&colorplus->cga.timer, colorplus_poll, colorplus, 1);
         mem_mapping_add(&colorplus->cga.mapping, 0xb8000, 0x08000, colorplus_read, NULL, NULL, colorplus_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, colorplus);
         io_sethandler(0x03d0, 0x0010, colorplus_in, NULL, NULL, colorplus_out, NULL, NULL, colorplus);
 		

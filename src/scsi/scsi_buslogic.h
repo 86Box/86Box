@@ -20,6 +20,7 @@
 # define SCSI_BUSLOGIC_H
 
 
+extern const device_t buslogic_542b_1991_device;
 extern const device_t buslogic_device;
 extern const device_t buslogic_545s_device;
 extern const device_t buslogic_640a_device;

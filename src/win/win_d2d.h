@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -8,28 +8,19 @@
  *
  *		Definitions for the Direct2D rendering module.
  *
- * Version:	@(#)win_d2d.h	1.0.0	2018/07/19
+ * Version:	@(#)win_d2d.h	1.0.2	2019/12/13
  *
  * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *		Copyright 2018 David Hrdlička.
+ *		Copyright 2018,2019 David Hrdlička.
  */
 #ifndef WIN_D2D_H
 # define WIN_D2D_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 extern void	d2d_close(void);
 extern int	d2d_init(HWND h);
 extern int	d2d_init_fs(HWND h);
 extern int	d2d_pause(void);
-extern void	d2d_take_screenshot(wchar_t *fn);
-
-#ifdef __cplusplus
-}
-#endif
-
+extern void	d2d_enable(int enable);
 
 #endif	/*WIN_D2D_H*/

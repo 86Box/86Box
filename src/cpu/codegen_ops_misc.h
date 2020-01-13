@@ -5,12 +5,12 @@ static uint32_t ropNOP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32
 
 static uint32_t ropCLD(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-        CLEAR_BITS((uintptr_t)&flags, D_FLAG);
+        CLEAR_BITS((uintptr_t)&cpu_state.flags, D_FLAG);
         return op_pc;
 }
 static uint32_t ropSTD(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-        SET_BITS((uintptr_t)&flags, D_FLAG);
+        SET_BITS((uintptr_t)&cpu_state.flags, D_FLAG);
         return op_pc;
 }
 
@@ -18,14 +18,14 @@ static uint32_t ropCLI(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32
 {
         if (!IOPLp && (cr4 & (CR4_VME | CR4_PVI)))
                 return 0;
-        CLEAR_BITS((uintptr_t)&flags, I_FLAG);
+        CLEAR_BITS((uintptr_t)&cpu_state.flags, I_FLAG);
         return op_pc;
 }
 static uint32_t ropSTI(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
         if (!IOPLp && (cr4 & (CR4_VME | CR4_PVI)))
                 return 0;
-        SET_BITS((uintptr_t)&flags, I_FLAG);
+        SET_BITS((uintptr_t)&cpu_state.flags, I_FLAG);
         return op_pc;
 }
 
@@ -152,7 +152,7 @@ static uint32_t ropFF_16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
                 STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
                 LOAD_STACK_TO_EA(-2);
                 host_reg = LOAD_REG_IMM(op_pc + 1);
-                MEM_STORE_ADDR_EA_W(&_ss, host_reg);
+                MEM_STORE_ADDR_EA_W(&cpu_state.seg_ss, host_reg);
                 SP_MODIFY(-2);
 
                 host_reg = LOAD_VAR_W((uintptr_t)&codegen_temp);
@@ -168,7 +168,7 @@ static uint32_t ropFF_16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
                         host_reg = LOAD_HOST_REG(host_reg);
                 STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
                 LOAD_STACK_TO_EA(-2);
-                MEM_STORE_ADDR_EA_W(&_ss, host_reg);
+                MEM_STORE_ADDR_EA_W(&cpu_state.seg_ss, host_reg);
                 SP_MODIFY(-2);
                 return op_pc + 1;
         }
@@ -245,7 +245,7 @@ static uint32_t ropFF_32(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
                 STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
                 LOAD_STACK_TO_EA(-4);
                 host_reg = LOAD_REG_IMM(op_pc + 1);
-                MEM_STORE_ADDR_EA_L(&_ss, host_reg);
+                MEM_STORE_ADDR_EA_L(&cpu_state.seg_ss, host_reg);
                 SP_MODIFY(-4);
 
                 host_reg = LOAD_VAR_L((uintptr_t)&codegen_temp);
@@ -261,7 +261,7 @@ static uint32_t ropFF_32(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
                         host_reg = LOAD_HOST_REG(host_reg);
                 STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
                 LOAD_STACK_TO_EA(-4);
-                MEM_STORE_ADDR_EA_L(&_ss, host_reg);
+                MEM_STORE_ADDR_EA_L(&cpu_state.seg_ss, host_reg);
                 SP_MODIFY(-4);
                 return op_pc + 1;
         }

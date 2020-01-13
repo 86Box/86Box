@@ -8,14 +8,14 @@
  *
  *		Implement I/O ports and their operations.
  *
- * Version:	@(#)io.c	1.0.4	2018/04/29
+ * Version:	@(#)io.c	1.0.7	2019/09/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -27,6 +27,7 @@
 #include "86box.h"
 #include "io.h"
 #include "cpu/cpu.h"
+#include "machine/m_amstrad.h"
 
 
 #define NPORTS		65536		/* PC/AT supports 64K ports */
@@ -52,23 +53,21 @@ io_t *io[NPORTS], *io_last[NPORTS];
 
 #ifdef ENABLE_IO_LOG
 int io_do_log = ENABLE_IO_LOG;
-#endif
 
 
-#ifdef ENABLE_IO_LOG
 static void
-io_log(const char *format, ...)
+io_log(const char *fmt, ...)
 {
-#ifdef ENABLE_IO_LOG
     va_list ap;
 
     if (io_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define io_log(fmt, ...)
 #endif
 
 
@@ -210,6 +209,23 @@ io_removehandler(uint16_t base, int size,
 }
 
 
+void
+io_handler(int set, uint16_t base, int size, 
+	   uint8_t (*inb)(uint16_t addr, void *priv),
+	   uint16_t (*inw)(uint16_t addr, void *priv),
+	   uint32_t (*inl)(uint16_t addr, void *priv),
+	   void (*outb)(uint16_t addr, uint8_t val, void *priv),
+	   void (*outw)(uint16_t addr, uint16_t val, void *priv),
+	   void (*outl)(uint16_t addr, uint32_t val, void *priv),
+	   void *priv)
+{
+    if (set)
+	io_sethandler(base, size, inb, inw, inl, outb, outw, outl, priv);
+    else
+	io_removehandler(base, size, inb, inw, inl, outb, outw, outl, priv);
+}
+
+
 #ifdef PC98
 void
 io_sethandler_interleaved(uint16_t base, int size,
@@ -290,24 +306,37 @@ io_removehandler_interleaved(uint16_t base, int size,
 uint8_t
 inb(uint16_t port)
 {
-    uint8_t r = 0xff;
+    uint8_t ret = 0xff;
     io_t *p;
+    int found = 0;
 
     p = io[port];
     if (p) {
 	while(p) {
-		if (p->inb)
-			r &= p->inb(port, p->priv);
+		if (p->inb) {
+			ret &= p->inb(port, p->priv);
+			found++;
+		}
 		p = p->next;
 	}
     }
 
+    if (port & 0x80)
+	amstrad_latch = AMSTRAD_NOLATCH;
+    else if (port & 0x4000)   
+	amstrad_latch = AMSTRAD_SW10;
+    else
+	amstrad_latch = AMSTRAD_SW9;
+
 #ifdef ENABLE_IO_LOG
     if (CS == IO_TRACE)
-	io_log("IOTRACE(%04X): inb(%04x)=%02x\n", IO_TRACE, port, r);
+	io_log("IOTRACE(%04X): inb(%04x)=%02x\n", IO_TRACE, port, ret);
 #endif
 
-    return(r);
+    if (!found)
+	sub_cycles(io_delay);
+
+    return(ret);
 }
 
 
@@ -315,12 +344,15 @@ void
 outb(uint16_t port, uint8_t val)
 {
     io_t *p;
+    int found = 0;
 
     if (io[port]) {
 	p = io[port];
 	while(p) {
-		if (p->outb)
+		if (p->outb) {
 			p->outb(port, val, p->priv);
+			found++;
+		}
 		p = p->next;
 	}
     }
@@ -329,6 +361,10 @@ outb(uint16_t port, uint8_t val)
     if (CS == IO_TRACE)
 	io_log("IOTRACE(%04X): outb(%04x,%02x)\n", IO_TRACE, port, val);
 #endif
+
+    if (!found)
+	sub_cycles(io_delay);
+
     return;
 }
 
@@ -337,17 +373,24 @@ uint16_t
 inw(uint16_t port)
 {
     io_t *p;
+    uint16_t ret = 0xffff;
+    int found = 0;
 
     p = io[port];
     if (p) {
 	while(p) {
-		if (p->inw)
-			return p->inw(port, p->priv);
+		if (p->inw) {
+			ret = p->inw(port, p->priv);
+			found = 1;
+		}
 		p = p->next;
 	}
     }
 
-    return(inb(port) | (inb(port + 1) << 8));
+    if (!found)
+	ret = (inb(port) | (inb(port + 1) << 8));
+
+    return ret;
 }
 
 
@@ -378,17 +421,24 @@ uint32_t
 inl(uint16_t port)
 {
     io_t *p;
+    uint32_t ret = 0xffffffff;
+    int found = 0;
 
     p = io[port];
     if (p) {
 	while(p) {
-		if (p->inl)
-			return p->inl(port, p->priv);
+		if (p->inl) {
+			ret = p->inl(port, p->priv);
+			found = 1;
+		}
 		p = p->next;
 	}
     }
 
-    return(inw(port) | (inw(port + 2) << 16));
+    if (!found)
+	ret = (inw(port) | (inw(port + 2) << 16));
+
+    return ret;
 }
 
 

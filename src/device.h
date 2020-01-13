@@ -8,15 +8,15 @@
  *
  *		Definitions for the device handler.
  *
- * Version:	@(#)device.h	1.0.5	2018/04/26
+ * Version:	@(#)device.h	1.0.12	2019/03/14
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,19 +50,21 @@
 #define CONFIG_HEX16		7
 #define CONFIG_HEX20		8
 #define CONFIG_MAC		9
+#define CONFIG_MIDI_IN  10
 
 
 enum {
-    DEVICE_NOT_WORKING = 1,	/* does not currently work correctly and will be disabled in a release build*/
-    DEVICE_AT = 2,		/* requires an AT-compatible system */
-    DEVICE_PS2 = 4,		/* requires a PS/1 or PS/2 system */
-    DEVICE_ISA = 8,		/* requires the ISA bus */
-    DEVICE_CBUS = 0x10,		/* requires the C-BUS bus */
-    DEVICE_MCA = 0x20,		/* requires the MCA bus */
-    DEVICE_EISA = 0x40,		/* requires the EISA bus */
-    DEVICE_VLB = 0x80,		/* requires the PCI bus */
-    DEVICE_PCI = 0x100,		/* requires the VLB bus */
-    DEVICE_AGP = 0x200		/* requires the AGP bus */
+    DEVICE_NOT_WORKING = 1,	/* does not currently work correctly and will be disabled in a release build */
+    DEVICE_PCJR = 2,		/* requires an IBM PCjr */
+    DEVICE_AT = 4,		/* requires an AT-compatible system */
+    DEVICE_PS2 = 8,		/* requires a PS/1 or PS/2 system */
+    DEVICE_ISA = 0x10,		/* requires the ISA bus */
+    DEVICE_CBUS = 0x20,		/* requires the C-BUS bus */
+    DEVICE_MCA = 0x40,		/* requires the MCA bus */
+    DEVICE_EISA = 0x80,		/* requires the EISA bus */
+    DEVICE_VLB = 0x100,		/* requires the PCI bus */
+    DEVICE_PCI = 0x200,		/* requires the VLB bus */
+    DEVICE_AGP = 0x400		/* requires the AGP bus */
 };
 
 
@@ -99,42 +101,58 @@ typedef struct _device_ {
     uint32_t	local;		/* flags local to device */
 
     void	*(*init)(const struct _device_ *);
-    void	(*close)(void *p);
-    void	(*reset)(void *p);
+    void	(*close)(void *priv);
+    void	(*reset)(void *priv);
     int		(*available)(/*void*/);
-    void	(*speed_changed)(void *p);
-    void	(*force_redraw)(void *p);
+    void	(*speed_changed)(void *priv);
+    void	(*force_redraw)(void *priv);
 
     const device_config_t *config;
 } device_t;
+
+typedef struct {
+    const device_t	*dev;
+    char		name[2048];
+} device_context_t;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern void	device_init(void);
-extern void	*device_add(const device_t *d);
-extern void	device_add_ex(const device_t *d, void *priv);
-extern void	device_close_all(void);
-extern void	device_reset_all(void);
-extern void	device_reset_all_pci(void);
-extern void	*device_get_priv(const device_t *d);
-extern int	device_available(const device_t *d);
-extern void	device_speed_changed(void);
-extern void	device_force_redraw(void);
+extern void		device_init(void);
+extern void		device_set_context(device_context_t *c, const device_t *d, int inst);
+extern void		device_context(const device_t *d);
+extern void		device_context_inst(const device_t *d, int inst);
+extern void		device_context_restore(void);
+extern void		*device_add(const device_t *d);
+extern void		device_add_ex(const device_t *d, void *priv);
+extern void		*device_add_inst(const device_t *d, int inst);
+extern void		device_add_inst_ex(const device_t *d, void *priv, int inst);
+extern void		*device_cadd(const device_t *d, const device_t *cd);
+extern void		device_cadd_ex(const device_t *d, const device_t *cd, void *priv);
+extern void		*device_cadd_inst(const device_t *d, const device_t *cd, int inst);
+extern void		device_cadd_inst_ex(const device_t *d, const device_t *cd, void *priv, int inst);
+extern void		device_close_all(void);
+extern void		device_reset_all(void);
+extern void		device_reset_all_pci(void);
+extern void		*device_get_priv(const device_t *d);
+extern int		device_available(const device_t *d);
+extern void		device_speed_changed(void);
+extern void		device_force_redraw(void);
 
-extern int	device_get_config_int(char *name);
-extern int	device_get_config_int_ex(char *s, int default_int);
-extern int	device_get_config_hex16(char *name);
-extern int	device_get_config_hex20(char *name);
-extern int	device_get_config_mac(char *name, int default_int);
-extern void	device_set_config_int(char *s, int val);
-extern void	device_set_config_hex16(char *s, int val);
-extern void	device_set_config_hex20(char *s, int val);
-extern void	device_set_config_mac(char *s, int val);
-extern char	*device_get_config_string(char *name);
-extern int	device_is_valid(const device_t *device, int machine_flags);
+extern int		device_is_valid(const device_t *, int machine_flags);
+
+extern int		device_get_config_int(const char *name);
+extern int		device_get_config_int_ex(const char *s, int dflt_int);
+extern int		device_get_config_hex16(const char *name);
+extern int		device_get_config_hex20(const char *name);
+extern int		device_get_config_mac(const char *name, int dflt_int);
+extern void		device_set_config_int(const char *s, int val);
+extern void		device_set_config_hex16(const char *s, int val);
+extern void		device_set_config_hex20(const char *s, int val);
+extern void		device_set_config_mac(const char *s, int val);
+extern const char	*device_get_config_string(const char *name);
 
 extern int	machine_get_config_int(char *s);
 extern char	*machine_get_config_string(char *s);

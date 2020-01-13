@@ -39,17 +39,16 @@ static uint16_t	scancode_map[768];
 static UINT16
 convert_scan_code(UINT16 scan_code)
 {
-    if ((scan_code & 0xFF00) == 0xE000) {
-	scan_code &= 0x00FF;
-	scan_code |= 0x0100;
-    } else if (scan_code == 0xE11D)
-	scan_code = 0xE000;
+    if ((scan_code & 0xff00) == 0xe000)
+	scan_code = (scan_code & 0xff) | 0x0100;
+
+    if (scan_code == 0xE11D)
+	scan_code = 0x0100;
     /* E0 00 is sent by some USB keyboards for their special keys, as it is an
        invalid scan code (it has no untranslated set 2 equivalent), we mark it
        appropriately so it does not get passed through. */
-    else if ((scan_code > 0x00FF) || (scan_code == 0xE000)) {
+    else if ((scan_code > 0x01FF) || (scan_code == 0x0100))
 	scan_code = 0xFFFF;
-    }
 
     return scan_code;
 }
@@ -138,12 +137,14 @@ keyboard_handle(LPARAM lParam, int infocus)
 	/* If it's not a scan code that starts with 0xE1 */
 	if (!(rawKB.Flags & RI_KEY_E1)) {
 		if (rawKB.Flags & RI_KEY_E0)
-			scancode |= (0xE0 << 8);
+			scancode |= 0x100;
 
 		/* Translate the scan code to 9-bit */
 		scancode = convert_scan_code(scancode);
 
 		/* Remap it according to the list from the Registry */
+		if (scancode != scancode_map[scancode])
+			pclog("Scan code remap: %03X -> %03X\n", scancode, scancode);
 		scancode = scancode_map[scancode];
 
 		/* If it's not 0xFFFF, send it to the emulated

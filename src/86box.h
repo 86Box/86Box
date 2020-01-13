@@ -8,13 +8,13 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.23	2018/05/25
+ * Version:	@(#)86box.h	1.0.36	2019/12/05
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *f		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #ifndef EMU_86BOX_H
 # define EMU_86BOX_H
@@ -29,8 +29,13 @@
 /* Version info. */
 #define EMU_NAME	"86Box"
 #define EMU_NAME_W	L"86Box"
-#define EMU_VERSION	"2.00"
-#define EMU_VERSION_W	L"2.00"
+#ifdef RELEASE_BUILD
+#define EMU_VERSION	"2.07"
+#define EMU_VERSION_W	L"2.07"
+#else
+#define EMU_VERSION	"2.10"
+#define EMU_VERSION_W	L"2.10"
+#endif
 
 /* Filename and pathname info. */
 #define CONFIG_FILE	L"86box.cfg"
@@ -92,11 +97,12 @@ extern int	vid_cga_contrast,		/* (C) video */
 		force_43,			/* (C) video */
 		gfxcard;			/* (C) graphics/video card */
 extern int	serial_enabled[],		/* (C) enable serial ports */
-		lpt_enabled,			/* (C) enable LPT ports */
-		bugger_enabled;			/* (C) enable ISAbugger */
+		bugger_enabled,			/* (C) enable ISAbugger */
+		isamem_type[],			/* (C) enable ISA mem cards */
+		isartc_type;			/* (C) enable ISA RTC card */
 extern int	sound_is_float,			/* (C) sound uses FP values */
 		GAMEBLASTER,			/* (C) sound option */
-		GUS,				/* (C) sound option */
+		GUS, GUSMAX,			/* (C) sound option */
 		SSI2001,			/* (C) sound option */
 		voodoo_enabled;			/* (C) video option */
 extern uint32_t	mem_size;			/* (C) memory size */
@@ -104,10 +110,17 @@ extern int	cpu_manufacturer,		/* (C) cpu manufacturer */
 		cpu,				/* (C) cpu type */
 		cpu_use_dynarec,		/* (C) cpu uses/needs Dyna */
 		enable_external_fpu;		/* (C) enable external FPU */
-extern int	enable_sync;			/* (C) enable time sync */
+extern int	time_sync;			/* (C) enable time sync */
 extern int	network_type;			/* (C) net provider type */
 extern int	network_card;			/* (C) net interface num */
-extern char	network_host[512];		/* (C) host network intf */
+extern char	network_host[522];		/* (C) host network intf */
+extern int	hdd_format_type;		/* (C) hard disk file format */
+#ifdef USE_DISCORD
+extern int	enable_discord;			/* (C) enable Discord integration */
+#endif
+
+extern int	is_pentium;			/* TODO: Move back to cpu/cpu.h when it's figured out,
+							 how to remove that hack from the ET4000/W32p. */
 
 
 #ifdef ENABLE_LOG_TOGGLES
@@ -123,7 +136,9 @@ extern int	nic_do_log;
 extern wchar_t	exe_path[1024];			/* path (dir) of executable */
 extern wchar_t	usr_path[1024];			/* path (dir) of user data */
 extern wchar_t  cfg_path[1024];			/* full path of config file */
+#ifndef USE_NEW_DYNAREC
 extern FILE	*stdlog;			/* file to log output to */
+#endif
 extern int	scrnsz_x,			/* current screen size, X */
 		scrnsz_y;			/* current screen size, Y */
 extern int	efscrnsz_y;
@@ -157,6 +172,16 @@ extern void	pc_send_cab(void);
 extern void	pc_thread(void *param);
 extern void	pc_start(void);
 extern void	pc_onesec(void);
+
+extern uint16_t	get_last_addr(void);
+
+/* This is for external subtraction of cycles;
+   should be in cpu.c but I put it here to avoid
+   having to include cpu.c everywhere. */
+extern void	sub_cycles(int c);
+
+extern double	isa_timing;
+extern int	io_delay;
 
 #ifdef __cplusplus
 }

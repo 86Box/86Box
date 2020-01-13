@@ -1,4 +1,4 @@
-/*
+﻿/*
  * VARCem	Virtual ARchaeological Computer EMulator.
  *		An emulator of (mostly) x86-based PC systems and devices,
  *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
@@ -8,11 +8,13 @@
  *
  *		Implement a generic NVRAM/CMOS/RTC device.
  *
- * Version:	@(#)nvr.c	1.0.10	2018/06/08
+ * Version:	@(#)nvr.c	1.0.19	2019/11/19
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>,
+ * 		David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2018,2019 David Hrdlička.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -53,13 +55,8 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "device.h"
 #include "machine/machine.h"
-#include "machine/m_xt_t1000.h"
 #include "mem.h"
-#include "pic.h"
-#include "pit.h"
-#include "rom.h"
 #include "timer.h"
 #include "plat.h"
 #include "nvr.h"
@@ -75,22 +72,22 @@ static nvr_t	*saved_nvr = NULL;
 
 #ifdef ENABLE_NVR_LOG
 int nvr_do_log = ENABLE_NVR_LOG;
-#endif
 
 
 static void
-nvr_log(const char *format, ...)
+nvr_log(const char *fmt, ...)
 {
-#ifdef ENABLE_NVR_LOG
     va_list ap;
 
     if (nvr_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define nvr_log(fmt, ...)
+#endif
 
 
 /* Determine whether or not the year is leap. */
@@ -130,7 +127,6 @@ rtc_tick(void)
     			if (++intclk.tm_mday == (nvr_get_days(intclk.tm_mon,
 							intclk.tm_year) + 1)) {
 				intclk.tm_mday = 1;
-				intclk.tm_mon++;
     				if (++intclk.tm_mon == 13) {
 					intclk.tm_mon = 1;
 					intclk.tm_year++;
@@ -160,7 +156,7 @@ onesec_timer(void *priv)
 	nvr->onesec_cnt = 0;
     }
 
-    nvr->onesec_time += (int64_t)(10000 * TIMER_USEC);
+    timer_advance_u64(&nvr->onesec_time, (uint64_t)(10000ULL * TIMER_USEC));
 }
 
 
@@ -181,10 +177,13 @@ nvr_init(nvr_t *nvr)
 
     /* Initialize the internal clock as needed. */
     memset(&intclk, 0x00, sizeof(intclk));
-    if (enable_sync) {
+    if (time_sync & TIME_SYNC_ENABLED) {
 	/* Get the current time of day, and convert to local time. */
 	(void)time(&now);
-	tm = localtime(&now);
+	if(time_sync & TIME_SYNC_UTC)
+		tm = gmtime(&now);
+	else
+		tm = localtime(&now);
 
 	/* Set the internal clock. */
 	nvr_time_set(tm);
@@ -195,7 +194,7 @@ nvr_init(nvr_t *nvr)
     }
 
     /* Set up our timer. */
-    timer_add(onesec_timer, &nvr->onesec_time, TIMER_ALWAYS_ENABLED, nvr);
+    timer_add(&nvr->onesec_time, onesec_timer, nvr, 1);
 
     /* It does not need saving yet. */
     nvr_dosave = 0;
@@ -252,8 +251,7 @@ nvr_load(void)
     if (saved_nvr == NULL) return(0);
 
     /* Clear out any old data. */
-    // memset(saved_nvr->regs, 0x00, sizeof(saved_nvr->regs));
-    memset(saved_nvr->regs, 0xff, sizeof(saved_nvr->regs));
+    memset(saved_nvr->regs, 0x00, sizeof(saved_nvr->regs));
 
     /* Set the defaults. */
     if (saved_nvr->reset != NULL)
@@ -271,16 +269,18 @@ nvr_load(void)
 	}
     }
 
-    if (romset == ROM_T1000)
-	t1000_nvr_load();
-    else if (romset == ROM_T1200)
-	t1200_nvr_load();
-
     /* Get the local RTC running! */
     if (saved_nvr->start != NULL)
 	saved_nvr->start(saved_nvr);
 
     return(1);
+}
+
+
+void
+nvr_set_ven_save(void (*ven_save)(void))
+{
+    saved_nvr->ven_save = ven_save;
 }
 
 
@@ -305,10 +305,8 @@ nvr_save(void)
 	}
     }
 
-    if (romset == ROM_T1000)
-	t1000_nvr_save();
-    else if (romset == ROM_T1200)
-	t1200_nvr_save();
+    if (saved_nvr->ven_save)
+	saved_nvr->ven_save();
 
     /* Device is clean again. */
     nvr_dosave = 0;
@@ -318,13 +316,9 @@ nvr_save(void)
 
 
 void
-nvr_period_recalc(void)
+nvr_close(void)
 {
-    /* Make sure we have been initialized. */
-    if (saved_nvr == NULL) return;
-
-    if (saved_nvr->size != 0)
-	saved_nvr->recalc(saved_nvr);
+    saved_nvr = NULL;
 }
 
 

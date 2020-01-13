@@ -8,11 +8,11 @@
  *
  *		Implementation of the PCjs JSON floppy image format.
  *
- * Version:	@(#)fdd_json.c	1.0.5	2018/04/29
+ * Version:	@(#)fdd_json.c	1.0.7	2019/12/05
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -52,8 +52,10 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
+#include "../timer.h"
 #include "../plat.h"
 #include "fdd.h"
+#include "fdd_86f.h"
 #include "fdc.h"
 #include "fdd_common.h"
 #include "fdd_json.h"
@@ -108,13 +110,11 @@ static json_t	*images[FDD_NUM];
 
 #ifdef ENABLE_JSON_LOG
 int json_do_log = ENABLE_JSON_LOG;
-#endif
 
 
 static void
 json_log(const char *fmt, ...)
 {
-#ifdef ENABLE_JSON_LOG
    va_list ap;
 
    if (json_do_log)
@@ -123,8 +123,10 @@ json_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define json_log(fmt, ...)
+#endif
 
 
 static void
@@ -455,8 +457,7 @@ json_seek(int drive, int track)
 				drive, side, pos, id,
 				dev->sects[track][side][asec].data,
 				ssize, gap2, gap3,
-				0,	/*deleted flag*/
-				0	/*bad_crc flag*/
+				0	/*flags*/
 			);
 
 		if (sector == 0)

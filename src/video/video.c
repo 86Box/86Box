@@ -40,23 +40,26 @@
  *		W = 3 bus clocks
  *		L = 4 bus clocks
  *
- * Version:	@(#)video.c	1.0.23	2018/05/25
+ * Version:	@(#)video.c	1.0.35	2019/12/06
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
+#define PNG_DEBUG 0
+#include <png.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>
+#define HAVE_STDARG_H
 #include "../86box.h"
 #include "../cpu/cpu.h"
-#include "../machine/machine.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../rom.h"
@@ -67,31 +70,29 @@
 #include "vid_svga.h"
 
 
-enum {
-    VIDEO_ISA = 0,
-    VIDEO_BUS
-};
-
-bitmap_t	*screen = NULL,
-		*buffer = NULL,
-		*buffer32 = NULL;
+volatile int	screenshots = 0;
+bitmap_t	*buffer32 = NULL;
+bitmap_t	*render_buffer = NULL;
 uint8_t		fontdat[2048][8];		/* IBM CGA font */
 uint8_t		fontdatm[2048][16];		/* IBM MDA font */
 uint8_t		fontdatw[512][32];		/* Wyse700 font */
 uint8_t		fontdat8x12[256][16];		/* MDSI Genius font */
-dbcs_font_t	*fontdatksc5601;		/* Korean KSC-5601 font */
-dbcs_font_t	*fontdatksc5601_user;		/* Korean KSC-5601 user defined font */
+uint8_t		fontdat12x18[256][36];		/* IM1024 font */
+dbcs_font_t	*fontdatksc5601 = NULL;		/* Korean KSC-5601 font */
+dbcs_font_t	*fontdatksc5601_user = NULL;	/* Korean KSC-5601 user defined font */
 uint32_t	pal_lookup[256];
 int		xsize = 1,
 		ysize = 1;
-int		cga_palette = 0;
+int		cga_palette = 0,
+		herc_blend = 0;
 uint32_t	*video_6to8 = NULL,
+		*video_8togs = NULL,
+		*video_8to32 = NULL,
 		*video_15to32 = NULL,
 		*video_16to32 = NULL;
 int		egareads = 0,
 		egawrites = 0,
 		changeframecount = 2;
-uint8_t		rotatevga[8][256];
 int		frames = 0;
 int		fullchange = 0;
 uint8_t		edatlookup[4][4];
@@ -110,6 +111,9 @@ static int	video_force_resize;
 int		invert_display = 0;
 int		video_grayscale = 0;
 int		video_graytype = 0;
+static int	vid_type;
+static const video_timings_t	*vid_timings;
+static uint32_t cga_2_table[16];
 
 
 PALETTE		cgapal = {
@@ -255,6 +259,26 @@ static struct {
 static void (*blit_func)(int x, int y, int y1, int y2, int w, int h);
 
 
+#ifdef ENABLE_VIDEO_LOG
+int sdl_do_log = ENABLE_VIDEO_LOG;
+
+
+static void
+video_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (video_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+}
+#else
+#define video_log(fmt, ...)
+#endif
+
+
 static
 void blit_thread(void *param)
 {
@@ -307,10 +331,144 @@ video_wait_for_buffer(void)
 }
 
 
+static png_structp	png_ptr;
+static png_infop	info_ptr;
+
+
+static void
+video_take_screenshot(const wchar_t *fn, int startx, int starty, int w, int h)
+{
+    int i, x, y;
+    png_bytep *b_rgb = NULL;
+    FILE *fp = NULL;
+    uint32_t temp = 0x00000000;
+
+    /* create file */
+    fp = plat_fopen((wchar_t *) fn, (wchar_t *) L"wb");
+    if (!fp) {
+	video_log("[video_take_screenshot] File %ls could not be opened for writing", fn);
+	return;
+    }
+
+    /* initialize stuff */
+    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+
+    if (!png_ptr) {
+	video_log("[video_take_screenshot] png_create_write_struct failed");
+	fclose(fp);
+	return;
+    }
+
+    info_ptr = png_create_info_struct(png_ptr);
+    if (!info_ptr) {
+	video_log("[video_take_screenshot] png_create_info_struct failed");
+	fclose(fp);
+	return;
+    }
+
+    png_init_io(png_ptr, fp);
+
+    png_set_IHDR(png_ptr, info_ptr, w, h,
+	8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
+	PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+
+    b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * h);
+    if (b_rgb == NULL) {
+	video_log("[video_take_screenshot] Unable to Allocate RGB Bitmap Memory");
+	fclose(fp);
+	return;
+    }
+
+    for (y = 0; y < h; ++y) {
+	b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr, info_ptr));
+    	for (x = 0; x < w; ++x) {
+		temp = render_buffer->line[y + starty][x + startx];
+
+		b_rgb[y][(x) * 3 + 0] = (temp >> 16) & 0xff;
+		b_rgb[y][(x) * 3 + 1] = (temp >> 8) & 0xff;
+		b_rgb[y][(x) * 3 + 2] = temp & 0xff;
+	}
+    }
+
+    png_write_info(png_ptr, info_ptr);
+
+    png_write_image(png_ptr, b_rgb);
+
+    png_write_end(png_ptr, NULL);
+
+    /* cleanup heap allocation */
+    for (i = 0; i < h; i++)
+	if (b_rgb[i])  free(b_rgb[i]);
+
+    if (b_rgb) free(b_rgb);
+
+    if (fp) fclose(fp);
+}
+
+
+static void
+video_screenshot(int x, int y, int w, int h)
+{
+    wchar_t path[1024], fn[128];
+
+    memset(fn, 0, sizeof(fn));
+    memset(path, 0, sizeof(path));
+
+    plat_append_filename(path, usr_path, SCREENSHOT_PATH);
+
+    if (! plat_dir_check(path))
+	plat_dir_create(path);
+
+    wcscat(path, L"\\");
+
+    plat_tempfile(fn, NULL, L".png");
+    wcscat(path, fn);
+
+    video_log("taking screenshot to: %S\n", path);
+
+    video_take_screenshot((const wchar_t *) path, x, y, w, h);
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+}
+
+
+static void
+video_transform_copy(uint32_t *dst, uint32_t *src, int len)
+{
+    int i;
+
+    for (i = 0; i < len; i++) {
+	*dst = video_color_transform(*src);
+	dst++;
+	src++;
+    }
+}
+
+
 void
 video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
-    if (h <= 0) return;
+    int yy;
+
+    if ((w > 0) && (h > 0)) {
+	for (yy = 0; yy < h; yy++) {
+		if (((y + yy) >= 0) && ((y + yy) < buffer32->h)) {
+			if (video_grayscale || invert_display)
+				video_transform_copy(&(render_buffer->line[y + yy][x]), &(buffer32->line[y + yy][x]), w);
+			else
+				memcpy(&(render_buffer->line[y + yy][x]), &(buffer32->line[y + yy][x]), w << 2);
+		}
+	}
+    }
+
+    if (screenshots) {
+	if (render_buffer != NULL)
+		video_screenshot(x, y, w, h);
+	screenshots--;
+	video_log("screenshot taken, %i left\n", screenshots);
+    }
+
+    if ((w <= 0) || (h <= 0))
+	return;
 
     video_wait_for_blit();
 
@@ -327,19 +485,75 @@ video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 }
 
 
+uint8_t pixels8(uint32_t *pixels)
+{
+    int i;
+    uint8_t temp = 0;
+
+    for (i = 0; i < 8; i++)
+	temp |= (!!*(pixels + i) << (i ^ 7));
+
+    return temp;
+}
+
+
+uint32_t pixel_to_color(uint8_t *pixels32, uint8_t pos)
+{
+    uint32_t temp;
+    temp = *(pixels32 + pos) & 0x03;
+    switch (temp) {
+	case 0:
+	default:
+		return 0x00;
+	case 1:
+		return 0x07;
+	case 2:
+		return 0x0f;
+    }
+}
+
+
+void
+video_blend(int x, int y)
+{
+    int xx;
+    uint32_t pixels32_1, pixels32_2;
+    unsigned int val1, val2;
+    static unsigned int carry = 0;
+
+    if (!herc_blend)
+	return;
+
+    if (!x)
+	carry = 0;
+
+    val1 = pixels8(&(buffer32->line[y][x]));
+    val2 = (val1 >> 1) + carry;
+    carry = (val1 & 1) << 7;
+    pixels32_1 = cga_2_table[val1 >> 4] + cga_2_table[val2 >> 4];
+    pixels32_2 = cga_2_table[val1 & 0xf] + cga_2_table[val2 & 0xf];
+    for (xx = 0; xx < 4; xx++) {
+	buffer32->line[y][x + xx] = pixel_to_color((uint8_t *) &pixels32_1, xx);
+	buffer32->line[y][x + (xx | 4)] = pixel_to_color((uint8_t *) &pixels32_2, xx);
+    }
+}
+
+
 void
 video_blit_memtoscreen_8(int x, int y, int y1, int y2, int w, int h)
 {
     int yy, xx;
 
-    if (h <= 0) return;
-
-    for (yy = 0; yy < h; yy++)
-    {
-	if ((y + yy) >= 0 && (y + yy) < buffer->h)
-	{
-		for (xx = 0; xx < w; xx++)
-			*(uint32_t *) &(buffer32->line[y + yy][(x + xx) << 2]) = pal_lookup[buffer->line[y + yy][x + xx]];
+    if ((w > 0) && (h > 0)) {
+	for (yy = 0; yy < h; yy++) {
+		if ((y + yy) >= 0 && (y + yy) < buffer32->h) {
+			for (xx = 0; xx < w; xx++) {
+				if (buffer32->line[y + yy][x + xx] <= 0xff)
+					buffer32->line[y + yy][x + xx] = pal_lookup[buffer32->line[y + yy][x + xx]];
+				else
+					buffer32->line[y + yy][x + xx] = 0x00000000;
+			}
+		}
 	}
     }
 
@@ -363,7 +577,7 @@ cgapal_rebuild(void)
 
     if ((cga_palette > 1) && (cga_palette < 8)) {
 	if (vid_cga_contrast != 0) {
-		for (c=0; c<16; c++) {
+		for (c = 0; c < 16; c++) {
 			pal_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r],
 						video_6to8[cgapal_mono[cga_palette - 2][c].g],
 						video_6to8[cgapal_mono[cga_palette - 2][c].b]);
@@ -378,7 +592,7 @@ cgapal_rebuild(void)
 						   video_6to8[cgapal_mono[cga_palette - 2][c].b]);
 		}
 	} else {
-		for (c=0; c<16; c++) {
+		for (c = 0; c < 16; c++) {
 			pal_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r],
 						video_6to8[cgapal_mono[cga_palette - 1][c].g],
 						video_6to8[cgapal_mono[cga_palette - 1][c].b]);
@@ -400,95 +614,41 @@ cgapal_rebuild(void)
 }
 
 
-static video_timings_t timing_dram     = {VIDEO_BUS, 0,0,0, 0,0,0}; /*No additional waitstates*/
-static video_timings_t timing_pc1512   = {VIDEO_BUS, 0,0,0, 0,0,0}; /*PC1512 video code handles waitstates itself*/
-static video_timings_t timing_pc1640   = {VIDEO_ISA, 8,16,32, 8,16,32};
-static video_timings_t timing_pc200    = {VIDEO_ISA, 8,16,32, 8,16,32};
-static video_timings_t timing_m24      = {VIDEO_ISA, 8,16,32, 8,16,32};
-static video_timings_t timing_t1000    = {VIDEO_ISA, 8,16,32, 8,16,32};
-static video_timings_t timing_pvga1a   = {VIDEO_ISA, 6, 8,16, 6, 8,16};
-static video_timings_t timing_wd90c11  = {VIDEO_ISA, 3, 3, 6, 5, 5,10};
-static video_timings_t timing_vga      = {VIDEO_ISA, 8,16,32, 8,16,32};
-static video_timings_t timing_ps1_svga = {VIDEO_ISA, 6, 8,16, 6, 8,16};
-static video_timings_t timing_t3100e   = {VIDEO_ISA, 8,16,32, 8,16,32};
-static video_timings_t timing_endeavor = {VIDEO_BUS, 3, 2, 4,25,25,40};
+void
+video_inform(int type, const video_timings_t *ptr)
+{
+    vid_type = type;
+    vid_timings = ptr;
+}
+
+
+int
+video_get_type(void)
+{
+    return vid_type;
+}
+
 
 void
 video_update_timing(void)
 {
-    video_timings_t *timing;
-    int new_gfxcard;
+    if (!vid_timings)
+	return;
 
-    new_gfxcard = 0;
-
-    switch(romset) {
-	case ROM_IBMPCJR:
-	case ROM_TANDY:
-	case ROM_TANDY1000HX:
-	case ROM_TANDY1000SL2:
-		timing = &timing_dram;
-		break;
-	case ROM_PC1512:
-		timing = &timing_pc1512;
-		break;
-	case ROM_PC1640:
-		timing = &timing_pc1640;
-		break;
-	case ROM_PC200:
-		timing = &timing_pc200;
-		break;
-	case ROM_OLIM24:
-		timing = &timing_m24;
-		break;
-	case ROM_PC2086:
-	case ROM_PC3086:
-		timing = &timing_pvga1a;
-		break;
-	case ROM_T1000:
-	case ROM_T1200:
-		timing = &timing_t1000;
-		break;
-	case ROM_MEGAPC:
-	case ROM_MEGAPCDX:
-		timing = &timing_wd90c11;
-		break;
-	case ROM_IBMPS1_2011:
-	case ROM_IBMPS2_M30_286:
-	case ROM_IBMPS2_M50:
-	case ROM_IBMPS2_M55SX:
-	case ROM_IBMPS2_M80:
-		timing = &timing_vga;
-		break;
-	case ROM_IBMPS1_2121:
-	case ROM_IBMPS1_2133:
-		timing = &timing_ps1_svga;
-		break;
-	case ROM_T3100E:
-		timing = &timing_t3100e;
-		break;
-	case ROM_ENDEAVOR:
-		timing = &timing_endeavor;
-		break;
-	default:
-		new_gfxcard = video_old_to_new(gfxcard);
-		timing = video_card_gettiming(new_gfxcard);
-		break;
-    }
-
-    if (timing->type == VIDEO_ISA) {
-	video_timing_read_b = ISA_CYCLES(timing->read_b);
-	video_timing_read_w = ISA_CYCLES(timing->read_w);
-	video_timing_read_l = ISA_CYCLES(timing->read_l);
-	video_timing_write_b = ISA_CYCLES(timing->write_b);
-	video_timing_write_w = ISA_CYCLES(timing->write_w);
-	video_timing_write_l = ISA_CYCLES(timing->write_l);
+    if (vid_timings->type == VIDEO_ISA) {
+	video_timing_read_b = ISA_CYCLES(vid_timings->read_b);
+	video_timing_read_w = ISA_CYCLES(vid_timings->read_w);
+	video_timing_read_l = ISA_CYCLES(vid_timings->read_l);
+	video_timing_write_b = ISA_CYCLES(vid_timings->write_b);
+	video_timing_write_w = ISA_CYCLES(vid_timings->write_w);
+	video_timing_write_l = ISA_CYCLES(vid_timings->write_l);
     } else {
-	video_timing_read_b = (int)(bus_timing * timing->read_b);
-	video_timing_read_w = (int)(bus_timing * timing->read_w);
-	video_timing_read_l = (int)(bus_timing * timing->read_l);
-	video_timing_write_b = (int)(bus_timing * timing->write_b);
-	video_timing_write_w = (int)(bus_timing * timing->write_w);
-	video_timing_write_l = (int)(bus_timing * timing->write_l);
+	video_timing_read_b = (int)(bus_timing * vid_timings->read_b);
+	video_timing_read_w = (int)(bus_timing * vid_timings->read_w);
+	video_timing_read_l = (int)(bus_timing * vid_timings->read_l);
+	video_timing_write_b = (int)(bus_timing * vid_timings->write_b);
+	video_timing_write_w = (int)(bus_timing * vid_timings->write_w);
+	video_timing_write_l = (int)(bus_timing * vid_timings->write_l);
     }
 
     if (cpu_16bitbus) {
@@ -513,6 +673,26 @@ calc_6to8(int c)
     i8 = (int) d8;
 
     return(i8 & 0xff);
+}
+
+
+int
+calc_8to32(int c)
+{
+    int b, g, r;
+    double db, dg, dr;
+
+    b = (c & 3);
+    g = ((c >> 2) & 7);
+    r = ((c >> 5) & 7);
+    db = (((double) b) /  3.0) * 255.0;
+    dg = (((double) g) /  7.0) * 255.0;
+    dr = (((double) r) /  7.0) * 255.0;
+    b = (int) db;
+    g = ((int) dg) << 8;
+    r = ((int) dr) << 16;
+
+    return(b | g | r);
 }
 
 
@@ -559,13 +739,13 @@ calc_16to32(int c)
 void
 hline(bitmap_t *b, int x1, int y, int x2, uint32_t col)
 {
-    if (y < 0 || y >= buffer->h)
+    int x;
+
+    if (y < 0 || y >= buffer32->h)
 	   return;
 
-    if (b == buffer)
-	memset(&b->line[y][x1], col, x2 - x1);
-      else
-	memset(&((uint32_t *)b->line[y])[x1], col, (x2 - x1) * 4);
+    for (x = x1; x < x2; x++)
+	b->line[y][x] = col;
 }
 
 
@@ -605,12 +785,12 @@ destroy_bitmap(bitmap_t *b)
 bitmap_t *
 create_bitmap(int x, int y)
 {
-    bitmap_t *b = malloc(sizeof(bitmap_t) + (y * sizeof(uint8_t *)));
+    bitmap_t *b = malloc(sizeof(bitmap_t) + (y * sizeof(uint32_t *)));
     int c;
 
     b->dat = malloc(x * y * 4);
     for (c = 0; c < y; c++)
-	b->line[c] = b->dat + (c * x * 4);
+	b->line[c] = &(b->dat[c * x]);
     b->w = x;
     b->h = y;
 
@@ -621,12 +801,18 @@ create_bitmap(int x, int y)
 void
 video_init(void)
 {
-    int c, d, e;
+    int c, d;
+    uint8_t total[2] = { 0, 1 };
+
+    for (c = 0; c < 16; c++) {
+	cga_2_table[c] = (total[(c >> 3) & 1] << 0 ) | (total[(c >> 2) & 1] << 8 ) |
+			 (total[(c >> 1) & 1] << 16) | (total[(c >> 0) & 1] << 24);
+    }
 
     /* Account for overscan. */
-    buffer32 = create_bitmap(2048, 2048);
+    buffer32 = create_bitmap(2048 + 64, 2048 + 64);
+    render_buffer = create_bitmap(2048 + 64, 2048 + 64);
 
-    buffer = create_bitmap(2048, 2048);
     for (c = 0; c < 64; c++) {
 	cgapal[c + 64].r = (((c & 4) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
 	cgapal[c + 64].g = (((c & 2) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
@@ -640,13 +826,6 @@ video_init(void)
 	cgapal[c + 128].b = (((c & 1) ? 2 : 0) | ((c & 0x08) ? 1 : 0)) * 21;
     }
 
-    for (c = 0; c < 256; c++) {
-	e = c;
-	for (d = 0; d < 8; d++) {
-		rotatevga[d][c] = e;
-		e = (e >> 1) | ((e & 1) ? 0x80 : 0);
-	}
-    }
     for (c = 0; c < 4; c++) {
 	for (d = 0; d < 4; d++) {
 		edatlookup[c][d] = 0;
@@ -660,19 +839,20 @@ video_init(void)
     video_6to8 = malloc(4 * 256);
     for (c = 0; c < 256; c++)
 	video_6to8[c] = calc_6to8(c);
+
+    video_8togs = malloc(4 * 256);
+    for (c = 0; c < 256; c++)
+	video_8togs[c] = c | (c << 16) | (c << 24);
+
+    video_8to32 = malloc(4 * 256);
+    for (c = 0; c < 256; c++)
+	video_8to32[c] = calc_8to32(c);
+
     video_15to32 = malloc(4 * 65536);
-#if 0
     for (c = 0; c < 65536; c++)
-	video_15to32[c] = ((c & 31) << 3) | (((c >> 5) & 31) << 11) | (((c >> 10) & 31) << 19);
-#endif
-    for (c = 0; c < 65536; c++)
-	video_15to32[c] = calc_15to32(c);
+	video_15to32[c] = calc_15to32(c & 0x7fff);
 
     video_16to32 = malloc(4 * 65536);
-#if 0
-    for (c = 0; c < 65536; c++)
-	video_16to32[c] = ((c & 31) << 3) | (((c >> 5) & 63) << 10) | (((c >> 11) & 31) << 19);
-#endif
     for (c = 0; c < 65536; c++)
 	video_16to32[c] = calc_16to32(c);
 
@@ -691,11 +871,13 @@ video_close(void)
     thread_destroy_event(blit_data.blit_complete);
     thread_destroy_event(blit_data.wake_blit_thread);
 
-    free(video_6to8);
-    free(video_15to32);
     free(video_16to32);
+    free(video_15to32);
+    free(video_8to32);
+    free(video_8togs);
+    free(video_6to8);
 
-    destroy_bitmap(buffer);
+    destroy_bitmap(render_buffer);
     destroy_bitmap(buffer32);
 
     if (fontdatksc5601) {
@@ -749,17 +931,14 @@ loadfont(wchar_t *s, int format)
 		break;
 
 	case 1:		/* PC200 */
-		for (c=0; c<256; c++)
-			for (d=0; d<8; d++)
-				fontdatm[c][d] = fgetc(f);
-		for (c=0; c<256; c++)
-		       	for (d=0; d<8; d++)
-				fontdatm[c][d+8] = fgetc(f);
-		(void)fseek(f, 4096, SEEK_SET);
-		for (c=0; c<256; c++) {
-			for (d=0; d<8; d++)
-				fontdat[c][d] = fgetc(f);
-			for (d=0; d<8; d++) (void)fgetc(f);		
+		for (d = 0; d < 4; d++) {
+			/* There are 4 fonts in the ROM */
+			for (c = 0; c < 256; c++)	/* 8x14 MDA in 8x16 cell */
+				fread(&fontdatm[256*d + c][0], 1, 16, f);
+			for (c = 0; c < 256; c++) {	/* 8x8 CGA in 8x16 cell */
+				fread(&fontdat[256*d + c][0], 1, 8, f);
+				fseek(f, 8, SEEK_CUR);
+			}
 		}
 		break;
 
@@ -826,6 +1005,28 @@ loadfont(wchar_t *s, int format)
 				fontdatksc5601[c].chr[d]=getc(f);
 		}
 		break;
+
+	case 7: /* Sigma Color 400 */
+		/* The first 4k of the character ROM holds an 8x8 font */
+		for (c = 0; c < 256; c++) {
+			fread(&fontdat[c][0], 1, 8, f);
+			fseek(f, 8, SEEK_CUR);
+		}
+		/* The second 4k holds an 8x16 font */
+		for (c = 0; c < 256; c++)
+			fread(&fontdatm[c][0], 1, 16, f);
+		break;
+
+	case 8:	/* Amstrad PC1512, Toshiba T1000/T1200 */
+		for (c = 0; c < 2048; c++)	/* Allow up to 2048 chars */
+		       	for (d=0; d<8; d++)
+				fontdat[c][d] = fgetc(f);
+		break;
+
+	case 9:	/* Image Manager 1024 native font */
+		for (c = 0; c < 256; c++)
+			fread(&fontdat12x18[c][0], 1, 36, f);
+		break;
     }
 
     (void)fclose(f);
@@ -860,16 +1061,4 @@ video_color_transform(uint32_t color)
     if (invert_display)
 	color ^= 0x00ffffff;
     return color;
-}
-
-void
-video_transform_copy(uint32_t *dst, uint32_t *src, int len)
-{
-    int i;
-
-    for (i = 0; i < len; i++) {
-	*dst = video_color_transform(*src);
-	dst++;
-	src++;
-    }
 }

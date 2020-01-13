@@ -8,11 +8,11 @@
  *
  *		Handle the New Floppy Image dialog.
  *
- * Version:	@(#)win_new_floppy.c	1.0.8	2018/05/25
+ * Version:	@(#)win_new_floppy.c	1.0.13	2019/11/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -29,7 +29,7 @@
 #include "../plat.h"
 #include "../random.h"
 #include "../ui.h"
-#include "../scsi/scsi.h"
+#include "../scsi/scsi_device.h"
 #include "../disk/zip.h"
 #include "win.h"
 
@@ -75,7 +75,7 @@ create_86f(WCHAR *file_name, disk_size_t disk_size, uint8_t rpm_mode)
     FILE *f;
 
     uint32_t magic = 0x46423638;
-    uint16_t version = 0x020B;
+    uint16_t version = 0x020C;
     uint16_t dflags = 0;
     uint16_t tflags = 0;
     uint32_t index_hole_pos = 0;
@@ -267,9 +267,7 @@ create_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_fdi)
 	empty[0x38] = 'T';
 	empty[0x39] = '1';
 	empty[0x3A] = '2';
-	empty[0x3B] = ' ';
-	empty[0x3C] = ' ';
-	empty[0x3D] = ' ';
+	memset(&(empty[0x3B]), 0x20, 0x0003);
 
 	empty[0x1FE] = 0x55;
 	empty[0x1FF] = 0xAA;
@@ -304,6 +302,7 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
     uint16_t base = 0x1000;
     uint32_t pbar_max = 0;
     uint32_t i;
+    MSG msg;
     
     f = plat_fopen(file_name, L"wb");
     if (!f)
@@ -371,40 +370,28 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
     if (total_sectors == ZIP_SECTORS) {
 	/* ZIP 100 */
 	/* MBR */
-	*(uint64_t *) &(empty[0x0000]) = 0x0000030000025245LL;
-	*(uint64_t *) &(empty[0x0008]) = 0x0000000000000000LL;
-	*(uint64_t *) &(empty[0x0010]) = 0x0900E90300000100LL;
-	*(uint64_t *) &(empty[0x0018]) = 0x726F70726F430100LL;
+	*(uint64_t *) &(empty[0x0000]) = 0x2054524150492EEBLL;
+	*(uint64_t *) &(empty[0x0008]) = 0x3930302065646F63LL;
+	*(uint64_t *) &(empty[0x0010]) = 0x67656D6F49202D20LL;
+	*(uint64_t *) &(empty[0x0018]) = 0x726F70726F432061LL;
 	*(uint64_t *) &(empty[0x0020]) = 0x202D206E6F697461LL;
 	*(uint64_t *) &(empty[0x0028]) = 0x30392F33322F3131LL;
 
-	*(uint64_t *) &(empty[0x01AE]) = 0x0116010100E905E2LL;
-	*(uint64_t *) &(empty[0x01B6]) = 0x226BEDCE014E0135LL;
-	*(uint64_t *) &(empty[0x01BE]) = 0x5E203F0600010180LL;
-	*(uint64_t *) &(empty[0x01C6]) = 0x0002FE6000000020LL;
+	*(uint64_t *) &(empty[0x01AE]) = 0x0116010100E90644LL;
+	*(uint64_t *) &(empty[0x01B6]) = 0xED08BBE5014E0135LL;
+	*(uint64_t *) &(empty[0x01BE]) = 0xFFFFFE06FFFFFE80LL;
+	*(uint64_t *) &(empty[0x01C6]) = 0x0002FFE000000020LL;
 
 	*(uint16_t *) &(empty[0x01FE]) = 0xAA55;
 
-	/* 4 sectors filled with 0xFA */
-	memset(&(empty[0x0200]), 0xFA, 0x0800);
-
-	/* Iomega_Reserved sector */
-	*(uint64_t *) &(empty[0x0A00]) = 0x0500000000004D50LL;
-	*(uint64_t *) &(empty[0x0A08]) = 0xAFF9010051060100LL;
-
-	*(uint64_t *) &(empty[0x0A30]) = 0x525F6167656D6F49LL;
-	*(uint64_t *) &(empty[0x0A38]) = 0x0064657672657365LL;
-
-	*(uint64_t *) &(empty[0x0A54]) = 0x03000000AFF90100LL;
-
-	/* 26 sectors filled with 0x48 */
-	memset(&(empty[0x0C00]), 0x48, 0x3400);
+	/* 31 sectors filled with 0x48 */
+	memset(&(empty[0x0200]), 0x48, 0x3E00);
 
 	/* Boot sector */
 	*(uint64_t *) &(empty[0x4000]) = 0x584F4236389058EBLL;
-	*(uint64_t *) &(empty[0x4008]) = 0x0001040200302E35LL;
+	*(uint64_t *) &(empty[0x4008]) = 0x0008040200302E35LL;
 	*(uint64_t *) &(empty[0x4010]) = 0x00C0F80000020002LL;
-	*(uint64_t *) &(empty[0x4018]) = 0x0000002000400020LL;
+	*(uint64_t *) &(empty[0x4018]) = 0x0000002000FF003FLL;
 	*(uint32_t *) &(empty[0x4020]) = 0x0002FFE0;
 	*(uint16_t *) &(empty[0x4024]) = 0x0080;
 
@@ -422,17 +409,18 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
 	empty[0x4038] = 'T';
 	empty[0x4039] = '1';
 	empty[0x403A] = '6';
+	memset(&(empty[0x403B]), 0x20, 0x0003);
 
 	empty[0x41FE] = 0x55;
 	empty[0x41FF] = 0xAA;
 
-	empty[0x4200] = empty[0x1C200] = empty[0x4015];
-	empty[0x4201] = empty[0x1C201] = 0xFF;
-	empty[0x4202] = empty[0x1C202] = 0xFF;
-	empty[0x4203] = empty[0x1C203] = 0xFF;
+	empty[0x5000] = empty[0x1D000] = empty[0x4015];
+	empty[0x5001] = empty[0x1D001] = 0xFF;
+	empty[0x5002] = empty[0x1D002] = 0xFF;
+	empty[0x5003] = empty[0x1D003] = 0xFF;
 
-	/* Root directory = 0x34200
-	   Data = 0x38200 */
+	/* Root directory = 0x35000
+	   Data = 0x39000 */
     } else {
 	/* ZIP 250 */
 	/* MBR */
@@ -492,6 +480,7 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
 	empty[0x4038] = 'T';
 	empty[0x4039] = '1';
 	empty[0x403A] = '6';
+	memset(&(empty[0x403B]), 0x20, 0x0003);
 
 	empty[0x41FE] = 0x55;
 	empty[0x41FF] = 0xAA;
@@ -508,6 +497,11 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
     for (i = 0; i < pbar_max; i++) {
 	fwrite(&empty[i << 11], 1, 2048, f);
 	SendMessage(h, PBM_SETPOS, (WPARAM) i + 2, (LPARAM) 0);
+
+	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+		TranslateMessage(&msg); 
+		DispatchMessage(&msg); 
+	}
     }
 
     free(empty);
@@ -542,7 +536,7 @@ new_floppy_msgbox(HWND hwnd, int type, void *arg)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK

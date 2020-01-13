@@ -189,16 +189,16 @@
  *		including the later update (DS12887A) which implemented a
  *		"century" register to be compatible with Y2K.
  *
- * Version:	@(#)nvr_at.c	1.0.9	2018/05/10
+ * Version:	@(#)nvr_at.c	1.0.16	2019/11/19
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Mahod,
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -232,9 +232,9 @@
 #include "mem.h"
 #include "nmi.h"
 #include "pic.h"
+#include "timer.h"
 #include "pit.h"
 #include "rom.h"
-#include "timer.h"
 #include "device.h"
 #include "nvr.h"
 
@@ -286,12 +286,18 @@
 
 typedef struct {
     int8_t      stat;
+
     uint8_t	cent;
+    uint8_t	def;
 
-    uint16_t	addr;
+    uint8_t	addr;
 
-    int64_t     ecount,
-                rtctime;
+    int16_t	count, state;
+
+    uint64_t	ecount,
+		rtc_time;
+    pc_timer_t  update_timer,
+                rtc_timer;
 } local_t;
 
 
@@ -404,6 +410,8 @@ timer_update(void *priv)
     local_t *local = (local_t *)nvr->data;
     struct tm tm;
 
+    local->ecount = 0LL;
+
     if (! (nvr->regs[RTC_REGB] & REGB_SET)) {
 	/* Get the current time from the internal clock. */
 	nvr_time_get(&tm);
@@ -441,27 +449,33 @@ timer_update(void *priv)
 			picint(1 << nvr->irq);
 	}
     }
-
-    local->ecount = 0;
 }
 
 
-/* Re-calculate the timer values. */
 static void
-timer_recalc(nvr_t *nvr, int add)
+timer_load_count(nvr_t *nvr)
 {
-    local_t *local = (local_t *)nvr->data;
-    int64_t c, nt;
+    int c = nvr->regs[RTC_REGA] & REGA_RS;
+    local_t *local = (local_t *) nvr->data;
 
-    c = 1ULL << ((nvr->regs[RTC_REGA] & REGA_RS) - 1);
-    nt = (int64_t)(RTCCONST * c * (1<<TIMER_SHIFT));
-    if (add == 2) {
-	local->rtctime = nt;
+    if ((nvr->regs[RTC_REGA] & 0x70) != 0x20) {
+	local->state = 0;
 	return;
-    } else if (add == 1)
-	local->rtctime += nt;
-    else if (local->rtctime > nt)
-	local->rtctime = nt;
+    }
+
+    local->state = 1;
+
+    switch (c) {
+	case 0:
+		local->state = 0;
+		break;
+	case 1: case 2:
+		local->count = 1 << (c + 6);
+		break;
+	default:
+		local->count = 1 << (c - 1);
+		break;
+    }
 }
 
 
@@ -471,13 +485,16 @@ timer_intr(void *priv)
     nvr_t *nvr = (nvr_t *)priv;
     local_t *local = (local_t *)nvr->data;
 
-    if (! (nvr->regs[RTC_REGA] & REGA_RS)) {
-	local->rtctime = 0x7fffffff;
-	return;
-    }
+    timer_advance_u64(&local->rtc_timer, RTCCONST);
 
-    /* Update our timer interval. */
-    timer_recalc(nvr, 1);
+    if (local->state == 1) {
+	local->count--;
+	if (local->count == 0)
+		timer_load_count(nvr);
+	else
+		return;
+    } else
+	return;
 
     nvr->regs[RTC_REGC] |= REGC_PF;
     if (nvr->regs[RTC_REGB] & REGB_PIE) {
@@ -504,7 +521,8 @@ timer_tick(nvr_t *nvr)
 	rtc_tick();
 
 	/* Schedule the actual update. */
-	local->ecount = (int64_t)((244.0 + 1984.0) * TIMER_USEC);
+	local->ecount = (244ULL + 1984ULL) * TIMER_USEC;
+	timer_set_delay_u64(&local->update_timer, local->ecount);
     }
 }
 
@@ -518,17 +536,14 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
     struct tm tm;
     uint8_t old;
 
-    cycles -= ISA_CYCLES(8);
+    sub_cycles(ISA_CYCLES(8));
 
     if (addr & 1) {
 	old = nvr->regs[local->addr];
 	switch(local->addr) {
 		case RTC_REGA:
 			nvr->regs[RTC_REGA] = val;
-			if (val & REGA_RS)
-				timer_recalc(nvr, 1);
-			  else
-				local->rtctime = 0x7fffffff;
+			timer_load_count(nvr);
 			break;
 
 		case RTC_REGB:
@@ -542,7 +557,7 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 
 		case RTC_REGC:		/* R/O */
 		case RTC_REGD:		/* R/O */
-			break;
+		break;
 
 		default:		/* non-RTC registers are just NVRAM */
 			if (nvr->regs[local->addr] != val) {
@@ -554,7 +569,7 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 
 	if ((local->addr < RTC_REGA) || ((local->cent != 0xff) && (local->addr == local->cent))) {
 		if ((local->addr != 1) && (local->addr != 3) && (local->addr != 5)) {
-			if ((old != val) && !enable_sync) {
+			if ((old != val) && !(time_sync & TIME_SYNC_ENABLED)) {
 				/* Update internal clock. */
 				time_get(nvr, &tm);
 				nvr_time_set(&tm);
@@ -565,7 +580,7 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
     } else {
 	local->addr = (val & (nvr->size - 1));
 	if (!(machines[machine].flags & MACHINE_MCA) &&
-	    (romset != ROM_IBMPS1_2133))
+	    !(machines[machine].flags & MACHINE_NONMI))
 		nmi_mask = (~val & 0x80);
     }
 }
@@ -579,9 +594,9 @@ nvr_read(uint16_t addr, void *priv)
     local_t *local = (local_t *)nvr->data;
     uint8_t ret;
 
-    cycles -= ISA_CYCLES(8);
+    sub_cycles(ISA_CYCLES(8));
 
-    if (addr & 1) switch(local->addr) {
+    if (addr & 1)  switch(local->addr) {
 	case RTC_REGA:
 		ret = (nvr->regs[RTC_REGA] & 0x7f) | local->stat;
 		break;
@@ -600,9 +615,8 @@ nvr_read(uint16_t addr, void *priv)
 	default:
 		ret = nvr->regs[local->addr];
 		break;
-    } else {
+    } else
 	ret = local->addr;
-    }
 
     return(ret);
 }
@@ -614,7 +628,8 @@ nvr_reset(nvr_t *nvr)
 {
     local_t *local = (local_t *)nvr->data;
 
-    memset(nvr->regs, 0x00, RTC_REGS);
+    /* memset(nvr->regs, local->def, RTC_REGS); */
+    memset(nvr->regs, local->def, nvr->size);
     nvr->regs[RTC_DOM] = 1;
     nvr->regs[RTC_MONTH] = 1;
     nvr->regs[RTC_YEAR] = RTC_BCD(80);
@@ -627,10 +642,23 @@ nvr_reset(nvr_t *nvr)
 static void
 nvr_start(nvr_t *nvr)
 {
+    int i;
+    local_t *local = (local_t *) nvr->data;
+
     struct tm tm;
+    int default_found = 0;
+
+    for (i = 0; i < nvr->size; i++) {
+	if (nvr->regs[i] == local->def)
+		default_found++;
+    }
+
+    if (default_found == nvr->size)
+	nvr->regs[0x0e] = 0xff;		/* If load failed or it loaded an uninitialized NVR,
+					   mark everything as bad. */
 
     /* Initialize the internal and chip times. */
-    if (enable_sync) {
+    if (time_sync & TIME_SYNC_ENABLED) {
 	/* Use the internal clock's time. */
 	nvr_time_get(&tm);
 	time_set(nvr, &tm);
@@ -643,14 +671,24 @@ nvr_start(nvr_t *nvr)
     /* Start the RTC. */
     nvr->regs[RTC_REGA] = (REGA_RS2|REGA_RS1);
     nvr->regs[RTC_REGB] = REGB_2412;
-    timer_recalc(nvr, 1);
 }
 
 
 static void
-nvr_recalc(nvr_t *nvr)
+nvr_at_speed_changed(void *priv)
 {
-    timer_recalc(nvr, 0);
+    nvr_t *nvr = (nvr_t *) priv;
+    local_t *local = (local_t *) nvr->data;
+
+    timer_disable(&local->rtc_timer);
+    timer_set_delay_u64(&local->rtc_timer, RTCCONST);
+
+    timer_disable(&local->update_timer);
+    if (local->ecount > 0ULL)
+	timer_set_delay_u64(&local->update_timer, local->ecount);
+
+    timer_disable(&nvr->onesec_time);
+    timer_set_delay_u64(&nvr->onesec_time, (10000ULL * TIMER_USEC));
 }
 
 
@@ -663,11 +701,7 @@ nvr_at_init(const device_t *info)
     /* Allocate an NVR for this machine. */
     nvr = (nvr_t *)malloc(sizeof(nvr_t));
     if (nvr == NULL) return(NULL);
-    /* FIXME: See which is correct, this or 0xFF. */
-    if (info->local == 0)
-	memset(nvr, 0xff, sizeof(nvr_t));
-    else
-	memset(nvr, 0x00, sizeof(nvr_t));
+    memset(nvr, 0x00, sizeof(nvr_t));
 
     local = (local_t *)malloc(sizeof(local_t));
     memset(local, 0x00, sizeof(local_t));
@@ -675,6 +709,7 @@ nvr_at_init(const device_t *info)
 
     /* This is machine specific. */
     nvr->size = machines[machine].nvrmask + 1;
+    local->def = 0x00;
     switch(info->local) {
 	case 0:		/* standard AT, no century register */
 		nvr->irq = 8;
@@ -694,21 +729,31 @@ nvr_at_init(const device_t *info)
 	case 3:		/* Amstrad PC's */
 		nvr->irq = 1;
 		local->cent = RTC_CENTURY_AT;
+		local->def = 0xff;
 		break;
+
+	case 4:		/* IBM AT */
+		nvr->irq = 8;
+		local->cent = RTC_CENTURY_AT;
+		local->def = 0xff;
+		break;
+
     }
 
     /* Set up any local handlers here. */
     nvr->reset = nvr_reset;
     nvr->start = nvr_start;
     nvr->tick = timer_tick;
-    nvr->recalc = nvr_recalc;
 
     /* Initialize the generic NVR. */
     nvr_init(nvr);
 
     /* Start the timers. */
-    timer_add(timer_update, &local->ecount, &local->ecount, nvr);
-    timer_add(timer_intr, &local->rtctime, TIMER_ALWAYS_ENABLED, nvr);
+    timer_add(&local->update_timer, timer_update, nvr, 0);
+
+    timer_add(&local->rtc_timer, timer_intr, nvr, 0);
+    timer_load_count(nvr);
+    timer_set_delay_u64(&local->rtc_timer, RTCCONST);
 
     /* Set up the I/O handler for this device. */
     io_sethandler(0x0070, 2,
@@ -721,7 +766,14 @@ nvr_at_init(const device_t *info)
 static void
 nvr_at_close(void *priv)
 {
-    nvr_t *nvr = (nvr_t *)priv;
+    nvr_t *nvr = (nvr_t *) priv;
+    local_t *local = (local_t *) nvr->data;
+
+    nvr_close();
+
+    timer_disable(&local->rtc_timer);
+    timer_disable(&local->update_timer);
+    timer_disable(&nvr->onesec_time);
 
     if (nvr->fn != NULL)
 	free(nvr->fn);
@@ -738,7 +790,7 @@ const device_t at_nvr_old_device = {
     DEVICE_ISA | DEVICE_AT,
     0,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, NULL,
+    NULL, nvr_at_speed_changed,
     NULL
 };
 
@@ -747,7 +799,7 @@ const device_t at_nvr_device = {
     DEVICE_ISA | DEVICE_AT,
     1,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, NULL,
+    NULL, nvr_at_speed_changed,
     NULL
 };
 
@@ -756,7 +808,7 @@ const device_t ps_nvr_device = {
     DEVICE_PS2,
     2,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, NULL,
+    NULL, nvr_at_speed_changed,
     NULL
 };
 
@@ -765,6 +817,15 @@ const device_t amstrad_nvr_device = {
     MACHINE_ISA | MACHINE_AT,
     3,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, NULL,
+    NULL, nvr_at_speed_changed,
+    NULL
+};
+
+const device_t ibmat_nvr_device = {
+    "IBM AT NVRAM",
+    DEVICE_ISA | DEVICE_AT,
+    4,
+    nvr_at_init, nvr_at_close, NULL,
+    NULL, nvr_at_speed_changed,
     NULL
 };

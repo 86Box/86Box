@@ -51,15 +51,15 @@
  * NOTE:	Still need to figure out a way to load/save ConfigSys and
  *		HardRAM stuff. Needs to be linked in to the NVR code.
  *
- * Version:	@(#)m_xt_t1000.c	1.0.6	2018/04/29
+ * Version:	@(#)m_xt_t1000.c	1.0.14	2019/11/15
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2018 Fred N. van Kempen.
- *		Copyright 2018 Miran Grca.
- *		Copyright 2018 Sarah Walker.
+ *		Copyright 2018,2019 Fred N. van Kempen.
+ *		Copyright 2018,2019 Miran Grca.
+ *		Copyright 2018,2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -90,6 +90,7 @@
 #include "../86box.h"
 #include "../cpu/cpu.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../pit.h"
 #include "../nmi.h"
 #include "../mem.h"
@@ -145,7 +146,7 @@ typedef struct {
 
     /* CONFIG.SYS drive. */
     uint8_t	t1000_nvram[160];
-    uint8_t	t1200_nvram[160];
+    uint8_t	t1200_nvram[2048];
 
     /* System control registers */
     uint8_t	sys_ctl[16];
@@ -172,6 +173,7 @@ typedef struct {
     fdc_t	 *fdc;
 
     nvr_t	nvr;
+    int		is_t1200;
 } t1000_t;
 
 
@@ -180,13 +182,11 @@ static t1000_t	t1000;
 
 #ifdef ENABLE_T1000_LOG
 int t1000_do_log = ENABLE_T1000_LOG;
-#endif
 
 
 static void
 t1000_log(const char *fmt, ...)
 {
-#ifdef ENABLE_TANDY_LOG
    va_list ap;
 
    if (t1000_do_log)
@@ -195,8 +195,10 @@ t1000_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define t1000_log(fmt, ...)
+#endif
 
 
 /* Set the chip time. */
@@ -258,7 +260,7 @@ tc8521_start(nvr_t *nvr)
     struct tm tm;
 
     /* Initialize the internal and chip times. */
-    if (enable_sync) {
+    if (time_sync & TIME_SYNC_ENABLED) {
 	/* Use the internal clock's time. */
 	nvr_time_get(&tm);
 	tc8521_time_set(nvr->regs, &tm);
@@ -419,7 +421,7 @@ ems_set_hardram(t1000_t *sys, uint8_t val)
 #if 0
     t1000_log("EMS base set to %02x\n", val);
 #endif
-    sys->ems_pages = 48 - 4 * sys->ems_base;
+    sys->ems_pages = ((mem_size - 512) / 16) - 4 * sys->ems_base;
     if (sys->ems_pages < 0) sys->ems_pages = 0;
 
     /* Recalculate EMS mappings */
@@ -600,7 +602,7 @@ read_ctl(uint16_t addr, void *priv)
 	case 0x0f:	/* Detect EMS board */
 		switch (sys->sys_ctl[0x0e]) {
 			case 0x50:
-				if (mem_size > 512) break;
+				if (mem_size > 512)
 					ret = (0x90 | sys->ems_port_index);
 				break;
 
@@ -648,11 +650,20 @@ write_ctl(uint16_t addr, uint8_t val, void *priv)
 		if (sys->sys_ctl[3] == 0x5A) {
 			t1000_video_options_set((val & 0x20) ? 1 : 0);
 			t1000_display_set((val & 0x40) ? 0 : 1);
-			if (romset == ROM_T1200)
+			if (sys->is_t1200)
 				t1200_turbo_set((val & 0x80) ? 1 : 0);
 		}
 		break;
 
+	/* It looks as if the T1200, like the T3100, can disable
+	 * its builtin video chipset if it detects the presence of
+	 * another video card. */
+	case 6: if (sys->is_t1200)
+		{
+			t1000_video_enable(val & 0x01 ? 0 : 1);
+		}
+		break;		
+		
 	case 0x0f:	/* EMS control */
 		switch (sys->sys_ctl[0x0e]) {
 			case 0x50:
@@ -837,13 +848,22 @@ t1000_get_device(void)
 }
 
 
-void
+int
 machine_xt_t1000_init(const machine_t *model)
 {
     FILE *f;
     int pg;
 
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/t1000/t1000.rom",
+			   0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
     memset(&t1000, 0x00, sizeof(t1000));
+    t1000.is_t1200 = 0;
     t1000.turbo = 0xff;
     t1000.ems_port_index = 7;	/* EMS disabled */
 
@@ -897,14 +917,20 @@ machine_xt_t1000_init(const machine_t *model)
 
     machine_common_init(model);
 
-    pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
     device_add(&keyboard_xt_device);
     t1000.fdc = device_add(&fdc_xt_device);
     nmi_init();
 
     tc8521_init(&t1000.nvr, model->nvrmask + 1);
 
-    device_add(&t1000_video_device);
+    t1000_nvr_load();
+    nvr_set_ven_save(t1000_nvr_save);
+
+    if (gfxcard == VID_INTERNAL)
+		device_add(&t1000_video_device);
+
+    return ret;
 }
 
 
@@ -915,12 +941,21 @@ t1200_get_device(void)
 }
 
 
-void
+int
 machine_xt_t1200_init(const machine_t *model)
 {
     int pg;
 
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/t1200/t1200_019e.ic15.bin",
+			   0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
     memset(&t1000, 0x00, sizeof(t1000));
+    t1000.is_t1200 = 1;
     t1000.ems_port_index = 7;	/* EMS disabled */
 
     /* Load the T1200 CGA Font ROM. */
@@ -950,14 +985,20 @@ machine_xt_t1200_init(const machine_t *model)
 		    write_t1200_nvram, NULL, NULL, 
 		    NULL, 0, &t1000);
 
-    pit_set_out_func(&pit, 1, pit_refresh_timer_xt);
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
     device_add(&keyboard_xt_device);
-    t1000.fdc = device_add(&fdc_xt_device);
+    t1000.fdc = device_add(&fdc_xt_t1x00_device);
     nmi_init();
 
     tc8521_init(&t1000.nvr, model->nvrmask + 1);
 
-    device_add(&t1200_video_device);
+    t1200_nvr_load();
+    nvr_set_ven_save(t1200_nvr_save);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&t1200_video_device);
+
+    return ret;
 }
 
 
@@ -1002,7 +1043,7 @@ t1200_state_load(void)
 {
     FILE *f;
 
-    memset(t1000.t1200_nvram, 0x1a, sizeof(t1000.t1200_nvram));
+    memset(t1000.t1200_nvram, 0, sizeof(t1000.t1200_nvram));
     f = plat_fopen(nvr_path(L"t1200_state.nvr"), L"rb");
     if (f != NULL) {
 	fread(t1000.t1200_nvram, sizeof(t1000.t1200_nvram), 1, f);

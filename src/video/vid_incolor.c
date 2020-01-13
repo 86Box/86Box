@@ -8,7 +8,7 @@
  *
  *		Hercules InColor emulation.
  *
- * Version:	@(#)vid_incolor.c	1.0.10	2018/04/29
+ * Version:	@(#)vid_incolor.c	1.0.14	2019/02/08
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,16 +18,16 @@
  */
 #include <stdio.h>
 #include <stdint.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../lpt.h"
 #include "../pit.h"
 #include "../mem.h"
 #include "../rom.h"
-#include "../timer.h"
 #include "../device.h"
 #include "video.h"
 #include "vid_incolor.h"
@@ -45,7 +45,7 @@
 #define INCOLOR_CRTC_PALETTE 28 /* Palette */
 
 /* character width */
-#define INCOLOR_CW    ((incolor->crtc[INCOLOR_CRTC_XMODE] & INCOLOR_XMODE_90COL) ? 8 : 9)
+#define INCOLOR_CW    ((dev->crtc[INCOLOR_CRTC_XMODE] & INCOLOR_XMODE_90COL) ? 8 : 9)
 
 /* mode control register */
 #define INCOLOR_CTRL_GRAPH   0x02
@@ -81,334 +81,358 @@
 
 
 /* Default palette */
-static unsigned char defpal[16] = 
-{
-	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-	0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F
+static const uint8_t defpal[16] = {
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+    0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F
 };
-
-static uint32_t incolor_rgb[64];
 
 /* Mapping of inks to RGB */
-static unsigned char init_rgb[64][3] =
-{
+static const uint8_t init_rgb[64][3] = {
 				/* rgbRGB */
-        { 0x00, 0x00, 0x00 },	/* 000000 */
-        { 0x00, 0x00, 0xaa },	/* 000001 */
-        { 0x00, 0xaa, 0x00 },	/* 000010 */
-        { 0x00, 0xaa, 0xaa },	/* 000011 */
-        { 0xaa, 0x00, 0x00 },	/* 000100 */
-        { 0xaa, 0x00, 0xaa },	/* 000101 */
-        { 0xaa, 0xaa, 0x00 },	/* 000110 */
-        { 0xaa, 0xaa, 0xaa },	/* 000111 */
-        { 0x00, 0x00, 0x55 },	/* 001000 */
-        { 0x00, 0x00, 0xff },	/* 001001 */
-        { 0x00, 0xaa, 0x55 },	/* 001010 */
-        { 0x00, 0xaa, 0xff },	/* 001011 */
-        { 0xaa, 0x00, 0x55 },	/* 001100 */
-        { 0xaa, 0x00, 0xff },	/* 001101 */
-        { 0xaa, 0xaa, 0x55 },	/* 001110 */
-        { 0xaa, 0xaa, 0xff },	/* 001111 */
-        { 0x00, 0x55, 0x00 },	/* 010000 */
-        { 0x00, 0x55, 0xaa },	/* 010001 */
-        { 0x00, 0xff, 0x00 },	/* 010010 */
-        { 0x00, 0xff, 0xaa },	/* 010011 */
-        { 0xaa, 0x55, 0x00 },	/* 010100 */
-        { 0xaa, 0x55, 0xaa },	/* 010101 */
-        { 0xaa, 0xff, 0x00 },	/* 010110 */
-        { 0xaa, 0xff, 0xaa },	/* 010111 */
-        { 0x00, 0x55, 0x55 },	/* 011000 */
-        { 0x00, 0x55, 0xff },	/* 011001 */
-        { 0x00, 0xff, 0x55 },	/* 011010 */
-        { 0x00, 0xff, 0xff },	/* 011011 */
-        { 0xaa, 0x55, 0x55 },	/* 011100 */
-        { 0xaa, 0x55, 0xff },	/* 011101 */
-        { 0xaa, 0xff, 0x55 },	/* 011110 */
-        { 0xaa, 0xff, 0xff },	/* 011111 */
-        { 0x55, 0x00, 0x00 },	/* 100000 */
-        { 0x55, 0x00, 0xaa },	/* 100001 */
-        { 0x55, 0xaa, 0x00 },	/* 100010 */
-        { 0x55, 0xaa, 0xaa },	/* 100011 */
-        { 0xff, 0x00, 0x00 },	/* 100100 */
-        { 0xff, 0x00, 0xaa },	/* 100101 */
-        { 0xff, 0xaa, 0x00 },	/* 100110 */
-        { 0xff, 0xaa, 0xaa },	/* 100111 */
-        { 0x55, 0x00, 0x55 },	/* 101000 */
-        { 0x55, 0x00, 0xff },	/* 101001 */
-        { 0x55, 0xaa, 0x55 },	/* 101010 */
-        { 0x55, 0xaa, 0xff },	/* 101011 */
-        { 0xff, 0x00, 0x55 },	/* 101100 */
-        { 0xff, 0x00, 0xff },	/* 101101 */
-        { 0xff, 0xaa, 0x55 },	/* 101110 */
-        { 0xff, 0xaa, 0xff },	/* 101111 */
-        { 0x55, 0x55, 0x00 },	/* 110000 */
-        { 0x55, 0x55, 0xaa },	/* 110001 */
-        { 0x55, 0xff, 0x00 },	/* 110010 */
-        { 0x55, 0xff, 0xaa },	/* 110011 */
-        { 0xff, 0x55, 0x00 },	/* 110100 */
-        { 0xff, 0x55, 0xaa },	/* 110101 */
-        { 0xff, 0xff, 0x00 },	/* 110110 */
-        { 0xff, 0xff, 0xaa },	/* 110111 */
-        { 0x55, 0x55, 0x55 },	/* 111000 */
-        { 0x55, 0x55, 0xff },	/* 111001 */
-        { 0x55, 0xff, 0x55 },	/* 111010 */
-        { 0x55, 0xff, 0xff },	/* 111011 */
-        { 0xff, 0x55, 0x55 },	/* 111100 */
-        { 0xff, 0x55, 0xff },	/* 111101 */
-        { 0xff, 0xff, 0x55 },	/* 111110 */
-        { 0xff, 0xff, 0xff },	/* 111111 */
+    { 0x00, 0x00, 0x00 },	/* 000000 */
+    { 0x00, 0x00, 0xaa },	/* 000001 */
+    { 0x00, 0xaa, 0x00 },	/* 000010 */
+    { 0x00, 0xaa, 0xaa },	/* 000011 */
+    { 0xaa, 0x00, 0x00 },	/* 000100 */
+    { 0xaa, 0x00, 0xaa },	/* 000101 */
+    { 0xaa, 0xaa, 0x00 },	/* 000110 */
+    { 0xaa, 0xaa, 0xaa },	/* 000111 */
+    { 0x00, 0x00, 0x55 },	/* 001000 */
+    { 0x00, 0x00, 0xff },	/* 001001 */
+    { 0x00, 0xaa, 0x55 },	/* 001010 */
+    { 0x00, 0xaa, 0xff },	/* 001011 */
+    { 0xaa, 0x00, 0x55 },	/* 001100 */
+    { 0xaa, 0x00, 0xff },	/* 001101 */
+    { 0xaa, 0xaa, 0x55 },	/* 001110 */
+    { 0xaa, 0xaa, 0xff },	/* 001111 */
+    { 0x00, 0x55, 0x00 },	/* 010000 */
+    { 0x00, 0x55, 0xaa },	/* 010001 */
+    { 0x00, 0xff, 0x00 },	/* 010010 */
+    { 0x00, 0xff, 0xaa },	/* 010011 */
+    { 0xaa, 0x55, 0x00 },	/* 010100 */
+    { 0xaa, 0x55, 0xaa },	/* 010101 */
+    { 0xaa, 0xff, 0x00 },	/* 010110 */
+    { 0xaa, 0xff, 0xaa },	/* 010111 */
+    { 0x00, 0x55, 0x55 },	/* 011000 */
+    { 0x00, 0x55, 0xff },	/* 011001 */
+    { 0x00, 0xff, 0x55 },	/* 011010 */
+    { 0x00, 0xff, 0xff },	/* 011011 */
+    { 0xaa, 0x55, 0x55 },	/* 011100 */
+    { 0xaa, 0x55, 0xff },	/* 011101 */
+    { 0xaa, 0xff, 0x55 },	/* 011110 */
+    { 0xaa, 0xff, 0xff },	/* 011111 */
+    { 0x55, 0x00, 0x00 },	/* 100000 */
+    { 0x55, 0x00, 0xaa },	/* 100001 */
+    { 0x55, 0xaa, 0x00 },	/* 100010 */
+    { 0x55, 0xaa, 0xaa },	/* 100011 */
+    { 0xff, 0x00, 0x00 },	/* 100100 */
+    { 0xff, 0x00, 0xaa },	/* 100101 */
+    { 0xff, 0xaa, 0x00 },	/* 100110 */
+    { 0xff, 0xaa, 0xaa },	/* 100111 */
+    { 0x55, 0x00, 0x55 },	/* 101000 */
+    { 0x55, 0x00, 0xff },	/* 101001 */
+    { 0x55, 0xaa, 0x55 },	/* 101010 */
+    { 0x55, 0xaa, 0xff },	/* 101011 */
+    { 0xff, 0x00, 0x55 },	/* 101100 */
+    { 0xff, 0x00, 0xff },	/* 101101 */
+    { 0xff, 0xaa, 0x55 },	/* 101110 */
+    { 0xff, 0xaa, 0xff },	/* 101111 */
+    { 0x55, 0x55, 0x00 },	/* 110000 */
+    { 0x55, 0x55, 0xaa },	/* 110001 */
+    { 0x55, 0xff, 0x00 },	/* 110010 */
+    { 0x55, 0xff, 0xaa },	/* 110011 */
+    { 0xff, 0x55, 0x00 },	/* 110100 */
+    { 0xff, 0x55, 0xaa },	/* 110101 */
+    { 0xff, 0xff, 0x00 },	/* 110110 */
+    { 0xff, 0xff, 0xaa },	/* 110111 */
+    { 0x55, 0x55, 0x55 },	/* 111000 */
+    { 0x55, 0x55, 0xff },	/* 111001 */
+    { 0x55, 0xff, 0x55 },	/* 111010 */
+    { 0x55, 0xff, 0xff },	/* 111011 */
+    { 0xff, 0x55, 0x55 },	/* 111100 */
+    { 0xff, 0x55, 0xff },	/* 111101 */
+    { 0xff, 0xff, 0x55 },	/* 111110 */
+    { 0xff, 0xff, 0xff },	/* 111111 */
 };
 
 
+typedef struct {
+    mem_mapping_t	mapping;
 
-typedef struct incolor_t
-{
-        mem_mapping_t mapping;
-        
-        uint8_t crtc[32];
-        int crtcreg;
+    uint8_t	crtc[32];
+    int		crtcreg;
 
-        uint8_t ctrl, ctrl2, stat;
+    uint8_t	ctrl, ctrl2, stat;
 
-        int64_t dispontime, dispofftime;
-        int64_t vidtime;
-        
-        int firstline, lastline;
+    uint64_t	dispontime, dispofftime;
+    pc_timer_t	timer;
 
-        int linepos, displine;
-        int vc, sc;
-        uint16_t ma, maback;
-        int con, coff, cursoron;
-        int dispon, blink;
-        int64_t vsynctime;
-	int vadj;
+    int		firstline, lastline;
 
-	uint8_t palette[16];	/* EGA-style 16 -> 64 palette registers */
-	uint8_t palette_idx;	/* Palette write index */
-	uint8_t latch[4];	/* Memory read/write latches */
-        uint8_t *vram;
+    int		linepos, displine;
+    int		vc, sc;
+    uint16_t	ma, maback;
+    int		con, coff, cursoron;
+    int		dispon, blink;
+    int	vsynctime;
+    int		vadj;
+
+    uint8_t	palette[16];	/* EGA-style 16 -> 64 palette registers */
+    uint8_t	palette_idx;	/* Palette write index */
+    uint8_t	latch[4];	/* Memory read/write latches */
+
+    uint32_t	rgb[64];
+
+    uint8_t	*vram;
 } incolor_t;
 
-void incolor_recalctimings(incolor_t *incolor);
-void incolor_write(uint32_t addr, uint8_t val, void *p);
-uint8_t incolor_read(uint32_t addr, void *p);
+static video_timings_t timing_incolor = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 
-void incolor_out(uint16_t addr, uint8_t val, void *p)
+static void
+recalc_timings(incolor_t *dev)
 {
-        incolor_t *incolor = (incolor_t *)p;
-        switch (addr)
-        {
-                case 0x3b0: case 0x3b2: case 0x3b4: case 0x3b6:
-                incolor->crtcreg = val & 31;
-                return;
-                case 0x3b1: case 0x3b3: case 0x3b5: case 0x3b7:
-		if (incolor->crtcreg > 28) return;
-		/* Palette load register */
-		if (incolor->crtcreg == INCOLOR_CRTC_PALETTE)	
-		{
-			incolor->palette[incolor->palette_idx % 16] = val;
-			++incolor->palette_idx;
-		} 
-                incolor->crtc[incolor->crtcreg] = val;
-                if (incolor->crtc[10] == 6 && incolor->crtc[11] == 7) /*Fix for Generic Turbo XT BIOS, which sets up cursor registers wrong*/
-                {
-                        incolor->crtc[10] = 0xb;
-                        incolor->crtc[11] = 0xc;
-                }
-                incolor_recalctimings(incolor);
-                return;
-                case 0x3b8:
-                incolor->ctrl = val;
-                return;
-                case 0x3bf:
-                incolor->ctrl2 = val;
-                if (val & 2)
-                        mem_mapping_set_addr(&incolor->mapping, 0xb0000, 0x10000);
-                else
-                        mem_mapping_set_addr(&incolor->mapping, 0xb0000, 0x08000);
-                return;
-        }
+    double disptime;
+    double _dispontime, _dispofftime;
+
+    disptime = dev->crtc[0] + 1;
+    _dispontime  = dev->crtc[1];
+    _dispofftime = disptime - _dispontime;
+    _dispontime  *= HERCCONST;
+    _dispofftime *= HERCCONST;
+
+    dev->dispontime  = (uint64_t)(_dispontime);
+    dev->dispofftime = (uint64_t)(_dispofftime);
 }
 
-uint8_t incolor_in(uint16_t addr, void *p)
+
+static void
+incolor_out(uint16_t port, uint8_t val, void *priv)
 {
-        incolor_t *incolor = (incolor_t *)p;
-        switch (addr)
-        {
-                case 0x3b0: case 0x3b2: case 0x3b4: case 0x3b6:
-                return incolor->crtcreg;
-                case 0x3b1: case 0x3b3: case 0x3b5: case 0x3b7:
-		if (incolor->crtcreg > 28) return 0xff;
-		incolor->palette_idx = 0;	/* Read resets the palette index */
-                return incolor->crtc[incolor->crtcreg];
-                case 0x3ba:
-		/* 0x50: InColor card identity */
-                return (incolor->stat & 0xf) | ((incolor->stat & 8) << 4) | 0x50;
-        }
-        return 0xff;
-}
+    incolor_t *dev = (incolor_t *)priv;
+    uint8_t old;
 
-void incolor_write(uint32_t addr, uint8_t val, void *p)
-{
-        incolor_t *incolor = (incolor_t *)p;
-
-	int plane;
-
-	unsigned char wmask = incolor->crtc[INCOLOR_CRTC_MASK];
-	unsigned char wmode = incolor->crtc[INCOLOR_CRTC_RWCTRL] & INCOLOR_RWCTRL_WRMODE;
-	unsigned char fg    = incolor->crtc[INCOLOR_CRTC_RWCOL] & 0x0F;
-	unsigned char bg    = (incolor->crtc[INCOLOR_CRTC_RWCOL] >> 4)&0x0F;
-	unsigned char w = 0;
-	unsigned char vmask;	/* Mask of bit within byte */
-	unsigned char pmask;	/* Mask of plane within colour value */
-	unsigned char latch;
-
-        egawrites++;
-
-	addr &= 0xFFFF;
-
-	/* In text mode, writes to the bottom 16k always touch all 4 planes */
-	if (!(incolor->ctrl & INCOLOR_CTRL_GRAPH) && addr < 0x4000)
-	{
-		incolor->vram[addr] = val;
+    switch (port) {
+	case 0x3b0:
+	case 0x3b2:
+	case 0x3b4:
+	case 0x3b6:
+		dev->crtcreg = val & 31;
 		return;
-	}
 
-	/* There are four write modes:
-	 * 0: 1 => foreground,    0 => background
-	 * 1: 1 => foreground,    0 => source latch
- 	 * 2: 1 => source latch,  0 => background
-	 * 3: 1 => source latch,  0 => ~source latch 
-	 */
-	pmask = 1;
-	for (plane = 0; plane < 4; pmask <<= 1, wmask >>= 1, addr += 0x10000,
-		plane++)
-	{
-		if (wmask & 0x10) /* Ignore writes to selected plane */
-		{
-			continue;
+	case 0x3b1: case 0x3b3: case 0x3b5: case 0x3b7:
+		if (dev->crtcreg > 28) return;
+		/* Palette load register */
+		if (dev->crtcreg == INCOLOR_CRTC_PALETTE) {
+			dev->palette[dev->palette_idx % 16] = val;
+			++dev->palette_idx;
+		} 
+		old = dev->crtc[dev->crtcreg];
+		dev->crtc[dev->crtcreg] = val;
+
+		if (dev->crtc[10] == 6 && dev->crtc[11] == 7) {
+			/*Fix for Generic Turbo XT BIOS,
+			 * which sets up cursor registers wrong*/
+			dev->crtc[10] = 0xb;
+			dev->crtc[11] = 0xc;
 		}
-		latch = incolor->latch[plane];
-		for (vmask = 0x80; vmask != 0; vmask >>= 1) 
-		{
-			switch (wmode) 
-			{
-				case 0x00:
-					if (val & vmask) w = (fg & pmask);
-					else		 w = (bg & pmask);
-					break;
-				case 0x10:
-					if (val & vmask) w = (fg    & pmask);
-					else		 w = (latch & vmask);
-					break;
-				case 0x20:
-					if (val & vmask) w = (latch & vmask);
-					else		 w = (bg    & pmask);
-					break;
-				case 0x30:
-					if (val & vmask) w = (latch    & vmask);
-					else		 w = ((~latch) & vmask);
-					break;
-			}
+		if (old ^ val)
+			recalc_timings(dev);
+		return;
+
+	case 0x3b8:
+		old = dev->ctrl;
+		dev->ctrl = val;
+		if (old ^ val)
+			recalc_timings(dev);
+		return;
+
+	case 0x3bf:
+		dev->ctrl2 = val;
+		if (val & 2)
+			mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x10000);
+		else
+			mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x08000);
+		return;
+    }
+}
+
+
+static uint8_t
+incolor_in(uint16_t port, void *priv)
+{
+    incolor_t *dev = (incolor_t *)priv;
+    uint8_t ret = 0xff;
+
+    switch (port) {
+	case 0x3b0:
+	case 0x3b2:
+	case 0x3b4:
+	case 0x3b6:
+		ret = dev->crtcreg;
+		break;
+
+	case 0x3b1:
+	case 0x3b3:
+	case 0x3b5:
+	case 0x3b7:
+		if (dev->crtcreg > 28) break;
+
+		dev->palette_idx = 0;	/* Read resets the palette index */
+		ret = dev->crtc[dev->crtcreg];
+		break;
+
+	case 0x3ba:
+		/* 0x50: InColor card identity */
+		ret = (dev->stat & 0xf) | ((dev->stat & 8) << 4) | 0x50;
+		break;
+
+	default:
+		break;
+    }
+
+    return ret;
+}
+
+
+static void
+incolor_write(uint32_t addr, uint8_t val, void *priv)
+{
+    incolor_t *dev = (incolor_t *)priv;
+    unsigned char wmask = dev->crtc[INCOLOR_CRTC_MASK];
+    unsigned char wmode = dev->crtc[INCOLOR_CRTC_RWCTRL] & INCOLOR_RWCTRL_WRMODE;
+    unsigned char fg = dev->crtc[INCOLOR_CRTC_RWCOL] & 0x0F;
+    unsigned char bg = (dev->crtc[INCOLOR_CRTC_RWCOL] >> 4)&0x0F;
+    unsigned char w = 0;
+    unsigned char vmask;	/* Mask of bit within byte */
+    unsigned char pmask;	/* Mask of plane within colour value */
+    unsigned char latch;
+    int plane;
+
+    addr &= 0xffff;
+
+    /* In text mode, writes to the bottom 16k always touch all 4 planes */
+    if (!(dev->ctrl & INCOLOR_CTRL_GRAPH) && addr < 0x4000) {
+	dev->vram[addr] = val;
+	return;
+    }
+
+    /* There are four write modes:
+     * 0: 1 => foreground,    0 => background
+     * 1: 1 => foreground,    0 => source latch
+     * 2: 1 => source latch,  0 => background
+     * 3: 1 => source latch,  0 => ~source latch 
+     */
+    pmask = 1;
+    for (plane = 0; plane < 4; pmask <<= 1, wmask >>= 1, addr += 0x10000, plane++) {
+	if (wmask & 0x10) /* Ignore writes to selected plane */
+	{
+		continue;
+	}
+	latch = dev->latch[plane];
+	for (vmask = 0x80; vmask != 0; vmask >>= 1) {
+		switch (wmode) {
+			case 0x00:
+				if (val & vmask) w = (fg & pmask);
+				else		 w = (bg & pmask);
+				break;
+
+			case 0x10:
+				if (val & vmask) w = (fg    & pmask);
+				else		 w = (latch & vmask);
+				break;
+
+			case 0x20:
+				if (val & vmask) w = (latch & vmask);
+				else		 w = (bg    & pmask);
+				break;
+
+			case 0x30:
+				if (val & vmask) w = (latch    & vmask);
+				else		 w = ((~latch) & vmask);
+				break;
+		}
+
 		/* w is nonzero to write a 1, zero to write a 0 */
-			if (w)	incolor->vram[addr] |= vmask;
-			else	incolor->vram[addr] &= ~vmask; 	
+		if (w)	dev->vram[addr] |= vmask;
+		else	dev->vram[addr] &= ~vmask; 	
+	}
+    }
+}
+
+
+static uint8_t
+incolor_read(uint32_t addr, void *priv)
+{
+    incolor_t *dev = (incolor_t *)priv;
+    unsigned plane;
+    unsigned char lp = dev->crtc[INCOLOR_CRTC_PROTECT];
+    unsigned char value = 0;
+    unsigned char dc;	/* "don't care" register */
+    unsigned char bg;	/* background colour */
+    unsigned char fg;
+    unsigned char mask, pmask;
+
+    addr &= 0xffff;
+
+    /* Read the four planes into latches */
+    for (plane = 0; plane < 4; plane++, addr += 0x10000) {
+	dev->latch[plane] &= lp;
+	dev->latch[plane] |= (dev->vram[addr] & ~lp);
+    }
+    addr &= 0xffff;
+
+    /* In text mode, reads from the bottom 16k assume all planes have
+     * the same contents */
+    if (!(dev->ctrl & INCOLOR_CTRL_GRAPH) && addr < 0x4000) {
+	return dev->latch[0];
+    }
+
+    /* For each pixel, work out if its colour matches the background */
+    for (mask = 0x80; mask != 0; mask >>= 1) {
+	fg = 0;
+	dc = dev->crtc[INCOLOR_CRTC_RWCTRL] & 0x0F;
+	bg = (dev->crtc[INCOLOR_CRTC_RWCOL] >> 4) & 0x0F;
+	for (plane = 0, pmask = 1; plane < 4; plane++, pmask <<= 1) {
+		if (dc & pmask) {
+			fg |= (bg & pmask); 
+		} else if (dev->latch[plane] & mask) {
+			fg |= pmask;
 		}
-	}
-}
+	}		
+	if (bg == fg) value |= mask;
+    }	
 
-uint8_t incolor_read(uint32_t addr, void *p)
-{
-        incolor_t *incolor = (incolor_t *)p;
-	unsigned plane;
-	unsigned char lp    = incolor->crtc[INCOLOR_CRTC_PROTECT];
-	unsigned char value = 0;
-	unsigned char dc;	/* "don't care" register */
-	unsigned char bg;	/* background colour */
-	unsigned char fg;
-	unsigned char mask, pmask;
+    if (dev->crtc[INCOLOR_CRTC_RWCTRL] & INCOLOR_RWCTRL_POLARITY) 
+	value = ~value;
 
-        egareads++;
-
-	addr &= 0xFFFF;
-	/* Read the four planes into latches */
-	for (plane = 0; plane < 4; plane++, addr += 0x10000) 
-	{
-		incolor->latch[plane] &= lp;
-		incolor->latch[plane] |= (incolor->vram[addr] & ~lp);
-	}
-	addr &= 0xFFFF;
-	/* In text mode, reads from the bottom 16k assume all planes have
-	 * the same contents */
-	if (!(incolor->ctrl & INCOLOR_CTRL_GRAPH) && addr < 0x4000)
-	{
-		return incolor->latch[0];
-	}
-	/* For each pixel, work out if its colour matches the background */
-	for (mask = 0x80; mask != 0; mask >>= 1) 
-	{
-		fg = 0;
-    		dc = incolor->crtc[INCOLOR_CRTC_RWCTRL] & 0x0F;
-    		bg = (incolor->crtc[INCOLOR_CRTC_RWCOL] >> 4) & 0x0F;
-		for (plane = 0, pmask = 1; plane < 4; plane++, pmask <<= 1) 
-		{
-			if (dc & pmask) 
-			{
-				fg |= (bg & pmask); 
-			} 
-			else if (incolor->latch[plane] & mask) 
-			{
-				fg |= pmask;
-			}
-		}		
-		if (bg == fg) value |= mask;
-	}	
-	if (incolor->crtc[INCOLOR_CRTC_RWCTRL] & INCOLOR_RWCTRL_POLARITY) 
-	{
-		value = ~value;
-	}
-	return value;
+    return value;
 }
 
 
-
-void incolor_recalctimings(incolor_t *incolor)
+static void
+draw_char_rom(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
 {
-        double disptime;
-	double _dispontime, _dispofftime;
-        disptime = incolor->crtc[0] + 1;
-        _dispontime  = incolor->crtc[1];
-        _dispofftime = disptime - _dispontime;
-        _dispontime  *= MDACONST;
-        _dispofftime *= MDACONST;
-	incolor->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
-	incolor->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
-}
-
-
-static void incolor_draw_char_rom(incolor_t *incolor, int x, uint8_t chr, uint8_t attr)
-{
-	unsigned            i;
-	int                 elg, blk;
-	unsigned            ull;
-	unsigned            val;
+	int		 i;
+	int		 elg, blk;
+	unsigned	    ull;
+	unsigned	    val;
 	unsigned	    ifg, ibg;
 	const unsigned char *fnt;
 	uint32_t	    fg, bg;
 	int		    cw = INCOLOR_CW;
 
 	blk = 0;
-	if (incolor->ctrl & INCOLOR_CTRL_BLINK) 
+	if (dev->ctrl & INCOLOR_CTRL_BLINK) 
 	{
 		if (attr & 0x80) 
 		{
-			blk = (incolor->blink & 16);
+			blk = (dev->blink & 16);
 		}
 		attr &= 0x7f;
 	}
 
-	if (incolor->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_ALTATTR) 
+	if (dev->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_ALTATTR) 
 	{
 		/* MDA-compatible attributes */
 		ibg = 0;
@@ -439,19 +463,19 @@ static void incolor_draw_char_rom(incolor_t *incolor, int x, uint8_t chr, uint8_
 		ifg = attr & 0x0F;
 		ibg = (attr >> 4) & 0x0F;
 	}
-	if (incolor->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_PALETTE) 
+	if (dev->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_PALETTE) 
 	{
-		fg = incolor_rgb[incolor->palette[ifg]];
-		bg = incolor_rgb[incolor->palette[ibg]];
+		fg = dev->rgb[dev->palette[ifg]];
+		bg = dev->rgb[dev->palette[ibg]];
 	} 
 	else 
 	{
-		fg = incolor_rgb[defpal[ifg]];
-		bg = incolor_rgb[defpal[ibg]];
+		fg = dev->rgb[defpal[ifg]];
+		bg = dev->rgb[defpal[ibg]];
 	}
 
 	/* ELG set to stretch 8px character to 9px */
-	if (incolor->crtc[INCOLOR_CRTC_XMODE] & INCOLOR_XMODE_90COL) 
+	if (dev->crtc[INCOLOR_CRTC_XMODE] & INCOLOR_XMODE_90COL) 
 	{
 		elg = 0;
 	} 
@@ -460,13 +484,13 @@ static void incolor_draw_char_rom(incolor_t *incolor, int x, uint8_t chr, uint8_
 		elg = ((chr >= 0xc0) && (chr <= 0xdf));
 	}
 
-	fnt = &(fontdatm[chr][incolor->sc]);
+	fnt = &(fontdatm[chr][dev->sc]);
 
 	if (blk)
 	{
 		val = 0x000;	/* Blinking, draw all background */
 	}
-	else if (incolor->sc == ull) 
+	else if (dev->sc == ull) 
 	{
 		val = 0x1ff;	/* Underscore, draw all foreground */
 	}
@@ -481,32 +505,33 @@ static void incolor_draw_char_rom(incolor_t *incolor, int x, uint8_t chr, uint8_
 	}
 	for (i = 0; i < cw; i++) 
 	{
-		((uint32_t *)buffer32->line[incolor->displine])[x * cw + i] = (val & 0x100) ? fg : bg;
+		buffer32->line[dev->displine][x * cw + i] = (val & 0x100) ? fg : bg;
 		val = val << 1;
 	}
 }
 
 
-static void incolor_draw_char_ram4(incolor_t *incolor, int x, uint8_t chr, uint8_t attr)
+static void
+draw_char_ram4(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
 {
-	unsigned            i;
-	int                 elg, blk;
-	unsigned            ull;
-	unsigned            val[4];
+	int		 i;
+	int		 elg, blk;
+	unsigned	    ull;
+	unsigned	    val[4];
 	unsigned	    ifg, ibg, cfg, pmask, plane;
 	const unsigned char *fnt;
 	uint32_t	    fg;
 	int		    cw = INCOLOR_CW;
-	int                 blink   = incolor->ctrl & INCOLOR_CTRL_BLINK;
-	int                 altattr = incolor->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_ALTATTR;
-	int                 palette = incolor->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_PALETTE;
+	int		 blink   = dev->ctrl & INCOLOR_CTRL_BLINK;
+	int		 altattr = dev->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_ALTATTR;
+	int		 palette = dev->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_PALETTE;
 
 	blk = 0;
 	if (blink)
 	{
 		if (attr & 0x80) 
 		{
-			blk = (incolor->blink & 16);
+			blk = (dev->blink & 16);
 		}
 		attr &= 0x7f;
 	}
@@ -542,7 +567,7 @@ static void incolor_draw_char_ram4(incolor_t *incolor, int x, uint8_t chr, uint8
 		ifg = attr & 0x0F;
 		ibg = (attr >> 4) & 0x0F;
 	}
-	if (incolor->crtc[INCOLOR_CRTC_XMODE] & INCOLOR_XMODE_90COL) 
+	if (dev->crtc[INCOLOR_CRTC_XMODE] & INCOLOR_XMODE_90COL) 
 	{
 		elg = 0;
 	} 
@@ -550,14 +575,14 @@ static void incolor_draw_char_ram4(incolor_t *incolor, int x, uint8_t chr, uint8
 	{
 		elg = ((chr >= 0xc0) && (chr <= 0xdf));
 	}
-	fnt = incolor->vram + 0x4000 + 16 * chr + incolor->sc;
+	fnt = dev->vram + 0x4000 + 16 * chr + dev->sc;
 
 	if (blk)
 	{
 		/* Blinking, draw all background */
 		val[0] = val[1] = val[2] = val[3] = 0x000;	
 	}
-	else if (incolor->sc == ull) 
+	else if (dev->sc == ull) 
 	{
 		/* Underscore, draw all foreground */
 		val[0] = val[1] = val[2] = val[3] = 0x1ff;
@@ -591,14 +616,14 @@ static void incolor_draw_char_ram4(incolor_t *incolor, int x, uint8_t chr, uint8
 		if (altattr && (attr & 0x77) == 0) cfg = ibg; /* 'blank' attribute */
 		if (palette)
 		{
-			fg = incolor_rgb[incolor->palette[cfg]];
+			fg = dev->rgb[dev->palette[cfg]];
 		} 
 		else 
 		{
-			fg = incolor_rgb[defpal[cfg]];
+			fg = dev->rgb[defpal[cfg]];
 		}
 		
-		((uint32_t *)buffer32->line[incolor->displine])[x * cw + i] = fg;
+		buffer32->line[dev->displine][x * cw + i] = fg;
 		val[0] = val[0] << 1;
 		val[1] = val[1] << 1;
 		val[2] = val[2] << 1;
@@ -607,19 +632,20 @@ static void incolor_draw_char_ram4(incolor_t *incolor, int x, uint8_t chr, uint8
 }
 
 
-static void incolor_draw_char_ram48(incolor_t *incolor, int x, uint8_t chr, uint8_t attr)
+static void
+draw_char_ram48(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
 {
-	unsigned            i;
-	int                 elg, blk, ul, ol, bld;
-	unsigned            ull, oll, ulc = 0, olc = 0;
-	unsigned            val[4];
+	int		 i;
+	int		 elg, blk, ul, ol, bld;
+	unsigned	    ull, oll, ulc = 0, olc = 0;
+	unsigned	    val[4];
 	unsigned	    ifg = 0, ibg, cfg, pmask, plane;
 	const unsigned char *fnt;
 	uint32_t	    fg;
 	int		    cw = INCOLOR_CW;
-	int                 blink   = incolor->ctrl & INCOLOR_CTRL_BLINK;
-	int                 altattr = incolor->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_ALTATTR;
-	int                 palette = incolor->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_PALETTE;
+	int		 blink   = dev->ctrl & INCOLOR_CTRL_BLINK;
+	int		 altattr = dev->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_ALTATTR;
+	int		 palette = dev->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_PALETTE;
 	int		    font = (attr & 0x0F);
 
 	if (font >= 12) font &= 7;
@@ -629,7 +655,7 @@ static void incolor_draw_char_ram48(incolor_t *incolor, int x, uint8_t chr, uint
 	{
 		if (attr & 0x40) 
 		{
-			blk = (incolor->blink & 16);
+			blk = (dev->blink & 16);
 		}
 		attr &= 0x7f;
 	}
@@ -662,8 +688,8 @@ static void incolor_draw_char_ram48(incolor_t *incolor, int x, uint8_t chr, uint
 	}
 	if (ul) 
 	{ 
-		ull = incolor->crtc[INCOLOR_CRTC_UNDER] & 0x0F;
-		ulc = (incolor->crtc[INCOLOR_CRTC_UNDER] >> 4) & 0x0F;
+		ull = dev->crtc[INCOLOR_CRTC_UNDER] & 0x0F;
+		ulc = (dev->crtc[INCOLOR_CRTC_UNDER] >> 4) & 0x0F;
 		if (ulc == 0) ulc = 7;
 	} 
 	else 
@@ -672,8 +698,8 @@ static void incolor_draw_char_ram48(incolor_t *incolor, int x, uint8_t chr, uint
 	}
 	if (ol) 
 	{ 
-		oll = incolor->crtc[INCOLOR_CRTC_OVER] & 0x0F;
-		olc = (incolor->crtc[INCOLOR_CRTC_OVER] >> 4) & 0x0F;
+		oll = dev->crtc[INCOLOR_CRTC_OVER] & 0x0F;
+		olc = (dev->crtc[INCOLOR_CRTC_OVER] >> 4) & 0x0F;
 		if (olc == 0) olc = 7;
 	} 
 	else 
@@ -681,7 +707,7 @@ static void incolor_draw_char_ram48(incolor_t *incolor, int x, uint8_t chr, uint
 		oll = 0xFFFF;
 	}
 
-	if (incolor->crtc[INCOLOR_CRTC_XMODE] & INCOLOR_XMODE_90COL) 
+	if (dev->crtc[INCOLOR_CRTC_XMODE] & INCOLOR_XMODE_90COL) 
 	{
 		elg = 0;
 	} 
@@ -689,14 +715,14 @@ static void incolor_draw_char_ram48(incolor_t *incolor, int x, uint8_t chr, uint
 	{
 		elg = ((chr >= 0xc0) && (chr <= 0xdf));
 	}
-	fnt = incolor->vram + 0x4000 + 16 * chr + 4096 * font + incolor->sc;
+	fnt = dev->vram + 0x4000 + 16 * chr + 4096 * font + dev->sc;
 
 	if (blk)
 	{
 		/* Blinking, draw all background */
 		val[0] = val[1] = val[2] = val[3] = 0x000;	
 	}
-	else if (incolor->sc == ull) 
+	else if (dev->sc == ull) 
 	{
 		/* Underscore, draw all foreground */
 		val[0] = val[1] = val[2] = val[3] = 0x1ff;
@@ -728,11 +754,11 @@ static void incolor_draw_char_ram48(incolor_t *incolor, int x, uint8_t chr, uint
 		/* Generate pixel colour */
 		cfg = 0;
 		pmask = 1;
-		if (incolor->sc == oll)
+		if (dev->sc == oll)
 		{
 			cfg = olc ^ ibg;	/* Strikethrough */
 		}
-		else if (incolor->sc == ull)
+		else if (dev->sc == ull)
 		{
 			cfg = ulc ^ ibg;	/* Underline */
 		}
@@ -750,14 +776,14 @@ static void incolor_draw_char_ram48(incolor_t *incolor, int x, uint8_t chr, uint
 		}
 		if (palette)
 		{
-			fg = incolor_rgb[incolor->palette[cfg]];
+			fg = dev->rgb[dev->palette[cfg]];
 		} 
 		else 
 		{
-			fg = incolor_rgb[defpal[cfg]];
+			fg = dev->rgb[defpal[cfg]];
 		}
 		
-		((uint32_t *)buffer32->line[incolor->displine])[x * cw + i] = fg;
+		buffer32->line[dev->displine][x * cw + i] = fg;
 		val[0] = val[0] << 1;
 		val[1] = val[1] << 1;
 		val[2] = val[2] << 1;
@@ -766,318 +792,314 @@ static void incolor_draw_char_ram48(incolor_t *incolor, int x, uint8_t chr, uint
 }
 
 
-
-
-
-
-static void incolor_text_line(incolor_t *incolor, uint16_t ca)
+static void
+text_line(incolor_t *dev, uint16_t ca)
 {
-        int drawcursor;
-	int x, c;
-        uint8_t chr, attr;
-	uint32_t col;
+    int drawcursor;
+    int x, c;
+    uint8_t chr, attr;
+    uint32_t col;
 
-	for (x = 0; x < incolor->crtc[1]; x++)
-	{
-		chr  = incolor->vram[(incolor->ma << 1) & 0xfff];
-                attr = incolor->vram[((incolor->ma << 1) + 1) & 0xfff];
+    for (x = 0; x < dev->crtc[1]; x++) {
+	if (dev->ctrl & 8) {
+		chr  = dev->vram[(dev->ma << 1) & 0xfff];
+		attr = dev->vram[((dev->ma << 1) + 1) & 0xfff];
+	} else
+		chr = attr = 0;
 
-                drawcursor = ((incolor->ma == ca) && incolor->con && incolor->cursoron);
+	drawcursor = ((dev->ma == ca) && dev->con && dev->cursoron);
 
-		switch (incolor->crtc[INCOLOR_CRTC_XMODE] & 5)
+	switch (dev->crtc[INCOLOR_CRTC_XMODE] & 5) {
+		case 0:
+		case 4:	/* ROM font */
+			draw_char_rom(dev, x, chr, attr);
+			break;
+
+		case 1: /* 4k RAMfont */
+			draw_char_ram4(dev, x, chr, attr);
+			break;
+
+		case 5: /* 48k RAMfont */
+			draw_char_ram48(dev, x, chr, attr);
+			break;
+	}
+	++dev->ma;
+
+	if (drawcursor) {
+		int cw = INCOLOR_CW;
+		uint8_t ink = dev->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_CURSOR;
+		if (ink == 0) ink = (attr & 0x08) | 7;
+
+		/* In MDA-compatible mode, cursor brightness comes from 
+		 * background */
+		if (dev->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_ALTATTR) 
 		{
-			case 0:
-			case 4:	/* ROM font */
-				incolor_draw_char_rom(incolor, x, chr, attr);
-				break;
-			case 1: /* 4k RAMfont */
-				incolor_draw_char_ram4(incolor, x, chr, attr);
-				break;
-			case 5: /* 48k RAMfont */
-				incolor_draw_char_ram48(incolor, x, chr, attr);
-				break;
-
+			ink = (attr & 0x08) | (ink & 7);
 		}
-		++incolor->ma;
-                if (drawcursor)
-                {
-			int cw = INCOLOR_CW;
-			uint8_t ink = incolor->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_CURSOR;
-			if (ink == 0) ink = (attr & 0x08) | 7;
-
-			/* In MDA-compatible mode, cursor brightness comes from 
-			 * background */
-			if (incolor->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_ALTATTR) 
-			{
-				ink = (attr & 0x08) | (ink & 7);
-			}
-			if (incolor->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_PALETTE) 
-			{
-				col = incolor_rgb[incolor->palette[ink]];
-			} 
-			else 
-			{
-				col = incolor_rgb[defpal[ink]];
-			}
-			for (c = 0; c < cw; c++)
-			{
-				((uint32_t *)buffer32->line[incolor->displine])[x * cw + c] = col;
-			}
+		if (dev->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_PALETTE) 
+		{
+			col = dev->rgb[dev->palette[ink]];
+		} 
+		else 
+		{
+			col = dev->rgb[defpal[ink]];
+		}
+		for (c = 0; c < cw; c++)
+		{
+			buffer32->line[dev->displine][x * cw + c] = col;
 		}
 	}
+    }
 }
 
 
-static void incolor_graphics_line(incolor_t *incolor)
+static void
+graphics_line(incolor_t *dev)
 {
-	uint8_t mask;
-	uint16_t ca;
-	int x, c, plane, col;
-	uint8_t ink;
-	uint16_t val[4];
+    uint8_t mask;
+    uint16_t ca;
+    int x, c, plane, col;
+    uint8_t ink;
+    uint16_t val[4];
 
-	/* Graphics mode. */
-        ca = (incolor->sc & 3) * 0x2000;
-        if ((incolor->ctrl & INCOLOR_CTRL_PAGE1) && (incolor->ctrl2 & INCOLOR_CTRL2_PAGE1))
-		ca += 0x8000;
+    /* Graphics mode. */
+    ca = (dev->sc & 3) * 0x2000;
+    if ((dev->ctrl & INCOLOR_CTRL_PAGE1) && (dev->ctrl2 & INCOLOR_CTRL2_PAGE1))
+	ca += 0x8000;
 
-	for (x = 0; x < incolor->crtc[1]; x++)
+    for (x = 0; x < dev->crtc[1]; x++) {
+	mask = dev->crtc[INCOLOR_CRTC_MASK];	/* Planes to display */
+	for (plane = 0; plane < 4; plane++, mask = mask >> 1)
 	{
-		mask = incolor->crtc[INCOLOR_CRTC_MASK];	/* Planes to display */
-		for (plane = 0; plane < 4; plane++, mask = mask >> 1)
-		{
+		if (dev->ctrl & 8) {
 			if (mask & 1) 
-				val[plane] = (incolor->vram[((incolor->ma << 1) & 0x1fff) + ca + 0x10000 * plane] << 8) | 
-					      incolor->vram[((incolor->ma << 1) & 0x1fff) + ca + 0x10000 * plane + 1];
+				val[plane] = (dev->vram[((dev->ma << 1) & 0x1fff) + ca + 0x10000 * plane] << 8) | 
+					      dev->vram[((dev->ma << 1) & 0x1fff) + ca + 0x10000 * plane + 1];
 			else	val[plane] = 0;
-		}
-		incolor->ma++;
-		for (c = 0; c < 16; c++)
+		} else
+			val[plane] = 0;
+	}
+	dev->ma++;
+
+	for (c = 0; c < 16; c++)
+	{
+		ink = 0;
+		for (plane = 0; plane < 4; plane++)
 		{
-			ink = 0;
-			for (plane = 0; plane < 4; plane++)
-			{
-				ink = ink >> 1;
-				if (val[plane] & 0x8000) ink |= 8;
-				val[plane] = val[plane] << 1;
-			}
-			/* Is palette in use? */
-			if (incolor->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_PALETTE)
-				col = incolor->palette[ink];
-			else	col = defpal[ink];
-
-			((uint32_t *)buffer32->line[incolor->displine])[(x << 4) + c] = incolor_rgb[col];
+			ink = ink >> 1;
+			if (val[plane] & 0x8000) ink |= 8;
+			val[plane] = val[plane] << 1;
 		}
+		/* Is palette in use? */
+		if (dev->crtc[INCOLOR_CRTC_EXCEPT] & INCOLOR_EXCEPT_PALETTE)
+			col = dev->palette[ink];
+		else	col = defpal[ink];
+
+		buffer32->line[dev->displine][(x << 4) + c] = dev->rgb[col];
 	}
+    }
 }
 
-void incolor_poll(void *p)
+
+static void
+incolor_poll(void *priv)
 {
-        incolor_t *incolor = (incolor_t *)p;
-        uint16_t ca = (incolor->crtc[15] | (incolor->crtc[14] << 8)) & 0x3fff;
-        int x;
-        int oldvc;
-        int oldsc;
+    incolor_t *dev = (incolor_t *)priv;
+    uint16_t ca = (dev->crtc[15] | (dev->crtc[14] << 8)) & 0x3fff;
+    int x;
+    int oldvc;
+    int oldsc;
 
-        if (!incolor->linepos)
-        {
-                incolor->vidtime += incolor->dispofftime;
-                incolor->stat |= 1;
-                incolor->linepos = 1;
-                oldsc = incolor->sc;
-                if ((incolor->crtc[8] & 3) == 3) 
-                        incolor->sc = (incolor->sc << 1) & 7;
-                if (incolor->dispon)
-                {
-                        if (incolor->displine < incolor->firstline)
-                        {
-                                incolor->firstline = incolor->displine;
-                                video_wait_for_buffer();
-                        }
-                        incolor->lastline = incolor->displine;
-                        if ((incolor->ctrl & INCOLOR_CTRL_GRAPH) && (incolor->ctrl2 & INCOLOR_CTRL2_GRAPH))
-                        {
-				incolor_graphics_line(incolor);
-                        }
-                        else
-                        {
-				incolor_text_line(incolor, ca);
-                        }
-                }
-                incolor->sc = oldsc;
-                if (incolor->vc == incolor->crtc[7] && !incolor->sc)
-                {
-                        incolor->stat |= 8;
-                }
-                incolor->displine++;
-                if (incolor->displine >= 500) 
-                        incolor->displine = 0;
-        }
-        else
-        {
-                incolor->vidtime += incolor->dispontime;
-                if (incolor->dispon) 
-                        incolor->stat &= ~1;
-                incolor->linepos = 0;
-                if (incolor->vsynctime)
-                {
-                        incolor->vsynctime--;
-                        if (!incolor->vsynctime)
-                        {
-                                incolor->stat &= ~8;
-                        }
-                }
-                if (incolor->sc == (incolor->crtc[11] & 31) || ((incolor->crtc[8] & 3) == 3 && incolor->sc == ((incolor->crtc[11] & 31) >> 1))) 
-                { 
-                        incolor->con = 0; 
-                        incolor->coff = 1; 
-                }
-                if (incolor->vadj)
-                {
-                        incolor->sc++;
-                        incolor->sc &= 31;
-                        incolor->ma = incolor->maback;
-                        incolor->vadj--;
-                        if (!incolor->vadj)
-                        {
-                                incolor->dispon = 1;
-                                incolor->ma = incolor->maback = (incolor->crtc[13] | (incolor->crtc[12] << 8)) & 0x3fff;
-                                incolor->sc = 0;
-                        }
-                }
-                else if (incolor->sc == incolor->crtc[9] || ((incolor->crtc[8] & 3) == 3 && incolor->sc == (incolor->crtc[9] >> 1)))
-                {
-                        incolor->maback = incolor->ma;
-                        incolor->sc = 0;
-                        oldvc = incolor->vc;
-                        incolor->vc++;
-                        incolor->vc &= 127;
-                        if (incolor->vc == incolor->crtc[6]) 
-                                incolor->dispon = 0;
-                        if (oldvc == incolor->crtc[4])
-                        {
-                                incolor->vc = 0;
-                                incolor->vadj = incolor->crtc[5];
-                                if (!incolor->vadj) incolor->dispon=1;
-                                if (!incolor->vadj) incolor->ma = incolor->maback = (incolor->crtc[13] | (incolor->crtc[12] << 8)) & 0x3fff;
-                                if ((incolor->crtc[10] & 0x60) == 0x20) incolor->cursoron = 0;
-                                else                                     incolor->cursoron = incolor->blink & 16;
-                        }
-                        if (incolor->vc == incolor->crtc[7])
-                        {
-                                incolor->dispon = 0;
-                                incolor->displine = 0;
-                                incolor->vsynctime = 16;
-                                if (incolor->crtc[7])
-                                {
-                                        if ((incolor->ctrl & INCOLOR_CTRL_GRAPH) && (incolor->ctrl2 & INCOLOR_CTRL2_GRAPH)) 
-					{
-						x = incolor->crtc[1] << 4;
-					}
-                                        else
-					{
-                                               x = incolor->crtc[1] * 9;
-					}
-                                        incolor->lastline++;
-                                        if ((x != xsize) || ((incolor->lastline - incolor->firstline) != ysize) || video_force_resize_get())
-                                        {
-                                                xsize = x;
-                                                ysize = incolor->lastline - incolor->firstline;
-                                                if (xsize < 64) xsize = 656;
-                                                if (ysize < 32) ysize = 200;
-                                                set_screen_size(xsize, ysize);
+    if (! dev->linepos) {
+	timer_advance_u64(&dev->timer, dev->dispofftime);
+	dev->stat |= 1;
+	dev->linepos = 1;
+	oldsc = dev->sc;
+	if ((dev->crtc[8] & 3) == 3) 
+		dev->sc = (dev->sc << 1) & 7;
 
-						if (video_force_resize_get())
-							video_force_resize_set(0);
-                                        }
-					video_blit_memtoscreen(0, incolor->firstline, 0, incolor->lastline - incolor->firstline, xsize, incolor->lastline - incolor->firstline);
-                                        frames++;
-                                        if ((incolor->ctrl & INCOLOR_CTRL_GRAPH) && (incolor->ctrl2 & INCOLOR_CTRL2_GRAPH))
-                                        {
-                                                video_res_x = incolor->crtc[1] * 16;
-                                                video_res_y = incolor->crtc[6] * 4;
-                                                video_bpp = 1;
-                                        }
-                                        else
-                                        {
-                                                video_res_x = incolor->crtc[1];
-                                                video_res_y = incolor->crtc[6];
-                                                video_bpp = 0;
-                                        }
-                                }
-                                incolor->firstline = 1000;
-                                incolor->lastline = 0;
-                                incolor->blink++;
-                        }
-                }
-                else
-                {
-                        incolor->sc++;
-                        incolor->sc &= 31;
-                        incolor->ma = incolor->maback;
-                }
-                if ((incolor->sc == (incolor->crtc[10] & 31) || ((incolor->crtc[8] & 3) == 3 && incolor->sc == ((incolor->crtc[10] & 31) >> 1))))
-                {
-                        incolor->con = 1;
-                }
-        }
-}
-
-void *incolor_init(const device_t *info)
-{
-        int c;
-        incolor_t *incolor = malloc(sizeof(incolor_t));
-        memset(incolor, 0, sizeof(incolor_t));
-
-        incolor->vram = malloc(0x40000);	/* 4 planes of 64k */
-
-        timer_add(incolor_poll, &incolor->vidtime, TIMER_ALWAYS_ENABLED, incolor);
-        mem_mapping_add(&incolor->mapping, 0xb0000, 0x08000, incolor_read, NULL, NULL, incolor_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, incolor);
-        io_sethandler(0x03b0, 0x0010, incolor_in, NULL, NULL, incolor_out, NULL, NULL, incolor);
-
-	for (c = 0; c < 64; c++)
-	{
-		incolor_rgb[c] = makecol32(init_rgb[c][0], init_rgb[c][1], init_rgb[c][2]);
+	if (dev->dispon) {
+		if (dev->displine < dev->firstline) {
+			dev->firstline = dev->displine;
+			video_wait_for_buffer();
+		}
+		dev->lastline = dev->displine;
+		if ((dev->ctrl & INCOLOR_CTRL_GRAPH) && (dev->ctrl2 & INCOLOR_CTRL2_GRAPH))
+				graphics_line(dev);
+			else
+				text_line(dev, ca);
+	}
+	dev->sc = oldsc;
+	if (dev->vc == dev->crtc[7] && !dev->sc)
+		dev->stat |= 8;
+	dev->displine++;
+	if (dev->displine >= 500) 
+		dev->displine = 0;
+    } else {
+	timer_advance_u64(&dev->timer, dev->dispontime);
+	if (dev->dispon) 
+		dev->stat &= ~1;
+	dev->linepos = 0;
+	if (dev->vsynctime) {
+		dev->vsynctime--;
+		if (! dev->vsynctime)
+			dev->stat &= ~8;
 	}
 
-/* Initialise CRTC regs to safe values */
-	incolor->crtc[INCOLOR_CRTC_MASK  ] = 0x0F; /* All planes displayed */
-	incolor->crtc[INCOLOR_CRTC_RWCTRL] = INCOLOR_RWCTRL_POLARITY;
-	incolor->crtc[INCOLOR_CRTC_RWCOL ] = 0x0F; /* White on black */
-	incolor->crtc[INCOLOR_CRTC_EXCEPT] = INCOLOR_EXCEPT_ALTATTR;
-	for (c = 0; c < 16; c++) 
-	{
-		incolor->palette[c] = defpal[c];
+	if (dev->sc == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[11] & 31) >> 1))) { 
+		dev->con = 0; 
+		dev->coff = 1; 
 	}
-	incolor->palette_idx = 0;
 
-	lpt3_init(0x3BC);
+	if (dev->vadj) {
+		dev->sc++;
+		dev->sc &= 31;
+		dev->ma = dev->maback;
+		dev->vadj--;
+		if (! dev->vadj) {
+			dev->dispon = 1;
+			dev->ma = dev->maback = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
+			dev->sc = 0;
+		}
+	} else if (dev->sc == dev->crtc[9] || ((dev->crtc[8] & 3) == 3 && dev->sc == (dev->crtc[9] >> 1))) {
+		dev->maback = dev->ma;
+		dev->sc = 0;
+		oldvc = dev->vc;
+		dev->vc++;
+		dev->vc &= 127;
+		if (dev->vc == dev->crtc[6]) 
+			dev->dispon = 0;
+		if (oldvc == dev->crtc[4]) {
+			dev->vc = 0;
+			dev->vadj = dev->crtc[5];
+			if (!dev->vadj) dev->dispon=1;
+			if (!dev->vadj) dev->ma = dev->maback = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
+			if ((dev->crtc[10] & 0x60) == 0x20) dev->cursoron = 0;
+			else				     dev->cursoron = dev->blink & 16;
+		}
 
-        return incolor;
+		if (dev->vc == dev->crtc[7]) {
+			dev->dispon = 0;
+			dev->displine = 0;
+			dev->vsynctime = 16;
+			if (dev->crtc[7]) {
+				if ((dev->ctrl & INCOLOR_CTRL_GRAPH) && (dev->ctrl2 & INCOLOR_CTRL2_GRAPH)) 
+					x = dev->crtc[1] << 4;
+				else
+				       x = dev->crtc[1] * 9;
+				dev->lastline++;
+				if ((dev->ctrl & 8) &&
+				   ((x != xsize) || ((dev->lastline - dev->firstline) != ysize) || video_force_resize_get())) {
+					xsize = x;
+					ysize = dev->lastline - dev->firstline;
+					if (xsize < 64) xsize = 656;
+					if (ysize < 32) ysize = 200;
+					set_screen_size(xsize, ysize);
+
+					if (video_force_resize_get())
+						video_force_resize_set(0);
+				}
+				video_blit_memtoscreen(0, dev->firstline, 0, dev->lastline - dev->firstline, xsize, dev->lastline - dev->firstline);
+				frames++;
+				if ((dev->ctrl & INCOLOR_CTRL_GRAPH) && (dev->ctrl2 & INCOLOR_CTRL2_GRAPH)) {
+					video_res_x = dev->crtc[1] * 16;
+					video_res_y = dev->crtc[6] * 4;
+					video_bpp = 1;
+				} else {
+					video_res_x = dev->crtc[1];
+					video_res_y = dev->crtc[6];
+					video_bpp = 0;
+				}
+			}
+			dev->firstline = 1000;
+			dev->lastline = 0;
+			dev->blink++;
+		}
+	} else {
+		dev->sc++;
+		dev->sc &= 31;
+		dev->ma = dev->maback;
+	}
+
+	if ((dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1))))
+		dev->con = 1;
+    }
 }
 
-void incolor_close(void *p)
-{
-        incolor_t *incolor = (incolor_t *)p;
 
-        free(incolor->vram);
-        free(incolor);
+static void *
+incolor_init(const device_t *info)
+{
+    incolor_t *dev;
+    int c;
+
+    dev = (incolor_t *)malloc(sizeof(incolor_t));
+    memset(dev, 0x00, sizeof(incolor_t));
+
+    dev->vram = (uint8_t *)malloc(0x40000);	/* 4 planes of 64k */
+
+	timer_add(&dev->timer, incolor_poll, dev, 1);
+
+    mem_mapping_add(&dev->mapping, 0xb0000, 0x08000,
+		    incolor_read,NULL,NULL, incolor_write,NULL,NULL,
+		    NULL, MEM_MAPPING_EXTERNAL, dev);
+
+    io_sethandler(0x03b0, 16,
+		  incolor_in,NULL,NULL, incolor_out,NULL,NULL, dev);
+
+    for (c = 0; c < 64; c++) {
+	dev->rgb[c] = makecol32(init_rgb[c][0], init_rgb[c][1], init_rgb[c][2]);
+    }
+
+    /* Initialise CRTC regs to safe values */
+    dev->crtc[INCOLOR_CRTC_MASK  ] = 0x0F; /* All planes displayed */
+    dev->crtc[INCOLOR_CRTC_RWCTRL] = INCOLOR_RWCTRL_POLARITY;
+    dev->crtc[INCOLOR_CRTC_RWCOL ] = 0x0F; /* White on black */
+    dev->crtc[INCOLOR_CRTC_EXCEPT] = INCOLOR_EXCEPT_ALTATTR;
+    for (c = 0; c < 16; c++) 
+	dev->palette[c] = defpal[c];
+    dev->palette_idx = 0;
+
+    video_inform(VIDEO_FLAG_TYPE_MDA, &timing_incolor);
+
+    /* Force the LPT3 port to be enabled. */
+    lpt3_init(0x3BC);
+
+    return dev;
 }
 
-void incolor_speed_changed(void *p)
+
+static void
+incolor_close(void *priv)
 {
-        incolor_t *incolor = (incolor_t *)p;
-        
-        incolor_recalctimings(incolor);
+    incolor_t *dev = (incolor_t *)priv;
+
+    if (!dev)
+	return;
+
+    if (dev->vram)
+	free(dev->vram);
+
+    free(dev);
 }
 
-const device_t incolor_device =
+
+static void
+speed_changed(void *priv)
 {
-        "Hercules InColor",
-        DEVICE_ISA, 0,
-        incolor_init, incolor_close, NULL,
-        NULL,
-        incolor_speed_changed,
-	NULL,
-        NULL
+    incolor_t *dev = (incolor_t *)priv;
+	
+    recalc_timings(dev);
+}
+
+
+const device_t incolor_device = {
+    "Hercules InColor",
+    DEVICE_ISA,
+    0,
+    incolor_init, incolor_close, NULL,
+    NULL,
+    speed_changed,
+    NULL,
+    NULL
 };

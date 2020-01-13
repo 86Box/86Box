@@ -25,8 +25,8 @@ typedef struct pssj_t
         int amplitude;
         
         int irq;
-        int64_t timer_count;
-        int64_t enable;
+        pc_timer_t timer_count;
+        int enable;
         
         int wave_pos;
         int pulse_width;
@@ -49,7 +49,11 @@ static void pssj_write(uint16_t port, uint8_t val, void *p)
         {
                 case 0:
                 pssj->ctrl = val;
+				if (!pssj->enable && ((val & 4) && (pssj->ctrl & 3)))
+					timer_set_delay_u64(&pssj->timer_count, (TIMER_USEC * (1000000.0 / 3579545.0) * (double)(pssj->freq ? pssj->freq : 0x400)));
                 pssj->enable = (val & 4) && (pssj->ctrl & 3);
+				if (!pssj->enable)
+					timer_disable(&pssj->timer_count);
                 sn74689_set_extra_divide(&pssj->sn76489, val & 0x40);
                 if (!(val & 8))
                         pssj->irq = 0;
@@ -168,7 +172,7 @@ static void pssj_callback(void *p)
                 pssj->wave_pos = (pssj->wave_pos + 1) & 31;
         }
 
-        pssj->timer_count += (int64_t)(TIMER_USEC * (1000000.0 / 3579545.0) * (double)(pssj->freq ? pssj->freq : 0x400));
+        timer_advance_u64(&pssj->timer_count, (TIMER_USEC * (1000000.0 / 3579545.0) * (double)(pssj->freq ? pssj->freq : 0x400)));
 }
 
 static void pssj_get_buffer(int32_t *buffer, int len, void *p)
@@ -192,7 +196,7 @@ void *pssj_init(const device_t *info)
         sn76489_init(&pssj->sn76489, 0x00c0, 0x0004, PSSJ, 3579545);
 
         io_sethandler(0x00C4, 0x0004, pssj_read, NULL, NULL, pssj_write, NULL, NULL, pssj);
-        timer_add(pssj_callback, &pssj->timer_count, &pssj->enable, pssj);
+		timer_add(&pssj->timer_count, pssj_callback, pssj, pssj->enable);
         sound_add_handler(pssj_get_buffer, pssj);
         
         return pssj;

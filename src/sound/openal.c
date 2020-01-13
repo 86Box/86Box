@@ -8,13 +8,13 @@
  *
  *		Interface to the OpenAL sound processing library.
  *
- * Version:	@(#)openal.c	1.0.6	2018/04/23
+ * Version:	@(#)openal.c	1.0.7	2019/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <math.h>
 #include <stdio.h>
@@ -47,7 +47,9 @@ static ALuint source[3];	/* audio source */
 static int midi_freq = 44100;
 static int midi_buf_size = 4410;
 static int initialized = 0;
-
+static int sources = 2;
+static ALCcontext *Context;
+static ALCdevice *Device;
 
 void
 al_set_midi(int freq, int buf_size)
@@ -60,9 +62,6 @@ al_set_midi(int freq, int buf_size)
 void closeal(void);
 ALvoid alutInit(ALint *argc,ALbyte **argv) 
 {
-    ALCcontext *Context;
-    ALCdevice *Device;
-	
     /* Open device */
     Device = alcOpenDevice((ALCchar *)"");
     if (Device != NULL) {
@@ -79,24 +78,17 @@ ALvoid alutInit(ALint *argc,ALbyte **argv)
 ALvoid
 alutExit(ALvoid) 
 {
-    ALCcontext *Context;
-    ALCdevice *Device;
-
-    /* Get active context */
-    Context = alcGetCurrentContext();
     if (Context != NULL) {
-	/* Get device for active context */
-	Device = alcGetContextsDevice(Context);
-	if (Device != NULL) {
-		/* Disable context */
-		alcMakeContextCurrent(NULL);
-
-		/* Close device */
-		alcCloseDevice(Device);
-	}
+	/* Disable context */
+	alcMakeContextCurrent(NULL);
 
 	/* Release context(s) */
 	alcDestroyContext(Context);
+
+	if (Device != NULL) {
+		/* Close device */
+		alcCloseDevice(Device);
+	}
     }
 }
 
@@ -104,7 +96,16 @@ alutExit(ALvoid)
 void
 closeal(void)
 {
-    if (!initialized) return;
+    if (!initialized)
+	return;
+
+    alSourceStopv(sources, source);
+    alDeleteSources(sources, source);
+
+    if (sources == 3)
+	alDeleteBuffers(4, buffers_midi);
+    alDeleteBuffers(4, buffers_cd);
+    alDeleteBuffers(4, buffers);
 
     alutExit();
 
@@ -122,7 +123,8 @@ inital(void)
     char *mdn;
     int init_midi = 0;
 
-    if (initialized) return;
+    if (initialized)
+	return;
 
     alutInit(0, 0);
     atexit(closeal);
@@ -131,6 +133,7 @@ inital(void)
     if (strcmp(mdn, "none") && strcmp(mdn, SYSTEM_MIDI_INTERNAL_NAME))
 	init_midi = 1;	/* If the device is neither none, nor system MIDI, initialize the
 			   MIDI buffer and source, otherwise, do not. */
+    sources = 2 + !!init_midi;
 
     if (sound_is_float) {
 	buf = (float *) malloc((BUFLEN << 1) * sizeof(float));
@@ -231,6 +234,9 @@ givealbuffer_common(void *buf, uint8_t src, int size, int freq)
     ALuint buffer;
     double gain;
 
+    if (!initialized)
+	return;
+
     alGetSourcei(source[src], AL_SOURCE_STATE, &state);
 
     if (state == 0x1014) {
@@ -244,11 +250,10 @@ givealbuffer_common(void *buf, uint8_t src, int size, int freq)
 
 	alSourceUnqueueBuffers(source[src], 1, &buffer);
 
-	if (sound_is_float) {
+	if (sound_is_float)
 		alBufferData(buffer, AL_FORMAT_STEREO_FLOAT32, buf, size * sizeof(float), freq);
-	} else {
+	else
 		alBufferData(buffer, AL_FORMAT_STEREO16, buf, size * sizeof(int16_t), freq);
-	}
 
 	alSourceQueueBuffers(source[src], 1, &buffer);
     }

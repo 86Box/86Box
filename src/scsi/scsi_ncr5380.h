@@ -27,7 +27,9 @@
 extern const device_t scsi_lcs6821n_device;
 extern const device_t scsi_rt1000b_device;
 extern const device_t scsi_t130b_device;
+#if defined(DEV_BRANCH) && defined(USE_SUMO)
 extern const device_t scsi_scsiat_device;
+#endif
 
   
 #endif	/*SCSI_NCR5380_H*/

@@ -6,17 +6,21 @@ typedef struct sb_dsp_t
         int sb_8_dmanum;
         int sb_16_length, sb_16_format, sb_16_autoinit, sb_16_pause, sb_16_enable, sb_16_autolen, sb_16_output;
         int sb_16_dmanum;
-        int64_t sb_pausetime;
+        int sb_pausetime;
 
         uint8_t sb_read_data[256];
-        int sb_read_wp, sb_read_rp;
+		int sb_read_wp, sb_read_rp;
         int sb_speaker;
         int muted;
 
         int sb_data_stat;
-	int uart_midi;
-	int uart_irq;
-	int onebyte_midi;
+		
+		int midi_in_sysex;
+		int midi_in_poll;
+		int uart_midi;
+		int uart_irq;
+		int onebyte_midi;
+		int midi_in_timestamp;
 
         int sb_irqnum;
 
@@ -42,17 +46,17 @@ typedef struct sb_dsp_t
         uint8_t sbreaddat;
         uint8_t sb_command;
         uint8_t sb_test;
-        int64_t sb_timei, sb_timeo;
+        int sb_timei, sb_timeo;
 
         int sb_irq8, sb_irq16;
 
         uint8_t sb_asp_regs[256];
         
-        int64_t sbenable, sb_enable_i;
+        int sbenable, sb_enable_i;
         
-        int64_t sbcount, sb_count_i;
+        pc_timer_t output_timer, input_timer;
         
-        int64_t sblatcho, sblatchi;
+        uint64_t sblatcho, sblatchi;
         
         uint16_t sb_addr;
         
@@ -60,7 +64,8 @@ typedef struct sb_dsp_t
         
         int asp_data_len;
         
-        int64_t wb_time, wb_full;
+        pc_timer_t wb_timer;
+		int wb_full;
 
 	int busy_count;
 
@@ -70,6 +75,11 @@ typedef struct sb_dsp_t
         int16_t buffer[SOUNDBUFLEN * 2];
         int pos;
 } sb_dsp_t;
+
+
+void sb_dsp_input_msg(void *p, uint8_t *msg);
+
+int sb_dsp_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort);
 
 void sb_dsp_set_mpu(mpu_t *src_mpu);
 

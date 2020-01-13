@@ -52,7 +52,7 @@
  *		however, are auto-configured by the system software as
  *		shown above.
  *
- * Version:	@(#)hdc_esdi_mca.c	1.0.13	2018/04/29
+ * Version:	@(#)hdc_esdi_mca.c	1.0.14	2018/10/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -90,7 +90,7 @@
 #define BIOS_FILE_H	L"roms/hdd/esdi/90x8970.bin"
 
 
-#define ESDI_TIME	(200LL*TIMER_USEC)
+#define ESDI_TIME	(200*TIMER_USEC)
 #define CMD_ADAPTER	0
 
 
@@ -134,7 +134,8 @@ typedef struct esdi {
     int		cmd_state;
         
     int		in_reset;
-    int64_t	callback;
+    uint64_t	callback;
+	pc_timer_t timer;
         
     uint32_t	rba;
         
@@ -188,6 +189,8 @@ typedef struct esdi {
 #define CMD_GET_DEV_STATUS 0x08
 #define CMD_GET_DEV_CONFIG 0x09
 #define CMD_GET_POS_INFO   0x0a
+#define CMD_FORMAT_UNIT    0x16
+#define CMD_FORMAT_PREPARE 0x17
 
 #define STATUS_LEN(x) ((x) << 8)
 #define STATUS_DEVICE(x) ((x) << 5)
@@ -196,13 +199,11 @@ typedef struct esdi {
 
 #ifdef ENABLE_ESDI_MCA_LOG
 int esdi_mca_do_log = ENABLE_ESDI_MCA_LOG;
-#endif
 
 
 static void
 esdi_mca_log(const char *fmt, ...)
 {
-#ifdef ENABLE_ESDI_MCA_LOG
     va_list ap;
 
     if (esdi_mca_do_log) {
@@ -210,8 +211,10 @@ esdi_mca_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define esdi_mca_log(fmt, ...)
+#endif
 
 
 static __inline void
@@ -228,6 +231,21 @@ clear_irq(esdi_t *dev)
     picintc(1 << 14);
 }
 
+static void
+esdi_mca_set_callback(esdi_t *dev, uint64_t callback)
+{
+    if (!dev) {
+	return;
+    }
+
+    if (callback) {
+	dev->callback = callback;
+	timer_set_delay_u64(&dev->timer, dev->callback);
+	} else {
+	dev->callback = 0;
+	timer_disable(&dev->timer);
+	}
+}
 
 
 static void
@@ -339,7 +357,7 @@ esdi_callback(void *priv)
     drive_t *drive;
     int val;
 
-    dev->callback = 0LL;
+    esdi_mca_set_callback(dev, 0);
 
     /* If we are returning from a RESET, handle this first. */
     if (dev->in_reset) {
@@ -377,13 +395,13 @@ esdi_callback(void *priv)
                         	set_irq(dev);
                         
                         	dev->cmd_state = 1;
-                        	dev->callback = ESDI_TIME;
+                        	esdi_mca_set_callback(dev, ESDI_TIME);
                         	dev->data_pos = 0;
                         	break;
                         
                         case 1:
                         	if (!(dev->basic_ctrl & CTRL_DMA_ENA)) {
-                                	dev->callback = ESDI_TIME;
+                                	esdi_mca_set_callback(dev, ESDI_TIME);
                                 	return;
                         	}
 
@@ -399,7 +417,7 @@ esdi_callback(void *priv)
                                         	val = dma_channel_write(dev->dma, dev->data[dev->data_pos]);
                                 
                                         	if (val == DMA_NODATA) {
-                                                	dev->callback = ESDI_TIME;
+                                                	esdi_mca_set_callback(dev, ESDI_TIME);
                                                 	return;
                                         	}
 
@@ -413,7 +431,7 @@ esdi_callback(void *priv)
 
                         	dev->status = STATUS_CMD_IN_PROGRESS;
                         	dev->cmd_state = 2;
-                        	dev->callback = ESDI_TIME;
+                        	esdi_mca_set_callback(dev, ESDI_TIME);
                         	break;
 
                         case 2:
@@ -452,13 +470,13 @@ esdi_callback(void *priv)
                         	set_irq(dev);
                         
                         	dev->cmd_state = 1;
-                        	dev->callback = ESDI_TIME;
+                        	esdi_mca_set_callback(dev, ESDI_TIME);
                         	dev->data_pos = 0;
                         	break;
 
                         case 1:
 				if (! (dev->basic_ctrl & CTRL_DMA_ENA)) {
-					dev->callback = ESDI_TIME;
+					esdi_mca_set_callback(dev, ESDI_TIME);
 					return;
 				}
 
@@ -467,7 +485,7 @@ esdi_callback(void *priv)
 	                                        val = dma_channel_read(dev->dma);
                                 
                                         	if (val == DMA_NODATA) {
-                                                	dev->callback = ESDI_TIME;
+                                                	esdi_mca_set_callback(dev, ESDI_TIME);
                                                 	return;
                                         	}
 
@@ -487,7 +505,7 @@ esdi_callback(void *priv)
 
                         	dev->status = STATUS_CMD_IN_PROGRESS;
                         	dev->cmd_state = 2;
-                        	dev->callback = ESDI_TIME;
+                        	esdi_mca_set_callback(dev, ESDI_TIME);
                         	break;
 
                         case 2:
@@ -630,13 +648,13 @@ esdi_callback(void *priv)
                         	set_irq(dev);
 
                         	dev->cmd_state = 1;
-                        	dev->callback = ESDI_TIME;
+                        	esdi_mca_set_callback(dev, ESDI_TIME);
                         	dev->data_pos = 0;
                         	break;
                         
                         case 1:
                         	if (! (dev->basic_ctrl & CTRL_DMA_ENA)) {
-                                	dev->callback = ESDI_TIME;
+                                	esdi_mca_set_callback(dev, ESDI_TIME);
                                 	return;
                         	}
                         	while (dev->sector_pos < dev->sector_count) {
@@ -644,7 +662,7 @@ esdi_callback(void *priv)
                                         	val = dma_channel_read(dev->dma);
                                 
                                         	if (val == DMA_NODATA) {
-                                                	dev->callback = ESDI_TIME;
+                                                	esdi_mca_set_callback(dev, ESDI_TIME);
                                                 	return;
                                         	}
 
@@ -657,7 +675,7 @@ esdi_callback(void *priv)
 
                         	dev->status = STATUS_CMD_IN_PROGRESS;
                         	dev->cmd_state = 2;
-                        	dev->callback = ESDI_TIME;
+                        	esdi_mca_set_callback(dev, ESDI_TIME);
                         	break;
 
                         case 2:
@@ -684,13 +702,13 @@ esdi_callback(void *priv)
 				set_irq(dev);
 
 				dev->cmd_state = 1;
-				dev->callback = ESDI_TIME;
+				esdi_mca_set_callback(dev, ESDI_TIME);
 				dev->data_pos = 0;
 				break;
 
                         case 1:
 				if (! (dev->basic_ctrl & CTRL_DMA_ENA)) {
-                                	dev->callback = ESDI_TIME;
+                                	esdi_mca_set_callback(dev, ESDI_TIME);
                                 	return;
                         	}
 
@@ -701,7 +719,7 @@ esdi_callback(void *priv)
                                         	val = dma_channel_write(dev->dma, dev->data[dev->data_pos]);
                                 
                                         	if (val == DMA_NODATA) {
-                                                	dev->callback = ESDI_TIME;
+                                                	esdi_mca_set_callback(dev, ESDI_TIME);
                                                 	return;
                                         	}
 
@@ -713,7 +731,7 @@ esdi_callback(void *priv)
 
                         	dev->status = STATUS_CMD_IN_PROGRESS;
                         	dev->cmd_state = 2;
-                        	dev->callback = ESDI_TIME;
+                        	esdi_mca_set_callback(dev, ESDI_TIME);
                         	break;
  
                         case 2:
@@ -739,6 +757,59 @@ esdi_callback(void *priv)
 		dev->irq_in_progress = 1;
 		set_irq(dev);
 		break;
+
+    case CMD_FORMAT_UNIT:
+    case CMD_FORMAT_PREPARE:
+		ESDI_DRIVE_ONLY();
+
+                if (! drive->present) {
+                        device_not_present(dev);
+                        return;
+                }
+               
+                switch (dev->cmd_state) {
+                        case 0:
+                            dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
+ 
+                            dev->sector_count = dev->cmd_data[1];
+ 
+                            if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+                                    rba_out_of_range(dev);
+                                    return;
+                            }
+ 
+                            dev->status = STATUS_IRQ | STATUS_CMD_IN_PROGRESS | STATUS_TRANSFER_REQ;
+                            dev->irq_status = dev->cmd_dev | IRQ_DATA_TRANSFER_READY;
+                            dev->irq_in_progress = 1;
+                            set_irq(dev);
+                       
+                            dev->cmd_state = 1;
+                            esdi_mca_set_callback(dev, ESDI_TIME);
+                            break;
+                       
+                        case 1:
+                            if (!(dev->basic_ctrl & CTRL_DMA_ENA)) {
+                                    esdi_mca_set_callback(dev, ESDI_TIME);
+                                    return;
+                            }
+ 
+                            hdd_image_zero(drive->hdd_num, dev->rba, dev->sector_count);
+                            ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
+ 
+                            dev->status = STATUS_CMD_IN_PROGRESS;
+                            dev->cmd_state = 2;
+                            esdi_mca_set_callback(dev, ESDI_TIME);
+                            break;
+ 
+                        case 2:
+                            complete_command_status(dev);
+                            dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+                            dev->irq_status = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
+                            dev->irq_in_progress = 1;
+                            set_irq(dev);
+                            break;
+                }
+                break;
 
 	default:
 		fatal("BAD COMMAND %02x %i\n", dev->command, dev->cmd_dev);
@@ -781,7 +852,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 	case 2:					/*Basic control register*/
 		if ((dev->basic_ctrl & CTRL_RESET) && !(val & CTRL_RESET)) {
 			dev->in_reset = 1;
-			dev->callback = ESDI_TIME * 50LL;
+			esdi_mca_set_callback(dev, ESDI_TIME * 50);
 			dev->status = STATUS_BUSY;
 		}
 		dev->basic_ctrl = val;
@@ -812,7 +883,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
                                		case ATTN_RESET:
                                			dev->in_reset = 1;
-                               			dev->callback = ESDI_TIME * 50LL;
+                               			esdi_mca_set_callback(dev, ESDI_TIME * 50);
                                			dev->status = STATUS_BUSY;
                                			break;
                                
@@ -923,7 +994,7 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
                        	if ((dev->cmd_data[0] & CMD_DEVICE_SEL) != dev->cmd_dev)
                                	fatal("Command device mismatch with attn\n");
                        	dev->command = dev->cmd_data[0] & CMD_MASK;
-                       	dev->callback = ESDI_TIME;
+                       	esdi_mca_set_callback(dev, ESDI_TIME);
                        	dev->status = STATUS_BUSY;
                        	dev->data_pos = 0;
                	}
@@ -1007,6 +1078,15 @@ esdi_mca_write(int port, uint8_t val, void *priv)
 }
 
 
+static uint8_t
+esdi_mca_feedb(void *priv)
+{
+    esdi_t *dev = (esdi_t *)priv;
+
+    return (dev->pos_regs[2] & 1);
+}
+
+
 static void *
 esdi_init(const device_t *info)
 {
@@ -1059,15 +1139,15 @@ esdi_init(const device_t *info)
     dev->pos_regs[1] = 0xdd;
 
     /* Enable the device. */
-    mca_add(esdi_mca_read, esdi_mca_write, dev);
+    mca_add(esdi_mca_read, esdi_mca_write, esdi_mca_feedb, dev);
 
     /* Mark for a reset. */
     dev->in_reset = 1;
-    dev->callback = ESDI_TIME * 50LL;
+    esdi_mca_set_callback(dev, ESDI_TIME * 50);
     dev->status = STATUS_BUSY;
 
     /* Set the reply timer. */
-    timer_add(esdi_callback, &dev->callback, &dev->callback, dev);
+	timer_add(&dev->timer, esdi_callback, dev, 0);
 
     return(dev);
 }

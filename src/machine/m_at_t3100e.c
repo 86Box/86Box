@@ -117,7 +117,7 @@
  *                       bit 2 set for single-pixel LCD font
  *                       bits 0,1 for display font
  *
- * Version:	@(#)m_at_t3100e.c	1.0.5	2018/04/29
+ * Version:	@(#)m_at_t3100e.c	1.0.6	2018/10/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -153,11 +153,13 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
+#include "../timer.h"
 #include "../io.h"
 #include "../mouse.h"
 #include "../mem.h"
 #include "../device.h"
 #include "../keyboard.h"
+#include "../rom.h"
 #include "../cpu/cpu.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
@@ -215,13 +217,11 @@ void t3100e_ems_out(uint16_t addr, uint8_t val, void *p);
 
 #ifdef ENABLE_T3100E_LOG
 int t3100e_do_log = ENABLE_T3100E_LOG;
-#endif
 
 
 static void
 t3100e_log(const char *fmt, ...)
 {
-#ifdef ENABLE_T3100E_LOG
    va_list ap;
 
    if (t3100e_do_log)
@@ -230,8 +230,10 @@ t3100e_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define t3100e_log(fmt, ...)
+#endif
 
 
 /* Given a memory address (which ought to be in the page frame at 0xD0000), 
@@ -734,8 +736,16 @@ static void upper_write_raml(uint32_t addr, uint32_t val, void *priv)
 
 
 
-void machine_at_t3100e_init(const machine_t *model)
+int machine_at_t3100e_init(const machine_t *model)
 {
+	int ret;
+
+	ret = bios_load_linear(L"roms/machines/t3100e/t3100e.rom",
+			       0x000f0000, 65536, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
 	int pg;
 
         memset(&t3100e_ems, 0, sizeof(t3100e_ems));
@@ -779,4 +789,6 @@ void machine_at_t3100e_init(const machine_t *model)
 	mem_mapping_disable(&t3100e_ems.upper_mapping);
 
 	device_add(&t3100e_device);
+
+	return ret;
 }

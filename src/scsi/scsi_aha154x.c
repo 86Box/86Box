@@ -10,7 +10,7 @@
  *		made by Adaptec, Inc. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.42	2018/06/12
+ * Version:	@(#)scsi_aha154x.c	1.0.44	2018/10/18
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -26,6 +26,7 @@
 #define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../mca.h"
 #include "../mem.h"
 #include "../mca.h"
@@ -34,21 +35,22 @@
 #include "../nvr.h"
 #include "../dma.h"
 #include "../pic.h"
-#include "../timer.h"
 #include "../plat.h"
-#include "../cpu/cpu.h"
+// #include "../cpu/cpu.h"
 #include "scsi.h"
 #include "scsi_aha154x.h"
 #include "scsi_x54x.h"
 
 
 enum {
+    AHA_154xA,
     AHA_154xB,
     AHA_154xC,
     AHA_154xCF,
     AHA_154xCP,
     AHA_1640
 };
+
 
 
 #define CMD_WRITE_EEPROM 0x22		/* UNDOC: Write EEPROM */
@@ -82,23 +84,22 @@ typedef struct {
 
 #ifdef ENABLE_AHA154X_LOG
 int aha_do_log = ENABLE_AHA154X_LOG;
-#endif
 
 
 static void
 aha_log(const char *fmt, ...)
 {
-#ifdef ENABLE_AHA154X_LOG
     va_list ap;
 
     if (aha_do_log) {
-	pclog("In %s mode: ",(msw&1)?((eflags&VM_FLAG)?"V86":"protected"):"real");
 	va_start(ap, fmt);
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define aha_log(fmt, ...)
+#endif
 
 
 /*
@@ -291,7 +292,7 @@ aha_param_len(void *p)
 		break;	
 
 	case CMD_WRITE_EEPROM:
-		return 3+32;
+		return 35;
 		break;
 
 	case CMD_READ_EEPROM:
@@ -359,7 +360,7 @@ aha_cmds(void *p)
 
 		case CMD_BIOS_MBINIT: /* BIOS Mailbox Initialization */
 			/* Sent by CF BIOS. */
-			dev->Mbx24bit = 1;
+			dev->flags |= X54X_MBX_24BIT;
 
 			mbi = (MailboxInit_t *)dev->CmdBuf;
 
@@ -579,6 +580,15 @@ aha_mca_write(int port, uint8_t val, void *priv)
 }
 
 
+static uint8_t
+aha_mca_feedb(void *priv)
+{
+    x54x_t *dev = (x54x_t *)priv;
+
+    return (dev->pos_regs[2] & 0x01);
+}
+
+
 /* Initialize the board's ROM BIOS. */
 static void
 aha_setbios(x54x_t *dev)
@@ -718,16 +728,12 @@ aha_setnvr(x54x_t *dev)
     memset(dev->nvr, 0x00, NVR_SIZE);
 
     f = nvr_fopen(dev->nvr_path, L"rb");
-    if (f)
-    {
+    if (f) {
 	fread(dev->nvr, 1, NVR_SIZE, f);
 	fclose(f);
 	f = NULL;
-    }
-    else
-    {
+    } else
 	aha_initnvr(dev);
-    }
 }
 
 
@@ -754,10 +760,7 @@ aha_init(const device_t *info)
     dev->HostID = 7;		/* default HA ID */
     dev->setup_info_len = sizeof(aha_setup_t);
     dev->max_id = 7;
-    dev->int_geom_writable = 0;
-    dev->cdrom_boot = 0;
-    dev->bit32 = 0;
-    dev->lba_bios = 0;
+    dev->flags = 0;
 
     dev->ven_callback = aha_callback;
     dev->ven_cmd_is_fast = aha_cmd_is_fast;
@@ -770,6 +773,17 @@ aha_init(const device_t *info)
 
     /* Perform per-board initialization. */
     switch(dev->type) {
+	case AHA_154xA:
+		strcpy(dev->name, "AHA-154xA");
+		dev->fw_rev = "A003";	/* The 3.07 microcode says A006. */
+		dev->bios_path = L"roms/scsi/adaptec/aha1540a307.bin"; /*Only for port 0x330*/
+		/* This is configurable from the configuration for the 154xB, the rest of the controllers read it from the EEPROM. */
+		dev->HostID = device_get_config_int("hostid");
+		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
+		dev->rom_shramsz = 128;		/* size of shadow RAM */
+		dev->ha_bps = 5000000.0;	/* normal SCSI */
+		break;
+		
 	case AHA_154xB:
 		strcpy(dev->name, "AHA-154xB");
 		switch(dev->Base) {
@@ -815,7 +829,7 @@ aha_init(const device_t *info)
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
 		dev->rom_ioaddr = 0x3F7E;	/* [2:0] idx into addr table */
 		dev->rom_fwhigh = 0x0022;	/* firmware version (hi/lo) */
-    		dev->cdrom_boot = 1;
+    		dev->flags |= X54X_CDROM_BOOT;
 		dev->ven_get_host_id = aha_get_host_id;	/* function to return host ID from EEPROM */
 		dev->ven_get_irq = aha_get_irq;		/* function to return IRQ from EEPROM */
 		dev->ven_get_dma = aha_get_dma;		/* function to return DMA channel from EEPROM */
@@ -842,12 +856,12 @@ aha_init(const device_t *info)
 		dev->bios_path = L"roms/scsi/adaptec/aha1640.bin";
 		dev->fw_rev = "BB01";
 
-		dev->lba_bios = 1;
+		dev->flags |= X54X_LBA_BIOS;
 
 		/* Enable MCA. */
 		dev->pos_regs[0] = 0x1F;	/* MCA board ID */
 		dev->pos_regs[1] = 0x0F;	
-		mca_add(aha_mca_read, aha_mca_write, dev);
+		mca_add(aha_mca_read, aha_mca_write, aha_mca_feedb, dev);
 		dev->ha_bps = 5000000.0;	/* normal SCSI */
 		break;
     }	
@@ -1108,8 +1122,17 @@ static const device_config_t aha_154x_config[] = {
 };
 
 
-const device_t aha1540b_device = {
-    "Adaptec AHA-1540B",
+const device_t aha154xa_device = {
+    "Adaptec AHA-154xA",
+    DEVICE_ISA | DEVICE_AT,
+    AHA_154xA,
+    aha_init, x54x_close, NULL,
+    NULL, NULL, NULL,
+    aha_154xb_config
+};
+
+const device_t aha154xb_device = {
+    "Adaptec AHA-154xB",
     DEVICE_ISA | DEVICE_AT,
     AHA_154xB,
     aha_init, x54x_close, NULL,
@@ -1117,8 +1140,8 @@ const device_t aha1540b_device = {
     aha_154xb_config
 };
 
-const device_t aha1542c_device = {
-    "Adaptec AHA-1542C",
+const device_t aha154xc_device = {
+    "Adaptec AHA-154xC",
     DEVICE_ISA | DEVICE_AT,
     AHA_154xC,
     aha_init, x54x_close, NULL,
@@ -1126,8 +1149,8 @@ const device_t aha1542c_device = {
     aha_154x_config
 };
 
-const device_t aha1542cf_device = {
-    "Adaptec AHA-1542CF",
+const device_t aha154xcf_device = {
+    "Adaptec AHA-154xCF",
     DEVICE_ISA | DEVICE_AT,
     AHA_154xCF,
     aha_init, x54x_close, NULL,

@@ -47,13 +47,13 @@
  *		access size or host data has any affect, but the Windows 3.1
  *		driver always reads bytes and write words of 0xffff.
  *
- * Version:	@(#)vid_tgui9440.c	1.0.7	2018/07/16
+ * Version:	@(#)vid_tgui9440.c	1.0.10	2019/09/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -62,6 +62,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../mem.h"
 #include "../pci.h"
 #include "../rom.h"
@@ -104,6 +105,9 @@
   Extended latch copy uses an internal 16 byte latch. Reads load the latch, writing
   writes out 16 bytes. I don't think the access size or host data has any affect,
   but the Windows 3.1 driver always reads bytes and write words of 0xffff.*/  
+
+#define ROM_TGUI_9400CXI	L"roms/video/tgui9440/9400CXI.vbi"
+#define ROM_TGUI_9440		L"roms/video/tgui9440/9440.vbi"
 
 #define EXT_CTRL_16BIT            0x01
 #define EXT_CTRL_MONO_EXPANSION   0x02
@@ -151,8 +155,6 @@ typedef struct tgui_t
         
         svga_t svga;
 	int pci;
-        
-        tkd8001_ramdac_t ramdac; /*TGUI9400CXi*/
         
         int type;
 
@@ -210,6 +212,8 @@ typedef struct tgui_t
         volatile int write_blitter;
 } tgui_t;
 
+video_timings_t timing_tgui = {VIDEO_BUS, 4,  8, 16,   4,  8, 16};
+
 void tgui_recalcmapping(tgui_t *tgui);
 
 static void fifo_thread(void *param);
@@ -255,7 +259,7 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
                         break;
                         case 0xC: 
                         if (svga->seqregs[0xe] & 0x80) 
-                        svga->seqregs[0xc] = val; 
+				svga->seqregs[0xc] = val; 
                         break;
                         case 0xd: 
                         if (tgui->oldmode)
@@ -280,7 +284,7 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
                 case 0x3C6:
                 if (tgui->type == TGUI_9400CXI)
                 {
-                        tkd8001_ramdac_out(addr, val, &tgui->ramdac, svga);
+                        tkd8001_ramdac_out(addr, val, svga->ramdac, svga);
                         return;
                 }
                 if (tgui->ramdac_state == 4)
@@ -307,7 +311,7 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
                 case 0x3C7: case 0x3C8: case 0x3C9:
                 if (tgui->type == TGUI_9400CXI)
                 {
-                        tkd8001_ramdac_out(addr, val, &tgui->ramdac, svga);
+                        tkd8001_ramdac_out(addr, val, svga->ramdac, svga);
                         return;
                 }
                 tgui->ramdac_state = 0;
@@ -461,14 +465,14 @@ uint8_t tgui_in(uint16_t addr, void *p)
                 break;
                 case 0x3C6:
                 if (tgui->type == TGUI_9400CXI)
-                        return tkd8001_ramdac_in(addr, &tgui->ramdac, svga);
+                        return tkd8001_ramdac_in(addr, svga->ramdac, svga);
                 if (tgui->ramdac_state == 4)
                         return tgui->ramdac_ctrl;
                 tgui->ramdac_state++;
                 break;
                 case 0x3C7: case 0x3C8: case 0x3C9:
                 if (tgui->type == TGUI_9400CXI)
-                        return tkd8001_ramdac_in(addr, &tgui->ramdac, svga);
+                        return tkd8001_ramdac_in(addr, svga->ramdac, svga);
                 tgui->ramdac_state = 0;
                 break;
                 case 0x3CF:
@@ -514,20 +518,11 @@ void tgui_recalctimings(svga_t *svga)
         svga->interlace = svga->crtc[0x1e] & 4;
         if (svga->interlace && tgui->type < TGUI_9440)
                 svga->rowoffset >>= 1;
-
-        if (svga->crtc[0x17] & 4)
-        {
-                svga->vtotal *= 2;
-                svga->dispend *= 2;
-                svga->vsyncstart *= 2;
-                svga->split *= 2;
-                svga->vblankstart *= 2;
-        }
         
         if (tgui->type >= TGUI_9440)
         {
                 if (svga->miscout & 8)
-                        svga->clock = cpuclock / (((tgui->clock_n + 8) * 14318180.0) / ((tgui->clock_m + 2) * (1 << tgui->clock_k)));
+                        svga->clock = (cpuclock * (double)(1ull << 32)) / (((tgui->clock_n + 8) * 14318180.0) / ((tgui->clock_m + 2) * (1 << tgui->clock_k)));
                         
                 if (svga->gdcreg[0xf] & 0x08)
                         svga->clock *= 2;
@@ -538,20 +533,20 @@ void tgui_recalctimings(svga_t *svga)
         {
                 switch (((svga->miscout >> 2) & 3) | ((tgui->newctrl2 << 2) & 4) | ((tgui->newctrl2 >> 3) & 8))
                 {
-                        case 0x02: svga->clock = cpuclock/ 44900000.0; break;
-                        case 0x03: svga->clock = cpuclock/ 36000000.0; break;
-                        case 0x04: svga->clock = cpuclock/ 57272000.0; break;
-                        case 0x05: svga->clock = cpuclock/ 65000000.0; break;
-                        case 0x06: svga->clock = cpuclock/ 50350000.0; break;
-                        case 0x07: svga->clock = cpuclock/ 40000000.0; break;
-                        case 0x08: svga->clock = cpuclock/ 88000000.0; break;
-                        case 0x09: svga->clock = cpuclock/ 98000000.0; break;
-                        case 0x0a: svga->clock = cpuclock/118800000.0; break;
-                        case 0x0b: svga->clock = cpuclock/108000000.0; break;
-                        case 0x0c: svga->clock = cpuclock/ 72000000.0; break;
-                        case 0x0d: svga->clock = cpuclock/ 77000000.0; break;
-                        case 0x0e: svga->clock = cpuclock/ 80000000.0; break;
-                        case 0x0f: svga->clock = cpuclock/ 75000000.0; break;
+                        case 0x02: svga->clock = (cpuclock * (double)(1ull << 32)) / 44900000.0; break;
+                        case 0x03: svga->clock = (cpuclock * (double)(1ull << 32)) / 36000000.0; break;
+                        case 0x04: svga->clock = (cpuclock * (double)(1ull << 32)) / 57272000.0; break;
+                        case 0x05: svga->clock = (cpuclock * (double)(1ull << 32)) / 65000000.0; break;
+                        case 0x06: svga->clock = (cpuclock * (double)(1ull << 32)) / 50350000.0; break;
+                        case 0x07: svga->clock = (cpuclock * (double)(1ull << 32)) / 40000000.0; break;
+                        case 0x08: svga->clock = (cpuclock * (double)(1ull << 32)) / 88000000.0; break;
+                        case 0x09: svga->clock = (cpuclock * (double)(1ull << 32)) / 98000000.0; break;
+                        case 0x0a: svga->clock = (cpuclock * (double)(1ull << 32)) /118800000.0; break;
+                        case 0x0b: svga->clock = (cpuclock * (double)(1ull << 32)) /108000000.0; break;
+                        case 0x0c: svga->clock = (cpuclock * (double)(1ull << 32)) / 72000000.0; break;
+                        case 0x0d: svga->clock = (cpuclock * (double)(1ull << 32)) / 77000000.0; break;
+                        case 0x0e: svga->clock = (cpuclock * (double)(1ull << 32)) / 80000000.0; break;
+                        case 0x0f: svga->clock = (cpuclock * (double)(1ull << 32)) / 75000000.0; break;
                 }
                 if (svga->gdcreg[0xf] & 0x08)
                 {
@@ -686,10 +681,6 @@ void tgui_hwcursor_draw(svga_t *svga, int displine)
         uint32_t dat[2];
         int xx;
         int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
-	int y_add, x_add;
-
-	y_add = (enable_overscan && !suppress_overscan) ? (overscan_y >> 1) : 0;
-	x_add = (enable_overscan && !suppress_overscan) ? 8 : 0;
         
         if (svga->interlace && svga->hwcursor_oddeven)
                 svga->hwcursor_latch.addr += 8;
@@ -701,9 +692,9 @@ void tgui_hwcursor_draw(svga_t *svga, int displine)
                 if (offset >= svga->hwcursor_latch.x)
                 {
                         if (!(dat[0] & 0x80000000))
-                                ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add]  = (dat[1] & 0x80000000) ? 0xffffff : 0;
+                                buffer32->line[displine][offset + svga->x_add]  = (dat[1] & 0x80000000) ? 0xffffff : 0;
                         else if (dat[1] & 0x80000000)
-                                ((uint32_t *)buffer32->line[displine + y_add])[offset + 32 + x_add] ^= 0xffffff;
+                                buffer32->line[displine][offset + svga->x_add] ^= 0xffffff;
                 }
                            
                 offset++;
@@ -775,99 +766,13 @@ void tgui_pci_write(int func, int addr, uint8_t val, void *p)
         }
 }
 
-static void *tgui_init(const device_t *info, wchar_t *bios_fn, int type)
-{
-        tgui_t *tgui = malloc(sizeof(tgui_t));
-        memset(tgui, 0, sizeof(tgui_t));
-        
-        tgui->vram_size = device_get_config_int("memory") << 20;
-        tgui->vram_mask = tgui->vram_size - 1;
-        
-        tgui->type = type;
-
-	tgui->pci = !!(info->flags & DEVICE_PCI);
-
-        rom_init(&tgui->bios_rom, bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-
-        svga_init(&tgui->svga, tgui, tgui->vram_size,
-                   tgui_recalctimings,
-                   tgui_in, tgui_out,
-                   tgui_hwcursor_draw,
-                   NULL);
-
-        mem_mapping_add(&tgui->linear_mapping, 0,       0,      svga_read_linear, svga_readw_linear, svga_readl_linear, tgui_accel_write_fb_b, tgui_accel_write_fb_w, tgui_accel_write_fb_l, NULL, 0, &tgui->svga);
-        mem_mapping_add(&tgui->accel_mapping,  0xbc000, 0x4000, tgui_accel_read,  tgui_accel_read_w, tgui_accel_read_l, tgui_accel_write,  tgui_accel_write_w, tgui_accel_write_l, NULL, 0,  tgui);
-        mem_mapping_disable(&tgui->accel_mapping);
-
-        io_sethandler(0x03c0, 0x0020, tgui_in, NULL, NULL, tgui_out, NULL, NULL, tgui);
-        if (tgui->type >= TGUI_9440)
-                io_sethandler(0x43c8, 0x0002, tgui_in, NULL, NULL, tgui_out, NULL, NULL, tgui);
-
-        if ((info->flags & DEVICE_PCI) && (tgui->type >= TGUI_9440))
-                pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
-
-        tgui->wake_fifo_thread = thread_create_event();
-        tgui->fifo_not_full_event = thread_create_event();
-        tgui->fifo_thread = thread_create(fifo_thread, tgui);
-
-        return tgui;
-}
-
-static void *tgui9400cxi_init(const device_t *info)
-{
-        return tgui_init(info, L"roms/video/tgui9440/9400CXI.vbi", TGUI_9400CXI);
-}
-
-static void *tgui9440_init(const device_t *info)
-{
-        return tgui_init(info, L"roms/video/tgui9440/9440.vbi", TGUI_9440);
-}
-
-static int tgui9400cxi_available()
-{
-        return rom_present(L"roms/video/tgui9440/9400CXI.vbi");
-}
-
-static int tgui9440_available()
-{
-        return rom_present(L"roms/video/tgui9440/9440.vbi");
-}
-
-void tgui_close(void *p)
-{
-        tgui_t *tgui = (tgui_t *)p;
-        
-        svga_close(&tgui->svga);
-        
-        thread_kill(tgui->fifo_thread);
-        thread_destroy_event(tgui->wake_fifo_thread);
-        thread_destroy_event(tgui->fifo_not_full_event);
-
-        free(tgui);
-}
-
-void tgui_speed_changed(void *p)
-{
-        tgui_t *tgui = (tgui_t *)p;
-        
-        svga_recalctimings(&tgui->svga);
-}
-
-void tgui_force_redraw(void *p)
-{
-        tgui_t *tgui = (tgui_t *)p;
-
-        tgui->svga.fullchange = changeframecount;
-}
-
-
 static uint8_t tgui_ext_linear_read(uint32_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
         tgui_t *tgui = (tgui_t *)svga->p;
         int c;
-  
-        cycles -= video_timing_read_b;
+
+        sub_cycles(video_timing_read_b);
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
@@ -898,7 +803,7 @@ static void tgui_ext_linear_write(uint32_t addr, uint8_t val, void *p)
         uint8_t bg[2] = {tgui->ext_gdc_regs[1], tgui->ext_gdc_regs[2]};
         uint8_t mask = tgui->ext_gdc_regs[7];
 
-        cycles -= video_timing_write_b;
+        sub_cycles(video_timing_write_b);
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
@@ -967,7 +872,7 @@ static void tgui_ext_linear_writew(uint32_t addr, uint16_t val, void *p)
         uint8_t bg[2] = {tgui->ext_gdc_regs[1], tgui->ext_gdc_regs[2]};
         uint16_t mask = (tgui->ext_gdc_regs[7] << 8) | tgui->ext_gdc_regs[8];
         
-        cycles -= video_timing_write_w;
+        sub_cycles(video_timing_write_w);
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
@@ -1730,6 +1635,102 @@ void tgui_accel_write_fb_l(uint32_t addr, uint32_t val, void *p)
                 svga_writel_linear(addr, val, svga);
 }
 
+static void *tgui_init(const device_t *info)
+{
+	const wchar_t *bios_fn;
+	int type = info->local;
+
+        tgui_t *tgui = malloc(sizeof(tgui_t));
+        memset(tgui, 0, sizeof(tgui_t));
+        
+        tgui->vram_size = device_get_config_int("memory") << 20;
+        tgui->vram_mask = tgui->vram_size - 1;
+        
+        tgui->type = type;
+
+	tgui->pci = !!(info->flags & DEVICE_PCI);
+
+	switch(info->local) {
+		case TGUI_9400CXI:
+			bios_fn = ROM_TGUI_9400CXI;
+			break;
+		case TGUI_9440:
+			bios_fn = ROM_TGUI_9440;
+			break;
+		default:
+			free(tgui);
+			return NULL;
+	}
+
+        rom_init(&tgui->bios_rom, (wchar_t *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui);
+
+        svga_init(&tgui->svga, tgui, tgui->vram_size,
+                   tgui_recalctimings,
+                   tgui_in, tgui_out,
+                   tgui_hwcursor_draw,
+                   NULL);
+
+        if (tgui->type == TGUI_9400CXI)
+		tgui->svga.ramdac = device_add(&tkd8001_ramdac_device);
+
+        mem_mapping_add(&tgui->linear_mapping, 0,       0,      svga_read_linear, svga_readw_linear, svga_readl_linear, tgui_accel_write_fb_b, tgui_accel_write_fb_w, tgui_accel_write_fb_l, NULL, MEM_MAPPING_EXTERNAL, &tgui->svga);
+        mem_mapping_add(&tgui->accel_mapping,  0xbc000, 0x4000, tgui_accel_read,  tgui_accel_read_w, tgui_accel_read_l, tgui_accel_write,  tgui_accel_write_w, tgui_accel_write_l, NULL, MEM_MAPPING_EXTERNAL,  tgui);
+        mem_mapping_disable(&tgui->accel_mapping);
+
+        io_sethandler(0x03c0, 0x0020, tgui_in, NULL, NULL, tgui_out, NULL, NULL, tgui);
+        if (tgui->type >= TGUI_9440)
+                io_sethandler(0x43c8, 0x0002, tgui_in, NULL, NULL, tgui_out, NULL, NULL, tgui);
+
+        if ((info->flags & DEVICE_PCI) && (tgui->type >= TGUI_9440))
+                pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
+
+        tgui->wake_fifo_thread = thread_create_event();
+        tgui->fifo_not_full_event = thread_create_event();
+        tgui->fifo_thread = thread_create(fifo_thread, tgui);
+
+        return tgui;
+}
+
+static int tgui9400cxi_available()
+{
+        return rom_present(L"roms/video/tgui9440/9400CXI.vbi");
+}
+
+static int tgui9440_available()
+{
+        return rom_present(L"roms/video/tgui9440/9440.vbi");
+}
+
+void tgui_close(void *p)
+{
+        tgui_t *tgui = (tgui_t *)p;
+        
+        svga_close(&tgui->svga);
+        
+        thread_kill(tgui->fifo_thread);
+        thread_destroy_event(tgui->wake_fifo_thread);
+        thread_destroy_event(tgui->fifo_not_full_event);
+
+        free(tgui);
+}
+
+void tgui_speed_changed(void *p)
+{
+        tgui_t *tgui = (tgui_t *)p;
+        
+        svga_recalctimings(&tgui->svga);
+}
+
+void tgui_force_redraw(void *p)
+{
+        tgui_t *tgui = (tgui_t *)p;
+
+        tgui->svga.fullchange = changeframecount;
+}
+
+
 static const device_config_t tgui9440_config[] =
 {
         {
@@ -1761,8 +1762,8 @@ const device_t tgui9400cxi_device =
 {
         "Trident TGUI 9400CXi",
         DEVICE_VLB,
-        0,
-        tgui9400cxi_init,
+        TGUI_9400CXI,
+        tgui_init,
         tgui_close,
 	NULL,
         tgui9400cxi_available,
@@ -1775,8 +1776,8 @@ const device_t tgui9440_vlb_device =
 {
         "Trident TGUI 9440 VLB",
         DEVICE_VLB,
-	0,
-        tgui9440_init,
+	TGUI_9440,
+        tgui_init,
         tgui_close,
 	NULL,
         tgui9440_available,
@@ -1789,8 +1790,8 @@ const device_t tgui9440_pci_device =
 {
         "Trident TGUI 9440 PCI",
         DEVICE_PCI,
-	0,
-        tgui9440_init,
+	TGUI_9440,
+        tgui_init,
         tgui_close,
 	NULL,
         tgui9440_available,

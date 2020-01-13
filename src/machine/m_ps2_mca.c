@@ -1,3 +1,41 @@
+/*
+ * VARCem	Virtual ARchaeological Computer EMulator.
+ *		An emulator of (mostly) x86-based PC systems and devices,
+ *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		spanning the era between 1981 and 1995.
+ *
+ *		This file is part of the VARCem Project.
+ *
+ *		Implementation of MCA-based PS/2 machines.
+ *
+ * Version:	@(#)m_ps2_mca.c	1.0.6	2019/11/01
+ *
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free  Software  Foundation; either  version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is  distributed in the hope that it will be useful, but
+ * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the:
+ *
+ *   Free Software Foundation, Inc.
+ *   59 Temple Place - Suite 330
+ *   Boston, MA 02111-1307
+ *   USA.
+*/
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -5,8 +43,14 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
+#ifdef USE_NEW_DYNAREC
+#include "../cpu_new/cpu.h"
+#include "../cpu_new/x86.h"
+#else
 #include "../cpu/cpu.h"
 #include "../cpu/x86.h"
+#endif
+#include "../timer.h"
 #include "../io.h"
 #include "../dma.h"
 #include "../pic.h"
@@ -23,6 +67,7 @@
 #include "../keyboard.h"
 #include "../lpt.h"
 #include "../mouse.h"
+#include "../port_92.h"
 #include "../serial.h"
 #include "../video/video.h"
 #include "../video/vid_vga.h"
@@ -59,6 +104,8 @@ static struct
         uint8_t mem_2mb_pos_regs[8];
 		
 	int pending_cache_miss;
+
+	serial_t *uart;
 } ps2;
 
 /*The model 70 type 3/4 BIOS performs cache testing. Since 86Box doesn't have any
@@ -100,22 +147,22 @@ static int ps2_cache_valid[65536/8];
 
 #ifdef ENABLE_PS2_MCA_LOG
 int ps2_mca_do_log = ENABLE_PS2_MCA_LOG;
-#endif
 
 
 static void
-ps2_mca_log(const char *format, ...)
+ps2_mca_log(const char *fmt, ...)
 {
-#ifdef ENABLE_PS2_MCA_LOG
     va_list ap;
 
     if (ps2_mca_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define ps2_mca_log(fmt, ...)
+#endif
 
 
 static uint8_t ps2_read_cache_ram(uint32_t addr, void *priv)
@@ -343,16 +390,14 @@ static void model_50_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial_remove(1);
+                serial_remove(ps2.uart);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(ps2.uart, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial_setup(1, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(ps2.uart, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
-                else
-                        serial_remove(1);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
@@ -399,16 +444,14 @@ static void model_55sx_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial_remove(1);
+                serial_remove(ps2.uart);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(ps2.uart, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial_setup(1, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(ps2.uart, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
-                else
-                        serial_remove(1);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
@@ -447,14 +490,14 @@ static void model_55sx_write(uint16_t port, uint8_t val)
                 }
                 else
                 {
-                        mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+                        mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
                         mem_mapping_enable(&ps2.shadow_mapping);
                 }
 
                 if ((ps2.option[1] & 1) && !(ps2.option[3] & 0x20))
                         mem_set_mem_state(mem_size * 1024, 256 * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                 else
-                        mem_set_mem_state(mem_size * 1024, 256 * 1024, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+                        mem_set_mem_state(mem_size * 1024, 256 * 1024, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
                 break;
                 case 0x106:
                 ps2.subaddr_lo = val;
@@ -475,16 +518,14 @@ static void model_70_type3_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial_remove(1);
+                serial_remove(ps2.uart);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(ps2.uart, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial_setup(1, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(ps2.uart, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
-                else
-                        serial_remove(1);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
@@ -525,16 +566,14 @@ static void model_80_write(uint16_t port, uint8_t val)
                 break;
                 case 0x102:
                 lpt1_remove();
-                serial_remove(1);
+                serial_remove(ps2.uart);
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(ps2.uart, SERIAL1_ADDR, SERIAL1_IRQ);
                         else
-                                serial_setup(1, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(ps2.uart, SERIAL2_ADDR, SERIAL2_IRQ);
                 }
-                else
-                        serial_remove(1);
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
@@ -577,7 +616,17 @@ uint8_t ps2_mca_read(uint16_t port, void *p)
         switch (port)
         {
                 case 0x91:
-                fatal("Read 91 setup=%02x adapter=%02x\n", ps2.setup, ps2.adapter_setup);
+                // fatal("Read 91 setup=%02x adapter=%02x\n", ps2.setup, ps2.adapter_setup);
+                if (!(ps2.setup & PS2_SETUP_IO))
+                        temp = 0x00;
+                else if (!(ps2.setup & PS2_SETUP_VGA))
+                        temp = 0x00;
+                else if (ps2.adapter_setup & PS2_ADAPTER_SETUP)
+                        temp = 0x00;
+                else
+                        temp = !mca_feedb();
+		temp |= 0xfe;
+		break;
                 case 0x94:
                 temp = ps2.setup;
                 break;
@@ -737,10 +786,8 @@ static void ps2_mca_board_common_init()
         io_sethandler(0x0094, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
         io_sethandler(0x0096, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
         io_sethandler(0x0100, 0x0008, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
-        
-	port_92_reset();
 
-        port_92_add();
+	device_add(&port_92_device);        
 
         ps2.setup = 0xff;
         
@@ -763,6 +810,11 @@ static void ps2_mem_expansion_write(int port, uint8_t val, void *p)
                 mem_mapping_enable(&ps2.expansion_mapping);
         else
                 mem_mapping_disable(&ps2.expansion_mapping);
+}
+
+static uint8_t ps2_mem_expansion_feedb(void *p)
+{
+	return (ps2.mem_pos_regs[2] & 1);
 }
 
 static void ps2_mca_mem_fffc_init(int start_mb)
@@ -810,7 +862,7 @@ static void ps2_mca_mem_fffc_init(int start_mb)
 			break;
 	}
 
-	mca_add(ps2_mem_expansion_read, ps2_mem_expansion_write, NULL);
+	mca_add(ps2_mem_expansion_read, ps2_mem_expansion_write, ps2_mem_expansion_feedb, NULL);
 	mem_mapping_add(&ps2.expansion_mapping,
 			expansion_start,
 			(mem_size - (start_mb << 10)) << 10,
@@ -830,9 +882,10 @@ static void ps2_mca_board_model_50_init()
 {        
         ps2_mca_board_common_init();
 
-        mem_remap_top_384k();
+        mem_remap_top(384);
         mca_init(4);
-        
+	device_add(&keyboard_ps2_mca_2_device);
+
         ps2.planar_read = model_50_read;
         ps2.planar_write = model_50_write;
 
@@ -842,8 +895,8 @@ static void ps2_mca_board_model_50_init()
 		ps2_mca_mem_fffc_init(2);
         }
 
-	if (gfxcard == GFX_INTERNAL)	
-		device_add(&ps1vga_device);
+	if (gfxcard == VID_INTERNAL)	
+		device_add(&ps1vga_mca_device);
 }
 
 static void ps2_mca_board_model_55sx_init()
@@ -864,7 +917,7 @@ static void ps2_mca_board_model_55sx_init()
                     NULL);
 
 
-        mem_remap_top_256k();
+        mem_remap_top(256);
         ps2.option[3] = 0x10;
         
         memset(ps2.memory_bank, 0xf0, 8);
@@ -903,12 +956,13 @@ static void ps2_mca_board_model_55sx_init()
         }                
         
         mca_init(4);
-        
+	device_add(&keyboard_ps2_mca_device);
+
         ps2.planar_read = model_55sx_read;
         ps2.planar_write = model_55sx_write;
 
-	if (gfxcard == GFX_INTERNAL)
-		device_add(&ps1vga_device);
+	if (gfxcard == VID_INTERNAL)
+		device_add(&ps1vga_mca_device);
 }
 
 static void mem_encoding_update()
@@ -918,7 +972,7 @@ static void mem_encoding_update()
         ps2.split_addr = ((uint32_t) (ps2.mem_regs[0] & 0xf)) << 20;
         
         if (ps2.mem_regs[1] & 2) {
-                mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+                mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
 		ps2_mca_log("PS/2 Model 80-111: ROM space enabled\n");
         } else {
                 mem_set_mem_state(0xe0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
@@ -1019,10 +1073,13 @@ static void mem_encoding_write_cached(uint16_t addr, uint8_t val, void *p)
                         ps2.pending_cache_miss = 1;
                 if ((val & 0x21) == 0x01 && (old & 0x21) != 0x01)
                         ps2_cache_clean();
+#if 1
+ // FIXME: Look into this!!!
                 if (val & 0x01)
                         ram_mid_mapping.flags |= MEM_MAPPING_ROM;
                 else
                         ram_mid_mapping.flags &= ~MEM_MAPPING_ROM;
+#endif
                 break;
         }
         ps2_mca_log("mem_encoding_write: addr=%02x val=%02x %04x:%04x  %02x %02x\n", addr, val, CS,cpu_state.pc, ps2.mem_regs[1],ps2.mem_regs[2]);
@@ -1047,7 +1104,8 @@ static void ps2_mca_board_model_70_type34_init(int is_type4)
 
         ps2.split_addr = mem_size * 1024;
         mca_init(4);
-        
+	device_add(&keyboard_ps2_mca_device);
+
         ps2.planar_read = model_70_type3_read;
         ps2.planar_write = model_70_type3_write;
         
@@ -1115,8 +1173,8 @@ static void ps2_mca_board_model_70_type34_init(int is_type4)
 		ps2_mca_mem_fffc_init(8);
         }
 
-	if (gfxcard == GFX_INTERNAL)	
-		device_add(&ps1vga_device);
+	if (gfxcard == VID_INTERNAL)	
+		device_add(&ps1vga_mca_device);
 }
 
 static void ps2_mca_board_model_80_type2_init(int is486)
@@ -1125,6 +1183,7 @@ static void ps2_mca_board_model_80_type2_init(int is486)
 
         ps2.split_addr = mem_size * 1024;
         mca_init(8);
+	device_add(&keyboard_ps2_mca_device);
         
         ps2.planar_read = model_80_read;
         ps2.planar_write = model_80_write;
@@ -1185,8 +1244,8 @@ static void ps2_mca_board_model_80_type2_init(int is486)
 		ps2_mca_mem_fffc_init(4);
         }
 
-	if (gfxcard == GFX_INTERNAL)	
-		device_add(&ps1vga_device);
+	if (gfxcard == VID_INTERNAL)	
+		device_add(&ps1vga_mca_device);
 }
 
 
@@ -1198,64 +1257,117 @@ machine_ps2_common_init(const machine_t *model)
 
         dma16_init();
         ps2_dma_init();
-	device_add(&keyboard_ps2_mca_device);
 	device_add(&ps_nvr_device);
         pic2_init();
 
         pit_ps2_init();
 
 	nmi_mask = 0x80;
+
+	ps2.uart = device_add_inst(&ns16550_device, 1);
 }
 
 
-void
+int
 machine_ps2_model_50_init(const machine_t *model)
 {
+	int ret;
+
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m50/90x7420.zm13",
+				    L"roms/machines/ibmps2_m50/90x7429.zm18",
+				    0x000f0000, 131072, 0);
+	ret &= bios_load_aux_interleaved(L"roms/machines/ibmps2_m50/90x7423.zm14",
+					 L"roms/machines/ibmps2_m50/90x7426.zm16",
+					 0x000e0000, 65536, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
         machine_ps2_common_init(model);
 
         ps2_mca_board_model_50_init();
+
+	return ret;
 }
 
 
-void
+int
 machine_ps2_model_55sx_init(const machine_t *model)
 {
+	int ret;
+
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m55sx/33f8146.zm41",
+				    L"roms/machines/ibmps2_m55sx/33f8145.zm40",
+				    0x000e0000, 131072, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
         machine_ps2_common_init(model);
 
         ps2_mca_board_model_55sx_init();
+
+	return ret;
 }
 
-void
+
+int
 machine_ps2_model_70_type3_init(const machine_t *model)
 {
+	int ret;
+
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m70_type3/70-a_even.bin",
+				    L"roms/machines/ibmps2_m70_type3/70-a_odd.bin",
+				    0x000e0000, 131072, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
         machine_ps2_common_init(model);
 
         ps2_mca_board_model_70_type34_init(0);
+
+	return ret;
 }
 
-void
+
+#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
+int
 machine_ps2_model_70_type4_init(const machine_t *model)
 {
+	int ret;
+
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m70_type4/70-b_even.bin",
+				    L"roms/machines/ibmps2_m70_type4/70-b_odd.bin",
+				    0x000e0000, 131072, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
         machine_ps2_common_init(model);
 
         ps2_mca_board_model_70_type34_init(1);
-}
 
-void
+	return ret;
+}
+#endif
+
+
+int
 machine_ps2_model_80_init(const machine_t *model)
 {
+	int ret;
+
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m80/15f6637.bin",
+				    L"roms/machines/ibmps2_m80/15f6639.bin",
+				    0x000e0000, 131072, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
         machine_ps2_common_init(model);
 
         ps2_mca_board_model_80_type2_init(0);
+
+	return ret;
 }
-
-
-#ifdef WALTJE
-void
-machine_ps2_model_80_486_init(const machine_t *model)
-{
-        machine_ps2_common_init(model);
-
-        ps2_mca_board_model_80_type2_init(1);
-}
-#endif

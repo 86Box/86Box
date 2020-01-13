@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -8,17 +8,22 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.51	2018/05/25
+ * Version:	@(#)win_settings.c	1.0.63	2019/12/21
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * 		David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2018,2019 David Hrdlička.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #include <windowsx.h>
 #undef BITMAP
+#ifdef ENABLE_SETTINGS_LOG
+#include <assert.h>
+#endif
 #include <commctrl.h>
 #include <inttypes.h>
 #include <stdint.h>
@@ -31,12 +36,16 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
+#include "../timer.h"
 #include "../nvr.h"
 #include "../machine/machine.h"
 #include "../game/gameport.h"
+#include "../isamem.h"
+#include "../isartc.h"
 #include "../lpt.h"
 #include "../mouse.h"
 #include "../scsi/scsi.h"
+#include "../scsi/scsi_device.h"
 #include "../cdrom/cdrom.h"
 #include "../disk/hdd.h"
 #include "../disk/hdc.h"
@@ -46,8 +55,8 @@
 #include "../network/network.h"
 #include "../sound/sound.h"
 #include "../sound/midi.h"
-#include "../sound/snd_dbopl.h"
 #include "../sound/snd_mpu401.h"
+#include "../sound/snd_gus.h"
 #include "../video/video.h"
 #include "../video/vid_voodoo.h"
 #include "../plat.h"
@@ -56,20 +65,11 @@
 #include "win.h"
 
 
-#define SETTINGS_PAGE_MACHINE			0
-#define SETTINGS_PAGE_VIDEO			1
-#define SETTINGS_PAGE_INPUT			2
-#define SETTINGS_PAGE_SOUND			3
-#define SETTINGS_PAGE_NETWORK			4
-#define SETTINGS_PAGE_PORTS			5
-#define SETTINGS_PAGE_PERIPHERALS		6
-#define SETTINGS_PAGE_HARD_DISKS		7
-#define SETTINGS_PAGE_FLOPPY_DRIVES		8
-#define SETTINGS_PAGE_OTHER_REMOVABLE_DEVICES	9
-
 /* Icon, Bus, File, C, H, S, Size */
 #define C_COLUMNS_HARD_DISKS			6
 
+
+static int first_cat = 0;
 
 /* Machine category */
 static int temp_machine, temp_cpu_m, temp_cpu, temp_wait_states, temp_fpu, temp_sync;
@@ -85,22 +85,22 @@ static int temp_gfxcard, temp_voodoo;
 static int temp_mouse, temp_joystick;
 
 /* Sound category */
-static int temp_sound_card, temp_midi_device, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS, temp_opl_type;
+static int temp_sound_card, temp_midi_device, temp_midi_input_device, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS;
 static int temp_float;
 
 /* Network category */
 static int temp_net_type, temp_net_card;
-static char temp_pcap_dev[520];
+static char temp_pcap_dev[522];
 
 /* Ports category */
-static char temp_lpt_device_names[3][16];
-static int temp_serial[2], temp_lpt;
+static int temp_lpt_devices[3];
+static int temp_serial[2], temp_lpt[3];
 
 /* Other peripherals category */
-static int temp_scsi_card, temp_ide_ter, temp_ide_qua;
-static char temp_hdc_name[32];
-static char *hdc_names[32];
+static int temp_hdc, temp_scsi_card, temp_ide_ter, temp_ide_qua;
 static int temp_bugger;
+static int temp_isartc;
+static int temp_isamem[ISAMEM_MAX];
 
 static uint8_t temp_deviceconfig;
 
@@ -113,7 +113,7 @@ static int temp_fdd_turbo[FDD_NUM];
 static int temp_fdd_check_bpb[FDD_NUM];
 
 /* Other removable devices category */
-static cdrom_drive_t temp_cdrom_drives[CDROM_NUM];
+static cdrom_t temp_cdrom[CDROM_NUM];
 static zip_drive_t temp_zip_drives[ZIP_NUM];
 
 static HWND hwndParentDialog, hwndChildDialog;
@@ -121,9 +121,10 @@ static HWND hwndParentDialog, hwndChildDialog;
 static uint32_t displayed_category = 0;
 
 extern int is486;
-static int romstolist[ROM_MAX], listtomachine[ROM_MAX], romstomachine[ROM_MAX], machinetolist[ROM_MAX];
-static int settings_device_to_list[20], settings_list_to_device[20];
+static int listtomachine[256], machinetolist[256];
+static int settings_device_to_list[2][20], settings_list_to_device[2][20];
 static int settings_midi_to_list[20], settings_list_to_midi[20];
+static int settings_midi_in_to_list[20], settings_list_to_midi_in[20];
 
 static int max_spt = 63, max_hpc = 255, max_tracks = 266305;
 static uint64_t mfm_tracking, esdi_tracking, xta_tracking, ide_tracking, scsi_tracking[2];
@@ -155,7 +156,11 @@ image_list_init(HWND hwndList, const uint8_t *icon_ids)
 	if (icon_ids[i] == 0)
 		break;
 
+#if defined(__amd64__) || defined(__aarch64__)
+	hiconItem = LoadIcon(hinstance, (LPCWSTR) ((uint64_t) icon_ids[i]));
+#else
 	hiconItem = LoadIcon(hinstance, (LPCWSTR) ((uint32_t) icon_ids[i]));
+#endif
 	ImageList_AddIcon(hSmall, hiconItem);
 	DestroyIcon(hiconItem);
 
@@ -202,7 +207,7 @@ win_settings_init(void)
     temp_dynarec = cpu_use_dynarec;
 #endif
     temp_fpu = enable_external_fpu;
-    temp_sync = enable_sync;
+    temp_sync = time_sync;
 
     /* Video category */
     temp_gfxcard = gfxcard;
@@ -215,33 +220,42 @@ win_settings_init(void)
     /* Sound category */
     temp_sound_card = sound_card_current;
     temp_midi_device = midi_device_current;
+	temp_midi_input_device = midi_input_device_current;
     temp_mpu401 = mpu401_standalone_enable;
     temp_SSI2001 = SSI2001;
     temp_GAMEBLASTER = GAMEBLASTER;
     temp_GUS = GUS;
-    temp_opl_type = opl_type;
     temp_float = sound_is_float;
 
     /* Network category */
     temp_net_type = network_type;
     memset(temp_pcap_dev, 0, sizeof(temp_pcap_dev));
-    strcpy(temp_pcap_dev, network_host);
+#ifdef ENABLE_SETTINGS_LOG
+    assert(sizeof(temp_pcap_dev) == sizeof(network_host));
+#endif
+    memcpy(temp_pcap_dev, network_host, sizeof(network_host));
     temp_net_card = network_card;
 
     /* Ports category */
-    for (i = 0; i < 3; i++)
-	strncpy(temp_lpt_device_names[i], lpt_device_names[i], sizeof(temp_lpt_device_names[i]) - 1);
-    temp_serial[0] = serial_enabled[0];
-    temp_serial[1] = serial_enabled[1];
-    temp_lpt = lpt_enabled;
+    for (i = 0; i < 3; i++) {
+	temp_lpt_devices[i] = lpt_ports[i].device;
+	temp_lpt[i] = lpt_ports[i].enabled;
+    }
+    for (i = 0; i < 2; i++)
+	temp_serial[i] = serial_enabled[i];
 
     /* Other peripherals category */
     temp_scsi_card = scsi_card_current;
-    strncpy(temp_hdc_name, hdc_name, sizeof(temp_hdc_name) - 1);
+    temp_hdc = hdc_current;
     temp_ide_ter = ide_ter_enabled;
     temp_ide_qua = ide_qua_enabled;
     temp_bugger = bugger_enabled;
-
+    temp_isartc = isartc_type;
+	
+    /* ISA memory boards. */
+    for (i = 0; i < ISAMEM_MAX; i++)
+ 	temp_isamem[i] = isamem_type[i];	
+	
     mfm_tracking = xta_tracking = esdi_tracking = ide_tracking = 0;
     for (i = 0; i < 2; i++)
 	scsi_tracking[i] = 0;
@@ -259,8 +273,8 @@ win_settings_init(void)
 		ide_tracking |= (1 << (hdd[i].ide_channel << 3));
 	else if (hdd[i].bus == HDD_BUS_SCSI)
 		scsi_tracking[hdd[i].scsi_id >> 3] |= (1 << ((hdd[i].scsi_id & 0x07) << 3));
-    }
-
+    }	
+	
     /* Floppy drives category */
     for (i = 0; i < FDD_NUM; i++) {
 	temp_fdd_types[i] = fdd_get_type(i);
@@ -269,12 +283,12 @@ win_settings_init(void)
     }
 
     /* Other removable devices category */
-    memcpy(temp_cdrom_drives, cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
+    memcpy(temp_cdrom, cdrom, CDROM_NUM * sizeof(cdrom_t));
     for (i = 0; i < CDROM_NUM; i++) {
-	if (cdrom_drives[i].bus_type == CDROM_BUS_ATAPI)
-		ide_tracking |= (2 << (cdrom_drives[i].ide_channel << 3));
-	else if (cdrom_drives[i].bus_type == CDROM_BUS_SCSI)
-		scsi_tracking[cdrom_drives[i].scsi_device_id >> 3] |= (1 << ((cdrom_drives[i].scsi_device_id & 0x07) << 3));
+	if (cdrom[i].bus_type == CDROM_BUS_ATAPI)
+		ide_tracking |= (2 << (cdrom[i].ide_channel << 3));
+	else if (cdrom[i].bus_type == CDROM_BUS_SCSI)
+		scsi_tracking[cdrom[i].scsi_device_id >> 3] |= (1 << ((cdrom[i].scsi_device_id & 0x07) << 3));
     }
     memcpy(temp_zip_drives, zip_drives, ZIP_NUM * sizeof(zip_drive_t));
     for (i = 0; i < ZIP_NUM; i++) {
@@ -305,7 +319,7 @@ win_settings_changed(void)
     i = i || (temp_dynarec != cpu_use_dynarec);
 #endif
     i = i || (temp_fpu != enable_external_fpu);
-    i = i || (temp_sync != enable_sync);
+    i = i || (temp_sync != time_sync);
 
     /* Video category */
     i = i || (gfxcard != temp_gfxcard);
@@ -318,11 +332,11 @@ win_settings_changed(void)
     /* Sound category */
     i = i || (sound_card_current != temp_sound_card);
     i = i || (midi_device_current != temp_midi_device);
+	i = i || (midi_input_device_current != temp_midi_input_device);
     i = i || (mpu401_standalone_enable != temp_mpu401);
     i = i || (SSI2001 != temp_SSI2001);
     i = i || (GAMEBLASTER != temp_GAMEBLASTER);
     i = i || (GUS != temp_GUS);
-    i = i || (opl_type != temp_opl_type);
     i = i || (sound_is_float != temp_float);
 
     /* Network category */
@@ -331,19 +345,25 @@ win_settings_changed(void)
     i = i || (network_card != temp_net_card);
 
     /* Ports category */
-    for (j = 0; j < 3; j++)
-	i = i || strncmp(temp_lpt_device_names[j], lpt_device_names[j], sizeof(temp_lpt_device_names[j]) - 1);
-    i = i || (temp_serial[0] != serial_enabled[0]);
-    i = i || (temp_serial[1] != serial_enabled[1]);
-    i = i || (temp_lpt != lpt_enabled);
+    for (j = 0; j < 3; j++) {
+	i = i || (temp_lpt_devices[j] != lpt_ports[j].device);
+	i = i || (temp_lpt[j] != lpt_ports[j].enabled);
+    }
+    for (j = 0; j < 2; j++)
+	i = i || (temp_serial[j] != serial_enabled[j]);
 
     /* Peripherals category */
     i = i || (scsi_card_current != temp_scsi_card);
-    i = i || strncmp(temp_hdc_name, hdc_name, sizeof(temp_hdc_name) - 1);
+    i = i || (hdc_current != temp_hdc);
     i = i || (temp_ide_ter != ide_ter_enabled);
     i = i || (temp_ide_qua != ide_qua_enabled);
     i = i || (temp_bugger != bugger_enabled);
+    i = i || (temp_isartc != isartc_type);
 
+    /* ISA memory boards. */
+    for (j = 0; j < ISAMEM_MAX; j++)
+ 	i = i || (temp_isamem[j] != isamem_type[j]);
+	
     /* Hard disks category */
     i = i || memcmp(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
 
@@ -355,7 +375,7 @@ win_settings_changed(void)
     }
 
     /* Other removable devices category */
-    i = i || memcmp(cdrom_drives, temp_cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
+    i = i || memcmp(cdrom, temp_cdrom, CDROM_NUM * sizeof(cdrom_t));
     i = i || memcmp(zip_drives, temp_zip_drives, ZIP_NUM * sizeof(zip_drive_t));
 
     i = i || !!temp_deviceconfig;
@@ -394,7 +414,6 @@ win_settings_save(void)
 
     /* Machine category */
     machine = temp_machine;
-    romset = machine_getromset();
     cpu_manufacturer = temp_cpu_m;
     cpu_waitstates = temp_wait_states;
     cpu = temp_cpu;
@@ -403,7 +422,7 @@ win_settings_save(void)
     cpu_use_dynarec = temp_dynarec;
 #endif
     enable_external_fpu = temp_fpu;
-    enable_sync = temp_sync;
+    time_sync = temp_sync;
 
     /* Video category */
     gfxcard = temp_gfxcard;
@@ -416,11 +435,11 @@ win_settings_save(void)
     /* Sound category */
     sound_card_current = temp_sound_card;
     midi_device_current = temp_midi_device;
+	midi_input_device_current = temp_midi_input_device;
     mpu401_standalone_enable = temp_mpu401;
     SSI2001 = temp_SSI2001;
     GAMEBLASTER = temp_GAMEBLASTER;
     GUS = temp_GUS;
-    opl_type = temp_opl_type;
     sound_is_float = temp_float;
 
     /* Network category */
@@ -430,27 +449,29 @@ win_settings_save(void)
     network_card = temp_net_card;
 
     /* Ports category */
-    for (i = 0; i < 3; i++)
-	strncpy(lpt_device_names[i], temp_lpt_device_names[i], sizeof(temp_lpt_device_names[i]) - 1);
-    serial_enabled[0] = temp_serial[0];
-    serial_enabled[1] = temp_serial[1];
-    lpt_enabled = temp_lpt;
+    for (i = 0; i < 3; i++) {
+	lpt_ports[i].device = temp_lpt_devices[i];
+	lpt_ports[i].enabled = temp_lpt[i];
+    }
+    for (i = 0; i < 2; i++)
+	serial_enabled[i] = temp_serial[i];
 
     /* Peripherals category */
     scsi_card_current = temp_scsi_card;
-    if (hdc_name) {
-	free(hdc_name);
-	hdc_name = NULL;
-    }
-    hdc_name = (char *) malloc(sizeof(temp_hdc_name));
-    strncpy(hdc_name, temp_hdc_name, sizeof(temp_hdc_name) - 1);
-    hdc_init(hdc_name);
+    hdc_current = temp_hdc;
     ide_ter_enabled = temp_ide_ter;
     ide_qua_enabled = temp_ide_qua;
     bugger_enabled = temp_bugger;
+    isartc_type = temp_isartc;
 
+    /* ISA memory boards. */
+    for (i = 0; i < ISAMEM_MAX; i++)
+ 	isamem_type[i] = temp_isamem[i];	
+	
     /* Hard disks category */
     memcpy(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
+    for (i = 0; i < HDD_NUM; i++)
+	hdd[i].priv = NULL;
 
     /* Floppy drives category */
     for (i = 0; i < FDD_NUM; i++) {
@@ -460,8 +481,22 @@ win_settings_save(void)
     }
 
     /* Removable devices category */
-    memcpy(cdrom_drives, temp_cdrom_drives, CDROM_NUM * sizeof(cdrom_drive_t));
+    memcpy(cdrom, temp_cdrom, CDROM_NUM * sizeof(cdrom_t));
+    for (i = 0; i < CDROM_NUM; i++) {
+	cdrom[i].img_fp = NULL;
+	cdrom[i].priv = NULL;
+	cdrom[i].ops = NULL;
+	cdrom[i].image = NULL;
+	cdrom[i].insert = NULL;
+	cdrom[i].close = NULL;
+	cdrom[i].get_volume = NULL;
+	cdrom[i].get_channel = NULL;
+    }
     memcpy(zip_drives, temp_zip_drives, ZIP_NUM * sizeof(zip_drive_t));
+    for (i = 0; i < ZIP_NUM; i++) {
+	zip_drives[i].f = NULL;
+	zip_drives[i].priv = NULL;
+    }
 
     /* Mark configuration as changed. */
     config_changed = 1;
@@ -474,15 +509,13 @@ static void
 win_settings_machine_recalc_cpu(HWND hdlg)
 {
     HWND h;
-    int cpu_type, temp_romset;
+    int cpu_type;
 #ifdef USE_DYNAREC
     int cpu_flags;
 #endif
 
-    temp_romset = machine_getromset_ex(temp_machine);
-
     h = GetDlgItem(hdlg, IDC_COMBO_WS);
-    cpu_type = machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
+    cpu_type = machines[temp_machine].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
     if ((cpu_type >= CPU_286) && (cpu_type <= CPU_386DX))
 	EnableWindow(h, TRUE);
     else
@@ -490,7 +523,7 @@ win_settings_machine_recalc_cpu(HWND hdlg)
 
 #ifdef USE_DYNAREC
     h=GetDlgItem(hdlg, IDC_CHECK_DYNAREC);
-    cpu_flags = machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[temp_cpu].cpu_flags;
+    cpu_flags = machines[temp_machine].cpu[temp_cpu_m].cpus[temp_cpu].cpu_flags;
     if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) && (cpu_flags & CPU_REQUIRES_DYNAREC))
 	fatal("Attempting to select a CPU that requires the recompiler and does not support it at the same time\n");
     if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) || (cpu_flags & CPU_REQUIRES_DYNAREC)) {
@@ -505,8 +538,9 @@ win_settings_machine_recalc_cpu(HWND hdlg)
 #endif
 
     h = GetDlgItem(hdlg, IDC_CHECK_FPU);
-    cpu_type = machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
-    if ((cpu_type < CPU_i486DX) && (cpu_type >= CPU_286))
+    cpu_type = machines[temp_machine].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
+    // if ((cpu_type < CPU_i486DX) && (cpu_type >= CPU_286))
+    if (cpu_type < CPU_i486DX)
 	EnableWindow(h, TRUE);
     else if (cpu_type < CPU_286) {
 	temp_fpu = 0;
@@ -523,18 +557,17 @@ static void
 win_settings_machine_recalc_cpu_m(HWND hdlg)
 {
     HWND h;
-    int c, temp_romset;
+    int c;
     LPTSTR lptsTemp;
     char *stransi;
 
-    temp_romset = machine_getromset_ex(temp_machine);
-    lptsTemp = (LPTSTR) malloc(512);
+    lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_COMBO_CPU);
     SendMessage(h, CB_RESETCONTENT, 0, 0);
     c = 0;
-    while (machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[c].cpu_type != -1) {
-	stransi = (char *) machines[romstomachine[temp_romset]].cpu[temp_cpu_m].cpus[c].name;
+    while (machines[temp_machine].cpu[temp_cpu_m].cpus[c].cpu_type != -1) {
+	stransi = (char *) machines[temp_machine].cpu[temp_cpu_m].cpus[c].name;
 	mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 	SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 	c++;
@@ -554,16 +587,17 @@ static void
 win_settings_machine_recalc_machine(HWND hdlg)
 {
     HWND h;
-    int c, temp_romset;
+    int c;
     LPTSTR lptsTemp;
     const char *stransi;
     UDACCEL accel;
+    device_t *d;
 
-    temp_romset = machine_getromset_ex(temp_machine);
-    lptsTemp = (LPTSTR) malloc(512);
+    lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_CONFIGURE_MACHINE);
-    if (machine_getdevice(temp_machine))
+    d = (device_t *) machine_getdevice(temp_machine);
+    if (d && d->config)
 	EnableWindow(h, TRUE);
     else
 	EnableWindow(h, FALSE);
@@ -571,8 +605,8 @@ win_settings_machine_recalc_machine(HWND hdlg)
     h = GetDlgItem(hdlg, IDC_COMBO_CPU_TYPE);
     SendMessage(h, CB_RESETCONTENT, 0, 0);
     c = 0;
-    while (machines[romstomachine[temp_romset]].cpu[c].cpus != NULL && c < 4) {
-	stransi = machines[romstomachine[temp_romset]].cpu[c].name;
+    while (machines[temp_machine].cpu[c].cpus != NULL && c < 4) {
+	stransi = machines[temp_machine].cpu[c].name;
 	mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 	SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 	c++;
@@ -586,11 +620,11 @@ win_settings_machine_recalc_machine(HWND hdlg)
     win_settings_machine_recalc_cpu_m(hdlg);
 
     h = GetDlgItem(hdlg, IDC_MEMSPIN);
-    SendMessage(h, UDM_SETRANGE, 0, (machines[romstomachine[temp_romset]].min_ram << 16) | machines[romstomachine[temp_romset]].max_ram);
+    SendMessage(h, UDM_SETRANGE, 0, (machines[temp_machine].min_ram << 16) | machines[temp_machine].max_ram);
     accel.nSec = 0;
-    accel.nInc = machines[romstomachine[temp_romset]].ram_granularity;
+    accel.nInc = machines[temp_machine].ram_granularity;
     SendMessage(h, UDM_SETACCEL, 1, (LPARAM)&accel);
-    if (!(machines[romstomachine[temp_romset]].flags & MACHINE_AT) || (machines[romstomachine[temp_romset]].ram_granularity >= 128)) {
+    if (!(machines[temp_machine].flags & MACHINE_AT) || (machines[temp_machine].ram_granularity >= 128)) {
 	SendMessage(h, UDM_SETPOS, 0, temp_mem_size);
 	h = GetDlgItem(hdlg, IDC_TEXT_MB);
 	SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2094));
@@ -604,7 +638,7 @@ win_settings_machine_recalc_machine(HWND hdlg)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -618,21 +652,17 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message) {
 	case WM_INITDIALOG:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
 		h = GetDlgItem(hdlg, IDC_COMBO_MACHINE);
-		for (c = 0; c < ROM_MAX; c++)
-			romstolist[c] = 0;
 		c = d = 0;
-		while (machines[c].id != -1) {
-			if (romspresent[machines[c].id]) {
+		while (machine_get_internal_name_ex(c) != NULL) {
+			if (machine_available(c)) {
 				stransi = (char *)machines[c].name;
 				mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 				machinetolist[c] = d;
 				listtomachine[d] = c;
-				romstolist[machines[c].id] = d;
-				romstomachine[machines[c].id] = c;
 				d++;
 			}
 			c++;
@@ -658,8 +688,24 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		h2 = GetDlgItem(hdlg, IDC_MEMTEXT);
 		SendMessage(h, UDM_SETBUDDY, (WPARAM)h2, 0);
 
-       	        h=GetDlgItem(hdlg, IDC_CHECK_SYNC);
-                SendMessage(h, BM_SETCHECK, temp_sync, 0);
+		if (temp_sync & TIME_SYNC_ENABLED)
+		{
+			if (temp_sync & TIME_SYNC_UTC)
+			{
+				h=GetDlgItem(hdlg, IDC_RADIO_TS_UTC);
+				SendMessage(h, BM_SETCHECK, BST_CHECKED, 0);
+			}
+			else
+			{
+				h=GetDlgItem(hdlg, IDC_RADIO_TS_LOCAL);
+				SendMessage(h, BM_SETCHECK, BST_CHECKED, 0);
+			}
+		}
+		else
+		{
+			h=GetDlgItem(hdlg, IDC_RADIO_TS_DISABLED);
+			SendMessage(h, BM_SETCHECK, BST_CHECKED, 0);
+		}
 
 		win_settings_machine_recalc_machine(hdlg);
 
@@ -705,7 +751,7 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		return FALSE;
 
 	case WM_SAVESETTINGS:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 		stransi = (char *)malloc(512);
 
 #ifdef USE_DYNAREC
@@ -713,8 +759,17 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		temp_dynarec = SendMessage(h, BM_GETCHECK, 0, 0);
 #endif
 
-       	        h=GetDlgItem(hdlg, IDC_CHECK_SYNC);
-		temp_sync = SendMessage(h, BM_GETCHECK, 0, 0);
+		h=GetDlgItem(hdlg, IDC_RADIO_TS_DISABLED);
+		if(SendMessage(h, BM_GETCHECK, 0, 0))
+			temp_sync = TIME_SYNC_DISABLED;
+
+		h=GetDlgItem(hdlg, IDC_RADIO_TS_LOCAL);
+		if(SendMessage(h, BM_GETCHECK, 0, 0))
+			temp_sync = TIME_SYNC_ENABLED;
+
+		h=GetDlgItem(hdlg, IDC_RADIO_TS_UTC);
+		if(SendMessage(h, BM_GETCHECK, 0, 0))
+			temp_sync = TIME_SYNC_ENABLED | TIME_SYNC_UTC;
 
        	        h=GetDlgItem(hdlg, IDC_CHECK_FPU);
 		temp_fpu = SendMessage(h, BM_GETCHECK, 0, 0);
@@ -767,11 +822,11 @@ recalc_vid_list(HWND hdlg)
 	if (!s[0])
 		break;
 
-	if (video_card_available(c) && gfx_present[video_new_to_old(c)] &&
+	if (video_card_available(c) &&
 	    device_is_valid(video_card_getdevice(c), machines[temp_machine].flags)) {
 		mbstowcs(szText, s, strlen(s) + 1);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) szText);
-		if (video_new_to_old(c) == temp_gfxcard) {
+		if (c == temp_gfxcard) {
 			SendMessage(h, CB_SETCURSEL, d, 0);
 			found_card = 1;
 		}
@@ -783,7 +838,7 @@ recalc_vid_list(HWND hdlg)
     }
     if (!found_card)
 	SendMessage(h, CB_SETCURSEL, 0, 0);
-    EnableWindow(h, machines[temp_machine].fixed_gfxcard ? FALSE : TRUE);
+    EnableWindow(h, (machines[temp_machine].flags & MACHINE_VIDEO_FIXED) ? FALSE : TRUE);
 
     h = GetDlgItem(hdlg, IDC_CHECK_VOODOO);
     EnableWindow(h, (machines[temp_machine].flags & MACHINE_PCI) ? TRUE : FALSE);
@@ -793,7 +848,7 @@ recalc_vid_list(HWND hdlg)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -803,11 +858,10 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
     HWND h;
     LPTSTR lptsTemp;
     char *stransi;
-    int gfx;
 
     switch (message) {
 	case WM_INITDIALOG:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 		stransi = (char *) malloc(512);
 
 		recalc_vid_list(hdlg);
@@ -818,10 +872,9 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
 		SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
 		wcstombs(stransi, lptsTemp, 512);
-		gfx = video_card_getid(stransi);
 
 		h = GetDlgItem(hdlg, IDC_CONFIGURE_VID);
-		if (video_card_has_config(gfx))
+		if (video_card_has_config(temp_gfxcard))
 			EnableWindow(h, TRUE);
 		else
 			EnableWindow(h, FALSE);
@@ -834,17 +887,16 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
                	switch (LOWORD(wParam)) {
 			case IDC_COMBO_VIDEO:
-				lptsTemp = (LPTSTR) malloc(512);
+				lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 				stransi = (char *) malloc(512);
 
 	                        h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
 	                        SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
 				wcstombs(stransi, lptsTemp, 512);
-				gfx = video_card_getid(stransi);
-	                        temp_gfxcard = video_new_to_old(gfx);
+	                        temp_gfxcard = video_card_getid(stransi);
 
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_VID);
-				if (video_card_has_config(gfx))
+				if (video_card_has_config(temp_gfxcard))
 					EnableWindow(h, TRUE);
 				else
 					EnableWindow(h, FALSE);
@@ -866,7 +918,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDC_CONFIGURE_VID:
-				lptsTemp = (LPTSTR) malloc(512);
+				lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 				stransi = (char *) malloc(512);
 
 				h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
@@ -881,13 +933,13 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		return FALSE;
 
 	case WM_SAVESETTINGS:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 		stransi = (char *) malloc(512);
 
 		h = GetDlgItem(hdlg, IDC_COMBO_VIDEO);
 		SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
 		wcstombs(stransi, lptsTemp, 512);
-		temp_gfxcard = video_new_to_old(video_card_getid(stransi));
+		temp_gfxcard = video_card_getid(stransi);
 
 		h = GetDlgItem(hdlg, IDC_CHECK_VOODOO);
 		temp_voodoo = SendMessage(h, BM_GETCHECK, 0, 0);
@@ -915,7 +967,7 @@ mouse_valid(int num, int m)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -931,18 +983,18 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		h = GetDlgItem(hdlg, IDC_COMBO_MOUSE);
 		c = d = 0;
 		for (c = 0; c < mouse_get_ndev(); c++) {
-			settings_device_to_list[c] = d;
+			settings_device_to_list[0][c] = d;
 
 			if (mouse_valid(c, temp_machine)) {
 				mbstowcs(str, mouse_get_name(c), sizeof_w(str));
 				SendMessage(h, CB_ADDSTRING, 0, (LPARAM)str);
 
-				settings_list_to_device[d] = c;
+				settings_list_to_device[0][d] = c;
 				d++;
 			}
 		}
 
-		SendMessage(h, CB_SETCURSEL, settings_device_to_list[temp_mouse], 0);
+		SendMessage(h, CB_SETCURSEL, settings_device_to_list[0][temp_mouse], 0);
 
 		h = GetDlgItem(hdlg, IDC_CONFIGURE_MOUSE);
 		if (mouse_has_config(temp_mouse))
@@ -974,7 +1026,7 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                	switch (LOWORD(wParam)) {
 			case IDC_COMBO_MOUSE:
 				h = GetDlgItem(hdlg, IDC_COMBO_MOUSE);
-				temp_mouse = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_mouse = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_MOUSE);
 				if (mouse_has_config(temp_mouse))
@@ -985,7 +1037,7 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDC_CONFIGURE_MOUSE:
 				h = GetDlgItem(hdlg, IDC_COMBO_MOUSE);
-				temp_mouse = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_mouse = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)mouse_get_device(temp_mouse));
 				break;
 
@@ -1031,7 +1083,7 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_SAVESETTINGS:
 		h = GetDlgItem(hdlg, IDC_COMBO_MOUSE);
-		temp_mouse = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+		temp_mouse = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 		h = GetDlgItem(hdlg, IDC_COMBO_JOYSTICK);
 		temp_joystick = SendMessage(h, CB_GETCURSEL, 0, 0);
@@ -1046,14 +1098,6 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 static int
 mpu401_present(void)
 {
-    char *n;
-
-    n = sound_card_get_internal_name(temp_sound_card);
-    if (n != NULL) {
-	if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))
-		return 1;
-    }
-
     return temp_mpu401 ? 1 : 0;
 }
 
@@ -1061,25 +1105,20 @@ mpu401_present(void)
 int
 mpu401_standalone_allow(void)
 {
-    char *n, *md;
+    char *md, *mdin;
 
-    n = sound_card_get_internal_name(temp_sound_card);
     md = midi_device_get_internal_name(temp_midi_device);
-    if (n != NULL) {
-	if (!strcmp(n, "sb16") || !strcmp(n, "sbawe32"))
-		return 0;
-    }
+	mdin = midi_in_device_get_internal_name(temp_midi_input_device);
 
     if (md != NULL) {
-	if (!strcmp(md, "none"))
+	if (!strcmp(md, "none") && !strcmp(mdin, "none"))
 		return 0;
     }
 
     return 1;
 }
 
-
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -1094,7 +1133,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message) {
 	case WM_INITDIALOG:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
 		h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
 		c = d = 0;
@@ -1104,7 +1143,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			if (!s[0])
 				break;
 
-			settings_device_to_list[c] = d;
+			settings_device_to_list[0][c] = d;
 
 			if (sound_card_available(c)) {
 				sound_dev = sound_card_getdevice(c);
@@ -1116,14 +1155,14 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 						mbstowcs(lptsTemp, s, strlen(s) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 					}
-					settings_list_to_device[d] = c;
+					settings_list_to_device[0][d] = c;
 					d++;
 				}
 			}
 
 			c++;
 		}
-		SendMessage(h, CB_SETCURSEL, settings_device_to_list[temp_sound_card], 0);
+		SendMessage(h, CB_SETCURSEL, settings_device_to_list[0][temp_sound_card], 0);
 
 		EnableWindow(h, d ? TRUE : FALSE);
 
@@ -1161,24 +1200,57 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		else
 			EnableWindow(h, FALSE);
 
+		h = GetDlgItem(hdlg, IDC_COMBO_MIDI_IN);
+		c = d = 0;
+		while (1) {
+			s = midi_in_device_getname(c);
+
+			if (!s[0])
+				break;
+
+			settings_midi_in_to_list[c] = d;
+
+			if (midi_in_device_available(c)) {
+				if (c == 0)
+					SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2112));
+				else {
+					mbstowcs(lptsTemp, s, strlen(s) + 1);
+					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+				}
+				settings_list_to_midi_in[d] = c;
+				d++;
+			}
+
+			c++;
+		}
+		SendMessage(h, CB_SETCURSEL, settings_midi_in_to_list[temp_midi_input_device], 0);
+
+		h = GetDlgItem(hdlg, IDC_CONFIGURE_MIDI_IN);
+		if (midi_in_device_has_config(temp_midi_input_device))
+			EnableWindow(h, TRUE);
+		else
+			EnableWindow(h, FALSE);
+		
+
 	        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
        	        SendMessage(h, BM_SETCHECK, temp_mpu401, 0);
 	        EnableWindow(h, mpu401_standalone_allow() ? TRUE : FALSE);
 
 	        h = GetDlgItem(hdlg, IDC_CONFIGURE_MPU401);
 	        EnableWindow(h, (mpu401_standalone_allow() && temp_mpu401) ? TRUE : FALSE);
+		
 
 		h=GetDlgItem(hdlg, IDC_CHECK_CMS);
 		SendMessage(h, BM_SETCHECK, temp_GAMEBLASTER, 0);
 
 		h=GetDlgItem(hdlg, IDC_CHECK_GUS);
 		SendMessage(h, BM_SETCHECK, temp_GUS, 0);
-
+		
+		h = GetDlgItem(hdlg, IDC_CONFIGURE_GUS);
+	        EnableWindow(h, (temp_GUS) ? TRUE : FALSE);
+		
 		h=GetDlgItem(hdlg, IDC_CHECK_SSI);
 		SendMessage(h, BM_SETCHECK, temp_SSI2001, 0);
-
-		h=GetDlgItem(hdlg, IDC_CHECK_NUKEDOPL);
-		SendMessage(h, BM_SETCHECK, temp_opl_type, 0);
 
 		h=GetDlgItem(hdlg, IDC_CHECK_FLOAT);
 		SendMessage(h, BM_SETCHECK, temp_float, 0);
@@ -1191,7 +1263,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                	switch (LOWORD(wParam)) {
 			case IDC_COMBO_SOUND:
 				h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
-				temp_sound_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_sound_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_SND);
 				if (sound_card_has_config(temp_sound_card))
@@ -1209,7 +1281,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDC_CONFIGURE_SND:
 				h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
-				temp_sound_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_sound_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)sound_card_getdevice(temp_sound_card));
 				break;
@@ -1239,6 +1311,31 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)midi_device_getdevice(temp_midi_device));
 				break;
 
+			case IDC_COMBO_MIDI_IN:
+				h = GetDlgItem(hdlg, IDC_COMBO_MIDI_IN);
+				temp_midi_input_device = settings_list_to_midi_in[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+				h = GetDlgItem(hdlg, IDC_CONFIGURE_MIDI_IN);
+				if (midi_in_device_has_config(temp_midi_input_device))
+					EnableWindow(h, TRUE);
+				else
+					EnableWindow(h, FALSE);
+				
+			        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
+       			        SendMessage(h, BM_SETCHECK, temp_mpu401, 0);
+			        EnableWindow(h, mpu401_standalone_allow() ? TRUE : FALSE);
+
+			        h = GetDlgItem(hdlg, IDC_CONFIGURE_MPU401);
+			        EnableWindow(h, (mpu401_standalone_allow() && temp_mpu401) ? TRUE : FALSE);
+				break;
+
+			case IDC_CONFIGURE_MIDI_IN:
+				h = GetDlgItem(hdlg, IDC_COMBO_MIDI_IN);
+				temp_midi_input_device = settings_list_to_midi_in[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)midi_in_device_getdevice(temp_midi_input_device));
+				break;
+
 			case IDC_CHECK_MPU401:
         		        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
 				temp_mpu401 = SendMessage(h, BM_GETCHECK, 0, 0);
@@ -1248,17 +1345,33 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDC_CONFIGURE_MPU401:
-				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)&mpu401_device);
+				temp_deviceconfig |= deviceconfig_open(hdlg, (machines[temp_machine].flags & MACHINE_MCA) ?
+								       (void *)&mpu401_mca_device : (void *)&mpu401_device);
+				break;
+				
+			case IDC_CHECK_GUS:
+        		        h = GetDlgItem(hdlg, IDC_CHECK_GUS);
+				temp_GUS = SendMessage(h, BM_GETCHECK, 0, 0);
+
+        		        h = GetDlgItem(hdlg, IDC_CONFIGURE_GUS);
+				EnableWindow(h, temp_GUS ? TRUE : FALSE);
+				break;
+
+			case IDC_CONFIGURE_GUS:
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)&gus_device);
 				break;
 		}
 		return FALSE;
 
 	case WM_SAVESETTINGS:
 		h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
-		temp_sound_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+		temp_sound_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 		h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
 		temp_midi_device = settings_list_to_midi[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+		h = GetDlgItem(hdlg, IDC_COMBO_MIDI_IN);
+		temp_midi_input_device = settings_list_to_midi_in[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 		h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
 		temp_mpu401 = SendMessage(h, BM_GETCHECK, 0, 0);
@@ -1272,9 +1385,6 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		h = GetDlgItem(hdlg, IDC_CHECK_SSI);
 		temp_SSI2001 = SendMessage(h, BM_GETCHECK, 0, 0);
 
-		h = GetDlgItem(hdlg, IDC_CHECK_NUKEDOPL);
-		temp_opl_type = SendMessage(h, BM_GETCHECK, 0, 0);
-
 		h = GetDlgItem(hdlg, IDC_CHECK_FLOAT);
 		temp_float = SendMessage(h, BM_GETCHECK, 0, 0);
 
@@ -1285,7 +1395,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -1293,17 +1403,17 @@ static BOOL CALLBACK
 win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h;
-    int c, d, i;
+    int c, i;
     char *s;
     LPTSTR lptsTemp;
 
     switch (message) {
 	case WM_INITDIALOG:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
 		for (i = 0; i < 3; i++) {
 			h = GetDlgItem(hdlg, IDC_COMBO_LPT1 + i);
-			c = d = 0;
+			c = 0;
 			while (1) {
 				s = lpt_device_get_name(c);
 
@@ -1317,22 +1427,18 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 				}
 
-				if (!strcmp(temp_lpt_device_names[i], lpt_device_get_internal_name(c)))
-					d = c;
-
 				c++;
 			}
-			SendMessage(h, CB_SETCURSEL, d, 0);
+			SendMessage(h, CB_SETCURSEL, temp_lpt_devices[i], 0);
+
+			h=GetDlgItem(hdlg, IDC_CHECK_PARALLEL1 + i);
+			SendMessage(h, BM_SETCHECK, temp_lpt[i], 0);
 		}
 
-		h=GetDlgItem(hdlg, IDC_CHECK_SERIAL1);
-		SendMessage(h, BM_SETCHECK, temp_serial[0], 0);
-
-		h=GetDlgItem(hdlg, IDC_CHECK_SERIAL2);
-		SendMessage(h, BM_SETCHECK, temp_serial[1], 0);
-
-		h=GetDlgItem(hdlg, IDC_CHECK_PARALLEL);
-		SendMessage(h, BM_SETCHECK, temp_lpt, 0);
+		for (i = 0; i < 2; i++) {
+			h=GetDlgItem(hdlg, IDC_CHECK_SERIAL1 + i);
+			SendMessage(h, BM_SETCHECK, temp_serial[i], 0);
+		}
 
 		free(lptsTemp);
 
@@ -1341,18 +1447,16 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_SAVESETTINGS:
 		for (i = 0; i < 3; i++) {
 			h = GetDlgItem(hdlg, IDC_COMBO_LPT1 + i);
-			c = SendMessage(h, CB_GETCURSEL, 0, 0);
-			strcpy(temp_lpt_device_names[i], lpt_device_get_internal_name(c));
+			temp_lpt_devices[i] = SendMessage(h, CB_GETCURSEL, 0, 0);
+
+			h = GetDlgItem(hdlg, IDC_CHECK_PARALLEL1 + i);
+			temp_lpt[i] = SendMessage(h, BM_GETCHECK, 0, 0);
 		}
 
-		h = GetDlgItem(hdlg, IDC_CHECK_SERIAL1);
-		temp_serial[0] = SendMessage(h, BM_GETCHECK, 0, 0);
-
-		h = GetDlgItem(hdlg, IDC_CHECK_SERIAL2);
-		temp_serial[1] = SendMessage(h, BM_GETCHECK, 0, 0);
-
-		h = GetDlgItem(hdlg, IDC_CHECK_PARALLEL);
-		temp_lpt = SendMessage(h, BM_GETCHECK, 0, 0);
+		for (i = 0; i < 2; i++) {
+			h = GetDlgItem(hdlg, IDC_CHECK_SERIAL1 + i);
+			temp_serial[i] = SendMessage(h, BM_GETCHECK, 0, 0);
+		}
 
 	default:
 		return FALSE;
@@ -1362,67 +1466,48 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 static void
-recalc_hdc_list(HWND hdlg, int machine, int use_selected_hdc)
+recalc_hdc_list(HWND hdlg)
 {
-    HWND h;
-    char *s, old_name[32];
-    int valid, c, d;
-
-    LPTSTR lptsTemp;
-
-    lptsTemp = (LPTSTR) malloc(512);
-
-    h = GetDlgItem(hdlg, IDC_COMBO_HDC);
-
-    valid = 0;
-
-    if (use_selected_hdc) {
-	c = SendMessage(h, CB_GETCURSEL, 0, 0);
-
-	if (c != -1 && hdc_names[c])
-		strncpy(old_name, hdc_names[c], sizeof(old_name) - 1);
-	else
-		strcpy(old_name, "none");
-    } else
-	strncpy(old_name, temp_hdc_name, sizeof(old_name) - 1);
+    HWND h = GetDlgItem(hdlg, IDC_COMBO_HDC);
+    int c = 0, d = 0;
+    int found_card = 0;
+    WCHAR szText[512];
 
     SendMessage(h, CB_RESETCONTENT, 0, 0);
-    c = d = 0;
+    SendMessage(h, CB_SETCURSEL, 0, 0);
+
     while (1) {
-	s = hdc_get_name(c);
-	if (s[0] == 0)
+	/* Skip "internal" if machine doesn't have it. */
+	if ((c == 1) && !(machines[temp_machine].flags & MACHINE_HDC)) {
+		c++;
+		continue;
+	}
+
+	char *s = hdc_get_name(c);
+
+	if (!s[0])
 		break;
-	if (c==1 && !(machines[temp_machine].flags&MACHINE_HDC)) {
-		/* Skip "Internal" if machine doesn't have one. */
-		c++;
-		continue;
-	}
-	if (!hdc_available(c) || !device_is_valid(hdc_get_device(c), machines[temp_machine].flags)) {
-		c++;
-		continue;
-	}
-	mbstowcs(lptsTemp, s, strlen(s) + 1);
-	SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 
-	hdc_names[d] = hdc_get_internal_name(c);
-	if (!strcmp(old_name, hdc_names[d])) {
-		SendMessage(h, CB_SETCURSEL, d, 0);
-		valid = 1;
+	if (hdc_available(c) &&
+	    device_is_valid(hdc_get_device(c), machines[temp_machine].flags)) {
+		mbstowcs(szText, s, strlen(s) + 1);
+		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) szText);
+		if (c == temp_hdc) {
+			SendMessage(h, CB_SETCURSEL, d, 0);
+			found_card = 1;
+		}
+
+		d++;
 	}
+
 	c++;
-	d++;
     }
-
-    if (!valid)
+    if (!found_card)
 	SendMessage(h, CB_SETCURSEL, 0, 0);
-
-    EnableWindow(h, d ? TRUE : FALSE);
-
-    free(lptsTemp);
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -1430,13 +1515,27 @@ static BOOL CALLBACK
 win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h;
-    int c, d, temp_hdc_type;
+    int c, d;
+    int e;
     LPTSTR lptsTemp;
+    char *stransi;
     const device_t *scsi_dev;
+    const device_t *dev;
+    char *s;
 
     switch (message) {
 	case WM_INITDIALOG:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
+		stransi = (char *) malloc(512);
+
+		/*HD controller config*/
+		recalc_hdc_list(hdlg);
+
+		h = GetDlgItem(hdlg, IDC_CONFIGURE_HDC);
+		if (hdc_has_config(temp_hdc))
+			EnableWindow(h, TRUE);
+		else
+			EnableWindow(h, FALSE);
 
 		/*SCSI config*/
 		h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
@@ -1447,7 +1546,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 			if (!s[0])
 				break;
 
-			settings_device_to_list[c] = d;			
+			settings_device_to_list[0][c] = d;			
 
 			if (scsi_card_available(c)) {
 				scsi_dev = scsi_card_getdevice(c);
@@ -1459,24 +1558,19 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 						mbstowcs(lptsTemp, s, strlen(s) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 					}
-					settings_list_to_device[d] = c;
+					settings_list_to_device[0][d] = c;
 					d++;
 				}
 			}
 
 			c++;
 		}
-		SendMessage(h, CB_SETCURSEL, settings_device_to_list[temp_scsi_card], 0);
+		SendMessage(h, CB_SETCURSEL, settings_device_to_list[0][temp_scsi_card], 0);
 
 		EnableWindow(h, d ? TRUE : FALSE);
 
 		h = GetDlgItem(hdlg, IDC_CONFIGURE_SCSI);
 		EnableWindow(h, scsi_card_has_config(temp_scsi_card) ? TRUE : FALSE);
-
-		recalc_hdc_list(hdlg, temp_machine, 0);
-
-		h = GetDlgItem(hdlg, IDC_CONFIGURE_HDC);
-		EnableWindow(h, hdc_has_config(hdc_get_from_internal_name(temp_hdc_name)) ? TRUE : FALSE);
 
 		h = GetDlgItem(hdlg, IDC_CHECK_IDE_TER);
 	        EnableWindow(h, (machines[temp_machine].flags & MACHINE_AT) ? TRUE : FALSE);
@@ -1499,43 +1593,157 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 		h=GetDlgItem(hdlg, IDC_CHECK_BUGGER);
 		SendMessage(h, BM_SETCHECK, temp_bugger, 0);
 
+		/* Populate the ISA RTC card dropdown. */
+		e = 0;
+		h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
+		for (d = 0; ; d++) {
+			s = isartc_get_name(d);
+			if (!s[0])
+				break;
+
+			settings_device_to_list[1][d] = e;	
+
+			if (d == 0) {
+				/* Translate "None". */
+				SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2112));
+			} else {
+				mbstowcs(lptsTemp, s, strlen(s) + 1);
+				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+			}
+			
+			settings_list_to_device[1][e] = d;
+			e++;
+		}
+		SendMessage(h, CB_SETCURSEL, temp_isartc, 0);
+		h = GetDlgItem(hdlg, IDC_CONFIGURE_ISARTC);
+		if (temp_isartc != 0)
+			EnableWindow(h, TRUE);
+		else
+			EnableWindow(h, FALSE);	
+		
+		/* Populate the ISA memory card dropdowns. */
+		for (c = 0; c < ISAMEM_MAX; c++) {
+			h = GetDlgItem(hdlg, IDC_COMBO_ISAMEM_1 + c);
+			for (d = 0; ; d++) {
+				s = (char *) isamem_get_internal_name(d);
+				if (s == NULL)
+					break;
+
+				if (d == 0) {
+					/* Translate "None". */
+					SendMessage(h, CB_ADDSTRING, 0,
+						    (LPARAM)win_get_string(IDS_2112));
+				} else {
+					s = (char *) isamem_get_name(d);
+					mbstowcs(lptsTemp, s, strlen(s) + 1);
+					SendMessage(h, CB_ADDSTRING, 0, (LPARAM)lptsTemp);
+				}
+			}
+			SendMessage(h, CB_SETCURSEL, temp_isamem[c], 0);
+			h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_1 + c);
+			if (temp_isamem[c] != 0)
+				EnableWindow(h, TRUE);
+			  else
+				EnableWindow(h, FALSE);
+		}
+
+		free(stransi);
 		free(lptsTemp);
 
 		return TRUE;
 
 	case WM_COMMAND:
                	switch (LOWORD(wParam)) {
-			case IDC_COMBO_HDC:
-				h = GetDlgItem(hdlg, IDC_COMBO_HDC);
-				temp_hdc_type = hdc_get_from_internal_name(hdc_names[SendMessage(h, CB_GETCURSEL, 0, 0)]);
+			case IDC_CONFIGURE_HDC:
+				lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
+				stransi = (char *) malloc(512);
 
-				h = GetDlgItem(hdlg, IDC_CONFIGURE_HDC);
-				EnableWindow(h, hdc_has_config(temp_hdc_type) ? TRUE : FALSE);
+				h = GetDlgItem(hdlg, IDC_COMBO_HDC);
+	                        SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
+				wcstombs(stransi, lptsTemp, 512);
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)hdc_get_device(hdc_get_id(stransi)));
+
+				free(stransi);
+				free(lptsTemp);
 				break;
 
-			case IDC_CONFIGURE_HDC:
-				h = GetDlgItem(hdlg, IDC_COMBO_HDC);
-				temp_hdc_type = hdc_get_from_internal_name(hdc_names[SendMessage(h, CB_GETCURSEL, 0, 0)]);
+			case IDC_COMBO_HDC:
+				lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
+				stransi = (char *) malloc(512);
 
-				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)hdc_get_device(temp_hdc_type));
+	                        h = GetDlgItem(hdlg, IDC_COMBO_HDC);
+	                        SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
+				wcstombs(stransi, lptsTemp, 512);
+	                        temp_hdc = hdc_get_id(stransi);
+
+				h = GetDlgItem(hdlg, IDC_CONFIGURE_HDC);
+				if (hdc_has_config(temp_hdc))
+					EnableWindow(h, TRUE);
+				else
+					EnableWindow(h, FALSE);
+
+				free(stransi);
+				free(lptsTemp);
 				break;
 
 			case IDC_CONFIGURE_SCSI:
 				h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
-				temp_scsi_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_scsi_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)scsi_card_getdevice(temp_scsi_card));
 				break;
 
 			case IDC_COMBO_SCSI:
 				h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
-				temp_scsi_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_scsi_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 				h = GetDlgItem(hdlg, IDC_CONFIGURE_SCSI);
 				if (scsi_card_has_config(temp_scsi_card))
 					EnableWindow(h, TRUE);
 				else
 					EnableWindow(h, FALSE);
+				break;
+
+			case IDC_CONFIGURE_ISARTC:
+				h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
+				temp_isartc = settings_list_to_device[1][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isartc_get_device(temp_isartc));
+				break;				
+
+			case IDC_COMBO_ISARTC:
+				h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
+				temp_isartc = settings_list_to_device[1][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISARTC);
+				if (temp_isartc != 0)
+					EnableWindow(h, TRUE);
+				else
+					EnableWindow(h, FALSE);
+				break;				
+
+			case IDC_COMBO_ISAMEM_1:
+			case IDC_COMBO_ISAMEM_2:
+			case IDC_COMBO_ISAMEM_3:
+			case IDC_COMBO_ISAMEM_4:
+				c = LOWORD(wParam) - IDC_COMBO_ISAMEM_1;
+				h = GetDlgItem(hdlg, LOWORD(wParam));
+				temp_isamem[c] = SendMessage(h, CB_GETCURSEL, 0, 0);
+
+				h = GetDlgItem(hdlg, IDC_CONFIGURE_ISAMEM_1 + c);
+				if (temp_isamem[c] != 0)
+					EnableWindow(h, TRUE);
+				else
+					EnableWindow(h, FALSE);
+				break;
+
+			case IDC_CONFIGURE_ISAMEM_1:
+			case IDC_CONFIGURE_ISAMEM_2:
+			case IDC_CONFIGURE_ISAMEM_3:
+			case IDC_CONFIGURE_ISAMEM_4:
+				c = LOWORD(wParam) - IDC_CONFIGURE_ISAMEM_1;
+				dev = isamem_get_device(temp_isamem[c]);
+				temp_deviceconfig |= deviceconfig_inst_open(hdlg, (void *)dev, c + 1);
 				break;
 
 			case IDC_CHECK_IDE_TER:
@@ -1565,15 +1773,19 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 		return FALSE;
 
 	case WM_SAVESETTINGS:
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
+		stransi = (char *) malloc(512);
+
 		h = GetDlgItem(hdlg, IDC_COMBO_HDC);
-		c = SendMessage(h, CB_GETCURSEL, 0, 0);
-		if (hdc_names[c])
-			strncpy(temp_hdc_name, hdc_names[c], sizeof(temp_hdc_name) - 1);
-		else
-			strcpy(temp_hdc_name, "none");
+		SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
+		wcstombs(stransi, lptsTemp, 512);
+		temp_hdc = hdc_get_id(stransi);
 
 		h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
-		temp_scsi_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+		temp_scsi_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+		h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
+		temp_isartc = settings_list_to_device[1][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
                 h = GetDlgItem(hdlg, IDC_CHECK_IDE_TER);
 		temp_ide_ter = SendMessage(h, BM_GETCHECK, 0, 0);
@@ -1583,6 +1795,9 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 		h = GetDlgItem(hdlg, IDC_CHECK_BUGGER);
 		temp_bugger = SendMessage(h, BM_GETCHECK, 0, 0);
+
+		free(stransi);
+		free(lptsTemp);
 
 	default:
 		return FALSE;
@@ -1624,7 +1839,7 @@ static void network_recalc_combos(HWND hdlg)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -1638,7 +1853,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message) {
 	case WM_INITDIALOG:
-		lptsTemp = (LPTSTR) malloc(512);
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
 		h = GetDlgItem(hdlg, IDC_COMBO_NET_TYPE);
 		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) L"None");
@@ -1668,7 +1883,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			if (s[0] == '\0')
 				break;
 
-			settings_device_to_list[c] = d;
+			settings_device_to_list[0][c] = d;
 
 			if (network_card_available(c) && device_is_valid(network_card_getdevice(c), machines[temp_machine].flags)) {
 				if (c == 0)
@@ -1677,14 +1892,14 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					mbstowcs(lptsTemp, s, strlen(s) + 1);
 					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 				}
-				settings_list_to_device[d] = c;
+				settings_list_to_device[0][d] = c;
 				d++;
 			}
 
 			c++;
 		}
 
-		SendMessage(h, CB_SETCURSEL, settings_device_to_list[temp_net_card], 0);
+		SendMessage(h, CB_SETCURSEL, settings_device_to_list[0][temp_net_card], 0);
 		EnableWindow(h, d ? TRUE : FALSE);
 		network_recalc_combos(hdlg);
 		free(lptsTemp);
@@ -1719,7 +1934,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					return FALSE;
 
 				h = GetDlgItem(hdlg, IDC_COMBO_NET);
-				temp_net_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_net_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 				network_recalc_combos(hdlg);
 				break;
@@ -1729,7 +1944,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					return FALSE;
 
 				h = GetDlgItem(hdlg, IDC_COMBO_NET);
-				temp_net_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+				temp_net_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)network_card_getdevice(temp_net_card));
 				break;
@@ -1745,7 +1960,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		strcpy(temp_pcap_dev, network_devs[SendMessage(h, CB_GETCURSEL, 0, 0)].device);
 
 		h = GetDlgItem(hdlg, IDC_COMBO_NET);
-		temp_net_card = settings_list_to_device[SendMessage(h, CB_GETCURSEL, 0, 0)];
+		temp_net_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 	default:
 		return FALSE;
@@ -1803,7 +2018,7 @@ add_locations(HWND hdlg)
     HWND h;
     int i = 0;
 
-    lptsTemp = (LPTSTR) malloc(512);
+    lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_COMBO_HD_BUS);
     for (i = 0; i < 5; i++)
@@ -1964,7 +2179,7 @@ recalc_location_controls(HWND hdlg, int is_add_dlg, int assign_id)
 			EnableWindow(h, TRUE);
 
 			if (assign_id)
-				next_free_scsi_id((uint8_t *) is_add_dlg ? &new_hdd.scsi_id : &temp_hdd[lv1_current_sel].scsi_id);
+				next_free_scsi_id((uint8_t *) (is_add_dlg ? &(new_hdd.scsi_id) : &(temp_hdd[lv1_current_sel].scsi_id)));
 
 			h = GetDlgItem(hdlg, IDC_COMBO_HD_ID);
 			ShowWindow(h, SW_SHOW);
@@ -2352,7 +2567,7 @@ recalc_selection(HWND hdlg)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
@@ -2371,6 +2586,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
     uint8_t id = 0;
     wchar_t *twcs;
     vhd_footer_t *vft = NULL;
+    MSG msg;
 
     switch (message) {
 	case WM_INITDIALOG:
@@ -2528,7 +2744,8 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 						fwrite(&zero, 1, 4, f);			/* 00000004: [Translation] Heads per cylinder */
 					}
 
-					memset(buf, 0, 512);
+					big_buf = (char *) malloc(1048576);
+					memset(big_buf, 0, 1048576);
 
 					temp_size = size;
 
@@ -2559,19 +2776,23 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 						ShowWindow(h, SW_SHOW);
 					}
 
+					h = GetDlgItem(hdlg, IDC_PBAR_IMG_CREATE);
+
 					if (size) {
-						fwrite(buf, 1, size, f);
+						fwrite(big_buf, 1, size, f);
 						SendMessage(h, PBM_SETPOS, (WPARAM) 1, (LPARAM) 0);
 					}
 
 					if (r) {
-						big_buf = (char *) malloc(1048576);
-						memset(big_buf, 0, 1048576);
 						for (i = 0; i < r; i++) {
 							fwrite(big_buf, 1, 1048576, f);
 							SendMessage(h, PBM_SETPOS, (WPARAM) (size + 1), (LPARAM) 0);
+
+							while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+								TranslateMessage(&msg); 
+								DispatchMessage(&msg);
+							}
 						}
-						free(big_buf);
 					}
 
 					if (image_is_vhd(hd_file_name, 0)) {
@@ -2583,13 +2804,13 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 						vft->geom.heads = hpc;
 						vft->geom.spt = spt;
 						generate_vhd_checksum(vft);
-						memset(buf, 0, 512);
-						vhd_footer_to_bytes((uint8_t *) buf, vft);
-						fwrite(buf, 1, 512, f);
-						memset(buf, 0, 512);
+						vhd_footer_to_bytes((uint8_t *) big_buf, vft);
+						fwrite(big_buf, 1, 512, f);
 						free(vft);
 						vft = NULL;
 					}
+
+					free(big_buf);
 
 					fclose(f);
 					settings_msgbox(MBX_INFO, (wchar_t *)IDS_4113);	                        
@@ -2726,15 +2947,15 @@ hdd_add_file_open_error:
 				get_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, &temp);
 				if (tracks != (int64_t) temp) {
 					tracks = temp;
-					size = (tracks * hpc * spt) << 9LL;
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (tracks > max_tracks) {
 					tracks = max_tracks;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, tracks);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, (uint32_t) tracks);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
@@ -2750,15 +2971,15 @@ hdd_add_file_open_error:
 				get_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, &temp);
 				if (hpc != (int64_t) temp) {
 					hpc = temp;
-					size = (tracks * hpc * spt) << 9LL;
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (hpc > max_hpc) {
 					hpc = max_hpc;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, (uint32_t) hpc);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
@@ -2774,14 +2995,14 @@ hdd_add_file_open_error:
 				get_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, &temp);
 				if (spt != (int64_t) temp) {
 					spt = temp;
-					size = (tracks * hpc * spt) << 9LL;
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (spt > max_spt) {
 					spt = max_spt;
-					size = (tracks * hpc * spt) << 9LL;
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
@@ -2800,32 +3021,32 @@ hdd_add_file_open_error:
 					size = ((uint64_t) temp) << 20LL;
 					/* This is needed to ensure VHD standard compliance. */
 					hdd_image_calc_chs((uint32_t *) &tracks, (uint32_t *) &hpc, (uint32_t *) &spt, temp);
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, tracks);
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, (uint32_t) tracks);
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, (uint32_t) hpc);
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, (uint32_t) spt);
 					recalc_selection(hdlg);
 				}
 
 				if (tracks > max_tracks) {
 					tracks = max_tracks;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, tracks);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, (uint32_t) tracks);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (hpc > max_hpc) {
 					hpc = max_hpc;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, (uint32_t) hpc);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (spt > max_spt) {
 					spt = max_spt;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, (uint32_t) spt);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
@@ -2844,10 +3065,10 @@ hdd_add_file_open_error:
 					tracks = hdd_table[selection][0];
 					hpc = hdd_table[selection][1];
 					spt = hdd_table[selection][2];
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, tracks);
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, (uint32_t) tracks);
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, (uint32_t) hpc);
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, (uint32_t) spt);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 				} else if ((temp != selection) && (temp == 127))
 					selection = temp;
@@ -2855,32 +3076,32 @@ hdd_add_file_open_error:
 					selection = temp;
 					hpc = 16;
 					spt = 63;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, (uint32_t) hpc);
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, (uint32_t) spt);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 				}
 
 				if (spt > max_spt) {
 					spt = max_spt;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, (uint32_t) spt);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (hpc > max_hpc) {
 					hpc = max_hpc;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, (uint32_t) hpc);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (tracks > max_tracks) {
 					tracks = max_tracks;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, tracks);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, (uint32_t) tracks);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
@@ -2907,15 +3128,19 @@ hdd_add_file_open_error:
 						max_spt = max_hpc = max_tracks = 0;
 						break;
 					case HDD_BUS_MFM:
-						max_spt = 17;
+						max_spt = 26;	/* 17 for MFM, 26 for RLL. */
 						max_hpc = 15;
 						max_tracks = 1023;
 						break;
-					case HDD_BUS_ESDI:
 					case HDD_BUS_XTA:
 						max_spt = 63;
 						max_hpc = 16;
 						max_tracks = 1023;
+						break;
+					case HDD_BUS_ESDI:
+						max_spt = 99;	/* ESDI drives usually had 32 to 43 sectors per track. */
+						max_hpc = 16;
+						max_tracks = 266305;
 						break;
 					case HDD_BUS_IDE:
 						max_spt = 63;
@@ -2944,24 +3169,24 @@ hdd_add_file_open_error:
 
 				if (spt > max_spt) {
 					spt = max_spt;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, spt);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, (uint32_t) spt);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (hpc > max_hpc) {
 					hpc = max_hpc;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, hpc);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, (uint32_t) hpc);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
 
 				if (tracks > max_tracks) {
 					tracks = max_tracks;
-					size = (tracks * hpc * spt) << 9LL;
-					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, tracks);
+					size = ((uint64_t) tracks * (uint64_t) hpc * (uint64_t) spt) << 9LL;
+					set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, (uint32_t) tracks);
 					set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20));
 					recalc_selection(hdlg);
 				}
@@ -3050,14 +3275,14 @@ hard_disk_track_all(void)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
 win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    HWND h;
+    HWND h = NULL;
     int old_sel = 0, b = 0, assign = 0;
     const uint8_t hd_icons[2] = { 64, 0 };
 
@@ -3195,7 +3420,7 @@ hd_bus_skip:
 				return FALSE;
 
 			case IDC_BUTTON_HDD_REMOVE:
-				memcpy(temp_hdd[lv1_current_sel].fn, L"", 4);
+				memcpy(temp_hdd[lv1_current_sel].fn, L"", sizeof(L""));
 				hard_disk_untrack(lv1_current_sel);
 				temp_hdd[lv1_current_sel].bus = HDD_BUS_DISABLED;	/* Only set the bus to zero, the list normalize code below will take care of turning this entire entry to a complete zero. */
 				normalize_hd_list();			/* Normalize the hard disks so that non-disabled hard disks start from index 0, and so they are contiguous. */
@@ -3294,22 +3519,22 @@ win_settings_cdrom_drives_recalc_list(HWND hwndList)
    lvI.stateMask = lvI.iSubItem = lvI.state = 0;
 
     for (i = 0; i < 4; i++) {
-	fsid = combo_id_to_format_string_id(temp_cdrom_drives[i].bus_type);
+	fsid = combo_id_to_format_string_id(temp_cdrom[i].bus_type);
 
 	lvI.iSubItem = 0;
-	switch (temp_cdrom_drives[i].bus_type) {
+	switch (temp_cdrom[i].bus_type) {
 		case CDROM_BUS_DISABLED:
 		default:
 			lvI.pszText = plat_get_string(fsid);
 			lvI.iImage = 0;
 			break;
 		case CDROM_BUS_ATAPI:
-			wsprintf(szText, plat_get_string(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
+			wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].ide_channel >> 1, temp_cdrom[i].ide_channel & 1);
 			lvI.pszText = szText;
 			lvI.iImage = 1;
 			break;
 		case CDROM_BUS_SCSI:
-			wsprintf(szText, plat_get_string(fsid), temp_cdrom_drives[i].scsi_device_id);
+			wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].scsi_device_id);
 			lvI.pszText = szText;
 			lvI.iImage = 1;
 			break;
@@ -3321,10 +3546,10 @@ win_settings_cdrom_drives_recalc_list(HWND hwndList)
 		return FALSE;
 
 	lvI.iSubItem = 1;
-	if (temp_cdrom_drives[i].bus_type == CDROM_BUS_DISABLED)
+	if (temp_cdrom[i].bus_type == CDROM_BUS_DISABLED)
 		lvI.pszText = plat_get_string(IDS_2112);
 	else {
-		wsprintf(szText, L"%ix", temp_cdrom_drives[i].speed);
+		wsprintf(szText, L"%ix", temp_cdrom[i].speed);
 		lvI.pszText = szText;
 	}
 	lvI.iItem = i;
@@ -3557,21 +3782,21 @@ win_settings_cdrom_drives_update_item(HWND hwndList, int i)
     lvI.iSubItem = 0;
     lvI.iItem = i;
 
-    fsid = combo_id_to_format_string_id(temp_cdrom_drives[i].bus_type);
+    fsid = combo_id_to_format_string_id(temp_cdrom[i].bus_type);
 
-    switch (temp_cdrom_drives[i].bus_type) {
+    switch (temp_cdrom[i].bus_type) {
 	case CDROM_BUS_DISABLED:
 	default:
 		lvI.pszText = plat_get_string(fsid);
 		lvI.iImage = 0;
 		break;
 	case CDROM_BUS_ATAPI:
-		wsprintf(szText, plat_get_string(fsid), temp_cdrom_drives[i].ide_channel >> 1, temp_cdrom_drives[i].ide_channel & 1);
+		wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].ide_channel >> 1, temp_cdrom[i].ide_channel & 1);
 		lvI.pszText = szText;
 		lvI.iImage = 1;
 		break;
 	case CDROM_BUS_SCSI:
-		wsprintf(szText, plat_get_string(fsid), temp_cdrom_drives[i].scsi_device_id);
+		wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].scsi_device_id);
 		lvI.pszText = szText;
 		lvI.iImage = 1;
 		break;
@@ -3581,10 +3806,10 @@ win_settings_cdrom_drives_update_item(HWND hwndList, int i)
 	return;
 
     lvI.iSubItem = 1;
-    if (temp_cdrom_drives[i].bus_type == CDROM_BUS_DISABLED)
+    if (temp_cdrom[i].bus_type == CDROM_BUS_DISABLED)
 	lvI.pszText = plat_get_string(IDS_2112);
     else {
-	wsprintf(szText, L"%ix", temp_cdrom_drives[i].speed);
+	wsprintf(szText, L"%ix", temp_cdrom[i].speed);
 	lvI.pszText = szText;
     }
     lvI.iItem = i;
@@ -3648,7 +3873,7 @@ cdrom_add_locations(HWND hdlg)
     HWND h;
     int i = 0;
 
-    lptsTemp = (LPTSTR) malloc(512);
+    lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
     for (i = CDROM_BUS_DISABLED; i <= CDROM_BUS_SCSI; i++) {
@@ -3683,7 +3908,7 @@ static void cdrom_recalc_location_controls(HWND hdlg, int assign_id)
     int i = 0;
     HWND h;
 
-    int bus = temp_cdrom_drives[lv1_current_sel].bus_type;
+    int bus = temp_cdrom[lv1_current_sel].bus_type;
 
     for (i = IDT_1741; i < (IDT_1742 + 1); i++) {
 	h = GetDlgItem(hdlg, i);
@@ -3706,7 +3931,7 @@ static void cdrom_recalc_location_controls(HWND hdlg, int assign_id)
     } else {
 	ShowWindow(h, SW_SHOW);
 	EnableWindow(h, TRUE);
-	SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[lv1_current_sel].speed - 1, 0);
+	SendMessage(h, CB_SETCURSEL, temp_cdrom[lv1_current_sel].speed - 1, 0);
     }
 
     h = GetDlgItem(hdlg, IDT_1758);
@@ -3725,12 +3950,12 @@ static void cdrom_recalc_location_controls(HWND hdlg, int assign_id)
 		EnableWindow(h, TRUE);
 
 		if (assign_id)
-			temp_cdrom_drives[lv1_current_sel].ide_channel = next_free_ide_channel();
+			temp_cdrom[lv1_current_sel].ide_channel = next_free_ide_channel();
 
 		h = GetDlgItem(hdlg, IDC_COMBO_CD_CHANNEL_IDE);
 		ShowWindow(h, SW_SHOW);
 		EnableWindow(h, TRUE);
-		SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[lv1_current_sel].ide_channel, 0);
+		SendMessage(h, CB_SETCURSEL, temp_cdrom[lv1_current_sel].ide_channel, 0);
 		break;
 	case CDROM_BUS_SCSI:		/* SCSI */
 		h = GetDlgItem(hdlg, IDT_1741);
@@ -3738,12 +3963,12 @@ static void cdrom_recalc_location_controls(HWND hdlg, int assign_id)
 		EnableWindow(h, TRUE);
 
 		if (assign_id)
-			next_free_scsi_id((uint8_t *) &temp_cdrom_drives[lv1_current_sel].scsi_device_id);
+			next_free_scsi_id((uint8_t *) &temp_cdrom[lv1_current_sel].scsi_device_id);
 
 		h = GetDlgItem(hdlg, IDC_COMBO_CD_ID);
 		ShowWindow(h, SW_SHOW);
 		EnableWindow(h, TRUE);
-		SendMessage(h, CB_SETCURSEL, temp_cdrom_drives[lv1_current_sel].scsi_device_id, 0);
+		SendMessage(h, CB_SETCURSEL, temp_cdrom[lv1_current_sel].scsi_device_id, 0);
 		break;
     }
 }
@@ -3756,7 +3981,7 @@ zip_add_locations(HWND hdlg)
     HWND h;
     int i = 0;
 
-    lptsTemp = (LPTSTR) malloc(512);
+    lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_COMBO_ZIP_BUS);
     for (i = ZIP_BUS_DISABLED; i <= ZIP_BUS_SCSI; i++) {
@@ -3846,20 +4071,20 @@ zip_recalc_location_controls(HWND hdlg, int assign_id)
 static void
 cdrom_track(uint8_t id)
 {
-    if (temp_cdrom_drives[id].bus_type == CDROM_BUS_ATAPI)
-	ide_tracking |= (2 << (temp_cdrom_drives[id].ide_channel << 3));
-    else if (temp_cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
-	scsi_tracking[temp_cdrom_drives[id].scsi_device_id >> 3] |= (1 << (temp_cdrom_drives[id].scsi_device_id & 0x07));
+    if (temp_cdrom[id].bus_type == CDROM_BUS_ATAPI)
+	ide_tracking |= (2 << (temp_cdrom[id].ide_channel << 3));
+    else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI)
+	scsi_tracking[temp_cdrom[id].scsi_device_id >> 3] |= (1 << (temp_cdrom[id].scsi_device_id & 0x07));
 }
 
 
 static void
 cdrom_untrack(uint8_t id)
 {
-    if (temp_cdrom_drives[id].bus_type == CDROM_BUS_ATAPI)
-	ide_tracking &= ~(2 << (temp_cdrom_drives[id].ide_channel << 3));
-    else if (temp_cdrom_drives[id].bus_type == CDROM_BUS_SCSI)
-	scsi_tracking[temp_cdrom_drives[id].scsi_device_id >> 3] &= ~(1 << (temp_cdrom_drives[id].scsi_device_id & 0x07));
+    if (temp_cdrom[id].bus_type == CDROM_BUS_ATAPI)
+	ide_tracking &= ~(2 << (temp_cdrom[id].ide_channel << 3));
+    else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI)
+	scsi_tracking[temp_cdrom[id].scsi_device_id >> 3] &= ~(1 << (temp_cdrom[id].scsi_device_id & 0x07));
 }
 
 
@@ -3883,14 +4108,14 @@ zip_untrack(uint8_t id)
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
 win_settings_floppy_drives_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    HWND h;
+    HWND h = NULL;
     int i = 0, old_sel = 0;
     WCHAR szText[256];
     const uint8_t fd_icons[15] = { 248, 16, 16, 16, 16, 16, 16, 24, 24, 24, 24, 24, 24, 24, 0 };
@@ -3989,14 +4214,14 @@ win_settings_floppy_drives_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM l
 }
 
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
 win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    HWND h;
+    HWND h = NULL;
     int old_sel = 0, b = 0, assign = 0;
     uint32_t b2 = 0;
     const uint8_t cd_icons[3] = { 249, 32, 0 };
@@ -4016,7 +4241,7 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 
 		h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
 
-		switch (temp_cdrom_drives[lv1_current_sel].bus_type) {
+		switch (temp_cdrom[lv1_current_sel].bus_type) {
 			case CDROM_BUS_DISABLED:
 			default:
 				b = 0;
@@ -4083,7 +4308,7 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 
 			h = GetDlgItem(hdlg, IDC_COMBO_CD_BUS);
 
-			switch (temp_cdrom_drives[lv1_current_sel].bus_type) {
+			switch (temp_cdrom[lv1_current_sel].bus_type) {
 				case CDROM_BUS_DISABLED:
 				default:
 					b = 0;
@@ -4157,13 +4382,13 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 						b2 = CDROM_BUS_SCSI;
 						break;
 				}
-				if (b2 == temp_cdrom_drives[lv1_current_sel].bus_type)
+				if (b2 == temp_cdrom[lv1_current_sel].bus_type)
 					break;
 				cdrom_untrack(lv1_current_sel);
-				assign = (temp_cdrom_drives[lv1_current_sel].bus_type == b2) ? 0 : 1;
-				if (temp_cdrom_drives[lv1_current_sel].bus_type == CDROM_BUS_DISABLED)
-					temp_cdrom_drives[lv1_current_sel].speed = 8;
-				temp_cdrom_drives[lv1_current_sel].bus_type = b2;
+				assign = (temp_cdrom[lv1_current_sel].bus_type == b2) ? 0 : 1;
+				if (temp_cdrom[lv1_current_sel].bus_type == CDROM_BUS_DISABLED)
+					temp_cdrom[lv1_current_sel].speed = 8;
+				temp_cdrom[lv1_current_sel].bus_type = b2;
 				cdrom_recalc_location_controls(hdlg, assign);
 				cdrom_track(lv1_current_sel);
 				h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
@@ -4173,7 +4398,7 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 			case IDC_COMBO_CD_ID:
 				h = GetDlgItem(hdlg, IDC_COMBO_CD_ID);
 				cdrom_untrack(lv1_current_sel);
-				temp_cdrom_drives[lv1_current_sel].scsi_device_id = SendMessage(h, CB_GETCURSEL, 0, 0);
+				temp_cdrom[lv1_current_sel].scsi_device_id = SendMessage(h, CB_GETCURSEL, 0, 0);
 				cdrom_track(lv1_current_sel);
 				h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
 				win_settings_cdrom_drives_update_item(h, lv1_current_sel);
@@ -4182,7 +4407,7 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 			case IDC_COMBO_CD_CHANNEL_IDE:
 				h = GetDlgItem(hdlg, IDC_COMBO_CD_CHANNEL_IDE);
 				cdrom_untrack(lv1_current_sel);
-				temp_cdrom_drives[lv1_current_sel].ide_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
+				temp_cdrom[lv1_current_sel].ide_channel = SendMessage(h, CB_GETCURSEL, 0, 0);
 				cdrom_track(lv1_current_sel);
 				h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
 				win_settings_cdrom_drives_update_item(h, lv1_current_sel);
@@ -4190,7 +4415,7 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 
 			case IDC_COMBO_CD_SPEED:
 				h = GetDlgItem(hdlg, IDC_COMBO_CD_SPEED);
-				temp_cdrom_drives[lv1_current_sel].speed = SendMessage(h, CB_GETCURSEL, 0, 0) + 1;
+				temp_cdrom[lv1_current_sel].speed = SendMessage(h, CB_GETCURSEL, 0, 0) + 1;
 				h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
 				win_settings_cdrom_drives_update_item(h, lv1_current_sel);
 				break;
@@ -4328,14 +4553,40 @@ win_settings_main_insert_categories(HWND hwndList)
 }
 
 
-#ifdef __amd64__
+
+#if defined(__amd64__) || defined(__aarch64__)
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_confirm(HWND hdlg, int button)
+{
+    int i;
+
+    SendMessage(hwndChildDialog, WM_SAVESETTINGS, 0, 0);
+    i = settings_msgbox_reset();
+    if (i > 0) {
+	if (i == 2)
+		win_settings_save();
+
+	DestroyWindow(hwndChildDialog);
+	EndDialog(hdlg, 0);
+	win_notify_dlg_closed();
+
+	return button ? TRUE : FALSE;
+    } else
+	return button ? FALSE : TRUE;
+}
+
+
+#if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
 win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    HWND h;
+    HWND h = NULL;
     int category, i = 0, j = 0;
     const uint8_t cat_icons[11] = { 240, 241, 242, 243, 80, 244, 245, 64, 246, 247, 0 };
 
@@ -4343,13 +4594,12 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message) {
 	case WM_INITDIALOG:
-		plat_pause(1);
 		win_settings_init();
 		displayed_category = -1;
 		h = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
 		image_list_init(h, (const uint8_t *) cat_icons);
 		win_settings_main_insert_categories(h);
-		ListView_SetItemState(h, 0, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
+		ListView_SetItemState(h, first_cat, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
 		return TRUE;
 	case WM_NOTIFY:
 		if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_SETTINGSCATLIST)) {
@@ -4364,25 +4614,16 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				win_settings_show_child(hdlg, category);
 		}
 		break;
+	case WM_CLOSE:
+		return win_settings_confirm(hdlg, 0);
 	case WM_COMMAND:
                	switch (LOWORD(wParam)) {
 			case IDOK:
-				SendMessage(hwndChildDialog, WM_SAVESETTINGS, 0, 0);
-				i = settings_msgbox_reset();
-				if (i > 0) {
-					if (i == 2)
-						win_settings_save();
-
-					DestroyWindow(hwndChildDialog);
-                                        EndDialog(hdlg, 0);
-       	                                plat_pause(0);
-                                        return TRUE;
-				} else
-					return FALSE;
+				return win_settings_confirm(hdlg, 1);
 			case IDCANCEL:
 				DestroyWindow(hwndChildDialog);
                		        EndDialog(hdlg, 0);
-       	                	plat_pause(0);
+				win_notify_dlg_closed();
 	                        return TRUE;
 		}
 		break;
@@ -4395,7 +4636,17 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 void
+win_settings_open_ex(HWND hwnd, int category)
+{
+    win_notify_dlg_open();
+
+    first_cat = category;
+    DialogBox(hinstance, (LPCWSTR)DLG_CONFIG, hwnd, win_settings_main_proc);
+}
+
+
+void
 win_settings_open(HWND hwnd)
 {
-    DialogBox(hinstance, (LPCWSTR)DLG_CONFIG, hwnd, win_settings_main_proc);
+    win_settings_open_ex(hwnd, SETTINGS_PAGE_MACHINE);
 }

@@ -33,7 +33,7 @@
 #ifndef _TCP_H_
 #define _TCP_H_
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 typedef	uintptr_t	tcp_seq;
 #else
 typedef	u_int32_t	tcp_seq;

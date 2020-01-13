@@ -18,6 +18,7 @@
  *		of the real hardware, testing of drivers, and the old code.
  *
  *		Logitech Bus Mouse verified with:
+ *		  Linux Slackware 3.0
  *		  Logitech LMouse.com 3.12
  *		  Logitech LMouse.com 3.30
  *		  Logitech LMouse.com 3.41
@@ -40,25 +41,30 @@
  *		  Logitech Mouse.exe 6.50
  *		  Microsoft Mouse.com 2.00
  *		  Microsoft Mouse.sys 3.00
+ *		  Microsoft Mouse.com 7.04
+ *		  Microsoft Mouse.com 8.21J
  *		  Microsoft Windows 1.00 DR5
  *		  Microsoft Windows 3.10.026
+ *		  Microsoft Windows 3.10.068 both MOUSE.DRV and LMOUSE.DRV
  *		  Microsoft Windows NT 3.1
  *		  Microsoft Windows 95
  *
  *		InPort verified with:
+ *		  Linux Slackware 3.0
  *		  Logitech LMouse.com 6.12
  *		  Logitech LMouse.com 6.41
+ *		  Microsoft Windows 3.10.068 both MOUSE.DRV and LMOUSE.DRV
  *		  Microsoft Windows NT 3.1
  *		  Microsoft Windows 98 SE
  *
- * Version:	@(#)mouse_bus.c	1.0.0	2018/05/23
+ * Version:	@(#)mouse_bus.c	1.0.4	2019/09/27
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 200?-2018 Bochs.
- *		Copyright 2017,2018 Miran Grca.
- *		Copyright 1989-2018 Fred N. van Kempen.
+ *		Copyright 200?-2019 Bochs.
+ *		Copyright 2017-2019 Miran Grca.
+ *		Copyright 1989-2019 Fred N. van Kempen.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -69,7 +75,6 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "config.h"
 #include "io.h"
 #include "pic.h"
 #include "timer.h"
@@ -123,44 +128,45 @@
 #define FLAG_TIMER_INT	(1 << 3)
 #define FLAG_DATA_INT	(1 << 4)
 
-static const double periods[4] = { 30.0, 50.0, 100.0, 200.0 };
+static const uint8_t periods[4] = { 30, 50, 100, 200 };
 
 
 /* Our mouse device. */
 typedef struct mouse {
+    uint8_t	current_b, control_val,
+		config_val, sig_val,
+		command_val, pad;
+
+    int8_t	current_x, current_y;
+
     int		base, irq, bn, flags,
 		mouse_delayed_dx, mouse_delayed_dy,
-		mouse_buttons,
-		current_x, current_y,
-		current_b,
-		control_val, mouse_buttons_last,
-		config_val, sig_val,
-		command_val, toggle_counter;
+		mouse_buttons, mouse_buttons_last,
+		toggle_counter, timer_enabled;
 
     double	period;
-
-    int64_t	timer_enabled, timer;			/* mouse event timer */
+    pc_timer_t	timer;			/* mouse event timer */
 } mouse_t;
 
 
 #ifdef ENABLE_MOUSE_BUS_LOG
 int bm_do_log = ENABLE_MOUSE_BUS_LOG;
-#endif
 
 
 static void
-bm_log(const char *format, ...)
+bm_log(const char *fmt, ...)
 {
-#ifdef ENABLE_MOUSE_BUS_LOG
     va_list ap;
 
     if (bm_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define bm_log(fmt, ...)
+#endif
 
 
 /* Handle a READ operation from one of our registers. */
@@ -177,15 +183,19 @@ lt_read(uint16_t port, void *priv)
 		switch (dev->control_val & 0x60) {
 			case READ_X_LOW:
 				value = dev->current_x & 0x0F;
+				dev->current_x &= ~0x0F;
 				break;
 			case READ_X_HIGH:
 				value = (dev->current_x >> 4) & 0x0F;
+				dev->current_x &= ~0xF0;
 				break;
 			case READ_Y_LOW:
 				value = dev->current_y & 0x0F;
+				dev->current_y &= ~0x0F;
 				break;
 			case READ_Y_HIGH:
 				value = (dev->current_y >> 4) & 0x0F;
+				dev->current_y &= ~0xF0;
 				break;
 			default:
 				bm_log("ERROR: Reading data port in unsupported mode 0x%02x\n", dev->control_val);
@@ -198,7 +208,6 @@ lt_read(uint16_t port, void *priv)
 	case BUSM_PORT_CONTROL:
 		value = dev->control_val;
 		dev->control_val |= 0x0F;
-
 		/* If the conditions are right, simulate the flakiness of the correct IRQ bit. */
 		if (dev->flags & FLAG_TIMER_INT)
 			dev->control_val = (dev->control_val & ~IRQ_MASK) | (random_generate() & IRQ_MASK);
@@ -232,13 +241,15 @@ ms_read(uint16_t port, void *priv)
 	case INP_PORT_DATA:
 		switch (dev->command_val) {
 			case INP_CTRL_READ_BUTTONS:
-				value = dev->current_b | 0x80;
+				value = dev->current_b;
 				break;
 			case INP_CTRL_READ_X:
 				value = dev->current_x;
+				dev->current_x = 0;
 				break;
 			case INP_CTRL_READ_Y:
 				value = dev->current_y;
+				dev->current_y = 0;
 				break;
 			case INP_CTRL_COMMAND:
 				value = dev->control_val;
@@ -270,6 +281,7 @@ static void
 lt_write(uint16_t port, uint8_t val, void *priv)
 {
     mouse_t *dev = (mouse_t *)priv;
+    uint8_t bit;
 
     bm_log("DEBUG: write  to address 0x%04x, value = 0x%02x\n", port, val);
 
@@ -293,7 +305,8 @@ lt_write(uint16_t port, uint8_t val, void *priv)
 		else
 			dev->flags &= ~FLAG_HOLD;
 
-		picintc(1 << dev->irq);
+		if (dev->irq != -1)
+			picintc(1 << dev->irq);
 
 		break;
 	case BUSM_PORT_CONFIG:
@@ -307,6 +320,8 @@ lt_write(uint16_t port, uint8_t val, void *priv)
 		 * explains the value:
 		 *
 		 * D7    =  Mode set flag (1 = active)
+		 * This indicates the mode of operation of D7:
+		 * 1 = Mode set, 0 = Bit set/reset
 		 * D6,D5 =  Mode selection (port A)
 		 *		00 = Mode 0 = Basic I/O
 		 *		01 = Mode 1 = Strobed I/O
@@ -323,17 +338,27 @@ lt_write(uint16_t port, uint8_t val, void *priv)
 		 * port, B is an output port, C is split with upper 4 bits
 		 * being an output port and lower 4 bits an input port, and
 		 * enable the sucker.  Courtesy Intel 8255 databook. Lars
+		 *
+		 * 1001 1011	9B	1111	Default state
+		 * 1001 0001	91	1001	Driver-initialized state
+		 * The only difference is - port C upper and port B go from
+		 * input to output.
 		 */
-		dev->config_val = val;
 		if (val & DEVICE_ACTIVE) {
-			dev->flags |= (FLAG_ENABLED | FLAG_TIMER_INT);
+			/* Mode set/reset - enable this */
+			dev->config_val = val;
+			if (dev->timer_enabled)
+				dev->flags |= (FLAG_ENABLED | FLAG_TIMER_INT);
+			else
+				dev->flags |= FLAG_ENABLED;
 			dev->control_val = 0x0F & ~IRQ_MASK;
-			dev->timer = ((int64_t) dev->period) * TIMER_USEC;
-			dev->timer_enabled = 1LL;
 		} else {
-			dev->flags &= ~(FLAG_ENABLED | FLAG_TIMER_INT);
-			dev->timer = 0LL;
-			dev->timer_enabled = 0LL;
+			/* Single bit set/reset */
+			bit = 1 << ((val >> 1) & 0x07);		/* Bits 3-1 specify the target bit */
+			if (val & 1)
+				dev->control_val |= bit;	/* Set */
+			else
+				dev->control_val &= ~bit;	/* Reset */
 		}
 		break;
     }
@@ -367,7 +392,8 @@ ms_write(uint16_t port, uint8_t val, void *priv)
 		}
 		break;
 	case INP_PORT_DATA:
-		picintc(1 << dev->irq);
+		if (dev->irq != -1)
+			picintc(1 << dev->irq);
 		switch(dev->command_val) {
 			case INP_CTRL_COMMAND:
 				if (val & INP_HOLD_COUNTER)
@@ -388,22 +414,24 @@ ms_write(uint16_t port, uint8_t val, void *priv)
 				switch(val & INP_PERIOD_MASK) {
 					case 0:
 						dev->period = 0.0;
-						dev->timer = 0LL;
-						dev->timer_enabled = 0LL;
+						timer_disable(&dev->timer);
+						dev->timer_enabled = 0;
 						break;
 
 					case 1:
 					case 2:
 					case 3:
 					case 4:
-						dev->period = 1000000.0 / periods[(val & INP_PERIOD_MASK) - 1];
-						dev->timer = ((int64_t) dev->period) * TIMER_USEC;
-						dev->timer_enabled = (val & INP_ENABLE_TIMER_IRQ) ? 1LL : 0LL;
+						dev->period = (1000000.0 / (double)periods[(val & INP_PERIOD_MASK) - 1]);
+						dev->timer_enabled = (val & INP_ENABLE_TIMER_IRQ) ? 1 : 0;
+						timer_disable(&dev->timer);
+						if (dev->timer_enabled)
+							timer_set_delay_u64(&dev->timer, (uint64_t) (dev->period * (double)TIMER_USEC));
 						bm_log("DEBUG: Timer is now %sabled at period %i\n", (val & INP_ENABLE_TIMER_IRQ) ? "en" : "dis", (int32_t) dev->period);
 						break;
 
 					case 6:
-						if (val & INP_ENABLE_TIMER_IRQ)
+						if ((val & INP_ENABLE_TIMER_IRQ) && (dev->irq != -1))
 							picint(1 << dev->irq);
 						dev->control_val &= INP_PERIOD_MASK;
 						dev->control_val |= (val & ~INP_PERIOD_MASK);
@@ -483,7 +511,7 @@ bm_poll(int x, int y, int z, int b, void *priv)
 	}
 
 	/* Send interrupt. */
-	if (dev->flags & FLAG_DATA_INT) {
+	if ((dev->flags & FLAG_DATA_INT) && (dev->irq != -1)) {
 		picint(1 << dev->irq);
 		bm_log("DEBUG: Data Interrupt Fired...\n");
 	}
@@ -500,34 +528,35 @@ bm_update_data(mouse_t *dev)
     int delta_x, delta_y;
     int xor;
 
-    /* Update the deltas and the delays. */
-    if (dev->mouse_delayed_dx > 127) {
-	delta_x = 127;
-	dev->mouse_delayed_dx -= 127;
-    } else if (dev->mouse_delayed_dx < -128) {
-	delta_x = -128;
-	dev->mouse_delayed_dx += 128;
-    } else {
-	delta_x = dev->mouse_delayed_dx;
-	dev->mouse_delayed_dx = 0;
-    }
-
-    if (dev->mouse_delayed_dy > 127) {
-	delta_y = 127;
-	dev->mouse_delayed_dy -= 127;
-    } else if (dev->mouse_delayed_dy < -128) {
-	delta_y = -128;
-	dev->mouse_delayed_dy += 128;
-    } else {
-	delta_y = dev->mouse_delayed_dy;
-	dev->mouse_delayed_dy = 0;
-    }
-
     /* If the counters are not frozen, update them. */
     if (!(dev->flags & FLAG_HOLD)) {
-	dev->current_x = (uint8_t) delta_x;
-	dev->current_y = (uint8_t) delta_y;
-    }
+	/* Update the deltas and the delays. */
+	if (dev->mouse_delayed_dx > 127) {
+		delta_x = 127;
+		dev->mouse_delayed_dx -= 127;
+	} else if (dev->mouse_delayed_dx < -128) {
+		delta_x = -128;
+		dev->mouse_delayed_dx += 128;
+	} else {
+		delta_x = dev->mouse_delayed_dx;
+		dev->mouse_delayed_dx = 0;
+	}
+
+	if (dev->mouse_delayed_dy > 127) {
+		delta_y = 127;
+		dev->mouse_delayed_dy -= 127;
+	} else if (dev->mouse_delayed_dy < -128) {
+		delta_y = -128;
+		dev->mouse_delayed_dy += 128;
+	} else {
+		delta_y = dev->mouse_delayed_dy;
+		dev->mouse_delayed_dy = 0;
+	}
+
+	dev->current_x = (int8_t) delta_x;
+	dev->current_y = (int8_t) delta_y;
+    } else
+	delta_x = delta_y = 0;
 
     if (dev->flags & FLAG_INPORT) {
 	/* This is an InPort mouse in timer mode, so update current_b always,
@@ -554,9 +583,9 @@ bm_timer(void *priv)
 
     /* The period is configured either via emulator settings (for MS/Logitech Bus mouse)
        or via software (for InPort mouse). */
-    dev->timer += ((int64_t) dev->period) * TIMER_USEC;
+    timer_advance_u64(&dev->timer, (uint64_t) (dev->period * (double)TIMER_USEC));
 
-    if (dev->flags & FLAG_TIMER_INT) {
+    if ((dev->flags & FLAG_TIMER_INT) && (dev->irq != -1)) {
 	picint(1 << dev->irq);
 	bm_log("DEBUG: Timer Interrupt Fired...\n");
     }
@@ -576,23 +605,40 @@ bm_close(void *priv)
 }
 
 
+/* Set the mouse's IRQ. */
+void
+mouse_bus_set_irq(void *priv, int irq)
+{
+    mouse_t *dev = (mouse_t *)priv;
+
+    dev->irq = irq;
+}
+
+
 /* Initialize the device for use by the user. */
 static void *
 bm_init(const device_t *info)
 {
     mouse_t *dev;
+    int hz;
 
     dev = (mouse_t *)malloc(sizeof(mouse_t));
     memset(dev, 0x00, sizeof(mouse_t));
 
-    if (info->local == MOUSE_TYPE_INPORT)
+    if ((info->local & ~MOUSE_TYPE_ONBOARD) == MOUSE_TYPE_INPORT)
 	dev->flags = FLAG_INPORT;
     else
 	dev->flags = 0;
 
-    dev->base = device_get_config_hex16("base");
-    dev->irq = device_get_config_int("irq");
-    dev->bn = device_get_config_int("buttons");
+    if (info->local & MOUSE_TYPE_ONBOARD) {
+	dev->base = 0x023c;
+	dev->irq = -1;
+	dev->bn = 2;
+    } else {
+	dev->base = device_get_config_hex16("base");
+	dev->irq = device_get_config_int("irq");
+	dev->bn = device_get_config_int("buttons");
+    }
     mouse_set_buttons(dev->bn);
 
     dev->mouse_delayed_dx	= 0;
@@ -601,31 +647,43 @@ bm_init(const device_t *info)
     dev->mouse_buttons_last	= 0;
     dev->sig_val		= 0;	/* the signature port value */
     dev->current_x		=
-    dev->current_y		=
+    dev->current_y		= 0;
     dev->current_b		= 0;
     dev->command_val		= 0;		/* command byte */
     dev->toggle_counter		= 0;		/* signature byte / IRQ bit toggle */
+    dev->period			= 0.0;
+
+    timer_add(&dev->timer, bm_timer, dev, 0);
 
     if (dev->flags & FLAG_INPORT) {
 	dev->control_val	= 0;	/* the control port value */
 	dev->flags	       |= FLAG_ENABLED;
-	dev->period		= 0.0;
 
 	io_sethandler(dev->base, 4,
 		      ms_read, NULL, NULL, ms_write, NULL, NULL, dev);
+
+	dev->timer_enabled	= 0;
     } else {
 	dev->control_val	= 0x0f;	/* the control port value */
-	dev->config_val		= 0x0e;	/* the config port value */
-	dev->period		= 1000000.0 / ((double) device_get_config_int("hz"));
+	dev->config_val		= 0x9b;	/* the config port value - 0x9b is the
+					   default state of the 8255: all ports
+					   are set to input */
+
+	hz			= device_get_config_int("hz");
+	if (hz > 0)
+		dev->period		= (1000000.0 / (double)hz);
 
 	io_sethandler(dev->base, 4,
 		      lt_read, NULL, NULL, lt_write, NULL, NULL, dev);
+
+	if (hz > 0) {
+		timer_set_delay_u64(&dev->timer, (uint64_t) (dev->period * (double)TIMER_USEC));
+		dev->timer_enabled = 1;
+	} else {
+		dev->flags |= FLAG_DATA_INT;
+		dev->timer_enabled = 0;
+	}
     }
-
-    dev->timer		= 0LL;
-    dev->timer_enabled	= 0LL;
-
-    timer_add(bm_timer, &dev->timer, &dev->timer_enabled, dev);
 
     if (dev->flags & FLAG_INPORT)
 	bm_log("MS Inport BusMouse initialized\n");
@@ -678,6 +736,9 @@ static const device_config_t lt_config[] = {
     },
     {
 	"hz", "Hz", CONFIG_SELECTION, "", 45, {
+		{
+			"Non-timed (original)", 0
+		},
 		{
 			"30 Hz (JMP2 = 1)", 30
 		},
@@ -777,6 +838,14 @@ const device_t mouse_logibus_device = {
     bm_init, bm_close, NULL,
     bm_poll, NULL, NULL,
     lt_config
+};
+
+const device_t mouse_logibus_onboard_device = {
+    "Logitech Bus Mouse (On-Board)",
+    DEVICE_ISA,
+    MOUSE_TYPE_LOGIBUS | MOUSE_TYPE_ONBOARD,
+    bm_init, bm_close, NULL,
+    bm_poll, NULL, NULL
 };
 
 const device_t mouse_msinport_device = {

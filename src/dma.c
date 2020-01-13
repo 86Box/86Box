@@ -1,48 +1,35 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *		This file is part of the 86Box distribution.
  *
  *		Implementation of the Intel DMA controllers.
  *
- * Version:	@(#)dma.c	1.0.3	2018/03/13
+ * Version:	@(#)dma.c	1.0.7	2019/09/28
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free  Software  Foundation; either  version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is  distributed in the hope that it will be useful, but
- * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
- * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the:
- *
- *   Free Software Foundation, Inc.
- *   59 Temple Place - Suite 330
- *   Boston, MA 02111-1307
- *   USA.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
+#ifdef USE_NEW_DYNAREC
+#include "cpu_new/cpu.h"
+#include "cpu_new/x86.h"
+#else
 #include "cpu/cpu.h"
 #include "cpu/x86.h"
+#endif
 #include "machine/machine.h"
 #include "mca.h"
 #include "mem.h"
@@ -61,8 +48,13 @@ static int	dma_wp,
 static uint8_t	dma_m;
 static uint8_t	dma_stat;
 static uint8_t	dma_stat_rq;
+static uint8_t	dma_stat_rq_pc;
 static uint8_t	dma_command,
 		dma16_command;
+static uint8_t	dma_req_is_soft;
+static uint8_t	dma_buffer[65536];
+static uint16_t	dma16_buffer[65536];
+
 static struct {	
     int	xfr_command,
 	xfr_channel;
@@ -81,6 +73,47 @@ static struct {
 
 
 static void dma_ps2_run(int channel);
+
+
+int
+dma_get_drq(int channel)
+{
+    return !!(dma_stat_rq_pc & (1 << channel));
+}
+
+
+void
+dma_set_drq(int channel, int set)
+{
+    dma_stat_rq_pc &= ~(1 << channel);
+    if (set)
+	dma_stat_rq_pc |= (1 << channel);
+}
+
+
+static void
+dma_block_transfer(int channel)
+{
+    int i, bit16;
+
+    bit16 = (channel >= 4);
+
+    dma_req_is_soft = 1;
+    for (i = 0; i <= dma[channel].cb; i++) {
+	if ((dma[channel].mode & 0x8c) == 0x84) {
+		if (bit16)
+			dma_channel_write(channel, dma16_buffer[i]);
+		else
+			dma_channel_write(channel, dma_buffer[i]);
+	} else if ((dma[channel].mode & 0x8c) == 0x88) {
+		if (bit16)
+			dma16_buffer[i] = dma_channel_read(channel);
+		else
+			dma_buffer[i] = dma_channel_read(channel);
+	}
+    }
+    dma_req_is_soft = 0;
+}
 
 
 static uint8_t
@@ -111,11 +144,13 @@ dma_read(uint16_t addr, void *priv)
 		return(temp);
 
 	case 8: /*Status register*/
-		temp = dma_stat & 0xf;
+		temp = dma_stat_rq_pc & 0xf;
+		temp <<= 4;
+		temp |= dma_stat & 0xf;
 		dma_stat &= ~0xf;
 		return(temp);
 
-	case 0xd:
+	case 0xd: /*Temporary register*/
 		return(0);
     }
 
@@ -156,13 +191,25 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
 
 	case 8: /*Control register*/
 		dma_command = val;
+		if (val & 0x01)
+			fatal("Memory-to-memory enable\n");
 		return;
 
+	case 9: /*Request register */
+		channel = (val & 3);
+		if (val & 4) {
+			dma_stat_rq_pc |= (1 << channel);
+			dma_block_transfer(channel);
+		} else
+			dma_stat_rq_pc &= ~(1 << channel);
+		break;
+
 	case 0xa: /*Mask*/
+		channel = (val & 3);
 		if (val & 4)
-			dma_m |=  (1 << (val & 3));
-		  else
-			dma_m &= ~(1 << (val & 3));
+			dma_m |=  (1 << channel);
+		else
+			dma_m &= ~(1 << channel);
 		return;
 
 	case 0xb: /*Mode*/
@@ -186,6 +233,11 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
 	case 0xd: /*Master clear*/
 		dma_wp = 0;
 		dma_m |= 0xf;
+		dma_stat_rq_pc &= ~0x0f;
+		return;
+
+	case 0xe: /*Clear mask*/
+		dma_m &= 0xf0;
 		return;
 
 	case 0xf: /*Mask write*/
@@ -387,7 +439,8 @@ dma16_read(uint16_t addr, void *priv)
 		return(temp);
 
 	case 8: /*Status register*/
-		temp = dma_stat >> 4;
+		temp = (dma_stat_rq_pc & 0xf0);
+		temp |= dma_stat >> 4;
 		dma_stat &= ~0xf0;
 		return(temp);
     }
@@ -438,11 +491,21 @@ dma16_write(uint16_t addr, uint8_t val, void *priv)
 	case 8: /*Control register*/
 		return;
 
+	case 9: /*Request register */
+		channel = (val & 3) + 4;
+		if (val & 4) {
+			dma_stat_rq_pc |= (1 << channel);
+			dma_block_transfer(channel);
+		} else
+			dma_stat_rq_pc &= ~(1 << channel);
+		break;
+
 	case 0xa: /*Mask*/
+		channel = (val & 3);
 		if (val & 4)
-			dma_m |=  (0x10 << (val & 3));
-		  else
-			dma_m &= ~(0x10 << (val & 3));
+			dma_m |=  (0x10 << channel);
+		else
+			dma_m &= ~(0x10 << channel);
 		return;
 
 	case 0xb: /*Mode*/
@@ -466,6 +529,11 @@ dma16_write(uint16_t addr, uint8_t val, void *priv)
 	case 0xd: /*Master clear*/
 		dma16_wp = 0;
 		dma_m |= 0xf0;
+		dma_stat_rq_pc &= ~0xf0;
+		return;
+
+	case 0xe: /*Clear mask*/
+		dma_m &= 0x0f;
 		return;
 
 	case 0xf: /*Mask write*/
@@ -547,8 +615,8 @@ dma_reset(void)
     dma_wp = dma16_wp = 0;
     dma_m = 0;
 
-    for (c = 0; c < 16; c++) 
-	dmaregs[c] = 0;
+    for (c = 0; c < 16; c++)
+	dmaregs[c] = dma16regs[c] = 0;
     for (c = 0; c < 8; c++) {
 	dma[c].mode = 0;
 	dma[c].ac = 0;
@@ -557,12 +625,22 @@ dma_reset(void)
 	dma[c].cb = 0;
 	dma[c].size = (c & 4) ? 1 : 0;
     }
+
+    dma_stat = 0x00;
+    dma_stat_rq = 0x00;
+    dma_stat_rq_pc = 0x00;
+    dma_req_is_soft = 0;
+
+    memset(dma_buffer, 0x00, sizeof(dma_buffer));
+    memset(dma16_buffer, 0x00, sizeof(dma16_buffer));
 }
 
 
 void
 dma_init(void)
 {
+    dma_reset();
+
     io_sethandler(0x0000, 16,
 		  dma_read,NULL,NULL, dma_write,NULL,NULL, NULL);
     io_sethandler(0x0080, 8,
@@ -574,6 +652,8 @@ dma_init(void)
 void
 dma16_init(void)
 {
+    dma_reset();
+
     io_sethandler(0x00C0, 32,
 		  dma16_read,NULL,NULL, dma16_write,NULL,NULL, NULL);
     io_sethandler(0x0088, 8,
@@ -614,6 +694,8 @@ dma_alias_remove_piix(void)
 void
 ps2_dma_init(void)
 {
+    dma_reset();
+
     io_sethandler(0x0018, 1,
 		  dma_ps2_read,NULL,NULL, dma_ps2_write,NULL,NULL, NULL);
     io_sethandler(0x001a, 1,
@@ -625,7 +707,7 @@ ps2_dma_init(void)
 uint8_t
 _dma_read(uint32_t addr)
 {
-    uint8_t temp = mem_readb_phys_dma(addr);
+    uint8_t temp = mem_readb_phys(addr);
 
     return(temp);
 }
@@ -634,7 +716,7 @@ _dma_read(uint32_t addr)
 void
 _dma_write(uint32_t addr, uint8_t val)
 {
-    mem_writeb_phys_dma(addr, val);
+    mem_writeb_phys(addr, val);
     mem_invalidate_range(addr, addr);
 }
 
@@ -654,13 +736,15 @@ dma_channel_read(int channel)
 		return(DMA_NODATA);
     }
 
-    if (! AT)
-	refreshread();
-
-    if (dma_m & (1 << channel))
+    if ((dma_m & (1 << channel)) && !dma_req_is_soft)
 	return(DMA_NODATA);
     if ((dma_c->mode & 0xC) != 8)
 	return(DMA_NODATA);
+
+    if (!AT && !channel)
+	refreshread();
+    /* if (!AT && channel)
+	pclog("DMA refresh read on channel %i\n", channel); */
 
     if (! dma_c->size) {
 	temp = _dma_read(dma_c->ac);
@@ -725,13 +809,15 @@ dma_channel_write(int channel, uint16_t val)
 		return(DMA_NODATA);
     }
 
-    if (! AT)
-	refreshread();
-
-    if (dma_m & (1 << channel))
+    if ((dma_m & (1 << channel)) && !dma_req_is_soft)
 	return(DMA_NODATA);
     if ((dma_c->mode & 0xC) != 4)
 	return(DMA_NODATA);
+
+    /* if (!AT)
+	refreshread();
+    if (!AT)
+	pclog("DMA refresh write on channel %i\n", channel); */
 
     if (! dma_c->size) {
 	_dma_write(dma_c->ac, val & 0xff);
@@ -878,10 +964,7 @@ dma_ps2_run(int channel)
 int
 dma_mode(int channel)
 {
-    if (channel < 4)
-	return(dma[channel].mode);
-      else
-	return(dma[channel & 3].mode);
+    return(dma[channel].mode);
 }
 
 
@@ -895,7 +978,7 @@ DMAPageRead(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize)
     memcpy(DataRead, &ram[PhysAddress], TotalSize);
 #else
     for (i = 0; i < TotalSize; i++)
-	DataRead[i] = mem_readb_phys_dma(PhysAddress + i);
+	DataRead[i] = mem_readb_phys(PhysAddress + i);
 #endif
 }
 
@@ -910,7 +993,7 @@ DMAPageWrite(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize)
     memcpy(&ram[PhysAddress], DataWrite, TotalSize);
 #else
     for (i = 0; i < TotalSize; i++)
-	mem_writeb_phys_dma(PhysAddress + i, DataWrite[i]);
+	mem_writeb_phys(PhysAddress + i, DataWrite[i]);
 
     mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
 #endif

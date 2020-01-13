@@ -22,21 +22,15 @@
  *		The reserved 384K is remapped to the top of extended memory.
  *		If this is not done then you get an error on startup.
  *
- * NOTES:	Floppy does not seem to work.  --FvK
- *		The "ROM DOS" shell does not seem to work. We do have the
- *		correct BIOS images now, and they do load, but they do not
- *		boot. Sometimes, they do, and then it shows an "Incorrect
- *		DOS" error message??  --FvK
- *
- * Version:	@(#)m_ps1.c	1.0.9	2018/04/26
+ * Version:	@(#)m_ps1.c	1.0.17	2019/11/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -45,6 +39,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../cpu/cpu.h"
+#include "../timer.h"
 #include "../io.h"
 #include "../dma.h"
 #include "../pic.h"
@@ -52,7 +47,6 @@
 #include "../mem.h"
 #include "../nmi.h"
 #include "../rom.h"
-#include "../timer.h"
 #include "../device.h"
 #include "../nvr.h"
 #include "../game/gameport.h"
@@ -74,7 +68,9 @@
 typedef struct {
 	sn76489_t	sn76489;
 	uint8_t		status, ctrl;
-	int64_t		timer_latch, timer_count, timer_enable;
+	uint64_t	timer_latch;
+	pc_timer_t 	timer_count;
+	int 		timer_enable;
 	uint8_t		fifo[2048];
 	int		fifo_read_idx, fifo_write_idx;
 	int		fifo_threshold;
@@ -98,6 +94,8 @@ typedef struct {
 		ps1_190;
     int		ps1_e0_addr;
     uint8_t	ps1_e0_regs[256];
+
+    serial_t	*uart;
 } ps1_t;
 
 
@@ -175,8 +173,10 @@ snd_write(uint16_t port, uint8_t val, void *priv)
 
 	case 3:		/* timer reload value */
 		snd->timer_latch = val;
-		snd->timer_count = (int64_t) ((0xff-val) * TIMER_USEC);
-		snd->timer_enable = (val != 0);
+		if (val)
+			timer_set_delay_u64(&snd->timer_count, ((0xff-val) * TIMER_USEC));
+		else
+			timer_disable(&snd->timer_count);
 		break;
 
 	case 4:		/* almost empty */
@@ -211,8 +211,8 @@ snd_callback(void *priv)
 
     snd->status |= 0x10; /*ADC data ready*/
     update_irq_status(snd);
-
-    snd->timer_count += snd->timer_latch * TIMER_USEC;
+	
+	timer_advance_u64(&snd->timer_count, snd->timer_latch * TIMER_USEC);
 }
 
 
@@ -244,7 +244,7 @@ snd_init(const device_t *info)
     io_sethandler(0x0200, 1, snd_read,NULL,NULL, snd_write,NULL,NULL, snd);
     io_sethandler(0x0202, 6, snd_read,NULL,NULL, snd_write,NULL,NULL, snd);
 
-    timer_add(snd_callback, &snd->timer_count, &snd->timer_enable, snd);
+	timer_add(&snd->timer_count, snd_callback, snd, 0);
 
     sound_add_handler(snd_get_buffer, snd);
 
@@ -278,13 +278,13 @@ recalc_memory(ps1_t *ps)
     mem_set_mem_state(0x00000, 0x80000,
 		      (ps->ps1_e0_regs[0] & 0x01) ?
 			(MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) :
-			(MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL));
+			(MEM_READ_EXTANY | MEM_WRITE_EXTANY));
 
     /* Enable 512-640K */
     mem_set_mem_state(0x80000, 0x20000,
 		      (ps->ps1_e0_regs[1] & 0x01) ?
 			(MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) :
-			(MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL));
+			(MEM_READ_EXTANY | MEM_WRITE_EXTANY));
 }
 
 
@@ -328,9 +328,9 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
 	case 0x0102:
 		lpt1_remove();
 		if (val & 0x04)
-			serial_setup(1, SERIAL1_ADDR, SERIAL1_IRQ);
+			serial_setup(ps->uart, SERIAL1_ADDR, SERIAL1_IRQ);
 		else
-			serial_remove(1);
+			serial_remove(ps->uart);
 		if (val & 0x10) {
 			switch ((val >> 5) & 3) {
 				case 0:
@@ -447,6 +447,8 @@ ps1_setup(int model)
     io_sethandler(0x0190, 1,
 		  ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
 
+    ps->uart = device_add_inst(&ns16450_device, 1);
+
     lpt1_remove();
     lpt1_init(0x3bc);
 
@@ -456,9 +458,6 @@ ps1_setup(int model)
 		 0xf80000, 0x80000, 0x7ffff, 0, MEM_MAPPING_EXTERNAL);
 
 	lpt2_remove();
-
-	serial_remove(1);
-	serial_remove(2);
 
 	/* Enable the PS/1 VGA controller. */
 	if (model == 2011)
@@ -474,7 +473,7 @@ ps1_setup(int model)
 	if (hdc_current == 1) {
 		priv = device_add(&ps1_hdc_device);
 
-		ps1_hdc_inform(priv, ps);
+		ps1_hdc_inform(priv, &ps->ps1_91);
 	}
     }
 
@@ -489,7 +488,7 @@ ps1_setup(int model)
 #endif
 
 	/* Initialize the video controller. */
-	if (gfxcard == GFX_INTERNAL)
+	if (gfxcard == VID_INTERNAL)
 		device_add(&ibm_ps1_2121_device);
 
 	device_add(&fdc_at_ps1_device);
@@ -499,11 +498,13 @@ ps1_setup(int model)
 	device_add(&snd_device);
     }
 
+#if defined(DEV_BRANCH) && defined(USE_PS1M2133)
     if (model == 2133) {
 	device_add(&fdc_at_device);
 
 	device_add(&ide_isa_device);
     }
+#endif
 }
 
 
@@ -512,16 +513,16 @@ ps1_common_init(const machine_t *model)
 {
     machine_common_init(model);
 
-    mem_remap_top_384k();
+    mem_remap_top(384);
 
-    pit_set_out_func(&pit, 1, pit_refresh_timer_at);
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_at);
 
     dma16_init();
     pic2_init();
 
     device_add(&ps_nvr_device);
 
-    device_add(&keyboard_ps2_device);
+    device_add(&keyboard_ps2_ps1_device);
 
     /* Audio uses ports 200h and 202-207h, so only initialize gameport on 201h. */
     if (joystick_type != 7)
@@ -529,40 +530,62 @@ ps1_common_init(const machine_t *model)
 }
 
 
-/* Set the Card Selected Flag */
-void
-ps1_set_feedback(void *priv)
-{
-    ps1_t *ps = (ps1_t *)priv;
-
-    ps->ps1_91 |= 0x01;
-}
-
-
-void
+int
 machine_ps1_m2011_init(const machine_t *model)
 {
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/ibmps1es/f80000.bin",
+			   0x000e0000, 131072, 0x60000);
+
+    if (bios_only || !ret)
+	return ret;
+
     ps1_common_init(model);
 
     ps1_setup(2011);
+
+    return ret;
 }
 
 
-void
+int
 machine_ps1_m2121_init(const machine_t *model)
 {
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/ibmps1_2121/fc0000.bin",
+			   0x000e0000, 131072, 0x20000);
+
+    if (bios_only || !ret)
+	return ret;
+
     ps1_common_init(model);
 
     ps1_setup(2121);
+
+    return ret;
 }
 
 
-void
+#if defined(DEV_BRANCH) && defined(USE_PS1M2133)
+int
 machine_ps1_m2133_init(const machine_t *model)
 {
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/ibmps1_2133/ps1_2133_52g2974_rom.bin",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
     ps1_common_init(model);
 
     ps1_setup(2133);
 
     nmi_mask = 0x80;
+
+    return ret;
 }
+#endif

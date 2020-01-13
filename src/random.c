@@ -9,18 +9,18 @@
  *		A better random number generation, used for floppy weak bits
  *		and network MAC address generation.
  *
- * Version:	@(#)random.c	1.0.3	2017/09/24
+ * Version:	@(#)random.c	1.0.4	2018/10/02
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2016-2018 Miran Grca.
  */
-#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
-#include <limits.h>
 #include "random.h"
 
+#if !(defined(__i386__) || defined (__x86_64__))
+#include <time.h>
+#endif
 
 uint32_t preconst = 0x6ED9EBA1;
 
@@ -47,6 +47,7 @@ static __inline__ uint32_t rotr32c (uint32_t x, uint32_t n)
 
 static __inline__ unsigned long long rdtsc(void)
 {
+#if defined(__i386__) || defined (__x86_64__)
     unsigned hi, lo;
 #ifdef __MSC__
     __asm {
@@ -58,6 +59,9 @@ static __inline__ unsigned long long rdtsc(void)
       __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
 #endif
     return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+#else
+		return time(NULL);
+#endif
 }
 
 static uint32_t RDTSC(void)

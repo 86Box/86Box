@@ -8,15 +8,15 @@
  *
  *		General keyboard driver interface.
  *
- * Version:	@(#)keyboard.c	1.0.15	2018/03/19
+ * Version:	@(#)keyboard.c	1.0.16	2019/03/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2015-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2015-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -27,7 +27,6 @@
 #include "keyboard.h"
 
 
-int64_t	keyboard_delay;
 int	keyboard_scan;
 void	(*keyboard_send)(uint16_t val);
 
@@ -51,7 +50,6 @@ keyboard_init(void)
     memset(recv_key, 0x00, sizeof(recv_key));
 
     keyboard_scan = 1;
-    keyboard_delay = 0;
     scan_table = NULL;
 
     memset(keyboard_set3_flags, 0x00, sizeof(keyboard_set3_flags));
@@ -75,6 +73,7 @@ fake_shift_needed(uint16_t scan)
 	case 0x148:
 	case 0x149:
 	case 0x14a:
+	case 0x14b:
 	case 0x14d:
 	case 0x14f:
 	case 0x150:
@@ -97,10 +96,10 @@ key_process(uint16_t scan, int down)
     if (! keyboard_scan) return;
 
     oldkey[scan] = down;
-    if (down && codes[scan].mk[0]  == -1)
+    if (down && codes[scan].mk[0]  == 0)
 	return;
 
-    if (!down && codes[scan].brk[0] == -1)
+    if (!down && codes[scan].brk[0] == 0)
 	return;
 
     if (AT && ((keyboard_mode & 3) == 3)) {
@@ -113,10 +112,10 @@ key_process(uint16_t scan, int down)
 	/* Send the special code indicating an opening fake shift might be needed. */
 	if (fake_shift_needed(scan))
 		keyboard_send(0x100);
-	while (codes[scan].mk[c] != -1)
+	while (codes[scan].mk[c] != 0)
 		keyboard_send(codes[scan].mk[c++]);
     } else {
-	while (codes[scan].brk[c] != -1)
+	while (codes[scan].brk[c] != 0)
 		keyboard_send(codes[scan].brk[c++]);
 	/* Send the special code indicating a closing fake shift might be needed. */
 	if (fake_shift_needed(scan))
@@ -157,13 +156,13 @@ keyboard_input(int down, uint16_t scan)
 				shift |= 0x20;
 				break;
 			case 0x038:	/* Left Alt */
-				shift |= 0x03;
+				shift |= 0x04;
 				break;
 			case 0x138:	/* Right Alt */
-				shift |= 0x30;
+				shift |= 0x40;
 				break;
-	}
-	    } else {
+		}
+	} else {
 		switch(scan & 0x1ff) {
 			case 0x01c:	/* Left Ctrl */
 				shift &= ~0x01;
@@ -178,10 +177,10 @@ keyboard_input(int down, uint16_t scan)
 				shift &= ~0x20;
 				break;
 			case 0x038:	/* Left Alt */
-				shift &= ~0x03;
+				shift &= ~0x04;
 				break;
 			case 0x138:	/* Right Alt */
-				shift &= ~0x30;
+				shift &= ~0x40;
 				break;
 			case 0x03a:	/* Caps Lock */
 				caps_lock ^= 1;
@@ -265,33 +264,33 @@ keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl)
 
     if (caps_lock != cl) {
 	i = 0;
-	while (codes[0x03a].mk[i] != -1)
+	while (codes[0x03a].mk[i] != 0)
 		keyboard_send(codes[0x03a].mk[i++]);
 	if (keyboard_do_break(0x03a)) {
 		i = 0;
-		while (codes[0x03a].brk[i] != -1)
+		while (codes[0x03a].brk[i] != 0)
 			keyboard_send(codes[0x03a].brk[i++]);
 	}
     }
 
     if (num_lock != nl) {
 	i = 0;
-	while (codes[0x045].mk[i] != -1)
+	while (codes[0x045].mk[i] != 0)
 		keyboard_send(codes[0x045].mk[i++]);
 	if (keyboard_do_break(0x045)) {
 		i = 0;
-		while (codes[0x045].brk[i] != -1)
+		while (codes[0x045].brk[i] != 0)
 		keyboard_send(codes[0x045].brk[i++]);
 	}
     }
 
     if (scroll_lock != sl) {
 	i = 0;
-	while (codes[0x046].mk[i] != -1)
+	while (codes[0x046].mk[i] != 0)
 		keyboard_send(codes[0x046].mk[i++]);
 	if (keyboard_do_break(0x046)) {
 		i = 0;
-		while (codes[0x046].brk[i] != -1)
+		while (codes[0x046].brk[i] != 0)
 			keyboard_send(codes[0x046].brk[i++]);
 	}
     }

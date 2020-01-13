@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.39	2018/06/11
+ * Version:	@(#)scsi_buslogic.c	1.0.45	2019/02/11
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -29,6 +29,7 @@
 #define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../mca.h"
 #include "../mem.h"
 #include "../mca.h"
@@ -38,7 +39,6 @@
 #include "../dma.h"
 #include "../pic.h"
 #include "../pci.h"
-#include "../timer.h"
 #include "../plat.h"
 #include "scsi.h"
 #include "scsi_buslogic.h"
@@ -229,6 +229,7 @@ typedef struct {
 
 
 enum {
+	CHIP_BUSLOGIC_ISA_542_1991,
     CHIP_BUSLOGIC_ISA_542,
     CHIP_BUSLOGIC_ISA,
     CHIP_BUSLOGIC_MCA,
@@ -240,13 +241,11 @@ enum {
 
 #ifdef ENABLE_BUSLOGIC_LOG
 int buslogic_do_log = ENABLE_BUSLOGIC_LOG;
-#endif
 
 
 static void
 buslogic_log(const char *fmt, ...)
 {
-#ifdef ENABLE_BUSLOGIC_LOG
     va_list ap;
 
     if (buslogic_do_log) {
@@ -254,8 +253,10 @@ buslogic_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define buslogic_log(fmt, ...)
+#endif
 
 
 static wchar_t *
@@ -263,6 +264,8 @@ BuslogicGetNVRFileName(buslogic_data_t *bl)
 {
 	switch(bl->chip)
 	{
+		case CHIP_BUSLOGIC_ISA_542_1991:
+			return L"bt542b.nvr";		
 		case CHIP_BUSLOGIC_ISA_542:
 			return L"bt542bh.nvr";
 		case CHIP_BUSLOGIC_ISA:
@@ -298,6 +301,9 @@ BuslogicAutoSCSIRamSetDefaults(x54x_t *dev, uint8_t safe)
     HALR->structured.autoSCSIData.aHostAdaptertype[0] = ' ';
     HALR->structured.autoSCSIData.aHostAdaptertype[5] = ' ';
     switch (bl->chip) {
+	case CHIP_BUSLOGIC_ISA_542_1991:
+		memcpy(&(HALR->structured.autoSCSIData.aHostAdaptertype[1]), "542B", 4);
+		break;
 	case CHIP_BUSLOGIC_ISA_542:
 		memcpy(&(HALR->structured.autoSCSIData.aHostAdaptertype[1]), "542BH", 5);
 		break;
@@ -463,7 +469,7 @@ buslogic_get_host_id(void *p)
 
     HALocalRAM *HALR = &bl->LocalRAM;
 
-    if (bl->chip == CHIP_BUSLOGIC_ISA_542)
+    if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_ISA_542_1991))
 	return dev->HostID;
     else
 	return HALR->structured.autoSCSIData.uSCSIId;
@@ -480,7 +486,7 @@ buslogic_get_irq(void *p)
 
     HALocalRAM *HALR = &bl->LocalRAM;
 
-    if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_PCI))
+    if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_ISA_542_1991) || (bl->chip == CHIP_BUSLOGIC_PCI))
 	return dev->Irq;
     else
 	return bl_irq[HALR->structured.autoSCSIData.uIrqChannel];
@@ -499,7 +505,7 @@ buslogic_get_dma(void *p)
 
     if (bl->chip == CHIP_BUSLOGIC_PCI)
 	return (dev->Base ? 7 : 0);
-    else if (bl->chip == CHIP_BUSLOGIC_ISA_542)
+    else if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_ISA_542_1991))
 	return dev->DmaChannel;
     else
 	return bl_dma[HALR->structured.autoSCSIData.uDMAChannel];
@@ -556,6 +562,7 @@ BuslogicSCSIBIOSDMATransfer(ESCMD *ESCSICmd, uint8_t TargetID, int dir)
     int DataLength = ESCSICmd->DataLength;
     uint32_t Address;
     uint32_t TransferLength;
+    scsi_device_t *dev = &scsi_devices[TargetID];
 
     if (ESCSICmd->DataDirection == 0x03) {
 	/* Non-data command. */
@@ -567,16 +574,16 @@ BuslogicSCSIBIOSDMATransfer(ESCMD *ESCSICmd, uint8_t TargetID, int dir)
 
     /* If the control byte is 0x00, it means that the transfer direction is set up by the SCSI command without
        checking its length, so do this procedure for both read/write commands. */
-    if ((DataLength > 0) && (SCSIDevices[TargetID].BufferLength > 0)) {
+    if ((DataLength > 0) && (dev->buffer_length > 0)) {
 	Address = DataPointer;
-	TransferLength = MIN(DataLength, SCSIDevices[TargetID].BufferLength);
+	TransferLength = MIN(DataLength, dev->buffer_length);
 
 	if (dir && ((ESCSICmd->DataDirection == CCB_DATA_XFER_OUT) || (ESCSICmd->DataDirection == 0x00))) {
 		buslogic_log("BusLogic BIOS DMA: Reading %i bytes from %08X\n", TransferLength, Address);
-		DMAPageRead(Address, (uint8_t *)SCSIDevices[TargetID].CmdBuffer, TransferLength);
+		DMAPageRead(Address, (uint8_t *)dev->sc->temp_buffer, TransferLength);
 	} else if (!dir && ((ESCSICmd->DataDirection == CCB_DATA_XFER_IN) || (ESCSICmd->DataDirection == 0x00))) {
 		buslogic_log("BusLogic BIOS DMA: Writing %i bytes at %08X\n", TransferLength, Address);
-		DMAPageWrite(Address, (uint8_t *)SCSIDevices[TargetID].CmdBuffer, TransferLength);
+		DMAPageWrite(Address, (uint8_t *)dev->sc->temp_buffer, TransferLength);
 	}
     }
 }
@@ -589,8 +596,11 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
     uint32_t i;
     uint8_t temp_cdb[12];
     int target_cdb_len = 12;
+#ifdef ENABLE_BUSLOGIC_LOG
     uint8_t target_id = 0;
+#endif
     int phase;
+    scsi_device_t *sd = &scsi_devices[ESCSICmd->TargetId];
 
     DataInBuf[0] = DataInBuf[1] = 0;
 
@@ -602,12 +612,13 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 		
     buslogic_log("Scanning SCSI Target ID %i\n", ESCSICmd->TargetId);		
 
-    SCSIDevices[ESCSICmd->TargetId].Status = SCSI_STATUS_OK;
+    sd->status = SCSI_STATUS_OK;
 
-    if (!scsi_device_present(ESCSICmd->TargetId)) {
+    if (!scsi_device_present(sd)) {
 	buslogic_log("SCSI Target ID %i has no device attached\n", ESCSICmd->TargetId);
 	DataInBuf[2] = CCB_SELECTION_TIMEOUT;
 	DataInBuf[3] = SCSI_STATUS_OK;
+	return;
     } else {
 	buslogic_log("SCSI Target ID %i detected and working\n", ESCSICmd->TargetId);
 
@@ -619,11 +630,9 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 	}
     }
 
-    x54x_buf_alloc(ESCSICmd->TargetId, ESCSICmd->DataLength);
-
     target_cdb_len = 12;
 
-    if (!scsi_device_valid(ESCSICmd->TargetId))  fatal("SCSI target on ID %02i has disappeared\n", ESCSICmd->TargetId);
+    if (!scsi_device_valid(sd))  fatal("SCSI target on ID %02i has disappeared\n", ESCSICmd->TargetId);
 
     buslogic_log("SCSI target command being executed on: SCSI ID %i, SCSI LUN %i, Target %i\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit, target_id);
 
@@ -639,26 +648,22 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 	memcpy(temp_cdb, ESCSICmd->CDB, target_cdb_len);
     }
 
-    SCSIDevices[ESCSICmd->TargetId].BufferLength = ESCSICmd->DataLength;
-    scsi_device_command_phase0(ESCSICmd->TargetId, temp_cdb);
+    sd->buffer_length = ESCSICmd->DataLength;
 
-    phase = SCSIDevices[ESCSICmd->TargetId].Phase;
+    scsi_device_command_phase0(sd, temp_cdb);
+
+    phase = sd->phase;
     if (phase != SCSI_PHASE_STATUS) {
-	if (phase == SCSI_PHASE_DATA_IN)
-		scsi_device_command_phase1(ESCSICmd->TargetId);
 	BuslogicSCSIBIOSDMATransfer(ESCSICmd, ESCSICmd->TargetId, (phase == SCSI_PHASE_DATA_OUT));
-	if (phase == SCSI_PHASE_DATA_OUT)
-		scsi_device_command_phase1(ESCSICmd->TargetId);
+	scsi_device_command_phase1(sd);
     }
-
-    x54x_buf_free(ESCSICmd->TargetId);
 
     buslogic_log("BIOS Request complete\n");
 
-    if (SCSIDevices[ESCSICmd->TargetId].Status == SCSI_STATUS_OK) {
+    if (sd->status == SCSI_STATUS_OK) {
 	DataInBuf[2] = CCB_COMPLETE;
 	DataInBuf[3] = SCSI_STATUS_OK;
-    } else if (SCSIDevices[ESCSICmd->TargetId].Status == SCSI_STATUS_CHECK_CONDITION) {
+    } else if (scsi_devices[ESCSICmd->TargetId].status == SCSI_STATUS_CHECK_CONDITION) {
 	DataInBuf[2] = CCB_COMPLETE;
 	DataInBuf[3] = SCSI_STATUS_CHECK_CONDITION;			
     }
@@ -697,15 +702,15 @@ buslogic_cmds(void *p)
 	case 0x23:
 		memset(dev->DataBuf, 0, 8);
 		for (i = 8; i < 15; i++) {
-		    dev->DataBuf[i-8] = 0;
-		    if (scsi_device_present(i) && (i != buslogic_get_host_id(dev)))
-			dev->DataBuf[i-8] |= 1;
+		    dev->DataBuf[i - 8] = 0;
+		    if (scsi_device_present(&scsi_devices[i]) && (i != buslogic_get_host_id(dev)))
+			dev->DataBuf[i - 8] |= 1;
 		}
 		dev->DataReplyLeft = 8;
 		break;
 	case 0x24:						
-		for (i=0; i<15; i++) {
-			if (scsi_device_present(i) && (i != buslogic_get_host_id(dev)))
+		for (i = 0; i < 15; i++) {
+			if (scsi_device_present(&scsi_devices[i]) && (i != buslogic_get_host_id(dev)))
 			    TargetsPresentMask |= (1 << i);
 		}
 		dev->DataBuf[0] = TargetsPresentMask & 0xFF;
@@ -719,7 +724,7 @@ buslogic_cmds(void *p)
 			dev->IrqEnabled = 1;
 		return 1;
 	case 0x81:
-		dev->Mbx24bit = 0;
+		dev->flags &= ~X54X_MBX_24BIT;
 
 		MailboxInitE = (MailboxInitExtended_t *)dev->CmdBuf;
 
@@ -813,6 +818,7 @@ buslogic_cmds(void *p)
 		memset(ReplyIESI, 0, sizeof(ReplyInquireExtendedSetupInformation));
 
 		switch (bl->chip) {
+			case CHIP_BUSLOGIC_ISA_542_1991:
 			case CHIP_BUSLOGIC_ISA_542:
 			case CHIP_BUSLOGIC_ISA:
 			case CHIP_BUSLOGIC_VLB:
@@ -830,7 +836,7 @@ buslogic_cmds(void *p)
 		ReplyIESI->cMailbox = dev->MailboxCount;
 		ReplyIESI->uMailboxAddressBase = dev->MailboxOutAddr;
 		ReplyIESI->fHostWideSCSI = 1;						  /* This should be set for the BT-542B as well. */
-		if ((bl->chip != CHIP_BUSLOGIC_ISA_542) && (bl->chip != CHIP_BUSLOGIC_MCA))
+		if ((bl->chip != CHIP_BUSLOGIC_ISA_542) && (bl->chip != CHIP_BUSLOGIC_ISA_542_1991) && (bl->chip != CHIP_BUSLOGIC_MCA))
 			ReplyIESI->fLevelSensitiveInterrupt = bl->LocalRAM.structured.autoSCSIData.fLevelSensitiveInterrupt;
 		if (bl->chip == CHIP_BUSLOGIC_PCI)
 			ReplyIESI->fHostUltraSCSI = 1;
@@ -865,7 +871,7 @@ buslogic_cmds(void *p)
 			break;
 		}
 	case 0x92:
-		if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_MCA)) {
+		if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_ISA_542_1991) || (bl->chip == CHIP_BUSLOGIC_MCA)) {
 			dev->DataReplyLeft = 0;
 			dev->Status |= STAT_INVCMD;
 			break;
@@ -911,7 +917,7 @@ buslogic_cmds(void *p)
 		}
 		break;
 	case 0x94:
-		if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_MCA)) {
+		if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_ISA_542_1991) || (bl->chip == CHIP_BUSLOGIC_MCA)) {
 			dev->DataReplyLeft = 0;
 			dev->Status |= STAT_INVCMD;
 			break;
@@ -1031,6 +1037,7 @@ buslogic_setup_data(void *p)
     bl_setup->uCharacterD = 'D';      /* BusLogic model. */
     switch(bl->chip)
     {
+	case CHIP_BUSLOGIC_ISA_542_1991:
 	case CHIP_BUSLOGIC_ISA_542:
 	case CHIP_BUSLOGIC_ISA:
 		bl_setup->uHostBusType = 'A';
@@ -1064,7 +1071,7 @@ buslogic_interrupt_type(void *p)
     x54x_t *dev = (x54x_t *)p;
     buslogic_data_t *bl = (buslogic_data_t *) dev->ven_data;
 
-    if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_MCA))
+    if ((bl->chip == CHIP_BUSLOGIC_ISA_542) || (bl->chip == CHIP_BUSLOGIC_ISA_542_1991) || (bl->chip == CHIP_BUSLOGIC_MCA))
 	return 0;
     else
 	return !!bl->LocalRAM.structured.autoSCSIData.fLevelSensitiveInterrupt;
@@ -1110,7 +1117,9 @@ static uint8_t
 BuslogicPCIRead(int func, int addr, void *p)
 {
     x54x_t *dev = (x54x_t *)p;
+#ifdef ENABLE_BUSLOGIC_LOG
     buslogic_data_t *bl = (buslogic_data_t *) dev->ven_data;
+#endif
 
     buslogic_log("BT-958D: Reading register %02X\n", addr & 0xff);
 
@@ -1148,9 +1157,10 @@ BuslogicPCIRead(int func, int addr, void *p)
 	case 0x13:
 		return buslogic_pci_bar[0].addr_regs[3];
 	case 0x14:
-		return (buslogic_pci_bar[1].addr_regs[0] & 0xe0);	/*Memory space*/
+		// return (buslogic_pci_bar[1].addr_regs[0] & 0xe0);	/*Memory space*/
+		return 0x00;
 	case 0x15:
-		return buslogic_pci_bar[1].addr_regs[1];
+		return buslogic_pci_bar[1].addr_regs[1] & 0xc0;
 	case 0x16:
 		return buslogic_pci_bar[1].addr_regs[2];
 	case 0x17:
@@ -1248,7 +1258,10 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 		/* Then let's set the PCI regs. */
 		buslogic_pci_bar[1].addr_regs[addr & 3] = val;
 		/* Then let's calculate the new I/O base. */
-		bl->MMIOBase = buslogic_pci_bar[1].addr & 0xffffffe0;
+		// bl->MMIOBase = buslogic_pci_bar[1].addr & 0xffffffe0;
+		/* Give it a 4 kB alignment as that's this emulator's granularity. */
+		buslogic_pci_bar[1].addr &= 0xffffc000;
+		bl->MMIOBase = buslogic_pci_bar[1].addr & 0xffffc000;
 		/* Log the new base. */
 		buslogic_log("BusLogic PCI: New MMIO base is %04X\n" , bl->MMIOBase);
 		/* We're done, so get out of the here. */
@@ -1475,6 +1488,15 @@ buslogic_mca_write(int port, uint8_t val, void *priv)
 }
 
 
+static uint8_t
+buslogic_mca_feedb(void *priv)
+{
+    x54x_t *dev = (x54x_t *)priv;
+
+    return (dev->pos_regs[2] & 0x01);
+}
+
+
 void
 BuslogicDeviceReset(void *p)
 {
@@ -1525,10 +1547,7 @@ buslogic_init(const device_t *info)
     dev->HostID = 7;		/* default HA ID */
     dev->setup_info_len = sizeof(buslogic_setup_t);
     dev->max_id = 7;
-    dev->int_geom_writable = 1;
-    dev->cdrom_boot = 0;
-    dev->bit32 = 0;
-    dev->lba_bios = 0;
+    dev->flags = X54X_INT_GEOM_WRITABLE;
 
     bl->chip = info->local;
     bl->PCIBase = 0;
@@ -1561,6 +1580,17 @@ buslogic_init(const device_t *info)
 
     switch(bl->chip)
     {
+	case CHIP_BUSLOGIC_ISA_542_1991:
+		strcpy(dev->name, "BT-542B");
+		bios_rom_name = L"roms/scsi/buslogic/BT-542B_BIOS.rom";
+		bios_rom_size = 0x4000;
+		bios_rom_mask = 0x3fff;
+		has_autoscsi_rom = 0;
+		has_scam_rom = 0;
+		dev->fw_rev = "AA221";
+		dev->ha_bps = 5000000.0;	/* normal SCSI */
+		dev->max_id = 7;		/* narrow SCSI */
+		break;		
 	case CHIP_BUSLOGIC_ISA_542:
 		strcpy(dev->name, "BT-542BH");
 		bios_rom_name = L"roms/scsi/buslogic/BT-542BH_BIOS.rom";
@@ -1570,6 +1600,7 @@ buslogic_init(const device_t *info)
 		has_scam_rom = 0;
 		dev->fw_rev = "AA335";
 		dev->ha_bps = 5000000.0;	/* normal SCSI */
+		dev->max_id = 7;		/* narrow SCSI */
 		break;
 	case CHIP_BUSLOGIC_ISA:
 	default:
@@ -1583,6 +1614,7 @@ buslogic_init(const device_t *info)
 		has_scam_rom = 0;
 		dev->fw_rev = "AA421E";
 		dev->ha_bps = 10000000.0;	/* fast SCSI */
+		dev->max_id = 7;		/* narrow SCSI */
 		break;
 	case CHIP_BUSLOGIC_MCA:
 		strcpy(dev->name, "BT-640A");
@@ -1592,11 +1624,12 @@ buslogic_init(const device_t *info)
 		has_autoscsi_rom = 0;
 		has_scam_rom = 0;
 		dev->fw_rev = "BA150";
-		dev->bit32 = 1;
+		dev->flags |= X54X_32BIT;
 		dev->pos_regs[0] = 0x08;	/* MCA board ID */
 		dev->pos_regs[1] = 0x07;	
-		mca_add(buslogic_mca_read, buslogic_mca_write, dev);
+		mca_add(buslogic_mca_read, buslogic_mca_write, buslogic_mca_feedb, dev);
 		dev->ha_bps = 5000000.0;	/* normal SCSI */
+		dev->max_id = 7;		/* narrow SCSI */
 		break;
 	case CHIP_BUSLOGIC_VLB:
 		strcpy(dev->name, "BT-445S");
@@ -1605,11 +1638,14 @@ buslogic_init(const device_t *info)
 		bios_rom_mask = 0x3fff;
 		has_autoscsi_rom = 1;
 		autoscsi_rom_name = L"roms/scsi/buslogic/BT-445S_AutoSCSI.rom";
-		autoscsi_rom_size = 0x4000;
-		has_scam_rom = 0;
-		dev->fw_rev = "AA421E";
-		dev->bit32 = 1;
+		autoscsi_rom_size = 0x8000;
+		has_scam_rom = 1;
+		scam_rom_name = L"roms/scsi/buslogic/BT-445S_SCAM.rom";
+		scam_rom_size = 0x0200;
+		dev->fw_rev = "AA507B";
+		dev->flags |= X54X_32BIT;
 		dev->ha_bps = 10000000.0;	/* fast SCSI */
+		dev->max_id = 7;		/* narrow SCSI */
 		break;
 	case CHIP_BUSLOGIC_PCI:
 		strcpy(dev->name, "BT-958D");
@@ -1623,8 +1659,7 @@ buslogic_init(const device_t *info)
 		scam_rom_name = L"roms/scsi/buslogic/BT-958D_SCAM.rom";
 		scam_rom_size = 0x0200;
 		dev->fw_rev = "AA507B";
-		dev->cdrom_boot = 1;
-		dev->bit32 = 1;
+		dev->flags |= (X54X_CDROM_BOOT | X54X_32BIT);
 		dev->ha_bps = 20000000.0;	/* ultra SCSI */
 		dev->max_id = 15;		/* wide SCSI */
 		break;
@@ -1695,7 +1730,7 @@ buslogic_init(const device_t *info)
 	
     x54x_device_reset(dev);
 
-    if ((bl->chip != CHIP_BUSLOGIC_ISA_542) && (bl->chip != CHIP_BUSLOGIC_MCA)) {
+    if ((bl->chip != CHIP_BUSLOGIC_ISA_542) && (bl->chip != CHIP_BUSLOGIC_ISA_542_1991) && (bl->chip != CHIP_BUSLOGIC_MCA)) {
 	BuslogicInitializeLocalRAM(bl);
 	BuslogicInitializeAutoSCSIRam(dev);
     }
@@ -1809,6 +1844,14 @@ static const device_config_t BT958D_Config[] = {
 	}
 };
 
+const device_t buslogic_542b_1991_device = {
+	"Buslogic BT-542B ISA",
+	DEVICE_ISA | DEVICE_AT,
+	CHIP_BUSLOGIC_ISA_542_1991,
+	buslogic_init, x54x_close, NULL,
+	NULL, NULL, NULL,
+	BT_ISA_Config
+};
 
 const device_t buslogic_device = {
 	"Buslogic BT-542BH ISA",

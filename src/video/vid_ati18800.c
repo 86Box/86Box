@@ -8,7 +8,7 @@
  *
  *		ATI 18800 emulation (VGA Edge-16)
  *
- * Version:	@(#)vid_ati18800.c	1.0.12	2018/04/29
+ * Version:	@(#)vid_ati18800.c	1.0.14	2018/10/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,11 +22,11 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "../86box.h"
-#include "../cpu/cpu.h"
 #include "../io.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
+#include "../timer.h"
 #include "video.h"
 #include "vid_ati18800.h"
 #include "vid_ati_eeprom.h"
@@ -62,6 +62,8 @@ typedef struct ati18800_t
         uint8_t regs[256];
         int index;
 } ati18800_t;
+
+static video_timings_t timing_ati18800 = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 
 static void ati18800_out(uint16_t addr, uint8_t val, void *p)
@@ -176,7 +178,7 @@ static void ati18800_recalctimings(svga_t *svga)
                 svga->vblankstart <<= 1;
         }
 
-        if (!svga->scrblank && (ati18800->regs[0xb0] & 0x20)) /*Extended 256 colour modes*/
+        if (!svga->scrblank && ((ati18800->regs[0xb0] & 0x02) || (ati18800->regs[0xb0] & 0x04))) /*Extended 256 colour modes*/
         {
                 svga->render = svga_render_8bpp_highres;
 				svga->bpp = 8;
@@ -189,6 +191,8 @@ static void *ati18800_init(const device_t *info)
 {
         ati18800_t *ati18800 = malloc(sizeof(ati18800_t));
         memset(ati18800, 0, sizeof(ati18800_t));
+
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati18800);
 
 	switch (info->local) {
 #if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
@@ -207,7 +211,7 @@ static void *ati18800_init(const device_t *info)
 			break;
 	};
         
-        svga_init(&ati18800->svga, ati18800, 1 << 19, /*512kb*/
+        svga_init(&ati18800->svga, ati18800, 1 << 20, /*512kb*/
                    ati18800_recalctimings,
                    ati18800_in, ati18800_out,
                    NULL,

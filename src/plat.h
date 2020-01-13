@@ -8,13 +8,13 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.26	2018/02/14
+ * Version:	@(#)plat.h	1.0.28	2019/03/06
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #ifndef EMU_PLAT_H
 # define EMU_PLAT_H
@@ -68,10 +68,14 @@ GLOBAL int	unscaled_size_x,		/* current unscaled size X */
 /* System-related functions. */
 extern wchar_t	*fix_exe_path(wchar_t *str);
 extern FILE	*plat_fopen(wchar_t *path, wchar_t *mode);
+extern FILE	*plat_fopen64(const wchar_t *path, const wchar_t *mode);
 extern void	plat_remove(wchar_t *path);
 extern int	plat_getcwd(wchar_t *bufp, int max);
 extern int	plat_chdir(wchar_t *path);
+extern void	plat_tempfile(wchar_t *bufp, wchar_t *prefix, wchar_t *suffix);
 extern void	plat_get_exe_name(wchar_t *s, int size);
+extern wchar_t	*plat_get_basename(const wchar_t *path);
+extern void	plat_get_dirname(wchar_t *dest, const wchar_t *path);
 extern wchar_t	*plat_get_filename(wchar_t *s);
 extern wchar_t	*plat_get_extension(wchar_t *s);
 extern void	plat_append_filename(wchar_t *dest, wchar_t *s1, wchar_t *s2);
@@ -91,6 +95,7 @@ extern int	plat_setvid(int api);
 extern void	plat_vidsize(int x, int y);
 extern void	plat_setfullscreen(int on);
 extern void	plat_resize(int x, int y);
+extern void	plat_vidapi_enable(int enabled);
 
 
 /* Resource management. */
@@ -104,14 +109,7 @@ extern void	do_stop(void);
 
 
 /* Platform-specific device support. */
-extern uint8_t	host_cdrom_drive_available[26];
-extern uint8_t	host_cdrom_drive_available_num;
-
-#ifdef USE_IOCTL
-extern void	cdrom_init_host_drives(void);
-#endif
-extern void	cdrom_eject(uint8_t id);
-extern void	cdrom_reload(uint8_t id);
+extern void	plat_cdrom_ui_update(uint8_t id, uint8_t reload);
 extern void	zip_eject(uint8_t id);
 extern void	zip_reload(uint8_t id);
 extern int      ioctl_open(uint8_t id, char d);

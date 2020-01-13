@@ -8,15 +8,15 @@
  *
  *		Emulation of the Olivetti M24.
  *
- * Version:	@(#)m_olivetti_m24.c	1.0.14	2018/04/26
+ * Version:	@(#)m_olivetti_m24.c	1.0.21	2019/11/15
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -25,17 +25,18 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include "../86box.h"
+#include "../timer.h"
 #include "../io.h"
 #include "../pic.h"
 #include "../pit.h"
 #include "../ppi.h"
 #include "../nmi.h"
 #include "../mem.h"
-#include "../timer.h"
 #include "../device.h"
 #include "../nvr.h"
 #include "../keyboard.h"
 #include "../mouse.h"
+#include "../rom.h"
 #include "../floppy/fdd.h"
 #include "../floppy/fdc.h"
 #include "../game/gameport.h"
@@ -70,13 +71,13 @@ typedef struct {
     int		linepos, displine;
     int		sc, vc;
     int		con, coff, cursoron, blink;
-    int64_t	vsynctime;
+    int	vsynctime;
     int		vadj;
     int		lineff;
     uint16_t	ma, maback;
     int		dispon;
-    int64_t	dispontime, dispofftime;
-    int64_t	vidtime;
+    uint64_t	dispontime, dispofftime;
+    pc_timer_t	timer;
     int		firstline, lastline;
 
     /* Keyboard stuff. */
@@ -93,7 +94,10 @@ typedef struct {
     /* Mouse stuff. */
     int		mouse_mode;
     int		x, y, b;
+	pc_timer_t send_delay_timer;
 } olim24_t;
+
+static video_timings_t timing_m24      = {VIDEO_ISA, 8,16,32, 8,16,32};
 
 
 static uint8_t crtcmask[32] = {
@@ -110,13 +114,11 @@ static int	key_queue_start = 0,
 		
 #ifdef ENABLE_M24VID_LOG
 int m24vid_do_log = ENABLE_M24VID_LOG;
-#endif
 
 
 static void
 m24_log(const char *fmt, ...)
 {
-#ifdef ENABLE_M24VID_LOG
     va_list ap;
 
     if (m24vid_do_log) {
@@ -125,9 +127,12 @@ m24_log(const char *fmt, ...)
 	va_end(ap);
 	fflush(stdlog);
     }
+}
+#else
+#define m24_log(fmt, ...)
 #endif
-}		
-		
+
+
 static void
 recalc_timings(olim24_t *m24)
 {
@@ -144,8 +149,8 @@ recalc_timings(olim24_t *m24)
     _dispofftime = disptime - _dispontime;
     _dispontime  *= CGACONST / 2;
     _dispofftime *= CGACONST / 2;
-    m24->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
-    m24->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
+    m24->dispontime  = (uint64_t)(_dispontime);
+    m24->dispofftime = (uint64_t)(_dispofftime);
 }
 
 
@@ -231,10 +236,12 @@ static void
 vid_write(uint32_t addr, uint8_t val, void *priv)
 {
     olim24_t *m24 = (olim24_t *)priv;
+	int offset;
 
     m24->vram[addr & 0x7FFF]=val;
-    m24->charbuffer[ ((int)(((m24->dispontime - m24->vidtime) * 2) / (CGACONST / 2))) & 0xfc] = val;
-    m24->charbuffer[(((int)(((m24->dispontime - m24->vidtime) * 2) / (CGACONST / 2))) & 0xfc) | 1] = val;	
+	offset = ((timer_get_remaining_u64(&m24->timer) / CGACONST) * 4) & 0xfc;
+	m24->charbuffer[offset] = m24->vram[addr & 0x7fff];
+	m24->charbuffer[offset | 1] = m24->vram[addr & 0x7fff];
 }
 
 
@@ -253,7 +260,7 @@ vid_poll(void *priv)
     olim24_t *m24 = (olim24_t *)priv;
     uint16_t ca = (m24->crtc[15] | (m24->crtc[14] << 8)) & 0x3fff;
     int drawcursor;
-    int x, c;
+    int x, c, xs_temp, ys_temp;
     int oldvc;
     uint8_t chr, attr;
     uint16_t dat, dat2;
@@ -262,7 +269,7 @@ vid_poll(void *priv)
     int oldsc;
 
     if (!m24->linepos) {
-	m24->vidtime += m24->dispofftime;
+	timer_advance_u64(&m24->timer, m24->dispofftime);
 	m24->stat |= 1;
 	m24->linepos = 1;
 	oldsc = m24->sc;
@@ -276,17 +283,17 @@ vid_poll(void *priv)
 		for (c = 0; c < 8; c++) 
 		{
 			if ((m24->cgamode & 0x12) == 0x12) {
-				buffer->line[m24->displine][c] = 0;
+				((uint32_t *)buffer32->line[m24->displine])[c] = 0;
 				if (m24->cgamode & 1)
-					buffer->line[m24->displine][c + (m24->crtc[1] << 3) + 8] = 0;
+					((uint32_t *)buffer32->line[m24->displine])[c + (m24->crtc[1] << 3) + 8] = 0;
 				else
-					buffer->line[m24->displine][c + (m24->crtc[1] << 4) + 8] = 0;
+					((uint32_t *)buffer32->line[m24->displine])[c + (m24->crtc[1] << 4) + 8] = 0;
 			} else {
-				buffer->line[m24->displine][c] = (m24->cgacol & 15) + 16;
+				((uint32_t *)buffer32->line[m24->displine])[c] = (m24->cgacol & 15) + 16;
 				if (m24->cgamode & 1)
-					buffer->line[m24->displine][c + (m24->crtc[1] << 3) + 8] = (m24->cgacol & 15) + 16;
+					((uint32_t *)buffer32->line[m24->displine])[c + (m24->crtc[1] << 3) + 8] = (m24->cgacol & 15) + 16;
 				else
-					buffer->line[m24->displine][c + (m24->crtc[1] << 4) + 8] = (m24->cgacol & 15) + 16;
+					((uint32_t *)buffer32->line[m24->displine])[c + (m24->crtc[1] << 4) + 8] = (m24->cgacol & 15) + 16;
 			}
 		}
 		if (m24->cgamode & 1) {
@@ -305,10 +312,10 @@ vid_poll(void *priv)
 				}
 				if (drawcursor) {
 					for (c = 0; c < 8; c++)
-					    buffer->line[m24->displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((m24->sc & 7) << 1) | m24->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+					    ((uint32_t *)buffer32->line[m24->displine])[(x << 3) + c + 8] = cols[(fontdatm[chr][((m24->sc & 7) << 1) | m24->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
 				} else {
 					for (c = 0; c < 8; c++)
-					    buffer->line[m24->displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((m24->sc & 7) << 1) | m24->lineff] & (1 << (c ^ 7))) ? 1 : 0];
+					    ((uint32_t *)buffer32->line[m24->displine])[(x << 3) + c + 8] = cols[(fontdatm[chr][((m24->sc & 7) << 1) | m24->lineff] & (1 << (c ^ 7))) ? 1 : 0];
 				}
 				m24->ma++;
 			}
@@ -329,12 +336,12 @@ vid_poll(void *priv)
 				m24->ma++;
 				if (drawcursor) {
 					for (c = 0; c < 8; c++)
-					    buffer->line[m24->displine][(x << 4) + (c << 1) + 8] = 
-					    buffer->line[m24->displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((m24->sc & 7) << 1) | m24->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+					    ((uint32_t *)buffer32->line[m24->displine])[(x << 4) + (c << 1) + 8] = 
+					    ((uint32_t *)buffer32->line[m24->displine])[(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((m24->sc & 7) << 1) | m24->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
 				} else {
 					for (c = 0; c < 8; c++)
-					    buffer->line[m24->displine][(x << 4) + (c << 1) + 8] = 
-					    buffer->line[m24->displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((m24->sc & 7) << 1) | m24->lineff] & (1 << (c ^ 7))) ? 1 : 0];
+					    ((uint32_t *)buffer32->line[m24->displine])[(x << 4) + (c << 1) + 8] = 
+					    ((uint32_t *)buffer32->line[m24->displine])[(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((m24->sc & 7) << 1) | m24->lineff] & (1 << (c ^ 7))) ? 1 : 0];
 				}
 			}
 		} else if (!(m24->cgamode & 16)) {
@@ -358,8 +365,8 @@ vid_poll(void *priv)
 				       m24->vram[((m24->ma << 1) & 0x1fff) + ((m24->sc & 1) * 0x2000) + 1 + m24->base];
 				m24->ma++;
 				for (c = 0; c < 8; c++) {
-					buffer->line[m24->displine][(x << 4) + (c << 1) + 8] =
-					buffer->line[m24->displine][(x << 4) + (c << 1) + 1 + 8] = cols[dat >> 14];
+					((uint32_t *)buffer32->line[m24->displine])[(x << 4) + (c << 1) + 8] =
+					((uint32_t *)buffer32->line[m24->displine])[(x << 4) + (c << 1) + 1 + 8] = cols[dat >> 14];
 					dat <<= 2;
 				}
 			}
@@ -376,15 +383,15 @@ vid_poll(void *priv)
 				dat = (m24->vram[((m24->ma << 1) & 0x1fff) + dat2] << 8) | m24->vram[((m24->ma << 1) & 0x1fff) + dat2 + 1];
 				m24->ma++;
 				for (c = 0; c < 16; c++) {
-					buffer->line[m24->displine][(x << 4) + c + 8] = cols[dat >> 15];
+					((uint32_t *)buffer32->line[m24->displine])[(x << 4) + c + 8] = cols[dat >> 15];
 					dat <<= 1;
 				}
 			}
 		}
 	} else {
 		cols[0] = ((m24->cgamode & 0x12) == 0x12) ? 0 : (m24->cgacol & 15) + 16;
-		if (m24->cgamode & 1) hline(buffer, 0, m24->displine, (m24->crtc[1] << 3) + 16, cols[0]);
-		else		  hline(buffer, 0, m24->displine, (m24->crtc[1] << 4) + 16, cols[0]);
+		if (m24->cgamode & 1)	hline(buffer32, 0, m24->displine, (m24->crtc[1] << 3) + 16, cols[0]);
+		else			hline(buffer32, 0, m24->displine, (m24->crtc[1] << 4) + 16, cols[0]);
 	}
 
 	if (m24->cgamode & 1)
@@ -398,7 +405,7 @@ vid_poll(void *priv)
 	m24->displine++;
 	if (m24->displine >= 720) m24->displine = 0;
     } else {
-	m24->vidtime += m24->dispontime;
+	timer_advance_u64(&m24->timer, m24->dispontime);
 	if (m24->dispon) m24->stat &= ~1;
 	m24->linepos = 0;
 	m24->lineff ^= 1;
@@ -455,21 +462,36 @@ vid_poll(void *priv)
 					else
 						x = (m24->crtc[1] << 4) + 16;
 					m24->lastline++;
-					if ((x != xsize) || ((m24->lastline - m24->firstline) != ysize) || video_force_resize_get()) {
-						xsize = x;
-						ysize = m24->lastline - m24->firstline;
-						if (xsize < 64) xsize = 656;
-						if (ysize < 32) ysize = 200;
-						set_screen_size(xsize, ysize + 16);
 
-						if (video_force_resize_get())
-							video_force_resize_set(0);
+					xs_temp = x;
+					ys_temp = (m24->lastline - m24->firstline);
+
+					if ((xs_temp > 0) && (ys_temp > 0)) {
+						if (xsize < 64) xs_temp = 656;
+						if (ysize < 32) ys_temp = 200;
+						if (!enable_overscan)
+							xs_temp -= 16;
+
+						if ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get()) {
+							xsize = xs_temp;
+							ysize = ys_temp;
+							set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
+
+							if (video_force_resize_get())
+								video_force_resize_set(0);
+						}
+
+						if (enable_overscan) {
+							video_blit_memtoscreen_8(0, m24->firstline - 8, 0, (m24->lastline - m24->firstline) + 16,
+										 xsize, (m24->lastline - m24->firstline) + 16);
+						} else
+							video_blit_memtoscreen_8(8, m24->firstline, 0, (m24->lastline - m24->firstline),
+										 xsize, (m24->lastline - m24->firstline));
 					}
 
-					video_blit_memtoscreen_8(0, m24->firstline - 8, 0, (m24->lastline - m24->firstline) + 16, xsize, (m24->lastline - m24->firstline) + 16);
 					frames++;
 
-					video_res_x = xsize - 16;
+					video_res_x = xsize;
 					video_res_y = ysize;
 					if (m24->cgamode & 1) {
 						video_res_x /= 8;
@@ -522,7 +544,7 @@ kbd_poll(void *priv)
 {
     olim24_t *m24 = (olim24_t *)priv;
 
-    keyboard_delay += (1000LL * TIMER_USEC);
+    timer_advance_u64(&m24->send_delay_timer, 1000 * TIMER_USEC);
     if (m24->wantirq) {
 	m24->wantirq = 0;
 	picint(2);
@@ -631,15 +653,12 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 	case 0x61:
 		ppi.pb = val;
 
-		timer_process();
-		timer_update_outstanding();
-
 		speaker_update();
 		speaker_gated = val & 1;
 		speaker_enable = val & 2;
 		if (speaker_enable) 
 			was_speaker_enable = 1;
-		pit_set_gate(&pit, 2, val & 1);
+		pit_ctr_set_gate(&pit->counters[2], val & 1);
 		break;
     }
 }
@@ -800,9 +819,39 @@ const device_t m24_device = {
 };
 
 
-void
+static void
+kbd_reset(void *priv)
+{
+    olim24_t *m24 = (olim24_t *)priv;
+ 
+    /* Initialize the keyboard. */
+    m24->status = STAT_LOCK | STAT_CD;
+    m24->wantirq = 0;
+    keyboard_scan = 1;
+    m24->param = m24->param_total = 0;
+    m24->mouse_mode = 0;
+    m24->scan[0] = 0x1c;
+    m24->scan[1] = 0x53;
+    m24->scan[2] = 0x01;
+    m24->scan[3] = 0x4b;
+    m24->scan[4] = 0x4d;
+    m24->scan[5] = 0x48;
+    m24->scan[6] = 0x50;   
+}
+
+
+int
 machine_olim24_init(const machine_t *model)
 {
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/olivetti_m24/olivetti_m24_version_1.43_low.bin",
+				L"roms/machines/olivetti_m24/olivetti_m24_version_1.43_high.bin",
+				0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
     olim24_t *m24;
 
     m24 = (olim24_t *)malloc(sizeof(olim24_t));
@@ -814,36 +863,34 @@ machine_olim24_init(const machine_t *model)
     io_sethandler(0x0066, 2, m24_read, NULL, NULL, NULL, NULL, NULL, m24);
 
     /* Initialize the video adapter. */
+    // loadfont(L"roms/machines/olivetti_m24/ATT-FONT-DUMPED-VERIFIED.BIN", 1);
+    loadfont(L"roms/machines/olivetti_m24/m24 graphics board go380 258 pqbq.bin", 1);
     m24->vram = malloc(0x8000);
     overscan_x = overscan_y = 16;
     mem_mapping_add(&m24->mapping, 0xb8000, 0x08000,
 		    vid_read, NULL, NULL,
 		    vid_write, NULL, NULL,  NULL, 0, m24);
     io_sethandler(0x03d0, 16, vid_in, NULL, NULL, vid_out, NULL, NULL, m24);
-    timer_add(vid_poll, &m24->vidtime, TIMER_ALWAYS_ENABLED, m24);
+    timer_add(&m24->timer, vid_poll, m24, 1);
     device_add_ex(&m24_device, m24);
+    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_m24);
+    cga_palette = 0;
+    cgapal_rebuild();
 
     /* Initialize the keyboard. */
-    m24->status = STAT_LOCK | STAT_CD;
-    m24->scan[0] = 0x1c;
-    m24->scan[1] = 0x53;
-    m24->scan[2] = 0x01;
-    m24->scan[3] = 0x4b;
-    m24->scan[4] = 0x4d;
-    m24->scan[5] = 0x48;
-    m24->scan[6] = 0x50;
     io_sethandler(0x0060, 2,
 		  kbd_read, NULL, NULL, kbd_write, NULL, NULL, m24);
     io_sethandler(0x0064, 1,
 		  kbd_read, NULL, NULL, kbd_write, NULL, NULL, m24);
-    keyboard_set_table(scancode_xt);
     keyboard_send = kbd_adddata_ex;
-    keyboard_scan = 1;
-    timer_add(kbd_poll, &keyboard_delay, TIMER_ALWAYS_ENABLED, m24);
+    kbd_reset(m24);
+    timer_add(&m24->send_delay_timer, kbd_poll, m24, 1);
 
     /* Tell mouse driver about our internal mouse. */
     mouse_reset();
     mouse_set_poll(ms_poll, m24);
+
+    keyboard_set_table(scancode_xt);
 
     if (joystick_type != 7)
 	device_add(&gameport_device);
@@ -852,23 +899,6 @@ machine_olim24_init(const machine_t *model)
     device_add(&at_nvr_device);
 
     nmi_init();
-}
 
-void machine_olim24_video_init(void) {
-    olim24_t *m24;
-
-    m24 = (olim24_t *)malloc(sizeof(olim24_t));
-    memset(m24, 0x00, sizeof(olim24_t));
-
-    /* Initialize the video adapter. */
-    m24->vram = malloc(0x8000);
-    overscan_x = overscan_y = 16;
-    mem_mapping_add(&m24->mapping, 0xb8000, 0x08000,
-		    vid_read, NULL, NULL,
-		    vid_write, NULL, NULL,  NULL, 0, m24);
-    io_sethandler(0x03d0, 16, vid_in, NULL, NULL, vid_out, NULL, NULL, m24);
-	io_sethandler(0x13c6, 1, vid_in, NULL, NULL, vid_out, NULL, NULL, m24);
-	io_sethandler(0x23c6, 1, vid_in, NULL, NULL, vid_out, NULL, NULL, m24);
-    timer_add(vid_poll, &m24->vidtime, TIMER_ALWAYS_ENABLED, m24);
-    device_add_ex(&m24_device, m24);
+    return ret;
 }

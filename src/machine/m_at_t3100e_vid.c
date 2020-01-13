@@ -22,15 +22,15 @@
  *		61 50 52 0F 19 06 19 19 02 0D 0B 0C   MONO
  *		2D 28 22 0A 67 00 64 67 02 03 06 07   640x400
  *
- * Version:	@(#)m_at_t3100e_vid.c	1.0.6	2018/04/29
+ * Version:	@(#)m_at_t3100e_vid.c	1.0.8	2019/10/01
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,6 +70,9 @@
 
 #define T3100E_XSIZE 640
 #define T3100E_YSIZE 400
+
+/*Very rough estimate*/
+#define VID_CLOCK (double)(651 * 416 * 60)
 
 
 /* Mapping of attributes to colours */
@@ -117,7 +120,7 @@ typedef struct t3100e_t
 	int internal;		/* Using internal display? */
 	uint8_t	attrmap;	/* Attribute mapping register */
 
-        int dispontime, dispofftime;
+        uint64_t dispontime, dispofftime;
         
         int linepos, displine;
         int vc;
@@ -127,6 +130,8 @@ typedef struct t3100e_t
 
         uint8_t *vram;
 } t3100e_t;
+
+static video_timings_t timing_t3100e   = {VIDEO_ISA, 8,16,32, 8,16,32};
 
 
 void t3100e_recalctimings(t3100e_t *t3100e);
@@ -199,7 +204,7 @@ void t3100e_write(uint32_t addr, uint8_t val, void *p)
         egawrites++;
 
         t3100e->vram[addr & 0x7fff] = val;
-        cycles -= 4;
+        sub_cycles(4);
 }
 	
 
@@ -208,7 +213,7 @@ uint8_t t3100e_read(uint32_t addr, void *p)
 {
         t3100e_t *t3100e = (t3100e_t *)p;
         egareads++;
-	cycles -= 4;
+	sub_cycles(4);
 
         return t3100e->vram[addr & 0x7fff];
 }
@@ -228,8 +233,8 @@ void t3100e_recalctimings(t3100e_t *t3100e)
 	disptime = 651;
 	_dispontime = 640;
         _dispofftime = disptime - _dispontime;
-	t3100e->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	t3100e->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	t3100e->dispontime  = (uint64_t)(_dispontime * (cpuclock / VID_CLOCK) * (double)(1ull << 32));
+	t3100e->dispofftime = (uint64_t)(_dispofftime * (cpuclock / VID_CLOCK) * (double)(1ull << 32));
 }
 
 
@@ -523,7 +528,7 @@ void t3100e_poll(void *p)
 
         if (!t3100e->linepos)
         {
-                t3100e->cga.vidtime += t3100e->dispofftime;
+                timer_advance_u64(&t3100e->cga.timer, t3100e->dispofftime);
                 t3100e->cga.cgastat |= 1;
                 t3100e->linepos = 1;
                 if (t3100e->dispon)
@@ -570,19 +575,22 @@ void t3100e_poll(void *p)
 		{
                 	t3100e->cga.cgastat &= ~1;
 		}
-                t3100e->cga.vidtime += t3100e->dispontime;
+                timer_advance_u64(&t3100e->cga.timer, t3100e->dispontime);
                 t3100e->linepos = 0;
 
 		if (t3100e->displine == 400)
                 {
 /* Hardcode 640x400 window size */
-			if (T3100E_XSIZE != xsize || T3100E_YSIZE != ysize)
+			if ((T3100E_XSIZE != xsize) || (T3100E_YSIZE != ysize) || video_force_resize_get())
 			{
                                 xsize = T3100E_XSIZE;
                                 ysize = T3100E_YSIZE;
                                 if (xsize < 64) xsize = 656;
                                 if (ysize < 32) ysize = 200;
                                 set_screen_size(xsize, ysize);
+
+				if (video_force_resize_get())
+					video_force_resize_set(0);
                         }
                         video_blit_memtoscreen(0, 0, 0, ysize, xsize, ysize);
 
@@ -707,14 +715,17 @@ void *t3100e_init(const device_t *info)
 {
         t3100e_t *t3100e = malloc(sizeof(t3100e_t));
         memset(t3100e, 0, sizeof(t3100e_t));
+	loadfont(L"roms/machines/t3100e/t3100e_font.bin", 5);
 	cga_init(&t3100e->cga);
+	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t3100e);
 
 	t3100e->internal = 1;
 
 	/* 32k video RAM */
         t3100e->vram = malloc(0x8000);
 
-        timer_add(t3100e_poll, &t3100e->cga.vidtime, TIMER_ALWAYS_ENABLED, t3100e);
+        timer_set_callback(&t3100e->cga.timer, t3100e_poll);
+        timer_set_p(&t3100e->cga.timer, t3100e);
 
 	/* Occupy memory between 0xB8000 and 0xBFFFF */
         mem_mapping_add(&t3100e->mapping, 0xb8000, 0x8000, t3100e_read, NULL, NULL, t3100e_write, NULL, NULL,  NULL, 0, t3100e);

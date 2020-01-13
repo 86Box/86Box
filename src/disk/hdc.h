@@ -8,13 +8,13 @@
  *
  *		Definitions for the common disk controller handler.
  *
- * Version:	@(#)hdc.h	1.0.8	2018/04/05
+ * Version:	@(#)hdc.h	1.0.11	2019/03/03
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #ifndef EMU_HDC_H
 # define EMU_HDC_H
@@ -23,18 +23,21 @@
 #define MFM_NUM		2	/* 2 drives per controller supported */
 #define ESDI_NUM	2	/* 2 drives per controller supported */
 #define XTA_NUM		2	/* 2 drives per controller supported */
-#define IDE_NUM		8
+#define IDE_NUM		10	/* 8 drives per AT IDE + 2 for XT IDE */
 #define SCSI_NUM	16	/* theoretically the controller can have at
 				 * least 7 devices, with each device being
 				 * able to support 8 units, but hey... */
 
-extern char	*hdc_name;
 extern int	hdc_current;
 
 
-extern const device_t	mfm_xt_xebec_device;		/* mfm_xt_xebec */
-extern const device_t	mfm_xt_dtc5150x_device;		/* mfm_xt_dtc */
-extern const device_t	mfm_at_wd1003_device;		/* mfm_at_wd1003 */
+extern const device_t	st506_xt_xebec_device;		/* st506_xt_xebec */
+extern const device_t	st506_xt_dtc5150x_device;	/* st506_xt_dtc */
+extern const device_t	st506_xt_st11_m_device;		/* st506_xt_st11_m */
+extern const device_t	st506_xt_st11_r_device;		/* st506_xt_st11_m */
+extern const device_t	st506_xt_wd1002a_wx1_device;	/* st506_xt_wd1002a_wx1 */
+extern const device_t	st506_xt_wd1002a_27x_device;	/* st506_xt_wd1002a_27x */
+extern const device_t	st506_at_wd1003_device;		/* st506_at_wd1003 */
 
 extern const device_t	esdi_at_wd1007vse1_device;	/* esdi_at */
 extern const device_t	esdi_ps2_device;		/* esdi_mca */
@@ -59,11 +62,12 @@ extern const device_t	xtide_acculogic_device;		/* xtide_ps2 */
 extern const device_t	xtide_at_ps2_device;		/* xtide_at_ps2 */
 
 
-extern void	hdc_init(char *name);
+extern void	hdc_init(void);
 extern void	hdc_reset(void);
 
 extern char	*hdc_get_name(int hdc);
 extern char	*hdc_get_internal_name(int hdc);
+extern int	hdc_get_id(char *s);
 extern int	hdc_get_from_internal_name(char *s);
 extern int	hdc_has_config(int hdc);
 extern const device_t	*hdc_get_device(int hdc);

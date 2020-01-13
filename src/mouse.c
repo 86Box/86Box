@@ -11,7 +11,7 @@
  * TODO:	Add the Genius bus- and serial mouse.
  *		Remove the '3-button' flag from mouse types.
  *
- * Version:	@(#)mouse.c	1.0.27	2018/04/29
+ * Version:	@(#)mouse.c	1.0.29	2018/11/04
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -69,6 +69,7 @@ static mouse_t mouse_devices[] = {
 #endif
     { "mssystems",	&mouse_mssystems_device	},
     { "msserial",	&mouse_msserial_device	},
+    { "ltserial",	&mouse_ltserial_device	},
     { "ps2",		&mouse_ps2_device	},
     { NULL,		NULL			}
 };
@@ -82,22 +83,22 @@ static int	(*mouse_dev_poll)();
 
 #ifdef ENABLE_MOUSE_LOG
 int mouse_do_log = ENABLE_MOUSE_LOG;
-#endif
 
 
 static void
-mouse_log(const char *format, ...)
+mouse_log(const char *fmt, ...)
 {
-#ifdef ENABLE_MOUSE_LOG
     va_list ap;
 
     if (mouse_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define mouse_log(fmt, ...)
+#endif
 
 
 /* Initialize the mouse module. */
@@ -131,7 +132,7 @@ mouse_close(void)
 void
 mouse_reset(void)
 {
-    if ((mouse_curr != NULL) || (mouse_type == MOUSE_TYPE_INTERNAL))
+    if (mouse_curr != NULL)
 	return;		/* Mouse already initialized. */
 
     mouse_log("MOUSE: reset(type=%d, '%s')\n",
@@ -164,7 +165,7 @@ mouse_process(void)
 {
     static int poll_delay = 2;
 
-    if ((mouse_curr == NULL) || (mouse_type == MOUSE_TYPE_INTERNAL))
+    if (mouse_curr == NULL)
 	return;
 
     if (--poll_delay) return;

@@ -209,7 +209,7 @@ typedef u_int32_t caddr32_t;
 #endif
 #endif
 
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 typedef uintptr_t ipqp_32;
 typedef uintptr_t ipasfragp_32;
 #else
@@ -230,7 +230,7 @@ typedef caddr32_t ipasfragp_32;
 #endif
 
 struct ipovly {
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 	uintptr_t	ih_next, ih_prev;	/* for protocol sequence q's */
 #else
 	caddr32_t	ih_next, ih_prev;	/* for protocol sequence q's */
@@ -258,7 +258,7 @@ struct ipovly {
  * size 28 bytes
  */
 struct ipq {
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__aarch64__)
 	uintptr_t next,prev;	/* to other reass headers */
 #else
 	ipqp_32 next,prev;	/* to other reass headers */
@@ -276,6 +276,10 @@ struct ipq {
  *
  * Note: ipf_next must be at same offset as ipq_next above
  */
+#ifdef PRAGMA_PACK_SUPPORTED
+#pragma pack(1)
+#endif
+
 struct	ipasfrag {
 #ifdef WORDS_BIGENDIAN
 	u_char	ip_v:4,
@@ -298,7 +302,11 @@ struct	ipasfrag {
 	u_int16_t	ip_sum;
 	ipasfragp_32 ipf_next;		/* next fragment */
 	ipasfragp_32 ipf_prev;		/* previous fragment */
-};
+} PACKED__;
+
+#ifdef PRAGMA_PACK_SUPPORTED
+#pragma pack(PACK_END)	//WAS 0
+#endif
 
 /*
  * Structure stored in mbuf in inpcb.ip_options

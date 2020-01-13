@@ -8,15 +8,15 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.73	2018/06/02
+ * Version:	@(#)pc.c	1.0.93	2019/12/05
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -29,24 +29,35 @@
 #define HAVE_STDARG_H
 #include "86box.h"
 #include "config.h"
+#include "mem.h"
+#ifdef USE_NEW_DYNAREC
+#ifdef USE_DYNAREC
+#include "cpu_new/cpu.h"
+# include "cpu_new/codegen.h"
+#endif
+#include "cpu_new/x86_ops.h"
+#else
 #include "cpu/cpu.h"
 #ifdef USE_DYNAREC
 # include "cpu/codegen.h"
 #endif
 #include "cpu/x86_ops.h"
+#endif
 #include "io.h"
-#include "mem.h"
 #include "rom.h"
 #include "dma.h"
 #include "pci.h"
 #include "pic.h"
+#include "timer.h"
+#include "device.h"
 #include "pit.h"
 #include "random.h"
 #include "timer.h"
-#include "device.h"
 #include "nvr.h"
 #include "machine/machine.h"
 #include "bugger.h"
+#include "isamem.h"
+#include "isartc.h"
 #include "lpt.h"
 #include "serial.h"
 #include "keyboard.h"
@@ -58,11 +69,11 @@
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
 #include "scsi/scsi.h"
+#include "scsi/scsi_device.h"
 #include "cdrom/cdrom.h"
 #include "disk/zip.h"
 #include "scsi/scsi_disk.h"
 #include "cdrom/cdrom_image.h"
-#include "cdrom/cdrom_null.h"
 #include "network/network.h"
 #include "sound/sound.h"
 #include "sound/midi.h"
@@ -106,8 +117,9 @@ int	vid_cga_contrast = 0,			/* (C) video */
 	enable_overscan = 0,			/* (C) video */
 	force_43 = 0;				/* (C) video */
 int	serial_enabled[SERIAL_MAX] = {0,0},	/* (C) enable serial ports */
-	lpt_enabled = 0,			/* (C) enable LPT ports */
-	bugger_enabled = 0;			/* (C) enable ISAbugger */
+	bugger_enabled = 0,			/* (C) enable ISAbugger */
+	isamem_type[ISAMEM_MAX] = { 0,0,0,0 },	/* (C) enable ISA mem cards */
+	isartc_type = 0;			/* (C) enable ISA RTC card */
 int	gfxcard = 0;				/* (C) graphics/video card */
 int	sound_is_float = 1,			/* (C) sound uses FP values */
 	GAMEBLASTER = 0,			/* (C) sound option */
@@ -119,7 +131,10 @@ int	cpu_manufacturer = 0,			/* (C) cpu manufacturer */
 	cpu_use_dynarec = 0,			/* (C) cpu uses/needs Dyna */
 	cpu = 3,				/* (C) cpu type */
 	enable_external_fpu = 0;		/* (C) enable external FPU */
-int	enable_sync = 0;			/* (C) enable time sync */
+int	time_sync = 0;				/* (C) enable time sync */
+#ifdef USE_DISCORD
+int	enable_discord = 0;			/* (C) enable Discord integration */
+#endif
 
 /* Statistics. */
 extern int
@@ -132,10 +147,7 @@ int	fps, framecount;			/* emulator % */
 int	CPUID;
 int	output;
 int	atfullspeed;
-int	cpuspeed2;
 int	clockrate;
-
-int	gfx_present[GFX_MAX];			/* should not be here */
 
 wchar_t	exe_path[1024];				/* path (dir) of executable */
 wchar_t	usr_path[1024];				/* path (dir) of user data */
@@ -144,7 +156,6 @@ FILE	*stdlog = NULL;				/* file to log output to */
 int	scrnsz_x = SCREEN_RES_X,		/* current screen size, X */
 	scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
 int	config_changed;				/* config has changed */
-int	romset;					/* current machine ID */
 int	title_update;
 int64_t	main_time;
 
@@ -254,10 +265,16 @@ fatal(const char *fmt, ...)
     config_save();
 
     dumppic();
+#ifdef ENABLE_808X_LOG
     dumpregs(1);
+#endif
 
     /* Make sure the message does not have a trailing newline. */
     if ((sp = strchr(temp, '\n')) != NULL) *sp = '\0';
+
+    /* Cleanly terminate all of the emulator's components so as
+       to avoid things like threads getting stuck. */
+    do_stop();
 
     ui_msgbox(MBX_ERROR|MBX_FATAL|MBX_ANSI, temp);
 
@@ -269,22 +286,22 @@ fatal(const char *fmt, ...)
 
 #ifdef ENABLE_PC_LOG
 int pc_do_log = ENABLE_PC_LOG;
-#endif
 
 
 static void
-pc_log(const char *format, ...)
+pc_log(const char *fmt, ...)
 {
-#ifdef ENABLE_PC_LOG
     va_list ap;
 
     if (pc_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define pc_log(fmt, ...)
+#endif
 
 
 /*
@@ -419,8 +436,8 @@ usage:
 
 	/* If the specified path does not yet exist,
 	   create it. */
-	if (! plat_dir_check(path))
-		plat_dir_create(path);
+	if (! plat_dir_check(usr_path))
+		plat_dir_create(usr_path);
     }
 
     /* Make sure we have a trailing backslash. */
@@ -457,9 +474,6 @@ usage:
 		wcscpy(usr_path, cfg);
 	  else
 		wcscat(usr_path, cfg);
-
-	/* Make sure we have a trailing backslash. */
-	plat_path_slash(usr_path);
     }
 
     /* At this point, we can safely create the full path name. */
@@ -489,7 +503,6 @@ usage:
     mouse_init();
     cdrom_global_init();
     zip_global_init();
-    scsi_disk_global_init();
 
     /* Load the configuration file. */
     config_load();
@@ -500,84 +513,37 @@ usage:
 
 
 void
-pc_full_speed(void)
-{
-    cpuspeed2 = cpuspeed;
-
-    if (! atfullspeed) {
-	pc_log("Set fullspeed - %i %i %i\n", is386, AT, cpuspeed2);
-	if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
-		setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
-	else
-		setpitclock(14318184.0);
-    }
-    atfullspeed = 1;
-
-    nvr_period_recalc();
-}
-
-
-void
 pc_speed_changed(void)
 {
     if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
-	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
+	pit_set_clock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
     else
-	setpitclock(14318184.0);
-
-    nvr_period_recalc();
+	pit_set_clock(14318184.0);
 }
 
 
-#if 0
-/* Re-load system configuration and restart. */
-/* FIXME: this has to be reviewed! */
 void
-pc_reload(wchar_t *fn)
+pc_full_speed(void)
 {
-    int i;
-
-    config_write(cfg_path);
-
-    for (i=0; i<FDD_NUM; i++)
-	fdd_close(i);
-
-    cdrom_close();
-
-    pc_reset_hard_close();
-
-    // FIXME: set up new config file path 'fn'... --FvK
-
-    config_load();
-
-    cdrom_hard_reset();
-
-    zip_hard_reset();
-
-    scsi_disk_hard_reset();
-
-    fdd_load(0, floppyfns[0]);
-    fdd_load(1, floppyfns[1]);
-    fdd_load(2, floppyfns[2]);
-    fdd_load(3, floppyfns[3]);
-
-    network_init();
-
-    pc_reset_hard_init();
+    if (! atfullspeed) {
+	pc_log("Set fullspeed - %i %i\n", is386, AT);
+	pc_speed_changed();
+    }
+    atfullspeed = 1;
 }
-#endif
 
 
 /* Initialize modules, ran once, after pc_init. */
 int
 pc_init_modules(void)
 {
-    int c, i;
+    int c, m;
 
     pc_log("Scanning for ROM images:\n");
-    for (c=0,i=0; i<ROM_MAX; i++) {
-	romspresent[i] = rom_load_bios(i);
-	c += romspresent[i];
+    c = m = 0;
+    while (machine_get_internal_name_ex(m) != NULL) {
+	c += machine_available(m);
+	m++;
     }
     if (c == 0) {
 	/* No usable ROMs found, aborting. */
@@ -586,55 +552,45 @@ pc_init_modules(void)
     pc_log("A total of %d ROM sets have been loaded.\n", c);
 
     /* Load the ROMs for the selected machine. */
-again:
-    if (! rom_load_bios(romset)) {
-	/* Whoops, ROMs not found. */
-	if (romset != -1)
-		ui_msgbox(MBX_INFO, (wchar_t *)IDS_2063);
-
-	/*
-	 * Select another machine to use.
-	 *
-	 * FIXME:
-	 * We should not do that here.  If something turns out
-	 * to be wrong with the configuration (such as missing
-	 * ROM images, we should just display a fatal message
-	 * in the render window's center, let them click OK,
-	 * and then exit so they can remedy the situation.
-	 */
-	for (c=0; c<ROM_MAX; c++) {
-		if (romspresent[c]) {
-			romset = c;
-			machine = machine_getmachine(romset);
+    if (! machine_available(machine)) {
+	c = 0;
+	while (machine_get_internal_name_ex(c) != NULL) {
+		machine = -1;
+		if (machine_available(c)) {
+			ui_msgbox(MBX_INFO, (wchar_t *)IDS_2063);
+			machine = c;
 			config_save();
-
-			/* This can loop if all ROMs are now bad.. */
-			goto again;
+			break;
 		}
+		c++;
+	}
+	if (machine == -1) {
+		fatal("No available machines\n");
+		exit(-1);
+		return(0);
 	}
     }
 
     /* Make sure we have a usable video card. */
-    for (c=0; c<GFX_MAX; c++)
-	gfx_present[c] = video_card_available(video_old_to_new(c));
-again2:
-    if (! video_card_available(video_old_to_new(gfxcard))) {
-	if (romset != -1) {
-		ui_msgbox(MBX_INFO, (wchar_t *)IDS_2064);
-	}
-	for (c=GFX_MAX-1; c>=0; c--) {
-		if (gfx_present[c]) {
+    if (! video_card_available(gfxcard)) {
+	c = 0;
+	while (video_get_internal_name(c) != NULL) {
+		gfxcard = -1;
+		if (video_card_available(c)) {
+			ui_msgbox(MBX_INFO, (wchar_t *)IDS_2064);
 			gfxcard = c;
 			config_save();
-
-			/* This can loop if all cards now bad.. */
-			goto again2;
+			break;
 		}
+		c++;
+	}
+	if (gfxcard == -1) {
+		fatal("No available video cards\n");
+		exit(-1);
+		return(0);
 	}
     }
 
-    // cpuspeed2 = (AT) ? 2 : 1;
-    cpuspeed2 = (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286) ? 2 : 1;
     atfullspeed = 0;
 
     random_init();
@@ -647,27 +603,16 @@ again2:
 
     keyboard_init();
     joystick_init();
-    video_init();
-    device_init();
 
-    timer_reset();
+    video_init();
 
     fdd_init();
 
     sound_init();
 
-    hdc_init(hdc_name);
+    hdc_init();
 
-    cdrom_hard_reset();
-
-    zip_hard_reset();
-
-    scsi_disk_hard_reset();
-
-    scsi_card_init();
-
-    pc_full_speed();
-    shadowbios = 0;
+    video_reset_close();
 
     return(1);
 }
@@ -715,9 +660,15 @@ pc_send_cae(void)
 void
 pc_reset_hard_close(void)
 {
+    ui_sb_set_ready(0);
+
+    /* Turn off timer processing to avoid potential segmentation faults. */
+    timer_close();
+
     suppress_overscan = 0;
 
     nvr_save();
+    nvr_close();
 
     mouse_close();
 
@@ -725,11 +676,19 @@ pc_reset_hard_close(void)
 
     device_close_all();
 
+    scsi_device_close_all();
+
     midi_close();
 
     cdrom_close();
 
+    zip_close();
+
+    scsi_disk_close();
+
     closeal();
+
+    video_reset_close();
 }
 
 
@@ -750,24 +709,29 @@ pc_reset_hard_init(void)
 
     /* Reset the general machine support modules. */
     io_init();
-    timer_reset();
+
+    /* Turn on and (re)initialize timer processing. */
+    timer_init();
 
     device_init();
 
     sound_reset();
 
-    /* This is needed to initialize the serial timer. */
-    serial_init();
-
-    cdrom_hard_reset();
-
-    zip_hard_reset();
-
-    scsi_disk_hard_reset();
-
     /* Initialize the actual machine and its basic modules. */
     machine_init();
 
+    /* Reset and reconfigure the serial ports. */
+    serial_standalone_init();
+
+    /* Reset and reconfigure the Sound Card layer. */
+    sound_card_reset();
+
+    /* Reset any ISA memory cards. */
+    isamem_reset();	
+	
+    /* Reset any ISA RTC cards. */
+    isartc_reset();	
+	
     fdd_reset();
 
     /*
@@ -781,28 +745,24 @@ pc_reset_hard_init(void)
 
     /* Reset some basic devices. */
     speaker_init();
-    serial_reset();
     lpt_devices_init();
     shadowbios = 0;
 
     /*
-     * This has to be after the serial initialization so that
-     * serial_init() doesn't break the serial mouse by resetting
-     * the RCR callback to NULL.
+     * Reset the mouse, this will attach it to any port needed.
      */
     mouse_reset();
 
-    /* Reset the video card. */
-    video_reset(gfxcard);
-
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
-
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
-    /* Reset and reconfigure the Sound Card layer. */
-    sound_card_reset();
+    cdrom_hard_reset();
+
+    zip_hard_reset();
+
+    scsi_disk_hard_reset();
 
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
@@ -810,13 +770,14 @@ pc_reset_hard_init(void)
     if (joystick_type != 7)
 	gameport_update_joystick_type();
 
-    if (config_changed) {
-	ui_sb_update_panes();
+    ui_sb_update_panes();
 
+    if (config_changed) {
         config_save();
 
 	config_changed = 0;
-    }
+    } else
+	ui_sb_set_ready(1);
 
     /* Needs the status bar... */
     if (bugger_enabled)
@@ -828,10 +789,8 @@ pc_reset_hard_init(void)
     pic_reset();
     cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
 
-    if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
-	setpitclock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
-    else
-	setpitclock(14318184.0);
+    atfullspeed = 0;
+    pc_full_speed();
 }
 
 
@@ -883,11 +842,17 @@ pc_close(thread_t *ptr)
 	plat_delay_ms(200);
     }
 
+#ifdef USE_NEW_DYNAREC
+    codegen_close();
+#endif
+
     nvr_save();
 
     config_save();
 
     plat_mouse_capture(0);
+
+    timer_close();
 
     lpt_devices_close();
 
@@ -896,17 +861,22 @@ pc_close(thread_t *ptr)
 
     if (dump_on_exit)
 	dumppic();
+#ifdef ENABLE_808X_LOG
     dumpregs(0);
+#endif
 
     video_close();
 
     device_close_all();
+
+    scsi_device_close_all();
 
     midi_close();
 
     network_close();
 
     sound_cd_thread_end();
+
     cdrom_close();
 
     zip_close();

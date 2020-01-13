@@ -10,7 +10,7 @@
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
  *
- * Version:	@(#)language.h	1.0.8	2018/05/25
+ * Version:	@(#)language.h	1.0.10	2018/11/19
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -24,7 +24,7 @@
 #define IDS_STRINGS	2048		// "86Box"
 #define IDS_2049	2049		// "86Box Error"
 #define IDS_2050	2050		// "86Box Fatal Error"
-#define IDS_2051	2051		// "This will reset 86Box.."
+#define IDS_2051	2051		// "This will hard reset the.."
 #define IDS_2052	2052		// "Use CTRL+ALT+PAGE DOWN.."
 #define IDS_2053	2053		// "Speed"
 #define IDS_2054	2054		// "ZIP %i (%03i): %ls"
@@ -92,6 +92,11 @@
 #define IDS_2116	2116		// "%u MB (CHS: %i, %i, %i)"
 #define IDS_2117	2117		// "Floppy %i (%s): %ls"
 #define IDS_2118	2118		// "All floppy images (*.0??;*.."
+#define IDS_2119	2119		// "Unable to initialize Free.."
+#define IDS_2120	2120		// "Unable to initialize SDL..."
+#define IDS_2121	2121		// "Are you sure you want to..."
+#define IDS_2122	2122		// "Are you sure you want to..."
+#define IDS_2123	2123		// "Unable to initialize Ghostscript..."
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -170,7 +175,7 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	71
+#define STR_NUM_2048	76
 #define STR_NUM_3072	11
 #define STR_NUM_4096	18
 #define STR_NUM_4352	7

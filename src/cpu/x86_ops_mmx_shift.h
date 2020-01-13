@@ -6,6 +6,7 @@
         }                                                               \
         else                                                            \
         {                                                               \
+				SEG_CHECK_READ(cpu_state.ea_seg);                       \
                 shift = readmemb(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 0;    \
                 CLOCK_CYCLES(2);                                        \
         }
@@ -52,7 +53,7 @@ static int opPSxxW_imm(uint32_t fetchdat)
                 }
                 break;
                 default:
-                pclog("Bad PSxxW (0F 71) instruction %02X\n", op);
+                x386_dynarec_log("Bad PSxxW (0F 71) instruction %02X\n", op);
                 cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 return 0;
@@ -223,7 +224,7 @@ static int opPSxxD_imm(uint32_t fetchdat)
                 }
                 break;
                 default:
-                pclog("Bad PSxxD (0F 72) instruction %02X\n", op);
+                x386_dynarec_log("Bad PSxxD (0F 72) instruction %02X\n", op);
                 cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 return 0;
@@ -375,7 +376,7 @@ static int opPSxxQ_imm(uint32_t fetchdat)
                         cpu_state.MM[reg].q <<= shift;
                 break;
                 default:
-                pclog("Bad PSxxQ (0F 73) instruction %02X\n", op);
+                x386_dynarec_log("Bad PSxxQ (0F 73) instruction %02X\n", op);
                 cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 return 0;

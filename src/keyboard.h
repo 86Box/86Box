@@ -8,23 +8,23 @@
  *
  *		Definitions for the keyboard interface.
  *
- * Version:	@(#)keyboard.h	1.0.15	2018/03/26
+ * Version:	@(#)keyboard.h	1.0.19	2019/10/30
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #ifndef EMU_KEYBOARD_H
 # define EMU_KEYBOARD_H
 
 
 typedef struct {
-    int	mk[9];
-    int	brk[9];
+    const uint8_t	mk[4];
+    const uint8_t	brk[4];
 } scancode;
 
 
@@ -46,7 +46,6 @@ extern "C" {
 
 extern uint8_t	keyboard_mode;
 extern int	keyboard_scan;
-extern int64_t	keyboard_delay;
 
 extern void	(*keyboard_send)(uint16_t val);
 extern void	kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val));
@@ -60,12 +59,22 @@ extern int	mouse_queue_start, mouse_queue_end;
 extern int	mouse_scan;
 
 #ifdef EMU_DEVICE_H
+extern const device_t	keyboard_pc_device;
+extern const device_t	keyboard_pc82_device;
 extern const device_t	keyboard_xt_device;
+extern const device_t	keyboard_xt86_device;
+extern const device_t	keyboard_xt_compaq_device;
 extern const device_t	keyboard_tandy_device;
+#if defined(DEV_BRANCH) && defined(USE_LASERXT)
+extern const device_t	keyboard_xt_lxt3_device;
+#endif
 extern const device_t	keyboard_at_device;
 extern const device_t	keyboard_at_ami_device;
 extern const device_t	keyboard_at_toshiba_device;
 extern const device_t	keyboard_ps2_device;
+extern const device_t	keyboard_ps2_ps1_device;
+extern const device_t	keyboard_ps2_ps2_device;
+extern const device_t	keyboard_ps2_xi8088_device;
 extern const device_t	keyboard_ps2_ami_device;
 extern const device_t	keyboard_ps2_mca_device;
 extern const device_t	keyboard_ps2_mca_2_device;
@@ -94,6 +103,7 @@ extern void	keyboard_at_adddata_mouse(uint8_t val);
 extern void	keyboard_at_set_mouse(void (*mouse_write)(uint8_t val,void *), void *);
 extern uint8_t	keyboard_at_get_mouse_scan(void);
 extern void	keyboard_at_set_mouse_scan(uint8_t val);
+extern void	keyboard_at_reset(void);
 
 #ifdef __cplusplus
 }

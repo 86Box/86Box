@@ -8,7 +8,7 @@
  *
  *		Emulation of various Compaq PC's.
  *
- * Version:	@(#)m_at_compaq.c	1.0.5	2018/03/18
+ * Version:	@(#)m_at_compaq.c	1.0.6	2018/09/02
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,6 +23,7 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../cpu/cpu.h"
+#include "../timer.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
@@ -31,6 +32,16 @@
 #include "../disk/hdc.h"
 #include "../disk/hdc_ide.h"
 #include "machine.h"
+
+
+enum
+{
+    COMPAQ_PORTABLEII = 0
+#if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
+    , COMPAQ_PORTABLEIII,
+    COMPAQ_PORTABLEIII386
+#endif
+};
 
 
 /* Compaq Deskpro 386 remaps RAM from 0xA0000-0xFFFFF to 0xFA0000-0xFFFFFF */
@@ -97,10 +108,13 @@ write_raml(uint32_t addr, uint32_t val, void *priv)
 }
 
 
-void
-machine_at_compaq_init(const machine_t *model)
+static void
+machine_at_compaq_init(const machine_t *model, int type)
 {
-    machine_at_top_remap_init(model);
+    machine_at_init(model);
+
+    mem_remap_top(384);
+	
     device_add(&fdc_at_device);
 
     mem_mapping_add(&ram_mapping, 0xfa0000, 0x60000,
@@ -108,30 +122,74 @@ machine_at_compaq_init(const machine_t *model)
                     write_ram, write_ramw, write_raml,
                     0xa0000+ram, MEM_MAPPING_INTERNAL, NULL);
 
-    switch(model->id) {
-#ifdef PORTABLE3
-	case ROM_DESKPRO_386:
-		if (hdc_current == 1)
-			device_add(&ide_isa_device);
-		break;
-#endif
-
-	case ROM_PORTABLE:
+    switch(type) {
+	case COMPAQ_PORTABLEII:
 		break;
 
-	case ROM_PORTABLEII:
+#if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
+	case COMPAQ_PORTABLEIII:
 		break;
 
-#ifdef PORTABLE3
-	case ROM_PORTABLEIII:
-		machine_olim24_video_init();
-		break;
-
-	case ROM_PORTABLEIII386:
-		machine_olim24_video_init();
+	case COMPAQ_PORTABLEIII386:
 		if (hdc_current == 1)
 			device_add(&ide_isa_device);
 		break;
 #endif
     }
 }
+
+
+int
+machine_at_portableii_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/portableii/109740-001.rom",
+				L"roms/machines/portableii/109739-001.rom",
+				0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_compaq_init(model, COMPAQ_PORTABLEII);
+
+    return ret;
+}
+
+
+#if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
+int
+machine_at_portableiii_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/portableiii/109738-002.bin",
+				L"roms/machines/portableiii/109737-002.bin",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_compaq_init(model, COMPAQ_PORTABLEIII);
+
+    return ret;
+}
+
+
+int
+machine_at_portableiii386_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/portableiii/109738-002.bin",
+				L"roms/machines/portableiii/109737-002.bin",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_compaq_init(model, COMPAQ_PORTABLEIII386);
+
+    return ret;
+}
+#endif

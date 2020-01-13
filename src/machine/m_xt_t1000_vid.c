@@ -9,15 +9,15 @@
  *		Implementation of the Toshiba T1000 plasma display, which
  *		has a fixed resolution of 640x200 pixels.
  *
- * Version:	@(#)m_xt_t1000_vid.c	1.0.7	2018/04/29
+ * Version:	@(#)m_xt_t1000_vid.c	1.0.12	2019/10/01
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2018 Fred N. van Kempen.
- *		Copyright 2018 Miran Grca.
- *		Copyright 2018 Sarah Walker.
+ *		Copyright 2018,2019 Fred N. van Kempen.
+ *		Copyright 2018,2019 Miran Grca.
+ *		Copyright 2018,2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,6 +64,8 @@ static uint32_t blinkcols[256][2];
 static uint32_t normcols[256][2];
 static uint8_t  language;
 
+static video_timings_t timing_t1000    = {VIDEO_ISA, 8,16,32, 8,16,32};
+
 
 /* Video options set by the motherboard; they will be picked up by the card
  * on the next poll.
@@ -72,12 +74,18 @@ static uint8_t  language;
  * Bit  0:   Thin font
  */
 static uint8_t st_video_options;
+static uint8_t st_enabled = 1;
 static int8_t st_display_internal = -1;
 
 void t1000_video_options_set(uint8_t options)
 {
 	st_video_options = options & 1;
 	st_video_options |= language;
+}
+
+void t1000_video_enable(uint8_t enabled)
+{
+	st_enabled = enabled;
 }
 
 void t1000_display_set(uint8_t internal)
@@ -104,7 +112,7 @@ typedef struct t1000_t
 	int internal;		/* Using internal display? */
 	uint8_t	attrmap;	/* Attribute mapping register */
 
-        int dispontime, dispofftime;
+        uint64_t dispontime, dispofftime;
         
         int linepos, displine;
         int vc;
@@ -186,14 +194,14 @@ static void t1000_write(uint32_t addr, uint8_t val, void *p)
         egawrites++;
 
         t1000->vram[addr & 0x3fff] = val;
-        cycles -= 4;
+        sub_cycles(4);
 }
 	
 static uint8_t t1000_read(uint32_t addr, void *p)
 {
         t1000_t *t1000 = (t1000_t *)p;
         egareads++;
-	cycles -= 4;
+	sub_cycles(4);
 
         return t1000->vram[addr & 0x3fff];
 }
@@ -213,8 +221,8 @@ static void t1000_recalctimings(t1000_t *t1000)
 	disptime = 651;
 	_dispontime = 640;
         _dispofftime = disptime - _dispontime;
-	t1000->dispontime  = (int)(_dispontime  * (1 << TIMER_SHIFT));
-	t1000->dispofftime = (int)(_dispofftime * (1 << TIMER_SHIFT));
+	t1000->dispontime  = (uint64_t)(_dispontime  * xt_cpu_multi);
+	t1000->dispofftime = (uint64_t)(_dispofftime * xt_cpu_multi);
 }
 
 /* Draw a row of text in 80-column mode */
@@ -457,12 +465,19 @@ static void t1000_poll(void *p)
 {
         t1000_t *t1000 = (t1000_t *)p;
 
-	if (t1000->video_options != st_video_options)
+	if (t1000->video_options != st_video_options ||
+	    t1000->enabled != st_enabled)
 	{
 		t1000->video_options = st_video_options;
+		t1000->enabled = st_enabled;
 
 		/* Set the font used for the external display */
 		t1000->cga.fontbase = ((t1000->video_options & 3) * 256);
+		
+		if (t1000->enabled) /* Disable internal chipset */
+			mem_mapping_enable(&t1000->mapping);
+		else    
+			mem_mapping_disable(&t1000->mapping);
 	}
 	/* Switch between internal plasma and external CRT display. */
 	if (st_display_internal != -1 && st_display_internal != t1000->internal)
@@ -478,7 +493,7 @@ static void t1000_poll(void *p)
 
         if (!t1000->linepos)
         {
-                t1000->cga.vidtime += t1000->dispofftime;
+		timer_advance_u64(&t1000->cga.timer, t1000->dispofftime);
                 t1000->cga.cgastat |= 1;
                 t1000->linepos = 1;
                 if (t1000->dispon)
@@ -525,19 +540,22 @@ static void t1000_poll(void *p)
 		{
                 	t1000->cga.cgastat &= ~1;
 		}
-                t1000->cga.vidtime += t1000->dispontime;
+                timer_advance_u64(&t1000->cga.timer, t1000->dispontime);
                 t1000->linepos = 0;
 
 		if (t1000->displine == 200)
                 {
                         /* Hardcode 640x200 window size */
-			if (T1000_XSIZE != xsize || T1000_YSIZE != ysize)
+			if ((T1000_XSIZE != xsize) || (T1000_YSIZE != ysize) || video_force_resize_get())
 			{
                                 xsize = T1000_XSIZE;
                                 ysize = T1000_YSIZE;
                                 if (xsize < 64) xsize = 656;
                                 if (ysize < 32) ysize = 200;
                                 set_screen_size(xsize, ysize);
+
+				if (video_force_resize_get())
+					video_force_resize_set(0);
                         }
                         video_blit_memtoscreen(0, 0, 0, ysize, xsize, ysize);
 
@@ -660,14 +678,17 @@ static void *t1000_init(const device_t *info)
 {
         t1000_t *t1000 = malloc(sizeof(t1000_t));
         memset(t1000, 0, sizeof(t1000_t));
+	loadfont(L"roms/machines/t1000/t1000font.bin", 8);
 	cga_init(&t1000->cga);
+	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t1000);
 
 	t1000->internal = 1;
 
 	/* 16k video RAM */
         t1000->vram = malloc(0x4000);
 
-        timer_add(t1000_poll, &t1000->cga.vidtime, TIMER_ALWAYS_ENABLED, t1000);
+        timer_set_callback(&t1000->cga.timer, t1000_poll);
+        timer_set_p(&t1000->cga.timer, t1000);
 
 	/* Occupy memory between 0xB8000 and 0xBFFFF */
         mem_mapping_add(&t1000->mapping, 0xb8000, 0x8000, t1000_read, NULL, NULL, t1000_write, NULL, NULL,  NULL, 0, t1000);
@@ -684,7 +705,7 @@ static void *t1000_init(const device_t *info)
 	t1000->enabled    = 1;
 	t1000->video_options = 0x01;
 	language = device_get_config_int("display_language") ? 2 : 0;
-        return t1000;
+	return t1000;
 }
 
 static void t1000_close(void *p)

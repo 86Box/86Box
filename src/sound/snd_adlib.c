@@ -7,6 +7,7 @@
 #define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../mca.h"
 #include "../device.h"
 #include "sound.h"
@@ -16,13 +17,11 @@
 
 #ifdef ENABLE_ADLIB_LOG
 int adlib_do_log = ENABLE_ADLIB_LOG;
-#endif
 
 
 static void
 adlib_log(const char *fmt, ...)
 {
-#ifdef ENABLE_ADLIB_LOG
     va_list ap;
 
     if (adlib_do_log) {
@@ -30,8 +29,10 @@ adlib_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define adlib_log(fmt, ...)
+#endif
 
 
 typedef struct adlib_t
@@ -85,6 +86,14 @@ void adlib_mca_write(int port, uint8_t val, void *p)
         adlib->pos_regs[port & 7] = val;
 }
 
+uint8_t adlib_mca_feedb(void *p)
+{
+        adlib_t *adlib = (adlib_t *)p;
+
+	return (adlib->pos_regs[2] & 1);
+}
+
+
 void *adlib_init(const device_t *info)
 {
         adlib_t *adlib = malloc(sizeof(adlib_t));
@@ -102,7 +111,7 @@ void *adlib_mca_init(const device_t *info)
         adlib_t *adlib = adlib_init(info);
         
         io_removehandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &adlib->opl);
-        mca_add(adlib_mca_read, adlib_mca_write, adlib);
+        mca_add(adlib_mca_read, adlib_mca_write, adlib_mca_feedb, adlib);
         adlib->pos_regs[0] = 0xd7;
         adlib->pos_regs[1] = 0x70;
 

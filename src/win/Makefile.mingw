@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.120	2018/07/19
+# Version:	@(#)Makefile.mingw	1.0.140	2019/12/21
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -27,6 +27,9 @@ endif
 ifndef DEV_BUILD
 DEV_BUILD	:= n
 endif
+ifndef FLTO
+FLTO		:= full
+endif
 
 ifeq ($(DEV_BUILD), y)
  ifndef DEBUG
@@ -38,8 +41,14 @@ ifeq ($(DEV_BUILD), y)
  ifndef AMD_K
   AMD_K		:= y
  endif
+ ifndef CL5422
+  CL5422	:= y
+ endif
  ifndef CRASHDUMP
   CRASHDUMP	:= y
+ endif
+ ifndef D2D
+  D2D		:= y
  endif
  ifndef I686
   I686		:= y
@@ -47,20 +56,38 @@ ifeq ($(DEV_BUILD), y)
  ifndef LASERXT
   LASERXT	:= y
  endif
+ ifndef MR495
+  MR495		:= y
+ endif
  ifndef MRTHOR
   MRTHOR	:= y
  endif
- ifndef NV_RIVA
-  NV_RIVA	:= y
- endif
  ifndef PAS16
-  PAS16		:= y
+  PAS16		:= n
  endif
  ifndef PORTABLE3
   PORTABLE3	:= y
  endif
- ifndef STEALTH32
-  STEALTH32	:= y
+ ifndef PS1M2133
+  PS1M2133	:= y
+ endif
+ ifndef PS2M70T4
+  PS2M70T4	:= y
+ endif
+ ifndef TI
+  TI		:= y
+ endif
+ ifndef TC430HX
+  TC430HX	:= y
+ endif
+ ifndef VECTRA54
+  VECTRA54	:= y
+ endif
+ ifndef MICRONICS386
+  MICRONICS386	:= y
+ endif
+ ifndef VGAWONDER
+  VGAWONDER	:= y
  endif
  ifndef VNC
   VNC		:= y
@@ -78,8 +105,14 @@ else
  ifndef AMD_K
   AMD_K		:= n
  endif
+ ifndef CL5422
+  CL5422	:= n
+ endif
  ifndef CRASHDUMP
   CRASHDUMP	:= n
+ endif
+ ifndef D2D
+  D2D		:= n
  endif
  ifndef I686
   I686		:= n
@@ -87,11 +120,11 @@ else
  ifndef LASERXT
   LASERXT	:= n
  endif
+ ifndef MR495
+  MR495		:= n
+ endif
  ifndef MRTHOR
   MRTHOR	:= n
- endif
- ifndef NV_RIVA
-  NV_RIVA	:= n
  endif
  ifndef PAS16
   PAS16		:= n
@@ -99,8 +132,23 @@ else
  ifndef PORTABLE3
   PORTABLE3	:= n
  endif
- ifndef STEALTH32
-  STEALTH32	:= n
+ ifndef PS1M2133
+  PS1M2133	:= n
+ endif
+ ifndef PS2M70T4
+  PS2M70T4	:= n
+ endif
+ ifndef TI
+  TI		:= n
+ endif
+ ifndef TC430HX
+  TC430HX	:= n
+ endif
+ ifndef VECTRA54
+  VECTRA54	:= n
+ endif
+ ifndef MICRONICS386
+  MICRONICS386	:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -126,6 +174,12 @@ endif
 ifndef X64
 X64		:= n
 endif
+ifndef ARM
+ARM := n
+endif
+ifndef ARM64
+ARM64 := n
+endif
 ifndef WX
 WX		:= n
 endif
@@ -134,6 +188,9 @@ USB		:= n
 endif
 ifndef RDP
 RDP		:= n
+endif
+ifndef DINPUT
+ DINPUT		:= n
 endif
 ifndef OPENAL
 OPENAL		:= y
@@ -145,7 +202,16 @@ ifndef MUNT
 MUNT		:= y
 endif
 ifndef DYNAREC
-DYNAREC		:= y
+ DYNAREC		:= y
+ ifeq ($(ARM), y)
+  DYNAREC		:= n
+ endif
+ ifeq ($(ARM64), y)
+  DYNAREC   := n
+ endif
+endif
+ifndef DISCORD
+ DISCORD	:= y
 endif
 
 
@@ -195,20 +261,34 @@ endif
 #		Nothing should need changing from here on..		#
 #########################################################################
 VPATH		:= $(EXPATH) . cpu \
-		   cdrom disk floppy game machine \
+		   cdrom chipset disk floppy game machine \
+		   printer \
 		   sound \
 		    sound/munt sound/munt/c_interface sound/munt/sha1 \
 		    sound/munt/srchelper \
 		    sound/resid-fp \
 		   scsi video network network/slirp win
 ifeq ($(X64), y)
-CPP		:= g++ -m64
-CC		:= gcc -m64
+TOOL_PREFIX     := x86_64-w64-mingw32-
 else
-CPP		:= g++ -m32
-CC		:= gcc -m32
+TOOL_PREFIX     := i686-w64-mingw32-
 endif
+CPP             := ${TOOL_PREFIX}g++
+CC              := gcc
 WINDRES		:= windres
+STRIP		:= strip
+ifeq ($(ARM64), y)
+CPP		:= aarch64-w64-mingw32-g++
+CC		:= aarch64-w64-mingw32-gcc
+WINDRES		:= aarch64-w64-mingw32-windres
+STRIP := aarch64-w64-mingw32-strip
+endif
+ifeq ($(ARM), y)
+CPP		:= armv7-w64-mingw32-g++
+CC		:= armv7-w64-mingw32-gcc
+WINDRES		:= armv7-w64-mingw32-windres
+STRIP := armv7-w64-mingw32-strip
+endif
 DEPS		= -MMD -MF $*.d -c $<
 DEPFILE		:= win/.depends
 
@@ -244,7 +324,7 @@ else
  ifeq ($(OPTIM), y)
   AOPTIM	:= -mtune=native
   ifndef COPTIM
-   COPTIM	:= -O3 -flto
+   COPTIM	:= -O3 -flto=$(FLTO)
   endif
  else
   ifndef COPTIM
@@ -253,6 +333,16 @@ else
  endif
 endif
 AFLAGS		:= -msse2 -mfpmath=sse
+ifeq ($(ARM), y)
+ DFLAGS	  := -march=armv7-a
+ AOPTIM	  :=
+ AFLAGS		:= -mfloat-abi=hard
+endif
+ifeq ($(ARM64), y)
+ DFLAGS	  := -march=armv8-a
+ AOPTIM	  :=
+ AFLAGS		:= -mfloat-abi=hard
+endif
 RFLAGS		:= --input-format=rc -O coff
 ifeq ($(RELEASE), y)
 OPTS		+= -DRELEASE_BUILD
@@ -262,19 +352,16 @@ ifeq ($(VRAMDUMP), y)
 OPTS		+= -DENABLE_VRAM_DUMP
 RFLAGS		+= -DENABLE_VRAM_DUMP
 endif
-ifeq ($(X64), y)
-PLATCG		:= codegen_x86-64.o
-CGOPS		:= codegen_ops_x86-64.h
-VCG		:= vid_voodoo_codegen_x86-64.h
-else
-PLATCG		:= codegen_x86.o
-CGOPS		:= codegen_ops_x86.h
-VCG		:= vid_voodoo_codegen_x86.h
-endif
 
 
 # Optional modules.
 ifeq ($(DYNAREC), y)
+ifeq ($(X64), y)
+PLATCG		:= codegen_x86-64.o
+else
+PLATCG		:= codegen_x86.o
+endif
+
 OPTS		+= -DUSE_DYNAREC
 RFLAGS		+= -DUSE_DYNAREC
 DYNARECOBJ	:= 386_dynarec_ops.o \
@@ -291,7 +378,7 @@ ifneq ($(WX), n)
  UIOBJ		:= wx_main.o wx_ui.o wx_stbar.o wx_render.o
 else
  UIOBJ		:= win_ui.o win_stbar.o \
-		   win_ddraw.o win_d2d.o win_d3d.o win_sdl.o \
+		   win_sdl.o \
 		   win_dialog.o win_about.o \
 		   win_settings.o win_devconf.o win_snd_gain.o \
 		   win_new_floppy.o win_jsconf.o
@@ -313,6 +400,13 @@ MUNTOBJ		:= midi_mt32.o \
 		    MidiStreamParser.o Part.o Partial.o PartialManager.o \
 		    Poly.o ROMInfo.o SampleRateConverter_dummy.o Synth.o \
 		    Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o
+endif
+
+ifeq ($(D2D), y)
+OPTS		+= -DUSE_D2D
+RFLAGS		+= -DUSE_D2D
+D2DLIB		:= -ld2d1
+D2DOBJ		:= win_d2d.o
 endif
 
 ifeq ($(VNC), y)
@@ -337,6 +431,16 @@ RDPLIB		+= -lrdp
 RDPOBJ		:= rdp.o
 endif
 
+ifeq ($(DINPUT), y)
+OPTS		+= -DUSE_DINPUT
+endif
+
+ifeq ($(DISCORD), y)
+OPTS		+= -DUSE_DISCORD
+RFLAGS		+= -DUSE_DISCORD
+DISCORDOBJ	:= win_discord.o
+endif
+
 # Options for the DEV branch.
 ifeq ($(DEV_BRANCH), y)
 OPTS		+= -DDEV_BRANCH
@@ -346,6 +450,10 @@ ifeq ($(AMD_K), y)
 OPTS		+= -DUSE_AMD_K
 endif
 
+ifeq ($(CL5422), y)
+OPTS		+= -DUSE_CL5422
+endif
+
 ifeq ($(CRASHDUMPOBJ), y)
 OPTS		+= -DUSE_CRASHDUMP
 DEVBROBJ	+= win_crashdump.o
@@ -353,6 +461,7 @@ endif
 
 ifeq ($(I686), y)
 OPTS		+= -DUSE_I686
+DEVBROBJ	+= m_at_socket8.o
 endif
 
 ifeq ($(LASERXT), y)
@@ -360,13 +469,12 @@ OPTS		+= -DUSE_LASERXT
 DEVBROBJ	+= m_xt_laserxt.o
 endif
 
-ifeq ($(MRTHOR), y)
-OPTS		+= -DUSE_MRTHOR
+ifeq ($(MR495), y)
+OPTS		+= -DUSE_MR495
 endif
 
-ifeq ($(NV_RIVA), y)
-OPTS		+= -DUSE_RIVA
-DEVBROBJ	+= vid_nvidia.o
+ifeq ($(MRTHOR), y)
+OPTS		+= -DUSE_MRTHOR
 endif
 
 ifeq ($(PAS16), y)
@@ -378,9 +486,28 @@ ifeq ($(PORTABLE3), y)
 OPTS		+= -DUSE_PORTABLE3
 endif
 
-ifeq ($(STEALTH32), y)
-OPTS		+= -DUSE_STEALTH32
-DEVBROBJ	+= vid_icd2061.o
+ifeq ($(PS1M2133), y)
+OPTS		+= -DUSE_PS1M2133
+endif
+
+ifeq ($(PS2M70T4), y)
+OPTS		+= -DUSE_PS2M70T4
+endif
+
+ifeq ($(TI), y)
+OPTS		+= -DUSE_TI
+endif
+
+ifeq ($(TC430HX), y)
+OPTS		+= -DUSE_TC430HX
+endif
+
+ifeq ($(VECTRA54), y)
+OPTS		+= -DUSE_VECTRA54
+endif
+
+ifeq ($(MICRONICS386), y)
+OPTS		+= -DUSE_MICRONICS386
 endif
 
 ifeq ($(VGAWONDER), y)
@@ -403,48 +530,56 @@ endif
 # Final versions of the toolchain flags.
 CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
-		   -fno-strict-aliasing
+		   -fno-strict-aliasing -funroll-loops
+
+# Add freetyp2 references through pkgconfig
+CFLAGS          := $(CFLAGS)  `pkg-config.exe --cflags freetype2`
+
 CXXFLAGS	:= $(CFLAGS)
 
 
 #########################################################################
 #		Create the (final) list of objects to build.		#
 #########################################################################
-MAINOBJ		:= pc.o config.o random.o timer.o io.o dma.o nmi.o pic.o \
-		   pit.o ppi.o pci.o mca.o mcr.o mem.o memregs.o rom.o \
-		   device.o nvr.o nvr_at.o nvr_ps2.o $(VNCOBJ) $(RDPOBJ)
+MAINOBJ		:= pc.o config.o random.o timer.o io.o apm_new.o dma.o nmi.o \
+		   pic.o pit.o port_92.o ppi.o pci.o mca.o mcr.o mem.o \
+		   rom.o device.o nvr.o nvr_at.o nvr_ps2.o $(VNCOBJ) $(RDPOBJ)
 
-INTELOBJ	:= intel.o \
-		    intel_flash.o \
+INTELOBJ	:= intel_flash.o \
 		    intel_sio.o intel_piix.o
 
 CPUOBJ		:= cpu.o cpu_table.o \
-		    808x.o 386.o 386_dynarec.o \
+		    808x.o 386.o \
+		    386_dynarec.o \
 		    x86seg.o x87.o \
 		    $(DYNARECOBJ)
+
+CHIPSETOBJ	:= acc2168.o acer_m3a.o ali1429.o headland.o \
+		    intel_4x0.o neat.o opti495.o scat.o \
+		    sis_85c471.o sis_85c496.o \
+		    wd76c10.o
 
 MCHOBJ		:= machine.o machine_table.o \
 		    m_xt.o m_xt_compaq.o \
 		    m_xt_t1000.o m_xt_t1000_vid.o \
-		    m_xt_xi8088.o \
+		    m_xt_xi8088.o m_xt_zenith.o \
 		    m_pcjr.o \
-		    m_amstrad.o \
-		    m_europc.o \
+		    m_amstrad.o m_europc.o \
 		    m_olivetti_m24.o m_tandy.o \
-		    m_at.o \
-		    m_at_ali1429.o m_at_commodore.o \
-		    m_at_neat.o m_at_headland.o \
+		    m_at.o m_at_commodore.o \
 		    m_at_t3100e.o m_at_t3100e_vid.o \
 		    m_ps1.o m_ps1_hdc.o \
 		    m_ps2_isa.o m_ps2_mca.o \
-		    m_at_opti495.o m_at_scat.o \
-		    m_at_compaq.o m_at_wd76c10.o \
-		    m_at_sis_85c471.o m_at_sis_85c496.o \
-		    m_at_4x0.o
+		    m_at_compaq.o \
+		    m_at_286_386sx.o m_at_386dx_486.o \
+		    m_at_socket4_5.o m_at_socket7_s7.o
 
-DEVOBJ		:= bugger.o lpt.o $(SERIAL) \
-		    sio_fdc37c66x.o sio_fdc37c669.o sio_fdc37c93x.o \
-		    sio_pc87306.o sio_w83877f.o sio_um8669f.o \
+DEVOBJ		:= bugger.o ibm_5161.o isamem.o isartc.o lpt.o $(SERIAL) \
+		    sio_acc3221.o \
+		    sio_fdc37c66x.o sio_fdc37c669.o \
+		    sio_fdc37c93x.o \
+		    sio_pc87306.o sio_w83877f.o \
+		    sio_um8669f.o \
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o \
 		   gameport.o \
@@ -457,18 +592,19 @@ DEVOBJ		:= bugger.o lpt.o $(SERIAL) \
 FDDOBJ		:= fdd.o fdc.o fdi2raw.o \
 		   fdd_common.o fdd_86f.o \
 		   fdd_fdi.o fdd_imd.o fdd_img.o fdd_json.o \
-		   fdd_td0.o
+		   fdd_mfm.o fdd_td0.o
 
 HDDOBJ		:= hdd.o \
 		    hdd_image.o hdd_table.o \
 		   hdc.o \
-		    hdc_mfm_xt.o hdc_mfm_at.o \
+		    hdc_st506_xt.o hdc_st506_at.o \
 		    hdc_xta.o \
 		    hdc_esdi_at.o hdc_esdi_mca.o \
-		    hdc_xtide.o hdc_ide.o
+		    hdc_xtide.o hdc_ide.o \
+		    hdc_ide_sff8038i.o
 
 CDROMOBJ	:= cdrom.o \
-		    cdrom_dosbox.o cdrom_image.o cdrom_null.o
+		    cdrom_image_backend.o cdrom_image.o
 
 ZIPOBJ		:= zip.o
 
@@ -476,12 +612,11 @@ ifeq ($(USB), y)
 USBOBJ		:= usb.o
 endif
 
-SCSIOBJ		:= scsi.o \
-		    scsi_bus.o scsi_device.o \
-		    scsi_disk.o \
+SCSIOBJ		:= scsi.o scsi_device.o \
+		    scsi_cdrom.o scsi_disk.o \
 		    scsi_x54x.o \
 		    scsi_aha154x.o scsi_buslogic.o \
-		    scsi_ncr5380.o scsi_ncr53c810.o
+		    scsi_ncr5380.o scsi_ncr53c8xx.o
 
 NETOBJ		:= network.o \
 		    net_pcap.o \
@@ -491,12 +626,15 @@ NETOBJ		:= network.o \
 		     sbuf.o tcp_output.o udp.o if.o mbuf.o slirp.o tcp_subr.o \
 		    net_dp8390.o \
 		    net_3c503.o net_ne2000.o \
-			net_wd8003.o
+		    net_pcnet.o net_wd8003.o
 
+PRINTOBJ	:= png.o prt_cpmap.o \
+		    prt_escp.o prt_text.o prt_ps.o
+			
 SNDOBJ		:= sound.o \
 		    openal.o \
-		    snd_opl.o snd_dbopl.o \
-		    dbopl.o nukedopl.o \
+		    snd_opl.o snd_opl_backend.o \
+		    nukedopl.o \
 		    snd_resid.o \
 		     convolve.o convolve-sse.o envelope.o extfilt.o \
 		     filter.o pot.o sid.o voice.o wave6581__ST.o \
@@ -524,6 +662,8 @@ VIDOBJ		:= video.o \
 		    vid_hercules.o vid_herculesplus.o vid_incolor.o \
 		    vid_colorplus.o \
 		    vid_genius.o \
+		    vid_pgc.o vid_im1024.o \
+		    vid_sigma.o \
 		    vid_wy700.o \
 		    vid_ega.o vid_ega_render.o \
 		    vid_svga.o vid_svga_render.o \
@@ -531,15 +671,19 @@ VIDOBJ		:= video.o \
 		    vid_ati_eeprom.o \
 		    vid_ati18800.o vid_ati28800.o \
 		    vid_ati_mach64.o vid_ati68860_ramdac.o \
-		    vid_ics2595.o \
+		    vid_bt48x_ramdac.o \
+		    vid_av9194.o \
+		    vid_icd2061.o vid_ics2595.o \
 		    vid_cl54xx.o \
 		    vid_et4000.o vid_sc1502x_ramdac.o \
 		    vid_et4000w32.o vid_stg_ramdac.o \
+		    vid_ht216.o \
 		    vid_oak_oti.o \
 		    vid_paradise.o \
 		    vid_ti_cf62011.o \
 		    vid_tvga.o \
 		    vid_tgui9440.o vid_tkd8001_ramdac.o \
+		    vid_att20c49x_ramdac.o \
 		    vid_s3.o vid_s3_virge.o \
 		    vid_sdac_ramdac.o \
 		    vid_voodoo.o
@@ -547,21 +691,24 @@ VIDOBJ		:= video.o \
 PLATOBJ		:= win.o \
 		    win_dynld.o win_thread.o \
 		    win_cdrom.o win_keyboard.o \
-		    win_mouse.o win_joystick.o win_midi.o
+		    win_midi.o \
+		    win_mouse.o win_joystick.o
 
-OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(MCHOBJ) $(DEVOBJ) \
-		   $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(HDDOBJ) \
-		   $(USBOBJ) $(NETOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
-		   $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) \
-		   $(DEVBROBJ)
+OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) \
+		   $(DEVOBJ) $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(HDDOBJ) \
+		   $(USBOBJ) $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
+		   $(PLATOBJ) $(UIOBJ) $(D2DOBJ) $(FSYNTHOBJ) $(MUNTOBJ) \
+		   $(DEVBROBJ) $(DISCORDOBJ)
 ifdef EXOBJ
 OBJ		+= $(EXOBJ)
 endif
 
-LIBS		:= -mwindows \
-		   -lopenal.dll \
-		   -lddraw -ldinput8 -ldxguid -ld3d9 -ld3dx9 -ld2d1\
-		   -lcomctl32 -lwinmm
+LIBS		:= -mwindows -lcomctl32 \
+		   -lopenal -lole32
+
+ifeq ($(D2D), y)
+LIBS		+= $(D2DLIB)
+endif
 ifeq ($(VNC), y)
 LIBS		+= $(VNCLIB) -lws2_32
 endif
@@ -571,12 +718,15 @@ endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
-LIBS		+= -lpng -lz -lwsock32 -liphlpapi
-LIBS		+= -static -lstdc++ -lgcc
+LIBS		+= -lpng -lz -lwsock32 -liphlpapi -ldinput8 -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -lversion -lwinmm -static -lstdc++ 
 ifneq ($(X64), y)
 LIBS		+= -Wl,--large-address-aware
 endif
+ifneq ($(DINPUT), y)
+ LIBS    += -lxinput
+endif
 
+LIBS    += -static
 
 # Build module rules.
 ifeq ($(AUTODEP), y)
@@ -629,7 +779,7 @@ $(PROG).exe:	$(OBJ) 86Box.res
 		@echo Linking $(PROG).exe ..
 		@$(CC) -o $(PROG).exe $(OBJ) 86Box.res $(LIBS)
 ifneq ($(DEBUG), y)
-		@strip $(PROG).exe
+		@$(STRIP) $(PROG).exe
 endif
 
 pcap_if.res:	pcap_if.rc
@@ -640,13 +790,13 @@ pcap_if.exe:	pcap_if.o win_dynld.o pcap_if.res
 		@echo Linking pcap_if.exe ..
 		@$(CC) -o pcap_if.exe pcap_if.o win_dynld.o pcap_if.res
 ifneq ($(DEBUG), y)
-		@strip pcap_if.exe
+		@$(STRIP) pcap_if.exe
 endif
 
 hello.exe:	hello.o
 		$(CXX) $(LDFLAGS) -o hello.exe hello.o $(WXLIBS) $(LIBS)
 ifneq ($(DEBUG), y)
-		@strip hello.exe
+		@$(STRIP) hello.exe
 endif
 
 

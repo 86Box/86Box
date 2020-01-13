@@ -8,7 +8,7 @@
  *
  *		IBM VGA emulation.
  *
- * Version:	@(#)vid_vga.c	1.0.5	2018/04/26
+ * Version:	@(#)vid_vga.c	1.0.6	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,6 +26,7 @@
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
+#include "../timer.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_vga.h"
@@ -37,6 +38,10 @@ typedef struct vga_t
         
         rom_t bios_rom;
 } vga_t;
+
+static video_timings_t timing_vga	   = {VIDEO_ISA, 8, 16, 32, 8, 16, 32};
+static video_timings_t timing_ps1_svga_isa = {VIDEO_ISA, 6,  8, 16, 6,  8, 16};
+static video_timings_t timing_ps1_svga_mca = {VIDEO_MCA, 6,  8, 16, 6,  8, 16};
 
 void vga_out(uint16_t addr, uint8_t val, void *p)
 {
@@ -109,6 +114,8 @@ static void *vga_init(const device_t *info)
 
         rom_init(&vga->bios_rom, L"roms/video/vga/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
 
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_vga);
+
         svga_init(&vga->svga, vga, 1 << 18, /*256kb*/
                    NULL,
                    vga_in, vga_out,
@@ -123,33 +130,6 @@ static void *vga_init(const device_t *info)
         return vga;
 }
 
-
-#ifdef DEV_BRANCH
-static void *trigem_unk_init(const device_t *info)
-{
-        vga_t *vga = malloc(sizeof(vga_t));
-        memset(vga, 0, sizeof(vga_t));
-
-        rom_init(&vga->bios_rom, L"roms/video/vga/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
-
-        svga_init(&vga->svga, vga, 1 << 18, /*256kb*/
-                   NULL,
-                   vga_in, vga_out,
-                   NULL,
-                   NULL);
-
-        io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
-
-	io_sethandler(0x22ca, 0x0002, svga_in, NULL, NULL, vga_out, NULL, NULL, vga);
-	io_sethandler(0x22ce, 0x0002, svga_in, NULL, NULL, vga_out, NULL, NULL, vga);
-	io_sethandler(0x32ca, 0x0002, svga_in, NULL, NULL, vga_out, NULL, NULL, vga);
-
-        vga->svga.bpp = 8;
-        vga->svga.miscout = 1;
-        
-        return vga;
-}
-#endif
 
 /*PS/1 uses a standard VGA controller, but with no option ROM*/
 void *ps1vga_init(const device_t *info)
@@ -157,6 +137,11 @@ void *ps1vga_init(const device_t *info)
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
        
+	if (info->flags & DEVICE_MCA)
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ps1_svga_mca);
+	else
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ps1_svga_isa);
+
         svga_init(&vga->svga, vga, 1 << 18, /*256kb*/
                    NULL,
                    vga_in, vga_out,
@@ -212,13 +197,13 @@ const device_t vga_device =
         vga_force_redraw,
         NULL
 };
-#ifdef DEV_BRANCH
-const device_t trigem_unk_device =
+
+const device_t ps1vga_device =
 {
-        "VGA",
+        "PS/1 VGA",
         DEVICE_ISA,
 	0,
-        trigem_unk_init,
+        ps1vga_init,
         vga_close,
 	NULL,
         vga_available,
@@ -226,11 +211,11 @@ const device_t trigem_unk_device =
         vga_force_redraw,
         NULL
 };
-#endif
-const device_t ps1vga_device =
+
+const device_t ps1vga_mca_device =
 {
         "PS/1 VGA",
-        0,
+        DEVICE_MCA,
 	0,
         ps1vga_init,
         vga_close,

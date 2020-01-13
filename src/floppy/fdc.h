@@ -1,41 +1,23 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *		This file is part of the 86Box distribution.
  *
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.h	1.0.4	2018/04/12
+ * Version:	@(#)fdc.h	1.0.8	2019/10/20
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free  Software  Foundation; either  version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is  distributed in the hope that it will be useful, but
- * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
- * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the:
- *
- *   Free Software Foundation, Inc.
- *   59 Temple Place - Suite 330
- *   Boston, MA 02111-1307
- *   USA.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2018,2019 Fred N. van Kempen.
  */
 #ifndef EMU_FDC_H
 # define EMU_FDC_H
@@ -49,6 +31,8 @@
 #define FDC_FLAG_START_RWC_1	0x20	/* W83877F, W83977F */
 #define FDC_FLAG_MORE_TRACKS	0x40	/* W83877F, W83977F, PC87306, PC87309 */
 #define FDC_FLAG_NSC		0x80	/* PC87306, PC87309 */
+#define FDC_FLAG_TOSHIBA	0x100	/* T1000, T1200 */
+#define FDC_FLAG_AMSTRAD	0x200	/* Non-AT Amstrad machines */
 
 
 typedef struct {
@@ -98,8 +82,9 @@ typedef struct {
 
     sector_id_t	read_track_sector;
 
-    int64_t	time;
-    int64_t	watchdog_timer, watchdog_count;
+	uint64_t watchdog_count;
+	
+	pc_timer_t	timer, watchdog_timer;
 } fdc_t;
 
 
@@ -179,10 +164,12 @@ extern void	fdc_sectorid(fdc_t *fdc, uint8_t track, uint8_t side,
 extern uint8_t	fdc_read(uint16_t addr, void *priv);
 extern void	fdc_reset(void *priv);
 
-extern uint8_t	fdc_ps1_525(void);
+extern uint8_t	fdc_get_current_drive(void);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	fdc_xt_device;
+extern const device_t	fdc_xt_t1x00_device;
+extern const device_t	fdc_xt_amstrad_device;
 extern const device_t	fdc_pcjr_device;
 extern const device_t	fdc_at_device;
 extern const device_t	fdc_at_actlow_device;

@@ -8,7 +8,7 @@
  *
  *		Handling of the SCSI controllers.
  *
- * Version:	@(#)scsi.c	1.0.20	2018/06/02
+ * Version:	@(#)scsi.c	1.0.25	2018/10/31
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -25,38 +25,26 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../timer.h"
 #include "../device.h"
 #include "../disk/hdc.h"
 #include "../disk/hdd.h"
 #include "../plat.h"
 #include "scsi.h"
+#include "scsi_device.h"
 #include "../cdrom/cdrom.h"
 #include "../disk/zip.h"
 #include "scsi_disk.h"
-#include "scsi_device.h"
 #include "scsi_aha154x.h"
 #include "scsi_buslogic.h"
 #include "scsi_ncr5380.h"
-#include "scsi_ncr53c810.h"
+#include "scsi_ncr53c8xx.h"
 #ifdef WALTJE
 # include "scsi_wd33c93.h"
 #endif
-#include "scsi_x54x.h"
 
-
-scsi_device_t	SCSIDevices[SCSI_ID_MAX];
-char		scsi_fn[SCSI_NUM][512];
-uint16_t	scsi_disk_location[SCSI_NUM];
 
 int		scsi_card_current = 0;
 int		scsi_card_last = 0;
-
-uint32_t	SCSI_BufferLength;
-static volatile
-mutex_t		*scsiMutex;
 
 
 typedef const struct {
@@ -67,46 +55,30 @@ typedef const struct {
 
 
 static SCSI_CARD scsi_cards[] = {
-    { "None",			"none",		NULL,		      },
-    { "[ISA] Adaptec AHA-1540B","aha1540b",	&aha1540b_device,     },
-    { "[ISA] Adaptec AHA-1542C","aha1542c",	&aha1542c_device,     },
-    { "[ISA] Adaptec AHA-1542CF","aha1542cf",	&aha1542cf_device,    },
-    { "[ISA] BusLogic BT-542BH","bt542bh",	&buslogic_device,     },
-    { "[ISA] BusLogic BT-545S",	"bt545s",	&buslogic_545s_device,},
-    { "[ISA] Longshine LCS-6821N","lcs6821n",	&scsi_lcs6821n_device,},
-    { "[ISA] Ranco RT1000B",	"rt1000b",	&scsi_rt1000b_device, },
-    { "[ISA] Trantor T130B",	"t130b",	&scsi_t130b_device,   },
-    { "[ISA] Sumo SCSI-AT",	"scsiat",	&scsi_scsiat_device,  },
+    { "None",				"none",		NULL,			},
+    { "[ISA] Adaptec AHA-154xA",	"aha154xa",	&aha154xa_device,	},
+    { "[ISA] Adaptec AHA-154xB",	"aha154xb",	&aha154xb_device,	},
+    { "[ISA] Adaptec AHA-154xC",	"aha154xc",	&aha154xc_device,	},
+    { "[ISA] Adaptec AHA-154xCF",	"aha154xcf",	&aha154xcf_device,	},
+	{ "[ISA] BusLogic BT-542B",		"bt542b",	&buslogic_542b_1991_device,	},
+    { "[ISA] BusLogic BT-542BH",	"bt542bh",	&buslogic_device,	},
+    { "[ISA] BusLogic BT-545S",		"bt545s",	&buslogic_545s_device,	},
+    { "[ISA] Longshine LCS-6821N",	"lcs6821n",	&scsi_lcs6821n_device,	},
+    { "[ISA] Rancho RT1000B",		"rt1000b",	&scsi_rt1000b_device,	},
+    { "[ISA] Trantor T130B",		"t130b",	&scsi_t130b_device,	},
 #ifdef WALTJE
-    { "[ISA] Generic WDC33C93",	"wd33c93",	&scsi_wd33c93_device, },
+    { "[ISA] Sumo SCSI-AT",		"scsiat",	&scsi_scsiat_device,	},
+    { "[ISA] Generic WDC33C93",		"wd33c93",	&scsi_wd33c93_device,	},
 #endif
-    { "[MCA] Adaptec AHA-1640",	"aha1640",	&aha1640_device,      },
-    { "[MCA] BusLogic BT-640A",	"bt640a",	&buslogic_640a_device,},
-    { "[PCI] BusLogic BT-958D",	"bt958d",	&buslogic_pci_device, },
-    { "[PCI] NCR 53C810",	"ncr53c810",	&ncr53c810_pci_device,},
-    { "[VLB] BusLogic BT-445S",	"bt445s",	&buslogic_445s_device,},
-    { "",			"",		NULL,		      },
+    { "[MCA] Adaptec AHA-1640",		"aha1640",	&aha1640_device,	},
+    { "[MCA] BusLogic BT-640A",		"bt640a",	&buslogic_640a_device,	},
+    { "[PCI] BusLogic BT-958D",		"bt958d",	&buslogic_pci_device,	},
+    { "[PCI] NCR 53C810",		"ncr53c810",	&ncr53c810_pci_device,	},
+    //{ "[PCI] NCR 53C825A",		"ncr53c825a",	&ncr53c825a_pci_device,	},
+    { "[PCI] NCR 53C875",		"ncr53c875",	&ncr53c875_pci_device,	},
+    { "[VLB] BusLogic BT-445S",		"bt445s",	&buslogic_445s_device,	},
+    { "",				"",		NULL,			},
 };
-
-
-#ifdef ENABLE_SCSI_LOG
-int scsi_do_log = ENABLE_SCSI_LOG;
-#endif
-
-
-static void
-scsi_log(const char *fmt, ...)
-{
-#ifdef ENABLE_SCSI_LOG
-    va_list ap;
-
-    if (scsi_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
-    }
-#endif
-}
 
 
 int scsi_card_available(int card)
@@ -158,78 +130,22 @@ int scsi_card_get_from_internal_name(char *s)
 }
 
 
-void scsi_mutex(uint8_t start)
-{
-    if (start)
-	scsiMutex = thread_create_mutex(L"86Box.SCSIMutex");
-    else
-	thread_close_mutex((mutex_t *) scsiMutex);
-}
-
-
 void scsi_card_init(void)
 {
     int i;
+    scsi_device_t *dev;
 
     if (!scsi_cards[scsi_card_current].device)
 	return;
 
-    scsi_log("Building SCSI hard disk map...\n");
-    build_scsi_disk_map();
-    scsi_log("Building SCSI CD-ROM map...\n");
-    build_scsi_cdrom_map();
-    scsi_log("Building SCSI ZIP map...\n");
-    build_scsi_zip_map();
+    for (i = 0; i < SCSI_ID_MAX; i++) {
+	dev = &(scsi_devices[i]);
 
-    for (i=0; i<SCSI_ID_MAX; i++) {
-	if (scsi_disks[i] != 0xff)
-		SCSIDevices[i].LunType = SCSI_DISK;
-	else if (scsi_cdrom_drives[i] != 0xff)
-		SCSIDevices[i].LunType = SCSI_CDROM;
-	else if (scsi_zip_drives[i] != 0xff)
-		SCSIDevices[i].LunType = SCSI_ZIP;
-	else
-		SCSIDevices[i].LunType = SCSI_NONE;
-	if (SCSIDevices[i].CmdBuffer)
-		free(SCSIDevices[i].CmdBuffer);
-	SCSIDevices[i].CmdBuffer = NULL;
+	memset(dev, 0, sizeof(scsi_device_t));
+	dev->type = SCSI_NONE;
     }
 
     device_add(scsi_cards[scsi_card_current].device);
 
     scsi_card_last = scsi_card_current;
-}
-
-
-/* Initialization function for the SCSI layer */
-void SCSIReset(uint8_t id)
-{
-    uint8_t cdrom_id = scsi_cdrom_drives[id];
-    uint8_t zip_id = scsi_zip_drives[id];
-    uint8_t hdc_id = scsi_disks[id];
-
-    if (hdc_id != 0xff)
-	SCSIDevices[id].LunType = SCSI_DISK;
-    else if (cdrom_id != 0xff)
-	SCSIDevices[id].LunType = SCSI_CDROM;
-    else if (zip_id != 0xff)
-	SCSIDevices[id].LunType = SCSI_ZIP;
-    else
-	SCSIDevices[id].LunType = SCSI_NONE;
-
-    scsi_device_reset(id);
-
-    if (SCSIDevices[id].CmdBuffer)
-	free(SCSIDevices[id].CmdBuffer);
-    SCSIDevices[id].CmdBuffer = NULL;
-}
-
-
-void
-scsi_mutex_wait(uint8_t wait)
-{
-    if (wait)
-	thread_wait_mutex((mutex_t *) scsiMutex);
-    else
-	thread_release_mutex((mutex_t *) scsiMutex);
 }

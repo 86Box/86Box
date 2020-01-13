@@ -1,23 +1,33 @@
-uint16_t oldcs;
-extern uint32_t rmdat32;
-int oldcpl;
+#ifdef USE_NEW_DYNAREC
+#include "../cpu_new/x86.h"
+#else
 
-extern int nmi_enable;
+extern uint8_t	opcode, opcode2;
+extern uint8_t	flags_p;
+extern uint8_t	znptable8[256];
 
-int tempc;
-int output;
-int firstrepcycle;
+extern uint16_t	zero, oldcs;
+extern uint16_t	lastcs, lastpc;
+extern uint16_t *mod1add[2][8];
+extern uint16_t znptable16[65536];
 
-uint32_t easeg,ealimit,ealimitw;
+extern int	x86_was_reset, trap;
+extern int	codegen_flat_ss, codegen_flat_ds;
+extern int	timetolive, keyboardtimer, trap;
+extern int	optype, stack32;
+extern int	oldcpl, cgate32, cpl_override, fpucount;
+extern int	nmi_enable;
+extern int	oddeven, inttype;
 
-int skipnextprint;
-int inhlt;
+extern uint32_t use32;
+extern uint32_t rmdat, easeg;
+extern uint32_t	oxpc, flags_zn;
+extern uint32_t abrt_error;
+extern uint32_t	backupregs[16];
+extern uint32_t *mod1seg[8];
+extern uint32_t *eal_r, *eal_w;
 
-uint8_t opcode;
-int noint;
-
-uint16_t lastcs,lastpc;
-extern int timetolive,keyboardtimer;
+#define fetchdat rmdat
 
 #define setznp168 setznp16
 
@@ -30,46 +40,20 @@ extern int timetolive,keyboardtimer;
 #define setr16(r,v) cpu_state.regs[r].w=v
 #define setr32(r,v) cpu_state.regs[r].l=v
 
-uint8_t znptable8[256];
-uint16_t znptable16[65536];
+#define fetchea()	{					\
+				rmdat = readmemb(cs + pc);	\
+				pc++;				\
+				reg = (rmdat >> 3) & 7;		\
+				mod = (rmdat >> 6) & 3;		\
+				rm = rmdat & 7;			\
+				if (mod!=3)			\
+					fetcheal();		\
+			}
 
-int use32;
-int stack32;
-
-#define fetchea()   { rmdat=readmemb(cs+pc); pc++;  \
-                    reg=(rmdat>>3)&7;               \
-                    mod=(rmdat>>6)&3;               \
-                    rm=rmdat&7;                   \
-                    if (mod!=3) fetcheal(); }
-
-
-int optype;
 #define JMP 1
 #define CALL 2
 #define IRET 3
 #define OPTYPE_INT 4
-
-uint32_t oxpc;
-
-extern uint16_t *mod1add[2][8];
-extern uint32_t *mod1seg[8];
-
-
-#define IRQTEST ((flags&I_FLAG) && (pic.pend&~pic.mask) && !noint)
-
-extern int cgate32;
-
-
-extern uint32_t *eal_r, *eal_w;
-
-
-extern uint32_t flags_zn;
-extern uint8_t flags_p;
-#define FLAG_N (flags_zn>>31)
-#define FLAG_Z (flags_zn)
-#define FLAG_P (znptable8[flags_p]&P_FLAG)
-
-extern int gpf;
 
 
 enum
@@ -83,25 +67,9 @@ enum
         ABRT_PF  = 0xE
 };
 
-extern uint32_t abrt_error;
 
-void x86_doabrt(int x86_abrt);
-
-extern uint8_t opcode2;
-
-extern uint16_t rds;
-extern uint32_t rmdat32;
-
-extern int inscounts[256];
-
-void x86illegal();
-
-void x86seg_reset();
-void x86gpf(char *s, uint16_t error);
-
-extern uint16_t zero;
-
-extern int x86_was_reset;
-
-extern int codegen_flat_ds;
-extern int codegen_flat_ss;
+extern void	x86_doabrt(int x86_abrt);
+extern void	x86illegal();
+extern void	x86seg_reset();
+extern void	x86gpf(char *s, uint16_t error);
+#endif

@@ -8,7 +8,7 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.12	2018/05/26
+ * Version:	@(#)vid_svga.h	1.0.15	2018/10/04
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -17,6 +17,12 @@
  *		Copyright 2016-2018 Miran Grca.
  */
 
+
+#define FLAG_EXTRA_BANKS	1
+#define	FLAG_ADDR_BY8		2
+#define FLAG_LATCH8		4
+
+
 typedef struct {
     int ena,
 	x, y, xoff, yoff, xsize, ysize,
@@ -24,25 +30,34 @@ typedef struct {
     uint32_t addr, pitch;
 } hwcursor_t;
 
+typedef union {
+    uint64_t	q;
+    uint32_t	d[2];
+    uint16_t	w[4];
+    uint8_t	b[8];
+} latch_t;
+
 typedef struct svga_t
 {
     mem_mapping_t mapping;
 
-    int enabled;
+    uint8_t fast, chain4, chain2_write, chain2_read,
+	    ext_overscan, bus_size,
+	    lowres, interlace, linedbl, rowcount,
+	    set_reset_disabled, bpp, ramdac_type, fb_only,
+	    readmode, writemode, readplane,
+	    hwcursor_oddeven, dac_hwcursor_oddeven, overlay_oddeven;
 
-    uint8_t crtcreg, crtc[128],
-	    gdcaddr, gdcreg[64],
-	    attrff, attr_palette_enable,
-	    attraddr, attrregs[32],
-	    seqaddr, seqregs[64],
-	    miscout, cgastat,
-	    plane_mask, writemask,
-	    colourcompare, colournocare,
-	    scrblank, egapal[16],
-	    *vram, *changedvram;
-
-    int vidclock, fb_only,
-	fast;
+    int dac_addr, dac_pos, dac_r, dac_g,
+	vtotal, dispend, vsyncstart, split, vblankstart,
+	hdisp,  hdisp_old, htotal,  hdisp_time, rowoffset,
+	dispon, hdisp_on,
+	vc, sc, linepos, vslines, linecountff, oddeven,
+	con, cursoron, blink, scrollcache,
+	firstline, lastline, firstline_draw, lastline_draw,
+	displine, fullchange, x_add, y_add, pan,
+	vram_display_mask, vidclock,
+	hwcursor_on, dac_hwcursor_on, overlay_on;
 
     /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
       0MB-1MB - VRAM
@@ -53,50 +68,28 @@ typedef struct svga_t
       For the example memory map, decode_mask would be 4MB-1 (4MB address space), vram_max would be 2MB
       (present video memory only responds to first 2MB), vram_mask would be 1MB-1 (video memory wraps at 1MB)
     */
-    uint32_t decode_mask;
-    uint32_t vram_max;
-    uint32_t vram_mask;
-
-    uint8_t dac_mask, dac_status;
-    int dac_read, dac_write,
-	dac_pos, ramdac_type,
-	dac_r, dac_g;
-
-    int readmode, writemode,
-	readplane, extvram,
-	chain4, chain2_write, chain2_read,
-	oddeven_page, oddeven_chain,
-	set_reset_disabled;
-
-    uint32_t charseta, charsetb,
-	     latch, ma_latch,
+    uint32_t decode_mask, vram_max,
+	     vram_mask,
+	     charseta, charsetb,
+	     adv_flags, ma_latch,
 	     ma, maback,
 	     write_bank, read_bank,
+	     extra_banks[2],
 	     banked_mask,
 	     ca, overscan_color,
-	     pallook[256];
+	     *map8, pallook[256];
 
     PALETTE vgapal;
 
-    int vtotal, dispend, vsyncstart, split, vblankstart,
-	hdisp,  hdisp_old, htotal,  hdisp_time, rowoffset,
-	lowres, interlace, linedbl, rowcount, bpp,
-	dispon, hdisp_on,
-	vc, sc, linepos, vslines, linecountff, oddeven,
-	con, cursoron, blink, scrollcache,
-	firstline, lastline, firstline_draw, lastline_draw,
-	displine, fullchange,
-	video_res_x, video_res_y, video_bpp, frames, fps,
-	vram_display_mask,
-	hwcursor_on, overlay_on,
-	hwcursor_oddeven, overlay_oddeven;
+    uint64_t dispontime, dispofftime;
+    latch_t latch;
+
+    pc_timer_t timer;
 
     double clock;
 
-    int64_t dispontime, dispofftime,
-	    vidtime;
-
     hwcursor_t hwcursor, hwcursor_latch,
+	       dac_hwcursor, dac_hwcursor_latch,
 	       overlay, overlay_latch;
 
     void (*render)(struct svga_t *svga);
@@ -107,16 +100,33 @@ typedef struct svga_t
 
     void (*hwcursor_draw)(struct svga_t *svga, int displine);
 
+    void (*dac_hwcursor_draw)(struct svga_t *svga, int displine);
+
     void (*overlay_draw)(struct svga_t *svga, int displine);
 
     void (*vblank_start)(struct svga_t *svga);
 
     void (*ven_write)(struct svga_t *svga, uint8_t val, uint32_t addr);
+    float (*getclock)(int clock, void *p);
 
     /*If set then another device is driving the monitor output and the SVGA
       card should not attempt to display anything */
     int override;
     void *p;
+
+    uint8_t crtc[128], gdcreg[64], attrregs[32], seqregs[64],
+	    egapal[16],
+	    *vram, *changedvram;
+
+    uint8_t crtcreg, gdcaddr,
+	    attrff, attr_palette_enable, attraddr, seqaddr,
+	    miscout, cgastat, scrblank,
+	    plane_mask, writemask,
+	    colourcompare, colournocare,
+	    dac_mask, dac_status,
+	    ksc5601_sbyte_mask;
+
+    void *ramdac, *clock_gen;
 } svga_t;
 
 
@@ -153,9 +163,6 @@ uint8_t		svga_in(uint16_t addr, void *p);
 
 svga_t		*svga_get_pri();
 void		svga_set_override(svga_t *svga, int val);
-
-void		svga_set_ven_write(svga_t *svga,
-				   void (*ven_write)(struct svga_t *svga, uint8_t val, uint32_t addr));
 
 void		svga_set_ramdac_type(svga_t *svga, int type);
 void		svga_close(svga_t *svga);

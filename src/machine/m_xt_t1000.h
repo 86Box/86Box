@@ -8,7 +8,7 @@
  *
  *		Definitions for the Toshiba T1000/T1200 machines.
  *
- * Version:	@(#)m_xt_t1000.h	1.0.4	2018/03/19
+ * Version:	@(#)m_xt_t1000.h	1.0.5	2018/08/15
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -45,6 +45,7 @@ extern const device_t t1200_video_device;
 
 
 extern void	t1000_video_options_set(uint8_t options);
+extern void t1000_video_enable(uint8_t enabled);
 extern void	t1000_display_set(uint8_t internal);
 
 extern void	t1000_syskey(uint8_t amask, uint8_t omask, uint8_t xmask);

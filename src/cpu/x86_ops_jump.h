@@ -247,12 +247,12 @@ static int opJMP_r32(uint32_t fetchdat)
 static int opJMP_far_a16(uint32_t fetchdat)
 {
 	uint16_t addr, seg;
-	uint32_t oxpc;
+	uint32_t old_pc;
         addr = getwordf();
         seg = getword();                       if (cpu_state.abrt) return 1;
-        oxpc = cpu_state.pc;
+        old_pc = cpu_state.pc;
         cpu_state.pc = addr;
-        loadcsjmp(seg, oxpc);
+        loadcsjmp(seg, old_pc);
         CPU_BLOCK_END();
         PREFETCH_RUN(11, 5, -1, 0,0,0,0, 0);
         PREFETCH_FLUSH();
@@ -261,12 +261,12 @@ static int opJMP_far_a16(uint32_t fetchdat)
 static int opJMP_far_a32(uint32_t fetchdat)
 {
 	uint16_t seg;
-	uint32_t addr, oxpc;
+	uint32_t addr, old_pc;
         addr = getlong();
         seg = getword();                       if (cpu_state.abrt) return 1;
-        oxpc = cpu_state.pc;
+        old_pc = cpu_state.pc;
         cpu_state.pc = addr;
-        loadcsjmp(seg, oxpc);
+        loadcsjmp(seg, old_pc);
         CPU_BLOCK_END();
         PREFETCH_RUN(11, 7, -1, 0,0,0,0, 0);
         PREFETCH_FLUSH();

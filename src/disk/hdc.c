@@ -8,7 +8,7 @@
  *
  *		Common code to handle all sorts of disk controllers.
  *
- * Version:	@(#)hdc.c	1.0.15	2018/04/29
+ * Version:	@(#)hdc.c	1.0.17	2018/11/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -30,19 +30,16 @@
 #include "hdd.h"
 
 
-char	*hdc_name;		/* configured HDC name */
 int	hdc_current;
 
 
 #ifdef ENABLE_HDC_LOG
 int hdc_do_log = ENABLE_HDC_LOG;
-#endif
 
 
 static void
 hdc_log(const char *fmt, ...)
 {
-#ifdef ENABLE_HDC_LOG
     va_list ap;
 
     if (hdc_do_log) {
@@ -50,8 +47,10 @@ hdc_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define hdc_log(fmt, ...)
+#endif
 
 
 static void *
@@ -105,14 +104,26 @@ static const struct {
     { "Internal Controller",				"internal",
       &inthdc_device			},
 
-    { "[ISA] [MFM] IBM PC Fixed Disk Adapter",		"mfm_xt",
-      &mfm_xt_xebec_device		},
+    { "[ISA] [MFM] IBM PC Fixed Disk Adapter",		"st506_xt",
+      &st506_xt_xebec_device		},
 
-    { "[ISA] [MFM] DTC-5150X Fixed Disk Adapter",	"mfm_dtc5150x",
-      &mfm_xt_dtc5150x_device		},
+    { "[ISA] [MFM] DTC-5150X Fixed Disk Adapter",	"st506_xt_dtc5150x",
+      &st506_xt_dtc5150x_device		},
 
-    { "[ISA] [MFM] IBM PC/AT Fixed Disk Adapter",	"mfm_at",
-      &mfm_at_wd1003_device		},
+    { "[ISA] [MFM] ST-11M Fixed Disk Adapter",		"st506_xt_st11_m",
+      &st506_xt_st11_m_device		},
+
+    { "[ISA] [MFM] WD1002A-WX1 Fixed Disk Adapter",	"st506_xt_wd1002a_wx1",
+      &st506_xt_wd1002a_wx1_device	},
+
+    { "[ISA] [MFM/RLL] IBM PC/AT Fixed Disk Adapter",	"st506_at",
+      &st506_at_wd1003_device		},
+
+    { "[ISA] [RLL] ST-11R Fixed Disk Adapter",		"st506_xt_st11_r",
+      &st506_xt_st11_r_device		},
+
+    { "[ISA] [RLL] WD1002A-27X Fixed Disk Adapter",	"st506_xt_wd1002a_27x",
+      &st506_xt_wd1002a_27x_device	},
 
     { "[ISA] [ESDI] PC/AT ESDI Fixed Disk Adapter",	"esdi_at",
       &esdi_at_wd1007vse1_device	},
@@ -160,18 +171,9 @@ static const struct {
 
 /* Initialize the 'hdc_current' value based on configured HDC name. */
 void
-hdc_init(char *name)
+hdc_init(void)
 {
-    int c;
-
     hdc_log("HDC: initializing..\n");
-
-    for (c = 0; controllers[c].device; c++) {
-	if (! strcmp(name, (char *) controllers[c].internal_name)) {
-		hdc_current = c;
-		break;
-	}
-    }
 
     /* Zero all the hard disk image arrays. */
     hdd_image_init();
@@ -208,6 +210,22 @@ char *
 hdc_get_internal_name(int hdc)
 {
     return((char *) controllers[hdc].internal_name);
+}
+
+
+int
+hdc_get_id(char *s)
+{
+	int c = 0;
+	
+	while (strlen((char *) controllers[c].name))
+	{
+		if (!strcmp((char *) controllers[c].name, s))
+			return c;
+		c++;
+	}
+	
+	return 0;
 }
 
 

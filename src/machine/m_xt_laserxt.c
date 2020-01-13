@@ -7,21 +7,31 @@
 #include "../cpu/cpu.h"
 #include "../io.h"
 #include "../mem.h"
+#include "../nmi.h"
+#include "../timer.h"
+#include "../pit.h"
 #include "../rom.h"
 #include "machine.h"
+#include "../device.h"
+#include "../timer.h"
+#include "../floppy/fdd.h"
+#include "../floppy/fdc.h"
+#include "../game/gameport.h"
+#include "../keyboard.h"
 
 
 static int laserxt_emspage[4];
 static int laserxt_emscontrol[4];
 static mem_mapping_t laserxt_ems_mapping[4];
 static int laserxt_ems_baseaddr_index = 0;
+static int laserxt_is_lxt3 = 0;
 
 
 static uint32_t get_laserxt_ems_addr(uint32_t addr)
 {
         if(laserxt_emspage[(addr >> 14) & 3] & 0x80)
         {
-                addr = (romset == ROM_LTXT ? 0x70000 + (((mem_size + 64) & 255) << 10) : 0x30000 + (((mem_size + 320) & 511) << 10)) + ((laserxt_emspage[(addr >> 14) & 3] & 0x0F) << 14) + ((laserxt_emspage[(addr >> 14) & 3] & 0x40) << 12) + (addr & 0x3FFF);
+                addr = (!laserxt_is_lxt3 ? 0x70000 + (((mem_size + 64) & 255) << 10) : 0x30000 + (((mem_size + 320) & 511) << 10)) + ((laserxt_emspage[(addr >> 14) & 3] & 0x0F) << 14) + ((laserxt_emspage[(addr >> 14) & 3] & 0x40) << 12) + (addr & 0x3FFF);
         }
 
         return addr;
@@ -55,14 +65,6 @@ static void laserxt_write(uint16_t port, uint8_t val, void *priv)
                 for(i=0; i<4; i++)
                 {
                         laserxt_ems_baseaddr_index |= (laserxt_emscontrol[i] & 0x80) >> (7 - i);
-                }
-                if(laserxt_ems_baseaddr_index < 3)
-                {
-                        mem_mapping_disable(&romext_mapping);
-                }
-                else
-                {
-                        mem_mapping_enable(&romext_mapping);
                 }
 
                 mem_mapping_set_addr(&laserxt_ems_mapping[0], 0xC0000 + (((laserxt_ems_baseaddr_index + 4) & 0x0C) << 14), 0x4000);
@@ -107,7 +109,7 @@ static uint8_t mem_read_laserxtems(uint32_t addr, void *priv)
 }
 
 
-static void laserxt_init(void)
+static void laserxt_init(int is_lxt3)
 {
         int i;
 
@@ -117,7 +119,7 @@ static void laserxt_init(void)
                 io_sethandler(0x4208, 0x0002, laserxt_read, NULL, NULL, laserxt_write, NULL, NULL,  NULL);
                 io_sethandler(0x8208, 0x0002, laserxt_read, NULL, NULL, laserxt_write, NULL, NULL,  NULL);
                 io_sethandler(0xc208, 0x0002, laserxt_read, NULL, NULL, laserxt_write, NULL, NULL,  NULL);
-                mem_mapping_set_addr(&ram_low_mapping, 0, romset == ROM_LTXT ? 0x70000 + (((mem_size + 64) & 255) << 10) : 0x30000 + (((mem_size + 320) & 511) << 10));
+                mem_mapping_set_addr(&ram_low_mapping, 0, !is_lxt3 ? 0x70000 + (((mem_size + 64) & 255) << 10) : 0x30000 + (((mem_size + 320) & 511) << 10));
         }
 
         for (i = 0; i < 4; i++)
@@ -127,14 +129,52 @@ static void laserxt_init(void)
                 mem_mapping_add(&laserxt_ems_mapping[i], 0xE0000 + (i << 14), 0x4000, mem_read_laserxtems, NULL, NULL, mem_write_laserxtems, NULL, NULL, ram + 0xA0000 + (i << 14), 0, NULL);
                 mem_mapping_disable(&laserxt_ems_mapping[i]);
         }
-        mem_set_mem_state(0x0c0000, 0x40000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+        mem_set_mem_state(0x0c0000, 0x40000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+	laserxt_is_lxt3 = is_lxt3;
 }
 
 
-void
+int
 machine_xt_laserxt_init(const machine_t *model)
 {
+	int ret;
+
+	ret = bios_load_linear(L"roms/machines/ltxt/27c64.bin",
+			       0x000fe000, 8192, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
         machine_xt_init(model);
 
-        laserxt_init();
+        laserxt_init(0);
+
+	return ret;
+}
+
+
+int
+machine_xt_lxt3_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/lxt3/27c64d.bin",
+			   0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_common_init(model);
+
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+
+    device_add(&keyboard_xt_lxt3_device);
+    device_add(&fdc_xt_device);
+    nmi_init();
+    if (joystick_type != 7)
+	device_add(&gameport_device);
+
+    laserxt_init(1);
+
+    return ret;
 }

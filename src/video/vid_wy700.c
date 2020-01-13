@@ -8,7 +8,7 @@
  *
  *		Wyse-700 emulation.
  *
- * Version:	@(#)vid_wy700.c	1.0.9	2018/05/20
+ * Version:	@(#)vid_wy700.c	1.0.10	2018/09/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,9 +23,9 @@
 #include <wchar.h>
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../pit.h"
 #include "../mem.h"
-#include "../timer.h"
 #include "../device.h"
 #include "video.h"
 #include "vid_wy700.h"
@@ -212,13 +212,13 @@ typedef struct wy700_t
 	int enabled;		/* Display enabled, 0 or 1 */
 	int detach;		/* Detach cursor, 0 or 1 */
 
-        int64_t dispontime, dispofftime;
-        int64_t vidtime;
+        uint64_t dispontime, dispofftime;
+        pc_timer_t timer;
         
         int linepos, displine;
         int vc;
         int dispon, blink;
-        int64_t vsynctime;
+        int vsynctime;
 
         uint8_t *vram;
 } wy700_t;
@@ -232,6 +232,8 @@ void wy700_recalctimings(wy700_t *wy700);
 void wy700_write(uint32_t addr, uint8_t val, void *p);
 uint8_t wy700_read(uint32_t addr, void *p);
 void wy700_checkchanges(wy700_t *wy700);
+
+static video_timings_t timing_wy700 = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 
 void wy700_out(uint16_t addr, uint8_t val, void *p)
@@ -512,8 +514,8 @@ void wy700_recalctimings(wy700_t *wy700)
         _dispofftime = disptime - _dispontime;
         _dispontime  *= MDACONST;
         _dispofftime *= MDACONST;
-	wy700->dispontime  = (int64_t)(_dispontime  * (1 << TIMER_SHIFT));
-	wy700->dispofftime = (int64_t)(_dispofftime * (1 << TIMER_SHIFT));
+	wy700->dispontime  = (uint64_t)(_dispontime);
+	wy700->dispofftime = (uint64_t)(_dispofftime);
 }
 
 
@@ -576,7 +578,7 @@ void wy700_textline(wy700_t *wy700)
 		if (sc == 14 && mda && ((attr & 7) == 1))
 		{
 			for (c = 0; c < cw; c++)
-				buffer->line[wy700->displine][(x * cw) + c] =
+				buffer32->line[wy700->displine][(x * cw) + c] =
 					mdacols[attr][blink][1];
 		}
 		else	/* Draw 16 pixels of character */
@@ -593,16 +595,16 @@ void wy700_textline(wy700_t *wy700)
 					col = mdacols[0][0][0];
 				if (w == 40) 
 				{
-                        		buffer->line[wy700->displine][(x * cw) + 2*c] = col;
-                        		buffer->line[wy700->displine][(x * cw) + 2*c + 1] = col;
+                        		buffer32->line[wy700->displine][(x * cw) + 2*c] = col;
+                        		buffer32->line[wy700->displine][(x * cw) + 2*c + 1] = col;
 				}
-				else	buffer->line[wy700->displine][(x * cw) + c] = col;
+				else	buffer32->line[wy700->displine][(x * cw) + c] = col;
 			}
 
                         if (drawcursor)
                         {
                         	for (c = 0; c < cw; c++)
-                                	buffer->line[wy700->displine][(x * cw) + c] ^= (mda ? mdacols : cgacols)[attr][0][1];
+                                	buffer32->line[wy700->displine][(x * cw) + c] ^= (mda ? mdacols : cgacols)[attr][0][1];
                         }
 			++ma;
 		}
@@ -640,8 +642,8 @@ void wy700_cgaline(wy700_t *wy700)
 				ink = (dat & 0x80000000) ? 16 + 15: 16 + 0;
 				if (!(wy700->enabled) || !(wy700->cga_ctrl & 8))
 					ink = 16;
-				buffer->line[wy700->displine][x*64 + 2*c] =
-				buffer->line[wy700->displine][x*64 + 2*c+1] =
+				buffer32->line[wy700->displine][x*64 + 2*c] =
+				buffer32->line[wy700->displine][x*64 + 2*c+1] =
 					ink;
 				dat = dat << 1;
 			}
@@ -659,10 +661,10 @@ void wy700_cgaline(wy700_t *wy700)
 				}
 				if (!(wy700->enabled) || !(wy700->cga_ctrl & 8))
 					ink = 16;
-				buffer->line[wy700->displine][x*64 + 4*c] =
-				buffer->line[wy700->displine][x*64 + 4*c+1] =
-				buffer->line[wy700->displine][x*64 + 4*c+2] =
-				buffer->line[wy700->displine][x*64 + 4*c+3] =
+				buffer32->line[wy700->displine][x*64 + 4*c] =
+				buffer32->line[wy700->displine][x*64 + 4*c+1] =
+				buffer32->line[wy700->displine][x*64 + 4*c+2] =
+				buffer32->line[wy700->displine][x*64 + 4*c+3] =
 					ink;
 				dat = dat << 2;
 			}
@@ -701,10 +703,10 @@ void wy700_medresline(wy700_t *wy700)
 				}
 				/* Display disabled? */
 				if (!(wy700->wy700_mode & 8)) ink = 16;
-				buffer->line[wy700->displine][x*64 + 4*c] =
-				buffer->line[wy700->displine][x*64 + 4*c+1] =
-				buffer->line[wy700->displine][x*64 + 4*c+2] =
-				buffer->line[wy700->displine][x*64 + 4*c+3] =
+				buffer32->line[wy700->displine][x*64 + 4*c] =
+				buffer32->line[wy700->displine][x*64 + 4*c+1] =
+				buffer32->line[wy700->displine][x*64 + 4*c+2] =
+				buffer32->line[wy700->displine][x*64 + 4*c+3] =
 					ink;
 				dat = dat << 2;
 			}
@@ -716,8 +718,8 @@ void wy700_medresline(wy700_t *wy700)
 				ink = (dat & 0x80000000) ? 16 + 15: 16 + 0;
 				/* Display disabled? */
 				if (!(wy700->wy700_mode & 8)) ink = 16;
-				buffer->line[wy700->displine][x*64 + 2*c]   = 
-				buffer->line[wy700->displine][x*64 + 2*c+1] = 
+				buffer32->line[wy700->displine][x*64 + 2*c]   = 
+				buffer32->line[wy700->displine][x*64 + 2*c+1] = 
 					ink;
 				dat = dat << 1;
 			}
@@ -763,8 +765,8 @@ void wy700_hiresline(wy700_t *wy700)
 				}
 				/* Display disabled? */
 				if (!(wy700->wy700_mode & 8)) ink = 16;
-				buffer->line[wy700->displine][x*32 + 2*c] =
-				buffer->line[wy700->displine][x*32 + 2*c+1] =
+				buffer32->line[wy700->displine][x*32 + 2*c] =
+				buffer32->line[wy700->displine][x*32 + 2*c+1] =
 					ink;
 				dat = dat << 2;
 			}
@@ -776,7 +778,7 @@ void wy700_hiresline(wy700_t *wy700)
 				ink = (dat & 0x80000000) ? 16 + 15: 16 + 0;
 				/* Display disabled? */
 				if (!(wy700->wy700_mode & 8)) ink = 16;
-				buffer->line[wy700->displine][x*32 + c] = ink;
+				buffer32->line[wy700->displine][x*32 + c] = ink;
 				dat = dat << 1;
 			}
 		}
@@ -793,7 +795,7 @@ void wy700_poll(void *p)
 
         if (!wy700->linepos)
         {
-                wy700->vidtime += wy700->dispofftime;
+				timer_advance_u64(&wy700->timer, wy700->dispofftime);
                 wy700->cga_stat |= 1;
                 wy700->mda_stat |= 1;
                 wy700->linepos = 1;
@@ -854,7 +856,7 @@ void wy700_poll(void *p)
                 	wy700->cga_stat &= ~1;
                 	wy700->mda_stat &= ~1;
 		}
-                wy700->vidtime += wy700->dispontime;
+                timer_advance_u64(&wy700->timer, wy700->dispontime);
                 wy700->linepos = 0;
 
 		if (wy700->displine == 800)
@@ -902,13 +904,14 @@ void *wy700_init(const device_t *info)
         int c;
         wy700_t *wy700 = malloc(sizeof(wy700_t));
         memset(wy700, 0, sizeof(wy700_t));
+	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_wy700);
 
 	/* 128k video RAM */
         wy700->vram = malloc(0x20000);
 
 	loadfont(L"roms/video/wyse700/wy700.rom", 3);
 
-        timer_add(wy700_poll, &wy700->vidtime, TIMER_ALWAYS_ENABLED, wy700);
+        timer_add(&wy700->timer, wy700_poll, wy700, 1);
 
 	/* Occupy memory between 0xB0000 and 0xBFFFF (moves to 0xA0000 in
 	 * high-resolution modes)  */

@@ -49,9 +49,17 @@
 #include "../io.h"
 #include "x86_ops.h"
 #include "../mem.h"
+#include "../nmi.h"
+#include "../pic.h"
 #include "../pci.h"
 #ifdef USE_DYNAREC
 # include "codegen.h"
+#endif
+
+
+#if 1
+static void	cpu_write(uint16_t addr, uint8_t val, void *priv);
+static uint8_t	cpu_read(uint16_t addr, void *priv);
 #endif
 
 
@@ -114,13 +122,15 @@ const OpFn	*x86_opcodes_df_a32;
 const OpFn	*x86_opcodes_REPE;
 const OpFn	*x86_opcodes_REPNE;
 
+int in_smm = 0, smi_line = 0, smi_latched = 0;
+uint32_t smbase = 0x30000;
+
 CPU		*cpu_s;
 int		cpu_effective;
 int		cpu_multi;
 int		cpu_16bitbus;
 int		cpu_busspeed;
 int		cpu_cyrix_alignment;
-int		cpuspeed;
 int		CPUID;
 uint64_t	cpu_CR4_mask;
 int		isa_cycles;
@@ -130,21 +140,19 @@ int		cpu_prefetch_cycles, cpu_prefetch_width,
 		cpu_mem_prefetch_cycles, cpu_rom_prefetch_cycles;
 int		cpu_waitstates;
 int		cpu_cache_int_enabled, cpu_cache_ext_enabled;
-int		cpu_pci_speed;
+int		cpu_pci_speed, cpu_alt_reset;
+
+uint32_t cpu_features;
 
 int		is286,
 		is386,
 		is486,
 		cpu_iscyrix,
+		isibmcpu,
 		israpidcad,
 		is_pentium;
 
-int		hasfpu,
-		cpu_hasrdtsc,
-		cpu_hasMMX,
-		cpu_hasMSR,
-		cpu_hasCR4,
-		cpu_hasVME;
+int		hasfpu;
 
 
 uint64_t	tsc = 0;
@@ -205,6 +213,11 @@ int		timing_misaligned;
 
 static uint8_t	ccr0, ccr1, ccr2, ccr3, ccr4, ccr5, ccr6;
 
+int cpu_has_feature(int feature)
+{
+		return cpu_features & feature;
+}
+
 
 void
 cpu_dynamic_switch(int new_cpu)
@@ -236,36 +249,39 @@ cpu_set(void)
                 cpu_manufacturer = 0;
                 cpu = 0;
         }
-        
+
 	cpu_effective = cpu;
         cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective];
 
+	cpu_alt_reset = 0;
+
         CPUID    = cpu_s->cpuid_model;
-        cpuspeed = cpu_s->speed;
         is8086   = (cpu_s->cpu_type > CPU_8088);
         is286   = (cpu_s->cpu_type >= CPU_286);
         is386    = (cpu_s->cpu_type >= CPU_386SX);
+	isibmcpu = (cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
 	israpidcad = (cpu_s->cpu_type == CPU_RAPIDCAD);
-        is486    = (cpu_s->cpu_type >= CPU_i486SX) || (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_RAPIDCAD);
-        is_pentium= (cpu_s->cpu_type >= CPU_WINCHIP);
+        is486    = (cpu_s->cpu_type >= CPU_i486SX) || (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_RAPIDCAD || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL );
+        is_pentium = (cpu_s->cpu_type >= CPU_WINCHIP);
         hasfpu   = (cpu_s->cpu_type >= CPU_i486DX) || (cpu_s->cpu_type == CPU_RAPIDCAD);
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
         cpu_iscyrix = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx5x86 || cpu_s->cpu_type == CPU_Cx6x86 || cpu_s->cpu_type == CPU_Cx6x86MX || cpu_s->cpu_type == CPU_Cx6x86L || cpu_s->cpu_type == CPU_CxGX1);
-        cpu_16bitbus = (cpu_s->cpu_type == CPU_286 || cpu_s->cpu_type == CPU_386SX || cpu_s->cpu_type == CPU_486SLC);
-        if (cpu_s->multi) 
-           cpu_busspeed = cpu_s->rspeed / cpu_s->multi;
+#else
+        cpu_iscyrix = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx5x86);
+#endif
+
+        cpu_16bitbus = (cpu_s->cpu_type == CPU_286 || cpu_s->cpu_type == CPU_386SX || cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC );
+
+        if (cpu_s->multi) {
+			cpu_busspeed = cpu_s->rspeed / cpu_s->multi;
+	}
         cpu_multi = cpu_s->multi;
-        cpu_hasrdtsc = 0;
-        cpu_hasMMX = 0;
-        cpu_hasMSR = 0;
-        cpu_hasCR4 = 0;
         ccr0 = ccr1 = ccr2 = ccr3 = ccr4 = ccr5 = ccr6 = 0;
 
-	if ((cpu_s->cpu_type == CPU_286) || (cpu_s->cpu_type == CPU_386SX) || (cpu_s->cpu_type == CPU_386DX) || (cpu_s->cpu_type == CPU_i486SX))
-	{
-		if (enable_external_fpu)
-		{
-			hasfpu = 1;
-		}
+	if ((cpu_s->cpu_type == CPU_8088) || (cpu_s->cpu_type == CPU_8086) ||
+	    (cpu_s->cpu_type == CPU_286) || (cpu_s->cpu_type == CPU_386SX) ||
+	    (cpu_s->cpu_type == CPU_386DX) || (cpu_s->cpu_type == CPU_i486SX)) {
+		hasfpu = !!enable_external_fpu;
 	}
 
         cpu_update_waitstates();
@@ -289,10 +305,15 @@ cpu_set(void)
         }
 
         if (cpu_iscyrix)
-           io_sethandler(0x0022, 0x0002, cyrix_read, NULL, NULL, cyrix_write, NULL, NULL, NULL);
+		io_sethandler(0x0022, 0x0002, cpu_read, NULL, NULL, cpu_write, NULL, NULL, NULL);
         else
-           io_removehandler(0x0022, 0x0002, cyrix_read, NULL, NULL, cyrix_write, NULL, NULL, NULL);
-        
+		io_removehandler(0x0022, 0x0002, cpu_read, NULL, NULL, cpu_write, NULL, NULL, NULL);
+
+	if (hasfpu)
+		io_sethandler(0x00f0, 0x000f, cpu_read, NULL, NULL, cpu_write, NULL, NULL, NULL);
+	else
+		io_removehandler(0x00f0, 0x000f, cpu_read, NULL, NULL, cpu_write, NULL, NULL, NULL);
+
 #ifdef USE_DYNAREC
         x86_setopcodes(ops_386, ops_386_0f, dynarec_ops_386, dynarec_ops_386_0f);
 #else
@@ -466,6 +487,7 @@ cpu_set(void)
                 timing_jmp_pm_gate = 38;
                 break;
 
+		case CPU_IBM386SLC:
                 case CPU_386SX:
                 timing_rr  = 2;   /*register dest - register src*/
                 timing_rm  = 6;   /*register dest - memory src*/
@@ -528,6 +550,80 @@ cpu_set(void)
                 timing_jmp_pm_gate = 45;
                 break;
                 
+                case CPU_IBM486SLC:
+#ifdef USE_DYNAREC
+                x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+#else
+                x86_setopcodes(ops_386, ops_486_0f);
+#endif
+                timing_rr  = 1; /*register dest - register src*/
+                timing_rm  = 2; /*register dest - memory src*/
+                timing_mr  = 5; /*memory dest   - register src*/
+                timing_mm  = 3;
+                timing_rml = 4; /*register dest - memory src long*/
+                timing_mrl = 5; /*memory dest   - register src long*/
+                timing_mml = 5;
+                timing_bt  = 3-1; /*branch taken*/
+                timing_bnt = 1; /*branch not taken*/
+                timing_int = 4;
+                timing_int_rm       = 26;
+                timing_int_v86      = 82;
+                timing_int_pm       = 44;
+                timing_int_pm_outer = 71;
+                timing_iret_rm       = 15;
+                timing_iret_v86      = 36; /*unknown*/
+                timing_iret_pm       = 20;
+                timing_iret_pm_outer = 36;
+                timing_call_rm = 18;
+                timing_call_pm = 20;
+                timing_call_pm_gate = 35;
+                timing_call_pm_gate_inner = 69;
+                timing_retf_rm       = 13;
+                timing_retf_pm       = 17;
+                timing_retf_pm_outer = 35;
+                timing_jmp_rm      = 17;
+                timing_jmp_pm      = 19;
+                timing_jmp_pm_gate = 32;
+                timing_misaligned = 3;
+                break;
+				
+                case CPU_IBM486BL:
+#ifdef USE_DYNAREC
+                x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+#else
+                x86_setopcodes(ops_386, ops_486_0f);
+#endif
+                timing_rr  = 1; /*register dest - register src*/
+                timing_rm  = 2; /*register dest - memory src*/
+                timing_mr  = 3; /*memory dest   - register src*/
+                timing_mm  = 3;
+                timing_rml = 2; /*register dest - memory src long*/
+                timing_mrl = 3; /*memory dest   - register src long*/
+                timing_mml = 3;
+                timing_bt  = 3-1; /*branch taken*/
+                timing_bnt = 1; /*branch not taken*/
+                timing_int = 4;
+                timing_int_rm       = 26;
+                timing_int_v86      = 82;
+                timing_int_pm       = 44;
+                timing_int_pm_outer = 71;
+                timing_iret_rm       = 15;
+                timing_iret_v86      = 36; /*unknown*/
+                timing_iret_pm       = 20;
+                timing_iret_pm_outer = 36;
+                timing_call_rm = 18;
+                timing_call_pm = 20;
+                timing_call_pm_gate = 35;
+                timing_call_pm_gate_inner = 69;
+                timing_retf_rm       = 13;
+                timing_retf_pm       = 17;
+                timing_retf_pm_outer = 35;
+                timing_jmp_rm      = 17;
+                timing_jmp_pm      = 19;
+                timing_jmp_pm_gate = 32;
+                timing_misaligned = 3;
+                break;
+				
                 case CPU_RAPIDCAD:
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 2; /*register dest - memory src*/
@@ -636,8 +732,7 @@ cpu_set(void)
                 break;
                 
 		case CPU_iDX4:
-		cpu_hasCR4 = 1;
-		cpu_hasVME = 1;
+		cpu_features = CPU_FEATURE_CR4 | CPU_FEATURE_VME;
 		cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_VME;
                 case CPU_i486SX:
                 case CPU_i486DX:
@@ -807,10 +902,8 @@ cpu_set(void)
                 timing_mml = 3;
                 timing_bt  = 3-1; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
-                cpu_hasrdtsc = 1;
+                cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MMX | CPU_FEATURE_MSR | CPU_FEATURE_CR4;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_hasMMX = cpu_hasMSR = 1;
-                cpu_hasCR4 = 1;
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE;
                 /*unknown*/
                 timing_int_rm       = 26;
@@ -873,12 +966,8 @@ cpu_set(void)
                 timing_jmp_pm      = 3;
                 timing_jmp_pm_gate = 18;
                 timing_misaligned = 3;
-                cpu_hasrdtsc = 1;
+                cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_hasMMX = 0;
-                cpu_hasMSR = 1;
-                cpu_hasCR4 = 1;
-		cpu_hasVME = 1;
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
                 codegen_timing_set(&codegen_timing_pentium);
@@ -920,18 +1009,15 @@ cpu_set(void)
                 timing_jmp_pm      = 3;
                 timing_jmp_pm_gate = 18;
                 timing_misaligned = 3;
-                cpu_hasrdtsc = 1;
+                cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_hasMMX = 1;
-                cpu_hasMSR = 1;
-                cpu_hasCR4 = 1;
-		cpu_hasVME = 1;
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
                 codegen_timing_set(&codegen_timing_pentium);
 #endif
                 break;
 
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
   		case CPU_Cx6x86:
 #ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentium_0f, dynarec_ops_386, dynarec_ops_pentium_0f);
@@ -967,11 +1053,8 @@ cpu_set(void)
                 timing_jmp_pm_gate = 14;
                 timing_misaligned = 2;
                 cpu_cyrix_alignment = 1;
-                cpu_hasrdtsc = 1;
+                cpu_features = CPU_FEATURE_RDTSC;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_hasMMX = 0;
-                cpu_hasMSR = 0;
-                cpu_hasCR4 = 0;
 #ifdef USE_DYNAREC
   		codegen_timing_set(&codegen_timing_686);
 #endif
@@ -1013,11 +1096,8 @@ cpu_set(void)
                 timing_jmp_pm_gate = 14;
                 timing_misaligned = 2;
                 cpu_cyrix_alignment = 1;
-                cpu_hasrdtsc = 1;
+                cpu_features = CPU_FEATURE_RDTSC;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_hasMMX = 0;
-                cpu_hasMSR = 0;
-                cpu_hasCR4 = 0;
 #ifdef USE_DYNAREC
          	codegen_timing_set(&codegen_timing_686);
 #endif
@@ -1042,11 +1122,8 @@ cpu_set(void)
                 timing_bnt = 1; /*branch not taken*/
                 timing_misaligned = 2;
                 cpu_cyrix_alignment = 1;
-                cpu_hasrdtsc = 1;
+                cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_hasMMX = 0;
-                cpu_hasMSR = 1;
-                cpu_hasCR4 = 1;
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE;
 #ifdef USE_DYNAREC
          	codegen_timing_set(&codegen_timing_686);
@@ -1101,17 +1178,15 @@ cpu_set(void)
                 timing_jmp_pm_gate = 14;
                 timing_misaligned = 2;
                 cpu_cyrix_alignment = 1;
-                cpu_hasrdtsc = 1;
+                cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_MMX;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_hasMMX = 1;
-                cpu_hasMSR = 1;
-                cpu_hasCR4 = 1;
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE;
 #ifdef USE_DYNAREC
          	codegen_timing_set(&codegen_timing_686);
 #endif
          	ccr4 = 0x80;
                 break;
+#endif
 
 #if defined(DEV_BRANCH) && defined(USE_AMD_K)
                 case CPU_K5:
@@ -1131,11 +1206,8 @@ cpu_set(void)
                 timing_bt  = 0; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
                 timing_misaligned = 3;
-                cpu_hasrdtsc = 1;
+                cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_hasMMX = 1;
-                cpu_hasMSR = 1;
-                cpu_hasCR4 = 1;
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE;
                 break;
 
@@ -1155,12 +1227,8 @@ cpu_set(void)
                 timing_bt  = 0; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
                 timing_misaligned = 3;
-                cpu_hasrdtsc = 1;
+                cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_hasMMX = 1;
-                cpu_hasMSR = 1;
-                cpu_hasCR4 = 1;
-		cpu_hasVME = 1;
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
                 codegen_timing_set(&codegen_timing_pentium);
@@ -1197,12 +1265,8 @@ cpu_set(void)
                 timing_bt  = 0; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
                 timing_misaligned = 3;
-                cpu_hasrdtsc = 1;
+                cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_hasMMX = 0;
-                cpu_hasMSR = 1;
-                cpu_hasCR4 = 1;
-		cpu_hasVME = 1;
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
          	codegen_timing_set(&codegen_timing_686);
@@ -1238,12 +1302,8 @@ cpu_set(void)
                 timing_bt  = 0; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
                 timing_misaligned = 3;
-                cpu_hasrdtsc = 1;
+                cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_hasMMX = 1;
-                cpu_hasMSR = 1;
-                cpu_hasCR4 = 1;
-		cpu_hasVME = 1;
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
          	codegen_timing_set(&codegen_timing_686);
@@ -1279,12 +1339,8 @@ cpu_set(void)
                 timing_bt  = 0; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
                 timing_misaligned = 3;
-                cpu_hasrdtsc = 1;
+                cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_hasMMX = 1;
-                cpu_hasMSR = 1;
-                cpu_hasCR4 = 1;
-		cpu_hasVME = 1;
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE | CR4_OSFXSR;
 #ifdef USE_DYNAREC
          	codegen_timing_set(&codegen_timing_686);
@@ -1410,7 +1466,7 @@ cpu_CPUID(void)
                         EAX = 0x540;
                         EBX = ECX = 0;
                         EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR;
-                        if (msr.fcr & (1 << 1))
+                        if (cpu_has_feature(CPU_FEATURE_CX8))
                                 EDX |= CPUID_CMPXCHG8B;
                         if (msr.fcr & (1 << 9))
                                 EDX |= CPUID_MMX;
@@ -1590,6 +1646,7 @@ cpu_CPUID(void)
                 break;
 
 
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
                 case CPU_Cx6x86:
                 if (!EAX)
                 {
@@ -1665,6 +1722,7 @@ cpu_CPUID(void)
                 else
                         EAX = EBX = ECX = EDX = 0;
                 break;
+#endif
 
 #ifdef DEV_BRANCH
 #ifdef USE_I686
@@ -1820,6 +1878,7 @@ void cpu_RDMSR()
 				break;
                 }
                 break;
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
                 case CPU_Cx6x86:
                 case CPU_Cx6x86L:
                 case CPU_CxGX1:
@@ -1832,6 +1891,7 @@ void cpu_RDMSR()
                         break;
                 }
  		break;
+#endif
 
 #ifdef DEV_BRANCH
 #ifdef USE_I686
@@ -1953,6 +2013,7 @@ void cpu_RDMSR()
 			break;
 			default:
 i686_invalid_rdmsr:
+			pclog("Invalid MSR read %08X\n", ECX);
 			x86gpf(NULL, 0);
 			break;
                 }
@@ -1983,11 +2044,18 @@ void cpu_WRMSR()
                         break;
                         case 0x107:
                         msr.fcr = EAX;
-                        cpu_hasMMX = EAX & (1 << 9);
-                        if (EAX & (1 << 29))
-                                CPUID = 0;
+                        if (EAX & (1 << 9))
+                                cpu_features |= CPU_FEATURE_MMX;
                         else
-                                CPUID = machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpuid_model;
+                                cpu_features &= ~CPU_FEATURE_MMX;
+						if (EAX & (1 << 1))
+								cpu_features |= CPU_FEATURE_CX8;
+						else
+								cpu_features &= ~CPU_FEATURE_CX8;
+                         if (EAX & (1 << 29))
+                                 CPUID = 0;
+                         else
+                                 CPUID = machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpuid_model;
                         break;
                         case 0x108:
                         msr.fcr2 = EAX | ((uint64_t)EDX << 32);
@@ -2032,6 +2100,7 @@ void cpu_WRMSR()
 				break;
                 }
                 break;
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
                 case CPU_Cx6x86:
                 case CPU_Cx6x86L:
                 case CPU_CxGX1:
@@ -2043,6 +2112,7 @@ void cpu_WRMSR()
                         break;
                 }
                 break;
+#endif
 
 #ifdef DEV_BRANCH
 #ifdef USE_I686
@@ -2132,6 +2202,7 @@ void cpu_WRMSR()
 			break;			
 			default:
 i686_invalid_wrmsr:
+			pclog("Invalid MSR write %08X: %08X%08X\n", ECX, EDX, EAX);
 			x86gpf(NULL, 0);
 			break;
                 }
@@ -2143,8 +2214,18 @@ i686_invalid_wrmsr:
 
 static int cyrix_addr;
 
-void cyrix_write(uint16_t addr, uint8_t val, void *priv)
+static void cpu_write(uint16_t addr, uint8_t val, void *priv)
 {
+	if (addr == 0xf0) {
+		/* Writes to F0 clear FPU error and deassert the interrupt. */
+		if (is286)
+			picintc(1 << 13);
+		else
+			nmi = 0;
+		return;
+	} else if (addr >= 0xf1)
+		return;		/* FPU stuff */
+
         if (!(addr & 1))
                 cyrix_addr = val;
         else switch (cyrix_addr)
@@ -2165,6 +2246,7 @@ void cyrix_write(uint16_t addr, uint8_t val, void *priv)
                 if ((ccr3 & 0xf0) == 0x10)
                 {
                         ccr4 = val;
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
                         if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_Cx6x86)
                         {
                                 if (val & 0x80)
@@ -2172,6 +2254,7 @@ void cyrix_write(uint16_t addr, uint8_t val, void *priv)
                                 else
                                         CPUID = 0;
                         }
+#endif
                 }
                 break;
                 case 0xe9: /*CCR5*/
@@ -2185,8 +2268,11 @@ void cyrix_write(uint16_t addr, uint8_t val, void *priv)
         }
 }
 
-uint8_t cyrix_read(uint16_t addr, void *priv)
+static uint8_t cpu_read(uint16_t addr, void *priv)
 {
+	if (addr >= 0xf0)
+		return 0xff;		/* FPU stuff */
+
         if (addr & 1)
         {
                 switch (cyrix_addr)

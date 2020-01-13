@@ -44,7 +44,7 @@
  *		configuration register (CTRL_SPCFG bit set) but have to
  *		remember that stuff first...
  *
- * Version:	@(#)bugger.c	1.0.12	2018/04/29
+ * Version:	@(#)bugger.c	1.0.13	2018/10/17
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 1989-2018 Fred N. van Kempen.
@@ -93,22 +93,22 @@ extern void	ui_sb_bugui(char *__str);
 
 #ifdef ENABLE_BUGGER_LOG
 int bugger_do_log = ENABLE_BUGGER_LOG;
-#endif
 
 
 static void
-bugger_log(const char *format, ...)
+bugger_log(const char *fmt, ...)
 {
-#ifdef ENABLE_BUGGER_LOG
     va_list ap;
 
     if (bugger_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define bugger_log(fmt, ...)
+#endif
 
 
 /* Update the system's UI with the actual Bugger status. */

@@ -8,7 +8,7 @@
  *
  *		Implementation of PS/2 series Mouse devices.
  *
- * Version:	@(#)mouse_ps2.c	1.0.9	2018/05/12
+ * Version:	@(#)mouse_ps2.c	1.0.12	2018/10/17
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  */
@@ -20,7 +20,6 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "config.h"
 #include "device.h"
 #include "keyboard.h"
 #include "mouse.h"
@@ -61,22 +60,22 @@ int mouse_scan = 0;
 
 #ifdef ENABLE_MOUSE_PS2_LOG
 int mouse_ps2_do_log = ENABLE_MOUSE_PS2_LOG;
-#endif
 
 
 static void
-mouse_ps2_log(const char *format, ...)
+mouse_ps2_log(const char *fmt, ...)
 {
-#ifdef ENABLE_MOUSE_PS2_LOG
     va_list ap;
 
     if (mouse_ps2_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define mouse_ps2_log(fmt, ...)
+#endif
 
 
 void
@@ -132,7 +131,7 @@ ps2_write(uint8_t val, void *priv)
 
 		case 0xe9:	/* status request */
 			keyboard_at_adddata_mouse(0xfa);
-			temp = (dev->flags & 0x3f);
+			temp = (dev->flags & 0x30);
 			if (mouse_buttons & 0x01)
 				temp |= 0x01;
 			if (mouse_buttons & 0x02)
@@ -169,7 +168,7 @@ ps2_write(uint8_t val, void *priv)
 
 		case 0xff:	/* reset */
 			dev->mode  = MODE_STREAM;
-			dev->flags &= 0x80;
+			dev->flags &= 0x88;
 			keyboard_at_adddata_mouse(0xfa);
 			keyboard_at_adddata_mouse(0xaa);
 			keyboard_at_adddata_mouse(0x00);
@@ -181,8 +180,9 @@ ps2_write(uint8_t val, void *priv)
     }
 
     if (dev->flags & FLAG_INTELLI) {
-	for (temp=0; temp<5; temp++)	
-		dev->last_data[temp] = dev->last_data[temp+1];
+	for (temp = 0; temp < 5; temp++)	
+		dev->last_data[temp] = dev->last_data[temp + 1];
+
 	dev->last_data[5] = val;
 
 	if (dev->last_data[0] == 0xf3 && dev->last_data[1] == 0xc8 &&
@@ -197,19 +197,24 @@ static int
 ps2_poll(int x, int y, int z, int b, void *priv)
 {
     mouse_t *dev = (mouse_t *)priv;
-    uint8_t buff[3];
+    uint8_t buff[3] = { 0x08, 0x00, 0x00 };
 
-    if (!x && !y && !z && b == dev->b) return(0xff);
+    if (!x && !y && !z && (b == dev->b))
+	return(0xff);
 
-    if (! (dev->flags & FLAG_ENABLED)) return(0xff);
+#if 0
+    if (!(dev->flags & FLAG_ENABLED))
+	return(0xff);
+#endif
 
-    if (! mouse_scan) return(0xff);
+    if (!mouse_scan)
+	return(0xff);
 
     dev->x += x;
     dev->y -= y;
     dev->z -= z;
-    if ((dev->mode == MODE_STREAM) &&
-	((mouse_queue_end-mouse_queue_start) & 0x0f) < 13) {
+    if ((dev->mode == MODE_STREAM) && (dev->flags & FLAG_ENABLED) &&
+	(((mouse_queue_end - mouse_queue_start) & 0x0f) < 13)) {
 	dev->b = b;
 
 	if (dev->x > 255) dev->x = 255;
@@ -219,8 +224,6 @@ ps2_poll(int x, int y, int z, int b, void *priv)
 	if (dev->z < -8) dev->z = -8;
 	if (dev->z > 7) dev->z = 7;
 
-	memset(buff, 0x00, sizeof(buff));
-	buff[0] = 0x08;
 	if (dev->x < 0)
 		buff[0] |= 0x10;
 	if (dev->y < 0)
@@ -239,7 +242,7 @@ ps2_poll(int x, int y, int z, int b, void *priv)
 	keyboard_at_adddata_mouse(buff[0]);
 	keyboard_at_adddata_mouse(buff[1]);
 	keyboard_at_adddata_mouse(buff[2]);
-	if (dev->flags & FLAG_INTELLI)
+	if (dev->flags & FLAG_INTMODE)
 		keyboard_at_adddata_mouse(dev->z);
 
 	dev->x = dev->y = dev->z = 0;
@@ -273,7 +276,7 @@ mouse_ps2_init(const device_t *info)
     /* Hook into the general AT Keyboard driver. */
     keyboard_at_set_mouse(ps2_write, dev);
 
-    mouse_ps2_log("%s: buttons=%d\n", dev->name, (dev->flags & FLAG_INTELLI)? 3 : 2);
+    mouse_ps2_log("%s: buttons=%d\n", dev->name, (dev->flags & FLAG_INTELLI) ? 3 : 2);
 
     /* Tell them how many buttons we have. */
     mouse_set_buttons((dev->flags & FLAG_INTELLI) ? 3 : 2);

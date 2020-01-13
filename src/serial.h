@@ -6,18 +6,27 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Definitions for the SERIAL card.
+ *		Definitions for the NS8250/16450/16550 UART emulation.
  *
- * Version:	@(#)serial.h	1.0.7	2018/01/12
+ * Version:	@(#)serial.h	1.0.12	2019/10/31
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2017,2018 Fred N. van Kempen.
+ * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #ifndef EMU_SERIAL_H
 # define EMU_SERIAL_H
 
 
-#ifdef WALTJE_SERIAL
+#define SERIAL_8250		0
+#define SERIAL_8250_PCJR	1
+#define SERIAL_NS16450		2
+#define SERIAL_NS16550		3
+
 /* Default settings for the standard ports. */
 #define SERIAL1_ADDR		0x03f8
 #define SERIAL1_IRQ		4
@@ -25,95 +34,55 @@
 #define SERIAL2_IRQ		3
 
 
-/* Supported UART types. */
-#define UART_TYPE_8250		0	/* standard NS8250 */
-#define UART_TYPE_8250A		1	/* updated NS8250(A) */
-#define UART_TYPE_16450		2	/* 16450 */
-#define UART_TYPE_16550		3	/* 16550 (broken fifo) */
-#define UART_TYPE_16550A	4	/* 16550a (working fifo) */
-#define UART_TYPE_16670		5	/* 16670 (64b fifo) */
+struct serial_device_s;
+struct serial_s;
 
-
-typedef struct _serial_ {
-    int8_t	port;			/* port number (1,2,..) */
-    int8_t	irq;			/* IRQ channel used */
-    uint16_t	addr;			/* I/O address used */
-    int8_t	type;			/* UART type */
-    uint8_t	int_status;
-
-    uint8_t	lsr, thr, mctrl, rcr,	/* UART registers */
-		iir, ier, lcr, msr;
-    uint8_t	dlab1, dlab2;
-    uint8_t	dat,
-		hold;
-    uint8_t	scratch;
-    uint8_t	fcr;
-
-    /* Data for the RTS-toggle callback. */
-    void	(*rts_callback)(void *);
-    void	*rts_callback_p;
-
-    uint8_t	fifo[256];
-    int		fifo_read, fifo_write;
-
-    int64_t	receive_delay;
-
-    void	*bh;			/* BottomHalf handler */
-} SERIAL;
-
-
-/* Functions. */
-extern void	serial_init(void);
-extern void	serial_reset(void);
-extern void	serial_setup(int port, uint16_t addr, int irq);
-extern void	serial_remove(int port);
-extern SERIAL	*serial_attach(int, void *, void *);
-extern int	serial_link(int, char *);
-
-extern void	serial_clear_fifo(SERIAL *);
-extern void	serial_write_fifo(SERIAL *, uint8_t, int);
-
-
-#else
-
-
-void serial_remove(int port);
-void serial_setup(int port, uint16_t addr, int irq);
-void serial_init(void);
-void serial_reset();
-
-struct SERIAL;
-
-typedef struct
+typedef struct serial_s
 {
-        uint8_t lsr,thr,mctrl,rcr,iir,ier,lcr,msr;
-        uint8_t dlab1,dlab2;
-        uint8_t dat;
-        uint8_t int_status;
-        uint8_t scratch;
-        uint8_t fcr;
-        
-        int irq;
+    uint8_t lsr, thr, mctrl, rcr,
+	    iir, ier, lcr, msr,
+	    dat, int_status, scratch, fcr,
+	    irq, type, inst, transmit_enabled,
+	    fifo_enabled, rcvr_fifo_len, bits, data_bits,
+	    baud_cycles, rcvr_fifo_full, txsr, pad;
 
-        void (*rcr_callback)(struct SERIAL *serial, void *p);
-        void *rcr_callback_p;
-        uint8_t fifo[256];
-        int fifo_read, fifo_write;
-        
-        int64_t recieve_delay;
-} SERIAL;
+    uint16_t dlab, base_address;
 
-void serial_clear_fifo(SERIAL *);
-void serial_write_fifo(SERIAL *serial, uint8_t dat);
+    uint8_t rcvr_fifo_pos, xmit_fifo_pos,
+	    pad0, pad1,
+	    rcvr_fifo[16], xmit_fifo[16];
 
-extern SERIAL serial1, serial2;
+    pc_timer_t transmit_timer, timeout_timer;
+    double transmit_period;
 
-/* Default settings for the standard ports. */
-#define SERIAL1_ADDR		0x03f8
-#define SERIAL1_IRQ		4
-#define SERIAL2_ADDR		0x02f8
-#define SERIAL2_IRQ		3
-#endif
+    struct serial_device_s	*sd;
+} serial_t;
+
+typedef struct serial_device_s
+{
+    void (*rcr_callback)(struct serial_s *serial, void *p);
+    void (*dev_write)(struct serial_s *serial, void *p, uint8_t data);
+    void *priv;
+    serial_t *serial;
+} serial_device_t;
+
+
+extern serial_t *	serial_attach(int port,
+			      void (*rcr_callback)(struct serial_s *serial, void *p),
+			      void (*dev_write)(struct serial_s *serial, void *p, uint8_t data),
+			      void *priv);
+extern void	serial_remove(serial_t *dev);
+extern void	serial_set_type(serial_t *dev, int type);
+extern void	serial_setup(serial_t *dev, uint16_t addr, int irq);
+extern void	serial_clear_fifo(serial_t *dev);
+extern void	serial_write_fifo(serial_t *dev, uint8_t dat);
+extern void	serial_set_next_inst(int ni);
+extern void	serial_standalone_init(void);
+
+extern const device_t	i8250_device;
+extern const device_t	i8250_pcjr_device;
+extern const device_t	ns16450_device;
+extern const device_t	ns16550_device;
 
 
 #endif	/*EMU_SERIAL_H*/

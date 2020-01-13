@@ -8,14 +8,14 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.9	2018/04/29
+ * Version:	@(#)sound_sb.c	1.0.16	2019/09/27
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
  *
- *		Copyright 2008-2017 Sarah Walker.
- *		Copyright 2016,2017 Miran Grca.
+ *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2016-2019 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -26,13 +26,14 @@
 #define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../mca.h"
 #include "../mem.h"
 #include "../rom.h"
 #include "../device.h"
 #include "sound.h"
+#include "midi.h"
 #include "filters.h"
-#include "snd_dbopl.h"
 #include "snd_emu8k.h"
 #include "snd_mpu401.h"
 #include "snd_opl.h"
@@ -134,11 +135,8 @@ typedef struct sb_t
                 sb_ct1345_mixer_t mixer_sbpro;
                 sb_ct1745_mixer_t mixer_sb16;
         };
-        mpu_t		mpu;
+        mpu_t		*mpu;
         emu8k_t         emu8k;
-#if 0
-	sb_ct1745_mixer_t temp_mixer_sb16;
-#endif
 
         int pos;
         
@@ -173,13 +171,11 @@ const int32_t sb_att_7dbstep_2bits[]=
 
 #ifdef ENABLE_SB_LOG
 int sb_do_log = ENABLE_SB_LOG;
-#endif
 
 
 static void
 sb_log(const char *fmt, ...)
 {
-#ifdef ENABLE_SB_LOG
     va_list ap;
 
     if (sb_do_log) {
@@ -187,8 +183,10 @@ sb_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define sb_log(fmt, ...)
+#endif
 
 
 /* sb 1, 1.5, 2, 2 mvc do not have a mixer, so signal is hardwired */
@@ -205,7 +203,7 @@ static void sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
         {
                 int32_t out = 0;
 		if (sb->opl_enabled)
-                	out = ((sb->opl.buffer[c]     * 51000) >> 16);
+                	out = ((sb->opl.buffer[c]     * (sb->opl_emu ? 47000 : 51000)) >> 16);
                 //TODO: Recording: Mic and line In with AGC
                 out += (int32_t)(((sb_iir(0, (float)sb->dsp.buffer[c]) / 1.3) * 65536) / 3) >> 16;
         
@@ -233,7 +231,7 @@ static void sb_get_buffer_sb2_mixer(int32_t *buffer, int len, void *p)
                 int32_t out = 0;
                 
 		if (sb->opl_enabled)
-                	out = ((((sb->opl.buffer[c]     * mixer->fm) >> 16) * 51000) >> 15);
+                	out = ((((sb->opl.buffer[c]     * mixer->fm) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
                 /* TODO: Recording : I assume it has direct mic and line in like sb2 */
                 /* It is unclear from the docs if it has a filter, but it probably does */
                 out += (int32_t)(((sb_iir(0, (float)sb->dsp.buffer[c])     / 1.3) * mixer->voice) / 3) >> 15;
@@ -297,44 +295,6 @@ static void sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
         sb->opl.pos = 0;
         sb->dsp.pos = 0;
 }
-
-// FIXME: See why this causes weird audio glitches in some situations.
-#if 0
-static void sb_process_buffer_sb16(int32_t *buffer, int len, void *p)
-{
-        sb_t *sb = (sb_t *)p;
-        sb_ct1745_mixer_t *mixer = &sb->temp_mixer_sb16;
-                
-        int c;
-
-        for (c = 0; c < len * 2; c += 2)
-        {
-                int32_t out_l = 0, out_r = 0;
-
-                out_l = ((int32_t)(low_fir_sb16(0, (float)buffer[c])     * mixer->cd_l) / 3) >> 15;
-                out_r = ((int32_t)(low_fir_sb16(1, (float)buffer[c + 1]) * mixer->cd_r) / 3) >> 15;
-
-                out_l = (out_l * mixer->master_l) >> 15;
-                out_r = (out_r * mixer->master_r) >> 15;
-
-                if (mixer->bass_l != 8 || mixer->bass_r != 8 || mixer->treble_l != 8 || mixer->treble_r != 8)
-                {
-                        /* This is not exactly how one does bass/treble controls, but the end result is like it. A better implementation would reduce the cpu usage */
-                        if (mixer->bass_l>8) out_l += (int32_t)(low_iir(0, (float)out_l)*sb_bass_treble_4bits[mixer->bass_l]);
-                        if (mixer->bass_r>8)  out_r += (int32_t)(low_iir(1, (float)out_r)*sb_bass_treble_4bits[mixer->bass_r]);
-                        if (mixer->treble_l>8) out_l += (int32_t)(high_iir(0, (float)out_l)*sb_bass_treble_4bits[mixer->treble_l]);
-                        if (mixer->treble_r>8) out_r += (int32_t)(high_iir(1, (float)out_r)*sb_bass_treble_4bits[mixer->treble_r]);
-                        if (mixer->bass_l<8)   out_l = (int32_t)((out_l )*sb_bass_treble_4bits[mixer->bass_l] + low_cut_iir(0, (float)out_l)*(1.f-sb_bass_treble_4bits[mixer->bass_l]));
-                        if (mixer->bass_r<8)   out_r = (int32_t)((out_r )*sb_bass_treble_4bits[mixer->bass_r] + low_cut_iir(1, (float)out_r)*(1.f-sb_bass_treble_4bits[mixer->bass_r])); 
-                        if (mixer->treble_l<8) out_l = (int32_t)((out_l )*sb_bass_treble_4bits[mixer->treble_l] + high_cut_iir(0, (float)out_l)*(1.f-sb_bass_treble_4bits[mixer->treble_l]));
-                        if (mixer->treble_r<8) out_r = (int32_t)((out_r )*sb_bass_treble_4bits[mixer->treble_r] + high_cut_iir(1, (float)out_r)*(1.f-sb_bass_treble_4bits[mixer->treble_r]));
-                }
-
-                buffer[c]     = (out_l << mixer->output_gain_L);
-                buffer[c + 1] = (out_r << mixer->output_gain_R);
-	}
-}
-#endif
 
 static void sb_get_buffer_sb16(int32_t *buffer, int len, void *p)
 {
@@ -407,9 +367,6 @@ static void sb_get_buffer_sb16(int32_t *buffer, int len, void *p)
         sb->pos = 0;
         sb->opl.pos = 0;
         sb->dsp.pos = 0;
-#if 0
-	memcpy(&sb->temp_mixer_sb16, &sb->mixer_sb16, sizeof(sb_ct1745_mixer_t));
-#endif
 }
 #ifdef SB_DSP_RECORD_DEBUG
 int old_dsp_rec_pos=0;
@@ -520,9 +477,6 @@ static void sb_get_buffer_emu8k(int32_t *buffer, int len, void *p)
         sb->opl.pos = 0;
         sb->dsp.pos = 0;
         sb->emu8k.pos = 0;
-#if 0
-	memcpy(&sb->temp_mixer_sb16, &sb->mixer_sb16, sizeof(sb_ct1745_mixer_t));
-#endif
 }
 
 
@@ -629,7 +583,7 @@ void sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p)
                         {
                                 /* Compatibility: chain registers 0x02 and 0x22 as well as 0x06 and 0x26 */
                                 case 0x02: case 0x06: case 0x08:
-                                mixer->regs[mixer->index+0x20]=((val&0xE) << 4)|(val&0xE) << 4;
+                                mixer->regs[mixer->index+0x20]=((val&0xE) << 4)|(val&0xE);
                                 break;
                                 
                                 case 0x22: case 0x26: case 0x28:
@@ -862,6 +816,7 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
 {
         sb_t *sb = (sb_t *)p;
         sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
+	uint8_t temp;
 
         if (!(addr & 1))
                 return mixer->index;
@@ -942,7 +897,10 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
                 case 0x82:
                 /* 0 = none, 1 =  digital 8bit or SBMIDI, 2 = digital 16bit, 4 = MPU-401 */
                 /* 0x02000 DSP v4.04, 0x4000 DSP v4.05 0x8000 DSP v4.12. I haven't seen this making any difference, but I'm keeping it for now. */
-                return ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) | 0x4000;
+		temp = ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) | 0x4000;
+		if (sb->mpu)
+			temp |= ((sb->mpu->state.irq_pending) ? 4 : 0);
+                return temp;
 
                 /* TODO: creative drivers read and write on 0xFE and 0xFF. not sure what they are supposed to be. */
                 
@@ -1005,6 +963,14 @@ void sb_mcv_write(int port, uint8_t val, void *p)
                 sb_dsp_setaddr(&sb->dsp, addr);
         }
 }
+
+uint8_t sb_mcv_feedb(void *p)
+{
+        sb_t *sb = (sb_t *)p;
+
+	return (sb->pos_regs[2] & 1);
+}
+
 
 static int sb_pro_mcv_irqs[4] = {7, 5, 3, 3};
 
@@ -1069,7 +1035,6 @@ void *sb_1_init()
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-	sb_dsp_set_mpu(&sb->mpu);
         /* CMS I/O handler is activated on the dedicated sound_cms module
            DSP I/O handler is activated in sb_dsp_setaddr */
 	if (sb->opl_enabled) {
@@ -1077,6 +1042,11 @@ void *sb_1_init()
         	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
 	}
         sound_add_handler(sb_get_buffer_sb2, sb);
+		
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
+		
         return sb;
 }
 void *sb_15_init()
@@ -1103,6 +1073,11 @@ void *sb_15_init()
         	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
 	}
         sound_add_handler(sb_get_buffer_sb2, sb);
+		
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;	
+		
         return sb;
 }
 
@@ -1121,12 +1096,16 @@ void *sb_mcv_init()
         sb_dsp_setaddr(&sb->dsp, 0);//addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-	sb_dsp_set_mpu(&sb->mpu);
         sound_add_handler(sb_get_buffer_sb2, sb);
         /* I/O handlers activated in sb_mcv_write */
-        mca_add(sb_mcv_read, sb_mcv_write, sb);
+        mca_add(sb_mcv_read, sb_mcv_write, sb_mcv_feedb, sb);
         sb->pos_regs[0] = 0x84;
         sb->pos_regs[1] = 0x50;
+
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;	
+	midi_in_p = &sb->dsp;
+		
         return sb;
 }
 void *sb_2_init()
@@ -1155,7 +1134,6 @@ void *sb_2_init()
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1335_mixer_reset(sb);
         /* CMS I/O handler is activated on the dedicated sound_cms module
            DSP I/O handler is activated in sb_dsp_setaddr */
@@ -1174,6 +1152,10 @@ void *sb_2_init()
         }
         else
                 sound_add_handler(sb_get_buffer_sb2, sb);    
+
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
 
         return sb;
 }
@@ -1197,7 +1179,6 @@ void *sb_pro_v1_init()
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1345_mixer_reset(sb);
         /* DSP I/O handler is activated in sb_dsp_setaddr */
 	if (sb->opl_enabled) {
@@ -1208,6 +1189,10 @@ void *sb_pro_v1_init()
 	}
         io_sethandler(addr+4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sbpro, sb);
+
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
 
         return sb;
 }
@@ -1231,7 +1216,6 @@ void *sb_pro_v2_init()
         sb_dsp_setaddr(&sb->dsp, addr);
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1345_mixer_reset(sb);
         /* DSP I/O handler is activated in sb_dsp_setaddr */
 	if (sb->opl_enabled) {
@@ -1241,6 +1225,10 @@ void *sb_pro_v2_init()
 	}
         io_sethandler(addr+4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sbpro, sb);
+
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
 
         return sb;
 }
@@ -1263,9 +1251,13 @@ void *sb_pro_mcv_init()
         sound_add_handler(sb_get_buffer_sbpro, sb);
 
         /* I/O handlers activated in sb_pro_mcv_write */
-        mca_add(sb_pro_mcv_read, sb_pro_mcv_write, sb);
+        mca_add(sb_pro_mcv_read, sb_pro_mcv_write, sb_mcv_feedb, sb);
         sb->pos_regs[0] = 0x03;
         sb->pos_regs[1] = 0x51;
+
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
 
         return sb;
 }
@@ -1274,6 +1266,7 @@ void *sb_16_init()
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
+        uint16_t mpu_addr = device_get_config_hex16("base401");
         memset(sb, 0, sizeof(sb_t));
 
 	sb->opl_enabled = device_get_config_int("opl");
@@ -1292,14 +1285,18 @@ void *sb_16_init()
 	}
         io_sethandler(addr+4, 0x0002, sb_ct1745_mixer_read, NULL, NULL, sb_ct1745_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sb16, sb);
-#if 0
-        sound_add_process_handler(sb_process_buffer_sb16, sb);
-#endif
-        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
-	sb_dsp_set_mpu(&sb->mpu);
-#if 0
-	memcpy(&sb->temp_mixer_sb16, &sb->mixer_sb16, sizeof(sb_ct1745_mixer_t));
-#endif
+	if (mpu_addr) {
+		sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+		memset(sb->mpu, 0, sizeof(mpu_t));
+        	mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
+		sb_dsp_set_mpu(sb->mpu);
+	} else
+		sb->mpu = NULL;
+
+	
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
 
         return sb;
 }
@@ -1313,6 +1310,7 @@ void *sb_awe32_init()
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
+        uint16_t mpu_addr = device_get_config_hex16("base401");
         uint16_t emu_addr = device_get_config_hex16("emu_base");
         int onboard_ram = device_get_config_int("onboard_ram");
         memset(sb, 0, sizeof(sb_t));
@@ -1327,7 +1325,6 @@ void *sb_awe32_init()
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
         sb_dsp_setdma16(&sb->dsp, device_get_config_int("dma16"));
-	sb_dsp_set_mpu(&sb->mpu);
         sb_ct1745_mixer_reset(sb);
 	if (sb->opl_enabled) {
         	io_sethandler(addr, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL, &sb->opl);
@@ -1336,15 +1333,18 @@ void *sb_awe32_init()
 	}
         io_sethandler(addr+4, 0x0002, sb_ct1745_mixer_read, NULL, NULL, sb_ct1745_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_emu8k, sb);
-#if 0
-        sound_add_process_handler(sb_process_buffer_sb16, sb);
-#endif
-        mpu401_init(&sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq401"), device_get_config_int("mode401"));
-	sb_dsp_set_mpu(&sb->mpu);
+	if (mpu_addr) {
+		sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+		memset(sb->mpu, 0, sizeof(mpu_t));
+	        mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
+		sb_dsp_set_mpu(sb->mpu);
+	} else
+		sb->mpu = NULL;
         emu8k_init(&sb->emu8k, emu_addr, onboard_ram);
-#if 0
-	memcpy(&sb->temp_mixer_sb16, &sb->mixer_sb16, sizeof(sb_ct1745_mixer_t));
-#endif
+
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
 
         return sb;
 }
@@ -1568,6 +1568,9 @@ static const device_config_t sb_16_config[] =
                 "base401", "MPU-401 Address", CONFIG_HEX16, "", 0x330,
                 {
                         {
+                                "Disabled", 0
+                        },
+                        {
                                 "0x300", 0x300
                         },
                         {
@@ -1583,32 +1586,6 @@ static const device_config_t sb_16_config[] =
                 {
                         {
                                 "IRQ 2", 2
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                "IRQ 10", 10
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "irq401", "MPU-401 IRQ", CONFIG_SELECTION, "", 9,
-                {
-                        {
-                                "IRQ 9", 9
-                        },
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 4", 4
                         },
                         {
                                 "IRQ 5", 5
@@ -1652,20 +1629,6 @@ static const device_config_t sb_16_config[] =
                         },
                         {
                                 "DMA 7", 7
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "mode401", "MPU-401 mode", CONFIG_SELECTION, "", 1,
-                {
-                        {
-                                "UART", M_UART
-                        },
-                        {
-                                "Intelligent", M_INTELLIGENT
                         },
                         {
                                 ""
@@ -1726,6 +1689,9 @@ static const device_config_t sb_awe32_config[] =
                 "base401", "MPU-401 Address", CONFIG_HEX16, "", 0x330,
                 {
                         {
+                                "Disabled", 0
+                        },
+                        {
                                 "0x300", 0x300
                         },
                         {
@@ -1741,32 +1707,6 @@ static const device_config_t sb_awe32_config[] =
                 {
                         {
                                 "IRQ 2", 2
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                "IRQ 10", 10
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "irq401", "MPU-401 IRQ", CONFIG_SELECTION, "", 9,
-                {
-                        {
-                                "IRQ 9", 9
-                        },
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 4", 4
                         },
                         {
                                 "IRQ 5", 5
@@ -1810,20 +1750,6 @@ static const device_config_t sb_awe32_config[] =
                         },
                         {
                                 "DMA 7", 7
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "mode401", "MPU-401 mode", CONFIG_SELECTION, "", 1,
-                {
-                        {
-                                "UART", M_UART
-                        },
-                        {
-                                "Intelligent", M_INTELLIGENT
                         },
                         {
                                 ""

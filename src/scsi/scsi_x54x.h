@@ -11,7 +11,7 @@
  *		of SCSI Host Adapters made by Mylex.
  *		These controllers were designed for various buses.
  *
- * Version:	@(#)scsi_x54x.h	1.0.7	2018/04/06
+ * Version:	@(#)scsi_x54x.h	1.0.10	2018/10/28
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -118,37 +118,8 @@
 #define INTR_MBIF	0x01		/* MBI full */
 
 
-/* Structure for the INQUIRE_SETUP_INFORMATION reply. */
-#pragma pack(push,1)
-typedef struct {
-    uint8_t	uOffset		:4,
-		uTransferPeriod :3,
-		fSynchronous	:1;
-} ReplyInquireSetupInformationSynchronousValue;
-#pragma pack(pop)
-
-#pragma pack(push,1)
-typedef struct {
-    uint8_t	fSynchronousInitiationEnabled	:1,
-		fParityCheckingEnabled		:1,
-		uReserved1			:6;
-    uint8_t	uBusTransferRate;
-    uint8_t	uPreemptTimeOnBus;
-    uint8_t	uTimeOffBus;
-    uint8_t	cMailbox;
-    addr24	MailboxAddress;
-    ReplyInquireSetupInformationSynchronousValue SynchronousValuesId0To7[8];
-    uint8_t	uDisconnectPermittedId0To7;
-    uint8_t	VendorSpecificData[28];
-} ReplyInquireSetupInformation;
-#pragma pack(pop)
-
-#pragma pack(push,1)
-typedef struct {
-    uint8_t	Count;
-    addr24	Address;
-} MailboxInit_t;
-#pragma pack(pop)
+#define ADDR_TO_U32(x)	(((x).hi<<16)|((x).mid<<8)|((x).lo&0xFF))
+#define U32_TO_ADDR(a,x) do {(a).hi=(x)>>16;(a).mid=(x)>>8;(a).lo=(x)&0xFF;}while(0)
 
 /*
  * Mailbox Definitions.
@@ -165,31 +136,6 @@ typedef struct {
 #define MBI_ABORT                 0x02
 #define MBI_NOT_FOUND             0x03
 #define MBI_ERROR                 0x04
-
-#pragma pack(push,1)
-typedef struct {
-    uint8_t	CmdStatus;
-    addr24	CCBPointer;
-} Mailbox_t;
-#pragma pack(pop)
-
-#pragma pack(push,1)
-typedef struct {
-    uint32_t	CCBPointer;
-    union {
-	struct {
-		uint8_t Reserved[3];
-		uint8_t ActionCode;
-	} out;
-	struct {
-		uint8_t HostStatus;
-		uint8_t TargetStatus;
-		uint8_t Reserved;
-		uint8_t CompletionCode;
-	} in;
-    }		u;
-} Mailbox32_t;
-#pragma pack(pop)
 
 /*
  *
@@ -238,13 +184,78 @@ typedef struct {
 #define CCB_DUPLICATE_CCB		0x19	/* Duplicate CCB */
 #define CCB_INVALID_CCB			0x1A	/* Invalid CCB - bad parameter */
 
+#define lba32_blk(p)	((uint32_t)(p->u.lba.lba0<<24) | (p->u.lba.lba1<<16) | \
+				   (p->u.lba.lba2<<8) | p->u.lba.lba3)
+
+/*
+ *
+ * Scatter/Gather Segment List Definitions
+ *
+ * Adapter limits
+ */
+#define MAX_SG_DESCRIPTORS 32	/* Always make the array 32 elements long, if less are used, that's not an issue. */
+
+
+#pragma pack(push,1)
+typedef struct {
+    uint8_t hi;
+    uint8_t mid;
+    uint8_t lo;
+} addr24;
+
+/* Structure for the INQUIRE_SETUP_INFORMATION reply. */
+typedef struct {
+    uint8_t	uOffset		:4,
+		uTransferPeriod :3,
+		fSynchronous	:1;
+} ReplyInquireSetupInformationSynchronousValue;
+
+typedef struct {
+    uint8_t	fSynchronousInitiationEnabled	:1,
+		fParityCheckingEnabled		:1,
+		uReserved1			:6;
+    uint8_t	uBusTransferRate;
+    uint8_t	uPreemptTimeOnBus;
+    uint8_t	uTimeOffBus;
+    uint8_t	cMailbox;
+    addr24	MailboxAddress;
+    ReplyInquireSetupInformationSynchronousValue SynchronousValuesId0To7[8];
+    uint8_t	uDisconnectPermittedId0To7;
+    uint8_t	VendorSpecificData[28];
+} ReplyInquireSetupInformation;
+
+typedef struct {
+    uint8_t	Count;
+    addr24	Address;
+} MailboxInit_t;
+
+typedef struct {
+    uint8_t	CmdStatus;
+    addr24	CCBPointer;
+} Mailbox_t;
+
+typedef struct {
+    uint32_t	CCBPointer;
+    union {
+	struct {
+		uint8_t Reserved[3];
+		uint8_t ActionCode;
+	} out;
+	struct {
+		uint8_t HostStatus;
+		uint8_t TargetStatus;
+		uint8_t Reserved;
+		uint8_t CompletionCode;
+	} in;
+    }		u;
+} Mailbox32_t;
+
 /*    Byte 15   Target Status
 
       See scsi.h files for these statuses.
       Bytes 16 and 17   Reserved (must be 0)
       Bytes 18 through 18+n-1, where n=size of CDB  Command Descriptor Block */
 
-#pragma pack(push,1)
 typedef struct {
     uint8_t	Opcode;
     uint8_t	Reserved1	:3,
@@ -266,9 +277,7 @@ typedef struct {
     uint8_t	Reserved3[6];
     uint32_t	SensePointer;
 } CCB32;
-#pragma pack(pop)
 
-#pragma pack(push,1)
 typedef struct {
     uint8_t	Opcode;
     uint8_t	Lun		:3,
@@ -285,9 +294,7 @@ typedef struct {
     uint8_t	Reserved[2];
     uint8_t	Cdb[12];
 } CCB;
-#pragma pack(pop)
 
-#pragma pack(push,1)
 typedef struct {
     uint8_t	Opcode;
     uint8_t	Pad1		:3,
@@ -302,17 +309,13 @@ typedef struct {
     uint8_t	Pad4[2];
     uint8_t	Cdb[12];
 } CCBC;
-#pragma pack(pop)
 
-#pragma pack(push,1)
 typedef union {
     CCB32	new;
     CCB		old;
     CCBC	common;
 } CCBU;
-#pragma pack(pop)
 
-#pragma pack(push,1)
 typedef struct {
     CCBU	CmdBlock;
     uint8_t	*RequestSenseBuffer;
@@ -324,113 +327,127 @@ typedef struct {
 		TargetStatus,
 		MailboxCompletionCode;
 } Req_t;
-#pragma pack(pop)
+
+typedef struct
+{
+	uint8_t	command;
+	uint8_t	lun:3,
+		reserved:2,
+		id:3;
+	union {
+	    struct {
+		uint16_t cyl;
+		uint8_t	head;
+		uint8_t	sec;
+	    } chs;
+	    struct {
+		uint8_t lba0;	/* MSB */
+		uint8_t lba1;
+		uint8_t lba2;
+		uint8_t lba3;	/* LSB */
+	    } lba;
+	}	u;
+	uint8_t	secount;
+	addr24	dma_address;
+} BIOSCMD;
 
 typedef struct {
-    int8_t	type;				/* type of device */
+    uint32_t	Segment;
+    uint32_t	SegmentPointer;
+} SGE32;
 
-    char	vendor[16];			/* name of device vendor */
-    char	name[16];			/* name of device */
+typedef struct {
+    addr24	Segment;
+    addr24	SegmentPointer;
+} SGE;
+#pragma pack(pop)
 
-    int64_t	timer_period, temp_period;
-    uint8_t	callback_phase;
-    int64_t	media_period;
-    double	ha_bps;				/* bytes per second */
+#define		X54X_CDROM_BOOT		 1
+#define		X54X_32BIT		 2
+#define		X54X_LBA_BIOS		 4
+#define		X54X_INT_GEOM_WRITABLE	 8
+#define		X54X_MBX_24BIT		16
 
-    int8_t	Irq;
-    uint8_t	IrqEnabled;
+typedef struct {
+    /* 32 bytes */
+    char	vendor[16],			/* name of device vendor */
+		name[16];			/* name of device */
 
-    int8_t	DmaChannel;
-    int8_t	HostID;
-    uint32_t	Base;
-    uint8_t	pos_regs[8];			/* MCA */
+    /* 24 bytes */
+    int8_t	type,				/* type of device */
+		IrqEnabled, Irq,
+		DmaChannel,
+		HostID;
 
-    wchar_t	*bios_path;			/* path to BIOS image file */
-    uint32_t	rom_addr;			/* address of BIOS ROM */
-    uint16_t	rom_ioaddr;			/* offset in BIOS of I/O addr */
-    uint16_t	rom_shram;			/* index to shared RAM */
-    uint16_t	rom_shramsz;			/* size of shared RAM */
-    uint16_t	rom_fwhigh;			/* offset in BIOS of ver ID */
-    rom_t	bios;				/* BIOS memory descriptor */
-    rom_t	uppersck;			/* BIOS memory descriptor */
-    uint8_t	*rom1;				/* main BIOS image */
-    uint8_t	*rom2;				/* SCSI-Select image */
-
-    wchar_t	*nvr_path;			/* path to NVR image file */
-    uint8_t	*nvr;				/* EEPROM buffer */
-
-    int64_t	ResetCB;
+    uint8_t	callback_phase		:4,
+		callback_sub_phase	:4,
+		scsi_cmd_phase, pad,
+		sync,
+		parity, shram_mode,
+		Geometry, Control,
+		Command, CmdParam,
+		BusOnTime, BusOffTime,
+		ATBusSpeed, setup_info_len,
+		max_id, pci_slot,
+		temp_cdb[12];
 
     volatile uint8_t				/* for multi-threading, keep */
-		Status,				/* these volatile */
-		Interrupt;
+		Status, Interrupt,		/* these volatile */
+		MailboxIsBIOS, ToRaise,
+		flags;
 
-    Req_t	Req;
-    uint8_t	Geometry;
-    uint8_t	Control;
-    uint8_t	Command;
-    uint8_t	CmdBuf[128];
-    uint8_t	CmdParam;
-    uint32_t	CmdParamLeft;
-    uint8_t	DataBuf[65536];
-    uint16_t	DataReply;
-    uint16_t	DataReplyLeft;
+    /* 65928 bytes */
+    uint8_t	pos_regs[8],			/* MCA */
+		CmdBuf[128],
+		DataBuf[65536],
+		shadow_ram[128],
+		dma_buffer[128];
+
+    /* 16 bytes */
+    char	*fw_rev;			/* The 4 bytes of the revision command information + 2 extra bytes for BusLogic */
+
+    uint8_t	*rom1,				/* main BIOS image */
+		*rom2,				/* SCSI-Select image */
+		*nvr;				/* EEPROM buffer */
+
+    /* 6 words = 12 bytes */
+    uint16_t	DataReply, DataReplyLeft,
+		rom_ioaddr,			/* offset in BIOS of I/O addr */
+		rom_shram,			/* index to shared RAM */
+		rom_shramsz,			/* size of shared RAM */
+		rom_fwhigh;			/* offset in BIOS of ver ID */
+
+    /* 16 + 20 + 52 = 88 bytes */
+    volatile int
+		MailboxOutInterrupts,
+		PendingInterrupt, Lock,
+		target_data_len, pad0;
+
+    uint32_t	Base, rom_addr,			/* address of BIOS ROM */
+		CmdParamLeft, Outgoing,
+		pad32;
 
     volatile uint32_t
-		MailboxInit,
-		MailboxCount,
-		MailboxOutAddr,
-		MailboxOutPosCur,
-		MailboxInAddr,
-		MailboxInPosCur,
-		MailboxReq;
-
-    volatile int
-		Mbx24bit,
-		MailboxOutInterrupts;
-
-    volatile int
-		PendingInterrupt,
-		Lock;
-
-    uint8_t	shadow_ram[128];
-
-    volatile uint8_t
-		MailboxIsBIOS,
-		ToRaise;
-
-    uint8_t	shram_mode;
-
-    uint8_t	sync;
-    uint8_t	parity;
-
-    uint8_t	dma_buffer[128];
-
-    volatile
-    uint32_t	BIOSMailboxInit,
-		BIOSMailboxCount,
-		BIOSMailboxOutAddr,
-		BIOSMailboxOutPosCur,
+		MailboxInit, MailboxCount,
+		MailboxOutAddr, MailboxOutPosCur,
+		MailboxInAddr, MailboxInPosCur,
+		MailboxReq,
+		BIOSMailboxInit, BIOSMailboxCount,
+		BIOSMailboxOutAddr, BIOSMailboxOutPosCur,
 		BIOSMailboxReq,
-		Residue;
+		Residue, bus;			/* Basically a copy of device flags */
 
-    uint8_t	BusOnTime,
-		BusOffTime,
-		ATBusSpeed;
+    /* 8 bytes */
+    uint64_t	temp_period;
 
-    char	*fw_rev;	/* The 4 bytes of the revision command information + 2 extra bytes for BusLogic */
-    uint16_t	bus;		/* Basically a copy of device flags */
-    uint8_t	setup_info_len;
-    uint8_t	max_id;
-    uint8_t	pci_slot;
-    uint8_t	bit32;
-    uint8_t	lba_bios;
+    /* 16 bytes */
+    double	media_period, ha_bps;		/* bytes per second */
 
-    mem_mapping_t mmio_mapping;
+    /* 8 bytes */
+    wchar_t	*bios_path,			/* path to BIOS image file */
+		*nvr_path;			/* path to NVR image file */
 
-    uint8_t	int_geom_writable;
-    uint8_t	cdrom_boot;
-
+    /* 56 bytes */
     /* Pointer to a structure of vendor-specific data that only the vendor-specific code can understand */
     void	*ven_data;
 
@@ -460,40 +477,19 @@ typedef struct {
     uint8_t	(*interrupt_type)(void *p);
     /* Pointer to a function that resets vendor-specific data */
     void	(*ven_reset)(void *p);
+
+    rom_t	bios,				/* BIOS memory descriptor */
+		uppersck;			/* BIOS memory descriptor */
+
+    mem_mapping_t mmio_mapping;
+
+    pc_timer_t	timer, ResetCB;
+
+    Req_t	Req;
 } x54x_t;
 
 
-#pragma pack(push,1)
-typedef struct
-{
-	uint8_t	command;
-	uint8_t	lun:3,
-		reserved:2,
-		id:3;
-	union {
-	    struct {
-		uint16_t cyl;
-		uint8_t	head;
-		uint8_t	sec;
-	    } chs;
-	    struct {
-		uint8_t lba0;	/* MSB */
-		uint8_t lba1;
-		uint8_t lba2;
-		uint8_t lba3;	/* LSB */
-	    } lba;
-	}	u;
-	uint8_t	secount;
-	addr24	dma_address;
-} BIOSCMD;
-#pragma pack(pop)
-#define lba32_blk(p)	((uint32_t)(p->u.lba.lba0<<24) | (p->u.lba.lba1<<16) | \
-				   (p->u.lba.lba2<<8) | p->u.lba.lba3)
-
-
 extern void	x54x_reset_ctrl(x54x_t *dev, uint8_t Reset);
-extern void	x54x_buf_alloc(uint8_t id, int length);
-extern void	x54x_buf_free(uint8_t id);
 extern uint8_t	x54x_mbo_process(x54x_t *dev);
 extern void	x54x_wait_for_poll(void);
 extern void	x54x_io_set(x54x_t *dev, uint32_t base, uint8_t len);

@@ -10,7 +10,7 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)intel_piix.c	1.0.17	2018/06/02
+ * Version:	@(#)intel_piix.c	1.0.22	2018/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -26,64 +26,55 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "scsi/scsi.h"
 #include "cdrom/cdrom.h"
+#include "cpu/cpu.h"
+#include "scsi/scsi_device.h"
+#include "scsi/scsi_cdrom.h"
 #include "dma.h"
 #include "io.h"
 #include "device.h"
+#include "apm.h"
 #include "keyboard.h"
 #include "mem.h"
 #include "pci.h"
 #include "pic.h"
+#include "port_92.h"
 #include "disk/hdc.h"
 #include "disk/hdc_ide.h"
+#include "disk/hdc_ide_sff8038i.h"
 #include "disk/zip.h"
+#include "machine/machine.h"
 #include "piix.h"
 
 
 typedef struct
 {
-    uint8_t	command, status,
-		ptr0;
-    uint32_t	ptr, ptr_cur,
-		addr;
-    int		count, eot;
-} piix_busmaster_t;
-
-typedef struct
-{
     int			type;
-    uint8_t		regs[256], regs_ide[256];
-    piix_busmaster_t	bm[2];
+    uint8_t		cur_readout_reg,
+			readout_regs[256],
+			regs[256], regs_ide[256];
+    sff8038i_t		*bm[2];
 } piix_t;
-
-
-static uint8_t	piix_bus_master_read(uint16_t port, void *priv);
-static uint16_t	piix_bus_master_readw(uint16_t port, void *priv);
-static uint32_t	piix_bus_master_readl(uint16_t port, void *priv);
-static void	piix_bus_master_write(uint16_t port, uint8_t val, void *priv);
-static void	piix_bus_master_writew(uint16_t port, uint16_t val, void *priv);
-static void	piix_bus_master_writel(uint16_t port, uint32_t val, void *priv);
 
 
 #ifdef ENABLE_PIIX_LOG
 int piix_do_log = ENABLE_PIIX_LOG;
-#endif
 
 
 static void
-piix_log(const char *format, ...)
+piix_log(const char *fmt, ...)
 {
-#ifdef ENABLE_PIIX_LOG
     va_list ap;
 
     if (piix_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define piix_log(fmt, ...)
+#endif
 
 
 static void
@@ -92,25 +83,9 @@ piix_bus_master_handlers(piix_t *dev, uint16_t old_base)
     uint16_t base;
 
     base = (dev->regs_ide[0x20] & 0xf0) | (dev->regs_ide[0x21] << 8);
-    io_removehandler(old_base, 0x08,
-		     piix_bus_master_read, piix_bus_master_readw, piix_bus_master_readl,
-		     piix_bus_master_write, piix_bus_master_writew, piix_bus_master_writel,
-		     &dev->bm[0]);
-    io_removehandler(old_base + 8, 0x08,
-		     piix_bus_master_read, piix_bus_master_readw, piix_bus_master_readl,
-		     piix_bus_master_write, piix_bus_master_writew, piix_bus_master_writel,
-		     &dev->bm[1]);
 
-    if ((dev->regs_ide[0x04] & 1) && base) {
-	io_sethandler(base, 0x08,
-		      piix_bus_master_read, piix_bus_master_readw, piix_bus_master_readl,
-		      piix_bus_master_write, piix_bus_master_writew, piix_bus_master_writel,
-		      &dev->bm[0]);
-	io_sethandler(base + 8, 0x08,
-		      piix_bus_master_read, piix_bus_master_readw, piix_bus_master_readl,
-		      piix_bus_master_write, piix_bus_master_writew, piix_bus_master_writel,
-		      &dev->bm[1]);
-    }
+    sff_bus_master_handlers(dev->bm[0], old_base, base, (dev->regs_ide[0x04] & 1));
+    sff_bus_master_handlers(dev->bm[1], old_base + 8, base + 8, (dev->regs_ide[0x04] & 1));
 }
 
 
@@ -119,10 +94,15 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 {
     piix_t *dev = (piix_t *) priv;
     uint8_t valxor;
+    uint16_t old_base;
 
-    uint16_t old_base = (dev->regs_ide[0x20] & 0xf0) | (dev->regs_ide[0x21] << 8);
+    if ((func == 1) && (dev->type & 0x100))	/* PB640's PIIX has no IDE part. */
+	return;
+
     if (func > 1)
 	return;
+
+    old_base = (dev->regs_ide[0x20] & 0xf0) | (dev->regs_ide[0x21] << 8);
 
     if (func == 1) {	/*IDE*/
 	piix_log("PIIX IDE write: %02X %02X\n", addr, val);
@@ -203,12 +183,11 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 
 		case 0x4c:
 			if (valxor) {
-				if (val & 0x80) {
-					if (dev->type == 3)
-						dma_alias_remove();
-					else
-						dma_alias_remove_piix();
-				} else
+				if (dev->type == 3)
+					dma_alias_remove();
+				else
+					dma_alias_remove_piix();
+				if (!(val & 0x80))
 					dma_alias_set();
 			}
 			break;
@@ -408,328 +387,29 @@ piix_read(int func, int addr, void *priv)
 
 
 static void
-piix_bus_master_next_addr(piix_busmaster_t *dev)
+board_write(uint16_t port, uint8_t val, void *priv)
 {
-    DMAPageRead(dev->ptr_cur, (uint8_t *)&(dev->addr), 4);
-    DMAPageRead(dev->ptr_cur + 4, (uint8_t *)&(dev->count), 4);
-    piix_log("PIIX Bus master DWORDs: %08X %08X\n", dev->addr, dev->count);
-    dev->eot = dev->count >> 31;
-    dev->count &= 0xfffe;
-    if (!dev->count)
-	dev->count = 65536;
-    dev->addr &= 0xfffffffe;
-    dev->ptr_cur += 8;
-}
+    piix_t *dev = (piix_t *) priv;
 
-
-static void
-piix_bus_master_write(uint16_t port, uint8_t val, void *priv)
-{
-    piix_busmaster_t *dev = (piix_busmaster_t *) priv;
-    int channel = (port & 8) ? 1 : 0;
-
-    piix_log("PIIX Bus master BYTE  write: %04X       %02X\n", port, val);
-
-    switch (port & 7) {
-	case 0:
-		piix_log("PIIX Cmd   : val = %02X, old = %02X\n", val, dev->command);
-		if ((val & 1) && !(dev->command & 1)) {	/*Start*/
-			piix_log("PIIX Bus Master start on channel %i\n", channel);
-			dev->ptr_cur = dev->ptr;
-			piix_bus_master_next_addr(dev);
-			dev->status |= 1;
-		}
-		if (!(val & 1) && (dev->command & 1)) {	/*Stop*/
-			piix_log("PIIX Bus Master stop on channel %i\n", channel);
-			dev->status &= ~1;
-		}
-
-		dev->command = val;
-		break;
-	case 2:
-		piix_log("PIIX Status: val = %02X, old = %02X\n", val, dev->status);
-		dev->status &= 0x07;
-		dev->status |= (val & 0x60);
-		if (val & 0x04)
-			dev->status &= ~0x04;
-		if (val & 0x02)
-			dev->status &= ~0x02;
-		break;
-	case 4:
-		dev->ptr = (dev->ptr & 0xffffff00) | (val & 0xfc);
-		dev->ptr %= (mem_size * 1024);
-		dev->ptr0 = val;
-		break;
-	case 5:
-		dev->ptr = (dev->ptr & 0xffff00fc) | (val << 8);
-		dev->ptr %= (mem_size * 1024);
-		break;
-	case 6:
-		dev->ptr = (dev->ptr & 0xff00fffc) | (val << 16);
-		dev->ptr %= (mem_size * 1024);
-		break;
-	case 7:
-		dev->ptr = (dev->ptr & 0x00fffffc) | (val << 24);
-		dev->ptr %= (mem_size * 1024);
-		break;
-    }
-}
-
-
-static void
-piix_bus_master_writew(uint16_t port, uint16_t val, void *priv)
-{
-    piix_busmaster_t *dev = (piix_busmaster_t *) priv;
-
-    piix_log("PIIX Bus master WORD  write: %04X     %04X\n", port, val);
-
-    switch (port & 7) {
-	case 0:
-	case 2:
-		piix_bus_master_write(port, val & 0xff, priv);
-		break;
-	case 4:
-                dev->ptr = (dev->ptr & 0xffff0000) | (val & 0xfffc);
-		dev->ptr %= (mem_size * 1024);
-		dev->ptr0 = val & 0xff;
-                break;
-	case 6:
-		dev->ptr = (dev->ptr & 0x0000fffc) | (val << 16);
-		dev->ptr %= (mem_size * 1024);
-		break;
-    }
-}
-
-
-static void
-piix_bus_master_writel(uint16_t port, uint32_t val, void *priv)
-{
-    piix_busmaster_t *dev = (piix_busmaster_t *) priv;
-
-    piix_log("PIIX Bus master DWORD write: %04X %08X\n", port, val);
-
-    switch (port & 7) {
-	case 0:
-	case 2:
-		piix_bus_master_write(port, val & 0xff, priv);
-		break;
-	case 4:
-                dev->ptr = (val & 0xfffffffc);
-		dev->ptr %= (mem_size * 1024);
-		dev->ptr0 = val & 0xff;
-                break;
-    }
+    if (port == 0x00e0)
+	dev->cur_readout_reg = val;
+    else if (port == 0x00e1)
+	dev->readout_regs[dev->cur_readout_reg] = val;
 }
 
 
 static uint8_t
-piix_bus_master_read(uint16_t port, void *priv)
+board_read(uint16_t port, void *priv)
 {
-    piix_busmaster_t *dev = (piix_busmaster_t *) priv;
-
+    piix_t *dev = (piix_t *) priv;
     uint8_t ret = 0xff;
 
-    switch (port & 7) {
-	case 0:
-		ret = dev->command;
-		break;
-	case 2:
-		ret = dev->status & 0x67;
-		break;
-	case 4:
-		ret = dev->ptr0;
-		break;
-	case 5:
-		ret = dev->ptr >> 8;
-		break;
-	case 6:
-		ret = dev->ptr >> 16;
-		break;
-	case 7:
-		ret = dev->ptr >> 24;
-		break;
-    }
-
-    piix_log("PIIX Bus master BYTE  read : %04X       %02X\n", port, ret);
+    if (port == 0x00e0)
+	ret = dev->cur_readout_reg;
+    else if (port == 0x00e1)
+	ret = dev->readout_regs[dev->cur_readout_reg];
 
     return ret;
-}
-
-
-static uint16_t
-piix_bus_master_readw(uint16_t port, void *priv)
-{
-    piix_busmaster_t *dev = (piix_busmaster_t *) priv;
-
-    uint16_t ret = 0xffff;
-
-    switch (port & 7) {
-	case 0:
-	case 2:
-		ret = (uint16_t) piix_bus_master_read(port, priv);
-		break;
-	case 4:
-		ret = dev->ptr0 | (dev->ptr & 0xff00);
-		break;
-	case 6:
-		ret = dev->ptr >> 16;
-		break;
-    }
-
-    piix_log("PIIX Bus master WORD  read : %04X     %04X\n", port, ret);
-
-    return ret;
-}
-
-
-static uint32_t
-piix_bus_master_readl(uint16_t port, void *priv)
-{
-    piix_busmaster_t *dev = (piix_busmaster_t *) priv;
-
-    uint32_t ret = 0xffffffff;
-
-    switch (port & 7) {
-	case 0:
-	case 2:
-		ret = (uint32_t) piix_bus_master_read(port, priv);
-		break;
-	case 4:
-		ret = dev->ptr0 | (dev->ptr & 0xffffff00);
-		break;
-    }
-
-    piix_log("PIIX Bus master DWORD read : %04X %08X\n", port, ret);
-
-    return ret;
-}
-
-
-static int
-piix_bus_master_dma_op(int channel, uint8_t *data, int transfer_length, int out, void *priv)
-{
-    piix_busmaster_t *dev = (piix_busmaster_t *) priv;
-    char *sop;
-
-    int force_end = 0, buffer_pos = 0;
-
-    sop = out ? "Writ" : "Read";
-
-    if (!(dev->status & 1))
-	return 2;                                    /*DMA disabled*/
-
-    piix_log("PIIX Bus master %s: %i bytes\n", out ? "read" : "write", transfer_length);
-
-    while (1) {
-	if (dev->count <= transfer_length) {
-		piix_log("%sing %i bytes to %08X\n", sop, dev->count, dev->addr);
-		if (out)
-			DMAPageWrite(dev->addr, (uint8_t *)(data + buffer_pos), dev->count);
-		else
-			DMAPageRead(dev->addr, (uint8_t *)(data + buffer_pos), dev->count);
-		transfer_length -= dev->count;
-		buffer_pos += dev->count;
-	} else {
-		piix_log("%sing %i bytes to %08X\n", sop, transfer_length, dev->addr);
-		if (out)
-			DMAPageWrite(dev->addr, (uint8_t *)(data + buffer_pos), transfer_length);
-		else
-			DMAPageRead(dev->addr, (uint8_t *)(data + buffer_pos), transfer_length);
-		/* Increase addr and decrease count so that resumed transfers do not mess up. */
-		dev->addr += transfer_length;
-		dev->count -= transfer_length;
-		transfer_length = 0;
-		force_end = 1;
-	}
-
-	if (force_end) {
-		piix_log("Total transfer length smaller than sum of all blocks, partial block\n");
-		dev->status &= ~2;
-		return 0;		/* This block has exhausted the data to transfer and it was smaller than the count, break. */
-	} else {
-		if (!transfer_length && !dev->eot) {
-			piix_log("Total transfer length smaller than sum of all blocks, full block\n");
-			dev->status &= ~2;
-			return 0;	/* We have exhausted the data to transfer but there's more blocks left, break. */
-		} else if (transfer_length && dev->eot) {
-			piix_log("Total transfer length greater than sum of all blocks\n");
-			dev->status |= 2;
-			return 1;	/* There is data left to transfer but we have reached EOT - return with error. */
-		} else if (dev->eot) {
-			piix_log("Regular EOT\n");
-			dev->status &= ~3;
-			return 0;	/* We have regularly reached EOT - clear status and break. */
-		} else {
-			/* We have more to transfer and there are blocks left, get next block. */
-			piix_bus_master_next_addr(dev);
-		}
-	}
-    }
-    return 0;
-}
-
-
-int
-piix_bus_master_dma_read(int channel, uint8_t *data, int transfer_length, void *priv)
-{
-    return piix_bus_master_dma_op(channel, data, transfer_length, 1, priv);
-}
-
-
-int
-piix_bus_master_dma_write(int channel, uint8_t *data, int transfer_length, void *priv)
-{
-    return piix_bus_master_dma_op(channel, data, transfer_length, 0, priv);
-}
-
-
-void
-piix_bus_master_set_irq(int channel, void *priv)
-{
-    piix_busmaster_t *dev = (piix_busmaster_t *) priv;
-    dev->status &= ~4;
-    dev->status |= (channel >> 4);
-
-    channel &= 0x01;
-    if (dev->status & 0x04) {
-	if (channel && pci_use_mirq(0))
-		pci_set_mirq(0);
-	else
-		picint(1 << (14 + channel));
-    } else {
-	if ((channel & 1) && pci_use_mirq(0))
-		pci_clear_mirq(0);
-	else
-		picintc(1 << (14 + channel));
-    }
-}
-
-
-static void
-piix_bus_master_reset(piix_t *dev)
-{
-    uint8_t i;
-
-    uint16_t old_base = (dev->regs_ide[0x20] & 0xf0) | (dev->regs_ide[0x21] << 8);
-    if (old_base) {
-	io_removehandler(old_base, 0x08,
-			 piix_bus_master_read, piix_bus_master_readw, piix_bus_master_readl,
-			 piix_bus_master_write, piix_bus_master_writew, piix_bus_master_writel,
-			 &dev->bm[0]);
-	io_removehandler(old_base + 8, 0x08,
-			 piix_bus_master_read, piix_bus_master_readw, piix_bus_master_readl,
-			 piix_bus_master_write, piix_bus_master_writew, piix_bus_master_writel,
-			 &dev->bm[1]);
-    }
-
-    for (i = 0; i < 2; i++) {
-	dev->bm[i].command = 0x00;
-	dev->bm[i].status = 0x00;
-	dev->bm[i].ptr = dev->bm[i].ptr_cur = 0x00000000;
-	dev->bm[i].addr = 0x00000000;
-	dev->bm[i].ptr0 = 0x00;
-	dev->bm[i].count = dev->bm[i].eot = 0x00000000;
-    }
 }
 
 
@@ -738,7 +418,12 @@ piix_reset_hard(void *priv)
 {
     piix_t *piix = (piix_t *) priv;
 
-    piix_bus_master_reset(piix);
+    uint16_t old_base = (piix->regs_ide[0x20] & 0xf0) | (piix->regs_ide[0x21] << 8);
+
+    if (!(piix->type & 0x100)) {	/* PB640's PIIX has no IDE part. */
+	sff_bus_master_reset(piix->bm[0], old_base);
+	sff_bus_master_reset(piix->bm[1], old_base + 8);
+    }
 
     memset(piix->regs, 0, 256);
     memset(piix->regs_ide, 0, 256);
@@ -812,25 +497,6 @@ piix_reset_hard(void *priv)
     pci_set_mirq_routing(PCI_MIRQ0, PCI_IRQ_DISABLED);
     if (piix->type != 3)
 	pci_set_mirq_routing(PCI_MIRQ1, PCI_IRQ_DISABLED);
-
-    ide_pri_disable();
-    ide_sec_disable();
-}
-
-
-static void
-piix_reset(void *p)
-{
-    int i = 0;
-
-    for (i = 0; i < CDROM_NUM; i++) {
-	if (cdrom_drives[i].bus_type == CDROM_BUS_ATAPI)
-		cdrom_reset(cdrom[i]);
-    }
-    for (i = 0; i < ZIP_NUM; i++) {
-	if (zip_drives[i].bus_type == ZIP_BUS_ATAPI)
-		zip_reset(zip[i]);
-    }
 }
 
 
@@ -849,25 +515,95 @@ static void
     piix_t *piix = (piix_t *) malloc(sizeof(piix_t));
     memset(piix, 0, sizeof(piix_t));
 
-    device_add(&ide_pci_2ch_device);
-
     pci_add_card(7, piix_read, piix_write, piix);
 
     piix->type = info->local;
+
+    device_add(&apm_device);
+
+    if (!(piix->type & 0x100)) {	/* PB640's PIIX has no IDE part. */
+	piix->bm[0] = device_add_inst(&sff8038i_device, 1);
+	piix->bm[1] = device_add_inst(&sff8038i_device, 2);
+    }
+
     piix_reset_hard(piix);
 
-    ide_set_bus_master(piix_bus_master_dma_read, piix_bus_master_dma_write,
-		       piix_bus_master_set_irq,
-		       &piix->bm[0], &piix->bm[1]);
-
-    port_92_reset();
-
-    port_92_add();
+    device_add(&port_92_pci_device);
 
     dma_alias_set();
 
     pci_enable_mirq(0);
     pci_enable_mirq(1);
+
+    piix->readout_regs[1] = 0x40;
+
+    /* Port E1 register 01 (TODO: Find how multipliers > 3.0 are defined):
+
+	Bit 6: 1 = can boot, 0 = no;
+	Bit 7, 1 = multiplier (00 = 2.5, 01 = 2.0, 10 = 3.0, 11 = 1.5);
+	Bit 5, 4 = bus speed (00 = 50 MHz, 01 = 66 MHz, 10 = 60 MHz, 11 = ????):
+	Bit 7, 5, 4, 1: 0000 = 125 MHz, 0010 = 166 MHz, 0100 = 150 MHz, 0110 = ??? MHz;
+		        0001 = 100 MHz, 0011 = 133 MHz, 0101 = 120 MHz, 0111 = ??? MHz;
+		        1000 = 150 MHz, 1010 = 200 MHz, 1100 = 180 MHz, 1110 = ??? MHz;
+		        1001 =  75 MHz, 1011 = 100 MHz, 1101 =  90 MHz, 1111 = ??? MHz */
+
+    switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].pci_speed) {
+	case 20000000:
+		piix->readout_regs[1] |= 0x30;
+		break;
+	case 25000000:
+	default:
+		piix->readout_regs[1] |= 0x00;
+		break;
+	case 30000000:
+		piix->readout_regs[1] |= 0x20;
+		break;
+	case 33333333:
+		piix->readout_regs[1] |= 0x10;
+		break;
+    }
+
+    switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed) {
+	case  75000000:
+		piix->readout_regs[1] |= 0x82;		/* 50 MHz * 1.5 multiplier */
+		break;
+	case  90000000:
+		piix->readout_regs[1] |= 0x82;		/* 60 MHz * 1.5 multiplier */
+		break;
+	case 100000000:
+		if ((piix->readout_regs[1] & 0x30) == 0x10)
+			piix->readout_regs[1] |= 0x82;	/* 66 MHz * 1.5 multiplier */
+		else
+			piix->readout_regs[1] |= 0x02;	/* 50 MHz * 2.0 multiplier */
+		break;
+	case 12000000:
+		piix->readout_regs[1] |= 0x02;		/* 60 MHz * 2.0 multiplier */
+		break;
+	case 125000000:
+		piix->readout_regs[1] |= 0x00;		/* 50 MHz * 2.5 multiplier */
+		break;
+	case 133333333:
+		piix->readout_regs[1] |= 0x02;		/* 66 MHz * 2.0 multiplier */
+		break;
+	case 150000000:
+		if ((piix->readout_regs[1] & 0x30) == 0x20)
+			piix->readout_regs[1] |= 0x00;	/* 60 MHz * 2.5 multiplier */
+		else
+			piix->readout_regs[1] |= 0x80;	/* 50 MHz * 3.0 multiplier */
+		break;
+	case 166666666:
+		piix->readout_regs[1] |= 0x00;		/* 66 MHz * 2.5 multiplier */
+		break;
+	case 180000000:
+		piix->readout_regs[1] |= 0x80;		/* 60 MHz * 3.0 multiplier */
+		break;
+	case 200000000:
+		piix->readout_regs[1] |= 0x80;		/* 66 MHz * 3.0 multiplier */
+		break;
+    }
+
+    io_sethandler(0x0078, 0x0002, board_read, NULL, NULL, board_write, NULL, NULL,  piix);
+    io_sethandler(0x00e0, 0x0002, board_read, NULL, NULL, board_write, NULL, NULL,  piix);
 
     return piix;
 }
@@ -880,7 +616,7 @@ const device_t piix_device =
     1,
     piix_init, 
     piix_close, 
-    piix_reset,
+    NULL,
     NULL,
     NULL,
     NULL,
@@ -894,7 +630,7 @@ const device_t piix_pb640_device =
     0x101,
     piix_init, 
     piix_close, 
-    piix_reset,
+    NULL,
     NULL,
     NULL,
     NULL,
@@ -908,7 +644,7 @@ const device_t piix3_device =
     3,
     piix_init, 
     piix_close, 
-    piix_reset,
+    NULL,
     NULL,
     NULL,
     NULL,

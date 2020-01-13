@@ -8,11 +8,11 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.4	2018/04/29
+ * Version:	@(#)net_pcap.c	1.0.10	2019/11/14
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -52,10 +52,10 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "../86box.h"
-#include "../config.h"
 #include "../device.h"
 #include "../plat.h"
 #include "../plat_dynld.h"
+// #include "../ui.h"
 #include "network.h"
 
 
@@ -139,22 +139,22 @@ static dllimp_t pcap_imports[] = {
 
 #ifdef ENABLE_PCAP_LOG
 int pcap_do_log = ENABLE_PCAP_LOG;
-#endif
 
 
 static void
-pcap_log(const char *format, ...)
+pcap_log(const char *fmt, ...)
 {
-#ifdef ENABLE_PCAP_LOG
     va_list ap;
 
     if (pcap_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define pcap_log(fmt, ...)
+#endif
 
 
 /* Handle the receiving of frames from the channel. */
@@ -185,8 +185,13 @@ poll_thread(void *arg)
 	if (pcap == NULL) break;
 
 	/* Wait for the next packet to arrive. */
-	data = (uint8_t *)f_pcap_next((void *)pcap, &h);
+	if (network_get_wait())
+		data = NULL;
+	else
+		data = (uint8_t *)f_pcap_next((void *)pcap, &h);
 	if (data != NULL) {
+		// ui_sb_update_icon(SB_NETWORK, 1);
+
 		/* Received MAC. */
 		mac_cmp32[0] = *(uint32_t *)(data+6);
 		mac_cmp16[0] = *(uint16_t *)(data+10);
@@ -205,8 +210,10 @@ poll_thread(void *arg)
 	}
 
 	/* If we did not get anything, wait a while. */
-	if (data == NULL)
+	if (data == NULL) {
+		// ui_sb_update_icon(SB_NETWORK, 0);
 		thread_wait_event(evt, 10);
+	}
 
 	/* Release ownership of the device. */
 	network_wait(0);
@@ -320,6 +327,8 @@ net_pcap_close(void)
 {
     void *pc;
 
+    // ui_sb_update_icon(SB_NETWORK, 0);
+
     if (pcap == NULL) return;
 
     pcap_log("PCAP: closing.\n");
@@ -375,6 +384,8 @@ net_pcap_reset(const netcard_t *card, uint8_t *mac)
     char filter_exp[255];
     struct bpf_program fp;
 
+    // ui_sb_update_icon(SB_NETWORK, 0);
+
     /* Open a PCAP live channel. */
     if ((pcap = f_pcap_open_live(network_host,		/* interface name */
 				 1518,			/* max packet size */
@@ -423,9 +434,13 @@ net_pcap_in(uint8_t *bufp, int len)
 {
     if (pcap == NULL) return;
 
+    // ui_sb_update_icon(SB_NETWORK, 1);
+
     network_busy(1);
 
     f_pcap_sendpacket((void *)pcap, bufp, len);
 
     network_busy(0);
+
+    // ui_sb_update_icon(SB_NETWORK, 0);
 }

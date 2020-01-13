@@ -78,6 +78,9 @@ extern int	readdma3(void);
 
 extern void	writedma2(uint8_t temp);
 
+extern int	dma_get_drq(int channel);
+extern void	dma_set_drq(int channel, int set);
+
 extern int	dma_channel_read(int channel);
 extern int	dma_channel_write(int channel, uint16_t val);
 

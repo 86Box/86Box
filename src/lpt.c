@@ -8,11 +8,13 @@
 #include "86box.h"
 #include "io.h"
 #include "lpt.h"
+#include "pic.h"
 #include "sound/snd_lpt_dac.h"
 #include "sound/snd_lpt_dss.h"
+#include "printer/prt_devs.h"
 
 
-char lpt_device_names[3][16];
+lpt_port_t	lpt_ports[3];
 
 
 static const struct
@@ -26,186 +28,207 @@ static const struct
         {"Disney Sound Source",          "dss",            &dss_device},
         {"LPT DAC / Covox Speech Thing", "lpt_dac",        &lpt_dac_device},
         {"Stereo LPT DAC",               "lpt_dac_stereo", &lpt_dac_stereo_device},
+	{"Generic Text Printer",	 "text_prt",       &lpt_prt_text_device},
+	{"Generic ESC/P Dot-Matrix",     "dot_matrix",     &lpt_prt_escp_device},
+	{"Generic PostScript Printer",   "postscript",     &lpt_prt_ps_device},
         {"", "", NULL}
 };
 
-char *lpt_device_get_name(int id)
+
+char *
+lpt_device_get_name(int id)
 {
-        if (strlen((char *) lpt_devices[id].name) == 0)
-                return NULL;
-        return (char *) lpt_devices[id].name;
-}
-char *lpt_device_get_internal_name(int id)
-{
-        if (strlen((char *) lpt_devices[id].internal_name) == 0)
-                return NULL;
-        return (char *) lpt_devices[id].internal_name;
+    if (strlen((char *) lpt_devices[id].name) == 0)
+	return NULL;
+
+    return (char *) lpt_devices[id].name;
 }
 
-static lpt_device_t *lpt_device_ts[3];
-static void *lpt_device_ps[3];
 
-void lpt_devices_init()
+char *
+lpt_device_get_internal_name(int id)
 {
-	int i = 0;
-        int c;
+    if (strlen((char *) lpt_devices[id].internal_name) == 0)
+	return NULL;
+    return (char *) lpt_devices[id].internal_name;
+}
 
-	for (i = 0; i < 3; i++) {
-		c = 0;
 
-	        while (strcmp((char *) lpt_devices[c].internal_name, lpt_device_names[i]) && strlen((char *) lpt_devices[c].internal_name) != 0)
-        	        c++;
+int
+lpt_device_get_from_internal_name(char *s)
+{
+    int c = 0;
 
-	        if (strlen((char *) lpt_devices[c].internal_name) == 0)
-        	        lpt_device_ts[i] = NULL;
-	        else
-        	{
-                	lpt_device_ts[i] = (lpt_device_t *) lpt_devices[c].device;
-	                if (lpt_device_ts[i])
-        	                lpt_device_ps[i] = lpt_device_ts[i]->init();
-	        }
+    while (strlen((char *) lpt_devices[c].internal_name) != 0) {
+	if (strcmp(lpt_devices[c].internal_name, s) == 0)
+		return c;
+	c++;
+    }
+
+    return 0;
+}
+
+
+void
+lpt_devices_init(void)
+{
+    int i = 0;
+
+    for (i = 0; i < 3; i++) {
+	lpt_ports[i].dt = (lpt_device_t *) lpt_devices[lpt_ports[i].device].device;
+
+	if (lpt_ports[i].dt)
+		lpt_ports[i].priv = lpt_ports[i].dt->init(&lpt_ports[i]);
+    }
+}
+
+
+void
+lpt_devices_close(void)
+{
+    int i = 0;
+    lpt_port_t *dev;
+
+    for (i = 0; i < 3; i++) {
+	dev = &lpt_ports[i];
+
+        if (dev->dt)
+       	        dev->dt->close(dev->priv);
+
+        dev->dt = NULL;
+    }
+}
+
+
+void
+lpt_write(uint16_t port, uint8_t val, void *priv)
+{
+    lpt_port_t *dev = (lpt_port_t *) priv;
+
+    switch (port & 3) {
+	case 0:
+		if (dev->dt && dev->dt->write_data)
+			dev->dt->write_data(val, dev->priv);
+		dev->dat = val;
+		break;
+
+	case 1:
+		break;
+
+	case 2:
+		if (dev->dt && dev->dt->write_ctrl)
+			dev->dt->write_ctrl(val, dev->priv);
+		dev->ctrl = val;
+		dev->enable_irq = val & 0x10;
+		break;
+    }
+}
+
+
+uint8_t
+lpt_read(uint16_t port, void *priv)
+{
+    uint8_t ret = 0xff;
+    lpt_port_t *dev = (lpt_port_t *) priv;
+
+    switch (port & 3) {
+	case 0:
+		if (dev->dt && dev->dt->read_data)
+			ret = dev->dt->read_data(dev->priv);
+		else
+			ret = dev->dat;
+		break;
+
+	case 1:
+		if (dev->dt && dev->dt->read_status)
+			ret = dev->dt->read_status(dev->priv) | 0x0f;
+		else
+			ret = 0xdf;
+		break;
+
+	case 2:
+		if (dev->dt && dev->dt->read_ctrl)
+			ret = (dev->dt->read_ctrl(dev->priv) & 0xef) | dev->enable_irq;
+		else
+			ret = 0xe0 | dev->ctrl | dev->enable_irq;
+		break;
+    }
+
+    return ret;
+}
+
+
+void
+lpt_irq(void *priv, int raise)
+{
+    lpt_port_t *dev = (lpt_port_t *) priv;
+
+    if (dev->enable_irq && (dev->irq != 0xff)) {
+	if (raise)
+		picint(1 << dev->irq);
+	else
+		picintc(1 << dev->irq);
+    }
+}
+
+
+void
+lpt_init(void)
+{
+    int i;
+    uint16_t default_ports[3] = { 0x378, 0x278, 0x3bc };
+    uint8_t default_irqs[3] = { 7, 5, 7 };
+
+    for (i = 0; i < 3; i++) {
+	lpt_ports[i].addr = 0xffff;
+	lpt_ports[i].irq = 0xff;
+	lpt_ports[i].enable_irq = 0x10;
+
+	if (lpt_ports[i].enabled) {
+		lpt_port_init(i, default_ports[i]);
+		lpt_port_irq(i, default_irqs[i]);
 	}
+    }
 }
 
-void lpt_devices_close()
-{
-	int i = 0;
 
-	for (i = 0; i < 3; i++) {
-	        if (lpt_device_ts[i])
-        	        lpt_device_ts[i]->close(lpt_device_ps[i]);
-	        lpt_device_ts[i] = NULL;
-	}
-}
-
-static uint8_t lpt_dats[3], lpt_ctrls[3];
-
-void lpt_write(int i, uint16_t port, uint8_t val, void *priv)
+void
+lpt_port_init(int i, uint16_t port)
 {
-        switch (port & 3)
-        {
-                case 0:
-                if (lpt_device_ts[i])
-                        lpt_device_ts[i]->write_data(val, lpt_device_ps[i]);
-                lpt_dats[i] = val;
-                break;
-                case 2:
-                if (lpt_device_ts[i])
-                        lpt_device_ts[i]->write_ctrl(val, lpt_device_ps[i]);
-                lpt_ctrls[i] = val;
-                break;
-        }
-}
-uint8_t lpt_read(int i, uint16_t port, void *priv)
-{
-        switch (port & 3)
-        {
-                case 0:
-                return lpt_dats[i];
-                case 1:
-                if (lpt_device_ts[i])
-                        return lpt_device_ts[i]->read_status(lpt_device_ps[i]);
-                return 0;
-                case 2:
-                return lpt_ctrls[i];
-        }
-        return 0xff;
+    if (lpt_ports[i].enabled) {
+	if (lpt_ports[i].addr != 0xffff)
+	        io_removehandler(lpt_ports[i].addr, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL,  &lpt_ports[i]);
+	if (port != 0xffff)
+		io_sethandler(port, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL,  &lpt_ports[i]);
+	lpt_ports[i].addr = port;
+    } else
+	lpt_ports[i].addr = 0xffff;
 }
 
-void lpt1_write(uint16_t port, uint8_t val, void *priv)
+
+void
+lpt_port_irq(int i, uint8_t irq)
 {
-	lpt_write(0, port, val, priv);
+    if (lpt_ports[i].enabled)
+	lpt_ports[i].irq = irq;
+    else
+	lpt_ports[i].irq = 0xff;
 }
 
-uint8_t lpt1_read(uint16_t port, void *priv)
+
+void
+lpt_port_remove(int i)
 {
-	return lpt_read(0, port, priv);
+    if (lpt_ports[i].enabled && (lpt_ports[i].addr != 0xffff)) {
+        io_removehandler(lpt_ports[i].addr, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL,  &lpt_ports[i]);
+	lpt_ports[i].addr = 0xffff;
+    }
 }
 
-void lpt2_write(uint16_t port, uint8_t val, void *priv)
-{
-	lpt_write(1, port, val, priv);
-}
 
-uint8_t lpt2_read(uint16_t port, void *priv)
+void
+lpt1_remove_ams(void)
 {
-	return lpt_read(1, port, priv);
-}
-
-void lpt3_write(uint16_t port, uint8_t val, void *priv)
-{
-	lpt_write(2, port, val, priv);
-}
-
-uint8_t lpt3_read(uint16_t port, void *priv)
-{
-	return lpt_read(2, port, priv);
-}
-
-uint16_t lpt_addr[3] = { 0x378, 0x278, 0x3bc };
-
-void lpt_init(void)
-{
-	if (lpt_enabled)
-	{
-	        io_sethandler(0x0378, 0x0003, lpt1_read, NULL, NULL, lpt1_write, NULL, NULL,  NULL);
-        	io_sethandler(0x0278, 0x0003, lpt2_read, NULL, NULL, lpt2_write, NULL, NULL,  NULL);
-		lpt_addr[0] = 0x378;
-		lpt_addr[1] = 0x278;
-	}
-}
-
-void lpt1_init(uint16_t port)
-{
-	if (lpt_enabled)
-	{
-	        io_sethandler(port, 0x0003, lpt1_read, NULL, NULL, lpt1_write, NULL, NULL,  NULL);
-		lpt_addr[0] = port;
-	}
-}
-void lpt1_remove(void)
-{
-	if (lpt_enabled)
-	{
-	        io_removehandler(lpt_addr[0], 0x0003, lpt1_read, NULL, NULL, lpt1_write, NULL, NULL,  NULL);
-	}
-}
-void lpt2_init(uint16_t port)
-{
-	if (lpt_enabled)
-	{
-	        io_sethandler(port, 0x0003, lpt2_read, NULL, NULL, lpt2_write, NULL, NULL,  NULL);
-		lpt_addr[1] = port;
-	}
-}
-void lpt2_remove(void)
-{
-	if (lpt_enabled)
-	{
-	        io_removehandler(lpt_addr[1], 0x0003, lpt2_read, NULL, NULL, lpt2_write, NULL, NULL,  NULL);
-	}
-}
-
-void lpt2_remove_ams(void)
-{
-	if (lpt_enabled)
-	{
-	        io_removehandler(0x0379, 0x0002, lpt2_read, NULL, NULL, lpt2_write, NULL, NULL,  NULL);
-	}
-}
-
-void lpt3_init(uint16_t port)
-{
-	if (lpt_enabled)
-	{
-	        io_sethandler(port, 0x0003, lpt3_read, NULL, NULL, lpt3_write, NULL, NULL,  NULL);
-		lpt_addr[2] = port;
-	}
-}
-void lpt3_remove(void)
-{
-	if (lpt_enabled)
-	{
-	        io_removehandler(lpt_addr[2], 0x0003, lpt3_read, NULL, NULL, lpt3_write, NULL, NULL,  NULL);
-	}
+    if (lpt_ports[0].enabled)
+        io_removehandler(lpt_ports[0].addr + 1, 0x0002, lpt_read, NULL, NULL, lpt_write, NULL, NULL,  &lpt_ports[0]);
 }

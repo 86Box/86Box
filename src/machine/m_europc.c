@@ -1,10 +1,10 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *		This file is part of the 86Box distribution.
  *
  *		Implementation of the Schneider EuroPC system.
  *
@@ -68,7 +68,7 @@
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *		
- * Version:	@(#)europc.c	1.0.6	2018/04/29
+ * Version:	@(#)europc.c	1.0.12	2019/11/15
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -77,37 +77,7 @@
  *		Schneider's schematics and technical manuals, and the
  *		input from people with real EuroPC hardware.
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *
- *		Redistribution and  use  in source  and binary forms, with
- *		or  without modification, are permitted  provided that the
- *		following conditions are met:
- *
- *		1. Redistributions of  source  code must retain the entire
- *		   above notice, this list of conditions and the following
- *		   disclaimer.
- *
- *		2. Redistributions in binary form must reproduce the above
- *		   copyright  notice,  this list  of  conditions  and  the
- *		   following disclaimer in  the documentation and/or other
- *		   materials provided with the distribution.
- *
- *		3. Neither the  name of the copyright holder nor the names
- *		   of  its  contributors may be used to endorse or promote
- *		   products  derived from  this  software without specific
- *		   prior written permission.
- *
- * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
- * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE  ARE  DISCLAIMED. IN  NO  EVENT  SHALL THE COPYRIGHT
- * HOLDER OR  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL,  EXEMPLARY,  OR  CONSEQUENTIAL  DAMAGES  (INCLUDING,  BUT  NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE  GOODS OR SERVICES;  LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON  ANY
- * THEORY OF  LIABILITY, WHETHER IN  CONTRACT, STRICT  LIABILITY, OR  TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -119,8 +89,10 @@
 #define HAVE_STDARG_H
 #include "../86box.h"
 #include "../io.h"
+#include "../timer.h"
 #include "../nmi.h"
 #include "../mem.h"
+#include "../pit.h"
 #include "../rom.h"
 #include "../device.h"
 #include "../nvr.h"
@@ -163,6 +135,8 @@ typedef struct {
     nvr_t	nvr;				/* NVR */
     uint8_t	nvr_stat;
     uint8_t	nvr_addr;
+
+    void *	mouse;
 } europc_t;
 
 
@@ -171,13 +145,11 @@ static europc_t europc;
 
 #ifdef ENABLE_EUROPC_LOG
 int europc_do_log = ENABLE_EUROPC_LOG;
-#endif
 
 
 static void
 europc_log(const char *fmt, ...)
 {
-#ifdef ENABLE_EUROPC_LOG
    va_list ap;
 
    if (europc_do_log)
@@ -186,8 +158,10 @@ europc_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
    }
-#endif
 }
+#else
+#define europc_log(fmt, ...)
+#endif
 
 
 /*
@@ -280,7 +254,7 @@ rtc_start(nvr_t *nvr)
     struct tm tm;
 
     /* Initialize the internal and chip times. */
-    if (enable_sync) {
+    if (time_sync & TIME_SYNC_ENABLED) {
 	/* Use the internal clock's time. */
 	nvr_time_get(&tm);
 	rtc_time_set(nvr->regs, &tm);
@@ -590,22 +564,14 @@ europc_boot(const device_t *info)
      * with values set by the user.
      */
     b = (sys->nvr.regs[MRTC_CONF_D] & ~0x17);
-    switch(gfxcard) {
-	case GFX_CGA:		/* Color, CGA */
-	case GFX_COLORPLUS:	/* Color, Hercules ColorPlus */
-		b |= 0x12;	/* external video, CGA80 */
-		break;
+    video_reset(gfxcard);
+    if (video_is_cga())
+	b |= 0x12;	/* external video, CGA80 */
+    else if (video_is_mda())
+	b |= 0x03;	/* external video, mono */
+    else
+	b |= 0x10;	/* external video, special */
 
-	case GFX_MDA:		/* Monochrome, MDA */
-	case GFX_HERCULES:	/* Monochrome, Hercules */
-	case GFX_INCOLOR:	/* Color, ? */
-		b |= 0x03;	/* external video, mono */
-		break;
-
-	default:		/* EGA, VGA etc */
-		b |= 0x10;	/* external video, special */
-
-    }
     sys->nvr.regs[MRTC_CONF_D] = b;
 
     /* Update the memory size. */
@@ -644,12 +610,13 @@ europc_boot(const device_t *info)
 
     /* Set up game port. */
     b = (sys->nvr.regs[MRTC_CONF_C] & 0xfc);
-    if (mouse_type == MOUSE_TYPE_LOGIBUS) {
-	b |= 0x01;	/* enable port as MOUSE */
-    } else if (joystick_type != 7) {
+    if (mouse_type == MOUSE_TYPE_INTERNAL) {
+	sys->mouse = device_add(&mouse_logibus_onboard_device);
+	mouse_bus_set_irq(sys->mouse, 2);
+	/* Configure the port for (Bus Mouse Compatible) Mouse. */
+	b |= 0x01;
+    } else if (joystick_type != 7)
 	b |= 0x02;	/* enable port as joysticks */
-	device_add(&gameport_device);
-    }
     sys->nvr.regs[MRTC_CONF_C] = b;
 
 #if 0
@@ -738,17 +705,25 @@ const device_t europc_device = {
  * allows it to reset (dev init) and configured by the
  * user.
  */
-void
+int
 machine_europc_init(const machine_t *model)
 {
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/europc/50145",
+			   0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
     machine_common_init(model);
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+
     nmi_init();
 
     /* Clear the machine state. */
     memset(&europc, 0x00, sizeof(europc_t));
     europc.jim = 0x0250;
-
-    mem_add_bios();
 
     /* This is machine specific. */
     europc.nvr.size = model->nvrmask + 1;
@@ -764,4 +739,6 @@ machine_europc_init(const machine_t *model)
 
     /* Enable and set up the mainboard device. */
     device_add(&europc_device);
+
+    return ret;
 }

@@ -8,11 +8,11 @@
  *
  *		Handle SLiRP library processing.
  *
- * Version:	@(#)net_slirp.c	1.0.3	2018/04/29
+ * Version:	@(#)net_slirp.c	1.0.9	2019/11/14
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2017-2019 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -54,9 +54,9 @@
 #include "slirp/slirp.h"
 #include "slirp/queue.h"
 #include "../86box.h"
-#include "../config.h"
 #include "../device.h"
 #include "../plat.h"
+// #include "../ui.h"
 #include "network.h"
 
 
@@ -68,22 +68,22 @@ static event_t			*poll_state;
 
 #ifdef ENABLE_SLIRP_LOG
 int slirp_do_log = ENABLE_SLIRP_LOG;
-#endif
 
 
 static void
-slirp_log(const char *format, ...)
+slirp_log(const char *fmt, ...)
 {
-#ifdef ENABLE_SLIRP_LOG
     va_list ap;
 
     if (slirp_do_log) {
-	va_start(ap, format);
-	pclog_ex(format, ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-#endif
 }
+#else
+#define slirp_log(fmt, ...)
+#endif
 
 
 static void
@@ -117,10 +117,14 @@ slirp_tic(void)
 
 /* Handle the receiving of frames. */
 static void
-poll_thread(UNUSED(void *arg))
+poll_thread(void *arg)
 {
+    uint8_t *mac = (uint8_t *)arg;
     struct queuepacket *qp;
+    uint32_t mac_cmp32[2];
+    uint16_t mac_cmp16[2];
     event_t *evt;
+    int data_valid = 0;
 
     slirp_log("SLiRP: polling started.\n");
     thread_set_event(poll_state);
@@ -142,18 +146,37 @@ poll_thread(UNUSED(void *arg))
 	if (slirpq == NULL) break;
 
 	/* Wait for the next packet to arrive. */
-	if (QueuePeek(slirpq) != 0) {
+	data_valid = 0;
+
+	if (!network_get_wait() && (QueuePeek(slirpq) != 0)) {
 		/* Grab a packet from the queue. */
+		// ui_sb_update_icon(SB_NETWORK, 1);
+
 		qp = QueueDelete(slirpq);
 		slirp_log("SLiRP: inQ:%d  got a %dbyte packet @%08lx\n",
 				QueuePeek(slirpq), qp->len, qp);
 
-		poll_card->rx(poll_card->priv, (uint8_t *)qp->data, qp->len); 
+		/* Received MAC. */
+		mac_cmp32[0] = *(uint32_t *)(((uint8_t *)qp->data)+6);
+		mac_cmp16[0] = *(uint16_t *)(((uint8_t *)qp->data)+10);
+
+		/* Local MAC. */
+		mac_cmp32[1] = *(uint32_t *)mac;
+		mac_cmp16[1] = *(uint16_t *)(mac+4);
+		if ((mac_cmp32[0] != mac_cmp32[1]) ||
+		    (mac_cmp16[0] != mac_cmp16[1])) {
+
+			poll_card->rx(poll_card->priv, (uint8_t *)qp->data, qp->len); 
+			data_valid = 1;
+		}
 
 		/* Done with this one. */
 		free(qp);
-	} else {
-		/* If we did not get anything, wait a while. */
+	}
+
+	/* If we did not get anything, wait a while. */
+	if (!data_valid) {
+		// ui_sb_update_icon(SB_NETWORK, 0);
 		thread_wait_event(evt, 10);
 	}
 
@@ -195,6 +218,8 @@ net_slirp_init(void)
 int
 net_slirp_reset(const netcard_t *card, uint8_t *mac)
 {
+    // ui_sb_update_icon(SB_NETWORK, 0);
+
     /* Save the callback info. */
     poll_card = card;
 
@@ -211,6 +236,8 @@ void
 net_slirp_close(void)
 {
     queueADT sl;
+
+    // ui_sb_update_icon(SB_NETWORK, 0);
 
     if (slirpq == NULL) return;
 
@@ -246,11 +273,15 @@ net_slirp_in(uint8_t *pkt, int pkt_len)
 {
     if (slirpq == NULL) return;
 
+    // ui_sb_update_icon(SB_NETWORK, 1);
+
     network_busy(1);
 
     slirp_input((const uint8_t *)pkt, pkt_len);
 
     network_busy(0);
+
+    // ui_sb_update_icon(SB_NETWORK, 0);
 }
 
 

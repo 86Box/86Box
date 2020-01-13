@@ -236,6 +236,8 @@ static int opPOPW_a16(uint32_t fetchdat)
         temp = POP_W();                                 if (cpu_state.abrt) return 1;
 
         fetch_ea_16(fetchdat);
+        if (cpu_mod != 3)
+                SEG_CHECK_WRITE(cpu_state.ea_seg);
         seteaw(temp);
         if (cpu_state.abrt)
         {
@@ -255,6 +257,8 @@ static int opPOPW_a32(uint32_t fetchdat)
         temp = POP_W();                                 if (cpu_state.abrt) return 1;
         
         fetch_ea_32(fetchdat);
+        if (cpu_mod != 3)
+                SEG_CHECK_WRITE(cpu_state.ea_seg);
         seteaw(temp);
         if (cpu_state.abrt)
         {
@@ -274,7 +278,9 @@ static int opPOPL_a16(uint32_t fetchdat)
 
         temp = POP_L();                                 if (cpu_state.abrt) return 1;
 
-        fetch_ea_16(fetchdat);        
+        fetch_ea_16(fetchdat); 
+        if (cpu_mod != 3)
+                SEG_CHECK_WRITE(cpu_state.ea_seg);		
         seteal(temp);
         if (cpu_state.abrt)
         {
@@ -294,6 +300,8 @@ static int opPOPL_a32(uint32_t fetchdat)
         temp = POP_L();                                 if (cpu_state.abrt) return 1;
 
         fetch_ea_32(fetchdat);
+        if (cpu_mod != 3)
+                SEG_CHECK_WRITE(cpu_state.ea_seg);
         seteal(temp);
         if (cpu_state.abrt)
         {
@@ -469,10 +477,10 @@ PUSH_SEG_OPS(FS)
 PUSH_SEG_OPS(GS)
 PUSH_SEG_OPS(SS)
 
-POP_SEG_OPS(DS, &_ds)
-POP_SEG_OPS(ES, &_es)
-POP_SEG_OPS(FS, &_fs)
-POP_SEG_OPS(GS, &_gs)
+POP_SEG_OPS(DS, &cpu_state.seg_ds)
+POP_SEG_OPS(ES, &cpu_state.seg_es)
+POP_SEG_OPS(FS, &cpu_state.seg_fs)
+POP_SEG_OPS(GS, &cpu_state.seg_gs)
 
 
 static int opPOP_SS_w(uint32_t fetchdat)
@@ -480,14 +488,14 @@ static int opPOP_SS_w(uint32_t fetchdat)
         uint16_t temp_seg;
         uint32_t temp_esp = ESP;
         temp_seg = POP_W();                     if (cpu_state.abrt) return 1;
-        loadseg(temp_seg, &_ss);                if (cpu_state.abrt) { ESP = temp_esp; return 1; }
+        loadseg(temp_seg, &cpu_state.seg_ss);                if (cpu_state.abrt) { ESP = temp_esp; return 1; }
         CLOCK_CYCLES(is486 ? 3 : 7);
         PREFETCH_RUN(is486 ? 3 : 7, 1, -1, 0,0,1,0, 0);
                         
         cpu_state.oldpc = cpu_state.pc;
         cpu_state.op32 = use32;
         cpu_state.ssegs = 0;
-        cpu_state.ea_seg = &_ds;
+        cpu_state.ea_seg = &cpu_state.seg_ds;
         fetchdat = fastreadl(cs + cpu_state.pc);
         cpu_state.pc++;
         if (cpu_state.abrt) return 1;
@@ -500,14 +508,14 @@ static int opPOP_SS_l(uint32_t fetchdat)
         uint32_t temp_seg;
         uint32_t temp_esp = ESP;
         temp_seg = POP_L();                     if (cpu_state.abrt) return 1;
-        loadseg(temp_seg & 0xffff, &_ss);       if (cpu_state.abrt) { ESP = temp_esp; return 1; }
+        loadseg(temp_seg & 0xffff, &cpu_state.seg_ss);       if (cpu_state.abrt) { ESP = temp_esp; return 1; }
         CLOCK_CYCLES(is486 ? 3 : 7);
         PREFETCH_RUN(is486 ? 3 : 7, 1, -1, 0,0,1,0, 0);
 
         cpu_state.oldpc = cpu_state.pc;
         cpu_state.op32 = use32;
         cpu_state.ssegs = 0;
-        cpu_state.ea_seg = &_ds;
+        cpu_state.ea_seg = &cpu_state.seg_ds;
         fetchdat = fastreadl(cs + cpu_state.pc);
         cpu_state.pc++;
         if (cpu_state.abrt) return 1;

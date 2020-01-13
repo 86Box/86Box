@@ -9,12 +9,12 @@
  *		IBM CGA composite filter, borrowed from reenigne's DOSBox
  *		patch and ported to C.
  *
- * Version:	@(#)vid_cga.h	1.0.0	2017/05/30
+ * Version:	@(#)vid_cga.h	1.0.1	2018/03/24
  *
  * Author:	reenigne,
  *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2015-2017 reenigne.
- *		Copyright 2015-2017 Miran Grca.
+ *		Copyright 2015-2018 reenigne.
+ *		Copyright 2015-2018 Miran Grca.
  */
 
 #define Bit8u uint8_t
@@ -24,4 +24,4 @@
 
 void update_cga16_color(uint8_t cgamode);
 void cga_comp_init(int revision);
-Bit8u * Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit8u *TempLine);
+Bit32u * Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks/*, bool doublewidth*/, Bit32u *TempLine);
