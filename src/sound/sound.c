@@ -107,7 +107,6 @@ static const SOUND_CARD sound_cards[] =
     { "[MCA] Sound Blaster MCV",    		"sbmcv",	&sb_mcv_device			},
     { "[MCA] Sound Blaster Pro MCV",		"sbpromcv",	&sb_pro_mcv_device		},
     { "[PCI] Ensoniq AudioPCI (ES1371)",	"es1371",	&es1371_device			},
-    { "[PCI] Sound Blaster PCI 128",		"sbpci128",	&es1371_device			},
     { "",					"",		NULL				}
 };
 
@@ -442,6 +441,7 @@ sound_reset(void)
     sound_realloc_buffers();
 
     midi_device_init();
+	midi_in_device_init();
     inital();
 
     timer_add(&sound_poll_timer, sound_poll, NULL, 1);

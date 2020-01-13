@@ -541,7 +541,7 @@ CXXFLAGS	:= $(CFLAGS)
 #########################################################################
 #		Create the (final) list of objects to build.		#
 #########################################################################
-MAINOBJ		:= pc.o config.o random.o timer.o io.o apm.o dma.o nmi.o \
+MAINOBJ		:= pc.o config.o random.o timer.o io.o apm_new.o dma.o nmi.o \
 		   pic.o pit.o port_92.o ppi.o pci.o mca.o mcr.o mem.o \
 		   rom.o device.o nvr.o nvr_at.o nvr_ps2.o $(VNCOBJ) $(RDPOBJ)
 

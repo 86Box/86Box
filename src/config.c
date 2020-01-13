@@ -649,6 +649,12 @@ load_sound(void)
       else
 	midi_device_current = 0;
 
+    p = config_get_string(cat, "midi_in_device", NULL);
+    if (p != NULL)
+	midi_input_device_current = midi_in_device_get_from_internal_name(p);
+      else
+	midi_input_device_current = 0;
+
     mpu401_standalone_enable = !!config_get_int(cat, "mpu401_standalone", 0);
 
     SSI2001 = !!config_get_int(cat, "ssi2001", 0);
@@ -1530,6 +1536,11 @@ save_sound(void)
 	config_delete_var(cat, "midi_device");
       else
 	config_set_string(cat, "midi_device", midi_device_get_internal_name(midi_device_current));
+
+    if (!strcmp(midi_in_device_get_internal_name(midi_input_device_current), "none"))
+	config_delete_var(cat, "midi_in_device");
+      else
+	config_set_string(cat, "midi_in_device", midi_in_device_get_internal_name(midi_input_device_current));
 
     if (mpu401_standalone_enable == 0)
 	config_delete_var(cat, "mpu401_standalone");

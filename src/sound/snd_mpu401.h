@@ -8,7 +8,7 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)sound_mpu401.h	1.0.3	2018/09/11
+ * Version:	@(#)sound_mpu401.h	1.0.4	2018/09/31
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
@@ -22,9 +22,15 @@
 
 #define MPU401_VERSION	0x15
 #define MPU401_REVISION	0x01
-#define MPU401_QUEUE 32
+#define MPU401_QUEUE 64
+#define MPU401_INPUT_QUEUE 1024
 #define MPU401_TIMECONSTANT (60000000/1000.0f)
 #define MPU401_RESETBUSY 27.0f
+
+/*helpers*/
+#define M_GETKEY key[key/32]&(1<<(key%32))
+#define M_SETKEY key[key/32]|=(1<<(key%32))
+#define M_DELKEY key[key/32]&=~(1<<(key%32))
 
 typedef enum MpuMode
 {
@@ -43,6 +49,13 @@ typedef enum MpuDataType
     T_COMMAND
 } MpuDataType;
 
+typedef enum RecState 
+{ 
+	M_RECOFF, 
+	M_RECSTB,
+	M_RECON 
+} RecState;
+
 /* Messages sent to MPU-401 from host */
 #define MSG_EOX	                        0xf7
 #define MSG_OVERFLOW                    0xf8
@@ -57,6 +70,7 @@ typedef enum MpuDataType
 
 typedef struct mpu_t
 {
+	int midi_thru;
     int uart_mode, intelligent,
 	irq,
 	queue_pos, queue_used;
@@ -64,10 +78,13 @@ typedef struct mpu_t
 	    status,
 	    queue[MPU401_QUEUE], pos_regs[8];
     MpuMode mode;
+    uint8_t rec_queue[MPU401_INPUT_QUEUE];
+	int rec_queue_pos, rec_queue_used;
+	uint32_t ch_toref[16];
     struct track 
     {
 	int counter;
-	uint8_t value[8], sys_val,
+	uint8_t value[3], sys_val,
 		vlength,length;
 	MpuDataType type;
     } playbuf[8], condbuf;
@@ -77,23 +94,50 @@ typedef struct mpu_t
 	    playing, reset,
 	    wsd, wsm, wsd_start,
 	    run_irq, irq_pending,
+		track_req,
 	    send_now, eoi_scheduled,
-	    data_onoff;
+	    data_onoff, clock_to_host,
+		sync_in, sysex_in_finished,
+		rec_copy;
+	RecState rec;
 	uint8_t tmask, cmask,
 		amask,
-		channel, old_chan;
+		last_rtcmd;
 	uint16_t midi_mask, req_mask;
-	uint32_t command_byte, cmd_pending;
+	uint32_t command_byte, cmd_pending,
+		track, old_track;
     } state;
     struct {
 	uint8_t timebase, old_timebase,
 		tempo, old_tempo,
 		tempo_rel, old_tempo_rel,
-		tempo_grad,
-		cth_rate, cth_counter;
-	int clock_to_host,cth_active;
+		tempo_grad, cth_rate[4],
+		cth_mode, midimetro,
+		metromeas;
+	uint32_t cth_counter, cth_old,
+		rec_counter;
+	int32_t measure_counter, meas_old,
+		freq;
+	int ticks_in, active;
+	float freq_mod;
     } clock;
-	
+	struct {
+	int all_thru, midi_thru,
+		sysex_thru, commonmsgs_thru,
+		modemsgs_in, commonmsgs_in,
+		bender_in, sysex_in,
+		allnotesoff_out, rt_affection,
+		rt_out, rt_in,
+		timing_in_stop, data_in_stop,
+		rec_measure_end;
+	uint8_t prchg_buf[16];
+	uint16_t prchg_mask;
+	} filter;
+	struct {
+	int on;
+	uint8_t chan, trmask;
+	uint32_t key[4];
+	} chanref[5], inputref[16];
 	pc_timer_t mpu401_event_callback, mpu401_eoi_callback, 
 			mpu401_reset_callback;
 } mpu_t;

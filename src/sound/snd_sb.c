@@ -32,6 +32,7 @@
 #include "../rom.h"
 #include "../device.h"
 #include "sound.h"
+#include "midi.h"
 #include "filters.h"
 #include "snd_emu8k.h"
 #include "snd_mpu401.h"
@@ -1041,6 +1042,11 @@ void *sb_1_init()
         	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
 	}
         sound_add_handler(sb_get_buffer_sb2, sb);
+		
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
+		
         return sb;
 }
 void *sb_15_init()
@@ -1067,6 +1073,11 @@ void *sb_15_init()
         	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
 	}
         sound_add_handler(sb_get_buffer_sb2, sb);
+		
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;	
+		
         return sb;
 }
 
@@ -1090,6 +1101,11 @@ void *sb_mcv_init()
         mca_add(sb_mcv_read, sb_mcv_write, sb_mcv_feedb, sb);
         sb->pos_regs[0] = 0x84;
         sb->pos_regs[1] = 0x50;
+
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;	
+	midi_in_p = &sb->dsp;
+		
         return sb;
 }
 void *sb_2_init()
@@ -1137,6 +1153,10 @@ void *sb_2_init()
         else
                 sound_add_handler(sb_get_buffer_sb2, sb);    
 
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
+
         return sb;
 }
 
@@ -1170,6 +1190,10 @@ void *sb_pro_v1_init()
         io_sethandler(addr+4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sbpro, sb);
 
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
+
         return sb;
 }
 
@@ -1202,6 +1226,10 @@ void *sb_pro_v2_init()
         io_sethandler(addr+4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sbpro, sb);
 
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
+
         return sb;
 }
 
@@ -1226,6 +1254,10 @@ void *sb_pro_mcv_init()
         mca_add(sb_pro_mcv_read, sb_pro_mcv_write, sb_mcv_feedb, sb);
         sb->pos_regs[0] = 0x03;
         sb->pos_regs[1] = 0x51;
+
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
 
         return sb;
 }
@@ -1260,6 +1292,11 @@ void *sb_16_init()
 		sb_dsp_set_mpu(sb->mpu);
 	} else
 		sb->mpu = NULL;
+
+	
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
 
         return sb;
 }
@@ -1304,6 +1341,10 @@ void *sb_awe32_init()
 	} else
 		sb->mpu = NULL;
         emu8k_init(&sb->emu8k, emu_addr, onboard_ram);
+
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
 
         return sb;
 }
