@@ -508,7 +508,7 @@ endif
 
 ifeq ($(SS7),y)
 OPTS		+= -DUSE_SS7
-DEVBROBJ	+= via_mvp3.o via_mvp3_sb.o sst_flash.o
+DEVBROBJ	+= via_mvp3.o vt82c586b.o sst_flash.o
 endif
 
 ifeq ($(TI), y)

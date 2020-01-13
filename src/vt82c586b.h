@@ -18,5 +18,5 @@
  */
 
 #if defined(DEV_BRANCH) && defined(USE_SS7)
-extern const device_t via_mvp3_sb_device;
+extern const device_t vt82c586b_device;
 #endif

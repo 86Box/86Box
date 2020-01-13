@@ -38,7 +38,7 @@
 #include "../piix.h"
 #include "../sio.h"
 #include "../sst_flash.h"
-#include "../via_mvp3_sb.h"
+#include "../vt82c586b.h"
 #include "../video/video.h"
 #include "../video/vid_cl54xx.h"
 #include "../video/vid_s3.h"
@@ -477,7 +477,7 @@ machine_at_mvp3_init(const machine_t *model)
     pci_register_slot(0x0a, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&via_mvp3_device);
-    device_add(&via_mvp3_sb_device);
+    device_add(&vt82c586b_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83877tf_device);
     device_add(&sst_flash_39sf010_device);

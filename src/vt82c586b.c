@@ -4,9 +4,9 @@
  *		PC systems and compatibles from 1981 through fairly recent
  *		system designs based on the PCI bus.
  *
- *		Emulation of the VIA Apollo MVP3 southbridge
+ *		Emulation of the VIA VT82C586B southbridge
  *
- * Version:	@(#)via_mvp3_sb.c	1.0.22	2018/10/31
+ * Version:	@(#)vt82c586b.c	1.0.22	2018/10/31
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -43,7 +43,7 @@
 #include "disk/hdc_ide_sff8038i.h"
 #include "disk/zip.h"
 #include "machine/machine.h"
-#include "via_mvp3_sb.h"
+#include "vt82c586b.h"
 
 typedef struct
 {
@@ -52,92 +52,92 @@ typedef struct
     uint8_t usb_regs[256];
     uint8_t power_regs[256];
     sff8038i_t *bm[2];
-} via_mvp3_sb_t;
+} vt82c586b_t;
 
 static void
-via_mvp3_sb_reset_hard(void *priv)
+vt82c586b_reset_hard(void *priv)
 {
-    via_mvp3_sb_t *via_mvp3_sb = (via_mvp3_sb_t *) priv;
+    vt82c586b_t *vt82c586b = (vt82c586b_t *) priv;
 
-    uint16_t old_base = (via_mvp3_sb->ide_regs[0x20] & 0xf0) | (via_mvp3_sb->ide_regs[0x21] << 8);
+    uint16_t old_base = (vt82c586b->ide_regs[0x20] & 0xf0) | (vt82c586b->ide_regs[0x21] << 8);
 
-    sff_bus_master_reset(via_mvp3_sb->bm[0], old_base);
-    sff_bus_master_reset(via_mvp3_sb->bm[1], old_base + 8);
+    sff_bus_master_reset(vt82c586b->bm[0], old_base);
+    sff_bus_master_reset(vt82c586b->bm[1], old_base + 8);
 
-    memset(via_mvp3_sb->pci_isa_regs, 0, 256);
-    memset(via_mvp3_sb->ide_regs, 0, 256);
-    memset(via_mvp3_sb->usb_regs, 0, 256);
-    memset(via_mvp3_sb->power_regs, 0, 256);
+    memset(vt82c586b->pci_isa_regs, 0, 256);
+    memset(vt82c586b->ide_regs, 0, 256);
+    memset(vt82c586b->usb_regs, 0, 256);
+    memset(vt82c586b->power_regs, 0, 256);
 
-    via_mvp3_sb->pci_isa_regs[0x00] = 0x06; via_mvp3_sb->pci_isa_regs[0x01] = 0x11; /*VIA*/
-    via_mvp3_sb->pci_isa_regs[0x02] = 0x86; via_mvp3_sb->pci_isa_regs[0x03] = 0x05; /*VT82C586B*/
-    via_mvp3_sb->pci_isa_regs[0x04] = 0x0f;
-    via_mvp3_sb->pci_isa_regs[0x07] = 0x02;
-    via_mvp3_sb->pci_isa_regs[0x0a] = 0x01;
-    via_mvp3_sb->pci_isa_regs[0x0b] = 0x06;
-    via_mvp3_sb->pci_isa_regs[0x0e] = 0x80;
+    vt82c586b->pci_isa_regs[0x00] = 0x06; vt82c586b->pci_isa_regs[0x01] = 0x11; /*VIA*/
+    vt82c586b->pci_isa_regs[0x02] = 0x86; vt82c586b->pci_isa_regs[0x03] = 0x05; /*VT82C586B*/
+    vt82c586b->pci_isa_regs[0x04] = 0x0f;
+    vt82c586b->pci_isa_regs[0x07] = 0x02;
+    vt82c586b->pci_isa_regs[0x0a] = 0x01;
+    vt82c586b->pci_isa_regs[0x0b] = 0x06;
+    vt82c586b->pci_isa_regs[0x0e] = 0x80;
 
-    via_mvp3_sb->pci_isa_regs[0x48] = 0x01;
-    via_mvp3_sb->pci_isa_regs[0x4a] = 0x04;
-    via_mvp3_sb->pci_isa_regs[0x4f] = 0x03;
+    vt82c586b->pci_isa_regs[0x48] = 0x01;
+    vt82c586b->pci_isa_regs[0x4a] = 0x04;
+    vt82c586b->pci_isa_regs[0x4f] = 0x03;
 
-    via_mvp3_sb->pci_isa_regs[0x50] = 0x24;
-    via_mvp3_sb->pci_isa_regs[0x59] = 0x04;
+    vt82c586b->pci_isa_regs[0x50] = 0x24;
+    vt82c586b->pci_isa_regs[0x59] = 0x04;
 
     //IDE registers
-    via_mvp3_sb->ide_regs[0x00] = 0x06; via_mvp3_sb->ide_regs[0x01] = 0x11; /*VIA*/
-    via_mvp3_sb->ide_regs[0x02] = 0x71; via_mvp3_sb->ide_regs[0x03] = 0x05; /*VT82C586B*/
-    via_mvp3_sb->ide_regs[0x04] = 0x80;
-    via_mvp3_sb->ide_regs[0x06] = 0x80; via_mvp3_sb->ide_regs[0x07] = 0x02;
-    via_mvp3_sb->ide_regs[0x09] = 0x85;
-    via_mvp3_sb->ide_regs[0x0a] = 0x01;
-    via_mvp3_sb->ide_regs[0x0b] = 0x01;
+    vt82c586b->ide_regs[0x00] = 0x06; vt82c586b->ide_regs[0x01] = 0x11; /*VIA*/
+    vt82c586b->ide_regs[0x02] = 0x71; vt82c586b->ide_regs[0x03] = 0x05; /*VT82C586B*/
+    vt82c586b->ide_regs[0x04] = 0x80;
+    vt82c586b->ide_regs[0x06] = 0x80; vt82c586b->ide_regs[0x07] = 0x02;
+    vt82c586b->ide_regs[0x09] = 0x85;
+    vt82c586b->ide_regs[0x0a] = 0x01;
+    vt82c586b->ide_regs[0x0b] = 0x01;
 
-    via_mvp3_sb->ide_regs[0x10] = 0xf0; via_mvp3_sb->ide_regs[0x11] = 0x01;
-    via_mvp3_sb->ide_regs[0x14] = 0xf4; via_mvp3_sb->ide_regs[0x15] = 0x03;
-    via_mvp3_sb->ide_regs[0x18] = 0x70; via_mvp3_sb->ide_regs[0x19] = 0x01;
-    via_mvp3_sb->ide_regs[0x1c] = 0x74; via_mvp3_sb->ide_regs[0x1d] = 0x03;
-    via_mvp3_sb->ide_regs[0x20] = 0x01; via_mvp3_sb->ide_regs[0x21] = 0xcc;
+    vt82c586b->ide_regs[0x10] = 0xf0; vt82c586b->ide_regs[0x11] = 0x01;
+    vt82c586b->ide_regs[0x14] = 0xf4; vt82c586b->ide_regs[0x15] = 0x03;
+    vt82c586b->ide_regs[0x18] = 0x70; vt82c586b->ide_regs[0x19] = 0x01;
+    vt82c586b->ide_regs[0x1c] = 0x74; vt82c586b->ide_regs[0x1d] = 0x03;
+    vt82c586b->ide_regs[0x20] = 0x01; vt82c586b->ide_regs[0x21] = 0xcc;
 
-    via_mvp3_sb->ide_regs[0x3c] = 0x0e;
+    vt82c586b->ide_regs[0x3c] = 0x0e;
 
-    via_mvp3_sb->ide_regs[0x40] = 0x08;
-    via_mvp3_sb->ide_regs[0x41] = 0x02;
-    via_mvp3_sb->ide_regs[0x42] = 0x09;
-    via_mvp3_sb->ide_regs[0x43] = 0x3a;
-    via_mvp3_sb->ide_regs[0x44] = 0x68;
-    via_mvp3_sb->ide_regs[0x46] = 0xc0;
-    via_mvp3_sb->ide_regs[0x48] = 0xa8; via_mvp3_sb->ide_regs[0x49] = 0xa8;
-    via_mvp3_sb->ide_regs[0x4a] = 0xa8; via_mvp3_sb->ide_regs[0x4b] = 0xa8;
-    via_mvp3_sb->ide_regs[0x4c] = 0xff;
-    via_mvp3_sb->ide_regs[0x4e] = 0xff;
-    via_mvp3_sb->ide_regs[0x4f] = 0xff;
-    via_mvp3_sb->ide_regs[0x50] = 0x03; via_mvp3_sb->ide_regs[0x51] = 0x03;
-    via_mvp3_sb->ide_regs[0x52] = 0x03; via_mvp3_sb->ide_regs[0x53] = 0x03;
+    vt82c586b->ide_regs[0x40] = 0x08;
+    vt82c586b->ide_regs[0x41] = 0x02;
+    vt82c586b->ide_regs[0x42] = 0x09;
+    vt82c586b->ide_regs[0x43] = 0x3a;
+    vt82c586b->ide_regs[0x44] = 0x68;
+    vt82c586b->ide_regs[0x46] = 0xc0;
+    vt82c586b->ide_regs[0x48] = 0xa8; vt82c586b->ide_regs[0x49] = 0xa8;
+    vt82c586b->ide_regs[0x4a] = 0xa8; vt82c586b->ide_regs[0x4b] = 0xa8;
+    vt82c586b->ide_regs[0x4c] = 0xff;
+    vt82c586b->ide_regs[0x4e] = 0xff;
+    vt82c586b->ide_regs[0x4f] = 0xff;
+    vt82c586b->ide_regs[0x50] = 0x03; vt82c586b->ide_regs[0x51] = 0x03;
+    vt82c586b->ide_regs[0x52] = 0x03; vt82c586b->ide_regs[0x53] = 0x03;
 
-    via_mvp3_sb->ide_regs[0x61] = 0x02;
-    via_mvp3_sb->ide_regs[0x69] = 0x02;
+    vt82c586b->ide_regs[0x61] = 0x02;
+    vt82c586b->ide_regs[0x69] = 0x02;
 
-    via_mvp3_sb->usb_regs[0x00] = 0x06; via_mvp3_sb->usb_regs[0x01] = 0x11; /*VIA*/
-    via_mvp3_sb->usb_regs[0x02] = 0x38; via_mvp3_sb->usb_regs[0x03] = 0x30;
-    via_mvp3_sb->usb_regs[0x04] = 0x00; via_mvp3_sb->usb_regs[0x05] = 0x00;
-    via_mvp3_sb->usb_regs[0x06] = 0x00; via_mvp3_sb->usb_regs[0x07] = 0x02;
-    via_mvp3_sb->usb_regs[0x0a] = 0x03;
-    via_mvp3_sb->usb_regs[0x0b] = 0x0c;
-    via_mvp3_sb->usb_regs[0x0d] = 0x16;
-    via_mvp3_sb->usb_regs[0x20] = 0x01;
-    via_mvp3_sb->usb_regs[0x21] = 0x03;
-    via_mvp3_sb->usb_regs[0x3d] = 0x04;
+    vt82c586b->usb_regs[0x00] = 0x06; vt82c586b->usb_regs[0x01] = 0x11; /*VIA*/
+    vt82c586b->usb_regs[0x02] = 0x38; vt82c586b->usb_regs[0x03] = 0x30;
+    vt82c586b->usb_regs[0x04] = 0x00; vt82c586b->usb_regs[0x05] = 0x00;
+    vt82c586b->usb_regs[0x06] = 0x00; vt82c586b->usb_regs[0x07] = 0x02;
+    vt82c586b->usb_regs[0x0a] = 0x03;
+    vt82c586b->usb_regs[0x0b] = 0x0c;
+    vt82c586b->usb_regs[0x0d] = 0x16;
+    vt82c586b->usb_regs[0x20] = 0x01;
+    vt82c586b->usb_regs[0x21] = 0x03;
+    vt82c586b->usb_regs[0x3d] = 0x04;
 
-    via_mvp3_sb->usb_regs[0x60] = 0x10;
-    via_mvp3_sb->usb_regs[0xc1] = 0x20;
+    vt82c586b->usb_regs[0x60] = 0x10;
+    vt82c586b->usb_regs[0xc1] = 0x20;
 
-    via_mvp3_sb->power_regs[0x00] = 0x06; via_mvp3_sb->power_regs[0x01] = 0x11; /*VIA*/
-    via_mvp3_sb->power_regs[0x02] = 0x40; via_mvp3_sb->power_regs[0x03] = 0x30;
-    via_mvp3_sb->power_regs[0x04] = 0x00; via_mvp3_sb->power_regs[0x05] = 0x00;
-    via_mvp3_sb->power_regs[0x06] = 0x80; via_mvp3_sb->power_regs[0x07] = 0x02;
-    via_mvp3_sb->power_regs[0x08] = 0x10; /*Production version (3041)*/
-    via_mvp3_sb->power_regs[0x48] = 0x01;
+    vt82c586b->power_regs[0x00] = 0x06; vt82c586b->power_regs[0x01] = 0x11; /*VIA*/
+    vt82c586b->power_regs[0x02] = 0x40; vt82c586b->power_regs[0x03] = 0x30;
+    vt82c586b->power_regs[0x04] = 0x00; vt82c586b->power_regs[0x05] = 0x00;
+    vt82c586b->power_regs[0x06] = 0x80; vt82c586b->power_regs[0x07] = 0x02;
+    vt82c586b->power_regs[0x08] = 0x10; /*Production version (3041)*/
+    vt82c586b->power_regs[0x48] = 0x01;
 
     pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
     pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
@@ -153,7 +153,7 @@ via_mvp3_sb_reset_hard(void *priv)
 }
 
 static void
-via_mvp3_sb_bus_master_handlers(via_mvp3_sb_t *dev, uint16_t old_base)
+vt82c586b_bus_master_handlers(vt82c586b_t *dev, uint16_t old_base)
 {
     uint16_t base;
 
@@ -164,9 +164,9 @@ via_mvp3_sb_bus_master_handlers(via_mvp3_sb_t *dev, uint16_t old_base)
 }
 
 static uint8_t
-via_mvp3_sb_read(int func, int addr, void *priv)
+vt82c586b_read(int func, int addr, void *priv)
 {
-    via_mvp3_sb_t *dev = (via_mvp3_sb_t *) priv;
+    vt82c586b_t *dev = (vt82c586b_t *) priv;
 
     switch(func)
     {
@@ -194,9 +194,9 @@ via_mvp3_sb_read(int func, int addr, void *priv)
 }
 
 static void
-via_mvp3_sb_write(int func, int addr, uint8_t val, void *priv)
+vt82c586b_write(int func, int addr, uint8_t val, void *priv)
 {
-    via_mvp3_sb_t *dev = (via_mvp3_sb_t *) priv;
+    vt82c586b_t *dev = (vt82c586b_t *) priv;
     uint16_t old_base;
 
     if(func > 3) return;
@@ -304,7 +304,7 @@ via_mvp3_sb_write(int func, int addr, uint8_t val, void *priv)
                         if(dev->ide_regs[0x40] & 0x02) ide_pri_enable();
                         if(dev->ide_regs[0x40] & 0x01) ide_sec_enable();
                     }
-                    via_mvp3_sb_bus_master_handlers(dev, base);
+                    vt82c586b_bus_master_handlers(dev, base);
                     dev->ide_regs[0x04] = val & 0x85;
                     break;
                 }
@@ -319,14 +319,14 @@ via_mvp3_sb_write(int func, int addr, uint8_t val, void *priv)
                 case 0x20:
                 {
                     dev->ide_regs[0x20] = (val & 0xf0) | 1;
-                    via_mvp3_sb_bus_master_handlers(dev, old_base);
+                    vt82c586b_bus_master_handlers(dev, old_base);
                     break;
                 }
 
                 case 0x21:
                 {
                     dev->ide_regs[0x21] = val;
-                    via_mvp3_sb_bus_master_handlers(dev, old_base);
+                    vt82c586b_bus_master_handlers(dev, old_base);
                     break;
                 }
 
@@ -398,17 +398,17 @@ via_mvp3_sb_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static void
-*via_mvp3_sb_init(const device_t *info)
+*vt82c586b_init(const device_t *info)
 {
-    via_mvp3_sb_t *via_mvp3_sb = (via_mvp3_sb_t *) malloc(sizeof(via_mvp3_sb_t));
-    memset(via_mvp3_sb, 0, sizeof(via_mvp3_sb_t));
+    vt82c586b_t *vt82c586b = (vt82c586b_t *) malloc(sizeof(vt82c586b_t));
+    memset(vt82c586b, 0, sizeof(vt82c586b_t));
 
-    pci_add_card(7, via_mvp3_sb_read, via_mvp3_sb_write, via_mvp3_sb);
+    pci_add_card(7, vt82c586b_read, vt82c586b_write, vt82c586b);
 
-    via_mvp3_sb->bm[0] = device_add_inst(&sff8038i_device, 1);
-    via_mvp3_sb->bm[1] = device_add_inst(&sff8038i_device, 2);
+    vt82c586b->bm[0] = device_add_inst(&sff8038i_device, 1);
+    vt82c586b->bm[1] = device_add_inst(&sff8038i_device, 2);
 
-    via_mvp3_sb_reset_hard(via_mvp3_sb);
+    vt82c586b_reset_hard(vt82c586b);
 
     device_add(&port_92_pci_device);
 
@@ -418,24 +418,24 @@ static void
     pci_enable_mirq(1);
     pci_enable_mirq(2);
 
-    return via_mvp3_sb;
+    return vt82c586b;
 }
 
 static void
-via_mvp3_sb_close(void *p)
+vt82c586b_close(void *p)
 {
-    via_mvp3_sb_t *via_mvp3_sb = (via_mvp3_sb_t *)p;
+    vt82c586b_t *vt82c586b = (vt82c586b_t *)p;
 
-    free(via_mvp3_sb);
+    free(vt82c586b);
 }
 
-const device_t via_mvp3_sb_device =
+const device_t vt82c586b_device =
 {
     "VIA VT82C586B",
     DEVICE_PCI,
     0,
-    via_mvp3_sb_init, 
-    via_mvp3_sb_close, 
+    vt82c586b_init, 
+    vt82c586b_close, 
     NULL,
     NULL,
     NULL,
