@@ -9,7 +9,7 @@
  *		CD-ROM image file handling module, translated to C from
  *		cdrom_dosbox.cpp.
  *
- * Version:	@(#)cdrom_image_backend.c	1.0.3	2020/01/13
+ * Version:	@(#)cdrom_image_backend.c	1.0.4	2020/01/13
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -136,9 +136,7 @@ bin_init(const wchar_t *filename, int *error)
     track_file_t *tf = (track_file_t *) malloc(sizeof(track_file_t));
 
     if (tf == NULL) {
-	tf->read = NULL;
-	tf->get_length = NULL;
-	tf->close = NULL;
+	*error = 1;
 	return NULL;
     }
 
@@ -157,9 +155,6 @@ bin_init(const wchar_t *filename, int *error)
     } else {
 	free(tf);
 	tf = NULL;
-	tf->read = NULL;
-	tf->get_length = NULL;
-	tf->close = NULL;
     }
 
     return tf;
