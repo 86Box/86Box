@@ -30,59 +30,34 @@
 #include "../keyboard.h"
 #include "chipset.h"
 
+
 typedef struct via_mvp3_t
 {
     uint8_t pci_conf[2][256];
 } via_mvp3_t;
 
+
 static void
-via_mvp3_recalcmapping(via_mvp3_t *dev)
+mvp3_map(uint32_t addr, uint32_t size, int state)
 {
-    int c, d;
-    uint32_t base;
-
-    for (c = 0; c < 2; c++) {
-    for (d = 0; d < 4; d++) {
-        base = 0xc0000 + (d << 14);
-        switch (dev->pci_conf[0][0x61 + c] & (3 << (d << 1))) {
-            case 0x00:
-                mem_set_mem_state(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-                break;
-            case 0x01:
-                mem_set_mem_state(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-                break;
-            case 0x02:
-                mem_set_mem_state(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
-                break;
-            case 0x03:
-                mem_set_mem_state(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                break;
-        }
-    }
-    }
-
-    for(d = 0; d < 2; d++)
-    {
-        base = 0xe0000 + (d << 16);
-        switch (dev->pci_conf[0][0x63] & (3 << (d << 1))) {
-            case 0x00:
-                mem_set_mem_state(base, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-                break;
-            case 0x01:
-                mem_set_mem_state(base, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-                break;
-            case 0x02:
-                mem_set_mem_state(base, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
-                break;
-            case 0x03:
-                mem_set_mem_state(base, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                break;
-        }
+    switch (state & 3) {
+	case 0:
+		mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+		break;
+	case 1:
+		mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
+		break;
+	case 2:
+		mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
+		break;
+	case 3:
+		mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+		break;
     }
 
     flushmmucache_nopc();
-    shadowbios = 1;
 }
+
 
 static void
 via_mvp3_setup(via_mvp3_t *dev)
@@ -158,107 +133,159 @@ via_mvp3_setup(via_mvp3_t *dev)
     dev->pci_conf[1][0x25] = 0xff;
 }
 
+
 static void
 via_mvp3_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 {
     via_mvp3_t *dev = (via_mvp3_t *) priv;
 
     if (func)
-    return;
+	return;
 
     /*Read-only addresses*/
-    if ((addr < 4) || (addr >= 5 && addr < 7)
-    || (addr >= 8 && addr < 0xd)
-    || (addr >= 0xe && addr < 0x12)
-    || (addr >= 0x14 && addr < 0x50)
-    || (addr >= 0x79 && addr < 0x7e)
-    || (addr >= 0x85 && addr < 0x88)
-    || (addr >= 0x8c && addr < 0xa8)
-    || (addr >= 0xad && addr < 0xfd))
-        return;
+    if ((addr < 4) || ((addr >= 5) && (addr < 7)) || ((addr >= 8) && (addr < 0xd)) ||
+	((addr >= 0xe) && (addr < 0x12)) || ((addr >= 0x14) && (addr < 0x50)) ||
+	((addr >= 0x79) && (addr < 0x7e)) || ((addr >= 0x85) && (addr < 0x88)) ||
+	((addr >= 0x8c) && (addr < 0xa8)) || ((addr >= 0xad) && (addr < 0xfd)))
+	return;
 
-    switch(addr)
-    {
-        case 0x04:
-        dev->pci_conf[0][0x04] = (dev->pci_conf[0][0x04] & ~0x40) | (val & 0x40);
-        break;
-        case 0x07:
-        dev->pci_conf[0][0x07] &= ~(val & 0xb0);
-        case 0x61: case 0x62: case 0x63:
-        dev->pci_conf[0][addr] = val;
-        via_mvp3_recalcmapping(dev);
-        break;
-        default:
-        dev->pci_conf[0][addr] = val;
-        break;
+    switch(addr) {
+	case 0x04:
+		dev->pci_conf[0][0x04] = (dev->pci_conf[0][0x04] & ~0x40) | (val & 0x40);
+		break;
+	case 0x07:
+		dev->pci_conf[0][0x07] &= ~(val & 0xb0);
+		break;
+
+	case 0x12:	/* Graphics Aperture Base */
+		dev->pci_conf[0][0x12] = (val & 0xf0);
+		break;
+	case 0x13:	/* Graphics Aperture Base */
+		dev->pci_conf[0][0x13] = val;
+		break;
+
+	case 0x61:	/* Shadow RAM Control 1 */
+		if ((dev->pci_conf[0][0x61] ^ val) & 0x03)
+			mvp3_map(0xc0000, 0x04000, val & 0x03);
+		if ((dev->pci_conf[0][0x61] ^ val) & 0x0c)
+			mvp3_map(0xc4000, 0x04000, (val & 0x0c) >> 2);
+		if ((dev->pci_conf[0][0x61] ^ val) & 0x30)
+			mvp3_map(0xc8000, 0x04000, (val & 0x30) >> 4);
+		if ((dev->pci_conf[0][0x61] ^ val) & 0xc0)
+			mvp3_map(0xcc000, 0x04000, (val & 0xc0) >> 6);
+		dev->pci_conf[0][0x61] = val;
+		return;
+	case 0x62:	/* Shadow RAM Control 2 */
+		if ((dev->pci_conf[0][0x62] ^ val) & 0x03)
+			mvp3_map(0xd0000, 0x04000, val & 0x03);
+		if ((dev->pci_conf[0][0x62] ^ val) & 0x0c)
+			mvp3_map(0xd4000, 0x04000, (val & 0x0c) >> 2);
+		if ((dev->pci_conf[0][0x62] ^ val) & 0x30)
+			mvp3_map(0xd8000, 0x04000, (val & 0x30) >> 4);
+		if ((dev->pci_conf[0][0x62] ^ val) & 0xc0)
+			mvp3_map(0xdc000, 0x04000, (val & 0xc0) >> 6);
+		dev->pci_conf[0][0x62] = val;
+		return;
+	case 0x63:	/* Shadow RAM Control 3 */
+		if ((dev->pci_conf[0][0x63] ^ val) & 0x30) {
+			mvp3_map(0xf0000, 0x10000, (val & 0x30) >> 4);
+			shadowbios = (((val & 0x30) >> 4) & 0x02);
+		}
+		if ((dev->pci_conf[0][0x63] ^ val) & 0xc0)
+			mvp3_map(0xe0000, 0x10000, (val & 0xc0) >> 6);
+		dev->pci_conf[0][0x63] = val;
+		return;
+
+	default:
+		dev->pci_conf[0][addr] = val;
+		break;
     }
 }
+
 
 static void
 via_mvp3_pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 {
     via_mvp3_t *dev = (via_mvp3_t *) priv;
 
-    if(func != 1) return;
+    if (func != 1)
+	return;
 
     /*Read-only addresses*/
 
-    if ((addr < 4) || (addr >= 5 && addr < 7)
-        || (addr >= 8 && addr < 0x18)
-        || (addr == 0x1b)
-        || (addr >= 0x1e && addr < 0x20)
-        || (addr >= 0x28 && addr < 0x3e)
-        || (addr >= 0x43))
-        return;
-    
-    switch(addr)
-    {
-        case 0x04:
-        dev->pci_conf[1][0x04] = (dev->pci_conf[1][0x04] & ~0x47) | (val & 0x47);
-        break;
-        case 0x07:
-        dev->pci_conf[1][0x07] &= ~(val & 0x30);
-        default:
-        dev->pci_conf[1][addr] = val;
-        break;
+    if ((addr < 4) || ((addr >= 5) && (addr < 7)) ||
+	((addr >= 8) && (addr < 0x18)) || (addr == 0x1b) ||
+	((addr >= 0x1e) && (addr < 0x20)) || ((addr >= 0x28) && (addr < 0x3e)) ||
+	(addr >= 0x43))
+	return;
+
+    switch(addr) {
+	case 0x04:
+		dev->pci_conf[1][0x04] = (dev->pci_conf[1][0x04] & ~0x47) | (val & 0x47);
+		break;
+	case 0x07:
+		dev->pci_conf[1][0x07] &= ~(val & 0x30);
+		break;
+
+	case 0x20:	/* Memory Base */
+		dev->pci_conf[1][0x20] = val & 0xf0;
+		break;
+	case 0x22:	/* Memory Limit */
+		dev->pci_conf[1][0x22] = val & 0xf0;
+		break;
+	case 0x24:	/* Prefetchable Memory Base */
+		dev->pci_conf[1][0x24] = val & 0xf0;
+		break;
+	case 0x26:	/* Prefetchable Memory Limit */
+		dev->pci_conf[1][0x26] = val & 0xf0;
+		break;
+
+	default:
+		dev->pci_conf[1][addr] = val;
+		break;
     }
 }
+
 
 static uint8_t
 via_mvp3_read(int func, int addr, void *priv)
 {
     via_mvp3_t *dev = (via_mvp3_t *) priv;
+    uint8_t ret = 0xff;
 
-    switch(func)
-    {
-        case 0: return dev->pci_conf[0][addr];
-        case 1: return dev->pci_conf[1][addr];
-        default: return 0xff;
+    switch(func) {
+        case 0:
+		ret = dev->pci_conf[0][addr];
+		break;
+        case 1:
+		ret = dev->pci_conf[1][addr];
+		break;
     }
+
+    return ret;
 }
 
 
 static void
 via_mvp3_write(int func, int addr, uint8_t val, void *priv)
 {
-    switch(func)
-    {
-        case 0:
-        via_mvp3_host_bridge_write(func, addr, val, priv);
-        break;
-        case 1:
-        via_mvp3_pci_bridge_write(func, addr, val, priv);
-        break;
+    switch(func) {
+	case 0:
+		via_mvp3_host_bridge_write(func, addr, val, priv);
+		break;
+	case 1:
+		via_mvp3_pci_bridge_write(func, addr, val, priv);
+		break;
     }
 }
+
 
 static void
 via_mvp3_reset(void *priv)
 {
-    via_mvp3_t *dev = (via_mvp3_t *) priv;
-
-    via_mvp3_setup(dev);
+    via_mvp3_write(0, 0x63, via_mvp3_read(0, 0x63, priv) & 0xcf, priv);
 }
+
 
 static void *
 via_mvp3_init(const device_t *info)
@@ -272,6 +299,7 @@ via_mvp3_init(const device_t *info)
     return dev;
 }
 
+
 static void
 via_mvp3_close(void *priv)
 {
@@ -279,6 +307,7 @@ via_mvp3_close(void *priv)
 
     free(dev);
 }
+
 
 const device_t via_mvp3_device =
 {
