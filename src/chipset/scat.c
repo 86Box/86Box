@@ -1338,13 +1338,20 @@ static void
 mem_write_scatb(uint32_t addr, uint8_t val, void *priv)
 {
     ems_page_t *page = (ems_page_t *)priv;
-    scat_t *dev = (scat_t *)page->scat;
+    scat_t *dev;
     uint32_t oldaddr = addr, chkaddr;
 
-    addr = get_addr(dev, addr, page);
-    chkaddr = page ? addr : oldaddr;
+    if (dev == NULL)
+	chkaddr = oldaddr;
+    else {
+	dev = (scat_t *)page->scat;
+	addr = get_addr(dev, addr, page);
+	chkaddr = addr;
+    }
+
     if (chkaddr >= 0xc0000 && chkaddr < 0x100000) {
-	if (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15))) return;
+	if (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15)))
+		return;
     }
 
     if (addr < ((uint32_t)mem_size << 10))
