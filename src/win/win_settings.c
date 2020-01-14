@@ -2532,7 +2532,7 @@ static int hdconf_initialize_hdt_combo(HWND hdlg)
 
     h = GetDlgItem(hdlg, IDC_COMBO_HD_TYPE);
     for (i = 0; i < 127; i++) {	
-	temp_size = hdd_table[i][0] * hdd_table[i][1] * hdd_table[i][2];
+	temp_size = ((uint64_t) hdd_table[i][0]) * hdd_table[i][1] * hdd_table[i][2];
 	size_mb = (uint32_t) (temp_size >> 11LL);
 	wsprintf(szText, plat_get_string(IDS_2116), size_mb, hdd_table[i][0], hdd_table[i][1], hdd_table[i][2]);
 	SendMessage(h, CB_ADDSTRING, 0, (LPARAM) szText);
