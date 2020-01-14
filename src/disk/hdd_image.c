@@ -167,8 +167,11 @@ image_is_vhd(const wchar_t *s, int check_signature)
 		fseeko64(f, 0, SEEK_END);
 		filelen = ftello64(f);
 		fseeko64(f, -512, SEEK_END);
-		if (filelen < 512)
+		if (filelen < 512) {
+			if (f != NULL)
+				fclose(f);
 			return 0;
+		}
 		fread(&signature, 1, 8, f);
 		fclose(f);
 		if (signature == 0x78697463656E6F63ll)
