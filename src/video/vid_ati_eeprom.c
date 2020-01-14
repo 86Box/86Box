@@ -59,7 +59,10 @@ void ati_eeprom_load(ati_eeprom_t *eeprom, wchar_t *fn, int type)
 {
         FILE *f;
         eeprom->type = type;
-        wcscpy(eeprom->fn, fn);
+	if (wcslen(fn) <= 256)
+	        wcscpy(eeprom->fn, fn);
+	else
+	        wcsncpy(eeprom->fn, fn, 256);
         f = nvr_fopen(eeprom->fn, L"rb");
         if (!f)
         {
