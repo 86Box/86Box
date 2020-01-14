@@ -65,7 +65,7 @@ typedef struct {
 typedef struct {
     int		w, h;
     uint32_t	*dat;
-    uint32_t	*line[2048];
+    uint32_t	*line[2112];
 } bitmap_t;
 
 typedef struct {
