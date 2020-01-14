@@ -2029,6 +2029,10 @@ FDI *fdi2raw_header(FILE *f)
 	memset (fdi, 0, sizeof (FDI));
 	fdi->file = f;
 	oldseek = ftell (fdi->file);
+	if (oldseek == -1) {
+		fdi_free(fdi);
+		return NULL;
+	}
 	fseek (fdi->file, 0, SEEK_SET);
 	fread (fdi->header, 2048, 1, fdi->file);
 	fseek (fdi->file, oldseek, SEEK_SET);
