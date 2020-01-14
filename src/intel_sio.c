@@ -123,7 +123,7 @@ sio_write(int func, int addr, uint8_t val, void *priv)
     if (func > 0)
 	return;
 
-    if (addr >= 0x0f && addr < 0x4c)
+    if (((addr >= 0x0f) && (addr < 0x4c)) && (addr != 0x40))
 	return;
 
     /* The IB (original) variant of the SIO has no PCI IRQ steering. */
