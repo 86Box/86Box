@@ -1310,6 +1310,13 @@ loadrom(hdc_t *dev, const wchar_t *fn)
     uint32_t size;
     FILE *fp;
 
+    if (fn == NULL) {
+#ifdef ENABLE_ST506_XT_LOG
+	st506_xt_log("ST506: NULL BIOS ROM file pointer!\n");
+#endif
+	return;
+    }
+
     if ((fp = rom_fopen((wchar_t *) fn, L"rb")) == NULL) {
 	st506_xt_log("ST506: BIOS ROM '%ls' not found!\n", fn);
 	return;
