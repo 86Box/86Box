@@ -228,7 +228,7 @@ typedef struct {
     double	horizontal_tabs[32];
     uint8_t	num_horizontal_tabs;
     double	vertical_tabs[16];
-    uint8_t	num_vertical_tabs;
+    int8_t	num_vertical_tabs;
 
     /* bit graphics data */
     uint16_t	bg_h_density;		/* in dpi */
