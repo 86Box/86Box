@@ -263,8 +263,8 @@ rom_load_interleaved(wchar_t *fnl, wchar_t *fnh, uint32_t addr, int sz, int off,
 	(void)fseek(fl, off, SEEK_SET);
 	(void)fseek(fh, off, SEEK_SET);
 	for (c=0; c<sz; c+=2) {
-		ptr[addr+c] = fgetc(fl);
-		ptr[addr+c+1] = fgetc(fh);
+		ptr[addr+c] = fgetc(fl) & 0xff;
+		ptr[addr+c+1] = fgetc(fh) & 0xff;
 	}
     }
 
