@@ -203,7 +203,7 @@ static void fdc37c93x_gpio_handler(fdc37c93x_t *dev)
 			break;
 	}
 	dev->gpio_base = ld_port;
-	if ((ld_port >= 0x0100) && (ld_port <= 0x0FFE))
+	if (ld_port > 0x0000)
 	        io_sethandler(dev->gpio_base, 0x0002,
 			      fdc37c93x_gpio_read, NULL, NULL, fdc37c93x_gpio_write, NULL, NULL, dev);
     }
