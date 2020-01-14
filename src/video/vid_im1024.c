@@ -544,8 +544,20 @@ hndl_poly(pgc_t *pgc)
 	}
 
 	for (n = 0; n < count; n++) {
-		if (! pgc_param_word(pgc, &xw)) return;
-		if (! pgc_param_word(pgc, &yw)) return;
+		if (! pgc_param_word(pgc, &xw)) {
+			if (x)
+				free(x);
+			if (y)
+				free(y);
+			return;
+		}
+		if (! pgc_param_word(pgc, &yw)) {
+			if (x)
+				free(x);
+			if (y)
+				free(y);
+			return;
+		}
 
 		/* Skip degenerate line segments. */
 		if (realcount > 0 && 
