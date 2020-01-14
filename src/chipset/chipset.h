@@ -8,11 +8,11 @@
  *
  *		Handling of the emulated chipsets.
  *
- * Version:	@(#)machine.h	1.0.0	2019/05/13
+ * Version:	@(#)machine.h	1.0.1	2020/01/14
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2019 Miran Grca.
+ *		Copyright 2019,2020 Miran Grca.
  */
 #ifndef EMU_CHIPSET_H
 # define EMU_CHIPSET_H
@@ -61,10 +61,8 @@ extern const device_t	sis_85c496_device;
 extern const device_t	sis_85c50x_device;
 #endif
 
-#if defined(DEV_BRANCH) && defined(USE_SS7)
 /* VIA */
 extern const device_t   via_mvp3_device;
-#endif
 
 /* WD */
 extern const device_t	wd76c10_device;

@@ -8,13 +8,13 @@
  *
  *		Definitions for the generic NVRAM/CMOS driver.
  *
- * Version:	@(#)nvr.h	1.0.11	2019/03/16
+ * Version:	@(#)nvr.h	1.0.12	2020/01/13
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>,
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2018,2019 David Hrdlička.
+ *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2018-2020 David Hrdlička.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -91,6 +91,7 @@ extern const device_t at_nvr_device;
 extern const device_t ps_nvr_device;
 extern const device_t amstrad_nvr_device;
 extern const device_t ibmat_nvr_device;
+extern const device_t via_nvr_device;
 #endif
 
 
@@ -108,6 +109,8 @@ extern int	nvr_is_leap(int year);
 extern int	nvr_get_days(int month, int year);
 extern void	nvr_time_get(struct tm *);
 extern void	nvr_time_set(struct tm *);
+
+extern void	nvr_at_handler(int set, uint16_t base, nvr_t *nvr);
 
 
 #endif	/*EMU_NVR_H*/

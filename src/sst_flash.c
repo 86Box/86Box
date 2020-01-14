@@ -214,7 +214,7 @@ sst_readl(uint32_t addr, void *p)
 static void
 sst_add_mappings(sst_t *dev)
 {
-    int max = 2, i = 0;
+    int i = 0;
     uint32_t base, fbase;
 
     for (i = 0; i < 2; i++) {

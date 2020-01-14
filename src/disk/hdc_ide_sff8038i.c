@@ -10,13 +10,13 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)hdc_ide_sff8038i.c	1.0.1	2019/10/30
+ * Version:	@(#)hdc_ide_sff8038i.c	1.0.1	2020/01/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -370,13 +370,17 @@ sff_bus_master_set_irq(int channel, void *priv)
 
     channel &= 0x01;
     if (dev->status & 0x04) {
-	if (channel && pci_use_mirq(0))
+	if ((dev->irq_mode == 2) && (channel & 1) && pci_use_mirq(0))
 		pci_set_mirq(0, 0);
+	else if (dev->irq_mode == 1)
+		pci_set_irq(dev->slot, dev->irq_pin);
 	else
 		picint(1 << (14 + channel));
     } else {
-	if ((channel & 1) && pci_use_mirq(0))
+	if ((dev->irq_mode == 2) && (channel & 1) && pci_use_mirq(0))
 		pci_clear_mirq(0, 0);
+	else if (dev->irq_mode == 1)
+		pci_clear_irq(dev->slot, dev->irq_pin);
 	else
 		picintc(1 << (14 + channel));
     }
@@ -401,6 +405,9 @@ sff_bus_master_reset(sff8038i_t *dev, uint16_t old_base)
     dev->addr = 0x00000000;
     dev->ptr0 = 0x00;
     dev->count = dev->eot = 0x00000000;
+    dev->slot = 7;
+    dev->irq_mode = 2;
+    dev->irq_pin = PCI_INTA;
 
     ide_pri_disable();
     ide_sec_disable();
@@ -422,6 +429,27 @@ sff_reset(void *p)
 	    (zip_drives[i].ide_channel < 4) && zip_drives[i].priv)
 		zip_reset((scsi_common_t *) zip_drives[i].priv);
     }
+}
+
+
+void
+sff_set_slot(sff8038i_t *dev, int slot)
+{
+    dev->slot = slot;
+}
+
+
+void
+sff_set_irq_mode(sff8038i_t *dev, int irq_mode)
+{
+    dev->irq_mode = irq_mode;
+}
+
+
+void
+sff_set_irq_pin(sff8038i_t *dev, int irq_pin)
+{
+    dev->irq_pin = irq_pin;
 }
 
 

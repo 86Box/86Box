@@ -38,7 +38,7 @@
 #include "../piix.h"
 #include "../sio.h"
 #include "../sst_flash.h"
-#include "../vt82c586b.h"
+#include "../via_vt82c586b.h"
 #include "../video/video.h"
 #include "../video/vid_cl54xx.h"
 #include "../video/vid_s3.h"
@@ -456,7 +456,6 @@ machine_at_j656vxd_init(const machine_t *model)
     return ret;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_SS7)
 int
 machine_at_mvp3_init(const machine_t *model)
 {
@@ -468,20 +467,20 @@ machine_at_mvp3_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_ONBOARD, 1, 2, 3, 4);
     pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0a, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x07, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SPECIAL, 1, 2, 3, 4);
     device_add(&via_mvp3_device);
-    device_add(&vt82c586b_device);
+    device_add(&via_vt82c586b_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83877tf_device);
     device_add(&sst_flash_39sf010_device);
 
     return ret;
 }
-#endif
