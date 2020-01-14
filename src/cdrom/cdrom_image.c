@@ -140,7 +140,7 @@ image_is_track_audio(cdrom_t *dev, uint32_t pos, int ismsf)
     uint8_t attr;
     TMSF tmsf;
     int m, s, f;
-    int number;
+    int number, track;
 
     if (!img || (dev->cd_status == CD_STATUS_DATA_ONLY))
 	return 0;
@@ -153,9 +153,13 @@ image_is_track_audio(cdrom_t *dev, uint32_t pos, int ismsf)
     }
 
     /* GetTrack requires LBA. */
-    cdi_get_audio_track_info(img, 0, cdi_get_track(img, pos), &number, &tmsf, &attr);
-
-    return attr == AUDIO_TRACK;
+    track = cdi_get_track(img, pos);
+    if (track == -1)
+	return 0;
+    else {
+	cdi_get_audio_track_info(img, 0, cdi_get_track(img, pos), &number, &tmsf, &attr);
+	return attr == AUDIO_TRACK;
+    }
 }
 
 
