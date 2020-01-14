@@ -47,6 +47,9 @@
 #define CROSS_LEN		512
 
 
+static char	temp_keyword[1024];
+
+
 #ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
 int cdrom_image_backend_do_log = ENABLE_CDROM_IMAGE_BACKEND_LOG;
 
@@ -622,12 +625,11 @@ cdi_cue_get_buffer(char *str, char **line, int up)
 static int
 cdi_cue_get_keyword(char **dest, char **line)
 {
-    char temp[1024];
     int success;
 
-    success = cdi_cue_get_buffer(temp, line, 1);
+    success = cdi_cue_get_buffer(temp_keyword, line, 1);
     if (success)
-	*dest = temp;
+	*dest = temp_keyword;
 
     return success;
 }
