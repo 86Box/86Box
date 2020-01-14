@@ -62,7 +62,10 @@ rom_fopen(wchar_t *fn, wchar_t *mode)
 {
     wchar_t temp[1024];
 
-    wcscpy(temp, exe_path);
+    if (wcslen(exe_path) <= 1024)
+	wcscpy(temp, exe_path);
+    else
+	wcsncpy(temp, exe_path, 1024);
     plat_put_backslash(temp);
     wcscat(temp, fn);
 
