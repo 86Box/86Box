@@ -330,7 +330,10 @@ intel_flash_init(const device_t *info)
     flash_name = (wchar_t *)malloc(l*sizeof(wchar_t));
     swprintf(flash_name, l, L"%ls.bin", machine_name);
 
-    wcscpy(flash_path, flash_name);
+    if (wcslen(flash_name) <= 1024)
+	wcscpy(flash_path, flash_name);
+    else
+	wcsncpy(flash_path, flash_name, 1024);
 
     dev->flags = info->local & 0xff;
 
