@@ -539,13 +539,9 @@ win_settings_machine_recalc_cpu(HWND hdlg)
 
     h = GetDlgItem(hdlg, IDC_CHECK_FPU);
     cpu_type = machines[temp_machine].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
-    // if ((cpu_type < CPU_i486DX) && (cpu_type >= CPU_286))
     if (cpu_type < CPU_i486DX)
 	EnableWindow(h, TRUE);
-    else if (cpu_type < CPU_286) {
-	temp_fpu = 0;
-	EnableWindow(h, FALSE);
-    } else {
+    else {
 	temp_fpu = 1;
 	EnableWindow(h, FALSE);
     }
