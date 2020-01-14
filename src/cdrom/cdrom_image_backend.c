@@ -82,11 +82,16 @@ bin_read(void *p, uint8_t *buffer, uint64_t seek, size_t count)
     if (tf->file == NULL)
 	return 0;
 
-    fseeko64(tf->file, seek, SEEK_SET);
+    if (fseeko64(tf->file, seek, SEEK_SET) == -1) {
+#ifdef ENABLE_cdrom_image_backend_log
+	cdrom_image_backend_log("CDROM: binary_read failed during seek!\n");
+#endif
+	return 0;
+    }
 
     if (fread(buffer, count, 1, tf->file) != 1) {
 #ifdef ENABLE_cdrom_image_backend_log
-	cdrom_image_backend_log("CDROM: binary_read failed!\n");
+	cdrom_image_backend_log("CDROM: binary_read failed during read!\n");
 #endif
 	return 0;
     }
