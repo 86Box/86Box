@@ -859,7 +859,7 @@ zip_bus_speed(zip_t *dev)
 {
     double ret = -1.0;
 
-    if (dev && dev->drv && dev->drv->bus_type == ZIP_BUS_SCSI) {
+    if (dev && dev->drv && (dev->drv->bus_type == ZIP_BUS_SCSI)) {
 	dev->callback = -1.0;	/* Speed depends on SCSI controller */
 	return 0.0;
     } else {

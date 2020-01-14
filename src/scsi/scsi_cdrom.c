@@ -606,7 +606,7 @@ scsi_cdrom_bus_speed(scsi_cdrom_t *dev)
 {
     double ret = -1.0;
 
-    if (dev->drv->bus_type == CDROM_BUS_SCSI) {
+    if (dev && dev->drv && (dev->drv->bus_type == CDROM_BUS_SCSI)) {
 	dev->callback = -1.0;	/* Speed depends on SCSI controller */
 	return 0.0;
     } else {
