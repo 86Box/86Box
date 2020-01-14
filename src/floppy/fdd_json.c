@@ -438,13 +438,9 @@ json_seek(int drive, int track)
 	pos = d86f_prepare_pretrack(drive, side, 0);
 
 	for (sector=0; sector<dev->spt[track][side]; sector++) {
-		if (interleave_type == 0) {
-			rsec = dev->sects[track][side][sector].sector;
-			asec = sector;
-		} else {
-			rsec = fdd_dmf_r[sector];
-			asec = dev->interleave_ordered[rsec][side];
-		}
+		rsec = dev->sects[track][side][sector].sector;
+		asec = sector;
+
 		id[0] = track;
 		id[1] = side;
 		id[2] = rsec;
