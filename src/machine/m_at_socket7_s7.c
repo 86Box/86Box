@@ -519,7 +519,6 @@ machine_at_j656vxd_init(const machine_t *model)
 
     return ret;
 }
-
 int
 machine_at_adventure_init(const machine_t *model)
 {
@@ -527,7 +526,7 @@ machine_at_adventure_init(const machine_t *model)
 
     ret = bios_load_linear(L"roms/machines/adventure/FM530260.SST",
 			   0x000e0000, 131072, 0);
- 
+
 	if (bios_only || !ret)
 
 	return ret;
@@ -545,6 +544,8 @@ machine_at_adventure_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&fdc37c932fr_device);
     device_add(&intel_flash_bxb_ast_device);
+	
+	return ret;
 }
 
 int
