@@ -707,7 +707,10 @@ load_network(void)
 
 		strcpy(network_host, "none");
 	} else {
-		strcpy(network_host, p);
+		if (strlen(p) <= 522)
+			strcpy(network_host, p);
+		else
+			strncpy(network_host, p, 522);
 	}
     } else
 	strcpy(network_host, "none");
