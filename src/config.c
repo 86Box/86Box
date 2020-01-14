@@ -81,7 +81,7 @@ typedef struct {
     list_t	list;
 
     char	name[128];
-    char	data[256];
+    char	data[512];
     wchar_t	wdata[512];
 } entry_t;
 
