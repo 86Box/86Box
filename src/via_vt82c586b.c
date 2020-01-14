@@ -345,7 +345,7 @@ power_update_io_mapping(via_vt82c586b_t *dev)
     if (dev->power.io_base != 0x0000)
 	io_removehandler(dev->power.io_base, 0x100, power_reg_read, NULL, NULL, power_reg_write, NULL, NULL, dev);
 
-    dev->power.io_base = dev->power_regs[0x41] | (dev->power_regs[0x49] << 8);
+    dev->power.io_base = (dev->power_regs[0x49] << 8);
 
     if ((dev->power_regs[0x41] & ACPI_IO_ENABLE) && (dev->power.io_base != 0x0000))
 	io_sethandler(dev->power.io_base, 0x100, power_reg_read, NULL, NULL, power_reg_write, NULL, NULL, dev);
@@ -565,7 +565,7 @@ via_vt82c586b_write(int func, int addr, uint8_t val, void *priv)
 
 	case 3:
 		/* Read-only addresses */
-		if ((addr < 0xd) || ((addr >= 0xe && addr < 0x40)) || (addr == 0x43) || (addr == 0x48) ||
+		if ((addr < 0xd) || ((addr >= 0xe) && (addr < 0x40)) || (addr == 0x43) || (addr == 0x48) ||
 		    ((addr >= 0x4a) && (addr < 0x50)) || (addr >= 0x54))
 			return;
 
