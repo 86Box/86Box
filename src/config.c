@@ -1698,7 +1698,7 @@ static void
 save_hard_disks(void)
 {
     char *cat = "Hard disks";
-    char temp[32], tmp2[64];
+    char temp[32], tmp2[256];
     char *p;
     int c;
 
