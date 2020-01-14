@@ -267,6 +267,11 @@ CreateConsole(int init)
 		}
 	}
     }
+
+    if (fp != NULL) {
+	fclose(fp);
+	fp = NULL;
+    }
 }
 
 
