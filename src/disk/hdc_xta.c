@@ -385,9 +385,6 @@ do_seek(hdc_t *dev, drive_t *drive, int cyl)
 	drive->cur_cyl = (drive->tracks - 1);
       else
 	drive->cur_cyl = dev->track;
-
-    if (drive->cur_cyl < 0)
-	drive->cur_cyl = 0;
 }
 
 
