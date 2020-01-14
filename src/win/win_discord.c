@@ -74,6 +74,7 @@ discord_update_activity(int paused)
     struct DiscordActivity activity;
     wchar_t config_name_w[1024];
     char config_name[128];
+    char *temp;
 
     if(discord_activities == NULL)
 	return;
@@ -90,7 +91,11 @@ discord_update_activity(int paused)
     }
     else
     {
-	strcpy(activity.details, strchr(machine_getname(), ']') + 2);
+	temp = strchr(machine_getname(), ']') + 2;
+	if (strlen(temp) <= 128)
+		strcpy(activity.details, temp);
+	else
+		strncpy(activity.details, temp, 128);
 	strcpy(activity.state, machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].name);
     }
 
