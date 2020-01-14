@@ -1845,9 +1845,6 @@ gd54xx_writel_linear(uint32_t addr, uint32_t val, void *p)
 		case 3:
 			return;
 	}
-
-	if (svga->fast)
-        	sub_cycles(video_timing_write_l);
     } else {
 	switch(ap) {
 		case 0:
