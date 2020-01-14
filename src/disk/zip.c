@@ -1173,7 +1173,8 @@ zip_blocks(zip_t *dev, int32_t *len, int first_batch, int out)
     *len = dev->requested_blocks << 9;
 
     for (i = 0; i < dev->requested_blocks; i++) {
-	fseek(dev->drv->f, dev->drv->base + (dev->sector_pos << 9) + (i << 9), SEEK_SET);
+	if (fseek(dev->drv->f, dev->drv->base + (dev->sector_pos << 9) + (i << 9), SEEK_SET) == 1)
+		break;
 
 	if (feof(dev->drv->f))
 		break;
