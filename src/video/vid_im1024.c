@@ -527,7 +527,13 @@ hndl_poly(pgc_t *pgc)
     }
 
     while (parsing) {
-	if (! pgc_param_byte(pgc, &count)) return;
+	if (! pgc_param_byte(pgc, &count)) {
+		if (x)
+			free(x);
+		if (y)
+			free(y);
+		return;
+	}
 
 	if (count + realcount >= as) {
 		nx = (int32_t *)realloc(x, 2 * as * sizeof(int32_t));	
