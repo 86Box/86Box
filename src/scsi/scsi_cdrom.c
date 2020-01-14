@@ -1891,7 +1891,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 		}
 		gesn_event_header->len = used_len - sizeof(*gesn_event_header);
 
-		memcpy(dev->buffer, gesn_event_header, 4);
+		memmove(dev->buffer, gesn_event_header, 4);
 
 		scsi_cdrom_set_buf_len(dev, BufLen, &used_len);
 
