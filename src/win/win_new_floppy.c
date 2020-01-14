@@ -80,7 +80,7 @@ create_86f(WCHAR *file_name, disk_size_t disk_size, uint8_t rpm_mode)
     uint16_t tflags = 0;
     uint32_t index_hole_pos = 0;
     uint32_t tarray[512];
-    uint32_t array_size, array_size2;
+    uint32_t array_size;
     uint32_t track_base, track_size;
     int i;
     uint32_t shift = 0;
@@ -132,11 +132,6 @@ create_86f(WCHAR *file_name, disk_size_t disk_size, uint8_t rpm_mode)
 		}
 		break;
     }
-
-    array_size2 = (array_size << 3);
-    array_size = (array_size2 >> 4) << 1;
-    if (array_size2 & 15)
-	array_size += 2;
 
     empty = (unsigned char *) malloc(array_size);
 
