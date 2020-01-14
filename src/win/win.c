@@ -336,6 +336,9 @@ ProcessCommandLine(wchar_t ***argw)
     args[argc] = NULL;
     *argw = args;
 
+    if (argbuf != NULL)
+	free(argbuf);
+
     return(argc);
 }
 
