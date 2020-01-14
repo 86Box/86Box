@@ -187,10 +187,14 @@ static uae_u8 temp, temp2;
 static uae_u8 *expand_tree (uae_u8 *stream, NODE *node)
 {
 	if (temp & temp2) {
-		fdi_free (node->left);
-		node->left = 0;
-		fdi_free (node->right);
-		node->right = 0;
+		if (node->left) {
+			fdi_free (node->left);
+			node->left = 0;
+		}
+		if (node->right) {
+			fdi_free (node->right);
+			node->right = 0;
+		}
 		temp2 >>= 1;
 		if (!temp2) {
 			temp = *stream++;
