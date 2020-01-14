@@ -368,7 +368,7 @@ via_vt82c586b_write(int func, int addr, uint8_t val, void *priv)
     switch(func) {
 	case 0:		/* PCI-ISA bridge */
 		/* Read-only addresses */
-		if ((addr < 4) || (addr == 5) || (addr == 6) || ((addr >= 8) && (addr < 0x40)) ||
+		if ((addr < 4) || (addr == 5) || ((addr >= 8) && (addr < 0x40)) ||
 		    (addr == 0x49) || (addr == 0x4b) || ((addr >= 0x51) && (addr < 0x54)) || ((addr >= 0x5d) && (addr < 0x60)) ||
 		    ((addr >= 0x68) && (addr < 0x6a)) || (addr >= 0x73))
 		return;
@@ -423,7 +423,7 @@ via_vt82c586b_write(int func, int addr, uint8_t val, void *priv)
 				break;
 
 			case 0x60: case 0x62: case 0x64: case 0x66:
-			case 0x68: case 0x6a: case 0x6c: case 0x6e:
+			case 0x6a: case 0x6c: case 0x6e:
 				c = (addr & 0x0e) >> 1;
 				dma[c].ab = (dma[c].ab & 0xffffff0f) | (val & 0xf0);
 				dma[c].ac = (dma[c].ac & 0xffffff0f) | (val & 0xf0);
@@ -433,7 +433,7 @@ via_vt82c586b_write(int func, int addr, uint8_t val, void *priv)
 					dma_e &= ~(1 << c);
 				break;
 			case 0x61: case 0x63: case 0x65: case 0x67:
-			case 0x69: case 0x6b: case 0x6d: case 0x6f:
+			case 0x6b: case 0x6d: case 0x6f:
 				c = (addr & 0x0e) >> 1;
 				dma[c].ab = (dma[c].ab & 0xffff00ff) | (val << 8);
 				dma[c].ac = (dma[c].ac & 0xffff00ff) | (val << 8);
