@@ -628,8 +628,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		plat_vidapi_enable(0);
 		temp_y -= sbar_height;
-		if (temp_x < 1)
-			temp_x = 1;
 		if (temp_y < 1)
 			temp_y = 1;
 
