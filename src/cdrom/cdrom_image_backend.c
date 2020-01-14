@@ -336,8 +336,7 @@ cdi_read_sector(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector)
 
     trk = &cdi->tracks[track];
     track_is_raw = ((trk->sector_size == RAW_SECTOR_SIZE) || (trk->sector_size == 2448));
-    if (raw && !track_is_raw)
-	return 0;
+
     seek = trk->skip + ((sect - trk->start) * trk->sector_size);
 
     if (track_is_raw)
