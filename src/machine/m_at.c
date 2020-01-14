@@ -8,15 +8,15 @@
  *
  *		Standard PC/AT implementation.
  *
- * Version:	@(#)m_at.c	1.0.11	2019/11/15
+ * Version:	@(#)m_at.c	1.0.12	2020/01/13
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@
 
 
 void
-machine_at_common_init_ex(const machine_t *model, int is_ibm)
+machine_at_common_init_ex(const machine_t *model, int type)
 {
     machine_common_init(model);
 
@@ -67,9 +67,9 @@ machine_at_common_init_ex(const machine_t *model, int is_ibm)
     pic2_init();
     dma16_init();
 
-    if (is_ibm)
+    if (type == 1)
 	device_add(&ibmat_nvr_device);
-    else
+    else if (type == 0)
 	device_add(&at_nvr_device);
 
     if (joystick_type != 7)

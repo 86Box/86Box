@@ -8,15 +8,15 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.34	2019/03/08
+ * Version:	@(#)machine.h	1.0.35	2020/01/13
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #ifndef EMU_MACHINE_H
 # define EMU_MACHINE_H
@@ -151,7 +151,7 @@ extern const device_t 	*pc3086_get_device(void);
 #endif
 
 /* m_at.c */
-extern void	machine_at_common_init_ex(const machine_t *, int is_ibm);
+extern void	machine_at_common_init_ex(const machine_t *, int type);
 extern void	machine_at_common_init(const machine_t *);
 extern void	machine_at_init(const machine_t *);
 extern void	machine_at_ps2_init(const machine_t *);
@@ -283,6 +283,8 @@ extern int	machine_at_i430vx_init(const machine_t *);
 extern int	machine_at_p55va_init(const machine_t *);
 extern int	machine_at_j656vxd_init(const machine_t *);
 extern int	machine_at_adventure_init(const machine_t *);
+
+extern int	machine_at_mvp3_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_pb640_get_device(void);

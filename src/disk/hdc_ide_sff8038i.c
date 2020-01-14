@@ -10,13 +10,13 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)hdc_ide_sff8038i.c	1.0.1	2019/10/30
+ * Version:	@(#)hdc_ide_sff8038i.c	1.0.1	2020/01/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -370,13 +370,17 @@ sff_bus_master_set_irq(int channel, void *priv)
 
     channel &= 0x01;
     if (dev->status & 0x04) {
-	if (channel && pci_use_mirq(0))
+	if ((dev->irq_mode == 2) && (channel & 1) && pci_use_mirq(0))
 		pci_set_mirq(0, 0);
+	else if (dev->irq_mode == 1)
+		pci_set_irq(dev->slot, dev->irq_pin);
 	else
 		picint(1 << (14 + channel));
     } else {
-	if ((channel & 1) && pci_use_mirq(0))
+	if ((dev->irq_mode == 2) && (channel & 1) && pci_use_mirq(0))
 		pci_clear_mirq(0, 0);
+	else if (dev->irq_mode == 1)
+		pci_clear_irq(dev->slot, dev->irq_pin);
 	else
 		picintc(1 << (14 + channel));
     }
@@ -425,6 +429,27 @@ sff_reset(void *p)
 }
 
 
+void
+sff_set_slot(sff8038i_t *dev, int slot)
+{
+    dev->slot = slot;
+}
+
+
+void
+sff_set_irq_mode(sff8038i_t *dev, int irq_mode)
+{
+    dev->irq_mode = irq_mode;
+}
+
+
+void
+sff_set_irq_pin(sff8038i_t *dev, int irq_pin)
+{
+    dev->irq_pin = irq_pin;
+}
+
+
 static void
 sff_close(void *p)
 {
@@ -449,6 +474,10 @@ static void
 	device_add(&ide_pci_2ch_device);
 
     ide_set_bus_master(next_id, sff_bus_master_dma, sff_bus_master_set_irq, dev);
+
+    dev->slot = 7;
+    dev->irq_mode = 2;
+    dev->irq_pin = PCI_INTA;
 
     next_id++;
 

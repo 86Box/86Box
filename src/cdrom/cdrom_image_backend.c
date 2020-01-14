@@ -9,7 +9,7 @@
  *		CD-ROM image file handling module, translated to C from
  *		cdrom_dosbox.cpp.
  *
- * Version:	@(#)cdrom_image_backend.c	1.0.2	2020/01/11
+ * Version:	@(#)cdrom_image_backend.c	1.0.4	2020/01/13
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -135,6 +135,11 @@ bin_init(const wchar_t *filename, int *error)
 {
     track_file_t *tf = (track_file_t *) malloc(sizeof(track_file_t));
 
+    if (tf == NULL) {
+	*error = 1;
+	return NULL;
+    }
+
     memset(tf->fn, 0x00, sizeof(tf->fn));
     wcscpy(tf->fn, filename);
     tf->file = plat_fopen64(tf->fn, L"rb");
@@ -147,6 +152,9 @@ bin_init(const wchar_t *filename, int *error)
 	tf->read = bin_read;
 	tf->get_length = bin_get_length;
 	tf->close = bin_close;
+    } else {
+	free(tf);
+	tf = NULL;
     }
 
     return tf;
@@ -508,7 +516,7 @@ cdi_load_iso(cd_img_t *cdi, const wchar_t *filename)
     /* Data track (shouldn't there be a lead in track?). */
     trk.file = bin_init(filename, &error);
     if (error) {
-	if (trk.file != NULL)
+	if ((trk.file != NULL) && (trk.file->close != NULL))
 		trk.file->close(trk.file);
 	return 0;
     }
