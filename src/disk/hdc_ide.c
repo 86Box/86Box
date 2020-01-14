@@ -249,8 +249,6 @@ ide_get_period(ide_t *ide, int size)
 		break;
     }
 
-    period = (10.0 / 3.0);
-
     period = (1.0 / period);		/* get us for 1 byte */
     return period * ((double) size);	/* multiply by bytes to get period for the entire transfer */
 }
