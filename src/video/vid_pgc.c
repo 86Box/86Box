@@ -867,7 +867,21 @@ pgc_fill_polygon(pgc_t *dev, unsigned corners, int32_t *x, int32_t *y)
     nodex = (double *)malloc(corners * sizeof(double));
     dx    = (double *)malloc(corners * sizeof(double));
     dy    = (double *)malloc(corners * sizeof(double));
-    if (!nodex || !dx || !dy) return;
+    if (!nodex || !dx || !dy) {
+	if (nodex) {
+		free(nodex);
+		nodex = NULL;
+	}
+	if (dx) {
+		free(dx);
+		dx = NULL;
+	}
+	if (dy) {
+		free(dy);
+		dy = NULL;
+	}
+	return;
+    }
 
     ymin = ymax = y[0] / 65536.0;
     for (n = 0; n < corners; n++) {
