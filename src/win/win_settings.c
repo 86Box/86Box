@@ -3467,7 +3467,7 @@ win_settings_floppy_drives_recalc_list(HWND hwndList)
 {
     LVITEM lvI;
     int i = 0;
-    char s[256];
+    char s[256], t;
     WCHAR szText[256];
 
     lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
@@ -3476,7 +3476,11 @@ win_settings_floppy_drives_recalc_list(HWND hwndList)
     for (i = 0; i < 4; i++) {
 	lvI.iSubItem = 0;
 	if (temp_fdd_types[i] > 0) {
-		strcpy(s, fdd_getname(temp_fdd_types[i]));
+		t = fdd_getname(temp_fdd_types[i]);
+		if (strlen(t) <= 256)
+			strcpy(s, t);
+		else
+			strncpy(s, t, 256);
 		mbstowcs(szText, s, strlen(s) + 1);
 		lvI.pszText = szText;
 	} else
