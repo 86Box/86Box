@@ -515,7 +515,7 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
 static int	fdd_id, sb_part;
 
 static int	file_type = 0;		/* 0 = IMG, 1 = Japanese FDI, 2 = 86F */
-static wchar_t	fd_file_name[512];
+static wchar_t	fd_file_name[1024];
 
 
 /* Show a MessageBox dialog.  This is nasty, I know.  --FvK */
