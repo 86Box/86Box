@@ -2368,7 +2368,7 @@ zip_hard_reset(void)
 		zip_log("ZIP hard_reset drive=%d\n", c);
 
 		/* Make sure to ignore any SCSI ZIP drive that has an out of range ID. */
-		if ((zip_drives[c].bus_type == ZIP_BUS_SCSI) && (zip_drives[c].scsi_device_id > SCSI_ID_MAX))
+		if ((zip_drives[c].bus_type == ZIP_BUS_SCSI) && (zip_drives[c].scsi_device_id >= SCSI_ID_MAX))
 			continue;
 
 		/* Make sure to ignore any ATAPI ZIP drive that has an out of range IDE channel. */

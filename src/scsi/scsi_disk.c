@@ -1212,7 +1212,7 @@ scsi_disk_hard_reset(void)
 		scsi_disk_log("SCSI disk hard_reset drive=%d\n", c);
 
 		/* Make sure to ignore any SCSI disk that has an out of range ID. */
-		if (hdd[c].scsi_id > SCSI_ID_MAX)
+		if (hdd[c].scsi_id >= SCSI_ID_MAX)
 			continue;
 
 		/* Make sure to ignore any SCSI disk whose image file name is empty. */

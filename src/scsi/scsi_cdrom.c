@@ -2545,7 +2545,7 @@ scsi_cdrom_drive_reset(int c)
     ide_t *id;
 
     /* Make sure to ignore any SCSI CD-ROM drive that has an out of range ID. */
-    if ((drv->bus_type == CDROM_BUS_SCSI) && (drv->scsi_device_id > SCSI_ID_MAX))
+    if ((drv->bus_type == CDROM_BUS_SCSI) && (drv->scsi_device_id >= SCSI_ID_MAX))
 	return;
 
     /* Make sure to ignore any ATAPI CD-ROM drive that has an out of range IDE channel. */
