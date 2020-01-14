@@ -257,7 +257,7 @@ void et4000w32p_out(uint16_t addr, uint8_t val, void *p)
 			if (et4000->pci)
 			{
 				et4000->linearbase &= 0xc0000000;
-				et4000->linearbase = (val & 0xfc) << 22;
+				et4000->linearbase |= (val & 0xfc) << 22;
 			}
 			else
 			{
