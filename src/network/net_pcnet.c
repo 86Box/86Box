@@ -1263,22 +1263,18 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                 /* In loopback mode, Runt Packed Accept is always enabled internally;
                  * don't do any padding because guest may be looping back very short packets.
                  */
-                if (!CSR_LOOP(dev))
-                    while (size < 60)
-                        src[size++] = 0;
+                uint32_t fcs = UINT32_MAX;
+                uint8_t *p = src;
 
-				uint32_t fcs = UINT32_MAX;
-				uint8_t *p = src;
+                while (p != &src[size])
+			CRC(fcs, *p++);
 
-				while (p != &src[size])
-					CRC(fcs, *p++);
+		/* FCS at the end of the packet */
+		((uint32_t *)&src[size])[0] = htonl(fcs);
+		size += 4;
+           }
 
-				/* FCS at the end of the packet */
-				((uint32_t *)&src[size])[0] = htonl(fcs);
-				size += 4;
-            }
-			
-			cbPacket  = size; 
+            cbPacket  = size; 
 
             pcnetRmdLoad(dev, &rmd, PHYSADDR(dev, crda), 0);
             /* if (!CSR_LAPPEN(dev)) */
