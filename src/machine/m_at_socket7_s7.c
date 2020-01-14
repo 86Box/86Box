@@ -526,6 +526,8 @@ machine_at_adventure_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear(L"roms/machines/adventure/FM530260.SST",
+			   0x000e0000, 131072, 0);
+ 
 	if (bios_only || !ret)
 
 	return ret;
