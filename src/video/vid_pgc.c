@@ -2033,7 +2033,10 @@ pgc_parse_words(pgc_t *dev, pgc_cl_t *cl, int count)
     }
 
     for (n = 0; n < count; n++) {
-	if (! pgc_param_word(dev, &param[n])) return 0;
+	if (! pgc_param_word(dev, &param[n])) {
+		free(param);
+		return 0;
+	}
 
 	if (!pgc_cl_append(cl, param[n] & 0xff) ||
 	    !pgc_cl_append(cl, param[n] >> 8)) {
