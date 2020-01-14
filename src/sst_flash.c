@@ -249,7 +249,10 @@ sst_39sf010_init(const device_t *info)
     wchar_t *flash_name = (wchar_t *)malloc(l*sizeof(wchar_t));
     swprintf(flash_name, l, L"%ls.bin", machine_name);
 
-    wcscpy(flash_path, flash_name);
+    if (wcslen(flash_name) <= 1024)
+	wcscpy(flash_path, flash_name);
+    else
+	wcsncpy(flash_path, flash_name, 1024);
 
     mem_mapping_disable(&bios_mapping);
     mem_mapping_disable(&bios_high_mapping);
