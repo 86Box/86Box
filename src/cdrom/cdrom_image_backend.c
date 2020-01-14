@@ -141,7 +141,10 @@ bin_init(const wchar_t *filename, int *error)
     }
 
     memset(tf->fn, 0x00, sizeof(tf->fn));
-    wcscpy(tf->fn, filename);
+    if (wcslen(tf->fn) > 260)
+	wcsncpy(tf->fn, filename, 260);
+    else
+	wcscpy(tf->fn, filename);
     tf->file = plat_fopen64(tf->fn, L"rb");
     cdrom_image_backend_log("CDROM: binary_open(%ls) = %08lx\n", tf->fn, tf->file);
 
@@ -682,6 +685,10 @@ cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, u
 
     if ((cdi->tracks != NULL) && (cdi->tracks_num != 0))
 	prev = &cdi->tracks[cdi->tracks_num - 1];
+    else if ((cdi->tracks != NULL) && (cdi->tracks_num == 0)) {
+	fatal("Non-NULL cdi->tracks with tracks_num being 0\n");
+	return 0;
+    }
 
     /* First track (track number must be 1). */
     if (cdi->tracks_num == 0) {
