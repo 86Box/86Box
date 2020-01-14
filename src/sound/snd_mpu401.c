@@ -459,7 +459,7 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 		mpu->filter.midi_thru = 0;
 		for (i = 0; i < 16; i++) {
 			mpu->inputref[i].on = 0;
-			for (j = 0; i < 4; j++)
+			for (j = 0; j < 4; j++)
 				mpu->inputref[i].key[j] = 0;
 		}
 		break;
