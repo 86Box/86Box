@@ -86,7 +86,7 @@ typedef struct
     wchar_t	filename[260];
 
     char	buffer[POSTSCRIPT_BUFFER_LENGTH];
-    uint32_t	buffer_pos;
+    size_t	buffer_pos;
 } ps_t;
 
 static void
