@@ -405,9 +405,6 @@ sff_bus_master_reset(sff8038i_t *dev, uint16_t old_base)
     dev->addr = 0x00000000;
     dev->ptr0 = 0x00;
     dev->count = dev->eot = 0x00000000;
-    dev->slot = 7;
-    dev->irq_mode = 2;
-    dev->irq_pin = PCI_INTA;
 
     ide_pri_disable();
     ide_sec_disable();
@@ -477,6 +474,10 @@ static void
 	device_add(&ide_pci_2ch_device);
 
     ide_set_bus_master(next_id, sff_bus_master_dma, sff_bus_master_set_irq, dev);
+
+    dev->slot = 7;
+    dev->irq_mode = 2;
+    dev->irq_pin = PCI_INTA;
 
     next_id++;
 
