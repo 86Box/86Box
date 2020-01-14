@@ -750,7 +750,10 @@ hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
     int i;
 
-    fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET);
+    if (fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1) {
+	fatal("Hard disk image %i: Error during seek\n", id);
+	return;
+    }
 
     for (i = 0; i < count; i++) {
 	if (feof(hdd_images[id].file))
