@@ -338,7 +338,7 @@ mfm_read_side(int drive, int side)
 {
     mfm_t *dev = mfm[drive];
     int track_index, track_size;
-    int track_bytes;
+    int track_bytes, ret;
 
     if (dev->hdr.if_type & 0x80)
 	track_index = get_adv_track_index(drive, side, dev->cur_track);
@@ -354,9 +354,11 @@ mfm_read_side(int drive, int side)
 	memset(dev->track_data[side], 0x00, track_bytes);
     else {
 	if (dev->hdr.if_type & 0x80)
-		fseek(dev->f, dev->adv_tracks[track_index].track_offset, SEEK_SET);
+		ret = fseek(dev->f, dev->adv_tracks[track_index].track_offset, SEEK_SET);
 	else
-		fseek(dev->f, dev->tracks[track_index].track_offset, SEEK_SET);
+		ret = fseek(dev->f, dev->tracks[track_index].track_offset, SEEK_SET);
+	if (ret == -1)
+		fatal("MFM: Error seeking in mfm_read_side()\n");
 	fread(dev->track_data[side], 1, track_bytes, dev->f);
     }
 
