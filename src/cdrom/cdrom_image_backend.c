@@ -149,10 +149,10 @@ bin_init(const wchar_t *filename, int *error)
     }
 
     memset(tf->fn, 0x00, sizeof(tf->fn));
-    if (wcslen(tf->fn) > 260)
-	wcsncpy(tf->fn, filename, 260);
-    else
+    if (wcslen(filename) <= 260)
 	wcscpy(tf->fn, filename);
+    else
+	wcsncpy(tf->fn, filename, 260);
     tf->file = plat_fopen64(tf->fn, L"rb");
     cdrom_image_backend_log("CDROM: binary_open(%ls) = %08lx\n", tf->fn, tf->file);
 
