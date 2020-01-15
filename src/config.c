@@ -2099,7 +2099,7 @@ config_set_int(char *head, char *name, int val)
 	ent = create_entry(section, name);
 
     sprintf(ent->data, "%i", val);
-    mbstowcs(ent->wdata, ent->data, sizeof(ent->wdata));
+    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
 }
 
 
@@ -2118,7 +2118,7 @@ config_set_hex16(char *head, char *name, int val)
 	ent = create_entry(section, name);
 
     sprintf(ent->data, "%04X", val);
-    mbstowcs(ent->wdata, ent->data, sizeof(ent->wdata));
+    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
 }
 
 
