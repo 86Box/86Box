@@ -613,7 +613,8 @@ scsi_cdrom_bus_speed(scsi_cdrom_t *dev)
 	if (dev && dev->drv)
 		ret = ide_atapi_get_period(dev->drv->ide_channel);
 	if (ret == -1.0) {
-		dev->callback = -1.0;
+		if (dev)
+			dev->callback = -1.0;
 		return 0.0;
 	} else
 		return ret * 1000000.0;
