@@ -92,10 +92,10 @@ discord_update_activity(int paused)
     else
     {
 	temp = strchr(machine_getname(), ']') + 2;
-	if (strlen(temp) <= 128)
+	if (strlen(temp) <= 127)
 		strcpy(activity.details, temp);
 	else
-		strncpy(activity.details, temp, 128);
+		strncpy(activity.details, temp, 127);
 	strcpy(activity.state, machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].name);
     }
 
