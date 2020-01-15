@@ -920,14 +920,14 @@ loadfont(wchar_t *s, int format)
 	case 0:		/* MDA */
 		for (c=0; c<256; c++)
 			for (d=0; d<8; d++)
-				fontdatm[c][d] = fgetc(f);
+				fontdatm[c][d] = fgetc(f) & 0xff;
 		for (c=0; c<256; c++)
 			for (d=0; d<8; d++)
-				fontdatm[c][d+8] = fgetc(f);
+				fontdatm[c][d+8] = fgetc(f) & 0xff;
 		(void)fseek(f, 4096+2048, SEEK_SET);
 		for (c=0; c<256; c++)
 			for (d=0; d<8; d++)
-				fontdat[c][d] = fgetc(f);
+				fontdat[c][d] = fgetc(f) & 0xff;
 		break;
 
 	case 1:		/* PC200 */
@@ -950,19 +950,19 @@ loadfont(wchar_t *s, int format)
 	case 2:		/* CGA */
 		for (c=0; c<256; c++)
 		       	for (d=0; d<8; d++)
-				fontdat[c][d] = fgetc(f);
+				fontdat[c][d] = fgetc(f) & 0xff;
 		break;
 
 	case 3:		/* Wyse 700 */
 		for (c=0; c<512; c++)
 			for (d=0; d<32; d++)
-				fontdatw[c][d] = fgetc(f);
+				fontdatw[c][d] = fgetc(f) & 0xff;
 		break;
 
 	case 4:		/* MDSI Genius */
 		for (c=0; c<256; c++)
 			for (d=0; d<16; d++)
-				fontdat8x12[c][d] = fgetc(f);
+				fontdat8x12[c][d] = fgetc(f) & 0xff;
 		break;
 
 	case 5: /* Toshiba 3100e */
@@ -1006,7 +1006,7 @@ loadfont(wchar_t *s, int format)
 		for (c = 0; c < 16384; c++)
 		{
 			for (d = 0; d < 32; d++)
-				fontdatksc5601[c].chr[d]=getc(f);
+				fontdatksc5601[c].chr[d]=fgetc(f) & 0xff;
 		}
 		break;
 
@@ -1026,7 +1026,7 @@ loadfont(wchar_t *s, int format)
 	case 8:	/* Amstrad PC1512, Toshiba T1000/T1200 */
 		for (c = 0; c < 2048; c++)	/* Allow up to 2048 chars */
 		       	for (d=0; d<8; d++)
-				fontdat[c][d] = fgetc(f);
+				fontdat[c][d] = fgetc(f) & 0xff;
 		break;
 
 	case 9:	/* Image Manager 1024 native font */

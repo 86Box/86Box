@@ -1680,7 +1680,6 @@ pgc_wake(pgc_t *dev)
 void
 pgc_sleep(pgc_t *dev)
 {
-    uint8_t *n = NULL;
     pgc_log("PGC: sleeping on %i %i %i %i 0x%02x 0x%02x\n",
 	    dev->stopped,
 	    dev->waiting_input_fifo, dev->waiting_output_fifo,
@@ -1690,7 +1689,6 @@ pgc_sleep(pgc_t *dev)
     if (dev->stopped) {
 	dev->waiting_input_fifo = 0;
 	dev->waiting_output_fifo = 0;
-	*n = 0;
 	return;
     }
 

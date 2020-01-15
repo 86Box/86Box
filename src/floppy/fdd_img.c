@@ -490,8 +490,10 @@ img_seek(int drive, int track)
 
     is_t0 = (track == 0) ? 1 : 0;
 
-    if (! dev->disk_at_once)
-	fseek(dev->f, dev->base + (track * dev->sectors * ssize * dev->sides), SEEK_SET);
+    if (! dev->disk_at_once) {
+	if (fseek(dev->f, dev->base + (track * dev->sectors * ssize * dev->sides), SEEK_SET) == -1)
+		fatal("img_seek(): Error seeking\n");
+    }
 
     for (side = 0; side < dev->sides; side++) {
 	if (dev->disk_at_once) {

@@ -656,8 +656,10 @@ td0_initialize(int drive)
 	state_Decode(&disk_decode, dev->imagebuf, TD0_MAX_BUFSZ);
     } else {
 	td0_log("TD0: File is uncompressed\n");
-	fseek(dev->f, 12, SEEK_SET);
-	fread(dev->imagebuf, 1, file_size - 12, dev->f);
+	if (fseek(dev->f, 12, SEEK_SET) == -1)
+		fatal("td0_initialize(): Error seeking to offet 12\n");
+	if (fread(dev->imagebuf, 1, file_size - 12, dev->f) != (file_size - 12))
+		fatal("td0_initialize(): Error reading image buffer\n");
     }
 
     if (header[7] & 0x80)

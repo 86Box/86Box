@@ -667,7 +667,10 @@ load_sound(void)
     
     memset(temp, '\0', sizeof(temp));
     p = config_get_string(cat, "sound_type", "float");
-    strcpy(temp, p);
+    if (strlen(p) <= 511)
+	strcpy(temp, p);
+    else
+	strncpy(temp, p, 511);
     if (!strcmp(temp, "float") || !strcmp(temp, "1"))
 	sound_is_float = 1;
       else
@@ -2109,7 +2112,7 @@ config_set_int(char *head, char *name, int val)
 	ent = create_entry(section, name);
 
     sprintf(ent->data, "%i", val);
-    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
+    mbstowcs(ent->wdata, ent->data, 512);
 }
 
 

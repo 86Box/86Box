@@ -190,8 +190,8 @@ track_is_xdf(int drive, int side, int track)
 			dev->current_side_flags[side] = (dev->tracks[track][side].params[3] == 19) ?  0x08 : 0x28;
 			return((dev->tracks[track][side].params[3] == 19) ? 2 : 1);
 		}
-		return(0);
 	}
+	return(0);
     } else {
 	if (dev->tracks[track][side].params[4] != 0xFF) return(0);
 

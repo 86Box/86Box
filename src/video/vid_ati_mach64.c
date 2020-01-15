@@ -789,6 +789,7 @@ static void mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val
                 break;
                 case 0x2a4: case 0x2a5:
                 addr += 2;
+		/*FALLTHROUGH*/
                 case 0x2aa: case 0x2ab:                       
                 WRITE8(addr, mach64->sc_left_right, val);
                 break;

@@ -776,7 +776,8 @@ void *adgold_init(const device_t *info)
         f = nvr_fopen(L"adgold.bin", L"rb");
         if (f)
         {
-                fread(adgold->adgold_eeprom, 0x1a, 1, f);
+                if (fread(adgold->adgold_eeprom, 1, 0x1a, f) != 0x1a)
+			fatal("adgold_init(): Error reading data\n");
                 fclose(f);
         }
 

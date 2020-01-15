@@ -2130,8 +2130,10 @@ zip_phase_data_out(scsi_common_t *sc)
 				dev->buffer[6] = (s >> 8) & 0xff;
 				dev->buffer[7] = s & 0xff;
 			}
-			fseek(dev->drv->f, dev->drv->base + (i << 9), SEEK_SET);
-			fwrite(dev->buffer, 1, 512, dev->drv->f);
+			if (fseek(dev->drv->f, dev->drv->base + (i << 9), SEEK_SET) == -1)
+				fatal("zip_phase_data_out(): Error seeking\n");
+			if (fwrite(dev->buffer, 1, 512, dev->drv->f) != 512)
+				fatal("zip_phase_data_out(): Error writing data\n");
 		}
 		break;
 	case GPCMD_MODE_SELECT_6:

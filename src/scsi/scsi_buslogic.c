@@ -625,10 +625,6 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 
 	buslogic_log("Transfer Control %02X\n", ESCSICmd->DataDirection);
 	buslogic_log("CDB Length %i\n", ESCSICmd->CDBLength);	
-	if (ESCSICmd->DataDirection > 0x03) {
-		buslogic_log("Invalid control byte: %02X\n",
-			ESCSICmd->DataDirection);
-	}
     }
 
     target_cdb_len = 12;

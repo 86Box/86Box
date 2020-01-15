@@ -260,10 +260,16 @@ net_pcap_prepare(netdev_t *list)
     }
 
     for (dev=devlist; dev!=NULL; dev=dev->next) {
-	strcpy(list->device, dev->name);
-	if (dev->description)
-		strcpy(list->description, dev->description);
-	  else
+	if (strlen(dev->name) <= 127)
+		strcpy(list->device, dev->name);
+	else
+		strncpy(list->device, dev->name, 127);
+	if (dev->description) {
+		if (strlen(dev->description) <= 127)
+			strcpy(list->description, dev->description);
+		else
+			strncpy(list->description, dev->description, 127);
+	} else
 		memset(list->description, '\0', sizeof(list->description));
 	list++; i++;
     }

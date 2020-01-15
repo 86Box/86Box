@@ -1215,7 +1215,7 @@ jcc(uint8_t opcode, int cond)
     wait(1, 0);
     cpu_data = pfq_fetchb();
     wait(1, 0);
-    if ((!cond) == (opcode & 0x01))
+    if ((!cond) == !!(opcode & 0x01))
 	jump_short();
 }
 

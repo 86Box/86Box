@@ -415,7 +415,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 
     x54x_log("BIOS Command = 0x%02X\n", cmd->command);
 
-    if ((cmd->id > max_id) || (cmd->lun > 7)) {
+    if (cmd->id > max_id) {
 	x54x_log("BIOS Target ID %i or LUN %i are above maximum\n",
 						cmd->id, cmd->lun);
 	ret = 0x80;

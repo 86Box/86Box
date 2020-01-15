@@ -3175,10 +3175,10 @@ d86f_writeback(int drive)
 		fatal("86F write_back(): Error reading header size\n");
 
     if (fseek(dev->f, 8, SEEK_SET) == -1)
-		fatal("86F write_back(): Error seeking\n");
+	fatal("86F write_back(): Error seeking\n");
     size = d86f_get_track_table_size(drive);
     if (fwrite(dev->track_offset, 1, size, dev->f) != size)
-		fatal("86F write_back(): Error writing data\n");
+	fatal("86F write_back(): Error writing data\n");
 
     d86f_write_tracks(drive, &dev->f, NULL);
 
