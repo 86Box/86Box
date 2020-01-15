@@ -260,7 +260,8 @@ state_data_read(td0dsk_t *state, uint8_t *buf, uint16_t size)
     image_size = ftell(state->fdd_file);
     if (size > image_size - state->fdd_file_offset)
 	size = (image_size - state->fdd_file_offset) & 0xffff;
-    fseek(state->fdd_file, state->fdd_file_offset, SEEK_SET);
+    if (fseek(state->fdd_file, state->fdd_file_offset, SEEK_SET) == -1)
+	fatal("TD0: Failed to seek in state_data_read()\n");
     fread(buf, 1, size, state->fdd_file);
     state->fdd_file_offset += size;
 
@@ -904,15 +905,15 @@ static void
 set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 {
     td0_t *dev = td0[drive];
-    int i = 0;
+    int i = 0, cyl = c;
 
     dev->current_sector_index[side] = 0;
-    if (c != dev->track)  return;
-    for (i = 0; i < dev->track_spt[c][side]; i++) {
-	if ((dev->sects[c][side][i].track == c) &&
-	    (dev->sects[c][side][i].head == h) &&
-	    (dev->sects[c][side][i].sector == r) &&
-	    (dev->sects[c][side][i].size == n)) {
+    if (cyl != dev->track)  return;
+    for (i = 0; i < dev->track_spt[cyl][side]; i++) {
+	if ((dev->sects[cyl][side][i].track == c) &&
+	    (dev->sects[cyl][side][i].head == h) &&
+	    (dev->sects[cyl][side][i].sector == r) &&
+	    (dev->sects[cyl][side][i].size == n)) {
 		dev->current_sector_index[side] = i;
 	}
     }

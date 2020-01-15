@@ -1103,7 +1103,8 @@ jump_if_fdf:
 	/* The BPB readings appear to be valid, so let's set the values. */
 	if (fdi) {
 		/* The image is a Japanese FDI, therefore we read the number of tracks from the header. */
-		fseek(dev->f, 0x1C, SEEK_SET);
+		if (fseek(dev->f, 0x1C, SEEK_SET) == -1)
+			fatal("Japanese FDI: Failed when seeking to 0x1C\n");
 		fread(&(dev->tracks), 1, 4, dev->f);
 	} else {
 		if (!cqm && !fdf) {
