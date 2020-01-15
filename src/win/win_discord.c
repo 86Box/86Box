@@ -92,11 +92,16 @@ discord_update_activity(int paused)
     else
     {
 	temp = strchr(machine_getname(), ']') + 2;
+
 	if (strlen(temp) <= 127)
 		strcpy(activity.details, temp);
 	else
 		strncpy(activity.details, temp, 127);
-	strcpy(activity.state, machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].name);
+
+	if (strlen(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].name) <= 127)
+		strcpy(activity.state, machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].name);
+	else
+		strncpy(activity.state, machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].name, 127);
     }
 
     activity.timestamps.start = time(NULL);
