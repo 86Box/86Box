@@ -264,7 +264,8 @@ sst_39sf010_init(const device_t *info)
 
     f = nvr_fopen(flash_path, L"rb");
     if (f) {
-	fread(&(dev->array[0x00000]), 0x20000, 1, f);
+	if (fread(&(dev->array[0x00000]), 1, 0x20000, f) != 0x20000)
+		fatal("Less than 131072 bytes read from the SST Flash ROM file\n");
 	fclose(f);
     }
 
