@@ -1993,6 +1993,7 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
                 break;
                 case 0x2a4: case 0x2a5:
                 addr += 2;
+		/*FALLTHROUGH*/
                 case 0x2aa: case 0x2ab:                       
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->sc_left_right);

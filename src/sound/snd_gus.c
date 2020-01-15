@@ -619,6 +619,7 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                         else if (gus->irq != 0)
                                 picint(1 << gus->irq);
                 }
+		/*FALLTHROUGH*/
                 case 0x20d:
                 gus->sb_2xc = val;
                 break;
@@ -820,6 +821,7 @@ uint8_t readgus(uint16_t addr, void *p)
                 case 0x209: 
                 gus->ad_status &= ~0x01;
                 nmi = 0;
+		/*FALLTHROUGH*/
                 case 0x389:
                 val = gus->ad_data;
                 break;

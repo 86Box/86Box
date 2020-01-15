@@ -613,6 +613,7 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
 			scsi_disk_invalid_field(dev);
 			return;
 		}
+		/*FALLTHROUGH*/
 	case GPCMD_SCSI_RESERVE:
 	case GPCMD_SCSI_RELEASE:
 	case GPCMD_TEST_UNIT_READY:

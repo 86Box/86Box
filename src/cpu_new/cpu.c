@@ -739,6 +739,7 @@ cpu_set(void)
 		case CPU_iDX4:
 		cpu_features = CPU_FEATURE_CR4 | CPU_FEATURE_VME;
 		cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_VME;
+		/*FALLTHROUGH*/
                 case CPU_i486SX:
                 case CPU_i486DX:
 #ifdef USE_DYNAREC

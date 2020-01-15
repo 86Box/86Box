@@ -1537,6 +1537,8 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 		/* IMPORTANT: Convert the command to new read CD
 			      for pass through purposes. */
 		dev->current_cdb[0] = 0xbe;
+		/*FALLTHROUGH*/
+
 	case GPCMD_READ_6:
 	case GPCMD_READ_10:
 	case GPCMD_READ_12:

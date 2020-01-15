@@ -1250,6 +1250,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 
 	case 0x14:
 		val &= 0xe0;
+		/*FALLTHROUGH*/
 
 	case 0x15: case 0x16: case 0x17:
 		/* MMIO Base set. */
