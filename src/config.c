@@ -2176,7 +2176,7 @@ config_set_string(char *head, char *name, char *val)
 	ent = create_entry(section, name);
 
     memcpy(ent->data, val, sizeof(ent->data));
-    mbstowcs(ent->wdata, ent->data, sizeof(ent->wdata));
+    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
 }
 
 
