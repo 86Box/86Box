@@ -326,7 +326,9 @@ static void fdi_decode (uae_u8 *stream, int size, uae_u8 *out)
 			((uae_u32*)out)[i] = v;
 		}
 		free_nodes (root.left);
+		root.left = 0;
 		free_nodes (root.right);
+		root.right = 0;
 	}
 }
 
