@@ -1354,7 +1354,7 @@ mem_write_scatb(uint32_t addr, uint8_t val, void *priv)
     }
 
     if (chkaddr >= 0xc0000 && chkaddr < 0x100000) {
-	if (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15)))
+	if ((dev == NULL) || (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15))))
 		return;
     }
 
