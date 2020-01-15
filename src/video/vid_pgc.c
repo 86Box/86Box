@@ -862,7 +862,8 @@ pgc_fill_polygon(pgc_t *dev, unsigned corners, int32_t *x, int32_t *y)
 
     pgc_log("PGC: fill_polygon(%i corners)\n", corners);
 
-    if (corners < 2) return;	/* Degenerate polygon */
+    if (!x || !y || (corners < 2))
+	return;	/* Degenerate polygon */
 
     nodex = (double *)malloc(corners * sizeof(double));
     dx    = (double *)malloc(corners * sizeof(double));
