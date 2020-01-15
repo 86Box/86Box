@@ -358,8 +358,9 @@ mfm_read_side(int drive, int side)
 	else
 		ret = fseek(dev->f, dev->tracks[track_index].track_offset, SEEK_SET);
 	if (ret == -1)
-		fatal("MFM: Error seeking in mfm_read_side()\n");
-	fread(dev->track_data[side], 1, track_bytes, dev->f);
+		fatal("mfm_read_side(): Error seeking to the beginning of the file\n");
+	if (fread(dev->track_data[side], 1, track_bytes, dev->f) != track_bytes)
+		fatal("mfm_read_side(): Error reading track bytes\n");
     }
 
     mfm_log("drive = %i, side = %i, dev->cur_track = %i, track_index = %i, track_size = %i\n",

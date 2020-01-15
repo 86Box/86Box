@@ -757,6 +757,7 @@ ide_set_features(ide_t *ide)
 			default:
 				return 0;
 		}
+		break;
 
 	case FEATURE_ENABLE_IRQ_OVERLAPPED:
 	case FEATURE_ENABLE_IRQ_SERVICE:

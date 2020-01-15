@@ -155,7 +155,8 @@ scsi_disk_mode_sense_load(scsi_disk_t *dev)
     swprintf(file_name, 512, L"scsi_disk_%02i_mode_sense.bin", dev->id);
     f = plat_fopen(nvr_path(file_name), L"rb");
     if (f) {
-	fread(dev->ms_pages_saved.pages[0x30], 1, 0x18, f);
+	if (fread(dev->ms_pages_saved.pages[0x30], 1, 0x18, f) != 0x18)
+		fatal("scsi_disk_mode_sense_load(): Error reading data\n");
 	fclose(f);
     }
 }

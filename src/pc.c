@@ -149,7 +149,7 @@ int	output;
 int	atfullspeed;
 int	clockrate;
 
-wchar_t	exe_path[1024];				/* path (dir) of executable */
+wchar_t	exe_path[2048];				/* path (dir) of executable */
 wchar_t	usr_path[1024];				/* path (dir) of user data */
 wchar_t	cfg_path[1024];				/* full path of config file */
 FILE	*stdlog = NULL;				/* file to log output to */
@@ -554,8 +554,8 @@ pc_init_modules(void)
     /* Load the ROMs for the selected machine. */
     if (! machine_available(machine)) {
 	c = 0;
+	machine = -1;
 	while (machine_get_internal_name_ex(c) != NULL) {
-		machine = -1;
 		if (machine_available(c)) {
 			ui_msgbox(MBX_INFO, (wchar_t *)IDS_2063);
 			machine = c;

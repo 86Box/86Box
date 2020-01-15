@@ -581,6 +581,9 @@ void t3100e_ems_out(uint16_t addr, uint8_t val, void *p)
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)p;
 	int pg = port_to_page(addr);
 
+	if (pg == -1)
+		return;
+
 	regs->page_exec[pg & 3] = t3100e_ems_execaddr(regs, pg, val);
 	t3100e_log("EMS: page %d %02x -> %02x [%06x]\n",
 			pg, regs->page[pg], val, regs->page_exec[pg & 3]);

@@ -2039,9 +2039,12 @@ FDI *fdi2raw_header(FILE *f)
 		fdi_free(fdi);
 		return NULL;
 	}
-	fseek (fdi->file, 0, SEEK_SET);
-	fread (fdi->header, 2048, 1, fdi->file);
-	fseek (fdi->file, oldseek, SEEK_SET);
+	if (fseek (fdi->file, 0, SEEK_SET) == -1)
+		fatal("fdi2raw_header(): Error seeking to the beginning of the file\n");
+	if (fread (fdi->header, 1, 2048, fdi->file) != 2048)
+		fatal("fdi2raw_header(): Error reading header\n");
+	if (fseek (fdi->file, oldseek, SEEK_SET) == -1)
+		fatal("fdi2raw_header(): Error seeking to offset oldseek\n");
 	if (memcmp (fdiid, fdi->header, strlen ((char *)fdiid)) ) {
 		fdi_free(fdi);
 		return NULL;

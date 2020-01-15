@@ -1174,15 +1174,8 @@ d86f_put_bit(int drive, int side, int bit)
     if (d86f_has_surface_desc(drive)) {
 	surface_bit = (surface_data >> track_bit) & 1;
 	if (! surface_bit) {
-		if (! current_bit) {
-			/* Bit is 0 and is not set to fuzzy, we overwrite it as is. */
-			dev->last_word[side] |= bit;
-			current_bit = bit;
-		} else {
-			/* Bit is 1 and is not set to fuzzy, we overwrite it as is. */
-			dev->last_word[side] |= bit;
-			current_bit = bit;
-		}
+		dev->last_word[side] |= bit;
+		current_bit = bit;
 	} else {
 		if (current_bit) {
 			/* Bit is 1 and is set to fuzzy, we overwrite it with a non-fuzzy bit. */
@@ -2949,10 +2942,13 @@ d86f_read_track(int drive, int track, int thin_track, int side, uint16_t *da, ui
 
     if (dev->track_offset[logical_track]) {
 	if (! thin_track) {
-		fseek(dev->f, dev->track_offset[logical_track], SEEK_SET);
-		fread(&(dev->side_flags[side]), 2, 1, dev->f);
+		if (fseek(dev->f, dev->track_offset[logical_track], SEEK_SET) == -1)
+			fatal("d86f_read_track(): Error seeking to offset dev->track_offset[logical_track]\n");
+		if (fread(&(dev->side_flags[side]), 1, 2, dev->f) != 2)
+			fatal("d86f_read_track(): Error reading side flags\n");
 		if (d86f_has_extra_bit_cells(drive)) {
-			fread(&(dev->extra_bit_cells[side]), 4, 1, dev->f);
+			if (fread(&(dev->extra_bit_cells[side]), 1, 4, dev->f) != 4)
+				fatal("d86f_read_track(): Error reading number of extra bit cells\n");
 			/* If RPM shift is 0% and direction is 1, do not adjust extra bit cells,
 			   as that is the whole track length. */
 			if (d86f_get_rpm_mode(drive) || !d86f_get_speed_shift_dir(drive)) {
@@ -3146,7 +3142,8 @@ d86f_write_tracks(int drive, FILE **f, uint32_t *track_table)
 		}
 
 		if (tbl[logical_track]) {
-			fseek(*f, tbl[logical_track], SEEK_SET);
+			if (fseek(*f, tbl[logical_track], SEEK_SET) == -1)
+				fatal("d86f_write_tracks(): Error seeking to offset tbl[logical_track]\n");
 			d86f_write_track(drive, f, side, d86f_handler[drive].encoded_data(drive, side), dev->track_surface_data[side]);
 		}
 	}

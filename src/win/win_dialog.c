@@ -34,8 +34,8 @@
 #include "win.h"
 
 
-WCHAR	wopenfilestring[260];
-char	openfilestring[260];
+WCHAR	wopenfilestring[512];
+char	openfilestring[512];
 uint8_t	filterindex = 0;
 
 

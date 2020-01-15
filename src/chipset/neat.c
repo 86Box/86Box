@@ -565,7 +565,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 
 			case REG_RB7: 
 				val &= RB7_MASK;
-				*reg = (*reg & ~RB7_MASK) | val;
+				*reg = val;
 #if NEAT_DEBUG > 1
 				neat_log("NEAT: RB7=%02x(%02x)\n", val, *reg);
 #endif

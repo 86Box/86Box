@@ -331,7 +331,6 @@ fdi_load(int drive, wchar_t *fn)
     dev = (fdi_t *)malloc(sizeof(fdi_t));
     memset(dev, 0x00, sizeof(fdi_t));
 
-    dev->f = plat_fopen(fn, L"rb");
     if (dev == NULL) {
 	free(dev);
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
@@ -340,8 +339,11 @@ fdi_load(int drive, wchar_t *fn)
 
     d86f_unregister(drive);
 
-    fread(header, 1, 25, dev->f);
-    fseek(dev->f, 0, SEEK_SET);
+    dev->f = plat_fopen(fn, L"rb");
+    if (fread(header, 1, 25, dev->f) != 25)
+	fatal("fdi_load(): Error reading header\n");
+    if (fseek(dev->f, 0, SEEK_SET) == -1)
+	fatal("fdi_load(): Error seeking to the beginning of the file\n");
     header[25] = 0;
     if (strcmp(header, "Formatted Disk Image file") != 0) {
 	/* This is a Japanese FDI file. */

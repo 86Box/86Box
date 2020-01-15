@@ -383,6 +383,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 	if (source_hwnd)
 		PostMessage((HWND) (uintptr_t) source_hwnd, WM_HAS_SHUTDOWN, (WPARAM) 0, (LPARAM) hwndMain);
 
+	free(argw);
 	return(1);
     }
 
@@ -393,6 +394,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
     /* Handle our GUI. */
     i = ui_init(nCmdShow);
 
+    free(argw);
     return(i);
 }
 

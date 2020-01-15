@@ -2924,8 +2924,9 @@ hdd_add_file_open_error:
 						chs_enabled = 1;
 
 						no_update = 0;
-					} else
-						fclose(f);
+					}
+
+					fclose(f);
 				}
 
 				h = GetDlgItem(hdlg, IDC_EDIT_HD_FILE_NAME);

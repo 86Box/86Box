@@ -133,7 +133,8 @@ image_is_hdx(const wchar_t *s, int check_signature)
 				fclose(f);
 			return 0;
 		}
-		fread(&signature, 1, 8, f);
+		if (fread(&signature, 1, 8, f) != 8)
+			fatal("image_is_hdx(): Error reading signature\n");
 		fclose(f);
 		if (signature == 0xD778A82044445459ll)
 			return 1;
@@ -175,7 +176,8 @@ image_is_vhd(const wchar_t *s, int check_signature)
 				fclose(f);
 			return 0;
 		}
-		fread(&signature, 1, 8, f);
+		if (fread(&signature, 1, 8, f) != 8)
+			fatal("image_is_vhd(): Error reading signature\n");
 		fclose(f);
 		if (signature == 0x78697463656E6F63ll)
 			return 1;
@@ -770,7 +772,8 @@ hdd_image_seek(uint8_t id, uint32_t sector)
     addr = (uint64_t)sector << 9LL;
 
     hdd_images[id].pos = sector;
-    fseeko64(hdd_images[id].file, addr + hdd_images[id].base, SEEK_SET);
+    if (fseeko64(hdd_images[id].file, addr + hdd_images[id].base, SEEK_SET) == -1)
+	fatal("hdd_image_seek(): Error seeking\n");
 }
 
 

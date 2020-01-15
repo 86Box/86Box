@@ -629,6 +629,7 @@ imd_load(int drive, wchar_t *fn)
 	dev->f = plat_fopen(fn, L"rb");
 	if (dev->f == NULL) {
 		memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+		free(dev);
 		return;
 	}
 	writeprot[drive] = 1;
@@ -654,6 +655,13 @@ imd_load(int drive, wchar_t *fn)
     if (fseek(dev->f, 0, SEEK_END) == -1)
 	fatal("imd_load(): Error seeking to the end of the file\n");
     fsize = ftell(dev->f);
+    if (fsize <= 0) {
+	imd_log("IMD: Too small ImageDisk image\n");
+	fclose(dev->f);
+	free(dev);
+	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+	return;
+    }
     if (fseek(dev->f, 0, SEEK_SET) == -1)
 	fatal("imd_load(): Error seeking to the beginning of the file again\n");
     dev->buffer = malloc(fsize);
@@ -661,7 +669,7 @@ imd_load(int drive, wchar_t *fn)
 	fatal("imd_load(): Error reading data\n");
     buffer = dev->buffer;
 
-    buffer2 = strchr(buffer, 0x1A);
+    buffer2 = memchr(buffer, 0x1A, fsize);
     if (buffer2 == NULL) {
 	imd_log("IMD: No ASCII EOF character\n");
 	fclose(dev->f);

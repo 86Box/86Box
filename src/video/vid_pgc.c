@@ -112,7 +112,8 @@ static const char *pgc_err_msgs[] = {
     "Stack   \r",
     "Too long\r",
     "Area    \r",
-    "Missing \r" 
+    "Missing \r",
+    "Unknown \r" 
 };
 
 

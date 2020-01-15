@@ -339,7 +339,7 @@ config_read(wchar_t *fn)
 	/* Allocate a new variable entry.. */
 	ne = malloc(sizeof(entry_t));
 	memset(ne, 0x00, sizeof(entry_t));
-	strncpy(ne->name, ename, sizeof(ne->name));
+	strncpy(ne->name, ename, sizeof(ne->name) - 1);
 	wcsncpy(ne->wdata, &buff[d], sizeof_w(ne->wdata)-1);
 	ne->wdata[sizeof_w(ne->wdata)-1] = L'\0';
 	wcstombs(ne->data, ne->wdata, sizeof(ne->data));
@@ -395,7 +395,7 @@ config_write(wchar_t *fn)
 	ent = (entry_t *)sec->entry_head.next;
 	while (ent != NULL) {
 		if (ent->name[0] != '\0') {
-			mbstowcs(wtemp, ent->name, sizeof_w(wtemp));
+			mbstowcs(wtemp, ent->name, 128);
 			if (ent->wdata[0] == L'\0')
 				fwprintf(f, L"%ls = \n", wtemp);
 			  else
@@ -1708,7 +1708,7 @@ static void
 save_hard_disks(void)
 {
     char *cat = "Hard disks";
-    char temp[32], tmp2[256];
+    char temp[32], tmp2[512];
     char *p;
     int c;
 
@@ -2167,7 +2167,7 @@ config_set_mac(char *head, char *name, int val)
 
     sprintf(ent->data, "%02x:%02x:%02x",
 		(val>>16)&0xff, (val>>8)&0xff, val&0xff);
-    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
+    mbstowcs(ent->wdata, ent->data, 512);
 }
 
 

@@ -1096,14 +1096,6 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 		return;
 	}
 
-	if (req->CmdBlock.common.ControlByte > 0x03) {
-		x54x_log("Invalid control byte: %02X\n",
-			req->CmdBlock.common.ControlByte);
-		x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock, CCB_INVALID_DIRECTION, SCSI_STATUS_OK, MBI_ERROR);
-		dev->callback_sub_phase = 4;
-		return;
-	}
-
 	dev->callback_sub_phase = 1;
     }
 }

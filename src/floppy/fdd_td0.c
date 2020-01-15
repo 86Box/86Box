@@ -231,8 +231,10 @@ fdd_image_read(int drive, char *buffer, uint32_t offset, uint32_t len)
 {
     td0_t *dev = td0[drive];
 
-    fseek(dev->f, offset, SEEK_SET);
-    fread(buffer, 1, len, dev->f);
+    if (fseek(dev->f, offset, SEEK_SET) == -1)
+	fatal("fdd_image_read(): Error seeking to the beginning of the file\n");
+    if (fread(buffer, 1, len, dev->f) != len)
+	fatal("fdd_image_read(): Error reading data\n");
 }
 
 

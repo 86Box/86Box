@@ -1249,7 +1249,7 @@ void et4000w32p_pci_write(int func, int addr, uint8_t val, void *p)
 		et4000->linearbase &= 0x00c00000; 
                 et4000->linearbase = (et4000->pci_regs[0x13] << 24);
 		svga->crtc[0x30] &= 3;
-		svga->crtc[0x30] = ((et4000->linearbase & 0x3f000000) >> 22);
+		svga->crtc[0x30] |= ((et4000->linearbase & 0x3f000000) >> 22);
                 et4000w32p_recalcmapping(et4000); 
                 break;
 

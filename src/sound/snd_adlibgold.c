@@ -384,7 +384,7 @@ void adgold_write(uint16_t addr, uint8_t val, void *p)
                 adgold->adgold_mma_regs[0][adgold->adgold_mma_addr] = val;
                 break;
                 case 7:
-                if (adgold->adgold_mma_addr >= 0xf) break;
+                if (adgold->adgold_mma_addr >= 0xe) break;
                 switch (adgold->adgold_mma_addr)
                 {
                         case 0x9:
@@ -503,8 +503,10 @@ uint8_t adgold_read(uint16_t addr, void *p)
                 }
                 break;
                 case 7:
-                if (adgold->adgold_mma_addr >= 0xf) temp = 0xff;
-                temp = adgold->adgold_mma_regs[1][adgold->adgold_mma_addr];
+                if (adgold->adgold_mma_addr >= 0xf)
+			temp = 0xff;
+		else
+                	temp = adgold->adgold_mma_regs[1][adgold->adgold_mma_addr];
                 break;
         }
         return temp;

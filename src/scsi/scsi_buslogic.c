@@ -410,7 +410,8 @@ BuslogicInitializeAutoSCSIRam(x54x_t *dev)
     f = nvr_fopen(BuslogicGetNVRFileName(bl), L"rb");
     if (f)
     {
-	fread(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f);
+	if (fread(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f) != 64)
+		fatal("BuslogicInitializeAutoSCSIRam(): Error reading data\n");
 	fclose(f);
 	f = NULL;
 	if (bl->chip == CHIP_BUSLOGIC_PCI) {
@@ -1229,6 +1230,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 	case 0x10:
 		val &= 0xe0;
 		val |= 1;
+		/*FALLTHROUGH*/
 
 	case 0x11: case 0x12: case 0x13:
 		/* I/O Base set. */

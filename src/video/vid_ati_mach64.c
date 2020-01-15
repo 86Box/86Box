@@ -668,6 +668,7 @@ static void mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val
                 case 0x118: case 0x119: case 0x11a: case 0x11b:
                 case 0x11e: case 0x11f:
                 WRITE8(addr, mach64->dst_height_width, val);
+		/*FALLTHROUGH*/
                 case 0x113:
                 if (((addr & 0x3ff) == 0x11b || (addr & 0x3ff) == 0x11f ||
                      (addr & 0x3ff) == 0x113) && !(val & 0x80))
@@ -797,6 +798,7 @@ static void mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val
                 break;
                 case 0x2b0: case 0x2b1:
                 addr += 2;
+		/*FALLTHROUGH*/
                 case 0x2b6: case 0x2b7:
                 WRITE8(addr, mach64->sc_top_bottom, val);
                 break;
@@ -1886,6 +1888,7 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
                 break;
                 case 0x110: case 0x111:
                 addr += 2;
+		/*FALLTHROUGH*/
                 case 0x114: case 0x115:
                 case 0x118: case 0x119: case 0x11a: case 0x11b:
                 case 0x11e: case 0x11f:
@@ -2005,6 +2008,7 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
                 break;
                 case 0x2b0: case 0x2b1:
                 addr += 2;
+		/*FALLTHROUGH*/
                 case 0x2b6: case 0x2b7:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->sc_top_bottom);

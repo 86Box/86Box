@@ -410,15 +410,17 @@ static void
 new_page(escp_t *dev, int8_t save, int8_t resetx)
 {
     /* Dump the current page if needed. */
-    if (save)
+    if (save && dev->page)
 	dump_page(dev);
     if (resetx)
 	dev->curr_x = dev->left_margin;
 
     /* Clear page. */
     dev->curr_y = dev->top_margin;
-    dev->page->dirty = 0;
-    memset(dev->page->pixels, 0x00, dev->page->pitch * dev->page->h);
+    if (dev->page) {
+	dev->page->dirty = 0;
+	memset(dev->page->pixels, 0x00, dev->page->pitch * dev->page->h);
+    }
 
     /* Make the page's file name. */
     plat_tempfile(dev->page_fn, NULL, L".png");
