@@ -910,7 +910,7 @@ void
 loadfont(wchar_t *s, int format)
 {
     FILE *f;
-    int c,d;
+    int c, d;
 
     f = rom_fopen(s, L"rb");
     if (f == NULL)
@@ -1013,8 +1013,10 @@ loadfont(wchar_t *s, int format)
 			fseek(f, 8, SEEK_CUR);
 		}
 		/* The second 4k holds an 8x16 font */
-		for (c = 0; c < 256; c++)
-			fread(&fontdatm[c][0], 1, 16, f);
+		for (c = 0; c < 256; c++) {
+			if (fread(&fontdatm[c][0], 1, 16, f) != 16)
+				fatal("loadfont(): Error reading font file in Sigma Coloar 400 mdoe, c = %i\n", c);
+		}
 		break;
 
 	case 8:	/* Amstrad PC1512, Toshiba T1000/T1200 */
