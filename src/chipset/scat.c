@@ -1341,10 +1341,14 @@ mem_write_scatb(uint32_t addr, uint8_t val, void *priv)
     scat_t *dev;
     uint32_t oldaddr = addr, chkaddr;
 
+    if (page == NULL)
+	dev = NULL;
+    else
+	dev = (scat_t *)page->scat;
+
     if (dev == NULL)
 	chkaddr = oldaddr;
     else {
-	dev = (scat_t *)page->scat;
 	addr = get_addr(dev, addr, page);
 	chkaddr = addr;
     }

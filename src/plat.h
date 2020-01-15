@@ -58,7 +58,7 @@ GLOBAL int	dopause,			/* system is paused */
 		mouse_capture;			/* mouse is captured in app */
 GLOBAL uint64_t	timer_freq;
 GLOBAL int	infocus;
-GLOBAL char	emu_version[128];		/* version ID string */
+GLOBAL char	emu_version[200];		/* version ID string */
 GLOBAL int	rctrl_is_lalt;
 GLOBAL int	update_icons;
 

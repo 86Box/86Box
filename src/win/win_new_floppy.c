@@ -551,7 +551,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message) {
 	case WM_INITDIALOG:
 		plat_pause(1);
-		memset(fd_file_name, 0, 512 * sizeof(wchar_t));
+		memset(fd_file_name, 0, 1024 * sizeof(wchar_t));
 		h = GetDlgItem(hdlg, IDC_COMBO_DISK_SIZE);
 		if (is_zip) {
 			zip_types = zip_drives[fdd_id].is_250 ? 2 : 1;

@@ -3463,7 +3463,7 @@ win_settings_floppy_drives_recalc_list(HWND hwndList)
 {
     LVITEM lvI;
     int i = 0;
-    char s[256], t;
+    char s[256], *t;
     WCHAR szText[256];
 
     lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;

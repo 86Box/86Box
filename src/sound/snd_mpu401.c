@@ -1337,7 +1337,7 @@ MPU401_InputMsg(void *p, uint8_t *msg)
     uint8_t len = msg[3], key;
     uint8_t recdata[2], recmsg[4];
     int send = 1, send_thru = 0;
-    int retrigger_thru = 0, midistatus = 0, chan, chrefnum;
+    int retrigger_thru = 0, chan, chrefnum;
 
     /* Abort if sysex transfer is in progress. */
     if (!mpu->state.sysex_in_finished) {
@@ -1350,7 +1350,6 @@ MPU401_InputMsg(void *p, uint8_t *msg)
     if (mpu->mode == M_INTELLIGENT) {
 	if (msg[0] < 0x80) {
 		/* Expand running status */
-		midistatus = 1;
 		msg[2] = msg[1];
 		msg[1] = msg[0];
 		msg[0] = old_msg;
