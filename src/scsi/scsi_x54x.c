@@ -260,6 +260,11 @@ x54x_bios_scsi_command(scsi_device_t *dev, uint8_t *cdb, uint8_t *buf, int len, 
 	return(completion_code(scsi_device_sense(dev)));
 
     if (len > 0) {
+	if (dev->buffer_length == -1) {
+		fatal("Buffer length -1 when doing SCSI DMA\n");
+		return(0xff);
+	}
+
 	if (dev->phase == SCSI_PHASE_DATA_IN) {
 		if (buf)
 			memcpy(buf, dev->sc->temp_buffer, dev->buffer_length);
