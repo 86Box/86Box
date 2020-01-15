@@ -65,7 +65,7 @@ void ati_eeprom_load(ati_eeprom_t *eeprom, wchar_t *fn, int type)
 	else
 	        wcsncpy(eeprom->fn, fn, 256);
         f = nvr_fopen(eeprom->fn, L"rb");
-	int size = eeprom->type ? 512 : 128;
+	size = eeprom->type ? 512 : 128;
         if (!f) {
                 memset(eeprom->data, 0, size);
                 return;
