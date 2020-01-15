@@ -523,6 +523,10 @@ hndl_poly(pgc_t *pgc)
 #ifdef ENABLE_IM1024_LOG
 	im1024_log("IM1024: POLY: out of memory\n");
 #endif
+	if (x)
+		free(x);
+	if (y)
+		free(y);
 	return;
     }
 

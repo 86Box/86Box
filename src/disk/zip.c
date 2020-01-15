@@ -527,7 +527,8 @@ zip_load(zip_t *dev, wchar_t *fn)
 
     dev->drv->medium_size = size >> 9;
 
-    fseek(dev->drv->f, dev->drv->base, SEEK_SET);
+    if (fseek(dev->drv->f, dev->drv->base, SEEK_SET) == -1)
+	fatal("zip_load(): Error seeking to the beginning of the file\n");
 
     memcpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path));
 
@@ -1180,10 +1181,13 @@ zip_blocks(zip_t *dev, int32_t *len, int first_batch, int out)
 	if (feof(dev->drv->f))
 		break;
 
-	if (out)
-		fwrite(dev->buffer + (i << 9), 1, 512, dev->drv->f);
-	else
-		fread(dev->buffer + (i << 9), 1, 512, dev->drv->f);
+	if (out) {
+		if (fwrite(dev->buffer + (i << 9), 1, 512, dev->drv->f) != 512)
+			fatal("zip_blocks(): Error writing data\n");
+	} else {
+		if (fread(dev->buffer + (i << 9), 1, 512, dev->drv->f) != 512)
+			fatal("zip_blocks(): Error reading data\n");
+	}
     }
 
     zip_log("%s %i bytes of blocks...\n", out ? "Written" : "Read", *len);
@@ -1444,6 +1448,7 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
 			zip_invalid_field(dev);
 			return;
 		}
+		/*FALLTHROUGH*/
 	case GPCMD_SCSI_RESERVE:
 	case GPCMD_SCSI_RELEASE:
 	case GPCMD_TEST_UNIT_READY:

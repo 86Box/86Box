@@ -183,8 +183,10 @@ rom_load_linear(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
     }
 
     if (ptr != NULL) {
-	(void)fseek(f, off, SEEK_SET);
-	(void)fread(ptr+addr, sz, 1, f);
+	if (fseek(f, off, SEEK_SET) == -1)
+		fatal("rom_load_linear(): Error seeking to the beginning of the file\n");
+	if (fread(ptr+addr, 1, sz, f) != sz)
+		fatal("rom_load_linear(): Error reading data\n");
     }
 
     (void)fclose(f);
@@ -221,9 +223,12 @@ rom_load_linear_inverted(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *p
     }
 
     if (ptr != NULL) {
-	(void)fseek(f, off, SEEK_SET);
-	(void)fread(ptr+addr+0x10000, sz >> 1, 1, f);
-	(void)fread(ptr+addr, sz >> 1, 1, f);
+	if (fseek(f, off, SEEK_SET) == -1)
+		fatal("rom_load_linear_inverted(): Error seeking to the beginning of the file\n");
+	if (fread(ptr+addr+0x10000, 1, sz >> 1, f) > (sz >> 1))
+		fatal("rom_load_linear_inverted(): Error reading the upper half of the data\n");
+	if (fread(ptr+addr, sz >> 1, 1, f) > (sz >> 1))
+		fatal("rom_load_linear_inverted(): Error reading the lower half of the data\n");
     }
 
     (void)fclose(f);

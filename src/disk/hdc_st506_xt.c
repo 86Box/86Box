@@ -1333,7 +1333,8 @@ loadrom(hdc_t *dev, const wchar_t *fn)
     /* Load the ROM data. */
     dev->bios_rom.rom = (uint8_t *)malloc(size);
     memset(dev->bios_rom.rom, 0xff, size);
-    (void)fread(dev->bios_rom.rom, size, 1, fp);
+    if (fread(dev->bios_rom.rom, 1, size, fp) != size)
+	fatal("ST-506 XT loadrom(): Error reading data\n");
     (void)fclose(fp);
 
     /* Set up an address mask for this memory. */

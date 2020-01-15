@@ -638,8 +638,10 @@ imd_load(int drive, wchar_t *fn)
 	writeprot[drive] = 1;
     fwriteprot[drive] = writeprot[drive];
 
-    fseek(dev->f, 0, SEEK_SET);
-    fread(&magic, 1, 4, dev->f);
+    if (fseek(dev->f, 0, SEEK_SET) == -1)
+	fatal("imd_load(): Error seeking to the beginning of the file\n");
+    if (fread(&magic, 1, 4, dev->f) != 4)
+	fatal("imd_load(): Error reading the magic number\n");
     if (magic != 0x20444D49) {
 	imd_log("IMD: Not a valid ImageDisk image\n");
 	fclose(dev->f);
@@ -649,11 +651,14 @@ imd_load(int drive, wchar_t *fn)
     } else
 	imd_log("IMD: Valid ImageDisk image\n");
 
-    fseek(dev->f, 0, SEEK_END);
+    if (fseek(dev->f, 0, SEEK_END) == -1)
+	fatal("imd_load(): Error seeking to the end of the file\n");
     fsize = ftell(dev->f);
-    fseek(dev->f, 0, SEEK_SET);
+    if (fseek(dev->f, 0, SEEK_SET) == -1)
+	fatal("imd_load(): Error seeking to the beginning of the file again\n");
     dev->buffer = malloc(fsize);
-    fread(dev->buffer, 1, fsize, dev->f);
+    if (fread(dev->buffer, 1, fsize, dev->f) != fsize)
+	fatal("imd_load(): Error reading data\n");
     buffer = dev->buffer;
 
     buffer2 = strchr(buffer, 0x1A);

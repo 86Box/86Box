@@ -3161,7 +3161,7 @@ d86f_writeback(int drive)
 {
     d86f_t *dev = d86f[drive];
     uint8_t header[32];
-    int header_size;
+    int header_size, size;
 #ifdef D86F_COMPRESS
     uint32_t len;
     int ret = 0;
@@ -3172,11 +3172,16 @@ d86f_writeback(int drive)
     if (! dev->f) return;
 
     /* First write the track offsets table. */
-    fseek(dev->f, 0, SEEK_SET);
-    fread(header, 1, header_size, dev->f);
+    if (fseek(dev->f, 0, SEEK_SET) == -1)
+		fatal("86F write_back(): Error seeking to the beginning of the file\n");
+    if (fread(header, 1, header_size, dev->f) != header_size)
+		fatal("86F write_back(): Error reading header size\n");
 
-    fseek(dev->f, 8, SEEK_SET);
-    fwrite(dev->track_offset, 1, d86f_get_track_table_size(drive), dev->f);
+    if (fseek(dev->f, 8, SEEK_SET) == -1)
+		fatal("86F write_back(): Error seeking\n");
+    size = d86f_get_track_table_size(drive);
+    if (fwrite(dev->track_offset, 1, size, dev->f) != size)
+		fatal("86F write_back(): Error writing data\n");
 
     d86f_write_tracks(drive, &dev->f, NULL);
 
@@ -3586,7 +3591,9 @@ d86f_load(int drive, wchar_t *fn)
 	return;
     }
 
-    fread(&(dev->version), 2, 1, dev->f);
+    if (fread(&(dev->version), 1, 2, dev->f) != 2)
+	fatal("d86f_load(): Error reading format version\n");
+
     if (dev->version != D86FVER) {
 	/* File is not of a recognized format version, abort. */
 	if (dev->version == 0x0063) {

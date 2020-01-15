@@ -86,6 +86,7 @@ static void ati18800_out(uint16_t addr, uint8_t val, void *p)
                 {
                         case 0xb0:
                         svga_recalctimings(svga);
+			break;
                         case 0xb2:
                         case 0xbe:
                         if (ati18800->regs[0xbe] & 8) /*Read/write bank mode*/

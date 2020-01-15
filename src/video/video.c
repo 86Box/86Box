@@ -933,11 +933,15 @@ loadfont(wchar_t *s, int format)
 	case 1:		/* PC200 */
 		for (d = 0; d < 4; d++) {
 			/* There are 4 fonts in the ROM */
-			for (c = 0; c < 256; c++)	/* 8x14 MDA in 8x16 cell */
-				fread(&fontdatm[256*d + c][0], 1, 16, f);
+			for (c = 0; c < 256; c++) {	/* 8x14 MDA in 8x16 cell */
+				if (fread(&fontdatm[256*d + c][0], 1, 16, f) != 16)
+					fatal("loadfont(): Error reading 8x16 font in PC200 mode, c = %i\n", c);
+			}
 			for (c = 0; c < 256; c++) {	/* 8x8 CGA in 8x16 cell */
-				fread(&fontdat[256*d + c][0], 1, 8, f);
-				fseek(f, 8, SEEK_CUR);
+				if (fread(&fontdat[256*d + c][0], 1, 8, f) != 8)
+					fatal("loadfont(): Error reading 8x8 font in PC200 mode, c = %i\n", c);
+				if (fseek(f, 8, SEEK_CUR) == -1)
+					fatal("loadfont(): Error seeking in PC200 mode, c = %i\n", c);
 			}
 		}
 		break;
@@ -1015,7 +1019,7 @@ loadfont(wchar_t *s, int format)
 		/* The second 4k holds an 8x16 font */
 		for (c = 0; c < 256; c++) {
 			if (fread(&fontdatm[c][0], 1, 16, f) != 16)
-				fatal("loadfont(): Error reading font file in Sigma Coloar 400 mdoe, c = %i\n", c);
+				fatal("loadfont(): Error reading 8x16 font in Sigma Color 400 mode, c = %i\n", c);
 		}
 		break;
 

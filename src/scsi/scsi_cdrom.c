@@ -450,7 +450,8 @@ scsi_cdrom_mode_sense_load(scsi_cdrom_t *dev)
 	swprintf(file_name, 512, L"cdrom_%02i_mode_sense_bin", dev->id);
     f = plat_fopen(nvr_path(file_name), L"rb");
     if (f) {
-	fread(dev->ms_pages_saved.pages[GPMODE_CDROM_AUDIO_PAGE], 1, 0x10, f);
+	if (fread(dev->ms_pages_saved.pages[GPMODE_CDROM_AUDIO_PAGE], 1, 0x10, f) != 0x10)
+		fatal("scsi_cdrom_mode_sense_load(): Error reading data\n");
 	fclose(f);
     }
 }

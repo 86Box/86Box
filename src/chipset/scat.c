@@ -1056,17 +1056,14 @@ scat_out(uint16_t port, uint8_t val, void *priv)
 				break;
 
 			case SCAT_EMS_CONTROL:
+				io_removehandler(0x0208, 0x0003, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
+				io_removehandler(0x0218, 0x0003, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
+
 				if (val & 0x40) {
-					if (val & 1) {
+					if (val & 1)
 						io_sethandler(0x0218, 3, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
-						io_removehandler(0x0208, 3, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
-					} else {
+					else
 						io_sethandler(0x0208, 3, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
-						io_removehandler(0x0218, 3, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
-					}
-				} else {
-					io_removehandler(0x0208, 0x0003, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
-					io_removehandler(0x0218, 0x0003, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
 				}
 				set_global_EMS_state(dev, val & 0x80);
 				reg_valid = 1;

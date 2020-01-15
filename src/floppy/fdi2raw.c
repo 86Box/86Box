@@ -2137,8 +2137,10 @@ int fdi2raw_loadtrack (FDI *fdi, uae_u16 *mfmbuf, uae_u16 *tracktiming, int trac
 
 	fdi->err = 0;
 	fdi->track_src_len = fdi->track_offsets[track + 1] - fdi->track_offsets[track];
-	fseek (fdi->file, fdi->track_offsets[track], SEEK_SET);
-	fread (fdi->track_src_buffer, fdi->track_src_len, 1, fdi->file);
+	if (fseek (fdi->file, fdi->track_offsets[track], SEEK_SET) == -1)
+		fatal("fdi2raw_loadtrack(): Error seeking to the beginning of the file\n");
+	if (fread (fdi->track_src_buffer, 1, fdi->track_src_len, fdi->file) != fdi->track_src_len)
+		fatal("fdi2raw_loadtrack(): Error reading data\n");
 	memset (fdi->track_dst_buffer, 0, MAX_DST_BUFFER);
 	fdi->track_dst_buffer_timing[0] = 0;
 
@@ -2177,7 +2179,7 @@ int fdi2raw_loadtrack (FDI *fdi, uae_u16 *mfmbuf, uae_u16 *tracktiming, int trac
 		zxx (fdi);
 		outlen = -1;
 
-	} else if (fdi->track_type < 0x10) {
+	} else if (fdi->track_type < 0x0f) {
 
 		decode_normal_track[fdi->track_type](fdi);
 		fix_mfm_sync (fdi);

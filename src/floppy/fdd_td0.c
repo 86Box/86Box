@@ -262,7 +262,8 @@ state_data_read(td0dsk_t *state, uint8_t *buf, uint16_t size)
 	size = (image_size - state->fdd_file_offset) & 0xffff;
     if (fseek(state->fdd_file, state->fdd_file_offset, SEEK_SET) == -1)
 	fatal("TD0: Failed to seek in state_data_read()\n");
-    fread(buf, 1, size, state->fdd_file);
+    if (fread(buf, 1, size, state->fdd_file) != size)
+	fatal("TD0: Error reading data in state_data_read()\n");
     state->fdd_file_offset += size;
 
     return(size);
