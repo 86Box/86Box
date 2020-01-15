@@ -1293,7 +1293,8 @@ eep_init(const device_t *info)
 
     f = nvr_fopen(eep->path, L"rb");
     if (f != NULL) {
-	fread(eep->store, 128, 1, f);
+	if (fread(eep->store, 1, 128, f) != 128)
+		fatal("eep_init(): Error reading Tandy EEPROM\n");
 	(void)fclose(f);
     }
 

@@ -166,7 +166,10 @@ image_is_vhd(const wchar_t *s, int check_signature)
 			return 0;
 		fseeko64(f, 0, SEEK_END);
 		filelen = ftello64(f);
-		fseeko64(f, -512, SEEK_END);
+		if (fseeko64(f, -512, SEEK_END) == -1) {
+			fclose(f);
+			fatal("image_is_vhd(): Error seeking\n");
+		}
 		if (filelen < 512) {
 			if (f != NULL)
 				fclose(f);

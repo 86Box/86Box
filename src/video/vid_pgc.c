@@ -2065,8 +2065,12 @@ pgc_parse_coords(pgc_t *dev, pgc_cl_t *cl, int count)
 	return 0;	
     }
 
-    for (n = 0; n < count; n++)
-	if (! pgc_param_coord(dev, &param[n])) return 0;
+    for (n = 0; n < count; n++) {
+	if (! pgc_param_coord(dev, &param[n])) {
+		free(param);
+		return 0;
+	}
+    }
 
     /* Here is how the real PGC serializes coords:
      *

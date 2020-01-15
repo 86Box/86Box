@@ -308,6 +308,7 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
                         }
                         return;
                 }
+		/*FALLTHROUGH*/
                 case 0x3C7: case 0x3C8: case 0x3C9:
                 if (tgui->type == TGUI_9400CXI)
                 {

@@ -393,15 +393,19 @@ write_back(int drive)
 {
     img_t *dev = img[drive];
     int ssize = 128 << ((int) dev->sector_size);
-    int side;
+    int side, size;
 
     if (dev->f == NULL) return;
 
     if (dev->disk_at_once) return;
 		
-    fseek(dev->f, dev->base + (dev->track * dev->sectors * ssize * dev->sides), SEEK_SET);
-    for (side = 0; side < dev->sides; side++)
-	fwrite(dev->track_data[side], dev->sectors * ssize, 1, dev->f);
+    if (fseek(dev->f, dev->base + (dev->track * dev->sectors * ssize * dev->sides), SEEK_SET) == -1)
+	pclog("IMG write_back(): Error seeking to the beginning of the file\n");
+    for (side = 0; side < dev->sides; side++) {
+	size = dev->sectors * ssize;
+	if (fwrite(dev->track_data[side], 1, size, dev->f) != size)
+		fatal("IMG write_back(): Error writing data\n");
+    }
 }
 
 
@@ -1156,8 +1160,12 @@ jump_if_fdf:
     dev->gap2_size = (temp_rate == 3) ? 41 : 22;
     if (dev->dmf)
 	dev->gap3_size = 8;
-      else
-	dev->gap3_size = gap3_sizes[temp_rate][dev->sector_size][dev->sectors];
+    else {
+	if (dev->sectors == -1)
+		dev->gap3_size = 8;
+	else
+		dev->gap3_size = gap3_sizes[temp_rate][dev->sector_size][dev->sectors];
+    }
     if (! dev->gap3_size) {
 	img_log("ERROR: Floppy image of unknown format was inserted into drive %c:!\n", drive + 0x41);
 	fclose(dev->f);

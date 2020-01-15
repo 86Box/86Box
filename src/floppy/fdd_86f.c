@@ -3779,10 +3779,13 @@ d86f_load(int drive, wchar_t *fn)
     }
 
     /* Load track 0 flags as default. */
-    fseek(dev->f, dev->track_offset[0], SEEK_SET);
-    fread(&(dev->side_flags[0]), 2, 1, dev->f);
+    if (fseek(dev->f, dev->track_offset[0], SEEK_SET) == -1)
+	fatal("d86f_load(): Track 0: Error seeking to the beginning of the file\n");
+    if (fread(&(dev->side_flags[0]), 1, 2, dev->f) != 2)
+	fatal("d86f_load(): Track 0: Error reading side flags\n");
     if (dev->disk_flags & 0x80) {
-	fread(&(dev->extra_bit_cells[0]), 4, 1, dev->f);
+	if (fread(&(dev->extra_bit_cells[0]), 1, 4, dev->f) != 4)
+		fatal("d86f_load(): Track 0: Error reading the amount of extra bit cells\n");
 	if ((dev->disk_flags & 0x1060) != 0x1000) {
 		if (dev->extra_bit_cells[0] < -32768)  dev->extra_bit_cells[0] = -32768;
 		if (dev->extra_bit_cells[0] > 32768)  dev->extra_bit_cells[0] = 32768;
@@ -3792,10 +3795,13 @@ d86f_load(int drive, wchar_t *fn)
     }
 
     if (d86f_get_sides(drive) == 2) {
-	fseek(dev->f, dev->track_offset[1], SEEK_SET);
-	fread(&(dev->side_flags[1]), 2, 1, dev->f);
+	if (fseek(dev->f, dev->track_offset[1], SEEK_SET) == -1)
+		fatal("d86f_load(): Track 1: Error seeking to the beginning of the file\n");
+	if (fread(&(dev->side_flags[1]), 1, 2, dev->f) != 2)
+		fatal("d86f_load(): Track 1: Error reading side flags\n");
 	if (dev->disk_flags & 0x80) {
-		fread(&(dev->extra_bit_cells[1]), 4, 1, dev->f);
+		if (fread(&(dev->extra_bit_cells[1]), 1, 4, dev->f) != 4)
+			fatal("d86f_load(): Track 4: Error reading the amount of extra bit cells\n");
 		if ((dev->disk_flags & 0x1060) != 0x1000) {
 			if (dev->extra_bit_cells[1] < -32768)  dev->extra_bit_cells[1] = -32768;
 			if (dev->extra_bit_cells[1] > 32768)  dev->extra_bit_cells[1] = 32768;

@@ -566,6 +566,7 @@ load_video(void)
 {
     char *cat = "Video";
     char *p;
+    int free_p = 0;
 
     if (machines[machine].flags & MACHINE_VIDEO_FIXED) {
 	config_delete_var(cat, "gfxcard");
@@ -580,8 +581,11 @@ load_video(void)
 			p = (char *)malloc((strlen("none")+1)*sizeof(char));
 			strcpy(p, "none");
 		}
+		free_p = 1;
 	}
 	gfxcard = video_get_video_from_internal_name(p);
+	if (free_p)
+		free(p);
     }
 
     voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
@@ -763,7 +767,7 @@ load_other_peripherals(void)
     char *cat = "Other peripherals";
     char *p;
     char temp[512];
-    int c;
+    int c, free_p = 0;
 	
     p = config_get_string(cat, "scsicard", NULL);
     if (p != NULL)
@@ -780,6 +784,7 @@ load_other_peripherals(void)
 		p = (char *)malloc((strlen("none")+1)*sizeof(char));
 		strcpy(p, "none");
 	}
+	free_p = 1;
     }
     if (!strcmp(p, "mfm_xt"))
 	hdc_current = hdc_get_from_internal_name("st506_xt");
@@ -789,6 +794,11 @@ load_other_peripherals(void)
 	hdc_current = hdc_get_from_internal_name("st506_at");
     else
 	hdc_current = hdc_get_from_internal_name(p);
+
+    if (free_p) {
+	free(p);
+	p = NULL;
+    }
 
     ide_ter_enabled = !!config_get_int(cat, "ide_ter", 0);
     ide_qua_enabled = !!config_get_int(cat, "ide_qua", 0);
