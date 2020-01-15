@@ -2846,6 +2846,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 					f = _wfopen(wopenfilestring, (existing & 1) ? L"rb" : L"wb");
 					if (f == NULL) {
 hdd_add_file_open_error:
+						fclose(f);
 						settings_msgbox(MBX_ERROR, (existing & 1) ? (wchar_t *)IDS_4107 : (wchar_t *)IDS_4108);
 						return TRUE;
 					}
@@ -2876,7 +2877,6 @@ hdd_add_file_open_error:
 						} else {
 							fseeko64(f, 0, SEEK_END);
 							size = ftello64(f);
-							fclose(f);
 							if (((size % 17) == 0) && (size <= 142606336)) {
 								spt = 17;
 								if (size <= 26738688)

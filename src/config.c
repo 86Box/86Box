@@ -309,7 +309,7 @@ config_read(wchar_t *fn)
 		/* Create a new section and insert it. */
 		ns = malloc(sizeof(section_t));
 		memset(ns, 0x00, sizeof(section_t));
-		strncpy(ns->name, sname, sizeof(ns->name));
+		strncpy(ns->name, sname, sizeof(ns->name) - 1);
 		list_add(&ns->list, &config_head);
 
 		/* New section is now the current one. */

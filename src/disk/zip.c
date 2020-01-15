@@ -530,7 +530,7 @@ zip_load(zip_t *dev, wchar_t *fn)
     if (fseek(dev->drv->f, dev->drv->base, SEEK_SET) == -1)
 	fatal("zip_load(): Error seeking to the beginning of the file\n");
 
-    memcpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path));
+    wcsncpy(dev->drv->image_path, fn, sizeof_w(dev->drv->image_path));
 
     return 1;
 }

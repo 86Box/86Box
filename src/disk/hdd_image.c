@@ -125,9 +125,11 @@ image_is_hdx(const wchar_t *s, int check_signature)
 		f = plat_fopen((wchar_t *)s, L"rb");
 		if (!f)
 			return 0;
-		fseeko64(f, 0, SEEK_END);
+		if (fseeko64(f, 0, SEEK_END))
+			fatal("image_is_hdx(): Error while seeking");
 		filelen = ftello64(f);
-		fseeko64(f, 0, SEEK_SET);
+		if (fseeko64(f, 0, SEEK_SET))
+			fatal("image_is_hdx(): Error while seeking");
 		if (filelen < 44) {
 			if (f != NULL)
 				fclose(f);

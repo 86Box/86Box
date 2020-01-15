@@ -10,12 +10,12 @@
  *
  * Version:	@(#)prt_escp.c	1.0.7	2019/09/23
  *
- * Authors:	Michael Drüing, <michael@drueing.de>
+ * Authors:	Michael Drï¿½ing, <michael@drueing.de>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Based on code by Frederic Weymann (originally for DosBox.)
  *
- *		Copyright 2018,2019 Michael Drüing.
+ *		Copyright 2018,2019 Michael Drï¿½ing.
  *		Copyright 2019,2019 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
@@ -2058,6 +2058,11 @@ escp_init(void *lpt)
     dev->lpt = lpt;
 
     /* Create a full pathname for the font files. */
+    if(wcslen(exe_path) >= sizeof_w(dev->fontpath)) {
+	free(dev);
+	return(NULL);
+    }
+
     wcscpy(dev->fontpath, exe_path);
     plat_path_slash(dev->fontpath);
     wcscat(dev->fontpath, L"roms/printer/fonts/");
