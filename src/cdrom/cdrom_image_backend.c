@@ -798,6 +798,8 @@ cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
 			success = cdi_add_track(cdi, &trk, &shift, prestart, &total_pregap, cur_pregap);
 		else
 			success = 1;
+		if (!success)
+			break;
 
 		trk.start = 0;
 		trk.skip = 0;
