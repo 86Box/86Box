@@ -174,18 +174,14 @@ rom_load_linear(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 
     /* Make sure we only look at the base-256K offset. */
     if (addr >= 0x40000)
-    {
 	addr = 0;
-    }
     else
-    {
 	addr &= 0x03ffff;
-    }
 
     if (ptr != NULL) {
 	if (fseek(f, off, SEEK_SET) == -1)
 		fatal("rom_load_linear(): Error seeking to the beginning of the file\n");
-	if (fread(ptr+addr, 1, sz, f) != sz)
+	if (fread(ptr+addr, 1, sz, f) > sz)
 		fatal("rom_load_linear(): Error reading data\n");
     }
 
