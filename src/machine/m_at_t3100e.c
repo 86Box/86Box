@@ -572,10 +572,12 @@ uint8_t t3100e_ems_in(uint16_t addr, void *p)
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)p;
 	
 	int page = port_to_page(addr);
-	if(page >= 0)
+	if (page >= 0)
 		return regs->page[page];
-	else
+	else {
 		fatal("t3100e_ems_in(): invalid address");
+		return 0xff;
+	}
 }
 
 /* Write EMS page register */
