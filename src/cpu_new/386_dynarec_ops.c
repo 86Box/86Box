@@ -9,6 +9,7 @@
 #endif
 #include "../86box.h"
 #include "cpu.h"
+#include "../timer.h"
 #include "x86.h"
 #include "x86_ops.h"
 #include "x87.h"
@@ -63,6 +64,8 @@ static inline void fetch_ea_16_long(uint32_t rmdat)
 #define OP_TABLE(name) dynarec_ops_ ## name
 /*Temporary*/
 #define CLOCK_CYCLES(c)
-#define CLOCK_CYCLES_ALWAYS(c) cycles -= (c)
+#define CLOCK_CYCLES_ALWAYS(c) do { cycles -= (c);	\
+			if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t)tsc))	\
+				timer_process(); } while(0)
 
 #include "386_ops.h"
