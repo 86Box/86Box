@@ -196,8 +196,12 @@ uint64_t	ecx570_msr = 0;
 #endif
 
 uint64_t	ecx83_msr = 0;			/* AMD K5 and K6 MSR's. */
-uint64_t	star = 0;			/* These are K6-only. */
-uint64_t	sfmask = 0;
+uint64_t	star = 0;			/* AMD K6-2+. */
+
+uint64_t	amd_efer = 0, amd_whcr = 0,	/* AMD K6-2+ registers. */
+		amd_uwccr = 0, amd_epmr = 0,
+		amd_psor = 0, amd_pfir = 0,
+		amd_l2aar = 0;
 
 int		timing_rr;
 int		timing_mr, timing_mrl;
@@ -1280,9 +1284,9 @@ cpu_set(void)
 
                 case CPU_K6:
 #ifdef USE_DYNAREC
-                x86_setopcodes(ops_386, ops_k6_0f, dynarec_ops_386, dynarec_ops_k6_0f);
+                x86_setopcodes(ops_386, ops_pentiummmx_0f, dynarec_ops_386, dynarec_ops_pentiummmx_0f);
 #else
-                x86_setopcodes(ops_386, ops_k6_0f);
+                x86_setopcodes(ops_386, ops_pentiummmx_0f);
 #endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 2; /*register dest - memory src*/
@@ -1322,6 +1326,7 @@ cpu_set(void)
                 break;
 
                 case CPU_K6_2:
+                case CPU_K6_2C:
                 case CPU_K6_3:
                 case CPU_K6_2P:
                 case CPU_K6_3P:
@@ -1870,6 +1875,7 @@ cpu_CPUID(void)
                 break;
 
                 case CPU_K6_2:
+                case CPU_K6_2C:
                 switch (EAX)
                 {
                         case 0:
@@ -2200,6 +2206,44 @@ cpu_CPUID(void)
         }
 }
 
+void cpu_ven_reset(void)
+{
+        switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
+        {
+                case CPU_K5:
+                case CPU_5K86:
+                case CPU_K6:
+			amd_efer = amd_whcr = 0ULL;
+			break;
+		case CPU_K6_2:
+			amd_efer = amd_whcr = 0ULL;
+			star = 0ULL;
+			break;
+		case CPU_K6_2C:
+			amd_efer = 2ULL;
+			amd_whcr = star = 0ULL;
+			amd_psor = 0x018cULL;
+			amd_uwccr = 0ULL;
+			break;
+		case CPU_K6_3:
+			amd_efer = 2ULL;
+			amd_whcr = star = 0ULL;
+			amd_psor = 0x008cULL;
+			amd_uwccr = 0ULL;
+			amd_pfir = amd_l2aar = 0ULL;
+			break;
+		case CPU_K6_2P:
+		case CPU_K6_3P:
+			amd_efer = 2ULL;
+			amd_whcr = star = 0ULL;
+			amd_psor = 0x008cULL;
+			amd_uwccr = 0ULL;
+			amd_pfir = amd_l2aar = 0ULL;
+			amd_epmr = 0ULL;
+			break;
+	}
+}
+
 void cpu_RDMSR()
 {
         switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
@@ -2238,31 +2282,208 @@ void cpu_RDMSR()
                 case CPU_K5:
                 case CPU_5K86:
                 case CPU_K6:
-                case CPU_K6_2:
-                case CPU_K6_3:
-                case CPU_K6_2P:
-                case CPU_K6_3P:
                 EAX = EDX = 0;
                 switch (ECX)
                 {
-                        case 0x0e:
+                        case 0x0000000e:
                         EAX = msr.tr12;
                         break;
-                        case 0x10:
+                        case 0x00000010:
                         EAX = tsc & 0xffffffff;
                         EDX = tsc >> 32;
                         break;
-                        case 0x83:
+                        case 0x00000083:
                         EAX = ecx83_msr & 0xffffffff;
                         EDX = ecx83_msr >> 32;
+                        break;
+                        case 0xC0000080:
+                        EAX = amd_efer & 0xffffffff;
+                        EDX = amd_efer >> 32;
+                        break;
+                        case 0xC0000082:
+                        EAX = amd_whcr & 0xffffffff;
+                        EDX = amd_whcr >> 32;
+                        break;
+			default:
+			x86gpf(NULL, 0);
+			break;
+                }
+                break;
+
+                case CPU_K6_2:
+                EAX = EDX = 0;
+                switch (ECX)
+                {
+                        case 0x0000000e:
+                        EAX = msr.tr12;
+                        break;
+                        case 0x00000010:
+                        EAX = tsc & 0xffffffff;
+                        EDX = tsc >> 32;
+                        break;
+                        case 0x00000083:
+                        EAX = ecx83_msr & 0xffffffff;
+                        EDX = ecx83_msr >> 32;
+                        break;
+                        case 0xC0000080:
+                        EAX = amd_efer & 0xffffffff;
+                        EDX = amd_efer >> 32;
                         break;
                         case 0xC0000081:
                         EAX = star & 0xffffffff;
                         EDX = star >> 32;
                         break;
-                        case 0xC0000084:
-                        EAX = sfmask & 0xffffffff;
-                        EDX = sfmask >> 32;
+                        case 0xC0000082:
+                        EAX = amd_whcr & 0xffffffff;
+                        EDX = amd_whcr >> 32;
+                        break;
+			default:
+			x86gpf(NULL, 0);
+			break;
+                }
+                break;
+
+                case CPU_K6_2C:
+                EAX = EDX = 0;
+                switch (ECX)
+                {
+                        case 0x0000000e:
+                        EAX = msr.tr12;
+                        break;
+                        case 0x00000010:
+                        EAX = tsc & 0xffffffff;
+                        EDX = tsc >> 32;
+                        break;
+                        case 0x00000083:
+                        EAX = ecx83_msr & 0xffffffff;
+                        EDX = ecx83_msr >> 32;
+                        break;
+                        case 0xC0000080:
+                        EAX = amd_efer & 0xffffffff;
+                        EDX = amd_efer >> 32;
+                        break;
+                        case 0xC0000081:
+                        EAX = star & 0xffffffff;
+                        EDX = star >> 32;
+                        break;
+                        case 0xC0000082:
+                        EAX = amd_whcr & 0xffffffff;
+                        EDX = amd_whcr >> 32;
+                        break;
+                        case 0xC0000085:
+                        EAX = amd_uwccr & 0xffffffff;
+                        EDX = amd_uwccr >> 32;
+                        break;
+                        case 0xC0000087:
+                        EAX = amd_psor & 0xffffffff;
+                        EDX = amd_psor >> 32;
+                        break;
+                        case 0xC0000088:
+                        EAX = amd_pfir & 0xffffffff;
+                        EDX = amd_pfir >> 32;
+                        break;
+			default:
+			x86gpf(NULL, 0);
+			break;
+                }
+                break;
+
+                case CPU_K6_3:
+                EAX = EDX = 0;
+                switch (ECX)
+                {
+                        case 0x0000000e:
+                        EAX = msr.tr12;
+                        break;
+                        case 0x00000010:
+                        EAX = tsc & 0xffffffff;
+                        EDX = tsc >> 32;
+                        break;
+                        case 0x00000083:
+                        EAX = ecx83_msr & 0xffffffff;
+                        EDX = ecx83_msr >> 32;
+                        break;
+                        case 0xC0000080:
+                        EAX = amd_efer & 0xffffffff;
+                        EDX = amd_efer >> 32;
+                        break;
+                        case 0xC0000081:
+                        EAX = star & 0xffffffff;
+                        EDX = star >> 32;
+                        break;
+                        case 0xC0000082:
+                        EAX = amd_whcr & 0xffffffff;
+                        EDX = amd_whcr >> 32;
+                        break;
+                        case 0xC0000085:
+                        EAX = amd_uwccr & 0xffffffff;
+                        EDX = amd_uwccr >> 32;
+                        break;
+                        case 0xC0000087:
+                        EAX = amd_psor & 0xffffffff;
+                        EDX = amd_psor >> 32;
+                        break;
+                        case 0xC0000088:
+                        EAX = amd_pfir & 0xffffffff;
+                        EDX = amd_pfir >> 32;
+                        break;
+                        case 0xC0000089:
+                        EAX = amd_l2aar & 0xffffffff;
+                        EDX = amd_l2aar >> 32;
+                        break;
+			default:
+			x86gpf(NULL, 0);
+			break;
+                }
+                break;
+
+                case CPU_K6_2P:
+                case CPU_K6_3P:
+                EAX = EDX = 0;
+                switch (ECX)
+                {
+                        case 0x0000000e:
+                        EAX = msr.tr12;
+                        break;
+                        case 0x00000010:
+                        EAX = tsc & 0xffffffff;
+                        EDX = tsc >> 32;
+                        break;
+                        case 0x00000083:
+                        EAX = ecx83_msr & 0xffffffff;
+                        EDX = ecx83_msr >> 32;
+                        break;
+                        case 0xC0000080:
+                        EAX = amd_efer & 0xffffffff;
+                        EDX = amd_efer >> 32;
+                        break;
+                        case 0xC0000081:
+                        EAX = star & 0xffffffff;
+                        EDX = star >> 32;
+                        break;
+                        case 0xC0000082:
+                        EAX = amd_whcr & 0xffffffff;
+                        EDX = amd_whcr >> 32;
+                        break;
+                        case 0xC0000085:
+                        EAX = amd_uwccr & 0xffffffff;
+                        EDX = amd_uwccr >> 32;
+                        break;
+                        case 0xC0000086:
+                        EAX = amd_epmr & 0xffffffff;
+                        EDX = amd_epmr >> 32;
+                        break;
+                        case 0xC0000087:
+                        EAX = amd_psor & 0xffffffff;
+                        EDX = amd_psor >> 32;
+                        break;
+                        case 0xC0000088:
+                        EAX = amd_pfir & 0xffffffff;
+                        EDX = amd_pfir >> 32;
+                        break;
+                        case 0xC0000089:
+                        EAX = amd_l2aar & 0xffffffff;
+                        EDX = amd_l2aar >> 32;
                         break;
 			default:
 			x86gpf(NULL, 0);
@@ -2425,6 +2646,8 @@ i686_invalid_rdmsr:
 
 void cpu_WRMSR()
 {
+	uint64_t temp;
+
         switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
         {
                 case CPU_WINCHIP:
@@ -2474,8 +2697,147 @@ void cpu_WRMSR()
                 case CPU_K5:
                 case CPU_5K86:
                 case CPU_K6:
+                switch (ECX)
+                {
+                        case 0x0e:
+                        msr.tr12 = EAX & 0x228;
+                        break;
+                        case 0x10:
+                        tsc = EAX | ((uint64_t)EDX << 32);
+                        break;
+			case 0x83:
+			ecx83_msr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000080:
+			temp = EAX | ((uint64_t)EDX << 32);
+			if (temp & ~1ULL)
+				x86gpf(NULL, 0);
+			else
+				amd_efer = temp;
+			break;
+			case 0xC0000082:
+			amd_whcr = EAX | ((uint64_t)EDX << 32);
+			break;
+			default:
+			x86gpf(NULL, 0);
+			break;
+                }
+                break;
+
                 case CPU_K6_2:
+                switch (ECX)
+                {
+                        case 0x0e:
+                        msr.tr12 = EAX & 0x228;
+                        break;
+                        case 0x10:
+                        tsc = EAX | ((uint64_t)EDX << 32);
+                        break;
+			case 0x83:
+			ecx83_msr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000080:
+			temp = EAX | ((uint64_t)EDX << 32);
+			if (temp & ~1ULL)
+				x86gpf(NULL, 0);
+			else
+				amd_efer = temp;
+			break;
+			case 0xC0000081:
+			star = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000082:
+			amd_whcr = EAX | ((uint64_t)EDX << 32);
+			break;
+			default:
+			x86gpf(NULL, 0);
+			break;
+                }
+                break;
+
+                case CPU_K6_2C:
+                switch (ECX)
+                {
+                        case 0x0e:
+                        msr.tr12 = EAX & 0x228;
+                        break;
+                        case 0x10:
+                        tsc = EAX | ((uint64_t)EDX << 32);
+                        break;
+			case 0x83:
+			ecx83_msr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000080:
+			temp = EAX | ((uint64_t)EDX << 32);
+			if (temp & ~0xfULL)
+				x86gpf(NULL, 0);
+			else
+				amd_efer = temp;
+			break;
+			case 0xC0000081:
+			star = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000082:
+			amd_whcr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000085:
+			amd_uwccr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000087:
+			amd_psor = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000088:
+			amd_pfir = EAX | ((uint64_t)EDX << 32);
+			break;
+			default:
+			x86gpf(NULL, 0);
+			break;
+                }
+                break;
+
                 case CPU_K6_3:
+                switch (ECX)
+                {
+                        case 0x0e:
+                        msr.tr12 = EAX & 0x228;
+                        break;
+                        case 0x10:
+                        tsc = EAX | ((uint64_t)EDX << 32);
+                        break;
+			case 0x83:
+			ecx83_msr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000080:
+			temp = EAX | ((uint64_t)EDX << 32);
+			if (temp & ~0x1fULL)
+				x86gpf(NULL, 0);
+			else
+				amd_efer = temp;
+			break;
+			case 0xC0000081:
+			star = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000082:
+			amd_whcr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000085:
+			amd_uwccr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000087:
+			amd_psor = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000088:
+			amd_pfir = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000089:
+			amd_l2aar = EAX | ((uint64_t)EDX << 32);
+			break;
+			default:
+			x86gpf(NULL, 0);
+			break;
+                }
+                break;
+
                 case CPU_K6_2P:
                 case CPU_K6_3P:
                 switch (ECX)
@@ -2489,11 +2851,36 @@ void cpu_WRMSR()
 			case 0x83:
 			ecx83_msr = EAX | ((uint64_t)EDX << 32);
 			break;
+			case 0xC0000080:
+			temp = EAX | ((uint64_t)EDX << 32);
+			if (temp & ~0x1fULL)
+				x86gpf(NULL, 0);
+			else
+				amd_efer = temp;
+			break;
 			case 0xC0000081:
 			star = EAX | ((uint64_t)EDX << 32);
 			break;
-			case 0xC0000084:
-			sfmask = EAX | ((uint64_t)EDX << 32);
+			case 0xC0000082:
+			amd_whcr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000085:
+			amd_uwccr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000086:
+			amd_epmr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000087:
+			amd_psor = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000088:
+			amd_pfir = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xC0000089:
+			amd_l2aar = EAX | ((uint64_t)EDX << 32);
+			break;
+			default:
+			x86gpf(NULL, 0);
 			break;
                 }
                 break;

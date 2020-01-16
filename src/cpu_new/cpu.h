@@ -53,11 +53,12 @@
 #define CPU_5K86	28
 #define CPU_K6		29
 #define CPU_K6_2	30
-#define CPU_K6_3	31
-#define CPU_K6_2P	32
-#define CPU_K6_3P	33
-#define CPU_PENTIUMPRO	34		/* 686 class CPUs */
-#define CPU_PENTIUM2D	35
+#define CPU_K6_2C	31
+#define CPU_K6_3	32
+#define CPU_K6_2P	33
+#define CPU_K6_3P	34
+#define CPU_PENTIUMPRO	35		/* 686 class CPUs */
+#define CPU_PENTIUM2D	36
 
 #define MANU_INTEL	0
 #define MANU_AMD	1
@@ -499,6 +500,8 @@ extern void	x87_reset(void);
 
 extern int	cpu_effective, cpu_alt_reset;
 extern void	cpu_dynamic_switch(int new_cpu);
+
+extern void	cpu_ven_reset(void);
 
 
 #endif	/*EMU_CPU_H*/

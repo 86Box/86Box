@@ -505,6 +505,8 @@ extern void	x87_reset(void);
 extern int	cpu_effective, cpu_alt_reset;
 extern void	cpu_dynamic_switch(int new_cpu);
 
+extern void	cpu_ven_reset(void);
+
 
 #endif	/*EMU_CPU_H*/
 #endif

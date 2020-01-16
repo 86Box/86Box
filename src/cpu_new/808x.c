@@ -957,6 +957,8 @@ reset_common(int hard)
 
     prefetching = 1;
     takeint = 0;
+
+    cpu_ven_reset();
 }
 
 
