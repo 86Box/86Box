@@ -570,6 +570,7 @@ svga_poll(void *p)
     uint32_t x, blink_delay;
     int wx, wy;
     int skip = (svga->crtc[8] >> 5) & 0x03;
+	int ret;
 
     if (!svga->linepos) {
 	if (svga->displine == svga->hwcursor_latch.y && svga->hwcursor_latch.ena) {
@@ -701,11 +702,18 @@ svga_poll(void *p)
 	svga->vc &= 2047;
 
 	if (svga->vc == svga->split) {
-		svga->ma = svga->maback = 0;
-		svga->sc = 0;
-		if (svga->attrregs[0x10] & 0x20) {
-			svga->scrollcache = 0;
-			svga->x_add = (overscan_x >> 1);
+		ret = 1;
+		
+		if (svga->line_compare)
+			ret = svga->line_compare(svga);
+		
+		if (ret) {
+			svga->ma = svga->maback = 0;
+			svga->sc = 0;
+			if (svga->attrregs[0x10] & 0x20) {
+				svga->scrollcache = 0;
+				svga->x_add = (overscan_x >> 1);
+			}
 		}
 	}
 	if (svga->vc == svga->dispend) {
