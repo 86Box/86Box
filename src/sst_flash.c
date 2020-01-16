@@ -227,7 +227,7 @@ sst_add_mappings(sst_t *dev)
 			sst_read, sst_readw, sst_readl,
 			sst_write, NULL, NULL,
 			dev->array + fbase, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROMCS, (void *) dev);
-	mem_mapping_add(&(dev->mapping_h[i]), (base | 0xfff00000) - 0x40000, 0x10000,
+	mem_mapping_add(&(dev->mapping_h[i]), (base | 0xfff00000), 0x10000,
 			sst_read, sst_readw, sst_readl,
 			sst_write, NULL, NULL,
 			dev->array + fbase, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROMCS, (void *) dev);
