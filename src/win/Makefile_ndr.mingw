@@ -536,7 +536,7 @@ endif
 # Final versions of the toolchain flags.
 CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
-		   -fno-strict-aliasing -funroll-loops
+		   -fno-strict-aliasing
 
 # Add freetyp2 references through pkgconfig
 CFLAGS          := $(CFLAGS)  `pkg-config.exe --cflags freetype2`
