@@ -1688,6 +1688,9 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
     mem_mapping_disable(&ram_remapped_mapping);			
 			
     mem_a20_init();
+
+    purgable_page_list_head = 0;
+    purgeable_page_count = 0;
 }
 
 
