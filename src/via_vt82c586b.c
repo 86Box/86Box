@@ -6,7 +6,7 @@
  *
  *		Emulation of the VIA Apollo MVP3 southbridge
  *
- * Version:	@(#)via_vt82c586b.c	1.0.0	2020/01/14
+ * Version:	@(#)via_vt82c586b.c	1.0.1	2020/01/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -112,6 +112,8 @@ via_vt82c586b_reset_hard(void *priv)
 	dma[i].ab &= 0xffff000f;
 	dma[i].ac &= 0xffff000f;
     }
+
+    pic_set_shadow(0);
 
     /* IDE registers */
     via_vt82c586b->ide_regs[0x00] = 0x06; via_vt82c586b->ide_regs[0x01] = 0x11; /*VIA*/
@@ -384,6 +386,7 @@ via_vt82c586b_write(int func, int addr, uint8_t val, void *priv)
 			case 0x47:
 				if ((val & 0x81) == 0x81)
 					resetx86();
+				pic_set_shadow(!!(val & 0x10));
 				pci_elcr_set_enabled(!!(val & 0x20));
 				dev->pci_isa_regs[0x47] = val & 0xfe;
 				break;

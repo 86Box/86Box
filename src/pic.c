@@ -8,11 +8,11 @@
  *
  *		Implementation of the Intel PIC chip emulation.
  *
- * Version:	@(#)pic.c	1.0.5	2019/09/20
+ * Version:	@(#)pic.c	1.0.6	2020/01/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -30,12 +30,15 @@
 #include "pit.h"
 
 
-int output;
-int intclear;
-int keywaiting=0;
-int pic_intpending;
-PIC pic, pic2;
-uint16_t pic_current;
+int		output;
+int		intclear;
+int		keywaiting = 0;
+int		pic_intpending;
+PIC		pic, pic2;
+uint16_t	pic_current;
+
+
+static int	shadow = 0;
 
 
 #ifdef ENABLE_PIC_LOG
@@ -95,6 +98,13 @@ pic_reset()
     pic.mask2=0;
     pic2.pend=pic2.ins=0;
     pic_intpending = 0;
+}
+
+
+void
+pic_set_shadow(int sh)
+{
+    shadow = sh;
 }
 
 
@@ -198,6 +208,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 		pic_updatepending();
 	}
 	else if (!(val & 8)) { /*OCW2*/
+		pic.ocw2 = val;
 		if ((val & 0xE0) == 0x60) {
 			pic.ins &= ~(1 << (val & 7));
 			pic_update_mask(&pic.mask2, pic.ins);
@@ -226,6 +237,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 			}
 		}
 	} else {               /*OCW3*/
+		pic.ocw3 = val;
 		if (val & 2)
 			pic.read=(val & 1);
 	}
@@ -236,27 +248,36 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 pic_read(uint16_t addr, void *priv)
 {
-    addr &= ~0x06;
+    uint8_t ret = 0xff;
 
-    if (addr & 1) {
-	pic_log("Read PIC mask %02X\n", pic.mask);
-	pic_log("%04X:%04X: Read PIC mask %02X\n", CS, cpu_state.pc, pic.mask);
-	return pic.mask;
-    }
-    if (pic.read) {
-	pic_log("Read PIC ins %02X\n", pic.ins);
+    if ((addr == 0x20) && shadow) {
+	ret  = ((pic.ocw3   & 0x20) >> 5) << 4;
+	ret |= ((pic.ocw2   & 0x80) >> 7) << 3;
+	ret |= ((pic.icw4   & 0x10) >> 4) << 2;
+	ret |= ((pic.icw4   & 0x02) >> 1) << 1;
+	ret |= ((pic.icw4   & 0x08) >> 3) << 0;
+    } else if ((addr == 0x21) && shadow)
+	ret  = ((pic.vector & 0xf8) >> 3) << 0;
+    else if (addr & 1)
+	ret = pic.mask;
+    else if (pic.read) {
 	if (AT)
-		return pic.ins | (pic2.ins ? 4 : 0);
+		ret =  pic.ins | (pic2.ins ? 4 : 0);
 	else
-		return pic.ins;
-    }
-    return pic.pend;
+		ret = pic.ins;
+    } else
+	ret = pic.pend;
+
+    pic_log("%04X:%04X: Read PIC 1 port %04X, value %02X\n", CS, cpu_state.pc, addr, val);
+
+    return ret;
 }
 
 
 void
 pic_init()
 {
+    shadow = 0;
     io_sethandler(0x0020, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, NULL);
 }
 
@@ -264,6 +285,7 @@ pic_init()
 void
 pic_init_pcjr()
 {
+    shadow = 0;
     io_sethandler(0x0020, 0x0008, pic_read, NULL, NULL, pic_write, NULL, NULL, NULL);
 }
 
@@ -323,6 +345,7 @@ pic2_write(uint16_t addr, uint8_t val, void *priv)
 		pic.pend &= ~4;
 		pic_updatepending();
 	} else if (!(val & 8)) { /*OCW2*/
+		pic2.ocw2 = val;
 		if ((val & 0xE0) == 0x60) {
 			pic2.ins &= ~(1 << (val & 7));
 			pic_update_mask(&pic2.mask2, pic2.ins);
@@ -339,6 +362,7 @@ pic2_write(uint16_t addr, uint8_t val, void *priv)
 			}
 		}
 	} else {               /*OCW3*/
+		pic2.ocw3 = val;
 		if (val & 2)
 			pic2.read=(val & 1);
 	}
@@ -349,16 +373,26 @@ pic2_write(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 pic2_read(uint16_t addr, void *priv)
 {
-    if (addr&1) {
-	pic_log("Read PIC2 mask %02X\n", pic2.mask);
-	return pic2.mask;
-    }
-    if (pic2.read) {
-	pic_log("Read PIC2 ins %02X\n", pic2.ins);
-	return pic2.ins;
-    }
-    pic_log("Read PIC2 pend %02X\n", pic2.pend);
-    return pic2.pend;
+    uint8_t ret = 0xff;
+
+    if ((addr == 0x20) && shadow) {
+	ret  = ((pic2.ocw3   & 0x20) >> 5) << 4;
+	ret |= ((pic2.ocw2   & 0x80) >> 7) << 3;
+	ret |= ((pic2.icw4   & 0x10) >> 4) << 2;
+	ret |= ((pic2.icw4   & 0x02) >> 1) << 1;
+	ret |= ((pic2.icw4   & 0x08) >> 3) << 0;
+    } else if ((addr == 0x21) && shadow)
+	ret  = ((pic2.vector & 0xf8) >> 3) << 0;
+    else if (addr & 1)
+	ret = pic2.mask;
+    else if (pic.read)
+	ret = pic2.ins;
+    else
+	ret = pic2.pend;
+
+    pic_log("%04X:%04X: Read PIC 2 port %04X, value %02X\n", CS, cpu_state.pc, addr, val);
+
+    return ret;
 }
 
 
