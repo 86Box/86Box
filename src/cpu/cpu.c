@@ -191,9 +191,7 @@ uint64_t	ecx570_msr = 0;
 
 #if defined(DEV_BRANCH) && defined(USE_AMD_K)
 uint64_t	ecx83_msr = 0;			/* AMD K5 and K6 MSR's. */
-uint64_t	star = 0;			/* AMD K6-2+. */
-
-uint64_t	amd_efer = 0, amd_whcr = 0;	/* AMD K6-2+ registers. */
+uint64_t	amd_efer = 0, amd_whcr = 0;
 #endif
 
 int		timing_rr;
@@ -1812,10 +1810,6 @@ void cpu_ven_reset(void)
                 case CPU_K6:
 			amd_efer = amd_whcr = 0ULL;
 			break;
-		case CPU_K6_2:
-			amd_efer = amd_whcr = 0ULL;
-			star = 0ULL;
-			break;
 	}
 #endif
 }
@@ -1875,39 +1869,6 @@ void cpu_RDMSR()
                         case 0xC0000080:
                         EAX = amd_efer & 0xffffffff;
                         EDX = amd_efer >> 32;
-                        break;
-                        case 0xC0000082:
-                        EAX = amd_whcr & 0xffffffff;
-                        EDX = amd_whcr >> 32;
-                        break;
-			default:
-			x86gpf(NULL, 0);
-			break;
-                }
-                break;
-
-                case CPU_K6_2:
-                EAX = EDX = 0;
-                switch (ECX)
-                {
-                        case 0x0000000e:
-                        EAX = msr.tr12;
-                        break;
-                        case 0x00000010:
-                        EAX = tsc & 0xffffffff;
-                        EDX = tsc >> 32;
-                        break;
-                        case 0x00000083:
-                        EAX = ecx83_msr & 0xffffffff;
-                        EDX = ecx83_msr >> 32;
-                        break;
-                        case 0xC0000080:
-                        EAX = amd_efer & 0xffffffff;
-                        EDX = amd_efer >> 32;
-                        break;
-                        case 0xC0000081:
-                        EAX = star & 0xffffffff;
-                        EDX = star >> 32;
                         break;
                         case 0xC0000082:
                         EAX = amd_whcr & 0xffffffff;
@@ -2140,37 +2101,6 @@ void cpu_WRMSR()
 				x86gpf(NULL, 0);
 			else
 				amd_efer = temp;
-			break;
-			case 0xC0000082:
-			amd_whcr = EAX | ((uint64_t)EDX << 32);
-			break;
-			default:
-			x86gpf(NULL, 0);
-			break;
-                }
-                break;
-
-                case CPU_K6_2:
-                switch (ECX)
-                {
-                        case 0x0e:
-                        msr.tr12 = EAX & 0x228;
-                        break;
-                        case 0x10:
-                        tsc = EAX | ((uint64_t)EDX << 32);
-                        break;
-			case 0x83:
-			ecx83_msr = EAX | ((uint64_t)EDX << 32);
-			break;
-			case 0xC0000080:
-			temp = EAX | ((uint64_t)EDX << 32);
-			if (temp & ~1ULL)
-				x86gpf(NULL, 0);
-			else
-				amd_efer = temp;
-			break;
-			case 0xC0000081:
-			star = EAX | ((uint64_t)EDX << 32);
 			break;
 			case 0xC0000082:
 			amd_whcr = EAX | ((uint64_t)EDX << 32);
