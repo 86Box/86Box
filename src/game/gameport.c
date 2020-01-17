@@ -90,6 +90,7 @@ static const joystick_if_t *joystick_list[] = {
     &joystick_standard_4button,
     &joystick_standard_6button,
     &joystick_standard_8button,
+	&joystick_4axis_4button,
     &joystick_ch_flightstick_pro,
     &joystick_sw_pad,
     &joystick_tm_fcs,
@@ -265,7 +266,7 @@ gameport_init(const device_t *info)
 {
     gameport_t *p = NULL;
 
-    if (joystick_type == 7) {
+    if (joystick_type == JOYSTICK_TYPE_NONE) {
 	p = NULL;
 	return(p);
     }
@@ -284,7 +285,7 @@ gameport_201_init(const device_t *info)
 {
     gameport_t *p;
 
-    if (joystick_type == 7) {
+    if (joystick_type == JOYSTICK_TYPE_NONE) {
 	p = NULL;
 	return(p);
     }

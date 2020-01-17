@@ -767,7 +767,7 @@ pc_reset_hard_init(void)
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
 
-    if (joystick_type != 7)
+    if (joystick_type != JOYSTICK_TYPE_NONE)
 	gameport_update_joystick_type();
 
     ui_sb_update_panes();

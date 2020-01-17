@@ -216,7 +216,7 @@ void joystick_process(void)
 {
         int c, d;
 
-	if (joystick_type == 7) return;
+	if (joystick_type == JOYSTICK_TYPE_NONE) return;
 
         joystick_poll();
 

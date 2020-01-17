@@ -45,8 +45,10 @@
 
 #define POV_X			0x80000000
 #define POV_Y			0x40000000
+#define SLIDER 			0x20000000
 
 #define AXIS_NOT_PRESENT	-99999
+#define JOYSTICK_TYPE_NONE 	8
 
 #define JOYSTICK_PRESENT(n)	(joystick_state[n].plat_joystick_nr != 0)
 
@@ -57,6 +59,7 @@ typedef struct {
     int		a[8];
     int		b[32];
     int		p[4];
+	int 	s[2];
 
     struct {
 	char	name[260];
@@ -73,9 +76,16 @@ typedef struct {
 	int	id;
     }		pov[4];
 
+	struct
+    {
+    char 	name[260];
+    int id;
+    } 		slider[2];
+
     int		nr_axes;
     int		nr_buttons;
     int		nr_povs;
+	int 	nr_sliders;
 } plat_joystick_t;
 
 typedef struct {

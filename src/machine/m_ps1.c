@@ -525,7 +525,7 @@ ps1_common_init(const machine_t *model)
     device_add(&keyboard_ps2_ps1_device);
 
     /* Audio uses ports 200h and 202-207h, so only initialize gameport on 201h. */
-    if (joystick_type != 7)
+    if (joystick_type != JOYSTICK_TYPE_NONE)
 	device_add(&gameport_201_device);
 }
 

@@ -55,7 +55,7 @@ machine_xt_compaq_init(const machine_t *model)
     device_add(&keyboard_xt_compaq_device);
     device_add(&fdc_xt_device);
     nmi_init();
-    if (joystick_type != 7)
+    if (joystick_type != JOYSTICK_TYPE_NONE)
 	device_add(&gameport_device);
 
     lpt1_remove();

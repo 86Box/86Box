@@ -72,7 +72,7 @@ machine_at_common_init_ex(const machine_t *model, int type)
     else if (type == 0)
 	device_add(&at_nvr_device);
 
-    if (joystick_type != 7)
+    if (joystick_type != JOYSTICK_TYPE_NONE)
 	device_add(&gameport_device);
 }
 

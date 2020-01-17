@@ -37,5 +37,6 @@
 
 extern const joystick_if_t joystick_standard;
 extern const joystick_if_t joystick_standard_4button;
+extern const joystick_if_t joystick_4axis_4button;
 extern const joystick_if_t joystick_standard_6button;
 extern const joystick_if_t joystick_standard_8button;
