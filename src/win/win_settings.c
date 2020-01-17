@@ -971,6 +971,7 @@ static BOOL CALLBACK
 win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     wchar_t str[128];
+	char *joy_name;
     HWND h;
     int c, d;
 
@@ -1000,9 +1001,15 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 		h = GetDlgItem(hdlg, IDC_COMBO_JOYSTICK);
 		c = 0;
-		while (joystick_get_name(c)) {
-			SendMessage(h, CB_ADDSTRING, 0, win_get_string(2105 + c));
+		joy_name = joystick_get_name(c);
+		while (joy_name)
+		{
+			mbstowcs(str, joy_name, strlen(joy_name) + 1);
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)str);
+
+			// SendMessage(h, CB_ADDSTRING, 0, win_get_string(2105 + c));
 			c++;
+			joy_name = joystick_get_name(c);
 		}
 		EnableWindow(h, TRUE);
 		SendMessage(h, CB_SETCURSEL, temp_joystick, 0);

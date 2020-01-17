@@ -144,6 +144,27 @@ static int joystick_standard_read_axis_4button(void *p, int axis)
 		return 0;
         }
 }
+
+static int joystick_standard_read_axis_4axis(void *p, int axis)
+{
+        if (!JOYSTICK_PRESENT(0))
+                return AXIS_NOT_PRESENT;
+
+        switch (axis)
+        {
+				case 0:
+                return joystick_state[0].axis[0];
+				case 1:
+                return joystick_state[0].axis[1];
+				case 2:
+                return joystick_state[0].axis[2];
+				case 3:
+                return joystick_state[0].axis[3];
+        default:
+        return 0;
+        }
+}
+
 static int joystick_standard_read_axis_6button(void *p, int axis)
 {
         if (!JOYSTICK_PRESENT(0))
@@ -225,6 +246,22 @@ const joystick_if_t joystick_standard_4button =
         0,
         1,
         {"X axis", "Y axis"},
+        {"Button 1", "Button 2", "Button 3", "Button 4"}
+};
+const joystick_if_t joystick_4axis_4button =
+{
+        "4-axis 4-button joystick",
+        joystick_standard_init,
+        joystick_standard_close,
+        joystick_standard_read_4button,
+        joystick_standard_write,
+        joystick_standard_read_axis_4axis,
+        joystick_standard_a0_over,
+        4,
+        4,
+        0,
+        1,
+        {"X axis", "Y axis", "Z axis", "zX axis"},
         {"Button 1", "Button 2", "Button 3", "Button 4"}
 };
 const joystick_if_t joystick_standard_6button =

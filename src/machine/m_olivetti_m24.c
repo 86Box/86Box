@@ -892,7 +892,7 @@ machine_olim24_init(const machine_t *model)
 
     keyboard_set_table(scancode_xt);
 
-    if (joystick_type != 7)
+    if (joystick_type != JOYSTICK_TYPE_NONE)
 	device_add(&gameport_device);
 
     /* FIXME: make sure this is correct?? */

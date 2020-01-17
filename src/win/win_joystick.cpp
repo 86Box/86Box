@@ -82,37 +82,54 @@ BOOL CALLBACK DIEnumDeviceObjectsCallback(
         plat_joystick_t *state = (plat_joystick_t *)pvRef;
         
         if (lpddoi->guidType == GUID_XAxis  || lpddoi->guidType == GUID_YAxis  || lpddoi->guidType == GUID_ZAxis ||
-            lpddoi->guidType == GUID_RxAxis || lpddoi->guidType == GUID_RyAxis || lpddoi->guidType == GUID_RzAxis ||
-            lpddoi->guidType == GUID_Slider)
+            lpddoi->guidType == GUID_RxAxis || lpddoi->guidType == GUID_RyAxis || lpddoi->guidType == GUID_RzAxis)
         {
-                memcpy(state->axis[state->nr_axes].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
-                joystick_log("Axis %i : %s  %x %x\n", state->nr_axes, state->axis[state->nr_axes].name, lpddoi->dwOfs, lpddoi->dwType);
-                if (lpddoi->guidType == GUID_XAxis)
-                        state->axis[state->nr_axes].id = 0;
-                else if (lpddoi->guidType == GUID_YAxis)
-                        state->axis[state->nr_axes].id = 1;
-                else if (lpddoi->guidType == GUID_ZAxis)
-                        state->axis[state->nr_axes].id = 2;
-                else if (lpddoi->guidType == GUID_RxAxis)
-                        state->axis[state->nr_axes].id = 3;
-                else if (lpddoi->guidType == GUID_RyAxis)
-                        state->axis[state->nr_axes].id = 4;
-                else if (lpddoi->guidType == GUID_RzAxis)
-                        state->axis[state->nr_axes].id = 5;
-                state->nr_axes++;
+                if (state->nr_axes < 8)
+						{memcpy(state->axis[state->nr_axes].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
+						joystick_log("Axis %i : %s  %x %x\n", state->nr_axes, state->axis[state->nr_axes].name, lpddoi->dwOfs, lpddoi->dwType);
+						if (lpddoi->guidType == GUID_XAxis)
+								state->axis[state->nr_axes].id = 0;
+						else if (lpddoi->guidType == GUID_YAxis)
+								state->axis[state->nr_axes].id = 1;
+						else if (lpddoi->guidType == GUID_ZAxis)
+								state->axis[state->nr_axes].id = 2;
+						else if (lpddoi->guidType == GUID_RxAxis)
+								state->axis[state->nr_axes].id = 3;
+						else if (lpddoi->guidType == GUID_RyAxis)
+								state->axis[state->nr_axes].id = 4;
+						else if (lpddoi->guidType == GUID_RzAxis)
+								state->axis[state->nr_axes].id = 5;
+						state->nr_axes++;
+				}
         }
         else if (lpddoi->guidType == GUID_Button)
         {
-                memcpy(state->button[state->nr_buttons].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
-                joystick_log("Button %i : %s  %x %x\n", state->nr_buttons, state->button[state->nr_buttons].name, lpddoi->dwOfs, lpddoi->dwType);
-                state->nr_buttons++;
+                if (state->nr_buttons < 32)
+                {
+                        memcpy(state->button[state->nr_buttons].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
+                        joystick_log("Button %i : %s  %x %x\n", state->nr_buttons, state->button[state->nr_buttons].name, lpddoi->dwOfs, lpddoi->dwType);
+                        state->nr_buttons++;
+                }
         }
         else if (lpddoi->guidType == GUID_POV)
         {
-                memcpy(state->pov[state->nr_povs].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
-                joystick_log("POV %i : %s  %x %x\n", state->nr_povs, state->pov[state->nr_povs].name, lpddoi->dwOfs, lpddoi->dwType);
-                state->nr_povs++;
-        }        
+                if (state->nr_povs < 4)
+                {
+                        memcpy(state->pov[state->nr_povs].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
+                        joystick_log("POV %i : %s  %x %x\n", state->nr_povs, state->pov[state->nr_povs].name, lpddoi->dwOfs, lpddoi->dwType);
+                        state->nr_povs++;
+                }
+        }  
+		else if (lpddoi->guidType == GUID_Slider)
+        {
+                if (state->nr_sliders < 2)
+                {
+                        memcpy(state->slider[state->nr_sliders].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
+                        state->slider[state->nr_sliders].id = state->nr_sliders | SLIDER;
+                        joystick_log("Slider %i : %s  %x %x\n", state->nr_sliders, state->slider[state->nr_sliders].name, lpddoi->dwOfs, lpddoi->dwType);
+                        state->nr_sliders++;
+                }
+        }
         
         return DIENUM_CONTINUE;
 }
@@ -187,7 +204,11 @@ void joystick_init()
                 lpdi_joystick[c]->SetProperty(DIPROP_RANGE, &joy_axis_range.diph);
                 joy_axis_range.diph.dwObj = DIJOFS_RZ;
                 lpdi_joystick[c]->SetProperty(DIPROP_RANGE, &joy_axis_range.diph);
-
+				joy_axis_range.diph.dwObj = DIJOFS_SLIDER(0);
+                lpdi_joystick[c]->SetProperty(DIPROP_RANGE, &joy_axis_range.diph);
+                joy_axis_range.diph.dwObj = DIJOFS_SLIDER(1);
+                lpdi_joystick[c]->SetProperty(DIPROP_RANGE, &joy_axis_range.diph);
+				
                 if (FAILED(lpdi_joystick[c]->Acquire()))
                         fatal("joystick_init : Acquire failed\n");
         }
@@ -227,6 +248,10 @@ static int joystick_get_axis(int joystick_nr, int mapping)
                 else
                         return -cos((2*M_PI * (double)pov) / 36000.0) * 32767;
         }
+		else if (mapping & SLIDER)
+        {
+                return plat_joystick_state[joystick_nr].s[mapping & 3];
+        }
         else
                 return plat_joystick_state[joystick_nr].a[plat_joystick_state[joystick_nr].axis[mapping].id];
 }
@@ -235,7 +260,7 @@ void joystick_process(void)
 {
         int c, d;
 
-	if (joystick_type == 7) return;
+	if (joystick_type == JOYSTICK_TYPE_NONE) return;
 
         for (c = 0; c < joysticks_present; c++)
         {                
@@ -260,6 +285,8 @@ void joystick_process(void)
                 plat_joystick_state[c].a[3] = joystate.lRx;
                 plat_joystick_state[c].a[4] = joystate.lRy;
                 plat_joystick_state[c].a[5] = joystate.lRz;
+				plat_joystick_state[c].s[0] = joystate.rglSlider[0];
+                plat_joystick_state[c].s[1] = joystate.rglSlider[1];
                 
                 for (b = 0; b < 16; b++)
                         plat_joystick_state[c].b[b] = joystate.rgbButtons[b] & 0x80;

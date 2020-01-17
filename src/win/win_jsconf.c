@@ -59,6 +59,10 @@ static void rebuild_axis_button_selections(HWND hdlg)
                                 sprintf(s, "%s (Y axis)", plat_joystick_state[joystick-1].pov[d].name);
                                 SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)s);
                         }
+						for (d = 0; d < plat_joystick_state[joystick - 1].nr_sliders; d++)
+                        {
+                                SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)plat_joystick_state[joystick - 1].slider[d].name);
+                        }
                         SendMessage(h, CB_SETCURSEL, sel, 0);
                         EnableWindow(h, TRUE);
                 }
@@ -122,15 +126,23 @@ static int get_axis(HWND hdlg, int id)
         HWND h = GetDlgItem(hdlg, id);
         int axis_sel = SendMessage(h, CB_GETCURSEL, 0, 0);
         int nr_axes = plat_joystick_state[joystick_state[joystick_nr].plat_joystick_nr-1].nr_axes;
-
+		int nr_povs = plat_joystick_state[joystick_state[joystick_nr].plat_joystick_nr - 1].nr_povs;
+        int nr_sliders = plat_joystick_state[joystick_state[joystick_nr].plat_joystick_nr - 1].nr_sliders;
+		
         if (axis_sel < nr_axes)
                 return axis_sel;
         
         axis_sel -= nr_axes;
-        if (axis_sel & 1)
-                return POV_Y | (axis_sel >> 1);
-        else
-                return POV_X | (axis_sel >> 1);
+        if (axis_sel < nr_povs * 2)
+        {
+                if (axis_sel & 1)
+                        return POV_Y | (axis_sel >> 1);
+                else
+                        return POV_X | (axis_sel >> 1);
+        }
+        axis_sel -= nr_povs;
+
+        return SLIDER | (axis_sel >> 1);
 }
 
 static int get_pov(HWND hdlg, int id)
@@ -163,6 +175,7 @@ joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	int joystick;
 	int nr_axes;
 	int nr_povs;
+	int nr_sliders;
 	int mapping;
 
         switch (message)
@@ -186,6 +199,8 @@ joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                         {
                                 nr_axes = plat_joystick_state[joystick-1].nr_axes;
                                 nr_povs = plat_joystick_state[joystick-1].nr_povs;
+								nr_sliders = plat_joystick_state[joystick - 1].nr_sliders;
+								
                                 for (c = 0; c < joystick_get_axis_count(joystick_config_type); c++)
                                 {
                                         int mapping = joystick_state[joystick_nr].axis_mapping[c];
@@ -195,7 +210,9 @@ joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                                 SendMessage(h, CB_SETCURSEL, nr_axes + (mapping & 3)*2, 0);
                                         else if (mapping & POV_Y)
                                                 SendMessage(h, CB_SETCURSEL, nr_axes + (mapping & 3)*2 + 1, 0);
-                                        else
+                                        else if (mapping & SLIDER)
+												SendMessage(h, CB_SETCURSEL, nr_axes + nr_povs * 2 + (mapping & 3), 0);										
+										else
                                                 SendMessage(h, CB_SETCURSEL, mapping, 0);
                                         id += 2;
                                 } 
