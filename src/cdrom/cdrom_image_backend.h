@@ -9,15 +9,15 @@
  *		CD-ROM image file handling module header , translated to C
  *		from cdrom_dosbox.h.
  *
- * Version:	@(#)cdrom_image_backend.h	1.0.1	2019/12/21
+ * Version:	@(#)cdrom_image_backend.h	1.0.2	2020/01/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		The DOSBox Team, <unknown>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2002-2019 The DOSBox Team.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2002-2020 The DOSBox Team.
  */
 #ifndef CDROM_IMAGE_BACKEND_H
 #define CDROM_IMAGE_BACKEND_H
@@ -41,7 +41,7 @@
 
 
 typedef struct SMSF {
-    uint8_t	min;
+    uint16_t	min;
     uint8_t	sec;
     uint8_t	fr;
 } TMSF;
@@ -74,7 +74,9 @@ typedef struct {
 extern void	cdi_close(cd_img_t *cdi);
 extern int	cdi_set_device(cd_img_t *cdi, const wchar_t *path);
 extern int	cdi_get_audio_tracks(cd_img_t *cdi, int *st_track, int *end, TMSF *lead_out);
+extern int	cdi_get_audio_tracks_lba(cd_img_t *cdi, int *st_track, int *end, uint32_t *lead_out);
 extern int	cdi_get_audio_track_info(cd_img_t *cdi, int end, int track, int *track_num, TMSF *start, uint8_t *attr);
+extern int	cdi_get_audio_track_info_lba(cd_img_t *cdi, int end, int track, int *track_num, uint32_t *start, uint8_t *attr);
 extern int	cdi_get_track(cd_img_t *cdi, uint32_t sector);
 extern int	cdi_get_audio_sub(cd_img_t *cdi, uint32_t sector, uint8_t *attr, uint8_t *track, uint8_t *index, TMSF *rel_pos, TMSF *abs_pos);
 extern int	cdi_read_sector(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector);

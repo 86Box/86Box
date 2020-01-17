@@ -9,7 +9,7 @@
  *		CD-ROM image file handling module, translated to C from
  *		cdrom_dosbox.cpp.
  *
- * Version:	@(#)cdrom_image_backend.c	1.0.4	2020/01/13
+ * Version:	@(#)cdrom_image_backend.c	1.0.5	2020/01/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -257,6 +257,17 @@ cdi_get_audio_tracks(cd_img_t *cdi, int *st_track, int *end, TMSF *lead_out)
 }
 
 
+int
+cdi_get_audio_tracks_lba(cd_img_t *cdi, int *st_track, int *end, uint32_t *lead_out)
+{
+    *st_track = 1;
+    *end = cdi->tracks_num - 1;
+    *lead_out = cdi->tracks[*end].start;
+
+    return 1;
+}
+
+
 /* This replaces both Info and EndInfo, they are specified by a variable. */
 int
 cdi_get_audio_track_info(cd_img_t *cdi, int end, int track, int *track_num, TMSF *start, uint8_t *attr)
@@ -270,6 +281,24 @@ cdi_get_audio_track_info(cd_img_t *cdi, int end, int track, int *track_num, TMSF
     pos = trk->start + 150;
 
     FRAMES_TO_MSF(pos, &start->min, &start->sec, &start->fr);
+
+    *track_num = trk->track_number;
+    *attr = trk->attr;
+
+    return 1;
+}
+
+
+int
+cdi_get_audio_track_info_lba(cd_img_t *cdi, int end, int track, int *track_num, uint32_t *start, uint8_t *attr)
+{
+    track_t *trk = &cdi->tracks[track - 1];
+
+    if ((track < 1) || (track > cdi->tracks_num))
+	return 0;
+
+    *start = (uint32_t) trk->start;
+
     *track_num = trk->track_number;
     *attr = trk->attr;
 
@@ -556,6 +585,7 @@ cdi_load_iso(cd_img_t *cdi, const wchar_t *filename)
     }
 
     trk.length = trk.file->get_length(trk.file) / trk.sector_size;
+    cdrom_image_backend_log("ISO: Data track: length = %" PRIu64 ", sector_size = %i\n", trk.length, trk.sector_size);
     cdi_track_push_back(cdi, &trk);
 
     /* Lead out track. */

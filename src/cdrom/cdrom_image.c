@@ -21,6 +21,7 @@
 #define __USE_LARGEFILE64
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -113,18 +114,15 @@ image_get_capacity(cdrom_t *dev)
     int first_track, last_track;
     int number, c;
     unsigned char attr;
-    TMSF tmsf;
-    uint32_t lb = 0;
-    uint32_t address;
+    uint32_t address = 0, lb = 0;
 
     if (!img)
 	return 0;
 
-    cdi_get_audio_tracks(img, &first_track, &last_track, &tmsf);
+    cdi_get_audio_tracks_lba(img, &first_track, &last_track, &lb);
 
     for (c = 0; c <= last_track; c++) {
-	cdi_get_audio_track_info(img, 0, c + 1, &number, &tmsf, &attr);
-	address = MSFtoLBA(tmsf.min, tmsf.sec, tmsf.fr) - 150;	/* Do the - 150 here as well. */
+	cdi_get_audio_track_info_lba(img, 0, c + 1, &number, &address, &attr);
 	if (address > lb)
 		lb = address;
     }
@@ -280,7 +278,7 @@ cdrom_image_open(cdrom_t *dev, const wchar_t *fn)
     dev->seek_pos = 0;
     dev->cd_buflen = 0;
     dev->cdrom_capacity = image_get_capacity(dev);
-    cdrom_image_log("CD-ROM capacity: %i sectors (%i bytes)\n", dev->cdrom_capacity, dev->cdrom_capacity << 11);
+    cdrom_image_log("CD-ROM capacity: %i sectors (%" PRIi64 " bytes)\n", dev->cdrom_capacity, ((uint64_t) dev->cdrom_capacity) << 11ULL);
 
     /* Attach this handler to the drive. */
     dev->ops = &cdrom_image_ops;

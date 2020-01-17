@@ -9,11 +9,11 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.73	2019/12/13
+ * Version:	@(#)scsi_cdrom.c	1.0.74	2020/01/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -1080,29 +1080,31 @@ scsi_cdrom_read_dvd_structure(scsi_cdrom_t *dev, int format, const uint8_t *pack
 			return 0;
 		}
 
-		buf[4] = 1;	/* DVD-ROM, part version 1 */
-		buf[5] = 0xf;	/* 120mm disc, minimum rate unspecified */
-		buf[6] = 1;	/* one layer, read-only (per MMC-2 spec) */
-		buf[7] = 0;	/* default densities */
+		buf[4] = 18;	/* Length of Layer Information */
+		buf[5] = 0;
+
+		buf[6] = 1;	/* DVD-ROM, part version 1 */
+		buf[7] = 0xf;	/* 120mm disc, minimum rate unspecified */
+		buf[8] = 1;	/* one layer, read-only (per MMC-2 spec) */
+		buf[9] = 0;	/* default densities */
 
 		/* FIXME: 0x30000 per spec? */
-		buf[8] = buf[9] = buf[10] = buf[11] = 0; /* start sector */
-		buf[12] = (total_sectors >> 24) & 0xff; /* end sector */
-		buf[13] = (total_sectors >> 16) & 0xff;
-		buf[14] = (total_sectors >> 8) & 0xff;
-		buf[15] = total_sectors & 0xff;
+		buf[10] = 0x00;
+		buf[11] = 0x03;
+		buf[12] = buf[13] = 0; /* start sector */
 
-		buf[16] = (total_sectors >> 24) & 0xff; /* l0 end sector */
-		buf[17] = (total_sectors >> 16) & 0xff;
-		buf[18] = (total_sectors >> 8) & 0xff;
-		buf[19] = total_sectors & 0xff;
+		buf[14] = 0x00;
+		buf[15] = (total_sectors >> 16) & 0xff; /* end sector */
+		buf[16] = (total_sectors >> 8) & 0xff;
+		buf[17] = total_sectors & 0xff;
 
-		/* Size of buffer, not including 2 byte size field */				
-		buf[0] = ((2048 +2 ) >> 8) & 0xff;
-		buf[1] = (2048 + 2) & 0xff;
+		buf[18] = 0x00;
+		buf[19] = (total_sectors >> 16) & 0xff; /* l0 end sector */
+		buf[20] = (total_sectors >> 8) & 0xff;
+		buf[21] = total_sectors & 0xff;
 
-		/* 2k data + 4 byte header */
-		return (2048 + 4);
+		/* 20 bytes of data + 4 byte header */
+		return (20 + 4);
 
 	case 0x01:	/* DVD copyright information */
 		buf[4] = 0; /* no copyright data */
@@ -1135,8 +1137,8 @@ scsi_cdrom_read_dvd_structure(scsi_cdrom_t *dev, int format, const uint8_t *pack
 
 		buf[4] = 0x00; /* Physical format */
 		buf[5] = 0x40; /* Not writable, is readable */
-		buf[6] = ((2048 + 4) >> 8) & 0xff;
-		buf[7] = (2048 + 4) & 0xff;
+		buf[6] = ((20 + 4) >> 8) & 0xff;
+		buf[7] = (20 + 4) & 0xff;
 
 		buf[8] = 0x01; /* Copyright info */
 		buf[9] = 0x40; /* Not writable, is readable */
@@ -2130,7 +2132,10 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 		if ((cdb[7] <= 0x7f) || (cdb[7] == 0xff)) {
 			if (cdb[1] == 0) {
 				ret = scsi_cdrom_read_dvd_structure(dev, format, cdb, dev->buffer);
-					if (ret) {
+				dev->buffer[0] = (ret >> 8);
+				dev->buffer[1] = (ret & 0xff);
+				dev->buffer[2] = dev->buffer[3] = 0x00;
+				if (ret) {
 					scsi_cdrom_set_buf_len(dev, BufLen, &alloc_length);
 					scsi_cdrom_data_command_finish(dev, alloc_length, alloc_length,
 								       alloc_length, 0);
