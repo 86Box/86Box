@@ -2039,6 +2039,10 @@ i686_invalid_rdmsr:
 
 void cpu_WRMSR()
 {
+#if defined(DEV_BRANCH) && defined(USE_AMD_K)
+	uint64_t temp;
+#endif
+
         switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
         {
                 case CPU_WINCHIP:
