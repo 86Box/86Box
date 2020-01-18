@@ -46,7 +46,7 @@ guide:
 8. In order to test your fresh build, replace the `86Box.exe` in your current
    86Box enviroment with your freshly built one. If you do not have a
    pre-existing 86Box environment, download the latest successful build from
-   http://ci.86box.net, and the ROM set from https://tinyurl.com/rs20191022.
+   http://ci.86box.net, and the ROM set from https://tinyurl.com/rs20200118.
 9. Enjoy using and testing the emulator! :)
 
 If you encounter issues at any step or have additional questions, please join
