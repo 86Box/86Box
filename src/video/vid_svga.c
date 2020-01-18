@@ -516,6 +516,8 @@ svga_recalctimings(svga_t *svga)
 
     svga->linedbl = svga->crtc[9] & 0x80;
     svga->rowcount = svga->crtc[9] & 31;
+	svga->char_width = (svga->seqregs[1] & 1) ? 8 : 9;
+
     if (enable_overscan) {
 	overscan_y = (svga->rowcount + 1) << 1;
 
@@ -540,7 +542,7 @@ svga_recalctimings(svga_t *svga)
     if (svga->vblankstart < svga->dispend)
 	svga->dispend = svga->vblankstart;
 
-    crtcconst = (svga->seqregs[1] & 1) ? (svga->clock * 8.0) : (svga->clock * 9.0);
+    crtcconst = svga->clock * svga->char_width;
 
     disptime  = svga->htotal;
     _dispontime = svga->hdisp_time;
