@@ -8,7 +8,7 @@
  *
  *		Matrox MGA graphics card emulation.
  *
- * Version:	@(#)vid_mga.c	1.0.0	2020/01/16
+ * Version:	@(#)vid_mga.c	1.0.1	2020/01/18
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Copyright 2008-2020 Sarah Walker.
@@ -31,12 +31,16 @@
 #include "vid_svga.h"
 #include "vid_svga_render.h"
 
+
+#define ROM_MYSTIQUE			L"roms/video/matrox/MYSTIQUE.VBI"
+#define ROM_MYSTIQUE_220		L"roms/video/matrox/Myst220_66-99mhz.vbi"
+
 #define FIFO_SIZE 65536
 #define FIFO_MASK (FIFO_SIZE - 1)
 #define FIFO_ENTRY_SIZE (1 << 31)
 #define FIFO_THRESHOLD 0xe000
 
-#define WAKE_DELAY (100 * TIMER_USEC) /*100us*/
+#define WAKE_DELAY (100 * TIMER_USEC)	/* 100us */
 
 #define FIFO_ENTRIES (mystique->fifo_write_idx - mystique->fifo_read_idx)
 #define FIFO_FULL    ((mystique->fifo_write_idx - mystique->fifo_read_idx) >= (FIFO_SIZE-1))
@@ -44,311 +48,6 @@
 
 #define FIFO_TYPE 0xff000000
 #define FIFO_ADDR 0x00ffffff
-
-enum
-{
-        FIFO_INVALID          = (0x00 << 24),
-        FIFO_WRITE_CTRL_BYTE  = (0x01 << 24),
-        FIFO_WRITE_CTRL_LONG  = (0x02 << 24),
-        FIFO_WRITE_ILOAD_LONG = (0x03 << 24)
-};
-
-typedef struct
-{
-        uint32_t addr_type;
-        uint32_t val;
-} fifo_entry_t;
-
-typedef struct mystique_t
-{
-        svga_t svga;
-
-        rom_t bios_rom;
-
-        mem_mapping_t lfb_mapping;
-        mem_mapping_t ctrl_mapping;
-        mem_mapping_t iload_mapping;
-        
-        uint8_t pci_regs[256];
-        uint8_t int_line;
-        int card;
-        
-        int vram_size;
-        uint32_t vram_mask, vram_mask_w, vram_mask_l;
-
-        uint32_t lfb_base, ctrl_base, iload_base;
-        
-        uint8_t crtcext_regs[6];
-        int crtcext_idx;
-        
-        uint8_t xreg_regs[256];
-        int xreg_idx;
-
-        uint32_t ma_latch_old;
-        
-        uint32_t maccess, mctlwtst;
-        uint32_t maccess_running;
-        
-        uint32_t status;
-        
-        uint8_t xcurctrl;
-
-        uint8_t xsyspllm, xsysplln, xsyspllp;
-        struct
-        {
-                int m, n, p, s;
-        } xpixpll[3];
-
-        uint8_t xgenioctrl;
-        uint8_t xgeniodata;
-        uint8_t xmulctrl;
-        uint8_t xgenctrl;
-        uint8_t xmiscctrl;
-        uint8_t xpixclkctrl;
-        uint8_t xvrefctrl;
-        int xzoomctrl;
-        
-        uint8_t ien;
-        
-        struct
-        {
-                uint8_t funcnt, stylelen;
-                int xoff, yoff;
-                
-                uint16_t cxleft, cxright;
-                int16_t fxleft, fxright;
-                uint16_t length;
-
-                uint32_t dwgctrl;
-                uint32_t dwgctrl_running;
-                uint32_t bcol, fcol;
-                uint32_t pitch;
-                uint32_t plnwt;
-                uint32_t ybot;
-                uint32_t ydstorg;
-                uint32_t ytop;
-                int selline;
-                
-                uint32_t src[4];
-                uint32_t ar[7];
-                uint32_t dr[16];
-                
-                int pattern[8][8];
-                
-                struct
-                {
-                        int sdydxl;
-                        int scanleft;
-                        int sdxl;
-                        int sdy;
-                        int sdxr;
-                } sgn;
-
-                uint32_t tmr[9];
-                uint32_t texorg, texwidth, texheight;
-                uint32_t texctl, textrans;
-                uint32_t zorg;
-                
-                int ydst;
-                uint32_t ydst_lin;
-                
-                int length_cur;
-                int16_t xdst;
-                uint32_t src_addr;
-                uint32_t z_base;
-
-                int iload_rem_count;
-                uint32_t iload_rem_data;
-                int idump_end_of_line;
-                
-                int words;
-                
-                int ta_key, ta_mask;
-                
-                int lastpix_r, lastpix_g, lastpix_b;
-                
-                int highv_line;
-                uint32_t highv_data;
-                
-                int beta;
-                
-                int dither;
-                
-                uint8_t dmamod;
-        } dwgreg;
-        
-        struct
-        {
-			uint8_t r, g, b;
-        } lut[256];
-        
-        struct
-        {
-			uint16_t pos_x, pos_y;
-			uint16_t addr;
-			uint32_t col[3];
-        } cursor;
-        
-        uint8_t dmamod, dmadatasiz, dirdatasiz;
-        struct
-        {
-			uint32_t primaddress, primend;
-			uint32_t secaddress, secend;
-			
-			int pri_pos, sec_pos, iload_pos;
-			uint32_t pri_header, sec_header, iload_header;
-			
-			int pri_state, sec_state, iload_state;
-			
-			int state;
-
-			mutex_t *lock;
-        } dma;
-        
-        uint8_t dmamap[16];
-        
-        volatile int busy;
-        volatile int blitter_submit_refcount;
-        volatile int blitter_submit_dma_refcount;
-        volatile int blitter_complete_refcount;
-        
-        volatile int endprdmasts_pending;
-        volatile int softrap_pending;
-        uint32_t softrap_pending_val;
-        
-        pc_timer_t softrap_pending_timer;
-
-        uint64_t blitter_time;
-        uint64_t status_time;
-        
-        int pixel_count, trap_count;
-
-        fifo_entry_t fifo[FIFO_SIZE];
-        volatile int fifo_read_idx, fifo_write_idx;
-
-        thread_t *fifo_thread;
-        event_t *wake_fifo_thread;
-        event_t *fifo_not_full_event;
-        
-        pc_timer_t wake_timer;
-} mystique_t;
-
-static void mystique_start_blit(mystique_t *mystique);
-static void mystique_update_irqs(mystique_t *mystique);
-
-static void wake_fifo_thread(mystique_t *mystique);
-static void wait_fifo_idle(mystique_t *mystique);
-static void mystique_queue(mystique_t *mystique, uint32_t addr, uint32_t val, uint32_t type);
-
-static const uint8_t trans_masks[16][16] =
-{
-        {
-                1, 1, 1, 1,
-                1, 1, 1, 1,
-                1, 1, 1, 1,
-                1, 1, 1, 1
-        },
-        {
-                1, 0, 1, 0,
-                0, 1, 0, 1,
-                1, 0, 1, 0,
-                0, 1, 0, 1
-        },
-        {
-                0, 1, 0, 1,
-                1, 0, 1, 0,
-                0, 1, 0, 1,
-                1, 0, 1, 0
-        },
-        {
-                1, 0, 1, 0,
-                0, 0, 0, 0,
-                1, 0, 1, 0,
-                0, 0, 0, 0
-        },
-        {
-                0, 1, 0, 1,
-                0, 0, 0, 0,
-                0, 1, 0, 1,
-                0, 0, 0, 0
-        },
-        {
-                0, 0, 0, 0,
-                1, 0, 1, 0,
-                0, 0, 0, 0,
-                1, 0, 1, 0
-        },
-        {
-                0, 0, 0, 0,
-                0, 1, 0, 1,
-                0, 0, 0, 0,
-                0, 1, 0, 1
-        },
-        {
-                1, 0, 0, 0,
-                0, 0, 0, 0,
-                0, 0, 1, 0,
-                0, 0, 0, 0
-        },
-        {
-                0, 0, 0, 0,
-                0, 1, 0, 0,
-                0, 0, 0, 0,
-                0, 0, 0, 1
-        },
-        {
-                0, 0, 0, 1,
-                0, 0, 0, 0,
-                0, 1, 0, 0,
-                0, 0, 0, 0
-        },
-        {
-                0, 0, 0, 0,
-                0, 0, 1, 0,
-                0, 0, 0, 0,
-                1, 0, 0, 0
-        },
-        {
-                0, 0, 0, 0,
-                1, 0, 0, 0,
-                0, 0, 0, 0,
-                0, 0, 1, 0
-        },
-        {
-                0, 1, 0, 0,
-                0, 0, 0, 0,
-                0, 0, 0, 1,
-                0, 0, 0, 0
-        },
-        {
-                0, 0, 0, 0,
-                0, 0, 0, 1,
-                0, 0, 0, 0,
-                0, 1, 0, 0
-        },
-        {
-                0, 0, 1, 0,
-                0, 0, 0, 0,
-                1, 0, 0, 0,
-                0, 0, 0, 0
-        },
-        {
-                0, 0, 0, 0,
-                0, 0, 0, 0,
-                0, 0, 0, 0,
-                0, 0, 0, 0
-        }
-};
-
-static int8_t dither5[256][2][2];
-static int8_t dither6[256][2][2];
-
-enum
-{
-        DMA_STATE_IDLE = 0,
-        DMA_STATE_PRI,
-        DMA_STATE_SEC
-};
 
 #define DMA_POLL_TIME_US 100 /*100us*/
 #define DMA_MAX_WORDS 256 /*256 quad words per 100us poll*/
@@ -645,18 +344,262 @@ enum
 #define DITHER_555      2
 #define DITHER_NONE_555 3
 
-static void mystique_recalc_mapping(mystique_t *mystique);
-static int mystique_line_compare(svga_t *svga);
 
-static uint8_t mystique_iload_read_b(uint32_t addr, void *p);
-static uint32_t mystique_iload_read_l(uint32_t addr, void *p);
-static void mystique_iload_write_b(uint32_t addr, uint8_t val, void *p);
-static void mystique_iload_write_l(uint32_t addr, uint32_t val, void *p);
+enum
+{
+    FIFO_INVALID          = (0x00 << 24),
+    FIFO_WRITE_CTRL_BYTE  = (0x01 << 24),
+    FIFO_WRITE_CTRL_LONG  = (0x02 << 24),
+    FIFO_WRITE_ILOAD_LONG = (0x03 << 24)
+};
 
-static uint32_t blit_idump_read(mystique_t *mystique);
-static void blit_iload_write(mystique_t *mystique, uint32_t data, int size);
+enum
+{
+        DMA_STATE_IDLE = 0,
+        DMA_STATE_PRI,
+        DMA_STATE_SEC
+};
 
-static video_timings_t timing_matrox_mystique = {VIDEO_BUS, 4,  4,  4,  10, 10, 10};
+
+typedef struct
+{
+    uint32_t addr_type;
+    uint32_t val;
+} fifo_entry_t;
+
+typedef struct mystique_t
+{
+    svga_t svga;
+
+    rom_t bios_rom;
+
+    mem_mapping_t lfb_mapping, ctrl_mapping,
+		  iload_mapping;
+
+    uint8_t int_line, xcurctrl,
+	    xsyspllm, xsysplln, xsyspllp,
+	    xgenioctrl, xgeniodata,
+	    xmulctrl, xgenctrl,
+	    xmiscctrl, xpixclkctrl,
+	    xvrefctrl, ien, dmamod,
+	    dmadatasiz, dirdatasiz;
+
+    uint8_t pci_regs[256], crtcext_regs[6],
+	    xreg_regs[256], dmamap[16];
+
+    int card, vram_size, crtcext_idx, xreg_idx,
+	xzoomctrl,
+	pixel_count, trap_count;
+
+    volatile int busy, blitter_submit_refcount,
+		 blitter_submit_dma_refcount, blitter_complete_refcount,        
+		 endprdmasts_pending, softrap_pending,
+		 fifo_read_idx, fifo_write_idx;
+
+    uint32_t vram_mask, vram_mask_w, vram_mask_l,
+	     lfb_base, ctrl_base, iload_base,
+	     ma_latch_old, maccess, mctlwtst, maccess_running,
+	     status, softrap_pending_val;
+
+    uint64_t blitter_time, status_time;
+
+    pc_timer_t softrap_pending_timer, wake_timer;
+
+    fifo_entry_t fifo[FIFO_SIZE];
+
+    thread_t *fifo_thread;
+
+    event_t *wake_fifo_thread, *fifo_not_full_event;
+
+    struct
+    {
+	int m, n, p, s;
+    } xpixpll[3];
+
+    struct
+    {
+	uint8_t funcnt, stylelen,
+		dmamod;
+
+	int16_t fxleft, fxright,
+		xdst;
+
+	uint16_t cxleft, cxright,
+		 length;
+
+	int xoff, yoff, selline, ydst,
+	    length_cur, iload_rem_count, idump_end_of_line, words,
+	    ta_key, ta_mask, lastpix_r, lastpix_g,
+	    lastpix_b, highv_line, beta, dither;
+
+	int pattern[8][8];
+
+	uint32_t dwgctrl, dwgctrl_running, bcol, fcol,
+		 pitch, plnwt, ybot, ydstorg,
+		 ytop, texorg, texwidth, texheight,
+		 texctl, textrans, zorg, ydst_lin,
+		 src_addr, z_base, iload_rem_data, highv_data;
+
+	uint32_t src[4], ar[7],
+		 dr[16], tmr[9];
+
+	struct
+	{
+		int sdydxl, scanleft, sdxl, sdy,
+		    sdxr;
+	} sgn;
+    } dwgreg;
+
+    struct
+    {
+	uint8_t r, g, b;
+    } lut[256];
+
+    struct
+    {
+	uint16_t pos_x, pos_y,
+		 addr;
+	uint32_t col[3];
+    } cursor;
+
+    struct
+    {
+	int pri_pos, sec_pos, iload_pos,
+	    pri_state, sec_state, iload_state, state;
+
+	uint32_t primaddress, primend, secaddress, secend,
+		 pri_header, sec_header,
+		 iload_header;
+
+	mutex_t *lock;
+    } dma;
+} mystique_t;
+
+
+static const uint8_t trans_masks[16][16] =
+{
+    {
+	1, 1, 1, 1,
+	1, 1, 1, 1,
+	1, 1, 1, 1,
+	1, 1, 1, 1
+    },
+    {
+	1, 0, 1, 0,
+	0, 1, 0, 1,
+	1, 0, 1, 0,
+	0, 1, 0, 1
+    },
+    {
+	0, 1, 0, 1,
+	1, 0, 1, 0,
+	0, 1, 0, 1,
+	1, 0, 1, 0
+    },
+    {
+	1, 0, 1, 0,
+	0, 0, 0, 0,
+	1, 0, 1, 0,
+	0, 0, 0, 0
+    },
+    {
+	0, 1, 0, 1,
+	0, 0, 0, 0,
+	0, 1, 0, 1,
+	0, 0, 0, 0
+    },
+    {
+	0, 0, 0, 0,
+	1, 0, 1, 0,
+	0, 0, 0, 0,
+	1, 0, 1, 0
+    },
+    {
+	0, 0, 0, 0,
+	0, 1, 0, 1,
+	0, 0, 0, 0,
+	0, 1, 0, 1
+    },
+    {
+	1, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 1, 0,
+	0, 0, 0, 0
+    },
+    {
+	0, 0, 0, 0,
+	0, 1, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 1
+    },
+    {
+	0, 0, 0, 1,
+	0, 0, 0, 0,
+	0, 1, 0, 0,
+	0, 0, 0, 0
+    },
+    {
+	0, 0, 0, 0,
+	0, 0, 1, 0,
+	0, 0, 0, 0,
+	1, 0, 0, 0
+    },
+    {
+	0, 0, 0, 0,
+	1, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 1, 0
+    },
+    {
+	0, 1, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 1,
+	0, 0, 0, 0
+    },
+    {
+	0, 0, 0, 0,
+	0, 0, 0, 1,
+	0, 0, 0, 0,
+	0, 1, 0, 0
+    },
+    {
+	0, 0, 1, 0,
+	0, 0, 0, 0,
+	1, 0, 0, 0,
+	0, 0, 0, 0
+    },
+    {
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0
+    }
+};
+
+
+static int8_t		dither5[256][2][2];
+static int8_t		dither6[256][2][2];
+
+static video_timings_t	timing_matrox_mystique = {VIDEO_BUS, 4,  4,  4,  10, 10, 10};
+
+
+static void	mystique_start_blit(mystique_t *mystique);
+static void	mystique_update_irqs(mystique_t *mystique);
+
+static void	wake_fifo_thread(mystique_t *mystique);
+static void	wait_fifo_idle(mystique_t *mystique);
+static void	mystique_queue(mystique_t *mystique, uint32_t addr, uint32_t val, uint32_t type);
+
+static void	mystique_recalc_mapping(mystique_t *mystique);
+static int	mystique_line_compare(svga_t *svga);
+
+static uint8_t	mystique_iload_read_b(uint32_t addr, void *p);
+static uint32_t	mystique_iload_read_l(uint32_t addr, void *p);
+static void	mystique_iload_write_b(uint32_t addr, uint8_t val, void *p);
+static void	mystique_iload_write_l(uint32_t addr, uint32_t val, void *p);
+
+static uint32_t	blit_idump_read(mystique_t *mystique);
+static void	blit_iload_write(mystique_t *mystique, uint32_t data, int size);
 
 
 void
@@ -815,18 +758,26 @@ mystique_recalctimings(svga_t *svga)
     if (mystique->crtcext_regs[2] & CRTCX_R2_LINECOMP10)
 	svga->split += 0x400;
 
+    svga->interlace = !!(mystique->crtcext_regs[0] & 0x80);
+
     if (mystique->crtcext_regs[3] & CRTCX_R3_MGAMODE) {
 	int row_offset = svga->crtc[0x13] | ((mystique->crtcext_regs[0] & CRTCX_R0_OFFSET_MASK) << 4);
 
 	svga->lowres = 0;
-	svga->rowoffset = row_offset * 2;
+	if (svga->interlace)
+		svga->rowoffset = row_offset;
+	else
+		svga->rowoffset = row_offset * 2;
 	svga->ma_latch = ((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 17) |
 			 (svga->crtc[0xc] << 9) | (svga->crtc[0xd] << 1);
 
 	/*Mystique, unlike most SVGA cards, allows display start to take
 	  effect mid-screen*/
 	if (svga->ma_latch != mystique->ma_latch_old) {
-		svga->ma = svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) + (svga->ma_latch << 2);
+		if (svga->interlace && svga->oddeven)
+			svga->ma = svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) + (svga->ma_latch << 2) + (svga->rowoffset << 1);
+		else
+			svga->ma = svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) + (svga->ma_latch << 2);
 		mystique->ma_latch_old = svga->ma_latch;
 	}
 
@@ -4351,6 +4302,9 @@ mystique_hwcursor_draw(svga_t *svga, int displine)
     uint64_t dat[2];
     int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
 
+    if (svga->interlace && svga->hwcursor_oddeven)
+	svga->hwcursor_latch.addr += 16;
+
     dat[0] = *(uint64_t *)(&svga->vram[svga->hwcursor_latch.addr]);
     dat[1] = *(uint64_t *)(&svga->vram[svga->hwcursor_latch.addr + 8]);
     svga->hwcursor_latch.addr += 16;
@@ -4364,6 +4318,9 @@ mystique_hwcursor_draw(svga_t *svga, int displine)
 	dat[0] <<= 1;
 	dat[1] <<= 1;
     }
+
+    if (svga->interlace && !svga->hwcursor_oddeven)
+	svga->hwcursor_latch.addr += 16;
 }
 
 
@@ -4510,10 +4467,16 @@ mystique_init(const device_t *info)
 {
     int c;
     mystique_t *mystique = malloc(sizeof(mystique_t));
+    wchar_t *romfn;
 
     memset(mystique, 0, sizeof(mystique_t));
 
-    rom_init(&mystique->bios_rom, L"roms/video/matrox/MYSTIQUE.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    if (info->local == 1)
+	romfn = ROM_MYSTIQUE_220;
+    else
+	romfn = ROM_MYSTIQUE;
+
+    rom_init(&mystique->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     mystique->vram_size = device_get_config_int("memory");
     mystique->vram_mask = (mystique->vram_size << 20) - 1;
@@ -4549,7 +4512,7 @@ mystique_init(const device_t *info)
     mystique->pci_regs[0x2f] = mystique->bios_rom.rom[0x7ff8];
 
     mystique->svga.miscout = 1;
-    mystique->pci_regs[0x41] = 0x01; /*vgaboot=1*/
+    mystique->pci_regs[0x41] = 0x01;	/* vgaboot = 1 */
 
     for (c = 0; c < 256; c++) {
 	dither5[c][0][0] = c >> 3;
@@ -4634,45 +4597,61 @@ mystique_force_redraw(void *p)
 
 static const device_config_t mystique_config[] =
 {
-        {
-                .name = "memory",
-                .description = "Memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "2 MB",
-                                .value = 2
-                        },
-                        {
-                                .description = "4 MB",
-                                .value = 4
-                        },
-                        {
-                                .description = "8 MB",
-                                .value = 8
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 4
-        },
-        {
-                .type = -1
-        }
+    {
+	.name = "memory",
+	.description = "Memory size",
+	.type = CONFIG_SELECTION,
+	.selection =
+	{
+		{
+			.description = "2 MB",
+			.value = 2
+		},
+		{
+			.description = "4 MB",
+			.value = 4
+		},
+		{
+			.description = "8 MB",
+			.value = 8
+		},
+		{
+			.description = ""
+		}
+	},
+	.default_int = 8
+    },
+    {
+	.type = -1
+    }
 };
+
 
 const device_t mystique_device =
 {
-        "Matrox Mystique",
-		DEVICE_PCI,
-        0,
-        mystique_init,
-        mystique_close,
-		NULL,
-        mystique_available,
-        mystique_speed_changed,
-        mystique_force_redraw,
-        mystique_config
+    "Matrox Mystique",
+    DEVICE_PCI,
+    0,
+    mystique_init,
+    mystique_close,
+    NULL,
+    mystique_available,
+    mystique_speed_changed,
+    mystique_force_redraw,
+    mystique_config
+};
+
+
+const device_t mystique_220_device =
+{
+    "Matrox Mystique 220",
+    DEVICE_PCI,
+    1,
+    mystique_init,
+    mystique_close,
+    NULL,
+    mystique_available,
+    mystique_speed_changed,
+    mystique_force_redraw,
+    mystique_config
 };

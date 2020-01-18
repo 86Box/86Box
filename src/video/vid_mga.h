@@ -8,10 +8,11 @@
  *
  *		Matrox MGA graphics card emulation.
  *
- * Version:	@(#)vid_mga.h	1.0.0	2020/01/16
+ * Version:	@(#)vid_mga.h	1.0.1	2020/01/18
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Copyright 2008-2020 Sarah Walker.
  */
 
 extern const device_t mystique_device;
+extern const device_t mystique_220_device;
