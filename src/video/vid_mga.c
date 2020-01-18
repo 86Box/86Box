@@ -8,7 +8,7 @@
  *
  *		Matrox MGA graphics card emulation.
  *
- * Version:	@(#)vid_mga.c	1.0.1	2020/01/18
+ * Version:	@(#)vid_mga.c	1.0.2	2020/01/18
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Copyright 2008-2020 Sarah Walker.
@@ -4328,61 +4328,64 @@ static
 uint8_t mystique_pci_read(int func, int addr, void *p)
 {
     mystique_t *mystique = (mystique_t *)p;
+    uint8_t ret = 0x00;
 
-    switch (addr) {
-	case 0x00: return 0x2b; /*Matrox*/
-	case 0x01: return 0x10;
+    if ((addr >= 0x30) && (addr <= 0x33) && !(mystique->pci_regs[0x43] & 0x40))
+	ret = 0x00;
+    else switch (addr) {
+	case 0x00: ret = 0x2b; break; /*Matrox*/
+	case 0x01: ret = 0x10; break;
 
-	case 0x02: return 0x1a; /*MGA-1064SG*/
-	case 0x03: return 0x05;
+	case 0x02: ret = 0x1a; break; /*MGA-1064SG*/
+	case 0x03: ret = 0x05; break;
 
 	case PCI_REG_COMMAND:
-		return mystique->pci_regs[PCI_REG_COMMAND]; /*Respond to IO and memory accesses*/
+		ret = mystique->pci_regs[PCI_REG_COMMAND]; break; /*Respond to IO and memory accesses*/
 
-	case 0x07: return 0 << 1; /*Fast DEVSEL timing*/
+	case 0x07: ret = 0 << 1; break; /*Fast DEVSEL timing*/
 
-	case 0x08: return 0; /*Revision ID*/
-	case 0x09: return 0; /*Programming interface*/
+	case 0x08: ret = 0; break; /*Revision ID*/
+	case 0x09: ret = 0; break; /*Programming interface*/
 
-	case 0x0a: return 0x00; /*Supports VGA interface*/
-	case 0x0b: return 0x03;
+	case 0x0a: ret = 0x00; break; /*Supports VGA interface*/
+	case 0x0b: ret = 0x03; break;
 
-	case 0x10: return 0x00; /*Control aperture*/
-	case 0x11: return (mystique->ctrl_base >> 8) & 0xc0;
-	case 0x12: return mystique->ctrl_base >> 16;
-	case 0x13: return mystique->ctrl_base >> 24;
+	case 0x10: ret = 0x00; break; /*Control aperture*/
+	case 0x11: ret = (mystique->ctrl_base >> 8) & 0xc0; break;
+	case 0x12: ret = mystique->ctrl_base >> 16; break;
+	case 0x13: ret = mystique->ctrl_base >> 24; break;
 
-	case 0x14: return 0x00; /*Linear frame buffer*/
-	case 0x16: return (mystique->lfb_base >> 16) & 0x80;
-	case 0x17: return mystique->lfb_base >> 24;
+	case 0x14: ret = 0x00; break; /*Linear frame buffer*/
+	case 0x16: ret = (mystique->lfb_base >> 16) & 0x80; break;
+	case 0x17: ret = mystique->lfb_base >> 24; break;
 
-	case 0x18: return 0x00; /*Pseudo-DMA (ILOAD)*/
-	case 0x1a: return (mystique->iload_base >> 16) & 0x80;
-	case 0x1b: return mystique->iload_base >> 24;
+	case 0x18: ret = 0x00; break; /*Pseudo-DMA (ILOAD)*/
+	case 0x1a: ret = (mystique->iload_base >> 16) & 0x80; break;
+	case 0x1b: ret = mystique->iload_base >> 24; break;
 
-	case 0x30: return mystique->pci_regs[0x30] & 0x01; /*BIOS ROM address*/
-	case 0x31: return 0x00;
-	case 0x32: return mystique->pci_regs[0x32];
-	case 0x33: return mystique->pci_regs[0x33];
+	case 0x30: ret = mystique->pci_regs[0x30] & 0x01; break; /*BIOS ROM address*/
+	case 0x31: ret = 0x00; break;
+	case 0x32: ret = mystique->pci_regs[0x32]; break;
+	case 0x33: ret = mystique->pci_regs[0x33]; break;
 
-	case 0x3c: return mystique->int_line;
-	case 0x3d: return PCI_INTA;
+	case 0x3c: ret = mystique->int_line; break;
+	case 0x3d: ret = PCI_INTA; break;
 
-	case 0x40: return mystique->pci_regs[0x40];
-	case 0x41: return mystique->pci_regs[0x41];
-	case 0x42: return mystique->pci_regs[0x42];
-	case 0x43: return mystique->pci_regs[0x43];
+	case 0x40: ret = mystique->pci_regs[0x40]; break;
+	case 0x41: ret = mystique->pci_regs[0x41]; break;
+	case 0x42: ret = mystique->pci_regs[0x42]; break;
+	case 0x43: ret = mystique->pci_regs[0x43]; break;
 
-	case 0x44: return mystique->pci_regs[0x44];
-	case 0x45: return mystique->pci_regs[0x45];
+	case 0x44: ret = mystique->pci_regs[0x44]; break;
+	case 0x45: ret = mystique->pci_regs[0x45]; break;
 
 	case 0x48: case 0x49: case 0x4a: case 0x4b:
 		addr = (mystique->pci_regs[0x44] & 0xfc) | ((mystique->pci_regs[0x45] & 0x3f) << 8) |
 			(addr & 3);
-		return mystique_ctrl_read_b(addr, mystique);
+		ret = mystique_ctrl_read_b(addr, mystique); break;
     }
 
-    return 0;
+    return ret;
 }
 
 
@@ -4429,6 +4432,8 @@ mystique_pci_write(int func, int addr, uint8_t val, void *p)
 		break;
 
 	case 0x30: case 0x32: case 0x33:
+		if (!(mystique->pci_regs[0x43] & 0x40))
+			return;
 		mystique->pci_regs[addr] = val;
 		if (mystique->pci_regs[0x30] & 0x01) {
 			uint32_t addr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
@@ -4443,6 +4448,16 @@ mystique_pci_write(int func, int addr, uint8_t val, void *p)
 
 	case 0x40: case 0x41: case 0x42: case 0x43:
 		mystique->pci_regs[addr] = val;
+		if (addr == 0x43) {
+			if (val & 0x40) {
+				if (mystique->pci_regs[0x30] & 0x01) {
+					uint32_t addr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
+					mem_mapping_set_addr(&mystique->bios_rom.mapping, addr, 0x8000);
+		                } else
+					mem_mapping_disable(&mystique->bios_rom.mapping);
+			} else
+				mem_mapping_set_addr(&mystique->bios_rom.mapping, 0x000c0000, 0x8000);
+		}
 		break;
 
 	case 0x4c: case 0x4d: case 0x4e: case 0x4f:
@@ -4477,6 +4492,7 @@ mystique_init(const device_t *info)
 	romfn = ROM_MYSTIQUE;
 
     rom_init(&mystique->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    mem_mapping_disable(&mystique->bios_rom.mapping);
 
     mystique->vram_size = device_get_config_int("memory");
     mystique->vram_mask = (mystique->vram_size << 20) - 1;
@@ -4496,14 +4512,19 @@ mystique_init(const device_t *info)
 		    mystique_ctrl_read_b, NULL, mystique_ctrl_read_l,
 		    mystique_ctrl_write_b, NULL, mystique_ctrl_write_l,
 		    NULL, 0, mystique);
+    mem_mapping_disable(&mystique->ctrl_mapping);
+
     mem_mapping_add(&mystique->lfb_mapping, 0, 0,
 		    svga_read_linear, svga_readw_linear, svga_readl_linear,
 		    svga_write_linear, svga_writew_linear, svga_writel_linear,
 		    NULL, 0, mystique);
+    mem_mapping_disable(&mystique->lfb_mapping);
+
     mem_mapping_add(&mystique->iload_mapping, 0, 0,
 		    mystique_iload_read_b, NULL, mystique_iload_read_l,
 		    mystique_iload_write_b, NULL, mystique_iload_write_l,
 		    NULL, 0, mystique);
+    mem_mapping_disable(&mystique->iload_mapping);
 
     mystique->card = pci_add_card(PCI_ADD_VIDEO, mystique_pci_read, mystique_pci_write, mystique);
     mystique->pci_regs[0x2c] = mystique->bios_rom.rom[0x7ff8];
@@ -4513,6 +4534,7 @@ mystique_init(const device_t *info)
 
     mystique->svga.miscout = 1;
     mystique->pci_regs[0x41] = 0x01;	/* vgaboot = 1 */
+    mystique->pci_regs[0x43] = 0x40;	/* biosen = 1 */
 
     for (c = 0; c < 256; c++) {
 	dither5[c][0][0] = c >> 3;
@@ -4573,7 +4595,14 @@ mystique_close(void *p)
 static int
 mystique_available(void)
 {
-    return rom_present(L"roms/video/matrox/MYSTIQUE.VBI");
+    return rom_present(ROM_MYSTIQUE);
+}
+
+
+static int
+mystique_220_available(void)
+{
+    return rom_present(ROM_MYSTIQUE_220);
 }
 
 
@@ -4650,7 +4679,7 @@ const device_t mystique_220_device =
     mystique_init,
     mystique_close,
     NULL,
-    mystique_available,
+    mystique_220_available,
     mystique_speed_changed,
     mystique_force_redraw,
     mystique_config
