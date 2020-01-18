@@ -21,12 +21,12 @@
 int fpu_do_log = ENABLE_FPU_LOG;
 
 
-static void
+void
 fpu_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (fpu_log) {
+    if (fpu_do_log) {
 	va_start(ap, fmt);
 	pclog_ex(fmt, ap);
 	va_end(ap);
