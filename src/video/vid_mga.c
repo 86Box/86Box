@@ -831,8 +831,8 @@ mystique_recalctimings(svga_t *svga)
 	svga->bpp = 8;
 	
     mem_mapping_set_handler(&mystique->lfb_mapping,
-            svga_readb_linear, svga_readw_linear, svga_readl_linear,
-            svga_writeb_linear, svga_writew_linear, svga_writel_linear);	
+            svga_read_linear, svga_readw_linear, svga_readl_linear,
+            svga_write_linear, svga_writew_linear, svga_writel_linear);	
     }
 }
 
@@ -4706,8 +4706,8 @@ mystique_init(const device_t *info)
     mem_mapping_disable(&mystique->ctrl_mapping);
 
     mem_mapping_add(&mystique->lfb_mapping, 0, 0,
-		    svga_readb_linear, svga_readw_linear, svga_readl_linear,
-		    svga_writeb_linear, svga_writew_linear, svga_writel_linear,
+		    svga_read_linear, svga_readw_linear, svga_readl_linear,
+		    svga_write_linear, svga_writew_linear, svga_writel_linear,
 		    NULL, 0, mystique);
     mem_mapping_disable(&mystique->lfb_mapping);
 

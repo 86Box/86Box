@@ -53,7 +53,7 @@ typedef struct svga_t
 	hdisp,  hdisp_old, htotal,  hdisp_time, rowoffset,
 	dispon, hdisp_on,
 	vc, sc, linepos, vslines, linecountff, oddeven,
-	con, cursoron, blink, scrollcache,
+	con, cursoron, blink, scrollcache, char_width,
 	firstline, lastline, firstline_draw, lastline_draw,
 	displine, fullchange, x_add, y_add, pan,
 	vram_display_mask, vidclock,
