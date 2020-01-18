@@ -237,6 +237,23 @@ machine_at_ibmxt286_init(const machine_t *model)
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(USE_SIEMENS)
+int
+machine_at_siemens_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/siemens/286BIOS.BIN",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_ibm_common_init(model);
+
+    return ret;
+}
+#endif
 
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
 int
