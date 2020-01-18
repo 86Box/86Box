@@ -8,15 +8,15 @@
  *
  *		Implementation of Socket 7 and Super Socket 7 machines.
  *
- * Version:	@(#)m_at_socket7_s7.c	1.0.1	2019/10/20
+ * Version:	@(#)m_at_socket7_s7.c	1.0.2	2020/01/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
- *      Melissa Goad, <mszoopers@protonmail.com>
+ *		Melissa Goad, <mszoopers@protonmail.com>
  *
  *		Copyright 2010-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
- *      Copyright 2020 Melissa Goad.
+ *		Copyright 2020 Melissa Goad.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -506,10 +506,10 @@ machine_at_mvp3_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_ONBOARD, 1, 2, 3, 4);
     pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0a, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x07, PCI_CARD_SPECIAL, 1, 2, 3, 4);
     device_add(&via_mvp3_device);
     device_add(&via_vt82c586b_device);
