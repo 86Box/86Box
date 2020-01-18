@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.141	2020/01/14
+# Version:	@(#)Makefile.mingw	1.0.142	2020/01/18
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -83,6 +83,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef VECTRA54
   VECTRA54	:= y
  endif
+ ifndef VPP60
+  VP660		:= y
+ endif
  ifndef SIEMENS
   SIEMENS	:= y
  endif
@@ -146,6 +149,9 @@ else
  endif
  ifndef VECTRA54
   VECTRA54	:= n
+ endif
+ ifndef VPP60
+  VP660		:= n
  endif
  ifndef SIEMENS
   SIEMENS	:= n
@@ -504,6 +510,10 @@ endif
 
 ifeq ($(VECTRA54), y)
 OPTS		+= -DUSE_VECTRA54
+endif
+
+ifeq ($(VPP60), y)
+OPTS		+= -DUSE_VPP60
 endif
 
 ifeq ($(SIEMENS), y)

@@ -104,6 +104,7 @@ machine_at_batman_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_ambradp60_init(const machine_t *model)
 {
@@ -122,6 +123,8 @@ machine_at_ambradp60_init(const machine_t *model)
     return ret;
 }
 
+
+#if defined(DEV_BRANCH) && defined(USE_VPP60)
 int
 machine_at_valuepointp60_init(const machine_t *model)
 {
@@ -139,6 +142,8 @@ machine_at_valuepointp60_init(const machine_t *model)
 
     return ret;
 }
+#endif
+
 
 int
 machine_at_586mc1_init(const machine_t *model)
@@ -177,6 +182,7 @@ machine_at_plato_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_ambradp90_init(const machine_t *model)
 {
@@ -194,6 +200,7 @@ machine_at_ambradp90_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_430nx_init(const machine_t *model)
