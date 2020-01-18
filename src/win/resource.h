@@ -8,7 +8,7 @@
  *
  *		Windows resource defines.
  *
- * Version:	@(#)resource.h	1.0.31	2019/12/05
+ * Version:	@(#)resource.h	1.0.32	2019/12/21
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -54,12 +54,13 @@
 #define IDT_1710		1710	/* Joystick: */
 #define IDT_1711		1711	/* Sound card: */
 #define IDT_1712		1712	/* MIDI Out Device: */
-#define IDT_1713		1713	/* Network type: */
-#define IDT_1714		1714	/* PCap device: */
-#define IDT_1715		1715	/* Network adapter: */
-#define IDT_1716		1716	/* SCSI Controller: */
-#define IDT_1717		1717	/* HD Controller: */
-#define IDT_1718		1718
+#define IDT_1713		1713	/* MIDI In Device: */
+#define IDT_1714		1714	/* Network type: */
+#define IDT_1715		1715	/* PCap device: */
+#define IDT_1716		1716	/* Network adapter: */
+#define IDT_1717		1717	/* SCSI Controller: */
+#define IDT_1718		1718	/* HD Controller: */
+#define IDT_1719		1719
 #define IDT_1720		1720	/* Hard disks: */
 #define IDT_1721		1721	/* Bus: */
 #define IDT_1722		1722	/* Channel: */
@@ -144,12 +145,12 @@
 #define IDC_CHECK_SSI		1072
 #define IDC_CHECK_CMS		1073
 #define IDC_CHECK_GUS		1074
-#define IDC_CHECK_NUKEDOPL	1075
-#define IDC_COMBO_MIDI		1076
-#define IDC_CHECK_MPU401	1077
-#define IDC_CONFIGURE_MPU401	1078
-#define IDC_CHECK_FLOAT		1079
-#define IDC_CHECK_GUSMAX	1080
+#define IDC_COMBO_MIDI		1075
+#define IDC_CHECK_MPU401	1076
+#define IDC_CONFIGURE_MPU401	1077
+#define IDC_CHECK_FLOAT		1078
+#define IDC_CONFIGURE_GUS	1079
+#define IDC_COMBO_MIDI_IN	1080
 
 #define IDC_COMBO_NET_TYPE	1090	/* network config */
 #define IDC_COMBO_PCAP		1091
@@ -242,6 +243,7 @@
 #define  IDC_CONFIGURE_PCAP	1306
 #define  IDC_CONFIGURE_NET	1307
 #define  IDC_CONFIGURE_MIDI	1308
+#define  IDC_CONFIGURE_MIDI_IN 1309
 #define  IDC_JOY1		1310
 #define  IDC_JOY2		1311
 #define  IDC_JOY3		1312

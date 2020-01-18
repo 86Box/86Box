@@ -523,11 +523,21 @@ hndl_poly(pgc_t *pgc)
 #ifdef ENABLE_IM1024_LOG
 	im1024_log("IM1024: POLY: out of memory\n");
 #endif
+	if (x)
+		free(x);
+	if (y)
+		free(y);
 	return;
     }
 
     while (parsing) {
-	if (! pgc_param_byte(pgc, &count)) return;
+	if (! pgc_param_byte(pgc, &count)) {
+		if (x)
+			free(x);
+		if (y)
+			free(y);
+		return;
+	}
 
 	if (count + realcount >= as) {
 		nx = (int32_t *)realloc(x, 2 * as * sizeof(int32_t));	
@@ -544,8 +554,20 @@ hndl_poly(pgc_t *pgc)
 	}
 
 	for (n = 0; n < count; n++) {
-		if (! pgc_param_word(pgc, &xw)) return;
-		if (! pgc_param_word(pgc, &yw)) return;
+		if (! pgc_param_word(pgc, &xw)) {
+			if (x)
+				free(x);
+			if (y)
+				free(y);
+			return;
+		}
+		if (! pgc_param_word(pgc, &yw)) {
+			if (x)
+				free(x);
+			if (y)
+				free(y);
+			return;
+		}
 
 		/* Skip degenerate line segments. */
 		if (realcount > 0 && 

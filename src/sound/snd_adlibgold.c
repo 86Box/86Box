@@ -20,11 +20,11 @@ typedef struct adgold_t
 {
         int adgold_irq_status;
 
-        uint8_t adgold_eeprom[0x19];
+        uint8_t adgold_eeprom[0x1a];
 
         uint8_t adgold_status;
         int adgold_38x_state, adgold_38x_addr;
-        uint8_t adgold_38x_regs[0x19];
+        uint8_t adgold_38x_regs[0x1a];
 
         int adgold_mma_addr;
         uint8_t adgold_mma_regs[2][0xe];
@@ -211,9 +211,9 @@ void adgold_write(uint16_t addr, uint8_t val, void *p)
                         {
                                 case 0x00: /*Control/ID*/
                                 if (val & 1)
-                                        memcpy(adgold->adgold_38x_regs, adgold->adgold_eeprom, 0x19);
+                                        memcpy(adgold->adgold_38x_regs, adgold->adgold_eeprom, 0x1a);
                                 if (val & 2)
-                                        memcpy(adgold->adgold_eeprom, adgold->adgold_38x_regs, 0x19);
+                                        memcpy(adgold->adgold_eeprom, adgold->adgold_38x_regs, 0x1a);
                                 break;
                                 
                                 case 0x04: /*Final output volume left*/
@@ -384,7 +384,7 @@ void adgold_write(uint16_t addr, uint8_t val, void *p)
                 adgold->adgold_mma_regs[0][adgold->adgold_mma_addr] = val;
                 break;
                 case 7:
-                if (adgold->adgold_mma_addr >= 0xf) break;
+                if (adgold->adgold_mma_addr >= 0xe) break;
                 switch (adgold->adgold_mma_addr)
                 {
                         case 0x9:
@@ -503,8 +503,10 @@ uint8_t adgold_read(uint16_t addr, void *p)
                 }
                 break;
                 case 7:
-                if (adgold->adgold_mma_addr >= 0xf) temp = 0xff;
-                temp = adgold->adgold_mma_regs[1][adgold->adgold_mma_addr];
+                if (adgold->adgold_mma_addr >= 0xf)
+			temp = 0xff;
+		else
+                	temp = adgold->adgold_mma_regs[1][adgold->adgold_mma_addr];
                 break;
         }
         return temp;
@@ -774,7 +776,8 @@ void *adgold_init(const device_t *info)
         f = nvr_fopen(L"adgold.bin", L"rb");
         if (f)
         {
-                fread(adgold->adgold_eeprom, 0x18, 1, f);
+                if (fread(adgold->adgold_eeprom, 1, 0x1a, f) != 0x1a)
+			fatal("adgold_init(): Error reading data\n");
                 fclose(f);
         }
 

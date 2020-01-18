@@ -11,10 +11,10 @@
  *		Winbond W83877F Super I/O Chip
  *		Used by the Award 430HX
  *
- * Version:	@(#)sio_w83877f.c	1.0.15	2019/05/17
+ * Version:	@(#)sio_w83877f.c	1.0.16	2020/01/11
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -167,12 +167,21 @@ static void
 w83877f_write(uint16_t port, uint8_t val, void *priv)
 {
     w83877f_t *dev = (w83877f_t *) priv;
-    uint8_t index = (port & 1) ? 0 : 1;
     uint8_t valxor = 0;
     uint8_t max = 0x2A;
     uint8_t lpt_irq;
 
-    if (index) {
+    if (port == 0x250) {
+	if (val == dev->key)
+		dev->locked = 1;
+	else
+		dev->locked = 0;
+	return;
+    } else if (port == 0x251) {
+	if (val <= max)
+		dev->cur_reg = val;
+	return;
+    } else if (port == 0x03f0) {
 	if ((val == dev->key) && !dev->locked) {
 		if (dev->key_times == 2) {
 			if (dev->tries) {
@@ -196,7 +205,7 @@ w83877f_write(uint16_t port, uint8_t val, void *priv)
 		}
 	}
 	return;
-    } else {
+    } else if ((port == 0x252) || (port == 0x3f1)) {
 	if (dev->locked) {
 		if (dev->rw_locked)
 			return;
@@ -214,7 +223,7 @@ w83877f_write(uint16_t port, uint8_t val, void *priv)
 
     switch (dev->cur_reg) {
 	case 0:
-		if (valxor & 0xc0) {
+		if (valxor & 0x0c) {
 			lpt1_remove();
 			if (!(dev->regs[4] & 0x80))
 				lpt1_init(make_port(dev, 0x23));
@@ -340,12 +349,11 @@ w83877f_read(uint16_t port, void *priv)
 {
     w83877f_t *dev = (w83877f_t *) priv;
     uint8_t ret = 0xff;
-    uint8_t index = (port & 1) ? 0 : 1;
 
     if (dev->locked) {
-	if (index)
+	if ((port == 0x3f0) || (port == 0x251))
 		ret = dev->cur_reg;
-	else {
+	else if ((port == 0x3f1) || (port == 0x252)) {
 		if (dev->cur_reg == 7)
 			ret = (fdc_get_rwc(dev->fdc, 0) | (fdc_get_rwc(dev->fdc, 1) << 2));
 		else if ((dev->cur_reg >= 0x18) || !dev->rw_locked)

@@ -86,7 +86,7 @@ typedef struct
     wchar_t	filename[260];
 
     char	buffer[POSTSCRIPT_BUFFER_LENGTH];
-    uint16_t	buffer_pos;
+    size_t	buffer_pos;
 } ps_t;
 
 static void
@@ -271,13 +271,13 @@ static void
 process_data(ps_t *dev)
 {
     if (dev->data < 0x20 || dev->data == 0x7F) {
-	if (process_nonprintable(dev)) {
+	if (process_nonprintable(dev))
 		return;
-	}
     }
 
     if (dev->buffer_pos == POSTSCRIPT_BUFFER_LENGTH) {
 	write_buffer(dev, false);
+	dev->buffer_pos = 0;
     }
 
     dev->buffer[dev->buffer_pos++] = dev->data;

@@ -231,8 +231,10 @@ fdd_image_read(int drive, char *buffer, uint32_t offset, uint32_t len)
 {
     td0_t *dev = td0[drive];
 
-    fseek(dev->f, offset, SEEK_SET);
-    fread(buffer, 1, len, dev->f);
+    if (fseek(dev->f, offset, SEEK_SET) == -1)
+	fatal("fdd_image_read(): Error seeking to the beginning of the file\n");
+    if (fread(buffer, 1, len, dev->f) != len)
+	fatal("fdd_image_read(): Error reading data\n");
 }
 
 
@@ -260,8 +262,10 @@ state_data_read(td0dsk_t *state, uint8_t *buf, uint16_t size)
     image_size = ftell(state->fdd_file);
     if (size > image_size - state->fdd_file_offset)
 	size = (image_size - state->fdd_file_offset) & 0xffff;
-    fseek(state->fdd_file, state->fdd_file_offset, SEEK_SET);
-    fread(buf, 1, size, state->fdd_file);
+    if (fseek(state->fdd_file, state->fdd_file_offset, SEEK_SET) == -1)
+	fatal("TD0: Failed to seek in state_data_read()\n");
+    if (fread(buf, 1, size, state->fdd_file) != size)
+	fatal("TD0: Error reading data in state_data_read()\n");
     state->fdd_file_offset += size;
 
     return(size);
@@ -652,8 +656,10 @@ td0_initialize(int drive)
 	state_Decode(&disk_decode, dev->imagebuf, TD0_MAX_BUFSZ);
     } else {
 	td0_log("TD0: File is uncompressed\n");
-	fseek(dev->f, 12, SEEK_SET);
-	fread(dev->imagebuf, 1, file_size - 12, dev->f);
+	if (fseek(dev->f, 12, SEEK_SET) == -1)
+		fatal("td0_initialize(): Error seeking to offet 12\n");
+	if (fread(dev->imagebuf, 1, file_size - 12, dev->f) != (file_size - 12))
+		fatal("td0_initialize(): Error reading image buffer\n");
     }
 
     if (header[7] & 0x80)
@@ -904,15 +910,15 @@ static void
 set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 {
     td0_t *dev = td0[drive];
-    int i = 0;
+    int i = 0, cyl = c;
 
     dev->current_sector_index[side] = 0;
-    if (c != dev->track)  return;
-    for (i = 0; i < dev->track_spt[c][side]; i++) {
-	if ((dev->sects[c][side][i].track == c) &&
-	    (dev->sects[c][side][i].head == h) &&
-	    (dev->sects[c][side][i].sector == r) &&
-	    (dev->sects[c][side][i].size == n)) {
+    if (cyl != dev->track)  return;
+    for (i = 0; i < dev->track_spt[cyl][side]; i++) {
+	if ((dev->sects[cyl][side][i].track == c) &&
+	    (dev->sects[cyl][side][i].head == h) &&
+	    (dev->sects[cyl][side][i].sector == r) &&
+	    (dev->sects[cyl][side][i].size == n)) {
 		dev->current_sector_index[side] = i;
 	}
     }

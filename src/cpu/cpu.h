@@ -31,39 +31,42 @@
 #define CPU_286		2		/* 286 class CPUs */
 #define CPU_386SX	3		/* 386 class CPUs */
 #define CPU_386DX	4
-#define CPU_RAPIDCAD	5
-#define CPU_486SLC	6
-#define CPU_486DLC	7
-#define CPU_i486SX	8		/* 486 class CPUs */
-#define CPU_Am486SX	9
-#define CPU_Cx486S	10
-#define CPU_i486DX	11
-#define CPU_Am486DX	12
-#define CPU_Cx486DX	13
-#define CPU_iDX4	14
-#define CPU_Cx5x86	15
-#define CPU_WINCHIP	16		/* 586 class CPUs */
-#define CPU_PENTIUM	17
-#define CPU_PENTIUMMMX	18
-#define CPU_Cx6x86 	19
-#define CPU_Cx6x86MX 	20
-#define CPU_Cx6x86L 	21
-#define CPU_CxGX1 	22
+#define CPU_IBM386SLC    5
+#define CPU_IBM486SLC    6
+#define CPU_IBM486BL    7
+#define CPU_RAPIDCAD	8
+#define CPU_486SLC	9
+#define CPU_486DLC	10
+#define CPU_i486SX	11		/* 486 class CPUs */
+#define CPU_Am486SX	12
+#define CPU_Cx486S	13
+#define CPU_i486DX	14
+#define CPU_Am486DX	15
+#define CPU_Cx486DX	16
+#define CPU_iDX4	17
+#define CPU_Cx5x86	18
+#define CPU_WINCHIP	19		/* 586 class CPUs */
+#define CPU_PENTIUM	20
+#define CPU_PENTIUMMMX	21
+#define CPU_Cx6x86 	22
+#define CPU_Cx6x86MX 	23
+#define CPU_Cx6x86L 	24
+#define CPU_CxGX1 	25
 #ifdef DEV_BRANCH
 #ifdef USE_AMD_K
-#define CPU_K5		23
-#define CPU_5K86	24
-#define CPU_K6		25
+#define CPU_K5		26
+#define CPU_5K86	27
+#define CPU_K6		28
 #endif
 #endif
 #ifdef DEV_BRANCH
 #ifdef USE_I686
-#define CPU_PENTIUMPRO	26		/* 686 class CPUs */
+#define CPU_PENTIUMPRO	29		/* 686 class CPUs */
 #if 0
-# define CPU_PENTIUM2	27
-# define CPU_PENTIUM2D	28
+# define CPU_PENTIUM2	30
+# define CPU_PENTIUM2D	31
 #else
-# define CPU_PENTIUM2D	27
+# define CPU_PENTIUM2D	30
 #endif
 #endif
 #endif
@@ -79,18 +82,18 @@
 
 
 typedef struct {
-    const char	*name;
-    int		cpu_type;
-    int		rspeed;
-    int		multi;
-    int		pci_speed;
-    uint32_t	edx_reset;
-    uint32_t	cpuid_model;
-    uint16_t	cyrix_id;
-    uint8_t	cpu_flags;
-    int8_t	mem_read_cycles, mem_write_cycles;
-    int8_t	cache_read_cycles, cache_write_cycles;
-    int8_t	atclk_div;
+    const char *name;
+    int        cpu_type;
+    int        rspeed;
+    double     multi;
+    int        pci_speed;
+    uint32_t   edx_reset;
+    uint32_t   cpuid_model;
+    uint16_t   cyrix_id;
+    uint8_t    cpu_flags;
+    int8_t     mem_read_cycles, mem_write_cycles;
+    int8_t     cache_read_cycles, cache_write_cycles;
+    int8_t     atclk_div;
 } CPU;
 
 extern CPU	cpus_8088[];
@@ -102,6 +105,12 @@ extern CPU	cpus_Am386SX[];
 extern CPU	cpus_Am386DX[];
 extern CPU	cpus_486SLC[];
 extern CPU	cpus_486DLC[];
+extern CPU  cpus_IBM386SLC[];
+extern CPU  cpus_IBM486SLC[];
+extern CPU  cpus_IBM486BL[];
+extern CPU  cpus_i486S1[];
+extern CPU	cpus_Am486S1[];
+extern CPU	cpus_Cx486S1[];
 extern CPU	cpus_i486[];
 extern CPU	cpus_Am486[];
 extern CPU	cpus_Cx486[];
@@ -109,14 +118,20 @@ extern CPU	cpus_WinChip[];
 extern CPU	cpus_Pentium5V[];
 extern CPU	cpus_Pentium5V50[];
 extern CPU	cpus_PentiumS5[];
+extern CPU	cpus_Pentium3V[];
+extern CPU	cpus_Pentium[];
 #ifdef DEV_BRANCH
 #ifdef USE_AMD_K
 extern CPU	cpus_K5[];
 extern CPU	cpus_K56[];
 #endif
 #endif
-extern CPU	cpus_Pentium[];
+#ifdef DEV_BRANCH
+#ifdef USE_CYRIX_6X86
+extern CPU	cpus_6x863V[];
 extern CPU	cpus_6x86[];
+#endif
+#endif
 #ifdef DEV_BRANCH
 #ifdef USE_I686
 extern CPU	cpus_PentiumPro[];
@@ -329,6 +344,7 @@ extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
 extern int		is8086,	is286, is386, is486;
+extern int      	isibmcpu;
 extern int		is_rapidcad;
 extern int		hasfpu;
 #define CPU_FEATURE_RDTSC (1 << 0)
@@ -340,6 +356,9 @@ extern int		hasfpu;
 #define CPU_FEATURE_3DNOW (1 << 6)
 
 extern uint32_t cpu_features;
+
+extern int in_smm, smi_line, smi_latched;
+extern uint32_t smbase;
 
 extern uint32_t		cpu_cur_status;
 extern uint64_t		cpu_CR4_mask;
@@ -454,6 +473,8 @@ extern void	codegen_reset(void);
 extern void	cpu_set_edx(void);
 extern int	divl(uint32_t val);
 extern void	execx86(int cycs);
+extern void enter_smm();
+extern void leave_smm();
 extern void	exec386(int cycs);
 extern void	exec386_dynarec(int cycs);
 extern int	idivl(int32_t val);
@@ -483,6 +504,8 @@ extern void	x87_reset(void);
 
 extern int	cpu_effective, cpu_alt_reset;
 extern void	cpu_dynamic_switch(int new_cpu);
+
+extern void	cpu_ven_reset(void);
 
 
 #endif	/*EMU_CPU_H*/

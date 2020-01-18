@@ -910,7 +910,7 @@ void
 loadfont(wchar_t *s, int format)
 {
     FILE *f;
-    int c,d;
+    int c, d;
 
     f = rom_fopen(s, L"rb");
     if (f == NULL)
@@ -920,24 +920,28 @@ loadfont(wchar_t *s, int format)
 	case 0:		/* MDA */
 		for (c=0; c<256; c++)
 			for (d=0; d<8; d++)
-				fontdatm[c][d] = fgetc(f);
+				fontdatm[c][d] = fgetc(f) & 0xff;
 		for (c=0; c<256; c++)
 			for (d=0; d<8; d++)
-				fontdatm[c][d+8] = fgetc(f);
+				fontdatm[c][d+8] = fgetc(f) & 0xff;
 		(void)fseek(f, 4096+2048, SEEK_SET);
 		for (c=0; c<256; c++)
 			for (d=0; d<8; d++)
-				fontdat[c][d] = fgetc(f);
+				fontdat[c][d] = fgetc(f) & 0xff;
 		break;
 
 	case 1:		/* PC200 */
 		for (d = 0; d < 4; d++) {
 			/* There are 4 fonts in the ROM */
-			for (c = 0; c < 256; c++)	/* 8x14 MDA in 8x16 cell */
-				fread(&fontdatm[256*d + c][0], 1, 16, f);
+			for (c = 0; c < 256; c++) {	/* 8x14 MDA in 8x16 cell */
+				if (fread(&fontdatm[256*d + c][0], 1, 16, f) != 16)
+					fatal("loadfont(): Error reading 8x16 font in PC200 mode, c = %i\n", c);
+			}
 			for (c = 0; c < 256; c++) {	/* 8x8 CGA in 8x16 cell */
-				fread(&fontdat[256*d + c][0], 1, 8, f);
-				fseek(f, 8, SEEK_CUR);
+				if (fread(&fontdat[256*d + c][0], 1, 8, f) != 8)
+					fatal("loadfont(): Error reading 8x8 font in PC200 mode, c = %i\n", c);
+				if (fseek(f, 8, SEEK_CUR) == -1)
+					fatal("loadfont(): Error seeking in PC200 mode, c = %i\n", c);
 			}
 		}
 		break;
@@ -946,19 +950,19 @@ loadfont(wchar_t *s, int format)
 	case 2:		/* CGA */
 		for (c=0; c<256; c++)
 		       	for (d=0; d<8; d++)
-				fontdat[c][d] = fgetc(f);
+				fontdat[c][d] = fgetc(f) & 0xff;
 		break;
 
 	case 3:		/* Wyse 700 */
 		for (c=0; c<512; c++)
 			for (d=0; d<32; d++)
-				fontdatw[c][d] = fgetc(f);
+				fontdatw[c][d] = fgetc(f) & 0xff;
 		break;
 
 	case 4:		/* MDSI Genius */
 		for (c=0; c<256; c++)
 			for (d=0; d<16; d++)
-				fontdat8x12[c][d] = fgetc(f);
+				fontdat8x12[c][d] = fgetc(f) & 0xff;
 		break;
 
 	case 5: /* Toshiba 3100e */
@@ -1002,7 +1006,7 @@ loadfont(wchar_t *s, int format)
 		for (c = 0; c < 16384; c++)
 		{
 			for (d = 0; d < 32; d++)
-				fontdatksc5601[c].chr[d]=getc(f);
+				fontdatksc5601[c].chr[d]=fgetc(f) & 0xff;
 		}
 		break;
 
@@ -1013,14 +1017,16 @@ loadfont(wchar_t *s, int format)
 			fseek(f, 8, SEEK_CUR);
 		}
 		/* The second 4k holds an 8x16 font */
-		for (c = 0; c < 256; c++)
-			fread(&fontdatm[c][0], 1, 16, f);
+		for (c = 0; c < 256; c++) {
+			if (fread(&fontdatm[c][0], 1, 16, f) != 16)
+				fatal("loadfont(): Error reading 8x16 font in Sigma Color 400 mode, c = %i\n", c);
+		}
 		break;
 
 	case 8:	/* Amstrad PC1512, Toshiba T1000/T1200 */
 		for (c = 0; c < 2048; c++)	/* Allow up to 2048 chars */
 		       	for (d=0; d<8; d++)
-				fontdat[c][d] = fgetc(f);
+				fontdat[c][d] = fgetc(f) & 0xff;
 		break;
 
 	case 9:	/* Image Manager 1024 native font */

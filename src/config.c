@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.65	2019/12/05
+ * Version:	@(#)config.c	1.0.66	2019/12/21
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -57,9 +57,7 @@
 #include "disk/zip.h"
 #include "sound/sound.h"
 #include "sound/midi.h"
-#include "sound/snd_dbopl.h"
 #include "sound/snd_mpu401.h"
-#include "sound/snd_opl.h"
 #include "sound/sound.h"
 #include "video/video.h"
 #include "plat.h"
@@ -83,7 +81,7 @@ typedef struct {
     list_t	list;
 
     char	name[128];
-    char	data[256];
+    char	data[512];
     wchar_t	wdata[512];
 } entry_t;
 
@@ -311,7 +309,7 @@ config_read(wchar_t *fn)
 		/* Create a new section and insert it. */
 		ns = malloc(sizeof(section_t));
 		memset(ns, 0x00, sizeof(section_t));
-		strncpy(ns->name, sname, sizeof(ns->name));
+		strncpy(ns->name, sname, sizeof(ns->name) - 1);
 		list_add(&ns->list, &config_head);
 
 		/* New section is now the current one. */
@@ -341,7 +339,7 @@ config_read(wchar_t *fn)
 	/* Allocate a new variable entry.. */
 	ne = malloc(sizeof(entry_t));
 	memset(ne, 0x00, sizeof(entry_t));
-	strncpy(ne->name, ename, sizeof(ne->name));
+	strncpy(ne->name, ename, sizeof(ne->name) - 1);
 	wcsncpy(ne->wdata, &buff[d], sizeof_w(ne->wdata)-1);
 	ne->wdata[sizeof_w(ne->wdata)-1] = L'\0';
 	wcstombs(ne->data, ne->wdata, sizeof(ne->data));
@@ -397,7 +395,7 @@ config_write(wchar_t *fn)
 	ent = (entry_t *)sec->entry_head.next;
 	while (ent != NULL) {
 		if (ent->name[0] != '\0') {
-			mbstowcs(wtemp, ent->name, sizeof_w(wtemp));
+			mbstowcs(wtemp, ent->name, 128);
 			if (ent->wdata[0] == L'\0')
 				fwprintf(f, L"%ls = \n", wtemp);
 			  else
@@ -568,6 +566,7 @@ load_video(void)
 {
     char *cat = "Video";
     char *p;
+    int free_p = 0;
 
     if (machines[machine].flags & MACHINE_VIDEO_FIXED) {
 	config_delete_var(cat, "gfxcard");
@@ -582,8 +581,11 @@ load_video(void)
 			p = (char *)malloc((strlen("none")+1)*sizeof(char));
 			strcpy(p, "none");
 		}
+		free_p = 1;
 	}
 	gfxcard = video_get_video_from_internal_name(p);
+	if (free_p)
+		free(p);
     }
 
     voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
@@ -605,7 +607,7 @@ load_input_devices(void)
       else
 	mouse_type = 0;
 
-    joystick_type = config_get_int(cat, "joystick_type", 7);
+    joystick_type = config_get_int(cat, "joystick_type", JOYSTICK_TYPE_NONE);
 
     for (c=0; c<joystick_get_max_joysticks(joystick_type); c++) {
 	sprintf(temp, "joystick_%i_nr", c);
@@ -651,6 +653,12 @@ load_sound(void)
       else
 	midi_device_current = 0;
 
+    p = config_get_string(cat, "midi_in_device", NULL);
+    if (p != NULL)
+	midi_input_device_current = midi_in_device_get_from_internal_name(p);
+      else
+	midi_input_device_current = 0;
+
     mpu401_standalone_enable = !!config_get_int(cat, "mpu401_standalone", 0);
 
     SSI2001 = !!config_get_int(cat, "ssi2001", 0);
@@ -658,16 +666,11 @@ load_sound(void)
     GUS = !!config_get_int(cat, "gus", 0);
     
     memset(temp, '\0', sizeof(temp));
-    p = config_get_string(cat, "opl_type", "dbopl");
-    strcpy(temp, p);
-    if (!strcmp(temp, "nukedopl") || !strcmp(temp, "1"))
-	opl_type = 1;
-    else
-	opl_type = 0;
-
-    memset(temp, '\0', sizeof(temp));
     p = config_get_string(cat, "sound_type", "float");
-    strcpy(temp, p);
+    if (strlen(p) <= 511)
+	strcpy(temp, p);
+    else
+	strncpy(temp, p, 511);
     if (!strcmp(temp, "float") || !strcmp(temp, "1"))
 	sound_is_float = 1;
       else
@@ -711,7 +714,10 @@ load_network(void)
 
 		strcpy(network_host, "none");
 	} else {
-		strcpy(network_host, p);
+		if (strlen(p) <= 522)
+			strcpy(network_host, p);
+		else
+			strncpy(network_host, p, 522);
 	}
     } else
 	strcpy(network_host, "none");
@@ -764,7 +770,7 @@ load_other_peripherals(void)
     char *cat = "Other peripherals";
     char *p;
     char temp[512];
-    int c;
+    int c, free_p = 0;
 	
     p = config_get_string(cat, "scsicard", NULL);
     if (p != NULL)
@@ -781,6 +787,7 @@ load_other_peripherals(void)
 		p = (char *)malloc((strlen("none")+1)*sizeof(char));
 		strcpy(p, "none");
 	}
+	free_p = 1;
     }
     if (!strcmp(p, "mfm_xt"))
 	hdc_current = hdc_get_from_internal_name("st506_xt");
@@ -790,6 +797,11 @@ load_other_peripherals(void)
 	hdc_current = hdc_get_from_internal_name("st506_at");
     else
 	hdc_current = hdc_get_from_internal_name(p);
+
+    if (free_p) {
+	free(p);
+	p = NULL;
+    }
 
     ide_ter_enabled = !!config_get_int(cat, "ide_ter", 0);
     ide_qua_enabled = !!config_get_int(cat, "ide_qua", 0);
@@ -1254,7 +1266,7 @@ config_load(void)
 	gfxcard = video_get_video_from_internal_name("cga");
 	vid_api = plat_vidapi("default");
 	time_sync = TIME_SYNC_ENABLED;
-	joystick_type = 7;
+	joystick_type = JOYSTICK_TYPE_NONE;
 	hdc_current = hdc_get_from_internal_name("none");
 	serial_enabled[0] = 1;
 	serial_enabled[1] = 1;
@@ -1271,7 +1283,6 @@ config_load(void)
 		fdd_set_check_bpb(i, 1);
 	}
 	mem_size = 640;
-	opl_type = 0;
 	isartc_type = 0;
 	for (i = 0; i < ISAMEM_MAX; i++)
 		isamem_type[i] = 0;
@@ -1477,7 +1488,7 @@ save_input_devices(void)
 
     config_set_string(cat, "mouse_type", mouse_get_internal_name(mouse_type));
 
-    if (joystick_type == 7) {
+    if (joystick_type == JOYSTICK_TYPE_NONE) {
 	config_delete_var(cat, "joystick_type");
 
 	for (c = 0; c < 16; c++) {
@@ -1542,6 +1553,11 @@ save_sound(void)
       else
 	config_set_string(cat, "midi_device", midi_device_get_internal_name(midi_device_current));
 
+    if (!strcmp(midi_in_device_get_internal_name(midi_input_device_current), "none"))
+	config_delete_var(cat, "midi_in_device");
+      else
+	config_set_string(cat, "midi_in_device", midi_in_device_get_internal_name(midi_input_device_current));
+
     if (mpu401_standalone_enable == 0)
 	config_delete_var(cat, "mpu401_standalone");
       else
@@ -1561,11 +1577,6 @@ save_sound(void)
 	config_delete_var(cat, "gus");
       else
 	config_set_int(cat, "gus", GUS);
-
-    if (opl_type == 0)
-	config_delete_var(cat, "opl_type");
-      else
-	config_set_string(cat, "opl_type", (opl_type == 1) ? "nukedopl" : "dbopl");
 
     if (sound_is_float == 1)
 	config_delete_var(cat, "sound_type");
@@ -1700,7 +1711,7 @@ static void
 save_hard_disks(void)
 {
     char *cat = "Hard disks";
-    char temp[32], tmp2[64];
+    char temp[32], tmp2[512];
     char *p;
     int c;
 
@@ -2101,7 +2112,7 @@ config_set_int(char *head, char *name, int val)
 	ent = create_entry(section, name);
 
     sprintf(ent->data, "%i", val);
-    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
+    mbstowcs(ent->wdata, ent->data, 512);
 }
 
 
@@ -2159,7 +2170,7 @@ config_set_mac(char *head, char *name, int val)
 
     sprintf(ent->data, "%02x:%02x:%02x",
 		(val>>16)&0xff, (val>>8)&0xff, val&0xff);
-    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
+    mbstowcs(ent->wdata, ent->data, 512);
 }
 
 

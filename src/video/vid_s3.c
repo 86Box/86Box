@@ -2076,15 +2076,9 @@ uint8_t s3_accel_in(uint16_t port, void *p)
 			break;
 		temp = s3->accel.pix_trans[1];
 		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && (s3->accel.cmd & 0x600) == 0x200 && (s3->accel.cmd & 0x100))
-		{
-			if (s3->accel.cmd & 0x1000) s3_accel_start(16, 1, 0xffffffff, 0, s3);
-			else			s3_accel_start(16, 1, 0xffffffff, 0, s3);
-		}
+			s3_accel_start(16, 1, 0xffffffff, 0, s3);
 		else if ((s3->accel.cmd & 0x600) == 0x200 && (s3->accel.cmd & 0x100))
-		{
-			if (s3->accel.cmd & 0x1000) s3_accel_start(2, 1, 0xffffffff, 0xffffffff, s3);
-			else			s3_accel_start(2, 1, 0xffffffff, 0xffffffff, s3);
-		}
+			s3_accel_start(2, 1, 0xffffffff, 0xffffffff, s3);
 		return temp;
 		case 0xe14a: case 0xe2ea:
 		if (!s3_cpu_dest(s3))

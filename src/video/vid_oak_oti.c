@@ -372,8 +372,10 @@ oti_init(const device_t *info)
 		break;
     }
 
-    rom_init(&oti->bios_rom, romfn,
-	     0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    if (romfn != NULL) {
+	rom_init(&oti->bios_rom, romfn,
+		 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    }
 
     oti->vram_mask = (oti->vram_size << 10) - 1;
 

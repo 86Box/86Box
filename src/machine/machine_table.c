@@ -11,15 +11,15 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.50	2019/11/19
+ * Version:	@(#)machine_table.c	1.0.51	2020/01/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -133,11 +133,13 @@ const machine_t machines[] = {
     { "[386SX ISA] KMX-C-02",			"kmxc02",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512,16384, 512, 127,	       machine_at_kmxc02_init, NULL			},
 
     { "[386SX ISA] Goldstar 386",		"goldstar386",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,								512, 8192, 128, 127,		 machine_at_goldstar386_init, NULL			},
+#if defined(DEV_BRANCH) && defined(USE_MICRONICS386)
     { "[386SX ISA] Unknown Micronics 386 Board",		"micronics386",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,								512, 8192, 128, 127,		 machine_at_micronics386_init, NULL			},
+#endif
 
     { "[386SX MCA] IBM PS/2 model 55SX",	"ibmps2_m55sx",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"IBM",      cpus_IBM486SLC},     {"",      NULL}}, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_VIDEO,						  1,    8,   1,  63,	  machine_ps2_model_55sx_init, NULL			},
 
-    { "[386DX ISA] AMI 386DX clone",		"ami386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	  machine_at_opti495_ami_init, NULL			},
+    { "[386DX ISA] Dataexpert SX495 (386DX)",		"ami386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	  machine_at_opti495_ami_init, NULL			},
     { "[386DX ISA] Award 386DX clone",		"award386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	      machine_at_opti495_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_MR495)
     { "[386DX ISA] MR 386DX clone",		"mr386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	   machine_at_opti495_mr_init, NULL			},
@@ -149,13 +151,13 @@ const machine_t machines[] = {
     { "[386DX MCA] IBM PS/2 model 70 (type 3)",	"ibmps2_m70_type3",	{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"IBM",      cpus_IBM486BL},     {"",      NULL}}, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_VIDEO,						  2,   16,   2,  63,  machine_ps2_model_70_type3_init, NULL			},
     { "[386DX MCA] IBM PS/2 model 80",		"ibmps2_m80",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"IBM",      cpus_IBM486BL},     {"",      NULL}}, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_VIDEO,						  1,   12,   1,  63,	    machine_ps2_model_80_init, NULL			},
 
-    { "[486 ISA] AMI 486 clone",		"ami486",		{{"Intel", cpus_i486S1},      {"AMD", cpus_Am486S1}, {"Cyrix", cpus_Cx486S1},{"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	  machine_at_opti495_ami_init, NULL			},
-    { "[486 ISA] AMI ALi 1429",			"ali1429",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	      machine_at_ali1429_init, NULL			},
-    { "[486 ISA] AMI SiS 471",			"ami471",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   64,   1, 127,	       machine_at_ami471_init, NULL			},
-    { "[486 ISA] AMI WinBIOS 486",		"win486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	  machine_at_winbios1429_init, NULL			},
-    { "[486 ISA] AMI WinBIOS SiS 471",		"win471",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   64,   1, 127,	       machine_at_win471_init, NULL			},
-    { "[486 ISA] Award 486 clone",		"award486",		{{"Intel", cpus_i486S1},      {"AMD", cpus_Am486S1}, {"Cyrix", cpus_Cx486S1},{"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	      machine_at_opti495_init, NULL			},
-    { "[486 ISA] DTK PKM-0038S E-2",		"dtk486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   64,   1, 127,	       machine_at_dtk486_init, NULL			},
+    { "[486 ISA] Dataexpert SX495 (486)",   "ami486",   {{"Intel", cpus_i486S1},      {"AMD", cpus_Am486S1}, {"Cyrix", cpus_Cx486S1},{"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	  machine_at_opti495_ami_init, NULL			},
+    { "[486 ISA] Olystar LIL1429",          "ali1429",  {{"Intel", cpus_i486S1},      {"AMD", cpus_Am486S1}, {"Cyrix", cpus_Cx486S1},{"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	      machine_at_ali1429_init, NULL			},
+    { "[486 ISA] AMI SiS 471",              "ami471",   {{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   64,   1, 127,	       machine_at_ami471_init, NULL			},
+    { "[486 ISA] AMI WinBIOS 486",          "win486",   {{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	  machine_at_winbios1429_init, NULL			},
+    { "[486 ISA] AMI WinBIOS SiS 471",      "win471",   {{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   64,   1, 127,	       machine_at_win471_init, NULL			},
+    { "[486 ISA] Award 486 clone",          "award486", {{"Intel", cpus_i486S1},      {"AMD", cpus_Am486S1}, {"Cyrix", cpus_Cx486S1},{"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	      machine_at_opti495_init, NULL			},
+    { "[486 ISA] DTK PKM-0038S E-2",        "dtk486",   {{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   64,   1, 127,	       machine_at_dtk486_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_PS1M2133)
     { "[486 ISA] IBM PS/1 model 2133",		"ibmps1_2133",		{{"Intel", cpus_i486S1},      {"AMD", cpus_Am486S1}, {"Cyrix", cpus_Cx486S1},{"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_NONMI,			  1,   64,   1, 127,	       machine_ps1_m2133_init, NULL			},
 #endif
@@ -210,6 +212,8 @@ const machine_t machines[] = {
     { "[Socket 7 VX] Epox P55-VA",		"p55va",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,		machine_at_p55va_init, NULL			},
     { "[Socket 7 VX] Jetway J656VXD",		"j656vxd",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,	      machine_at_j656vxd_init, NULL			},
     { "[Socket 7 VX] Shuttle HOT-557",		"430vx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,	       machine_at_i430vx_init, NULL			},
+
+    { "[Super Socket 7] FIC VA503P",		"ficva503p",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  768,   8, 127,	         machine_at_mvp3_init, NULL			},
 
 #if defined(DEV_BRANCH) && defined(USE_I686)
     { "[Socket 8 FX] Tyan Titan-Pro AT",	"440fx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 127,	       machine_at_i440fx_init, NULL			},

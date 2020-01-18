@@ -187,10 +187,14 @@ static uae_u8 temp, temp2;
 static uae_u8 *expand_tree (uae_u8 *stream, NODE *node)
 {
 	if (temp & temp2) {
-		fdi_free (node->left);
-		node->left = 0;
-		fdi_free (node->right);
-		node->right = 0;
+		if (node->left) {
+			fdi_free (node->left);
+			node->left = 0;
+		}
+		if (node->right) {
+			fdi_free (node->right);
+			node->right = 0;
+		}
 		temp2 >>= 1;
 		if (!temp2) {
 			temp = *stream++;
@@ -322,7 +326,9 @@ static void fdi_decode (uae_u8 *stream, int size, uae_u8 *out)
 			((uae_u32*)out)[i] = v;
 		}
 		free_nodes (root.left);
+		root.left = 0;
 		free_nodes (root.right);
+		root.right = 0;
 	}
 }
 
@@ -2029,9 +2035,16 @@ FDI *fdi2raw_header(FILE *f)
 	memset (fdi, 0, sizeof (FDI));
 	fdi->file = f;
 	oldseek = ftell (fdi->file);
-	fseek (fdi->file, 0, SEEK_SET);
-	fread (fdi->header, 2048, 1, fdi->file);
-	fseek (fdi->file, oldseek, SEEK_SET);
+	if (oldseek == -1) {
+		fdi_free(fdi);
+		return NULL;
+	}
+	if (fseek (fdi->file, 0, SEEK_SET) == -1)
+		fatal("fdi2raw_header(): Error seeking to the beginning of the file\n");
+	if (fread (fdi->header, 1, 2048, fdi->file) != 2048)
+		fatal("fdi2raw_header(): Error reading header\n");
+	if (fseek (fdi->file, oldseek, SEEK_SET) == -1)
+		fatal("fdi2raw_header(): Error seeking to offset oldseek\n");
 	if (memcmp (fdiid, fdi->header, strlen ((char *)fdiid)) ) {
 		fdi_free(fdi);
 		return NULL;
@@ -2127,8 +2140,10 @@ int fdi2raw_loadtrack (FDI *fdi, uae_u16 *mfmbuf, uae_u16 *tracktiming, int trac
 
 	fdi->err = 0;
 	fdi->track_src_len = fdi->track_offsets[track + 1] - fdi->track_offsets[track];
-	fseek (fdi->file, fdi->track_offsets[track], SEEK_SET);
-	fread (fdi->track_src_buffer, fdi->track_src_len, 1, fdi->file);
+	if (fseek (fdi->file, fdi->track_offsets[track], SEEK_SET) == -1)
+		fatal("fdi2raw_loadtrack(): Error seeking to the beginning of the file\n");
+	if (fread (fdi->track_src_buffer, 1, fdi->track_src_len, fdi->file) != fdi->track_src_len)
+		fatal("fdi2raw_loadtrack(): Error reading data\n");
 	memset (fdi->track_dst_buffer, 0, MAX_DST_BUFFER);
 	fdi->track_dst_buffer_timing[0] = 0;
 
@@ -2167,7 +2182,7 @@ int fdi2raw_loadtrack (FDI *fdi, uae_u16 *mfmbuf, uae_u16 *tracktiming, int trac
 		zxx (fdi);
 		outlen = -1;
 
-	} else if (fdi->track_type < 0x10) {
+	} else if (fdi->track_type < 0x0f) {
 
 		decode_normal_track[fdi->track_type](fdi);
 		fix_mfm_sync (fdi);

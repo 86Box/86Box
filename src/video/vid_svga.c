@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.39	2019/12/03
+ * Version:	@(#)vid_svga.c	1.0.40	2019/12/28
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -570,6 +570,7 @@ svga_poll(void *p)
     uint32_t x, blink_delay;
     int wx, wy;
     int skip = (svga->crtc[8] >> 5) & 0x03;
+	int ret;
 
     if (!svga->linepos) {
 	if (svga->displine == svga->hwcursor_latch.y && svga->hwcursor_latch.ena) {
@@ -701,11 +702,18 @@ svga_poll(void *p)
 	svga->vc &= 2047;
 
 	if (svga->vc == svga->split) {
-		svga->ma = svga->maback = 0;
-		svga->sc = 0;
-		if (svga->attrregs[0x10] & 0x20) {
-			svga->scrollcache = 0;
-			svga->x_add = (overscan_x >> 1);
+		ret = 1;
+		
+		if (svga->line_compare)
+			ret = svga->line_compare(svga);
+		
+		if (ret) {
+			svga->ma = svga->maback = 0;
+			svga->sc = 0;
+			if (svga->attrregs[0x10] & 0x20) {
+				svga->scrollcache = 0;
+				svga->x_add = (overscan_x >> 1);
+			}
 		}
 	}
 	if (svga->vc == svga->dispend) {
@@ -1119,30 +1127,20 @@ svga_read_common(uint32_t addr, uint8_t linear, void *p)
     addr &= svga->decode_mask;
 
     /* standard VGA latched access */
-    if (linear) {
-	if (addr >= svga->vram_max)
-		return 0xff;
-
-	addr &= svga->vram_mask;
+    if (latch_addr >= svga->vram_max) {
+	for (i = 0; i < count; i++)
+		svga->latch.b[i] = 0xff;
+    } else {
+	latch_addr &= svga->vram_mask;
 
 	for (i = 0; i < count; i++)
-		svga->latch.b[i] = svga->vram[addr | i];
-    } else {
-	if (latch_addr >= svga->vram_max) {
-		for (i = 0; i < count; i++)
-			svga->latch.b[i] = 0xff;
-	} else {
-		latch_addr &= svga->vram_mask;
-
-		for (i = 0; i < count; i++)
-			svga->latch.b[i] = svga->vram[latch_addr | i];
-	}
-
-    	if (addr >= svga->vram_max)
-		return 0xff;
-
-	addr &= svga->vram_mask;
+		svga->latch.b[i] = svga->vram[latch_addr | i];
     }
+
+    if (addr >= svga->vram_max)
+	return 0xff;
+
+    addr &= svga->vram_mask;
 
     if (svga->readmode) {
 	temp = 0xff;

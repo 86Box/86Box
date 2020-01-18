@@ -26,7 +26,7 @@ machine_xt_common_init(const machine_t *model)
 
     device_add(&fdc_xt_device);
     nmi_init();
-    if (joystick_type != 7)
+    if (joystick_type != JOYSTICK_TYPE_NONE)
 	device_add(&gameport_device);
 }
 
@@ -157,10 +157,10 @@ machine_xt86_init(const machine_t *model)
     ret = bios_load_linear(L"roms/machines/ibmxt86/BIOS_5160_09MAY86_U18_59X7268_62X0890_27256_F800.BIN",
 			   0x000fe000, 65536, 0x6000);
     if (ret) {
-	bios_load_aux_linear(L"roms/machines/ibmxt86/BIOS_5160_09MAY86_U18_59X7268_62X0890_27256_F800.BIN",
-			     0x000f8000, 24576, 0);
-	bios_load_aux_linear(L"roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN",
-			     0x000f0000, 32768, 0);
+	(void) bios_load_aux_linear(L"roms/machines/ibmxt86/BIOS_5160_09MAY86_U18_59X7268_62X0890_27256_F800.BIN",
+				    0x000f8000, 24576, 0);
+	(void) bios_load_aux_linear(L"roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN",
+				    0x000f0000, 32768, 0);
     }
 
     if (bios_only || !ret)

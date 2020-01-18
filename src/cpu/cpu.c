@@ -122,6 +122,9 @@ const OpFn	*x86_opcodes_df_a32;
 const OpFn	*x86_opcodes_REPE;
 const OpFn	*x86_opcodes_REPNE;
 
+int in_smm = 0, smi_line = 0, smi_latched = 0;
+uint32_t smbase = 0x30000;
+
 CPU		*cpu_s;
 int		cpu_effective;
 int		cpu_multi;
@@ -145,6 +148,7 @@ int		is286,
 		is386,
 		is486,
 		cpu_iscyrix,
+		isibmcpu,
 		israpidcad,
 		is_pentium;
 
@@ -187,8 +191,7 @@ uint64_t	ecx570_msr = 0;
 
 #if defined(DEV_BRANCH) && defined(USE_AMD_K)
 uint64_t	ecx83_msr = 0;			/* AMD K5 and K6 MSR's. */
-uint64_t	star = 0;			/* These are K6-only. */
-uint64_t	sfmask = 0;
+uint64_t	amd_efer = 0, amd_whcr = 0;
 #endif
 
 int		timing_rr;
@@ -255,8 +258,9 @@ cpu_set(void)
         is8086   = (cpu_s->cpu_type > CPU_8088);
         is286   = (cpu_s->cpu_type >= CPU_286);
         is386    = (cpu_s->cpu_type >= CPU_386SX);
+	isibmcpu = (cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
 	israpidcad = (cpu_s->cpu_type == CPU_RAPIDCAD);
-        is486    = (cpu_s->cpu_type >= CPU_i486SX) || (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_RAPIDCAD);
+        is486    = (cpu_s->cpu_type >= CPU_i486SX) || (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_RAPIDCAD || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL );
         is_pentium = (cpu_s->cpu_type >= CPU_WINCHIP);
         hasfpu   = (cpu_s->cpu_type >= CPU_i486DX) || (cpu_s->cpu_type == CPU_RAPIDCAD);
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
@@ -265,11 +269,9 @@ cpu_set(void)
         cpu_iscyrix = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx5x86);
 #endif
 
-        cpu_16bitbus = (cpu_s->cpu_type == CPU_286 || cpu_s->cpu_type == CPU_386SX || cpu_s->cpu_type == CPU_486SLC);
+        cpu_16bitbus = (cpu_s->cpu_type == CPU_286 || cpu_s->cpu_type == CPU_386SX || cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC );
+
         if (cpu_s->multi) {
-		if (cpu_s->pci_speed)
-			cpu_busspeed = cpu_s->pci_speed;
-		else
 			cpu_busspeed = cpu_s->rspeed / cpu_s->multi;
 	}
         cpu_multi = cpu_s->multi;
@@ -484,6 +486,7 @@ cpu_set(void)
                 timing_jmp_pm_gate = 38;
                 break;
 
+		case CPU_IBM386SLC:
                 case CPU_386SX:
                 timing_rr  = 2;   /*register dest - register src*/
                 timing_rm  = 6;   /*register dest - memory src*/
@@ -546,6 +549,80 @@ cpu_set(void)
                 timing_jmp_pm_gate = 45;
                 break;
                 
+                case CPU_IBM486SLC:
+#ifdef USE_DYNAREC
+                x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+#else
+                x86_setopcodes(ops_386, ops_486_0f);
+#endif
+                timing_rr  = 1; /*register dest - register src*/
+                timing_rm  = 2; /*register dest - memory src*/
+                timing_mr  = 5; /*memory dest   - register src*/
+                timing_mm  = 3;
+                timing_rml = 4; /*register dest - memory src long*/
+                timing_mrl = 5; /*memory dest   - register src long*/
+                timing_mml = 5;
+                timing_bt  = 3-1; /*branch taken*/
+                timing_bnt = 1; /*branch not taken*/
+                timing_int = 4;
+                timing_int_rm       = 26;
+                timing_int_v86      = 82;
+                timing_int_pm       = 44;
+                timing_int_pm_outer = 71;
+                timing_iret_rm       = 15;
+                timing_iret_v86      = 36; /*unknown*/
+                timing_iret_pm       = 20;
+                timing_iret_pm_outer = 36;
+                timing_call_rm = 18;
+                timing_call_pm = 20;
+                timing_call_pm_gate = 35;
+                timing_call_pm_gate_inner = 69;
+                timing_retf_rm       = 13;
+                timing_retf_pm       = 17;
+                timing_retf_pm_outer = 35;
+                timing_jmp_rm      = 17;
+                timing_jmp_pm      = 19;
+                timing_jmp_pm_gate = 32;
+                timing_misaligned = 3;
+                break;
+				
+                case CPU_IBM486BL:
+#ifdef USE_DYNAREC
+                x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+#else
+                x86_setopcodes(ops_386, ops_486_0f);
+#endif
+                timing_rr  = 1; /*register dest - register src*/
+                timing_rm  = 2; /*register dest - memory src*/
+                timing_mr  = 3; /*memory dest   - register src*/
+                timing_mm  = 3;
+                timing_rml = 2; /*register dest - memory src long*/
+                timing_mrl = 3; /*memory dest   - register src long*/
+                timing_mml = 3;
+                timing_bt  = 3-1; /*branch taken*/
+                timing_bnt = 1; /*branch not taken*/
+                timing_int = 4;
+                timing_int_rm       = 26;
+                timing_int_v86      = 82;
+                timing_int_pm       = 44;
+                timing_int_pm_outer = 71;
+                timing_iret_rm       = 15;
+                timing_iret_v86      = 36; /*unknown*/
+                timing_iret_pm       = 20;
+                timing_iret_pm_outer = 36;
+                timing_call_rm = 18;
+                timing_call_pm = 20;
+                timing_call_pm_gate = 35;
+                timing_call_pm_gate_inner = 69;
+                timing_retf_rm       = 13;
+                timing_retf_pm       = 17;
+                timing_retf_pm_outer = 35;
+                timing_jmp_rm      = 17;
+                timing_jmp_pm      = 19;
+                timing_jmp_pm_gate = 32;
+                timing_misaligned = 3;
+                break;
+				
                 case CPU_RAPIDCAD:
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 2; /*register dest - memory src*/
@@ -656,6 +733,7 @@ cpu_set(void)
 		case CPU_iDX4:
 		cpu_features = CPU_FEATURE_CR4 | CPU_FEATURE_VME;
 		cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_VME;
+		/*FALLTHROUGH*/
                 case CPU_i486SX:
                 case CPU_i486DX:
 #ifdef USE_DYNAREC
@@ -1114,9 +1192,9 @@ cpu_set(void)
                 case CPU_K5:
                 case CPU_5K86:
 #ifdef USE_DYNAREC
-                x86_setopcodes(ops_386, ops_k6_0f, dynarec_ops_386, dynarec_ops_k6_0f);
+                x86_setopcodes(ops_386, ops_pentiummmx_0f, dynarec_ops_386, dynarec_ops_pentiummmx_0f);
 #else
-                x86_setopcodes(ops_386, ops_k6_0f);
+                x86_setopcodes(ops_386, ops_pentiummmx_0f);
 #endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 2; /*register dest - memory src*/
@@ -1135,9 +1213,9 @@ cpu_set(void)
 
                 case CPU_K6:
 #ifdef USE_DYNAREC
-                x86_setopcodes(ops_386, ops_k6_0f, dynarec_ops_386, dynarec_ops_k6_0f);
+                x86_setopcodes(ops_386, ops_pentiummmx_0f, dynarec_ops_386, dynarec_ops_pentiummmx_0f);
 #else
-                x86_setopcodes(ops_386, ops_k6_0f);
+                x86_setopcodes(ops_386, ops_pentiummmx_0f);
 #endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 2; /*register dest - memory src*/
@@ -1722,6 +1800,20 @@ cpu_CPUID(void)
         }
 }
 
+void cpu_ven_reset(void)
+{
+#if defined(DEV_BRANCH) && defined(USE_AMD_K)
+        switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
+        {
+                case CPU_K5:
+                case CPU_5K86:
+                case CPU_K6:
+			amd_efer = amd_whcr = 0ULL;
+			break;
+	}
+#endif
+}
+
 void cpu_RDMSR()
 {
         switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
@@ -1763,24 +1855,24 @@ void cpu_RDMSR()
                 EAX = EDX = 0;
                 switch (ECX)
                 {
-                        case 0x0e:
+                        case 0x0000000e:
                         EAX = msr.tr12;
                         break;
-                        case 0x10:
+                        case 0x00000010:
                         EAX = tsc & 0xffffffff;
                         EDX = tsc >> 32;
                         break;
-                        case 0x83:
+                        case 0x00000083:
                         EAX = ecx83_msr & 0xffffffff;
                         EDX = ecx83_msr >> 32;
                         break;
-                        case 0xC0000081:
-                        EAX = star & 0xffffffff;
-                        EDX = star >> 32;
+                        case 0xC0000080:
+                        EAX = amd_efer & 0xffffffff;
+                        EDX = amd_efer >> 32;
                         break;
-                        case 0xC0000084:
-                        EAX = sfmask & 0xffffffff;
-                        EDX = sfmask >> 32;
+                        case 0xC0000082:
+                        EAX = amd_whcr & 0xffffffff;
+                        EDX = amd_whcr >> 32;
                         break;
 			default:
 			x86gpf(NULL, 0);
@@ -1947,6 +2039,10 @@ i686_invalid_rdmsr:
 
 void cpu_WRMSR()
 {
+#if defined(DEV_BRANCH) && defined(USE_AMD_K)
+	uint64_t temp;
+#endif
+
         switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
         {
                 case CPU_WINCHIP:
@@ -2003,11 +2099,18 @@ void cpu_WRMSR()
 			case 0x83:
 			ecx83_msr = EAX | ((uint64_t)EDX << 32);
 			break;
-			case 0xC0000081:
-			star = EAX | ((uint64_t)EDX << 32);
+			case 0xC0000080:
+			temp = EAX | ((uint64_t)EDX << 32);
+			if (temp & ~1ULL)
+				x86gpf(NULL, 0);
+			else
+				amd_efer = temp;
 			break;
-			case 0xC0000084:
-			sfmask = EAX | ((uint64_t)EDX << 32);
+			case 0xC0000082:
+			amd_whcr = EAX | ((uint64_t)EDX << 32);
+			break;
+			default:
+			x86gpf(NULL, 0);
 			break;
                 }
                 break;

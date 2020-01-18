@@ -133,7 +133,7 @@ extern int	serial_do_log;
 extern int	nic_do_log;
 #endif
 
-extern wchar_t	exe_path[1024];			/* path (dir) of executable */
+extern wchar_t	exe_path[2048];			/* path (dir) of executable */
 extern wchar_t	usr_path[1024];			/* path (dir) of user data */
 extern wchar_t  cfg_path[1024];			/* full path of config file */
 #ifndef USE_NEW_DYNAREC

@@ -58,15 +58,20 @@ enum
 void ati_eeprom_load(ati_eeprom_t *eeprom, wchar_t *fn, int type)
 {
         FILE *f;
+	int size;
         eeprom->type = type;
-        wcscpy(eeprom->fn, fn);
+	if (wcslen(fn) <= 256)
+	        wcscpy(eeprom->fn, fn);
+	else
+	        wcsncpy(eeprom->fn, fn, 256);
         f = nvr_fopen(eeprom->fn, L"rb");
-        if (!f)
-        {
-                memset(eeprom->data, 0, eeprom->type ? 512 : 128);
+	size = eeprom->type ? 512 : 128;
+        if (!f) {
+                memset(eeprom->data, 0, size);
                 return;
         }
-        fread(eeprom->data, 1, eeprom->type ? 512 : 128, f);
+        if (fread(eeprom->data, 1, size, f) != size)
+                memset(eeprom->data, 0, size);
         fclose(f);
 }
 

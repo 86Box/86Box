@@ -9,13 +9,13 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.65	2019/11/19
+ * Version:	@(#)hdc_ide.c	1.0.66	2020/01/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #define __USE_LARGEFILE64
 #define _LARGEFILE_SOURCE
@@ -249,8 +249,6 @@ ide_get_period(ide_t *ide, int size)
 		break;
     }
 
-    period = (10.0 / 3.0);
-
     period = (1.0 / period);		/* get us for 1 byte */
     return period * ((double) size);	/* multiply by bytes to get period for the entire transfer */
 }
@@ -450,7 +448,7 @@ static void ide_hd_identify(ide_t *ide)
     char device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
 
     uint32_t d_hpc, d_spt, d_tracks;
-    uint64_t full_size = (hdd[ide->hdd_num].tracks * hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
+    uint64_t full_size = (((uint64_t) hdd[ide->hdd_num].tracks) * hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
 
     device_identify[6] = (ide->hdd_num / 10) + 0x30;
     device_identify[7] = (ide->hdd_num % 10) + 0x30;
@@ -759,6 +757,7 @@ ide_set_features(ide_t *ide)
 			default:
 				return 0;
 		}
+		break;
 
 	case FEATURE_ENABLE_IRQ_OVERLAPPED:
 	case FEATURE_ENABLE_IRQ_SERVICE:
@@ -1461,6 +1460,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				/* Turn on the activity indicator *here* so that it gets turned on
 				   less times. */
 				ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+				/*FALLTHROUGH*/
 
 			case WIN_READ:
 			case WIN_READ_NORETRY:
@@ -1494,6 +1494,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				/* Turn on the activity indicator *here* so that it gets turned on
 				   less times. */
 				ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+				/*FALLTHROUGH*/
 
 			case WIN_WRITE:
 			case WIN_WRITE_NORETRY:
@@ -2315,7 +2316,7 @@ ide_set_handlers(uint8_t board)
     if (ide_boards[board] == NULL)
 	return;
 
-    if (ide_boards[board]->base_main & 0x300) {
+    if (ide_boards[board]->base_main) {
 	if (ide_boards[board]->bit32) {
 		io_sethandler(ide_boards[board]->base_main, 1,
 			      ide_readb,           ide_readw,  ide_readl,
@@ -2332,7 +2333,7 @@ ide_set_handlers(uint8_t board)
 		      ide_writeb,          NULL,       NULL,
 		      ide_boards[board]);
     }
-    if (ide_boards[board]->side_main & 0x300) {
+    if (ide_boards[board]->side_main) {
 	io_sethandler(ide_boards[board]->side_main, 1,
 		      ide_read_alt_status, NULL,       NULL,
 		      ide_write_devctl,    NULL,       NULL,
@@ -2347,25 +2348,29 @@ ide_remove_handlers(uint8_t board)
     if (ide_boards[board] == NULL)
 	return;
 
-    if (ide_boards[board]->bit32) {
-	io_removehandler(ide_boards[board]->base_main, 1,
-			 ide_readb,           ide_readw,  ide_readl,
-			 ide_writeb,          ide_writew, ide_writel,
-			 ide_boards[board]);
-    } else {
-	io_removehandler(ide_boards[board]->base_main, 1,
-			 ide_readb,           ide_readw,  NULL,
-			 ide_writeb,          ide_writew, NULL,
+    if (ide_boards[board]->base_main) {
+	if (ide_boards[board]->bit32) {
+		io_removehandler(ide_boards[board]->base_main, 1,
+				 ide_readb,           ide_readw,  ide_readl,
+				 ide_writeb,          ide_writew, ide_writel,
+				 ide_boards[board]);
+	} else {
+		io_removehandler(ide_boards[board]->base_main, 1,
+				 ide_readb,           ide_readw,  NULL,
+				 ide_writeb,          ide_writew, NULL,
+				 ide_boards[board]);
+	}
+	io_removehandler(ide_boards[board]->base_main + 1, 7,
+				 ide_readb,           NULL,       NULL,
+				 ide_writeb,          NULL,       NULL,
+				 ide_boards[board]);
+    }
+    if (ide_boards[board]->side_main) {
+	io_removehandler(ide_boards[board]->side_main, 1,
+			 ide_read_alt_status, NULL,       NULL,
+			 ide_write_devctl,    NULL,       NULL,
 			 ide_boards[board]);
     }
-    io_removehandler(ide_boards[board]->base_main + 1, 7,
-		     ide_readb,           NULL,       NULL,
-		     ide_writeb,          NULL,       NULL,
-		     ide_boards[board]);
-    io_removehandler(ide_boards[board]->side_main, 1,
-		     ide_read_alt_status, NULL,       NULL,
-		     ide_write_devctl,    NULL,       NULL,
-		     ide_boards[board]);
 }
 
 
@@ -2556,10 +2561,8 @@ ide_board_init(int board, int irq, int base_main, int side_main, int type)
     ide_boards[board]->cur_dev = board << 1;
     if (type & 6)
 	ide_boards[board]->bit32 = 1;
-    if (base_main != -1)
-	ide_boards[board]->base_main = base_main;
-    if (side_main != -1)
-	ide_boards[board]->side_main = side_main;
+    ide_boards[board]->base_main = base_main;
+    ide_boards[board]->side_main = side_main;
     ide_set_handlers(board);
 
     timer_add(&ide_boards[board]->timer, ide_callback, ide_boards[board], 0);
@@ -2607,7 +2610,7 @@ ide_qua_close(void *priv)
 void *
 ide_xtide_init(void)
 {
-    ide_board_init(0, -1, -1, -1, 0);
+    ide_board_init(0, -1, 0, 0, 0);
 
     return ide_boards[0];
 }

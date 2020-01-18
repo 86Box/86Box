@@ -120,9 +120,11 @@ static int opMOV_CRx_r_a16(uint32_t fetchdat)
                         mmu_perm=4;
                 if (is486 && !(cr0 & (1 << 30)))
                         cpu_cache_int_enabled = 1;
-                else
-                        cpu_cache_int_enabled = 0;
-                if (is486 && ((cr0 ^ old_cr0) & (1 << 30)))
+				else if (isibmcpu)
+                        cpu_cache_int_enabled = 1;	
+				else
+						cpu_cache_int_enabled = 0;
+				if (is486 && ((cr0 ^ old_cr0) & (1 << 30)))
                         cpu_update_waitstates();
                 if (cr0 & 1)
                         cpu_cur_status |= CPU_STATUS_PMODE;

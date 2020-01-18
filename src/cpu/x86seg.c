@@ -765,6 +765,7 @@ void loadcsjmp(uint16_t seg, uint32_t old_pc)
                                                 x86gpf(NULL,seg2&~3);
                                                 return;
                                         }
+					/*FALLTHROUGH*/
                                         case 0x1C00: case 0x1D00: case 0x1E00: case 0x1F00: /*Conforming*/
                                         CS=seg2;
                                         do_seg_load(&cpu_state.seg_cs, segdat);
@@ -1235,6 +1236,7 @@ void loadcscall(uint16_t seg)
                                                 x86gpf(NULL,seg2&~3);
                                                 return;
                                         }
+					/*FALLTHROUGH*/
                                         case 0x1C00: case 0x1D00: case 0x1E00: case 0x1F00: /*Conforming*/
                                         CS=seg2;
                                         do_seg_load(&cpu_state.seg_cs, segdat);
@@ -1766,6 +1768,7 @@ void pmodeint(int num, int soft)
                                         x86gpf(NULL,seg&~3);
                                         return;
                                 }
+				/*FALLTHROUGH*/
                                 case 0x1C00: case 0x1D00: case 0x1E00: case 0x1F00: /*Conforming*/
                                 if (!(segdat2[2]&0x8000))
                                 {

@@ -10,12 +10,12 @@
  *
  * Version:	@(#)prt_escp.c	1.0.7	2019/09/23
  *
- * Authors:	Michael Drüing, <michael@drueing.de>
+ * Authors:	Michael Drï¿½ing, <michael@drueing.de>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Based on code by Frederic Weymann (originally for DosBox.)
  *
- *		Copyright 2018,2019 Michael Drüing.
+ *		Copyright 2018,2019 Michael Drï¿½ing.
  *		Copyright 2019,2019 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
@@ -228,7 +228,7 @@ typedef struct {
     double	horizontal_tabs[32];
     uint8_t	num_horizontal_tabs;
     double	vertical_tabs[16];
-    uint8_t	num_vertical_tabs;
+    int8_t	num_vertical_tabs;
 
     /* bit graphics data */
     uint16_t	bg_h_density;		/* in dpi */
@@ -410,15 +410,17 @@ static void
 new_page(escp_t *dev, int8_t save, int8_t resetx)
 {
     /* Dump the current page if needed. */
-    if (save)
+    if (save && dev->page)
 	dump_page(dev);
     if (resetx)
 	dev->curr_x = dev->left_margin;
 
     /* Clear page. */
     dev->curr_y = dev->top_margin;
-    dev->page->dirty = 0;
-    memset(dev->page->pixels, 0x00, dev->page->pitch * dev->page->h);
+    if (dev->page) {
+	dev->page->dirty = 0;
+	memset(dev->page->pixels, 0x00, dev->page->pitch * dev->page->h);
+    }
 
     /* Make the page's file name. */
     plat_tempfile(dev->page_fn, NULL, L".png");
@@ -2056,6 +2058,11 @@ escp_init(void *lpt)
     dev->lpt = lpt;
 
     /* Create a full pathname for the font files. */
+    if(wcslen(exe_path) >= sizeof_w(dev->fontpath)) {
+	free(dev);
+	return(NULL);
+    }
+
     wcscpy(dev->fontpath, exe_path);
     plat_path_slash(dev->fontpath);
     wcscat(dev->fontpath, L"roms/printer/fonts/");

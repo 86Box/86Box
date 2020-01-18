@@ -763,7 +763,7 @@ void host_x86_MOV32_STACK_IMM(codeblock_t *block, int32_t offset, uint32_t imm_d
                 codegen_addbyte3(block, 0xc7, 0x04, 0x24); /*MOV [ESP], imm_data*/
                 codegen_addlong(block, imm_data);
         }
-        else if (offset >= -80 || offset < 0x80)
+        else if (offset >= -0x80 && offset < 0x80)
         {
                 codegen_alloc_bytes(block, 8);
                 codegen_addbyte4(block, 0xc7, 0x44, 0x24, offset & 0xff); /*MOV offset[ESP], imm_data*/

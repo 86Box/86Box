@@ -34,8 +34,8 @@
 #include "win.h"
 
 
-WCHAR	wopenfilestring[260];
-char	openfilestring[260];
+WCHAR	wopenfilestring[512];
+char	openfilestring[512];
 uint8_t	filterindex = 0;
 
 
@@ -139,7 +139,7 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
      * not use the contents of szFile to initialize itself.
      */
     memcpy(ofn.lpstrFile, fn, (wcslen(fn) << 1) + 2);
-    ofn.nMaxFile = 259;
+    ofn.nMaxFile = sizeof_w(wopenfilestring);
     ofn.lpstrFilter = f;
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;

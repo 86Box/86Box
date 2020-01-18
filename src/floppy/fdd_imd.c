@@ -190,8 +190,8 @@ track_is_xdf(int drive, int side, int track)
 			dev->current_side_flags[side] = (dev->tracks[track][side].params[3] == 19) ?  0x08 : 0x28;
 			return((dev->tracks[track][side].params[3] == 19) ? 2 : 1);
 		}
-		return(0);
 	}
+	return(0);
     } else {
 	if (dev->tracks[track][side].params[4] != 0xFF) return(0);
 
@@ -629,6 +629,7 @@ imd_load(int drive, wchar_t *fn)
 	dev->f = plat_fopen(fn, L"rb");
 	if (dev->f == NULL) {
 		memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+		free(dev);
 		return;
 	}
 	writeprot[drive] = 1;
@@ -638,8 +639,10 @@ imd_load(int drive, wchar_t *fn)
 	writeprot[drive] = 1;
     fwriteprot[drive] = writeprot[drive];
 
-    fseek(dev->f, 0, SEEK_SET);
-    fread(&magic, 1, 4, dev->f);
+    if (fseek(dev->f, 0, SEEK_SET) == -1)
+	fatal("imd_load(): Error seeking to the beginning of the file\n");
+    if (fread(&magic, 1, 4, dev->f) != 4)
+	fatal("imd_load(): Error reading the magic number\n");
     if (magic != 0x20444D49) {
 	imd_log("IMD: Not a valid ImageDisk image\n");
 	fclose(dev->f);
@@ -649,14 +652,24 @@ imd_load(int drive, wchar_t *fn)
     } else
 	imd_log("IMD: Valid ImageDisk image\n");
 
-    fseek(dev->f, 0, SEEK_END);
+    if (fseek(dev->f, 0, SEEK_END) == -1)
+	fatal("imd_load(): Error seeking to the end of the file\n");
     fsize = ftell(dev->f);
-    fseek(dev->f, 0, SEEK_SET);
+    if (fsize <= 0) {
+	imd_log("IMD: Too small ImageDisk image\n");
+	fclose(dev->f);
+	free(dev);
+	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+	return;
+    }
+    if (fseek(dev->f, 0, SEEK_SET) == -1)
+	fatal("imd_load(): Error seeking to the beginning of the file again\n");
     dev->buffer = malloc(fsize);
-    fread(dev->buffer, 1, fsize, dev->f);
+    if (fread(dev->buffer, 1, fsize, dev->f) != fsize)
+	fatal("imd_load(): Error reading data\n");
     buffer = dev->buffer;
 
-    buffer2 = strchr(buffer, 0x1A);
+    buffer2 = memchr(buffer, 0x1A, fsize);
     if (buffer2 == NULL) {
 	imd_log("IMD: No ASCII EOF character\n");
 	fclose(dev->f);

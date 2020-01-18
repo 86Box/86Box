@@ -13,8 +13,39 @@
 #include "../timer.h"
 #include "../device.h"
 #include "sound.h"
+#include "midi.h"
 #include "snd_gus.h"
 
+enum
+{
+        MIDI_INT_RECEIVE = 0x01,
+        MIDI_INT_TRANSMIT = 0x02,
+        MIDI_INT_MASTER = 0x80
+};
+
+enum
+{
+        MIDI_CTRL_TRANSMIT_MASK = 0x60,
+        MIDI_CTRL_TRANSMIT = 0x20,
+        MIDI_CTRL_RECEIVE = 0x80
+};
+
+enum
+{
+        GUS_INT_MIDI_TRANSMIT = 0x01,
+        GUS_INT_MIDI_RECEIVE  = 0x02
+};
+
+enum
+{
+        GUS_TIMER_CTRL_AUTO = 0x01
+};
+
+enum
+{
+        GUS_CLASSIC = 0,
+        GUS_MAX = 1,
+};
 
 typedef struct gus_t
 {
@@ -51,12 +82,14 @@ typedef struct gus_t
 	uint64_t samp_latch;
         
         uint8_t *ram;
+	uint32_t gus_end_ram;
         
         int irqnext;
         
         pc_timer_t timer_1, timer_2;
         
         int irq, dma, irq_midi;
+	uint16_t base;
         int latch_enable;
         
         uint8_t sb_2xa, sb_2xc, sb_2xe;
@@ -68,9 +101,9 @@ typedef struct gus_t
         uint8_t ad_status, ad_data;
         uint8_t ad_timer_ctrl;
         
-        uint8_t midi_ctrl, midi_status;
-        uint8_t midi_data;
-        int midi_loopback;
+		uint8_t midi_ctrl, midi_status, midi_queue[64], midi_data;
+		int midi_r, midi_w;
+		int uart_in, uart_out, sysex;
         
         uint8_t gp1, gp2;
         uint16_t gp1_addr, gp2_addr;
@@ -78,8 +111,8 @@ typedef struct gus_t
         uint8_t usrr;
 } gus_t;
 
-static int gus_irqs[8] = {-1, 2, 5, 3, 7, 11, 12, 15};
-static int gus_irqs_midi[8] = {-1, 2, 5, 3, 7, 11, 12, 15};
+static int gus_gf1_irqs[8] = {0, 2, 5, 3, 7, 11, 12, 15};
+static int gus_midi_irqs[8] = {0, 2, 5, 3, 7, 11, 12, 15};
 static int gus_dmas[8] = {-1, 1, 3, 5, 6, 7, -1, -1};
 
 int gusfreqs[]=
@@ -102,47 +135,25 @@ void pollgusirqs(gus_t *gus)
                         gus->irqstatus2=0x60|c;
                         if (gus->rampirqs[c]) gus->irqstatus2 |= 0x80;
                         gus->irqstatus|=0x20;
-                        if (gus->irq != -1)
-                                picint(1 << gus->irq);
+			if (gus->irq != 0)
+				picint(1 << gus->irq);
                         return;
                 }
                 if (gus->rampirqs[c])
                 {
                         gus->irqstatus2=0xA0|c;
                         gus->irqstatus|=0x40;
-                        if (gus->irq != -1)
-                                picint(1 << gus->irq);
+			if (gus->irq != 0)
+				picint(1 << gus->irq);
                         return;
                 }
         }
         gus->irqstatus2=0xE0;
-        if (!gus->irqstatus && gus->irq != -1) picintc(1 << gus->irq);
+        if (!gus->irqstatus) {
+		if (gus->irq != 0)
+			picintc(1 << gus->irq);
+	}
 }
-
-enum
-{
-        MIDI_INT_RECEIVE = 0x01,
-        MIDI_INT_TRANSMIT = 0x02,
-        MIDI_INT_MASTER = 0x80
-};
-
-enum
-{
-        MIDI_CTRL_TRANSMIT_MASK = 0x60,
-        MIDI_CTRL_TRANSMIT = 0x20,
-        MIDI_CTRL_RECEIVE = 0x80
-};
-
-enum
-{
-        GUS_INT_MIDI_TRANSMIT = 0x01,
-        GUS_INT_MIDI_RECEIVE  = 0x02
-};
-
-enum
-{
-        GUS_TIMER_CTRL_AUTO = 0x01
-};
 
 void gus_midi_update_int_status(gus_t *gus)
 {
@@ -157,57 +168,63 @@ void gus_midi_update_int_status(gus_t *gus)
                 
         if ((gus->midi_ctrl & MIDI_CTRL_RECEIVE) && (gus->midi_status & MIDI_INT_RECEIVE))
         {
-                gus->midi_status |= MIDI_INT_MASTER;
-                gus->irqstatus |= GUS_INT_MIDI_RECEIVE;
+		gus->midi_status |= MIDI_INT_MASTER;
+		gus->irqstatus |= GUS_INT_MIDI_RECEIVE;
         }
         else
                 gus->irqstatus &= ~GUS_INT_MIDI_RECEIVE;
 
-        if ((gus->midi_status & MIDI_INT_MASTER) && (gus->irq_midi != -1))
+        if ((gus->midi_status & MIDI_INT_MASTER) && (gus->irq_midi != 0))
         {
                 picint(1 << gus->irq_midi);
         }
 }
-        
+
 void writegus(uint16_t addr, uint8_t val, void *p)
 {
         gus_t *gus = (gus_t *)p;
         int c, d;
         int old;
-        if (gus->latch_enable && addr != 0x24b)
-                gus->latch_enable = 0;
-        switch (addr)
+	uint16_t port;
+	
+	if ((addr == 0x388) || (addr == 0x389))
+		port = addr;
+	else
+		port = addr & 0xf0f;
+		
+        switch (port)
         {
-                case 0x340: /*MIDI control*/
+            case 0x300: /*MIDI control*/
                 old = gus->midi_ctrl;
                 gus->midi_ctrl = val;
-                
-                if ((val & 3) == 3)
-                        gus->midi_status = 0;
-                else if ((old & 3) == 3)
-                {
-                        gus->midi_status |= MIDI_INT_TRANSMIT;
-                }                
+                gus->uart_out = 1;
+               
+                if ((val & 3) == 3) { /*Master reset*/
+                    gus->uart_in = 0;
+                    gus->midi_status = 0;
+                    gus->midi_r = 0;
+                    gus->midi_w = 0;
+                } else if ((old & 3) == 3) {
+                    gus->midi_status |= MIDI_INT_TRANSMIT;
+                } else if (gus->midi_ctrl & MIDI_CTRL_RECEIVE) {
+                    gus->uart_in = 1;
+                }  
                 gus_midi_update_int_status(gus);
                 break;
-                
-                case 0x341: /*MIDI data*/
-                if (gus->midi_loopback)
-                {
-                        gus->midi_status |= MIDI_INT_RECEIVE;
-                        gus->midi_data = val;
+                case 0x301: /*MIDI data*/
+		gus->midi_data = val;
+                if (gus->uart_out) {
+			midi_raw_out_byte(val);
                 }
-                else
-                        gus->midi_status |= MIDI_INT_TRANSMIT;
+		if (gus->latch_enable & 0x20) {
+			gus->midi_status |= MIDI_INT_RECEIVE;
+		} else 
+		gus->midi_status |= MIDI_INT_TRANSMIT;
                 break;
-                
-                case 0x342: /*Voice select*/
-                gus->voice=val&31;
-                break;
-                case 0x343: /*Global select*/
+                case 0x303: /*Global select*/
                 gus->global=val;
                 break;
-                case 0x344: /*Global low*/
+                case 0x304: /*Global low*/
                 switch (gus->global)
                 {
                         case 0: /*Voice control*/
@@ -231,11 +248,11 @@ void writegus(uint16_t addr, uint8_t val, void *p)
                         gus->end[gus->voice]=(gus->end[gus->voice]&0x1FFFFF00)|val;
                         break;
 
-                        case 0x6: /*Ramp frequency*/
+                        case 6: /*Ramp frequency*/
                         gus->rfreq[gus->voice] = (int)( (double)((val & 63)*512)/(double)(1 << (3*(val >> 6))));
                         break;
 
-                        case 0x9: /*Current volume*/
+                        case 9: /*Current volume*/
                         gus->curvol[gus->voice] = gus->rcur[gus->voice] = (gus->rcur[gus->voice] & ~(0xff << 6)) | (val << 6);
                         break;
 
@@ -259,14 +276,10 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xF807F00)|((val<<7)<<8);
                         break;
                 }
                 break;
-                case 0x345: /*Global high*/
+                case 0x305: /*Global high*/
                 switch (gus->global)
                 {
                         case 0: /*Voice control*/
-                        if (!(val&1) && gus->ctrl[gus->voice]&1)
-                        {
-                        }
-
                         gus->ctrl[gus->voice] = val & 0x7f;
 
                         old = gus->waveirqs[gus->voice];                        
@@ -294,16 +307,16 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xF807F00)|((val<<7)<<8);
                         gus->end[gus->voice]=(gus->end[gus->voice]&0x1FFF00FF)|(val<<8);
                         break;
 
-                        case 0x6: /*Ramp frequency*/
+                        case 6: /*Ramp frequency*/
                         gus->rfreq[gus->voice] = (int)( (double)((val & 63) * (1 << 10))/(double)(1 << (3 * (val >> 6))));
                         break;
-                        case 0x7: /*Ramp start*/
+                        case 7: /*Ramp start*/
                         gus->rstart[gus->voice] = val << 14;
                         break;
-                        case 0x8: /*Ramp end*/
+                        case 8: /*Ramp end*/
                         gus->rend[gus->voice] = val << 14;
                         break;
-                        case 0x9: /*Current volume*/
+                        case 9: /*Current volume*/
                         gus->curvol[gus->voice] = gus->rcur[gus->voice] = (gus->rcur[gus->voice] & ~(0xff << 14)) | (val << 14);
                         break;
 
@@ -449,11 +462,12 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                         break;
                 }
                 break;
-                case 0x347: /*DRAM access*/
-                gus->ram[gus->addr]=val;
+                case 0x307: /*DRAM access*/
                 gus->addr&=0xFFFFF;
+                if (gus->addr < gus->gus_end_ram)
+			gus->ram[gus->addr]=val;
                 break;
-                case 0x248: case 0x388: 
+                case 0x208: case 0x388: 
                 gus->adcommand = val; 
                 break;
                 
@@ -466,7 +480,7 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                         {
                                 if (gus->sb_nmi)
                                         nmi = 1;
-                                else if (gus->irq != -1)
+                                else
                                         picint(1 << gus->irq);
                         }
                 }
@@ -493,34 +507,76 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                 }
                 break;
                                 
-                case 0x240:
-                gus->midi_loopback = val & 0x20;
-                gus->latch_enable = (val & 0x40) ? 2 : 1;
+                case 0x200:
+                gus->latch_enable = val;
                 break;
                 
-                case 0x24b:
+                case 0x20b:
                 switch (gus->reg_ctrl & 0x07)
                 {
                         case 0:
-                        if (gus->latch_enable == 1)
-                                gus->dma = gus_dmas[val & 7];
-                        if (gus->latch_enable == 2)
-                        {
-                                gus->irq = gus_irqs[val & 7];
-                                
-                                if (val & 0x40)
-                                {
-                                        if (gus->irq == -1)
-                                                gus->irq = gus->irq_midi = gus_irqs[(val >> 3) & 7];
-                                        else
-                                                gus->irq_midi = gus->irq;
-                                }
-                                else
-                                        gus->irq_midi = gus_irqs_midi[(val >> 3) & 7];
-                        
-                                gus->sb_nmi = val & 0x80;
-                        }
-                        gus->latch_enable = 0;
+						if (gus->latch_enable & 0x40) {
+							// GUS SDK: IRQ Control Register
+							//     Channel 1 GF1 IRQ selector (bits 2-0)
+							//       0=reserved, do not use
+							//       1=IRQ2
+							//       2=IRQ5
+							//       3=IRQ3
+							//       4=IRQ7
+							//       5=IRQ11
+							//       6=IRQ12
+							//       7=IRQ15
+							//     Channel 2 MIDI IRQ selector (bits 5-3)
+							//       0=no interrupt
+							//       1=IRQ2
+							//       2=IRQ5
+							//       3=IRQ3
+							//       4=IRQ7
+							//       5=IRQ11
+							//       6=IRQ12
+							//       7=IRQ15
+							//     Combine both IRQs using channel 1 (bit 6)
+							//     Reserved (bit 7)
+							//
+							//     "If both channels are sharing an IRQ, channel 2's IRQ must be set to 0 and turn on bit 6. A
+							//      bus conflict will occur if both latches are programmed with the same IRQ #."
+							if ((val & 7) != 0)
+								gus->irq = gus_gf1_irqs[val & 7];
+
+							if (val & 0x40) // "Combine both IRQs"
+								gus->irq_midi = gus->irq;
+							else
+								gus->irq_midi = gus_midi_irqs[(val >> 3) & 7];
+
+							gus->sb_nmi = val & 0x80;
+						} else {
+							// GUS SDK: DMA Control Register
+							//     Channel 1 (bits 2-0)
+							//       0=NO DMA
+							//       1=DMA1
+							//       2=DMA3
+							//       3=DMA5
+							//       4=DMA6
+							//       5=DMA7
+							//       6=?
+							//       7=?
+							//     Channel 2 (bits 5-3)
+							//       0=NO DMA
+							//       1=DMA1
+							//       2=DMA3
+							//       3=DMA5
+							//       4=DMA6
+							//       5=DMA7
+							//       6=?
+							//       7=?
+							//     Combine both DMA channels using channel 1 (bit 6)
+							//     Reserved (bit 7)
+							//
+							//     "If both channels are sharing an DMA, channel 2's DMA must be set to 0 and turn on bit 6. A
+							//      bus conflict will occur if both latches are programmed with the same DMA #."
+							if (gus_dmas[val & 7] != -1)
+								gus->dma = gus_dmas[val & 7];
+						}
                         break;
                         case 1:
                         gus->gp1 = val;
@@ -542,67 +598,98 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                 }                
                 break;
                 
-                case 0x246:
-                gus->ad_status |= 0x08;
-                if (gus->sb_ctrl & 0x20)
-                {
+                case 0x206:
+                if (gus->sb_ctrl & 0x20) {
+			gus->ad_status |= 0x08;
                         if (gus->sb_nmi)
-                                nmi = 1;
-                        else if (gus->irq != -1)
-                                picint(1 << gus->irq);
+				nmi = 1;
+                        else if (gus->irq != 0)
+				picint(1 << gus->irq);
                 }
                 break;
-                case 0x24a:
+                case 0x20a:
                 gus->sb_2xa = val;
                 break;
-                case 0x24c:
+                case 0x20c:
                 gus->ad_status |= 0x10;
                 if (gus->sb_ctrl & 0x20)
                 {
                         if (gus->sb_nmi)
                                 nmi = 1;
-                        else if (gus->irq != -1)
+                        else if (gus->irq != 0)
                                 picint(1 << gus->irq);
                 }
-                case 0x24d:
+		/*FALLTHROUGH*/
+                case 0x20d:
                 gus->sb_2xc = val;
                 break;
-                case 0x24e:
+                case 0x20e:
                 gus->sb_2xe = val;
                 break;
-                case 0x24f:
+                case 0x20f:
                 gus->reg_ctrl = val;
                 break;
         }
 }
 
+
 uint8_t readgus(uint16_t addr, void *p)
 {
         gus_t *gus = (gus_t *)p;
         uint8_t val = 0xff;
-        switch (addr)
+	uint16_t port;
+	
+	if ((addr == 0x388) || (addr == 0x389))
+		port = addr;
+	else
+		port = addr & 0xf0f;
+	
+        switch (port)
         {
-                case 0x340: /*MIDI status*/
-                val = gus->midi_status;
+                case 0x300: /*MIDI status*/
+				val = gus->midi_status;
                 break;
 
-                case 0x341: /*MIDI data*/
-                val = gus->midi_data;
-                gus->midi_status &= ~MIDI_INT_RECEIVE;
-                gus_midi_update_int_status(gus);
+                case 0x301: /*MIDI data*/
+				val = 0;
+				if (gus->uart_in) {
+					if ((gus->midi_data == 0xaa) && (gus->midi_ctrl & MIDI_CTRL_RECEIVE)) /*Handle master reset*/
+						val = gus->midi_data;
+					else {
+						val = gus->midi_queue[gus->midi_r];
+						if (gus->midi_r != gus->midi_w) {
+							gus->midi_r++;
+							gus->midi_r &= 63;
+						}
+					}
+					gus->midi_status &= ~MIDI_INT_RECEIVE;
+					gus_midi_update_int_status(gus);
+				}
                 break;
                 
-                case 0x240: return 0;
-                case 0x246: /*IRQ status*/
+                case 0x200: 
+		val = 0xff;
+		break;
+                
+		case 0x206: /*IRQ status*/
                 val = gus->irqstatus & ~0x10;
                 if (gus->ad_status & 0x19)
                         val |= 0x10;
-                return val;
+                break;
 
-                case 0x24F: return 0;
-                case 0x342: return gus->voice;
-                case 0x343: return gus->global;
-                case 0x344: /*Global low*/
+                case 0x20F: 
+		val = 0; 
+		break;
+                
+		case 0x302: 
+		val = gus->voice;
+		break;
+                
+		case 0x303: 
+		val = gus->global;
+		break;
+                
+		case 0x304: /*Global low*/
                 switch (gus->global)
                 {
                         case 0x82: /*Start addr high*/
@@ -632,7 +719,7 @@ uint8_t readgus(uint16_t addr, void *p)
                         break;
                 }
                 break;
-                case 0x345: /*Global high*/
+                case 0x305: /*Global high*/
                 switch (gus->global)
                 {
                         case 0x80: /*Voice control*/
@@ -681,16 +768,20 @@ uint8_t readgus(uint16_t addr, void *p)
                         break;
                 }                
                 break;
-                case 0x346: return 0xff;
-                case 0x347: /*DRAM access*/
+                case 0x306: case 0x706: /*Revision level*/
+		val = 0xff;
+		break;
+                case 0x307: /*DRAM access*/
                 val=gus->ram[gus->addr];
                 gus->addr&=0xFFFFF;
-                return val;
-                case 0x349: return 0;
-                case 0x746: /*Revision level*/
-                return 0xff; /*Pre 3.7 - no mixer*/
+		if (gus->addr < gus->gus_end_ram)
+			val = gus->ram[gus->addr];
+		else
+			val = 0;
+                break;
+                case 0x309: return 0;
 
-                case 0x24b:
+                case 0x20b:
                 switch (gus->reg_ctrl & 0x07)
                 {
                         case 1:
@@ -708,15 +799,15 @@ uint8_t readgus(uint16_t addr, void *p)
                 }                
                 break;
 
-                case 0x24c:
+                case 0x20c:
                 val = gus->sb_2xc;
                 if (gus->reg_ctrl & 0x20)
                         gus->sb_2xc &= 0x80;
                 break;
-                case 0x24e:
+                case 0x20e:
                 return gus->sb_2xe;
                 
-                case 0x248: case 0x388:
+                case 0x208: case 0x388:
                 if (gus->tctrl & GUS_TIMER_CTRL_AUTO)
                         val = gus->sb_2xa;
                 else
@@ -727,14 +818,15 @@ uint8_t readgus(uint16_t addr, void *p)
                 }
                 break;
 
-                case 0x249: 
+                case 0x209: 
                 gus->ad_status &= ~0x01;
                 nmi = 0;
+		/*FALLTHROUGH*/
                 case 0x389:
                 val = gus->ad_data;
                 break;
                 
-                case 0x24A:
+                case 0x20A:
                 val = gus->adcommand;
                 break;
 
@@ -756,9 +848,9 @@ void gus_poll_timer_1(void *p)
                         gus->ad_status |= 0x40;
                         if (gus->tctrl&4)
                         {
-                                if (gus->irq != -1)
-                                        picint(1 << gus->irq);
-                                gus->ad_status |= 0x04;
+				if (gus->irq != 0)	
+					picint(1 << gus->irq);
+				gus->ad_status |= 0x04;
                                 gus->irqstatus |= 0x04;
                         }
                 }
@@ -767,10 +859,11 @@ void gus_poll_timer_1(void *p)
         {
                 gus->irqnext=0;
                 gus->irqstatus|=0x80;
-                if (gus->irq != -1)
-                        picint(1 << gus->irq);
+		if (gus->irq != 0)
+			picint(1 << gus->irq);
         }
-        gus_midi_update_int_status(gus);
+
+		gus_midi_update_int_status(gus);
 }
 
 void gus_poll_timer_2(void *p)
@@ -787,8 +880,8 @@ void gus_poll_timer_2(void *p)
                         gus->ad_status |= 0x20;
                         if (gus->tctrl&8)
                         {
-                                if (gus->irq != -1)
-                                        picint(1 << gus->irq);
+				if (gus->irq != 0)
+					picint(1 << gus->irq);
                                 gus->ad_status |= 0x02;
                                 gus->irqstatus |= 0x08;
                         }
@@ -798,8 +891,8 @@ void gus_poll_timer_2(void *p)
         {
                 gus->irqnext=0;
                 gus->irqstatus|=0x80;
-                if (gus->irq != -1)
-                        picint(1 << gus->irq);
+                if (gus->irq != 0)
+			picint(1 << gus->irq);
         }
 }
 
@@ -998,16 +1091,57 @@ static void gus_get_buffer(int32_t *buffer, int len, void *p)
         gus->pos = 0;
 }
 
+static void gus_input_msg(void *p, uint8_t *msg) 
+{
+	gus_t *gus = (gus_t *)p;
+	uint8_t i;
+	
+	if (gus->sysex) 
+		return;
+	
+	if (gus->uart_in) {
+		gus->midi_status |= MIDI_INT_RECEIVE;
+
+		for (i=0;i<msg[3];i++) {
+			gus->midi_queue[gus->midi_w++] = msg[i];
+			gus->midi_w &= 63;
+		}
+		
+		gus_midi_update_int_status(gus);
+	}
+}
+
+static int gus_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort) 
+{
+	gus_t *gus = (gus_t *)p;
+	uint32_t i;
+	
+	if (abort) {
+		gus->sysex = 0;
+		return 0;
+	}
+	gus->sysex = 1;
+	for (i=0;i<len;i++) {
+		if (gus->midi_r == gus->midi_w)
+			return (len-i);
+		gus->midi_queue[gus->midi_w++] = buffer[i];
+		gus->midi_w &= 63;
+	}
+	gus->sysex = 0;
+	return 0;
+}
 
 void *gus_init(const device_t *info)
 {
         int c;
 	double out = 1.0;
+	uint8_t gus_ram = device_get_config_int("gus_ram");
         gus_t *gus = malloc(sizeof(gus_t));
         memset(gus, 0, sizeof(gus_t));
 
-        gus->ram = malloc(1 << 20);
-        memset(gus->ram, 0, 1 << 20);
+        gus->gus_end_ram = 1 << (18 + gus_ram);
+	gus->ram = (uint8_t *)malloc(gus->gus_end_ram);
+        memset(gus->ram, 0x00, (gus->gus_end_ram));
         
         for (c=0;c<32;c++)
         {
@@ -1026,10 +1160,14 @@ void *gus_init(const device_t *info)
 	gus->samp_latch = (uint64_t)(TIMER_USEC * (1000000.0 / 44100.0));
 
         gus->t1l = gus->t2l = 0xff;
+	
+	gus->uart_out = 1;
+	
+	gus->base = device_get_config_hex16("base");
                 
-        io_sethandler(0x0240, 0x0010, readgus, NULL, NULL, writegus, NULL, NULL,  gus);
-        io_sethandler(0x0340, 0x0010, readgus, NULL, NULL, writegus, NULL, NULL,  gus);
-        io_sethandler(0x0746, 0x0001, readgus, NULL, NULL, writegus, NULL, NULL,  gus);        
+        io_sethandler(gus->base, 0x0010, readgus, NULL, NULL, writegus, NULL, NULL,  gus);
+        io_sethandler(0x0100+gus->base, 0x0010, readgus, NULL, NULL, writegus, NULL, NULL,  gus);
+        io_sethandler(0x0506+gus->base, 0x0001, readgus, NULL, NULL, writegus, NULL, NULL,  gus);        
         io_sethandler(0x0388, 0x0002, readgus, NULL, NULL, writegus, NULL, NULL,  gus);
 		timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
 		timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
@@ -1037,6 +1175,10 @@ void *gus_init(const device_t *info)
 
         sound_add_handler(gus_get_buffer, gus);
         
+	input_msg = gus_input_msg;
+	input_sysex = gus_input_sysex;
+	midi_in_p = gus;		
+		
         return gus;
 }
 
@@ -1058,11 +1200,76 @@ void gus_speed_changed(void *p)
                 gus->samp_latch = (uint64_t)(TIMER_USEC * (1000000.0 / gusfreqs[gus->voices - 14]));
 }
 
+static const device_config_t gus_config[] = {
+	{
+		"type", "GUS type", CONFIG_SELECTION, "", 0,
+		{
+			{
+				"Classic", GUS_CLASSIC
+			},
+#if 0
+			{
+				"MAX",	GUS_MAX
+			},
+#endif
+			{
+				NULL
+			}
+		},
+	},
+	{
+		"base", "Address", CONFIG_HEX16, "", 0x220,
+		{
+			{
+				"210H", 0x210
+			},
+			{
+				"220H", 0x220
+			},
+			{
+				"230H", 0x230
+			},
+			{
+				"240H", 0x240
+			},
+			{
+				"250H", 0x250
+			},
+			{
+				"260H", 0x260
+			},
+		},
+	},
+	{
+		 "gus_ram", "Onboard RAM", CONFIG_SELECTION, "", 0,
+		{
+			{
+				"256 KB", 0
+			},
+			{
+				"512 KB", 1
+			},
+			{
+				"1 MB", 2
+			},
+			{
+				NULL
+			}
+		}
+	 },
+	{
+			"", "", -1
+	}
+};
+
 const device_t gus_device =
 {
         "Gravis UltraSound",
-        0, 0,
-        gus_init, gus_close, NULL, NULL,
-        gus_speed_changed, NULL,
-        NULL
+        DEVICE_ISA,
+	0,
+        gus_init, gus_close, NULL,
+	NULL,
+        gus_speed_changed, 
+	NULL,
+        gus_config
 };

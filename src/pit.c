@@ -57,8 +57,9 @@ int		io_delay = 5;
 int64_t		firsttime = 1;
 
 
-#define PIT_PS2		16
-#define PIT_EXT_IO	32
+#define PIT_PS2			16	/* The PIT is the PS/2's second PIT. */
+#define PIT_EXT_IO		32	/* The PIT has externally specified port I/O. */
+#define PIT_CUSTOM_CLOCK	64	/* The PIT uses custom clock inputs provided by another provider. */
 
 
 enum {
@@ -100,6 +101,55 @@ ctr_set_out(ctr_t *ctr, int out)
 
 
 static void
+ctr_decrease_count(ctr_t *ctr)
+{
+    uint8_t units, tens, hundreds, thousands, myriads;
+    int dec_cnt = 1;
+
+    if (ctr->ctrl & 0x01) {
+	units = ctr->count & 0x0f;
+	tens = (ctr->count >> 4) & 0x0f;
+	hundreds = (ctr->count >> 8) & 0x0f;
+	thousands = (ctr->count >> 12) & 0x0f;
+	myriads = (ctr->count >> 16) & 0x0f;
+
+	dec_cnt -= units;	
+	units = (10 - dec_cnt % 10) % 10;
+
+	dec_cnt = (dec_cnt + 9) / 10;	/* The +9 is so we get a carry if dec_cnt % 10 was not a 0. */
+	if (dec_cnt <= tens)
+		tens -= dec_cnt;
+	else {
+		dec_cnt -= tens;
+		tens = (10 - dec_cnt % 10) % 10;
+
+		dec_cnt = (dec_cnt + 9) / 10;
+		if (dec_cnt <= hundreds)
+			hundreds -= dec_cnt;
+		else {
+			dec_cnt -= hundreds;
+			hundreds = (10 - dec_cnt % 10) % 10;
+
+			dec_cnt = (dec_cnt + 9) / 10;
+			if (dec_cnt <= thousands)
+				thousands -= dec_cnt;
+			else {
+				dec_cnt -= thousands;
+				thousands = (10 - dec_cnt % 10) % 10;
+
+				dec_cnt = (dec_cnt + 9) / 10;
+				myriads = (10 + myriads - dec_cnt % 10) % 10;
+			}
+		}
+	}
+
+	ctr->count = (myriads << 16) | (thousands << 12) | (hundreds << 8) | (tens << 4) | units;
+    } else
+	ctr->count = (ctr->count - 1) & 0xffff;
+}
+
+
+static void
 ctr_load_count(ctr_t *ctr)
 {
     int l = ctr->l ? ctr->l : 0x10000;
@@ -124,7 +174,7 @@ ctr_tick(ctr_t *ctr)
 				break;
 			case 2:
 				if (ctr->gate && (ctr->count >= 1)) {
-					ctr->count--;
+					ctr_decrease_count(ctr);
 					if (ctr->count < 1) {
 						ctr->state = 3;
 						ctr_set_out(ctr, 1);
@@ -132,7 +182,7 @@ ctr_tick(ctr_t *ctr)
 				}
 				break;
 			case 3:
-				ctr->count = (ctr->count - 1) & 0xffff;
+				ctr_decrease_count(ctr);
 				break;
 		}
 		break;
@@ -146,7 +196,7 @@ ctr_tick(ctr_t *ctr)
 				break;
 			case 2:
 				if (ctr->count >= 1) {
-					ctr->count--;
+					ctr_decrease_count(ctr);
 					if (ctr->count < 1) {
 						ctr->state = 3;
 						ctr_set_out(ctr, 1);
@@ -154,7 +204,7 @@ ctr_tick(ctr_t *ctr)
 				}
 				break;
 			case 3:
-				ctr->count = (ctr->count - 1) & 0xffff;
+				ctr_decrease_count(ctr);
 				break;
 		}
 		break;
@@ -171,7 +221,7 @@ ctr_tick(ctr_t *ctr)
 				if (ctr->gate == 0)
 					break;
 				else if (ctr->count >= 2) {
-					ctr->count--;
+					ctr_decrease_count(ctr);
 					if (ctr->count < 2) {
 						ctr->state = 3;
 						ctr_set_out(ctr, 0);
@@ -221,7 +271,7 @@ ctr_tick(ctr_t *ctr)
 		if ((ctr->gate != 0) || (ctr->m != 4)) {
 			switch(ctr->state) {
 				case 0:
-					ctr->count--;
+					ctr_decrease_count(ctr);
 					break;
 				case 1:
 					ctr_load_count(ctr);
@@ -229,7 +279,7 @@ ctr_tick(ctr_t *ctr)
 					break;
 				case 2:
 					if (ctr->count >= 1) {
-						ctr->count--;
+						ctr_decrease_count(ctr);
 						if (ctr->count < 1) {
 							ctr->state = 3;
 							ctr_set_out(ctr, 0);
@@ -407,6 +457,38 @@ pit_ctr_set_gate(ctr_t *ctr, int gate)
 
 
 void
+pit_ctr_set_clock(ctr_t *ctr, int clock)
+{
+    int old = ctr->clock;
+
+    ctr->clock = clock;
+
+    if (ctr->using_timer && ctr->latch) {
+	if (old && !ctr->clock) {
+		ctr_set_state_1(ctr);
+		ctr->latch = 0;
+	}
+    } else if (ctr->using_timer && !ctr->latch) {
+	if (ctr->state == 1) {
+		if (!old && ctr->clock)
+			ctr->s1_det = 1;	/* Rising edge. */
+		else if (old && !ctr->clock) {
+			ctr->s1_det++;		/* Falling edge. */
+			if (ctr->s1_det != 2)
+				ctr->s1_det = 0;
+		}
+
+		if (ctr->s1_det == 2) {
+			ctr->s1_det = 0;
+			ctr_tick(ctr);
+		}
+	} else if (old && !ctr->clock)
+		ctr_tick(ctr);
+    }
+}
+
+
+void
 pit_ctr_set_using_timer(ctr_t *ctr, int using_timer)
 {
     timer_process();
@@ -420,38 +502,11 @@ pit_timer_over(void *p)
 {
     pit_t *dev = (pit_t *) p;
     int i;
-    ctr_t *ctr;
-    int old;
 
-    old = dev->clock;
     dev->clock ^= 1;
 
-    for (i = 0; i < 3; i++) {
-	ctr = &dev->counters[i];
-
-	if (ctr->using_timer && ctr->latch) {
-		if (old && !dev->clock) {
-			ctr_set_state_1(ctr);
-			ctr->latch = 0;
-		}
-	} else if (ctr->using_timer && !ctr->latch) {
-		if (ctr->state == 1) {
-			if (!old && dev->clock)
-				ctr->s1_det = 1;	/* Rising edge. */
-			else if (old && !dev->clock) {
-				ctr->s1_det++;		/* Falling edge. */
-				if (ctr->s1_det != 2)
-					ctr->s1_det = 0;
-			}
-
-			if (ctr->s1_det == 2) {
-				ctr->s1_det = 0;
-				ctr_tick(ctr);
-			}
-		} else if (old && !dev->clock)
-			ctr_tick(ctr);
-	}
-    }
+    for (i = 0; i < 3; i++)
+	pit_ctr_set_clock(&dev->counters[i], dev->clock);
 
     timer_advance_u64(&dev->callback_timer, PITCONST >> 1ULL);
 }
@@ -780,7 +835,7 @@ pit_init(const device_t *info)
     pit_t *dev = (pit_t *) malloc(sizeof(pit_t));
     pit_reset(dev);
 
-    if (!(dev->flags & PIT_PS2)) {
+    if (!(dev->flags & PIT_PS2) && !(dev->flags & PIT_CUSTOM_CLOCK)) {
 	timer_add(&dev->callback_timer, pit_timer_over, (void *) dev, 0);
 	timer_set_delay_u64(&dev->callback_timer, PITCONST >> 1ULL);
     }

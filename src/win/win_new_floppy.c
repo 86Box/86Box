@@ -80,7 +80,7 @@ create_86f(WCHAR *file_name, disk_size_t disk_size, uint8_t rpm_mode)
     uint16_t tflags = 0;
     uint32_t index_hole_pos = 0;
     uint32_t tarray[512];
-    uint32_t array_size, array_size2;
+    uint32_t array_size;
     uint32_t track_base, track_size;
     int i;
     uint32_t shift = 0;
@@ -132,11 +132,6 @@ create_86f(WCHAR *file_name, disk_size_t disk_size, uint8_t rpm_mode)
 		}
 		break;
     }
-
-    array_size2 = (array_size << 3);
-    array_size = (array_size2 >> 4) << 1;
-    if (array_size2 & 15)
-	array_size += 2;
 
     empty = (unsigned char *) malloc(array_size);
 
@@ -515,7 +510,7 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
 static int	fdd_id, sb_part;
 
 static int	file_type = 0;		/* 0 = IMG, 1 = Japanese FDI, 2 = 86F */
-static wchar_t	fd_file_name[512];
+static wchar_t	fd_file_name[1024];
 
 
 /* Show a MessageBox dialog.  This is nasty, I know.  --FvK */
@@ -556,7 +551,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message) {
 	case WM_INITDIALOG:
 		plat_pause(1);
-		memset(fd_file_name, 0, 512 * sizeof(wchar_t));
+		memset(fd_file_name, 0, 1024 * sizeof(wchar_t));
 		h = GetDlgItem(hdlg, IDC_COMBO_DISK_SIZE);
 		if (is_zip) {
 			zip_types = zip_drives[fdd_id].is_250 ? 2 : 1;
@@ -613,6 +608,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					new_floppy_msgbox(hdlg, MBX_ERROR, (wchar_t *)IDS_4108);
 					return TRUE;
 				}
+				/*FALLTHROUGH*/
 			case IDCANCEL:
 				EndDialog(hdlg, 0);
 				plat_pause(0);

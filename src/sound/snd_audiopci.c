@@ -13,6 +13,8 @@
 #include "../pci.h"
 #include "../timer.h"
 #include "sound.h"
+#include "midi.h"
+#include "snd_mpu401.h"
 #include "snd_audiopci.h"
 
 
@@ -23,6 +25,8 @@
 static float low_fir_es1371_coef[ES1371_NCoef];
 
 typedef struct {
+	mpu_t mpu;
+
     uint8_t pci_command, pci_serr;
 
     uint32_t base_addr;
@@ -116,13 +120,20 @@ typedef struct {
 
 #define INT_DAC1_EN			(1<<6)
 #define INT_DAC2_EN			(1<<5)
+#define INT_UART_EN			(1<<3)
 
 #define SI_P2_INTR_EN			(1<<9)
 #define SI_P1_INTR_EN			(1<<8)
 
 #define INT_STATUS_INTR			(1<<31)
+#define INT_STATUS_UART			(1<<3)
 #define INT_STATUS_DAC1			(1<<2)
 #define INT_STATUS_DAC2			(1<<1)
+
+#define UART_CTRL_TXINTEN		(1<<5)
+
+#define UART_STATUS_TXINT		(1<<2)
+#define UART_STATUS_TXRDY		(1<<1)
 
 #define FORMAT_MONO_8			0
 #define FORMAT_STEREO_8			1
@@ -164,8 +175,13 @@ static void es1371_update_irqs(es1371_t *es1371)
 	
 	if ((es1371->int_status & INT_STATUS_DAC1) && (es1371->si_cr & SI_P1_INTR_EN))
 		irq = 1;
-	if ((es1371->int_status & INT_STATUS_DAC2) && (es1371->si_cr & SI_P2_INTR_EN))
+	if ((es1371->int_status & INT_STATUS_DAC2) && (es1371->si_cr & SI_P2_INTR_EN)) {
 		irq = 1;
+	}
+	/*MIDI input is unsupported for now*/
+	if ((es1371->int_status & INT_STATUS_UART) && (es1371->uart_status & UART_STATUS_TXINT)) {
+		irq = 1;
+	}
 
 	if (irq)
 		es1371->int_status |= INT_STATUS_INTR;
@@ -219,10 +235,10 @@ static uint8_t es1371_inb(uint16_t port, void *p)
 		case 0x07:
 		ret = (es1371->int_status >> 24) & 0xff;
 		break;
-
-
+		
 		case 0x09:
-		ret = es1371->uart_status;
+		ret = es1371->uart_status & 0xc7;
+		audiopci_log("ES1371 UART Status = %02x\n", es1371->uart_status);
 		break;
 		
 		case 0x0c:
@@ -253,7 +269,7 @@ static uint8_t es1371_inb(uint16_t port, void *p)
 		audiopci_log("Bad es1371_inb: port=%04x\n", port);
 	}
 
-//	audiopci_log("es1371_inb: port=%04x ret=%02x\n", port, ret);
+	audiopci_log("es1371_inb: port=%04x ret=%02x\n", port, ret);
 //	output = 3;
 	return ret;
 }
@@ -340,17 +356,26 @@ static uint32_t es1371_inl(uint16_t port, void *p)
 		ret |= CODEC_READY;
 		break;
 
-		case 0x34:
-		switch (es1371->mem_page)
-		{
+		case 0x30:
+		switch (es1371->mem_page) {
+			case 0xe: case 0xf:
+			audiopci_log("ES1371 0x30 read UART FIFO: val = %02x\n", ret & 0xff);
+			break;
+		}
+		break;
 
+		case 0x34:
+		switch (es1371->mem_page) {
 			case 0xc:
 			ret = es1371->dac[0].size | (es1371->dac[0].count << 16);
 			break;
 			
 			case 0xd:
-
 			ret = es1371->adc.size | (es1371->adc.count << 16);
+			break;
+
+			case 0xe: case 0xf:
+			audiopci_log("ES1371 0x34 read UART FIFO: val = %02x\n", ret & 0xff);
 			break;
 
 			default:
@@ -358,13 +383,24 @@ static uint32_t es1371_inl(uint16_t port, void *p)
 		}
 		break;
 
+		case 0x38:
+		switch (es1371->mem_page) {
+			case 0xe: case 0xf:
+			audiopci_log("ES1371 0x38 read UART FIFO: val = %02x\n", ret & 0xff);
+			break;
+		}
+		break;		
+
 		case 0x3c:
-		switch (es1371->mem_page)
-		{
+		switch (es1371->mem_page) {
 			case 0xc:
 			ret = es1371->dac[1].size | (es1371->dac[1].count << 16);
 			break;
-						
+			
+			case 0xe: case 0xf:
+			audiopci_log("ES1371 0x3c read UART FIFO: val = %02x\n", ret & 0xff);
+			break;			
+
 			default:
 			audiopci_log("Bad es1371_inl: mem_page=%x port=%04x\n", es1371->mem_page, port);
 		}
@@ -374,7 +410,7 @@ static uint32_t es1371_inl(uint16_t port, void *p)
 		audiopci_log("Bad es1371_inl: port=%04x\n", port);
 	}
 
-//	audiopci_log("es1371_inl: port=%04x ret=%08x  %08x\n", port, ret, cpu_state.pc);
+	audiopci_log("es1371_inl: port=%04x ret=%08x\n", port, ret);
 	return ret;
 }
 
@@ -382,7 +418,7 @@ static void es1371_outb(uint16_t port, uint8_t val, void *p)
 {
 	es1371_t *es1371 = (es1371_t *)p;
 
-//	audiopci_log("es1371_outb: port=%04x val=%02x %04x:%08x\n", port, val, cs, cpu_state.pc);
+	audiopci_log("es1371_outb: port=%04x val=%02x\n", port, val);
 	switch (port & 0x3f)
 	{
 		case 0x00:
@@ -412,8 +448,13 @@ static void es1371_outb(uint16_t port, uint8_t val, void *p)
 		es1371->int_ctrl = (es1371->int_ctrl & 0x00ffffff) | (val << 24);
 		break;
 		
+		case 0x08:
+		midi_raw_out_byte(val);
+		break;
+		
 		case 0x09:
-		es1371->uart_ctrl = val;
+		es1371->uart_ctrl = val & 0xe3;
+		audiopci_log("ES1371 UART Cntrl = %02x\n", es1371->uart_ctrl);
 		break;
 		
 		case 0x0c:
@@ -481,7 +522,7 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 {
 	es1371_t *es1371 = (es1371_t *)p;
 
-//	audiopci_log("es1371_outl: port=%04x val=%08x %04x:%08x\n", port, val, CS, cpu_state.pc);
+	audiopci_log("es1371_outl: port=%04x val=%08x\n", port, val);
 	switch (port & 0x3f)
 	{
 		case 0x04:
@@ -593,6 +634,10 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 //			audiopci_log("DAC1 addr %08x\n", val);
 			break;
 			
+			case 0xe: case 0xf:
+			audiopci_log("ES1371 0x30 write UART FIFO: val = %02x\n", val & 0xff);
+			break;
+			
 			default:
 			audiopci_log("Bad es1371_outl: mem_page=%x port=%04x val=%08x\n", es1371->mem_page, port, val);
 		}
@@ -615,6 +660,10 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 			es1371->adc.count = val >> 16;
 			break;
 
+			case 0xe: case 0xf:
+			audiopci_log("ES1371 0x34 write UART FIFO: val = %02x\n", val & 0xff);
+			break;
+
 			default:
 			audiopci_log("Bad es1371_outl: mem_page=%x port=%04x val=%08x\n", es1371->mem_page, port, val);
 		}
@@ -633,6 +682,10 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 			
 			case 0xd:
 			break;
+			
+			case 0xe: case 0xf:
+			audiopci_log("ES1371 0x38 write UART FIFO: val = %02x\n", val & 0xff);
+			break;
 
 			default:
 			audiopci_log("Bad es1371_outl: mem_page=%x port=%04x val=%08x\n", es1371->mem_page, port, val);
@@ -649,6 +702,10 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 			case 0xc:
 			es1371->dac[1].size = val & 0xffff;
 			es1371->dac[1].count = val >> 16;
+			break;		
+
+			case 0xe: case 0xf:
+			audiopci_log("ES1371 0x3c write UART FIFO: val = %02x\n", val & 0xff);
 			break;
 
 			default:
@@ -1107,10 +1164,33 @@ static void es1371_poll(void *p)
 	
 	timer_advance_u64(&es1371->dac[1].timer, es1371->dac[1].latch);
 
-        es1371_update(es1371);
-        
-	if (es1371->int_ctrl & INT_DAC1_EN)
-	{
+	es1371_update(es1371);		
+
+	if (es1371->int_ctrl & INT_UART_EN) {
+		audiopci_log("UART INT Enabled\n");
+		if (es1371->uart_ctrl & 0x80) { /*We currently don't implement MIDI Input.*/
+			/*But if anything sets MIDI Input and Output together we'd have to take account
+			of the MIDI Output case, and disable IRQ's and RX bits when MIDI Input is enabled as well but not in the MIDI Output portion*/
+			if (es1371->uart_ctrl & UART_CTRL_TXINTEN) 
+				es1371->int_status |= INT_STATUS_UART;
+			else
+				es1371->int_status &= ~INT_STATUS_UART;
+		} else if (!(es1371->uart_ctrl & 0x80) && ((es1371->uart_ctrl & UART_CTRL_TXINTEN))) { /*Or enable the UART IRQ and the respective TX bits only when the MIDI Output is enabled*/
+			es1371->int_status |= INT_STATUS_UART;
+		}
+		
+		if (es1371->uart_ctrl & 0x80) {
+			if (es1371->uart_ctrl & UART_CTRL_TXINTEN) 
+				es1371->uart_status |= (UART_STATUS_TXINT | UART_STATUS_TXRDY);
+			else
+				es1371->uart_status &= ~(UART_STATUS_TXINT | UART_STATUS_TXRDY);
+		} else
+			es1371->uart_status |= (UART_STATUS_TXINT | UART_STATUS_TXRDY);
+		
+		es1371_update_irqs(es1371);
+	}		
+		
+	if (es1371->int_ctrl & INT_DAC1_EN) {
                 int frac = es1371->dac[0].ac & 0x7fff;
                 int idx = es1371->dac[0].ac >> 15;
                 int samp1_l = es1371->dac[0].filtered_l[idx];

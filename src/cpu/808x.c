@@ -915,7 +915,10 @@ reset_common(int hard)
 	cr0 = 1 << 30;
     else
 	cr0 = 0;
-    cpu_cache_int_enabled = 0;
+    if (isibmcpu)
+        cpu_cache_int_enabled = 1;
+    else
+	cpu_cache_int_enabled = 0;
     cpu_update_waitstates();
     cr4 = 0;
     cpu_state.eflags = 0;
@@ -961,6 +964,8 @@ reset_common(int hard)
     prefetching = 1;
 
     takeint = 0;
+
+    cpu_ven_reset();
 }
 
 
@@ -1212,7 +1217,7 @@ jcc(uint8_t opcode, int cond)
     wait(1, 0);
     cpu_data = pfq_fetchb();
     wait(1, 0);
-    if ((!cond) == (opcode & 0x01))
+    if ((!cond) == !!(opcode & 0x01))
 	jump_short();
 }
 

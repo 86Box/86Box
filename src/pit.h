@@ -9,10 +9,10 @@
  *		Header of the implementation of the Intel 8253/8254
  *		Programmable Interval Timer.
  *
- * Version:	@(#)pit.h	1.0.0	2019/12/02
+ * Version:	@(#)pit.h	1.0.1	2020/01/17
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2019 Miran Grca.
+ *		Copyright 2019,2020 Miran Grca.
  */
 #ifndef EMU_PIT_H
 # define EMU_PIT_H
@@ -27,7 +27,7 @@ typedef struct {
 
     int		rm, wm, gate, out,
 		newcount, count, using_timer, latched,
-		state, null_count, do_read_status, pad1;
+		state, null_count, do_read_status, clock;
 
     uint32_t	l;
 
@@ -60,10 +60,17 @@ extern uint64_t	PITCONST, ISACONST,
 		RTCCONST;
 
 
+/* Gets a counter's count. */
 extern uint16_t	pit_ctr_get_count(ctr_t *ctr);
+/* Sets a counter's load count handler. */
 extern void	pit_ctr_set_load_func(ctr_t *ctr, void (*func)(uint8_t new_m, int new_count));
+/* Sets a counter's OUT output handler. */
 extern void	pit_ctr_set_out_func(ctr_t *ctr, void (*func)(int new_out, int old_out));
+/* Sets a counter's GATE input. */
 extern void	pit_ctr_set_gate(ctr_t *ctr, int gate);
+/* Sets a counter's CLOCK input. */
+extern void	pit_ctr_set_clock(ctr_t *ctr, int clock);
+/* Sets if a counter's CLOCK input is from the timer or not - used by PCjr. */
 extern void	pit_ctr_set_using_timer(ctr_t *ctr, int using_timer);
 
 extern pit_t *	pit_common_init(int type, void (*out0)(int new_out, int old_out), void (*out1)(int new_out, int old_out));

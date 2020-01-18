@@ -8,7 +8,7 @@
  *
  *		Generic CD-ROM drive core.
  *
- * Version:	@(#)cdrom.c	1.0.8	2019/09/26
+ * Version:	@(#)cdrom.c	1.0.9	2019/12/13
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -332,7 +332,7 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
     /* Do this at this point, since it's at this point that we know the
        actual LBA position to start playing from. */
     if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
-	pclog("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
+	cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
 	cdrom_stop(dev);
 	return 0;
     }

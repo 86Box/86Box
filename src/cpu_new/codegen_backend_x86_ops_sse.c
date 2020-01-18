@@ -204,7 +204,7 @@ void host_x86_MOVQ_STACK_OFFSET_XREG(codeblock_t *block, int offset, int src_reg
                 codegen_addbyte4(block, 0x66, 0x0f, 0xd6, 0x04 | (src_reg << 3)); /*MOVQ [ESP], src_reg*/
                 codegen_addbyte(block, 0x24);
         }
-        else if (offset >= -80 || offset < 0x80)
+        else if (offset >= -0x80 && offset < 0x80)
         {
                 codegen_alloc_bytes(block, 6);
                 codegen_addbyte4(block, 0x66, 0x0f, 0xd6, 0x44 | (src_reg << 3)); /*MOVQ offset[ESP], src_reg*/

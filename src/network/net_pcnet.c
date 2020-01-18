@@ -907,6 +907,24 @@ pcnetInit(nic_t *dev)
         dev->GCTDRA    = PHYSADDR(dev, initblk.tdra);                    \
 } while (0)
 
+#define PCNET_INIT16() do { \
+        DMAPageRead(PHYSADDR(dev, CSR_IADR(dev)),         \
+                          (uint8_t *)&initblk, sizeof(initblk));             \
+        dev->aCSR[15]  = le32_to_cpu(initblk.mode);                        \
+        CSR_RCVRL(dev) = (1 << initblk.rlen);   \
+        CSR_XMTRL(dev) = (1 << initblk.tlen);   \
+        dev->aCSR[ 6]  = (initblk.tlen << 12) | (initblk.rlen << 8);       \
+        dev->aCSR[ 8]  = le32_to_cpu(initblk.ladrf1);                      \
+        dev->aCSR[ 9]  = le32_to_cpu(initblk.ladrf2);                      \
+        dev->aCSR[10]  = le32_to_cpu(initblk.ladrf3);                      \
+        dev->aCSR[11]  = le32_to_cpu(initblk.ladrf4);                      \
+        dev->aCSR[12]  = le32_to_cpu(initblk.padr1);                       \
+        dev->aCSR[13]  = le32_to_cpu(initblk.padr2);                       \
+        dev->aCSR[14]  = le32_to_cpu(initblk.padr3);                       \
+        dev->GCRDRA    = PHYSADDR(dev, initblk.rdra);                    \
+        dev->GCTDRA    = PHYSADDR(dev, initblk.tdra);                    \
+} while (0)
+
     if (BCR_SSIZE32(dev)) {
         struct INITBLK32 initblk;
         dev->GCUpperPhys = 0;
@@ -916,7 +934,7 @@ pcnetInit(nic_t *dev)
     } else {
         struct INITBLK16 initblk;
         dev->GCUpperPhys = (0xff00 & (uint32_t)dev->aCSR[2]) << 16;
-        PCNET_INIT();
+        PCNET_INIT16();
         pcnetlog(3, "%s: initblk.rlen=%#04x, initblk.tlen=%#04x\n",
              dev->name, initblk.rlen, initblk.tlen);
     }
@@ -1263,22 +1281,18 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                 /* In loopback mode, Runt Packed Accept is always enabled internally;
                  * don't do any padding because guest may be looping back very short packets.
                  */
-                if (!CSR_LOOP(dev))
-                    while (size < 60)
-                        src[size++] = 0;
+                uint32_t fcs = UINT32_MAX;
+                uint8_t *p = src;
 
-				uint32_t fcs = UINT32_MAX;
-				uint8_t *p = src;
+                while (p != &src[size])
+			CRC(fcs, *p++);
 
-				while (p != &src[size])
-					CRC(fcs, *p++);
+		/* FCS at the end of the packet */
+		((uint32_t *)&src[size])[0] = htonl(fcs);
+		size += 4;
+           }
 
-				/* FCS at the end of the packet */
-				((uint32_t *)&src[size])[0] = htonl(fcs);
-				size += 4;
-            }
-			
-			cbPacket  = size; 
+            cbPacket  = size; 
 
             pcnetRmdLoad(dev, &rmd, PHYSADDR(dev, crda), 0);
             /* if (!CSR_LAPPEN(dev)) */

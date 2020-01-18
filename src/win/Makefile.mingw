@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.139	2019/12/05
+# Version:	@(#)Makefile.mingw	1.0.141	2020/01/14
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -530,7 +530,7 @@ endif
 # Final versions of the toolchain flags.
 CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
-		   -fno-strict-aliasing -funroll-loops
+		   -fno-strict-aliasing
 
 # Add freetyp2 references through pkgconfig
 CFLAGS          := $(CFLAGS)  `pkg-config.exe --cflags freetype2`
@@ -541,9 +541,9 @@ CXXFLAGS	:= $(CFLAGS)
 #########################################################################
 #		Create the (final) list of objects to build.		#
 #########################################################################
-MAINOBJ		:= pc.o config.o random.o timer.o io.o apm.o dma.o nmi.o \
+MAINOBJ		:= pc.o config.o random.o timer.o io.o apm_new.o dma.o nmi.o \
 		   pic.o pit.o port_92.o ppi.o pci.o mca.o mcr.o mem.o \
-		   rom.o device.o nvr.o nvr_at.o nvr_ps2.o $(VNCOBJ) $(RDPOBJ)
+		   rom.o device.o nvr.o nvr_at.o nvr_ps2.o sst_flash.o via_vt82c586b.o $(VNCOBJ) $(RDPOBJ)
 
 INTELOBJ	:= intel_flash.o \
 		    intel_sio.o intel_piix.o
@@ -557,7 +557,7 @@ CPUOBJ		:= cpu.o cpu_table.o \
 CHIPSETOBJ	:= acc2168.o acer_m3a.o ali1429.o headland.o \
 		    intel_4x0.o neat.o opti495.o scat.o \
 		    sis_85c471.o sis_85c496.o \
-		    wd76c10.o
+		    via_mvp3.o wd76c10.o
 
 MCHOBJ		:= machine.o machine_table.o \
 		    m_xt.o m_xt_compaq.o \
@@ -604,7 +604,7 @@ HDDOBJ		:= hdd.o \
 		    hdc_ide_sff8038i.o
 
 CDROMOBJ	:= cdrom.o \
-		    cdrom_dosbox.o cdrom_image.o
+		    cdrom_image_backend.o cdrom_image.o
 
 ZIPOBJ		:= zip.o
 
@@ -633,8 +633,8 @@ PRINTOBJ	:= png.o prt_cpmap.o \
 			
 SNDOBJ		:= sound.o \
 		    openal.o \
-		    snd_opl.o snd_dbopl.o \
-		    dbopl.o nukedopl.o \
+		    snd_opl.o snd_opl_backend.o \
+		    nukedopl.o \
 		    snd_resid.o \
 		     convolve.o convolve-sse.o envelope.o extfilt.o \
 		     filter.o pot.o sid.o voice.o wave6581__ST.o \
@@ -678,6 +678,7 @@ VIDOBJ		:= video.o \
 		    vid_et4000.o vid_sc1502x_ramdac.o \
 		    vid_et4000w32.o vid_stg_ramdac.o \
 		    vid_ht216.o \
+			vid_mga.o \
 		    vid_oak_oti.o \
 		    vid_paradise.o \
 		    vid_ti_cf62011.o \
@@ -691,12 +692,8 @@ VIDOBJ		:= video.o \
 PLATOBJ		:= win.o \
 		    win_dynld.o win_thread.o \
 		    win_cdrom.o win_keyboard.o \
-		    win_midi.o
-ifeq ($(DINPUT), y)
- PLATOBJ += win_mouse.o win_joystick.o
-else
- PLATOBJ += win_mouse_rawinput.o win_joystick.o
-endif
+		    win_midi.o \
+		    win_mouse.o win_joystick.o
 
 OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) \
 		   $(DEVOBJ) $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(HDDOBJ) \

@@ -59,8 +59,8 @@ int		infocus = 1;
 int		rctrl_is_lalt = 0;
 int		user_resize = 0;
 
-char		openfilestring[260];
-WCHAR		wopenfilestring[260];
+char		openfilestring[512];
+WCHAR		wopenfilestring[512];
 
 
 /* Local data. */
@@ -628,8 +628,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		plat_vidapi_enable(0);
 		temp_y -= sbar_height;
-		if (temp_x < 1)
-			temp_x = 1;
 		if (temp_y < 1)
 			temp_y = 1;
 
@@ -1079,9 +1077,12 @@ wchar_t *
 ui_window_title(wchar_t *s)
 {
     if (! video_fullscreen) {
-	if (s != NULL)
-		wcscpy(wTitle, s);
-	  else
+	if (s != NULL) {
+		if (wcslen(s) <= 512)
+			wcscpy(wTitle, s);
+		else
+			wcsncpy(wTitle, s, 512);
+	} else
 		s = wTitle;
 
        	SetWindowText(hwndMain, s);
@@ -1099,7 +1100,7 @@ void
 plat_pause(int p)
 {
     static wchar_t oldtitle[512];
-    wchar_t title[512];
+    wchar_t title[512], *t;
 
     /* If un-pausing, as the renderer if that's OK. */
     if (p == 0)
@@ -1115,7 +1116,11 @@ plat_pause(int p)
     }
 
     if (p) {
-	wcscpy(oldtitle, ui_window_title(NULL));
+	t = ui_window_title(NULL);
+	if (wcslen(t) <= 511)
+		wcscpy(oldtitle, ui_window_title(NULL));
+	else
+		wcsncpy(oldtitle, ui_window_title(NULL), 511);
 	wcscpy(title, oldtitle);
 	wcscat(title, L" - PAUSED -");
 	ui_window_title(title);

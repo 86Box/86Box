@@ -112,7 +112,8 @@ static const char *pgc_err_msgs[] = {
     "Stack   \r",
     "Too long\r",
     "Area    \r",
-    "Missing \r" 
+    "Missing \r",
+    "Unknown \r" 
 };
 
 
@@ -862,12 +863,27 @@ pgc_fill_polygon(pgc_t *dev, unsigned corners, int32_t *x, int32_t *y)
 
     pgc_log("PGC: fill_polygon(%i corners)\n", corners);
 
-    if (corners < 2) return;	/* Degenerate polygon */
+    if (!x || !y || (corners < 2))
+	return;	/* Degenerate polygon */
 
     nodex = (double *)malloc(corners * sizeof(double));
     dx    = (double *)malloc(corners * sizeof(double));
     dy    = (double *)malloc(corners * sizeof(double));
-    if (!nodex || !dx || !dy) return;
+    if (!nodex || !dx || !dy) {
+	if (nodex) {
+		free(nodex);
+		nodex = NULL;
+	}
+	if (dx) {
+		free(dx);
+		dx = NULL;
+	}
+	if (dy) {
+		free(dy);
+		dy = NULL;
+	}
+	return;
+    }
 
     ymin = ymax = y[0] / 65536.0;
     for (n = 0; n < corners; n++) {
@@ -1664,7 +1680,6 @@ pgc_wake(pgc_t *dev)
 void
 pgc_sleep(pgc_t *dev)
 {
-    uint8_t *n = NULL;
     pgc_log("PGC: sleeping on %i %i %i %i 0x%02x 0x%02x\n",
 	    dev->stopped,
 	    dev->waiting_input_fifo, dev->waiting_output_fifo,
@@ -1674,7 +1689,6 @@ pgc_sleep(pgc_t *dev)
     if (dev->stopped) {
 	dev->waiting_input_fifo = 0;
 	dev->waiting_output_fifo = 0;
-	*n = 0;
 	return;
     }
 
@@ -2019,7 +2033,10 @@ pgc_parse_words(pgc_t *dev, pgc_cl_t *cl, int count)
     }
 
     for (n = 0; n < count; n++) {
-	if (! pgc_param_word(dev, &param[n])) return 0;
+	if (! pgc_param_word(dev, &param[n])) {
+		free(param);
+		return 0;
+	}
 
 	if (!pgc_cl_append(cl, param[n] & 0xff) ||
 	    !pgc_cl_append(cl, param[n] >> 8)) {
@@ -2047,8 +2064,12 @@ pgc_parse_coords(pgc_t *dev, pgc_cl_t *cl, int count)
 	return 0;	
     }
 
-    for (n = 0; n < count; n++)
-	if (! pgc_param_coord(dev, &param[n])) return 0;
+    for (n = 0; n < count; n++) {
+	if (! pgc_param_coord(dev, &param[n])) {
+		free(param);
+		return 0;
+	}
+    }
 
     /* Here is how the real PGC serializes coords:
      *

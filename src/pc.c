@@ -149,7 +149,7 @@ int	output;
 int	atfullspeed;
 int	clockrate;
 
-wchar_t	exe_path[1024];				/* path (dir) of executable */
+wchar_t	exe_path[2048];				/* path (dir) of executable */
 wchar_t	usr_path[1024];				/* path (dir) of user data */
 wchar_t	cfg_path[1024];				/* full path of config file */
 FILE	*stdlog = NULL;				/* file to log output to */
@@ -323,7 +323,7 @@ pc_init(int argc, wchar_t *argv[])
     uint32_t *uid, *shwnd;
 
     /* Grab the executable's full path. */
-    plat_get_exe_name(exe_path, sizeof(exe_path)-1);
+    plat_get_exe_name(exe_path, sizeof_w(exe_path)-1);
     p = plat_get_filename(exe_path);
     *p = L'\0';
 
@@ -554,8 +554,8 @@ pc_init_modules(void)
     /* Load the ROMs for the selected machine. */
     if (! machine_available(machine)) {
 	c = 0;
+	machine = -1;
 	while (machine_get_internal_name_ex(c) != NULL) {
-		machine = -1;
 		if (machine_available(c)) {
 			ui_msgbox(MBX_INFO, (wchar_t *)IDS_2063);
 			machine = c;
@@ -767,7 +767,7 @@ pc_reset_hard_init(void)
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
 
-    if (joystick_type != 7)
+    if (joystick_type != JOYSTICK_TYPE_NONE)
 	gameport_update_joystick_type();
 
     ui_sb_update_panes();

@@ -338,7 +338,7 @@ mfm_read_side(int drive, int side)
 {
     mfm_t *dev = mfm[drive];
     int track_index, track_size;
-    int track_bytes;
+    int track_bytes, ret;
 
     if (dev->hdr.if_type & 0x80)
 	track_index = get_adv_track_index(drive, side, dev->cur_track);
@@ -354,10 +354,13 @@ mfm_read_side(int drive, int side)
 	memset(dev->track_data[side], 0x00, track_bytes);
     else {
 	if (dev->hdr.if_type & 0x80)
-		fseek(dev->f, dev->adv_tracks[track_index].track_offset, SEEK_SET);
+		ret = fseek(dev->f, dev->adv_tracks[track_index].track_offset, SEEK_SET);
 	else
-		fseek(dev->f, dev->tracks[track_index].track_offset, SEEK_SET);
-	fread(dev->track_data[side], 1, track_bytes, dev->f);
+		ret = fseek(dev->f, dev->tracks[track_index].track_offset, SEEK_SET);
+	if (ret == -1)
+		fatal("mfm_read_side(): Error seeking to the beginning of the file\n");
+	if (fread(dev->track_data[side], 1, track_bytes, dev->f) != track_bytes)
+		fatal("mfm_read_side(): Error reading track bytes\n");
     }
 
     mfm_log("drive = %i, side = %i, dev->cur_track = %i, track_index = %i, track_size = %i\n",
@@ -399,7 +402,7 @@ mfm_load(int drive, wchar_t *fn)
 {
     mfm_t *dev;
     double dbr;
-    int i;
+    int i, size;
 
     writeprot[drive] = fwriteprot[drive] = 1;
 
@@ -417,16 +420,22 @@ mfm_load(int drive, wchar_t *fn)
     d86f_unregister(drive);
 
     /* Read the header. */
-    fread(&dev->hdr, 1, sizeof(mfm_header_t), dev->f);
+    size = sizeof(mfm_header_t);
+    if (fread(&dev->hdr, 1, size, dev->f) != size)
+	fatal("mfm_load(): Error reading header\n");
 
     /* Calculate tracks * sides, allocate the tracks array, and read it. */
     dev->total_tracks = dev->hdr.tracks_no * dev->hdr.sides_no;
     if (dev->hdr.if_type & 0x80) {
 	dev->adv_tracks = (mfm_adv_track_t *) malloc(dev->total_tracks * sizeof(mfm_adv_track_t));
-	fread(dev->adv_tracks, 1, dev->total_tracks * sizeof(mfm_adv_track_t), dev->f);
+	size = dev->total_tracks * sizeof(mfm_adv_track_t);
+	if (fread(dev->adv_tracks, 1, size, dev->f) != size)
+		fatal("mfm_load(): Error reading advanced tracks\n");
     } else {
 	dev->tracks = (mfm_track_t *) malloc(dev->total_tracks * sizeof(mfm_track_t));
-	fread(dev->tracks, 1, dev->total_tracks * sizeof(mfm_track_t), dev->f);
+	size = dev->total_tracks * sizeof(mfm_track_t);
+	if (fread(dev->tracks, 1, size, dev->f) != size)
+		fatal("mfm_load(): Error reading tracks\n");
     }
 
     /* The chances of finding a HxC MFM image of a single-sided thin track

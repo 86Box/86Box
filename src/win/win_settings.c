@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.62	2019/11/19
+ * Version:	@(#)win_settings.c	1.0.63	2019/12/21
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -55,8 +55,8 @@
 #include "../network/network.h"
 #include "../sound/sound.h"
 #include "../sound/midi.h"
-#include "../sound/snd_dbopl.h"
 #include "../sound/snd_mpu401.h"
+#include "../sound/snd_gus.h"
 #include "../video/video.h"
 #include "../video/vid_voodoo.h"
 #include "../plat.h"
@@ -85,7 +85,7 @@ static int temp_gfxcard, temp_voodoo;
 static int temp_mouse, temp_joystick;
 
 /* Sound category */
-static int temp_sound_card, temp_midi_device, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS, temp_opl_type;
+static int temp_sound_card, temp_midi_device, temp_midi_input_device, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS;
 static int temp_float;
 
 /* Network category */
@@ -124,6 +124,7 @@ extern int is486;
 static int listtomachine[256], machinetolist[256];
 static int settings_device_to_list[2][20], settings_list_to_device[2][20];
 static int settings_midi_to_list[20], settings_list_to_midi[20];
+static int settings_midi_in_to_list[20], settings_list_to_midi_in[20];
 
 static int max_spt = 63, max_hpc = 255, max_tracks = 266305;
 static uint64_t mfm_tracking, esdi_tracking, xta_tracking, ide_tracking, scsi_tracking[2];
@@ -219,11 +220,11 @@ win_settings_init(void)
     /* Sound category */
     temp_sound_card = sound_card_current;
     temp_midi_device = midi_device_current;
+	temp_midi_input_device = midi_input_device_current;
     temp_mpu401 = mpu401_standalone_enable;
     temp_SSI2001 = SSI2001;
     temp_GAMEBLASTER = GAMEBLASTER;
     temp_GUS = GUS;
-    temp_opl_type = opl_type;
     temp_float = sound_is_float;
 
     /* Network category */
@@ -331,11 +332,11 @@ win_settings_changed(void)
     /* Sound category */
     i = i || (sound_card_current != temp_sound_card);
     i = i || (midi_device_current != temp_midi_device);
+	i = i || (midi_input_device_current != temp_midi_input_device);
     i = i || (mpu401_standalone_enable != temp_mpu401);
     i = i || (SSI2001 != temp_SSI2001);
     i = i || (GAMEBLASTER != temp_GAMEBLASTER);
     i = i || (GUS != temp_GUS);
-    i = i || (opl_type != temp_opl_type);
     i = i || (sound_is_float != temp_float);
 
     /* Network category */
@@ -434,11 +435,11 @@ win_settings_save(void)
     /* Sound category */
     sound_card_current = temp_sound_card;
     midi_device_current = temp_midi_device;
+	midi_input_device_current = temp_midi_input_device;
     mpu401_standalone_enable = temp_mpu401;
     SSI2001 = temp_SSI2001;
     GAMEBLASTER = temp_GAMEBLASTER;
     GUS = temp_GUS;
-    opl_type = temp_opl_type;
     sound_is_float = temp_float;
 
     /* Network category */
@@ -538,13 +539,9 @@ win_settings_machine_recalc_cpu(HWND hdlg)
 
     h = GetDlgItem(hdlg, IDC_CHECK_FPU);
     cpu_type = machines[temp_machine].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
-    // if ((cpu_type < CPU_i486DX) && (cpu_type >= CPU_286))
     if (cpu_type < CPU_i486DX)
 	EnableWindow(h, TRUE);
-    else if (cpu_type < CPU_286) {
-	temp_fpu = 0;
-	EnableWindow(h, FALSE);
-    } else {
+    else {
 	temp_fpu = 1;
 	EnableWindow(h, FALSE);
     }
@@ -974,6 +971,7 @@ static BOOL CALLBACK
 win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     wchar_t str[128];
+	char *joy_name;
     HWND h;
     int c, d;
 
@@ -1003,9 +1001,15 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 		h = GetDlgItem(hdlg, IDC_COMBO_JOYSTICK);
 		c = 0;
-		while (joystick_get_name(c)) {
-			SendMessage(h, CB_ADDSTRING, 0, win_get_string(2105 + c));
+		joy_name = joystick_get_name(c);
+		while (joy_name)
+		{
+			mbstowcs(str, joy_name, strlen(joy_name) + 1);
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)str);
+
+			// SendMessage(h, CB_ADDSTRING, 0, win_get_string(2105 + c));
 			c++;
+			joy_name = joystick_get_name(c);
 		}
 		EnableWindow(h, TRUE);
 		SendMessage(h, CB_SETCURSEL, temp_joystick, 0);
@@ -1104,18 +1108,18 @@ mpu401_present(void)
 int
 mpu401_standalone_allow(void)
 {
-    char *md;
+    char *md, *mdin;
 
     md = midi_device_get_internal_name(temp_midi_device);
+	mdin = midi_in_device_get_internal_name(temp_midi_input_device);
 
     if (md != NULL) {
-	if (!strcmp(md, "none"))
+	if (!strcmp(md, "none") && !strcmp(mdin, "none"))
 		return 0;
     }
 
     return 1;
 }
-
 
 #if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
@@ -1199,24 +1203,57 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		else
 			EnableWindow(h, FALSE);
 
+		h = GetDlgItem(hdlg, IDC_COMBO_MIDI_IN);
+		c = d = 0;
+		while (1) {
+			s = midi_in_device_getname(c);
+
+			if (!s[0])
+				break;
+
+			settings_midi_in_to_list[c] = d;
+
+			if (midi_in_device_available(c)) {
+				if (c == 0)
+					SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2112));
+				else {
+					mbstowcs(lptsTemp, s, strlen(s) + 1);
+					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+				}
+				settings_list_to_midi_in[d] = c;
+				d++;
+			}
+
+			c++;
+		}
+		SendMessage(h, CB_SETCURSEL, settings_midi_in_to_list[temp_midi_input_device], 0);
+
+		h = GetDlgItem(hdlg, IDC_CONFIGURE_MIDI_IN);
+		if (midi_in_device_has_config(temp_midi_input_device))
+			EnableWindow(h, TRUE);
+		else
+			EnableWindow(h, FALSE);
+		
+
 	        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
        	        SendMessage(h, BM_SETCHECK, temp_mpu401, 0);
 	        EnableWindow(h, mpu401_standalone_allow() ? TRUE : FALSE);
 
 	        h = GetDlgItem(hdlg, IDC_CONFIGURE_MPU401);
 	        EnableWindow(h, (mpu401_standalone_allow() && temp_mpu401) ? TRUE : FALSE);
+		
 
 		h=GetDlgItem(hdlg, IDC_CHECK_CMS);
 		SendMessage(h, BM_SETCHECK, temp_GAMEBLASTER, 0);
 
 		h=GetDlgItem(hdlg, IDC_CHECK_GUS);
 		SendMessage(h, BM_SETCHECK, temp_GUS, 0);
-
+		
+		h = GetDlgItem(hdlg, IDC_CONFIGURE_GUS);
+	        EnableWindow(h, (temp_GUS) ? TRUE : FALSE);
+		
 		h=GetDlgItem(hdlg, IDC_CHECK_SSI);
 		SendMessage(h, BM_SETCHECK, temp_SSI2001, 0);
-
-		h=GetDlgItem(hdlg, IDC_CHECK_NUKEDOPL);
-		SendMessage(h, BM_SETCHECK, temp_opl_type, 0);
 
 		h=GetDlgItem(hdlg, IDC_CHECK_FLOAT);
 		SendMessage(h, BM_SETCHECK, temp_float, 0);
@@ -1277,6 +1314,31 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)midi_device_getdevice(temp_midi_device));
 				break;
 
+			case IDC_COMBO_MIDI_IN:
+				h = GetDlgItem(hdlg, IDC_COMBO_MIDI_IN);
+				temp_midi_input_device = settings_list_to_midi_in[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+				h = GetDlgItem(hdlg, IDC_CONFIGURE_MIDI_IN);
+				if (midi_in_device_has_config(temp_midi_input_device))
+					EnableWindow(h, TRUE);
+				else
+					EnableWindow(h, FALSE);
+				
+			        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
+       			        SendMessage(h, BM_SETCHECK, temp_mpu401, 0);
+			        EnableWindow(h, mpu401_standalone_allow() ? TRUE : FALSE);
+
+			        h = GetDlgItem(hdlg, IDC_CONFIGURE_MPU401);
+			        EnableWindow(h, (mpu401_standalone_allow() && temp_mpu401) ? TRUE : FALSE);
+				break;
+
+			case IDC_CONFIGURE_MIDI_IN:
+				h = GetDlgItem(hdlg, IDC_COMBO_MIDI_IN);
+				temp_midi_input_device = settings_list_to_midi_in[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)midi_in_device_getdevice(temp_midi_input_device));
+				break;
+
 			case IDC_CHECK_MPU401:
         		        h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
 				temp_mpu401 = SendMessage(h, BM_GETCHECK, 0, 0);
@@ -1289,6 +1351,18 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				temp_deviceconfig |= deviceconfig_open(hdlg, (machines[temp_machine].flags & MACHINE_MCA) ?
 								       (void *)&mpu401_mca_device : (void *)&mpu401_device);
 				break;
+				
+			case IDC_CHECK_GUS:
+        		        h = GetDlgItem(hdlg, IDC_CHECK_GUS);
+				temp_GUS = SendMessage(h, BM_GETCHECK, 0, 0);
+
+        		        h = GetDlgItem(hdlg, IDC_CONFIGURE_GUS);
+				EnableWindow(h, temp_GUS ? TRUE : FALSE);
+				break;
+
+			case IDC_CONFIGURE_GUS:
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)&gus_device);
+				break;
 		}
 		return FALSE;
 
@@ -1298,6 +1372,9 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 		h = GetDlgItem(hdlg, IDC_COMBO_MIDI);
 		temp_midi_device = settings_list_to_midi[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+		h = GetDlgItem(hdlg, IDC_COMBO_MIDI_IN);
+		temp_midi_input_device = settings_list_to_midi_in[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 		h = GetDlgItem(hdlg, IDC_CHECK_MPU401);
 		temp_mpu401 = SendMessage(h, BM_GETCHECK, 0, 0);
@@ -1310,9 +1387,6 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 		h = GetDlgItem(hdlg, IDC_CHECK_SSI);
 		temp_SSI2001 = SendMessage(h, BM_GETCHECK, 0, 0);
-
-		h = GetDlgItem(hdlg, IDC_CHECK_NUKEDOPL);
-		temp_opl_type = SendMessage(h, BM_GETCHECK, 0, 0);
 
 		h = GetDlgItem(hdlg, IDC_CHECK_FLOAT);
 		temp_float = SendMessage(h, BM_GETCHECK, 0, 0);
@@ -2461,7 +2535,7 @@ static int hdconf_initialize_hdt_combo(HWND hdlg)
 
     h = GetDlgItem(hdlg, IDC_COMBO_HD_TYPE);
     for (i = 0; i < 127; i++) {	
-	temp_size = hdd_table[i][0] * hdd_table[i][1] * hdd_table[i][2];
+	temp_size = ((uint64_t) hdd_table[i][0]) * hdd_table[i][1] * hdd_table[i][2];
 	size_mb = (uint32_t) (temp_size >> 11LL);
 	wsprintf(szText, plat_get_string(IDS_2116), size_mb, hdd_table[i][0], hdd_table[i][1], hdd_table[i][2]);
 	SendMessage(h, CB_ADDSTRING, 0, (LPARAM) szText);
@@ -2779,6 +2853,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 					f = _wfopen(wopenfilestring, (existing & 1) ? L"rb" : L"wb");
 					if (f == NULL) {
 hdd_add_file_open_error:
+						fclose(f);
 						settings_msgbox(MBX_ERROR, (existing & 1) ? (wchar_t *)IDS_4107 : (wchar_t *)IDS_4108);
 						return TRUE;
 					}
@@ -2809,7 +2884,6 @@ hdd_add_file_open_error:
 						} else {
 							fseeko64(f, 0, SEEK_END);
 							size = ftello64(f);
-							fclose(f);
 							if (((size % 17) == 0) && (size <= 142606336)) {
 								spt = 17;
 								if (size <= 26738688)
@@ -2857,8 +2931,9 @@ hdd_add_file_open_error:
 						chs_enabled = 1;
 
 						no_update = 0;
-					} else
-						fclose(f);
+					}
+
+					fclose(f);
 				}
 
 				h = GetDlgItem(hdlg, IDC_EDIT_HD_FILE_NAME);
@@ -3396,7 +3471,7 @@ win_settings_floppy_drives_recalc_list(HWND hwndList)
 {
     LVITEM lvI;
     int i = 0;
-    char s[256];
+    char s[256], *t;
     WCHAR szText[256];
 
     lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
@@ -3405,7 +3480,11 @@ win_settings_floppy_drives_recalc_list(HWND hwndList)
     for (i = 0; i < 4; i++) {
 	lvI.iSubItem = 0;
 	if (temp_fdd_types[i] > 0) {
-		strcpy(s, fdd_getname(temp_fdd_types[i]));
+		t = fdd_getname(temp_fdd_types[i]);
+		if (strlen(t) <= 256)
+			strcpy(s, t);
+		else
+			strncpy(s, t, 256);
 		mbstowcs(szText, s, strlen(s) + 1);
 		lvI.pszText = szText;
 	} else
@@ -3660,7 +3739,7 @@ static void
 win_settings_floppy_drives_update_item(HWND hwndList, int i)
 {
     LVITEM lvI;
-    char s[256];
+    char s[256], *t;
     WCHAR szText[256];
 
     lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
@@ -3670,7 +3749,11 @@ win_settings_floppy_drives_update_item(HWND hwndList, int i)
     lvI.iItem = i;
 
     if (temp_fdd_types[i] > 0) {
-	strcpy(s, fdd_getname(temp_fdd_types[i]));
+	t = fdd_getname(temp_fdd_types[i]);
+	if (strlen(t) <= 256)
+		strcpy(s, t);
+	else
+		strncpy(s, t, 256);
 	mbstowcs(szText, s, strlen(s) + 1);
 	lvI.pszText = szText;
     } else

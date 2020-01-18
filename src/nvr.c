@@ -264,7 +264,8 @@ nvr_load(void)
 	fp = plat_fopen(path, L"rb");
 	if (fp != NULL) {
 		/* Read NVR contents from file. */
-		(void)fread(saved_nvr->regs, saved_nvr->size, 1, fp);
+		if (fread(saved_nvr->regs, 1, saved_nvr->size, fp) != saved_nvr->size)
+			fatal("nvr_load(): Error reading data\n");
 		(void)fclose(fp);
 	}
     }

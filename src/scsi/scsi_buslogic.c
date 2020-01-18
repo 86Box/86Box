@@ -410,7 +410,8 @@ BuslogicInitializeAutoSCSIRam(x54x_t *dev)
     f = nvr_fopen(BuslogicGetNVRFileName(bl), L"rb");
     if (f)
     {
-	fread(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f);
+	if (fread(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f) != 64)
+		fatal("BuslogicInitializeAutoSCSIRam(): Error reading data\n");
 	fclose(f);
 	f = NULL;
 	if (bl->chip == CHIP_BUSLOGIC_PCI) {
@@ -624,10 +625,6 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 
 	buslogic_log("Transfer Control %02X\n", ESCSICmd->DataDirection);
 	buslogic_log("CDB Length %i\n", ESCSICmd->CDBLength);	
-	if (ESCSICmd->DataDirection > 0x03) {
-		buslogic_log("Invalid control byte: %02X\n",
-			ESCSICmd->DataDirection);
-	}
     }
 
     target_cdb_len = 12;
@@ -1229,6 +1226,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 	case 0x10:
 		val &= 0xe0;
 		val |= 1;
+		/*FALLTHROUGH*/
 
 	case 0x11: case 0x12: case 0x13:
 		/* I/O Base set. */
@@ -1250,6 +1248,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 
 	case 0x14:
 		val &= 0xe0;
+		/*FALLTHROUGH*/
 
 	case 0x15: case 0x16: case 0x17:
 		/* MMIO Base set. */

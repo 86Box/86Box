@@ -108,6 +108,21 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 					id += 2;
 					break;
+				case CONFIG_MIDI_IN:
+					val_int = config_get_int((char *) config_device.name,
+								 (char *) config->name, config->default_int);
+
+					num  = plat_midi_in_get_num_devs();
+					for (c = 0; c < num; c++) {
+						plat_midi_in_get_dev_name(c, s);
+						mbstowcs(lptsTemp, s, strlen(s) + 1);
+						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
+						if (val_int == c)
+							SendMessage(h, CB_SETCURSEL, c, 0);
+					}
+
+					id += 2;
+					break;					
 				case CONFIG_SPINNER:
 					val_int = config_get_int((char *) config_device.name,
 								 (char *) config->name, config->default_int);
@@ -200,6 +215,17 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 						id += 2;
 						break;
 					case CONFIG_MIDI:
+						val_int = config_get_int((char *) config_device.name,
+									 (char *) config->name, config->default_int);
+
+						c = SendMessage(h, CB_GETCURSEL, 0, 0);
+
+						if (val_int != c)
+							changed = 1;
+
+						id += 2;
+						break;
+					case CONFIG_MIDI_IN:
 						val_int = config_get_int((char *) config_device.name,
 									 (char *) config->name, config->default_int);
 
@@ -304,6 +330,12 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 						id += 2;
 						break;
+					case CONFIG_MIDI_IN:
+						c = SendMessage(h, CB_GETCURSEL, 0, 0);
+						config_set_int((char *) config_device.name, (char *) config->name, c);
+
+						id += 2;
+						break;
 					case CONFIG_FNAME:
 						SendMessage(h, WM_GETTEXT, 511, (LPARAM)ws);
 						config_set_wstring((char *) config_device.name, (char *) config->name, ws);
@@ -358,6 +390,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 						break;
 					case CONFIG_SELECTION:
 					case CONFIG_MIDI:
+					case CONFIG_MIDI_IN:
 					case CONFIG_SPINNER:
 						id += 2;
 						break;
@@ -478,6 +511,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 
 		case CONFIG_SELECTION:
 		case CONFIG_MIDI:
+		case CONFIG_MIDI_IN:
 		case CONFIG_HEX16:
 		case CONFIG_HEX20:
 			/*Combo box*/

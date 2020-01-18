@@ -527,9 +527,10 @@ zip_load(zip_t *dev, wchar_t *fn)
 
     dev->drv->medium_size = size >> 9;
 
-    fseek(dev->drv->f, dev->drv->base, SEEK_SET);
+    if (fseek(dev->drv->f, dev->drv->base, SEEK_SET) == -1)
+	fatal("zip_load(): Error seeking to the beginning of the file\n");
 
-    memcpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path));
+    wcsncpy(dev->drv->image_path, fn, sizeof_w(dev->drv->image_path));
 
     return 1;
 }
@@ -859,14 +860,15 @@ zip_bus_speed(zip_t *dev)
 {
     double ret = -1.0;
 
-    if (dev->drv->bus_type == ZIP_BUS_SCSI) {
+    if (dev && dev->drv && (dev->drv->bus_type == ZIP_BUS_SCSI)) {
 	dev->callback = -1.0;	/* Speed depends on SCSI controller */
 	return 0.0;
     } else {
 	if (dev && dev->drv)
 		ret = ide_atapi_get_period(dev->drv->ide_channel);
 	if (ret == -1.0) {
-		dev->callback = -1.0;
+		if (dev)
+			dev->callback = -1.0;
 		return 0.0;
 	} else
 		return ret * 1000000.0;
@@ -1173,15 +1175,19 @@ zip_blocks(zip_t *dev, int32_t *len, int first_batch, int out)
     *len = dev->requested_blocks << 9;
 
     for (i = 0; i < dev->requested_blocks; i++) {
-	fseek(dev->drv->f, dev->drv->base + (dev->sector_pos << 9) + (i << 9), SEEK_SET);
+	if (fseek(dev->drv->f, dev->drv->base + (dev->sector_pos << 9) + (i << 9), SEEK_SET) == 1)
+		break;
 
 	if (feof(dev->drv->f))
 		break;
 
-	if (out)
-		fwrite(dev->buffer + (i << 9), 1, 512, dev->drv->f);
-	else
-		fread(dev->buffer + (i << 9), 1, 512, dev->drv->f);
+	if (out) {
+		if (fwrite(dev->buffer + (i << 9), 1, 512, dev->drv->f) != 512)
+			fatal("zip_blocks(): Error writing data\n");
+	} else {
+		if (fread(dev->buffer + (i << 9), 1, 512, dev->drv->f) != 512)
+			fatal("zip_blocks(): Error reading data\n");
+	}
     }
 
     zip_log("%s %i bytes of blocks...\n", out ? "Written" : "Read", *len);
@@ -1442,6 +1448,7 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
 			zip_invalid_field(dev);
 			return;
 		}
+		/*FALLTHROUGH*/
 	case GPCMD_SCSI_RESERVE:
 	case GPCMD_SCSI_RELEASE:
 	case GPCMD_TEST_UNIT_READY:
@@ -2123,8 +2130,10 @@ zip_phase_data_out(scsi_common_t *sc)
 				dev->buffer[6] = (s >> 8) & 0xff;
 				dev->buffer[7] = s & 0xff;
 			}
-			fseek(dev->drv->f, dev->drv->base + (i << 9), SEEK_SET);
-			fwrite(dev->buffer, 1, 512, dev->drv->f);
+			if (fseek(dev->drv->f, dev->drv->base + (i << 9), SEEK_SET) == -1)
+				fatal("zip_phase_data_out(): Error seeking\n");
+			if (fwrite(dev->buffer, 1, 512, dev->drv->f) != 512)
+				fatal("zip_phase_data_out(): Error writing data\n");
 		}
 		break;
 	case GPCMD_MODE_SELECT_6:
@@ -2367,7 +2376,7 @@ zip_hard_reset(void)
 		zip_log("ZIP hard_reset drive=%d\n", c);
 
 		/* Make sure to ignore any SCSI ZIP drive that has an out of range ID. */
-		if ((zip_drives[c].bus_type == ZIP_BUS_SCSI) && (zip_drives[c].scsi_device_id > SCSI_ID_MAX))
+		if ((zip_drives[c].bus_type == ZIP_BUS_SCSI) && (zip_drives[c].scsi_device_id >= SCSI_ID_MAX))
 			continue;
 
 		/* Make sure to ignore any ATAPI ZIP drive that has an out of range IDE channel. */

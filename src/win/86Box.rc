@@ -8,7 +8,7 @@
  *
  *		Application resource script for Windows.
  *
- * Version:	@(#)86Box.rc	1.0.55	2019/12/05
+ * Version:	@(#)86Box.rc	1.0.56	2019/12/21
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -366,7 +366,7 @@ BEGIN
     PUSHBUTTON      "Joystick 4...",IDC_JOY4,209,44,50,14
 END
 
-DLG_CFG_SOUND DIALOG DISCARDABLE  97, 0, 267, 116
+DLG_CFG_SOUND DIALOG DISCARDABLE  97, 0, 267, 199
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
@@ -380,37 +380,41 @@ BEGIN
     LTEXT           "MIDI Out Device:",IDT_1712,7,26,59,10
     PUSHBUTTON      "Configure",IDC_CONFIGURE_MIDI,214,25,46,12
 
+    COMBOBOX        IDC_COMBO_MIDI_IN,71,43,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "MIDI In Device:",IDT_1713,7,44,59,10
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_MIDI_IN,214,43,46,12
+
     CONTROL         "Standalone MPU-401",IDC_CHECK_MPU401,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,45,199,10
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_MPU401,214,44,46,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,65,199,10
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_MPU401,214,64,46,12
 
     CONTROL         "Innovation SSI-2001",IDC_CHECK_SSI,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,63,94,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,83,94,10
     CONTROL         "CMS / Game Blaster",IDC_CHECK_CMS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,147,63,94,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,83,94,10
 
     CONTROL         "Gravis Ultrasound",IDC_CHECK_GUS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,81,94,10
-    CONTROL         "Use Nuked OPL",IDC_CHECK_NUKEDOPL,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,147,81,94,10
-
-    CONTROL         "Use FLOAT32 sound",IDC_CHECK_FLOAT,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,99,94,10
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_GUS,214,99,46,12
+    
+    CONTROL         "Use FLOAT32 sound",IDC_CHECK_FLOAT,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,115,94,10
 END
 
 DLG_CFG_NETWORK DIALOG DISCARDABLE  97, 0, 267, 63
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
-    LTEXT           "Network type:",IDT_1713,7,8,59,10
+    LTEXT           "Network type:",IDT_1714,7,8,59,10
     COMBOBOX        IDC_COMBO_NET_TYPE,71,7,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
 
-    LTEXT           "PCap device:",IDT_1714,7,26,59,10
+    LTEXT           "PCap device:",IDT_1715,7,26,59,10
     COMBOBOX        IDC_COMBO_PCAP,71,25,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
 
-    LTEXT           "Network adapter:",IDT_1715,7,44,59,10
+    LTEXT           "Network adapter:",IDT_1716,7,44,59,10
     COMBOBOX        IDC_COMBO_NET,71,43,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_NET,214,43,46,12
@@ -420,15 +424,15 @@ DLG_CFG_PORTS DIALOG DISCARDABLE  97, 0, 267, 117
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
-    LTEXT           "LPT1 Device:",IDT_1716,7,8,61,10
+    LTEXT           "LPT1 Device:",IDT_1717,7,8,61,10
     COMBOBOX        IDC_COMBO_LPT1,71,7,189,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
 
-    LTEXT           "LPT2 Device:",IDT_1717,7,27,61,10
+    LTEXT           "LPT2 Device:",IDT_1718,7,27,61,10
     COMBOBOX        IDC_COMBO_LPT2,71,26,189,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
 
-    LTEXT           "LPT3 Device:",IDT_1718,7,46,61,10
+    LTEXT           "LPT3 Device:",IDT_1719,7,46,61,10
     COMBOBOX        IDC_COMBO_LPT3,71,45,189,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
 
@@ -449,12 +453,12 @@ DLG_CFG_PERIPHERALS DIALOG DISCARDABLE  97, 0, 267, 200
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
-    LTEXT           "SCSI Controller:",IDT_1716,7,8,48,10
+    LTEXT           "SCSI Controller:",IDT_1717,7,8,48,10
     COMBOBOX        IDC_COMBO_SCSI,64,7,155,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI,222,7,38,12
 
-    LTEXT           "HD Controller:",IDT_1717,7,26,48,10
+    LTEXT           "HD Controller:",IDT_1718,7,26,48,10
     COMBOBOX        IDC_COMBO_HDC,64,25,155,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_HDC,222,25,38,12
@@ -903,7 +907,6 @@ BEGIN
     IDS_2120	"Unable to initialize SDL, SDL2.dll is required"
     IDS_2121	"Are you sure you want to hard reset the emulated machine?"
     IDS_2122	"Are you sure you want to quit 86Box?"
-    IDS_2123	"Unable to initialize Ghostscript, gsdll32.dll is required for automatic convertion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript files (.ps)."
 END
 
 STRINGTABLE DISCARDABLE 

@@ -465,13 +465,14 @@ prnt_close(void *priv)
 {
     prnt_t *dev = (prnt_t *)priv;
 
-    if (dev == NULL) return;
+    if (dev == NULL)
+	return;
 
-    /* print last page if it contains data */
-    if (dev->page->dirty)
-	dump_page(dev);
+    if (dev->page) {
+	/* print last page if it contains data */
+	if (dev->page->dirty)
+		dump_page(dev);
 
-    if (dev->page != NULL) {
 	if (dev->page->chars != NULL)
 		free(dev->page->chars);
 	free(dev->page);

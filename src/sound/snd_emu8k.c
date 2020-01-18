@@ -2143,7 +2143,8 @@ void emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
                 fatal("AWE32.RAW not found\n");
         
         emu8k->rom = malloc(1024 * 1024); 
-        fread(emu8k->rom, 1024 * 1024, 1, f);
+        if (fread(emu8k->rom, 1, 1048576, f) != 1048576)
+		fatal("emu8k_init(): Error reading data\n");
         fclose(f);
         /*AWE-DUMP creates ROM images offset by 2 bytes, so if we detect this
           then correct it*/

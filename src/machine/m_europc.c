@@ -615,7 +615,7 @@ europc_boot(const device_t *info)
 	mouse_bus_set_irq(sys->mouse, 2);
 	/* Configure the port for (Bus Mouse Compatible) Mouse. */
 	b |= 0x01;
-    } else if (joystick_type != 7)
+    } else if (joystick_type != JOYSTICK_TYPE_NONE)
 	b |= 0x02;	/* enable port as joysticks */
     sys->nvr.regs[MRTC_CONF_C] = b;
 

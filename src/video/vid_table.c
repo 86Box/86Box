@@ -8,13 +8,13 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.44	2019/10/01
+ * Version:	@(#)vid_table.c	1.0.46	2020/01/18
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -49,6 +49,7 @@
 #include "vid_incolor.h"
 #include "vid_colorplus.h"
 #include "vid_mda.h"
+#include "vid_mga.h"
 #include "vid_oak_oti.h"
 #include "vid_paradise.h"
 #include "vid_pgc.h"
@@ -148,6 +149,8 @@ video_cards[] = {
     { "[PCI] Diamond Stealth 3D 3000 (S3 ViRGE/VX)",	"stealth3d_3000_pci",	&s3_virge_988_pci_device		},
     { "[PCI] Diamond Stealth 64 DRAM (S3 Trio64)",	"stealth64d_pci",	&s3_diamond_stealth64_pci_device	},
     { "[PCI] Diamond Stealth 64 VRAM (S3 Vision964)",	"stealth64v_pci",	&s3_diamond_stealth64_964_pci_device	},
+    { "[PCI] Matrox Mystique",				"mystique",		&mystique_device			},
+    { "[PCI] Matrox Mystique 220",			"mystique_220",		&mystique_220_device			},
     { "[PCI] Number Nine 9FX (S3 Trio64)",		"n9_9fx_pci",		&s3_9fx_pci_device			},
     { "[PCI] Paradise Bahamas 64 (S3 Vision864)",	"bahamas64_pci",	&s3_bahamas64_pci_device		},
     { "[PCI] Phoenix S3 Vision864",			"px_vision864_pci",	&s3_phoenix_vision864_pci_device	},

@@ -128,7 +128,8 @@ ps2_nvr_init(const device_t *info)
 
     memset(nvr->ram, 0xff, 8192);
     if (f != NULL) {
-	(void)fread(nvr->ram, 8192, 1, f);
+	if (fread(nvr->ram, 1, 8192, f) != 8192)
+		fatal("ps2_nvr_init(): Error reading EEPROM data\n");
 	fclose(f);
     }
 
@@ -148,8 +149,6 @@ ps2_nvr_close(void *priv)
 	(void)fwrite(nvr->ram, 8192, 1, f);
 	fclose(f);
     }
-
-    free(nvr->ram);
 
     free(nvr);
 }

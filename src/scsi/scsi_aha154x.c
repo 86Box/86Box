@@ -729,7 +729,8 @@ aha_setnvr(x54x_t *dev)
 
     f = nvr_fopen(dev->nvr_path, L"rb");
     if (f) {
-	fread(dev->nvr, 1, NVR_SIZE, f);
+	if (fread(dev->nvr, 1, NVR_SIZE, f) != NVR_SIZE)
+		fatal("aha_setnvr(): Error reading data\n");
 	fclose(f);
 	f = NULL;
     } else

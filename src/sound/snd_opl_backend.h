@@ -8,8 +8,8 @@ extern "C" {
         void opl_write(int nr, uint16_t addr, uint8_t val);
         uint8_t opl_read(int nr, uint16_t addr);
         void opl_timer_over(int nr, int timer);
-        void opl2_update(int nr, int16_t *buffer, int samples);
-        void opl3_update(int nr, int16_t *buffer, int samples);
+        void opl2_update(int nr, int32_t *buffer, int samples);
+        void opl3_update(int nr, int32_t *buffer, int samples);
 
 	extern int opl_type;
 #ifdef __cplusplus

@@ -32,8 +32,8 @@
 #include "../rom.h"
 #include "../device.h"
 #include "sound.h"
+#include "midi.h"
 #include "filters.h"
-#include "snd_dbopl.h"
 #include "snd_emu8k.h"
 #include "snd_mpu401.h"
 #include "snd_opl.h"
@@ -203,7 +203,7 @@ static void sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
         {
                 int32_t out = 0;
 		if (sb->opl_enabled)
-                	out = ((sb->opl.buffer[c]     * 51000) >> 16);
+                	out = ((sb->opl.buffer[c]     * (sb->opl_emu ? 47000 : 51000)) >> 16);
                 //TODO: Recording: Mic and line In with AGC
                 out += (int32_t)(((sb_iir(0, (float)sb->dsp.buffer[c]) / 1.3) * 65536) / 3) >> 16;
         
@@ -231,7 +231,7 @@ static void sb_get_buffer_sb2_mixer(int32_t *buffer, int len, void *p)
                 int32_t out = 0;
                 
 		if (sb->opl_enabled)
-                	out = ((((sb->opl.buffer[c]     * mixer->fm) >> 16) * 51000) >> 15);
+                	out = ((((sb->opl.buffer[c]     * mixer->fm) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
                 /* TODO: Recording : I assume it has direct mic and line in like sb2 */
                 /* It is unclear from the docs if it has a filter, but it probably does */
                 out += (int32_t)(((sb_iir(0, (float)sb->dsp.buffer[c])     / 1.3) * mixer->voice) / 3) >> 15;
@@ -1042,6 +1042,11 @@ void *sb_1_init()
         	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
 	}
         sound_add_handler(sb_get_buffer_sb2, sb);
+		
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
+		
         return sb;
 }
 void *sb_15_init()
@@ -1068,6 +1073,11 @@ void *sb_15_init()
         	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
 	}
         sound_add_handler(sb_get_buffer_sb2, sb);
+		
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;	
+		
         return sb;
 }
 
@@ -1091,6 +1101,11 @@ void *sb_mcv_init()
         mca_add(sb_mcv_read, sb_mcv_write, sb_mcv_feedb, sb);
         sb->pos_regs[0] = 0x84;
         sb->pos_regs[1] = 0x50;
+
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;	
+	midi_in_p = &sb->dsp;
+		
         return sb;
 }
 void *sb_2_init()
@@ -1138,6 +1153,10 @@ void *sb_2_init()
         else
                 sound_add_handler(sb_get_buffer_sb2, sb);    
 
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
+
         return sb;
 }
 
@@ -1171,6 +1190,10 @@ void *sb_pro_v1_init()
         io_sethandler(addr+4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sbpro, sb);
 
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
+
         return sb;
 }
 
@@ -1203,6 +1226,10 @@ void *sb_pro_v2_init()
         io_sethandler(addr+4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sbpro, sb);
 
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
+
         return sb;
 }
 
@@ -1227,6 +1254,10 @@ void *sb_pro_mcv_init()
         mca_add(sb_pro_mcv_read, sb_pro_mcv_write, sb_mcv_feedb, sb);
         sb->pos_regs[0] = 0x03;
         sb->pos_regs[1] = 0x51;
+
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
 
         return sb;
 }
@@ -1261,6 +1292,11 @@ void *sb_16_init()
 		sb_dsp_set_mpu(sb->mpu);
 	} else
 		sb->mpu = NULL;
+
+	
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
 
         return sb;
 }
@@ -1305,6 +1341,10 @@ void *sb_awe32_init()
 	} else
 		sb->mpu = NULL;
         emu8k_init(&sb->emu8k, emu_addr, onboard_ram);
+
+	input_msg = sb_dsp_input_msg;
+	input_sysex = sb_dsp_input_sysex;
+	midi_in_p = &sb->dsp;
 
         return sb;
 }
