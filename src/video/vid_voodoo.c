@@ -5750,7 +5750,7 @@ static void voodoo_fb_writel(uint32_t addr, uint32_t val, void *p)
                 colour_data[0].b = val & 0xff;
                 colour_data[0].g = (val >> 8) & 0xff;
                 colour_data[0].r = (val >> 16) & 0xff;
-                alpha_data[0] = (val >> 24) & 0xff;
+                colour_data[0].a = alpha_data[0] = (val >> 24) & 0xff;
                 write_mask = LFB_WRITE_COLOUR;
                 addr >>= 1;
                 break;
