@@ -144,6 +144,9 @@ video_cards[] = {
     { "px_trio32_pci",		&s3_phoenix_trio32_pci_device		},
     { "px_trio64_pci",		&s3_phoenix_trio64_pci_device		},
     { "px_trio64vplus_pci",	&s3_phoenix_trio64vplus_pci_device	},
+#if defined(DEV_BRANCH) && defined(USE_RIVA128)
+    { "riva128_pci",		&riva128_pci_device			},
+#endif
 #if defined(DEV_BRANCH) && defined(USE_S3TRIO3D2X)    
     { "trio3d2x",		&s3_trio3d_2x_pci_device		},
 #endif    

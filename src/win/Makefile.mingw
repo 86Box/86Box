@@ -69,6 +69,18 @@ ifeq ($(DEV_BUILD), y)
  ifndef PS2M70T4
   PS2M70T4	:= y
  endif
+<<<<<<< HEAD
+=======
+ ifndef RIVA128
+  RIVA128	:= y
+ endif
+ ifndef TI
+  TI		:= y
+ endif
+ ifndef VECTRA54
+  VECTRA54	:= y
+ endif
+>>>>>>> c3fb7ddc (Experimental implementation of the RIVA 128)
  ifndef S3TRIO3D2X
   S3TRIO3D2X	:= y
  endif
@@ -145,6 +157,18 @@ else
  ifndef PS2M70T4
   PS2M70T4	:= n
  endif
+<<<<<<< HEAD
+=======
+ ifndef RIVA128
+  RIVA128	:= n
+ endif
+ ifndef TI
+  TI		:= n
+ endif
+ ifndef VECTRA54
+  VECTRA54	:= n
+ endif
+>>>>>>> c3fb7ddc (Experimental implementation of the RIVA 128)
  ifndef S3TRIO3D2X
   S3TRIO3D2X	:= n
  endif
@@ -546,6 +570,22 @@ ifeq ($(PS2M70T4), y)
 OPTS		+= -DUSE_PS2M70T4
 endif
 
+<<<<<<< HEAD
+=======
+ifeq ($(RIVA128), y)
+OPTS		+= -DUSE_RIVA128
+DEVBROBJ	+= vid_riva128.o
+endif
+
+ifeq ($(TI), y)
+OPTS		+= -DUSE_TI
+endif
+
+ifeq ($(VECTRA54), y)
+OPTS		+= -DUSE_VECTRA54
+endif
+
+>>>>>>> c3fb7ddc (Experimental implementation of the RIVA 128)
 ifeq ($(S3TRIO3D2X), y)
 OPTS		+= -DUSE_S3TRIO3D2X
 endif
