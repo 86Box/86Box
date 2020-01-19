@@ -700,11 +700,11 @@ svga_poll(void *p)
 			svga->ma = svga->maback;
 		}
 	}
-	
-    svga->hsync_divisor = !svga->hsync_divisor;
 
-    if (svga->hsync_divisor && (svga->crtc[0x17] & 4))
-        return;
+	svga->hsync_divisor = !svga->hsync_divisor;
+
+	if (svga->hsync_divisor && (svga->crtc[0x17] & 4))
+	        return;
 
 	svga->vc++;
 	svga->vc &= 2047;

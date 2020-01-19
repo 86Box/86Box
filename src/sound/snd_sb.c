@@ -8,14 +8,14 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.16	2019/09/27
+ * Version:	@(#)sound_sb.c	1.0.17	2020/01/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -1018,7 +1018,7 @@ void sb_pro_mcv_write(int port, uint8_t val, void *p)
         sb_dsp_setdma8(&sb->dsp, sb->pos_regs[4] & 3);
 }
 
-void *sb_1_init()
+void *sb_1_init(const device_t *info)
 {
         /*sb1/2 port mappings, 210h to 260h in 10h steps
           2x0 to 2x3 -> CMS chip
@@ -1042,14 +1042,13 @@ void *sb_1_init()
         	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
 	}
         sound_add_handler(sb_get_buffer_sb2, sb);
-		
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;
+
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 		
         return sb;
 }
-void *sb_15_init()
+void *sb_15_init(const device_t *info)
 {
         /*sb1/2 port mappings, 210h to 260h in 10h steps
           2x0 to 2x3 -> CMS chip
@@ -1073,15 +1072,14 @@ void *sb_15_init()
         	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
 	}
         sound_add_handler(sb_get_buffer_sb2, sb);
-		
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;	
-		
+
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
         return sb;
 }
 
-void *sb_mcv_init()
+void *sb_mcv_init(const device_t *info)
 {
         /*sb1/2 port mappings, 210h to 260h in 10h steps
           2x6, 2xA, 2xC, 2xE -> DSP chip
@@ -1102,13 +1100,12 @@ void *sb_mcv_init()
         sb->pos_regs[0] = 0x84;
         sb->pos_regs[1] = 0x50;
 
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;	
-	midi_in_p = &sb->dsp;
-		
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
         return sb;
 }
-void *sb_2_init()
+void *sb_2_init(const device_t *info)
 {
         /*sb2 port mappings. 220h or 240h.
           2x0 to 2x3 -> CMS chip
@@ -1153,14 +1150,13 @@ void *sb_2_init()
         else
                 sound_add_handler(sb_get_buffer_sb2, sb);    
 
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
         return sb;
 }
 
-void *sb_pro_v1_init()
+void *sb_pro_v1_init(const device_t *info)
 {
         /*sbpro port mappings. 220h or 240h.
           2x0 to 2x3 -> FM chip, Left and Right (9*2 voices)
@@ -1190,14 +1186,13 @@ void *sb_pro_v1_init()
         io_sethandler(addr+4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sbpro, sb);
 
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
         return sb;
 }
 
-void *sb_pro_v2_init()
+void *sb_pro_v2_init(const device_t *info)
 {
         /*sbpro port mappings. 220h or 240h.
           2x0 to 2x3 -> FM chip (18 voices)
@@ -1226,14 +1221,13 @@ void *sb_pro_v2_init()
         io_sethandler(addr+4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sbpro, sb);
 
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
         return sb;
 }
 
-void *sb_pro_mcv_init()
+void *sb_pro_mcv_init(const device_t *info)
 {
         /*sbpro port mappings. 220h or 240h.
           2x0 to 2x3 -> FM chip, Left and Right (18 voices)
@@ -1255,14 +1249,13 @@ void *sb_pro_mcv_init()
         sb->pos_regs[0] = 0x03;
         sb->pos_regs[1] = 0x51;
 
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
         return sb;
 }
 
-void *sb_16_init()
+void *sb_16_init(const device_t *info)
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
@@ -1288,15 +1281,13 @@ void *sb_16_init()
 	if (mpu_addr) {
 		sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
 		memset(sb->mpu, 0, sizeof(mpu_t));
-        	mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
-		sb_dsp_set_mpu(sb->mpu);
+        	mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART, device_get_config_int("receive_input401"));
 	} else
 		sb->mpu = NULL;
+	sb_dsp_set_mpu(sb->mpu);
 
-	
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
         return sb;
 }
@@ -1306,7 +1297,7 @@ int sb_awe32_available()
         return rom_present(L"roms/sound/awe32.raw");
 }
 
-void *sb_awe32_init()
+void *sb_awe32_init(const device_t *info)
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
@@ -1336,15 +1327,14 @@ void *sb_awe32_init()
 	if (mpu_addr) {
 		sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
 		memset(sb->mpu, 0, sizeof(mpu_t));
-	        mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
+	        mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART, device_get_config_int("receive_input401"));
 		sb_dsp_set_mpu(sb->mpu);
 	} else
 		sb->mpu = NULL;
         emu8k_init(&sb->emu8k, emu_addr, onboard_ram);
 
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
         return sb;
 }
@@ -1438,6 +1428,9 @@ static const device_config_t sb_config[] =
 	{
 		"opl", "Enable OPL", CONFIG_BINARY, "", 1
 	},
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+	},
         {
                 "", "", -1
         }
@@ -1478,6 +1471,9 @@ static const device_config_t sb_mcv_config[] =
         },
 	{
 		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
 	},
         {
                 "", "", -1
@@ -1536,6 +1532,9 @@ static const device_config_t sb_pro_config[] =
         },
 	{
 		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
 	},
         {
                 "", "", -1
@@ -1637,6 +1636,12 @@ static const device_config_t sb_16_config[] =
         },
 	{
 		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
 	},
         {
                 "", "", -1
@@ -1781,6 +1786,12 @@ static const device_config_t sb_awe32_config[] =
         },
 	{
 		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
 	},
         {
                 "", "", -1

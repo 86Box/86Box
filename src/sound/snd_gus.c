@@ -1169,16 +1169,15 @@ void *gus_init(const device_t *info)
         io_sethandler(0x0100+gus->base, 0x0010, readgus, NULL, NULL, writegus, NULL, NULL,  gus);
         io_sethandler(0x0506+gus->base, 0x0001, readgus, NULL, NULL, writegus, NULL, NULL,  gus);        
         io_sethandler(0x0388, 0x0002, readgus, NULL, NULL, writegus, NULL, NULL,  gus);
-		timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
-		timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
-		timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
+	timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
+	timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
+	timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
 
         sound_add_handler(gus_get_buffer, gus);
         
-	input_msg = gus_input_msg;
-	input_sysex = gus_input_sysex;
-	midi_in_p = gus;		
-		
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, gus_input_msg, gus_input_sysex, gus);
+
         return gus;
 }
 
@@ -1256,7 +1255,10 @@ static const device_config_t gus_config[] = {
 				NULL
 			}
 		}
-	 },
+	},
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+	},
 	{
 			"", "", -1
 	}

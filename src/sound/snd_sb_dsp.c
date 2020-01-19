@@ -841,7 +841,12 @@ sb_dsp_input_msg(void *p, uint8_t *msg)
 	sb_dsp_t *dsp = (sb_dsp_t *) p;
 	
 	sb_dsp_log("MIDI in sysex = %d, uart irq = %d, msg = %d\n", dsp->midi_in_sysex, dsp->uart_irq, msg[3]);
-	
+
+	if (!dsp->uart_irq && !dsp->midi_in_poll && (mpu != NULL)) {
+		MPU401_InputMsg(mpu, msg);
+		return;
+	}
+
 	if (dsp->midi_in_sysex) {
 		return;
 	}
@@ -867,6 +872,9 @@ sb_dsp_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 	
 	uint32_t i;
 	
+	if (!dsp->uart_irq && !dsp->midi_in_poll && (mpu != NULL))
+		return MPU401_InputSysex(mpu, buffer, len, abort);
+
 	if (abort) {
 		dsp->midi_in_sysex = 0;
 		return 0;

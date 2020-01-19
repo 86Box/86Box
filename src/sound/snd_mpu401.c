@@ -8,16 +8,16 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)snd_mpu401.c	1.0.18	2018/10/18
+ * Version:	@(#)snd_mpu401.c	1.0.19	2020/01/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2008-2018 DOSBox Team.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2008-2020 DOSBox Team.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -39,8 +39,10 @@
 #include "snd_mpu401.h"
 #include "midi.h"
 
-static uint32_t MPUClockBase[8] = {48,72,96,120,144,168,192};
-static uint8_t cth_data[16] = {0,0,0,0,1,0,0,0,1,0,1,0,1,1,1,0};
+
+static uint32_t	MPUClockBase[8] = {48,72,96,120,144,168,192};
+static uint8_t	cth_data[16] = {0,0,0,0,1,0,0,0,1,0,1,0,1,1,1,0};
+
 
 enum {
     STATUS_OUTPUT_NOT_READY = 0x40,
@@ -49,6 +51,7 @@ enum {
 
 
 int mpu401_standalone_enable = 0;
+
 
 static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val);
 static void MPU401_IntelligentOut(mpu_t *mpu, uint8_t track);
@@ -1283,8 +1286,8 @@ MPU401_NotesOff(mpu_t *mpu, int i)
 
 
 /*Input handler for SysEx */
-static int 
-MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort) 
+int
+MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 {
     mpu_t *mpu = (mpu_t *)p;
     int i;
@@ -1328,8 +1331,8 @@ MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 
 
 /*Input handler for MIDI*/
-static void 
-MPU401_InputMsg(void *p, uint8_t *msg) 
+void
+MPU401_InputMsg(void *p, uint8_t *msg)
 {
     mpu_t *mpu = (mpu_t *)p;
     int i, tick;
@@ -1550,7 +1553,7 @@ MPU401_InputMsg(void *p, uint8_t *msg)
 
 
 void
-mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode)
+mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode, int receive_input)
 {
     mpu->status = STATUS_INPUT_NOT_READY;
     mpu->irq = irq;
@@ -1570,11 +1573,14 @@ mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode)
 		      mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
     io_sethandler(0x2A20, 16,
 		  NULL, NULL, NULL, imf_write, NULL, NULL, mpu);
-	timer_add(&mpu->mpu401_event_callback, MPU401_Event, mpu, 0);
-	timer_add(&mpu->mpu401_eoi_callback, MPU401_EOIHandler, mpu, 0);
-	timer_add(&mpu->mpu401_reset_callback, MPU401_ResetDone, mpu, 0);
+    timer_add(&mpu->mpu401_event_callback, MPU401_Event, mpu, 0);
+    timer_add(&mpu->mpu401_eoi_callback, MPU401_EOIHandler, mpu, 0);
+    timer_add(&mpu->mpu401_reset_callback, MPU401_ResetDone, mpu, 0);
 
     MPU401_Reset(mpu);
+
+    if (receive_input)
+	midi_in_handler(1, MPU401_InputMsg, MPU401_InputSysex, mpu);
 }
 
 
@@ -1643,7 +1649,7 @@ mpu401_standalone_init(const device_t *info)
 
     mpu = malloc(sizeof(mpu_t));
     memset(mpu, 0, sizeof(mpu_t));
- 
+
     mpu401_log("mpu_init\n");
 
     if (info->flags & DEVICE_MCA) {
@@ -1657,11 +1663,7 @@ mpu401_standalone_init(const device_t *info)
 	irq = device_get_config_int("irq");
     }
 
-	input_msg = MPU401_InputMsg;
-	input_sysex = MPU401_InputSysex;
-	midi_in_p = mpu;
-
-    mpu401_init(mpu, base, irq, M_INTELLIGENT);
+    mpu401_init(mpu, base, irq, M_INTELLIGENT, device_get_config_int("receive_input"));
 	
     return(mpu);
 }
@@ -1719,6 +1721,26 @@ static const device_config_t mpu401_standalone_config[] =
                 }
         },
         {
+                .name = "receive_input",
+                .description = "Receive input",
+                .type = CONFIG_BINARY,
+                .default_int = 1
+        },
+        {
+                "", "", -1
+        }
+};
+
+
+static const device_config_t mpu401_standalone_mca_config[] =
+{
+        {
+                .name = "receive_input",
+                .description = "Receive input",
+                .type = CONFIG_BINARY,
+                .default_int = 1
+        },
+        {
                 "", "", -1
         }
 };
@@ -1741,5 +1763,5 @@ const device_t mpu401_mca_device = {
     NULL,
     NULL,
     NULL,
-    NULL
+    mpu401_standalone_mca_config
 };
