@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.40	2019/12/28
+ * Version:	@(#)vid_svga.c	1.0.41	2020/01/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -700,6 +700,12 @@ svga_poll(void *p)
 			svga->ma = svga->maback;
 		}
 	}
+	
+    svga->hsync_divisor = !svga->hsync_divisor;
+
+    if (svga->hsync_divisor && (svga->crtc[0x17] & 4))
+        return;
+
 	svga->vc++;
 	svga->vc &= 2047;
 
@@ -1238,7 +1244,10 @@ svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 	} else
 		suppress_overscan = 0;
 
-	set_screen_size(xsize + x_add, ysize + y_add);
+	if (svga->vertical_linedbl)
+	set_screen_size(xsize + x_add, (ysize + y_add) * 2);
+	else
+    set_screen_size(xsize + x_add, ysize + y_add);
 
 	if (video_force_resize_get())
 		video_force_resize_set(0);

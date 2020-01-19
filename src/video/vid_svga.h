@@ -8,7 +8,7 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.15	2018/10/04
+ * Version:	@(#)vid_svga.h	1.0.16	2020/01/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -130,6 +130,12 @@ typedef struct svga_t
 	    colourcompare, colournocare,
 	    dac_mask, dac_status,
 	    ksc5601_sbyte_mask;
+
+        
+    int vertical_linedbl;
+        
+    /*Used to implement CRTC[0x17] bit 2 hsync divisor*/
+    int hsync_divisor;
 
     void *ramdac, *clock_gen;
 } svga_t;
