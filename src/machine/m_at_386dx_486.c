@@ -8,13 +8,13 @@
  *
  *		Implementation of 386DX and 486 machines.
  *
- * Version:	@(#)m_at_386dx_486.c	1.0.0	2019/05/16
+ * Version:	@(#)m_at_386dx_486.c	1.0.1	2020/01/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2010-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2010-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -253,7 +253,7 @@ machine_at_win471_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/win471/4sim001.bin",
+    ret = bios_load_linear(L"roms/machines/win471/486-SiS_AC0360136.BIN",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
