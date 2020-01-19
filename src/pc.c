@@ -8,15 +8,15 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.93	2019/12/05
+ * Version:	@(#)pc.c	1.0.94	2020/01/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -95,6 +95,7 @@ int	force_debug = 0;			/* (O) force debug output */
 int	video_fps = RENDER_FPS;			/* (O) render speed in fps */
 #endif
 int	settings_only = 0;			/* (O) show only the settings dialog */
+int	no_quit_confirm = 0;			/* (O) do not ask for confirmation on quit */
 #ifdef _WIN32
 uint64_t	unique_id = 0;
 uint64_t	source_hwnd = 0;
@@ -354,6 +355,7 @@ usage:
 		printf("-L or --logfile path - set 'path' to be the logfile\n");
 		printf("-P or --vmpath path  - set 'path' to be root for vm\n");
 		printf("-S or --settings     - show only the settings dialog\n");
+		printf("-N or --noconfirm    - do not ask for confirmation on quit\n");
 #ifdef _WIN32
 		printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
 #endif
@@ -383,6 +385,9 @@ usage:
 	} else if (!wcscasecmp(argv[c], L"--settings") ||
 		   !wcscasecmp(argv[c], L"-S")) {
 		settings_only = 1;
+	} else if (!wcscasecmp(argv[c], L"--noconfirm") ||
+		   !wcscasecmp(argv[c], L"-N")) {
+		no_quit_confirm = 1;
 #ifdef _WIN32
 	} else if (!wcscasecmp(argv[c], L"--hwnd") ||
 		   !wcscasecmp(argv[c], L"-H")) {

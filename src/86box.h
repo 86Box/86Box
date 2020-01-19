@@ -8,13 +8,13 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.36	2019/12/05
+ * Version:	@(#)86box.h	1.0.37	2020/01/19
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *f		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #ifndef EMU_86BOX_H
 # define EMU_86BOX_H
@@ -74,6 +74,7 @@ extern int	force_debug;			/* (O) force debug output */
 extern int	video_fps;			/* (O) render speed in fps */
 #endif
 extern int	settings_only;			/* (O) show only the settings dialog */
+extern int	no_quit_confirm;		/* (O) do not ask for confirmation on quit */
 #ifdef _WIN32
 extern uint64_t	unique_id;
 extern uint64_t	source_hwnd;

@@ -8,16 +8,16 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.45	2019/12/05
+ * Version:	@(#)win_ui.c	1.0.46	2020/01/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2019 GH Cao.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2019,2020 GH Cao.
  */
 #define UNICODE
 #include <windows.h>
@@ -333,7 +333,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_ACTION_EXIT:
 				win_notify_dlg_open();
-				i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
+				if (no_quit_confirm)
+					i = 0;
+				else
+					i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
 				if (i == 0) {
 					UnhookWindowsHookEx(hKeyboardHook);
 					KillTimer(hwnd, TIMER_1SEC);
@@ -698,7 +701,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_CLOSE:
 		win_notify_dlg_open();
-		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
+		if (no_quit_confirm)
+			i = 0;
+		else
+			i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
 		if (i == 0) {
 			UnhookWindowsHookEx(hKeyboardHook);
 			KillTimer(hwnd, TIMER_1SEC);
@@ -744,7 +750,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (manager_wm)
 			break;
 		win_notify_dlg_open();
-		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
+		if (no_quit_confirm)
+			i = 0;
+		else
+			i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
 		if (i == 0) {
 			UnhookWindowsHookEx(hKeyboardHook);
 			KillTimer(hwnd, TIMER_1SEC);
