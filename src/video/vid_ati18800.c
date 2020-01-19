@@ -8,7 +8,7 @@
  *
  *		ATI 18800 emulation (VGA Edge-16)
  *
- * Version:	@(#)vid_ati18800.c	1.0.15	2020/01/18
+ * Version:	@(#)vid_ati18800.c	1.0.16	2020/01/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -173,7 +173,7 @@ static uint8_t ati18800_in(uint16_t addr, void *p)
 {
         ati18800_t *ati18800 = (ati18800_t *)p;
         svga_t *svga = &ati18800->svga;
-        uint8_t temp;
+        uint8_t temp = 0xff;
 
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) addr ^= 0x60;
              
@@ -206,7 +206,8 @@ static uint8_t ati18800_in(uint16_t addr, void *p)
                                 case 0x4: return (ati18800->ega_switches & 4) ? 0x10 : 0;
                                 case 0x0: return (ati18800->ega_switches & 8) ? 0x10 : 0;
                         }
-                }
+                } else
+			temp = svga_in(addr, svga);
                 break;
 
                 case 0x3D4:
@@ -262,7 +263,7 @@ static void ega_wonder_800_recalctimings(svga_t *svga)
 
 static void *ati18800_init(const device_t *info)
 {
-		int c;
+	int c;
         ati18800_t *ati18800 = malloc(sizeof(ati18800_t));
         memset(ati18800, 0, sizeof(ati18800_t));
 
@@ -290,41 +291,41 @@ static void *ati18800_init(const device_t *info)
 			break;
 	};
         
-    if (info->local != ATI18800_EGAWONDER800P) {
-        svga_init(&ati18800->svga, ati18800, 1 << 20, /*512kb*/
-                   ati18800_recalctimings,
-                   ati18800_in, ati18800_out,
-                   NULL,
-                   NULL);
-    } else {
-        svga_init(&ati18800->svga, ati18800, 1 << 18, /*256kb*/
-                   ega_wonder_800_recalctimings,
-                   ati18800_in, ati18800_out,
-                   NULL,
-                   NULL);	
+	if ((info->local != ATI18800_EGAWONDER800P) && (info->local != ATI18800_EDGE16)) {
+		svga_init(&ati18800->svga, ati18800, 1 << 20, /*512kb*/
+			  ati18800_recalctimings,
+			  ati18800_in, ati18800_out,
+			  NULL,
+			  NULL);
+	} else {
+		svga_init(&ati18800->svga, ati18800, 1 << 18, /*256kb*/
+			  ega_wonder_800_recalctimings,
+			  ati18800_in, ati18800_out,
+			  NULL,
+			  NULL);	
 	}
 
         io_sethandler(0x01ce, 0x0002, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
-		if (info->local != ATI18800_EGAWONDER800P)
-		    io_sethandler(0x03c0, 0x0020, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
-		else {
-		    io_sethandler(0x03c6, 0x0006, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
-			io_sethandler(0x03ca, 0x0016, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
-			
-			for (c = 0; c < 256; c++) {
-                ati18800->svga.pallook[c]  = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
-                ati18800->svga.pallook[c] += makecol32(((c >> 5) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 3) & 1) * 0x55);
-			}
+	if (info->local != ATI18800_EGAWONDER800P)
+		io_sethandler(0x03c0, 0x0020, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
+	else {
+		io_sethandler(0x03c6, 0x0006, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
+		io_sethandler(0x03ca, 0x0016, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
+
+		for (c = 0; c < 256; c++) {
+			ati18800->svga.pallook[c]  = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
+			ati18800->svga.pallook[c] += makecol32(((c >> 5) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 3) & 1) * 0x55);
 		}
+	}
 
         ati18800->svga.miscout = 1;
 
         if (info->local != ATI18800_EGAWONDER800P)
             ati_eeprom_load(&ati18800->eeprom, L"ati18800.nvr", 0);
-		else {
+	else {
             ati18800->ega_switches = 9;
             ati_eeprom_load(&ati18800->eeprom, L"egawonder800.nvr", 0);
-		}
+	}
 
         return ati18800;
 }
