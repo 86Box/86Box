@@ -8,7 +8,7 @@
  *
  *		Definitions for the generic NVRAM/CMOS driver.
  *
- * Version:	@(#)nvr.h	1.0.12	2020/01/13
+ * Version:	@(#)nvr.h	1.0.13	2020/01/20
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>,
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -91,6 +91,7 @@ extern const device_t at_nvr_device;
 extern const device_t ps_nvr_device;
 extern const device_t amstrad_nvr_device;
 extern const device_t ibmat_nvr_device;
+extern const device_t ls486e_nvr_device;
 extern const device_t via_nvr_device;
 #endif
 
