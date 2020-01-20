@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.142	2020/01/18
+# Version:	@(#)Makefile.mingw	1.0.143	2020/01/20
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -98,6 +98,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef XL24
   XL24		:= y
  endif
+ ifndef GUSMAX
+  GUSMAX	:= y
+ endif
 else
  ifndef DEBUG
   DEBUG		:= n
@@ -164,6 +167,9 @@ else
  endif
  ifndef XL24
   XL24		:= n
+ endif
+ ifndef GUSMAX
+  GUSMAX	:= n
  endif
 endif
 
@@ -526,6 +532,11 @@ endif
 
 ifeq ($(XL24), y)
 OPTS		+= -DUSE_XL24
+endif
+
+ifeq ($(GUSMAX), y)
+OPTS		+= -DUSE_GUSMAX
+DEVBROBJ	+= snd_cs423x.o
 endif
 
 endif
