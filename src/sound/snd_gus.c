@@ -111,8 +111,8 @@ typedef struct gus_t
         uint8_t usrr;
 } gus_t;
 
-static int gus_gf1_irqs[8] = {0, 2, 5, 3, 7, 11, 12, 15};
-static int gus_midi_irqs[8] = {0, 2, 5, 3, 7, 11, 12, 15};
+static int gus_gf1_irqs[8] = {-1, 2, 5, 3, 7, 11, 12, 15};
+static int gus_midi_irqs[8] = {-1, 2, 5, 3, 7, 11, 12, 15};
 static int gus_dmas[8] = {-1, 1, 3, 5, 6, 7, -1, -1};
 
 int gusfreqs[]=
@@ -135,7 +135,7 @@ void pollgusirqs(gus_t *gus)
                         gus->irqstatus2=0x60|c;
                         if (gus->rampirqs[c]) gus->irqstatus2 |= 0x80;
                         gus->irqstatus|=0x20;
-			if (gus->irq != 0)
+			if (gus->irq != -1)
 				picint(1 << gus->irq);
                         return;
                 }
@@ -143,16 +143,13 @@ void pollgusirqs(gus_t *gus)
                 {
                         gus->irqstatus2=0xA0|c;
                         gus->irqstatus|=0x40;
-			if (gus->irq != 0)
+			if (gus->irq != -1)
 				picint(1 << gus->irq);
                         return;
                 }
         }
         gus->irqstatus2=0xE0;
-        if (!gus->irqstatus) {
-		if (gus->irq != 0)
-			picintc(1 << gus->irq);
-	}
+        if (!gus->irqstatus && gus->irq != -1) picintc(1 << gus->irq);
 }
 
 void gus_midi_update_int_status(gus_t *gus)
@@ -174,7 +171,7 @@ void gus_midi_update_int_status(gus_t *gus)
         else
                 gus->irqstatus &= ~GUS_INT_MIDI_RECEIVE;
 
-        if ((gus->midi_status & MIDI_INT_MASTER) && (gus->irq_midi != 0))
+        if ((gus->midi_status & MIDI_INT_MASTER) && (gus->irq_midi != -1))
         {
                 picint(1 << gus->irq_midi);
         }
@@ -220,6 +217,9 @@ void writegus(uint16_t addr, uint8_t val, void *p)
 			gus->midi_status |= MIDI_INT_RECEIVE;
 		} else 
 		gus->midi_status |= MIDI_INT_TRANSMIT;
+                break;
+                case 0x302: /*Voice select*/
+                gus->voice=val&31;
                 break;
                 case 0x303: /*Global select*/
                 gus->global=val;
@@ -463,9 +463,9 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                 }
                 break;
                 case 0x307: /*DRAM access*/
-                gus->addr&=0xFFFFF;
                 if (gus->addr < gus->gus_end_ram)
-			gus->ram[gus->addr]=val;
+					gus->ram[gus->addr]=val;
+                gus->addr&=0xFFFFF;
                 break;
                 case 0x208: case 0x388: 
                 gus->adcommand = val; 
@@ -480,7 +480,7 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                         {
                                 if (gus->sb_nmi)
                                         nmi = 1;
-                                else
+                                else if (gus->irq != -1)
                                         picint(1 << gus->irq);
                         }
                 }
@@ -515,68 +515,23 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                 switch (gus->reg_ctrl & 0x07)
                 {
                         case 0:
-						if (gus->latch_enable & 0x40) {
-							// GUS SDK: IRQ Control Register
-							//     Channel 1 GF1 IRQ selector (bits 2-0)
-							//       0=reserved, do not use
-							//       1=IRQ2
-							//       2=IRQ5
-							//       3=IRQ3
-							//       4=IRQ7
-							//       5=IRQ11
-							//       6=IRQ12
-							//       7=IRQ15
-							//     Channel 2 MIDI IRQ selector (bits 5-3)
-							//       0=no interrupt
-							//       1=IRQ2
-							//       2=IRQ5
-							//       3=IRQ3
-							//       4=IRQ7
-							//       5=IRQ11
-							//       6=IRQ12
-							//       7=IRQ15
-							//     Combine both IRQs using channel 1 (bit 6)
-							//     Reserved (bit 7)
-							//
-							//     "If both channels are sharing an IRQ, channel 2's IRQ must be set to 0 and turn on bit 6. A
-							//      bus conflict will occur if both latches are programmed with the same IRQ #."
-							if ((val & 7) != 0)
-								gus->irq = gus_gf1_irqs[val & 7];
-
-							if (val & 0x40) // "Combine both IRQs"
-								gus->irq_midi = gus->irq;
-							else
-								gus->irq_midi = gus_midi_irqs[(val >> 3) & 7];
-
-							gus->sb_nmi = val & 0x80;
-						} else {
-							// GUS SDK: DMA Control Register
-							//     Channel 1 (bits 2-0)
-							//       0=NO DMA
-							//       1=DMA1
-							//       2=DMA3
-							//       3=DMA5
-							//       4=DMA6
-							//       5=DMA7
-							//       6=?
-							//       7=?
-							//     Channel 2 (bits 5-3)
-							//       0=NO DMA
-							//       1=DMA1
-							//       2=DMA3
-							//       3=DMA5
-							//       4=DMA6
-							//       5=DMA7
-							//       6=?
-							//       7=?
-							//     Combine both DMA channels using channel 1 (bit 6)
-							//     Reserved (bit 7)
-							//
-							//     "If both channels are sharing an DMA, channel 2's DMA must be set to 0 and turn on bit 6. A
-							//      bus conflict will occur if both latches are programmed with the same DMA #."
-							if (gus_dmas[val & 7] != -1)
-								gus->dma = gus_dmas[val & 7];
-						}
+			if (gus->latch_enable & 0x40) {
+                                gus->irq = gus_gf1_irqs[val & 7];
+                                
+                                if (val & 0x40)
+                                {
+                                        if (gus->irq == -1)
+                                                gus->irq = gus->irq_midi = gus_gf1_irqs[(val >> 3) & 7];
+                                        else
+                                                gus->irq_midi = gus->irq;
+                                }
+                                else
+                                        gus->irq_midi = gus_midi_irqs[(val >> 3) & 7];
+                        
+                                gus->sb_nmi = val & 0x80;			
+			} else {
+				gus->dma = gus_dmas[val & 7];
+			}
                         break;
                         case 1:
                         gus->gp1 = val;
@@ -599,12 +554,13 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                 break;
                 
                 case 0x206:
-                if (gus->sb_ctrl & 0x20) {
-			gus->ad_status |= 0x08;
+                gus->ad_status |= 0x08;
+                if (gus->sb_ctrl & 0x20)
+                {
                         if (gus->sb_nmi)
-				nmi = 1;
-                        else if (gus->irq != 0)
-				picint(1 << gus->irq);
+                                nmi = 1;
+                        else if (gus->irq != -1)
+                                picint(1 << gus->irq);
                 }
                 break;
                 case 0x20a:
@@ -616,7 +572,7 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                 {
                         if (gus->sb_nmi)
                                 nmi = 1;
-                        else if (gus->irq != 0)
+                        else if (gus->irq != -1)
                                 picint(1 << gus->irq);
                 }
 		/*FALLTHROUGH*/
@@ -667,27 +623,23 @@ uint8_t readgus(uint16_t addr, void *p)
 				}
                 break;
                 
-                case 0x200: 
-		val = 0xff;
-		break;
+                case 0x200:
+                return 0;
                 
 		case 0x206: /*IRQ status*/
                 val = gus->irqstatus & ~0x10;
                 if (gus->ad_status & 0x19)
                         val |= 0x10;
-                break;
+                return val;
 
-                case 0x20F: 
-		val = 0; 
-		break;
+                case 0x20F:
+                return 0;
                 
 		case 0x302: 
-		val = gus->voice;
-		break;
+		return gus->voice;
                 
 		case 0x303: 
-		val = gus->global;
-		break;
+		return gus->global;
                 
 		case 0x304: /*Global low*/
                 switch (gus->global)
@@ -769,8 +721,7 @@ uint8_t readgus(uint16_t addr, void *p)
                 }                
                 break;
                 case 0x306: case 0x706: /*Revision level*/
-		val = 0xff;
-		break;
+		return 0xff; /*Pre 3.7 - no mixer*/
                 case 0x307: /*DRAM access*/
                 val=gus->ram[gus->addr];
                 gus->addr&=0xFFFFF;
@@ -778,7 +729,7 @@ uint8_t readgus(uint16_t addr, void *p)
 			val = gus->ram[gus->addr];
 		else
 			val = 0;
-                break;
+                return val;
                 case 0x309: return 0;
 
                 case 0x20b:
@@ -848,7 +799,7 @@ void gus_poll_timer_1(void *p)
                         gus->ad_status |= 0x40;
                         if (gus->tctrl&4)
                         {
-				if (gus->irq != 0)	
+				if (gus->irq != -1)	
 					picint(1 << gus->irq);
 				gus->ad_status |= 0x04;
                                 gus->irqstatus |= 0x04;
@@ -859,7 +810,7 @@ void gus_poll_timer_1(void *p)
         {
                 gus->irqnext=0;
                 gus->irqstatus|=0x80;
-		if (gus->irq != 0)
+		if (gus->irq != -1)
 			picint(1 << gus->irq);
         }
 
@@ -880,7 +831,7 @@ void gus_poll_timer_2(void *p)
                         gus->ad_status |= 0x20;
                         if (gus->tctrl&8)
                         {
-				if (gus->irq != 0)
+				if (gus->irq != -1)
 					picint(1 << gus->irq);
                                 gus->ad_status |= 0x02;
                                 gus->irqstatus |= 0x08;
@@ -891,7 +842,7 @@ void gus_poll_timer_2(void *p)
         {
                 gus->irqnext=0;
                 gus->irqstatus|=0x80;
-                if (gus->irq != 0)
+                if (gus->irq != -1)
 			picint(1 << gus->irq);
         }
 }
