@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.35	2020/01/13
+ * Version:	@(#)machine.h	1.0.36	2020/01/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -225,6 +225,7 @@ extern int	machine_at_px471_init(const machine_t *);
 extern int	machine_at_win471_init(const machine_t *);
 
 extern int	machine_at_r418_init(const machine_t *);
+extern int	machine_at_ls486e_init(const machine_t *);
 extern int	machine_at_alfredo_init(const machine_t *);
 
 /* m_at_commodore.c */

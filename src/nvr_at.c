@@ -189,7 +189,7 @@
  *		including the later update (DS12887A) which implemented a
  *		"century" register to be compatible with Y2K.
  *
- * Version:	@(#)nvr_at.c	1.0.17	2020/01/13
+ * Version:	@(#)nvr_at.c	1.0.18	2020/01/20
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -291,7 +291,7 @@ typedef struct {
     int8_t      stat;
 
     uint8_t	cent;
-    uint8_t	def;
+    uint8_t	def, ls_hack;
 
     uint8_t	addr[8];
 
@@ -553,8 +553,9 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
     nvr_t *nvr = (nvr_t *)priv;
     local_t *local = (local_t *)nvr->data;
     struct tm tm;
-    uint8_t old;
+    uint8_t old, i;
     uint8_t addr_id = (addr & 0x0e) >> 1;
+    uint16_t checksum = 0x0000;
 
     sub_cycles(ISA_CYCLES(8));
 
@@ -578,6 +579,18 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 		case RTC_REGC:		/* R/O */
 		case RTC_REGD:		/* R/O */
 		break;
+
+		case 0x2e:
+		case 0x2f:
+			if (local->ls_hack) {
+				/* 2E and 2F are a simple sum of the values of 0E to 2D. */
+				for (i = 0x0e; i < 0x2e; i++)
+					checksum += (uint16_t) nvr->regs[i];
+				nvr->regs[0x2e] = checksum >> 8;
+				nvr->regs[0x2f] = checksum & 0xff;
+				break;
+			}
+			/*FALLTHROUGH*/
 
 		default:		/* non-RTC registers are just NVRAM */
 			if (nvr->regs[local->addr[addr_id]] != val) {
@@ -617,6 +630,7 @@ nvr_read(uint16_t addr, void *priv)
     local_t *local = (local_t *)nvr->data;
     uint8_t ret;
     uint8_t addr_id = (addr & 0x0e) >> 1;
+    uint16_t checksum;
 
     sub_cycles(ISA_CYCLES(8));
 
@@ -634,6 +648,27 @@ nvr_read(uint16_t addr, void *priv)
 	case RTC_REGD:
 		nvr->regs[RTC_REGD] |= REGD_VRT;
 		ret = nvr->regs[RTC_REGD];
+		break;
+
+	case 0x2c:
+		if (local->ls_hack)
+			ret = nvr->regs[local->addr[addr_id]] & 0x7f;
+		else
+			ret = nvr->regs[local->addr[addr_id]];
+		break;
+
+	case 0x2e:
+	case 0x2f:
+		if (local->ls_hack) {
+			checksum = (nvr->regs[0x2e] << 8) | nvr->regs[0x2f];
+			if (nvr->regs[0x2c] & 0x80)
+				checksum -= 0x80;
+			if (local->addr[addr_id] == 0x2e)
+				ret = checksum >> 8;
+			else
+				ret = checksum & 0xff;
+		} else
+			ret = nvr->regs[local->addr[addr_id]];
 		break;
 
 	default:
@@ -742,11 +777,16 @@ nvr_at_init(const device_t *info)
     /* This is machine specific. */
     nvr->size = machines[machine].nvrmask + 1;
     local->def = 0x00;
+    local->ls_hack = 0;
     switch(info->local & 7) {
 	case 0:		/* standard AT, no century register */
 		nvr->irq = 8;
 		local->cent = 0xff;
 		break;
+
+	case 5:		/* Lucky Star LS-486E */
+		local->ls_hack = 1;
+		/*FALLTHROUGH*/
 
 	case 1:		/* standard AT */
 		nvr->irq = 8;
@@ -770,7 +810,7 @@ nvr_at_init(const device_t *info)
 		local->def = 0xff;
 		break;
 
-	case 5:		/* VIA VT82C586B */
+	case 6:		/* VIA VT82C586B */
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_VIA;
 		break;
@@ -870,12 +910,20 @@ const device_t ibmat_nvr_device = {
     NULL
 };
 
-const device_t via_nvr_device = {
-    "VIA PC/AT NVRAM",
+const device_t ls486e_nvr_device = {
+    "Lucky Star LS-486E PC/AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
-    9,
+    13,
     nvr_at_init, nvr_at_close, NULL,
     NULL, nvr_at_speed_changed,
     NULL
 };
 
+const device_t via_nvr_device = {
+    "VIA PC/AT NVRAM",
+    DEVICE_ISA | DEVICE_AT,
+    14,
+    nvr_at_init, nvr_at_close, NULL,
+    NULL, nvr_at_speed_changed,
+    NULL
+};
