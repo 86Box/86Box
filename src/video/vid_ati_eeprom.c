@@ -8,13 +8,13 @@
  *
  *		Emulation of the EEPROM on select ATI cards.
  *
- * Version:	@(#)vid_ati_eeprom.c	1.0.2	2018/04/11
+ * Version:	@(#)vid_ati_eeprom.c	1.0.3	2020/01/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -67,7 +67,7 @@ void ati_eeprom_load(ati_eeprom_t *eeprom, wchar_t *fn, int type)
         f = nvr_fopen(eeprom->fn, L"rb");
 	size = eeprom->type ? 512 : 128;
         if (!f) {
-                memset(eeprom->data, 0, size);
+                memset(eeprom->data, 0xff, size);
                 return;
         }
         if (fread(eeprom->data, 1, size, f) != size)

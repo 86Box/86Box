@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.41	2020/01/18
+ * Version:	@(#)vid_svga.c	1.0.42	2020/01/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -565,6 +565,44 @@ svga_recalctimings(svga_t *svga)
 }
 
 
+static void
+svga_do_render(svga_t *svga)
+{
+    if (!svga->override) {
+	svga->render(svga);
+
+	svga->x_add = (overscan_x >> 1);
+	svga_render_overscan_left(svga);
+	svga_render_overscan_right(svga);
+	svga->x_add = (overscan_x >> 1) - svga->scrollcache;
+    }
+
+    if (svga->overlay_on) {
+	if (!svga->override && svga->overlay_draw)
+		svga->overlay_draw(svga, svga->displine + svga->y_add);
+	svga->overlay_on--;
+	if (svga->overlay_on && svga->interlace)
+			svga->overlay_on--;
+    }
+
+    if (svga->dac_hwcursor_on) {
+	if (!svga->override && svga->dac_hwcursor_draw)
+		svga->dac_hwcursor_draw(svga, svga->displine + svga->y_add);
+	svga->dac_hwcursor_on--;
+	if (svga->dac_hwcursor_on && svga->interlace)
+		svga->dac_hwcursor_on--;
+    }
+
+    if (svga->hwcursor_on) {
+	if (!svga->override && svga->hwcursor_draw)
+		svga->hwcursor_draw(svga, svga->displine + svga->y_add);
+	svga->hwcursor_on--;
+	if (svga->hwcursor_on && svga->interlace)
+		svga->hwcursor_on--;
+    }
+}
+
+
 void
 svga_poll(void *p)
 {
@@ -572,7 +610,7 @@ svga_poll(void *p)
     uint32_t x, blink_delay;
     int wx, wy;
     int skip = (svga->crtc[8] >> 5) & 0x03;
-	int ret;
+    int ret, old_ma;
 
     if (!svga->linepos) {
 	if (svga->displine == svga->hwcursor_latch.y && svga->hwcursor_latch.ena) {
@@ -625,38 +663,24 @@ svga_poll(void *p)
 							    svga->interlace ? 3 : 2;
 		}
 
-		if (!svga->override) {
-			svga->render(svga);
+		if (svga->vertical_linedbl) {
+			old_ma = svga->ma;
 
-			svga->x_add = (overscan_x >> 1);
-			svga_render_overscan_left(svga);
-			svga_render_overscan_right(svga);
-			svga->x_add = (overscan_x >> 1) - svga->scrollcache;
-		}
+			svga->displine <<= 1;
+			svga->y_add <<= 1;
 
-		if (svga->overlay_on) {
-			if (!svga->override && svga->overlay_draw)
-				svga->overlay_draw(svga, svga->displine + svga->y_add);
-			svga->overlay_on--;
-			if (svga->overlay_on && svga->interlace)
-				svga->overlay_on--;
-		}
+			svga_do_render(svga);
 
-		if (svga->dac_hwcursor_on) {
-			if (!svga->override && svga->dac_hwcursor_draw)
-				svga->dac_hwcursor_draw(svga, svga->displine + svga->y_add);
-			svga->dac_hwcursor_on--;
-			if (svga->dac_hwcursor_on && svga->interlace)
-				svga->dac_hwcursor_on--;
-		}
+			svga->displine++;
 
-		if (svga->hwcursor_on) {
-			if (!svga->override && svga->hwcursor_draw)
-				svga->hwcursor_draw(svga, svga->displine + svga->y_add);
-			svga->hwcursor_on--;
-			if (svga->hwcursor_on && svga->interlace)
-				svga->hwcursor_on--;
-		}
+			svga->ma = old_ma;
+
+			svga_do_render(svga);
+
+			svga->y_add >>= 1;
+			svga->displine >>= 1;
+		} else
+			svga_do_render(svga);
 
 		if (svga->lastline < svga->displine) 
 			svga->lastline = svga->displine;
@@ -758,10 +782,16 @@ svga_poll(void *p)
 			svga->firstline--;
 
 		wx = x;
-		wy = svga->lastline - svga->firstline;
 
-		if (!svga->override/* && (wx > 0) && (wy > 0)*/)
-			svga_doblit(svga->firstline_draw, svga->lastline_draw + 1, wx, wy, svga);
+		if (!svga->override) {
+			if (svga->vertical_linedbl) {
+				wy = (svga->lastline - svga->firstline) << 1;
+				svga_doblit(svga->firstline_draw << 1, (svga->lastline_draw + 1) << 1, wx, wy, svga);
+			} else {
+				wy = svga->lastline - svga->firstline;
+				svga_doblit(svga->firstline_draw, svga->lastline_draw + 1, wx, wy, svga);
+			}
+		}
 
 		svga->firstline = 2000;
 		svga->lastline = 0;
@@ -1213,6 +1243,12 @@ svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
     x_start = (enable_overscan) ? 0 : (overscan_x >> 1);
     bottom = (overscan_y >> 1) + (svga->crtc[8] & 0x1f);
 
+    if (svga->vertical_linedbl) {
+	y_add <<= 1;
+	y_start <<= 1;
+	bottom <<= 1;
+    }
+
     if ((wx <= 0) || (wy <= 0)) {
 	video_blit_memtoscreen(x_start, y_start, 0, 0, 0, 0);
 	return;
@@ -1223,8 +1259,13 @@ svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 	return;
     }
 
+    if (svga->vertical_linedbl)
+	svga->y_add <<= 1;
+
     xs_temp = wx;
     ys_temp = wy + 1;
+    if (svga->vertical_linedbl)
+	ys_temp++;
     if (xs_temp < 64)
 	xs_temp = 640;
     if (ys_temp < 32)
@@ -1244,10 +1285,7 @@ svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 	} else
 		suppress_overscan = 0;
 
-	if (svga->vertical_linedbl)
-	set_screen_size(xsize + x_add, (ysize + y_add) * 2);
-	else
-    set_screen_size(xsize + x_add, ysize + y_add);
+	set_screen_size(xsize + x_add, ysize + y_add);
 
 	if (video_force_resize_get())
 		video_force_resize_set(0);
@@ -1271,6 +1309,9 @@ svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
     }
 
     video_blit_memtoscreen(x_start, y_start, y1, y2 + y_add, xsize + x_add, ysize + y_add);
+
+    if (svga->vertical_linedbl)
+	svga->vertical_linedbl >>= 1;
 }
 
 

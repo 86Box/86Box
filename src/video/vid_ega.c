@@ -9,7 +9,7 @@
  *		Emulation of the EGA and Chips & Technologies SuperEGA
  *		graphics cards.
  *
- * Version:	@(#)vid_ega.c	1.0.23	2019/11/19
+ * Version:	@(#)vid_ega.c	1.0.24	2019/11/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -31,6 +31,7 @@
 #include "../rom.h"
 #include "../device.h"
 #include "video.h"
+#include "vid_ati_eeprom.h"
 #include "vid_ega.h"
 #include "vid_ega_render.h"
 
@@ -38,15 +39,17 @@
 void ega_doblit(int y1, int y2, int wx, int wy, ega_t *ega);
 
 
-#define BIOS_IBM_PATH	L"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin"
-#define BIOS_CPQ_PATH	L"roms/video/ega/108281-001.bin"
-#define BIOS_SEGA_PATH	L"roms/video/ega/lega.vbi"
+#define BIOS_IBM_PATH		L"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin"
+#define BIOS_CPQ_PATH		L"roms/video/ega/108281-001.bin"
+#define BIOS_SEGA_PATH		L"roms/video/ega/lega.vbi"
+#define BIOS_ATIEGA_PATH	L"roms/video/ega/ATI EGA Wonder 800+ N1.00.BIN"
 
 
 enum {
     EGA_IBM = 0,
     EGA_COMPAQ,
-    EGA_SUPEREGA
+    EGA_SUPEREGA,
+    EGA_ATI
 };
 
 
@@ -74,6 +77,30 @@ ega_out(uint16_t addr, uint8_t val, void *p)
 	addr ^= 0x60;
 
     switch (addr) {
+	case 0x1ce:
+		ega->index = val;
+		break;
+	case 0x1cf:
+		ega->regs[ega->index] = val;
+		switch (ega->index) {
+			case 0xb0:
+				ega_recalctimings(ega);
+				break;
+			case 0xb2: case 0xbe:
+#if 0
+				if (ega->regs[0xbe] & 8) {	/*Read/write bank mode*/
+					svga->read_bank  = ((ega->regs[0xb2] >> 5) & 7) * 0x10000;
+					svga->write_bank = ((ega->regs[0xb2] >> 1) & 7) * 0x10000;
+				} else                    /*Single bank mode*/
+					svga->read_bank = svga->write_bank = ((ega->regs[0xb2] >> 1) & 7) * 0x10000;
+#endif
+				break;
+			case 0xb3:
+				ati_eeprom_write((ati_eeprom_t *) ega->eeprom, val & 8, val & 2, val & 1);
+				break;
+		}
+		break;
+
 	case 0x3c0: case 0x3c1:
 		if (!ega->attrff) {
 			ega->attraddr = val & 31;
@@ -211,6 +238,22 @@ uint8_t ega_in(uint16_t addr, void *p)
 	addr ^= 0x60;
 
     switch (addr) {
+	case 0x1ce:
+		ret = ega->index;
+		break;
+	case 0x1cf:
+		switch (ega->index) {
+			case 0xb7:
+				ret = ega->regs[ega->index] & ~8;
+				if (ati_eeprom_read((ati_eeprom_t *) ega->eeprom))
+					ret |= 8;
+				break;
+			default:
+				ret = ega->regs[ega->index];
+				break;
+		}
+		break;
+
 	case 0x3c0: 
 		ret = ega->attraddr | ega->attr_palette_enable;
 		break;
@@ -259,6 +302,8 @@ uint8_t ega_in(uint16_t addr, void *p)
 void
 ega_recalctimings(ega_t *ega)
 {
+    int clksel;
+
     double _dispontime, _dispofftime, disptime;
     double crtcconst;
 
@@ -291,8 +336,35 @@ ega_recalctimings(ega_t *ega)
     ega->linedbl = ega->crtc[9] & 0x80;
     ega->rowcount = ega->crtc[9] & 0x1f;
 
-    if (ega->vidclock) crtcconst = (ega->seqregs[1] & 1) ? MDACONST : (MDACONST * (9.0 / 8.0));
-    else               crtcconst = (ega->seqregs[1] & 1) ? CGACONST : (CGACONST * (9.0 / 8.0));
+    if (ega->eeprom) {
+	clksel = ((ega->miscout & 0xc) >> 2) | ((ega->regs[0xbe] & 0x10) ? 4 : 0);
+
+	switch (clksel) {
+		case 0:
+			crtcconst = (cpuclock / 25175000.0 * (double)(1ull << 32));
+			break;
+		case 1:
+			crtcconst = (cpuclock / 28322000.0 * (double)(1ull << 32));
+			break;
+		case 4:
+			crtcconst = (cpuclock / 14318181.0 * (double)(1ull << 32));
+			break;
+		case 5:
+			crtcconst = (cpuclock / 16257000.0 * (double)(1ull << 32));
+			break;
+		case 7:
+		default:
+			crtcconst = (cpuclock / 36000000.0 * (double)(1ull << 32));
+			break;
+	}
+	if (!(ega->seqregs[1] & 1))
+		crtcconst *= 9.0;
+	else
+		crtcconst *= 8.0;
+    } else {
+	if (ega->vidclock) crtcconst = (ega->seqregs[1] & 1) ? MDACONST : (MDACONST * (9.0 / 8.0));
+	else               crtcconst = (ega->seqregs[1] & 1) ? CGACONST : (CGACONST * (9.0 / 8.0));
+    }
 
     ega->interlace = 0;
 
@@ -353,11 +425,15 @@ ega_recalctimings(ega_t *ega)
 	_dispontime = (double) (ega->crtc[1] + 1);
     }
     _dispofftime = disptime - _dispontime;
-    _dispontime  = _dispontime * crtcconst;
-    _dispofftime = _dispofftime * crtcconst;
+    _dispontime *= crtcconst;
+    _dispofftime *= crtcconst;
 
     ega->dispontime  = (uint64_t)(_dispontime);
     ega->dispofftime = (uint64_t)(_dispofftime);
+    if (ega->dispontime < TIMER_USEC)
+	ega->dispontime = TIMER_USEC;
+    if (ega->dispofftime < TIMER_USEC)
+	ega->dispofftime = TIMER_USEC;
 }
 
 
@@ -399,9 +475,13 @@ ega_poll(void *p)
 			ega->displine++;
 
 			ega->ma = old_ma;
-			ega_render_overscan_left(ega);
+
 			ega->render(ega);
+
+			ega->x_add = (overscan_x >> 1);
+			ega_render_overscan_left(ega);
 			ega_render_overscan_right(ega);
+			ega->x_add = (overscan_x >> 1) - ega->scrollcache;
 
 			ega->y_add >>= 1;
 			ega->displine >>= 1;
@@ -949,6 +1029,10 @@ ega_standalone_init(const device_t *info)
 		rom_init(&ega->bios_rom, BIOS_SEGA_PATH,
 			 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 		break;
+	case EGA_ATI:
+		rom_init(&ega->bios_rom, BIOS_ATIEGA_PATH,
+			 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		break;
     }
 
     if ((ega->bios_rom.rom[0x3ffe] == 0xaa) && (ega->bios_rom.rom[0x3fff] == 0x55)) {
@@ -967,6 +1051,13 @@ ega_standalone_init(const device_t *info)
 
     mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
     io_sethandler(0x03a0, 0x0040, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+
+    if (info->local == EGA_ATI) {
+	io_sethandler(0x01ce, 0x0002, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+	ega->eeprom = malloc(sizeof(ati_eeprom_t));
+	memset(ega->eeprom, 0, sizeof(ati_eeprom_t));
+	ati_eeprom_load((ati_eeprom_t *) ega->eeprom, L"egawonder800.nvr", 0);
+    }
 
     return ega;
 }
@@ -993,11 +1084,20 @@ sega_standalone_available(void)
 }
 
 
+static int
+atiega_standalone_available(void)
+{
+    return rom_present(BIOS_ATIEGA_PATH);
+}
+
+
 static void
 ega_close(void *p)
 {
     ega_t *ega = (ega_t *)p;
 
+    if (ega->eeprom)
+	free(ega->eeprom);
     free(ega->vram);
     free(ega);
 }
@@ -1117,6 +1217,18 @@ const device_t sega_device =
 	EGA_SUPEREGA,
         ega_standalone_init, ega_close, NULL,
         sega_standalone_available,
+        ega_speed_changed,
+        NULL,
+        ega_config
+};
+
+const device_t atiega_device =
+{
+        "ATI EGA Wonder 800+",
+        DEVICE_ISA,
+	EGA_ATI,
+        ega_standalone_init, ega_close, NULL,
+        atiega_standalone_available,
         ega_speed_changed,
         NULL,
         ega_config
