@@ -278,9 +278,12 @@ intel_flash_add_mappings(flash_t *dev)
 {
     int max = 2, i = 0;
     uint32_t base, fbase;
+    uint32_t sub = 0x20000;
 
-    if (biosmask == 0x3ffff)
+    if (biosmask == 0x3ffff) {
+	sub = 0x40000;
 	max = 4;
+    }
 
     for (i = 0; i < max; i++) {
 	if (biosmask == 0x3ffff)
@@ -299,7 +302,7 @@ intel_flash_add_mappings(flash_t *dev)
 				flash_write, flash_writew, flash_writel,
 				dev->array + fbase, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROMCS, (void *) dev);
 	}
-	mem_mapping_add(&(dev->mapping_h[i]), (base | 0xfff00000) - 0x40000, 0x10000,
+	mem_mapping_add(&(dev->mapping_h[i]), (base | 0xfff00000) - sub, 0x10000,
 			flash_read, flash_readw, flash_readl,
 			flash_write, flash_writew, flash_writel,
 			dev->array + fbase, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROMCS, (void *) dev);

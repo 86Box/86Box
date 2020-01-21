@@ -615,7 +615,8 @@ static int opHLT(uint32_t fetchdat)
         if (!((cpu_state.flags & I_FLAG) && pic_intpending))
         {
                 CLOCK_CYCLES_ALWAYS(100);
-                cpu_state.pc--;
+		if (!((cpu_state.flags & I_FLAG) && pic_intpending))
+	                cpu_state.pc--;
         }
         else
                 CLOCK_CYCLES(5);
