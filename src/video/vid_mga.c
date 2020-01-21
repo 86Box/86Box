@@ -8,7 +8,7 @@
  *
  *		Matrox MGA graphics card emulation.
  *
- * Version:	@(#)vid_mga.c	1.0.2	2020/01/18
+ * Version:	@(#)vid_mga.c	1.0.3	2020/01/20
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Copyright 2008-2020 Sarah Walker.
@@ -3356,7 +3356,7 @@ blit_line(mystique_t *mystique, int closed)
 		break;
 
 	default:
-		pclog("Unknown atype %03x %08x LINE\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK, mystique->dwgreg.dwgctrl_running);
+		/* pclog("Unknown atype %03x %08x LINE\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK, mystique->dwgreg.dwgctrl_running); */
 		break;
     }
 
@@ -4233,7 +4233,7 @@ blit_bitblt(mystique_t *mystique)
 		break;
 
 	default:
-		pclog("Unknown BITBLT atype %03x %08x\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK, mystique->dwgreg.dwgctrl_running);
+		/* pclog("Unknown BITBLT atype %03x %08x\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK, mystique->dwgreg.dwgctrl_running); */
 		break;
     }
 
@@ -4248,7 +4248,7 @@ blit_iload(mystique_t *mystique)
 	case DWGCTRL_ATYPE_RPL:
 	case DWGCTRL_ATYPE_RSTR:
 		case DWGCTRL_ATYPE_BLK:
-		pclog("ILOAD BLTMOD DWGCTRL = %08x\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK);
+		/* pclog("ILOAD BLTMOD DWGCTRL = %08x\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK); */
 		switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK) {
 			case DWGCTRL_BLTMOD_BFCOL:
 			case DWGCTRL_BLTMOD_BMONOWF:
@@ -4259,7 +4259,7 @@ blit_iload(mystique_t *mystique)
 				mystique->dwgreg.iload_rem_data = 0;
 				mystique->dwgreg.iload_rem_count = 0;
 				mystique->busy = 1;
-				pclog("ILOAD busy\n");
+				/* pclog("ILOAD busy\n"); */
 				mystique->dwgreg.words = 0;
 				break;
 
@@ -4288,7 +4288,7 @@ blit_idump(mystique_t *mystique)
 		mystique->dwgreg.iload_rem_data = 0;
 		mystique->dwgreg.idump_end_of_line = 0;
 		mystique->busy = 1;
-		pclog("IDUMP ATYPE RPL busy\n");
+		/* pclog("IDUMP ATYPE RPL busy\n"); */
 		break;
 
 	default:
@@ -4310,7 +4310,7 @@ blit_iload_scale(mystique_t *mystique)
 				mystique->dwgreg.iload_rem_count = 0;
 				mystique->busy = 1;
 				mystique->dwgreg.words = 0;
-				pclog("ILOAD SCALE ATYPE RPL BLTMOD BUYUV busy\n");
+				/* pclog("ILOAD SCALE ATYPE RPL BLTMOD BUYUV busy\n"); */
 				break;
 
 			default:
@@ -4338,7 +4338,7 @@ blit_iload_high(mystique_t *mystique)
 				mystique->dwgreg.iload_rem_count = 0;
 				mystique->busy = 1;
 				mystique->dwgreg.words = 0;
-				pclog("ILOAD HIGH ATYPE RPL BLTMOD BUYUV busy\n");
+				/* pclog("ILOAD HIGH ATYPE RPL BLTMOD BUYUV busy\n"); */
 				break;
 
 			default:
@@ -4370,7 +4370,7 @@ void blit_iload_highv(mystique_t *mystique)
 				mystique->dwgreg.lastpix_r = 0;
 				mystique->dwgreg.lastpix_g = 0;
 				mystique->dwgreg.lastpix_b = 0;
-				pclog("ILOAD HIGHV ATYPE RPL BLTMOD BUYUV busy\n");
+				/* pclog("ILOAD HIGHV ATYPE RPL BLTMOD BUYUV busy\n"); */
 				break;
 
 			default:
