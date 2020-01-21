@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel PIC chip emulation.
  *
- * Version:	@(#)pic.c	1.0.6	2020/01/17
+ * Version:	@(#)pic.c	1.0.7	2020/01/21
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -375,17 +375,17 @@ pic2_read(uint16_t addr, void *priv)
 {
     uint8_t ret = 0xff;
 
-    if ((addr == 0x20) && shadow) {
+    if ((addr == 0xa0) && shadow) {
 	ret  = ((pic2.ocw3   & 0x20) >> 5) << 4;
 	ret |= ((pic2.ocw2   & 0x80) >> 7) << 3;
 	ret |= ((pic2.icw4   & 0x10) >> 4) << 2;
 	ret |= ((pic2.icw4   & 0x02) >> 1) << 1;
 	ret |= ((pic2.icw4   & 0x08) >> 3) << 0;
-    } else if ((addr == 0x21) && shadow)
+    } else if ((addr == 0xa1) && shadow)
 	ret  = ((pic2.vector & 0xf8) >> 3) << 0;
     else if (addr & 1)
 	ret = pic2.mask;
-    else if (pic.read)
+    else if (pic2.read)
 	ret = pic2.ins;
     else
 	ret = pic2.pend;
