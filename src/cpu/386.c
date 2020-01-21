@@ -73,12 +73,8 @@ extern int dontprint;
 
 #define OP_TABLE(name) ops_ ## name
 
-#define CLOCK_CYCLES(c) do { cycles -= (c);	\
-			if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t)tsc))	\
-				timer_process(); } while(0)
-#define CLOCK_CYCLES_ALWAYS(c) do { cycles -= (c);	\
-			if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t)tsc))	\
-				timer_process(); } while(0)
+#define CLOCK_CYCLES(c) cycles -= (c)
+#define CLOCK_CYCLES_ALWAYS(c) cycles -= (c)
 
 #include "x86_ops.h"
 
@@ -252,9 +248,9 @@ dontprint=0;
                         if (!timetolive)
                                 fatal("Life expired\n");
                 }
-                }
-                
+               
 		if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t)tsc))
 			timer_process();
+                }
         }
 }
