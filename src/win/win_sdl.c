@@ -12,13 +12,13 @@
  *		we will not use that, but, instead, use a new window which
  *		coverrs the entire desktop.
  *
- * Version:	@(#)win_sdl.c  	1.0.10	2019/12/06
+ * Version:	@(#)win_sdl.c  	1.0.11	2020/01/22
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Michael Drüing, <michael@drueing.de>
  *
- *		Copyright 2018,2019 Fred N. van Kempen.
- *		Copyright 2018,2019 Michael Drüing.
+ *		Copyright 2018-2020 Fred N. van Kempen.
+ *		Copyright 2018-2020 Michael Drüing.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -109,9 +109,30 @@ sdl_log(const char *fmt, ...)
 
 
 static void
+sdl_integer_scale(double *d, double *g)
+{
+    double ratio;
+
+    if (*d > *g) {
+	ratio = floor(*d / *g);
+	*d = *g * ratio;
+    } else {
+	ratio = ceil(*d / *g);
+	*d = *g / ratio;
+    }
+}
+
+
+static void
 sdl_stretch(int *w, int *h, int *x, int *y)
 {
-    double dw, dh, dx, dy, temp, temp2, ratio_w, ratio_h, gsr, hsr;
+    double hw, gw, hh, gh, dx, dy, dw, dh, gsr, hsr;
+
+    hw = (double) sdl_w;
+    hh = (double) sdl_h;
+    gw = (double) *w;
+    gh = (double) *h;
+    hsr = hw / hh;
 
     switch (video_fullscreen_scale) {
 	case FULLSCR_SCALE_FULL:
@@ -122,44 +143,37 @@ sdl_stretch(int *w, int *h, int *x, int *y)
 		break;
 	case FULLSCR_SCALE_43:
 	case FULLSCR_SCALE_KEEPRATIO:
-		dw = (double) sdl_w;
-		dh = (double) sdl_h;
-		hsr = dw / dh;
 		if (video_fullscreen_scale == FULLSCR_SCALE_43)
 			gsr = 4.0 / 3.0;
 		else
-			gsr = ((double) *w) / ((double) *h);
+			gsr = gw / gh;
 		if (gsr <= hsr) {
-			temp = dh * gsr;
-			dx = (dw - temp) / 2.0;
-			dw = temp;
-			*w = (int) dw;
-			*h = (int) dh;
-			*x = (int) dx;
-			*y = 0;
+			dw = hh * gsr;
+			dh = hh;
 		} else {
-			temp = dw / gsr;
-			dy = (dh - temp) / 2.0;
-			dh = temp;
-			*w = (int) dw;
-			*h = (int) dh;
-			*x = 0;
-			*y = (int) dy;
+			dw = hw;
+			dh = hw / gsr;
 		}
+		dx = (hw - dw) / 2.0;
+		dy = (hh - dh) / 2.0;
+		*w = (int) hw;
+		*h = (int) hh;
+		*x = (int) dx;
+		*y = (int) dy;
 		break;
 	case FULLSCR_SCALE_INT:
-		dw = (double) sdl_w;
-		dh = (double) sdl_h;
-		temp = ((double) *w);
-		temp2 = ((double) *h);
-		ratio_w = dw / ((double) *w);
-		ratio_h = dh / ((double) *h);
-		if (ratio_h < ratio_w)
-			ratio_w = ratio_h;
-		dx = (dw / 2.0) - ((temp * ratio_w) / 2.0);
-		dy = (dh / 2.0) - ((temp2 * ratio_h) / 2.0);
-		dw -= (dx * 2.0);
-		dh -= (dy * 2.0);
+		gsr = gw / gh;
+		if (gsr <= hsr) {
+			dw = hh * gsr;
+			dh = hh;
+		} else {
+			dw = hw;
+			dh = hw / gsr;
+		}
+		sdl_integer_scale(&dw, &gw);
+		sdl_integer_scale(&dh, &gh);
+		dx = (hw - dw) / 2.0;
+		dy = (hh - dh) / 2.0;
 		*w = (int) dw;
 		*h = (int) dh;
 		*x = (int) dx;
