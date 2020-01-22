@@ -205,8 +205,8 @@ extern int	machine_at_commodore_sl386sx_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
-extern const device_t 	*at_ama932j_get_device(void);
-extern const device_t   *at_commodore_sl386sx_get_device(void);
+extern const device_t	*at_ama932j_get_device(void);
+extern const device_t	*at_commodore_sl386sx_get_device(void);
 #endif
 
 /* m_at_386dx_486.c */
