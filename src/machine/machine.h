@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.36	2020/01/20
+ * Version:	@(#)machine.h	1.0.37	2020/01/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -201,10 +201,12 @@ extern int	machine_at_spc4216p_init(const machine_t *);
 extern int	machine_at_kmxc02_init(const machine_t *);
 extern int	machine_at_deskmaster286_init(const machine_t *);
 
+extern int	machine_at_commodore_sl386sx_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
-extern const device_t 	*at_ama932j_get_device(void);
+extern const device_t	*at_ama932j_get_device(void);
+extern const device_t	*at_commodore_sl386sx_get_device(void);
 #endif
 
 /* m_at_386dx_486.c */

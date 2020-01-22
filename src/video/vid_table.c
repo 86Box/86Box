@@ -8,7 +8,7 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.48	2020/01/20
+ * Version:	@(#)vid_table.c	1.0.49	2020/01/22
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -94,9 +94,9 @@ video_cards[] = {
 #endif
     { "[ISA] CGA",					"cga",			&cga_device				},
     { "[ISA] Chips & Technologies SuperEGA",		"superega",		&sega_device				},
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
     { "[ISA] Cirrus Logic CL-GD 5402",			"cl_gd5402_isa",	&gd5402_isa_device			},
     { "[ISA] Cirrus Logic CL-GD 5420",			"cl_gd5420_isa",	&gd5420_isa_device			},
+#if defined(DEV_BRANCH) && defined(USE_CL5422)
     { "[ISA] Cirrus Logic CL-GD 5422",			"cl_gd5422_isa",	&gd5422_isa_device			},
 #endif
     { "[ISA] Cirrus Logic CL-GD 5428",			"cl_gd5428_isa",	&gd5428_isa_device			},

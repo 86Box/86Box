@@ -64,6 +64,9 @@ extern const device_t	sis_85c50x_device;
 /* VIA */
 extern const device_t   via_mvp3_device;
 
+/* VLSI */
+extern const device_t   vlsi_scamp_device;
+
 /* WD */
 extern const device_t	wd76c10_device;
 
