@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.32	2020/01/11
+ * Version:	@(#)vid_cl_54xx.c	1.0.32	2020/01/22
  *
  * Authors:	TheCollector1995,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -36,10 +36,13 @@
 #include "vid_svga_render.h"
 #include "vid_cl54xx.h"
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
+#define BIOS_GD5402_PATH		L"roms/video/cirruslogic/avga2.rom"
 #define BIOS_GD5420_PATH		L"roms/video/cirruslogic/5420.vbi"
+
+#if defined(DEV_BRANCH) && defined(USE_CL5422)
 #define BIOS_GD5422_PATH		L"roms/video/cirruslogic/cl5422.bin"
 #endif
+
 #define BIOS_GD5426_PATH		L"roms/video/cirruslogic/Diamond SpeedStar PRO VLB v3.04.bin"
 #define BIOS_GD5428_ISA_PATH		L"roms/video/cirruslogic/5428.bin"
 #define BIOS_GD5428_PATH		L"roms/video/cirruslogic/vlbusjapan.BIN"
@@ -2906,21 +2909,25 @@ static void
     gd54xx->has_bios = 1;
 
     switch (id) {
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 	case CIRRUS_ID_CLGD5402:
+		romfn = BIOS_GD5402_PATH;
+		break;
+
 	case CIRRUS_ID_CLGD5420:
 		romfn = BIOS_GD5420_PATH;
 		break;
+
+#if defined(DEV_BRANCH) && defined(USE_CL5422)
 	case CIRRUS_ID_CLGD5422:
 	case CIRRUS_ID_CLGD5424:
 		romfn = BIOS_GD5422_PATH;
 		break;		
 #endif
-		
+
 	case CIRRUS_ID_CLGD5426:
 		romfn = BIOS_GD5426_PATH;
 		break;
-		
+
 	case CIRRUS_ID_CLGD5428:
 		if (gd54xx->vlb)
 			romfn = BIOS_GD5428_PATH;
@@ -3021,7 +3028,6 @@ static void
     svga->hwcursor.yoff = 32;
     svga->hwcursor.xoff = 0;
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
     if (id >= CIRRUS_ID_CLGD5420) {
 	gd54xx->vclk_n[0] = 0x4a;
 	gd54xx->vclk_d[0] = 0x2b;
@@ -3041,16 +3047,6 @@ static void
 	gd54xx->vclk_n[3] = 0x7e;
 	gd54xx->vclk_d[3] = 0x33;
     }
-#else
-    gd54xx->vclk_n[0] = 0x4a;
-    gd54xx->vclk_d[0] = 0x2b;
-    gd54xx->vclk_n[1] = 0x5b;
-    gd54xx->vclk_d[1] = 0x2f;
-    gd54xx->vclk_n[2] = 0x45;
-    gd54xx->vclk_d[2] = 0x30;
-    gd54xx->vclk_n[3] = 0x7e;
-    gd54xx->vclk_d[3] = 0x33;
-#endif
 
     svga->extra_banks[1] = 0x8000;
 
@@ -3072,13 +3068,19 @@ static void
     return gd54xx;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
+static int
+gd5402_available(void)
+{
+    return rom_present(BIOS_GD5402_PATH);
+}
+
 static int
 gd5420_available(void)
 {
     return rom_present(BIOS_GD5420_PATH);
 }
 
+#if defined(DEV_BRANCH) && defined(USE_CL5422)
 static int
 gd5422_available(void)
 {
@@ -3186,7 +3188,6 @@ gd54xx_force_redraw(void *p)
     gd54xx->svga.fullchange = changeframecount;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 static const device_config_t gd5422_config[] =
 {
         {
@@ -3207,7 +3208,6 @@ static const device_config_t gd5422_config[] =
                 "","",-1
         }
 };
-#endif
 
 static const device_config_t gd5428_config[] =
 {
@@ -3290,7 +3290,6 @@ static const device_config_t gd5434_config[] =
         }
 };
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 const device_t gd5402_isa_device =
 {
     "Cirrus Logic GD-5402 (ACUMOS AVGA2)",
@@ -3298,7 +3297,20 @@ const device_t gd5402_isa_device =
     CIRRUS_ID_CLGD5402,
     gd54xx_init, gd54xx_close,
     NULL,
-    gd5420_available, /* Common BIOS between 5402 and 5420 */
+    gd5402_available,
+    gd54xx_speed_changed,
+    gd54xx_force_redraw,
+    NULL,
+};
+
+const device_t gd5402_onboard_device =
+{
+    "Cirrus Logic GD-5402 (ACUMOS AVGA2) (On-Board)",
+    DEVICE_AT | DEVICE_ISA,
+    CIRRUS_ID_CLGD5402,
+    gd54xx_init, gd54xx_close,
+    NULL,
+    NULL,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     NULL,
@@ -3311,12 +3323,13 @@ const device_t gd5420_isa_device =
     CIRRUS_ID_CLGD5420,
     gd54xx_init, gd54xx_close,
     NULL,
-    gd5420_available, /* Common BIOS between 5402 and 5420 */
+    gd5420_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5422_config,
 };
 
+#if defined(DEV_BRANCH) && defined(USE_CL5422)
 const device_t gd5422_isa_device = {
     "Cirrus Logic GD-5422",
     DEVICE_AT | DEVICE_ISA,

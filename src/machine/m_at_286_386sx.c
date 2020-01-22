@@ -8,7 +8,7 @@
  *
  *		Implementation of 286 and 386SX machines.
  *
- * Version:	@(#)m_at_286_386sx.c	1.0.2	2019/11/19
+ * Version:	@(#)m_at_286_386sx.c	1.0.3	2020/01/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -35,6 +35,7 @@
 #include "../floppy/fdc.h"
 #include "../disk/hdc.h"
 #include "../video/video.h"
+#include "../video/vid_cl54xx.h"
 #include "../video/vid_et4000.h"
 #include "../video/vid_oak_oti.h"
 #include "../video/vid_paradise.h"
@@ -406,6 +407,36 @@ machine_at_wd76c10_init(const machine_t *model)
 
     if (gfxcard == VID_INTERNAL)
 	device_add(&paradise_wd90c11_megapc_device);
+
+    return ret;
+}
+
+const device_t *
+at_commodore_sl386sx_get_device(void)
+{
+    return &gd5402_onboard_device;
+}
+
+int
+machine_at_commodore_sl386sx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/cbm_sl386sx25/cbm-sl386sx-bios-lo-v1.04-390914-04.bin",
+				L"roms/machines/cbm_sl386sx25/cbm-sl386sx-bios-hi-v1.04-390915-04.bin",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&keyboard_at_device);
+    device_add(&fdc_at_device);
+    device_add(&vlsi_scamp_device);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&gd5402_onboard_device);
 
     return ret;
 }
