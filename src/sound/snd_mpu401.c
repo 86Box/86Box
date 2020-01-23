@@ -8,7 +8,7 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)snd_mpu401.c	1.0.19	2020/01/19
+ * Version:	@(#)snd_mpu401.c	1.0.20	2020/01/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
@@ -86,12 +86,19 @@ MPU401_ReCalcClock(mpu_t *mpu)
     int32_t maxtempo = 240, mintempo = 16;
     int32_t freq;
 
-    if (mpu->clock.timebase >= 168)
-	maxtempo = 179;
-    if (mpu->clock.timebase == 144)
+    if (mpu->clock.timebase < 72) {
+	maxtempo = 240;
+	mintempo = 32;
+    } else if (mpu->clock.timebase < 120) {
+	maxtempo = 240;
+	mintempo = 16;
+    } else if (mpu->clock.timebase < 168) {
 	maxtempo = 208;
-    if (mpu->clock.timebase >= 120)
-	maxtempo = 8;
+	mintempo = 8;
+    } else {
+	maxtempo = 179;
+	mintempo = 8;
+    }
 
     mpu->clock.freq = ((uint32_t)(mpu->clock.tempo * 2 * mpu->clock.tempo_rel)) >> 6;
     mpu->clock.freq = mpu->clock.timebase * (mpu->clock.freq < (mintempo * 2) ? mintempo :
@@ -141,7 +148,7 @@ MPU401_RunClock(mpu_t *mpu)
 
 
 static void
-MPU401_QueueByte(mpu_t *mpu, uint8_t data) 
+MPU401_QueueByteEx(mpu_t *mpu, uint8_t data, int irq)
 {
     if (mpu->state.block_ack) {
 	mpu->state.block_ack = 0;
@@ -150,7 +157,8 @@ MPU401_QueueByte(mpu_t *mpu, uint8_t data)
 
     if (mpu->queue_used == 0) {
 	mpu->state.irq_pending = 1;
-	picint(1 << mpu->irq);
+	if (irq)
+		picint(1 << mpu->irq);
     }
 
     if (mpu->queue_used < MPU401_QUEUE) {
@@ -164,6 +172,13 @@ MPU401_QueueByte(mpu_t *mpu, uint8_t data)
 	mpu->queue_used++;
 	mpu->queue[pos] = data;
     }
+}
+
+
+static void
+MPU401_QueueByte(mpu_t *mpu, uint8_t data) 
+{
+    MPU401_QueueByteEx(mpu, data, 1);
 }
 
 
@@ -610,7 +625,7 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 		was_uart = (mpu->mode == M_UART);
 		MPU401_Reset(mpu);
 		if (was_uart)
-			return;		/* do not send ack in UART mode */
+			return;
 		break;
 
 	/* default:
@@ -1545,10 +1560,8 @@ MPU401_InputMsg(void *p, uint8_t *msg)
     }
 
     /* UART mode input. */
-    for (i = 0; i < len; i++) {
+    for (i = 0; i < len; i++)
 	MPU401_QueueByte(mpu, msg[i]);
-	picint(1 << mpu->irq);
-    }
 }
 
 
