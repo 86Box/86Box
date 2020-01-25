@@ -190,7 +190,6 @@ extern int	machine_at_neat_init(const machine_t *);
 extern int	machine_at_neat_ami_init(const machine_t *);
 
 extern int	machine_at_goldstar386_init(const machine_t *);
-extern int	machine_at_micronics386_init(const machine_t *);
 
 
 extern int	machine_at_award286_init(const machine_t *);
@@ -211,6 +210,7 @@ extern const device_t	*at_commodore_sl386sx_get_device(void);
 
 /* m_at_386dx_486.c */
 extern int	machine_at_pb410a_init(const machine_t *);
+extern int	machine_at_micronics386_init(const machine_t *);
 
 extern int	machine_at_ali1429_init(const machine_t *);
 extern int	machine_at_winbios1429_init(const machine_t *);
