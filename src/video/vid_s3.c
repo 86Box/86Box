@@ -4034,7 +4034,7 @@ const device_t s3_phoenix_vision864_pci_device =
 const device_t s3_diamond_stealth64_vlb_device =
 {
 	"S3 Trio64 (Diamond Stealth64 DRAM) VLB",
-	DEVICE_PCI,
+	DEVICE_VLB,
 	S3_DIAMOND_STEALTH64_764,
 	s3_init,
 	s3_close,
