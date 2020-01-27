@@ -11,7 +11,7 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.54	2020/01/22
+ * Version:	@(#)machine_table.c	1.0.55	2020/01/27
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -95,9 +95,7 @@ const machine_t machines[] = {
     { "[286 ISA] Quadtel 286 clone",		"quadt286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512,16384, 128, 127,	     machine_at_quadt286_init, NULL			},
     { "[286 ISA] Commodore PC 30 III",		"cmdpc30",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										640,16384, 128, 127,		machine_at_cmdpc_init, NULL			},
     { "[286 ISA] Compaq Portable II",		"portableii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										640,16384, 128, 127,	   machine_at_portableii_init, NULL			},
-#if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
-    { "[286 ISA] Compaq Portable III",		"portableiii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_VIDEO | MACHINE_VIDEO_FIXED,					640,16384, 128, 127,	  machine_at_portableiii_init, NULL			},
-#endif
+    { "[286 ISA] Compaq Portable III",		"portableiii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_VIDEO,								640,16384, 128, 127,	  machine_at_portableiii_init, at_cpqiii_get_device	},
     { "[286 ISA] GW-286CT GEAR",		"gw286ct",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512,16384, 128, 127,	      machine_at_gw286ct_init, NULL			},
     { "[286 ISA] Hyundai Super-286TR",		"super286tr",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512,16384, 128, 127,	   machine_at_super286tr_init, NULL			},
     { "[286 ISA] IBM AT",			"ibmat",		{{"",      cpus_ibmat},       {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										256,15872, 128,  63,		  machine_at_ibm_init, NULL			},
@@ -142,9 +140,8 @@ const machine_t machines[] = {
 #if defined(DEV_BRANCH) && defined(USE_MR495)
     { "[386DX ISA] MR 386DX clone",		"mr386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	   machine_at_opti495_mr_init, NULL			},
 #endif
-#if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
-    { "[386DX ISA] Compaq Portable III (386)",  "portableiii386",       {{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_VIDEO | MACHINE_VIDEO_FIXED,			  1,   14,   1, 127,   machine_at_portableiii386_init, NULL			},
-#endif
+
+    { "[386DX ISA] Compaq Portable III (386)",  "portableiii386",       {{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_VIDEO,						  1,   14,   1, 127,   machine_at_portableiii386_init, at_cpqiii_get_device	},
     { "[386DX VLB] Dataexpert SX495 (386DX)",	"ami386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	  machine_at_opti495_ami_init, NULL			},
     { "[386DX VLB] Award 386DX clone",		"award386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	      machine_at_opti495_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_MR495)
