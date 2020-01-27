@@ -69,12 +69,12 @@ machine_at_pb410a_init(const machine_t *model)
 }
 
 int
-machine_at_micronics386_init(const machine_t *model)
+machine_at_micache_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/micronics386/386-Micronics-09-00021-EVEN.BIN",
-				L"roms/machines/micronics386/386-Micronics-09-00021-ODD.BIN",
+    ret = bios_load_interleaved(L"roms/machines/micache/386-Micronics-09-00021-EVEN.BIN",
+				L"roms/machines/micache/386-Micronics-09-00021-ODD.BIN",
 				0x000f0000, 131072, 0);
 
     if (bios_only || !ret)
