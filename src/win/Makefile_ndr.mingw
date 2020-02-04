@@ -794,7 +794,7 @@ all:		$(PROG).exe pcap_if.exe
 
 $(PROG).exe:	$(OBJ) 86Box.res
 		@echo Linking $(PROG).exe ..
-		@$(CC) -o $(PROG).exe $(OBJ) 86Box.res $(LIBS)
+		@$(CC) $(LDFLAGS) -o $(PROG).exe $(OBJ) 86Box.res $(LIBS)
 ifneq ($(DEBUG), y)
 		@$(STRIP) $(PROG).exe
 endif
@@ -805,7 +805,7 @@ pcap_if.res:	pcap_if.rc
 
 pcap_if.exe:	pcap_if.o win_dynld.o pcap_if.res
 		@echo Linking pcap_if.exe ..
-		@$(CC) -o pcap_if.exe pcap_if.o win_dynld.o pcap_if.res
+		@$(CC) $(LDFLAGS) -o pcap_if.exe pcap_if.o win_dynld.o pcap_if.res
 ifneq ($(DEBUG), y)
 		@$(STRIP) pcap_if.exe
 endif
