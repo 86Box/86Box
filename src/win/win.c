@@ -19,8 +19,10 @@
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #define UNICODE
+#define NTDDI_VERSION 0x06010000
 #include <windows.h>
 #include <shlobj.h>
+#include <shobjidl.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdint.h>

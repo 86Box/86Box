@@ -729,7 +729,7 @@ endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
-LIBS		+= -lpng -lz -lwsock32 -liphlpapi -ldinput8 -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -lversion -lwinmm -static -lstdc++ 
+LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -ldinput8 -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -lversion -lwinmm -static -lstdc++
 ifneq ($(X64), y)
 LIBS		+= -Wl,--large-address-aware
 endif
