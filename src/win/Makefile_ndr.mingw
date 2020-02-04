@@ -549,7 +549,7 @@ CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 		   -fno-strict-aliasing
 
 # Add freetyp2 references through pkgconfig
-CFLAGS          := $(CFLAGS)  `pkg-config.exe --cflags freetype2`
+CFLAGS          := $(CFLAGS)  `pkg-config --cflags freetype2`
 
 CXXFLAGS	:= $(CFLAGS)
 
