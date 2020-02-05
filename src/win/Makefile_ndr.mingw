@@ -196,7 +196,7 @@ ifndef RDP
 RDP		:= n
 endif
 ifndef DINPUT
- DINPUT		:= n
+ DINPUT		:= y
 endif
 ifndef OPENAL
 OPENAL		:= y
@@ -441,10 +441,6 @@ RFLAGS		+= -DUSE_RDP
  endif
 RDPLIB		+= -lrdp
 RDPOBJ		:= rdp.o
-endif
-
-ifeq ($(DINPUT), y)
-OPTS		+= -DUSE_DINPUT
 endif
 
 ifeq ($(DISCORD), y)
@@ -709,7 +705,13 @@ PLATOBJ		:= win.o \
 		    win_dynld.o win_thread.o \
 		    win_cdrom.o win_keyboard.o \
 		    win_midi.o \
-		    win_mouse.o win_joystick.o
+		    win_mouse.o
+
+ifeq ($(DINPUT), y)
+ PLATOBJ	+= win_joystick.o
+else
+ PLATOBJ	+= win_joystick_rawinput.o
+endif
 
 OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) \
 		   $(DEVOBJ) $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(HDDOBJ) \
@@ -735,12 +737,12 @@ endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
-LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -ldinput8 -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -lversion -lwinmm -static -lstdc++
+LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -lversion -lwinmm -static -lstdc++
 ifneq ($(X64), y)
 LIBS		+= -Wl,--large-address-aware
 endif
-ifneq ($(DINPUT), y)
- LIBS    += -lxinput
+ifeq ($(DINPUT), y)
+ LIBS    += -ldinput8
 endif
 
 LIBS    += -static
