@@ -104,8 +104,10 @@ void *wss_init(const device_t *info)
 		uint16_t addr = device_get_config_hex16("base");
 		wss->opl_enabled = device_get_config_int("opl");
 		
-        opl3_init(&wss->opl);
-        ad1848_init(&wss->ad1848);
+        if (wss->opl_enabled)
+		opl3_init(&wss->opl);
+        
+	ad1848_init(&wss->ad1848, AD1848_TYPE_DEFAULT);
         
         ad1848_setirq(&wss->ad1848, 7);
         ad1848_setdma(&wss->ad1848, 3);
@@ -174,7 +176,7 @@ void *ncr_audio_init(const device_t *info)
         memset(wss, 0, sizeof(wss_t));
 
         opl3_init(&wss->opl);
-        ad1848_init(&wss->ad1848);
+        ad1848_init(&wss->ad1848, AD1848_TYPE_DEFAULT);
 
 	ad1848_setirq(&wss->ad1848, 7);
 	ad1848_setdma(&wss->ad1848, 3);		

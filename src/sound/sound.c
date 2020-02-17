@@ -31,18 +31,17 @@
 #include "../plat.h"
 #include "sound.h"
 #include "midi.h"
-#include "snd_opl.h"
+#include "snd_sb.h"
 #include "snd_cms.h"
 #include "snd_adlib.h"
 #include "snd_adlibgold.h"
 #include "snd_audiopci.h"
+#include "snd_azt2316a.h"
 #include "snd_gus.h"
 #include "snd_mpu401.h"
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
 # include "snd_pas16.h"
 #endif
-#include "snd_sb.h"
-#include "snd_sb_dsp.h"
 #include "snd_ssi2001.h"
 #include "snd_wss.h"
 #include "filters.h"
@@ -91,6 +90,7 @@ static const SOUND_CARD sound_cards[] =
     { "None",					"none",		NULL				},
     { "[ISA] Adlib",				"adlib",	&adlib_device			},
     { "[ISA] Adlib Gold",			"adlibgold",	&adgold_device			},
+    { "[ISA] Aztech Sound Galaxy",		"azt2316a",	&azt2316a_device		},   
     { "[ISA] Sound Blaster 1.0",		"sb",		&sb_1_device			},
     { "[ISA] Sound Blaster 1.5",		"sb1.5",	&sb_15_device			},
     { "[ISA] Sound Blaster 2.0",		"sb2.0",	&sb_2_device			},

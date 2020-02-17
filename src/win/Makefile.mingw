@@ -656,6 +656,7 @@ SNDOBJ		:= sound.o \
 		    snd_pssj.o \
 		    snd_lpt_dac.o snd_lpt_dss.o \
 		    snd_adlib.o snd_adlibgold.o snd_ad1848.o snd_audiopci.o \
+		    snd_azt2316a.o \
 		    snd_cms.o \
 		    snd_gus.o \
 		    snd_sb.o snd_sb_dsp.o \

@@ -8,7 +8,7 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)snd_mpu401.c	1.0.20	2020/01/23
+ * Version:	@(#)snd_mpu401.c	1.0.21	2020/02/17
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
@@ -1564,12 +1564,30 @@ MPU401_InputMsg(void *p, uint8_t *msg)
 	MPU401_QueueByte(mpu, msg[i]);
 }
 
+void
+mpu401_setirq(mpu_t *mpu, int irq)
+{
+    mpu->irq = irq;
+}
+
+void
+mpu401_setaddr(mpu_t *mpu, uint16_t addr)
+{
+    mpu401_log("mpu401_setaddr : %04X\n", addr);
+    if (mpu->addr != 0)
+	io_removehandler(mpu->addr, 2, mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+
+    mpu->addr = addr;
+    if (mpu->addr != 0)
+	io_sethandler(mpu->addr, 2, mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+}
+
 
 void
 mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode, int receive_input)
 {
     mpu->status = STATUS_INPUT_NOT_READY;
-    mpu->irq = irq;
+    mpu401_setirq(mpu, irq);
     mpu->queue_used = 0;
     mpu->queue_pos = 0;
     mpu->mode = M_UART;
@@ -1581,11 +1599,10 @@ mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode, int receive_input)
     mpu->intelligent = (mode == M_INTELLIGENT) ? 1 : 0;
     mpu401_log("Starting as %s (mode is %s)\n", mpu->intelligent ? "INTELLIGENT" : "UART", (mode == M_INTELLIGENT) ? "INTELLIGENT" : "UART");
 
-    if (addr)
-	io_sethandler(addr, 2,
-		      mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+    mpu401_setaddr(mpu, addr);
     io_sethandler(0x2A20, 16,
 		  NULL, NULL, NULL, imf_write, NULL, NULL, mpu);
+
     timer_add(&mpu->mpu401_event_callback, MPU401_Event, mpu, 0);
     timer_add(&mpu->mpu401_eoi_callback, MPU401_EOIHandler, mpu, 0);
     timer_add(&mpu->mpu401_reset_callback, MPU401_ResetDone, mpu, 0);

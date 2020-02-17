@@ -8,7 +8,7 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)sound_mpu401.h	1.0.5	2020/01/19
+ * Version:	@(#)sound_mpu401.h	1.0.6	2020/02/17
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
@@ -19,6 +19,8 @@
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2016-2020 TheCollector1995.
  */
+#ifndef SOUND_SND_MPU401_UART
+#define SOUND_SND_MPU401_UART
 
 #define MPU401_VERSION	0x15
 #define MPU401_REVISION	0x01
@@ -70,6 +72,7 @@ typedef enum RecState
 
 typedef struct mpu_t
 {
+	uint16_t addr;
 	int midi_thru;
     int uart_mode, intelligent,
 	irq,
@@ -149,8 +152,12 @@ extern const device_t	mpu401_mca_device;
 
 
 extern uint8_t	MPU401_ReadData(mpu_t *mpu);
+extern void	mpu401_setirq(mpu_t *mpu, int irq);
+extern void	mpu401_setaddr(mpu_t *mpu, uint16_t addr);
 extern void	mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode, int receive_input);
 extern void	mpu401_device_add(void);
 
 extern int	MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort);
 extern void	MPU401_InputMsg(void *p, uint8_t *msg);
+
+#endif /* SOUND_SND_MPU401_UART */
