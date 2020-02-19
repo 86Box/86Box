@@ -158,7 +158,6 @@ MPU401_QueueByteEx(mpu_t *mpu, uint8_t data, int irq)
     if (mpu->queue_used == 0) {
 	mpu->state.irq_pending = 1;
 	if (irq) {
-		mpu401_log("Queue Byte IRQ, Command = %02x\n", mpu->cmd);
 		picint(1 << mpu->irq);
 	}
     }
@@ -1154,9 +1153,8 @@ mpu401_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case 1: /*Command*/
-		mpu->cmd = val;
-		mpu401_log("Write Command (0x331) %x\n", mpu->cmd);
-		MPU401_WriteCommand(mpu, mpu->cmd);
+		mpu401_log("Write Command (0x331) %x\n", val);
+		MPU401_WriteCommand(mpu, val);
 		break;
     }
 }
