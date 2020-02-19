@@ -15,7 +15,8 @@
 #include "snd_ad1848.h"
 
 
-static int ad1848_vols[64];
+static int ad1848_vols_6bits[64];
+static uint32_t ad1848_vols_5bits_aux_gain[32];
 
 
 void ad1848_setirq(ad1848_t *ad1848, int irq)
@@ -51,10 +52,14 @@ void ad1848_write(uint16_t addr, uint8_t val, void *p)
 {
         ad1848_t *ad1848 = (ad1848_t *)p;
         double freq;
+	uint32_t new_cd_vol_l, new_cd_vol_r;
         switch (addr & 3)
         {
                 case 0: /*Index*/
-                ad1848->index = val & 0xf;
+                if ((ad1848->regs[12] & 0x40) && (ad1848->type == AD1848_TYPE_CS4231))
+                        ad1848->index = val & 0x1f; /* cs4231a extended mode enabled */
+                else
+                        ad1848->index = val & 0x0f; /* ad1848/cs4248 mode TODO: some variants/clones DO NOT mirror, just ignore the writes? */
                 ad1848->trd   = val & 0x20;
                 ad1848->mce   = val & 0x40;
                 break;
@@ -93,13 +98,32 @@ void ad1848_write(uint16_t addr, uint8_t val, void *p)
                         break;
                                 
                         case 12:
+			if (ad1848->type != AD1848_TYPE_DEFAULT)
+				ad1848->regs[12] = ((ad1848->regs[12] & 0x0f) + (val & 0xf0)) | 0x80;
                         return;
                         
                         case 14:
                         ad1848->count = ad1848->regs[15] | (val << 8);
                         break;
+			/* TODO: see which of the extended registers should be read only */
                 }
                 ad1848->regs[ad1848->index] = val;
+
+                if (ad1848->type == AD1848_TYPE_CS4231) { /* TODO: configure CD volume for CS4248/AD1848 too */
+                        if (ad1848->regs[0x12] & 0x80)
+                                new_cd_vol_l = 0;
+                        else
+                                new_cd_vol_l = ad1848_vols_5bits_aux_gain[ad1848->regs[0x12] & 0x1f];
+                        if (ad1848->regs[0x13] & 0x80)
+                                new_cd_vol_r = 0;
+                        else
+                                new_cd_vol_r = ad1848_vols_5bits_aux_gain[ad1848->regs[0x13] & 0x1f];
+
+                        /* Apparently there is no master volume to modulate here
+                           (The windows mixer just adjusts all registers at the same
+                           time when the master slider is adjusted) */
+                        sound_set_cd_volume(new_cd_vol_l, new_cd_vol_r);
+                }
                 break;
                 case 2:
                 ad1848->status &= 0xfe;
@@ -132,6 +156,7 @@ static void ad1848_poll(void *p)
 
         ad1848_update(ad1848);
         
+	/* TODO: line in, mic, etc... */
         if (ad1848->enable)
         {
                 int32_t temp;
@@ -161,12 +186,12 @@ static void ad1848_poll(void *p)
                 if (ad1848->regs[6] & 0x80)
                         ad1848->out_l = 0;
                 else
-                        ad1848->out_l = (ad1848->out_l * ad1848_vols[ad1848->regs[6] & 0x3f]) >> 16;
+                        ad1848->out_l = (ad1848->out_l * ad1848_vols_6bits[ad1848->regs[6] & 0x3f]) >> 16;
 
                 if (ad1848->regs[7] & 0x80)
                         ad1848->out_r = 0;
                 else
-                        ad1848->out_r = (ad1848->out_r * ad1848_vols[ad1848->regs[7] & 0x3f]) >> 16;
+                        ad1848->out_r = (ad1848->out_r * ad1848_vols_6bits[ad1848->regs[7] & 0x3f]) >> 16;
                 
                 if (ad1848->count < 0)
                 {
@@ -184,10 +209,11 @@ static void ad1848_poll(void *p)
         else
         {
                 ad1848->out_l = ad1848->out_r = 0;
+		sound_set_cd_volume(0, 0);
         }
 }
 
-void ad1848_init(ad1848_t *ad1848)
+void ad1848_init(ad1848_t *ad1848, int type)
 {
         int c;
         double attenuation;
@@ -197,21 +223,29 @@ void ad1848_init(ad1848_t *ad1848)
         ad1848->mce = 0x40;
         
         ad1848->regs[0] = ad1848->regs[1] = 0;
-        ad1848->regs[2] = ad1848->regs[3] = 0x80;
+        ad1848->regs[2] = ad1848->regs[3] = 0x80; /* AZT2316A Line-in */
         ad1848->regs[4] = ad1848->regs[5] = 0x80;
-        ad1848->regs[6] = ad1848->regs[7] = 0x80;
+        ad1848->regs[6] = ad1848->regs[7] = 0x80; /* AZT2316A Master? */
         ad1848->regs[8] = 0;
         ad1848->regs[9] = 0x08;
         ad1848->regs[10] = ad1848->regs[11] = 0;
-        ad1848->regs[12] = 0xa;
+        if ((type == AD1848_TYPE_CS4248) || (type == AD1848_TYPE_CS4231))
+                ad1848->regs[12] = 0x8a;
+        else
+                ad1848->regs[12] = 0xa;
         ad1848->regs[13] = 0;
         ad1848->regs[14] = ad1848->regs[15] = 0;
         
+        if (type == AD1848_TYPE_CS4231)
+        {
+                ad1848->regs[0x12] = ad1848->regs[0x13] = 0x80; // AZT2316A CD
+                ad1848->regs[0x1A] = 0x80; // AZT2316A Mic
+        }	
+	
         ad1848->out_l = 0;
         ad1848->out_r = 0;
         
-        for (c = 0; c < 64; c++)
-        {
+        for (c = 0; c < 64; c++) {
                 attenuation = 0.0;
                 if (c & 0x01) attenuation -= 1.5;
                 if (c & 0x02) attenuation -= 3.0;
@@ -222,8 +256,23 @@ void ad1848_init(ad1848_t *ad1848)
                 
                 attenuation = pow(10, attenuation / 10);
                 
-                ad1848_vols[c] = (int)(attenuation * 65536);
+                ad1848_vols_6bits[c] = (int)(attenuation * 65536);
         }
         
-		timer_add(&ad1848->timer_count, ad1848_poll, ad1848, 0);
+        for (c = 0; c < 32; c++) {
+                attenuation = 12.0;
+                if (c & 0x01) attenuation -= 1.5;
+                if (c & 0x02) attenuation -= 3.0;
+                if (c & 0x04) attenuation -= 6.0;
+                if (c & 0x08) attenuation -= 12.0;
+                if (c & 0x10) attenuation -= 24.0;
+
+                attenuation = pow(10, attenuation / 10);
+
+                ad1848_vols_5bits_aux_gain[c] = (int)(attenuation * 65536);
+        }	
+	
+	ad1848->type = type;
+	
+	timer_add(&ad1848->timer_count, ad1848_poll, ad1848, 0);
 }

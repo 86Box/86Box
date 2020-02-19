@@ -157,8 +157,10 @@ MPU401_QueueByteEx(mpu_t *mpu, uint8_t data, int irq)
 
     if (mpu->queue_used == 0) {
 	mpu->state.irq_pending = 1;
-	if (irq)
+	if (irq) {
+		mpu401_log("Queue Byte IRQ, Command = %02x\n", mpu->cmd);
 		picint(1 << mpu->irq);
+	}
     }
 
     if (mpu->queue_used < MPU401_QUEUE) {
@@ -239,11 +241,8 @@ MPU401_Reset(mpu_t *mpu)
 {
     uint8_t i;
 
-    if (mpu->mode == M_INTELLIGENT) {
-	picintc(1 << mpu->irq);
-	mpu->state.irq_pending = 0;
-    }
-	
+    picintc(1 << mpu->irq);
+    mpu->state.irq_pending = 0;
     mpu->mode = M_INTELLIGENT;
     mpu->midi_thru = 0;
     mpu->state.rec = M_RECOFF;
@@ -340,7 +339,7 @@ MPU401_ResetDone(void *priv)
 static void
 MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 {	
-    uint8_t i, j, was_uart, recmsg[3];
+    uint8_t i, j, recmsg[3];
 
     if (mpu->state.reset)
 	mpu->state.cmd_pending = val + 1;
@@ -622,9 +621,9 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 		mpu401_log("MPU-401: Reset %X\n", val);
 		timer_set_delay_u64(&mpu->mpu401_reset_callback, MPU401_RESETBUSY * 33LL * TIMER_USEC);
 		mpu->state.reset = 1;
-		was_uart = (mpu->mode == M_UART);
+		mpu->uart_mode = (mpu->mode == M_UART);
 		MPU401_Reset(mpu);
-		if (was_uart)
+		if (mpu->uart_mode)
 			return;
 		break;
 
@@ -642,16 +641,11 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
     static int length, cnt;
 	uint8_t i;
 
-    if (mpu->mode == M_UART) {
+    if ((mpu->mode == M_UART) || !mpu->intelligent) {
 	midi_raw_out_byte(val);
 	return;
     }
 
-    if (!mpu->intelligent) {
-	mpu->state.command_byte = 0;
-	return;
-    }
-	
     switch (mpu->state.command_byte) {	/* 0xe# command data */
 	case 0x00:
 		break;
@@ -1097,7 +1091,7 @@ MPU401_ReadData(mpu_t *mpu)
     }
 
     /* Shouldn't this check mpu->mode? */
-    if (mpu->mode == M_UART) {
+    if ((mpu->mode == M_UART) || !mpu->intelligent) {
 	MPU401_ReadRaiseIRQ(mpu);
 	return ret;
     }
@@ -1155,13 +1149,14 @@ mpu401_write(uint16_t addr, uint8_t val, void *priv)
     /* mpu401_log("MPU401 Write Port %04X, val %x\n", addr, val); */
     switch (addr & 1) {
 	case 0: /*Data*/
-		MPU401_WriteData(mpu, val);
 		mpu401_log("Write Data (0x330) %X\n", val);
+		MPU401_WriteData(mpu, val);
 		break;
 
 	case 1: /*Command*/
-		MPU401_WriteCommand(mpu, val);
-		mpu401_log("Write Command (0x331) %x\n", val);
+		mpu->cmd = val;
+		mpu401_log("Write Command (0x331) %x\n", mpu->cmd);
+		MPU401_WriteCommand(mpu, mpu->cmd);
 		break;
     }
 }
@@ -1204,7 +1199,7 @@ MPU401_Event(void *priv)
 
     mpu401_log("MPU-401 event callback\n");
 
-    if (mpu->mode == M_UART) {
+    if ((mpu->mode == M_UART) || !mpu->intelligent) {
 	timer_disable(&mpu->mpu401_event_callback);
 	return;
     }
@@ -1365,7 +1360,7 @@ MPU401_InputMsg(void *p, uint8_t *msg)
 
     mpu401_log("MPU401 Input Msg\n");
 
-    if (mpu->mode == M_INTELLIGENT) {
+    if ((mpu->mode == M_INTELLIGENT) && mpu->intelligent) {
 	if (msg[0] < 0x80) {
 		/* Expand running status */
 		msg[2] = msg[1];
