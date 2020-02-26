@@ -227,8 +227,8 @@ void joystick_get_device_name(raw_joystick_t* rawjoy, plat_joystick_t* joy, PRID
 		sprintf(joy->name, 
 			"RawInput %s, VID:%04lX PID:%04lX",  
 			info->hid.usUsage == HID_USAGE_GENERIC_JOYSTICK ? "Joystick" : "Gamepad",
-			info->hid.dwProductId, 
-			info->hid.dwVendorId);
+			info->hid.dwVendorId,
+			info->hid.dwProductId);
 }
 
 void joystick_init()
