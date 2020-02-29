@@ -351,8 +351,8 @@ inb(uint16_t port)
     if (!found)
 	sub_cycles(io_delay);
 
-    if (!found)
-	pclog("inb(%04X) = %02X\n", port, ret);
+    // if (!found)
+	// pclog("inb(%04X) = %02X\n", port, ret);
 
     return(ret);
 }
@@ -383,8 +383,8 @@ outb(uint16_t port, uint8_t val)
     if (!found)
 	sub_cycles(io_delay);
 
-    if (!found)
-	pclog("outb(%04X, %02X)\n", port, val);
+    // if (!found)
+	// pclog("outb(%04X, %02X)\n", port, val);
 
     return;
 }
