@@ -8,15 +8,15 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.c	1.0.38	2019/11/15
+ * Version:	@(#)machine.c	1.0.39	2020/01/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -24,18 +24,18 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../timer.h"
-#include "../dma.h"
-#include "../pic.h"
-#include "../pit.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../lpt.h"
-#include "../serial.h"
-#include "../cpu/cpu.h"
-#include "../video/video.h"
+#include "86box.h"
+#include "device.h"
+#include "timer.h"
+#include "dma.h"
+#include "pic.h"
+#include "pit.h"
+#include "mem.h"
+#include "rom.h"
+#include "lpt.h"
+#include "serial.h"
+#include "cpu.h"
+#include "video.h"
 #include "machine.h"
 
 
@@ -81,6 +81,8 @@ machine_init_ex(int m)
 	mem_reset();
 
 	lpt_init();
+
+	smbase = 0x30000;
     }
 
     /* All good, boot the machine! */

@@ -21,14 +21,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../pit.h"
-#include "../mem.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "pit.h"
+#include "mem.h"
+#include "device.h"
 #include "video.h"
-#include "vid_wy700.h"
 
 
 #define WY700_XSIZE 1280

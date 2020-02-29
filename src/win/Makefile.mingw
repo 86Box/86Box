@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.142	2020/01/18
+# Version:	@(#)Makefile.mingw	1.0.143	2020/01/25
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -266,7 +266,7 @@ endif
 #########################################################################
 #		Nothing should need changing from here on..		#
 #########################################################################
-VPATH		:= $(EXPATH) . cpu \
+VPATH		:= $(EXPATH) . cpu cpu_common \
 		   cdrom chipset disk floppy game machine \
 		   printer \
 		   sound \
@@ -300,6 +300,17 @@ DEPFILE		:= win/.depends
 
 # Set up the correct toolchain flags.
 OPTS		:= $(EXTRAS) $(STUFF)
+ifeq ($(WX), y)
+OPTS		+= -I. \
+		   -Icpu -Icpu_common \
+		   -Icdrom -Ichipset -Idisk -Ifloppy -Igame -Imachine -Inetwork \
+		   -Iprinter -Isound -Iscsi -Ivideo -Ilang
+else
+OPTS		+= -iquote . \
+		   -iquote cpu -iquote cpu_common \
+		   -iquote cdrom -iquote chipset -iquote disk -iquote floppy -iquote game -iquote machine -iquote network \
+		   -iquote printer -iquote sound -iquote scsi -iquote video -iquote lang
+endif
 ifdef EXFLAGS
 OPTS		+= $(EXFLAGS)
 endif
@@ -338,7 +349,7 @@ else
   endif
  endif
 endif
-AFLAGS		:= -msse2 -mfpmath=sse
+AFLAGS		:= -msse2 -mfpmath=387
 ifeq ($(ARM), y)
  DFLAGS	  := -march=armv7-a
  AOPTIM	  :=
@@ -539,8 +550,9 @@ endif
 
 # Final versions of the toolchain flags.
 CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
-		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
+		   $(AFLAGS) -pipe -fomit-frame-pointer -mstackrealign -Wall \
 		   -fno-strict-aliasing
+# -funroll-loops
 
 # Add freetyp2 references through pkgconfig
 CFLAGS          := $(CFLAGS)  `pkg-config.exe --cflags freetype2`
@@ -559,7 +571,8 @@ INTELOBJ	:= intel_flash.o \
 		    intel_sio.o intel_piix.o
 
 CPUOBJ		:= cpu.o cpu_table.o \
-		    808x.o 386.o \
+		    808x.o \
+		    386.o 386_common.o \
 		    386_dynarec.o \
 		    x86seg.o x87.o \
 		    $(DYNARECOBJ)
@@ -588,7 +601,9 @@ DEVOBJ		:= bugger.o ibm_5161.o isamem.o isartc.o lpt.o $(SERIAL) \
 		    sio_acc3221.o \
 		    sio_fdc37c66x.o sio_fdc37c669.o \
 		    sio_fdc37c93x.o \
-		    sio_pc87306.o sio_w83877f.o \
+		    sio_pc87306.o \
+		    sio_w83787f.o \
+		    sio_w83877f.o sio_w83977f.o \
 		    sio_um8669f.o \
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o \
@@ -788,7 +803,7 @@ all:		$(PROG).exe pcap_if.exe
 
 $(PROG).exe:	$(OBJ) 86Box.res
 		@echo Linking $(PROG).exe ..
-		@$(CC) -o $(PROG).exe $(OBJ) 86Box.res $(LIBS)
+		@$(CC) -o $(PROG).exe $(OBJ) 86Box.res $(LIBS) -pipe
 ifneq ($(DEBUG), y)
 		@$(STRIP) $(PROG).exe
 endif

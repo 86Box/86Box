@@ -22,14 +22,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../lang/language.h"
-#include "../lpt.h"
-#include "../timer.h"
-#include "../pit.h"
-#include "../plat.h"
-#include "../plat_dynld.h"
-#include "../ui.h"
+#include "86box.h"
+#include "language.h"
+#include "lpt.h"
+#include "timer.h"
+#include "pit.h"
+#include "plat.h"
+#include "plat_dynld.h"
+#include "ui.h"
 #include "prt_devs.h"
 
 #if defined(_WIN32) && !defined(__WINDOWS__)

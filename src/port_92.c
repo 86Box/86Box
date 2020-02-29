@@ -22,13 +22,9 @@
 #include <wchar.h>
 #include "86box.h"
 #include "device.h"
-#ifdef USE_NEW_DYNAREC
-#include "cpu_new/cpu.h"
-#else
-#include "cpu/cpu.h"
-#endif
+#include "cpu.h"
 #include "timer.h"
-#include "io.h"
+#include "86box_io.h"
 #include "keyboard.h"
 #include "mem.h"
 #include "pit.h"

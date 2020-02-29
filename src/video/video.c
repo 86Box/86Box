@@ -58,14 +58,14 @@
 #include <wchar.h>
 #include <math.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../config.h"
-#include "../timer.h"
-#include "../plat.h"
+#include "86box.h"
+#include "cpu.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "rom.h"
+#include "config.h"
+#include "timer.h"
+#include "plat.h"
 #include "video.h"
 #include "vid_svga.h"
 

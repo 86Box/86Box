@@ -23,19 +23,19 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../config.h"
-#include "../timer.h"
-#include "../device.h"
-#include "../piix.h"
-#include "../scsi/scsi_device.h"
-#include "../nvr.h"
-#include "../disk/hdc.h"
-#include "../disk/hdc_ide.h"
-#include "../sound/sound.h"
-#include "../plat.h"
-#include "../ui.h"
-#include "../cdrom/cdrom.h"
+#include "86box.h"
+#include "config.h"
+#include "timer.h"
+#include "device.h"
+#include "piix.h"
+#include "scsi_device.h"
+#include "nvr.h"
+#include "hdc.h"
+#include "hdc_ide.h"
+#include "sound.h"
+#include "plat.h"
+#include "ui.h"
+#include "cdrom.h"
 #include "scsi_cdrom.h"
 
 

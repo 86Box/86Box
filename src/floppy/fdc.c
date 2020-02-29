@@ -9,13 +9,13 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.21	2019/10/20
+ * Version:	@(#)fdc.c	1.0.22	2020/01/24
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -24,15 +24,15 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../cpu/cpu.h"
-#include "../machine/machine.h"
-#include "../io.h"
-#include "../dma.h"
-#include "../pic.h"
-#include "../timer.h"
-#include "../ui.h"
+#include "86box.h"
+#include "device.h"
+#include "cpu.h"
+#include "machine.h"
+#include "86box_io.h"
+#include "dma.h"
+#include "pic.h"
+#include "timer.h"
+#include "ui.h"
 #include "fdd.h"
 #include "fdc.h"
 
@@ -1991,6 +1991,13 @@ void
 fdc_set_swap(fdc_t *fdc, uint8_t swap)
 {
     fdc->swap = swap;
+}
+
+
+void
+fdc_set_irq(fdc_t *fdc, int irq)
+{
+    fdc->irq = irq;
 }
 
 

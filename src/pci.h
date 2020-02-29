@@ -46,16 +46,21 @@
 #define PCI_IRQ_DISABLED -1
 
 enum {
-    PCI_CARD_NORMAL = 0,
+    PCI_CARD_NORTHBRIDGE = 0,
+    PCI_CARD_SOUTHBRIDGE,
+    PCI_CARD_NORMAL,
     PCI_CARD_ONBOARD,
     PCI_CARD_SCSI,
     PCI_CARD_SPECIAL
 };
 
-
-#define PCI_ADD_NORMAL	0x80
-#define PCI_ADD_VIDEO	0x81
-#define PCI_ADD_SCSI	0x82
+enum {
+    PCI_ADD_NORTHBRIDGE = 0x80,
+    PCI_ADD_SOUTHBRIDGE,
+    PCI_ADD_NORMAL,
+    PCI_ADD_VIDEO,
+    PCI_ADD_SCSI
+};
 
 typedef union {
     uint32_t addr;
@@ -90,6 +95,10 @@ extern void	pci_close(void);
 extern uint8_t	pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv);
 
 extern void     trc_init(void);
+
+extern uint8_t	trc_read(uint16_t port, void *priv);
+extern void	trc_write(uint16_t port, uint8_t val, void *priv);
+
 extern void	pci_elcr_set_enabled(int enabled);
 
 

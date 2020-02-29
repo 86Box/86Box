@@ -31,16 +31,16 @@
 #include <wchar.h>
 #include <time.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../dma.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../pci.h"
-#include "../pic.h"
-#include "../random.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "dma.h"
+#include "mem.h"
+#include "rom.h"
+#include "pci.h"
+#include "pic.h"
+#include "random.h"
+#include "device.h"
 #include "network.h"
 #include "net_pcnet.h"
 #include "bswap.h"
@@ -222,14 +222,16 @@ typedef struct {
     int  iLog2DescSize;
     /** Bits 16..23 in 16-bit mode */
     uint32_t GCUpperPhys;
+    /** We are waitign/about to start waiting for more receive buffers. */
+    int fMaybeOutOfSpace;
     /** True if we signal the guest that RX packets are missing. */
     int fSignalRxMiss;
     /** Link speed to be reported through CSR68. */
     uint32_t u32LinkSpeed;
     /** Error counter for bad receive descriptors. */
     uint32_t uCntBadRMD;
-	uint8_t maclocal[6]; /* configured MAC (local) address */
-	pc_timer_t poll_timer;
+    uint8_t maclocal[6]; /* configured MAC (local) address */
+    pc_timer_t poll_timer;
 } nic_t;
 
 /** @todo All structs: big endian? */
@@ -359,10 +361,10 @@ static void     pcnetAsyncTransmit(nic_t *dev);
 static void     pcnetPollRxTx(nic_t *dev);
 static void     pcnetPollTimer(nic_t *dev);
 static void     pcnetUpdateIrq(nic_t *dev);
-static uint16_t pcnet_bcr_readw(nic_t *dev, uint16_t rap);
-static void pcnet_bcr_writew(nic_t *dev, uint16_t rap, uint16_t val);
-static void pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val);
-static void pcnetCanReceive(nic_t *dev);
+static uint16_t	pcnet_bcr_readw(nic_t *dev, uint16_t rap);
+static void	pcnet_bcr_writew(nic_t *dev, uint16_t rap, uint16_t val);
+static void	pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val);
+static int	pcnetCanReceive(nic_t *dev);
 
 
 #ifdef ENABLE_PCNET_LOG
@@ -1028,6 +1030,13 @@ pcnetStop(nic_t *dev)
 }
 
 
+static void
+pcnetWakeupReceive(nic_t *dev)
+{
+    /* TODO: Wake up the thread here. */
+}
+
+
 /**
  * Poll Receive Descriptor Table Entry and cache the results in the appropriate registers.
  * Note: Once a descriptor belongs to the network card (this driver), it cannot be changed
@@ -1062,7 +1071,8 @@ pcnetRdtePoll(nic_t *dev)
 			CSR_CRBA(dev) = rmd.rmd0.rbadr;              /* Receive Buffer Address */
 			CSR_CRBC(dev) = rmd.rmd1.bcnt;               /* Receive Byte Count */
 			CSR_CRST(dev) = ((uint32_t *)&rmd)[1] >> 16; /* Receive Status */
-			pcnetCanReceive(dev);
+			if (dev->fMaybeOutOfSpace)
+				pcnetWakeupReceive(dev);
 		} else {
 			/* This is not problematic since we don't own the descriptor
 			 * We actually do own it, otherwise pcnetRmdLoad would have returned false.
@@ -1613,7 +1623,7 @@ pcnetPollRxTx(nic_t *dev)
          * true but pcnetCanReceive() returned false for some other reason we need to check
          * _now_ if we have to wakeup pcnetWaitReceiveAvail().
          */
-        if (HOST_IS_OWNER(CSR_CRST(dev)))
+        if (HOST_IS_OWNER(CSR_CRST(dev)) || dev->fMaybeOutOfSpace)
             pcnetRdtePoll(dev);
     }
 
@@ -1630,8 +1640,8 @@ pcnetPollTimer(nic_t *dev)
 
     pcnetUpdateIrq(dev);
 
-    if (!CSR_STOP(dev) && !CSR_SPND(dev) && !CSR_DPOLL(dev))
-		pcnetPollRxTx(dev);
+    if (!CSR_STOP(dev) && !CSR_SPND(dev) && (!CSR_DPOLL(dev) || dev->fMaybeOutOfSpace))
+	pcnetPollRxTx(dev);
 }
 
 
@@ -2449,9 +2459,11 @@ pcnet_pci_read(int func, int addr, void *p)
  * @returns VBox status code.
  * @param   pThis           The PCnet instance data.
  */
-static void 
+static int
 pcnetCanReceive(nic_t *dev)
 {
+    int rc = 0;
+
     if (!CSR_DRX(dev) && !CSR_STOP(dev) && !CSR_SPND(dev)) {
         if (HOST_IS_OWNER(CSR_CRST(dev)) && dev->GCRDRA)
             pcnetRdtePoll(dev);
@@ -2460,8 +2472,22 @@ pcnetCanReceive(nic_t *dev)
             /** @todo Notify the guest _now_. Will potentially increase the interrupt load */
             if (dev->fSignalRxMiss)
                 dev->aCSR[0] |= 0x1000; /* Set MISS flag */
-        }
+        } else
+		rc = 1;
     }
+
+    return rc;
+}
+
+
+static int
+pcnetWaitReceiveAvail(void *priv)
+{
+    nic_t *dev = (nic_t *) priv;
+
+    dev->fMaybeOutOfSpace = !pcnetCanReceive(dev);
+
+    return dev->fMaybeOutOfSpace;
 }
 
 
@@ -2591,7 +2617,7 @@ pcnet_init(const device_t *info)
     pcnetHardReset(dev);
 
     /* Attach ourselves to the network module. */
-    network_attach(dev, dev->aPROM, pcnetReceiveNoSync);
+    network_attach(dev, dev->aPROM, pcnetReceiveNoSync, pcnetWaitReceiveAvail);
 
     return(dev);
 }

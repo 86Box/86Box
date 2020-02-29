@@ -48,13 +48,13 @@
 #include <wchar.h>
 #include <time.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../dma.h"
-#include "../pic.h"
-#include "../mem.h"
-#include "../random.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "dma.h"
+#include "pic.h"
+#include "mem.h"
+#include "random.h"
+#include "device.h"
 #include "network.h"
 #include "net_dp8390.h"
 #include "net_3c503.h"
@@ -617,7 +617,7 @@ threec503_nic_init(const device_t *info)
     dev->regs.gacfr = 0x09;	/* Start with RAM mapping enabled. */
 
     /* Attach ourselves to the network module. */
-    network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx);
+    network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL);
 
     return(dev);
 }

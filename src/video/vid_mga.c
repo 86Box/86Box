@@ -18,16 +18,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../mem.h"
-#include "../pci.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../plat.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "mem.h"
+#include "pci.h"
+#include "rom.h"
+#include "device.h"
+#include "plat.h"
 #include "video.h"
-#include "vid_mga.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
 
@@ -269,6 +268,7 @@
 #define DWGCTRL_BLTMOD_MASK     (0xf << 25)
 #define DWGCTRL_BLTMOD_BMONOLEF (0x0 << 25)
 #define DWGCTRL_BLTMOD_BFCOL    (0x2 << 25)
+#define DWGCTRL_BLTMOD_BU32BGR  (0x3 << 25)
 #define DWGCTRL_BLTMOD_BMONOWF  (0x4 << 25)
 #define DWGCTRL_BLTMOD_BU32RGB  (0x7 << 25)
 #define DWGCTRL_BLTMOD_BUYUV    (0xe << 25)
@@ -1551,6 +1551,9 @@ mystique_ctrl_write_b(uint32_t addr, uint8_t val, void *p)
 		break;
 
 	case REG_OPMODE:
+		thread_wait_mutex(mystique->dma.lock);
+		mystique->dma.state = DMA_STATE_IDLE;	/* Interrupt DMA. */
+		thread_release_mutex(mystique->dma.lock);
 		mystique->dmamod = (val >> 2) & 3;
 		mystique_queue(mystique, addr & 0x3fff, val, FIFO_WRITE_CTRL_BYTE);
 		break;
@@ -1958,6 +1961,7 @@ mystique_iload_write_l(uint32_t addr, uint32_t val, void *p)
     mystique_queue(mystique, 0, val, FIFO_WRITE_ILOAD_LONG);
 }
 
+
 static void
 mystique_accel_iload_write_l(uint32_t addr, uint32_t val, void *p)
 {
@@ -1995,7 +1999,9 @@ mystique_accel_iload_write_l(uint32_t addr, uint32_t val, void *p)
     }
 }
 
-static uint8_t mystique_readb_linear(uint32_t addr, void *p)
+
+static uint8_t
+mystique_readb_linear(uint32_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
 
@@ -2009,7 +2015,10 @@ static uint8_t mystique_readb_linear(uint32_t addr, void *p)
 
         return svga->vram[addr & svga->vram_mask];
 }
-static uint16_t mystique_readw_linear(uint32_t addr, void *p)
+
+
+static uint16_t
+mystique_readw_linear(uint32_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
 
@@ -2023,7 +2032,10 @@ static uint16_t mystique_readw_linear(uint32_t addr, void *p)
 
         return *(uint16_t *)&svga->vram[addr & svga->vram_mask];
 }
-static uint32_t mystique_readl_linear(uint32_t addr, void *p)
+
+
+static uint32_t
+mystique_readl_linear(uint32_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
 
@@ -2038,7 +2050,9 @@ static uint32_t mystique_readl_linear(uint32_t addr, void *p)
         return *(uint32_t *)&svga->vram[addr & svga->vram_mask];
 }
 
-static void mystique_writeb_linear(uint32_t addr, uint8_t val, void *p)
+
+static void
+mystique_writeb_linear(uint32_t addr, uint8_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
 
@@ -2053,7 +2067,10 @@ static void mystique_writeb_linear(uint32_t addr, uint8_t val, void *p)
         svga->changedvram[addr >> 12] = changeframecount;
         svga->vram[addr] = val;
 }
-static void mystique_writew_linear(uint32_t addr, uint16_t val, void *p)
+
+
+static void
+mystique_writew_linear(uint32_t addr, uint16_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
 
@@ -2068,7 +2085,10 @@ static void mystique_writew_linear(uint32_t addr, uint16_t val, void *p)
         svga->changedvram[addr >> 12] = changeframecount;
         *(uint16_t *)&svga->vram[addr] = val;
 }
-static void mystique_writel_linear(uint32_t addr, uint32_t val, void *p)
+
+
+static void
+mystique_writel_linear(uint32_t addr, uint32_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
 
@@ -2580,6 +2600,7 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
 {
     svga_t *svga = &mystique->svga;
     uint32_t src, dst;
+    uint32_t dst2;
     uint64_t data64;
     int min_size = 8;
     uint32_t bltckey = mystique->dwgreg.fcol, bltcmsk = mystique->dwgreg.bcol;
@@ -2877,6 +2898,45 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
 				mystique->dwgreg.iload_rem_count = size;
 				break;
 
+			case DWGCTRL_BLTMOD_BU32BGR:
+				size += mystique->dwgreg.iload_rem_count;
+				while (size >= 32) {
+					if (mystique->dwgreg.xdst >= mystique->dwgreg.cxleft && mystique->dwgreg.xdst <= mystique->dwgreg.cxright &&
+					    mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot) {
+					    switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
+							case MACCESS_PWIDTH_32:
+								dst = ((uint32_t *)svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l];
+								dst2 = ((dst >> 16) & 0xff) | (dst & 0xff00) | ((dst & 0xff) << 16);	/* BGR to RGB */
+
+								dst = bitop(data, dst2, mystique->dwgreg.dwgctrl_running);
+
+								((uint32_t *)svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l] = dst;
+								svga->changedvram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l) >> 10] = changeframecount;
+								break;
+
+							default:
+								fatal("ILOAD RSTR/RPL BU32RGB pwidth %08x\n", mystique->maccess_running & MACCESS_PWIDTH_MASK);
+						}
+					}
+
+					size = 0;
+					if (mystique->dwgreg.xdst == mystique->dwgreg.fxright) {
+						mystique->dwgreg.xdst = mystique->dwgreg.fxleft;
+						mystique->dwgreg.ydst_lin += (mystique->dwgreg.pitch & PITCH_MASK);
+						mystique->dwgreg.length_cur--;
+						if (!mystique->dwgreg.length_cur) {
+							mystique->busy = 0;
+							mystique->blitter_complete_refcount++;
+							break;
+						}
+						break;
+					} else
+						mystique->dwgreg.xdst = (mystique->dwgreg.xdst + 1) & 0xffff;
+				}
+
+				mystique->dwgreg.iload_rem_count = size;
+				break;
+
 			default:
 				fatal("ILOAD DWGCTRL_ATYPE_RPL\n");
 				break;
@@ -3059,6 +3119,21 @@ blit_iload_iload_high(mystique_t *mystique, uint32_t data, int size)
 		CLAMP(next_g);
 		next_b = y1 + dB;
 		CLAMP(next_b);
+
+		size = 32;
+		break;
+
+	case DWGCTRL_BLTMOD_BU32BGR:
+		r = ((data >> 16) & 0xff);
+		CLAMP(r);
+		g = ((data >> 8) & 0xff);
+		CLAMP(g);
+		b = (data & 0xff);
+		CLAMP(b);
+
+		next_r = r;
+		next_g = g;
+		next_b = b;
 
 		size = 32;
 		break;
@@ -4332,6 +4407,7 @@ blit_iload_high(mystique_t *mystique)
 	case DWGCTRL_ATYPE_RPL:
 		switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK) {
 			case DWGCTRL_BLTMOD_BUYUV:
+			case DWGCTRL_BLTMOD_BU32BGR:
 				mystique->dwgreg.length_cur = mystique->dwgreg.length;
 				mystique->dwgreg.xdst = mystique->dwgreg.fxleft;
 				mystique->dwgreg.iload_rem_data = 0;
@@ -4531,9 +4607,12 @@ uint8_t mystique_pci_read(int func, int addr, void *p)
 	case 0x03: ret = 0x05; break;
 
 	case PCI_REG_COMMAND:
-		ret = mystique->pci_regs[PCI_REG_COMMAND]; break; /*Respond to IO and memory accesses*/
+		ret = mystique->pci_regs[PCI_REG_COMMAND] | 0x80; break; /*Respond to IO and memory accesses*/
+	case 0x05:
+		ret = 0x00; break;
 
-	case 0x07: ret = 0 << 1; break; /*Fast DEVSEL timing*/
+	case 0x06: ret = 0x80; break;
+	case 0x07: ret = mystique->pci_regs[0x07]; break; /*Fast DEVSEL timing*/
 
 	case 0x08: ret = 0; break; /*Revision ID*/
 	case 0x09: ret = 0; break; /*Programming interface*/
@@ -4553,6 +4632,11 @@ uint8_t mystique_pci_read(int func, int addr, void *p)
 	case 0x18: ret = 0x00; break; /*Pseudo-DMA (ILOAD)*/
 	case 0x1a: ret = (mystique->iload_base >> 16) & 0x80; break;
 	case 0x1b: ret = mystique->iload_base >> 24; break;
+
+	case 0x2c: ret = mystique->pci_regs[0x2c]; break;
+	case 0x2d: ret = mystique->pci_regs[0x2d]; break;
+	case 0x2e: ret = mystique->pci_regs[0x2e]; break;
+	case 0x2f: ret = mystique->pci_regs[0x2f]; break;
 
 	case 0x30: ret = mystique->pci_regs[0x30] & 0x01; break; /*BIOS ROM address*/
 	case 0x31: ret = 0x00; break;
@@ -4586,8 +4670,16 @@ mystique_pci_write(int func, int addr, uint8_t val, void *p)
 
     switch (addr) {
 	case PCI_REG_COMMAND:
-		mystique->pci_regs[PCI_REG_COMMAND] = val & 0x23;
+		mystique->pci_regs[PCI_REG_COMMAND] = (val & 0x27) | 0x80;
 		mystique_recalc_mapping(mystique);
+		break;
+
+	case 0x07:
+		mystique->pci_regs[0x07] &= ~(val & 0x38);
+		break;
+
+	case 0x0d:
+		mystique->pci_regs[0x0d] = val;
 		break;
 
 	case 0x11:
@@ -4636,7 +4728,16 @@ mystique_pci_write(int func, int addr, uint8_t val, void *p)
 		mystique->int_line = val;
 		return;
 
-	case 0x40: case 0x41: case 0x42: case 0x43:
+	case 0x40:
+		mystique->pci_regs[addr] = val & 0x3f;
+		break;
+	case 0x41:
+		mystique->pci_regs[addr] = val;
+		break;
+	case 0x42:
+		mystique->pci_regs[addr] = val & 0x1f;
+		break;
+	case 0x43:
 		mystique->pci_regs[addr] = val;
 		if (addr == 0x43) {
 			if (val & 0x40) {
@@ -4651,16 +4752,20 @@ mystique_pci_write(int func, int addr, uint8_t val, void *p)
 		break;
 
 	case 0x4c: case 0x4d: case 0x4e: case 0x4f:
-		mystique->pci_regs[addr-0x20] = val;
+		mystique->pci_regs[addr - 0x20] = val;
 		break;
 
-	case 0x44: case 0x45:
-		mystique->pci_regs[addr] = val;
+	case 0x44:
+		mystique->pci_regs[addr] = val & 0xfc;
+		break;
+	case 0x45:
+		mystique->pci_regs[addr] = val & 0x3f;
 		break;
 
 	case 0x48: case 0x49: case 0x4a: case 0x4b:
 		addr = (mystique->pci_regs[0x44] & 0xfc) | ((mystique->pci_regs[0x45] & 0x3f) << 8) |
 			(addr & 3);
+		pclog("mystique_ctrl_write_b(%04X, %02X)\n", addr, val);
 		mystique_ctrl_write_b(addr, val, mystique);
 		break;
     }
@@ -4718,10 +4823,12 @@ mystique_init(const device_t *info)
     mem_mapping_disable(&mystique->iload_mapping);
 
     mystique->card = pci_add_card(PCI_ADD_VIDEO, mystique_pci_read, mystique_pci_write, mystique);
+    mystique->pci_regs[0x06] = 0x80;
+    mystique->pci_regs[0x07] = 0 << 1;
     mystique->pci_regs[0x2c] = mystique->bios_rom.rom[0x7ff8];
-    mystique->pci_regs[0x2d] = mystique->bios_rom.rom[0x7ff8];
-    mystique->pci_regs[0x2e] = mystique->bios_rom.rom[0x7ff8];
-    mystique->pci_regs[0x2f] = mystique->bios_rom.rom[0x7ff8];
+    mystique->pci_regs[0x2d] = mystique->bios_rom.rom[0x7ff9];
+    mystique->pci_regs[0x2e] = mystique->bios_rom.rom[0x7ffa];
+    mystique->pci_regs[0x2f] = mystique->bios_rom.rom[0x7ffb];
 
     mystique->svga.miscout = 1;
     mystique->pci_regs[0x41] = 0x01;	/* vgaboot = 1 */

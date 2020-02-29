@@ -55,7 +55,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "machine/machine.h"
+#include "machine.h"
 #include "mem.h"
 #include "timer.h"
 #include "plat.h"

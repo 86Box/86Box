@@ -3,14 +3,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../io.h"
-#include "../dma.h"
-#include "../pic.h"
-#include "../timer.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "dma.h"
+#include "pic.h"
+#include "timer.h"
+#include "device.h"
 #include "sound.h"
-#include "snd_pssj.h"
 #include "snd_sn76489.h"
 
 

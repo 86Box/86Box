@@ -21,13 +21,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "../mem.h"
-#include "../timer.h"
+#include "86box.h"
+#include "device.h"
+#include "mem.h"
+#include "timer.h"
 #include "video.h"
 #include "vid_svga.h"
-#include "vid_att20c49x_ramdac.h"
+
+
+typedef struct
+{
+    int type;
+    int state;
+    uint8_t ctrl;
+} att49x_ramdac_t;
+
 
 enum
 {
@@ -35,9 +43,12 @@ enum
 	ATT_492_3
 };
 
+
 void
-att49x_ramdac_out(uint16_t addr, uint8_t val, att49x_ramdac_t *ramdac, svga_t *svga)
+att49x_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
 {
+    att49x_ramdac_t *ramdac = (att49x_ramdac_t *) p;
+
     switch (addr) {
 	case 0x3C6:
 		if (ramdac->state == 4) {
@@ -93,10 +104,10 @@ att49x_ramdac_out(uint16_t addr, uint8_t val, att49x_ramdac_t *ramdac, svga_t *s
 
 
 uint8_t
-att49x_ramdac_in(uint16_t addr, att49x_ramdac_t *ramdac, svga_t *svga)
+att49x_ramdac_in(uint16_t addr, void *p, svga_t *svga)
 {
-    uint8_t temp;
-    temp = svga_in(addr, svga);
+    att49x_ramdac_t *ramdac = (att49x_ramdac_t *) p;
+    uint8_t temp = svga_in(addr, svga);
 
     switch (addr) {
 	case 0x3C6:

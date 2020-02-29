@@ -22,9 +22,9 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../machine/machine.h"
-#include "../device.h"
+#include "86box.h"
+#include "machine.h"
+#include "device.h"
 #include "hdc.h"
 #include "hdc_ide.h"
 #include "hdd.h"

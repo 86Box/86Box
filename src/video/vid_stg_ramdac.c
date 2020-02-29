@@ -27,7 +27,15 @@
 #include "../timer.h"
 #include "video.h"
 #include "vid_svga.h"
-#include "vid_stg_ramdac.h"
+
+
+typedef struct stg_ramdac_t
+{
+    int magic_count, index;
+    uint8_t regs[256];
+    uint8_t command;
+} stg_ramdac_t;
+
 
 
 static int stg_state_read[2][8] = {{1,2,3,4,0,0,0,0}, {1,2,3,4,5,6,7,7}};
@@ -82,8 +90,9 @@ stg_ramdac_set_bpp(svga_t *svga, stg_ramdac_t *ramdac)
 
 
 void
-stg_ramdac_out(uint16_t addr, uint8_t val, stg_ramdac_t *ramdac, svga_t *svga)
+stg_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
 {
+    stg_ramdac_t *ramdac = (stg_ramdac_t *) p;
     int didwrite, old;
 
     switch (addr) {
@@ -136,8 +145,9 @@ stg_ramdac_out(uint16_t addr, uint8_t val, stg_ramdac_t *ramdac, svga_t *svga)
 
 
 uint8_t
-stg_ramdac_in(uint16_t addr, stg_ramdac_t *ramdac, svga_t *svga)
+stg_ramdac_in(uint16_t addr, void *p, svga_t *svga)
 {
+    stg_ramdac_t *ramdac = (stg_ramdac_t *) p;
     uint8_t temp = 0xff;
 
     switch (addr) {

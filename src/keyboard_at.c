@@ -26,22 +26,22 @@
 #define HAVE_STDARG_H
 #include <wchar.h>
 #include "86box.h"
-#include "cpu/cpu.h"
+#include "cpu.h"
 #include "timer.h"
-#include "io.h"
+#include "86box_io.h"
 #include "pic.h"
 #include "pit.h"
 #include "ppi.h"
 #include "mem.h"
 #include "device.h"
-#include "machine/machine.h"
-#include "machine/m_xt_xi8088.h"
-#include "machine/m_at_t3100e.h"
-#include "floppy/fdd.h"
-#include "floppy/fdc.h"
-#include "sound/sound.h"
-#include "sound/snd_speaker.h"
-#include "video/video.h"
+#include "machine.h"
+#include "m_xt_xi8088.h"
+#include "m_at_t3100e.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "sound.h"
+#include "snd_speaker.h"
+#include "video.h"
 #include "keyboard.h"
 
 
@@ -1002,6 +1002,7 @@ write_output(atkbd_t *dev, uint8_t val)
 		cpu_set_edx();
 	}
     }
+    /* Mask off the A20 stuff because we use mem_a20_key directly for that. */
     dev->output_port = val;
 }
 
@@ -2270,7 +2271,7 @@ kbd_reset(void *priv)
     dev->first_write = 1;
     dev->status = STAT_UNLOCKED | STAT_CD;
     dev->mem[0] = 0x01;
-    if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_XI8088)
+    // if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_XI8088)
 	dev->mem[0] |= CCB_TRANSLATE;
     dev->wantirq = 0;
     write_output(dev, 0xcf);

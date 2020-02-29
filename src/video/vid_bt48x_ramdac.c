@@ -22,13 +22,29 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "../mem.h"
-#include "../timer.h"
+#include "86box.h"
+#include "device.h"
+#include "mem.h"
+#include "timer.h"
 #include "video.h"
 #include "vid_svga.h"
-#include "vid_bt48x_ramdac.h"
+
+
+typedef struct
+{
+	PALETTE extpal;
+	uint32_t extpallook[256];
+	uint8_t cursor32_data[256];
+	uint8_t cursor64_data[1024];
+	int hwc_y, hwc_x;
+	uint8_t cmd_r0;
+        uint8_t cmd_r1;
+        uint8_t cmd_r2;
+	uint8_t cmd_r3;
+	uint8_t cmd_r4;
+	uint8_t status;
+	uint8_t type;
+} bt48x_ramdac_t;
 
 
 enum {
@@ -69,8 +85,9 @@ bt48x_set_bpp(bt48x_ramdac_t *ramdac, svga_t *svga)
 
 
 void
-bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt48x_ramdac_t *ramdac, svga_t *svga)
+bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *svga)
 {
+    bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) p;
     uint32_t o32;
     uint8_t *cd;
     uint16_t index;
@@ -209,8 +226,9 @@ bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, bt48x_ramdac_t *r
 
 
 uint8_t
-bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, bt48x_ramdac_t *ramdac, svga_t *svga)
+bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
 {
+    bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) p;
     uint8_t temp = 0xff;
     uint8_t *cd;
     uint16_t index;
@@ -327,6 +345,17 @@ bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, bt48x_ramdac_t *ramdac, svga_t 
     }
 
     return temp;
+}
+
+
+void
+bt48x_recalctimings(void *p, svga_t *svga)
+{
+    bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) p;
+
+    svga->interlace = ramdac->cmd_r2 & 0x08;
+    if (ramdac->cmd_r3 & 0x08)
+	svga->hdisp *= 2;	/* x2 clock multiplier */
 }
 
 

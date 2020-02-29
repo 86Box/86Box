@@ -1,0 +1,3 @@
+Comparing files CPU\x86_ops_movx.h and CPU_NEW\X86_OPS_MOVX.H
+FC: no differences encountered
+

@@ -1,0 +1,3 @@
+Comparing files CPU\x86_ops_bcd.h and CPU_NEW\X86_OPS_BCD.H
+FC: no differences encountered
+

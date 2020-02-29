@@ -189,7 +189,7 @@
  *		including the later update (DS12887A) which implemented a
  *		"century" register to be compatible with Y2K.
  *
- * Version:	@(#)nvr_at.c	1.0.18	2020/01/20
+ * Version:	@(#)nvr_at.c	1.0.19	2020/01/24
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -226,9 +226,9 @@
 #include <wchar.h>
 #include <time.h>
 #include "86box.h"
-#include "cpu/cpu.h"
-#include "machine/machine.h"
-#include "io.h"
+#include "cpu.h"
+#include "machine.h"
+#include "86box_io.h"
 #include "mem.h"
 #include "nmi.h"
 #include "pic.h"
@@ -293,7 +293,7 @@ typedef struct {
     uint8_t	cent;
     uint8_t	def, ls_hack;
 
-    uint8_t	addr[8];
+    uint8_t	addr[8], wp[2];
 
     int16_t	count, state;
 
@@ -302,6 +302,9 @@ typedef struct {
     pc_timer_t  update_timer,
                 rtc_timer;
 } local_t;
+
+
+static uint8_t	nvr_at_inited = 0;
 
 
 /* Get the current NVR time. */
@@ -593,6 +596,10 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 			/*FALLTHROUGH*/
 
 		default:		/* non-RTC registers are just NVRAM */
+			if ((local->addr[addr_id] >= 0x38) && (local->addr[addr_id] <= 0x3f) && local->wp[0])
+				break;
+			if ((local->addr[addr_id] >= 0xb8) && (local->addr[addr_id] <= 0xbf) && local->wp[1])
+				break;
 			if (nvr->regs[local->addr[addr_id]] != val) {
 				nvr->regs[local->addr[addr_id]] = val;
 				nvr_dosave = 1;
@@ -759,6 +766,15 @@ nvr_at_handler(int set, uint16_t base, nvr_t *nvr)
 }
 
 
+void
+nvr_wp_set(int set, int h, nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+
+    local->wp[h] = set;
+}
+
+
 static void *
 nvr_at_init(const device_t *info)
 {
@@ -824,19 +840,23 @@ nvr_at_init(const device_t *info)
     /* Initialize the generic NVR. */
     nvr_init(nvr);
 
-    /* Start the timers. */
-    timer_add(&local->update_timer, timer_update, nvr, 0);
+    if (nvr_at_inited == 0) {
+	/* Start the timers. */
+	timer_add(&local->update_timer, timer_update, nvr, 0);
 
-    timer_add(&local->rtc_timer, timer_intr, nvr, 0);
-    timer_load_count(nvr);
-    timer_set_delay_u64(&local->rtc_timer, RTCCONST);
+	timer_add(&local->rtc_timer, timer_intr, nvr, 0);
+	timer_load_count(nvr);
+	timer_set_delay_u64(&local->rtc_timer, RTCCONST);
 
-    /* Set up the I/O handler for this device. */
-    io_sethandler(0x0070, 2,
-		  nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
-    if (info->local & 8) {
-	io_sethandler(0x0072, 2,
+	/* Set up the I/O handler for this device. */
+	io_sethandler(0x0070, 2,
 		      nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
+	if (info->local & 8) {
+		io_sethandler(0x0072, 2,
+			      nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
+	}
+
+	nvr_at_inited = 1;
     }
 
     return(nvr);
@@ -862,6 +882,9 @@ nvr_at_close(void *priv)
 	free(nvr->data);
 
     free(nvr);
+
+    if (nvr_at_inited == 1)
+	nvr_at_inited = 0;
 }
 
 
@@ -905,6 +928,15 @@ const device_t ibmat_nvr_device = {
     "IBM AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     4,
+    nvr_at_init, nvr_at_close, NULL,
+    NULL, nvr_at_speed_changed,
+    NULL
+};
+
+const device_t piix4_nvr_device = {
+    "Intel PIIX4 PC/AT NVRAM",
+    DEVICE_ISA | DEVICE_AT,
+    9,
     nvr_at_init, nvr_at_close, NULL,
     NULL, nvr_at_speed_changed,
     NULL

@@ -3,14 +3,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../machine/machine.h"
-#include "../timer.h"
-#include "../lpt.h"
+#include "86box.h"
+#include "cpu.h"
+#include "machine.h"
+#include "timer.h"
+#include "lpt.h"
 #include "sound.h"
 #include "filters.h"
-#include "snd_lpt_dss.h"
 
 typedef struct dss_t
 {

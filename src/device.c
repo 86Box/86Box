@@ -47,8 +47,8 @@
 #include "86box.h"
 #include "config.h"
 #include "device.h"
-#include "machine/machine.h"
-#include "sound/sound.h"
+#include "machine.h"
+#include "sound.h"
 
 
 #define DEVICE_MAX	256			/* max # of devices */
@@ -172,6 +172,13 @@ device_add_common(const device_t *d, const device_t *cd, void *p, int inst)
 	else
 		device_log("DEVICE: device init successful\n");
 
+	if (d->reset && (d->flags & DEVICE_PCI)) {
+		if (d->name)
+			pclog("DEVICE: [%08X] device '%s' init successful\n", d->reset, d->name);
+		else
+			pclog("DEVICE: [%08X] device init successful\n", d->reset);
+	}
+
 	memcpy(&device_current, &device_prev, sizeof(device_context_t));
 	device_priv[c] = priv;
     } else
@@ -282,8 +289,10 @@ device_reset_all_pci(void)
 
     for (c=0; c<DEVICE_MAX; c++) {
 	if (devices[c] != NULL) {
-		if ((devices[c]->reset != NULL) && (devices[c]->flags & DEVICE_PCI))
+		if ((devices[c]->reset != NULL) && (devices[c]->flags & DEVICE_PCI)) {
+			pclog("Resetting %08X...\n", devices[c]->reset);
 			devices[c]->reset(device_priv[c]);
+		}
 	}
     }
 }

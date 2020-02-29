@@ -8,15 +8,15 @@
  *
  *		Definitions for the memory interface.
  *
- * Version:	@(#)mem.h	1.0.10	2019/10/19
+ * Version:	@(#)mem.h	1.0.11	2020/01/25
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #ifndef EMU_MEM_H
 # define EMU_MEM_H
@@ -262,6 +262,7 @@ extern void	mem_mapping_disable(mem_mapping_t *);
 extern void	mem_mapping_enable(mem_mapping_t *);
 
 extern void	mem_set_mem_state(uint32_t base, uint32_t size, int state);
+extern void	mem_restore_mem_state(uint32_t base, uint32_t size);
 
 extern uint8_t	mem_readb_phys(uint32_t addr);
 extern uint16_t	mem_readw_phys(uint32_t addr);
@@ -302,6 +303,7 @@ extern void     flushmmucache_cr3(void);
 extern void	flushmmucache_nopc(void);
 extern void     mmu_invalidate(uint32_t addr);
 
+extern void	mem_a20_init(void);
 extern void	mem_a20_recalc(void);
 
 extern void	mem_add_upper_bios(void);

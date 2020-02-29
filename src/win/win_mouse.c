@@ -22,9 +22,9 @@
 #include <windowsx.h>
 #include <stdio.h>
 #include <stdint.h>
-#include "../86box.h"
-#include "../mouse.h"
-#include "../plat.h"
+#include "86box.h"
+#include "mouse.h"
+#include "plat.h"
 #include "win.h"
 
 int mouse_capture;

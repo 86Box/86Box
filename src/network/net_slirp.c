@@ -53,10 +53,9 @@
 #define HAVE_STDARG_H
 #include "slirp/slirp.h"
 #include "slirp/queue.h"
-#include "../86box.h"
-#include "../device.h"
-#include "../plat.h"
-// #include "../ui.h"
+#include "86box.h"
+#include "device.h"
+#include "plat.h"
 #include "network.h"
 
 
@@ -148,7 +147,7 @@ poll_thread(void *arg)
 	/* Wait for the next packet to arrive. */
 	data_valid = 0;
 
-	if (!network_get_wait() && (QueuePeek(slirpq) != 0)) {
+	if ((!network_get_wait() && !(poll_card->wait && poll_card->wait(poll_card->priv))) && (QueuePeek(slirpq) != 0)) {
 		/* Grab a packet from the queue. */
 		// ui_sb_update_icon(SB_NETWORK, 1);
 

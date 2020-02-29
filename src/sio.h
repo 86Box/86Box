@@ -8,10 +8,10 @@
  *
  *		Definitions for the Super I/O chips.
  *
- * Version:	@(#)sio.h	1.0.6	2019/05/17
+ * Version:	@(#)sio.h	1.0.7	2020/01/25
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2017 Fred N. van Kempen.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #ifndef EMU_SIO_H
 # define EMU_SIO_H
@@ -28,9 +28,13 @@ extern const device_t	fdc37c935_device;
 extern const device_t	pc87306_device;
 extern const device_t	sio_detect_device;
 extern const device_t	um8669f_device;
+extern const device_t	w83787f_device;
 extern const device_t	w83877f_device;
 extern const device_t	w83877f_president_device;
 extern const device_t	w83877tf_device;
+extern const device_t	w83877tf_acorp_device;
+extern const device_t	w83977f_device;
+extern const device_t	w83977tf_device;
 
 
 #endif	/*EMU_SIO_H*/

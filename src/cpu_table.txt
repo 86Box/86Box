@@ -1,0 +1,3 @@
+Comparing files CPU\cpu_table.c and CPU_NEW\CPU_TABLE.C
+FC: no differences encountered
+

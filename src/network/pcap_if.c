@@ -54,9 +54,9 @@
 #include <ctype.h>
 #include <pcap/pcap.h>
 #include <time.h>
-#include "../86box.h"
-#include "../plat.h"
-#include "../plat_dynld.h"
+#include "86box.h"
+#include "plat.h"
+#include "plat_dynld.h"
 
 
 static void	*pcap_handle;		/* handle to WinPcap DLL */

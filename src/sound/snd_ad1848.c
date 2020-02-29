@@ -7,10 +7,10 @@
 #include <string.h>
 #include <wchar.h>
 #include <math.h>
-#include "../86box.h"
-#include "../dma.h"
-#include "../pic.h"
-#include "../timer.h"
+#include "86box.h"
+#include "dma.h"
+#include "pic.h"
+#include "timer.h"
 #include "sound.h"
 #include "snd_ad1848.h"
 

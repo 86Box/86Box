@@ -22,15 +22,11 @@
 #include <stringapiset.h>
 #include <time.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#ifdef USE_NEW_DYNAREC
- #include "../cpu_new/cpu.h"
-#else
- #include "../cpu/cpu.h"
-#endif
-#include "../machine/machine.h"
-#include "../plat.h"
-#include "../plat_dynld.h"
+#include "86box.h"
+#include "cpu.h"
+#include "machine.h"
+#include "plat.h"
+#include "plat_dynld.h"
 #include "win_discord.h"
 #include "discord_game_sdk.h"
 

@@ -22,12 +22,12 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../config.h"
+#include "86box.h"
+#include "config.h"
 #include "cdrom.h"
 #include "cdrom_image.h"
-#include "../plat.h"
-#include "../sound/sound.h"
+#include "plat.h"
+#include "sound.h"
 
 
 /* The addresses sent from the guest are absolute, ie. a LBA of 0 corresponds to a MSF of 00:00:00. Otherwise, the counter displayed by the guest is wrong:

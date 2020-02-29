@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.37	2020/01/22
+ * Version:	@(#)machine.h	1.0.38	2020/01/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -190,6 +190,7 @@ extern int	machine_at_neat_init(const machine_t *);
 extern int	machine_at_neat_ami_init(const machine_t *);
 
 extern int	machine_at_goldstar386_init(const machine_t *);
+extern int	machine_at_micronics386_init(const machine_t *);
 
 
 extern int	machine_at_award286_init(const machine_t *);
@@ -210,7 +211,6 @@ extern const device_t	*at_commodore_sl386sx_get_device(void);
 
 /* m_at_386dx_486.c */
 extern int	machine_at_pb410a_init(const machine_t *);
-extern int	machine_at_micronics386_init(const machine_t *);
 
 extern int	machine_at_ali1429_init(const machine_t *);
 extern int	machine_at_winbios1429_init(const machine_t *);
@@ -228,7 +228,9 @@ extern int	machine_at_win471_init(const machine_t *);
 
 extern int	machine_at_r418_init(const machine_t *);
 extern int	machine_at_ls486e_init(const machine_t *);
+extern int	machine_at_4dps_init(const machine_t *);
 extern int	machine_at_alfredo_init(const machine_t *);
+extern int	machine_at_486sp3g_init(const machine_t *);
 
 /* m_at_commodore.c */
 extern int	machine_at_cmdpc_init(const machine_t *);
@@ -287,6 +289,11 @@ extern int	machine_at_i430vx_init(const machine_t *);
 extern int	machine_at_p55va_init(const machine_t *);
 extern int	machine_at_j656vxd_init(const machine_t *);
 
+extern int	machine_at_5tx52_init(const machine_t *);
+extern int	machine_at_txp4_init(const machine_t *);
+extern int	machine_at_ym430tx_init(const machine_t *);
+extern int	machine_at_sp586tx_init(const machine_t *);
+
 extern int	machine_at_mvp3_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
@@ -297,6 +304,8 @@ extern const device_t	*at_pb640_get_device(void);
 #if defined(DEV_BRANCH) && defined(USE_I686)
 extern int	machine_at_i440fx_init(const machine_t *);
 extern int	machine_at_s1668_init(const machine_t *);
+
+extern int	machine_at_ax6bc_init(const machine_t *);
 #endif
 
 /* m_at_t3100e.c */

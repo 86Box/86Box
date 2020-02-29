@@ -12,17 +12,17 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../pic.h"
-#include "../dma.h"
-#include "../timer.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "pic.h"
+#include "dma.h"
+#include "timer.h"
+#include "device.h"
 #include "filters.h"
 #include "sound.h"
 #include "midi.h"
+#include "sound.h"
 #include "snd_mpu401.h"
-#include "snd_sb.h"
 #include "snd_sb_dsp.h"
 
 
@@ -182,9 +182,9 @@ void
 sb_irq(sb_dsp_t *dsp, int irq8)
 {
     sb_dsp_log("IRQ %i %02X\n", irq8, pic.mask);
-    if (irq8)
+    if (irq8 && !dsp->sb_irqm8)
 	dsp->sb_irq8  = 1;
-    else
+    else if (!irq8 && !dsp->sb_irqm16)
 	dsp->sb_irq16 = 1;
 
     picint(1 << dsp->sb_irqnum);

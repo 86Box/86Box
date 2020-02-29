@@ -1,0 +1,206 @@
+Comparing files CPU\x86_ops_pmode.h and CPU_NEW\X86_OPS_PMODE.H
+***** CPU\x86_ops_pmode.h
+        fetch_ea_16(fetchdat);
+        /* x386_dynarec_log("ARPL_a16\n"); */
+        if (cpu_mod != 3)
+                SEG_CHECK_WRITE(cpu_state.ea_seg);              
+                
+        temp_seg = geteaw();            if (cpu_state.abrt) return 1;
+***** CPU_NEW\X86_OPS_PMODE.H
+        fetch_ea_16(fetchdat);
+        if (cpu_mod != 3)
+                SEG_CHECK_WRITE(cpu_state.ea_seg);
+        temp_seg = geteaw();            if (cpu_state.abrt) return 1;
+*****
+
+***** CPU\x86_ops_pmode.h
+        fetch_ea_32(fetchdat);
+        /* x386_dynarec_log("ARPL_a32\n"); */
+        if (cpu_mod != 3)
+                SEG_CHECK_WRITE(cpu_state.ea_seg);              
+                
+        temp_seg = geteaw();            if (cpu_state.abrt) return 1;
+***** CPU_NEW\X86_OPS_PMODE.H
+        fetch_ea_32(fetchdat);
+        if (cpu_mod != 3)
+                SEG_CHECK_WRITE(cpu_state.ea_seg);
+        temp_seg = geteaw();            if (cpu_state.abrt) return 1;
+*****
+
+***** CPU\x86_ops_pmode.h
+                int valid;                                                                                      \
+                uint16_t sel, desc = 0;                                                                             \
+                                                                                                                \
+***** CPU_NEW\X86_OPS_PMODE.H
+                int valid;                                                                                      \
+                uint16_t sel, desc = 0;                                                                         \
+                                                                                                                \
+*****
+
+***** CPU\x86_ops_pmode.h
+                if (cpu_mod != 3)                                                                               \
+                        SEG_CHECK_READ(cpu_state.ea_seg);                                                                      
+                                        \
+                                                                                                                \
+***** CPU_NEW\X86_OPS_PMODE.H
+                if (cpu_mod != 3)                                                                               \
+                        SEG_CHECK_READ(cpu_state.ea_seg);                                                       \
+                                                                                                                \
+*****
+
+***** CPU\x86_ops_pmode.h
+                int valid;                                                                                      \
+                uint16_t sel, desc = 0;                                                                             \
+                                                                                                                \
+***** CPU_NEW\X86_OPS_PMODE.H
+                int valid;                                                                                      \
+                uint16_t sel, desc = 0;                                                                         \
+                                                                                                                \
+*****
+
+***** CPU\x86_ops_pmode.h
+
+        /* x386_dynarec_log("op0F00 %02X %04X:%04X\n", rmdat & 0x38, CS, pc); */
+        switch (rmdat & 0x38)
+***** CPU_NEW\X86_OPS_PMODE.H
+
+        switch (rmdat & 0x38)
+*****
+
+***** CPU\x86_ops_pmode.h
+                {
+                        x386_dynarec_log("Invalid LLDT!\n");
+                        x86gpf(NULL,0);
+***** CPU_NEW\X86_OPS_PMODE.H
+                {
+                        x86gpf(NULL,0);
+*****
+
+***** CPU\x86_ops_pmode.h
+                {
+                        x386_dynarec_log("Invalid LTR!\n");
+                        x86gpf(NULL,0);
+***** CPU_NEW\X86_OPS_PMODE.H
+                {
+                        x86gpf(NULL,0);
+*****
+
+***** CPU\x86_ops_pmode.h
+                default:
+                x386_dynarec_log("Bad 0F 00 opcode %02X\n", rmdat & 0x38);
+                cpu_state.pc -= 3;
+***** CPU_NEW\X86_OPS_PMODE.H
+                default:
+                cpu_state.pc -= 3;
+*****
+
+***** CPU\x86_ops_pmode.h
+        uint16_t limit, tempw;
+        /* x386_dynarec_log("op0F01 %02X %04X:%04X\n", rmdat & 0x38, CS, pc); */
+        switch (rmdat & 0x38)
+***** CPU_NEW\X86_OPS_PMODE.H
+        uint16_t limit, tempw;
+        switch (rmdat & 0x38)
+*****
+
+***** CPU\x86_ops_pmode.h
+                seteaw(gdt.limit);
+                base = gdt.base;  /* is32 ? gdt.base : (gdt.base & 0xffffff); */
+                if (is286)
+***** CPU_NEW\X86_OPS_PMODE.H
+                seteaw(gdt.limit);
+                base = gdt.base; //is32 ? gdt.base : (gdt.base & 0xffffff);
+                if (is286)
+*****
+
+***** CPU\x86_ops_pmode.h
+                {
+                        x386_dynarec_log("Invalid LGDT!\n");
+                        x86gpf(NULL,0);
+***** CPU_NEW\X86_OPS_PMODE.H
+                {
+                        x86gpf(NULL,0);
+*****
+
+***** CPU\x86_ops_pmode.h
+                }
+                /* x386_dynarec_log("LGDT %08X:%08X\n", easeg, eaaddr); */
+                if (cpu_mod != 3)
+***** CPU_NEW\X86_OPS_PMODE.H
+                }
+                if (cpu_mod != 3)
+*****
+
+***** CPU\x86_ops_pmode.h
+                base = readmeml(0, easeg + cpu_state.eaaddr + 2);         if (cpu_state.abrt) return 1;
+                /* x386_dynarec_log("     %08X %04X\n", base, limit); */
+                gdt.limit = limit;
+***** CPU_NEW\X86_OPS_PMODE.H
+                base = readmeml(0, easeg + cpu_state.eaaddr + 2);         if (cpu_state.abrt) return 1;
+                gdt.limit = limit;
+*****
+
+***** CPU\x86_ops_pmode.h
+                {
+                        x386_dynarec_log("Invalid LIDT!\n");
+                        x86gpf(NULL,0);
+***** CPU_NEW\X86_OPS_PMODE.H
+                {
+                        x86gpf(NULL,0);
+*****
+
+***** CPU\x86_ops_pmode.h
+                }
+                /* x386_dynarec_log("LIDT %08X:%08X\n", easeg, eaaddr); */
+                if (cpu_mod != 3)
+***** CPU_NEW\X86_OPS_PMODE.H
+                }
+                if (cpu_mod != 3)
+*****
+
+***** CPU\x86_ops_pmode.h
+                base = readmeml(0, easeg + cpu_state.eaaddr + 2);         if (cpu_state.abrt) return 1;
+                /* x386_dynarec_log("     %08X %04X\n", base, limit); */
+                idt.limit = limit;
+***** CPU_NEW\X86_OPS_PMODE.H
+                base = readmeml(0, easeg + cpu_state.eaaddr + 2);         if (cpu_state.abrt) return 1;
+                idt.limit = limit;
+*****
+
+***** CPU\x86_ops_pmode.h
+                {
+                        x386_dynarec_log("LMSW - ring not zero!\n");
+                        x86gpf(NULL, 0);
+***** CPU_NEW\X86_OPS_PMODE.H
+                {
+                        x86gpf(NULL, 0);
+*****
+
+***** CPU\x86_ops_pmode.h
+                        {
+                                x386_dynarec_log("Invalid INVLPG!\n");
+                                x86gpf(NULL, 0);
+***** CPU_NEW\X86_OPS_PMODE.H
+                        {
+                                x86gpf(NULL, 0);
+*****
+
+***** CPU\x86_ops_pmode.h
+                        }
+                                                SEG_CHECK_READ(cpu_state.ea_seg);
+                        mmu_invalidate(ds + cpu_state.eaaddr);
+***** CPU_NEW\X86_OPS_PMODE.H
+                        }
+                        SEG_CHECK_READ(cpu_state.ea_seg);
+                        mmu_invalidate(ds + cpu_state.eaaddr);
+*****
+
+***** CPU\x86_ops_pmode.h
+                default:
+                x386_dynarec_log("Bad 0F 01 opcode %02X\n", rmdat & 0x38);
+                cpu_state.pc -= 3;
+***** CPU_NEW\X86_OPS_PMODE.H
+                default:
+                cpu_state.pc -= 3;
+*****
+

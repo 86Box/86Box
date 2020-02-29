@@ -6,7 +6,7 @@
  *
  *		Emulation of the VIA Apollo MVP3 southbridge
  *
- * Version:	@(#)via_vt82c586b.c	1.0.1	2020/01/17
+ * Version:	@(#)via_vt82c586b.c	1.0.2	2020/01/26
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -25,12 +25,12 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "cdrom/cdrom.h"
-#include "cpu/cpu.h"
-#include "scsi/scsi_device.h"
-#include "scsi/scsi_cdrom.h"
+#include "cdrom.h"
+#include "cpu.h"
+#include "scsi_device.h"
+#include "scsi_cdrom.h"
 #include "dma.h"
-#include "io.h"
+#include "86box_io.h"
 #include "device.h"
 #include "apm.h"
 #include "keyboard.h"
@@ -40,11 +40,11 @@
 #include "pci.h"
 #include "pic.h"
 #include "port_92.h"
-#include "disk/hdc.h"
-#include "disk/hdc_ide.h"
-#include "disk/hdc_ide_sff8038i.h"
-#include "disk/zip.h"
-#include "machine/machine.h"
+#include "hdc.h"
+#include "hdc_ide.h"
+#include "hdc_ide_sff8038i.h"
+#include "zip.h"
+#include "machine.h"
 #include "via_vt82c586b.h"
 
 
@@ -62,7 +62,7 @@ typedef struct
     uint8_t		power_regs[256];
     sff8038i_t *	bm[2];
     nvr_t *		nvr;
-    int			nvr_enabled;
+    int			nvr_enabled, slot;
 
     struct
     {
@@ -221,13 +221,12 @@ via_vt82c586b_ide_handlers(via_vt82c586b_t *dev)
 
 
 static void
-via_vt82c586b_bus_master_handlers(via_vt82c586b_t *dev, uint16_t old_base)
+via_vt82c586b_bus_master_handlers(via_vt82c586b_t *dev)
 {
-    uint16_t base;
-    base = (dev->ide_regs[0x20] & 0xf0) | (dev->ide_regs[0x21] << 8);
+    uint16_t base = (dev->ide_regs[0x20] & 0xf0) | (dev->ide_regs[0x21] << 8);
 
-    sff_bus_master_handlers(dev->bm[0], old_base, base, (dev->ide_regs[0x04] & 1));
-    sff_bus_master_handlers(dev->bm[1], old_base + 8, base + 8, (dev->ide_regs[0x04] & 1));
+    sff_bus_master_handler(dev->bm[0], (dev->ide_regs[0x04] & 1), base);
+    sff_bus_master_handler(dev->bm[1], (dev->ide_regs[0x04] & 1), base + 8);
 }
 
 
@@ -358,14 +357,10 @@ static void
 via_vt82c586b_write(int func, int addr, uint8_t val, void *priv)
 {
     via_vt82c586b_t *dev = (via_vt82c586b_t *) priv;
-
-    uint16_t old_base, base;
     int c;
 
     if (func > 3)
 	return;
-
-    old_base = (dev->ide_regs[0x20] & 0xf0) | (dev->ide_regs[0x21] << 8);
 
     switch(func) {
 	case 0:		/* PCI-ISA bridge */
@@ -379,8 +374,8 @@ via_vt82c586b_write(int func, int addr, uint8_t val, void *priv)
 			case 0x04:
 				dev->pci_isa_regs[0x04] = (val & 8) | 7;
 				break;
-			case 0x06:
-				dev->pci_isa_regs[0x06] &= ~(val & 0xb0);
+			case 0x07:
+				dev->pci_isa_regs[0x07] &= ~(val & 0xb0);
 				break;
 
 			case 0x47:
@@ -460,13 +455,12 @@ via_vt82c586b_write(int func, int addr, uint8_t val, void *priv)
 
 		switch (addr) {
 			case 0x04:
-				base = (dev->ide_regs[0x20] & 0xf0) | (dev->ide_regs[0x21] << 8);
 				dev->ide_regs[0x04] = val & 0x85;
 				via_vt82c586b_ide_handlers(dev);
-				via_vt82c586b_bus_master_handlers(dev, base);
+				via_vt82c586b_bus_master_handlers(dev);
 				break;
-			case 0x06:
-				dev->ide_regs[0x06] &= ~(val & 0xb0);
+			case 0x07:
+				dev->ide_regs[0x07] &= ~(val & 0xf1);
 				break;
 
 			case 0x09:
@@ -512,11 +506,11 @@ via_vt82c586b_write(int func, int addr, uint8_t val, void *priv)
 
 			case 0x20:
 				dev->ide_regs[0x20] = (val & 0xf0) | 1;
-				via_vt82c586b_bus_master_handlers(dev, old_base);
+				via_vt82c586b_bus_master_handlers(dev);
 				break;
 			case 0x21:
 				dev->ide_regs[0x21] = val;
-				via_vt82c586b_bus_master_handlers(dev, old_base);
+				via_vt82c586b_bus_master_handlers(dev);
 				break;
 
 			case 0x3d:
@@ -546,9 +540,10 @@ via_vt82c586b_write(int func, int addr, uint8_t val, void *priv)
 		switch (addr) {
 			case 0x04:
 				dev->usb_regs[0x04] = val & 0x97;
+				usb_update_io_mapping(dev);
 				break;
 			case 0x07:
-				dev->usb_regs[0x07] = val & 0x7f;
+				dev->usb_regs[0x07] &= ~(val & 0x78);
 				break;
 
 			case 0x20:
@@ -592,15 +587,15 @@ static void
     via_vt82c586b_t *dev = (via_vt82c586b_t *) malloc(sizeof(via_vt82c586b_t));
     memset(dev, 0, sizeof(via_vt82c586b_t));
 
-    pci_add_card(7, via_vt82c586b_read, via_vt82c586b_write, dev);
+    dev->slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, via_vt82c586b_read, via_vt82c586b_write, dev);
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
-    sff_set_slot(dev->bm[0], 7);
+    sff_set_slot(dev->bm[0], dev->slot);
     sff_set_irq_mode(dev->bm[0], 0);
     sff_set_irq_pin(dev->bm[0], PCI_INTA);
 
     dev->bm[1] = device_add_inst(&sff8038i_device, 2);
-    sff_set_slot(dev->bm[1], 7);
+    sff_set_slot(dev->bm[1], dev->slot);
     sff_set_irq_mode(dev->bm[1], 0);
     sff_set_irq_pin(dev->bm[1], PCI_INTA);
 

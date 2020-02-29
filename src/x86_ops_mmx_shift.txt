@@ -1,0 +1,38 @@
+Comparing files CPU\x86_ops_mmx_shift.h and CPU_NEW\X86_OPS_MMX_SHIFT.H
+***** CPU\x86_ops_mmx_shift.h
+        {                                                               \
+                                SEG_CHECK_READ(cpu_state.ea_seg);                       \
+                shift = readmemb(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 0;    \
+***** CPU_NEW\X86_OPS_MMX_SHIFT.H
+        {                                                               \
+                SEG_CHECK_READ(cpu_state.ea_seg);                       \
+                shift = readmemb(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 0;    \
+*****
+
+***** CPU\x86_ops_mmx_shift.h
+                default:
+                x386_dynarec_log("Bad PSxxW (0F 71) instruction %02X\n", op);
+                cpu_state.pc = cpu_state.oldpc;
+***** CPU_NEW\X86_OPS_MMX_SHIFT.H
+                default:
+                cpu_state.pc = cpu_state.oldpc;
+*****
+
+***** CPU\x86_ops_mmx_shift.h
+                default:
+                x386_dynarec_log("Bad PSxxD (0F 72) instruction %02X\n", op);
+                cpu_state.pc = cpu_state.oldpc;
+***** CPU_NEW\X86_OPS_MMX_SHIFT.H
+                default:
+                cpu_state.pc = cpu_state.oldpc;
+*****
+
+***** CPU\x86_ops_mmx_shift.h
+                default:
+                x386_dynarec_log("Bad PSxxQ (0F 73) instruction %02X\n", op);
+                cpu_state.pc = cpu_state.oldpc;
+***** CPU_NEW\X86_OPS_MMX_SHIFT.H
+                default:
+                cpu_state.pc = cpu_state.oldpc;
+*****
+

@@ -29,10 +29,10 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../config.h"
-#include "../plat.h"
-#include "../scsi/scsi_device.h"
+#include "86box.h"
+#include "config.h"
+#include "plat.h"
+#include "scsi_device.h"
 #include "cdrom_image_backend.h"
 #include "cdrom.h"
 #include "cdrom_image.h"

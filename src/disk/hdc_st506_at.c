@@ -30,15 +30,15 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../io.h"
-#include "../pic.h"
-#include "../cpu/cpu.h"
-#include "../machine/machine.h"
-#include "../timer.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "86box.h"
+#include "device.h"
+#include "86box_io.h"
+#include "pic.h"
+#include "cpu.h"
+#include "machine.h"
+#include "timer.h"
+#include "plat.h"
+#include "ui.h"
 #include "hdc.h"
 #include "hdd.h"
 

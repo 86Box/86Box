@@ -19,17 +19,17 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../timer.h"
-#include "../device.h"
-#include "../nvr.h"
-#include "../piix.h"
-#include "../disk/hdd.h"
-#include "../disk/hdc.h"
+#include "86box.h"
+#include "timer.h"
+#include "device.h"
+#include "nvr.h"
+#include "piix.h"
+#include "hdd.h"
+#include "hdc.h"
 #include "scsi_device.h"
-#include "../disk/hdc_ide.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "hdc_ide.h"
+#include "plat.h"
+#include "ui.h"
 #include "scsi_disk.h"
 
 

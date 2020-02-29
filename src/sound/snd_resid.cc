@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "resid-fp/sid.h"
-#include "../plat.h"
+#include "plat.h"
 #include "snd_resid.h"
 
 

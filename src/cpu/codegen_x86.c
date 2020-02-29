@@ -43,12 +43,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
+#include "86box.h"
 #include "cpu.h"
-#include "../mem.h"
+#include "mem.h"
 #include "x86.h"
 #include "x86_flags.h"
-#include "x86_ops.h"
+#include "../cpu_common/x86_ops.h"
 #include "x87.h"
 
 #include "386_common.h"

@@ -23,7 +23,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
-#include "machine/machine.h"
+#include "machine.h"
 #include "keyboard.h"
 
 

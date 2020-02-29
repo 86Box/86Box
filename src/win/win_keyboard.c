@@ -24,10 +24,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "../86box.h"
-#include "../device.h"
-#include "../keyboard.h"
-#include "../plat.h"
+#include "86box.h"
+#include "device.h"
+#include "keyboard.h"
+#include "plat.h"
 #include "win.h"
 
 

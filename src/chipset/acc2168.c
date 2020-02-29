@@ -20,19 +20,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../timer.h"
-#include "../device.h"
-#include "../keyboard.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../mouse.h"
-#include "../port_92.h"
-#include "../sio.h"
-#include "../disk/hdc.h"
-#include "../video/video.h"
-#include "../video/vid_ht216.h"
+#include "86box.h"
+#include "cpu.h"
+#include "timer.h"
+#include "device.h"
+#include "keyboard.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "mouse.h"
+#include "port_92.h"
+#include "sio.h"
+#include "hdc.h"
+#include "video.h"
 #include "chipset.h"
 
 

@@ -34,7 +34,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "cpu/cpu.h"
+#include "cpu.h"
 #include "device.h"
 #include "timer.h"
 #include "nvr.h"
@@ -42,24 +42,23 @@
 #include "isamem.h"
 #include "isartc.h"
 #include "lpt.h"
-#include "disk/hdd.h"
-#include "disk/hdc.h"
-#include "disk/hdc_ide.h"
-#include "floppy/fdd.h"
-#include "floppy/fdc.h"
-#include "game/gameport.h"
-#include "machine/machine.h"
+#include "hdd.h"
+#include "hdc.h"
+#include "hdc_ide.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "gameport.h"
+#include "machine.h"
 #include "mouse.h"
-#include "network/network.h"
-#include "scsi/scsi.h"
-#include "scsi/scsi_device.h"
-#include "cdrom/cdrom.h"
-#include "disk/zip.h"
-#include "sound/sound.h"
-#include "sound/midi.h"
-#include "sound/snd_mpu401.h"
-#include "sound/sound.h"
-#include "video/video.h"
+#include "network.h"
+#include "scsi.h"
+#include "scsi_device.h"
+#include "cdrom.h"
+#include "zip.h"
+#include "sound.h"
+#include "midi.h"
+#include "snd_mpu401.h"
+#include "video.h"
 #include "plat.h"
 #include "plat_midi.h"
 #include "ui.h"
@@ -309,7 +308,7 @@ config_read(wchar_t *fn)
 		/* Create a new section and insert it. */
 		ns = malloc(sizeof(section_t));
 		memset(ns, 0x00, sizeof(section_t));
-		strncpy(ns->name, sname, sizeof(ns->name) - 1);
+		memcpy(ns->name, sname, 128);
 		list_add(&ns->list, &config_head);
 
 		/* New section is now the current one. */
@@ -339,7 +338,7 @@ config_read(wchar_t *fn)
 	/* Allocate a new variable entry.. */
 	ne = malloc(sizeof(entry_t));
 	memset(ne, 0x00, sizeof(entry_t));
-	strncpy(ne->name, ename, sizeof(ne->name) - 1);
+	memcpy(ne->name, ename, 128);
 	wcsncpy(ne->wdata, &buff[d], sizeof_w(ne->wdata)-1);
 	ne->wdata[sizeof_w(ne->wdata)-1] = L'\0';
 	wcstombs(ne->data, ne->wdata, sizeof(ne->data));

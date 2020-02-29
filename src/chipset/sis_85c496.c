@@ -21,18 +21,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../mem.h"
-#include "../io.h"
-#include "../rom.h"
-#include "../pci.h"
-#include "../device.h"
-#include "../keyboard.h"
-#include "../timer.h"
-#include "../port_92.h"
-#include "../disk/hdc_ide.h"
-#include "../machine/machine.h"
+#include "86box.h"
+#include "cpu.h"
+#include "mem.h"
+#include "86box_io.h"
+#include "rom.h"
+#include "pci.h"
+#include "device.h"
+#include "keyboard.h"
+#include "timer.h"
+#include "port_92.h"
+#include "hdc_ide.h"
+#include "machine.h"
 #include "chipset.h"
 
 
@@ -119,6 +119,8 @@ sis_85c496_write(int func, int addr, uint8_t val, void *priv)
 
     if ((addr >= 4 && addr < 8) || addr >= 0x40)
 	dev->pci_conf[addr] = val;
+
+    pclog("SiS 496 Write: %02X %02X %02X\n", func, addr, val);
 
     valxor = old ^ val;
 
@@ -239,15 +241,20 @@ static uint8_t
 sis_85c496_read(int func, int addr, void *priv)
 {
     sis_85c496_t *dev = (sis_85c496_t *) priv;
+    uint8_t ret = dev->pci_conf[addr];
 
     switch (addr) {
 	case 0x82: /*Port 22h Mirror*/
-		return inb(0x22);
+		ret = inb(0x22);
+		break;
 	case 0x70: /*Port 70h Mirror*/
-		return inb(0x70);
+		ret = inb(0x70);
+		break;
     }
 
-    return dev->pci_conf[addr];
+    pclog("SiS 496 Read: %02X %02X %02X\n", func, addr, ret);
+
+    return ret;
 }
  
 
@@ -313,7 +320,7 @@ static void
     dev->pci_conf[0xd0] = 0x78;	/* ROM at E0000-FFFFF, Flash enable. */
     dev->pci_conf[0xd1] = 0xff;
 
-    pci_add_card(5, sis_85c496_read, sis_85c496_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, sis_85c496_read, sis_85c496_write, dev);
 
     sis_85c497_reset(dev);
 

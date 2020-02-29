@@ -100,4 +100,32 @@ extern void	ega_write(uint32_t addr, uint8_t val, void *p);
 extern uint8_t	ega_read(uint32_t addr, void *p);
 
 
+extern int firstline_draw, lastline_draw;
+extern int displine;
+extern int sc;
+
+extern uint32_t ma, ca;
+extern int con, cursoron, cgablink;
+
+extern int scrollcache;
+
+extern uint8_t edatlookup[4][4];
+
+#if defined(EMU_MEM_H) && defined(EMU_ROM_H)
+void ega_render_blank(ega_t *ega);
+
+void ega_render_overscan_left(ega_t *ega);
+void ega_render_overscan_right(ega_t *ega);
+
+void ega_render_text_40(ega_t *ega);
+void ega_render_text_80(ega_t *ega);
+
+void ega_render_2bpp_lowres(ega_t *ega);
+void ega_render_2bpp_highres(ega_t *ega);
+
+void ega_render_4bpp_lowres(ega_t *ega);
+void ega_render_4bpp_highres(ega_t *ega);
+#endif
+
+
 #endif	/*VIDEO_EGA_H*/

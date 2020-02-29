@@ -23,17 +23,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "../timer.h"
-#include "../io.h"
-#include "../keyboard.h"
-#include "../mem.h"
-#include "../port_92.h"
-#include "../serial.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../video/vid_paradise.h"
+#include "86box.h"
+#include "device.h"
+#include "timer.h"
+#include "86box_io.h"
+#include "keyboard.h"
+#include "mem.h"
+#include "port_92.h"
+#include "serial.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "video.h"
 #include "chipset.h"
 
 

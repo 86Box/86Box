@@ -21,9 +21,9 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "cpu/cpu.h"
-#include "machine/machine.h"
-#include "io.h"
+#include "cpu.h"
+#include "machine.h"
+#include "86box_io.h"
 #include "pci.h"
 #include "pic.h"
 #include "timer.h"

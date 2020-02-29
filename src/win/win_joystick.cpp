@@ -23,10 +23,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../plat.h"
-#include "../game/gameport.h"
+#include "86box.h"
+#include "device.h"
+#include "plat.h"
+#include "gameport.h"
 #include "win.h"
 
 

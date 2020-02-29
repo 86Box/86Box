@@ -21,13 +21,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../mem.h"
-#include "../io.h"
-#include "../rom.h"
-#include "../pci.h"
-#include "../device.h"
-#include "../keyboard.h"
+#include "86box.h"
+#include "mem.h"
+#include "86box_io.h"
+#include "rom.h"
+#include "pci.h"
+#include "device.h"
+#include "keyboard.h"
 #include "chipset.h"
 
 
@@ -292,7 +292,7 @@ via_mvp3_init(const device_t *info)
 {
     via_mvp3_t *dev = (via_mvp3_t *) malloc(sizeof(via_mvp3_t));
 
-    pci_add_card(0, via_mvp3_read, via_mvp3_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, via_mvp3_read, via_mvp3_write, dev);
 
     via_mvp3_setup(dev);
 

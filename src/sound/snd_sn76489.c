@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <time.h>
-#include "../86box.h"
-#include "../io.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "device.h"
 #include "sound.h"
 #include "snd_sn76489.h"
 

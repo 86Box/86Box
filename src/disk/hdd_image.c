@@ -28,9 +28,9 @@
 #include <wchar.h>
 #include <errno.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../plat.h"
-#include "../random.h"
+#include "86box.h"
+#include "plat.h"
+#include "random.h"
 #include "hdd.h"
 
 

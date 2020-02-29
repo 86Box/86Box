@@ -25,10 +25,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../config.h"
-#include "../plat.h"
-#include "../sound/sound.h"
+#include "86box.h"
+#include "config.h"
+#include "plat.h"
+#include "sound.h"
 #include "win.h"
 
 

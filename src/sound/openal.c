@@ -29,7 +29,7 @@
 # include <AL/al.h>
 # include <AL/alc.h>
 # include <AL/alext.h>
-#include "../86box.h"
+#include "86box.h"
 #include "sound.h"
 #include "midi.h"
 

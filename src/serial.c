@@ -10,15 +10,15 @@
  *
  *		Now passes all the AMIDIAG tests.
  *
- * Version:	@(#)serial.h	1.0.13	2019/10/31
+ * Version:	@(#)serial.h	1.0.14	2020/01/24
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -30,8 +30,8 @@
 #include "86box.h"
 #include "device.h"
 #include "timer.h"
-#include "machine/machine.h"
-#include "io.h"
+#include "machine.h"
+#include "86box_io.h"
 #include "pic.h"
 #include "mem.h"
 #include "rom.h"
@@ -95,7 +95,7 @@ serial_transmit_period(serial_t *dev)
     ddlab = (double) dev->dlab;
 
     /* Bit period based on DLAB. */
-    dev->transmit_period = (16000000.0 * ddlab) / 1843200.0;
+    dev->transmit_period = (16000000.0 * ddlab) / dev->clock_src;
 }
 
 
@@ -334,6 +334,16 @@ serial_reset_fifo(serial_t *dev)
     serial_update_ints(dev);
     dev->xmit_fifo_pos = dev->rcvr_fifo_pos = 0;
     dev->rcvr_fifo_full = 0;
+}
+
+
+void
+serial_set_clock_src(serial_t *dev, double clock_src)
+{
+    dev->clock_src = clock_src;
+
+    serial_transmit_period(dev);
+    serial_update_speed(dev);
 }
 
 
@@ -676,6 +686,7 @@ serial_init(const device_t *info)
 	/* Default to 1200,N,7. */
 	dev->dlab = 96;
 	dev->fcr = 0x06;
+	dev->clock_src = 1843200.0;
 	serial_transmit_period(dev);
 	timer_add(&dev->transmit_timer, serial_transmit_timer, dev, 0);
 	timer_add(&dev->timeout_timer, serial_timeout_timer, dev, 0);

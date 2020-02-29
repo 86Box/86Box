@@ -23,24 +23,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#ifdef USE_NEW_DYNAREC
-#include "../cpu_new/cpu.h"
-#include "../cpu_new/x86.h"
-#else
-#include "../cpu/cpu.h"
-#include "../cpu/x86.h"
-#endif
-#include "../timer.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../keyboard.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../nmi.h"
-#include "../port_92.h"
-#include "../rom.h"
+#include "86box.h"
+#include "device.h"
+#include "cpu.h"
+#include "x86.h"
+#include "timer.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "keyboard.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "nmi.h"
+#include "port_92.h"
+#include "rom.h"
 #include "chipset.h"
 
 

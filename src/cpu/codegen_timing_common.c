@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
+#include "86box.h"
 #include "cpu.h"
 #include "codegen_timing_common.h"
 

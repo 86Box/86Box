@@ -25,9 +25,9 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "machine/machine.h"
-#include "cpu/cpu.h"
-#include "io.h"
+#include "machine.h"
+#include "cpu.h"
+#include "86box_io.h"
 #include "pic.h"
 #include "mem.h"
 #include "device.h"
@@ -235,10 +235,12 @@ pci_type2_write(uint16_t port, uint8_t val, void *priv)
 	if (! pci_bus) {
 		slot = pci_card_to_slot_mapping[pci_card];
 		if (slot != 0xff) {
-			if (pci_cards[slot].write) {
+			if (pci_cards[slot].write)
 				pci_cards[slot].write(pci_func, pci_index | (port & 3), val, pci_cards[slot].priv);
-			}
-		}
+			else
+				pclog("Writing to empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+		} else
+			pclog("Writing to unassigned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
 	}
     }
 }
@@ -261,10 +263,12 @@ pci_type2_read(uint16_t port, void *priv)
     if (! pci_bus) {
 	slot = pci_card_to_slot_mapping[pci_card];
 	if (slot != 0xff) {
-		if (pci_cards[slot].read) {
+		if (pci_cards[slot].read)
 			return pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
-		}
-	}
+		else
+			pclog("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+	} else
+		pclog("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
     }
 
     return 0xff;
@@ -613,7 +617,7 @@ pci_slots_clear(void)
 }
 
 
-static uint8_t
+uint8_t
 trc_read(uint16_t port, void *priv)
 {
     return trc_reg & 0xfb;
@@ -628,23 +632,24 @@ trc_reset(uint8_t val)
 
 	cpu_alt_reset = 0;
 
+	pci_reset();
+	keyboard_at_reset();
+
 	mem_a20_alt = 0;
 	mem_a20_recalc();
 
 	flushmmucache();
-
-	pci_reset();
-	keyboard_at_reset();
     }
 
     resetx86();
 }
 
 
-static void
+void
 trc_write(uint16_t port, uint8_t val, void *priv)
 {
     pci_log("TRC Write: %02X\n", val);
+    pclog("[%04X:%08X] TRC Write: %02X\n", CS, cpu_state.pc, val);
 
     if (!(trc_reg & 4) && (val & 4))
 	trc_reset(val);
@@ -760,7 +765,9 @@ pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), 
 		if (((dev->type == PCI_CARD_NORMAL) && (add_type >= PCI_ADD_NORMAL)) ||
 		    ((dev->type == PCI_CARD_ONBOARD) && (add_type == PCI_ADD_VIDEO)) ||
 		    ((dev->type == PCI_CARD_SCSI) && (add_type == PCI_ADD_SCSI)) ||
-		    ((dev->id == add_type) && (add_type < PCI_ADD_NORMAL))) {
+		    ((dev->type == PCI_CARD_NORTHBRIDGE) && (add_type == PCI_ADD_NORTHBRIDGE)) ||
+		    ((dev->type == PCI_CARD_SOUTHBRIDGE) && (add_type == PCI_ADD_SOUTHBRIDGE)) ||
+		    ((dev->id == add_type) && (add_type < PCI_ADD_NORTHBRIDGE))) {
 			dev->read = read;
 			dev->write = write;
 			dev->priv = priv;

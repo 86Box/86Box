@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.32	2020/01/22
+ * Version:	@(#)vid_cl_54xx.c	1.0.33	2020/01/22
  *
  * Authors:	TheCollector1995,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,20 +23,20 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../pci.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../timer.h"
+#include "86box.h"
+#include "cpu.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "pci.h"
+#include "rom.h"
+#include "device.h"
+#include "timer.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
-#include "vid_cl54xx.h"
 
 #define BIOS_GD5402_PATH		L"roms/video/cirruslogic/avga2.rom"
+#define BIOS_GD5402_ONBOARD_PATH	L"roms/video/machines/cbm_sl386sx25/Commodore386SX-25_AVGA2.bin"
 #define BIOS_GD5420_PATH		L"roms/video/cirruslogic/5420.vbi"
 
 #if defined(DEV_BRANCH) && defined(USE_CL5422)
@@ -2910,7 +2910,10 @@ static void
 
     switch (id) {
 	case CIRRUS_ID_CLGD5402:
-		romfn = BIOS_GD5402_PATH;
+		if (info->local & 0x200)
+			romfn = BIOS_GD5402_ONBOARD_PATH;
+		else
+			romfn = BIOS_GD5402_PATH;
 		break;
 
 	case CIRRUS_ID_CLGD5420:
@@ -3307,7 +3310,7 @@ const device_t gd5402_onboard_device =
 {
     "Cirrus Logic GD-5402 (ACUMOS AVGA2) (On-Board)",
     DEVICE_AT | DEVICE_ISA,
-    CIRRUS_ID_CLGD5402,
+    CIRRUS_ID_CLGD5402 | 0x200,
     gd54xx_init, gd54xx_close,
     NULL,
     NULL,

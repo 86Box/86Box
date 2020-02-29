@@ -8,14 +8,15 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)piix.h	1.0.3	2018/05/11
+ * Version:	@(#)piix.h	1.0.4	2020/01/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 
 extern const device_t piix_device;
 extern const device_t piix_pb640_device;
 extern const device_t piix3_device;
+extern const device_t piix4_device;

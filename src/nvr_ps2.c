@@ -40,9 +40,9 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "86box.h"
-#include "machine/machine.h"
+#include "machine.h"
 #include "device.h"
-#include "io.h"
+#include "86box_io.h"
 #include "mem.h"
 #include "timer.h"
 #include "nvr.h"

@@ -1,0 +1,205 @@
+Comparing files CPU\808x.c and CPU_NEW\808X.C
+***** CPU\808x.c
+ *
+ * Version:     @(#)808x.c      1.0.11  2019/10/21
+ *
+***** CPU_NEW\808X.C
+ *
+ * Version:     @(#)808x.c      1.0.9   2019/02/13
+ *
+*****
+
+***** CPU\808x.c
+#include <wchar.h>
+
+#define HAVE_STDARG_H
+***** CPU_NEW\808X.C
+#include <wchar.h>
+#define HAVE_STDARG_H
+*****
+
+***** CPU\808x.c
+int nmi = 0, nmi_auto_clear = 0;
+int nmi_enable = 1;
+
+***** CPU_NEW\808X.C
+int nmi = 0, nmi_auto_clear = 0;
+
+*****
+
+***** CPU\808x.c
+
+   /* On 808x systems, clock speed is usually crystal frequency divided by an integer. */
+    tsc += (uint64_t)diff * ((uint64_t)xt_cpu_multi >> 32ULL);          /* Shift xt_cpu_multi by 32 bits to the right and then 
+***** CPU_NEW\808X.C
+
+    /* On 808x systems, clock speed is usually crystal frequency divided by an integer. */
+    tsc += (uint64_t)diff * ((uint64_t)xt_cpu_multi >> 32ULL);          /* Shift xt_cpu_multi by 32 bits to the right and then 
+*****
+
+***** CPU\808x.c
+    pfq_add(c, !bus);
+    if (bus < 2) {
+        // clock_end();
+        // clock_start();
+    }
+}
+***** CPU_NEW\808X.C
+    pfq_add(c, !bus);
+    clock_end();
+    clock_start();
+}
+*****
+
+***** CPU\808x.c
+{
+    if (c <= 0)
+        return;
+
+    cycles -= c;
+***** CPU_NEW\808X.C
+{
+    cycles -= c;
+*****
+
+***** CPU\808x.c
+    if (!is286)
+        fetch_and_bus(c, 2);
+}
+***** CPU_NEW\808X.C
+    if (!is286)
+        fetch_and_bus(c, 1);
+}
+*****
+
+***** CPU\808x.c
+
+static uint32_t
+sign_extend32(uint16_t data)
+{
+    return data + (data < 0x8000 ? 0 : 0xffff0000);
+}
+
+
+/* Fetches the effective address from the prefetch queue according to MOD and R/M. */
+***** CPU_NEW\808X.C
+
+/* Fetches the effective address from the prefetch queue according to MOD and R/M. */
+*****
+
+***** CPU\808x.c
+        cpu_state.pc = 0xFFF0;
+        cpu_state.seg_cs.base = 0xFFFF0000;
+        rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+***** CPU_NEW\808X.C
+        cpu_state.pc = 0xFFF0;
+        rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+*****
+
+***** CPU\808x.c
+        resetmcr();
+        cpu_set_edx();
+***** CPU_NEW\808X.C
+        resetmcr();
+        pfq_clear();
+        cpu_set_edx();
+*****
+
+***** CPU\808x.c
+#endif
+    if (!hard)
+        flushmmucache();
+    x86_was_reset = 1;
+***** CPU_NEW\808X.C
+#endif
+        if (!hard)
+                flushmmucache();
+    x86_was_reset = 1;
+*****
+
+***** CPU\808x.c
+
+    pfq_clear();
+    prefetching = 1;
+
+    takeint = 0;
+***** CPU_NEW\808X.C
+
+    prefetching = 1;
+    takeint = 0;
+*****
+
+***** CPU\808x.c
+    cpu_ven_reset();
+
+    cpu_alu_op = 0;
+}
+***** CPU_NEW\808X.C
+    cpu_ven_reset();
+}
+*****
+
+***** CPU\808x.c
+
+    /* This has to be done so that the special case of ADD does not kick in. */
+    size_mask = (1 << bit_count) - 1;
+***** CPU_NEW\808X.C
+
+    size_mask = (1 << bit_count) - 1;
+*****
+
+***** CPU\808x.c
+    uint16_t new_cs, new_ip;
+    uint32_t result;
+    int bits;
+***** CPU_NEW\808X.C
+    uint16_t new_cs, new_ip;
+    int bits;
+*****
+
+***** CPU\808x.c
+                                        if (opcode & 1) {
+                                                result = cpu_data;
+                                                mul(AX, cpu_data);
+***** CPU_NEW\808X.C
+                                        if (opcode & 1) {
+                                                mul(AX, cpu_data);
+*****
+
+***** CPU\808x.c
+                                                cpu_data |= DX;
+                                                result = ((uint32_t) DX << 16) | AX;
+                                                if ((rmdat & 0x38) == 0x20)
+                                                        set_co_mul(DX != 0x0000);
+                                                else
+                                                        set_co_mul(result != sign_extend32(AX));
+                                        } else {
+***** CPU_NEW\808X.C
+                                                cpu_data |= DX;
+                                                set_co_mul(DX != ((AX & 0x8000) == 0 || (rmdat & 0x38) == 0x20 ? 0 : 0xffff));
+                                        } else {
+*****
+
+***** CPU\808x.c
+                                                cpu_data |= AH;
+                                                if ((rmdat & 0x38) == 0x20)
+                                                        set_co_mul(AH != 0x00);
+                                                else
+                                                        set_co_mul(AX != sign_extend(AL));
+                                        }
+***** CPU_NEW\808X.C
+                                                cpu_data |= AH;
+                                                set_co_mul(AH != ((AL & 0x80) == 0 || (rmdat & 0x38) == 0x20 ? 0 : 0xff));
+                                        }
+*****
+
+***** CPU\808x.c
+                        noint = 0;
+
+                cpu_alu_op = 0;
+        }
+***** CPU_NEW\808X.C
+                        noint = 0;
+        }
+*****
+

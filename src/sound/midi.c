@@ -25,18 +25,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "../plat.h"
-#include "../plat_midi.h"
+#include "86box.h"
+#include "device.h"
+#include "plat.h"
+#include "plat_midi.h"
 #include "midi.h"
-#include "midi_system.h"
-#ifdef USE_FLUIDSYNTH
-# include "midi_fluidsynth.h"
-#endif
-#ifdef USE_MUNT
-# include "midi_mt32.h"
-#endif
 #include "midi_input.h"
 
 

@@ -33,8 +33,8 @@
 #include "mem.h"
 #include "rom.h"
 #include "plat.h"
-#include "machine/machine.h"
-#include "machine/m_xt_xi8088.h"
+#include "machine.h"
+#include "m_xt_xi8088.h"
 
 
 #ifdef ENABLE_ROM_LOG

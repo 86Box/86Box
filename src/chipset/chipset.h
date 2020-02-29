@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated chipsets.
  *
- * Version:	@(#)machine.h	1.0.1	2020/01/14
+ * Version:	@(#)machine.h	1.0.2	2020/01/24
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -33,14 +33,17 @@ extern const device_t	headland_386_device;
 
 /* Intel 4x0xX */
 extern const device_t	i420tx_device;
+extern const device_t	i420zx_device;
 extern const device_t	i430lx_device;
 extern const device_t	i430nx_device;
 extern const device_t	i430fx_device;
 extern const device_t	i430fx_pb640_device;
 extern const device_t	i430hx_device;
 extern const device_t	i430vx_device;
+extern const device_t	i430tx_device;
 #if defined(DEV_BRANCH) && defined(USE_I686)
 extern const device_t	i440fx_device;
+extern const device_t	i440bx_device;
 #endif
 
 /* NEAT */

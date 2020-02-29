@@ -2,18 +2,18 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../nmi.h"
-#include "../timer.h"
-#include "../pit.h"
-#include "../mem.h"
-#include "../device.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../game/gameport.h"
-#include "../ibm_5161.h"
-#include "../keyboard.h"
-#include "../rom.h"
+#include "86box.h"
+#include "nmi.h"
+#include "timer.h"
+#include "pit.h"
+#include "mem.h"
+#include "device.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "gameport.h"
+#include "ibm_5161.h"
+#include "keyboard.h"
+#include "rom.h"
 #include "machine.h"
 
 

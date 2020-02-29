@@ -23,8 +23,8 @@
 #include <wchar.h>
 #include <time.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
+#include "86box.h"
+#include "device.h"
 #include "network.h"
 #include "net_dp8390.h"
 

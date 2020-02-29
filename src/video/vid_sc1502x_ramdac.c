@@ -29,12 +29,19 @@
 #include "../timer.h"
 #include "video.h"
 #include "vid_svga.h"
-#include "vid_sc1502x_ramdac.h"
+
+
+typedef struct
+{
+    int state;
+    uint8_t ctrl;
+} sc1502x_ramdac_t;
 
 
 void
-sc1502x_ramdac_out(uint16_t addr, uint8_t val, sc1502x_ramdac_t *ramdac, svga_t *svga)
+sc1502x_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
 {
+    sc1502x_ramdac_t *ramdac = (sc1502x_ramdac_t *) p;
     int oldbpp = 0;
 
     switch (addr) {
@@ -102,10 +109,10 @@ sc1502x_ramdac_out(uint16_t addr, uint8_t val, sc1502x_ramdac_t *ramdac, svga_t 
 
 
 uint8_t
-sc1502x_ramdac_in(uint16_t addr, sc1502x_ramdac_t *ramdac, svga_t *svga)
+sc1502x_ramdac_in(uint16_t addr, void *p, svga_t *svga)
 {
-    uint8_t temp;
-    temp = svga_in(addr, svga);
+    sc1502x_ramdac_t *ramdac = (sc1502x_ramdac_t *) p;
+    uint8_t temp = svga_in(addr, svga);
 
     switch (addr) {
 	case 0x3C6:

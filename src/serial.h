@@ -8,15 +8,15 @@
  *
  *		Definitions for the NS8250/16450/16550 UART emulation.
  *
- * Version:	@(#)serial.h	1.0.12	2019/10/31
+ * Version:	@(#)serial.h	1.0.13	2020/01/24
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #ifndef EMU_SERIAL_H
 # define EMU_SERIAL_H
@@ -53,7 +53,7 @@ typedef struct serial_s
 	    rcvr_fifo[16], xmit_fifo[16];
 
     pc_timer_t transmit_timer, timeout_timer;
-    double transmit_period;
+    double clock_src, transmit_period;
 
     struct serial_device_s	*sd;
 } serial_t;
@@ -78,6 +78,7 @@ extern void	serial_clear_fifo(serial_t *dev);
 extern void	serial_write_fifo(serial_t *dev, uint8_t dat);
 extern void	serial_set_next_inst(int ni);
 extern void	serial_standalone_init(void);
+extern void	serial_set_clock_src(serial_t *dev, double clock_src);
 
 extern const device_t	i8250_device;
 extern const device_t	i8250_pcjr_device;

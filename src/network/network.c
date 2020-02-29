@@ -55,10 +55,10 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "86box.h"
+#include "device.h"
+#include "plat.h"
+#include "ui.h"
 #include "network.h"
 #include "net_3c503.h"
 #include "net_ne2000.h"
@@ -219,13 +219,14 @@ network_init(void)
  * modules.
  */
 void
-network_attach(void *dev, uint8_t *mac, NETRXCB rx)
+network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait)
 {
     if (network_card == 0) return;
 
     /* Save the card's info. */
     net_cards[network_card].priv = dev;
     net_cards[network_card].rx = rx;
+    net_cards[network_card].wait = wait;
     network_mac = mac;
 
     network_set_wait(0);

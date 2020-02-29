@@ -20,13 +20,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../mem.h"
-#include "../io.h"
-#include "../rom.h"
-#include "../pci.h"
-#include "../device.h"
-#include "../keyboard.h"
+#include "86box.h"
+#include "mem.h"
+#include "86box_io.h"
+#include "rom.h"
+#include "pci.h"
+#include "device.h"
+#include "keyboard.h"
 #include "chipset.h"
 
 

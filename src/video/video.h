@@ -190,4 +190,164 @@ extern uint32_t	video_color_transform(uint32_t color);
 #endif
 
 
+#ifdef EMU_DEVICE_H
+/* ATi Mach64 */
+extern const device_t mach64gx_isa_device;
+extern const device_t mach64gx_vlb_device;
+extern const device_t mach64gx_pci_device;
+extern const device_t mach64vt2_device;
+
+/* ATi 18800 */
+extern const device_t ati18800_wonder_device;
+extern const device_t ati18800_vga88_device;
+extern const device_t ati18800_device;
+
+/* ATi 28800 */
+extern const device_t ati28800_device;
+extern const device_t ati28800k_device;
+extern const device_t compaq_ati28800_device;
+#if defined(DEV_BRANCH) && defined(USE_XL24)
+extern const device_t ati28800_wonderxl24_device;
+#endif
+
+/* Cirrus Logic CL-GD 54xx */
+extern const device_t gd5402_isa_device;
+extern const device_t gd5402_onboard_device;
+extern const device_t gd5420_isa_device;
+#if defined(DEV_BRANCH) && defined(USE_CL5422)
+extern const device_t gd5422_isa_device;
+extern const device_t gd5424_vlb_device;
+#endif
+extern const device_t gd5426_vlb_device;
+extern const device_t gd5428_isa_device;
+extern const device_t gd5428_vlb_device;
+extern const device_t gd5429_isa_device;
+extern const device_t gd5429_vlb_device;
+extern const device_t gd5430_vlb_device;
+extern const device_t gd5430_pci_device;
+extern const device_t gd5434_isa_device;
+extern const device_t gd5434_vlb_device;
+extern const device_t gd5434_pci_device;
+extern const device_t gd5436_pci_device;
+extern const device_t gd5440_onboard_pci_device;
+extern const device_t gd5440_pci_device;
+extern const device_t gd5446_pci_device;
+extern const device_t gd5446_stb_pci_device;
+extern const device_t gd5480_pci_device;
+
+/* Compaq CGA */
+extern const device_t compaq_cga_device;
+extern const device_t compaq_cga_2_device;
+
+/* Tseng ET4000AX */
+extern const device_t et4000_isa_device;
+extern const device_t et4000k_isa_device;
+extern const device_t et4000k_tg286_isa_device;
+extern const device_t et4000_mca_device;
+
+/* Tseng ET4000-W32p */
+extern const device_t et4000w32p_vlb_device;
+extern const device_t et4000w32p_pci_device;
+extern const device_t et4000w32p_cardex_vlb_device;
+extern const device_t et4000w32p_cardex_pci_device;
+
+/* MDSI Genius VHR */
+extern const device_t genius_device;
+
+/* Hercules */
+extern const device_t hercules_device;
+extern const device_t herculesplus_device;
+extern const device_t incolor_device;
+
+/* Headland GC-2xx/HT-2xx */
+extern const device_t g2_gc205_device;
+extern const device_t v7_vga_1024i_device;
+extern const device_t ht216_32_pb410a_device;
+
+/* Professional Graphics Controller */
+extern const device_t im1024_device;
+extern const device_t pgc_device;
+
+/* Matrox Mystique */
+extern const device_t mystique_device;
+extern const device_t mystique_220_device;
+
+/* Oak OTI-0x7 */
+extern const device_t oti037c_device;
+extern const device_t oti067_device;
+extern const device_t oti067_acer386_device;
+extern const device_t oti067_ama932j_device;
+extern const device_t oti077_device;
+
+/* Paradise/WD (S)VGA */
+extern const device_t paradise_pvga1a_pc2086_device;
+extern const device_t paradise_pvga1a_pc3086_device;
+extern const device_t paradise_pvga1a_device;
+extern const device_t paradise_wd90c11_megapc_device;
+extern const device_t paradise_wd90c11_device;
+extern const device_t paradise_wd90c30_device;
+
+/* S3 9XX/8XX/Vision/Trio */
+const device_t s3_orchid_86c911_isa_device;
+const device_t s3_metheus_premier_86c928_isa_device;
+const device_t s3_metheus_premier_86c928_vlb_device;
+const device_t s3_v7mirage_86c801_isa_device;
+const device_t s3_phoenix_86c805_vlb_device;
+const device_t s3_bahamas64_vlb_device;
+const device_t s3_bahamas64_pci_device;
+const device_t s3_9fx_vlb_device;
+const device_t s3_9fx_pci_device;
+const device_t s3_phoenix_trio32_vlb_device;
+const device_t s3_phoenix_trio32_pci_device;
+const device_t s3_phoenix_trio64_vlb_device;
+const device_t s3_phoenix_trio64_onboard_pci_device;
+const device_t s3_phoenix_trio64_pci_device;
+const device_t s3_phoenix_vision864_pci_device;
+const device_t s3_phoenix_vision864_vlb_device;
+const device_t s3_diamond_stealth64_pci_device;
+const device_t s3_diamond_stealth64_vlb_device;
+const device_t s3_diamond_stealth64_964_pci_device;
+const device_t s3_diamond_stealth64_964_vlb_device;
+
+/* S3 ViRGE */
+extern const device_t s3_virge_vlb_device;
+extern const device_t s3_virge_pci_device;
+extern const device_t s3_virge_988_vlb_device;
+extern const device_t s3_virge_988_pci_device;
+extern const device_t s3_virge_375_vlb_device;
+extern const device_t s3_virge_375_pci_device;
+extern const device_t s3_virge_375_4_vlb_device;
+extern const device_t s3_virge_375_4_pci_device;
+
+/* Sigma Color 400 */
+extern const device_t sigma_device;
+
+/* Trident TGUI 94x0 */
+extern const device_t tgui9400cxi_device;
+extern const device_t tgui9440_vlb_device;
+extern const device_t tgui9440_pci_device;
+
+/* IBM PS/1 (S)VGA */
+#if defined(DEV_BRANCH) && defined(USE_TI)
+extern const device_t ti_cf62011_device;
+#endif
+extern const device_t ibm_ps1_2121_device;
+
+/* Trident TVGA 8900 */
+extern const device_t tvga8900b_device;
+extern const device_t tvga8900d_device;
+
+/* IBM VGA */
+extern const device_t vga_device;
+extern const device_t ps1vga_device;
+extern const device_t ps1vga_mca_device;
+
+/* 3DFX Voodoo Graphics */
+extern const device_t voodoo_device;
+
+/* Wyse 700 */
+extern const device_t wy700_device;
+#endif
+
+
 #endif	/*EMU_VIDEO_H*/

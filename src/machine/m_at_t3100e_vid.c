@@ -57,14 +57,14 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../timer.h"
-#include "../cpu/cpu.h"
-#include "../video/video.h"
-#include "../video/vid_cga.h"
+#include "86box.h"
+#include "device.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "timer.h"
+#include "cpu.h"
+#include "video.h"
+#include "vid_cga.h"
 #include "m_at_t3100e.h"
 
 

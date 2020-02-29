@@ -1,0 +1,157 @@
+Comparing files CPU\x86_ops_bit.h and CPU_NEW\X86_OPS_BIT.H
+***** CPU\x86_ops_bit.h
+        fetch_ea_16(fetchdat);
+                SEG_CHECK_READ(cpu_state.ea_seg);
+        cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].w / 16) * 2);     eal_r = 0;
+***** CPU_NEW\X86_OPS_BIT.H
+        fetch_ea_16(fetchdat);
+        SEG_CHECK_READ(cpu_state.ea_seg);
+        cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].w / 16) * 2);     eal_r = 0;
+*****
+
+***** CPU\x86_ops_bit.h
+        if (temp & (1 << (cpu_state.regs[cpu_reg].w & 15))) cpu_state.flags |=  C_FLAG;
+        else                                            cpu_state.flags &= ~C_FLAG;
+        
+***** CPU_NEW\X86_OPS_BIT.H
+        if (temp & (1 << (cpu_state.regs[cpu_reg].w & 15))) cpu_state.flags |=  C_FLAG;
+        else                                                cpu_state.flags &= ~C_FLAG;
+        
+*****
+
+***** CPU\x86_ops_bit.h
+        fetch_ea_32(fetchdat);
+                SEG_CHECK_READ(cpu_state.ea_seg);
+        cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].w / 16) * 2);     eal_r = 0;
+***** CPU_NEW\X86_OPS_BIT.H
+        fetch_ea_32(fetchdat);
+        SEG_CHECK_READ(cpu_state.ea_seg);
+        cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].w / 16) * 2);     eal_r = 0;
+*****
+
+***** CPU\x86_ops_bit.h
+        if (temp & (1 << (cpu_state.regs[cpu_reg].w & 15))) cpu_state.flags |=  C_FLAG;
+        else                                            cpu_state.flags &= ~C_FLAG;
+        
+***** CPU_NEW\X86_OPS_BIT.H
+        if (temp & (1 << (cpu_state.regs[cpu_reg].w & 15))) cpu_state.flags |=  C_FLAG;
+        else                                                cpu_state.flags &= ~C_FLAG;
+        
+*****
+
+***** CPU\x86_ops_bit.h
+        fetch_ea_16(fetchdat);
+                SEG_CHECK_READ(cpu_state.ea_seg);
+        cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].l / 32) * 4);     eal_r = 0;
+***** CPU_NEW\X86_OPS_BIT.H
+        fetch_ea_16(fetchdat);
+        SEG_CHECK_READ(cpu_state.ea_seg);
+        cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].l / 32) * 4);     eal_r = 0;
+*****
+
+***** CPU\x86_ops_bit.h
+        if (temp & (1 << (cpu_state.regs[cpu_reg].l & 31))) cpu_state.flags |=  C_FLAG;
+        else                                            cpu_state.flags &= ~C_FLAG;
+        
+***** CPU_NEW\X86_OPS_BIT.H
+        if (temp & (1 << (cpu_state.regs[cpu_reg].l & 31))) cpu_state.flags |=  C_FLAG;
+        else                                                cpu_state.flags &= ~C_FLAG;
+        
+*****
+
+***** CPU\x86_ops_bit.h
+        fetch_ea_32(fetchdat);
+                SEG_CHECK_READ(cpu_state.ea_seg);
+        cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].l / 32) * 4);     eal_r = 0;
+***** CPU_NEW\X86_OPS_BIT.H
+        fetch_ea_32(fetchdat);
+        SEG_CHECK_READ(cpu_state.ea_seg);
+        cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].l / 32) * 4);     eal_r = 0;
+*****
+
+***** CPU\x86_ops_bit.h
+        if (temp & (1 << (cpu_state.regs[cpu_reg].l & 31))) cpu_state.flags |=  C_FLAG;
+        else                                            cpu_state.flags &= ~C_FLAG;
+        
+***** CPU_NEW\X86_OPS_BIT.H
+        if (temp & (1 << (cpu_state.regs[cpu_reg].l & 31))) cpu_state.flags |=  C_FLAG;
+        else                                                cpu_state.flags &= ~C_FLAG;
+        
+*****
+
+***** CPU\x86_ops_bit.h
+                SEG_CHECK_WRITE(cpu_state.ea_seg);
+        
+        temp = geteaw();
+***** CPU_NEW\X86_OPS_BIT.H
+                SEG_CHECK_WRITE(cpu_state.ea_seg);
+
+        temp = geteaw();
+*****
+
+***** CPU\x86_ops_bit.h
+                default:
+                x386_dynarec_log("Bad 0F BA opcode %02X\n", rmdat & 0x38);
+                cpu_state.pc = cpu_state.oldpc;
+***** CPU_NEW\X86_OPS_BIT.H
+                default:
+                cpu_state.pc = cpu_state.oldpc;
+*****
+
+***** CPU\x86_ops_bit.h
+                SEG_CHECK_WRITE(cpu_state.ea_seg);
+        
+        temp = geteaw();
+***** CPU_NEW\X86_OPS_BIT.H
+                SEG_CHECK_WRITE(cpu_state.ea_seg);
+
+        temp = geteaw();
+*****
+
+***** CPU\x86_ops_bit.h
+                default:
+                x386_dynarec_log("Bad 0F BA opcode %02X\n", rmdat & 0x38);
+                cpu_state.pc = cpu_state.oldpc;
+***** CPU_NEW\X86_OPS_BIT.H
+                default:
+                cpu_state.pc = cpu_state.oldpc;
+*****
+
+***** CPU\x86_ops_bit.h
+                SEG_CHECK_WRITE(cpu_state.ea_seg);
+        
+        temp = geteal();
+***** CPU_NEW\X86_OPS_BIT.H
+                SEG_CHECK_WRITE(cpu_state.ea_seg);
+
+        temp = geteal();
+*****
+
+***** CPU\x86_ops_bit.h
+                default:
+                x386_dynarec_log("Bad 0F BA opcode %02X\n", rmdat & 0x38);
+                cpu_state.pc = cpu_state.oldpc;
+***** CPU_NEW\X86_OPS_BIT.H
+                default:
+                cpu_state.pc = cpu_state.oldpc;
+*****
+
+***** CPU\x86_ops_bit.h
+                SEG_CHECK_WRITE(cpu_state.ea_seg);
+        
+        temp = geteal();
+***** CPU_NEW\X86_OPS_BIT.H
+                SEG_CHECK_WRITE(cpu_state.ea_seg);
+
+        temp = geteal();
+*****
+
+***** CPU\x86_ops_bit.h
+                default:
+                x386_dynarec_log("Bad 0F BA opcode %02X\n", rmdat & 0x38);
+                cpu_state.pc = cpu_state.oldpc;
+***** CPU_NEW\X86_OPS_BIT.H
+                default:
+                cpu_state.pc = cpu_state.oldpc;
+*****
+
