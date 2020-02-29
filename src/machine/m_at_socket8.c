@@ -108,7 +108,7 @@ machine_at_6abx3_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/6axb3/6abx3h1.bin",
+    ret = bios_load_linear(L"roms/machines/6abx3/6abx3h1.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -118,12 +118,12 @@ machine_at_6abx3_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4_device);
     device_add(&keyboard_ps2_pci_device);
