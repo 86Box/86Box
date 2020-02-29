@@ -104,11 +104,11 @@ machine_at_s1668_init(const machine_t *model)
 
 
 int
-machine_at_ax6bc_init(const machine_t *model)
+machine_at_6abx3_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/ax6bc/QS440BX 2M_2.10.bin",
+    ret = bios_load_linear(L"roms/machines/6axb3/6abx3h1.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
