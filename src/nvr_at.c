@@ -286,12 +286,15 @@
 #define RTC_CENTURY_VIA	0x7F		/* century register for VIA VT82C586B */
 #define RTC_REGS	14		/* number of registers */
 
+#define FLAG_LS_HACK	0x01
+#define FLAG_PIIX4	0x02
+
 
 typedef struct {
     int8_t      stat;
 
     uint8_t	cent;
-    uint8_t	def, ls_hack;
+    uint8_t	def, flags;
 
     uint8_t	addr[8], wp[2];
 
@@ -585,7 +588,7 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 
 		case 0x2e:
 		case 0x2f:
-			if (local->ls_hack) {
+			if (local->flags & FLAG_LS_HACK) {
 				/* 2E and 2F are a simple sum of the values of 0E to 2D. */
 				for (i = 0x0e; i < 0x2e; i++)
 					checksum += (uint16_t) nvr->regs[i];
@@ -622,6 +625,8 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 	/* Some chipsets use a 256 byte NVRAM but ports 70h and 71h always access only 128 bytes. */
 	if (addr_id == 0x0)
 		local->addr[addr_id] &= 0x7f;
+	else if ((addr_id == 0x1) && (local->flags & FLAG_PIIX4))
+		local->addr[addr_id] = (local->addr[addr_id] & 0x7f) | 0x80;
 	if (!(machines[machine].flags & MACHINE_MCA) &&
 	    !(machines[machine].flags & MACHINE_NONMI))
 		nmi_mask = (~val & 0x80);
@@ -658,7 +663,7 @@ nvr_read(uint16_t addr, void *priv)
 		break;
 
 	case 0x2c:
-		if (local->ls_hack)
+		if (local->flags & FLAG_LS_HACK)
 			ret = nvr->regs[local->addr[addr_id]] & 0x7f;
 		else
 			ret = nvr->regs[local->addr[addr_id]];
@@ -666,7 +671,7 @@ nvr_read(uint16_t addr, void *priv)
 
 	case 0x2e:
 	case 0x2f:
-		if (local->ls_hack) {
+		if (local->flags & FLAG_LS_HACK) {
 			checksum = (nvr->regs[0x2e] << 8) | nvr->regs[0x2f];
 			if (nvr->regs[0x2c] & 0x80)
 				checksum -= 0x80;
@@ -793,7 +798,7 @@ nvr_at_init(const device_t *info)
     /* This is machine specific. */
     nvr->size = machines[machine].nvrmask + 1;
     local->def = 0x00;
-    local->ls_hack = 0;
+    local->flags = 0x00;
     switch(info->local & 7) {
 	case 0:		/* standard AT, no century register */
 		nvr->irq = 8;
@@ -801,10 +806,12 @@ nvr_at_init(const device_t *info)
 		break;
 
 	case 5:		/* Lucky Star LS-486E */
-		local->ls_hack = 1;
+		local->flags |= FLAG_LS_HACK;
 		/*FALLTHROUGH*/
 
 	case 1:		/* standard AT */
+		if (info->local == 9)
+			local->flags |= FLAG_PIIX4;
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_AT;
 		break;
