@@ -102,7 +102,7 @@ machine_at_s1668_init(const machine_t *model)
     return ret;
 }
 
-
+#endif
 int
 machine_at_6abx3_init(const machine_t *model)
 {
@@ -131,10 +131,7 @@ machine_at_6abx3_init(const machine_t *model)
     // device_add(&w83977tf_device);
     // device_add(&intel_flash_bxt_device);
     // device_add(&sst_flash_29ee020_device);
-    device_add(&sst_flash_39sf020_device);
+    device_add(&intel_flash_bxt_device);
 
     return ret;
 }
-
-
-#endif

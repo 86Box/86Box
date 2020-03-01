@@ -714,6 +714,24 @@ CPU cpus_PentiumII[] = {
     {"Pentium II Deschutes 400",    CPU_PENTIUM2D,  400000000, 4,    0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
     {"Pentium II Deschutes 450",    CPU_PENTIUM2D,  450000000, 9/2,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 54},
     {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}
+
 };
 #endif
 #endif
+CPU cpus_Cyrix3[] = {
+    /*VIA Cyrix III (Samuel)*/
+    {"Cyrix III 66",  CPU_CYRIX3S,  66666666, 1,    0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC,  6,  6,  3,  3,  8}, /*66 MHz version*/
+    {"Cyrix III 233", CPU_CYRIX3S, 233333333, 7/2,  0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 21, 21,  9,  9, 28},
+    {"Cyrix III 266", CPU_CYRIX3S, 266666666, 4,    0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 24, 24, 12, 12, 32},
+    {"Cyrix III 300", CPU_CYRIX3S, 300000000, 9/2,  0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 27, 27, 13, 13, 36},
+    {"Cyrix III 333", CPU_CYRIX3S, 333333333, 5,    0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 30, 30, 15, 15, 40},
+    {"Cyrix III 350", CPU_CYRIX3S, 350000000, 7/2,  0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 32, 32, 11, 11, 42},
+    {"Cyrix III 400", CPU_CYRIX3S, 400000000, 4,    0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 36, 36, 12, 12, 48},
+    {"Cyrix III 450", CPU_CYRIX3S, 450000000, 9/2,  0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 41, 41, 14, 14, 54}, /*^ is lower P2 speeds to allow emulation below 466 mhz*/
+    {"Cyrix III 500", CPU_CYRIX3S, 500000000, 5,    0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 45, 45, 15, 15, 60},
+    {"Cyrix III 550", CPU_CYRIX3S, 550000000, 11/2, 0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 50, 50, 17, 17, 66},
+    {"Cyrix III 600", CPU_CYRIX3S, 600000000, 6,    0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 54, 54, 18, 18, 72},
+    {"Cyrix III 650", CPU_CYRIX3S, 650000000, 13/2, 0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 58, 58, 20, 20, 78},
+    {"Cyrix III 700", CPU_CYRIX3S, 700000000, 7,    0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 62, 62, 21, 21, 84},
+    {"",               -1,                   0, 0,        0,     0,     0, 0,                    0,   0, 0,  0,  0}
+};

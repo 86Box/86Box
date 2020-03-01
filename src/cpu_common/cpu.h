@@ -76,6 +76,7 @@ enum {
     CPU_K6_2P,
     CPU_K6_3P,
 #endif
+    CPU_CYRIX3S,
 #if defined(DEV_BRANCH) && defined(USE_I686)
     CPU_PENTIUMPRO,	/* 686 class CPUs */
     CPU_PENTIUM2,
@@ -152,6 +153,7 @@ extern CPU	cpus_6x86[];
 #ifdef USE_NEW_DYNAREC
 extern CPU	cpus_6x86SS7[];
 #endif
+extern CPU  cpus_Cyrix3[];
 #if defined(DEV_BRANCH) && defined(USE_I686)
 extern CPU	cpus_PentiumPro[];
 extern CPU	cpus_PentiumII[];

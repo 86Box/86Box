@@ -478,7 +478,6 @@ endif
 
 ifeq ($(I686), y)
 OPTS		+= -DUSE_I686
-DEVBROBJ	+= m_at_socket8.o
 endif
 
 ifeq ($(LASERXT), y)
@@ -595,7 +594,8 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_ps2_isa.o m_ps2_mca.o \
 		    m_at_compaq.o \
 		    m_at_286_386sx.o m_at_386dx_486.o \
-		    m_at_socket4_5.o m_at_socket7_s7.o
+		    m_at_socket4_5.o m_at_socket7_s7.o \
+			m_at_socket8.o
 
 DEVOBJ		:= bugger.o ibm_5161.o isamem.o isartc.o lpt.o $(SERIAL) \
 		    sio_acc3221.o \
