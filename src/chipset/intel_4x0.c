@@ -51,13 +51,8 @@ enum
 
 typedef struct
 {
-#if defined(DEV_BRANCH) && defined(USE_I686)
     uint8_t	pm2_cntrl, max_func;
     uint8_t	regs[2][256], regs_locked[2][256];
-#else
-    uint8_t	pm2_cntrl;
-    uint8_t	regs[256];
-#endif
     int		type;
 } i4x0_t;
 
