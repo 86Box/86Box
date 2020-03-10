@@ -626,7 +626,8 @@ SCSIOBJ		:= scsi.o scsi_device.o \
 		    scsi_cdrom.o scsi_disk.o \
 		    scsi_x54x.o \
 		    scsi_aha154x.o scsi_buslogic.o \
-		    scsi_ncr5380.o scsi_ncr53c8xx.o
+		    scsi_ncr5380.o scsi_ncr53c8xx.o \
+		    scsi_spock.o
 
 NETOBJ		:= network.o \
 		    net_pcap.o \
