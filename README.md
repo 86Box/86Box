@@ -75,4 +75,4 @@ Jenkins instance.
 Donations
 ---------
 We do not charge you for the emulator but donations are still welcome:
-https://paypal.me/86Box .
+https://paypal.me/86Box.
