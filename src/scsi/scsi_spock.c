@@ -527,8 +527,8 @@ spock_start_scb(spock_t *scsi, scb_t *scb)
 		spock_log("Start failed\n");
 		spock_set_irq(scsi, scsi->scb_id, IRQ_TYPE_COMMAND_FAIL);
 		scsi->idle = 0;
-		DMAPageWrite(scb->term_stat_block_addr + 0x7*2, (uint8_t *)&term_stat_block_addr7, 2);
-		DMAPageWrite(scb->term_stat_block_addr + 0x8*2, (uint8_t *)&term_stat_block_addr8, 2);
+		DMAPageWrite(scb->term_status_block_addr + 0x7*2, (uint8_t *)&term_stat_block_addr7, 2);
+		DMAPageWrite(scb->term_status_block_addr + 0x8*2, (uint8_t *)&term_stat_block_addr8, 2);
 		return;
 	}
 	
