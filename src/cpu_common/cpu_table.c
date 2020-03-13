@@ -713,6 +713,18 @@ CPU cpus_PentiumII[] = {
     {"Pentium II Deschutes 350",    CPU_PENTIUM2D,  350000000, 7/2,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 32,32,11,11, 42},
     {"Pentium II Deschutes 400",    CPU_PENTIUM2D,  400000000, 4,    0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
     {"Pentium II Deschutes 450",    CPU_PENTIUM2D,  450000000, 9/2,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 54},
+	
+	/*Intel Celeron Slot 1*/
+    {"Celeron 50",                  CPU_CELERON,     50000000, 1,    0x670,  0x670, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 6},
+    {"Celeron 60",                  CPU_CELERON,     60000000, 1,    0x670,  0x670, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 7},	
+    {"Celeron 66",                  CPU_CELERON,     66666666, 1,    0x670,  0x670, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
+    {"Celeron 75",                  CPU_CELERON,     75000000, 3/2,  0x670,  0x670, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7, 4, 4, 9},
+    {"Celeron 266",                 CPU_CELERON,    266666666, 4,    0x670,  0x670, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12, 29},
+    {"Celeron 300/66",              CPU_CELERON,    300000000, 9/2,  0x670,  0x670, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
+    {"Celeron 333",                 CPU_CELERON,    333333333, 5,    0x670,  0x670, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 40},
+    {"Celeron 366",                 CPU_CELERON,    366666666, 7/2,  0x670,  0x670, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 33,33,17,17, 44},
+    {"Celeron 400",                 CPU_CELERON,    400000000, 4,    0x670,  0x670, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
+    {"Celeron 433",                 CPU_CELERON,    433333333, 9/2,  0x670,  0x670, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 39,39,13,13, 51},		
     {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}
 };
 #endif
