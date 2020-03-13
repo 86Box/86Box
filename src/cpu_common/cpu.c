@@ -1600,6 +1600,65 @@ cpu_set(void)
 #endif
 #endif
                 break;
+			
+                case CPU_CELERON:
+#ifdef USE_DYNAREC
+                x86_setopcodes(ops_386, ops_pentium2d_0f, dynarec_ops_386, dynarec_ops_pentium2d_0f);
+                x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_686_da_a16;
+                x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_686_da_a32;
+                x86_dynarec_opcodes_db_a16 = dynarec_ops_fpu_686_db_a16;
+                x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_686_db_a32;
+                x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_686_df_a16;
+                x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_686_df_a32;
+#else
+                x86_setopcodes(ops_386, ops_pentium2d_0f);
+#endif
+                x86_opcodes_da_a16 = ops_fpu_686_da_a16;
+                x86_opcodes_da_a32 = ops_fpu_686_da_a32;
+                x86_opcodes_db_a16 = ops_fpu_686_db_a16;
+                x86_opcodes_db_a32 = ops_fpu_686_db_a32;
+                x86_opcodes_df_a16 = ops_fpu_686_df_a16;
+                x86_opcodes_df_a32 = ops_fpu_686_df_a32;
+                timing_rr  = 1; /*register dest - register src*/
+                timing_rm  = 2; /*register dest - memory src*/
+                timing_mr  = 3; /*memory dest   - register src*/
+                timing_mm  = 3;
+                timing_rml = 2; /*register dest - memory src long*/
+                timing_mrl = 3; /*memory dest   - register src long*/
+                timing_mml = 3;
+                timing_bt  = 0; /*branch taken*/
+                timing_bnt = 1; /*branch not taken*/
+                timing_int = 6;
+                timing_int_rm       = 11;
+                timing_int_v86      = 54;
+                timing_int_pm       = 25;
+                timing_int_pm_outer = 42;
+                timing_iret_rm       = 7;
+                timing_iret_v86      = 27; /*unknown*/
+                timing_iret_pm       = 10;
+                timing_iret_pm_outer = 27;
+                timing_call_rm = 4;
+                timing_call_pm = 4;
+                timing_call_pm_gate = 22;
+                timing_call_pm_gate_inner = 44;
+                timing_retf_rm       = 4;
+                timing_retf_pm       = 4;
+                timing_retf_pm_outer = 23;
+                timing_jmp_rm      = 3;
+                timing_jmp_pm      = 3;
+                timing_jmp_pm_gate = 18;
+                timing_misaligned = 3;
+                cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX;
+                msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
+                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE | CR4_OSFXSR;
+#ifdef USE_DYNAREC
+#ifdef USE_NEW_DYNAREC
+         	codegen_timing_set(&codegen_timing_k6);
+#else
+         	codegen_timing_set(&codegen_timing_686);
+#endif
+#endif
+                break;	
 #endif
 
                 default:
@@ -2279,6 +2338,30 @@ cpu_CPUID(void)
                 else
                         EAX = EBX = ECX = EDX = 0;
                 break;
+			
+		case CPU_CELERON:
+                if (!EAX)
+                {
+                        EAX = 0x00000002;
+                        EBX = 0x756e6547;
+                        EDX = 0x49656e69;
+                        ECX = 0x6c65746e;
+                }
+                else if (EAX == 1)
+                {
+                        EAX = CPUID;
+                        EBX = ECX = 0;
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_SEP | CPUID_FXSR | CPUID_CMOV;
+                }
+		else if (EAX == 2)
+		{
+			EAX = 0x03020101;
+			EBX = ECX = 0;
+			EDX = 0x0C040845;
+		}
+                else
+                        EAX = EBX = ECX = EDX = 0;
+                break;	
 #endif
 #endif
 
@@ -2611,6 +2694,7 @@ void cpu_RDMSR()
                 case CPU_PENTIUMPRO:
                 case CPU_PENTIUM2:
                 case CPU_PENTIUM2D:
+		case CPU_CELERON:
                 EAX = EDX = 0;
                 switch (ECX)
                 {
@@ -3016,6 +3100,7 @@ void cpu_WRMSR()
                 case CPU_PENTIUMPRO:
 		case CPU_PENTIUM2:
 		case CPU_PENTIUM2D:
+		case CPU_CELERON:
                 switch (ECX)
                 {
                         case 0x10:
