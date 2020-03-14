@@ -80,6 +80,7 @@ enum {
     CPU_PENTIUMPRO,	/* 686 class CPUs */
     CPU_PENTIUM2,
     CPU_PENTIUM2D,
+    CPU_CELERON,
 #endif
     CPU_MAX		/* Only really needed to close the enum in a way independent of the #ifdef's. */
 };
