@@ -226,18 +226,18 @@ CPU cpus_486DLC[] = {
 
 CPU cpus_i486S1[] = {
     /*i486*/
-    {"i486SX/16",            CPU_i486SX,   16000000, 1,   16000000,   0x42a,       0, 0, CPU_SUPPORTS_DYNAREC,  3, 3,3,3,  2},
-    {"i486SX/20",            CPU_i486SX,   20000000, 1,   20000000,   0x42a,       0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
-    {"i486SX/25",            CPU_i486SX,   25000000, 1,   25000000,   0x42a,       0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
+    {"i486SX/16",            CPU_i486SX,   16000000, 1,   16000000,   0x420,       0, 0, CPU_SUPPORTS_DYNAREC,  3, 3,3,3,  2},
+    {"i486SX/20",            CPU_i486SX,   20000000, 1,   20000000,   0x420,       0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
+    {"i486SX/25",            CPU_i486SX,   25000000, 1,   25000000,   0x422,       0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
     {"i486SX/33",            CPU_i486SX,   33333333, 1,   33333333,   0x42a,       0, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
     {"i486SX2/50",           CPU_i486SX,   50000000, 2,   25000000,   0x45b,       0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
     {"i486SX2/66 (Q0569)",   CPU_i486SX,   66666666, 2,   33333333,   0x45b,       0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  8},
     {"i486DX/25",            CPU_i486DX,   25000000, 1,   25000000,   0x404,       0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
-    {"i486DX/33",            CPU_i486DX,   33333333, 1,   33333333,   0x404,       0, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
-    {"i486DX/50",            CPU_i486DX,   50000000, 1,   25000000,   0x404,       0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,4,4,  6},
+    {"i486DX/33",            CPU_i486DX,   33333333, 1,   33333333,   0x414,       0, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
+    {"i486DX/50",            CPU_i486DX,   50000000, 1,   25000000,   0x411,       0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,4,4,  6},
     {"i486DX2/40",           CPU_i486DX,   40000000, 2,   20000000,   0x430,   0x430, 0, CPU_SUPPORTS_DYNAREC,  7, 7,6,6,  5},
-    {"i486DX2/50",           CPU_i486DX,   50000000, 2,   25000000,   0x430,   0x430, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
-    {"i486DX2/66",           CPU_i486DX,   66666666, 2,   33333333,   0x430,   0x430, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
+    {"i486DX2/50",           CPU_i486DX,   50000000, 2,   25000000,   0x433,   0x433, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
+    {"i486DX2/66",           CPU_i486DX,   66666666, 2,   33333333,   0x435,   0x435, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
     {"iDX4 OverDrive 75",    CPU_iDX4,     75000000, 3,   25000000,  0x1480,  0x1480, 0, CPU_SUPPORTS_DYNAREC, 12,12,9,9,  9}, /*Only added the DX4 OverDrive as the others would be redundant*/
     {"iDX4 OverDrive 100",   CPU_iDX4,    100000000, 3,   33333333,  0x1480,  0x1480, 0, CPU_SUPPORTS_DYNAREC, 18,18,9,9, 12}, 
     {"",                     -1,                  0, 0,        0,      0,      0, 0,                    0,  0, 0,0,0,  0}
@@ -270,20 +270,20 @@ CPU cpus_Cx486S1[] = {
 
 CPU cpus_i486[] = {
     /*i486/P24T*/
-    {"i486SX/16",            CPU_i486SX,   16000000, 1,   16000000,  0x42a,       0, 0, CPU_SUPPORTS_DYNAREC,  3, 3,3,3,  2},
-    {"i486SX/20",            CPU_i486SX,   20000000, 1,   20000000,  0x42a,       0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
-    {"i486SX/25",            CPU_i486SX,   25000000, 1,   25000000,  0x42a,       0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
+    {"i486SX/16",            CPU_i486SX,   16000000, 1,   16000000,  0x420,       0, 0, CPU_SUPPORTS_DYNAREC,  3, 3,3,3,  2},
+    {"i486SX/20",            CPU_i486SX,   20000000, 1,   20000000,  0x420,       0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
+    {"i486SX/25",            CPU_i486SX,   25000000, 1,   25000000,  0x422,       0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
     {"i486SX/33",            CPU_i486SX,   33333333, 1,   33333333,  0x42a,       0, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
     {"i486SX2/50",           CPU_i486SX,   50000000, 2,   25000000,  0x45b,       0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
     {"i486SX2/66 (Q0569)",   CPU_i486SX,   66666666, 2,   33333333,  0x45b,       0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  8},
     {"i486DX/25",            CPU_i486DX,   25000000, 1,   25000000,  0x404,       0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
-    {"i486DX/33",            CPU_i486DX,   33333333, 1,   33333333,  0x404,       0, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
-    {"i486DX/50",            CPU_i486DX,   50000000, 1,   25000000,  0x404,       0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,4,4,  6},
+    {"i486DX/33",            CPU_i486DX,   33333333, 1,   33333333,  0x414,       0, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
+    {"i486DX/50",            CPU_i486DX,   50000000, 1,   25000000,  0x411,       0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,4,4,  6},
     {"i486DX2/40",           CPU_i486DX,   40000000, 2,   20000000,  0x430,   0x430, 0, CPU_SUPPORTS_DYNAREC,  7, 7,6,6,  5},
-    {"i486DX2/50",           CPU_i486DX,   50000000, 2,   25000000,  0x430,   0x430, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
-    {"i486DX2/66",           CPU_i486DX,   66666666, 2,   33333333,  0x430,   0x430, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
-    {"iDX4/75",              CPU_iDX4,     75000000, 3,   25000000,  0x481,   0x481, 0, CPU_SUPPORTS_DYNAREC, 12,12,9,9,  9}, /*CPUID available on DX4, >= 75 MHz*/
-    {"iDX4/100",             CPU_iDX4,    100000000, 3,   33333333,  0x481,   0x481, 0, CPU_SUPPORTS_DYNAREC, 18,18,9,9, 12}, /*Is on some real Intel DX2s, limit here is pretty arbitary*/
+    {"i486DX2/50",           CPU_i486DX,   50000000, 2,   25000000,  0x433,   0x433, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
+    {"i486DX2/66",           CPU_i486DX,   66666666, 2,   33333333,  0x435,   0x435, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
+    {"iDX4/75",              CPU_iDX4,     75000000, 3,   25000000,  0x480,   0x480, 0, CPU_SUPPORTS_DYNAREC, 12,12,9,9,  9}, /*CPUID available on DX4, >= 75 MHz*/
+    {"iDX4/100",             CPU_iDX4,    100000000, 3,   33333333,  0x483,   0x483, 0, CPU_SUPPORTS_DYNAREC, 18,18,9,9, 12}, /*Is on some real Intel DX2s, limit here is pretty arbitary*/
     {"iDX4 OverDrive 75",    CPU_iDX4,     75000000, 3,   25000000, 0x1480,  0x1480, 0, CPU_SUPPORTS_DYNAREC, 12,12,9,9,  9},
     {"iDX4 OverDrive 100",   CPU_iDX4,    100000000, 3,   33333333, 0x1480,  0x1480, 0, CPU_SUPPORTS_DYNAREC, 18,18,9,9, 12}, 
     {"Pentium OverDrive 63", CPU_PENTIUM,  62500000, 5/2, 25000000, 0x1531,  0x1531, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10,7,7, 15/2},
