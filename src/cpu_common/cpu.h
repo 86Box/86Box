@@ -155,6 +155,7 @@ extern CPU	cpus_6x86SS7[];
 #if defined(DEV_BRANCH) && defined(USE_I686)
 extern CPU	cpus_PentiumPro[];
 extern CPU	cpus_PentiumII[];
+extern CPU	cpus_PGA370[];
 #endif
 
 

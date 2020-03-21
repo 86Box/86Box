@@ -238,6 +238,9 @@ const machine_t machines[] = {
     { "[Socket 8 FX] Tyan Titan-Pro ATX",	"tpatx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 127,		machine_at_s1668_init, NULL			},
 
     { "[Slot 1 BX] Lucky Star 6ABX3",		"6abx3",		{{"Intel", cpus_PentiumII},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,		machine_at_6abx3_init, NULL			},
+
+
+    { "[Socket 370 BX] ECS P6BXT-A+",		"p6bxt",		{{"Intel", cpus_PGA370},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,		machine_at_p6bxt_init, NULL			},
 #endif
     { NULL,					NULL,			{{"",      0},                {"",    0},            {"",      0},           {"",         0},     {"",      0}},    0,                                                                                                    0,    0,   0,   0,				 NULL, NULL			}
 };

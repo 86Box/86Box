@@ -306,6 +306,8 @@ extern int	machine_at_i440fx_init(const machine_t *);
 extern int	machine_at_s1668_init(const machine_t *);
 
 extern int	machine_at_6abx3_init(const machine_t *);
+
+extern int	machine_at_p6bxt_init(const machine_t *);
 #endif
 
 /* m_at_t3100e.c */
