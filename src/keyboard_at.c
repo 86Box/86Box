@@ -57,6 +57,8 @@
 
 #define PS2_REFRESH_TIME	(16 * TIMER_USEC)
 
+#define RESET_DELAY_TIME	(100 * 10)	/* 600ms */
+
 #define CCB_UNUSED		0x80
 #define CCB_TRANSLATE		0x40
 #define CCB_PCMODE		0x20
@@ -95,7 +97,7 @@ typedef struct {
     uint8_t	mem[0x100];
 
     int		out_new, out_delayed;
-    int		last_irq;
+    int		last_irq, reset_delay;
 
     uint32_t	flags;
 
@@ -568,6 +570,9 @@ static const scancode scancode_set3[512] = {
 };
 
 
+static void	add_data_kbd(uint16_t val);
+
+
 #ifdef ENABLE_KEYBOARD_AT_LOG
 int keyboard_at_do_log = ENABLE_KEYBOARD_AT_LOG;
 
@@ -667,10 +672,16 @@ kbd_poll(void *priv)
 	    (mouse_queue_start != mouse_queue_end)) {
 	dev->out_new = mouse_queue[mouse_queue_start] | 0x100;
 	mouse_queue_start = (mouse_queue_start + 1) & 0xf;
-    } else if (!(dev->status&STAT_OFULL) && dev->out_new == -1 &&
+    } else if (!(dev->status & STAT_OFULL) && dev->out_new == -1 &&
 	       !(dev->mem[0]&0x10) && (key_queue_start != key_queue_end)) {
 	dev->out_new = key_queue[key_queue_start];
 	key_queue_start = (key_queue_start + 1) & 0xf;
+    }
+
+    if (dev->reset_delay) {
+	dev->reset_delay--;
+	if (!dev->reset_delay)
+		add_data_kbd(0xaa);
     }
 }
 
@@ -696,6 +707,9 @@ add_data_vals(atkbd_t *dev, uint8_t *val, uint8_t len)
     int i;
     uint8_t or = 0;
     uint8_t send;
+
+    if (dev->reset_delay)
+	return;
 
     translate = translate || (keyboard_mode & 0x40) || xt_mode;
     translate = translate || ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_PS2_2);
@@ -743,6 +757,9 @@ add_data_kbd(uint16_t val)
     int translate = (keyboard_mode & 0x40);
     uint8_t fake_shift[4];
     uint8_t num_lock = 0, shift_states = 0;
+
+    if (dev->reset_delay)
+	return;
 
     translate = translate || (keyboard_mode & 0x40) || xt_mode;
     translate = translate || ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_PS2_2);
@@ -1482,20 +1499,6 @@ write64_ami(void *priv, uint8_t val)
 		dev->output_locked = 1;
 		return 0;
 
-	case 0xca:	/* read keyboard mode */
-#ifdef ENABLE_KEYBOARD_AT_LOG
-		kbd_log("ATkbd: AMI - read keyboard mode\n");
-#endif
-		add_data(dev, 0x00); /*ISA mode*/
-		return 0;
-
-	case 0xcb:	/* set keyboard mode */
-#ifdef ENABLE_KEYBOARD_AT_LOG
-		kbd_log("ATkbd: AMI - set keyboard mode\n");
-#endif
-		dev->want60 = 1;
-		return 0;
-
 	case 0xef:	/* ??? - sent by AMI486 */
 #ifdef ENABLE_KEYBOARD_AT_LOG
 		kbd_log("ATkbd: ??? - sent by AMI486\n");
@@ -1989,11 +1992,12 @@ do_command:
 #endif
 						key_queue_start = key_queue_end = 0; /*Clear key queue*/
 						add_data_kbd(0xfa);
-						add_data_kbd(0xaa);
 
 						/* Set scan code set to 2. */
 						keyboard_mode = (keyboard_mode & 0xfc) | 0x02;
 						set_scancode_map(dev);
+
+						dev->reset_delay = RESET_DELAY_TIME;
 						break;
 
 					default:
@@ -2108,6 +2112,20 @@ do_command:
 				set_enable_kbd(dev, 1);
 				break;
 
+			case 0xca:	/* read keyboard mode */
+#ifdef ENABLE_KEYBOARD_AT_LOG
+				kbd_log("ATkbd: AMI - read keyboard mode\n");
+#endif
+				add_data(dev, ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) ? 0x01 : 0x00); /*ISA mode*/
+				break;
+
+			case 0xcb:	/* set keyboard mode */
+#ifdef ENABLE_KEYBOARD_AT_LOG
+				kbd_log("ATkbd: AMI - set keyboard mode\n");
+#endif
+				dev->want60 = 1;
+				break;
+
 			case 0xd0:	/* read output port */
 #ifdef ENABLE_KEYBOARD_AT_LOG
 				kbd_log("ATkbd: read output port\n");
@@ -2191,6 +2209,8 @@ kbd_read(uint16_t port, void *priv)
 {
     atkbd_t *dev = (atkbd_t *)priv;
     uint8_t ret = 0xff;
+
+    sub_cycles(ISA_CYCLES(8));
 
     if (((dev->flags & KBC_VEN_MASK) == KBC_VEN_XI8088) && (port == 0x63))
 	port = 0x61;

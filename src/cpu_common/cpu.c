@@ -2295,11 +2295,11 @@ void cpu_ven_reset(void)
                 case CPU_K6:
 			amd_efer = amd_whcr = 0ULL;
 			break;
+#ifdef USE_NEW_DYNAREC
 		case CPU_K6_2:
 			amd_efer = amd_whcr = 0ULL;
 			star = 0ULL;
 			break;
-#ifdef USE_NEW_DYNAREC
 		case CPU_K6_2C:
 			amd_efer = 2ULL;
 			amd_whcr = star = 0ULL;
