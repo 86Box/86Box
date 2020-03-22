@@ -177,11 +177,6 @@ uint64_t	pmc[2] = {0, 0};
 
 uint16_t	temp_seg_data[4] = {0, 0, 0, 0};
 
-#if defined(DEV_BRANCH) && defined(USE_I686)
-uint16_t	cs_msr = 0;
-uint32_t	esp_msr = 0;
-uint32_t	eip_msr = 0;
-uint64_t	apic_base_msr = 0;
 uint64_t	mtrr_cap_msr = 0;
 uint64_t	mtrr_physbase_msr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 uint64_t	mtrr_physmask_msr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -189,8 +184,14 @@ uint64_t	mtrr_fix64k_8000_msr = 0;
 uint64_t	mtrr_fix16k_8000_msr = 0;
 uint64_t	mtrr_fix16k_a000_msr = 0;
 uint64_t	mtrr_fix4k_msr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-uint64_t	pat_msr = 0;
 uint64_t	mtrr_deftype_msr = 0;
+
+#if defined(DEV_BRANCH) && defined(USE_I686)
+uint16_t	cs_msr = 0;
+uint32_t	esp_msr = 0;
+uint32_t	eip_msr = 0;
+uint64_t	apic_base_msr = 0;
+uint64_t	pat_msr = 0;
 uint64_t	msr_ia32_pmc[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 uint64_t	ecx17_msr = 0;
 uint64_t	ecx79_msr = 0;
@@ -2483,29 +2484,76 @@ void cpu_RDMSR()
                 EAX = EDX = 0;
                 switch (ECX)
                 {
-                        case 0x02:
-                        EAX = msr.tr1;
-                        break;
-                        case 0x0e:
-                        EAX = msr.tr12;
-                        break;
                         case 0x10:
                         EAX = tsc & 0xffffffff;
                         EDX = tsc >> 32;
                         break;
-                        case 0x11:
-                        EAX = msr.cesr;
+                        case 0x2a:
+                        if (cpu_dmulti == 3)
+                        EAX = ((0 << 25) | (0 << 24) | (0 << 23) | (1 << 22));
+                        else if (cpu_dmulti == 3.5)
+                        EAX = ((0 << 25) | (1 << 24) | (0 << 23) | (1 << 22));
+                        else if (cpu_dmulti == 4)
+                        EAX = ((0 << 25) | (0 << 24) | (1 << 23) | (0 << 22));
+                        else if (cpu_dmulti == 4.5)
+                        EAX = ((0 << 25) | (1 << 24) | (1 << 23) | (0 << 22));
+                        else if (cpu_dmulti == 5)
+                        EAX = 0;
+                        else if (cpu_dmulti == 5.5)
+                        EAX = ((0 << 25) | (1 << 24) | (0 << 23) | (0 << 22));
+                        else if (cpu_dmulti == 6)
+                        EAX = ((1 << 25) | (0 << 24) | (1 << 23) | (1 << 22));
+                        else if (cpu_dmulti == 6.5)
+                        EAX = ((1 << 25) | (1 << 24) | (1 << 23) | (1 << 22));
+                        else if (cpu_dmulti == 7)
+                        EAX = ((1 << 25) | (0 << 24) | (0 << 23) | (1 << 22));
+                        else
+                        EAX = ((0 << 25) | (0 << 24) | (0 << 23) | (1 << 22));
                         break;
                         case 0x1107:
                         EAX = msr.fcr;
                         break;
-                        case 0x108:
+                        case 0x1108:
                         EAX = msr.fcr2 & 0xffffffff;
                         EDX = msr.fcr2 >> 32;
                         break;
-                        case 0x10a:
-                        EAX = cpu_multi & 3;
+                        case 0x200: case 0x201: case 0x202: case 0x203: case 0x204: case 0x205: case 0x206: case 0x207:
+                        case 0x208: case 0x209: case 0x20A: case 0x20B: case 0x20C: case 0x20D: case 0x20E: case 0x20F:
+                        if (ECX & 1)
+                        {
+                                EAX = mtrr_physmask_msr[(ECX - 0x200) >> 1] & 0xffffffff;
+                                EDX = mtrr_physmask_msr[(ECX - 0x200) >> 1] >> 32;
+                        }
+                        else
+                        {
+                                EAX = mtrr_physbase_msr[(ECX - 0x200) >> 1] & 0xffffffff;
+                                EDX = mtrr_physbase_msr[(ECX - 0x200) >> 1] >> 32;
+                        }
                         break;
+                        case 0x250:
+                        EAX = mtrr_fix64k_8000_msr & 0xffffffff;
+                        EDX = mtrr_fix64k_8000_msr >> 32;
+                        break;
+                        case 0x258:
+                        EAX = mtrr_fix16k_8000_msr & 0xffffffff;
+                        EDX = mtrr_fix16k_8000_msr >> 32;
+                        break;
+                        case 0x259:
+                        EAX = mtrr_fix16k_a000_msr & 0xffffffff;
+                        EDX = mtrr_fix16k_a000_msr >> 32;
+                        break;
+                        case 0x268: case 0x269: case 0x26A: case 0x26B: case 0x26C: case 0x26D: case 0x26E: case 0x26F:
+                        EAX = mtrr_fix4k_msr[ECX - 0x268] & 0xffffffff;
+                        EDX = mtrr_fix4k_msr[ECX - 0x268] >> 32;
+                        break;
+                        case 0x277:
+                        EAX = pat_msr & 0xffffffff;
+                        EDX = pat_msr >> 32;
+                        break;
+                        case 0x2FF:
+                        EAX = mtrr_deftype_msr & 0xffffffff;
+                        EDX = mtrr_deftype_msr >> 32;
+                        break;			
                 }
                 break;
 		
@@ -2940,45 +2988,44 @@ void cpu_WRMSR()
 		case CPU_CYRIX3S:
                 switch (ECX)
                 {
-                        case 0x02:
-                        msr.tr1 = EAX & 2;
-                        break;
-                        case 0x0e:
-                        msr.tr12 = EAX & 0x228;
-                        break;
                         case 0x10:
                         tsc = EAX | ((uint64_t)EDX << 32);
                         break;
-                        case 0x11:
-                        msr.cesr = EAX & 0xff00ff;
-                        break;
                         case 0x1107:
                         msr.fcr = EAX;
-                        if (EAX & (1 << 9))
-                                cpu_features |= CPU_FEATURE_MMX;
-                        else
-                                cpu_features &= ~CPU_FEATURE_MMX;
                         if (EAX & (1 << 1))
                                 cpu_features |= CPU_FEATURE_CX8;
                         else
                                 cpu_features &= ~CPU_FEATURE_CX8;
-#ifdef USE_NEW_DYNAREC			
-                        if (EAX & (1 << 20))
-                                cpu_features |= CPU_FEATURE_3DNOW;
-                        else
-                                cpu_features &= ~CPU_FEATURE_3DNOW;
-#endif
-                         if (EAX & (1 << 29))
-                                 CPUID = 0;
-                         else
-                                 CPUID = machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpuid_model;
                         break;
-                        case 0x108:
+                        case 0x1108:
                         msr.fcr2 = EAX | ((uint64_t)EDX << 32);
                         break;
-                        case 0x109:
+                        case 0x1109:
                         msr.fcr3 = EAX | ((uint64_t)EDX << 32);
                         break;
+                        case 0x200: case 0x201: case 0x202: case 0x203: case 0x204: case 0x205: case 0x206: case 0x207:
+                        case 0x208: case 0x209: case 0x20A: case 0x20B: case 0x20C: case 0x20D: case 0x20E: case 0x20F:
+                        if (ECX & 1)
+                                mtrr_physmask_msr[(ECX - 0x200) >> 1] = EAX | ((uint64_t)EDX << 32);
+                        else
+                                mtrr_physbase_msr[(ECX - 0x200) >> 1] = EAX | ((uint64_t)EDX << 32);
+                        break;
+                        case 0x250:
+                        mtrr_fix64k_8000_msr = EAX | ((uint64_t)EDX << 32);
+                        break;
+                        case 0x258:
+                        mtrr_fix16k_8000_msr = EAX | ((uint64_t)EDX << 32);
+                        break;
+                        case 0x259:
+                        mtrr_fix16k_a000_msr = EAX | ((uint64_t)EDX << 32);
+                        break;
+                        case 0x268: case 0x269: case 0x26A: case 0x26B: case 0x26C: case 0x26D: case 0x26E: case 0x26F:
+                        mtrr_fix4k_msr[ECX - 0x268] = EAX | ((uint64_t)EDX << 32);
+                        break;
+                        case 0x2FF:
+                        mtrr_deftype_msr = EAX | ((uint64_t)EDX << 32);
+                        break;			
                 }
                 break;
 		
