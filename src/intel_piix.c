@@ -953,10 +953,9 @@ piix_reset_hard(piix_t *dev)
 	nvr_at_handler(0, 0x0072, dev->nvr);
 	nvr_wp_set(0, 0, dev->nvr);
 	nvr_wp_set(0, 1, dev->nvr);
-    } else
-	nvr_at_handler(1, 0x0072, dev->nvr);
-    nvr_at_handler(1, 0x0074, dev->nvr);
-    nvr_at_handler(1, 0x0076, dev->nvr);
+	nvr_at_handler(1, 0x0074, dev->nvr);
+	nvr_at_handler(1, 0x0076, dev->nvr);
+    }
 
     /* Clear all 4 functions' arrays and set their vendor and device ID's. */
     for (i = 0; i < 4; i++) {
@@ -1078,7 +1077,7 @@ static void
 	dev->bm[1] = device_add_inst(&sff8038i_device, 2);
     }
 
-    if (dev->type >= 3)
+    if (dev->type > 3)
 	dev->nvr = device_add(&piix4_nvr_device);
 
     piix_reset_hard(dev);
