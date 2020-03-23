@@ -46,6 +46,7 @@
 #include "hdc_ide_sff8038i.h"
 #include "zip.h"
 #include "machine.h"
+#include "smbus.h"
 #include "piix.h"
 
 
@@ -87,11 +88,12 @@ typedef struct
 
 typedef struct
 {
-    uint8_t		stat, ctl, cmd, addr,
+    uint8_t		stat, next_stat, ctl, cmd, addr,
 			data0, data1,
 			index,
 			data[32];
-} smbus_t;
+    pc_timer_t		command_timer;
+} piix_smbus_t;
 
 
 typedef struct
@@ -107,7 +109,7 @@ typedef struct
     sff8038i_t		*bm[2];
     ddma_t		ddma[2];
     power_t		power;
-    smbus_t		smbus;
+    piix_smbus_t	smbus;
     nvr_t *		nvr;
 } piix_t;
 
@@ -457,17 +459,145 @@ power_update_io_mapping(piix_t *dev)
 
 
 static uint8_t
-smbus_reg_read(uint16_t addr, void *p)
+smbus_reg_read(uint16_t addr, void *priv)
 {
+    piix_t *dev = (piix_t *) priv;
     uint8_t ret = 0x00;
+
+    switch (addr - dev->smbus_io_base) {
+    	case 0x00:
+    		ret = dev->smbus.stat;
+    		break;
+    	case 0x02:
+    		dev->smbus.index = 0;
+    		ret = dev->smbus.ctl;
+    		break;
+    	case 0x03:
+    		ret = dev->smbus.cmd;
+    		break;
+    	case 0x04:
+    		ret = dev->smbus.addr;
+    		break;
+    	case 0x05:
+    		ret = dev->smbus.data0;
+    		break;
+    	case 0x06:
+    		ret = dev->smbus.data1;
+    		break;
+    	case 0x07:
+    		ret = dev->smbus.data[dev->smbus.index++];
+    		if (dev->smbus.index > 31)
+    			dev->smbus.index = 0;
+    		break;
+    }
+
+    // pclog("smbus_reg_read %02x %02x\n", addr - dev->smbus_io_base, ret);
 
     return ret;
 }
 
 
 static void
-smbus_reg_write(uint16_t addr, uint8_t val, void *p)
+smbus_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
+    piix_t *dev = (piix_t *) priv;
+    uint8_t smbus_addr;
+    uint8_t smbus_read;
+    uint16_t temp;
+
+    // pclog("smbus_reg_write %02x %02x\n", addr - dev->smbus_io_base, val);
+
+    dev->smbus.next_stat = 0;
+    switch (addr - dev->smbus_io_base) {
+    	case 0x00:
+    		/* some status bits are reset by writing 1 to them */
+    		for (smbus_addr = 0x02; smbus_addr <= 0x10; smbus_addr = smbus_addr << 1) {
+    			if (val & smbus_addr)
+    				dev->smbus.stat = dev->smbus.stat & ~smbus_addr;
+    		}
+    		break;
+    	case 0x02:
+    		dev->smbus.ctl = val & ~(0x40); /* START always reads 0 */
+    		if (val & 0x40) { /* dispatch command if START is set */
+    			smbus_addr = (dev->smbus.addr >> 1);
+    			if (!smbus_has_device(smbus_addr)) {
+    				/* raise DEV_ERR if no device is at this address */
+    				dev->smbus.next_stat = 0x4;
+    				break;
+    			}
+    			smbus_read = (dev->smbus.addr & 0x01);
+
+    			switch ((val >> 2) & 0x7) {
+    				case 0x0: /* quick R/W */
+    					dev->smbus.next_stat = 0x2;
+    					break;
+    				case 0x1: /* byte R/W */
+    					if (smbus_read)
+    						dev->smbus.data0 = smbus_read_byte(smbus_addr);
+    					else
+    						smbus_write_byte(smbus_addr, dev->smbus.data0);
+    					dev->smbus.next_stat = 0x2;
+    					break;
+    				case 0x2: /* byte data R/W */
+    					if (smbus_read)
+    						dev->smbus.data0 = smbus_read_byte_cmd(smbus_addr, dev->smbus.cmd);
+    					else
+    						smbus_write_byte_cmd(smbus_addr, dev->smbus.cmd, dev->smbus.data0);
+    					dev->smbus.next_stat = 0x2;
+    					break;
+    				case 0x3: /* word data R/W */
+    					if (smbus_read) {
+    						temp = smbus_read_word_cmd(smbus_addr, dev->smbus.cmd);
+    						dev->smbus.data0 = (temp & 0xFF);
+    						dev->smbus.data1 = (temp >> 8);
+    					} else {
+    						temp = (dev->smbus.data1 << 8) | dev->smbus.data0;
+    						smbus_write_word_cmd(smbus_addr, dev->smbus.cmd, temp);
+    					}
+    					dev->smbus.next_stat = 0x2;
+    					break;
+    				case 0x5: /* block R/W */
+    					if (smbus_read)
+    						dev->smbus.data0 = smbus_read_block_cmd(smbus_addr, dev->smbus.cmd, dev->smbus.data);
+    					else
+    						smbus_write_block_cmd(smbus_addr, dev->smbus.cmd, dev->smbus.data, dev->smbus.data0);
+    					dev->smbus.next_stat = 0x2;
+    					break;
+    			}
+    		}
+    		break;
+    	case 0x03:
+    		dev->smbus.cmd = val;
+    		break;
+    	case 0x04:
+    		dev->smbus.addr = val;
+    		break;
+    	case 0x05:
+    		dev->smbus.data0 = val;
+    		break;
+    	case 0x06:
+    		dev->smbus.data1 = val;
+    		break;
+    	case 0x07:
+    		dev->smbus.data[dev->smbus.index++] = val;
+    		if (dev->smbus.index > 31)
+    			dev->smbus.index = 0;
+    		break;
+    }
+
+    if (dev->smbus.next_stat) {
+    	dev->smbus.stat = 0x1;
+    	timer_disable(&dev->smbus.command_timer);
+    	timer_set_delay_u64(&dev->smbus.command_timer, 10 * TIMER_USEC);
+    }
+}
+
+
+static void
+smbus_inter(void *priv)
+{
+    piix_t *dev = (piix_t *) priv;
+    dev->smbus.stat = dev->smbus.next_stat;
 }
 
 
@@ -1172,6 +1302,19 @@ static void
     /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
     /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
     dev->board_config[1] = 0x64;
+
+    smbus_init();
+    dev->smbus.stat = 0;
+    dev->smbus.ctl = 0;
+    dev->smbus.cmd = 0;
+    dev->smbus.addr = 0;
+    dev->smbus.data0 = 0;
+    dev->smbus.data1 = 0;
+    dev->smbus.index = 0;
+    int i;
+    for (i = 0; i < 32; i++)
+    	dev->smbus.data[i] = 0;
+    timer_add(&dev->smbus.command_timer, smbus_inter, dev, 0);
 
     return dev;
 }
