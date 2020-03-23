@@ -447,7 +447,7 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
 	for (i = 0; i < 8; i++) {
 #ifdef USE_WDTR
 		dev->tr_set[i] = 0;
-#Endif
+#endif
 		scsi_device_reset(&scsi_devices[i]);
 	}
     }
