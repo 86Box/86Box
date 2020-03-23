@@ -134,21 +134,11 @@ opl_write(int nr, uint16_t addr, uint8_t val)
 uint8_t
 opl_read(int nr, uint16_t addr)
 {
-    FILE *f;
-    int i;
-
     if (!(addr & 1))
 	return (opl[nr].status & opl[nr].status_mask) | (opl[nr].is_opl3 ? 0 : 0x06);
 
-    if (opl[nr].is_opl3 && ((addr & 3) == 3)) {
-	f = fopen("c:\\emu_dev\\awe32seg.dmp", "wb");
-	for (i = 0; i < 65536; i++)
-		fputc(readmembl(cs + i), f);
-	fclose(f);
-
-	fatal("[%04X:%08X] (%08X) Read 00 from %04X\n", CS, cpu_state.pc, cs + cpu_state.pc, addr);
+    if (opl[nr].is_opl3 && ((addr & 3) == 3))
 	return 0x00;
-     }
 
     return opl[nr].is_opl3 ? 0 : 0xff;
 }

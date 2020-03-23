@@ -562,6 +562,10 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
 	case 0x08:
 	case 0x28:
 	case 0xa8:
+		/* Round it to the nearest 2048 bytes. */
+		dev->max_transfer_len = (dev->max_transfer_len >> 11) << 11;
+		/* FALLTHROUGH */
+
 	case 0xb9:
 	case 0xbe:
 		/* Make sure total length is not bigger than sum of the lengths of

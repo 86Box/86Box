@@ -34,18 +34,20 @@
 
 typedef struct sst_t
 {
-    uint8_t		id, is_39, page_bytes, pad;
+    uint8_t		id, is_39, page_bytes, sdp;
 
     int			command_state, id_mode,
-			erase, dirty;
+			dirty;
 
-    uint32_t		size, mask;
+    uint32_t		size, mask,
+			page_mask, page_base;
         
+    uint8_t		page_buffer[128];
     uint8_t		*array;
 
     mem_mapping_t	mapping[8], mapping_h[8];
 
-    pc_timer_t		page_load_timer;
+    pc_timer_t		page_write_timer;
 } sst_t;
 
 
@@ -53,6 +55,7 @@ static wchar_t	flash_path[1024];
 
 
 #define SST_CHIP_ERASE    	0x10	/* Both 29 and 39, 6th cycle */
+#define SST_SDP_DISABLE		0x20	/* Only 29, Software data protect disable and write - treat as write */
 #define SST_SECTOR_ERASE  	0x30	/* Only 39, 6th cycle */
 #define SST_SET_ID_MODE_ALT	0x60	/* Only 29, 6th cycle */
 #define SST_ERASE         	0x80	/* Both 29 and 39 */
@@ -74,63 +77,82 @@ static wchar_t	flash_path[1024];
 
 
 static void
-sst_new_command(sst_t *dev, uint8_t val)
+sst_sector_erase(sst_t *dev, uint32_t addr)
 {
-    switch (val) {
+    memset(&dev->array[addr & (dev->mask & ~0xfff)], 0xff, 4096);
+    dev->dirty = 1;
+}
+
+
+static void
+sst_new_command(sst_t *dev, uint32_t addr, uint8_t val)
+{
+    if (dev->command_state == 5)  switch (val) {
 	case SST_CHIP_ERASE:
-		if (dev->erase)
-			memset(dev->array, 0xff, 0x20000);
+		memset(dev->array, 0xff, 0x20000);
 		dev->command_state = 0;
-		dev->erase = 0;
 		break;
 
-	case SST_ERASE:
+	case SST_SDP_DISABLE:
+		if (!dev->is_39)
+			dev->sdp = 0;
 		dev->command_state = 0;
-		dev->erase = 1;
 		break;
 
-	case SST_SET_ID_MODE:
-		if (!dev->id_mode)
-			dev->id_mode = 1;
+	case SST_SECTOR_ERASE:
+		if (dev->is_39)
+			sst_sector_erase(dev, addr);
 		dev->command_state = 0;
-		dev->erase = 0;
 		break;
 
 	case SST_SET_ID_MODE_ALT:
-		if (!dev->is_39 && dev->erase && !dev->id_mode)
-			dev->id_mode = 1;
+		dev->id_mode = 1;
 		dev->command_state = 0;
-		dev->erase = 0;
-		break;
-
-	case SST_BYTE_PROGRAM:
-		dev->command_state = 3;
-		if (!dev->is_39) {
-			dev->page_bytes = 0;
-			timer_set_delay_u64(&dev->page_load_timer, 100 * TIMER_USEC);
-		}
-		dev->erase = 0;
-		break;
-
-	case SST_CLEAR_ID_MODE:
-		if (dev->id_mode)
-			dev->id_mode = 0;
-		dev->command_state = 0;
-		dev->erase = 0;
 		break;
 
 	default:
 		dev->command_state = 0;
-		dev->erase = 0;
+		break;
+    } else  switch (val) {
+	case SST_ERASE:
+		dev->command_state = 3;
+		break;
+
+	case SST_SET_ID_MODE:
+		dev->id_mode = 1;
+		dev->command_state = 0;
+		break;
+
+	case SST_BYTE_PROGRAM:
+		if (!dev->is_39) {
+			memset(dev->page_buffer, 0xff, 128);
+			dev->page_bytes = 0;
+			timer_on_auto(&dev->page_write_timer, 210.0);
+		}
+		dev->command_state = 6;
+		break;
+
+	case SST_CLEAR_ID_MODE:
+		dev->id_mode = 0;
+		dev->command_state = 0;
+		break;
+
+	default:
+		dev->command_state = 0;
+		break;
     }
 }
 
 
 static void
-sst_sector_erase(sst_t *dev, uint32_t addr)
+sst_page_write(void *priv)
 {
-    memset(&dev->array[addr & (dev->mask & ~0xfff)], 0xff, 4096);
+    sst_t *dev = (sst_t *) priv;
+
+    memcpy(&(dev->array[dev->page_base]), dev->page_buffer, 128);
     dev->dirty = 1;
+    dev->page_bytes = 0;
+    dev->command_state = 0;
 }
 
 
@@ -149,50 +171,74 @@ sst_read_id(uint32_t addr, void *p)
 
 
 static void
+sst_buf_write(sst_t *dev, uint32_t addr, uint8_t val)
+{
+    dev->page_buffer[addr & 0x0000007f] = val;
+    timer_disable(&dev->page_write_timer);
+    dev->page_bytes++;
+    if (dev->page_bytes >= 128)
+	sst_page_write(dev);
+    else
+	timer_set_delay_u64(&dev->page_write_timer, 210 * TIMER_USEC);
+}
+
+
+static void
 sst_write(uint32_t addr, uint8_t val, void *p)
 {
     sst_t *dev = (sst_t *) p;
 
     switch (dev->command_state) {
 	case 0:
-		/* 1st Bus Write Cycle */
-		if ((val == 0xf0) && dev->is_39) {
+	case 3:
+		/* 1st and 4th Bus Write Cycle */
+		if ((val == 0xf0) && dev->is_39 && (dev->command_state == 0)) {
 			if (dev->id_mode)
 				dev->id_mode = 0;
-		} else if ((addr & 0xffff) == 0x5555 && val == 0xaa)
-			dev->command_state = 1;
-		else
 			dev->command_state = 0;
+		} else if (((addr & 0x7fff) == 0x5555) && (val == 0xaa))
+			dev->command_state++;
+		else {
+			if (!dev->is_39 && !dev->sdp && (dev->command_state == 0)) {
+				/* 29 series, software data protection off, start loading the page. */
+				dev->page_base = addr & dev->page_mask;		/* First byte, A7 onwards of its address are the page mask. */
+				dev->command_state = 7;
+				sst_buf_write(dev, addr, val);
+			}
+			dev->command_state = 0;
+		}
 		break;
 	case 1:
-		/* 2nd Bus Write Cycle */
-		if ((addr & 0xffff) == 0x2aaa && val == 0x55)
-			dev->command_state = 2;
+	case 4:
+		/* 2nd and 5th Bus Write Cycle */
+		if (((addr & 0x7fff) == 0x2aaa) && (val == 0x55))
+			dev->command_state++;
 		else
 			dev->command_state = 0;
 		break;
 	case 2:
-		/* 3rd Bus Write Cycle */
-		if ((addr & 0xffff) == 0x5555)
-			sst_new_command(dev, val);
-		else if (dev->is_39 && (val == SST_SECTOR_ERASE) && dev->erase) {
-			sst_sector_erase(dev, addr);
-			dev->command_state = 0;
-		} else
+	case 5:
+		/* 3rd and 6th Bus Write Cycle */
+		if ((addr & 0x7fff) == 0x5555)
+			sst_new_command(dev, addr, val);
+		else
 			dev->command_state = 0;
 		break;
-	case 3:
-		dev->array[addr & dev->mask] = val;
-		if (!dev->is_39) {
-			timer_disable(&dev->page_load_timer);
-			if (dev->page_bytes == 0)
-				timer_set_delay_u64(&dev->page_load_timer, 100 * TIMER_USEC);
-			else
-				timer_set_delay_u64(&dev->page_load_timer, 200 * TIMER_USEC);
-			dev->page_bytes++;
-		} else
+	case 6:
+		/* Page Load Cycle (29) / Data Write Cycle (39SF) */
+		if (dev->is_39) {
+			dev->array[addr & dev->mask] = val;
 			dev->command_state = 0;
-		dev->dirty = 1;
+			dev->dirty = 1;
+		} else {
+			dev->page_base = addr & dev->page_mask;		/* First byte, A7 onwards of its address are the page mask. */
+			dev->command_state++;
+			sst_buf_write(dev, addr, val);
+		} 
+		break;
+	case 7:
+		if (!dev->is_39 && ((addr & dev->page_mask) == dev->page_base))
+			sst_buf_write(dev, addr, val);
 		break;
     }
 }
@@ -252,15 +298,6 @@ sst_readl(uint32_t addr, void *p)
     }
 
     return ret;
-}
-
-
-static void
-sst_page_load(void *priv)
-{
-    sst_t *dev = (sst_t *) priv;
-
-    dev->command_state = 0;
 }
 
 
@@ -331,6 +368,8 @@ sst_init(const device_t *info)
     else
 	dev->size = 0x20000;
     dev->mask = dev->size - 1;
+    dev->page_mask = dev->mask & 0xffffff80;	/* Filter out A0-A6. */
+    dev->sdp = 1;
 
     sst_add_mappings(dev);
 
@@ -339,13 +378,14 @@ sst_init(const device_t *info)
 	if (fread(&(dev->array[0x00000]), 1, dev->size, f) != dev->size)
 		fatal("Less than %i bytes read from the SST Flash ROM file\n", dev->size);
 	fclose(f);
-    }
+    } else
+	dev->dirty = 1;		/* It is by definition dirty on creation. */
 
     free(flash_name);
     free(machine_name);
 
     if (!dev->is_39)
-	timer_add(&dev->page_load_timer, sst_page_load, dev, 0);
+	timer_add(&dev->page_write_timer, sst_page_write, dev, 0);
 
     return dev;
 }
@@ -357,9 +397,11 @@ sst_close(void *p)
     FILE *f;
     sst_t *dev = (sst_t *)p;
 
-    f = nvr_fopen(flash_path, L"wb");
-    fwrite(&(dev->array[0x00000]), dev->size, 1, f);
-    fclose(f);
+    if (dev->dirty) {
+	f = nvr_fopen(flash_path, L"wb");
+	fwrite(&(dev->array[0x00000]), dev->size, 1, f);
+	fclose(f);
+    }
 
     free(dev->array);
     dev->array = NULL;

@@ -815,8 +815,14 @@ zip_update_request_length(zip_t *dev, int len, int block_len)
     /* For media access commands, make sure the requested DRQ length matches the block length. */
     switch (dev->current_cdb[0]) {
 	case 0x08:
+	case 0x0a:
 	case 0x28:
+	case 0x2a:
 	case 0xa8:
+	case 0xaa:
+		/* Round it to the nearest 2048 bytes. */
+		dev->max_transfer_len = (dev->max_transfer_len >> 9) << 9;
+
 		/* Make sure total length is not bigger than sum of the lengths of
 		   all the requested blocks. */
 		bt = (dev->requested_blocks * block_len);
