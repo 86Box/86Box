@@ -34,7 +34,9 @@
 #include "piix.h"
 #include "sio.h"
 #include "sst_flash.h"
+#include "hwm.h"
 #include "video.h"
+#include "cpu.h"
 #include "machine.h"
 
 
@@ -165,6 +167,33 @@ machine_at_p2bls_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83977tf_device);
     device_add(&sst_flash_39sf020_device);
+
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds */
+    		3000,	/* Chassis */
+    		3000,	/* CPU */
+    		3000,	/* Power */
+    		0
+    	}, { /* temperatures */
+    		30,	/* MB */
+    		0,	/* unused */
+    		27,	/* CPU */
+    		0
+    	}, { /* voltages (divisors other than 16 = unclear how that number was achieved) */
+    		2800 / 16,		  /* VCORE (2.8V by default) */
+    		0,			  /* unused */
+    		3300 / 16,		  /* +3.3V */
+    		5000 / 27,		  /* +5V */
+    		VDIV(12000, 28, 10) / 16, /* +12V (with 28K/10K resistor divider suggested in the W83781D datasheet) */
+    		12000 / 55,		  /* -12V */
+    		5000 / 24,		  /* -5V */
+    		0   
+    	}
+    };
+    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2D)
+    	machine_hwm.voltages[0] = 2050 / 16; /* set lower VCORE (2.05V) for Deschutes */
+    hwm_set_values(machine_hwm);
+    device_add(&as99127f_device);
 
     return ret;
 }
