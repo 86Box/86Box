@@ -9,7 +9,7 @@
  *		Implementation of the CD-ROM drive with SCSI(-like)
  *		commands, for both ATAPI and SCSI usage.
  *
- * Version:	@(#)scsi_cdrom.c	1.0.74	2020/01/17
+ * Version:	@(#)scsi_cdrom.c	1.0.75	2020/03/23
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -139,9 +139,15 @@ const uint8_t scsi_cdrom_command_flags[0x100] =
     IMPLEMENTED,						/* 0xBD */
     IMPLEMENTED | CHECK_READY,					/* 0xBE */
     IMPLEMENTED | CHECK_READY,					/* 0xBF */
-    0, 0,							/* 0xC0-0xC1 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,			/* 0xC0 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,			/* 0xC1 */    
     IMPLEMENTED | CHECK_READY | SCSI_ONLY,			/* 0xC2 */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,				/* 0xC3-0xCC */
+    0,								/* 0xC3 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,			/* 0xC4 */
+    0,								/* 0xC5 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,			/* 0xC6 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,			/* 0xC7 */
+    0, 0, 0, 0, 0,						/* 0xC8-0xCC */
     IMPLEMENTED | CHECK_READY | SCSI_ONLY,			/* 0xCD */
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,				/* 0xCE-0xD9 */
     IMPLEMENTED | SCSI_ONLY,					/* 0xDA */
@@ -151,6 +157,7 @@ const uint8_t scsi_cdrom_command_flags[0x100] =
 };
 
 static uint64_t scsi_cdrom_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE |
+						    GPMODEP_DISCONNECT_PAGE |
 						    GPMODEP_CDROM_PAGE |
 						    GPMODEP_CDROM_AUDIO_PAGE |
 						    GPMODEP_CAPABILITIES_PAGE |
@@ -207,7 +214,7 @@ static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_default_scsi =
 {   {
     {                        0,    0 },
     {    GPMODE_R_W_ERROR_PAGE,    6, 0, 5, 0,  0, 0,  0 },
-    {                        0,    0 },
+    {   GPMODE_DISCONNECT_PAGE, 0x0e, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
@@ -254,7 +261,7 @@ static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_changeable =
 {   {
     {                        0,    0 },
     {    GPMODE_R_W_ERROR_PAGE,    6, 0xFF, 0xFF, 0, 0, 0, 0 },
-    {                        0,    0 },
+    {   GPMODE_DISCONNECT_PAGE, 0x0e, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 },
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
@@ -562,6 +569,9 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
 	case 0x08:
 	case 0x28:
 	case 0xa8:
+		/* Round it to the nearest 2048 bytes. */
+		dev->max_transfer_len = (dev->max_transfer_len >> 11) << 11;
+		/* FALLTHROUGH */
 	case 0xb9:
 	case 0xbe:
 		/* Make sure total length is not bigger than sum of the lengths of
@@ -668,6 +678,8 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
 		case 0xb8:
 		case 0xb9:
 		case 0xbe:
+		case 0xc6:
+		case 0xc7:
 			if (dev->current_cdb[0] == 0x42)
 				dev->callback += 40.0;
 			/* Account for seek time. */
@@ -1536,6 +1548,26 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 			     toc_format, ide->cylinder, dev->buffer[1]); */
 		return;
 
+	case GPCMD_READ_DISC_INFORMATION_TOSHIBA:
+		scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+
+		scsi_cdrom_buf_alloc(dev, 65536);
+		
+		if ((!dev->drv->ops) && ((cdb[1] & 3) == 2)) {
+			scsi_cdrom_not_ready(dev);
+			return;
+		}		
+		
+		memset(dev->buffer, 0, 4);
+		
+		cdrom_read_disc_info_toc(dev->drv, dev->buffer, cdb[2], cdb[1] & 3);
+		
+		len = 4;
+		scsi_cdrom_set_buf_len(dev, BufLen, &len);
+
+		scsi_cdrom_data_command_finish(dev, len, len, len, 0);
+		return;
+
 	case GPCMD_READ_CD_OLD:
 		/* IMPORTANT: Convert the command to new read CD
 			      for pass through purposes. */
@@ -1976,6 +2008,36 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 		scsi_cdrom_data_command_finish(dev, len, len, max_len, 0);
 		break;
 
+	case GPCMD_AUDIO_TRACK_SEARCH:
+		scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+		if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
+			scsi_cdrom_illegal_mode(dev);
+			break;
+		}
+		pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+		ret = cdrom_audio_track_search(dev->drv, pos, cdb[9], cdb[1] & 1);
+
+		if (ret)
+			scsi_cdrom_command_complete(dev);
+		else
+			scsi_cdrom_illegal_mode(dev);
+		break;
+
+	case GPCMD_TOSHIBA_PLAY_AUDIO:	
+		scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+		if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
+			scsi_cdrom_illegal_mode(dev);
+			break;
+		}
+		pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+		ret = cdrom_toshiba_audio_play(dev->drv, pos, cdb[9]);
+		
+		if (ret)
+			scsi_cdrom_command_complete(dev);
+		else
+			scsi_cdrom_illegal_mode(dev);
+		break;
+
 	case GPCMD_PLAY_AUDIO_10:
 	case GPCMD_PLAY_AUDIO_12:
 	case GPCMD_PLAY_AUDIO_MSF:
@@ -1993,13 +2055,13 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 				len = (cdb[7] << 8) | cdb[8];
 				break;
 			case GPCMD_PLAY_AUDIO_12:
+				/* This is apparently deprecated in the ATAPI spec, and apparently
+				   has been since 1995 (!). Hence I'm having to guess most of it. */
 				msf = 0;
 				pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
 				len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
 				break;
 			case GPCMD_PLAY_AUDIO_MSF:
-				/* This is apparently deprecated in the ATAPI spec, and apparently
-				   has been since 1995 (!). Hence I'm having to guess most of it. */
 				msf = 1;
 				pos = (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
 				len = (cdb[6] << 16) | (cdb[7] << 8) | cdb[8];
@@ -2114,6 +2176,37 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 		scsi_cdrom_data_command_finish(dev, len, len, len, 0);
 		break;
 
+	case GPCMD_READ_SUBCODEQ_PLAYING_STATUS:
+		scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+
+		alloc_length = cdb[1] & 0x1f;
+
+		scsi_cdrom_buf_alloc(dev, alloc_length);
+
+		if (!dev->drv->ops) {
+			scsi_cdrom_not_ready(dev);
+			return;
+		}
+
+		if (!alloc_length) {
+			scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+			scsi_cdrom_log("CD-ROM %i: All done - callback set\n", dev->id);
+			dev->packet_status = PHASE_COMPLETE;
+			dev->callback = 20.0 * CDROM_TIME;
+			scsi_cdrom_set_callback(dev);
+			break;
+		}
+
+		len = alloc_length;
+
+		memset(dev->buffer, 0, len);
+		dev->buffer[0] = cdrom_get_current_subcodeq_playstatus(dev->drv, &dev->buffer[1]);
+		scsi_cdrom_log("Audio Status = %02x\n", dev->buffer[0]);
+
+		scsi_cdrom_set_buf_len(dev, BufLen, &alloc_length);
+		scsi_cdrom_data_command_finish(dev, len, len, len, 0);
+		break;		
+
 	case GPCMD_READ_DVD_STRUCTURE:
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
 
@@ -2172,6 +2265,13 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 
 		scsi_cdrom_command_complete(dev);
 		break;
+	
+	case GPCMD_CADDY_EJECT:
+		scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+		scsi_cdrom_stop(sc);
+		cdrom_eject(dev->id);
+		scsi_cdrom_command_complete(dev);
+		break;
 
 	case GPCMD_INQUIRY:
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
@@ -2217,10 +2317,15 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 					dev->buffer[idx++] = 0x01;
 					dev->buffer[idx++] = 0x00;
 					dev->buffer[idx++] = 68;
-					ide_padstr8(dev->buffer + idx, 8, EMU_NAME); /* Vendor */
+					if (dev->drv->bus_type == CDROM_BUS_SCSI)
+						ide_padstr8(dev->buffer + idx, 8, "TOSHIBA"); /* Vendor */
+					else
+						ide_padstr8(dev->buffer + idx, 8, EMU_NAME); /* Vendor */
 					idx += 8;
-					ide_padstr8(dev->buffer + idx, 40, device_identify_ex); /* Product */
-
+					if (dev->drv->bus_type == CDROM_BUS_SCSI)
+						ide_padstr8(dev->buffer + idx, 40, "XM6201TASUN32XCD1103"); /* Product */
+					else
+						ide_padstr8(dev->buffer + idx, 40, device_identify_ex); /* Product */
 					idx += 40;
 					ide_padstr8(dev->buffer + idx, 20, "53R141"); /* Product */
 					idx += 20;
@@ -2253,10 +2358,16 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 				dev->buffer[6] = 1;	/* 16-bit transfers supported */
 				dev->buffer[7] = 0x20;	/* Wide bus supported */
 			}
-
-			ide_padstr8(dev->buffer + 8, 8, EMU_NAME); /* Vendor */
-			ide_padstr8(dev->buffer + 16, 16, device_identify); /* Product */
-			ide_padstr8(dev->buffer + 32, 4, EMU_VERSION); /* Revision */
+			
+			if (dev->drv->bus_type == CDROM_BUS_SCSI) {
+				ide_padstr8(dev->buffer + 8, 8, "TOSHIBA"); /* Vendor */
+				ide_padstr8(dev->buffer + 16, 16, "XM6201TASUN32XCD"); /* Product */
+				ide_padstr8(dev->buffer + 32, 4, "1103"); /* Revision */
+			} else {
+				ide_padstr8(dev->buffer + 8, 8, EMU_NAME); /* Vendor */
+				ide_padstr8(dev->buffer + 16, 16, device_identify); /* Product */
+				ide_padstr8(dev->buffer + 32, 4, EMU_VERSION); /* Revision */
+			}
 
 			idx = 36;
 
@@ -2281,10 +2392,18 @@ atapi_out:
 		scsi_cdrom_command_complete(dev);
 		break;
 
+#if 0
 	case GPCMD_PAUSE_RESUME_ALT:
+#endif
 	case GPCMD_PAUSE_RESUME:
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
 		cdrom_audio_pause_resume(dev->drv, cdb[8] & 0x01);
+		scsi_cdrom_command_complete(dev);
+		break;
+
+	case GPCMD_STILL:
+		scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+		dev->drv->cd_status = CD_STATUS_PAUSED;
 		scsi_cdrom_command_complete(dev);
 		break;
 

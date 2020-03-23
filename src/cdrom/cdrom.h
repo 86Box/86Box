@@ -112,7 +112,7 @@ typedef struct cdrom {
 	     seek_diff, cd_end;
 
     int host_drive, prev_host_drive,
-	cd_buflen;
+	cd_buflen, noplay;
 
     const cdrom_ops_t	*ops;
 
@@ -134,12 +134,17 @@ extern double	cdrom_seek_time(cdrom_t *dev);
 extern void	cdrom_stop(cdrom_t *dev);
 extern int	cdrom_audio_callback(cdrom_t *dev, int16_t *output, int len);
 extern uint8_t	cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf);
+extern uint8_t	cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit);
+extern uint8_t	cdrom_toshiba_audio_play(cdrom_t *dev, uint32_t pos, int type);
 extern void	cdrom_audio_pause_resume(cdrom_t *dev, uint8_t resume);
 extern uint8_t	cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf);
+extern uint8_t	cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b);
 extern int	cdrom_read_toc(cdrom_t *dev, unsigned char *b, int type,
 			       unsigned char start_track, int msf, int max_len);
 extern int	cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf,
 				     int cdrom_sector_type, int cdrom_sector_flags, int *len);
+extern void 	cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, int type);
+
 extern void	cdrom_seek(cdrom_t *dev, uint32_t pos);
 
 extern void     cdrom_close_handler(uint8_t id);
