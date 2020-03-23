@@ -4765,7 +4765,7 @@ mystique_pci_write(int func, int addr, uint8_t val, void *p)
 	case 0x48: case 0x49: case 0x4a: case 0x4b:
 		addr = (mystique->pci_regs[0x44] & 0xfc) | ((mystique->pci_regs[0x45] & 0x3f) << 8) |
 			(addr & 3);
-		pclog("mystique_ctrl_write_b(%04X, %02X)\n", addr, val);
+		/* pclog("mystique_ctrl_write_b(%04X, %02X)\n", addr, val); */
 		mystique_ctrl_write_b(addr, val, mystique);
 		break;
     }
