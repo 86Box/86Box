@@ -14,7 +14,6 @@
  *		Copyright 2020 RichardG.
  */
 
-#include <stdint.h>
 #include "device.h"
 #include "hwm.h"
 
