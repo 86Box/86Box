@@ -1186,14 +1186,12 @@ piix_reset_hard(piix_t *dev)
     if (dev->type < 3)
 	pci_set_mirq_routing(PCI_MIRQ1, PCI_IRQ_DISABLED);
 
-#ifdef WRONG_SPEC
     if (dev->type == 4) {
 	dev->power.gporeg[0] = 0xff;
 	dev->power.gporeg[1] = 0xbf;
 	dev->power.gporeg[2] = 0xff;
 	dev->power.gporeg[3] = 0x7f;
     }
-#endif
 }
 
 
