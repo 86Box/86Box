@@ -806,6 +806,7 @@ load_other_peripherals(void)
     ide_qua_enabled = !!config_get_int(cat, "ide_qua", 0);
 
     bugger_enabled = !!config_get_int(cat, "bugger_enabled", 0);
+    postcard_enabled = !!config_get_int(cat, "postcard_enabled", 0);
 
     for (c = 0; c < ISAMEM_MAX; c++) {
 	sprintf(temp, "isamem%d_type", c);
@@ -1685,6 +1686,11 @@ save_other_peripherals(void)
 	config_delete_var(cat, "bugger_enabled");
       else
 	config_set_int(cat, "bugger_enabled", bugger_enabled);
+
+    if (postcard_enabled == 0)
+	config_delete_var(cat, "postcard_enabled");
+      else
+	config_set_int(cat, "postcard_enabled", postcard_enabled);
 
     for (c = 0; c < ISAMEM_MAX; c++) {
 	sprintf(temp, "isamem%d_type", c);
