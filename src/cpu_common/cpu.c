@@ -2528,10 +2528,6 @@ void cpu_RDMSR()
                         EAX = mtrr_fix4k_msr[ECX - 0x268] & 0xffffffff;
                         EDX = mtrr_fix4k_msr[ECX - 0x268] >> 32;
                         break;
-                        case 0x277:
-                        EAX = pat_msr & 0xffffffff;
-                        EDX = pat_msr >> 32;
-                        break;
                         case 0x2FF:
                         EAX = mtrr_deftype_msr & 0xffffffff;
                         EDX = mtrr_deftype_msr >> 32;
