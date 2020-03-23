@@ -49,8 +49,11 @@
 
 #define NCR53C8XX_ROM	L"roms/scsi/ncr53c8xx/NCR307.BIN"
 
+#define HA_ID		  7
+
 #define CHIP_810	  0x01
 #define CHIP_825	  0x03
+#define CHIP_860	  0x06
 #define CHIP_875	  0x0f
 
 #define NCR_SCNTL0_TRG    0x01
@@ -302,6 +305,10 @@ typedef struct {
     uint32_t adder;
 
     pc_timer_t timer;
+
+#ifdef USE_WDTR
+    uint8_t tr_set[16];
+#endif
 } ncr53c8xx_t;
 
 
@@ -401,7 +408,7 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
 	dev->scntl3 = 0;
     dev->sstat0 = 0;
     dev->sstat1 = 0;
-    dev->scid = 7;
+    dev->scid = HA_ID;
     dev->sxfer = 0;
     dev->socl = 0;
     dev->sdid = 0;
@@ -428,13 +435,21 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
     if (dev->chip >= CHIP_825) {
 	/* This *IS* a wide SCSI controller, so reset all SCSI
 	   devices. */
-	for (i = 0; i < 16; i++)
+	for (i = 0; i < 16; i++) {
+#ifdef USE_WDTR
+		dev->tr_set[i] = 0;
+#endif
 		scsi_device_reset(&scsi_devices[i]);
+	}
     } else {
 	/* This is *NOT* a wide SCSI controller, so do not touch
 	   SCSI devices with ID's >= 8. */
-	for (i = 0; i < 8; i++)
+	for (i = 0; i < 8; i++) {
+#ifdef USE_WDTR
+		dev->tr_set[i] = 0;
+#Endif
 		scsi_device_reset(&scsi_devices[i]);
+	}
     }
 }
 
@@ -802,9 +817,9 @@ ncr53c8xx_do_wdtr(ncr53c8xx_t *dev, int exponent)
     ncr53c8xx_log("Target-initiated WDTR (%08X)\n", dev);
     ncr53c8xx_set_phase(dev, PHASE_MI);
     dev->msg_action = 4;
-    ncr53c8xx_add_msg_byte(dev, 0x01);	/* EXTENDED MESSAGE */
-    ncr53c8xx_add_msg_byte(dev, 0x02);	/* EXTENDED MESSAGE LENGTH */
-    ncr53c8xx_add_msg_byte(dev, 0x03);	/* WIDE DATA TRANSFER REQUEST */
+    ncr53c8xx_add_msg_byte(dev, 0x01);		/* EXTENDED MESSAGE */
+    ncr53c8xx_add_msg_byte(dev, 0x02);		/* EXTENDED MESSAGE LENGTH */
+    ncr53c8xx_add_msg_byte(dev, 0x03);		/* WIDE DATA TRANSFER REQUEST */
     ncr53c8xx_add_msg_byte(dev, exponent);	/* TRANSFER WIDTH EXPONENT (16-bit) */
 }
 #endif
@@ -925,13 +940,14 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
 					break;
 				case 3:
 					ncr53c8xx_log("WDTR (ignored)\n");
+#ifdef USE_WDTR
+					dev->tr_set[dev->sdid] = 1;
+#endif
 					if (arg > 0x01) {
 						ncr53c8xx_bad_message(dev, msg);
 						return;
 					}
-#ifdef USE_WDTR
 					ncr53c8xx_set_phase(dev, PHASE_CMD);
-#endif
 					break;
 				case 5:
 					ncr53c8xx_log("PPR (ignored)\n");
@@ -960,9 +976,14 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
 			scsi_device_command_stop(sd);
 			ncr53c8xx_disconnect(dev);
 			break;
+		case 0x0c:
+			/* BUS DEVICE RESET message, reset wide transfer request. */
+#ifdef USE_WDTR
+			dev->tr_set[dev->sdid] = 0;
+#endif
+			/* FALLTHROUGH */
 		case 0x06:
 		case 0x0e:
-		case 0x0c:
 			/* clear the current I/O process */
 			scsi_device_command_stop(sd);
 			ncr53c8xx_disconnect(dev);
@@ -977,10 +998,11 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
 				dev->current_lun = msg & 7;
 				ncr53c8xx_log("Select LUN %d\n", dev->current_lun);
 #ifdef USE_WDTR
-				ncr53c8xx_do_wdtr(dev, 0x01);
-#else
-				ncr53c8xx_set_phase(dev, PHASE_CMD);
+				if ((dev->chip == CHIP_875) && !dev->tr_set[dev->sdid])
+					ncr53c8xx_do_wdtr(dev, 0x01);
+				else
 #endif
+					ncr53c8xx_set_phase(dev, PHASE_CMD);
 			}
 			break;
 	}
@@ -2625,6 +2647,7 @@ ncr53c8xx_init(const device_t *info)
     ncr53c8xx_pci_bar[0].addr_regs[0] = 1;
     ncr53c8xx_pci_bar[1].addr_regs[0] = 0;
     dev->chip = info->local;
+
     ncr53c8xx_pci_regs[0x04] = 3;	
 
     ncr53c8xx_mem_init(dev, 0x0fffff00);
@@ -2632,12 +2655,14 @@ ncr53c8xx_init(const device_t *info)
 
     dev->has_bios = device_get_config_int("bios");
     if (dev->has_bios)
-	rom_init(&dev->bios, NCR53C8XX_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+	rom_init(&dev->bios, NCR53C8XX_ROM, 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     if (dev->chip >= CHIP_825) {
-
         if (dev->chip == CHIP_875) {
 		dev->chip_rev = 0x04;
 		dev->nvr_path = L"ncr53c875.nvr";
+	} else if (dev->chip == CHIP_860) {
+		dev->chip_rev = 0x04;
+		dev->nvr_path = L"ncr53c860.nvr";
 	} else {
 		dev->chip_rev = 0x26;
 		dev->nvr_path = L"ncr53c825a.nvr";
@@ -2654,8 +2679,8 @@ ncr53c8xx_init(const device_t *info)
 		ncr53c8xx_bios_disable(dev);
 #endif
     } else {
-	if (dev->has_bios)
-		rom_init(&dev->bios, NCR53C8XX_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+	/* if (dev->has_bios)
+		rom_init(&dev->bios, NCR53C8XX_ROM, 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL); */
 
 	dev->nvr_path = L"ncr53c810.nvr";
     }
@@ -2710,6 +2735,16 @@ const device_t ncr53c825a_pci_device =
     "NCR 53c825A (SCSI)",
     DEVICE_PCI,
     CHIP_825,
+    ncr53c8xx_init, ncr53c8xx_close, NULL,
+    NULL, NULL, NULL,
+    ncr53c8xx_pci_config
+};
+
+const device_t ncr53c860_pci_device =
+{
+    "NCR 53c860 (SCSI)",
+    DEVICE_PCI,
+    CHIP_860,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
     NULL, NULL, NULL,
     ncr53c8xx_pci_config
