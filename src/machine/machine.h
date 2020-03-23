@@ -304,8 +304,10 @@ extern const device_t	*at_pb640_get_device(void);
 #if defined(DEV_BRANCH) && defined(USE_I686)
 extern int	machine_at_i440fx_init(const machine_t *);
 extern int	machine_at_s1668_init(const machine_t *);
+#endif
 
 extern int	machine_at_6abx3_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_I686) /*P2B-LS has no VIA C3 BIOS support, so further investigation may be needed*/
 extern int  machine_at_p2bls_init(const machine_t *);
 extern int	machine_at_p6bxt_init(const machine_t *);
 extern int	machine_at_63a_init(const machine_t *);

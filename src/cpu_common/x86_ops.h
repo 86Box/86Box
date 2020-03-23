@@ -70,9 +70,7 @@ extern const OpFn *x86_dynarec_opcodes_df_a16;
 extern const OpFn *x86_dynarec_opcodes_df_a32;
 extern const OpFn *x86_dynarec_opcodes_REPE;
 extern const OpFn *x86_dynarec_opcodes_REPNE;
-#ifdef USE_NEW_DYNAREC
 extern const OpFn *x86_dynarec_opcodes_3DNOW;
-#endif
 
 extern const OpFn dynarec_ops_286[1024];
 extern const OpFn dynarec_ops_286_0f[1024];
@@ -83,9 +81,7 @@ extern const OpFn dynarec_ops_386_0f[1024];
 extern const OpFn dynarec_ops_486_0f[1024];
 
 extern const OpFn dynarec_ops_winchip_0f[1024];
-#ifdef USE_NEW_DYNAREC
 extern const OpFn dynarec_ops_winchip2_0f[1024];
-#endif
 
 extern const OpFn dynarec_ops_pentium_0f[1024];
 extern const OpFn dynarec_ops_pentiummmx_0f[1024];
@@ -175,9 +171,7 @@ extern const OpFn *x86_opcodes_df_a16;
 extern const OpFn *x86_opcodes_df_a32;
 extern const OpFn *x86_opcodes_REPE;
 extern const OpFn *x86_opcodes_REPNE;
-#ifdef USE_NEW_DYNAREC
 extern const OpFn *x86_opcodes_3DNOW;
-#endif
 
 extern const OpFn ops_286[1024];
 extern const OpFn ops_286_0f[1024];
@@ -188,9 +182,7 @@ extern const OpFn ops_386_0f[1024];
 extern const OpFn ops_486_0f[1024];
 
 extern const OpFn ops_winchip_0f[1024];
-#ifdef USE_NEW_DYNAREC
 extern const OpFn ops_winchip2_0f[1024];
-#endif
 
 extern const OpFn ops_pentium_0f[1024];
 extern const OpFn ops_pentiummmx_0f[1024];
@@ -253,9 +245,7 @@ extern const OpFn ops_fpu_686_df_a32[256];
 
 extern const OpFn ops_REPE[1024];
 extern const OpFn ops_REPNE[1024];
-#ifdef USE_NEW_DYNAREC
 extern const OpFn ops_3DNOW[256];
-#endif
 
 #define C0 (1<<8)
 #define C1 (1<<9)
