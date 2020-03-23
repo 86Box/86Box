@@ -170,6 +170,9 @@ machine_at_p6bxt_init(const machine_t *model)
 int
 machine_at_63a_init(const machine_t *model)
 {
+	
+// 440ZX Board. 440ZX is basically an underpowered 440BX. There no
+// difference between to chipsets other than the name.
     int ret;
 
     ret = bios_load_linear(L"roms/machines/63a/63a-q3.bin",
