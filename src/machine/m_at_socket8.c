@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of Socket 8 machines.
+ *		Implementation of Socket 8 and Slot 1 machines.
  *
  * Version:	@(#)m_at_socket8.c	1.0.0	2019/05/16
  *
@@ -163,7 +163,7 @@ machine_at_p2bls_init(const machine_t *model)
     device_add(&i440bx_device);
     device_add(&piix4_device);
     device_add(&keyboard_ps2_pci_device);
-    device_add(&w83977tf_device);
+    device_add(&w83977ef_device);
     device_add(&sst_flash_39sf020_device);
 
     return ret;
