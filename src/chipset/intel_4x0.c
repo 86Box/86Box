@@ -44,7 +44,8 @@ enum
     INTEL_430TX
 #if defined(DEV_BRANCH) && defined(USE_I686)
     ,INTEL_440FX,
-    INTEL_440BX
+    INTEL_440BX,
+    INTEL_440ZX
 #endif
 };
 
@@ -141,7 +142,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		switch (dev->type) {
 			case INTEL_420TX: case INTEL_420ZX: case INTEL_430LX: case INTEL_430NX:
 #if defined(DEV_BRANCH) && defined(USE_I686)
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 #endif
 			default:
 				regs[0x04] = (regs[0x04] & ~0x42) | (val & 0x42);
@@ -158,7 +159,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		switch (dev->type) {
 			case INTEL_420TX: case INTEL_420ZX: case INTEL_430LX: case INTEL_430NX: case INTEL_430HX:
 #if defined(DEV_BRANCH) && defined(USE_I686)
-			case INTEL_440FX: case INTEL_440BX:
+			case INTEL_440FX: case INTEL_440BX: case INTEL_440ZX:
 #endif
 				regs[0x05] = (regs[0x05] & ~0x01) | (val & 0x01);
 				break;
@@ -177,7 +178,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440FX:
 				regs[0x07] &= ~(val & 0xf9);
 				break;
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x07] &= ~(val & 0xf0);
 				break;
 #endif
@@ -203,7 +204,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 #if defined(DEV_BRANCH) && defined(USE_I686)
 	case 0x12:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x12] = (val & 0xc0);
 				i4x0_mask_bar(regs);
 				break;
@@ -211,7 +212,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x13:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x13] = val;
 				i4x0_mask_bar(regs);
 				break;
@@ -219,7 +220,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x2c: case 0x2d: case 0x2e: case 0x2f:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				if (!regs_l[addr]) {
 					regs[addr] = val;
 					regs_l[addr] = 1;
@@ -266,6 +267,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440BX:
 				regs[0x50] = (regs[0x50] & 0x14) | (val & 0xeb);
 				break;
+			case INTEL_440ZX:
+				regs[0x50] = (regs[0x50] & 0x34) | (val & 0xcb);
+				break;
 #endif
 		}
 		break;
@@ -278,7 +282,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440FX:
 				regs[0x51] = (val & 0xc3);
 				break;
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x51] = (regs[0x50] & 0x70) | (val & 0x8f);
 				break;
 #endif
@@ -300,7 +304,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[0x52] = val;
 				break;
 #if defined(DEV_BRANCH) && defined(USE_I686)
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x52] = val & 0x07;
 				break;
 #endif
@@ -317,6 +321,10 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				break;
 			case INTEL_430VX: case INTEL_430TX:
 				regs[0x53] = val & 0x3f;
+				break;
+			case INTEL_440BX:
+				/* Not applicable to 440ZX as that does not support ECC. */
+				regs[0x53] = val;
 				break;
 		}
 		break;
@@ -392,6 +400,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440BX:
 				regs[0x57] = val & 0x3f;
 				break;
+			case INTEL_440ZX:
+				regs[0x57] = val & 0x2f;
+				break;
 #endif
 		}
 		break;
@@ -403,7 +414,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				break;
 			case INTEL_430NX:
 #if defined(DEV_BRANCH) && defined(USE_I686)
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 #endif
 				regs[0x58] = val & 0x03;
 				break;
@@ -484,6 +495,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430HX:
 #if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX: case INTEL_440BX:
+			case INTEL_440ZX:
 #endif
 			default:
 				regs[addr] = val;
@@ -504,6 +516,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430HX:
 #if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX: case INTEL_440BX:
+			case INTEL_440ZX:
 #endif
 				regs[addr] = val;
 				break;
@@ -520,6 +533,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430NX: case INTEL_430HX:
 #if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX: case INTEL_440BX:
+			case INTEL_440ZX:
 #endif
 				regs[addr] = val;
 				break;
@@ -530,6 +544,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430NX: case INTEL_430HX:
 #if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX: case INTEL_440BX:
+			case INTEL_440ZX:
 #endif
 				regs[addr] = val;
 				break;
@@ -557,6 +572,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440BX:
 				regs[0x68] = (regs[0x68] & 0x38) | (val & 0xc7);
 				break;
+			case INTEL_440ZX:
+				regs[0x68] = (regs[0x68] & 0x3f) | (val & 0xc0);
+				break;
 #endif
 		}
 		break;
@@ -571,6 +589,11 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430VX:
 				regs[0x69] = val & 0x07;
 				break;
+#if defined(DEV_BRANCH) && defined(USE_I686)
+			case INTEL_440ZX:
+				regs[0x69] = val & 0x3f;
+				break;
+#endif
 		}
 		break;
 	case 0x6a: case 0x6b:
@@ -581,6 +604,14 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 #endif
 				regs[addr] = val;
 				break;
+#if defined(DEV_BRANCH) && defined(USE_I686)
+			case INTEL_440ZX:
+				if (addr == 0x6a)
+					regs[addr] = val & 0xfc;
+				else
+					regs[addr] = val & 0x33;
+				break;
+#endif
 		}
 		break;
 #if defined(DEV_BRANCH) && defined(USE_I686)
@@ -588,6 +619,12 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		switch (dev->type) {
 			case INTEL_440BX:
 				regs[addr] = val;
+				break;
+			case INTEL_440ZX:
+				if (addr == 0x6c)
+					regs[addr] = val & 0x03;
+				else if (addr == 0x6d)
+					regs[addr] = val & 0xcf;
 				break;
 		}
 		break;
@@ -644,7 +681,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[0x73] = val & 0x03;
 				break;
 #if defined(DEV_BRANCH) && defined(USE_I686)
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x73] = val;
 				break;
 #endif
@@ -654,7 +691,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		switch (dev->type) {
 			case INTEL_430VX:
 #if defined(DEV_BRANCH) && defined(USE_I686)
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 #endif
 				regs[0x74] = val;
 				break;
@@ -664,13 +701,13 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x75: case 0x76:
 	case 0x7b:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[addr] = val;
 		}
 		break;
 	case 0x77:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x77] = val & 0x03;
 		}
 		break;
@@ -681,7 +718,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[0x78] = val & 0xcf;
 				break;
 #if defined(DEV_BRANCH) && defined(USE_I686)
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x78] = val & 0x0f;
 				break;
 #endif
@@ -696,7 +733,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 					io_sethandler(0x0022, 0x01, pm2_cntrl_read, NULL, NULL, pm2_cntrl_write, NULL, NULL, dev);
 				break;
 #if defined(DEV_BRANCH) && defined(USE_I686)
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x79] = val;
 				break;
 #endif
@@ -705,7 +742,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 #if defined(DEV_BRANCH) && defined(USE_I686)
 	case 0x7a:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x7a] = (regs[0x7a] & 0x0a) | (val & 0xf5);
 				io_removehandler(0x0022, 0x01, pm2_cntrl_read, NULL, NULL, pm2_cntrl_write, NULL, NULL, dev);
 				if (val & 0x40)
@@ -721,7 +758,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[0x7c] = val & 0x8f;
 				break;
 #if defined(DEV_BRANCH) && defined(USE_I686)
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x7c] = val & 0x1f;
 				break;
 #endif
@@ -743,7 +780,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 #if defined(DEV_BRANCH) && defined(USE_I686)
 	case 0x80:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x80] &= ~(val & 0x03);
 				break;
 		}
@@ -758,7 +795,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440FX:
 				regs[0x80] = val & 0x1b;
 				break;
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x7c] = val;
 				break;
 #endif
@@ -770,6 +807,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 #if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX: case INTEL_440BX:
 #endif
+				/* Not applicable on 82443ZX. */
 				regs[0x91] &= ~(val & 0x11);
 				break;
 		}
@@ -777,7 +815,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 #if defined(DEV_BRANCH) && defined(USE_I686)
 	case 0x92:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x92] &= ~(val & 0x1f);
 				break;
 		}
@@ -792,28 +830,28 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0xa8: case 0xa9:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[addr] = (val & 0x03);
 				break;
 		}
 		break;
 	case 0xb0:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0xb0] = (val & 0x80);
 				break;
 		}
 		break;
 	case 0xb1:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0xb1] = (val & 0xa0);
 				break;
 		}
 		break;
 	case 0xb4:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0xb4] = (val & 0x3f);
 				i4x0_mask_bar(regs);
 				break;
@@ -821,16 +859,36 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0xb9:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0xb9] = (val & 0xf0);
 				break;
 		}
 		break;
-	case 0xba: case 0xbb: case 0xca: case 0xcb:
+	case 0xba: case 0xbb:
 	case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
+		switch (dev->type) {
+			case INTEL_440BX: case INTEL_440ZX:
+				regs[addr] = val;
+				break;
+		}
+		break;
+	case 0xca:
 		switch (dev->type) {
 			case INTEL_440BX:
 				regs[addr] = val;
+				break;
+			case INTEL_440ZX:
+				regs[addr] = val & 0xe7;
+				break;
+		}
+		break;
+	case 0xcb:
+		switch (dev->type) {
+			case INTEL_440BX:
+				regs[addr] = val;
+				break;
+			case INTEL_440ZX:
+				regs[addr] = val & 0xa7;
 				break;
 		}
 		break;
@@ -839,12 +897,15 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440BX:
 				regs[0xcc] = (val & 0x7f);
 				break;
+			case INTEL_440ZX:
+				regs[0xcc] = (val & 0x58);
+				break;
 		}
 		break;
 	case 0xe0: case 0xe1: case 0xe2: case 0xe3: case 0xe4:
 	case 0xe8: case 0xe9: case 0xea: case 0xeb: case 0xec:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				if (!regs_l[addr])
 					regs[addr] = val;
 				break;
@@ -852,7 +913,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0xe5: case 0xed:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				if (!regs_l[addr])
 					regs[addr] = (val & 0x3f);
 				break;
@@ -860,7 +921,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0xe7:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0xe7] = 0x80;
 				for (i = 0; i < 16; i++)
 					regs_l[0xe0 + i] = !!(val & 0x80);
@@ -872,14 +933,14 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0xf0:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0xf0] = (val & 0xc0);
 				break;
 		}
 		break;
 	case 0xf1:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0xf1] = (val & 0x03);
 				break;
 		}
@@ -887,21 +948,21 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
     } else if (func == 1)  switch (addr) {
 	case 0x04:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x04] = (val & 0x1f);
 				break;
 		}
 		break;
 	case 0x05:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x05] = (val & 0x01);
 				break;
 		}
 		break;
 	case 0x0d: case 0x1b:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[addr] = (val & 0xf8);
 				break;
 		}
@@ -910,7 +971,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x21: case 0x23:
 	case 0x25: case 0x27:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[addr] = val;
 				break;
 		}
@@ -919,21 +980,21 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x20: case 0x22:
 	case 0x24: case 0x26:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[addr] = (val & 0xf0);
 				break;
 		}
 		break;
 	case 0x1f:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x1f] &= ~(val & 0xf0);
 				break;
 		}
 		break;
 	case 0x3e:
 		switch (dev->type) {
-			case INTEL_440BX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x3e] = (val & 0xed);
 				break;
 		}
@@ -994,7 +1055,7 @@ i4x0_reset(void *priv)
 	i4x0_write(0, 0x72, 0x00, priv);
 
 #if defined(DEV_BRANCH) && defined(USE_I686)
-    if (dev->type == INTEL_440BX) {
+    if ((dev->type == INTEL_440BX) || (dev->type == INTEL_440ZX)) {
 	for (i = 0; i <= dev->max_func; i++)
 		memset(dev->regs_locked[i], 0x00, 256 * sizeof(uint8_t));
     }
@@ -1173,11 +1234,12 @@ static void
 		regs[0x71] = 0x10;
 		regs[0x72] = 0x02;
 		break;
-	case INTEL_440BX:
+	case INTEL_440BX: case INTEL_440ZX:
 		regs[0x7a] = (info->local >> 8) & 0xff;
 		dev->max_func = (regs[0x7a] & 0x02) ? 0 : 1;
 
 		regs[0x02] = (regs[0x7a] & 0x02) ? 0x92 : 0x90; regs[0x03] = 0x71;	/* 82443BX */
+		regs[0x06] = (regs[0x7a] & 0x02) ? 0x00 : 0x10;
 		regs[0x08] = 0x02;
 		regs[0x10] = 0x08;
 		regs[0x34] = (regs[0x7a] & 0x02) ? 0x00 : 0xa0;
@@ -1222,7 +1284,7 @@ static void
     smbase = 0xa0000;
 
 #if defined(DEV_BRANCH) && defined(USE_I686)
-    if ((dev->type == INTEL_440BX) && (dev->max_func == 1)) {
+    if (((dev->type == INTEL_440BX) || (dev->type == INTEL_440ZX)) && (dev->max_func == 1)) {
 	regs = (uint8_t *) dev->regs[1];
 
 	regs[0x00] = 0x86; regs[0x01] = 0x80;	/* Intel */
@@ -1401,6 +1463,21 @@ const device_t i440bx_device =
     "Intel 82443BX",
     DEVICE_PCI,
     0x8000 | INTEL_440BX,
+    i4x0_init, 
+    i4x0_close, 
+    i4x0_reset,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+
+const device_t i440zx_device =
+{
+    "Intel 82443ZX",
+    DEVICE_PCI,
+    0x8000 | INTEL_440ZX,
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
