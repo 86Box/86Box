@@ -226,10 +226,10 @@ const machine_t machines[] = {
     { "[Socket 7 VX] Jetway J656VXD",		"j656vxd",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,	      machine_at_j656vxd_init, NULL			},
     { "[Socket 7 VX] Shuttle HOT-557",		"430vx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 127,	       machine_at_i430vx_init, NULL			},
 
-    { "[Socket 7 TX] Acorp 5TX52",		"5tx52",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 255,	        machine_at_5tx52_init, NULL			},
-    { "[Socket 7 TX] ASUS TXP4",		"txp4",			MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 255,	         machine_at_txp4_init, NULL			},
-    { "[Socket 7 TX] Intel YM430TX",		"ym430tx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 255,	      machine_at_ym430tx_init, NULL			},
-    { "[Socket 7 TX] San-LI/Superpower SP-586TX","sp586tx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  128,   8, 255,	      machine_at_sp586tx_init, NULL			},
+    { "[Socket 7 TX] Acorp 5TX52",		"5tx52",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  256,   8, 255,	        machine_at_5tx52_init, NULL			},
+    { "[Socket 7 TX] ASUS TXP4",		"txp4",			MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  256,   8, 255,	         machine_at_txp4_init, NULL			},
+    { "[Socket 7 TX] Intel YM430TX",		"ym430tx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  256,   8, 255,	      machine_at_ym430tx_init, NULL			},
+    { "[Socket 7 TX] San-LI/Superpower SP-586TX","sp586tx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  256,   8, 255,	      machine_at_sp586tx_init, NULL			},
 
     { "[Super Socket 7] FIC VA-503+",		"ficva503p",		MACHINE_CPUS_PENTIUM_SS7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  512,   8, 255,	         machine_at_mvp3_init, NULL			},
 
@@ -238,8 +238,7 @@ const machine_t machines[] = {
     { "[Socket 8 FX] Tyan Titan-Pro ATX",	"tpatx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 127,		machine_at_s1668_init, NULL			},
 
     { "[Slot 1 BX] Lucky Star 6ABX3",		"6abx3",		{{"Intel", cpus_PentiumII},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,		machine_at_6abx3_init, NULL			},
-
-
+    { "[Slot 1 BX] ASUS P2B-LS",		"p2bls",		{{"Intel", cpus_PentiumII},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,		machine_at_p2bls_init, NULL			},
     { "[Socket 370 BX] ECS P6BXT-A+",		"p6bxt",		{{"Intel", cpus_PGA370},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,		machine_at_p6bxt_init, NULL			},
     { "[Socket 370 ZX] Soltek SL-63A1",		"63a",			{{"Intel", cpus_PGA370},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 256,    8, 255,		machine_at_63a_init, NULL			},
 #endif

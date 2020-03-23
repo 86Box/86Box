@@ -253,7 +253,6 @@ w83877f_write(uint16_t port, uint8_t val, void *priv)
 	return;
     } else if ((port == 0x252) || (port == 0x3f1)) {
 	if (dev->locked) {
-		pclog("dev->locked\n");
 		if (dev->rw_locked)
 			return;
 		if ((dev->cur_reg >= 0x26) && (dev->cur_reg <= 0x27))

@@ -345,6 +345,35 @@ pic2_write(uint16_t addr, uint8_t val, void *priv)
 		pic.pend &= ~4;
 		pic_updatepending();
 	} else if (!(val & 8)) { /*OCW2*/
+#ifdef ENABLE_PIC_LOG
+		switch ((val >> 5) & 0x07) {
+			case 0x00:
+				pic_log("Rotate in automatic EOI mode (clear)\n");
+				break;
+			case 0x01:
+				pic_log("Non-specific EOI command\n");
+				break;
+			case 0x02:
+				pic_log("No operation\n");
+				break;
+			case 0x03:
+				pic_log("Specific EOI command\n");
+				break;
+			case 0x04:
+				pic_log("Rotate in automatic EOI mode (set)\n");
+				break;
+			case 0x05:
+				pic_log("Rotate on on-specific EOI command\n");
+				break;
+			case 0x06:
+				pic_log("Set priority command\n");
+				break;
+			case 0x07:
+				pic_log("Rotate on specific EOI command\n");
+				break;
+		}
+#endif
+
 		pic2.ocw2 = val;
 		if ((val & 0xE0) == 0x60) {
 			pic2.ins &= ~(1 << (val & 7));
@@ -512,21 +541,32 @@ pic_process_interrupt(PIC* target_pic, int c)
 {
     uint8_t pending = target_pic->pend & ~target_pic->mask;
     int ret = -1;
+    /* TODO: On init, a PIC need to get a pointer to one of these, and rotate as needed
+	     if in rotate mode. */
+			/*   0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 */
+    int priority_xt[16] = {  7,  6,  5,  4,  3,  2,  1,  0, -1, -1, -1, -1, -1, -1, -1, -1 };
+    int priority_at[16] = { 14, 13, -1,  4,  3,  2,  1,  0, 12, 11, 10,  9,  8,  7,  6,  5  };
+    int i;
 
     int pic_int = c & 7;
     int pic_int_num = 1 << pic_int;
 
     int in_service = 0;
 
-    in_service = (target_pic->ins & (pic_int_num - 1));	/* Is anything of higher priority already in service? */
-    in_service |= (target_pic->ins & pic_int_num);	/* Is the current IRQ already in service? */
     if (AT) {
-	/* AT-specific stuff. */
-	if (c >= 8)
-		in_service |= (pic.ins & 0x03);		/* IRQ 8 to 15, are IRQ's with higher priorities than the
-							   cascade IRQ already in service? */
-	/* For IRQ 0 to 7, the cascade IRQ's in service bit indicates that one or
-	   more IRQ's between 8 and 15 are already in service. */
+	for (i = 0; i < 16; i++) {
+		if ((priority_at[i] != -1) && (priority_at[i] >= priority_at[c])) {
+			if (i < 8)
+				in_service |= (pic.ins & (1 << i));
+			else
+				in_service |= (pic2.ins & (1 << i));
+		}
+	}
+    } else {
+	for (i = 0; i < 16; i++) {
+		if ((priority_xt[i] != -1) && (priority_xt[i] >= priority_xt[c]))
+			in_service |= (pic.ins & (1 << i));
+	}
     }
 
     if ((pending & pic_int_num) && !in_service) {

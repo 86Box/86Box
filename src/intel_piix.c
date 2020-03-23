@@ -35,6 +35,7 @@
 #include "device.h"
 #include "apm.h"
 #include "keyboard.h"
+#include "machine.h"
 #include "mem.h"
 #include "timer.h"
 #include "nvr.h"
@@ -46,6 +47,7 @@
 #include "hdc_ide_sff8038i.h"
 #include "zip.h"
 #include "machine.h"
+#include "smbus.h"
 #include "piix.h"
 
 
@@ -87,11 +89,12 @@ typedef struct
 
 typedef struct
 {
-    uint8_t		stat, ctl, cmd, addr,
+    uint8_t		stat, next_stat, ctl, cmd, addr,
 			data0, data1,
 			index,
 			data[32];
-} smbus_t;
+    pc_timer_t		command_timer;
+} piix_smbus_t;
 
 
 typedef struct
@@ -107,7 +110,7 @@ typedef struct
     sff8038i_t		*bm[2];
     ddma_t		ddma[2];
     power_t		power;
-    smbus_t		smbus;
+    piix_smbus_t	smbus;
     nvr_t *		nvr;
 } piix_t;
 
@@ -140,12 +143,18 @@ void do_irq(piix_t *dev, int func, int level)
 	return;
 
     if (level) {
-    	// pci_set_irq(dev->pci_slot, dev->regs[func][0x3d]);
+#ifdef WRONG_SPEC
+	pci_set_irq(dev->pci_slot, dev->regs[func][0x3d]);
+#else
 	picintlevel(1 << 9);
+#endif
 	piix_log("Raising IRQ...\n");
     } else {
-	// pci_clear_irq(dev->pci_slot, dev->regs[func][0x3d]);
+#ifdef WRONG_SPEC
+	pci_clear_irq(dev->pci_slot, dev->regs[func][0x3d]);
+#else
 	picintc(1 << 9);
+#endif
 	piix_log("Lowering IRQ...\n");
     }
 }
@@ -367,7 +376,7 @@ power_reg_readl(uint16_t addr, void *p)
 		break;
     }
 
-    // pclog("ACPI: Read L %08X from %04X\n", ret, addr);
+    piix_log("ACPI: Read L %08X from %04X\n", ret, addr);
 
     return ret;
 }
@@ -392,7 +401,7 @@ power_reg_readw(uint16_t addr, void *p)
 		break;
     }
 
-    // pclog("ACPI: Read W %08X from %04X\n", ret, addr);
+    piix_log("ACPI: Read W %08X from %04X\n", ret, addr);
 
     return ret;
 }
@@ -409,11 +418,11 @@ power_reg_read(uint16_t addr, void *p)
     switch (addr & 0x3f) {
 	case 0x30: case 0x31: case 0x32:
 		ret = dev->power.gporeg[addr & 0x03];
-		// pclog("ACPI: Read B %02X from GPIREG %01X\n", ret, addr & 0x03);
+		piix_log("ACPI: Read B %02X from GPIREG %01X\n", ret, addr & 0x03);
 		break;
 	case 0x34: case 0x35: case 0x36: case 0x37:
 		ret = dev->power.gporeg[addr & 0x03];
-		// pclog("ACPI: Read B %02X from GPOREG %01X\n", ret, addr & 0x03);
+		piix_log("ACPI: Read B %02X from GPOREG %01X\n", ret, addr & 0x03);
 		break;
 	default:
 		ret16 = power_reg_readw(addr, p);
@@ -433,7 +442,7 @@ power_reg_write(uint16_t addr, uint8_t val, void *p)
 {
     piix_t *dev = (piix_t *) p;
 
-    // pclog("ACPI: Write %02X to %04X\n", val, addr);
+    piix_log("ACPI: Write %02X to %04X\n", val, addr);
 
     switch (addr & 0x3f) {
 	case 0x34: case 0x35: case 0x36: case 0x37:
@@ -457,17 +466,145 @@ power_update_io_mapping(piix_t *dev)
 
 
 static uint8_t
-smbus_reg_read(uint16_t addr, void *p)
+smbus_reg_read(uint16_t addr, void *priv)
 {
+    piix_t *dev = (piix_t *) priv;
     uint8_t ret = 0x00;
+
+    switch (addr - dev->smbus_io_base) {
+    	case 0x00:
+    		ret = dev->smbus.stat;
+    		break;
+    	case 0x02:
+    		dev->smbus.index = 0;
+    		ret = dev->smbus.ctl;
+    		break;
+    	case 0x03:
+    		ret = dev->smbus.cmd;
+    		break;
+    	case 0x04:
+    		ret = dev->smbus.addr;
+    		break;
+    	case 0x05:
+    		ret = dev->smbus.data0;
+    		break;
+    	case 0x06:
+    		ret = dev->smbus.data1;
+    		break;
+    	case 0x07:
+    		ret = dev->smbus.data[dev->smbus.index++];
+    		if (dev->smbus.index > 31)
+    			dev->smbus.index = 0;
+    		break;
+    }
+
+    piix_log("smbus_reg_read %02x %02x\n", addr - dev->smbus_io_base, ret);
 
     return ret;
 }
 
 
 static void
-smbus_reg_write(uint16_t addr, uint8_t val, void *p)
+smbus_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
+    piix_t *dev = (piix_t *) priv;
+    uint8_t smbus_addr;
+    uint8_t smbus_read;
+    uint16_t temp;
+
+    piix_log("smbus_reg_write %02x %02x\n", addr - dev->smbus_io_base, val);
+
+    dev->smbus.next_stat = 0;
+    switch (addr - dev->smbus_io_base) {
+    	case 0x00:
+    		/* some status bits are reset by writing 1 to them */
+    		for (smbus_addr = 0x02; smbus_addr <= 0x10; smbus_addr = smbus_addr << 1) {
+    			if (val & smbus_addr)
+    				dev->smbus.stat = dev->smbus.stat & ~smbus_addr;
+    		}
+    		break;
+    	case 0x02:
+    		dev->smbus.ctl = val & ~(0x40); /* START always reads 0 */
+    		if (val & 0x40) { /* dispatch command if START is set */
+    			smbus_addr = (dev->smbus.addr >> 1);
+    			if (!smbus_has_device(smbus_addr)) {
+    				/* raise DEV_ERR if no device is at this address */
+    				dev->smbus.next_stat = 0x4;
+    				break;
+    			}
+    			smbus_read = (dev->smbus.addr & 0x01);
+
+    			switch ((val >> 2) & 0x7) {
+    				case 0x0: /* quick R/W */
+    					dev->smbus.next_stat = 0x2;
+    					break;
+    				case 0x1: /* byte R/W */
+    					if (smbus_read)
+    						dev->smbus.data0 = smbus_read_byte(smbus_addr);
+    					else
+    						smbus_write_byte(smbus_addr, dev->smbus.data0);
+    					dev->smbus.next_stat = 0x2;
+    					break;
+    				case 0x2: /* byte data R/W */
+    					if (smbus_read)
+    						dev->smbus.data0 = smbus_read_byte_cmd(smbus_addr, dev->smbus.cmd);
+    					else
+    						smbus_write_byte_cmd(smbus_addr, dev->smbus.cmd, dev->smbus.data0);
+    					dev->smbus.next_stat = 0x2;
+    					break;
+    				case 0x3: /* word data R/W */
+    					if (smbus_read) {
+    						temp = smbus_read_word_cmd(smbus_addr, dev->smbus.cmd);
+    						dev->smbus.data0 = (temp & 0xFF);
+    						dev->smbus.data1 = (temp >> 8);
+    					} else {
+    						temp = (dev->smbus.data1 << 8) | dev->smbus.data0;
+    						smbus_write_word_cmd(smbus_addr, dev->smbus.cmd, temp);
+    					}
+    					dev->smbus.next_stat = 0x2;
+    					break;
+    				case 0x5: /* block R/W */
+    					if (smbus_read)
+    						dev->smbus.data0 = smbus_read_block_cmd(smbus_addr, dev->smbus.cmd, dev->smbus.data);
+    					else
+    						smbus_write_block_cmd(smbus_addr, dev->smbus.cmd, dev->smbus.data, dev->smbus.data0);
+    					dev->smbus.next_stat = 0x2;
+    					break;
+    			}
+    		}
+    		break;
+    	case 0x03:
+    		dev->smbus.cmd = val;
+    		break;
+    	case 0x04:
+    		dev->smbus.addr = val;
+    		break;
+    	case 0x05:
+    		dev->smbus.data0 = val;
+    		break;
+    	case 0x06:
+    		dev->smbus.data1 = val;
+    		break;
+    	case 0x07:
+    		dev->smbus.data[dev->smbus.index++] = val;
+    		if (dev->smbus.index > 31)
+    			dev->smbus.index = 0;
+    		break;
+    }
+
+    if (dev->smbus.next_stat) {
+    	dev->smbus.stat = 0x1;
+    	timer_disable(&dev->smbus.command_timer);
+    	timer_set_delay_u64(&dev->smbus.command_timer, 10 * TIMER_USEC);
+    }
+}
+
+
+static void
+smbus_inter(void *priv)
+{
+    piix_t *dev = (piix_t *) priv;
+    dev->smbus.stat = dev->smbus.next_stat;
 }
 
 
@@ -494,7 +631,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
     if (func > dev->max_func)
 	return;
 
-    // pclog("PIIX function %i write: %02X to %02X\n", func, val, addr);
+    piix_log("PIIX function %i write: %02X to %02X\n", func, val, addr);
     fregs = (uint8_t *) dev->regs[func];
 
     if (func == 0)  switch (addr) {
@@ -717,6 +854,10 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		fregs[0x21] = val;
 		piix_ide_bm_handlers(dev);
 		break;
+	case 0x3c:
+		piix_log("IDE IRQ write: %02X\n", val);
+		fregs[0x3c] = val;
+		break;
 	case 0x40: case 0x42:
 		fregs[addr] = val;
 		break;
@@ -884,7 +1025,7 @@ piix_read(int func, int addr, void *priv)
     	fregs = (uint8_t *) dev->regs[func];
 	ret = fregs[addr];
 
-	// pclog("PIIX function %i read: %02X from %02X\n", func, ret, addr);
+	piix_log("PIIX function %i read: %02X from %02X\n", func, ret, addr);
     }
 
     return ret;
@@ -944,7 +1085,9 @@ piix_reset_hard(piix_t *dev)
 		sff_set_irq_mode(dev->bm[1], 0);
 	}
 
-        // pclog("piix_reset_hard()\n");
+#ifdef ENABLE_PIIX_LOG
+        piix_log("piix_reset_hard()\n");
+#endif
 	ide_pri_disable();
 	ide_sec_disable();
     }
@@ -953,10 +1096,9 @@ piix_reset_hard(piix_t *dev)
 	nvr_at_handler(0, 0x0072, dev->nvr);
 	nvr_wp_set(0, 0, dev->nvr);
 	nvr_wp_set(0, 1, dev->nvr);
-    } else
-	nvr_at_handler(1, 0x0072, dev->nvr);
-    nvr_at_handler(1, 0x0074, dev->nvr);
-    nvr_at_handler(1, 0x0076, dev->nvr);
+	nvr_at_handler(1, 0x0074, dev->nvr);
+	nvr_at_handler(1, 0x0076, dev->nvr);
+    }
 
     /* Clear all 4 functions' arrays and set their vendor and device ID's. */
     for (i = 0; i < 4; i++) {
@@ -968,7 +1110,7 @@ piix_reset_hard(piix_t *dev)
 
     /* Function 0: PCI to ISA Bridge */
     fregs = (uint8_t *) dev->regs[0];
-    // pclog("PIIX Function 0: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
+    piix_log("PIIX Function 0: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
     fregs[0x04] = (dev->type > 0) ? 0x07 : 0x06;	/* Check the value for the PB640 PIIX. */
     fregs[0x06] = 0x80; fregs[0x07] = 0x02;
     fregs[0x08] = (dev->type > 0) ? 0x00 : 0x02;	/* Should normal PIIX alos return 0x02? */
@@ -994,7 +1136,7 @@ piix_reset_hard(piix_t *dev)
     /* Function 1: IDE */
     if (dev->type > 0) {
 	fregs = (uint8_t *) dev->regs[1];
-	// pclog("PIIX Function 1: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
+	piix_log("PIIX Function 1: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
 	fregs[0x04] = (dev->type > 3) ? 0x05 : 0x07;
 	fregs[0x06] = 0x80; fregs[0x07] = 0x02;
 	fregs[0x09] = 0x80;
@@ -1006,7 +1148,7 @@ piix_reset_hard(piix_t *dev)
     /* Function 2: USB */
     if (dev->type > 2) {
 	fregs = (uint8_t *) dev->regs[2];
-	// pclog("PIIX Function 2: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
+	piix_log("PIIX Function 2: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
 	fregs[0x04] = 0x05;
 	fregs[0x06] = 0x80; fregs[0x07] = 0x02;
 	fregs[0x0a] = 0x03; fregs[0x0b] = 0x0c;
@@ -1022,11 +1164,13 @@ piix_reset_hard(piix_t *dev)
     /* Function 3: Power Management */
     if (dev->type > 3) {
 	fregs = (uint8_t *) dev->regs[3];	
-	// pclog("PIIX Function 3: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
+	piix_log("PIIX Function 3: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
 	fregs[0x06] = 0x80; fregs[0x07] = 0x02;
 	fregs[0x0a] = 0x80; fregs[0x0b] = 0x06;
 	/* NOTE: The Specification Update says this should default to 0x00 and be read-only. */
-	// fregs[0x3d] = 0x01;
+#ifdef WRONG_SPEC
+	fregs[0x3d] = 0x01;
+#endif
 	fregs[0x40] = 0x01;
 	fregs[0x90] = 0x01;
 	dev->max_func = 3;
@@ -1063,6 +1207,9 @@ piix_close(void *p)
 static void
 *piix_init(const device_t *info)
 {
+    int i;
+    CPU *cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu];
+
     piix_t *dev = (piix_t *) malloc(sizeof(piix_t));
     memset(dev, 0, sizeof(piix_t));
 
@@ -1071,14 +1218,14 @@ static void
     dev->func0_id = info->local >> 16;
 
     dev->pci_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, piix_read, piix_write, dev);
-    // pclog("PIIX%i: Added to slot: %02X\n", dev->type, dev->pci_slot);
+    piix_log("PIIX%i: Added to slot: %02X\n", dev->type, dev->pci_slot);
 
     if (dev->type > 0) {	/* PB640's PIIX has no IDE part. */
 	dev->bm[0] = device_add_inst(&sff8038i_device, 1);
 	dev->bm[1] = device_add_inst(&sff8038i_device, 2);
     }
 
-    if (dev->type >= 3)
+    if (dev->type > 3)
 	dev->nvr = device_add(&piix4_nvr_device);
 
     piix_reset_hard(dev);
@@ -1114,65 +1261,57 @@ static void
     else if (cpu_busspeed > 0x60000000)
 		dev->readout_regs[1] |= 0x10;
 
-#if 0
-    switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed) {
-	case  75000000:
-		dev->readout_regs[1] |= 0x82;		/* 50 MHz * 1.5 multiplier */
-		break;
-	case  90000000:
-		dev->readout_regs[1] |= 0x82;		/* 60 MHz * 1.5 multiplier */
-		break;
-	case 100000000:
-		if ((dev->readout_regs[1] & 0x30) == 0x10)
-			dev->readout_regs[1] |= 0x82;	/* 66 MHz * 1.5 multiplier */
-		else
-			dev->readout_regs[1] |= 0x02;	/* 50 MHz * 2.0 multiplier */
-		break;
-	case 12000000:
-		dev->readout_regs[1] |= 0x02;		/* 60 MHz * 2.0 multiplier */
-		break;
-	case 125000000:
-		dev->readout_regs[1] |= 0x00;		/* 50 MHz * 2.5 multiplier */
-		break;
-	case 133333333:
-		dev->readout_regs[1] |= 0x02;		/* 66 MHz * 2.0 multiplier */
-		break;
-	case 150000000:
-		if ((dev->readout_regs[1] & 0x30) == 0x20)
-			dev->readout_regs[1] |= 0x00;	/* 60 MHz * 2.5 multiplier */
-		else
-			dev->readout_regs[1] |= 0x80;	/* 50 MHz * 3.0 multiplier */
-		break;
-	case 166666666:
-		dev->readout_regs[1] |= 0x00;		/* 66 MHz * 2.5 multiplier */
-		break;
-	case 180000000:
-		dev->readout_regs[1] |= 0x80;		/* 60 MHz * 3.0 multiplier */
-		break;
-	case 200000000:
-		dev->readout_regs[1] |= 0x80;		/* 66 MHz * 3.0 multiplier */
-		break;
-    }
-#else
-	if (cpu_dmulti <= 1.5)
-		dev->readout_regs[1] |= 0x82;
-	else if ((cpu_dmulti > 1.5) && (cpu_dmulti <= 2.0))
-		dev->readout_regs[1] |= 0x02;
-	else if ((cpu_dmulti > 2.0) && (cpu_dmulti <= 2.5))
-		dev->readout_regs[1] |= 0x00;
-	else if (cpu_dmulti > 2.5)
-		dev->readout_regs[1] |= 0x80;
-#endif
+    if (cpu_dmulti <= 1.5)
+	dev->readout_regs[1] |= 0x82;
+    else if ((cpu_dmulti > 1.5) && (cpu_dmulti <= 2.0))
+	dev->readout_regs[1] |= 0x02;
+    else if ((cpu_dmulti > 2.0) && (cpu_dmulti <= 2.5))
+	dev->readout_regs[1] |= 0x00;
+    else if (cpu_dmulti > 2.5)
+	dev->readout_regs[1] |= 0x80;
 
     io_sethandler(0x0078, 0x0002, board_read, NULL, NULL, board_write, NULL, NULL, dev);
     io_sethandler(0x00e0, 0x0002, board_read, NULL, NULL, board_write, NULL, NULL, dev);
 
     dev->board_config[0] = 0xff;
     /* Register 0x0079: */
+    /* Bit 7: 0 = Keep password, 0 = Clear password. */
     /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
     /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
+    /* Bit 4: External CPU clock (Switch 8). */
+    /* Bit 3: External CPU clock (Switch 7). */
+    /*		50 MHz: Switch 7 = Off, Switch 8 = Off. */
+    /*		60 MHz: Switch 7 = On, Switch 8 = Off. */
+    /*		66 MHz: Switch 7 = Off, Switch 8 = On. */
     /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
-    dev->board_config[1] = 0x64;
+    /* Bit 0: 0 = 1.5x multiplier, 0 = 2x multiplier. */
+    dev->board_config[1] = 0xe0;
+    if ((cpu_s->rspeed == 75000000) && (cpu_busspeed == 50000000))
+	dev->board_config[1] |= 0x01;
+    else if ((cpu_s->rspeed == 90000000) && (cpu_busspeed == 60000000))
+	dev->board_config[1] |= (0x01 | 0x08);
+    else if ((cpu_s->rspeed == 100000000) && (cpu_busspeed == 50000000))
+	dev->board_config[1] |= 0x00;
+    else if ((cpu_s->rspeed == 100000000) && (cpu_busspeed == 66666666))
+	dev->board_config[1] |= (0x01 | 0x10);
+    else if ((cpu_s->rspeed == 120000000) && (cpu_busspeed == 60000000))
+	dev->board_config[1] |= 0x08;
+    else if ((cpu_s->rspeed == 133333333) && (cpu_busspeed == 66666666))
+	dev->board_config[1] |= 0x10;
+    else
+	dev->board_config[1] |= 0x10;	/* TODO: how are the overdrive processors configured? */
+
+    smbus_init();
+    dev->smbus.stat = 0;
+    dev->smbus.ctl = 0;
+    dev->smbus.cmd = 0;
+    dev->smbus.addr = 0;
+    dev->smbus.data0 = 0;
+    dev->smbus.data1 = 0;
+    dev->smbus.index = 0;
+    for (i = 0; i < 32; i++)
+    	dev->smbus.data[i] = 0;
+    timer_add(&dev->smbus.command_timer, smbus_inter, dev, 0);
 
     return dev;
 }

@@ -121,7 +121,7 @@ rom_read(uint32_t addr, void *priv)
 	return 0xff;
     if (addr >= (rom->mapping.base + rom->sz))
 	return 0xff;
-    return(rom->rom[addr & rom->mask]);
+    return(rom->rom[(addr - rom->mapping.base) & rom->mask]);
 }
 
 
@@ -139,7 +139,7 @@ rom_readw(uint32_t addr, void *priv)
 	return 0xffff;
     if (addr >= (rom->mapping.base + rom->sz))
 	return 0xffff;
-    return(*(uint16_t *)&rom->rom[addr & rom->mask]);
+    return(*(uint16_t *)&rom->rom[(addr - rom->mapping.base) & rom->mask]);
 }
 
 
@@ -157,7 +157,7 @@ rom_readl(uint32_t addr, void *priv)
 	return 0xffffffff;
     if (addr >= (rom->mapping.base + rom->sz))
 	return 0xffffffff;
-    return(*(uint32_t *)&rom->rom[addr & rom->mask]);
+    return(*(uint32_t *)&rom->rom[(addr - rom->mapping.base) & rom->mask]);
 }
 
 

@@ -826,7 +826,7 @@ d86f_byteperiod(int drive)
 int
 d86f_is_mfm(int drive)
 {
-    return (d86f_track_flags(drive) & 8) ? 1 : 0;
+    return ((d86f_track_flags(drive) & 0x18) == 0x08) ? 1 : 0;
 }
 
 

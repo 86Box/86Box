@@ -88,7 +88,6 @@ w83977f_fdc_handler(w83977f_t *dev)
 
     fdc_remove(dev->fdc);
 
-    pclog("fdc: %02X %02X %04X\n", dev->dev_regs[0][0x00], dev->regs[0x22], io_base);
     if ((dev->dev_regs[0][0x00] & 0x01) && (dev->regs[0x22] & 0x01) && (io_base >= 0x100) && (io_base <= 0xff8))
 	fdc_set_base(dev->fdc, io_base);
 
@@ -153,8 +152,6 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
     uint8_t valxor = 0;
     uint8_t ld = dev->regs[7];
 
-    pclog("W83977F Write: %04X %02X\n", port, val);
-
     if (index) {
 	if ((val == 0x87) && !dev->locked) {
 		if (dev->tries) {
@@ -191,8 +188,8 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
 
     switch (dev->cur_reg) {
 	case 0x02:
-		if (valxor & 0x02)
-			softresetx86();
+		/* if (valxor & 0x02)
+			softresetx86(); */
 		break;
 	case 0x22:
 		if (valxor & 0x20)
@@ -205,8 +202,11 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
 			w83977f_fdc_handler(dev);
 		break;
 	case 0x26:
+		if (valxor & 0x40)
+			w83977f_remap(dev);
 		if (valxor & 0x20)
 			dev->rw_locked = (val & 0x20) ? 1 : 0;
+		break;
 	case 0x30:
 		if (valxor & 0x01)  switch (ld) {
 			case 0x00:
@@ -329,8 +329,6 @@ w83977f_read(uint16_t port, void *priv)
 	}
     }
 
-    pclog("W83977F Read: %04X %02X\n", port, ret);
-
     return ret;
 }
 
@@ -344,8 +342,13 @@ w83977f_reset(w83977f_t *dev)
     for (i = 0; i < 256; i++)
 	memset(dev->dev_regs[i], 0, 208);
 
-    dev->regs[0x20] = 0x97;
-    dev->regs[0x21] = dev->type ? 0x73 : 0x71;
+    if (dev->type < 2) {
+	dev->regs[0x20] = 0x97;
+	dev->regs[0x21] = dev->type ? 0x73 : 0x71;
+    } else {
+	dev->regs[0x20] = 0x52;
+	dev->regs[0x21] = 0xf0;
+    }
     dev->regs[0x22] = 0xff;
     dev->regs[0x24] = dev->type ? 0x84 : 0xa4;
 
@@ -368,9 +371,9 @@ w83977f_reset(w83977f_t *dev)
     dev->dev_regs[1][0x30] = 0x03; dev->dev_regs[1][0x31] = 0x78;
     dev->dev_regs[1][0x40] = 0x07;
     if (!dev->type)
-	dev->dev_regs[1][0x41] = 0x02;	/* Read-only */
+	dev->dev_regs[1][0x41] = 0x01 /*0x02*/;	/* Read-only */
     dev->dev_regs[1][0x44] = 0x04;
-    dev->dev_regs[1][0xc0] = 0x3c;	/* The datasheet says default is 3f, but also default is priner mode. */
+    dev->dev_regs[1][0xc0] = 0x3c;	/* The datasheet says default is 3f, but also default is printer mode. */
 
     /* Logical Device 2 (UART A) */
     dev->dev_regs[2][0x00] = 0x01;
@@ -404,6 +407,7 @@ w83977f_reset(w83977f_t *dev)
     if (!dev->type)
 	dev->dev_regs[5][0x01] = 0x02;
     dev->dev_regs[5][0x30] = 0x00; dev->dev_regs[5][0x31] = 0x60;
+    dev->dev_regs[5][0x32] = 0x00; dev->dev_regs[5][0x33] = 0x64;
     dev->dev_regs[5][0x40] = 0x01;
     if (!dev->type)
 	dev->dev_regs[5][0x41] = 0x02;	/* Read-only */
@@ -448,10 +452,12 @@ w83977f_reset(w83977f_t *dev)
 
     /* Logical Device 9 (Auxiliary I/O Part III) */
     if (dev->type) {
-	dev->dev_regs[7][0xb0] = 0x01; dev->dev_regs[7][0xb1] = 0x01;
-	dev->dev_regs[7][0xb2] = 0x01; dev->dev_regs[7][0xb3] = 0x01;
-	dev->dev_regs[7][0xb4] = 0x01; dev->dev_regs[7][0xb5] = 0x01;
-	dev->dev_regs[7][0xb6] = 0x01; dev->dev_regs[7][0xb7] = 0x01;
+	dev->dev_regs[9][0xb0] = 0x01; dev->dev_regs[9][0xb1] = 0x01;
+	dev->dev_regs[9][0xb2] = 0x01; dev->dev_regs[9][0xb3] = 0x01;
+	dev->dev_regs[9][0xb4] = 0x01; dev->dev_regs[9][0xb5] = 0x01;
+	dev->dev_regs[9][0xb6] = 0x01; dev->dev_regs[9][0xb7] = 0x01;
+
+	dev->dev_regs[10][0xc0] = 0x8f;
     }
 
     fdc_reset(dev->fdc);
@@ -513,6 +519,16 @@ const device_t w83977tf_device = {
     "Winbond W83977TF Super I/O",
     0,
     1,
+    w83977f_init, w83977f_close, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
+
+
+const device_t w83977ef_device = {
+    "Winbond W83977TF Super I/O",
+    0,
+    2,
     w83977f_init, w83977f_close, NULL,
     NULL, NULL, NULL,
     NULL

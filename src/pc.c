@@ -49,6 +49,7 @@
 #include "nvr.h"
 #include "machine.h"
 #include "bugger.h"
+#include "postcard.h"
 #include "isamem.h"
 #include "isartc.h"
 #include "lpt.h"
@@ -112,6 +113,7 @@ int	vid_cga_contrast = 0,			/* (C) video */
 	force_43 = 0;				/* (C) video */
 int	serial_enabled[SERIAL_MAX] = {0,0},	/* (C) enable serial ports */
 	bugger_enabled = 0,			/* (C) enable ISAbugger */
+	postcard_enabled = 0,			/* (C) enable POST card */
 	isamem_type[ISAMEM_MAX] = { 0,0,0,0 },	/* (C) enable ISA mem cards */
 	isartc_type = 0;			/* (C) enable ISA RTC card */
 int	gfxcard = 0;				/* (C) graphics/video card */
@@ -779,7 +781,9 @@ pc_reset_hard_init(void)
 
     /* Needs the status bar... */
     if (bugger_enabled)
-	device_add(&bugger_device);
+    	device_add(&bugger_device);
+    if (postcard_enabled)
+    	device_add(&postcard_device);
 
     /* Reset the CPU module. */
     resetx86();

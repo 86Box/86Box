@@ -90,11 +90,6 @@ flash_read(uint32_t addr, void *p)
     addr &= biosmask;
 
     switch (dev->command) {
-	case 0x00:
-	case 0x93:
-		ret = 0xff;
-		break;
-
 	case CMD_READ_ARRAY:
 	default:
 		ret = dev->array[addr];
@@ -102,7 +97,7 @@ flash_read(uint32_t addr, void *p)
 
 	case CMD_IID:
 		if (addr & 1)
-                        ret = dev->flash_id & 0xff;
+			ret = dev->flash_id & 0xff;
 		else
 			ret = 0x89;
 		break;
@@ -134,11 +129,6 @@ flash_readw(uint32_t addr, void *p)
     ret = *q;
 
     if (dev->flags & FLAG_WORD)  switch (dev->command) {
-	case 0x00:
-	case 0x93:
-		ret = 0xffff;
-		break;
-
 	case CMD_READ_ARRAY:
 	default:
 		break;

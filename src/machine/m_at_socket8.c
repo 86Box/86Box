@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of Socket 8 machines.
+ *		Implementation of Socket 8 and Slot 1 machines.
  *
  * Version:	@(#)m_at_socket8.c	1.0.0	2019/05/16
  *
@@ -34,7 +34,9 @@
 #include "piix.h"
 #include "sio.h"
 #include "sst_flash.h"
+#include "hwm.h"
 #include "video.h"
+#include "cpu.h"
 #include "machine.h"
 
 
@@ -114,7 +116,7 @@ machine_at_6abx3_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -135,6 +137,67 @@ machine_at_6abx3_init(const machine_t *model)
 
     return ret;
 }
+
+
+int
+machine_at_p2bls_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/p2bls/1014ls.003",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x06, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x04, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    device_add(&i440bx_device);
+    device_add(&piix4_device);
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&w83977ef_device);
+    device_add(&sst_flash_39sf020_device);
+
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds */
+    		3000,	/* Chassis */
+    		3000,	/* CPU */
+    		3000,	/* Power */
+    		0
+    	}, { /* temperatures */
+    		30,	/* MB */
+    		0,	/* unused */
+    		27,	/* CPU */
+    		0
+    	}, { /* voltages (divisors other than 16 = unclear how that number was achieved) */
+    		2800 / 16,		  /* VCORE (2.8V by default) */
+    		0,			  /* unused */
+    		3300 / 16,		  /* +3.3V */
+    		5000 / 27,		  /* +5V */
+    		VDIV(12000, 28, 10) / 16, /* +12V (with 28K/10K resistor divider suggested in the W83781D datasheet) */
+    		12000 / 55,		  /* -12V */
+    		5000 / 24,		  /* -5V */
+    		0   
+    	}
+    };
+    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2D)
+    	machine_hwm.voltages[0] = 2050 / 16; /* set lower VCORE (2.05V) for Deschutes */
+    hwm_set_values(machine_hwm);
+    device_add(&as99127f_device);
+
+    return ret;
+}
+
 
 int
 machine_at_p6bxt_init(const machine_t *model)
@@ -167,6 +230,7 @@ machine_at_p6bxt_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_63a_init(const machine_t *model)
 {
@@ -192,7 +256,7 @@ machine_at_63a_init(const machine_t *model)
 	pci_register_slot(0x0C, PCI_CARD_NORMAL, 	  1, 2, 3, 4); // Integrated Sound?
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
 	pci_register_slot(0x01, PCI_CARD_NORMAL, 	  1, 2, 3, 4);
-    device_add(&i440bx_device);
+    device_add(&i440zx_device);
     device_add(&piix4_device);
 	device_add(&w83977tf_device);
     device_add(&keyboard_ps2_pci_device);
