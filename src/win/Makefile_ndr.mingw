@@ -602,7 +602,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_socket4_5.o m_at_socket7_s7.o \
 			m_at_socket8.o
 
-DEVOBJ		:= bugger.o hwm.o hwm_w83781d.o ibm_5161.o isamem.o isartc.o lpt.o $(SERIAL) \
+DEVOBJ		:= bugger.o hwm.o hwm_w83781d.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o $(SERIAL) \
 		    sio_acc3221.o \
 		    sio_fdc37c66x.o sio_fdc37c669.o \
 		    sio_fdc37c93x.o \

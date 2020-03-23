@@ -97,6 +97,7 @@ static int temp_serial[2], temp_lpt[3];
 /* Other peripherals category */
 static int temp_hdc, temp_scsi_card, temp_ide_ter, temp_ide_qua;
 static int temp_bugger;
+static int temp_postcard;
 static int temp_isartc;
 static int temp_isamem[ISAMEM_MAX];
 
@@ -248,6 +249,7 @@ win_settings_init(void)
     temp_ide_ter = ide_ter_enabled;
     temp_ide_qua = ide_qua_enabled;
     temp_bugger = bugger_enabled;
+    temp_postcard = postcard_enabled;
     temp_isartc = isartc_type;
 	
     /* ISA memory boards. */
@@ -356,6 +358,7 @@ win_settings_changed(void)
     i = i || (temp_ide_ter != ide_ter_enabled);
     i = i || (temp_ide_qua != ide_qua_enabled);
     i = i || (temp_bugger != bugger_enabled);
+    i = i || (temp_postcard != postcard_enabled);
     i = i || (temp_isartc != isartc_type);
 
     /* ISA memory boards. */
@@ -460,6 +463,7 @@ win_settings_save(void)
     ide_ter_enabled = temp_ide_ter;
     ide_qua_enabled = temp_ide_qua;
     bugger_enabled = temp_bugger;
+    postcard_enabled = temp_postcard;
     isartc_type = temp_isartc;
 
     /* ISA memory boards. */
@@ -1594,6 +1598,9 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 		h=GetDlgItem(hdlg, IDC_CHECK_BUGGER);
 		SendMessage(h, BM_SETCHECK, temp_bugger, 0);
 
+		h=GetDlgItem(hdlg, IDC_CHECK_POSTCARD);
+		SendMessage(h, BM_SETCHECK, temp_postcard, 0);
+
 		/* Populate the ISA RTC card dropdown. */
 		e = 0;
 		h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
@@ -1796,6 +1803,9 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 		h = GetDlgItem(hdlg, IDC_CHECK_BUGGER);
 		temp_bugger = SendMessage(h, BM_GETCHECK, 0, 0);
+
+		h = GetDlgItem(hdlg, IDC_CHECK_POSTCARD);
+		temp_postcard = SendMessage(h, BM_GETCHECK, 0, 0);
 
 		free(stransi);
 		free(lptsTemp);

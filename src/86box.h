@@ -99,6 +99,7 @@ extern int	vid_cga_contrast,		/* (C) video */
 		gfxcard;			/* (C) graphics/video card */
 extern int	serial_enabled[],		/* (C) enable serial ports */
 		bugger_enabled,			/* (C) enable ISAbugger */
+		postcard_enabled,		/* (C) enable POST card */
 		isamem_type[],			/* (C) enable ISA mem cards */
 		isartc_type;			/* (C) enable ISA RTC card */
 extern int	sound_is_float,			/* (C) sound uses FP values */

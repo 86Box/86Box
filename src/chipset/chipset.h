@@ -45,6 +45,7 @@ extern const device_t	i430tx_device;
 extern const device_t	i440fx_device;
 #endif
 extern const device_t	i440bx_device;
+extern const device_t	i440zx_device;
 
 /* NEAT */
 extern const device_t	neat_device;
