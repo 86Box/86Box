@@ -35,6 +35,7 @@
 #include "device.h"
 #include "apm.h"
 #include "keyboard.h"
+#include "machine.h"
 #include "mem.h"
 #include "timer.h"
 #include "nvr.h"
@@ -1209,6 +1210,7 @@ static void
 *piix_init(const device_t *info)
 {
     int i;
+    CPU *cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu];
 
     piix_t *dev = (piix_t *) malloc(sizeof(piix_t));
     memset(dev, 0, sizeof(piix_t));

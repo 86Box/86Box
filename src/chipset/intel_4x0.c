@@ -60,8 +60,6 @@ typedef struct
 static void
 i4x0_map(uint32_t addr, uint32_t size, int state)
 {
-    // pclog("i4x0_map(%08X, %08X, %02X)\n", addr, size, state);
-
     switch (state & 3) {
 	case 0:
 		mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
@@ -97,7 +95,6 @@ pm2_cntrl_read(uint16_t addr, void *p)
 {
     i4x0_t *dev = (i4x0_t *) p;
 
-    // pclog("PM2_CTL read: %02X\n", dev->pm2_cntrl & 0x01);
     return dev->pm2_cntrl & 0x01;
 }
 
@@ -107,7 +104,6 @@ pm2_cntrl_write(uint16_t addr, uint8_t val, void *p)
 {
     i4x0_t *dev = (i4x0_t *) p;
 
-    // pclog("PM2_CTL write: %02X\n", val);
     dev->pm2_cntrl = val & 0x01;
 }
 
@@ -120,13 +116,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
     uint8_t *regs_l = (uint8_t *) dev->regs_locked[func];
     int i;
 
-    if (func > dev->max_func) {
-
-	// pclog("invalid write %02X to %02X:%02X\n", val, func, addr);
-	return;
-    }
-
-    // pclog("write %02X to %02X:%02X\n", val, func, addr);
+    if (func > dev->max_func)
+  	return;
 
     if ((addr >= 0x10) && (addr < 0x4f))
 	return;
@@ -668,7 +659,6 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				io_removehandler(0x0022, 0x01, pm2_cntrl_read, NULL, NULL, pm2_cntrl_write, NULL, NULL, dev);
 				if (val & 0x40)
 					io_sethandler(0x0022, 0x01, pm2_cntrl_read, NULL, NULL, pm2_cntrl_write, NULL, NULL, dev);
-				// pclog("430TX: PM2_CTL now %sabled\n", (val & 0x40) ? "en" : "dis");
 				break;
 			case INTEL_440BX:
 				regs[0x79] = val;
@@ -682,7 +672,6 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				io_removehandler(0x0022, 0x01, pm2_cntrl_read, NULL, NULL, pm2_cntrl_write, NULL, NULL, dev);
 				if (val & 0x40)
 					io_sethandler(0x0022, 0x01, pm2_cntrl_read, NULL, NULL, pm2_cntrl_write, NULL, NULL, dev);
-				// pclog("440BX: PM2_CTL now %sabled\n", (val & 0x40) ? "en" : "dis");
 				break;
 		}
 		break;
@@ -918,10 +907,9 @@ i4x0_read(int func, int addr, void *priv)
     uint8_t ret = 0xff;
     uint8_t *regs = (uint8_t *) dev->regs[func];
 
-    if (func > dev->max_func) {
-	ret = 0xff;
-	// pclog("invalid read %02X from %02X:%02X\n", ret, func, addr);
-    } else {
+  if (func > dev->max_func)
+	  ret = 0xff;
+  else {
 	ret = regs[addr];
 #if defined(DEV_BRANCH) && defined(USE_I686)
 	/* Special behavior for 440FX register 0x93 which is basically TRC in PCI space
@@ -929,7 +917,6 @@ i4x0_read(int func, int addr, void *priv)
 	if ((func == 0) && (addr == 0x93) && (dev->type == INTEL_440FX))
 		ret = (ret & 0xf9) | (trc_read(0x0093, NULL) & 0x06);
 #endif
-	// pclog("read %02X from %02X:%02X\n", ret, func, addr);
     }
 
     return ret;

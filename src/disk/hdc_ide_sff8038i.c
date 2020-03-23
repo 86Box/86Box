@@ -373,14 +373,16 @@ sff_bus_master_set_irq(int channel, void *priv)
 
     channel &= 0x01;
     if (dev->status & 0x04) {
-	if ((dev->irq_mode == 2) && (channel & 1) && pci_use_mirq(0))
+	sff_log("SFF8038i: Channel %i IRQ raise\n", channel);
+	if ((dev->irq_mode == 2) && channel && pci_use_mirq(0))
 		pci_set_mirq(0, 0);
 	else if (dev->irq_mode == 1)
 		pci_set_irq(dev->slot, dev->irq_pin);
 	else
 		picint(1 << (14 + channel));
     } else {
-	if ((dev->irq_mode == 2) && (channel & 1) && pci_use_mirq(0))
+	sff_log("SFF8038i: Channel %i IRQ lower\n", channel);
+	if ((dev->irq_mode == 2) && channel && pci_use_mirq(0))
 		pci_clear_mirq(0, 0);
 	else if (dev->irq_mode == 1)
 		pci_clear_irq(dev->slot, dev->irq_pin);
@@ -419,6 +421,10 @@ sff_reset(void *p)
 {
     int i = 0;
 
+#ifdef ENABLE_SFF_LOG
+    sff_log("SFF8038i: Reset\n");
+#endif
+
     for (i = 0; i < CDROM_NUM; i++) {
 	if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&
 	    (cdrom[i].ide_channel < 4) && cdrom[i].priv)
@@ -429,6 +435,9 @@ sff_reset(void *p)
 	    (zip_drives[i].ide_channel < 4) && zip_drives[i].priv)
 		zip_reset((scsi_common_t *) zip_drives[i].priv);
     }
+
+    sff_bus_master_set_irq(0x00, p);
+    sff_bus_master_set_irq(0x01, p);
 }
 
 

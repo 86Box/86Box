@@ -120,8 +120,6 @@ sis_85c496_write(int func, int addr, uint8_t val, void *priv)
     if ((addr >= 4 && addr < 8) || addr >= 0x40)
 	dev->pci_conf[addr] = val;
 
-    pclog("SiS 496 Write: %02X %02X %02X\n", func, addr, val);
-
     valxor = old ^ val;
 
     switch (addr) {
@@ -144,7 +142,6 @@ sis_85c496_write(int func, int addr, uint8_t val, void *priv)
 			port_92_remove(dev->port_92);
 			if (val & 0x02)
 				port_92_add(dev->port_92);
-			pclog("Port 92: %sabled\n", (val & 0x02) ? "En" : "Dis");
 		}
 		break;
 
@@ -199,10 +196,8 @@ sis_85c496_write(int func, int addr, uint8_t val, void *priv)
 		break;
 
 	case 0x67:
-		if (valxor & 0x60) {
+		if (valxor & 0x60)
 			port_92_set_features(dev->port_92, !!(val & 0x20), !!(val & 0x40));
-			pclog("[Port 92] Set features: %sreset, %sA20\n", !!(val & 0x20) ? "" : "no ", !!(val & 0x40) ? "" : "no ");
-		}
 		break;
 
 	case 0x82:
@@ -251,8 +246,6 @@ sis_85c496_read(int func, int addr, void *priv)
 		ret = inb(0x70);
 		break;
     }
-
-    pclog("SiS 496 Read: %02X %02X %02X\n", func, addr, ret);
 
     return ret;
 }

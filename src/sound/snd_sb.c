@@ -679,13 +679,9 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
         sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
         
         if (!(addr & 1))
-        {
-		pclog("CT1745: write IDX  : %02X\n", val);
                 mixer->index = val;
-        }
         else
         {
-		pclog("CT1745: write REG%02X: %02X\n", mixer->index, val);
             // TODO: and this?  001h:
             /*DESCRIPTION
      Contains previously selected register value.  Mixer Data Register value
@@ -868,10 +864,8 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
         sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
 	uint8_t temp, ret = 0xff;
 
-        if (!(addr & 1)) {
+        if (!(addr & 1))
                 ret = mixer->index;
-		pclog("CT1745: read  IDX  : %02X\n", ret);
-	}
 
         sb_log("sb_ct1745: received register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
 
@@ -1008,7 +1002,6 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
                 break;
         }
 
-	pclog("CT1745: read  REG%02X: %02X\n", mixer->index, ret);
         return ret;
 }
 

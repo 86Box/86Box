@@ -463,7 +463,7 @@ mfm_readw(uint16_t port, void *priv)
 		mfm->secount = (mfm->secount - 1) & 0xff;
 		if (mfm->secount) {
 			next_sector(mfm);
-			mfm->status = STAT_BUSY;
+			mfm->status = STAT_BUSY | STAT_READY | STAT_DSC;
 			timer_set_delay_u64(&mfm->callback_timer, SECTOR_TIME);
 		} else
 			ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 0);

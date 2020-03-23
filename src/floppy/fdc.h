@@ -36,7 +36,7 @@
 
 
 typedef struct {
-    uint8_t	dor, stat, command, dat, st0, swap;
+    uint8_t	dor, stat, command, processed_cmd, dat, st0, swap;
     uint8_t	swwp, disable_write;
     uint8_t	params[256], res[256];
     uint8_t	specify[256], format_dat[256];
