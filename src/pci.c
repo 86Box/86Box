@@ -127,7 +127,15 @@ pci_write(uint16_t port, uint8_t val, void *priv)
 					pci_log("Writing to PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
 					pci_cards[slot].write(pci_func, pci_index | (port & 3), val, pci_cards[slot].priv);
 				}
+#ifdef ENABLE_PCI_LOG
+				else
+					pci_log("Writing to empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+#endif
 			}
+#ifdef ENABLE_PCI_LOG
+			else
+				pci_log("Writing to unassigned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+#endif
 		}
 		
 		break;
@@ -150,7 +158,15 @@ pci_read(uint16_t port, void *priv)
 			if (slot != 0xff) {
 				if (pci_cards[slot].read)
 					return pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
+#ifdef ENABLE_PCI_LOG
+				else
+					pci_log("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+#endif
 			}
+#ifdef ENABLE_PCI_LOG
+			else
+				pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+#endif
 		}
 
 		return 0xff;
@@ -237,10 +253,15 @@ pci_type2_write(uint16_t port, uint8_t val, void *priv)
 		if (slot != 0xff) {
 			if (pci_cards[slot].write)
 				pci_cards[slot].write(pci_func, pci_index | (port & 3), val, pci_cards[slot].priv);
+#ifdef ENABLE_PCI_LOG
 			else
-				pclog("Writing to empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
-		} else
-			pclog("Writing to unassigned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+				pci_log("Writing to empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+#endif
+		}
+#ifdef ENABLE_PCI_LOG
+		else
+			pci_log("Writing to unassigned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+#endif
 	}
     }
 }
@@ -265,10 +286,15 @@ pci_type2_read(uint16_t port, void *priv)
 	if (slot != 0xff) {
 		if (pci_cards[slot].read)
 			return pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
+#ifdef ENABLE_PCI_LOG
 		else
-			pclog("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
-	} else
-		pclog("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+			pci_log("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+#endif
+	}
+#ifdef ENABLE_PCI_LOG
+	else
+		pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+#endif
     }
 
     return 0xff;
@@ -649,7 +675,6 @@ void
 trc_write(uint16_t port, uint8_t val, void *priv)
 {
     pci_log("TRC Write: %02X\n", val);
-    pclog("[%04X:%08X] TRC Write: %02X\n", CS, cpu_state.pc, val);
 
     if (!(trc_reg & 4) && (val & 4))
 	trc_reset(val);
