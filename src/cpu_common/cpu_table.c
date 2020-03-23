@@ -737,5 +737,11 @@ CPU cpus_PentiumII[] = {
     {"Pentium II Deschutes 450",    CPU_PENTIUM2D,  450000000, 9/2,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 54},
     {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}
 };
+
+CPU cpus_PGA370[] = {
+    {"Celeron Mendocino 100",    	CPU_PENTIUM2D,  100000000, 3/2,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
+    {"Celeron Mendocino 333",       CPU_PENTIUM2D,  333333333, 5,    0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 40},
+    {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}	
+};
 #endif
 #endif
