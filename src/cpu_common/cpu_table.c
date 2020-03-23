@@ -292,28 +292,6 @@ CPU cpus_i486[] = {
     {"Pentium OverDrive 83", CPU_PENTIUM,  83333333, 5/2, 0x1532,  0x1532, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15,8,8, 10},
     {"",                     -1,                  0, 0,        0,       0, 0,                    0,  0, 0,0,0,  0}
 };
-CPU cpus_i486[] = {
-    /*i486/P24T*/
-    {"i486SX/16",            CPU_i486SX,   16000000, 1,    0x42a,       0, 0, CPU_SUPPORTS_DYNAREC,  3, 3,3,3,  2},
-    {"i486SX/20",            CPU_i486SX,   20000000, 1,    0x42a,       0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
-    {"i486SX/25",            CPU_i486SX,   25000000, 1,    0x42a,       0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
-    {"i486SX/33",            CPU_i486SX,   33333333, 1,    0x42a,       0, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
-    {"i486SX2/50",           CPU_i486SX,   50000000, 2,    0x45b,       0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
-    {"i486SX2/66 (Q0569)",   CPU_i486SX2,  66666666, 2,    0x45b,       0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  8},
-    {"i486DX/25",            CPU_i486DX2,  25000000, 1,    0x404,       0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
-    {"i486DX/33",            CPU_i486DX,   33333333, 1,    0x404,       0, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
-    {"i486DX/50",            CPU_i486DX,   50000000, 1,    0x404,       0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,4,4,  6},
-    {"i486DX2/40",           CPU_i486DX2,  40000000, 2,    0x430,   0x430, 0, CPU_SUPPORTS_DYNAREC,  7, 7,6,6,  5}, /*CPUID available on DX2, DX4, P24T, >= 40 MHz*/
-    {"i486DX2/50",           CPU_i486DX2,  50000000, 2,    0x430,   0x430, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6}, 
-    {"i486DX2/66",           CPU_i486DX2,  66666666, 2,    0x430,   0x430, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
-    {"iDX4/75",              CPU_iDX4,     75000000, 3,    0x481,   0x481, 0, CPU_SUPPORTS_DYNAREC, 12,12,9,9,  9}, /*CPUID available on DX4, >= 75 MHz*/
-    {"iDX4/100",             CPU_iDX4,    100000000, 3,    0x481,   0x481, 0, CPU_SUPPORTS_DYNAREC, 18,18,9,9, 12}, /*Is on some real Intel DX2s, limit here is pretty arbitary*/
-    {"iDX4 OverDrive 75",    CPU_iDX4,     75000000, 3,   0x1480,  0x1480, 0, CPU_SUPPORTS_DYNAREC, 12,12,9,9,  9}, 
-    {"iDX4 OverDrive 100",   CPU_iDX4,    100000000, 3,   0x1480,  0x1480, 0, CPU_SUPPORTS_DYNAREC, 18,18,9,9, 12}, 
-    {"Pentium OverDrive 63", CPU_PENTIUM,  62500000, 5/2, 0x1531,  0x1531, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10,7,7, 15/2},
-    {"Pentium OverDrive 83", CPU_PENTIUM,  83333333, 5/2, 0x1532,  0x1532, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15,8,8, 10},
-    {"",                     -1,                  0, 0,        0,       0, 0,                    0,  0, 0,0,0,  0}
-};
 
 CPU cpus_Am486[] = {
     /*Am486/5x86*/
