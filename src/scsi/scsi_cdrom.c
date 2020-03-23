@@ -1554,6 +1554,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 		scsi_cdrom_buf_alloc(dev, 65536);
 		
 		if ((!dev->drv->ops) && ((cdb[1] & 3) == 2)) {
+			scsi_cdrom_log("CD-ROM not ready\n");
 			scsi_cdrom_not_ready(dev);
 			return;
 		}		
@@ -2010,11 +2011,14 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 
 	case GPCMD_AUDIO_TRACK_SEARCH:
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+
 		if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
 			scsi_cdrom_illegal_mode(dev);
 			break;
 		}
+		
 		pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+		
 		ret = cdrom_audio_track_search(dev->drv, pos, cdb[9], cdb[1] & 1);
 
 		if (ret)
@@ -2025,11 +2029,14 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 
 	case GPCMD_TOSHIBA_PLAY_AUDIO:	
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+
 		if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
 			scsi_cdrom_illegal_mode(dev);
 			break;
 		}
+		
 		pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+
 		ret = cdrom_toshiba_audio_play(dev->drv, pos, cdb[9]);
 		
 		if (ret)
@@ -2200,12 +2207,14 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 		len = alloc_length;
 
 		memset(dev->buffer, 0, len);
+
 		dev->buffer[0] = cdrom_get_current_subcodeq_playstatus(dev->drv, &dev->buffer[1]);
+
 		scsi_cdrom_log("Audio Status = %02x\n", dev->buffer[0]);
 
 		scsi_cdrom_set_buf_len(dev, BufLen, &alloc_length);
 		scsi_cdrom_data_command_finish(dev, len, len, len, 0);
-		break;		
+		break;
 
 	case GPCMD_READ_DVD_STRUCTURE:
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
@@ -2265,7 +2274,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 
 		scsi_cdrom_command_complete(dev);
 		break;
-	
+
 	case GPCMD_CADDY_EJECT:
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
 		scsi_cdrom_stop(sc);
@@ -2358,7 +2367,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 				dev->buffer[6] = 1;	/* 16-bit transfers supported */
 				dev->buffer[7] = 0x20;	/* Wide bus supported */
 			}
-			
+
 			if (dev->drv->bus_type == CDROM_BUS_SCSI) {
 				ide_padstr8(dev->buffer + 8, 8, "TOSHIBA"); /* Vendor */
 				ide_padstr8(dev->buffer + 16, 16, "XM6201TASUN32XCD"); /* Product */
@@ -2392,7 +2401,7 @@ atapi_out:
 		scsi_cdrom_command_complete(dev);
 		break;
 
-#if 0
+#if OPCODE_CONFLICT_C2
 	case GPCMD_PAUSE_RESUME_ALT:
 #endif
 	case GPCMD_PAUSE_RESUME:

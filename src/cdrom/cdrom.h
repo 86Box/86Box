@@ -8,7 +8,7 @@
  *
  *		Generic CD-ROM drive core header.
  *
- * Version:	@(#)cdrom.h	1.0.18	2019/09/26
+ * Version:	@(#)cdrom.h	1.0.19	2020/03/24
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
