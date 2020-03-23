@@ -80,8 +80,6 @@ um8669f_pnp_write(uint16_t port, uint8_t val, void *priv)
     uint8_t valxor = 0;
     uint8_t lpt_irq = 0xff;
 
-    pclog("Write %02X at %04X\n", val, port);
-
     if (port == 0x279)
 	dev->cur_reg = val;
     else {
@@ -189,8 +187,6 @@ um8669f_write(uint16_t port, uint8_t val, void *priv)
     um8669f_t *dev = (um8669f_t *) priv;
     int new_pnp_active;
 
-    pclog("Write %02X at %04X\n", val, port);
-
     if (dev->locked) {
 	if ((port == 0x108) && (val == 0xaa))
 		dev->locked = 0;
@@ -297,20 +293,6 @@ um8669f_close(void *priv)
 }
 
 
-void
-um8669f_detect_write(uint16_t port, uint8_t val, void *priv)
-{
-    pclog("Write %02X at %04X\n", val, port);
-}
-
-
-uint8_t
-um8669f_detect_read(uint16_t port, void *priv)
-{
-    return 0xff;
-}
-
-
 static void *
 um8669f_init(const device_t *info)
 {
@@ -324,15 +306,6 @@ um8669f_init(const device_t *info)
 
     io_sethandler(0x0108, 0x0002,
 		  um8669f_read, NULL, NULL, um8669f_write, NULL, NULL, dev);
-
-    io_sethandler(0x0370, 0x0002,
-		  um8669f_detect_read, NULL, NULL, um8669f_detect_write, NULL, NULL, dev);
-    io_sethandler(0x03bd, 0x0001,
-		  um8669f_detect_read, NULL, NULL, um8669f_detect_write, NULL, NULL, dev);
-    io_sethandler(0x03bf, 0x0001,
-		  um8669f_detect_read, NULL, NULL, um8669f_detect_write, NULL, NULL, dev);
-    io_sethandler(0x03f0, 0x0002,
-		  um8669f_detect_read, NULL, NULL, um8669f_detect_write, NULL, NULL, dev);
 
     um8669f_reset(dev);
 
