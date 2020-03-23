@@ -76,13 +76,11 @@ enum {
 	CPUID_FXSR = (1 << 24)
 };
 
-#ifdef USE_NEW_DYNAREC
 /*Addition flags returned by CPUID function 0x80000001*/
 enum
 {
         CPUID_3DNOW = (1 << 31)
 };
-#endif
 
 
 #ifdef USE_DYNAREC
@@ -131,9 +129,7 @@ const OpFn	*x86_opcodes_df_a16;
 const OpFn	*x86_opcodes_df_a32;
 const OpFn	*x86_opcodes_REPE;
 const OpFn	*x86_opcodes_REPNE;
-#ifdef USE_NEW_DYNAREC
 const OpFn	*x86_opcodes_3DNOW;
-#endif
 
 int in_smm = 0, smi_line = 0, smi_latched = 0;
 uint32_t smbase = 0x30000;
@@ -353,9 +349,7 @@ cpu_set(void)
 #endif
         x86_opcodes_REPE = ops_REPE;
         x86_opcodes_REPNE = ops_REPNE;
-#ifdef USE_NEW_DYNAREC
         x86_opcodes_3DNOW = ops_3DNOW;
-#endif
 #ifdef USE_DYNAREC
         x86_dynarec_opcodes_REPE = dynarec_ops_REPE;
         x86_dynarec_opcodes_REPNE = dynarec_ops_REPNE;
@@ -1023,7 +1017,9 @@ cpu_set(void)
                 timing_jmp_pm_gate = 17;
                 timing_misaligned = 2;
                 cpu_cyrix_alignment = 1;
+#ifdef USE_DYNAREC		
                 codegen_timing_set(&codegen_timing_winchip2);
+#endif		
                 break;
 #endif
 
@@ -1604,17 +1600,9 @@ cpu_set(void)
 #endif
                 case CPU_CYRIX3S:
 #ifdef USE_DYNAREC
-#ifdef USE_NEW_DYNAREC
                 x86_setopcodes(ops_386, ops_winchip2_0f, dynarec_ops_386, dynarec_ops_winchip2_0f);
 #else
-                x86_setopcodes(ops_386, ops_winchip_0f, dynarec_ops_386, dynarec_ops_winchip_0f);
-#endif
-#else
-#ifdef USE_NEW_DYNAREC
                 x86_setopcodes(ops_386, ops_winchip2_0f);
-#else
-                x86_setopcodes(ops_386, ops_winchip_0f);
-#endif	
 #endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 2; /*register dest - memory src*/
@@ -1625,11 +1613,7 @@ cpu_set(void)
                 timing_mml = 3;
                 timing_bt  = 3-1; /*branch taken*/
                 timing_bnt = 1; /*branch not taken*/
-#ifdef USE_NEW_DYNAREC
                 cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MMX | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_3DNOW;
-#else
-                cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MMX | CPU_FEATURE_MSR | CPU_FEATURE_CR4;
-#endif			
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21);
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE;
                 /*unknown*/
@@ -2374,10 +2358,8 @@ cpu_CPUID(void)
                                 EDX |= CPUID_CMPXCHG8B;
                         if (msr.fcr & (1 << 9))
                                 EDX |= CPUID_MMX;
-#ifdef USE_NEW_DYNAREC			
                         if (cpu_has_feature(CPU_FEATURE_3DNOW))
                                 EDX |= CPUID_3DNOW;
-#endif			
                        break;
                                 
                         case 0x80000002: /*Processor name string*/
