@@ -1,0 +1,10 @@
+Comparing files CPU\x86_ops_misc.h and CPU_NEW\X86_OPS_MISC.H
+***** CPU\x86_ops_misc.h
+                if(smi_latched) enter_smm();
+                CPU_BLOCK_END();
+                return 0;
+***** CPU_NEW\X86_OPS_MISC.H
+                if(smi_latched) enter_smm();
+                return 0;
+*****
+

@@ -7,12 +7,12 @@
 #include <wchar.h>
 #include <math.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../timer.h"
+#include "86box.h"
+#include "device.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "rom.h"
+#include "timer.h"
 #include "sound.h"
 #include "snd_emu8k.h"
 

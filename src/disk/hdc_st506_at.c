@@ -30,15 +30,15 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../io.h"
-#include "../pic.h"
-#include "../cpu/cpu.h"
-#include "../machine/machine.h"
-#include "../timer.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "86box.h"
+#include "device.h"
+#include "86box_io.h"
+#include "pic.h"
+#include "cpu.h"
+#include "machine.h"
+#include "timer.h"
+#include "plat.h"
+#include "ui.h"
 #include "hdc.h"
 #include "hdd.h"
 
@@ -463,7 +463,7 @@ mfm_readw(uint16_t port, void *priv)
 		mfm->secount = (mfm->secount - 1) & 0xff;
 		if (mfm->secount) {
 			next_sector(mfm);
-			mfm->status = STAT_BUSY;
+			mfm->status = STAT_BUSY | STAT_READY | STAT_DSC;
 			timer_set_delay_u64(&mfm->callback_timer, SECTOR_TIME);
 		} else
 			ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 0);

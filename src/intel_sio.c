@@ -21,7 +21,7 @@
 #include <wchar.h>
 #include "86box.h"
 #include "device.h"
-#include "io.h"
+#include "86box_io.h"
 #include "apm.h"
 #include "dma.h"
 #include "mem.h"
@@ -29,7 +29,7 @@
 #include "timer.h"
 #include "pit.h"
 #include "port_92.h"
-#include "machine/machine.h"
+#include "machine.h"
 #include "intel_sio.h"
 
 
@@ -248,7 +248,7 @@ sio_config_read(uint16_t port, void *priv)
 	case 5:
 		ret = 0xd3;
 
-		switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].pci_speed) {
+		switch (cpu_pci_speed) {
 			case 20000000:
 				ret |= 0x0c;
 				break;
@@ -341,7 +341,7 @@ sio_init(const device_t *info)
     sio_t *sio = (sio_t *) malloc(sizeof(sio_t));
     memset(sio, 0, sizeof(sio_t));
 
-    pci_add_card(2, sio_read, sio_write, sio);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, sio_read, sio_write, sio);
 
     device_add(&apm_device);
 

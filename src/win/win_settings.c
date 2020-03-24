@@ -30,38 +30,36 @@
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../config.h"
-#include "../cpu/cpu.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../timer.h"
-#include "../nvr.h"
-#include "../machine/machine.h"
-#include "../game/gameport.h"
-#include "../isamem.h"
-#include "../isartc.h"
-#include "../lpt.h"
-#include "../mouse.h"
-#include "../scsi/scsi.h"
-#include "../scsi/scsi_device.h"
-#include "../cdrom/cdrom.h"
-#include "../disk/hdd.h"
-#include "../disk/hdc.h"
-#include "../disk/hdc_ide.h"
-#include "../disk/zip.h"
-#include "../floppy/fdd.h"
-#include "../network/network.h"
-#include "../sound/sound.h"
-#include "../sound/midi.h"
-#include "../sound/snd_mpu401.h"
-#include "../sound/snd_gus.h"
-#include "../video/video.h"
-#include "../video/vid_voodoo.h"
-#include "../plat.h"
-#include "../plat_midi.h"
-#include "../ui.h"
+#include "86box.h"
+#include "config.h"
+#include "cpu.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "timer.h"
+#include "nvr.h"
+#include "machine.h"
+#include "gameport.h"
+#include "isamem.h"
+#include "isartc.h"
+#include "lpt.h"
+#include "mouse.h"
+#include "scsi.h"
+#include "scsi_device.h"
+#include "cdrom.h"
+#include "hdd.h"
+#include "hdc.h"
+#include "hdc_ide.h"
+#include "zip.h"
+#include "fdd.h"
+#include "network.h"
+#include "sound.h"
+#include "midi.h"
+#include "snd_mpu401.h"
+#include "video.h"
+#include "plat.h"
+#include "plat_midi.h"
+#include "ui.h"
 #include "win.h"
 
 
@@ -99,6 +97,7 @@ static int temp_serial[2], temp_lpt[3];
 /* Other peripherals category */
 static int temp_hdc, temp_scsi_card, temp_ide_ter, temp_ide_qua;
 static int temp_bugger;
+static int temp_postcard;
 static int temp_isartc;
 static int temp_isamem[ISAMEM_MAX];
 
@@ -250,6 +249,7 @@ win_settings_init(void)
     temp_ide_ter = ide_ter_enabled;
     temp_ide_qua = ide_qua_enabled;
     temp_bugger = bugger_enabled;
+    temp_postcard = postcard_enabled;
     temp_isartc = isartc_type;
 	
     /* ISA memory boards. */
@@ -358,6 +358,7 @@ win_settings_changed(void)
     i = i || (temp_ide_ter != ide_ter_enabled);
     i = i || (temp_ide_qua != ide_qua_enabled);
     i = i || (temp_bugger != bugger_enabled);
+    i = i || (temp_postcard != postcard_enabled);
     i = i || (temp_isartc != isartc_type);
 
     /* ISA memory boards. */
@@ -462,6 +463,7 @@ win_settings_save(void)
     ide_ter_enabled = temp_ide_ter;
     ide_qua_enabled = temp_ide_qua;
     bugger_enabled = temp_bugger;
+    postcard_enabled = temp_postcard;
     isartc_type = temp_isartc;
 
     /* ISA memory boards. */
@@ -1596,6 +1598,9 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 		h=GetDlgItem(hdlg, IDC_CHECK_BUGGER);
 		SendMessage(h, BM_SETCHECK, temp_bugger, 0);
 
+		h=GetDlgItem(hdlg, IDC_CHECK_POSTCARD);
+		SendMessage(h, BM_SETCHECK, temp_postcard, 0);
+
 		/* Populate the ISA RTC card dropdown. */
 		e = 0;
 		h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
@@ -1798,6 +1803,9 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 		h = GetDlgItem(hdlg, IDC_CHECK_BUGGER);
 		temp_bugger = SendMessage(h, BM_GETCHECK, 0, 0);
+
+		h = GetDlgItem(hdlg, IDC_CHECK_POSTCARD);
+		temp_postcard = SendMessage(h, BM_GETCHECK, 0, 0);
 
 		free(stransi);
 		free(lptsTemp);

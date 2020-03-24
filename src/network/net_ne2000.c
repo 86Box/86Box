@@ -52,15 +52,15 @@
 #include <wchar.h>
 #include <time.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../mca.h"
-#include "../pci.h"
-#include "../pic.h"
-#include "../random.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "rom.h"
+#include "mca.h"
+#include "pci.h"
+#include "pic.h"
+#include "random.h"
+#include "device.h"
 #include "network.h"
 #include "net_dp8390.h"
 #include "net_ne2000.h"
@@ -1465,7 +1465,7 @@ nic_init(const device_t *info)
 	nic_reset(dev);
 
     /* Attach ourselves to the network module. */
-    network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx);
+    network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL);
 
     nelog(1, "%s: %s attached IO=0x%X IRQ=%d\n", dev->name,
 	dev->is_pci?"PCI":"ISA", dev->base_address, dev->base_irq);

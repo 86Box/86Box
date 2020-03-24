@@ -12,15 +12,15 @@
  *		the DYNAMIC_TABLES=1 enables this. Will eventually go
  *		away, either way...
  *
- * Version:	@(#)mem.c	1.0.22	2019/12/02
+ * Version:	@(#)mem.c	1.0.23	2020/01/25
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -30,22 +30,26 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "cpu/cpu.h"
-#include "cpu/x86_ops.h"
-#include "cpu/x86.h"
-#include "machine/machine.h"
-#include "machine/m_xt_xi8088.h"
+#include "cpu.h"
+#include "x86_ops.h"
+#include "x86.h"
+#include "machine.h"
+#include "m_xt_xi8088.h"
 #include "config.h"
-#include "io.h"
+#include "86box_io.h"
 #include "mem.h"
 #include "rom.h"
 #ifdef USE_DYNAREC
-# include "cpu/codegen.h"
+# include "codegen_public.h"
+#else
+#ifdef USE_NEW_DYNAREC
+# define PAGE_MASK_SHIFT	6
 #else
 # define PAGE_MASK_INDEX_MASK	3
 # define PAGE_MASK_INDEX_SHIFT	10
-# define PAGE_MASK_MASK		63
 # define PAGE_MASK_SHIFT	4
+#endif
+# define PAGE_MASK_MASK		63
 #endif
 
 
@@ -105,12 +109,18 @@ int			mem_a20_key = 0,
 int			mmuflush = 0;
 int			mmu_perm = 4;
 
+uint64_t		*byte_dirty_mask;
+uint64_t		*byte_code_present_mask;
+
+uint32_t		purgable_page_list_head = 0;
+int			purgeable_page_count = 0;
+
 
 /* FIXME: re-do this with a 'mem_ops' struct. */
 static mem_mapping_t	*read_mapping[MEM_MAPPINGS_NO];
 static mem_mapping_t	*write_mapping[MEM_MAPPINGS_NO];
 static uint8_t		*_mem_exec[MEM_MAPPINGS_NO];
-static int		_mem_state[MEM_MAPPINGS_NO];
+static int		_mem_state[MEM_MAPPINGS_NO], _mem_state_bak[MEM_MAPPINGS_NO];
 
 #if FIXME
 #if (MEM_GRANULARITY_BITS >= 12)
@@ -433,13 +443,17 @@ addwritelookup(uint32_t virt, uint32_t phys)
 	writelookup2[writelookup[writelnext]] = -1;
     }
 
+#ifdef USE_NEW_DYNAREC
+    if (pages[phys >> 12].block || (phys & ~0xfff) == recomp_page)
+#else
 #ifdef USE_DYNAREC
     if (pages[phys >> 12].block[0] || pages[phys >> 12].block[1] || pages[phys >> 12].block[2] || pages[phys >> 12].block[3] || (phys & ~0xfff) == recomp_page)
 #else
     if (pages[phys >> 12].block[0] || pages[phys >> 12].block[1] || pages[phys >> 12].block[2] || pages[phys >> 12].block[3])
 #endif
+#endif
 	page_lookup[virt >> 12] = &pages[phys >> 12];
-      else
+    else
 	writelookup2[virt>>12] = (uintptr_t)&ram[(uintptr_t)(phys & ~0xFFF) - (uintptr_t)(virt & ~0xfff)];
 
     writelookupp[writelnext] = mmu_perm;
@@ -512,16 +526,15 @@ writemembl(uint32_t addr, uint8_t val)
     mem_mapping_t *map;
     mem_logical_addr = addr;
 
-    if (page_lookup[addr>>12])
- {
+    if (page_lookup[addr>>12]) {
 	page_lookup[addr>>12]->write_b(addr, val, page_lookup[addr>>12]);
-
 	return;
     }
 
     if (cr0 >> 31) {
 	addr = mmutranslate_write(addr);
-	if (addr == 0xffffffff) return;
+	if (addr == 0xffffffff)
+		return;
     }
     addr &= rammask;
 
@@ -530,6 +543,297 @@ writemembl(uint32_t addr, uint8_t val)
 	map->write_b(addr, val, map->p);
 }
 
+
+#ifdef USE_NEW_DYNAREC
+uint16_t
+readmemwl(uint32_t addr)
+{
+    mem_mapping_t *map;
+
+    mem_logical_addr = addr;
+
+    if (addr & 1) {
+	if (!cpu_cyrix_alignment || (addr & 7) == 7)
+		sub_cycles(timing_misaligned);
+	if ((addr & 0xfff) > 0xffe) {
+		if (cr0 >> 31) {
+			if (mmutranslate_read(addr)   == 0xffffffff)
+				return 0xffff;
+			if (mmutranslate_read(addr+1) == 0xffffffff)
+				return 0xffff;
+		}
+		return readmembl(addr)|(readmembl(addr+1)<<8);
+	} else if (readlookup2[addr >> 12] != -1)
+		return *(uint16_t *)(readlookup2[addr >> 12] + addr);
+    }
+    if (cr0>>31) {
+	addr = mmutranslate_read(addr);
+	if (addr == 0xffffffff)
+		return 0xffff;
+    }
+
+    addr &= rammask;
+
+    map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+
+    if (map && map->read_w)
+	return map->read_w(addr, map->p);
+
+    if (map && map->read_b)
+	return map->read_b(addr, map->p) | (map->read_b(addr + 1, map->p) << 8);
+
+    return 0xffff;
+}
+
+
+void
+writememwl(uint32_t addr, uint16_t val)
+{
+    mem_mapping_t *map;
+
+    mem_logical_addr = addr;
+
+    if (addr & 1) {
+	if (!cpu_cyrix_alignment || (addr & 7) == 7)
+		sub_cycles(timing_misaligned);
+	if ((addr & 0xFFF) > 0xFFE) {
+		if (cr0 >> 31) {
+			if (mmutranslate_write(addr)   == 0xffffffff)
+				return;
+			if (mmutranslate_write(addr+1) == 0xffffffff)
+				return;
+		}
+		writemembl(addr,val);
+		writemembl(addr+1,val>>8);
+		return;
+	} else if (writelookup2[addr >> 12] != -1) {
+		*(uint16_t *)(writelookup2[addr >> 12] + addr) = val;
+		return;
+	}
+    }
+
+    if (page_lookup[addr>>12]) {
+	page_lookup[addr>>12]->write_w(addr, val, page_lookup[addr>>12]);
+	return;
+    }
+    if (cr0>>31) {
+	addr = mmutranslate_write(addr);
+	if (addr==0xFFFFFFFF)
+		return;
+    }
+
+    addr &= rammask;
+
+    map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+    if (map) {
+	if (map->write_w)
+		map->write_w(addr, val, map->p);
+	else if (map->write_b) {
+		map->write_b(addr, val, map->p);
+		map->write_b(addr + 1, val >> 8, map->p);
+	}
+    }
+}
+
+
+uint32_t
+readmemll(uint32_t addr)
+{
+    mem_mapping_t *map;
+
+    mem_logical_addr = addr;
+
+    if (addr & 3) {
+	if (!cpu_cyrix_alignment || (addr & 7) > 4)
+		sub_cycles(timing_misaligned);
+	if ((addr&0xFFF)>0xFFC) {
+		if (cr0>>31) {
+			if (mmutranslate_read(addr)   == 0xffffffff)
+				return 0xffffffff;
+			if (mmutranslate_read(addr+3) == 0xffffffff)
+				return 0xffffffff;
+		}
+		return readmemwl(addr)|(readmemwl(addr+2)<<16);
+	} else if (readlookup2[addr >> 12] != -1)
+		return *(uint32_t *)(readlookup2[addr >> 12] + addr);
+    }
+
+    if (cr0>>31) {
+	addr = mmutranslate_read(addr);
+	if (addr==0xFFFFFFFF)
+		return 0xFFFFFFFF;
+    }
+
+    addr&=rammask;
+
+    map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    if (map) {
+	if (map->read_l)
+		return map->read_l(addr, map->p);
+
+	if (map->read_w)
+		return map->read_w(addr, map->p) | (map->read_w(addr + 2, map->p) << 16);
+
+	if (map->read_b)
+		return map->read_b(addr, map->p) | (map->read_b(addr + 1, map->p) << 8) |
+		       (map->read_b(addr + 2, map->p) << 16) | (map->read_b(addr + 3, map->p) << 24);
+    }
+
+    return 0xffffffff;
+}
+
+
+void
+writememll(uint32_t addr, uint32_t val)
+{
+    mem_mapping_t *map;
+
+    mem_logical_addr = addr;
+
+    if (addr & 3) {
+	if (!cpu_cyrix_alignment || (addr & 7) > 4)
+		sub_cycles(timing_misaligned);
+	if ((addr & 0xFFF) > 0xFFC) {
+		if (cr0>>31) {
+			if (mmutranslate_write(addr)   == 0xffffffff)
+				return;
+			if (mmutranslate_write(addr+3) == 0xffffffff)
+				return;
+		}
+		writememwl(addr,val);
+		writememwl(addr+2,val>>16);
+		return;
+	} else if (writelookup2[addr >> 12] != -1) {
+		*(uint32_t *)(writelookup2[addr >> 12] + addr) = val;
+		return;
+	}
+    }
+    if (page_lookup[addr>>12]) {
+	page_lookup[addr>>12]->write_l(addr, val, page_lookup[addr>>12]);
+	return;
+    }
+    if (cr0>>31) {
+	addr = mmutranslate_write(addr);
+	if (addr==0xFFFFFFFF)
+		return;
+    }
+
+    addr&=rammask;
+
+    map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+    if (map) {
+	if (map->write_l)
+		map->write_l(addr, val, map->p);
+	else if (map->write_w) {
+		map->write_w(addr, val, map->p);
+		map->write_w(addr + 2, val >> 16, map->p);
+	} else if (map->write_b) {
+		map->write_b(addr, val, map->p);
+		map->write_b(addr + 1, val >> 8, map->p);
+		map->write_b(addr + 2, val >> 16, map->p);
+		map->write_b(addr + 3, val >> 24, map->p);
+	}
+    }
+}
+
+
+uint64_t
+readmemql(uint32_t addr)
+{
+    mem_mapping_t *map;
+
+    mem_logical_addr = addr;
+
+    if (addr & 7) {
+	sub_cycles(timing_misaligned);
+	if ((addr & 0xFFF) > 0xFF8) {
+		if (cr0>>31) {
+			if (mmutranslate_read(addr)   == 0xffffffff)
+				return 0xffffffff;
+			if (mmutranslate_read(addr+7) == 0xffffffff)
+				return 0xffffffff;
+		}
+		return readmemll(addr)|((uint64_t)readmemll(addr+4)<<32);
+	} else if (readlookup2[addr >> 12] != -1)
+		return *(uint64_t *)(readlookup2[addr >> 12] + addr);
+    }
+
+    if (cr0>>31) {
+	addr = mmutranslate_read(addr);
+	if (addr==0xFFFFFFFF)
+		return 0xFFFFFFFF;
+    }
+
+    addr&=rammask;
+
+    map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    if (map && map->read_l)
+	return map->read_l(addr, map->p) | ((uint64_t)map->read_l(addr + 4, map->p) << 32);
+
+    return readmemll(addr) | ((uint64_t)readmemll(addr+4)<<32);
+}
+
+
+void
+writememql(uint32_t addr, uint64_t val)
+{
+    mem_mapping_t *map;
+
+    mem_logical_addr = addr;
+
+    if (addr & 7) {
+	sub_cycles(timing_misaligned);
+	if ((addr & 0xFFF) > 0xFF8) {
+		if (cr0>>31) {
+			if (mmutranslate_write(addr)   == 0xffffffff)
+				return;
+			if (mmutranslate_write(addr+7) == 0xffffffff)
+				return;
+		}
+		writememll(addr, val);
+		writememll(addr+4, val >> 32);
+		return;
+	} else if (writelookup2[addr >> 12] != -1) {
+		*(uint64_t *)(writelookup2[addr >> 12] + addr) = val;
+		return;
+	}
+    }
+    if (page_lookup[addr>>12]) {
+	page_lookup[addr>>12]->write_l(addr, val, page_lookup[addr>>12]);
+	page_lookup[addr>>12]->write_l(addr + 4, val >> 32, page_lookup[addr>>12]);
+	return;
+    }
+    if (cr0>>31) {
+	addr = mmutranslate_write(addr);
+	if (addr==0xFFFFFFFF)
+		return;
+    }
+
+    addr&=rammask;
+
+    map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+    if (map) {
+	if (map->write_l) {
+		map->write_l(addr, val, map->p);
+		map->write_l(addr + 4, val >> 32, map->p);
+	} else if (map->write_w) {
+		map->write_w(addr, val, map->p);
+		map->write_w(addr + 2, val >> 16, map->p);
+		map->write_w(addr + 4, val >> 32, map->p);
+		map->write_w(addr + 6, val >> 48, map->p);
+	} else if (map->write_b) {
+		map->write_b(addr, val, map->p);
+		map->write_b(addr + 1, val >> 8, map->p);
+		map->write_b(addr + 2, val >> 16, map->p);
+		map->write_b(addr + 3, val >> 24, map->p);
+		map->write_b(addr + 4, val >> 32, map->p);
+		map->write_b(addr + 5, val >> 40, map->p);
+		map->write_b(addr + 6, val >> 48, map->p);
+		map->write_b(addr + 7, val >> 56, map->p);
+	}
+    }
+}
+#else
 uint8_t
 readmemb386l(uint32_t seg, uint32_t addr)
 {
@@ -553,10 +857,12 @@ readmemwl(uint32_t seg, uint32_t addr)
     if (addr2 & 1) {
 	if (!cpu_cyrix_alignment || (addr2 & 7) == 7)
 		sub_cycles(timing_misaligned);
-	if ((addr2 & 0xFFF) > 0xffe) {
+	if ((addr2 & 0xfff) > 0xffe) {
 		if (cr0 >> 31) {
-			if (mmutranslate_read(addr2)   == 0xffffffff) return 0xffff;
-			if (mmutranslate_read(addr2+1) == 0xffffffff) return 0xffff;
+			if (mmutranslate_read(addr2)   == 0xffffffff)
+				return 0xffff;
+			if (mmutranslate_read(addr2+1) == 0xffffffff)
+				return 0xffff;
 		}
 		if (is386) return readmemb386l(seg,addr)|(((uint16_t) readmemb386l(seg,addr+1))<<8);
 		else       return readmembl(seg+addr)|(((uint16_t) readmembl(seg+addr+1))<<8);
@@ -568,7 +874,7 @@ readmemwl(uint32_t seg, uint32_t addr)
     if (cr0 >> 31) {
 	addr2 = mmutranslate_read(addr2);
 	if (addr2 == 0xffffffff)
-		return 0xFFFF;
+		return 0xffff;
     }
 
     addr2 &= rammask;
@@ -843,6 +1149,7 @@ writememql(uint32_t seg, uint32_t addr, uint64_t val)
 	return;
     }
 }
+#endif
 
 
 int
@@ -894,6 +1201,7 @@ mem_readw_phys(uint32_t addr)
     return temp;
 }
 
+
 uint32_t
 mem_readl_phys(uint32_t addr)
 {
@@ -914,6 +1222,7 @@ mem_readl_phys(uint32_t addr)
     return temp;
 }
 
+
 void
 mem_writeb_phys(uint32_t addr, uint8_t val)
 {
@@ -924,6 +1233,7 @@ mem_writeb_phys(uint32_t addr, uint8_t val)
     else if (map && map->write_b)
        	map->write_b(addr, val, map->p);
 }
+
 
 void
 mem_writel_phys(uint32_t addr, uint32_t val)
@@ -942,6 +1252,7 @@ mem_writel_phys(uint32_t addr, uint32_t val)
 		mem_writeb_phys(addr + 3, (val >> 24) & 0xff);
 	}
 }
+
 
 uint8_t
 mem_read_ram(uint32_t addr, void *priv)
@@ -970,6 +1281,114 @@ mem_read_raml(uint32_t addr, void *priv)
 }
 
 
+#ifdef USE_NEW_DYNAREC
+static inline int
+page_index(page_t *p)
+{
+    return ((uintptr_t)p - (uintptr_t)pages) / sizeof(page_t);
+}
+
+
+void
+page_add_to_evict_list(page_t *p)
+{
+    pages[purgable_page_list_head].evict_prev = page_index(p);
+    p->evict_next = purgable_page_list_head;
+    p->evict_prev = 0;
+    purgable_page_list_head = pages[purgable_page_list_head].evict_prev;
+    purgeable_page_count++;
+}
+
+
+void
+page_remove_from_evict_list(page_t *p)
+{
+    if (!page_in_evict_list(p))
+	fatal("page_remove_from_evict_list: not in evict list!\n");
+    if (p->evict_prev)
+	pages[p->evict_prev].evict_next = p->evict_next;
+    else
+	purgable_page_list_head = p->evict_next;
+    if (p->evict_next)
+	pages[p->evict_next].evict_prev = p->evict_prev;
+    p->evict_prev = EVICT_NOT_IN_LIST;
+	purgeable_page_count--;
+}
+
+
+void
+mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *p)
+{
+    if (val != p->mem[addr & 0xfff] || codegen_in_recompile) {
+	uint64_t mask = (uint64_t)1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
+	int byte_offset = (addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
+	uint64_t byte_mask = (uint64_t)1 << (addr & PAGE_BYTE_MASK_MASK);
+
+	p->mem[addr & 0xfff] = val;
+	p->dirty_mask |= mask;
+	if ((p->code_present_mask & mask) && !page_in_evict_list(p))
+		page_add_to_evict_list(p);
+	p->byte_dirty_mask[byte_offset] |= byte_mask;
+	if ((p->byte_code_present_mask[byte_offset] & byte_mask) && !page_in_evict_list(p))
+		page_add_to_evict_list(p);
+    }
+}
+
+
+void
+mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p)
+{
+    if (val != *(uint16_t *)&p->mem[addr & 0xfff] || codegen_in_recompile) {
+	uint64_t mask = (uint64_t)1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
+	int byte_offset = (addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
+	uint64_t byte_mask = (uint64_t)1 << (addr & PAGE_BYTE_MASK_MASK);
+
+	if ((addr & 0xf) == 0xf)
+		mask |= (mask << 1);
+	*(uint16_t *)&p->mem[addr & 0xfff] = val;
+	p->dirty_mask |= mask;
+	if ((p->code_present_mask & mask) && !page_in_evict_list(p))
+		page_add_to_evict_list(p);
+	if ((addr & PAGE_BYTE_MASK_MASK) == PAGE_BYTE_MASK_MASK) {
+		p->byte_dirty_mask[byte_offset+1] |= 1;
+		if ((p->byte_code_present_mask[byte_offset+1] & 1) && !page_in_evict_list(p))
+			page_add_to_evict_list(p);
+	} else
+		byte_mask |= (byte_mask << 1);
+
+	p->byte_dirty_mask[byte_offset] |= byte_mask;
+
+	if ((p->byte_code_present_mask[byte_offset] & byte_mask) && !page_in_evict_list(p))
+		page_add_to_evict_list(p);
+    }
+}
+
+
+void
+mem_write_raml_page(uint32_t addr, uint32_t val, page_t *p)
+{
+    if (val != *(uint32_t *)&p->mem[addr & 0xfff] || codegen_in_recompile) {
+	uint64_t mask = (uint64_t)1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
+	int byte_offset = (addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
+	uint64_t byte_mask = (uint64_t)0xf << (addr & PAGE_BYTE_MASK_MASK);
+
+	if ((addr & 0xf) >= 0xd)
+		mask |= (mask << 1);
+	*(uint32_t *)&p->mem[addr & 0xfff] = val;
+	p->dirty_mask |= mask;
+	p->byte_dirty_mask[byte_offset] |= byte_mask;
+	if (!page_in_evict_list(p) && ((p->code_present_mask & mask) || (p->byte_code_present_mask[byte_offset] & byte_mask)))
+		page_add_to_evict_list(p);
+	if ((addr & PAGE_BYTE_MASK_MASK) > (PAGE_BYTE_MASK_MASK-3)) {
+		uint32_t byte_mask_2 = 0xf >> (4 - (addr & 3));
+
+		p->byte_dirty_mask[byte_offset+1] |= byte_mask_2;
+		if ((p->byte_code_present_mask[byte_offset+1] & byte_mask_2) && !page_in_evict_list(p))
+			page_add_to_evict_list(p);
+	}
+    }
+}
+#else
 void
 mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *p)
 {
@@ -1017,6 +1436,7 @@ mem_write_raml_page(uint32_t addr, uint32_t val, page_t *p)
 	*(uint32_t *)&p->mem[addr & 0xfff] = val;
     }
 }
+#endif
 
 
 void
@@ -1169,12 +1589,32 @@ mem_write_nulll(uint32_t addr, uint32_t val, void *p)
 void
 mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 {
+    uint64_t mask;
+#ifdef USE_NEW_DYNAREC
+    page_t *p;
+
+    start_addr &= ~PAGE_MASK_MASK;
+    end_addr = (end_addr + PAGE_MASK_MASK) & ~PAGE_MASK_MASK;        
+
+    for (; start_addr <= end_addr; start_addr += (1 << PAGE_MASK_SHIFT)) {
+	if ((start_addr >> 12) >= pages_sz)
+		continue;
+
+	mask = (uint64_t)1 << ((start_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
+
+	p = &pages[start_addr >> 12];
+
+	p->dirty_mask |= mask;
+	if ((p->code_present_mask & mask) && !page_in_evict_list(p))
+		page_add_to_evict_list(p);
+    }
+#else
     uint32_t cur_addr;
     start_addr &= ~PAGE_MASK_MASK;
     end_addr = (end_addr + PAGE_MASK_MASK) & ~PAGE_MASK_MASK;	
 
     for (; start_addr <= end_addr; start_addr += (1 << PAGE_MASK_SHIFT)) {
-	uint64_t mask = (uint64_t)1 << ((start_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
+	mask = (uint64_t)1 << ((start_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
 
 	/* Do nothing if the pages array is empty or DMA reads/writes to/from PCI device memory addresses
 	   may crash the emulator. */
@@ -1182,6 +1622,7 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 	if (cur_addr < pages_sz)
 		pages[cur_addr].dirty_mask[(start_addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
     }
+#endif
 }
 
 
@@ -1278,11 +1719,11 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
 		for (c = start; c < end; c += MEM_GRANULARITY_SIZE) {
 			if ((map->read_b || map->read_w || map->read_l) &&
 			     mem_mapping_read_allowed(map->flags, _mem_state[c >> MEM_GRANULARITY_BITS])) {
+				read_mapping[c >> MEM_GRANULARITY_BITS] = map;
 				if (map->exec)
 					_mem_exec[c >> MEM_GRANULARITY_BITS] = map->exec + (c - map->base);
 				else
 					_mem_exec[c >> MEM_GRANULARITY_BITS] = NULL;
-				read_mapping[c >> MEM_GRANULARITY_BITS] = map;
 			}
 			if ((map->write_b || map->write_w || map->write_l) &&
 			     mem_mapping_write_allowed(map->flags, _mem_state[c >> MEM_GRANULARITY_BITS]))
@@ -1440,8 +1881,22 @@ mem_set_mem_state(uint32_t base, uint32_t size, int state)
 {
     uint32_t c;
 
-    for (c = 0; c < size; c += MEM_GRANULARITY_SIZE)
+    for (c = 0; c < size; c += MEM_GRANULARITY_SIZE) {
+	_mem_state_bak[(c + base) >> MEM_GRANULARITY_BITS] = _mem_state[(c + base) >> MEM_GRANULARITY_BITS];
 	_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = state;
+    }
+
+    mem_mapping_recalc(base, size);
+}
+
+
+void
+mem_restore_mem_state(uint32_t base, uint32_t size)
+{
+    uint32_t c;
+
+    for (c = 0; c < size; c += MEM_GRANULARITY_SIZE)
+	_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = _mem_state_bak[(c + base) >> MEM_GRANULARITY_BITS];
 
     mem_mapping_recalc(base, size);
 }
@@ -1521,11 +1976,17 @@ mem_reset(void)
 		m = 4096;
 	} else {
 		/* 80386+; maximum address space is 4GB. */
-		m = (mem_size + 384) >> 2;
-		if ((m << 2) < (mem_size + 384))
-			m++;
-		if (m < 4096)
-			m = 4096;
+		if (is486) {
+			/* We need this since there might be BIOS execution at the end of RAM,
+			   which could break the recompiler if there's not enough page elements. */
+			m = 1048576;
+		} else {
+			m = (mem_size + 384) >> 2;
+			if ((m << 2) < (mem_size + 384))
+				m++;
+			if (m < 4096)
+				m = 4096;
+		}
 	}
     } else {
 	/* 8088/86; maximum address space is 1MB. */
@@ -1572,12 +2033,32 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 
     memset(pages, 0x00, pages_sz*sizeof(page_t));
 
+#ifdef USE_NEW_DYNAREC
+    if (byte_dirty_mask) {
+	free(byte_dirty_mask);
+	byte_dirty_mask = NULL;
+    }
+    byte_dirty_mask = malloc((mem_size * 1024) / 8);
+    memset(byte_dirty_mask, 0, (mem_size * 1024) / 8);
+
+    if (byte_code_present_mask) {
+	free(byte_code_present_mask);
+	byte_code_present_mask = NULL;
+    }
+    byte_code_present_mask = malloc((mem_size * 1024) / 8);
+    memset(byte_code_present_mask, 0, (mem_size * 1024) / 8);
+#endif
 
     for (c = 0; c < pages_sz; c++) {
 	pages[c].mem = &ram[c << 12];
 	pages[c].write_b = mem_write_ramb_page;
 	pages[c].write_w = mem_write_ramw_page;
 	pages[c].write_l = mem_write_raml_page;
+#ifdef USE_NEW_DYNAREC
+	pages[c].evict_prev = EVICT_NOT_IN_LIST;
+	pages[c].byte_dirty_mask = &byte_dirty_mask[c * 64];
+	pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
+#endif
     }
 
     memset(_mem_exec,    0x00, sizeof(_mem_exec));
@@ -1585,6 +2066,7 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
     memset(&base_mapping, 0x00, sizeof(base_mapping));
 
     memset(_mem_state, 0x00, sizeof(_mem_state));
+    memset(_mem_state_bak, 0x00, sizeof(_mem_state_bak));
 
     mem_set_mem_state(0x000000, (mem_size > 640) ? 0xa0000 : mem_size * 1024,
 		      MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
@@ -1630,6 +2112,11 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
     mem_mapping_disable(&ram_remapped_mapping);			
 			
     mem_a20_init();
+
+#ifdef USE_NEW_DYNAREC
+    purgable_page_list_head = 0;
+    purgeable_page_count = 0;
+#endif
 }
 
 
@@ -1667,7 +2154,7 @@ mem_remap_top(int kb)
 {
     int c;
     uint32_t start = (mem_size >= 1024) ? mem_size : 1024;
-    int size = mem_size - 640;
+    int offset, size = mem_size - 640;
 
     mem_log("MEM: remapping top %iKB (mem=%i)\n", kb, mem_size);
     if (mem_size <= 640) return;
@@ -1683,10 +2170,16 @@ mem_remap_top(int kb)
 	size = kb;
 
     for (c = ((start * 1024) >> 12); c < (((start + size) * 1024) >> 12); c++) {
-	pages[c].mem = &ram[0xA0000 + ((c - ((start * 1024) >> 12)) << 12)];
+	offset = c - ((start * 1024) >> 12);
+	pages[c].mem = &ram[0xA0000 + (offset << 12)];
 	pages[c].write_b = mem_write_ramb_page;
 	pages[c].write_w = mem_write_ramw_page;
 	pages[c].write_l = mem_write_raml_page;
+#ifdef USE_NEW_DYNAREC
+	pages[c].evict_prev = EVICT_NOT_IN_LIST;
+	pages[c].byte_dirty_mask = &byte_dirty_mask[offset * 64];
+	pages[c].byte_code_present_mask = &byte_code_present_mask[offset * 64];
+#endif
     }
 
     mem_set_mem_state(start * 1024, size * 1024,
@@ -1696,6 +2189,7 @@ mem_remap_top(int kb)
 
     flushmmucache();
 }
+
 
 void
 mem_reset_page_blocks(void)
@@ -1708,8 +2202,13 @@ mem_reset_page_blocks(void)
 	pages[c].write_b = mem_write_ramb_page;
 	pages[c].write_w = mem_write_ramw_page;
 	pages[c].write_l = mem_write_raml_page;
+#ifdef USE_NEW_DYNAREC
+	pages[c].block = BLOCK_INVALID;
+	pages[c].block_2 = BLOCK_INVALID;
+#else
 	pages[c].block[0] = pages[c].block[1] = pages[c].block[2] = pages[c].block[3] = NULL;
 	pages[c].block_2[0] = pages[c].block_2[1] = pages[c].block_2[2] = pages[c].block_2[3] = NULL;
+#endif
     }
 }
 

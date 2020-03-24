@@ -5,12 +5,11 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "device.h"
 #include "sound.h"
 #include "snd_resid.h"
-#include "snd_ssi2001.h"
 
 
 typedef struct ssi2001_t

@@ -77,16 +77,16 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../timer.h"
-#include "../device.h"
-#include "../ui.h"
-#include "../plat.h"
-#include "../dma.h"
-#include "../pic.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "rom.h"
+#include "timer.h"
+#include "device.h"
+#include "ui.h"
+#include "plat.h"
+#include "dma.h"
+#include "pic.h"
 #include "hdc.h"
 #include "hdd.h"
 

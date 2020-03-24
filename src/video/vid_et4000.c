@@ -8,7 +8,7 @@
  *
  *		Emulation of the Tseng Labs ET4000.
  *
- * Version:	@(#)vid_et4000.c	1.0.20	2018/10/04
+ * Version:	@(#)vid_et4000.c	1.0.20	2018/10/04e
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -42,18 +42,16 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../io.h"
-#include "../mca.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../timer.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "mca.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "timer.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
-#include "vid_sc1502x_ramdac.h"
-#include "vid_et4000.h"
 
 
 #define BIOS_ROM_PATH		L"roms/video/et4000/et4000.bin"

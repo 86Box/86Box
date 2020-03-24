@@ -57,16 +57,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../video/video.h"
-#include "../video/vid_vga.h"
-#include "../video/vid_svga.h"
-#include "vid_ti_cf62011.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "video.h"
+#include "vid_svga.h"
 
 
 typedef struct {

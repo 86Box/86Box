@@ -12,7 +12,7 @@
  *		it should be malloc'ed and then linked to the NETCARD def.
  *		Will be done later.
  *
- * Version:	@(#)network.c	1.0.13	2019/12/02
+ * Version:	@(#)network.c	1.0.14	2020/03/23
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -55,10 +55,10 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "86box.h"
+#include "device.h"
+#include "plat.h"
+#include "ui.h"
 #include "network.h"
 #include "net_3c503.h"
 #include "net_ne2000.h"
@@ -71,11 +71,13 @@ static netcard_t net_cards[] = {
       NULL								},
     { "[ISA] 3Com EtherLink II (3C503)","3c503",	&threec503_device,
       NULL								},
-    { "[ISA] AMD PCnet-ISA",		"pcnetisa",	&pcnet_isa_device,
+    { "[ISA] AMD PCnet-ISA",		"pcnetisa",	&pcnet_am79c960_device,
       NULL								},
     { "[ISA] Novell NE1000",		"ne1k",		&ne1000_device,
       NULL								},
     { "[ISA] Novell NE2000",		"ne2k",		&ne2000_device,
+      NULL								},
+    { "[ISA] Racal Interlan EtherBlaster", "pcnetracal", &pcnet_am79c960_eb_device,
       NULL								},
     { "[ISA] Realtek RTL8019AS",	"ne2kpnp",	&rtl8019as_device,
       NULL								},
@@ -91,11 +93,13 @@ static netcard_t net_cards[] = {
       NULL								},
     { "[MCA] Western Digital WD8003E/A", "wd8003ea",	&wd8003ea_device,
       NULL								},
-    { "[PCI] AMD PCnet-PCI",		"pcnetpci",	&pcnet_pci_device,
+    { "[PCI] AMD PCnet-FAST III",	"pcnetfast",	&pcnet_am79c973_device,
+      NULL								},
+    { "[PCI] AMD PCnet-PCI II",		"pcnetpci",	&pcnet_am79c970a_device,
       NULL								},
     { "[PCI] Realtek RTL8029AS",	"ne2kpci",	&rtl8029as_device,
       NULL								},
-    { "[VLB] AMD PCnet-VL",		"pcnetvlb",	&pcnet_vlb_device,
+    { "[VLB] AMD PCnet-VL",		"pcnetvlb",	&pcnet_am79c960_vlb_device,
       NULL								},
     { "",				"",		NULL,
       NULL								}
@@ -219,13 +223,14 @@ network_init(void)
  * modules.
  */
 void
-network_attach(void *dev, uint8_t *mac, NETRXCB rx)
+network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait)
 {
     if (network_card == 0) return;
 
     /* Save the card's info. */
     net_cards[network_card].priv = dev;
     net_cards[network_card].rx = rx;
+    net_cards[network_card].wait = wait;
     network_mac = mac;
 
     network_set_wait(0);

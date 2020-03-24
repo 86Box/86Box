@@ -23,9 +23,9 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>
-#include "../86box.h"
-#include "../timer.h"
-#include "../mem.h"
+#include "86box.h"
+#include "timer.h"
+#include "mem.h"
 #include "vid_cga.h"
 #include "vid_cga_comp.h"
 

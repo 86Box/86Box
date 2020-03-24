@@ -30,18 +30,18 @@
 #include <time.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../config.h"
-#include "../device.h"
-#include "../keyboard.h"
-#include "../mouse.h"
-#include "../video/video.h"
+#include "86box.h"
+#include "config.h"
+#include "device.h"
+#include "keyboard.h"
+#include "mouse.h"
+#include "video.h"
 #define GLOBAL
-#include "../plat.h"
-#include "../plat_midi.h"
-#include "../ui.h"
+#include "plat.h"
+#include "plat_midi.h"
+#include "ui.h"
 #ifdef USE_VNC
-# include "../vnc.h"
+# include "vnc.h"
 #endif
 # include "win_d2d.h"
 # include "win_sdl.h"

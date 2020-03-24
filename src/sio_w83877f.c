@@ -11,7 +11,7 @@
  *		Winbond W83877F Super I/O Chip
  *		Used by the Award 430HX
  *
- * Version:	@(#)sio_w83877f.c	1.0.16	2020/01/11
+ * Version:	@(#)sio_w83877f.c	1.0.17	2020/01/25
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2020 Miran Grca.
@@ -23,15 +23,15 @@
 #include <wchar.h>
 #include "86box.h"
 #include "device.h"
-#include "io.h"
+#include "86box_io.h"
 #include "timer.h"
 #include "pci.h"
 #include "mem.h"
 #include "rom.h"
 #include "lpt.h"
 #include "serial.h"
-#include "floppy/fdd.h"
-#include "floppy/fdc.h"
+#include "fdd.h"
+#include "fdc.h"
 #include "sio.h"
 
 
@@ -149,17 +149,64 @@ make_port(w83877f_t *dev, uint8_t reg)
 
 
 static void
+w83877f_fdc_handler(w83877f_t *dev)
+{
+    fdc_remove(dev->fdc);
+    if (!(dev->regs[6] & 0x08) && (dev->regs[0x20] & 0xc0))
+	fdc_set_base(dev->fdc, 0x03f0);
+}
+
+
+static void
+w83877f_lpt_handler(w83877f_t *dev)
+{
+    uint8_t lpt_irq;
+    uint8_t lpt_irqs[8] = { 0, 7, 9, 10, 11, 14, 15, 5 };
+
+    lpt1_remove();
+    if (!(dev->regs[4] & 0x80) && (dev->regs[0x23] & 0xc0))
+	lpt1_init(make_port(dev, 0x23));
+
+    lpt_irq = 0xff;
+
+    lpt_irq = lpt_irqs[ECPIRQ];
+    if (lpt_irq == 0)
+	lpt_irq = PRTIQS;
+
+    lpt1_irq(lpt_irq);
+}
+
+
+static void
 w83877f_serial_handler(w83877f_t *dev, int uart)
 {
     int reg_mask = uart ? 0x10 : 0x20;
-    int reg_id = uart ? 0x24 : 0x25;
+    int reg_id = uart ? 0x25 : 0x24;
     int irq_mask = uart ? 0x0f : 0xf0;
-    int irq_shift = uart ? 4 : 0;
+    int irq_shift = uart ? 0 : 4;
+    double clock_src = 24000000.0 / 13.0;
 
-    if ((dev->regs[4] & reg_mask) || !(dev->regs[reg_id] & 0xc0))
-	serial_remove(dev->uart[uart]);
-    else
+    serial_remove(dev->uart[uart]);
+    if (!(dev->regs[4] & reg_mask) && (dev->regs[reg_id] & 0xc0))
 	serial_setup(dev->uart[uart], make_port(dev, reg_id), (dev->regs[0x28] & irq_mask) >> irq_shift);
+
+    switch (!!(dev->regs[0x19] & (0x02 >> uart))) {
+	case 0:
+		switch (!!(dev->regs[0x03] & (0x02 >> uart))) {
+			case 0:
+				clock_src = 24000000.0 / 13.0;
+				break;
+			case 1:	
+				clock_src = 24000000.0 / 12.0;
+				break;
+		}
+		break;
+	case 1:
+		clock_src = 14769000.0;
+		break;
+    }
+
+    serial_set_clock_src(dev->uart[uart], clock_src);
 }
 
 
@@ -169,7 +216,6 @@ w83877f_write(uint16_t port, uint8_t val, void *priv)
     w83877f_t *dev = (w83877f_t *) priv;
     uint8_t valxor = 0;
     uint8_t max = 0x2A;
-    uint8_t lpt_irq;
 
     if (port == 0x250) {
 	if (val == dev->key)
@@ -223,33 +269,30 @@ w83877f_write(uint16_t port, uint8_t val, void *priv)
 
     switch (dev->cur_reg) {
 	case 0:
-		if (valxor & 0x0c) {
-			lpt1_remove();
-			if (!(dev->regs[4] & 0x80))
-				lpt1_init(make_port(dev, 0x23));
-		}
+		if (valxor & 0x0c)
+			w83877f_lpt_handler(dev);
 		break;
 	case 1:
 		if (valxor & 0x80)
 			fdc_set_swap(dev->fdc, (dev->regs[1] & 0x80) ? 1 : 0);
+		break;
+	case 3:
+		if (valxor & 0x02)
+			w83877f_serial_handler(dev, 0);
+		if (valxor & 0x01)
+			w83877f_serial_handler(dev, 1);
 		break;
 	case 4:
 		if (valxor & 0x10)
 			w83877f_serial_handler(dev, 1);
 		if (valxor & 0x20)
 			w83877f_serial_handler(dev, 0);
-		if (valxor & 0x80) {
-			lpt1_remove();
-			if (!(dev->regs[4] & 0x80))
-				lpt1_init(make_port(dev, 0x23));
-		}
+		if (valxor & 0x80)
+			w83877f_lpt_handler(dev);
 		break;
 	case 6:
-		if (valxor & 0x08) {
-			fdc_remove(dev->fdc);
-			if (!(dev->regs[6] & 0x08))
-				fdc_set_base(dev->fdc, 0x03f0);
-		}
+		if (valxor & 0x08)
+			w83877f_fdc_handler(dev);
 		break;
 	case 7:
 		if (valxor & 0x03)
@@ -274,11 +317,8 @@ w83877f_write(uint16_t port, uint8_t val, void *priv)
 			fdc_update_enh_mode(dev->fdc, EN3MODE ? 1 : 0);
 		if (valxor & 0x40)
 			dev->rw_locked = (val & 0x40) ? 1 : 0;
-		if (valxor & 0x80) {
-			lpt1_remove();
-			if (!(dev->regs[4] & 0x80))
-				lpt1_init(make_port(dev, 0x23));
-		}
+		if (valxor & 0x80)
+			w83877f_lpt_handler(dev);
 		break;
 	case 0xB:
 		if (valxor & 1)
@@ -294,19 +334,19 @@ w83877f_write(uint16_t port, uint8_t val, void *priv)
 		if (valxor & 1)
 			w83877f_remap(dev);
 		break;
+	case 0x19:
+		if (valxor & 0x02)
+			w83877f_serial_handler(dev, 0);
+		if (valxor & 0x01)
+			w83877f_serial_handler(dev, 1);
+		break;
 	case 0x20:
-		if (valxor) {
-			fdc_remove(dev->fdc);
-			if (!(dev->regs[4] & 0x80))
-				fdc_set_base(dev->fdc, make_port(dev, 0x20));
-		}
+		if (valxor)
+			w83877f_fdc_handler(dev);
 		break;
 	case 0x23:
-		if (valxor) {
-			lpt1_remove();
-			if (!(dev->regs[4] & 0x80))
-				lpt1_init(make_port(dev, 0x23));
-		}
+		if (valxor)
+			w83877f_lpt_handler(dev);
 		break;
 	case 0x24:
 		if (valxor & 0xfe)
@@ -317,27 +357,19 @@ w83877f_write(uint16_t port, uint8_t val, void *priv)
 			w83877f_serial_handler(dev, 1);
 		break;
 	case 0x27:
-		if (valxor & 0xef) {
-			lpt_irq = 0xff;
-
-			if (PRTIQS != 0x00)
-				lpt_irq = ECPIRQ;
-
-			lpt1_irq(lpt_irq);
-		}
+		if (valxor & 0xef)
+			w83877f_lpt_handler(dev);
 		break;
 	case 0x28:
 		if (valxor & 0xf) {
 			if ((dev->regs[0x28] & 0x0f) == 0)
 				dev->regs[0x28] |= 0x03;
-			if (!(dev->regs[2] & 0x10))
-				serial_setup(dev->uart[1], make_port(dev, 0x25), dev->regs[0x28] & 0x0f);
+			w83877f_serial_handler(dev, 1);
 		}
 		if (valxor & 0xf0) {
 			if ((dev->regs[0x28] & 0xf0) == 0)
 				dev->regs[0x28] |= 0x40;
-			if (!(dev->regs[4] & 0x20))
-				serial_setup(dev->uart[0], make_port(dev, 0x24), (dev->regs[0x28] & 0xf0) >> 4);
+			w83877f_serial_handler(dev, 0);
 		}
 		break;
     }
@@ -355,7 +387,7 @@ w83877f_read(uint16_t port, void *priv)
 		ret = dev->cur_reg;
 	else if ((port == 0x3f1) || (port == 0x252)) {
 		if (dev->cur_reg == 7)
-			ret = (fdc_get_rwc(dev->fdc, 0) | (fdc_get_rwc(dev->fdc, 1) << 2));
+			ret = (fdc_get_rwc(dev->fdc, 0) | (fdc_get_rwc(dev->fdc, 1) << 2) | (fdc_get_rwc(dev->fdc, 2) << 4) | (fdc_get_rwc(dev->fdc, 3) << 6));
 		else if ((dev->cur_reg >= 0x18) || !dev->rw_locked)
 			ret = dev->regs[dev->cur_reg];
 	}
@@ -368,9 +400,6 @@ w83877f_read(uint16_t port, void *priv)
 static void
 w83877f_reset(w83877f_t *dev)
 {
-    lpt1_remove();
-    lpt1_init(0x378);
-
     fdc_reset(dev->fdc);
 
     memset(dev->regs, 0, 0x2A);
@@ -389,12 +418,16 @@ w83877f_reset(w83877f_t *dev)
     dev->regs[0x24] = (0x3f8 >> 2) & 0xfe;
     dev->regs[0x25] = (0x2f8 >> 2) & 0xfe;
     dev->regs[0x26] = (2 << 4) | 4;
-    dev->regs[0x27] = (6 << 4) | 7;
+    dev->regs[0x27] = (2 << 4) | 5;
     dev->regs[0x28] = (4 << 4) | 3;
     dev->regs[0x29] = 0x62;
 
-    serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
-    serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
+    w83877f_fdc_handler(dev);
+
+    w83877f_lpt_handler(dev);
+
+    w83877f_serial_handler(dev, 0);
+    w83877f_serial_handler(dev, 1);
 
     dev->base_address = 0x3f0;
     dev->key = 0x89;
@@ -459,6 +492,16 @@ const device_t w83877tf_device = {
     "Winbond W83877TF Super I/O",
     0,
     0x0c04,
+    w83877f_init, w83877f_close, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
+
+
+const device_t w83877tf_acorp_device = {
+    "Winbond W83877TF Super I/O",
+    0,
+    0x0c05,
     w83877f_init, w83877f_close, NULL,
     NULL, NULL, NULL,
     NULL

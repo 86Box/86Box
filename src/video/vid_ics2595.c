@@ -21,9 +21,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "vid_ics2595.h"
+#include "86box.h"
+#include "device.h"
+
+
+typedef struct ics2595_t
+{
+    int oldfs3, oldfs2;
+    int dat;
+    int pos, state;
+
+    double clocks[16];
+    double output_clock;
+} ics2595_t;
 
 
 enum
@@ -38,9 +48,11 @@ static int ics2595_div[4] = {8, 4, 2, 1};
 
 
 void
-ics2595_write(ics2595_t *ics2595, int strobe, int dat)
+ics2595_write(void *p, int strobe, int dat)
 {
-    int d, n, l;
+    ics2595_t *ics2595 = (ics2595_t *) p;
+    int d, n;
+    int l;
 
     if (strobe) {
 	if ((dat & 8) && !ics2595->oldfs3) {	/*Data clock*/
@@ -91,6 +103,24 @@ ics2595_close(void *priv)
 
     if (ics2595)
 	free(ics2595);
+}
+
+
+double
+ics2595_getclock(void *p)
+{
+    ics2595_t *ics2595 = (ics2595_t *) p;
+
+    return ics2595->output_clock;
+}
+
+
+void
+ics2595_setclock(void *p, double clock)
+{
+    ics2595_t *ics2595 = (ics2595_t *) p;
+
+    ics2595->output_clock = clock;
 }
 
 

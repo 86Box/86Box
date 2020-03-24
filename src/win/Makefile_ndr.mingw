@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.141	2020/01/14
+# Version:	@(#)Makefile.mingw	1.0.142	2020/01/25
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -266,7 +266,7 @@ endif
 #########################################################################
 #		Nothing should need changing from here on..		#
 #########################################################################
-VPATH		:= $(EXPATH) . cpu_new \
+VPATH		:= $(EXPATH) . cpu_new cpu_common \
 		   cdrom chipset disk floppy game machine \
 		   printer \
 		   sound \
@@ -300,6 +300,17 @@ DEPFILE		:= win/.depends
 
 # Set up the correct toolchain flags.
 OPTS		:= $(EXTRAS) $(STUFF)
+ifeq ($(WX), y)
+OPTS		+= -I. \
+		   -Icpu_new -Icpu_common \
+		   -Icdrom -Ichipset -Idisk -Ifloppy -Igame -Imachine -Inetwork \
+		   -Iprinter -Isound -Iscsi -Ivideo -Ilang
+else
+OPTS		+= -iquote . \
+		   -iquote cpu_new -iquote cpu_common \
+		   -iquote cdrom -iquote chipset -iquote disk -iquote floppy -iquote game -iquote machine -iquote network \
+		   -iquote printer -iquote sound -iquote scsi -iquote video -iquote lang
+endif
 ifdef EXFLAGS
 OPTS		+= $(EXFLAGS)
 endif
@@ -473,7 +484,6 @@ endif
 
 ifeq ($(I686), y)
 OPTS		+= -DUSE_I686
-DEVBROBJ	+= m_at_socket8.o
 endif
 
 ifeq ($(LASERXT), y)
@@ -558,14 +568,15 @@ CXXFLAGS	:= $(CFLAGS)
 #		Create the (final) list of objects to build.		#
 #########################################################################
 MAINOBJ		:= pc.o config.o random.o timer.o io.o apm_new.o dma.o nmi.o \
-		   pic.o pit.o port_92.o ppi.o pci.o mca.o mcr.o mem_new.o \
+		   pic.o pit.o port_92.o ppi.o pci.o mca.o mcr.o mem.o \
 		   rom.o device.o nvr.o nvr_at.o nvr_ps2.o sst_flash.o via_vt82c586b.o $(VNCOBJ) $(RDPOBJ)
 
 INTELOBJ	:= intel_flash.o \
 		    intel_sio.o intel_piix.o
 
 CPUOBJ		:= cpu.o cpu_table.o \
-		    808x.o 386.o 386_common.o \
+		    808x.o \
+		    386.o 386_common.o \
 		    386_dynarec.o \
 		    x86seg.o x87.o \
 		    $(DYNARECOBJ)
@@ -575,7 +586,7 @@ CHIPSETOBJ	:= acc2168.o acer_m3a.o ali1429.o headland.o \
 		    sis_85c471.o sis_85c496.o \
 		    via_mvp3.o wd76c10.o
 
-MCHOBJ		:= machine.o machine_table_new.o \
+MCHOBJ		:= machine.o machine_table.o \
 		    m_xt.o m_xt_compaq.o \
 		    m_xt_t1000.o m_xt_t1000_vid.o \
 		    m_xt_xi8088.o m_xt_zenith.o \
@@ -588,14 +599,18 @@ MCHOBJ		:= machine.o machine_table_new.o \
 		    m_ps2_isa.o m_ps2_mca.o \
 		    m_at_compaq.o \
 		    m_at_286_386sx.o m_at_386dx_486.o \
-		    m_at_socket4_5.o m_at_socket7_s7.o
+		    m_at_socket4_5.o m_at_socket7_s7.o \
+			m_at_socket8.o
 
-DEVOBJ		:= bugger.o ibm_5161.o isamem.o isartc.o lpt.o $(SERIAL) \
+DEVOBJ		:= bugger.o hwm.o hwm_w83781d.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o $(SERIAL) \
 		    sio_acc3221.o \
 		    sio_fdc37c66x.o sio_fdc37c669.o \
 		    sio_fdc37c93x.o \
-		    sio_pc87306.o sio_w83877f.o \
+		    sio_pc87306.o \
+		    sio_w83787f.o \
+		    sio_w83877f.o sio_w83977f.o \
 		    sio_um8669f.o \
+		    smbus.o \
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o \
 		   gameport.o \
@@ -632,7 +647,8 @@ SCSIOBJ		:= scsi.o scsi_device.o \
 		    scsi_cdrom.o scsi_disk.o \
 		    scsi_x54x.o \
 		    scsi_aha154x.o scsi_buslogic.o \
-		    scsi_ncr5380.o scsi_ncr53c8xx.o
+		    scsi_ncr5380.o scsi_ncr53c8xx.o \
+		    scsi_spock.o
 
 NETOBJ		:= network.o \
 		    net_pcap.o \

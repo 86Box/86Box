@@ -21,16 +21,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../lpt.h"
-#include "../pit.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "lpt.h"
+#include "pit.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
 #include "video.h"
-#include "vid_incolor.h"
 
 
 /* extended CRTC registers */

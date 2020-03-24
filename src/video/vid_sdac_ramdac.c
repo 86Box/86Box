@@ -21,13 +21,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "../mem.h"
-#include "../timer.h"
+#include "86box.h"
+#include "device.h"
+#include "mem.h"
+#include "timer.h"
 #include "video.h"
 #include "vid_svga.h"
-#include "vid_sdac_ramdac.h"
+
+
+typedef struct sdac_ramdac_t
+{
+    uint16_t regs[256];
+    int magic_count,
+	windex, rindex,
+	reg_ff, rs2;
+    uint8_t type, command;
+} sdac_ramdac_t;
 
 
 static void
@@ -96,8 +105,9 @@ sdac_reg_read(sdac_ramdac_t *ramdac, int reg)
 
 
 void
-sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, sdac_ramdac_t *ramdac, svga_t *svga)
+sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
 {
+    sdac_ramdac_t *ramdac = (sdac_ramdac_t *) p;
     uint8_t rs = (addr & 0x03);
     rs |= (!!rs2 << 8);
 
@@ -132,8 +142,9 @@ sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, sdac_ramdac_t *ramdac, svga
 
 
 uint8_t
-sdac_ramdac_in(uint16_t addr, int rs2, sdac_ramdac_t *ramdac, svga_t *svga)
+sdac_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
 {
+    sdac_ramdac_t *ramdac = (sdac_ramdac_t *) p;
     uint8_t temp = 0xff;
     uint8_t rs = (addr & 0x03);
     rs |= (!!rs2 << 8);

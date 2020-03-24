@@ -25,9 +25,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "vid_icd2061.h"
+#include "86box.h"
+#include "device.h"
+
+
+typedef struct icd2061_t
+{
+    float freq[3];
+
+    int count, bit_count,
+	unlocked, state;
+    uint32_t data, ctrl;
+} icd2061_t;
 
 
 #ifdef ENABLE_ICD2061_LOG
@@ -51,10 +60,12 @@ icd2061_log(const char *fmt, ...)
 
 
 void
-icd2061_write(icd2061_t *icd2061, int val)
+icd2061_write(void *p, int val)
 {
+    icd2061_t *icd2061 = (icd2061_t *) p;
+
     int nd, oc, nc;
-    int a, qa, q, pa, p, m, ps;
+    int a, qa, q, pa, p_, m, ps;
 
     nd = (val & 2) >> 1;		/* Old data. */
     oc = icd2061->state & 1;		/* Old clock. */
@@ -96,14 +107,14 @@ icd2061_write(icd2061_t *icd2061, int val)
 				m = ((icd2061->data >> 8) & 0x07);		/* M  (ICD2061) / R  (ICS9161) */
 				qa = ((icd2061->data >> 1) & 0x7f);		/* Q' (ICD2061) / M' (ICS9161) */
 
-				p = pa + 3;					/* P  (ICD2061) / N  (ICS9161) */
+				p_ = pa + 3;					/* P  (ICD2061) / N  (ICS9161) */
 				m = 1 << m;
 				q = qa + 2;					/* Q  (ICD2061) / M  (ICS9161) */
 				ps = (icd2061->ctrl & (1 << a)) ? 4 : 2;	/* Prescale */
 
-				icd2061->freq[a] = ((float)(p * ps) / (float)(q * m)) * 14318184.0f;
+				icd2061->freq[a] = ((float)(p_ * ps) / (float)(q * m)) * 14318184.0f;
 
-				icd2061_log("P = %02X, M = %01X, Q = %02X, freq[%i] = %f\n", p, m, q, a, icd2061->freq[a]);
+				icd2061_log("P = %02X, M = %01X, Q = %02X, freq[%i] = %f\n", p_, m, q, a, icd2061->freq[a]);
 			} else if (a == 6) {
 				icd2061->ctrl = ((icd2061->data >> 13) & 0xff);
 				icd2061_log("ctrl = %02X\n", icd2061->ctrl);

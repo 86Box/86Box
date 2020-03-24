@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel DMA controllers.
  *
- * Version:	@(#)dma.c	1.0.8	2020/01/14
+ * Version:	@(#)dma.c	1.0.9	2020/01/26
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,17 +23,12 @@
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
-#ifdef USE_NEW_DYNAREC
-#include "cpu_new/cpu.h"
-#include "cpu_new/x86.h"
-#else
-#include "cpu/cpu.h"
-#include "cpu/x86.h"
-#endif
+#include "cpu_common/cpu.h"
+#include "cpu_common/x86.h"
 #include "machine/machine.h"
 #include "mca.h"
 #include "mem.h"
-#include "io.h"
+#include "86box_io.h"
 #include "dma.h"
 
 
@@ -668,6 +663,20 @@ void
 dma_alias_set(void)
 {
     io_sethandler(0x0090, 16,
+		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+}
+
+
+void
+dma_alias_set_piix(void)
+{
+    io_sethandler(0x0090, 1,
+		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+    io_sethandler(0x0094, 3,
+		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+    io_sethandler(0x0098, 1,
+		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+    io_sethandler(0x009C, 3,
 		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
 }
 

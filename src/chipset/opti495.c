@@ -258,15 +258,15 @@ SeeAlso: #P0178,#P0187
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../timer.h"
-#include "../io.h"
-#include "../device.h"
-#include "../keyboard.h"
-#include "../mem.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
+#include "86box.h"
+#include "cpu.h"
+#include "timer.h"
+#include "86box_io.h"
+#include "device.h"
+#include "keyboard.h"
+#include "mem.h"
+#include "fdd.h"
+#include "fdc.h"
 #include "chipset.h"
 
 

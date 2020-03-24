@@ -25,17 +25,17 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../cdrom/cdrom.h"
-#include "../scsi/scsi_device.h"
-#include "../scsi/scsi_cdrom.h"
-#include "../dma.h"
-#include "../io.h"
-#include "../device.h"
-#include "../keyboard.h"
-#include "../mem.h"
-#include "../pci.h"
-#include "../pic.h"
+#include "86box.h"
+#include "cdrom.h"
+#include "scsi_device.h"
+#include "scsi_cdrom.h"
+#include "dma.h"
+#include "86box_io.h"
+#include "device.h"
+#include "keyboard.h"
+#include "mem.h"
+#include "pci.h"
+#include "pic.h"
 #include "hdc.h"
 #include "hdc_ide.h"
 #include "hdc_ide_sff8038i.h"
@@ -74,21 +74,24 @@ sff_log(const char *fmt, ...)
 
 
 void
-sff_bus_master_handlers(sff8038i_t *dev, uint16_t old_base, uint16_t new_base, int enabled)
+sff_bus_master_handler(sff8038i_t *dev, int enabled, uint16_t base)
 {
-    io_removehandler(old_base, 0x08,
-		     sff_bus_master_read, sff_bus_master_readw, sff_bus_master_readl,
-		     sff_bus_master_write, sff_bus_master_writew, sff_bus_master_writel,
-		     dev);
+    if (dev->base != 0x0000) {
+	io_removehandler(dev->base, 0x08,
+			 sff_bus_master_read, sff_bus_master_readw, sff_bus_master_readl,
+			 sff_bus_master_write, sff_bus_master_writew, sff_bus_master_writel,
+			 dev);
+    }
 
-    if (enabled && new_base) {
-	io_sethandler(new_base, 0x08,
+    if (enabled && (base != 0x0000)) {
+	io_sethandler(base, 0x08,
 		      sff_bus_master_read, sff_bus_master_readw, sff_bus_master_readl,
 		      sff_bus_master_write, sff_bus_master_writew, sff_bus_master_writel,
 		      dev);
     }
 
     dev->enabled = enabled;
+    dev->base = base;
 }
 
 
@@ -370,14 +373,16 @@ sff_bus_master_set_irq(int channel, void *priv)
 
     channel &= 0x01;
     if (dev->status & 0x04) {
-	if ((dev->irq_mode == 2) && (channel & 1) && pci_use_mirq(0))
+	sff_log("SFF8038i: Channel %i IRQ raise\n", channel);
+	if ((dev->irq_mode == 2) && channel && pci_use_mirq(0))
 		pci_set_mirq(0, 0);
 	else if (dev->irq_mode == 1)
 		pci_set_irq(dev->slot, dev->irq_pin);
 	else
 		picint(1 << (14 + channel));
     } else {
-	if ((dev->irq_mode == 2) && (channel & 1) && pci_use_mirq(0))
+	sff_log("SFF8038i: Channel %i IRQ lower\n", channel);
+	if ((dev->irq_mode == 2) && channel && pci_use_mirq(0))
 		pci_clear_mirq(0, 0);
 	else if (dev->irq_mode == 1)
 		pci_clear_irq(dev->slot, dev->irq_pin);
@@ -416,6 +421,10 @@ sff_reset(void *p)
 {
     int i = 0;
 
+#ifdef ENABLE_SFF_LOG
+    sff_log("SFF8038i: Reset\n");
+#endif
+
     for (i = 0; i < CDROM_NUM; i++) {
 	if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&
 	    (cdrom[i].ide_channel < 4) && cdrom[i].priv)
@@ -426,6 +435,9 @@ sff_reset(void *p)
 	    (zip_drives[i].ide_channel < 4) && zip_drives[i].priv)
 		zip_reset((scsi_common_t *) zip_drives[i].priv);
     }
+
+    sff_bus_master_set_irq(0x00, p);
+    sff_bus_master_set_irq(0x01, p);
 }
 
 

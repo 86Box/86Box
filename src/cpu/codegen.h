@@ -38,7 +38,7 @@
 #define _CODEGEN_H_
 
 #include "../mem.h"
-#include "x86_ops.h"
+#include "../cpu_common/x86_ops.h"
 
 #ifdef __amd64__
 #include "codegen_x86-64.h"
@@ -314,9 +314,6 @@ extern int cpu_recomp_flushes, cpu_recomp_flushes_latched;
 extern int cpu_recomp_evicted, cpu_recomp_evicted_latched;
 extern int cpu_recomp_reuse, cpu_recomp_reuse_latched;
 extern int cpu_recomp_removed, cpu_recomp_removed_latched;
-
-extern int cpu_reps, cpu_reps_latched;
-extern int cpu_notreps, cpu_notreps_latched;
 
 extern int codegen_block_cycles;
 

@@ -26,13 +26,13 @@
 #include <assert.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../timer.h"
-#include "../dma.h"
-#include "../nvr.h"
-#include "../random.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "86box.h"
+#include "timer.h"
+#include "dma.h"
+#include "nvr.h"
+#include "random.h"
+#include "plat.h"
+#include "ui.h"
 #include "fdd.h"
 #include "fdc.h"
 #include "fdd_86f.h"
@@ -826,7 +826,7 @@ d86f_byteperiod(int drive)
 int
 d86f_is_mfm(int drive)
 {
-    return (d86f_track_flags(drive) & 8) ? 1 : 0;
+    return ((d86f_track_flags(drive) & 0x18) == 0x08) ? 1 : 0;
 }
 
 

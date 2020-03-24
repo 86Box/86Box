@@ -23,20 +23,18 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../timer.h"
-#include "../pci.h"
-#include "../rom.h"
-#include "../plat.h"
+#include "86box.h"
+#include "device.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "timer.h"
+#include "pci.h"
+#include "rom.h"
+#include "plat.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
-#include "vid_ati68860_ramdac.h"
 #include "vid_ati_eeprom.h"
-#include "vid_ics2595.h"
 
 #ifdef CLAMP
 #undef CLAMP
@@ -460,8 +458,6 @@ uint8_t mach64_in(uint16_t addr, void *p)
 void mach64_recalctimings(svga_t *svga)
 {
         mach64_t *mach64 = (mach64_t *)svga->p;
-	ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) svga->ramdac;
-	ics2595_t *clock_gen = (ics2595_t *) svga->clock_gen;
 
         if (((mach64->crtc_gen_cntl >> 24) & 3) == 3)
         {
@@ -471,7 +467,7 @@ void mach64_recalctimings(svga_t *svga)
                 svga->hdisp_time = svga->hdisp = ((mach64->crtc_h_total_disp >> 16) & 255) + 1;
                 svga->vsyncstart = (mach64->crtc_v_sync_strt_wid & 2047) + 1;
                 svga->rowoffset = (mach64->crtc_off_pitch >> 22);
-                svga->clock = (cpuclock * (double)(1ull << 32)) / clock_gen->output_clock;
+                svga->clock = (cpuclock * (double)(1ull << 32)) / ics2595_getclock(svga->clock_gen);
                 svga->ma_latch = (mach64->crtc_off_pitch & 0x1fffff) * 2;
                 svga->linedbl = svga->rowcount = 0;
                 svga->split = 0xffffff;
@@ -479,7 +475,7 @@ void mach64_recalctimings(svga_t *svga)
                 svga->rowcount = mach64->crtc_gen_cntl & 1;
                 svga->rowoffset <<= 1;
                 if (mach64->type == MACH64_GX)
-                        svga->render = ramdac->render;
+			ati68860_ramdac_set_render(svga->ramdac, svga);
                 switch ((mach64->crtc_gen_cntl >> 8) & 7)
                 {
                         case 1: 
@@ -1717,7 +1713,6 @@ static void mach64_vblank_start(svga_t *svga)
 uint8_t mach64_ext_readb(uint32_t addr, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
-	ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) mach64->svga.ramdac;
 
         uint8_t ret;
         if (!(addr & 0x400))
@@ -1843,9 +1838,9 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
 
                 case 0xc0: case 0xc1: case 0xc2: case 0xc3:
                 if (mach64->type == MACH64_GX)
-                        ret = ati68860_ramdac_in((addr & 3) | ((mach64->dac_cntl & 3) << 2), ramdac, &mach64->svga);
+                        ret = ati68860_ramdac_in((addr & 3) | ((mach64->dac_cntl & 3) << 2), mach64->svga.ramdac, &mach64->svga);
                 else
-                        ret = ati68860_ramdac_in(addr & 3, ramdac, &mach64->svga);
+                        ret = ati68860_ramdac_in(addr & 3, mach64->svga.ramdac, &mach64->svga);
                 break;
                 case 0xc4: case 0xc5: case 0xc6: case 0xc7:
                 if (mach64->type == MACH64_VT2)
@@ -2142,8 +2137,6 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
         svga_t *svga = &mach64->svga;
-	ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) svga->ramdac;
-        ics2595_t *clock_gen = (ics2595_t *) svga->clock_gen;
 
         mach64_log("mach64_ext_writeb : addr %08X val %02X\n", addr, val);
 
@@ -2260,12 +2253,12 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
                 case 0x60: case 0x61: case 0x62: case 0x63:
                 WRITE8(addr, mach64->cur_clr0, val);
                 if (mach64->type == MACH64_VT2)
-                        ramdac->pallook[0] = makecol32((mach64->cur_clr0 >> 24) & 0xff, (mach64->cur_clr0 >> 16) & 0xff, (mach64->cur_clr0 >> 8) & 0xff);
+                        ati68860_ramdac_set_pallook(mach64->svga.ramdac, 0, makecol32((mach64->cur_clr0 >> 24) & 0xff, (mach64->cur_clr0 >> 16) & 0xff, (mach64->cur_clr0 >> 8) & 0xff));
                 break;
                 case 0x64: case 0x65: case 0x66: case 0x67:
                 WRITE8(addr, mach64->cur_clr1, val);
                 if (mach64->type == MACH64_VT2)
-                        ramdac->pallook[1] = makecol32((mach64->cur_clr1 >> 24) & 0xff, (mach64->cur_clr1 >> 16) & 0xff, (mach64->cur_clr1 >> 8) & 0xff);
+                        ati68860_ramdac_set_pallook(mach64->svga.ramdac, 1, makecol32((mach64->cur_clr1 >> 24) & 0xff, (mach64->cur_clr1 >> 16) & 0xff, (mach64->cur_clr1 >> 8) & 0xff));
                 break;
                 case 0x68: case 0x69: case 0x6a: case 0x6b:
                 WRITE8(addr, mach64->cur_offset, val);
@@ -2295,11 +2288,11 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
                 case 0x90: case 0x91: case 0x92: case 0x93:
                 WRITE8(addr, mach64->clock_cntl, val);
                 if (mach64->type == MACH64_GX)
-                        ics2595_write(clock_gen, val & 0x40, val & 0xf);
+                        ics2595_write(svga->clock_gen, val & 0x40, val & 0xf);
                 else
                 {
                         pll_write(mach64, addr, val);
-                        clock_gen->output_clock = mach64->pll_freq[mach64->clock_cntl & 3];
+                        ics2595_setclock(svga->clock_gen, mach64->pll_freq[mach64->clock_cntl & 3]);
                 }
                 svga_recalctimings(&mach64->svga);
                 break;
@@ -2327,14 +2320,14 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
 
                 case 0xc0: case 0xc1: case 0xc2: case 0xc3:
                 if (mach64->type == MACH64_GX)
-                        ati68860_ramdac_out((addr & 3) | ((mach64->dac_cntl & 3) << 2), val, ramdac, &mach64->svga);
+                        ati68860_ramdac_out((addr & 3) | ((mach64->dac_cntl & 3) << 2), val, mach64->svga.ramdac, &mach64->svga);
                 else
-                        ati68860_ramdac_out(addr & 3, val, ramdac, &mach64->svga);
+                        ati68860_ramdac_out(addr & 3, val, mach64->svga.ramdac, &mach64->svga);
                 break;
                 case 0xc4: case 0xc5: case 0xc6: case 0xc7:
                 WRITE8(addr, mach64->dac_cntl, val);
                 svga_set_ramdac_type(svga, (mach64->dac_cntl & 0x100) ? RAMDAC_8BIT : RAMDAC_6BIT);
-                ati68860_set_ramdac_type(ramdac, (mach64->dac_cntl & 0x100) ? RAMDAC_8BIT : RAMDAC_6BIT);
+                ati68860_set_ramdac_type(mach64->svga.ramdac, (mach64->dac_cntl & 0x100) ? RAMDAC_8BIT : RAMDAC_6BIT);
                 break;
 
                 case 0xd0: case 0xd1: case 0xd2: case 0xd3:
@@ -2407,7 +2400,6 @@ void mach64_ext_writel(uint32_t addr, uint32_t val, void *p)
 uint8_t mach64_ext_inb(uint16_t port, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;        
-	ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) mach64->svga.ramdac;
         uint8_t ret;
 
         switch (port)
@@ -2494,9 +2486,9 @@ uint8_t mach64_ext_inb(uint16_t port, void *p)
 
                 case 0x5eec: case 0x5eed: case 0x5eee: case 0x5eef:
                 if (mach64->type == MACH64_GX)
-                        ret = ati68860_ramdac_in((port & 3) | ((mach64->dac_cntl & 3) << 2), ramdac, &mach64->svga);
+                        ret = ati68860_ramdac_in((port & 3) | ((mach64->dac_cntl & 3) << 2), mach64->svga.ramdac, &mach64->svga);
                 else
-                        ret = ati68860_ramdac_in(port & 3, ramdac, &mach64->svga);
+                        ret = ati68860_ramdac_in(port & 3, mach64->svga.ramdac, &mach64->svga);
                 break;
                 
                 case 0x62ec: case 0x62ed: case 0x62ee: case 0x62ef:
@@ -2564,7 +2556,6 @@ uint32_t mach64_ext_inl(uint16_t port, void *p)
 void mach64_ext_outb(uint16_t port, uint8_t val, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
-	ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) mach64->svga.ramdac;
 
         mach64_log("mach64_ext_outb : port %04X val %02X\n", port, val);
         switch (port)
@@ -2647,9 +2638,9 @@ void mach64_ext_outb(uint16_t port, uint8_t val, void *p)
 
                 case 0x5eec: case 0x5eed: case 0x5eee: case 0x5eef:
                 if (mach64->type == MACH64_GX)
-                        ati68860_ramdac_out((port & 3) | ((mach64->dac_cntl & 3) << 2), val, ramdac, &mach64->svga);
+                        ati68860_ramdac_out((port & 3) | ((mach64->dac_cntl & 3) << 2), val, mach64->svga.ramdac, &mach64->svga);
                 else
-                        ati68860_ramdac_out(port & 3, val, ramdac, &mach64->svga);
+                        ati68860_ramdac_out(port & 3, val, mach64->svga.ramdac, &mach64->svga);
                 break;
 
                 case 0x62ec: case 0x62ed: case 0x62ee: case 0x62ef:
@@ -2789,34 +2780,6 @@ uint32_t mach64_readl(uint32_t addr, void *p)
         return svga_readl_linear(addr, svga);
 }
 
-void mach64_hwcursor_draw(svga_t *svga, int displine)
-{
-	ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) svga->ramdac;
-        int x, offset;
-        uint8_t dat;
-        uint32_t col0 = ramdac->pallook[0];
-        uint32_t col1 = ramdac->pallook[1];
-
-        offset = svga->hwcursor_latch.xoff;
-        for (x = 0; x < 64 - svga->hwcursor_latch.xoff; x += 4)
-        {
-                dat = svga->vram[svga->hwcursor_latch.addr + (offset >> 2)];
-                if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add] ^= 0xFFFFFF;
-                dat >>= 2;
-                if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add + 1]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add + 1] ^= 0xFFFFFF;
-                dat >>= 2;
-                if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add + 2]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add + 2] ^= 0xFFFFFF;
-                dat >>= 2;
-                if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add + 3]  = (dat & 1) ? col1 : col0;
-                else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + x + svga->x_add + 3] ^= 0xFFFFFF;
-                dat >>= 2;
-                offset += 4;
-        }
-        svga->hwcursor_latch.addr += 16;
-}
 
 #define CLAMP(x) do                                     \
         {                                               \
@@ -3306,7 +3269,7 @@ static void *mach64_common_init(const device_t *info)
         svga_init(&mach64->svga, mach64, mach64->vram_size << 20,
                    mach64_recalctimings,
                    mach64_in, mach64_out,
-                   mach64_hwcursor_draw,
+                   NULL,
                    mach64_overlay_draw);
 
         if (info->flags & DEVICE_PCI)
@@ -3331,6 +3294,8 @@ static void *mach64_common_init(const device_t *info)
        	mach64->pci_regs[0x33] = 0x00;
 
         mach64->svga.ramdac = device_add(&ati68860_ramdac_device);
+	mach64->svga.dac_hwcursor_draw = ati68860_hwcursor_draw;
+
 	mach64->svga.clock_gen = device_add(&ics2595_device);
 
         mach64->dst_cntl = 3;

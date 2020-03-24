@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "io.h"
+#include "86box_io.h"
 #include "mca.h"
 
 

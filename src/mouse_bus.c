@@ -75,7 +75,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "io.h"
+#include "86box_io.h"
 #include "pic.h"
 #include "timer.h"
 #include "device.h"

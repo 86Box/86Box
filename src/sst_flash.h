@@ -8,10 +8,13 @@
  *
  *		Implementation of an SST flash chip.
  *
- * Version:	@(#)sst_flash.h	1.0.3	2020/01/14
+ * Version:	@(#)sst_flash.h	1.0.4	2020/02/03
  *
  * Author:	Melissa Goad, <mszoopers@protonmail.com>
  *		Copyright 2020 Melissa Goad.
  */
 
+extern const device_t sst_flash_29ee010_device;
+extern const device_t sst_flash_29ee020_device;
 extern const device_t sst_flash_39sf010_device;
+extern const device_t sst_flash_39sf020_device;

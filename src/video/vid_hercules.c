@@ -21,17 +21,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../lpt.h"
-#include "../pit.h"
-#include "../device.h"
+#include "86box.h"
+#include "cpu.h"
+#include "mem.h"
+#include "rom.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "lpt.h"
+#include "pit.h"
+#include "device.h"
 #include "video.h"
-#include "vid_hercules.h"
 
 
 typedef struct {

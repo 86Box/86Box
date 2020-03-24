@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
+#include "86box.h"
 #include "cpu.h"
 #include "x86.h"
 #include "x86_ops.h"

@@ -25,19 +25,17 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../pci.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../timer.h"
-#include "../plat.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "pci.h"
+#include "rom.h"
+#include "device.h"
+#include "timer.h"
+#include "plat.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
-#include "vid_icd2061.h"
-#include "vid_stg_ramdac.h"
 
 
 #define BIOS_ROM_PATH_DIAMOND	L"roms/video/et4000w32/et4000w32.bin"

@@ -1,10 +1,10 @@
 /*Most of the vector instructions here are a total guess.
   Some of the timings are based on http://users.atw.hu/instlatx64/AuthenticAMD0000562_K6_InstLatX86.txt*/
 #include <stdint.h>
-#include "../86box.h"
+#include "86box.h"
 #include "cpu.h"
-#include "../mem.h"
-#include "../machine/machine.h"
+#include "mem.h"
+#include "machine.h"
 
 #include "x86.h"
 #include "x86_ops.h"

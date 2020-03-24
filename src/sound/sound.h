@@ -67,4 +67,46 @@ extern void	givealbuffer(void *buf);
 extern void	givealbuffer_cd(void *buf);
 
 
+#ifdef EMU_DEVICE_H
+/* AdLib and AdLib Gold */
+extern const device_t adlib_device;
+extern const device_t adlib_mca_device;
+extern const device_t adgold_device;
+
+/* Ensoniq AudioPCI */
+extern const device_t es1371_device;
+
+/* Creative Labs Game Blaster */
+extern const device_t cms_device;
+
+/* Gravis UltraSound and UltraSound Max */
+extern const device_t gus_device;
+
+#if defined(DEV_BRANCH) && defined(USE_PAS16)
+/* Pro Audio Spectrum 16 */
+extern const device_t pas16_device;
+#endif
+
+/* PSSJ - What is this device? */
+extern const device_t pssj_device;
+
+/* Creative Labs Sound Blaster */
+extern const device_t sb_1_device;
+extern const device_t sb_15_device;
+extern const device_t sb_mcv_device;
+extern const device_t sb_2_device;
+extern const device_t sb_pro_v1_device;
+extern const device_t sb_pro_v2_device;
+extern const device_t sb_pro_mcv_device;
+extern const device_t sb_16_device;
+extern const device_t sb_awe32_device;
+
+/* Innovation SSI-2001 */
+extern const device_t ssi2001_device;
+
+/* Windows Sound System */
+extern const device_t wss_device;
+extern const device_t ncr_business_audio_device;
+#endif
+
 #endif	/*EMU_SOUND_H*/

@@ -9,13 +9,13 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.c	1.0.21	2019/10/20
+ * Version:	@(#)fdc.c	1.0.22	2020/01/24
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -24,15 +24,15 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../cpu/cpu.h"
-#include "../machine/machine.h"
-#include "../io.h"
-#include "../dma.h"
-#include "../pic.h"
-#include "../timer.h"
-#include "../ui.h"
+#include "86box.h"
+#include "device.h"
+#include "cpu.h"
+#include "machine.h"
+#include "86box_io.h"
+#include "dma.h"
+#include "pic.h"
+#include "timer.h"
+#include "ui.h"
 #include "fdd.h"
 #include "fdc.h"
 
@@ -702,10 +702,6 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 				fdc->stat = 0x00;
 				fdc->pnum = fdc->ptot = 0;
 			}
-                        if (val&4) {
-				fdc->stat = 0x80;
-				fdc->pnum = fdc->ptot = 0;
-                        }
 			if ((val&4) && !(fdc->dor&4)) {
 				timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
 				fdc->interrupt = -1;
@@ -775,7 +771,16 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 			fdc->stat |= 0x10;
 			fdc_log("Starting FDC command %02X\n",fdc->command);
 
-			switch (fdc->command & 0x1f) {
+			if (((fdc->command & 0x1f) == 0x02) || ((fdc->command & 0x1f) == 0x05) ||
+			    ((fdc->command & 0x1f) == 0x06) || ((fdc->command & 0x1f) == 0x0a) ||
+			    ((fdc->command & 0x1f) == 0x0c) || ((fdc->command & 0x1f) == 0x0d) ||
+			    ((fdc->command & 0x1f) == 0x11) || ((fdc->command & 0x1f) == 0x16) ||
+			    ((fdc->command & 0x1f) == 0x19) || ((fdc->command & 0x1f) == 0x1d))
+				fdc->processed_cmd = fdc->command & 0x1f;
+			else
+				fdc->processed_cmd = fdc->command;
+
+			switch (fdc->processed_cmd) {
 				case 0x01: /*Mode*/
 					if (fdc->flags & FDC_FLAG_NSC) {
 						fdc->pnum = 0;
@@ -921,7 +926,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 			}
                         if (fdc->pnum == fdc->ptot) {
 				fdc_log("Got all params %02X\n", fdc->command);
-				fdc->interrupt = fdc->command & 0x1F;
+				fdc->interrupt = fdc->processed_cmd;
 				fdc->reset_stat = 0;
 				/* Disable timer if enabled. */
 				timer_disable(&fdc->timer);
@@ -950,7 +955,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						break;
 				}
 				/* Process the firt phase of the command. */
-				switch (fdc->interrupt & 0x1F) {
+				switch (fdc->processed_cmd) {
 					case 0x02:	/* Read a track */
 						fdc_io_command_phase1(fdc, 0);
 						fdc->read_track_sector.id.c = fdc->params[1];
@@ -1072,7 +1077,8 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						fdc->stat =  (1 << fdc->drive);
 						if (!(fdc->flags & FDC_FLAG_PCJR))
 							fdc->stat |= 0x80;
-						fdc->head = (fdc->params[0] & 4) ? 1 : 0;
+						/* fdc->head = (fdc->params[0] & 4) ? 1 : 0; */
+						fdc->head = 0;	/* TODO: See if this is correct. */
 						fdc->st0 = fdc->params[0] & 0x03;
 						fdc->st0 |= (fdc->params[0] & 4);
 						fdc->st0 |= 0x80;
@@ -1210,21 +1216,22 @@ fdc_read(uint16_t addr, void *priv)
 			}
 		} else {
 			if (is486 || !fdc->enable_3f1)
-				return 0xff;
+				ret = 0xff;
+			else {
+				ret = 0x70;
 
-			ret = 0x70;
+				drive = real_drive(fdc, fdc->dor & 3);
 
-			drive = real_drive(fdc, fdc->dor & 3);
+				if (drive)
+					ret &= ~0x40;
+				else
+					ret &= ~0x20;
 
-			if (drive)
-				ret &= ~0x40;
-			else
-				ret &= ~0x20;
-
-			if (fdc->dor & 0x10)
-				ret |= 1;
-			if (fdc->dor & 0x20)
-				ret |= 2;
+				if (fdc->dor & 0x10)
+					ret |= 1;
+				if (fdc->dor & 0x20)
+					ret |= 2;
+			}
 		}
 		break;
 	case 2:
@@ -1991,6 +1998,13 @@ void
 fdc_set_swap(fdc_t *fdc, uint8_t swap)
 {
     fdc->swap = swap;
+}
+
+
+void
+fdc_set_irq(fdc_t *fdc, int irq)
+{
+    fdc->irq = irq;
 }
 
 

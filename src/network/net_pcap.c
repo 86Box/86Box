@@ -51,11 +51,10 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../plat.h"
-#include "../plat_dynld.h"
-// #include "../ui.h"
+#include "86box.h"
+#include "device.h"
+#include "plat.h"
+#include "plat_dynld.h"
 #include "network.h"
 
 
@@ -185,7 +184,7 @@ poll_thread(void *arg)
 	if (pcap == NULL) break;
 
 	/* Wait for the next packet to arrive. */
-	if (network_get_wait())
+	if (network_get_wait() || (poll_card->wait && poll_card->wait(poll_card->priv)))
 		data = NULL;
 	else
 		data = (uint8_t *)f_pcap_next((void *)pcap, &h);

@@ -18,7 +18,7 @@ typedef struct ad1848_t
         int freq;
         
         pc_timer_t timer_count;
-		uint64_t timer_latch;
+	uint64_t timer_latch;
 
         int16_t buffer[SOUNDBUFLEN * 2];
         int pos;

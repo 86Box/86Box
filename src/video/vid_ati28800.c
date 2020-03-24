@@ -25,18 +25,16 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../timer.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "timer.h"
 #include "video.h"
-#include "vid_ati28800.h"
 #include "vid_ati_eeprom.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
-#include "vid_sc1502x_ramdac.h"
 
 
 #define VGAWONDERXL		1

@@ -92,16 +92,16 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../timer.h"
-#include "../io.h"
-#include "../dma.h"
-#include "../pic.h"
-#include "../device.h"
-#include "../disk/hdc.h"
-#include "../disk/hdd.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "86box.h"
+#include "timer.h"
+#include "86box_io.h"
+#include "dma.h"
+#include "pic.h"
+#include "device.h"
+#include "hdc.h"
+#include "hdd.h"
+#include "plat.h"
+#include "ui.h"
 #include "machine.h"
 
 

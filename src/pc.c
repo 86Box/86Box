@@ -26,24 +26,17 @@
 #include <string.h>
 #include <time.h>
 #include <wchar.h>
+
 #define HAVE_STDARG_H
 #include "86box.h"
 #include "config.h"
 #include "mem.h"
-#ifdef USE_NEW_DYNAREC
+#include "cpu.h"
 #ifdef USE_DYNAREC
-#include "cpu_new/cpu.h"
-# include "cpu_new/codegen.h"
+# include "codegen_public.h"
 #endif
-#include "cpu_new/x86_ops.h"
-#else
-#include "cpu/cpu.h"
-#ifdef USE_DYNAREC
-# include "cpu/codegen.h"
-#endif
-#include "cpu/x86_ops.h"
-#endif
-#include "io.h"
+#include "x86_ops.h"
+#include "86box_io.h"
 #include "rom.h"
 #include "dma.h"
 #include "pci.h"
@@ -54,31 +47,32 @@
 #include "random.h"
 #include "timer.h"
 #include "nvr.h"
-#include "machine/machine.h"
+#include "machine.h"
 #include "bugger.h"
+#include "postcard.h"
 #include "isamem.h"
 #include "isartc.h"
 #include "lpt.h"
 #include "serial.h"
 #include "keyboard.h"
 #include "mouse.h"
-#include "game/gameport.h"
-#include "floppy/fdd.h"
-#include "floppy/fdc.h"
-#include "disk/hdd.h"
-#include "disk/hdc.h"
-#include "disk/hdc_ide.h"
-#include "scsi/scsi.h"
-#include "scsi/scsi_device.h"
-#include "cdrom/cdrom.h"
-#include "disk/zip.h"
-#include "scsi/scsi_disk.h"
-#include "cdrom/cdrom_image.h"
-#include "network/network.h"
-#include "sound/sound.h"
-#include "sound/midi.h"
-#include "sound/snd_speaker.h"
-#include "video/video.h"
+#include "gameport.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "hdd.h"
+#include "hdc.h"
+#include "hdc_ide.h"
+#include "scsi.h"
+#include "scsi_device.h"
+#include "cdrom.h"
+#include "zip.h"
+#include "scsi_disk.h"
+#include "cdrom_image.h"
+#include "network.h"
+#include "sound.h"
+#include "midi.h"
+#include "snd_speaker.h"
+#include "video.h"
 #include "ui.h"
 #include "plat.h"
 #include "plat_midi.h"
@@ -119,6 +113,7 @@ int	vid_cga_contrast = 0,			/* (C) video */
 	force_43 = 0;				/* (C) video */
 int	serial_enabled[SERIAL_MAX] = {0,0},	/* (C) enable serial ports */
 	bugger_enabled = 0,			/* (C) enable ISAbugger */
+	postcard_enabled = 0,			/* (C) enable POST card */
 	isamem_type[ISAMEM_MAX] = { 0,0,0,0 },	/* (C) enable ISA mem cards */
 	isartc_type = 0;			/* (C) enable ISA RTC card */
 int	gfxcard = 0;				/* (C) graphics/video card */
@@ -786,7 +781,9 @@ pc_reset_hard_init(void)
 
     /* Needs the status bar... */
     if (bugger_enabled)
-	device_add(&bugger_device);
+    	device_add(&bugger_device);
+    if (postcard_enabled)
+    	device_add(&postcard_device);
 
     /* Reset the CPU module. */
     resetx86();

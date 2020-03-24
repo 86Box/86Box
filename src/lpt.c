@@ -6,12 +6,11 @@
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
-#include "io.h"
+#include "86box_io.h"
 #include "lpt.h"
 #include "pic.h"
-#include "sound/snd_lpt_dac.h"
-#include "sound/snd_lpt_dss.h"
-#include "printer/prt_devs.h"
+#include "sound.h"
+#include "prt_devs.h"
 
 
 lpt_port_t	lpt_ports[3];

@@ -35,8 +35,8 @@
 #endif
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../plat.h"
+#include "86box.h"
+#include "plat.h"
 #include "cdrom_image_backend.h"
 
 
@@ -190,6 +190,9 @@ track_file_close(track_t *trk)
     if (trk->file == NULL)
 	return;
 
+    if (trk->file->close == NULL)
+	return;
+
     trk->file->close(trk->file);
     trk->file = NULL;
 }
@@ -209,10 +212,12 @@ cdi_clear_tracks(cd_img_t *cdi)
     for (i = 0; i < cdi->tracks_num; i++) {
 	cur = &cdi->tracks[i];
 
+	/* Make sure we do not attempt to close a NULL file. */
 	if (cur->file != last) {
-		track_file_close(cur);
 		last = cur->file;
-	}
+		track_file_close(cur);
+	} else
+		cur->file = NULL;
     }
 
     /* Now free the array. */

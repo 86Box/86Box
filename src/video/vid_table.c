@@ -23,45 +23,19 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../timer.h"
-#include "../machine/machine.h"
-#include "../mem.h"
-#include "../device.h"
-#include "../plat.h"
+#include "86box.h"
+#include "timer.h"
+#include "machine.h"
+#include "mem.h"
+#include "device.h"
+#include "plat.h"
 #include "video.h"
 #include "vid_svga.h"
 
-#include "vid_ati18800.h"
-#include "vid_ati28800.h"
-#include "vid_ati_mach64.h"
 #include "vid_cga.h"
-#include "vid_cl54xx.h"
-#include "vid_compaq_cga.h"
 #include "vid_ega.h"
-#include "vid_et4000.h"
-#include "vid_et4000w32.h"
-#include "vid_genius.h"
-#include "vid_hercules.h"
-#include "vid_herculesplus.h"
-#include "vid_ht216.h"
-#include "vid_im1024.h"
-#include "vid_incolor.h"
 #include "vid_colorplus.h"
 #include "vid_mda.h"
-#include "vid_mga.h"
-#include "vid_oak_oti.h"
-#include "vid_paradise.h"
-#include "vid_pgc.h"
-#include "vid_s3.h"
-#include "vid_s3_virge.h"
-#include "vid_sigma.h"
-#include "vid_tgui9440.h"
-#include "vid_ti_cf62011.h"
-#include "vid_tvga.h"
-#include "vid_vga.h"
-#include "vid_voodoo.h"
-#include "vid_wy700.h"
 
 
 typedef struct {
@@ -135,6 +109,7 @@ video_cards[] = {
     { "[ISA] VGA",					"vga",			&vga_device				},
     { "[ISA] Video 7 VGA 1024i",			"v7_vga_1024i",		&v7_vga_1024i_device			},
     { "[ISA] Wyse 700",					"wy700",		&wy700_device				},
+    { "[MCA] IBM 1MB SVGA Adapter/A (CL-GD 5428)",	"ibm1mbsvga",		&gd5428_mca_device			},
     { "[MCA] Tseng ET4000AX",				"et4000mca",		&et4000_mca_device			},
     { "[PCI] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_pci",		&mach64gx_pci_device			},
     { "[PCI] ATI Video Xpression (Mach64 VT2)",		"mach64vt2",		&mach64vt2_device			},

@@ -13,7 +13,7 @@
  *		8MB of DRAM chips', because it works fine with bus-based
  *		memory expansion.
  *
- * Version:	@(#)scamp.c	1.0.0	2020/01/21
+ * Version:	@(#)scamp.c	1.0.1	2020/01/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *
@@ -24,15 +24,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../timer.h"
-#include "../device.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../nmi.h"
-#include "../port_92.h"
+#include "86box.h"
+#include "cpu.h"
+#include "timer.h"
+#include "device.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "nmi.h"
+#include "port_92.h"
 #include "chipset.h"
+
+typedef struct {
+	void *parent;
+	int bank;
+} ram_struct_t;
 
 typedef struct {
         int cfg_index;
@@ -42,6 +47,9 @@ typedef struct {
         int ram_config;
         
         mem_mapping_t ram_mapping[2];
+
+	ram_struct_t ram_struct[3];
+
         uint32_t ram_virt_base[2], ram_phys_base[2];
         uint32_t ram_mask[2];
         int row_virt_shift[2], row_phys_shift[2];
@@ -129,8 +137,9 @@ static const struct
 static uint8_t 
 ram_mirrored_256k_in_4mi_read(uint32_t addr, void *priv)
 {
-	scamp_t *dev = (scamp_t *) priv;
-        int bank = (int)priv;
+	ram_struct_t *rs = (ram_struct_t *) priv;
+	scamp_t *dev = rs->parent;
+        int bank = rs->bank;
         int row, column, byte;
 
         addr -= dev->ram_virt_base[bank];
@@ -156,8 +165,9 @@ ram_mirrored_256k_in_4mi_read(uint32_t addr, void *priv)
 static void 
 ram_mirrored_256k_in_4mi_write(uint32_t addr, uint8_t val, void *priv)
 {
-	scamp_t *dev = (scamp_t *) priv;
-        int bank = (int)priv;
+	ram_struct_t *rs = (ram_struct_t *) priv;
+	scamp_t *dev = rs->parent;
+        int bank = rs->bank;
         int row, column, byte;
 
         addr -= dev->ram_virt_base[bank];
@@ -186,8 +196,9 @@ ram_mirrored_256k_in_4mi_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t 
 ram_mirrored_interleaved_read(uint32_t addr, void *priv)
 {
-	scamp_t *dev = (scamp_t *) priv;
-        int bank = (int)priv;
+	ram_struct_t *rs = (ram_struct_t *) priv;
+	scamp_t *dev = rs->parent;
+        int bank = rs->bank;
         int row, column, byte;
 
         addr -= dev->ram_virt_base[bank];
@@ -213,8 +224,9 @@ ram_mirrored_interleaved_read(uint32_t addr, void *priv)
 static void 
 ram_mirrored_interleaved_write(uint32_t addr, uint8_t val, void *priv)
 {
-	scamp_t *dev = (scamp_t *) priv;
-        int bank = (int)priv;
+	ram_struct_t *rs = (ram_struct_t *) priv;
+	scamp_t *dev = rs->parent;
+        int bank = rs->bank;
         int row, column, byte;
 
         addr -= dev->ram_virt_base[bank];
@@ -242,8 +254,9 @@ ram_mirrored_interleaved_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t 
 ram_mirrored_read(uint32_t addr, void *priv)
 {
-	scamp_t *dev = (scamp_t *) priv;
-        int bank = (int)priv;
+	ram_struct_t *rs = (ram_struct_t *) priv;
+	scamp_t *dev = rs->parent;
+        int bank = rs->bank;
         int row, column, byte;
         
         addr -= dev->ram_virt_base[bank];
@@ -257,8 +270,9 @@ ram_mirrored_read(uint32_t addr, void *priv)
 static void 
 ram_mirrored_write(uint32_t addr, uint8_t val, void *priv)
 {
-	scamp_t *dev = (scamp_t *) priv;
-        int bank = (int)priv;
+	ram_struct_t *rs = (ram_struct_t *) priv;
+	scamp_t *dev = rs->parent;
+        int bank = rs->bank;
         int row, column, byte;
         
         addr -= dev->ram_virt_base[bank];
@@ -674,14 +688,19 @@ scamp_init(const device_t *info)
         mem_mapping_set_handler(&ram_low_mapping,
 			ram_mirrored_read, NULL, NULL,
 			ram_mirrored_write, NULL, NULL);
+	dev->ram_struct[2].parent = dev;
+	dev->ram_struct[2].bank = 0;
+	mem_mapping_set_p(&ram_low_mapping, (void *) &dev->ram_struct[2]);
         mem_mapping_disable(&ram_high_mapping);
 
         addr = 0;
         for (c = 0; c < 2; c++) {
+		dev->ram_struct[c].parent = dev;
+		dev->ram_struct[c].bank = c;
                 mem_mapping_add(&dev->ram_mapping[c], 0, 0,
                                 ram_mirrored_read, NULL, NULL,
                                 ram_mirrored_write, NULL, NULL,
-                                &ram[addr], MEM_MAPPING_INTERNAL, (void *)c);
+                                &ram[addr], MEM_MAPPING_INTERNAL, (void *) &dev->ram_struct[c]);
                 mem_mapping_disable(&dev->ram_mapping[c]);
                 
                 dev->ram_phys_base[c] = addr;

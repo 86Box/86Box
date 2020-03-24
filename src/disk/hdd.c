@@ -20,11 +20,11 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "86box.h"
+#include "plat.h"
+#include "ui.h"
 #include "hdd.h"
-#include "../cdrom/cdrom.h"
+#include "cdrom.h"
 
 
 hard_disk_t	hdd[HDD_NUM];

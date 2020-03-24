@@ -22,8 +22,8 @@
 #include <wchar.h>
 #include <windows.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../plat_dynld.h"
+#include "86box.h"
+#include "plat_dynld.h"
 
 
 #ifdef ENABLE_DYNLD_LOG

@@ -3,21 +3,21 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../nmi.h"
-#include "../timer.h"
-#include "../pit.h"
-#include "../rom.h"
+#include "86box.h"
+#include "cpu.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "nmi.h"
+#include "timer.h"
+#include "pit.h"
+#include "rom.h"
 #include "machine.h"
-#include "../device.h"
-#include "../timer.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../game/gameport.h"
-#include "../keyboard.h"
+#include "device.h"
+#include "timer.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "gameport.h"
+#include "keyboard.h"
 
 
 static int laserxt_emspage[4];

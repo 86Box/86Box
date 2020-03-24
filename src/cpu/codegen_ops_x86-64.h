@@ -4663,11 +4663,6 @@ static inline void FP_OP_IL(int op)
         FP_OP_MEM(op);
 }
 
-#define C0 (1<<8)
-#define C1 (1<<9)
-#define C2 (1<<10)
-#define C3 (1<<14)
-
 static inline void FP_COMPARE_REG(int dst, int src)
 {
         addbyte(0x8b); /*MOV EAX, [TOP]*/

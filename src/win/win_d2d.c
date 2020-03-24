@@ -27,12 +27,12 @@
 #undef BITMAP
 
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../video/video.h"
-#include "../plat.h"
-#include "../plat_dynld.h"
-#include "../ui.h"
+#include "86box.h"
+#include "device.h"
+#include "video.h"
+#include "plat.h"
+#include "plat_dynld.h"
+#include "ui.h"
 #include "win.h"
 #include "win_d2d.h"
 

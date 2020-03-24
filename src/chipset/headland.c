@@ -25,18 +25,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../cpu/x86.h"
-#include "../timer.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../keyboard.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../port_92.h"
+#include "86box.h"
+#include "cpu.h"
+#include "x86.h"
+#include "timer.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "keyboard.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "port_92.h"
 #include "chipset.h"
 
 

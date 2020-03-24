@@ -1,0 +1,12 @@
+Comparing files CPU\x86_ops_fpu.h and CPU_NEW\X86_OPS_FPU.H
+***** CPU\x86_ops_fpu.h
+/* Copyright holders: Sarah Walker
+   see COPYING for more details
+*/
+static int opESCAPE_d8_a16(uint32_t fetchdat)
+{
+***** CPU_NEW\X86_OPS_FPU.H
+static int opESCAPE_d8_a16(uint32_t fetchdat)
+{
+*****
+

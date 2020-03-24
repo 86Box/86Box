@@ -22,16 +22,16 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../timer.h"
-#include "../config.h"
-#include "../timer.h"
-#include "../device.h"
-#include "../piix.h"
-#include "../scsi/scsi_device.h"
-#include "../nvr.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "86box.h"
+#include "timer.h"
+#include "config.h"
+#include "timer.h"
+#include "device.h"
+#include "piix.h"
+#include "scsi_device.h"
+#include "nvr.h"
+#include "plat.h"
+#include "ui.h"
 #include "hdc.h"
 #include "hdc_ide.h"
 #include "zip.h"
@@ -815,8 +815,14 @@ zip_update_request_length(zip_t *dev, int len, int block_len)
     /* For media access commands, make sure the requested DRQ length matches the block length. */
     switch (dev->current_cdb[0]) {
 	case 0x08:
+	case 0x0a:
 	case 0x28:
+	case 0x2a:
 	case 0xa8:
+	case 0xaa:
+		/* Round it to the nearest 2048 bytes. */
+		dev->max_transfer_len = (dev->max_transfer_len >> 9) << 9;
+
 		/* Make sure total length is not bigger than sum of the lengths of
 		   all the requested blocks. */
 		bt = (dev->requested_blocks * block_len);

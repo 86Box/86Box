@@ -25,7 +25,7 @@
 #define HAVE_STDARG_H
 #include "86box.h"
 #include "device.h"
-#include "video/video.h"
+#include "video.h"
 #include "keyboard.h"
 #include "mouse.h"
 #include "plat.h"

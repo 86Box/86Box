@@ -1,0 +1,163 @@
+Comparing files CPU\x86_ops_mov_ctrl.h and CPU_NEW\X86_OPS_MOV_CTRL.H
+***** CPU\x86_ops_mov_ctrl.h
+        {
+                x386_dynarec_log("Can't load from CRx\n");
+                x86gpf(NULL, 0);
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+        {
+                x86gpf(NULL, 0);
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+                default:
+                x386_dynarec_log("Bad read of CR%i %i\n",rmdat&7,cpu_reg);
+                cpu_state.pc = cpu_state.oldpc;
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+                default:
+                cpu_state.pc = cpu_state.oldpc;
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+        {
+                x386_dynarec_log("Can't load from CRx\n");
+                x86gpf(NULL, 0);
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+        {
+                x86gpf(NULL, 0);
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+                default:
+                x386_dynarec_log("Bad read of CR%i %i\n",rmdat&7,cpu_reg);
+                cpu_state.pc = cpu_state.oldpc;
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+                default:
+                cpu_state.pc = cpu_state.oldpc;
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+        {
+                x386_dynarec_log("Can't load from DRx\n");
+                x86gpf(NULL, 0);
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+        {
+                x86gpf(NULL, 0);
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+        {
+                x386_dynarec_log("Can't load from DRx\n");
+                x86gpf(NULL, 0);
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+        {
+                x86gpf(NULL, 0);
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+        {
+                x386_dynarec_log("Can't load CRx\n");
+                x86gpf(NULL,0);
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+        {
+                x86gpf(NULL,0);
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+                        cpu_cache_int_enabled = 1;
+                else if (isibmcpu)
+                                                cpu_cache_int_enabled = 1;
+                                else
+                        cpu_cache_int_enabled = 0;
+                if (is486 && ((cr0 ^ old_cr0) & (1 << 30)))
+                        cpu_update_waitstates();
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+                        cpu_cache_int_enabled = 1;
+                                else if (isibmcpu)
+                        cpu_cache_int_enabled = 1;      
+                                else
+                                                cpu_cache_int_enabled = 0;
+                                if (is486 && ((cr0 ^ old_cr0) & (1 << 30)))
+                        cpu_update_waitstates();
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+                default:
+                x386_dynarec_log("Bad load CR%i\n", cpu_reg);
+                cpu_state.pc = cpu_state.oldpc;
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+                default:
+                cpu_state.pc = cpu_state.oldpc;
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+        {
+                x386_dynarec_log("Can't load CRx\n");
+                x86gpf(NULL,0);
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+        {
+                x86gpf(NULL,0);
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+                default:
+                x386_dynarec_log("Bad load CR%i\n", cpu_reg);
+                cpu_state.pc = cpu_state.oldpc;
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+                default:
+                cpu_state.pc = cpu_state.oldpc;
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+        {
+                x386_dynarec_log("Can't load DRx\n");
+                x86gpf(NULL, 0);
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+        {
+                x86gpf(NULL, 0);
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+        {
+                x386_dynarec_log("Can't load DRx\n");
+                x86gpf(NULL, 0);
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+        {
+                x86gpf(NULL, 0);
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+        {
+                x386_dynarec_log("Can't load from TRx\n");
+                x86gpf(NULL, 0);
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+        {
+                x86gpf(NULL, 0);
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+        {
+                x386_dynarec_log("Can't load from TRx\n");
+                x86gpf(NULL, 0);
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+        {
+                x86gpf(NULL, 0);
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+        {
+                x386_dynarec_log("Can't load TRx\n");
+                x86gpf(NULL, 0);
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+        {
+                x86gpf(NULL, 0);
+*****
+
+***** CPU\x86_ops_mov_ctrl.h
+        {
+                x386_dynarec_log("Can't load TRx\n");
+                x86gpf(NULL, 0);
+***** CPU_NEW\X86_OPS_MOV_CTRL.H
+        {
+                x86gpf(NULL, 0);
+*****
+

@@ -28,20 +28,20 @@
 #include <inttypes.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../machine/machine.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../pic.h"
-#include "../pci.h"
-#include "../rom.h"
-#include "../timer.h"
-#include "../device.h"
-#include "../scsi/scsi_device.h"
-#include "../cdrom/cdrom.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "86box.h"
+#include "cpu.h"
+#include "machine.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "pic.h"
+#include "pci.h"
+#include "rom.h"
+#include "timer.h"
+#include "device.h"
+#include "scsi_device.h"
+#include "cdrom.h"
+#include "plat.h"
+#include "ui.h"
 #include "hdc.h"
 #include "hdc_ide.h"
 #include "hdd.h"
@@ -278,6 +278,8 @@ ide_irq_raise(ide_t *ide)
 
     /* ide_log("Raising IRQ %i (board %i)\n", ide_boards[ide->board]->irq, ide->board); */
 
+    ide_log("IDE %i: IRQ raise\n", ide->board);
+
     if (!(ide->fdisk & 2)) {
 	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
 		ide_bm[ide->board]->set_irq(ide->board | 0x40, ide_bm[ide->board]->priv);
@@ -297,6 +299,8 @@ ide_irq_lower(ide_t *ide)
 	return;
 
     /* ide_log("Lowering IRQ %i (board %i)\n", ide_boards[ide->board]->irq, ide->board); */
+
+    ide_log("IDE %i: IRQ lower\n", ide->board);
 
     if (ide->irqstat) {
 	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
@@ -318,6 +322,7 @@ ide_irq_update(ide_t *ide)
     /* ide_log("Raising IRQ %i (board %i)\n", ide_boards[ide->board]->irq, ide->board); */
 
     if (!(ide->fdisk & 2) && ide->irqstat) {
+	ide_log("IDE %i: IRQ update raise\n", ide->board);
 	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq) {
 		ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
 		ide_bm[ide->board]->set_irq(ide->board | 0x40, ide_bm[ide->board]->priv);
@@ -326,6 +331,7 @@ ide_irq_update(ide_t *ide)
 		picint(1 << ide_boards[ide->board]->irq);
 	}
     } else if (ide->fdisk & 2) {
+	ide_log("IDE %i: IRQ update lower\n", ide->board);
 	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
 		ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
 	else if (ide_boards[ide->board]->irq != -1)
@@ -877,11 +883,17 @@ ide_atapi_callback(ide_t *ide)
 
     switch(ide->sc->packet_status) {
 	case PHASE_IDLE:
+#ifdef ENABLE_IDE_LOG
+		ide_log("PHASE_IDLE\n");
+#endif
 		ide->sc->pos = 0;
 		ide->sc->phase = 1;
 		ide->sc->status = READY_STAT | DRQ_STAT | (ide->sc->status & ERR_STAT);
 		return;
 	case PHASE_COMMAND:
+#ifdef ENABLE_IDE_LOG
+		ide_log("PHASE_COMMAND\n");
+#endif
 		ide->sc->status = BUSY_STAT | (ide->sc->status & ERR_STAT);
 		if (ide->packet_command) {
 			ide->packet_command(ide->sc, ide->sc->atapi_cdb);
@@ -890,6 +902,9 @@ ide_atapi_callback(ide_t *ide)
 		}
 		return;
 	case PHASE_COMPLETE:
+#ifdef ENABLE_IDE_LOG
+		ide_log("PHASE_COMPLETE\n");
+#endif
 		ide->sc->status = READY_STAT;
 		ide->sc->phase = 3;
 		ide->sc->packet_status = PHASE_NONE;
@@ -897,12 +912,18 @@ ide_atapi_callback(ide_t *ide)
 		return;
 	case PHASE_DATA_IN:
 	case PHASE_DATA_OUT:
+#ifdef ENABLE_IDE_LOG
+		ide_log("PHASE_DATA_IN or PHASE_DATA_OUT\n");
+#endif
 		ide->sc->status = READY_STAT | DRQ_STAT | (ide->sc->status & ERR_STAT);
 		ide->sc->phase = !(ide->sc->packet_status & 0x01) << 1;
 		ide_irq_raise(ide);
 		return;
 	case PHASE_DATA_IN_DMA:
 	case PHASE_DATA_OUT_DMA:
+#ifdef ENABLE_IDE_LOG
+		ide_log("PHASE_DATA_IN_DMA or PHASE_DATA_OUT_DMA\n");
+#endif
 		out = (ide->sc->packet_status & 0x01);
 
 		if (ide_bm[ide->board] && ide_bm[ide->board]->dma) {
@@ -932,10 +953,16 @@ ide_atapi_callback(ide_t *ide)
 
 		return;
 	case PHASE_ERROR:
+#ifdef ENABLE_IDE_LOG
+		ide_log("PHASE_ERROR\n");
+#endif
 		ide->sc->status = READY_STAT | ERR_STAT;
 		ide->sc->phase = 3;
 		ide->sc->packet_status = PHASE_NONE;
 		ide_irq_raise(ide);
+		return;
+	default:
+		ide_log("PHASE_UNKNOWN %02X\n", ide->sc->packet_status);
 		return;
     }
 }
@@ -1000,6 +1027,9 @@ ide_atapi_packet_read(ide_t *ide, int length)
 
     if (!dev || !dev->temp_buffer || (dev->packet_status != PHASE_DATA_IN))
 	return 0;
+
+    if (dev->packet_status == PHASE_DATA_IN)
+	ide_log("PHASE_DATA_IN read: %i, %i< %i, %i\n", dev->request_pos, dev->max_transfer_len, dev->pos, dev->packet_len);
 
     bufferw = (uint16_t *) dev->temp_buffer;
     bufferl = (uint32_t *) dev->temp_buffer;
@@ -1689,7 +1719,7 @@ ide_read_data(ide_t *ide, int length)
 		ide->secount = (ide->secount - 1) & 0xff;
 		if (ide->secount) {
 			ide_next_sector(ide);
-			ide->atastat = BSY_STAT;
+			ide->atastat = BSY_STAT | READY_STAT | DSC_STAT;
 			if (ide->command == WIN_READ_MULTIPLE)
 				ide_callback(ide_boards[ide->board]);
 			else
@@ -1923,7 +1953,7 @@ ide_callback(void *priv)
 	((ide->command >= WIN_SEEK) && (ide->command <= 0x7F))) {
 	if (ide->type != IDE_HDD)
 		goto abort_cmd;
-	if ((ide->command >= WIN_SEEK) && (ide->command <= 0x7F)) {
+	if ((ide->command >= WIN_SEEK) && (ide->command <= 0x7F) && !ide->lba) {
 		if ((ide->cylinder >= ide->tracks) || (ide->head >= ide->hpc) ||
 		    !ide->sector || (ide->sector > ide->spt))
 			goto id_not_found;
@@ -1984,7 +2014,7 @@ ide_callback(void *priv)
 			ide_set_signature(ide);
 			goto abort_cmd;
 		}
-		if (ide->cfg_spt == 0)
+		if (!ide->lba && (ide->cfg_spt == 0))
 			goto id_not_found;
 
 		if (ide->do_initial_read) {
@@ -2014,7 +2044,7 @@ ide_callback(void *priv)
 			ide_log("IDE %i: DMA read aborted (bad device or board)\n", ide->channel);
 			goto abort_cmd;
 		}
-		if (ide->cfg_spt == 0) {
+		if (!ide->lba && (ide->cfg_spt == 0)) {
 			ide_log("IDE %i: DMA read aborted (SPECIFY failed)\n", ide->channel);
 			goto id_not_found;
 		}
@@ -2066,7 +2096,7 @@ ide_callback(void *priv)
 		   mand error. */
 		if ((ide->type == IDE_ATAPI) || !ide->blocksize)
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->lba && (ide->cfg_spt == 0))
 			goto id_not_found;
 
 		if (ide->do_initial_read) {
@@ -2095,7 +2125,7 @@ ide_callback(void *priv)
 	case WIN_WRITE_NORETRY:
 		if (ide->type == IDE_ATAPI)
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->lba && (ide->cfg_spt == 0))
 			goto id_not_found;
 		hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 		ide_irq_raise(ide);
@@ -2117,7 +2147,7 @@ ide_callback(void *priv)
 			ide_log("IDE %i: DMA write aborted (bad device type or board)\n", ide->channel);
 			goto abort_cmd;
 		}
-		if (ide->cfg_spt == 0) {
+		if (!ide->lba && (ide->cfg_spt == 0)) {
 			ide_log("IDE %i: DMA write aborted (SPECIFY failed)\n", ide->channel);
 			goto id_not_found;
 		}
@@ -2162,7 +2192,7 @@ ide_callback(void *priv)
 	case WIN_WRITE_MULTIPLE:
 		if (ide->type == IDE_ATAPI)
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->lba && (ide->cfg_spt == 0))
 			goto id_not_found;
 		hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 		ide->blockcount++;
@@ -2185,7 +2215,7 @@ ide_callback(void *priv)
 	case WIN_VERIFY_ONCE:
 		if (ide->type == IDE_ATAPI)
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->lba && (ide->cfg_spt == 0))
 			goto id_not_found;
 		ide->pos=0;
 		ide->atastat = DRDY_STAT | DSC_STAT;
@@ -2196,7 +2226,7 @@ ide_callback(void *priv)
 	case WIN_FORMAT:
 		if (ide->type == IDE_ATAPI)
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->lba && (ide->cfg_spt == 0))
 			goto id_not_found;
 		hdd_image_zero(ide->hdd_num, ide_get_sector(ide), ide->secount);
 

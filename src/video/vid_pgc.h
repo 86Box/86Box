@@ -181,7 +181,4 @@ extern void	pgc_hndl_lut8(pgc_t *);
 extern void	pgc_hndl_lut8rd(pgc_t *);
 
 
-extern const device_t pgc_device;
-
-
 #endif	/*VID_PGC_H*/

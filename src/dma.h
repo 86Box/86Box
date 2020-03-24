@@ -8,7 +8,7 @@
  *
  *		Definitions for the Intel DMA controller.
  *
- * Version:	@(#)dma.h	1.0.3	2020/01/14
+ * Version:	@(#)dma.h	1.0.4	2020/01/26
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -86,6 +86,7 @@ extern int	dma_channel_read(int channel);
 extern int	dma_channel_write(int channel, uint16_t val);
 
 extern void	dma_alias_set(void);
+extern void	dma_alias_set_piix(void);
 extern void	dma_alias_remove(void);
 extern void	dma_alias_remove_piix(void);
 

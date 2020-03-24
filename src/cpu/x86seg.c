@@ -24,13 +24,13 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
+#include "86box.h"
 #include "cpu.h"
-#include "../device.h"
-#include "../timer.h"
-#include "../machine/machine.h"
-#include "../mem.h"
-#include "../nvr.h"
+#include "device.h"
+#include "timer.h"
+#include "machine.h"
+#include "mem.h"
+#include "nvr.h"
 #include "x86.h"
 #include "x86_flags.h"
 #include "386_common.h"
@@ -108,8 +108,8 @@ static void seg_reset(x86seg *s)
         if(s == &cpu_state.seg_cs)
         {
                 // TODO - When the PC is reset, initialization of the CS descriptor must be like the annotated line below.
-                //s->base = AT ? (cpu_16bitbus ? 0xFF0000 : 0xFFFF0000) : 0xFFFF0;
-                s->base = AT ? 0xF0000 : 0xFFFF0;
+                s->base = AT ? (cpu_16bitbus ? 0xFF0000 : 0xFFFF0000) : 0xFFFF0;
+                // s->base = AT ? 0xF0000 : 0xFFFF0;
                 s->seg = AT ? 0xF000 : 0xFFFF;
         }
         else

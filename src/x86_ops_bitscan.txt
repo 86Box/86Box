@@ -1,0 +1,11 @@
+Comparing files CPU\x86_ops_bitscan.h and CPU_NEW\X86_OPS_BITSCAN.H
+***** CPU\x86_ops_bitscan.h
+        uint32_t temp;
+        int instr_cycles = 0;
+
+***** CPU_NEW\X86_OPS_BITSCAN.H
+        uint32_t temp;
+        int instr_cycles = 0;        
+
+*****
+

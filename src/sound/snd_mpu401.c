@@ -27,14 +27,14 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../plat.h"
-#include "../io.h"
-#include "../machine/machine.h"
-#include "../mca.h"
-#include "../pic.h"
-#include "../timer.h"
+#include "86box.h"
+#include "device.h"
+#include "plat.h"
+#include "86box_io.h"
+#include "machine.h"
+#include "mca.h"
+#include "pic.h"
+#include "timer.h"
 #include "sound.h"
 #include "snd_mpu401.h"
 #include "midi.h"
@@ -155,10 +155,9 @@ MPU401_QueueByteEx(mpu_t *mpu, uint8_t data, int irq)
 	return;
     }
 
-    if (mpu->queue_used == 0) {
+    if ((mpu->queue_used == 0) && !mpu->irq_mask) {
 	mpu->state.irq_pending = 1;
-	if (irq)
-		picint(1 << mpu->irq);
+	picint(1 << mpu->irq);
     }
 
     if (mpu->queue_used < MPU401_QUEUE) {
@@ -239,11 +238,16 @@ MPU401_Reset(mpu_t *mpu)
 {
     uint8_t i;
 
+#ifdef DOSBOX_CODE
     if (mpu->mode == M_INTELLIGENT) {
 	picintc(1 << mpu->irq);
 	mpu->state.irq_pending = 0;
     }
-	
+#else
+    picintc(1 << mpu->irq);
+    mpu->state.irq_pending = 0;
+#endif
+
     mpu->mode = M_INTELLIGENT;
     mpu->midi_thru = 0;
     mpu->state.rec = M_RECOFF;
@@ -350,7 +354,7 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 	return;
 
     /* In Intelligent mode, UART-only variants of the MPU-401 only support commands 0x3F and 0xFF. */
-    if ((val != 0x3f) && (val != 0xff) && !mpu->intelligent)
+    if (!mpu->intelligent && (val != 0x3f) && (val != 0xff))
 	return;
 
     /* Hack: Enable midi through after the first mpu401 command is written. */
@@ -642,6 +646,7 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
     static int length, cnt;
 	uint8_t i;
 
+#ifdef DOSBOX_CODE
     if (mpu->mode == M_UART) {
 	midi_raw_out_byte(val);
 	return;
@@ -651,6 +656,12 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
 	mpu->state.command_byte = 0;
 	return;
     }
+#else
+    if (!mpu->intelligent || (mpu->mode == M_UART)) {
+	midi_raw_out_byte(val);
+	return;
+    }
+#endif
 	
     switch (mpu->state.command_byte) {	/* 0xe# command data */
 	case 0x00:
@@ -1073,7 +1084,7 @@ MPU401_ReadRaiseIRQ(mpu_t *mpu)
     picintc(1 << mpu->irq);
     mpu->state.irq_pending = 0;
 
-    if (mpu->queue_used) {
+    if (mpu->queue_used && !mpu->irq_mask) {
 	/* Bytes remaining in queue, raise IRQ again. */
 	mpu->state.irq_pending = 1;
 	picint(1 << mpu->irq);
@@ -1097,10 +1108,17 @@ MPU401_ReadData(mpu_t *mpu)
     }
 
     /* Shouldn't this check mpu->mode? */
+#ifdef DOSBOX_CODE
     if (mpu->mode == M_UART) {
 	MPU401_ReadRaiseIRQ(mpu);
 	return ret;
     }
+#else
+    if (!mpu->intelligent || (mpu->mode == M_UART)) {
+	MPU401_ReadRaiseIRQ(mpu);
+	return ret;
+    }
+#endif
 
     if (mpu->state.rec_copy && !mpu->rec_queue_used) {
 	mpu->state.rec_copy = 0;
@@ -1204,10 +1222,17 @@ MPU401_Event(void *priv)
 
     mpu401_log("MPU-401 event callback\n");
 
+#ifdef DOSBOX_CODE
     if (mpu->mode == M_UART) {
 	timer_disable(&mpu->mpu401_event_callback);
 	return;
     }
+#else
+    if (!mpu->intelligent || (mpu->mode == M_UART)) {
+	timer_disable(&mpu->mpu401_event_callback);
+	return;
+    }
+#endif
 
     if (mpu->state.irq_pending) goto next_event;
 	
@@ -1365,7 +1390,11 @@ MPU401_InputMsg(void *p, uint8_t *msg)
 
     mpu401_log("MPU401 Input Msg\n");
 
+#ifdef DOSBOX_CODE
     if (mpu->mode == M_INTELLIGENT) {
+#else
+    if (mpu->intelligent && (mpu->mode == M_INTELLIGENT)) {
+#endif
 	if (msg[0] < 0x80) {
 		/* Expand running status */
 		msg[2] = msg[1];
@@ -1566,6 +1595,21 @@ MPU401_InputMsg(void *p, uint8_t *msg)
 
 
 void
+mpu401_change_addr(mpu_t *mpu, uint16_t addr)
+{
+    if (mpu == NULL)
+	return;
+    if (mpu->addr)
+	io_removehandler(mpu->addr, 2,
+			 mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+    mpu->addr = addr;
+    if (mpu->addr)
+	io_sethandler(mpu->addr, 2,
+		      mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+}
+
+
+void
 mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode, int receive_input)
 {
     mpu->status = STATUS_INPUT_NOT_READY;
@@ -1573,6 +1617,7 @@ mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode, int receive_input)
     mpu->queue_used = 0;
     mpu->queue_pos = 0;
     mpu->mode = M_UART;
+    mpu->addr = addr;
 
     /* Expalantion:
 	MPU-401 starting in intelligent mode = Full MPU-401 intelligent mode capability;
@@ -1581,8 +1626,8 @@ mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode, int receive_input)
     mpu->intelligent = (mode == M_INTELLIGENT) ? 1 : 0;
     mpu401_log("Starting as %s (mode is %s)\n", mpu->intelligent ? "INTELLIGENT" : "UART", (mode == M_INTELLIGENT) ? "INTELLIGENT" : "UART");
 
-    if (addr)
-	io_sethandler(addr, 2,
+    if (mpu->addr)
+	io_sethandler(mpu->addr, 2,
 		      mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
     io_sethandler(0x2A20, 16,
 		  NULL, NULL, NULL, imf_write, NULL, NULL, mpu);

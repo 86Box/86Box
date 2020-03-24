@@ -21,17 +21,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
-#include "vid_tkd8001_ramdac.h"
-#include "vid_tvga.h"
 
 #define TVGA8900B_ID		0x03
 #define TVGA8900CLD_ID		0x33

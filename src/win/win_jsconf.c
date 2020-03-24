@@ -7,11 +7,11 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../config.h"
-#include "../device.h"
-#include "../game/gameport.h"
-#include "../plat.h"
+#include "86box.h"
+#include "config.h"
+#include "device.h"
+#include "gameport.h"
+#include "plat.h"
 #include "win.h"
 
 

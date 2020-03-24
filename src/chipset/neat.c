@@ -24,15 +24,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "../timer.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../keyboard.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../nmi.h"
+#include "86box.h"
+#include "device.h"
+#include "timer.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "keyboard.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "nmi.h"
 #include "chipset.h"
 
 #define NEAT_DEBUG	0

@@ -1,0 +1,3 @@
+Comparing files CPU\x87_ops_misc.h and CPU_NEW\X87_OPS_MISC.H
+FC: no differences encountered
+

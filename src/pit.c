@@ -24,11 +24,11 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "cpu/cpu.h"
+#include "cpu.h"
 #include "device.h"
 #include "timer.h"
 #include "dma.h"
-#include "io.h"
+#include "86box_io.h"
 #include "nmi.h"
 #include "pic.h"
 #include "timer.h"
@@ -43,7 +43,8 @@
 pit_t		*pit, *pit2;
 double		cpuclock, PITCONSTD,
 		SYSCLK,
-		isa_timing, bus_timing;
+		isa_timing,
+		bus_timing, pci_timing;
 
 uint64_t	PITCONST, ISACONST,
 		CGACONST,
@@ -1024,7 +1025,9 @@ pit_set_clock(int clock)
     TIMER_USEC = (uint64_t)((cpuclock / 1000000.0) * (double)(1ull << 32));
 
     isa_timing = (cpuclock / (double)8000000.0);
+
     bus_timing = (cpuclock / (double)cpu_busspeed);
+    pci_timing = (cpuclock / (double)cpu_pci_speed);
 
     if (cpu_busspeed >= 30000000)
 	SYSCLK = bus_timing * 4.0;

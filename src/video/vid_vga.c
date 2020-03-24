@@ -21,15 +21,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../timer.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "timer.h"
 #include "video.h"
 #include "vid_svga.h"
-#include "vid_vga.h"
 
 
 typedef struct vga_t

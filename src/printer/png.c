@@ -52,11 +52,11 @@
 #include <errno.h>
 #define PNG_DEBUG 0
 #include <png.h>
-#include "../86box.h"
-#include "../plat.h"
-#include "../plat_dynld.h"
-#include "../ui.h"
-#include "../video/video.h"
+#include "86box.h"
+#include "plat.h"
+#include "plat_dynld.h"
+#include "ui.h"
+#include "video.h"
 #include "png_struct.h"
 
 #ifdef _WIN32

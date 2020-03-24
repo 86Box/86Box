@@ -27,14 +27,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../config.h"
-#include "../disk/hdd.h"
-#include "../scsi/scsi_device.h"
-#include "../cdrom/cdrom.h"
-#include "../disk/zip.h"
-#include "../scsi/scsi_disk.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "config.h"
+#include "hdd.h"
+#include "scsi_device.h"
+#include "cdrom.h"
+#include "zip.h"
+#include "scsi_disk.h"
+#include "plat.h"
+#include "ui.h"
 #include "win.h"
 
 

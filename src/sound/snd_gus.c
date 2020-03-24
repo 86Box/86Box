@@ -5,16 +5,15 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../nmi.h"
-#include "../pic.h"
-#include "../dma.h"
-#include "../timer.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "nmi.h"
+#include "pic.h"
+#include "dma.h"
+#include "timer.h"
+#include "device.h"
 #include "sound.h"
 #include "midi.h"
-#include "snd_gus.h"
 
 enum
 {

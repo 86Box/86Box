@@ -22,23 +22,19 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../timer.h"
-#include "../io.h"
-#include "../device.h"
-#include "../chipset/chipset.h"
-#include "../keyboard.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../disk/hdc.h"
-#include "../video/video.h"
-#include "../video/vid_cl54xx.h"
-#include "../video/vid_et4000.h"
-#include "../video/vid_oak_oti.h"
-#include "../video/vid_paradise.h"
+#include "86box.h"
+#include "cpu.h"
+#include "timer.h"
+#include "86box_io.h"
+#include "device.h"
+#include "chipset.h"
+#include "keyboard.h"
+#include "mem.h"
+#include "rom.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "hdc.h"
+#include "video.h"
 #include "machine.h"
 
 
@@ -211,6 +207,26 @@ machine_at_goldstar386_init(const machine_t *model)
 
     ret = bios_load_interleaved(L"roms/machines/goldstar386/386-Goldstar-E.BIN",
 				L"roms/machines/goldstar386/386-Goldstar-O.BIN",
+				0x000f0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_init(model);
+
+    device_add(&neat_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_micronics386_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/micronics386/386-Micronics-09-00021-EVEN.BIN",
+				L"roms/machines/micronics386/386-Micronics-09-00021-ODD.BIN",
 				0x000f0000, 131072, 0);
 
     if (bios_only || !ret)

@@ -1,0 +1,3 @@
+Comparing files MACHINE\machine_table.c and MACHINE\MACHINE_TABLE_NEW.C
+FC: no differences encountered
+

@@ -25,7 +25,7 @@
 #include "86box.h"
 #include "device.h"
 #include "mem.h"
-#include "machine/machine.h"
+#include "machine.h"
 #include "timer.h"
 #include "nvr.h"
 #include "plat.h"
@@ -97,7 +97,7 @@ flash_read(uint32_t addr, void *p)
 
 	case CMD_IID:
 		if (addr & 1)
-                        ret = dev->flash_id & 0xff;
+			ret = dev->flash_id & 0xff;
 		else
 			ret = 0x89;
 		break;
@@ -314,6 +314,16 @@ intel_flash_add_mappings(flash_t *dev)
 }
 
 
+static void
+intel_flash_reset(void *priv)
+{
+    flash_t *dev = (flash_t *) priv;
+
+    dev->command = CMD_READ_ARRAY;
+    dev->status = 0;
+}
+
+
 static void *
 intel_flash_init(const device_t *info)
 {
@@ -461,11 +471,11 @@ intel_flash_close(void *p)
 const device_t intel_flash_bxt_ami_device =
 {
     "Intel 28F001BXT/28F002BXT Flash BIOS",
-    0,
+    DEVICE_PCI,
     FLAG_INV_A16,
     intel_flash_init,
     intel_flash_close,
-    NULL,
+    intel_flash_reset,
     NULL, NULL, NULL, NULL
 };
 
@@ -474,11 +484,11 @@ const device_t intel_flash_bxt_ami_device =
 const device_t intel_flash_bxtw_ami_device =
 {
     "Intel 28F100BXT/28F200BXT Flash BIOS",
-    0,
+    DEVICE_PCI,
     FLAG_INV_A16 | FLAG_WORD,
     intel_flash_init,
     intel_flash_close,
-    NULL,
+    intel_flash_reset,
     NULL, NULL, NULL, NULL
 };
 #endif
@@ -487,10 +497,10 @@ const device_t intel_flash_bxtw_ami_device =
 const device_t intel_flash_bxt_device =
 {
     "Intel 28F001BXT/28F002BXT Flash BIOS",
-    0, 0,
+    DEVICE_PCI, 0,
     intel_flash_init,
     intel_flash_close,
-    NULL,
+    intel_flash_reset,
     NULL, NULL, NULL, NULL
 };
 
@@ -498,9 +508,9 @@ const device_t intel_flash_bxt_device =
 const device_t intel_flash_bxb_device =
 {
     "Intel 28F001BXB/28F002BXB Flash BIOS",
-    0, FLAG_BXB,
+    DEVICE_PCI, FLAG_BXB,
     intel_flash_init,
     intel_flash_close,
-    NULL,
+    intel_flash_reset,
     NULL, NULL, NULL, NULL
 };

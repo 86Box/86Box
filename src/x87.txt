@@ -1,0 +1,3 @@
+Comparing files CPU\x87.c and CPU_NEW\X87.C
+FC: no differences encountered
+

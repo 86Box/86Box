@@ -8,7 +8,7 @@
  *
  *		Generic CD-ROM drive core.
  *
- * Version:	@(#)cdrom.c	1.0.9	2019/12/13
+ * Version:	@(#)cdrom.c	1.0.10	2020/03/23
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -22,12 +22,12 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../config.h"
+#include "86box.h"
+#include "config.h"
 #include "cdrom.h"
 #include "cdrom_image.h"
-#include "../plat.h"
-#include "../sound/sound.h"
+#include "plat.h"
+#include "sound.h"
 
 
 /* The addresses sent from the guest are absolute, ie. a LBA of 0 corresponds to a MSF of 00:00:00. Otherwise, the counter displayed by the guest is wrong:
@@ -41,6 +41,8 @@
 #define MIN_SEEK		2000
 #define MAX_SEEK	      333333
 
+#define CD_BCD(x)      	(((x) % 10) | (((x) / 10) << 4))
+#define CD_DCB(x) 	((((x) & 0xf0) >> 4) * 10 + ((x) & 0x0f))
 
 #pragma pack(push,1)
 typedef struct {
@@ -345,6 +347,72 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
     return 1;
 }
 
+uint8_t
+cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
+{
+    int m = 0, s = 0, f = 0;
+    
+    if (dev->cd_status == CD_STATUS_DATA_ONLY)
+	return 0;    
+    
+    switch (type) {
+	case 0x40:
+	    cdrom_log("Audio Track Search: MSF = %06x, type = %02x\n", pos, type);
+	    m = CD_DCB((pos >> 24) & 0xff);
+	    s = CD_DCB((pos >> 16) & 0xff);
+	    f = CD_DCB((pos >> 8) & 0xff);
+	    pos = MSFtoLBA(m, s, f) - 150;
+	    break;
+    }
+    
+    /* Do this at this point, since it's at this point that we know the
+       actual LBA position to start playing from. */
+    if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
+	cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
+	cdrom_stop(dev);
+	return 0;
+    }
+
+    dev->seek_pos = pos;
+    dev->noplay = !playbit;
+    dev->cd_status = playbit ? CD_STATUS_PLAYING : CD_STATUS_PAUSED;
+    return 1;
+}
+
+uint8_t	
+cdrom_toshiba_audio_play(cdrom_t *dev, uint32_t pos, int type)
+{
+    int m = 0, s = 0, f = 0;
+
+    if (dev->cd_status == CD_STATUS_DATA_ONLY)
+	return 0;
+
+    if (dev->cd_status == CD_STATUS_STOPPED || dev->cd_status == CD_STATUS_PAUSED)
+	dev->cd_status = CD_STATUS_PLAYING;
+
+    /*Preliminary support, revert if too incomplete*/
+    switch (type) {
+	case 0x40:
+	    cdrom_log("Toshiba Play Audio: MSF = %06x, type = %02x\n", pos, type);
+	    m = CD_DCB((pos >> 24) & 0xff);
+	    s = CD_DCB((pos >> 16) & 0xff);
+	    f = CD_DCB((pos >> 8) & 0xff);
+	    pos = MSFtoLBA(m, s, f) - 150;
+	    break;
+    }
+    
+    /* Do this at this point, since it's at this point that we know the
+       actual LBA position to start playing from. */
+    if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
+	cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
+	cdrom_stop(dev);
+	return 0;
+    }    
+    
+    dev->cd_end = pos;
+    dev->cd_buflen = 0;
+    return 1;
+}
 
 void
 cdrom_audio_pause_resume(cdrom_t *dev, uint8_t resume)
@@ -409,6 +477,38 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
     return ret;
 }
 
+uint8_t
+cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
+{
+    uint8_t ret;
+    subchannel_t subc;
+
+    dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
+    
+    if (dev->cd_status == CD_STATUS_PLAYING)
+	ret = 0x00;
+    else if (dev->cd_status == CD_STATUS_PAUSED) {
+	if (dev->noplay)
+	    ret = 0x02;
+	else
+	    ret = 0x01;
+    }
+    else 
+	ret = 0x03;
+
+    b[0] = subc.attr;
+    b[1] = CD_BCD(subc.track);
+    b[2] = CD_BCD(subc.index);
+    b[3] = CD_BCD(subc.rel_m);
+    b[4] = CD_BCD(subc.rel_s);
+    b[5] = CD_BCD(subc.rel_f);
+    b[6] = CD_BCD(subc.abs_m);
+    b[7] = CD_BCD(subc.abs_s);
+    b[8] = CD_BCD(subc.abs_f);
+    cdrom_log("CD-ROM %i: Returned subcode-q at %02i:%02i.%02i, track=%02x\n", dev->id, b[3], b[4], b[5], b[1]);
+    
+    return ret;
+}
 
 static int
 read_toc_normal(cdrom_t *dev, unsigned char *b, unsigned char start_track, int msf)
@@ -557,6 +657,44 @@ cdrom_read_toc(cdrom_t *dev, unsigned char *b, int type, unsigned char start_tra
     return len;
 }
 
+void
+cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, int type)
+{
+    track_info_t ti;
+    int first_track, last_track;
+
+    dev->ops->get_tracks(dev, &first_track, &last_track);
+
+    switch (type) {
+	case 0:
+	    b[0] = CD_BCD(first_track);
+	    b[1] = CD_BCD(last_track);
+	    b[2] = 0;
+	    b[3] = 0;
+	    break;
+	case 1:
+	    dev->ops->get_track_info(dev, 0xAA, 0, &ti);
+	    b[0] = CD_BCD(ti.m);
+	    b[1] = CD_BCD(ti.s);
+	    b[2] = CD_BCD(ti.f);
+	    b[3] = 0;
+	    break;
+	case 2:
+	    dev->ops->get_track_info(dev, CD_DCB(track), 0, &ti);
+	    b[0] = CD_BCD(ti.m);
+	    b[1] = CD_BCD(ti.s);
+	    b[2] = CD_BCD(ti.f);
+	    b[3] = ti.attr;
+	    cdrom_log("CD-ROM %i: Returned Toshiba disc information at %02i:%02i.%02i, track=%d\n", dev->id, b[0], b[1], b[2], CD_DCB(track));
+	    break;
+	case 3:
+	    b[0] = 0x00; /*TODO: correct it further, mark it as CD-Audio/CD-ROM disc for now*/
+	    b[1] = 0;
+	    b[2] = 0;
+	    b[3] = 0;
+	    break;
+    }
+}
 
 static int
 track_type_is_valid(uint8_t id, int type, int flags, int audio, int mode2)

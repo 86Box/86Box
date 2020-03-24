@@ -22,25 +22,24 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../timer.h"
-#include "../io.h"
-#include "../device.h"
-#include "../chipset/chipset.h"
-#include "../keyboard.h"
-#include "../mem.h"
-#include "../nvr.h"
-#include "../pci.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../rom.h"
-#include "../sio.h"
-#include "../disk/hdc.h"
-#include "../video/video.h"
-#include "../video/vid_ht216.h"
-#include "../intel_flash.h"
-#include "../intel_sio.h"
+#include "86box.h"
+#include "cpu.h"
+#include "timer.h"
+#include "86box_io.h"
+#include "device.h"
+#include "chipset.h"
+#include "keyboard.h"
+#include "mem.h"
+#include "nvr.h"
+#include "pci.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "rom.h"
+#include "sio.h"
+#include "hdc.h"
+#include "video.h"
+#include "intel_flash.h"
+#include "intel_sio.h"
 #include "machine.h"
 
 
@@ -68,24 +67,6 @@ machine_at_pb410a_init(const machine_t *model)
     return ret;
 }
 
-int
-machine_at_micronics386_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleaved(L"roms/machines/micronics386/386-Micronics-09-00021-EVEN.BIN",
-				L"roms/machines/micronics386/386-Micronics-09-00021-ODD.BIN",
-				0x000f0000, 131072, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_init(model);
-	device_add(&keyboard_at_device);
-    device_add(&fdc_at_device);
-
-    return ret;
-}
 
 static void
 machine_at_ali1429_common_init(const machine_t *model)
@@ -288,10 +269,10 @@ machine_at_win471_init(const machine_t *model)
 static void
 machine_at_sis_85c496_common_init(const machine_t *model)
 {
-    device_add(&ide_pci_device);
+    device_add(&ide_pci_2ch_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x05, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
@@ -353,6 +334,29 @@ machine_at_ls486e_init(const machine_t *model)
 
 
 int
+machine_at_4dps_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/4dps/4DPS172G.BIN",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    machine_at_sis_85c496_common_init(model);
+    pci_register_slot(0x07, PCI_CARD_NORMAL, 4, 1, 2, 3);
+
+    device_add(&w83787f_device);
+    device_add(&keyboard_ps2_pci_device);
+
+    return ret;
+}
+
+
+int
 machine_at_alfredo_init(const machine_t *model)
 {
     int ret;
@@ -367,18 +371,50 @@ machine_at_alfredo_init(const machine_t *model)
     device_add(&ide_pci_2ch_device);
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
-    pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     pci_register_slot(0x06, PCI_CARD_NORMAL, 3, 2, 1, 4);
     pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 1, 3, 4);
     pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 3, 2, 4);
-    pci_register_slot(0x02, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sio_device);
     device_add(&fdc37c663_device);
     device_add(&intel_flash_bxt_ami_device);
 
     device_add(&i420tx_device);
+
+    return ret;
+}
+
+
+int
+machine_at_486sp3g_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/486sp3g/PCI-I-486SP3G_0306.001 (Beta).bin",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+    device_add(&ide_pci_2ch_device);
+
+    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x06, PCI_CARD_NORMAL, 3, 2, 1, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 1, 3, 4);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 3, 2, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&sio_device);	/* Site says it has a ZB, but the BIOS is designed for an IB. */
+    device_add(&pc87306_device);
+    device_add(&intel_flash_bxt_ami_device);
+
+    device_add(&i420zx_device);
 
     return ret;
 }

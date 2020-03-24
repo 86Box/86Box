@@ -1,0 +1,15 @@
+Comparing files CPU\x86_ops_mov.h and CPU_NEW\X86_OPS_MOV.H
+***** CPU\x86_ops_mov.h
+
+#if defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686))
+#define opCMOV(condition)                                                               \
+***** CPU_NEW\X86_OPS_MOV.H
+
+#define opCMOV(condition)                                                               \
+*****
+
+***** CPU\x86_ops_mov.h
+#endif
+***** CPU_NEW\X86_OPS_MOV.H
+*****
+

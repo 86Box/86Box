@@ -21,18 +21,26 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "../timer.h"
-#include "../mem.h"
+#include "86box.h"
+#include "device.h"
+#include "timer.h"
+#include "mem.h"
 #include "video.h"
 #include "vid_svga.h"
-#include "vid_tkd8001_ramdac.h"
+
+
+typedef struct tkd8001_ramdac_t
+{
+    int state;
+    uint8_t ctrl;
+} tkd8001_ramdac_t;
 
 
 void
-tkd8001_ramdac_out(uint16_t addr, uint8_t val, tkd8001_ramdac_t *ramdac, svga_t *svga)
+tkd8001_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
 {
+    tkd8001_ramdac_t *ramdac = (tkd8001_ramdac_t *) p;
+
     switch (addr) {
 	case 0x3C6:
 		if (ramdac->state == 4) {
@@ -70,8 +78,10 @@ tkd8001_ramdac_out(uint16_t addr, uint8_t val, tkd8001_ramdac_t *ramdac, svga_t 
 
 
 uint8_t
-tkd8001_ramdac_in(uint16_t addr, tkd8001_ramdac_t *ramdac, svga_t *svga)
+tkd8001_ramdac_in(uint16_t addr, void *p, svga_t *svga)
 {
+    tkd8001_ramdac_t *ramdac = (tkd8001_ramdac_t *) p;
+
     switch (addr) {
 	case 0x3C6:
 		if (ramdac->state == 4)

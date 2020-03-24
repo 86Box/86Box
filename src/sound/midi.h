@@ -11,7 +11,7 @@ extern int midi_device_current;
 extern int midi_input_device_current;
 
 extern void (*input_msg)(void *p, uint8_t *msg);
-extern int (*input_sysex)(void *p, uint8_t *buffer, uint32_t len, int abort);
+extern int (*input_sysex)(void *p, uint8_t *buf, uint32_t len, int abort);
 extern void *midi_in_p;
 
 int midi_device_available(int card);
@@ -95,5 +95,16 @@ extern void	midi_in_sysex(uint8_t *buffer, uint32_t len);
 
 #define MIDI_INPUT_NAME "MIDI Input Device"
 #define MIDI_INPUT_INTERNAL_NAME "midi_in"
+
+#ifdef EMU_DEVICE_H
+extern const device_t system_midi_device;
+#ifdef USE_FLUIDSYNTH
+extern const device_t fluidsynth_device;
+#endif
+#ifdef USE_MUNT
+extern const device_t mt32_device;
+extern const device_t cm32l_device;
+#endif
+#endif
 
 #endif	/*EMU_SOUND_MIDI_H*/

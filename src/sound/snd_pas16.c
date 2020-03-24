@@ -5,21 +5,19 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../io.h"
-#include "../pic.h"
-#include "../timer.h"
-#include "../pit.h"
-#include "../dma.h"
-#include "../device.h"
+#include "86box.h"
+#include "cpu.h"
+#include "86box_io.h"
+#include "pic.h"
+#include "timer.h"
+#include "pit.h"
+#include "dma.h"
+#include "device.h"
 #include "sound.h"
 #include "filters.h"
 #include "snd_mpu401.h"
 #include "snd_opl.h"
-#include "snd_sb.h"
 #include "snd_sb_dsp.h"
-#include "snd_pas16.h"
 
 
 /*      Original PAS uses

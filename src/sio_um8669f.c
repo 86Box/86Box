@@ -28,13 +28,13 @@ PnP registers :
 #include <wchar.h>
 #include "86box.h"
 #include "device.h"
-#include "io.h"
+#include "86box_io.h"
 #include "timer.h"
 #include "pci.h"
 #include "lpt.h"
 #include "serial.h"
-#include "floppy/fdd.h"
-#include "floppy/fdc.h"
+#include "fdd.h"
+#include "fdc.h"
 #include "sio.h"
 
 
@@ -181,7 +181,8 @@ um8669f_pnp_read(uint16_t port, void *priv)
 }
 
 
-void um8669f_write(uint16_t port, uint8_t val, void *priv)
+void
+um8669f_write(uint16_t port, uint8_t val, void *priv)
 {
     um8669f_t *dev = (um8669f_t *) priv;
     int new_pnp_active;
@@ -224,7 +225,8 @@ void um8669f_write(uint16_t port, uint8_t val, void *priv)
 }
 
 
-uint8_t um8669f_read(uint16_t port, void *priv)
+uint8_t
+um8669f_read(uint16_t port, void *priv)
 {
     um8669f_t *dev = (um8669f_t *) priv;
     uint8_t ret = 0xff;
@@ -297,7 +299,7 @@ um8669f_init(const device_t *info)
     um8669f_t *dev = (um8669f_t *) malloc(sizeof(um8669f_t));
     memset(dev, 0, sizeof(um8669f_t));
 
-    dev->fdc = device_add(&fdc_at_device);
+    dev->fdc = device_add(&fdc_at_smc_device);
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);

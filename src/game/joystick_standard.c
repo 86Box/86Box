@@ -39,9 +39,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "../timer.h"
+#include "86box.h"
+#include "device.h"
+#include "timer.h"
 #include "gameport.h"
 #include "joystick_standard.h"
 

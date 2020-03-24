@@ -20,9 +20,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "../disk/hdd.h"
+#include "86box.h"
+#include "device.h"
+#include "hdd.h"
 #include "scsi.h"
 #include "scsi_device.h"
 
