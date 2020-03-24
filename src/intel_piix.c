@@ -99,7 +99,7 @@ typedef struct
 
 typedef struct
 {
-    uint8_t		cur_readout_reg,
+    uint8_t		cur_readout_reg, rev,
 			type, func_shift,
 			max_func, pci_slot,
 			regs[4][256],
@@ -700,16 +700,16 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x6a:
 		switch (dev->type) {
-			case 0: case 1:
+			case 1:
 			default:
 				fregs[0x6a] = (fregs[0x6a] & 0xfb) | (val & 0x04);
-				if (dev->type > 0) {
-					fregs[0x0e] = (val & 0x04) ? 0x80 : 0x00;
-					dev->max_func = 0 + !!(val & 0x04);
-				}
+				fregs[0x0e] = (val & 0x04) ? 0x80 : 0x00;
+				piix_log("PIIX: Write %02X\n", val);
+				dev->max_func = 0 + !!(val & 0x04);
 				break;
 			case 3:
 				fregs[0x6a] = val & 0xd1;
+				piix_log("PIIX3: Write %02X\n", val);
 				dev->max_func = 1 + !!(val & 0x10);
 				break;
 			case 4:
@@ -1075,22 +1075,19 @@ piix_reset_hard(piix_t *dev)
 
     uint16_t old_base = (dev->regs[1][0x20] & 0xf0) | (dev->regs[1][0x21] << 8);
 
-    /* Type 0 is the PB640's PIIX without IDE. */
-    if (dev->type > 0) {
-	sff_bus_master_reset(dev->bm[0], old_base);
-	sff_bus_master_reset(dev->bm[1], old_base + 8);
+    sff_bus_master_reset(dev->bm[0], old_base);
+    sff_bus_master_reset(dev->bm[1], old_base + 8);
 
-	if (dev->type == 4) {
-		sff_set_irq_mode(dev->bm[0], 0);
-		sff_set_irq_mode(dev->bm[1], 0);
-	}
+    if (dev->type == 4) {
+	sff_set_irq_mode(dev->bm[0], 0);
+	sff_set_irq_mode(dev->bm[1], 0);
+    }
 
 #ifdef ENABLE_PIIX_LOG
-        piix_log("piix_reset_hard()\n");
+    piix_log("piix_reset_hard()\n");
 #endif
-	ide_pri_disable();
-	ide_sec_disable();
-    }
+    ide_pri_disable();
+    ide_sec_disable();
 
     if (dev->type > 3) {
 	nvr_at_handler(0, 0x0072, dev->nvr);
@@ -1111,12 +1108,15 @@ piix_reset_hard(piix_t *dev)
     /* Function 0: PCI to ISA Bridge */
     fregs = (uint8_t *) dev->regs[0];
     piix_log("PIIX Function 0: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
-    fregs[0x04] = (dev->type > 0) ? 0x07 : 0x06;	/* Check the value for the PB640 PIIX. */
+    fregs[0x04] = 0x07;
     fregs[0x06] = 0x80; fregs[0x07] = 0x02;
-    fregs[0x08] = (dev->type > 0) ? 0x00 : 0x02;	/* Should normal PIIX alos return 0x02? */
+    if (dev->type == 4)
+	fregs[0x08] = (dev->rev & 0x08) ? 0x02 : (dev->rev & 0x07);
+    else
+    	fregs[0x08] = dev->rev;
     fregs[0x09] = 0x00;
     fregs[0x0a] = 0x01; fregs[0x0b] = 0x06;
-    fregs[0x0e] = (dev->type > 0) ? 0x80 : 0x00;
+    fregs[0x0e] = (dev->type > 1) ? 0x80 : 0x00;
     fregs[0x4c] = 0x4d;
     fregs[0x4e] = 0x03;
     fregs[0x60] = fregs[0x61] = fregs[0x62] = fregs[0x63] = 0x80;
@@ -1134,23 +1134,29 @@ piix_reset_hard(piix_t *dev)
     dev->max_func = 0;
 
     /* Function 1: IDE */
-    if (dev->type > 0) {
-	fregs = (uint8_t *) dev->regs[1];
-	piix_log("PIIX Function 1: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
-	fregs[0x04] = (dev->type > 3) ? 0x05 : 0x07;
-	fregs[0x06] = 0x80; fregs[0x07] = 0x02;
-	fregs[0x09] = 0x80;
-	fregs[0x0a] = 0x01; fregs[0x0b] = 0x01;
-	fregs[0x20] = 0x01;
-	dev->max_func = 1;
-    }
+    fregs = (uint8_t *) dev->regs[1];
+    piix_log("PIIX Function 1: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
+    fregs[0x04] = (dev->type > 3) ? 0x05 : 0x07;
+    fregs[0x06] = 0x80; fregs[0x07] = 0x02;
+    if (dev->type == 4)
+	fregs[0x08] = dev->rev & 0x07;
+    else
+	fregs[0x08] = dev->rev;
+    fregs[0x09] = 0x80;
+    fregs[0x0a] = 0x01; fregs[0x0b] = 0x01;
+    fregs[0x20] = 0x01;
+    dev->max_func = 0;		/* It starts with IDE disabled, then enables it. */
 
     /* Function 2: USB */
-    if (dev->type > 2) {
+    if (dev->type > 1) {
 	fregs = (uint8_t *) dev->regs[2];
 	piix_log("PIIX Function 2: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
 	fregs[0x04] = 0x05;
 	fregs[0x06] = 0x80; fregs[0x07] = 0x02;
+	if (dev->type == 4)
+		fregs[0x08] = dev->rev & 0x07;
+	else
+		fregs[0x08] = dev->rev;
 	fregs[0x0a] = 0x03; fregs[0x0b] = 0x0c;
 	fregs[0x20] = 0x01;
 	fregs[0x3d] = 0x04;
@@ -1158,7 +1164,7 @@ piix_reset_hard(piix_t *dev)
 	fregs[0x6a] = (dev->type == 3) ? 0x01 : 0x00;
 	fregs[0xc1] = 0x20;
 	fregs[0xff] = (dev->type > 3) ? 0x10 : 0x00;
-	dev->max_func = 2;
+	dev->max_func = 1;	/* It starts with USB disabled, then enables it. */
     }
 
     /* Function 3: Power Management */
@@ -1166,6 +1172,7 @@ piix_reset_hard(piix_t *dev)
 	fregs = (uint8_t *) dev->regs[3];	
 	piix_log("PIIX Function 3: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
 	fregs[0x06] = 0x80; fregs[0x07] = 0x02;
+	fregs[0x08] = (dev->rev & 0x08) ? 0x02 : (dev->rev & 0x07);
 	fregs[0x0a] = 0x80; fregs[0x0b] = 0x06;
 	/* NOTE: The Specification Update says this should default to 0x00 and be read-only. */
 #ifdef WRONG_SPEC
@@ -1213,17 +1220,17 @@ static void
     piix_t *dev = (piix_t *) malloc(sizeof(piix_t));
     memset(dev, 0, sizeof(piix_t));
 
-    dev->type = info->local & 0xff;
+    dev->type = info->local & 0x0f;
+    /* If (dev->type == 4) and (dev->rev & 0x08), then this is PIIX4E. */
+    dev->rev = (info->local >> 4) & 0x0f;
     dev->func_shift = info->local >> 8;
     dev->func0_id = info->local >> 16;
 
     dev->pci_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, piix_read, piix_write, dev);
     piix_log("PIIX%i: Added to slot: %02X\n", dev->type, dev->pci_slot);
 
-    if (dev->type > 0) {	/* PB640's PIIX has no IDE part. */
-	dev->bm[0] = device_add_inst(&sff8038i_device, 1);
-	dev->bm[1] = device_add_inst(&sff8038i_device, 2);
-    }
+    dev->bm[0] = device_add_inst(&sff8038i_device, 1);
+    dev->bm[1] = device_add_inst(&sff8038i_device, 2);
 
     if (dev->type > 3)
 	dev->nvr = device_add(&piix4_nvr_device);
@@ -1317,20 +1324,6 @@ static void
 }
 
 
-const device_t piix_pb640_device =
-{
-    "Intel 82371FB (PIIX) (PB640)",
-    DEVICE_PCI,
-    0x122e0100,
-    piix_init, 
-    piix_close, 
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL
-};
-
 const device_t piix_device =
 {
     "Intel 82371FB (PIIX)",
@@ -1364,6 +1357,20 @@ const device_t piix4_device =
     "Intel 82371AB/EB (PIIX4/PIIX4E)",
     DEVICE_PCI,
     0x71100004,
+    piix_init, 
+    piix_close, 
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t piix4e_device =
+{
+    "Intel 82371EB (PIIX4E)",
+    DEVICE_PCI,
+    0x71100094,
     piix_init, 
     piix_close, 
     NULL,
