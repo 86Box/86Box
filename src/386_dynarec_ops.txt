@@ -1,3 +1,0 @@
-Comparing files CPU\386_dynarec_ops.c and CPU_NEW\386_DYNAREC_OPS.C
-FC: no differences encountered
-

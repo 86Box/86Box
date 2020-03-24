@@ -1,3 +1,0 @@
-Comparing files CPU\x86_ops_msr.h and CPU_NEW\X86_OPS_MSR.H
-FC: no differences encountered
-

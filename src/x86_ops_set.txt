@@ -1,3 +1,0 @@
-Comparing files CPU\x86_ops_set.h and CPU_NEW\X86_OPS_SET.H
-FC: no differences encountered
-

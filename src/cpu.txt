@@ -1,3 +1,0 @@
-Comparing files CPU\cpu.c and CPU_NEW\CPU.C
-FC: no differences encountered
-

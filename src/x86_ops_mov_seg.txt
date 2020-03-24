@@ -1,3 +1,0 @@
-Comparing files CPU\x86_ops_mov_seg.h and CPU_NEW\X86_OPS_MOV_SEG.H
-FC: no differences encountered
-

@@ -1,3 +1,0 @@
-Comparing files CPU\x86_ops_prefix.h and CPU_NEW\X86_OPS_PREFIX.H
-FC: no differences encountered
-

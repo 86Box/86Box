@@ -1,3 +1,0 @@
-Comparing files CPU\386.c and CPU_NEW\386.C
-FC: no differences encountered
-

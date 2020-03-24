@@ -1,3 +1,0 @@
-Comparing files CPU\x86_ops_rep.h and CPU_NEW\X86_OPS_REP.H
-FC: no differences encountered
-
