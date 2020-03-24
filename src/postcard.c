@@ -95,6 +95,9 @@ postcard_reset(void)
 static void
 postcard_write(uint16_t port, uint8_t val, void *priv)
 {
+    if (postcard_written && val == postcard_code)
+    	return;
+
     postcard_prev_code = postcard_code;
     postcard_code = val;
     if (postcard_written < 2)
