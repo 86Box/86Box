@@ -24,10 +24,10 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../timer.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "86box.h"
+#include "timer.h"
+#include "plat.h"
+#include "ui.h"
 #include "fdd.h"
 #include "fdd_86f.h"
 #include "fdd_fdi.h"
@@ -491,7 +491,8 @@ fdd_load(int drive, wchar_t *fn)
     f = plat_fopen(fn, L"rb");
     if (!f)
 	return;
-    fseek(f, -1, SEEK_END);
+    if (fseek(f, -1, SEEK_END) == -1)
+	fatal("fdd_load(): Error seeking to the end of the file\n");
     size = ftell(f) + 1;
     fclose(f);        
     while (loaders[c].ext) {

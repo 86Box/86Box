@@ -24,10 +24,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../plat.h"
-#include "../game/gameport.h"
+#include "86box.h"
+#include "device.h"
+#include "plat.h"
+#include "gameport.h"
 #include "win.h"
 
 #define XINPUT_MAX_JOYSTICKS 4
@@ -216,7 +216,7 @@ void joystick_process(void)
 {
         int c, d;
 
-	if (joystick_type == 7) return;
+	if (joystick_type == JOYSTICK_TYPE_NONE) return;
 
         joystick_poll();
 

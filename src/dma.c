@@ -8,36 +8,32 @@
  *
  *		Implementation of the Intel DMA controllers.
  *
- * Version:	@(#)dma.c	1.0.7	2019/09/28
+ * Version:	@(#)dma.c	1.0.9	2020/01/26
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
-#ifdef USE_NEW_DYNAREC
-#include "cpu_new/cpu.h"
-#include "cpu_new/x86.h"
-#else
-#include "cpu/cpu.h"
-#include "cpu/x86.h"
-#endif
+#include "cpu_common/cpu.h"
+#include "cpu_common/x86.h"
 #include "machine/machine.h"
 #include "mca.h"
 #include "mem.h"
-#include "io.h"
+#include "86box_io.h"
 #include "dma.h"
 
 
 dma_t		dma[8];
+uint8_t		dma_e;
 
 
 static uint8_t	dmaregs[16];
@@ -615,6 +611,8 @@ dma_reset(void)
     dma_wp = dma16_wp = 0;
     dma_m = 0;
 
+    dma_e = 0xff;
+
     for (c = 0; c < 16; c++)
 	dmaregs[c] = dma16regs[c] = 0;
     for (c = 0; c < 8; c++) {
@@ -665,6 +663,20 @@ void
 dma_alias_set(void)
 {
     io_sethandler(0x0090, 16,
+		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+}
+
+
+void
+dma_alias_set_piix(void)
+{
+    io_sethandler(0x0090, 1,
+		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+    io_sethandler(0x0094, 3,
+		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+    io_sethandler(0x0098, 1,
+		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+    io_sethandler(0x009C, 3,
 		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
 }
 
@@ -736,6 +748,8 @@ dma_channel_read(int channel)
 		return(DMA_NODATA);
     }
 
+    if (!(dma_e & (1 << channel)))
+	return(DMA_NODATA);
     if ((dma_m & (1 << channel)) && !dma_req_is_soft)
 	return(DMA_NODATA);
     if ((dma_c->mode & 0xC) != 8)
@@ -809,6 +823,8 @@ dma_channel_write(int channel, uint16_t val)
 		return(DMA_NODATA);
     }
 
+    if (!(dma_e & (1 << channel)))
+	return(DMA_NODATA);
     if ((dma_m & (1 << channel)) && !dma_req_is_soft)
 	return(DMA_NODATA);
     if ((dma_c->mode & 0xC) != 4)

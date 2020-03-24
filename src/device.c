@@ -47,8 +47,8 @@
 #include "86box.h"
 #include "config.h"
 #include "device.h"
-#include "machine/machine.h"
-#include "sound/sound.h"
+#include "machine.h"
+#include "sound.h"
 
 
 #define DEVICE_MAX	256			/* max # of devices */

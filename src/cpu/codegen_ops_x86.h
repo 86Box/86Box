@@ -2951,10 +2951,6 @@ static inline void FP_OP_IQ(int op)
         }
 }
 #endif
-#define C0 (1<<8)
-#define C1 (1<<9)
-#define C2 (1<<10)
-#define C3 (1<<14)
 
 static inline void FP_COMPARE_S()
 {

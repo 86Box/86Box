@@ -24,24 +24,23 @@
 #include <wchar.h>
 #include <math.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../timer.h"
-#include "../io.h"
-#include "../pit.h"
-#include "../nmi.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../nvr.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../game/gameport.h"
-#include "../keyboard.h"
-#include "../sound/sound.h"
-#include "../sound/snd_pssj.h"
-#include "../sound/snd_sn76489.h"
-#include "../video/video.h"
-#include "../video/vid_cga_comp.h"
+#include "86box.h"
+#include "timer.h"
+#include "86box_io.h"
+#include "pit.h"
+#include "nmi.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "nvr.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "gameport.h"
+#include "keyboard.h"
+#include "sound.h"
+#include "snd_sn76489.h"
+#include "video.h"
+#include "vid_cga_comp.h"
 #include "machine.h"
 
 
@@ -1293,7 +1292,8 @@ eep_init(const device_t *info)
 
     f = nvr_fopen(eep->path, L"rb");
     if (f != NULL) {
-	fread(eep->store, 128, 1, f);
+	if (fread(eep->store, 1, 128, f) != 128)
+		fatal("eep_init(): Error reading Tandy EEPROM\n");
 	(void)fclose(f);
     }
 
@@ -1526,7 +1526,7 @@ machine_tandy1k_init(const machine_t *model, int type)
 		device_add(&eep_1000sl2_device);
     }
 
-    if (joystick_type != 7)
+    if (joystick_type != JOYSTICK_TYPE_NONE)
 	device_add(&gameport_device);
 
     eep_data_out = 0x0000;

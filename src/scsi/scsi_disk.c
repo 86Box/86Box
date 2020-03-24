@@ -19,17 +19,17 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../timer.h"
-#include "../device.h"
-#include "../nvr.h"
-#include "../piix.h"
-#include "../disk/hdd.h"
-#include "../disk/hdc.h"
+#include "86box.h"
+#include "timer.h"
+#include "device.h"
+#include "nvr.h"
+#include "piix.h"
+#include "hdd.h"
+#include "hdc.h"
 #include "scsi_device.h"
-#include "../disk/hdc_ide.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "hdc_ide.h"
+#include "plat.h"
+#include "ui.h"
 #include "scsi_disk.h"
 
 
@@ -155,7 +155,8 @@ scsi_disk_mode_sense_load(scsi_disk_t *dev)
     swprintf(file_name, 512, L"scsi_disk_%02i_mode_sense.bin", dev->id);
     f = plat_fopen(nvr_path(file_name), L"rb");
     if (f) {
-	fread(dev->ms_pages_saved.pages[0x30], 1, 0x18, f);
+	if (fread(dev->ms_pages_saved.pages[0x30], 1, 0x18, f) != 0x18)
+		fatal("scsi_disk_mode_sense_load(): Error reading data\n");
 	fclose(f);
     }
 }
@@ -613,6 +614,7 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
 			scsi_disk_invalid_field(dev);
 			return;
 		}
+		/*FALLTHROUGH*/
 	case GPCMD_SCSI_RESERVE:
 	case GPCMD_SCSI_RELEASE:
 	case GPCMD_TEST_UNIT_READY:
@@ -1212,7 +1214,7 @@ scsi_disk_hard_reset(void)
 		scsi_disk_log("SCSI disk hard_reset drive=%d\n", c);
 
 		/* Make sure to ignore any SCSI disk that has an out of range ID. */
-		if (hdd[c].scsi_id > SCSI_ID_MAX)
+		if (hdd[c].scsi_id >= SCSI_ID_MAX)
 			continue;
 
 		/* Make sure to ignore any SCSI disk whose image file name is empty. */

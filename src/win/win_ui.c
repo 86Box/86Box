@@ -8,16 +8,16 @@
  *
  *		user Interface module for WinAPI on Windows.
  *
- * Version:	@(#)win_ui.c	1.0.45	2019/12/05
+ * Version:	@(#)win_ui.c	1.0.46	2020/01/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2019 GH Cao.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2019,2020 GH Cao.
  */
 #define UNICODE
 #include <windows.h>
@@ -28,16 +28,16 @@
 #include <stdlib.h>
 #include <time.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../config.h"
-#include "../device.h"
-#include "../keyboard.h"
-#include "../mouse.h"
-#include "../video/video.h"
-#include "../video/vid_ega.h"		// for update_overscan
-#include "../plat.h"
-#include "../plat_midi.h"
-#include "../ui.h"
+#include "86box.h"
+#include "config.h"
+#include "device.h"
+#include "keyboard.h"
+#include "mouse.h"
+#include "video.h"
+#include "vid_ega.h"		// for update_overscan
+#include "plat.h"
+#include "plat_midi.h"
+#include "ui.h"
 #include "win.h"
 #ifdef USE_DISCORD
 # include "win_discord.h"
@@ -59,8 +59,8 @@ int		infocus = 1;
 int		rctrl_is_lalt = 0;
 int		user_resize = 0;
 
-char		openfilestring[260];
-WCHAR		wopenfilestring[260];
+char		openfilestring[512];
+WCHAR		wopenfilestring[512];
 
 
 /* Local data. */
@@ -333,7 +333,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_ACTION_EXIT:
 				win_notify_dlg_open();
-				i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
+				if (no_quit_confirm)
+					i = 0;
+				else
+					i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
 				if (i == 0) {
 					UnhookWindowsHookEx(hKeyboardHook);
 					KillTimer(hwnd, TIMER_1SEC);
@@ -628,8 +631,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		plat_vidapi_enable(0);
 		temp_y -= sbar_height;
-		if (temp_x < 1)
-			temp_x = 1;
 		if (temp_y < 1)
 			temp_y = 1;
 
@@ -700,7 +701,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_CLOSE:
 		win_notify_dlg_open();
-		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
+		if (no_quit_confirm)
+			i = 0;
+		else
+			i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
 		if (i == 0) {
 			UnhookWindowsHookEx(hKeyboardHook);
 			KillTimer(hwnd, TIMER_1SEC);
@@ -746,7 +750,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (manager_wm)
 			break;
 		win_notify_dlg_open();
-		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
+		if (no_quit_confirm)
+			i = 0;
+		else
+			i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
 		if (i == 0) {
 			UnhookWindowsHookEx(hKeyboardHook);
 			KillTimer(hwnd, TIMER_1SEC);
@@ -1099,9 +1106,12 @@ wchar_t *
 ui_window_title(wchar_t *s)
 {
     if (! video_fullscreen) {
-	if (s != NULL)
-		wcscpy(wTitle, s);
-	  else
+	if (s != NULL) {
+		if (wcslen(s) <= 512)
+			wcscpy(wTitle, s);
+		else
+			wcsncpy(wTitle, s, 512);
+	} else
 		s = wTitle;
 
        	SetWindowText(hwndMain, s);
@@ -1119,7 +1129,7 @@ void
 plat_pause(int p)
 {
     static wchar_t oldtitle[512];
-    wchar_t title[512];
+    wchar_t title[512], *t;
 
     /* If un-pausing, as the renderer if that's OK. */
     if (p == 0)
@@ -1135,7 +1145,11 @@ plat_pause(int p)
     }
 
     if (p) {
-	wcscpy(oldtitle, ui_window_title(NULL));
+	t = ui_window_title(NULL);
+	if (wcslen(t) <= 511)
+		wcscpy(oldtitle, ui_window_title(NULL));
+	else
+		wcsncpy(oldtitle, ui_window_title(NULL), 511);
 	wcscpy(title, oldtitle);
 	wcscat(title, L" - PAUSED -");
 	ui_window_title(title);

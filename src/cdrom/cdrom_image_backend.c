@@ -9,7 +9,7 @@
  *		CD-ROM image file handling module, translated to C from
  *		cdrom_dosbox.cpp.
  *
- * Version:	@(#)cdrom_image_backend.c	1.0.3	2020/01/13
+ * Version:	@(#)cdrom_image_backend.c	1.0.5	2020/01/17
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -35,8 +35,8 @@
 #endif
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../plat.h"
+#include "86box.h"
+#include "plat.h"
 #include "cdrom_image_backend.h"
 
 
@@ -45,6 +45,9 @@
 #define MAX_LINE_LENGTH		512
 #define MAX_FILENAME_LENGTH	256
 #define CROSS_LEN		512
+
+
+static char	temp_keyword[1024];
 
 
 #ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
@@ -79,11 +82,16 @@ bin_read(void *p, uint8_t *buffer, uint64_t seek, size_t count)
     if (tf->file == NULL)
 	return 0;
 
-    fseeko64(tf->file, seek, SEEK_SET);
+    if (fseeko64(tf->file, seek, SEEK_SET) == -1) {
+#ifdef ENABLE_cdrom_image_backend_log
+	cdrom_image_backend_log("CDROM: binary_read failed during seek!\n");
+#endif
+	return 0;
+    }
 
     if (fread(buffer, count, 1, tf->file) != 1) {
 #ifdef ENABLE_cdrom_image_backend_log
-	cdrom_image_backend_log("CDROM: binary_read failed!\n");
+	cdrom_image_backend_log("CDROM: binary_read failed during read!\n");
 #endif
 	return 0;
     }
@@ -136,14 +144,15 @@ bin_init(const wchar_t *filename, int *error)
     track_file_t *tf = (track_file_t *) malloc(sizeof(track_file_t));
 
     if (tf == NULL) {
-	tf->read = NULL;
-	tf->get_length = NULL;
-	tf->close = NULL;
+	*error = 1;
 	return NULL;
     }
 
     memset(tf->fn, 0x00, sizeof(tf->fn));
-    wcscpy(tf->fn, filename);
+    if (wcslen(filename) <= 260)
+	wcscpy(tf->fn, filename);
+    else
+	wcsncpy(tf->fn, filename, 260);
     tf->file = plat_fopen64(tf->fn, L"rb");
     cdrom_image_backend_log("CDROM: binary_open(%ls) = %08lx\n", tf->fn, tf->file);
 
@@ -157,9 +166,6 @@ bin_init(const wchar_t *filename, int *error)
     } else {
 	free(tf);
 	tf = NULL;
-	tf->read = NULL;
-	tf->get_length = NULL;
-	tf->close = NULL;
     }
 
     return tf;
@@ -184,6 +190,9 @@ track_file_close(track_t *trk)
     if (trk->file == NULL)
 	return;
 
+    if (trk->file->close == NULL)
+	return;
+
     trk->file->close(trk->file);
     trk->file = NULL;
 }
@@ -203,10 +212,12 @@ cdi_clear_tracks(cd_img_t *cdi)
     for (i = 0; i < cdi->tracks_num; i++) {
 	cur = &cdi->tracks[i];
 
+	/* Make sure we do not attempt to close a NULL file. */
 	if (cur->file != last) {
-		track_file_close(cur);
 		last = cur->file;
-	}
+		track_file_close(cur);
+	} else
+		cur->file = NULL;
     }
 
     /* Now free the array. */
@@ -251,6 +262,17 @@ cdi_get_audio_tracks(cd_img_t *cdi, int *st_track, int *end, TMSF *lead_out)
 }
 
 
+int
+cdi_get_audio_tracks_lba(cd_img_t *cdi, int *st_track, int *end, uint32_t *lead_out)
+{
+    *st_track = 1;
+    *end = cdi->tracks_num - 1;
+    *lead_out = cdi->tracks[*end].start;
+
+    return 1;
+}
+
+
 /* This replaces both Info and EndInfo, they are specified by a variable. */
 int
 cdi_get_audio_track_info(cd_img_t *cdi, int end, int track, int *track_num, TMSF *start, uint8_t *attr)
@@ -264,6 +286,24 @@ cdi_get_audio_track_info(cd_img_t *cdi, int end, int track, int *track_num, TMSF
     pos = trk->start + 150;
 
     FRAMES_TO_MSF(pos, &start->min, &start->sec, &start->fr);
+
+    *track_num = trk->track_number;
+    *attr = trk->attr;
+
+    return 1;
+}
+
+
+int
+cdi_get_audio_track_info_lba(cd_img_t *cdi, int end, int track, int *track_num, uint32_t *start, uint8_t *attr)
+{
+    track_t *trk = &cdi->tracks[track - 1];
+
+    if ((track < 1) || (track > cdi->tracks_num))
+	return 0;
+
+    *start = (uint32_t) trk->start;
+
     *track_num = trk->track_number;
     *attr = trk->attr;
 
@@ -335,8 +375,7 @@ cdi_read_sector(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector)
 
     trk = &cdi->tracks[track];
     track_is_raw = ((trk->sector_size == RAW_SECTOR_SIZE) || (trk->sector_size == 2448));
-    if (raw && !track_is_raw)
-	return 0;
+
     seek = trk->skip + ((sect - trk->start) * trk->sector_size);
 
     if (track_is_raw)
@@ -551,6 +590,7 @@ cdi_load_iso(cd_img_t *cdi, const wchar_t *filename)
     }
 
     trk.length = trk.file->get_length(trk.file) / trk.sector_size;
+    cdrom_image_backend_log("ISO: Data track: length = %" PRIu64 ", sector_size = %i\n", trk.length, trk.sector_size);
     cdi_track_push_back(cdi, &trk);
 
     /* Lead out track. */
@@ -624,12 +664,11 @@ cdi_cue_get_buffer(char *str, char **line, int up)
 static int
 cdi_cue_get_keyword(char **dest, char **line)
 {
-    char temp[1024];
     int success;
 
-    success = cdi_cue_get_buffer(temp, line, 1);
+    success = cdi_cue_get_buffer(temp_keyword, line, 1);
     if (success)
-	*dest = temp;
+	*dest = temp_keyword;
 
     return success;
 }
@@ -687,6 +726,10 @@ cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, u
 
     if ((cdi->tracks != NULL) && (cdi->tracks_num != 0))
 	prev = &cdi->tracks[cdi->tracks_num - 1];
+    else if ((cdi->tracks == NULL) && (cdi->tracks_num != 0)) {
+	fatal("NULL cdi->tracks with non-zero cdi->tracks_num\n");
+	return 0;
+    }
 
     /* First track (track number must be 1). */
     if (cdi->tracks_num == 0) {
@@ -790,6 +833,8 @@ cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
 			success = cdi_add_track(cdi, &trk, &shift, prestart, &total_pregap, cur_pregap);
 		else
 			success = 1;
+		if (!success)
+			break;
 
 		trk.start = 0;
 		trk.skip = 0;
@@ -884,6 +929,8 @@ cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
 			success = cdi_add_track(cdi, &trk, &shift, prestart, &total_pregap, cur_pregap);
 		else
 			success = 1;
+		if (!success)
+			break;
 		can_add_track = 0;
 
 		memset(ansi, 0, MAX_FILENAME_LENGTH * sizeof(char));

@@ -21,16 +21,16 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../timer.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../disk/hdc.h"
-#include "../disk/hdc_ide.h"
+#include "86box.h"
+#include "cpu.h"
+#include "timer.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "hdc.h"
+#include "hdc_ide.h"
 #include "machine.h"
 
 

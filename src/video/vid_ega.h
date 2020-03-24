@@ -9,13 +9,13 @@
  *		Emulation of the EGA and Chips & Technologies SuperEGA
  *		graphics cards.
  *
- * Version:	@(#)vid_ega.h	1.0.8	2019/10/03
+ * Version:	@(#)vid_ega.h	1.0.9	2020/01/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #ifndef VIDEO_EGA_H
 # define VIDEO_EGA_H
@@ -37,6 +37,7 @@ typedef struct ega_t {
     uint8_t attrregs[32];
     uint8_t seqregs[64];
     uint8_t egapal[16];
+    uint8_t regs[256];
 
     uint8_t *vram;
 
@@ -51,7 +52,7 @@ typedef struct ega_t {
 	hdisp,  hdisp_old, htotal, hdisp_time, rowoffset,
 	vblankstart, scrollcache, firstline, lastline,
 	firstline_draw, lastline_draw, x_add, y_add,
-	displine, video_res_x, video_res_y, video_bpp;
+	displine, video_res_x, video_res_y, video_bpp, index;
 
     uint32_t charseta, charsetb, ma_latch, ma,
 	     maback, ca, vram_limit, overscan_color;
@@ -64,6 +65,8 @@ typedef struct ega_t {
     double clock;
 
     void (*render)(struct ega_t *svga);
+
+    void *eeprom;
 } ega_t;
 #endif
 
@@ -72,6 +75,7 @@ typedef struct ega_t {
 extern const device_t ega_device;
 extern const device_t cpqega_device;
 extern const device_t sega_device;
+extern const device_t atiega_device;
 #endif
 
 extern int update_overscan;
@@ -94,6 +98,34 @@ extern uint8_t	ega_in(uint16_t addr, void *p);
 extern void	ega_poll(void *p);
 extern void	ega_write(uint32_t addr, uint8_t val, void *p);
 extern uint8_t	ega_read(uint32_t addr, void *p);
+
+
+extern int firstline_draw, lastline_draw;
+extern int displine;
+extern int sc;
+
+extern uint32_t ma, ca;
+extern int con, cursoron, cgablink;
+
+extern int scrollcache;
+
+extern uint8_t edatlookup[4][4];
+
+#if defined(EMU_MEM_H) && defined(EMU_ROM_H)
+void ega_render_blank(ega_t *ega);
+
+void ega_render_overscan_left(ega_t *ega);
+void ega_render_overscan_right(ega_t *ega);
+
+void ega_render_text_40(ega_t *ega);
+void ega_render_text_80(ega_t *ega);
+
+void ega_render_2bpp_lowres(ega_t *ega);
+void ega_render_2bpp_highres(ega_t *ega);
+
+void ega_render_4bpp_lowres(ega_t *ega);
+void ega_render_4bpp_highres(ega_t *ega);
+#endif
 
 
 #endif	/*VIDEO_EGA_H*/

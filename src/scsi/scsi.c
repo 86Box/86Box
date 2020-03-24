@@ -24,20 +24,21 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../disk/hdc.h"
-#include "../disk/hdd.h"
-#include "../plat.h"
+#include "86box.h"
+#include "device.h"
+#include "hdc.h"
+#include "hdd.h"
+#include "plat.h"
 #include "scsi.h"
 #include "scsi_device.h"
-#include "../cdrom/cdrom.h"
-#include "../disk/zip.h"
+#include "cdrom.h"
+#include "zip.h"
 #include "scsi_disk.h"
 #include "scsi_aha154x.h"
 #include "scsi_buslogic.h"
 #include "scsi_ncr5380.h"
 #include "scsi_ncr53c8xx.h"
+#include "scsi_spock.h"
 #ifdef WALTJE
 # include "scsi_wd33c93.h"
 #endif
@@ -60,7 +61,7 @@ static SCSI_CARD scsi_cards[] = {
     { "[ISA] Adaptec AHA-154xB",	"aha154xb",	&aha154xb_device,	},
     { "[ISA] Adaptec AHA-154xC",	"aha154xc",	&aha154xc_device,	},
     { "[ISA] Adaptec AHA-154xCF",	"aha154xcf",	&aha154xcf_device,	},
-	{ "[ISA] BusLogic BT-542B",		"bt542b",	&buslogic_542b_1991_device,	},
+    { "[ISA] BusLogic BT-542B",		"bt542b",	&buslogic_542b_1991_device,	},
     { "[ISA] BusLogic BT-542BH",	"bt542bh",	&buslogic_device,	},
     { "[ISA] BusLogic BT-545S",		"bt545s",	&buslogic_545s_device,	},
     { "[ISA] Longshine LCS-6821N",	"lcs6821n",	&scsi_lcs6821n_device,	},
@@ -72,9 +73,11 @@ static SCSI_CARD scsi_cards[] = {
 #endif
     { "[MCA] Adaptec AHA-1640",		"aha1640",	&aha1640_device,	},
     { "[MCA] BusLogic BT-640A",		"bt640a",	&buslogic_640a_device,	},
+    { "[MCA] IBM PS/2 SCSI",		"spock",	&spock_device,		},
     { "[PCI] BusLogic BT-958D",		"bt958d",	&buslogic_pci_device,	},
     { "[PCI] NCR 53C810",		"ncr53c810",	&ncr53c810_pci_device,	},
-    //{ "[PCI] NCR 53C825A",		"ncr53c825a",	&ncr53c825a_pci_device,	},
+    { "[PCI] NCR 53C825A",		"ncr53c825a",	&ncr53c825a_pci_device,	},
+    { "[PCI] NCR 53C860",		"ncr53c860",	&ncr53c860_pci_device,	},
     { "[PCI] NCR 53C875",		"ncr53c875",	&ncr53c875_pci_device,	},
     { "[VLB] BusLogic BT-445S",		"bt445s",	&buslogic_445s_device,	},
     { "",				"",		NULL,			},

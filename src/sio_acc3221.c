@@ -20,16 +20,16 @@
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
-#include "io.h"
+#include "86box_io.h"
 #include "timer.h"
 #include "device.h"
 #include "pci.h"
 #include "lpt.h"
 #include "serial.h"
-#include "disk/hdc.h"
-#include "disk/hdc_ide.h"
-#include "floppy/fdd.h"
-#include "floppy/fdc.h"
+#include "hdc.h"
+#include "hdc_ide.h"
+#include "fdd.h"
+#include "fdc.h"
 #include "sio.h"
 
 typedef struct acc3221_t

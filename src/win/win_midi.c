@@ -4,11 +4,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../config.h"
-#include "../sound/midi.h"
-#include "../plat.h"
-#include "../plat_midi.h"
+#include "86box.h"
+#include "config.h"
+#include "midi.h"
+#include "plat.h"
+#include "plat_midi.h"
 
 
 typedef struct
@@ -18,7 +18,7 @@ typedef struct
     HANDLE m_event;
 
     HMIDIOUT midi_out_device;
-	HMIDIIN midi_in_device;
+    HMIDIIN midi_in_device;
 
     MIDIHDR m_hdr;
 } plat_midi_t;
@@ -137,56 +137,43 @@ plat_midi_write(uint8_t val)
     return 0;
 }
 
+
 void CALLBACK
 plat_midi_in_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) 
 {
-	uint8_t msg[4] = {((dwParam1&0xff)),(((dwParam1&0xff00)>>8)),
-					(((dwParam1&0xff0000)>>16)),MIDI_evt_len[((dwParam1&0xff))]};
-	uint8_t *sysex;
-	uint32_t len;
-	int cnt;
-	MIDIHDR *hdr;
-	switch (wMsg) {
-		case MM_MIM_DATA:  /* 0x3C3 - midi message */
-			input_msg(midi_in_p, msg);
-			break;
-		case MM_MIM_OPEN:  /* 0x3C1 */
-			break;
-		case MM_MIM_CLOSE: /* 0x3C2 */
-			break;
-		case MM_MIM_LONGDATA: /* 0x3C4 - sysex */
-			hdr = (MIDIHDR *)dwParam1;
-			sysex = (uint8_t *)hdr->lpData; 
-			len = (uint32_t)hdr->dwBytesRecorded;
-			cnt = 5;
-			while (cnt) { /*abort if timed out*/
-				int ret = input_sysex(midi_in_p, sysex, len, 0);
-				if (!ret) {
-					len = 0;
-					break;
-				}
-				if (len==ret) 
-					cnt--; 
-				else 
-					cnt = 5;
-				sysex += len-ret;
-				len = ret;
-				Sleep(5);/*msec*/
-			}
-			if (len) 
-				input_sysex(midi_in_p, sysex, 0, 0);
-			
-			midiInUnprepareHeader(hMidiIn, hdr, sizeof(*hdr));
-			hdr->dwBytesRecorded = 0;
-			midiInPrepareHeader(hMidiIn, hdr, sizeof(*hdr));
-			break;
-		case MM_MIM_ERROR:
-		case MM_MIM_LONGERROR:
-			break;
-		default:
-			break;
-	}
+    uint8_t msg[4] = { ((dwParam1 & 0xff)), (((dwParam1 & 0xff00) >> 8)),
+		       (((dwParam1 & 0xff0000) >> 16)), MIDI_evt_len[((dwParam1 & 0xff))]};
+    uint8_t *sysex;
+    uint32_t len;
+    MIDIHDR *hdr;
+
+    switch (wMsg) {
+	case MM_MIM_DATA:	/* 0x3C3 - midi message */
+		midi_in_msg(msg);
+		break;
+	case MM_MIM_OPEN:	/* 0x3C1 */
+		break;
+	case MM_MIM_CLOSE:	/* 0x3C2 */
+		break;
+	case MM_MIM_LONGDATA:	/* 0x3C4 - sysex */
+		/* It is midi_in_sysex() that now does the loop. */
+		hdr = (MIDIHDR *) dwParam1;
+		sysex = (uint8_t *) hdr->lpData; 
+		len = (uint32_t) hdr->dwBytesRecorded;
+		midi_in_sysex(sysex, len);
+
+		midiInUnprepareHeader(hMidiIn, hdr, sizeof(*hdr));
+		hdr->dwBytesRecorded = 0;
+		midiInPrepareHeader(hMidiIn, hdr, sizeof(*hdr));
+		break;
+	case MM_MIM_ERROR:
+	case MM_MIM_LONGERROR:
+		break;
+	default:
+		break;
+    }
 }
+
 
 void
 plat_midi_input_init(void)
@@ -197,11 +184,11 @@ plat_midi_input_init(void)
     memset(pm_in, 0, sizeof(plat_midi_t));
 
     pm_in->midi_input_id = config_get_int(MIDI_INPUT_NAME, "midi_input", 0);
-	
-	hr = MMSYSERR_NOERROR;	
-	
+
+    hr = MMSYSERR_NOERROR;	
+
     hr = midiInOpen(&pm_in->midi_in_device, pm_in->midi_input_id,
-		     (uintptr_t) plat_midi_in_callback, 0, CALLBACK_FUNCTION);
+		    (uintptr_t) plat_midi_in_callback, 0, CALLBACK_FUNCTION);
     if (hr != MMSYSERR_NOERROR) {
 	printf("midiInOpen error - %08X\n", hr);
 	pm_in->midi_input_id = 0;
@@ -212,14 +199,15 @@ plat_midi_input_init(void)
 		return;
 	}
     }
-	
-	pm_in->m_hdr.lpData = (char*)&MIDI_InSysexBuf[0];
-	pm_in->m_hdr.dwBufferLength = SYSEX_SIZE;
-	pm_in->m_hdr.dwBytesRecorded = 0;
-	pm_in->m_hdr.dwUser = 0;
-	midiInPrepareHeader(pm_in->midi_in_device,&pm_in->m_hdr,sizeof(pm_in->m_hdr));
-	midiInStart(pm_in->midi_in_device);
+
+    pm_in->m_hdr.lpData = (char*)&MIDI_InSysexBuf[0];
+    pm_in->m_hdr.dwBufferLength = SYSEX_SIZE;
+    pm_in->m_hdr.dwBytesRecorded = 0;
+    pm_in->m_hdr.dwUser = 0;
+    midiInPrepareHeader(pm_in->midi_in_device,&pm_in->m_hdr,sizeof(pm_in->m_hdr));
+    midiInStart(pm_in->midi_in_device);
 }
+
 
 void
 plat_midi_input_close(void)
@@ -234,6 +222,7 @@ plat_midi_input_close(void)
 	pm_in = NULL;
     }
 }
+
 
 int
 plat_midi_in_get_num_devs(void)

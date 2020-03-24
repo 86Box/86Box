@@ -3,21 +3,21 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../nmi.h"
-#include "../timer.h"
-#include "../pit.h"
-#include "../rom.h"
+#include "86box.h"
+#include "cpu.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "nmi.h"
+#include "timer.h"
+#include "pit.h"
+#include "rom.h"
 #include "machine.h"
-#include "../device.h"
-#include "../timer.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../game/gameport.h"
-#include "../keyboard.h"
+#include "device.h"
+#include "timer.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "gameport.h"
+#include "keyboard.h"
 
 
 static int laserxt_emspage[4];
@@ -171,7 +171,7 @@ machine_xt_lxt3_init(const machine_t *model)
     device_add(&keyboard_xt_lxt3_device);
     device_add(&fdc_xt_device);
     nmi_init();
-    if (joystick_type != 7)
+    if (joystick_type != JOYSTICK_TYPE_NONE)
 	device_add(&gameport_device);
 
     laserxt_init(1);

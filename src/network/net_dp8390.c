@@ -7,7 +7,7 @@
  *		Emulation of the DP8390 Network Interface Controller used by
  *		the WD family, NE1000/NE2000 family, and 3Com 3C503 NIC's.
  *
- * Version:	@(#)net_dp8390.c	1.0.2	2018/10/21
+ * Version:	@(#)net_dp8390.c	1.0.3	2020/03/23
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Bochs project,
@@ -23,8 +23,8 @@
 #include <wchar.h>
 #include <time.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
+#include "86box.h"
+#include "device.h"
 #include "network.h"
 #include "net_dp8390.h"
 
@@ -204,7 +204,7 @@ dp8390_write_cr(dp8390_t *dev, uint32_t val)
     /* Check for start-tx */
     if ((val & 0x04) && dev->TCR.loop_cntl) {
 	if (dev->TCR.loop_cntl) {
-		dp8390_rx(dev, &dev->mem[(dev->tx_page_start * 256) - dev->mem_start],
+		dp8390_rx(dev, dev->mem,
 			  dev->tx_bytes);
 	}
     } else if (val & 0x04) {
@@ -224,7 +224,7 @@ dp8390_write_cr(dp8390_t *dev, uint32_t val)
 	/* Send the packet to the system driver */
 	dev->CR.tx_packet = 1;
 
-	network_tx(&dev->mem[(dev->tx_page_start * 256) - dev->mem_start], dev->tx_bytes);
+	network_tx(dev->mem, dev->tx_bytes);
 
 	/* some more debug */
 #ifdef ENABLE_DP8390_LOG
@@ -388,7 +388,7 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
 	       pkthdr[0], pkthdr[1], pkthdr[2], pkthdr[3]);
 
     /* Copy into buffer, update curpage, and signal interrupt if config'd */
-    startptr = &dev->mem[(dev->curr_page * 256) - dev->mem_start];
+    startptr = dev->mem + ((dev->curr_page * 256) - dev->mem_start);
     memcpy(startptr, pkthdr, sizeof(pkthdr));
     if ((nextpage > dev->curr_page) ||
 	((dev->curr_page + pages) == dev->page_stop)) {
@@ -396,7 +396,7 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
     } else {
 	endbytes = (dev->page_stop - dev->curr_page) * 256;
 	memcpy(startptr+sizeof(pkthdr), buf, endbytes-sizeof(pkthdr));
-	startptr = &dev->mem[(dev->page_start * 256) - dev->mem_start];
+	startptr = dev->mem + ((dev->page_start * 256) - dev->mem_start);
 	memcpy(startptr, buf+endbytes-sizeof(pkthdr), io_len-endbytes+8);
     }
     dev->curr_page = nextpage;

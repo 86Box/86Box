@@ -56,7 +56,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "io.h"
+#include "86box_io.h"
 #include "device.h"
 #include "plat.h"
 #include "ui.h"

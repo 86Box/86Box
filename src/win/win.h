@@ -88,8 +88,8 @@ extern HICON		hIcon[256];
 
 // extern int		status_is_open;
 
-extern char		openfilestring[260];
-extern WCHAR		wopenfilestring[260];
+extern char		openfilestring[512];
+extern WCHAR		wopenfilestring[512];
 
 extern uint8_t		filterindex;
 

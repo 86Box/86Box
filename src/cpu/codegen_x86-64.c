@@ -5,13 +5,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
+#include "86box.h"
 #include "cpu.h"
 #include "x86.h"
 #include "x86_flags.h"
 #include "x86_ops.h"
 #include "x87.h"
-#include "../mem.h"
+#include "mem.h"
 
 #include "386_common.h"
 

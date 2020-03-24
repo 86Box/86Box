@@ -8,11 +8,11 @@
  *
  *		Implementation of the Intel PIC chip emulation.
  *
- * Version:	@(#)pic.c	1.0.5	2019/09/20
+ * Version:	@(#)pic.c	1.0.7	2020/01/21
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -21,21 +21,24 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "cpu/cpu.h"
-#include "machine/machine.h"
-#include "io.h"
+#include "cpu.h"
+#include "machine.h"
+#include "86box_io.h"
 #include "pci.h"
 #include "pic.h"
 #include "timer.h"
 #include "pit.h"
 
 
-int output;
-int intclear;
-int keywaiting=0;
-int pic_intpending;
-PIC pic, pic2;
-uint16_t pic_current;
+int		output;
+int		intclear;
+int		keywaiting = 0;
+int		pic_intpending;
+PIC		pic, pic2;
+uint16_t	pic_current;
+
+
+static int	shadow = 0;
 
 
 #ifdef ENABLE_PIC_LOG
@@ -95,6 +98,13 @@ pic_reset()
     pic.mask2=0;
     pic2.pend=pic2.ins=0;
     pic_intpending = 0;
+}
+
+
+void
+pic_set_shadow(int sh)
+{
+    shadow = sh;
 }
 
 
@@ -198,6 +208,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 		pic_updatepending();
 	}
 	else if (!(val & 8)) { /*OCW2*/
+		pic.ocw2 = val;
 		if ((val & 0xE0) == 0x60) {
 			pic.ins &= ~(1 << (val & 7));
 			pic_update_mask(&pic.mask2, pic.ins);
@@ -226,6 +237,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 			}
 		}
 	} else {               /*OCW3*/
+		pic.ocw3 = val;
 		if (val & 2)
 			pic.read=(val & 1);
 	}
@@ -236,27 +248,36 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 pic_read(uint16_t addr, void *priv)
 {
-    addr &= ~0x06;
+    uint8_t ret = 0xff;
 
-    if (addr & 1) {
-	pic_log("Read PIC mask %02X\n", pic.mask);
-	pic_log("%04X:%04X: Read PIC mask %02X\n", CS, cpu_state.pc, pic.mask);
-	return pic.mask;
-    }
-    if (pic.read) {
-	pic_log("Read PIC ins %02X\n", pic.ins);
+    if ((addr == 0x20) && shadow) {
+	ret  = ((pic.ocw3   & 0x20) >> 5) << 4;
+	ret |= ((pic.ocw2   & 0x80) >> 7) << 3;
+	ret |= ((pic.icw4   & 0x10) >> 4) << 2;
+	ret |= ((pic.icw4   & 0x02) >> 1) << 1;
+	ret |= ((pic.icw4   & 0x08) >> 3) << 0;
+    } else if ((addr == 0x21) && shadow)
+	ret  = ((pic.vector & 0xf8) >> 3) << 0;
+    else if (addr & 1)
+	ret = pic.mask;
+    else if (pic.read) {
 	if (AT)
-		return pic.ins | (pic2.ins ? 4 : 0);
+		ret =  pic.ins | (pic2.ins ? 4 : 0);
 	else
-		return pic.ins;
-    }
-    return pic.pend;
+		ret = pic.ins;
+    } else
+	ret = pic.pend;
+
+    pic_log("%04X:%04X: Read PIC 1 port %04X, value %02X\n", CS, cpu_state.pc, addr, val);
+
+    return ret;
 }
 
 
 void
 pic_init()
 {
+    shadow = 0;
     io_sethandler(0x0020, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, NULL);
 }
 
@@ -264,6 +285,7 @@ pic_init()
 void
 pic_init_pcjr()
 {
+    shadow = 0;
     io_sethandler(0x0020, 0x0008, pic_read, NULL, NULL, pic_write, NULL, NULL, NULL);
 }
 
@@ -323,6 +345,36 @@ pic2_write(uint16_t addr, uint8_t val, void *priv)
 		pic.pend &= ~4;
 		pic_updatepending();
 	} else if (!(val & 8)) { /*OCW2*/
+#ifdef ENABLE_PIC_LOG
+		switch ((val >> 5) & 0x07) {
+			case 0x00:
+				pic_log("Rotate in automatic EOI mode (clear)\n");
+				break;
+			case 0x01:
+				pic_log("Non-specific EOI command\n");
+				break;
+			case 0x02:
+				pic_log("No operation\n");
+				break;
+			case 0x03:
+				pic_log("Specific EOI command\n");
+				break;
+			case 0x04:
+				pic_log("Rotate in automatic EOI mode (set)\n");
+				break;
+			case 0x05:
+				pic_log("Rotate on on-specific EOI command\n");
+				break;
+			case 0x06:
+				pic_log("Set priority command\n");
+				break;
+			case 0x07:
+				pic_log("Rotate on specific EOI command\n");
+				break;
+		}
+#endif
+
+		pic2.ocw2 = val;
 		if ((val & 0xE0) == 0x60) {
 			pic2.ins &= ~(1 << (val & 7));
 			pic_update_mask(&pic2.mask2, pic2.ins);
@@ -339,6 +391,7 @@ pic2_write(uint16_t addr, uint8_t val, void *priv)
 			}
 		}
 	} else {               /*OCW3*/
+		pic2.ocw3 = val;
 		if (val & 2)
 			pic2.read=(val & 1);
 	}
@@ -349,16 +402,26 @@ pic2_write(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 pic2_read(uint16_t addr, void *priv)
 {
-    if (addr&1) {
-	pic_log("Read PIC2 mask %02X\n", pic2.mask);
-	return pic2.mask;
-    }
-    if (pic2.read) {
-	pic_log("Read PIC2 ins %02X\n", pic2.ins);
-	return pic2.ins;
-    }
-    pic_log("Read PIC2 pend %02X\n", pic2.pend);
-    return pic2.pend;
+    uint8_t ret = 0xff;
+
+    if ((addr == 0xa0) && shadow) {
+	ret  = ((pic2.ocw3   & 0x20) >> 5) << 4;
+	ret |= ((pic2.ocw2   & 0x80) >> 7) << 3;
+	ret |= ((pic2.icw4   & 0x10) >> 4) << 2;
+	ret |= ((pic2.icw4   & 0x02) >> 1) << 1;
+	ret |= ((pic2.icw4   & 0x08) >> 3) << 0;
+    } else if ((addr == 0xa1) && shadow)
+	ret  = ((pic2.vector & 0xf8) >> 3) << 0;
+    else if (addr & 1)
+	ret = pic2.mask;
+    else if (pic2.read)
+	ret = pic2.ins;
+    else
+	ret = pic2.pend;
+
+    pic_log("%04X:%04X: Read PIC 2 port %04X, value %02X\n", CS, cpu_state.pc, addr, val);
+
+    return ret;
 }
 
 
@@ -478,21 +541,32 @@ pic_process_interrupt(PIC* target_pic, int c)
 {
     uint8_t pending = target_pic->pend & ~target_pic->mask;
     int ret = -1;
+    /* TODO: On init, a PIC need to get a pointer to one of these, and rotate as needed
+	     if in rotate mode. */
+			/*   0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 */
+    int priority_xt[16] = {  7,  6,  5,  4,  3,  2,  1,  0, -1, -1, -1, -1, -1, -1, -1, -1 };
+    int priority_at[16] = { 14, 13, -1,  4,  3,  2,  1,  0, 12, 11, 10,  9,  8,  7,  6,  5  };
+    int i;
 
     int pic_int = c & 7;
     int pic_int_num = 1 << pic_int;
 
     int in_service = 0;
 
-    in_service = (target_pic->ins & (pic_int_num - 1));	/* Is anything of higher priority already in service? */
-    in_service |= (target_pic->ins & pic_int_num);	/* Is the current IRQ already in service? */
     if (AT) {
-	/* AT-specific stuff. */
-	if (c >= 8)
-		in_service |= (pic.ins & 0x03);		/* IRQ 8 to 15, are IRQ's with higher priorities than the
-							   cascade IRQ already in service? */
-	/* For IRQ 0 to 7, the cascade IRQ's in service bit indicates that one or
-	   more IRQ's between 8 and 15 are already in service. */
+	for (i = 0; i < 16; i++) {
+		if ((priority_at[i] != -1) && (priority_at[i] >= priority_at[c])) {
+			if (i < 8)
+				in_service |= (pic.ins & (1 << i));
+			else
+				in_service |= (pic2.ins & (1 << i));
+		}
+	}
+    } else {
+	for (i = 0; i < 16; i++) {
+		if ((priority_xt[i] != -1) && (priority_xt[i] >= priority_xt[c]))
+			in_service |= (pic.ins & (1 << i));
+	}
     }
 
     if ((pending & pic_int_num) && !in_service) {

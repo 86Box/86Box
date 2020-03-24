@@ -30,18 +30,18 @@
 #include <time.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../config.h"
-#include "../device.h"
-#include "../keyboard.h"
-#include "../mouse.h"
-#include "../video/video.h"
+#include "86box.h"
+#include "config.h"
+#include "device.h"
+#include "keyboard.h"
+#include "mouse.h"
+#include "video.h"
 #define GLOBAL
-#include "../plat.h"
-#include "../plat_midi.h"
-#include "../ui.h"
+#include "plat.h"
+#include "plat_midi.h"
+#include "ui.h"
 #ifdef USE_VNC
-# include "../vnc.h"
+# include "vnc.h"
 #endif
 # include "win_d2d.h"
 # include "win_sdl.h"
@@ -73,6 +73,7 @@ static rc_str_t	*lpRCstr2048,
 		*lpRCstr6144,
 		*lpRCstr7168;
 static int	vid_api_inited = 0;
+static wchar_t	*argbuf;
 
 
 static const struct {
@@ -267,6 +268,11 @@ CreateConsole(int init)
 		}
 	}
     }
+
+    if (fp != NULL) {
+	fclose(fp);
+	fp = NULL;
+    }
 }
 
 
@@ -275,7 +281,6 @@ static int
 ProcessCommandLine(wchar_t ***argw)
 {
     WCHAR *cmdline;
-    wchar_t *argbuf;
     wchar_t **args;
     int argc_max;
     int i, q, argc;
@@ -376,6 +381,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 	if (source_hwnd)
 		PostMessage((HWND) (uintptr_t) source_hwnd, WM_HAS_SHUTDOWN, (WPARAM) 0, (LPARAM) hwndMain);
 
+	free(argbuf);
+	free(argw);
 	return(1);
     }
 
@@ -386,6 +393,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
     /* Handle our GUI. */
     i = ui_init(nCmdShow);
 
+    free(argbuf);
+    free(argw);
     return(i);
 }
 

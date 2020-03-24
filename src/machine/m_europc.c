@@ -87,22 +87,22 @@
 #include <wchar.h>
 #include <time.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../nmi.h"
-#include "../mem.h"
-#include "../pit.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../nvr.h"
-#include "../keyboard.h"
-#include "../mouse.h"
-#include "../game/gameport.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../disk/hdc.h"
-#include "../video/video.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "nmi.h"
+#include "mem.h"
+#include "pit.h"
+#include "rom.h"
+#include "device.h"
+#include "nvr.h"
+#include "keyboard.h"
+#include "mouse.h"
+#include "gameport.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "hdc.h"
+#include "video.h"
 #include "machine.h"
 
 
@@ -615,7 +615,7 @@ europc_boot(const device_t *info)
 	mouse_bus_set_irq(sys->mouse, 2);
 	/* Configure the port for (Bus Mouse Compatible) Mouse. */
 	b |= 0x01;
-    } else if (joystick_type != 7)
+    } else if (joystick_type != JOYSTICK_TYPE_NONE)
 	b |= 0x02;	/* enable port as joysticks */
     sys->nvr.regs[MRTC_CONF_C] = b;
 

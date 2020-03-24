@@ -23,24 +23,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#ifdef USE_NEW_DYNAREC
-#include "../cpu_new/cpu.h"
-#include "../cpu_new/x86.h"
-#else
-#include "../cpu/cpu.h"
-#include "../cpu/x86.h"
-#endif
-#include "../timer.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../keyboard.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../nmi.h"
-#include "../port_92.h"
-#include "../rom.h"
+#include "86box.h"
+#include "device.h"
+#include "cpu.h"
+#include "x86.h"
+#include "timer.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "keyboard.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "nmi.h"
+#include "port_92.h"
+#include "rom.h"
 #include "chipset.h"
 
 
@@ -1056,17 +1051,14 @@ scat_out(uint16_t port, uint8_t val, void *priv)
 				break;
 
 			case SCAT_EMS_CONTROL:
+				io_removehandler(0x0208, 0x0003, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
+				io_removehandler(0x0218, 0x0003, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
+
 				if (val & 0x40) {
-					if (val & 1) {
+					if (val & 1)
 						io_sethandler(0x0218, 3, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
-						io_removehandler(0x0208, 3, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
-					} else {
+					else
 						io_sethandler(0x0208, 3, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
-						io_removehandler(0x0218, 3, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
-					}
-				} else {
-					io_removehandler(0x0208, 0x0003, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
-					io_removehandler(0x0218, 0x0003, scat_in, NULL, NULL, scat_out, NULL, NULL, dev);
 				}
 				set_global_EMS_state(dev, val & 0x80);
 				reg_valid = 1;
@@ -1338,13 +1330,24 @@ static void
 mem_write_scatb(uint32_t addr, uint8_t val, void *priv)
 {
     ems_page_t *page = (ems_page_t *)priv;
-    scat_t *dev = (scat_t *)page->scat;
+    scat_t *dev;
     uint32_t oldaddr = addr, chkaddr;
 
-    addr = get_addr(dev, addr, page);
-    chkaddr = page ? addr : oldaddr;
+    if (page == NULL)
+	dev = NULL;
+    else
+	dev = (scat_t *)page->scat;
+
+    if (dev == NULL)
+	chkaddr = oldaddr;
+    else {
+	addr = get_addr(dev, addr, page);
+	chkaddr = addr;
+    }
+
     if (chkaddr >= 0xc0000 && chkaddr < 0x100000) {
-	if (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15))) return;
+	if ((dev == NULL) || (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15))))
+		return;
     }
 
     if (addr < ((uint32_t)mem_size << 10))
@@ -1356,13 +1359,24 @@ static void
 mem_write_scatw(uint32_t addr, uint16_t val, void *priv)
 {
     ems_page_t *page = (ems_page_t *)priv;
-    scat_t *dev = (scat_t *)page->scat;
+    scat_t *dev;
     uint32_t oldaddr = addr, chkaddr;
 
-    addr = get_addr(dev, addr, page);
-    chkaddr = page ? addr : oldaddr;
+    if (page == NULL)
+	dev = NULL;
+    else
+	dev = (scat_t *)page->scat;
+
+    if (dev == NULL)
+	chkaddr = oldaddr;
+    else {
+	addr = get_addr(dev, addr, page);
+	chkaddr = addr;
+    }
+
     if (chkaddr >= 0xc0000 && chkaddr < 0x100000) {
-	if (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15))) return;
+	if (dev != NULL && (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15))))
+		return;
     }
 
     if (addr < ((uint32_t)mem_size << 10))
@@ -1374,14 +1388,26 @@ static void
 mem_write_scatl(uint32_t addr, uint32_t val, void *priv)
 {
     ems_page_t *page = (ems_page_t *)priv;
-    scat_t *dev = (scat_t *)page->scat;
+    scat_t *dev;
     uint32_t oldaddr = addr, chkaddr;
 
-    addr = get_addr(dev, addr, page);
-    chkaddr = page ? addr : oldaddr;
-    if (chkaddr >= 0xc0000 && chkaddr < 0x100000) {
-	if (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15))) return;
+    if (page == NULL)
+	dev = NULL;
+    else
+	dev = (scat_t *)page->scat;
+
+    if (dev == NULL)
+	chkaddr = oldaddr;
+    else {
+	addr = get_addr(dev, addr, page);
+	chkaddr = addr;
     }
+
+    if (chkaddr >= 0xc0000 && chkaddr < 0x100000) {
+	if (dev != NULL && (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15))))
+		return;
+    }
+
     if (addr < ((uint32_t)mem_size << 10))
 	*(uint32_t *)&ram[addr] = val;
 }

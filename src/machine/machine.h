@@ -8,15 +8,15 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.34	2019/03/08
+ * Version:	@(#)machine.h	1.0.38	2020/01/24
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #ifndef EMU_MACHINE_H
 # define EMU_MACHINE_H
@@ -151,7 +151,7 @@ extern const device_t 	*pc3086_get_device(void);
 #endif
 
 /* m_at.c */
-extern void	machine_at_common_init_ex(const machine_t *, int is_ibm);
+extern void	machine_at_common_init_ex(const machine_t *, int type);
 extern void	machine_at_common_init(const machine_t *);
 extern void	machine_at_init(const machine_t *);
 extern void	machine_at_ps2_init(const machine_t *);
@@ -169,6 +169,10 @@ extern int	machine_at_ibmatquadtel_init(const machine_t *); // IBM AT with Quadt
 
 extern int	machine_at_ibmxt286_init(const machine_t *);
 
+#if defined(DEV_BRANCH) && defined(USE_SIEMENS)
+extern int	machine_at_siemens_init(const machine_t *); //Siemens PCD-2L. N82330 discrete machine. It segfaults in some places
+#endif
+
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
 extern int	machine_at_open_at_init(const machine_t *);
 #endif
@@ -179,15 +183,15 @@ extern int	machine_at_headland_init(const machine_t *);
 #endif
 extern int	machine_at_tg286m_init(const machine_t *);
 extern int	machine_at_ama932j_init(const machine_t *);
-extern int	machine_at_headlandpho_init(const machine_t *);
-extern int	machine_at_headlandquadtel_init(const machine_t *);
-extern int	machine_at_iqs_init(const machine_t *);
+extern int	machine_at_px286_init(const machine_t *);
+extern int	machine_at_quadt286_init(const machine_t *);
 
 extern int	machine_at_neat_init(const machine_t *);
 extern int	machine_at_neat_ami_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_MICRONICS386)
-extern int	machine_at_micronics386_init(const machine_t *); //Neat based Phoenix 80386 board. It has memory related issues.
-#endif
+
+extern int	machine_at_goldstar386_init(const machine_t *);
+extern int	machine_at_micronics386_init(const machine_t *);
+
 
 extern int	machine_at_award286_init(const machine_t *);
 extern int	machine_at_gw286ct_init(const machine_t *);
@@ -197,10 +201,12 @@ extern int	machine_at_spc4216p_init(const machine_t *);
 extern int	machine_at_kmxc02_init(const machine_t *);
 extern int	machine_at_deskmaster286_init(const machine_t *);
 
+extern int	machine_at_commodore_sl386sx_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
-extern const device_t 	*at_ama932j_get_device(void);
+extern const device_t	*at_ama932j_get_device(void);
+extern const device_t	*at_commodore_sl386sx_get_device(void);
 #endif
 
 /* m_at_386dx_486.c */
@@ -221,7 +227,10 @@ extern int	machine_at_px471_init(const machine_t *);
 extern int	machine_at_win471_init(const machine_t *);
 
 extern int	machine_at_r418_init(const machine_t *);
+extern int	machine_at_ls486e_init(const machine_t *);
+extern int	machine_at_4dps_init(const machine_t *);
 extern int	machine_at_alfredo_init(const machine_t *);
+extern int	machine_at_486sp3g_init(const machine_t *);
 
 /* m_at_commodore.c */
 extern int	machine_at_cmdpc_init(const machine_t *);
@@ -236,6 +245,9 @@ extern int	machine_at_portableiii386_init(const machine_t *);
 /* m_at_socket4_5.c */
 extern int	machine_at_batman_init(const machine_t *);
 extern int	machine_at_ambradp60_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_VPP60)
+extern int	machine_at_valuepointp60_init(const machine_t *);
+#endif
 extern int	machine_at_586mc1_init(const machine_t *);
 
 extern int	machine_at_plato_init(const machine_t *);
@@ -269,12 +281,20 @@ extern int	machine_at_p55t2p4_init(const machine_t *);
 extern int	machine_at_p55t2s_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_TC430HX)
 extern int	machine_at_tc430hx_init(const machine_t *);
-#endif
+extern int	machine_at_equium5200_init(const machine_t *); //Toshiba branded CU430HX. Presents same issues as the TC430HX.
+#endif                                                     //Other than that, works as intended(No need to set an MPU too).
 
 extern int	machine_at_p55tvp4_init(const machine_t *);
 extern int	machine_at_i430vx_init(const machine_t *);
 extern int	machine_at_p55va_init(const machine_t *);
 extern int	machine_at_j656vxd_init(const machine_t *);
+
+extern int	machine_at_5tx52_init(const machine_t *);
+extern int	machine_at_txp4_init(const machine_t *);
+extern int	machine_at_ym430tx_init(const machine_t *);
+extern int	machine_at_sp586tx_init(const machine_t *);
+
+extern int	machine_at_mvp3_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_pb640_get_device(void);
@@ -284,6 +304,13 @@ extern const device_t	*at_pb640_get_device(void);
 #if defined(DEV_BRANCH) && defined(USE_I686)
 extern int	machine_at_i440fx_init(const machine_t *);
 extern int	machine_at_s1668_init(const machine_t *);
+#endif
+
+extern int	machine_at_6abx3_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_I686) /*P2B-LS has no VIA C3 BIOS support, so further investigation may be needed*/
+extern int  machine_at_p2bls_init(const machine_t *);
+extern int	machine_at_p6bxt_init(const machine_t *);
+extern int	machine_at_63a_init(const machine_t *);
 #endif
 
 /* m_at_t3100e.c */

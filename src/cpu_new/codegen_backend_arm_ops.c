@@ -1,9 +1,9 @@
 #ifdef __ARM_EABI__
 
 #include <stdint.h>
-#include "../86box.h"
+#include "86box.h"
 #include "cpu.h"
-#include "../mem.h"
+#include "mem.h"
 
 #include "codegen.h"
 #include "codegen_allocator.h"

@@ -28,18 +28,18 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../dma.h"
-#include "../pic.h"
-#include "../pci.h"
-#include "../mca.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../nvr.h"
-#include "../plat.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "dma.h"
+#include "pic.h"
+#include "pci.h"
+#include "mca.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "nvr.h"
+#include "plat.h"
 #include "scsi.h"
 #include "scsi_device.h"
 #include "scsi_aha154x.h"
@@ -260,6 +260,11 @@ x54x_bios_scsi_command(scsi_device_t *dev, uint8_t *cdb, uint8_t *buf, int len, 
 	return(completion_code(scsi_device_sense(dev)));
 
     if (len > 0) {
+	if (dev->buffer_length == -1) {
+		fatal("Buffer length -1 when doing SCSI DMA\n");
+		return(0xff);
+	}
+
 	if (dev->phase == SCSI_PHASE_DATA_IN) {
 		if (buf)
 			memcpy(buf, dev->sc->temp_buffer, dev->buffer_length);
@@ -410,7 +415,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 
     x54x_log("BIOS Command = 0x%02X\n", cmd->command);
 
-    if ((cmd->id > max_id) || (cmd->lun > 7)) {
+    if (cmd->id > max_id) {
 	x54x_log("BIOS Target ID %i or LUN %i are above maximum\n",
 						cmd->id, cmd->lun);
 	ret = 0x80;
@@ -1087,14 +1092,6 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 		scsi_device_reset(sd);
 		x54x_mbi_setup(dev, req->CCBPointer, &req->CmdBlock,
 			       CCB_COMPLETE, SCSI_STATUS_OK, MBI_SUCCESS);
-		dev->callback_sub_phase = 4;
-		return;
-	}
-
-	if (req->CmdBlock.common.ControlByte > 0x03) {
-		x54x_log("Invalid control byte: %02X\n",
-			req->CmdBlock.common.ControlByte);
-		x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock, CCB_INVALID_DIRECTION, SCSI_STATUS_OK, MBI_ERROR);
 		dev->callback_sub_phase = 4;
 		return;
 	}

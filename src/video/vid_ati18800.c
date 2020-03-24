@@ -8,27 +8,26 @@
  *
  *		ATI 18800 emulation (VGA Edge-16)
  *
- * Version:	@(#)vid_ati18800.c	1.0.14	2018/10/02
+ * Version:	@(#)vid_ati18800.c	1.0.17	2020/01/20
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../timer.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "timer.h"
 #include "video.h"
-#include "vid_ati18800.h"
 #include "vid_ati_eeprom.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
@@ -71,7 +70,7 @@ static void ati18800_out(uint16_t addr, uint8_t val, void *p)
         ati18800_t *ati18800 = (ati18800_t *)p;
         svga_t *svga = &ati18800->svga;
         uint8_t old;
-        
+
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
                 addr ^= 0x60;
 
@@ -86,6 +85,7 @@ static void ati18800_out(uint16_t addr, uint8_t val, void *p)
                 {
                         case 0xb0:
                         svga_recalctimings(svga);
+			break;
                         case 0xb2:
                         case 0xbe:
                         if (ati18800->regs[0xbe] & 8) /*Read/write bank mode*/
@@ -129,7 +129,7 @@ static uint8_t ati18800_in(uint16_t addr, void *p)
 {
         ati18800_t *ati18800 = (ati18800_t *)p;
         svga_t *svga = &ati18800->svga;
-        uint8_t temp;
+        uint8_t temp = 0xff;
 
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) addr ^= 0x60;
              
@@ -210,19 +210,27 @@ static void *ati18800_init(const device_t *info)
 		        rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_EDGE16, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 			break;
 	};
-        
-        svga_init(&ati18800->svga, ati18800, 1 << 20, /*512kb*/
-                   ati18800_recalctimings,
-                   ati18800_in, ati18800_out,
-                   NULL,
-                   NULL);
+
+	if (info->local == ATI18800_EDGE16) {
+		svga_init(&ati18800->svga, ati18800, 1 << 18, /*256kb*/
+			  ati18800_recalctimings,
+			  ati18800_in, ati18800_out,
+			  NULL,
+			  NULL);
+	} else {
+		svga_init(&ati18800->svga, ati18800, 1 << 19, /*512kb*/
+			  ati18800_recalctimings,
+			  ati18800_in, ati18800_out,
+			  NULL,
+			  NULL);
+	}
 
         io_sethandler(0x01ce, 0x0002, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
-        io_sethandler(0x03c0, 0x0020, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
+	io_sethandler(0x03c0, 0x0020, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
 
         ati18800->svga.miscout = 1;
 
-        ati_eeprom_load(&ati18800->eeprom, L"ati18800.nvr", 0);
+	ati_eeprom_load(&ati18800->eeprom, L"ati18800.nvr", 0);
 
         return ati18800;
 }

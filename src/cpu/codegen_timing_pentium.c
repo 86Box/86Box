@@ -13,8 +13,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../mem.h"
+#include "86box.h"
+#include "mem.h"
 #include "cpu.h"
 #include "x86.h"
 #include "x86_ops.h"

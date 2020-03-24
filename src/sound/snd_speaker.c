@@ -20,9 +20,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../timer.h"
-#include "../pit.h"
+#include "86box.h"
+#include "timer.h"
+#include "pit.h"
 #include "sound.h"
 #include "snd_speaker.h"
 

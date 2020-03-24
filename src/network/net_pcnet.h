@@ -7,7 +7,7 @@
  *		Emulation of the AMD PCnet LANCE NIC controller for both the ISA
  *		and PCI buses.
  *
- * Version:	@(#)net_pcnet.c	1.0.0	2019/11/09
+ * Version:	@(#)net_pcnet.c	1.0.1	2020/03/23
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -19,17 +19,20 @@
 #ifndef NET_PCNET_H
 # define NET_PCNET_H
 
-
 enum {
-    PCNET_NONE = 0,
-    PCNET_ISA = 1,			/* 16-bit ISA */
-    PCNET_PCI = 2,			/* 32-bit PCI */
-    PCNET_VLB = 3			/* 32-bit VLB */
+    DEV_NONE = 0,
+    DEV_AM79C960 = 1, /* PCnet-ISA (ISA, 10 Mbps, NE2100/NE1500T compatible) */
+    DEV_AM79C960_EB  = 2, /* PCnet-ISA (ISA, 10 Mbps, Racal InterLan EtherBlaster compatible) */
+    DEV_AM79C960_VLB = 3, /* PCnet-VLB (VLB, 10 Mbps, NE2100/NE1500T compatible) */
+    DEV_AM79C970A = 4, /* PCnet-PCI II (PCI, 10 Mbps) */
+    DEV_AM79C973 = 5 /* PCnet-FAST III (PCI, 10/100 Mbps) */
 };
 
 
-extern const device_t	pcnet_isa_device;
-extern const device_t	pcnet_pci_device;
-extern const device_t	pcnet_vlb_device;
+extern const device_t	pcnet_am79c960_device;
+extern const device_t	pcnet_am79c960_eb_device;
+extern const device_t	pcnet_am79c960_vlb_device;
+extern const device_t	pcnet_am79c970a_device;
+extern const device_t	pcnet_am79c973_device;
 
 #endif	/*NET_PCNET_H*/

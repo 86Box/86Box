@@ -3,12 +3,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "../plat.h"
-#include "../plat_midi.h"
+#include "86box.h"
+#include "device.h"
+#include "plat.h"
+#include "plat_midi.h"
 #include "midi.h"
-#include "midi_system.h"
 #include "midi_input.h"
 
 

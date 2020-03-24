@@ -8,13 +8,13 @@
  *
  *		Define all known video cards.
  *
- * Version:	@(#)vid_table.c	1.0.44	2019/10/01
+ * Version:	@(#)vid_table.c	1.0.49	2020/01/22
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -23,44 +23,19 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../timer.h"
-#include "../machine/machine.h"
-#include "../mem.h"
-#include "../device.h"
-#include "../plat.h"
+#include "86box.h"
+#include "timer.h"
+#include "machine.h"
+#include "mem.h"
+#include "device.h"
+#include "plat.h"
 #include "video.h"
 #include "vid_svga.h"
 
-#include "vid_ati18800.h"
-#include "vid_ati28800.h"
-#include "vid_ati_mach64.h"
 #include "vid_cga.h"
-#include "vid_cl54xx.h"
-#include "vid_compaq_cga.h"
 #include "vid_ega.h"
-#include "vid_et4000.h"
-#include "vid_et4000w32.h"
-#include "vid_genius.h"
-#include "vid_hercules.h"
-#include "vid_herculesplus.h"
-#include "vid_ht216.h"
-#include "vid_im1024.h"
-#include "vid_incolor.h"
 #include "vid_colorplus.h"
 #include "vid_mda.h"
-#include "vid_oak_oti.h"
-#include "vid_paradise.h"
-#include "vid_pgc.h"
-#include "vid_s3.h"
-#include "vid_s3_virge.h"
-#include "vid_sigma.h"
-#include "vid_tgui9440.h"
-#include "vid_ti_cf62011.h"
-#include "vid_tvga.h"
-#include "vid_vga.h"
-#include "vid_voodoo.h"
-#include "vid_wy700.h"
 
 
 typedef struct {
@@ -79,6 +54,7 @@ static const VIDEO_CARD
 video_cards[] = {
     { "None",						"none",			NULL					},
     { "Internal",					"internal",		NULL					},
+    { "[ISA] ATI EGA Wonder 800+",			"egawonder800",		&atiega_device				},
     { "[ISA] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_isa",		&mach64gx_isa_device			},
     { "[ISA] ATI Korean VGA (ATI-28800-5)",		"ati28800k",		&ati28800k_device			},
     { "[ISA] ATI VGA-88 (ATI-18800-1)",			"ati18800v",		&ati18800_vga88_device			},
@@ -92,9 +68,9 @@ video_cards[] = {
 #endif
     { "[ISA] CGA",					"cga",			&cga_device				},
     { "[ISA] Chips & Technologies SuperEGA",		"superega",		&sega_device				},
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
     { "[ISA] Cirrus Logic CL-GD 5402",			"cl_gd5402_isa",	&gd5402_isa_device			},
     { "[ISA] Cirrus Logic CL-GD 5420",			"cl_gd5420_isa",	&gd5420_isa_device			},
+#if defined(DEV_BRANCH) && defined(USE_CL5422)
     { "[ISA] Cirrus Logic CL-GD 5422",			"cl_gd5422_isa",	&gd5422_isa_device			},
 #endif
     { "[ISA] Cirrus Logic CL-GD 5428",			"cl_gd5428_isa",	&gd5428_isa_device			},
@@ -133,6 +109,7 @@ video_cards[] = {
     { "[ISA] VGA",					"vga",			&vga_device				},
     { "[ISA] Video 7 VGA 1024i",			"v7_vga_1024i",		&v7_vga_1024i_device			},
     { "[ISA] Wyse 700",					"wy700",		&wy700_device				},
+    { "[MCA] IBM 1MB SVGA Adapter/A (CL-GD 5428)",	"ibm1mbsvga",		&gd5428_mca_device			},
     { "[MCA] Tseng ET4000AX",				"et4000mca",		&et4000_mca_device			},
     { "[PCI] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_pci",		&mach64gx_pci_device			},
     { "[PCI] ATI Video Xpression (Mach64 VT2)",		"mach64vt2",		&mach64vt2_device			},
@@ -148,6 +125,8 @@ video_cards[] = {
     { "[PCI] Diamond Stealth 3D 3000 (S3 ViRGE/VX)",	"stealth3d_3000_pci",	&s3_virge_988_pci_device		},
     { "[PCI] Diamond Stealth 64 DRAM (S3 Trio64)",	"stealth64d_pci",	&s3_diamond_stealth64_pci_device	},
     { "[PCI] Diamond Stealth 64 VRAM (S3 Vision964)",	"stealth64v_pci",	&s3_diamond_stealth64_964_pci_device	},
+    { "[PCI] Matrox Mystique",				"mystique",		&mystique_device			},
+    { "[PCI] Matrox Mystique 220",			"mystique_220",		&mystique_220_device			},
     { "[PCI] Number Nine 9FX (S3 Trio64)",		"n9_9fx_pci",		&s3_9fx_pci_device			},
     { "[PCI] Paradise Bahamas 64 (S3 Vision864)",	"bahamas64_pci",	&s3_bahamas64_pci_device		},
     { "[PCI] Phoenix S3 Vision864",			"px_vision864_pci",	&s3_phoenix_vision864_pci_device	},

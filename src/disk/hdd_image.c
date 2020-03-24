@@ -28,9 +28,9 @@
 #include <wchar.h>
 #include <errno.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../plat.h"
-#include "../random.h"
+#include "86box.h"
+#include "plat.h"
+#include "random.h"
 #include "hdd.h"
 
 
@@ -125,12 +125,18 @@ image_is_hdx(const wchar_t *s, int check_signature)
 		f = plat_fopen((wchar_t *)s, L"rb");
 		if (!f)
 			return 0;
-		fseeko64(f, 0, SEEK_END);
+		if (fseeko64(f, 0, SEEK_END))
+			fatal("image_is_hdx(): Error while seeking");
 		filelen = ftello64(f);
-		fseeko64(f, 0, SEEK_SET);
-		if (filelen < 44)
+		if (fseeko64(f, 0, SEEK_SET))
+			fatal("image_is_hdx(): Error while seeking");
+		if (filelen < 44) {
+			if (f != NULL)
+				fclose(f);
 			return 0;
-		fread(&signature, 1, 8, f);
+		}
+		if (fread(&signature, 1, 8, f) != 8)
+			fatal("image_is_hdx(): Error reading signature\n");
 		fclose(f);
 		if (signature == 0xD778A82044445459ll)
 			return 1;
@@ -163,10 +169,17 @@ image_is_vhd(const wchar_t *s, int check_signature)
 			return 0;
 		fseeko64(f, 0, SEEK_END);
 		filelen = ftello64(f);
-		fseeko64(f, -512, SEEK_END);
-		if (filelen < 512)
+		if (fseeko64(f, -512, SEEK_END) == -1) {
+			fclose(f);
+			fatal("image_is_vhd(): Error seeking\n");
+		}
+		if (filelen < 512) {
+			if (f != NULL)
+				fclose(f);
 			return 0;
-		fread(&signature, 1, 8, f);
+		}
+		if (fread(&signature, 1, 8, f) != 8)
+			fatal("image_is_vhd(): Error reading signature\n");
 		fclose(f);
 		if (signature == 0x78697463656E6F63ll)
 			return 1;
@@ -632,13 +645,19 @@ hdd_image_load(int id)
 	}
     } else {
 	if (image_is_hdi(fn)) {
-		fseeko64(hdd_images[id].file, 0x8, SEEK_SET);
-		fread(&(hdd_images[id].base), 1, 4, hdd_images[id].file);
-		fseeko64(hdd_images[id].file, 0xC, SEEK_SET);
+		if (fseeko64(hdd_images[id].file, 0x8, SEEK_SET) == -1)
+			fatal("hdd_image_load(): HDI: Error seeking to offset 0x8\n");
+		if (fread(&(hdd_images[id].base), 1, 4, hdd_images[id].file) != 4)
+			fatal("hdd_image_load(): HDI: Error reading base offset\n");
+		if (fseeko64(hdd_images[id].file, 0xC, SEEK_SET) == -1)
+			fatal("hdd_image_load(): HDI: Error seeking to offest 0xC\n");
 		full_size = 0LL;
-		fread(&full_size, 1, 4, hdd_images[id].file);
-		fseeko64(hdd_images[id].file, 0x10, SEEK_SET);
-		fread(&sector_size, 1, 4, hdd_images[id].file);
+		if (fread(&full_size, 1, 4, hdd_images[id].file) != 4)
+			fatal("hdd_image_load(): HDI: Error reading full size\n");
+		if (fseeko64(hdd_images[id].file, 0x10, SEEK_SET) == -1)
+			fatal("hdd_image_load(): HDI: Error seeking to offset 0x10\n");
+		if (fread(&sector_size, 1, 4, hdd_images[id].file) != 4)
+			fatal("hdd_image_load(): HDI: Error reading sector size\n");
 		if (sector_size != 512) {
 			/* Sector size is not 512 */
 			hdd_image_log("HDI: Sector size is not 512\n");
@@ -647,19 +666,26 @@ hdd_image_load(int id)
 			memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
 			return 0;
 		}
-		fread(&spt, 1, 4, hdd_images[id].file);
-		fread(&hpc, 1, 4, hdd_images[id].file);
-		fread(&tracks, 1, 4, hdd_images[id].file);
+		if (fread(&spt, 1, 4, hdd_images[id].file) != 4)
+			fatal("hdd_image_load(): HDI: Error reading sectors per track\n");
+		if (fread(&hpc, 1, 4, hdd_images[id].file) != 4)
+			fatal("hdd_image_load(): HDI: Error reading heads per cylinder\n");
+		if (fread(&tracks, 1, 4, hdd_images[id].file) != 4)
+			fatal("hdd_image_load(): HDI: Error reading number of tracks\n");
 		hdd[id].spt = spt;
 		hdd[id].hpc = hpc;
 		hdd[id].tracks = tracks;
 		hdd_images[id].type = 1;
 	} else if (is_hdx[1]) {
 		hdd_images[id].base = 0x28;
-		fseeko64(hdd_images[id].file, 8, SEEK_SET);
-		fread(&full_size, 1, 8, hdd_images[id].file);
-		fseeko64(hdd_images[id].file, 0x10, SEEK_SET);
-		fread(&sector_size, 1, 4, hdd_images[id].file);
+		if (fseeko64(hdd_images[id].file, 8, SEEK_SET) == -1)
+			fatal("hdd_image_load(): HDX: Error seeking to offset 0x8\n");
+		if (fread(&full_size, 1, 8, hdd_images[id].file) != 8)
+			fatal("hdd_image_load(): HDX: Error reading full size\n");
+		if (fseeko64(hdd_images[id].file, 0x10, SEEK_SET) == -1)
+			fatal("hdd_image_load(): HDX: Error seeking to offset 0x10\n");
+		if (fread(&sector_size, 1, 4, hdd_images[id].file) != 4)
+			fatal("hdd_image_load(): HDX: Error reading sector size\n");
 		if (sector_size != 512) {
 			/* Sector size is not 512 */
 			hdd_image_log("HDX: Sector size is not 512\n");
@@ -668,16 +694,21 @@ hdd_image_load(int id)
 			memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
 			return 0;
 		}
-		fread(&spt, 1, 4, hdd_images[id].file);
-		fread(&hpc, 1, 4, hdd_images[id].file);
-		fread(&tracks, 1, 4, hdd_images[id].file);
+		if (fread(&spt, 1, 4, hdd_images[id].file) != 4)
+			fatal("hdd_image_load(): HDI: Error reading sectors per track\n");
+		if (fread(&hpc, 1, 4, hdd_images[id].file) != 4)
+			fatal("hdd_image_load(): HDI: Error reading heads per cylinder\n");
+		if (fread(&tracks, 1, 4, hdd_images[id].file) != 4)
+			fatal("hdd_image_load(): HDX: Error reading number of tracks\n");
 		hdd[id].spt = spt;
 		hdd[id].hpc = hpc;
 		hdd[id].tracks = tracks;
 		hdd_images[id].type = 2;
 	} else if (is_vhd[1]) {
-		fseeko64(hdd_images[id].file, -512, SEEK_END);
-		fread(empty_sector, 1, 512, hdd_images[id].file);
+		if (fseeko64(hdd_images[id].file, -512, SEEK_END) == -1)
+			fatal("hdd_image_load(): VHD: Error seeking to 512 bytes before the end of file\n");
+		if (fread(empty_sector, 1, 512, hdd_images[id].file) != 512)
+			fatal("hdd_image_load(): HDX: Error reading the footer\n");
 		new_vhd_footer(&vft);
 		vhd_footer_from_bytes(vft, (uint8_t *) empty_sector);
 		if (vft->type != 2) {
@@ -711,7 +742,8 @@ hdd_image_load(int id)
 	}
     }
 
-    fseeko64(hdd_images[id].file, 0, SEEK_END);
+    if (fseeko64(hdd_images[id].file, 0, SEEK_END) == -1)
+	fatal("hdd_image_load(): Error seeking to the end of file\n");
     s = ftello64(hdd_images[id].file);
     if (s < (full_size + hdd_images[id].base))
 	ret = prepare_new_hard_disk(id, full_size);
@@ -722,7 +754,8 @@ hdd_image_load(int id)
     }
 
     if (is_vhd[0]) {
-	fseeko64(hdd_images[id].file, 0, SEEK_END);
+	if (fseeko64(hdd_images[id].file, 0, SEEK_END) == -1)
+		fatal("hdd_image_load(): VHD: Error seeking to the end of file\n");
 	s = ftello64(hdd_images[id].file);
 	if (s == (full_size + hdd_images[id].base)) {
 		/* VHD image. */
@@ -741,7 +774,8 @@ hdd_image_seek(uint8_t id, uint32_t sector)
     addr = (uint64_t)sector << 9LL;
 
     hdd_images[id].pos = sector;
-    fseeko64(hdd_images[id].file, addr + hdd_images[id].base, SEEK_SET);
+    if (fseeko64(hdd_images[id].file, addr + hdd_images[id].base, SEEK_SET) == -1)
+	fatal("hdd_image_seek(): Error seeking\n");
 }
 
 
@@ -750,7 +784,10 @@ hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
     int i;
 
-    fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET);
+    if (fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1) {
+	fatal("Hard disk image %i: Read error during seek\n", id);
+	return;
+    }
 
     for (i = 0; i < count; i++) {
 	if (feof(hdd_images[id].file))
@@ -792,7 +829,10 @@ hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
     int i;
 
-    fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET);
+    if (fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1) {
+	fatal("Hard disk image %i: Write error during seek\n", id);
+	return;
+    }
 
     for (i = 0; i < count; i++) {
 	if (feof(hdd_images[id].file))
@@ -828,7 +868,10 @@ hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
 
     memset(empty_sector, 0, 512);
 
-    fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET);
+    if (fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1) {
+	fatal("Hard disk image %i: Zero error during seek\n", id);
+	return;
+    }
 
     for (i = 0; i < count; i++) {
 	if (feof(hdd_images[id].file))

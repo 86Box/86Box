@@ -36,11 +36,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
 #include "hdc.h"
 #include "hdc_ide.h"
 
@@ -135,7 +135,7 @@ xtide_init(const device_t *info)
     memset(xtide, 0x00, sizeof(xtide_t));
 
     rom_init(&xtide->bios_rom, ROM_PATH_XT,
-	     0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+	     0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
     xtide->ide_board = ide_xtide_init();
 
@@ -162,7 +162,7 @@ xtide_at_init(const device_t *info)
     memset(xtide, 0x00, sizeof(xtide_t));
 
     rom_init(&xtide->bios_rom, ROM_PATH_AT,
-	     0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+	     0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
     device_add(&ide_isa_2ch_device);
 
@@ -185,7 +185,7 @@ xtide_acculogic_init(const device_t *info)
     memset(xtide, 0x00, sizeof(xtide_t));
 
     rom_init(&xtide->bios_rom, ROM_PATH_PS2,
-	     0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+	     0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
     xtide->ide_board = ide_xtide_init();
 
@@ -223,7 +223,7 @@ xtide_at_ps2_init(const device_t *info)
     memset(xtide, 0x00, sizeof(xtide_t));
 
     rom_init(&xtide->bios_rom, ROM_PATH_PS2AT,
-	     0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+	     0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
     device_add(&ide_isa_2ch_device);
 

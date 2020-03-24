@@ -8,35 +8,28 @@
  *
  *		MIDI device core module.
  *
- * Version:	@(#)midi.c	1.0.2	2018/12/31
+ * Version:	@(#)midi.c	1.0.3	2020/01/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Bit,
  *		DOSBox Team,
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2016-2018 Bit.
- *		Copyright 2008-2018 DOSBox Team.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2016-2020 Bit.
+ *		Copyright 2008-2020 DOSBox Team.
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "../plat.h"
-#include "../plat_midi.h"
+#include "86box.h"
+#include "device.h"
+#include "plat.h"
+#include "plat_midi.h"
 #include "midi.h"
-#include "midi_system.h"
-#ifdef USE_FLUIDSYNTH
-# include "midi_fluidsynth.h"
-#endif
-#ifdef USE_MUNT
-# include "midi_mt32.h"
-#endif
 #include "midi_input.h"
 
 
@@ -47,9 +40,8 @@ static int midi_input_device_last = 0;
 
 midi_t *midi = NULL, *midi_in = NULL;
 
-void (*input_msg)(void *p, uint8_t *msg);
-int (*input_sysex)(void *p, uint8_t *buffer, uint32_t len, int abort);
-void *midi_in_p;
+midi_in_handler_t *mih_first = NULL, *mih_last = NULL,
+		  *mih_cur = NULL;
 
 uint8_t MIDI_InSysexBuf[SYSEX_SIZE];
 
@@ -227,7 +219,7 @@ void
 play_msg(uint8_t *msg)
 {
     if (midi->m_out_device->play_msg)
-		midi->m_out_device->play_msg(msg);
+	midi->m_out_device->play_msg(msg);
 }
 
 
@@ -235,7 +227,7 @@ void
 play_sysex(uint8_t *sysex, unsigned int len)
 {
     if (midi->m_out_device->play_sysex)
-		midi->m_out_device->play_sysex(sysex, len);
+	midi->m_out_device->play_sysex(sysex, len);
 }
 
 
@@ -290,6 +282,7 @@ midi_in_device_get_from_internal_name(char *s)
     return 0;
 }
 
+
 void
 midi_in_device_init()
 {
@@ -298,39 +291,40 @@ midi_in_device_init()
     midi_input_device_last = midi_input_device_current;
 }
 
+
 void
 midi_raw_out_rt_byte(uint8_t val)
 {
-	if (!midi_in->midi_realtime)
-		return;
-
-	if ((!midi_in->midi_clockout && (val == 0xf8)))
+    if (!midi_in->midi_realtime)
 	return;
 
-	midi_in->midi_cmd_r = val << 24;
-	pclog("Play RT Byte msg\n");
-	play_msg((uint8_t *)&midi_in->midi_cmd_r);
+    if ((!midi_in->midi_clockout && (val == 0xf8)))
+	return;
+
+    midi_in->midi_cmd_r = val << 24;
+    /* pclog("Play RT Byte msg\n"); */
+    play_msg((uint8_t *)&midi_in->midi_cmd_r);
 }
+
 
 void
 midi_raw_out_thru_rt_byte(uint8_t val)
 {
-	if (midi_in->thruchan)
-		midi_raw_out_rt_byte(val);
+    if (midi_in->thruchan)
+	midi_raw_out_rt_byte(val);
 }
+
 
 void
 midi_raw_out_byte(uint8_t val)
 {
     uint32_t passed_ticks;
 
-    if (!midi || !midi->m_out_device) {
+    if (!midi || !midi->m_out_device)
 	return;
-	}
 
-    if ((midi->m_out_device->write && midi->m_out_device->write(val))) {
+    if ((midi->m_out_device->write && midi->m_out_device->write(val)))
 	return;
-	}
 
     if (midi->midi_sysex_start) {
 	passed_ticks = plat_get_ticks() - midi->midi_sysex_start;
@@ -396,12 +390,223 @@ midi_raw_out_byte(uint8_t val)
     }
 }
 
+
 void 
 midi_clear_buffer(void)
 {
-    if (!midi) return;
-	midi->midi_pos = 0;
-	midi->midi_status = 0x00;
-	midi->midi_cmd_pos = 0;
-	midi->midi_cmd_len = 0;
+    if (!midi)
+	return;
+
+    midi->midi_pos = 0;
+    midi->midi_status = 0x00;
+    midi->midi_cmd_pos = 0;
+    midi->midi_cmd_len = 0;
+}
+
+
+void
+midi_in_handler(int set, void (*msg)(void *p, uint8_t *msg), int (*sysex)(void *p, uint8_t *buffer, uint32_t len, int abort), void *p)
+{
+    midi_in_handler_t *temp = NULL, *next;
+
+    if (set) {
+	/* Add MIDI IN handler. */
+	if ((mih_first == NULL) && (mih_last != NULL))
+		fatal("Last MIDI IN handler present with no first MIDI IN handler\n");
+
+	if ((mih_first != NULL) && (mih_last == NULL))
+		fatal("First MIDI IN handler present with no last MIDI IN handler\n");
+
+	temp = (midi_in_handler_t *) malloc(sizeof(midi_in_handler_t));
+	memset(temp, 0, sizeof(midi_in_handler_t));
+	temp->msg = msg;
+	temp->sysex = sysex;
+	temp->p = p;
+
+	if (mih_last == NULL)
+		mih_first = mih_last = temp;
+	else {
+		temp->prev = mih_last;
+		mih_last = temp;
+	}
+    } else if ((mih_first != NULL) && (mih_last != NULL)) {
+	temp = mih_first;
+
+	while(1) {
+		if (temp == NULL)
+			break;
+
+		if ((temp->msg == msg) && (temp->sysex == sysex) && (temp->p == p)) {
+			if (temp->prev != NULL)
+				temp->prev->next = temp->next;
+
+			if (temp->next != NULL)
+				temp->next->prev = temp->prev;
+
+			next = temp->next;
+
+			if (temp == mih_first) {
+				mih_first = NULL;
+				if (next == NULL)
+					mih_last = NULL;
+			}
+
+			if (temp == mih_last)
+				mih_last = NULL;
+
+			free(temp);
+			temp = next;
+
+			if (next == NULL)
+				break;
+		}
+	}
+    }
+}
+
+
+void
+midi_in_handlers_clear(void)
+{
+    midi_in_handler_t *temp = mih_first, *next;
+
+    while(1) {
+	if (temp == NULL)
+		break;
+
+	next = temp->next;
+	free(temp);
+
+	temp = next;
+
+	if (next == NULL)
+		break;
+    }
+
+    mih_first = mih_last = NULL;
+}
+
+
+void
+midi_in_msg(uint8_t *msg)
+{
+    midi_in_handler_t *temp = mih_first;
+
+    while(1) {
+	if (temp == NULL)
+		break;
+
+	if (temp->msg)
+		temp->msg(temp->p, msg);
+
+	temp = temp->next;
+
+	if (temp == NULL)
+		break;
+    }
+}
+
+
+static void
+midi_start_sysex(uint8_t *buffer, uint32_t len)
+{
+    midi_in_handler_t *temp = mih_first;
+
+    while(1) {
+	if (temp == NULL)
+		break;
+
+	temp->cnt = 5;
+	temp->buf = buffer;
+	temp->len = len;
+
+	temp = temp->next;
+
+	if (temp == NULL)
+		break;
+    }
+}
+
+
+/* Returns:
+	0 = All handlers have returnd 0;
+	1 = There are still handlers to go. */
+static int
+midi_do_sysex(void)
+{
+    midi_in_handler_t *temp = mih_first;
+    int ret, cnt_acc = 0;
+
+    while(1) {
+	if (temp == NULL)
+		break;
+
+	/* Do nothing if the handler has a zero count. */
+	if ((temp->cnt > 0) || (temp->len > 0)) {
+		ret = 0;
+		if (temp->sysex) {
+			if (temp->cnt == 0)
+				ret = temp->sysex(temp->p, temp->buf, 0, 0);
+			else
+				ret = temp->sysex(temp->p, temp->buf, temp->len, 0);
+		}
+
+		/* If count is 0 and length is 0, then this is just a finishing
+		   call to temp->sysex(), so skip this entire block. */
+		if (temp->cnt > 0) {
+			if (ret) {
+				/* Decrease or reset the counter. */
+				if (temp->len == ret)
+					temp->cnt--;
+				else
+					temp->cnt = 5;
+
+				/* Advance the buffer pointer and remember the
+				   remaining length. */
+				temp->buf += (temp->len - ret);
+				temp->len = ret;
+			} else {
+				/* Set count to 0 so that this handler will be
+				   ignored on the next interation. */
+				temp->cnt = 0;
+
+				/* Reset the buffer pointer and length. */
+				temp->buf = NULL;
+				temp->len = 0;
+			}
+
+			/* If the remaining count is above zero, add it to the
+			   accumulator. */
+			if (temp->cnt > 0)
+				cnt_acc |= temp->cnt;
+		}
+	}
+
+	temp = temp->next;
+
+	if (temp == NULL)
+		break;
+    }
+
+    /* Return 0 if all handlers have returned 0 or all the counts are otherwise 0. */
+    if (cnt_acc == 0)
+	return 0;
+    else
+	return 1;
+}
+
+
+void
+midi_in_sysex(uint8_t *buffer, uint32_t len)
+{
+    midi_start_sysex(buffer, len);
+
+    while (1) {
+	/* This will return 0 if all theh handlers have either
+	   timed out or otherwise indicated it is time to stop. */
+	if (midi_do_sysex())
+		plat_delay_ms(5);	/* msec */
+	else
+		break;
+    }
 }

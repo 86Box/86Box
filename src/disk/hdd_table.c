@@ -22,7 +22,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <wchar.h>
-#include "../86box.h"
+#include "86box.h"
 #include "hdd.h"
 
 

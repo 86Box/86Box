@@ -5,17 +5,16 @@
 #include <stdarg.h>
 #include <math.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../io.h"
-#include "../nmi.h"
-#include "../mem.h"
-#include "../pci.h"
-#include "../timer.h"
+#include "86box.h"
+#include "device.h"
+#include "86box_io.h"
+#include "nmi.h"
+#include "mem.h"
+#include "pci.h"
+#include "timer.h"
 #include "sound.h"
 #include "midi.h"
 #include "snd_mpu401.h"
-#include "snd_audiopci.h"
 
 
 #define N 16
@@ -25,7 +24,7 @@
 static float low_fir_es1371_coef[ES1371_NCoef];
 
 typedef struct {
-	mpu_t mpu;
+    mpu_t mpu;
 
     uint8_t pci_command, pci_serr;
 
@@ -84,6 +83,8 @@ typedef struct {
 
     int pos;
     int16_t buffer[SOUNDBUFLEN * 2];
+
+    int type;
 } es1371_t;
 
 
@@ -130,10 +131,13 @@ typedef struct {
 #define INT_STATUS_DAC1			(1<<2)
 #define INT_STATUS_DAC2			(1<<1)
 
+#define UART_CTRL_RXINTEN		(1<<7)
 #define UART_CTRL_TXINTEN		(1<<5)
 
+#define UART_STATUS_RXINT		(1<<7)
 #define UART_STATUS_TXINT		(1<<2)
 #define UART_STATUS_TXRDY		(1<<1)
+#define UART_STATUS_RXRDY		(1<<0)
 
 #define FORMAT_MONO_8			0
 #define FORMAT_STEREO_8			1
@@ -875,40 +879,43 @@ static uint8_t es1371_pci_read(int func, int addr, void *p)
 
 	//audiopci_log("ES1371 PCI read %08X PC=%08x\n", addr, cpu_state.pc);
 
+	if (addr > 0x3f)
+		return 0x00;
+
 	switch (addr)
 	{
 		case 0x00: return 0x74; /*Ensoniq*/
 		case 0x01: return 0x12;
 		
-		case 0x02: return 0x71; /*ES1371*/
+		case 0x02: return 0x71; /* ES1371 */
 		case 0x03: return 0x13;
-		
+
 		case 0x04: return es1371->pci_command;
 		case 0x05: return es1371->pci_serr;
 		
-		case 0x06: return 0x10; /*Supports ACPI*/
-		case 0x07: return 0;
+		case 0x06: return 0x10;	/* Supports support ACPI */
+		case 0x07: return 0x00;
 
-		case 0x08: return 2; /*Revision ID*/
-		case 0x09: return 0x00; /*Multimedia audio device*/
+		case 0x08: return 0x02;	/* Revision ID */
+		case 0x09: return 0x00;	/* Multimedia audio device */
 		case 0x0a: return 0x01;
 		case 0x0b: return 0x04;
 		
-		case 0x10: return 0x01 | (es1371->base_addr & 0xc0); /*memBaseAddr*/
+		case 0x10: return 0x01 | (es1371->base_addr & 0xc0);	/* memBaseAddr */
 		case 0x11: return es1371->base_addr >> 8;
 		case 0x12: return es1371->base_addr >> 16;
 		case 0x13: return es1371->base_addr >> 24;
 
-		case 0x2c: return 0x74; /*Subsystem vendor ID*/
+		case 0x2c: return 0x74;	/* Subsystem vendor ID */
 		case 0x2d: return 0x12;
 		case 0x2e: return 0x71;
 		case 0x2f: return 0x13;
-		
+
 		case 0x34: return 0xdc; /*Capabilites pointer*/
-		
+
 		case 0x3c: return es1371->int_line;
 		case 0x3d: return 0x01; /*INTA*/
-		
+
 		case 0x3e: return 0xc; /*Minimum grant*/
 		case 0x3f: return 0x80; /*Maximum latency*/
 		
@@ -1168,18 +1175,18 @@ static void es1371_poll(void *p)
 
 	if (es1371->int_ctrl & INT_UART_EN) {
 		audiopci_log("UART INT Enabled\n");
-		if (es1371->uart_ctrl & 0x80) { /*We currently don't implement MIDI Input.*/
+		if (es1371->uart_ctrl & UART_CTRL_RXINTEN) { /*We currently don't implement MIDI Input.*/
 			/*But if anything sets MIDI Input and Output together we'd have to take account
 			of the MIDI Output case, and disable IRQ's and RX bits when MIDI Input is enabled as well but not in the MIDI Output portion*/
 			if (es1371->uart_ctrl & UART_CTRL_TXINTEN) 
 				es1371->int_status |= INT_STATUS_UART;
 			else
 				es1371->int_status &= ~INT_STATUS_UART;
-		} else if (!(es1371->uart_ctrl & 0x80) && ((es1371->uart_ctrl & UART_CTRL_TXINTEN))) { /*Or enable the UART IRQ and the respective TX bits only when the MIDI Output is enabled*/
+		} else if (!(es1371->uart_ctrl & UART_CTRL_RXINTEN) && ((es1371->uart_ctrl & UART_CTRL_TXINTEN))) { /*Or enable the UART IRQ and the respective TX bits only when the MIDI Output is enabled*/
 			es1371->int_status |= INT_STATUS_UART;
 		}
 		
-		if (es1371->uart_ctrl & 0x80) {
+		if (es1371->uart_ctrl & UART_CTRL_RXINTEN) {
 			if (es1371->uart_ctrl & UART_CTRL_TXINTEN) 
 				es1371->uart_status |= (UART_STATUS_TXINT | UART_STATUS_TXRDY);
 			else
@@ -1295,7 +1302,7 @@ static void generate_es1371_filter()
                 low_fir_es1371_coef[n] /= gain;
 }        
 
-static void *es1371_init()
+static void *es1371_init(const device_t *info)
 {
 	es1371_t *es1371 = malloc(sizeof(es1371_t));
 	memset(es1371, 0, sizeof(es1371_t));

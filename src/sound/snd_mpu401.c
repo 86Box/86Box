@@ -8,16 +8,16 @@
  *
  *		Roland MPU-401 emulation.
  *
- * Version:	@(#)snd_mpu401.c	1.0.18	2018/10/18
+ * Version:	@(#)snd_mpu401.c	1.0.20	2020/01/23
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		DOSBox Team,
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2008-2018 DOSBox Team.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2008-2020 DOSBox Team.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -27,20 +27,22 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../plat.h"
-#include "../io.h"
-#include "../machine/machine.h"
-#include "../mca.h"
-#include "../pic.h"
-#include "../timer.h"
+#include "86box.h"
+#include "device.h"
+#include "plat.h"
+#include "86box_io.h"
+#include "machine.h"
+#include "mca.h"
+#include "pic.h"
+#include "timer.h"
 #include "sound.h"
 #include "snd_mpu401.h"
 #include "midi.h"
 
-static uint32_t MPUClockBase[8] = {48,72,96,120,144,168,192};
-static uint8_t cth_data[16] = {0,0,0,0,1,0,0,0,1,0,1,0,1,1,1,0};
+
+static uint32_t	MPUClockBase[8] = {48,72,96,120,144,168,192};
+static uint8_t	cth_data[16] = {0,0,0,0,1,0,0,0,1,0,1,0,1,1,1,0};
+
 
 enum {
     STATUS_OUTPUT_NOT_READY = 0x40,
@@ -49,6 +51,7 @@ enum {
 
 
 int mpu401_standalone_enable = 0;
+
 
 static void MPU401_WriteCommand(mpu_t *mpu, uint8_t val);
 static void MPU401_IntelligentOut(mpu_t *mpu, uint8_t track);
@@ -83,12 +86,19 @@ MPU401_ReCalcClock(mpu_t *mpu)
     int32_t maxtempo = 240, mintempo = 16;
     int32_t freq;
 
-    if (mpu->clock.timebase >= 168)
-	maxtempo = 179;
-    if (mpu->clock.timebase == 144)
+    if (mpu->clock.timebase < 72) {
+	maxtempo = 240;
+	mintempo = 32;
+    } else if (mpu->clock.timebase < 120) {
+	maxtempo = 240;
+	mintempo = 16;
+    } else if (mpu->clock.timebase < 168) {
 	maxtempo = 208;
-    if (mpu->clock.timebase >= 120)
-	maxtempo = 8;
+	mintempo = 8;
+    } else {
+	maxtempo = 179;
+	mintempo = 8;
+    }
 
     mpu->clock.freq = ((uint32_t)(mpu->clock.tempo * 2 * mpu->clock.tempo_rel)) >> 6;
     mpu->clock.freq = mpu->clock.timebase * (mpu->clock.freq < (mintempo * 2) ? mintempo :
@@ -138,14 +148,14 @@ MPU401_RunClock(mpu_t *mpu)
 
 
 static void
-MPU401_QueueByte(mpu_t *mpu, uint8_t data) 
+MPU401_QueueByteEx(mpu_t *mpu, uint8_t data, int irq)
 {
     if (mpu->state.block_ack) {
 	mpu->state.block_ack = 0;
 	return;
     }
 
-    if (mpu->queue_used == 0) {
+    if ((mpu->queue_used == 0) && !mpu->irq_mask) {
 	mpu->state.irq_pending = 1;
 	picint(1 << mpu->irq);
     }
@@ -161,6 +171,13 @@ MPU401_QueueByte(mpu_t *mpu, uint8_t data)
 	mpu->queue_used++;
 	mpu->queue[pos] = data;
     }
+}
+
+
+static void
+MPU401_QueueByte(mpu_t *mpu, uint8_t data) 
+{
+    MPU401_QueueByteEx(mpu, data, 1);
 }
 
 
@@ -221,11 +238,16 @@ MPU401_Reset(mpu_t *mpu)
 {
     uint8_t i;
 
+#ifdef DOSBOX_CODE
     if (mpu->mode == M_INTELLIGENT) {
 	picintc(1 << mpu->irq);
 	mpu->state.irq_pending = 0;
     }
-	
+#else
+    picintc(1 << mpu->irq);
+    mpu->state.irq_pending = 0;
+#endif
+
     mpu->mode = M_INTELLIGENT;
     mpu->midi_thru = 0;
     mpu->state.rec = M_RECOFF;
@@ -332,7 +354,7 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 	return;
 
     /* In Intelligent mode, UART-only variants of the MPU-401 only support commands 0x3F and 0xFF. */
-    if ((val != 0x3f) && (val != 0xff) && !mpu->intelligent)
+    if (!mpu->intelligent && (val != 0x3f) && (val != 0xff))
 	return;
 
     /* Hack: Enable midi through after the first mpu401 command is written. */
@@ -459,7 +481,7 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 		mpu->filter.midi_thru = 0;
 		for (i = 0; i < 16; i++) {
 			mpu->inputref[i].on = 0;
-			for (j = 0; i < 4; j++)
+			for (j = 0; j < 4; j++)
 				mpu->inputref[i].key[j] = 0;
 		}
 		break;
@@ -607,7 +629,7 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 		was_uart = (mpu->mode == M_UART);
 		MPU401_Reset(mpu);
 		if (was_uart)
-			return;		/* do not send ack in UART mode */
+			return;
 		break;
 
 	/* default:
@@ -624,6 +646,7 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
     static int length, cnt;
 	uint8_t i;
 
+#ifdef DOSBOX_CODE
     if (mpu->mode == M_UART) {
 	midi_raw_out_byte(val);
 	return;
@@ -633,6 +656,12 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
 	mpu->state.command_byte = 0;
 	return;
     }
+#else
+    if (!mpu->intelligent || (mpu->mode == M_UART)) {
+	midi_raw_out_byte(val);
+	return;
+    }
+#endif
 	
     switch (mpu->state.command_byte) {	/* 0xe# command data */
 	case 0x00:
@@ -1055,7 +1084,7 @@ MPU401_ReadRaiseIRQ(mpu_t *mpu)
     picintc(1 << mpu->irq);
     mpu->state.irq_pending = 0;
 
-    if (mpu->queue_used) {
+    if (mpu->queue_used && !mpu->irq_mask) {
 	/* Bytes remaining in queue, raise IRQ again. */
 	mpu->state.irq_pending = 1;
 	picint(1 << mpu->irq);
@@ -1079,10 +1108,17 @@ MPU401_ReadData(mpu_t *mpu)
     }
 
     /* Shouldn't this check mpu->mode? */
+#ifdef DOSBOX_CODE
     if (mpu->mode == M_UART) {
 	MPU401_ReadRaiseIRQ(mpu);
 	return ret;
     }
+#else
+    if (!mpu->intelligent || (mpu->mode == M_UART)) {
+	MPU401_ReadRaiseIRQ(mpu);
+	return ret;
+    }
+#endif
 
     if (mpu->state.rec_copy && !mpu->rec_queue_used) {
 	mpu->state.rec_copy = 0;
@@ -1186,10 +1222,17 @@ MPU401_Event(void *priv)
 
     mpu401_log("MPU-401 event callback\n");
 
+#ifdef DOSBOX_CODE
     if (mpu->mode == M_UART) {
 	timer_disable(&mpu->mpu401_event_callback);
 	return;
     }
+#else
+    if (!mpu->intelligent || (mpu->mode == M_UART)) {
+	timer_disable(&mpu->mpu401_event_callback);
+	return;
+    }
+#endif
 
     if (mpu->state.irq_pending) goto next_event;
 	
@@ -1283,8 +1326,8 @@ MPU401_NotesOff(mpu_t *mpu, int i)
 
 
 /*Input handler for SysEx */
-static int 
-MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort) 
+int
+MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 {
     mpu_t *mpu = (mpu_t *)p;
     int i;
@@ -1328,8 +1371,8 @@ MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 
 
 /*Input handler for MIDI*/
-static void 
-MPU401_InputMsg(void *p, uint8_t *msg) 
+void
+MPU401_InputMsg(void *p, uint8_t *msg)
 {
     mpu_t *mpu = (mpu_t *)p;
     int i, tick;
@@ -1337,7 +1380,7 @@ MPU401_InputMsg(void *p, uint8_t *msg)
     uint8_t len = msg[3], key;
     uint8_t recdata[2], recmsg[4];
     int send = 1, send_thru = 0;
-    int retrigger_thru = 0, midistatus = 0, chan, chrefnum;
+    int retrigger_thru = 0, chan, chrefnum;
 
     /* Abort if sysex transfer is in progress. */
     if (!mpu->state.sysex_in_finished) {
@@ -1347,10 +1390,13 @@ MPU401_InputMsg(void *p, uint8_t *msg)
 
     mpu401_log("MPU401 Input Msg\n");
 
+#ifdef DOSBOX_CODE
     if (mpu->mode == M_INTELLIGENT) {
+#else
+    if (mpu->intelligent && (mpu->mode == M_INTELLIGENT)) {
+#endif
 	if (msg[0] < 0x80) {
 		/* Expand running status */
-		midistatus = 1;
 		msg[2] = msg[1];
 		msg[1] = msg[0];
 		msg[0] = old_msg;
@@ -1543,21 +1589,35 @@ MPU401_InputMsg(void *p, uint8_t *msg)
     }
 
     /* UART mode input. */
-    for (i = 0; i < len; i++) {
+    for (i = 0; i < len; i++)
 	MPU401_QueueByte(mpu, msg[i]);
-	picint(1 << mpu->irq);
-    }
 }
 
 
 void
-mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode)
+mpu401_change_addr(mpu_t *mpu, uint16_t addr)
+{
+    if (mpu == NULL)
+	return;
+    if (mpu->addr)
+	io_removehandler(mpu->addr, 2,
+			 mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+    mpu->addr = addr;
+    if (mpu->addr)
+	io_sethandler(mpu->addr, 2,
+		      mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+}
+
+
+void
+mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode, int receive_input)
 {
     mpu->status = STATUS_INPUT_NOT_READY;
     mpu->irq = irq;
     mpu->queue_used = 0;
     mpu->queue_pos = 0;
     mpu->mode = M_UART;
+    mpu->addr = addr;
 
     /* Expalantion:
 	MPU-401 starting in intelligent mode = Full MPU-401 intelligent mode capability;
@@ -1566,16 +1626,19 @@ mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode)
     mpu->intelligent = (mode == M_INTELLIGENT) ? 1 : 0;
     mpu401_log("Starting as %s (mode is %s)\n", mpu->intelligent ? "INTELLIGENT" : "UART", (mode == M_INTELLIGENT) ? "INTELLIGENT" : "UART");
 
-    if (addr)
-	io_sethandler(addr, 2,
+    if (mpu->addr)
+	io_sethandler(mpu->addr, 2,
 		      mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
     io_sethandler(0x2A20, 16,
 		  NULL, NULL, NULL, imf_write, NULL, NULL, mpu);
-	timer_add(&mpu->mpu401_event_callback, MPU401_Event, mpu, 0);
-	timer_add(&mpu->mpu401_eoi_callback, MPU401_EOIHandler, mpu, 0);
-	timer_add(&mpu->mpu401_reset_callback, MPU401_ResetDone, mpu, 0);
+    timer_add(&mpu->mpu401_event_callback, MPU401_Event, mpu, 0);
+    timer_add(&mpu->mpu401_eoi_callback, MPU401_EOIHandler, mpu, 0);
+    timer_add(&mpu->mpu401_reset_callback, MPU401_ResetDone, mpu, 0);
 
     MPU401_Reset(mpu);
+
+    if (receive_input)
+	midi_in_handler(1, MPU401_InputMsg, MPU401_InputSysex, mpu);
 }
 
 
@@ -1644,7 +1707,7 @@ mpu401_standalone_init(const device_t *info)
 
     mpu = malloc(sizeof(mpu_t));
     memset(mpu, 0, sizeof(mpu_t));
- 
+
     mpu401_log("mpu_init\n");
 
     if (info->flags & DEVICE_MCA) {
@@ -1658,11 +1721,7 @@ mpu401_standalone_init(const device_t *info)
 	irq = device_get_config_int("irq");
     }
 
-	input_msg = MPU401_InputMsg;
-	input_sysex = MPU401_InputSysex;
-	midi_in_p = mpu;
-
-    mpu401_init(mpu, base, irq, M_INTELLIGENT);
+    mpu401_init(mpu, base, irq, M_INTELLIGENT, device_get_config_int("receive_input"));
 	
     return(mpu);
 }
@@ -1720,6 +1779,26 @@ static const device_config_t mpu401_standalone_config[] =
                 }
         },
         {
+                .name = "receive_input",
+                .description = "Receive input",
+                .type = CONFIG_BINARY,
+                .default_int = 1
+        },
+        {
+                "", "", -1
+        }
+};
+
+
+static const device_config_t mpu401_standalone_mca_config[] =
+{
+        {
+                .name = "receive_input",
+                .description = "Receive input",
+                .type = CONFIG_BINARY,
+                .default_int = 1
+        },
+        {
                 "", "", -1
         }
 };
@@ -1742,5 +1821,5 @@ const device_t mpu401_mca_device = {
     NULL,
     NULL,
     NULL,
-    NULL
+    mpu401_standalone_mca_config
 };

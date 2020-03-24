@@ -21,19 +21,19 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../nmi.h"
-#include "../timer.h"
-#include "../pit.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../game/gameport.h"
-#include "../keyboard.h"
-#include "../lpt.h"
+#include "86box.h"
+#include "cpu.h"
+#include "nmi.h"
+#include "timer.h"
+#include "pit.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "gameport.h"
+#include "keyboard.h"
+#include "lpt.h"
 #include "machine.h"
 
 
@@ -55,7 +55,7 @@ machine_xt_compaq_init(const machine_t *model)
     device_add(&keyboard_xt_compaq_device);
     device_add(&fdc_xt_device);
     nmi_init();
-    if (joystick_type != 7)
+    if (joystick_type != JOYSTICK_TYPE_NONE)
 	device_add(&gameport_device);
 
     lpt1_remove();

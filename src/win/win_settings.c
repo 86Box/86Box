@@ -30,38 +30,36 @@
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../config.h"
-#include "../cpu/cpu.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../timer.h"
-#include "../nvr.h"
-#include "../machine/machine.h"
-#include "../game/gameport.h"
-#include "../isamem.h"
-#include "../isartc.h"
-#include "../lpt.h"
-#include "../mouse.h"
-#include "../scsi/scsi.h"
-#include "../scsi/scsi_device.h"
-#include "../cdrom/cdrom.h"
-#include "../disk/hdd.h"
-#include "../disk/hdc.h"
-#include "../disk/hdc_ide.h"
-#include "../disk/zip.h"
-#include "../floppy/fdd.h"
-#include "../network/network.h"
-#include "../sound/sound.h"
-#include "../sound/midi.h"
-#include "../sound/snd_mpu401.h"
-#include "../sound/snd_gus.h"
-#include "../video/video.h"
-#include "../video/vid_voodoo.h"
-#include "../plat.h"
-#include "../plat_midi.h"
-#include "../ui.h"
+#include "86box.h"
+#include "config.h"
+#include "cpu.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "timer.h"
+#include "nvr.h"
+#include "machine.h"
+#include "gameport.h"
+#include "isamem.h"
+#include "isartc.h"
+#include "lpt.h"
+#include "mouse.h"
+#include "scsi.h"
+#include "scsi_device.h"
+#include "cdrom.h"
+#include "hdd.h"
+#include "hdc.h"
+#include "hdc_ide.h"
+#include "zip.h"
+#include "fdd.h"
+#include "network.h"
+#include "sound.h"
+#include "midi.h"
+#include "snd_mpu401.h"
+#include "video.h"
+#include "plat.h"
+#include "plat_midi.h"
+#include "ui.h"
 #include "win.h"
 
 
@@ -99,6 +97,7 @@ static int temp_serial[2], temp_lpt[3];
 /* Other peripherals category */
 static int temp_hdc, temp_scsi_card, temp_ide_ter, temp_ide_qua;
 static int temp_bugger;
+static int temp_postcard;
 static int temp_isartc;
 static int temp_isamem[ISAMEM_MAX];
 
@@ -250,6 +249,7 @@ win_settings_init(void)
     temp_ide_ter = ide_ter_enabled;
     temp_ide_qua = ide_qua_enabled;
     temp_bugger = bugger_enabled;
+    temp_postcard = postcard_enabled;
     temp_isartc = isartc_type;
 	
     /* ISA memory boards. */
@@ -358,6 +358,7 @@ win_settings_changed(void)
     i = i || (temp_ide_ter != ide_ter_enabled);
     i = i || (temp_ide_qua != ide_qua_enabled);
     i = i || (temp_bugger != bugger_enabled);
+    i = i || (temp_postcard != postcard_enabled);
     i = i || (temp_isartc != isartc_type);
 
     /* ISA memory boards. */
@@ -462,6 +463,7 @@ win_settings_save(void)
     ide_ter_enabled = temp_ide_ter;
     ide_qua_enabled = temp_ide_qua;
     bugger_enabled = temp_bugger;
+    postcard_enabled = temp_postcard;
     isartc_type = temp_isartc;
 
     /* ISA memory boards. */
@@ -539,13 +541,9 @@ win_settings_machine_recalc_cpu(HWND hdlg)
 
     h = GetDlgItem(hdlg, IDC_CHECK_FPU);
     cpu_type = machines[temp_machine].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
-    // if ((cpu_type < CPU_i486DX) && (cpu_type >= CPU_286))
     if (cpu_type < CPU_i486DX)
 	EnableWindow(h, TRUE);
-    else if (cpu_type < CPU_286) {
-	temp_fpu = 0;
-	EnableWindow(h, FALSE);
-    } else {
+    else {
 	temp_fpu = 1;
 	EnableWindow(h, FALSE);
     }
@@ -975,6 +973,7 @@ static BOOL CALLBACK
 win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     wchar_t str[128];
+	char *joy_name;
     HWND h;
     int c, d;
 
@@ -1004,9 +1003,15 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 		h = GetDlgItem(hdlg, IDC_COMBO_JOYSTICK);
 		c = 0;
-		while (joystick_get_name(c)) {
-			SendMessage(h, CB_ADDSTRING, 0, win_get_string(2105 + c));
+		joy_name = joystick_get_name(c);
+		while (joy_name)
+		{
+			mbstowcs(str, joy_name, strlen(joy_name) + 1);
+			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)str);
+
+			// SendMessage(h, CB_ADDSTRING, 0, win_get_string(2105 + c));
 			c++;
+			joy_name = joystick_get_name(c);
 		}
 		EnableWindow(h, TRUE);
 		SendMessage(h, CB_SETCURSEL, temp_joystick, 0);
@@ -1593,6 +1598,9 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 		h=GetDlgItem(hdlg, IDC_CHECK_BUGGER);
 		SendMessage(h, BM_SETCHECK, temp_bugger, 0);
 
+		h=GetDlgItem(hdlg, IDC_CHECK_POSTCARD);
+		SendMessage(h, BM_SETCHECK, temp_postcard, 0);
+
 		/* Populate the ISA RTC card dropdown. */
 		e = 0;
 		h = GetDlgItem(hdlg, IDC_COMBO_ISARTC);
@@ -1795,6 +1803,9 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 		h = GetDlgItem(hdlg, IDC_CHECK_BUGGER);
 		temp_bugger = SendMessage(h, BM_GETCHECK, 0, 0);
+
+		h = GetDlgItem(hdlg, IDC_CHECK_POSTCARD);
+		temp_postcard = SendMessage(h, BM_GETCHECK, 0, 0);
 
 		free(stransi);
 		free(lptsTemp);
@@ -2532,7 +2543,7 @@ static int hdconf_initialize_hdt_combo(HWND hdlg)
 
     h = GetDlgItem(hdlg, IDC_COMBO_HD_TYPE);
     for (i = 0; i < 127; i++) {	
-	temp_size = hdd_table[i][0] * hdd_table[i][1] * hdd_table[i][2];
+	temp_size = ((uint64_t) hdd_table[i][0]) * hdd_table[i][1] * hdd_table[i][2];
 	size_mb = (uint32_t) (temp_size >> 11LL);
 	wsprintf(szText, plat_get_string(IDS_2116), size_mb, hdd_table[i][0], hdd_table[i][1], hdd_table[i][2]);
 	SendMessage(h, CB_ADDSTRING, 0, (LPARAM) szText);
@@ -2850,6 +2861,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 					f = _wfopen(wopenfilestring, (existing & 1) ? L"rb" : L"wb");
 					if (f == NULL) {
 hdd_add_file_open_error:
+						fclose(f);
 						settings_msgbox(MBX_ERROR, (existing & 1) ? (wchar_t *)IDS_4107 : (wchar_t *)IDS_4108);
 						return TRUE;
 					}
@@ -2880,7 +2892,6 @@ hdd_add_file_open_error:
 						} else {
 							fseeko64(f, 0, SEEK_END);
 							size = ftello64(f);
-							fclose(f);
 							if (((size % 17) == 0) && (size <= 142606336)) {
 								spt = 17;
 								if (size <= 26738688)
@@ -2928,8 +2939,9 @@ hdd_add_file_open_error:
 						chs_enabled = 1;
 
 						no_update = 0;
-					} else
-						fclose(f);
+					}
+
+					fclose(f);
 				}
 
 				h = GetDlgItem(hdlg, IDC_EDIT_HD_FILE_NAME);
@@ -3467,7 +3479,7 @@ win_settings_floppy_drives_recalc_list(HWND hwndList)
 {
     LVITEM lvI;
     int i = 0;
-    char s[256];
+    char s[256], *t;
     WCHAR szText[256];
 
     lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
@@ -3476,7 +3488,11 @@ win_settings_floppy_drives_recalc_list(HWND hwndList)
     for (i = 0; i < 4; i++) {
 	lvI.iSubItem = 0;
 	if (temp_fdd_types[i] > 0) {
-		strcpy(s, fdd_getname(temp_fdd_types[i]));
+		t = fdd_getname(temp_fdd_types[i]);
+		if (strlen(t) <= 256)
+			strcpy(s, t);
+		else
+			strncpy(s, t, 256);
 		mbstowcs(szText, s, strlen(s) + 1);
 		lvI.pszText = szText;
 	} else
@@ -3731,7 +3747,7 @@ static void
 win_settings_floppy_drives_update_item(HWND hwndList, int i)
 {
     LVITEM lvI;
-    char s[256];
+    char s[256], *t;
     WCHAR szText[256];
 
     lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
@@ -3741,7 +3757,11 @@ win_settings_floppy_drives_update_item(HWND hwndList, int i)
     lvI.iItem = i;
 
     if (temp_fdd_types[i] > 0) {
-	strcpy(s, fdd_getname(temp_fdd_types[i]));
+	t = fdd_getname(temp_fdd_types[i]);
+	if (strlen(t) <= 256)
+		strcpy(s, t);
+	else
+		strncpy(s, t, 256);
 	mbstowcs(szText, s, strlen(s) + 1);
 	lvI.pszText = szText;
     } else

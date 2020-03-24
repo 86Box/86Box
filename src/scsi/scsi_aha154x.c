@@ -24,19 +24,18 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../mca.h"
-#include "../mem.h"
-#include "../mca.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../nvr.h"
-#include "../dma.h"
-#include "../pic.h"
-#include "../plat.h"
-// #include "../cpu/cpu.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "mca.h"
+#include "mem.h"
+#include "mca.h"
+#include "rom.h"
+#include "device.h"
+#include "nvr.h"
+#include "dma.h"
+#include "pic.h"
+#include "plat.h"
 #include "scsi.h"
 #include "scsi_aha154x.h"
 #include "scsi_x54x.h"
@@ -729,7 +728,8 @@ aha_setnvr(x54x_t *dev)
 
     f = nvr_fopen(dev->nvr_path, L"rb");
     if (f) {
-	fread(dev->nvr, 1, NVR_SIZE, f);
+	if (fread(dev->nvr, 1, NVR_SIZE, f) != NVR_SIZE)
+		fatal("aha_setnvr(): Error reading data\n");
 	fclose(f);
 	f = NULL;
     } else

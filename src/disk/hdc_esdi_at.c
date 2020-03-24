@@ -28,17 +28,17 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../pic.h"
-#include "../rom.h"
-#include "../cpu/cpu.h"
-#include "../machine/machine.h"
-#include "../timer.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "86box.h"
+#include "device.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "pic.h"
+#include "rom.h"
+#include "cpu.h"
+#include "machine.h"
+#include "timer.h"
+#include "plat.h"
+#include "ui.h"
 #include "hdc.h"
 #include "hdd.h"
 
@@ -304,6 +304,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 						esdi->command &= ~0x03;
 						if (val & 0x02)
 							fatal("Read with ECC\n");
+						/*FALLTHROUGH*/
 
 					case 0xa0:
 						esdi->status = STAT_BUSY;
@@ -351,6 +352,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
 					default:
 						esdi_at_log("WD1007: bad command %02X\n", val);
+						/*FALLTHROUGH*/
 					case 0xe8: /*???*/
 						esdi->status = STAT_BUSY;
 						timer_set_delay_u64(&esdi->callback_timer, 200 * HDC_TIME);

@@ -23,16 +23,15 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../mem.h"
-#include "../pci.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../plat.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "mem.h"
+#include "pci.h"
+#include "rom.h"
+#include "device.h"
+#include "plat.h"
 #include "video.h"
-#include "vid_s3_virge.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
 

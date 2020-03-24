@@ -37,31 +37,29 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../timer.h"
-#include "../io.h"
-#include "../dma.h"
-#include "../pic.h"
-#include "../pit.h"
-#include "../mem.h"
-#include "../nmi.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../nvr.h"
-#include "../game/gameport.h"
-#include "../lpt.h"
-#include "../serial.h"
-#include "../keyboard.h"
-#include "../disk/hdc.h"
-#include "../disk/hdc_ide.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../sound/sound.h"
-#include "../sound/snd_sn76489.h"
-#include "../video/video.h"
-#include "../video/vid_vga.h"
-#include "../video/vid_ti_cf62011.h"
+#include "86box.h"
+#include "cpu.h"
+#include "timer.h"
+#include "86box_io.h"
+#include "dma.h"
+#include "pic.h"
+#include "pit.h"
+#include "mem.h"
+#include "nmi.h"
+#include "rom.h"
+#include "device.h"
+#include "nvr.h"
+#include "gameport.h"
+#include "lpt.h"
+#include "serial.h"
+#include "keyboard.h"
+#include "hdc.h"
+#include "hdc_ide.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "sound.h"
+#include "snd_sn76489.h"
+#include "video.h"
 #include "machine.h"
 
 
@@ -459,12 +457,6 @@ ps1_setup(int model)
 
 	lpt2_remove();
 
-	/* Enable the PS/1 VGA controller. */
-	if (model == 2011)
-		device_add(&ps1vga_device);
-	else
-		device_add(&ibm_ps1_2121_device);
-
 	device_add(&snd_device);
 
 	device_add(&fdc_at_actlow_device);
@@ -505,6 +497,12 @@ ps1_setup(int model)
 	device_add(&ide_isa_device);
     }
 #endif
+
+    /* Enable the PS/1 VGA controller. */
+    if (model == 2011)
+	device_add(&ps1vga_device);
+    else
+	device_add(&ibm_ps1_2121_device);
 }
 
 
@@ -525,7 +523,7 @@ ps1_common_init(const machine_t *model)
     device_add(&keyboard_ps2_ps1_device);
 
     /* Audio uses ports 200h and 202-207h, so only initialize gameport on 201h. */
-    if (joystick_type != 7)
+    if (joystick_type != JOYSTICK_TYPE_NONE)
 	device_add(&gameport_201_device);
 }
 

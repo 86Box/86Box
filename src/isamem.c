@@ -74,8 +74,8 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "86box.h"
-#include "machine/machine.h"
-#include "io.h"
+#include "machine.h"
+#include "86box_io.h"
 #include "mem.h"
 #include "device.h"
 #include "ui.h"

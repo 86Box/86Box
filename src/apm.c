@@ -21,9 +21,9 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "cpu/cpu.h"
+#include "cpu.h"
 #include "device.h"
-#include "io.h"
+#include "86box_io.h"
 
 
 typedef struct

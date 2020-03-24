@@ -20,14 +20,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
 #include "video.h"
-#include "vid_oak_oti.h"
 #include "vid_svga.h"
 
 #define BIOS_037C_PATH			L"roms/video/oti/bios.bin"
@@ -372,8 +371,10 @@ oti_init(const device_t *info)
 		break;
     }
 
-    rom_init(&oti->bios_rom, romfn,
-	     0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    if (romfn != NULL) {
+	rom_init(&oti->bios_rom, romfn,
+		 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    }
 
     oti->vram_mask = (oti->vram_size << 10) - 1;
 

@@ -87,24 +87,24 @@
 #include <wchar.h>
 #include <time.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../pit.h"
-#include "../nmi.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../nvr.h"
-#include "../keyboard.h"
-#include "../lpt.h"
-#include "../mem.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../game/gameport.h"
-#include "../video/video.h"
-#include "../plat.h"
+#include "86box.h"
+#include "cpu.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "pit.h"
+#include "nmi.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "nvr.h"
+#include "keyboard.h"
+#include "lpt.h"
+#include "mem.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "gameport.h"
+#include "video.h"
+#include "plat.h"
 #include "machine.h"
 #include "m_xt_t1000.h"
 
@@ -240,6 +240,7 @@ tc8521_time_get(uint8_t *regs, struct tm *tm)
 	tm->tm_hour = ((nibbles(TC8521_HOUR) % 12) +
 		      (regs[TC8521_HOUR10] & 0x02) ? 12 : 0);
 //FIXME: wday
+    tm->tm_wday = 1;	/* Dummy value so it is not uninitialized. */
     tm->tm_mday = nibbles(TC8521_DAY);
     tm->tm_mon = (nibbles(TC8521_MONTH) - 1);
     tm->tm_year = (nibbles(TC8521_YEAR) + 1980);
@@ -881,7 +882,8 @@ machine_xt_t1000_init(const machine_t *model)
 	t1000.romdrive = malloc(T1000_ROMSIZE);
 	if (t1000.romdrive) {
 		memset(t1000.romdrive, 0xff, T1000_ROMSIZE);
-		fread(t1000.romdrive, T1000_ROMSIZE, 1, f);
+		if (fread(t1000.romdrive, 1, T1000_ROMSIZE, f) != T1000_ROMSIZE)
+			fatal("machine_xt_t1000_init(): Error reading DOS ROM data\n");
 	}
 	fclose(f);
     }
@@ -1015,11 +1017,14 @@ static void
 t1000_configsys_load(void)
 {
     FILE *f;
+    int size;
 
     memset(t1000.t1000_nvram, 0x1a, sizeof(t1000.t1000_nvram));
     f = plat_fopen(nvr_path(L"t1000_config.nvr"), L"rb");
     if (f != NULL) {
-	fread(t1000.t1000_nvram, sizeof(t1000.t1000_nvram), 1, f);
+	size = sizeof(t1000.t1000_nvram);
+	if (fread(t1000.t1000_nvram, size, 1, f) != size)
+		fatal("t1000_configsys_load(): Error reading data\n");
 	fclose(f);
     }
 }
@@ -1029,10 +1034,13 @@ static void
 t1000_configsys_save(void)
 {
     FILE *f;
+    int size;
 
     f = plat_fopen(nvr_path(L"t1000_config.nvr"), L"wb");
     if (f != NULL) {
-	fwrite(t1000.t1000_nvram, sizeof(t1000.t1000_nvram), 1, f);
+	size = sizeof(t1000.t1000_nvram);
+	if (fwrite(t1000.t1000_nvram, 1, size, f) != size)
+		fatal("t1000_configsys_save(): Error writing data\n");
 	fclose(f);
     }
 }
@@ -1042,11 +1050,14 @@ static void
 t1200_state_load(void)
 {
     FILE *f;
+    int size;
 
     memset(t1000.t1200_nvram, 0, sizeof(t1000.t1200_nvram));
     f = plat_fopen(nvr_path(L"t1200_state.nvr"), L"rb");
     if (f != NULL) {
-	fread(t1000.t1200_nvram, sizeof(t1000.t1200_nvram), 1, f);
+	size = sizeof(t1000.t1200_nvram);
+	if (fread(t1000.t1200_nvram, 1, size, f) != size)
+		fatal("t1200_state_load(): Error reading data\n");
 	fclose(f);
     }
 }
@@ -1056,10 +1067,13 @@ static void
 t1200_state_save(void)
 {
     FILE *f;
+    int size;
 
     f = plat_fopen(nvr_path(L"t1200_state.nvr"), L"wb");
     if (f != NULL) {
-	fwrite(t1000.t1200_nvram, sizeof(t1000.t1200_nvram), 1, f);
+	size = sizeof(t1000.t1200_nvram);
+	if (fwrite(t1000.t1200_nvram, 1, size, f) != size)
+		fatal("t1200_state_save(): Error writing data\n");
 	fclose(f);
     }
 }

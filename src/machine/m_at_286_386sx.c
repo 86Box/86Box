@@ -8,7 +8,7 @@
  *
  *		Implementation of 286 and 386SX machines.
  *
- * Version:	@(#)m_at_286_386sx.c	1.0.2	2019/11/19
+ * Version:	@(#)m_at_286_386sx.c	1.0.3	2020/01/22
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -22,22 +22,19 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../timer.h"
-#include "../io.h"
-#include "../device.h"
-#include "../chipset/chipset.h"
-#include "../keyboard.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../disk/hdc.h"
-#include "../video/video.h"
-#include "../video/vid_et4000.h"
-#include "../video/vid_oak_oti.h"
-#include "../video/vid_paradise.h"
+#include "86box.h"
+#include "cpu.h"
+#include "timer.h"
+#include "86box_io.h"
+#include "device.h"
+#include "chipset.h"
+#include "keyboard.h"
+#include "mem.h"
+#include "rom.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "hdc.h"
+#include "video.h"
 #include "machine.h"
 
 
@@ -123,58 +120,41 @@ machine_at_ama932j_init(const machine_t *model)
 }
 
 int
-machine_at_headlandpho_init(const machine_t *model)
+machine_at_px286_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/headlandpho/286-Headland-LO.BIN",
-				L"roms/machines/headlandpho/286-Headland-HI.BIN",
+    ret = bios_load_interleaved(L"roms/machines/px286/286-Headland-LO.BIN",
+				L"roms/machines/px286/286-Headland-HI.BIN",
 				0x000f0000, 131072, 0);
 
     if (bios_only || !ret)
 	return ret;
 
     machine_at_common_ide_init(model);
-
-    machine_at_headland_common_init(1);
+    device_add(&keyboard_at_device);
+    device_add(&fdc_at_device);
+	device_add(&headland_device);
 
     return ret;
 }
 
 int
-machine_at_headlandquadtel_init(const machine_t *model)
+machine_at_quadt286_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/headlandquadtel/Amiht-l.BIN",
-				L"roms/machines/headlandquadtel/AMIHT-H.BIN",
-				0x000f0000, 131072, 0);
+    ret = bios_load_interleaved(L"roms/machines/quadt286/QUADT89L.ROM",
+				L"roms/machines/quadt286/QUADT89H.ROM",
+				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
 	return ret;
 
     machine_at_common_ide_init(model);
-
-    machine_at_headland_common_init(1);
-
-    return ret;
-}
-
-int
-machine_at_iqs_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleaved(L"roms/machines/iqs/286-Headland-IQS-LO.BIN",
-				L"roms/machines/iqs/286-Headland-IQS-HI.BIN",
-				0x000f0000, 131072, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_common_ide_init(model);
-
-    machine_at_headland_common_init(1);
+    device_add(&keyboard_at_device);
+    device_add(&fdc_at_device);
+	device_add(&headland_device);
 
     return ret;
 }
@@ -220,14 +200,13 @@ machine_at_neat_ami_init(const machine_t *model)
     return ret;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_MICRONICS386)
 int
-machine_at_micronics386_init(const machine_t *model)
+machine_at_goldstar386_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/micronics386/386-Micronics 09-00021-LO.BIN",
-				L"roms/machines/micronics386/386-Micronics 09-00021-HI.BIN",
+    ret = bios_load_interleaved(L"roms/machines/goldstar386/386-Goldstar-E.BIN",
+				L"roms/machines/goldstar386/386-Goldstar-O.BIN",
 				0x000f0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -240,7 +219,26 @@ machine_at_micronics386_init(const machine_t *model)
 
     return ret;
 }
-#endif
+
+int
+machine_at_micronics386_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/micronics386/386-Micronics-09-00021-EVEN.BIN",
+				L"roms/machines/micronics386/386-Micronics-09-00021-ODD.BIN",
+				0x000f0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_init(model);
+
+    device_add(&neat_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
 
 static void
 machine_at_scat_init(const machine_t *model, int is_v4)
@@ -405,6 +403,36 @@ machine_at_wd76c10_init(const machine_t *model)
 
     if (gfxcard == VID_INTERNAL)
 	device_add(&paradise_wd90c11_megapc_device);
+
+    return ret;
+}
+
+const device_t *
+at_commodore_sl386sx_get_device(void)
+{
+    return &gd5402_onboard_device;
+}
+
+int
+machine_at_commodore_sl386sx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/cbm_sl386sx25/cbm-sl386sx-bios-lo-v1.04-390914-04.bin",
+				L"roms/machines/cbm_sl386sx25/cbm-sl386sx-bios-hi-v1.04-390915-04.bin",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&keyboard_at_device);
+    device_add(&fdc_at_device);
+    device_add(&vlsi_scamp_device);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&gd5402_onboard_device);
 
     return ret;
 }

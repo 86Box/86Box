@@ -21,9 +21,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "vid_av9194.h"
+#include "86box.h"
+#include "device.h"
+#include "mem.h"
+#include "timer.h"
+#include "video.h"
+#include "vid_svga.h"
 
 
 float

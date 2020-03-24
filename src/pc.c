@@ -8,15 +8,15 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.93	2019/12/05
+ * Version:	@(#)pc.c	1.0.94	2020/01/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -26,24 +26,17 @@
 #include <string.h>
 #include <time.h>
 #include <wchar.h>
+
 #define HAVE_STDARG_H
 #include "86box.h"
 #include "config.h"
 #include "mem.h"
-#ifdef USE_NEW_DYNAREC
+#include "cpu.h"
 #ifdef USE_DYNAREC
-#include "cpu_new/cpu.h"
-# include "cpu_new/codegen.h"
+# include "codegen_public.h"
 #endif
-#include "cpu_new/x86_ops.h"
-#else
-#include "cpu/cpu.h"
-#ifdef USE_DYNAREC
-# include "cpu/codegen.h"
-#endif
-#include "cpu/x86_ops.h"
-#endif
-#include "io.h"
+#include "x86_ops.h"
+#include "86box_io.h"
 #include "rom.h"
 #include "dma.h"
 #include "pci.h"
@@ -54,31 +47,32 @@
 #include "random.h"
 #include "timer.h"
 #include "nvr.h"
-#include "machine/machine.h"
+#include "machine.h"
 #include "bugger.h"
+#include "postcard.h"
 #include "isamem.h"
 #include "isartc.h"
 #include "lpt.h"
 #include "serial.h"
 #include "keyboard.h"
 #include "mouse.h"
-#include "game/gameport.h"
-#include "floppy/fdd.h"
-#include "floppy/fdc.h"
-#include "disk/hdd.h"
-#include "disk/hdc.h"
-#include "disk/hdc_ide.h"
-#include "scsi/scsi.h"
-#include "scsi/scsi_device.h"
-#include "cdrom/cdrom.h"
-#include "disk/zip.h"
-#include "scsi/scsi_disk.h"
-#include "cdrom/cdrom_image.h"
-#include "network/network.h"
-#include "sound/sound.h"
-#include "sound/midi.h"
-#include "sound/snd_speaker.h"
-#include "video/video.h"
+#include "gameport.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "hdd.h"
+#include "hdc.h"
+#include "hdc_ide.h"
+#include "scsi.h"
+#include "scsi_device.h"
+#include "cdrom.h"
+#include "zip.h"
+#include "scsi_disk.h"
+#include "cdrom_image.h"
+#include "network.h"
+#include "sound.h"
+#include "midi.h"
+#include "snd_speaker.h"
+#include "video.h"
 #include "ui.h"
 #include "plat.h"
 #include "plat_midi.h"
@@ -95,6 +89,7 @@ int	force_debug = 0;			/* (O) force debug output */
 int	video_fps = RENDER_FPS;			/* (O) render speed in fps */
 #endif
 int	settings_only = 0;			/* (O) show only the settings dialog */
+int	no_quit_confirm = 0;			/* (O) do not ask for confirmation on quit */
 #ifdef _WIN32
 uint64_t	unique_id = 0;
 uint64_t	source_hwnd = 0;
@@ -118,6 +113,7 @@ int	vid_cga_contrast = 0,			/* (C) video */
 	force_43 = 0;				/* (C) video */
 int	serial_enabled[SERIAL_MAX] = {0,0},	/* (C) enable serial ports */
 	bugger_enabled = 0,			/* (C) enable ISAbugger */
+	postcard_enabled = 0,			/* (C) enable POST card */
 	isamem_type[ISAMEM_MAX] = { 0,0,0,0 },	/* (C) enable ISA mem cards */
 	isartc_type = 0;			/* (C) enable ISA RTC card */
 int	gfxcard = 0;				/* (C) graphics/video card */
@@ -149,7 +145,7 @@ int	output;
 int	atfullspeed;
 int	clockrate;
 
-wchar_t	exe_path[1024];				/* path (dir) of executable */
+wchar_t	exe_path[2048];				/* path (dir) of executable */
 wchar_t	usr_path[1024];				/* path (dir) of user data */
 wchar_t	cfg_path[1024];				/* full path of config file */
 FILE	*stdlog = NULL;				/* file to log output to */
@@ -323,7 +319,7 @@ pc_init(int argc, wchar_t *argv[])
     uint32_t *uid, *shwnd;
 
     /* Grab the executable's full path. */
-    plat_get_exe_name(exe_path, sizeof(exe_path)-1);
+    plat_get_exe_name(exe_path, sizeof_w(exe_path)-1);
     p = plat_get_filename(exe_path);
     *p = L'\0';
 
@@ -354,6 +350,7 @@ usage:
 		printf("-L or --logfile path - set 'path' to be the logfile\n");
 		printf("-P or --vmpath path  - set 'path' to be root for vm\n");
 		printf("-S or --settings     - show only the settings dialog\n");
+		printf("-N or --noconfirm    - do not ask for confirmation on quit\n");
 #ifdef _WIN32
 		printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
 #endif
@@ -383,6 +380,9 @@ usage:
 	} else if (!wcscasecmp(argv[c], L"--settings") ||
 		   !wcscasecmp(argv[c], L"-S")) {
 		settings_only = 1;
+	} else if (!wcscasecmp(argv[c], L"--noconfirm") ||
+		   !wcscasecmp(argv[c], L"-N")) {
+		no_quit_confirm = 1;
 #ifdef _WIN32
 	} else if (!wcscasecmp(argv[c], L"--hwnd") ||
 		   !wcscasecmp(argv[c], L"-H")) {
@@ -554,8 +554,8 @@ pc_init_modules(void)
     /* Load the ROMs for the selected machine. */
     if (! machine_available(machine)) {
 	c = 0;
+	machine = -1;
 	while (machine_get_internal_name_ex(c) != NULL) {
-		machine = -1;
 		if (machine_available(c)) {
 			ui_msgbox(MBX_INFO, (wchar_t *)IDS_2063);
 			machine = c;
@@ -767,7 +767,7 @@ pc_reset_hard_init(void)
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
 
-    if (joystick_type != 7)
+    if (joystick_type != JOYSTICK_TYPE_NONE)
 	gameport_update_joystick_type();
 
     ui_sb_update_panes();
@@ -781,7 +781,9 @@ pc_reset_hard_init(void)
 
     /* Needs the status bar... */
     if (bugger_enabled)
-	device_add(&bugger_device);
+    	device_add(&bugger_device);
+    if (postcard_enabled)
+    	device_add(&postcard_device);
 
     /* Reset the CPU module. */
     resetx86();

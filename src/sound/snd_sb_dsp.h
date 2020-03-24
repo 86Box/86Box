@@ -1,3 +1,15 @@
+#define SADLIB		1	/* No DSP */
+#define SB1		2	/* DSP v1.05 */
+#define SB15		3	/* DSP v2.00 */
+#define SB2		4	/* DSP v2.01 - needed for high-speed DMA */
+#define SBPRO		5	/* DSP v3.00 */
+#define SBPRO2		6	/* DSP v3.02 + OPL3 */
+#define SB16		7	/* DSP v4.05 + OPL3 */
+#define SADGOLD		8	/* AdLib Gold */
+#define SND_WSS		9	/* Windows Sound System */
+#define SND_PAS16	10	/* Pro Audio Spectrum 16 */
+
+
 typedef struct sb_dsp_t
 {
         int sb_type;
@@ -49,6 +61,7 @@ typedef struct sb_dsp_t
         int sb_timei, sb_timeo;
 
         int sb_irq8, sb_irq16;
+        int sb_irqm8, sb_irqm16;
 
         uint8_t sb_asp_regs[256];
         
@@ -98,3 +111,4 @@ void sb_dsp_poll(sb_dsp_t *dsp, int16_t *l, int16_t *r);
 void sb_dsp_set_stereo(sb_dsp_t *dsp, int stereo);
 
 void sb_dsp_update(sb_dsp_t *dsp);
+void sb_irqc(sb_dsp_t *dsp, int irq8);

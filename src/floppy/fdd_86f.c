@@ -26,13 +26,13 @@
 #include <assert.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../timer.h"
-#include "../dma.h"
-#include "../nvr.h"
-#include "../random.h"
-#include "../plat.h"
-#include "../ui.h"
+#include "86box.h"
+#include "timer.h"
+#include "dma.h"
+#include "nvr.h"
+#include "random.h"
+#include "plat.h"
+#include "ui.h"
 #include "fdd.h"
 #include "fdc.h"
 #include "fdd_86f.h"
@@ -826,7 +826,7 @@ d86f_byteperiod(int drive)
 int
 d86f_is_mfm(int drive)
 {
-    return (d86f_track_flags(drive) & 8) ? 1 : 0;
+    return ((d86f_track_flags(drive) & 0x18) == 0x08) ? 1 : 0;
 }
 
 
@@ -1174,15 +1174,8 @@ d86f_put_bit(int drive, int side, int bit)
     if (d86f_has_surface_desc(drive)) {
 	surface_bit = (surface_data >> track_bit) & 1;
 	if (! surface_bit) {
-		if (! current_bit) {
-			/* Bit is 0 and is not set to fuzzy, we overwrite it as is. */
-			dev->last_word[side] |= bit;
-			current_bit = bit;
-		} else {
-			/* Bit is 1 and is not set to fuzzy, we overwrite it as is. */
-			dev->last_word[side] |= bit;
-			current_bit = bit;
-		}
+		dev->last_word[side] |= bit;
+		current_bit = bit;
 	} else {
 		if (current_bit) {
 			/* Bit is 1 and is set to fuzzy, we overwrite it with a non-fuzzy bit. */
@@ -2949,10 +2942,13 @@ d86f_read_track(int drive, int track, int thin_track, int side, uint16_t *da, ui
 
     if (dev->track_offset[logical_track]) {
 	if (! thin_track) {
-		fseek(dev->f, dev->track_offset[logical_track], SEEK_SET);
-		fread(&(dev->side_flags[side]), 2, 1, dev->f);
+		if (fseek(dev->f, dev->track_offset[logical_track], SEEK_SET) == -1)
+			fatal("d86f_read_track(): Error seeking to offset dev->track_offset[logical_track]\n");
+		if (fread(&(dev->side_flags[side]), 1, 2, dev->f) != 2)
+			fatal("d86f_read_track(): Error reading side flags\n");
 		if (d86f_has_extra_bit_cells(drive)) {
-			fread(&(dev->extra_bit_cells[side]), 4, 1, dev->f);
+			if (fread(&(dev->extra_bit_cells[side]), 1, 4, dev->f) != 4)
+				fatal("d86f_read_track(): Error reading number of extra bit cells\n");
 			/* If RPM shift is 0% and direction is 1, do not adjust extra bit cells,
 			   as that is the whole track length. */
 			if (d86f_get_rpm_mode(drive) || !d86f_get_speed_shift_dir(drive)) {
@@ -3146,7 +3142,8 @@ d86f_write_tracks(int drive, FILE **f, uint32_t *track_table)
 		}
 
 		if (tbl[logical_track]) {
-			fseek(*f, tbl[logical_track], SEEK_SET);
+			if (fseek(*f, tbl[logical_track], SEEK_SET) == -1)
+				fatal("d86f_write_tracks(): Error seeking to offset tbl[logical_track]\n");
 			d86f_write_track(drive, f, side, d86f_handler[drive].encoded_data(drive, side), dev->track_surface_data[side]);
 		}
 	}
@@ -3161,7 +3158,7 @@ d86f_writeback(int drive)
 {
     d86f_t *dev = d86f[drive];
     uint8_t header[32];
-    int header_size;
+    int header_size, size;
 #ifdef D86F_COMPRESS
     uint32_t len;
     int ret = 0;
@@ -3172,11 +3169,16 @@ d86f_writeback(int drive)
     if (! dev->f) return;
 
     /* First write the track offsets table. */
-    fseek(dev->f, 0, SEEK_SET);
-    fread(header, 1, header_size, dev->f);
+    if (fseek(dev->f, 0, SEEK_SET) == -1)
+		fatal("86F write_back(): Error seeking to the beginning of the file\n");
+    if (fread(header, 1, header_size, dev->f) != header_size)
+		fatal("86F write_back(): Error reading header size\n");
 
-    fseek(dev->f, 8, SEEK_SET);
-    fwrite(dev->track_offset, 1, d86f_get_track_table_size(drive), dev->f);
+    if (fseek(dev->f, 8, SEEK_SET) == -1)
+	fatal("86F write_back(): Error seeking\n");
+    size = d86f_get_track_table_size(drive);
+    if (fwrite(dev->track_offset, 1, size, dev->f) != size)
+	fatal("86F write_back(): Error writing data\n");
 
     d86f_write_tracks(drive, &dev->f, NULL);
 
@@ -3586,7 +3588,9 @@ d86f_load(int drive, wchar_t *fn)
 	return;
     }
 
-    fread(&(dev->version), 2, 1, dev->f);
+    if (fread(&(dev->version), 1, 2, dev->f) != 2)
+	fatal("d86f_load(): Error reading format version\n");
+
     if (dev->version != D86FVER) {
 	/* File is not of a recognized format version, abort. */
 	if (dev->version == 0x0063) {
@@ -3779,10 +3783,13 @@ d86f_load(int drive, wchar_t *fn)
     }
 
     /* Load track 0 flags as default. */
-    fseek(dev->f, dev->track_offset[0], SEEK_SET);
-    fread(&(dev->side_flags[0]), 2, 1, dev->f);
+    if (fseek(dev->f, dev->track_offset[0], SEEK_SET) == -1)
+	fatal("d86f_load(): Track 0: Error seeking to the beginning of the file\n");
+    if (fread(&(dev->side_flags[0]), 1, 2, dev->f) != 2)
+	fatal("d86f_load(): Track 0: Error reading side flags\n");
     if (dev->disk_flags & 0x80) {
-	fread(&(dev->extra_bit_cells[0]), 4, 1, dev->f);
+	if (fread(&(dev->extra_bit_cells[0]), 1, 4, dev->f) != 4)
+		fatal("d86f_load(): Track 0: Error reading the amount of extra bit cells\n");
 	if ((dev->disk_flags & 0x1060) != 0x1000) {
 		if (dev->extra_bit_cells[0] < -32768)  dev->extra_bit_cells[0] = -32768;
 		if (dev->extra_bit_cells[0] > 32768)  dev->extra_bit_cells[0] = 32768;
@@ -3792,10 +3799,13 @@ d86f_load(int drive, wchar_t *fn)
     }
 
     if (d86f_get_sides(drive) == 2) {
-	fseek(dev->f, dev->track_offset[1], SEEK_SET);
-	fread(&(dev->side_flags[1]), 2, 1, dev->f);
+	if (fseek(dev->f, dev->track_offset[1], SEEK_SET) == -1)
+		fatal("d86f_load(): Track 1: Error seeking to the beginning of the file\n");
+	if (fread(&(dev->side_flags[1]), 1, 2, dev->f) != 2)
+		fatal("d86f_load(): Track 1: Error reading side flags\n");
 	if (dev->disk_flags & 0x80) {
-		fread(&(dev->extra_bit_cells[1]), 4, 1, dev->f);
+		if (fread(&(dev->extra_bit_cells[1]), 1, 4, dev->f) != 4)
+			fatal("d86f_load(): Track 4: Error reading the amount of extra bit cells\n");
 		if ((dev->disk_flags & 0x1060) != 0x1000) {
 			if (dev->extra_bit_cells[1] < -32768)  dev->extra_bit_cells[1] = -32768;
 			if (dev->extra_bit_cells[1] > 32768)  dev->extra_bit_cells[1] = 32768;

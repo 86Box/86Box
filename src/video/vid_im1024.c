@@ -54,17 +54,16 @@
 #include <wchar.h>
 #include <ctype.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../timer.h"
-#include "../device.h"
-#include "../pit.h"
-#include "../plat.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "rom.h"
+#include "timer.h"
+#include "device.h"
+#include "pit.h"
+#include "plat.h"
 #include "video.h"
 #include "vid_pgc.h"
-#include "vid_im1024.h"
 
 
 #define BIOS_ROM_PATH	L"roms/video/im1024/im1024font.bin"
@@ -523,11 +522,21 @@ hndl_poly(pgc_t *pgc)
 #ifdef ENABLE_IM1024_LOG
 	im1024_log("IM1024: POLY: out of memory\n");
 #endif
+	if (x)
+		free(x);
+	if (y)
+		free(y);
 	return;
     }
 
     while (parsing) {
-	if (! pgc_param_byte(pgc, &count)) return;
+	if (! pgc_param_byte(pgc, &count)) {
+		if (x)
+			free(x);
+		if (y)
+			free(y);
+		return;
+	}
 
 	if (count + realcount >= as) {
 		nx = (int32_t *)realloc(x, 2 * as * sizeof(int32_t));	
@@ -544,8 +553,20 @@ hndl_poly(pgc_t *pgc)
 	}
 
 	for (n = 0; n < count; n++) {
-		if (! pgc_param_word(pgc, &xw)) return;
-		if (! pgc_param_word(pgc, &yw)) return;
+		if (! pgc_param_word(pgc, &xw)) {
+			if (x)
+				free(x);
+			if (y)
+				free(y);
+			return;
+		}
+		if (! pgc_param_word(pgc, &yw)) {
+			if (x)
+				free(x);
+			if (y)
+				free(y);
+			return;
+		}
 
 		/* Skip degenerate line segments. */
 		if (realcount > 0 && 

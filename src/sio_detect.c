@@ -21,10 +21,10 @@
 #include <wchar.h>
 #include "86box.h"
 #include "device.h"
-#include "io.h"
+#include "86box_io.h"
 #include "timer.h"
-#include "floppy/fdd.h"
-#include "floppy/fdc.h"
+#include "fdd.h"
+#include "fdc.h"
 #include "sio.h"
 
 

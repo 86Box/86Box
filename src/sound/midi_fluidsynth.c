@@ -5,14 +5,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../config.h"
-#include "../device.h"
-#include "../plat.h"
-#include "../plat_dynld.h"
-#include "../ui.h"
+#include "86box.h"
+#include "config.h"
+#include "device.h"
+#include "plat.h"
+#include "plat_dynld.h"
+#include "ui.h"
 #include "midi.h"
-#include "midi_fluidsynth.h"
 #include "sound.h"
 
 

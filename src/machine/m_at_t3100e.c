@@ -152,17 +152,17 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../timer.h"
-#include "../io.h"
-#include "../mouse.h"
-#include "../mem.h"
-#include "../device.h"
-#include "../keyboard.h"
-#include "../rom.h"
-#include "../cpu/cpu.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
+#include "86box.h"
+#include "timer.h"
+#include "86box_io.h"
+#include "mouse.h"
+#include "mem.h"
+#include "device.h"
+#include "keyboard.h"
+#include "rom.h"
+#include "cpu.h"
+#include "fdd.h"
+#include "fdc.h"
 #include "machine.h"
 #include "m_at_t3100e.h"
 
@@ -571,8 +571,13 @@ uint8_t t3100e_ems_in(uint16_t addr, void *p)
 {
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)p;
 	
-	return regs->page[port_to_page(addr)];
-
+	int page = port_to_page(addr);
+	if (page >= 0)
+		return regs->page[page];
+	else {
+		fatal("t3100e_ems_in(): invalid address");
+		return 0xff;
+	}
 }
 
 /* Write EMS page register */
@@ -580,6 +585,9 @@ void t3100e_ems_out(uint16_t addr, uint8_t val, void *p)
 {
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)p;
 	int pg = port_to_page(addr);
+
+	if (pg == -1)
+		return;
 
 	regs->page_exec[pg & 3] = t3100e_ems_execaddr(regs, pg, val);
 	t3100e_log("EMS: page %d %02x -> %02x [%06x]\n",

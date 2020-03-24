@@ -21,24 +21,18 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../device.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../mem.h"
-#include "../pci.h"
-#include "../rom.h"
-#include "../plat.h"
+#include "86box.h"
+#include "device.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "mem.h"
+#include "pci.h"
+#include "rom.h"
+#include "plat.h"
 #include "video.h"
-#include "vid_s3.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
-#include "vid_sdac_ramdac.h"
-#include "vid_att20c49x_ramdac.h"
-#include "vid_bt48x_ramdac.h"
-#include "vid_av9194.h"
-#include "vid_icd2061.h"
-#include "../cpu/cpu.h"
+#include "cpu.h"
 
 #define ROM_ORCHID_86C911		L"roms/video/s3/BIOS.BIN"
 #define ROM_METHEUS_86C928		L"roms/video/s3/928.vbi"
@@ -1595,7 +1589,6 @@ uint8_t s3_in(uint16_t addr, void *p)
 void s3_recalctimings(svga_t *svga)
 {
 	s3_t *s3 = (s3_t *)svga->p;
-	bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) svga->ramdac;
 	int clk_sel = (svga->miscout >> 2) & 3;
 
 	svga->hdisp = svga->hdisp_old;
@@ -1616,11 +1609,9 @@ void s3_recalctimings(svga_t *svga)
 	else if (svga->crtc[0x43] & 0x04) svga->rowoffset  += 0x100;
 	if (!svga->rowoffset) svga->rowoffset = 256;
 
-	if (s3->chip == S3_VISION964 || s3->chip == S3_86C928) {
-		svga->interlace = ramdac->cmd_r2 & 0x08;
-		if (ramdac->cmd_r3 & 0x08)
-			svga->hdisp *= 2;	/* x2 clock multiplier */
-	} else
+	if (s3->chip == S3_VISION964 || s3->chip == S3_86C928)
+		bt48x_recalctimings(svga->ramdac, svga);
+	else
 		svga->interlace = svga->crtc[0x42] & 0x20;
 
 	if ((((svga->miscout >> 2) & 3) == 3) && (s3->chip != S3_TRIO32) && (s3->chip != S3_TRIO64))
@@ -2076,15 +2067,9 @@ uint8_t s3_accel_in(uint16_t port, void *p)
 			break;
 		temp = s3->accel.pix_trans[1];
 		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && (s3->accel.cmd & 0x600) == 0x200 && (s3->accel.cmd & 0x100))
-		{
-			if (s3->accel.cmd & 0x1000) s3_accel_start(16, 1, 0xffffffff, 0, s3);
-			else			s3_accel_start(16, 1, 0xffffffff, 0, s3);
-		}
+			s3_accel_start(16, 1, 0xffffffff, 0, s3);
 		else if ((s3->accel.cmd & 0x600) == 0x200 && (s3->accel.cmd & 0x100))
-		{
-			if (s3->accel.cmd & 0x1000) s3_accel_start(2, 1, 0xffffffff, 0xffffffff, s3);
-			else			s3_accel_start(2, 1, 0xffffffff, 0xffffffff, s3);
-		}
+			s3_accel_start(2, 1, 0xffffffff, 0xffffffff, s3);
 		return temp;
 		case 0xe14a: case 0xe2ea:
 		if (!s3_cpu_dest(s3))
@@ -3774,6 +3759,9 @@ static const device_config_t s3_config[] =
 			},
 			{
 				"4 MB", 4
+			},
+			{
+				"8 MB", 8
 			},
 			{
 				""

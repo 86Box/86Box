@@ -8,13 +8,13 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.27	2019/02/06
+ * Version:	@(#)sound.c	1.0.28	2020/01/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -23,28 +23,17 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../timer.h"
-#include "../cdrom/cdrom.h"
-#include "../disk/hdc_ide.h"
-#include "../plat.h"
+#include "86box.h"
+#include "device.h"
+#include "timer.h"
+#include "cdrom.h"
+#include "hdc_ide.h"
+#include "plat.h"
 #include "sound.h"
 #include "midi.h"
 #include "snd_opl.h"
-#include "snd_cms.h"
-#include "snd_adlib.h"
-#include "snd_adlibgold.h"
-#include "snd_audiopci.h"
-#include "snd_gus.h"
 #include "snd_mpu401.h"
-#if defined(DEV_BRANCH) && defined(USE_PAS16)
-# include "snd_pas16.h"
-#endif
-#include "snd_sb.h"
 #include "snd_sb_dsp.h"
-#include "snd_ssi2001.h"
-#include "snd_wss.h"
 #include "filters.h"
 
 
@@ -441,7 +430,7 @@ sound_reset(void)
     sound_realloc_buffers();
 
     midi_device_init();
-	midi_in_device_init();
+    midi_in_device_init();
     inital();
 
     timer_add(&sound_poll_timer, sound_poll, NULL, 1);
@@ -455,13 +444,20 @@ sound_reset(void)
 void
 sound_card_reset(void)
 {
+    /* Reset the MPU-401 already loaded flag and the chain of input/output handlers. */
+    midi_in_handlers_clear();
+
     sound_card_init();
+
     if (mpu401_standalone_enable)
 	mpu401_device_add();
+
     if (GUS)
 	device_add(&gus_device);
+
     if (GAMEBLASTER)
 	device_add(&cms_device);
+
     if (SSI2001)
 	device_add(&ssi2001_device);
 }

@@ -77,16 +77,16 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../timer.h"
-#include "../device.h"
-#include "../ui.h"
-#include "../plat.h"
-#include "../dma.h"
-#include "../pic.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "rom.h"
+#include "timer.h"
+#include "device.h"
+#include "ui.h"
+#include "plat.h"
+#include "dma.h"
+#include "pic.h"
 #include "hdc.h"
 #include "hdd.h"
 
@@ -1310,6 +1310,13 @@ loadrom(hdc_t *dev, const wchar_t *fn)
     uint32_t size;
     FILE *fp;
 
+    if (fn == NULL) {
+#ifdef ENABLE_ST506_XT_LOG
+	st506_xt_log("ST506: NULL BIOS ROM file pointer!\n");
+#endif
+	return;
+    }
+
     if ((fp = rom_fopen((wchar_t *) fn, L"rb")) == NULL) {
 	st506_xt_log("ST506: BIOS ROM '%ls' not found!\n", fn);
 	return;
@@ -1326,7 +1333,8 @@ loadrom(hdc_t *dev, const wchar_t *fn)
     /* Load the ROM data. */
     dev->bios_rom.rom = (uint8_t *)malloc(size);
     memset(dev->bios_rom.rom, 0xff, size);
-    (void)fread(dev->bios_rom.rom, size, 1, fp);
+    if (fread(dev->bios_rom.rom, 1, size, fp) != size)
+	fatal("ST-506 XT loadrom(): Error reading data\n");
     (void)fclose(fp);
 
     /* Set up an address mask for this memory. */

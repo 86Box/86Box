@@ -51,9 +51,9 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../timer.h"
-#include "../plat.h"
+#include "86box.h"
+#include "timer.h"
+#include "plat.h"
 #include "fdd.h"
 #include "fdd_86f.h"
 #include "fdc.h"
@@ -395,7 +395,6 @@ json_seek(int drive, int track)
     int side, sector;
     int rate, gap2, gap3, pos;
     int ssize, rsec, asec;
-    int interleave_type;
 
     if (dev->f == NULL) {
 	json_log("JSON: seek: no file loaded!\n");
@@ -414,8 +413,6 @@ json_seek(int drive, int track)
     d86f_destroy_linked_lists(drive, 0);
     d86f_reset_index_hole_pos(drive, 1);
     d86f_destroy_linked_lists(drive, 1);
-
-    interleave_type = 0;
 
     if (track > dev->tracks) {
 	d86f_zero_track(drive);
@@ -438,13 +435,9 @@ json_seek(int drive, int track)
 	pos = d86f_prepare_pretrack(drive, side, 0);
 
 	for (sector=0; sector<dev->spt[track][side]; sector++) {
-		if (interleave_type == 0) {
-			rsec = dev->sects[track][side][sector].sector;
-			asec = sector;
-		} else {
-			rsec = fdd_dmf_r[sector];
-			asec = dev->interleave_ordered[rsec][side];
-		}
+		rsec = dev->sects[track][side][sector].sector;
+		asec = sector;
+
 		id[0] = track;
 		id[1] = side;
 		id[2] = rsec;

@@ -189,16 +189,16 @@
  *		including the later update (DS12887A) which implemented a
  *		"century" register to be compatible with Y2K.
  *
- * Version:	@(#)nvr_at.c	1.0.16	2019/11/19
+ * Version:	@(#)nvr_at.c	1.0.19	2020/01/24
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Mahod,
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2008-2019 Sarah Walker.
+ *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -226,9 +226,9 @@
 #include <wchar.h>
 #include <time.h>
 #include "86box.h"
-#include "cpu/cpu.h"
-#include "machine/machine.h"
-#include "io.h"
+#include "cpu.h"
+#include "machine.h"
+#include "86box_io.h"
 #include "mem.h"
 #include "nmi.h"
 #include "pic.h"
@@ -281,16 +281,22 @@
 # define REGD_VRT	0x80
 #define RTC_CENTURY_AT	0x32		/* century register for AT etc */
 #define RTC_CENTURY_PS	0x37		/* century register for PS/1 PS/2 */
+#define RTC_ALDAY	0x7D		/* VIA VT82C586B - alarm day */
+#define RTC_ALMONTH	0x7E		/* VIA VT82C586B - alarm month */
+#define RTC_CENTURY_VIA	0x7F		/* century register for VIA VT82C586B */
 #define RTC_REGS	14		/* number of registers */
+
+#define FLAG_LS_HACK	0x01
+#define FLAG_PIIX4	0x02
 
 
 typedef struct {
     int8_t      stat;
 
     uint8_t	cent;
-    uint8_t	def;
+    uint8_t	def, flags;
 
-    uint8_t	addr;
+    uint8_t	addr[8], wp[2];
 
     int16_t	count, state;
 
@@ -299,6 +305,9 @@ typedef struct {
     pc_timer_t  update_timer,
                 rtc_timer;
 } local_t;
+
+
+static uint8_t	nvr_at_inited = 0;
 
 
 /* Get the current NVR time. */
@@ -402,6 +411,20 @@ check_alarm(nvr_t *nvr, int8_t addr)
 }
 
 
+/* Check for VIA stuff. */
+static int8_t
+check_alarm_via(nvr_t *nvr, int8_t addr, int8_t addr_2)
+{
+    local_t *local = (local_t *)nvr->data;
+
+    if (local->cent == RTC_CENTURY_VIA) {
+	return((nvr->regs[addr_2] == nvr->regs[addr]) ||
+	       ((nvr->regs[addr_2] & AL_DONTCARE) == AL_DONTCARE));
+    } else
+	return 0;
+}
+
+
 /* Update the NVR registers from the internal clock. */
 static void
 timer_update(void *priv)
@@ -425,7 +448,9 @@ timer_update(void *priv)
 	/* Check for any alarms we need to handle. */
 	if (check_alarm(nvr, RTC_SECONDS) &&
 	    check_alarm(nvr, RTC_MINUTES) &&
-	    check_alarm(nvr, RTC_HOURS)) {
+	    check_alarm(nvr, RTC_HOURS) &&
+	    check_alarm_via(nvr, RTC_DOM, RTC_ALDAY) &&
+	    check_alarm_via(nvr, RTC_MONTH, RTC_ALMONTH)) {
 		nvr->regs[RTC_REGC] |= REGC_AF;
 		if (nvr->regs[RTC_REGB] & REGB_AIE) {
 			nvr->regs[RTC_REGC] |= REGC_IRQF;
@@ -534,13 +559,15 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
     nvr_t *nvr = (nvr_t *)priv;
     local_t *local = (local_t *)nvr->data;
     struct tm tm;
-    uint8_t old;
+    uint8_t old, i;
+    uint8_t addr_id = (addr & 0x0e) >> 1;
+    uint16_t checksum = 0x0000;
 
     sub_cycles(ISA_CYCLES(8));
 
     if (addr & 1) {
-	old = nvr->regs[local->addr];
-	switch(local->addr) {
+	old = nvr->regs[local->addr[addr_id]];
+	switch(local->addr[addr_id]) {
 		case RTC_REGA:
 			nvr->regs[RTC_REGA] = val;
 			timer_load_count(nvr);
@@ -559,16 +586,32 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 		case RTC_REGD:		/* R/O */
 		break;
 
+		case 0x2e:
+		case 0x2f:
+			if (local->flags & FLAG_LS_HACK) {
+				/* 2E and 2F are a simple sum of the values of 0E to 2D. */
+				for (i = 0x0e; i < 0x2e; i++)
+					checksum += (uint16_t) nvr->regs[i];
+				nvr->regs[0x2e] = checksum >> 8;
+				nvr->regs[0x2f] = checksum & 0xff;
+				break;
+			}
+			/*FALLTHROUGH*/
+
 		default:		/* non-RTC registers are just NVRAM */
-			if (nvr->regs[local->addr] != val) {
-				nvr->regs[local->addr] = val;
+			if ((local->addr[addr_id] >= 0x38) && (local->addr[addr_id] <= 0x3f) && local->wp[0])
+				break;
+			if ((local->addr[addr_id] >= 0xb8) && (local->addr[addr_id] <= 0xbf) && local->wp[1])
+				break;
+			if (nvr->regs[local->addr[addr_id]] != val) {
+				nvr->regs[local->addr[addr_id]] = val;
 				nvr_dosave = 1;
 			}
 			break;
 	}
 
-	if ((local->addr < RTC_REGA) || ((local->cent != 0xff) && (local->addr == local->cent))) {
-		if ((local->addr != 1) && (local->addr != 3) && (local->addr != 5)) {
+	if ((local->addr[addr_id] < RTC_REGA) || ((local->cent != 0xff) && (local->addr[addr_id] == local->cent))) {
+		if ((local->addr[addr_id] != 1) && (local->addr[addr_id] != 3) && (local->addr[addr_id] != 5)) {
 			if ((old != val) && !(time_sync & TIME_SYNC_ENABLED)) {
 				/* Update internal clock. */
 				time_get(nvr, &tm);
@@ -578,7 +621,12 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 		}
 	}
     } else {
-	local->addr = (val & (nvr->size - 1));
+	local->addr[addr_id] = (val & (nvr->size - 1));
+	/* Some chipsets use a 256 byte NVRAM but ports 70h and 71h always access only 128 bytes. */
+	if (addr_id == 0x0)
+		local->addr[addr_id] &= 0x7f;
+	else if ((addr_id == 0x1) && (local->flags & FLAG_PIIX4))
+		local->addr[addr_id] = (local->addr[addr_id] & 0x7f) | 0x80;
 	if (!(machines[machine].flags & MACHINE_MCA) &&
 	    !(machines[machine].flags & MACHINE_NONMI))
 		nmi_mask = (~val & 0x80);
@@ -593,10 +641,12 @@ nvr_read(uint16_t addr, void *priv)
     nvr_t *nvr = (nvr_t *)priv;
     local_t *local = (local_t *)nvr->data;
     uint8_t ret;
+    uint8_t addr_id = (addr & 0x0e) >> 1;
+    uint16_t checksum;
 
     sub_cycles(ISA_CYCLES(8));
 
-    if (addr & 1)  switch(local->addr) {
+    if (addr & 1)  switch(local->addr[addr_id]) {
 	case RTC_REGA:
 		ret = (nvr->regs[RTC_REGA] & 0x7f) | local->stat;
 		break;
@@ -612,11 +662,32 @@ nvr_read(uint16_t addr, void *priv)
 		ret = nvr->regs[RTC_REGD];
 		break;
 
+	case 0x2c:
+		if (local->flags & FLAG_LS_HACK)
+			ret = nvr->regs[local->addr[addr_id]] & 0x7f;
+		else
+			ret = nvr->regs[local->addr[addr_id]];
+		break;
+
+	case 0x2e:
+	case 0x2f:
+		if (local->flags & FLAG_LS_HACK) {
+			checksum = (nvr->regs[0x2e] << 8) | nvr->regs[0x2f];
+			if (nvr->regs[0x2c] & 0x80)
+				checksum -= 0x80;
+			if (local->addr[addr_id] == 0x2e)
+				ret = checksum >> 8;
+			else
+				ret = checksum & 0xff;
+		} else
+			ret = nvr->regs[local->addr[addr_id]];
+		break;
+
 	default:
-		ret = nvr->regs[local->addr];
+		ret = nvr->regs[local->addr[addr_id]];
 		break;
     } else
-	ret = local->addr;
+	ret = local->addr[addr_id];
 
     return(ret);
 }
@@ -692,6 +763,23 @@ nvr_at_speed_changed(void *priv)
 }
 
 
+void
+nvr_at_handler(int set, uint16_t base, nvr_t *nvr)
+{
+    io_handler(set, base, 2,
+		  nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
+}
+
+
+void
+nvr_wp_set(int set, int h, nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+
+    local->wp[h] = set;
+}
+
+
 static void *
 nvr_at_init(const device_t *info)
 {
@@ -710,13 +798,20 @@ nvr_at_init(const device_t *info)
     /* This is machine specific. */
     nvr->size = machines[machine].nvrmask + 1;
     local->def = 0x00;
-    switch(info->local) {
+    local->flags = 0x00;
+    switch(info->local & 7) {
 	case 0:		/* standard AT, no century register */
 		nvr->irq = 8;
 		local->cent = 0xff;
 		break;
 
+	case 5:		/* Lucky Star LS-486E */
+		local->flags |= FLAG_LS_HACK;
+		/*FALLTHROUGH*/
+
 	case 1:		/* standard AT */
+		if (info->local == 9)
+			local->flags |= FLAG_PIIX4;
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_AT;
 		break;
@@ -738,6 +833,10 @@ nvr_at_init(const device_t *info)
 		local->def = 0xff;
 		break;
 
+	case 6:		/* VIA VT82C586B */
+		nvr->irq = 8;
+		local->cent = RTC_CENTURY_VIA;
+		break;
     }
 
     /* Set up any local handlers here. */
@@ -748,16 +847,24 @@ nvr_at_init(const device_t *info)
     /* Initialize the generic NVR. */
     nvr_init(nvr);
 
-    /* Start the timers. */
-    timer_add(&local->update_timer, timer_update, nvr, 0);
+    if (nvr_at_inited == 0) {
+	/* Start the timers. */
+	timer_add(&local->update_timer, timer_update, nvr, 0);
 
-    timer_add(&local->rtc_timer, timer_intr, nvr, 0);
-    timer_load_count(nvr);
-    timer_set_delay_u64(&local->rtc_timer, RTCCONST);
+	timer_add(&local->rtc_timer, timer_intr, nvr, 0);
+	timer_load_count(nvr);
+	timer_set_delay_u64(&local->rtc_timer, RTCCONST);
 
-    /* Set up the I/O handler for this device. */
-    io_sethandler(0x0070, 2,
-		  nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
+	/* Set up the I/O handler for this device. */
+	io_sethandler(0x0070, 2,
+		      nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
+	if (info->local & 8) {
+		io_sethandler(0x0072, 2,
+			      nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
+	}
+
+	nvr_at_inited = 1;
+    }
 
     return(nvr);
 }
@@ -782,6 +889,9 @@ nvr_at_close(void *priv)
 	free(nvr->data);
 
     free(nvr);
+
+    if (nvr_at_inited == 1)
+	nvr_at_inited = 0;
 }
 
 
@@ -825,6 +935,33 @@ const device_t ibmat_nvr_device = {
     "IBM AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     4,
+    nvr_at_init, nvr_at_close, NULL,
+    NULL, nvr_at_speed_changed,
+    NULL
+};
+
+const device_t piix4_nvr_device = {
+    "Intel PIIX4 PC/AT NVRAM",
+    DEVICE_ISA | DEVICE_AT,
+    9,
+    nvr_at_init, nvr_at_close, NULL,
+    NULL, nvr_at_speed_changed,
+    NULL
+};
+
+const device_t ls486e_nvr_device = {
+    "Lucky Star LS-486E PC/AT NVRAM",
+    DEVICE_ISA | DEVICE_AT,
+    13,
+    nvr_at_init, nvr_at_close, NULL,
+    NULL, nvr_at_speed_changed,
+    NULL
+};
+
+const device_t via_nvr_device = {
+    "VIA PC/AT NVRAM",
+    DEVICE_ISA | DEVICE_AT,
+    14,
     nvr_at_init, nvr_at_close, NULL,
     NULL, nvr_at_speed_changed,
     NULL

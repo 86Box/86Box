@@ -8,9 +8,9 @@
   - Instructions with prefixes can pair if both instructions are fully decoded
     when the first instruction starts execution.*/
 #include <stdint.h>
-#include "../86box.h"
+#include "86box.h"
 #include "cpu.h"
-#include "../mem.h"
+#include "mem.h"
 
 #include "x86.h"
 #include "x86_ops.h"
@@ -626,7 +626,7 @@ static void codegen_timing_winchip2_opcode(uint8_t opcode, uint32_t fetchdat, in
                 {
                         case 0x80: case 0x82: case 0x83:
                         timings = mod3 ? opcode_timings_8x_mod3 : opcode_timings_8x;
-                        deps = mod3 ? opcode_deps_8x_mod3 : opcode_deps_8x_mod3;
+                        deps = mod3 ? opcode_deps_8x_mod3 : opcode_deps_8x;
                         opcode = (fetchdat >> 3) & 7;
                         break;
                         case 0x81:

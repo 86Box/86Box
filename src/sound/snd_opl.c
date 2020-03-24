@@ -6,10 +6,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../io.h"
-#include "../timer.h"
+#include "86box.h"
+#include "cpu.h"
+#include "86box_io.h"
+#include "timer.h"
 #include "sound.h"
 #include "snd_opl.h"
 #include "snd_opl_backend.h"

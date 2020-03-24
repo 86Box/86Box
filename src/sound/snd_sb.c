@@ -8,14 +8,14 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.c	1.0.16	2019/09/27
+ * Version:	@(#)sound_sb.c	1.0.17	2020/01/19
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -24,20 +24,20 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../mca.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "mca.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "pic.h"
 #include "sound.h"
 #include "midi.h"
 #include "filters.h"
 #include "snd_emu8k.h"
 #include "snd_mpu401.h"
 #include "snd_opl.h"
-#include "snd_sb.h"
 #include "snd_sb_dsp.h"
 
 //#define SB_DSP_RECORD_DEBUG
@@ -679,9 +679,7 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
         sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
         
         if (!(addr & 1))
-        {
                 mixer->index = val;
-        }
         else
         {
             // TODO: and this?  001h:
@@ -721,6 +719,12 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
                         mixer->regs[0x46] = mixer->regs[0x47] = 8 << 4;
                         
                         mixer->regs[0x43] = 0;
+
+			mixer->regs[0x83] = 0xff;
+			sb->dsp.sb_irqm8 = 0;
+			sb->dsp.sb_irqm16 = 0;
+			if (sb->mpu != NULL)
+				sb->mpu->irq_mask = 0;
                 }
                 else
                 {
@@ -728,6 +732,19 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
                 }
                 switch (mixer->index)
                 {
+			/* SB1/2 compatibility? */
+                        case 0x02:
+                        mixer->regs[0x30] = ((mixer->regs[0x02] & 0xf) << 4) | 0x8;
+                        mixer->regs[0x31] = ((mixer->regs[0x02] & 0xf) << 4) | 0x8;
+                        break;
+                        case 0x06:
+                        mixer->regs[0x34] = ((mixer->regs[0x06] & 0xf) << 4) | 0x8;
+                        mixer->regs[0x35] = ((mixer->regs[0x06] & 0xf) << 4) | 0x8;
+                        break;
+                        case 0x08:
+                        mixer->regs[0x36] = ((mixer->regs[0x08] & 0xf) << 4) | 0x8;
+                        mixer->regs[0x37] = ((mixer->regs[0x08] & 0xf) << 4) | 0x8;
+                        break;
                         /* SBPro compatibility. Copy values to sb16 registers. */
                         case 0x22:
                         mixer->regs[0x30] = (mixer->regs[0x22] & 0xF0) | 0x8;
@@ -746,7 +763,8 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
                         mixer->regs[0x37] = ((mixer->regs[0x28] & 0xf) << 4) | 0x8;
                         break;
                         case 0x0A:
-                        mixer->regs[0x3A] = (mixer->regs[0x0A]*3)+10;
+                        // mixer->regs[0x3A] = (mixer->regs[0x0A]*3)+10;
+			mixer->regs[0x3A] = (mixer->regs[0x0A] << 5) | 0x18;
                         break;
                         case 0x2E:
                         mixer->regs[0x38] = (mixer->regs[0x2E] & 0xF0) | 0x8;
@@ -774,6 +792,34 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
                         if (val & 0x40) sb_dsp_setdma16(&sb->dsp,6);
                         if (val & 0x80) sb_dsp_setdma16(&sb->dsp,7);
                         break;
+
+			case 0x83:
+			/* Interrupt mask. */
+			sb->dsp.sb_irqm8 = !(val & 0x01);
+			if (sb->dsp.sb_irqm8)
+				sb_irqc(&sb->dsp, 1);
+			sb->dsp.sb_irqm16 = !(val & 0x02);
+			if (sb->dsp.sb_irqm16)
+				sb_irqc(&sb->dsp, 0);
+			if (sb->mpu != NULL) {
+				sb->mpu->irq_mask = !(val & 0x04);
+				if (sb->mpu->irq_mask) {
+					picintc(1 << sb->mpu->irq);
+					sb->mpu->state.irq_pending = 0;
+				}
+			}
+			break;
+
+			case 0x84:
+			/* MPU Control register, per the Linux source code. */
+			if (sb->mpu != NULL) {
+				if ((val & 0x06) == 0x00)
+					mpu401_change_addr(sb->mpu, 0x330);
+				else if ((val & 0x06) == 0x04)
+					mpu401_change_addr(sb->mpu, 0x300);
+				else if ((val & 0x06) == 0x02)
+					mpu401_change_addr(sb->mpu, 0);
+			}
                 }
 
                 mixer->output_selector = mixer->regs[0x3C];
@@ -816,40 +862,56 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
 {
         sb_t *sb = (sb_t *)p;
         sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
-	uint8_t temp;
+	uint8_t temp, ret = 0xff;
 
         if (!(addr & 1))
-                return mixer->index;
+                ret = mixer->index;
 
         sb_log("sb_ct1745: received register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
 
         if (mixer->index>=0x30 && mixer->index<=0x47)
-        {
-                return mixer->regs[mixer->index];
-        }
-        switch (mixer->index)
+                ret = mixer->regs[mixer->index];
+        else  switch (mixer->index)
         {
                 case 0x00:
-                return mixer->regs[mixer->index];
+                ret = mixer->regs[mixer->index];
+		break;
 
                 /*SB Pro compatibility*/                        
                 case 0x04:
-                return ((mixer->regs[0x33] >> 4) & 0x0f) | (mixer->regs[0x32] & 0xf0);
+                ret = ((mixer->regs[0x33] >> 4) & 0x0f) | (mixer->regs[0x32] & 0xf0);
+		break;
                 case 0x0a:
-                return (mixer->regs[0x3a] - 10) / 3;
+                // ret = (mixer->regs[0x3a] - 10) / 3;
+		ret = (mixer->regs[0x3a] >> 5);
+		break;
+                case 0x02:
+                ret = ((mixer->regs[0x30] >> 4) & 0x0f);
+		break;
+                case 0x06:
+                ret = ((mixer->regs[0x34] >> 4) & 0x0f);
+		break;
+                case 0x08:
+                ret = ((mixer->regs[0x36] >> 4) & 0x0f);
+		break;
                 case 0x22:
-                return ((mixer->regs[0x31] >> 4) & 0x0f) | (mixer->regs[0x30] & 0xf0);
+                ret = ((mixer->regs[0x31] >> 4) & 0x0f) | (mixer->regs[0x30] & 0xf0);
+		break;
                 case 0x26:
-                return ((mixer->regs[0x35] >> 4) & 0x0f) | (mixer->regs[0x34] & 0xf0);
+                ret = ((mixer->regs[0x35] >> 4) & 0x0f) | (mixer->regs[0x34] & 0xf0);
+		break;
                 case 0x28:
-                return ((mixer->regs[0x37] >> 4) & 0x0f) | (mixer->regs[0x36] & 0xf0);
+                ret = ((mixer->regs[0x37] >> 4) & 0x0f) | (mixer->regs[0x36] & 0xf0);
+		break;
                 case 0x2e:
-                return ((mixer->regs[0x39] >> 4) & 0x0f) | (mixer->regs[0x38] & 0xf0);
+                ret = ((mixer->regs[0x39] >> 4) & 0x0f) | (mixer->regs[0x38] & 0xf0);
+		break;
                 
                 case 0x48: 
                 // Undocumented. The Creative Windows Mixer calls this after calling 3C (input selector). even when writing.
                 // Also, the version I have (5.17) does not use the MIDI.L/R input selectors. it uses the volume to mute (Affecting the output, obviously)
-                return mixer->regs[mixer->index];
+                ret = mixer->regs[mixer->index];
+		break;
 
                 case 0x80:
                 /*TODO: Unaffected by mixer reset or soft reboot.
@@ -858,37 +920,34 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
                     
                 switch (sb->dsp.sb_irqnum)
                 {
-                        case 2: return 1;
-                        case 5: return 2;
-                        case 7: return 4;
-                        case 10: return 8;
+                        case 2: ret = 1; break;
+                        case 5: ret = 2; break;
+                        case 7: ret = 4; break;
+                        case 10: ret = 8; break;
                 }
                 break;
                 
                 case 0x81:
-                {                
                 /* TODO: Unaffected by mixer reset or soft reboot.
-                * Enabling multiple 8 or 16-bit DMA bits enables multiple DMA channels.
-                * Disabling all 8-bit DMA channel bits disables 8-bit DMA requests,
-                    including translated 16-bit DMA requests.
-                * Disabling all 16-bit DMA channel bits enables translation of 16-bit DMA
-                    requests to 8-bit ones, using the selected 8-bit DMA channel.*/
+                 * Enabling multiple 8 or 16-bit DMA bits enables multiple DMA channels.
+                 * Disabling all 8-bit DMA channel bits disables 8-bit DMA requests,
+                   including translated 16-bit DMA requests.
+                 * Disabling all 16-bit DMA channel bits enables translation of 16-bit DMA
+                   requests to 8-bit ones, using the selected 8-bit DMA channel.*/
                 
-                        uint8_t result=0;
-                        switch (sb->dsp.sb_8_dmanum)
-                        {
-                            case 0: result |= 1; break;
-                            case 1: result |= 2; break;
-                            case 3: result |= 8; break;
-                        }
-                        switch (sb->dsp.sb_16_dmanum)
-                        {
-                            case 5: result |= 0x20; break;
-                            case 6: result |= 0x40; break;
-                            case 7: result |= 0x80; break;
-                        }                            
-                        return result;
-                }
+		ret = 0;
+		switch (sb->dsp.sb_8_dmanum) {
+			case 0: ret |= 1; break;
+			case 1: ret |= 2; break;
+			case 3: ret |= 8; break;
+		}
+		switch (sb->dsp.sb_16_dmanum)
+		{
+			case 5: ret |= 0x20; break;
+			case 6: ret |= 0x40; break;
+			case 7: ret |= 0x80; break;
+		}                            
+		break;
 
                 /* The Interrupt status register, addressed as register 82h on the Mixer register map,
                  is used by the ISR to determine whether the interrupt is meant for it or for some other ISR,
@@ -900,23 +959,59 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
 		temp = ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) | 0x4000;
 		if (sb->mpu)
 			temp |= ((sb->mpu->state.irq_pending) ? 4 : 0);
-                return temp;
+                ret = temp;
+		break;
+
+		case 0x83:
+		/* Interrupt mask. */
+		ret = mixer->regs[mixer->index];
+		break;
+
+		case 0x84:
+		/* MPU Control. */
+		if (sb->mpu == NULL)
+			ret = 0x02;
+		else {
+			if (sb->mpu->addr == 0x330)
+				ret = 0x00;
+			else if (sb->mpu->addr == 0x300)
+				ret = 0x04;
+			else if (sb->mpu->addr == 0)
+				ret = 0x02;
+			else
+				ret = 0x06;	/* Should never happen. */
+		}
+		break;
+
+		case 0x90:
+		/* 3D Enhancement switch. */
+		ret = mixer->regs[mixer->index];
+		break;
 
                 /* TODO: creative drivers read and write on 0xFE and 0xFF. not sure what they are supposed to be. */
-                
-                
+                case 0xfd:
+		ret = 16;
+		break;
+
+		case 0xfe:
+		ret = 6;
+		break;
+
                 default:
                 sb_log("sb_ct1745: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                 break;
         }
 
-        return 0xff;
+        return ret;
 }
 
 void sb_ct1745_mixer_reset(sb_t* sb)
 {
         sb_ct1745_mixer_write(4,0,sb);
         sb_ct1745_mixer_write(5,0,sb);
+
+	sb->mixer_sb16.regs[0xfd] = 16;
+	sb->mixer_sb16.regs[0xfe] = 6;
 }
 
 
@@ -1018,7 +1113,7 @@ void sb_pro_mcv_write(int port, uint8_t val, void *p)
         sb_dsp_setdma8(&sb->dsp, sb->pos_regs[4] & 3);
 }
 
-void *sb_1_init()
+void *sb_1_init(const device_t *info)
 {
         /*sb1/2 port mappings, 210h to 260h in 10h steps
           2x0 to 2x3 -> CMS chip
@@ -1042,14 +1137,13 @@ void *sb_1_init()
         	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
 	}
         sound_add_handler(sb_get_buffer_sb2, sb);
-		
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;
+
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 		
         return sb;
 }
-void *sb_15_init()
+void *sb_15_init(const device_t *info)
 {
         /*sb1/2 port mappings, 210h to 260h in 10h steps
           2x0 to 2x3 -> CMS chip
@@ -1073,15 +1167,14 @@ void *sb_15_init()
         	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
 	}
         sound_add_handler(sb_get_buffer_sb2, sb);
-		
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;	
-		
+
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
         return sb;
 }
 
-void *sb_mcv_init()
+void *sb_mcv_init(const device_t *info)
 {
         /*sb1/2 port mappings, 210h to 260h in 10h steps
           2x6, 2xA, 2xC, 2xE -> DSP chip
@@ -1102,13 +1195,12 @@ void *sb_mcv_init()
         sb->pos_regs[0] = 0x84;
         sb->pos_regs[1] = 0x50;
 
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;	
-	midi_in_p = &sb->dsp;
-		
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
         return sb;
 }
-void *sb_2_init()
+void *sb_2_init(const device_t *info)
 {
         /*sb2 port mappings. 220h or 240h.
           2x0 to 2x3 -> CMS chip
@@ -1153,14 +1245,13 @@ void *sb_2_init()
         else
                 sound_add_handler(sb_get_buffer_sb2, sb);    
 
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
         return sb;
 }
 
-void *sb_pro_v1_init()
+void *sb_pro_v1_init(const device_t *info)
 {
         /*sbpro port mappings. 220h or 240h.
           2x0 to 2x3 -> FM chip, Left and Right (9*2 voices)
@@ -1190,14 +1281,13 @@ void *sb_pro_v1_init()
         io_sethandler(addr+4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sbpro, sb);
 
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
         return sb;
 }
 
-void *sb_pro_v2_init()
+void *sb_pro_v2_init(const device_t *info)
 {
         /*sbpro port mappings. 220h or 240h.
           2x0 to 2x3 -> FM chip (18 voices)
@@ -1226,14 +1316,13 @@ void *sb_pro_v2_init()
         io_sethandler(addr+4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sbpro, sb);
 
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
         return sb;
 }
 
-void *sb_pro_mcv_init()
+void *sb_pro_mcv_init(const device_t *info)
 {
         /*sbpro port mappings. 220h or 240h.
           2x0 to 2x3 -> FM chip, Left and Right (18 voices)
@@ -1255,14 +1344,13 @@ void *sb_pro_mcv_init()
         sb->pos_regs[0] = 0x03;
         sb->pos_regs[1] = 0x51;
 
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
         return sb;
 }
 
-void *sb_16_init()
+void *sb_16_init(const device_t *info)
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
@@ -1288,15 +1376,13 @@ void *sb_16_init()
 	if (mpu_addr) {
 		sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
 		memset(sb->mpu, 0, sizeof(mpu_t));
-        	mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
-		sb_dsp_set_mpu(sb->mpu);
+        	mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART, device_get_config_int("receive_input401"));
 	} else
 		sb->mpu = NULL;
+	sb_dsp_set_mpu(sb->mpu);
 
-	
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
         return sb;
 }
@@ -1306,7 +1392,7 @@ int sb_awe32_available()
         return rom_present(L"roms/sound/awe32.raw");
 }
 
-void *sb_awe32_init()
+void *sb_awe32_init(const device_t *info)
 {
         sb_t *sb = malloc(sizeof(sb_t));
         uint16_t addr = device_get_config_hex16("base");
@@ -1336,15 +1422,14 @@ void *sb_awe32_init()
 	if (mpu_addr) {
 		sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
 		memset(sb->mpu, 0, sizeof(mpu_t));
-	        mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART);
+	        mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART, device_get_config_int("receive_input401"));
 		sb_dsp_set_mpu(sb->mpu);
 	} else
 		sb->mpu = NULL;
         emu8k_init(&sb->emu8k, emu_addr, onboard_ram);
 
-	input_msg = sb_dsp_input_msg;
-	input_sysex = sb_dsp_input_sysex;
-	midi_in_p = &sb->dsp;
+	if (device_get_config_int("receive_input"))
+		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
         return sb;
 }
@@ -1438,6 +1523,9 @@ static const device_config_t sb_config[] =
 	{
 		"opl", "Enable OPL", CONFIG_BINARY, "", 1
 	},
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+	},
         {
                 "", "", -1
         }
@@ -1478,6 +1566,9 @@ static const device_config_t sb_mcv_config[] =
         },
 	{
 		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
 	},
         {
                 "", "", -1
@@ -1536,6 +1627,9 @@ static const device_config_t sb_pro_config[] =
         },
 	{
 		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
 	},
         {
                 "", "", -1
@@ -1637,6 +1731,12 @@ static const device_config_t sb_16_config[] =
         },
 	{
 		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
 	},
         {
                 "", "", -1
@@ -1781,6 +1881,12 @@ static const device_config_t sb_awe32_config[] =
         },
 	{
 		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
 	},
         {
                 "", "", -1

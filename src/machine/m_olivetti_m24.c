@@ -24,25 +24,25 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../timer.h"
-#include "../io.h"
-#include "../pic.h"
-#include "../pit.h"
-#include "../ppi.h"
-#include "../nmi.h"
-#include "../mem.h"
-#include "../device.h"
-#include "../nvr.h"
-#include "../keyboard.h"
-#include "../mouse.h"
-#include "../rom.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../game/gameport.h"
-#include "../sound/sound.h"
-#include "../sound/snd_speaker.h"
-#include "../video/video.h"
+#include "86box.h"
+#include "timer.h"
+#include "86box_io.h"
+#include "pic.h"
+#include "pit.h"
+#include "ppi.h"
+#include "nmi.h"
+#include "mem.h"
+#include "device.h"
+#include "nvr.h"
+#include "keyboard.h"
+#include "mouse.h"
+#include "rom.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "gameport.h"
+#include "sound.h"
+#include "snd_speaker.h"
+#include "video.h"
 #include "machine.h"
 
 
@@ -892,7 +892,7 @@ machine_olim24_init(const machine_t *model)
 
     keyboard_set_table(scancode_xt);
 
-    if (joystick_type != 7)
+    if (joystick_type != JOYSTICK_TYPE_NONE)
 	device_add(&gameport_device);
 
     /* FIXME: make sure this is correct?? */

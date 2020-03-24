@@ -8,15 +8,15 @@
  *
  *		Definitions for the Intel DMA controller.
  *
- * Version:	@(#)dma.h	1.0.2	2018/03/12
+ * Version:	@(#)dma.h	1.0.4	2020/01/26
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,6 +63,7 @@ typedef struct {
 
 
 extern dma_t	dma[8];
+extern uint8_t	dma_e;
 
 
 extern void	dma_init(void);
@@ -85,6 +86,7 @@ extern int	dma_channel_read(int channel);
 extern int	dma_channel_write(int channel, uint16_t val);
 
 extern void	dma_alias_set(void);
+extern void	dma_alias_set_piix(void);
 extern void	dma_alias_remove(void);
 extern void	dma_alias_remove_piix(void);
 

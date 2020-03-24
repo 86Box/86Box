@@ -1,8 +1,9 @@
 #include <stdint.h>
 #include <stdlib.h>
-#include "../86box.h"
+#include <string.h>
+#include "86box.h"
 #include "cpu.h"
-#include "../mem.h"
+#include "mem.h"
 
 #include "x86.h"
 #include "x86_flags.h"

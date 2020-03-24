@@ -19,18 +19,19 @@
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
-#include "io.h"
+#include "86box_io.h"
 #include "timer.h"
 #include "device.h"
 #include "lpt.h"
 #include "mem.h"
+#include "nvr.h"
 #include "pci.h"
 #include "rom.h"
 #include "serial.h"
-#include "disk/hdc.h"
-#include "disk/hdc_ide.h"
-#include "floppy/fdd.h"
-#include "floppy/fdc.h"
+#include "hdc.h"
+#include "hdc_ide.h"
+#include "fdd.h"
+#include "fdc.h"
 #include "sio.h"
 
 
@@ -40,6 +41,7 @@ typedef struct {
     int cur_reg;
     fdc_t *fdc;
     serial_t *uart[2];
+    nvr_t *nvr;
 } pc87306_t;
 
 
@@ -287,6 +289,14 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
 			}
 		}
 		break;
+	case 4:
+		// pclog("NVR RAM mask set to %i\n", !!(val & 0x80));
+		break;
+	case 5:
+		// pclog("Reserved set to %i\n", !!(val & 0x04));
+		// pclog("RTC is now %sabled\n", (val & 0x08) ? "en" : "dis");
+		// pclog("NVR RAM bank set to %i\n", !!(val & 0x20));
+		break;
 	case 9:
 		if (valxor & 0x44) {
 			fdc_update_enh_mode(dev->fdc, (val & 4) ? 1 : 0);
@@ -298,6 +308,7 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
 			pc87306_gpio_init(dev);
 		break;
 	case 0x12:
+		// pclog("NVR RAM 38-3F lock set to %i\n", !!(val & 0x01));
 		if (valxor & 0x30)
 			pc87306_gpio_init(dev);
 		break;
@@ -405,6 +416,8 @@ pc87306_init(const device_t *info)
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    // dev->nvr = device_add(&piix4_nvr_device);
 
     pc87306_reset(dev);
 

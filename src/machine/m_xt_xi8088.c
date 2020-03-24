@@ -2,25 +2,25 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../timer.h"
-#include "../pic.h"
-#include "../pit.h"
-#include "../dma.h"
-#include "../mem.h"
-#include "../device.h"
-#include "../floppy/fdd.h"
-#include "../floppy/fdc.h"
-#include "../nmi.h"
-#include "../nvr.h"
-#include "../game/gameport.h"
-#include "../keyboard.h"
-#include "../lpt.h"
-#include "../rom.h"
-#include "../disk/hdc.h"
-#include "../video/video.h"
+#include "86box.h"
+#include "timer.h"
+#include "pic.h"
+#include "pit.h"
+#include "dma.h"
+#include "mem.h"
+#include "device.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "nmi.h"
+#include "nvr.h"
+#include "gameport.h"
+#include "keyboard.h"
+#include "lpt.h"
+#include "rom.h"
+#include "hdc.h"
+#include "video.h"
 #include "machine.h"
-#include "../cpu/cpu.h"
+#include "cpu.h"
 
 #include "m_xt_xi8088.h"
 
@@ -151,13 +151,15 @@ machine_xt_xi8088_init(const machine_t *model)
     int ret;
 
     if (bios_only) {
-	ret = bios_load_linear(L"roms/machines/xi8088/bios-xi8088.bin",
-			       0x000f0000, 65536, 0);
+	ret = bios_load_linear_inverted(L"roms/machines/xi8088/bios-xi8088-128k.bin",
+					0x000e0000, 131072, 0);
+	ret |= bios_load_linear(L"roms/machines/xi8088/bios-xi8088.bin",
+				0x000f0000, 65536, 0);
     } else {
 	device_add(&xi8088_device);
 
 	if (xi8088_bios_128kb()) {
-		ret = bios_load_linear_inverted(L"roms/machines/xi8088/bios-xi8088.bin",
+		ret = bios_load_linear_inverted(L"roms/machines/xi8088/bios-xi8088-128k.bin",
 						0x000e0000, 131072, 0);
 	} else {
 		ret = bios_load_linear(L"roms/machines/xi8088/bios-xi8088.bin",
@@ -175,7 +177,7 @@ machine_xt_xi8088_init(const machine_t *model)
     nmi_init();
     device_add(&ibmat_nvr_device);
     pic2_init();
-    if (joystick_type != 7)
+    if (joystick_type != JOYSTICK_TYPE_NONE)
 	device_add(&gameport_device);
 
     return ret;

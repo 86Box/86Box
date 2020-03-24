@@ -25,18 +25,16 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../timer.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "timer.h"
 #include "video.h"
-#include "vid_ati28800.h"
 #include "vid_ati_eeprom.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
-#include "vid_sc1502x_ramdac.h"
 
 
 #define VGAWONDERXL		1
@@ -190,8 +188,7 @@ ati28800_out(uint16_t addr, uint8_t val, void *p)
 			return;
 		if ((ati28800->regs[0xb4] & 0x20) && ((svga->crtc[0x08] & 0x7f) && (svga->crtc[0x14] & 0x1f)))
 			return;
-		if ((ati28800->regs[0xb4] & 0x40) && (((svga->crtcreg >= 0x00) && (svga->crtcreg <= 0x06)) && 
-		    (svga->crtc[0x07] & 0x10) != 0x10))
+		if ((ati28800->regs[0xb4] & 0x40) && ((svga->crtcreg <= 0x06) && (svga->crtc[0x07] & 0x10) != 0x10))
 			return;
 
 		old = svga->crtc[svga->crtcreg];

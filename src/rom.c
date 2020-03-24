@@ -33,8 +33,8 @@
 #include "mem.h"
 #include "rom.h"
 #include "plat.h"
-#include "machine/machine.h"
-#include "machine/m_xt_xi8088.h"
+#include "machine.h"
+#include "m_xt_xi8088.h"
 
 
 #ifdef ENABLE_ROM_LOG
@@ -62,7 +62,10 @@ rom_fopen(wchar_t *fn, wchar_t *mode)
 {
     wchar_t temp[1024];
 
-    wcscpy(temp, exe_path);
+    if (wcslen(exe_path) <= 1024)
+	wcscpy(temp, exe_path);
+    else
+	wcsncpy(temp, exe_path, 1024);
     plat_put_backslash(temp);
     wcscat(temp, fn);
 
@@ -118,7 +121,7 @@ rom_read(uint32_t addr, void *priv)
 	return 0xff;
     if (addr >= (rom->mapping.base + rom->sz))
 	return 0xff;
-    return(rom->rom[addr & rom->mask]);
+    return(rom->rom[(addr - rom->mapping.base) & rom->mask]);
 }
 
 
@@ -136,7 +139,7 @@ rom_readw(uint32_t addr, void *priv)
 	return 0xffff;
     if (addr >= (rom->mapping.base + rom->sz))
 	return 0xffff;
-    return(*(uint16_t *)&rom->rom[addr & rom->mask]);
+    return(*(uint16_t *)&rom->rom[(addr - rom->mapping.base) & rom->mask]);
 }
 
 
@@ -154,7 +157,7 @@ rom_readl(uint32_t addr, void *priv)
 	return 0xffffffff;
     if (addr >= (rom->mapping.base + rom->sz))
 	return 0xffffffff;
-    return(*(uint32_t *)&rom->rom[addr & rom->mask]);
+    return(*(uint32_t *)&rom->rom[(addr - rom->mapping.base) & rom->mask]);
 }
 
 
@@ -171,17 +174,15 @@ rom_load_linear(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 
     /* Make sure we only look at the base-256K offset. */
     if (addr >= 0x40000)
-    {
 	addr = 0;
-    }
     else
-    {
 	addr &= 0x03ffff;
-    }
 
     if (ptr != NULL) {
-	(void)fseek(f, off, SEEK_SET);
-	(void)fread(ptr+addr, sz, 1, f);
+	if (fseek(f, off, SEEK_SET) == -1)
+		fatal("rom_load_linear(): Error seeking to the beginning of the file\n");
+	if (fread(ptr+addr, 1, sz, f) > sz)
+		fatal("rom_load_linear(): Error reading data\n");
     }
 
     (void)fclose(f);
@@ -218,9 +219,12 @@ rom_load_linear_inverted(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *p
     }
 
     if (ptr != NULL) {
-	(void)fseek(f, off, SEEK_SET);
-	(void)fread(ptr+addr+0x10000, sz >> 1, 1, f);
-	(void)fread(ptr+addr, sz >> 1, 1, f);
+	if (fseek(f, off, SEEK_SET) == -1)
+		fatal("rom_load_linear_inverted(): Error seeking to the beginning of the file\n");
+	if (fread(ptr+addr+0x10000, 1, sz >> 1, f) > (sz >> 1))
+		fatal("rom_load_linear_inverted(): Error reading the upper half of the data\n");
+	if (fread(ptr+addr, sz >> 1, 1, f) > (sz >> 1))
+		fatal("rom_load_linear_inverted(): Error reading the lower half of the data\n");
     }
 
     (void)fclose(f);
@@ -260,8 +264,8 @@ rom_load_interleaved(wchar_t *fnl, wchar_t *fnh, uint32_t addr, int sz, int off,
 	(void)fseek(fl, off, SEEK_SET);
 	(void)fseek(fh, off, SEEK_SET);
 	for (c=0; c<sz; c+=2) {
-		ptr[addr+c] = fgetc(fl);
-		ptr[addr+c+1] = fgetc(fh);
+		ptr[addr+c] = fgetc(fl) & 0xff;
+		ptr[addr+c+1] = fgetc(fh) & 0xff;
 	}
     }
 

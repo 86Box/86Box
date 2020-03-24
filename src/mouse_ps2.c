@@ -143,6 +143,27 @@ ps2_write(uint8_t val, void *priv)
 			keyboard_at_adddata_mouse(dev->sample_rate);
 			break;
 
+		case 0xeb:	/* Get mouse data */
+			keyboard_at_adddata_mouse(0xfa);
+
+			temp = 0;
+			if (dev->x < 0)
+				temp |= 0x10;
+			if (dev->y < 0)
+				temp |= 0x20;
+			if (mouse_buttons & 1)
+				temp |= 1;
+			if (mouse_buttons & 2)
+				temp |= 2;
+			if ((mouse_buttons & 4) && (dev->flags & FLAG_INTELLI))
+				temp |= 4;
+			keyboard_at_adddata_mouse(temp);
+			keyboard_at_adddata_mouse(dev->x & 0xff);
+			keyboard_at_adddata_mouse(dev->y & 0xff);
+			if (dev->flags & FLAG_INTMODE)
+				keyboard_at_adddata_mouse(dev->z);
+			break;
+
 		case 0xf2:	/* read ID */
 			keyboard_at_adddata_mouse(0xfa);
 			if (dev->flags & FLAG_INTMODE)
@@ -169,6 +190,7 @@ ps2_write(uint8_t val, void *priv)
 		case 0xff:	/* reset */
 			dev->mode  = MODE_STREAM;
 			dev->flags &= 0x88;
+			mouse_queue_start = mouse_queue_end = 0;
 			keyboard_at_adddata_mouse(0xfa);
 			keyboard_at_adddata_mouse(0xaa);
 			keyboard_at_adddata_mouse(0x00);

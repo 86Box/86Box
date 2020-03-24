@@ -30,10 +30,10 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../timer.h"
-#include "../config.h"
-#include "../plat.h"
+#include "86box.h"
+#include "timer.h"
+#include "config.h"
+#include "plat.h"
 #include "fdd.h"
 #include "fdd_86f.h"
 #include "fdd_img.h"
@@ -393,15 +393,19 @@ write_back(int drive)
 {
     img_t *dev = img[drive];
     int ssize = 128 << ((int) dev->sector_size);
-    int side;
+    int side, size;
 
     if (dev->f == NULL) return;
 
     if (dev->disk_at_once) return;
 		
-    fseek(dev->f, dev->base + (dev->track * dev->sectors * ssize * dev->sides), SEEK_SET);
-    for (side = 0; side < dev->sides; side++)
-	fwrite(dev->track_data[side], dev->sectors * ssize, 1, dev->f);
+    if (fseek(dev->f, dev->base + (dev->track * dev->sectors * ssize * dev->sides), SEEK_SET) == -1)
+	pclog("IMG write_back(): Error seeking to the beginning of the file\n");
+    for (side = 0; side < dev->sides; side++) {
+	size = dev->sectors * ssize;
+	if (fwrite(dev->track_data[side], 1, size, dev->f) != size)
+		fatal("IMG write_back(): Error writing data\n");
+    }
 }
 
 
@@ -486,8 +490,10 @@ img_seek(int drive, int track)
 
     is_t0 = (track == 0) ? 1 : 0;
 
-    if (! dev->disk_at_once)
-	fseek(dev->f, dev->base + (track * dev->sectors * ssize * dev->sides), SEEK_SET);
+    if (! dev->disk_at_once) {
+	if (fseek(dev->f, dev->base + (track * dev->sectors * ssize * dev->sides), SEEK_SET) == -1)
+		fatal("img_seek(): Error seeking\n");
+    }
 
     for (side = 0; side < dev->sides; side++) {
 	if (dev->disk_at_once) {
@@ -1103,7 +1109,8 @@ jump_if_fdf:
 	/* The BPB readings appear to be valid, so let's set the values. */
 	if (fdi) {
 		/* The image is a Japanese FDI, therefore we read the number of tracks from the header. */
-		fseek(dev->f, 0x1C, SEEK_SET);
+		if (fseek(dev->f, 0x1C, SEEK_SET) == -1)
+			fatal("Japanese FDI: Failed when seeking to 0x1C\n");
 		fread(&(dev->tracks), 1, 4, dev->f);
 	} else {
 		if (!cqm && !fdf) {
@@ -1155,8 +1162,12 @@ jump_if_fdf:
     dev->gap2_size = (temp_rate == 3) ? 41 : 22;
     if (dev->dmf)
 	dev->gap3_size = 8;
-      else
-	dev->gap3_size = gap3_sizes[temp_rate][dev->sector_size][dev->sectors];
+    else {
+	if (dev->sectors == -1)
+		dev->gap3_size = 8;
+	else
+		dev->gap3_size = gap3_sizes[temp_rate][dev->sector_size][dev->sectors];
+    }
     if (! dev->gap3_size) {
 	img_log("ERROR: Floppy image of unknown format was inserted into drive %c:!\n", drive + 0x41);
 	fclose(dev->f);

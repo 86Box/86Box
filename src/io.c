@@ -25,9 +25,9 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "io.h"
-#include "cpu/cpu.h"
-#include "machine/m_amstrad.h"
+#include "86box_io.h"
+#include "cpu.h"
+#include "m_amstrad.h"
 
 
 #define NPORTS		65536		/* PC/AT supports 64K ports */
@@ -333,8 +333,26 @@ inb(uint16_t port)
 	io_log("IOTRACE(%04X): inb(%04x)=%02x\n", IO_TRACE, port, ret);
 #endif
 
+    /* if (port == 0x386) {
+	ret = 0x00;
+	found = 1;
+    }
+
+    if (port == 0x406) {
+	ret = 0x00;
+	found = 1;
+    }
+
+    if (port == 0xf87) {
+	ret = 0x00;
+	found = 1;
+    } */
+
     if (!found)
 	sub_cycles(io_delay);
+
+    // if (!found)
+	// pclog("inb(%04X) = %02X\n", port, ret);
 
     return(ret);
 }
@@ -364,6 +382,9 @@ outb(uint16_t port, uint8_t val)
 
     if (!found)
 	sub_cycles(io_delay);
+
+    // if (!found)
+	// pclog("outb(%04X, %02X)\n", port, val);
 
     return;
 }

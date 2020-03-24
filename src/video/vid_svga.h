@@ -8,7 +8,7 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.15	2018/10/04
+ * Version:	@(#)vid_svga.h	1.0.16	2020/01/18
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -53,7 +53,7 @@ typedef struct svga_t
 	hdisp,  hdisp_old, htotal,  hdisp_time, rowoffset,
 	dispon, hdisp_on,
 	vc, sc, linepos, vslines, linecountff, oddeven,
-	con, cursoron, blink, scrollcache,
+	con, cursoron, blink, scrollcache, char_width,
 	firstline, lastline, firstline_draw, lastline_draw,
 	displine, fullchange, x_add, y_add, pan,
 	vram_display_mask, vidclock,
@@ -109,6 +109,11 @@ typedef struct svga_t
     void (*ven_write)(struct svga_t *svga, uint8_t val, uint32_t addr);
     float (*getclock)(int clock, void *p);
 
+    /* Called when VC=R18 and friends. If this returns zero then MA resetting
+       is skipped. Matrox Mystique in Power mode reuses this counter for
+       vertical line interrupt*/
+    int (*line_compare)(struct svga_t *svga);    
+
     /*If set then another device is driving the monitor output and the SVGA
       card should not attempt to display anything */
     int override;
@@ -125,6 +130,11 @@ typedef struct svga_t
 	    colourcompare, colournocare,
 	    dac_mask, dac_status,
 	    ksc5601_sbyte_mask;
+
+    int vertical_linedbl;
+        
+    /*Used to implement CRTC[0x17] bit 2 hsync divisor*/
+    int hsync_divisor;
 
     void *ramdac, *clock_gen;
 } svga_t;
@@ -177,3 +187,69 @@ enum {
     RAMDAC_6BIT = 0,
     RAMDAC_8BIT
 };
+
+
+/* We need a way to add a device with a pointer to a parent device so it can attach itself to it, and
+   possibly also a second ATi 68860 RAM DAC type that auto-sets SVGA render on RAM DAC render change. */
+extern void	ati68860_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga);
+extern uint8_t	ati68860_ramdac_in(uint16_t addr, void *p, svga_t *svga);
+extern void	ati68860_set_ramdac_type(void *p, int type);
+extern void	ati68860_ramdac_set_render(void *p, svga_t *svga);
+extern void	ati68860_ramdac_set_pallook(void *p, int i, uint32_t col);
+extern void	ati68860_hwcursor_draw(svga_t *svga, int displine);
+
+extern void	att49x_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga);
+extern uint8_t	att49x_ramdac_in(uint16_t addr, void *p, svga_t *svga);
+
+extern float	av9194_getclock(int clock, void *p);
+
+extern void	bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *svga);
+extern uint8_t	bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga);
+extern void	bt48x_recalctimings(void *p, svga_t *svga);
+extern void	bt48x_hwcursor_draw(svga_t *svga, int displine);
+
+extern void	icd2061_write(void *p, int val);
+extern float	icd2061_getclock(int clock, void *p);
+
+/* The code is the same, the #define's are so that the correct name can be used. */
+#define ics9161_write icd2061_write
+#define ics9161_getclock icd2061_getclock
+
+extern void	ics2595_write(void *p, int strobe, int dat);
+extern double	ics2595_getclock(void *p);
+extern void	ics2595_setclock(void *p, double clock);
+
+extern void	sc1502x_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga);
+extern uint8_t	sc1502x_ramdac_in(uint16_t addr, void *p, svga_t *svga);
+
+extern void	sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga);
+extern uint8_t	sdac_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga);
+extern float	sdac_getclock(int clock, void *p);
+
+extern void	stg_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga);
+extern uint8_t	stg_ramdac_in(uint16_t addr, void *p, svga_t *svga);
+extern float	stg_getclock(int clock, void *p);
+
+extern void	tkd8001_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga);
+extern uint8_t	tkd8001_ramdac_in(uint16_t addr, void *p, svga_t *svga);
+
+
+#ifdef EMU_DEVICE_H
+extern const device_t ati68860_ramdac_device;
+extern const device_t att490_ramdac_device;
+extern const device_t att492_ramdac_device;
+extern const device_t av9194_device;
+extern const device_t bt484_ramdac_device;
+extern const device_t att20c504_ramdac_device;
+extern const device_t bt485_ramdac_device;
+extern const device_t att20c505_ramdac_device;
+extern const device_t bt485a_ramdac_device;
+extern const device_t gendac_ramdac_device;
+extern const device_t ics2595_device;
+extern const device_t icd2061_device;
+extern const device_t ics9161_device;
+extern const device_t sc1502x_ramdac_device;
+extern const device_t sdac_ramdac_device;
+extern const device_t stg_ramdac_device;
+extern const device_t tkd8001_ramdac_device;
+#endif

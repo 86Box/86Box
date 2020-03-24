@@ -623,6 +623,7 @@ ltsermouse_write(struct serial_s *serial, void *priv, uint8_t data)
 		switch (data) {
 			default:
 				mouse_serial_log("Serial mouse: Invalid period %02X, using 1200 bps\n", data);
+				/*FALLTHROUGH*/
 			case 0x6E:
 				dev->transmit_period = sermouse_transmit_period(dev, 1200, -1);
 				break;

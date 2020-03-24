@@ -12,17 +12,17 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../pic.h"
-#include "../dma.h"
-#include "../timer.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "pic.h"
+#include "dma.h"
+#include "timer.h"
+#include "device.h"
 #include "filters.h"
 #include "sound.h"
 #include "midi.h"
+#include "sound.h"
 #include "snd_mpu401.h"
-#include "snd_sb.h"
 #include "snd_sb_dsp.h"
 
 
@@ -182,9 +182,9 @@ void
 sb_irq(sb_dsp_t *dsp, int irq8)
 {
     sb_dsp_log("IRQ %i %02X\n", irq8, pic.mask);
-    if (irq8)
+    if (irq8 && !dsp->sb_irqm8)
 	dsp->sb_irq8  = 1;
-    else
+    else if (!irq8 && !dsp->sb_irqm16)
 	dsp->sb_irq16 = 1;
 
     picint(1 << dsp->sb_irqnum);
@@ -841,7 +841,12 @@ sb_dsp_input_msg(void *p, uint8_t *msg)
 	sb_dsp_t *dsp = (sb_dsp_t *) p;
 	
 	sb_dsp_log("MIDI in sysex = %d, uart irq = %d, msg = %d\n", dsp->midi_in_sysex, dsp->uart_irq, msg[3]);
-	
+
+	if (!dsp->uart_irq && !dsp->midi_in_poll && (mpu != NULL)) {
+		MPU401_InputMsg(mpu, msg);
+		return;
+	}
+
 	if (dsp->midi_in_sysex) {
 		return;
 	}
@@ -867,6 +872,9 @@ sb_dsp_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 	
 	uint32_t i;
 	
+	if (!dsp->uart_irq && !dsp->midi_in_poll && (mpu != NULL))
+		return MPU401_InputSysex(mpu, buffer, len, abort);
+
 	if (abort) {
 		dsp->midi_in_sysex = 0;
 		return 0;

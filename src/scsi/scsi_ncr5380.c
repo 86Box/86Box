@@ -27,17 +27,17 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../dma.h"
-#include "../pic.h"
-#include "../mca.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../nvr.h"
-#include "../plat.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "dma.h"
+#include "pic.h"
+#include "mca.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "nvr.h"
+#include "plat.h"
 #include "scsi.h"
 #include "scsi_device.h"
 #include "scsi_ncr5380.h"
@@ -430,7 +430,7 @@ ncr_bus_update(void *priv, int bus)
 		ncr_log("Command pos=%i, output data=%02x\n", ncr->command_pos, BUS_GETDATA(bus));
 
 		if (ncr->command_pos == cmd_len[(ncr->command[0] >> 5) & 7]) {
-			if (ncr->msglun >= 0 && ncr->is_msgout) {
+			if (ncr->is_msgout) {
 				ncr->is_msgout = 0;
 				ncr->command[1] &= ~(0x80 | 0x40 | 0x20);
 				ncr->command[1] |= ncr->msglun << 5;

@@ -26,8 +26,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../plat.h"
+#include "86box.h"
+#include "plat.h"
 #include "win.h"
 
 

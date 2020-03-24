@@ -474,6 +474,9 @@ BEGIN
     CONTROL         "ISABugger device",IDC_CHECK_BUGGER,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,80,94,10
 
+    CONTROL         "POST card",IDC_CHECK_POSTCARD,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,80,94,10
+
     LTEXT           "ISA RTC",IDT_1767,7,99,48,10
     COMBOBOX        IDC_COMBO_ISARTC,64,98,155,120,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP

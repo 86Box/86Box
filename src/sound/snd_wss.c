@@ -22,17 +22,16 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>  
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../mca.h"
-#include "../pic.h"
-#include "../dma.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "mca.h"
+#include "pic.h"
+#include "dma.h"
+#include "device.h"
 #include "sound.h"
 #include "snd_ad1848.h"
 #include "snd_opl.h"
-#include "snd_wss.h"
 
 
 /*530, 11, 3 - 530=23*/
@@ -99,18 +98,22 @@ static void wss_get_buffer(int32_t *buffer, int len, void *p)
 void *wss_init(const device_t *info)
 {
         wss_t *wss = malloc(sizeof(wss_t));
-
         memset(wss, 0, sizeof(wss_t));
-
+		
+		uint16_t addr = device_get_config_hex16("base");
+		wss->opl_enabled = device_get_config_int("opl");
+		
         opl3_init(&wss->opl);
         ad1848_init(&wss->ad1848);
         
         ad1848_setirq(&wss->ad1848, 7);
         ad1848_setdma(&wss->ad1848, 3);
 
-        io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL,  &wss->opl);
-        io_sethandler(0x0530, 0x0004, wss_read,    NULL, NULL, wss_write,    NULL, NULL,  wss);
-        io_sethandler(0x0534, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL,  &wss->ad1848);
+		if (wss->opl_enabled)	
+			io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL,  &wss->opl);
+        
+		io_sethandler(addr, 0x0004, wss_read,    NULL, NULL, wss_write,    NULL, NULL,  wss);
+        io_sethandler(addr+4, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL,  &wss->ad1848);
                 
         sound_add_handler(wss_get_buffer, wss);
         
@@ -198,15 +201,45 @@ void wss_speed_changed(void *p)
         ad1848_speed_changed(&wss->ad1848);
 }
 
+static const device_config_t wss_config[] =
+{
+        {
+                "base", "Address", CONFIG_HEX16, "", 0x530,
+                {
+                        {
+                                "0x530", 0x530
+                        },
+                        {
+                                "0x604", 0x604
+                        },
+                        {
+                                "0xe80", 0xe80
+                        },
+                        {
+                                "0xf40", 0xf40
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+	{
+		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
+        {
+                "", "", -1
+        }
+};
+
 const device_t wss_device =
 {
         "Windows Sound System",
-        DEVICE_ISA, 0,
+        DEVICE_ISA | DEVICE_AT, 0,
         wss_init, wss_close, NULL,
         NULL,
         wss_speed_changed,
         NULL,
-        NULL
+        wss_config
 };
 
 const device_t ncr_business_audio_device =

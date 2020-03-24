@@ -20,16 +20,16 @@
 #include <string.h>
 #include <wchar.h>
 #include "86box.h"
-#include "io.h"
+#include "86box_io.h"
 #include "timer.h"
 #include "device.h"
 #include "pci.h"
 #include "lpt.h"
 #include "serial.h"
-#include "disk/hdc.h"
-#include "disk/hdc_ide.h"
-#include "floppy/fdd.h"
-#include "floppy/fdc.h"
+#include "hdc.h"
+#include "hdc_ide.h"
+#include "fdd.h"
+#include "fdc.h"
 #include "sio.h"
 
 
@@ -203,7 +203,7 @@ static void fdc37c93x_gpio_handler(fdc37c93x_t *dev)
 			break;
 	}
 	dev->gpio_base = ld_port;
-	if ((ld_port >= 0x0100) && (ld_port <= 0x0FFE))
+	if (ld_port > 0x0000)
 	        io_sethandler(dev->gpio_base, 0x0002,
 			      fdc37c93x_gpio_read, NULL, NULL, fdc37c93x_gpio_write, NULL, NULL, dev);
     }

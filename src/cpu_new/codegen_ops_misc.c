@@ -1,7 +1,7 @@
 #include <stdint.h>
-#include "../86box.h"
+#include "86box.h"
 #include "cpu.h"
-#include "../mem.h"
+#include "mem.h"
 
 #include "x86.h"
 #include "x86_flags.h"
@@ -359,11 +359,11 @@ uint32_t ropFF_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fe
                 return -1;
                 
                 case 0x28: /*JMP far*/
+                uop_MOVZX(ir, IREG_pc, src_reg);
                 uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 2);
                 uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
-                uop_LOAD_FUNC_ARG_IMM(ir, 1, cpu_state.oldpc);
+                uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
                 uop_CALL_FUNC(ir, loadcsjmp);
-                uop_MOVZX(ir, IREG_pc, src_reg);
                 return -1;
 
                 case 0x30: /*PUSH*/
@@ -466,11 +466,11 @@ uint32_t ropFF_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fe
                 return -1;
 
                 case 0x28: /*JMP far*/
+                uop_MOV(ir, IREG_pc, src_reg);
                 uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 4);
                 uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
-                uop_LOAD_FUNC_ARG_IMM(ir, 1, cpu_state.oldpc);
+                uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
                 uop_CALL_FUNC(ir, loadcsjmp);
-                uop_MOV(ir, IREG_pc, src_reg);
                 return -1;
 
                 case 0x30: /*PUSH*/

@@ -60,20 +60,18 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../mem.h"
-#include "../pci.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../cpu/cpu.h"
-#include "../plat.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "mem.h"
+#include "pci.h"
+#include "rom.h"
+#include "device.h"
+#include "cpu.h"
+#include "plat.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
-#include "vid_tkd8001_ramdac.h"
-#include "vid_tgui9440.h"
 
 /*TGUI9400CXi has extended write modes, controlled by extended GDC registers :
         
@@ -308,6 +306,7 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
                         }
                         return;
                 }
+		/*FALLTHROUGH*/
                 case 0x3C7: case 0x3C8: case 0x3C9:
                 if (tgui->type == TGUI_9400CXI)
                 {

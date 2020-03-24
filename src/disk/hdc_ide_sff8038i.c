@@ -10,13 +10,13 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)hdc_ide_sff8038i.c	1.0.1	2019/10/30
+ * Version:	@(#)hdc_ide_sff8038i.c	1.0.1	2020/01/14
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -25,17 +25,17 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../cdrom/cdrom.h"
-#include "../scsi/scsi_device.h"
-#include "../scsi/scsi_cdrom.h"
-#include "../dma.h"
-#include "../io.h"
-#include "../device.h"
-#include "../keyboard.h"
-#include "../mem.h"
-#include "../pci.h"
-#include "../pic.h"
+#include "86box.h"
+#include "cdrom.h"
+#include "scsi_device.h"
+#include "scsi_cdrom.h"
+#include "dma.h"
+#include "86box_io.h"
+#include "device.h"
+#include "keyboard.h"
+#include "mem.h"
+#include "pci.h"
+#include "pic.h"
 #include "hdc.h"
 #include "hdc_ide.h"
 #include "hdc_ide_sff8038i.h"
@@ -74,21 +74,24 @@ sff_log(const char *fmt, ...)
 
 
 void
-sff_bus_master_handlers(sff8038i_t *dev, uint16_t old_base, uint16_t new_base, int enabled)
+sff_bus_master_handler(sff8038i_t *dev, int enabled, uint16_t base)
 {
-    io_removehandler(old_base, 0x08,
-		     sff_bus_master_read, sff_bus_master_readw, sff_bus_master_readl,
-		     sff_bus_master_write, sff_bus_master_writew, sff_bus_master_writel,
-		     dev);
+    if (dev->base != 0x0000) {
+	io_removehandler(dev->base, 0x08,
+			 sff_bus_master_read, sff_bus_master_readw, sff_bus_master_readl,
+			 sff_bus_master_write, sff_bus_master_writew, sff_bus_master_writel,
+			 dev);
+    }
 
-    if (enabled && new_base) {
-	io_sethandler(new_base, 0x08,
+    if (enabled && (base != 0x0000)) {
+	io_sethandler(base, 0x08,
 		      sff_bus_master_read, sff_bus_master_readw, sff_bus_master_readl,
 		      sff_bus_master_write, sff_bus_master_writew, sff_bus_master_writel,
 		      dev);
     }
 
     dev->enabled = enabled;
+    dev->base = base;
 }
 
 
@@ -370,13 +373,19 @@ sff_bus_master_set_irq(int channel, void *priv)
 
     channel &= 0x01;
     if (dev->status & 0x04) {
-	if (channel && pci_use_mirq(0))
+	sff_log("SFF8038i: Channel %i IRQ raise\n", channel);
+	if ((dev->irq_mode == 2) && channel && pci_use_mirq(0))
 		pci_set_mirq(0, 0);
+	else if (dev->irq_mode == 1)
+		pci_set_irq(dev->slot, dev->irq_pin);
 	else
 		picint(1 << (14 + channel));
     } else {
-	if ((channel & 1) && pci_use_mirq(0))
+	sff_log("SFF8038i: Channel %i IRQ lower\n", channel);
+	if ((dev->irq_mode == 2) && channel && pci_use_mirq(0))
 		pci_clear_mirq(0, 0);
+	else if (dev->irq_mode == 1)
+		pci_clear_irq(dev->slot, dev->irq_pin);
 	else
 		picintc(1 << (14 + channel));
     }
@@ -412,6 +421,10 @@ sff_reset(void *p)
 {
     int i = 0;
 
+#ifdef ENABLE_SFF_LOG
+    sff_log("SFF8038i: Reset\n");
+#endif
+
     for (i = 0; i < CDROM_NUM; i++) {
 	if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&
 	    (cdrom[i].ide_channel < 4) && cdrom[i].priv)
@@ -422,6 +435,30 @@ sff_reset(void *p)
 	    (zip_drives[i].ide_channel < 4) && zip_drives[i].priv)
 		zip_reset((scsi_common_t *) zip_drives[i].priv);
     }
+
+    sff_bus_master_set_irq(0x00, p);
+    sff_bus_master_set_irq(0x01, p);
+}
+
+
+void
+sff_set_slot(sff8038i_t *dev, int slot)
+{
+    dev->slot = slot;
+}
+
+
+void
+sff_set_irq_mode(sff8038i_t *dev, int irq_mode)
+{
+    dev->irq_mode = irq_mode;
+}
+
+
+void
+sff_set_irq_pin(sff8038i_t *dev, int irq_pin)
+{
+    dev->irq_pin = irq_pin;
 }
 
 
@@ -449,6 +486,10 @@ static void
 	device_add(&ide_pci_2ch_device);
 
     ide_set_bus_master(next_id, sff_bus_master_dma, sff_bus_master_set_irq, dev);
+
+    dev->slot = 7;
+    dev->irq_mode = 2;
+    dev->irq_pin = PCI_INTA;
 
     next_id++;
 

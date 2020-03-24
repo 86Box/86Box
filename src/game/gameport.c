@@ -39,12 +39,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../machine/machine.h"
-#include "../cpu/cpu.h"
-#include "../device.h"
-#include "../io.h"
-#include "../timer.h"
+#include "86box.h"
+#include "machine.h"
+#include "cpu.h"
+#include "device.h"
+#include "86box_io.h"
+#include "timer.h"
 #include "gameport.h"
 #include "joystick_ch_flightstick_pro.h"
 #include "joystick_standard.h"
@@ -90,6 +90,7 @@ static const joystick_if_t *joystick_list[] = {
     &joystick_standard_4button,
     &joystick_standard_6button,
     &joystick_standard_8button,
+	&joystick_4axis_4button,
     &joystick_ch_flightstick_pro,
     &joystick_sw_pad,
     &joystick_tm_fcs,
@@ -265,7 +266,7 @@ gameport_init(const device_t *info)
 {
     gameport_t *p = NULL;
 
-    if (joystick_type == 7) {
+    if (joystick_type == JOYSTICK_TYPE_NONE) {
 	p = NULL;
 	return(p);
     }
@@ -284,7 +285,7 @@ gameport_201_init(const device_t *info)
 {
     gameport_t *p;
 
-    if (joystick_type == 7) {
+    if (joystick_type == JOYSTICK_TYPE_NONE) {
 	p = NULL;
 	return(p);
     }

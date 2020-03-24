@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.32	2020/01/11
+ * Version:	@(#)vid_cl_54xx.c	1.0.34	2020/03/23
  *
  * Authors:	TheCollector1995,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -23,23 +23,27 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "../86box.h"
-#include "../cpu/cpu.h"
-#include "../io.h"
-#include "../mem.h"
-#include "../pci.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../timer.h"
+#include "86box.h"
+#include "cpu.h"
+#include "86box_io.h"
+#include "mca.h"
+#include "mem.h"
+#include "pci.h"
+#include "rom.h"
+#include "device.h"
+#include "timer.h"
 #include "video.h"
 #include "vid_svga.h"
 #include "vid_svga_render.h"
-#include "vid_cl54xx.h"
+
+#define BIOS_GD5402_PATH		L"roms/video/cirruslogic/avga2.rom"
+#define BIOS_GD5402_ONBOARD_PATH	L"roms/video/machines/cbm_sl386sx25/Commodore386SX-25_AVGA2.bin"
+#define BIOS_GD5420_PATH		L"roms/video/cirruslogic/5420.vbi"
 
 #if defined(DEV_BRANCH) && defined(USE_CL5422)
-#define BIOS_GD5420_PATH		L"roms/video/cirruslogic/5420.vbi"
 #define BIOS_GD5422_PATH		L"roms/video/cirruslogic/cl5422.bin"
 #endif
+
 #define BIOS_GD5426_PATH		L"roms/video/cirruslogic/Diamond SpeedStar PRO VLB v3.04.bin"
 #define BIOS_GD5428_ISA_PATH		L"roms/video/cirruslogic/5428.bin"
 #define BIOS_GD5428_PATH		L"roms/video/cirruslogic/vlbusjapan.BIN"
@@ -124,6 +128,10 @@
 #define CIRRUS_BLTMODEEXT_COLOREXPINV      0x02
 #define CIRRUS_BLTMODEEXT_DWORDGRANULARITY 0x01
 
+#define CL_GD5428_SYSTEM_BUS_MCA  5
+#define CL_GD5428_SYSTEM_BUS_VESA 6
+#define CL_GD5428_SYSTEM_BUS_ISA  7
+
 #define CL_GD5429_SYSTEM_BUS_VESA 5
 #define CL_GD5429_SYSTEM_BUS_ISA  7
 
@@ -176,7 +184,7 @@ typedef struct gd54xx_t
 	int			unlock_special;
     } blt;
 
-    int			pci, vlb;
+    int			pci, vlb, mca;
     int			countminusone;
 
     uint8_t		pci_regs[256];
@@ -185,6 +193,9 @@ typedef struct gd54xx_t
     uint8_t		fc;		/* Feature Connector */
 
     int			card;
+    
+    uint8_t		pos_regs[8];
+    svga_t		*mb_vga;
 
     uint32_t		lfb_base;
 
@@ -687,10 +698,19 @@ gd54xx_in(uint16_t addr, void *p)
 				case 0x17:
 					ret = svga->gdcreg[0x17] & ~(7 << 3);
 					if (svga->crtc[0x27] <= CIRRUS_ID_CLGD5429) {
-						if (gd54xx->vlb)
-							ret |= (CL_GD5429_SYSTEM_BUS_VESA << 3);
-						else
-							ret |= (CL_GD5429_SYSTEM_BUS_ISA << 3);
+						if (svga->crtc[0x27] == CIRRUS_ID_CLGD5428) {
+							if (gd54xx->vlb)
+								ret |= (CL_GD5428_SYSTEM_BUS_VESA << 3);
+							else if (gd54xx->mca)
+								ret |= (CL_GD5428_SYSTEM_BUS_MCA << 3);
+							else
+								ret |= (CL_GD5428_SYSTEM_BUS_ISA << 3);
+						} else {
+							if (gd54xx->vlb)
+								ret |= (CL_GD5429_SYSTEM_BUS_VESA << 3);
+							else
+								ret |= (CL_GD5429_SYSTEM_BUS_ISA << 3);
+						}
 					} else {
 						if (gd54xx->pci)
 							ret |= (CL_GD543X_SYSTEM_BUS_PCI << 3);
@@ -875,8 +895,14 @@ gd54xx_in(uint16_t addr, void *p)
 		} else {
 			if ((svga->gdcaddr < 2) && !gd54xx->unlocked)
 				ret = (svga->gdcreg[svga->gdcaddr] & 0x0f);
-			else
-				ret = svga->gdcreg[svga->gdcaddr];
+			else {
+				if (svga->gdcaddr == 0)
+					ret = gd543x_mmio_read(0xb8000, gd54xx);
+				else if (svga->gdcaddr == 1)
+					ret = gd543x_mmio_read(0xb8004, gd54xx);
+				else
+					ret = svga->gdcreg[svga->gdcaddr];
+			}
 		}
 		break;
 	case 0x3d4:
@@ -890,7 +916,7 @@ gd54xx_in(uint16_t addr, void *p)
 		    !gd54xx->unlocked)
 			ret = 0xff;
 		else switch (svga->crtcreg) {
-			case 0x22: /*Graphis Data Latches Readback Register*/
+			case 0x22: /*Graphics Data Latches Readback Register*/
 				/*Should this be & 7 if 8 byte latch is enabled? */
 				ret = svga->latch.b[svga->gdcreg[4] & 3];
 				break;
@@ -956,8 +982,9 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
 {
     svga_t *svga = &gd54xx->svga;
     uint32_t base, size;
-        
-    if (!(gd54xx->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM)) {
+
+    if ((gd54xx->pci && (!(gd54xx->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))) ||
+	(gd54xx->mca && (!(gd54xx->pos_regs[2] & 1)))) {
 	mem_mapping_disable(&svga->mapping);
 	mem_mapping_disable(&gd54xx->linear_mapping);
 	mem_mapping_disable(&gd54xx->mmio_mapping);
@@ -990,7 +1017,7 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
 	}
 
 	if ((svga->seqregs[0x17] & CIRRUS_MMIO_ENABLE) && (svga->seqregs[0x07] & 0x01) &&
-	    (svga->crtc[0x27] >= CIRRUS_ID_CLGD5426) && (svga->crtc[0x27] != CIRRUS_ID_CLGD5424)) {
+	    (svga->crtc[0x27] >= CIRRUS_ID_CLGD5429)) {
 		if (gd54xx->mmio_vram_overlap) {
 			mem_mapping_disable(&svga->mapping);
 			mem_mapping_set_addr(&gd54xx->mmio_mapping, 0xb8000, 0x08000);
@@ -1013,7 +1040,7 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
 			size = 16 * 1024 * 1024;
 		else
 			size = 4 * 1024 * 1024;
-	} else { /*VLB*/
+	} else { /*VLB/ISA/MCA*/
 		base = 128*1024*1024;
 		if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5436)
 			size = 16 * 1024 * 1024;
@@ -1023,8 +1050,7 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
 
 	mem_mapping_disable(&svga->mapping);
 	mem_mapping_set_addr(&gd54xx->linear_mapping, base, size);
-	if ((svga->seqregs[0x17] & CIRRUS_MMIO_ENABLE) && (svga->crtc[0x27] >= CIRRUS_ID_CLGD5426) &&
-	    (svga->crtc[0x27] != CIRRUS_ID_CLGD5424)) {
+	if ((svga->seqregs[0x17] & CIRRUS_MMIO_ENABLE) && (svga->crtc[0x27] >= CIRRUS_ID_CLGD5429)) {
 		if (svga->seqregs[0x17] & CIRRUS_MMIO_USE_PCIADDR)
 			mem_mapping_disable(&gd54xx->mmio_mapping); /* MMIO is handled in the linear read/write functions */
 		else
@@ -1845,9 +1871,6 @@ gd54xx_writel_linear(uint32_t addr, uint32_t val, void *p)
 		case 3:
 			return;
 	}
-
-	if (svga->fast)
-        	sub_cycles(video_timing_write_l);
     } else {
 	switch(ap) {
 		case 0:
@@ -2891,6 +2914,33 @@ cl_pci_write(int func, int addr, uint8_t val, void *p)
     }
 }
 
+static uint8_t 
+gd5428_mca_read(int port, void *p)
+{
+        gd54xx_t *gd54xx = (gd54xx_t *)p;
+
+        return gd54xx->pos_regs[port & 7];
+}
+
+static void 
+gd5428_mca_write(int port, uint8_t val, void *p)
+{
+	gd54xx_t *gd54xx = (gd54xx_t *)p;
+
+        if (port < 0x102)
+		return;
+
+        gd54xx->pos_regs[port & 7] = val;
+	gd543x_recalc_mapping(gd54xx);
+}
+
+static uint8_t 
+gd5428_mca_feedb(void *p)
+{
+        gd54xx_t *gd54xx = (gd54xx_t *)p;
+
+        return gd54xx->pos_regs[2] & 1;
+}
 
 static void
 *gd54xx_init(const device_t *info)
@@ -2903,27 +2953,35 @@ static void
     memset(gd54xx, 0, sizeof(gd54xx_t));
 
     gd54xx->pci = !!(info->flags & DEVICE_PCI);	
-    gd54xx->vlb = !!(info->flags & DEVICE_VLB);	
+    gd54xx->vlb = !!(info->flags & DEVICE_VLB);
+    gd54xx->mca = !!(info->flags & DEVICE_MCA);
 
     gd54xx->rev = 0;
     gd54xx->has_bios = 1;
 
     switch (id) {
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 	case CIRRUS_ID_CLGD5402:
+		if (info->local & 0x200)
+			romfn = BIOS_GD5402_ONBOARD_PATH;
+		else
+			romfn = BIOS_GD5402_PATH;
+		break;
+
 	case CIRRUS_ID_CLGD5420:
 		romfn = BIOS_GD5420_PATH;
 		break;
+
+#if defined(DEV_BRANCH) && defined(USE_CL5422)
 	case CIRRUS_ID_CLGD5422:
 	case CIRRUS_ID_CLGD5424:
 		romfn = BIOS_GD5422_PATH;
 		break;		
 #endif
-		
+
 	case CIRRUS_ID_CLGD5426:
 		romfn = BIOS_GD5426_PATH;
 		break;
-		
+
 	case CIRRUS_ID_CLGD5428:
 		if (gd54xx->vlb)
 			romfn = BIOS_GD5428_PATH;
@@ -2972,16 +3030,21 @@ static void
 		romfn = BIOS_GD5480_PATH;
 		break;
     }
-
-    if (id >= CIRRUS_ID_CLGD5420)
-	vram = device_get_config_int("memory");
-    else
-	vram = 0;
-
-    if (vram)
-	gd54xx->vram_size = vram << 20;	
-    else
-	gd54xx->vram_size = 1 << 19;
+    
+    if (info->flags & DEVICE_MCA) {
+	vram = 1;
+	gd54xx->vram_size = 1 << 20;
+    } else {
+	if (id >= CIRRUS_ID_CLGD5420)
+	    vram = device_get_config_int("memory");
+	else
+	    vram = 0;
+    
+	if (vram)
+	    gd54xx->vram_size = vram << 20;	
+	else
+	    gd54xx->vram_size = 1 << 19;
+    }
 
     gd54xx->vram_mask = gd54xx->vram_size - 1;
 
@@ -3002,29 +3065,28 @@ static void
 
     mem_mapping_set_handler(&svga->mapping, gd54xx_read, gd54xx_readw, gd54xx_readl, gd54xx_write, gd54xx_writew, gd54xx_writel);
     mem_mapping_set_p(&svga->mapping, gd54xx);
-
+    
     mem_mapping_add(&gd54xx->mmio_mapping, 0, 0,
-		    gd543x_mmio_read, gd543x_mmio_readw, gd543x_mmio_readl,
-		    gd543x_mmio_writeb, gd543x_mmio_writew, gd543x_mmio_writel,
-		    NULL, MEM_MAPPING_EXTERNAL, gd54xx);
+			gd543x_mmio_read, gd543x_mmio_readw, gd543x_mmio_readl,
+			gd543x_mmio_writeb, gd543x_mmio_writew, gd543x_mmio_writel,
+			NULL, MEM_MAPPING_EXTERNAL, gd54xx);
     mem_mapping_disable(&gd54xx->mmio_mapping);
     mem_mapping_add(&gd54xx->linear_mapping, 0, 0,
-		    gd54xx_readb_linear, gd54xx_readw_linear, gd54xx_readl_linear,
-		    gd54xx_writeb_linear, gd54xx_writew_linear, gd54xx_writel_linear,
-		    NULL, MEM_MAPPING_EXTERNAL, gd54xx);
+			gd54xx_readb_linear, gd54xx_readw_linear, gd54xx_readl_linear,
+			gd54xx_writeb_linear, gd54xx_writew_linear, gd54xx_writel_linear,
+			NULL, MEM_MAPPING_EXTERNAL, gd54xx);
     mem_mapping_disable(&gd54xx->linear_mapping);
     mem_mapping_add(&gd54xx->aperture2_mapping, 0, 0,
-		    gd5436_aperture2_readb, gd5436_aperture2_readw, gd5436_aperture2_readl,
-		    gd5436_aperture2_writeb, gd5436_aperture2_writew, gd5436_aperture2_writel,
-		    NULL, MEM_MAPPING_EXTERNAL, gd54xx);
+			gd5436_aperture2_readb, gd5436_aperture2_readw, gd5436_aperture2_readl,
+			gd5436_aperture2_writeb, gd5436_aperture2_writew, gd5436_aperture2_writel,
+			NULL, MEM_MAPPING_EXTERNAL, gd54xx);
     mem_mapping_disable(&gd54xx->aperture2_mapping);
 
     io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
-
+    
     svga->hwcursor.yoff = 32;
     svga->hwcursor.xoff = 0;
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
     if (id >= CIRRUS_ID_CLGD5420) {
 	gd54xx->vclk_n[0] = 0x4a;
 	gd54xx->vclk_d[0] = 0x2b;
@@ -3044,16 +3106,6 @@ static void
 	gd54xx->vclk_n[3] = 0x7e;
 	gd54xx->vclk_d[3] = 0x33;
     }
-#else
-    gd54xx->vclk_n[0] = 0x4a;
-    gd54xx->vclk_d[0] = 0x2b;
-    gd54xx->vclk_n[1] = 0x5b;
-    gd54xx->vclk_d[1] = 0x2f;
-    gd54xx->vclk_n[2] = 0x45;
-    gd54xx->vclk_d[2] = 0x30;
-    gd54xx->vclk_n[3] = 0x7e;
-    gd54xx->vclk_d[3] = 0x33;
-#endif
 
     svga->extra_banks[1] = 0x8000;
 
@@ -3072,16 +3124,28 @@ static void
     if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5429)
 	gd54xx->unlocked = 1;
 
+    if (gd54xx->mca) {
+	gd54xx->pos_regs[0] = 0x7b;
+	gd54xx->pos_regs[1] = 0x91;
+	mca_add(gd5428_mca_read, gd5428_mca_write, gd5428_mca_feedb, gd54xx);
+    }
+
     return gd54xx;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
+static int
+gd5402_available(void)
+{
+    return rom_present(BIOS_GD5402_PATH);
+}
+
 static int
 gd5420_available(void)
 {
     return rom_present(BIOS_GD5420_PATH);
 }
 
+#if defined(DEV_BRANCH) && defined(USE_CL5422)
 static int
 gd5422_available(void)
 {
@@ -3189,7 +3253,6 @@ gd54xx_force_redraw(void *p)
     gd54xx->svga.fullchange = changeframecount;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 static const device_config_t gd5422_config[] =
 {
         {
@@ -3210,7 +3273,6 @@ static const device_config_t gd5422_config[] =
                 "","",-1
         }
 };
-#endif
 
 static const device_config_t gd5428_config[] =
 {
@@ -3293,7 +3355,6 @@ static const device_config_t gd5434_config[] =
         }
 };
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 const device_t gd5402_isa_device =
 {
     "Cirrus Logic GD-5402 (ACUMOS AVGA2)",
@@ -3301,7 +3362,20 @@ const device_t gd5402_isa_device =
     CIRRUS_ID_CLGD5402,
     gd54xx_init, gd54xx_close,
     NULL,
-    gd5420_available, /* Common BIOS between 5402 and 5420 */
+    gd5402_available,
+    gd54xx_speed_changed,
+    gd54xx_force_redraw,
+    NULL,
+};
+
+const device_t gd5402_onboard_device =
+{
+    "Cirrus Logic GD-5402 (ACUMOS AVGA2) (On-Board)",
+    DEVICE_AT | DEVICE_ISA,
+    CIRRUS_ID_CLGD5402 | 0x200,
+    gd54xx_init, gd54xx_close,
+    NULL,
+    NULL,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     NULL,
@@ -3314,12 +3388,13 @@ const device_t gd5420_isa_device =
     CIRRUS_ID_CLGD5420,
     gd54xx_init, gd54xx_close,
     NULL,
-    gd5420_available, /* Common BIOS between 5402 and 5420 */
+    gd5420_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5422_config,
 };
 
+#if defined(DEV_BRANCH) && defined(USE_CL5422)
 const device_t gd5422_isa_device = {
     "Cirrus Logic GD-5422",
     DEVICE_AT | DEVICE_ISA,
@@ -3385,6 +3460,20 @@ const device_t gd5428_vlb_device =
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5428_config
+};
+
+const device_t gd5428_mca_device =
+{
+    "Cirrus Logic CL-GD 5428 (IBM SVGA Adapter/A)",
+    DEVICE_MCA,
+    CIRRUS_ID_CLGD5428,
+    gd54xx_init, 
+    gd54xx_close, 
+    NULL,
+    gd5428_available,
+    gd54xx_speed_changed,
+    gd54xx_force_redraw,
+    NULL
 };
 
 const device_t gd5429_isa_device =

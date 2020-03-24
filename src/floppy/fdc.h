@@ -9,15 +9,15 @@
  *		Implementation of the NEC uPD-765 and compatible floppy disk
  *		controller.
  *
- * Version:	@(#)fdc.h	1.0.8	2019/10/20
+ * Version:	@(#)fdc.h	1.0.9	2020/01/24
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2018,2019 Fred N. van Kempen.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2018-2020 Fred N. van Kempen.
  */
 #ifndef EMU_FDC_H
 # define EMU_FDC_H
@@ -36,7 +36,7 @@
 
 
 typedef struct {
-    uint8_t	dor, stat, command, dat, st0, swap;
+    uint8_t	dor, stat, command, processed_cmd, dat, st0, swap;
     uint8_t	swwp, disable_write;
     uint8_t	params[256], res[256];
     uint8_t	specify[256], format_dat[256];
@@ -154,6 +154,7 @@ extern int	fdc_is_verify(fdc_t *fdc);
 
 extern void	fdc_overrun(fdc_t *fdc);
 extern void	fdc_set_base(fdc_t *fdc, int base);
+extern void	fdc_set_irq(fdc_t *fdc, int irq);
 extern int	fdc_getdata(fdc_t *fdc, int last);
 extern int	fdc_data(fdc_t *fdc, uint8_t data);
 

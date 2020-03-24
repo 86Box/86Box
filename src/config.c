@@ -34,7 +34,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include "86box.h"
-#include "cpu/cpu.h"
+#include "cpu.h"
 #include "device.h"
 #include "timer.h"
 #include "nvr.h"
@@ -42,24 +42,23 @@
 #include "isamem.h"
 #include "isartc.h"
 #include "lpt.h"
-#include "disk/hdd.h"
-#include "disk/hdc.h"
-#include "disk/hdc_ide.h"
-#include "floppy/fdd.h"
-#include "floppy/fdc.h"
-#include "game/gameport.h"
-#include "machine/machine.h"
+#include "hdd.h"
+#include "hdc.h"
+#include "hdc_ide.h"
+#include "fdd.h"
+#include "fdc.h"
+#include "gameport.h"
+#include "machine.h"
 #include "mouse.h"
-#include "network/network.h"
-#include "scsi/scsi.h"
-#include "scsi/scsi_device.h"
-#include "cdrom/cdrom.h"
-#include "disk/zip.h"
-#include "sound/sound.h"
-#include "sound/midi.h"
-#include "sound/snd_mpu401.h"
-#include "sound/sound.h"
-#include "video/video.h"
+#include "network.h"
+#include "scsi.h"
+#include "scsi_device.h"
+#include "cdrom.h"
+#include "zip.h"
+#include "sound.h"
+#include "midi.h"
+#include "snd_mpu401.h"
+#include "video.h"
 #include "plat.h"
 #include "plat_midi.h"
 #include "ui.h"
@@ -81,7 +80,7 @@ typedef struct {
     list_t	list;
 
     char	name[128];
-    char	data[256];
+    char	data[512];
     wchar_t	wdata[512];
 } entry_t;
 
@@ -309,7 +308,7 @@ config_read(wchar_t *fn)
 		/* Create a new section and insert it. */
 		ns = malloc(sizeof(section_t));
 		memset(ns, 0x00, sizeof(section_t));
-		strncpy(ns->name, sname, sizeof(ns->name));
+		memcpy(ns->name, sname, 128);
 		list_add(&ns->list, &config_head);
 
 		/* New section is now the current one. */
@@ -339,7 +338,7 @@ config_read(wchar_t *fn)
 	/* Allocate a new variable entry.. */
 	ne = malloc(sizeof(entry_t));
 	memset(ne, 0x00, sizeof(entry_t));
-	strncpy(ne->name, ename, sizeof(ne->name));
+	memcpy(ne->name, ename, 128);
 	wcsncpy(ne->wdata, &buff[d], sizeof_w(ne->wdata)-1);
 	ne->wdata[sizeof_w(ne->wdata)-1] = L'\0';
 	wcstombs(ne->data, ne->wdata, sizeof(ne->data));
@@ -395,7 +394,7 @@ config_write(wchar_t *fn)
 	ent = (entry_t *)sec->entry_head.next;
 	while (ent != NULL) {
 		if (ent->name[0] != '\0') {
-			mbstowcs(wtemp, ent->name, sizeof_w(wtemp));
+			mbstowcs(wtemp, ent->name, 128);
 			if (ent->wdata[0] == L'\0')
 				fwprintf(f, L"%ls = \n", wtemp);
 			  else
@@ -566,6 +565,7 @@ load_video(void)
 {
     char *cat = "Video";
     char *p;
+    int free_p = 0;
 
     if (machines[machine].flags & MACHINE_VIDEO_FIXED) {
 	config_delete_var(cat, "gfxcard");
@@ -580,8 +580,11 @@ load_video(void)
 			p = (char *)malloc((strlen("none")+1)*sizeof(char));
 			strcpy(p, "none");
 		}
+		free_p = 1;
 	}
 	gfxcard = video_get_video_from_internal_name(p);
+	if (free_p)
+		free(p);
     }
 
     voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
@@ -603,7 +606,7 @@ load_input_devices(void)
       else
 	mouse_type = 0;
 
-    joystick_type = config_get_int(cat, "joystick_type", 7);
+    joystick_type = config_get_int(cat, "joystick_type", JOYSTICK_TYPE_NONE);
 
     for (c=0; c<joystick_get_max_joysticks(joystick_type); c++) {
 	sprintf(temp, "joystick_%i_nr", c);
@@ -663,7 +666,10 @@ load_sound(void)
     
     memset(temp, '\0', sizeof(temp));
     p = config_get_string(cat, "sound_type", "float");
-    strcpy(temp, p);
+    if (strlen(p) <= 511)
+	strcpy(temp, p);
+    else
+	strncpy(temp, p, 511);
     if (!strcmp(temp, "float") || !strcmp(temp, "1"))
 	sound_is_float = 1;
       else
@@ -707,7 +713,10 @@ load_network(void)
 
 		strcpy(network_host, "none");
 	} else {
-		strcpy(network_host, p);
+		if (strlen(p) <= 522)
+			strcpy(network_host, p);
+		else
+			strncpy(network_host, p, 522);
 	}
     } else
 	strcpy(network_host, "none");
@@ -760,7 +769,7 @@ load_other_peripherals(void)
     char *cat = "Other peripherals";
     char *p;
     char temp[512];
-    int c;
+    int c, free_p = 0;
 	
     p = config_get_string(cat, "scsicard", NULL);
     if (p != NULL)
@@ -777,6 +786,7 @@ load_other_peripherals(void)
 		p = (char *)malloc((strlen("none")+1)*sizeof(char));
 		strcpy(p, "none");
 	}
+	free_p = 1;
     }
     if (!strcmp(p, "mfm_xt"))
 	hdc_current = hdc_get_from_internal_name("st506_xt");
@@ -787,10 +797,16 @@ load_other_peripherals(void)
     else
 	hdc_current = hdc_get_from_internal_name(p);
 
+    if (free_p) {
+	free(p);
+	p = NULL;
+    }
+
     ide_ter_enabled = !!config_get_int(cat, "ide_ter", 0);
     ide_qua_enabled = !!config_get_int(cat, "ide_qua", 0);
 
     bugger_enabled = !!config_get_int(cat, "bugger_enabled", 0);
+    postcard_enabled = !!config_get_int(cat, "postcard_enabled", 0);
 
     for (c = 0; c < ISAMEM_MAX; c++) {
 	sprintf(temp, "isamem%d_type", c);
@@ -1250,7 +1266,7 @@ config_load(void)
 	gfxcard = video_get_video_from_internal_name("cga");
 	vid_api = plat_vidapi("default");
 	time_sync = TIME_SYNC_ENABLED;
-	joystick_type = 7;
+	joystick_type = JOYSTICK_TYPE_NONE;
 	hdc_current = hdc_get_from_internal_name("none");
 	serial_enabled[0] = 1;
 	serial_enabled[1] = 1;
@@ -1472,7 +1488,7 @@ save_input_devices(void)
 
     config_set_string(cat, "mouse_type", mouse_get_internal_name(mouse_type));
 
-    if (joystick_type == 7) {
+    if (joystick_type == JOYSTICK_TYPE_NONE) {
 	config_delete_var(cat, "joystick_type");
 
 	for (c = 0; c < 16; c++) {
@@ -1671,6 +1687,11 @@ save_other_peripherals(void)
       else
 	config_set_int(cat, "bugger_enabled", bugger_enabled);
 
+    if (postcard_enabled == 0)
+	config_delete_var(cat, "postcard_enabled");
+      else
+	config_set_int(cat, "postcard_enabled", postcard_enabled);
+
     for (c = 0; c < ISAMEM_MAX; c++) {
 	sprintf(temp, "isamem%d_type", c);
 	if (isamem_type[c] == 0)
@@ -1695,7 +1716,7 @@ static void
 save_hard_disks(void)
 {
     char *cat = "Hard disks";
-    char temp[32], tmp2[64];
+    char temp[32], tmp2[512];
     char *p;
     int c;
 
@@ -2096,7 +2117,7 @@ config_set_int(char *head, char *name, int val)
 	ent = create_entry(section, name);
 
     sprintf(ent->data, "%i", val);
-    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
+    mbstowcs(ent->wdata, ent->data, 512);
 }
 
 
@@ -2154,7 +2175,7 @@ config_set_mac(char *head, char *name, int val)
 
     sprintf(ent->data, "%02x:%02x:%02x",
 		(val>>16)&0xff, (val>>8)&0xff, val&0xff);
-    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
+    mbstowcs(ent->wdata, ent->data, 512);
 }
 
 

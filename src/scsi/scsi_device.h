@@ -8,7 +8,7 @@
  *
  *		Definitions for the generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.h	1.0.17	2019/09/26
+ * Version:	@(#)scsi_device.h	1.0.18	2020/03/23
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -102,8 +102,14 @@
 #define GPCMD_PLAY_CD				0xbc
 #define GPCMD_MECHANISM_STATUS			0xbd
 #define GPCMD_READ_CD				0xbe
-#define GPCMD_SEND_DVD_STRUCTURE		0xbf	/* This is for writing only, irrelevant to PCem. */
+#define GPCMD_SEND_DVD_STRUCTURE		0xbf	/* This is for writing only, irrelevant to 86Box. */
+#define GPCMD_AUDIO_TRACK_SEARCH		0xc0	/* Toshiba Vendor Unique command */
+#define GPCMD_TOSHIBA_PLAY_AUDIO		0xc1	/* Toshiba Vendor Unique command */
 #define GPCMD_PAUSE_RESUME_ALT			0xc2
+#define GPCMD_STILL				0xc2	/* Toshiba Vendor Unique command */
+#define GPCMD_CADDY_EJECT			0xc4	/* Toshiba Vendor Unique command */
+#define GPCMD_READ_SUBCODEQ_PLAYING_STATUS	0xc6	/* Toshiba Vendor Unique command */
+#define GPCMD_READ_DISC_INFORMATION_TOSHIBA	0xc7	/* Toshiba Vendor Unique command */
 #define GPCMD_SCAN_ALT				0xcd	/* Should be equivalent to 0xba */
 #define GPCMD_SET_SPEED_ALT			0xda	/* Should be equivalent to 0xbb */
 

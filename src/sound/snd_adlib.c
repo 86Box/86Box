@@ -5,13 +5,12 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../mca.h"
-#include "../device.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "mca.h"
+#include "device.h"
 #include "sound.h"
-#include "snd_adlib.h"
 #include "snd_opl.h"
 
 
