@@ -162,6 +162,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440FX:
 				regs[0x07] &= ~(val & 0xf9);
 				break;
+#endif
 			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x07] &= ~(val & 0xf0);
 				break;
