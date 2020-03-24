@@ -178,19 +178,19 @@ machine_at_p2bls_init(const machine_t *model)
     		0,	/* unused */
     		27,	/* CPU */
     		0
-    	}, { /* voltages (divisors other than 16 = unclear how that number was achieved) */
-    		2050 / 16,		  /* VCORE (2.05V by default) */
-    		0,			  /* unused */
-    		3300 / 16,		  /* +3.3V */
-    		5000 / 27,		  /* +5V */
-    		VDIV(12000, 28, 10) / 16, /* +12V (with 28K/10K resistor divider suggested in the W83781D datasheet) */
-    		12000 / 55,		  /* -12V */
-    		5000 / 24,		  /* -5V */
-    		0   
+    	}, { /* voltages */
+    		2050,				   /* VCORE (2.05V by default) */
+    		0,				   /* unused */
+    		3300,				   /* +3.3V */
+    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
+    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
+    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
+    		0
     	}
     };
     if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
-    	machine_hwm.voltages[0] = 2800 / 16; /* set higher VCORE (2.8V) for Klamath */
+    	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
     hwm_set_values(machine_hwm);
     device_add(&as99127f_device);
 

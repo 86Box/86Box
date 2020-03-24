@@ -380,7 +380,7 @@ w83781d_reset(w83781d_t *dev, uint8_t initialization)
     /* WARNING: Array elements are register - 0x20. */
     uint8_t i;
     for (i = 0; i <= 6; i++)
-    	dev->regs[i] = dev->values->voltages[i];
+    	dev->regs[i] = (dev->values->voltages[i] / 16);
     dev->regs[0x07] = dev->values->temperatures[0];
     for (i = 0; i <= 2; i++)
     	dev->regs[0x08 + i] = W83781D_RPM_TO_REG(dev->values->fans[i], 2);
