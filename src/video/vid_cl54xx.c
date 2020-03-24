@@ -26,6 +26,7 @@
 #include "86box.h"
 #include "cpu.h"
 #include "86box_io.h"
+#include "mca.h"
 #include "mem.h"
 #include "pci.h"
 #include "rom.h"
@@ -3126,7 +3127,7 @@ static void
     if (gd54xx->mca) {
 	gd54xx->pos_regs[0] = 0x7b;
 	gd54xx->pos_regs[1] = 0x91;
-	mca_add(gd5428_mca_read, gd5428_mca_write, gd5428_mca_feedb, NULL, gd54xx);
+	mca_add(gd5428_mca_read, gd5428_mca_write, gd5428_mca_feedb, gd54xx);
     }
 
     return gd54xx;

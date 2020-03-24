@@ -1027,13 +1027,6 @@ pcnetStop(nic_t *dev)
 }
 
 
-static void
-pcnetWakeupReceive(nic_t *dev)
-{
-    /* TODO: Wake up the thread here. */
-}
-
-
 /**
  * Poll Receive Descriptor Table Entry and cache the results in the appropriate registers.
  * Note: Once a descriptor belongs to the network card (this driver), it cannot be changed
@@ -2687,7 +2680,9 @@ pcnetTimerCallback(void *priv)
 {
     nic_t *dev = (nic_t *) priv;
     
-    pcnetlog("Timer Callback to RX\n");
+#ifdef ENABLE_PCNET_LOG
+    pcnetlog(3, "Timer Callback to RX\n");
+#endif
     pcnetPollRxTx(dev);
     
     timer_disable(&dev->poll_timer);
