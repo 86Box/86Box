@@ -179,7 +179,7 @@ machine_at_p2bls_init(const machine_t *model)
     		27,	/* CPU */
     		0
     	}, { /* voltages (divisors other than 16 = unclear how that number was achieved) */
-    		2800 / 16,		  /* VCORE (2.8V by default) */
+    		2050 / 16,		  /* VCORE (2.05V by default) */
     		0,			  /* unused */
     		3300 / 16,		  /* +3.3V */
     		5000 / 27,		  /* +5V */
@@ -189,8 +189,8 @@ machine_at_p2bls_init(const machine_t *model)
     		0   
     	}
     };
-    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2D)
-    	machine_hwm.voltages[0] = 2050 / 16; /* set lower VCORE (2.05V) for Deschutes */
+    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
+    	machine_hwm.voltages[0] = 2800 / 16; /* set higher VCORE (2.8V) for Klamath */
     hwm_set_values(machine_hwm);
     device_add(&as99127f_device);
 
