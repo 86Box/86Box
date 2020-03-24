@@ -1238,7 +1238,7 @@ nic_init(const device_t *info)
 		}		
 	}
 	else {
-		mca_add(nic_mca_read, nic_mca_write, nic_mca_feedb, dev);	
+		mca_add(nic_mca_read, nic_mca_write, nic_mca_feedb, NULL, dev);	
 	}
     }
 

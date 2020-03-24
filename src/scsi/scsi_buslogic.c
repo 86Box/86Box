@@ -1626,7 +1626,7 @@ buslogic_init(const device_t *info)
 		dev->flags |= X54X_32BIT;
 		dev->pos_regs[0] = 0x08;	/* MCA board ID */
 		dev->pos_regs[1] = 0x07;	
-		mca_add(buslogic_mca_read, buslogic_mca_write, buslogic_mca_feedb, dev);
+		mca_add(buslogic_mca_read, buslogic_mca_write, buslogic_mca_feedb, NULL, dev);
 		dev->ha_bps = 5000000.0;	/* normal SCSI */
 		dev->max_id = 7;		/* narrow SCSI */
 		break;

@@ -737,7 +737,7 @@ static void *pas16_init(const device_t *info)
         memset(pas16, 0, sizeof(pas16_t));
 
         opl3_init(&pas16->opl);
-        sb_dsp_init(&pas16->dsp, SB2);
+        sb_dsp_init(&pas16->dsp, SB2, SB_SUBTYPE_DEFAULT, pas16);
 
         io_sethandler(0x9a01, 0x0001, NULL, NULL, NULL, pas16_out_base, NULL, NULL,  pas16);
         
