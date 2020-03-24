@@ -221,6 +221,7 @@ extern const device_t gd5424_vlb_device;
 extern const device_t gd5426_vlb_device;
 extern const device_t gd5428_isa_device;
 extern const device_t gd5428_vlb_device;
+extern const device_t gd5428_mca_device;
 extern const device_t gd5429_isa_device;
 extern const device_t gd5429_vlb_device;
 extern const device_t gd5430_vlb_device;
