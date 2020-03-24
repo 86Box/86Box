@@ -109,6 +109,7 @@ video_cards[] = {
     { "[ISA] VGA",					"vga",			&vga_device				},
     { "[ISA] Video 7 VGA 1024i",			"v7_vga_1024i",		&v7_vga_1024i_device			},
     { "[ISA] Wyse 700",					"wy700",		&wy700_device				},
+    { "[MCA] IBM 1MB SVGA Adapter/A (CL-GD 5428)",	"ibm1mbsvga",		&gd5428_mca_device			},
     { "[MCA] Tseng ET4000AX",				"et4000mca",		&et4000_mca_device			},
     { "[PCI] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_pci",		&mach64gx_pci_device			},
     { "[PCI] ATI Video Xpression (Mach64 VT2)",		"mach64vt2",		&mach64vt2_device			},
