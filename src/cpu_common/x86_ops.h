@@ -144,9 +144,7 @@ extern const OpFn dynarec_ops_fpu_686_df_a32[256];
 
 extern const OpFn dynarec_ops_REPE[1024];
 extern const OpFn dynarec_ops_REPNE[1024];
-#ifdef USE_NEW_DYNAREC
 extern const OpFn dynarec_ops_3DNOW[256];
-#endif
 #else
 void x86_setopcodes(const OpFn *opcodes, const OpFn *opcodes_0f);
 #endif
