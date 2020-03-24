@@ -127,7 +127,7 @@ machine_at_6abx3_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i440bx_device);
-    device_add(&piix4_device);
+    device_add(&piix4e_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83877tf_device);
     // device_add(&w83977tf_device);
@@ -162,7 +162,7 @@ machine_at_p2bls_init(const machine_t *model)
     pci_register_slot(0x04, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i440bx_device);
-    device_add(&piix4_device);
+    device_add(&piix4e_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83977ef_device);
     device_add(&sst_flash_39sf020_device);
