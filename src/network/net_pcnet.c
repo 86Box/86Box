@@ -7,7 +7,7 @@
  *		Emulation of the AMD PCnet LANCE NIC controller for both the ISA, VLB,
  *		and PCI buses.
  *
- * Version:	@(#)net_pcnet.c	1.0.0	2019/11/09
+ * Version:	@(#)net_pcnet.c	1.0.1	2020/03/23
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -44,7 +44,6 @@
 #include "network.h"
 #include "net_pcnet.h"
 #include "bswap.h"
-
 
 /* PCI info. */
 #define PCI_VENDID		0x1022		/* AMD */
@@ -119,37 +118,37 @@ typedef struct RTNETETHERHDR
 
 /** @name Bus configuration sub register accessors.
  * @{ */
-#define BCR_DWIO(S)      ((S)->aBCR[BCR_BSBC] & 0x0080)
-#define BCR_SSIZE32(S)   ((S)->aBCR[BCR_SWS ] & 0x0100)
+#define BCR_DWIO(S)      !!((S)->aBCR[BCR_BSBC] & 0x0080)
+#define BCR_SSIZE32(S)   !!((S)->aBCR[BCR_SWS ] & 0x0100)
 #define BCR_SWSTYLE(S)   ((S)->aBCR[BCR_SWS ] & 0x00FF)
 /** @} */
 
 /** @name CSR subregister accessors.
  * @{ */
-#define CSR_INIT(S)      ((S)->aCSR[0] & 0x0001)  /**< Init assertion */
-#define CSR_STRT(S)      ((S)->aCSR[0] & 0x0002)  /**< Start assertion */
-#define CSR_STOP(S)      ((S)->aCSR[0] & 0x0004)  /**< Stop assertion */
-#define CSR_TDMD(S)      ((S)->aCSR[0] & 0x0008)  /**< Transmit demand. (perform xmit poll now (readable, settable, not clearable) */
-#define CSR_TXON(S)      ((S)->aCSR[0] & 0x0010)  /**< Transmit on (readonly) */
-#define CSR_RXON(S)      ((S)->aCSR[0] & 0x0020)  /**< Receive On */
-#define CSR_INEA(S)      ((S)->aCSR[0] & 0x0040)  /**< Interrupt Enable */
-#define CSR_LAPPEN(S)    ((S)->aCSR[3] & 0x0020)  /**< Look Ahead Packet Processing Enable */
-#define CSR_DXSUFLO(S)   ((S)->aCSR[3] & 0x0040)  /**< Disable Transmit Stop on Underflow error */
-#define CSR_ASTRP_RCV(S) ((S)->aCSR[4] & 0x0400)  /**< Auto Strip Receive */
-#define CSR_DPOLL(S)     ((S)->aCSR[4] & 0x1000)  /**< Disable Transmit Polling */
-#define CSR_SPND(S)      ((S)->aCSR[5] & 0x0001)  /**< Suspend */
-#define CSR_LTINTEN(S)   ((S)->aCSR[5] & 0x4000)  /**< Last Transmit Interrupt Enable */
-#define CSR_TOKINTD(S)   ((S)->aCSR[5] & 0x8000)  /**< Transmit OK Interrupt Disable */
+#define CSR_INIT(S)      !!((S)->aCSR[0] & 0x0001)  /**< Init assertion */
+#define CSR_STRT(S)      !!((S)->aCSR[0] & 0x0002)  /**< Start assertion */
+#define CSR_STOP(S)      !!((S)->aCSR[0] & 0x0004)  /**< Stop assertion */
+#define CSR_TDMD(S)      !!((S)->aCSR[0] & 0x0008)  /**< Transmit demand. (perform xmit poll now (readable, settable, not clearable) */
+#define CSR_TXON(S)      !!((S)->aCSR[0] & 0x0010)  /**< Transmit on (readonly) */
+#define CSR_RXON(S)      !!((S)->aCSR[0] & 0x0020)  /**< Receive On */
+#define CSR_INEA(S)      !!((S)->aCSR[0] & 0x0040)  /**< Interrupt Enable */
+#define CSR_LAPPEN(S)    !!((S)->aCSR[3] & 0x0020)  /**< Look Ahead Packet Processing Enable */
+#define CSR_DXSUFLO(S)   !!((S)->aCSR[3] & 0x0040)  /**< Disable Transmit Stop on Underflow error */
+#define CSR_ASTRP_RCV(S) !!((S)->aCSR[4] & 0x0400)  /**< Auto Strip Receive */
+#define CSR_DPOLL(S)     !!((S)->aCSR[4] & 0x1000)  /**< Disable Transmit Polling */
+#define CSR_SPND(S)      !!((S)->aCSR[5] & 0x0001)  /**< Suspend */
+#define CSR_LTINTEN(S)   !!((S)->aCSR[5] & 0x4000)  /**< Last Transmit Interrupt Enable */
+#define CSR_TOKINTD(S)   !!((S)->aCSR[5] & 0x8000)  /**< Transmit OK Interrupt Disable */
 
-#define CSR_STINT        ((S)->aCSR[7] & 0x0800)  /**< Software Timer Interrupt */
-#define CSR_STINTE       ((S)->aCSR[7] & 0x0400)  /**< Software Timer Interrupt Enable */
+#define CSR_STINT        !!((S)->aCSR[7] & 0x0800)  /**< Software Timer Interrupt */
+#define CSR_STINTE       !!((S)->aCSR[7] & 0x0400)  /**< Software Timer Interrupt Enable */
 
-#define CSR_DRX(S)       ((S)->aCSR[15] & 0x0001) /**< Disable Receiver */
-#define CSR_DTX(S)       ((S)->aCSR[15] & 0x0002) /**< Disable Transmit */
-#define CSR_LOOP(S)      ((S)->aCSR[15] & 0x0004) /**< Loopback Enable */
-#define CSR_DRCVPA(S)    ((S)->aCSR[15] & 0x2000) /**< Disable Receive Physical Address */
-#define CSR_DRCVBC(S)    ((S)->aCSR[15] & 0x4000) /**< Disable Receive Broadcast */
-#define CSR_PROM(S)      ((S)->aCSR[15] & 0x8000) /**< Promiscuous Mode */
+#define CSR_DRX(S)       !!((S)->aCSR[15] & 0x0001) /**< Disable Receiver */
+#define CSR_DTX(S)       !!((S)->aCSR[15] & 0x0002) /**< Disable Transmit */
+#define CSR_LOOP(S)      !!((S)->aCSR[15] & 0x0004) /**< Loopback Enable */
+#define CSR_DRCVPA(S)    !!((S)->aCSR[15] & 0x2000) /**< Disable Receive Physical Address */
+#define CSR_DRCVBC(S)    !!((S)->aCSR[15] & 0x4000) /**< Disable Receive Broadcast */
+#define CSR_PROM(S)      !!((S)->aCSR[15] & 0x8000) /**< Promiscuous Mode */
 
 /** @name CSR register accessors.
  * @{ */
@@ -193,14 +192,14 @@ typedef struct {
 	mem_mapping_t mmio_mapping;
     const char	*name;
     int		board;
-    int		is_pci, is_vlb;
+    int		is_pci, is_vlb, is_isa;
     int		PCIBase;
     int		MMIOBase;	
     uint32_t	base_address;
     int		base_irq;
-	int		dma_channel;
-	int		card;			/* PCI card slot */
-	int		xmit_pos;
+    int		dma_channel;
+    int		card;			/* PCI card slot */
+    int		xmit_pos;
     /** Register Address Pointer */
     uint32_t u32RAP;
     /** Internal interrupt service */
@@ -214,6 +213,7 @@ typedef struct {
     uint8_t  aPROM[16];
     uint16_t aCSR[CSR_MAX_REG];
     uint16_t aBCR[BCR_MAX_RAP];
+    uint16_t aMII[MII_MAX_REG];
     /** The loopback transmit buffer (avoid stack allocations). */
     uint8_t abLoopBuf[4096];
     /** The recv buffer. */
@@ -222,7 +222,7 @@ typedef struct {
     int  iLog2DescSize;
     /** Bits 16..23 in 16-bit mode */
     uint32_t GCUpperPhys;
-    /** We are waitign/about to start waiting for more receive buffers. */
+    /** We are waiting/about to start waiting for more receive buffers. */
     int fMaybeOutOfSpace;
     /** True if we signal the guest that RX packets are missing. */
     int fSignalRxMiss;
@@ -230,8 +230,10 @@ typedef struct {
     uint32_t u32LinkSpeed;
     /** Error counter for bad receive descriptors. */
     uint32_t uCntBadRMD;
+    uint16_t u16CSR0LastSeenByGuest;
+    uint64_t last_poll;
     uint8_t maclocal[6]; /* configured MAC (local) address */
-    pc_timer_t poll_timer;
+    pc_timer_t poll_timer, timer_soft_int;
 } nic_t;
 
 /** @todo All structs: big endian? */
@@ -401,7 +403,6 @@ pcnet_do_irq(nic_t *dev, int issue)
 			picintc(1<<dev->base_irq);
 	}	
 }
-
 
 /**
  * Load transmit message descriptor
@@ -796,14 +797,14 @@ pcnetTdraAddr(nic_t *dev, int idx)
 static void 
 pcnetSoftReset(nic_t *dev)
 {
-	pcnetlog(3, "%s: pcnetSoftReset\n", dev->name);
+    pcnetlog(3, "%s: pcnetSoftReset\n", dev->name);
 	
     dev->u32Lnkst = 0x40;
     dev->GCRDRA   = 0;
     dev->GCTDRA   = 0;
     dev->u32RAP   = 0;
 	
-	dev->aCSR[0]   = 0x0004;
+    dev->aCSR[0]   = 0x0004;
     dev->aCSR[3]   = 0x0000;
     dev->aCSR[4]   = 0x0115;
     dev->aCSR[5]   = 0x0000;
@@ -820,14 +821,25 @@ pcnetSoftReset(nic_t *dev)
     CSR_XMTRC(dev) = 1;
     CSR_RCVRL(dev) = 1;
     CSR_XMTRL(dev) = 1;
-	dev->aCSR[80]  = 0x1410;
-	if (dev->is_pci) {
-		dev->aCSR[88]  = 0x1003;
-		dev->aCSR[89]  = 0x0262;
-	} else {
-		dev->aCSR[88]  = 0x3003;
-		dev->aCSR[89]  = 0x0000;		
-	}
+    dev->aCSR[80]  = 0x1410;
+
+    switch (dev->board) {
+	case DEV_AM79C970A:
+		dev->aCSR[88] = 0x1003;
+		dev->aCSR[89] = 0x0262;
+		break;
+	case DEV_AM79C973:
+		dev->aCSR[88] = 0x5003;
+		dev->aCSR[89] = 0x0262;
+		break;
+	case DEV_AM79C960:
+	case DEV_AM79C960_EB:
+	case DEV_AM79C960_VLB:
+		dev->aCSR[88] = 0x3003;
+		dev->aCSR[89] = 0x0262;
+		break;
+    }
+
     dev->aCSR[94]  = 0x0000;
     dev->aCSR[100] = 0x0200;
     dev->aCSR[103] = 0x0105;
@@ -841,90 +853,75 @@ pcnetSoftReset(nic_t *dev)
 static void
 pcnetUpdateIrq(nic_t *dev)
 {
-	dev->iISR = 0;
-	
-	dev->aCSR[0] &= ~0x0080; /* clear INTR */
+    int iISR = 0;
+    uint16_t csr0;	
 
-    if ((!(dev->aCSR[3] & 0x4000) && (dev->aCSR[0] & 0x4000)) /* BABL */ ||
-        (!(dev->aCSR[3] & 0x1000) && (dev->aCSR[0] & 0x1000)) /* MISS */ ||
-        (!(dev->aCSR[3] & 0x0100) && (dev->aCSR[0] & 0x0100)) /* IDON */ ||
-        (!(dev->aCSR[3] & 0x0200) && (dev->aCSR[0] & 0x0200)) /* TINT */ ||
-        (!(dev->aCSR[3] & 0x0400) && (dev->aCSR[0] & 0x0400)) /* RINT */ ||
-        (!(dev->aCSR[3] & 0x0800) && (dev->aCSR[0] & 0x0800)) /* MERR */ ||
-        (!(dev->aCSR[4] & 0x0001) && (dev->aCSR[4] & 0x0002)) /* JAB */ ||
-        (!(dev->aCSR[4] & 0x0004) && (dev->aCSR[4] & 0x0008)) /* TXSTRT */ ||
-        (!(dev->aCSR[4] & 0x0010) && (dev->aCSR[4] & 0x0020)) /* RCVO */ ||
-        (!(dev->aCSR[4] & 0x0100) && (dev->aCSR[4] & 0x0200)) /* MFCO */ ||
-        ((dev->aCSR[5] & 0x0040) && (dev->aCSR[5] & 0x0080)) /* EXDINT */ ||
-        ((dev->aCSR[5] & 0x0008) && (dev->aCSR[5] & 0x0010)) /* MPINT */) {
-       	dev->iISR = CSR_INEA(dev); /* CSR_INEA */
-		dev->aCSR[0] |= 0x0080; /* set INTR */
+    csr0 = dev->aCSR[0];
+    
+    csr0 &= ~0x0080; /* clear INTR */
+
+    if (((csr0 & ~dev->aCSR[3]) & 0x5f00) ||
+	(((dev->aCSR[4]>>1) & ~dev->aCSR[4]) & 0x0115) ||
+	(((dev->aCSR[5]>>1) & dev->aCSR[5]) & 0x0048)) {
+	iISR = !!(csr0 & 0x0040); /* CSR_INEA */
+	csr0 |= 0x0080; /* set INTR */
     }
-	
-    if (dev->aCSR[4] & 0x0080) { /* UINT */
-        dev->aCSR[4] &= ~0x0080;
-        dev->aCSR[4] |= 0x0040;
-       	dev->iISR = 1; /* CSR_INEA */
-		dev->aCSR[0] |= 0x0080; /* set INTR */
-		pcnetlog(3, "%s: user int\n", dev->name);
-    }
-	
-    if (((dev->aCSR[5] & 0x0400) && (dev->aCSR[5] & 0x0800)) /* SINT */ ||
-        ((dev->aCSR[5] & 0x0100) && (dev->aCSR[5] & 0x0200)) /* SLPINT */ ) {
-       	dev->iISR = 1; /* CSR_INEA */
-		dev->aCSR[0] |= 0x0080; /* set INTR */
+    
+    if (dev->aCSR[4] & 0x0080) { /* UINTCMD */
+	dev->aCSR[4] &= ~0x0080; /* clear UINTCMD */
+	dev->aCSR[4] |= 0x0040; /* set UINT */
+	pcnetlog(2, "%s: user int\n", dev->name);
     }
 
-    pcnetlog(3, "%s: pcnetUpdateIrq: set irq isr=%02x, TINT=%04x\n", dev->name, !!dev->iISR, dev->aCSR[0] & 0x0200);
-
+    if (dev->aCSR[4] & csr0 & 0x0040 /* CSR_INEA */) {
+	csr0 |= 0x0080; /* set INTR */
+	iISR = 1;
+    }
+    
+    if (((dev->aCSR[5]>>1) & dev->aCSR[5]) & 0x0500) {
+	iISR = 1;
+	csr0 |= 0x0080; /* set INTR */
+    }
+    
+    if ((dev->aCSR[7] & 0x0c00) == 0x0c00) /* STINT + STINTE */
+	iISR = 1;
+	
+    dev->aCSR[0] = csr0;
+    
+    pcnetlog(2, "%s: pcnetUpdateIrq: iISR=%d\n", dev->name, iISR);
+    
     /* normal path is to _not_ change the IRQ status */
-    if (dev->iISR)
-	pcnet_do_irq(dev, 1);
+    if (iISR != dev->iISR) {
+	pcnet_do_irq(dev, iISR);
+	dev->iISR = iISR;
+    }
 }
 
 
 static void 
 pcnetInit(nic_t *dev)
 {
-	int i;
+    int i;
     pcnetlog(3, "%s: pcnetInit: init_addr=%#010x\n", dev->name, PHYSADDR(dev, CSR_IADR(dev)));
 
     /** @todo Documentation says that RCVRL and XMTRL are stored as two's complement!
      *        Software is allowed to write these registers directly. */
 #define PCNET_INIT() do { \
-        DMAPageRead(PHYSADDR(dev, CSR_IADR(dev)),         \
-                          (uint8_t *)&initblk, sizeof(initblk));             \
-        dev->aCSR[15]  = le32_to_cpu(initblk.mode);                        \
-        CSR_RCVRL(dev) = (initblk.rlen < 9) ? (1 << initblk.rlen) : 512;   \
-        CSR_XMTRL(dev) = (initblk.tlen < 9) ? (1 << initblk.tlen) : 512;   \
-        dev->aCSR[ 6]  = (initblk.tlen << 12) | (initblk.rlen << 8);       \
-        dev->aCSR[ 8]  = le32_to_cpu(initblk.ladrf1);                      \
-        dev->aCSR[ 9]  = le32_to_cpu(initblk.ladrf2);                      \
-        dev->aCSR[10]  = le32_to_cpu(initblk.ladrf3);                      \
-        dev->aCSR[11]  = le32_to_cpu(initblk.ladrf4);                      \
-        dev->aCSR[12]  = le32_to_cpu(initblk.padr1);                       \
-        dev->aCSR[13]  = le32_to_cpu(initblk.padr2);                       \
-        dev->aCSR[14]  = le32_to_cpu(initblk.padr3);                       \
-        dev->GCRDRA    = PHYSADDR(dev, initblk.rdra);                    \
-        dev->GCTDRA    = PHYSADDR(dev, initblk.tdra);                    \
-} while (0)
-
-#define PCNET_INIT16() do { \
-        DMAPageRead(PHYSADDR(dev, CSR_IADR(dev)),         \
-                          (uint8_t *)&initblk, sizeof(initblk));             \
-        dev->aCSR[15]  = le32_to_cpu(initblk.mode);                        \
-        CSR_RCVRL(dev) = (1 << initblk.rlen);   \
-        CSR_XMTRL(dev) = (1 << initblk.tlen);   \
-        dev->aCSR[ 6]  = (initblk.tlen << 12) | (initblk.rlen << 8);       \
-        dev->aCSR[ 8]  = le32_to_cpu(initblk.ladrf1);                      \
-        dev->aCSR[ 9]  = le32_to_cpu(initblk.ladrf2);                      \
-        dev->aCSR[10]  = le32_to_cpu(initblk.ladrf3);                      \
-        dev->aCSR[11]  = le32_to_cpu(initblk.ladrf4);                      \
-        dev->aCSR[12]  = le32_to_cpu(initblk.padr1);                       \
-        dev->aCSR[13]  = le32_to_cpu(initblk.padr2);                       \
-        dev->aCSR[14]  = le32_to_cpu(initblk.padr3);                       \
-        dev->GCRDRA    = PHYSADDR(dev, initblk.rdra);                    \
-        dev->GCTDRA    = PHYSADDR(dev, initblk.tdra);                    \
+    DMAPageRead(PHYSADDR(dev, CSR_IADR(dev)),         \
+		(uint8_t *)&initblk, sizeof(initblk));             \
+    dev->aCSR[15]  = le16_to_cpu(initblk.mode);                        \
+    CSR_RCVRL(dev) = (initblk.rlen < 9) ? (1 << initblk.rlen) : 512;   \
+    CSR_XMTRL(dev) = (initblk.tlen < 9) ? (1 << initblk.tlen) : 512;   \
+    dev->aCSR[ 6]  = (initblk.tlen << 12) | (initblk.rlen << 8);       \
+    dev->aCSR[ 8]  = le16_to_cpu(initblk.ladrf1);                      \
+    dev->aCSR[ 9]  = le16_to_cpu(initblk.ladrf2);                      \
+    dev->aCSR[10]  = le16_to_cpu(initblk.ladrf3);                      \
+    dev->aCSR[11]  = le16_to_cpu(initblk.ladrf4);                      \
+    dev->aCSR[12]  = le16_to_cpu(initblk.padr1);                       \
+    dev->aCSR[13]  = le16_to_cpu(initblk.padr2);                       \
+    dev->aCSR[14]  = le16_to_cpu(initblk.padr3);                       \
+    dev->GCRDRA    = PHYSADDR(dev, initblk.rdra);                    \
+    dev->GCTDRA    = PHYSADDR(dev, initblk.tdra);                    \
 } while (0)
 
     if (BCR_SSIZE32(dev)) {
@@ -936,14 +933,14 @@ pcnetInit(nic_t *dev)
     } else {
         struct INITBLK16 initblk;
         dev->GCUpperPhys = (0xff00 & (uint32_t)dev->aCSR[2]) << 16;
-        PCNET_INIT16();
+        PCNET_INIT();
         pcnetlog(3, "%s: initblk.rlen=%#04x, initblk.tlen=%#04x\n",
              dev->name, initblk.rlen, initblk.tlen);
     }
 
 #undef PCNET_INIT
 
-    int cbRxBuffers = 0;
+    size_t cbRxBuffers = 0;
     for (i = CSR_RCVRL(dev); i >= 1; i--) {
         RMD rmd;
         uint32_t rdaddr = PHYSADDR(dev, pcnetRdraAddr(dev, i));
@@ -970,7 +967,7 @@ pcnetInit(nic_t *dev)
      * usually 1536 bytes and should therefore not run into condition. If they are still
      * short in RX buffers we notify this condition.
      */
-    dev->fSignalRxMiss = (cbRxBuffers == 0 || cbRxBuffers >= 32*128);
+    dev->fSignalRxMiss = (cbRxBuffers == 0 || cbRxBuffers >= 32*1024);
 
     CSR_RCVRC(dev) = CSR_RCVRL(dev);
     CSR_XMTRC(dev) = CSR_XMTRL(dev);
@@ -1011,8 +1008,8 @@ pcnetStart(nic_t *dev)
     if (!CSR_DRX(dev))
         dev->aCSR[0] |= 0x0020;    /* set RXON */
     dev->aCSR[0] &= ~0x0004;       /* clear STOP bit */
-    dev->aCSR[0] |=  0x0002;       /* STRT */	
-	pcnetPollTimer(dev);
+    dev->aCSR[0] |= 0x0002;       /* STRT */	
+    pcnetPollTimer(dev);
 }
 
 
@@ -1026,7 +1023,7 @@ pcnetStop(nic_t *dev)
     dev->aCSR[0] = 0x0004;
     dev->aCSR[4] &= ~0x02c2;
     dev->aCSR[5] &= ~0x0011;
-	pcnetPollTimer(dev);
+    pcnetPollTimer(dev);
 }
 
 
@@ -1042,7 +1039,6 @@ pcnetWakeupReceive(nic_t *dev)
  * Note: Once a descriptor belongs to the network card (this driver), it cannot be changed
  * by the host (the guest driver) anymore. Well, it could but the results are undefined by
  * definition.
- * @param  fSkipCurrent       if true, don't scan the current RDTE.
  */
 static void 
 pcnetRdtePoll(nic_t *dev)
@@ -1061,28 +1057,26 @@ pcnetRdtePoll(nic_t *dev)
         if (i < 1)
             i = CSR_RCVRL(dev);
 
-		addr = pcnetRdraAddr(dev, i);
-		CSR_CRDA(dev) = CSR_CRBA(dev) = 0;
-		CSR_CRBC(dev) = CSR_CRST(dev) = 0;
-		if (!pcnetRmdLoad(dev, &rmd, PHYSADDR(dev, addr), 1))
-			return;
-		if (!IS_RMD_BAD(rmd)) {
-			CSR_CRDA(dev) = addr;                        /* Receive Descriptor Address */
-			CSR_CRBA(dev) = rmd.rmd0.rbadr;              /* Receive Buffer Address */
-			CSR_CRBC(dev) = rmd.rmd1.bcnt;               /* Receive Byte Count */
-			CSR_CRST(dev) = ((uint32_t *)&rmd)[1] >> 16; /* Receive Status */
-			if (dev->fMaybeOutOfSpace)
-				pcnetWakeupReceive(dev);
-		} else {
-			/* This is not problematic since we don't own the descriptor
-			 * We actually do own it, otherwise pcnetRmdLoad would have returned false.
-			 * Don't flood the release log with errors.
-			 */
-			if (++dev->uCntBadRMD < 50)
-				pcnetlog(1, "%s: BAD RMD ENTRIES AT %#010x (i=%d)\n",
-						dev->name, addr, i);
-			return;
-		}
+	addr = pcnetRdraAddr(dev, i);
+	CSR_CRDA(dev) = CSR_CRBA(dev) = 0;
+	CSR_CRBC(dev) = CSR_CRST(dev) = 0;
+	if (!pcnetRmdLoad(dev, &rmd, PHYSADDR(dev, addr), 1))
+	    return;
+	if (!IS_RMD_BAD(rmd)) {
+	    CSR_CRDA(dev) = addr;                        /* Receive Descriptor Address */
+	    CSR_CRBA(dev) = rmd.rmd0.rbadr;              /* Receive Buffer Address */
+	    CSR_CRBC(dev) = rmd.rmd1.bcnt;               /* Receive Byte Count */
+	    CSR_CRST(dev) = ((uint32_t *)&rmd)[1] >> 16; /* Receive Status */
+	} else {
+	    /* This is not problematic since we don't own the descriptor
+	     * We actually do own it, otherwise pcnetRmdLoad would have returned false.
+	     * Don't flood the release log with errors.
+	     */
+	    if (++dev->uCntBadRMD < 50)
+		pcnetlog(1, "%s: BAD RMD ENTRIES AT %#010x (i=%d)\n",
+			dev->name, addr, i);
+	    return;
+	}
 
         /*
          * The next descriptor.
@@ -1214,13 +1208,12 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
 {
     nic_t *dev = (nic_t *)priv;
     int is_padr = 0, is_bcast = 0, is_ladr = 0;
-	uint32_t iRxDesc;
-	int cbPacket;
-	uint8_t buf1[60];
-
+    uint32_t iRxDesc;
+    int cbPacket;
+    uint8_t buf1[60];
 
     if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev) || !size)
-		return;
+	return;
 
     /* if too small buffer, then expand it */
     if (size < 60) {
@@ -1243,16 +1236,16 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
         || (is_bcast = padr_bcast(dev, buf, size))
         || (is_ladr  = ladr_match(dev, buf, size))) {
 
-		if (HOST_IS_OWNER(CSR_CRST(dev)))
-			pcnetRdtePoll(dev);
+	if (HOST_IS_OWNER(CSR_CRST(dev)))
+	    pcnetRdtePoll(dev);
 
         if (HOST_IS_OWNER(CSR_CRST(dev))) {
             /* Not owned by controller. This should not be possible as
              * we already called pcnetCanReceive(). */			
-			const uint32_t cb = 1 << dev->iLog2DescSize;
+	    const unsigned cb = 1 << dev->iLog2DescSize;
             uint32_t GCPhys = dev->GCRDRA;
             iRxDesc = CSR_RCVRL(dev);
-			
+
             while (iRxDesc-- > 0) {
                 RMD rmd;
                 pcnetRmdLoad(dev, &rmd, PHYSADDR(dev, GCPhys), 0);
@@ -1260,11 +1253,11 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
             }
             dev->aCSR[0] |= 0x1000; /* Set MISS flag */
             CSR_MISSC(dev)++;
-			pcnetlog(2, "%s: pcnetReceiveNoSync: packet missed\n", dev->name);
+	    pcnetlog(2, "%s: pcnetReceiveNoSync: packet missed\n", dev->name);
         } else {
-			RTNETETHERHDR *pEth = (RTNETETHERHDR *)buf;
+	    RTNETETHERHDR *pEth = (RTNETETHERHDR *)buf;
             int fStrip = 0;
-            int  len_802_3;
+            size_t  len_802_3;
             uint8_t *src = &dev->abRecvBuf[8];
             uint32_t crda = CSR_CRDA(dev);
             uint32_t next_crda;
@@ -1279,36 +1272,40 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
              *
              * NB: CSR_ASTRP_RCV bit affects only 802.3 frames!
              */
-			len_802_3 = cpu_to_be16(pEth->EtherType);
+	    len_802_3 = cpu_to_be16(pEth->EtherType);
             if (len_802_3 < 46 && CSR_ASTRP_RCV(dev)) {
                 size = MIN(sizeof(RTNETETHERHDR) + len_802_3, size);
                 fStrip = 1;
             }			
-			
-			memcpy(src, buf, size);
-			
+
+	    memcpy(src, buf, size);
+
             if (!fStrip) {
                 /* In loopback mode, Runt Packed Accept is always enabled internally;
                  * don't do any padding because guest may be looping back very short packets.
                  */
+		if (!CSR_LOOP(dev))
+		    while (size < 60)
+			src[size++] = 0;
+		
                 uint32_t fcs = UINT32_MAX;
                 uint8_t *p = src;
 
-                while (p != &src[size])
-			CRC(fcs, *p++);
+		while (p != &src[size])
+		    CRC(fcs, *p++);
 
 		/* FCS at the end of the packet */
 		((uint32_t *)&src[size])[0] = htonl(fcs);
 		size += 4;
-           }
+	    }
 
-            cbPacket  = size; 
+            cbPacket = (int)size; 
 
             pcnetRmdLoad(dev, &rmd, PHYSADDR(dev, crda), 0);
             /* if (!CSR_LAPPEN(dev)) */
                 rmd.rmd1.stp = 1;
 
-            int cbBuf = MIN(4096 - rmd.rmd1.bcnt, size);
+            size_t cbBuf = MIN(4096 - rmd.rmd1.bcnt, size);
             uint32_t rbadr = PHYSADDR(dev, rmd.rmd0.rbadr);
 
             /* save the old value to check if it was changed as long as we didn't
@@ -1329,9 +1326,9 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
 			
             /* RX disabled in the meantime? If so, abort RX. */
             if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev)) {
-				pcnetlog(3, "%s: RX disabled 1\n", dev->name);
+		pcnetlog(3, "%s: RX disabled 1\n", dev->name);
                 return;
-			}
+	    }
 
             /* Was the register modified in the meantime? If so, don't touch the
              * register but still update the RX descriptor. */
@@ -1342,9 +1339,9 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
             } else
                 iRxDesc = CSR_RCVRC(dev);
 
-            src      += cbBuf;
-            size     -= cbBuf;
-			
+            src += cbBuf;
+            size -= cbBuf;
+
             while (size > 0) {
                 /* Read the entire next descriptor as we're likely to need it. */
                 next_crda = pcnetRdraAddr(dev, iRxDesc);
@@ -1362,7 +1359,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                 crda = next_crda;
                 rmd  = next_rmd;
 
-                cbBuf = MIN(4096 - rmd.rmd1.bcnt, size);
+                cbBuf = MIN(4096 - (size_t)rmd.rmd1.bcnt, size);
                 uint32_t rbadr2 = PHYSADDR(dev, rmd.rmd0.rbadr);
 
                 /* We have to leave the critical section here or we risk deadlocking
@@ -1372,9 +1369,9 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
 
                 /* RX disabled in the meantime? If so, abort RX. */
                 if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev)) {
-					pcnetlog(3, "%s: RX disabled 2\n", dev->name);
+		    pcnetlog(3, "%s: RX disabled 2\n", dev->name);
                     return;
-				}
+		}
 
                 /* Was the register modified in the meantime? If so, don't touch the
                  * register but still update the RX descriptor. */
@@ -1384,10 +1381,10 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                     CSR_RCVRC(dev) = iRxDesc;
                 } else {
                     iRxDesc = CSR_RCVRC(dev);
-				}
+		}
 
-                src      += cbBuf;
-                size     -= cbBuf;
+                src += cbBuf;
+                size -= cbBuf;
             }
 
             if (size == 0) {
@@ -1398,7 +1395,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                 rmd.rmd2.mcnt = cbPacket;
                 rmd.rmd2.zeros = 0;
             } else {
-                pcnetlog(2, "%s: Overflow by %ubytes\n", dev->name, size);
+                pcnetlog(1, "%s: Overflow by %ubytes\n", dev->name, size);
                 rmd.rmd1.oflo = 1;
                 rmd.rmd1.buff = 1;
                 rmd.rmd1.err  = 1;
@@ -1408,18 +1405,15 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
             pcnetRmdStorePassHost(dev, &rmd, PHYSADDR(dev, crda));
 
             dev->aCSR[0] |= 0x0400;
-            pcnetlog(2, "%s: RINT set, RCVRC=%d CRDA=%#010x\n", dev->name,
+            pcnetlog(1, "%s: RINT set, RCVRC=%d CRDA=%#010x\n", dev->name,
                  CSR_RCVRC(dev), PHYSADDR(dev, CSR_CRDA(dev)));
 			
             /* guest driver is owner: force repoll of current and next RDTEs */
             CSR_CRST(dev) = 0;
-		}
 	}
+    }
 
-	if (!CSR_LOOP(dev))
-		pcnetPollRxTx(dev);
-
-	pcnetUpdateIrq(dev);
+    pcnetUpdateIrq(dev);
 }
 
 
@@ -1442,7 +1436,8 @@ pcnetAsyncTransmit(nic_t *dev)
     /*
      * Iterate the transmit descriptors.
      */
-    int         cMax = 32;
+    unsigned cFlushIrq = 0;
+    int cMax = 32;
     do {
         TMD tmd;
         if (!pcnetTdtePoll(dev, &tmd))
@@ -1457,52 +1452,55 @@ pcnetAsyncTransmit(nic_t *dev)
          */
         if (tmd.tmd1.stp && tmd.tmd1.enp) {
             const int cb = 4096 - tmd.tmd1.bcnt;
-            pcnetlog(1, "%s: pcnetAsyncTransmit: stp&enp: cb=%d xmtrc=%#x\n", dev->name, cb, CSR_XMTRC(dev));
-			dev->xmit_pos = cb;
-			DMAPageRead(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf, cb);			
-			
-            if (fLoopback) {
-                /* From the manual: ``A zero length buffer is acceptable as
-                 * long as it is not the last buffer in a chain (STP = 0 and
-                 * ENP = 1).'' That means that the first buffer might have a
-                 * zero length if it is not the last one in the chain. */
-                if (cb <= MAX_FRAME) {
-					if (HOST_IS_OWNER(CSR_CRST(dev)))
-						pcnetRdtePoll(dev);
-					
-					pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);
-                } else if (cb == 4096) {
-                    /* The Windows NT4 pcnet driver sometimes marks the first
-                     * unused descriptor as owned by us. Ignore that (by
-                     * passing it back). Do not update the ring counter in this
-                     * case (otherwise that driver becomes even more confused,
-                     * which causes transmit to stall for about 10 seconds).
-                     * This is just a workaround, not a final solution. */
-                    /* r=frank: IMHO this is the correct implementation. The
-                     * manual says: ``If the OWN bit is set and the buffer
-                     * length is 0, the OWN bit will be cleared. In the C-LANCE
-                     * the buffer length of 0 is interpreted as a 4096-byte
-                     * buffer.'' */
-                    /* r=michaln: Perhaps not quite right. The C-LANCE (Am79C90)
-                     * datasheet explains that the old LANCE (Am7990) ignored
-                     * the top four bits next to BCNT and a count of 0 was
-                     * interpreted as 4096. In the C-LANCE, that is still the
-                     * case if the top bits are all ones. If all 16 bits are
-                     * zero, the C-LANCE interprets it as zero-length transmit
-                     * buffer. It's not entirely clear if the later models
-                     * (PCnet-ISA, PCnet-PCI) behave like the C-LANCE or not.
-                     * It is possible that the actual behavior of the C-LANCE
-                     * and later hardware is that the buffer lengths are *16-bit*
-                     * two's complement numbers between 0 and 4096. AMD's drivers
-                     * in fact generally treat the length as a 16-bit quantity. */
-                    pcnetlog(1, "%s: pcnetAsyncTransmit: illegal 4kb frame -> ignoring\n", dev->name);
-                    pcnetTmdStorePassHost(dev, &tmd, PHYSADDR(dev, CSR_CXDA(dev)));
-                    break;
-                }
-            } else {
-		    pcnetlog(3, "%s: pcnetAsyncTransmit: transmit loopbuf stp and enp\n", dev->name);
-		    network_tx(dev->abLoopBuf, dev->xmit_pos);
-	   }
+            pcnetlog("%s: pcnetAsyncTransmit: stp&enp: cb=%d xmtrc=%#x\n", dev->name, cb, CSR_XMTRC(dev));			
+
+	    /* From the manual: ``A zero length buffer is acceptable as
+	    * long as it is not the last buffer in a chain (STP = 0 and
+	    * ENP = 1).'' That means that the first buffer might have a
+	    * zero length if it is not the last one in the chain. */
+	    if (cb <= MAX_FRAME) {
+		dev->xmit_pos = cb;
+		DMAPageRead(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf, cb);
+
+		if (fLoopback) {
+		    if (HOST_IS_OWNER(CSR_CRST(dev)))
+			pcnetRdtePoll(dev);
+
+		    pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);		    
+		} else {
+		    pcnetlog(3, "%s: pcnetAsyncTransmit: transmit loopbuf stp and enp, xmit pos = %d\n", dev->name, dev->xmit_pos);
+		    network_tx(dev->abLoopBuf, dev->xmit_pos);		        
+		}
+	    } else if (cb == 4096) {
+		/* The Windows NT4 pcnet driver sometimes marks the first
+		 * unused descriptor as owned by us. Ignore that (by
+		 * passing it back). Do not update the ring counter in this
+		 * case (otherwise that driver becomes even more confused,
+		 * which causes transmit to stall for about 10 seconds).
+		 * This is just a workaround, not a final solution. 
+		 */
+		/* r=frank: IMHO this is the correct implementation. The
+		 * manual says: ``If the OWN bit is set and the buffer
+		 * length is 0, the OWN bit will be cleared. In the C-LANCE
+		 * the buffer length of 0 is interpreted as a 4096-byte
+		 * buffer.'' 
+		 */
+		/* r=michaln: Perhaps not quite right. The C-LANCE (Am79C90)
+		 * datasheet explains that the old LANCE (Am7990) ignored
+		 * the top four bits next to BCNT and a count of 0 was
+		 * interpreted as 4096. In the C-LANCE, that is still the
+		 * case if the top bits are all ones. If all 16 bits are
+		 * zero, the C-LANCE interprets it as zero-length transmit
+		 * buffer. It's not entirely clear if the later models
+		 * (PCnet-ISA, PCnet-PCI) behave like the C-LANCE or not.
+		 * It is possible that the actual behavior of the C-LANCE
+		 * and later hardware is that the buffer lengths are *16-bit*
+		 * two's complement numbers between 0 and 4096. AMD's drivers
+		 * in fact generally treat the length as a 16-bit quantity. */
+		pcnetlog(1, "%s: pcnetAsyncTransmit: illegal 4kb frame -> ignoring\n", dev->name);
+		pcnetTmdStorePassHost(dev, &tmd, PHYSADDR(dev, CSR_CXDA(dev)));
+		break;
+	    }
 
             /* Write back the TMD and pass it to the host (clear own bit). */
             pcnetTmdStorePassHost(dev, &tmd, PHYSADDR(dev, CSR_CXDA(dev)));
@@ -1512,7 +1510,7 @@ pcnetAsyncTransmit(nic_t *dev)
                 CSR_XMTRC(dev) = CSR_XMTRL(dev);
             } else {
                 CSR_XMTRC(dev)--;
-			}
+	    }
         } else if (tmd.tmd1.stp) {
             /*
              * Read TMDs until end-of-packet or tdte poll fails (underflow).
@@ -1521,19 +1519,10 @@ pcnetAsyncTransmit(nic_t *dev)
              * waste time finding out how much space we actually need even if
              * we could reliably do that on SMP guests.
              */
-            int cb = 4096 - tmd.tmd1.bcnt;
-			dev->xmit_pos = pcnetCalcPacketLen(dev, cb);
-			DMAPageRead(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf, cb);
-			if (fLoopback) {
-				if (HOST_IS_OWNER(CSR_CRST(dev)))
-					pcnetRdtePoll(dev);
-				pcnetlog(3, "%s: pcnetAsyncTransmit: receive loopback stp\n", dev->name);
-				pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);					
-			} else {
-				pcnetlog(3, "%s: pcnetAsyncTransmit: transmit loopbuf stp\n", dev->name);
-				network_tx(dev->abLoopBuf, dev->xmit_pos);
-			}
-			
+            unsigned cb = 4096 - tmd.tmd1.bcnt;
+	    dev->xmit_pos = pcnetCalcPacketLen(dev, cb);
+	    DMAPageRead(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf, cb);
+
             for (;;) {
                 /*
                  * Advance the ring counter register and check the next tmd.
@@ -1551,6 +1540,8 @@ pcnetAsyncTransmit(nic_t *dev)
                      */
                     tmd.tmd2.buff = tmd.tmd2.uflo = tmd.tmd1.err = 1;
                     dev->aCSR[0] |= 0x0200;        /* set TINT */
+		    /* Don't allow the guest to clear TINT before reading it */
+		    dev->u16CSR0LastSeenByGuest &= ~0x0200;
                     if (!CSR_DXSUFLO(dev))         /* stop on xmit underflow */
                         dev->aCSR[0] &= ~0x0010;   /* clear TXON */
                     pcnetTmdStorePassHost(dev, &tmd, GCPhysPrevTmd);
@@ -1567,22 +1558,25 @@ pcnetAsyncTransmit(nic_t *dev)
                 pcnetTmdLoad(dev, &tmd, PHYSADDR(dev, CSR_CXDA(dev)), 0);
                 cb = 4096 - tmd.tmd1.bcnt;
                 if (dev->xmit_pos + cb <= MAX_FRAME) { /** @todo this used to be ... + cb < MAX_FRAME. */
-					int off = dev->xmit_pos;
-					dev->xmit_pos = cb + off;
-                    DMAPageRead(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf + off, cb);
-				}
+		    int off = dev->xmit_pos;
+		    dev->xmit_pos = cb + off;
+		    DMAPageRead(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf + off, cb);
+		}
 
                 /*
                  * Done already?
                  */
                 if (tmd.tmd1.enp) {
-					if (fLoopback) {
-						pcnetlog(3, "%s: pcnetAsyncTransmit: receive loopback enp\n", dev->name);
-						pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);						
-					} else {
-						pcnetlog(3, "%s: pcnetAsyncTransmit: transmit loopbuf enp\n", dev->name);
-						network_tx(dev->abLoopBuf, dev->xmit_pos);
-					}
+		    if (fLoopback) {
+			if (HOST_IS_OWNER(CSR_CRST(dev)))
+			    pcnetRdtePoll(dev);
+
+			pcnetlog(3, "%s: pcnetAsyncTransmit: receive loopback enp\n", dev->name);
+			pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);						
+		    } else {
+			pcnetlog(3, "%s: pcnetAsyncTransmit: transmit loopbuf enp\n", dev->name);
+			network_tx(dev->abLoopBuf, dev->xmit_pos);
+		    }
 					
                     /* Write back the TMD, pass it to the host */
                     pcnetTmdStorePassHost(dev, &tmd, PHYSADDR(dev, CSR_CXDA(dev)));
@@ -1598,16 +1592,23 @@ pcnetAsyncTransmit(nic_t *dev)
         }
         /* Update TDMD, TXSTRT and TINT. */
         dev->aCSR[0] &= ~0x0008;       /* clear TDMD */
-        dev->aCSR[4] |=  0x0008;       /* set TXSTRT */
-		if (    !CSR_TOKINTD(dev)      /* Transmit OK Interrupt Disable, no infl. on errors. */
-            ||  (CSR_LTINTEN(dev) && tmd.tmd1.ltint)
-            ||  tmd.tmd1.err) {
-			dev->aCSR[0] |= 0x0200;    /* set TINT */
-			pcnetUpdateIrq(dev);
+        dev->aCSR[4] |= 0x0008;       /* set TXSTRT */
+	dev->xmit_pos = -1;
+	if (!CSR_TOKINTD(dev) /* Transmit OK Interrupt Disable, no infl. on errors. */
+	    || (CSR_LTINTEN(dev) && tmd.tmd1.ltint)
+            || tmd.tmd1.err) {
+	    cFlushIrq++;
         }
         if (--cMax == 0)
             break;
     } while (CSR_TXON(dev));          /* transfer on */
+    
+    if (cFlushIrq) {
+	dev->aCSR[0] |= 0x0200; /* set TINT */
+	/* Don't allow the guest to clear TINT before reading it */
+	dev->u16CSR0LastSeenByGuest &= ~0x0200;
+	pcnetUpdateIrq(dev);
+    }	
 }
 
 
@@ -1650,27 +1651,37 @@ pcnetHardReset(nic_t *dev)
 {
     pcnetlog(2, "%s: pcnetHardReset\n", dev->name);
 
+    dev->iISR = 0;
+    pcnet_do_irq(dev, 0);
+
+    /* Many of the BCR values would normally be read from the EEPROM. */
     dev->aBCR[BCR_MSRDA] = 0x0005;
     dev->aBCR[BCR_MSWRA] = 0x0005;
-    dev->aBCR[BCR_MC   ] = 0x0002;
+    dev->aBCR[BCR_MC] = 0x0002;
     dev->aBCR[BCR_LNKST] = 0x00c0;
-    dev->aBCR[BCR_LED1 ] = 0x0084;
-    dev->aBCR[BCR_LED2 ] = 0x0088;
-    dev->aBCR[BCR_LED3 ] = 0x0090;
+    dev->aBCR[BCR_LED1] = 0x0084;
+    dev->aBCR[BCR_LED2] = 0x0088;
+    dev->aBCR[BCR_LED3] = 0x0090;
 	
-	/* For ISA PnP cards, BCR8 reports IRQ/DMA (e.g. 0x0035 means IRQ 3, DMA 5). */
-	if (dev->board == PCNET_ISA)
-		dev->aBCR[8] = (dev->dma_channel) | (dev->base_irq << 4);
-	
-    dev->aBCR[BCR_FDC  ] = 0x0000;
-    dev->aBCR[BCR_BSBC ] = 0x9001;
+    /* For ISA PnP cards, BCR8 reports IRQ/DMA (e.g. 0x0035 means IRQ 3, DMA 5). */
+    if (dev->is_isa)
+       dev->aBCR[8] = dev->dma_channel | (dev->base_irq << 4);
+
+    dev->aBCR[BCR_FDC] = 0x0000;
+    dev->aBCR[BCR_BSBC] = 0x9001;
     dev->aBCR[BCR_EECAS] = 0x0002;
-    dev->aBCR[BCR_SWS  ] = 0x0200;
-	dev->iLog2DescSize   = 3;
-    dev->aBCR[BCR_PLAT ] = 0xff06;
-	
+    dev->aBCR[BCR_STVAL] = 0xffff;
+    dev->aCSR[58] = dev->aBCR[BCR_SWS] = 0x0200; /* CSR58 is an alias for BCR20 */
+    dev->iLog2DescSize = 3;
+    dev->aBCR[BCR_PLAT] = 0xff06;
+    dev->aBCR[BCR_MIICAS] = 0x20; /* Auto-negotiation on. */
+    dev->aBCR[BCR_MIIADDR] = 0;  /* Internal PHY on Am79C973 would be (0x1e << 5) */
+    dev->aBCR[BCR_PCIVID] = 0x1022;
+    dev->aBCR[BCR_PCISID] = 0x0020;
+    dev->aBCR[BCR_PCISVID] = 0x1022;
+
     /* Reset the error counter. */
-    dev->uCntBadRMD      = 0;	
+    dev->uCntBadRMD = 0;	
 
     pcnetSoftReset(dev);
 }
@@ -1679,53 +1690,50 @@ pcnetHardReset(nic_t *dev)
 static void 
 pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 {
-    uint16_t old_inea = CSR_INEA(dev);
-
     pcnetlog(1, "%s: pcnet_csr_writew: rap=%d val=%#06x\n", dev->name, rap, val);
     switch (rap) {
 	case 0:
-		/* Clear any interrupt flags. */
-		dev->aCSR[0] &= ~(val  &  0x7f00);
-		dev->aCSR[0]  =  (dev->aCSR[0] & ~0x0040) | (val  & 0x0048);
-		val   =  (val  &  0x007f) | (dev->aCSR[0] & 0x7f00);
+	{
+	    uint16_t csr0 = dev->aCSR[0];
+	    /* Clear any interrupt flags.  
+	     * Don't clear an interrupt flag which was not seen by the guest yet. */
+	    csr0 &= ~(val & 0x7f00 & dev->u16CSR0LastSeenByGuest);
+	    csr0 = (csr0 & ~0x0040) | (val & 0x0048);
+	    val = (val & 0x007f) | (csr0 & 0x7f00);
 
-		/* If STOP, STRT and INIT are set, clear STRT and INIT */
-        	if ((val & 7) == 7)
-			val &= ~3;
+	    /* If STOP, STRT and INIT are set, clear STRT and INIT */
+	    if ((val & 7) == 7)
+		val &= ~3;
 
-		pcnetlog(2, "%s: CSR0 val = %04x, val2 = %04x\n", dev->name, val, dev->aCSR[0]);
+	    pcnetlog(2, "%s: CSR0 val = %04x, val2 = %04x\n", dev->name, val, dev->aCSR[0]);
 
-		if (old_inea && !(val & 0x40)) {
-			pcnetlog(3, "%s: pcnet_csr_writew(): Disable IRQ\n", dev->name);
-			dev->iISR = 0;
-			dev->aCSR[0] &= ~0x0080;
-			pcnet_do_irq(dev, 0);
-		}
+	    dev->aCSR[0] = csr0;
 
-		if (!CSR_STOP(dev) && (val & 4)) {
-			pcnetlog(3, "%s: pcnet_csr_writew(): Stop\n", dev->name);
-			pcnetStop(dev);
-		}
+	    if (!CSR_STOP(dev) && (val & 4)) {
+		pcnetlog(3, "%s: pcnet_csr_writew(): Stop\n", dev->name);
+		pcnetStop(dev);
+	    }
 
-		if (!CSR_INIT(dev) && (val & 1)) {
-			pcnetlog(3, "%s: pcnet_csr_writew(): Init\n", dev->name);
-			pcnetInit(dev);
-		}
+	    if (!CSR_INIT(dev) && (val & 1)) {
+		pcnetlog(3, "%s: pcnet_csr_writew(): Init\n", dev->name);
+		pcnetInit(dev);
+	    }
 
-		if (!CSR_STRT(dev) && (val & 2)) {
-			pcnetlog(3, "%s: pcnet_csr_writew(): Start\n", dev->name);
-			pcnetStart(dev);
-		}
+	    if (!CSR_STRT(dev) && (val & 2)) {
+		pcnetlog(3, "%s: pcnet_csr_writew(): Start\n", dev->name);
+		pcnetStart(dev);
+	    }
 
-		if (CSR_TDMD(dev)) {
-			pcnetlog(3, "%s: pcnet_csr_writew(): Transmit\n", dev->name);
-			pcnetAsyncTransmit(dev);
-		}
+	    if (CSR_TDMD(dev)) {
+		pcnetlog(3, "%s: pcnet_csr_writew(): Transmit\n", dev->name);
+		pcnetAsyncTransmit(dev);
+	    }
+	}
+	return;
 
-		return;
 	case 2: /* IADRH */
-		if (dev->board == PCNET_ISA)
-			val &= 0x00ff;  /* Upper 8 bits ignored on ISA chips. */
+	    if (dev->is_isa)
+		val &= 0x00ff;  /* Upper 8 bits ignored on ISA chips. */
 	case 1:  /* IADRL */
 	case 8:  /* LADRF  0..15 */
 	case 9:  /* LADRF 16..31 */
@@ -1763,66 +1771,79 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 	case 72: /* RCVRC */
 	case 74: /* XMTRC */
 	case 112: /* MISSC */
-		if (CSR_STOP(dev) || CSR_SPND(dev))
-			break;
-		return;
+	    if (CSR_STOP(dev) || CSR_SPND(dev))
+		break;
+	    return;
 	case 3: /* Interrupt Mask and Deferral Control */
-		break;
+	    break;
 	case 4: /* Test and Features Control */
-		dev->aCSR[4] &= ~(val & 0x026a);
-		val &= ~0x026a; 
-			val |= dev->aCSR[4] & 0x026a;
-		break;
-		case 5: /* Extended Control and Interrupt 1 */
-			dev->aCSR[5] &= ~(val & 0x0a90);
-        		val &= ~0x0a90; 
-			val |= dev->aCSR[5] & 0x0a90;
-		break;
-	case 16:
-		pcnet_csr_writew(dev,1,val);
-		return;
-	case 17:
-		pcnet_csr_writew(dev,2,val);
-		return;
+	    dev->aCSR[4] &= ~(val & 0x026a);
+	    val &= ~0x026a; 
+	    val |= dev->aCSR[4] & 0x026a;
+	    break;
+	case 5: /* Extended Control and Interrupt 1 */
+	    dev->aCSR[5] &= ~(val & 0x0a90);
+	    val &= ~0x0a90; 
+	    val |= dev->aCSR[5] & 0x0a90;
+	    break;
+	case 7: /* Extended Control and Interrupt 2 */
+	{
+	    uint16_t csr7 = dev->aCSR[7];
+	    csr7 &= ~0x0400;
+	    csr7 &= ~(val & 0x0800);
+	    csr7 |= (val & 0x0400);
+	    dev->aCSR[7] = csr7;
+	}
+	return;
+	case 15: /* Mode */
+	    break;
+	case 16: /* IADRL */
+	    pcnet_csr_writew(dev,1,val);
+	    return;
+	case 17: /* IADRH */
+	    pcnet_csr_writew(dev,2,val);
+	    return;
 	/*
 	 * 24 and 25 are the Base Address of Receive Descriptor.
 	 * We combine and mirror these in GCRDRA.
 	 */
 	case 24: /* BADRL */
 	case 25: /* BADRU */
-		if (!CSR_STOP(dev) && !CSR_SPND(dev)) {
-			pcnetlog(3, "%s: WRITE CSR%d, %#06x, ignoring!!\n", dev->name, rap, val);
-			return;
-		}
-		if (rap == 24)
-			dev->GCRDRA = (dev->GCRDRA & 0xffff0000) | (val & 0x0000ffff);
-		else
-			dev->GCRDRA = (dev->GCRDRA & 0x0000ffff) | ((val & 0x0000ffff) << 16);
-		pcnetlog(3, "%s: WRITE CSR%d, %#06x => GCRDRA=%08x (alt init)\n", dev->name, rap, val, dev->GCRDRA);
-		if (dev->GCRDRA & (dev->iLog2DescSize - 1))
-			pcnetlog(1, "%s: Warning: Misaligned RDRA (GCRDRA=%#010x)\n", dev->name, dev->GCRDRA);
-		break;
+	    if (!CSR_STOP(dev) && !CSR_SPND(dev)) {
+		pcnetlog(3, "%s: WRITE CSR%d, %#06x, ignoring!!\n", dev->name, rap, val);
+		return;
+	    }
+	    if (rap == 24)
+		dev->GCRDRA = (dev->GCRDRA & 0xffff0000) | (val & 0x0000ffff);
+	    else
+		dev->GCRDRA = (dev->GCRDRA & 0x0000ffff) | ((val & 0x0000ffff) << 16);
+	    pcnetlog(3, "%s: WRITE CSR%d, %#06x => GCRDRA=%08x (alt init)\n", dev->name, rap, val, dev->GCRDRA);
+	    if (dev->GCRDRA & (dev->iLog2DescSize - 1))
+		pcnetlog(1, "%s: Warning: Misaligned RDRA (GCRDRA=%#010x)\n", dev->name, dev->GCRDRA);
+	    break;
 	/*
 	 * 30 & 31 are the Base Address of Transmit Descriptor.
 	 * We combine and mirrorthese in GCTDRA.
 	 */
 	case 30: /* BADXL */
 	case 31: /* BADXU */
-		if (!CSR_STOP(dev) && !CSR_SPND(dev)) {
-			pcnetlog(3, "%s: WRITE CSR%d, %#06x !!\n", dev->name, rap, val);
-			return;
-		}
-		if (rap == 30)
-			dev->GCTDRA = (dev->GCTDRA & 0xffff0000) | (val & 0x0000ffff);
-		else
-			dev->GCTDRA = (dev->GCTDRA & 0x0000ffff) | ((val & 0x0000ffff) << 16);
-		pcnetlog(3, "%s: WRITE CSR%d, %#06x => GCTDRA=%08x (alt init)\n", dev->name, rap, val, dev->GCTDRA);
-		if (dev->GCTDRA & (dev->iLog2DescSize - 1))
-			pcnetlog(1, "%s: Warning: Misaligned TDRA (GCTDRA=%#010x)\n", dev->name, dev->GCTDRA);
-		break;		
+	    if (!CSR_STOP(dev) && !CSR_SPND(dev)) {
+		pcnetlog(3, "%s: WRITE CSR%d, %#06x !!\n", dev->name, rap, val);
+		return;
+	    }
+	    if (rap == 30)
+		dev->GCTDRA = (dev->GCTDRA & 0xffff0000) | (val & 0x0000ffff);
+	    else
+		dev->GCTDRA = (dev->GCTDRA & 0x0000ffff) | ((val & 0x0000ffff) << 16);
+    
+	    pcnetlog(3, "%s: WRITE CSR%d, %#06x => GCTDRA=%08x (alt init)\n", dev->name, rap, val, dev->GCTDRA);
+
+	    if (dev->GCTDRA & (dev->iLog2DescSize - 1))
+		pcnetlog(1, "%s: Warning: Misaligned TDRA (GCTDRA=%#010x)\n", dev->name, dev->GCTDRA);
+	    break;		
 	case 58: /* Software Style */
-		pcnet_bcr_writew(dev,BCR_SWS,val);
-		break;
+	    pcnet_bcr_writew(dev,BCR_SWS,val);
+	    break;
 	/*
 	 * Registers 76 and 78 aren't stored correctly (see todos), but I'm don't dare
 	 * try fix that right now. So, as a quick hack for 'alt init' I'll just correct them here.
@@ -1831,21 +1852,21 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 			     /** @todo receive ring length is stored in two's complement! */
 	case 78: /* XMTRL */ /** @todo call pcnetUpdateRingHandlers */
 			     /** @todo transmit ring length is stored in two's complement! */
-		if (!CSR_STOP(dev) && !CSR_SPND(dev)) {
-			pcnetlog(3, "%s: WRITE CSR%d, %#06x !!\n", dev->name, rap, val);
-			return;
-		}
-		pcnetlog(3, "%s: WRITE CSR%d, %#06x (hacked %#06x) (alt init)\n", dev->name,
-			 rap, val, 1 + ~val);
-		val = 1 + ~val;
-
-		/*
-		 * HACK ALERT! Set the counter registers too.
-		 */
-		dev->aCSR[rap - 4] = val;
-		break;		
-	default:
+	     if (!CSR_STOP(dev) && !CSR_SPND(dev)) {
+		pcnetlog(3, "%s: WRITE CSR%d, %#06x !!\n", dev->name, rap, val);
 		return;
+	     }
+	     pcnetlog(3, "%s: WRITE CSR%d, %#06x (hacked %#06x) (alt init)\n", dev->name,
+		rap, val, 1 + ~val);
+	     val = 1 + ~val;
+
+	     /*
+	      * HACK ALERT! Set the counter registers too.
+	      */
+	     dev->aCSR[rap - 4] = val;
+	     break;		
+	default:
+	     return;
     }
 
     dev->aCSR[rap] = val;
@@ -1855,10 +1876,10 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 /**
  * Encode a 32-bit link speed into a custom 16-bit floating-point value
  */
-static uint16_t 
+static uint16_t
 pcnetLinkSpd(uint32_t speed)
 {
-    unsigned    exp = 0;
+    unsigned exp = 0;
 
     while (speed & 0xFFFFE000) {
         speed /= 10;
@@ -1875,62 +1896,64 @@ pcnet_csr_readw(nic_t *dev, uint16_t rap)
 
     switch (rap) {
 	case 0:
-		pcnetUpdateIrq(dev);
-		val = dev->aCSR[0];
-		val |= (val & 0x7800) ? 0x8000 : 0;
-		break;
+	     pcnetUpdateIrq(dev);
+	     val = dev->aCSR[0];
+	     val |= (val & 0x7800) ? 0x8000 : 0;
+	     dev->u16CSR0LastSeenByGuest = val;
+	     break;
 	case 16:
-		return pcnet_csr_readw(dev,1);
+	     return pcnet_csr_readw(dev,1);
 	case 17:
-		return pcnet_csr_readw(dev,2);
+	     return pcnet_csr_readw(dev,2);
 	case 58:
-		return pcnet_bcr_readw(dev,BCR_SWS);
-	case 68:    /* Custom register to pass link speed to driver */
-		return pcnetLinkSpd(dev->u32LinkSpeed);
+	     return pcnet_bcr_readw(dev,BCR_SWS);
+	case 68: /* Custom register to pass link speed to driver */
+	     return pcnetLinkSpd(dev->u32LinkSpeed);
 	case 88:
-		val = dev->aCSR[89];
-		val <<= 16;
-		val |= dev->aCSR[88];
-		break;
+	     val = dev->aCSR[89];
+	     val <<= 16;
+	     val |= dev->aCSR[88];
+	     break;
 	default:
-		val = dev->aCSR[rap];
-		break;
+	     val = dev->aCSR[rap];
+	     break;
     }
     pcnetlog(3, "%s: pcnet_csr_readw rap=%d val=0x%04x\n", dev->name, rap, val);
     return val;
 }
 
 
-static void 
+static void
 pcnet_bcr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 {
     rap &= 0x7f;
     pcnetlog(3, "%s: pcnet_bcr_writew rap=%d val=0x%04x\n", dev->name, rap, val);
     switch (rap) {
 	case BCR_SWS:
-		if (!(CSR_STOP(dev) || CSR_SPND(dev)))
-			return;
-		val &= ~0x0300;
-		switch (val & 0x00ff) {
-			default:
-			case 0:
-				val |= 0x0200; /* 16 bit */
-				dev->iLog2DescSize = 3;
-				dev->GCUpperPhys   = (0xff00 & dev->aCSR[2]) << 16;
-				break;
-			case 1:
-				val |= 0x0100; /* 32 bit */
-				dev->iLog2DescSize = 4;
-				dev->GCUpperPhys   = 0;
-				break;
-			case 2:
-			case 3:
-				val |= 0x0300; /* 32 bit */
-				dev->iLog2DescSize = 4;
-				dev->GCUpperPhys   = 0;
-				break;
-		}
-		/* fall through */
+	    if (!(CSR_STOP(dev) || CSR_SPND(dev)))
+		return;
+	    val &= ~0x0300;
+	    switch (val & 0x00ff) {
+		default:
+		case 0:
+		    val |= 0x0200; /* 16 bit */
+		    dev->iLog2DescSize = 3;
+		    dev->GCUpperPhys = (0xff00 & dev->aCSR[2]) << 16;
+		    break;
+		case 1:
+		    val |= 0x0100; /* 32 bit */
+		    dev->iLog2DescSize = 4;
+		    dev->GCUpperPhys = 0;
+		    break;
+		case 2:
+		case 3:
+		    val |= 0x0300; /* 32 bit */
+		    dev->iLog2DescSize = 4;
+		    dev->GCUpperPhys = 0;
+		    break;
+	    }
+	    dev->aCSR[58] = val;
+	    /* fall through */
 	case BCR_LNKST:
 	case BCR_LED1:
 	case BCR_LED2:
@@ -1940,13 +1963,156 @@ pcnet_bcr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 	case BCR_BSBC:
 	case BCR_EECAS:
 	case BCR_PLAT:
-		dev->aBCR[rap] = val;
-		break;
+	case BCR_MIICAS:
+	case BCR_MIIADDR:
+	    dev->aBCR[rap] = val;
+	    break;
+
+	case BCR_STVAL:
+	    val &= 0xffff;
+	    dev->aBCR[BCR_STVAL] = val;
+	    if (dev->board == DEV_AM79C973)
+		timer_set_delay_u64(&dev->timer_soft_int, (12.8 * val) * TIMER_USEC);
+	    break;
+	
+	case BCR_MIIMDR:
+	    dev->aMII[dev->aBCR[BCR_MIIADDR] & 0x1f] = val;
+	    break;
+	
 	default:
-		break;
+	    break;
     }
 }
 
+static uint16_t 
+pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
+{
+    uint16_t val;
+    int autoneg, duplex, fast, isolate;
+    
+    /* If the DANAS (BCR32.7) bit is set, the MAC does not do any
+     * auto-negotiation and the PHY must be set up explicitly. DANAS
+     * effectively disables most other BCR32 bits.
+     */
+    if (dev->aBCR[BCR_MIICAS] & 0x80) {
+	/* PHY controls auto-negotiation. */
+	autoneg = duplex = fast = 1;
+    } else {
+	/* BCR32 controls auto-negotiation. */
+	autoneg = (dev->aBCR[BCR_MIICAS] & 0x20) != 0;
+	duplex = (dev->aBCR[BCR_MIICAS] & 0x10) != 0;
+	fast = (dev->aBCR[BCR_MIICAS] & 0x08) != 0;
+    }
+    
+    /* Electrically isolating the PHY mostly disables it. */
+    isolate = (dev->aMII[0] & 0x400) != 0;
+    
+    switch (miiaddr) {
+	case 0:
+	    /* MII basic mode control register. */
+	    val = 0;
+	    if (autoneg)
+	        val |= 0x1000; /* Enable auto negotiation. */
+	    if (fast)
+		val |= 0x2000; /* 100 Mbps */
+	    if (duplex) /* Full duplex forced */
+		val |= 0x0100; /* Full duplex */
+	    if (isolate) /* PHY electrically isolated. */
+		val |= 0x0400; /* Isolated */
+	    break;
+
+	case 1:
+	    /* MII basic mode status register. */
+	    val = 0x7800 /* Can do 100mbps FD/HD and 10mbps FD/HD. */
+	        | 0x0040 /* Mgmt frame preamble not required. */
+		| 0x0020 /* Auto-negotiation complete. */
+		| 0x0008 /* Able to do auto-negotiation. */
+		| 0x0004 /* Link up. */
+		| 0x0001; /* Extended Capability, i.e. registers 4+ valid. */
+	    if (isolate) {
+		val &= ~(0x0020 | 0x0004);
+	    }
+	    if (!autoneg) {
+		/* Auto-negotiation disabled. */
+		if (duplex)
+		    val &= ~0x2800; /* Full duplex forced. */
+	        else
+		    val &= ~0x5000; /* Half duplex forced. */
+
+		if (fast)
+		    val &= ~0x1800; /* 100 Mbps forced */
+		else
+		    val &= ~0x6000; /* 10 Mbps forced */
+	    }
+	    break;
+	    
+	case 2:
+	    /* PHY identifier 1. */
+	    val = 0x22; /* Am79C874/AC101 PHY */
+	    break;
+	
+	case 3:
+	    /* PHY identifier 2. */
+	    val = 0x561b; /* Am79C874/AC101 PHY */
+	    break;
+	
+	case 4:
+	    /* Advertisement control register. */
+	    val = 0x01e0 /* Try 100mbps FD/HD and 10mbps FD/HD. */
+	        | 0x0001; /* CSMA selector. */
+	    break;
+
+	case 5:
+	    /* Link partner ability register. */
+	    if (!isolate) {
+	        val = 0x8000 /* Next page bit. */
+		    | 0x4000 /* Link partner acked us. */
+		    | 0x0400 /* Can do flow control. */
+		    | 0x01e0 /* Can do 100mbps FD/HD and 10mbps FD/HD. */
+		    | 0x0001; /* Use CSMA selector. */
+	    } else {
+	        val = 0;
+	    }
+	    break;
+
+	case 6:
+	    /* Auto negotiation expansion register. */
+	    if (!isolate) {
+		val = 0x0008 /* Link partner supports npage. */
+		    | 0x0004 /* Enable npage words. */
+		    | 0x0001; /* Can do N-way auto-negotiation. */
+	    } else {
+		val = 0;
+	    }
+	    break;
+	    
+	case 18:
+	    /* Diagnostic Register (FreeBSD pcn/ac101 driver reads this). */
+	    if (!isolate) {
+		val = 0x1000 /* Receive PLL locked. */
+		    | 0x0200; /* Signal detected. */
+		
+		if (autoneg) {
+		    val |= 0x0400 /* 100Mbps rate. */
+		        | 0x0800; /* Full duplex. */
+		} else {
+		    if (fast)
+			val |= 0x0400; /* 100Mbps rate. */
+		    if (duplex)
+			val |= 0x0800; /* Full duplex. */
+		}
+	    } else {
+		val = 0;
+	    }
+	    break;
+	    
+	default:
+	    val = 0;
+	    break;
+    }
+    
+    return val;
+}
 
 static uint16_t 
 pcnet_bcr_readw(nic_t *dev, uint16_t rap)
@@ -1960,6 +2126,14 @@ pcnet_bcr_readw(nic_t *dev, uint16_t rap)
 	case BCR_LED3:
 		val = dev->aBCR[rap] & ~0x8000;
 		val |= (val & 0x017f & dev->u32Lnkst) ? 0x8000 : 0;
+		break;
+		
+	case BCR_MIIADDR:
+		if ((dev->board == DEV_AM79C973) && (((dev->aBCR[BCR_MIIADDR] >> 5) & 0x1f) == 0)) {
+		    uint16_t miiaddr = dev->aBCR[BCR_MIIADDR] & 0x1f;
+		    val = pcnet_mii_readw(dev, miiaddr);
+		} else
+		    val = 0xffff;
 		break;
 	default:
 		val = rap < BCR_MAX_RAP ? dev->aBCR[rap] : 0;
@@ -2409,7 +2583,7 @@ pcnet_pci_read(int func, int addr, void *p)
 	case 0x07:
 		return 2;
 	case 0x08:
-		return 0x10;		/*Revision ID*/
+		return (dev->board == DEV_AM79C973) ? 0x40 : 0x10;		/*Revision ID*/
 	case 0x09:
 		return 0;			/*Programming interface*/
 	case 0x0A:
@@ -2436,6 +2610,14 @@ pcnet_pci_read(int func, int addr, void *p)
 		return pcnet_pci_bar[1].addr_regs[2];
 	case 0x17:
 		return pcnet_pci_bar[1].addr_regs[3];
+	case 0x2C:
+		return 0x22;
+	case 0x2D:
+		return 0x10;
+	case 0x2E:
+		return 0x00;
+	case 0x2F:
+		return 0x20;
 	case 0x3C:
 		return dev->base_irq;
 	case 0x3D:
@@ -2490,6 +2672,26 @@ pcnetWaitReceiveAvail(void *priv)
     return dev->fMaybeOutOfSpace;
 }
 
+static void
+pcnetTimerSoftInt(void *priv)
+{
+    nic_t *dev = (nic_t *) priv;
+
+    dev->aCSR[7] |= 0x0800; /* STINT */
+    pcnetUpdateIrq(dev);
+    timer_advance_u64(&dev->timer_soft_int, (12.8 * (dev->aBCR[BCR_STVAL] & 0xffff)) * TIMER_USEC);
+}
+
+static void
+pcnetTimerCallback(void *priv)
+{
+    nic_t *dev = (nic_t *) priv;
+    
+    pcnetlog("Timer Callback to RX\n");
+    pcnetPollRxTx(dev);
+    
+    timer_disable(&dev->poll_timer);
+}
 
 static void *
 pcnet_init(const device_t *info)
@@ -2515,6 +2717,7 @@ pcnet_init(const device_t *info)
 
     dev->is_pci = !!(info->flags & DEVICE_PCI);
     dev->is_vlb = !!(info->flags & DEVICE_VLB);
+    dev->is_isa = !!(info->flags & (DEVICE_ISA | DEVICE_AT));
 
     if (dev->is_pci) {
 	pcnet_mem_init(dev, 0x0fffff00);
@@ -2550,9 +2753,10 @@ pcnet_init(const device_t *info)
     dev->aPROM[6] = dev->aPROM[7] = 0x00;
 
     /* Reserved Location: must be 00h */
-   dev->aPROM[8] = 0x00;
+    dev->aPROM[8] = 0x00;
 
     /* Hardware ID: must be 11h if compatibility to AMD drivers is desired */
+    /* 0x00/0xFF=ISA, 0x01=PnP, 0x10=VLB, 0x11=PCI */
     if (dev->is_pci)
 	dev->aPROM[9] = 0x11;
     else if (dev->is_vlb)
@@ -2563,13 +2767,14 @@ pcnet_init(const device_t *info)
     /* User programmable space, init with 0 */
     dev->aPROM[10] = dev->aPROM[11] = 0x00;
 
-    /* LSByte of two-byte checksum, which is the sum of bytes 00h-0Bh
-       and bytes 0Eh and 0Fh, must therefore be initialized with 0! */
-    dev->aPROM[12] = dev->aPROM[13] = 0x00;
-
-    /* Must be ASCII W (57h) if compatibility to AMD
-       driver software is desired */
-    dev->aPROM[14] = dev->aPROM[15] = 0x57;
+    if (dev->board == DEV_AM79C960_EB) {
+        dev->aPROM[14] = 0x52;
+	dev->aPROM[15] = 0x44; /* NI6510 EtherBlaster 'RD' signature. */
+    } else {
+	/* Must be ASCII W (57h) if compatibility to AMD
+	 driver software is desired */
+	dev->aPROM[14] = dev->aPROM[15] = 0x57;    
+    }
 
     for (c = 0, checksum = 0; c < 16; c++)
 	checksum += dev->aPROM[c];
@@ -2599,7 +2804,7 @@ pcnet_init(const device_t *info)
 	dev->base_address = device_get_config_hex16("base");
 	dev->base_irq = device_get_config_int("irq");
 	if (dev->is_vlb)
-		dev->dma_channel = 0;
+		dev->dma_channel = -1;
 	else
 		dev->dma_channel = device_get_config_int("dma");
 	pcnet_ioset(dev, dev->base_address, 0x20);
@@ -2611,13 +2816,18 @@ pcnet_init(const device_t *info)
 	     dev->aPROM[3], dev->aPROM[4], dev->aPROM[5]);
 
     pcnetlog(1, "%s: %s attached IO=0x%X IRQ=%d\n", dev->name,
-	     dev->is_pci?"PCI":"ISA", dev->base_address, dev->base_irq);
+	     dev->is_pci?"PCI":"VLB/ISA", dev->base_address, dev->base_irq);
 
     /* Reset the board. */
     pcnetHardReset(dev);
 
     /* Attach ourselves to the network module. */
     network_attach(dev, dev->aPROM, pcnetReceiveNoSync, pcnetWaitReceiveAvail);
+
+    if (dev->board == DEV_AM79C973)
+        timer_add(&dev->timer_soft_int, pcnetTimerSoftInt, dev, 0);
+    
+    timer_add(&dev->poll_timer, pcnetTimerCallback, dev, 0);
 
     return(dev);
 }
@@ -2629,8 +2839,14 @@ pcnet_close(void *priv)
     nic_t *dev = (nic_t *)priv;
 
     pcnetlog(1, "%s: closed\n", dev->name);
-
-    free(dev);
+    
+    if (dev) {
+	timer_disable(&dev->poll_timer);
+	
+	free(dev);
+	dev = NULL;
+    
+    }
 }
 
 
@@ -2765,29 +2981,47 @@ static const device_config_t pcnet_vlb_config[] =
 	}
 };
 
-const device_t pcnet_pci_device = {
-    "AMD PCnet-PCI",
-    DEVICE_PCI,
-    PCNET_PCI,
-    pcnet_init, pcnet_close, NULL,
-    NULL, NULL, NULL,
-    pcnet_pci_config
-};
-
-const device_t pcnet_isa_device = {
-    "AMD PCnet-ISA",
+const device_t pcnet_am79c960_device = {
+    "AMD Am79c960 (PCnet-ISA) ",
     DEVICE_AT | DEVICE_ISA,
-    PCNET_ISA,
+    DEV_AM79C960,
     pcnet_init, pcnet_close, NULL,
     NULL, NULL, NULL,
     pcnet_isa_config
 };
 
-const device_t pcnet_vlb_device = {
-    "AMD PCnet-VL",
+const device_t pcnet_am79c960_eb_device = {
+    "AMD Am79c960EB (PCnet-ISA) ",
+    DEVICE_AT | DEVICE_ISA,
+    DEV_AM79C960_EB,
+    pcnet_init, pcnet_close, NULL,
+    NULL, NULL, NULL,
+    pcnet_isa_config
+};
+
+const device_t pcnet_am79c960_vlb_device = {
+    "AMD Am79c960 (PCnet-VL) ",
     DEVICE_VLB,
-    PCNET_VLB,
+    DEV_AM79C960_VLB,
     pcnet_init, pcnet_close, NULL,
     NULL, NULL, NULL,
     pcnet_vlb_config
+};
+
+const device_t pcnet_am79c970a_device = {
+    "AMD Am79c970a (PCnet-PCI II)",
+    DEVICE_PCI,
+    DEV_AM79C970A,
+    pcnet_init, pcnet_close, NULL,
+    NULL, NULL, NULL,
+    pcnet_pci_config
+};
+
+const device_t pcnet_am79c973_device = {
+    "AMD Am79c973 (PCnet-FAST)",
+    DEVICE_PCI,
+    DEV_AM79C973,
+    pcnet_init, pcnet_close, NULL,
+    NULL, NULL, NULL,
+    pcnet_pci_config
 };
