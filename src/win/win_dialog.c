@@ -43,36 +43,34 @@ int
 ui_msgbox(int flags, void *arg)
 {
     WCHAR temp[512];
-    WCHAR *icon = NULL;
-    TASKDIALOG_COMMON_BUTTON_FLAGS buttons = TDCBF_OK_BUTTON;
+    DWORD fl = 0;
     WCHAR *str = NULL;
-    WCHAR *instr = NULL;
-    int res = 0;
+    WCHAR *cap = NULL;
 
     switch(flags & 0x1f) {
 	case MBX_INFO:		/* just an informational message */
-		icon = TD_INFORMATION_ICON;
-		instr = plat_get_string(IDS_STRINGS);	    /* "86Box" */
+		fl = (MB_OK | MB_ICONINFORMATION);
+		cap = plat_get_string(IDS_STRINGS);	    /* "86Box" */
 		break;
 
 	case MBX_ERROR:		/* error message */
 		if (flags & MBX_FATAL) {
-			icon = TD_ERROR_ICON;
-			instr = plat_get_string(IDS_2050);    /* "Fatal Error"*/
+			fl = (MB_OK | MB_ICONERROR);
+			cap = plat_get_string(IDS_2050);    /* "Fatal Error"*/
 		} else {
-			icon = TD_WARNING_ICON;
-			instr = plat_get_string(IDS_2049);    /* "Error" */
+			fl = (MB_OK | MB_ICONWARNING);
+			cap = plat_get_string(IDS_2049);    /* "Error" */
 		}
 		break;
 
 	case MBX_QUESTION:	/* question */
-		buttons = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON | TDCBF_CANCEL_BUTTON;
-		instr = plat_get_string(IDS_STRINGS);	    /* "86Box" */
+		fl = (MB_YESNOCANCEL | MB_ICONQUESTION);
+		cap = plat_get_string(IDS_STRINGS);	    /* "86Box" */
 		break;
 
 	case MBX_QUESTION_YN:	/* question */
-		buttons = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
-		instr = plat_get_string(IDS_STRINGS);	    /* "86Box" */
+		fl = (MB_YESNO | MB_ICONQUESTION);
+		cap = plat_get_string(IDS_STRINGS);	    /* "86Box" */
 		break;
     }
 
@@ -101,21 +99,17 @@ ui_msgbox(int flags, void *arg)
     }
 
     /* At any rate, we do have a valid (wide) string now. */
-    TaskDialog(hwndMain,	/* our main window */
-	       NULL,		/* no icon resource */
-	       plat_get_string(IDS_STRINGS), /* window caption */
-	       instr,		/* main instruction */
-	       str,		/* error message */
-	       buttons,
-	       icon,
-	       &res);		/* pointer to result */
+    fl = MessageBox(hwndMain,		/* our main window */
+		    str,		/* error message etc */
+		    cap,		/* window caption */
+		    fl);
 
     /* Convert return values to generic ones. */
-    if (res == IDNO) res = 1;
-     else if (res == IDCANCEL) res = -1;
-     else res = 0;
+    if (fl == IDNO) fl = 1;
+     else if (fl == IDCANCEL) fl = -1;
+     else fl = 0;
 
-    return(res);
+    return(fl);
 }
 
 

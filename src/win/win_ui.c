@@ -843,14 +843,10 @@ ui_init(int nCmdShow)
     if (settings_only) {
 	if (! pc_init_modules()) {
 		/* Dang, no ROMs found at all! */
-		TaskDialog(hwnd,
-			   NULL,
-			   plat_get_string(IDS_STRINGS),
-			   plat_get_string(IDS_2050),
+		MessageBox(hwnd,
 			   plat_get_string(IDS_2056),
-			   TDCBF_OK_BUTTON,
-			   TD_ERROR_ICON,
-			   NULL);
+			   plat_get_string(IDS_2050),
+			   MB_OK | MB_ICONERROR);
 		return(6);
 	}
 
@@ -937,14 +933,10 @@ ui_init(int nCmdShow)
     ridev.dwFlags = RIDEV_NOHOTKEYS;
     ridev.hwndTarget = NULL;	/* current focus window */
     if (! RegisterRawInputDevices(&ridev, 1, sizeof(ridev))) {
-	TaskDialog(hwnd,
-		   NULL,
-		   plat_get_string(IDS_STRINGS),
-		   plat_get_string(IDS_2050),
+	MessageBox(hwndMain,
 		   plat_get_string(IDS_2114),
-		   TDCBF_OK_BUTTON,
-		   TD_ERROR_ICON,
-		   NULL);
+		   plat_get_string(IDS_2050),
+		   MB_OK | MB_ICONERROR);
 	return(4);
     }
     keyboard_getkeymap();
@@ -955,14 +947,10 @@ ui_init(int nCmdShow)
     /* Load the accelerator table */
     haccel = LoadAccelerators(hinstance, ACCEL_NAME);
     if (haccel == NULL) {
-	TaskDialog(hwnd,
-		   NULL,
-		   plat_get_string(IDS_STRINGS),
-		   plat_get_string(IDS_2050),
+	MessageBox(hwndMain,
 		   plat_get_string(IDS_2113),
-		   TDCBF_OK_BUTTON,
-		   TD_ERROR_ICON,
-		   NULL);
+		   plat_get_string(IDS_2050),
+		   MB_OK | MB_ICONERROR);
 	return(3);
     }
 
@@ -992,27 +980,19 @@ ui_init(int nCmdShow)
     /* All done, fire up the actual emulated machine. */
     if (! pc_init_modules()) {
 	/* Dang, no ROMs found at all! */
-	TaskDialog(hwnd,
-		   NULL,
-		   plat_get_string(IDS_STRINGS),
-		   plat_get_string(IDS_2050),
+	MessageBox(hwnd,
 		   plat_get_string(IDS_2056),
-		   TDCBF_OK_BUTTON,
-		   TD_ERROR_ICON,
-		   NULL);
+		   plat_get_string(IDS_2050),
+		   MB_OK | MB_ICONERROR);
 	return(6);
     }
 
     /* Initialize the configured Video API. */
     if (! plat_setvid(vid_api)) {
-	TaskDialog(hwnd,
-		   NULL,
-		   plat_get_string(IDS_STRINGS),
-		   plat_get_string(IDS_2050),
+	MessageBox(hwnd,
 		   plat_get_string(IDS_2095),
-		   TDCBF_OK_BUTTON,
-		   TD_ERROR_ICON,
-		   NULL);
+		   plat_get_string(IDS_2050),
+		   MB_OK | MB_ICONERROR);
 	return(5);
     }
 
