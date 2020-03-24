@@ -1953,7 +1953,7 @@ ide_callback(void *priv)
 	((ide->command >= WIN_SEEK) && (ide->command <= 0x7F))) {
 	if (ide->type != IDE_HDD)
 		goto abort_cmd;
-	if ((ide->command >= WIN_SEEK) && (ide->command <= 0x7F)) {
+	if ((ide->command >= WIN_SEEK) && (ide->command <= 0x7F) && !ide_lba) {
 		if ((ide->cylinder >= ide->tracks) || (ide->head >= ide->hpc) ||
 		    !ide->sector || (ide->sector > ide->spt))
 			goto id_not_found;
@@ -2014,7 +2014,7 @@ ide_callback(void *priv)
 			ide_set_signature(ide);
 			goto abort_cmd;
 		}
-		if (ide->cfg_spt == 0)
+		if (!ide->lba && (ide->cfg_spt == 0))
 			goto id_not_found;
 
 		if (ide->do_initial_read) {
@@ -2044,7 +2044,7 @@ ide_callback(void *priv)
 			ide_log("IDE %i: DMA read aborted (bad device or board)\n", ide->channel);
 			goto abort_cmd;
 		}
-		if (ide->cfg_spt == 0) {
+		if (!ide->lba && (ide->cfg_spt == 0)) {
 			ide_log("IDE %i: DMA read aborted (SPECIFY failed)\n", ide->channel);
 			goto id_not_found;
 		}
@@ -2096,7 +2096,7 @@ ide_callback(void *priv)
 		   mand error. */
 		if ((ide->type == IDE_ATAPI) || !ide->blocksize)
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->lba && (ide->cfg_spt == 0))
 			goto id_not_found;
 
 		if (ide->do_initial_read) {
@@ -2125,7 +2125,7 @@ ide_callback(void *priv)
 	case WIN_WRITE_NORETRY:
 		if (ide->type == IDE_ATAPI)
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->lba && (ide->cfg_spt == 0))
 			goto id_not_found;
 		hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 		ide_irq_raise(ide);
@@ -2147,7 +2147,7 @@ ide_callback(void *priv)
 			ide_log("IDE %i: DMA write aborted (bad device type or board)\n", ide->channel);
 			goto abort_cmd;
 		}
-		if (ide->cfg_spt == 0) {
+		if (!ide->lba && (ide->cfg_spt == 0)) {
 			ide_log("IDE %i: DMA write aborted (SPECIFY failed)\n", ide->channel);
 			goto id_not_found;
 		}
@@ -2192,7 +2192,7 @@ ide_callback(void *priv)
 	case WIN_WRITE_MULTIPLE:
 		if (ide->type == IDE_ATAPI)
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->lba && (ide->cfg_spt == 0))
 			goto id_not_found;
 		hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
 		ide->blockcount++;
@@ -2215,7 +2215,7 @@ ide_callback(void *priv)
 	case WIN_VERIFY_ONCE:
 		if (ide->type == IDE_ATAPI)
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->lba && (ide->cfg_spt == 0))
 			goto id_not_found;
 		ide->pos=0;
 		ide->atastat = DRDY_STAT | DSC_STAT;
@@ -2226,7 +2226,7 @@ ide_callback(void *priv)
 	case WIN_FORMAT:
 		if (ide->type == IDE_ATAPI)
 			goto abort_cmd;
-		if (ide->cfg_spt == 0)
+		if (!ide->lba && (ide->cfg_spt == 0))
 			goto id_not_found;
 		hdd_image_zero(ide->hdd_num, ide_get_sector(ide), ide->secount);
 
