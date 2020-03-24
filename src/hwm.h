@@ -17,13 +17,13 @@
 # define EMU_HWM_H
 
 
-#define VDIV(v, r1, r2) (((v) * (r2)) / ((r1) + (r2)))
+#define RESISTOR_DIVIDER(v, r1, r2) (((v) * (r2)) / ((r1) + (r2)))
 
 
 typedef struct _hwm_values_ {
     uint16_t	fans[4];
-    uint8_t	temperatures[4];
-    uint8_t	voltages[8];
+    uint8_t		temperatures[4];
+    uint16_t	voltages[8];
 } hwm_values_t;
 
 

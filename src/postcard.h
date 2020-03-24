@@ -32,4 +32,4 @@ extern const device_t postcard_device;
 #endif
 
 
-#endif	/*BUGGER_H*/
+#endif	/*POSTCARD_H*/
