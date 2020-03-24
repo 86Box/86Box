@@ -2835,6 +2835,9 @@ pcnet_close(void *priv)
 
     pcnetlog(1, "%s: closed\n", dev->name);
     
+    /* Make sure the platform layer is shut down. */
+    network_close();
+    
     if (dev) {
 	timer_disable(&dev->poll_timer);
 	
