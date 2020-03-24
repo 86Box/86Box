@@ -44,7 +44,7 @@
  *
  *		This is expected to be done shortly.
  *
- * Version:	@(#)vid_pgc.c	1.0.5	2019/11/04
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		John Elliott, <jce@seasip.info>

@@ -8,7 +8,7 @@
  *
  *		Definitions for the Direct2D rendering module.
  *
- * Version:	@(#)win_d2d.h	1.0.2	2019/12/13
+ *
  *
  * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
  *

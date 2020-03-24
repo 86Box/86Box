@@ -7,7 +7,7 @@
  *		Emulation of the AMD PCnet LANCE NIC controller for both the ISA, VLB,
  *		and PCI buses.
  *
- * Version:	@(#)net_pcnet.c	1.0.1	2020/03/23
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>

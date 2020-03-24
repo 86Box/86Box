@@ -8,7 +8,7 @@
  *
  *		Definitions for the ISARTC cards.
  *
- * Version:	@(#)isartc.h	1.0.1	2018/08/27
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

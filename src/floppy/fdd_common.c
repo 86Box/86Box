@@ -8,7 +8,7 @@
  *
  *		Shared code for all the floppy modules.
  *
- * Version:	@(#)fdd_common.c	1.0.2	2018/03/16
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

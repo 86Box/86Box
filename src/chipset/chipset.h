@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated chipsets.
  *
- * Version:	@(#)machine.h	1.0.2	2020/01/24
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *

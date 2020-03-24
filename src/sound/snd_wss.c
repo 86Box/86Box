@@ -8,7 +8,7 @@
  *
  *		Windows Sound System emulation.
  *
- * Version:	@(#)snd_wss.c	1.0.0	2018/08/11
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>

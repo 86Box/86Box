@@ -8,7 +8,7 @@
  *
  *		Emulation of the Compaq CGA graphics cards.
  *
- * Version:	@(#)vid_compaq_cga.c	1.0.0	2019/01/02
+ *
  *
  * Authors:	John Elliott, <jce@seasip.info>
  *		Sarah Walker, <http://pcem-emulator.co.uk/>

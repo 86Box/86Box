@@ -9,7 +9,7 @@
  *		A better random number generation, used for floppy weak bits
  *		and network MAC address generation.
  *
- * Version:	@(#)random.c	1.0.4	2018/10/02
+ *
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.

@@ -13,7 +13,7 @@
  *		To do: Identify the type of serial EEPROM used and its
  *		interface.
  *
- * Version:	@(#)scsi_ncr53c8xx.c	1.0.18	2019/11/19
+ *
  *
  * Authors:	Paul Brook (QEMU)
  *		Artyom Tarasenko (QEMU)

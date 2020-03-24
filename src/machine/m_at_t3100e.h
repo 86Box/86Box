@@ -8,7 +8,7 @@
  *
  *		Definitions for the Toshiba T3100e system.
  *
- * Version:	@(#)m_at_t3100e.h	1.0.3	2018/03/18
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>

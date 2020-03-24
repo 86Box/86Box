@@ -10,7 +10,7 @@
  *		 PC2086, PC3086 use PVGA1A
  *		 MegaPC uses W90C11A
  *
- * Version:	@(#)vid_paradise.c	1.0.9	2019/03/23
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -6,7 +6,7 @@
  *
  *		Emulation of the VIA Apollo MVP3 southbridge
  *
- * Version:	@(#)via_vt82c586b.c	1.0.0	2020/01/14
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

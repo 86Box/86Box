@@ -8,7 +8,7 @@
  *
  *		Definitions for the NS8250/16450/16550 UART emulation.
  *
- * Version:	@(#)serial.h	1.0.13	2020/01/24
+ *
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -8,7 +8,7 @@
  *
  *		Handle the sound gain dialog.
  *
- * Version:	@(#)win_snd_gain.c	1.0.1	2018/02/10
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *

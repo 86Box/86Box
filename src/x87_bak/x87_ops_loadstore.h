@@ -8,7 +8,7 @@
  *
  *		x87 FPU instructions core.
  *
- * Version:	@(#)x87_ops_loadstore.h	1.0.2	2019/06/11
+ *
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

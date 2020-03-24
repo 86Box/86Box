@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.34	2020/03/23
+ *
  *
  * Authors:	TheCollector1995,
  *		Miran Grca, <mgrca8@gmail.com>

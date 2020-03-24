@@ -8,7 +8,7 @@
  *
  *		Xinput joystick interface.
  *
- * Version:	@(#)win_joystick_xinput.cpp	1.0.0	2019/3/19
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

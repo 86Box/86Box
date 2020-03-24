@@ -8,7 +8,7 @@
  *
  *		Definitions for the libSDL2 rendering module.
  *
- * Version:	@(#)win_sdl.h	    1.0.2	2019/12/05
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Michael Drüing, <michael@drueing.de>

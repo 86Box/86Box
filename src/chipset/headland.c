@@ -8,7 +8,7 @@
  *
  *		Implementation of the HEADLAND AT286 chipset.
  *
- * Version:	@(#)headland.c	1.0.1	2019/10/19
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

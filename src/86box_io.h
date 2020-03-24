@@ -8,7 +8,7 @@
  *
  *		Definitions for the I/O handler.
  *
- * Version:	@(#)io.h	1.0.1	2017/12/16
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

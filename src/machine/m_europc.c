@@ -68,7 +68,7 @@
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *		
- * Version:	@(#)europc.c	1.0.12	2019/11/15
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

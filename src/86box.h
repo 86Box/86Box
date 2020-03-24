@@ -8,7 +8,7 @@
  *
  *		Main include file for the application.
  *
- * Version:	@(#)86box.h	1.0.37	2020/01/19
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *f		Fred N. van Kempen, <decwiz@yahoo.com>

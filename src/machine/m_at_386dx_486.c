@@ -8,7 +8,7 @@
  *
  *		Implementation of 386DX and 486 machines.
  *
- * Version:	@(#)m_at_386dx_486.c	1.0.2	2020/01/20
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -9,7 +9,7 @@
  *		Implementation of the IBM PS/2 SCSI controller with
  *		cache for MCA only.
  *
- * Version:	@(#)scsi_spock.h	1.0.0	2020/03/10
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>

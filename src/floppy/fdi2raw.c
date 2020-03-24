@@ -12,7 +12,7 @@
  *		addition of get_last_head and C++ callability by Thomas
  *		Harte.
  *
- * Version:	@(#)fdi2raw.c	1.0.4	2018/10/18
+ *
  *
  * Authors:	Toni Wilen, <twilen@arabuusimiehet.com>
  *		and Vincent Joguin,

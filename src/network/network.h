@@ -8,7 +8,7 @@
  *
  *		Definitions for the network module.
  *
- * Version:	@(#)network.h	1.0.3	2019/11/14
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

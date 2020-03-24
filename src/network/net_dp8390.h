@@ -8,7 +8,7 @@
  *		Controller used by the WD family, NE1000/NE2000 family, and
  *		3Com 3C503 NIC's.
  *
- * Version:	@(#)net_dp8390.h	1.0.1	2018/10/20
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Bochs project,

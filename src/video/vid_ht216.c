@@ -8,7 +8,7 @@
  *
  *		Video 7 VGA 1024i emulation.
  *
- * Version:	@(#)vid_ht216.c	1.0.3	2019/12/04
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

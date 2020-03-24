@@ -8,7 +8,7 @@
  *
  *		Handle WinPcap library processing.
  *
- * Version:	@(#)net_pcap.c	1.0.10	2019/11/14
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

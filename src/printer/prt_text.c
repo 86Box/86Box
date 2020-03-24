@@ -15,7 +15,7 @@
  *		printer mechanics. This would lead to a page being 66 lines
  *		of 80 characters each.
  *
- * Version:	@(#)prt_text.c	1.0.7	2019/09/23
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

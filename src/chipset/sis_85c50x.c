@@ -8,7 +8,7 @@
  *
  *		Implementation of the SiS 85c501/85c503 chip.
  *
- * Version:	@(#)sis_85c50x.c	1.0.1	2019/10/19
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

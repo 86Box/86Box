@@ -10,7 +10,7 @@
  *
  *		Used by the TLIVESA1 driver for ET4000.
  *
- * Version:	@(#)vid_sc1502x_ramdac.c	1.0.3	2018/10/04
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

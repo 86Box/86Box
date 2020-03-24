@@ -8,7 +8,7 @@
  *
  *		Implementation of an SST flash chip.
  *
- * Version:	@(#)sst_flash.c	1.0.1	2020/02/03
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

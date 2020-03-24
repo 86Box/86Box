@@ -8,7 +8,7 @@
  *
  *		Implementation of a port 80h POST diagnostic card.
  *
- * Version:	@(#)postcard.c	1.0.0	2020/03/23
+ *
  *
  * Author:	RichardG, <richardg867@gmail.com>
  *		Copyright 2020 RichardG.

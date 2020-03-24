@@ -8,7 +8,7 @@
  *
  *		Implementation of the HxC MFM image format.
  *
- * Version:	@(#)fdd_mfm.h	1.0.0	2018/11/12
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *

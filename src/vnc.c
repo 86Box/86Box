@@ -8,7 +8,7 @@
  *
  *		Implement the VNC remote renderer with LibVNCServer.
  *
- * Version:	@(#)vnc.c	1.0.15	2019/12/06
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>

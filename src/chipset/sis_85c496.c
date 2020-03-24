@@ -8,7 +8,7 @@
  *
  *		Implementation of the SiS 85c496/85c497 chip.
  *
- * Version:	@(#)sis_85c496.c	1.0.2	2019/10/21
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -8,7 +8,7 @@
  *
  *		Implementation the PCI bus.
  *
- * Version:	@(#)pci.c	1.0.6	2020/01/11
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

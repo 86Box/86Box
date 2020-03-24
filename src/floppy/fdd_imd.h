@@ -8,7 +8,7 @@
  *
  *		Definitions for the IMD floppy image format.
  *
- * Version:	@(#)floppy_imd.h	1.0.2	2018/03/17
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

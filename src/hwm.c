@@ -8,7 +8,7 @@
  *
  *		Common functions for hardware monitor chips.
  *
- * Version:	@(#)hwm.c	1.0.0	2020/03/22
+ *
  *
  * Author:	RichardG, <richardg867@gmail.com>
  *		Copyright 2020 RichardG.

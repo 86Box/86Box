@@ -10,7 +10,7 @@
  *		made by NCR. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_ncr5380.c	1.0.2	2018/03/18
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>

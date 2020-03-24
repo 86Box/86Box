@@ -9,7 +9,7 @@
  *		808x CPU emulation, mostly ported from reenigne's XTCE, which
  *		is cycle-accurate.
  *
- * Version:	@(#)808x.c	1.0.11	2019/10/21
+ *
  *
  * Authors:	Andrew Jenner, <https://www.reenigne.org>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -8,7 +8,7 @@
  *
  *		Header of the emulation of the PC speaker.
  *
- * Version:	@(#)snd_speaker.h	1.0.0	2019/11/15
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

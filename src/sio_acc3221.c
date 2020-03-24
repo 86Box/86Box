@@ -8,7 +8,7 @@
  *
  *		Implementation of the ACC 3221-SP Super I/O Chip.
  *
- * Version:	@(#)sio_acc3221.c	1.0.0	2019/04/05
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *

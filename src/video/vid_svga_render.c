@@ -8,7 +8,7 @@
  *
  *		SVGA renderers.
  *
- * Version:	@(#)vid_svga_render.c	1.0.14	2019/11/19
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

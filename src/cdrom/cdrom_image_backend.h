@@ -9,7 +9,7 @@
  *		CD-ROM image file handling module header , translated to C
  *		from cdrom_dosbox.h.
  *
- * Version:	@(#)cdrom_image_backend.h	1.0.2	2020/01/17
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

@@ -8,7 +8,7 @@
  *
  *		Try to load a support DLL.
  *
- * Version:	@(#)win_dynld.c	1.0.8	2018/10/18
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

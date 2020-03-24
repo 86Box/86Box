@@ -8,7 +8,7 @@
  *
  *		IBM VGA emulation.
  *
- * Version:	@(#)vid_vga.c	1.0.6	2018/09/19
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

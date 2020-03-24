@@ -15,7 +15,7 @@
  *
  *		Definitions for the BUGGER card.
  *
- * Version:	@(#)bugger.h	1.0.6	2018/03/18
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

@@ -8,7 +8,7 @@
  *
  *		Palette definitions for the PGC core.
  *
- * Version:	@(#)vid_pgc_palette.h	1.0.1	2019/03/01
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		John Elliott, <jce@seasip.info>

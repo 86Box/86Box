@@ -9,7 +9,7 @@
  *		Emulation of the EGA and Chips & Technologies SuperEGA
  *		graphics cards.
  *
- * Version:	@(#)vid_ega.h	1.0.9	2020/01/20
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

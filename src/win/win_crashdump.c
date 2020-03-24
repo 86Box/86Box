@@ -8,7 +8,7 @@
  *
  *		Handle generation of crash-dump reports.
  *
- * Version:	@(#)win_crashdump.c	1.0.3	2017/12/13
+ *
  *
  * Authors:	Riley
  *		Miran Grca, <mgrca8@gmail.com>

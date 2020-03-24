@@ -8,7 +8,7 @@
  *
  *		Configuration file handler.
  *
- * Version:	@(#)config.c	1.0.66	2019/12/21
+ *
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>

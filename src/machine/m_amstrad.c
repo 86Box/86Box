@@ -29,7 +29,7 @@
  * All models:	The internal mouse controller does not work correctly with
  *		version 7.04 of the mouse driver.
  *
- * Version:	@(#)m_amstrad.c	1.0.21	2019/11/15
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

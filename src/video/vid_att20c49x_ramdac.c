@@ -8,7 +8,7 @@
  *
  *		Emulation of a AT&T 20c490/491 and 492/493 RAMDAC.
  *
- * Version:	@(#)vid_att20c49x_ramdac.c	1.0.1	2019/01/12
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

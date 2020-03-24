@@ -8,7 +8,7 @@
  *
  *		Definitions for the ISAMEM cards.
  *
- * Version:	@(#)isamem.h	1.0.1	2018/08/18
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

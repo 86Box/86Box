@@ -8,7 +8,7 @@
  *
  *		EGA renderers.
  *
- * Version:	@(#)vid_ega_render.c	1.0.7	2019/11/19
+ *
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

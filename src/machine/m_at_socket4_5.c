@@ -8,7 +8,7 @@
  *
  *		Implementation of Socket 4 and 5 machines.
  *
- * Version:	@(#)m_at_socket4_5.c	1.0.1	2019/10/20
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

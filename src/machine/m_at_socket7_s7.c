@@ -8,7 +8,7 @@
  *
  *		Implementation of Socket 7 and Super Socket 7 machines.
  *
- * Version:	@(#)m_at_socket7_s7.c	1.0.3	2020/01/24
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

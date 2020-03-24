@@ -11,7 +11,7 @@
  *		SiS sis85c471 Super I/O Chip
  *		Used by DTK PKM-0038S E-2
  *
- * Version:	@(#)sis_85c471.c	1.0.2	2019/10/21
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *

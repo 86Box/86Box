@@ -9,7 +9,7 @@
  *		CD-ROM image file handling module, translated to C from
  *		cdrom_dosbox.cpp.
  *
- * Version:	@(#)cdrom_image_backend.c	1.0.5	2020/01/17
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

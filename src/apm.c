@@ -8,7 +8,7 @@
  *
  *		Advanced Power Management emulation.
  *
- * Version:	@(#)apm.c	1.0.0	2019/05/12
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *

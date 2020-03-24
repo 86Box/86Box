@@ -9,7 +9,7 @@
  *		Implementation of the ACC 2168 chipset 
  *		used by the Packard Bell Legend 760 Supreme (PB410A or PB430).
  *
- * Version:	@(#)acc2168.c	1.0.1	2019/10/19
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *

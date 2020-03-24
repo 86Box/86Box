@@ -8,7 +8,7 @@
  *
  *		Definitions for the centralized PNG image handler.
  *
- * Version:	@(#)png_struct.h	1.0.2	2018/11/19
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

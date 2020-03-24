@@ -8,7 +8,7 @@
  *
  *		Emulation of the Winbond W83781D hardware monitoring chip.
  *
- * Version:	@(#)hwm_w83781d.c 1.0.0	2020/03/21
+ *
  *
  * Author:	RichardG, <richardg867@gmail.com>
  *		Copyright 2020 RichardG.

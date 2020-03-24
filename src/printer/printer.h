@@ -8,7 +8,7 @@
  *
  *		Definitions for the printers module.
  *
- * Version:	@(#)printer.h	1.0.3	2018/09/03
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

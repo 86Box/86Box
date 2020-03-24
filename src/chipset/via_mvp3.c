@@ -8,7 +8,7 @@
  *
  *		Implementation of the VIA MVP3 chip.
  *
- * Version:	@(#)via_mvp3.c	1.0.1	2019/10/19
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -28,7 +28,7 @@
  * NOTE:	The IRQ functionalities have been implemented, but not yet
  *		tested, as I need to write test software for them first :)
  *
- * Version:	@(#)isartc.c	1.0.7	2018/10/17
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

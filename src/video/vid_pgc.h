@@ -8,7 +8,7 @@
  *
  *		Definitions for the PGC driver.
  *
- * Version:	@(#)vid_pgc.h	1.0.2	2019/03/03
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		John Elliott, <jce@seasip.info>

@@ -8,7 +8,7 @@
  *
  *		Windows raw keyboard input handler.
  *
- * Version:	@(#)win_keyboard.c	1.0.10	2018/04/29
+ *
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *

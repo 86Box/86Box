@@ -8,7 +8,7 @@
  *
  *		Definitions for the FDI floppy file format.
  *
- * Version:	@(#)fdi2raw.h	1.0.1	2018/02/14
+ *
  *
  * Authors:	Toni Wilen, <twilen@arabuusimiehet.com>
  *		and Vincent Joguin,

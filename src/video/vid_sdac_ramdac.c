@@ -8,7 +8,7 @@
  *
  *		87C716 'SDAC' true colour RAMDAC emulation.
  *
- * Version:	@(#)vid_sdac_ramdac.c	1.0.6	2019/09/13
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

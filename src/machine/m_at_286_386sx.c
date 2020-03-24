@@ -8,7 +8,7 @@
  *
  *		Implementation of 286 and 386SX machines.
  *
- * Version:	@(#)m_at_286_386sx.c	1.0.3	2020/01/22
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -8,7 +8,7 @@
  *
  *		x86 CPU segment emulation.
  *
- * Version:	@(#)x86seg.h	1.0.1	2017/10/12
+ *
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *

@@ -9,7 +9,7 @@
  *		Header of the implementation of the Intel 8253/8254
  *		Programmable Interval Timer.
  *
- * Version:	@(#)pit.h	1.0.1	2020/01/17
+ *
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2019,2020 Miran Grca.

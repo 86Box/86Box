@@ -8,7 +8,7 @@
  *
  *		Various definitions for portable byte-swapping.
  *
- * Version:	@(#)bswap.h	1.0.2	2018/03/12
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		neozeed,

@@ -8,7 +8,7 @@
  *
  *		Implementation of Socket 8 and Slot 1 machines.
  *
- * Version:	@(#)m_at_socket8.c	1.0.0	2019/05/16
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *

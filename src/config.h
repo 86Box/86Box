@@ -8,7 +8,7 @@
  *
  *		Configuration file handler header.
  *
- * Version:	@(#)config.h	1.0.6	2017/12/03
+ *
  *
  * Authors:	Sarah Walker,
  *		Miran Grca, <mgrca8@gmail.com>

@@ -8,7 +8,7 @@
  *
  *		Provide centralized access to the PNG image handler.
  *
- * Version:	@(#)png.c	1.0.5	2018/11/19
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

@@ -29,7 +29,7 @@
  *		16 = 180 MHz
  *		17 = 200 MHz
  *
- * Version:	@(#)cpu_table.c	1.0.7	2019/10/21
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
