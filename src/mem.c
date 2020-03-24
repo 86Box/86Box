@@ -1976,11 +1976,17 @@ mem_reset(void)
 		m = 4096;
 	} else {
 		/* 80386+; maximum address space is 4GB. */
-		m = (mem_size + 384) >> 2;
-		if ((m << 2) < (mem_size + 384))
-			m++;
-		if (m < 4096)
-			m = 4096;
+		if (is486) {
+			/* We need this since there might be BIOS execution at the end of RAM,
+			   which could break the recompiler if there's not enough page elements. */
+			m = 1048576;
+		} else {
+			m = (mem_size + 384) >> 2;
+			if ((m << 2) < (mem_size + 384))
+				m++;
+			if (m < 4096)
+				m = 4096;
+		}
 	}
     } else {
 	/* 8088/86; maximum address space is 1MB. */

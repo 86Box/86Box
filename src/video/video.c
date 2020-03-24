@@ -776,9 +776,11 @@ set_palette(PALETTE p)
 void
 destroy_bitmap(bitmap_t *b)
 {
-    if (b->dat != NULL)
+    if ((b != NULL) && (b->dat != NULL))
 	free(b->dat);
-    free(b);
+
+    if (b != NULL)
+	free(b);
 }
 
 

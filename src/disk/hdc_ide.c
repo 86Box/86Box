@@ -1953,7 +1953,7 @@ ide_callback(void *priv)
 	((ide->command >= WIN_SEEK) && (ide->command <= 0x7F))) {
 	if (ide->type != IDE_HDD)
 		goto abort_cmd;
-	if ((ide->command >= WIN_SEEK) && (ide->command <= 0x7F) && !ide_lba) {
+	if ((ide->command >= WIN_SEEK) && (ide->command <= 0x7F) && !ide->lba) {
 		if ((ide->cylinder >= ide->tracks) || (ide->head >= ide->hpc) ||
 		    !ide->sector || (ide->sector > ide->spt))
 			goto id_not_found;

@@ -25,17 +25,17 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../io.h"
-#include "../timer.h"
-#include "../dma.h"
-#include "../pic.h"
-#include "../mca.h"
-#include "../mem.h"
-#include "../rom.h"
-#include "../device.h"
-#include "../nvr.h"
-#include "../plat.h"
+#include "86box.h"
+#include "86box_io.h"
+#include "timer.h"
+#include "dma.h"
+#include "pic.h"
+#include "mca.h"
+#include "mem.h"
+#include "rom.h"
+#include "device.h"
+#include "nvr.h"
+#include "plat.h"
 #include "scsi.h"
 #include "scsi_device.h"
 #include "scsi_spock.h"
@@ -1091,7 +1091,8 @@ spock_init(const device_t *info)
 
         scsi->pos_regs[0] = 0xff;
         scsi->pos_regs[1] = 0x8e;
-	mca_add(spock_mca_read, spock_mca_write, spock_mca_feedb, spock_mca_reset, scsi);
+	// mca_add(spock_mca_read, spock_mca_write, spock_mca_feedb, spock_mca_reset, scsi);
+	mca_add(spock_mca_read, spock_mca_write, spock_mca_feedb, scsi);
 
 	scsi->in_reset = 2;
 	scsi->cmd_timer = SPOCK_TIME * 50;
