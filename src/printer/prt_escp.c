@@ -2006,7 +2006,7 @@ read_ctrl(void *priv)
 {
     escp_t *dev = (escp_t *)priv;
 
-    return 0xe0 | dev->autofeed ? 0x02 : 0x00 | (dev->ctrl & 0xfd);
+    return 0xe0 | (dev->autofeed ? 0x02 : 0x00) | (dev->ctrl & 0xfd);
 }
 
 

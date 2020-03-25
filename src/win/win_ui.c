@@ -1238,12 +1238,30 @@ input_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message) {
 	case WM_INPUT:
-		keyboard_handle(lParam, infocus);
-#ifndef USE_DINPUT
-		win_mouse_handle(lParam, infocus);
-#endif
-		break;
+		if (infocus) {
+			UINT size = 0;
+			PRAWINPUT raw = NULL;
 
+			/* Here we read the raw input data */
+			GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+			raw = (PRAWINPUT)malloc(size);
+			if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, raw, &size, sizeof(RAWINPUTHEADER)) == size) {
+				switch(raw->header.dwType)
+				{
+					case RIM_TYPEKEYBOARD:
+						keyboard_handle(raw);
+						break;
+					case RIM_TYPEMOUSE:
+						win_mouse_handle(raw);
+						break;
+					case RIM_TYPEHID:
+						win_joystick_handle(raw);
+						break;
+				}
+			}
+			free(raw);
+		}
+		break;
 	case WM_SETFOCUS:
 		infocus = 1;
 		if (! hook_enabled) {

@@ -336,3 +336,4 @@ void joystick_process(void)
         }
 }
 
+void win_joystick_handle(PRAWINPUT raw) {}
