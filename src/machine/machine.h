@@ -210,6 +210,9 @@ extern const device_t	*at_commodore_sl386sx_get_device(void);
 #endif
 
 /* m_at_386dx_486.c */
+
+extern int  machine_at_ecs386_init(const machine_t *);
+
 extern int	machine_at_pb410a_init(const machine_t *);
 
 extern int	machine_at_ali1429_init(const machine_t *);
