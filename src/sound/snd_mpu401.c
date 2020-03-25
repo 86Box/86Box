@@ -1593,6 +1593,11 @@ MPU401_InputMsg(void *p, uint8_t *msg)
 	MPU401_QueueByte(mpu, msg[i]);
 }
 
+void
+mpu401_setirq(mpu_t *mpu, int irq)
+{
+    mpu->irq = irq;
+}
 
 void
 mpu401_change_addr(mpu_t *mpu, uint16_t addr)
@@ -1711,7 +1716,7 @@ mpu401_standalone_init(const device_t *info)
     mpu401_log("mpu_init\n");
 
     if (info->flags & DEVICE_MCA) {
-	mca_add(mpu401_mca_read, mpu401_mca_write, mpu401_mca_feedb, mpu);
+	mca_add(mpu401_mca_read, mpu401_mca_write, mpu401_mca_feedb, NULL, mpu);
 	mpu->pos_regs[0] = 0x0F;
 	mpu->pos_regs[1] = 0x6C;
 	base = 0;	/* Tell mpu401_init() that this is the MCA variant. */

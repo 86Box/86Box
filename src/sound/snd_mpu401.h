@@ -150,6 +150,7 @@ extern const device_t	mpu401_mca_device;
 
 
 extern uint8_t	MPU401_ReadData(mpu_t *mpu);
+extern void 	mpu401_setirq(mpu_t *mpu, int irq);
 extern void	mpu401_change_addr(mpu_t *mpu, uint16_t addr);
 extern void	mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode, int receive_input);
 extern void	mpu401_device_add(void);

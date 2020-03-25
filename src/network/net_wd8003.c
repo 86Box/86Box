@@ -675,7 +675,7 @@ wd_init(const device_t *info)
     }
 
     if ((dev->board == WD8003ETA) || (dev->board == WD8003EA))
-	mca_add(wd_mca_read, wd_mca_write, wd_mca_feedb, dev);
+	mca_add(wd_mca_read, wd_mca_write, wd_mca_feedb, NULL, dev);
     else {
 	dev->base_address = device_get_config_hex16("base");
 	dev->irq = device_get_config_int("irq");
