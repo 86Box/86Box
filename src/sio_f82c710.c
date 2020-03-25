@@ -8,8 +8,6 @@
  *
  *		Implementation of the Chips & Technologies F82C710 Universal Peripheral Controller (UPC).
  *
- * Version:	@(#)sio_f82c710.c	1.0.0	2020/03/12
- *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Eluan Costa Miranda <eluancm@gmail.com>
  *

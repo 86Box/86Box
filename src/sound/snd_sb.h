@@ -8,8 +8,6 @@
  *
  *		Sound Blaster emulation.
  *
- * Version:	@(#)sound_sb.h	1.0.4	2020/02/17
- *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
