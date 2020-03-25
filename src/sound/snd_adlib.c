@@ -110,7 +110,7 @@ void *adlib_mca_init(const device_t *info)
         adlib_t *adlib = adlib_init(info);
         
         io_removehandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &adlib->opl);
-        mca_add(adlib_mca_read, adlib_mca_write, adlib_mca_feedb, adlib);
+        mca_add(adlib_mca_read, adlib_mca_write, adlib_mca_feedb, NULL, adlib);
         adlib->pos_regs[0] = 0xd7;
         adlib->pos_regs[1] = 0x70;
 
