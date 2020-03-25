@@ -20,10 +20,14 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 #include <wchar.h>
+#include <math.h>
 #include "86box.h"
 #include "cpu.h"
+#include "86box_io.h"
 #include "timer.h"
+#include "pit.h"
 #include "mem.h"
 #include "rom.h"
 #include "device.h"
@@ -32,6 +36,9 @@
 #include "hdc.h"
 #include "hdc_ide.h"
 #include "machine.h"
+#include "video.h"
+#include "vid_cga.h"
+#include "vid_cga_comp.h"
 
 
 enum
