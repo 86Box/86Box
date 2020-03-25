@@ -604,6 +604,7 @@ MCHOBJ		:= machine.o machine_table.o \
 
 DEVOBJ		:= bugger.o hwm.o hwm_w83781d.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o $(SERIAL) \
 		    sio_acc3221.o \
+		    sio_f82c710.o \
 		    sio_fdc37c66x.o sio_fdc37c669.o \
 		    sio_fdc37c93x.o \
 		    sio_pc87306.o \
