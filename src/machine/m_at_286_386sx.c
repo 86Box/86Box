@@ -34,6 +34,7 @@
 #include "fdd.h"
 #include "fdc.h"
 #include "hdc.h"
+#include "sio.h"
 #include "video.h"
 #include "machine.h"
 
@@ -292,6 +293,8 @@ machine_at_gw286ct_init(const machine_t *model)
 
     if (bios_only || !ret)
 	return ret;
+
+    device_add(&f82c710_device);
 
     machine_at_scat_init(model, 1);
 
