@@ -58,31 +58,10 @@ win_mouse_init(void)
 }
 
 void
-win_mouse_handle(LPARAM lParam, int infocus)
+win_mouse_handle(PRAWINPUT raw)
 {
-    uint32_t ri_size = 0;
-    UINT size;
-    RAWINPUT *raw;
-    RAWMOUSE state;
+    RAWMOUSE state = raw->data.mouse;
     static int x, y;
-
-    if (! infocus) return;
-
-    GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL,
-		    &size, sizeof(RAWINPUTHEADER));
-
-    raw = (RAWINPUT*)malloc(size);
-    if (raw == NULL) return;
-
-    /* Here we read the raw input data for the mouse */
-    ri_size = GetRawInputData((HRAWINPUT)(lParam), RID_INPUT,
-			      raw, &size, sizeof(RAWINPUTHEADER));
-    if (ri_size != size) goto err;
-
-	/* If the input is not a mouse, we ignore it */	
-	if (raw->header.dwType != RIM_TYPEMOUSE) goto err;
-
-	state = raw->data.mouse;
 
 	/* read mouse buttons and wheel */
 	if (state.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
@@ -120,9 +99,6 @@ win_mouse_handle(LPARAM lParam, int infocus)
 		mousestate.dx += state.lLastX;
 		mousestate.dy += state.lLastY;
 	}
-
-	err:
-	free(raw);
 }
 
 void
