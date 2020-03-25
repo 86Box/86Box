@@ -717,7 +717,12 @@ CPU cpus_PentiumII[] = {
 
 };
 
-CPU cpus_PGA370[] = {
+CPU cpus_Celeron[] = { // Mendocino Celerons. Exact architecture as the P2D series. Intended for
+                       // the PGA370 boards but they were capable to fit on a PGA 370 to Slot 1
+					   // adaptor card so they work on Slot 1 motherboards too!.
+					   
+					   // The 100Mhz Mendocino is only meant to not cause any struggle
+					   // to the recompiler.
     {"Celeron Mendocino 100",    	CPU_PENTIUM2D,  100000000, 3/2,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
     {"Celeron Mendocino 333",       CPU_PENTIUM2D,  333333333, 5,    0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 40},
     {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}	

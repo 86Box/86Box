@@ -157,7 +157,7 @@ extern CPU  cpus_Cyrix3[];
 #if defined(DEV_BRANCH) && defined(USE_I686)
 extern CPU	cpus_PentiumPro[];
 extern CPU	cpus_PentiumII[];
-extern CPU	cpus_PGA370[];
+extern CPU	cpus_Celeron[];
 #endif
 
 
