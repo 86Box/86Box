@@ -1274,16 +1274,20 @@ nic_init(const device_t *info)
 
     switch(dev->board) {
 	case NE2K_NE1000:
+		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Novell OID) */
+		dev->maclocal[1] = 0x00;
+		dev->maclocal[2] = 0xD8;
 		dev->is_8bit = 1;
+		rom = NULL;
 		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
 		dp8390_mem_alloc(dev->dp8390, 0x2000, 0x2000);
-		/*FALLTHROUGH*/
+		break;
 
 	case NE2K_NE2000:
 		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Novell OID) */
 		dev->maclocal[1] = 0x00;
 		dev->maclocal[2] = 0xD8;
-		rom = (dev->board == NE2K_NE1000) ? NULL : ROM_PATH_NE2000;
+		rom = ROM_PATH_NE2000;
 		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC | DP8390_FLAG_CHECK_CR |
 				    DP8390_FLAG_CLEAR_IRQ);
 		dp8390_mem_alloc(dev->dp8390, 0x4000, 0x4000);
