@@ -1139,7 +1139,7 @@ esdi_init(const device_t *info)
     dev->pos_regs[1] = 0xdd;
 
     /* Enable the device. */
-    mca_add(esdi_mca_read, esdi_mca_write, esdi_mca_feedb, dev);
+    mca_add(esdi_mca_read, esdi_mca_write, esdi_mca_feedb, NULL, dev);
 
     /* Mark for a reset. */
     dev->in_reset = 1;
