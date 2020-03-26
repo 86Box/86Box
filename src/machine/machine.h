@@ -293,10 +293,11 @@ extern int	machine_at_i430vx_init(const machine_t *);
 extern int	machine_at_p55va_init(const machine_t *);
 extern int	machine_at_j656vxd_init(const machine_t *);
 
-extern int	machine_at_5tx52_init(const machine_t *);
-extern int	machine_at_txp4_init(const machine_t *);
+extern int	machine_at_p55xb2_init(const machine_t *);
+extern int	machine_at_tx97_init(const machine_t *);
 extern int	machine_at_ym430tx_init(const machine_t *);
-extern int	machine_at_sp586tx_init(const machine_t *);
+extern int	machine_at_586t2_init(const machine_t *);
+extern int	machine_at_807ds_init(const machine_t *);
 
 extern int	machine_at_mvp3_init(const machine_t *);
 
@@ -308,16 +309,13 @@ extern const device_t	*at_pb640_get_device(void);
 #if defined(DEV_BRANCH) && defined(USE_I686)
 extern int	machine_at_i440fx_init(const machine_t *);
 extern int	machine_at_s1668_init(const machine_t *);
+extern int	machine_at_p6bxt_init(const machine_t *); /*BIOS doesn't work correctly with VIA C3*/
 #endif
 
 extern int	machine_at_6abx3_init(const machine_t *);
 extern int  machine_at_p2bls_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_I686)
 extern int	machine_at_borapro_init(const machine_t *);
-
-extern int	machine_at_p6bxt_init(const machine_t *);
 extern int	machine_at_63a_init(const machine_t *);
-#endif
 
 /* m_at_t3100e.c */
 extern int	machine_at_t3100e_init(const machine_t *);
