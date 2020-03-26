@@ -11,7 +11,7 @@
  *			- SMC/WD 8013EBT (ISA 16-bit);
  *			- SMC/WD 8013EP/A (MCA).
  *
- * Version:	@(#)net_wd8003.c	1.0.6	2019/09/21
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -675,7 +675,7 @@ wd_init(const device_t *info)
     }
 
     if ((dev->board == WD8003ETA) || (dev->board == WD8003EA))
-	mca_add(wd_mca_read, wd_mca_write, wd_mca_feedb, dev);
+	mca_add(wd_mca_read, wd_mca_write, wd_mca_feedb, NULL, dev);
     else {
 	dev->base_address = device_get_config_hex16("base");
 	dev->irq = device_get_config_int("irq");

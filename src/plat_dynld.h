@@ -8,7 +8,7 @@
  *
  *		Define the Dynamic Module Loader interface.
  *
- * Version:	@(#)plat_dynld.h	1.0.1	2017/05/21
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen

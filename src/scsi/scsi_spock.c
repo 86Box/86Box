@@ -9,7 +9,7 @@
  *		Implementation of the IBM PS/2 SCSI controller with
  *		cache for MCA only.
  *
- * Version:	@(#)scsi_spock.c	1.0.1	2020/03/23
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -1091,8 +1091,7 @@ spock_init(const device_t *info)
 
         scsi->pos_regs[0] = 0xff;
         scsi->pos_regs[1] = 0x8e;
-	// mca_add(spock_mca_read, spock_mca_write, spock_mca_feedb, spock_mca_reset, scsi);
-	mca_add(spock_mca_read, spock_mca_write, spock_mca_feedb, scsi);
+	mca_add(spock_mca_read, spock_mca_write, spock_mca_feedb, spock_mca_reset, scsi);
 
 	scsi->in_reset = 2;
 	scsi->cmd_timer = SPOCK_TIME * 50;

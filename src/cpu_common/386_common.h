@@ -8,7 +8,7 @@
  *
  *		Common 386 CPU code.
  *
- * Version:	@(#)386_common.h	1.0.1	2019/02/19
+ *
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

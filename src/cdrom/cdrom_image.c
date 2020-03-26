@@ -8,7 +8,7 @@
  *
  *		CD-ROM image support.
  *
- * Version:	@(#)cdrom_image.c	1.0.11	2019/03/06
+ *
  *
  * Author:	RichardG867,
  *		Miran Grca, <mgrca8@gmail.com>

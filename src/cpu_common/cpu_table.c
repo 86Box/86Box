@@ -29,7 +29,7 @@
  *		16 = 180 MHz
  *		17 = 200 MHz
  *
- * Version:	@(#)cpu_table.c	1.0.7	2019/10/21
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		leilei,
@@ -150,9 +150,9 @@ CPU cpus_i386DX[] = {
     {"i386DX/25",    CPU_386DX,     25000000, 1, 0x0308, 0, 0, 0, 4,4,3,3, 3},
     {"i386DX/33",    CPU_386DX,     33333333, 1, 0x0308, 0, 0, 0, 6,6,3,3, 4},
     {"i386DX/40",    CPU_386DX,     40000000, 1, 0x0308, 0, 0, 0, 7,7,3,3, 5},
-    {"RapidCAD/25",  CPU_RAPIDCAD,  25000000, 1, 0x0430, 0, 0, CPU_SUPPORTS_DYNAREC, 4,4,3,3, 3},
-    {"RapidCAD/33",  CPU_RAPIDCAD,  33333333, 1, 0x0430, 0, 0, CPU_SUPPORTS_DYNAREC, 6,6,3,3, 4},
-    {"RapidCAD/40",  CPU_RAPIDCAD,  40000000, 1, 0x0430, 0, 0, CPU_SUPPORTS_DYNAREC, 7,7,3,3, 5},
+    {"RapidCAD/25",  CPU_RAPIDCAD,  25000000, 1, 0x0340, 0, 0, CPU_SUPPORTS_DYNAREC, 4,4,3,3, 3},
+    {"RapidCAD/33",  CPU_RAPIDCAD,  33333333, 1, 0x0340, 0, 0, CPU_SUPPORTS_DYNAREC, 6,6,3,3, 4},
+    {"RapidCAD/40",  CPU_RAPIDCAD,  40000000, 1, 0x0340, 0, 0, CPU_SUPPORTS_DYNAREC, 7,7,3,3, 5},
     {"",             -1,                   0, 0,      0, 0, 0, 0, 0,0,0,0, 0}
 };
 
@@ -187,30 +187,30 @@ CPU cpus_486SLC[] = {
 
 CPU cpus_IBM386SLC[] = {
     /*IBM 386SLC*/	
-    {"386SLC/16",  CPU_IBM386SLC, 16000000, 1, 0x300, 0, 0, 0, 3,3,3,3, 2},
-    {"386SLC/20",  CPU_IBM386SLC, 20000000, 1, 0x300, 0, 0, 0, 4,4,3,3, 3},
-    {"386SLC/25",  CPU_IBM386SLC, 25000000, 1, 0x300, 0, 0, 0, 4,4,3,3, 3},	
+    {"386SLC/16",  CPU_IBM386SLC, 16000000, 1, 0xA301, 0, 0, 0, 3,3,3,3, 2},
+    {"386SLC/20",  CPU_IBM386SLC, 20000000, 1, 0xA301, 0, 0, 0, 4,4,3,3, 3},
+    {"386SLC/25",  CPU_IBM386SLC, 25000000, 1, 0xA301, 0, 0, 0, 4,4,3,3, 3},	
     {"",           -1,            0,        0,     0, 0, 0, 0, 0,0,0,0, 0}
 };
 
 CPU cpus_IBM486SLC[] = {
     /*IBM 486SLC*/
-    {"486SLC/33",   CPU_IBM486SLC, 33333333,  1, 0x400, 0, 0, 0, 6,6,3,3,    4},
-    {"486SLC2/40",  CPU_IBM486SLC, 40000000,  2, 0x400, 0, 0, 0, 7,7,6,6,    5},
-    {"486SLC2/50",  CPU_IBM486SLC, 50000000,  2, 0x400, 0, 0, 0, 8,8,6,6,    6},
-    {"486SLC2/66",  CPU_IBM486SLC, 66666666,  2, 0x400, 0, 0, 0, 12,12,6,6,  8},
-    {"486SLC3/60",  CPU_IBM486SLC, 60000000,  3, 0x400, 0, 0, 0, 12,12,9,9,  7},
-    {"486SLC3/75",  CPU_IBM486SLC, 75000000,  3, 0x400, 0, 0, 0, 12,12,9,9,  9},
-    {"486SLC3/100", CPU_IBM486SLC, 100000000, 3, 0x400, 0, 0, 0, 18,18,9,9, 12},	
+    {"486SLC/33",   CPU_IBM486SLC, 33333333,  1, 0xA401, 0, 0, 0, 6,6,3,3,    4},
+    {"486SLC2/40",  CPU_IBM486SLC, 40000000,  2, 0xA421, 0, 0, 0, 7,7,6,6,    5},
+    {"486SLC2/50",  CPU_IBM486SLC, 50000000,  2, 0xA421, 0, 0, 0, 8,8,6,6,    6},
+    {"486SLC2/66",  CPU_IBM486SLC, 66666666,  2, 0xA421, 0, 0, 0, 12,12,6,6,  8},
+    {"486SLC3/60",  CPU_IBM486SLC, 60000000,  3, 0xA439, 0, 0, 0, 12,12,9,9,  7},
+    {"486SLC3/75",  CPU_IBM486SLC, 75000000,  3, 0xA439, 0, 0, 0, 12,12,9,9,  9},
+    {"486SLC3/100", CPU_IBM486SLC, 100000000, 3, 0xA439, 0, 0, 0, 18,18,9,9, 12},	
     {"",            -1,            0,         0, 0,     0, 0, 0, 0,0,0,0,    0}
 };
 
 CPU cpus_IBM486BL[] = {
     /*IBM Blue Lightning*/	
-    {"486BL2/50",  CPU_IBM486BL, 50000000,  2, 0x400, 0, 0, 0, 8,8,6,6,    6},
-    {"486BL2/66",  CPU_IBM486BL, 66666666,  2, 0x400, 0, 0, 0, 12,12,6,6,  8},
-    {"486BL3/75",  CPU_IBM486BL, 75000000,  3, 0x400, 0, 0, 0, 12,12,9,9,  9},
-    {"486BL3/100", CPU_IBM486BL, 100000000, 3, 0x400, 0, 0, 0, 18,18,9,9, 12},	
+    {"486BL2/50",  CPU_IBM486BL, 50000000,  2, 0xA439, 0, 0, 0, 8,8,6,6,    6},
+    {"486BL2/66",  CPU_IBM486BL, 66666666,  2, 0xA439, 0, 0, 0, 12,12,6,6,  8},
+    {"486BL3/75",  CPU_IBM486BL, 75000000,  3, 0xA439, 0, 0, 0, 12,12,9,9,  9},
+    {"486BL3/100", CPU_IBM486BL, 100000000, 3, 0xA439, 0, 0, 0, 18,18,9,9, 12},	
     {"",           -1,           0,         0,     0, 0, 0, 0, 0,0,0,0,    0}
 };
 
@@ -717,7 +717,12 @@ CPU cpus_PentiumII[] = {
 
 };
 
-CPU cpus_PGA370[] = {
+CPU cpus_Celeron[] = { // Mendocino Celerons. Exact architecture as the P2D series. Intended for
+                       // the PGA370 boards but they were capable to fit on a PGA 370 to Slot 1
+					   // adaptor card so they work on Slot 1 motherboards too!.
+					   
+					   // The 100Mhz Mendocino is only meant to not cause any struggle
+					   // to the recompiler.
     {"Celeron Mendocino 100",    	CPU_PENTIUM2D,  100000000, 3/2,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
     {"Celeron Mendocino 333",       CPU_PENTIUM2D,  333333333, 5,    0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 40},
     {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}	

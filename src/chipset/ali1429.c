@@ -8,7 +8,7 @@
  *
  *		Implementation of the ALi M-1429/1431 chipset.
  *
- * Version:	@(#)ali1429.c	1.0.9	2019/10/09
+ *
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>

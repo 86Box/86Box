@@ -10,7 +10,7 @@
  *
  *		Used by the S3 86c801 (V7-Mirage) card.
  *
- * Version:	@(#)vid_av9194.c	1.0.1	2019/01/12
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *

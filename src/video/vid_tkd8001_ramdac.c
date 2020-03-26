@@ -8,7 +8,7 @@
  *
  *		Trident TKD8001 RAMDAC emulation.
  *
- * Version:	@(#)vid_tkd8001_ramdac.c	1.0.3	2018/10/04
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

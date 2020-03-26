@@ -9,7 +9,7 @@
  *		Implementation of the generic device interface to handle
  *		all devices attached to the emulator.
  *
- * Version:	@(#)device.c	1.0.24	2019/03/014
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>

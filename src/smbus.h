@@ -8,7 +8,7 @@
  *
  *		Definitions for the SMBus handler.
  *
- * Version:	@(#)smbus.h	1.0.0	2020/03/21
+ *
  *
  * Authors:	RichardG, <richardg867@gmail.com>
  *

@@ -8,7 +8,7 @@
  *
  *		Platform main support module for Windows.
  *
- * Version:	@(#)win.c	1.0.60	2019/12/05
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -19,8 +19,10 @@
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #define UNICODE
+#define NTDDI_VERSION 0x06010000
 #include <windows.h>
 #include <shlobj.h>
+#include <shobjidl.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdint.h>

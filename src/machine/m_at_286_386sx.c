@@ -8,7 +8,7 @@
  *
  *		Implementation of 286 and 386SX machines.
  *
- * Version:	@(#)m_at_286_386sx.c	1.0.3	2020/01/22
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -34,6 +34,7 @@
 #include "fdd.h"
 #include "fdc.h"
 #include "hdc.h"
+#include "sio.h"
 #include "video.h"
 #include "machine.h"
 
@@ -292,6 +293,8 @@ machine_at_gw286ct_init(const machine_t *model)
 
     if (bios_only || !ret)
 	return ret;
+
+    device_add(&f82c710_device);
 
     machine_at_scat_init(model, 1);
 

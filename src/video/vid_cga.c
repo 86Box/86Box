@@ -8,7 +8,7 @@
  *
  *		Emulation of the old and new IBM CGA graphics cards.
  *
- * Version:	@(#)vid_cga.c	1.0.20	2019/09/29
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

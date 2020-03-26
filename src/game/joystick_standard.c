@@ -8,7 +8,7 @@
  *
  *		Implementation of a standard joystick.
  *
- * Version:	@(#)joystick_standard.c	1.0.4	2018/03/15
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>

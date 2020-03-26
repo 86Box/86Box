@@ -8,7 +8,7 @@
  *
  *		Definitions for the PCjs JSON floppy image format.
  *
- * Version:	@(#)floppy_json.h	1.0.2	2018/03/17
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

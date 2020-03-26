@@ -11,7 +11,7 @@
  * NOTES:	OpenAT wip for 286-class machine with open BIOS.
  *		PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
- * Version:	@(#)machine_table.c	1.0.55	2020/01/24
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -103,9 +103,7 @@ const machine_t machines[] = {
     { "[286 ISA] Quadtel 286 clone",		"quadt286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512,16384, 128, 127,	     machine_at_quadt286_init, NULL			},
     { "[286 ISA] Commodore PC 30 III",		"cmdpc30",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										640,16384, 128, 127,		machine_at_cmdpc_init, NULL			},
     { "[286 ISA] Compaq Portable II",		"portableii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										640,16384, 128, 127,	   machine_at_portableii_init, NULL			},
-#if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
-    { "[286 ISA] Compaq Portable III",		"portableiii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_VIDEO | MACHINE_VIDEO_FIXED,					640,16384, 128, 127,	  machine_at_portableiii_init, NULL			},
-#endif
+    { "[286 ISA] Compaq Portable III",		"portableiii",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_VIDEO,								640,16384, 128, 127,	  machine_at_portableiii_init, at_cpqiii_get_device	},
     { "[286 ISA] GW-286CT GEAR",		"gw286ct",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512,16384, 128, 127,	      machine_at_gw286ct_init, NULL			},
     { "[286 ISA] Hyundai Super-286TR",		"super286tr",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512,16384, 128, 127,	   machine_at_super286tr_init, NULL			},
     { "[286 ISA] IBM AT",			"ibmat",		{{"",      cpus_ibmat},       {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										256,15872, 128,  63,		  machine_at_ibm_init, NULL			},
@@ -146,14 +144,13 @@ const machine_t machines[] = {
 
     { "[386SX MCA] IBM PS/2 model 55SX",	"ibmps2_m55sx",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"IBM",cpus_IBM486SLC},{"",    NULL}}, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_VIDEO,						  1,    8,   1,  63,	  machine_ps2_model_55sx_init, NULL			},
 
+    { "[386DX ISA] ECS 386/32",			"ecs386",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}},MACHINE_ISA | MACHINE_AT,										512,16384, 512, 127,	       machine_at_ecs386_init, NULL			},		
     { "[386DX ISA] Dataexpert SX495 (386DX)",	"ami386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	  machine_at_opti495_ami_init, NULL			},
     { "[386DX ISA] Award 386DX clone",		"award386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	      machine_at_opti495_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_MR495)
     { "[386DX ISA] MR 386DX clone",		"mr386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	   machine_at_opti495_mr_init, NULL			},
 #endif
-#if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
-    { "[386DX ISA] Compaq Portable III (386)",  "portableiii386",       {{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_VIDEO | MACHINE_VIDEO_FIXED,			  1,   14,   1, 127,   machine_at_portableiii386_init, NULL			},
-#endif
+    { "[386DX ISA] Compaq Portable III (386)",  "portableiii386",       {{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_VIDEO,			  			  1,   14,   1, 127,   machine_at_portableiii386_init, at_cpqiii_get_device	},
 
     { "[386DX MCA] IBM PS/2 model 70 (type 3)",	"ibmps2_m70_type3",	{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"IBM",cpus_IBM486BL},{"",     NULL}}, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_VIDEO,						  2,   16,   2,  63,  machine_ps2_model_70_type3_init, NULL			},
     { "[386DX MCA] IBM PS/2 model 80",		"ibmps2_m80",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"IBM",cpus_IBM486BL},{"",     NULL}}, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_VIDEO,						  1,   12,   1,  63,	    machine_ps2_model_80_init, NULL			},
@@ -236,14 +233,16 @@ const machine_t machines[] = {
     { "[Socket 8 FX] Tyan Titan-Pro AT",	"440fx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 127,	       machine_at_i440fx_init, NULL			},
     { "[Socket 8 FX] Tyan Titan-Pro ATX",	"tpatx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 127,		machine_at_s1668_init, NULL			},
 
-    { "[Slot 1 BX] Lucky Star 6ABX3",		"6abx3",		{{"Intel", cpus_PentiumII},   {"VIA",    cpus_Cyrix3},{"",      NULL},       {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  768,   8, 255,		machine_at_6abx3_init, NULL			},
+    { "[Slot 1 BX] Lucky Star 6ABX3",		"6abx3",		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},	 {"VIA", cpus_Cyrix3}, {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  	  8,  768,   8, 255,		machine_at_6abx3_init, NULL			},
 #else
     { "[Slot 1 BX] Lucky Star 6ABX3",		"6abx3",		{{"VIA", cpus_Cyrix3},        {"",    NULL},	     {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  768,   8, 255,		machine_at_6abx3_init, NULL			},	
 #endif
 #if defined(DEV_BRANCH) && defined(USE_I686)
-    { "[Slot 1 BX] ASUS P2B-LS",		    "p2bls",		{{"Intel", cpus_PentiumII},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,		machine_at_p2bls_init, NULL			},
-    { "[Socket 370 BX] ECS P6BXT-A+",		"p6bxt",		{{"Intel", cpus_PGA370},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,		machine_at_p6bxt_init, NULL			},
-    { "[Socket 370 ZX] Soltek SL-63A1",		"63a",			{{"Intel", cpus_PGA370},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 256,    8, 255,		machine_at_63a_init, NULL			},
+    { "[Slot 1 BX] ASUS P2B-LS",		    "p2bls",		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron}, {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,		machine_at_p2bls_init, NULL			},
+    { "[Slot 1 ZX] Packard Bell Bora Pro",	"borapro",		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},  {"VIA", cpus_Cyrix3},   {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,				  8, 256,    8, 255,		machine_at_borapro_init, NULL		},
+
+    { "[Socket 370 BX] ECS P6BXT-A+",		"p6bxt",		{{"Intel", cpus_Celeron},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,		machine_at_p6bxt_init, NULL			},
+    { "[Socket 370 ZX] Soltek SL-63A1",		"63a",			{{"Intel", cpus_Celeron},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 256,    8, 255,		machine_at_63a_init, NULL			},
 #endif
     { NULL,					NULL,			{{"",      0},                {"",    0},            {"",      0},           {"",         0},     {"",      0}},    0,                                                                                                    0,    0,   0,   0,				 NULL, NULL			}
 };

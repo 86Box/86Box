@@ -8,7 +8,7 @@
  *
  *		AMD SYSCALL and SYSRET CPU Instructions.
  *
- * Version:	@(#)x86_ops_amd.h	1.0.4	2018/10/17
+ *
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.

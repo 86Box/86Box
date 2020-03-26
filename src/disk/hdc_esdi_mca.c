@@ -52,7 +52,7 @@
  *		however, are auto-configured by the system software as
  *		shown above.
  *
- * Version:	@(#)hdc_esdi_mca.c	1.0.14	2018/10/17
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -1139,7 +1139,7 @@ esdi_init(const device_t *info)
     dev->pos_regs[1] = 0xdd;
 
     /* Enable the device. */
-    mca_add(esdi_mca_read, esdi_mca_write, esdi_mca_feedb, dev);
+    mca_add(esdi_mca_read, esdi_mca_write, esdi_mca_feedb, NULL, dev);
 
     /* Mark for a reset. */
     dev->in_reset = 1;

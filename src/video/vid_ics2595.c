@@ -8,7 +8,7 @@
  *
  *		ICS2595 clock chip emulation.  Used by ATI Mach64.
  *
- * Version:	@(#)vid_ics2595.c	1.0.3	2018/10/04
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

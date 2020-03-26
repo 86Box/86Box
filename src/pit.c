@@ -9,7 +9,7 @@
  *		Implementation of the Intel 8253/8254 Programmable Interval
  *		Timer.
  *
- * Version:	@(#)pit.c	1.0.0	2019/12/02
+ *
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2019 Miran Grca.

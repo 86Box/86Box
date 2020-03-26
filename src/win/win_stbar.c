@@ -8,7 +8,7 @@
  *
  *		Implement the application's Status Bar.
  *
- * Version:	@(#)win_stbar.c	1.0.27	2019/12/06
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

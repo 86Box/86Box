@@ -8,7 +8,7 @@
  *
  *		Emulation of the EEPROM on select ATI cards.
  *
- * Version:	@(#)vid_ati_eeprom.c	1.0.3	2020/01/20
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

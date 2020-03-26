@@ -8,7 +8,7 @@
  *
  *		Handle the About dialog.
  *
- * Version:	@(#)win_about.c	1.0.7	2018/06/02
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

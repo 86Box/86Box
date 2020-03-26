@@ -8,7 +8,7 @@
  *
  *		Implementation of Thrust Master Flight Control System.
  *
- * Version:	@(#)tm_fcs.c	1.0.3	2018/03/15
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>

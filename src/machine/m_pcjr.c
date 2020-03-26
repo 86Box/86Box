@@ -8,7 +8,7 @@
  *
  *		Emulation of the IBM PCjr.
  *
- * Version:	@(#)m_pcjr.c	1.0.14	2019/11/15
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

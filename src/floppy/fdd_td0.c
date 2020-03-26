@@ -8,7 +8,7 @@
  *
  *		Implementation of the Teledisk floppy image format.
  *
- * Version:	@(#)fdd_td0.c	1.0.10	2019/12/06
+ *
  *
  * Authors:	Milodrag Milanovic,
  *		Haruhiko OKUMURA,

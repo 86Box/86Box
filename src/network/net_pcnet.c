@@ -7,7 +7,7 @@
  *		Emulation of the AMD PCnet LANCE NIC controller for both the ISA, VLB,
  *		and PCI buses.
  *
- * Version:	@(#)net_pcnet.c	1.0.1	2020/03/23
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
@@ -2834,6 +2834,9 @@ pcnet_close(void *priv)
     nic_t *dev = (nic_t *)priv;
 
     pcnetlog(1, "%s: closed\n", dev->name);
+    
+    /* Make sure the platform layer is shut down. */
+    network_close();
     
     if (dev) {
 	timer_disable(&dev->poll_timer);

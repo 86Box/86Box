@@ -8,7 +8,7 @@
  *
  *		Definitions for the Toshiba T1000/T1200 machines.
  *
- * Version:	@(#)m_xt_t1000.h	1.0.5	2018/08/15
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>

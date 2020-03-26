@@ -8,7 +8,7 @@
  *
  *		Windows 86Box Settings dialog handler.
  *
- * Version:	@(#)win_settings.c	1.0.63	2019/12/21
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  * 		David Hrdlička, <hrdlickadavid@outlook.com>
@@ -2797,7 +2797,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 					if (r) {
 						for (i = 0; i < r; i++) {
 							fwrite(big_buf, 1, 1048576, f);
-							SendMessage(h, PBM_SETPOS, (WPARAM) (size + 1), (LPARAM) 0);
+							SendMessage(h, PBM_SETPOS, (WPARAM) (i + 1), (LPARAM) 0);
 
 							while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
 								TranslateMessage(&msg); 

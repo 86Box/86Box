@@ -13,7 +13,7 @@
  *			- Realtek RTL8019AS (ISA 16-bit, PnP);
  *			- Realtek RTL8029AS (PCI).
  *
- * Version:	@(#)net_ne2000.c	1.0.11	2018/10/20
+ *
  *
  * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *
@@ -1238,7 +1238,7 @@ nic_init(const device_t *info)
 		}		
 	}
 	else {
-		mca_add(nic_mca_read, nic_mca_write, nic_mca_feedb, dev);	
+		mca_add(nic_mca_read, nic_mca_write, nic_mca_feedb, NULL, dev);	
 	}
     }
 
@@ -1274,16 +1274,20 @@ nic_init(const device_t *info)
 
     switch(dev->board) {
 	case NE2K_NE1000:
+		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Novell OID) */
+		dev->maclocal[1] = 0x00;
+		dev->maclocal[2] = 0xD8;
 		dev->is_8bit = 1;
+		rom = NULL;
 		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
 		dp8390_mem_alloc(dev->dp8390, 0x2000, 0x2000);
-		/*FALLTHROUGH*/
+		break;
 
 	case NE2K_NE2000:
 		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Novell OID) */
 		dev->maclocal[1] = 0x00;
 		dev->maclocal[2] = 0xD8;
-		rom = (dev->board == NE2K_NE1000) ? NULL : ROM_PATH_NE2000;
+		rom = ROM_PATH_NE2000;
 		dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC | DP8390_FLAG_CHECK_CR |
 				    DP8390_FLAG_CLEAR_IRQ);
 		dp8390_mem_alloc(dev->dp8390, 0x4000, 0x4000);

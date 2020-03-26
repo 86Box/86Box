@@ -8,7 +8,7 @@
  *
  *		ATI 18800 emulation (VGA Edge-16)
  *
- * Version:	@(#)vid_ati18800.c	1.0.17	2020/01/20
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

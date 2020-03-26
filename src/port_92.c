@@ -9,7 +9,7 @@
  *		Implementation of Port 92 used by PS/2 machines and 386+
  *		clones.
  *
- * Version:	@(#)port_92.c	1.0.0	2019/05/14
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *

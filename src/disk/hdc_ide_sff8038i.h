@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)hdc_ide_sff8038i.h	1.0.2	2020/01/26
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

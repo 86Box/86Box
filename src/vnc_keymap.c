@@ -22,7 +22,7 @@
  * NOTE:	The values are as defined in the Microsoft document named
  *		"Keyboard Scan Code Specification", version 1.3a of 2000/03/16.
  *
- * Version:	@(#)vnc_keymap.c	1.0.4	2019/03/24
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Based on raw code by RichardG, <richardg867@gmail.com>

@@ -7,7 +7,7 @@
  *		Emulation of BusLogic BT-542B ISA and BT-958D PCI SCSI
  *		controllers.
  *
- * Version:	@(#)scsi_buslogic.h	1.0.3	2018/03/18
+ *
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdc_ide.c	1.0.66	2020/01/14
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

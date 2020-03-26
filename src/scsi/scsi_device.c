@@ -8,7 +8,7 @@
  *
  *		The generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.c	1.0.23	2018/10/31
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

@@ -8,7 +8,7 @@
  *
  *		Implementation of the WD76C10 System Controller chip.
  *
- * Version:	@(#)wd76c10.c	1.0.1	2019/10/19
+ *
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>

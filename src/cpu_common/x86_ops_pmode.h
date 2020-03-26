@@ -370,7 +370,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
                 case 0x20: /*SMSW*/
                 if (cpu_mod != 3)
                         SEG_CHECK_WRITE(cpu_state.ea_seg);
-                if (is486)      seteaw(msw);
+                if (is486 || isibm486)      seteaw(msw);
                 else if (is386) seteaw(msw | 0xFF00);
                 else            seteaw(msw | 0xFFF0);
                 CLOCK_CYCLES(2);
@@ -401,7 +401,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
                 break;
 
                 case 0x38: /*INVLPG*/
-                if (is486)
+                if (is486 || isibm486)
                 {
                         if ((CPL || cpu_state.eflags&VM_FLAG) && (cr0&1))
                         {

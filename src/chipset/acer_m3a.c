@@ -8,7 +8,7 @@
  *
  *		Implementation of the Acer M3A and V35N ports EAh and EBh.
  *
- * Version:	@(#)acer_m3a.c	1.0.0	2019/05/13
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

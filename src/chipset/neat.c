@@ -13,7 +13,7 @@
  *		8MB of DRAM chips', because it works fine with bus-based
  *		memory expansion.
  *
- * Version:	@(#)m_at_neat.c	1.0.5	2018/10/22
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

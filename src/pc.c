@@ -8,7 +8,7 @@
  *
  *		Main emulator module where most things are controlled.
  *
- * Version:	@(#)pc.c	1.0.94	2020/01/19
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -440,9 +440,6 @@ usage:
 		plat_dir_create(usr_path);
     }
 
-    /* Make sure we have a trailing backslash. */
-    plat_path_slash(usr_path);
-
     /* Grab the name of the configuration file. */
     if (cfg == NULL)
 	cfg = CONFIG_FILE;
@@ -475,6 +472,9 @@ usage:
 	  else
 		wcscat(usr_path, cfg);
     }
+
+    /* Make sure we have a trailing backslash. */
+    plat_path_slash(usr_path);
 
     /* At this point, we can safely create the full path name. */
     plat_append_filename(cfg_path, usr_path, p);

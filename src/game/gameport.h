@@ -10,7 +10,7 @@
  *
  * NOTE:	This module needs a good cleanup someday.
  *
- * Version:	@(#)gameport.h	1.0.4	2018/11/11
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>

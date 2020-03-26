@@ -11,7 +11,7 @@
  *		Winbond W83977F Super I/O Chip
  *		Used by the Award 430TX
  *
- * Version:	@(#)sio_w83977f.c	1.0.0	2020/01/24
+ *
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2020 Miran Grca.

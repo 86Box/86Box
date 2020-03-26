@@ -8,7 +8,7 @@
  *
  *		Platform support defintions for Win32.
  *
- * Version:	@(#)win.h	1.0.29	2019/12/05
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -114,13 +114,13 @@ extern int	get_vidpause(void);
 extern void	show_cursor(int);
 
 extern void	keyboard_getkeymap(void);
-extern void	keyboard_handle(LPARAM lParam, int infocus);
+extern void	keyboard_handle(PRAWINPUT raw);
 
 extern void     win_mouse_init(void);
 extern void     win_mouse_close(void);
-#ifndef USE_DINPUT
-extern void     win_mouse_handle(LPARAM lParam, int infocus);
-#endif
+extern void     win_mouse_handle(PRAWINPUT raw);
+
+extern void     win_joystick_handle(PRAWINPUT raw);
 
 extern void     win_notify_dlg_open(void);
 extern void     win_notify_dlg_closed(void);

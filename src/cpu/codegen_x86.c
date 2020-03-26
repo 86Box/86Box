@@ -8,7 +8,7 @@
  *
  *		Dynamic Recompiler for Intel 32-bit systems.
  *
- * Version:	@(#)codegen_x86.c	1.0.3	2018/05/05
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>

@@ -8,7 +8,7 @@
  *
  *		MIDI device core module.
  *
- * Version:	@(#)midi.c	1.0.3	2020/01/19
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

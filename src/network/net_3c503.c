@@ -8,7 +8,7 @@
  *		Implementation of the following network controllers:
  *			- 3Com Etherlink II 3c503 (ISA 8-bit).
  *
- * Version:	@(#)net_3c503.c	1.0.2	2018/10/17
+ *
  *
  * Based on	@(#)3c503.cpp Carl (MAME)
  *

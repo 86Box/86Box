@@ -8,7 +8,7 @@
  *
  *		Emulation core dispatcher.
  *
- * Version:	@(#)piix.h	1.0.4	2020/01/24
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

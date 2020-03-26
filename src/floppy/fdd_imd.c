@@ -8,7 +8,7 @@
  *
  *		Implementation of the IMD floppy image format.
  *
- * Version:	@(#)fdd_imd.c	1.0.9	2019/12/05
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -8,7 +8,7 @@
  *
  *		Definitions for the Sidewinder Pro driver.
  *
- * Version:	@(#)joystick_sw_pad.h	1.0.2	2018/03/15
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>

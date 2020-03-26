@@ -8,7 +8,7 @@
  *
  *		Emulation of various Compaq XT-class PC's.
  *
- * Version:	@(#)m_xt_compaq.c	1.0.5	2019/11/15
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

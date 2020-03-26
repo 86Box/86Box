@@ -10,7 +10,7 @@
  *		    word 0 - base address
  *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- * Version:	@(#)intel_piix.c	1.0.23	2020/01/24
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

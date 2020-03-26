@@ -10,7 +10,7 @@
  *
  *		Re-worked version based on the 82C235 datasheet and errata.
  *
- * Version:	@(#)scat.c	1.0.1	2019/10/19
+ *
  *
  * Authors:	Original by GreatPsycho for PCem.
  *		Fred N. van Kempen, <decwiz@yahoo.com>

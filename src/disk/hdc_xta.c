@@ -46,7 +46,7 @@
  *
  * NOTE:	The XTA interface is 0-based for sector numbers !!
  *
- * Version:	@(#)hdc_ide_xta.c	1.0.9	2018/10/17
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

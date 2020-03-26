@@ -8,7 +8,7 @@
  *
  *		Implementation of the floppy drive emulation.
  *
- * Version:	@(#)fdd.c	1.0.15	2019/10/20
+ *
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -38,7 +38,7 @@
  *		This is implemented by holding a FIFO of unlimited depth in
  *		the IM1024 to receive the data.
  *
- * Version:	@(#)vid_im1024.c	1.0.4	2019/11/04
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		John Elliott, <jce@seasip.info>

@@ -8,7 +8,7 @@
  *
  *		Definitions for the hard disk image handler.
  *
- * Version:	@(#)hdd.h	1.0.8	2018/10/28
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

@@ -8,7 +8,7 @@
  *
  *		Definitions for the NE2000 ethernet controller.
  *
- * Version:	@(#)net_ne2000.h	1.0.4	2018/08/11
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

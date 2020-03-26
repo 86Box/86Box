@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.h	1.0.8	2018/10/26
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -72,6 +72,10 @@ extern void	givealbuffer_cd(void *buf);
 extern const device_t adlib_device;
 extern const device_t adlib_mca_device;
 extern const device_t adgold_device;
+
+/* Aztech Sound Galaxy 16 */
+extern const device_t azt2316a_device;
+extern const device_t azt1605_device;
 
 /* Ensoniq AudioPCI */
 extern const device_t es1371_device;

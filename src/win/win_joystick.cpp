@@ -8,7 +8,7 @@
  *
  *		Joystick interface to host device.
  *
- * Version:	@(#)win_joystick.cpp	1.0.12	2019/10/23
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -336,3 +336,4 @@ void joystick_process(void)
         }
 }
 
+void win_joystick_handle(PRAWINPUT raw) {}

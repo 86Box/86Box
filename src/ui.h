@@ -8,7 +8,7 @@
  *
  *		Define the various UI functions.
  *
- * Version:	@(#)ui.h	1.0.16	2019/09/22
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

@@ -8,7 +8,7 @@
  *
  *		Define the various platform support functions.
  *
- * Version:	@(#)plat.h	1.0.28	2019/03/06
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

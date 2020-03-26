@@ -14,7 +14,7 @@
  *		Used by ET4000w32/p (Diamond Stealth 32) and the S3
  *		Vision964 family.
  *
- * Version:	@(#)vid_icd2061.c	1.0.8	2018/10/04
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *

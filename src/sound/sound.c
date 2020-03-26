@@ -8,7 +8,7 @@
  *
  *		Sound emulation core.
  *
- * Version:	@(#)sound.c	1.0.28	2020/01/19
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -34,6 +34,7 @@
 #include "snd_opl.h"
 #include "snd_mpu401.h"
 #include "snd_sb_dsp.h"
+#include "snd_azt2316a.h"
 #include "filters.h"
 
 
@@ -80,6 +81,8 @@ static const SOUND_CARD sound_cards[] =
     { "None",					"none",		NULL				},
     { "[ISA] Adlib",				"adlib",	&adlib_device			},
     { "[ISA] Adlib Gold",			"adlibgold",	&adgold_device			},
+    { "[ISA] Aztech Sound Galaxy Pro 16 AB (Washington)", "azt2316a",	&azt2316a_device	},
+    { "[ISA] Aztech Sound Galaxy Nova 16 Extra (Clinton)", "azt1605",	&azt1605_device		},
     { "[ISA] Sound Blaster 1.0",		"sb",		&sb_1_device			},
     { "[ISA] Sound Blaster 1.5",		"sb1.5",	&sb_15_device			},
     { "[ISA] Sound Blaster 2.0",		"sb2.0",	&sb_2_device			},

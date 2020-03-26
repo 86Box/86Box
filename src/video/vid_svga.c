@@ -11,7 +11,7 @@
  *		This is intended to be used by another SVGA driver,
  *		and not as a card in it's own right.
  *
- * Version:	@(#)vid_svga.c	1.0.42	2020/01/20
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -8,7 +8,7 @@
  *
  *		Definitions for the keyboard interface.
  *
- * Version:	@(#)keyboard.h	1.0.19	2019/10/30
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

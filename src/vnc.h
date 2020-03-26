@@ -8,7 +8,7 @@
  *
  *		Definitions for the VNC renderer.
  *
- * Version:	@(#)vnc.h	1.0.4	2017/10/22
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

@@ -8,7 +8,7 @@
  *
  *		Matrox MGA graphics card emulation.
  *
- * Version:	@(#)vid_mga.c	1.0.3	2020/01/20
+ *
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Copyright 2008-2020 Sarah Walker.
@@ -233,6 +233,7 @@
 #define DWGCTRL_OPCODE_MASK           (0xf << 0)
 #define DWGCTRL_OPCODE_LINE_OPEN      (0x0 << 0)
 #define DWGCTRL_OPCODE_AUTOLINE_OPEN  (0x1 << 0)
+#define DWGCTRL_OPCODE_LINE_CLOSE     (0x2 << 0)
 #define DWGCTRL_OPCODE_AUTOLINE_CLOSE (0x3 << 0)
 #define DWGCTRL_OPCODE_TRAP           (0x4 << 0)
 #define DWGCTRL_OPCODE_TEXTURE_TRAP   (0x6 << 0)
@@ -4186,6 +4187,15 @@ blit_bitblt(mystique_t *mystique)
 									svga->changedvram[(((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask) >> 12] = changeframecount;
 									break;
 
+								case MACCESS_PWIDTH_32:
+									dst = ((uint32_t *)svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l];
+
+									dst = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
+
+									((uint32_t *)svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l] = dst;
+									svga->changedvram[((mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l) >> 10] = changeframecount;
+									break;
+
 								default:
 									fatal("BITBLT RPL BMONOLEF PWIDTH %x %08x\n", mystique->maccess_running & MACCESS_PWIDTH_MASK, mystique->dwgreg.dwgctrl_running);
 							}
@@ -4512,6 +4522,10 @@ mystique_start_blit(mystique_t *mystique)
 	case DWGCTRL_OPCODE_AUTOLINE_OPEN:
 		blit_autoline(mystique, 0);
 		break;
+        
+	case DWGCTRL_OPCODE_LINE_CLOSE:
+		blit_line(mystique, 1);
+		break;		
 
 	case DWGCTRL_OPCODE_AUTOLINE_CLOSE:
 		blit_autoline(mystique, 1);
@@ -4554,7 +4568,8 @@ mystique_start_blit(mystique_t *mystique)
 		break;
 
 	default:
-		fatal("mystique_start_blit: unknown blit %08x\n", mystique->dwgreg.dwgctrl_running);
+		fatal("mystique_start_blit: unknown blit %08x\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK);
+		break;
     }
 
     end_time = plat_timer_read();

@@ -10,7 +10,7 @@
  *
  *		Based on the "libpcap" examples.
  *
- * Version:	@(#)pcap_if.c	1.0.10	2018/03/10
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

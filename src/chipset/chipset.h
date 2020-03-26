@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated chipsets.
  *
- * Version:	@(#)machine.h	1.0.2	2020/01/24
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -47,16 +47,15 @@ extern const device_t	i440fx_device;
 extern const device_t	i440bx_device;
 extern const device_t	i440zx_device;
 
-/* NEAT */
-extern const device_t	neat_device;
-
 /* OPTi */
 extern const device_t	opti495_device;
 
-/* SCAT */
+/* C&T */
+extern const device_t	neat_device;
 extern const device_t	scat_device;
 extern const device_t	scat_4_device;
 extern const device_t	scat_sx_device;
+extern const device_t	cs8230_device;
 
 /* SiS */
 extern const device_t	sis_85c471_device;

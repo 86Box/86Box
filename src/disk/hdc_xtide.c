@@ -21,7 +21,7 @@
  *		already on their way out, the newer IDE standard based on the
  *		PC/AT controller and 16b design became the IDE we now know.
  *
- * Version:	@(#)hdc_xtide.c	1.0.13	2018/04/26
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

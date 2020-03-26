@@ -11,7 +11,7 @@
  *		  1 - BT-545S ISA;
  *		  2 - BT-958D PCI
  *
- * Version:	@(#)scsi_buslogic.c	1.0.45	2019/02/11
+ *
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -1626,7 +1626,7 @@ buslogic_init(const device_t *info)
 		dev->flags |= X54X_32BIT;
 		dev->pos_regs[0] = 0x08;	/* MCA board ID */
 		dev->pos_regs[1] = 0x07;	
-		mca_add(buslogic_mca_read, buslogic_mca_write, buslogic_mca_feedb, dev);
+		mca_add(buslogic_mca_read, buslogic_mca_write, buslogic_mca_feedb, NULL, dev);
 		dev->ha_bps = 5000000.0;	/* normal SCSI */
 		dev->max_id = 7;		/* narrow SCSI */
 		break;

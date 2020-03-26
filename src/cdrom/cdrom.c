@@ -8,7 +8,7 @@
  *
  *		Generic CD-ROM drive core.
  *
- * Version:	@(#)cdrom.c	1.0.10	2020/03/23
+ *
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *

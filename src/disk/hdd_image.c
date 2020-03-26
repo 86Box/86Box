@@ -8,7 +8,7 @@
  *
  *		Handling of hard disk image files.
  *
- * Version:	@(#)hdd_image.c	1.0.20	2018/10/28
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

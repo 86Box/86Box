@@ -10,7 +10,7 @@
  *		Adapters made by NCR and later Symbios and LSI. These
  *		controllers were designed for the PCI bus.
  *
- * Version:	@(#)scsi_ncr53c8xx.c	1.0.2	2018/10/30
+ *
  *
  * Authors:	TheCollector1995, <mariogplayer@gmail.com>
  *		Miran Grca, <mgrca8@gmail.com>

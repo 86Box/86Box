@@ -11,7 +11,7 @@
  * TODO:	Add the Genius bus- and serial mouse.
  *		Remove the '3-button' flag from mouse types.
  *
- * Version:	@(#)mouse.c	1.0.29	2018/11/04
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

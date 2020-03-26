@@ -8,7 +8,7 @@
  *
  *		Various ASCII to Unicode maps, for the various codepages.
  *
- * Version:	@(#)prt_cpmap.c	1.0.2	2018/10/05
+ *
  *
  * Authors:	Michael Dr�ing, <michael@drueing.de>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

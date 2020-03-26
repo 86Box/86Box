@@ -8,7 +8,7 @@
  *
  *		Xinput joystick interface.
  *
- * Version:	@(#)win_joystick_xinput.cpp	1.0.0	2019/3/19
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -18,7 +18,7 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2019 GH Cao.
  */
-#include <Xinput.h>
+#include <xinput.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -260,3 +260,4 @@ void joystick_process(void)
         }
 }
 
+void win_joystick_handle(PRAWINPUT raw) {}

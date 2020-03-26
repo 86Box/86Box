@@ -8,7 +8,7 @@
  *
  *		Implementation of the PCjs JSON floppy image format.
  *
- * Version:	@(#)fdd_json.c	1.0.7	2019/12/05
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

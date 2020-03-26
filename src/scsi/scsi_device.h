@@ -8,7 +8,7 @@
  *
  *		Definitions for the generic SCSI device command handler.
  *
- * Version:	@(#)scsi_device.h	1.0.18	2020/03/23
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

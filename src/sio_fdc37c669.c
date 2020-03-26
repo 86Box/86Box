@@ -8,7 +8,7 @@
  *
  *		Implementation of the SMC FDC37C669 Super I/O Chip.
  *
- * Version:	@(#)sio_fdc37c669.c	1.0.10	2018/11/05
+ *
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2016-2018 Miran Grca.

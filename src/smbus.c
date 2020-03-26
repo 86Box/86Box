@@ -8,7 +8,7 @@
  *
  *		Implement SMBus (System Management Bus) and its operations.
  *
- * Version:	@(#)smbus.c	1.0.0	2020/03/21
+ *
  *
  * Authors:	RichardG, <richardg867@gmail.com>
  *

@@ -8,7 +8,7 @@
  *
  *		Implementation of MCA-based PS/2 machines.
  *
- * Version:	@(#)m_ps2_mca.c	1.0.6	2019/11/01
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -718,6 +718,8 @@ static void ps2_mca_write(uint16_t port, uint8_t val, void *p)
                 ps2.setup = val;
                 break;
                 case 0x96:
+                if ((val & 0x80) && !(ps2.adapter_setup & 0x80))
+                        mca_reset();
                 ps2.adapter_setup = val;
                 mca_set_index(val & 7);
                 break;
@@ -856,7 +858,7 @@ static void ps2_mca_mem_fffc_init(int start_mb)
 			break;
 	}
 
-	mca_add(ps2_mem_expansion_read, ps2_mem_expansion_write, ps2_mem_expansion_feedb, NULL);
+	mca_add(ps2_mem_expansion_read, ps2_mem_expansion_write, ps2_mem_expansion_feedb, NULL, NULL);
 	mem_mapping_add(&ps2.expansion_mapping,
 			expansion_start,
 			(mem_size - (start_mb << 10)) << 10,

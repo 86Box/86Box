@@ -9,7 +9,7 @@
  *		IBM CGA composite filter, borrowed from reenigne's DOSBox
  *		patch and ported to C.
  *
- * Version:	@(#)vid_cga_comp.c	1.0.5	2019/03/24
+ *
  *
  * Authors:	reenigne,
  *		Miran Grca, <mgrca8@gmail.com>

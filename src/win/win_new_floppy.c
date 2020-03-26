@@ -8,7 +8,7 @@
  *
  *		Handle the New Floppy Image dialog.
  *
- * Version:	@(#)win_new_floppy.c	1.0.13	2019/11/19
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *

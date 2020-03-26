@@ -8,7 +8,7 @@
  *
  *		Hercules emulation.
  *
- * Version:	@(#)vid_hercules.c	1.0.17	2019/02/07
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

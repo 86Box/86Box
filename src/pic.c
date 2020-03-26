@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel PIC chip emulation.
  *
- * Version:	@(#)pic.c	1.0.7	2020/01/21
+ *
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *

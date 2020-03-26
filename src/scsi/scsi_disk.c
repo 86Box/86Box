@@ -6,7 +6,7 @@
  *
  *		Emulation of SCSI fixed disks.
  *
- * Version:	@(#)scsi_disk.c	1.0.30	2018/11/02
+ *
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *

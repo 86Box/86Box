@@ -10,7 +10,7 @@
  *
  * Known bugs:	Accelerator doesn't work in planar modes
  *
- * Version:	@(#)vid_et4000w32.c	1.0.22	2019/09/28
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

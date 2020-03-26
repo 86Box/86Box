@@ -8,7 +8,7 @@
  *
  *		Implementation of 386DX and 486 machines.
  *
- * Version:	@(#)m_at_386dx_486.c	1.0.2	2020/01/20
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -41,7 +41,36 @@
 #include "intel_flash.h"
 #include "intel_sio.h"
 #include "machine.h"
+static void
+machine_at_cs8230_init(const machine_t *model)
+{
 
+    machine_at_common_init(model);
+
+    device_add(&cs8230_device);
+
+}
+
+
+int
+machine_at_ecs386_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/ecs386/AMI BIOS for ECS-386_32 motherboard - L chip.bin",
+				L"roms/machines/ecs386/AMI BIOS for ECS-386_32 motherboard - H chip.bin",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_cs8230_init(model);
+
+    device_add(&keyboard_at_ami_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
 
 int
 machine_at_pb410a_init(const machine_t *model)

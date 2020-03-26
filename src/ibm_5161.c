@@ -6,7 +6,7 @@
  *
  *		Emulation of the IBM Expansion Unit (5161).
  *
- * Version:	@(#)ibm_5161.c	1.0.0	2019/06/28
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *

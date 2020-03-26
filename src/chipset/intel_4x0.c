@@ -8,7 +8,7 @@
  *
  *		Implementation of the Intel PCISet chips from 420TX to 440FX.
  *
- * Version:	@(#)intel_4x0.c	1.0.3	2020/01/24
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

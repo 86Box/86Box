@@ -8,7 +8,7 @@
  *
  *		Implementation of the Generic ESC/P Dot-Matrix printer.
  *
- * Version:	@(#)prt_escp.c	1.0.7	2019/09/23
+ *
  *
  * Authors:	Michael Dr�ing, <michael@drueing.de>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
@@ -2006,7 +2006,7 @@ read_ctrl(void *priv)
 {
     escp_t *dev = (escp_t *)priv;
 
-    return 0xe0 | dev->autofeed ? 0x02 : 0x00 | (dev->ctrl & 0xfd);
+    return 0xe0 | (dev->autofeed ? 0x02 : 0x00) | (dev->ctrl & 0xfd);
 }
 
 

@@ -196,7 +196,7 @@ ifndef RDP
 RDP		:= n
 endif
 ifndef DINPUT
- DINPUT		:= n
+ DINPUT		:= y
 endif
 ifndef OPENAL
 OPENAL		:= y
@@ -448,10 +448,6 @@ RDPLIB		+= -lrdp
 RDPOBJ		:= rdp.o
 endif
 
-ifeq ($(DINPUT), y)
-OPTS		+= -DUSE_DINPUT
-endif
-
 ifeq ($(DISCORD), y)
 OPTS		+= -DUSE_DISCORD
 RFLAGS		+= -DUSE_DISCORD
@@ -554,7 +550,7 @@ CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 # -funroll-loops
 
 # Add freetyp2 references through pkgconfig
-CFLAGS          := $(CFLAGS)  `pkg-config.exe --cflags freetype2`
+CFLAGS          := $(CFLAGS)  `pkg-config --cflags freetype2`
 
 CXXFLAGS	:= $(CFLAGS)
 
@@ -576,7 +572,7 @@ CPUOBJ		:= cpu.o cpu_table.o \
 		    x86seg.o x87.o \
 		    $(DYNARECOBJ)
 
-CHIPSETOBJ	:= acc2168.o acer_m3a.o ali1429.o headland.o \
+CHIPSETOBJ	:= acc2168.o acer_m3a.o cs8230.o ali1429.o headland.o \
 		    intel_4x0.o neat.o opti495.o scamp.o scat.o \
 		    sis_85c471.o sis_85c496.o \
 		    via_mvp3.o wd76c10.o
@@ -599,6 +595,7 @@ MCHOBJ		:= machine.o machine_table.o \
 
 DEVOBJ		:= bugger.o hwm.o hwm_w83781d.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o $(SERIAL) \
 		    sio_acc3221.o \
+		    sio_f82c710.o \
 		    sio_fdc37c66x.o sio_fdc37c669.o \
 		    sio_fdc37c93x.o \
 		    sio_pc87306.o \
@@ -673,6 +670,7 @@ SNDOBJ		:= sound.o \
 		    snd_pssj.o \
 		    snd_lpt_dac.o snd_lpt_dss.o \
 		    snd_adlib.o snd_adlibgold.o snd_ad1848.o snd_audiopci.o \
+		    snd_azt2316a.o \
 		    snd_cms.o \
 		    snd_gus.o \
 		    snd_sb.o snd_sb_dsp.o \
@@ -720,7 +718,13 @@ PLATOBJ		:= win.o \
 		    win_dynld.o win_thread.o \
 		    win_cdrom.o win_keyboard.o \
 		    win_midi.o \
-		    win_mouse.o win_joystick.o
+		    win_mouse.o
+
+ifeq ($(DINPUT), y)
+ PLATOBJ	+= win_joystick.o
+else
+ PLATOBJ	+= win_joystick_rawinput.o
+endif
 
 OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) \
 		   $(DEVOBJ) $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(HDDOBJ) \
@@ -746,12 +750,12 @@ endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
-LIBS		+= -lpng -lz -lwsock32 -liphlpapi -ldinput8 -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -lversion -lwinmm -static -lstdc++ 
+LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -lversion -lwinmm -static -lstdc++
 ifneq ($(X64), y)
 LIBS		+= -Wl,--large-address-aware
 endif
-ifneq ($(DINPUT), y)
- LIBS    += -lxinput
+ifeq ($(DINPUT), y)
+ LIBS    += -ldinput8
 endif
 
 LIBS    += -static
@@ -805,7 +809,7 @@ all:		$(PROG).exe pcap_if.exe
 
 $(PROG).exe:	$(OBJ) 86Box.res
 		@echo Linking $(PROG).exe ..
-		@$(CC) -o $(PROG).exe $(OBJ) 86Box.res $(LIBS) -pipe
+		@$(CC) $(LDFLAGS) -o $(PROG).exe $(OBJ) 86Box.res $(LIBS) -pipe
 ifneq ($(DEBUG), y)
 		@$(STRIP) $(PROG).exe
 endif
@@ -816,7 +820,7 @@ pcap_if.res:	pcap_if.rc
 
 pcap_if.exe:	pcap_if.o win_dynld.o pcap_if.res
 		@echo Linking pcap_if.exe ..
-		@$(CC) -o pcap_if.exe pcap_if.o win_dynld.o pcap_if.res
+		@$(CC) $(LDFLAGS) -o pcap_if.exe pcap_if.o win_dynld.o pcap_if.res
 ifneq ($(DEBUG), y)
 		@$(STRIP) pcap_if.exe
 endif

@@ -8,7 +8,7 @@
  *
  *		Sigma Color 400 emulation.
  *
- * Version:	@(#)vid_sigma.c	1.0.5	2019/11/08
+ *
  *
  * Authors:	John Elliott,
  *

@@ -8,7 +8,7 @@
  *
  *		Windows raw keyboard input handler.
  *
- * Version:	@(#)win_keyboard.c	1.0.10	2018/04/29
+ *
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -108,30 +108,12 @@ keyboard_getkeymap(void)
 
 
 void
-keyboard_handle(LPARAM lParam, int infocus)
+keyboard_handle(PRAWINPUT raw)
 {
-    uint32_t ri_size = 0;
-    UINT size;
-    RAWINPUT *raw;
     USHORT scancode;
     static int recv_lalt = 0, recv_ralt = 0, recv_tab = 0;
 
-    if (! infocus) return;
-
-    GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL,
-		    &size, sizeof(RAWINPUTHEADER));
-
-    raw = malloc(size);
-    if (raw == NULL) return;
-
-    /* Here we read the raw input data for the keyboard */
-    ri_size = GetRawInputData((HRAWINPUT)(lParam), RID_INPUT,
-			      raw, &size, sizeof(RAWINPUTHEADER));
-    if (ri_size != size) return;
-
-    /* If the input is keyboard, we process it */
-    if (raw->header.dwType == RIM_TYPEKEYBOARD) {
-	RAWKEYBOARD rawKB = raw->data.keyboard;
+    RAWKEYBOARD rawKB = raw->data.keyboard;
 	scancode = rawKB.MakeCode;
 
 	/* If it's not a scan code that starts with 0xE1 */
@@ -217,7 +199,4 @@ keyboard_handle(LPARAM lParam, int infocus)
 		if (scancode != 0xFFFF)
 			keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
 	}
-    }
-
-    free(raw);
 }

@@ -11,7 +11,7 @@
  *		Winbond W83787F Super I/O Chip
  *		Used by the Award 430HX
  *
- * Version:	@(#)sio_w83787f.c	1.0.0	2020/01/11
+ *
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2020 Miran Grca.

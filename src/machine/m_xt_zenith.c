@@ -9,7 +9,7 @@
  *		Emulation of various Zenith PC compatible machines.
  *		Currently only the Zenith Data Systems Supersport is emulated.
  *
- * Version:	@(#)m_xt_compaq.c	1.0.1	2019/11/15
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

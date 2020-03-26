@@ -10,7 +10,7 @@
  *		made by Adaptec, Inc. These controllers were designed for
  *		the ISA bus.
  *
- * Version:	@(#)scsi_aha154x.c	1.0.44	2018/10/18
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Original Buslogic version by SA1988 and Miran Grca.
@@ -861,7 +861,7 @@ aha_init(const device_t *info)
 		/* Enable MCA. */
 		dev->pos_regs[0] = 0x1F;	/* MCA board ID */
 		dev->pos_regs[1] = 0x0F;	
-		mca_add(aha_mca_read, aha_mca_write, aha_mca_feedb, dev);
+		mca_add(aha_mca_read, aha_mca_write, aha_mca_feedb, NULL, dev);
 		dev->ha_bps = 5000000.0;	/* normal SCSI */
 		break;
     }	

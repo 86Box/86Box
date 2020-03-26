@@ -13,7 +13,7 @@
  *		8MB of DRAM chips', because it works fine with bus-based
  *		memory expansion.
  *
- * Version:	@(#)scamp.c	1.0.1	2020/01/22
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *

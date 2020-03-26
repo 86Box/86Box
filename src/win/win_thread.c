@@ -8,7 +8,7 @@
  *
  *		Implement threads and mutexes for the Win32 platform.
  *
- * Version:	@(#)win_thread.c	1.0.6	2018/03/28
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

@@ -8,7 +8,7 @@
  *
  *		Definitions for the Intel DMA controller.
  *
- * Version:	@(#)dma.h	1.0.4	2020/01/26
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>

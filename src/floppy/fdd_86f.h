@@ -8,7 +8,7 @@
  *
  *		Definitions for the 86F floppy image format.
  *
- * Version:	@(#)floppy_86f.h	1.0.6	2019/12/05
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

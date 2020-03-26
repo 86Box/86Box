@@ -8,7 +8,7 @@
  *
  *		Handling of the emulated machines.
  *
- * Version:	@(#)machine.h	1.0.38	2020/01/24
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -210,6 +210,9 @@ extern const device_t	*at_commodore_sl386sx_get_device(void);
 #endif
 
 /* m_at_386dx_486.c */
+
+extern int  machine_at_ecs386_init(const machine_t *);
+
 extern int	machine_at_pb410a_init(const machine_t *);
 
 extern int	machine_at_ali1429_init(const machine_t *);
@@ -237,9 +240,10 @@ extern int	machine_at_cmdpc_init(const machine_t *);
 
 /* m_at_compaq.c */
 extern int	machine_at_portableii_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_PORTABLE3)
 extern int	machine_at_portableiii_init(const machine_t *);
 extern int	machine_at_portableiii386_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t 	*at_cpqiii_get_device(void);
 #endif
 
 /* m_at_socket4_5.c */
@@ -309,6 +313,8 @@ extern int	machine_at_s1668_init(const machine_t *);
 extern int	machine_at_6abx3_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_I686) /*P2B-LS has no VIA C3 BIOS support, so further investigation may be needed*/
 extern int  machine_at_p2bls_init(const machine_t *);
+extern int	machine_at_borapro_init(const machine_t *);
+
 extern int	machine_at_p6bxt_init(const machine_t *);
 extern int	machine_at_63a_init(const machine_t *);
 #endif

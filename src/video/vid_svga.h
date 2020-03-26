@@ -8,7 +8,7 @@
  *
  *		Generic SVGA handling.
  *
- * Version:	@(#)vid_svga.h	1.0.16	2020/01/18
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

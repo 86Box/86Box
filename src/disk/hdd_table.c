@@ -9,7 +9,7 @@
  *		Implementation of the IDE emulation for hard disks and ATAPI
  *		CD-ROM devices.
  *
- * Version:	@(#)hdd_table.c	1.0.5	2018/04/08
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

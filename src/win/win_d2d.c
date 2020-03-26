@@ -8,7 +8,7 @@
  *
  *		Rendering module for Microsoft Direct2D.
  *
- * Version:	@(#)win_d2d.c	1.0.7	2019/12/13
+ *
  *
  * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
  *

@@ -10,7 +10,7 @@
  *		PC1512, PC1640 and PC200, including their keyboard, mouse and
  *		video devices, as well as the PC2086 and PC3086 systems.
  *
- * Version:	@(#)m_amstrad.h	1.0.0	2019/03/21
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *

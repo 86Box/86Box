@@ -8,7 +8,7 @@
  *
  *		CPU type handler.
  *
- * Version:	@(#)cpu.c	1.0.6	2018/05/05
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -159,7 +159,8 @@ int		is286,
 		is486 = 1,
 		is486sx, is486dx, is486sx2, is486dx2, isdx4,
 		cpu_iscyrix,
-		isibmcpu,
+		hascache,
+		isibm486,
 		israpidcad,
 		is_pentium;
 
@@ -281,16 +282,17 @@ cpu_set(void)
         is8086       = (cpu_s->cpu_type > CPU_8088);
         is286        = (cpu_s->cpu_type >= CPU_286);
         is386        = (cpu_s->cpu_type >= CPU_386SX);
-	isibmcpu     = (cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
 	israpidcad   = (cpu_s->cpu_type == CPU_RAPIDCAD);
-        is486        = (cpu_s->cpu_type >= CPU_i486SX) || (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_RAPIDCAD || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL );
+	isibm486     = (cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
+        is486        = (cpu_s->cpu_type >= CPU_i486SX) || (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_RAPIDCAD);
         is486sx      = (cpu_s->cpu_type >= CPU_i486SX) && (cpu_s->cpu_type < CPU_i486SX2);
         is486sx2     = (cpu_s->cpu_type >= CPU_i486SX2) && (cpu_s->cpu_type < CPU_i486DX);
         is486dx      = (cpu_s->cpu_type >= CPU_i486DX) && (cpu_s->cpu_type < CPU_i486DX2);
-        is486dx2     = (cpu_s->cpu_type >= CPU_iDX4) && (cpu_s->cpu_type < CPU_WINCHIP);
-        isdx4        = (cpu_s->cpu_type >= CPU_i486DX2) && (cpu_s->cpu_type < CPU_iDX4);
+        is486dx2     = (cpu_s->cpu_type >= CPU_i486DX2) && (cpu_s->cpu_type < CPU_iDX4);	
+        isdx4        = (cpu_s->cpu_type >= CPU_iDX4) && (cpu_s->cpu_type < CPU_WINCHIP);
         is_pentium   = (cpu_s->cpu_type >= CPU_WINCHIP);
         hasfpu       = (cpu_s->cpu_type >= CPU_i486DX) || (cpu_s->cpu_type == CPU_RAPIDCAD);
+	hascache     = (cpu_s->cpu_type >= CPU_486SLC) || (cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
 #if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_CYRIX_6X86))
         cpu_iscyrix  = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx5x86 || cpu_s->cpu_type == CPU_Cx6x86 || cpu_s->cpu_type == CPU_Cx6x86MX || cpu_s->cpu_type == CPU_Cx6x86L || cpu_s->cpu_type == CPU_CxGX1);
 #else
@@ -518,7 +520,13 @@ cpu_set(void)
                 timing_jmp_pm      = 23;
                 timing_jmp_pm_gate = 38;
                 break;
-
+		
+                case CPU_IBM486SLC:
+#ifdef USE_DYNAREC
+                x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+#else
+                x86_setopcodes(ops_386, ops_486_0f);
+#endif
 		case CPU_IBM386SLC:
                 case CPU_386SX:
                 timing_rr  = 2;   /*register dest - register src*/
@@ -550,7 +558,13 @@ cpu_set(void)
                 timing_jmp_pm      = 27;
                 timing_jmp_pm_gate = 45;
                 break;
-
+		
+                case CPU_IBM486BL:
+#ifdef USE_DYNAREC
+                x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+#else
+                x86_setopcodes(ops_386, ops_486_0f);
+#endif
                 case CPU_386DX:
                 timing_rr  = 2; /*register dest - register src*/
                 timing_rm  = 6; /*register dest - memory src*/
@@ -582,80 +596,7 @@ cpu_set(void)
                 timing_jmp_pm_gate = 45;
                 break;
                 
-                case CPU_IBM486SLC:
-#ifdef USE_DYNAREC
-                x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
-#else
-                x86_setopcodes(ops_386, ops_486_0f);
-#endif
-                timing_rr  = 1; /*register dest - register src*/
-                timing_rm  = 2; /*register dest - memory src*/
-                timing_mr  = 5; /*memory dest   - register src*/
-                timing_mm  = 3;
-                timing_rml = 4; /*register dest - memory src long*/
-                timing_mrl = 5; /*memory dest   - register src long*/
-                timing_mml = 5;
-                timing_bt  = 3-1; /*branch taken*/
-                timing_bnt = 1; /*branch not taken*/
-                timing_int = 4;
-                timing_int_rm       = 26;
-                timing_int_v86      = 82;
-                timing_int_pm       = 44;
-                timing_int_pm_outer = 71;
-                timing_iret_rm       = 15;
-                timing_iret_v86      = 36; /*unknown*/
-                timing_iret_pm       = 20;
-                timing_iret_pm_outer = 36;
-                timing_call_rm = 18;
-                timing_call_pm = 20;
-                timing_call_pm_gate = 35;
-                timing_call_pm_gate_inner = 69;
-                timing_retf_rm       = 13;
-                timing_retf_pm       = 17;
-                timing_retf_pm_outer = 35;
-                timing_jmp_rm      = 17;
-                timing_jmp_pm      = 19;
-                timing_jmp_pm_gate = 32;
-                timing_misaligned = 3;
-                break;
-				
-                case CPU_IBM486BL:
-#ifdef USE_DYNAREC
-                x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
-#else
-                x86_setopcodes(ops_386, ops_486_0f);
-#endif
-                timing_rr  = 1; /*register dest - register src*/
-                timing_rm  = 2; /*register dest - memory src*/
-                timing_mr  = 3; /*memory dest   - register src*/
-                timing_mm  = 3;
-                timing_rml = 2; /*register dest - memory src long*/
-                timing_mrl = 3; /*memory dest   - register src long*/
-                timing_mml = 3;
-                timing_bt  = 3-1; /*branch taken*/
-                timing_bnt = 1; /*branch not taken*/
-                timing_int = 4;
-                timing_int_rm       = 26;
-                timing_int_v86      = 82;
-                timing_int_pm       = 44;
-                timing_int_pm_outer = 71;
-                timing_iret_rm       = 15;
-                timing_iret_v86      = 36; /*unknown*/
-                timing_iret_pm       = 20;
-                timing_iret_pm_outer = 36;
-                timing_call_rm = 18;
-                timing_call_pm = 20;
-                timing_call_pm_gate = 35;
-                timing_call_pm_gate_inner = 69;
-                timing_retf_rm       = 13;
-                timing_retf_pm       = 17;
-                timing_retf_pm_outer = 35;
-                timing_jmp_rm      = 17;
-                timing_jmp_pm      = 19;
-                timing_jmp_pm_gate = 32;
-                timing_misaligned = 3;
-                break;
-                
+		
                 case CPU_RAPIDCAD:
 #ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);

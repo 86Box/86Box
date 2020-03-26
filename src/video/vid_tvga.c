@@ -8,7 +8,7 @@
  *
  *		Trident TVGA (8900D) emulation.
  *
- * Version:	@(#)vid_tvga.c	1.0.9	2018/12/28
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -8,7 +8,7 @@
  *
  *		General keyboard driver interface.
  *
- * Version:	@(#)keyboard.c	1.0.16	2019/03/05
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

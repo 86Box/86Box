@@ -51,7 +51,7 @@
  * NOTE:	Still need to figure out a way to load/save ConfigSys and
  *		HardRAM stuff. Needs to be linked in to the NVR code.
  *
- * Version:	@(#)m_xt_t1000.c	1.0.14	2019/11/15
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>

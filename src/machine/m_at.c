@@ -8,7 +8,7 @@
  *
  *		Standard PC/AT implementation.
  *
- * Version:	@(#)m_at.c	1.0.12	2020/01/13
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>

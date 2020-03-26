@@ -9,7 +9,7 @@
  *		Implementation of the Intel 1 Mbit and 2 Mbit, 8-bit and
  *		16-bit flash devices.
  *
- * Version:	@(#)intel_flash.c	1.0.19	2019/06/25
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -10,7 +10,7 @@
  *
  *		Now passes all the AMIDIAG tests.
  *
- * Version:	@(#)serial.h	1.0.14	2020/01/24
+ *
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

@@ -8,7 +8,7 @@
  *
  *		Definitions for the code generator.
  *
- * Version:	@(#)codegen_public.h	1.0.0	2020/01/27
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *

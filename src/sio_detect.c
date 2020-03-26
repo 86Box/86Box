@@ -8,7 +8,7 @@
  *
  *		Super I/O chip detection code.
  *
- * Version:	@(#)sio_detect.c	1.0.1	2018/11/05
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *

@@ -8,7 +8,7 @@
  *
  *		Wyse-700 emulation.
  *
- * Version:	@(#)vid_wy700.c	1.0.10	2018/09/19
+ *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>

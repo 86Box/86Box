@@ -12,7 +12,7 @@
  *		the DYNAMIC_TABLES=1 enables this. Will eventually go
  *		away, either way...
  *
- * Version:	@(#)mem.c	1.0.23	2020/01/25
+ *
  *
  * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
  *		Miran Grca, <mgrca8@gmail.com>

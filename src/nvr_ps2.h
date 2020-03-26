@@ -8,7 +8,7 @@
  *
  *		Definitions for the PS/2 cmos/nvr device.
  *
- * Version:	@(#)nvr_ps2.h	1.0.2	2018/03/18
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>

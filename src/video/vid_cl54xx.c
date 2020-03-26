@@ -9,7 +9,7 @@
  *		Emulation of select Cirrus Logic cards (CL-GD 5428,
  *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- * Version:	@(#)vid_cl_54xx.c	1.0.34	2020/03/23
+ *
  *
  * Authors:	TheCollector1995,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -3127,7 +3127,7 @@ static void
     if (gd54xx->mca) {
 	gd54xx->pos_regs[0] = 0x7b;
 	gd54xx->pos_regs[1] = 0x91;
-	mca_add(gd5428_mca_read, gd5428_mca_write, gd5428_mca_feedb, gd54xx);
+	mca_add(gd5428_mca_read, gd5428_mca_write, gd5428_mca_feedb, NULL, gd54xx);
     }
 
     return gd54xx;

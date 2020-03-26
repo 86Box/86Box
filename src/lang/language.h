@@ -10,7 +10,7 @@
  *
  * NOTE:	FIXME: Strings 2176 and 2193 are same.
  *
- * Version:	@(#)language.h	1.0.10	2018/11/19
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

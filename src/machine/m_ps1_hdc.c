@@ -43,7 +43,7 @@
  *		Type table with the main code, so the user can only select
  *		items from that list...
  *
- * Version:	@(#)m_ps1_hdc.c	1.0.8	2019/03/08
+ *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *

@@ -57,7 +57,7 @@
  *		  Microsoft Windows NT 3.1
  *		  Microsoft Windows 98 SE
  *
- * Version:	@(#)mouse_bus.c	1.0.4	2019/09/27
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>

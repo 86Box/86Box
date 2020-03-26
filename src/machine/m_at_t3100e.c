@@ -117,7 +117,7 @@
  *                       bit 2 set for single-pixel LCD font
  *                       bits 0,1 for display font
  *
- * Version:	@(#)m_at_t3100e.c	1.0.6	2018/10/22
+ *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
