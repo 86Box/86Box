@@ -602,7 +602,7 @@ DEVOBJ		:= bugger.o hwm.o hwm_w83781d.o ibm_5161.o isamem.o isartc.o lpt.o postc
 		    sio_w83787f.o \
 		    sio_w83877f.o sio_w83977f.o \
 		    sio_um8669f.o \
-		    smbus.o \
+		    smbus.o spd.o \
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o \
 		   gameport.o \
