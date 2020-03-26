@@ -240,10 +240,10 @@ const machine_t machines[] = {
     { "[Slot 1 BX] ASUS P2B-LS",		"p2bls",		{{"VIA", cpus_Cyrix3},        {"",    NULL},	     {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,		machine_at_p2bls_init, NULL			},
 #endif
 #if defined(DEV_BRANCH) && defined(USE_I686)
-    { "[Slot 1 ZX] Packard Bell Bora Pro",	"borapro",		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron}, {"VIA", cpus_Cyrix3},   {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8, 256,    8, 255,		machine_at_borapro_init, NULL			},
+    { "[Slot 1 ZX] Packard Bell Bora Pro",	"borapro",		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron}, {"VIA", cpus_Cyrix3},   {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  8,  512,   8, 255,		machine_at_borapro_init, NULL			},
 
-    { "[Socket 370 BX] ECS P6BXT-A+",		"p6bxt",		{{"Intel", cpus_Celeron},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,		machine_at_p6bxt_init, NULL			},
-    { "[Socket 370 ZX] Soltek SL-63A1",		"63a",			{{"Intel", cpus_Celeron},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 256,    8, 255,		machine_at_63a_init, NULL			},
+    { "[Socket 370 BX] ECS P6BXT-A+",		"p6bxt",		{{"Intel", cpus_Celeron},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  768,   8, 255,		machine_at_p6bxt_init, NULL			},
+    { "[Socket 370 ZX] Soltek SL-63A1",		"63a",			{{"Intel", cpus_Celeron},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 255,		machine_at_63a_init, NULL			},
 #endif
     { NULL,					NULL,			{{"",      0},                {"",    0},            {"",      0},           {"",         0},     {"",      0}},    0,                                                                                                    0,    0,   0,   0,				 NULL, NULL			}
 };
