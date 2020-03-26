@@ -300,6 +300,7 @@ extern int	machine_at_586t2_init(const machine_t *);
 extern int	machine_at_807ds_init(const machine_t *);
 
 extern int	machine_at_mvp3_init(const machine_t *);
+extern int	machine_at_apas3_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_pb640_get_device(void);
@@ -316,6 +317,7 @@ extern int	machine_at_6abx3_init(const machine_t *);
 extern int  machine_at_p2bls_init(const machine_t *);
 extern int	machine_at_borapro_init(const machine_t *);
 extern int	machine_at_63a_init(const machine_t *);
+extern int	machine_at_vim863s_init(const machine_t *);
 
 /* m_at_t3100e.c */
 extern int	machine_at_t3100e_init(const machine_t *);
