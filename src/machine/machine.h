@@ -310,7 +310,6 @@ extern const device_t	*at_pb640_get_device(void);
 #if defined(DEV_BRANCH) && defined(USE_I686)
 extern int	machine_at_i440fx_init(const machine_t *);
 extern int	machine_at_s1668_init(const machine_t *);
-extern int	machine_at_p6bxt_init(const machine_t *); /*BIOS doesn't work correctly with VIA C3*/
 #endif
 
 extern int	machine_at_6abx3_init(const machine_t *);
