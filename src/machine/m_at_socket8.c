@@ -299,7 +299,7 @@ machine_at_63a_init(const machine_t *model)
     device_add(&w83977tf_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&intel_flash_bxt_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;
 }
