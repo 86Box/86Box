@@ -35,6 +35,7 @@
 #include "sio.h"
 #include "sst_flash.h"
 #include "hwm.h"
+#include "spd.h"
 #include "video.h"
 #include "cpu.h"
 #include "machine.h"
@@ -134,6 +135,7 @@ machine_at_6abx3_init(const machine_t *model)
     // device_add(&intel_flash_bxt_device);
     // device_add(&sst_flash_29ee020_device);
     device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
 
     return ret;
 }
@@ -166,6 +168,7 @@ machine_at_p2bls_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83977ef_device);
     device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
 
     hwm_values_t machine_hwm = {
     	{    /* fan speeds */
@@ -225,6 +228,7 @@ machine_at_p6bxt_init(const machine_t *model)
     device_add(&w83977tf_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     return ret;
 }
@@ -260,6 +264,7 @@ machine_at_63a_init(const machine_t *model)
     device_add(&w83977tf_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 
     return ret;
 }
