@@ -1,12 +1,6 @@
 static int opCMPXCHG_b_a16(uint32_t fetchdat)
 {
         uint8_t temp, temp2 = AL;
-        if (!is486)
-        {
-                cpu_state.pc = cpu_state.oldpc;
-                x86illegal();
-                return 1;
-        }
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp = geteab();                        if (cpu_state.abrt) return 1;
@@ -20,12 +14,6 @@ static int opCMPXCHG_b_a16(uint32_t fetchdat)
 static int opCMPXCHG_b_a32(uint32_t fetchdat)
 {
         uint8_t temp, temp2 = AL;
-        if (!is486)
-        {
-                cpu_state.pc = cpu_state.oldpc;
-                x86illegal();
-                return 1;
-        }
         fetch_ea_32(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp = geteab();                        if (cpu_state.abrt) return 1;
@@ -40,12 +28,6 @@ static int opCMPXCHG_b_a32(uint32_t fetchdat)
 static int opCMPXCHG_w_a16(uint32_t fetchdat)
 {
         uint16_t temp, temp2 = AX;
-        if (!is486)
-        {
-                cpu_state.pc = cpu_state.oldpc;
-                x86illegal();
-                return 1;
-        }
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp = geteaw();                        if (cpu_state.abrt) return 1;
@@ -59,12 +41,6 @@ static int opCMPXCHG_w_a16(uint32_t fetchdat)
 static int opCMPXCHG_w_a32(uint32_t fetchdat)
 {
         uint16_t temp, temp2 = AX;
-        if (!is486)
-        {
-                cpu_state.pc = cpu_state.oldpc;
-                x86illegal();
-                return 1;
-        }
         fetch_ea_32(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp = geteaw();                        if (cpu_state.abrt) return 1;
@@ -79,12 +55,6 @@ static int opCMPXCHG_w_a32(uint32_t fetchdat)
 static int opCMPXCHG_l_a16(uint32_t fetchdat)
 {
         uint32_t temp, temp2 = EAX;
-        if (!is486)
-        {
-                cpu_state.pc = cpu_state.oldpc;
-                x86illegal();
-                return 1;
-        }
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp = geteal();                        if (cpu_state.abrt) return 1;
@@ -98,12 +68,6 @@ static int opCMPXCHG_l_a16(uint32_t fetchdat)
 static int opCMPXCHG_l_a32(uint32_t fetchdat)
 {
         uint32_t temp, temp2 = EAX;
-        if (!is486)
-        {
-                cpu_state.pc = cpu_state.oldpc;
-                x86illegal();
-                return 1;
-        }
         fetch_ea_32(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp = geteal();                        if (cpu_state.abrt) return 1;
@@ -118,12 +82,6 @@ static int opCMPXCHG_l_a32(uint32_t fetchdat)
 static int opCMPXCHG8B_a16(uint32_t fetchdat)
 {
         uint32_t temp, temp_hi, temp2 = EAX, temp2_hi = EDX;
-        if (!is486)
-        {
-                cpu_state.pc = cpu_state.oldpc;
-                x86illegal();
-                return 0;
-        }
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp = geteal();
@@ -150,12 +108,6 @@ static int opCMPXCHG8B_a16(uint32_t fetchdat)
 static int opCMPXCHG8B_a32(uint32_t fetchdat)
 {
         uint32_t temp, temp_hi, temp2 = EAX, temp2_hi = EDX;
-        if (!is486)
-        {
-                cpu_state.pc = cpu_state.oldpc;
-                x86illegal();
-                return 0;
-        }
         fetch_ea_32(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp = geteal();
@@ -183,12 +135,6 @@ static int opCMPXCHG8B_a32(uint32_t fetchdat)
 static int opXADD_b_a16(uint32_t fetchdat)
 {
         uint8_t temp;
-        if (!is486)
-        {
-                cpu_state.pc = cpu_state.oldpc;
-                x86illegal();
-                return 1;
-        }
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp = geteab();                        if (cpu_state.abrt) return 1;
@@ -201,12 +147,6 @@ static int opXADD_b_a16(uint32_t fetchdat)
 static int opXADD_b_a32(uint32_t fetchdat)
 {
         uint8_t temp;
-        if (!is486)
-        {
-                cpu_state.pc = cpu_state.oldpc;
-                x86illegal();
-                return 1;
-        }
         fetch_ea_32(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp = geteab();                        if (cpu_state.abrt) return 1;
@@ -220,12 +160,6 @@ static int opXADD_b_a32(uint32_t fetchdat)
 static int opXADD_w_a16(uint32_t fetchdat)
 {
         uint16_t temp;
-        if (!is486)
-        {
-                cpu_state.pc = cpu_state.oldpc;
-                x86illegal();
-                return 1;
-        }
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp = geteaw();                        if (cpu_state.abrt) return 1;
@@ -238,12 +172,6 @@ static int opXADD_w_a16(uint32_t fetchdat)
 static int opXADD_w_a32(uint32_t fetchdat)
 {
         uint16_t temp;
-        if (!is486)
-        {
-                cpu_state.pc = cpu_state.oldpc;
-                x86illegal();
-                return 1;
-        }
         fetch_ea_32(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp = geteaw();                        if (cpu_state.abrt) return 1;
@@ -257,12 +185,6 @@ static int opXADD_w_a32(uint32_t fetchdat)
 static int opXADD_l_a16(uint32_t fetchdat)
 {
         uint32_t temp;
-        if (!is486)
-        {
-                cpu_state.pc = cpu_state.oldpc;
-                x86illegal();
-                return 1;
-        }
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp = geteal();                        if (cpu_state.abrt) return 1;
@@ -275,12 +197,6 @@ static int opXADD_l_a16(uint32_t fetchdat)
 static int opXADD_l_a32(uint32_t fetchdat)
 {
         uint32_t temp;
-        if (!is486)
-        {
-                cpu_state.pc = cpu_state.oldpc;
-                x86illegal();
-                return 1;
-        }
         fetch_ea_32(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp = geteal();                        if (cpu_state.abrt) return 1;
