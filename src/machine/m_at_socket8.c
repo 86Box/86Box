@@ -231,6 +231,7 @@ machine_at_borapro_init(const machine_t *model)
     device_add(&w83977ef_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;
 }
