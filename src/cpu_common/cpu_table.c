@@ -723,8 +723,16 @@ CPU cpus_Celeron[] = { // Mendocino Celerons. Exact architecture as the P2D seri
 					   
 					   // The 100Mhz Mendocino is only meant to not cause any struggle
 					   // to the recompiler.
-    {"Celeron Mendocino 100",    	CPU_PENTIUM2D,  100000000, 3/2,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
+    {"Celeron Mendocino 66",        CPU_PENTIUM2D,   66666666, 1,    0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
+    {"Celeron Mendocino 100",       CPU_PENTIUM2D,  100000000, 3/2,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
+    {"Celeron Mendocino 300/66",    CPU_PENTIUM2D,  300000000, 9/2,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
     {"Celeron Mendocino 333",       CPU_PENTIUM2D,  333333333, 5,    0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 40},
+    {"Celeron Mendocino 366",       CPU_PENTIUM2D,  366666666, 11/2, 0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 33,33,17,17, 44},
+    {"Celeron Mendocino 400",       CPU_PENTIUM2D,  400000000, 4,    0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
+    {"Celeron Mendocino 433",       CPU_PENTIUM2D,  433333333, 9/2,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 39,39,13,13, 51},
+    {"Celeron Mendocino 466",       CPU_PENTIUM2D,  466666666, 5,    0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 43,43,15,15, 57},
+    {"Celeron Mendocino 500",       CPU_PENTIUM2D,  500000000, 5,    0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 45,45,15,15, 60},
+    {"Celeron Mendocino 533",       CPU_PENTIUM2D,  533333333, 11/2, 0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 48,48,17,17, 64},
     {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}	
 };
 #endif
