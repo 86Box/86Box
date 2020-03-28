@@ -96,34 +96,30 @@ lpt1_handler(pc87306_t *dev)
     temp = dev->regs[0x01] & 3;
     lptba = ((uint16_t) dev->regs[0x19]) << 2;
 
-    if (dev->regs[0x1b] & 0x10) {
-	if (dev->regs[0x1b] & 0x20) {
-		lpt_port = 0x278;
-		lpt_irq = 7;
-	} else {
+    switch (temp) {
+	case 0:
 		lpt_port = 0x378;
-		lpt_irq = 5;
-	}
-    } else {
-	switch (temp) {
-		case 0:
-			lpt_port = 0x378;
-			lpt_irq = (dev->regs[0x02] & 0x08) ? 7 : 5;
-			break;
-		case 1:
+		lpt_irq = (dev->regs[0x02] & 0x08) ? 7 : 5;
+		break;
+	case 1:
+		if (dev->regs[0x1b] & 0x40)
 			lpt_port = lptba;
-			lpt_irq = 7;
-			break;
-		case 2:
-			lpt_port = 0x278;
-			lpt_irq = 5;
-			break;
-		case 3:
-			lpt_port = 0x000;
-			lpt_irq = 0xff;
-			break;
-	}
+		else
+			lpt_port = 0x3bc;
+		lpt_irq = 7;
+		break;
+	case 2:
+		lpt_port = 0x278;
+		lpt_irq = 5;
+		break;
+	case 3:
+		lpt_port = 0x000;
+		lpt_irq = 0xff;
+		break;
     }
+
+    if (dev->regs[0x1b] & 0x10)
+	lpt_irq = (dev->regs[0x1b] & 0x20) ? 7 : 5;
 
     if (lpt_port)
 	lpt1_init(lpt_port);
@@ -212,8 +208,6 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
 			val = 0x4b;
 		valxor = val ^ dev->regs[dev->cur_reg];
 		dev->tries = 0;
-		if ((dev->cur_reg == 0x19) && !(dev->regs[0x1B] & 0x40))
-			return;
 		if ((dev->cur_reg <= 28) && (dev->cur_reg != 8)) {
 			if (dev->cur_reg == 0)
 				val &= 0x5f;
