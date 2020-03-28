@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Common functions for hardware monitor chips.
+ *		Common functions for hardware monitoring chips.
  *
  *
  *

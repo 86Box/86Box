@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Definitions for the hardware monitor chips.
+ *		Definitions for hardware monitoring chips.
  *
  *
  *
@@ -22,7 +22,7 @@
 
 typedef struct _hwm_values_ {
     uint16_t	fans[4];
-    uint8_t		temperatures[4];
+    uint8_t	temperatures[4];
     uint16_t	voltages[8];
 } hwm_values_t;
 
