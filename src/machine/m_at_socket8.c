@@ -35,6 +35,7 @@
 #include "sio.h"
 #include "sst_flash.h"
 #include "hwm.h"
+#include "spd.h"
 #include "video.h"
 #include "cpu.h"
 #include "machine.h"
@@ -134,10 +135,11 @@ machine_at_6abx3_init(const machine_t *model)
     // device_add(&intel_flash_bxt_device);
     // device_add(&sst_flash_29ee020_device);
     device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
 
     return ret;
 }
-#if defined(DEV_BRANCH) && defined(USE_I686)
+
 int
 machine_at_p2bls_init(const machine_t *model)
 {
@@ -166,6 +168,7 @@ machine_at_p2bls_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83977ef_device);
     device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
 
     hwm_values_t machine_hwm = {
     	{    /* fan speeds */
@@ -189,8 +192,10 @@ machine_at_p2bls_init(const machine_t *model)
     		0
     	}
     };
+#if defined(DEV_BRANCH) && defined(USE_I686)
     if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
     	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
+#endif
     hwm_set_values(machine_hwm);
     device_add(&as99127f_device);
 
@@ -228,10 +233,11 @@ machine_at_borapro_init(const machine_t *model)
     device_add(&w83977ef_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;
 }
-
+#if defined(DEV_BRANCH) && defined(USE_I686)
 int
 machine_at_p6bxt_init(const machine_t *model)
 {
@@ -259,10 +265,11 @@ machine_at_p6bxt_init(const machine_t *model)
     device_add(&w83977tf_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     return ret;
 }
-
+#endif
 
 int
 machine_at_63a_init(const machine_t *model)
@@ -294,7 +301,7 @@ machine_at_63a_init(const machine_t *model)
     device_add(&w83977tf_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;
 }
-#endif

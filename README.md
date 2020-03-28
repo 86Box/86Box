@@ -52,7 +52,7 @@ guide:
 If you encounter issues at any step or have additional questions, please join
 the IRC channel or the appropriate channel on our Discord server and wait patiently for someone to help you.
 
-Nightly builds
+Automatic builds
 --------------
 For your convenience, we compile a number of 86Box builds per revision on our
 Jenkins instance.

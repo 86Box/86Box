@@ -918,14 +918,11 @@ reset_common(int hard)
     stack32 = 0;
     msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
     msw = 0;
-    if (is486)
+    if (hascache)
 	cr0 = 1 << 30;
     else
 	cr0 = 0;
-    if (isibmcpu)
-        cpu_cache_int_enabled = 1;
-    else
-	cpu_cache_int_enabled = 0;
+    cpu_cache_int_enabled = 0;
     cpu_update_waitstates();
     cr4 = 0;
     cpu_state.eflags = 0;

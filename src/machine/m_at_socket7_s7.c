@@ -492,11 +492,11 @@ machine_at_j656vxd_init(const machine_t *model)
 
 
 int
-machine_at_5tx52_init(const machine_t *model)
+machine_at_p55xb2_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/5tx52/5itw002.bin",
+    ret = bios_load_linear(L"roms/machines/p55xb2/XB20721.BIN",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -514,7 +514,7 @@ machine_at_5tx52_init(const machine_t *model)
     device_add(&i430tx_device);
     device_add(&piix4_device);
     device_add(&keyboard_ps2_pci_device);
-    device_add(&w83877tf_acorp_device);
+//  device_add(&ali_m513x_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -522,11 +522,11 @@ machine_at_5tx52_init(const machine_t *model)
 
 
 int
-machine_at_txp4_init(const machine_t *model)
+machine_at_tx97_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/txp4/0112L.001",
+    ret = bios_load_linear(L"roms/machines/tx97/0112.001",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -586,11 +586,11 @@ machine_at_ym430tx_init(const machine_t *model)
 
 
 int
-machine_at_sp586tx_init(const machine_t *model)
+machine_at_586t2_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/sp586tx/Txa6-32gb.bin",
+    ret = bios_load_linear(L"roms/machines/586t2/5itw001.bin",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -608,7 +608,36 @@ machine_at_sp586tx_init(const machine_t *model)
     device_add(&i430tx_device);
     device_add(&piix4_device);
     device_add(&keyboard_ps2_pci_device);
-    device_add(&w83977tf_device);
+    device_add(&um8669f_device); /*Placeholder for ITE 8679*/
+    device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
+int
+machine_at_807ds_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/807ds/Tx0212g.rom",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);	/* PIIX4 */
+    device_add(&i430tx_device);
+    device_add(&piix4_device);
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&um8669f_device); /*Placeholder for ITE 8679*/
     device_add(&intel_flash_bxt_device);
 
     return ret;
