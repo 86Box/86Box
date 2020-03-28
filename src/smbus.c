@@ -48,7 +48,7 @@ typedef struct _smbus_ {
 int smbus_initialized = 0;
 smbus_t *smbus[NADDRS], *smbus_last[NADDRS];
 
-#define ENABLE_SMBUS_LOG 1
+
 #ifdef ENABLE_SMBUS_LOG
 int smbus_do_log = ENABLE_SMBUS_LOG;
 
