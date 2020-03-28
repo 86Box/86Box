@@ -249,7 +249,8 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     			sdram_data->data_width_lsb = 64;
     			sdram_data->data_width_msb = 0;
     			sdram_data->signal_level = SPD_SDR_SIGNAL_LVTTL;
-    			sdram_data->tclk = sdram_data->tac = 0x10;
+    			sdram_data->tclk = 0x75; /* 7.5 ns = 133.3 MHz */
+    			sdram_data->tac = 0x10;
     			sdram_data->config = 0;
     			sdram_data->refresh_rate = SPD_SDR_REFRESH_SELF | SPD_SDR_REFRESH_NORMAL;
     			sdram_data->sdram_width = 8;
@@ -258,7 +259,9 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     			sdram_data->banks = 4;
     			sdram_data->cas = sdram_data->cs = sdram_data->we = 0x7F;
     			sdram_data->dev_attr = SPD_SDR_ATTR_EARLY_RAS | SPD_SDR_ATTR_AUTO_PC | SPD_SDR_ATTR_PC_ALL | SPD_SDR_ATTR_W1R_BURST;
-    			sdram_data->tclk2 = sdram_data->tac2 = 0x10;
+    			sdram_data->tclk2 = 0xA0; /* 10 ns = 100 MHz */
+    			sdram_data->tclk3 = 0xF0; /* 15 ns = 66.7 MHz */
+    			sdram_data->tac2 = sdram_data->tac3 = 0x10;
     			sdram_data->trp = sdram_data->trrd = sdram_data->trcd = sdram_data->tras = 1;
     			sdram_data->bank_density = 1 << (log2_ui16(vslots[vslot] >> 1) - 2);
     			sdram_data->ca_setup = sdram_data->data_setup = 0x15;
