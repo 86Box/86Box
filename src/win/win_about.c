@@ -26,9 +26,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "plat.h"
-#include "win.h"
+#include <86box/86box.h>
+#include <86box/plat.h>
+#include <86box/win.h>
 
 
 #if defined(__amd64__) || defined(__aarch64__)

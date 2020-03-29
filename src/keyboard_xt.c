@@ -23,22 +23,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
-#include "timer.h"
-#include "fdd.h"
-#include "machine.h"
-#include "m_xt_t1000.h"
-#include "86box_io.h"
-#include "pic.h"
-#include "pit.h"
-#include "ppi.h"
-#include "mem.h"
-#include "rom.h"
-#include "sound.h"
-#include "snd_speaker.h"
-#include "video.h"
-#include "keyboard.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/fdd.h>
+#include <86box/machine.h>
+#include <86box/m_xt_t1000.h>
+#include <86box/io.h>
+#include <86box/pic.h>
+#include <86box/pit.h>
+#include <86box/ppi.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/sound.h>
+#include <86box/snd_speaker.h>
+#include <86box/video.h>
+#include <86box/keyboard.h>
 
 
 #define STAT_PARITY     0x80

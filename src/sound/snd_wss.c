@@ -22,16 +22,16 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>  
-#include "86box.h"
-#include "86box_io.h"
-#include "timer.h"
-#include "mca.h"
-#include "pic.h"
-#include "dma.h"
-#include "device.h"
-#include "sound.h"
-#include "snd_ad1848.h"
-#include "snd_opl.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/timer.h>
+#include <86box/mca.h>
+#include <86box/pic.h>
+#include <86box/dma.h>
+#include <86box/device.h>
+#include <86box/sound.h>
+#include <86box/snd_ad1848.h>
+#include <86box/snd_opl.h>
 
 
 /*530, 11, 3 - 530=23*/

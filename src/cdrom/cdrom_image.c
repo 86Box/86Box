@@ -29,13 +29,13 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "config.h"
-#include "plat.h"
-#include "scsi_device.h"
-#include "cdrom_image_backend.h"
-#include "cdrom.h"
-#include "cdrom_image.h"
+#include <86box/86box.h>
+#include <86box/config.h>
+#include <86box/plat.h>
+#include <86box/scsi_device.h>
+#include <86box/cdrom_image_backend.h>
+#include <86box/cdrom.h>
+#include <86box/cdrom_image.h>
 
 
 #ifdef ENABLE_CDROM_IMAGE_LOG

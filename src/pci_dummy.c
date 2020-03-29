@@ -3,10 +3,10 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "86box_io.h"
-#include "pci.h"
-#include "pci_dummy.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/pci.h>
+#include <86box/pci_dummy.h>
 
 static uint8_t pci_regs[256];
 

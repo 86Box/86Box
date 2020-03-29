@@ -225,18 +225,18 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <time.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "machine.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "nmi.h"
-#include "pic.h"
-#include "timer.h"
-#include "pit.h"
-#include "rom.h"
-#include "device.h"
-#include "nvr.h"
+#include <86box/machine.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/nmi.h>
+#include <86box/pic.h>
+#include <86box/timer.h>
+#include <86box/pit.h>
+#include <86box/rom.h>
+#include <86box/device.h>
+#include <86box/nvr.h>
 
 
 /* RTC registers and bit definitions. */

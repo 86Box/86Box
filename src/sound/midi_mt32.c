@@ -3,14 +3,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "munt/c_interface/c_interface.h"
-#include "86box.h"
-#include "device.h"
-#include "mem.h"
-#include "rom.h"
-#include "plat.h"
-#include "sound.h"
-#include "midi.h"
+#include <mt32emu/c_interface/c_interface.h>
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/plat.h>
+#include <86box/sound.h>
+#include <86box/midi.h>
 
 
 extern void givealbuffer_midi(void *buf, uint32_t size);

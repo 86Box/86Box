@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box_io.h"
-#include "nmi.h"
+#include <86box/io.h>
+#include <86box/nmi.h>
 
 
 int nmi_mask;

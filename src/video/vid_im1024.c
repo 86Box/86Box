@@ -54,16 +54,16 @@
 #include <wchar.h>
 #include <ctype.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "rom.h"
-#include "timer.h"
-#include "device.h"
-#include "pit.h"
-#include "plat.h"
-#include "video.h"
-#include "vid_pgc.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/pit.h>
+#include <86box/plat.h>
+#include <86box/video.h>
+#include <86box/vid_pgc.h>
 
 
 #define BIOS_ROM_PATH	L"roms/video/im1024/im1024font.bin"

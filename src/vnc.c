@@ -23,14 +23,14 @@
 #include <wchar.h>
 #include <rfb/rfb.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "video.h"
-#include "keyboard.h"
-#include "mouse.h"
-#include "plat.h"
-#include "ui.h"
-#include "vnc.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/video.h>
+#include <86box/keyboard.h>
+#include <86box/mouse.h>
+#include <86box/plat.h>
+#include <86box/ui.h>
+#include <86box/vnc.h>
 
 
 #define VNC_MIN_X	320

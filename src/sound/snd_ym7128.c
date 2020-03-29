@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "snd_ym7128.h"
+#include <86box/86box.h>
+#include <86box/snd_ym7128.h>
 
 
 static int attenuation[32];

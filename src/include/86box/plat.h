@@ -24,7 +24,7 @@
 #endif
 
 /* String ID numbers. */
-#include "lang/language.h"
+#include <86box/language.h>
 
 /* The Win32 API uses _wcsicmp. */
 #ifdef _WIN32

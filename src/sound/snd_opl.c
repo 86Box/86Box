@@ -6,13 +6,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "86box_io.h"
-#include "timer.h"
-#include "sound.h"
-#include "snd_opl.h"
-#include "snd_opl_backend.h"
+#include <86box/io.h>
+#include <86box/timer.h>
+#include <86box/sound.h>
+#include <86box/snd_opl.h>
+#include <86box/snd_opl_backend.h>
 
 
 /*Interfaces between 86Box and the actual OPL emulator*/

@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "timer.h"
+#include <86box/86box.h>
+#include <86box/timer.h>
 
 
 uint64_t TIMER_USEC;

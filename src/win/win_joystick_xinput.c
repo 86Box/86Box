@@ -24,11 +24,11 @@
 #include <stdint.h>
 #include <stdio.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "plat.h"
-#include "gameport.h"
-#include "win.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/plat.h>
+#include <86box/gameport.h>
+#include <86box/win.h>
 
 #define XINPUT_MAX_JOYSTICKS 4
 #define XINPUT_NAME "Xinput compatiable controller"

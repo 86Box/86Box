@@ -12,18 +12,18 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "86box_io.h"
-#include "pic.h"
-#include "dma.h"
-#include "timer.h"
-#include "device.h"
-#include "filters.h"
-#include "sound.h"
-#include "midi.h"
-#include "sound.h"
-#include "snd_azt2316a.h"
-#include "snd_sb.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/pic.h>
+#include <86box/dma.h>
+#include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/filters.h>
+#include <86box/sound.h>
+#include <86box/midi.h>
+#include <86box/sound.h>
+#include <86box/snd_azt2316a.h>
+#include <86box/snd_sb.h>
 
 
 #define ADPCM_4		1

@@ -21,11 +21,11 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "timer.h"
-#include "serial.h"
-#include "mouse.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/serial.h>
+#include <86box/mouse.h>
 
 
 #define SERMOUSE_PORT			0			/* attach to Serial0 */

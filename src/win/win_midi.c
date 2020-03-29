@@ -4,11 +4,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "config.h"
-#include "midi.h"
-#include "plat.h"
-#include "plat_midi.h"
+#include <86box/86box.h>
+#include <86box/config.h>
+#include <86box/midi.h>
+#include <86box/plat.h>
+#include <86box/plat_midi.h>
 
 
 typedef struct

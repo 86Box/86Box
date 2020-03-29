@@ -39,11 +39,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
-#include "timer.h"
-#include "gameport.h"
-#include "joystick_standard.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/gameport.h>
+#include <86box/joystick_standard.h>
 
 
 static void *tm_fcs_init(void)

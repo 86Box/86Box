@@ -27,17 +27,17 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "plat.h"
-#include "86box_io.h"
-#include "machine.h"
-#include "mca.h"
-#include "pic.h"
-#include "timer.h"
-#include "sound.h"
-#include "snd_mpu401.h"
-#include "midi.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/plat.h>
+#include <86box/io.h>
+#include <86box/machine.h>
+#include <86box/mca.h>
+#include <86box/pic.h>
+#include <86box/timer.h>
+#include <86box/sound.h>
+#include <86box/snd_mpu401.h>
+#include <86box/midi.h>
 
 
 static uint32_t	MPUClockBase[8] = {48,72,96,120,144,168,192};

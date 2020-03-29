@@ -25,11 +25,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "config.h"
-#include "plat.h"
-#include "sound.h"
-#include "win.h"
+#include <86box/86box.h>
+#include <86box/config.h>
+#include <86box/plat.h>
+#include <86box/sound.h>
+#include <86box/win.h>
 
 
 static uint8_t	old_gain;

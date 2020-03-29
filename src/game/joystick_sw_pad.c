@@ -60,11 +60,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
-#include "timer.h"
-#include "gameport.h"
-#include "joystick_sw_pad.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/gameport.h>
+#include <86box/joystick_sw_pad.h>
 
 
 typedef struct

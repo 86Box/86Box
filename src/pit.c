@@ -23,21 +23,21 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "device.h"
-#include "timer.h"
-#include "dma.h"
-#include "86box_io.h"
-#include "nmi.h"
-#include "pic.h"
-#include "timer.h"
-#include "pit.h"
-#include "ppi.h"
-#include "machine/machine.h"
-#include "sound/sound.h"
-#include "sound/snd_speaker.h"
-#include "video/video.h"
+#include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/dma.h>
+#include <86box/io.h>
+#include <86box/nmi.h>
+#include <86box/pic.h>
+#include <86box/timer.h>
+#include <86box/pit.h>
+#include <86box/ppi.h>
+#include <86box/machine.h>
+#include <86box/sound.h>
+#include <86box/snd_speaker.h>
+#include <86box/video.h>
 
 
 pit_t		*pit, *pit2;

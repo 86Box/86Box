@@ -23,10 +23,10 @@
 #include <wchar.h>
 #include <time.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "network.h"
-#include "net_dp8390.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/network.h>
+#include <86box/net_dp8390.h>
 
 
 static void	dp8390_tx(dp8390_t *dev, uint32_t val);

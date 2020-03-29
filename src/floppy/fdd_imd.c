@@ -23,13 +23,13 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "timer.h"
-#include "plat.h"
-#include "fdd.h"
-#include "fdd_86f.h"
-#include "fdd_imd.h"
-#include "fdc.h"
+#include <86box/86box.h>
+#include <86box/timer.h>
+#include <86box/plat.h>
+#include <86box/fdd.h>
+#include <86box/fdd_86f.h>
+#include <86box/fdd_imd.h>
+#include <86box/fdc.h>
 
 
 typedef struct {

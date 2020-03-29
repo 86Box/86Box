@@ -26,18 +26,18 @@
 #include <assert.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "timer.h"
-#include "dma.h"
-#include "nvr.h"
-#include "random.h"
-#include "plat.h"
-#include "ui.h"
-#include "fdd.h"
-#include "fdc.h"
-#include "fdd_86f.h"
+#include <86box/86box.h>
+#include <86box/timer.h>
+#include <86box/dma.h>
+#include <86box/nvr.h>
+#include <86box/random.h>
+#include <86box/plat.h>
+#include <86box/ui.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
+#include <86box/fdd_86f.h>
 #ifdef D86F_COMPRESS
-#include "lzf/lzf.h"
+#include <lzf.h>
 #endif
 
 

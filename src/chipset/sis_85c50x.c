@@ -20,15 +20,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "mem.h"
-#include "86box_io.h"
-#include "rom.h"
-#include "pci.h"
-#include "device.h"
-#include "keyboard.h"
-#include "port_92.h"
-#include "chipset.h"
+#include <86box/86box.h>
+#include <86box/mem.h>
+#include <86box/io.h>
+#include <86box/rom.h>
+#include <86box/pci.h>
+#include <86box/device.h>
+#include <86box/keyboard.h>
+#include <86box/port_92.h>
+#include <86box/chipset.h>
 
 
 typedef struct sis_85c501_t

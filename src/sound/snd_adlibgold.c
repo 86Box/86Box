@@ -3,17 +3,17 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "86box_io.h"
-#include "timer.h"
-#include "dma.h"
-#include "pic.h"
-#include "device.h"
-#include "nvr.h"
-#include "sound.h"
-#include "filters.h"
-#include "snd_opl.h"
-#include "snd_ym7128.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/timer.h>
+#include <86box/dma.h>
+#include <86box/pic.h>
+#include <86box/device.h>
+#include <86box/nvr.h>
+#include <86box/sound.h>
+#include <86box/filters.h>
+#include <86box/snd_opl.h>
+#include <86box/snd_ym7128.h>
 
 
 typedef struct adgold_t

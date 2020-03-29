@@ -27,14 +27,14 @@
 #undef BITMAP
 
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "video.h"
-#include "plat.h"
-#include "plat_dynld.h"
-#include "ui.h"
-#include "win.h"
-#include "win_d2d.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/video.h>
+#include <86box/plat.h>
+#include <86box/plat_dynld.h>
+#include <86box/ui.h>
+#include <86box/win.h>
+#include <86box/win_d2d.h>
 
 
 static HWND			d2d_hwnd, old_hwndMain;

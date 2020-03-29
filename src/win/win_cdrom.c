@@ -27,15 +27,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "config.h"
-#include "hdd.h"
-#include "scsi_device.h"
-#include "cdrom.h"
-#include "zip.h"
-#include "scsi_disk.h"
-#include "plat.h"
-#include "ui.h"
-#include "win.h"
+#include <86box/config.h>
+#include <86box/hdd.h>
+#include <86box/scsi_device.h>
+#include <86box/cdrom.h>
+#include <86box/zip.h>
+#include <86box/scsi_disk.h>
+#include <86box/plat.h>
+#include <86box/ui.h>
+#include <86box/win.h>
 
 
 void

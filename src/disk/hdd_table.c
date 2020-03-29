@@ -22,8 +22,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include <wchar.h>
-#include "86box.h"
-#include "hdd.h"
+#include <86box/86box.h>
+#include <86box/hdd.h>
 
 
 unsigned int hdd_table[128][3] = {

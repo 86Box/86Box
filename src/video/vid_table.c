@@ -23,19 +23,19 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "timer.h"
-#include "machine.h"
-#include "mem.h"
-#include "device.h"
-#include "plat.h"
-#include "video.h"
-#include "vid_svga.h"
+#include <86box/86box.h>
+#include <86box/timer.h>
+#include <86box/machine.h>
+#include <86box/mem.h>
+#include <86box/device.h>
+#include <86box/plat.h>
+#include <86box/video.h>
+#include <86box/vid_svga.h>
 
-#include "vid_cga.h"
-#include "vid_ega.h"
-#include "vid_colorplus.h"
-#include "vid_mda.h"
+#include <86box/vid_cga.h>
+#include <86box/vid_ega.h>
+#include <86box/vid_colorplus.h>
+#include <86box/vid_mda.h>
 
 
 typedef struct {

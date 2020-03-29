@@ -18,11 +18,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
-#include "86box_io.h"
-#include "smbus.h"
-#include "hwm.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/io.h>
+#include <86box/smbus.h>
+#include <86box/hwm.h>
 
 
 #define W83781D_SMBUS		0x10000

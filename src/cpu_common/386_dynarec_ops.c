@@ -8,17 +8,17 @@
 # define INFINITY   (__builtin_inff())
 #endif
 
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "timer.h"
+#include <86box/timer.h>
 #include "x86.h"
 #include "x86_ops.h"
 #include "x87.h"
 #include "x86_flags.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "nmi.h"
-#include "pic.h"
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/nmi.h>
+#include <86box/pic.h>
 #include "codegen.h"
 
 #define CPU_BLOCK_END() cpu_block_end = 1

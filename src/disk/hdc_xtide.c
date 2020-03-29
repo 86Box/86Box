@@ -36,13 +36,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "rom.h"
-#include "device.h"
-#include "hdc.h"
-#include "hdc_ide.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/device.h>
+#include <86box/hdc.h>
+#include <86box/hdc_ide.h>
 
 
 #define ROM_PATH_XT	L"roms/hdd/xtide/ide_xt.bin"

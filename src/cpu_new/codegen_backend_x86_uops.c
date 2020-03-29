@@ -1,9 +1,9 @@
 #if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
 
 #include <stdint.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "mem.h"
+#include <86box/mem.h>
 
 #include "x86.h"
 #include "x86_ops.h"

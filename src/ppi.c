@@ -11,9 +11,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "timer.h"
-#include "pit.h"
-#include "ppi.h"
+#include <86box/timer.h>
+#include <86box/pit.h>
+#include <86box/ppi.h>
 
 
 PPI ppi;

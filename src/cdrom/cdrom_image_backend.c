@@ -35,9 +35,9 @@
 #endif
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "plat.h"
-#include "cdrom_image_backend.h"
+#include <86box/86box.h>
+#include <86box/plat.h>
+#include <86box/cdrom_image_backend.h>
 
 
 #define CDROM_BCD(x)      (((x) % 10) | (((x) / 10) << 4))

@@ -26,11 +26,11 @@
 #include <stdint.h>
 #include <stdio.h>
 #define HAVE_STDARG_H
-#include "../86box.h"
-#include "../device.h"
-#include "../plat.h"
-#include "../game/gameport.h"
-#include "win.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/plat.h>
+#include <86box/gameport.h>
+#include <86box/win.h>
 
 #ifdef ENABLE_JOYSTICK_LOG
 int joystick_do_log = ENABLE_JOYSTICK_LOG;

@@ -23,20 +23,20 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "config.h"
-#include "timer.h"
-#include "device.h"
-#include "piix.h"
-#include "scsi_device.h"
-#include "nvr.h"
-#include "hdc.h"
-#include "hdc_ide.h"
-#include "sound.h"
-#include "plat.h"
-#include "ui.h"
-#include "cdrom.h"
-#include "scsi_cdrom.h"
+#include <86box/86box.h>
+#include <86box/config.h>
+#include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/piix.h>
+#include <86box/scsi_device.h>
+#include <86box/nvr.h>
+#include <86box/hdc.h>
+#include <86box/hdc_ide.h>
+#include <86box/sound.h>
+#include <86box/plat.h>
+#include <86box/ui.h>
+#include <86box/cdrom.h>
+#include <86box/scsi_cdrom.h>
 
 
 #pragma pack(push,1)

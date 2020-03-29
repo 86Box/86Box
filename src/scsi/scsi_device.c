@@ -20,11 +20,11 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
-#include "hdd.h"
-#include "scsi.h"
-#include "scsi_device.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/hdd.h>
+#include <86box/scsi.h>
+#include <86box/scsi_device.h>
 
 
 scsi_device_t	scsi_devices[SCSI_ID_MAX];

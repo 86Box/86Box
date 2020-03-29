@@ -92,17 +92,17 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "timer.h"
-#include "86box_io.h"
-#include "dma.h"
-#include "pic.h"
-#include "device.h"
-#include "hdc.h"
-#include "hdd.h"
-#include "plat.h"
-#include "ui.h"
-#include "machine.h"
+#include <86box/86box.h>
+#include <86box/timer.h>
+#include <86box/io.h>
+#include <86box/dma.h>
+#include <86box/pic.h>
+#include <86box/device.h>
+#include <86box/hdc.h>
+#include <86box/hdd.h>
+#include <86box/plat.h>
+#include <86box/ui.h>
+#include <86box/machine.h>
 
 
 #define HDC_TIME	(50*TIMER_USEC)

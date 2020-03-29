@@ -22,17 +22,17 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "86box_io.h"
-#include "timer.h"
-#include "pit.h"
-#include "mem.h"
-#include "rom.h"
-#include "device.h"
-#include "video.h"
-#include "vid_cga.h"
-#include "vid_cga_comp.h"
+#include <86box/io.h>
+#include <86box/timer.h>
+#include <86box/pit.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/device.h>
+#include <86box/video.h>
+#include <86box/vid_cga.h>
+#include <86box/vid_cga_comp.h>
 
 
 #define CGA_RGB 0

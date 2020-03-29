@@ -24,23 +24,23 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "timer.h"
-#include "dma.h"
-#include "nmi.h"
-#include "pic.h"
-#include "pit.h"
-#include "mem.h"
-#include "rom.h"
-#include "device.h"
-#include "fdd.h"
-#include "fdc.h"
-#include "gameport.h"
-#include "keyboard.h"
-#include "lpt.h"
-#include "serial.h"
-#include "machine.h"
+#include <86box/timer.h>
+#include <86box/dma.h>
+#include <86box/nmi.h>
+#include <86box/pic.h>
+#include <86box/pit.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/device.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
+#include <86box/gameport.h>
+#include <86box/keyboard.h>
+#include <86box/lpt.h>
+#include <86box/serial.h>
+#include <86box/machine.h>
 
 
 typedef struct {

@@ -48,17 +48,17 @@
 #include <wchar.h>
 #include <time.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "86box_io.h"
-#include "dma.h"
-#include "pic.h"
-#include "mem.h"
-#include "random.h"
-#include "device.h"
-#include "network.h"
-#include "net_dp8390.h"
-#include "net_3c503.h"
-#include "bswap.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/dma.h>
+#include <86box/pic.h>
+#include <86box/mem.h>
+#include <86box/random.h>
+#include <86box/device.h>
+#include <86box/network.h>
+#include <86box/net_dp8390.h>
+#include <86box/net_3c503.h>
+#include <86box/bswap.h>
 
 typedef struct {
     dp8390_t		*dp8390;

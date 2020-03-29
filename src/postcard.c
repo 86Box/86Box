@@ -19,13 +19,13 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "86box_io.h"
-#include "device.h"
-#include "machine.h"
-#include "plat.h"
-#include "ui.h"
-#include "postcard.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/device.h>
+#include <86box/machine.h>
+#include <86box/plat.h>
+#include <86box/ui.h>
+#include <86box/postcard.h>
 
 
 static uint16_t	postcard_port;

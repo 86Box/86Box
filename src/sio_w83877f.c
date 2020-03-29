@@ -21,18 +21,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
-#include "86box_io.h"
-#include "timer.h"
-#include "pci.h"
-#include "mem.h"
-#include "rom.h"
-#include "lpt.h"
-#include "serial.h"
-#include "fdd.h"
-#include "fdc.h"
-#include "sio.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/io.h>
+#include <86box/timer.h>
+#include <86box/pci.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/lpt.h>
+#include <86box/serial.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
+#include <86box/sio.h>
 
 
 #define FDDA_TYPE	(dev->regs[7] & 3)

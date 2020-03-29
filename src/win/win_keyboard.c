@@ -24,11 +24,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "86box.h"
-#include "device.h"
-#include "keyboard.h"
-#include "plat.h"
-#include "win.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/keyboard.h>
+#include <86box/plat.h>
+#include <86box/win.h>
 
 
 static uint16_t	scancode_map[768];
