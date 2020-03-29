@@ -48,7 +48,6 @@ static uint8_t	spd_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv);
 static void	spd_write_byte(uint8_t addr, uint8_t val, void *priv);
 
 
-#define ENABLE_SPD_LOG 1
 #ifdef ENABLE_SPD_LOG
 int spd_do_log = ENABLE_SPD_LOG;
 
@@ -153,13 +152,13 @@ void
 spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 {
     uint8_t slot, slot_count, vslot, next_empty_vslot, i, split;
-    uint16_t min_size, total_size, vslots[SPD_MAX_SLOTS];
+    uint16_t min_module_size, total_size, vslots[SPD_MAX_SLOTS];
     spd_sdram_t *sdram_data;
 
     /* determine the minimum module size for this RAM type */
     switch (ram_type) {
     	case SPD_TYPE_SDRAM:
-    		min_size = SPD_MIN_SIZE_SDRAM;
+    		min_module_size = SPD_MIN_SIZE_SDRAM;
     		break;
 
 	default:
@@ -177,12 +176,16 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     }
 
     /* populate vslots with modules in power-of-2 capacities */
-    total_size = mem_size / 1024;
+    total_size = (mem_size >> 10);
     for (vslot = 0; vslot < slot_count && total_size; vslot++) {
     	/* populate slot */
     	vslots[vslot] = (1 << log2_ui16(MIN(total_size, max_module_size)));
-    	spd_log("SPD: assigning %d MB to vslot %d\n", vslots[vslot], vslot);
-    	total_size -= vslots[vslot];
+    	if (total_size >= vslots[vslot]) {
+    		spd_log("SPD: vslot %d = %d MB\n", vslot, vslots[vslot]);
+    		total_size -= vslots[vslot];
+    	} else {
+    		break;
+    	}
     }
 
     if (total_size > 0) /* did we populate everything? */
@@ -194,7 +197,7 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     	/* look for a module to split */
     	split = 0;
     	for (vslot = 0; vslot < slot_count; vslot++) {
-    		if (vslots[vslot] < (min_size * 2))
+    		if (vslots[vslot] < (min_module_size << 1))
     			continue; /* no module here or module is too small to be split */
 
     		/* find next empty vslot */
@@ -207,8 +210,8 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     			break; /* no empty vslots left */
 
     		/* split the module into its own vslot and the next empty vslot */
-    		spd_log("SPD: splitting vslot %d (%d MB) into %d and %d (%d MB each)\n", vslot, vslots[vslot], vslot, next_empty_vslot, vslots[vslot] >> 1);
-    		vslots[vslot] = vslots[next_empty_vslot] = vslots[vslot] >> 1;
+    		spd_log("SPD: splitting vslot %d (%d MB) into %d and %d (%d MB each)\n", vslot, vslots[vslot], vslot, next_empty_vslot, (vslots[vslot] >> 1));
+    		vslots[vslot] = vslots[next_empty_vslot] = (vslots[vslot] >> 1);
     		split = 1;
     	}
 
@@ -219,14 +222,11 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 
     /* register SPD devices and populate their data according to the vslots */
     vslot = 0;
-    for (slot = 0; slot < SPD_MAX_SLOTS; slot++) {
+    for (slot = 0; slot < SPD_MAX_SLOTS && vslots[vslot]; slot++) {
     	if (!(slot_mask & (1 << slot)))
     		continue; /* slot disabled */
 
-    	if (!vslots[vslot])
-    		break; /* no slots left to fill */
-
-    	spd_log("SPD: registering slot %d = %d MB\n", slot, vslots[vslot]);
+    	spd_log("SPD: registering slot %d = vslot %d = %d MB\n", slot, vslot, vslots[vslot]);
 
     	spd_devices[slot] = (device_t *)malloc(sizeof(device_t));
     	memset(spd_devices[slot], 0, sizeof(device_t));
@@ -249,7 +249,8 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     			sdram_data->data_width_lsb = 64;
     			sdram_data->data_width_msb = 0;
     			sdram_data->signal_level = SPD_SDR_SIGNAL_LVTTL;
-    			sdram_data->tclk = sdram_data->tac = 0x10;
+    			sdram_data->tclk = 0x75; /* 7.5 ns = 133.3 MHz */
+    			sdram_data->tac = 0x10;
     			sdram_data->config = 0;
     			sdram_data->refresh_rate = SPD_SDR_REFRESH_SELF | SPD_SDR_REFRESH_NORMAL;
     			sdram_data->sdram_width = 8;
@@ -258,15 +259,19 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     			sdram_data->banks = 4;
     			sdram_data->cas = sdram_data->cs = sdram_data->we = 0x7F;
     			sdram_data->dev_attr = SPD_SDR_ATTR_EARLY_RAS | SPD_SDR_ATTR_AUTO_PC | SPD_SDR_ATTR_PC_ALL | SPD_SDR_ATTR_W1R_BURST;
-    			sdram_data->tclk2 = sdram_data->tac2 = 0x10;
+    			sdram_data->tclk2 = 0xA0; /* 10 ns = 100 MHz */
+    			sdram_data->tclk3 = 0xF0; /* 15 ns = 66.7 MHz */
+    			sdram_data->tac2 = sdram_data->tac3 = 0x10;
     			sdram_data->trp = sdram_data->trrd = sdram_data->trcd = sdram_data->tras = 1;
     			sdram_data->bank_density = 1 << (log2_ui16(vslots[vslot] >> 1) - 2);
     			sdram_data->ca_setup = sdram_data->data_setup = 0x15;
     			sdram_data->ca_hold = sdram_data->data_hold = 0x08;
     			sdram_data->spd_rev = 0x12;
     			sprintf(sdram_data->part_no, "86Box-SDR-%03dM", vslots[vslot]);
+    			for (i = strlen(sdram_data->part_no); i < sizeof(sdram_data->part_no); i++)
+    				sdram_data->part_no[i] = ' ';
     			sdram_data->mfg_year = 0x20;
-    			sdram_data->mfg_week = 0x01;
+    			sdram_data->mfg_week = 0x13;
     			sdram_data->freq = 100;
     			sdram_data->features = 0xFF;
 

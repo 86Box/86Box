@@ -30,6 +30,7 @@
 #include "hdc_ide.h"
 #include "keyboard.h"
 #include "intel_flash.h"
+#include "via_vt82c586b.h"
 #include "intel_sio.h"
 #include "piix.h"
 #include "sio.h"
@@ -237,13 +238,13 @@ machine_at_borapro_init(const machine_t *model)
 
     return ret;
 }
-#if defined(DEV_BRANCH) && defined(USE_I686)
+
 int
-machine_at_p6bxt_init(const machine_t *model)
+machine_at_apas3_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p6bxt/bxt53s.BIN",
+    ret = bios_load_linear(L"roms/machines/apas3/V0218SAG.BIN",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -253,23 +254,21 @@ machine_at_p6bxt_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 	  1, 2, 3, 4);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL, 	  2, 3, 4, 1);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL, 	  3, 4, 1, 2);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 	  4, 1, 2, 3);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL, 	  4, 3, 2, 1);	/* Slot 5: Probably the integrated sound chip. */
+	pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4);
+	pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
+	pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 4, 1, 2);
+	pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_NORMAL, 	  1, 2, 3, 4);
-    device_add(&i440bx_device);
-    device_add(&piix4e_device);
-    device_add(&w83977tf_device);
+    device_add(&via_apro_device);
+    device_add(&via_vt82c586b_device);
+    device_add(&fdc37c669_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     return ret;
 }
-#endif
 
 int
 machine_at_63a_init(const machine_t *model)

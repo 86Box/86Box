@@ -223,8 +223,9 @@ const machine_t machines[] = {
     { "[Socket 7 VX] ASUS P/I-P55TVP4",		"p55tvp4",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	      machine_at_p55tvp4_init, NULL			},
     { "[Socket 7 VX] Epox P55-VA",		"p55va",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  128,   8, 127,		machine_at_p55va_init, NULL			},
     { "[Socket 7 VX] Jetway J656VXD",		"j656vxd",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  128,   8, 127,	      machine_at_j656vxd_init, NULL			},
+    { "[Socket 7 VX] PC Partner MB520N",	"mb520n",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	       machine_at_mb520n_init, NULL			},
     { "[Socket 7 VX] Shuttle HOT-557",		"430vx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	       machine_at_i430vx_init, NULL			},
-
+    
     { "[Socket 7 TX] ASUS TX97",		"txp4",			MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	         machine_at_tx97_init, NULL			},
     { "[Socket 7 TX] Gigabyte GA-586T2",        "586t2",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	        machine_at_586t2_init, NULL			},
     { "[Socket 7 TX] Intel YM430TX",		"ym430tx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	      machine_at_ym430tx_init, NULL			},
@@ -244,14 +245,15 @@ const machine_t machines[] = {
     { "[Slot 1 BX] ASUS P2B-LS",		"p2bls",		{{"VIA", cpus_Cyrix3},        {"",    NULL},	     {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,		machine_at_p2bls_init, NULL			},
 #endif
 #if defined(DEV_BRANCH) && defined(USE_I686)
-    { "[Slot 1 ZX] Packard Bell Bora Pro",	"borapro",		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  512,   8, 255,	      machine_at_borapro_init, NULL			},
+    { "[Slot 1 ZX] Packard Bell Bora Pro",	"borapro",		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  512,   8, 255,	      machine_at_borapro_init, NULL		},
 
-    { "[Socket 370 BX] ECS P6BXT-A+",		"p6bxt",		{{"Intel", cpus_Celeron},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  768,   8, 255,		machine_at_p6bxt_init, NULL			},
     { "[Socket 370 ZX] Soltek SL-63A1",		"63a",			{{"Intel", cpus_Celeron},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 255,		  machine_at_63a_init, NULL			},
+    { "[Socket 370 APRO] PC Partner APAS3",	"apas3",		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,	  				  8,  1024,   8, 255,          machine_at_apas3_init, NULL		},	
 #else
-    { "[Slot 1 ZX] Packard Bell Bora Pro",	"borapro",		{{"VIA", cpus_Cyrix3},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  512,   8, 255,	      machine_at_borapro_init, NULL			},
+    { "[Slot 1 ZX] Packard Bell Bora Pro",	"borapro",		{{"VIA", cpus_Cyrix3},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  512,   8, 255,	      machine_at_borapro_init, NULL		},
 
     { "[Socket 370 ZX] Soltek SL-63A1",		"63a",			{{"VIA", cpus_Cyrix3},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 255,		  machine_at_63a_init, NULL			},	
+    { "[Socket 370 APRO] PC Partner APAS3",	"apas3",		{{"VIA", cpus_Cyrix3},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,				 	  8,  1024,   8, 255,         machine_at_apas3_init, NULL		},	
 #endif
 
     { NULL,					NULL,			{{"",      0},                {"",    0},            {"",      0},           {"",         0},     {"",      0}},    0,                                                                                                    0,    0,   0,   0,				 NULL, NULL			}
