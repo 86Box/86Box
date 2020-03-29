@@ -194,6 +194,8 @@ w83781d_read(w83781d_t *dev, uint8_t reg, uint8_t bank)
     		ret = dev->hbacs ? (W83781D_VENDOR_ID >> 8) : (W83781D_VENDOR_ID & 0xFF);
     	else if (reg >= 0x60 && reg <= 0x7F) /* read auto-increment value RAM registers from their non-auto-increment locations */
     		ret = dev->regs[reg - 0x40];
+    	else if (reg >= 0x80 && reg <= 0x92) /* AS99127F mirrors 00-12 to 80-92 */
+    		ret = dev->regs[reg - 0x80];
     	else
     		ret = dev->regs[reg];
     }
@@ -316,6 +318,8 @@ w83781d_write(w83781d_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 
     if (reg >= 0x60 && reg <= 0x7F) /* write auto-increment value RAM registers to their non-auto-increment locations */
     	dev->regs[reg - 0x40] = val;
+    else if (reg >= 0x80 && reg <= 0x92) /* AS99127F mirrors 00-12 to 80-92 */
+    	dev->regs[reg - 0x80] = val;
     else
     	dev->regs[reg] = val;
 
@@ -380,6 +384,7 @@ static void
 w83781d_reset(w83781d_t *dev, uint8_t initialization)
 {
     memset(dev->regs, 0, 256);
+    memset(dev->regs + 0xC0, 0xFF, 32); /* C0-DF are 0xFF at least on the AS99127F */
     memset(dev->regs_bank1, 0, 6);
     memset(dev->regs_bank2, 0, 6);
 
@@ -415,19 +420,34 @@ w83781d_reset(w83781d_t *dev, uint8_t initialization)
     dev->regs[0x58] = (dev->local & W83781D_AS99127F) ? 0x31 : 0x10;
 
     /*
-     * Initialize proprietary registers on the AS99127F. The BIOS accesses
-     * these through read_byte_cmd on the TEMP2 address, hanging on POST code
-     * C1 if they're set to 0. There's no documentation on what these do nor
-     * dumps from real systems available, the values are pure guesswork.
+     * Initialize proprietary registers on the AS99127F. The BIOS accesses some
+     * of these on boot through read_byte_cmd on the TEMP2 address, hanging on
+     * POST code C1 if they're set to 0. There's no documentation on what these
+     * are for. The following values were dumped from a live, initialized
+     * AS99127F Rev. 2 on a P4B motherboard, and they seem to work well enough.
      */
     if (dev->local & W83781D_AS99127F) {
-    	dev->regs[0x80] = 0x01;
-    	dev->regs[0x81] = 0x01;
-    	dev->regs[0x82] = 0x01;
-    	dev->regs[0x83] = 0x01;
-    	dev->regs[0x84] = 0x01;
-    	dev->regs[0x88] = 0x01;
-    	dev->regs[0x89] = 0x01;
+    	dev->regs[0x00] = 0xB8; /* might be connected to IN2 Low Limit in some way */
+    	dev->regs[0x01] = dev->regs[0x23]; /* appears to mirror IN3 */
+    	dev->regs[0x02] = dev->regs[0x20]; /* appears to mirror IN0 */
+    	dev->regs[0x03] = 0x60;
+    	dev->regs[0x04] = dev->regs[0x23]; /* appears to mirror IN3 */
+    	dev->regs[0x05] = dev->regs[0x22]; /* appears to mirror IN2 */
+    	dev->regs[0x07] = 0xCD;
+    	/* 0x08 appears to mirror IN3 Low Limit */
+    	dev->regs[0x09] = dev->regs[0x0F] = dev->regs[0x11] = 0xF8; /* three instances of */
+    	dev->regs[0x0A] = dev->regs[0x10] = dev->regs[0x12] = 0xA5; /* the same word      */
+    	dev->regs[0x0B] = 0xAC;
+    	dev->regs[0x0C] = 0x8C;
+    	dev->regs[0x0D] = 0x68;
+    	dev->regs[0x0E] = 0x54;
+
+    	dev->regs[0x53] = dev->regs[0x54] = dev->regs[0x55] = 0xFF;
+    	dev->regs[0x59] = dev->regs[0x5A] = 0x8F;
+    	dev->regs[0x5C] = 0xE0;
+    	dev->regs[0x5D] = 0x48;
+    	dev->regs[0x5E] = 0xE2;
+    	dev->regs[0x5F] = 0x3F;
     }
 
     /* WARNING: Array elements are register - 0x50. */
