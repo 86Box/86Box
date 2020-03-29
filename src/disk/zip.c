@@ -1840,7 +1840,7 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
 			preamble_len = 4;
 			size_idx = 3;
 
-			dev->buffer[idx++] = 05;
+			dev->buffer[idx++] = 0;
 			dev->buffer[idx++] = cdb[2];
 			dev->buffer[idx++] = 0;
 
