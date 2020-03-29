@@ -198,7 +198,7 @@ machine_at_p2bls_init(const machine_t *model)
     	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
 #endif
     hwm_set_values(machine_hwm);
-    device_add(&as99127f_device);
+    device_add(&w83781d_device);
 
     return ret;
 }
