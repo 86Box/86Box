@@ -34,6 +34,80 @@
 #define CPU_BLOCK_END() cpu_block_end = 1
 
 
+/* These #define's and enum have been borrowed from Bochs. */
+/* SMM feature masks */
+#define SMM_IO_INSTRUCTION_RESTART  (0x00010000)
+#define SMM_SMBASE_RELOCATION       (0x00020000)
+
+/* TODO: Which CPU added SMBASE relocation? */
+#define SMM_REVISION_ID SMM_SMBASE_RELOCATION
+// #define SMM_REVISION_ID 0
+
+#define SMM_SAVE_STATE_MAP_SIZE 128
+
+
+enum SMMRAM_Fields {
+    SMRAM_FIELD_SMBASE_OFFSET = 0,
+    SMRAM_FIELD_SMM_REVISION_ID,
+    SMRAM_FIELD_EAX,
+    SMRAM_FIELD_ECX,
+    SMRAM_FIELD_EDX,
+    SMRAM_FIELD_EBX,
+    SMRAM_FIELD_ESP,
+    SMRAM_FIELD_EBP,
+    SMRAM_FIELD_ESI,
+    SMRAM_FIELD_EDI,
+    SMRAM_FIELD_EIP,
+    SMRAM_FIELD_EFLAGS,
+    SMRAM_FIELD_DR6,
+    SMRAM_FIELD_DR7,
+    SMRAM_FIELD_CR0,
+    SMRAM_FIELD_CR3,
+    SMRAM_FIELD_CR4,
+    SMRAM_FIELD_EFER,
+    SMRAM_FIELD_IO_INSTRUCTION_RESTART,
+    SMRAM_FIELD_AUTOHALT_RESTART,
+    SMRAM_FIELD_NMI_MASK,
+    SMRAM_FIELD_TR_SELECTOR,
+    SMRAM_FIELD_TR_BASE,
+    SMRAM_FIELD_TR_LIMIT,
+    SMRAM_FIELD_TR_SELECTOR_AR,
+    SMRAM_FIELD_LDTR_SELECTOR,
+    SMRAM_FIELD_LDTR_BASE,
+    SMRAM_FIELD_LDTR_LIMIT,
+    SMRAM_FIELD_LDTR_SELECTOR_AR,
+    SMRAM_FIELD_IDTR_BASE,
+    SMRAM_FIELD_IDTR_LIMIT,
+    SMRAM_FIELD_GDTR_BASE,
+    SMRAM_FIELD_GDTR_LIMIT,
+    SMRAM_FIELD_ES_SELECTOR,
+    SMRAM_FIELD_ES_BASE,
+    SMRAM_FIELD_ES_LIMIT,
+    SMRAM_FIELD_ES_SELECTOR_AR,
+    SMRAM_FIELD_CS_SELECTOR,
+    SMRAM_FIELD_CS_BASE,
+    SMRAM_FIELD_CS_LIMIT,
+    SMRAM_FIELD_CS_SELECTOR_AR,
+    SMRAM_FIELD_SS_SELECTOR,
+    SMRAM_FIELD_SS_BASE,
+    SMRAM_FIELD_SS_LIMIT,
+    SMRAM_FIELD_SS_SELECTOR_AR,
+    SMRAM_FIELD_DS_SELECTOR,
+    SMRAM_FIELD_DS_BASE,
+    SMRAM_FIELD_DS_LIMIT,
+    SMRAM_FIELD_DS_SELECTOR_AR,
+    SMRAM_FIELD_FS_SELECTOR,
+    SMRAM_FIELD_FS_BASE,
+    SMRAM_FIELD_FS_LIMIT,
+    SMRAM_FIELD_FS_SELECTOR_AR,
+    SMRAM_FIELD_GS_SELECTOR,
+    SMRAM_FIELD_GS_BASE,
+    SMRAM_FIELD_GS_LIMIT,
+    SMRAM_FIELD_GS_SELECTOR_AR,
+    SMRAM_FIELD_LAST
+};
+
+
 int inrecomp = 0, cpu_block_end = 0;
 int cpu_recomp_blocks, cpu_recomp_full_ins, cpu_new_blocks;
 int cpu_recomp_blocks_latched, cpu_recomp_ins_latched, cpu_recomp_full_ins_latched, cpu_new_blocks_latched;
@@ -262,217 +336,400 @@ static void prefetch_flush()
 #define PREFETCH_FLUSH() prefetch_flush()
 
 
+static void set_stack32(int s)
+{
+        stack32 = s;
+	if (stack32)
+	       cpu_cur_status |= CPU_STATUS_STACK32;
+	else
+	       cpu_cur_status &= ~CPU_STATUS_STACK32;
+}
+
+
+static void set_use32(int u)
+{
+        if (u) 
+        {
+                use32 = 0x300;
+                cpu_cur_status |= CPU_STATUS_USE32;
+        }
+        else
+        {
+                use32 = 0;
+                cpu_cur_status &= ~CPU_STATUS_USE32;
+        }
+}
+
+
+void smm_seg_load(x86seg *s)
+{
+        if (!is386)
+                s->base &= 0x00ffffff;
+
+        if ((s->access & 0x18) != 0x10 || !(s->access & (1 << 2))) /*expand-down*/
+        {
+                s->limit_high = s->limit;
+                s->limit_low = 0;
+        }
+        else
+        {
+                s->limit_high = (s->ar_high & 0x40) ? 0xffffffff : 0xffff;
+                s->limit_low = s->limit + 1;
+        }
+
+	if ((cr0 & 1) && !(cpu_state.eflags & VM_FLAG))
+		s->checked = s->seg ? 1 : 0;
+	else
+		s->checked = 1;
+
+        if (s == &cpu_state.seg_cs)
+		set_use32(s->ar_high & 0x40);
+        if (s == &cpu_state.seg_ds)
+        {
+                if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+                        cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
+                else
+                        cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+        }
+        if (s == &cpu_state.seg_ss)
+        {
+                if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+                        cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
+                else
+                        cpu_cur_status |= CPU_STATUS_NOTFLATSS;
+		set_stack32((s->ar_high & 0x40) ? 1 : 0);
+        }
+}
+
+
+void smram_save_state(uint32_t *saved_state)
+{
+	int n = 0;
+
+	saved_state[SMRAM_FIELD_SMM_REVISION_ID] = SMM_REVISION_ID;
+	saved_state[SMRAM_FIELD_SMBASE_OFFSET] = smbase;
+
+	for (n = 0; n < 8; n++)
+		saved_state[SMRAM_FIELD_EAX + n] = cpu_state.regs[n].l;
+
+	saved_state[SMRAM_FIELD_EIP] = cpu_state.pc;
+	saved_state[SMRAM_FIELD_EFLAGS] = (cpu_state.eflags << 16) | (cpu_state.flags);
+
+	saved_state[SMRAM_FIELD_CR0] = cr0;
+	saved_state[SMRAM_FIELD_CR3] = cr3;
+	if (is_pentium) {
+		saved_state[SMRAM_FIELD_CR4] = cr4;
+		/* TODO: Properly implement EFER */
+		/* saved_state[SMRAM_FIELD_EFER] = efer; */
+	}
+	saved_state[SMRAM_FIELD_DR6] = dr[6];
+	saved_state[SMRAM_FIELD_DR7] = dr[7];
+
+	/* TR */
+	saved_state[SMRAM_FIELD_TR_SELECTOR] = tr.seg;
+	saved_state[SMRAM_FIELD_TR_BASE] = tr.base;
+	saved_state[SMRAM_FIELD_TR_LIMIT] = tr.limit;
+	saved_state[SMRAM_FIELD_TR_SELECTOR_AR] = (tr.ar_high << 24) | (tr.access << 16) | tr.seg;
+
+	/* LDTR */
+	saved_state[SMRAM_FIELD_LDTR_SELECTOR] = ldt.seg;
+	saved_state[SMRAM_FIELD_LDTR_BASE] = ldt.base;
+	saved_state[SMRAM_FIELD_LDTR_LIMIT] = ldt.limit;
+	saved_state[SMRAM_FIELD_LDTR_SELECTOR_AR] = (ldt.ar_high << 24) | (ldt.access << 16) | ldt.seg;
+
+	/* IDTR */
+	saved_state[SMRAM_FIELD_IDTR_BASE] = idt.base;
+	saved_state[SMRAM_FIELD_IDTR_LIMIT] = idt.limit;
+
+	/* GDTR */
+	saved_state[SMRAM_FIELD_GDTR_BASE] = gdt.base;
+	saved_state[SMRAM_FIELD_GDTR_LIMIT] = gdt.limit;
+
+	/* ES */
+	saved_state[SMRAM_FIELD_ES_SELECTOR] = cpu_state.seg_es.seg;
+	saved_state[SMRAM_FIELD_ES_BASE] = cpu_state.seg_es.base;
+	saved_state[SMRAM_FIELD_ES_LIMIT] = cpu_state.seg_es.limit;
+	saved_state[SMRAM_FIELD_ES_SELECTOR_AR] =
+		(cpu_state.seg_es.ar_high << 24) | (cpu_state.seg_es.access << 16) | cpu_state.seg_es.seg;
+
+	/* CS */
+	saved_state[SMRAM_FIELD_CS_SELECTOR] = cpu_state.seg_cs.seg;
+	saved_state[SMRAM_FIELD_CS_BASE] = cpu_state.seg_cs.base;
+	saved_state[SMRAM_FIELD_CS_LIMIT] = cpu_state.seg_cs.limit;
+	saved_state[SMRAM_FIELD_CS_SELECTOR_AR] =
+		(cpu_state.seg_cs.ar_high << 24) | (cpu_state.seg_cs.access << 16) | cpu_state.seg_cs.seg;
+
+	/* DS */
+	saved_state[SMRAM_FIELD_DS_SELECTOR] = cpu_state.seg_ds.seg;
+	saved_state[SMRAM_FIELD_DS_BASE] = cpu_state.seg_ds.base;
+	saved_state[SMRAM_FIELD_DS_LIMIT] = cpu_state.seg_ds.limit;
+	saved_state[SMRAM_FIELD_DS_SELECTOR_AR] =
+		(cpu_state.seg_ds.ar_high << 24) | (cpu_state.seg_ds.access << 16) | cpu_state.seg_ds.seg;
+
+	/* SS */
+	saved_state[SMRAM_FIELD_SS_SELECTOR] = cpu_state.seg_ss.seg;
+	saved_state[SMRAM_FIELD_SS_BASE] = cpu_state.seg_ss.base;
+	saved_state[SMRAM_FIELD_SS_LIMIT] = cpu_state.seg_ss.limit;
+	saved_state[SMRAM_FIELD_SS_SELECTOR_AR] =
+		(cpu_state.seg_ss.ar_high << 24) | (cpu_state.seg_ss.access << 16) | cpu_state.seg_ss.seg;
+
+	/* FS */
+	saved_state[SMRAM_FIELD_FS_SELECTOR] = cpu_state.seg_fs.seg;
+	saved_state[SMRAM_FIELD_FS_BASE] = cpu_state.seg_fs.base;
+	saved_state[SMRAM_FIELD_FS_LIMIT] = cpu_state.seg_fs.limit;
+	saved_state[SMRAM_FIELD_FS_SELECTOR_AR] =
+		(cpu_state.seg_fs.ar_high << 24) | (cpu_state.seg_fs.access << 16) | cpu_state.seg_fs.seg;
+
+	/* GS */
+	saved_state[SMRAM_FIELD_GS_SELECTOR] = cpu_state.seg_gs.seg;
+	saved_state[SMRAM_FIELD_GS_BASE] = cpu_state.seg_gs.base;
+	saved_state[SMRAM_FIELD_GS_LIMIT] = cpu_state.seg_gs.limit;
+	saved_state[SMRAM_FIELD_GS_SELECTOR_AR] =
+		(cpu_state.seg_gs.ar_high << 24) | (cpu_state.seg_gs.access << 16) | cpu_state.seg_gs.seg;
+}
+
+
+void smram_restore_state(uint32_t *saved_state)
+{
+	int n = 0;
+
+	for (n = 0; n < 8; n++)
+		cpu_state.regs[n].l = saved_state[SMRAM_FIELD_EAX + n];
+
+	cpu_state.pc = saved_state[SMRAM_FIELD_EIP];
+	cpu_state.eflags = saved_state[SMRAM_FIELD_EFLAGS] >> 16;
+	cpu_state.flags = saved_state[SMRAM_FIELD_EFLAGS] & 0xffff;
+
+	cr0 = saved_state[SMRAM_FIELD_CR0];
+	cr3 = saved_state[SMRAM_FIELD_CR3];
+	if (is_pentium) {
+		cr4 = saved_state[SMRAM_FIELD_CR4];
+		/* TODO: Properly implement EFER */
+		/* efer = saved_state[SMRAM_FIELD_EFER]; */
+	}
+	dr[6] = saved_state[SMRAM_FIELD_DR6];
+	dr[7] = saved_state[SMRAM_FIELD_DR7];
+
+	/* TR */
+	tr.seg = saved_state[SMRAM_FIELD_TR_SELECTOR];
+	tr.base = saved_state[SMRAM_FIELD_TR_BASE];
+	tr.limit = saved_state[SMRAM_FIELD_TR_LIMIT];
+	tr.access = (saved_state[SMRAM_FIELD_TR_SELECTOR_AR] >> 16) & 0xff;
+	tr.ar_high = (saved_state[SMRAM_FIELD_TR_SELECTOR_AR] >> 24) & 0xff;
+	smm_seg_load(&tr);
+
+	/* LDTR */
+	ldt.seg = saved_state[SMRAM_FIELD_LDTR_SELECTOR];
+	ldt.base = saved_state[SMRAM_FIELD_LDTR_BASE];
+	ldt.limit = saved_state[SMRAM_FIELD_LDTR_LIMIT];
+	ldt.access = (saved_state[SMRAM_FIELD_LDTR_SELECTOR_AR] >> 16) & 0xff;
+	ldt.ar_high = (saved_state[SMRAM_FIELD_LDTR_SELECTOR_AR] >> 24) & 0xff;
+	smm_seg_load(&ldt);
+
+	/* IDTR */
+	idt.base = saved_state[SMRAM_FIELD_IDTR_BASE];
+	idt.limit = saved_state[SMRAM_FIELD_IDTR_LIMIT];
+
+	/* GDTR */
+	gdt.base = saved_state[SMRAM_FIELD_GDTR_BASE];
+	gdt.limit = saved_state[SMRAM_FIELD_GDTR_LIMIT];
+
+	/* ES */
+	cpu_state.seg_es.seg = saved_state[SMRAM_FIELD_ES_SELECTOR];
+	cpu_state.seg_es.base = saved_state[SMRAM_FIELD_ES_BASE];
+	cpu_state.seg_es.limit = saved_state[SMRAM_FIELD_ES_LIMIT];
+	cpu_state.seg_es.access = (saved_state[SMRAM_FIELD_ES_SELECTOR_AR] >> 16) & 0xff;
+	cpu_state.seg_es.ar_high = (saved_state[SMRAM_FIELD_ES_SELECTOR_AR] >> 24) & 0xff;
+	smm_seg_load(&cpu_state.seg_es);
+
+	/* CS */
+	cpu_state.seg_cs.seg = saved_state[SMRAM_FIELD_CS_SELECTOR];
+	cpu_state.seg_cs.base = saved_state[SMRAM_FIELD_CS_BASE];
+	cpu_state.seg_cs.limit = saved_state[SMRAM_FIELD_CS_LIMIT];
+	cpu_state.seg_cs.access = (saved_state[SMRAM_FIELD_CS_SELECTOR_AR] >> 16) & 0xff;
+	cpu_state.seg_cs.ar_high = (saved_state[SMRAM_FIELD_CS_SELECTOR_AR] >> 24) & 0xff;
+	smm_seg_load(&cpu_state.seg_cs);
+
+	/* DS */
+	cpu_state.seg_ds.seg = saved_state[SMRAM_FIELD_DS_SELECTOR];
+	cpu_state.seg_ds.base = saved_state[SMRAM_FIELD_DS_BASE];
+	cpu_state.seg_ds.limit = saved_state[SMRAM_FIELD_DS_LIMIT];
+	cpu_state.seg_ds.access = (saved_state[SMRAM_FIELD_DS_SELECTOR_AR] >> 16) & 0xff;
+	cpu_state.seg_ds.ar_high = (saved_state[SMRAM_FIELD_DS_SELECTOR_AR] >> 24) & 0xff;
+	smm_seg_load(&cpu_state.seg_ds);
+
+	/* SS */
+	cpu_state.seg_ss.seg = saved_state[SMRAM_FIELD_SS_SELECTOR];
+	cpu_state.seg_ss.base = saved_state[SMRAM_FIELD_SS_BASE];
+	cpu_state.seg_ss.limit = saved_state[SMRAM_FIELD_SS_LIMIT];
+	cpu_state.seg_ss.access = (saved_state[SMRAM_FIELD_SS_SELECTOR_AR] >> 16) & 0xff;
+	cpu_state.seg_ss.ar_high = (saved_state[SMRAM_FIELD_SS_SELECTOR_AR] >> 24) & 0xff;
+	smm_seg_load(&cpu_state.seg_ss);
+
+	/* FS */
+	cpu_state.seg_fs.seg = saved_state[SMRAM_FIELD_FS_SELECTOR];
+	cpu_state.seg_fs.base = saved_state[SMRAM_FIELD_FS_BASE];
+	cpu_state.seg_fs.limit = saved_state[SMRAM_FIELD_FS_LIMIT];
+	cpu_state.seg_fs.access = (saved_state[SMRAM_FIELD_FS_SELECTOR_AR] >> 16) & 0xff;
+	cpu_state.seg_fs.ar_high = (saved_state[SMRAM_FIELD_FS_SELECTOR_AR] >> 24) & 0xff;
+	smm_seg_load(&cpu_state.seg_fs);
+
+	/* GS */
+	cpu_state.seg_gs.seg = saved_state[SMRAM_FIELD_GS_SELECTOR];
+	cpu_state.seg_gs.base = saved_state[SMRAM_FIELD_GS_BASE];
+	cpu_state.seg_gs.limit = saved_state[SMRAM_FIELD_GS_LIMIT];
+	cpu_state.seg_gs.access = (saved_state[SMRAM_FIELD_GS_SELECTOR_AR] >> 16) & 0xff;
+	cpu_state.seg_gs.ar_high = (saved_state[SMRAM_FIELD_GS_SELECTOR_AR] >> 24) & 0xff;
+	smm_seg_load(&cpu_state.seg_gs);
+
+	if (SMM_REVISION_ID & SMM_SMBASE_RELOCATION)
+		smbase = saved_state[SMRAM_FIELD_SMBASE_OFFSET];
+}
+
+
 void enter_smm()
 {
-	uint32_t smram_state = smbase + 0xfe00;
-	uint32_t old_cr0 = cr0;
-	uint32_t old_flags = cpu_state.flags | ((uint32_t)cpu_state.eflags << 16);
+	uint32_t saved_state[SMM_SAVE_STATE_MAP_SIZE], n;
+	uint32_t smram_state = smbase + 0x10000;
+
+	x386_dynarec_log("enter_smm(): smbase = %08X\n", smbase);
+	x386_dynarec_log("CS : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		cpu_state.seg_cs.seg, cpu_state.seg_cs.base, cpu_state.seg_cs.limit, cpu_state.seg_cs.limit_low,
+		cpu_state.seg_cs.limit_high, cpu_state.seg_cs.access, cpu_state.seg_cs.ar_high);
+	x386_dynarec_log("DS : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		cpu_state.seg_ds.seg, cpu_state.seg_ds.base, cpu_state.seg_ds.limit, cpu_state.seg_ds.limit_low,
+		cpu_state.seg_ds.limit_high, cpu_state.seg_ds.access, cpu_state.seg_ds.ar_high);
+	x386_dynarec_log("ES : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		cpu_state.seg_es.seg, cpu_state.seg_es.base, cpu_state.seg_es.limit, cpu_state.seg_es.limit_low,
+		cpu_state.seg_es.limit_high, cpu_state.seg_es.access, cpu_state.seg_es.ar_high);
+	x386_dynarec_log("FS : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		cpu_state.seg_fs.seg, cpu_state.seg_fs.base, cpu_state.seg_fs.limit, cpu_state.seg_fs.limit_low,
+		cpu_state.seg_fs.limit_high, cpu_state.seg_fs.access, cpu_state.seg_fs.ar_high);
+	x386_dynarec_log("GS : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		cpu_state.seg_gs.seg, cpu_state.seg_gs.base, cpu_state.seg_gs.limit, cpu_state.seg_gs.limit_low,
+		cpu_state.seg_gs.limit_high, cpu_state.seg_gs.access, cpu_state.seg_gs.ar_high);
+	x386_dynarec_log("SS : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		cpu_state.seg_ss.seg, cpu_state.seg_ss.base, cpu_state.seg_ss.limit, cpu_state.seg_ss.limit_low,
+		cpu_state.seg_ss.limit_high, cpu_state.seg_ss.access, cpu_state.seg_ss.ar_high);
+	x386_dynarec_log("TR : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		tr.seg, tr.base, tr.limit, tr.limit_low, tr.limit_high, tr.access, tr.ar_high);
+	x386_dynarec_log("LDT: seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		ldt.seg, ldt.base, ldt.limit, ldt.limit_low, ldt.limit_high, ldt.access, ldt.ar_high);
+	x386_dynarec_log("GDT: seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		gdt.seg, gdt.base, gdt.limit, gdt.limit_low, gdt.limit_high, gdt.access, gdt.ar_high);
+	x386_dynarec_log("IDT: seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		idt.seg, idt.base, idt.limit, idt.limit_low, idt.limit_high, idt.access, idt.ar_high);
+	x386_dynarec_log("CR0 = %08X, CR3 = %08X, CR4 = %08X, DR6 = %08X, DR7 = %08X\n", cr0, cr3, cr4, dr[6], dr[7]);
+	x386_dynarec_log("EIP = %08X, EFLAGS = %04X%04X\n", cpu_state.pc, cpu_state.eflags, cpu_state.flags);
+	x386_dynarec_log("EAX = %08X, EBX = %08X, ECX = %08X, EDX = %08X, ESI = %08X, EDI = %08X, ESP = %08X, EBP = %08X\n",
+		EAX, EBX, ECX, EDX, ESI, EDI, ESP, EBP);
+
+	memset(saved_state, 0x00, SMM_SAVE_STATE_MAP_SIZE * sizeof(uint32_t));
+	smram_save_state(saved_state);
+	for (n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
+		smram_state -= 4;
+		mem_writel_phys(smram_state, saved_state[n]);
+	}
 
 	cr0 &= ~0x8000000d;
 	cpu_state.flags = 2;
 	cpu_state.eflags = 0;
 
-	in_smm = 1;
-	mem_set_mem_state(smbase, 131072, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-	smi_latched = 1;
+	/* Intel 4x0 chipset stuff. */
+	mem_set_mem_state(0xa0000, 131072, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+	flushmmucache_cr3();
 
-	mem_writel_phys(smram_state + 0xf8, smbase);
-	mem_writel_phys(smram_state + 0x128, cr4);
-	mem_writel_phys(smram_state + 0x130, cpu_state.seg_es.limit);
-	mem_writel_phys(smram_state + 0x134, cpu_state.seg_es.base);
-	mem_writel_phys(smram_state + 0x138, cpu_state.seg_es.access);
-	mem_writel_phys(smram_state + 0x13c, cpu_state.seg_cs.limit);
-	mem_writel_phys(smram_state + 0x140, cpu_state.seg_cs.base);
-	mem_writel_phys(smram_state + 0x144, cpu_state.seg_cs.access);
-	mem_writel_phys(smram_state + 0x148, cpu_state.seg_ss.limit);
-	mem_writel_phys(smram_state + 0x14c, cpu_state.seg_ss.base);
-	mem_writel_phys(smram_state + 0x150, cpu_state.seg_ss.access);
-	mem_writel_phys(smram_state + 0x154, cpu_state.seg_ds.limit);
-	mem_writel_phys(smram_state + 0x158, cpu_state.seg_ds.base);
-	mem_writel_phys(smram_state + 0x15c, cpu_state.seg_ds.access);
-	mem_writel_phys(smram_state + 0x160, cpu_state.seg_fs.limit);
-	mem_writel_phys(smram_state + 0x164, cpu_state.seg_fs.base);
-	mem_writel_phys(smram_state + 0x168, cpu_state.seg_fs.access);
-	mem_writel_phys(smram_state + 0x16c, cpu_state.seg_gs.limit);
-	mem_writel_phys(smram_state + 0x170, cpu_state.seg_gs.base);
-	mem_writel_phys(smram_state + 0x174, cpu_state.seg_gs.access);
-	mem_writel_phys(smram_state + 0x178, ldt.limit);
-	mem_writel_phys(smram_state + 0x17c, ldt.base);
-	mem_writel_phys(smram_state + 0x180, ldt.access);
-	mem_writel_phys(smram_state + 0x184, gdt.limit);
-	mem_writel_phys(smram_state + 0x188, gdt.base);
-	mem_writel_phys(smram_state + 0x18c, gdt.access);
-	mem_writel_phys(smram_state + 0x190, idt.limit);
-	mem_writel_phys(smram_state + 0x194, idt.base);
-	mem_writel_phys(smram_state + 0x198, idt.access);
-	mem_writel_phys(smram_state + 0x19c, tr.limit);
-	mem_writel_phys(smram_state + 0x1a0, tr.base);
-	mem_writel_phys(smram_state + 0x1a4, tr.access);
-
-	mem_writel_phys(smram_state + 0x1a8, cpu_state.seg_es.seg);
-	mem_writel_phys(smram_state + 0x1ac, cpu_state.seg_cs.seg);
-	mem_writel_phys(smram_state + 0x1b0, cpu_state.seg_ss.seg);
-	mem_writel_phys(smram_state + 0x1b4, cpu_state.seg_ds.seg);
-	mem_writel_phys(smram_state + 0x1b8, cpu_state.seg_fs.seg);
-	mem_writel_phys(smram_state + 0x1bc, cpu_state.seg_gs.seg);
-	mem_writel_phys(smram_state + 0x1c0, ldt.seg);
-	mem_writel_phys(smram_state + 0x1c4, tr.seg);
-
-	mem_writel_phys(smram_state + 0x1c8, dr[7]);
-	mem_writel_phys(smram_state + 0x1cc, dr[6]);
-	mem_writel_phys(smram_state + 0x1d0, EAX);
-	mem_writel_phys(smram_state + 0x1d4, ECX);
-	mem_writel_phys(smram_state + 0x1d8, EDX);
-	mem_writel_phys(smram_state + 0x1dc, EBX);
-	mem_writel_phys(smram_state + 0x1e0, ESP);
-	mem_writel_phys(smram_state + 0x1e4, EBP);
-	mem_writel_phys(smram_state + 0x1e8, ESI);
-	mem_writel_phys(smram_state + 0x1ec, EDI);
-	mem_writel_phys(smram_state + 0x1f0, cpu_state.pc);
-	mem_writel_phys(smram_state + 0x1d0, old_flags);
-	mem_writel_phys(smram_state + 0x1f8, cr3);
-	mem_writel_phys(smram_state + 0x1fc, old_cr0);
-
-	ds = es = fs_seg = gs = ss = 0;
-
-	DS = ES = FS = GS = SS = 0;
-
-	cpu_state.seg_ds.limit = cpu_state.seg_es.limit = cpu_state.seg_fs.limit = cpu_state.seg_gs.limit
-	= cpu_state.seg_ss.limit = 0xffffffff;
-
-	cpu_state.seg_ds.limit_high = cpu_state.seg_es.limit_high = cpu_state.seg_fs.limit_high
-	= cpu_state.seg_gs.limit_high = cpu_state.seg_ss.limit_high = 0xffffffff;
-
-	cpu_state.seg_ds.limit_low = cpu_state.seg_es.limit_low = cpu_state.seg_fs.limit_low
-	= cpu_state.seg_gs.limit_low = cpu_state.seg_ss.limit_low = 0;
-
-	cpu_state.seg_ds.access = cpu_state.seg_es.access = cpu_state.seg_fs.access
-	= cpu_state.seg_gs.access = cpu_state.seg_ss.access = 0x93;
-
-	cpu_state.seg_ds.checked = cpu_state.seg_es.checked = cpu_state.seg_fs.checked
-	= cpu_state.seg_gs.checked = cpu_state.seg_ss.checked = 1;
-
-	CS = 0x3000;
-	cs = smbase;
-	cpu_state.seg_cs.limit = cpu_state.seg_cs.limit_high = 0xffffffff;
-	cpu_state.seg_cs.limit_low = 0;
-	cpu_state.seg_cs.access = 0x93;
-	cpu_state.seg_cs.checked = 1;
-
-	cr4 = 0;
+	if (is_pentium)
+		cr4 = 0;
 	dr[7] = 0x400;
 	cpu_state.pc = 0x8000;
 
+	cpu_state.seg_ds.seg = 0x00000000;
+	cpu_state.seg_ds.base = 0x00000000;
+	cpu_state.seg_ds.limit = 0xffffffff;
+	cpu_state.seg_ds.access = 0x93;
+	cpu_state.seg_ds.ar_high = 0x80;
+
+	memcpy(&cpu_state.seg_es, &cpu_state.seg_ds, sizeof(x86seg));
+	memcpy(&cpu_state.seg_ss, &cpu_state.seg_ds, sizeof(x86seg));
+	memcpy(&cpu_state.seg_fs, &cpu_state.seg_ds, sizeof(x86seg));
+	memcpy(&cpu_state.seg_gs, &cpu_state.seg_ds, sizeof(x86seg));
+
+	CS = (smbase >> 4);
+	cpu_state.seg_cs.base = smbase;
+	cpu_state.seg_cs.limit = 0xffffffff;
+	cpu_state.seg_cs.access = 0x93;
+	cpu_state.seg_cs.ar_high = 0x80;
+	cpu_state.seg_cs.checked = 1;
+
+	smm_seg_load(&cpu_state.seg_es);
+	smm_seg_load(&cpu_state.seg_cs);
+	smm_seg_load(&cpu_state.seg_ds);
+	smm_seg_load(&cpu_state.seg_ss);
+	smm_seg_load(&cpu_state.seg_fs);
+	smm_seg_load(&cpu_state.seg_gs);
+
 	nmi_mask = 0;
+
+	in_smm = 1;
+	CPU_BLOCK_END();
 }
+
 
 void leave_smm()
 {
-	uint32_t smram_state = smbase + 0xfe00;
+	uint32_t saved_state[SMM_SAVE_STATE_MAP_SIZE], n;
+	uint32_t smram_state = smbase + 0x10000;
 
-	smbase = mem_readl_phys(smram_state + 0xf8);
-	cr4 = mem_readl_phys(smram_state + 0x128);
-
-	cpu_state.seg_es.limit = cpu_state.seg_es.limit_high = mem_readl_phys(smram_state + 0x130);
-	cpu_state.seg_es.base = mem_readl_phys(smram_state + 0x134);
-	cpu_state.seg_es.limit_low = cpu_state.seg_es.base;
-	cpu_state.seg_es.access = mem_readl_phys(smram_state + 0x138);
-
-	cpu_state.seg_cs.limit = cpu_state.seg_cs.limit_high = mem_readl_phys(smram_state + 0x13c);
-	cpu_state.seg_cs.base = mem_readl_phys(smram_state + 0x140);
-	cpu_state.seg_cs.limit_low = cpu_state.seg_cs.base;
-	cpu_state.seg_cs.access = mem_readl_phys(smram_state + 0x144);
-
-	cpu_state.seg_ss.limit = cpu_state.seg_ss.limit_high = mem_readl_phys(smram_state + 0x148);
-	cpu_state.seg_ss.base = mem_readl_phys(smram_state + 0x14c);
-	cpu_state.seg_ss.limit_low = cpu_state.seg_ss.base;     
-	cpu_state.seg_ss.access = mem_readl_phys(smram_state + 0x150);
-
-	cpu_state.seg_ds.limit = cpu_state.seg_ds.limit_high = mem_readl_phys(smram_state + 0x154);
-	cpu_state.seg_ds.base = mem_readl_phys(smram_state + 0x158);
-	cpu_state.seg_ds.limit_low = cpu_state.seg_ds.base;
-	cpu_state.seg_ds.access = mem_readl_phys(smram_state + 0x15c);
-
-	cpu_state.seg_fs.limit = cpu_state.seg_fs.limit_high = mem_readl_phys(smram_state + 0x160);
-	cpu_state.seg_fs.base = mem_readl_phys(smram_state + 0x164);
-	cpu_state.seg_fs.limit_low = cpu_state.seg_fs.base;
-	cpu_state.seg_fs.access = mem_readl_phys(smram_state + 0x168);
-
-	cpu_state.seg_gs.limit = cpu_state.seg_gs.limit_high = mem_readl_phys(smram_state + 0x16c);
-	cpu_state.seg_gs.base = mem_readl_phys(smram_state + 0x170);
-	cpu_state.seg_gs.limit_low = cpu_state.seg_gs.base;
-	cpu_state.seg_gs.access = mem_readl_phys(smram_state + 0x174);
-
-	ldt.limit = ldt.limit_high = mem_readl_phys(smram_state + 0x178);
-	ldt.base = mem_readl_phys(smram_state + 0x17c);
-	ldt.limit_low = ldt.base;
-	ldt.access = mem_readl_phys(smram_state + 0x180);
-
-	gdt.limit = gdt.limit_high = mem_readl_phys(smram_state + 0x184);
-	gdt.base = mem_readl_phys(smram_state + 0x188);
-	gdt.limit_low = gdt.base;
-	gdt.access = mem_readl_phys(smram_state + 0x18c);
-
-	idt.limit = idt.limit_high = mem_readl_phys(smram_state + 0x190);
-	idt.base = mem_readl_phys(smram_state + 0x194);
-	idt.limit_low = idt.base;
-	idt.access = mem_readl_phys(smram_state + 0x198);
-
-	tr.limit = tr.limit_high = mem_readl_phys(smram_state + 0x19c);
-	tr.base = mem_readl_phys(smram_state + 0x1a0);
-	tr.limit_low = tr.base;
-	tr.access = mem_readl_phys(smram_state + 0x1a4);
-
-	ES = mem_readl_phys(smram_state + 0x1a8);
-	CS = mem_readl_phys(smram_state + 0x1ac);
-	SS = mem_readl_phys(smram_state + 0x1b0);
-	DS = mem_readl_phys(smram_state + 0x1b4);
-	FS = mem_readl_phys(smram_state + 0x1b8);
-	GS = mem_readl_phys(smram_state + 0x1bc);
-	ldt.seg = mem_readl_phys(smram_state + 0x1c0);
-	tr.seg = mem_readl_phys(smram_state + 0x1c4);
-
-	dr[7] = mem_readl_phys(smram_state + 0x1c8);
-	dr[6] = mem_readl_phys(smram_state + 0x1cc);
-	EAX = mem_readl_phys(smram_state + 0x1d0);
-	ECX = mem_readl_phys(smram_state + 0x1d4);
-	EDX = mem_readl_phys(smram_state + 0x1d8);
-	EBX = mem_readl_phys(smram_state + 0x1dc);
-	ESP = mem_readl_phys(smram_state + 0x1e0);
-	EBP = mem_readl_phys(smram_state + 0x1e4);
-	ESI = mem_readl_phys(smram_state + 0x1e8);
-	EDI = mem_readl_phys(smram_state + 0x1ec);
-
-	cpu_state.pc = mem_readl_phys(smram_state + 0x1f0);
-	uint32_t new_flags = mem_readl_phys(smram_state + 0x1f4);
-	cpu_state.flags = new_flags & 0xffff;
-	cpu_state.eflags = new_flags >> 16;
-	cr3 = mem_readl_phys(smram_state + 0x1f8);
-	cr0 = mem_readl_phys(smram_state + 0x1fc);
-
-	cpu_state.seg_cs.access &= ~0x60;
-	cpu_state.seg_cs.access |= cpu_state.seg_ss.access & 0x60; //cpl is dpl of ss
-
-	if((cr0 & 1) && !(cpu_state.eflags&VM_FLAG))
-	{
-		cpu_state.seg_cs.checked = CS ? 1 : 0;
-		cpu_state.seg_ds.checked = DS ? 1 : 0;
-		cpu_state.seg_es.checked = ES ? 1 : 0;
-		cpu_state.seg_fs.checked = FS ? 1 : 0;
-		cpu_state.seg_gs.checked = GS ? 1 : 0;
-		cpu_state.seg_ss.checked = SS ? 1 : 0;
+	memset(saved_state, 0x00, SMM_SAVE_STATE_MAP_SIZE * sizeof(uint32_t));
+	for (n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
+		smram_state -= 4;
+		saved_state[n] = mem_readl_phys(smram_state);
 	}
-	else
-	{
-		cpu_state.seg_cs.checked = cpu_state.seg_ds.checked = cpu_state.seg_es.checked
-		= cpu_state.seg_fs.checked = cpu_state.seg_gs.checked = cpu_state.seg_ss.checked = 1;
-	}
+	smram_restore_state(saved_state);
 
-	mem_restore_mem_state(smbase, 131072);
-	in_smm = 0;
+	/* Intel 4x0 chipset stuff. */
+	mem_restore_mem_state(0xa0000, 131072);
+	flushmmucache_cr3();
 
 	nmi_mask = 1;
+
+	in_smm = 0;
+	CPU_BLOCK_END();
+
+	x386_dynarec_log("CS : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		cpu_state.seg_cs.seg, cpu_state.seg_cs.base, cpu_state.seg_cs.limit, cpu_state.seg_cs.limit_low,
+		cpu_state.seg_cs.limit_high, cpu_state.seg_cs.access, cpu_state.seg_cs.ar_high);
+	x386_dynarec_log("DS : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		cpu_state.seg_ds.seg, cpu_state.seg_ds.base, cpu_state.seg_ds.limit, cpu_state.seg_ds.limit_low,
+		cpu_state.seg_ds.limit_high, cpu_state.seg_ds.access, cpu_state.seg_ds.ar_high);
+	x386_dynarec_log("ES : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		cpu_state.seg_es.seg, cpu_state.seg_es.base, cpu_state.seg_es.limit, cpu_state.seg_es.limit_low,
+		cpu_state.seg_es.limit_high, cpu_state.seg_es.access, cpu_state.seg_es.ar_high);
+	x386_dynarec_log("FS : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		cpu_state.seg_fs.seg, cpu_state.seg_fs.base, cpu_state.seg_fs.limit, cpu_state.seg_fs.limit_low,
+		cpu_state.seg_fs.limit_high, cpu_state.seg_fs.access, cpu_state.seg_fs.ar_high);
+	x386_dynarec_log("GS : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		cpu_state.seg_gs.seg, cpu_state.seg_gs.base, cpu_state.seg_gs.limit, cpu_state.seg_gs.limit_low,
+		cpu_state.seg_gs.limit_high, cpu_state.seg_gs.access, cpu_state.seg_gs.ar_high);
+	x386_dynarec_log("SS : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		cpu_state.seg_ss.seg, cpu_state.seg_ss.base, cpu_state.seg_ss.limit, cpu_state.seg_ss.limit_low,
+		cpu_state.seg_ss.limit_high, cpu_state.seg_ss.access, cpu_state.seg_ss.ar_high);
+	x386_dynarec_log("TR : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		tr.seg, tr.base, tr.limit, tr.limit_low, tr.limit_high, tr.access, tr.ar_high);
+	x386_dynarec_log("LDT: seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		ldt.seg, ldt.base, ldt.limit, ldt.limit_low, ldt.limit_high, ldt.access, ldt.ar_high);
+	x386_dynarec_log("GDT: seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		gdt.seg, gdt.base, gdt.limit, gdt.limit_low, gdt.limit_high, gdt.access, gdt.ar_high);
+	x386_dynarec_log("IDT: seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
+		idt.seg, idt.base, idt.limit, idt.limit_low, idt.limit_high, idt.access, idt.ar_high);
+	x386_dynarec_log("CR0 = %08X, CR3 = %08X, CR4 = %08X, DR6 = %08X, DR7 = %08X\n", cr0, cr3, cr4, dr[6], dr[7]);
+	x386_dynarec_log("EIP = %08X, EFLAGS = %04X%04X\n", cpu_state.pc, cpu_state.eflags, cpu_state.flags);
+	x386_dynarec_log("EAX = %08X, EBX = %08X, ECX = %08X, EDX = %08X, ESI = %08X, EDI = %08X, ESP = %08X, EBP = %08X\n",
+		EAX, EBX, ECX, EDX, ESI, EDI, ESP, EBP);
+	x386_dynarec_log("leave_smm()\n");
 }
+
 
 #define OP_TABLE(name) ops_ ## name
 #define CLOCK_CYCLES(c) cycles -= (c)
@@ -552,7 +809,7 @@ void exec386_dynarec(int cycs)
 					if (((cs + cpu_state.pc) >> 12) != pccache)
 						CPU_BLOCK_END();
 
-					if (in_smm && smi_line && is_pentium)
+					if (!in_smm && smi_line/* && is_pentium*/)
 						CPU_BLOCK_END();
 
 					if (cpu_state.abrt)
@@ -781,9 +1038,9 @@ void exec386_dynarec(int cycs)
 #endif
 							CPU_BLOCK_END();
 						
-						if (in_smm && smi_line && is_pentium)
+						if (!in_smm && smi_line/* && is_pentium*/)
 							CPU_BLOCK_END();
-					
+
 						if (trap)
 							CPU_BLOCK_END();
 
@@ -867,9 +1124,9 @@ void exec386_dynarec(int cycs)
 #endif
 							CPU_BLOCK_END();
 
-						if (in_smm && smi_line && is_pentium)
+						if (!in_smm && smi_line/* && is_pentium*/)
 							CPU_BLOCK_END();
-					
+
 						if (trap)
 							CPU_BLOCK_END();
 
@@ -926,9 +1183,12 @@ void exec386_dynarec(int cycs)
 				}
 			}
 
-			if (in_smm && smi_line && is_pentium)
-			{
+			if (!in_smm && smi_line/* && is_pentium*/) {
 				enter_smm();
+				smi_line = 0;
+			} else if (in_smm && smi_line/* && is_pentium*/) {
+				smi_latched = 1;
+				smi_line = 0;
 			}
 
 			else if (trap)

@@ -481,7 +481,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				break;
 			case INTEL_430FX: case INTEL_430FX_PB640:
 			case INTEL_430VX:
-				regs[addr] = val/* & 0x3f*/;
+				regs[addr] = val & 0x3f;
 				break;
 			case INTEL_430TX:
 				regs[addr] = val & 0x7f;
@@ -496,7 +496,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 #if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
 #endif        
-			case INTEL_440BX:	case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[addr] = val;
 				break;
 			case INTEL_430VX:
@@ -513,7 +513,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 #if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX: 
 #endif
-      case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[addr] = val;
 				break;
 		}
@@ -524,7 +524,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 #if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX: 
 #endif
-      case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[addr] = val;
 				break;
 			case INTEL_430VX:
@@ -637,9 +637,13 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x72:	/* SMRAM */
 		if (dev->type >= INTEL_430FX) {
-			if ((regs[0x72] ^ val) & 0x48)
+			if ((regs[0x72] & 0x10) || (val & 0x10)) {
+				regs[0x72] = (val & 0x38) | 0x02;
+				i4x0_map(0xa0000, 0x20000, 0);
+			} else {
+				regs[0x72] = (val & 0x78) | 0x02;
 				i4x0_map(0xa0000, 0x20000, ((val & 0x48) == 0x48) ? 3 : 0);
-			regs[0x72] = val & 0x7f;
+			}
 		} else {
 			if ((regs[0x72] ^ val) & 0x20)
 				i4x0_map(0xa0000, 0x20000, ((val & 0x20) == 0x20) ? 3 : 0);
@@ -1006,7 +1010,7 @@ i4x0_reset(void *priv)
 		memset(dev->regs_locked[i], 0x00, 256 * sizeof(uint8_t));
     }
 
-    smbase = 0xa0000;
+    // smbase = 0xa0000;
 }
 
 
@@ -1222,7 +1226,7 @@ static void
     i4x0_write(regs[0x5e], 0x5e, 0x00, dev);
     i4x0_write(regs[0x5f], 0x5f, 0x00, dev);
 
-    smbase = 0xa0000;
+    // smbase = 0xa0000;
 
     if (((dev->type == INTEL_440BX) || (dev->type == INTEL_440ZX)) && (dev->max_func == 1)) {
 	regs = (uint8_t *) dev->regs[1];

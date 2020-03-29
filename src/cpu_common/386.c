@@ -272,6 +272,14 @@ exec386(int cycs)
 			}
 		}
 
+		if (!in_smm && smi_line/* && is_pentium*/) {
+			enter_smm();
+			smi_line = 0;
+		} else if (in_smm && smi_line/* && is_pentium*/) {
+			smi_latched = 1;
+			smi_line = 0;
+		}
+
 		ins_cycles -= cycles;
 		tsc += ins_cycles;
 

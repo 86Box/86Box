@@ -1209,14 +1209,12 @@ mem_readl_phys(uint32_t addr)
     uint32_t temp;
 
     if (_mem_exec[addr >> MEM_GRANULARITY_BITS])
-	return ((uint32_t *) _mem_exec[addr >> MEM_GRANULARITY_BITS])[(addr >> 1) & MEM_GRANULARITY_HMASK];
+	return ((uint32_t *) _mem_exec[addr >> MEM_GRANULARITY_BITS])[(addr >> 1) & MEM_GRANULARITY_QMASK];
     else if (map && map->read_l)
        	return map->read_l(addr, map->p);
     else {
-	temp = mem_readb_phys(addr + 3) << 24;		
-	temp |= mem_readb_phys(addr + 2) << 16;
-	temp |= mem_readb_phys(addr + 1) << 8;
-	temp |= mem_readb_phys(addr);
+	temp = mem_readw_phys(addr + 2) << 16;
+	temp |=  mem_readw_phys(addr);
     }
 
     return temp;
@@ -1236,21 +1234,34 @@ mem_writeb_phys(uint32_t addr, uint8_t val)
 
 
 void
+mem_writew_phys(uint32_t addr, uint16_t val)
+{
+    mem_mapping_t *map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+
+    if (_mem_exec[addr >> MEM_GRANULARITY_BITS])
+	((uint16_t *) _mem_exec[addr >> MEM_GRANULARITY_BITS])[(addr >> 1) & MEM_GRANULARITY_HMASK] = val;
+    else if (map && map->write_w)
+       	map->write_w(addr, val, map->p);
+    else {
+	mem_writeb_phys(addr, val & 0xff);
+	mem_writeb_phys(addr + 1, (val >> 8) & 0xff);
+    }
+}
+
+
+void
 mem_writel_phys(uint32_t addr, uint32_t val)
 {
     mem_mapping_t *map = write_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (_mem_exec[addr >> MEM_GRANULARITY_BITS])
-	_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK] = val;
+	((uint32_t *) _mem_exec[addr >> MEM_GRANULARITY_BITS])[(addr >> 1) & MEM_GRANULARITY_QMASK] = val;
     else if (map && map->write_l)
        	map->write_l(addr, val, map->p);
-	else
-	{
-		mem_writeb_phys(addr, val & 0xff);
-		mem_writeb_phys(addr + 1, (val >> 8) & 0xff);
-		mem_writeb_phys(addr + 2, (val >> 16) & 0xff);
-		mem_writeb_phys(addr + 3, (val >> 24) & 0xff);
-	}
+    else {
+	mem_writew_phys(addr, val & 0xffff);
+	mem_writew_phys(addr + 2, (val >> 16) & 0xffff);
+    }
 }
 
 
@@ -1884,6 +1895,8 @@ mem_set_mem_state(uint32_t base, uint32_t size, int state)
     for (c = 0; c < size; c += MEM_GRANULARITY_SIZE) {
 	_mem_state_bak[(c + base) >> MEM_GRANULARITY_BITS] = _mem_state[(c + base) >> MEM_GRANULARITY_BITS];
 	_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = state;
+	// if (((c + base) >= 0xa0000) && ((c + base) <= 0xbffff))
+		// pclog("Set mem state for block at %08X to %02X\n", c + base, state);
     }
 
     mem_mapping_recalc(base, size);
@@ -1895,8 +1908,11 @@ mem_restore_mem_state(uint32_t base, uint32_t size)
 {
     uint32_t c;
 
-    for (c = 0; c < size; c += MEM_GRANULARITY_SIZE)
+    for (c = 0; c < size; c += MEM_GRANULARITY_SIZE) {
 	_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = _mem_state_bak[(c + base) >> MEM_GRANULARITY_BITS];
+	// if (((c + base) >= 0xa0000) && ((c + base) <= 0xbffff))
+		// pclog("Reset mem state for block at %08X\n", c + base);
+    }
 
     mem_mapping_recalc(base, size);
 }

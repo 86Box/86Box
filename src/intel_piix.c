@@ -111,6 +111,7 @@ typedef struct
     ddma_t		ddma[2];
     power_t		power;
     piix_smbus_t	smbus;
+    apm_t *		apm;
     nvr_t *		nvr;
 } piix_t;
 
@@ -773,10 +774,18 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		}
 		break;
 	case 0xa0:
-		if (dev->type < 4)
+		if (dev->type < 4) {
 			fregs[addr] = val & 0x1f;
+			apm_set_do_smi(dev->apm, (val & 0x01) | (fregs[0xa2] & 0x80));
+		}
 		break;
-	case 0xa2: case 0xa5: case 0xa6: case 0xa8:
+	case 0xa2:
+		if (dev->type < 4) {
+			fregs[addr] = val & 0xff;
+			apm_set_do_smi(dev->apm, (fregs[0xa0] & 0x01) | (val & 0x80));
+		}
+		break;
+	case 0xa5: case 0xa6: case 0xa8:
 	case 0xaa: case 0xac: case 0xae:
 		if (dev->type < 4)
 			fregs[addr] = val & 0xff;
@@ -924,9 +933,10 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		break;
     } else if (func == 3)  switch(addr) {	/* Power Management */
 	case 0x04:
-		fregs[0x04] = (val & 1);
+		fregs[0x04] = (val & 0x01);
 		power_update_io_mapping(dev);
 		smbus_update_io_mapping(dev);
+		apm_set_do_smi(dev->apm, !!(fregs[0x5b] & 0x02) && !!(val & 0x01));
 		break;
 	case 0x07:
 		if (val & 0x08)
@@ -989,6 +999,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x5b:
 		fregs[addr] = val & 0x03;
+		apm_set_do_smi(dev->apm, !!(val & 0x02) && !!(fregs[0x04] & 0x01));
 		break;
 	case 0x63:
 		fregs[addr] = val & 0xf7;
@@ -1237,7 +1248,7 @@ static void
 
     piix_reset_hard(dev);
 
-    device_add(&apm_device);
+    dev->apm = device_add(&apm_device);
     device_add(&port_92_pci_device);
 
     dma_alias_set();
@@ -1278,9 +1289,10 @@ static void
 	dev->readout_regs[1] |= 0x80;
 
     io_sethandler(0x0078, 0x0002, board_read, NULL, NULL, board_write, NULL, NULL, dev);
-    io_sethandler(0x00e0, 0x0002, board_read, NULL, NULL, board_write, NULL, NULL, dev);
+    // io_sethandler(0x00e0, 0x0002, board_read, NULL, NULL, board_write, NULL, NULL, dev);
 
     dev->board_config[0] = 0xff;
+    dev->board_config[0] = 0x00;
     /* Register 0x0079: */
     /* Bit 7: 0 = Keep password, 0 = Clear password. */
     /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */

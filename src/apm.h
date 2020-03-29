@@ -29,11 +29,19 @@
 extern "C" {
 #endif
 
+typedef struct
+{
+    uint8_t cmd,
+	    stat, do_smi;
+} apm_t;
+
+
 /* Global variables. */
-extern const device_t apm_device;
+extern const device_t	apm_device;
 
 
 /* Functions. */
+extern void		apm_set_do_smi(apm_t *apm, uint8_t do_smi);
 
 #ifdef __cplusplus
 }

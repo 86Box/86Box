@@ -950,10 +950,13 @@ static int opWRMSR(uint32_t fetchdat)
 
 static int opRSM(uint32_t fetchdat)
 {
-        if(!in_smm)
+        if (in_smm)
         {
-                leave_smm();
-                if(smi_latched) enter_smm();
+               	leave_smm();
+		if (smi_latched) {
+			smi_latched = 0;
+			enter_smm();
+		}
                 CPU_BLOCK_END();
                 return 0;
         }

@@ -970,6 +970,9 @@ reset_common(int hard)
     cpu_ven_reset();
 
     cpu_alu_op = 0;
+
+    in_smm = smi_latched = 0;
+    smi_line = 0;
 }
 
 

@@ -105,6 +105,7 @@ uint8_t opcode2;
 static void seg_reset(x86seg *s)
 {
         s->access = (0 << 5) | 2 | 0x80;
+	s->ar_high = 0x10;
         s->limit = 0xFFFF;
         s->limit_low = 0;
         s->limit_high = 0xffff;
@@ -247,7 +248,8 @@ void do_seg_load(x86seg *s, uint16_t *segdat)
         if (is386)
                 s->base |= ((segdat[3] >> 8) << 24);
         s->access = segdat[2] >> 8;
-                        
+	s->ar_high = segdat[3] & 0xff;
+       
         if ((segdat[2] & 0x1800) != 0x1000 || !(segdat[2] & (1 << 10))) /*expand-down*/
         {
                 s->limit_high = s->limit;
@@ -278,6 +280,7 @@ void do_seg_load(x86seg *s, uint16_t *segdat)
 static void do_seg_v86_init(x86seg *s)
 {
         s->access = (3 << 5) | 2 | 0x80;
+	s->ar_high = 0x10;
         s->limit = 0xffff;
         s->limit_low = 0;
         s->limit_high = 0xffff;
@@ -344,6 +347,7 @@ int loadseg(uint16_t seg, x86seg *s)
                         }
                         s->seg=0;
                         s->access = 0x80;
+			s->ar_high = 0x10;
                         s->base=-1;
                         if (s == &cpu_state.seg_ds)
                                 cpu_cur_status |= CPU_STATUS_NOTFLATDS;
@@ -455,6 +459,7 @@ int loadseg(uint16_t seg, x86seg *s)
         else
         {
                 s->access = (3 << 5) | 2 | 0x80;
+		s->ar_high = 0x10;
                 s->base = seg << 4;
                 s->seg = seg;
                 s->checked = 1;
@@ -810,6 +815,7 @@ void loadcsjmp(uint16_t seg, uint32_t old_pc)
                 CS=seg;
                 if (cpu_state.eflags&VM_FLAG) cpu_state.seg_cs.access=(3<<5) | 2 | 0x80;
                 else                cpu_state.seg_cs.access=(0<<5) | 2 | 0x80;
+		cpu_state.seg_cs.ar_high = 0x10;
                 if (CPL==3 && oldcpl!=3) flushmmucache_cr3();
                 oldcpl = CPL;
                 cycles -= timing_jmp_rm;
@@ -1275,6 +1281,7 @@ void loadcscall(uint16_t seg, uint32_t old_pc)
                 CS=seg;
                 if (cpu_state.eflags&VM_FLAG) cpu_state.seg_cs.access=(3<<5) | 2 | 0x80;
                 else                cpu_state.seg_cs.access=(0<<5) | 2 | 0x80;
+		cpu_state.seg_cs.ar_high = 0x10;
                 if (CPL==3 && oldcpl!=3) flushmmucache_cr3();
                 oldcpl = CPL;
         }
@@ -1897,6 +1904,7 @@ void pmodeiret(int is32)
                 cpu_state.seg_cs.limit_low = 0;
                 cpu_state.seg_cs.limit_high = 0xffff;
 		cpu_state.seg_cs.access |= 0x80;
+		cpu_state.seg_cs.ar_high = 0x10;
                 CS=seg;
                 cpu_state.flags = (cpu_state.flags & 0x3000) | (tempflags & 0xCFD5) | 2;
                 cycles -= timing_iret_rm;
@@ -1966,6 +1974,7 @@ void pmodeiret(int is32)
                         cpu_state.seg_cs.limit_high = 0xffff;
                         CS=seg;
                         cpu_state.seg_cs.access=(3<<5) | 2 | 0x80;
+			cpu_state.seg_cs.ar_high = 0x10;
                         if (CPL==3 && oldcpl!=3) flushmmucache_cr3();
                         oldcpl = CPL;
 
@@ -2576,5 +2585,6 @@ void taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
         tr.base=base;
         tr.limit=limit;
         tr.access=segdat[2]>>8;
+	tr.ar_high = 0x10;
 }
 

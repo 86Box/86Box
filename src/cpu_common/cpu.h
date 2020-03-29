@@ -201,6 +201,7 @@ typedef struct {
     uint32_t	base;
     uint32_t	limit;
     uint8_t	access;
+    uint8_t	ar_high;
     uint16_t	seg;
     uint32_t	limit_low,
 		limit_high;
