@@ -646,7 +646,7 @@ kbd_poll(void *priv)
 			dev->status |=  STAT_MFULL;
 			dev->last_irq = 0x1000;
 		} else
-			keyboard_at.out_new = -1;
+			dev->out_new = -1;
 	} else {
 #ifdef ENABLE_KEYBOARD_AT_LOG
 		kbd_log("ATkbd: want keyboard data\n");
