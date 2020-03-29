@@ -52,19 +52,19 @@
 #include <wchar.h>
 #include <time.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "rom.h"
-#include "mca.h"
-#include "pci.h"
-#include "pic.h"
-#include "random.h"
-#include "device.h"
-#include "network.h"
-#include "net_dp8390.h"
-#include "net_ne2000.h"
-#include "bswap.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/mca.h>
+#include <86box/pci.h>
+#include <86box/pic.h>
+#include <86box/random.h>
+#include <86box/device.h>
+#include <86box/network.h>
+#include <86box/net_dp8390.h>
+#include <86box/net_ne2000.h>
+#include <86box/bswap.h>
 
 
 enum {

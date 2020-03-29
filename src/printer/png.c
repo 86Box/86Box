@@ -52,12 +52,12 @@
 #include <errno.h>
 #define PNG_DEBUG 0
 #include <png.h>
-#include "86box.h"
-#include "plat.h"
-#include "plat_dynld.h"
-#include "ui.h"
-#include "video.h"
-#include "png_struct.h"
+#include <86box/86box.h>
+#include <86box/plat.h>
+#include <86box/plat_dynld.h>
+#include <86box/ui.h>
+#include <86box/video.h>
+#include <86box/png_struct.h>
 
 #ifdef _WIN32
 # define PATH_PNG_DLL		"libpng16-16.dll"

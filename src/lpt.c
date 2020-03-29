@@ -5,12 +5,12 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "86box_io.h"
-#include "lpt.h"
-#include "pic.h"
-#include "sound.h"
-#include "prt_devs.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/lpt.h>
+#include <86box/pic.h>
+#include <86box/sound.h>
+#include <86box/prt_devs.h>
 
 
 lpt_port_t	lpt_ports[3];

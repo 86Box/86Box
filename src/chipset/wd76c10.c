@@ -23,18 +23,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
-#include "timer.h"
-#include "86box_io.h"
-#include "keyboard.h"
-#include "mem.h"
-#include "port_92.h"
-#include "serial.h"
-#include "fdd.h"
-#include "fdc.h"
-#include "video.h"
-#include "chipset.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/io.h>
+#include <86box/keyboard.h>
+#include <86box/mem.h>
+#include <86box/port_92.h>
+#include <86box/serial.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
+#include <86box/video.h>
+#include <86box/chipset.h>
 
 
 typedef struct {

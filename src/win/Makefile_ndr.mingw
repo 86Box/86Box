@@ -300,17 +300,8 @@ DEPFILE		:= win/.depends
 
 # Set up the correct toolchain flags.
 OPTS		:= $(EXTRAS) $(STUFF)
-ifeq ($(WX), y)
-OPTS		+= -I. \
-		   -Icpu_new -Icpu_common \
-		   -Icdrom -Ichipset -Idisk -Ifloppy -Igame -Imachine -Inetwork \
-		   -Iprinter -Isound -Iscsi -Ivideo -Ilang
-else
-OPTS		+= -iquote . \
-		   -iquote cpu_new -iquote cpu_common \
-		   -iquote cdrom -iquote chipset -iquote disk -iquote floppy -iquote game -iquote machine -iquote network \
-		   -iquote printer -iquote sound -iquote scsi -iquote video -iquote lang
-endif
+OPTS		+= -Iinclude \
+		   -iquote cpu_new -iquote cpu_common
 ifdef EXFLAGS
 OPTS		+= $(EXFLAGS)
 endif
@@ -360,7 +351,7 @@ ifeq ($(ARM64), y)
  AOPTIM	  :=
  AFLAGS		:= -mfloat-abi=hard
 endif
-RFLAGS		:= --input-format=rc -O coff
+RFLAGS		:= --input-format=rc -O coff -Iinclude
 OPTS		+= -DUSE_NEW_DYNAREC
 ifeq ($(RELEASE), y)
 OPTS		+= -DRELEASE_BUILD

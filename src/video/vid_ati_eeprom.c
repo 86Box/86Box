@@ -20,12 +20,12 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
-#include "mem.h"
-#include "timer.h"
-#include "nvr.h"
-#include "vid_ati_eeprom.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/mem.h>
+#include <86box/timer.h>
+#include <86box/nvr.h>
+#include <86box/vid_ati_eeprom.h>
 
 
 enum

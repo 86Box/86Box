@@ -6,10 +6,10 @@
 #define fplog 0
 #include <math.h>
 #define HAVE_STDARG_H
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "mem.h"
-#include "pic.h"
+#include <86box/mem.h>
+#include <86box/pic.h>
 #include "x86.h"
 #include "x86_flags.h"
 #include "x86_ops.h"

@@ -25,13 +25,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "plat.h"
-#include "random.h"
-#include "ui.h"
-#include "scsi_device.h"
-#include "zip.h"
-#include "win.h"
+#include <86box/86box.h>
+#include <86box/plat.h>
+#include <86box/random.h>
+#include <86box/ui.h>
+#include <86box/scsi_device.h>
+#include <86box/zip.h>
+#include <86box/win.h>
 
 
 typedef struct {

@@ -21,8 +21,8 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "smbus.h"
+#include <86box/86box.h>
+#include <86box/smbus.h>
 
 
 #define NADDRS		128		/* SMBus supports 128 addresses */

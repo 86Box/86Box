@@ -77,18 +77,18 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "rom.h"
-#include "timer.h"
-#include "device.h"
-#include "ui.h"
-#include "plat.h"
-#include "dma.h"
-#include "pic.h"
-#include "hdc.h"
-#include "hdd.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/ui.h>
+#include <86box/plat.h>
+#include <86box/dma.h>
+#include <86box/pic.h>
+#include <86box/hdc.h>
+#include <86box/hdd.h>
 
 
 #define XEBEC_BIOS_FILE		L"roms/hdd/st506/ibm_xebec_62x0822_1985.bin"

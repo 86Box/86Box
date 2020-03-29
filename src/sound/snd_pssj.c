@@ -3,14 +3,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "86box_io.h"
-#include "dma.h"
-#include "pic.h"
-#include "timer.h"
-#include "device.h"
-#include "sound.h"
-#include "snd_sn76489.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/dma.h>
+#include <86box/pic.h>
+#include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/sound.h>
+#include <86box/snd_sn76489.h>
 
 
 typedef struct pssj_t

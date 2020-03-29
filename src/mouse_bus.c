@@ -74,13 +74,13 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "86box_io.h"
-#include "pic.h"
-#include "timer.h"
-#include "device.h"
-#include "mouse.h"
-#include "random.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/pic.h>
+#include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/mouse.h>
+#include <86box/random.h>
 
 #define IRQ_MASK ((1 << 5) >> dev->irq)
 

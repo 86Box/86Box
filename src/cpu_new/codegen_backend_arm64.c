@@ -2,9 +2,9 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "mem.h"
+#include <86box/mem.h>
 
 #include "codegen.h"
 #include "codegen_allocator.h"

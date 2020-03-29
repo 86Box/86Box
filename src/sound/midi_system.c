@@ -3,12 +3,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
-#include "plat.h"
-#include "plat_midi.h"
-#include "midi.h"
-#include "midi_input.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/plat.h>
+#include <86box/plat_midi.h>
+#include <86box/midi.h>
+#include <86box/midi_input.h>
 
 
 void* system_midi_init(const device_t *info)

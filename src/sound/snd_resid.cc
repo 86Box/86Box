@@ -3,8 +3,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "resid-fp/sid.h"
-#include "plat.h"
-#include "snd_resid.h"
+#include <86box/plat.h>
+#include <86box/snd_resid.h>
 
 
 typedef struct psid_t

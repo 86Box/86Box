@@ -5,16 +5,16 @@
 #include <stdarg.h>
 #include <math.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "86box_io.h"
-#include "nmi.h"
-#include "mem.h"
-#include "pci.h"
-#include "timer.h"
-#include "sound.h"
-#include "midi.h"
-#include "snd_mpu401.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/io.h>
+#include <86box/nmi.h>
+#include <86box/mem.h>
+#include <86box/pci.h>
+#include <86box/timer.h>
+#include <86box/sound.h>
+#include <86box/midi.h>
+#include <86box/snd_mpu401.h>
 
 
 #define N 16

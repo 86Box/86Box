@@ -23,18 +23,18 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "86box_io.h"
-#include "mca.h"
-#include "mem.h"
-#include "pci.h"
-#include "rom.h"
-#include "device.h"
-#include "timer.h"
-#include "video.h"
-#include "vid_svga.h"
-#include "vid_svga_render.h"
+#include <86box/io.h>
+#include <86box/mca.h>
+#include <86box/mem.h>
+#include <86box/pci.h>
+#include <86box/rom.h>
+#include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/video.h>
+#include <86box/vid_svga.h>
+#include <86box/vid_svga_render.h>
 
 #define BIOS_GD5402_PATH		L"roms/video/cirruslogic/avga2.rom"
 #define BIOS_GD5402_ONBOARD_PATH	L"roms/video/machines/cbm_sl386sx25/Commodore386SX-25_AVGA2.bin"

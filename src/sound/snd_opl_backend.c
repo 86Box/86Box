@@ -6,12 +6,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "86box.h"
-#include "nukedopl.h"
-#include "sound.h"
-#include "snd_opl_backend.h"
+#include <86box/86box.h>
+#include <nukedopl.h>
+#include <86box/sound.h>
+#include <86box/snd_opl_backend.h>
 #include "cpu.h"
-#include "mem.h"
+#include <86box/mem.h>
 
 
 int opl_type = 0;

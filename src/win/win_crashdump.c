@@ -25,9 +25,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include "86box.h"
-#include "plat.h"
-#include "win.h"
+#include <86box/86box.h>
+#include <86box/plat.h>
+#include <86box/win.h>
 
 
 #define ExceptionHandlerBufferSize (10240)

@@ -22,17 +22,17 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "86box_io.h"
-#include "timer.h"
-#include "pit.h"
-#include "mem.h"
-#include "rom.h"
-#include "device.h"
-#include "video.h"
-#include "vid_ati_eeprom.h"
-#include "vid_ega.h"
+#include <86box/io.h>
+#include <86box/timer.h>
+#include <86box/pit.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/device.h>
+#include <86box/video.h>
+#include <86box/vid_ati_eeprom.h>
+#include <86box/vid_ega.h>
 
 
 void ega_doblit(int y1, int y2, int wx, int wy, ega_t *ega);

@@ -43,9 +43,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "mem.h"
+#include <86box/mem.h>
 #include "x86.h"
 #include "x86_flags.h"
 #include "../cpu_common/x86_ops.h"

@@ -23,11 +23,11 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>
-#include "86box.h"
-#include "timer.h"
-#include "mem.h"
-#include "vid_cga.h"
-#include "vid_cga_comp.h"
+#include <86box/86box.h>
+#include <86box/timer.h>
+#include <86box/mem.h>
+#include <86box/vid_cga.h>
+#include <86box/vid_cga_comp.h>
 
 
 int CGA_Composite_Table[1024];

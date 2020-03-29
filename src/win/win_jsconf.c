@@ -7,12 +7,12 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "config.h"
-#include "device.h"
-#include "gameport.h"
-#include "plat.h"
-#include "win.h"
+#include <86box/86box.h>
+#include <86box/config.h>
+#include <86box/device.h>
+#include <86box/gameport.h>
+#include <86box/plat.h>
+#include <86box/win.h>
 
 
 static int joystick_nr;

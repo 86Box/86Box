@@ -19,16 +19,16 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "86box_io.h"
-#include "timer.h"
-#include "pit.h"
-#include "mem.h"
-#include "nmi.h"
-#include "rom.h"
-#include "device.h"
-#include "video.h"
+#include <86box/io.h>
+#include <86box/timer.h>
+#include <86box/pit.h>
+#include <86box/mem.h>
+#include <86box/nmi.h>
+#include <86box/rom.h>
+#include <86box/device.h>
+#include <86box/video.h>
 
 
 #define ROM_SIGMA_FONT		L"roms/video/sigma/sigma400_font.rom"

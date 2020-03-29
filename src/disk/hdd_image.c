@@ -28,10 +28,10 @@
 #include <wchar.h>
 #include <errno.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "plat.h"
-#include "random.h"
-#include "hdd.h"
+#include <86box/86box.h>
+#include <86box/plat.h>
+#include <86box/random.h>
+#include <86box/hdd.h>
 
 
 typedef struct

@@ -1,4 +1,4 @@
-#include "../device.h"
+#include <86box/device.h>
 
 extern const device_t xi8088_device;
 

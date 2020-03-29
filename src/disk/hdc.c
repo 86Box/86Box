@@ -22,12 +22,12 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "machine.h"
-#include "device.h"
-#include "hdc.h"
-#include "hdc_ide.h"
-#include "hdd.h"
+#include <86box/86box.h>
+#include <86box/machine.h>
+#include <86box/device.h>
+#include <86box/hdc.h>
+#include <86box/hdc_ide.h>
+#include <86box/hdd.h>
 
 
 int	hdc_current;

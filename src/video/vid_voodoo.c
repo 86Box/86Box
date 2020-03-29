@@ -22,19 +22,19 @@
 #include <stddef.h>
 #include <wchar.h>
 #include <math.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "machine.h"
-#include "device.h"
-#include "mem.h"
-#include "pci.h"
-#include "rom.h"
-#include "timer.h"
-#include "device.h"
-#include "plat.h"
-#include "video.h"
-#include "vid_svga.h"
-#include "vid_voodoo_dither.h"
+#include <86box/machine.h>
+#include <86box/device.h>
+#include <86box/mem.h>
+#include <86box/pci.h>
+#include <86box/rom.h>
+#include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/plat.h>
+#include <86box/video.h>
+#include <86box/vid_svga.h>
+#include <86box/vid_voodoo_dither.h>
 
 #ifdef CLAMP
 #undef CLAMP
@@ -2658,9 +2658,9 @@ static inline void voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t 
 }
 
 #if ((defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86) && !(defined __amd64__ || defined _M_X64) && (defined USE_DYNAREC))
-#include "vid_voodoo_codegen_x86.h"
+#include <86box/vid_voodoo_codegen_x86.h>
 #elif ((defined __amd64__ || defined _M_X64) && (defined USE_DYNAREC))
-#include "vid_voodoo_codegen_x86-64.h"
+#include <86box/vid_voodoo_codegen_x86-64.h>
 #else
 #define NO_CODEGEN
 static int voodoo_recomp = 0;

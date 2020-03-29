@@ -21,20 +21,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "timer.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "device.h"
-#include "keyboard.h"
-#include "fdd.h"
-#include "fdc.h"
-#include "hdc.h"
-#include "hdc_ide.h"
-#include "timer.h"
-#include "port_92.h"
-#include "chipset.h"
+#include <86box/timer.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/device.h>
+#include <86box/keyboard.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
+#include <86box/hdc.h>
+#include <86box/hdc_ide.h>
+#include <86box/timer.h>
+#include <86box/port_92.h>
+#include <86box/chipset.h>
 
 
 typedef struct

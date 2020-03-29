@@ -27,20 +27,20 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "86box_io.h"
-#include "timer.h"
-#include "dma.h"
-#include "pic.h"
-#include "mca.h"
-#include "mem.h"
-#include "rom.h"
-#include "device.h"
-#include "nvr.h"
-#include "plat.h"
-#include "scsi.h"
-#include "scsi_device.h"
-#include "scsi_ncr5380.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/timer.h>
+#include <86box/dma.h>
+#include <86box/pic.h>
+#include <86box/mca.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/device.h>
+#include <86box/nvr.h>
+#include <86box/plat.h>
+#include <86box/scsi.h>
+#include <86box/scsi_device.h>
+#include <86box/scsi_ncr5380.h>
 
 
 #define LCS6821N_ROM	L"roms/scsi/ncr5380/Longshine LCS-6821N - BIOS version 1.04.bin"

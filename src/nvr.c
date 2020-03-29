@@ -54,12 +54,12 @@
 #include <time.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "machine.h"
-#include "mem.h"
-#include "timer.h"
-#include "plat.h"
-#include "nvr.h"
+#include <86box/86box.h>
+#include <86box/machine.h>
+#include <86box/mem.h>
+#include <86box/timer.h>
+#include <86box/plat.h>
+#include <86box/nvr.h>
 
 
 int	nvr_dosave;		/* NVR is dirty, needs saved */

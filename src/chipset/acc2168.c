@@ -20,19 +20,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "timer.h"
-#include "device.h"
-#include "keyboard.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "mouse.h"
-#include "port_92.h"
-#include "sio.h"
-#include "hdc.h"
-#include "video.h"
-#include "chipset.h"
+#include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/keyboard.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/mouse.h>
+#include <86box/port_92.h>
+#include <86box/sio.h>
+#include <86box/hdc.h>
+#include <86box/video.h>
+#include <86box/chipset.h>
 
 
 typedef struct acc2168_t

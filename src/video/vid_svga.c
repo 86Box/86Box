@@ -25,17 +25,17 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "machine.h"
-#include "timer.h"
-#include "86box_io.h"
-#include "pit.h"
-#include "mem.h"
-#include "rom.h"
-#include "video.h"
-#include "vid_svga.h"
-#include "vid_svga_render.h"
+#include <86box/machine.h>
+#include <86box/timer.h>
+#include <86box/io.h>
+#include <86box/pit.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/video.h>
+#include <86box/vid_svga.h>
+#include <86box/vid_svga_render.h>
 
 
 void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga);

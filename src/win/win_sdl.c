@@ -15,10 +15,10 @@
  *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Michael Drüing, <michael@drueing.de>
+ *		Michael Drï¿½ing, <michael@drueing.de>
  *
  *		Copyright 2018-2020 Fred N. van Kempen.
- *		Copyright 2018-2020 Michael Drüing.
+ *		Copyright 2018-2020 Michael Drï¿½ing.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -62,14 +62,14 @@
 /* This #undef is needed because a SDL include header redefines HAVE_STDARG_H. */
 #undef HAVE_STDARG_H
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "plat.h"
-#include "plat_dynld.h"
-#include "video.h"
-#include "ui.h"
-#include "win.h"
-#include "win_sdl.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/plat.h>
+#include <86box/plat_dynld.h>
+#include <86box/video.h>
+#include <86box/ui.h>
+#include <86box/win.h>
+#include <86box/win_sdl.h>
 
 
 #define RENDERER_FULL_SCREEN	1

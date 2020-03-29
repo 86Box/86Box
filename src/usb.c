@@ -5,9 +5,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box_io.h"
-#include "mem.h"
-#include "usb.h"
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/usb.h>
 
 
 void *usb_priv[32];

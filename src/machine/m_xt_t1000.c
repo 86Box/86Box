@@ -87,26 +87,26 @@
 #include <wchar.h>
 #include <time.h>
 #define HAVE_STDARG_H
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "86box_io.h"
-#include "timer.h"
-#include "pit.h"
-#include "nmi.h"
-#include "mem.h"
-#include "rom.h"
-#include "device.h"
-#include "nvr.h"
-#include "keyboard.h"
-#include "lpt.h"
-#include "mem.h"
-#include "fdd.h"
-#include "fdc.h"
-#include "gameport.h"
-#include "video.h"
-#include "plat.h"
-#include "machine.h"
-#include "m_xt_t1000.h"
+#include <86box/io.h>
+#include <86box/timer.h>
+#include <86box/pit.h>
+#include <86box/nmi.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/device.h>
+#include <86box/nvr.h>
+#include <86box/keyboard.h>
+#include <86box/lpt.h>
+#include <86box/mem.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
+#include <86box/gameport.h>
+#include <86box/video.h>
+#include <86box/plat.h>
+#include <86box/machine.h>
+#include <86box/m_xt_t1000.h>
 
 
 #define T1000_ROMSIZE	(512*1024UL)	/* Maximum ROM drive size is 512k */
@@ -348,7 +348,8 @@ tc8521_init(nvr_t *nvr, int size)
     nvr_init(nvr);
 
     io_sethandler(0x02c0, 16,
-		  tc8521_read,NULL,NULL, tc8521_write,NULL,NULL, nvr);
+		  tc8521_read,NULL,NULL, tc8521_write,NULL,NULL, nvr);
+
 }
 
 

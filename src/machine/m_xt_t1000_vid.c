@@ -42,15 +42,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "timer.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/timer.h>
 #include "cpu.h"
-#include "video.h"
-#include "vid_cga.h"
-#include "m_xt_t1000.h"
+#include <86box/video.h>
+#include <86box/vid_cga.h>
+#include <86box/m_xt_t1000.h>
 
 
 #define T1000_XSIZE 640

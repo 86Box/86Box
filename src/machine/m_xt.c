@@ -2,19 +2,19 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "nmi.h"
-#include "timer.h"
-#include "pit.h"
-#include "mem.h"
-#include "device.h"
-#include "fdd.h"
-#include "fdc.h"
-#include "gameport.h"
-#include "ibm_5161.h"
-#include "keyboard.h"
-#include "rom.h"
-#include "machine.h"
+#include <86box/86box.h>
+#include <86box/nmi.h>
+#include <86box/timer.h>
+#include <86box/pit.h>
+#include <86box/mem.h>
+#include <86box/device.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
+#include <86box/gameport.h>
+#include <86box/ibm_5161.h>
+#include <86box/keyboard.h>
+#include <86box/rom.h>
+#include <86box/machine.h>
 
 
 static void

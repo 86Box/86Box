@@ -23,17 +23,17 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "86box_io.h"
-#include "timer.h"
-#include "mem.h"
-#include "pci.h"
-#include "rom.h"
-#include "device.h"
-#include "plat.h"
-#include "video.h"
-#include "vid_svga.h"
-#include "vid_svga_render.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/timer.h>
+#include <86box/mem.h>
+#include <86box/pci.h>
+#include <86box/rom.h>
+#include <86box/device.h>
+#include <86box/plat.h>
+#include <86box/video.h>
+#include <86box/vid_svga.h>
+#include <86box/vid_svga_render.h>
 
 
 static uint64_t virge_time = 0;

@@ -23,20 +23,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
+#include <86box/86box.h>
+#include <86box/device.h>
 #include "cpu.h"
 #include "x86.h"
-#include "timer.h"
-#include "fdd.h"
-#include "fdc.h"
-#include "keyboard.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "nmi.h"
-#include "port_92.h"
-#include "rom.h"
-#include "chipset.h"
+#include <86box/timer.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
+#include <86box/keyboard.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/nmi.h>
+#include <86box/port_92.h>
+#include <86box/rom.h>
+#include <86box/chipset.h>
 
 
 #define SCAT_DMA_WAIT_STATE_CONTROL 0x01

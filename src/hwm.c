@@ -15,8 +15,8 @@
  */
 
 #include <stdint.h>
-#include "device.h"
-#include "hwm.h"
+#include <86box/device.h>
+#include <86box/hwm.h>
 
 
 hwm_values_t hwm_values;

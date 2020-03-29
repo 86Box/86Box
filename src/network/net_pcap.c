@@ -51,11 +51,11 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "plat.h"
-#include "plat_dynld.h"
-#include "network.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/plat.h>
+#include <86box/plat_dynld.h>
+#include <86box/network.h>
 
 
 typedef int bpf_int32; 

@@ -55,12 +55,12 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "86box_io.h"
-#include "device.h"
-#include "plat.h"
-#include "ui.h"
-#include "bugger.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/device.h>
+#include <86box/plat.h>
+#include <86box/ui.h>
+#include <86box/bugger.h>
 
 
 /* BugBugger registers. */

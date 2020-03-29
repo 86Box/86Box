@@ -23,13 +23,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
-#include "mem.h"
-#include "machine.h"
-#include "timer.h"
-#include "nvr.h"
-#include "plat.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/mem.h>
+#include <86box/machine.h>
+#include <86box/timer.h>
+#include <86box/nvr.h>
+#include <86box/plat.h>
 
 
 typedef struct sst_t

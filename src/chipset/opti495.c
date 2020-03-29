@@ -258,16 +258,16 @@ SeeAlso: #P0178,#P0187
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "timer.h"
-#include "86box_io.h"
-#include "device.h"
-#include "keyboard.h"
-#include "mem.h"
-#include "fdd.h"
-#include "fdc.h"
-#include "chipset.h"
+#include <86box/timer.h>
+#include <86box/io.h>
+#include <86box/device.h>
+#include <86box/keyboard.h>
+#include <86box/mem.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
+#include <86box/chipset.h>
 
 
 typedef struct

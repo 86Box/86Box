@@ -56,14 +56,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
-#include "timer.h"
-#include "pit.h"
-#include "plat.h" 
-#include "lpt.h"
-#include "printer.h"
-#include "prt_devs.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/pit.h>
+#include <86box/plat.h> 
+#include <86box/lpt.h>
+#include <86box/printer.h>
+#include <86box/prt_devs.h>
 
 
 #define FULL_PAGE	1			/* set if no top/bot margins */

@@ -22,14 +22,14 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu_common/cpu.h"
 #include "cpu_common/x86.h"
-#include "machine/machine.h"
-#include "mca.h"
-#include "mem.h"
-#include "86box_io.h"
-#include "dma.h"
+#include <86box/machine.h>
+#include <86box/mca.h>
+#include <86box/mem.h>
+#include <86box/io.h>
+#include <86box/dma.h>
 
 
 dma_t		dma[8];

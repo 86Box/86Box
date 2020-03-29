@@ -19,18 +19,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
-#include "86box_io.h"
-#include "apm.h"
-#include "dma.h"
-#include "mem.h"
-#include "pci.h"
-#include "timer.h"
-#include "pit.h"
-#include "port_92.h"
-#include "machine.h"
-#include "intel_sio.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/io.h>
+#include <86box/apm.h>
+#include <86box/dma.h>
+#include <86box/mem.h>
+#include <86box/pci.h>
+#include <86box/timer.h>
+#include <86box/pit.h>
+#include <86box/port_92.h>
+#include <86box/machine.h>
+#include <86box/intel_sio.h>
 
 
 typedef struct

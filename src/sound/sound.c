@@ -23,19 +23,19 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "timer.h"
-#include "cdrom.h"
-#include "hdc_ide.h"
-#include "plat.h"
-#include "sound.h"
-#include "midi.h"
-#include "snd_opl.h"
-#include "snd_mpu401.h"
-#include "snd_sb_dsp.h"
-#include "snd_azt2316a.h"
-#include "filters.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/cdrom.h>
+#include <86box/hdc_ide.h>
+#include <86box/plat.h>
+#include <86box/sound.h>
+#include <86box/midi.h>
+#include <86box/snd_opl.h>
+#include <86box/snd_mpu401.h>
+#include <86box/snd_sb_dsp.h>
+#include <86box/snd_azt2316a.h>
+#include <86box/filters.h>
 
 
 typedef struct {

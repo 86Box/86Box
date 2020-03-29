@@ -22,21 +22,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "mem.h"
-#include "86box_io.h"
-#include "lpt.h"
-#include "rom.h"
-#include "pci.h"
-#include "device.h"
-#include "hdc_ide.h"
-#include "keyboard.h"
-#include "timer.h"
-#include "port_92.h"
-#include "serial.h"
-#include "machine.h"
-#include "chipset.h"
+#include <86box/mem.h>
+#include <86box/io.h>
+#include <86box/lpt.h>
+#include <86box/rom.h>
+#include <86box/pci.h>
+#include <86box/device.h>
+#include <86box/hdc_ide.h>
+#include <86box/keyboard.h>
+#include <86box/timer.h>
+#include <86box/port_92.h>
+#include <86box/serial.h>
+#include <86box/machine.h>
+#include <86box/chipset.h>
 
 
 typedef struct {

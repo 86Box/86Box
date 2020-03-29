@@ -51,14 +51,14 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "timer.h"
-#include "plat.h"
-#include "fdd.h"
-#include "fdd_86f.h"
-#include "fdc.h"
-#include "fdd_common.h"
-#include "fdd_json.h"
+#include <86box/86box.h>
+#include <86box/timer.h>
+#include <86box/plat.h>
+#include <86box/fdd.h>
+#include <86box/fdd_86f.h>
+#include <86box/fdc.h>
+#include <86box/fdd_common.h>
+#include <86box/fdd_json.h>
 
 
 #define NTRACKS			256
