@@ -633,17 +633,20 @@ kbd_poll(void *priv)
     if ((dev->out_new != -1) && !dev->last_irq) {
 	dev->wantirq = 0;
 	if (dev->out_new & 0x100) {
+		if (mouse_scan) {
 #ifdef ENABLE_KEYBOARD_AT_LOG
-		kbd_log("ATkbd: want mouse data\n");
+			kbd_log("ATkbd: want mouse data\n");
 #endif
-		if (dev->mem[0] & 0x02)
-			picint(0x1000);
-		dev->out = dev->out_new & 0xff;
-		dev->out_new = -1;
-		dev->status |=  STAT_OFULL;
-		dev->status &= ~STAT_IFULL;
-		dev->status |=  STAT_MFULL;
-		dev->last_irq = 0x1000;
+			if (dev->mem[0] & 0x02)
+				picint(0x1000);
+			dev->out = dev->out_new & 0xff;
+			dev->out_new = -1;
+			dev->status |=  STAT_OFULL;
+			dev->status &= ~STAT_IFULL;
+			dev->status |=  STAT_MFULL;
+			dev->last_irq = 0x1000;
+		} else
+			keyboard_at.out_new = -1;
 	} else {
 #ifdef ENABLE_KEYBOARD_AT_LOG
 		kbd_log("ATkbd: want keyboard data\n");
