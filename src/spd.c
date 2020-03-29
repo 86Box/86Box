@@ -184,6 +184,7 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     		spd_log("SPD: vslot %d = %d MB\n", vslot, vslots[vslot]);
     		total_size -= vslots[vslot];
     	} else {
+    		vslots[vslot] = 0;
     		break;
     	}
     }
