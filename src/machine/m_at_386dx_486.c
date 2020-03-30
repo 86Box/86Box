@@ -41,16 +41,6 @@
 #include <86box/intel_flash.h>
 #include <86box/intel_sio.h>
 #include <86box/machine.h>
-static void
-machine_at_cs8230_init(const machine_t *model)
-{
-
-    machine_at_common_init(model);
-
-    device_add(&cs8230_device);
-
-}
-
 
 int
 machine_at_ecs386_init(const machine_t *model)
@@ -64,8 +54,8 @@ machine_at_ecs386_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_cs8230_init(model);
-
+    machine_at_common_init(model);
+    device_add(&cs8230_device);
     device_add(&keyboard_at_ami_device);
     device_add(&fdc_at_device);
 
