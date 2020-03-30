@@ -214,9 +214,11 @@ azt2316a_wss_write(uint16_t addr, uint8_t val, void *p)
         azt2316a_t *azt2316a = (azt2316a_t *)p;
 	int interrupt = 0;
 
-	if (azt2316a->wss_interrupt_after_config)
-                if ((azt2316a->wss_config & 0x40) && !(val & 0x40)) // TODO: is this the right edge?
-                        interrupt = 1;
+	if (azt2316a->wss_interrupt_after_config) {
+                if ((azt2316a->wss_config & 0x40) && !(val & 0x40)) { // TODO: is this the right edge?
+			interrupt = 1;
+		}
+	}
 
         azt2316a->wss_config = val;
         azt2316a->cur_wss_dma = azt2316a_wss_dma[val & 3];
@@ -260,7 +262,7 @@ azt1605_create_config_word(void *p)
         }
 
         switch (azt2316a->cur_irq) {
-		case 2:
+		case 9:
 			temp += 1 << 8;
 			break;
 		case 3:
@@ -354,7 +356,7 @@ azt1605_create_config_word(void *p)
         }
 	
         switch (azt2316a->cur_mpu401_irq) {
-		case 2:
+		case 9:
 			temp += 1 << 12;
 			break;
 		case 3:
@@ -424,7 +426,7 @@ azt2316a_create_config_word(void *p)
         }
         
 	switch (azt2316a->cur_irq) {
-		case 2:
+		case 9:
 			temp += 1 << 2;
 			break;
 		case 5:
@@ -569,7 +571,7 @@ azt2316a_create_config_word(void *p)
         }
 	
         switch (azt2316a->cur_mpu401_irq) {
-		case 2:
+		case 9:
 			temp += 1 << 24;
 			break;
 		case 5:
@@ -688,7 +690,7 @@ azt1605_config_write(uint16_t addr, uint8_t val, void *p)
 				azt2316a->config_word = (azt2316a->config_word & 0xFFFF00FF) | (val << 8);
 
 				if (val & 0x1)
-					azt2316a->cur_irq = 2;
+					azt2316a->cur_irq = 9;
 				else if (val & 0x2)
 					azt2316a->cur_irq = 3;
 				else if (val & 0x4)
@@ -698,7 +700,7 @@ azt1605_config_write(uint16_t addr, uint8_t val, void *p)
 				/* else undefined? */
 
 				if (val & 0x10)
-					azt2316a->cur_mpu401_irq = 2;
+					azt2316a->cur_mpu401_irq = 9;
 				else if (val & 0x20)
 					azt2316a->cur_mpu401_irq = 3;
 				else if (val & 0x40)
@@ -775,7 +777,7 @@ azt2316a_config_write(uint16_t addr, uint8_t val, void *p)
 					azt2316a->cur_addr = 0x240;
 
 				if (val & 0x4)
-					azt2316a->cur_irq = 2;
+					azt2316a->cur_irq = 9;
 				else if (val & 0x8)
 					azt2316a->cur_irq = 5;
 				else if (val & 0x10)
@@ -833,7 +835,7 @@ azt2316a_config_write(uint16_t addr, uint8_t val, void *p)
 				azt2316a->config_word = (azt2316a->config_word & 0x00FFFFFF) | (val << 24);
 
 				if (val & 0x1)
-					azt2316a->cur_mpu401_irq = 2;
+					azt2316a->cur_mpu401_irq = 9;
 				else if (val & 0x2)
 					azt2316a->cur_mpu401_irq = 5;
 				else if (val & 0x4)
@@ -975,7 +977,7 @@ azt_init(const device_t *info)
                 }
 
 		if (azt2316a->config_word & (1 << 2))
-			azt2316a->cur_irq = 2;
+			azt2316a->cur_irq = 9;
 		else if (azt2316a->config_word & (1 << 3))
 			azt2316a->cur_irq = 5;
 		else if (azt2316a->config_word & (1 << 4))
@@ -1032,7 +1034,7 @@ azt_init(const device_t *info)
                         azt2316a->cur_mpu401_enabled = 0;
 		
 		if (azt2316a->config_word & (1 << 24))
-			azt2316a->cur_mpu401_irq = 2;
+			azt2316a->cur_mpu401_irq = 9;
 		else if (azt2316a->config_word & (1 << 25))
 			azt2316a->cur_mpu401_irq = 5;
 		else if (azt2316a->config_word & (1 << 26))
@@ -1043,14 +1045,8 @@ azt_init(const device_t *info)
 			fatal("AZT2316A: invalid mpu401 irq in config word %08X\n", azt2316a->config_word);
 		
                 /* these are not present on the EEPROM */
-                if (azt2316a->cur_irq == 10)
-			azt2316a->cur_wss_irq = 10;
-                else if (azt2316a->cur_irq == 7)
-			azt2316a->cur_wss_irq = 7;
-		else
-			azt2316a->cur_wss_irq = 10;
-		
-		azt2316a->cur_wss_dma = azt2316a->cur_dma;
+		azt2316a->cur_wss_irq = device_get_config_int("wss_irq");
+		azt2316a->cur_wss_dma = device_get_config_int("wss_dma");
                 azt2316a->cur_mode = 0;
 	} else if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
 		azt2316a->config_word = read_eeprom[12] + (read_eeprom[13] << 8) + (read_eeprom[14] << 16);
@@ -1077,7 +1073,7 @@ azt_init(const device_t *info)
 			azt2316a->cur_mpu401_enabled = 0;
 		
 		if (azt2316a->config_word & (1 << 8))
-			azt2316a->cur_irq = 2;
+			azt2316a->cur_irq = 9;
 		else if (azt2316a->config_word & (1 << 9))
 			azt2316a->cur_irq = 3;
 		else if (azt2316a->config_word & (1 << 10))
@@ -1088,7 +1084,7 @@ azt_init(const device_t *info)
 			fatal("AZT1605: invalid sb irq in config word %08X\n", azt2316a->config_word);
 
 		if (azt2316a->config_word & (1 << 12))
-			azt2316a->cur_mpu401_irq = 2;
+			azt2316a->cur_mpu401_irq = 9;
 		else if (azt2316a->config_word & (1 << 13))
 			azt2316a->cur_mpu401_irq = 3;
 		else if (azt2316a->config_word & (1 << 14))
@@ -1122,13 +1118,8 @@ azt_init(const device_t *info)
 		
                 // these are not present on the EEPROM
                 azt2316a->cur_dma = device_get_config_int("sb_dma8"); // TODO: investigate TSR to make this work with it - there is no software configurable DMA8?
-
-                if (azt2316a->cur_irq == 7)
-			azt2316a->cur_wss_irq = 7;
-		else
-			azt2316a->cur_wss_irq = 10;
-
-                azt2316a->cur_wss_dma = azt2316a->cur_dma;
+		azt2316a->cur_wss_irq = device_get_config_int("wss_irq");
+		azt2316a->cur_wss_dma = device_get_config_int("wss_dma");
                 azt2316a->cur_mode = 0;
 	}
 
@@ -1199,10 +1190,10 @@ azt_init(const device_t *info)
 static void 
 azt_close(void *p)
 {
-        azt2316a_t *azt2316a = (azt2316a_t *)p;
+	azt2316a_t *azt2316a = (azt2316a_t *)p;
 	wchar_t *fn = NULL;
 	FILE *f;
-        uint8_t checksum = 0x7f;
+	uint8_t checksum = 0x7f;
 	int i;
 
 	if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
@@ -1211,9 +1202,9 @@ azt_close(void *p)
 		fn = L"azt2316a.nvr";
 	}
 
-        /* always save to eeprom (recover from bad values) */
-        f = nvr_fopen(fn, L"wb");
-        if (f) {
+	/* always save to eeprom (recover from bad values) */
+	f = nvr_fopen(fn, L"wb");
+	if (f) {
 		for (i = 0; i < AZTECH_EEPROM_SIZE; i++)
 			checksum += azt2316a->sb->dsp.azt_eeprom[i];
 		fwrite(azt2316a->sb->dsp.azt_eeprom, AZTECH_EEPROM_SIZE, 1, f);
@@ -1224,20 +1215,20 @@ azt_close(void *p)
 		fwrite(&checksum, sizeof(checksum), 1, f);
 
 		fclose(f);
-        }
+	}
 
-        sb_close(azt2316a->sb);
+	sb_close(azt2316a->sb);
 
-        free(azt2316a);
+	free(azt2316a);
 }
 
 static void 
 azt_speed_changed(void *p)
 {
-        azt2316a_t *azt2316a = (azt2316a_t *)p;
+	azt2316a_t *azt2316a = (azt2316a_t *)p;
 
-        ad1848_speed_changed(&azt2316a->ad1848);
-        sb_speed_changed(azt2316a->sb);
+	ad1848_speed_changed(&azt2316a->ad1848);
+	sb_speed_changed(azt2316a->sb);
 }
 
 static const device_config_t azt1605_config[] =
@@ -1306,6 +1297,54 @@ static const device_config_t azt1605_config[] =
                 },
                 .default_int = 1
         },
+        {
+                .name = "wss_irq",
+                .description = "WSS IRQ",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "IRQ 11",
+                                .value = 11
+                        },
+                        {
+                                .description = "IRQ 10",
+                                .value = 10
+                        },
+                        {
+                                .description = "IRQ 7",
+                                .value = 7
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 10
+        },
+        {
+                .name = "wss_dma",
+                .description = "WSS DMA",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "DMA 0",
+                                .value = 0
+                        },
+                        {
+                                .description = "DMA 1",
+                                .value = 1
+                        },
+                        {
+                                .description = "DMA 3",
+                                .value = 3
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 0
+        },
 	{
 		"opl", "Enable OPL", CONFIG_BINARY, "", 1
 	},
@@ -1361,6 +1400,54 @@ static const device_config_t azt2316a_config[] =
                                 ""
                         }
                 }
+        },
+        {
+                .name = "wss_irq",
+                .description = "WSS IRQ",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "IRQ 11",
+                                .value = 11
+                        },
+                        {
+                                .description = "IRQ 10",
+                                .value = 10
+                        },
+                        {
+                                .description = "IRQ 7",
+                                .value = 7
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 10
+        },
+        {
+                .name = "wss_dma",
+                .description = "WSS DMA",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "DMA 0",
+                                .value = 0
+                        },
+                        {
+                                .description = "DMA 1",
+                                .value = 1
+                        },
+                        {
+                                .description = "DMA 3",
+                                .value = 3
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 0
         },
 	{
 		"opl", "Enable OPL", CONFIG_BINARY, "", 1
