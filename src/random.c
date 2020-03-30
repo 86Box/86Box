@@ -16,7 +16,7 @@
  */
 #include <stdint.h>
 #include <stdlib.h>
-#include "random.h"
+#include <86box/random.h>
 
 #if !(defined(__i386__) || defined (__x86_64__))
 #include <time.h>

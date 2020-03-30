@@ -25,9 +25,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "plat.h"
-#include "plat_dir.h"
+#include <86box/86box.h>
+#include <86box/plat.h>
+#include <86box/plat_dir.h>
 
 
 #ifdef UNICODE

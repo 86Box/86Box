@@ -21,11 +21,11 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "device.h"
-#include "86box_io.h"
-#include "apm.h"
+#include <86box/device.h>
+#include <86box/io.h>
+#include <86box/apm.h>
 
 
 #ifdef ENABLE_APM_LOG

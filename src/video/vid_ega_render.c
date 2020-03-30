@@ -20,13 +20,13 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
-#include "timer.h"
-#include "mem.h"
-#include "rom.h"
-#include "video.h"
-#include "vid_ega.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/video.h>
+#include <86box/vid_ega.h>
 
 
 int

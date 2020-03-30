@@ -23,11 +23,11 @@
 #include <stdint.h>
 #include <stdio.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "plat.h"
-#include "gameport.h"
-#include "win.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/plat.h>
+#include <86box/gameport.h>
+#include <86box/win.h>
 
 
 plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];

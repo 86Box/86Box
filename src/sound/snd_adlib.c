@@ -5,13 +5,13 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "86box_io.h"
-#include "timer.h"
-#include "mca.h"
-#include "device.h"
-#include "sound.h"
-#include "snd_opl.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/timer.h>
+#include <86box/mca.h>
+#include <86box/device.h>
+#include <86box/sound.h>
+#include <86box/snd_opl.h>
 
 
 #ifdef ENABLE_ADLIB_LOG

@@ -37,8 +37,8 @@
 /* ELSE */
 #define xmalloc malloc
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "fdi2raw.h"
+#include <86box/86box.h>
+#include <fdi2raw.h>
 
 
 #undef DEBUG

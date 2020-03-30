@@ -44,7 +44,7 @@ guide:
 7. If the compilation succeeded (which it almost always should), you will find
    `86Box.exe` in the src directory.
 8. In order to test your fresh build, replace the `86Box.exe` in your current
-   86Box enviroment with your freshly built one. If you do not have a
+   86Box environment with your freshly built one. If you do not have a
    pre-existing 86Box environment, download the latest successful build from
    http://ci.86box.net, and the latest ROM set from https://github.com/86Box/roms.
 9. Enjoy using and testing the emulator! :)

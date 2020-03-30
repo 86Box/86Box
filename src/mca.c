@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box_io.h"
-#include "mca.h"
+#include <86box/io.h>
+#include <86box/mca.h>
 
 
 void    (*mca_card_write[8])(int addr, uint8_t val, void *priv);

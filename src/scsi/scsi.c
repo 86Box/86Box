@@ -24,21 +24,21 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "hdc.h"
-#include "hdd.h"
-#include "plat.h"
-#include "scsi.h"
-#include "scsi_device.h"
-#include "cdrom.h"
-#include "zip.h"
-#include "scsi_disk.h"
-#include "scsi_aha154x.h"
-#include "scsi_buslogic.h"
-#include "scsi_ncr5380.h"
-#include "scsi_ncr53c8xx.h"
-#include "scsi_spock.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/hdc.h>
+#include <86box/hdd.h>
+#include <86box/plat.h>
+#include <86box/scsi.h>
+#include <86box/scsi_device.h>
+#include <86box/cdrom.h>
+#include <86box/zip.h>
+#include <86box/scsi_disk.h>
+#include <86box/scsi_aha154x.h>
+#include <86box/scsi_buslogic.h>
+#include <86box/scsi_ncr5380.h>
+#include <86box/scsi_ncr53c8xx.h>
+#include <86box/scsi_spock.h>
 #ifdef WALTJE
 # include "scsi_wd33c93.h"
 #endif

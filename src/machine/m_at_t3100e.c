@@ -152,19 +152,19 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "timer.h"
-#include "86box_io.h"
-#include "mouse.h"
-#include "mem.h"
-#include "device.h"
-#include "keyboard.h"
-#include "rom.h"
+#include <86box/86box.h>
+#include <86box/timer.h>
+#include <86box/io.h>
+#include <86box/mouse.h>
+#include <86box/mem.h>
+#include <86box/device.h>
+#include <86box/keyboard.h>
+#include <86box/rom.h>
 #include "cpu.h"
-#include "fdd.h"
-#include "fdc.h"
-#include "machine.h"
-#include "m_at_t3100e.h"
+#include <86box/fdd.h>
+#include <86box/fdc.h>
+#include <86box/machine.h>
+#include <86box/m_at_t3100e.h>
 
 
 extern uint8_t *ram;		/* Physical RAM */

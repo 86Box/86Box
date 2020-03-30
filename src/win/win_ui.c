@@ -28,19 +28,19 @@
 #include <stdlib.h>
 #include <time.h>
 #include <wchar.h>
-#include "86box.h"
-#include "config.h"
-#include "device.h"
-#include "keyboard.h"
-#include "mouse.h"
-#include "video.h"
-#include "vid_ega.h"		// for update_overscan
-#include "plat.h"
-#include "plat_midi.h"
-#include "ui.h"
-#include "win.h"
+#include <86box/86box.h>
+#include <86box/config.h>
+#include <86box/device.h>
+#include <86box/keyboard.h>
+#include <86box/mouse.h>
+#include <86box/video.h>
+#include <86box/vid_ega.h>		// for update_overscan
+#include <86box/plat.h>
+#include <86box/plat_midi.h>
+#include <86box/ui.h>
+#include <86box/win.h>
 #ifdef USE_DISCORD
-# include "win_discord.h"
+# include <86box/win_discord.h>
 #endif
 
 

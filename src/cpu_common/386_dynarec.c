@@ -10,18 +10,18 @@
 #endif
 
 #define HAVE_STDARG_H
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
 #include "x86.h"
 #include "x86_ops.h"
 #include "x87.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "nmi.h"
-#include "pic.h"
-#include "timer.h"
-#include "fdd.h"
-#include "fdc.h"
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/nmi.h>
+#include <86box/pic.h>
+#include <86box/timer.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
 #ifdef USE_DYNAREC
 #include "codegen.h"
 #ifdef USE_NEW_DYNAREC

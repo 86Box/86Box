@@ -2,26 +2,26 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "timer.h"
-#include "86box_io.h"
-#include "dma.h"
-#include "pic.h"
-#include "pit.h"
-#include "mem.h"
-#include "rom.h"
-#include "device.h"
-#include "nvr.h"
-#include "keyboard.h"
-#include "lpt.h"
-#include "port_92.h"
-#include "serial.h"
-#include "hdc.h"
-#include "fdd.h"
-#include "fdc.h"
-#include "video.h"
-#include "machine.h"
+#include <86box/timer.h>
+#include <86box/io.h>
+#include <86box/dma.h>
+#include <86box/pic.h>
+#include <86box/pit.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/device.h>
+#include <86box/nvr.h>
+#include <86box/keyboard.h>
+#include <86box/lpt.h>
+#include <86box/port_92.h>
+#include <86box/serial.h>
+#include <86box/hdc.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
+#include <86box/video.h>
+#include <86box/machine.h>
 
 
 static uint8_t ps2_91, ps2_94, ps2_102, ps2_103, ps2_104, ps2_105, ps2_190;

@@ -24,16 +24,16 @@
 #include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "machine.h"
+#include <86box/86box.h>
+#include <86box/machine.h>
 #include "cpu.h"
-#include "86box_io.h"
-#include "pic.h"
-#include "mem.h"
-#include "device.h"
-#include "pci.h"
-#include "piix.h"
-#include "keyboard.h"
+#include <86box/io.h>
+#include <86box/pic.h>
+#include <86box/mem.h>
+#include <86box/device.h>
+#include <86box/pci.h>
+#include <86box/piix.h>
+#include <86box/keyboard.h>
 
 
 typedef struct {

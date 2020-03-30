@@ -7,14 +7,14 @@
 #include <wchar.h>
 #include <math.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "rom.h"
-#include "timer.h"
-#include "sound.h"
-#include "snd_emu8k.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/timer.h>
+#include <86box/sound.h>
+#include <86box/snd_emu8k.h>
 
 
 #if !defined FILTER_INITIAL && !defined FILTER_MOOG && !defined FILTER_CONSTANT

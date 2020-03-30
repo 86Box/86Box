@@ -44,11 +44,11 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "config.h"
-#include "device.h"
-#include "machine.h"
-#include "sound.h"
+#include <86box/86box.h>
+#include <86box/config.h>
+#include <86box/device.h>
+#include <86box/machine.h>
+#include <86box/sound.h>
 
 
 #define DEVICE_MAX	256			/* max # of devices */

@@ -25,21 +25,21 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "cdrom.h"
-#include "scsi_device.h"
-#include "scsi_cdrom.h"
-#include "dma.h"
-#include "86box_io.h"
-#include "device.h"
-#include "keyboard.h"
-#include "mem.h"
-#include "pci.h"
-#include "pic.h"
-#include "hdc.h"
-#include "hdc_ide.h"
-#include "hdc_ide_sff8038i.h"
-#include "zip.h"
+#include <86box/86box.h>
+#include <86box/cdrom.h>
+#include <86box/scsi_device.h>
+#include <86box/scsi_cdrom.h>
+#include <86box/dma.h>
+#include <86box/io.h>
+#include <86box/device.h>
+#include <86box/keyboard.h>
+#include <86box/mem.h>
+#include <86box/pci.h>
+#include <86box/pic.h>
+#include <86box/hdc.h>
+#include <86box/hdc_ide.h>
+#include <86box/hdc_ide_sff8038i.h>
+#include <86box/zip.h>
 
 
 static int	next_id = 0;

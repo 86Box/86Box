@@ -21,8 +21,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "device.h"
+#include <86box/86box.h>
+#include <86box/device.h>
 
 
 typedef struct ics2595_t

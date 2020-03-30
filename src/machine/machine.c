@@ -24,19 +24,19 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "timer.h"
-#include "dma.h"
-#include "pic.h"
-#include "pit.h"
-#include "mem.h"
-#include "rom.h"
-#include "lpt.h"
-#include "serial.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/dma.h>
+#include <86box/pic.h>
+#include <86box/pit.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/lpt.h>
+#include <86box/serial.h>
 #include "cpu.h"
-#include "video.h"
-#include "machine.h"
+#include <86box/video.h>
+#include <86box/machine.h>
 
 
 int bios_only = 0;

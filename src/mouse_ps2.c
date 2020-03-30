@@ -19,10 +19,10 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "keyboard.h"
-#include "mouse.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/keyboard.h>
+#include <86box/mouse.h>
 
 
 enum {

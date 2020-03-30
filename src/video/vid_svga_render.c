@@ -20,12 +20,12 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "mem.h"
-#include "timer.h"
-#include "video.h"
-#include "vid_svga.h"
-#include "vid_svga_render.h"
+#include <86box/86box.h>
+#include <86box/mem.h>
+#include <86box/timer.h>
+#include <86box/video.h>
+#include <86box/vid_svga.h>
+#include <86box/vid_svga_render.h>
 
 
 void

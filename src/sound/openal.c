@@ -29,9 +29,9 @@
 # include <AL/al.h>
 # include <AL/alc.h>
 # include <AL/alext.h>
-#include "86box.h"
-#include "sound.h"
-#include "midi.h"
+#include <86box/86box.h>
+#include <86box/sound.h>
+#include <86box/midi.h>
 
 
 #define FREQ	48000

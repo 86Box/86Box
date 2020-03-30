@@ -53,9 +53,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "plat.h" 
-#include "printer.h"
+#include <86box/86box.h>
+#include <86box/plat.h> 
+#include <86box/printer.h>
 
 
 static const uint16_t cp437Map[256] = {

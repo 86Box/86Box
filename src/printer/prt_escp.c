@@ -56,21 +56,21 @@
 #include <math.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "machine.h"
-#include "timer.h"
-#include "mem.h"
-#include "rom.h" 
-#include "pit.h"
-#include "plat.h"
-#include "plat_dynld.h"
-#include "ui.h"
-#include "lpt.h"
-#include "video.h"
-#include "png_struct.h"
-#include "printer.h"
-#include "prt_devs.h"
+#include <86box/machine.h>
+#include <86box/timer.h>
+#include <86box/mem.h>
+#include <86box/rom.h> 
+#include <86box/pit.h>
+#include <86box/plat.h>
+#include <86box/plat_dynld.h>
+#include <86box/ui.h>
+#include <86box/lpt.h>
+#include <86box/video.h>
+#include <86box/png_struct.h>
+#include <86box/printer.h>
+#include <86box/prt_devs.h>
 
 
 /* Default page values (for now.) */

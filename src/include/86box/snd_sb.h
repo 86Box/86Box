@@ -18,10 +18,10 @@
 #ifndef SOUND_SND_SB_H
 # define SOUND_SND_SB_H
 
-#include "snd_emu8k.h"
-#include "snd_mpu401.h"
-#include "snd_opl.h"
-#include "snd_sb_dsp.h"
+#include <86box/snd_emu8k.h>
+#include <86box/snd_mpu401.h>
+#include <86box/snd_opl.h>
+#include <86box/snd_sb_dsp.h>
 
 #define SADLIB		1	/* No DSP */
 #define SB1		2	/* DSP v1.05 */

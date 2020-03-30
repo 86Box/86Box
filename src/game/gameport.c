@@ -39,17 +39,17 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "machine.h"
+#include <86box/86box.h>
+#include <86box/machine.h>
 #include "cpu.h"
-#include "device.h"
-#include "86box_io.h"
-#include "timer.h"
-#include "gameport.h"
-#include "joystick_ch_flightstick_pro.h"
-#include "joystick_standard.h"
-#include "joystick_sw_pad.h"
-#include "joystick_tm_fcs.h"
+#include <86box/device.h>
+#include <86box/io.h>
+#include <86box/timer.h>
+#include <86box/gameport.h>
+#include <86box/joystick_ch_flightstick_pro.h>
+#include <86box/joystick_standard.h>
+#include <86box/joystick_sw_pad.h>
+#include <86box/joystick_tm_fcs.h>
 
 
 typedef struct {

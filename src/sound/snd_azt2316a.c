@@ -138,17 +138,17 @@
 #include <wchar.h>
 #include <math.h>  
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "86box_io.h"
-#include "timer.h"
-#include "pic.h"
-#include "nvr.h"
-#include "device.h"
-#include "sound.h"
-#include "midi.h"
-#include "snd_ad1848.h"
-#include "snd_azt2316a.h"
-#include "snd_sb.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/timer.h>
+#include <86box/pic.h>
+#include <86box/nvr.h>
+#include <86box/device.h>
+#include <86box/sound.h>
+#include <86box/midi.h>
+#include <86box/snd_ad1848.h>
+#include <86box/snd_azt2316a.h>
+#include <86box/snd_sb.h>
 
 /*530, 11, 3 - 530=23*/
 /*530, 11, 1 - 530=22*/

@@ -29,16 +29,16 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
 #include "x86_ops.h"
 #include "x86.h"
-#include "machine.h"
-#include "m_xt_xi8088.h"
-#include "config.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "rom.h"
+#include <86box/machine.h>
+#include <86box/m_xt_xi8088.h>
+#include <86box/config.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 #ifdef USE_DYNAREC
 # include "codegen_public.h"
 #else

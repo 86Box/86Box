@@ -43,16 +43,16 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "device.h"
-#include "machine.h"
-#include "86box_io.h"
+#include <86box/device.h>
+#include <86box/machine.h>
+#include <86box/io.h>
 #include "x86_ops.h"
-#include "mem.h"
-#include "nmi.h"
-#include "pic.h"
-#include "pci.h"
+#include <86box/mem.h>
+#include <86box/nmi.h>
+#include <86box/pic.h>
+#include <86box/pci.h>
 #ifdef USE_DYNAREC
 # include "codegen.h"
 #endif

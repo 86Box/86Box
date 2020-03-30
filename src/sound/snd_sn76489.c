@@ -4,11 +4,11 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <time.h>
-#include "86box.h"
-#include "86box_io.h"
-#include "device.h"
-#include "sound.h"
-#include "snd_sn76489.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/device.h>
+#include <86box/sound.h>
+#include <86box/snd_sn76489.h>
 
 
 int sn76489_mute;

@@ -37,7 +37,7 @@
 #ifndef _CODEGEN_H_
 #define _CODEGEN_H_
 
-#include "../mem.h"
+#include <86box/mem.h>
 #include "../cpu_common/x86_ops.h"
 
 #ifdef __amd64__

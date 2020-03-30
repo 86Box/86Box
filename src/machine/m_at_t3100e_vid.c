@@ -57,15 +57,15 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "timer.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/timer.h>
 #include "cpu.h"
-#include "video.h"
-#include "vid_cga.h"
-#include "m_at_t3100e.h"
+#include <86box/video.h>
+#include <86box/vid_cga.h>
+#include <86box/m_at_t3100e.h>
 
 
 #define T3100E_XSIZE 640

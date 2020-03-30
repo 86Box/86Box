@@ -70,17 +70,17 @@
 #include <stdlib.h>
 #include <time.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "timer.h"
-#include "machine.h"
-#include "86box_io.h"
-#include "device.h"
-#include "nvr.h"
-#include "ui.h"
-#include "plat.h"
-#include "pic.h"
-#include "isartc.h"
+#include <86box/timer.h>
+#include <86box/machine.h>
+#include <86box/io.h>
+#include <86box/device.h>
+#include <86box/nvr.h>
+#include <86box/ui.h>
+#include <86box/plat.h>
+#include <86box/pic.h>
+#include <86box/isartc.h>
 
 
 #define ISARTC_DEBUG	0

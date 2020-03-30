@@ -32,22 +32,22 @@
 #include <time.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "config.h"
-#include "device.h"
-#include "keyboard.h"
-#include "mouse.h"
-#include "video.h"
+#include <86box/86box.h>
+#include <86box/config.h>
+#include <86box/device.h>
+#include <86box/keyboard.h>
+#include <86box/mouse.h>
+#include <86box/video.h>
 #define GLOBAL
-#include "plat.h"
-#include "plat_midi.h"
-#include "ui.h"
+#include <86box/plat.h>
+#include <86box/plat_midi.h>
+#include <86box/ui.h>
 #ifdef USE_VNC
-# include "vnc.h"
+# include <86box/vnc.h>
 #endif
-# include "win_d2d.h"
-# include "win_sdl.h"
-#include "win.h"
+# include <86box/win_d2d.h>
+# include <86box/win_sdl.h>
+#include <86box/win.h>
 
 
 typedef struct {

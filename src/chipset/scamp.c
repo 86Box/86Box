@@ -24,15 +24,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
+#include <86box/86box.h>
 #include "cpu.h"
-#include "timer.h"
-#include "device.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "nmi.h"
-#include "port_92.h"
-#include "chipset.h"
+#include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/nmi.h>
+#include <86box/port_92.h>
+#include <86box/chipset.h>
 
 typedef struct {
 	void *parent;

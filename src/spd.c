@@ -21,10 +21,10 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "smbus.h"
-#include "spd.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/smbus.h>
+#include <86box/spd.h>
 
 
 #define SPD_MAX_SLOTS	8

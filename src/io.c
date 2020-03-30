@@ -24,10 +24,10 @@
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "86box_io.h"
+#include <86box/86box.h>
+#include <86box/io.h>
 #include "cpu.h"
-#include "m_amstrad.h"
+#include <86box/m_amstrad.h>
 
 
 #define NPORTS		65536		/* PC/AT supports 64K ports */

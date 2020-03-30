@@ -19,14 +19,14 @@
  */
 #include <inttypes.h>
 #define IN_RESOURCE_H
-#include "resource.h"
-#include "../86box.h"
-#include "../plat.h"
+#include <86box/resource.h>
+#include <86box/86box.h>
+#include <86box/plat.h>
 #undef IN_RESOURCE_H
 
 #define APSTUDIO_READONLY_SYMBOLS
 #define APSTUDIO_HIDDEN_SYMBOLS
-#include "windows.h"
+#include <windows.h>
 #undef APSTUDIO_HIDDEN_SYMBOLS
 #undef APSTUDIO_READONLY_SYMBOLS
 

@@ -73,14 +73,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "machine.h"
-#include "86box_io.h"
-#include "mem.h"
-#include "device.h"
-#include "ui.h"
-#include "plat.h"
-#include "isamem.h"
+#include <86box/86box.h>
+#include <86box/machine.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/device.h>
+#include <86box/ui.h>
+#include <86box/plat.h>
+#include <86box/isamem.h>
 
 
 #define ISAMEM_DEBUG	0

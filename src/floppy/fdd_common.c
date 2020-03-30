@@ -19,10 +19,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "timer.h"
-#include "fdd.h"
-#include "fdd_common.h"
+#include <86box/86box.h>
+#include <86box/timer.h>
+#include <86box/fdd.h>
+#include <86box/fdd_common.h>
 
 
 const uint8_t fdd_holes[6] = { 0, 0, 0, 1, 1, 2 };

@@ -55,15 +55,15 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "device.h"
-#include "plat.h"
-#include "ui.h"
-#include "network.h"
-#include "net_3c503.h"
-#include "net_ne2000.h"
-#include "net_pcnet.h"
-#include "net_wd8003.h"
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/plat.h>
+#include <86box/ui.h>
+#include <86box/network.h>
+#include <86box/net_3c503.h>
+#include <86box/net_ne2000.h>
+#include <86box/net_pcnet.h>
+#include <86box/net_wd8003.h>
 
 
 static netcard_t net_cards[] = {

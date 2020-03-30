@@ -5,14 +5,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "86box.h"
-#include "config.h"
-#include "device.h"
-#include "plat.h"
-#include "plat_dynld.h"
-#include "ui.h"
-#include "midi.h"
-#include "sound.h"
+#include <86box/86box.h>
+#include <86box/config.h>
+#include <86box/device.h>
+#include <86box/plat.h>
+#include <86box/plat_dynld.h>
+#include <86box/ui.h>
+#include <86box/midi.h>
+#include <86box/sound.h>
 
 
 #define FLUID_CHORUS_DEFAULT_N		3

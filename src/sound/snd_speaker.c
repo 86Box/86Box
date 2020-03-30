@@ -20,11 +20,11 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box.h"
-#include "timer.h"
-#include "pit.h"
-#include "sound.h"
-#include "snd_speaker.h"
+#include <86box/86box.h>
+#include <86box/timer.h>
+#include <86box/pit.h>
+#include <86box/sound.h>
+#include <86box/snd_speaker.h>
 
 
 int speaker_mute = 0, speaker_gated = 0;

@@ -5,10 +5,10 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
-#include "86box.h"
-#include "86box_io.h"
-#include "device.h"
-#include "sound.h"
+#include <86box/86box.h>
+#include <86box/io.h>
+#include <86box/device.h>
+#include <86box/sound.h>
 
 
 #define MASTER_CLOCK 7159090

@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
-#include "86box_io.h"
-#include "mem.h"
+#include <86box/io.h>
+#include <86box/mem.h>
 
 typedef struct
 {
