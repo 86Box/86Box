@@ -41,7 +41,6 @@
 #include "cpu.h"
 #include <86box/machine.h>
 
-
 #if defined(DEV_BRANCH) && defined(USE_I686)
 
 
@@ -108,11 +107,11 @@ machine_at_s1668_init(const machine_t *model)
 
 #endif
 int
-machine_at_6abx3_init(const machine_t *model)
+machine_at_6bxc_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/6abx3/6abx3h1.bin",
+    ret = bios_load_linear(L"roms/machines/6bxc/powleap.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -122,21 +121,18 @@ machine_at_6abx3_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);    
     pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
     pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
     pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i440bx_device);
-    device_add(&piix4_device);
+    device_add(&piix4e_device);
     device_add(&keyboard_ps2_pci_device);
-    device_add(&w83877tf_device);
-    // device_add(&w83977tf_device);
-    // device_add(&intel_flash_bxt_device);
-    // device_add(&sst_flash_29ee020_device);
-    device_add(&intel_flash_bxt_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+    device_add(&um8669f_device); /*Placeholder for ITE 8671*/
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 256);    
 
     return ret;
 }
@@ -165,7 +161,7 @@ machine_at_p2bls_init(const machine_t *model)
     pci_register_slot(0x04, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i440bx_device);
-    device_add(&piix4_device);
+    device_add(&piix4e_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83977ef_device);
     device_add(&sst_flash_39sf020_device);
