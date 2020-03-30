@@ -114,6 +114,9 @@ typedef struct svga_t
        vertical line interrupt*/
     int (*line_compare)(struct svga_t *svga);    
 
+    /*Called at the start of vertical sync*/
+    void (*vsync_callback)(struct svga_t *svga);
+
     /*If set then another device is driving the monitor output and the SVGA
       card should not attempt to display anything */
     int override;

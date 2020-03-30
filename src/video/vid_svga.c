@@ -813,6 +813,9 @@ svga_poll(void *p)
 		svga->ma = (svga->ma << 2) + (skip << 2);
 		svga->maback = (svga->maback << 2) + (skip << 2);
 		svga->ca = (svga->ca << 2) + (skip << 2);
+
+		if (svga->vsync_callback)
+			svga->vsync_callback(svga);
 	}
 	if (svga->vc == svga->vtotal) {
 		svga->vc = 0;
