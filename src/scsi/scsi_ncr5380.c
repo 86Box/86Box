@@ -392,8 +392,7 @@ ncr_bus_update(void *priv, int bus)
 			ncr->state = STATE_SELECT;
 		} else {
 			ncr_log("Device not found at ID %i, Current Bus BSY=%02x\n", ncr->target_id, ncr->cur_bus);
-			if (ncr_dev->type == 1 && ncr_dev->bios_ver == 1)
-				ncr->cur_bus = 0;
+			ncr->cur_bus = 0;
 		}
 		}
 	} else if (ncr->state == STATE_SELECT) {
