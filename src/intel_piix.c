@@ -1110,18 +1110,29 @@ piix_reset_hard(piix_t *dev)
 
     /* Clear all 4 functions' arrays and set their vendor and device ID's. */
     for (i = 0; i < 4; i++) {
-	memset(dev->regs[i], 0, 256);
-	dev->regs[i][0x00] = 0x86; dev->regs[i][0x01] = 0x80;		/* Intel */
-	dev->regs[i][0x02] = (dev->func0_id & 0xff) + (i << dev->func_shift);
-	dev->regs[i][0x03] = (dev->func0_id >> 8);
+    	memset(dev->regs[i], 0, 256);
+    	if (dev->func0_id == 0x9460) {
+    		dev->regs[i][0x00] = 0x55; dev->regs[i][0x01] = 0x10;		/* SMSC */
+    		if (i == 1) { /* IDE controller is 9130, breaking convention */
+    			dev->regs[i][0x02] = 0x30;
+    			dev->regs[i][0x03] = 0x91;
+    		} else {
+    			dev->regs[i][0x02] = (dev->func0_id & 0xff) + (i << dev->func_shift);
+    			dev->regs[i][0x03] = (dev->func0_id >> 8);
+    		}
+    	} else {
+    		dev->regs[i][0x00] = 0x86; dev->regs[i][0x01] = 0x80;		/* Intel */
+    		dev->regs[i][0x02] = (dev->func0_id & 0xff) + (i << dev->func_shift);
+    		dev->regs[i][0x03] = (dev->func0_id >> 8);
+    	}
     }
 
     /* Function 0: PCI to ISA Bridge */
     fregs = (uint8_t *) dev->regs[0];
-    piix_log("PIIX Function 0: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
+    piix_log("PIIX Function 0: %02X%02X:%02X%02X\n", fregs[0x01], fregs[0x00], fregs[0x03], fregs[0x02]);
     fregs[0x04] = 0x07;
     fregs[0x06] = 0x80; fregs[0x07] = 0x02;
-    if (dev->type == 4)
+    if (dev->type == 4 && dev->func0_id != 0x9460)
 	fregs[0x08] = (dev->rev & 0x08) ? 0x02 : (dev->rev & 0x07);
     else
     	fregs[0x08] = dev->rev;
@@ -1146,7 +1157,7 @@ piix_reset_hard(piix_t *dev)
 
     /* Function 1: IDE */
     fregs = (uint8_t *) dev->regs[1];
-    piix_log("PIIX Function 1: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
+    piix_log("PIIX Function 1: %02X%02X:%02X%02X\n", fregs[0x01], fregs[0x00], fregs[0x03], fregs[0x02]);
     fregs[0x04] = (dev->type > 3) ? 0x05 : 0x07;
     fregs[0x06] = 0x80; fregs[0x07] = 0x02;
     if (dev->type == 4)
@@ -1161,7 +1172,7 @@ piix_reset_hard(piix_t *dev)
     /* Function 2: USB */
     if (dev->type > 1) {
 	fregs = (uint8_t *) dev->regs[2];
-	piix_log("PIIX Function 2: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
+	piix_log("PIIX Function 2: %02X%02X:%02X%02X\n", fregs[0x01], fregs[0x00], fregs[0x03], fregs[0x02]);
 	fregs[0x04] = 0x05;
 	fregs[0x06] = 0x80; fregs[0x07] = 0x02;
 	if (dev->type == 4)
@@ -1181,7 +1192,7 @@ piix_reset_hard(piix_t *dev)
     /* Function 3: Power Management */
     if (dev->type > 3) {
 	fregs = (uint8_t *) dev->regs[3];	
-	piix_log("PIIX Function 3: 8086:%02X%02X\n", fregs[0x03], fregs[0x02]);
+	piix_log("PIIX Function 3: %02X%02X:%02X%02X\n", fregs[0x01], fregs[0x00], fregs[0x03], fregs[0x02]);
 	fregs[0x06] = 0x80; fregs[0x07] = 0x02;
 	fregs[0x08] = (dev->rev & 0x08) ? 0x02 : (dev->rev & 0x07);
 	fregs[0x0a] = 0x80; fregs[0x0b] = 0x06;
@@ -1383,6 +1394,20 @@ const device_t piix4e_device =
     "Intel 82371EB (PIIX4E)",
     DEVICE_PCI,
     0x71100094,
+    piix_init, 
+    piix_close, 
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t slc90e66_device =
+{
+    "SMSC SLC90E66 (Victory66)",
+    DEVICE_PCI,
+    0x94600004,
     piix_init, 
     piix_close, 
     NULL,

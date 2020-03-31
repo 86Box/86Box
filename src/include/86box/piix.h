@@ -20,3 +20,4 @@ extern const device_t piix_device;
 extern const device_t piix3_device;
 extern const device_t piix4_device;
 extern const device_t piix4e_device;
+extern const device_t slc90e66_device;
