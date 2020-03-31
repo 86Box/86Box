@@ -1860,28 +1860,28 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *p)
 
 	case REG_SRC0:
 		mystique->dwgreg.src[0] = val;
-		if ((mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
+		if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
 			blit_iload_write(mystique, mystique->dwgreg.src[0], 32);
 		break;
 	case REG_SRC1:
 		mystique->dwgreg.src[1] = val;
-		if ((mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
+		if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
 			blit_iload_write(mystique, mystique->dwgreg.src[1], 32);
 		break;
 	case REG_SRC2:
 		mystique->dwgreg.src[2] = val;
-		if ((mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
+		if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
 			blit_iload_write(mystique, mystique->dwgreg.src[2], 32);
 		break;
 	case REG_SRC3:
 		mystique->dwgreg.src[3] = val;
-		if ((mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
+		if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
 			blit_iload_write(mystique, mystique->dwgreg.src[3], 32);
 		break;
 
 	case REG_DMAPAD:
-        if ((mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
-            blit_iload_write(mystique, mystique->dwgreg.src[0], 32);
+		if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
+			blit_iload_write(mystique, val, 32);
 		break;
 
 	case REG_AR0:
@@ -2249,11 +2249,10 @@ run_dma(mystique_t *mystique)
 						else
 							reg_addr += 0x1c00;
 
-						if ((reg_addr & 0x300) == 0x100 && reg_addr != REG_DMAPAD)
+						if ((reg_addr & 0x300) == 0x100)
 							mystique->blitter_submit_dma_refcount++;
 
-						if (reg_addr != REG_DMAPAD)
-							mystique_accel_ctrl_write_l(reg_addr, val, mystique);
+						mystique_accel_ctrl_write_l(reg_addr, val, mystique);
 					}
 
 					mystique->dma.pri_header >>= 8;
@@ -2292,11 +2291,10 @@ run_dma(mystique_t *mystique)
 					else
 						reg_addr += 0x1c00;
 
-					if ((reg_addr & 0x300) == 0x100 && reg_addr != REG_DMAPAD)
+					if ((reg_addr & 0x300) == 0x100)
 						mystique->blitter_submit_dma_refcount++;
 
-					if (reg_addr != REG_DMAPAD)
-						mystique_accel_ctrl_write_l(reg_addr, val, mystique);
+					mystique_accel_ctrl_write_l(reg_addr, val, mystique);
 
 					mystique->dma.sec_header >>= 8;
 					mystique->dma.sec_state = (mystique->dma.sec_state + 1) & 3;
