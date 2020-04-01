@@ -89,11 +89,14 @@ ifeq ($(DEV_BUILD), y)
  ifndef SIEMENS
   SIEMENS	:= y
  endif
+ ifndef 596B
+  596B	:= y
+ endif
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
  ifndef VNC
-  VNC		:= y
+  VNC		:= n
  endif
  ifndef XL24
   XL24		:= y
@@ -155,6 +158,9 @@ else
  endif
  ifndef SIEMENS
   SIEMENS	:= n
+ endif
+ ifndef 596B
+  596B	:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -523,6 +529,10 @@ ifeq ($(SIEMENS), y)
 OPTS		+= -DUSE_SIEMENS
 endif
 
+ifeq ($(596B), y)
+OPTS		+= -DUSE_596B
+endif
+
 ifeq ($(VGAWONDER), y)
 OPTS		+= -DUSE_VGAWONDER
 endif
@@ -556,7 +566,8 @@ CXXFLAGS	:= $(CFLAGS)
 #########################################################################
 MAINOBJ		:= pc.o config.o random.o timer.o io.o apm.o dma.o nmi.o \
 		   pic.o pit.o port_92.o ppi.o pci.o mca.o mcr.o mem.o \
-		   rom.o device.o nvr.o nvr_at.o nvr_ps2.o sst_flash.o via_vt82c586b.o $(VNCOBJ) $(RDPOBJ)
+		   rom.o device.o nvr.o nvr_at.o nvr_ps2.o sst_flash.o via_vt82c586b.o \
+		   via_vt82c596b.o$(VNCOBJ) $(RDPOBJ)
 
 INTELOBJ	:= intel_flash.o \
 		    intel_sio.o intel_piix.o
@@ -587,7 +598,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_compaq.o \
 		    m_at_286_386sx.o m_at_386dx_486.o \
 		    m_at_socket4_5.o m_at_socket7_s7.o \
-			m_at_socket8.o
+			m_at_socket8.o m_at_slot1.o m_at_socket370.o
 
 DEVOBJ		:= bugger.o hwm.o hwm_w83781d.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o $(SERIAL) \
 		    sio_acc3221.o \
