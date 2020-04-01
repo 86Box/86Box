@@ -646,6 +646,8 @@ END
  33                     ICON    DISCARDABLE     "win/icons/cdrom_active.ico"
  48                     ICON    DISCARDABLE     "win/icons/zip.ico"
  49                     ICON    DISCARDABLE     "win/icons/zip_active.ico"
+ 56                     ICON    DISCARDABLE     "win/icons/mo.ico"
+ 57                     ICON    DISCARDABLE     "win/icons/mo_active.ico"
  64                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
  65                     ICON    DISCARDABLE     "win/icons/hard_disk_active.ico"
  80                     ICON    DISCARDABLE     "win/icons/network.ico"
@@ -658,6 +660,8 @@ END
 161                     ICON    DISCARDABLE     "win/icons/cdrom_empty_active.ico"
 176                     ICON    DISCARDABLE     "win/icons/zip_empty.ico"
 177                     ICON    DISCARDABLE     "win/icons/zip_empty_active.ico"
+183                     ICON    DISCARDABLE     "win/icons/mo_empty.ico"
+184                     ICON    DISCARDABLE     "win/icons/mo_empty_active.ico"
 240                     ICON    DISCARDABLE     "win/icons/machine.ico"
 241                     ICON    DISCARDABLE     "win/icons/display.ico"
 242                     ICON    DISCARDABLE     "win/icons/input_devices.ico"
@@ -669,6 +673,7 @@ END
 248                     ICON    DISCARDABLE     "win/icons/floppy_disabled.ico"
 249                     ICON    DISCARDABLE     "win/icons/cdrom_disabled.ico"
 250                     ICON    DISCARDABLE     "win/icons/zip_disabled.ico"
+251                     ICON    DISCARDABLE     "win/icons/mo_disabled.ico"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -910,6 +915,8 @@ BEGIN
     IDS_2120	"Unable to initialize SDL, SDL2.dll is required"
     IDS_2121	"Are you sure you want to hard reset the emulated machine?"
     IDS_2122	"Are you sure you want to quit 86Box?"
+	IDS_2124	"MO %i (%03i): %ls"
+	IDS_2125	"MO images (*.IM?)\0*.IM?\0All files (*.*)\0*.*\0"
 END
 
 STRINGTABLE DISCARDABLE 

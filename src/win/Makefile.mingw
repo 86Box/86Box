@@ -630,6 +630,8 @@ CDROMOBJ	:= cdrom.o \
 
 ZIPOBJ		:= zip.o
 
+MOOBJ		:= mo.o
+
 ifeq ($(USB), y)
 USBOBJ		:= usb.o
 endif
@@ -726,7 +728,7 @@ else
 endif
 
 OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) \
-		   $(DEVOBJ) $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(HDDOBJ) \
+		   $(DEVOBJ) $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) \
 		   $(USBOBJ) $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
 		   $(PLATOBJ) $(UIOBJ) $(D2DOBJ) $(FSYNTHOBJ) $(MUNTOBJ) \
 		   $(DEVBROBJ) $(DISCORDOBJ)

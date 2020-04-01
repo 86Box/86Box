@@ -46,6 +46,7 @@ extern void	ui_check_menu_item(int id, int checked);
 #define SB_FLOPPY       0x00
 #define SB_CDROM        0x10
 #define SB_ZIP          0x20
+#define SB_MO           0x30
 #define SB_HDD          0x40
 #define SB_NETWORK      0x50
 #define SB_SOUND        0x60
