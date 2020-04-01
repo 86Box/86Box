@@ -132,7 +132,7 @@ static int opSYSEXIT(uint32_t fetchdat)
 	do_seg_load(&cpu_state.seg_ss, sysexit_ss_seg_data);
 	stack32 = 1;
 
-	flushmmucache_cr3();
+	flushmmucache();
 
 	cycles -= timing_call_pm;
 

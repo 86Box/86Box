@@ -469,8 +469,13 @@ piix_write(int func, int addr, uint8_t val, void *priv)
     uint8_t *fregs;
 
     /* Return on unsupported function. */
-    if (func > dev->max_func)
-	return;
+    if (dev->max_func > 0) {
+	    if (func > dev->max_func)
+		return;
+    } else {
+	    if (func > 1)
+		return;
+    }
 
     piix_log("PIIX function %i write: %02X to %02X\n", func, val, addr);
     fregs = (uint8_t *) dev->regs[func];
@@ -872,7 +877,7 @@ piix_read(int func, int addr, void *priv)
     uint8_t ret = 0xff, *fregs;
 
     /* Return on unsupported function. */
-    if (func <= dev->max_func) {
+    if ((func <= dev->max_func) || ((func == 1) && (dev->max_func == 0))) {
     	fregs = (uint8_t *) dev->regs[func];
 	ret = fregs[addr];
 

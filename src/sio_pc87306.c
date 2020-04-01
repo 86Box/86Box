@@ -283,14 +283,6 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
 			}
 		}
 		break;
-	case 4:
-		// pclog("NVR RAM mask set to %i\n", !!(val & 0x80));
-		break;
-	case 5:
-		// pclog("Reserved set to %i\n", !!(val & 0x04));
-		// pclog("RTC is now %sabled\n", (val & 0x08) ? "en" : "dis");
-		// pclog("NVR RAM bank set to %i\n", !!(val & 0x20));
-		break;
 	case 9:
 		if (valxor & 0x44) {
 			fdc_update_enh_mode(dev->fdc, (val & 4) ? 1 : 0);
@@ -302,7 +294,6 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
 			pc87306_gpio_init(dev);
 		break;
 	case 0x12:
-		// pclog("NVR RAM 38-3F lock set to %i\n", !!(val & 0x01));
 		if (valxor & 0x30)
 			pc87306_gpio_init(dev);
 		break;

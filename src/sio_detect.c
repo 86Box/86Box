@@ -84,11 +84,17 @@ sio_detect_init(const device_t *info)
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x0108, 0x0002,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
-    io_sethandler(0x0250, 0x0002,
+    io_sethandler(0x0250, 0x0003,
+		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+    io_sethandler(0x0279, 0x0001,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x0370, 0x0002,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+    io_sethandler(0x03e3, 0x0001,
+		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x03f0, 0x0002,
+		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+    io_sethandler(0x0a79, 0x0001,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
 
     return dev;

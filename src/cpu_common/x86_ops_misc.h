@@ -607,6 +607,8 @@ static int opF7_l_a32(uint32_t fetchdat)
 
 static int opHLT(uint32_t fetchdat)
 {
+	in_hlt = 0;
+
         if ((CPL || (cpu_state.eflags&VM_FLAG)) && (cr0&1))
         {
                 x86gpf(NULL,0);
@@ -615,8 +617,10 @@ static int opHLT(uint32_t fetchdat)
         if (!((cpu_state.flags & I_FLAG) && pic_intpending))
         {
                 CLOCK_CYCLES_ALWAYS(100);
-		if (!((cpu_state.flags & I_FLAG) && pic_intpending))
+		if (!((cpu_state.flags & I_FLAG) && pic_intpending)) {
+			in_hlt = 1;
                 	cpu_state.pc--;
+		}
         }
         else
                 CLOCK_CYCLES(5);
@@ -831,6 +835,7 @@ static void loadall_load_segment(uint32_t addr, x86seg *s)
 	uint32_t attrib = readmeml(0, addr);
 	uint32_t segdat3 = (attrib >> 16) & 0xff;
 	s->access = (attrib >> 8) & 0xff;
+	s->ar_high = segdat3;
 	s->base = readmeml(0, addr + 4);
 	s->limit = readmeml(0, addr + 8);
 
@@ -953,10 +958,8 @@ static int opRSM(uint32_t fetchdat)
         if (in_smm)
         {
                	leave_smm();
-		if (smi_latched) {
-			smi_latched = 0;
+		if (smi_latched)
 			enter_smm();
-		}
                 CPU_BLOCK_END();
                 return 0;
         }

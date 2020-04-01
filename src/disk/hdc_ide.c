@@ -115,7 +115,7 @@
 typedef struct {
     int		bit32, cur_dev,
 		irq, inited,
-		diag;
+		diag, force_ata3;
     uint16_t	base_main, side_main;
     pc_timer_t	timer;
 } ide_board_t;
@@ -281,7 +281,7 @@ ide_irq_raise(ide_t *ide)
     ide_log("IDE %i: IRQ raise\n", ide->board);
 
     if (!(ide->fdisk & 2)) {
-	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
+	if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
 		ide_bm[ide->board]->set_irq(ide->board | 0x40, ide_bm[ide->board]->priv);
 	else if (ide_boards[ide->board]->irq != -1)
 		picint(1 << ide_boards[ide->board]->irq);
@@ -303,7 +303,7 @@ ide_irq_lower(ide_t *ide)
     ide_log("IDE %i: IRQ lower\n", ide->board);
 
     if (ide->irqstat) {
-	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
+	if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
 		ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
 	else if (ide_boards[ide->board]->irq != -1)
 		picintc(1 << ide_boards[ide->board]->irq);
@@ -323,7 +323,7 @@ ide_irq_update(ide_t *ide)
 
     if (!(ide->fdisk & 2) && ide->irqstat) {
 	ide_log("IDE %i: IRQ update raise\n", ide->board);
-	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq) {
+	if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->set_irq) {
 		ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
 		ide_bm[ide->board]->set_irq(ide->board | 0x40, ide_bm[ide->board]->priv);
 	} else if (ide_boards[ide->board]->irq != -1) {
@@ -332,7 +332,7 @@ ide_irq_update(ide_t *ide)
 	}
     } else if (ide->fdisk & 2) {
 	ide_log("IDE %i: IRQ update lower\n", ide->board);
-	if (ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
+	if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
 		ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
 	else if (ide_boards[ide->board]->irq != -1)
 		picintc(1 << ide_boards[ide->board]->irq);
@@ -390,26 +390,26 @@ static int
 ide_get_max(ide_t *ide, int type)
 {
     if (ide->type == IDE_ATAPI)
-	return ide->get_max(ide_bm[ide->board] != NULL, type);
+	return ide->get_max(!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL), type);
 
     switch(type) {
 	case TYPE_PIO:	/* PIO */
-		if (ide_bm[ide->board] != NULL)
+		if (!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL))
 			return 1;
 
 		return 0;	/* Maximum PIO 0 for legacy PIO-only drive. */
 	case TYPE_SDMA:	/* SDMA */
-		if (ide_bm[ide->board] != NULL)
+		if (!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL))
 			return 2;
 
 		return -1;
 	case TYPE_MDMA:	/* MDMA */
-		if (ide_bm[ide->board] != NULL)
+		if (!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL))
 			return 2;
 
 		return -1;
 	case TYPE_UDMA:	/* UDMA */
-		if (ide_bm[ide->board] != NULL)
+		if (!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL))
 			return 2;
 
 		return -1;
@@ -424,16 +424,16 @@ static int
 ide_get_timings(ide_t *ide, int type)
 {
     if (ide->type == IDE_ATAPI)
-	return ide->get_timings(ide_bm[ide->board] != NULL, type);
+	return ide->get_timings(!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL), type);
 
     switch(type) {
 	case TIMINGS_DMA:
-		if (ide_bm[ide->board] != NULL)
+		if (!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL))
 			return 120;
 
 		return 0;
 	case TIMINGS_PIO:
-		if (ide_bm[ide->board] != NULL)
+		if (!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL))
 			return 120;
 
 		return 0;
@@ -529,7 +529,7 @@ static void ide_hd_identify(ide_t *ide)
 	ide_log("Current CHS translation: %i, %i, %i\n", ide->buffer[54], ide->buffer[55], ide->buffer[56]);
     }
 
-    if (ide_bm[ide->board]) {
+    if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board]) {
 	ide->buffer[47] = 32 | 0x8000;  /*Max sectors on multiple transfer command*/
 	ide->buffer[80] = 0x1e; /*ATA-1 to ATA-4 supported*/
 	ide->buffer[81] = 0x18; /*ATA-4 revision 18 supported*/
@@ -550,7 +550,7 @@ ide_identify(ide_t *ide)
     memset(ide->buffer, 0, 512);
 
     if (ide->type == IDE_ATAPI)
-	ide->identify(ide, ide_bm[ide->board] != NULL);
+	ide->identify(ide, !ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL));
     else if (ide->type != IDE_NONE)
 	ide_hd_identify(ide);
     else {
@@ -840,7 +840,7 @@ ide_atapi_attach(ide_t *ide)
     ide->type = IDE_ATAPI;
     ide_allocate_buffer(ide);
     ide_set_signature(ide);
-    ide->mdma_mode = (1 << ide->get_max(!ide_bm[ide->board], TYPE_PIO));
+    ide->mdma_mode = (1 << ide->get_max(ide_boards[ide->board]->force_ata3 || !ide_bm[ide->board], TYPE_PIO));
     ide->error = 1;
     ide->cfg_spt = ide->cfg_hpc = 0;
 }
@@ -926,7 +926,7 @@ ide_atapi_callback(ide_t *ide)
 #endif
 		out = (ide->sc->packet_status & 0x01);
 
-		if (ide_bm[ide->board] && ide_bm[ide->board]->dma) {
+		if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->dma) {
 			ret = ide_bm[ide->board]->dma(ide->board,
 						      ide->sc->temp_buffer, ide->sc->packet_len,
 						      out, ide_bm[ide->board]->priv);
@@ -2040,7 +2040,7 @@ ide_callback(void *priv)
 
 	case WIN_READ_DMA:
 	case WIN_READ_DMA_ALT:
-		if ((ide->type == IDE_ATAPI) || !ide_bm[ide->board]) {
+		if ((ide->type == IDE_ATAPI) || ide_boards[ide->board]->force_ata3 || !ide_bm[ide->board]) {
 			ide_log("IDE %i: DMA read aborted (bad device or board)\n", ide->channel);
 			goto abort_cmd;
 		}
@@ -2058,7 +2058,7 @@ ide_callback(void *priv)
 
 		ide->pos=0;
 
-		if (ide_bm[ide->board] && ide_bm[ide->board]->dma) {
+		if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->dma) {
 			/* We should not abort - we should simply wait for the host to start DMA. */
 			ret = ide_bm[ide->board]->dma(ide->board,
 						      ide->sector_buffer, ide->sector_pos * 512,
@@ -2143,7 +2143,7 @@ ide_callback(void *priv)
 
 	case WIN_WRITE_DMA:
 	case WIN_WRITE_DMA_ALT:
-		if ((ide->type == IDE_ATAPI) || !ide_bm[ide->board]) {
+		if ((ide->type == IDE_ATAPI) || ide_boards[ide->board]->force_ata3 || !ide_bm[ide->board]) {
 			ide_log("IDE %i: DMA write aborted (bad device type or board)\n", ide->channel);
 			goto abort_cmd;
 		}
@@ -2152,7 +2152,7 @@ ide_callback(void *priv)
 			goto id_not_found;
 		}
 
-		if (ide_bm[ide->board] && ide_bm[ide->board]->dma) {
+		if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->dma) {
 			if (ide->secount)
 				ide->sector_pos = ide->secount;
 			else
@@ -2463,6 +2463,20 @@ ide_clear_bus_master(int board)
 	free(ide_bm[board]);
 	ide_bm[board] = NULL;
     }
+}
+
+
+/* This so drives can be forced to ATA-3 (no DMA) for machines that hide the on-board PCI IDE controller
+   (eg. Packard Bell PB640 and ASUS P/I-P54TP4XE), breaking DMA drivers unless this is done. */
+extern void
+ide_board_set_force_ata3(int board, int force_ata3)
+{
+    ide_log("ide_board_set_force_ata3(%i, %i)\n", board, force_ata3);
+
+    if ((ide_boards[board] == NULL)|| !ide_boards[board]->inited)
+	return;
+
+    ide_boards[board]->force_ata3 = force_ata3;
 }
 
 

@@ -13,10 +13,12 @@
  * Author:	RichardG, <richardg867@gmail.com>
  *		Copyright 2020 RichardG.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#define HAVE_STDARG_H
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -65,6 +67,26 @@ static void	w83781d_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val,
 static void	w83781d_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv);
 static uint8_t	w83781d_write(w83781d_t *dev, uint8_t reg, uint8_t val, uint8_t bank);
 static void	w83781d_reset(w83781d_t *dev, uint8_t initialization);
+
+
+#ifdef ENABLE_W83781D_LOG
+int w83781d_do_log = ENABLE_W83781D_LOG;
+
+
+static void
+w83781d_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (w83781d_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+}
+#else
+#define w83781d_log(fmt, ...)
+#endif
 
 
 static void
@@ -200,7 +222,7 @@ w83781d_read(w83781d_t *dev, uint8_t reg, uint8_t bank)
     		ret = dev->regs[reg];
     }
 
-    pclog("w83781d_read(%02x, %d) = %02x\n", reg, bank, ret);
+    w83781d_log("w83781d_read(%02x, %d) = %02x\n", reg, bank, ret);
 
     return ret;
 }

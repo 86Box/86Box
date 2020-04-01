@@ -51,7 +51,8 @@ enum
 
 typedef struct
 {
-    uint8_t	pm2_cntrl, max_func;
+    uint8_t	pm2_cntrl, max_func,
+		smram_locked;
     uint8_t	regs[2][256], regs_locked[2][256];
     int		type;
 } i4x0_t;
@@ -75,6 +76,127 @@ i4x0_map(uint32_t addr, uint32_t size, int state)
 		break;
     }
     flushmmucache_nopc();
+}
+
+
+static void
+i4x0_smram_map(int smm, uint32_t addr, uint32_t size, int ram)
+{
+    int state = ram ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+
+    mem_set_mem_state_common(smm, addr, size, state);
+    flushmmucache();
+}
+
+
+static void
+i4x0_smram_handler_phase0(i4x0_t *dev)
+{
+    uint32_t i, n;
+
+    /* Disable any active mappings. */
+    if (dev->type >= INTEL_430FX) {
+	if (dev->type >= INTEL_440BX) {
+		/* Disable high extended SMRAM. */
+		/* TODO: This area should point to A0000-FFFFF. */
+		for (i = 0x100a0000; i < 0x100fffff; i += MEM_GRANULARITY_SIZE) {
+			/* This is to make sure that if the remaining area is smaller than
+			   or equal to MEM_GRANULARITY_SIZE, we do not change the state of
+			   too much memory. */
+			n = ((mem_size << 10) - i);
+			/* Cap to MEM_GRANULARITY_SIZE if i is either at or beyond the end
+			   of RAM or the remaining area is bigger than MEM_GRANULARITY_SIZE. */
+			if ((i >= (mem_size << 10)) || (n > MEM_GRANULARITY_SIZE))
+				n = MEM_GRANULARITY_SIZE;
+			i4x0_smram_map(0, i, n, (i < (mem_size << 10)));
+			i4x0_smram_map(1, i, n, (i < (mem_size << 10)));
+			if (n < MEM_GRANULARITY_SIZE) {
+				i4x0_smram_map(0, i + n, MEM_GRANULARITY_SIZE - n, 0);
+				i4x0_smram_map(1, i + n, MEM_GRANULARITY_SIZE - n, 0);
+			}
+		}
+
+		/* Disable TSEG. */
+		i4x0_smram_map(1, ((mem_size << 10) - (1 << 20)), (1 << 20), 1);
+	}
+
+	/* Disable low extended SMRAM. */
+	i4x0_smram_map(0, 0xa0000, 0x20000, 0);
+	i4x0_smram_map(1, 0xa0000, 0x20000, 0);
+    } else {
+	/* Disable low extended SMRAM. */
+	i4x0_smram_map(0, 0xa0000, 0x20000, 0);
+	i4x0_smram_map(0, (mem_size << 10) - 0x10000, 0x10000, 1);
+	i4x0_smram_map(1, 0xa0000, 0x20000, 0);
+	i4x0_smram_map(1, (mem_size << 10) - 0x10000, 0x10000, 1);
+    }
+}
+
+
+static void
+i4x0_smram_handler_phase1(i4x0_t *dev)
+{
+    uint8_t *regs = (uint8_t *) dev->regs[0];
+
+    uint32_t s, base[2] = { 0x000a0000, 0x00020000 };
+    uint32_t size[2] = { 0, 0 };
+
+    if (dev->type >= INTEL_430FX) {
+	/* Set temporary bases and sizes. */
+	if ((dev->type >= INTEL_440BX) && (regs[0x73] & 0x80)) {
+		base[0] = 0x100a0000;
+		size[0] = 0x00060000;
+	} else {
+		base[0] = 0x000a0000;
+		size[0] = 0x00020000;
+	}
+
+	/* If D_OPEN = 1 and D_LCK = 0, extended SMRAM is visible outside SMM. */
+	i4x0_smram_map(0, base[0], size[0], ((regs[0x72] & 0x70) == 0x40));
+
+	/* If the register is set accordingly, disable the mapping also in SMM. */
+	i4x0_smram_map(1, base[0], size[0], ((regs[0x72] & 0x08) && !(regs[0x72] & 0x20)));
+
+	/* TSEG mapping. */
+	if (dev->type >= INTEL_440BX) {
+		if ((regs[0x72] & 0x08) && (regs[0x73] & 0x01)) {
+			size[1] = (1 << (17 + ((regs[0x73] >> 1) & 0x03)));
+			base[1] = (mem_size << 10) - size[1];
+		} else
+			base[1] = size[1] = 0x00000000;
+		i4x0_smram_map(1, base[1], size[1], 1);
+	} else
+		base[1] = size[1] = 0x00000000;
+    } else {
+	size[0] = 0x00010000;
+	switch (regs[0x72] & 0x03) {
+		case 0:
+		default:
+			base[0] = (mem_size << 10) - size[0];
+			s = 1;
+			break;
+		case 1:
+			base[0] = size[0] = 0x00000000;
+			s = 1;
+			break;
+		case 2:
+			base[0] = 0x000a0000;
+			s = 0;
+			break;
+		case 3:
+			base[0] = 0x000b0000;
+			s = 0;
+			break;
+	}
+
+	if (base[0] != 0x00000000) {
+		/* If OSS = 1 and LSS = 0, extended SMRAM is visible outside SMM. */
+		i4x0_smram_map(0, base[0], size[0], ((regs[0x72] & 0x38) == 0x20) || s);
+
+		/* If the register is set accordingly, disable the mapping also in SMM. */
+		i4x0_smram_map(0, base[0], size[0], !(regs[0x72] & 0x10) || s);
+	}
+    }
 }
 
 
@@ -636,19 +758,27 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		}
 		break;
 	case 0x72:	/* SMRAM */
+		i4x0_smram_handler_phase0(dev);
 		if (dev->type >= INTEL_430FX) {
-			if ((regs[0x72] & 0x10) || (val & 0x10)) {
-				regs[0x72] = (val & 0x38) | 0x02;
-				i4x0_map(0xa0000, 0x20000, 0);
-			} else {
-				regs[0x72] = (val & 0x78) | 0x02;
-				i4x0_map(0xa0000, 0x20000, ((val & 0x48) == 0x48) ? 3 : 0);
+			if (dev->smram_locked)
+				regs[0x72] = (regs[0x72] & 0xdf) | (val & 0x20);
+			else {
+				regs[0x72] = (regs[0x72] & 0x87) | (val & 0x78);
+				dev->smram_locked = (val & 0x10);
+				if (dev->smram_locked)
+					regs[0x72] &= 0xbf;
 			}
 		} else {
-			if ((regs[0x72] ^ val) & 0x20)
-				i4x0_map(0xa0000, 0x20000, ((val & 0x20) == 0x20) ? 3 : 0);
-			regs[0x72] = val & 0x3f;
+			if (dev->smram_locked)
+				regs[0x72] = (regs[0x72] & 0xef) | (val & 0x10);
+			else {
+				regs[0x72] = (regs[0x72] & 0xc0) | (val & 0x3f);
+				dev->smram_locked = (val & 0x08);
+				if (dev->smram_locked)
+					regs[0x72] &= 0xef;
+			}
 		}
+		i4x0_smram_handler_phase1(dev);
 		break;
 	case 0x73:
 		switch (dev->type) {
@@ -656,7 +786,11 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[0x73] = val & 0x03;
 				break;
 			case INTEL_440BX: case INTEL_440ZX:
-				regs[0x73] = val;
+				if (!dev->smram_locked) {
+					i4x0_smram_handler_phase0(dev);
+					regs[0x73] = (regs[0x72] & 0x38) | (val & 0xc7);
+					i4x0_smram_handler_phase1(dev);
+				}
 				break;
 		}
 		break;

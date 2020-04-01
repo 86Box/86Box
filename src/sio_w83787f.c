@@ -197,7 +197,6 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
     w83787f_t *dev = (w83787f_t *) priv;
     uint8_t valxor = 0;
     uint8_t max = 0x15;
-    pclog("W83787F: Write %02X to %04X\n", val, port);
 
     if (port == 0x250) {
 	if (val == dev->key)
@@ -311,8 +310,6 @@ w83787f_read(uint16_t port, void *priv)
 			ret = dev->regs[dev->cur_reg];
 	}
     }
-
-    pclog("W83787F: Read %02X from %04X\n", ret, port);
 
     return ret;
 }

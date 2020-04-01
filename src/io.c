@@ -354,6 +354,9 @@ inb(uint16_t port)
     // if (!found)
 	// pclog("inb(%04X) = %02X\n", port, ret);
 
+    // if (in_smm)
+	// pclog("inb(%04X) = %02X\n", port, ret);
+
     return(ret);
 }
 
@@ -363,6 +366,9 @@ outb(uint16_t port, uint8_t val)
 {
     io_t *p;
     int found = 0;
+
+    // if (in_smm)
+	// pclog("outb(%04X, %02X)\n", port, val);
 
     if (io[port]) {
 	p = io[port];
@@ -411,6 +417,9 @@ inw(uint16_t port)
     if (!found)
 	ret = (inb(port) | (inb(port + 1) << 8));
 
+    // if (in_smm)
+	// pclog("inw(%04X) = %04X\n", port, ret);
+
     return ret;
 }
 
@@ -419,6 +428,9 @@ void
 outw(uint16_t port, uint16_t val)
 {
     io_t *p;
+
+    // if (in_smm)
+	// pclog("outw(%04X, %04X)\n", port, val);
 
     p = io[port];
     if (p) {
@@ -459,6 +471,9 @@ inl(uint16_t port)
     if (!found)
 	ret = (inw(port) | (inw(port + 2) << 16));
 
+    // if (in_smm)
+	// pclog("inl(%04X) = %08X\n", port, ret);
+
     return ret;
 }
 
@@ -467,6 +482,9 @@ void
 outl(uint16_t port, uint32_t val)
 {
     io_t *p;
+
+    // if (in_smm)
+	// pclog("outl(%04X, %08X)\n", port, val);
 
     p = io[port];
     if (p) {

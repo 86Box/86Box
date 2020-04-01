@@ -122,7 +122,8 @@ machine_at_pb640_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430fx_pb640_device);
     device_add(&piix_device);
-    device_add(&ide_isa_2ch_device);
+    ide_board_set_force_ata3(0, 1);
+    ide_board_set_force_ata3(1, 1);
 
     if (gfxcard == VID_INTERNAL)
 	device_add(&gd5440_onboard_pci_device);

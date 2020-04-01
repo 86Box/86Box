@@ -35,6 +35,8 @@
 #define MEM_READ_INTERNAL	0x10
 #define MEM_READ_EXTERNAL	0x20
 #define MEM_READ_DISABLED	0x30
+#define MEM_READ_NORMAL		0x40	/* SMM only - means use the non-SMM state */
+#define MEM_READ_EXTERNAL_EX	0x50	/* External but with internal exec - needed by the VIA Apollo Pro */
 #define MEM_READ_ROMCS		0x60	/* EXTERNAL type + ROMC flag */
 #define MEM_READ_EXTANY		0x70	/* Any EXTERNAL type */
 #define MEM_READ_MASK		0xf0
@@ -43,9 +45,12 @@
 #define MEM_WRITE_INTERNAL	0x01
 #define MEM_WRITE_EXTERNAL	0x02
 #define MEM_WRITE_DISABLED	0x03
+#define MEM_WRITE_NORMAL	0x04	/* SMM only - means use the non-SMM state */
 #define MEM_WRITE_ROMCS		0x06	/* EXTERNAL type + ROMC flag */
 #define MEM_WRITE_EXTANY	0x07	/* Any EXTERNAL type */
 #define MEM_WRITE_MASK		0x0f
+
+#define MEM_STATE_SMM_SHIFT	8
 
 /* #define's for memory granularity, currently 16k, but may
    change in the future - 4k works, less does not because of
@@ -53,6 +58,8 @@
 #ifdef DEFAULT_GRANULARITY
 #define MEM_GRANULARITY_BITS	14
 #define MEM_GRANULARITY_SIZE	(1 << MEM_GRANULARITY_BITS)
+#define MEM_GRANULARITY_HBOUND	(MEM_GRANULARITY_SIZE - 2)
+#define MEM_GRANULARITY_QBOUND	(MEM_GRANULARITY_SIZE - 4)
 #define MEM_GRANULARITY_MASK	(MEM_GRANULARITY_SIZE - 1)
 #define MEM_GRANULARITY_HMASK	((1 << (MEM_GRANULARITY_BITS - 1)) - 1)
 #define MEM_GRANULARITY_QMASK	((1 << (MEM_GRANULARITY_BITS - 2)) - 1)
@@ -61,6 +68,8 @@
 #else
 #define MEM_GRANULARITY_BITS	12
 #define MEM_GRANULARITY_SIZE	(1 << MEM_GRANULARITY_BITS)
+#define MEM_GRANULARITY_HBOUND	(MEM_GRANULARITY_SIZE - 2)
+#define MEM_GRANULARITY_QBOUND	(MEM_GRANULARITY_SIZE - 4)
 #define MEM_GRANULARITY_MASK	(MEM_GRANULARITY_SIZE - 1)
 #define MEM_GRANULARITY_HMASK	((1 << (MEM_GRANULARITY_BITS - 1)) - 1)
 #define MEM_GRANULARITY_QMASK	((1 << (MEM_GRANULARITY_BITS - 2)) - 1)
@@ -260,9 +269,12 @@ extern void	mem_mapping_set_addr(mem_mapping_t *,
 extern void	mem_mapping_set_exec(mem_mapping_t *, uint8_t *exec);
 extern void	mem_mapping_disable(mem_mapping_t *);
 extern void	mem_mapping_enable(mem_mapping_t *);
+extern void	mem_mapping_recalc(uint64_t base, uint64_t size);
+
+extern void	mem_set_mem_state_common(int smm, uint32_t base, uint32_t size, int state);
 
 extern void	mem_set_mem_state(uint32_t base, uint32_t size, int state);
-extern void	mem_restore_mem_state(uint32_t base, uint32_t size);
+extern void	mem_set_mem_state_smm(uint32_t base, uint32_t size, int state);
 
 extern uint8_t	mem_readb_phys(uint32_t addr);
 extern uint16_t	mem_readw_phys(uint32_t addr);
@@ -311,6 +323,7 @@ extern void	mem_add_upper_bios(void);
 extern void	mem_add_bios(void);
 
 extern void	mem_init(void);
+
 extern void	mem_reset(void);
 extern void	mem_remap_top(int kb);
 

@@ -2627,3 +2627,12 @@ keyboard_at_get_mouse_scan(void)
 {
     return(mouse_scan ? 0x10 : 0x00);
 }
+
+
+void
+keyboard_at_set_a20_key(int state)
+{
+    atkbd_t *dev = SavedKbd;
+
+    write_output(dev, (dev->output_port & 0xfd) | ((!!state) << 1));
+}

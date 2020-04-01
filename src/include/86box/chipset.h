@@ -65,6 +65,7 @@ extern const device_t	sis_85c50x_device;
 #endif
 
 /* VIA */
+extern const device_t   via_vp3_device;
 extern const device_t   via_mvp3_device;
 extern const device_t   via_apro_device;
 

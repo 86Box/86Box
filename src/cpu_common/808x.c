@@ -972,7 +972,10 @@ reset_common(int hard)
     cpu_alu_op = 0;
 
     in_smm = smi_latched = 0;
-    smi_line = 0;
+    smi_line = in_hlt = 0;
+
+    if (hard)
+	smbase = 0x00030000;
 }
 
 

@@ -130,6 +130,8 @@ extern void	ide_pri_disable(void);
 extern void	ide_sec_enable(void);
 extern void	ide_sec_disable(void);
 
+extern void	ide_board_set_force_ata3(int board, int force_ata3);
+
 extern double	ide_atapi_get_period(uint8_t channel);
 extern void	ide_set_callback(uint8_t channel, double callback);
 

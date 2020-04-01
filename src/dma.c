@@ -757,8 +757,6 @@ dma_channel_read(int channel)
 
     if (!AT && !channel)
 	refreshread();
-    /* if (!AT && channel)
-	pclog("DMA refresh read on channel %i\n", channel); */
 
     if (! dma_c->size) {
 	temp = _dma_read(dma_c->ac);
@@ -829,11 +827,6 @@ dma_channel_write(int channel, uint16_t val)
 	return(DMA_NODATA);
     if ((dma_c->mode & 0xC) != 4)
 	return(DMA_NODATA);
-
-    /* if (!AT)
-	refreshread();
-    if (!AT)
-	pclog("DMA refresh write on channel %i\n", channel); */
 
     if (! dma_c->size) {
 	_dma_write(dma_c->ac, val & 0xff);

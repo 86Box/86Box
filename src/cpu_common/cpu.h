@@ -382,11 +382,12 @@ extern double	cpu_dmulti;
 extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
-extern int		is8086,	is286, is386, is486, is486sx, is486dx, is486sx2, is486dx2, isdx4;
+extern int	is8086,	is286, is386, is486, is486sx, is486dx, is486sx2, is486dx2, isdx4;
+extern int	is_pentium, is_k5, is_k6, is_p6;
 extern int      hascache;
 extern int      isibm486;
-extern int		is_rapidcad;
-extern int		hasfpu;
+extern int	is_rapidcad;
+extern int	hasfpu;
 #define CPU_FEATURE_RDTSC (1 << 0)
 #define CPU_FEATURE_MSR   (1 << 1)
 #define CPU_FEATURE_MMX   (1 << 2)
@@ -397,7 +398,7 @@ extern int		hasfpu;
 
 extern uint32_t	cpu_features;
 
-extern int	in_smm, smi_line, smi_latched;
+extern int	in_smm, smi_line, smi_latched, in_hlt;
 extern uint32_t	smbase;
 
 #ifdef USE_NEW_DYNAREC
