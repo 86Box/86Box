@@ -96,7 +96,7 @@ ifeq ($(DEV_BUILD), y)
   VGAWONDER	:= y
  endif
  ifndef VNC
-  VNC		:= n
+  VNC		:= y
  endif
  ifndef XL24
   XL24		:= y
