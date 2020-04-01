@@ -18,3 +18,4 @@
  */
 
 extern const device_t via_vt82c586b_device;
+extern const device_t via_vt82c596b_device;
