@@ -251,6 +251,21 @@ machine_xt_open_xt_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_xt_hed919_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/hed919/Hedaka_HED-919_bios_version_3.28f.bin",
+			   0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
+
+    return ret;
+}
 
 int
 machine_xt_pxxt_init(const machine_t *model)
