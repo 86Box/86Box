@@ -42,6 +42,7 @@
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
 #include <86box/zip.h>
+#include <86box/mo.h>
 #include <86box/cdrom_image.h>
 #include <86box/scsi_disk.h>
 #include <86box/network.h>
@@ -191,6 +192,31 @@ StatusBarCreateZIPSubmenu(HMENU m, int id)
     }
 }
 
+static void
+StatusBarCreateMOSubmenu(HMENU m, int id)
+{
+    AppendMenu(m, MF_STRING, IDM_MO_IMAGE_NEW | id,
+	       plat_get_string(IDS_2096));
+    AppendMenu(m, MF_SEPARATOR, 0, 0);
+    AppendMenu(m, MF_STRING, IDM_MO_IMAGE_EXISTING | id,
+	       plat_get_string(IDS_2097));
+    AppendMenu(m, MF_STRING, IDM_MO_IMAGE_EXISTING_WP | id,
+	       plat_get_string(IDS_2098));
+    AppendMenu(m, MF_SEPARATOR, 0, 0);
+    AppendMenu(m, MF_STRING, IDM_MO_EJECT | id,
+	       plat_get_string(IDS_2093));
+    AppendMenu(m, MF_STRING, IDM_MO_RELOAD | id,
+	       plat_get_string(IDS_2090));
+
+    if (mo_drives[id].image_path[0] == 0x0000) {
+	EnableMenuItem(m, IDM_MO_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
+	EnableMenuItem(m, IDM_MO_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
+    } else {
+	EnableMenuItem(m, IDM_MO_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(m, IDM_MO_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
+    }
+}
+
 
 void
 ui_sb_timer_callback(int pane)
@@ -336,6 +362,33 @@ StatusBarCreateZIPTip(int part)
     wcscpy(sbTips[part], tempTip);
 }
 
+static void
+StatusBarCreateMOTip(int part)
+{
+    WCHAR tempTip[512];
+    WCHAR *szText;
+    int id;
+    int drive = sb_part_meanings[part] & 0xf;
+    int bus = mo_drives[drive].bus_type;
+
+    id = IDS_5377 + (bus - 1);
+    szText = plat_get_string(id);
+
+    if (wcslen(mo_drives[drive].image_path) == 0) {
+	_swprintf(tempTip, plat_get_string(IDS_2124),
+		  drive+1, szText, plat_get_string(IDS_2057));
+    } else {
+	_swprintf(tempTip, plat_get_string(IDS_2124),
+		  drive+1, szText, mo_drives[drive].image_path);
+    }
+
+    if (sbTips[part] != NULL) {
+	free(sbTips[part]);
+	sbTips[part] = NULL;
+    }
+    sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 2);
+    wcscpy(sbTips[part], tempTip);
+}
 
 static void
 StatusBarCreateDiskTip(int part)
@@ -407,6 +460,10 @@ ui_sb_update_tip(int meaning)
 
 		case SB_ZIP:
 			StatusBarCreateZIPTip(part);
+			break;
+
+		case SB_MO:
+			StatusBarCreateMOTip(part);
 			break;
 
 		case SB_HDD:
@@ -641,6 +698,21 @@ ui_sb_update_panes(void)
 		sb_parts++;
 	}
     }
+    for (i=0; i<MO_NUM; i++) {
+	/* Could be Internal or External IDE.. */
+	if ((mo_drives[i].bus_type == MO_BUS_ATAPI) &&
+	    !(hdint || !memcmp(hdc_name, "ide", 3)))
+		continue;
+	if ((mo_drives[i].bus_type == MO_BUS_SCSI) && (scsi_card_current == 0))
+		continue;
+	if (mo_drives[i].bus_type != 0) {
+		edge += SB_ICON_WIDTH;
+		iStatusWidths[sb_parts] = edge;
+		sb_part_meanings[sb_parts] = SB_MO | i;
+		sb_map[SB_MO | i] = sb_parts;
+		sb_parts++;
+	}
+    }    
     if (c_mfm && (hdint || !memcmp(hdc_name, "st506", 5))) {
 	edge += SB_ICON_WIDTH;
 	iStatusWidths[sb_parts] = edge;
@@ -731,6 +803,15 @@ ui_sb_update_panes(void)
 			EnableMenuItem(sb_menu_handles[i], IDM_ZIP_EJECT | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | ((sb_part_icons[i] & 128) ? MF_GRAYED : MF_ENABLED));
 			StatusBarCreateZIPTip(i);
 			break;
+			
+		case SB_MO:		/* Magneto-Optical disk */	
+			sb_part_icons[i] = (wcslen(mo_drives[sb_part_meanings[i] & 0xf].image_path) == 0) ? 128 : 0;
+			sb_part_icons[i] |= 56;
+			sb_menu_handles[i] = StatusBarCreatePopupMenu(i);
+			StatusBarCreateMOSubmenu(sb_menu_handles[i], sb_part_meanings[i] & 0xf);
+			EnableMenuItem(sb_menu_handles[i], IDM_MO_EJECT | (sb_part_meanings[i] & 0xf), MF_BYCOMMAND | ((sb_part_icons[i] & 128) ? MF_GRAYED : MF_ENABLED));
+			StatusBarCreateMOTip(i);
+			break;
 
 		case SB_HDD:		/* Hard disk */
 			sb_part_icons[i] = 64;
@@ -809,6 +890,24 @@ ui_sb_mount_zip_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name)
 	EnableMenuItem(sb_menu_handles[part], IDM_ZIP_EJECT | id, MF_BYCOMMAND | (wcslen(zip_drives[id].image_path) ? MF_ENABLED : MF_GRAYED));
 	EnableMenuItem(sb_menu_handles[part], IDM_ZIP_RELOAD | id, MF_BYCOMMAND | (wcslen(zip_drives[id].image_path) ? MF_GRAYED : MF_ENABLED));
 	ui_sb_update_tip(SB_ZIP | id);
+    }
+    config_save();
+}
+
+void
+ui_sb_mount_mo_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name)
+{
+    mo_t *dev = (mo_t *) mo_drives[id].priv;
+
+    mo_disk_close(dev);
+    mo_drives[id].read_only = wp;
+    mo_load(dev, file_name);
+    mo_insert(dev);
+    if (sb_ready) {
+	ui_sb_update_icon_state(SB_MO | id, wcslen(mo_drives[id].image_path) ? 0 : 1);
+	EnableMenuItem(sb_menu_handles[part], IDM_MO_EJECT | id, MF_BYCOMMAND | (wcslen(zip_drives[id].image_path) ? MF_ENABLED : MF_GRAYED));
+	EnableMenuItem(sb_menu_handles[part], IDM_MO_RELOAD | id, MF_BYCOMMAND | (wcslen(zip_drives[id].image_path) ? MF_GRAYED : MF_ENABLED));
+	ui_sb_update_tip(SB_MO | id);
     }
     config_save();
 }
@@ -978,6 +1077,34 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_ZIP_RELOAD:
 				id = item_params & 0x0003;
 				zip_reload(id);
+				break;
+
+			case IDM_MO_IMAGE_NEW:
+				id = item_params & 0x0003;
+				part = sb_map[SB_MO | id];
+				NewFloppyDialogCreate(hwnd, id | 0x80, part);	/* NewZIPDialogCreate */
+				break;
+
+			case IDM_MO_IMAGE_EXISTING:
+			case IDM_MO_IMAGE_EXISTING_WP:
+				id = item_params & 0x0003;
+				part = sb_map[SB_MO | id];
+				if ((part == 0xff) || (sb_menu_handles == NULL))
+					break;
+
+				ret = file_dlg_w_st(hwnd, IDS_2125, mo_drives[id].image_path, 0);
+				if (! ret)
+					ui_sb_mount_mo_img(id, part, (item_id == IDM_MO_IMAGE_EXISTING_WP) ? 1 : 0, wopenfilestring);
+				break;
+
+			case IDM_MO_EJECT:
+				id = item_params & 0x0003;
+				mo_eject(id);
+				break;
+
+			case IDM_MO_RELOAD:
+				id = item_params & 0x0003;
+				mo_reload(id);
 				break;
 
 			default:

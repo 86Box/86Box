@@ -55,6 +55,7 @@
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
 #include <86box/zip.h>
+#include <86box/mo.h>
 #include <86box/sound.h>
 #include <86box/midi.h>
 #include <86box/snd_mpu401.h>
@@ -1076,7 +1077,7 @@ load_other_removable_devices(void)
 	p = config_get_string(cat, temp, NULL);
 	if (p != NULL)
 		sscanf(p, "%01u, %s", &d, s);
-	  else
+	else
 		sscanf("0, none", "%01u, %s", &d, s);
 	cdrom[c].sound_on = d;
 	cdrom[c].bus_type = hdd_string_to_bus(s, 1);
@@ -1186,7 +1187,7 @@ load_other_removable_devices(void)
 			zip_drives[c].ide_channel = 7;
 	} else {
 		sprintf(temp, "zip_%02i_scsi_id", c+1);
-		if (zip_drives[c].bus_type == CDROM_BUS_SCSI) {
+		if (zip_drives[c].bus_type == ZIP_BUS_SCSI) {
 			zip_drives[c].scsi_device_id = config_get_int(cat, temp, c+2);
 	
 			if (zip_drives[c].scsi_device_id > 15)
@@ -1238,6 +1239,69 @@ load_other_removable_devices(void)
 	sprintf(temp, "zip_%02i_iso_path", c+1);
 	config_delete_var(cat, temp);
     }
+    
+
+    memset(temp, 0x00, sizeof(temp));
+    for (c=0; c<MO_NUM; c++) {
+	sprintf(temp, "mo_%02i_parameters", c+1);
+	p = config_get_string(cat, temp, NULL);
+	if (p != NULL)
+		sscanf(p, "%01u, %s", &mo_drives[c].type, s);
+	else
+		sscanf("0, none", "%01u, %s", &mo_drives[c].type, s);
+	mo_drives[c].bus_type = hdd_string_to_bus(s, 1);
+
+	/* Default values, needed for proper operation of the Settings dialog. */
+	mo_drives[c].ide_channel = mo_drives[c].scsi_device_id = c + 2;
+
+	sprintf(temp, "mo_%02i_ide_channel", c+1);
+	if (mo_drives[c].bus_type == MO_BUS_ATAPI) {
+		sprintf(tmp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
+		p = config_get_string(cat, temp, tmp2);
+		sscanf(p, "%01u:%01u", &board, &dev);
+		board &= 3;
+		dev &= 1;
+		mo_drives[c].ide_channel = (board<<1)+dev;
+
+		if (mo_drives[c].ide_channel > 7)
+			mo_drives[c].ide_channel = 7;
+	} else {
+		sprintf(temp, "mo_%02i_scsi_id", c+1);
+		if (mo_drives[c].bus_type == MO_BUS_SCSI) {
+			mo_drives[c].scsi_device_id = config_get_int(cat, temp, c+2);
+	
+			if (mo_drives[c].scsi_device_id > 15)
+				mo_drives[c].scsi_device_id = 15;
+		} else
+			config_delete_var(cat, temp);
+	}
+
+	sprintf(temp, "mo_%02i_image_path", c+1);
+	wp = config_get_wstring(cat, temp, L"");
+
+	wcsncpy(mo_drives[c].image_path, wp, sizeof_w(mo_drives[c].image_path));
+
+	/* If the CD-ROM is disabled, delete all its variables. */
+	if (mo_drives[c].bus_type == MO_BUS_DISABLED) {
+		sprintf(temp, "mo_%02i_host_drive", c+1);
+		config_delete_var(cat, temp);
+
+		sprintf(temp, "mo_%02i_parameters", c+1);
+		config_delete_var(cat, temp);
+
+		sprintf(temp, "mo_%02i_ide_channel", c+1);
+		config_delete_var(cat, temp);
+
+		sprintf(temp, "mo_%02i_scsi_id", c+1);
+		config_delete_var(cat, temp);
+
+		sprintf(temp, "mo_%02i_image_path", c+1);
+		config_delete_var(cat, temp);
+	}
+
+	sprintf(temp, "mo_%02i_iso_path", c+1);
+	config_delete_var(cat, temp);
+    }    
 }
 
 
@@ -1915,6 +1979,41 @@ save_other_removable_devices(void)
 		config_delete_var(cat, temp);
 	} else {
 		config_set_wstring(cat, temp, zip_drives[c].image_path);
+	}
+    }
+
+    for (c=0; c<MO_NUM; c++) {
+	sprintf(temp, "mo_%02i_parameters", c+1);
+	if (mo_drives[c].bus_type == 0) {
+		config_delete_var(cat, temp);
+	} else {
+		sprintf(tmp2, "%u, %s", mo_drives[c].type,
+			hdd_bus_to_string(mo_drives[c].bus_type, 1));
+		config_set_string(cat, temp, tmp2);
+	}
+		
+	sprintf(temp, "mo_%02i_ide_channel", c+1);
+	if (mo_drives[c].bus_type != MO_BUS_ATAPI)
+		config_delete_var(cat, temp);
+	else {
+		sprintf(tmp2, "%01u:%01u", mo_drives[c].ide_channel>>1,
+					mo_drives[c].ide_channel & 1);
+		config_set_string(cat, temp, tmp2);
+	}
+
+	sprintf(temp, "mo_%02i_scsi_id", c + 1);
+	if (mo_drives[c].bus_type != MO_BUS_SCSI) {
+		config_delete_var(cat, temp);
+	} else {
+		config_set_int(cat, temp, mo_drives[c].scsi_device_id);
+	}
+
+	sprintf(temp, "mo_%02i_image_path", c + 1);
+	if ((mo_drives[c].bus_type == 0) ||
+	    (wcslen(mo_drives[c].image_path) == 0)) {
+		config_delete_var(cat, temp);
+	} else {
+		config_set_wstring(cat, temp, mo_drives[c].image_path);
 	}
     }
 

@@ -224,6 +224,11 @@
 #define IDC_COMBO_ZIP_CHANNEL_IDE 1184
 #define IDC_CHECK250		1185
 #define IDC_COMBO_CD_SPEED	1186
+#define IDC_LIST_MO_DRIVES	1187
+#define IDC_COMBO_MO_BUS	1188
+#define IDC_COMBO_MO_ID		1189
+#define IDC_COMBO_MO_LUN	1191
+#define IDC_COMBO_MO_CHANNEL_IDE 1192
 
 #define IDC_SLIDER_GAIN		1190	/* sound gain dialog */
 
@@ -340,11 +345,11 @@
 #define IDM_ZIP_EJECT			0x3500
 #define IDM_ZIP_RELOAD			0x3600
 
-#define IDM_RDISK_EJECT			0x4200
-#define IDM_RDISK_RELOAD		0x4300
-#define IDM_RDISK_SEND_CHANGE		0x4400
-#define IDM_RDISK_IMAGE			0x4500
-#define IDM_RDISK_IMAGE_WP		0x4600
+#define IDM_MO_IMAGE_NEW		0x4200
+#define IDM_MO_IMAGE_EXISTING		0x4300
+#define IDM_MO_IMAGE_EXISTING_WP	0x4400
+#define IDM_MO_EJECT			0x4500
+#define IDM_MO_RELOAD			0x4600
 
 
 /* Next default values for new objects */

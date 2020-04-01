@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Handle the platform-side of CDROM drives.
+ *		Handle the platform-side of CDROM/ZIP/MO drives.
  *
  *
  *
@@ -31,6 +31,7 @@
 #include <86box/hdd.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
+#include <86box/mo.h>
 #include <86box/zip.h>
 #include <86box/scsi_disk.h>
 #include <86box/plat.h>
@@ -57,6 +58,44 @@ plat_cdrom_ui_update(uint8_t id, uint8_t reload)
     ui_sb_update_tip(SB_CDROM|id);
 }
 
+void
+mo_eject(uint8_t id)
+{
+    mo_t *dev = (mo_t *) mo_drives[id].priv;
+
+    mo_disk_close(dev);
+    if (mo_drives[id].bus_type) {
+	/* Signal disk change to the emulated machine. */
+	mo_insert(dev);
+    }
+
+    ui_sb_update_icon_state(SB_MO | id, 1);
+    ui_sb_enable_menu_item(SB_MO|id, IDM_MO_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
+    ui_sb_enable_menu_item(SB_MO|id, IDM_MO_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
+    ui_sb_update_tip(SB_MO | id);
+    config_save();
+}
+
+
+void
+mo_reload(uint8_t id)
+{
+    mo_t *dev = (mo_t *) mo_drives[id].priv;
+
+    mo_disk_reload(dev);
+    if (wcslen(mo_drives[id].image_path) == 0) {
+	ui_sb_enable_menu_item(SB_MO|id, IDM_MO_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
+	ui_sb_update_icon_state(SB_MO|id, 1);
+    } else {
+	ui_sb_enable_menu_item(SB_MO|id, IDM_MO_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
+	ui_sb_update_icon_state(SB_MO|id, 0);
+    }
+
+    ui_sb_enable_menu_item(SB_MO|id, IDM_MO_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
+    ui_sb_update_tip(SB_MO|id);
+
+    config_save();
+}
 
 void
 zip_eject(uint8_t id)
