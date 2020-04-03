@@ -19,6 +19,8 @@
 #ifndef _386_COMMON_H_
 #define _386_COMMON_H_
 
+#include <stddef.h>
+
 #ifdef USE_NEW_DYNAREC
 #define readmemb(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1)?readmembl((s)+(a)): *(uint8_t *)(readlookup2[(uint32_t)((s)+(a))>>12] + (uint32_t)((s) + (a))) )
 #define readmemw(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==-1 || (((s)+(a)) & 1))?readmemwl((s)+(a)):*(uint16_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
