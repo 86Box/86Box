@@ -32,32 +32,41 @@
 #include <86box/ui.h>
 #include <86box/prt_devs.h>
 
-#if defined(_WIN32) && !defined(__WINDOWS__)
-#define __WINDOWS__
+#ifdef _WIN32
+# define GSDLLAPI __stdcall
+#else
+# define GSDLLAPI
 #endif
-#include <ghostscript/iapi.h>
-#include <ghostscript/ierrors.h>
 
+#define GS_ARG_ENCODING_UTF16LE	2
+#define gs_error_Quit		-101 
 
 #define PATH_GHOSTSCRIPT_DLL		"gsdll32.dll"
 #define PATH_GHOSTSCRIPT_SO		"libgs.so"
 
 #define POSTSCRIPT_BUFFER_LENGTH	65536
 
-static GSDLLAPI int	(*ghostscript_revision)(gsapi_revision_t *pr, int len);
-static GSDLLAPI int	(*ghostscript_new_instance)(void **pinstance, void *caller_handle);
-static GSDLLAPI void	(*ghostscript_delete_instance)(void *instance);
-static GSDLLAPI int	(*ghostscript_set_arg_encoding)(void *instance, int encoding);
-static GSDLLAPI int	(*ghostscript_init_with_args)(void *instance, int argc, char **argv);
-static GSDLLAPI int	(*ghostscript_exit)(void *instance);
+typedef struct gsapi_revision_s {
+    const char *product;
+    const char *copyright;
+    long revision;
+    long revisiondate;
+} gsapi_revision_t;
+
+static GSDLLAPI int	(*gsapi_revision)(gsapi_revision_t *pr, int len);
+static GSDLLAPI int	(*gsapi_new_instance)(void **pinstance, void *caller_handle);
+static GSDLLAPI void	(*gsapi_delete_instance)(void *instance);
+static GSDLLAPI int	(*gsapi_set_arg_encoding)(void *instance, int encoding);
+static GSDLLAPI int	(*gsapi_init_with_args)(void *instance, int argc, char **argv);
+static GSDLLAPI int	(*gsapi_exit)(void *instance);
 
 static dllimp_t ghostscript_imports[] = {
-  { "gsapi_revision",			&ghostscript_revision			},
-  { "gsapi_new_instance",		&ghostscript_new_instance		},
-  { "gsapi_delete_instance",		&ghostscript_delete_instance		},
-  { "gsapi_set_arg_encoding",		&ghostscript_set_arg_encoding		},
-  { "gsapi_init_with_args",		&ghostscript_init_with_args		},
-  { "gsapi_exit",			&ghostscript_exit			},
+  { "gsapi_revision",			&gsapi_revision			},
+  { "gsapi_new_instance",		&gsapi_new_instance		},
+  { "gsapi_delete_instance",		&gsapi_delete_instance		},
+  { "gsapi_set_arg_encoding",		&gsapi_set_arg_encoding		},
+  { "gsapi_init_with_args",		&gsapi_init_with_args		},
+  { "gsapi_exit",			&gsapi_exit			},
   { NULL,				NULL					}
 };
 
@@ -143,24 +152,24 @@ convert_to_pdf(ps_t *dev)
     gsargv[7] = output_fn;
     gsargv[8] = input_fn;
 
-    code = ghostscript_new_instance(&instance, dev);
+    code = gsapi_new_instance(&instance, dev);
     if (code < 0) {
 	return code;
     }
 
-    code = ghostscript_set_arg_encoding(instance, GS_ARG_ENCODING_UTF16LE);
+    code = gsapi_set_arg_encoding(instance, GS_ARG_ENCODING_UTF16LE);
 
     if (code == 0) {
-	code = ghostscript_init_with_args(instance, 9, (char **) gsargv);
+	code = gsapi_init_with_args(instance, 9, (char **) gsargv);
     }
 
     if (code == 0 || code == gs_error_Quit) {
-	code = ghostscript_exit(instance);
+	code = gsapi_exit(instance);
     } else {
-	ghostscript_exit(instance);
+	gsapi_exit(instance);
     }
 
-    ghostscript_delete_instance(instance);
+    gsapi_delete_instance(instance);
 
     if (code == 0) {
 	plat_remove(input_fn);
@@ -192,7 +201,7 @@ write_buffer(ps_t *dev, bool newline)
     }
 
     if (dev->filename[0] == 0) {
-	plat_tempfile(dev->filename, NULL, L".ps");
+	plat_tempfile(dev->filename, NULL, L".tmp");
     }
 
     path[0] = 0;
@@ -351,7 +360,7 @@ ps_init(void *lpt)
     if (ghostscript_handle == NULL) {
 	ui_msgbox(MBX_ERROR, (wchar_t *) IDS_2123);
     } else {
-	if (ghostscript_revision(&rev, sizeof(rev)) == 0) {
+	if (gsapi_revision(&rev, sizeof(rev)) == 0) {
 		pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
 	} else {
 		dynld_close(ghostscript_handle);
