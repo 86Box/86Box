@@ -53,12 +53,12 @@ typedef struct gsapi_revision_s {
     long revisiondate;
 } gsapi_revision_t;
 
-static GSDLLAPI int	(*gsapi_revision)(gsapi_revision_t *pr, int len);
-static GSDLLAPI int	(*gsapi_new_instance)(void **pinstance, void *caller_handle);
-static GSDLLAPI void	(*gsapi_delete_instance)(void *instance);
-static GSDLLAPI int	(*gsapi_set_arg_encoding)(void *instance, int encoding);
-static GSDLLAPI int	(*gsapi_init_with_args)(void *instance, int argc, char **argv);
-static GSDLLAPI int	(*gsapi_exit)(void *instance);
+static int 	(GSDLLAPI *gsapi_revision)(gsapi_revision_t *pr, int len);
+static int 	(GSDLLAPI *gsapi_new_instance)(void **pinstance, void *caller_handle);
+static void 	(GSDLLAPI *gsapi_delete_instance)(void *instance);
+static int 	(GSDLLAPI *gsapi_set_arg_encoding)(void *instance, int encoding);
+static int 	(GSDLLAPI *gsapi_init_with_args)(void *instance, int argc, char **argv);
+static int 	(GSDLLAPI *gsapi_exit)(void *instance);
 
 static dllimp_t ghostscript_imports[] = {
   { "gsapi_revision",			&gsapi_revision			},
@@ -405,12 +405,12 @@ ps_close(void *p)
 }
 
 const lpt_device_t lpt_prt_ps_device = {
-    name: "Generic PostScript printer",
-    init: ps_init,
-    close: ps_close,
-    write_data: ps_write_data,
-    write_ctrl: ps_write_ctrl,
-    read_data: NULL,
-    read_status: ps_read_status,
-    read_ctrl: NULL
+    .name = "Generic PostScript printer",
+    .init = ps_init,
+    .close = ps_close,
+    .write_data = ps_write_data,
+    .write_ctrl = ps_write_ctrl,
+    .read_data = NULL,
+    .read_status = ps_read_status,
+    .read_ctrl = NULL
 };

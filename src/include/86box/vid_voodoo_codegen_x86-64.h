@@ -13,6 +13,7 @@
 # include <windows.h>
 #endif
 
+#include <intrin.h>
 #include <xmmintrin.h>
 
 #define BLOCK_NUM 8

@@ -4,6 +4,7 @@
   486-50 - 32kHz
   Pentium - 45kHz*/
 
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>

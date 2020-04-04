@@ -19,7 +19,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stringapiset.h>
+#include <windows.h>
 #include <time.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>

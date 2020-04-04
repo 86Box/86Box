@@ -21,6 +21,7 @@
 #include <hidclass.h>
 #include <hidusage.h>
 #include <hidsdi.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>

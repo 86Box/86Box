@@ -18,6 +18,7 @@
  */
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -28,6 +29,8 @@
 #include <86box/plat.h>
 #include <86box/gameport.h>
 #include <86box/win.h>
+
+#define DIDEVTYPE_JOYSTICK	4
 
 
 plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];

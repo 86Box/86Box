@@ -21,7 +21,6 @@
 #else
 #include <arpa/inet.h>
 #endif
-#include <unistd.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>

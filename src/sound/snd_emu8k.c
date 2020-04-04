@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
