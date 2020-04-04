@@ -7406,7 +7406,7 @@ void voodoo_callback(void *p)
 
                                 if (voodoo->scrfilter && voodoo->scrfilterEnabled)
                                 {
-                                        uint8_t *fil = malloc((voodoo->h_disp) * 3);
+                                        uint8_t *fil = malloc((voodoo->h_disp) * 3);	/* interleaved 24-bit RGB */
 					if (fil == NULL) fatal("fil = NULL");
 
                 			if (voodoo->type == VOODOO_2)
