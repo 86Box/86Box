@@ -215,12 +215,6 @@ MUNT		:= y
 endif
 ifndef DYNAREC
  DYNAREC		:= y
- ifeq ($(ARM), y)
-  DYNAREC		:= n
- endif
- ifeq ($(ARM64), y)
-  DYNAREC   := n
- endif
 endif
 ifndef DISCORD
  DISCORD	:= y
@@ -374,6 +368,11 @@ ifeq ($(DYNAREC), y)
 ifeq ($(X64), y)
 PLATCG		:= codegen_backend_x86-64.o codegen_backend_x86-64_ops.o codegen_backend_x86-64_ops_sse.o \
 		   codegen_backend_x86-64_uops.o
+else ifeq ($(ARM64), y)
+PLATCG      := codegen_backend_arm64.o codegen_backend_arm64_ops.o codegen_backend_arm64_uops.o \
+            codegen_backend_arm64_imm.o
+else ifeq ($(ARM), y)
+PLATCG      := codegen_backend_arm.o codegen_backend_arm_ops.o codegen_backend_arm_uops.o
 else
 PLATCG		:= codegen_backend_x86.o codegen_backend_x86_ops.o codegen_backend_x86_ops_fpu.o codegen_backend_x86_ops_sse.o \
 		   codegen_backend_x86_uops.o
