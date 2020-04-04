@@ -79,6 +79,10 @@
 #endif
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern HINSTANCE	hinstance;
 extern HWND		hwndMain,
 			hwndRender;
@@ -93,10 +97,6 @@ extern WCHAR		wopenfilestring[512];
 
 extern uint8_t		filterindex;
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #ifdef USE_CRASHDUMP
 extern void	InitCrashDump(void);

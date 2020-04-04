@@ -25,7 +25,7 @@
 uint32_t preconst = 0x6ED9EBA1;
 
 
-static __inline__ uint32_t rotl32c (uint32_t x, uint32_t n)
+static __inline uint32_t rotl32c (uint32_t x, uint32_t n)
 {
 #if 0
   assert (n<32);
@@ -33,7 +33,7 @@ static __inline__ uint32_t rotl32c (uint32_t x, uint32_t n)
   return (x<<n) | (x>>(-n&31));
 }
 
-static __inline__ uint32_t rotr32c (uint32_t x, uint32_t n)
+static __inline uint32_t rotr32c (uint32_t x, uint32_t n)
 {
 #if 0
   assert (n<32);
@@ -45,11 +45,11 @@ static __inline__ uint32_t rotr32c (uint32_t x, uint32_t n)
 
 #define ROTATE_RIGHT rotr32c
 
-static __inline__ unsigned long long rdtsc(void)
+static __inline unsigned long long rdtsc(void)
 {
 #if defined(__i386__) || defined (__x86_64__)
     unsigned hi, lo;
-#ifdef __MSC__
+#ifdef _MSC_VER
     __asm {
 		rdtsc
 		mov hi, edx	; EDX:EAX is already standard return!!

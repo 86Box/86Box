@@ -336,7 +336,7 @@ static uint8_t	ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset);
 static void	ncr53c8xx_reg_writeb(ncr53c8xx_t *dev, uint32_t offset, uint8_t val);
 
 
-static __inline__ int32_t
+static __inline int32_t
 sextract32(uint32_t value, int start, int length)
 {
     /* Note that this implementation relies on right shift of signed
@@ -346,7 +346,7 @@ sextract32(uint32_t value, int start, int length)
 }
 
 
-static __inline__ int
+static __inline int
 ncr53c8xx_irq_on_rsl(ncr53c8xx_t *dev)
 {
     return (dev->sien0 & NCR_SIST0_RSL) && (dev->scid & NCR_SCID_RRE);
@@ -490,7 +490,7 @@ ncr53c8xx_write(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 }
 
 
-static __inline__ uint32_t
+static __inline uint32_t
 read_dword(ncr53c8xx_t *dev, uint32_t addr)
 {
     uint32_t buf;
@@ -588,7 +588,7 @@ ncr53c8xx_script_dma_interrupt(ncr53c8xx_t *dev, int stat)
 }
 
 
-static __inline__ void
+static __inline void
 ncr53c8xx_set_phase(ncr53c8xx_t *dev, int phase)
 {
     dev->sstat1 = (dev->sstat1 & ~PHASE_MASK) | phase;

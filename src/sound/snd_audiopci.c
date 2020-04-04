@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>

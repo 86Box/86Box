@@ -641,7 +641,8 @@ void adgold_timer_poll(void *p)
 static void adgold_get_buffer(int32_t *buffer, int len, void *p)
 {
         adgold_t *adgold = (adgold_t *)p;
-        int16_t adgold_buffer[len*2];
+	int16_t* adgold_buffer = malloc(sizeof(int16_t) * len * 2);
+	if (adgold_buffer == NULL) fatal("adgold_buffer = NULL");
         
         int c;
 
@@ -747,6 +748,8 @@ static void adgold_get_buffer(int32_t *buffer, int len, void *p)
 
         adgold->opl.pos = 0;
         adgold->pos = 0;
+
+	free(adgold_buffer);
 }
 
 

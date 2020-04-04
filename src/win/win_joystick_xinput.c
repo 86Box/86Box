@@ -19,6 +19,7 @@
  *		Copyright 2019 GH Cao.
  */
 #include <xinput.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>

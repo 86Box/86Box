@@ -321,7 +321,7 @@ struct _cpustate_ {
 #define CPU_STATUS_MASK 0xffff0000
 #endif
 
-#ifdef __MSC__
+#ifdef _MSC_VER
 # define COMPILE_TIME_ASSERT(expr)	/*nada*/
 #else
 # ifdef EXTREME_DEBUG
