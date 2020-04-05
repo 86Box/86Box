@@ -317,6 +317,7 @@ extern int	machine_at_s1668_init(const machine_t *);
 /* m_at_slot1.c */
 extern int	machine_at_6bxc_init(const machine_t *);
 extern int  machine_at_p2bls_init(const machine_t *);
+extern int	machine_at_bf6_init(const machine_t *);
 extern int	machine_at_borapro_init(const machine_t *);
 
 /* m_at_socket370.c */
