@@ -1,4 +1,4 @@
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
 
 #include <stdint.h>
 #include <86box/86box.h>

@@ -1,4 +1,4 @@
-#ifdef __ARM_EABI__
+#if defined __ARM_EABI__ || defined _ARM_
 
 #include <stdint.h>
 #include <86box/86box.h>
