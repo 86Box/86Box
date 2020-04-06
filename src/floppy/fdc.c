@@ -1027,7 +1027,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						fdc->st0 |= 0x80;
 						drive_num = real_drive(fdc, fdc->drive);
 						/* Three conditions under which the command should fail. */
-						if ((drive_num >= FDD_NUM) ||!fdd_get_flags(drive_num) || !motoron[drive_num] || fdd_track0(drive_num)) {
+						if ((drive_num >= FDD_NUM) || !fdd_get_flags(drive_num) || !motoron[drive_num] || fdd_track0(drive_num)) {
 							fdc_log("Failed recalibrate\n");
 							if ((drive_num >= FDD_NUM) || !fdd_get_flags(drive_num) || !motoron[drive_num])
 								fdc->st0 = 0x70 | (fdc->params[0] & 3);
