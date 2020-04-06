@@ -43,8 +43,8 @@ typedef struct {
     hwm_values_t* values;
 
     uint8_t regs[256];
-    uint8_t regs_bank1[6];
-    uint8_t regs_bank2[6];
+    uint8_t regs_bank1[7];
+    uint8_t regs_bank2[7];
     uint8_t addr_register;
     uint8_t data_register;
 

@@ -575,7 +575,7 @@ cgapal_rebuild(void)
 			        video_6to8[cgapal[c].b]);
     }
 
-    if ((cga_palette > 1) && (cga_palette < 8)) {
+    if ((cga_palette > 1) && (cga_palette < 7)) {
 	if (vid_cga_contrast != 0) {
 		for (c = 0; c < 16; c++) {
 			pal_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r],
@@ -609,7 +609,7 @@ cgapal_rebuild(void)
 	}
     }
 
-    if (cga_palette == 8)
+    if (cga_palette == 7)
 	pal_lookup[0x16] = makecol(video_6to8[42],video_6to8[42],video_6to8[0]);
 }
 
