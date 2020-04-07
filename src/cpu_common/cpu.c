@@ -1461,7 +1461,7 @@ cpu_set(void)
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
 #ifdef USE_NEW_DYNAREC
-         	codegen_timing_set(&codegen_timing_k6);
+         	codegen_timing_set(&codegen_timing_p6);
 #else
          	codegen_timing_set(&codegen_timing_686);
 #endif
@@ -1520,7 +1520,7 @@ cpu_set(void)
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
 #ifdef USE_NEW_DYNAREC
-         	codegen_timing_set(&codegen_timing_k6);
+         	codegen_timing_set(&codegen_timing_p6);
 #else
          	codegen_timing_set(&codegen_timing_686);
 #endif
@@ -1579,7 +1579,7 @@ cpu_set(void)
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE | CR4_OSFXSR;
 #ifdef USE_DYNAREC
 #ifdef USE_NEW_DYNAREC
-         	codegen_timing_set(&codegen_timing_k6);
+         	codegen_timing_set(&codegen_timing_p6);
 #else
          	codegen_timing_set(&codegen_timing_686);
 #endif
