@@ -376,6 +376,10 @@ extern codegen_timing_t codegen_timing_486;
 extern codegen_timing_t codegen_timing_winchip;
 extern codegen_timing_t codegen_timing_winchip2;
 extern codegen_timing_t codegen_timing_k6;
+#if defined(DEV_BRANCH) && defined(USE_I686)
+extern codegen_timing_t codegen_timing_p6;
+#endif
+
 
 void codegen_timing_set(codegen_timing_t *timing);
 
