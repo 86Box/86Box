@@ -388,7 +388,7 @@ DYNARECOBJ	:= 386_dynarec_ops.o \
 		    codegen_ops_mmx_loadstore.o codegen_ops_mmx_logic.o codegen_ops_mmx_pack.o codegen_ops_mmx_shift.o \
 		    codegen_ops_mov.o codegen_ops_shift.o codegen_ops_stack.o codegen_reg.o codegen_timing_486.o \
 		    codegen_timing_686.o codegen_timing_common.o codegen_timing_k6.o codegen_timing_pentium.o \
-		    codegen_timing_winchip.o codegen_timing_winchip2.o $(PLATCG)
+		    cocegen_timing_p6.o codegen_timing_winchip.o codegen_timing_winchip2.o $(PLATCG)
 endif
 
 ifneq ($(WX), n)
