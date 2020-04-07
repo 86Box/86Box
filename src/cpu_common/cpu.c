@@ -173,7 +173,7 @@ int		hasfpu;
 
 uint64_t	tsc = 0;
 msr_t		msr;
-cr0_t		CR0;
+cpu_state_t     cpu_state;
 uint64_t	pmc[2] = {0, 0};
 
 uint16_t	temp_seg_data[4] = {0, 0, 0, 0};
