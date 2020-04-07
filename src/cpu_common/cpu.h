@@ -233,7 +233,7 @@ typedef union {
 } cr0_t;
 
 
-struct _cpustate_ {
+typedef struct {
     x86reg	regs[8];
 
     uint8_t	tag[8];
@@ -299,7 +299,9 @@ struct _cpustate_ {
 		seg_gs;
 
     uint16_t flags, eflags;
-} cpu_state;
+
+    cr0_t CR0;
+} cpu_state_t;
 
 /*The cpu_state.flags below must match in both cpu_cur_status and block->status for a block
   to be valid*/
@@ -409,6 +411,7 @@ extern uint32_t		cpu_cur_status;
 extern uint64_t		cpu_CR4_mask;
 extern uint64_t		tsc;
 extern msr_t		msr;
+extern cpu_state_t  cpu_state;
 extern uint8_t		opcode;
 extern int		insc;
 extern int		fpucount;
@@ -436,9 +439,8 @@ extern uint64_t		star;
 
 #define FPU_CW_Reserved_Bits (0xe0c0)
 
-extern cr0_t		CR0;
-#define cr0		CR0.l
-#define msw		CR0.w
+#define cr0		cpu_state.CR0.l
+#define msw		cpu_state.CR0.w
 extern uint32_t		cr2, cr3, cr4;
 extern uint32_t		dr[8];
 
