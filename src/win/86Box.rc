@@ -840,7 +840,7 @@ BEGIN
     IDS_2053	"Speed"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"No usable ROM images found!"
+    IDS_2056	"86Box could not find any usable ROM images.\n\nPlease download a ROM set from https://github.com/86Box/roms/releases/latest and extract it into the ""roms"" directory."
     IDS_2057	"(empty)"
     IDS_2058	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0All files (*.*)\0*.*\0"
     IDS_2059	"Turbo"
@@ -887,7 +887,7 @@ BEGIN
     IDS_2092	"&Mute"
     IDS_2093	"E&ject"
     IDS_2094	"KB"
-    IDS_2095	"Neither DirectDraw nor Direct3D available !"
+    IDS_2095	"86Box could not initialize the video renderer."
     IDS_2096	"&New image..."
     IDS_2097	"&Existing image..."
     IDS_2098	"Existing image (&Write-protected)..."
@@ -915,8 +915,8 @@ BEGIN
     IDS_2120	"Unable to initialize SDL, SDL2.dll is required"
     IDS_2121	"Are you sure you want to hard reset the emulated machine?"
     IDS_2122	"Are you sure you want to quit 86Box?"
-	IDS_2124	"MO %i (%03i): %ls"
-	IDS_2125	"MO images (*.IM?)\0*.IM?\0All files (*.*)\0*.*\0"
+    IDS_2124	"MO %i (%03i): %ls"
+    IDS_2125	"MO images (*.IM?)\0*.IM?\0All files (*.*)\0*.*\0"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -938,7 +938,7 @@ BEGIN
     IDS_4110	"USB is not yet supported"
     IDS_4111	"This image exists and will be overwritten.\nAre you sure you want to use it?"
     IDS_4112	"Please enter a valid file name"
-    IDS_4113	"Remember to partition and format the new drive"
+    IDS_4113	"The image has been successfully created."
 
     IDS_4352    "MFM/RLL"
     IDS_4353    "XTA"
@@ -957,12 +957,12 @@ BEGIN
     IDS_5376	"Disabled"
     IDS_5380	"ATAPI"
     IDS_5381    "SCSI"
-	IDS_5382    "SCSI (Chinon)"
+    IDS_5382    "SCSI (Chinon)"
 
     IDS_5632	"Disabled"
     IDS_5636	"ATAPI (%01i:%01i)"
     IDS_5637    "SCSI (ID %02i)"
-	IDS_5638    "SCSI (ID %02i)"
+    IDS_5638    "SCSI (ID %02i)"
 
     IDS_5888	"160 kB"
     IDS_5889	"180 kB"
@@ -996,13 +996,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
-#ifdef RELEASE_BUILD
- FILEVERSION 2,7,0,0
- PRODUCTVERSION 2,7,0,0
-#else
  FILEVERSION 2,10,0,0
  PRODUCTVERSION 2,10,0,0
-#endif
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1017,26 +1012,12 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "Comments", "\0"
-            VALUE "CompanyName", "IRC #SoftHistory\0"
-            VALUE "FileDescription", "86Box - an emulator for X86-based systems\0"
-#ifdef RELEASE_BUILD
-            VALUE "FileVersion", "2.07\0"
-#else
+            VALUE "FileDescription", "86Box\0"
             VALUE "FileVersion", "2.10\0"
-#endif
-            VALUE "InternalName", "86Box\0"
-            VALUE "LegalCopyright", "Copyright (C)SoftHistory, Sarah Walker, 2007-2017, Released under the GNU GPL v2\0"
-            VALUE "LegalTrademarks", "\0"
+            VALUE "LegalCopyright", "Copyright © 2007-2020 86Box contributors\0"
             VALUE "OriginalFilename", "86Box.exe\0"
-            VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "86Box Emulator\0"
-#ifdef RELEASE_BUILD
-            VALUE "ProductVersion", "2.07\0"
-#else
             VALUE "ProductVersion", "2.10\0"
-#endif
-            VALUE "SpecialBuild", "\0"
         END
     END
     BLOCK "VarFileInfo"
