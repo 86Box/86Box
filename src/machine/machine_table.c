@@ -260,6 +260,7 @@ const machine_t machines[] = {
 #else
     { "[Slot 1 ZX] Packard Bell Bora Pro",	"borapro",		{{"VIA", cpus_Cyrix3},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  512,   8, 255,	      machine_at_borapro_init, NULL			},
 
+    { "[Socket 370 BX] A-Trend ATC7020BXII",	"atc7020bxii",		{{"VIA", cpus_Cyrix3},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,	  machine_at_atc7020bxii_init, NULL			},
     { "[Socket 370 ZX] Soltek SL-63A1",		"63a",			{{"VIA", cpus_Cyrix3},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 255,		  machine_at_63a_init, NULL			},
     { "[Socket 370 APRO] PC Partner APAS3",	"apas3",		{{"VIA", cpus_Cyrix3},        {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,				 	  8, 1024,   8, 255,            machine_at_apas3_init, NULL			},
 #endif
