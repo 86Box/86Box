@@ -266,7 +266,7 @@ const machine_t machines[] = {
 #endif
 
 #if defined(DEV_BRANCH) && defined(USE_I686) && defined(USE_596B)
-    { "[Socket 370 APRO] Zida Tomato BX98",	"bx98",		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,	  				  8,  1024,   8, 255,           machine_at_bx98_init, NULL				},
+    { "[Socket 370 APRO] Zida Tomato BX98",	"bx98",			{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,	  				  8,  1024,   8, 255,           machine_at_bx98_init, NULL			},
 #endif
 
     { NULL,					NULL,			{{"",      0},                {"",    0},            {"",      0},           {"",         0},     {"",      0}},    0,                                                                                                    0,    0,   0,   0,				 NULL, NULL			}
