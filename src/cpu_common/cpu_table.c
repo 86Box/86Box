@@ -717,11 +717,22 @@ CPU cpus_PentiumII[] = {
 
 };
 
+CPU cpus_CeleronCVT[] = { // Covington Celerons. Exact architecture as the P2 series.
+	
+	                                   // The 66Mhz Covington is only meant to not cause any struggle
+	                                   // to the recompiler.
+    {"Celeron Covington 66",         CPU_PENTIUM2,   66666666, 1,    0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
+    {"Celeron Covington 266",        CPU_PENTIUM2,  266666666, 4,    0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12, 29},
+    {"Celeron Covington 300/66",     CPU_PENTIUM2,  300000000, 9/2,  0x650,  0x650, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
+    {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}
+
+};
+
 CPU cpus_Celeron[] = { // Mendocino Celerons. Exact architecture as the P2D series. Intended for
                        // the PGA370 boards but they were capable to fit on a PGA 370 to Slot 1
 					   // adaptor card so they work on Slot 1 motherboards too!.
 					   
-					   // The 100Mhz Mendocino is only meant to not cause any struggle
+					   // The 66Mhz and 100Mhz Mendocino are only meant to not cause any struggle
 					   // to the recompiler.
     {"Celeron Mendocino 66",        CPU_PENTIUM2D,   66666666, 1,    0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
     {"Celeron Mendocino 100",       CPU_PENTIUM2D,  100000000, 3/2,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
