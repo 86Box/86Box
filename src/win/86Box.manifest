@@ -6,7 +6,6 @@
     name="86Box.exe"
     type="win32"
 />
-<description>Emulator for X86-based systems.</description>
 <dependency>
     <dependentAssembly>
         <assemblyIdentity
