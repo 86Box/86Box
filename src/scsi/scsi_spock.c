@@ -60,6 +60,7 @@ typedef enum
 #pragma pack(push,1)
 typedef struct {
         uint16_t pos;
+	uint16_t pos1;
 	uint16_t pos2;
 	uint16_t pos3;
         uint16_t pos4;
@@ -636,9 +637,9 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
 						get_pos_info_t *get_pos_info = &scsi->get_pos_info;
 						
 						get_pos_info->pos = 0x8eff;
-						get_pos_info->pos2 = scsi->pos_regs[3] | (scsi->pos_regs[2] << 8);
-						get_pos_info->pos3 = 0x0e | (scsi->pos_regs[4] << 8);
-						get_pos_info->pos4 = 1 << 12;
+						get_pos_info->pos1 = scsi->pos_regs[3] | (scsi->pos_regs[2] << 8);
+						get_pos_info->pos2 = 0x0e | (scsi->pos_regs[4] << 8);
+						get_pos_info->pos3 = 1 << 12;
 						get_pos_info->pos4 = (7 << 8) | 8;
 						get_pos_info->pos5 = (16 << 8) | scsi->pacing;
 						get_pos_info->pos6 = (30 << 8) | 1;
@@ -646,13 +647,14 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
 						get_pos_info->pos8 = 0;
 						
 						DMAPageWrite(scb->sge.sys_buf_addr, (uint8_t *)&get_pos_info->pos, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 2, (uint8_t *)&get_pos_info->pos2, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 4, (uint8_t *)&get_pos_info->pos3, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 6, (uint8_t *)&get_pos_info->pos4, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 8, (uint8_t *)&get_pos_info->pos5, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 10, (uint8_t *)&get_pos_info->pos6, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 12, (uint8_t *)&get_pos_info->pos7, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 14, (uint8_t *)&get_pos_info->pos8, 2);
+						DMAPageWrite(scb->sge.sys_buf_addr + 2, (uint8_t *)&get_pos_info->pos1, 2);
+						DMAPageWrite(scb->sge.sys_buf_addr + 4, (uint8_t *)&get_pos_info->pos2, 2);
+						DMAPageWrite(scb->sge.sys_buf_addr + 6, (uint8_t *)&get_pos_info->pos3, 2);
+						DMAPageWrite(scb->sge.sys_buf_addr + 8, (uint8_t *)&get_pos_info->pos4, 2);
+						DMAPageWrite(scb->sge.sys_buf_addr + 10, (uint8_t *)&get_pos_info->pos5, 2);
+						DMAPageWrite(scb->sge.sys_buf_addr + 12, (uint8_t *)&get_pos_info->pos6, 2);
+						DMAPageWrite(scb->sge.sys_buf_addr + 14, (uint8_t *)&get_pos_info->pos7, 2);
+						DMAPageWrite(scb->sge.sys_buf_addr + 16, (uint8_t *)&get_pos_info->pos8, 2);
 						scsi->scb_state = 3;
 					}
 					break;
