@@ -321,6 +321,7 @@ extern int	machine_at_bf6_init(const machine_t *);
 extern int	machine_at_borapro_init(const machine_t *);
 
 /* m_at_socket370.c */
+extern int	machine_at_atc7020bxii_init(const machine_t *);
 extern int	machine_at_63a_init(const machine_t *);
 extern int	machine_at_apas3_init(const machine_t *);
 
