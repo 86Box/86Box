@@ -717,7 +717,7 @@ CPU cpus_PentiumII[] = {
 
 };
 
-CPU cpus_CeleronCVT[] = { // Covington Celerons. Exact architecture as the P2 series.
+CPU cpus_CeleCVT[] = { // Covington Celerons. Exact architecture as the P2 series.
 	
 	                                   // The 66Mhz Covington is only meant to not cause any struggle
 	                                   // to the recompiler.
