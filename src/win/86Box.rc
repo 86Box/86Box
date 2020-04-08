@@ -1012,8 +1012,10 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
+            VALUE "CompanyName", "86Box\0"
             VALUE "FileDescription", "86Box\0"
             VALUE "FileVersion", "2.10\0"
+            VALUE "InternalName", "86Box\0"
             VALUE "LegalCopyright", "Copyright © 2007-2020 86Box contributors\0"
             VALUE "OriginalFilename", "86Box.exe\0"
             VALUE "ProductName", "86Box Emulator\0"
