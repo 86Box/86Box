@@ -53,9 +53,7 @@ enum {
     CPU_Am5x86,
     CPU_Cx5x86,
     CPU_WINCHIP,	/* 586 class CPUs */
-#ifdef USE_NEW_DYNAREC
     CPU_WINCHIP2,
-#endif
     CPU_PENTIUM,
     CPU_PENTIUMMMX,
 #if (defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)))
@@ -64,18 +62,16 @@ enum {
     CPU_Cx6x86L,
     CPU_CxGX1,
 #endif
-#if (defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_AMD_K)))
+#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
     CPU_K5,
     CPU_5K86,
-    CPU_K6,
 #endif
-#ifdef USE_NEW_DYNAREC
+    CPU_K6,
     CPU_K6_2,
     CPU_K6_2C,
     CPU_K6_3,
     CPU_K6_2P,
     CPU_K6_3P,
-#endif
     CPU_CYRIX3S,
 #if defined(DEV_BRANCH) && defined(USE_I686)
     CPU_PENTIUMPRO,	/* 686 class CPUs */
@@ -131,27 +127,23 @@ extern CPU	cpus_i486[];
 extern CPU	cpus_Am486[];
 extern CPU	cpus_Cx486[];
 extern CPU	cpus_WinChip[];
-#ifdef USE_NEW_DYNAREC
 extern CPU	cpus_WinChip_SS7[];
-#endif
 extern CPU	cpus_Pentium5V[];
 extern CPU	cpus_Pentium5V50[];
 extern CPU	cpus_PentiumS5[];
 extern CPU	cpus_Pentium3V[];
 extern CPU	cpus_Pentium[];
-#if (defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_AMD_K)))
+#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
 extern CPU	cpus_K5[];
+#endif
 extern CPU	cpus_K56[];
-#endif
-#ifdef USE_NEW_DYNAREC
 extern CPU	cpus_K56_SS7[];
-#endif
-#if (defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)))
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 extern CPU	cpus_6x863V[];
 extern CPU	cpus_6x86[];
-#endif
 #ifdef USE_NEW_DYNAREC
 extern CPU	cpus_6x86SS7[];
+#endif
 #endif
 extern CPU  cpus_Cyrix3[];
 #if defined(DEV_BRANCH) && defined(USE_I686)
@@ -172,14 +164,17 @@ extern CPU	cpus_Celeron[];
 #define V_FLAG		0x0800
 #define NT_FLAG		0x4000
 
+#define RF_FLAG		0x0001			/* in EFLAGS */
 #define VM_FLAG		0x0002			/* in EFLAGS */
 #define VIF_FLAG	0x0008			/* in EFLAGS */
 #define VIP_FLAG	0x0010			/* in EFLAGS */
+#define VID_FLAG	0x0020			/* in EFLAGS */
 
 #define WP_FLAG		0x10000			/* in CR0 */
 #define CR4_VME		(1 << 0)
 #define CR4_PVI		(1 << 1)
 #define CR4_PSE		(1 << 4)
+#define CR4_PAE		(1 << 5)
 
 #define CPL ((cpu_state.seg_cs.access>>5)&3)
 
@@ -400,7 +395,7 @@ extern int	hasfpu;
 
 extern uint32_t	cpu_features;
 
-extern int	in_smm, smi_line, smi_latched, in_hlt;
+extern int	in_smm, smi_line, smi_latched, smm_in_hlt;
 extern uint32_t	smbase;
 
 #ifdef USE_NEW_DYNAREC
@@ -486,6 +481,7 @@ extern int	timing_retf_rm, timing_retf_pm, timing_retf_pm_outer;
 extern int	timing_jmp_rm, timing_jmp_pm, timing_jmp_pm_gate;
 extern int	timing_misaligned;
 
+extern int	in_sys;
 
 extern CPU	cpus_pcjr[];		// FIXME: should be in machine file!
 extern CPU	cpus_europc[];		// FIXME: should be in machine file!
@@ -526,8 +522,9 @@ extern void	codegen_reset(void);
 extern void	cpu_set_edx(void);
 extern int	divl(uint32_t val);
 extern void	execx86(int cycs);
-extern void	enter_smm();
-extern void	leave_smm();
+extern void	enter_smm(int in_hlt);
+extern void	enter_smm_check(int in_hlt);
+extern void	leave_smm(void);
 extern void	exec386(int cycs);
 extern void	exec386_dynarec(int cycs);
 extern int	idivl(int32_t val);
@@ -567,6 +564,11 @@ extern int	cpu_effective, cpu_alt_reset;
 extern void	cpu_dynamic_switch(int new_cpu);
 
 extern void	cpu_ven_reset(void);
+
+extern int	sysenter(uint32_t fetchdat);
+extern int	sysexit(uint32_t fetchdat);
+extern int	syscall(uint32_t fetchdat);
+extern int	sysret(uint32_t fetchdat);
 
 
 #endif	/*EMU_CPU_H*/

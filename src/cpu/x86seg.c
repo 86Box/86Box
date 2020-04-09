@@ -391,12 +391,17 @@ void loadseg(uint16_t seg, x86seg *s)
                 {
                         if (!(seg&~3))
                         {
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loadseg(): Stack segment is zero",seg&~3);
                                 return;
                         }
-                        if ((seg&3)!=CPL || dpl!=CPL)
+                        if ((seg&3)!=CPL)
                         {
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loadseg(): Stack segment RPL != CPL",seg&~3);
+                                return;
+                        }
+                        if (dpl!=CPL)
+                        {
+                                x86gpf("loadseg(): Stack segment DPL != CPL",seg&~3);
                                 return;
                         }
                         switch ((segdat[2]>>8)&0x1F)
@@ -404,7 +409,7 @@ void loadseg(uint16_t seg, x86seg *s)
                                 case 0x12: case 0x13: case 0x16: case 0x17: /*r/w*/
                                 break;
                                 default:
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loadseg(): Unknown stack segment type",seg&~3);
                                 return;
                         }
                         if (!(segdat[2]&0x8000))
@@ -423,16 +428,21 @@ void loadseg(uint16_t seg, x86seg *s)
                                 case 0x10: case 0x11: case 0x12: case 0x13: /*Data segments*/
                                 case 0x14: case 0x15: case 0x16: case 0x17:
                                 case 0x1A: case 0x1B: /*Readable non-conforming code*/
-                                if ((seg&3)>dpl || (CPL)>dpl)
+                                if ((seg&3)>dpl)
                                 {
-                                        x86gpf(NULL,seg&~3);
+                                        x86gpf("loadseg(): Normal segment is zero",seg&~3);
+                                        return;
+                                }
+                                if ((CPL)>dpl)
+                                {
+                                        x86gpf("loadseg(): Normal segment DPL < CPL",seg&~3);
                                         return;
                                 }
                                 break;
                                 case 0x1E: case 0x1F: /*Readable conforming code*/
                                 break;
                                 default:
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loadseg(): Unknown normal segment type",seg&~3);
                                 return;
                         }
                 }
@@ -519,7 +529,7 @@ void loadcs(uint16_t seg)
                 {
                         if (addr>=ldt.limit)
                         {
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loadcs(): Protected mode selector > LDT limit",seg&~3);
                                 return;
                         }
                         addr+=ldt.base;
@@ -528,7 +538,7 @@ void loadcs(uint16_t seg)
                 {
                         if (addr>=gdt.limit)
                         {
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loadcs(): Protected mode selector > GDT limit",seg&~3);
                                 return;
                         }
                         addr+=gdt.base;
@@ -544,12 +554,12 @@ void loadcs(uint16_t seg)
                         {
                                 if ((seg&3)>CPL)
                                 {
-                                        x86gpf(NULL,seg&~3);
+                                        x86gpf("loadcs(): Non-conforming RPL > CPL",seg&~3);
                                         return;
                                 }
                                 if (CPL != DPL)
                                 {
-                                        x86gpf("loadcs(): CPL != DPL",seg&~3);
+                                        x86gpf("loadcs(): Non-conforming CPL != DPL",seg&~3);
                                         return;
                                 }
                         }
@@ -579,13 +589,13 @@ void loadcs(uint16_t seg)
                 {
                         if (!(segdat[2]&0x8000))
                         {
-                                x86np("Load CS system seg not present\n", seg & 0xfffc);
+                                x86np("Load CS system seg not present", seg & 0xfffc);
                                 return;
                         }
                         switch (segdat[2]&0xF00)
                         {
                                 default:
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("Load CS system segment has bits 0-3 of access rights set",seg&~3);
                                 return;
                         }
                 }
@@ -614,7 +624,7 @@ void loadcsjmp(uint16_t seg, uint32_t old_pc)
         {
                 if (!(seg&~3))
                 {
-                        x86gpf(NULL,0);
+                        x86gpf("loadcsjmp(): Selector is zero",0);
                         return;
                 }
                 addr=seg&~7;
@@ -622,7 +632,7 @@ void loadcsjmp(uint16_t seg, uint32_t old_pc)
                 {
                         if (addr>=ldt.limit)
                         {
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loacsjmp(): Selector > LDT limit",seg&~3);
                                 return;
                         }
                         addr+=ldt.base;
@@ -631,7 +641,7 @@ void loadcsjmp(uint16_t seg, uint32_t old_pc)
                 {
                         if (addr>=gdt.limit)
                         {
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loacsjmp(): Selector > GDT limit",seg&~3);
                                 return;
                         }
                         addr+=gdt.base;
@@ -700,9 +710,14 @@ void loadcsjmp(uint16_t seg, uint32_t old_pc)
                                 cgate16=!cgate32;
                                 oldcs=CS;
                                 cpu_state.oldpc = cpu_state.pc;
-                                if ((DPL < CPL) || (DPL < (seg&3)))
+                                if (DPL < CPL)
                                 {
-                                        x86gpf(NULL,seg&~3);
+                                        x86gpf("loadcsjmp(): Call gate DPL < CPL",seg&~3);
+                                        return;
+                                }
+                                if (DPL < (seg&3))
+                                {
+                                        x86gpf("loadcsjmp(): Call gate DPL< RPL",seg&~3);
                                         return;
                                 }
                                 if (DPL < CPL)
@@ -732,7 +747,7 @@ void loadcsjmp(uint16_t seg, uint32_t old_pc)
                                 {
                                         if (addr>=ldt.limit)
                                         {
-                                                x86gpf(NULL,seg2&~3);
+                                                x86gpf("loadcsjmp(): Call gate selector > LDT limit",seg2&~3);
                                                 return;
                                         }
                                         addr+=ldt.base;
@@ -741,7 +756,7 @@ void loadcsjmp(uint16_t seg, uint32_t old_pc)
                                 {
                                         if (addr>=gdt.limit)
                                         {
-                                                x86gpf(NULL,seg2&~3);
+                                                x86gpf("loadcsjmp(): Call gate selector > GDT limit",seg2&~3);
                                                 return;
                                         }
                                         addr+=gdt.base;
@@ -769,7 +784,7 @@ void loadcsjmp(uint16_t seg, uint32_t old_pc)
                                         case 0x1800: case 0x1900: case 0x1A00: case 0x1B00: /*Non-conforming code*/
                                         if (DPL > CPL)
                                         {
-                                                x86gpf(NULL,seg2&~3);
+                                                x86gpf("loadcsjmp(): Non-conforming DPL > CPL",seg2&~3);
                                                 return;
                                         }
 					/*FALLTHROUGH*/
@@ -789,7 +804,7 @@ void loadcsjmp(uint16_t seg, uint32_t old_pc)
                                         break;
 
                                         default:
-                                        x86gpf(NULL,seg2&~3);
+                                        x86gpf("loadcsjmp(): Unknown type",seg2&~3);
                                         return;
                                 }
                                 cycles -= timing_jmp_pm_gate;
@@ -910,7 +925,7 @@ void loadcscall(uint16_t seg)
                 if (csout) x86seg_log("Protected mode CS load! %04X\n",seg);
                 if (!(seg&~3))
                 {
-                        x86gpf(NULL,0);
+                        x86gpf("loadcscall(): Protected mode selector is zero",0);
                         return;
                 }
                 addr=seg&~7;
@@ -918,7 +933,7 @@ void loadcscall(uint16_t seg)
                 {
                         if (addr>=ldt.limit)
                         {
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loadcscall(): Selector > LDT limit",seg&~3);
                                 return;
                         }
                         addr+=ldt.base;
@@ -927,7 +942,7 @@ void loadcscall(uint16_t seg)
                 {
                         if (addr>=gdt.limit)
                         {
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loadcscall(): Selector > GDT limit",seg&~3);
                                 return;
                         }
                         addr+=gdt.base;
@@ -948,18 +963,18 @@ void loadcscall(uint16_t seg)
                         {
                                 if ((seg&3)>CPL)
                                 {
-                                        x86gpf("loadcscall(): segment > CPL",seg&~3);
+                                        x86gpf("loadcscall(): Non-conforming RPL > CPL",seg&~3);
                                         return;
                                 }
                                 if (CPL != DPL)
                                 {
-                                        x86gpf(NULL,seg&~3);
+                                        x86gpf("loadcscall(): Non-conforming CPL != DPL",seg&~3);
                                         return;
                                 }
                         }
                         if (CPL < DPL)
                         {
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loadcscall(): CPL < DPL",seg&~3);
                                 return;
                         }
                         if (!(segdat[2]&0x8000))
@@ -1033,7 +1048,7 @@ void loadcscall(uint16_t seg)
                                 {
                                         if (addr>=ldt.limit)
                                         {
-                                                x86gpf(NULL,seg2&~3);
+                                                x86gpf("loadcscall(): ex Selector > LDT limit",seg2&~3);
                                                 return;
                                         }
                                         addr+=ldt.base;
@@ -1042,7 +1057,7 @@ void loadcscall(uint16_t seg)
                                 {
                                         if (addr>=gdt.limit)
                                         {
-                                                x86gpf(NULL,seg2&~3);
+                                                x86gpf("loadcscall(): ex Selector > GDT limit",seg2&~3);
                                                 return;
                                         }
                                         addr+=gdt.base;
@@ -1241,7 +1256,7 @@ void loadcscall(uint16_t seg)
                                         }
                                         else if (DPL > CPL)
                                         {
-                                                x86gpf(NULL,seg2&~3);
+                                                x86gpf("loadcscall(): Call PM Gate Inner DPL > CPL",seg2&~3);
                                                 return;
                                         }
 					/*FALLTHROUGH*/
@@ -1261,7 +1276,7 @@ void loadcscall(uint16_t seg)
                                         break;
                                         
                                         default:
-                                        x86gpf(NULL,seg2&~3);
+                                        x86gpf("loadcscall(): Unknown subtype",seg2&~3);
                                         return;
                                 }
                                 break;
@@ -1275,7 +1290,7 @@ void loadcscall(uint16_t seg)
                                 break;
 
                                 default:
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loadcscall(): Unknown type",seg&~3);
                                 return;
                         }
                 }
@@ -1331,7 +1346,7 @@ void pmoderetf(int is32, uint16_t off)
         {
                 if (addr>=ldt.limit)
                 {
-                        x86gpf(NULL,seg&~3);
+                        x86gpf("pmoderetf(): Selector > LDT limit",seg&~3);
                         return;
                 }
                 addr+=ldt.base;
@@ -1340,7 +1355,7 @@ void pmoderetf(int is32, uint16_t off)
         {
                 if (addr>=gdt.limit)
                 {
-                        x86gpf(NULL,seg&~3);
+                        x86gpf("pmoderetf(): Selector > GDT limit",seg&~3);
                         return;
                 }
                 addr+=gdt.base;
@@ -1366,7 +1381,7 @@ void pmoderetf(int is32, uint16_t off)
                         if (CPL != DPL)
                         {
                                 ESP=oldsp;
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("pmoderetf(): Non-conforming CPL != DPL",seg&~3);
                                 return;
                         }
                         break;
@@ -1374,12 +1389,12 @@ void pmoderetf(int is32, uint16_t off)
                         if (CPL < DPL)
                         {
                                 ESP=oldsp;
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("pmoderetf(): Conforming CPL < DPL",seg&~3);
                                 return;
                         }
                         break;
                         default:
-                        x86gpf(NULL,seg&~3);
+                        x86gpf("pmoderetf(): Unknown type",seg&~3);
                         return;
                 }
                 if (!(segdat[2]&0x8000))
@@ -1414,7 +1429,7 @@ void pmoderetf(int is32, uint16_t off)
                         if ((seg&3) != DPL)
                         {
                                 ESP=oldsp;
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("pmoderetf(): Non-conforming RPL != DPL",seg&~3);
                                 return;
                         }
                          x86seg_log("RETF non-conforming, %i %i\n",seg&3, DPL);
@@ -1423,14 +1438,14 @@ void pmoderetf(int is32, uint16_t off)
                         if ((seg&3) < DPL)
                         {
                                 ESP=oldsp;
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("pmoderetf(): Conforming RPL < DPL",seg&~3);
                                 return;
                         }
                          x86seg_log("RETF conforming, %i %i\n",seg&3, DPL);
                         break;
                         default:
                         ESP=oldsp;
-                        x86gpf(NULL,seg&~3);
+                        x86gpf("pmoderetf(): Unknown type",seg&~3);
                         return;
                 }
                 if (!(segdat[2]&0x8000))
@@ -1455,7 +1470,7 @@ void pmoderetf(int is32, uint16_t off)
                 if (!(newss&~3))
                 {
                         ESP=oldsp;
-                        x86gpf(NULL,newss&~3);
+                        x86gpf("pmoderetf(): New SS selector is zero",newss&~3);
                         return;
                 }
                 addr=newss&~7;
@@ -1464,7 +1479,7 @@ void pmoderetf(int is32, uint16_t off)
                         if (addr>=ldt.limit)
                         {
                                 ESP=oldsp;
-                                x86gpf(NULL,newss&~3);
+                                x86gpf("pmoderetf(): New SS selector > LDT limit",newss&~3);
                                 return;
                         }
                         addr+=ldt.base;
@@ -1474,7 +1489,7 @@ void pmoderetf(int is32, uint16_t off)
                         if (addr>=gdt.limit)
                         {
                                 ESP=oldsp;
-                                x86gpf(NULL,newss&~3);
+                                x86gpf("pmoderetf(): New SS selector > GDT limit",newss&~3);
                                 return;
                         }
                         addr+=gdt.base;
@@ -1488,13 +1503,13 @@ void pmoderetf(int is32, uint16_t off)
                 if ((newss & 3) != (seg & 3))
                 {
                         ESP=oldsp;
-                        x86gpf(NULL,newss&~3);
+                        x86gpf("pmoderetf(): New SS RPL > CS RPL",newss&~3);
                         return;
                 }
                 if ((segdat2[2]&0x1A00)!=0x1200)
                 {
                         ESP=oldsp;
-                        x86gpf(NULL,newss&~3);
+                        x86gpf("pmoderetf(): New SS unknown type",newss&~3);
                         return;
                 }
                 if (!(segdat2[2]&0x8000))
@@ -1506,7 +1521,7 @@ void pmoderetf(int is32, uint16_t off)
                 if (DPL2 != (seg & 3))
                 {
                         ESP=oldsp;
-                        x86gpf(NULL,newss&~3);
+                        x86gpf("pmoderetf(): New SS DPL != CS RPL",newss&~3);
                         return;
                 }
                 SS=newss;
@@ -1564,7 +1579,7 @@ void pmodeint(int num, int soft)
         if (cpu_state.eflags&VM_FLAG && IOPL!=3 && soft)
         {
                  x86seg_log("V86 banned int\n");
-                x86gpf(NULL,0);
+                x86gpf("pmodeint(): V86 banned int",0);
                 return;
         }
         addr=(num<<3);
@@ -1582,9 +1597,9 @@ void pmodeint(int num, int soft)
                 }
                 else
                 {
-                        x86gpf(NULL,(num*8)+2+((soft)?0:1));
+                        x86gpf("pmodeint(): Vector > IDT limit",(num*8)+2+((soft)?0:1));
                 }
-                 x86seg_log("addr >= IDT.limit\n");
+                x86seg_log("addr >= IDT.limit\n");
                 return;
         }
         addr+=idt.base;
@@ -1598,12 +1613,12 @@ void pmodeint(int num, int soft)
          x86seg_log("Addr %08X seg %04X %04X %04X %04X\n",addr,segdat[0],segdat[1],segdat[2],segdat[3]);
         if (!(segdat[2]&0x1F00))
         {
-                x86gpf(NULL,(num*8)+2);
+                x86gpf("pmodeint(): Vector descriptor with bad type",(num*8)+2);
                 return;
         }
         if (DPL<CPL && soft)
         {
-                x86gpf(NULL,(num*8)+2);
+                x86gpf("pmodeint(): Vector DPL < CPL",(num*8)+2);
                 return;
         }
         type=segdat[2]&0x1F00;
@@ -1624,7 +1639,7 @@ void pmodeint(int num, int soft)
                         {
                                 if (addr>=ldt.limit)
                                 {
-                                        x86gpf(NULL,seg&~3);
+                                        x86gpf("pmodeint(): Interrupt or trap gate selector > LDT limit",seg&~3);
                                         return;
                                 }
                                 addr+=ldt.base;
@@ -1633,7 +1648,7 @@ void pmodeint(int num, int soft)
                         {
                                 if (addr>=gdt.limit)
                                 {
-                                        x86gpf(NULL,seg&~3);
+                                        x86gpf("pmodeint(): Interrupt or trap gate selector > GDT limit", seg&~3);
                                         return;
                                 }
                                 addr+=gdt.base;
@@ -1647,7 +1662,7 @@ void pmodeint(int num, int soft)
                         
                         if (DPL2 > CPL)
                         {
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("pmodeint(): Interrupt or trap gate DPL > CPL",seg&~3);
                                 return;
                         }
                         switch (segdat2[2]&0x1F00)
@@ -1662,7 +1677,7 @@ void pmodeint(int num, int soft)
                                         }
                                         if ((cpu_state.eflags&VM_FLAG) && DPL2)
                                         {
-                                                x86gpf(NULL,segdat[1]&0xFFFC);
+                                                x86gpf("pmodeint(): Interrupt or trap gate non-zero DPL in V86 mode",segdat[1]&0xFFFC);
                                                 return;
                                         }
                                         /*Load new stack*/
@@ -1774,7 +1789,7 @@ void pmodeint(int num, int soft)
                                 }
                                 else if (DPL2!=CPL)
                                 {
-                                        x86gpf(NULL,seg&~3);
+                                        x86gpf("pmodeint(): DPL != CPL",seg&~3);
                                         return;
                                 }
 				/*FALLTHROUGH*/
@@ -1786,7 +1801,7 @@ void pmodeint(int num, int soft)
                                 }
                                 if ((cpu_state.eflags & VM_FLAG) && DPL2<CPL)
                                 {
-                                        x86gpf(NULL,seg&~3);
+                                        x86gpf("pmodeint(): DPL < CPL in V86 mode",seg&~3);
                                         return;
                                 }
                                 if (type>0x800)
@@ -1804,7 +1819,7 @@ void pmodeint(int num, int soft)
                                 new_cpl = CS & 3;
                                 break;
                                 default:
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("pmodeint(): Unknown type",seg&~3);
                                 return;
                         }
                 do_seg_load(&cpu_state.seg_cs, segdat2);
@@ -1838,7 +1853,7 @@ void pmodeint(int num, int soft)
                         {
                                 if (addr>=ldt.limit)
                                 {
-                                        x86gpf(NULL,seg&~3);
+                                        x86gpf("pmodeint(): Task gate selector > LDT limit",seg&~3);
                                         return;
                                 }
                                 addr+=ldt.base;
@@ -1847,7 +1862,7 @@ void pmodeint(int num, int soft)
                         {
                                 if (addr>=gdt.limit)
                                 {
-                                        x86gpf(NULL,seg&~3);
+                                        x86gpf("pmodeint(): Task gate selector > GDT limit",seg&~3);
                                         return;
                                 }
                                 addr+=gdt.base;
@@ -1926,7 +1941,7 @@ void pmodeiret(int is32)
                 if (seg&4)
                 {
                         x86seg_log("TS LDT %04X %04X IRET\n",seg,gdt.limit);
-                        x86ts(NULL,seg&~3);
+                        x86ts("pmodeiret(): Selector points to LDT",seg&~3);
                         return;
                 }
                 else
@@ -2016,7 +2031,7 @@ void pmodeiret(int is32)
                 if (addr>=ldt.limit)
                 {
                         ESP = oldsp;
-                        x86gpf(NULL,seg&~3);
+                        x86gpf("pmodeiret(): Selector > LDT limit",seg&~3);
                         return;
                 }
                 addr+=ldt.base;
@@ -2026,7 +2041,7 @@ void pmodeiret(int is32)
                 if (addr>=gdt.limit)
                 {
                         ESP = oldsp;
-                        x86gpf(NULL,seg&~3);
+                        x86gpf("pmodeiret(): Selector > GDT limit",seg&~3);
                         return;
                 }
                 addr+=gdt.base;
@@ -2034,7 +2049,7 @@ void pmodeiret(int is32)
         if ((seg&3) < CPL)
         {
                 ESP = oldsp;
-                x86gpf(NULL,seg&~3);
+                x86gpf("pmodeiret(): RPL < CPL",seg&~3);
                 return;
         }
         cpl_override=1;
@@ -2049,7 +2064,7 @@ void pmodeiret(int is32)
                 if ((seg&3) != DPL)
                 {
                         ESP = oldsp;
-                        x86gpf(NULL,seg&~3);
+                        x86gpf("pmodeiret(): Non-conforming RPL != DPL",seg&~3);
                         return;
                 }
                 break;
@@ -2057,7 +2072,7 @@ void pmodeiret(int is32)
                 if ((seg&3) < DPL)
                 {
                         ESP = oldsp;
-                        x86gpf(NULL,seg&~3);
+                        x86gpf("pmodeiret(): Conforming RPL < DPL",seg&~3);
                         return;
                 }
                 break;
@@ -2107,7 +2122,7 @@ void pmodeiret(int is32)
                 if (!(newss&~3))
                 {
                         ESP = oldsp;
-                        x86gpf(NULL,newss&~3);
+                        x86gpf("pmodeiret(): New SS selector is zero",newss&~3);
                         return;
                 }
                 addr=newss&~7;
@@ -2116,7 +2131,7 @@ void pmodeiret(int is32)
                         if (addr>=ldt.limit)
                         {
                                 ESP = oldsp;
-                                x86gpf(NULL,newss&~3);
+                                x86gpf("pmodeiret(): New SS selector > LDT limit",newss&~3);
                                 return;
                         }
                         addr+=ldt.base;
@@ -2126,7 +2141,7 @@ void pmodeiret(int is32)
                         if (addr>=gdt.limit)
                         {
                                 ESP = oldsp;
-                                x86gpf(NULL,newss&~3);
+                                x86gpf("pmodeiret(): New SS selector > GDT limit",newss&~3);
                                 return;
                         }
                         addr+=gdt.base;
@@ -2139,19 +2154,19 @@ void pmodeiret(int is32)
                 if ((newss & 3) != (seg & 3))
                 {
                         ESP = oldsp;
-                        x86gpf(NULL,newss&~3);
+                        x86gpf("pmodeiret(): New SS RPL > CS RPL",newss&~3);
                         return;
                 }
                 if ((segdat2[2]&0x1A00)!=0x1200)
                 {
                         ESP = oldsp;
-                        x86gpf(NULL,newss&~3);
+                        x86gpf("pmodeiret(): New SS bad type",newss&~3);
                         return;
                 }
                 if (DPL2 != (seg & 3))
                 {
                         ESP = oldsp;
-                        x86gpf(NULL,newss&~3);
+                        x86gpf("pmodeiret(): New SS DPL != CS RPL",newss&~3);
                         return;
                 }
                 if (!(segdat2[2]&0x8000))

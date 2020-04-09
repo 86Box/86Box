@@ -73,6 +73,10 @@
 #define FPU_FXCH (1ull << 33)
 
 
+#define HAS_IMM8    (1ull << 34)
+#define HAS_IMM1632 (1ull << 35)
+
+
 #define REGMASK_IMPL_ESP (1 << 8)
 #define REGMASK_SHIFTPACK (1 << 9)
 #define REGMASK_MULTIPLY  (1 << 9)
@@ -82,6 +86,8 @@ extern uint64_t opcode_deps[256];
 extern uint64_t opcode_deps_mod3[256];
 extern uint64_t opcode_deps_0f[256];
 extern uint64_t opcode_deps_0f_mod3[256];
+extern uint64_t opcode_deps_0f0f[256];
+extern uint64_t opcode_deps_0f0f_mod3[256];
 extern uint64_t opcode_deps_shift[8];
 extern uint64_t opcode_deps_shift_mod3[8];
 extern uint64_t opcode_deps_shift_cl[8];

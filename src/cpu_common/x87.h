@@ -51,7 +51,7 @@ void x87_settag(uint16_t new_tag);
 
 void codegen_set_rounding_mode(int mode);
 #else
-#define TAG_EMPTY  0
+#define TAG_EMPTY  3
 #define TAG_VALID  (1 << 0)
 /*Hack for FPU copy. If set then MM[].q contains the 64-bit integer loaded by FILD*/
 #define TAG_UINT64 (1 << 2)

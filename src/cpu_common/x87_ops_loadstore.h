@@ -185,7 +185,7 @@ static int FISTPiq_a16(uint32_t fetchdat)
         FP_ENTER();
         fetch_ea_16(fetchdat);
 	SEG_CHECK_WRITE(cpu_state.ea_seg);
-        if (cpu_state.tag[cpu_state.TOP] & TAG_UINT64)
+        if (FP_CHECKTOP64)
                 FP_LSRETQ()
         else
                 temp64 = x87_fround(ST(0));
@@ -201,7 +201,7 @@ static int FISTPiq_a32(uint32_t fetchdat)
         FP_ENTER();
         fetch_ea_32(fetchdat);
 	SEG_CHECK_WRITE(cpu_state.ea_seg);
-        if (cpu_state.tag[cpu_state.TOP] & TAG_UINT64)
+        if (FP_CHECKTOP64)
                 FP_LSRETQ()
         else
                 temp64 = x87_fround(ST(0));

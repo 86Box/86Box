@@ -977,8 +977,8 @@ static uint32_t gen_MEM_CHECK_WRITE()
         addbyte(0x6a); /*PUSH 1*/
         addbyte(1);
         addbyte(0x57); /*PUSH EDI*/
-        addbyte(0xe8); /*CALL mmutranslatereal*/
-        addlong((uint32_t)mmutranslatereal - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        addbyte(0xe8); /*CALL mmutranslatereal32*/
+        addlong((uint32_t)mmutranslatereal32 - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         addbyte(0x83); /*ADD ESP, 8*/
         addbyte(0xc4);
         addbyte(8);
@@ -1049,8 +1049,8 @@ static uint32_t gen_MEM_CHECK_WRITE_W()
         addbyte(0x6a); /*PUSH 1*/
         addbyte(1);
         addbyte(0x57); /*PUSH EDI*/
-        addbyte(0xe8); /*CALL mmutranslatereal*/
-        addlong((uint32_t)mmutranslatereal - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        addbyte(0xe8); /*CALL mmutranslatereal32*/
+        addlong((uint32_t)mmutranslatereal32 - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         addbyte(0x5f); /*POP EDI*/
         addbyte(0x83); /*ADD ESP, 4*/
         addbyte(0xc4);
@@ -1131,8 +1131,8 @@ static uint32_t gen_MEM_CHECK_WRITE_L()
         addbyte(0x6a); /*PUSH 1*/
         addbyte(1);
         addbyte(0x57); /*PUSH EDI*/
-        addbyte(0xe8); /*CALL mmutranslatereal*/
-        addlong((uint32_t)mmutranslatereal - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        addbyte(0xe8); /*CALL mmutranslatereal32*/
+        addlong((uint32_t)mmutranslatereal32 - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         addbyte(0x5f); /*POP EDI*/
         addbyte(0x83); /*ADD ESP, 4*/
         addbyte(0xc4);
@@ -1874,7 +1874,7 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
         int pc_off = 0;
         int test_modrm = 1;
         int c;
-        
+
         op_ea_seg = &cpu_state.seg_ds;
         op_ssegs = 0;
         op_old_pc = old_pc;
@@ -2031,7 +2031,7 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
         }
         
 generate_call:
-        codegen_timing_opcode(opcode, fetchdat, op_32);
+        codegen_timing_opcode(opcode, fetchdat, op_32, op_pc);
 
         if ((op_table == x86_dynarec_opcodes &&
               ((opcode & 0xf0) == 0x70 || (opcode & 0xfc) == 0xe0 || opcode == 0xc2 ||
@@ -2039,10 +2039,28 @@ generate_call:
               (opcode == 0xff && ((fetchdat & 0x38) >= 0x10 && (fetchdat & 0x38) < 0x30)))) ||
             (op_table == x86_dynarec_opcodes_0f && ((opcode & 0xf0) == 0x80)))
         {
+                /*On some CPUs (eg K6), a jump/branch instruction may be able to pair with
+                  subsequent instructions, so no cycles may have been deducted for it yet.
+                  To prevent having zero cycle blocks (eg with a jump instruction pointing
+                  to itself), apply the cycles that would be taken if this jump is taken,
+                  then reverse it for subsequent instructions if the jump is not taken*/
+                int jump_cycles = 0;
+
+		if (codegen_timing_jump_cycles != NULL)
+			codegen_timing_jump_cycles();
+
+                if (jump_cycles)
+                {
+                        addbyte(0x81); /*SUB $jump_cycles, cycles*/
+                        addbyte(0x6d);
+                        addbyte((uint8_t)cpu_state_offset(_cycles));
+                        addlong(jump_cycles);
+                }
+
                 /*Opcode is likely to cause block to exit, update cycle count*/
                 if (codegen_block_cycles)
                 {
-                        addbyte(0x81); /*SUB $codegen_block_cycles, cyclcs*/
+                        addbyte(0x81); /*SUB $codegen_block_cycles, cycles*/
                         addbyte(0x6d);
                         addbyte((uint8_t)cpu_state_offset(_cycles));
                         addlong(codegen_block_cycles);
@@ -2066,6 +2084,15 @@ generate_call:
                         codegen_block_full_ins = 0;
                 }
 #endif
+
+                if (jump_cycles)
+                {
+                        addbyte(0x81); /*SUB $jump_cycles, cycles*/
+                        addbyte(0x6d);
+                        addbyte((uint8_t)cpu_state_offset(_cycles));
+                        addlong(jump_cycles);
+                        jump_cycles = 0;
+                }
         }
 
         if ((op_table == x86_dynarec_opcodes_REPNE || op_table == x86_dynarec_opcodes_REPE) && !op_table[opcode | op_32])
@@ -2099,7 +2126,7 @@ generate_call:
                 addbyte(0xC6); /*MOVB [ssegs],op_ssegs*/
                 addbyte(0x45);
                 addbyte((uint8_t)cpu_state_offset(ssegs));
-                addbyte(op_pc + pc_off);
+               	addbyte(op_pc + pc_off);
         }
 
         if (!test_modrm ||
@@ -2140,7 +2167,7 @@ generate_call:
         addbyte(0xC7); /*MOVL pc,new_pc*/
         addbyte(0x45);
         addbyte((uint8_t)cpu_state_offset(pc));
-        addlong(op_pc + pc_off);
+	addlong(op_pc + pc_off);
 
         addbyte(0xC7); /*MOVL $old_pc,(oldpc)*/
         addbyte(0x45);

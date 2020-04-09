@@ -5359,7 +5359,7 @@ static inline void MEM_CHECK_WRITE(x86seg *seg)
         load_param_1_reg_32(REG_EDI);
         load_param_2_32(&codeblock[block_current], 1);
 
-        call(&codeblock[block_current], (uintptr_t)mmutranslatereal);
+        call(&codeblock[block_current], (uintptr_t)mmutranslatereal32);
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte((uint8_t)cpu_state_offset(abrt));
@@ -5498,7 +5498,7 @@ static inline void MEM_CHECK_WRITE_W(x86seg *seg)
         jump_pos = block_pos;
         load_param_1_reg_32(REG_EBX);
         load_param_2_32(&codeblock[block_current], 1);
-        call(&codeblock[block_current], (uintptr_t)mmutranslatereal);
+        call(&codeblock[block_current], (uintptr_t)mmutranslatereal32);
         addbyte(0x83); /*ADD EBX, 1*/
         addbyte(0xc3);
         addbyte(1);
@@ -5647,7 +5647,7 @@ static inline void MEM_CHECK_WRITE_L(x86seg *seg)
         jump_pos = block_pos;
         load_param_1_reg_32(REG_EBX);
         load_param_2_32(&codeblock[block_current], 1);
-        call(&codeblock[block_current], (uintptr_t)mmutranslatereal);
+        call(&codeblock[block_current], (uintptr_t)mmutranslatereal32);
         addbyte(0x83); /*ADD EBX, 3*/
         addbyte(0xc3);
         addbyte(3);

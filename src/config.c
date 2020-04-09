@@ -282,8 +282,10 @@ config_read(wchar_t *fn)
 	if (feof(f)) break;
 
 	/* Make sure there are no stray newlines or hard-returns in there. */
-	if (buff[wcslen(buff)-1] == L'\n') buff[wcslen(buff)-1] = L'\0';
-	if (buff[wcslen(buff)-1] == L'\r') buff[wcslen(buff)-1] = L'\0';
+	if (wcslen(buff) > 0)
+		if (buff[wcslen(buff)-1] == L'\n') buff[wcslen(buff)-1] = L'\0';
+	if (wcslen(buff) > 0)
+		if (buff[wcslen(buff)-1] == L'\r') buff[wcslen(buff)-1] = L'\0';
 
 	/* Skip any leading whitespace. */
 	c = 0;
@@ -2292,7 +2294,10 @@ config_set_string(char *head, char *name, char *val)
     if (ent == NULL)
 	ent = create_entry(section, name);
 
-    memcpy(ent->data, val, sizeof(ent->data));
+    if ((strlen(val) + 1) <= sizeof(ent->data))
+	memcpy(ent->data, val, strlen(val) + 1);
+    else
+	memcpy(ent->data, val, sizeof(ent->data));
     mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
 }
 

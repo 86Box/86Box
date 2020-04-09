@@ -483,8 +483,8 @@ typedef union
         } while (0)
 #endif
 
-// #ifdef USE_NEW_DYNAREC
-#if 1
+#ifdef USE_NEW_DYNAREC
+#define FP_CHECKTOP64 cpu_state.tag[cpu_state.TOP&7] & TAG_UINT64
 #define FP_TAG() cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
 #define FP_FTAG() cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID;
 #define FP_LSTAG()  cpu_state.tag[cpu_state.TOP&7] = TAG_VALID | TAG_UINT64;
@@ -512,6 +512,7 @@ typedef union
 #define FP_686
 #endif
 #else
+#define FP_CHECKTOP64 cpu_state.tag[cpu_state.TOP] & TAG_UINT64
 #define FP_TAG() cpu_state.tag[cpu_state.TOP] &= ~TAG_UINT64;
 #define FP_FTAG() cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64;
 #define FP_LSTAG()  cpu_state.tag[cpu_state.TOP] |= TAG_UINT64;

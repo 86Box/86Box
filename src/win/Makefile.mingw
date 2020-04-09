@@ -38,8 +38,8 @@ ifeq ($(DEV_BUILD), y)
  ifndef DEV_BRANCH
   DEV_BRANCH	:= y
  endif
- ifndef AMD_K
-  AMD_K		:= y
+ ifndef AMD_K5
+  AMD_K5	:= y
  endif
  ifndef CL5422
   CL5422	:= y
@@ -108,8 +108,8 @@ else
  ifndef DEV_BRANCH
   DEV_BRANCH	:= n
  endif
- ifndef AMD_K
-  AMD_K		:= n
+ ifndef AMD_K5
+  AMD_K5	:= n
  endif
  ifndef CL5422
   CL5422	:= n
@@ -377,10 +377,9 @@ OPTS		+= -DUSE_DYNAREC
 RFLAGS		+= -DUSE_DYNAREC
 DYNARECOBJ	:= 386_dynarec_ops.o \
 		    codegen.o \
-		    codegen_ops.o \
-		    codegen_timing_common.o codegen_timing_486.o \
-		    codegen_timing_686.o codegen_timing_pentium.o \
-		    codegen_timing_winchip.o $(PLATCG)
+		    codegen_ops.o codegen_timing_486.o \
+		    codegen_timing_686.o codegen_timing_common.o codegen_timing_k6.o codegen_timing_pentium.o \
+		    codegen_timing_p6.o codegen_timing_winchip.o codegen_timing_winchip2.o $(PLATCG)
 endif
 
 ifneq ($(WX), n)
@@ -453,8 +452,8 @@ ifeq ($(DEV_BRANCH), y)
 OPTS		+= -DDEV_BRANCH
 DEVBROBJ	:=
 
-ifeq ($(AMD_K), y)
-OPTS		+= -DUSE_AMD_K
+ifeq ($(AMD_K5), y)
+OPTS		+= -DUSE_AMD_K5
 endif
 
 ifeq ($(CL5422), y)
@@ -548,7 +547,11 @@ CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 # -funroll-loops
 
 # Add freetyp2 references through pkgconfig
+ifeq ($(DEBUG), y)
+CFLAGS          := $(CFLAGS) -fstack-protector-all  `pkg-config --cflags freetype2`
+else
 CFLAGS          := $(CFLAGS)  `pkg-config --cflags freetype2`
+endif
 
 CXXFLAGS	:= $(CFLAGS)
 
@@ -738,6 +741,9 @@ endif
 
 LIBS		:= -mwindows -lcomctl32 \
 		   -lopenal -lole32
+ifeq ($(DEBUG), y)
+ LIBS    += -lssp
+endif
 
 ifeq ($(D2D), y)
 LIBS		+= $(D2DLIB)
@@ -821,8 +827,10 @@ pcap_if.res:	pcap_if.rc
 
 pcap_if.exe:	pcap_if.o win_dynld.o pcap_if.res
 		@echo Linking pcap_if.exe ..
+ifeq ($(DEBUG), y)
+		@$(CC) $(LDFLAGS) -o pcap_if.exe pcap_if.o win_dynld.o pcap_if.res -lssp
+else
 		@$(CC) $(LDFLAGS) -o pcap_if.exe pcap_if.o win_dynld.o pcap_if.res
-ifneq ($(DEBUG), y)
 		@$(STRIP) pcap_if.exe
 endif
 

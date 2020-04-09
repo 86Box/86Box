@@ -86,14 +86,12 @@ extern const OpFn dynarec_ops_winchip2_0f[1024];
 extern const OpFn dynarec_ops_pentium_0f[1024];
 extern const OpFn dynarec_ops_pentiummmx_0f[1024];
 
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_CYRIX_6X86))
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 extern const OpFn dynarec_ops_c6x86mx_0f[1024];
 #endif
 
-#ifdef USE_NEW_DYNAREC
 extern const OpFn dynarec_ops_k6_0f[1024];
 extern const OpFn dynarec_ops_k62_0f[1024];
-#endif
 
 #if defined(DEV_BRANCH) && defined(USE_I686)
 extern const OpFn dynarec_ops_pentiumpro_0f[1024];
@@ -185,14 +183,12 @@ extern const OpFn ops_winchip2_0f[1024];
 extern const OpFn ops_pentium_0f[1024];
 extern const OpFn ops_pentiummmx_0f[1024];
 
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_CYRIX_6X86))
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 extern const OpFn ops_c6x86mx_0f[1024];
 #endif
 
-#ifdef USE_NEW_DYNAREC
 extern const OpFn ops_k6_0f[1024];
 extern const OpFn ops_k62_0f[1024];
-#endif
 
 #if defined(DEV_BRANCH) && defined(USE_I686)
 extern const OpFn ops_pentiumpro_0f[1024];

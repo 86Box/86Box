@@ -1076,7 +1076,7 @@ static void codegen_instruction(uint64_t *timings, uint64_t *deps, uint8_t opcod
         }
 }
 
-void codegen_timing_pentium_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
+void codegen_timing_pentium_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uint32_t op_pc)
 {
         uint64_t *timings;
         uint64_t *deps;
@@ -1137,7 +1137,7 @@ void codegen_timing_pentium_opcode(uint8_t opcode, uint32_t fetchdat, int op_32)
                 {
                         case 0x80: case 0x82: case 0x83:
                         timings = mod3 ? opcode_timings_8x_mod3 : opcode_timings_8x;
-                        deps = mod3 ? opcode_deps_8x_mod3 : opcode_deps_8x_mod3;
+                        deps = mod3 ? opcode_deps_8x_mod3 : opcode_deps_8x;
                         opcode = (fetchdat >> 3) & 7;
                         break;
                         case 0x81:
@@ -1318,5 +1318,6 @@ codegen_timing_t codegen_timing_pentium =
         codegen_timing_pentium_prefix,
         codegen_timing_pentium_opcode,
         codegen_timing_pentium_block_start,
-        codegen_timing_pentium_block_end
+        codegen_timing_pentium_block_end,
+        NULL
 };

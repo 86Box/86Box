@@ -192,9 +192,15 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 	if (base[0] != 0x00000000) {
 		/* If OSS = 1 and LSS = 0, extended SMRAM is visible outside SMM. */
 		i4x0_smram_map(0, base[0], size[0], ((regs[0x72] & 0x38) == 0x20) || s);
+		/* If base is on top of memory, this mapping will point to RAM.
+		   TODO: It should actually point to EXTERNAL (with a SMRAM mapping) instead. */
+		/* If we are open, not closed, and not locked, point to RAM. */
 
 		/* If the register is set accordingly, disable the mapping also in SMM. */
 		i4x0_smram_map(0, base[0], size[0], !(regs[0x72] & 0x10) || s);
+		/* If base is on top of memory, this mapping will point to RAM.
+		   TODO: It should actually point to EXTERNAL (with a SMRAM mapping) instead. */
+		/* If we are not closed, point to RAM. */
 	}
     }
 }
@@ -1359,6 +1365,7 @@ static void
     i4x0_write(regs[0x5d], 0x5d, 0x00, dev);
     i4x0_write(regs[0x5e], 0x5e, 0x00, dev);
     i4x0_write(regs[0x5f], 0x5f, 0x00, dev);
+    i4x0_write(regs[0x72], 0x72, 0x00, dev);
 
     // smbase = 0xa0000;
 

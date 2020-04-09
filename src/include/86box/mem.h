@@ -63,6 +63,7 @@
 #define MEM_GRANULARITY_MASK	(MEM_GRANULARITY_SIZE - 1)
 #define MEM_GRANULARITY_HMASK	((1 << (MEM_GRANULARITY_BITS - 1)) - 1)
 #define MEM_GRANULARITY_QMASK	((1 << (MEM_GRANULARITY_BITS - 2)) - 1)
+#define MEM_GRANULARITY_PMASK	((1 << (MEM_GRANULARITY_BITS - 3)) - 1)
 #define MEM_MAPPINGS_NO		((0x100000 >> MEM_GRANULARITY_BITS) << 12)
 #define MEM_GRANULARITY_PAGE	(MEM_GRANULARITY_MASK & ~0xfff)
 #else
@@ -73,6 +74,7 @@
 #define MEM_GRANULARITY_MASK	(MEM_GRANULARITY_SIZE - 1)
 #define MEM_GRANULARITY_HMASK	((1 << (MEM_GRANULARITY_BITS - 1)) - 1)
 #define MEM_GRANULARITY_QMASK	((1 << (MEM_GRANULARITY_BITS - 2)) - 1)
+#define MEM_GRANULARITY_PMASK	((1 << (MEM_GRANULARITY_BITS - 3)) - 1)
 #define MEM_MAPPINGS_NO		((0x100000 >> MEM_GRANULARITY_BITS) << 12)
 #define MEM_GRANULARITY_PAGE	(MEM_GRANULARITY_MASK & ~0xfff)
 #endif
@@ -233,7 +235,8 @@ void writememql(uint32_t addr, uint64_t val);
 #endif
 
 extern uint8_t	*getpccache(uint32_t a);
-extern uint32_t	mmutranslatereal(uint32_t addr, int rw);
+extern uint64_t	mmutranslatereal(uint32_t addr, int rw);
+extern uint32_t	mmutranslatereal32(uint32_t addr, int rw);
 extern void	addreadlookup(uint32_t virt, uint32_t phys);
 extern void	addwritelookup(uint32_t virt, uint32_t phys);
 
@@ -300,7 +303,7 @@ extern void	mem_write_nulll(uint32_t addr, uint32_t val, void *p);
 
 extern int	mem_addr_is_ram(uint32_t addr);
 
-extern uint32_t	mmutranslate_noabrt(uint32_t addr, int rw);
+extern uint64_t	mmutranslate_noabrt(uint32_t addr, int rw);
 
 extern void	mem_invalidate_range(uint32_t start_addr, uint32_t end_addr);
 
@@ -331,6 +334,8 @@ extern void	mem_remap_top(int kb);
 #ifdef EMU_CPU_H
 static __inline uint32_t get_phys(uint32_t addr)
 {
+    uint64_t pa64;
+
     if (!((addr ^ get_phys_virt) & ~0xfff))
 	return get_phys_phys | (addr & 0xfff);
 
@@ -344,7 +349,12 @@ static __inline uint32_t get_phys(uint32_t addr)
     if (((int) (readlookup2[addr >> 12])) != -1)
 	get_phys_phys = ((uintptr_t)readlookup2[addr >> 12] + (addr & ~0xfff)) - (uintptr_t)ram;
     else {
-	get_phys_phys = (mmutranslatereal(addr, 0) & rammask) & ~0xfff;
+	pa64 = mmutranslatereal(addr, 0);
+	if (pa64 > 0xffffffffULL)
+		get_phys_phys = 0xffffffff;
+	else
+		get_phys_phys = (uint32_t) pa64;
+	get_phys_phys = (get_phys_phys & rammask) & ~0xfff;
 	if (!cpu_state.abrt && mem_addr_is_ram(get_phys_phys))
 		addreadlookup(get_phys_virt, get_phys_phys);
     }
@@ -355,7 +365,8 @@ static __inline uint32_t get_phys(uint32_t addr)
 
 static __inline uint32_t get_phys_noabrt(uint32_t addr)
 {
-    uint32_t phys_addr;
+    uint64_t phys_addr;
+    uint32_t phys_addr32;
 
     if (!(cr0 >> 31))
 	return addr & rammask;
@@ -363,11 +374,16 @@ static __inline uint32_t get_phys_noabrt(uint32_t addr)
     if (((int) (readlookup2[addr >> 12])) != -1)
 	return ((uintptr_t)readlookup2[addr >> 12] + addr) - (uintptr_t)ram;
 
-    phys_addr = mmutranslate_noabrt(addr, 0) & rammask;
-    if (phys_addr != 0xffffffff && mem_addr_is_ram(phys_addr))
-	addreadlookup(addr, phys_addr);
+    phys_addr = mmutranslate_noabrt(addr, 0);
+    phys_addr32 = (uint32_t) phys_addr;
+    if ((phys_addr != 0xffffffffffffffffULL) && (phys_addr <= 0xffffffffULL) &&
+	mem_addr_is_ram(phys_addr32 & rammask))
+	addreadlookup(addr, phys_addr32 & rammask);
 
-    return phys_addr;
+    if (phys_addr > 0xffffffffULL)
+	phys_addr32 = 0xffffffff;
+
+    return phys_addr32;
 }
 #endif
 

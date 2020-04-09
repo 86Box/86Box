@@ -71,6 +71,7 @@ enum {
         CPUID_PSE = (1 << 3),
         CPUID_TSC = (1 << 4),
         CPUID_MSR = (1 << 5),
+        CPUID_PAE = (1 << 6),
         CPUID_CMPXCHG8B = (1 << 8),
 	CPUID_AMDSEP = (1 << 10),
 	CPUID_SEP = (1 << 11),
@@ -108,9 +109,7 @@ const OpFn	*x86_dynarec_opcodes_df_a16;
 const OpFn	*x86_dynarec_opcodes_df_a32;
 const OpFn	*x86_dynarec_opcodes_REPE;
 const OpFn	*x86_dynarec_opcodes_REPNE;
-#ifdef USE_NEW_DYNAREC
 const OpFn	*x86_dynarec_opcodes_3DNOW;
-#endif
 #endif
 
 const OpFn	*x86_opcodes;
@@ -135,7 +134,7 @@ const OpFn	*x86_opcodes_REPE;
 const OpFn	*x86_opcodes_REPNE;
 const OpFn	*x86_opcodes_3DNOW;
 
-int in_smm = 0, smi_line = 0, smi_latched = 0, in_hlt = 0;
+int in_smm = 0, smi_line = 0, smi_latched = 0, smm_in_hlt = 0;
 uint32_t smbase = 0x30000;
 
 CPU		*cpu_s;
@@ -178,7 +177,7 @@ uint64_t	pmc[2] = {0, 0};
 
 uint16_t	temp_seg_data[4] = {0, 0, 0, 0};
 
-uint64_t	mtrr_cap_msr = 0;
+uint64_t	mtrr_cap_msr = 0x00000508;
 uint64_t	mtrr_physbase_msr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 uint64_t	mtrr_physmask_msr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 uint64_t	mtrr_fix64k_8000_msr = 0;
@@ -206,21 +205,13 @@ uint64_t	ecx1e0_msr = 0;
 uint64_t	ecx570_msr = 0;
 #endif
 
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_AMD_K))
 uint64_t	ecx83_msr = 0;			/* AMD K5 and K6 MSR's. */
-#ifdef USE_NEW_DYNAREC
 uint64_t	star = 0;			/* AMD K6-2+. */
-#endif
 
-#ifdef USE_NEW_DYNAREC
 uint64_t	amd_efer = 0, amd_whcr = 0,
 		amd_uwccr = 0, amd_epmr = 0,	/* AMD K6-2+ registers. */
 		amd_psor = 0, amd_pfir = 0,
 		amd_l2aar = 0;
-#else
-uint64_t	amd_efer = 0, amd_whcr = 0;
-#endif
-#endif
 
 int		timing_rr;
 int		timing_mr, timing_mrl;
@@ -317,21 +308,15 @@ cpu_set(void)
         is486dx2     = (cpu_s->cpu_type >= CPU_i486DX2) && (cpu_s->cpu_type < CPU_iDX4);	
         isdx4        = (cpu_s->cpu_type >= CPU_iDX4) && (cpu_s->cpu_type < CPU_WINCHIP);
         is_pentium   = (cpu_s->cpu_type == CPU_PENTIUM) || (cpu_s->cpu_type == CPU_PENTIUMMMX);
-#if (defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_AMD_K)))
+#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
         is_k5        = (cpu_s->cpu_type == CPU_K5) || (cpu_s->cpu_type == CPU_5K86);
 #else
-        is_k5        = 0;
+	is_k5        = 0;
 #endif
-#if (defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_AMD_K)))
         is_k6        = (cpu_s->cpu_type == CPU_K6);
-#else
-        is_k6        = 0;
-#endif
-#ifdef USE_NEW_DYNAREC
-	is_k6        = is_k6 || (cpu_s->cpu_type == CPU_K6_2) || (cpu_s->cpu_type == CPU_K6_2C) ||
-				(cpu_s->cpu_type == CPU_K6_3) || (cpu_s->cpu_type == CPU_K6_2P) ||
-				(cpu_s->cpu_type == CPU_K6_3P);
-#endif
+	is_k6        = (cpu_s->cpu_type == CPU_K6) || (cpu_s->cpu_type == CPU_K6_2) ||
+				(cpu_s->cpu_type == CPU_K6_2C) || (cpu_s->cpu_type == CPU_K6_3) ||
+				(cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P);
 #if defined(DEV_BRANCH) && defined(USE_I686)
         is_p6        = (cpu_s->cpu_type == CPU_PENTIUMPRO) || (cpu_s->cpu_type == CPU_PENTIUM2) ||
 		       (cpu_s->cpu_type == CPU_PENTIUM2D);
@@ -340,7 +325,7 @@ cpu_set(void)
 #endif
         hasfpu       = (cpu_s->cpu_type >= CPU_i486DX) || (cpu_s->cpu_type == CPU_RAPIDCAD);
 	hascache     = (cpu_s->cpu_type >= CPU_486SLC) || (cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_CYRIX_6X86))
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
         cpu_iscyrix  = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx5x86 || cpu_s->cpu_type == CPU_Cx6x86 || cpu_s->cpu_type == CPU_Cx6x86MX || cpu_s->cpu_type == CPU_Cx6x86L || cpu_s->cpu_type == CPU_CxGX1);
 #else
         cpu_iscyrix  = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx5x86);
@@ -402,9 +387,7 @@ cpu_set(void)
 #ifdef USE_DYNAREC
         x86_dynarec_opcodes_REPE = dynarec_ops_REPE;
         x86_dynarec_opcodes_REPNE = dynarec_ops_REPNE;
-#ifdef USE_NEW_DYNAREC
         x86_dynarec_opcodes_3DNOW = dynarec_ops_3DNOW;
-#endif
 #endif
 
 #ifdef USE_DYNAREC
@@ -965,7 +948,6 @@ cpu_set(void)
                 cpu_cyrix_alignment = 1;
                 break;
 
-#ifdef USE_NEW_DYNAREC
                 case CPU_WINCHIP2:
 #ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_winchip2_0f, dynarec_ops_386, dynarec_ops_winchip2_0f);
@@ -1009,7 +991,6 @@ cpu_set(void)
                 codegen_timing_set(&codegen_timing_winchip2);
 #endif		
                 break;
-#endif
 
                 case CPU_PENTIUM:
 #ifdef USE_DYNAREC
@@ -1097,7 +1078,7 @@ cpu_set(void)
 #endif
                 break;
 
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_CYRIX_6X86))
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
   		case CPU_Cx6x86:
 #ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentium_0f, dynarec_ops_386, dynarec_ops_pentium_0f);
@@ -1268,7 +1249,7 @@ cpu_set(void)
                 break;
 #endif
 
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_AMD_K))
+#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
                 case CPU_K5:
                 case CPU_5K86:
 #ifdef USE_DYNAREC
@@ -1308,16 +1289,17 @@ cpu_set(void)
                 cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE;
-#if defined(USE_NEW_DYNAREC) && defined(USE_DYNAREC)
+#ifdef USE_DYNAREC
                 codegen_timing_set(&codegen_timing_k6);
 #endif
                 break;
+#endif
 
                 case CPU_K6:
 #ifdef USE_DYNAREC
-                x86_setopcodes(ops_386, ops_pentiummmx_0f, dynarec_ops_386, dynarec_ops_pentiummmx_0f);
+                x86_setopcodes(ops_386, ops_k6_0f, dynarec_ops_386, dynarec_ops_k6_0f);
 #else
-                x86_setopcodes(ops_386, ops_pentiummmx_0f);
+                x86_setopcodes(ops_386, ops_k6_0f);
 #endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 2; /*register dest - memory src*/
@@ -1352,16 +1334,10 @@ cpu_set(void)
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
-#ifdef USE_NEW_DYNAREC
                 codegen_timing_set(&codegen_timing_k6);
-#else
-                codegen_timing_set(&codegen_timing_pentium);
-#endif
 #endif
                 break;
-#endif
 
-#ifdef USE_NEW_DYNAREC
                 case CPU_K6_2:
                 case CPU_K6_2C:
                 case CPU_K6_3:
@@ -1406,7 +1382,6 @@ cpu_set(void)
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE;
                 codegen_timing_set(&codegen_timing_k6);
                 break;
-#endif
 
 #if defined(DEV_BRANCH) && defined(USE_I686)
                 case CPU_PENTIUMPRO:
@@ -1458,13 +1433,9 @@ cpu_set(void)
                 timing_misaligned = 3;
                 cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
+                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_PAE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
-#ifdef USE_NEW_DYNAREC
          	codegen_timing_set(&codegen_timing_p6);
-#else
-         	codegen_timing_set(&codegen_timing_686);
-#endif
 #endif
                 break;
 
@@ -1517,13 +1488,9 @@ cpu_set(void)
                 timing_misaligned = 3;
                 cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
+                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_PAE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
-#ifdef USE_NEW_DYNAREC
          	codegen_timing_set(&codegen_timing_p6);
-#else
-         	codegen_timing_set(&codegen_timing_686);
-#endif
 #endif
                 break;
 
@@ -1576,13 +1543,9 @@ cpu_set(void)
                 timing_misaligned = 3;
                 cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE | CR4_OSFXSR;
+                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE | CR4_OSFXSR;
 #ifdef USE_DYNAREC
-#ifdef USE_NEW_DYNAREC
          	codegen_timing_set(&codegen_timing_p6);
-#else
-         	codegen_timing_set(&codegen_timing_686);
-#endif
 #endif
                 break;
 #endif
@@ -1763,7 +1726,6 @@ cpu_CPUID(void)
                    EAX = EBX = ECX = EDX = 0;
                 break;
 
-#ifdef USE_NEW_DYNAREC
                 case CPU_WINCHIP2:
                 switch (EAX)
                 {
@@ -1823,7 +1785,6 @@ cpu_CPUID(void)
                         break;
                 }
                 break;
-#endif
 
                 case CPU_PENTIUM:
                 if (!EAX)
@@ -1843,7 +1804,7 @@ cpu_CPUID(void)
                         EAX = EBX = ECX = EDX = 0;
                 break;
 
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_AMD_K))
+#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
                 case CPU_K5:
                 if (!EAX)
                 {
@@ -1913,6 +1874,7 @@ cpu_CPUID(void)
                 else
                         EAX = EBX = ECX = EDX = 0;
                 break;
+#endif
 
                 case CPU_K6:
                 if (!EAX)
@@ -1975,9 +1937,7 @@ cpu_CPUID(void)
                 else
                         EAX = EBX = ECX = EDX = 0;
                 break;
-#endif
 
-#ifdef USE_NEW_DYNAREC
                 case CPU_K6_2:
                 case CPU_K6_2C:
                 switch (EAX)
@@ -1998,7 +1958,7 @@ cpu_CPUID(void)
                         break;
                         case 0x80000001:
                         EAX = CPUID+0x100;
-                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_3DNOW;
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW;
                         break;
 
                         case 0x80000002: /*Processor name string*/
@@ -2046,7 +2006,7 @@ cpu_CPUID(void)
                         break;
                         case 0x80000001:
                         EAX = CPUID+0x100;
-                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_3DNOW;
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW;
                         break;
 
                         case 0x80000002: /*Processor name string*/
@@ -2099,7 +2059,7 @@ cpu_CPUID(void)
                         break;
                         case 0x80000001:
                         EAX = CPUID+0x100;
-                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_3DNOW;
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW;
                         break;
 
                         case 0x80000002: /*Processor name string*/
@@ -2138,7 +2098,6 @@ cpu_CPUID(void)
                         break;
                 }
                 break;
-#endif
 
                 case CPU_PENTIUMMMX:
                 if (!EAX)
@@ -2159,7 +2118,7 @@ cpu_CPUID(void)
                 break;
 
 
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_CYRIX_6X86))
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
                 case CPU_Cx6x86:
                 if (!EAX)
                 {
@@ -2251,7 +2210,7 @@ cpu_CPUID(void)
                 {
                         EAX = CPUID;
                         EBX = ECX = 0;
-                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_SEP | CPUID_CMOV;
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MTRR/* | CPUID_SEP*/ | CPUID_CMOV;
                 }
 		else if (EAX == 2)
 		{
@@ -2272,7 +2231,7 @@ cpu_CPUID(void)
                 {
                         EAX = CPUID;
                         EBX = ECX = 0;
-                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_SEP | CPUID_CMOV;
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR/* | CPUID_SEP*/ | CPUID_CMOV;
                 }
 		else if (EAX == 2)
 		{
@@ -2296,7 +2255,7 @@ cpu_CPUID(void)
                 {
                         EAX = CPUID;
                         EBX = ECX = 0;
-                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_SEP | CPUID_FXSR | CPUID_CMOV;
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR/* | CPUID_SEP*/ | CPUID_FXSR | CPUID_CMOV;
                 }
 		else if (EAX == 2)
 		{
@@ -2366,15 +2325,15 @@ cpu_CPUID(void)
 
 void cpu_ven_reset(void)
 {
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_AMD_K))
         switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
         {
+#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
                 case CPU_K5:
                 case CPU_5K86:
+#endif
                 case CPU_K6:
 			amd_efer = amd_whcr = 0ULL;
 			break;
-#ifdef USE_NEW_DYNAREC
 		case CPU_K6_2:
 			amd_efer = amd_whcr = 0ULL;
 			star = 0ULL;
@@ -2401,9 +2360,7 @@ void cpu_ven_reset(void)
 			amd_pfir = amd_l2aar = 0ULL;
 			amd_epmr = 0ULL;
 			break;
-#endif
 	}
-#endif
 }
 
 void cpu_RDMSR()
@@ -2412,9 +2369,7 @@ void cpu_RDMSR()
         switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
         {
                 case CPU_WINCHIP:
-#ifdef USE_NEW_DYNAREC
                 case CPU_WINCHIP2:
-#endif
                 EAX = EDX = 0;
                 switch (ECX)
                 {
@@ -2517,9 +2472,10 @@ void cpu_RDMSR()
                 }
                 break;
 		
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_AMD_K))
+#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
                 case CPU_K5:
                 case CPU_5K86:
+#endif
                 case CPU_K6:
                 EAX = EDX = 0;
                 switch (ECX)
@@ -2548,9 +2504,7 @@ void cpu_RDMSR()
 			break;
                 }
                 break;
-#endif
 
-#ifdef USE_NEW_DYNAREC
                 case CPU_K6_2:
                 EAX = EDX = 0;
                 switch (ECX)
@@ -2731,7 +2685,6 @@ void cpu_RDMSR()
 			break;
                 }
                 break;
-#endif
 
                 case CPU_PENTIUM:
                 case CPU_PENTIUMMMX:
@@ -2744,7 +2697,7 @@ void cpu_RDMSR()
 				break;
                 }
                 break;
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_CYRIX_6X86))
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
                 case CPU_Cx6x86:
                 case CPU_Cx6x86L:
                 case CPU_CxGX1:
@@ -2779,6 +2732,7 @@ void cpu_RDMSR()
 			case 0x1B:
                         EAX = apic_base_msr & 0xffffffff;
                         EDX = apic_base_msr >> 32;
+			/* pclog("APIC_BASE read : %08X%08X\n", EDX, EAX); */
 			break;
 			case 0x2A:
 			EAX = 0xC5800000;
@@ -2892,17 +2846,13 @@ i686_invalid_rdmsr:
 
 void cpu_WRMSR()
 {
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_AMD_K))
 	uint64_t temp;
-#endif
 
 	cpu_log("WRMSR %08X %08X%08X\n", ECX, EDX, EAX);
         switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
         {
                 case CPU_WINCHIP:
-#ifdef USE_NEW_DYNAREC
                 case CPU_WINCHIP2:
-#endif
                 switch (ECX)
                 {
                         case 0x02:
@@ -2927,12 +2877,10 @@ void cpu_WRMSR()
 				cpu_features |= CPU_FEATURE_CX8;
 			else
 				cpu_features &= ~CPU_FEATURE_CX8;
-#ifdef USE_NEW_DYNAREC
 			if ((EAX & (1 << 20)) && machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type >= CPU_WINCHIP2)
                                 cpu_features |= CPU_FEATURE_3DNOW;
 			else
                                 cpu_features &= ~CPU_FEATURE_3DNOW;
-#endif
                          if (EAX & (1 << 29))
                                  CPUID = 0;
                          else
@@ -2990,9 +2938,10 @@ void cpu_WRMSR()
                 }
                 break;
 		
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_AMD_K))
+#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
                 case CPU_K5:
                 case CPU_5K86:
+#endif
                 case CPU_K6:
                 switch (ECX)
                 {
@@ -3020,9 +2969,7 @@ void cpu_WRMSR()
 			break;
                 }
                 break;
-#endif
 
-#ifdef USE_NEW_DYNAREC
                 case CPU_K6_2:
                 switch (ECX)
                 {
@@ -3183,7 +3130,6 @@ void cpu_WRMSR()
 			break;
                 }
                 break;
-#endif
 
                 case CPU_PENTIUM:
                 case CPU_PENTIUMMMX:
@@ -3194,7 +3140,7 @@ void cpu_WRMSR()
 				break;
                 }
                 break;
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_CYRIX_6X86))
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
                 case CPU_Cx6x86:
                 case CPU_Cx6x86L:
                 case CPU_CxGX1:
@@ -3223,7 +3169,8 @@ void cpu_WRMSR()
 			ecx17_msr = EAX | ((uint64_t)EDX << 32);
 			break;
 			case 0x1B:
-			apic_base_msr = EAX | ((uint64_t)EDX << 32);
+			/* pclog("APIC_BASE write: %08X%08X\n", EDX, EAX); */
+			// apic_base_msr = EAX | ((uint64_t)EDX << 32);
 			break;
 			case 0x79:
 			ecx79_msr = EAX | ((uint64_t)EDX << 32);
@@ -3341,7 +3288,7 @@ static void cpu_write(uint16_t addr, uint8_t val, void *priv)
                 if ((ccr3 & 0xf0) == 0x10)
                 {
                         ccr4 = val;
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_CYRIX_6X86))
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
                         if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_Cx6x86)
                         {
                                 if (val & 0x80)

@@ -4,8 +4,9 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include "cpu.h"
-#include "codegen_timing_common.h"
+#include <86box/mem.h>
 
+#include "codegen_timing_common.h"
 
 uint64_t opcode_deps[256] =
 {
@@ -280,7 +281,7 @@ uint64_t opcode_deps_0f[256] =
 /*00*/  MODRM,  MODRM,   MODRM,   MODRM,
         0,      0,       0,       0,
         0,      0,       0,       0,
-        0,      0,       0,       0,
+        0,      MODRM,   0,       MODRM,
 
 /*10*/  0,      0,       0,       0,
         0,      0,       0,       0,
@@ -362,7 +363,7 @@ uint64_t opcode_deps_0f_mod3[256] =
 /*00*/  MODRM,  MODRM,   MODRM,   MODRM,
         0,      0,       0,       0,
         0,      0,       0,       0,
-        0,      0,       0,       0,
+        0,      MODRM,   0,       MODRM,
 
 /*10*/  0,      0,       0,       0,
         0,      0,       0,       0,
@@ -438,6 +439,171 @@ uint64_t opcode_deps_0f_mod3[256] =
         0,      MODRM | MMX_MULTIPLY,   0,                       0,
         MODRM,  MODRM,                  MODRM,                   0,
         MODRM,  MODRM,                  MODRM,                   0,
+};
+
+uint64_t opcode_deps_0f0f[256] =
+{
+/*00*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      MODRM,   0,       0,
+
+/*10*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      MODRM,   0,       0,
+
+/*20*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*30*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*40*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*50*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*60*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*70*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*80*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*90*/  MODRM,  0,       0,       0,
+        MODRM,  0,       MODRM,   MODRM,
+        0,      0,       MODRM,   0,
+        0,      0,       MODRM,   0,
+
+/*a0*/  MODRM,  0,       0,       0,
+        MODRM,  0,       MODRM,   MODRM,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*b0*/  MODRM,  0,       0,       0,
+        MODRM,  0,       MODRM,   MODRM,
+        0,      0,       0,       0,
+        0,      0,       0,       MODRM,
+
+/*c0*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*d0*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*e0*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*f0*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+};
+uint64_t opcode_deps_0f0f_mod3[256] =
+{
+/*00*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      MODRM,   0,       0,
+
+/*10*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      MODRM,   0,       0,
+
+/*20*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*30*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*40*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*50*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*60*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*70*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*80*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*90*/  MODRM,  0,       0,       0,
+        MODRM,  0,       MODRM,   MODRM,
+        0,      0,       MODRM,   0,
+        0,      0,       MODRM,   0,
+
+/*a0*/  MODRM,  0,       0,       0,
+        MODRM,  0,       MODRM,   MODRM,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*b0*/  MODRM,  0,       0,       0,
+        MODRM,  0,       MODRM,   MODRM,
+        0,      0,       0,       0,
+        0,      0,       0,       MODRM,
+
+/*c0*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*d0*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*e0*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+
+/*f0*/  0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
+        0,      0,       0,       0,
 };
 
 uint64_t opcode_deps_shift[8] =
@@ -664,21 +830,21 @@ uint64_t opcode_deps_df_mod3[8] =
 
 uint64_t opcode_deps_81[8] =
 {
-        MODRM,  MODRM,  MODRM,  MODRM,
-        MODRM,  MODRM,  MODRM,  MODRM
+        MODRM | HAS_IMM1632,  MODRM | HAS_IMM1632,  MODRM | HAS_IMM1632,  MODRM | HAS_IMM1632,
+        MODRM | HAS_IMM1632,  MODRM | HAS_IMM1632,  MODRM | HAS_IMM1632,  MODRM | HAS_IMM1632
 };
 uint64_t opcode_deps_81_mod3[8] =
 {
-        SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_RM | DSTDEP_RM | MODRM,
-        SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_RM | MODRM
+        SRCDEP_RM | DSTDEP_RM | MODRM | HAS_IMM1632,  SRCDEP_RM | DSTDEP_RM | MODRM | HAS_IMM1632,  SRCDEP_RM | DSTDEP_RM | MODRM | HAS_IMM1632,  SRCDEP_RM | DSTDEP_RM | MODRM | HAS_IMM1632,
+        SRCDEP_RM | DSTDEP_RM | MODRM | HAS_IMM1632,  SRCDEP_RM | DSTDEP_RM | MODRM | HAS_IMM1632,  SRCDEP_RM | DSTDEP_RM | MODRM | HAS_IMM1632,  SRCDEP_RM | MODRM | HAS_IMM1632
 };
 uint64_t opcode_deps_8x[8] =
 {
-        MODRM,  MODRM,  MODRM,  MODRM,
-        MODRM,  MODRM,  MODRM,  MODRM
+        MODRM | HAS_IMM8,  MODRM | HAS_IMM8,  MODRM | HAS_IMM8,  MODRM | HAS_IMM8,
+        MODRM | HAS_IMM8,  MODRM | HAS_IMM8,  MODRM | HAS_IMM8,  MODRM | HAS_IMM8
 };
 uint64_t opcode_deps_8x_mod3[8] =
 {
-        SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_RM | DSTDEP_RM | MODRM,
-        SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_RM | MODRM
+        SRCDEP_RM | DSTDEP_RM | MODRM | HAS_IMM8,  SRCDEP_RM | DSTDEP_RM | MODRM | HAS_IMM8,  SRCDEP_RM | DSTDEP_RM | MODRM | HAS_IMM8,  SRCDEP_RM | DSTDEP_RM | MODRM | HAS_IMM8,
+        SRCDEP_RM | DSTDEP_RM | MODRM | HAS_IMM8,  SRCDEP_RM | DSTDEP_RM | MODRM | HAS_IMM8,  SRCDEP_RM | DSTDEP_RM | MODRM | HAS_IMM8,  SRCDEP_RM | MODRM | HAS_IMM8
 };

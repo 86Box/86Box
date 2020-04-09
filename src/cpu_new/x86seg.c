@@ -382,12 +382,17 @@ int loadseg(uint16_t seg, x86seg *s)
                 {
                         if (!(seg&~3))
                         {
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loadseg(): Zero stack segment",seg&~3);
                                 return 1;
                         }
-                        if ((seg&3)!=CPL || dpl!=CPL)
+                        if ((seg&3)!=CPL)
                         {
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loadseg(): Stack segment RPL != CPL",seg&~3);
+                                return 1;
+                        }
+                        if (dpl!=CPL)
+                        {
+                                x86gpf("loadseg(): Stack segment DPL != CPL",seg&~3);
                                 return 1;
                         }
                         switch ((segdat[2]>>8)&0x1F)
@@ -395,7 +400,7 @@ int loadseg(uint16_t seg, x86seg *s)
                                 case 0x12: case 0x13: case 0x16: case 0x17: /*r/w*/
                                 break;
                                 default:
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loadseg(): Unknown stack segment type",seg&~3);
                                 return 1;
                         }
                         if (!(segdat[2]&0x8000))
@@ -414,16 +419,21 @@ int loadseg(uint16_t seg, x86seg *s)
                                 case 0x10: case 0x11: case 0x12: case 0x13: /*Data segments*/
                                 case 0x14: case 0x15: case 0x16: case 0x17:
                                 case 0x1A: case 0x1B: /*Readable non-conforming code*/
-                                if ((seg&3)>dpl || (CPL)>dpl)
+                                if ((seg&3)>dpl)
                                 {
-                                        x86gpf(NULL,seg&~3);
+                                        x86gpf("loadseg(): Normal segment RPL > DPL",seg&~3);
+                                        return 1;
+                                }
+                                if ((CPL)>dpl)
+                                {
+                                        x86gpf("loadseg(): Normal segment DPL < CPL",seg&~3);
                                         return 1;
                                 }
                                 break;
                                 case 0x1E: case 0x1F: /*Readable conforming code*/
                                 break;
                                 default:
-                                x86gpf(NULL,seg&~3);
+                                x86gpf("loadseg(): Unknown normal segment type",seg&~3);
                                 return 1;
                         }
                 }

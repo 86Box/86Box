@@ -139,6 +139,8 @@ static int opMOV_CRx_r_a16(uint32_t fetchdat)
                 case 4:
                 if (cpu_has_feature(CPU_FEATURE_CR4))
                 {
+			if (cpu_state.regs[cpu_rm].l & 0x00000020)
+				fatal("PAE enable\n");
                         cr4 = cpu_state.regs[cpu_rm].l & cpu_CR4_mask;
                         break;
                 }

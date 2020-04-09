@@ -1067,7 +1067,7 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
         }
         
 generate_call:
-        codegen_timing_opcode(opcode, fetchdat, op_32);
+        codegen_timing_opcode(opcode, fetchdat, op_32, op_pc);
         
         if ((op_table == x86_dynarec_opcodes &&
               ((opcode & 0xf0) == 0x70 || (opcode & 0xfc) == 0xe0 || opcode == 0xc2 ||
@@ -1075,6 +1075,24 @@ generate_call:
               (opcode == 0xff && ((fetchdat & 0x38) >= 0x10 && (fetchdat & 0x38) < 0x30)))) ||
             (op_table == x86_dynarec_opcodes_0f && ((opcode & 0xf0) == 0x80)))
         {
+                /*On some CPUs (eg K6), a jump/branch instruction may be able to pair with
+                  subsequent instructions, so no cycles may have been deducted for it yet.
+                  To prevent having zero cycle blocks (eg with a jump instruction pointing
+                  to itself), apply the cycles that would be taken if this jump is taken,
+                  then reverse it for subsequent instructions if the jump is not taken*/
+                int jump_cycles = 0;
+
+		if (codegen_timing_jump_cycles != NULL)
+			codegen_timing_jump_cycles();
+
+                if (jump_cycles)
+                {
+                        addbyte(0x81); /*SUB $jump_cycles, cyclcs*/
+                        addbyte(0x6d);
+                        addbyte((uint8_t)cpu_state_offset(_cycles));
+                        addlong((uint32_t)jump_cycles);
+                }
+
                 /*Opcode is likely to cause block to exit, update cycle count*/
                 if (codegen_block_cycles)
                 {
@@ -1091,6 +1109,15 @@ generate_call:
                         addbyte((uint8_t)cpu_state_offset(cpu_recomp_ins));
                         addlong(codegen_block_ins);
                         codegen_block_ins = 0;
+                }
+
+                if (jump_cycles)
+                {
+                        addbyte(0x81); /*SUB $jump_cycles, cyclcs*/
+                        addbyte(0x6d);
+                        addbyte((uint8_t)cpu_state_offset(_cycles));
+                        addlong((uint32_t)jump_cycles);
+                        jump_cycles = 0;
                 }
         }
 

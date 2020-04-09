@@ -491,6 +491,7 @@ static int opPSUBD_a32(uint32_t fetchdat)
 static int opPSUBSB_a16(uint32_t fetchdat)
 {
         MMX_REG src;
+	pclog("opPSUBSB_a16(%08X)\n", fetchdat);
         MMX_ENTER();
         
         fetch_ea_16(fetchdat);
@@ -510,6 +511,7 @@ static int opPSUBSB_a16(uint32_t fetchdat)
 static int opPSUBSB_a32(uint32_t fetchdat)
 {
         MMX_REG src;
+	pclog("opPSUBSB_a32(%08X)\n", fetchdat);
         MMX_ENTER();
         
         fetch_ea_32(fetchdat);

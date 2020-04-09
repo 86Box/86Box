@@ -607,20 +607,18 @@ static int opF7_l_a32(uint32_t fetchdat)
 
 static int opHLT(uint32_t fetchdat)
 {
-	in_hlt = 0;
-
         if ((CPL || (cpu_state.eflags&VM_FLAG)) && (cr0&1))
         {
                 x86gpf(NULL,0);
                 return 1;
         }
-        if (!((cpu_state.flags & I_FLAG) && pic_intpending))
+	if (smi_line)
+		enter_smm_check(1);
+        else if (!((cpu_state.flags & I_FLAG) && pic_intpending))
         {
                 CLOCK_CYCLES_ALWAYS(100);
-		if (!((cpu_state.flags & I_FLAG) && pic_intpending)) {
-			in_hlt = 1;
+		if (!((cpu_state.flags & I_FLAG) && pic_intpending))
                 	cpu_state.pc--;
-		}
         }
         else
                 CLOCK_CYCLES(5);
@@ -959,7 +957,7 @@ static int opRSM(uint32_t fetchdat)
         {
                	leave_smm();
 		if (smi_latched)
-			enter_smm();
+			enter_smm(smm_in_hlt);
                 CPU_BLOCK_END();
                 return 0;
         }
