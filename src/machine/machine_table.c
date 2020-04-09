@@ -33,34 +33,32 @@
 #include <86box/machine.h>
 
 
-
-#ifdef USE_NEW_DYNAREC
+#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 #define MACHINE_CPUS_PENTIUM_S5        {{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip},     {"AMD",   cpus_K5},      {"",      NULL},         {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_S73V      {{ "Intel", cpus_Pentium3V},  {"IDT", cpus_WinChip},     {"AMD",   cpus_K5},      {"Cyrix", cpus_6x863V},  {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_S7        {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip},     {"AMD",   cpus_K56},     {"Cyrix", cpus_6x86},    {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_SS7       {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip_SS7}, {"AMD",   cpus_K56_SS7}, {"Cyrix", cpus_6x86SS7}, {"",      NULL}}
 #else
-#if defined(DEV_BRANCH) && defined(USE_AMD_K)
-#define MACHINE_CPUS_PENTIUM_S5   {{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"AMD",   cpus_K5},     {"",      NULL},     {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_S5        {{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip},     {"AMD",   cpus_K5},      {"",      NULL},         {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_S73V      {{ "Intel", cpus_Pentium3V},  {"IDT", cpus_WinChip},     {"AMD",   cpus_K5},      {"",      NULL},         {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_S7        {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip},     {"AMD",   cpus_K56},     {"",      NULL},         {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_SS7       {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip_SS7}, {"AMD",   cpus_K56_SS7}, {"",      NULL},         {"",      NULL}}
+#endif
+#else
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
-#define MACHINE_CPUS_PENTIUM_S73V {{"Intel", cpus_Pentium3V},   {"IDT", cpus_WinChip}, {"AMD",   cpus_K5},   {"Cyrix", cpus_6x863V},{"",      NULL}}
-#define MACHINE_CPUS_PENTIUM_S7   {{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},  {"Cyrix", cpus_6x86},  {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_S5        {{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip},     {"",      NULL},         {"",      NULL},         {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_S73V      {{ "Intel", cpus_Pentium3V},  {"IDT", cpus_WinChip},     {"Cyrix", cpus_6x863V},  {"",      NULL},         {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_S7        {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip},     {"AMD",   cpus_K56},     {"Cyrix", cpus_6x86},    {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_SS7       {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip_SS7}, {"AMD",   cpus_K56_SS7}, {"Cyrix", cpus_6x86SS7}, {"",      NULL}}
 #else
-#define MACHINE_CPUS_PENTIUM_S73V {{ "Intel", cpus_Pentium3V},  {"IDT", cpus_WinChip}, {"AMD",   cpus_K5},     {"",      NULL},     {"",      NULL}}	
-#define MACHINE_CPUS_PENTIUM_S7   {{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"AMD",   cpus_K56},    {"",      NULL},     {"",      NULL}}
-#endif
-#else
-#define MACHINE_CPUS_PENTIUM_S5   {{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip}, {"",      NULL},        {"",      NULL},     {"",      NULL}}
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
-#define MACHINE_CPUS_PENTIUM_S73V {{"Intel", cpus_Pentium3V},   {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x863V}, {"",      NULL},     {"",      NULL}}
-#define MACHINE_CPUS_PENTIUM_S7   {{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"Cyrix", cpus_6x86},   {"",      NULL},     {"",      NULL}}
-#else
-#define MACHINE_CPUS_PENTIUM_S73V {{"Intel", cpus_Pentium3V},   {"IDT", cpus_WinChip}, {"",      NULL},        {"",      NULL},     {"",      NULL}}
-#define MACHINE_CPUS_PENTIUM_S7   {{"Intel", cpus_Pentium},     {"IDT", cpus_WinChip}, {"",      NULL},        {"",      NULL},     {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_S5        {{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip},     {"",      NULL},         {"",      NULL},         {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_S73V      {{ "Intel", cpus_Pentium3V},  {"IDT", cpus_WinChip},     {"",      NULL},         {"",      NULL},         {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_S7        {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip},     {"AMD",   cpus_K56},     {"",      NULL},         {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_SS7       {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip_SS7}, {"AMD",   cpus_K56_SS7}, {"",      NULL},         {"",      NULL}}
 #endif
 #endif
-#define MACHINE_CPUS_PENTIUM_SS7   MACHINE_CPUS_PENTIUM_S7
-#endif
+
 
 const machine_t machines[] = {
     { "[8088] AMI XT clone",			"amixt",		{{"Intel",      cpus_8088},   {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA,											 64,  640,  64,   0,		machine_xt_amixt_init, NULL			},
