@@ -157,9 +157,9 @@ extern CPU  cpus_Cyrix3[];
 #if defined(DEV_BRANCH) && defined(USE_I686)
 extern CPU	cpus_PentiumPro[];
 extern CPU	cpus_PentiumII[];
-extern CPU      cpus_PIIIK[];
 extern CPU      cpus_CeleCVT[];
 extern CPU	cpus_Celeron[];
+extern CPU      cpus_Katmai[];
 #endif
 
 
