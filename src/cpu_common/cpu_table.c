@@ -746,6 +746,20 @@ CPU cpus_Celeron[] = { // Mendocino Celerons. Exact architecture as the P2D seri
     {"Celeron Mendocino 533",       CPU_PENTIUM2D,  533333333, 11/2, 0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 48,48,17,17, 64},
     {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}	
 };
+
+CPU cpus_Katmai[] = { // Katmai Pentium IIIs. Exact architecture as the P2D series.
+					   
+					   // The 100Mhz and 133Mhz Katmai are only meant to not cause any struggle
+					   // to the recompiler.
+    {"Pentium III Katmai 100",      CPU_PENTIUM2D,  100000000, 3/2,  0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
+    {"Pentium III Katmai 133",      CPU_PENTIUM2D,  133333333, 2,    0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16},
+    {"Pentium III Katmai 450",      CPU_PENTIUM2D,  450000000, 9/2,  0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 54},
+    {"Pentium III Katmai 500",      CPU_PENTIUM2D,  500000000, 5,    0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 45,45,15,15, 60},
+    {"Pentium III Katmai 533",      CPU_PENTIUM2D,  533333333, 11/2, 0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 48,48,17,17, 64},
+    {"Pentium III Katmai 550",      CPU_PENTIUM2D,  550000000, 11/2, 0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 50,50,17,17, 66},
+    {"Pentium III Katmai 600",      CPU_PENTIUM2D,  600000000, 6,    0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 54,54,18,18, 72},
+    {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}	
+};
 #endif
 #endif
 CPU cpus_Cyrix3[] = {
