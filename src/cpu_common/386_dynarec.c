@@ -1186,7 +1186,7 @@ void enter_smm()
 		smram_save_state_p5(saved_state);
 	else if (is_k5 || is_k6)	/* AMD K5 and K6 */
 		smram_save_state_amd_k(saved_state);
-	else if (is_p6)			/* Intel P6 (Pentium Pro, Pentium II, Celeron) */
+	else if (is_p6)			/* Intel P6 (Pentium Pro, Pentium II, Celeron, Pentium III) */
 		smram_save_state_p6(saved_state);
 	for (n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
 		smram_state -= 4;
@@ -1270,7 +1270,7 @@ void leave_smm()
 		smram_restore_state_p5(saved_state);
 	else if (is_k5 || is_k6)	/* AMD K5 and K6 */
 		smram_restore_state_amd_k(saved_state);
-	else if (is_p6)			/* Intel P6 (Pentium Pro, Pentium II, Celeron) */
+	else if (is_p6)			/* Intel P6 (Pentium Pro, Pentium II, Celeron, Pentium III) */
 		smram_restore_state_p6(saved_state);
 
 	in_smm = 0;
