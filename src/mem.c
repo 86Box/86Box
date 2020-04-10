@@ -301,7 +301,7 @@ mmutranslatereal_normal(uint32_t addr, int rw)
 
     addr2 = ((cr3 & ~0xfff) + ((addr >> 20) & 0xffc));
     temp = temp2 = rammap(addr2);
-    if (! (temp&1)) {
+    if (!(temp & 1)) {
 	cr2 = addr;
 	temp &= 1;
 	if (CPL == 3) temp |= 4;
@@ -313,7 +313,7 @@ mmutranslatereal_normal(uint32_t addr, int rw)
 
     if ((temp & 0x80) && (cr4 & CR4_PSE)) {
 	/*4MB page*/
-	if ((CPL == 3 && !(temp & 4) && !cpl_override) || (rw && !(temp & 2) && ((CPL == 3 && !cpl_override) || cr0 & WP_FLAG))) {
+	if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !(temp & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
 		cr2 = addr;
 		temp &= 1;
 		if (CPL == 3)
@@ -334,7 +334,7 @@ mmutranslatereal_normal(uint32_t addr, int rw)
 
     temp = rammap((temp & ~0xfff) + ((addr >> 10) & 0xffc));
     temp3 = temp & temp2;
-    if (!(temp&1) || (CPL==3 && !(temp3&4) && !cpl_override) || (rw && !(temp3&2) && ((CPL == 3 && !cpl_override) || cr0&WP_FLAG))) {
+    if (!(temp&1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
 	cr2 = addr;
 	temp &= 1;
 	if (CPL == 3) temp |= 4;
@@ -363,7 +363,7 @@ mmutranslatereal_pae(uint32_t addr, int rw)
 
     addr2 = (cr3 & ~0x1f) + ((addr >> 27) & 0x18);
     temp = temp2 = rammap64(addr2);
-    if (! (temp&1)) {
+    if (!(temp & 1)) {
 	cr2 = addr;
 	temp &= 1;
 	if (CPL == 3) temp |= 4;
@@ -376,7 +376,7 @@ mmutranslatereal_pae(uint32_t addr, int rw)
     addr3 = (temp & ~0xfff) + ((addr >> 18) & 0xff8);
     temp = rammap64(addr3);
     temp3 = temp & temp2;
-    if (! (temp&1)) {
+    if (!(temp & 1)) {
 	cr2 = addr;
 	temp &= 1;
 	if (CPL == 3) temp |= 4;
@@ -388,7 +388,7 @@ mmutranslatereal_pae(uint32_t addr, int rw)
 
     if (temp & 0x80) {
 	/*4MB page*/
-	if ((CPL == 3 && !(temp & 4) && !cpl_override) || (rw && !(temp & 2) && ((CPL == 3 && !cpl_override) || cr0 & WP_FLAG))) {
+	if (((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
 		cr2 = addr;
 		temp &= 1;
 		if (CPL == 3)
@@ -408,8 +408,8 @@ mmutranslatereal_pae(uint32_t addr, int rw)
 
     addr4 = (temp & ~0xfff) + ((addr >> 9) & 0xff8);
     temp = rammap64(addr4);
-    temp3 = temp3 & temp2;
-    if (!(temp&1) || (CPL==3 && !(temp3&4) && !cpl_override) || (rw && !(temp3&2) && ((CPL == 3 && !cpl_override) || cr0&WP_FLAG))) {
+    temp3 = temp & temp3;
+    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
 	cr2 = addr;
 	temp &= 1;
 	if (CPL == 3) temp |= 4;
@@ -423,7 +423,7 @@ mmutranslatereal_pae(uint32_t addr, int rw)
     rammap64(addr3) |= 0x20;
     rammap64(addr4) |= (rw? 0x60 : 0x20);
 
-    return ((temp & ~0xfff) + ((uint64_t) (addr & 0xfff)))& 0x0000000fffffffffULL;
+    return ((temp & ~0xfff) + ((uint64_t) (addr & 0xfff))) & 0x0000000fffffffffULL;
 }
 
 
@@ -462,7 +462,7 @@ mmutranslate_noabrt_normal(uint32_t addr, int rw)
 
     if ((temp & 0x80) && (cr4 & CR4_PSE)) {
 	/*4MB page*/
-	if ((CPL == 3 && !(temp & 4) && !cpl_override) || (rw && !(temp & 2) && (CPL == 3 || cr0 & WP_FLAG)))
+	if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
 		return 0xffffffffffffffffULL;
 
 	return (temp & ~0x3fffff) + (addr & 0x3fffff);
@@ -471,7 +471,7 @@ mmutranslate_noabrt_normal(uint32_t addr, int rw)
     temp = rammap((temp & ~0xfff) + ((addr >> 10) & 0xffc));
     temp3 = temp & temp2;
 
-    if (!(temp&1) || (CPL==3 && !(temp3&4) && !cpl_override) || (rw && !(temp3&2) && (CPL==3 || cr0&WP_FLAG)))
+    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
 	return 0xffffffffffffffffULL;
 
     return (uint64_t) ((temp & ~0xfff) + (addr & 0xfff));
@@ -502,7 +502,7 @@ mmutranslate_noabrt_pae(uint32_t addr, int rw)
 
     if (temp & 0x80) {
 	/*2MB page*/
-	if ((CPL == 3 && !(temp & 4) && !cpl_override) || (rw && !(temp & 2) && (CPL == 3 || cr0 & WP_FLAG)))
+	if (((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
 		return 0xffffffffffffffffULL;
 
 	return ((temp & ~0x1fffff) + (addr & 0x1fffff)) & 0x0000000fffffffffULL;
@@ -510,9 +510,9 @@ mmutranslate_noabrt_pae(uint32_t addr, int rw)
 
     addr4 = (temp & ~0xfff) + ((addr >> 9) & 0xff8);
     temp = rammap64(addr4);
-    temp3 = temp3 & temp2;
+    temp3 = temp & temp3;
 
-    if (!(temp&1) || (CPL==3 && !(temp3&4) && !cpl_override) || (rw && !(temp3&2) && (CPL==3 || cr0&WP_FLAG)))
+    if (!(temp&1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
 	return 0xffffffffffffffffULL;
 
     return ((temp & ~0xfff) + ((uint64_t) (addr & 0xfff))) & 0x0000000fffffffffULL;
@@ -1461,7 +1461,7 @@ mem_writel_phys(uint32_t addr, uint32_t val)
     if ((addr <= MEM_GRANULARITY_QBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
 	p = (uint32_t *) &(_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK]);
 	*p = val;
-    } else if ((addr <= MEM_GRANULARITY_QBOUND) && (map && map->read_l))
+    } else if ((addr <= MEM_GRANULARITY_QBOUND) && (map && map->write_l))
        	map->write_l(addr, val, map->p);
     else {
 	mem_writew_phys(addr, val & 0xffff);

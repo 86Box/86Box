@@ -246,9 +246,9 @@ exec386(int cycs)
 			x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
 			if (x86_was_reset)
 				break;
-		} else
+		}
 #ifdef ENABLE_386_LOG
-		if (in_smm)
+		else if (in_smm)
 			x386_log("[%04X:%08X] ABRT\n", CS, cpu_state.pc);
 #endif
 
