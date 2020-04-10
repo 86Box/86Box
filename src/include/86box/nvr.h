@@ -50,7 +50,7 @@
 # define EMU_NVR_H
 
 
-#define NVR_MAXSIZE	256		/* max size of NVR data */
+#define NVR_MAXSIZE	512		/* max size of NVR data */
 
 /* Conversion from BCD to Binary and vice versa. */
 #define RTC_BCD(x)      (((x) % 10) | (((x) / 10) << 4))
@@ -113,7 +113,10 @@ extern void	nvr_time_get(struct tm *);
 extern void	nvr_time_set(struct tm *);
 
 extern void	nvr_at_handler(int set, uint16_t base, nvr_t *nvr);
+extern void	nvr_at_sec_handler(int set, uint16_t base, nvr_t *nvr);
 extern void	nvr_wp_set(int set, int h, nvr_t *nvr);
+extern void	nvr_bank_set(int base, uint8_t bank, nvr_t *nvr);
+extern void	nvr_lock_set(int base, int size, int lock, nvr_t *nvr);
 
 
 #endif	/*EMU_NVR_H*/

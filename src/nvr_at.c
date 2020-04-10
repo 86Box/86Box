@@ -296,7 +296,8 @@ typedef struct {
     uint8_t	cent;
     uint8_t	def, flags;
 
-    uint8_t	addr[8], wp[2];
+    uint8_t	addr[8], wp[2],
+		bank[8], *lock;
 
     int16_t	count, state;
 
@@ -566,6 +567,8 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
     sub_cycles(ISA_CYCLES(8));
 
     if (addr & 1) {
+	if (local->bank[addr_id] == 0xff)
+		return;
 	old = nvr->regs[local->addr[addr_id]];
 	switch(local->addr[addr_id]) {
 		case RTC_REGA:
@@ -603,6 +606,8 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 				break;
 			if ((local->addr[addr_id] >= 0xb8) && (local->addr[addr_id] <= 0xbf) && local->wp[1])
 				break;
+			if (local->lock[local->addr[addr_id]])
+				break;
 			if (nvr->regs[local->addr[addr_id]] != val) {
 				nvr->regs[local->addr[addr_id]] = val;
 				nvr_dosave = 1;
@@ -627,6 +632,8 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 		local->addr[addr_id] &= 0x7f;
 	else if ((addr_id == 0x1) && (local->flags & FLAG_PIIX4))
 		local->addr[addr_id] = (local->addr[addr_id] & 0x7f) | 0x80;
+	if (local->bank[addr_id] > 0)
+		local->addr[addr_id] = (local->addr[addr_id] & 0x7f) | (0x80 * local->bank[addr_id]);
 	if (!(machines[machine].flags & MACHINE_MCA) &&
 	    !(machines[machine].flags & MACHINE_NONMI))
 		nmi_mask = (~val & 0x80);
@@ -645,6 +652,9 @@ nvr_read(uint16_t addr, void *priv)
     uint16_t checksum;
 
     sub_cycles(ISA_CYCLES(8));
+
+    if ((addr & 1) && (local->bank[addr_id] == 0xff))
+	return 0xff;
 
     if (addr & 1)  switch(local->addr[addr_id]) {
 	case RTC_REGA:
@@ -690,6 +700,22 @@ nvr_read(uint16_t addr, void *priv)
 	ret = local->addr[addr_id];
 
     return(ret);
+}
+
+
+/* Secondary NVR write - used by SMC. */
+static void
+nvr_sec_write(uint16_t addr, uint8_t val, void *priv)
+{
+    nvr_write(0x72 + (addr & 1), val, priv);
+}
+
+
+/* Secondary NVR read - used by SMC. */
+static uint8_t
+nvr_sec_read(uint16_t addr, void *priv)
+{
+    return nvr_read(0x72 + (addr & 1), priv);
 }
 
 
@@ -772,11 +798,39 @@ nvr_at_handler(int set, uint16_t base, nvr_t *nvr)
 
 
 void
+nvr_at_sec_handler(int set, uint16_t base, nvr_t *nvr)
+{
+    io_handler(set, base, 2,
+		  nvr_sec_read,NULL,NULL, nvr_sec_write,NULL,NULL, nvr);
+}
+
+
+void
 nvr_wp_set(int set, int h, nvr_t *nvr)
 {
     local_t *local = (local_t *) nvr->data;
 
     local->wp[h] = set;
+}
+
+
+void
+nvr_bank_set(int base, uint8_t bank, nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+
+    local->bank[base] = bank;
+}
+
+
+void
+nvr_lock_set(int base, int size, int lock, nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+    int i;
+
+    for (i = 0; i < size; i++)
+	local->lock[base + i] = lock;
 }
 
 
@@ -797,6 +851,8 @@ nvr_at_init(const device_t *info)
 
     /* This is machine specific. */
     nvr->size = machines[machine].nvrmask + 1;
+    local->lock = (uint8_t *) malloc(nvr->size);
+    memset(local->lock, 0x00, nvr->size);
     local->def = 0x00;
     local->flags = 0x00;
     switch(info->local & 7) {

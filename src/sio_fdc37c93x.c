@@ -30,6 +30,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/nvr.h>
 #include <86box/sio.h>
 
 
@@ -51,12 +52,13 @@ typedef struct {
 	    regs[48],
 	    ld_regs[10][256];
     uint16_t gpio_base,	/* Set to EA */
-	     auxio_base;
+	     auxio_base, nvr_sec_base;
     int locked,
 	cur_reg;
     fdc_t *fdc;
     serial_t *uart[2];
     access_bus_t *access_bus;
+    nvr_t *nvr;
 } fdc37c93x_t;
 
 
@@ -65,6 +67,18 @@ make_port(fdc37c93x_t *dev, uint8_t ld)
 {
     uint16_t r0 = dev->ld_regs[ld][0x60];
     uint16_t r1 = dev->ld_regs[ld][0x61];
+
+    uint16_t p = (r0 << 8) + r1;
+
+    return p;
+}
+
+
+static uint16_t
+make_port_sec(fdc37c93x_t *dev, uint8_t ld)
+{
+    uint16_t r0 = dev->ld_regs[ld][0x62];
+    uint16_t r1 = dev->ld_regs[ld][0x63];
 
     uint16_t p = (r0 << 8) + r1;
 
@@ -162,7 +176,34 @@ fdc37c93x_serial_handler(fdc37c93x_t *dev, int uart)
 }
 
 
-static void fdc37c93x_auxio_handler(fdc37c93x_t *dev)
+static void
+fdc37c93x_nvr_pri_handler(fdc37c93x_t *dev)
+{
+    uint8_t local_enable = !!dev->ld_regs[6][0x30];
+
+    nvr_at_handler(0, 0x70, dev->nvr);
+    if (local_enable)
+	nvr_at_handler(1, 0x70, dev->nvr);
+}
+
+
+static void
+fdc37c93x_nvr_sec_handler(fdc37c93x_t *dev)
+{
+    uint16_t ld_port = 0;
+    uint8_t local_enable = !!dev->ld_regs[6][0x30];
+
+    nvr_at_sec_handler(0, dev->nvr_sec_base, dev->nvr);
+    if (local_enable) {
+	dev->nvr_sec_base = ld_port = make_port_sec(dev, 6);
+	if ((ld_port >= 0x0100) && (ld_port <= 0x0FFE))
+		nvr_at_sec_handler(1, ld_port, dev->nvr);
+    }
+}
+
+
+static void
+fdc37c93x_auxio_handler(fdc37c93x_t *dev)
 {
     uint16_t ld_port = 0;
     uint8_t local_enable = !!dev->ld_regs[8][0x30];
@@ -321,7 +362,6 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 			else switch (dev->regs[7]) {
 				case 1:
 				case 2:
-				case 6:
 				case 7:
 					return;
 				case 9:
@@ -443,6 +483,60 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 				break;
 		}
 		break;
+	case 6:
+		/* RTC/NVR */
+		if (dev->chip_id != 0x30)
+			break;
+		switch(dev->cur_reg) {
+			case 0x30:
+				if (valxor)
+					fdc37c93x_nvr_pri_handler(dev);
+				/* FALLTHROUGH */
+			case 0x60:
+			case 0x61:
+				if (valxor)
+					fdc37c93x_nvr_sec_handler(dev);
+				break;
+			case 0xf0:
+				if (valxor) {
+					nvr_lock_set(0x80, 0x20, !!(dev->ld_regs[6][dev->cur_reg] & 0x01), dev->nvr);
+					nvr_lock_set(0xa0, 0x20, !!(dev->ld_regs[6][dev->cur_reg] & 0x02), dev->nvr);
+					nvr_lock_set(0xc0, 0x20, !!(dev->ld_regs[6][dev->cur_reg] & 0x04), dev->nvr);
+					nvr_lock_set(0xe0, 0x20, !!(dev->ld_regs[6][dev->cur_reg] & 0x08), dev->nvr);
+					if (dev->ld_regs[6][dev->cur_reg] & 0x80)  switch ((dev->ld_regs[6][dev->cur_reg] >> 4) & 0x07) {
+						case 0x00:
+						default:
+							nvr_bank_set(0, 0xff, dev->nvr);
+							nvr_bank_set(1, 1, dev->nvr);
+							break;
+						case 0x01:
+							nvr_bank_set(0, 0, dev->nvr);
+							nvr_bank_set(1, 1, dev->nvr);
+							break;
+						case 0x02: case 0x04:
+							nvr_bank_set(0, 0xff, dev->nvr);
+							nvr_bank_set(1, 0xff, dev->nvr);
+							break;
+						case 0x03: case 0x05:
+							nvr_bank_set(0, 0, dev->nvr);
+							nvr_bank_set(1, 0xff, dev->nvr);
+							break;
+						case 0x06:
+							nvr_bank_set(0, 0xff, dev->nvr);
+							nvr_bank_set(1, 2, dev->nvr);
+							break;
+						case 0x07:
+							nvr_bank_set(0, 0, dev->nvr);
+							nvr_bank_set(1, 2, dev->nvr);
+							break;
+					} else {
+						nvr_bank_set(0, 0, dev->nvr);
+						nvr_bank_set(1, 0xff, dev->nvr);
+					}
+				}
+				break;
+		}
+		break;
 	case 8:
 		/* Auxiliary I/O */
 		switch(dev->cur_reg) {
@@ -508,8 +602,8 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     memset(dev->regs, 0, 48);
 
     dev->regs[0x03] = 0x03;
-    dev->regs[0x21] = 0x01;
     dev->regs[0x20] = dev->chip_id;
+    dev->regs[0x21] = 0x01;
     dev->regs[0x22] = 0x39;
     dev->regs[0x24] = 0x04;
     dev->regs[0x26] = 0xF0;
@@ -571,7 +665,8 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     serial_setup(dev->uart[1], 0x2f8, dev->ld_regs[5][0x70]);
 
     /* Logical device 6: RTC */
-    dev->ld_regs[6][0x63] = 0x70;
+    dev->ld_regs[5][0x30] = 1;
+    dev->ld_regs[6][0x63] = 0x00;
     dev->ld_regs[6][0xF4] = 3;
 
     /* Logical device 7: Keyboard */
@@ -652,6 +747,13 @@ fdc37c93x_init(const device_t *info)
     dev->gpio_regs[0] = 0xFD;
     dev->gpio_regs[1] = 0xFF;
 
+    if (dev->chip_id == 0x30) {
+	dev->nvr = device_add(&at_nvr_device);
+
+	nvr_bank_set(0, 0, dev->nvr);
+	nvr_bank_set(1, 0xff, dev->nvr);
+    }
+
     if (dev->chip_id == 0x03)
 	dev->access_bus = device_add(&access_bus_device);
 
@@ -676,7 +778,7 @@ const device_t fdc37c932fr_device = {
 const device_t fdc37c932qf_device = {
     "SMC FDC37C932QF Super I/O",
     0,
-    0x02,	/* Share the same ID with the 935. */
+    0x30,	/* Share the same ID with the 935. */
     fdc37c93x_init, fdc37c93x_close, NULL,
     NULL, NULL, NULL,
     NULL

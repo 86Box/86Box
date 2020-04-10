@@ -198,7 +198,7 @@ const machine_t machines[] = {
 
     { "[Socket 5 FX] AMI Apollo",		"apollo",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  8,  128,   8, 127,	       machine_at_apollo_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_VECTRA54)
-    { "[Socket 5 FX] HP Vectra VL 5 Series 4",  "vectra54",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  8,  128,   8, 767,	     machine_at_vectra54_init, NULL			},
+    { "[Socket 5 FX] HP Vectra VL 5 Series 4",  "vectra54",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  8,  128,   8, 511,	     machine_at_vectra54_init, NULL			},
 #endif
     { "[Socket 5 FX] Intel Advanced/ZP",	"zappa",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,		machine_at_zappa_init, NULL			},
     { "[Socket 5 FX] PC Partner MB500N",	"mb500n",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  8,  128,   8, 127,	       machine_at_mb500n_init, NULL			},
