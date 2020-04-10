@@ -150,6 +150,7 @@ extern CPU  cpus_Cyrix3[];
 extern CPU	cpus_PentiumPro[];
 extern CPU	cpus_PentiumII[];
 extern CPU	cpus_Celeron[];
+extern CPU      cpus_Katmai[];
 #endif
 
 
