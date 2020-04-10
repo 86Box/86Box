@@ -4182,7 +4182,7 @@ static inline void FP_FCHS()
         addbyte(0x64);
         addbyte(0x05);
         addbyte((uint8_t)cpu_state_offset(tag[0]));
-        addbyte(~TAG_UINT64);
+        addbyte(TAG_NOT_UINT64);
         addbyte(0xf2); /*MOVSD ST[EAX*8], XMM0*/
         addbyte(0x0f);
         addbyte(0x11);
@@ -4435,7 +4435,7 @@ static inline void FP_OP_REG(int op, int dst, int src)
         addbyte(0x64);
         addbyte(0x05);
         addbyte((uint8_t)cpu_state_offset(tag));
-        addbyte(~TAG_UINT64);
+        addbyte(TAG_NOT_UINT64);
         if (op == FPU_DIVR || op == FPU_SUBR)
         {
                 addbyte(0xf3); /*MOVQ XMM0, ST[RBX*8]*/
@@ -4528,7 +4528,7 @@ static inline void FP_OP_MEM(int op)
         addbyte(0x64);
         addbyte(0x05);
         addbyte((uint8_t)cpu_state_offset(tag));
-        addbyte(~TAG_UINT64);
+        addbyte(TAG_NOT_UINT64);
 
         switch (op)
         {

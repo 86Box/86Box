@@ -2686,7 +2686,7 @@ static inline void FP_OP_S(int op)
                 addbyte(0x80); /*AND tag[dst][EBP], ~TAG_UINT64*/
                 addbyte(0x65);
                 addbyte((uint8_t)cpu_state_offset(tag[cpu_state.TOP]));
-                addbyte(~TAG_UINT64);
+                addbyte(TAG_NOT_UINT64);
                 addbyte(0xd8); /*FADD [ESP]*/
                 addbyte(0x04 | op);
                 addbyte(0x24);
@@ -2710,7 +2710,7 @@ static inline void FP_OP_S(int op)
                 addbyte(0x64);
                 addbyte(0x1d);
                 addbyte((uint8_t)cpu_state_offset(tag[0]));
-                addbyte(~TAG_UINT64);
+                addbyte(TAG_NOT_UINT64);
                 addbyte(0xd8); /*FADD [ESP]*/
                 addbyte(0x04 | op);
                 addbyte(0x24);
@@ -2743,7 +2743,7 @@ static inline void FP_OP_D(int op)
                 addbyte(0x80); /*AND tag[dst][EBP], ~TAG_UINT64*/
                 addbyte(0x65);
                 addbyte((uint8_t)cpu_state_offset(tag[cpu_state.TOP]));
-                addbyte(~TAG_UINT64);
+                addbyte(TAG_NOT_UINT64);
                 addbyte(0xdc); /*FADD [ESP]*/
                 addbyte(0x04 | op);
                 addbyte(0x24);
@@ -2783,7 +2783,7 @@ static inline void FP_OP_D(int op)
                 addbyte(0x64);
                 addbyte(0x1d);
                 addbyte((uint8_t)cpu_state_offset(tag[0]));
-                addbyte(~TAG_UINT64);
+                addbyte(TAG_NOT_UINT64);
                 addbyte(0xdc); /*FADD [ESP]*/
                 addbyte(0x04 | op);
                 addbyte(0x24);
@@ -2813,7 +2813,7 @@ static inline void FP_OP_IW(int op)
                 addbyte(0x80); /*AND tag[0][EBP], ~TAG_UINT64*/
                 addbyte(0x65);
                 addbyte((uint8_t)cpu_state_offset(tag[cpu_state.TOP]));
-                addbyte(~TAG_UINT64);
+                addbyte(TAG_NOT_UINT64);
                 addbyte(0xde); /*FADD [ESP]*/
                 addbyte(0x04 | op);
                 addbyte(0x24);
@@ -2837,7 +2837,7 @@ static inline void FP_OP_IW(int op)
                 addbyte(0x64);
                 addbyte(0x1d);
                 addbyte((uint8_t)cpu_state_offset(tag[0]));
-                addbyte(~TAG_UINT64);
+                addbyte(TAG_NOT_UINT64);
                 addbyte(0xde); /*FADD [ESP]*/
                 addbyte(0x04 | op);
                 addbyte(0x24);
@@ -2860,7 +2860,7 @@ static inline void FP_OP_IL(int op)
                 addbyte(0x80); /*AND tag[0][EBP], ~TAG_UINT64*/
                 addbyte(0x65);
                 addbyte((uint8_t)cpu_state_offset(tag[cpu_state.TOP]));
-                addbyte(~TAG_UINT64);
+                addbyte(TAG_NOT_UINT64);
                 addbyte(0xda); /*FADD [ESP]*/
                 addbyte(0x04 | op);
                 addbyte(0x24);
@@ -2884,7 +2884,7 @@ static inline void FP_OP_IL(int op)
                 addbyte(0x64);
                 addbyte(0x1d);
                 addbyte((uint8_t)cpu_state_offset(tag[0]));
-                addbyte(~TAG_UINT64);
+                addbyte(TAG_NOT_UINT64);
                 addbyte(0xda); /*FADD [ESP]*/
                 addbyte(0x04 | op);
                 addbyte(0x24);
@@ -2912,7 +2912,7 @@ static inline void FP_OP_IQ(int op)
                 addbyte(0x80); /*AND tag[0][EBP], ~TAG_UINT64*/
                 addbyte(0x65);
                 addbyte((uint8_t)cpu_state_offset(tag[cpu_state.TOP]));
-                addbyte(~TAG_UINT64);
+                addbyte(TAG_NOT_UINT64);
                 addbyte(0xdc); /*FADD [ESP]*/
                 addbyte(0x04 | op);
                 addbyte(0x24);
@@ -2940,7 +2940,7 @@ static inline void FP_OP_IQ(int op)
                 addbyte(0x64);
                 addbyte(0x1d);
                 addbyte((uint8_t)cpu_state_offset(tag[0]));
-                addbyte(~TAG_UINT64);
+                addbyte(TAG_NOT_UINT64);
                 addbyte(0xdc); /*FADD [ESP]*/
                 addbyte(0x04 | op);
                 addbyte(0x24);
@@ -3243,7 +3243,7 @@ static inline void FP_OP_REG(int op, int dst, int src)
                 addbyte(0x80); /*AND tag[dst][EBP], ~TAG_UINT64*/
                 addbyte(0x65);
                 addbyte((uint8_t)cpu_state_offset(tag[(cpu_state.TOP + dst) & 7]));
-                addbyte(~TAG_UINT64);
+                addbyte(TAG_NOT_UINT64);
                 addbyte(0xdd); /*FSTP ST[dst][EBP]*/
                 addbyte(0x5d);
                 addbyte((uint8_t)cpu_state_offset(ST[(cpu_state.TOP + dst) & 7]));
@@ -3275,7 +3275,7 @@ static inline void FP_OP_REG(int op, int dst, int src)
                         addbyte(0x64);
                         addbyte(0x1d);
                         addbyte((uint8_t)cpu_state_offset(tag[0]));
-                        addbyte(~TAG_UINT64);
+                        addbyte(TAG_NOT_UINT64);
                         addbyte(0xdc); /*FADD ST[EAX*8]*/
                         addbyte(0x44 | op);
                         addbyte(0xc5);
@@ -3295,7 +3295,7 @@ static inline void FP_OP_REG(int op, int dst, int src)
                         addbyte(0x64);
                         addbyte(0x05);
                         addbyte((uint8_t)cpu_state_offset(tag[0]));
-                        addbyte(~TAG_UINT64);
+                        addbyte(TAG_NOT_UINT64);
                         addbyte(0xdc); /*FADD ST[EBX*8]*/
                         addbyte(0x44 | op);
                         addbyte(0xdd);
@@ -3411,7 +3411,7 @@ static inline void FP_FCHS()
                 addbyte(0x80); /*AND tag[dst][EBP], ~TAG_UINT64*/
                 addbyte(0x65);
                 addbyte((uint8_t)cpu_state_offset(tag[cpu_state.TOP]));
-                addbyte(~TAG_UINT64);
+                addbyte(TAG_NOT_UINT64);
                 addbyte(0xdd); /*FSTP ST[dst][EBP]*/
                 addbyte(0x5d);
                 addbyte((uint8_t)cpu_state_offset(ST[cpu_state.TOP]));
@@ -3430,7 +3430,7 @@ static inline void FP_FCHS()
                 addbyte(0x64);
                 addbyte(0x05);
                 addbyte((uint8_t)cpu_state_offset(tag[0]));
-                addbyte(~TAG_UINT64);
+                addbyte(TAG_NOT_UINT64);
                 addbyte(0xd9); /*FCHS*/
                 addbyte(0xe0);
                 addbyte(0xdd); /*FSTP ST[EAX*8]*/

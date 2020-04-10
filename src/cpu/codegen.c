@@ -27,3 +27,10 @@ void codegen_timing_set(codegen_timing_t *timing)
 }
 
 int codegen_in_recompile;
+
+/* This is for compatibility with new x87 code. */
+void codegen_set_rounding_mode(int mode)
+{
+	/* cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (cpu_state.npxc & 0xc00); */
+	cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (mode << 10);
+}

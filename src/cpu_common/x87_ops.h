@@ -8,7 +8,7 @@
  *
  *		x87 FPU instructions core.
  *
- *
+ * Version:	@(#)x87_ops.h	1.0.8	2019/06/11
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Sarah Walker, <tommowalker@tommowalker.co.uk>
@@ -25,7 +25,6 @@
 #ifdef _MSC_VER
 # include <intrin.h>
 #endif
-// #include "x87_timings.h"
 
 #ifdef ENABLE_FPU_LOG
 extern void	fpu_log(const char *fmt, ...);
@@ -38,6 +37,11 @@ extern void	fpu_log(const char *fmt, ...);
 static int rounding_modes[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
 
 #define ST(x) cpu_state.ST[((cpu_state.TOP+(x))&7)]
+
+#define C0 (1<<8)
+#define C1 (1<<9)
+#define C2 (1<<10)
+#define C3 (1<<14)
 
 #define STATUS_ZERODIVIDE 4
 
@@ -90,13 +94,11 @@ static __inline void x87_push(double i)
 {
 #ifdef USE_NEW_DYNAREC
         cpu_state.TOP--;
-        cpu_state.ST[cpu_state.TOP&7] = i;
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
 #else
         cpu_state.TOP=(cpu_state.TOP-1)&7;
-        cpu_state.ST[cpu_state.TOP] = i;
-        cpu_state.tag[cpu_state.TOP&7] = (i == 0.0) ? 1 : 0;
 #endif
+        cpu_state.ST[cpu_state.TOP&7] = i;
+        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
 }
 
 static __inline void x87_push_u64(uint64_t i)
@@ -111,60 +113,32 @@ static __inline void x87_push_u64(uint64_t i)
 
 #ifdef USE_NEW_DYNAREC
         cpu_state.TOP--;
-        cpu_state.ST[cpu_state.TOP&7] = td.d;
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
 #else
         cpu_state.TOP=(cpu_state.TOP-1)&7;
-        cpu_state.ST[cpu_state.TOP] = td.d;
-        cpu_state.tag[cpu_state.TOP&7] = (td.d == 0.0) ? 1 : 0;
 #endif
+        cpu_state.ST[cpu_state.TOP&7] = td.d;
+        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
 }
 
 static __inline double x87_pop()
 {
-#ifdef USE_NEW_DYNAREC
         double t = cpu_state.ST[cpu_state.TOP&7];
         cpu_state.tag[cpu_state.TOP&7] = TAG_EMPTY;
+#ifdef USE_NEW_DYNAREC
         cpu_state.TOP++;
-        return t;
 #else
-        double t = cpu_state.ST[cpu_state.TOP];
-        cpu_state.tag[cpu_state.TOP&7] = 3;
         cpu_state.TOP=(cpu_state.TOP+1)&7;
-        return t;
 #endif
+        return t;
 }
 
-static int old_round = FE_TONEAREST;
-
-static __inline void x87_round_save(void)
-{
-    old_round = fegetround();
-}
-
-static __inline void x87_round_set(void)
-{
-    old_round = fegetround();
-
-    fesetround(rounding_modes[(cpu_state.npxc >> 10) & 3]);
-}
-
-static __inline void x87_round_restore(void)
-{
-    fesetround(old_round);
-}
-
-#ifdef PCEM_CODE
 static __inline int64_t x87_fround(double b)
 {
-#ifdef PCEM_CODE
         int64_t a, c;
-#endif
         
         switch ((cpu_state.npxc >> 10) & 3)
         {
                 case 0: /*Nearest*/
-#ifdef PCEM_CODE
                 a = (int64_t)floor(b);
                 c = (int64_t)floor(b + 1.0);
                 if ((b - a) < (c - b))
@@ -173,35 +147,16 @@ static __inline int64_t x87_fround(double b)
                         return c;
                 else
                         return (a & 1) ? c : a;
-#else
-		return (int64_t)round(b);
-#endif
                 case 1: /*Down*/
                 return (int64_t)floor(b);
                 case 2: /*Up*/
                 return (int64_t)ceil(b);
                 case 3: /*Chop*/
-#ifdef PCEM_CODE
                 return (int64_t)b;
-#else
-		return (int64_t)trunc(b);
-#endif
         }
-        
-        return 0;
-}
-#else
-static __inline int64_t x87_fround(double b)
-{
-    int64_t ret;
 
-    x87_round_set();
-    ret = (int64_t) rint(b);
-    x87_round_restore();
-
-    return ret;
+        return 0LL;
 }
-#endif
 #define BIAS80 16383
 #define BIAS64 1023
 
@@ -212,7 +167,6 @@ static __inline double x87_ld80()
        	int64_t exp64final;
       	int64_t mant64;
        	int64_t sign;
-
 	struct {
 		int16_t begin;
 		union
@@ -221,7 +175,6 @@ static __inline double x87_ld80()
                         uint64_t ll;
                 } eind;
 	} test;
-
 	test.eind.ll = readmeml(easeg,cpu_state.eaaddr);
 	test.eind.ll |= (uint64_t)readmeml(easeg,cpu_state.eaaddr+4)<<32;
 	test.begin = readmemw(easeg,cpu_state.eaaddr+8);
@@ -310,7 +263,6 @@ static __inline void x87_ld_frstor(int reg)
         cpu_state.MM[reg].q = readmemq(easeg, cpu_state.eaaddr);
         cpu_state.MM_w4[reg] = readmemw(easeg, cpu_state.eaaddr + 8);
 
-#ifdef USE_NEW_DYNAREC
         if ((cpu_state.MM_w4[reg] == 0x5555) && (cpu_state.tag[reg] & TAG_UINT64))
         {
                 cpu_state.ST[reg] = (double)cpu_state.MM[reg].q;
@@ -320,15 +272,6 @@ static __inline void x87_ld_frstor(int reg)
                 cpu_state.tag[reg] &= ~TAG_UINT64;
                 cpu_state.ST[reg] = x87_ld80();
         }
-#else
-        if (cpu_state.MM_w4[reg] == 0x5555 && cpu_state.tag[reg] == 2)
-        {
-                cpu_state.tag[reg] = TAG_UINT64;
-                cpu_state.ST[reg] = (double)cpu_state.MM[reg].q;
-        }
-        else
-                cpu_state.ST[reg] = x87_ld80();
-#endif
 }
 
 static __inline void x87_ldmmx(MMX_REG *r, uint16_t *w4)
@@ -411,7 +354,7 @@ static __inline uint16_t x87_compare(double a, double b)
 
 static __inline uint16_t x87_ucompare(double a, double b)
 {
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_AMD64 || defined __amd64__
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32 || defined __amd64__
         uint32_t result;
         
 #ifndef _MSC_VER
@@ -481,56 +424,6 @@ typedef union
                 }                       \
                 fpucount++;             \
         } while (0)
-#endif
-
-#ifdef USE_NEW_DYNAREC
-#define FP_CHECKTOP64 cpu_state.tag[cpu_state.TOP&7] & TAG_UINT64
-#define FP_TAG() cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
-#define FP_FTAG() cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID;
-#define FP_LSTAG()  cpu_state.tag[cpu_state.TOP&7] = TAG_VALID | TAG_UINT64;
-#define FP_LSQ()  cpu_state.MM[cpu_state.TOP&7].q = temp64;
-#define FP_LSRETQ()  temp64 = cpu_state.MM[cpu_state.TOP&7].q;
-#define FP_NTAG() cpu_state.tag[(cpu_state.TOP + 1) & 7] = TAG_VALID;
-#ifdef USE_NEW_DYNAREC
-#define FP_NNPXC() codegen_set_rounding_mode((cpu_state.npxc >> 10) & 3);
-#else
-#define FP_NNPXC() cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (cpu_state.npxc & 0xc00);
-#endif
-#define FP_TOP(x) (x & 7)
-#define FP_DTAG 0ULL
-#define FP_CTAG 0x0101010101010101ull
-#define FP_EMPTY TAG_EMPTY
-#ifdef USE_NEW_DYNAREC
-#define FP_RNPXC() codegen_set_rounding_mode(X87_ROUNDING_NEAREST);
-#else
-#define FP_RNPXC() cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00);
-#endif
-#define FP_ZTAG() cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
-#define FP_DECTOP() cpu_state.TOP--;
-#define FP_INCTOP() cpu_state.TOP++;
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686)))
-#define FP_686
-#endif
-#else
-#define FP_CHECKTOP64 cpu_state.tag[cpu_state.TOP] & TAG_UINT64
-#define FP_TAG() cpu_state.tag[cpu_state.TOP] &= ~TAG_UINT64;
-#define FP_FTAG() cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64;
-#define FP_LSTAG()  cpu_state.tag[cpu_state.TOP] |= TAG_UINT64;
-#define FP_LSQ()  cpu_state.MM[cpu_state.TOP].q = temp64;
-#define FP_LSRETQ()  temp64 = cpu_state.MM[cpu_state.TOP].q;
-#define FP_NTAG() cpu_state.tag[(cpu_state.TOP + 1) & 7] &= ~TAG_UINT64;
-#define FP_NNPXC() cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (cpu_state.npxc & 0xc00);
-#define FP_TOP(x) (x)
-#define FP_DTAG 0x0303030303030303ll
-#define FP_CTAG 0ULL
-#define FP_EMPTY 3
-#define FP_RNPXC() cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00);
-#define FP_ZTAG() cpu_state.tag[cpu_state.TOP&7] = 1;
-#define FP_DECTOP() cpu_state.TOP = (cpu_state.TOP - 1) & 7
-#define FP_INCTOP() cpu_state.TOP = (cpu_state.TOP + 1) & 7
-#if defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686))
-#define FP_686
-#endif
 #endif
 
 #include "x87_ops_arith.h"
@@ -1171,7 +1064,7 @@ const OpFn OP_TABLE(fpu_da_a32)[256] =
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
 };
 
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686)))
+#if defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686))
 const OpFn OP_TABLE(fpu_686_da_a16)[256] =
 {
         opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,
@@ -1404,7 +1297,7 @@ const OpFn OP_TABLE(fpu_db_a32)[256] =
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
 };
 
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686)))
+#if defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686))
 const OpFn OP_TABLE(fpu_686_db_a16)[256] =
 {
         opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,
@@ -1977,7 +1870,7 @@ const OpFn OP_TABLE(fpu_df_a32)[256] =
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
 };
 
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686)))
+#if defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686))
 const OpFn OP_TABLE(fpu_686_df_a16)[256] =
 {
         opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,

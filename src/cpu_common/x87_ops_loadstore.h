@@ -8,7 +8,7 @@
  *
  *		x87 FPU instructions core.
  *
- *
+ * Version:	@(#)x87_ops_loadstore.h	1.0.2	2019/06/11
  *
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -21,7 +21,7 @@ static int opFILDiw_a16(uint32_t fetchdat)
         int16_t temp;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_READ(cpu_state.ea_seg);
+	SEG_CHECK_READ(cpu_state.ea_seg);
         temp = geteaw(); if (cpu_state.abrt) return 1;
         x87_push((double)temp);
         CLOCK_CYCLES(13);
@@ -33,7 +33,7 @@ static int opFILDiw_a32(uint32_t fetchdat)
         int16_t temp;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_READ(cpu_state.ea_seg);
+	SEG_CHECK_READ(cpu_state.ea_seg);
         temp = geteaw(); if (cpu_state.abrt) return 1;
         x87_push((double)temp);
         CLOCK_CYCLES(13);
@@ -98,11 +98,11 @@ static int opFILDiq_a16(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_READ(cpu_state.ea_seg);
+	SEG_CHECK_READ(cpu_state.ea_seg);
         temp64 = geteaq(); if (cpu_state.abrt) return 1;
         x87_push((double)temp64);
-        FP_LSQ();
-        FP_LSTAG();
+        cpu_state.MM[cpu_state.TOP&7].q = temp64;
+        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID | TAG_UINT64;
 
         CLOCK_CYCLES(10);
         return 0;
@@ -113,11 +113,11 @@ static int opFILDiq_a32(uint32_t fetchdat)
         int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_READ(cpu_state.ea_seg);
+	SEG_CHECK_READ(cpu_state.ea_seg);
         temp64 = geteaq(); if (cpu_state.abrt) return 1;
         x87_push((double)temp64);
-        FP_LSQ();
-        FP_LSTAG();
+        cpu_state.MM[cpu_state.TOP&7].q = temp64;
+        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID | TAG_UINT64;
 
         CLOCK_CYCLES(10);
         return 0;
@@ -185,8 +185,8 @@ static int FISTPiq_a16(uint32_t fetchdat)
         FP_ENTER();
         fetch_ea_16(fetchdat);
 	SEG_CHECK_WRITE(cpu_state.ea_seg);
-        if (FP_CHECKTOP64)
-                FP_LSRETQ()
+        if (cpu_state.tag[cpu_state.TOP&7] & TAG_UINT64)
+                temp64 = cpu_state.MM[cpu_state.TOP&7].q;
         else
                 temp64 = x87_fround(ST(0));
         seteaq(temp64); if (cpu_state.abrt) return 1;
@@ -201,8 +201,8 @@ static int FISTPiq_a32(uint32_t fetchdat)
         FP_ENTER();
         fetch_ea_32(fetchdat);
 	SEG_CHECK_WRITE(cpu_state.ea_seg);
-        if (FP_CHECKTOP64)
-                FP_LSRETQ()
+        if (cpu_state.tag[cpu_state.TOP&7] & TAG_UINT64)
+                temp64 = cpu_state.MM[cpu_state.TOP&7].q;
         else
                 temp64 = x87_fround(ST(0));
         seteaq(temp64); if (cpu_state.abrt) return 1;
@@ -217,7 +217,7 @@ static int opFILDil_a16(uint32_t fetchdat)
         int32_t templ;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_READ(cpu_state.ea_seg);
+	SEG_CHECK_READ(cpu_state.ea_seg);
         templ = geteal(); if (cpu_state.abrt) return 1;
         x87_push((double)templ);
         CLOCK_CYCLES(9);
@@ -229,7 +229,7 @@ static int opFILDil_a32(uint32_t fetchdat)
         int32_t templ;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_READ(cpu_state.ea_seg);
+	SEG_CHECK_READ(cpu_state.ea_seg);
         templ = geteal(); if (cpu_state.abrt) return 1;
         x87_push((double)templ);
         CLOCK_CYCLES(9);
@@ -294,7 +294,7 @@ static int opFLDe_a16(uint32_t fetchdat)
         double t;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-	SEG_CHECK_READ(cpu_state.ea_seg);		
+	SEG_CHECK_READ(cpu_state.ea_seg);
         t=x87_ld80(); if (cpu_state.abrt) return 1;
         x87_push(t);
         CLOCK_CYCLES(6);
@@ -354,7 +354,7 @@ static int opFLDd_a32(uint32_t fetchdat)
         x87_td t;
         FP_ENTER();
         fetch_ea_32(fetchdat);
-		SEG_CHECK_READ(cpu_state.ea_seg);
+	SEG_CHECK_READ(cpu_state.ea_seg);
         t.i = geteaq(); if (cpu_state.abrt) return 1;
         x87_push(t.d);
         CLOCK_CYCLES(3);
@@ -419,7 +419,7 @@ static int opFLDs_a16(uint32_t fetchdat)
         x87_ts ts;
         FP_ENTER();
         fetch_ea_16(fetchdat);
-		SEG_CHECK_READ(cpu_state.ea_seg);
+	SEG_CHECK_READ(cpu_state.ea_seg);
         ts.i = geteal(); if (cpu_state.abrt) return 1;
         x87_push((double)ts.s);
         CLOCK_CYCLES(3);

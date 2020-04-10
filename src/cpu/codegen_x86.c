@@ -1497,7 +1497,7 @@ void codegen_block_start_recompile(codeblock_t *block)
         
         cpu_state.seg_ds.checked = cpu_state.seg_es.checked = cpu_state.seg_fs.checked = cpu_state.seg_gs.checked = (cr0 & 1) ? 0 : 1;
 
-        block->TOP = cpu_state.TOP;
+        block->TOP = cpu_state.TOP & 7;
         block->was_recompiled = 1;
 
         codegen_flat_ds = !(cpu_cur_status & CPU_STATUS_NOTFLATDS);

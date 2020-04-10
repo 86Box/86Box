@@ -1663,9 +1663,9 @@ syscall(uint32_t fetchdat)
 {
     uint16_t seg_data[4];
 
-// #ifdef ENABLE_386_COMMON_LOG
-    pclog("SYSCALL called\n");
-// #endif
+#ifdef ENABLE_386_COMMON_LOG
+    x386_common_log("SYSCALL called\n");
+#endif
 
     if (!(cr0 & 1)) {
 	x86gpf("SYSCALL: CPU not in protected mode", 0);
@@ -1723,9 +1723,9 @@ sysret(uint32_t fetchdat)
 {
     uint16_t seg_data[4];
 
-// #ifdef ENABLE_386_COMMON_LOG
-    pclog("SYSRET called\n");
-// #endif
+#ifdef ENABLE_386_COMMON_LOG
+    x386_common_log("SYSRET called\n");
+#endif
 
     if (!AMD_SYSRET_SB) {
 	x86gpf("SYSRET: CS MSR is zero", 0);
