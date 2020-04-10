@@ -202,6 +202,27 @@ machine_at_neat_ami_init(const machine_t *model)
 }
 
 int
+machine_at_kenitec_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/kenitec/KENITEC.BIN",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&neat_device);
+    device_add(&fdc_at_device);
+
+    device_add(&keyboard_at_device);
+
+    return ret;
+}
+
+int
 machine_at_goldstar386_init(const machine_t *model)
 {
     int ret;
