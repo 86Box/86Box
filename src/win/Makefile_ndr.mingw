@@ -50,9 +50,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef D2D
   D2D		:= y
  endif
- ifndef I686
-  I686		:= y
- endif
  ifndef LASERXT
   LASERXT	:= y
  endif
@@ -119,9 +116,6 @@ else
  endif
  ifndef D2D
   D2D		:= n
- endif
- ifndef I686
-  I686		:= n
  endif
  ifndef LASERXT
   LASERXT	:= n
@@ -472,10 +466,6 @@ endif
 ifeq ($(CRASHDUMPOBJ), y)
 OPTS		+= -DUSE_CRASHDUMP
 DEVBROBJ	+= win_crashdump.o
-endif
-
-ifeq ($(I686), y)
-OPTS		+= -DUSE_I686
 endif
 
 ifeq ($(LASERXT), y)

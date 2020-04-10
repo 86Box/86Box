@@ -660,8 +660,6 @@ CPU cpus_K56_SS7[] = {
     {"",                               -1,         0, 0,        0,     0, 0, 0,  0, 0, 0, 0,  0}
 };
 
-#ifdef DEV_BRANCH
-#ifdef USE_I686
 CPU cpus_PentiumPro[] = {
     /*Intel Pentium Pro*/
     {"Pentium Pro 50",              CPU_PENTIUMPRO,  50000000, 1.0,  0x612,  0x612, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 6},
@@ -735,8 +733,7 @@ CPU cpus_Celeron[] = {
     {"Celeron Mendocino 533",       CPU_PENTIUM2D,  533333333, 5.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 48,48,17,17, 64},
     {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
 };
-#endif
-#endif
+
 CPU cpus_Cyrix3[] = {
     /*VIA Cyrix III (Samuel)*/
     {"Cyrix III 66",  CPU_CYRIX3S,  66666666, 1.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC,  6,  6,  3,  3,  8}, /*66 MHz version*/

@@ -59,7 +59,7 @@
 #define ACPI_IO_ENABLE   (1 << 7)
 #define ACPI_TIMER_32BIT (1 << 3)
 
-#if defined(DEV_BRANCH) && defined(USE_I686) && defined(USE_596B)
+#if defined(DEV_BRANCH) && defined(USE_596B)
 
 typedef struct
 {

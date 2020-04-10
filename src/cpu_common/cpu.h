@@ -73,11 +73,9 @@ enum {
     CPU_K6_2P,
     CPU_K6_3P,
     CPU_CYRIX3S,
-#if defined(DEV_BRANCH) && defined(USE_I686)
     CPU_PENTIUMPRO,	/* 686 class CPUs */
     CPU_PENTIUM2,
     CPU_PENTIUM2D,
-#endif
     CPU_MAX		/* Only really needed to close the enum in a way independent of the #ifdef's. */
 };
 
@@ -145,12 +143,10 @@ extern CPU	cpus_6x86[];
 extern CPU	cpus_6x86SS7[];
 #endif
 #endif
-extern CPU  cpus_Cyrix3[];
-#if defined(DEV_BRANCH) && defined(USE_I686)
+extern CPU	cpus_Cyrix3[];
 extern CPU	cpus_PentiumPro[];
 extern CPU	cpus_PentiumII[];
 extern CPU	cpus_Celeron[];
-#endif
 
 
 #define C_FLAG		0x0001

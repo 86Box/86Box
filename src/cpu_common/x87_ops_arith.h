@@ -203,7 +203,6 @@ static int opFUCOMPP(uint32_t fetchdat)
         return 0;
 }
 
-#if defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686))
 static int opFCOMI(uint32_t fetchdat)
 {
         FP_ENTER();
@@ -227,7 +226,6 @@ static int opFCOMIP(uint32_t fetchdat)
         CLOCK_CYCLES(4);
         return 0;
 }
-#endif
 #endif
 
 static int opFDIV(uint32_t fetchdat)
@@ -397,7 +395,6 @@ static int opFUCOMP(uint32_t fetchdat)
         return 0;
 }
 
-#if defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686))
 static int opFUCOMI(uint32_t fetchdat)
 {
         FP_ENTER();
@@ -421,5 +418,4 @@ static int opFUCOMIP(uint32_t fetchdat)
         CLOCK_CYCLES(4);
         return 0;
 }
-#endif
 #endif

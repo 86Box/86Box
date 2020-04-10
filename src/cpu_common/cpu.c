@@ -186,7 +186,6 @@ uint64_t	mtrr_fix16k_a000_msr = 0;
 uint64_t	mtrr_fix4k_msr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 uint64_t	mtrr_deftype_msr = 0;
 
-#if defined(DEV_BRANCH) && defined(USE_I686)
 uint16_t	cs_msr = 0;
 uint32_t	esp_msr = 0;
 uint32_t	eip_msr = 0;
@@ -203,7 +202,6 @@ uint64_t	ecx186_msr = 0;
 uint64_t	ecx187_msr = 0;
 uint64_t	ecx1e0_msr = 0;
 uint64_t	ecx570_msr = 0;
-#endif
 
 uint64_t	ecx83_msr = 0;			/* AMD K5 and K6 MSR's. */
 uint64_t	star = 0;			/* AMD K6-2+. */
@@ -317,12 +315,8 @@ cpu_set(void)
 	is_k6        = (cpu_s->cpu_type == CPU_K6) || (cpu_s->cpu_type == CPU_K6_2) ||
 				(cpu_s->cpu_type == CPU_K6_2C) || (cpu_s->cpu_type == CPU_K6_3) ||
 				(cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P);
-#if defined(DEV_BRANCH) && defined(USE_I686)
         is_p6        = (cpu_s->cpu_type == CPU_PENTIUMPRO) || (cpu_s->cpu_type == CPU_PENTIUM2) ||
 		       (cpu_s->cpu_type == CPU_PENTIUM2D);
-#else
-        is_p6        = 0;
-#endif
         hasfpu       = (cpu_s->cpu_type >= CPU_i486DX) || (cpu_s->cpu_type == CPU_RAPIDCAD);
 	hascache     = (cpu_s->cpu_type >= CPU_486SLC) || (cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
@@ -1383,7 +1377,6 @@ cpu_set(void)
                 codegen_timing_set(&codegen_timing_k6);
                 break;
 
-#if defined(DEV_BRANCH) && defined(USE_I686)
                 case CPU_PENTIUMPRO:
 #ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentiumpro_0f, dynarec_ops_386, dynarec_ops_pentiumpro_0f);
@@ -1548,7 +1541,7 @@ cpu_set(void)
          	codegen_timing_set(&codegen_timing_p6);
 #endif
                 break;
-#endif
+
                 case CPU_CYRIX3S:
 #ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_winchip2_0f, dynarec_ops_386, dynarec_ops_winchip2_0f);
@@ -2196,8 +2189,6 @@ cpu_CPUID(void)
                 break;
 #endif
 
-#ifdef DEV_BRANCH
-#ifdef USE_I686
                 case CPU_PENTIUMPRO:
                 if (!EAX)
                 {
@@ -2266,8 +2257,7 @@ cpu_CPUID(void)
                 else
                         EAX = EBX = ECX = EDX = 0;
                 break;
-#endif
-#endif
+
                 case CPU_CYRIX3S:
                 switch (EAX)
                 {
@@ -2712,8 +2702,6 @@ void cpu_RDMSR()
  		break;
 #endif
 
-#ifdef DEV_BRANCH
-#ifdef USE_I686
                 case CPU_PENTIUMPRO:
                 case CPU_PENTIUM2:
                 case CPU_PENTIUM2D:
@@ -2839,8 +2827,6 @@ i686_invalid_rdmsr:
 			break;
                 }
                 break;
-#endif
-#endif
         }
 }
 
@@ -3154,8 +3140,6 @@ void cpu_WRMSR()
                 break;
 #endif
 
-#ifdef DEV_BRANCH
-#ifdef USE_I686
                 case CPU_PENTIUMPRO:
 		case CPU_PENTIUM2:
 		case CPU_PENTIUM2D:
@@ -3249,8 +3233,6 @@ i686_invalid_wrmsr:
 			break;
                 }
                 break;
-#endif
-#endif
         }
 }
 

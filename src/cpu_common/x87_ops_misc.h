@@ -845,7 +845,7 @@ static int opFSTCW_a32(uint32_t fetchdat)
 }
 #endif
 
-#if !defined(FPU_8087) && defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686))
+#ifndef FPU_8087
 #define opFCMOV(condition)                                                              \
         static int opFCMOV ## condition(uint32_t fetchdat)                              \
         {                                                                               \

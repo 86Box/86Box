@@ -310,10 +310,8 @@ extern const device_t	*at_pb640_get_device(void);
 #endif
 
 /* m_at_socket8.c */
-#if defined(DEV_BRANCH) && defined(USE_I686)
 extern int	machine_at_i440fx_init(const machine_t *);
 extern int	machine_at_s1668_init(const machine_t *);
-#endif
 
 /* m_at_slot1.c */
 extern int	machine_at_6bxc_init(const machine_t *);
@@ -326,7 +324,7 @@ extern int	machine_at_atc7020bxii_init(const machine_t *);
 extern int	machine_at_63a_init(const machine_t *);
 extern int	machine_at_apas3_init(const machine_t *);
 
-#if defined(DEV_BRANCH) && defined(USE_I686) && defined(USE_596B)
+#if defined(DEV_BRANCH) && defined(USE_596B)
 extern int	machine_at_bx98_init(const machine_t *);
 #endif
 
