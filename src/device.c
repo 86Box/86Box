@@ -529,6 +529,8 @@ device_is_valid(const device_t *device, int mflags)
 
     if ((device->flags & DEVICE_AGP) && !(mflags & MACHINE_AGP)) return(0);
 
+    if ((device->flags & DEVICE_PS2) && !(mflags & MACHINE_PS2)) return(0);
+
     return(1);
 }
 

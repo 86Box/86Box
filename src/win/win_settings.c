@@ -1438,6 +1438,9 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 			h=GetDlgItem(hdlg, IDC_CHECK_PARALLEL1 + i);
 			SendMessage(h, BM_SETCHECK, temp_lpt[i], 0);
+
+			h = GetDlgItem(hdlg, IDC_COMBO_LPT1 + i);
+			EnableWindow(h, temp_lpt[i] ? TRUE : FALSE);
 		}
 
 		for (i = 0; i < 2; i++) {
@@ -1448,6 +1451,27 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		free(lptsTemp);
 
 		return TRUE;
+
+	case WM_COMMAND:
+		switch (LOWORD(wParam)) {
+			case IDC_CHECK_PARALLEL1:
+			case IDC_CHECK_PARALLEL2:
+			case IDC_CHECK_PARALLEL3:
+				i = LOWORD(wParam) - IDC_CHECK_PARALLEL1;
+				h = GetDlgItem(hdlg, IDC_CHECK_PARALLEL1 + i);
+				if (SendMessage(h, BM_GETCHECK, 0, 0) == BST_CHECKED)
+				{
+					h = GetDlgItem(hdlg, IDC_COMBO_LPT1 + i);
+					EnableWindow(h, TRUE);
+				}
+				else
+				{
+					h = GetDlgItem(hdlg, IDC_COMBO_LPT1 + i);
+					EnableWindow(h, FALSE);
+				}
+				break;
+		}
+		break;
 
 	case WM_SAVESETTINGS:
 		for (i = 0; i < 3; i++) {
