@@ -688,7 +688,6 @@ static int opMOV_r_l_a32(uint32_t fetchdat)
         return 0;
 }
 
-#if defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686)))
 #define opCMOV(condition)                                                               \
         static int opCMOV ## condition ## _w_a16(uint32_t fetchdat)                     \
         {                                                                               \
@@ -783,4 +782,3 @@ opCMOV(L)
 opCMOV(NL)
 opCMOV(LE)
 opCMOV(NLE)
-#endif

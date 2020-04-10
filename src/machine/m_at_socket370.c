@@ -139,7 +139,7 @@ machine_at_apas3_init(const machine_t *model)
     return ret;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_I686) && defined(USE_596B)
+#if defined(DEV_BRANCH) && defined(USE_596B)
 int
 machine_at_bx98_init(const machine_t *model)
 {

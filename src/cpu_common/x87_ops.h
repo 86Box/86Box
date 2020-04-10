@@ -1064,7 +1064,6 @@ const OpFn OP_TABLE(fpu_da_a32)[256] =
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
 };
 
-#if defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686))
 const OpFn OP_TABLE(fpu_686_da_a16)[256] =
 {
         opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,
@@ -1141,7 +1140,6 @@ const OpFn OP_TABLE(fpu_686_da_a32)[256] =
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
 };
-#endif
 
 const OpFn OP_TABLE(fpu_287_db_a16)[256] =
 {
@@ -1297,7 +1295,6 @@ const OpFn OP_TABLE(fpu_db_a32)[256] =
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
 };
 
-#if defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686))
 const OpFn OP_TABLE(fpu_686_db_a16)[256] =
 {
         opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,
@@ -1374,7 +1371,6 @@ const OpFn OP_TABLE(fpu_686_db_a32)[256] =
         opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
 };
-#endif
 
 const OpFn OP_TABLE(fpu_287_dc_a16)[32] =
 {
@@ -1870,7 +1866,6 @@ const OpFn OP_TABLE(fpu_df_a32)[256] =
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
 };
 
-#if defined(DEV_BRANCH) && (defined(USE_CYRIX_6X86) || defined(USE_I686))
 const OpFn OP_TABLE(fpu_686_df_a16)[256] =
 {
         opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,
@@ -1947,7 +1942,6 @@ const OpFn OP_TABLE(fpu_686_df_a32)[256] =
         opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
 };
-#endif
 
 const OpFn OP_TABLE(nofpu_a16)[256] =
 {

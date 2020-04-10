@@ -40,9 +40,6 @@
 #include "cpu.h"
 #include <86box/machine.h>
 
-#if defined(DEV_BRANCH) && defined(USE_I686)
-
-
 int
 machine_at_i440fx_init(const machine_t *model)
 {
@@ -103,5 +100,3 @@ machine_at_s1668_init(const machine_t *model)
 
     return ret;
 }
-
-#endif

@@ -123,10 +123,8 @@ machine_at_p2bls_init(const machine_t *model)
     		0
     	}
     };
-#if defined(DEV_BRANCH) && defined(USE_I686)
     if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
     	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
-#endif
     hwm_set_values(machine_hwm);
     device_add(&w83781d_device);
 

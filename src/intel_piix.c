@@ -95,6 +95,7 @@ typedef struct
 			regs[4][256],
 			readout_regs[256], board_config[2];
     uint16_t		func0_id,
+			nvr_io_base,
 			usb_io_base, power_io_base;
     sff8038i_t		*bm[2];
     ddma_t		ddma[2];
@@ -306,7 +307,7 @@ ddma_update_io_mapping(piix_t *dev, int n)
     int base_reg = 0x92 + (n << 1);
 
     if (dev->ddma[n].io_base != 0x0000)
-	io_removehandler(dev->usb_io_base, 0x40, ddma_reg_read, NULL, NULL, ddma_reg_write, NULL, NULL, &dev->ddma[n]);
+	io_removehandler(dev->ddma[n].io_base, 0x40, ddma_reg_read, NULL, NULL, ddma_reg_write, NULL, NULL, &dev->ddma[n]);
 
     dev->ddma[n].io_base = (dev->regs[0][base_reg] & ~0x3f) | (dev->regs[0][base_reg + 1] << 8);
 
@@ -463,6 +464,30 @@ smbus_update_io_mapping(piix_t *dev)
 
 
 static void
+nvr_update_io_mapping(piix_t *dev)
+{
+    if (dev->nvr_io_base != 0x0000) {
+	nvr_at_handler(0, dev->nvr_io_base, dev->nvr);
+	nvr_at_handler(0, dev->nvr_io_base + 0x0002, dev->nvr);
+	nvr_at_handler(0, dev->nvr_io_base + 0x0004, dev->nvr);
+	nvr_at_handler(0, dev->nvr_io_base + 0x0006, dev->nvr);
+    }
+
+    if (dev->type == 5)
+	dev->power_io_base = (dev->regs[0][0xd5] << 8) | (dev->regs[3][0xd4] & 0xf0);
+    else
+	dev->power_io_base = 0x70;
+
+    if ((dev->regs[0][0xcb] & 0x01) && (dev->regs[2][0xff] & 0x10))
+	nvr_at_handler(1, dev->nvr_io_base, dev->nvr);
+    if (dev->regs[0][0xcb] & 0x04)
+	nvr_at_handler(1, dev->nvr_io_base + 0x0002, dev->nvr);
+    nvr_at_handler(1, dev->nvr_io_base + 0x0004, dev->nvr);
+    nvr_at_handler(1, dev->nvr_io_base + 0x0006, dev->nvr);
+}
+
+
+static void
 piix_write(int func, int addr, uint8_t val, void *priv)
 {
     piix_t *dev = (piix_t *) priv;
@@ -538,6 +563,14 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		if (dev->type > 3)
 			fregs[0x64] = val;
 		break;
+	case 0x65:
+		if (dev->type > 4)
+			fregs[0x65] = val;
+		break;
+	case 0x68:
+		if (dev->type > 4)
+			fregs[0x68] = val & 0x81;
+		break;
 	case 0x69:
 		if (dev->type > 1)
 			fregs[0x69] = val & 0xfe;
@@ -564,7 +597,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		}
 		break;
 	case 0x6b:
-		if ((dev->type > 1) && (val & 0x80))
+		if ((dev->type > 1) && (dev->type <= 4) && (val & 0x80))
 			fregs[0x6b] &= 0x7f;
 		return;
 	case 0x70: case 0x71:
@@ -586,7 +619,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0x76: case 0x77:
 		if (dev->type > 1)
 			fregs[addr] = val & 0x87;
-		else
+		else if (dev->type <= 4)
 			fregs[addr] = val & 0x8f;
 		break;
 	case 0x78: case 0x79:
@@ -601,6 +634,10 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		if (dev->type > 1)
 			fregs[addr] = val & 0x0f;
 		break;
+	case 0x82:
+		if (dev->type > 3)
+			fregs[addr] = val & 0x0f;
+		break;
 	case 0x90:
 		if (dev->type > 3)
 			fregs[addr] = val;
@@ -610,7 +647,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 			fregs[addr] = val & 0xfc;
 		break;
 	case 0x92: case 0x93: case 0x94: case 0x95:
-		if (dev->type == 4) {
+		if (dev->type > 3) {
 			if (addr & 0x01)
 				fregs[addr] = val & 0xc0;
 			else
@@ -666,20 +703,35 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 			fregs[addr] = val & 0xfb;
 		break;
 	case 0xcb:
-		if (dev->type == 4) {
+		if (dev->type > 3) {
 			fregs[addr] = val & 0x3d;
 
-			nvr_at_handler(0, 0x0070, dev->nvr);
-			nvr_at_handler(0, 0x0072, dev->nvr);
-
-			if ((val & 0x01) && (dev->regs[2][0xff] & 0x10))
-				nvr_at_handler(1, 0x0070, dev->nvr);
-			if (val & 0x04)
-				nvr_at_handler(1, 0x0072, dev->nvr);
+			nvr_update_io_mapping(dev);
 
 			nvr_wp_set(!!(val & 0x08), 0, dev->nvr);
 			nvr_wp_set(!!(val & 0x10), 1, dev->nvr);
 		}
+		break;
+	case 0xd4:
+		if ((dev->type > 4) && !(fregs[addr] & 0x01)) {
+			fregs[addr] = val & 0xf1;
+			nvr_update_io_mapping(dev);
+		}
+		break;
+	case 0xd5:
+		if ((dev->type > 4) && !(fregs[0xd4] & 0x01)) {
+			fregs[addr] = val & 0xff;
+			nvr_update_io_mapping(dev);
+		}
+		break;
+	case 0xe0:
+		if (dev->type > 4)
+			fregs[addr] = val & 0xe7;
+		break;
+	case 0xe1: case 0xe4: case 0xe5: case 0xe6: case 0xe7:
+	case 0xe8: case 0xe9: case 0xea: case 0xeb:
+		if (dev->type > 4)
+			fregs[addr] = val;
 		break;
     } else if (func == 1)  switch(addr) {	/* IDE */
 	case 0x04:
@@ -934,7 +986,7 @@ piix_reset_hard(piix_t *dev)
     sff_bus_master_reset(dev->bm[0], old_base);
     sff_bus_master_reset(dev->bm[1], old_base + 8);
 
-    if (dev->type == 4) {
+    if (dev->type >= 4) {
 	sff_set_irq_mode(dev->bm[0], 0);
 	sff_set_irq_mode(dev->bm[1], 0);
     }
@@ -951,12 +1003,13 @@ piix_reset_hard(piix_t *dev)
 	nvr_wp_set(0, 1, dev->nvr);
 	nvr_at_handler(1, 0x0074, dev->nvr);
 	nvr_at_handler(1, 0x0076, dev->nvr);
+	dev->nvr_io_base = 0x0070;
     }
 
     /* Clear all 4 functions' arrays and set their vendor and device ID's. */
     for (i = 0; i < 4; i++) {
     	memset(dev->regs[i], 0, 256);
-    	if (dev->func0_id == 0x9460) {
+    	if (dev->type == 5) {
     		dev->regs[i][0x00] = 0x55; dev->regs[i][0x01] = 0x10;		/* SMSC */
     		if (i == 1) { /* IDE controller is 9130, breaking convention */
     			dev->regs[i][0x02] = 0x30;
@@ -977,7 +1030,7 @@ piix_reset_hard(piix_t *dev)
     piix_log("PIIX Function 0: %02X%02X:%02X%02X\n", fregs[0x01], fregs[0x00], fregs[0x03], fregs[0x02]);
     fregs[0x04] = 0x07;
     fregs[0x06] = 0x80; fregs[0x07] = 0x02;
-    if (dev->type == 4 && dev->func0_id != 0x9460)
+    if (dev->type == 4)
 	fregs[0x08] = (dev->rev & 0x08) ? 0x02 : (dev->rev & 0x07);
     else
     	fregs[0x08] = dev->rev;
@@ -991,13 +1044,22 @@ piix_reset_hard(piix_t *dev)
     fregs[0x69] = 0x02;
     fregs[0x70] = (dev->type < 4) ? 0x80 : 0x00;
     fregs[0x71] = (dev->type < 3) ? 0x80 : 0x00;
-    fregs[0x76] = fregs[0x77] = (dev->type > 1) ? 0x04 : 0x0c;
+    if (dev->type <= 4) {
+	fregs[0x76] = fregs[0x77] = (dev->type > 1) ? 0x04 : 0x0c;
+    }
     fregs[0x78] = (dev->type < 4) ? 0x02 : 0x00;
     fregs[0xa0] = (dev->type < 4) ? 0x08 : 0x00;
     fregs[0xa8] = (dev->type < 4) ? 0x0f : 0x00;
-    if (dev->type == 4)
+    if (dev->type > 3)
 	fregs[0xb0] = (is_pentium) ? 0x00 : 0x04;
     fregs[0xcb] = (dev->type > 3) ? 0x21 : 0x00;
+    if (dev->type > 4) {
+	fregs[0xd4] = 0x70;
+	fregs[0xe1] = 0x40;
+	fregs[0xe6] = 0x12;
+	fregs[0xe8] = 0x02;
+	fregs[0xea] = 0x12;
+    }
     dev->max_func = 0;
 
     /* Function 1: IDE */
@@ -1242,7 +1304,7 @@ const device_t slc90e66_device =
 {
     "SMSC SLC90E66 (Victory66)",
     DEVICE_PCI,
-    0x94600004,
+    0x94600005,
     piix_init, 
     piix_close, 
     NULL,

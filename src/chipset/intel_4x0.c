@@ -42,9 +42,7 @@ enum
     INTEL_430HX,
     INTEL_430VX,
     INTEL_430TX,
-#if defined(DEV_BRANCH) && defined(USE_I686)
     INTEL_440FX,
-#endif    
     INTEL_440BX,
     INTEL_440ZX
 };
@@ -259,9 +257,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[0x04] = (regs[0x04] & ~0x42) | (val & 0x42);
 				break;
 			case INTEL_430FX: case INTEL_430FX_PB640: case INTEL_430HX: case INTEL_430VX: case INTEL_430TX:
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
-#endif
 				regs[0x04] = (regs[0x04] & ~0x02) | (val & 0x02);
 				break;
 		}
@@ -269,9 +265,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x05:
 		switch (dev->type) {
 			case INTEL_420TX: case INTEL_420ZX: case INTEL_430LX: case INTEL_430NX: case INTEL_430HX:
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX: 
-#endif
 			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x05] = (regs[0x05] & ~0x01) | (val & 0x01);
 				break;
@@ -286,11 +280,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430FX: case INTEL_430FX_PB640: case INTEL_430VX: case INTEL_430TX:
 				regs[0x07] &= ~(val & 0x30);
 				break;
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
 				regs[0x07] &= ~(val & 0xf9);
 				break;
-#endif
 			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x07] &= ~(val & 0xf0);
 				break;
@@ -370,11 +362,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430VX: case INTEL_430TX:
 				regs[0x50] = (val & 0x08);
 				break;
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
 				regs[0x50] = (val & 0xf4);
 				break;
-#endif        
 			case INTEL_440BX:
 				regs[0x50] = (regs[0x50] & 0x14) | (val & 0xeb);
 				break;
@@ -389,11 +379,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_420TX: case INTEL_420ZX: case INTEL_430LX: case INTEL_430NX:
 				regs[0x51] = (val & 0xc0);
 				break;
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
 				regs[0x51] = (val & 0xc3);
 				break;
-#endif
 			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x51] = (regs[0x50] & 0x70) | (val & 0x8f);
 				break;
@@ -409,9 +397,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[0x52] = (val & 0xfb);
 				break;
 			case INTEL_430NX: case INTEL_430HX:
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
-#endif
 				regs[0x52] = val;
 				break;
 			case INTEL_440BX: case INTEL_440ZX:
@@ -449,11 +435,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430TX:
 				regs[0x54] = val & 0xfa;
 				break;
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
 				regs[0x54] = val & 0x82;
 				break;
-#endif
 		}
 		break;
 	case 0x55:
@@ -461,11 +445,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430VX: case INTEL_430TX:
 				regs[0x55] = val & 0x01;
 				break;
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
 				regs[0x55] = val;
 				break;
-#endif
 		}
 		break;
 	case 0x56:
@@ -479,11 +461,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430TX:
 				regs[0x56] = val & 0x76;
 				break;
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
 				regs[0x56] = val;
 				break;
-#endif
 		}
 		break;
 	case 0x57:
@@ -502,11 +482,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430TX:
 				regs[0x57] = val & 0xdf;
 				break;
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
 				regs[0x57] = val & 0x77;
 				break;
-#endif        
 			case INTEL_440BX:
 				regs[0x57] = val & 0x3f;
 				break;
@@ -526,9 +504,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[0x58] = val & 0x03;
 				break;
 			case INTEL_430FX: case INTEL_430FX_PB640:
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
-#endif
 				regs[0x58] = val & 0x7f;
 				break;
 			case INTEL_430HX: case INTEL_430VX:
@@ -600,9 +576,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_420TX: case INTEL_420ZX:
 			case INTEL_430LX: case INTEL_430NX:
 			case INTEL_430HX:
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX: 
-#endif
       case INTEL_440BX: case INTEL_440ZX:
 			default:
 				regs[addr] = val;
@@ -621,9 +595,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_420TX: case INTEL_420ZX:
 			case INTEL_430LX: case INTEL_430NX:
 			case INTEL_430HX:
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
-#endif        
 			case INTEL_440BX: case INTEL_440ZX:
 				regs[addr] = val;
 				break;
@@ -638,9 +610,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x66:
 		switch (dev->type) {
 			case INTEL_430NX: case INTEL_430HX:
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX: 
-#endif
 			case INTEL_440BX: case INTEL_440ZX:
 				regs[addr] = val;
 				break;
@@ -649,9 +619,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x67:
 		switch (dev->type) {
 			case INTEL_430NX: case INTEL_430HX:	
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX: 
-#endif
 			case INTEL_440BX: case INTEL_440ZX:
 				regs[addr] = val;
 				break;
@@ -672,11 +640,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430FX: case INTEL_430FX_PB640:
 				regs[0x68] = val & 0x1f;
 				break;
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
 				regs[0x68] = val & 0xc0;
 				break;
-#endif        
 			case INTEL_440BX:
 				regs[0x68] = (regs[0x68] & 0x38) | (val & 0xc7);
 				break;
@@ -705,14 +671,12 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440BX:
 				regs[addr] = val;
 				break;
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440ZX:
 				if (addr == 0x6a)
 					regs[addr] = val & 0xfc;
 				else
 					regs[addr] = val & 0x33;
 				break;
-#endif
 		}
 		break;
 	case 0x6c: case 0x6d: case 0x6e:
@@ -740,11 +704,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430VX: case INTEL_430TX:
 				regs[addr] = val & 0xfc;
 				break;
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
 				regs[addr] = val & 0xf8;
 				break;
-#endif
 		}
 		break;
 	case 0x71:
@@ -756,11 +718,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430TX:
 				regs[addr] = val;
 				break;
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
 				regs[addr] = val & 0x1f;
 				break;
-#endif
 		}
 		break;
 	case 0x72:	/* SMRAM */
@@ -890,11 +850,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430HX:
 				regs[0x80] = val & 0x87;
 				break;
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX:
 				regs[0x80] = val & 0x1b;
 				break;
-#endif
 			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x7c] = val;
 				break;
@@ -903,9 +861,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x91:
 		switch (dev->type) {
 			case INTEL_430HX: case INTEL_440BX:
-#if defined(DEV_BRANCH) && defined(USE_I686)
 			case INTEL_440FX: 
-#endif
 				/* Not applicable on 82443ZX. */
 				regs[0x91] &= ~(val & 0x11);
 				break;
@@ -918,7 +874,6 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				break;
 		}
 		break;
-#if defined(DEV_BRANCH) && defined(USE_I686)		
 	case 0x93:
 		switch (dev->type) {
 			case INTEL_440FX:
@@ -927,7 +882,6 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				break;
 		}
 		break;
-#endif
 	case 0xa8: case 0xa9:
 		switch (dev->type) {
 			case INTEL_440BX: case INTEL_440ZX:
@@ -1114,12 +1068,10 @@ i4x0_read(int func, int addr, void *priv)
 	  ret = 0xff;
   else {
 	ret = regs[addr];
-#if defined(DEV_BRANCH) && defined(USE_I686)
 	/* Special behavior for 440FX register 0x93 which is basically TRC in PCI space
 	   with the addition of bits 3 and 0. */
 	if ((func == 0) && (addr == 0x93) && (dev->type == INTEL_440FX))
 		ret = (ret & 0xf9) | (trc_read(0x0093, NULL) & 0x06);
-#endif
     }
 
     return ret;
@@ -1304,7 +1256,6 @@ static void
 		regs[0x70] = 0x20;
 		regs[0x72] = 0x02;
 		break;
-#if defined(DEV_BRANCH) && defined(USE_I686)
 	case INTEL_440FX:
 		regs[0x02] = 0x37; regs[0x03] = 0x12;	/* 82441FX */
 		regs[0x08] = 0x02;
@@ -1319,7 +1270,6 @@ static void
 		regs[0x71] = 0x10;
 		regs[0x72] = 0x02;
 		break;
-#endif		
 	case INTEL_440BX: case INTEL_440ZX:
 		regs[0x7a] = (info->local >> 8) & 0xff;
 		dev->max_func = (regs[0x7a] & 0x02) ? 0 : 1;
@@ -1351,12 +1301,10 @@ static void
     regs[0x04] = 0x06; regs[0x07] = 0x02;
     regs[0x0b] = 0x06;
 
-#if defined(DEV_BRANCH) && defined(USE_I686)
     if (dev->type >= INTEL_440FX) {
 	cpu_cache_ext_enabled = 1;
 	cpu_update_waitstates();
     }
-#endif
 
     i4x0_write(regs[0x59], 0x59, 0x00, dev);
     i4x0_write(regs[0x5a], 0x5a, 0x00, dev);
@@ -1526,7 +1474,6 @@ const device_t i430tx_device =
 };
 
 
-#if defined(DEV_BRANCH) && defined(USE_I686)
 const device_t i440fx_device =
 {
     "Intel 82441FX",
@@ -1541,7 +1488,7 @@ const device_t i440fx_device =
     NULL
 };
 
-#endif
+
 const device_t i440bx_device =
 {
     "Intel 82443BX",

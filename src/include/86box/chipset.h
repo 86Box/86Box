@@ -41,9 +41,7 @@ extern const device_t	i430fx_pb640_device;
 extern const device_t	i430hx_device;
 extern const device_t	i430vx_device;
 extern const device_t	i430tx_device;
-#if defined(DEV_BRANCH) && defined(USE_I686)
 extern const device_t	i440fx_device;
-#endif
 extern const device_t	i440bx_device;
 extern const device_t	i440zx_device;
 
