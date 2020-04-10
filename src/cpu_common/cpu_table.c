@@ -715,12 +715,14 @@ CPU cpus_PentiumII[] = {
 };
 
 CPU cpus_Celeron[] = {
-    /* Mendocino Celerons. Exact architecture as the P2D series. Intended for
-       the PGA370 boards but they were capable to fit on a PGA 370 to Slot 1
-       adaptor card so they work on Slot 1 motherboards too!.
+    /*Intel Celeron Covington*/
+    {"Celeron Covington 25",         CPU_PENTIUM2,   50000000, 1.0,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 3},
+    {"Celeron Covington 50",         CPU_PENTIUM2,   60000000, 1.0,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 6},
+    {"Celeron Covington 66",         CPU_PENTIUM2,   66666666, 1.0,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
+    {"Celeron Covington 266",        CPU_PENTIUM2,  266666666, 4.0,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12, 29},
+    {"Celeron Covington 300/66",     CPU_PENTIUM2,  300000000, 4.5,  0x650,  0x650, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
 
-       The 100Mhz Mendocino is only meant to not cause any struggle
-       to the recompiler. */
+    /*Intel Celeron Mendocino*/
     {"Celeron Mendocino 25",        CPU_PENTIUM2D,   25000000, 1.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 3},
     {"Celeron Mendocino 50",        CPU_PENTIUM2D,   50000000, 1.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 6},
     {"Celeron Mendocino 66",        CPU_PENTIUM2D,   66666666, 1.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
@@ -733,6 +735,21 @@ CPU cpus_Celeron[] = {
     {"Celeron Mendocino 466",       CPU_PENTIUM2D,  466666666, 5.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 43,43,15,15, 57},
     {"Celeron Mendocino 500",       CPU_PENTIUM2D,  500000000, 5.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 45,45,15,15, 60},
     {"Celeron Mendocino 533",       CPU_PENTIUM2D,  533333333, 5.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 48,48,17,17, 64},
+    {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
+};
+
+CPU cpus_Katmai[] = {
+    /* Katmai Pentium IIIs. Exact architecture as the P2D series.
+
+       The 100Mhz and 133Mhz Katmais are only meant to not cause any struggle
+       to the recompiler. */
+    {"Pentium III Katmai 100",      CPU_PENTIUM2D,  100000000, 1.5,  0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
+    {"Pentium III Katmai 133",      CPU_PENTIUM2D,  133333333, 2.0,  0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16},
+    {"Pentium III Katmai 450",      CPU_PENTIUM2D,  450000000, 4.5,  0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 54},
+    {"Pentium III Katmai 500",      CPU_PENTIUM2D,  500000000, 5.0,  0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 45,45,15,15, 60},
+    {"Pentium III Katmai 533",      CPU_PENTIUM2D,  533333333, 5.5,  0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 48,48,17,17, 64},
+    {"Pentium III Katmai 550",      CPU_PENTIUM2D,  550000000, 5.5,  0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 50,50,17,17, 66},
+    {"Pentium III Katmai 600",      CPU_PENTIUM2D,  600000000, 6.0,  0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 54,54,18,18, 72},
     {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
 };
 #endif
