@@ -97,6 +97,8 @@ typedef struct
     uint16_t		func0_id,
 			nvr_io_base,
 			usb_io_base, power_io_base;
+    uint8_t		*usb_smsc_mmio;
+    mem_mapping_t	*usb_smsc_mmio_mapping;
     sff8038i_t		*bm[2];
     ddma_t		ddma[2];
     power_t		power;
@@ -348,6 +350,65 @@ usb_update_io_mapping(piix_t *dev)
 
     if ((dev->regs[2][PCI_REG_COMMAND] & PCI_COMMAND_IO) && (dev->usb_io_base != 0x0000))
 	io_sethandler(dev->usb_io_base, 0x20, usb_reg_read, NULL, NULL, usb_reg_write, NULL, NULL, dev);
+}
+
+
+static void
+usb_smsc_update_mem_mapping(piix_t *dev)
+{
+    uint8_t *fregs;
+    uint32_t usb_bar;
+
+    if (!dev->usb_smsc_mmio_mapping)
+    	return;
+
+    mem_mapping_disable(dev->usb_smsc_mmio_mapping);
+
+    if (!dev->usb_smsc_mmio)
+    	return;
+
+    fregs = (uint8_t *) dev->regs[2];
+    usb_bar = fregs[0x10] | (fregs[0x11] << 8) | (fregs[0x12] << 16) | (fregs[0x13] << 24);
+    piix_log("smsc usb bar %08x\n", usb_bar);
+
+    if ((usb_bar != 0x00000000) && (usb_bar < 0xFF000000))
+    	mem_mapping_set_addr(dev->usb_smsc_mmio_mapping, usb_bar, 0x1000);
+}
+
+
+static uint8_t
+usb_smsc_mmio_read(uint32_t addr, void *p)
+{
+    piix_t *dev = (piix_t *) p;
+    uint8_t ret;
+    ret = dev->usb_smsc_mmio[addr & 0xFFF];
+
+    piix_log("usb_smsc_mmio_read(%08x) = %02x\n", addr, ret);
+    return ret;
+}
+
+
+static void
+usb_smsc_mmio_write(uint32_t addr, uint8_t val, void *p)
+{
+    piix_t *dev = (piix_t *) p;
+
+    switch (addr & 0xFFF) {
+    	case 0x08: /* HCCOMMANDSTATUS */
+    		/* bit HostControllerReset must be cleared for the controller to be seen as initialized */
+    		val = val & ~(0x01);
+
+    		/* bit OwnershipChangeRequest triggers an ownership change (SMM <-> OS) */
+    		if (val & 0x0F) {
+    			dev->usb_smsc_mmio[0x0F] = 0x40;
+    			dev->usb_smsc_mmio[0x05] &= ~(dev->usb_smsc_mmio[0x05] & 0x01);
+    		}
+    		break;
+    }
+
+    dev->usb_smsc_mmio[addr & 0xFFF] = val;
+
+    piix_log("usb_smsc_mmio_write(%08x, %02x)\n", addr, val);
 }
 
 
@@ -799,6 +860,14 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0x0d:
 		fregs[0x0d] = val & 0xf0;
 		break;
+	case 0x11:
+		fregs[addr] = val & ~(0x10);
+		usb_smsc_update_mem_mapping(dev);
+		break;
+	case 0x12: case 0x13:
+		fregs[addr] = val;
+		usb_smsc_update_mem_mapping(dev);
+		break;
 	case 0x20:
 		fregs[0x20] = (val & 0xe0) | 1;
 		usb_update_io_mapping(dev);
@@ -1010,7 +1079,7 @@ piix_reset_hard(piix_t *dev)
     for (i = 0; i < 4; i++) {
     	memset(dev->regs[i], 0, 256);
     	if (dev->type == 5) {
-    		dev->regs[i][0x00] = 0x55; dev->regs[i][0x01] = 0x10;		/* SMSC */
+    		dev->regs[i][0x00] = 0x55; dev->regs[i][0x01] = 0x10;		/* SMSC/EFAR */
     		if (i == 1) { /* IDE controller is 9130, breaking convention */
     			dev->regs[i][0x02] = 0x30;
     			dev->regs[i][0x03] = 0x91;
@@ -1086,6 +1155,8 @@ piix_reset_hard(piix_t *dev)
 		fregs[0x08] = dev->rev & 0x07;
 	else
 		fregs[0x08] = dev->rev;
+	if (dev->type == 5)
+		fregs[0x09] = 0x10; /* SMSC has OHCI rather than UHCI */
 	fregs[0x0a] = 0x03; fregs[0x0b] = 0x0c;
 	fregs[0x20] = 0x01;
 	fregs[0x3d] = 0x04;
@@ -1094,6 +1165,14 @@ piix_reset_hard(piix_t *dev)
 	fregs[0xc1] = 0x20;
 	fregs[0xff] = (dev->type > 3) ? 0x10 : 0x00;
 	dev->max_func = 1;	/* It starts with USB disabled, then enables it. */
+
+	/* SMSC OHCI memory-mapped registers */
+	if (dev->usb_smsc_mmio) {
+		memset(dev->usb_smsc_mmio, 0, 4096);
+		dev->usb_smsc_mmio[0x00] = 0x10;
+		dev->usb_smsc_mmio[0x01] = 0x01;
+		dev->usb_smsc_mmio[0x48] = 0x02;
+	}
     }
 
     /* Function 3: Power Management */
@@ -1163,6 +1242,17 @@ static void
 
     if (dev->type > 3)
 	dev->nvr = device_add(&piix4_nvr_device);
+
+    if (dev->type == 5) {
+    	dev->usb_smsc_mmio = malloc(4096);
+
+    	dev->usb_smsc_mmio_mapping = malloc(sizeof(mem_mapping_t));
+    	mem_mapping_add(dev->usb_smsc_mmio_mapping, 0, 0,
+			usb_smsc_mmio_read,  NULL, NULL,
+			usb_smsc_mmio_write, NULL, NULL,
+			NULL, MEM_MAPPING_EXTERNAL, dev);
+    	mem_mapping_disable(dev->usb_smsc_mmio_mapping);
+    }
 
     piix_reset_hard(dev);
 
