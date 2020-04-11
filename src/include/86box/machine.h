@@ -289,7 +289,7 @@ extern int	machine_at_p55t2s_init(const machine_t *);
 extern int	machine_at_tc430hx_init(const machine_t *);
 extern int	machine_at_equium5200_init(const machine_t *); //Toshiba branded CU430HX. Presents same issues as the TC430HX.
 #endif                                                     //Other than that, works as intended(No need to set an MPU too).
-#if defined(DEV_BRANCH) && defined(USE_TC430HX)
+#if defined(DEV_BRANCH) && defined(USE_PHOENIX6)
 extern int	machine_at_m7shi_init(const machine_t *);
 extern int	machine_at_brio80xx_init(const machine_t *);                                                  
 #endif
