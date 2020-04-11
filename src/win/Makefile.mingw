@@ -80,6 +80,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef VECTRA54
   VECTRA54	:= y
  endif
+ ifndef PHOENIX6
+  PHOENIX6	:= y
+ endif
  ifndef VPP60
   VP660		:= y
  endif
@@ -146,6 +149,9 @@ else
  endif
  ifndef VECTRA54
   VECTRA54	:= n
+ endif
+ ifndef PHOENIX6
+  PHOENIX6	:= n
  endif
  ifndef VPP60
   VP660		:= n
@@ -499,6 +505,10 @@ endif
 
 ifeq ($(VECTRA54), y)
 OPTS		+= -DUSE_VECTRA54
+endif
+
+ifeq ($(PHOENIX6), y)
+OPTS		+= -DUSE_PHOENIX6
 endif
 
 ifeq ($(VPP60), y)

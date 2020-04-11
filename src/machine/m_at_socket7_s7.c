@@ -372,6 +372,62 @@ machine_at_equium5200_init(const machine_t *model) // Information about that mac
 
 #endif
 
+#if defined(DEV_BRANCH) && defined(USE_PHOENIX6)
+//These boards get stuck at 9D(Initialize security engine)
+//With some Pentiums at 9C(Set up power management). The Brio
+//drops D2(Unknown interrupt error) if you press anything
+//at the keyboard. We need to know Brio's Super I/O and maybe
+//flash chip too!
+int
+machine_at_m7shi_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/m7shi/m7shi2n.rom",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&i430hx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&fdc37c935_device);
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+int
+machine_at_brio80xx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/brio80xx/Hf0705.rom",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&i430vx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&fdc37c669_device); //We need the proper SIO
+    device_add(&intel_flash_bxt_device); //We need the proper Flash
+
+    return ret;
+}
+#endif
 
 int
 machine_at_p55tvp4_init(const machine_t *model)
