@@ -1179,7 +1179,7 @@ azt_init(const device_t *info)
         	mpu401_init(azt2316a->mpu, azt2316a->cur_mpu401_addr, azt2316a->cur_mpu401_irq, M_UART, device_get_config_int("receive_input401"));
 	} else
 		azt2316a->mpu = NULL;
-	sb_dsp_set_mpu(azt2316a->mpu);
+	sb_dsp_set_mpu(&azt2316a->sb->dsp, azt2316a->mpu);
 
 	if (device_get_config_int("receive_input"))
 		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &azt2316a->sb->dsp);

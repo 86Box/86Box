@@ -44,8 +44,6 @@ static int sbe2dat[4][9] = {
   {  0x01, -0x02,  0x04, -0x08, -0x10,  0x20, -0x40,  0x80,   90 }
 };
 
-static mpu_t *mpu;
-
 static int sb_commands[256]=
 {
         -1, 2,-1,-1, 1, 2,-1, 0, 1,-1,-1,-1,-1,-1, 2, 1,
@@ -180,27 +178,80 @@ recalc_sb16_filter(int playback_freq)
 
 
 void
+sb_update_irq(sb_dsp_t *dsp)
+{
+    int irq_pending;
+
+    irq_pending = (dsp->sb_irq8 && !dsp->sb_irqm8) ||
+		  (dsp->sb_irq16 && !dsp->sb_irqm16) ||
+		  (dsp->sb_irq401 && !dsp->sb_irq401);
+
+    if (irq_pending)
+	picint(1 << dsp->sb_irqnum);
+    else
+	picintc(1 << dsp->sb_irqnum);
+}
+
+
+void
+sb_update_status(sb_dsp_t *dsp, int bit, int set)
+{
+    switch (bit) {
+	case 0:
+	default:
+		dsp->sb_irq8  = set;
+		break;
+	case 1:
+		dsp->sb_irq16  = set;
+		break;
+	case 2:
+		dsp->sb_irq401 = set;
+		break;
+    }
+
+    sb_update_irq(dsp);
+}
+
+
+void
 sb_irq(sb_dsp_t *dsp, int irq8)
 {
-    sb_dsp_log("IRQ %i %02X\n", irq8, pic.mask);
-    if (irq8 && !dsp->sb_irqm8)
-	dsp->sb_irq8  = 1;
-    else if (!irq8 && !dsp->sb_irqm16)
-	dsp->sb_irq16 = 1;
-
-    picint(1 << dsp->sb_irqnum);
+    sb_update_status(dsp, !irq8, 1);
 }
 
 
 void
 sb_irqc(sb_dsp_t *dsp, int irq8)
 {
-    if (irq8)
-	dsp->sb_irq8  = 0;
-    else
-	dsp->sb_irq16 = 0;
+    sb_update_status(dsp, !irq8, 0);
+}
 
-    picintc(1 << dsp->sb_irqnum);
+
+static void
+sb_dsp_irq_update(void *priv, int set)
+{
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
+    sb_update_status(dsp, 2, set);
+}
+
+
+static int
+sb_dsp_irq_pending(void *priv)
+{
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
+    return dsp->sb_irq401;
+}
+
+
+void
+sb_dsp_set_mpu(sb_dsp_t *dsp, mpu_t *mpu)
+{
+    dsp->mpu = mpu;
+
+    if (mpu != NULL)
+	mpu401_irq_attach(mpu, sb_dsp_irq_update, sb_dsp_irq_pending, dsp);
 }
 
 
@@ -217,8 +268,10 @@ sb_dsp_reset(sb_dsp_t *dsp)
     dsp->sb_8_length = 0xffff;
     dsp->sb_8_autolen = 0xffff;
 
-    sb_irqc(dsp, 0);
-    sb_irqc(dsp, 1);
+    dsp->sb_irq8 = 0;
+    dsp->sb_irq16 = 0;
+    dsp->sb_irq401 = 0;
+    sb_update_irq(dsp);
     dsp->sb_16_pause = 0;
 	dsp->sb_read_wp = dsp->sb_read_rp = 0;
     dsp->sb_data_stat = -1;
@@ -853,8 +906,8 @@ sb_read(uint16_t a, void *priv)
 
     switch (a & 0xf) {
 	case 0xA:	/* Read data */
-		if (mpu && dsp->uart_midi) {
-			ret = MPU401_ReadData(mpu);
+		if (dsp->mpu && dsp->uart_midi) {
+			ret = MPU401_ReadData(dsp->mpu);
 		} else {
 			dsp->sbreaddat = dsp->sb_read_data[dsp->sb_read_rp];
 			if (dsp->sb_read_rp != dsp->sb_read_wp) {
@@ -912,68 +965,63 @@ sb_read(uint16_t a, void *priv)
 }
 
 
-/* This should not even be needed. */
-void
-sb_dsp_set_mpu(mpu_t *src_mpu)
-{
-    mpu = src_mpu;
-}
-
 void 
 sb_dsp_input_msg(void *p, uint8_t *msg) 
 {
-	sb_dsp_t *dsp = (sb_dsp_t *) p;
-	
-	sb_dsp_log("MIDI in sysex = %d, uart irq = %d, msg = %d\n", dsp->midi_in_sysex, dsp->uart_irq, msg[3]);
+    sb_dsp_t *dsp = (sb_dsp_t *) p;
+    uint8_t len = msg[3], i = 0;
 
-	if (!dsp->uart_irq && !dsp->midi_in_poll && (mpu != NULL)) {
-		MPU401_InputMsg(mpu, msg);
-		return;
-	}
+    sb_dsp_log("MIDI in sysex = %d, uart irq = %d, msg = %d\n", dsp->midi_in_sysex, dsp->uart_irq, msg[3]);
 
-	if (dsp->midi_in_sysex) {
-		return;
-	}
-	
-	uint8_t len = msg[3];
-	uint8_t i = 0;
-	if (dsp->uart_irq) {
-		for (i=0;i<len;i++)
-			sb_add_data(dsp, msg[i]);
-		sb_dsp_log("SB IRQ8 = %d\n", dsp->sb_irq8);
-		if (!dsp->sb_irq8) 
-			picint(1 << dsp->sb_irqnum);
-	} else if (dsp->midi_in_poll) { 
-		for (i=0;i<len;i++) 
-			sb_add_data(dsp, msg[i]);
-	}
+    if (!dsp->uart_irq && !dsp->midi_in_poll && (dsp->mpu != NULL)) {
+	MPU401_InputMsg(dsp->mpu, msg);
+	return;
+    }
+
+    if (dsp->midi_in_sysex)
+	return;
+
+    if (dsp->uart_irq) {
+	for (i = 0; i < len; i++)
+		sb_add_data(dsp, msg[i]);
+	sb_irq(dsp, 1);
+    } else if (dsp->midi_in_poll) { 
+	for (i = 0; i < len; i++) 
+		sb_add_data(dsp, msg[i]);
+    }
 }
+
 
 int 
 sb_dsp_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort) 
 {
-	sb_dsp_t *dsp = (sb_dsp_t *) p;
-	
-	uint32_t i;
-	
-	if (!dsp->uart_irq && !dsp->midi_in_poll && (mpu != NULL))
-		return MPU401_InputSysex(mpu, buffer, len, abort);
+    sb_dsp_t *dsp = (sb_dsp_t *) p;
+    uint32_t i;
 
-	if (abort) {
-		dsp->midi_in_sysex = 0;
-		return 0;
-	}
-	dsp->midi_in_sysex = 1;
-	for (i=0;i<len;i++) {
-		if (dsp->sb_read_rp == dsp->sb_read_wp) {
-			sb_dsp_log("Length sysex SB = %d\n", len-i);
-			return (len-i);
-		}
-		sb_add_data(dsp, buffer[i]);
-	}
+    if (!dsp->uart_irq && !dsp->midi_in_poll && (dsp->mpu != NULL))
+	return MPU401_InputSysex(dsp->mpu, buffer, len, abort);
+
+    if (abort) {
 	dsp->midi_in_sysex = 0;
 	return 0;
+    }
+
+    dsp->midi_in_sysex = 1;
+
+    for (i = 0; i < len; i++) {
+	if (dsp->sb_read_rp == dsp->sb_read_wp) {
+		sb_dsp_log("Length sysex SB = %d\n", len - i);
+		return (len - i);
+	}
+
+	sb_add_data(dsp, buffer[i]);
+    }
+
+    dsp->midi_in_sysex = 0;
+
+    return 0;
 }
+
 
 void
 sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
@@ -986,7 +1034,7 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
     dsp->sb_irqnum = 7;
     dsp->sb_8_dmanum = 1;
     dsp->sb_16_dmanum = 5;
-    mpu = NULL;
+    dsp->mpu = NULL;
 
     sb_doreset(dsp);
 

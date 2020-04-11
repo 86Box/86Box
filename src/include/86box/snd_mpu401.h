@@ -72,8 +72,7 @@ typedef struct mpu_t
 {
     uint16_t addr;
     int uart_mode, intelligent,
-	irq, irq_mask,
-	midi_thru,
+	irq, midi_thru,
 	queue_pos, queue_used;
     uint8_t rx_data, is_mca,
 	    status,
@@ -135,12 +134,15 @@ typedef struct mpu_t
 	uint16_t prchg_mask;
 	} filter;
 	struct {
-	int on;
-	uint8_t chan, trmask;
-	uint32_t key[4];
+		int on;
+		uint8_t chan, trmask;
+		uint32_t key[4];
 	} chanref[5], inputref[16];
 	pc_timer_t mpu401_event_callback, mpu401_eoi_callback, 
 		   mpu401_reset_callback;
+	void	(*ext_irq_update)(void *priv, int set);
+	int	(*ext_irq_pending)(void *priv);
+	void	*priv;
 } mpu_t;
 
 extern int	mpu401_standalone_enable, mpu401_already_loaded;
@@ -154,6 +156,7 @@ extern void 	mpu401_setirq(mpu_t *mpu, int irq);
 extern void	mpu401_change_addr(mpu_t *mpu, uint16_t addr);
 extern void	mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode, int receive_input);
 extern void	mpu401_device_add(void);
+extern void	mpu401_irq_attach(mpu_t *mpu, void (*ext_irq_update)(void *priv, int set), int (*ext_irq_pending)(void *priv), void *priv);
 
 extern int	MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort);
 extern void	MPU401_InputMsg(void *p, uint8_t *msg);

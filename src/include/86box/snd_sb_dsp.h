@@ -62,8 +62,8 @@ typedef struct sb_dsp_t
 	uint8_t sb_test;
 	int sb_timei, sb_timeo;
 
-	int sb_irq8, sb_irq16;
-	int sb_irqm8, sb_irqm16;
+	int sb_irq8, sb_irq16, sb_irq401;
+	int sb_irqm8, sb_irqm16, sb_irqm401;
 
 	uint8_t sb_asp_regs[256];
         
@@ -91,6 +91,8 @@ typedef struct sb_dsp_t
 	int pos;
 
 	uint8_t azt_eeprom[AZTECH_EEPROM_SIZE]; /* the eeprom in the Aztech cards is attached to the DSP */
+
+	mpu_t *mpu;
 } sb_dsp_t;
 
 
@@ -98,7 +100,7 @@ void sb_dsp_input_msg(void *p, uint8_t *msg);
 
 int sb_dsp_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort);
 
-void sb_dsp_set_mpu(mpu_t *src_mpu);
+void sb_dsp_set_mpu(sb_dsp_t *dsp, mpu_t *src_mpu);
 
 void sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent);
 void sb_dsp_close(sb_dsp_t *dsp);
@@ -115,5 +117,6 @@ void sb_dsp_poll(sb_dsp_t *dsp, int16_t *l, int16_t *r);
 void sb_dsp_set_stereo(sb_dsp_t *dsp, int stereo);
 
 void sb_dsp_update(sb_dsp_t *dsp);
+void sb_update_irq(sb_dsp_t *dsp);
 
 #endif /* SOUND_SND_SB_DSP_H */

@@ -624,8 +624,7 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
 			mixer->regs[0x83] = 0xff;
 			sb->dsp.sb_irqm8 = 0;
 			sb->dsp.sb_irqm16 = 0;
-			if (sb->mpu != NULL)
-				sb->mpu->irq_mask = 0;
+			sb->dsp.sb_irqm401 = 0;
                 }
                 else
                 {
@@ -697,18 +696,9 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
 			case 0x83:
 			/* Interrupt mask. */
 			sb->dsp.sb_irqm8 = !(val & 0x01);
-			if (sb->dsp.sb_irqm8)
-				sb_irqc(&sb->dsp, 1);
 			sb->dsp.sb_irqm16 = !(val & 0x02);
-			if (sb->dsp.sb_irqm16)
-				sb_irqc(&sb->dsp, 0);
-			if (sb->mpu != NULL) {
-				sb->mpu->irq_mask = !(val & 0x04);
-				if (sb->mpu->irq_mask) {
-					picintc(1 << sb->mpu->irq);
-					sb->mpu->state.irq_pending = 0;
-				}
-			}
+			sb->dsp.sb_irqm401 = !(val & 0x04);
+			sb_update_irq(&sb->dsp);
 			break;
 
 			case 0x84:
@@ -721,6 +711,7 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
 				else if ((val & 0x06) == 0x02)
 					mpu401_change_addr(sb->mpu, 0);
 			}
+			break;
                 }
 
                 mixer->output_selector = mixer->regs[0x3C];
@@ -854,9 +845,8 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
 		case 0x82:
 			/* 0 = none, 1 =  digital 8bit or SBMIDI, 2 = digital 16bit, 4 = MPU-401 */
 			/* 0x02000 DSP v4.04, 0x4000 DSP v4.05 0x8000 DSP v4.12. I haven't seen this making any difference, but I'm keeping it for now. */
-			temp = ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) | 0x4000;
-			if (sb->mpu)
-				temp |= ((sb->mpu->state.irq_pending) ? 4 : 0);
+			temp = ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) |
+			       ((sb->dsp.sb_irq401) ? 4 : 0) | 0x4000;
 			ret = temp;
 			break;
 
@@ -1278,7 +1268,7 @@ void *sb_16_init(const device_t *info)
         	mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART, device_get_config_int("receive_input401"));
 	} else
 		sb->mpu = NULL;
-	sb_dsp_set_mpu(sb->mpu);
+	sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
 	if (device_get_config_int("receive_input"))
 		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
@@ -1322,7 +1312,7 @@ void *sb_awe32_init(const device_t *info)
 		sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
 		memset(sb->mpu, 0, sizeof(mpu_t));
 	        mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART, device_get_config_int("receive_input401"));
-		sb_dsp_set_mpu(sb->mpu);
+		sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 	} else
 		sb->mpu = NULL;
         emu8k_init(&sb->emu8k, emu_addr, onboard_ram);

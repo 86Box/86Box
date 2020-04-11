@@ -155,9 +155,13 @@ MPU401_QueueByteEx(mpu_t *mpu, uint8_t data, int irq)
 	return;
     }
 
-    if ((mpu->queue_used == 0) && !mpu->irq_mask) {
-	mpu->state.irq_pending = 1;
-	picint(1 << mpu->irq);
+    if (mpu->queue_used == 0) {
+	if (mpu->ext_irq_update)
+		mpu->ext_irq_update(mpu->priv, 1);
+	else {
+		mpu->state.irq_pending = 1;
+		picint(1 << mpu->irq);
+	}
     }
 
     if (mpu->queue_used < MPU401_QUEUE) {
@@ -178,6 +182,20 @@ static void
 MPU401_QueueByte(mpu_t *mpu, uint8_t data) 
 {
     MPU401_QueueByteEx(mpu, data, 1);
+}
+
+
+static int
+MPU401_IRQPending(mpu_t *mpu)
+{
+    int irq_pending;
+
+    if (mpu->ext_irq_pending)
+	irq_pending = mpu->ext_irq_pending(mpu->priv);
+    else
+	irq_pending = mpu->state.irq_pending;
+
+    return irq_pending;
 }
 
 
@@ -204,10 +222,14 @@ MPU401_RecQueueBuffer(mpu_t *mpu, uint8_t *buf, uint32_t len, int block)
     }
 
     if (mpu->queue_used == 0) {
-	if (mpu->state.rec_copy || mpu->state.irq_pending) {
-		if (mpu->state.irq_pending) {
-			picintc(1 << mpu->irq);
-			mpu->state.irq_pending = 0;
+	if (mpu->state.rec_copy || MPU401_IRQPending(mpu)) {
+		if (MPU401_IRQPending(mpu)) {
+			if (mpu->ext_irq_update)
+				mpu->ext_irq_update(mpu->priv, 0);
+			else {
+				mpu->state.irq_pending = 0;
+				picintc(1 << mpu->irq);
+			}
 		}
 		return;
 	}
@@ -229,7 +251,12 @@ MPU401_ClrQueue(mpu_t *mpu)
     mpu->rec_queue_used = 0;
     mpu->rec_queue_pos = 0;
     mpu->state.sysex_in_finished = 1;
-    mpu->state.irq_pending = 0;
+    if (mpu->ext_irq_update)
+	mpu->ext_irq_update(mpu->priv, 0);
+    else {
+	mpu->state.irq_pending = 0;
+	picintc(1 << mpu->irq);
+    }
 }
 
 
@@ -240,12 +267,20 @@ MPU401_Reset(mpu_t *mpu)
 
 #ifdef DOSBOX_CODE
     if (mpu->mode == M_INTELLIGENT) {
-	picintc(1 << mpu->irq);
-	mpu->state.irq_pending = 0;
+	if (mpu->ext_irq_update)
+		mpu->ext_irq_update(mpu->priv, 0);
+	else {
+		mpu->state.irq_pending = 0;
+		picintc(1 << mpu->irq);
+	}
     }
 #else
-    picintc(1 << mpu->irq);
-    mpu->state.irq_pending = 0;
+    if (mpu->ext_irq_update)
+	mpu->ext_irq_update(mpu->priv, 0);
+    else {
+	mpu->state.irq_pending = 0;
+	picintc(1 << mpu->irq);
+    }
 #endif
 
     mpu->mode = M_INTELLIGENT;
@@ -1037,10 +1072,15 @@ MPU401_EOIHandler(void *priv)
 	} else UpdateTrack(mpu, mpu->state.track);
     }
 
-	if (mpu->state.rec_copy || !mpu->state.sysex_in_finished) 
+    if (mpu->state.rec_copy || !mpu->state.sysex_in_finished) 
 	return;
 
-    mpu->state.irq_pending = 0;
+    if (mpu->ext_irq_update)
+	mpu->ext_irq_update(mpu->priv, 0);
+    else {
+	mpu->state.irq_pending = 0;
+	picintc(1 << mpu->irq);
+    }
 
     if (!(mpu->state.req_mask && mpu->clock.active))
 	return;
@@ -1081,13 +1121,21 @@ void
 MPU401_ReadRaiseIRQ(mpu_t *mpu)
 {
     /* Clear IRQ. */
-    picintc(1 << mpu->irq);
-    mpu->state.irq_pending = 0;
+    if (mpu->ext_irq_update)
+	mpu->ext_irq_update(mpu->priv, 0);
+    else {
+	mpu->state.irq_pending = 0;
+	picintc(1 << mpu->irq);
+    }
 
-    if (mpu->queue_used && !mpu->irq_mask) {
+    if (mpu->queue_used) {
 	/* Bytes remaining in queue, raise IRQ again. */
-	mpu->state.irq_pending = 1;
-	picint(1 << mpu->irq);
+	if (mpu->ext_irq_update)
+		mpu->ext_irq_update(mpu->priv, 1);
+	else {
+		mpu->state.irq_pending = 1;
+		picint(1 << mpu->irq);
+	}
     }
 }
 
@@ -1234,8 +1282,9 @@ MPU401_Event(void *priv)
     }
 #endif
 
-    if (mpu->state.irq_pending) goto next_event;
-	
+    if (MPU401_IRQPending(mpu))
+	goto next_event;
+
     if (mpu->state.playing) {
 	for (i = 0; i < 8; i++) {
 		/* Decrease counters. */
@@ -1287,7 +1336,8 @@ MPU401_Event(void *priv)
 		}
 	}
     }
-    if (!mpu->state.irq_pending && mpu->state.req_mask)
+
+    if (MPU401_IRQPending(mpu) && mpu->state.req_mask)
 	MPU401_EOIHandler(mpu);
 
 next_event:
@@ -1700,6 +1750,15 @@ static uint8_t
 mpu401_mca_feedb(void *p)
 {
     return 1;
+}
+
+
+void
+mpu401_irq_attach(mpu_t *mpu, void (*ext_irq_update)(void *priv, int set), int (*ext_irq_pending)(void *priv), void *priv)
+{
+    mpu->ext_irq_update = ext_irq_update;
+    mpu->ext_irq_pending = ext_irq_pending;
+    mpu->priv = priv;
 }
 
 
