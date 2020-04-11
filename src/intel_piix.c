@@ -107,7 +107,7 @@ typedef struct
     nvr_t *		nvr;
 } piix_t;
 
-#define ENABLE_PIIX_LOG 1
+
 #ifdef ENABLE_PIIX_LOG
 int piix_do_log = ENABLE_PIIX_LOG;
 
