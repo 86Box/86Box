@@ -62,6 +62,7 @@ machine_at_ecs386_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_pb410a_init(const machine_t *model)
 {
@@ -82,6 +83,31 @@ machine_at_pb410a_init(const machine_t *model)
 
     if (gfxcard == VID_INTERNAL)
 	device_add(&ht216_32_pb410a_device);
+
+    return ret;
+}
+
+
+int
+machine_at_pb430_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/pb430/PB430-Dump-2.bin",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_ibm_common_ide_init(model);
+
+    device_add(&keyboard_ps2_device);
+
+    device_add(&acc3221_device);
+    device_add(&acc2168_device);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&gd5428_isa_device);
 
     return ret;
 }
