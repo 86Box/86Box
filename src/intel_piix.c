@@ -406,9 +406,9 @@ usb_smsc_mmio_read(uint32_t addr, void *p)
     piix_t *dev = (piix_t *) p;
     uint8_t ret = 0x00;
 
-    /* addr &= 0x00000fff;
+    addr &= 0x00000fff;
 
-    ret = dev->usb_smsc_mmio[addr]; */
+    ret = dev->usb_smsc_mmio[addr];
 
     return ret;
 }
@@ -460,7 +460,7 @@ nvr_update_io_mapping(piix_t *dev)
 	dev->nvr_io_base = (dev->regs[0][0xd5] << 8) | (dev->regs[0][0xd4] & 0xf0);
     else
 	dev->nvr_io_base = 0x70;
-    pclog("New NVR I/O base: %04X\n", dev->nvr_io_base);
+    piix_log("New NVR I/O base: %04X\n", dev->nvr_io_base);
 
     /* if (dev->type == 4)
 	enabled2 = (dev->regs[2][0xff] & 0x10); */

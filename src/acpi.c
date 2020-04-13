@@ -286,12 +286,11 @@ static uint32_t
 acpi_reg_readl(uint16_t addr, void *p)
 {
     uint32_t ret = 0x00000000;
-    int i;
 
-    for (i = 0; i < 4; i++) {
-	ret <<= 8;
-	ret |= acpi_reg_read_common(4, addr + i, p);
-    }
+    ret = acpi_reg_read_common(4, addr, p);
+    ret |= (acpi_reg_read_common(4, addr + 1, p) << 8);
+    ret |= (acpi_reg_read_common(4, addr + 2, p) << 16);
+    ret |= (acpi_reg_read_common(4, addr + 3, p) << 24);
 
     acpi_log("ACPI: Read L %08X from %04X\n", ret, addr);
 
@@ -303,12 +302,9 @@ static uint16_t
 acpi_reg_readw(uint16_t addr, void *p)
 {
     uint16_t ret = 0x0000;
-    int i;
 
-    for (i = 0; i < 2; i++) {
-	ret <<= 8;
-	ret |= acpi_reg_read_common(2, addr + i, p);
-    }
+    ret = acpi_reg_read_common(2, addr, p);
+    ret |= (acpi_reg_read_common(2, addr + 1, p) << 8);
 
     acpi_log("ACPI: Read W %08X from %04X\n", ret, addr);
 
@@ -330,24 +326,18 @@ acpi_reg_read(uint16_t addr, void *p)
 static void
 acpi_reg_writel(uint16_t addr, uint32_t val, void *p)
 {
-    int i = 0;
-
-    for (i = 0; i < 4; i++) {
-	acpi_reg_write_common(4, addr + i, val & 0xff, p);
-	val >>= 8;
-    }
+    acpi_reg_write_common(4, addr, val & 0xff, p);
+    acpi_reg_write_common(4, addr + 1, (val >> 8) & 0xff, p);
+    acpi_reg_write_common(4, addr + 1, (val >> 16) & 0xff, p);
+    acpi_reg_write_common(4, addr + 1, (val >> 24) & 0xff, p);
 }
 
 
 static void
 acpi_reg_writew(uint16_t addr, uint16_t val, void *p)
 {
-    int i = 0;
-
-    for (i = 0; i < 2; i++) {
-	acpi_reg_write_common(2, addr + i, val & 0xff, p);
-	val >>= 8;
-    }
+    acpi_reg_write_common(2, addr, val & 0xff, p);
+    acpi_reg_write_common(2, addr + 1, (val >> 8) & 0xff, p);
 }
 
 
