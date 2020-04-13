@@ -810,14 +810,16 @@ sb_exec_command(sb_dsp_t *dsp)
 		break;
 
 	case 0x09: /*AZTECH mode set*/
-		if (dsp->sb_data[0] == 0x00) {
-			sb_dsp_log("AZT2316A: WSS MODE!\n");
-			azt2316a_enable_wss(1, dsp->parent);
-		} else if (dsp->sb_data[0] == 0x01) {
-			sb_dsp_log("AZT2316A: SB8PROV2 MODE!\n");
-			azt2316a_enable_wss(0, dsp->parent);
-		} else
-			sb_dsp_log("AZT2316A: UNKNOWN MODE! = %02x\n", dsp->sb_data[0]); // sequences 0x02->0xFF, 0x04->0xFF seen
+		if (IS_AZTECH(dsp)) {
+			if (dsp->sb_data[0] == 0x00) {
+				sb_dsp_log("AZT2316A: WSS MODE!\n");
+				azt2316a_enable_wss(1, dsp->parent);
+			} else if (dsp->sb_data[0] == 0x01) {
+				sb_dsp_log("AZT2316A: SB8PROV2 MODE!\n");
+				azt2316a_enable_wss(0, dsp->parent);
+			} else
+				sb_dsp_log("AZT2316A: UNKNOWN MODE! = %02x\n", dsp->sb_data[0]); // sequences 0x02->0xFF, 0x04->0xFF seen
+		}
                 break;
 
 	/* TODO: Some more data about the DSP registeres

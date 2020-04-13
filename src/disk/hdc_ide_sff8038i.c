@@ -374,17 +374,21 @@ sff_bus_master_set_irq(int channel, void *priv)
     channel &= 0x01;
     if (dev->status & 0x04) {
 	sff_log("SFF8038i: Channel %i IRQ raise\n", channel);
-	if ((dev->irq_mode == 2) && channel && pci_use_mirq(0))
+	if (dev->irq_mode[channel] == 3)
+		picintlevel(1 << dev->irq_line);
+	else if ((dev->irq_mode[channel] == 2) && channel && pci_use_mirq(0))
 		pci_set_mirq(0, 0);
-	else if (dev->irq_mode == 1)
+	else if (dev->irq_mode[channel] == 1)
 		pci_set_irq(dev->slot, dev->irq_pin);
 	else
 		picint(1 << (14 + channel));
     } else {
 	sff_log("SFF8038i: Channel %i IRQ lower\n", channel);
-	if ((dev->irq_mode == 2) && channel && pci_use_mirq(0))
+	if (dev->irq_mode[channel] == 3)
+		picintc(1 << dev->irq_line);
+	else if ((dev->irq_mode[channel] == 2) && channel && pci_use_mirq(0))
 		pci_clear_mirq(0, 0);
-	else if (dev->irq_mode == 1)
+	else if (dev->irq_mode[channel] == 1)
 		pci_clear_irq(dev->slot, dev->irq_pin);
 	else
 		picintc(1 << (14 + channel));
@@ -449,9 +453,16 @@ sff_set_slot(sff8038i_t *dev, int slot)
 
 
 void
-sff_set_irq_mode(sff8038i_t *dev, int irq_mode)
+sff_set_irq_line(sff8038i_t *dev, int irq_line)
 {
-    dev->irq_mode = irq_mode;
+    dev->irq_line = irq_line;
+}
+
+
+void
+sff_set_irq_mode(sff8038i_t *dev, int channel, int irq_mode)
+{
+    dev->irq_mode[channel] = irq_mode;
 }
 
 
@@ -488,8 +499,9 @@ static void
     ide_set_bus_master(next_id, sff_bus_master_dma, sff_bus_master_set_irq, dev);
 
     dev->slot = 7;
-    dev->irq_mode = 2;
+    dev->irq_mode[0] = dev->irq_mode[1] = 2;
     dev->irq_pin = PCI_INTA;
+    dev->irq_line = 14;
 
     next_id++;
 

@@ -1309,7 +1309,7 @@ eep_close(void *priv)
     t1keep_t *eep = (t1keep_t *)priv;
     FILE *f = NULL;
 
-    f = nvr_fopen(eep->path, L"rb");
+    f = nvr_fopen(eep->path, L"wb");
     if (f != NULL) {
 	(void)fwrite(eep->store, 128, 1, f);
 	(void)fclose(f);

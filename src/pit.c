@@ -50,7 +50,7 @@ uint64_t	PITCONST, ISACONST,
 		CGACONST,
 		MDACONST, HERCCONST,
 		VGACONST1, VGACONST2,
-		RTCCONST;
+		RTCCONST, ACPICONST;
 
 int		io_delay = 5;
 
@@ -1021,6 +1021,7 @@ pit_set_clock(int clock)
     VGACONST1 = (uint64_t) (cpuclock / 25175000.0 * (double)(1ull << 32));
     VGACONST2 = (uint64_t) (cpuclock / 28322000.0 * (double)(1ull << 32));
     RTCCONST = (uint64_t) (cpuclock / 32768.0 * (double)(1ull << 32));
+    ACPICONST = (uint64_t) (cpuclock / 3579545.0 * (double)(1ull << 32));
 
     TIMER_USEC = (uint64_t)((cpuclock / 1000000.0) * (double)(1ull << 32));
 

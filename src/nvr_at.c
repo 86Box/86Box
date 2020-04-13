@@ -553,78 +553,89 @@ timer_tick(nvr_t *nvr)
 }
 
 
+/* This must be exposed because ACPI uses it. */
+void
+nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
+{
+    nvr_t *nvr = (nvr_t *)priv;
+    local_t *local = (local_t *)nvr->data;
+    struct tm tm;
+    uint8_t old, i;
+    uint16_t checksum = 0x0000;
+
+    old = nvr->regs[reg];
+    switch(reg) {
+	case RTC_REGA:
+		nvr->regs[RTC_REGA] = val;
+		timer_load_count(nvr);
+		break;
+
+	case RTC_REGB:
+		nvr->regs[RTC_REGB] = val;
+		if (((old^val) & REGB_SET) && (val&REGB_SET)) {
+			/* According to the datasheet... */
+			nvr->regs[RTC_REGA] &= ~REGA_UIP;
+			nvr->regs[RTC_REGB] &= ~REGB_UIE;
+		}
+		break;
+
+	case RTC_REGC:		/* R/O */
+	case RTC_REGD:		/* R/O */
+		break;
+
+	case 0x2e:
+	case 0x2f:
+		if (local->flags & FLAG_LS_HACK) {
+			/* 2E and 2F are a simple sum of the values of 0E to 2D. */
+			for (i = 0x0e; i < 0x2e; i++)
+				checksum += (uint16_t) nvr->regs[i];
+			nvr->regs[0x2e] = checksum >> 8;
+			nvr->regs[0x2f] = checksum & 0xff;
+			break;
+		}
+		/*FALLTHROUGH*/
+
+	default:		/* non-RTC registers are just NVRAM */
+		if ((reg >= 0x38) && (reg <= 0x3f) && local->wp[0])
+			break;
+		if ((reg >= 0xb8) && (reg <= 0xbf) && local->wp[1])
+			break;
+		if (local->lock[reg])
+			break;
+		if (nvr->regs[reg] != val) {
+			nvr->regs[reg] = val;
+			nvr_dosave = 1;
+		}
+		break;
+    }
+
+    if ((reg < RTC_REGA) || ((local->cent != 0xff) && (reg == local->cent))) {
+	if ((reg != 1) && (reg != 3) && (reg != 5)) {
+		if ((old != val) && !(time_sync & TIME_SYNC_ENABLED)) {
+			/* Update internal clock. */
+			time_get(nvr, &tm);
+			nvr_time_set(&tm);
+			nvr_dosave = 1;
+		}
+	}
+    }
+}
+
+
 /* Write to one of the NVR registers. */
 static void
 nvr_write(uint16_t addr, uint8_t val, void *priv)
 {
     nvr_t *nvr = (nvr_t *)priv;
     local_t *local = (local_t *)nvr->data;
-    struct tm tm;
-    uint8_t old, i;
     uint8_t addr_id = (addr & 0x0e) >> 1;
-    uint16_t checksum = 0x0000;
 
     sub_cycles(ISA_CYCLES(8));
 
     if (addr & 1) {
 	if (local->bank[addr_id] == 0xff)
 		return;
-	old = nvr->regs[local->addr[addr_id]];
-	switch(local->addr[addr_id]) {
-		case RTC_REGA:
-			nvr->regs[RTC_REGA] = val;
-			timer_load_count(nvr);
-			break;
-
-		case RTC_REGB:
-			nvr->regs[RTC_REGB] = val;
-			if (((old^val) & REGB_SET) && (val&REGB_SET)) {
-				/* According to the datasheet... */
-				nvr->regs[RTC_REGA] &= ~REGA_UIP;
-				nvr->regs[RTC_REGB] &= ~REGB_UIE;
-			}
-			break;
-
-		case RTC_REGC:		/* R/O */
-		case RTC_REGD:		/* R/O */
-		break;
-
-		case 0x2e:
-		case 0x2f:
-			if (local->flags & FLAG_LS_HACK) {
-				/* 2E and 2F are a simple sum of the values of 0E to 2D. */
-				for (i = 0x0e; i < 0x2e; i++)
-					checksum += (uint16_t) nvr->regs[i];
-				nvr->regs[0x2e] = checksum >> 8;
-				nvr->regs[0x2f] = checksum & 0xff;
-				break;
-			}
-			/*FALLTHROUGH*/
-
-		default:		/* non-RTC registers are just NVRAM */
-			if ((local->addr[addr_id] >= 0x38) && (local->addr[addr_id] <= 0x3f) && local->wp[0])
-				break;
-			if ((local->addr[addr_id] >= 0xb8) && (local->addr[addr_id] <= 0xbf) && local->wp[1])
-				break;
-			if (local->lock[local->addr[addr_id]])
-				break;
-			if (nvr->regs[local->addr[addr_id]] != val) {
-				nvr->regs[local->addr[addr_id]] = val;
-				nvr_dosave = 1;
-			}
-			break;
-	}
-
-	if ((local->addr[addr_id] < RTC_REGA) || ((local->cent != 0xff) && (local->addr[addr_id] == local->cent))) {
-		if ((local->addr[addr_id] != 1) && (local->addr[addr_id] != 3) && (local->addr[addr_id] != 5)) {
-			if ((old != val) && !(time_sync & TIME_SYNC_ENABLED)) {
-				/* Update internal clock. */
-				time_get(nvr, &tm);
-				nvr_time_set(&tm);
-				nvr_dosave = 1;
-			}
-		}
-	}
+	nvr_reg_write(local->addr[addr_id], val, priv);
     } else {
 	local->addr[addr_id] = (val & (nvr->size - 1));
 	/* Some chipsets use a 256 byte NVRAM but ports 70h and 71h always access only 128 bytes. */

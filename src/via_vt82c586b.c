@@ -221,6 +221,25 @@ via_vt82c586b_ide_handlers(via_vt82c586b_t *dev)
 
 
 static void
+via_vt82c586b_ide_irqs(via_vt82c586b_t *dev)
+{
+    int irq_mode[2] = { 0, 0 };
+
+    if (dev->ide_regs[0x09] & 0x01)
+	irq_mode[0] = (dev->ide_regs[0x3d] & 0x01);
+
+    if (dev->ide_regs[0x09] & 0x04)
+	irq_mode[1] = (dev->ide_regs[0x3d] & 0x01);
+
+    sff_set_irq_mode(dev->bm[0], 0, irq_mode[0]);
+    sff_set_irq_mode(dev->bm[0], 1, irq_mode[1]);
+
+    sff_set_irq_mode(dev->bm[1], 0, irq_mode[0]);
+    sff_set_irq_mode(dev->bm[1], 1, irq_mode[1]);
+}
+
+
+static void
 via_vt82c586b_bus_master_handlers(via_vt82c586b_t *dev)
 {
     uint16_t base = (dev->ide_regs[0x20] & 0xf0) | (dev->ide_regs[0x21] << 8);
@@ -466,6 +485,7 @@ via_vt82c586b_write(int func, int addr, uint8_t val, void *priv)
 			case 0x09:
 				dev->ide_regs[0x09] = (val & 0x05) | 0x8a;
 				via_vt82c586b_ide_handlers(dev);
+				via_vt82c586b_ide_irqs(dev);
 				break;
 
 			case 0x10:
@@ -514,8 +534,8 @@ via_vt82c586b_write(int func, int addr, uint8_t val, void *priv)
 				break;
 
 			case 0x3d:
-				sff_set_irq_mode(dev->bm[0], val);
-				sff_set_irq_mode(dev->bm[1], val);
+				dev->ide_regs[0x3d] = val & 0x01;
+				via_vt82c586b_ide_irqs(dev);
 				break;
 
 			case 0x40:
@@ -591,12 +611,14 @@ static void
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
     sff_set_slot(dev->bm[0], dev->slot);
-    sff_set_irq_mode(dev->bm[0], 0);
+    sff_set_irq_mode(dev->bm[0], 0, 0);
+    sff_set_irq_mode(dev->bm[0], 1, 0);
     sff_set_irq_pin(dev->bm[0], PCI_INTA);
 
     dev->bm[1] = device_add_inst(&sff8038i_device, 2);
     sff_set_slot(dev->bm[1], dev->slot);
-    sff_set_irq_mode(dev->bm[1], 0);
+    sff_set_irq_mode(dev->bm[1], 0, 0);
+    sff_set_irq_mode(dev->bm[1], 1, 0);
     sff_set_irq_pin(dev->bm[1], PCI_INTA);
 
     dev->nvr = device_add(&via_nvr_device);

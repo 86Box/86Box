@@ -39,6 +39,7 @@
 #include <86box/mem.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
+#include <86box/acpi.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
 #include <86box/port_92.h>
@@ -51,40 +52,11 @@
 #include <86box/piix.h>
 
 
-#define ACPI_TIMER_FREQ	3579545
-#define PM_FREQ		ACPI_TIMER_FREQ
-
-#define RSM_STS		(1 << 15)
-#define PWRBTN_STS	(1 << 8)
-
-#define RTC_EN		(1 << 10)
-#define PWRBTN_EN	(1 << 8)
-#define GBL_EN		(1 << 5)
-#define TMROF_EN	(1 << 0)
-
-#define SCI_EN		(1 << 0)
-#define SUS_EN		(1 << 13)
-
-#define ACPI_ENABLE	0xf1
-#define	ACPI_DISABLE	0xf0
-
-
 typedef struct
 {
     uint16_t		io_base;
     int			base_channel;
 } ddma_t;
-
-
-typedef struct
-{
-    uint8_t		gpireg[3], gporeg[4];
-    uint16_t		pmsts, pmen,
-			pmcntrl;
-    uint32_t		glbctl;
-    uint64_t		tmr_overflow_time;
-    int			timer_index;
-} power_t;
 
 
 typedef struct
@@ -96,15 +68,16 @@ typedef struct
 			readout_regs[256], board_config[2];
     uint16_t		func0_id,
 			nvr_io_base,
-			usb_io_base, power_io_base;
+			usb_io_base, acpi_io_base;
     uint8_t		*usb_smsc_mmio;
-    mem_mapping_t	*usb_smsc_mmio_mapping;
+    mem_mapping_t	usb_smsc_mmio_mapping;
     sff8038i_t		*bm[2];
     ddma_t		ddma[2];
-    power_t		power;
     smbus_piix4_t *	smbus;
     apm_t *		apm;
     nvr_t *		nvr;
+    acpi_t *		acpi;
+    port_92_t *		port_92;
 } piix_t;
 
 
@@ -128,28 +101,88 @@ piix_log(const char *fmt, ...)
 #endif
 
 
-static
-void do_irq(piix_t *dev, int func, int level)
+static void
+smsc_ide_handlers(piix_t *dev)
 {
-    if ((dev == NULL) || (func > dev->max_func) /*||
-	(dev->regs[func][0x3d] < PCI_INTA) || (dev->regs[func][0x3d] < PCI_INTD)*/)
-	return;
+    uint16_t main, side;
 
-    if (level) {
-#ifdef WRONG_SPEC
-	pci_set_irq(dev->pci_slot, dev->regs[func][0x3d]);
-#else
-	picintlevel(1 << 9);
-#endif
-	piix_log("Raising IRQ...\n");
+    ide_pri_disable();
+    ide_sec_disable();
+
+    if (dev->regs[1][0x09] & 0x01) {
+	main = (dev->regs[1][0x11] << 8) | (dev->regs[1][0x10] & 0xf8);
+	side = ((dev->regs[1][0x15] << 8) | (dev->regs[1][0x14] & 0xfc)) + 2;
     } else {
-#ifdef WRONG_SPEC
-	pci_clear_irq(dev->pci_slot, dev->regs[func][0x3d]);
-#else
-	picintc(1 << 9);
-#endif
-	piix_log("Lowering IRQ...\n");
+	main = 0x1f0;
+	side = 0x3f6;
     }
+    ide_set_base(0, main);
+    ide_set_side(0, side);
+
+    if (dev->regs[1][0x09] & 0x04) {
+	main = (dev->regs[1][0x19] << 8) | (dev->regs[1][0x18] & 0xf8);
+	side = ((dev->regs[1][0x1d] << 8) | (dev->regs[1][0x1c] & 0xfc)) + 2;
+    } else {
+	main = 0x170;
+	side = 0x376;
+    }
+    ide_set_base(1, main);
+    ide_set_side(1, side);
+
+    if (dev->regs[1][0x04] & PCI_COMMAND_IO) {
+	if (dev->regs[1][0x41] & 0x80)
+		ide_pri_enable();
+	if (dev->regs[1][0x43] & 0x80)
+		ide_sec_enable();
+    }
+}
+
+
+static void
+smsc_ide_irqs(piix_t *dev)
+{
+    int irq_line = 3, irq_mode[2] = { 0, 0 };
+
+    if (dev->regs[1][0x09] & 0x01)
+	irq_mode[0] = (dev->regs[0][0xe0] & 0x01) ? 3 : 1;
+
+    if (dev->regs[1][0x09] & 0x04)
+	irq_mode[1] = (dev->regs[0][0xe0] & 0x01) ? 3 : 1;
+
+    switch ((dev->regs[0][0xe0] >> 1) & 0x07) {
+	case 0x00:
+		irq_line = 3;
+		break;
+	case 0x01:
+		irq_line = 5;
+		break;
+	case 0x02:
+		irq_line = 7;
+		break;
+	case 0x03:
+		irq_line = 8;
+		break;
+	case 0x04:
+		irq_line = 11;
+		break;
+	case 0x05:
+		irq_line = 12;
+		break;
+	case 0x06:
+		irq_line = 14;
+		break;
+	case 0x07:
+		irq_line = 15;
+		break;
+    }
+
+    sff_set_irq_line(dev->bm[0], irq_line);
+    sff_set_irq_mode(dev->bm[0], 0, irq_mode[0]);
+    sff_set_irq_mode(dev->bm[0], 1, irq_mode[1]);
+
+    sff_set_irq_line(dev->bm[1], irq_line);
+    sff_set_irq_mode(dev->bm[1], 0, irq_mode[0]);
+    sff_set_irq_mode(dev->bm[1], 1, irq_mode[1]);
 }
 
 
@@ -356,23 +389,14 @@ usb_update_io_mapping(piix_t *dev)
 static void
 usb_smsc_update_mem_mapping(piix_t *dev)
 {
-    uint8_t *fregs;
     uint32_t usb_bar;
 
-    if (!dev->usb_smsc_mmio_mapping)
-    	return;
+    mem_mapping_disable(&dev->usb_smsc_mmio_mapping);
 
-    mem_mapping_disable(dev->usb_smsc_mmio_mapping);
+    usb_bar = ((dev->regs[2][0x11] << 8) | (dev->regs[2][0x12] << 16) | (dev->regs[2][0x13] << 24)) & 0xfffff000;
 
-    if (!dev->usb_smsc_mmio)
-    	return;
-
-    fregs = (uint8_t *) dev->regs[2];
-    usb_bar = fregs[0x10] | (fregs[0x11] << 8) | (fregs[0x12] << 16) | (fregs[0x13] << 24);
-    piix_log("smsc usb bar %08x\n", usb_bar);
-
-    if ((usb_bar != 0x00000000) && (usb_bar < 0xFF000000))
-    	mem_mapping_set_addr(dev->usb_smsc_mmio_mapping, usb_bar, 0x1000);
+    if ((dev->regs[2][0x04] & 0x02) && (usb_bar != 0x00000000))
+    	mem_mapping_set_addr(&dev->usb_smsc_mmio_mapping, usb_bar, 0x1000);
 }
 
 
@@ -380,10 +404,12 @@ static uint8_t
 usb_smsc_mmio_read(uint32_t addr, void *p)
 {
     piix_t *dev = (piix_t *) p;
-    uint8_t ret;
-    ret = dev->usb_smsc_mmio[addr & 0xFFF];
+    uint8_t ret = 0x00;
 
-    piix_log("usb_smsc_mmio_read(%08x) = %02x\n", addr, ret);
+    /* addr &= 0x00000fff;
+
+    ret = dev->usb_smsc_mmio[addr]; */
+
     return ret;
 }
 
@@ -393,127 +419,22 @@ usb_smsc_mmio_write(uint32_t addr, uint8_t val, void *p)
 {
     piix_t *dev = (piix_t *) p;
 
-    switch (addr & 0xFFF) {
+    addr &= 0x00000fff;
+
+    switch (addr) {
     	case 0x08: /* HCCOMMANDSTATUS */
     		/* bit HostControllerReset must be cleared for the controller to be seen as initialized */
-    		val = val & ~(0x01);
+    		val &= ~0x01;
 
     		/* bit OwnershipChangeRequest triggers an ownership change (SMM <-> OS) */
-    		if (val & 0x0F) {
-    			dev->usb_smsc_mmio[0x0F] = 0x40;
+    		if (val & 0x0f) {
+    			dev->usb_smsc_mmio[0x0f] = 0x40;
     			dev->usb_smsc_mmio[0x05] &= ~(dev->usb_smsc_mmio[0x05] & 0x01);
     		}
     		break;
     }
 
-    dev->usb_smsc_mmio[addr & 0xFFF] = val;
-
-    piix_log("usb_smsc_mmio_write(%08x, %02x)\n", addr, val);
-}
-
-
-static uint32_t
-power_reg_readl(uint16_t addr, void *p)
-{
-    piix_t *dev = (piix_t *) p;
-    uint32_t timer;
-    uint32_t ret = 0xffffffff;
-
-    switch (addr & 0x3c) {
-	case 0x08:
-		/* ACPI timer */
-		timer = (tsc * ACPI_TIMER_FREQ) / machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed;
-		timer &= 0x00ffffff;
-		ret = timer;
-		break;
-    }
-
-    piix_log("ACPI: Read L %08X from %04X\n", ret, addr);
-
-    return ret;
-}
-
-
-static uint16_t
-power_reg_readw(uint16_t addr, void *p)
-{
-    piix_t *dev = (piix_t *) p;
-    uint16_t ret = 0xffff;
-    uint32_t ret32;
-
-    switch (addr & 0x3c) {
-	case 0x00:
-		break;
-	default:
-		ret32 = power_reg_readl(addr, p);
-		if (addr & 0x02)
-			ret = (ret32 >> 16) & 0xffff;
-		else
-			ret = ret32 & 0xffff;
-		break;
-    }
-
-    piix_log("ACPI: Read W %08X from %04X\n", ret, addr);
-
-    return ret;
-}
-
-
-static uint8_t
-power_reg_read(uint16_t addr, void *p)
-{
-    piix_t *dev = (piix_t *) p;
-    uint32_t timer;
-    uint8_t ret = 0xff;
-    uint16_t ret16;
-
-    switch (addr & 0x3f) {
-	case 0x30: case 0x31: case 0x32:
-		ret = dev->power.gporeg[addr & 0x03];
-		piix_log("ACPI: Read B %02X from GPIREG %01X\n", ret, addr & 0x03);
-		break;
-	case 0x34: case 0x35: case 0x36: case 0x37:
-		ret = dev->power.gporeg[addr & 0x03];
-		piix_log("ACPI: Read B %02X from GPOREG %01X\n", ret, addr & 0x03);
-		break;
-	default:
-		ret16 = power_reg_readw(addr, p);
-		if (addr & 0x01)
-			ret = (ret16 >> 8) & 0xff;
-		else
-			ret = ret16 & 0xff;
-		break;
-    }
-
-    return ret;
-}
-
-
-static void
-power_reg_write(uint16_t addr, uint8_t val, void *p)
-{
-    piix_t *dev = (piix_t *) p;
-
-    piix_log("ACPI: Write %02X to %04X\n", val, addr);
-
-    switch (addr & 0x3f) {
-	case 0x34: case 0x35: case 0x36: case 0x37:
-		dev->power.gporeg[addr & 0x03] = val;
-		break;
-    }
-}
-
-
-static void
-power_update_io_mapping(piix_t *dev)
-{
-    if (dev->power_io_base != 0x0000)
-	io_removehandler(dev->power_io_base, 0x40, power_reg_read, NULL, NULL, power_reg_write, NULL, NULL, dev);
-
-    dev->power_io_base = (dev->regs[3][0x41] << 8) | (dev->regs[3][0x40] & 0xc0);
-
-    if ((dev->regs[3][0x80] & 0x01) && (dev->power_io_base != 0x0000))
-	io_sethandler(dev->power_io_base, 0x40, power_reg_read, NULL, NULL, power_reg_write, NULL, NULL, dev);
+    dev->usb_smsc_mmio[addr] = val;
 }
 
 
@@ -527,24 +448,29 @@ smbus_update_io_mapping(piix_t *dev)
 static void
 nvr_update_io_mapping(piix_t *dev)
 {
+    int enabled2 = 1;
+
     if (dev->nvr_io_base != 0x0000) {
 	nvr_at_handler(0, dev->nvr_io_base, dev->nvr);
 	nvr_at_handler(0, dev->nvr_io_base + 0x0002, dev->nvr);
 	nvr_at_handler(0, dev->nvr_io_base + 0x0004, dev->nvr);
-	nvr_at_handler(0, dev->nvr_io_base + 0x0006, dev->nvr);
     }
 
     if (dev->type == 5)
-	dev->power_io_base = (dev->regs[0][0xd5] << 8) | (dev->regs[3][0xd4] & 0xf0);
+	dev->nvr_io_base = (dev->regs[0][0xd5] << 8) | (dev->regs[0][0xd4] & 0xf0);
     else
-	dev->power_io_base = 0x70;
+	dev->nvr_io_base = 0x70;
+    pclog("New NVR I/O base: %04X\n", dev->nvr_io_base);
 
-    if ((dev->regs[0][0xcb] & 0x01) && (dev->regs[2][0xff] & 0x10))
+    /* if (dev->type == 4)
+	enabled2 = (dev->regs[2][0xff] & 0x10); */
+
+    if ((dev->regs[0][0xcb] & 0x01) && enabled2) {
 	nvr_at_handler(1, dev->nvr_io_base, dev->nvr);
+    	nvr_at_handler(1, dev->nvr_io_base + 0x0004, dev->nvr);
+    }
     if (dev->regs[0][0xcb] & 0x04)
 	nvr_at_handler(1, dev->nvr_io_base + 0x0002, dev->nvr);
-    nvr_at_handler(1, dev->nvr_io_base + 0x0004, dev->nvr);
-    nvr_at_handler(1, dev->nvr_io_base + 0x0006, dev->nvr);
 }
 
 
@@ -562,6 +488,10 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	    if (func > 1)
 		return;
     }
+
+    /* Ignore the new IDE BAR's on the Intel chips. */
+    if ((dev->type < 5) && (func == 1) && (addr >= 0x10) && (addr <= 0x1f))
+	return;
 
     piix_log("PIIX function %i write: %02X to %02X\n", func, val, addr);
     fregs = (uint8_t *) dev->regs[func];
@@ -628,9 +558,9 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		if (dev->type > 4)
 			fregs[0x65] = val;
 		break;
-	case 0x68:
+	case 0x66:
 		if (dev->type > 4)
-			fregs[0x68] = val & 0x81;
+			fregs[0x66] = val & 0x81;
 		break;
 	case 0x69:
 		if (dev->type > 1)
@@ -791,15 +721,23 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0xe1: case 0xe4: case 0xe5: case 0xe6: case 0xe7:
 	case 0xe8: case 0xe9: case 0xea: case 0xeb:
-		if (dev->type > 4)
+		if (dev->type > 4) {
 			fregs[addr] = val;
+			if ((dev->type == 5) && (addr == 0xe1)) {
+				smsc_ide_irqs(dev);
+				port_92_set_features(dev->port_92, !!(val & 0x40), !!(val & 0x40));
+			}
+		}
 		break;
     } else if (func == 1)  switch(addr) {	/* IDE */
 	case 0x04:
 		fregs[0x04] = (val & 5);
 		if (dev->type < 3)
 			fregs[0x04] |= 0x02;
-		piix_ide_legacy_handlers(dev, 0x03);
+		if (dev->type == 5)
+			smsc_ide_handlers(dev);
+		else
+			piix_ide_legacy_handlers(dev, 0x03);
 		piix_ide_bm_handlers(dev);
 		break;
 	case 0x07:
@@ -810,8 +748,47 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		if (val & 0x08)
 			fregs[0x07] &= 0xf7;
 		break;
+	case 0x09:
+		if (dev->type == 5) {
+			fregs[0x09] = (fregs[0x09] & 0xfa) | (val & 0x05);
+			smsc_ide_handlers(dev);
+			smsc_ide_irqs(dev);
+		}
+		break;
 	case 0x0d:
 		fregs[0x0d] = val & 0xf0;
+		break;
+	case 0x10:
+		fregs[0x10] = (val & 0xf8) | 1;
+		smsc_ide_handlers(dev);
+		break;
+	case 0x11:
+		fregs[0x11] = val;
+		smsc_ide_handlers(dev);
+		break;
+	case 0x14:
+		fregs[0x14] = (val & 0xfc) | 1;
+		smsc_ide_handlers(dev);
+		break;
+	case 0x15:
+		fregs[0x15] = val;
+		smsc_ide_handlers(dev);
+		break;
+	case 0x18:
+		fregs[0x18] = (val & 0xf8) | 1;
+		smsc_ide_handlers(dev);
+		break;
+	case 0x19:
+		fregs[0x19] = val;
+		smsc_ide_handlers(dev);
+		break;
+	case 0x1c:
+		fregs[0x1c] = (val & 0xfc) | 1;
+		smsc_ide_handlers(dev);
+		break;
+	case 0x1d:
+		fregs[0x1d] = val;
+		smsc_ide_handlers(dev);
 		break;
 	case 0x20:
 		fregs[0x20] = (val & 0xf0) | 1;
@@ -822,7 +799,6 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		piix_ide_bm_handlers(dev);
 		break;
 	case 0x3c:
-		piix_log("IDE IRQ write: %02X\n", val);
 		fregs[0x3c] = val;
 		break;
 	case 0x40: case 0x42:
@@ -830,26 +806,52 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x41: case 0x43:
 		fregs[addr] = val & ((dev->type > 1) ? 0xf3 : 0xb3);
-		piix_ide_legacy_handlers(dev, 1 << !!(addr & 0x02));
+		if (dev->type == 5)
+			smsc_ide_handlers(dev);
+		else
+			piix_ide_legacy_handlers(dev, 1 << !!(addr & 0x02));
 		break;
 	case 0x44:
 		if (dev->type > 1)
 			fregs[0x44] = val;
+		break;
+	case 0x45:
+		if (dev->type > 4)
+			fregs[0x45] = val;
+		break;
+	case 0x46:
+		if (dev->type > 4)
+			fregs[0x46] = val & 0x03;
 		break;
 	case 0x48:
 		if (dev->type > 3)
 			fregs[0x48] = val & 0x0f;
 		break;
 	case 0x4a: case 0x4b:
-		if (dev->type > 4)
+		if (dev->type > 3)
 			fregs[addr] = val & 0x33;
+		break;
+	case 0x5c: case 0x5d:
+		if (dev->type > 4)
+			fregs[addr] = val;
 		break;
     } else if (func == 2)  switch(addr) {	/* USB */
 	case 0x04:
-		fregs[0x04] = (val & 5);
-		usb_update_io_mapping(dev);
+		if (dev->type > 4) {
+			fregs[0x04] = (val & 7);
+			usb_smsc_update_mem_mapping(dev);
+		} else {
+			fregs[0x04] = (val & 5);
+			usb_update_io_mapping(dev);
+		}
 		break;
 	case 0x07:
+		if (dev->type > 4) {
+			if (val & 0x80)
+				fregs[0x07] &= 0x7f;
+			if (val & 0x40)
+				fregs[0x07] &= 0xbf;
+		}
 		if (val & 0x20)
 			fregs[0x07] &= 0xdf;
 		if (val & 0x10)
@@ -857,40 +859,68 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		if (val & 0x08)
 			fregs[0x07] &= 0xf7;
 		break;
+	case 0x0c:
+		if (dev->type > 4)
+			fregs[0x0c] = val;
+		break;
 	case 0x0d:
-		fregs[0x0d] = val & 0xf0;
+		if (dev->type <= 4)
+			fregs[0x0d] = val & 0xf0;
 		break;
 	case 0x11:
-		fregs[addr] = val & ~(0x10);
-		usb_smsc_update_mem_mapping(dev);
+		if (dev->type > 4) {
+			fregs[addr] = val & 0xf0;
+			usb_smsc_update_mem_mapping(dev);
+		}
 		break;
 	case 0x12: case 0x13:
-		fregs[addr] = val;
-		usb_smsc_update_mem_mapping(dev);
+		if (dev->type > 4) {
+			fregs[addr] = val;
+			usb_smsc_update_mem_mapping(dev);
+		}
 		break;
 	case 0x20:
-		fregs[0x20] = (val & 0xe0) | 1;
-		usb_update_io_mapping(dev);
+		if (dev->type < 5) {
+			fregs[0x20] = (val & 0xe0) | 1;
+			usb_update_io_mapping(dev);
+		}
 		break;
 	case 0x21:
-		fregs[0x21] = val;
-		usb_update_io_mapping(dev);
+		if (dev->type < 5) {
+			fregs[0x21] = val;
+			usb_update_io_mapping(dev);
+		}
 		break;
 	case 0x3c:
 		fregs[0x3c] = val;
 		break;
+	case 0x3e: case 0x3f:
+	case 0x40: case 0x41: case 0x43:
+		if (dev->type > 4)
+			fregs[addr] = val;
+		break;
+	case 0x42:
+		if (dev->type > 4)
+			fregs[addr] = val & 0x8f;
+		break;
+	case 0x44: case 0x45:
+		if (dev->type > 4)
+			fregs[addr] = val & 0x01;
+		break;
 	case 0x6a:
-		if (dev->type < 4)
+		if (dev->type == 4)
 			fregs[0x6a] = val & 0x01;
 		break;
 	case 0xc0:
-		fregs[0xc0] = val;
+		if (dev->type == 4)
+			fregs[0xc0] = val;
 		break;
 	case 0xc1:
-		fregs[0xc1] = val & 0xbf;
+		if (dev->type == 4)
+			fregs[0xc1] = val & 0xbf;
 		break;
 	case 0xff:
-		if (dev->type >= 4) {
+		if (dev->type == 4) {
 			fregs[addr] = val & 0x10;
 			nvr_at_handler(0, 0x0070, dev->nvr);
 			if ((dev->regs[0][0xcb] & 0x01) && (dev->regs[2][0xff] & 0x10))
@@ -900,7 +930,6 @@ piix_write(int func, int addr, uint8_t val, void *priv)
     } else if (func == 3)  switch(addr) {	/* Power Management */
 	case 0x04:
 		fregs[0x04] = (val & 0x01);
-		power_update_io_mapping(dev);
 		smbus_update_io_mapping(dev);
 		apm_set_do_smi(dev->apm, !!(fregs[0x5b] & 0x02) && !!(val & 0x01));
 		break;
@@ -915,11 +944,13 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 #endif
 	case 0x40:
 		fregs[0x40] = (val & 0xc0) | 1;
-		power_update_io_mapping(dev);
+		dev->acpi_io_base = (dev->regs[3][0x41] << 8) | (dev->regs[3][0x40] & 0xc0);
+		acpi_update_io_mapping(dev->acpi, dev->acpi_io_base, (dev->regs[3][0x80] & 0x01));
 		break;
 	case 0x41:
 		fregs[0x41] = val;
-		power_update_io_mapping(dev);
+		dev->acpi_io_base = (dev->regs[3][0x41] << 8) | (dev->regs[3][0x40] & 0xc0);
+		acpi_update_io_mapping(dev->acpi, dev->acpi_io_base, (dev->regs[3][0x80] & 0x01));
 		break;
 	case 0x44: case 0x45: case 0x46: case 0x47:
 	case 0x48: case 0x49:
@@ -947,7 +978,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0x4f: case 0x80: case 0xd2:
 		fregs[addr] = val & 0x0f;
 		if (addr == 0x80)
-			power_update_io_mapping(dev);
+			acpi_update_io_mapping(dev->acpi, dev->acpi_io_base, (dev->regs[3][0x80] & 0x01));
 		else if (addr == 0xd2)
 			smbus_update_io_mapping(dev);
 		break;
@@ -1056,8 +1087,17 @@ piix_reset_hard(piix_t *dev)
     sff_bus_master_reset(dev->bm[1], old_base + 8);
 
     if (dev->type >= 4) {
-	sff_set_irq_mode(dev->bm[0], 0);
-	sff_set_irq_mode(dev->bm[1], 0);
+	sff_set_slot(dev->bm[0], dev->pci_slot);
+	sff_set_irq_pin(dev->bm[0], PCI_INTA);
+	sff_set_irq_line(dev->bm[0], 14);
+	sff_set_irq_mode(dev->bm[0], 0, 0);
+	sff_set_irq_mode(dev->bm[0], 1, 0);
+
+	sff_set_slot(dev->bm[1], dev->pci_slot);
+	sff_set_irq_pin(dev->bm[1], PCI_INTA);
+	sff_set_irq_line(dev->bm[1], 14);
+	sff_set_irq_mode(dev->bm[1], 0, 0);
+	sff_set_irq_mode(dev->bm[1], 1, 0);
     }
 
 #ifdef ENABLE_PIIX_LOG
@@ -1071,7 +1111,6 @@ piix_reset_hard(piix_t *dev)
 	nvr_wp_set(0, 0, dev->nvr);
 	nvr_wp_set(0, 1, dev->nvr);
 	nvr_at_handler(1, 0x0074, dev->nvr);
-	nvr_at_handler(1, 0x0076, dev->nvr);
 	dev->nvr_io_base = 0x0070;
     }
 
@@ -1140,9 +1179,16 @@ piix_reset_hard(piix_t *dev)
 	fregs[0x08] = dev->rev & 0x07;
     else
 	fregs[0x08] = dev->rev;
-    fregs[0x09] = 0x80;
+    if (dev->type == 5)
+	fregs[0x09] = 0x8a;
+    else
+	fregs[0x09] = 0x80;
     fregs[0x0a] = 0x01; fregs[0x0b] = 0x01;
     fregs[0x20] = 0x01;
+    if (dev->type == 5) {
+	fregs[0x3c] = 0x0e;
+	fregs[0x3d] = 0x01;
+    }
     dev->max_func = 0;		/* It starts with IDE disabled, then enables it. */
 
     /* Function 2: USB */
@@ -1153,8 +1199,10 @@ piix_reset_hard(piix_t *dev)
 	fregs[0x06] = 0x80; fregs[0x07] = 0x02;
 	if (dev->type == 4)
 		fregs[0x08] = dev->rev & 0x07;
-	else
+	else if (dev->type < 4)
 		fregs[0x08] = dev->rev;
+	else
+		fregs[0x08] = 0x02;
 	if (dev->type == 5)
 		fregs[0x09] = 0x10; /* SMSC has OHCI rather than UHCI */
 	fregs[0x0a] = 0x03; fregs[0x0b] = 0x0c;
@@ -1180,11 +1228,15 @@ piix_reset_hard(piix_t *dev)
 	fregs = (uint8_t *) dev->regs[3];	
 	piix_log("PIIX Function 3: %02X%02X:%02X%02X\n", fregs[0x01], fregs[0x00], fregs[0x03], fregs[0x02]);
 	fregs[0x06] = 0x80; fregs[0x07] = 0x02;
-	fregs[0x08] = (dev->rev & 0x08) ? 0x02 : (dev->rev & 0x07);
+	if (dev->type > 4)
+		fregs[0x08] = 0x02;
+	else
+		fregs[0x08] = (dev->rev & 0x08) ? 0x02 : (dev->rev & 0x07);
 	fregs[0x0a] = 0x80; fregs[0x0b] = 0x06;
 	/* NOTE: The Specification Update says this should default to 0x00 and be read-only. */
 #ifdef WRONG_SPEC
-	fregs[0x3d] = 0x01;
+	if (dev->type == 4)
+		fregs[0x3d] = 0x01;
 #endif
 	fregs[0x40] = 0x01;
 	fregs[0x90] = 0x01;
@@ -1201,12 +1253,8 @@ piix_reset_hard(piix_t *dev)
     if (dev->type < 3)
 	pci_set_mirq_routing(PCI_MIRQ1, PCI_IRQ_DISABLED);
 
-    if (dev->type == 4) {
-	dev->power.gporeg[0] = 0xff;
-	dev->power.gporeg[1] = 0xbf;
-	dev->power.gporeg[2] = 0xff;
-	dev->power.gporeg[3] = 0x7f;
-    }
+    if (dev->type >= 4)
+	acpi_init_gporeg(dev->acpi, 0xff, 0xbf, 0xff, 0x7f);
 }
 
 
@@ -1222,7 +1270,6 @@ piix_close(void *p)
 static void
 *piix_init(const device_t *info)
 {
-    int i;
     CPU *cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu];
 
     piix_t *dev = (piix_t *) malloc(sizeof(piix_t));
@@ -1240,26 +1287,30 @@ static void
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
     dev->bm[1] = device_add_inst(&sff8038i_device, 2);
 
-    if (dev->type > 3)
+    if (dev->type > 3) {
 	dev->nvr = device_add(&piix4_nvr_device);
+	dev->smbus = device_add(&piix4_smbus_device);
+
+	dev->acpi = device_add(&acpi_device);
+	acpi_set_slot(dev->acpi, dev->pci_slot);
+	acpi_set_nvr(dev->acpi, dev->nvr);
+    }
 
     if (dev->type == 5) {
-    	dev->usb_smsc_mmio = malloc(4096);
+    	dev->usb_smsc_mmio = (uint8_t *) malloc(4096);
+	memset(dev->usb_smsc_mmio, 0x00, 4096);
 
-    	dev->usb_smsc_mmio_mapping = malloc(sizeof(mem_mapping_t));
-    	mem_mapping_add(dev->usb_smsc_mmio_mapping, 0, 0,
+    	mem_mapping_add(&dev->usb_smsc_mmio_mapping, 0, 0,
 			usb_smsc_mmio_read,  NULL, NULL,
 			usb_smsc_mmio_write, NULL, NULL,
 			NULL, MEM_MAPPING_EXTERNAL, dev);
-    	mem_mapping_disable(dev->usb_smsc_mmio_mapping);
+    	mem_mapping_disable(&dev->usb_smsc_mmio_mapping);
     }
 
     piix_reset_hard(dev);
 
-    dev->smbus = device_add(&piix4_smbus_device);
-
     dev->apm = device_add(&apm_device);
-    device_add(&port_92_pci_device);
+    dev->port_92 = device_add(&port_92_pci_device);
 
     dma_alias_set();
 
@@ -1299,7 +1350,7 @@ static void
 	dev->readout_regs[1] |= 0x80;
 
     io_sethandler(0x0078, 0x0002, board_read, NULL, NULL, board_write, NULL, NULL, dev);
-    // io_sethandler(0x00e0, 0x0002, board_read, NULL, NULL, board_write, NULL, NULL, dev);
+    io_sethandler(0x00e0, 0x0002, board_read, NULL, NULL, board_write, NULL, NULL, dev);
 
     dev->board_config[0] = 0xff;
     dev->board_config[0] = 0x00;

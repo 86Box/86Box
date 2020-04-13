@@ -1101,8 +1101,6 @@ i4x0_reset(void *priv)
 	for (i = 0; i <= dev->max_func; i++)
 		memset(dev->regs_locked[i], 0x00, 256 * sizeof(uint8_t));
     }
-
-    // smbase = 0xa0000;
 }
 
 
@@ -1314,8 +1312,6 @@ static void
     i4x0_write(regs[0x5e], 0x5e, 0x00, dev);
     i4x0_write(regs[0x5f], 0x5f, 0x00, dev);
     i4x0_write(regs[0x72], 0x72, 0x00, dev);
-
-    // smbase = 0xa0000;
 
     if (((dev->type == INTEL_440BX) || (dev->type == INTEL_440ZX)) && (dev->max_func == 1)) {
 	regs = (uint8_t *) dev->regs[1];

@@ -57,7 +57,7 @@ extern uint64_t	PITCONST, ISACONST,
 		HERCCONST,
 		VGACONST1,
 		VGACONST2,
-		RTCCONST;
+		RTCCONST, ACPICONST;
 
 
 /* Gets a counter's count. */
