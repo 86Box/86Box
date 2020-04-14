@@ -266,8 +266,8 @@ extern int	machine_at_president_init(const machine_t *);
 extern int	machine_at_apollo_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_VECTRA54)
 extern int	machine_at_vectra54_init(const machine_t *);
-extern int	machine_at_powermate_v_init(const machine_t *);
 #endif
+extern int	machine_at_powermate_v_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_endeavor_get_device(void);
