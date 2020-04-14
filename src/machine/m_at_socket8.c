@@ -30,6 +30,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/keyboard.h>
 #include <86box/intel_flash.h>
+#include <86box/sst_flash.h>
 #include <86box/intel_sio.h>
 #include <86box/piix.h>
 #include <86box/sio.h>
@@ -41,11 +42,11 @@
 #include <86box/machine.h>
 
 int
-machine_at_i440fx_init(const machine_t *model)
+machine_at_686nx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/440fx/ntmaw501.bin",
+    ret = bios_load_linear(L"roms/machines/686nx/6nx.140",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -55,16 +56,15 @@ machine_at_i440fx_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_pci_device);
-    device_add(&fdc37c665_device);
+    device_add(&keyboard_ps2_ami_pci_device); //Uses the AMIKEY keyboard controller
+    device_add(&um8669f_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -72,11 +72,11 @@ machine_at_i440fx_init(const machine_t *model)
 
 
 int
-machine_at_s1668_init(const machine_t *model)
+machine_at_mb600n_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/tpatx/s1668p.rom",
+    ret = bios_load_linear(L"roms/machines/mb600n/60915cs.rom",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -87,15 +87,14 @@ machine_at_s1668_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
     device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&fdc37c665_device);
+    device_add(&fdc37c669_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;
