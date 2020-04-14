@@ -471,7 +471,7 @@ machine_at_powermate_v_init(const machine_t *model)
     device_add(&piix_device);
     ide_board_set_force_ata3(0, 1);
     ide_board_set_force_ata3(1, 1);
-    device_add(&fdc37c935_device);
+    device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;
