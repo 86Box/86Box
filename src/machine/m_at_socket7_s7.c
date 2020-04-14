@@ -39,7 +39,9 @@
 #include <86box/sio.h>
 #include <86box/sst_flash.h>
 #include <86box/via_vt82c586b.h>
+#include <86box/hwm.h>
 #include <86box/video.h>
+#include "cpu.h"
 #include <86box/machine.h>
 
 
@@ -578,6 +580,41 @@ machine_at_tx97_init(const machine_t *model)
     device_add(&w83977tf_device);
     device_add(&intel_flash_bxt_device);
 
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds */
+    		3000,	/* Chassis */
+    		3000,	/* CPU */
+    		3000,	/* Power */
+    		0
+    	}, { /* temperatures */
+    		30,	/* MB */
+    		0,	/* unused */
+    		27,	/* CPU */
+    		0
+    	}, { /* voltages */
+    		3300,				   /* VCORE (3.3V by default) */
+    		0,				   /* unused */
+    		3300,				   /* +3.3V */
+    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
+    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
+    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
+    		0
+    	}
+    };
+    /* Pentium, Pentium OverDrive MMX, Pentium Mobile MMX: 3.3V (real Pentium Mobile MMX is 2.45V).
+       Pentium MMX: 2.8 V.
+       AMD K6 Model 6: 2.9 V for 166/200, 3.2 V for 233.
+       AMD K6 Model 7: 2.2 V. */
+    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUMMMX)
+	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Pentium MMX */
+    else if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_K6)
+	machine_hwm.voltages[0] = 2200; /* set higher VCORE (2.8V) for Pentium MMX */
+    else if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_K6_2)
+	machine_hwm.voltages[0] = 2200; /* set higher VCORE (2.8V) for Pentium MMX */
+    hwm_set_values(machine_hwm);
+    device_add(&w83781d_device);
+
     return ret;
 }
 
@@ -609,6 +646,31 @@ machine_at_ym430tx_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83977tf_device);
     device_add(&intel_flash_bxt_device);
+
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds */
+    		3000,	/* Chassis */
+    		3000,	/* CPU */
+    		3000,	/* Power */
+    		0
+    	}, { /* temperatures */
+    		30,	/* MB */
+    		0,	/* unused */
+    		27,	/* CPU */
+    		0
+    	}, { /* voltages */
+    		2050,				   /* VCORE (2.05V by default) */
+    		0,				   /* unused */
+    		3300,				   /* +3.3V */
+    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
+    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
+    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
+    		0
+    	}
+    };
+    hwm_set_values(machine_hwm);
+    device_add(&w83781d_device);
 
     return ret;
 }
