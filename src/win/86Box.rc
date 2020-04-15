@@ -915,6 +915,7 @@ BEGIN
     IDS_2120	"Unable to initialize SDL, SDL2.dll is required"
     IDS_2121	"Are you sure you want to hard reset the emulated machine?"
     IDS_2122	"Are you sure you want to quit 86Box?"
+    IDS_2123	"Unable to initialize Ghostscript, gsdll32.dll is required for automatic convertion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript files (.ps)."
     IDS_2124	"MO %i (%03i): %ls"
     IDS_2125	"MO images (*.IM?)\0*.IM?\0All files (*.*)\0*.*\0"
 END
