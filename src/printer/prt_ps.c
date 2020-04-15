@@ -140,7 +140,7 @@ convert_to_pdf(ps_t *dev)
 
     output_fn[0] = 0;
     wcscat(output_fn, input_fn);
-    wcscpy(output_fn + wcslen(output_fn) - 3, L".pdf");
+    wcscpy(output_fn + wcslen(output_fn) - 4, L".pdf");
 
     gsargv[0] = L"";
     gsargv[1] = L"-dNOPAUSE";
