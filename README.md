@@ -39,7 +39,7 @@ guide:
 6. Run `make -jN -f win/makefile.mingw` to start the actual compilation process.
    Substitute `N` with the number of threads you want to use for the compilation
    process. The optimal number depends entirely on your processor, and it is
-   up to you to determine the optimal number. A good starting point is the total
+   up to you to determine it. A good starting point is the total
    number of threads (AKA Logical Processors) you have available.
 7. If the compilation succeeded (which it almost always should), you will find
    `86Box.exe` in the src directory.
