@@ -17,8 +17,5 @@
  */
 
 extern const device_t intel_flash_bxt_ami_device;
-#if defined(DEV_BRANCH) && defined(USE_TC430HX)
-extern const device_t intel_flash_bxtw_ami_device;
-#endif
 extern const device_t intel_flash_bxt_device;
 extern const device_t intel_flash_bxb_device;

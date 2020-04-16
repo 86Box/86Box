@@ -94,6 +94,7 @@ pci_log(const char *fmt, ...)
 static void
 pci_cf8_write(uint16_t port, uint32_t val, void *priv)
 {
+    pci_log("cf8 write: %08X\n", val);
     pci_index = val & 0xff;
     pci_func = (val >> 8) & 7;
     pci_card = (val >> 11) & 31;
@@ -115,11 +116,15 @@ pci_write(uint16_t port, uint8_t val, void *priv)
 {
     uint8_t slot = 0;
 
+    if (in_smm)
+    	pci_log("(%i) %03x write: %02X\n", pci_enable, port, val);
+
     switch (port) {
 	case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
 		if (! pci_enable) 
 			return;
 		   
+		pci_log("Writing %02X to PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", val, pci_bus, pci_card, slot, pci_func, pci_index);
 		if (! pci_bus) {
 			slot = pci_card_to_slot_mapping[pci_card];
 			if (slot != 0xff) {
@@ -147,6 +152,10 @@ static uint8_t
 pci_read(uint16_t port, void *priv)
 {
     uint8_t slot = 0;
+    uint8_t ret = 0xff;
+
+    if (in_smm)
+	pci_log("(%i) %03x read\n", pci_enable, port);
 
     switch (port) {
 	case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
@@ -157,7 +166,7 @@ pci_read(uint16_t port, void *priv)
 			slot = pci_card_to_slot_mapping[pci_card];
 			if (slot != 0xff) {
 				if (pci_cards[slot].read)
-					return pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
+					ret = pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
 #ifdef ENABLE_PCI_LOG
 				else
 					pci_log("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
@@ -169,10 +178,10 @@ pci_read(uint16_t port, void *priv)
 #endif
 		}
 
-		return 0xff;
+		pci_log("Reading %02X, from PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", ret, pci_bus, pci_card, slot, pci_func, pci_index);
     }
 
-    return 0xff;
+    return ret;
 }
 
 
@@ -643,6 +652,20 @@ pci_slots_clear(void)
 }
 
 
+uint32_t
+trc_readl(uint16_t port, void *priv)
+{
+    return 0xffffffff;
+}
+
+
+uint16_t
+trc_readw(uint16_t port, void *priv)
+{
+    return 0xffff;
+}
+
+
 uint8_t
 trc_read(uint16_t port, void *priv)
 {
@@ -672,8 +695,21 @@ trc_reset(uint8_t val)
 
 
 void
+trc_writel(uint16_t port, uint32_t val, void *priv)
+{
+}
+
+
+void
+trc_writew(uint16_t port, uint16_t val, void *priv)
+{
+}
+
+
+void
 trc_write(uint16_t port, uint8_t val, void *priv)
 {
+    pci_log("TRC Write: %02X\n", val);
     pci_log("TRC Write: %02X\n", val);
 
     if (!(trc_reg & 4) && (val & 4))
@@ -692,7 +728,7 @@ trc_init(void)
     trc_reg = 0;
 
     io_sethandler(0x0cf9, 0x0001,
-		  trc_read, NULL, NULL, trc_write, NULL, NULL, NULL);
+		  trc_read, trc_readw, trc_readl, trc_write, trc_writew, trc_writel, NULL);
 }
 
 

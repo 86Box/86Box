@@ -58,11 +58,9 @@ extern int	bios_load(wchar_t *fn1, wchar_t *fn2, uint32_t addr, int sz,
 			  int off, int flags);
 extern int	bios_load_linear_combined(wchar_t *fn1, wchar_t *fn2,
 					  int sz, int off);
-#if defined(DEV_BRANCH) && defined(USE_TC430HX)
 extern int	bios_load_linear_combined2(wchar_t *fn1, wchar_t *fn2,
 					   wchar_t *fn3, wchar_t *fn4, wchar_t *fn5,
 					   int sz, int off);
-#endif
 
 extern int	rom_init(rom_t *rom, wchar_t *fn, uint32_t address, int size,
 			 int mask, int file_offset, uint32_t flags);

@@ -467,6 +467,9 @@ picint_common(uint16_t num, int level)
 	if (level)
                 pic_current |= num;
 
+	if (AT && (cpu_fast_off_flags & num))
+		cpu_fast_off_count = cpu_fast_off_val + 1;
+
         if (num>0xFF) {
 		if (!AT)
 			return;

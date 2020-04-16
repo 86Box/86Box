@@ -302,7 +302,6 @@ machine_at_p55t2s_init(const machine_t *model)
 }
 
 
-#if defined(DEV_BRANCH) && defined(USE_TC430HX)
 int
 machine_at_tc430hx_init(const machine_t *model)
 {
@@ -367,12 +366,10 @@ machine_at_equium5200_init(const machine_t *model) // Information about that mac
     device_add(&piix3_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&pc87306_device);
-    device_add(&intel_flash_bxtw_ami_device);
+    device_add(&intel_flash_bxt_ami_device);
 
     return ret;
 }
-
-#endif
 
 
 int
@@ -506,17 +503,17 @@ machine_at_mb520n_init(const machine_t *model)
     machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x11, PCI_CARD_NORMAL, 4, 1, 2, 3);
     pci_register_slot(0x12, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x14, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&fdc37c669_device);
-    device_add(&sst_flash_29ee010_device);
+    device_add(&intel_flash_bxt_device);
 
     return ret;
 }
@@ -705,6 +702,7 @@ machine_at_586t2_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_807ds_init(const machine_t *model)
 {
@@ -720,16 +718,116 @@ machine_at_807ds_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);	/* PIIX4 */
+    pci_register_slot(0x14, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 4, 1, 2, 3);
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&um8669f_device); /*Placeholder for ITE 8679*/
     device_add(&intel_flash_bxt_device);
+
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds */
+    		3000,	/* Chassis */
+    		3000,	/* CPU */
+    		3000,	/* Power */
+    		0
+    	}, { /* temperatures */
+    		30,	/* MB */
+    		0,	/* unused */
+    		27,	/* CPU */
+    		0
+    	}, { /* voltages */
+    		3300,				   /* VCORE (3.3V by default) */
+    		0,				   /* unused */
+    		3300,				   /* +3.3V */
+    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
+    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
+    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
+    		0
+    	}
+    };
+    /* Pentium, Pentium OverDrive MMX, Pentium Mobile MMX: 3.3V (real Pentium Mobile MMX is 2.45V).
+       Pentium MMX: 2.8 V.
+       AMD K6 Model 6: 2.9 V for 166/200, 3.2 V for 233.
+       AMD K6 Model 7: 2.2 V. */
+    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUMMMX)
+	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Pentium MMX */
+    else if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_K6)
+	machine_hwm.voltages[0] = 2200; /* set higher VCORE (2.8V) for Pentium MMX */
+    else if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_K6_2)
+	machine_hwm.voltages[0] = 2200; /* set higher VCORE (2.8V) for Pentium MMX */
+    hwm_set_values(machine_hwm);
+    device_add(&w83781d_device);
+
+    return ret;
+}
+
+
+int
+machine_at_p5mms98_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/p5mms98/s981182.rom",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);	/* PIIX4 */
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    device_add(&i430tx_device);
+    device_add(&piix4_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&w83977tf_device);
+    device_add(&intel_flash_bxt_device);
+
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds */
+    		3000,	/* Chassis */
+    		3000,	/* CPU */
+    		3000,	/* Power */
+    		0
+    	}, { /* temperatures */
+    		30,	/* MB */
+    		0,	/* unused */
+    		27,	/* CPU */
+    		0
+    	}, { /* voltages */
+    		3300,				   /* VCORE (3.3V by default) */
+    		0,				   /* unused */
+    		3300,				   /* +3.3V */
+    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
+    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
+    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
+    		0
+    	}
+    };
+    /* Pentium, Pentium OverDrive MMX, Pentium Mobile MMX: 3.3V (real Pentium Mobile MMX is 2.45V).
+       Pentium MMX: 2.8 V.
+       AMD K6 Model 6: 2.9 V for 166/200, 3.2 V for 233.
+       AMD K6 Model 7: 2.2 V. */
+    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUMMMX)
+	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Pentium MMX */
+    else if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_K6)
+	machine_hwm.voltages[0] = 2200; /* set higher VCORE (2.8V) for Pentium MMX */
+    else if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_K6_2)
+	machine_hwm.voltages[0] = 2200; /* set higher VCORE (2.8V) for Pentium MMX */
+    hwm_set_values(machine_hwm);
+    device_add(&w83781d_device);
 
     return ret;
 }

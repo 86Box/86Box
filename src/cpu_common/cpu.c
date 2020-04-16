@@ -154,6 +154,8 @@ int		cpu_prefetch_cycles, cpu_prefetch_width,
 int		cpu_waitstates;
 int		cpu_cache_int_enabled, cpu_cache_ext_enabled;
 int		cpu_pci_speed, cpu_alt_reset;
+uint16_t	cpu_fast_off_count, cpu_fast_off_val;
+uint32_t	cpu_fast_off_flags;
 
 uint32_t cpu_features;
 
@@ -165,7 +167,7 @@ int		is286,
 		hascache,
 		isibm486,
 		israpidcad,
-		is_pentium, is_k5, is_k6, is_p6;
+		is_am486, is_pentium, is_k5, is_k6, is_p6;
 
 int		hasfpu;
 
@@ -298,14 +300,20 @@ cpu_set(void)
         is286        = (cpu_s->cpu_type >= CPU_286);
         is386        = (cpu_s->cpu_type >= CPU_386SX);
 	israpidcad   = (cpu_s->cpu_type == CPU_RAPIDCAD);
-	isibm486     = (cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
+	isibm486     = (cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type == CPU_IBM486BL);
         is486        = (cpu_s->cpu_type >= CPU_i486SX) || (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_RAPIDCAD);
         is486sx      = (cpu_s->cpu_type >= CPU_i486SX) && (cpu_s->cpu_type < CPU_i486SX2);
         is486sx2     = (cpu_s->cpu_type >= CPU_i486SX2) && (cpu_s->cpu_type < CPU_i486DX);
         is486dx      = (cpu_s->cpu_type >= CPU_i486DX) && (cpu_s->cpu_type < CPU_i486DX2);
         is486dx2     = (cpu_s->cpu_type >= CPU_i486DX2) && (cpu_s->cpu_type < CPU_iDX4);	
         isdx4        = (cpu_s->cpu_type >= CPU_iDX4) && (cpu_s->cpu_type < CPU_WINCHIP);
+	is_am486     = (cpu_s->cpu_type == CPU_Am486SX) || (cpu_s->cpu_type == CPU_Am486SX2) || (cpu_s->cpu_type == CPU_Am486DX) ||
+		       (cpu_s->cpu_type == CPU_Am486DX2) || (cpu_s->cpu_type == CPU_Am486DX4) || (cpu_s->cpu_type == CPU_Am5x86);
         is_pentium   = (cpu_s->cpu_type == CPU_PENTIUM) || (cpu_s->cpu_type == CPU_PENTIUMMMX);
+	/* Not Pentiums, but they share the same SMM save state table layout. */
+	is_pentium  |= (cpu_s->cpu_type == CPU_i486DX2) || (cpu_s->cpu_type == CPU_iDX4);
+	/* The WinChip datasheet claims these are Pentium-compatible. */
+	is_pentium  |= (cpu_s->cpu_type == CPU_WINCHIP) || (cpu_s->cpu_type == CPU_WINCHIP2);
 #if defined(DEV_BRANCH) && defined(USE_AMD_K5)
         is_k5        = (cpu_s->cpu_type == CPU_K5) || (cpu_s->cpu_type == CPU_5K86);
 #else
@@ -317,6 +325,8 @@ cpu_set(void)
 				(cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P);
         is_p6        = (cpu_s->cpu_type == CPU_PENTIUMPRO) || (cpu_s->cpu_type == CPU_PENTIUM2) ||
 		       (cpu_s->cpu_type == CPU_PENTIUM2D);
+	/* The Samuel 2 datasheet claims it's Celeron-compatible. */
+	is_p6       |= (cpu_s->cpu_type == CPU_CYRIX3S);
         hasfpu       = (cpu_s->cpu_type >= CPU_i486DX) || (cpu_s->cpu_type == CPU_RAPIDCAD);
 	hascache     = (cpu_s->cpu_type >= CPU_486SLC) || (cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)

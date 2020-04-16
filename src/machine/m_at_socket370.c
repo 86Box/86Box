@@ -73,6 +73,7 @@ machine_at_atc7020bxii_init(const machine_t *model)
     return ret;	
 }
 
+
 int
 machine_at_63a_init(const machine_t *model)
 {
@@ -108,6 +109,7 @@ machine_at_63a_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_apas3_init(const machine_t *model)
 {
@@ -132,12 +134,13 @@ machine_at_apas3_init(const machine_t *model)
     device_add(&via_apro_device);
     device_add(&via_vt82c586b_device);
     device_add(&fdc37c669_device);
-    device_add(&keyboard_ps2_pci_device);
+     device_add(&keyboard_ps2_pci_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     return ret;
 }
+
 
 #if defined(DEV_BRANCH) && defined(USE_596B)
 int

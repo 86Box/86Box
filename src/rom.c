@@ -377,7 +377,6 @@ bios_load_linear_combined(wchar_t *fn1, wchar_t *fn2, int sz, int off)
 }
 
 
-#if defined(DEV_BRANCH) && defined(USE_TC430HX)
 int
 bios_load_linear_combined2(wchar_t *fn1, wchar_t *fn2, wchar_t *fn3, wchar_t *fn4, wchar_t *fn5, int sz, int off)
 {
@@ -391,7 +390,6 @@ bios_load_linear_combined2(wchar_t *fn1, wchar_t *fn2, wchar_t *fn3, wchar_t *fn
 
     return ret;
 }
-#endif
 
 
 int

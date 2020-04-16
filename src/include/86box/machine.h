@@ -285,10 +285,9 @@ extern int	machine_at_acerv35n_init(const machine_t *);
 extern int	machine_at_ap53_init(const machine_t *);
 extern int	machine_at_p55t2p4_init(const machine_t *);
 extern int	machine_at_p55t2s_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_TC430HX)
 extern int	machine_at_tc430hx_init(const machine_t *);
-extern int	machine_at_equium5200_init(const machine_t *); //Toshiba branded CU430HX. Presents same issues as the TC430HX.
-#endif                                                     //Other than that, works as intended(No need to set an MPU too).
+extern int	machine_at_equium5200_init(const machine_t *);	/* Toshiba branded CU430HX.
+								   Works as intended (No need to set an MPU too). */
 
 extern int	machine_at_p55tvp4_init(const machine_t *);
 extern int	machine_at_i430vx_init(const machine_t *);
@@ -301,6 +300,7 @@ extern int	machine_at_tx97_init(const machine_t *);
 extern int	machine_at_ym430tx_init(const machine_t *);
 extern int	machine_at_586t2_init(const machine_t *);
 extern int	machine_at_807ds_init(const machine_t *);
+extern int	machine_at_p5mms98_init(const machine_t *);
 
 extern int	machine_at_mvp3_init(const machine_t *);
 

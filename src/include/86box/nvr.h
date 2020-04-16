@@ -115,6 +115,7 @@ extern void	nvr_time_set(struct tm *);
 extern void	nvr_reg_write(uint16_t reg, uint8_t val, void *priv);
 extern void	nvr_at_handler(int set, uint16_t base, nvr_t *nvr);
 extern void	nvr_at_sec_handler(int set, uint16_t base, nvr_t *nvr);
+extern void	nvr_read_addr_set(int set, nvr_t *nvr);
 extern void	nvr_wp_set(int set, int h, nvr_t *nvr);
 extern void	nvr_bank_set(int base, uint8_t bank, nvr_t *nvr);
 extern void	nvr_lock_set(int base, int size, int lock, nvr_t *nvr);

@@ -480,20 +480,6 @@ const device_t intel_flash_bxt_ami_device =
 };
 
 
-#if defined(DEV_BRANCH) && defined(USE_TC430HX)
-const device_t intel_flash_bxtw_ami_device =
-{
-    "Intel 28F100BXT/28F200BXT Flash BIOS",
-    DEVICE_PCI,
-    FLAG_INV_A16 | FLAG_WORD,
-    intel_flash_init,
-    intel_flash_close,
-    intel_flash_reset,
-    NULL, NULL, NULL, NULL
-};
-#endif
-
-
 const device_t intel_flash_bxt_device =
 {
     "Intel 28F001BXT/28F002BXT Flash BIOS",

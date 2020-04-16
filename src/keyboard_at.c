@@ -630,6 +630,11 @@ kbd_poll(void *priv)
 
     timer_advance_u64(&dev->send_delay_timer, (100ULL * TIMER_USEC));
 
+#ifdef ENABLE_KEYBOARD_AT_LOG
+    kbd_log("ATkbd[B]: out_new = %i, out_delayed = %i, STAT_OFULL = %i, qs = %i, qe = %i, last_irq = %08X\n",
+	    dev->out_new, dev->out_delayed, !!(dev->status & STAT_OFULL), key_ctrl_queue_start, key_ctrl_queue_end, dev->last_irq);
+#endif
+
     if ((dev->out_new != -1) && !dev->last_irq) {
 	dev->wantirq = 0;
 	if (dev->out_new & 0x100) {
@@ -662,6 +667,11 @@ kbd_poll(void *priv)
 	}
     }
 
+#ifdef ENABLE_KEYBOARD_AT_LOG
+    kbd_log("ATkbd[A]: out_new = %i, out_delayed = %i, STAT_OFULL = %i, qs = %i, qe = %i, last_irq = %08X\n",
+	    dev->out_new, dev->out_delayed, !!(dev->status & STAT_OFULL), key_ctrl_queue_start, key_ctrl_queue_end, dev->last_irq);
+#endif
+
     if (dev->out_new == -1 && !(dev->status & STAT_OFULL) && key_ctrl_queue_start != key_ctrl_queue_end) {
 	dev->out_new = key_ctrl_queue[key_ctrl_queue_start] | 0x200;
 	key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0xf;
@@ -692,10 +702,16 @@ kbd_poll(void *priv)
 static void
 add_data(atkbd_t *dev, uint8_t val)
 {
+#ifdef ENABLE_KEYBOARD_AT_LOG
+    kbd_log("ATkbd: add to queue\n");
+#endif
     key_ctrl_queue[key_ctrl_queue_end] = val;
     key_ctrl_queue_end = (key_ctrl_queue_end + 1) & 0xf;
 
     if (! (dev->out_new & 0x300)) {
+#ifdef ENABLE_KEYBOARD_AT_LOG
+	kbd_log("ATkbd: delay\n");
+#endif
 	dev->out_delayed = dev->out_new;
 	dev->out_new = -1;
     }
@@ -2069,9 +2085,14 @@ do_command:
 				if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_TOSHIBA)
 					dev->status |= STAT_IFULL;
 				if (! dev->initialized) {
+#ifdef ENABLE_KEYBOARD_AT_LOG
+					kbd_log("ATkbd: self-test reinitialization\n");
+#endif
 					dev->initialized = 1;
 					key_ctrl_queue_start = key_ctrl_queue_end = 0;
 					dev->status &= ~STAT_OFULL;
+					dev->last_irq = 0;
+					dev->out_new = dev->out_delayed = -1;
 				}
 				dev->status |= STAT_SYSFLAG;
 				dev->mem[0] |= 0x04;

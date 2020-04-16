@@ -1194,6 +1194,10 @@ ide_writew(uint16_t addr, uint16_t val, void *priv)
 	case 0x0: /* Data */
 		ide_write_data(ide, val, 2);
 		break;
+	default:
+		ide_writeb(addr, val & 0xff, priv);
+		ide_writeb(addr + 1, (val >> 8) & 0xff, priv);
+		break;
     }
 }
 
@@ -1219,7 +1223,14 @@ ide_writel(uint16_t addr, uint32_t val, void *priv)
     switch (addr) {
 	case 0x0: /* Data */
 		ide_write_data(ide, val & 0xffff, 2);
-		ide_write_data(ide, val >> 16, 2);
+		if (dev->bit32)
+			ide_write_data(ide, val >> 16, 2);
+		else
+			ide_writew(addr + 2, (val >> 16) & 0xffff, priv);
+		break;
+	default:
+		ide_writew(addr, val & 0xffff, priv);
+		ide_writew(addr + 2, (val >> 16) & 0xffff, priv);
 		break;
     }
 }
@@ -1880,6 +1891,9 @@ ide_readw(uint16_t addr, void *priv)
 	case 0x0: /* Data */
 		temp = ide_read_data(ide, 2);
 		break;
+	default:
+		temp = ide_readb(addr, priv) | (ide_readb(addr + 1, priv) << 8);
+		break;
     }
 
     /* ide_log("ide_readw(%04X, %08X) = %04X\n", addr, priv, temp); */
@@ -1904,7 +1918,13 @@ ide_readl(uint16_t addr, void *priv)
     switch (addr & 0x7) {
 	case 0x0: /* Data */
 		temp2 = ide_read_data(ide, 2);
-		temp = temp2 | (ide_read_data(ide, 2) << 16);
+		if (dev->bit32)
+			temp = temp2 | (ide_read_data(ide, 2) << 16);
+		else
+			temp = temp2 | (ide_readw(addr + 2, priv) << 16);
+		break;
+	default:
+		temp = ide_readw(addr, priv) | (ide_readw(addr + 2, priv) << 16);
 		break;
     }
 
@@ -2347,22 +2367,16 @@ ide_set_handlers(uint8_t board)
 	return;
 
     if (ide_boards[board]->base_main) {
-	if (ide_boards[board]->bit32) {
-		io_sethandler(ide_boards[board]->base_main, 1,
-			      ide_readb,           ide_readw,  ide_readl,
-			      ide_writeb,          ide_writew, ide_writel,
-			      ide_boards[board]);
-	} else {
-		io_sethandler(ide_boards[board]->base_main, 1,
-			      ide_readb,           ide_readw,  NULL,
-			      ide_writeb,          ide_writew, NULL,
-			      ide_boards[board]);
-	}
+	io_sethandler(ide_boards[board]->base_main, 1,
+		      ide_readb,           ide_readw,  ide_readl,
+		      ide_writeb,          ide_writew, ide_writel,
+		      ide_boards[board]);
 	io_sethandler(ide_boards[board]->base_main + 1, 7,
-		      ide_readb,           NULL,       NULL,
-		      ide_writeb,          NULL,       NULL,
+		      ide_readb,           ide_readw,  ide_readl,
+		      ide_writeb,          ide_writew, ide_writel,
 		      ide_boards[board]);
     }
+
     if (ide_boards[board]->side_main) {
 	io_sethandler(ide_boards[board]->side_main, 1,
 		      ide_read_alt_status, NULL,       NULL,
@@ -2379,21 +2393,14 @@ ide_remove_handlers(uint8_t board)
 	return;
 
     if (ide_boards[board]->base_main) {
-	if (ide_boards[board]->bit32) {
-		io_removehandler(ide_boards[board]->base_main, 1,
-				 ide_readb,           ide_readw,  ide_readl,
-				 ide_writeb,          ide_writew, ide_writel,
-				 ide_boards[board]);
-	} else {
-		io_removehandler(ide_boards[board]->base_main, 1,
-				 ide_readb,           ide_readw,  NULL,
-				 ide_writeb,          ide_writew, NULL,
-				 ide_boards[board]);
-	}
+	io_removehandler(ide_boards[board]->base_main, 1,
+			 ide_readb,           ide_readw,  ide_readl,
+			 ide_writeb,          ide_writew, ide_writel,
+			 ide_boards[board]);
 	io_removehandler(ide_boards[board]->base_main + 1, 7,
-				 ide_readb,           NULL,       NULL,
-				 ide_writeb,          NULL,       NULL,
-				 ide_boards[board]);
+			 ide_readb,           ide_readw,  ide_readl,
+			 ide_writeb,          ide_writew, ide_writel,
+			 ide_boards[board]);
     }
     if (ide_boards[board]->side_main) {
 	io_removehandler(ide_boards[board]->side_main, 1,

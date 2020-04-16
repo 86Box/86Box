@@ -106,6 +106,10 @@ typedef struct {
 } esdi_t;
 
 
+static uint8_t		esdi_read(uint16_t port, void *priv);
+static void		esdi_write(uint16_t port, uint8_t val, void *priv);
+
+
 #ifdef ENABLE_ESDI_AT_LOG
 int esdi_at_do_log = ENABLE_ESDI_AT_LOG;
 
@@ -217,14 +221,19 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
 {
     esdi_t *esdi = (esdi_t *)priv;
 
-    esdi->buffer[esdi->pos >> 1] = val;
-    esdi->pos += 2;
+    if (port > 0x01f0) {
+	esdi_write(port, val & 0xff, priv);
+	esdi_write(port + 1, (val >> 8) & 0xff, priv);
+    } else {
+	esdi->buffer[esdi->pos >> 1] = val;
+	esdi->pos += 2;
 
-    if (esdi->pos >= 512) {
-	esdi->pos = 0;
-	esdi->status = STAT_BUSY;
-	/* 390.625 us per sector at 10 Mbit/s = 1280 kB/s. */
-	timer_set_delay_u64(&esdi->callback_timer, (3125 * TIMER_USEC) / 8);
+	if (esdi->pos >= 512) {
+		esdi->pos = 0;
+		esdi->status = STAT_BUSY;
+		/* 390.625 us per sector at 10 Mbit/s = 1280 kB/s. */
+		timer_set_delay_u64(&esdi->callback_timer, (3125 * TIMER_USEC) / 8);
+	}
     }
 }
 
@@ -386,21 +395,25 @@ esdi_readw(uint16_t port, void *priv)
     esdi_t *esdi = (esdi_t *)priv;
     uint16_t temp;
 
-    temp = esdi->buffer[esdi->pos >> 1];
-    esdi->pos += 2;
+    if (port > 0x01f0) {
+	temp = esdi_read(port, priv);
+	temp |= (esdi_read(port + 1, priv) << 8);
+    } else {
+	temp = esdi->buffer[esdi->pos >> 1];
+	esdi->pos += 2;
 
-    if (esdi->pos >= 512) {
-	esdi->pos=0;
-	esdi->status = STAT_READY | STAT_DSC;
-	if (esdi->command == CMD_READ || esdi->command == 0xa0) {
-		esdi->secount = (esdi->secount - 1) & 0xff;
-		if (esdi->secount) {
-			next_sector(esdi);
-			esdi->status = STAT_BUSY;
-			/* 390.625 us per sector at 10 Mbit/s = 1280 kB/s. */
-			timer_set_delay_u64(&esdi->callback_timer, (3125 * TIMER_USEC) / 8);
-		} else {
-			ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
+	if (esdi->pos >= 512) {
+		esdi->pos=0;
+		esdi->status = STAT_READY | STAT_DSC;
+		if (esdi->command == CMD_READ || esdi->command == 0xa0) {
+			esdi->secount = (esdi->secount - 1) & 0xff;
+			if (esdi->secount) {
+				next_sector(esdi);
+				esdi->status = STAT_BUSY;
+				/* 390.625 us per sector at 10 Mbit/s = 1280 kB/s. */
+				timer_set_delay_u64(&esdi->callback_timer, (3125 * TIMER_USEC) / 8);
+			} else
+				ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 		}
 	}
     }
