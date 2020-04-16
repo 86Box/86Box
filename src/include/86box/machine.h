@@ -312,6 +312,7 @@ extern const device_t	*at_pb640_get_device(void);
 /* m_at_socket8.c */
 extern int	machine_at_i440fx_init(const machine_t *);
 extern int	machine_at_s1668_init(const machine_t *);
+extern int	machine_at_m6mi_init(const machine_t *);
 
 /* m_at_slot1.c */
 extern int	machine_at_6bxc_init(const machine_t *);
