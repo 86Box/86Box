@@ -378,7 +378,8 @@ mfm_writew(uint16_t port, uint16_t val, void *priv)
 
     if (port > 0x01f0) {
 	mfm_write(port, val & 0xff, priv);
-	mfm_write(port + 1, (val >> 8) & 0xff, priv);
+	if (port != 0x01f7)
+		mfm_write(port + 1, (val >> 8) & 0xff, priv);
     } else {
 	mfm->buffer[mfm->pos >> 1] = val;
 	mfm->pos += 2;
@@ -465,7 +466,8 @@ mfm_readw(uint16_t port, void *priv)
 
     if (port > 0x01f0) {
 	ret = mfm_read(port, priv);
-	ret |= (mfm_read(port + 1, priv) << 8);
+	if (port != 0x01f7)
+		ret |= (mfm_read(port + 1, priv) << 8);
     } else {
 	ret = mfm->buffer[mfm->pos >> 1];
 	mfm->pos += 2;

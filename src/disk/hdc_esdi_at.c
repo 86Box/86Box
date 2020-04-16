@@ -223,7 +223,8 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
 
     if (port > 0x01f0) {
 	esdi_write(port, val & 0xff, priv);
-	esdi_write(port + 1, (val >> 8) & 0xff, priv);
+	if (port != 0x01f7)
+		esdi_write(port + 1, (val >> 8) & 0xff, priv);
     } else {
 	esdi->buffer[esdi->pos >> 1] = val;
 	esdi->pos += 2;
@@ -397,7 +398,8 @@ esdi_readw(uint16_t port, void *priv)
 
     if (port > 0x01f0) {
 	temp = esdi_read(port, priv);
-	temp |= (esdi_read(port + 1, priv) << 8);
+	if (port != 0x01f7)
+		temp |= (esdi_read(port + 1, priv) << 8);
     } else {
 	temp = esdi->buffer[esdi->pos >> 1];
 	esdi->pos += 2;
