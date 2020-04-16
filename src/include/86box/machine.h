@@ -302,16 +302,19 @@ extern int	machine_at_586t2_init(const machine_t *);
 extern int	machine_at_807ds_init(const machine_t *);
 extern int	machine_at_p5mms98_init(const machine_t *);
 
-extern int	machine_at_mvp3_init(const machine_t *);
-
-
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_pb640_get_device(void);
 #endif
 
+extern int	machine_at_advanceii_init(const machine_t *);
+
+/* m_at_super7_ss7.c */
+extern int	machine_at_ax59pro_init(const machine_t *);
+
 /* m_at_socket8.c */
-extern int	machine_at_i440fx_init(const machine_t *);
-extern int	machine_at_s1668_init(const machine_t *);
+extern int	machine_at_686nx_init(const machine_t *);
+extern int	machine_at_mb600n_init(const machine_t *);
+extern int	machine_at_8500ttc_init(const machine_t *);
 extern int	machine_at_m6mi_init(const machine_t *);
 
 /* m_at_slot1.c */
