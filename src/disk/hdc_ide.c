@@ -1898,7 +1898,7 @@ ide_readw(uint16_t addr, void *priv)
 		temp = ide_read_data(ide, 2);
 		break;
 	case 0x7:
-		temp = ide_readb(addr, priv);
+		temp = ide_readb(addr, priv) | 0xff00;
 		break;
 	default:
 		temp = ide_readb(addr, priv) | (ide_readb(addr + 1, priv) << 8);
@@ -1933,7 +1933,7 @@ ide_readl(uint16_t addr, void *priv)
 			temp = temp2 | (ide_readw(addr + 2, priv) << 16);
 		break;
 	case 0x6: case 0x7:
-		temp = ide_readw(addr, priv);
+		temp = ide_readw(addr, priv) | 0xffff0000;
 		break;
 	default:
 		temp = ide_readw(addr, priv) | (ide_readw(addr + 2, priv) << 16);

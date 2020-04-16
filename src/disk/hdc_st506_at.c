@@ -466,7 +466,9 @@ mfm_readw(uint16_t port, void *priv)
 
     if (port > 0x01f0) {
 	ret = mfm_read(port, priv);
-	if (port != 0x01f7)
+	if (port == 0x01f7)
+		ret |= 0xff00;
+	else
 		ret |= (mfm_read(port + 1, priv) << 8);
     } else {
 	ret = mfm->buffer[mfm->pos >> 1];

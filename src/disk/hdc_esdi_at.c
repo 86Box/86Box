@@ -398,7 +398,9 @@ esdi_readw(uint16_t port, void *priv)
 
     if (port > 0x01f0) {
 	temp = esdi_read(port, priv);
-	if (port != 0x01f7)
+	if (port == 0x01f7)
+		temp |= 0xff00;
+	else
 		temp |= (esdi_read(port + 1, priv) << 8);
     } else {
 	temp = esdi->buffer[esdi->pos >> 1];
