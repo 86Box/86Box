@@ -293,8 +293,8 @@
 typedef struct {
     int8_t      stat;
 
-    uint8_t	cent;
-    uint8_t	def, flags;
+    uint8_t	cent, def,
+		flags, read_addr;
 
     uint8_t	addr[8], wp[2],
 		bank[8], *lock;
@@ -707,8 +707,11 @@ nvr_read(uint16_t addr, void *priv)
 	default:
 		ret = nvr->regs[local->addr[addr_id]];
 		break;
-    } else
+    } else {
 	ret = local->addr[addr_id];
+	if (!local->read_addr)
+		ret &= 0x80;
+    }
 
     return(ret);
 }
@@ -817,6 +820,15 @@ nvr_at_sec_handler(int set, uint16_t base, nvr_t *nvr)
 
 
 void
+nvr_read_addr_set(int set, nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+
+    local->read_addr = set;
+}
+
+
+void
 nvr_wp_set(int set, int h, nvr_t *nvr)
 {
     local_t *local = (local_t *) nvr->data;
@@ -905,6 +917,8 @@ nvr_at_init(const device_t *info)
 		local->cent = RTC_CENTURY_VIA;
 		break;
     }
+
+    local->read_addr = 1;
 
     /* Set up any local handlers here. */
     nvr->reset = nvr_reset;

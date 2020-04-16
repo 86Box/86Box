@@ -22,6 +22,7 @@
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/machine.h>
 #ifdef USE_DYNAREC
 #include "codegen.h"
 #ifdef USE_NEW_DYNAREC
@@ -39,8 +40,6 @@ int cpu_recomp_blocks, cpu_recomp_full_ins, cpu_new_blocks;
 int cpu_recomp_blocks_latched, cpu_recomp_ins_latched, cpu_recomp_full_ins_latched, cpu_new_blocks_latched;
 
 
-#define SYSENTER_LOG 1
-#define ENABLE_386_DYNAREC_LOG 1
 #ifdef ENABLE_386_DYNAREC_LOG
 int x386_dynarec_do_log = ENABLE_386_DYNAREC_LOG;
 
@@ -324,6 +323,10 @@ void exec386_dynarec(int cycs)
 					cpu_state.ssegs = 0;
 
 					fetchdat = fastreadl(cs + cpu_state.pc);
+#ifdef ENABLE_386_DYNAREC_LOG
+					if (in_smm)
+						x386_dynarec_log("[%04X:%08X] fetchdat = %08X\n", CS, cpu_state.pc, fetchdat);
+#endif
 
 					if (!cpu_state.abrt)
 					{
@@ -539,6 +542,10 @@ void exec386_dynarec(int cycs)
 						cpu_state.ssegs = 0;
 		
 						fetchdat = fastreadl(cs + cpu_state.pc);
+#ifdef ENABLE_386_DYNAREC_LOG
+						if (in_smm)
+							x386_dynarec_log("[%04X:%08X] fetchdat = %08X\n", CS, cpu_state.pc, fetchdat);
+#endif
 
 						if (!cpu_state.abrt)
 						{
@@ -627,6 +634,10 @@ void exec386_dynarec(int cycs)
 						codegen_endpc = (cs + cpu_state.pc) + 8;
 
 						fetchdat = fastreadl(cs + cpu_state.pc);
+#ifdef ENABLE_386_DYNAREC_LOG
+						if (in_smm)
+							x386_dynarec_log("[%04X:%08X] fetchdat = %08X\n", CS, cpu_state.pc, fetchdat);
+#endif
 
 						if (!cpu_state.abrt)
 						{
@@ -744,6 +755,9 @@ void exec386_dynarec(int cycs)
 			}
 			else if (nmi && nmi_enable && nmi_mask)
 			{
+				if (AT && (cpu_fast_off_flags & 0x20000000))
+					cpu_fast_off_count = cpu_fast_off_val + 1;
+
 				CPU_BLOCK_END();
 #ifndef USE_NEW_DYNAREC
 				oldcs = CS;

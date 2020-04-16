@@ -62,6 +62,13 @@ typedef struct
 			glbctl, devctl,
 			timer_val;
     uint64_t		tmr_overflow_time;
+} acpi_regs_t;
+
+
+typedef struct
+{
+    acpi_regs_t		regs;
+    uint8_t		gporeg_default[4];
     pc_timer_t		timer;
     nvr_t		*nvr;
 } acpi_t;

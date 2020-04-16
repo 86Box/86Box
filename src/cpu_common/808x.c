@@ -899,6 +899,10 @@ makeznptable(void)
 static void
 reset_common(int hard)
 {
+    /* Make sure to gracefully leave SMM. */
+    if (in_smm)
+	leave_smm();
+
     biu_cycles = 0;
     in_rep = 0;
     in_lock = 0;
@@ -1682,14 +1686,6 @@ stos(int bits)
 
 
 static void
-da(void)
-{
-    set_pzs(8);
-    wait(2, 0);
-}
-
-
-static void
 aa(void)
 {
     set_of(0);
@@ -1875,58 +1871,81 @@ execx86(int cycs)
 			break;
 
 		case 0x27:	/*DAA*/
-			wait(1, 0);
+			cpu_dest = AL;
+			set_of(0);
+			temp = !!(cpu_state.flags & A_FLAG);
 			if ((cpu_state.flags & A_FLAG) || (AL & 0x0f) > 9) {
-				cpu_data = AL + 6;
-				AL = (uint8_t) cpu_data;
+				cpu_src = 6;
+				cpu_data = cpu_dest + cpu_src;
+				set_of_add(8);
+				cpu_dest = cpu_data;
 				set_af(1);
-				if ((cpu_data & 0x100) != 0)
-					set_cf(1);
 			}
-			if ((cpu_state.flags & C_FLAG) || AL > 0x9f) {
-				AL += 0x60;
+			if ((cpu_state.flags & C_FLAG) || AL > (temp ? 0x9f : 0x99)) {
+				cpu_src = 0x60;
+				cpu_data = cpu_dest + cpu_src;
+				set_of_add(8);
+				cpu_dest = cpu_data;
 				set_cf(1);
 			}
-			da();
+			AL = cpu_dest;
+			set_pzs(8);
+			wait(3, 0);
 			break;
 		case 0x2F:	/*DAS*/
-			wait(1, 0);
-			temp = AL;
+			cpu_dest = AL;
+			set_of(0);
+			temp = !!(cpu_state.flags & A_FLAG);
 			if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9)) {
-				cpu_data = AL - 6;
-				AL = (uint8_t) cpu_data;
+				cpu_src = 6;
+				cpu_data = cpu_dest + cpu_src;
+				set_of_sub(8);
+				cpu_dest = cpu_data;
 				set_af(1);
-				if ((cpu_data & 0x100) != 0)
-					set_cf(1);
 			}
-			if ((cpu_state.flags & C_FLAG) || temp > 0x9f) {
-				AL -= 0x60;
+			if ((cpu_state.flags & C_FLAG) || AL > (temp ? 0x9f : 0x99)) {
+				cpu_src = 0x60;
+				cpu_data = cpu_dest - cpu_src;
+				set_of_sub(8);
+				cpu_dest = cpu_data;
 				set_cf(1);
 			}
-			da();
+			AL = cpu_dest;
+			set_pzs(8);
+			wait(3, 0);
 			break;
 		case 0x37:	/*AAA*/
 			wait(1, 0);
 			if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9)) {
-				AL += 6;
+				cpu_src = 6;
 				++AH;
 				set_ca();
 			} else {
+				cpu_src = 0;
 				clear_ca();
 				wait(1, 0);
 			}
+			cpu_dest = AL;
+			cpu_data = cpu_dest + cpu_src;
+			AL = cpu_data;
+			set_of_add(8);
 			aa();
 			break;
 		case 0x3F: /*AAS*/
 			wait(1, 0);
 			if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9)) {
-				AL -= 6;
+				cpu_src = 6;
 				--AH;
 				set_ca();
 			} else {
+				cpu_src = 0;
 				clear_ca();
 				wait(1, 0);
 			}
+			cpu_dest = AL;
+			cpu_data = cpu_dest - cpu_src;
+			AL = cpu_data;
+			set_of_sub(8);
 			aa();
 			break;
 

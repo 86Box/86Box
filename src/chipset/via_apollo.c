@@ -85,8 +85,6 @@ apollo_smram_map(int smm, uint32_t addr, uint32_t size, int ram)
 static void
 via_apollo_setup(via_apollo_t *dev)
 {
-    memset(dev, 0, sizeof(via_apollo_t));
-
     /* Host Bridge */
     dev->pci_conf[0][0x00] = 0x06; /*VIA*/
     dev->pci_conf[0][0x01] = 0x11;
@@ -525,6 +523,7 @@ static void *
 via_apollo_init(const device_t *info)
 {
     via_apollo_t *dev = (via_apollo_t *) malloc(sizeof(via_apollo_t));
+    memset(dev, 0, sizeof(via_apollo_t));
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, via_apollo_read, via_apollo_write, dev);
 

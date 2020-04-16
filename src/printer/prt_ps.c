@@ -140,7 +140,7 @@ convert_to_pdf(ps_t *dev)
 
     output_fn[0] = 0;
     wcscat(output_fn, input_fn);
-    wcscpy(output_fn + wcslen(output_fn) - 3, L".pdf");
+    wcscpy(output_fn + wcslen(output_fn) - 4, L".pdf");
 
     gsargv[0] = L"";
     gsargv[1] = L"-dNOPAUSE";
@@ -246,45 +246,39 @@ ps_write_data(uint8_t val, void *p)
     dev->data = (char) val;
 }
 
-static bool
-process_nonprintable(ps_t *dev)
-{
-	switch (dev->data) {
-		case '\b':
-			dev->buffer_pos--;
-			break;
-		case '\r':
-			dev->buffer_pos = 0;
-			if (dev->autofeed)
-				write_buffer(dev, true);
-			break;
-		case '\v':
-		case '\f':
-		case '\n':
-			write_buffer(dev, true);
-			break;
-		case 0x04:	// Ctrl+D
-			write_buffer(dev, false);
-			finish_document(dev);
-			break;
-		
-		/* Characters that should be written to the buffer as-is */
-		case '\t':
-			return false;
-	}
-
-	return true;
-}
-
 static void
 process_data(ps_t *dev)
 {
+    /* Check for non-printable characters */
     if (dev->data < 0x20 || dev->data == 0x7F) {
-	if (process_nonprintable(dev))
-		return;
+	switch (dev->data) {
+		/* The following characters are considered white-space
+		   by the PostScript specification */
+		case '\t':
+		case '\n':
+		case '\f':
+		case '\r':
+			break;
+
+		/* Same with NUL, except we better change it to a space first */
+		case '\0':
+			dev->data = ' ';
+			break;
+
+		/* Ctrl+D (0x04) marks the end of the document */
+		case '\4':
+			write_buffer(dev, false);
+			finish_document(dev);
+			return;
+
+		/* Don't bother with the others */
+		default:
+			return;
+	}
     }
 
-    if (dev->buffer_pos == POSTSCRIPT_BUFFER_LENGTH) {
+    /* Flush the buffer if we have run to its end */
+    if (dev->buffer_pos == POSTSCRIPT_BUFFER_LENGTH - 1) {
 	write_buffer(dev, false);
 	dev->buffer_pos = 0;
     }

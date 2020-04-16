@@ -42,6 +42,7 @@
 #include <86box/acpi.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include <86box/pit.h>
 #include <86box/port_92.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -66,9 +67,9 @@ typedef struct
 			max_func, pci_slot,
 			regs[4][256],
 			readout_regs[256], board_config[2];
-    uint16_t		func0_id,
-			nvr_io_base,
+    uint16_t		func0_id, nvr_io_base,
 			usb_io_base, acpi_io_base;
+    double		fast_off_period;
     uint8_t		*usb_smsc_mmio;
     mem_mapping_t	usb_smsc_mmio_mapping;
     sff8038i_t		*bm[2];
@@ -78,6 +79,7 @@ typedef struct
     nvr_t *		nvr;
     acpi_t *		acpi;
     port_92_t *		port_92;
+    pc_timer_t		fast_off_timer;
 } piix_t;
 
 
@@ -448,9 +450,8 @@ smbus_update_io_mapping(piix_t *dev)
 static void
 nvr_update_io_mapping(piix_t *dev)
 {
-    int enabled2 = 1;
-
     if (dev->nvr_io_base != 0x0000) {
+	piix_log("Removing NVR at %04X...\n", dev->nvr_io_base);
 	nvr_at_handler(0, dev->nvr_io_base, dev->nvr);
 	nvr_at_handler(0, dev->nvr_io_base + 0x0002, dev->nvr);
 	nvr_at_handler(0, dev->nvr_io_base + 0x0004, dev->nvr);
@@ -462,15 +463,15 @@ nvr_update_io_mapping(piix_t *dev)
 	dev->nvr_io_base = 0x70;
     piix_log("New NVR I/O base: %04X\n", dev->nvr_io_base);
 
-    /* if (dev->type == 4)
-	enabled2 = (dev->regs[2][0xff] & 0x10); */
-
-    if ((dev->regs[0][0xcb] & 0x01) && enabled2) {
+    if (dev->regs[0][0xcb] & 0x01) {
+	piix_log("Adding low NVR at %04X...\n", dev->nvr_io_base);
 	nvr_at_handler(1, dev->nvr_io_base, dev->nvr);
     	nvr_at_handler(1, dev->nvr_io_base + 0x0004, dev->nvr);
     }
-    if (dev->regs[0][0xcb] & 0x04)
+    if (dev->regs[0][0xcb] & 0x04) {
+	piix_log("Adding high NVR at %04X...\n", dev->nvr_io_base + 0x0002);
 	nvr_at_handler(1, dev->nvr_io_base + 0x0002, dev->nvr);
+    }
 }
 
 
@@ -518,12 +519,11 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x4c:
 		fregs[0x4c] = val;
-		if (val & 0x80) {
-			if (dev->type > 1)
-				dma_alias_remove();
-			else
-				dma_alias_remove_piix();
-		} else {
+		if (dev->type > 1)
+			dma_alias_remove();
+		else
+			dma_alias_remove_piix();
+		if (!(val & 0x80)) {
 			if (dev->type > 1)
 				dma_alias_set();
 			else
@@ -584,6 +584,9 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 				break;
 			case 4:
 				fregs[0x6a] = val & 0x80;
+				break;
+			case 5:
+				/* This case is needed so it doesn't behave the PIIX way on the SMSC. */
 				break;
 		}
 		break;
@@ -650,6 +653,25 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		if (dev->type < 4) {
 			fregs[addr] = val & 0x1f;
 			apm_set_do_smi(dev->apm, (val & 0x01) | (fregs[0xa2] & 0x80));
+			switch ((val & 0x18) >> 3) {
+				case 0x00:
+					dev->fast_off_period = PCICLK * 32768.0 * 60000.0;
+					break;
+				case 0x01:
+				default:
+					dev->fast_off_period = 0.0;
+					break;
+				case 0x02:
+					dev->fast_off_period = PCICLK;
+					break;
+				case 0x03:
+					dev->fast_off_period = PCICLK * 32768.0;
+					break;
+			}
+			cpu_fast_off_count = fregs[0xa8] + 1;
+			timer_disable(&dev->fast_off_timer);
+			if (dev->fast_off_period != 0.0)
+				timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
 		}
 		break;
 	case 0xa2:
@@ -658,7 +680,6 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 			apm_set_do_smi(dev->apm, (fregs[0xa0] & 0x01) | (val & 0x80));
 		}
 		break;
-	case 0xa5: case 0xa6: case 0xa8:
 	case 0xaa: case 0xac: case 0xae:
 		if (dev->type < 4)
 			fregs[addr] = val & 0xff;
@@ -668,14 +689,40 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 			fregs[addr] = val & 0x01;
 		break;
 	case 0xa4:
-		if (dev->type < 4)
+		if (dev->type < 4) {
 			fregs[addr] = val & 0xfb;
+			cpu_fast_off_flags = (cpu_fast_off_flags & 0xffffff00) | fregs[addr];
+		}
+		break;
+	case 0xa5:
+		if (dev->type < 4) {
+			fregs[addr] = val & 0xff;
+			cpu_fast_off_flags = (cpu_fast_off_flags & 0xffff00ff) | (fregs[addr] << 8);
+		}
+		break;
+	case 0xa6:
+		if (dev->type < 4) {
+			fregs[addr] = val & 0xff;
+			cpu_fast_off_flags = (cpu_fast_off_flags & 0xff00ffff) | (fregs[addr] << 16);
+		}
 		break;
 	case 0xa7:
 		if (dev->type == 3)
 			fregs[addr] = val & 0xef;
 		else if (dev->type < 3)
 			fregs[addr] = val;
+		if (dev->type < 4)
+			cpu_fast_off_flags = (cpu_fast_off_flags & 0x00ffffff) | (fregs[addr] << 24);
+		break;
+	case 0xa8:
+		if (dev->type < 3) {
+			fregs[addr] = val & 0xff;
+			cpu_fast_off_val = val;
+			cpu_fast_off_count = val + 1;
+			timer_disable(&dev->fast_off_timer);
+			if (dev->fast_off_period != 0.0)
+				timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+		}
 		break;
 	case 0xb0:
 		if (dev->type > 3)
@@ -922,9 +969,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0xff:
 		if (dev->type == 4) {
 			fregs[addr] = val & 0x10;
-			nvr_at_handler(0, 0x0070, dev->nvr);
-			if ((dev->regs[0][0xcb] & 0x01) && (dev->regs[2][0xff] & 0x10))
-				nvr_at_handler(1, 0x0070, dev->nvr);
+			nvr_read_addr_set(!!(val & 0x10), dev->nvr);
 		}
 		break;
     } else if (func == 3)  switch(addr) {	/* Power Management */
@@ -1209,9 +1254,11 @@ piix_reset_hard(piix_t *dev)
 	fregs[0x20] = 0x01;
 	fregs[0x3d] = 0x04;
 	fregs[0x60] = (dev->type > 3) ? 0x10: 0x00;
-	fregs[0x6a] = (dev->type == 3) ? 0x01 : 0x00;
-	fregs[0xc1] = 0x20;
-	fregs[0xff] = (dev->type > 3) ? 0x10 : 0x00;
+	if (dev->type < 5) {
+		fregs[0x6a] = (dev->type == 3) ? 0x01 : 0x00;
+		fregs[0xc1] = 0x20;
+		fregs[0xff] = (dev->type > 3) ? 0x10 : 0x00;
+	}
 	dev->max_func = 1;	/* It starts with USB disabled, then enables it. */
 
 	/* SMSC OHCI memory-mapped registers */
@@ -1259,6 +1306,57 @@ piix_reset_hard(piix_t *dev)
 
 
 static void
+piix_apm_out(uint16_t port, uint8_t val, void *p)
+{
+    piix_t *dev = (piix_t *) p;
+
+    if (dev->apm->do_smi) {
+	if (dev->type > 3)
+		dev->acpi->regs.glbsts |= 0x20;
+	else
+		dev->regs[0][0xaa] |= 0x80;
+    }
+}
+
+
+static void
+piix_fast_off_count(void *priv)
+{
+    piix_t *dev = (piix_t *) priv;
+
+    cpu_fast_off_count--;
+
+    if (cpu_fast_off_count == 0) {
+	smi_line = 1;
+	dev->regs[0][0xaa] |= 0x20;
+	cpu_fast_off_count = dev->regs[0][0xa8] + 1;
+    }
+
+    timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+}
+
+
+static void
+piix_reset(void *p)
+{
+    piix_t *dev = (piix_t *)p;
+
+    if (dev->type > 3) {
+	piix_write(3, 0x04, 0x00, p);
+	piix_write(3, 0x5b, 0x00, p);
+    } else {
+	piix_write(0, 0xa0, 0x08, p);
+	piix_write(0, 0xa2, 0x00, p);
+	piix_write(0, 0xa4, 0x00, p);
+	piix_write(0, 0xa5, 0x00, p);
+	piix_write(0, 0xa6, 0x00, p);
+	piix_write(0, 0xa7, 0x00, p);
+	piix_write(0, 0xa8, 0x0f, p);
+    }
+}
+
+
+static void
 piix_close(void *p)
 {
     piix_t *piix = (piix_t *)p;
@@ -1283,6 +1381,7 @@ static void
 
     dev->pci_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, piix_read, piix_write, dev);
     piix_log("PIIX%i: Added to slot: %02X\n", dev->type, dev->pci_slot);
+    piix_log("PIIX%i: Added to slot: %02X\n", dev->type, dev->pci_slot);
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
     dev->bm[1] = device_add_inst(&sff8038i_device, 2);
@@ -1294,9 +1393,10 @@ static void
 	dev->acpi = device_add(&acpi_device);
 	acpi_set_slot(dev->acpi, dev->pci_slot);
 	acpi_set_nvr(dev->acpi, dev->nvr);
-    }
+    } else
+	timer_add(&dev->fast_off_timer, piix_fast_off_count, dev, 0);
 
-    if (dev->type == 5) {
+    if (dev->type > 4) {
     	dev->usb_smsc_mmio = (uint8_t *) malloc(4096);
 	memset(dev->usb_smsc_mmio, 0x00, 4096);
 
@@ -1308,8 +1408,17 @@ static void
     }
 
     piix_reset_hard(dev);
+    piix_log("Maximum function: %i\n", dev->max_func);
+    cpu_fast_off_flags = 0x00000000;
+    if (dev->type < 4) {
+	cpu_fast_off_val = dev->regs[0][0xa8];
+	cpu_fast_off_count = cpu_fast_off_val + 1;
+    } else
+	cpu_fast_off_val = cpu_fast_off_count = 0;
 
     dev->apm = device_add(&apm_device);
+    /* APM intercept handler to update PIIX/PIIX3 and PIIX4/4E/SMSC ACPI SMI status on APM SMI. */
+    io_sethandler(0x00b2, 0x0001, NULL, NULL, NULL, piix_apm_out, NULL, NULL, dev);
     dev->port_92 = device_add(&port_92_pci_device);
 
     dma_alias_set();
@@ -1392,7 +1501,7 @@ const device_t piix_device =
     0x122e0101,
     piix_init, 
     piix_close, 
-    NULL,
+    piix_reset,
     NULL,
     NULL,
     NULL,
@@ -1406,7 +1515,7 @@ const device_t piix3_device =
     0x70000403,
     piix_init, 
     piix_close, 
-    NULL,
+    piix_reset,
     NULL,
     NULL,
     NULL,
@@ -1420,7 +1529,7 @@ const device_t piix4_device =
     0x71100004,
     piix_init, 
     piix_close, 
-    NULL,
+    piix_reset,
     NULL,
     NULL,
     NULL,
@@ -1434,7 +1543,7 @@ const device_t piix4e_device =
     0x71100094,
     piix_init, 
     piix_close, 
-    NULL,
+    piix_reset,
     NULL,
     NULL,
     NULL,
@@ -1448,7 +1557,7 @@ const device_t slc90e66_device =
     0x94600005,
     piix_init, 
     piix_close, 
-    NULL,
+    piix_reset,
     NULL,
     NULL,
     NULL,

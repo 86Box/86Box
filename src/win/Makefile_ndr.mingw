@@ -74,9 +74,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef TI
   TI		:= y
  endif
- ifndef TC430HX
-  TC430HX	:= y
- endif
  ifndef VECTRA54
   VECTRA54	:= y
  endif
@@ -140,9 +137,6 @@ else
  endif
  ifndef TI
   TI		:= n
- endif
- ifndef TC430HX
-  TC430HX	:= n
  endif
  ifndef VECTRA54
   VECTRA54	:= n
@@ -500,10 +494,6 @@ endif
 
 ifeq ($(TI), y)
 OPTS		+= -DUSE_TI
-endif
-
-ifeq ($(TC430HX), y)
-OPTS		+= -DUSE_TC430HX
 endif
 
 ifeq ($(VECTRA54), y)

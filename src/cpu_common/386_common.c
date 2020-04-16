@@ -147,6 +147,11 @@ enum SMMRAM_Fields_386_To_P5 {
     SMRAM_FIELD_P5_AUTOHALT_RESTART,	/* 100 */
     SMRAM_FIELD_P5_SMM_REVISION_ID,	/* 0FC */
     SMRAM_FIELD_P5_SMBASE_OFFSET,	/* 0F8 */
+    SMRAM_FIELD_AM486_CR2,		/* 0F4 */
+    SMRAM_FIELD_AM486_DR0,		/* 0F0 */
+    SMRAM_FIELD_AM486_DR1,		/* 0EC */
+    SMRAM_FIELD_AM486_DR2,		/* 0E8 */
+    SMRAM_FIELD_AM486_DR3,		/* 0E4 */
     SMRAM_FIELD_P5_LAST
 };
 
@@ -459,6 +464,15 @@ smram_save_state_p5(uint32_t *saved_state, int in_hlt)
     saved_state[SMRAM_FIELD_P5_GS_BASE] = cpu_state.seg_gs.base;
     saved_state[SMRAM_FIELD_P5_GS_LIMIT] = cpu_state.seg_gs.limit;
     saved_state[SMRAM_FIELD_P5_GS_ACCESS] = (cpu_state.seg_gs.ar_high << 16) | (cpu_state.seg_gs.access << 8);
+
+    /* Am486/5x86 stuff */
+    if (!is_pentium) {
+	saved_state[SMRAM_FIELD_AM486_CR2] = cr2;
+	saved_state[SMRAM_FIELD_AM486_DR0] = dr[0];
+	saved_state[SMRAM_FIELD_AM486_DR1] = dr[1];
+	saved_state[SMRAM_FIELD_AM486_DR2] = dr[2];
+	saved_state[SMRAM_FIELD_AM486_DR3] = dr[3];
+    }
 }
 
 
@@ -564,6 +578,15 @@ smram_restore_state_p5(uint32_t *saved_state)
 
     if (SMM_REVISION_ID & SMM_SMBASE_RELOCATION)
 	smbase = saved_state[SMRAM_FIELD_P5_SMBASE_OFFSET];
+
+    /* Am486/5x86 stuff */
+    if (!is_pentium) {
+	cr2 = saved_state[SMRAM_FIELD_AM486_CR2];
+	dr[0] = saved_state[SMRAM_FIELD_AM486_DR0];
+	dr[1] = saved_state[SMRAM_FIELD_AM486_DR1];
+	dr[2] = saved_state[SMRAM_FIELD_AM486_DR2];
+	dr[3] = saved_state[SMRAM_FIELD_AM486_DR3];
+    }
 }
 
 
@@ -1014,7 +1037,7 @@ enter_smm(int in_hlt)
 
     memset(saved_state, 0x00, SMM_SAVE_STATE_MAP_SIZE * sizeof(uint32_t));
 
-    if (is_pentium)			/* Intel P5 (Pentium) */
+    if (is_pentium || is_am486)		/* Am486 / 5x86 / Intel P5 (Pentium) */
 	smram_save_state_p5(saved_state, in_hlt);
     else if (is_k5 || is_k6)	/* AMD K5 and K6 */
 	smram_save_state_amd_k(saved_state, in_hlt);
@@ -1086,6 +1109,9 @@ enter_smm(int in_hlt)
 void
 enter_smm_check(int in_hlt)
 {
+    if (smi_line && (cpu_fast_off_flags & 0x80000000))
+	cpu_fast_off_count = cpu_fast_off_val + 1;
+
     if ((in_smm == 0) && smi_line) {
 #ifdef ENABLE_386_COMMON_LOG
 	x386_common_log("SMI while not in SMM\n");
@@ -1136,8 +1162,8 @@ leave_smm(void)
 	smram_restore_state_p6(saved_state);
 
     /* Maybe we need this? */
-    if (smbase == 0x00030000)
-	smbase = 0x000a0000;
+    // if (smbase == 0x00030000)
+	// smbase = 0x000a0000;
 
     in_smm = 0;
     mem_mapping_recalc(0x00030000, 0x00020000);

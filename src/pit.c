@@ -44,7 +44,8 @@ pit_t		*pit, *pit2;
 double		cpuclock, PITCONSTD,
 		SYSCLK,
 		isa_timing,
-		bus_timing, pci_timing;
+		bus_timing, pci_timing,
+		PCICLK;
 
 uint64_t	PITCONST, ISACONST,
 		CGACONST,
@@ -1029,6 +1030,9 @@ pit_set_clock(int clock)
 
     bus_timing = (cpuclock / (double)cpu_busspeed);
     pci_timing = (cpuclock / (double)cpu_pci_speed);
+
+    /* PCICLK in us for use with timer_on_auto(). */
+    PCICLK = pci_timing / (cpuclock / 1000000.0);
 
     if (cpu_busspeed >= 30000000)
 	SYSCLK = bus_timing * 4.0;

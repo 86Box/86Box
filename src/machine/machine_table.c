@@ -235,10 +235,8 @@ const machine_t machines[] = {
 
     { "[Socket 7 HX] Acer V35n",		"acerv35n",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  192,   8, 127,	     machine_at_acerv35n_init, NULL			},
     { "[Socket 7 HX] ASUS P/I-P55T2P4",		"p55t2p4",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 127,	      machine_at_p55t2p4_init, NULL			},
-#if defined(DEV_BRANCH) && defined(USE_TC430HX)
     { "[Socket 7 HX] TC430HX",			"tc430hx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  128,   8, 255,	      machine_at_tc430hx_init, NULL			},
-    { "[Socket 7 HX] Toshiba Equium 5200D",	"equium5200",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  128,   8, 127,	   machine_at_equium5200_init, NULL			},
-#endif
+    { "[Socket 7 HX] Toshiba Equium 5200D",	"equium5200",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  192,   8, 127,	   machine_at_equium5200_init, NULL			},
 
     { "[Socket 7 VX] ASUS P/I-P55TVP4",		"p55tvp4",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	      machine_at_p55tvp4_init, NULL			},
     { "[Socket 7 VX] Epox P55-VA",		"p55va",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  128,   8, 127,		machine_at_p55va_init, NULL			},
@@ -251,11 +249,13 @@ const machine_t machines[] = {
     { "[Socket 7 TX] Intel YM430TX",		"ym430tx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	      machine_at_ym430tx_init, NULL			},
     { "[Socket 7 TX] Iwill P55XB2",		"p55xb2",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	       machine_at_p55xb2_init, NULL			},
     { "[Socket 7 TX] PC Partner TXA807DS",	"807ds",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	        machine_at_807ds_init, NULL			},
-
+    { "[Socket 7 TX] SuperMicro P5MMS98",	"p5mms98",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	      machine_at_p5mms98_init, NULL			},
+  
     { "[Socket 7 VP3] QDI Advance II",		"advanceii",	MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	      machine_at_advanceii_init, NULL		},
     
 	//Super Socket 7 machines
     { "[Super 7 MVP3] AOpen AX59 Pro",		"ax59pro",		MACHINE_CPUS_PENTIUM_SS7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  1024,   8, 255,	         machine_at_ax59pro_init, NULL			},
+    { "[Super 7 MVP3] FIC VA-503+",		"ficva503p",		MACHINE_CPUS_PENTIUM_SS7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 255,	         machine_at_mvp3_init, NULL			},
 
 	//Socket 8 machines
     { "[Socket 8 FX] Gigabyte GA-686NX",	"686nx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 512,   8, 127,	       machine_at_686nx_init, NULL			},

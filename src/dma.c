@@ -662,7 +662,9 @@ dma16_init(void)
 void
 dma_alias_set(void)
 {
-    io_sethandler(0x0090, 16,
+    io_sethandler(0x0090, 2,
+		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+    io_sethandler(0x0093, 13,
 		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
 }
 
@@ -684,7 +686,9 @@ dma_alias_set_piix(void)
 void
 dma_alias_remove(void)
 {
-    io_removehandler(0x0090, 16,
+    io_removehandler(0x0090, 2,
+		     dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+    io_removehandler(0x0093, 13,
 		     dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
 }
 

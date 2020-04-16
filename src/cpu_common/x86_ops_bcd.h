@@ -3,7 +3,8 @@ static int opAAA(uint32_t fetchdat)
         flags_rebuild();
         if ((cpu_state.flags & A_FLAG) || ((AL & 0xF) > 9))
         {
-                AL += 6;
+		/* On 286, it's indeed AX - behavior difference from 808x. */
+                AX += 6;
                 AH++;
                 cpu_state.flags |= (A_FLAG | C_FLAG);
         }
@@ -44,7 +45,8 @@ static int opAAS(uint32_t fetchdat)
         flags_rebuild();
         if ((cpu_state.flags & A_FLAG) || ((AL & 0xF) > 9))
         {
-                AL -= 6;
+		/* On 286, it's indeed AX - behavior difference from 808x. */
+                AX -= 6;
                 AH--;
                 cpu_state.flags |= (A_FLAG | C_FLAG);
         }
@@ -58,26 +60,33 @@ static int opAAS(uint32_t fetchdat)
 
 static int opDAA(uint32_t fetchdat)
 {
-        uint16_t tempw;
+        uint16_t tempw, old_AL, old_CF;
         
         flags_rebuild();
-        if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9))
-        {
+	old_AL = AL;
+	old_CF = cpu_state.flags & C_FLAG;
+	cpu_state.flags &= ~C_FLAG;
+
+	if (((AL & 0xf) > 9) || (cpu_state.flags & A_FLAG)) {
                 int tempi = ((uint16_t)AL) + 6;
                 AL += 6;
+                if (old_CF || (tempi & 0x100))
+			cpu_state.flags |= C_FLAG;
                 cpu_state.flags |= A_FLAG;
-                if (tempi & 0x100) cpu_state.flags |= C_FLAG;
-        }
-        if ((cpu_state.flags & C_FLAG) || (AL > 0x9f))
+        } else
+		cpu_state.flags &= ~A_FLAG;
+
+        if ((old_AL > 0x99) || old_CF)
         {
                 AL += 0x60;
                 cpu_state.flags |= C_FLAG;
-        }
+        } else
+		cpu_state.flags &= ~C_FLAG;
 
         tempw = cpu_state.flags & (C_FLAG | A_FLAG);
         setznp8(AL);
         flags_rebuild();
-        cpu_state.flags |= tempw;
+        cpu_state.flags = (cpu_state.flags & ~(C_FLAG | A_FLAG)) | tempw;
         CLOCK_CYCLES(4);
         PREFETCH_RUN(4, 1, -1, 0,0,0,0, 0);
         
@@ -86,17 +95,24 @@ static int opDAA(uint32_t fetchdat)
 
 static int opDAS(uint32_t fetchdat)
 {
-        uint16_t tempw;
+        uint16_t tempw, old_AL, old_CF;
 
         flags_rebuild();
-        if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9))
+	old_AL = AL;
+	old_CF = cpu_state.flags & C_FLAG;
+	cpu_state.flags &= ~C_FLAG;
+
+        if (((AL & 0xf) > 9) || (cpu_state.flags & A_FLAG))
         {
                 int tempi = ((uint16_t)AL) - 6;
                 AL -= 6;
+                if (old_CF || (tempi & 0x100))
+			cpu_state.flags |= C_FLAG;
                 cpu_state.flags |= A_FLAG;
-                if (tempi & 0x100) cpu_state.flags |= C_FLAG;
-        }
-        if ((cpu_state.flags & C_FLAG) || (AL > 0x9f))
+        } else
+                cpu_state.flags &= ~A_FLAG;
+
+        if ((old_AL > 0x99) || old_CF)
         {
                 AL -= 0x60;
                 cpu_state.flags |= C_FLAG;
@@ -105,7 +121,7 @@ static int opDAS(uint32_t fetchdat)
         tempw = cpu_state.flags & (C_FLAG | A_FLAG);
         setznp8(AL);
         flags_rebuild();
-        cpu_state.flags |= tempw;
+        cpu_state.flags = (cpu_state.flags & ~(C_FLAG | A_FLAG)) | tempw;
         CLOCK_CYCLES(4);
         PREFETCH_RUN(4, 1, -1, 0,0,0,0, 0);
         

@@ -26,8 +26,6 @@
 #include "386_common.h"
 
 
-#define SYSENTER_LOG 1
-
 static __inline void fetch_ea_32_long(uint32_t rmdat)
 {
         eal_r = eal_w = NULL;

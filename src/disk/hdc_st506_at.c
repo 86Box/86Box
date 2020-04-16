@@ -120,6 +120,10 @@ typedef struct {
 } mfm_t;
 
 
+static uint8_t		mfm_read(uint16_t port, void *priv);
+static void		mfm_write(uint16_t port, uint8_t val, void *priv);
+
+
 #ifdef ENABLE_ST506_AT_LOG
 int mfm_at_do_log = ENABLE_ST506_AT_LOG;
 
@@ -372,13 +376,18 @@ mfm_writew(uint16_t port, uint16_t val, void *priv)
 {
     mfm_t *mfm = (mfm_t *)priv;
 
-    mfm->buffer[mfm->pos >> 1] = val;
-    mfm->pos += 2;
+    if (port > 0x01f0) {
+	mfm_write(port, val & 0xff, priv);
+	mfm_write(port + 1, (val >> 8) & 0xff, priv);
+    } else {
+	mfm->buffer[mfm->pos >> 1] = val;
+	mfm->pos += 2;
 
-    if (mfm->pos >= 512) {
-	mfm->pos = 0;
-	mfm->status = STAT_BUSY;
-	timer_set_delay_u64(&mfm->callback_timer, SECTOR_TIME);
+	if (mfm->pos >= 512) {
+		mfm->pos = 0;
+		mfm->status = STAT_BUSY;
+		timer_set_delay_u64(&mfm->callback_timer, SECTOR_TIME);
+	}
     }
 }
 
@@ -454,19 +463,24 @@ mfm_readw(uint16_t port, void *priv)
     mfm_t *mfm = (mfm_t *)priv;
     uint16_t ret;
 
-    ret = mfm->buffer[mfm->pos >> 1];
-    mfm->pos += 2;
-    if (mfm->pos >= 512) {
-	mfm->pos = 0;
-	mfm->status = STAT_READY|STAT_DSC;
-	if (mfm->command == CMD_READ) {
-		mfm->secount = (mfm->secount - 1) & 0xff;
-		if (mfm->secount) {
-			next_sector(mfm);
-			mfm->status = STAT_BUSY | STAT_READY | STAT_DSC;
-			timer_set_delay_u64(&mfm->callback_timer, SECTOR_TIME);
-		} else
-			ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 0);
+    if (port > 0x01f0) {
+	ret = mfm_read(port, priv);
+	ret |= (mfm_read(port + 1, priv) << 8);
+    } else {
+	ret = mfm->buffer[mfm->pos >> 1];
+	mfm->pos += 2;
+	if (mfm->pos >= 512) {
+		mfm->pos = 0;
+		mfm->status = STAT_READY|STAT_DSC;
+		if (mfm->command == CMD_READ) {
+			mfm->secount = (mfm->secount - 1) & 0xff;
+			if (mfm->secount) {
+				next_sector(mfm);
+				mfm->status = STAT_BUSY | STAT_READY | STAT_DSC;
+				timer_set_delay_u64(&mfm->callback_timer, SECTOR_TIME);
+			} else
+				ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 0);
+		}
 	}
     }
 
@@ -720,7 +734,7 @@ mfm_init(const device_t *info)
     io_sethandler(0x01f0, 1,
 		  mfm_read, mfm_readw, NULL, mfm_write, mfm_writew, NULL, mfm);
     io_sethandler(0x01f1, 7,
-		  mfm_read, NULL,      NULL, mfm_write, NULL,       NULL, mfm);
+		  mfm_read, mfm_readw, NULL, mfm_write, mfm_writew, NULL, mfm);
     io_sethandler(0x03f6, 1,
 		  NULL,     NULL,      NULL, mfm_write, NULL,       NULL, mfm);
 

@@ -71,16 +71,6 @@ io_log(const char *fmt, ...)
 #endif
 
 
-#ifdef ENABLE_IO_LOG
-static uint8_t null_inb(uint16_t addr, void *priv) { io_log("IO: read(%04x)\n"); return(0xff); }
-static uint16_t null_inw(uint16_t addr, void *priv) { io_log("IO: readw(%04x)\n"); return(0xffff); }
-static uint32_t null_inl(uint16_t addr, void *priv) { io_log("IO: readl(%04x)\n"); return(0xffffffff); }
-static void null_outb(uint16_t addr, uint8_t val, void *priv) { io_log("IO: write(%04x, %02x)\n", val); }
-static void null_outw(uint16_t addr, uint16_t val, void *priv) { io_log("IO: writew(%04x, %04x)\n", val); }
-static void null_outl(uint16_t addr, uint32_t val, void *priv) { io_log("IO: writel(%04x, %08lx)\n", val); }
-#endif
-
-
 void
 io_init(void)
 {
@@ -106,24 +96,8 @@ io_init(void)
 		p = NULL;
 	}
 
-#ifdef ENABLE_IO_LOG
-	/* io[c] should be the only handler, pointing at the NULL catch handler. */
-	p = (io_t *) malloc(sizeof(io_t));
-	memset(p, 0, sizeof(io_t));
-	io[c] = io_last[c] = p;
-	p->next = NULL;
-	p->prev = NULL;
-	p->inb  = null_inb;
-	p->outb = null_outb;
-	p->inw  = null_inw;
-	p->outw = null_outw;
-	p->inl  = null_inl;
-	p->outl = null_outl;
-	p->priv = NULL;
-#else
 	/* io[c] should be NULL. */
 	io[c] = io_last[c] = NULL;
-#endif
     }
 }
 
@@ -309,16 +283,16 @@ inb(uint16_t port)
     uint8_t ret = 0xff;
     io_t *p;
     int found = 0;
+    int qfound = 0;
 
     p = io[port];
-    if (p) {
-	while(p) {
-		if (p->inb) {
-			ret &= p->inb(port, p->priv);
-			found++;
-		}
-		p = p->next;
+    while(p) {
+	if (p->inb) {
+		ret &= p->inb(port, p->priv);
+		found |= 1;
+		qfound++;
 	}
+	p = p->next;
     }
 
     if (port & 0x80)
@@ -328,34 +302,10 @@ inb(uint16_t port)
     else
 	amstrad_latch = AMSTRAD_SW9;
 
-#ifdef ENABLE_IO_LOG
-    if (CS == IO_TRACE)
-	io_log("IOTRACE(%04X): inb(%04x)=%02x\n", IO_TRACE, port, ret);
-#endif
-
-    /* if (port == 0x386) {
-	ret = 0x00;
-	found = 1;
-    }
-
-    if (port == 0x406) {
-	ret = 0x00;
-	found = 1;
-    }
-
-    if (port == 0xf87) {
-	ret = 0x00;
-	found = 1;
-    } */
-
     if (!found)
 	sub_cycles(io_delay);
 
-    // if (!found)
-	// pclog("inb(%04X) = %02X\n", port, ret);
-
-    // if (in_smm)
-	// pclog("inb(%04X) = %02X\n", port, ret);
+    io_log("(%i, %i, %04i) in b(%04X) = %02X\n", in_smm, found, qfound, port, ret);
 
     return(ret);
 }
@@ -366,31 +316,22 @@ outb(uint16_t port, uint8_t val)
 {
     io_t *p;
     int found = 0;
+    int qfound = 0;
 
-    // if (in_smm)
-	// pclog("outb(%04X, %02X)\n", port, val);
-
-    if (io[port]) {
-	p = io[port];
-	while(p) {
-		if (p->outb) {
-			p->outb(port, val, p->priv);
-			found++;
-		}
-		p = p->next;
+    p = io[port];
+    while(p) {
+	if (p->outb) {
+		p->outb(port, val, p->priv);
+		found |= 1;
+		qfound++;
 	}
+	p = p->next;
     }
 	
-#ifdef ENABLE_IO_LOG
-    if (CS == IO_TRACE)
-	io_log("IOTRACE(%04X): outb(%04x,%02x)\n", IO_TRACE, port, val);
-#endif
-
     if (!found)
 	sub_cycles(io_delay);
 
-    // if (!found)
-	// pclog("outb(%04X, %02X)\n", port, val);
+    io_log("(%i, %i, %04i) outb(%04X, %02X)\n", in_smm, found, qfound, port, val);
 
     return;
 }
@@ -402,23 +343,46 @@ inw(uint16_t port)
     io_t *p;
     uint16_t ret = 0xffff;
     int found = 0;
+    int qfound = 0;
+    uint8_t ret8[2];
+    int i = 0;
 
     p = io[port];
-    if (p) {
+    while(p) {
+	if (p->inw) {
+		ret &= p->inw(port, p->priv);
+		found |= 2;
+		qfound++;
+	}
+	p = p->next;
+    }
+
+    ret8[0] = ret & 0xff;
+    ret8[1] = (ret >> 8) & 0xff;
+    for (i = 0; i < 2; i++) {
+	p = io[port + i];
 	while(p) {
-		if (p->inw) {
-			ret = p->inw(port, p->priv);
-			found = 1;
+		if (p->inb && !p->inw) {
+			ret8[i] &= p->inb(port + i, p->priv);
+			found |= 1;
+			qfound++;
 		}
 		p = p->next;
 	}
     }
+    ret = (ret8[1] << 8) | ret8[0];
+
+    if (port & 0x80)
+	amstrad_latch = AMSTRAD_NOLATCH;
+    else if (port & 0x4000)   
+	amstrad_latch = AMSTRAD_SW10;
+    else
+	amstrad_latch = AMSTRAD_SW9;
 
     if (!found)
-	ret = (inb(port) | (inb(port + 1) << 8));
+	sub_cycles(io_delay);
 
-    // if (in_smm)
-	// pclog("inw(%04X) = %04X\n", port, ret);
+    io_log("(%i, %i, %04i) in w(%04X) = %04X\n", in_smm, found, qfound, port, ret);
 
     return ret;
 }
@@ -428,23 +392,36 @@ void
 outw(uint16_t port, uint16_t val)
 {
     io_t *p;
-
-    // if (in_smm)
-	// pclog("outw(%04X, %04X)\n", port, val);
+    int found = 0;
+    int qfound = 0;
+    int i = 0;
 
     p = io[port];
-    if (p) {
+    while(p) {
+	if (p->outw) {
+		p->outw(port, val, p->priv);
+		found |= 2;
+		qfound++;
+	}
+	p = p->next;
+    }
+
+    for (i = 0; i < 2; i++) {
+	p = io[port + i];
 	while(p) {
-		if (p->outw) {
-			p->outw(port, val, p->priv);
-			return;
+		if (p->outb && !p->outw) {
+			p->outb(port + i, val >> (i << 3), p->priv);
+			found |= 1;
+			qfound++;
 		}
 		p = p->next;
 	}
     }
 
-    outb(port,val);
-    outb(port+1,val>>8);
+    if (!found)
+	sub_cycles(io_delay);
+
+    io_log("(%i, %i, %04i) outw(%04X, %04X)\n", in_smm, found, qfound, port, val);
 
     return;
 }
@@ -455,24 +432,66 @@ inl(uint16_t port)
 {
     io_t *p;
     uint32_t ret = 0xffffffff;
+    uint16_t ret16[2];
+    uint8_t ret8[4];
     int found = 0;
+    int qfound = 0;
+    int i = 0;
 
     p = io[port];
-    if (p) {
+    while(p) {
+	if (p->inl) {
+		ret &= p->inl(port, p->priv);
+		found |= 4;
+		qfound++;
+	}
+	p = p->next;
+    }
+
+    ret16[0] = ret & 0xffff;
+    ret16[1] = (ret >> 16) & 0xffff;
+    for (i = 0; i < 4; i += 2) {
+	p = io[port + i];
 	while(p) {
-		if (p->inl) {
-			ret = p->inl(port, p->priv);
-			found = 1;
+		if (p->inw && !p->inl) {
+			ret16[i >> 1] &= p->inw(port + i, p->priv);
+			found |= 2;
+			qfound++;
 		}
 		p = p->next;
 	}
     }
+    ret = (ret16[1] << 16) | ret16[0];
+
+    ret8[0] = ret & 0xff;
+    ret8[1] = (ret >> 8) & 0xff;
+    ret8[2] = (ret >> 16) & 0xff;
+    ret8[3] = (ret >> 24) & 0xff;
+    for (i = 0; i < 4; i++) {
+	p = io[port + i];
+	while(p) {
+		if (p->inb && !p->inw && !p->inl) {
+			ret8[i] &= p->inb(port + i, p->priv);
+			found |= 1;
+			qfound++;
+		}
+		p = p->next;
+	}
+    }
+    ret = (ret8[3] << 24) | (ret8[2] << 16) | (ret8[1] << 8) | ret8[0];
+
+    if (port & 0x80)
+	amstrad_latch = AMSTRAD_NOLATCH;
+    else if (port & 0x4000)   
+	amstrad_latch = AMSTRAD_SW10;
+    else
+	amstrad_latch = AMSTRAD_SW9;
 
     if (!found)
-	ret = (inw(port) | (inw(port + 2) << 16));
+	sub_cycles(io_delay);
 
-    // if (in_smm)
-	// pclog("inl(%04X) = %08X\n", port, ret);
+    if (in_smm)
+	io_log("(%i, %i, %04i) in l(%04X) = %08X\n", in_smm, found, qfound, port, ret);
 
     return ret;
 }
@@ -482,23 +501,51 @@ void
 outl(uint16_t port, uint32_t val)
 {
     io_t *p;
-
-    // if (in_smm)
-	// pclog("outl(%04X, %08X)\n", port, val);
+    int found = 0;
+    int qfound = 0;
+    int i = 0;
 
     p = io[port];
     if (p) {
 	while(p) {
 		if (p->outl) {
 			p->outl(port, val, p->priv);
-			return;
+			found |= 4;
+			qfound++;
+			// return;
 		}
 		p = p->next;
 	}
     }
 
-    outw(port, val);
-    outw(port + 2, val >> 16);
+    for (i = 0; i < 4; i += 2) {
+	p = io[port + i];
+	while(p) {
+		if (p->outw && !p->outl) {
+			p->outw(port + i, val >> (i << 3), p->priv);
+			found |= 2;
+			qfound++;
+		}
+		p = p->next;
+	}
+    }
+
+    for (i = 0; i < 4; i++) {
+	p = io[port + i];
+	while(p) {
+		if (p->outb && !p->outw && !p->outl) {
+			p->outb(port + i, val >> (i << 3), p->priv);
+			found |= 1;
+			qfound++;
+		}
+		p = p->next;
+	}
+    }
+
+    if (!found)
+	sub_cycles(io_delay);
+
+    io_log("(%i, %i, %04i) outl(%04X, %08X)\n", in_smm, found, qfound, port, val);
 
     return;
 }

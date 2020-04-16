@@ -61,16 +61,16 @@ acpi_update_irq(void *priv)
     acpi_t *dev = (acpi_t *) priv;
     int sci_level;
 
-    sci_level = (dev->pmsts & dev->pmen) & (RTC_EN | PWRBTN_EN | GBL_EN | TMROF_EN);
+    sci_level = (dev->regs.pmsts & dev->regs.pmen) & (RTC_EN | PWRBTN_EN | GBL_EN | TMROF_EN);
     
     if (sci_level) {
-	if (dev->irq_mode == 1)
-		pci_set_irq(dev->slot, dev->irq_pin);
+	if (dev->regs.irq_mode == 1)
+		pci_set_irq(dev->regs.slot, dev->regs.irq_pin);
 	else
 		picintlevel(1 << 9);
     } else {
-	if (dev->irq_mode == 1)
-		pci_clear_irq(dev->slot, dev->irq_pin);
+	if (dev->regs.irq_mode == 1)
+		pci_clear_irq(dev->regs.slot, dev->regs.irq_pin);
 	else
 		picintc(1 << 9);
     }
@@ -91,82 +91,80 @@ acpi_reg_read_common(int size, uint16_t addr, void *p)
     switch (addr) {
 	case 0x00: case 0x01:
 		/* PMSTS - Power Management Status Register (IO) */
-		ret = (dev->pmsts >> shift16) & 0xff;
+		ret = (dev->regs.pmsts >> shift16) & 0xff;
 		break;
 	case 0x02: case 0x03:
 		/* PMEN - Power Management Resume Enable Register (IO) */
-		ret = (dev->pmen >> shift16) & 0xff;
+		ret = (dev->regs.pmen >> shift16) & 0xff;
 		break;
 	case 0x04: case 0x05:
 		/* PMCNTRL - Power Management Control Register (IO) */
-		ret = (dev->pmcntrl >> shift16) & 0xff;
+		ret = (dev->regs.pmcntrl >> shift16) & 0xff;
 		break;
 	case 0x08: case 0x09: case 0x0a: case 0x0b:
 		/* PMTMR - Power Management Timer Register (IO) */
-		ret = (dev->timer_val >> shift32) & 0xff;
+		ret = (dev->regs.timer_val >> shift32) & 0xff;
 		break;
 	case 0x0c: case 0x0d:
 		/* GPSTS - General Purpose Status Register (IO) */
-		ret = (dev->gpsts >> shift16) & 0xff;
+		ret = (dev->regs.gpsts >> shift16) & 0xff;
 		break;
 	case 0x0e: case 0x0f:
 		/* GPEN - General Purpose Enable Register (IO) */
-		ret = (dev->gpen >> shift16) & 0xff;
+		ret = (dev->regs.gpen >> shift16) & 0xff;
 		break;
 	case 0x10: case 0x11: case 0x12: case 0x13:
 		/* PCNTRL - Processor Control Register (IO) */
-		ret = (dev->pcntrl >> shift32) & 0xff;
+		ret = (dev->regs.pcntrl >> shift32) & 0xff;
 		break;
 	case 0x14:
 		/* PLVL2 - Processor Level 2 Register (IO) */
 		if (size == 1)
-			ret = dev->plvl2;
+			ret = dev->regs.plvl2;
 		break;
 	case 0x15:
 		/* PLVL3 - Processor Level 3 Register (IO) */
 		if (size == 1)
-			ret = dev->plvl3;
+			ret = dev->regs.plvl3;
 		break;
 	case 0x18: case 0x19:
 		/* GLBSTS - Global Status Register (IO) */
-		ret = (dev->glbsts >> shift16) & 0xff;
+		ret = (dev->regs.glbsts >> shift16) & 0xff;
 		if (addr == 0x18) {
-			ret &= 0x05;
-			if (dev->gpsts != 0x0000)
+			ret &= 0x25;
+			if (dev->regs.gpsts != 0x0000)
 				ret |= 0x80;
-			if (dev->pmsts != 0x0000)
+			if (dev->regs.pmsts != 0x0000)
 				ret |= 0x40;
-			if (in_smm)
-				ret |= 0x20;
-			if (dev->devsts != 0x00000000)
+			if (dev->regs.devsts != 0x00000000)
 				ret |= 0x10;
 		}
 		break;
 	case 0x1c: case 0x1d: case 0x1e: case 0x1f:
 		/* DEVSTS - Device Status Register (IO) */
-		ret = ((dev->devsts | 0x10000000) >> shift32) & 0xff;
+		ret = (dev->regs.devsts >> shift32) & 0xff;
 		break;
 	case 0x20: case 0x21:
 		/* GLBEN - Global Enable Register (IO) */
-		ret = (dev->glben >> shift16) & 0xff;
+		ret = (dev->regs.glben >> shift16) & 0xff;
 		break;
 	case 0x28: case 0x29: case 0x2a: case 0x2b:
 		/* GLBCTL - Global Control Register (IO) */
-		ret = (dev->glbctl >> shift32) & 0xff;
+		ret = (dev->regs.glbctl >> shift32) & 0xff;
 		break;
 	case 0x2c: case 0x2d: case 0x2e: case 0x2f:
 		/* DEVCTL - Device Control Register (IO) */
-		ret = (dev->devctl >> shift32) & 0xff;
+		ret = (dev->regs.devctl >> shift32) & 0xff;
 		break;
 	case 0x30: case 0x31: case 0x32:
 		/* GPIREG - General Purpose Input Register (IO) */
 		if (size == 1)
-			ret = dev->gpireg[addr & 3];
+			ret = dev->regs.gpireg[addr & 3];
 		break;
 	case 0x34: case 0x35: case 0x36: case 0x37:
 		/* GPOREG - General Purpose Output Register (IO) */
 		if (size == 1)
-			ret = dev->gporeg[addr & 3];
+			ret = dev->regs.gporeg[addr & 3];
 		break;
     }
 
@@ -190,19 +188,19 @@ acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *p)
     switch (addr) {
 	case 0x00: case 0x01:
 		/* PMSTS - Power Management Status Register (IO) */
-		dev->pmsts &= ~((val << shift16) & 0x8d31);
+		dev->regs.pmsts &= ~((val << shift16) & 0x8d31);
 		acpi_update_irq(dev);
 		break;
 	case 0x02: case 0x03:
 		/* PMEN - Power Management Resume Enable Register (IO) */
-		dev->pmen = ((dev->pmen & ~(0xff << shift16)) | (val << shift16)) & 0x0521;
+		dev->regs.pmen = ((dev->regs.pmen & ~(0xff << shift16)) | (val << shift16)) & 0x0521;
 		acpi_update_irq(dev);
 		break;
 	case 0x04: case 0x05:
 		/* PMCNTRL - Power Management Control Register (IO) */
-		dev->pmcntrl = ((dev->pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c07;
-		if (dev->pmcntrl & 0x2000) {
-			sus_typ = (dev->pmcntrl >> 10) & 7;
+		dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c07;
+		if (dev->regs.pmcntrl & 0x2000) {
+			sus_typ = (dev->regs.pmcntrl >> 10) & 7;
 			switch (sus_typ) {
 				case 0:
 					/* Soft power off. */
@@ -232,51 +230,51 @@ acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *p)
 		break;
 	case 0x0c: case 0x0d:
 		/* GPSTS - General Purpose Status Register (IO) */
-		dev->gpsts &= ~((val << shift16) & 0x0f81);
+		dev->regs.gpsts &= ~((val << shift16) & 0x0f81);
 		break;
 	case 0x0e: case 0x0f:
 		/* GPEN - General Purpose Enable Register (IO) */
-		dev->gpen = ((dev->gpen & ~(0xff << shift16)) | (val << shift16)) & 0x0f01;
+		dev->regs.gpen = ((dev->regs.gpen & ~(0xff << shift16)) | (val << shift16)) & 0x0f01;
 		break;
 	case 0x10: case 0x11: case 0x12: case 0x13:
 		/* PCNTRL - Processor Control Register (IO) */
-		dev->pcntrl = ((dev->pcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x00023e1e;
+		dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x00023e1e;
 		break;
 	case 0x14:
 		/* PLVL2 - Processor Level 2 Register (IO) */
 		if (size == 1)
-			dev->plvl2 = val;
+			dev->regs.plvl2 = val;
 		break;
 	case 0x15:
 		/* PLVL3 - Processor Level 3 Register (IO) */
 		if (size == 1)
-			dev->plvl3 = val;
+			dev->regs.plvl3 = val;
 		break;
 	case 0x18: case 0x19:
 		/* GLBSTS - Global Status Register (IO) */
-		dev->glbsts &= ~((val << shift16) & 0x0df7);
+		dev->regs.glbsts &= ~((val << shift16) & 0x0df7);
 		break;
 	case 0x1c: case 0x1d: case 0x1e: case 0x1f:
 		/* DEVSTS - Device Status Register (IO) */
-		dev->devsts &= ~((val << shift32) & 0x3fff0fff);
+		dev->regs.devsts &= ~((val << shift32) & 0x3fff0fff);
 		break;
 	case 0x20: case 0x21:
 		/* GLBEN - Global Enable Register (IO) */
-		dev->glben = ((dev->glben & ~(0xff << shift16)) | (val << shift16)) & 0x8d1f;
+		dev->regs.glben = ((dev->regs.glben & ~(0xff << shift16)) | (val << shift16)) & 0x8d1f;
 		break;
 	case 0x28: case 0x29: case 0x2a: case 0x2b:
 		/* GLBCTL - Global Control Register (IO) */
-		// dev->glbctl = ((dev->glbctl & ~(0xff << shift32)) | (val << shift32)) & 0x0701ff07;
-		dev->glbctl = ((dev->glbctl & ~(0xff << shift32)) | (val << shift32)) & 0x0700ff07;
+		// dev->regs.glbctl = ((dev->regs.glbctl & ~(0xff << shift32)) | (val << shift32)) & 0x0701ff07;
+		dev->regs.glbctl = ((dev->regs.glbctl & ~(0xff << shift32)) | (val << shift32)) & 0x0700ff07;
 		break;
 	case 0x2c: case 0x2d: case 0x2e: case 0x2f:
 		/* DEVCTL - Device Control Register (IO) */
-		dev->devctl = ((dev->devctl & ~(0xff << shift32)) | (val << shift32)) & 0x0fffffff;
+		dev->regs.devctl = ((dev->regs.devctl & ~(0xff << shift32)) | (val << shift32)) & 0x0fffffff;
 		break;
 	case 0x34: case 0x35: case 0x36: case 0x37:
 		/* GPOREG - General Purpose Output Register (IO) */
 		if (size == 1)
-			dev->gporeg[addr & 3] = val;
+			dev->regs.gporeg[addr & 3] = val;
 		break;
     }
 }
@@ -351,16 +349,16 @@ acpi_reg_write(uint16_t addr, uint8_t val, void *p)
 void
 acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en)
 {
-    if (dev->io_base != 0x0000) {
-	io_removehandler(dev->io_base, 0x40,
+    if (dev->regs.io_base != 0x0000) {
+	io_removehandler(dev->regs.io_base, 0x40,
 			 acpi_reg_read, acpi_reg_readw, acpi_reg_readl,
 			 acpi_reg_write, acpi_reg_writew, acpi_reg_writel, dev);
     }
 
-    dev->io_base = base;
+    dev->regs.io_base = base;
 
-    if (chipset_en && (dev->io_base != 0x0000)) {
-	io_sethandler(dev->io_base, 0x40,
+    if (chipset_en && (dev->regs.io_base != 0x0000)) {
+	io_sethandler(dev->regs.io_base, 0x40,
 		      acpi_reg_read, acpi_reg_readw, acpi_reg_readl,
 		      acpi_reg_write, acpi_reg_writew, acpi_reg_writel, dev);
     }
@@ -374,18 +372,18 @@ acpi_timer_count(void *priv)
     int overflow;
     uint32_t old;
 
-    old = dev->timer_val;
-    dev->timer_val++;
+    old = dev->regs.timer_val;
+    dev->regs.timer_val++;
 
-    if (dev->timer32)
-	overflow = (old ^ dev->timer_val) & 0x80000000;
+    if (dev->regs.timer32)
+	overflow = (old ^ dev->regs.timer_val) & 0x80000000;
     else {
-	dev->timer_val &= 0x00ffffff;
-	overflow = (old ^ dev->timer_val) & 0x00800000;
+	dev->regs.timer_val &= 0x00ffffff;
+	overflow = (old ^ dev->regs.timer_val) & 0x00800000;
     }
 
     if (overflow) {
-	dev->pmsts |= TMROF_EN;
+	dev->regs.pmsts |= TMROF_EN;
 	acpi_update_irq(dev);
     }
 
@@ -396,42 +394,42 @@ acpi_timer_count(void *priv)
 void
 acpi_init_gporeg(acpi_t *dev, uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3)
 {
-    dev->gporeg[0] = val0;
-    dev->gporeg[1] = val1;
-    dev->gporeg[2] = val2;
-    dev->gporeg[3] = val3;
-    acpi_log("acpi_init_gporeg(): %02X %02X %02X %02X\n", dev->gporeg[0], dev->gporeg[1], dev->gporeg[2], dev->gporeg[3]);
+    dev->regs.gporeg[0] = dev->gporeg_default[0] = val0;
+    dev->regs.gporeg[1] = dev->gporeg_default[1] = val1;
+    dev->regs.gporeg[2] = dev->gporeg_default[2] = val2;
+    dev->regs.gporeg[3] = dev->gporeg_default[3] = val3;
+    acpi_log("acpi_init_gporeg(): %02X %02X %02X %02X\n", dev->regs.gporeg[0], dev->regs.gporeg[1], dev->regs.gporeg[2], dev->regs.gporeg[3]);
 }
 
 
 void
 acpi_set_timer32(acpi_t *dev, uint8_t timer32)
 {
-    dev->timer32 = timer32;
+    dev->regs.timer32 = timer32;
 
-    if (!dev->timer32)
-	dev->timer_val &= 0x00ffffff;
+    if (!dev->regs.timer32)
+	dev->regs.timer_val &= 0x00ffffff;
 }
 
 
 void
 acpi_set_slot(acpi_t *dev, int slot)
 {
-    dev->slot = slot;
+    dev->regs.slot = slot;
 }
 
 
 void
 acpi_set_irq_mode(acpi_t *dev, int irq_mode)
 {
-    dev->irq_mode = irq_mode;
+    dev->regs.irq_mode = irq_mode;
 }
 
 
 void
 acpi_set_irq_pin(acpi_t *dev, int irq_pin)
 {
-    dev->irq_pin = irq_pin;
+    dev->regs.irq_pin = irq_pin;
 }
 
 
@@ -446,8 +444,11 @@ static void
 acpi_reset(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;
+    int i;
 
-    dev->timer_val = 0;
+    memset(&dev->regs, 0x00, sizeof(acpi_regs_t));
+    for (i = 0; i < 4; i++)
+	dev->regs.gporeg[i] = dev->gporeg_default[i];
 }
 
 
@@ -483,8 +484,6 @@ acpi_init(const device_t *info)
 
     timer_add(&dev->timer, acpi_timer_count, dev, 0);
     timer_set_delay_u64(&dev->timer, ACPICONST);
-
-    dev->pmsts |= 0x0100;
 
     return dev;
 }
