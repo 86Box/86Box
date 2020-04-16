@@ -1229,6 +1229,9 @@ piix_reset_hard(piix_t *dev)
     else
 	fregs[0x09] = 0x80;
     fregs[0x0a] = 0x01; fregs[0x0b] = 0x01;
+    if (dev->type == 5) {
+	fregs[0x10] = fregs[0x14] = fregs[0x18] = fregs[0x1c] = 0x01;
+    }
     fregs[0x20] = 0x01;
     if (dev->type == 5) {
 	fregs[0x3c] = 0x0e;
