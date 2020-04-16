@@ -310,6 +310,7 @@ extern int	machine_at_advanceii_init(const machine_t *);
 
 /* m_at_super7_ss7.c */
 extern int	machine_at_ax59pro_init(const machine_t *);
+extern int	machine_at_mvp3_init(const machine_t *);
 
 /* m_at_socket8.c */
 extern int	machine_at_686nx_init(const machine_t *);
