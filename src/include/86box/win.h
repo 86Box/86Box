@@ -90,9 +90,7 @@ extern WCHAR		wopenfilestring[512];
 extern uint8_t		filterindex;
 
 
-#ifdef USE_CRASHDUMP
 extern void	InitCrashDump(void);
-#endif
 
 extern HICON	LoadIconEx(PCTSTR pszIconName);
 

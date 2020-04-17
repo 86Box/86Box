@@ -44,9 +44,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef CL5422
   CL5422	:= y
  endif
- ifndef CRASHDUMP
-  CRASHDUMP	:= y
- endif
  ifndef LASERXT
   LASERXT	:= y
  endif
@@ -104,9 +101,6 @@ else
  endif
  ifndef CL5422
   CL5422	:= n
- endif
- ifndef CRASHDUMP
-  CRASHDUMP	:= n
  endif
  ifndef LASERXT
   LASERXT	:= n
@@ -430,11 +424,6 @@ ifeq ($(CL5422), y)
 OPTS		+= -DUSE_CL5422
 endif
 
-ifeq ($(CRASHDUMPOBJ), y)
-OPTS		+= -DUSE_CRASHDUMP
-DEVBROBJ	+= win_crashdump.o
-endif
-
 ifeq ($(LASERXT), y)
 OPTS		+= -DUSE_LASERXT
 DEVBROBJ	+= m_xt_laserxt.o
@@ -678,7 +667,7 @@ VIDOBJ		:= video.o \
 PLATOBJ		:= win.o \
 		    win_dynld.o win_thread.o \
 		    win_cdrom.o win_keyboard.o \
-		    win_midi.o \
+		    win_crashdump.o win_midi.o \
 		    win_mouse.o
 
 ifeq ($(DINPUT), y)
@@ -705,7 +694,7 @@ endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
-LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -lversion -lwinmm -static -lstdc++
+LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lpsapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -lversion -lwinmm -static -lstdc++
 ifneq ($(X64), y)
 LIBS		+= -Wl,--large-address-aware
 endif
@@ -755,7 +744,7 @@ else
 endif
 
 
-all:		$(PROG).exe pcap_if.exe
+all:		$(PROG).exe
 
 
 86Box.res:	86Box.rc

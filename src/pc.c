@@ -131,6 +131,7 @@ int	time_sync = 0;				/* (C) enable time sync */
 #ifdef USE_DISCORD
 int	enable_discord = 0;			/* (C) enable Discord integration */
 #endif
+int	enable_crashdump = 0;			/* (C) enable crash dump */
 
 /* Statistics. */
 extern int
@@ -354,6 +355,7 @@ usage:
 #ifdef _WIN32
 		printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
 #endif
+		printf("-R or --crashdump    - enables crashdump on exception\n");
 		printf("\nA config file can be specified. If none is, the default file will be used.\n");
 		return(0);
 	} else if (!wcscasecmp(argv[c], L"--dumpcfg") ||
@@ -383,6 +385,9 @@ usage:
 	} else if (!wcscasecmp(argv[c], L"--noconfirm") ||
 		   !wcscasecmp(argv[c], L"-N")) {
 		no_quit_confirm = 1;
+	} else if (!wcscasecmp(argv[c], L"--crashdump") ||
+		   !wcscasecmp(argv[c], L"-R")) {
+		enable_crashdump = 1;
 #ifdef _WIN32
 	} else if (!wcscasecmp(argv[c], L"--hwnd") ||
 		   !wcscasecmp(argv[c], L"-H")) {

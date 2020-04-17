@@ -354,10 +354,9 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
     /* Set the application version ID string. */
     sprintf(emu_version, "%s v%s", EMU_NAME, EMU_VERSION);
 
-#ifdef USE_CRASHDUMP
     /* Enable crash dump services. */
-    InitCrashDump();
-#endif
+    if (enable_crashdump)
+	InitCrashDump();
 
     /* First, set our (default) language. */
     set_language(0x0409);
