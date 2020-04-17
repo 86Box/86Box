@@ -185,11 +185,7 @@ via_vpx_read(int func, int addr, void *priv)
 static void
 via_vpx_write(int func, int addr, uint8_t val, void *priv)
 {
-    switch(func) {
-	case 0:
 	host_bridge_write(func, addr, val, priv);
-	break;
-    }
 }
 
 static void
