@@ -39,6 +39,35 @@
 #include <86box/video.h>
 #include "cpu.h"
 #include <86box/machine.h>
+int
+machine_at_p6kfx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/p6kfx/kfxa22.bin",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    device_add(&i440fx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_ami_pci_device); /*Didn't post with regular PS/2 PCI*/
+    device_add(&w83877f_device);
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
 
 int
 machine_at_6bxc_init(const machine_t *model)
