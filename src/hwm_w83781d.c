@@ -36,6 +36,7 @@
 #define CLAMP(a, min, max) (((a) < (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
 #define W83781D_RPM_TO_REG(r, d)	CLAMP(1350000 / (r * d), 1, 255)
 #define W83781D_TEMP_TO_REG(t)		((t) << 8)
+#define W83781D_VOLTAGE_TO_REG(v)	((v) >> 4)
 
 
 typedef struct {
@@ -412,7 +413,7 @@ w83781d_reset(w83781d_t *dev, uint8_t initialization)
 
     uint8_t i;
     for (i = 0; i <= 6; i++)
-    	dev->regs[0x20 + i] = (dev->values->voltages[i] >> 4);
+    	dev->regs[0x20 + i] = W83781D_VOLTAGE_TO_REG(dev->values->voltages[i]);
     dev->regs[0x27] = dev->values->temperatures[0];
     for (i = 0; i <= 2; i++)
     	dev->regs[0x28 + i] = W83781D_RPM_TO_REG(dev->values->fans[i], 2);
@@ -451,7 +452,7 @@ w83781d_reset(w83781d_t *dev, uint8_t initialization)
     if (dev->local & W83781D_AS99127F) {
     	/* 0x00 appears to mirror IN2 Low Limit */
     	dev->regs[0x01] = dev->regs[0x23]; /* appears to mirror IN3 */
-    	dev->regs[0x02] = dev->regs[0x20]; /* appears to mirror IN0 */
+    	dev->regs[0x02] = W83781D_VOLTAGE_TO_REG(2800); /* appears to be a "maximum VCORE" of some kind; mirrors VCORE on the P4 board, but the P3 boards require this to read 2.8V */
     	dev->regs[0x03] = 0x60;
     	dev->regs[0x04] = dev->regs[0x23]; /* appears to mirror IN3 */
     	dev->regs[0x05] = dev->regs[0x22]; /* appears to mirror IN2 */
