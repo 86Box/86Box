@@ -47,9 +47,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef CRASHDUMP
   CRASHDUMP	:= y
  endif
- ifndef D2D
-  D2D		:= y
- endif
  ifndef LASERXT
   LASERXT	:= y
  endif
@@ -110,9 +107,6 @@ else
  endif
  ifndef CRASHDUMP
   CRASHDUMP	:= n
- endif
- ifndef D2D
-  D2D		:= n
  endif
  ifndef LASERXT
   LASERXT	:= n
@@ -182,9 +176,6 @@ WX		:= n
 endif
 ifndef USB
 USB		:= n
-endif
-ifndef RDP
-RDP		:= n
 endif
 ifndef DINPUT
  DINPUT		:= y
@@ -400,13 +391,6 @@ MUNTOBJ		:= midi_mt32.o \
 		    Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o
 endif
 
-ifeq ($(D2D), y)
-OPTS		+= -DUSE_D2D
-RFLAGS		+= -DUSE_D2D
-D2DLIB		:= -ld2d1
-D2DOBJ		:= win_d2d.o
-endif
-
 ifeq ($(VNC), y)
 OPTS		+= -DUSE_VNC
 RFLAGS		+= -DUSE_VNC
@@ -416,17 +400,6 @@ RFLAGS		+= -DUSE_VNC
  endif
 VNCLIB		+= -lvncserver
 VNCOBJ		:= vnc.o vnc_keymap.o
-endif
-
-ifeq ($(RDP), y)
-OPTS		+= -DUSE_RDP
-RFLAGS		+= -DUSE_RDP
- ifneq ($(RDP_PATH), )
-  OPTS		+= -I$(RDP_PATH)\INCLUDE
-  RDPLIB	:= -L$(RDP_PATH)\LIB
- endif
-RDPLIB		+= -lrdp
-RDPOBJ		:= rdp.o
 endif
 
 ifeq ($(DISCORD), y)
@@ -542,7 +515,7 @@ CXXFLAGS	:= $(CFLAGS)
 MAINOBJ		:= pc.o config.o random.o timer.o io.o acpi.o apm.o dma.o nmi.o \
 		   pic.o pit.o port_92.o ppi.o pci.o mca.o mcr.o mem.o \
 		   rom.o device.o nvr.o nvr_at.o nvr_ps2.o sst_flash.o via_vt82c586b.o \
-		   via_vt82c596b.o $(VNCOBJ) $(RDPOBJ)
+		   via_vt82c596b.o $(VNCOBJ)
 
 INTELOBJ	:= intel_flash.o \
 		    intel_sio.o intel_piix.o
@@ -713,8 +686,8 @@ endif
 OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) \
 		   $(DEVOBJ) $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) \
 		   $(USBOBJ) $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
-		   $(PLATOBJ) $(UIOBJ) $(D2DOBJ) $(FSYNTHOBJ) $(MUNTOBJ) \
-		   $(DEVBROBJ) $(DISCORDOBJ)
+		   $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) \
+		   $(DISCORDOBJ)
 ifdef EXOBJ
 OBJ		+= $(EXOBJ)
 endif
@@ -725,14 +698,8 @@ ifeq ($(DEBUG), y)
  LIBS    += -lssp
 endif
 
-ifeq ($(D2D), y)
-LIBS		+= $(D2DLIB)
-endif
 ifeq ($(VNC), y)
 LIBS		+= $(VNCLIB) -lws2_32
-endif
-ifeq ($(RDP), y)
-LIBS		+= $(RDPLIB)
 endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm

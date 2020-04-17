@@ -65,17 +65,9 @@
 #define WM_HAS_SHUTDOWN		0x8897
 
 #ifdef USE_VNC
-#ifdef USE_D2D
-#define RENDERERS_NUM		4
-#else
-#define RENDERERS_NUM		3
-#endif
-#else
-#ifdef USE_D2D
 #define RENDERERS_NUM		3
 #else
 #define RENDERERS_NUM		2
-#endif
 #endif
 
 
