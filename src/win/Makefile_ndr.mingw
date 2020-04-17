@@ -523,7 +523,7 @@ CPUOBJ		:= cpu.o cpu_table.o \
 CHIPSETOBJ	:= acc2168.o acer_m3a.o cs8230.o ali1429.o headland.o \
 		    intel_4x0.o neat.o opti495.o scamp.o scat.o \
 		    sis_85c471.o sis_85c496.o \
-		    via_apollo.o wd76c10.o
+		    via_apollo.o via_vpx.o wd76c10.o
 
 MCHOBJ		:= machine.o machine_table.o \
 		    m_xt.o m_xt_compaq.o \

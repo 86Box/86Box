@@ -834,6 +834,36 @@ machine_at_p5mms98_init(const machine_t *model)
 }
 
 int
+machine_at_tx100_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/tx100/T100108E.rom",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    device_add(&via_vpx_device);
+    device_add(&via_vt82c586b_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&um8669f_device); //IT8661F
+    device_add(&sst_flash_29ee010_device);
+	spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+
+    return ret;
+}
+
+int
 machine_at_advanceii_init(const machine_t *model)
 {
     int ret;
