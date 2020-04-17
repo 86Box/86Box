@@ -250,7 +250,9 @@ const machine_t machines[] = {
     { "[Socket 7 TX] Iwill P55XB2",		"p55xb2",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	       machine_at_p55xb2_init, NULL			},
     { "[Socket 7 TX] PC Partner TXA807DS",	"807ds",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	        machine_at_807ds_init, NULL			},
     { "[Socket 7 TX] SuperMicro P5MMS98",	"p5mms98",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	      machine_at_p5mms98_init, NULL			},
-  
+ 
+    { "[Socket 7 VPX] Zida Tomato TX100",	"tx100",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  512,   8, 127,	      machine_at_tx100_init, NULL			},
+ 
     { "[Socket 7 VP3] QDI Advance II",		"advanceii",	MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	      machine_at_advanceii_init, NULL		},
     
 	//Super Socket 7 machines
