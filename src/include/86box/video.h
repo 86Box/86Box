@@ -329,9 +329,6 @@ extern const device_t tgui9440_vlb_device;
 extern const device_t tgui9440_pci_device;
 
 /* IBM PS/1 (S)VGA */
-#if defined(DEV_BRANCH) && defined(USE_TI)
-extern const device_t ti_cf62011_device;
-#endif
 extern const device_t ibm_ps1_2121_device;
 
 /* Trident TVGA 8900 */

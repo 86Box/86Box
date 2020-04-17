@@ -99,9 +99,6 @@ video_cards[] = {
     { "[ISA] Professional Graphics Controller",		"pgc",			&pgc_device				},
     { "[ISA] Sigma Color 400",				"sigma400",		&sigma_device				},
     { "[ISA] SPEA V7 Mirage (S3 86c801)",		"px_s3_v7_801_isa",	&s3_v7mirage_86c801_isa_device		},
-#if defined(DEV_BRANCH) && defined(USE_TI)
-    { "[ISA] TI CF62011 SVGA",				"ti_cf62011",		&ti_cf62011_device			},
-#endif
     { "[ISA] Trident TVGA8900B",			"tvga8900b",		&tvga8900b_device			},
     { "[ISA] Trident TVGA8900D",			"tvga8900d",		&tvga8900d_device			},
     { "[ISA] Trigem Korean VGA (ET4000AX)",		"tgkorvga",		&et4000k_isa_device			},

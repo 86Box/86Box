@@ -263,45 +263,6 @@ vid_init(const device_t *info)
 }
 
 
-#if defined(DEV_BRANCH) && defined(USE_TI)
-static const device_config_t vid_config[] =
-{
-        {
-                "vram_size", "Memory Size", CONFIG_SELECTION, "", 256,
-                {
-                        {
-                                "256K", 256
-                        },
-                        {
-                                "512K", 512
-                        },
-                        {
-                                "1024K", 1024
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
-        }
-};
-
-
-const device_t ti_cf62011_device = {
-    "TI CF62011 SVGA",
-    DEVICE_ISA,
-    0,
-    vid_init, vid_close, NULL,
-    NULL,
-    vid_speed_changed,
-    vid_force_redraw,
-    vid_config
-};
-#endif
-
-
 const device_t ibm_ps1_2121_device = {
     "IBM PS/1 Model 2121 SVGA",
     DEVICE_ISA,
