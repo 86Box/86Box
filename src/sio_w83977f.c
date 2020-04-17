@@ -100,7 +100,7 @@ w83977f_lpt_handler(w83977f_t *dev)
 {
     uint16_t io_mask, io_base = (dev->dev_regs[1][0x30] << 8) | dev->dev_regs[1][0x31];
     int io_len = get_lpt_length(dev);
-    io_base &= (0xfff & ~io_len);
+    io_base &= (0xff8 | io_len);
     io_mask = 0xffc;
     if (io_len == 8)
 	io_mask = 0xff8;

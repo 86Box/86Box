@@ -575,7 +575,7 @@ machine_at_tx97_init(const machine_t *model)
     device_add(&i430tx_device);
     device_add(&piix4_device);
     device_add(&keyboard_ps2_pci_device);
-    device_add(&w83977tf_device);
+    device_add(&w83877tf_acorp_device);
     device_add(&intel_flash_bxt_device);
 
     hwm_values_t machine_hwm = {

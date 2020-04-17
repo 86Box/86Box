@@ -119,12 +119,6 @@ ResetAllMenus(void)
     EnableMenuItem(menuMain, IDM_CONFIG_SAVE, MF_DISABLED);
 #endif
 
-#ifdef USE_D2D
-    /* Disable Direct2D menu option on NT5 */
-    if(LOBYTE(LOWORD(GetVersion())) < 6)
-        EnableMenuItem(menuMain, IDM_VID_D2D, MF_GRAYED);
-#endif
-
     CheckMenuItem(menuMain, IDM_ACTION_RCTRL_IS_LALT, MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_UPDATE_ICONS, MF_UNCHECKED);
@@ -160,12 +154,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_SW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_HW, MF_UNCHECKED);
-#ifdef USE_D2D
-    CheckMenuItem(menuMain, IDM_VID_D2D, MF_UNCHECKED);
-#endif
-#ifdef USE_VNC
     CheckMenuItem(menuMain, IDM_VID_VNC, MF_UNCHECKED);
-#endif
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+0, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+1, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+2, MF_UNCHECKED);
@@ -447,12 +436,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_VID_SDL_SW:
 			case IDM_VID_SDL_HW:
-#ifdef USE_D2D
-			case IDM_VID_D2D:
-#endif
-#ifdef USE_VNC
 			case IDM_VID_VNC:
-#endif
 				CheckMenuItem(hmenu, IDM_VID_SDL_SW + vid_api, MF_UNCHECKED);
 				plat_setvid(LOWORD(wParam) - IDM_VID_SDL_SW);
 				CheckMenuItem(hmenu, IDM_VID_SDL_SW + vid_api, MF_CHECKED);
