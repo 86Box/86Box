@@ -42,7 +42,9 @@
 #include <86box/plat.h>
 #include <86box/plat_midi.h>
 #include <86box/ui.h>
-#include <86box/vnc.h>
+#ifdef USE_VNC
+# include <86box/vnc.h>
+#endif
 #include <86box/win_sdl.h>
 #include <86box/win.h>
 
@@ -87,12 +89,16 @@ static const struct {
   {
     {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable		},
     {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable		},
-    {	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL					}
-  },
+#ifdef USE_VNC
+    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL					}
+#endif
+},
   {
     {	"SDL_Software", 1, (int(*)(void*))sdl_inits_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable	},
     {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable	},
-    {	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL					}
+#ifdef USE_VNC
+    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL					}
+#endif
   },
 };
 

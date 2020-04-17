@@ -77,6 +77,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef 596B
   596B	:= y
  endif
+ ifndef VNC
+  VNC		:= y
+ endif
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
@@ -128,6 +131,9 @@ else
  endif
  ifndef 596B
   596B	:= n
+ endif
+ ifndef VNC
+  VNC		:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -382,12 +388,16 @@ MUNTOBJ		:= midi_mt32.o \
 		    Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o
 endif
 
+ifeq ($(VNC), y)
+OPTS		+= -DUSE_VNC
+RFLAGS		+= -DUSE_VNC
  ifneq ($(VNC_PATH), )
   OPTS		+= -I$(VNC_PATH)\INCLUDE
   VNCLIB	:= -L$(VNC_PATH)\LIB
  endif
 VNCLIB		+= -lvncserver
 VNCOBJ		:= vnc.o vnc_keymap.o
+endif
 
 ifeq ($(DISCORD), y)
 OPTS		+= -DUSE_DISCORD
@@ -668,7 +678,9 @@ endif
 LIBS		:= -mwindows -lcomctl32 \
 		   -lopenal -lole32
 
+ifeq ($(VNC), y)
 LIBS		+= $(VNCLIB) -lws2_32
+endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
