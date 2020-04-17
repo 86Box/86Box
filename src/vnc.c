@@ -83,8 +83,8 @@ vnc_ptrevent(int but, int x, int y, rfbClientPtr cl)
    if (x>=0 && x<allowedX && y>=0 && y<allowedY) {
 	/* VNC uses absolute positions within the window, no deltas. */
 	if (x != ptr_x || y != ptr_y) {
-		mouse_x += (x - ptr_x);
-		mouse_y += (y - ptr_y);
+		mouse_x += (x - ptr_x) / 100;
+		mouse_y += (y - ptr_y) / 100;
 		ptr_x = x; ptr_y = y;
 	}
 

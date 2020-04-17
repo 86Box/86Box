@@ -259,7 +259,7 @@
 
 
 #define IDM_ABOUT		40001
-#define  IDC_ABOUT_ICON		65535
+#define IDC_ABOUT_ICON		65535
 #define IDM_ACTION_RCTRL_IS_LALT	40010
 #define IDM_ACTION_SCREENSHOT	40011
 #define IDM_ACTION_HRESET	40012
@@ -275,16 +275,7 @@
 #define IDM_VID_REMEMBER	40041
 #define IDM_VID_SDL_SW		40050
 #define IDM_VID_SDL_HW		40051
-#ifdef USE_D2D
-#define IDM_VID_D2D		40052
-#ifdef USE_VNC
-#define IDM_VID_VNC		40053
-#endif
-#else
-#ifdef USE_VNC
 #define IDM_VID_VNC		40052
-#endif
-#endif
 #define IDM_VID_SCALE_1X	40055
 #define IDM_VID_SCALE_2X	40056
 #define IDM_VID_SCALE_3X	40057
