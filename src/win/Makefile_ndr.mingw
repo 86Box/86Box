@@ -65,9 +65,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef PS2M70T4
   PS2M70T4	:= y
  endif
- ifndef TI
-  TI		:= y
- endif
  ifndef VECTRA54
   VECTRA54	:= y
  endif
@@ -122,9 +119,6 @@ else
  endif
  ifndef PS2M70T4
   PS2M70T4	:= n
- endif
- ifndef TI
-  TI		:= n
  endif
  ifndef VECTRA54
   VECTRA54	:= n
@@ -452,10 +446,6 @@ endif
 
 ifeq ($(PS2M70T4), y)
 OPTS		+= -DUSE_PS2M70T4
-endif
-
-ifeq ($(TI), y)
-OPTS		+= -DUSE_TI
 endif
 
 ifeq ($(VECTRA54), y)
