@@ -64,11 +64,7 @@
 /* The emulator has shut down. */
 #define WM_HAS_SHUTDOWN		0x8897
 
-#ifdef USE_VNC
 #define RENDERERS_NUM		3
-#else
-#define RENDERERS_NUM		2
-#endif
 
 
 #ifdef __cplusplus
