@@ -2465,19 +2465,28 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
     }
 
 #ifdef USE_NEW_DYNAREC
+    if (machines[machine].flags & MACHINE_COREBOOT) {
+    	/* coreboot executes code from the BIOS area, thus
+    	   requiring byte_*_mask for the entire address space,
+    	   which significantly increases memory usage. */
+    	c = ((uint64_t) (pages_sz) * MEM_GRANULARITY_SIZE) / 8;
+    } else {
+    	c = (mem_size * 1024) / 8;
+    }
+
     if (byte_dirty_mask) {
 	free(byte_dirty_mask);
 	byte_dirty_mask = NULL;
     }
-    byte_dirty_mask = malloc(((uint64_t) pages_sz * 4096) / 8);
-    memset(byte_dirty_mask, 0, ((uint64_t) pages_sz * 4096) / 8);
+    byte_dirty_mask = malloc(c);
+    memset(byte_dirty_mask, 0, c);
 
     if (byte_code_present_mask) {
 	free(byte_code_present_mask);
 	byte_code_present_mask = NULL;
     }
-    byte_code_present_mask = malloc(((uint64_t) pages_sz * 4096) / 8);
-    memset(byte_code_present_mask, 0, ((uint64_t) pages_sz * 4096) / 8);
+    byte_code_present_mask = malloc(c);
+    memset(byte_code_present_mask, 0, c);
 #endif
 
     for (c = 0; c < pages_sz; c++) {
