@@ -105,8 +105,12 @@ machine_at_p2bls_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p2bls/1014ls.003",
-			   0x000c0000, 262144, 0);
+    if (strstr(model->internal_name, "_cb"))
+    	ret = bios_load_linear(L"roms/machines/p2bls/coreboot.rom",
+			       0x000c0000, 262144, 0);
+    else
+    	ret = bios_load_linear(L"roms/machines/p2bls/1014ls.003",
+			       0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
 	return ret;
@@ -165,8 +169,12 @@ machine_at_p3bf_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p3bf/bx3f1006.awd",
-			   0x000c0000, 262144, 0);
+    if (strstr(model->internal_name, "_cb"))
+    	ret = bios_load_linear(L"roms/machines/p3bf/coreboot.rom",
+			       0x000c0000, 262144, 0);
+    else
+    	ret = bios_load_linear(L"roms/machines/p3bf/bx3f1006.awd",
+			       0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
 	return ret;
