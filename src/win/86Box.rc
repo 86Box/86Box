@@ -68,7 +68,9 @@ BEGIN
         BEGIN
             MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
             MENUITEM "&SDL (Hardware)",         IDM_VID_SDL_HW
+#ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
+#endif
         END
         MENUITEM SEPARATOR
         MENUITEM "F&orce 4:3 display ratio",    IDM_VID_FORCE43

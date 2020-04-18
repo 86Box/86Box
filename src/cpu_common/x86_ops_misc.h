@@ -625,7 +625,7 @@ static int opHLT(uint32_t fetchdat)
 
         CPU_BLOCK_END();
         PREFETCH_RUN(100, 1, -1, 0,0,0,0, 0);
-                
+
         return 0;
 }
 

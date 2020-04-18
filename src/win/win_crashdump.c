@@ -145,7 +145,7 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
 				     hMods[i], &modInfo, sizeof(MODULEINFO));
 		/* If the exception address is in the range of this module.. */
 		if ( (ExceptionInfo->ExceptionRecord->ExceptionAddress >= modInfo.lpBaseOfDll) &&
-		   (ExceptionInfo->ExceptionRecord->ExceptionAddress < (modInfo.lpBaseOfDll + modInfo.SizeOfImage))) {
+		   (ExceptionInfo->ExceptionRecord->ExceptionAddress < (void*)((char*)modInfo.lpBaseOfDll + modInfo.SizeOfImage))) {
 			/* ...this is the module we're looking for! */
 			ipModule = hMods[i];
 			break;

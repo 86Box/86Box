@@ -85,7 +85,8 @@
 #define KBC_VEN_XI8088		0x14
 #define KBC_VEN_IBM_PS1		0x18
 #define KBC_VEN_ACER		0x1c
-#define KBC_VEN_MASK		0x1c
+#define KBC_VEN_INTEL_AMI	0x20
+#define KBC_VEN_MASK		0x3c
 
 
 typedef struct {
@@ -1074,6 +1075,7 @@ write_cmd(atkbd_t *dev, uint8_t val)
     /* ISA AT keyboard controllers use bit 5 for keyboard mode (1 = PC/XT, 2 = AT);
        PS/2 (and EISA/PCI) keyboard controllers use it as the PS/2 mouse enable switch. */
     if (((dev->flags & KBC_VEN_MASK) == KBC_VEN_AMI) ||
+        ((dev->flags & KBC_VEN_MASK) == KBC_VEN_INTEL_AMI) ||
         ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)) {
 	keyboard_mode &= ~CCB_PCMODE;
 
@@ -1133,7 +1135,7 @@ static uint8_t
 write64_generic(void *priv, uint8_t val)
 {
     atkbd_t *dev = (atkbd_t *)priv;
-    uint8_t current_drive;
+    uint8_t current_drive, fixed_bits;
 
     switch (val) {
 	case 0xa4:	/* check if password installed */
@@ -1206,17 +1208,21 @@ write64_generic(void *priv, uint8_t val)
 #ifdef ENABLE_KEYBOARD_AT_LOG
 		kbd_log("ATkbd: read input port\n");
 #endif
+		fixed_bits = 4;
+		/* The SMM handlers of Intel AMI Pentium BIOS'es expect bit 6 to be set. */
+		if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_INTEL_AMI)
+			fixed_bits |= 0x40;
 		if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_IBM_PS1) {
 			current_drive = fdc_get_current_drive();
-			add_data(dev, dev->input_port | 4 | (fdd_is_525(current_drive) ? 0x40 : 0x00));
+			add_data(dev, dev->input_port | fixed_bits | (fdd_is_525(current_drive) ? 0x40 : 0x00));
 			dev->input_port = ((dev->input_port + 1) & 3) |
 					   (dev->input_port & 0xfc) |
 					   (fdd_is_525(current_drive) ? 0x40 : 0x00);
 		} else {
 			if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)
-				add_data(dev, (dev->input_port | 4) & 0xef);
+				add_data(dev, (dev->input_port | fixed_bits) & 0xef);
 			else
-				add_data(dev, dev->input_port | 4);
+				add_data(dev, dev->input_port | fixed_bits);
 			dev->input_port = ((dev->input_port + 1) & 3) |
 					   (dev->input_port & 0xfc);
 		}
@@ -1774,7 +1780,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 					if (mouse_write && ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF))
 						mouse_write(val, mouse_p);
 					else if (!mouse_write && ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) &&
-						 ((dev->flags & KBC_VEN_MASK) == KBC_VEN_AMI))
+						 (((dev->flags & KBC_VEN_MASK) == KBC_VEN_AMI) ||
+						  ((dev->flags & KBC_VEN_MASK) == KBC_VEN_INTEL_AMI)))
 						keyboard_at_adddata_mouse(0xff);
 					break;
 
@@ -2413,6 +2420,7 @@ kbd_init(const device_t *info)
 		break;
 
 	case KBC_VEN_AMI:
+	case KBC_VEN_INTEL_AMI:
 		dev->write60_ven = write60_ami;
 		dev->write64_ven = write64_ami;
 		break;
@@ -2568,6 +2576,16 @@ const device_t keyboard_ps2_ami_pci_device = {
     "PS/2 Keyboard (AMI)",
     DEVICE_PCI,
     KBC_TYPE_PS2_NOREF | KBC_VEN_AMI,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    NULL, NULL, NULL
+};
+
+const device_t keyboard_ps2_intel_ami_pci_device = {
+    "PS/2 Keyboard (AMI)",
+    DEVICE_PCI,
+    KBC_TYPE_PS2_NOREF | KBC_VEN_INTEL_AMI,
     kbd_init,
     kbd_close,
     kbd_reset,
