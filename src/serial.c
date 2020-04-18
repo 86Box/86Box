@@ -52,7 +52,7 @@ enum
 static int		next_inst = 0;
 static serial_device_t	serial_devices[SERIAL_MAX];
 
-
+#define ENABLE_SERIAL_CONSOLE 1
 #ifdef ENABLE_SERIAL_LOG
 int serial_do_log = ENABLE_SERIAL_LOG;
 
@@ -203,6 +203,15 @@ serial_transmit(serial_t *dev, uint8_t val)
 	write_fifo(dev, val);
     else if (dev->sd->dev_write)
 	dev->sd->dev_write(dev, dev->sd->priv, val);
+#ifdef ENABLE_SERIAL_CONSOLE
+    if ((val >= ' ' && val <= '~') || val == '\r' || val == '\n') {
+    	fputc(val, stdout);
+    	if (val == '\n')
+    		fflush(stdout);
+    } else {
+    	fprintf(stdout, "[%02X]", val);
+    }
+#endif
 }
 
 
