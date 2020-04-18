@@ -17,7 +17,7 @@ In order to compile 86Box from this repository, please follow this step-by-step 
    $ pacman -S gdb make git mingw-w64-i686-toolchain mingw-w64-i686-openal mingw-w64-i686-freetype mingw-w64-i686-SDL2 mingw-w64-i686-zlib mingw-w64-i686-libpng
    ```
 
-5. Once the environment is fully updated and all dependencies are installed, switch into the `src` directory of the 86Box source:
+5. Once the environment is fully updated and all dependencies are installed, change to the `src` directory of the 86Box source:
    ```console
    $ cd path/to/86Box/src
    ```
