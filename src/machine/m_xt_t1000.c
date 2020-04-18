@@ -1024,7 +1024,7 @@ t1000_configsys_load(void)
     f = plat_fopen(nvr_path(L"t1000_config.nvr"), L"rb");
     if (f != NULL) {
 	size = sizeof(t1000.t1000_nvram);
-	if (fread(t1000.t1000_nvram, size, 1, f) != size)
+	if (fread(t1000.t1000_nvram, 1, size, f) != size)
 		fatal("t1000_configsys_load(): Error reading data\n");
 	fclose(f);
     }
