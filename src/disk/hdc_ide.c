@@ -671,8 +671,8 @@ loadhd(ide_t *ide, int d, const wchar_t *fn)
 	return;
     }
 
-    ide->spt = hdd[d].spt;
-    ide->hpc = hdd[d].hpc;
+    ide->spt = ide->cfg_spt = hdd[d].spt;
+    ide->hpc = ide->cfg_hpc = hdd[d].hpc;
     ide->tracks = hdd[d].tracks;
     ide->type = IDE_HDD;
     ide->hdd_num = d;
@@ -1183,7 +1183,7 @@ ide_writew(uint16_t addr, uint16_t val, void *priv)
     ch = dev->cur_dev;
     ide = ide_drives[ch];
 
-    /* ide_log("ide_writew %04X %04X from %04X(%08X):%08X\n", addr, val, CS, cs, cpu_state.pc); */
+    ide_log("ide_writew %04X %04X from %04X(%08X):%08X\n", addr, val, CS, cs, cpu_state.pc);
 
     addr &= 0x7;
 
@@ -1216,7 +1216,7 @@ ide_writel(uint16_t addr, uint32_t val, void *priv)
     ch = dev->cur_dev;
     ide = ide_drives[ch];
 
-    /* ide_log("ide_writel %04X %08X from %04X(%08X):%08X\n", addr, val, CS, cs, cpu_state.pc); */
+    ide_log("ide_writel %04X %08X from %04X(%08X):%08X\n", addr, val, CS, cs, cpu_state.pc);
 
     addr &= 0x7;
 
@@ -1905,7 +1905,7 @@ ide_readw(uint16_t addr, void *priv)
 		break;
     }
 
-    /* ide_log("ide_readw(%04X, %08X) = %04X\n", addr, priv, temp); */
+    ide_log("ide_readw(%04X, %08X) = %04X\n", addr, priv, temp);
     return temp;
 }
 
@@ -1940,7 +1940,7 @@ ide_readl(uint16_t addr, void *priv)
 		break;
     }
 
-    /* ide_log("ide_readl(%04X, %08X) = %04X\n", addr, priv, temp); */
+    ide_log("ide_readl(%04X, %08X) = %04X\n", addr, priv, temp);
     return temp;
 }
 
@@ -2596,7 +2596,8 @@ ide_board_setup(int board)
 
 	dev->mdma_mode = (1 << ide_get_max(dev, TYPE_PIO));
 	dev->error = 1;
-	dev->cfg_spt = dev->cfg_hpc = 0;
+	if (dev->type != IDE_HDD)
+		dev->cfg_spt = dev->cfg_hpc = 0;
     }
 }
 

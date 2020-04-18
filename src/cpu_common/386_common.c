@@ -1100,9 +1100,6 @@ enter_smm(int in_hlt)
     smm_in_hlt = in_hlt;
 
     CPU_BLOCK_END();
-
-    // if (smbase == 0x000a0000)
-	// leave_smm();
 }
 
 
@@ -1160,10 +1157,6 @@ leave_smm(void)
 	smram_restore_state_amd_k(saved_state);
     else if (is_p6)			/* Intel P6 (Pentium Pro, Pentium II, Celeron) */
 	smram_restore_state_p6(saved_state);
-
-    /* Maybe we need this? */
-    // if (smbase == 0x00030000)
-	// smbase = 0x000a0000;
 
     in_smm = 0;
     mem_mapping_recalc(0x00030000, 0x00020000);

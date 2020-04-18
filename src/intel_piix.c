@@ -1371,8 +1371,6 @@ piix_close(void *p)
 static void
 *piix_init(const device_t *info)
 {
-    CPU *cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu];
-
     piix_t *dev = (piix_t *) malloc(sizeof(piix_t));
     memset(dev, 0, sizeof(piix_t));
 
@@ -1443,13 +1441,13 @@ static void
 		        1000 = 150 MHz, 1010 = 200 MHz, 1100 = 180 MHz, 1110 = ??? MHz;
 		        1001 =  75 MHz, 1011 = 100 MHz, 1101 =  90 MHz, 1111 = ??? MHz */
 
-    if (cpu_busspeed <= 0x40000000)
+    if (cpu_busspeed <= 40000000)
 		dev->readout_regs[1] |= 0x30;
-    else if ((cpu_busspeed > 0x40000000) && (cpu_busspeed <= 0x50000000))
+    else if ((cpu_busspeed > 40000000) && (cpu_busspeed <= 50000000))
 		dev->readout_regs[1] |= 0x00;
-    else if ((cpu_busspeed > 0x50000000) && (cpu_busspeed <= 0x60000000))
+    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
 		dev->readout_regs[1] |= 0x20;
-    else if (cpu_busspeed > 0x60000000)
+    else if (cpu_busspeed > 60000000)
 		dev->readout_regs[1] |= 0x10;
 
     if (cpu_dmulti <= 1.5)
@@ -1467,7 +1465,7 @@ static void
     dev->board_config[0] = 0xff;
     dev->board_config[0] = 0x00;
     /* Register 0x0079: */
-    /* Bit 7: 0 = Keep password, 0 = Clear password. */
+    /* Bit 7: 0 = Clear password, 1 = Keep password. */
     /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
     /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
     /* Bit 4: External CPU clock (Switch 8). */
@@ -1476,22 +1474,21 @@ static void
     /*		60 MHz: Switch 7 = On, Switch 8 = Off. */
     /*		66 MHz: Switch 7 = Off, Switch 8 = On. */
     /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
-    /* Bit 0: 0 = 1.5x multiplier, 0 = 2x multiplier. */
+    /* Bit 0: 0 = 1.5x multiplier, 1 = 2x multiplier (Switch 6). */
+    /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
     dev->board_config[1] = 0xe0;
-    if ((cpu_s->rspeed == 75000000) && (cpu_busspeed == 50000000))
+
+    if (cpu_busspeed <= 50000000)
+		dev->board_config[1] |= 0x10;
+    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
+		dev->board_config[1] |= 0x18;
+    else if (cpu_busspeed > 60000000)
+		dev->board_config[1] |= 0x00;
+
+    if (cpu_dmulti <= 1.5)
 	dev->board_config[1] |= 0x01;
-    else if ((cpu_s->rspeed == 90000000) && (cpu_busspeed == 60000000))
-	dev->board_config[1] |= (0x01 | 0x08);
-    else if ((cpu_s->rspeed == 100000000) && (cpu_busspeed == 50000000))
-	dev->board_config[1] |= 0x00;
-    else if ((cpu_s->rspeed == 100000000) && (cpu_busspeed == 66666666))
-	dev->board_config[1] |= (0x01 | 0x10);
-    else if ((cpu_s->rspeed == 120000000) && (cpu_busspeed == 60000000))
-	dev->board_config[1] |= 0x08;
-    else if ((cpu_s->rspeed == 133333333) && (cpu_busspeed == 66666666))
-	dev->board_config[1] |= 0x10;
     else
-	dev->board_config[1] |= 0x10;	/* TODO: how are the overdrive processors configured? */
+	dev->board_config[1] |= 0x00;
 
     return dev;
 }

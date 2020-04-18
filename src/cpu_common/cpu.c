@@ -2377,7 +2377,6 @@ void cpu_ven_reset(void)
 
 void cpu_RDMSR()
 {
-	cpu_log("RDMSR %08X\n", ECX);
         switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
         {
                 case CPU_WINCHIP:
@@ -2850,6 +2849,8 @@ i686_invalid_rdmsr:
                 }
                 break;
         }
+
+	cpu_log("RDMSR %08X %08X%08X\n", ECX, EDX, EAX);
 }
 
 void cpu_WRMSR()
