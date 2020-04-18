@@ -2924,7 +2924,7 @@ void cpu_WRMSR()
                         break;
                         case 0x200: case 0x201: case 0x202: case 0x203: case 0x204: case 0x205: case 0x206: case 0x207:
                         case 0x208: case 0x209: case 0x20A: case 0x20B: case 0x20C: case 0x20D: case 0x20E: case 0x20F:
-			temp = EAX | ((uint64_t)EDX << 32);
+                        temp = EAX | ((uint64_t)EDX << 32);
                         temp2 = (ECX - 0x200) >> 1;
                         if (ECX & 1) {
                         	cpu_log("MTRR physmask[%d] = %08llx\n", temp2, temp);
@@ -3236,7 +3236,7 @@ void cpu_WRMSR()
 			break;			
 			case 0x200: case 0x201: case 0x202: case 0x203: case 0x204: case 0x205: case 0x206: case 0x207:
 			case 0x208: case 0x209: case 0x20A: case 0x20B: case 0x20C: case 0x20D: case 0x20E: case 0x20F:
-			temp = EAX | ((uint64_t)EDX << 32);
+                        temp = EAX | ((uint64_t)EDX << 32);
                         temp2 = (ECX - 0x200) >> 1;
                         if (ECX & 1) {
                         	cpu_log("MTRR physmask[%d] = %08llx\n", temp2, temp);
