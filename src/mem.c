@@ -121,8 +121,6 @@ static mem_mapping_t	*read_mapping[MEM_MAPPINGS_NO];
 static mem_mapping_t	*write_mapping[MEM_MAPPINGS_NO];
 static uint8_t		*_mem_exec[MEM_MAPPINGS_NO];
 static int		_mem_state[MEM_MAPPINGS_NO];
-static uint8_t		*mtrr_areas[MEM_MAPPINGS_NO];
-static uint8_t		mtrr_area_refcounts[MEM_MAPPINGS_NO];
 
 #if FIXME
 #if (MEM_GRANULARITY_BITS >= 12)
@@ -652,8 +650,6 @@ uint8_t
 readmembl(uint32_t addr)
 {
     uint64_t addr64 = (uint64_t) addr;
-    uint32_t page;
-    uint8_t *mtrr;
     mem_mapping_t *map;
 
     mem_logical_addr = addr;
@@ -667,12 +663,7 @@ readmembl(uint32_t addr)
     }
     addr = (uint32_t) (addr64 & rammask);
 
-    page = (addr >> MEM_GRANULARITY_BITS);
-    mtrr = mtrr_areas[page];
-    if (mtrr)
-    	return mtrr[addr & MEM_GRANULARITY_MASK];
-
-    map = read_mapping[page];
+    map = read_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map && map->read_b)
 	return map->read_b(addr, map->p);
 
@@ -684,8 +675,6 @@ void
 writemembl(uint32_t addr, uint8_t val)
 {
     uint64_t addr64 = (uint64_t) addr;
-    uint32_t page;
-    uint8_t *mtrr;
     mem_mapping_t *map;
     mem_logical_addr = addr;
 
@@ -703,14 +692,7 @@ writemembl(uint32_t addr, uint8_t val)
     }
     addr = (uint32_t) (addr64 & rammask);
 
-    page = (addr >> MEM_GRANULARITY_BITS);
-    mtrr = mtrr_areas[page];
-    if (mtrr) {
-    	mtrr[addr & MEM_GRANULARITY_MASK] = val;
-    	return;
-    }
-
-    map = write_mapping[page];
+    map = write_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map && map->write_b)
 	map->write_b(addr, val, map->p);
 }
@@ -721,8 +703,6 @@ uint16_t
 readmemwl(uint32_t addr)
 {
     uint64_t addr64 = (uint64_t) addr;
-    uint32_t page;
-    uint8_t *mtrr;
     mem_mapping_t *map;
 
     mem_logical_addr = addr;
@@ -751,12 +731,7 @@ readmemwl(uint32_t addr)
 
     addr = (uint32_t) (addr64 & rammask);
 
-    page = (addr >> MEM_GRANULARITY_BITS);
-    mtrr = mtrr_areas[page];
-    if (mtrr)
-    	return mtrr[addr & MEM_GRANULARITY_MASK] | ((uint16_t) (mtrr[(addr + 1) & MEM_GRANULARITY_MASK]) << 8);
-
-    map = read_mapping[page];
+    map = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->read_w)
 	return map->read_w(addr, map->p);
@@ -772,8 +747,6 @@ void
 writememwl(uint32_t addr, uint16_t val)
 {
     uint64_t addr64 = (uint64_t) addr;
-    uint32_t page;
-    uint8_t *mtrr;
     mem_mapping_t *map;
 
     mem_logical_addr = addr;
@@ -811,15 +784,7 @@ writememwl(uint32_t addr, uint16_t val)
 
     addr = (uint32_t) (addr64 & rammask);
 
-    page = (addr >> MEM_GRANULARITY_BITS);
-    mtrr = mtrr_areas[page];
-    if (mtrr) {
-    	mtrr[addr & MEM_GRANULARITY_MASK] = val;
-    	mtrr[(addr + 1) & MEM_GRANULARITY_MASK] = val >> 8;
-    	return;
-    }
-
-    map = write_mapping[page];
+    map = write_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map) {
 	if (map->write_w)
 		map->write_w(addr, val, map->p);
@@ -835,8 +800,6 @@ uint32_t
 readmemll(uint32_t addr)
 {
     uint64_t addr64 = (uint64_t) addr;
-    uint32_t page;
-    uint8_t *mtrr;
     mem_mapping_t *map;
 
     mem_logical_addr = addr;
@@ -866,12 +829,7 @@ readmemll(uint32_t addr)
 
     addr = (uint32_t) (addr64 & rammask);
 
-    page = (addr >> MEM_GRANULARITY_BITS);
-    mtrr = mtrr_areas[page];
-    if (mtrr)
-    	return mtrr[addr & MEM_GRANULARITY_MASK] | ((uint32_t) (mtrr[(addr + 1) & MEM_GRANULARITY_MASK]) << 8) | ((uint32_t) (mtrr[(addr + 2) & MEM_GRANULARITY_MASK]) << 16) | ((uint32_t) (mtrr[(addr + 3) & MEM_GRANULARITY_MASK]) << 24);
-
-    map = read_mapping[page];
+    map = read_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map) {
 	if (map->read_l)
 		return map->read_l(addr, map->p);
@@ -892,8 +850,6 @@ void
 writememll(uint32_t addr, uint32_t val)
 {
     uint64_t addr64 = (uint64_t) addr;
-    uint32_t page;
-    uint8_t *mtrr;
     mem_mapping_t *map;
 
     mem_logical_addr = addr;
@@ -930,17 +886,7 @@ writememll(uint32_t addr, uint32_t val)
 
     addr = (uint32_t) (addr64 & rammask);
 
-    page = (addr >> MEM_GRANULARITY_BITS);
-    mtrr = mtrr_areas[page];
-    if (mtrr) {
-    	mtrr[addr & MEM_GRANULARITY_MASK] = val;
-    	mtrr[(addr + 1) & MEM_GRANULARITY_MASK] = val >> 8;
-    	mtrr[(addr + 2) & MEM_GRANULARITY_MASK] = val >> 16;
-    	mtrr[(addr + 3) & MEM_GRANULARITY_MASK] = val >> 24;
-    	return;
-    }
-
-    map = write_mapping[page];
+    map = write_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map) {
 	if (map->write_l)
 		map->write_l(addr, val, map->p);
@@ -961,8 +907,6 @@ uint64_t
 readmemql(uint32_t addr)
 {
     uint64_t addr64 = (uint64_t) addr;
-    uint32_t page;
-    uint8_t *mtrr;
     mem_mapping_t *map;
 
     mem_logical_addr = addr;
@@ -991,12 +935,7 @@ readmemql(uint32_t addr)
 
     addr  = (uint32_t) (addr64 & rammask);
 
-    page = (addr >> MEM_GRANULARITY_BITS);
-    mtrr = mtrr_areas[page];
-    if (mtrr)
-    	return readmemll(addr) | ((uint64_t)readmemll(addr+4)<<32);
-
-    map = read_mapping[page];
+    map = read_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map && map->read_l)
 	return map->read_l(addr, map->p) | ((uint64_t)map->read_l(addr + 4, map->p) << 32);
 
@@ -1008,8 +947,6 @@ void
 writememql(uint32_t addr, uint64_t val)
 {
     uint64_t addr64 = (uint64_t) addr;
-    uint32_t page;
-    uint8_t *mtrr;
     mem_mapping_t *map;
 
     mem_logical_addr = addr;
@@ -1046,21 +983,7 @@ writememql(uint32_t addr, uint64_t val)
 
     addr = (uint32_t) (addr64 & rammask);
 
-    page = (addr >> MEM_GRANULARITY_BITS);
-    mtrr = mtrr_areas[page];
-    if (mtrr) {
-    	mtrr[addr & MEM_GRANULARITY_MASK] = val;
-    	mtrr[(addr + 1) & MEM_GRANULARITY_MASK] = val >> 8;
-    	mtrr[(addr + 2) & MEM_GRANULARITY_MASK] = val >> 16;
-    	mtrr[(addr + 3) & MEM_GRANULARITY_MASK] = val >> 24;
-    	mtrr[(addr + 4) & MEM_GRANULARITY_MASK] = val >> 32;
-    	mtrr[(addr + 5) & MEM_GRANULARITY_MASK] = val >> 40;
-    	mtrr[(addr + 6) & MEM_GRANULARITY_MASK] = val >> 48;
-    	mtrr[(addr + 7) & MEM_GRANULARITY_MASK] = val >> 56;
-    	return;
-    }
-
-    map = write_mapping[page];
+    map = write_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map) {
 	if (map->write_l) {
 		map->write_l(addr, val, map->p);
@@ -1101,8 +1024,6 @@ uint16_t
 readmemwl(uint32_t seg, uint32_t addr)
 {
     uint64_t addr64 = (uint64_t) addr;
-    uint32_t page;
-    uint8_t *mtrr;
     mem_mapping_t *map;
     uint32_t addr2 = mem_logical_addr = seg + addr;
 
@@ -1134,12 +1055,7 @@ readmemwl(uint32_t seg, uint32_t addr)
 
     addr2 = (uint32_t) (addr64 & rammask);
 
-    page = (addr2 >> MEM_GRANULARITY_BITS);
-    mtrr = mtrr_areas[page];
-    if (mtrr)
-    	return mtrr[addr2 & MEM_GRANULARITY_MASK] | ((uint16_t) (mtrr[(addr2 + 1) & MEM_GRANULARITY_MASK]) << 8);
-
-    map = read_mapping[page];
+    map = read_mapping[addr2 >> MEM_GRANULARITY_BITS];
 
     if (map && map->read_w)
 	return map->read_w(addr2, map->p);
@@ -1161,8 +1077,6 @@ void
 writememwl(uint32_t seg, uint32_t addr, uint16_t val)
 {
     uint64_t addr64 = (uint64_t) addr;
-    uint32_t page;
-    uint8_t *mtrr;
     mem_mapping_t *map;
     uint32_t addr2 = mem_logical_addr = seg + addr;
 
@@ -1204,15 +1118,7 @@ writememwl(uint32_t seg, uint32_t addr, uint16_t val)
 
     addr2 = (uint32_t) (addr64 & rammask);
 
-    page = (addr2 >> MEM_GRANULARITY_BITS);
-    mtrr = mtrr_areas[page];
-    if (mtrr) {
-    	mtrr[addr2 & MEM_GRANULARITY_MASK] = val;
-    	mtrr[(addr2 + 1) & MEM_GRANULARITY_MASK] = val >> 8;
-    	return;
-    }
-
-    map = write_mapping[page];
+    map = write_mapping[addr2 >> MEM_GRANULARITY_BITS];
 
     if (map && map->write_w) {
 	map->write_w(addr2, val, map->p);
@@ -1231,8 +1137,6 @@ uint32_t
 readmemll(uint32_t seg, uint32_t addr)
 {
     uint64_t addr64 = (uint64_t) addr;
-    uint32_t page;
-    uint8_t *mtrr;
     mem_mapping_t *map;
     uint32_t addr2 = mem_logical_addr = seg + addr;
 
@@ -1260,12 +1164,7 @@ readmemll(uint32_t seg, uint32_t addr)
 
     addr2 = (uint32_t) (addr64 & rammask);
 
-    page = (addr2 >> MEM_GRANULARITY_BITS);
-    mtrr = mtrr_areas[page];
-    if (mtrr)
-    	return mtrr[addr2 & MEM_GRANULARITY_MASK] | ((uint32_t) (mtrr[(addr2 + 1) & MEM_GRANULARITY_MASK]) << 8) | ((uint32_t) (mtrr[(addr2 + 2) & MEM_GRANULARITY_MASK]) << 16) | ((uint32_t) (mtrr[(addr2 + 3) & MEM_GRANULARITY_MASK]) << 24);
-
-    map = read_mapping[page];
+    map = read_mapping[addr2 >> MEM_GRANULARITY_BITS];
 
     if (map && map->read_l)
 	return map->read_l(addr2, map->p);
@@ -1288,8 +1187,6 @@ void
 writememll(uint32_t seg, uint32_t addr, uint32_t val)
 {
     uint64_t addr64 = (uint64_t) addr;
-    uint32_t page;
-    uint8_t *mtrr;
     mem_mapping_t *map;
     uint32_t addr2 = mem_logical_addr = seg + addr;
 
@@ -1326,17 +1223,7 @@ writememll(uint32_t seg, uint32_t addr, uint32_t val)
 
     addr2 = (uint32_t) (addr64 & rammask);
 
-    page = (addr2 >> MEM_GRANULARITY_BITS);
-    mtrr = mtrr_areas[page];
-    if (mtrr) {
-    	mtrr[addr2 & MEM_GRANULARITY_MASK] = val;
-    	mtrr[(addr2 + 1) & MEM_GRANULARITY_MASK] = val >> 8;
-    	mtrr[(addr2 + 2) & MEM_GRANULARITY_MASK] = val >> 16;
-    	mtrr[(addr2 + 3) & MEM_GRANULARITY_MASK] = val >> 24;
-    	return;
-    }
-
-    map = write_mapping[page];
+    map = write_mapping[addr2 >> MEM_GRANULARITY_BITS];
 
     if (map && map->write_l) {
 	map->write_l(addr2, val,	   map->p);
@@ -1361,8 +1248,6 @@ uint64_t
 readmemql(uint32_t seg, uint32_t addr)
 {
     uint64_t addr64 = (uint64_t) addr;
-    uint32_t page;
-    uint8_t *mtrr;
     mem_mapping_t *map;
     uint32_t addr2 = mem_logical_addr = seg + addr;
 
@@ -1389,12 +1274,7 @@ readmemql(uint32_t seg, uint32_t addr)
 
     addr2 = (uint32_t) (addr64 & rammask);
 
-    page = (addr2 >> MEM_GRANULARITY_BITS);
-    mtrr = mtrr_areas[page];
-    if (mtrr)
-    	return readmemll(seg,addr) | ((uint64_t)readmemll(seg,addr+4)<<32);
-
-    map = read_mapping[page];
+    map = read_mapping[addr2 >> MEM_GRANULARITY_BITS];
     if (map && map->read_l)
 	return map->read_l(addr2, map->p) | ((uint64_t)map->read_l(addr2 + 4, map->p) << 32);
 
@@ -1406,8 +1286,6 @@ void
 writememql(uint32_t seg, uint32_t addr, uint64_t val)
 {
     uint64_t addr64 = (uint64_t) addr;
-    uint32_t page;
-    uint8_t *mtrr;
     mem_mapping_t *map;
     uint32_t addr2 = mem_logical_addr = seg + addr;
 
@@ -1444,21 +1322,7 @@ writememql(uint32_t seg, uint32_t addr, uint64_t val)
 
     addr2 = (uint32_t) (addr64 & rammask);
 
-    page = (addr2 >> MEM_GRANULARITY_BITS);
-    mtrr = mtrr_areas[page];
-    if (mtrr) {
-    	mtrr[addr2 & MEM_GRANULARITY_MASK] = val;
-    	mtrr[(addr2 + 1) & MEM_GRANULARITY_MASK] = val >> 8;
-    	mtrr[(addr2 + 2) & MEM_GRANULARITY_MASK] = val >> 16;
-    	mtrr[(addr2 + 3) & MEM_GRANULARITY_MASK] = val >> 24;
-    	mtrr[(addr2 + 4) & MEM_GRANULARITY_MASK] = val >> 32;
-    	mtrr[(addr2 + 5) & MEM_GRANULARITY_MASK] = val >> 40;
-    	mtrr[(addr2 + 6) & MEM_GRANULARITY_MASK] = val >> 48;
-    	mtrr[(addr2 + 7) & MEM_GRANULARITY_MASK] = val >> 56;
-    	return;
-    }
-
-    map = write_mapping[page];
+    map = write_mapping[addr2 >> MEM_GRANULARITY_BITS];
 
     if (map && map->write_l) {
 	map->write_l(addr2,   val,       map->p);
@@ -2456,37 +2320,20 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 
     memset(pages, 0x00, pages_sz*sizeof(page_t));
 
-    for (c = 0; c < MEM_MAPPINGS_NO; c++) {
-    	if (mtrr_areas[c]) {
-    		free(mtrr_areas[c]);
-    		mtrr_areas[c] = 0;
-    	}
-    	mtrr_area_refcounts[c] = 0;
-    }
-
 #ifdef USE_NEW_DYNAREC
-    if (machines[machine].flags & MACHINE_COREBOOT) {
-    	/* coreboot executes code from the BIOS area, thus
-    	   requiring byte_*_mask for the entire address space,
-    	   which significantly increases memory usage. */
-    	c = ((uint64_t) (pages_sz) * MEM_GRANULARITY_SIZE) / 8;
-    } else {
-    	c = (mem_size * 1024) / 8;
-    }
-
     if (byte_dirty_mask) {
 	free(byte_dirty_mask);
 	byte_dirty_mask = NULL;
     }
-    byte_dirty_mask = malloc(c);
-    memset(byte_dirty_mask, 0, c);
+    byte_dirty_mask = malloc((mem_size * 1024) / 8);
+    memset(byte_dirty_mask, 0, (mem_size * 1024) / 8);
 
     if (byte_code_present_mask) {
 	free(byte_code_present_mask);
 	byte_code_present_mask = NULL;
     }
-    byte_code_present_mask = malloc(c);
-    memset(byte_code_present_mask, 0, c);
+    byte_code_present_mask = malloc((mem_size * 1024) / 8);
+    memset(byte_code_present_mask, 0, (mem_size * 1024) / 8);
 #endif
 
     for (c = 0; c < pages_sz; c++) {
@@ -2589,8 +2436,6 @@ mem_init(void)
     writelookup2 = malloc((1<<20)*sizeof(uintptr_t));
 #endif
 
-    memset(mtrr_areas, 0x00, MEM_MAPPINGS_NO*sizeof(uint8_t *));
-
 #if FIXME
     memset(ff_array, 0xff, sizeof(ff_array));
 #endif
@@ -2687,119 +2532,4 @@ mem_a20_recalc(void)
     }
 
     mem_a20_state = state;
-}
-
-
-void
-mem_add_mtrr(uint64_t base, uint64_t mask, uint8_t type)
-{
-    uint64_t size = ((~mask) & 0xffffffff) + 1;
-    uint64_t page_base, page, addr;
-    uint8_t *mtrr;
-
-    mem_log("Adding MTRR base=%08llx mask=%08llx size=%08llx type=%d\n", base, mask, size, type);
-
-    if (size > 0x8000) {
-    	mem_log("Ignoring MTRR, size too big\n");
-    	return;
-    }
-
-    if (mem_addr_is_ram(base)) {
-    	mem_log("Ignoring MTRR, base is in RAM\n");
-    	return;
-    }
-
-    for (page_base = base; page_base < base + size; page_base += MEM_GRANULARITY_SIZE) {
-    	page = (page_base >> MEM_GRANULARITY_BITS);
-    	if (mtrr_areas[page]) {
-    		/* area already allocated, increase refcount and don't allocate it again */
-    		mtrr_area_refcounts[page]++;
-    		continue;
-    	}
-
-    	/* allocate area */
-    	mtrr = malloc(MEM_GRANULARITY_SIZE);
-    	if (!mtrr)
-    		fatal("Failed to allocate page for MTRR page %08llx (errno=%d)\n", page_base, errno);
-
-
-    	/* populate area with data from RAM */
-    	for (addr = 0; addr < MEM_GRANULARITY_SIZE; addr++) {
-    		mtrr[addr] = readmembl(page_base | addr);
-    	}
-
-    	/* enable area */
-    	mtrr_areas[page] = mtrr;
-    }
-}
-
-
-void
-mem_del_mtrr(uint64_t base, uint64_t mask)
-{
-    uint64_t size = ((~mask) & 0xffffffff) + 1;
-    uint64_t page_base, page;
-
-    mem_log("Deleting MTRR base=%08llx mask=%08llx size=%08llx\n", base, mask, size);
-
-    if (size > 0x8000) {
-    	mem_log("Ignoring MTRR, size too big\n");
-    	return;
-    }
-
-    if (mem_addr_is_ram(base)) {
-    	mem_log("Ignoring MTRR, base is in RAM\n");
-    	return;
-    }
-
-    for (page_base = base; page_base < base + size; page_base += MEM_GRANULARITY_SIZE) {
-    	page = (page_base >> MEM_GRANULARITY_BITS);
-        if (mtrr_areas[page]) {
-        	/* decrease reference count */
-        	if (mtrr_area_refcounts[page] > 0)
-        		mtrr_area_refcounts[page]--;
-
-        	/* if no references are left, de-allocate area */
-        	if (mtrr_area_refcounts[page] == 0) {
-        		free(mtrr_areas[page]);
-        		mtrr_areas[page] = 0;
-        	}
-        }
-    }
-}
-
-
-void
-mem_invalidate_mtrr(uint8_t wb)
-{
-    uint64_t page, page_base, addr;
-    uint8_t *mtrr;
-
-    mem_log("Invalidating cache (writeback=%d)\n", wb);
-    for (page = 0; page < MEM_MAPPINGS_NO; page++) {
-    	mtrr = mtrr_areas[page];
-    	if (mtrr) {
-    		page_base = (page << MEM_GRANULARITY_BITS);
-    		if (!mem_addr_is_ram(page_base))
-    			continue; /* don't invalidate pages not backed by RAM */
-
-    		/* temporarily set area aside */
-    		mtrr_areas[page] = 0;
-
-    		/* write data back to memory if requested */
-    		if (wb && write_mapping[page]) { /* don't write back to a page which can't be written to */
-    			for (addr = 0; addr < MEM_GRANULARITY_SIZE; addr++) {
-    				writemembl(page_base | addr, mtrr[addr]);
-    			}
-    		}
-
-    		/* re-populate area with data from memory */
-    		for (addr = 0; addr < MEM_GRANULARITY_SIZE; addr++) {
-    			mtrr[addr] = readmembl(page_base | addr);
-    		}
-
-    		/* re-enable area */
-    		mtrr_areas[page] = mtrr;
-    	}
-    }
 }

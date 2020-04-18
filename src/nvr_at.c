@@ -237,7 +237,6 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/nvr.h>
-#include <86box/fdd.h>
 
 
 /* RTC registers and bit definitions. */
@@ -280,8 +279,6 @@
 # define REGC_UF	0x10
 #define RTC_REGD	13
 # define REGD_VRT	0x80
-#define RTC_FDD_TYPES	0x10
-#define RTC_INST_EQUIP	0x14
 #define RTC_CENTURY_AT	0x32		/* century register for AT etc */
 #define RTC_CENTURY_PS	0x37		/* century register for PS/1 PS/2 */
 #define RTC_ALDAY	0x7D		/* VIA VT82C586B - alarm day */
@@ -756,7 +753,7 @@ nvr_reset(nvr_t *nvr)
 static void
 nvr_start(nvr_t *nvr)
 {
-    int i, fdd;
+    int i;
     local_t *local = (local_t *) nvr->data;
 
     struct tm tm;
@@ -770,50 +767,6 @@ nvr_start(nvr_t *nvr)
     if (default_found == nvr->size)
 	nvr->regs[0x0e] = 0xff;		/* If load failed or it loaded an uninitialized NVR,
 					   mark everything as bad. */
-
-    if (machines[machine].flags & MACHINE_COREBOOT) {
-    	/* Sync floppy drive types on coreboot machines, as SeaBIOS lacks a setup
-    	   utility and just leaves these untouched. */
-
-    	nvr->regs[RTC_FDD_TYPES] = 0x00;
-    	nvr->regs[RTC_INST_EQUIP] |= 0xc0;
-
-    	for (i = 0; i <= 1; i++) {
-    		fdd = fdd_get_type(i);
-    		if (fdd) {
-    			if (fdd_is_525(i)) {
-    				if (fdd_is_hd(i))
-    					fdd = 2;
-    				else if (fdd_doublestep_40(i))
-    					fdd = 3;
-    				else
-    					fdd = 1;
-    			} else {
-    				if (fdd_is_hd(i))
-    					fdd = 4;
-    				else if (fdd_is_double_sided(i))
-    					fdd = 3;
-    				else
-    					fdd = 1;
-    			}
-
-    			nvr->regs[RTC_FDD_TYPES] |= (fdd << ((1 - i) * 4));
-    			nvr->regs[RTC_INST_EQUIP] &= 0x3f; /* At least one drive installed. */
-    		}
-    	}
-
-    	if ((nvr->regs[RTC_FDD_TYPES] >> 4) && (nvr->regs[RTC_FDD_TYPES] & 0xf))
-    		nvr->regs[RTC_INST_EQUIP] |= 0x40; /* Two drives installed. */
-
-    	/* Re-compute CMOS checksum. SeaBIOS also doesn't care about the checksum,
-    	   but Windows does. */
-    	uint16_t checksum = 0;
-    	for (i = 0x10; i <= 0x2d; i++) {
-	    	checksum += nvr->regs[i];
-    	}
-    	nvr->regs[0x2e] = checksum >> 8;
-    	nvr->regs[0x2f] = checksum;
-    }
 
     /* Initialize the internal and chip times. */
     if (time_sync & TIME_SYNC_ENABLED) {
