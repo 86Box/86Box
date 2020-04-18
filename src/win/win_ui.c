@@ -154,7 +154,9 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_SW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_HW, MF_UNCHECKED);
+#ifdef USE_VNC
     CheckMenuItem(menuMain, IDM_VID_VNC, MF_UNCHECKED);
+#endif
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+0, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+1, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+2, MF_UNCHECKED);
@@ -436,7 +438,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_VID_SDL_SW:
 			case IDM_VID_SDL_HW:
+#ifdef USE_VNC
 			case IDM_VID_VNC:
+#endif
 				CheckMenuItem(hmenu, IDM_VID_SDL_SW + vid_api, MF_UNCHECKED);
 				plat_setvid(LOWORD(wParam) - IDM_VID_SDL_SW);
 				CheckMenuItem(hmenu, IDM_VID_SDL_SW + vid_api, MF_CHECKED);

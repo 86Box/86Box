@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -275,7 +275,9 @@
 #define IDM_VID_REMEMBER	40041
 #define IDM_VID_SDL_SW		40050
 #define IDM_VID_SDL_HW		40051
+#ifdef USE_VNC
 #define IDM_VID_VNC		40052
+#endif
 #define IDM_VID_SCALE_1X	40055
 #define IDM_VID_SCALE_2X	40056
 #define IDM_VID_SCALE_3X	40057
