@@ -74,9 +74,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef SIEMENS
   SIEMENS	:= y
  endif
- ifndef VNC
-  VNC		:= y
- endif
  ifndef 596B
   596B		:= y
  endif
@@ -125,9 +122,6 @@ else
  endif
  ifndef VPP60
   VP660		:= n
- endif
- ifndef VNC
-  VNC		:= n
  endif
  ifndef 596B
   596B		:= n
@@ -379,16 +373,12 @@ MUNTOBJ		:= midi_mt32.o \
 		    Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o
 endif
 
-ifeq ($(VNC), y)
-OPTS		+= -DUSE_VNC
-RFLAGS		+= -DUSE_VNC
  ifneq ($(VNC_PATH), )
   OPTS		+= -I$(VNC_PATH)\INCLUDE
   VNCLIB	:= -L$(VNC_PATH)\LIB
  endif
 VNCLIB		+= -lvncserver
 VNCOBJ		:= vnc.o vnc_keymap.o
-endif
 
 ifeq ($(DISCORD), y)
 OPTS		+= -DUSE_DISCORD
@@ -677,9 +667,7 @@ ifeq ($(DEBUG), y)
  LIBS    += -lssp
 endif
 
-ifeq ($(VNC), y)
 LIBS		+= $(VNCLIB) -lws2_32
-endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
