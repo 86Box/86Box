@@ -2469,7 +2469,6 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 	free(byte_dirty_mask);
 	byte_dirty_mask = NULL;
     }
-    //if (m != 256) fatal("bdm %d\n", ((uint64_t) pages_sz * 4096) / 8);
     byte_dirty_mask = malloc(((uint64_t) pages_sz * 4096) / 8);
     memset(byte_dirty_mask, 0, ((uint64_t) pages_sz * 4096) / 8);
 
