@@ -105,7 +105,7 @@ machine_at_p2bls_init(const machine_t *model)
 {
     int ret;
 
-    if (strstr(model->internal_name, "_cb"))
+    if (model->flags & MACHINE_COREBOOT)
     	ret = bios_load_linear(L"roms/machines/p2bls/coreboot.rom",
 			       0x000c0000, 262144, 0);
     else
@@ -169,7 +169,7 @@ machine_at_p3bf_init(const machine_t *model)
 {
     int ret;
 
-    if (strstr(model->internal_name, "_cb"))
+    if (model->flags & MACHINE_COREBOOT)
     	ret = bios_load_linear(L"roms/machines/p3bf/coreboot.rom",
 			       0x000c0000, 262144, 0);
     else
