@@ -271,8 +271,8 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     			sprintf(sdram_data->part_no, "86Box-SDR-%03dM", vslots[vslot]);
     			for (i = strlen(sdram_data->part_no); i < sizeof(sdram_data->part_no); i++)
     				sdram_data->part_no[i] = ' ';
-    			sdram_data->mfg_year = 0x20;
-    			sdram_data->mfg_week = 0x13;
+    			sdram_data->mfg_year = 20;
+    			sdram_data->mfg_week = 13;
     			sdram_data->freq = 100;
     			sdram_data->features = 0xFF;
 
