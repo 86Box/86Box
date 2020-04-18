@@ -408,6 +408,13 @@ fdd_is_dd(int drive)
 
 
 int
+fdd_is_hd(int drive)
+{
+    return drive_types[fdd[drive].type].flags & FLAG_HOLE1;
+}
+
+
+int
 fdd_is_ed(int drive)
 {
     return drive_types[fdd[drive].type].flags & FLAG_HOLE2;
