@@ -17,7 +17,7 @@ In order to compile 86Box from this repository, please follow this step-by-step 
    $ pacman -S gdb make git mingw-w64-i686-toolchain mingw-w64-i686-openal mingw-w64-i686-freetype mingw-w64-i686-SDL2 mingw-w64-i686-zlib mingw-w64-i686-libpng
    ```
 
-5. Once the environment is fully updated and all dependencies are installed, change to the `src` directory of the 86Box source:
+5. Once the environment is fully updated and all dependencies are installed, change directory to `src`:
    ```console
    $ cd path/to/86Box/src
    ```
@@ -26,7 +26,7 @@ In order to compile 86Box from this repository, please follow this step-by-step 
    ```console
    $ make -f win/Makefile.mingw
    ```
-   By default, `make` does not run parallely. If you want it to use more threads, use the `-j` with the number of threads you want to use for the compilation process, i.e. `-j4`.
+   By default, `make` does not run in parallel. If you want it to use more threads, use the `-j` switch with the number of threads, e.g. `-j4`. However, keep in mind that you should not exceed your thread (logical processor) count, since that just uses more resources for little to no gain.
 
 7. If the compilation succeeded (which it almost always should), you will find `86Box.exe` in the `src` directory.
 
