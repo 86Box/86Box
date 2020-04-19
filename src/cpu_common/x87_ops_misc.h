@@ -51,7 +51,11 @@ static int opFINIT(uint32_t fetchdat)
         codegen_set_rounding_mode(X87_ROUNDING_NEAREST);
         cpu_state.npxs = 0;
 	p = (uint64_t *)cpu_state.tag;
+#ifdef USE_NEW_DYNAREC
         *p = 0;
+#else
+        *p = 0x0303030303030303ll;
+#endif
         cpu_state.TOP = 0;
 	cpu_state.ismmx = 0;
         CLOCK_CYCLES(17);
@@ -64,7 +68,11 @@ static int opFFREE(uint32_t fetchdat)
 {
         FP_ENTER();
         cpu_state.pc++;
+#ifdef USE_NEW_DYNAREC
         cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_EMPTY;
+#else
+        cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = 3;
+#endif
         CLOCK_CYCLES(3);
         return 0;
 }
@@ -141,10 +149,16 @@ static int FSTOR()
         /*Horrible hack, but as PCem doesn't keep the FPU stack in 80-bit precision at all times
           something like this is needed*/
 	p = (uint64_t *) cpu_state.tag;
+#ifdef USE_NEW_DYNAREC
         if (cpu_state.MM_w4[0] == 0xffff && cpu_state.MM_w4[1] == 0xffff && cpu_state.MM_w4[2] == 0xffff && cpu_state.MM_w4[3] == 0xffff &&
             cpu_state.MM_w4[4] == 0xffff && cpu_state.MM_w4[5] == 0xffff && cpu_state.MM_w4[6] == 0xffff && cpu_state.MM_w4[7] == 0xffff &&
             !cpu_state.TOP && (*p == 0x0101010101010101ull))
-        cpu_state.ismmx = 1;
+#else
+        if (cpu_state.MM_w4[0] == 0xffff && cpu_state.MM_w4[1] == 0xffff && cpu_state.MM_w4[2] == 0xffff && cpu_state.MM_w4[3] == 0xffff &&
+            cpu_state.MM_w4[4] == 0xffff && cpu_state.MM_w4[5] == 0xffff && cpu_state.MM_w4[6] == 0xffff && cpu_state.MM_w4[7] == 0xffff &&
+            !cpu_state.TOP && !(*p))
+ #endif
+		cpu_state.ismmx = 1;
 
         CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
         return cpu_state.abrt;
@@ -308,7 +322,11 @@ static int FSAVE()
         codegen_set_rounding_mode(X87_ROUNDING_NEAREST);
         cpu_state.npxs = 0;
 	p = (uint64_t *)cpu_state.tag;
+#ifdef USE_NEW_DYNAREC
         *p = 0;
+#else
+        *p = 0x0303030303030303ll;
+#endif
         cpu_state.TOP = 0;
         cpu_state.ismmx = 0;
 
@@ -398,7 +416,7 @@ static int opFCHS(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(0) = -ST(0);
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+        FP_TAG_VALID;
         CLOCK_CYCLES(6);
         return 0;
 }
@@ -408,7 +426,7 @@ static int opFABS(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(0) = fabs(ST(0));
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+        FP_TAG_VALID;
         CLOCK_CYCLES(3);
         return 0;
 }
@@ -429,7 +447,11 @@ static int opFXAM(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         cpu_state.npxs &= ~(C0|C1|C2|C3);
+#ifdef USE_NEW_DYNAREC
         if (cpu_state.tag[cpu_state.TOP&7] == TAG_EMPTY)	cpu_state.npxs |= (C0|C3);
+#else
+        if (cpu_state.tag[cpu_state.TOP&7] == 3)	cpu_state.npxs |= (C0|C3);
+#endif
         else if (ST(0) == 0.0) cpu_state.npxs |= C3;
         else                   cpu_state.npxs |= C2;
         if (ST(0) < 0.0)       cpu_state.npxs |= C1;
@@ -496,7 +518,7 @@ static int opFLDZ(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         x87_push(0.0);
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+        FP_TAG_VALID;
         CLOCK_CYCLES(4);
         return 0;
 }
@@ -506,7 +528,7 @@ static int opF2XM1(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(0) = pow(2.0, ST(0)) - 1.0;
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+        FP_TAG_VALID;
         CLOCK_CYCLES(200);
         return 0;
 }
@@ -516,7 +538,7 @@ static int opFYL2X(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(1) = ST(1) * (log(ST(0)) / log(2.0));
-        cpu_state.tag[(cpu_state.TOP + 1) & 7] = TAG_VALID;
+        FP_TAG_VALID_N;
         x87_pop();
         CLOCK_CYCLES(250);
         return 0;
@@ -527,7 +549,7 @@ static int opFYL2XP1(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(1) = ST(1) * (log1p(ST(0)) / log(2.0));
-        cpu_state.tag[(cpu_state.TOP + 1) & 7] = TAG_VALID;
+        FP_TAG_VALID_N;
         x87_pop();
         CLOCK_CYCLES(250);
         return 0;
@@ -538,7 +560,7 @@ static int opFPTAN(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(0) = tan(ST(0));
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+        FP_TAG_VALID;
         x87_push(1.0);
         cpu_state.npxs &= ~C2;
         CLOCK_CYCLES(235);
@@ -550,7 +572,7 @@ static int opFPATAN(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(1) = atan2(ST(1), ST(0));
-        cpu_state.tag[(cpu_state.TOP + 1) & 7] = TAG_VALID;
+        FP_TAG_VALID_N;
         x87_pop();
         CLOCK_CYCLES(250);
         return 0;
@@ -589,7 +611,7 @@ static int opFPREM(uint32_t fetchdat)
         cpu_state.pc++;
         temp64 = (int64_t)(ST(0) / ST(1));
         ST(0) = ST(0) - (ST(1) * (double)temp64);
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+        FP_TAG_VALID;
         cpu_state.npxs &= ~(C0|C1|C2|C3);
         if (temp64 & 4) cpu_state.npxs|=C0;
         if (temp64 & 2) cpu_state.npxs|=C3;
@@ -605,7 +627,7 @@ static int opFPREM1(uint32_t fetchdat)
         cpu_state.pc++;
         temp64 = (int64_t)(ST(0) / ST(1));
         ST(0) = ST(0) - (ST(1) * (double)temp64);
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+        FP_TAG_VALID;
         cpu_state.npxs &= ~(C0|C1|C2|C3);
         if (temp64 & 4) cpu_state.npxs|=C0;
         if (temp64 & 2) cpu_state.npxs|=C3;
@@ -620,7 +642,7 @@ static int opFSQRT(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(0) = sqrt(ST(0));
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+        FP_TAG_VALID;
         CLOCK_CYCLES(83);
         return 0;
 }
@@ -633,7 +655,7 @@ static int opFSINCOS(uint32_t fetchdat)
         cpu_state.pc++;
         td = ST(0);
         ST(0) = sin(td);
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+        FP_TAG_VALID;
         x87_push(cos(td));
         cpu_state.npxs &= ~C2;
         CLOCK_CYCLES(330);
@@ -646,7 +668,7 @@ static int opFRNDINT(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(0) = (double)x87_fround(ST(0));
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+        FP_TAG_VALID;
         CLOCK_CYCLES(21);
         return 0;
 }
@@ -658,7 +680,7 @@ static int opFSCALE(uint32_t fetchdat)
         cpu_state.pc++;
         temp64 = (int64_t)ST(1);
         ST(0) = ST(0) * pow(2.0, (double)temp64);
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+        FP_TAG_VALID;
         CLOCK_CYCLES(30);
         return 0;
 }
@@ -669,7 +691,7 @@ static int opFSIN(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(0) = sin(ST(0));
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+        FP_TAG_VALID;
         cpu_state.npxs &= ~C2;
         CLOCK_CYCLES(300);
         return 0;
@@ -680,7 +702,7 @@ static int opFCOS(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(0) = cos(ST(0));
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+        FP_TAG_VALID;
         cpu_state.npxs &= ~C2;
         CLOCK_CYCLES(300);
         return 0;
