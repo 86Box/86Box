@@ -19,7 +19,6 @@
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
 #define UNICODE
-#define NTDDI_VERSION 0x06010000
 #include <windows.h>
 #include <shlobj.h>
 #include <shobjidl.h>
@@ -334,6 +333,24 @@ ProcessCommandLine(wchar_t ***argw)
     return(argc);
 }
 
+HRESULT _SetCurrentProcessExplicitAppUserModelID(PCWSTR AppID) {
+    typedef HRESULT (WINAPI *func_t)(PCWSTR);
+    HRESULT result = E_NOTIMPL;
+
+    func_t func = NULL;
+    HINSTANCE hInst = LoadLibrary(L"shell32.dll");
+    if (hInst == NULL) goto end;
+
+    func = (func_t)GetProcAddress(hInst, "SetCurrentProcessExplicitAppUserModelID");
+    if (func == NULL) goto end;
+
+    result = func(AppID);
+    goto end;
+
+end:
+    FreeLibrary(hInst);
+    return result;
+}
 
 /* For the Windows platform, this is the start of the application. */
 int WINAPI
@@ -343,7 +360,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
     int	argc, i;
     wchar_t * AppID = L"86Box.86Box\0";
 
-    SetCurrentProcessExplicitAppUserModelID(AppID);
+    _SetCurrentProcessExplicitAppUserModelID(AppID);
 
     /* Set this to the default value (windowed mode). */
     video_fullscreen = 0;
