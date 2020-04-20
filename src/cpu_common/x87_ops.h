@@ -98,7 +98,11 @@ static __inline void x87_push(double i)
         cpu_state.TOP=(cpu_state.TOP-1)&7;
 #endif
         cpu_state.ST[cpu_state.TOP&7] = i;
+#ifdef USE_NEW_DYNAREC
         cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+#else
+        cpu_state.tag[cpu_state.TOP&7] = (i == 0.0) ? TAG_VALID : 0;
+#endif
 }
 
 static __inline void x87_push_u64(uint64_t i)
@@ -117,7 +121,11 @@ static __inline void x87_push_u64(uint64_t i)
         cpu_state.TOP=(cpu_state.TOP-1)&7;
 #endif
         cpu_state.ST[cpu_state.TOP&7] = td.d;
+#ifdef USE_NEW_DYNAREC
         cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+#else
+        cpu_state.tag[cpu_state.TOP&7] = (td.d == 0.0) ? TAG_VALID : 0;
+#endif
 }
 
 static __inline double x87_pop()
@@ -127,6 +135,7 @@ static __inline double x87_pop()
 #ifdef USE_NEW_DYNAREC
         cpu_state.TOP++;
 #else
+        cpu_state.tag[cpu_state.TOP&7] |= TAG_UINT64;
         cpu_state.TOP=(cpu_state.TOP+1)&7;
 #endif
         return t;
@@ -263,13 +272,22 @@ static __inline void x87_ld_frstor(int reg)
         cpu_state.MM[reg].q = readmemq(easeg, cpu_state.eaaddr);
         cpu_state.MM_w4[reg] = readmemw(easeg, cpu_state.eaaddr + 8);
 
+#ifdef USE_NEW_DYNAREC
         if ((cpu_state.MM_w4[reg] == 0x5555) && (cpu_state.tag[reg] & TAG_UINT64))
+#else
+        if ((cpu_state.MM_w4[reg] == 0x5555) && (cpu_state.tag[reg] == 2))
+#endif
         {
+#ifndef USE_NEW_DYNAREC
+		cpu_state.tag[reg] = TAG_UINT64;
+#endif
                 cpu_state.ST[reg] = (double)cpu_state.MM[reg].q;
         }
         else
         {
+#ifdef USE_NEW_DYNAREC
                 cpu_state.tag[reg] &= ~TAG_UINT64;
+#endif
                 cpu_state.ST[reg] = x87_ld80();
         }
 }
@@ -424,6 +442,18 @@ typedef union
                 }                       \
                 fpucount++;             \
         } while (0)
+#endif
+
+#ifdef USE_NEW_DYNAREC
+# define FP_TAG_VALID	cpu_state.tag[cpu_state.TOP&7] = TAG_VALID
+# define FP_TAG_VALID_F	cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID
+# define FP_TAG_DEFAULT	cpu_state.tag[cpu_state.TOP&7] = TAG_VALID | TAG_UINT64
+# define FP_TAG_VALID_N	cpu_state.tag[(cpu_state.TOP + 1) & 7] = TAG_VALID
+#else
+# define FP_TAG_VALID	cpu_state.tag[cpu_state.TOP] &= ~TAG_UINT64
+# define FP_TAG_VALID_F	cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64
+# define FP_TAG_DEFAULT	cpu_state.tag[cpu_state.TOP] |= TAG_UINT64;
+# define FP_TAG_VALID_N	cpu_state.tag[(cpu_state.TOP + 1) & 7] &= ~TAG_UINT64
 #endif
 
 #include "x87_ops_arith.h"

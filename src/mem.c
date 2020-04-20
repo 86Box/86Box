@@ -2328,6 +2328,11 @@ mem_set_mem_state_smm(uint32_t base, uint32_t size, int state)
 void
 mem_add_bios(void)
 {
+    int temp_cpu_type, temp_cpu_16bitbus;
+
+    temp_cpu_type = machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type;
+    temp_cpu_16bitbus = (temp_cpu_type == CPU_286 || temp_cpu_type == CPU_386SX || temp_cpu_type == CPU_486SLC || temp_cpu_type == CPU_IBM386SLC || temp_cpu_type == CPU_IBM486SLC );
+
     if (biosmask > 0x1ffff) {
 	/* 256k+ BIOS'es only have low mappings at E0000-FFFFF. */
 	mem_mapping_add(&bios_mapping, 0xe0000, 0x20000,
@@ -2348,12 +2353,12 @@ mem_add_bios(void)
     }
 
     if (AT) {
-	mem_mapping_add(&bios_high_mapping, biosaddr | (cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
+	mem_mapping_add(&bios_high_mapping, biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
 			mem_read_bios,mem_read_biosw,mem_read_biosl,
 			mem_write_null,mem_write_nullw,mem_write_nulll,
 			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
 
-	mem_set_mem_state(biosaddr | (cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
+	mem_set_mem_state(biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
 			  MEM_READ_ROMCS | MEM_WRITE_ROMCS);
     }
 }

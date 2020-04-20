@@ -61,7 +61,7 @@
 
 
 const machine_t machines[] = {
-	//8088 Machines
+    /* 8088 Machines */
     { "[8088] AMI XT clone",			"amixt",		{{"Intel",      cpus_8088},   {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA,											 64,  640,  64,   0,		machine_xt_amixt_init, NULL			},
     { "[8088] Compaq Portable",			"portable",		{{"Intel",      cpus_8088},   {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VIDEO,									128,  640, 128,   0,	       machine_xt_compaq_init, NULL			},
     { "[8088] DTK XT clone",			"dtk",			{{"Intel",      cpus_8088},   {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA,											 64,  640,  64,   0,		  machine_xt_dtk_init, NULL			},
@@ -84,7 +84,7 @@ const machine_t machines[] = {
     { "[8088] Xi8088",				"xi8088",		{{"Intel",      cpus_8088},   {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_PS2,								 64, 1024, 128, 127,	       machine_xt_xi8088_init, xi8088_get_device	},
     { "[8088] Zenith Data SupersPort",		"zdsupers",		{{"Intel",      cpus_8088},   {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA,											128,  640, 128,   0,	       machine_xt_zenith_init, NULL			},
     
-	//8086 Machines
+    /* 8086 Machines */
     { "[8086] Amstrad PC1512",			"pc1512",		{{"Intel",      cpus_pc1512}, {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VIDEO | MACHINE_VIDEO_FIXED | MACHINE_MOUSE,					512,  640, 128,  63,		  machine_pc1512_init, pc1512_get_device	},
     { "[8086] Amstrad PC1640",			"pc1640",		{{"Intel",      cpus_8086},   {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VIDEO | MACHINE_MOUSE,							640,  640,   0,  63,		  machine_pc1640_init, pc1640_get_device	},
     { "[8086] Amstrad PC2086",			"pc2086",		{{"Intel",      cpus_8086},   {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VIDEO | MACHINE_VIDEO_FIXED | MACHINE_MOUSE,					640,  640,   0,  63,		  machine_pc2086_init, pc2086_get_device	},
@@ -98,10 +98,10 @@ const machine_t machines[] = {
     { "[8086] VTech Laser XT3",			"lxt3",			{{"Intel",      cpus_8086},   {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA,											256,  640, 256,   0,		 machine_xt_lxt3_init, NULL			},
 #endif
 
-	//286 XT machines
+    /* 286 XT machines */
     { "[286 XT] Hedaka HED-919",		"hed919",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA,											 64,  640,  64,   0,	       machine_xt_hed919_init, NULL			},
 
-	//286 AT machines
+    /* 286 AT machines */
     { "[286 ISA] AMI 286 clone",		"ami286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512, 8192, 128, 127,	     machine_at_neat_ami_init, NULL			},
     { "[286 ISA] Award 286 clone",		"award286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512,16384, 128, 127,	     machine_at_award286_init, NULL			},
     { "[286 ISA] Phoenix 286 clone",		"px286",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512,16384, 128, 127,	     machine_at_px286_init, NULL			},
@@ -131,10 +131,10 @@ const machine_t machines[] = {
 
     { "[286 ISA] Samsung Deskmaster 286",	"deskmaster286",	{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512,16384, 128, 127,	   machine_at_deskmaster286_init, NULL			},
 
-	//286 machines that utilize the MCA bus
+    /* 286 machines that utilize the MCA bus */
     { "[286 MCA] IBM PS/2 model 50",		"ibmps2_m50",		{{"Intel", cpus_ps2_m30_286}, {"IBM",cpus_IBM486SLC},{"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_VIDEO,						  1,   10,   1,  63,	    machine_ps2_model_50_init, NULL			},
 
-	//386SX machines
+    /* 386SX machines */
     { "[386SX ISA] AMA-932J",			"ama932j",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_VIDEO,						512, 8192, 128, 127,          machine_at_ama932j_init, at_ama932j_get_device 	},
 #if defined(DEV_BRANCH) && defined(USE_AMI386SX)
     { "[386SX ISA] AMI Unknown 386SX",		"ami386",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,								512,16384, 128, 127,	     machine_at_headland_init, NULL			},
@@ -148,29 +148,29 @@ const machine_t machines[] = {
 
     { "[386SX ISA] Goldstar 386",		"goldstar386",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,								512, 8192, 128, 127,	  machine_at_goldstar386_init, NULL			},
 
-	//386SX machines which utilize the MCA bus
+    /* 386SX machines which utilize the MCA bus */
     { "[386SX MCA] IBM PS/2 model 55SX",	"ibmps2_m55sx",		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"IBM",cpus_IBM486SLC},{"",    NULL}}, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_VIDEO,						  1,    8,   1,  63,	  machine_ps2_model_55sx_init, NULL			},
 
-	//386DX machines
+    /* 386DX machines */
     { "[386DX ISA] Compaq Portable III (386)",  "portableiii386",       {{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_VIDEO,			  			  1,   14,   1, 127,   machine_at_portableiii386_init, at_cpqiii_get_device	},
     { "[386DX ISA] ECS 386/32",			"ecs386",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512,16384, 512, 127,	       machine_at_ecs386_init, NULL			},		
     { "[386DX ISA] Micronics 386 clone",	"micronics386",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,								512, 8192, 128, 127,	 machine_at_micronics386_init, NULL			},
 
-	//386DX machines which utilize the VLB bus
+    /* 386DX machines which utilize the VLB bus */
     { "[386DX VLB] Award 386DX clone",		"award386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	      machine_at_opti495_init, NULL			},
     { "[386DX VLB] Dataexpert SX495 (386DX)",	"ami386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	  machine_at_opti495_ami_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_MR495)
     { "[386DX VLB] MR 386DX clone",		"mr386dx",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	   machine_at_opti495_mr_init, NULL			},
 #endif
 
-	//386DX machines which utilize the MCA bus
+    /* 386DX machines which utilize the MCA bus */
     { "[386DX MCA] IBM PS/2 model 70 (type 3)",	"ibmps2_m70_type3",	{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"IBM",cpus_IBM486BL},{"",     NULL}}, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_VIDEO,						  2,   16,   2,  63,  machine_ps2_model_70_type3_init, NULL			},
     { "[386DX MCA] IBM PS/2 model 80",		"ibmps2_m80",		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"IBM",cpus_IBM486BL},{"",     NULL}}, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_VIDEO,						  1,   12,   1,  63,	    machine_ps2_model_80_init, NULL			},
 
-	//486 machines with just the ISA slot
+    /* 486 machines with just the ISA slot */
     { "[486 ISA] Packard Bell PB410A",		"pb410a",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,			  	  4,   36,   1, 127,	       machine_at_pb410a_init, NULL			},    
 
-	//486 machines
+    /* 486 machines */
     { "[486 VLB] Award 486 clone",		"award486",		{{"Intel", cpus_i486S1},      {"AMD", cpus_Am486S1}, {"Cyrix", cpus_Cx486S1},{"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	      machine_at_opti495_init, NULL			},    
     { "[486 VLB] Dataexpert SX495 (486)",	"ami486",		{{"Intel", cpus_i486S1},      {"AMD", cpus_Am486S1}, {"Cyrix", cpus_Cx486S1},{"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	  machine_at_opti495_ami_init, NULL			},
     { "[486 VLB] Olystar LIL1429",		"ali1429",		{{"Intel", cpus_i486S1},      {"AMD", cpus_Am486S1}, {"Cyrix", cpus_Cx486S1},{"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	      machine_at_ali1429_init, NULL			},
@@ -179,7 +179,9 @@ const machine_t machines[] = {
 #endif
     { "[486 VLB] AMI SiS 471",			"ami471",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   64,   1, 127,	       machine_at_ami471_init, NULL			},
     { "[486 VLB] AMI WinBIOS 486",		"win486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	  machine_at_winbios1429_init, NULL			},
+#if defined(DEV_BRANCH) && defined(USE_WIN471)
     { "[486 VLB] AMI WinBIOS SiS 471",		"win471",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   64,   1, 127,	       machine_at_win471_init, NULL			},
+#endif
     { "[486 VLB] DTK PKM-0038S E-2",		"dtk486",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   64,   1, 127,	       machine_at_dtk486_init, NULL			},
 
 #if defined(DEV_BRANCH) && defined(USE_MR495)
@@ -191,14 +193,14 @@ const machine_t machines[] = {
     { "[486 MCA] IBM PS/2 model 70 (type 4)",	"ibmps2_m70_type4",	{{"Intel", cpus_i486S1},      {"AMD", cpus_Am486S1}, {"Cyrix", cpus_Cx486S1},{"",      NULL},     {"",      NULL}}, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_VIDEO,						  2,   16,   2,  63,  machine_ps2_model_70_type4_init, NULL			},
 #endif
 
-	//486 machines which utilize the PCI bus
+    /* 486 machines which utilize the PCI bus */
     { "[486 PCI] ASUS PCI/I-486SP3G",		"486sp3g",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  1,  128,   1, 127,	      machine_at_486sp3g_init, NULL			},
     { "[486 PCI] Intel Classic/PCI",		"alfredo",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  2,  128,   2, 127,	      machine_at_alfredo_init, NULL			},
     { "[486 PCI] Lucky Star LS-486E",		"ls486e",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  1,  128,   1, 127,	       machine_at_ls486e_init, NULL			},
     { "[486 PCI] Rise Computer R418",		"r418",			{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  1,  255,   1, 127,		 machine_at_r418_init, NULL			},
     { "[486 PCI] Zida Tomato 4DP",		"4dps",			{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  1,  255,   1, 127,		 machine_at_4dps_init, NULL			},
 
-	//Socket 4 machines
+    /* Socket 4 machines */
     { "[Socket 4 LX] IBM Ambra DP60 PCI",	"ambradp60",		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,	    machine_at_ambradp60_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_VPP60)
     { "[Socket 4 LX] IBM PS/ValuePoint P60",	"valuepointp60",	{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  2,  128,   2, 127,	machine_at_valuepointp60_init, NULL			},
@@ -206,7 +208,7 @@ const machine_t machines[] = {
     { "[Socket 4 LX] Intel Premiere/PCI",	"revenge",		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,	       machine_at_batman_init, NULL			},
     { "[Socket 4 LX] Micro Star 586MC1",	"586mc1",		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  2,  128,   2, 127,	       machine_at_586mc1_init, NULL			},
 
-	//Socket 5 machines
+    /* Socket 5 machines */
     { "[Socket 5 NX] Intel Premiere/PCI II",	"plato",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,		machine_at_plato_init, NULL			},
     { "[Socket 5 NX] IBM Ambra DP90 PCI",	"ambradp90",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,	    machine_at_ambradp90_init, NULL			},
     { "[Socket 5 NX] Gigabyte GA-586IP",	"430nx",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,		machine_at_430nx_init, NULL			},
@@ -220,7 +222,7 @@ const machine_t machines[] = {
     { "[Socket 5 FX] PC Partner MB500N",	"mb500n",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  8,  128,   8, 127,	       machine_at_mb500n_init, NULL			},
     { "[Socket 5 FX] President Award 430FX PCI","president",		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  8,  128,   8, 127,	    machine_at_president_init, NULL			},
 
-	//Socket 7 machines
+    /* Socket 7 machines */
     { "[Socket 7-3V FX] ASUS P/I-P54TP4XE",	"p54tp4xe",		MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	     machine_at_p54tp4xe_init, NULL			},
     { "[Socket 7-3V FX] Intel Advanced/ATX",	"thor",			MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,		 machine_at_thor_init, NULL			},
     { "[Socket 7-3V FX] Intel Advanced/EV",	"endeavor",		MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,			  8,  128,   8, 127,	     machine_at_endeavor_init, at_endeavor_get_device	},
@@ -243,7 +245,7 @@ const machine_t machines[] = {
     { "[Socket 7 VX] Jetway J656VXD",		"j656vxd",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  128,   8, 127,	      machine_at_j656vxd_init, NULL			},
     { "[Socket 7 VX] PC Partner MB520N",	"mb520n",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	       machine_at_mb520n_init, NULL			},
     { "[Socket 7 VX] Shuttle HOT-557",		"430vx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	       machine_at_i430vx_init, NULL			},
-    // txp4 for compatibility reasons
+
     { "[Socket 7 TX] ASUS TX97",		"tx97",			MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	         machine_at_tx97_init, NULL			},
     { "[Socket 7 TX] Gigabyte GA-586T2",        "586t2",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	        machine_at_586t2_init, NULL			},
     { "[Socket 7 TX] Intel YM430TX",		"ym430tx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	      machine_at_ym430tx_init, NULL			},
@@ -255,17 +257,17 @@ const machine_t machines[] = {
  
     { "[Socket 7 VP3] QDI Advance II",		"advanceii",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	    machine_at_advanceii_init, NULL			},
     
-	//Super Socket 7 machines
+    /* Super Socket 7 machines */
     { "[Super 7 MVP3] AOpen AX59 Pro",		"ax59pro",		MACHINE_CPUS_PENTIUM_SS7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,  8, 255,	      machine_at_ax59pro_init, NULL			},
     { "[Super 7 MVP3] FIC VA-503+",		"ficva503p",		MACHINE_CPUS_PENTIUM_SS7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,  8, 255,	         machine_at_mvp3_init, NULL			},
 
-	//Socket 8 machines
+    /* Socket 8 machines */
     { "[Socket 8 FX] Gigabyte GA-686NX",	"686nx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	        machine_at_686nx_init, NULL			},
     { "[Socket 8 FX] PC Partner MB600N",	"mb600n",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	       machine_at_mb600n_init, NULL			},
     { "[Socket 8 FX] Biostar MB-8500ttc",	"8500ttc",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	      machine_at_8500ttc_init, NULL			},
     { "[Socket 8 FX] Micronics M6MI",		"m6mi",			{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  384,   8, 127,	         machine_at_m6mi_init, NULL			},
-    
-	//Slot 1 machines
+
+    /* Slot 1 machines */
     { "[Slot 1 FX] ECS P6KFX-A",		"p6kfx",		{{"Intel", cpus_PentiumII_28v},{"",    NULL},        {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  384,   8, 127,	        machine_at_p6kfx_init, NULL			},
 
     { "[Slot 1 BX] Gigabyte GA-6BXC",		"6bxc",			{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  768,   8, 255,		 machine_at_6bxc_init, NULL			},
@@ -277,7 +279,7 @@ const machine_t machines[] = {
 
     { "[Slot 1 ZX] Packard Bell Bora Pro",	"borapro",		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  512,   8, 255,	      machine_at_borapro_init, NULL			},
 
-	//PGA370 machines
+    /* PGA370 machines */
     { "[Socket 370 BX] ASUS CUBX",		"cubx",			{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,		 machine_at_cubx_init, NULL			},
     { "[Socket 370 BX] A-Trend ATC7020BXII",	"atc7020bxii",		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,	  machine_at_atc7020bxii_init, NULL			},
     { "[Socket 370 ZX] Soltek SL-63A1",		"63a",			{{"Intel", cpus_Celeron},     {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 255,		  machine_at_63a_init, NULL			},

@@ -15,7 +15,6 @@
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
  */
-
 static int opFILDiw_a16(uint32_t fetchdat)
 {
         int16_t temp;
@@ -102,7 +101,7 @@ static int opFILDiq_a16(uint32_t fetchdat)
         temp64 = geteaq(); if (cpu_state.abrt) return 1;
         x87_push((double)temp64);
         cpu_state.MM[cpu_state.TOP&7].q = temp64;
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID | TAG_UINT64;
+	FP_TAG_DEFAULT;
 
         CLOCK_CYCLES(10);
         return 0;
@@ -117,7 +116,7 @@ static int opFILDiq_a32(uint32_t fetchdat)
         temp64 = geteaq(); if (cpu_state.abrt) return 1;
         x87_push((double)temp64);
         cpu_state.MM[cpu_state.TOP&7].q = temp64;
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID | TAG_UINT64;
+	FP_TAG_DEFAULT;
 
         CLOCK_CYCLES(10);
         return 0;
