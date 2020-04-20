@@ -267,6 +267,7 @@ machine_at_px471_init(const machine_t *model)
 }
 
 
+#if defined(DEV_BRANCH) && defined(USE_WIN471)
 int
 machine_at_win471_init(const machine_t *model)
 {
@@ -283,6 +284,7 @@ machine_at_win471_init(const machine_t *model)
 
     return ret;
 }
+#endif
 
 
 static void
