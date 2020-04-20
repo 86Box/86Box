@@ -227,7 +227,9 @@ extern int	machine_at_opti495_mr_init(const machine_t *);
 extern int	machine_at_ami471_init(const machine_t *);
 extern int	machine_at_dtk486_init(const machine_t *);
 extern int	machine_at_px471_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_WIN471)
 extern int	machine_at_win471_init(const machine_t *);
+#endif
 
 extern int	machine_at_r418_init(const machine_t *);
 extern int	machine_at_ls486e_init(const machine_t *);

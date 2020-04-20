@@ -269,9 +269,11 @@ extern const device_t ht216_32_pb410a_device;
 extern const device_t im1024_device;
 extern const device_t pgc_device;
 
+#if defined(DEV_BRANCH) && defined(USE_MGA)
 /* Matrox Mystique */
 extern const device_t mystique_device;
 extern const device_t mystique_220_device;
+#endif
 
 /* Oak OTI-0x7 */
 extern const device_t oti037c_device;

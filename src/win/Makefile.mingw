@@ -47,6 +47,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef LASERXT
   LASERXT	:= y
  endif
+ ifndef MGA
+  MGA		:= y
+ endif
  ifndef MR495
   MR495		:= y
  endif
@@ -86,6 +89,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef VNC
   VNC		:= y
  endif
+ ifndef WIN471
+  WIN471	:= y
+ endif
  ifndef XL24
   XL24		:= y
  endif
@@ -104,6 +110,9 @@ else
  endif
  ifndef LASERXT
   LASERXT	:= n
+ endif
+ ifndef MGA
+  MGA		:= n
  endif
  ifndef MR495
   MR495		:= n
@@ -140,6 +149,9 @@ else
  endif
  ifndef VNC
   VNC		:= n
+ endif
+ ifndef WIN471
+  WIN471	:= n
  endif
  ifndef XL24
   XL24		:= n
@@ -420,6 +432,11 @@ OPTS		+= -DUSE_LASERXT
 DEVBROBJ	+= m_xt_laserxt.o
 endif
 
+ifeq ($(MGA), y)
+OPTS		+= -DUSE_MGA
+DEVBROBJ	+= vid_mga.o
+endif
+
 ifeq ($(MR495), y)
 OPTS		+= -DUSE_MR495
 endif
@@ -467,6 +484,10 @@ endif
 
 ifeq ($(VGAWONDER), y)
 OPTS		+= -DUSE_VGAWONDER
+endif
+
+ifeq ($(WIN471), y)
+OPTS		+= -DUSE_WIN471
 endif
 
 ifeq ($(XL24), y)
@@ -649,7 +670,6 @@ VIDOBJ		:= video.o \
 		    vid_et4000.o vid_sc1502x_ramdac.o \
 		    vid_et4000w32.o vid_stg_ramdac.o \
 		    vid_ht216.o \
-			vid_mga.o \
 		    vid_oak_oti.o \
 		    vid_paradise.o \
 		    vid_ti_cf62011.o \
