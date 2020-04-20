@@ -519,7 +519,7 @@ machine_at_mb520n_init(const machine_t *model)
     return ret;
 }
 
-
+#if defined(DEV_BRANCH) && defined(USE_SIONEEDED)
 int
 machine_at_p55xb2_init(const machine_t *model)
 {
@@ -548,6 +548,7 @@ machine_at_p55xb2_init(const machine_t *model)
 
     return ret;
 }
+#endif
 
 
 int

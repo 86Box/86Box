@@ -71,6 +71,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef VPP60
   VPP60		:= y
  endif
+ ifndef SIONEEDED
+  SIONEEDED	:= y
+ endif 
  ifndef SIEMENS
   SIEMENS	:= y
  endif
@@ -126,6 +129,9 @@ else
  ifndef VPP60
   VPP60		:= n
  endif
+ ifndef SIONEEDED
+  SIONEEDED	:= n
+ endif 
  ifndef SIEMENS
   SIEMENS	:= n
  endif
@@ -454,6 +460,10 @@ endif
 
 ifeq ($(VPP60), y)
 OPTS		+= -DUSE_VPP60
+endif
+
+ifeq ($(SIONEEDED), y)
+OPTS		+= -DUSE_SIONEEDED
 endif
 
 ifeq ($(SIEMENS), y)

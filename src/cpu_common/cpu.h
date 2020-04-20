@@ -146,6 +146,7 @@ extern CPU	cpus_6x86SS7[];
 extern CPU	cpus_Cyrix3[];
 extern CPU	cpus_PentiumPro[];
 extern CPU	cpus_PentiumII_28v[];
+extern CPU	cpus_PentiumII_66[];
 extern CPU	cpus_PentiumII[];
 extern CPU	cpus_Celeron[];
 

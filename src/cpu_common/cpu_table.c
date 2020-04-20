@@ -698,8 +698,29 @@ CPU cpus_PentiumII_28v[] = {
     {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}
 
 };
+CPU cpus_PentiumII_66[] = {
+    /*Intel Pentium II Klamath*/
+    {"Pentium II Klamath 50",        CPU_PENTIUM2,   50000000, 1.0,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 6},
+    {"Pentium II Klamath 60",        CPU_PENTIUM2,   60000000, 1.0,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 7},
+    {"Pentium II Klamath 66",        CPU_PENTIUM2,   66666666, 1.0,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
+    {"Pentium II Klamath 75",        CPU_PENTIUM2,   75000000, 1.5,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7, 4, 4, 9},
+    {"Pentium II Klamath 233",       CPU_PENTIUM2,  233333333, 3.5,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 21,21,10,10, 28},
+    {"Pentium II Klamath 266",       CPU_PENTIUM2,  266666666, 4.0,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12, 32},
+    {"Pentium II Klamath 300/66",    CPU_PENTIUM2,  300000000, 4.5,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
 
-CPU cpus_PentiumII[] = {
+    /*Intel Pentium II Deschutes*/
+    {"Pentium II Deschutes 50",     CPU_PENTIUM2D,   50000000, 1.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 6},
+    {"Pentium II Deschutes 60",     CPU_PENTIUM2D,   60000000, 1.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 7},
+    {"Pentium II Deschutes 66",     CPU_PENTIUM2D,   66666666, 1.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
+    {"Pentium II Deschutes 75",     CPU_PENTIUM2D,   75000000, 1.5,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7, 4, 4, 9},
+    {"Pentium II Deschutes 266",    CPU_PENTIUM2D,  266666666, 4.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12, 32},
+    {"Pentium II Deschutes 300/66", CPU_PENTIUM2D,  300000000, 4.5,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
+    {"Pentium II Deschutes 333",    CPU_PENTIUM2D,  333333333, 5.0,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 40},
+    {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}
+
+};
+
+CPU cpus_PentiumII[] = {	
     /*Intel Pentium II Klamath*/
     {"Pentium II Klamath 50",        CPU_PENTIUM2,   50000000, 1.0,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 6},
     {"Pentium II Klamath 60",        CPU_PENTIUM2,   60000000, 1.0,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 7},
@@ -725,13 +746,7 @@ CPU cpus_PentiumII[] = {
 };
 
 CPU cpus_Celeron[] = {
-    /* Mendocino Celerons. Exact architecture as the P2D series. Intended for
-       the PGA370 boards but they were capable to fit on a PGA 370 to Slot 1
-       adaptor card so they work on Slot 1 motherboards too!.
-
-       The 100Mhz Mendocino is only meant to not cause any struggle
-       to the recompiler. */
-    {"Celeron Mendocino 25",        CPU_PENTIUM2D,   25000000, 1.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 3},
+    /*Intel Celeron Mendocino (Socket 370). Compatible with Slot 1 motherboards through a Slocket/Slotket adapter*/    
     {"Celeron Mendocino 50",        CPU_PENTIUM2D,   50000000, 1.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 6},
     {"Celeron Mendocino 66",        CPU_PENTIUM2D,   66666666, 1.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
     {"Celeron Mendocino 100",       CPU_PENTIUM2D,  100000000, 1.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},

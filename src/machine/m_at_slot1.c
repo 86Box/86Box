@@ -254,6 +254,7 @@ machine_at_bf6_init(const machine_t *model)
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(USE_SIONEEDED)
 int
 machine_at_borapro_init(const machine_t *model)
 {
@@ -289,3 +290,4 @@ machine_at_borapro_init(const machine_t *model)
 
     return ret;
 }
+#endif

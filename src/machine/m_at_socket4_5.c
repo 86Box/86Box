@@ -383,7 +383,7 @@ machine_at_president_init(const machine_t *model)
     return ret;
 }
 
-
+#if defined(DEV_BRANCH) && defined(USE_SIONEEDED)
 int
 machine_at_apollo_init(const machine_t *model)
 {
@@ -413,7 +413,7 @@ machine_at_apollo_init(const machine_t *model)
 
     return ret;
 }
-
+#endif
 
 #if defined(DEV_BRANCH) && defined(USE_VECTRA54)
 int
