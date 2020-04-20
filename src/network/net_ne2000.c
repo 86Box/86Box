@@ -1469,7 +1469,7 @@ nic_init(const device_t *info)
 	nic_reset(dev);
 
     /* Attach ourselves to the network module. */
-    network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL);
+    network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL, NULL);
 
     nelog(1, "%s: %s attached IO=0x%X IRQ=%d\n", dev->name,
 	dev->is_pci?"PCI":"ISA", dev->base_address, dev->base_irq);

@@ -771,7 +771,7 @@ wd_init(const device_t *info)
     mem_mapping_disable(&dev->ram_mapping);		
 
     /* Attach ourselves to the network module. */
-    network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL);
+    network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL, NULL);
 
     if (!(dev->board_chip & WE_ID_BUS_MCA)) {
 	wdlog("%s: attached IO=0x%X IRQ=%d, RAM addr=0x%06x\n", dev->name,
