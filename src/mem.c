@@ -357,14 +357,14 @@ mmutranslatereal_normal(uint32_t addr, int rw)
 static uint64_t
 mmutranslatereal_pae(uint32_t addr, int rw)
 {
-    uint64_t temp,temp2,temp3;
+    uint64_t temp,temp2,temp3,temp4;
     uint64_t addr2,addr3,addr4;
 
     if (cpu_state.abrt)
 	return 0xffffffffffffffffULL;
 
     addr2 = (cr3 & ~0x1f) + ((addr >> 27) & 0x18);
-    temp = temp2 = rammap64(addr2);
+    temp = temp2 = rammap64(addr2) & 0x000000ffffffffffULL;
     if (!(temp & 1)) {
 	cr2 = addr;
 	temp &= 1;
@@ -375,8 +375,8 @@ mmutranslatereal_pae(uint32_t addr, int rw)
 	return 0xffffffffffffffffULL;
     }
 
-    addr3 = (temp & ~0xfff) + ((addr >> 18) & 0xff8);
-    temp = rammap64(addr3);
+    addr3 = (temp & ~0xfffULL) + ((addr >> 18) & 0xff8);
+    temp = temp4 = rammap64(addr3) & 0x000000ffffffffffULL;
     temp3 = temp & temp2;
     if (!(temp & 1)) {
 	cr2 = addr;
@@ -389,8 +389,8 @@ mmutranslatereal_pae(uint32_t addr, int rw)
     }
 
     if (temp & 0x80) {
-	/*4MB page*/
-	if (((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
+	/*2MB page*/
+	if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !(temp & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
 		cr2 = addr;
 		temp &= 1;
 		if (CPL == 3)
@@ -405,12 +405,12 @@ mmutranslatereal_pae(uint32_t addr, int rw)
 	mmu_perm = temp & 4;
 	rammap64(addr3) |= 0x20;
 
-	return ((temp & ~0x1fffff) + (addr & 0x1fffff)) & 0x0000000fffffffffULL;
+	return ((temp & ~0x1fffffULL) + (addr & 0x1fffffULL)) & 0x000000ffffffffffULL;
     }
 
-    addr4 = (temp & ~0xfff) + ((addr >> 9) & 0xff8);
-    temp = rammap64(addr4);
-    temp3 = temp & temp3;
+    addr4 = (temp & ~0xfffULL) + ((addr >> 9) & 0xff8);
+    temp = rammap64(addr4) & 0x000000ffffffffffULL;
+    temp3 = temp & temp4;
     if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
 	cr2 = addr;
 	temp &= 1;
@@ -425,7 +425,7 @@ mmutranslatereal_pae(uint32_t addr, int rw)
     rammap64(addr3) |= 0x20;
     rammap64(addr4) |= (rw? 0x60 : 0x20);
 
-    return ((temp & ~0xfff) + ((uint64_t) (addr & 0xfff))) & 0x0000000fffffffffULL;
+    return ((temp & ~0xfffULL) + ((uint64_t) (addr & 0xfff))) & 0x000000ffffffffffULL;
 }
 
 
@@ -483,20 +483,20 @@ mmutranslate_noabrt_normal(uint32_t addr, int rw)
 static uint64_t
 mmutranslate_noabrt_pae(uint32_t addr, int rw)
 {
-    uint32_t temp,temp2,temp3;
-    uint32_t addr2,addr3,addr4;
+    uint64_t temp,temp2,temp3,temp4;
+    uint64_t addr2,addr3,addr4;
 
     if (cpu_state.abrt) 
 	return 0xffffffffffffffffULL;
 
     addr2 = (cr3 & ~0x1f) + ((addr >> 27) & 0x18);
-    temp = temp2 = rammap64(addr2);
+    temp = temp2 = rammap64(addr2) & 0x000000ffffffffffULL;
 
     if (! (temp & 1))
 	return 0xffffffffffffffffULL;
 
-    addr3 = (temp & ~0xfff) + ((addr >> 18) & 0xff8);
-    temp = rammap64(addr3);
+    addr3 = (temp & ~0xfffULL) + ((addr >> 18) & 0xff8);
+    temp = temp4 = rammap64(addr3) & 0x000000ffffffffffULL;
     temp3 = temp & temp2;
 
     if (! (temp & 1))
@@ -504,20 +504,20 @@ mmutranslate_noabrt_pae(uint32_t addr, int rw)
 
     if (temp & 0x80) {
 	/*2MB page*/
-	if (((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
+	if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
 		return 0xffffffffffffffffULL;
 
-	return ((temp & ~0x1fffff) + (addr & 0x1fffff)) & 0x0000000fffffffffULL;
+	return ((temp & ~0x1fffffULL) + (addr & 0x1fffff)) & 0x000000ffffffffffULL;
     }
 
-    addr4 = (temp & ~0xfff) + ((addr >> 9) & 0xff8);
-    temp = rammap64(addr4);
-    temp3 = temp & temp3;
+    addr4 = (temp & ~0xfffULL) + ((addr >> 9) & 0xff8);
+    temp = rammap64(addr4) & 0x000000ffffffffffULL;;
+    temp3 = temp & temp4;
 
     if (!(temp&1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
 	return 0xffffffffffffffffULL;
 
-    return ((temp & ~0xfff) + ((uint64_t) (addr & 0xfff))) & 0x0000000fffffffffULL;
+    return ((temp & ~0xfffULL) + ((uint64_t) (addr & 0xfff))) & 0x000000ffffffffffULL;
 }
 
 
