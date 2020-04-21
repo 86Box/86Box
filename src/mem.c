@@ -2192,10 +2192,12 @@ mem_set_mem_state_smm(uint32_t base, uint32_t size, int state)
 void
 mem_add_bios(void)
 {
-    int temp_cpu_type, temp_cpu_16bitbus;
+    int temp_cpu_type, temp_cpu_16bitbus = 1;
 
-    temp_cpu_type = machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type;
-    temp_cpu_16bitbus = (temp_cpu_type == CPU_286 || temp_cpu_type == CPU_386SX || temp_cpu_type == CPU_486SLC || temp_cpu_type == CPU_IBM386SLC || temp_cpu_type == CPU_IBM486SLC );
+    if (AT) {
+	temp_cpu_type = machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type;
+	temp_cpu_16bitbus = (temp_cpu_type == CPU_286 || temp_cpu_type == CPU_386SX || temp_cpu_type == CPU_486SLC || temp_cpu_type == CPU_IBM386SLC || temp_cpu_type == CPU_IBM486SLC );
+    }
 
     if (biosmask > 0x1ffff) {
 	/* 256k+ BIOS'es only have low mappings at E0000-FFFFF. */
