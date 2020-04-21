@@ -2779,14 +2779,20 @@ void cpu_RDMSR()
 			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
 			EAX &= 0xFFFF0000;
 			EAX |= cs_msr;
+			EDX = 0x00000000;
 			break;
 			case 0x175:
 			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
 			EAX = esp_msr;
+			EDX = 0x00000000;
 			break;
 			case 0x176:
 			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
 			EAX = eip_msr;
+			EDX = 0x00000000;
+			break;
+			case 0x179:
+			EAX = EDX = 0x00000000;
 			break;
 			case 0x186:
                         EAX = ecx186_msr & 0xffffffff;
@@ -3224,6 +3230,8 @@ void cpu_WRMSR()
 			case 0x176:
 			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
 			eip_msr = EAX;
+			break;
+			case 0x179:
 			break;
 			case 0x186:
 			ecx186_msr = EAX | ((uint64_t)EDX << 32);
