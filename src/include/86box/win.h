@@ -168,6 +168,7 @@ extern void	win_settings_open_ex(HWND hwnd, int category);
 /* Functions in win_stbar.c: */
 extern HWND	hwndSBAR;
 extern void	StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst);
+extern int	MediaMenuHandler(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 
 /* Functions in win_dialog.c: */
