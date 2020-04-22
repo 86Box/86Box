@@ -64,9 +64,11 @@ typedef struct RTNETETHERHDR
 #define MII_MAX_REG                     32
 #define CSR_MAX_REG                     128
 
+/** Maximum number of times we report a link down to the guest (failure to send frame) */
+#define PCNET_MAX_LINKDOWN_REPORTED     3
+
 /** Maximum frame size we handle */
 #define MAX_FRAME                       1536
-
 
 /** @name Bus configuration registers
  * @{ */
@@ -230,9 +232,16 @@ typedef struct {
     /** Error counter for bad receive descriptors. */
     uint32_t uCntBadRMD;
     uint16_t u16CSR0LastSeenByGuest;
-    uint64_t last_poll;
+    /** If set the link is currently up. */
+    int fLinkUp;
+    /** If set the link is temporarily down because of a saved state load. */
+    int fLinkTempDown;
+    /** Number of times we've reported the link down. */
+    uint32_t cLinkDownReported;
+    /** MS to wait before we enable the link. */
+    uint32_t cMsLinkUpDelay;
     uint8_t maclocal[6]; /* configured MAC (local) address */
-    pc_timer_t poll_timer, timer_soft_int;
+    pc_timer_t timer_soft_int, timer_restore;
 } nic_t;
 
 /** @todo All structs: big endian? */
@@ -401,6 +410,17 @@ pcnet_do_irq(nic_t *dev, int issue)
 		else
 			picintc(1<<dev->base_irq);
 	}	
+}
+
+/**
+ * Checks if the link is up.
+ * @returns true if the link is up.
+ * @returns false if the link is down.
+ */
+static __inline int
+pcnetIsLinkUp(nic_t *dev)
+{
+    return !dev->fLinkTempDown && dev->fLinkUp;
 }
 
 /**
@@ -1214,6 +1234,12 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
         buf = buf1;
         size = 60;
     }
+    
+    /*
+     * Drop packets if the cable is not connected
+     */
+    if (!pcnetIsLinkUp(dev))
+	return;    
 
     pcnetlog(1, "%s: pcnetReceiveNoSync: RX %x:%x:%x:%x:%x:%x > %x:%x:%x:%x:%x:%x len %d\n", dev->name,
 	buf[6], buf[7], buf[8], buf[9], buf[10], buf[11],
@@ -1408,6 +1434,28 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
     pcnetUpdateIrq(dev);
 }
 
+/**
+ * Fails a TMD with a link down error.
+ */
+static void
+pcnetXmitFailTMDLinkDown(nic_t *dev, TMD *pTmd)
+{
+    /* make carrier error - hope this is correct. */
+    dev->cLinkDownReported++;
+    pTmd->tmd2.lcar = pTmd->tmd1.err = 1;
+    dev->aCSR[0] |= 0x8000 | 0x2000; /* ERR | CERR */
+}
+
+/**
+ * Fails a TMD with a generic error.
+ */
+static void
+pcnetXmitFailTMDGeneric(nic_t *dev, TMD *pTmd)
+{
+    /* make carrier error - hope this is correct. */
+    pTmd->tmd2.lcar = pTmd->tmd1.err = 1;
+    dev->aCSR[0] |= 0x8000 | 0x2000; /* ERR | CERR */
+}
 
 /**
  * Actually try transmit frames.
@@ -1435,6 +1483,12 @@ pcnetAsyncTransmit(nic_t *dev)
         if (!pcnetTdtePoll(dev, &tmd))
             break;
 
+        /* Don't continue sending packets when the link is down. */
+        if ((!pcnetIsLinkUp(dev)
+                        &&  dev->cLinkDownReported > PCNET_MAX_LINKDOWN_REPORTED)
+            )
+            break;
+
         pcnetlog(3, "%s: TMDLOAD %#010x\n", dev->name, PHYSADDR(dev, CSR_CXDA(dev)));
 		
         int fLoopback = CSR_LOOP(dev);
@@ -1446,52 +1500,59 @@ pcnetAsyncTransmit(nic_t *dev)
             const int cb = 4096 - tmd.tmd1.bcnt;
             pcnetlog("%s: pcnetAsyncTransmit: stp&enp: cb=%d xmtrc=%#x\n", dev->name, cb, CSR_XMTRC(dev));			
 
-	    /* From the manual: ``A zero length buffer is acceptable as
-	    * long as it is not the last buffer in a chain (STP = 0 and
-	    * ENP = 1).'' That means that the first buffer might have a
-	    * zero length if it is not the last one in the chain. */
-	    if (cb <= MAX_FRAME) {
-		dev->xmit_pos = cb;
-		DMAPageRead(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf, cb);
+	    if ((pcnetIsLinkUp(dev) || fLoopback)) {
+	    
+		/* From the manual: ``A zero length buffer is acceptable as
+		 * long as it is not the last buffer in a chain (STP = 0 and
+		 * ENP = 1).'' That means that the first buffer might have a
+		 * zero length if it is not the last one in the chain. */
+		if (cb <= MAX_FRAME) {
+		    dev->xmit_pos = cb;
+		    DMAPageRead(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf, cb);
 
-		if (fLoopback) {
-		    if (HOST_IS_OWNER(CSR_CRST(dev)))
-			pcnetRdtePoll(dev);
+		    if (fLoopback) {
+			if (HOST_IS_OWNER(CSR_CRST(dev)))
+			    pcnetRdtePoll(dev);
 
-		    pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);		    
+			pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);		    
+		    } else {
+			pcnetlog(3, "%s: pcnetAsyncTransmit: transmit loopbuf stp and enp, xmit pos = %d\n", dev->name, dev->xmit_pos);
+			network_tx(dev->abLoopBuf, dev->xmit_pos);		        
+		    }
+		} else if (cb == 4096) {
+		    /* The Windows NT4 pcnet driver sometimes marks the first
+		     * unused descriptor as owned by us. Ignore that (by
+		     * passing it back). Do not update the ring counter in this
+		     * case (otherwise that driver becomes even more confused,
+		     * which causes transmit to stall for about 10 seconds).
+		     * This is just a workaround, not a final solution. 
+		     */
+		    /* r=frank: IMHO this is the correct implementation. The
+		     * manual says: ``If the OWN bit is set and the buffer
+		     * length is 0, the OWN bit will be cleared. In the C-LANCE
+		     * the buffer length of 0 is interpreted as a 4096-byte
+		     * buffer.'' 
+		     */
+		    /* r=michaln: Perhaps not quite right. The C-LANCE (Am79C90)
+		     * datasheet explains that the old LANCE (Am7990) ignored
+		     * the top four bits next to BCNT and a count of 0 was
+		     * interpreted as 4096. In the C-LANCE, that is still the
+		     * case if the top bits are all ones. If all 16 bits are
+		     * zero, the C-LANCE interprets it as zero-length transmit
+		     * buffer. It's not entirely clear if the later models
+		     * (PCnet-ISA, PCnet-PCI) behave like the C-LANCE or not.
+		     * It is possible that the actual behavior of the C-LANCE
+		     * and later hardware is that the buffer lengths are *16-bit*
+		     * two's complement numbers between 0 and 4096. AMD's drivers
+		     * in fact generally treat the length as a 16-bit quantity. */
+		    pcnetlog(1, "%s: pcnetAsyncTransmit: illegal 4kb frame -> ignoring\n", dev->name);
+		    pcnetTmdStorePassHost(dev, &tmd, PHYSADDR(dev, CSR_CXDA(dev)));
+		    break;
 		} else {
-		    pcnetlog(3, "%s: pcnetAsyncTransmit: transmit loopbuf stp and enp, xmit pos = %d\n", dev->name, dev->xmit_pos);
-		    network_tx(dev->abLoopBuf, dev->xmit_pos);		        
+		    pcnetXmitFailTMDGeneric(dev, &tmd);
 		}
-	    } else if (cb == 4096) {
-		/* The Windows NT4 pcnet driver sometimes marks the first
-		 * unused descriptor as owned by us. Ignore that (by
-		 * passing it back). Do not update the ring counter in this
-		 * case (otherwise that driver becomes even more confused,
-		 * which causes transmit to stall for about 10 seconds).
-		 * This is just a workaround, not a final solution. 
-		 */
-		/* r=frank: IMHO this is the correct implementation. The
-		 * manual says: ``If the OWN bit is set and the buffer
-		 * length is 0, the OWN bit will be cleared. In the C-LANCE
-		 * the buffer length of 0 is interpreted as a 4096-byte
-		 * buffer.'' 
-		 */
-		/* r=michaln: Perhaps not quite right. The C-LANCE (Am79C90)
-		 * datasheet explains that the old LANCE (Am7990) ignored
-		 * the top four bits next to BCNT and a count of 0 was
-		 * interpreted as 4096. In the C-LANCE, that is still the
-		 * case if the top bits are all ones. If all 16 bits are
-		 * zero, the C-LANCE interprets it as zero-length transmit
-		 * buffer. It's not entirely clear if the later models
-		 * (PCnet-ISA, PCnet-PCI) behave like the C-LANCE or not.
-		 * It is possible that the actual behavior of the C-LANCE
-		 * and later hardware is that the buffer lengths are *16-bit*
-		 * two's complement numbers between 0 and 4096. AMD's drivers
-		 * in fact generally treat the length as a 16-bit quantity. */
-		pcnetlog(1, "%s: pcnetAsyncTransmit: illegal 4kb frame -> ignoring\n", dev->name);
-		pcnetTmdStorePassHost(dev, &tmd, PHYSADDR(dev, CSR_CXDA(dev)));
-		break;
+	    } else {
+		pcnetXmitFailTMDLinkDown(dev, &tmd);
 	    }
 
             /* Write back the TMD and pass it to the host (clear own bit). */
@@ -2021,8 +2082,9 @@ pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 		| 0x0008 /* Able to do auto-negotiation. */
 		| 0x0004 /* Link up. */
 		| 0x0001; /* Extended Capability, i.e. registers 4+ valid. */
-	    if (isolate) {
+	    if (!dev->fLinkUp || dev->fLinkTempDown || isolate) {
 		val &= ~(0x0020 | 0x0004);
+		dev->cLinkDownReported++;
 	    }
 	    if (!autoneg) {
 		/* Auto-negotiation disabled. */
@@ -2056,7 +2118,7 @@ pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 
 	case 5:
 	    /* Link partner ability register. */
-	    if (!isolate) {
+	    if (dev->fLinkUp && !dev->fLinkTempDown && !isolate) {
 	        val = 0x8000 /* Next page bit. */
 		    | 0x4000 /* Link partner acked us. */
 		    | 0x0400 /* Can do flow control. */
@@ -2064,23 +2126,25 @@ pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 		    | 0x0001; /* Use CSMA selector. */
 	    } else {
 	        val = 0;
+		dev->cLinkDownReported++;
 	    }
 	    break;
 
 	case 6:
 	    /* Auto negotiation expansion register. */
-	    if (!isolate) {
+	    if (dev->fLinkUp && !dev->fLinkTempDown && !isolate) {
 		val = 0x0008 /* Link partner supports npage. */
 		    | 0x0004 /* Enable npage words. */
 		    | 0x0001; /* Can do N-way auto-negotiation. */
 	    } else {
 		val = 0;
+		dev->cLinkDownReported++;
 	    }
 	    break;
 	    
 	case 18:
 	    /* Diagnostic Register (FreeBSD pcn/ac101 driver reads this). */
-	    if (!isolate) {
+	    if (dev->fLinkUp && !dev->fLinkTempDown && !isolate) {
 		val = 0x1000 /* Receive PLL locked. */
 		    | 0x0200; /* Signal detected. */
 		
@@ -2095,6 +2159,7 @@ pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 		}
 	    } else {
 		val = 0;
+		dev->cLinkDownReported++;
 	    }
 	    break;
 	    
@@ -2117,6 +2182,11 @@ pcnet_bcr_readw(nic_t *dev, uint16_t rap)
 	case BCR_LED2:
 	case BCR_LED3:
 		val = dev->aBCR[rap] & ~0x8000;
+		if (dev->fLinkTempDown || !dev->fLinkUp) {
+		    if (rap == 4)
+			dev->cLinkDownReported++;
+		    val &= ~0x40;
+		}
 		val |= (val & 0x017f & dev->u32Lnkst) ? 0x8000 : 0;
 		break;
 		
@@ -2623,6 +2693,27 @@ pcnet_pci_read(int func, int addr, void *p)
     return(0);
 }
 
+/**
+ * Takes down the link temporarily if it's current status is up.
+ *
+ * This is used during restore and when replumbing the network link.
+ *
+ * The temporary link outage is supposed to indicate to the OS that all network
+ * connections have been lost and that it for instance is appropriate to
+ * renegotiate any DHCP lease.
+ *
+ * @param  pThis        The PCnet shared instance data.
+ */
+static void 
+pcnetTempLinkDown(nic_t *dev)
+{
+    if (dev->fLinkUp) {
+        dev->fLinkTempDown = 1;
+        dev->cLinkDownReported = 0;
+        dev->aCSR[0] |= 0x8000 | 0x2000; /* ERR | CERR (this is probably wrong) */
+        timer_set_delay_u64(&dev->timer_restore, (dev->cMsLinkUpDelay * 1000) * TIMER_USEC);
+    }
+}
 
 /**
  * Check if the device/driver can receive data now.
@@ -2664,6 +2755,34 @@ pcnetWaitReceiveAvail(void *priv)
     return dev->fMaybeOutOfSpace;
 }
 
+static int
+pcnetSetLinkState(void *priv)
+{
+    nic_t *dev = (nic_t *) priv;
+    int fLinkUp;
+    
+    if (dev->fLinkTempDown) {
+	pcnetTempLinkDown(dev);
+	return 1;
+    }
+    
+    fLinkUp = (dev->fLinkUp && !dev->fLinkTempDown);
+    if (dev->fLinkUp != fLinkUp) {
+	dev->fLinkUp = fLinkUp;
+	if (fLinkUp) {
+	    dev->fLinkTempDown = 1;
+	    dev->cLinkDownReported = 0;
+            dev->aCSR[0] |= 0x8000 | 0x2000; /* ERR | CERR (this is probably wrong) */
+	    timer_set_delay_u64(&dev->timer_restore, (dev->cMsLinkUpDelay * 1000) * TIMER_USEC);
+	} else {
+	    dev->cLinkDownReported = 0;
+            dev->aCSR[0] |= 0x8000 | 0x2000; /* ERR | CERR (this is probably wrong) */
+	}
+    }
+    
+    return 0;
+}
+
 static void
 pcnetTimerSoftInt(void *priv)
 {
@@ -2675,16 +2794,18 @@ pcnetTimerSoftInt(void *priv)
 }
 
 static void
-pcnetTimerCallback(void *priv)
+pcnetTimerRestore(void *priv)
 {
     nic_t *dev = (nic_t *) priv;
     
-#ifdef ENABLE_PCNET_LOG
-    pcnetlog(3, "Timer Callback to RX\n");
-#endif
-    pcnetPollRxTx(dev);
-    
-    timer_disable(&dev->poll_timer);
+    if (dev->cLinkDownReported <= PCNET_MAX_LINKDOWN_REPORTED) {
+	timer_advance_u64(&dev->timer_restore, 1500000 * TIMER_USEC);
+    } else {
+	dev->fLinkTempDown = 0;
+	if (dev->fLinkUp) {
+	    dev->aCSR[0] &= ~(0x8000 | 0x2000); /* ERR | CERR - probably not 100% correct either... */
+	}
+    }
 }
 
 static void *
@@ -2717,10 +2838,19 @@ pcnet_init(const device_t *info)
 	pcnet_mem_init(dev, 0x0fffff00);
 	pcnet_mem_disable(dev);
     }
-
-    dev->maclocal[0] = 0x00;  /* 00:0C:87 (AMD OID) */
-    dev->maclocal[1] = 0x0C;
-    dev->maclocal[2] = 0x87;
+    
+    dev->fLinkUp = 1;
+    dev->cMsLinkUpDelay = 5000;
+    
+    if (dev->board == DEV_AM79C960_EB) {
+	    dev->maclocal[0] = 0x02;  /* 02:07:01 (Racal OID) */
+	    dev->maclocal[1] = 0x07;
+	    dev->maclocal[2] = 0x01;
+    } else {
+	    dev->maclocal[0] = 0x00;  /* 00:0C:87 (AMD OID) */
+	    dev->maclocal[1] = 0x0C;
+	    dev->maclocal[2] = 0x87;
+    }
 
     /* See if we have a local MAC address configured. */
     mac = device_get_config_mac("mac", -1);
@@ -2816,12 +2946,12 @@ pcnet_init(const device_t *info)
     pcnetHardReset(dev);
 
     /* Attach ourselves to the network module. */
-    network_attach(dev, dev->aPROM, pcnetReceiveNoSync, pcnetWaitReceiveAvail);
+    network_attach(dev, dev->aPROM, pcnetReceiveNoSync, pcnetWaitReceiveAvail, pcnetSetLinkState);
 
     if (dev->board == DEV_AM79C973)
         timer_add(&dev->timer_soft_int, pcnetTimerSoftInt, dev, 0);
-    
-    timer_add(&dev->poll_timer, pcnetTimerCallback, dev, 0);
+
+    timer_add(&dev->timer_restore, pcnetTimerRestore, dev, 0);
 
     return(dev);
 }
@@ -2838,8 +2968,6 @@ pcnet_close(void *priv)
     network_close();
     
     if (dev) {
-	timer_disable(&dev->poll_timer);
-	
 	free(dev);
 	dev = NULL;
     

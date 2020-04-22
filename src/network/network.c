@@ -223,7 +223,7 @@ network_init(void)
  * modules.
  */
 void
-network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait)
+network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKSTATE set_link_state)
 {
     if (network_card == 0) return;
 
@@ -231,6 +231,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait)
     net_cards[network_card].priv = dev;
     net_cards[network_card].rx = rx;
     net_cards[network_card].wait = wait;
+    net_cards[network_card].set_link_state = set_link_state;
     network_mac = mac;
 
     network_set_wait(0);
