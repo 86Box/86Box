@@ -518,6 +518,39 @@ machine_at_brio80xx_init(const machine_t *model)
 }
 
 int
+machine_at_pb680_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined2(L"roms/machines/pb680/1012DN0R.BIO",
+				     L"roms/machines/pb680/1012DN0R.BI1",
+				     L"roms/machines/pb680/1012DN0R.BI2",
+				     L"roms/machines/pb680/1012DN0R.BI3",
+				     L"roms/machines/pb680/1012DN0R.RCV",
+				     0x3a000, 128);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&i430vx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&pc87306_device);
+    device_add(&intel_flash_bxt_ami_device);
+
+    return ret;
+}
+
+int
 machine_at_p55xb2_init(const machine_t *model)
 {
     int ret;
