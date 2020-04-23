@@ -21,8 +21,8 @@
  *
  *		Copyright 2020 Miran Grca.
  */
-#ifndef USB_H
-# define USB_H
+#ifndef DDMA_H
+# define DDMA_H
 
 
 #ifdef __cplusplus
@@ -31,25 +31,26 @@ extern "C" {
 
 typedef struct
 {
-    uint8_t		ohci_mmio[4096];
-    uint16_t		uhci_io_base;
-    int			uhci_enable, ohci_enable;
-    uint32_t		ohci_mem_base;
-    mem_mapping_t	ohci_mmio_mapping;
-} usb_t;
+    uint16_t		io_base;
+    int			channel, enable;
+} ddma_channel_t;
+
+typedef struct
+{
+    ddma_channel_t	channels[8];
+} ddma_t;
 
 
 /* Global variables. */
-extern const device_t	usb_device;
+extern const device_t	ddma_device;
 
 
 /* Functions. */
-extern void		uhci_update_io_mapping(usb_t *dev, uint8_t base_l, uint8_t base_h, int enable);
-extern void		ohci_update_mem_mapping(usb_t *dev, uint8_t base1, uint8_t base2, uint8_t base3, int enable);
+extern void		ddma_update_io_mapping(ddma_t *dev, int ch, uint8_t base_l, uint8_t base_h, int enable);
 
 #ifdef __cplusplus
 }
 #endif
 
 
-#endif	/*USB_H*/
+#endif	/*DDMA_H*/

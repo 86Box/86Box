@@ -1815,12 +1815,13 @@ ide_readb(uint16_t addr, void *priv)
 	case 0x2: /* Sector count */
 		if (ide->type == IDE_ATAPI)
 			temp = ide->sc->phase;
-		else
+		else if (ide->type != IDE_NONE)
 			temp = ide->secount;
 		break;
 
 	case 0x3: /* Sector */
-		temp = (uint8_t) ide->sector;
+		if (ide->type != IDE_NONE)
+			temp = (uint8_t) ide->sector;
 		break;
 
 	case 0x4: /* Cylinder low */

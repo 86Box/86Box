@@ -710,7 +710,6 @@ void
 trc_write(uint16_t port, uint8_t val, void *priv)
 {
     pci_log("TRC Write: %02X\n", val);
-    pci_log("TRC Write: %02X\n", val);
 
     if (!(trc_reg & 4) && (val & 4))
 	trc_reset(val);

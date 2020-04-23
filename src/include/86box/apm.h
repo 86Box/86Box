@@ -38,10 +38,11 @@ typedef struct
 
 /* Global variables. */
 extern const device_t	apm_device;
+extern const device_t	apm_pci_device;
 
 
 /* Functions. */
-extern void		apm_set_do_smi(apm_t *apm, uint8_t do_smi);
+extern void		apm_set_do_smi(apm_t *dev, uint8_t do_smi);
 
 #ifdef __cplusplus
 }

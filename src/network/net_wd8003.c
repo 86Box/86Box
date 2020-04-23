@@ -175,68 +175,22 @@ wd_soft_reset(void *priv)
 }
 
 
-static uint32_t
-wd_ram_read(uint32_t addr, unsigned len, void *priv)
-{
-    wd_t *dev = (wd_t *)priv;
-    uint32_t ret;
-    uint16_t ram_mask = dev->ram_size - 1;
-
-    ret = dev->dp8390->mem[addr & ram_mask];
-
-    if (len == 2)
-	ret |= dev->dp8390->mem[(addr + 1) & ram_mask] << 8;
-
-    return ret;	
-}
-
-
 static uint8_t
-wd_ram_readb(uint32_t addr, void *priv)
+wd_ram_read(uint32_t addr, void *priv)
 {
     wd_t *dev = (wd_t *)priv;
-
-    return wd_ram_read(addr, 1, dev);
+	
+    wdlog("WD80x3: RAM Read: addr=%06x, val=%02x\n", addr & (dev->ram_size - 1), dev->dp8390->mem[addr & (dev->ram_size - 1)]);
+    return dev->dp8390->mem[addr & (dev->ram_size - 1)];
 }
-
-
-static uint16_t
-wd_ram_readw(uint32_t addr, void *priv)
-{
-    wd_t *dev = (wd_t *)priv;
-
-    return wd_ram_read(addr, 2, dev);
-}
-
 
 static void
-wd_ram_write(uint32_t addr, uint32_t val, unsigned len, void *priv)
+wd_ram_write(uint32_t addr, uint8_t val, void *priv)
 {
     wd_t *dev = (wd_t *)priv;
-    uint16_t ram_mask = dev->ram_size - 1;
-
-    dev->dp8390->mem[addr & ram_mask] = val & 0xff;
-
-    if (len == 2)
-	dev->dp8390->mem[(addr + 1) & ram_mask] = val >> 8;
-}
-
-
-static void
-wd_ram_writeb(uint32_t addr, uint8_t val, void *priv)
-{
-    wd_t *dev = (wd_t *)priv;
-
-    wd_ram_write(addr, val, 1, dev);
-}
-
-
-static void
-wd_ram_writew(uint32_t addr, uint16_t val, void *priv)
-{
-    wd_t *dev = (wd_t *)priv;
-
-    wd_ram_write(addr, val, 2, dev);
+    
+    dev->dp8390->mem[addr & (dev->ram_size - 1)] = val;
+    wdlog("WD80x3: RAM Write: addr=%06x, val=%02x\n", addr & (dev->ram_size - 1), val);
 }
 
 
@@ -605,7 +559,7 @@ wd_mca_write(int port, uint8_t val, void *priv)
      * So, remove current address, if any.
      */
     if (dev->base_address)
-	wd_io_remove(dev, dev->base_address);	
+	wd_io_remove(dev, dev->base_address);
 
     dev->base_address = (dev->pos_regs[2] & 0xfe) << 4;
     dev->ram_addr = (dev->pos_regs[3] & 0xfc) << 12;
@@ -685,7 +639,7 @@ wd_init(const device_t *info)
     dev->dp8390 = device_add(&dp8390_device);
     dev->dp8390->priv = dev;
     dev->dp8390->interrupt = wd_interrupt;
-    dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CLEAR_IRQ);
+    dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
 
     switch(dev->board) {
 	/* Ethernet, ISA, no interface chip, RAM 8k */
@@ -748,25 +702,18 @@ wd_init(const device_t *info)
     memcpy(dev->dp8390->physaddr, dev->maclocal, sizeof(dev->maclocal));
 
     wdlog("%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
-	  dev->name, dev->base_address, dev->irq,
-	  dev->dp8390->physaddr[0], dev->dp8390->physaddr[1], dev->dp8390->physaddr[2],
-	  dev->dp8390->physaddr[3], dev->dp8390->physaddr[4], dev->dp8390->physaddr[5]);
+	dev->name, dev->base_address, dev->irq,
+	dev->dp8390->physaddr[0], dev->dp8390->physaddr[1], dev->dp8390->physaddr[2],
+	dev->dp8390->physaddr[3], dev->dp8390->physaddr[4], dev->dp8390->physaddr[5]);
 
     /* Reset the board. */
     wd_reset(dev);
 
     /* Map this system into the memory map. */
-    if (dev->bit16 & 1) {
-	mem_mapping_add(&dev->ram_mapping, dev->ram_addr, dev->ram_size,
-			wd_ram_readb, wd_ram_readw, NULL,
-			wd_ram_writeb, wd_ram_writew, NULL,
-			NULL, MEM_MAPPING_EXTERNAL, dev);
-    } else {
-	mem_mapping_add(&dev->ram_mapping, dev->ram_addr, dev->ram_size,
-			wd_ram_readb, NULL, NULL,
-			wd_ram_writeb, NULL, NULL,
-			NULL, MEM_MAPPING_EXTERNAL, dev);
-    }
+    mem_mapping_add(&dev->ram_mapping, dev->ram_addr, dev->ram_size,
+	wd_ram_read, NULL, NULL,
+	wd_ram_write, NULL, NULL,
+	NULL, MEM_MAPPING_EXTERNAL, dev);
 
     mem_mapping_disable(&dev->ram_mapping);		
 
