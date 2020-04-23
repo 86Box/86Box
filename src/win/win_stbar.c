@@ -1323,7 +1323,7 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
     sb_parts++;
     SendMessage(hwndSBAR, SB_SETPARTS, (WPARAM)sb_parts, (LPARAM)iStatusWidths);
     SendMessage(hwndSBAR, SB_SETTEXT, 0 | SBT_NOBORDERS,
-		(LPARAM)L"Welcome to 86Box !");
+		(LPARAM)plat_get_string(IDS_2126));
 
     MediaMenuCreate(hwndParent, idStatus, hInst);
 
