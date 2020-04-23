@@ -322,10 +322,10 @@ machine_at_m7shi_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    device_add(&i430vx_device);
+    device_add(&i430hx_device);
     device_add(&piix3_device);
     device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&fdc37c932fr_device);
+    device_add(&fdc37c935_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -510,8 +510,9 @@ machine_at_brio80xx_init(const machine_t *model)
     device_add(&i430vx_device);
     device_add(&piix3_device);
     device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&fdc37c932fr_device);
-    device_add(&intel_flash_bxt_device);
+    device_add(&fdc37c935_device);
+    // device_add(&intel_flash_bxt_device);
+    device_add(&sst_flash_29ee020_device);
 
     return ret;
 }

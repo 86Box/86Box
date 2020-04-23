@@ -393,6 +393,8 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 				fdc37c93x_serial_handler(dev, 0);
 			if (valxor & 0x20)
 				fdc37c93x_serial_handler(dev, 1);
+			if ((valxor & 0x40) && (dev->chip_id != 0x02))
+				fdc37c932fr_access_bus_handler(dev);
 			break;
 	}
 
@@ -406,6 +408,8 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 			case 0x30:
 			case 0x60:
 			case 0x61:
+				if ((dev->cur_reg == 0x30) && (val & 0x01))
+					dev->regs[0x22] |= 0x01;
 				if (valxor)
 					fdc37c93x_fdc_handler(dev);
 				break;
@@ -454,6 +458,8 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 			case 0x60:
 			case 0x61:
 			case 0x70:
+				if ((dev->cur_reg == 0x30) && (val & 0x01))
+					dev->regs[0x22] |= 0x08;
 				if (valxor)
 					fdc37c93x_lpt_handler(dev);
 				break;
@@ -466,6 +472,8 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 			case 0x60:
 			case 0x61:
 			case 0x70:
+				if ((dev->cur_reg == 0x30) && (val & 0x01))
+					dev->regs[0x22] |= 0x10;
 				if (valxor)
 					fdc37c93x_serial_handler(dev, 0);
 				break;
@@ -478,6 +486,8 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 			case 0x60:
 			case 0x61:
 			case 0x70:
+				if ((dev->cur_reg == 0x30) && (val & 0x01))
+					dev->regs[0x22] |= 0x20;
 				if (valxor)
 					fdc37c93x_serial_handler(dev, 1);
 				break;
@@ -556,6 +566,8 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 			case 0x60:
 			case 0x61:
 			case 0x70:
+				if ((dev->cur_reg == 0x30) && (val & 0x01))
+					dev->regs[0x22] |= 0x40;
 				if (valxor)
 					fdc37c932fr_access_bus_handler(dev);
 				break;
@@ -757,6 +769,8 @@ fdc37c93x_init(const device_t *info)
     if (dev->chip_id == 0x03)
 	dev->access_bus = device_add(&access_bus_device);
 
+    io_sethandler(0x370, 0x0002,
+		  fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
     io_sethandler(0x3f0, 0x0002,
 		  fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
 
