@@ -49,43 +49,55 @@ apm_log(const char *fmt, ...)
 
 
 void
-apm_set_do_smi(apm_t *apm, uint8_t do_smi)
+apm_set_do_smi(apm_t *dev, uint8_t do_smi)
 {
-    apm->do_smi = do_smi;
+    dev->do_smi = do_smi;
 }
 
 
 static void
 apm_out(uint16_t port, uint8_t val, void *p)
 {
-    apm_t *apm = (apm_t *) p;
+    apm_t *dev = (apm_t *) p;
 
     apm_log("[%04X:%08X] APM write: %04X = %02X (BX = %04X, CX = %04X)\n", CS, cpu_state.pc, port, val, BX, CX);
 
     port &= 0x0001;
 
     if (port == 0x0000) {
-	apm->cmd = val;
-	if (apm->do_smi)
+	dev->cmd = val;
+	if (dev->do_smi)
     		smi_line = 1;
     } else
-	apm->stat = val;
+	dev->stat = val;
 }
 
 
 static uint8_t
 apm_in(uint16_t port, void *p)
 {
-    apm_t *apm = (apm_t *) p;
-
-    apm_log("[%04X:%08X] APM read: %04X = FF\n", CS, cpu_state.pc, port);
+    apm_t *dev = (apm_t *) p;
+    uint8_t ret = 0xff;
 
     port &= 0x0001;
 
     if (port == 0x0000)
-	return apm->cmd;
+	ret = dev->cmd;
     else
-	return apm->stat;
+	ret = dev->stat;
+
+    apm_log("[%04X:%08X] APM read: %04X = %02X\n", CS, cpu_state.pc, port, ret);
+
+    return ret;
+}
+
+
+static void
+apm_reset(void *p)
+{
+    apm_t *dev = (apm_t *)p;
+
+    dev->cmd = dev->stat = 0x00;
 }
 
 
@@ -101,12 +113,12 @@ apm_close(void *p)
 static void
 *apm_init(const device_t *info)
 {
-    apm_t *apm = (apm_t *) malloc(sizeof(apm_t));
-    memset(apm, 0, sizeof(apm_t));
+    apm_t *dev = (apm_t *) malloc(sizeof(apm_t));
+    memset(dev, 0, sizeof(apm_t));
 
-    io_sethandler(0x00b2, 0x0002, apm_in, NULL, NULL, apm_out, NULL, NULL, apm);
+    io_sethandler(0x00b2, 0x0002, apm_in, NULL, NULL, apm_out, NULL, NULL, dev);
 
-    return apm;
+    return dev;
 }
 
 
@@ -118,6 +130,21 @@ const device_t apm_device =
     apm_init,
     apm_close, 
     NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+
+const device_t apm_pci_device =
+{
+    "Advanced Power Management (PCI)",
+    DEVICE_PCI,
+    0,
+    apm_init,
+    apm_close, 
+    apm_reset,
     NULL,
     NULL,
     NULL,

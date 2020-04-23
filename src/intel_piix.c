@@ -455,7 +455,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0xa0:
 		if (dev->type < 4) {
 			fregs[addr] = val & 0x1f;
-			apm_set_do_smi(dev->apm, (val & 0x01) | (fregs[0xa2] & 0x80));
+			apm_set_do_smi(dev->apm, !!(val & 0x01) && !!(fregs[0xa2] & 0x80));
 			switch ((val & 0x18) >> 3) {
 				case 0x00:
 					dev->fast_off_period = PCICLK * 32768.0 * 60000.0;
@@ -480,7 +480,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0xa2:
 		if (dev->type < 4) {
 			fregs[addr] = val & 0xff;
-			apm_set_do_smi(dev->apm, (fregs[0xa0] & 0x01) | (val & 0x80));
+			apm_set_do_smi(dev->apm, !!(fregs[0xa0] & 0x01) && !!(val & 0x80));
 		}
 		break;
 	case 0xaa: case 0xac: case 0xae:
@@ -1206,7 +1206,7 @@ static void
     } else
 	cpu_fast_off_val = cpu_fast_off_count = 0;
 
-    dev->apm = device_add(&apm_device);
+    dev->apm = device_add(&apm_pci_device);
     /* APM intercept handler to update PIIX/PIIX3 and PIIX4/4E/SMSC ACPI SMI status on APM SMI. */
     io_sethandler(0x00b2, 0x0001, NULL, NULL, NULL, piix_apm_out, NULL, NULL, dev);
     dev->port_92 = device_add(&port_92_pci_device);
