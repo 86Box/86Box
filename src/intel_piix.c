@@ -1182,6 +1182,9 @@ static void
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
     dev->bm[1] = device_add_inst(&sff8038i_device, 2);
 
+    if (dev->type >= 3)
+	dev->usb = device_add(&usb_device);
+
     if (dev->type > 3) {
 	dev->nvr = device_add(&piix4_nvr_device);
 	dev->smbus = device_add(&piix4_smbus_device);
@@ -1191,7 +1194,6 @@ static void
 	acpi_set_nvr(dev->acpi, dev->nvr);
 
 	dev->ddma = device_add(&ddma_device);
-	dev->usb = device_add(&usb_device);
     } else
 	timer_add(&dev->fast_off_timer, piix_fast_off_count, dev, 0);
 
