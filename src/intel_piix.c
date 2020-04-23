@@ -40,6 +40,7 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
+#include <86box/ddma.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
@@ -47,17 +48,11 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
+#include <86box/usb.h>
 #include <86box/zip.h>
 #include <86box/machine.h>
 #include <86box/smbus_piix4.h>
 #include <86box/piix.h>
-
-
-typedef struct
-{
-    uint16_t		io_base;
-    int			base_channel;
-} ddma_t;
 
 
 typedef struct
@@ -68,15 +63,14 @@ typedef struct
 			regs[4][256],
 			readout_regs[256], board_config[2];
     uint16_t		func0_id, nvr_io_base,
-			usb_io_base, acpi_io_base;
+			acpi_io_base;
     double		fast_off_period;
-    uint8_t		*usb_smsc_mmio;
-    mem_mapping_t	usb_smsc_mmio_mapping;
     sff8038i_t		*bm[2];
-    ddma_t		ddma[2];
     smbus_piix4_t *	smbus;
     apm_t *		apm;
     nvr_t *		nvr;
+    ddma_t *		ddma;
+    usb_t *		usb;
     acpi_t *		acpi;
     port_92_t *		port_92;
     pc_timer_t		fast_off_timer;
@@ -246,200 +240,6 @@ kbc_alias_update_io_mapping(piix_t *dev)
 }
 
 
-static uint8_t
-ddma_reg_read(uint16_t addr, void *p)
-{
-    ddma_t *dev = (ddma_t *) p;
-    uint8_t ret = 0xff;
-    int rel_ch = (addr & 0x30) >> 4;
-    int ch = dev->base_channel + rel_ch;
-    int dmab = (ch >= 4) ? 0xc0 : 0x00;
-
-    switch (addr & 0x0f) {
-	case 0x00:
-		ret = dma[ch].ac & 0xff;
-		break;
-	case 0x01:
-		ret = (dma[ch].ac >> 8) & 0xff;
-		break;
-	case 0x02:
-		ret = dma[ch].page;
-		break;
-	case 0x04:
-		ret = dma[ch].cc & 0xff;
-		break;
-	case 0x05:
-		ret = (dma[ch].cc >> 8) & 0xff;
-		break;
-	case 0x09:
-		ret = inb(dmab + 0x08);
-		break;
-    }
-
-    return ret;
-}
-
-
-static void
-ddma_reg_write(uint16_t addr, uint8_t val, void *p)
-{
-    ddma_t *dev = (ddma_t *) p;
-    int rel_ch = (addr & 0x30) >> 4;
-    int ch = dev->base_channel + rel_ch;
-    int page_regs[4] = { 7, 3, 1, 2 };
-    int i, dmab = (ch >= 4) ? 0xc0 : 0x00;
-
-    switch (addr & 0x0f) {
-	case 0x00:
-		dma[ch].ab = (dma[ch].ab & 0xffff00) | val;
-		dma[ch].ac = dma[ch].ab;
-		break;
-	case 0x01:
-		dma[ch].ab = (dma[ch].ab & 0xff00ff) | (val << 8);
-		dma[ch].ac = dma[ch].ab;
-		break;
-	case 0x02:
-		if (ch >= 4)
-			outb(0x88 + page_regs[rel_ch], val);
-		else
-			outb(0x80 + page_regs[rel_ch], val);
-		break;
-	case 0x04:
-		dma[ch].cb = (dma[ch].cb & 0xffff00) | val;
-		dma[ch].cc = dma[ch].cb;
-		break;
-	case 0x05:
-		dma[ch].cb = (dma[ch].cb & 0xff00ff) | (val << 8);
-		dma[ch].cc = dma[ch].cb;
-		break;
-	case 0x08:
-		outb(dmab + 0x08, val);
-		break;
-	case 0x09:
-		outb(dmab + 0x09, val);
-		break;
-	case 0x0a:
-		outb(dmab + 0x0a, val);
-		break;
-	case 0x0b:
-		outb(dmab + 0x0b, val);
-		break;
-	case 0x0d:
-		outb(dmab + 0x0d, val);
-		break;
-	case 0x0e:
-		for (i = 0; i < 4; i++)
-			outb(dmab + 0x0a, i);
-		break;
-	case 0x0f:
-		outb(dmab + 0x0a, (val << 2) | rel_ch);
-		break;
-    }
-}
-
-
-static void
-ddma_update_io_mapping(piix_t *dev, int n)
-{
-    int base_reg = 0x92 + (n << 1);
-
-    if (dev->ddma[n].io_base != 0x0000)
-	io_removehandler(dev->ddma[n].io_base, 0x40, ddma_reg_read, NULL, NULL, ddma_reg_write, NULL, NULL, &dev->ddma[n]);
-
-    dev->ddma[n].io_base = (dev->regs[0][base_reg] & ~0x3f) | (dev->regs[0][base_reg + 1] << 8);
-
-    if (dev->ddma[n].io_base != 0x0000)
-	io_sethandler(dev->ddma[n].io_base, 0x40, ddma_reg_read, NULL, NULL, ddma_reg_write, NULL, NULL, &dev->ddma[n]);
-}
-
-
-static uint8_t
-usb_reg_read(uint16_t addr, void *p)
-{
-    uint8_t ret = 0xff;
-
-    switch (addr & 0x1f) {
-	case 0x10: case 0x11: case 0x12: case 0x13:
-		/* Port status */
-                ret = 0x00;
-		break;
-    }
-
-    return ret;
-}
-
-
-static void
-usb_reg_write(uint16_t addr, uint8_t val, void *p)
-{
-}
-
-
-static void
-usb_update_io_mapping(piix_t *dev)
-{
-    if (dev->usb_io_base != 0x0000)
-	io_removehandler(dev->usb_io_base, 0x20, usb_reg_read, NULL, NULL, usb_reg_write, NULL, NULL, dev);
-
-    dev->usb_io_base = (dev->regs[2][0x20] & ~0x1f) | (dev->regs[2][0x21] << 8);
-
-    if ((dev->regs[2][PCI_REG_COMMAND] & PCI_COMMAND_IO) && (dev->usb_io_base != 0x0000))
-	io_sethandler(dev->usb_io_base, 0x20, usb_reg_read, NULL, NULL, usb_reg_write, NULL, NULL, dev);
-}
-
-
-static void
-usb_smsc_update_mem_mapping(piix_t *dev)
-{
-    uint32_t usb_bar;
-
-    mem_mapping_disable(&dev->usb_smsc_mmio_mapping);
-
-    usb_bar = ((dev->regs[2][0x11] << 8) | (dev->regs[2][0x12] << 16) | (dev->regs[2][0x13] << 24)) & 0xfffff000;
-
-    if ((dev->regs[2][0x04] & 0x02) && (usb_bar != 0x00000000))
-    	mem_mapping_set_addr(&dev->usb_smsc_mmio_mapping, usb_bar, 0x1000);
-}
-
-
-static uint8_t
-usb_smsc_mmio_read(uint32_t addr, void *p)
-{
-    piix_t *dev = (piix_t *) p;
-    uint8_t ret = 0x00;
-
-    addr &= 0x00000fff;
-
-    ret = dev->usb_smsc_mmio[addr];
-
-    return ret;
-}
-
-
-static void
-usb_smsc_mmio_write(uint32_t addr, uint8_t val, void *p)
-{
-    piix_t *dev = (piix_t *) p;
-
-    addr &= 0x00000fff;
-
-    switch (addr) {
-    	case 0x08: /* HCCOMMANDSTATUS */
-    		/* bit HostControllerReset must be cleared for the controller to be seen as initialized */
-    		val &= ~0x01;
-
-    		/* bit OwnershipChangeRequest triggers an ownership change (SMM <-> OS) */
-    		if (val & 0x0f) {
-    			dev->usb_smsc_mmio[0x0f] = 0x40;
-    			dev->usb_smsc_mmio[0x05] &= ~(dev->usb_smsc_mmio[0x05] & 0x01);
-    		}
-    		break;
-    }
-
-    dev->usb_smsc_mmio[addr] = val;
-}
-
-
 static void
 smbus_update_io_mapping(piix_t *dev)
 {
@@ -480,6 +280,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 {
     piix_t *dev = (piix_t *) priv;
     uint8_t *fregs;
+    int i;
 
     /* Return on unsupported function. */
     if (dev->max_func > 0) {
@@ -643,10 +444,12 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0x92: case 0x93: case 0x94: case 0x95:
 		if (dev->type > 3) {
 			if (addr & 0x01)
-				fregs[addr] = val & 0xc0;
-			else
 				fregs[addr] = val & 0xff;
-			ddma_update_io_mapping(dev, (addr >> 2) & 1);
+			else
+				fregs[addr] = val & 0xc0;
+
+			for (i = 0; i < 4; i++)
+				ddma_update_io_mapping(dev->ddma, (addr & 4) + i, fregs[addr & 0xfe] + (i << 4), fregs[addr | 0x01], 1);
 		}
 		break;
 	case 0xa0:
@@ -886,10 +689,10 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0x04:
 		if (dev->type > 4) {
 			fregs[0x04] = (val & 7);
-			usb_smsc_update_mem_mapping(dev);
+			ohci_update_mem_mapping(dev->usb, fregs[0x11], fregs[0x12], fregs[0x13], fregs[PCI_REG_COMMAND] & PCI_COMMAND_MEM);
 		} else {
 			fregs[0x04] = (val & 5);
-			usb_update_io_mapping(dev);
+			uhci_update_io_mapping(dev->usb, fregs[0x20] & ~0x1f, fregs[0x21], fregs[PCI_REG_COMMAND] & PCI_COMMAND_IO);
 		}
 		break;
 	case 0x07:
@@ -917,25 +720,25 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0x11:
 		if (dev->type > 4) {
 			fregs[addr] = val & 0xf0;
-			usb_smsc_update_mem_mapping(dev);
+			ohci_update_mem_mapping(dev->usb, fregs[0x11], fregs[0x12], fregs[0x13], fregs[PCI_REG_COMMAND] & PCI_COMMAND_MEM);
 		}
 		break;
 	case 0x12: case 0x13:
 		if (dev->type > 4) {
 			fregs[addr] = val;
-			usb_smsc_update_mem_mapping(dev);
+			ohci_update_mem_mapping(dev->usb, fregs[0x11], fregs[0x12], fregs[0x13], fregs[PCI_REG_COMMAND] & PCI_COMMAND_MEM);
 		}
 		break;
 	case 0x20:
 		if (dev->type < 5) {
 			fregs[0x20] = (val & 0xe0) | 1;
-			usb_update_io_mapping(dev);
+			uhci_update_io_mapping(dev->usb, fregs[0x20] & ~0x1f, fregs[0x21], fregs[PCI_REG_COMMAND] & PCI_COMMAND_IO);
 		}
 		break;
 	case 0x21:
 		if (dev->type < 5) {
 			fregs[0x21] = val;
-			usb_update_io_mapping(dev);
+			uhci_update_io_mapping(dev->usb, fregs[0x20] & ~0x1f, fregs[0x21], fregs[PCI_REG_COMMAND] & PCI_COMMAND_IO);
 		}
 		break;
 	case 0x3c:
@@ -1263,14 +1066,6 @@ piix_reset_hard(piix_t *dev)
 		fregs[0xff] = (dev->type > 3) ? 0x10 : 0x00;
 	}
 	dev->max_func = 1;	/* It starts with USB disabled, then enables it. */
-
-	/* SMSC OHCI memory-mapped registers */
-	if (dev->usb_smsc_mmio) {
-		memset(dev->usb_smsc_mmio, 0, 4096);
-		dev->usb_smsc_mmio[0x00] = 0x10;
-		dev->usb_smsc_mmio[0x01] = 0x01;
-		dev->usb_smsc_mmio[0x48] = 0x02;
-	}
     }
 
     /* Function 3: Power Management */
@@ -1394,19 +1189,11 @@ static void
 	dev->acpi = device_add(&acpi_device);
 	acpi_set_slot(dev->acpi, dev->pci_slot);
 	acpi_set_nvr(dev->acpi, dev->nvr);
+
+	dev->ddma = device_add(&ddma_device);
+	dev->usb = device_add(&usb_device);
     } else
 	timer_add(&dev->fast_off_timer, piix_fast_off_count, dev, 0);
-
-    if (dev->type > 4) {
-    	dev->usb_smsc_mmio = (uint8_t *) malloc(4096);
-	memset(dev->usb_smsc_mmio, 0x00, 4096);
-
-    	mem_mapping_add(&dev->usb_smsc_mmio_mapping, 0, 0,
-			usb_smsc_mmio_read,  NULL, NULL,
-			usb_smsc_mmio_write, NULL, NULL,
-			NULL, MEM_MAPPING_EXTERNAL, dev);
-    	mem_mapping_disable(&dev->usb_smsc_mmio_mapping);
-    }
 
     piix_reset_hard(dev);
     piix_log("Maximum function: %i\n", dev->max_func);
