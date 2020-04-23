@@ -594,6 +594,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				svga_dump_vram();
 				break;
 #endif
+			default:
+				MediaMenuHandler(hwnd, message, wParam, lParam);
+				break;
 		}
 		return(0);
 
