@@ -300,6 +300,8 @@
 #define IDM_VID_GRAY_GREEN	40083
 #define IDM_VID_GRAY_WHITE	40084
 
+#define IDM_MEDIA		40085
+
 #ifdef USE_DISCORD
 #define IDM_DISCORD		40090
 #endif

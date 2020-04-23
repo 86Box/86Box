@@ -1215,6 +1215,27 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 
+void
+MediaMenuCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
+{
+    HMENU hmenu;
+    LPWSTR lpMenuName;
+
+    hmenu = GetMenu(hwndParent);
+    hmenuMedia = CreatePopupMenu();
+
+    int len = GetMenuString(hmenu, IDM_MEDIA, NULL, 0, MF_BYCOMMAND);
+    lpMenuName = malloc((len + 1) * sizeof(WCHAR));
+    GetMenuString(hmenu, IDM_MEDIA, lpMenuName, len + 1, MF_BYCOMMAND);
+
+    InsertMenu(hmenu, IDM_MEDIA, MF_BYCOMMAND | MF_STRING | MF_POPUP, (UINT_PTR)hmenuMedia, lpMenuName);
+    RemoveMenu(hmenu, IDM_MEDIA, MF_BYCOMMAND);
+    DrawMenuBar(hwndParent);
+
+    free(lpMenuName);
+}
+
+
 /* API: Create and set up the Status Bar window. */
 void
 StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
@@ -1222,7 +1243,6 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
     RECT rectDialog;
     int dw, dh;
     uint8_t i;
-    HMENU hmenu;
 
     /* Load our icons into the cache for faster access. */
     for (i = 16; i < 18; i++)
@@ -1303,13 +1323,10 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
     sb_parts++;
     SendMessage(hwndSBAR, SB_SETPARTS, (WPARAM)sb_parts, (LPARAM)iStatusWidths);
     SendMessage(hwndSBAR, SB_SETTEXT, 0 | SBT_NOBORDERS,
-		(LPARAM)L"Welcome to 86Box !");
+		(LPARAM)plat_get_string(IDS_2126));
 
-    hmenu = GetMenu(hwndParent);
-    hmenuMedia = CreatePopupMenu();
-    InsertMenu(hmenu, 2, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)hmenuMedia, plat_get_string(IDS_2126));
-    DrawMenuBar(hwndParent);
-    
+    MediaMenuCreate(hwndParent, idStatus, hInst);
+
     sb_ready = 1;
 }
 
