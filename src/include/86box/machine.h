@@ -295,6 +295,7 @@ extern int	machine_at_p55tvp4_init(const machine_t *);
 extern int	machine_at_p55va_init(const machine_t *);
 extern int	machine_at_i430vx_init(const machine_t *);
 extern int	machine_at_brio80xx_init(const machine_t *);
+extern int	machine_at_pb680_init(const machine_t *);
 
 extern int	machine_at_p55xb2_init(const machine_t *);
 extern int	machine_at_tx97_init(const machine_t *);
