@@ -172,6 +172,62 @@ BEGIN
     MENUITEM SEPARATOR
 END
 
+FloppySubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&New image...",				IDM_FLOPPY_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Existing image...",				IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "Existing image (&Write-protected)...",	IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "E&xport to 86F...",				IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM SEPARATOR
+        MENUITEM "E&ject",					IDM_FLOPPY_EJECT
+    END
+END
+
+CdromSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Mute",					IDM_CDROM_MUTE
+        MENUITEM SEPARATOR
+        MENUITEM "E&mpty",					IDM_CDROM_EMPTY
+        MENUITEM "&Reload previous image",			IDM_CDROM_RELOAD
+        MENUITEM SEPARATOR
+        MENUITEM "&Image",					IDM_CDROM_IMAGE
+    END
+END
+
+ZIPSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&New image...",				IDM_ZIP_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Existing image...",				IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "Existing image (&Write-protected)...",	IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "E&ject",					IDM_ZIP_EJECT
+        MENUITEM "&Reload previous image",			IDM_ZIP_RELOAD
+    END
+END
+
+MOSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&New image...",				IDM_MO_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Existing image...",				IDM_MO_IMAGE_EXISTING
+        MENUITEM "Existing image (&Write-protected)...",	IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "E&ject",					IDM_MO_EJECT
+        MENUITEM "&Reload previous image",			IDM_MO_RELOAD
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //

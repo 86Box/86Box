@@ -43,6 +43,11 @@
 #define SB_MENU_NAME		L"StatusBarMenu"
 #define FS_CLASS_NAME		L"86BoxFullScreen"
 
+#define FLOPPY_SUBMENU_NAME	L"FloppySubmenu"
+#define CDROM_SUBMENU_NAME	L"CdromSubmenu"
+#define ZIP_SUBMENU_NAME	L"ZIPSubmenu"
+#define MO_SUBMENU_NAME		L"MOSubmenu"
+
 /* Application-specific window messages.
 
    A dialog sends 0x8895 with WPARAM = 1 followed by 0x8896 with WPARAM = 1 on open,
