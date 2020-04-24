@@ -53,6 +53,7 @@ AboutDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
                 switch (LOWORD(wParam)) {
 			case IDOK:
+			case IDCANCEL:
 				EndDialog(hdlg, 0);
 				plat_pause(0);
 				return TRUE;
