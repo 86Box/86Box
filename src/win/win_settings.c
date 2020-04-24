@@ -2352,7 +2352,10 @@ win_settings_hard_disks_update_item(HWND hwndList, int i, int column)
 	lvI.pszText = szText;
 	lvI.iImage = 0;
     } else if (column == 1) {
-	lvI.pszText = temp_hdd[i].fn;
+	if (!wcsnicmp(temp_hdd[i].fn, usr_path, wcslen(usr_path)))
+		lvI.pszText = temp_hdd[i].fn + wcslen(usr_path);
+	else
+		lvI.pszText = temp_hdd[i].fn;
 	lvI.iImage = 0;
     } else if (column == 2) {
 	wsprintf(szText, plat_get_string(IDS_4098), temp_hdd[i].tracks);
@@ -2421,7 +2424,10 @@ win_settings_hard_disks_recalc_list(HWND hwndList)
 			return FALSE;
 
 		lvI.iSubItem = 1;
-		lvI.pszText = temp_hdd[i].fn;
+		if (!wcsnicmp(temp_hdd[i].fn, usr_path, wcslen(usr_path)))
+			lvI.pszText = temp_hdd[i].fn + wcslen(usr_path);
+		else
+			lvI.pszText = temp_hdd[i].fn;
 		lvI.iItem = j;
 		lvI.iImage = 0;
 
