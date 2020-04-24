@@ -1837,7 +1837,7 @@ save_hard_disks(void)
 
 	sprintf(temp, "hdd_%02i_fn", c+1);
 	if (hdd_is_valid(c) && (wcslen(hdd[c].fn) != 0))
-		if (wcsnicmp(hdd[c].fn, usr_path, wcslen(usr_path)))
+		if (!wcsnicmp(hdd[c].fn, usr_path, wcslen(usr_path)))
 			config_set_wstring(cat, temp, &hdd[c].fn[wcslen(usr_path)]);
 		else
 			config_set_wstring(cat, temp, hdd[c].fn);
