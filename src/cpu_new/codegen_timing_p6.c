@@ -1377,173 +1377,6 @@ static const risc86_instruction_t *opcode_timings_0f_mod3[256] =
         &mmx_op,                 &mmx_op,                 &mmx_op,                 INVALID,
 };
 
-static const risc86_instruction_t *opcode_timings_0f0f[256] =
-{
-/*00*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,           	INVALID,                INVALID,
-
-/*10*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,           	INVALID,                INVALID,
-
-/*20*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*30*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*40*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*50*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*60*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*70*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*80*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*90*/  INVALID,          	INVALID,                INVALID,           	INVALID,
-        INVALID,          	INVALID,                INVALID,           	INVALID,
-        INVALID,                INVALID,                INVALID,           	INVALID,
-        INVALID,                INVALID,                INVALID,           	INVALID,
-
-/*a0*/  INVALID,           	INVALID,                INVALID,                INVALID,
-        INVALID,           	INVALID,                &load_mmx_mul_op,       &load_mmx_mul_op,
-        INVALID,                INVALID,               	INVALID,          	INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*b0*/  INVALID,           	INVALID,                INVALID,                INVALID,
-        &load_mmx_mul_op,       INVALID,                &load_mmx_mul_op,       &load_mmx_mul_op,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                &load_mmx_op,
-
-/*c0*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*d0*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*e0*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*f0*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-};
-static const risc86_instruction_t *opcode_timings_0f0f_mod3[256] =
-{
-/*00*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*10*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*20*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*30*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*40*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*50*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*60*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*70*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*80*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*90*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,               INVALID,
-        INVALID,                INVALID,                INVALID,               INVALID,
-        INVALID,                INVALID,                INVALID,               INVALID,
-
-/*a0*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                &mmx_mul_op,            &mmx_mul_op,
-        INVALID,                INVALID,                INVALID,               INVALID,
-        INVALID,                INVALID,                INVALID,               INVALID,
-
-/*b0*/  INVALID,                INVALID,                INVALID,                INVALID,
-        &mmx_mul_op,            INVALID,                &mmx_mul_op,            &mmx_mul_op,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                &mmx_op,
-
-/*c0*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*d0*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*e0*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-/*f0*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-
-};
-
 static const risc86_instruction_t *opcode_timings_shift[8] =
 {
         &complex_alu_store_op,   &complex_alu_store_op,   &complex_alu_store_op,   &complex_alu_store_op,
@@ -1873,11 +1706,11 @@ static int uop_run(const risc86_uop_t *uop, int decode_time)
 static struct
 {
         int nr_uops;
-        const risc86_uop_t *uops[6];	
+        const risc86_uop_t *uops[MAX_UOPS];
         /*Earliest time a uop can start. If the timestamp is -1, then the uop is
           part of a dependency chain and the start time is the completion time of
           the previous uop*/
-        int earliest_start[6];
+        int earliest_start[MAX_UOPS];
 } decode_buffer;
 
 #define NR_OPSEQS 3
@@ -1898,7 +1731,7 @@ static int last_uop_timestamp = 0;
 void decode_flush_p6()
 {
         int c;
-        int uop_timestamp = 0;
+        int start_timestamp, uop_timestamp = 0;
 	
         /*Decoded opseq can not be submitted if there are no free spaces in the
           opseq buffer*/
@@ -1912,9 +1745,6 @@ void decode_flush_p6()
         /*Submit uops to execution units, and determine the latest completion time*/
         for (c = 0; c < (decode_buffer.nr_uops); c++)
         {
-                int start_timestamp;
-                
-
                 start_timestamp = decode_buffer.earliest_start[c];
                 
                 last_uop_timestamp = uop_run(decode_buffer.uops[c], start_timestamp);
@@ -2034,7 +1864,7 @@ static void decode_instruction(const risc86_instruction_t *ins, uint64_t deps, u
         {		
                 case DECODE_SIMPLE:		
                 if (decode_buffer.nr_uops - d == 2)
-                {			
+                {
                         decode_buffer.uops[decode_buffer.nr_uops] = &ins->uop[0];
                         decode_buffer.earliest_start[decode_buffer.nr_uops] = earliest_start;
                         decode_buffer.nr_uops = 3;
@@ -2081,10 +1911,10 @@ static void decode_instruction(const risc86_instruction_t *ins, uint64_t deps, u
                                 decode_flush_p6(); /*The other two decoders are halted to preserve in-order issue*/
                         }
                 }
-			if (d)
-			{
-                        decode_buffer.nr_uops = d;	
-			}		
+		if (d)
+		{
+			decode_buffer.nr_uops = d;	
+		}		
                 break;	
         }
 
@@ -2185,59 +2015,8 @@ void codegen_timing_p6_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uint
         switch (last_prefix)
         {
                 case 0x0f:
-                if (opcode == 0x0f)
-                {
-                        /*3DNow has the actual opcode after ModR/M, SIB and any offset*/
-                        uint32_t opcode_pc = op_pc + 1; /*Byte after ModR/M*/
-                        uint8_t modrm = fetchdat & 0xff;
-                        uint8_t sib = (fetchdat >> 8) & 0xff;
-
-                        if ((modrm & 0xc0) != 0xc0)
-                        {
-                                if (op_32 & 0x200)
-                                {
-                                        if ((modrm & 7) == 4)
-                                        {
-                                                /* Has SIB*/
-                                                opcode_pc++;
-                                                if ((modrm & 0xc0) == 0x40)
-                                                        opcode_pc++;
-                                                else if ((modrm & 0xc0) == 0x80)
-                                                        opcode_pc += 4;
-                                                else if ((sib & 0x07) == 0x05)
-                                                        opcode_pc += 4;
-                                        }
-                                        else
-                                        {
-                                                if ((modrm & 0xc0) == 0x40)
-                                                        opcode_pc++;
-                                                else if ((modrm & 0xc0) == 0x80)
-                                                        opcode_pc += 4;
-                                                else if ((modrm & 0xc7) == 0x05)
-                                                        opcode_pc += 4;
-                                        }
-                                }
-                                else
-                                {
-                                        if ((modrm & 0xc0) == 0x40)
-                                                opcode_pc++;
-                                        else if ((modrm & 0xc0) == 0x80)
-                                                opcode_pc += 2;
-                                        else if ((modrm & 0xc7) == 0x06)
-                                                opcode_pc += 2;
-                                }
-                        }
-                        
-                        opcode = fastreadb(cs + opcode_pc);
-
-                        ins_table = mod3 ? opcode_timings_0f0f_mod3 : opcode_timings_0f0f;
-                        deps = mod3 ? opcode_deps_0f0f_mod3 : opcode_deps_0f0f;
-                }
-                else
-                {
-                        ins_table = mod3 ? opcode_timings_0f_mod3 : opcode_timings_0f;
-                        deps = mod3 ? opcode_deps_0f_mod3 : opcode_deps_0f;
-                }
+		ins_table = mod3 ? opcode_timings_0f_mod3 : opcode_timings_0f;
+		deps = mod3 ? opcode_deps_0f_mod3 : opcode_deps_0f;
                 break;
 
                 case 0xd8:
