@@ -4,7 +4,8 @@
  *		PC systems and compatibles from 1981 through fairly recent
  *		system designs based on the PCI bus.
  *
- *		Emulation of the Intel PIIX and PIIX3 Xcelerators.
+ *		Emulation of the Intel PIIX, PIIX3, PIIX4, PIIX4E, and SMSC
+ *		SLC90E66 (Victory66) Xcelerators.
  *
  *		PRD format :
  *		    word 0 - base address
@@ -779,7 +780,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0x04:
 		fregs[0x04] = (val & 0x01);
 		smbus_update_io_mapping(dev);
-		apm_set_do_smi(dev->apm, !!(fregs[0x5b] & 0x02) && !!(val & 0x01));
+		apm_set_do_smi(dev->acpi->apm, !!(fregs[0x5b] & 0x02) && !!(val & 0x01));
 		break;
 	case 0x07:
 		if (val & 0x08)
@@ -844,7 +845,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x5b:
 		fregs[addr] = val & 0x03;
-		apm_set_do_smi(dev->apm, !!(val & 0x02) && !!(fregs[0x04] & 0x01));
+		apm_set_do_smi(dev->acpi->apm, !!(val & 0x02) && !!(fregs[0x04] & 0x01));
 		break;
 	case 0x63:
 		fregs[addr] = val & 0xf7;
@@ -1109,9 +1110,7 @@ piix_apm_out(uint16_t port, uint8_t val, void *p)
     piix_t *dev = (piix_t *) p;
 
     if (dev->apm->do_smi) {
-	if (dev->type > 3)
-		dev->acpi->regs.glbsts |= 0x20;
-	else
+	if (dev->type < 4)
 		dev->regs[0][0xaa] |= 0x80;
     }
 }
@@ -1189,7 +1188,7 @@ static void
 	dev->nvr = device_add(&piix4_nvr_device);
 	dev->smbus = device_add(&piix4_smbus_device);
 
-	dev->acpi = device_add(&acpi_device);
+	dev->acpi = device_add(&acpi_intel_device);
 	acpi_set_slot(dev->acpi, dev->pci_slot);
 	acpi_set_nvr(dev->acpi, dev->nvr);
 
@@ -1206,9 +1205,13 @@ static void
     } else
 	cpu_fast_off_val = cpu_fast_off_count = 0;
 
-    dev->apm = device_add(&apm_pci_device);
-    /* APM intercept handler to update PIIX/PIIX3 and PIIX4/4E/SMSC ACPI SMI status on APM SMI. */
-    io_sethandler(0x00b2, 0x0001, NULL, NULL, NULL, piix_apm_out, NULL, NULL, dev);
+    /* On PIIX4, PIIX4E, and SMSC, APM is added by the ACPI device. */
+    if (dev->type < 4) {
+    	dev->apm = device_add(&apm_pci_device);
+	/* APM intercept handler to update PIIX/PIIX3 and PIIX4/4E/SMSC ACPI SMI status on APM SMI. */
+	io_sethandler(0x00b2, 0x0001, NULL, NULL, NULL, piix_apm_out, NULL, NULL, dev);
+    }
+
     dev->port_92 = device_add(&port_92_pci_device);
 
     dma_alias_set();

@@ -6,13 +6,6 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the ISA Bus (de)Bugger expansion card
- *		sold as a DIY kit in the late 1980's in The Netherlands.
- *		This card was a assemble-yourself 8bit ISA addon card for
- *		PC and AT systems that had several tools to aid in low-
- *		level debugging (mostly for faulty BIOSes, bootloaders
- *		and system kernels...)
- *
  *		Definitions for the Advanced Power Management emulation.
  *
  *
@@ -38,7 +31,9 @@ typedef struct
 
 /* Global variables. */
 extern const device_t	apm_device;
+
 extern const device_t	apm_pci_device;
+extern const device_t	apm_pci_acpi_device;
 
 
 /* Functions. */

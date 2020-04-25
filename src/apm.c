@@ -116,7 +116,8 @@ static void
     apm_t *dev = (apm_t *) malloc(sizeof(apm_t));
     memset(dev, 0, sizeof(apm_t));
 
-    io_sethandler(0x00b2, 0x0002, apm_in, NULL, NULL, apm_out, NULL, NULL, dev);
+    if (info->local == 0)
+	io_sethandler(0x00b2, 0x0002, apm_in, NULL, NULL, apm_out, NULL, NULL, dev);
 
     return dev;
 }
@@ -142,6 +143,21 @@ const device_t apm_pci_device =
     "Advanced Power Management (PCI)",
     DEVICE_PCI,
     0,
+    apm_init,
+    apm_close, 
+    apm_reset,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+
+const device_t apm_pci_acpi_device =
+{
+    "Advanced Power Management (PCI)",
+    DEVICE_PCI,
+    1,
     apm_init,
     apm_close, 
     apm_reset,
