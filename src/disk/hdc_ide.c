@@ -410,7 +410,7 @@ ide_get_max(ide_t *ide, int type)
 		return -1;
 	case TYPE_UDMA:	/* UDMA */
 		if (!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL))
-			return 2;
+			return 4 /*2*/;
 
 		return -1;
 	default:
