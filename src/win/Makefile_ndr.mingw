@@ -379,7 +379,7 @@ else
 		   win_sdl.o \
 		   win_dialog.o win_about.o \
 		   win_settings.o win_devconf.o win_snd_gain.o \
-		   win_new_floppy.o win_jsconf.o
+		   win_new_floppy.o win_jsconf.o win_media_menu.o
 endif
 
 ifeq ($(OPENAL), y)
