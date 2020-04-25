@@ -1706,11 +1706,11 @@ static int uop_run(const risc86_uop_t *uop, int decode_time)
 static struct
 {
         int nr_uops;
-        const risc86_uop_t *uops[MAX_UOPS];
+        const risc86_uop_t *uops[6];
         /*Earliest time a uop can start. If the timestamp is -1, then the uop is
           part of a dependency chain and the start time is the completion time of
           the previous uop*/
-        int earliest_start[MAX_UOPS];
+        int earliest_start[6];
 } decode_buffer;
 
 #define NR_OPSEQS 3
@@ -1901,10 +1901,10 @@ static void decode_instruction(const risc86_instruction_t *ins, uint64_t deps, u
                 for (c = 0; c < ins->nr_uops; c++)
                 {
                         decode_buffer.uops[d] = &ins->uop[c];
-                        decode_buffer.earliest_start[c] = earliest_start;
+                        decode_buffer.earliest_start[d] = earliest_start;
 			d++;
                                 
-                        if (d == 3 && ins->nr_uops > 4) /*Ins. with >4 uOPs require the use of special units only present on 3 translate PLAs*/
+                        if ((d == 3) && (ins->nr_uops > 4)) /*Ins. with >4 uOPs require the use of special units only present on 3 translate PLAs*/
                         {
                                 d = 0;
                                 decode_buffer.nr_uops = 3;
