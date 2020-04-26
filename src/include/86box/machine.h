@@ -319,6 +319,7 @@ extern int	machine_at_686nx_init(const machine_t *);
 extern int	machine_at_mb600n_init(const machine_t *);
 extern int	machine_at_8500ttc_init(const machine_t *);
 extern int	machine_at_m6mi_init(const machine_t *);
+extern int	machine_at_vs440fx_init(const machine_t *);
 
 /* m_at_slot1.c */
 extern int	machine_at_p6kfx_init(const machine_t *);
