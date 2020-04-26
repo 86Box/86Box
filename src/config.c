@@ -957,7 +957,12 @@ load_hard_disks(void)
 		wcsncpy(hdd[c].fn, &wp[wcslen(usr_path)], sizeof_w(hdd[c].fn));
 	} else
 #endif
-	wcsncpy(hdd[c].fn, wp, sizeof_w(hdd[c].fn));
+	if (plat_path_abs(wp)) {
+		wcsncpy(hdd[c].fn, wp, sizeof_w(hdd[c].fn));
+	} else {
+		wcsncpy(hdd[c].fn, usr_path, sizeof_w(hdd[c].fn));
+		wcsncat(hdd[c].fn, wp, sizeof_w(hdd[c].fn)-wcslen(usr_path));
+	}
 
 	/* If disk is empty or invalid, mark it for deletion. */
 	if (! hdd_is_valid(c)) {
@@ -1832,7 +1837,10 @@ save_hard_disks(void)
 
 	sprintf(temp, "hdd_%02i_fn", c+1);
 	if (hdd_is_valid(c) && (wcslen(hdd[c].fn) != 0))
-		config_set_wstring(cat, temp, hdd[c].fn);
+		if (!wcsnicmp(hdd[c].fn, usr_path, wcslen(usr_path)))
+			config_set_wstring(cat, temp, &hdd[c].fn[wcslen(usr_path)]);
+		else
+			config_set_wstring(cat, temp, hdd[c].fn);
 	else
 		config_delete_var(cat, temp);
     }

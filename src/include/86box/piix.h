@@ -4,7 +4,8 @@
  *		PC systems and compatibles from 1981 through fairly recent
  *		system designs based on the PCI bus.
  *
- *		Emulation of the Intel PIIX and PIIX3 Xcelerators.
+ *		Emulation of the Intel PIIX, PIIX3, PIIX4, PIIX4E, and SMSC
+ *		SLC90E66 (Victory66) Xcelerators.
  *
  *		Emulation core dispatcher.
  *

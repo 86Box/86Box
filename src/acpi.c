@@ -32,6 +32,7 @@
 #include <86box/keyboard.h>
 #include <86box/nvr.h>
 #include <86box/pit.h>
+#include <86box/apm.h>
 #include <86box/acpi.h>
 
 
@@ -77,8 +78,28 @@ acpi_update_irq(void *priv)
 }
 
 
+static void
+acpi_raise_smi(void *priv)
+{
+    acpi_t *dev = (acpi_t *) priv;
+
+    if (dev->vendor == VEN_VIA) {
+	    if ((dev->regs.glbctl & 0x01) && (!dev->regs.smi_lock || !dev->regs.smi_active)) {
+		smi_line = 1;
+		dev->regs.smi_active = 1;
+    	}
+    } else {
+	if (dev->regs.glbctl & 0x01) {
+		smi_line = 1;
+		/* Clear bit 16 of GLBCTL. */
+		dev->regs.glbctl &= ~0x00010000;
+	}
+    }
+}
+
+
 static uint32_t
-acpi_reg_read_common(int size, uint16_t addr, void *p)
+acpi_reg_read_intel(int size, uint16_t addr, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
     uint32_t ret = 0x00000000;
@@ -116,16 +137,6 @@ acpi_reg_read_common(int size, uint16_t addr, void *p)
 	case 0x10: case 0x11: case 0x12: case 0x13:
 		/* PCNTRL - Processor Control Register (IO) */
 		ret = (dev->regs.pcntrl >> shift32) & 0xff;
-		break;
-	case 0x14:
-		/* PLVL2 - Processor Level 2 Register (IO) */
-		if (size == 1)
-			ret = dev->regs.plvl2;
-		break;
-	case 0x15:
-		/* PLVL3 - Processor Level 3 Register (IO) */
-		if (size == 1)
-			ret = dev->regs.plvl3;
 		break;
 	case 0x18: case 0x19:
 		/* GLBSTS - Global Status Register (IO) */
@@ -173,8 +184,118 @@ acpi_reg_read_common(int size, uint16_t addr, void *p)
 }
 
 
+static uint32_t
+acpi_reg_read_via(int size, uint16_t addr, void *p)
+{
+    acpi_t *dev = (acpi_t *) p;
+    uint32_t ret = 0x00000000;
+    int shift16, shift32;
+
+    addr &= 0xff;
+    shift16 = (addr & 1) << 3;
+    shift32 = (addr & 3) << 3;
+
+    switch (addr) {
+	case 0x00: case 0x01:
+		/* PMSTS - Power Management Status Register (IO) */
+		ret = (dev->regs.pmsts >> shift16) & 0xff;
+		break;
+	case 0x02: case 0x03:
+		/* PMEN - Power Management Resume Enable Register (IO) */
+		ret = (dev->regs.pmen >> shift16) & 0xff;
+		break;
+	case 0x04: case 0x05:
+		/* PMCNTRL - Power Management Control Register (IO) */
+		ret = (dev->regs.pmcntrl >> shift16) & 0xff;
+		break;
+	case 0x08: case 0x09: case 0x0a: case 0x0b:
+		/* PMTMR - Power Management Timer Register (IO) */
+		ret = (dev->regs.timer_val >> shift32) & 0xff;
+		break;
+	case 0x10: case 0x11: case 0x12: case 0x13:
+		/* PCNTRL - Processor Control Register (IO) */
+		ret = (dev->regs.pcntrl >> shift32) & 0xff;
+		break;
+	case 0x20: case 0x21:
+		/* GPSTS - General Purpose Status Register (IO) */
+		ret = (dev->regs.gpsts >> shift16) & 0xff;
+		break;
+	case 0x22: case 0x23:
+		/* General Purpose SCI Enable */
+		ret = (dev->regs.gpscien >> shift16) & 0xff;
+		break;
+	case 0x24: case 0x25:
+		/* General Purpose SMI Enable */
+		ret = (dev->regs.gpsmien >> shift16) & 0xff;
+		break;
+	case 0x26: case 0x27:
+		/* Power Supply Control */
+		ret = (dev->regs.pscntrl >> shift16) & 0xff;
+		break;
+	case 0x28: case 0x29:
+		/* GLBSTS - Global Status Register (IO) */
+		ret = (dev->regs.glbsts >> shift16) & 0xff;
+		break;
+	case 0x2a: case 0x2b:
+		/* GLBEN - Global Enable Register (IO) */
+		ret = (dev->regs.glben >> shift16) & 0xff;
+		break;
+	case 0x2c: case 0x2d:
+		/* GLBCTL - Global Control Register (IO) */
+		ret = (dev->regs.glbctl >> shift16) & 0xff;
+		ret &= ~0x0110;
+		ret |= (dev->regs.smi_lock ? 0x10 : 0x00);
+		ret |= (dev->regs.smi_active ? 0x01 : 0x00);
+		break;
+	case 0x2f:
+		/* SMI Command */
+		if (size == 1)
+			ret = dev->regs.smicmd & 0xff;
+		break;
+	case 0x30: case 0x31: case 0x32: case 0x33:
+		/* Primary Activity Detect Status */
+		ret = (dev->regs.padsts >> shift32) & 0xff;
+		break;
+	case 0x34: case 0x35: case 0x36: case 0x37:
+		/* Primary Activity Detect Enable */
+		ret = (dev->regs.paden >> shift32) & 0xff;
+		break;
+	case 0x38: case 0x39: case 0x3a: case 0x3b:
+		/* GP Timer Reload Enable */
+		ret = (dev->regs.gptren >> shift32) & 0xff;
+		break;
+	case 0x40:
+		/* GPIO Direction Control */
+		if (size == 1)
+			ret = dev->regs.gpio_dir & 0xff;
+		break;
+	case 0x42:
+		/* GPIO port Output Value */
+		if (size == 1)
+			ret = dev->regs.gpio_val & 0xff;
+		break;
+	case 0x44:
+		/* GPIO port Output Value */
+		if (size == 1)
+			ret = dev->regs.extsmi_val & 0xff;
+		break;
+	case 0x46: case 0x47:
+		/* GPO Port Output Value */
+		ret = (dev->regs.gpo_val >> shift16) & 0xff;
+		break;
+	case 0x48: case 0x49:
+		/* GPO Port Input Value */
+		ret = (dev->regs.gpi_val >> shift16) & 0xff;
+		break;
+    }
+
+    acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+    return ret;
+}
+
+
 static void
-acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *p)
+acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
     int shift16, shift32;
@@ -199,6 +320,12 @@ acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *p)
 	case 0x04: case 0x05:
 		/* PMCNTRL - Power Management Control Register (IO) */
 		dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c07;
+		/* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
+		if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
+			dev->regs.glbsts |= 0x01;
+			if (dev->regs.glben & 0x02)
+				acpi_raise_smi(dev);
+		}
 		if (dev->regs.pmcntrl & 0x2000) {
 			sus_typ = (dev->regs.pmcntrl >> 10) & 7;
 			switch (sus_typ) {
@@ -240,16 +367,6 @@ acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *p)
 		/* PCNTRL - Processor Control Register (IO) */
 		dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x00023e1e;
 		break;
-	case 0x14:
-		/* PLVL2 - Processor Level 2 Register (IO) */
-		if (size == 1)
-			dev->regs.plvl2 = val;
-		break;
-	case 0x15:
-		/* PLVL3 - Processor Level 3 Register (IO) */
-		if (size == 1)
-			dev->regs.plvl3 = val;
-		break;
 	case 0x18: case 0x19:
 		/* GLBSTS - Global Status Register (IO) */
 		dev->regs.glbsts &= ~((val << shift16) & 0x0df7);
@@ -264,8 +381,13 @@ acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *p)
 		break;
 	case 0x28: case 0x29: case 0x2a: case 0x2b:
 		/* GLBCTL - Global Control Register (IO) */
-		// dev->regs.glbctl = ((dev->regs.glbctl & ~(0xff << shift32)) | (val << shift32)) & 0x0701ff07;
-		dev->regs.glbctl = ((dev->regs.glbctl & ~(0xff << shift32)) | (val << shift32)) & 0x0700ff07;
+		dev->regs.glbctl = ((dev->regs.glbctl & ~(0xff << shift32)) | (val << shift32)) & 0x0701ff07;
+		/* Setting BIOS_RLS also sets GBL_STS and generates SMI. */
+		if (dev->regs.glbctl & 0x00000002) {
+			dev->regs.pmsts |= 0x20;
+			if (dev->regs.pmen & 0x20)
+				acpi_update_irq(dev);
+		}
 		break;
 	case 0x2c: case 0x2d: case 0x2e: case 0x2f:
 		/* DEVCTL - Device Control Register (IO) */
@@ -277,6 +399,180 @@ acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *p)
 			dev->regs.gporeg[addr & 3] = val;
 		break;
     }
+}
+
+
+static void
+acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *p)
+{
+    acpi_t *dev = (acpi_t *) p;
+    int shift16, shift32;
+    int sus_typ;
+
+    addr &= 0xff;
+    acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
+    shift16 = (addr & 1) << 3;
+    shift32 = (addr & 3) << 3;
+
+    switch (addr) {
+	case 0x00: case 0x01:
+		/* PMSTS - Power Management Status Register (IO) */
+		dev->regs.pmsts &= ~((val << shift16) & 0x8d31);
+		acpi_update_irq(dev);
+		if ((addr == 0x00) && !(dev->regs.pmsts & 0x20))
+			dev->regs.glbctl &= ~0x0002;
+		break;
+	case 0x02: case 0x03:
+		/* PMEN - Power Management Resume Enable Register (IO) */
+		dev->regs.pmen = ((dev->regs.pmen & ~(0xff << shift16)) | (val << shift16)) & 0x0521;
+		acpi_update_irq(dev);
+		break;
+	case 0x04: case 0x05:
+		/* PMCNTRL - Power Management Control Register (IO) */
+		dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c07;
+		/* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
+		if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
+			dev->regs.glbsts |= 0x20;
+			if (dev->regs.glben & 0x20)
+				acpi_raise_smi(dev);
+		}
+		if (dev->regs.pmcntrl & 0x2000) {
+			sus_typ = (dev->regs.pmcntrl >> 10) & 7;
+			switch (sus_typ) {
+				case 0:
+					/* Soft power off. */
+					exit(-1);
+					break;
+				case 1:
+					/* Suspend to RAM. */
+					nvr_reg_write(0x000f, 0xff, dev->nvr);
+
+					/* Do a hard reset. */
+					device_reset_all_pci();
+
+					cpu_alt_reset = 0;
+
+					pci_reset();
+					keyboard_at_reset();
+
+					mem_a20_alt = 0;
+					mem_a20_recalc();
+
+					flushmmucache();
+
+					resetx86();
+					break;
+			}
+		}
+		break;
+	case 0x10: case 0x11: case 0x12: case 0x13:
+		/* PCNTRL - Processor Control Register (IO) */
+		dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x0000001e;
+		break;
+	case 0x20: case 0x21:
+		/* GPSTS - General Purpose Status Register (IO) */
+		dev->regs.gpsts &= ~((val << shift16) & 0x03ff);
+		break;
+	case 0x22: case 0x23:
+		/* General Purpose SCI Enable */
+		dev->regs.gpscien = ((dev->regs.gpscien & ~(0xff << shift16)) | (val << shift16)) & 0x03ff;
+		break;
+	case 0x24: case 0x25:
+		/* General Purpose SMI Enable */
+		dev->regs.gpsmien = ((dev->regs.gpsmien & ~(0xff << shift16)) | (val << shift16)) & 0x03ff;
+		break;
+	case 0x26: case 0x27:
+		/* Power Supply Control */
+		dev->regs.pscntrl = ((dev->regs.pscntrl & ~(0xff << shift16)) | (val << shift16)) & 0x0701;
+		break;
+	case 0x28: case 0x29:
+		/* GLBSTS - Global Status Register (IO) */
+		dev->regs.glbsts &= ~((val << shift16) & 0x007f);
+		break;
+	case 0x2a: case 0x2b:
+		/* GLBEN - Global Enable Register (IO) */
+		dev->regs.glben = ((dev->regs.glben & ~(0xff << shift16)) | (val << shift16)) & 0x007f;
+		break;
+	case 0x2c:
+		/* GLBCTL - Global Control Register (IO) */
+		dev->regs.glbctl = (dev->regs.glbctl & ~0xff) | (val & 0xff);
+		dev->regs.smi_lock = !!(dev->regs.glbctl & 0x0010);
+		/* Setting BIOS_RLS also sets GBL_STS and generates SMI. */
+		if (dev->regs.glbctl & 0x0002) {
+			dev->regs.pmsts |= 0x20;
+			if (dev->regs.pmen & 0x20)
+				acpi_update_irq(dev);
+		}
+		break;
+	case 0x2d:
+		/* GLBCTL - Global Control Register (IO) */
+		dev->regs.glbctl &= ~((val << 8) & 0x0100);
+		if (val & 0x01)
+			dev->regs.smi_active = 0;
+		break;
+	case 0x2f:
+		/* SMI Command */
+		if (size == 1) {
+			dev->regs.smicmd = val & 0xff;
+			dev->regs.glbsts |= 0x40;
+			if (dev->regs.glben & 0x40)
+				acpi_raise_smi(dev);
+		}
+		break;
+	case 0x30: case 0x31: case 0x32: case 0x33:
+		/* Primary Activity Detect Status */
+		dev->regs.padsts &= ~((val << shift32) & 0x000000fd);
+		break;
+	case 0x34: case 0x35: case 0x36: case 0x37:
+		/* Primary Activity Detect Enable */
+		dev->regs.paden = ((dev->regs.paden & ~(0xff << shift32)) | (val << shift32)) & 0x000000fd;
+		break;
+	case 0x38: case 0x39: case 0x3a: case 0x3b:
+		/* GP Timer Reload Enable */
+		dev->regs.gptren = ((dev->regs.gptren & ~(0xff << shift32)) | (val << shift32)) & 0x000000d9;
+		break;
+	case 0x40:
+		/* GPIO Direction Control */
+		if (size == 1)
+			dev->regs.gpio_dir = val & 0xff;
+		break;
+	case 0x42:
+		/* GPIO port Output Value */
+		if (size == 1)
+			dev->regs.gpio_val = val & 0xff;
+		break;
+	case 0x46: case 0x47:
+		/* GPO Port Output Value */
+		dev->regs.gpo_val = ((dev->regs.gpo_val & ~(0xff << shift16)) | (val << shift16)) & 0xffff;
+		break;
+    }
+}
+
+
+static uint32_t
+acpi_reg_read_common(int size, uint16_t addr, void *p)
+{
+    acpi_t *dev = (acpi_t *) p;
+    uint8_t ret = 0xff;
+
+    if (dev->vendor == VEN_VIA)
+	ret = acpi_reg_read_via(size, addr, p);
+    else
+	ret = acpi_reg_read_intel(size, addr, p);
+
+    return ret;
+}
+
+
+static void
+acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *p)
+{
+    acpi_t *dev = (acpi_t *) p;
+
+    if (dev->vendor == VEN_VIA)
+	acpi_reg_write_via(size, addr, val, p);
+    else
+	acpi_reg_write_intel(size, addr, val, p);
 }
 
 
@@ -441,6 +737,46 @@ acpi_set_nvr(acpi_t *dev, nvr_t *nvr)
 
 
 static void
+acpi_apm_out(uint16_t port, uint8_t val, void *p)
+{
+    acpi_t *dev = (acpi_t *) p;
+
+    acpi_log("[%04X:%08X] APM write: %04X = %02X (BX = %04X, CX = %04X)\n", CS, cpu_state.pc, port, val, BX, CX);
+
+    port &= 0x0001;
+
+    if (port == 0x0000) {
+	dev->apm->cmd = val;
+	if (dev->apm->do_smi) {
+		if (dev->vendor == VEN_INTEL)
+			dev->regs.glbsts |= 0x20;
+		acpi_raise_smi(dev);
+	}
+    } else
+	dev->apm->stat = val;
+}
+
+
+static uint8_t
+acpi_apm_in(uint16_t port, void *p)
+{
+    acpi_t *dev = (acpi_t *) p;
+    uint8_t ret = 0xff;
+
+    port &= 0x0001;
+
+    if (port == 0x0000)
+	ret = dev->apm->cmd;
+    else
+	ret = dev->apm->stat;
+
+    acpi_log("[%04X:%08X] APM read: %04X = %02X\n", CS, cpu_state.pc, port, ret);
+
+    return ret;
+}
+
+
+static void
 acpi_reset(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;
@@ -482,6 +818,13 @@ acpi_init(const device_t *info)
     if (dev == NULL) return(NULL);
     memset(dev, 0x00, sizeof(acpi_t));
 
+    dev->vendor = info->local;
+
+    if (dev->vendor == VEN_INTEL) {
+	dev->apm = device_add(&apm_pci_acpi_device);
+	io_sethandler(0x00b2, 0x0002, acpi_apm_in, NULL, NULL, acpi_apm_out, NULL, NULL, dev);
+    }
+
     timer_add(&dev->timer, acpi_timer_count, dev, 0);
     timer_set_delay_u64(&dev->timer, ACPICONST);
 
@@ -489,11 +832,26 @@ acpi_init(const device_t *info)
 }
 
 
-const device_t acpi_device =
+const device_t acpi_intel_device =
 {
-    "ACPI",
+    "ACPI v1.0",
     DEVICE_PCI,
-    0,
+    VEN_INTEL,
+    acpi_init, 
+    acpi_close, 
+    acpi_reset,
+    NULL,
+    acpi_speed_changed,
+    NULL,
+    NULL
+};
+
+
+const device_t acpi_via_device =
+{
+    "ACPI v1.2",
+    DEVICE_PCI,
+    VEN_VIA,
     acpi_init, 
     acpi_close, 
     acpi_reset,

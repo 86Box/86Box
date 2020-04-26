@@ -2243,7 +2243,7 @@ zip_get_max(int ide_has_dma, int type)
 		ret = ide_has_dma ? 1 : -1;
 		break;
 	case TYPE_UDMA:
-		ret = ide_has_dma ? 2 : -1;
+		ret = ide_has_dma ? 4 /*2*/ : -1;
 		break;
     }
 

@@ -6,13 +6,6 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the ISA Bus (de)Bugger expansion card
- *		sold as a DIY kit in the late 1980's in The Netherlands.
- *		This card was a assemble-yourself 8bit ISA addon card for
- *		PC and AT systems that had several tools to aid in low-
- *		level debugging (mostly for faulty BIOSes, bootloaders
- *		and system kernels...)
- *
  *		Definitions for the ACPI emulation.
  *
  *
@@ -46,21 +39,31 @@ extern "C" {
 #define ACPI_ENABLE	0xf1
 #define	ACPI_DISABLE	0xf0
 
+#define VEN_INTEL	0x8086
+#define VEN_VIA		0x1106
+
 
 typedef struct
 {
     uint8_t		plvl2, plvl3,
+			smicmd, gpio_dir,
+			gpio_val, extsmi_val,
 			timer32,
 			gpireg[3], gporeg[4];
     uint16_t		pmsts, pmen,
 			pmcntrl, gpsts,
-			gpen, io_base;
-    int			slot,
-			irq_mode, irq_pin;
+			gpen, io_base,
+			gpscien, gpsmien,
+			pscntrl, gpo_val,
+			gpi_val;
+    int			slot, irq_mode,
+			irq_pin, smi_lock,
+			smi_active;
     uint32_t		pcntrl, glbsts,
 			devsts, glben,
 			glbctl, devctl,
-			timer_val;
+			padsts, paden,
+			gptren, timer_val;
     uint64_t		tmr_overflow_time;
 } acpi_regs_t;
 
@@ -69,13 +72,16 @@ typedef struct
 {
     acpi_regs_t		regs;
     uint8_t		gporeg_default[4];
+    int			vendor;
     pc_timer_t		timer;
     nvr_t		*nvr;
+    apm_t		*apm;
 } acpi_t;
 
 
 /* Global variables. */
-extern const device_t	acpi_device;
+extern const device_t	acpi_intel_device;
+extern const device_t	acpi_via_device;
 
 
 /* Functions. */

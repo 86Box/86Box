@@ -107,9 +107,9 @@ ddma_reg_write(uint16_t addr, uint8_t val, void *p)
 		break;
 	case 0x02:
 		if (ch >= 4)
-			outb(0x88 + page_regs[ch], val);
+			outb(0x88 + page_regs[ch & 3], val);
 		else
-			outb(0x80 + page_regs[ch], val);
+			outb(0x80 + page_regs[ch & 3], val);
 		break;
 	case 0x04:
 		dma[ch].cb = (dma[ch].cb & 0xffff00) | val;
