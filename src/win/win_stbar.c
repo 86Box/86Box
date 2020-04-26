@@ -613,6 +613,8 @@ ui_sb_update_panes(void)
     c_scsi = hdd_count(HDD_BUS_SCSI);
     do_net = network_available();
 
+    media_menu_reset();
+
     if (sb_parts > 0) {
 	for (i = 0; i < sb_parts; i++)
 		SendMessage(hwndSBAR, SB_SETICON, i, (LPARAM)NULL);
