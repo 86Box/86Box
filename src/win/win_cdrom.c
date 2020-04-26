@@ -28,6 +28,8 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <86box/config.h>
+#include <86box/timer.h>
+#include <86box/fdd.h>
 #include <86box/hdd.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
@@ -37,6 +39,29 @@
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/win.h>
+
+
+void
+floppy_mount(uint8_t id, wchar_t *fn, uint8_t wp)
+{
+    fdd_close(id);
+    ui_writeprot[id] = wp;
+    fdd_load(id, fn);
+    ui_sb_update_icon_state(SB_FLOPPY | id, wcslen(floppyfns[id]) ? 0 : 1);
+    media_menu_update_floppy(id);
+    ui_sb_update_tip(SB_FLOPPY | id);
+    config_save();
+}
+
+void
+floppy_eject(uint8_t id)
+{
+    fdd_close(id);
+    ui_sb_update_icon_state(SB_FLOPPY | id, 1);
+    media_menu_update_floppy(id);
+    ui_sb_update_tip(SB_FLOPPY | id);
+    config_save();
+}
 
 
 void

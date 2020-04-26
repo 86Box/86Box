@@ -265,41 +265,6 @@ media_menu_init()
     media_menu_reset();
 }
 
-static void
-fdd_mount(uint8_t id, wchar_t *fn, uint8_t wp)
-{
-    fdd_close(id);
-    ui_writeprot[id] = wp;
-    fdd_load(id, fn);
-
-    config_save();
-}
-
-static void
-fdd_eject(uint8_t id)
-{
-    fdd_close(id);
-    config_save();
-}
-
-static void
-cdrom_mount(uint8_t id, wchar_t *fn)
-{
-    cdrom[id].prev_host_drive = cdrom[id].host_drive;
-    wcscpy(cdrom[id].prev_image_path, cdrom[id].image_path);
-    if (cdrom[id].ops && cdrom[id].ops->exit)
-	cdrom[id].ops->exit(&(cdrom[id]));
-    cdrom[id].ops = NULL;
-    memset(cdrom[id].image_path, 0, sizeof(cdrom[id].image_path));
-    cdrom_image_open(&(cdrom[id]), fn);
-    /* Signal media change to the emulated machine. */
-    if (cdrom[id].insert)
-	cdrom[id].insert(cdrom[id].priv);
-    cdrom[id].host_drive = (wcslen(cdrom[id].image_path) == 0) ? 0 : 200;
-
-    config_save();
-}
-
 int
 media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
