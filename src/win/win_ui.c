@@ -595,7 +595,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 #endif
 			default:
-				MediaMenuHandler(hwnd, message, wParam, lParam);
+				media_menu_proc(hwnd, message, wParam, lParam);
 				break;
 		}
 		return(0);
@@ -913,6 +913,7 @@ ui_init(int nCmdShow)
 
     /* Reset all menus to their defaults. */
     ResetAllMenus();
+    media_menu_init();
 
     /* Make the window visible on the screen. */
     ShowWindow(hwnd, nCmdShow);
