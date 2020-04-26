@@ -74,6 +74,9 @@ media_menu_update_floppy(int id)
     if (floppyfns[id][0] == 0x0000) {
 	EnableMenuItem(menus[i], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
 	EnableMenuItem(menus[i], IDM_FLOPPY_EXPORT_TO_86F | id, MF_BYCOMMAND | MF_GRAYED);
+    } else {
+	EnableMenuItem(menus[i], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(menus[i], IDM_FLOPPY_EXPORT_TO_86F | id, MF_BYCOMMAND | MF_ENABLED);
     }
 }
 
@@ -83,14 +86,23 @@ media_menu_update_cdrom(int id)
     int i = CDROM_FIRST + id;
 
     if (! cdrom[id].sound_on)
-	CheckMenuItem(menus[i], IDM_CDROM_MUTE | id, MF_CHECKED);
+	CheckMenuItem(menus[i], IDM_CDROM_MUTE | id, MF_BYCOMMAND | MF_CHECKED);
+    else
+	CheckMenuItem(menus[i], IDM_CDROM_MUTE | id, MF_BYCOMMAND | MF_UNCHECKED);
 
-    if (cdrom[id].host_drive == 200)
-	CheckMenuItem(menus[i], IDM_CDROM_IMAGE | id, MF_CHECKED);
-    else {
+    if (cdrom[id].host_drive == 200) {
+	CheckMenuItem(menus[i], IDM_CDROM_IMAGE | id, MF_BYCOMMAND | MF_CHECKED);
+	CheckMenuItem(menus[i], IDM_CDROM_EMPTY | id, MF_BYCOMMAND | MF_UNCHECKED);
+    } else {
 	cdrom[id].host_drive = 0;
-	CheckMenuItem(menus[i], IDM_CDROM_EMPTY | id, MF_CHECKED);
+	CheckMenuItem(menus[i], IDM_CDROM_IMAGE | id, MF_BYCOMMAND | MF_UNCHECKED);
+	CheckMenuItem(menus[i], IDM_CDROM_EMPTY | id, MF_BYCOMMAND | MF_CHECKED);
     }
+
+    if(cdrom[id].prev_host_drive == 0)
+	EnableMenuItem(menus[i], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
+    else
+	EnableMenuItem(menus[i], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
 }
 
 void
@@ -98,13 +110,15 @@ media_menu_update_zip(int id)
 {
     int i = ZIP_FIRST + id;
 
-    if (zip_drives[id].image_path[0] == 0x0000) {
+    if (zip_drives[id].image_path[0] == 0x0000)
 	EnableMenuItem(menus[i], IDM_ZIP_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
-	EnableMenuItem(menus[i], IDM_ZIP_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
-    } else {
+    else
 	EnableMenuItem(menus[i], IDM_ZIP_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
+
+    if(zip_drives[id].prev_image_path[0] == 0x0000)
 	EnableMenuItem(menus[i], IDM_ZIP_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
-    }
+    else
+	EnableMenuItem(menus[i], IDM_ZIP_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
 }
 
 void
@@ -112,13 +126,15 @@ media_menu_update_mo(int id)
 {
     int i = MO_FIRST + id;
 
-    if (mo_drives[id].image_path[0] == 0x0000) {
+    if (mo_drives[id].image_path[0] == 0x0000)
 	EnableMenuItem(menus[i], IDM_MO_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
-	EnableMenuItem(menus[i], IDM_MO_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
-    } else {
+    else
 	EnableMenuItem(menus[i], IDM_MO_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
+
+    if(mo_drives[id].prev_image_path[0] == 0x0000)
 	EnableMenuItem(menus[i], IDM_MO_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
-    }
+    else
+	EnableMenuItem(menus[i], IDM_MO_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
 }
 
 static void
