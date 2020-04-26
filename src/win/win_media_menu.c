@@ -422,3 +422,27 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     return(1);
 }
+
+HMENU
+media_menu_get_floppy(int id)
+{
+    return menus[FDD_FIRST + id];
+}
+
+HMENU
+media_menu_get_cdrom(int id)
+{
+    return menus[CDROM_FIRST + id];
+}
+
+HMENU
+media_menu_get_zip(int id)
+{
+    return menus[ZIP_FIRST + id];
+}
+
+HMENU
+media_menu_get_mo(int id)
+{
+    return menus[MO_FIRST + id];
+}

@@ -917,12 +917,32 @@ ui_sb_update_panes(void)
 static VOID APIENTRY
 StatusBarPopupMenu(HWND hwnd, POINT pt, int id)
 {
+    HMENU menu;
+
     if (id >= (sb_parts - 1)) return;
 
     pt.x = id * SB_ICON_WIDTH;	/* Justify to the left. */
     pt.y = 0;			/* Justify to the top. */
     ClientToScreen(hwnd, (LPPOINT) &pt);
-    TrackPopupMenu(sb_menu_handles[id],
+
+    switch(sb_part_meanings[id] & 0xF0) {
+	case SB_FLOPPY:
+		menu = media_menu_get_floppy(sb_part_meanings[id] & 0x0F);
+		break;
+	case SB_CDROM:
+		menu = media_menu_get_cdrom(sb_part_meanings[id] & 0x0F);
+		break;
+	case SB_ZIP:
+		menu = media_menu_get_zip(sb_part_meanings[id] & 0x0F);
+		break;
+	case SB_MO:
+		menu = media_menu_get_mo(sb_part_meanings[id] & 0x0F);
+		break;
+	default:
+		return;
+    }
+
+    TrackPopupMenu(menu,
 		   TPM_LEFTALIGN | TPM_BOTTOMALIGN | TPM_LEFTBUTTON,
 		   pt.x, pt.y, 0, hwndSBAR, NULL);
 }
@@ -1185,7 +1205,7 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message) {
 	case WM_COMMAND:
-		MediaMenuHandler(hwnd, message, wParam, lParam);
+		media_menu_proc(hwnd, message, wParam, lParam);
 		return(0);
 
 	case WM_LBUTTONDOWN:
