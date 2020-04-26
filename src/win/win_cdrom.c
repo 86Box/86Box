@@ -78,6 +78,20 @@ mo_eject(uint8_t id)
 
 
 void
+mo_mount(uint8_t id, wchar_t *fn, uint8_t wp)
+{
+    mo_t *dev = (mo_t *) mo_drives[id].priv;
+
+    mo_disk_close(dev);
+    mo_drives[id].read_only = wp;
+    mo_load(dev, fn);
+    mo_insert(dev);
+
+    config_save();
+}
+
+
+void
 mo_reload(uint8_t id)
 {
     mo_t *dev = (mo_t *) mo_drives[id].priv;
@@ -112,6 +126,20 @@ zip_eject(uint8_t id)
     ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
     ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
     ui_sb_update_tip(SB_ZIP | id);
+    config_save();
+}
+
+
+void
+zip_mount(uint8_t id, wchar_t *fn, uint8_t wp)
+{
+    zip_t *dev = (zip_t *) zip_drives[id].priv;
+
+    zip_disk_close(dev);
+    zip_drives[id].read_only = wp;
+    zip_load(dev, fn);
+    zip_insert(dev);
+
     config_save();
 }
 
