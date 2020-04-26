@@ -401,6 +401,22 @@ machine_at_equium5200_init(const machine_t *model) // Information about that mac
 }
 
 int
+machine_at_p65up5_cp55t2d_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/p65up5/td5i0201.awd",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_p65up5_common_init(model, &i430hx_device);
+
+    return ret;
+}
+
+int
 machine_at_p55tvp4_init(const machine_t *model)
 {
     int ret;

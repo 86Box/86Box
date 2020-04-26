@@ -42,6 +42,22 @@
 #include <86box/machine.h>
 
 int
+machine_at_p65up5_cpknd_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/p65up5/ndkn0218.awd",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_p65up5_common_init(model, &i440fx_device);
+
+    return ret;
+}
+
+int
 machine_at_p6kfx_init(const machine_t *model)
 {
     int ret;
