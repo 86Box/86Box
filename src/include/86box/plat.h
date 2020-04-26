@@ -119,6 +119,9 @@ extern void	do_stop(void);
 
 
 /* Platform-specific device support. */
+extern void	floppy_mount(uint8_t id, wchar_t *fn, uint8_t wp);
+extern void	floppy_eject(uint8_t id);
+extern void	cdrom_mount(uint8_t id, wchar_t *fn);
 extern void	plat_cdrom_ui_update(uint8_t id, uint8_t reload);
 extern void	zip_eject(uint8_t id);
 extern void	zip_mount(uint8_t id, wchar_t *fn, uint8_t wp);
