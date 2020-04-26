@@ -549,6 +549,7 @@ machine_at_pb680_init(const machine_t *model)
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
 machine_at_p55xb2_init(const machine_t *model)
 {
@@ -577,7 +578,7 @@ machine_at_p55xb2_init(const machine_t *model)
 
     return ret;
 }
-
+#endif
 
 int
 machine_at_tx97_init(const machine_t *model)
@@ -702,7 +703,7 @@ machine_at_ym430tx_init(const machine_t *model)
     return ret;
 }
 
-
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
 machine_at_586t2_init(const machine_t *model)
 {
@@ -796,7 +797,7 @@ machine_at_807ds_init(const machine_t *model)
 
     return ret;
 }
-
+#endif
 
 int
 machine_at_p5mms98_init(const machine_t *model)
@@ -862,6 +863,7 @@ machine_at_p5mms98_init(const machine_t *model)
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
 machine_at_tx100_init(const machine_t *model)
 {
@@ -920,3 +922,4 @@ machine_at_advanceii_init(const machine_t *model)
 
     return ret;
 }
+#endif
