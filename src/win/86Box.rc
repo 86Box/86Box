@@ -926,7 +926,6 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_2080	"E&xport to 86F..."
     IDS_2081	"Unable to initialize FluidSynth, libfluidsynth.dll is required"
     IDS_2082	"Bus"
     IDS_2083	"File"
@@ -935,16 +934,8 @@ BEGIN
     IDS_2086	"S"
     IDS_2087	"MB"
     IDS_2088	"Check BPB"
-    IDS_2089	"&Image..."
-    IDS_2090	"&Reload previous image"
-    IDS_2091	"E&mpty"
-    IDS_2092	"&Mute"
-    IDS_2093	"E&ject"
     IDS_2094	"KB"
     IDS_2095	"86Box could not initialize the video renderer."
-    IDS_2096	"&New image..."
-    IDS_2097	"&Existing image..."
-    IDS_2098	"Existing image (&Write-protected)..."
     IDS_2099	"Default"
     IDS_2100	"%i Wait state(s)"
     IDS_2101	"Type"
