@@ -311,8 +311,6 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		ret = file_dlg_w_st(hwnd, IDS_2118, floppyfns[id], 0);
 		if (! ret) {
 			floppy_mount(id, wopenfilestring, wp);
-			media_menu_update_floppy(id);
-			// TODO: status bar update
 		}
 		break;
 
@@ -321,8 +319,6 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 
 		floppy_eject(id);
-		media_menu_update_floppy(id);
-		// TODO: status bar update
 		break;
 
 	case IDM_FLOPPY_EXPORT_TO_86F:
@@ -346,7 +342,6 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		cdrom[id].sound_on ^= 1;
 		config_save();
 		media_menu_update_cdrom(id);
-		// TODO: status bar update
 		sound_cd_thread_reset();
 		break;
 
@@ -370,8 +365,6 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		if (!file_dlg_w_st(hwnd, IDS_2075, cdrom[id].image_path, 0)) {
 			cdrom_mount(id, wopenfilestring);
-			media_menu_update_cdrom(id);
-			// TODO: status bar update
 		}
 		break;
 
