@@ -92,6 +92,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef XL24
   XL24		:= y
  endif
+ ifndef NO_SIO
+  NO_SIO	:= y
+ endif
 else
  ifndef DEBUG
   DEBUG		:= n
@@ -152,6 +155,9 @@ else
  endif
  ifndef XL24
   XL24		:= n
+ endif
+ ifndef NO_SIO
+  NO_SIO	:= n
  endif
 endif
 
@@ -379,7 +385,7 @@ else
 		   win_sdl.o \
 		   win_dialog.o win_about.o \
 		   win_settings.o win_devconf.o win_snd_gain.o \
-		   win_new_floppy.o win_jsconf.o
+		   win_new_floppy.o win_jsconf.o win_media_menu.o
 endif
 
 ifeq ($(OPENAL), y)
@@ -491,6 +497,10 @@ endif
 
 ifeq ($(XL24), y)
 OPTS		+= -DUSE_XL24
+endif
+
+ifeq ($(NO_SIO), y)
+OPTS		+= -DNO_SIO
 endif
 
 endif

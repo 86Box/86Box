@@ -33,12 +33,30 @@
 #include <86box/intel_sio.h>
 #include <86box/piix.h>
 #include <86box/sio.h>
+#include <86box/intel_sio.h>
 #include <86box/sst_flash.h>
 #include <86box/hwm.h>
 #include <86box/spd.h>
 #include <86box/video.h>
 #include "cpu.h"
 #include <86box/machine.h>
+
+int
+machine_at_p65up5_cpknd_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/p65up5/ndkn0218.awd",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_p65up5_common_init(model, &i440fx_device);
+
+    return ret;
+}
+
 int
 machine_at_p6kfx_init(const machine_t *model)
 {
@@ -69,6 +87,7 @@ machine_at_p6kfx_init(const machine_t *model)
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
 machine_at_6bxc_init(const machine_t *model)
 {
@@ -93,12 +112,13 @@ machine_at_6bxc_init(const machine_t *model)
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add(&keyboard_ps2_pci_device);
-    device_add(&um8669f_device); /*Placeholder for ITE 8671*/
+    device_add(&um8669f_device); /*ITE 8671*/
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);    
 
     return ret;
 }
+#endif
 
 int
 machine_at_p2bls_init(const machine_t *model)

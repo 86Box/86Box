@@ -244,28 +244,35 @@ const machine_t machines[] = {
     { "[Socket 7 HX] Micronics M7S-Hi",		"m7shi",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 511,	        machine_at_m7shi_init, NULL			},
     { "[Socket 7 HX] Intel TC430HX",		"tc430hx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  128,   8, 255,	      machine_at_tc430hx_init, NULL			},
     { "[Socket 7 HX] Toshiba Equium 5200D",	"equium5200",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  192,   8, 127,	   machine_at_equium5200_init, NULL			},
+    { "[Socket 7 HX] ASUS P/I-P65UP5 (C-P55T2D)","p65up5_cp55t2d",	MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  512,   8, 127,   machine_at_p65up5_cp55t2d_init, NULL			},
 
     /* 430VX */
     { "[Socket 7 VX] ASUS P/I-P55TVP4",		"p55tvp4",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	      machine_at_p55tvp4_init, NULL			},
     { "[Socket 7 VX] Shuttle HOT-557",		"430vx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	       machine_at_i430vx_init, NULL			},
     { "[Socket 7 VX] Epox P55-VA",		"p55va",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  128,   8, 127,		machine_at_p55va_init, NULL			},
-    { "[Socket 7 VX] HP Brio 80xx",			"brio80xx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	      machine_at_brio80xx_init, NULL		},
-    { "[Socket 7 VX] Packard Bell PB680",	"pb680",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	      machine_at_pb680_init, NULL		},
+    { "[Socket 7 VX] HP Brio 80xx",		"brio80xx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	     machine_at_brio80xx_init, NULL			},
+    { "[Socket 7 VX] Packard Bell PB680",	"pb680",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	        machine_at_pb680_init, NULL			},
 
     /* 430TX */
     { "[Socket 7 TX] ASUS TX97",		"tx97",			MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	         machine_at_tx97_init, NULL			},
+#if defined(DEV_BRANCH) && defined(NO_SIO)
     { "[Socket 7 TX] Gigabyte GA-586T2",        "586t2",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	        machine_at_586t2_init, NULL			},
+#endif
     { "[Socket 7 TX] Intel YM430TX",		"ym430tx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	      machine_at_ym430tx_init, NULL			},
+#if defined(DEV_BRANCH) && defined(NO_SIO)
     { "[Socket 7 TX] Iwill P55XB2",		"p55xb2",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	       machine_at_p55xb2_init, NULL			},
     { "[Socket 7 TX] PC Partner TXA807DS",	"807ds",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	        machine_at_807ds_init, NULL			},
+#endif
     { "[Socket 7 TX] SuperMicro P5MMS98",	"p5mms98",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	      machine_at_p5mms98_init, NULL			},
 
+#if defined(DEV_BRANCH) && defined(NO_SIO)
     /* Apollo VPX */
     { "[Socket 7 VPX] Zida Tomato TX100",	"tx100",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  512,   8, 127,	        machine_at_tx100_init, NULL			},
 
     /* Apollo VP3 */
     { "[Socket 7 VP3] QDI Advance II",		"advanceii",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	    machine_at_advanceii_init, NULL			},
-    
+#endif
+  
     /* Super Socket 7 machines */
     /* Apollo MVP3 */
     { "[Super 7 MVP3] AOpen AX59 Pro",		"ax59pro",		MACHINE_CPUS_PENTIUM_SS7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,  8, 255,	      machine_at_ax59pro_init, NULL			},
@@ -277,15 +284,23 @@ const machine_t machines[] = {
     { "[Socket 8 FX] PC Partner MB600N",	"mb600n",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	       machine_at_mb600n_init, NULL			},
     { "[Socket 8 FX] Biostar MB-8500ttc",	"8500ttc",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	      machine_at_8500ttc_init, NULL			},
     { "[Socket 8 FX] Micronics M6MI",		"m6mi",			{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  384,   8, 127,	         machine_at_m6mi_init, NULL			},
+#if defined(DEV_BRANCH) && defined(NO_SIO)
+    { "[Socket 8 FX] Intel VS440FX",		"vs440fx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 127,	      machine_at_vs440fx_init, NULL			},
+#endif
+    { "[Socket 8 FX] ASUS P/I-P65UP5 (C-P6ND)",	"p65up5_cp6nd",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	 machine_at_p65up5_cp6nd_init, NULL			},
+
 
     /* Slot 1 machines */
     /* 440FX */
+    { "[Slot 1 FX] ASUS P/I-P65UP5 (C-PKND)",	"p65up5_cpknd",		{{"Intel", cpus_PentiumII_28v},{"",    NULL},        {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	 machine_at_p65up5_cpknd_init, NULL			},
     { "[Slot 1 FX] ECS P6KFX-A",		"p6kfx",		{{"Intel", cpus_PentiumII_28v},{"",    NULL},        {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  384,   8, 127,	        machine_at_p6kfx_init, NULL			},
 
     /* 440LX */
 
     /* 440BX */
+#if defined(DEV_BRANCH) && defined(NO_SIO)
     { "[Slot 1 BX] Gigabyte GA-6BXC",		"6bxc",			{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  768,   8, 255,		 machine_at_6bxc_init, NULL			},
+#endif
     { "[Slot 1 BX] ASUS P2B-LS",		"p2bls",		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,		machine_at_p2bls_init, NULL			},
     { "[Slot 1 BX] ASUS P3B-F",			"p3bf",			{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,		 machine_at_p3bf_init, NULL			},
     { "[Slot 1 BX] ABit BF6",			"bf6",			{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  768,   8, 255,		  machine_at_bf6_init, NULL			},

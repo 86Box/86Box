@@ -601,9 +601,11 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				if (ret) {
 					if (is_zip)
-						ui_sb_mount_zip_img(fdd_id, sb_part, 0, fd_file_name);
+						//ui_sb_mount_zip_img(fdd_id, sb_part, 0, fd_file_name);
+						zip_mount(fdd_id, fd_file_name, 0);
 					else
-						ui_sb_mount_floppy_img(fdd_id, sb_part, 0, fd_file_name);
+						//ui_sb_mount_floppy_img(fdd_id, sb_part, 0, fd_file_name);
+						floppy_mount(fdd_id, fd_file_name, 0);
 				} else {
 					new_floppy_msgbox(hdlg, MBX_ERROR, (wchar_t *)IDS_4108);
 					return TRUE;

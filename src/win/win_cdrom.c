@@ -28,6 +28,8 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <86box/config.h>
+#include <86box/timer.h>
+#include <86box/fdd.h>
 #include <86box/hdd.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
@@ -40,22 +42,65 @@
 
 
 void
+floppy_mount(uint8_t id, wchar_t *fn, uint8_t wp)
+{
+    fdd_close(id);
+    ui_writeprot[id] = wp;
+    fdd_load(id, fn);
+    ui_sb_update_icon_state(SB_FLOPPY | id, wcslen(floppyfns[id]) ? 0 : 1);
+    media_menu_update_floppy(id);
+    ui_sb_update_tip(SB_FLOPPY | id);
+    config_save();
+}
+
+void
+floppy_eject(uint8_t id)
+{
+    fdd_close(id);
+    ui_sb_update_icon_state(SB_FLOPPY | id, 1);
+    media_menu_update_floppy(id);
+    ui_sb_update_tip(SB_FLOPPY | id);
+    config_save();
+}
+
+
+void
 plat_cdrom_ui_update(uint8_t id, uint8_t reload)
 {
     cdrom_t *drv = &cdrom[id];
 
     if (drv->host_drive == 0) {
-	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_CHECKED);
-	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_UNCHECKED);
 	ui_sb_update_icon_state(SB_CDROM|id, 1);
     } else {
-	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_EMPTY | id, MF_UNCHECKED);
-	ui_sb_check_menu_item(SB_CDROM|id, IDM_CDROM_IMAGE | id, MF_CHECKED);
 	ui_sb_update_icon_state(SB_CDROM|id, 0);
     }
 
-    ui_sb_enable_menu_item(SB_CDROM|id, IDM_CDROM_RELOAD | id, MF_BYCOMMAND | (reload ? MF_GRAYED : MF_ENABLED));
+    media_menu_update_cdrom(id);
     ui_sb_update_tip(SB_CDROM|id);
+}
+
+void
+cdrom_mount(uint8_t id, wchar_t *fn)
+{
+    cdrom[id].prev_host_drive = cdrom[id].host_drive;
+    wcscpy(cdrom[id].prev_image_path, cdrom[id].image_path);
+    if (cdrom[id].ops && cdrom[id].ops->exit)
+	cdrom[id].ops->exit(&(cdrom[id]));
+    cdrom[id].ops = NULL;
+    memset(cdrom[id].image_path, 0, sizeof(cdrom[id].image_path));
+    cdrom_image_open(&(cdrom[id]), fn);
+    /* Signal media change to the emulated machine. */
+    if (cdrom[id].insert)
+	cdrom[id].insert(cdrom[id].priv);
+    cdrom[id].host_drive = (wcslen(cdrom[id].image_path) == 0) ? 0 : 200;
+    if (cdrom[id].host_drive == 200) {
+	ui_sb_update_icon_state(SB_CDROM | id, 0);
+    } else {
+	ui_sb_update_icon_state(SB_CDROM | id, 1);
+    }
+    media_menu_update_cdrom(id);
+    ui_sb_update_tip(SB_CDROM | id);
+    config_save();
 }
 
 void
@@ -70,9 +115,26 @@ mo_eject(uint8_t id)
     }
 
     ui_sb_update_icon_state(SB_MO | id, 1);
-    ui_sb_enable_menu_item(SB_MO|id, IDM_MO_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
-    ui_sb_enable_menu_item(SB_MO|id, IDM_MO_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
+    media_menu_update_mo(id);
     ui_sb_update_tip(SB_MO | id);
+    config_save();
+}
+
+
+void
+mo_mount(uint8_t id, wchar_t *fn, uint8_t wp)
+{
+    mo_t *dev = (mo_t *) mo_drives[id].priv;
+
+    mo_disk_close(dev);
+    mo_drives[id].read_only = wp;
+    mo_load(dev, fn);
+    mo_insert(dev);
+
+    ui_sb_update_icon_state(SB_MO | id, wcslen(mo_drives[id].image_path) ? 0 : 1);
+    media_menu_update_mo(id);
+    ui_sb_update_tip(SB_MO | id);
+
     config_save();
 }
 
@@ -84,14 +146,12 @@ mo_reload(uint8_t id)
 
     mo_disk_reload(dev);
     if (wcslen(mo_drives[id].image_path) == 0) {
-	ui_sb_enable_menu_item(SB_MO|id, IDM_MO_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
 	ui_sb_update_icon_state(SB_MO|id, 1);
     } else {
-	ui_sb_enable_menu_item(SB_MO|id, IDM_MO_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
 	ui_sb_update_icon_state(SB_MO|id, 0);
     }
 
-    ui_sb_enable_menu_item(SB_MO|id, IDM_MO_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
+    media_menu_update_mo(id);
     ui_sb_update_tip(SB_MO|id);
 
     config_save();
@@ -109,9 +169,26 @@ zip_eject(uint8_t id)
     }
 
     ui_sb_update_icon_state(SB_ZIP | id, 1);
-    ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
-    ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
+    media_menu_update_zip(id);
     ui_sb_update_tip(SB_ZIP | id);
+    config_save();
+}
+
+
+void
+zip_mount(uint8_t id, wchar_t *fn, uint8_t wp)
+{
+    zip_t *dev = (zip_t *) zip_drives[id].priv;
+
+    zip_disk_close(dev);
+    zip_drives[id].read_only = wp;
+    zip_load(dev, fn);
+    zip_insert(dev);
+
+    ui_sb_update_icon_state(SB_ZIP | id, wcslen(zip_drives[id].image_path) ? 0 : 1);
+    media_menu_update_zip(id);
+    ui_sb_update_tip(SB_ZIP | id);
+
     config_save();
 }
 
@@ -123,14 +200,12 @@ zip_reload(uint8_t id)
 
     zip_disk_reload(dev);
     if (wcslen(zip_drives[id].image_path) == 0) {
-	ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
 	ui_sb_update_icon_state(SB_ZIP|id, 1);
     } else {
-	ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
 	ui_sb_update_icon_state(SB_ZIP|id, 0);
     }
 
-    ui_sb_enable_menu_item(SB_ZIP|id, IDM_ZIP_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
+    media_menu_update_zip(id);
     ui_sb_update_tip(SB_ZIP|id);
 
     config_save();

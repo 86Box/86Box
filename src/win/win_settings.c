@@ -625,11 +625,11 @@ win_settings_machine_recalc_machine(HWND hdlg)
     if (!(machines[temp_machine].flags & MACHINE_AT) || (machines[temp_machine].ram_granularity >= 128)) {
 	SendMessage(h, UDM_SETPOS, 0, temp_mem_size);
 	h = GetDlgItem(hdlg, IDC_TEXT_MB);
-	SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2094));
+	SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2088));
     } else {
 	SendMessage(h, UDM_SETPOS, 0, temp_mem_size / 1024);
 	h = GetDlgItem(hdlg, IDC_TEXT_MB);
-	SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2087));
+	SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2086));
     }
 
     free(lptsTemp);
@@ -668,10 +668,10 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		SendMessage(h, CB_SETCURSEL, machinetolist[temp_machine], 0);
 
 		h = GetDlgItem(hdlg, IDC_COMBO_WS);
-                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2099));
+                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2090));
 
 		for (c = 0; c < 8; c++) {
-			wsprintf(lptsTemp, plat_get_string(2100), c);
+			wsprintf(lptsTemp, plat_get_string(IDS_2091), c);
         	        SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 		}
 
@@ -1009,7 +1009,7 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			mbstowcs(str, joy_name, strlen(joy_name) + 1);
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)str);
 
-			// SendMessage(h, CB_ADDSTRING, 0, win_get_string(2105 + c));
+			// SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2096 + c));
 			c++;
 			joy_name = joystick_get_name(c);
 		}
@@ -1155,7 +1155,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 				if (device_is_valid(sound_dev, machines[temp_machine].flags)) {
 					if (c == 0)
-						SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2112));
+						SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2103));
 					else {
 						mbstowcs(lptsTemp, s, strlen(s) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
@@ -1186,7 +1186,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 			if (midi_device_available(c)) {
 				if (c == 0)
-					SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2112));
+					SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2103));
 				else {
 					mbstowcs(lptsTemp, s, strlen(s) + 1);
 					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
@@ -1217,7 +1217,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 			if (midi_in_device_available(c)) {
 				if (c == 0)
-					SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2112));
+					SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2103));
 				else {
 					mbstowcs(lptsTemp, s, strlen(s) + 1);
 					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
@@ -1426,7 +1426,7 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					break;
 
 				if (c == 0)
-					SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2112));
+					SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2103));
 				else {
 					mbstowcs(lptsTemp, s, strlen(s) + 1);
 					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
@@ -1582,7 +1582,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 				if (device_is_valid(scsi_dev, machines[temp_machine].flags)) {
 					if (c == 0)
-						SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2112));
+						SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2103));
 					else {
 						mbstowcs(lptsTemp, s, strlen(s) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
@@ -1637,7 +1637,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 			if (d == 0) {
 				/* Translate "None". */
-				SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2112));
+				SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2103));
 			} else {
 				mbstowcs(lptsTemp, s, strlen(s) + 1);
 				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
@@ -1663,8 +1663,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 				if (d == 0) {
 					/* Translate "None". */
-					SendMessage(h, CB_ADDSTRING, 0,
-						    (LPARAM)win_get_string(IDS_2112));
+					SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(IDS_2103));
 				} else {
 					s = (char *) isamem_get_name(d);
 					mbstowcs(lptsTemp, s, strlen(s) + 1);
@@ -1922,7 +1921,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 			if (network_card_available(c) && device_is_valid(network_card_getdevice(c), machines[temp_machine].flags)) {
 				if (c == 0)
-					SendMessage(h, CB_ADDSTRING, 0, win_get_string(2112));
+					SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2103));
 				else {
 					mbstowcs(lptsTemp, s, strlen(s) + 1);
 					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
@@ -2491,7 +2490,7 @@ win_settings_hard_disks_init_columns(HWND hwndList)
 
     for (iCol = 0; iCol < C_COLUMNS_HARD_DISKS; iCol++) {
 	lvc.iSubItem = iCol;
-	lvc.pszText = plat_get_string(IDS_2082 + iCol);
+	lvc.pszText = plat_get_string(IDS_2081 + iCol);
 
 	switch(iCol) {
 		case 0: /* Bus */
@@ -2556,7 +2555,7 @@ set_edit_box_contents(HWND hdlg, int id, uint32_t val)
     WCHAR szText[256];
 
     h = GetDlgItem(hdlg, id);
-    wsprintf(szText, plat_get_string(IDS_2115), val);
+    wsprintf(szText, plat_get_string(IDS_2106), val);
     SendMessage(h, WM_SETTEXT, (WPARAM) wcslen(szText), (LPARAM) szText);
 }
 
@@ -2575,7 +2574,7 @@ static int hdconf_initialize_hdt_combo(HWND hdlg)
     for (i = 0; i < 127; i++) {	
 	temp_size = ((uint64_t) hdd_table[i][0]) * hdd_table[i][1] * hdd_table[i][2];
 	size_mb = (uint32_t) (temp_size >> 11LL);
-	wsprintf(szText, plat_get_string(IDS_2116), size_mb, hdd_table[i][0], hdd_table[i][1], hdd_table[i][2]);
+	wsprintf(szText, plat_get_string(IDS_2107), size_mb, hdd_table[i][0], hdd_table[i][1], hdd_table[i][2]);
 	SendMessage(h, CB_ADDSTRING, 0, (LPARAM) szText);
 	if ((tracks == (int) hdd_table[i][0]) && (hpc == (int) hdd_table[i][1]) &&
 	    (spt == (int) hdd_table[i][2]))
@@ -3593,7 +3592,7 @@ win_settings_cdrom_drives_recalc_list(HWND hwndList)
 
 	lvI.iSubItem = 1;
 	if (temp_cdrom[i].bus_type == CDROM_BUS_DISABLED)
-		lvI.pszText = plat_get_string(IDS_2112);
+		lvI.pszText = plat_get_string(IDS_2103);
 	else {
 		wsprintf(szText, L"%ix", temp_cdrom[i].speed);
 		lvI.pszText = szText;
@@ -3667,7 +3666,7 @@ win_settings_floppy_drives_init_columns(HWND hwndList)
     lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 
     lvc.iSubItem = 0;
-    lvc.pszText = plat_get_string(IDS_2101);
+    lvc.pszText = plat_get_string(IDS_2092);
 
     lvc.cx = 292;
     lvc.fmt = LVCFMT_LEFT;
@@ -3685,7 +3684,7 @@ win_settings_floppy_drives_init_columns(HWND hwndList)
 	return FALSE;
 
     lvc.iSubItem = 2;
-    lvc.pszText = plat_get_string(IDS_2088);
+    lvc.pszText = plat_get_string(IDS_2087);
 
     lvc.cx = 75;
     lvc.fmt = LVCFMT_LEFT;
@@ -3705,7 +3704,7 @@ win_settings_cdrom_drives_init_columns(HWND hwndList)
     lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 
     lvc.iSubItem = 0;
-    lvc.pszText = plat_get_string(IDS_2082);
+    lvc.pszText = plat_get_string(IDS_2081);
 
     lvc.cx = 342;
     lvc.fmt = LVCFMT_LEFT;
@@ -3734,7 +3733,7 @@ win_settings_zip_drives_init_columns(HWND hwndList)
     lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 
     lvc.iSubItem = 0;
-    lvc.pszText = plat_get_string(IDS_2082);
+    lvc.pszText = plat_get_string(IDS_2081);
 
     lvc.cx = 342;
     lvc.fmt = LVCFMT_LEFT;
@@ -3743,7 +3742,7 @@ win_settings_zip_drives_init_columns(HWND hwndList)
 	return FALSE;
 
     lvc.iSubItem = 1;
-    lvc.pszText = plat_get_string(IDS_2101);
+    lvc.pszText = plat_get_string(IDS_2092);
 
     lvc.cx = 50;
     lvc.fmt = LVCFMT_LEFT;
@@ -3857,7 +3856,7 @@ win_settings_cdrom_drives_update_item(HWND hwndList, int i)
 
     lvI.iSubItem = 1;
     if (temp_cdrom[i].bus_type == CDROM_BUS_DISABLED)
-	lvI.pszText = plat_get_string(IDS_2112);
+	lvI.pszText = plat_get_string(IDS_2103);
     else {
 	wsprintf(szText, L"%ix", temp_cdrom[i].speed);
 	lvI.pszText = szText;
