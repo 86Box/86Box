@@ -230,7 +230,7 @@ void* fluidsynth_init(const device_t *info)
 #endif
 	if (fluidsynth_handle == NULL)
 	{
-		ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2081);
+		ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2080);
 		return NULL;
 	}
 

@@ -75,10 +75,10 @@ media_menu_set_name_floppy(int drive)
     mbstowcs(temp, fdd_getname(fdd_get_type(drive)),
 	     strlen(fdd_getname(fdd_get_type(drive))) + 1);
     if (wcslen(floppyfns[drive]) == 0) {
-	_swprintf(name, plat_get_string(IDS_2117),
+	_swprintf(name, plat_get_string(IDS_2108),
 		  drive + 1, temp, plat_get_string(IDS_2057));
     } else {
-	_swprintf(name, plat_get_string(IDS_2117),
+	_swprintf(name, plat_get_string(IDS_2108),
 		  drive + 1, temp, floppyfns[drive]);
     }
 
@@ -155,10 +155,10 @@ media_menu_set_name_mo(int drive)
     temp = plat_get_string(id);
 
     if (wcslen(mo_drives[drive].image_path) == 0) {
-	_swprintf(name, plat_get_string(IDS_2124),
+	_swprintf(name, plat_get_string(IDS_2115),
 		  drive+1, temp, plat_get_string(IDS_2057));
     } else {
-	_swprintf(name, plat_get_string(IDS_2124),
+	_swprintf(name, plat_get_string(IDS_2115),
 		  drive+1, temp, mo_drives[drive].image_path);
     }
 
@@ -419,7 +419,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (menus == NULL)
 			break;
 
-		ret = file_dlg_w_st(hwnd, IDS_2118, floppyfns[id], 0);
+		ret = file_dlg_w_st(hwnd, IDS_2109, floppyfns[id], 0);
 		if (! ret) {
 			floppy_mount(id, wopenfilestring, wp);
 		}
@@ -514,7 +514,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (menus == NULL)
 			break;
 
-		ret = file_dlg_w_st(hwnd, IDS_2125, mo_drives[id].image_path, 0);
+		ret = file_dlg_w_st(hwnd, IDS_2116, mo_drives[id].image_path, 0);
 		if (! ret)
 			mo_mount(id, wopenfilestring, wp);
 		break;
