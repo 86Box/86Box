@@ -233,7 +233,8 @@ CreateConsole(int init)
     int i;
 
     if (! init) {
-	FreeConsole();
+	if (force_debug)
+		FreeConsole();
 	return;
     }
 
@@ -268,6 +269,13 @@ CreateConsole(int init)
 	fclose(fp);
 	fp = NULL;
     }
+}
+
+
+static void
+CloseConsole(void)
+{
+    CreateConsole(0);
 }
 
 
@@ -362,7 +370,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
     set_language(0x0409);
 
     /* Create console window. */
-    CreateConsole(1);
+    if (force_debug)
+	CreateConsole(1);
 
     /* Process the command line for options. */
     argc = ProcessCommandLine(&argw);
@@ -370,7 +379,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
     /* Pre-initialize the system, this loads the config file. */
     if (! pc_init(argc, argw)) {
 	/* Detach from console. */
-	CreateConsole(0);
+	if (force_debug)
+		CreateConsole(0);
 
 	if (source_hwnd)
 		PostMessage((HWND) (uintptr_t) source_hwnd, WM_HAS_SHUTDOWN, (WPARAM) 0, (LPARAM) hwndMain);
@@ -380,9 +390,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 	return(1);
     }
 
-    /* Cleanup: we may no longer need the console. */
-    if (! force_debug)
-	CreateConsole(0);
+    if (force_debug)
+	atexit(CloseConsole);
 
     /* Handle our GUI. */
     i = ui_init(nCmdShow);

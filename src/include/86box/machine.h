@@ -227,7 +227,9 @@ extern int	machine_at_opti495_mr_init(const machine_t *);
 extern int	machine_at_ami471_init(const machine_t *);
 extern int	machine_at_dtk486_init(const machine_t *);
 extern int	machine_at_px471_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_WIN471)
 extern int	machine_at_win471_init(const machine_t *);
+#endif
 
 extern int	machine_at_r418_init(const machine_t *);
 extern int	machine_at_ls486e_init(const machine_t *);
@@ -263,7 +265,6 @@ extern int	machine_at_endeavor_init(const machine_t *);
 extern int	machine_at_zappa_init(const machine_t *);
 extern int	machine_at_mb500n_init(const machine_t *);
 extern int	machine_at_president_init(const machine_t *);
-extern int	machine_at_apollo_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_VECTRA54)
 extern int	machine_at_vectra54_init(const machine_t *);
 #endif
@@ -285,15 +286,15 @@ extern int	machine_at_acerv35n_init(const machine_t *);
 extern int	machine_at_ap53_init(const machine_t *);
 extern int	machine_at_p55t2p4_init(const machine_t *);
 extern int	machine_at_p55t2s_init(const machine_t *);
+extern int	machine_at_m7shi_init(const machine_t *);
 extern int	machine_at_tc430hx_init(const machine_t *);
-extern int	machine_at_equium5200_init(const machine_t *);	/* Toshiba branded CU430HX.
-								   Works as intended (No need to set an MPU too). */
+extern int	machine_at_equium5200_init(const machine_t *);
 
 extern int	machine_at_p55tvp4_init(const machine_t *);
-extern int	machine_at_i430vx_init(const machine_t *);
 extern int	machine_at_p55va_init(const machine_t *);
-extern int	machine_at_j656vxd_init(const machine_t *);
-extern int	machine_at_mb520n_init(const machine_t *);
+extern int	machine_at_i430vx_init(const machine_t *);
+extern int	machine_at_brio80xx_init(const machine_t *);
+extern int	machine_at_pb680_init(const machine_t *);
 
 extern int	machine_at_p55xb2_init(const machine_t *);
 extern int	machine_at_tx97_init(const machine_t *);
@@ -333,10 +334,6 @@ extern int	machine_at_cubx_init(const machine_t *);
 extern int	machine_at_atc7020bxii_init(const machine_t *);
 extern int	machine_at_63a_init(const machine_t *);
 extern int	machine_at_apas3_init(const machine_t *);
-
-#if defined(DEV_BRANCH) && defined(USE_596B)
-extern int	machine_at_bx98_init(const machine_t *);
-#endif
 
 /* m_at_t3100e.c */
 extern int	machine_at_t3100e_init(const machine_t *);

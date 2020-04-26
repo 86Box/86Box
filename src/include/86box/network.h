@@ -66,6 +66,7 @@ enum {
 
 typedef void (*NETRXCB)(void *, uint8_t *, int);
 typedef int (*NETWAITCB)(void *);
+typedef int (*NETSETLINKSTATE)(void *);
 
 
 typedef struct {
@@ -76,6 +77,7 @@ typedef struct {
     int			(*poll)(void *);
     NETRXCB		rx;
     NETWAITCB		wait;
+    NETSETLINKSTATE	set_link_state;
 } netcard_t;
 
 typedef struct {
@@ -101,7 +103,7 @@ extern void	network_busy(uint8_t set);
 extern void	network_end(void);
 
 extern void	network_init(void);
-extern void	network_attach(void *, uint8_t *, NETRXCB, NETWAITCB);
+extern void	network_attach(void *, uint8_t *, NETRXCB, NETWAITCB, NETSETLINKSTATE);
 extern void	network_close(void);
 extern void	network_reset(void);
 extern int	network_available(void);

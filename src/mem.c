@@ -355,14 +355,14 @@ mmutranslatereal_normal(uint32_t addr, int rw)
 static uint64_t
 mmutranslatereal_pae(uint32_t addr, int rw)
 {
-    uint64_t temp,temp2,temp3;
+    uint64_t temp,temp2,temp3,temp4;
     uint64_t addr2,addr3,addr4;
 
     if (cpu_state.abrt)
 	return 0xffffffffffffffffULL;
 
     addr2 = (cr3 & ~0x1f) + ((addr >> 27) & 0x18);
-    temp = temp2 = rammap64(addr2);
+    temp = temp2 = rammap64(addr2) & 0x000000ffffffffffULL;
     if (!(temp & 1)) {
 	cr2 = addr;
 	temp &= 1;
@@ -373,8 +373,8 @@ mmutranslatereal_pae(uint32_t addr, int rw)
 	return 0xffffffffffffffffULL;
     }
 
-    addr3 = (temp & ~0xfff) + ((addr >> 18) & 0xff8);
-    temp = rammap64(addr3);
+    addr3 = (temp & ~0xfffULL) + ((addr >> 18) & 0xff8);
+    temp = temp4 = rammap64(addr3) & 0x000000ffffffffffULL;
     temp3 = temp & temp2;
     if (!(temp & 1)) {
 	cr2 = addr;
@@ -387,8 +387,8 @@ mmutranslatereal_pae(uint32_t addr, int rw)
     }
 
     if (temp & 0x80) {
-	/*4MB page*/
-	if (((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
+	/*2MB page*/
+	if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !(temp & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
 		cr2 = addr;
 		temp &= 1;
 		if (CPL == 3)
@@ -403,12 +403,12 @@ mmutranslatereal_pae(uint32_t addr, int rw)
 	mmu_perm = temp & 4;
 	rammap64(addr3) |= 0x20;
 
-	return ((temp & ~0x1fffff) + (addr & 0x1fffff)) & 0x0000000fffffffffULL;
+	return ((temp & ~0x1fffffULL) + (addr & 0x1fffffULL)) & 0x000000ffffffffffULL;
     }
 
-    addr4 = (temp & ~0xfff) + ((addr >> 9) & 0xff8);
-    temp = rammap64(addr4);
-    temp3 = temp & temp3;
+    addr4 = (temp & ~0xfffULL) + ((addr >> 9) & 0xff8);
+    temp = rammap64(addr4) & 0x000000ffffffffffULL;
+    temp3 = temp & temp4;
     if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
 	cr2 = addr;
 	temp &= 1;
@@ -423,7 +423,7 @@ mmutranslatereal_pae(uint32_t addr, int rw)
     rammap64(addr3) |= 0x20;
     rammap64(addr4) |= (rw? 0x60 : 0x20);
 
-    return ((temp & ~0xfff) + ((uint64_t) (addr & 0xfff))) & 0x0000000fffffffffULL;
+    return ((temp & ~0xfffULL) + ((uint64_t) (addr & 0xfff))) & 0x000000ffffffffffULL;
 }
 
 
@@ -481,20 +481,20 @@ mmutranslate_noabrt_normal(uint32_t addr, int rw)
 static uint64_t
 mmutranslate_noabrt_pae(uint32_t addr, int rw)
 {
-    uint32_t temp,temp2,temp3;
-    uint32_t addr2,addr3,addr4;
+    uint64_t temp,temp2,temp3,temp4;
+    uint64_t addr2,addr3,addr4;
 
     if (cpu_state.abrt) 
 	return 0xffffffffffffffffULL;
 
     addr2 = (cr3 & ~0x1f) + ((addr >> 27) & 0x18);
-    temp = temp2 = rammap64(addr2);
+    temp = temp2 = rammap64(addr2) & 0x000000ffffffffffULL;
 
     if (! (temp & 1))
 	return 0xffffffffffffffffULL;
 
-    addr3 = (temp & ~0xfff) + ((addr >> 18) & 0xff8);
-    temp = rammap64(addr3);
+    addr3 = (temp & ~0xfffULL) + ((addr >> 18) & 0xff8);
+    temp = temp4 = rammap64(addr3) & 0x000000ffffffffffULL;
     temp3 = temp & temp2;
 
     if (! (temp & 1))
@@ -502,20 +502,20 @@ mmutranslate_noabrt_pae(uint32_t addr, int rw)
 
     if (temp & 0x80) {
 	/*2MB page*/
-	if (((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
+	if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
 		return 0xffffffffffffffffULL;
 
-	return ((temp & ~0x1fffff) + (addr & 0x1fffff)) & 0x0000000fffffffffULL;
+	return ((temp & ~0x1fffffULL) + (addr & 0x1fffff)) & 0x000000ffffffffffULL;
     }
 
-    addr4 = (temp & ~0xfff) + ((addr >> 9) & 0xff8);
-    temp = rammap64(addr4);
-    temp3 = temp & temp3;
+    addr4 = (temp & ~0xfffULL) + ((addr >> 9) & 0xff8);
+    temp = rammap64(addr4) & 0x000000ffffffffffULL;;
+    temp3 = temp & temp4;
 
     if (!(temp&1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
 	return 0xffffffffffffffffULL;
 
-    return ((temp & ~0xfff) + ((uint64_t) (addr & 0xfff))) & 0x0000000fffffffffULL;
+    return ((temp & ~0xfffULL) + ((uint64_t) (addr & 0xfff))) & 0x000000ffffffffffULL;
 }
 
 
@@ -2192,6 +2192,13 @@ mem_set_mem_state_smm(uint32_t base, uint32_t size, int state)
 void
 mem_add_bios(void)
 {
+    int temp_cpu_type, temp_cpu_16bitbus = 1;
+
+    if (AT) {
+	temp_cpu_type = machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type;
+	temp_cpu_16bitbus = (temp_cpu_type == CPU_286 || temp_cpu_type == CPU_386SX || temp_cpu_type == CPU_486SLC || temp_cpu_type == CPU_IBM386SLC || temp_cpu_type == CPU_IBM486SLC );
+    }
+
     if (biosmask > 0x1ffff) {
 	/* 256k+ BIOS'es only have low mappings at E0000-FFFFF. */
 	mem_mapping_add(&bios_mapping, 0xe0000, 0x20000,
@@ -2212,12 +2219,12 @@ mem_add_bios(void)
     }
 
     if (AT) {
-	mem_mapping_add(&bios_high_mapping, biosaddr | (cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
+	mem_mapping_add(&bios_high_mapping, biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
 			mem_read_bios,mem_read_biosw,mem_read_biosl,
 			mem_write_null,mem_write_nullw,mem_write_nulll,
 			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
 
-	mem_set_mem_state(biosaddr | (cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
+	mem_set_mem_state(biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
 			  MEM_READ_ROMCS | MEM_WRITE_ROMCS);
     }
 }

@@ -184,7 +184,7 @@ sb_update_irq(sb_dsp_t *dsp)
 
     irq_pending = (dsp->sb_irq8 && !dsp->sb_irqm8) ||
 		  (dsp->sb_irq16 && !dsp->sb_irqm16) ||
-		  (dsp->sb_irq401 && !dsp->sb_irq401);
+		  (dsp->sb_irq401 && !dsp->sb_irqm401);
 
     if (irq_pending)
 	picint(1 << dsp->sb_irqnum);

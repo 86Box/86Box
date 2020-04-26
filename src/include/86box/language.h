@@ -99,6 +99,7 @@
 #define IDS_2123	2123		// "Unable to initialize Ghostscript..."
 #define IDS_2124	2124		// "MO %i (%03i): %ls"
 #define IDS_2125	2125		// "MO images (*.IM?)\0*.IM..."
+#define IDS_2126	2126		// "Welcome to 86Box!"
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -177,7 +178,7 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	78
+#define STR_NUM_2048	79
 #define STR_NUM_3072	11
 #define STR_NUM_4096	18
 #define STR_NUM_4352	7

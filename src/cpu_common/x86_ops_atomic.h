@@ -132,83 +132,96 @@ static int opCMPXCHG8B_a32(uint32_t fetchdat)
         return 0;
 }
 
+/* dest = eab, src = r8 */
 static int opXADD_b_a16(uint32_t fetchdat)
 {
-        uint8_t temp, temp2;
+        uint8_t temp;
+	uint8_t src, dest;
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-        temp = geteab();                        if (cpu_state.abrt) return 1;
-	temp2 = getr8(cpu_reg);
-        setr8(cpu_reg, temp);
-        seteab(temp + temp2);              if (cpu_state.abrt) return 1;
-        setadd8(temp, temp2);
+	src = getr8(cpu_reg);
+        dest = geteab();		if (cpu_state.abrt) return 1;
+	temp = src + dest;
+        seteab(temp);			if (cpu_state.abrt) return 1;
+        setadd8(src, dest);
+        setr8(cpu_reg, dest);
         CLOCK_CYCLES((cpu_mod == 3) ? 3 : 4);
         return 0;
 }
 static int opXADD_b_a32(uint32_t fetchdat)
 {
-        uint8_t temp, temp2;
+        uint8_t temp;
+	uint8_t src, dest;
         fetch_ea_32(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-        temp = geteab();                        if (cpu_state.abrt) return 1;
-	temp2 = getr8(cpu_reg);
-        setr8(cpu_reg, temp);
-        seteab(temp + temp2);              if (cpu_state.abrt) return 1;
-        setadd8(temp, temp2);
+	src = getr8(cpu_reg);
+        dest = geteab();		if (cpu_state.abrt) return 1;
+	temp = src + dest;
+        seteab(temp);			if (cpu_state.abrt) return 1;
+        setadd8(src, dest);
+        setr8(cpu_reg, dest);
         CLOCK_CYCLES((cpu_mod == 3) ? 3 : 4);
         return 0;
 }
 
 static int opXADD_w_a16(uint32_t fetchdat)
 {
-        uint16_t temp, temp2;
+        uint16_t temp;
+	uint16_t src, dest;
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-        temp = geteaw();                        if (cpu_state.abrt) return 1;
-	temp2 = cpu_state.regs[cpu_reg].w;
-        cpu_state.regs[cpu_reg].w = temp;
-        seteaw(temp + temp2);   if (cpu_state.abrt) return 1;
-        setadd16(temp, temp2);
+	src = cpu_state.regs[cpu_reg].w;
+        dest = geteaw();		if (cpu_state.abrt) return 1;
+	temp = src + dest;
+        seteaw(temp);			if (cpu_state.abrt) return 1;
+        setadd16(src, dest);
+        cpu_state.regs[cpu_reg].w = dest;
         CLOCK_CYCLES((cpu_mod == 3) ? 3 : 4);
         return 0;
 }
 static int opXADD_w_a32(uint32_t fetchdat)
 {
-        uint16_t temp, temp2;
+        uint16_t temp;
+	uint16_t src, dest;
         fetch_ea_32(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-        temp = geteaw();                        if (cpu_state.abrt) return 1;
-	temp2 = cpu_state.regs[cpu_reg].w;
-        cpu_state.regs[cpu_reg].w = temp;
-        seteaw(temp + temp2);   if (cpu_state.abrt) return 1;
-        setadd16(temp, temp2);
+	src = cpu_state.regs[cpu_reg].w;
+        dest = geteaw();		if (cpu_state.abrt) return 1;
+	temp = src + dest;
+        seteaw(temp);			if (cpu_state.abrt) return 1;
+        setadd16(src, dest);
+        cpu_state.regs[cpu_reg].w = dest;
         CLOCK_CYCLES((cpu_mod == 3) ? 3 : 4);
         return 0;
 }
 
 static int opXADD_l_a16(uint32_t fetchdat)
 {
-        uint32_t temp, temp2;
+        uint32_t temp;
+	uint32_t src, dest;
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-        temp = geteal();                        if (cpu_state.abrt) return 1;
-	temp2 = cpu_state.regs[cpu_reg].l;
-        cpu_state.regs[cpu_reg].l = temp;
-        seteal(temp + temp2);   if (cpu_state.abrt) return 1;
-        setadd32(temp, temp2);
+	src = cpu_state.regs[cpu_reg].l;
+        dest = geteal();		if (cpu_state.abrt) return 1;
+	temp = src + dest;
+        seteal(temp);			if (cpu_state.abrt) return 1;
+        setadd32(src, dest);
+        cpu_state.regs[cpu_reg].l = dest;
         CLOCK_CYCLES((cpu_mod == 3) ? 3 : 4);
         return 0;
 }
 static int opXADD_l_a32(uint32_t fetchdat)
 {
-        uint32_t temp, temp2;
+        uint32_t temp;
+	uint32_t src, dest;
         fetch_ea_32(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-        temp = geteal();                        if (cpu_state.abrt) return 1;
-	temp2 = cpu_state.regs[cpu_reg].l;
-        cpu_state.regs[cpu_reg].l = temp;
-        seteal(temp + temp2);   if (cpu_state.abrt) return 1;
-        setadd32(temp, temp2);
+	src = cpu_state.regs[cpu_reg].l;
+        dest = geteal();		if (cpu_state.abrt) return 1;
+	temp = src + dest;
+        seteal(temp);			if (cpu_state.abrt) return 1;
+        setadd32(src, dest);
+        cpu_state.regs[cpu_reg].l = dest;
         CLOCK_CYCLES((cpu_mod == 3) ? 3 : 4);
         return 0;
 }

@@ -204,11 +204,8 @@ dp8390_write_cr(dp8390_t *dev, uint32_t val)
     /* Check for start-tx */
     if ((val & 0x04) && dev->TCR.loop_cntl) {
 	if (dev->TCR.loop_cntl) {
-	    if ((dev->flags & DP8390_FLAG_CHECK_CR) || (dev->flags & DP8390_FLAG_EVEN_MAC))
-		dp8390_rx(dev, &dev->mem[(dev->tx_page_start * 256) - dev->mem_start],
-		    dev->tx_bytes);
-	    else
-		dp8390_rx(dev, dev->mem, dev->tx_bytes);
+	    dp8390_rx(dev, &dev->mem[(dev->tx_page_start * 256) - dev->mem_start],
+		dev->tx_bytes);
 	}
     } else if (val & 0x04) {
 	if (dev->CR.stop || (!dev->CR.start && (dev->flags & DP8390_FLAG_CHECK_CR))) {
@@ -226,11 +223,8 @@ dp8390_write_cr(dp8390_t *dev, uint32_t val)
 
 	/* Send the packet to the system driver */
 	dev->CR.tx_packet = 1;
-
-	if ((dev->flags & DP8390_FLAG_CHECK_CR) || (dev->flags & DP8390_FLAG_EVEN_MAC))
-	    network_tx(&dev->mem[(dev->tx_page_start * 256) - dev->mem_start], dev->tx_bytes);
-	else
-	    network_tx(dev->mem, dev->tx_bytes);
+	
+	network_tx(&dev->mem[(dev->tx_page_start * 256) - dev->mem_start], dev->tx_bytes);
 
 	/* some more debug */
 #ifdef ENABLE_DP8390_LOG
@@ -394,10 +388,7 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
 	       pkthdr[0], pkthdr[1], pkthdr[2], pkthdr[3]);
 
     /* Copy into buffer, update curpage, and signal interrupt if config'd */
-    if ((dev->flags & DP8390_FLAG_CHECK_CR) || (dev->flags & DP8390_FLAG_EVEN_MAC))
-	startptr = &dev->mem[(dev->curr_page * 256) - dev->mem_start];
-    else
-	startptr = dev->mem + ((dev->curr_page * 256) - dev->mem_start);
+    startptr = &dev->mem[(dev->curr_page * 256) - dev->mem_start];
     memcpy(startptr, pkthdr, sizeof(pkthdr));
     if ((nextpage > dev->curr_page) ||
 	((dev->curr_page + pages) == dev->page_stop)) {
@@ -405,10 +396,7 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
     } else {
 	endbytes = (dev->page_stop - dev->curr_page) * 256;
 	memcpy(startptr+sizeof(pkthdr), buf, endbytes-sizeof(pkthdr));
-	if ((dev->flags & DP8390_FLAG_CHECK_CR) || (dev->flags & DP8390_FLAG_EVEN_MAC))
-	    startptr = &dev->mem[(dev->page_start * 256) - dev->mem_start];
-	else
-	    startptr = dev->mem + ((dev->page_start * 256) - dev->mem_start);
+	startptr = &dev->mem[(dev->page_start * 256) - dev->mem_start];
 	memcpy(startptr, buf+endbytes-sizeof(pkthdr), io_len-endbytes+8);
     }
     dev->curr_page = nextpage;

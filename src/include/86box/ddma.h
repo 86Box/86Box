@@ -6,16 +6,16 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Definitions for the Advanced Power Management emulation.
+ *		Definitions for the Distributed DMA emulation.
  *
  *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2019 Miran Grca.
+ *		Copyright 2020 Miran Grca.
  */
-#ifndef APM_H
-# define APM_H
+#ifndef DDMA_H
+# define DDMA_H
 
 
 #ifdef __cplusplus
@@ -24,24 +24,26 @@ extern "C" {
 
 typedef struct
 {
-    uint8_t cmd,
-	    stat, do_smi;
-} apm_t;
+    uint16_t		io_base;
+    int			channel, enable;
+} ddma_channel_t;
+
+typedef struct
+{
+    ddma_channel_t	channels[8];
+} ddma_t;
 
 
 /* Global variables. */
-extern const device_t	apm_device;
-
-extern const device_t	apm_pci_device;
-extern const device_t	apm_pci_acpi_device;
+extern const device_t	ddma_device;
 
 
 /* Functions. */
-extern void		apm_set_do_smi(apm_t *dev, uint8_t do_smi);
+extern void		ddma_update_io_mapping(ddma_t *dev, int ch, uint8_t base_l, uint8_t base_h, int enable);
 
 #ifdef __cplusplus
 }
 #endif
 
 
-#endif	/*APM_H*/
+#endif	/*DDMA_H*/

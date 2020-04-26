@@ -1,41 +1,48 @@
-/* Copyright holders: Melissa Goad
-   see COPYING for more details
-*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Definitions for the Distributed DMA emulation.
+ *
+ *
+ *
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2020 Miran Grca.
+ */
+#ifndef USB_H
+# define USB_H
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct
 {
-    uint8_t pid; //low 4 bits are the real pid, top 4 bits are just ~pid
-    uint8_t dev_addr;
-    uint8_t dev_endpoint;
-    int crc5;
-    uint16_t crc16;
-    uint8_t data[1024];
-    int len;
-    void* device;
-} usb_packet_t;
+    uint8_t		ohci_mmio[4096];
+    uint16_t		uhci_io_base;
+    int			uhci_enable, ohci_enable;
+    uint32_t		ohci_mem_base;
+    mem_mapping_t	ohci_mmio_mapping;
+} usb_t;
 
-typedef enum
-{
-    USB_DEV_TYPE_NONE = 0,
-    USB_DEV_TYPE_MOUSE,
-    USB_DEV_TYPE_TABLET,
-    USB_DEV_TYPE_KEYPAD,
-    USB_DEV_TYPE_DISK,
-    USB_DEV_TYPE_CDROM,
-    USB_DEV_TYPE_HUB,
-    USB_DEV_TYPE_PRINTER
-} usb_device_type_t;
 
-typedef enum
-{
-    USB_PID_TOKEN_STALL = 0x1e,
-    USB_PID_TOKEN_SETUP = 0x2d,
-    USB_PID_TOKEN_PRE = 0x3c,
-    USB_PID_TOKEN_DATA1 = 0x4b,
-    USB_PID_TOKEN_NAK = 0x5a,
-    USB_PID_TOKEN_IN = 0x69,
-    USB_PID_TOKEN_SOF = 0xa5,
-    USB_PID_TOKEN_DATA0 = 0xc3,
-    USB_PID_TOKEN_ACK = 0xd2,
-    USB_PID_TOKEN_OUT = 0xe1
-} usb_pid_type_t;
+/* Global variables. */
+extern const device_t	usb_device;
+
+
+/* Functions. */
+extern void		uhci_update_io_mapping(usb_t *dev, uint8_t base_l, uint8_t base_h, int enable);
+extern void		ohci_update_mem_mapping(usb_t *dev, uint8_t base1, uint8_t base2, uint8_t base3, int enable);
+
+#ifdef __cplusplus
+}
+#endif
+
+
+#endif	/*USB_H*/

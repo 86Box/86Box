@@ -11,7 +11,7 @@ static int opFADD ## name ## _a ## a_size(uint32_t fetchdat)    \
         ST(0) += use_var;                                       \
         if ((cpu_state.npxc >> 10) & 3)                                   \
                 fesetround(FE_TONEAREST);                       \
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;             \
+        FP_TAG_VALID;						\
         CLOCK_CYCLES(8);                                        \
         return 0;                                               \
 }                                                               \
@@ -48,7 +48,7 @@ static int opFDIV ## name ## _a ## a_size(uint32_t fetchdat)    \
 	SEG_CHECK_READ(cpu_state.ea_seg);                       \
         load_var = get(); if (cpu_state.abrt) return 1;                   \
         x87_div(ST(0), ST(0), use_var);                         \
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;             \
+        FP_TAG_VALID;						\
         CLOCK_CYCLES(73);                                       \
         return 0;                                               \
 }                                                               \
@@ -60,7 +60,7 @@ static int opFDIVR ## name ## _a ## a_size(uint32_t fetchdat)   \
 	SEG_CHECK_READ(cpu_state.ea_seg);                       \
         load_var = get(); if (cpu_state.abrt) return 1;                   \
         x87_div(ST(0), use_var, ST(0));                         \
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;             \
+        FP_TAG_VALID;						\
         CLOCK_CYCLES(73);                                       \
         return 0;                                               \
 }                                                               \
@@ -72,7 +72,7 @@ static int opFMUL ## name ## _a ## a_size(uint32_t fetchdat)    \
 	SEG_CHECK_READ(cpu_state.ea_seg);                       \
         load_var = get(); if (cpu_state.abrt) return 1;                   \
         ST(0) *= use_var;                                       \
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;             \
+        FP_TAG_VALID;						\
         CLOCK_CYCLES(11);                                       \
         return 0;                                               \
 }                                                               \
@@ -84,7 +84,7 @@ static int opFSUB ## name ## _a ## a_size(uint32_t fetchdat)    \
 	SEG_CHECK_READ(cpu_state.ea_seg);                       \
         load_var = get(); if (cpu_state.abrt) return 1;                   \
         ST(0) -= use_var;                                       \
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;             \
+        FP_TAG_VALID;						\
         CLOCK_CYCLES(8);                                        \
         return 0;                                               \
 }                                                               \
@@ -96,7 +96,7 @@ static int opFSUBR ## name ## _a ## a_size(uint32_t fetchdat)   \
 	SEG_CHECK_READ(cpu_state.ea_seg);                       \
         load_var = get(); if (cpu_state.abrt) return 1;                   \
         ST(0) = use_var - ST(0);                                \
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;             \
+        FP_TAG_VALID;						\
         CLOCK_CYCLES(8);                                        \
         return 0;                                               \
 }
@@ -126,7 +126,7 @@ static int opFADD(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(0) = ST(0) + ST(fetchdat & 7);
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+	FP_TAG_VALID;
         CLOCK_CYCLES(8);
         return 0;
 }
@@ -135,7 +135,7 @@ static int opFADDr(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(fetchdat & 7) = ST(fetchdat & 7) + ST(0);
-        cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID;
+	FP_TAG_VALID_F;
         CLOCK_CYCLES(8);
         return 0;
 }
@@ -144,7 +144,7 @@ static int opFADDP(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(fetchdat & 7) = ST(fetchdat & 7) + ST(0);
-        cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID;
+	FP_TAG_VALID_F;
         x87_pop();
         CLOCK_CYCLES(8);
         return 0;
@@ -233,7 +233,7 @@ static int opFDIV(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         x87_div(ST(0), ST(0), ST(fetchdat & 7));
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+	FP_TAG_VALID;
         CLOCK_CYCLES(73);
         return 0;
 }
@@ -242,7 +242,7 @@ static int opFDIVr(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         x87_div(ST(fetchdat & 7), ST(fetchdat & 7), ST(0));
-        cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID;
+	FP_TAG_VALID_F;
         CLOCK_CYCLES(73);
         return 0;
 }
@@ -251,7 +251,7 @@ static int opFDIVP(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         x87_div(ST(fetchdat & 7), ST(fetchdat & 7), ST(0));
-        cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID;
+	FP_TAG_VALID_F;
         x87_pop();
         CLOCK_CYCLES(73);
         return 0;
@@ -262,7 +262,7 @@ static int opFDIVR(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         x87_div(ST(0), ST(fetchdat&7), ST(0));
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+	FP_TAG_VALID;
         CLOCK_CYCLES(73);
         return 0;
 }
@@ -271,7 +271,7 @@ static int opFDIVRr(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         x87_div(ST(fetchdat & 7), ST(0), ST(fetchdat & 7));
-        cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID;
+	FP_TAG_VALID_F;
         CLOCK_CYCLES(73);
         return 0;
 }
@@ -280,7 +280,7 @@ static int opFDIVRP(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         x87_div(ST(fetchdat & 7), ST(0), ST(fetchdat & 7));
-        cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID;
+	FP_TAG_VALID_F;
         x87_pop();
         CLOCK_CYCLES(73);
         return 0;
@@ -291,7 +291,7 @@ static int opFMUL(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(0) = ST(0) * ST(fetchdat & 7);
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+	FP_TAG_VALID;
         CLOCK_CYCLES(16);
         return 0;
 }
@@ -300,7 +300,7 @@ static int opFMULr(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(fetchdat & 7) = ST(0) * ST(fetchdat & 7);
-        cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID;
+	FP_TAG_VALID_F;
         CLOCK_CYCLES(16);
         return 0;
 }
@@ -309,7 +309,7 @@ static int opFMULP(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(fetchdat & 7) = ST(0) * ST(fetchdat & 7);
-        cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID;
+	FP_TAG_VALID_F;
         x87_pop();
         CLOCK_CYCLES(16);
         return 0;
@@ -320,7 +320,7 @@ static int opFSUB(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(0) = ST(0) - ST(fetchdat & 7);
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+	FP_TAG_VALID;
         CLOCK_CYCLES(8);
         return 0;
 }
@@ -329,7 +329,7 @@ static int opFSUBr(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(fetchdat & 7) = ST(fetchdat & 7) - ST(0);
-        cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID;
+	FP_TAG_VALID_F;
         CLOCK_CYCLES(8);
         return 0;
 }
@@ -338,7 +338,7 @@ static int opFSUBP(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(fetchdat & 7) = ST(fetchdat & 7) - ST(0);
-        cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID;
+	FP_TAG_VALID_F;
         x87_pop();
         CLOCK_CYCLES(8);
         return 0;
@@ -349,7 +349,7 @@ static int opFSUBR(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(0) = ST(fetchdat & 7) - ST(0);
-        cpu_state.tag[cpu_state.TOP&7] = TAG_VALID;
+	FP_TAG_VALID;
         CLOCK_CYCLES(8);
         return 0;
 }
@@ -358,7 +358,7 @@ static int opFSUBRr(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(fetchdat & 7) = ST(0) - ST(fetchdat & 7);
-        cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID;
+	FP_TAG_VALID_F;
         CLOCK_CYCLES(8);
         return 0;
 }
@@ -367,7 +367,7 @@ static int opFSUBRP(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         ST(fetchdat & 7) = ST(0) - ST(fetchdat & 7);
-        cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID;
+	FP_TAG_VALID_F;
         x87_pop();
         CLOCK_CYCLES(8);
         return 0;

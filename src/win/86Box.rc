@@ -112,6 +112,7 @@ BEGIN
         MENUITEM "CGA/PCjr/Tandy/E&GA/(S)VGA overscan",     IDM_VID_OVERSCAN
         MENUITEM "Change contrast for &monochrome display", IDM_VID_CGACON
     END
+    MENUITEM "&Media",				IDM_MEDIA
     POPUP "&Tools"
     BEGIN
         MENUITEM "&Settings...",                IDM_CONFIG
@@ -915,6 +916,7 @@ BEGIN
     IDS_2123	"Unable to initialize Ghostscript, gsdll32.dll is required for automatic convertion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript files (.ps)."
     IDS_2124	"MO %i (%03i): %ls"
     IDS_2125	"MO images (*.IM?)\0*.IM?\0All files (*.*)\0*.*\0"
+    IDS_2126	"Welcome to 86Box!"
 END
 
 STRINGTABLE DISCARDABLE 

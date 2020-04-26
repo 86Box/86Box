@@ -210,6 +210,7 @@ typedef struct virge_t
                 
                 uint32_t pattern_8[8*8];
                 uint32_t pattern_16[8*8];
+                uint32_t pattern_24[8*8];
                 uint32_t pattern_32[8*8];
 
                 uint32_t prdx;
@@ -1072,15 +1073,28 @@ static void fifo_thread(void *param)
                                                 {
                                                         int x = (fifo->addr_type & FIFO_ADDR) & 4;
                                                         int y = ((fifo->addr_type & FIFO_ADDR) >> 3) & 7;
+							int color, xx;
+							int byte, addr;
+
                                                         virge->s3d.pattern_8[y*8 + x]     = val & 0xff;
                                                         virge->s3d.pattern_8[y*8 + x + 1] = val >> 8;
                                                         virge->s3d.pattern_8[y*8 + x + 2] = val >> 16;
                                                         virge->s3d.pattern_8[y*8 + x + 3] = val >> 24;
-                        
+
                                                         x = ((fifo->addr_type & FIFO_ADDR) >> 1) & 6;
                                                         y = ((fifo->addr_type & FIFO_ADDR) >> 4) & 7;
                                                         virge->s3d.pattern_16[y*8 + x]     = val & 0xffff;
                                                         virge->s3d.pattern_16[y*8 + x + 1] = val >> 16;
+
+							addr = ((fifo->addr_type & FIFO_ADDR) & 0x00ff);
+							for (xx = 0; xx < 4; xx++) {
+					                        x = ((addr + xx) / 3) % 8;
+				        	                y = ((addr + xx) / 24) % 8;
+								color = ((addr + xx) % 3) << 3;
+								byte = (xx << 3);
+								virge->s3d.pattern_24[y*8 + x] &= ~(0xff << color);
+				                	        virge->s3d.pattern_24[y*8 + x] |= ((val >> byte) & 0xff) << color;
+							}
 
                                                         x = ((fifo->addr_type & FIFO_ADDR) >> 2) & 7;
                                                         y = ((fifo->addr_type & FIFO_ADDR) >> 5) & 7;
@@ -1597,6 +1611,8 @@ static void s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *p)
                 {
                         int x = addr & 4;
                         int y = (addr >> 3) & 7;
+			int color, xx;
+			int byte;
                         virge->s3d.pattern_8[y*8 + x]     = val & 0xff;
                         virge->s3d.pattern_8[y*8 + x + 1] = val >> 8;
                         virge->s3d.pattern_8[y*8 + x + 2] = val >> 16;
@@ -1606,6 +1622,16 @@ static void s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *p)
                         y = (addr >> 4) & 7;
                         virge->s3d.pattern_16[y*8 + x]     = val & 0xffff;
                         virge->s3d.pattern_16[y*8 + x + 1] = val >> 16;
+
+			addr &= 0x00ff;
+			for (xx = 0; xx < 4; xx++) {
+	                        x = ((addr + xx) / 3) % 8;
+        	                y = ((addr + xx) / 24) % 8;
+				color = ((addr + xx) % 3) << 3;
+				byte = (xx << 3);
+				virge->s3d.pattern_24[y*8 + x] &= ~(0xff << color);
+                	        virge->s3d.pattern_24[y*8 + x] |= ((val >> byte) & 0xff) << color;
+			}
 
                         x = (addr >> 2) & 7;
                         y = (addr >> 5) & 7;
@@ -1989,7 +2015,7 @@ static void s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                 bpp = 2;
                 x_mul = 3;
                 cpu_dat_shift = 24;
-                pattern_data = virge->s3d.pattern_32;
+                pattern_data = virge->s3d.pattern_24;
                 src_fg_clr = virge->s3d.src_fg_clr;
                 src_bg_clr = virge->s3d.src_bg_clr;
                 break;
