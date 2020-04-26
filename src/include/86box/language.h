@@ -169,7 +169,7 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	79
+#define STR_NUM_2048	70
 #define STR_NUM_3072	11
 #define STR_NUM_4096	18
 #define STR_NUM_4352	7
