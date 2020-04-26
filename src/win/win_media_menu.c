@@ -66,6 +66,109 @@ media_menu_load_resource(wchar_t *lpName)
     return actual;
 }
 
+static void
+media_menu_set_name_floppy(int drive)
+{
+    wchar_t name[512], temp[512];
+    MENUITEMINFO mii = { 0 };
+
+    mbstowcs(temp, fdd_getname(fdd_get_type(drive)),
+	     strlen(fdd_getname(fdd_get_type(drive))) + 1);
+    if (wcslen(floppyfns[drive]) == 0) {
+	_swprintf(name, plat_get_string(IDS_2117),
+		  drive + 1, temp, plat_get_string(IDS_2057));
+    } else {
+	_swprintf(name, plat_get_string(IDS_2117),
+		  drive + 1, temp, floppyfns[drive]);
+    }
+
+    mii.cbSize = sizeof(mii);
+    mii.fMask = MIIM_STRING;
+    mii.dwTypeData = name;
+
+    SetMenuItemInfo(media_menu, (UINT_PTR)menus[FDD_FIRST + drive], FALSE, &mii);
+}
+
+static void
+media_menu_set_name_cdrom(int drive)
+{
+    wchar_t name[512], *temp;
+    MENUITEMINFO mii = { 0 };
+
+    int bus = cdrom[drive].bus_type;
+    int id = IDS_5377 + (bus - 1);
+
+    temp = plat_get_string(id);
+
+    if (cdrom[drive].host_drive == 200) {
+	if (wcslen(cdrom[drive].image_path) == 0)
+		_swprintf(name, plat_get_string(IDS_5120), drive+1, temp, plat_get_string(IDS_2057));
+	else
+		_swprintf(name, plat_get_string(IDS_5120), drive+1, temp, cdrom[drive].image_path);
+    } else
+	_swprintf(name, plat_get_string(IDS_5120), drive+1, temp, plat_get_string(IDS_2057));
+
+    mii.cbSize = sizeof(mii);
+    mii.fMask = MIIM_STRING;
+    mii.dwTypeData = name;
+
+    SetMenuItemInfo(media_menu, (UINT_PTR)menus[CDROM_FIRST + drive], FALSE, &mii);
+}
+
+static void
+media_menu_set_name_zip(int drive)
+{
+    wchar_t name[512], *temp;
+    MENUITEMINFO mii = { 0 };
+
+    int bus = zip_drives[drive].bus_type;
+    int id = IDS_5377 + (bus - 1);
+
+    temp = plat_get_string(id);
+
+    int type = zip_drives[drive].is_250 ? 250 : 100;
+
+    if (wcslen(zip_drives[drive].image_path) == 0) {
+	_swprintf(name, plat_get_string(IDS_2054),
+		  type, drive+1, temp, plat_get_string(IDS_2057));
+    } else {
+	_swprintf(name, plat_get_string(IDS_2054),
+		  type, drive+1, temp, zip_drives[drive].image_path);
+    }
+
+    mii.cbSize = sizeof(mii);
+    mii.fMask = MIIM_STRING;
+    mii.dwTypeData = name;
+
+    SetMenuItemInfo(media_menu, (UINT_PTR)menus[ZIP_FIRST + drive], FALSE, &mii);
+}
+
+static void
+media_menu_set_name_mo(int drive)
+{
+    wchar_t name[512], *temp;
+    MENUITEMINFO mii = { 0 };
+
+    int bus = mo_drives[drive].bus_type;
+    int id = IDS_5377 + (bus - 1);
+
+    temp = plat_get_string(id);
+
+    if (wcslen(mo_drives[drive].image_path) == 0) {
+	_swprintf(name, plat_get_string(IDS_2124),
+		  drive+1, temp, plat_get_string(IDS_2057));
+    } else {
+	_swprintf(name, plat_get_string(IDS_2124),
+		  drive+1, temp, mo_drives[drive].image_path);
+    }
+
+    mii.cbSize = sizeof(mii);
+    mii.fMask = MIIM_STRING;
+    mii.dwTypeData = name;
+
+    SetMenuItemInfo(media_menu, (UINT_PTR)menus[MO_FIRST + drive], FALSE, &mii);
+}
+
 void
 media_menu_update_floppy(int id)
 {
@@ -78,6 +181,8 @@ media_menu_update_floppy(int id)
 	EnableMenuItem(menus[i], IDM_FLOPPY_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
 	EnableMenuItem(menus[i], IDM_FLOPPY_EXPORT_TO_86F | id, MF_BYCOMMAND | MF_ENABLED);
     }
+
+    media_menu_set_name_floppy(id);
 }
 
 void
@@ -103,6 +208,8 @@ media_menu_update_cdrom(int id)
 	EnableMenuItem(menus[i], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
     else
 	EnableMenuItem(menus[i], IDM_CDROM_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
+
+    media_menu_set_name_cdrom(id);
 }
 
 void
@@ -119,6 +226,8 @@ media_menu_update_zip(int id)
 	EnableMenuItem(menus[i], IDM_ZIP_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
     else
 	EnableMenuItem(menus[i], IDM_ZIP_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
+
+    media_menu_set_name_zip(id);
 }
 
 void
@@ -135,6 +244,8 @@ media_menu_update_mo(int id)
 	EnableMenuItem(menus[i], IDM_MO_RELOAD | id, MF_BYCOMMAND | MF_GRAYED);
     else
 	EnableMenuItem(menus[i], IDM_MO_RELOAD | id, MF_BYCOMMAND | MF_ENABLED);
+
+    media_menu_set_name_mo(id);
 }
 
 static void
