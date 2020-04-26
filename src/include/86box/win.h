@@ -186,6 +186,15 @@ extern int	file_dlg_st(HWND hwnd, int i, char *fn, int save);
 extern wchar_t	*BrowseFolder(wchar_t *saved_path, wchar_t *title);
 
 
+/* Functions in win_media_menu.c */
+extern void	media_menu_init();
+extern void	media_menu_reset();
+extern void	media_menu_update_floppy(int id);
+extern void	media_menu_update_cdrom(int id);
+extern void	media_menu_update_zip(int id);
+extern void	media_menu_update_mo(int id);
+
+
 #ifdef __cplusplus
 }
 #endif

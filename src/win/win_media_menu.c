@@ -14,6 +14,7 @@
 #include <86box/scsi_device.h>
 #include <86box/mo.h>
 #include <86box/scsi.h>
+#include <86box/ui.h>
 #include <86box/zip.h>
 #include <86box/win.h>
 
@@ -275,6 +276,13 @@ fdd_mount(uint8_t id, wchar_t *fn, uint8_t wp)
 }
 
 static void
+fdd_eject(uint8_t id)
+{
+    fdd_close(id);
+    config_save();
+}
+
+static void
 cdrom_mount(uint8_t id, wchar_t *fn)
 {
     cdrom[id].prev_host_drive = cdrom[id].host_drive;
@@ -290,4 +298,149 @@ cdrom_mount(uint8_t id, wchar_t *fn)
     cdrom[id].host_drive = (wcslen(cdrom[id].image_path) == 0) ? 0 : 200;
 
     config_save();
+}
+
+int
+media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    int id = 0, ret = 0, wp = 0;
+    WCHAR temp_path[1024];
+
+    id = LOWORD(wParam) & 0x00ff;
+
+    switch (LOWORD(wParam) & 0xff00) {
+	case IDM_FLOPPY_IMAGE_NEW:
+		if (menus == NULL)
+			break;
+
+		NewFloppyDialogCreate(hwnd, id, 0);
+		break;
+
+	case IDM_FLOPPY_IMAGE_EXISTING_WP:
+		wp = 1;
+		/* FALLTHROUGH */
+	case IDM_FLOPPY_IMAGE_EXISTING:
+		if (menus == NULL)
+			break;
+
+		ret = file_dlg_w_st(hwnd, IDS_2118, floppyfns[id], 0);
+		if (! ret) {
+			fdd_mount(id, wopenfilestring, wp);
+			media_menu_update_floppy(id);
+			// TODO: status bar update
+		}
+		break;
+
+	case IDM_FLOPPY_EJECT:
+		if (menus == NULL)
+			break;
+
+		fdd_eject(id);
+		media_menu_update_floppy(id);
+		// TODO: status bar update
+		break;
+
+	case IDM_FLOPPY_EXPORT_TO_86F:
+		if (menus == NULL)
+			break;
+
+		ret = file_dlg_w_st(hwnd, IDS_2076, floppyfns[id], 1);
+		if (! ret) {
+			plat_pause(1);
+			ret = d86f_export(id, wopenfilestring);
+			if (!ret)
+				ui_msgbox(MBX_ERROR, (wchar_t *)IDS_4108);
+			plat_pause(0);
+		}
+		break;
+
+	case IDM_CDROM_MUTE:
+		if (menus == NULL)
+			break;
+
+		cdrom[id].sound_on ^= 1;
+		config_save();
+		media_menu_update_cdrom(id);
+		// TODO: status bar update
+		sound_cd_thread_reset();
+		break;
+
+	case IDM_CDROM_EMPTY:
+		if (menus == NULL)
+			break;
+
+		cdrom_eject(id);
+		break;
+
+	case IDM_CDROM_RELOAD:
+		if (menus == NULL)
+			break;
+
+		cdrom_reload(id);
+		break;
+
+	case IDM_CDROM_IMAGE:
+		if (menus == NULL)
+			break;
+
+		if (!file_dlg_w_st(hwnd, IDS_2075, cdrom[id].image_path, 0)) {
+			cdrom_mount(id, wopenfilestring);
+			media_menu_update_cdrom(id);
+			// TODO: status bar update
+		}
+		break;
+
+	case IDM_ZIP_IMAGE_NEW:
+		NewFloppyDialogCreate(hwnd, id | 0x80, 0);	/* NewZIPDialogCreate */
+		break;
+
+	case IDM_ZIP_IMAGE_EXISTING_WP:
+		wp = 1;
+		/* FALLTHROUGH */
+	case IDM_ZIP_IMAGE_EXISTING:
+		if (menus == NULL)
+			break;
+
+		ret = file_dlg_w_st(hwnd, IDS_2058, zip_drives[id].image_path, 0);
+		if (! ret)
+			zip_mount(id, wopenfilestring, wp);
+		break;
+
+	case IDM_ZIP_EJECT:
+		zip_eject(id);
+		break;
+
+	case IDM_ZIP_RELOAD:
+		zip_reload(id);
+		break;
+
+	case IDM_MO_IMAGE_NEW:
+		NewFloppyDialogCreate(hwnd, id | 0x80, 0);	/* NewZIPDialogCreate */
+		break;
+
+	case IDM_MO_IMAGE_EXISTING_WP:
+		wp = 1;
+		/* FALLTHROUGH */
+	case IDM_MO_IMAGE_EXISTING:
+		if (menus == NULL)
+			break;
+
+		ret = file_dlg_w_st(hwnd, IDS_2125, mo_drives[id].image_path, 0);
+		if (! ret)
+			mo_mount(id, wopenfilestring, wp);
+		break;
+
+	case IDM_MO_EJECT:
+		mo_eject(id);
+		break;
+
+	case IDM_MO_RELOAD:
+		mo_reload(id);
+		break;
+
+	default:
+		return(0);
+    }
+
+    return(1);
 }

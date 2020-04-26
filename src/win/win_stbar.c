@@ -1325,7 +1325,7 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
     SendMessage(hwndSBAR, SB_SETTEXT, 0 | SBT_NOBORDERS,
 		(LPARAM)plat_get_string(IDS_2126));
 
-    MediaMenuCreate(hwndParent, idStatus, hInst);
+    //MediaMenuCreate(hwndParent, idStatus, hInst);
 
     sb_ready = 1;
 }
