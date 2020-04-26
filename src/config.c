@@ -709,9 +709,9 @@ load_network(void)
     if (p != NULL) {
 	if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
 		if ((network_ndev == 1) && strcmp(network_host, "none")) {
-			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2103);
+			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2094);
 		} else if (network_dev_to_id(p) == -1) {
-			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2104);
+			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2095);
 		}
 
 		strcpy(network_host, "none");

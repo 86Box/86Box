@@ -183,10 +183,10 @@ StatusBarCreateFloppyTip(int part)
     mbstowcs(wtext, fdd_getname(fdd_get_type(drive)),
 	     strlen(fdd_getname(fdd_get_type(drive))) + 1);
     if (wcslen(floppyfns[drive]) == 0) {
-	_swprintf(tempTip, plat_get_string(IDS_2117),
+	_swprintf(tempTip, plat_get_string(IDS_2108),
 		  drive+1, wtext, plat_get_string(IDS_2057));
     } else {
-	_swprintf(tempTip, plat_get_string(IDS_2117),
+	_swprintf(tempTip, plat_get_string(IDS_2108),
 		  drive+1, wtext, floppyfns[drive]);
     }
 
@@ -271,10 +271,10 @@ StatusBarCreateMOTip(int part)
     szText = plat_get_string(id);
 
     if (wcslen(mo_drives[drive].image_path) == 0) {
-	_swprintf(tempTip, plat_get_string(IDS_2124),
+	_swprintf(tempTip, plat_get_string(IDS_2115),
 		  drive+1, szText, plat_get_string(IDS_2057));
     } else {
-	_swprintf(tempTip, plat_get_string(IDS_2124),
+	_swprintf(tempTip, plat_get_string(IDS_2115),
 		  drive+1, szText, mo_drives[drive].image_path);
     }
 
@@ -856,7 +856,7 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
     sb_parts++;
     SendMessage(hwndSBAR, SB_SETPARTS, (WPARAM)sb_parts, (LPARAM)iStatusWidths);
     SendMessage(hwndSBAR, SB_SETTEXT, 0 | SBT_NOBORDERS,
-		(LPARAM)plat_get_string(IDS_2126));
+		(LPARAM)plat_get_string(IDS_2117));
 
     sb_ready = 1;
 }
