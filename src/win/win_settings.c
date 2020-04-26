@@ -671,7 +671,7 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2090));
 
 		for (c = 0; c < 8; c++) {
-			wsprintf(lptsTemp, plat_get_string(2100), c);
+			wsprintf(lptsTemp, plat_get_string(IDS_2091), c);
         	        SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
 		}
 
@@ -1009,7 +1009,7 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			mbstowcs(str, joy_name, strlen(joy_name) + 1);
 			SendMessage(h, CB_ADDSTRING, 0, (LPARAM)str);
 
-			// SendMessage(h, CB_ADDSTRING, 0, win_get_string(2105 + c));
+			// SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2096 + c));
 			c++;
 			joy_name = joystick_get_name(c);
 		}
@@ -1663,8 +1663,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 				if (d == 0) {
 					/* Translate "None". */
-					SendMessage(h, CB_ADDSTRING, 0,
-						    (LPARAM)win_get_string(IDS_2103));
+					SendMessage(h, CB_ADDSTRING, 0, (LPARAM)win_get_string(IDS_2103));
 				} else {
 					s = (char *) isamem_get_name(d);
 					mbstowcs(lptsTemp, s, strlen(s) + 1);
@@ -1922,7 +1921,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 			if (network_card_available(c) && device_is_valid(network_card_getdevice(c), machines[temp_machine].flags)) {
 				if (c == 0)
-					SendMessage(h, CB_ADDSTRING, 0, win_get_string(2112));
+					SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2103));
 				else {
 					mbstowcs(lptsTemp, s, strlen(s) + 1);
 					SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
