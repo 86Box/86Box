@@ -426,9 +426,11 @@ machine_at_486sp3g_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-    pci_register_slot(0x06, PCI_CARD_NORMAL, 3, 2, 1, 4);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 1, 3, 4);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 3, 2, 4);
+    pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 03 = Slot 1 */
+    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 04 = Slot 2 */
+    pci_register_slot(0x05, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 05 = Slot 3 */
+    pci_register_slot(0x06, PCI_CARD_NORMAL, 4, 1, 2, 3);	/* 06 = Slot 4 */
+    pci_register_slot(0x07, PCI_CARD_SCSI, 1, 2, 3, 4);		/* 07 = SCSI */
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&keyboard_ps2_pci_device);
     device_add(&sio_device);	/* Site says it has a ZB, but the BIOS is designed for an IB. */
