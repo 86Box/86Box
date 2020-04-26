@@ -5,15 +5,19 @@
 #include <Windows.h>
 #include <86box/86box.h>
 #include <86box/cdrom.h>
+#include <86box/config.h>
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/fdd.h>
+#include <86box/fdd_86f.h>
 #include <86box/hdc.h>
 #include <86box/language.h>
 #include <86box/machine.h>
 #include <86box/scsi_device.h>
 #include <86box/mo.h>
+#include <86box/plat.h>
 #include <86box/scsi.h>
+#include <86box/sound.h>
 #include <86box/ui.h>
 #include <86box/zip.h>
 #include <86box/win.h>
@@ -34,8 +38,9 @@ media_menu_set_ids(HMENU hMenu, int id)
 {
     int c = GetMenuItemCount(hMenu);
 
-    MENUITEMINFO mii;
+    MENUITEMINFO mii = { 0 };
     mii.fMask = MIIM_ID;
+    mii.cbSize = sizeof(mii);
 
     for(int i = 0; i < c; i++)
     {
@@ -61,7 +66,7 @@ media_menu_load_resource(wchar_t *lpName)
     return actual;
 }
 
-static void
+void
 media_menu_update_floppy(int id)
 {
     int i = FDD_FIRST + id;
@@ -72,7 +77,7 @@ media_menu_update_floppy(int id)
     }
 }
 
-static void
+void
 media_menu_update_cdrom(int id)
 {
     int i = CDROM_FIRST + id;
@@ -88,7 +93,7 @@ media_menu_update_cdrom(int id)
     }
 }
 
-static void
+void
 media_menu_update_zip(int id)
 {
     int i = ZIP_FIRST + id;
@@ -102,7 +107,7 @@ media_menu_update_zip(int id)
     }
 }
 
-static void
+void
 media_menu_update_mo(int id)
 {
     int i = MO_FIRST + id;
@@ -187,7 +192,7 @@ media_menu_reset()
     int c = GetMenuItemCount(media_menu);
 
     for(int i = 0; i < c; i++)
-	RemoveMenu(media_menu, i, TRUE);
+	RemoveMenu(media_menu, 0, MF_BYPOSITION);
 
     /* Add new ones. */
     int curr = 0;
@@ -269,7 +274,6 @@ int
 media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     int id = 0, ret = 0, wp = 0;
-    WCHAR temp_path[1024];
 
     id = LOWORD(wParam) & 0x00ff;
 
@@ -290,7 +294,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		ret = file_dlg_w_st(hwnd, IDS_2118, floppyfns[id], 0);
 		if (! ret) {
-			fdd_mount(id, wopenfilestring, wp);
+			floppy_mount(id, wopenfilestring, wp);
 			media_menu_update_floppy(id);
 			// TODO: status bar update
 		}
@@ -300,7 +304,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (menus == NULL)
 			break;
 
-		fdd_eject(id);
+		floppy_eject(id);
 		media_menu_update_floppy(id);
 		// TODO: status bar update
 		break;
