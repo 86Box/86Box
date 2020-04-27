@@ -403,7 +403,7 @@ spock_readw(uint16_t port, void *p)
 static void
 spock_rd_sge(spock_t *scsi, uint32_t Address, SGE *SG)
 {
-	DMAPageRead(Address, (uint8_t *)SG, sizeof(SGE));
+	dma_bm_read(Address, (uint8_t *)SG, sizeof(SGE), 2);
 	spock_add_to_period(scsi, sizeof(SGE));
 }
 
@@ -553,20 +553,20 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
 					spock_log("Start failed, SCB ID = %d\n", scsi->scb_id);
 					spock_set_irq(scsi, scsi->scb_id, IRQ_TYPE_COMMAND_FAIL);
 					scsi->scb_state = 0;
-					DMAPageWrite(scb->term_status_block_addr + 0x7*2, (uint8_t *)&term_stat_block_addr7, 2);
-					DMAPageWrite(scb->term_status_block_addr + 0x8*2, (uint8_t *)&term_stat_block_addr8, 2);
+					dma_bm_write(scb->term_status_block_addr + 0x7*2, (uint8_t *)&term_stat_block_addr7, 2, 2);
+					dma_bm_write(scb->term_status_block_addr + 0x8*2, (uint8_t *)&term_stat_block_addr8, 2, 2);
 					break;
 				}
 				
-				DMAPageRead(scsi->scb_addr, (uint8_t *)&scb->command, 2);
-				DMAPageRead(scsi->scb_addr + 2, (uint8_t *)&scb->enable, 2);
-				DMAPageRead(scsi->scb_addr + 4, (uint8_t *)&scb->lba_addr, 4);
-				DMAPageRead(scsi->scb_addr + 8, (uint8_t *)&scb->sge.sys_buf_addr, 4);
-				DMAPageRead(scsi->scb_addr + 12, (uint8_t *)&scb->sge.sys_buf_byte_count, 4);
-				DMAPageRead(scsi->scb_addr + 16, (uint8_t *)&scb->term_status_block_addr, 4);
-				DMAPageRead(scsi->scb_addr + 20, (uint8_t *)&scb->scb_chain_addr, 4);
-				DMAPageRead(scsi->scb_addr + 24, (uint8_t *)&scb->block_count, 2);
-				DMAPageRead(scsi->scb_addr + 26, (uint8_t *)&scb->block_length, 2);
+				dma_bm_read(scsi->scb_addr, (uint8_t *)&scb->command, 2, 2);
+				dma_bm_read(scsi->scb_addr + 2, (uint8_t *)&scb->enable, 2, 2);
+				dma_bm_read(scsi->scb_addr + 4, (uint8_t *)&scb->lba_addr, 4, 2);
+				dma_bm_read(scsi->scb_addr + 8, (uint8_t *)&scb->sge.sys_buf_addr, 4, 2);
+				dma_bm_read(scsi->scb_addr + 12, (uint8_t *)&scb->sge.sys_buf_byte_count, 4, 2);
+				dma_bm_read(scsi->scb_addr + 16, (uint8_t *)&scb->term_status_block_addr, 4, 2);
+				dma_bm_read(scsi->scb_addr + 20, (uint8_t *)&scb->scb_chain_addr, 4, 2);
+				dma_bm_read(scsi->scb_addr + 24, (uint8_t *)&scb->block_count, 2, 2);
+				dma_bm_read(scsi->scb_addr + 26, (uint8_t *)&scb->block_length, 2, 2);
 
 				spock_log("SCB : \n"
 				      "  Command = %04x\n"
@@ -605,29 +605,29 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
 						get_complete_stat->cache_info_status = 0;
 						get_complete_stat->scb_addr = scsi->scb_addr;
 
-						DMAPageWrite(scb->sge.sys_buf_addr, (uint8_t *)&get_complete_stat->scb_status, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 2, (uint8_t *)&get_complete_stat->retry_count, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 4, (uint8_t *)&get_complete_stat->residual_byte_count, 4);
-						DMAPageWrite(scb->sge.sys_buf_addr + 8, (uint8_t *)&get_complete_stat->sg_list_element_addr, 4);
-						DMAPageWrite(scb->sge.sys_buf_addr + 12, (uint8_t *)&get_complete_stat->device_dep_status_len, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 14, (uint8_t *)&get_complete_stat->cmd_status, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 16, (uint8_t *)&get_complete_stat->error, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 18, (uint8_t *)&get_complete_stat->reserved, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 20, (uint8_t *)&get_complete_stat->cache_info_status, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 22, (uint8_t *)&get_complete_stat->scb_addr, 4);
+						dma_bm_write(scb->sge.sys_buf_addr, (uint8_t *)&get_complete_stat->scb_status, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 2, (uint8_t *)&get_complete_stat->retry_count, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 4, (uint8_t *)&get_complete_stat->residual_byte_count, 4, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 8, (uint8_t *)&get_complete_stat->sg_list_element_addr, 4, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 12, (uint8_t *)&get_complete_stat->device_dep_status_len, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 14, (uint8_t *)&get_complete_stat->cmd_status, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 16, (uint8_t *)&get_complete_stat->error, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 18, (uint8_t *)&get_complete_stat->reserved, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 20, (uint8_t *)&get_complete_stat->cache_info_status, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 22, (uint8_t *)&get_complete_stat->scb_addr, 4, 2);
 						scsi->scb_state = 3;
 					}
 					break;
 
 					case CMD_UNKNOWN_1C10:
 						spock_log("Unknown 1C10\n");
-						DMAPageRead(scb->sge.sys_buf_addr, scsi->buf, scb->sge.sys_buf_byte_count);
+						dma_bm_read(scb->sge.sys_buf_addr, scsi->buf, scb->sge.sys_buf_byte_count, 2);
 						scsi->scb_state = 3;
 						break;
 
 					case CMD_UNKNOWN_1C11:
 						spock_log("Unknown 1C11\n");
-						DMAPageWrite(scb->sge.sys_buf_addr, scsi->buf, scb->sge.sys_buf_byte_count);
+						dma_bm_write(scb->sge.sys_buf_addr, scsi->buf, scb->sge.sys_buf_byte_count, 2);
 						scsi->scb_state = 3;
 						break;
 
@@ -646,15 +646,15 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
 						get_pos_info->pos7 = 0;
 						get_pos_info->pos8 = 0;
 						
-						DMAPageWrite(scb->sge.sys_buf_addr, (uint8_t *)&get_pos_info->pos, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 2, (uint8_t *)&get_pos_info->pos1, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 4, (uint8_t *)&get_pos_info->pos2, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 6, (uint8_t *)&get_pos_info->pos3, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 8, (uint8_t *)&get_pos_info->pos4, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 10, (uint8_t *)&get_pos_info->pos5, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 12, (uint8_t *)&get_pos_info->pos6, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 14, (uint8_t *)&get_pos_info->pos7, 2);
-						DMAPageWrite(scb->sge.sys_buf_addr + 16, (uint8_t *)&get_pos_info->pos8, 2);
+						dma_bm_write(scb->sge.sys_buf_addr, (uint8_t *)&get_pos_info->pos, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 2, (uint8_t *)&get_pos_info->pos1, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 4, (uint8_t *)&get_pos_info->pos2, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 6, (uint8_t *)&get_pos_info->pos3, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 8, (uint8_t *)&get_pos_info->pos4, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 10, (uint8_t *)&get_pos_info->pos5, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 12, (uint8_t *)&get_pos_info->pos6, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 14, (uint8_t *)&get_pos_info->pos7, 2, 2);
+						dma_bm_write(scb->sge.sys_buf_addr + 16, (uint8_t *)&get_pos_info->pos8, 2, 2);
 						scsi->scb_state = 3;
 					}
 					break;
@@ -677,7 +677,7 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
 
 					case CMD_SEND_OTHER_SCSI:
 						spock_log("Send Other SCSI\n");
-						DMAPageRead(scsi->scb_addr + 0x18, scsi->cdb, 12);
+						dma_bm_read(scsi->scb_addr + 0x18, scsi->cdb, 12, 2);
 						scsi->cdb[1] = (scsi->cdb[1] & 0x1f) | (scsi->dev_id[scsi->scb_id].lun_id << 5); /*Patch correct LUN into command*/
 						scsi->cdb_len = (scb->lba_addr & 0xff) ? (scb->lba_addr & 0xff) : 6;
 						scsi->cdb_id = scsi->dev_id[scsi->scb_id].phys_id;
@@ -788,18 +788,18 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
 						spock_set_irq(scsi, scsi->scb_id, IRQ_TYPE_COMMAND_FAIL);
 						scsi->scb_state = 0;
 						spock_log("Status Check Condition on device ID %d\n", scsi->cdb_id);
-						DMAPageWrite(scb->term_status_block_addr + 0x7*2, (uint8_t *)&term_stat_block_addr7, 2);
-						DMAPageWrite(scb->term_status_block_addr + 0x8*2, (uint8_t *)&term_stat_block_addr8, 2);
-						DMAPageWrite(scb->term_status_block_addr + 0xb*2, (uint8_t *)&term_stat_block_addrb, 2);
-						DMAPageWrite(scb->term_status_block_addr + 0xc*2, (uint8_t *)&term_stat_block_addrc, 2);
+						dma_bm_write(scb->term_status_block_addr + 0x7*2, (uint8_t *)&term_stat_block_addr7, 2, 2);
+						dma_bm_write(scb->term_status_block_addr + 0x8*2, (uint8_t *)&term_stat_block_addr8, 2, 2);
+						dma_bm_write(scb->term_status_block_addr + 0xb*2, (uint8_t *)&term_stat_block_addrb, 2, 2);
+						dma_bm_write(scb->term_status_block_addr + 0xc*2, (uint8_t *)&term_stat_block_addrc, 2, 2);
 					}
 				} else if (scsi->scsi_state == SCSI_STATE_SELECT_FAILED) {
 					uint16_t term_stat_block_addr7 = (0xc << 8) | 2;
 					uint16_t term_stat_block_addr8 = 0x10;
 					spock_set_irq(scsi, scsi->scb_id, IRQ_TYPE_COMMAND_FAIL);
 					scsi->scb_state = 0;
-					DMAPageWrite(scb->term_status_block_addr + 0x7*2, (uint8_t *)&term_stat_block_addr7, 2);
-					DMAPageWrite(scb->term_status_block_addr + 0x8*2, (uint8_t *)&term_stat_block_addr8, 2);
+					dma_bm_write(scb->term_status_block_addr + 0x7*2, (uint8_t *)&term_stat_block_addr7, 2, 2);
+					dma_bm_write(scb->term_status_block_addr + 0x8*2, (uint8_t *)&term_stat_block_addr8, 2, 2);
 				}
 				break;
 				
@@ -892,10 +892,10 @@ spock_process_scsi(spock_t *scsi, scb_t *scb)
 							
 							if ((sd->phase == SCSI_PHASE_DATA_IN) && DataTx) {
 								spock_log("Writing S/G segment %i: length %i, pointer %08X\n", c, DataTx, Address);
-								DMAPageWrite(Address, &sd->sc->temp_buffer[sg_pos], DataTx);
+								dma_bm_write(Address, &sd->sc->temp_buffer[sg_pos], DataTx, 2);
 							} else if ((sd->phase == SCSI_PHASE_DATA_OUT) && DataTx) {
 								spock_log("Reading S/G segment %i: length %i, pointer %08X\n", c, DataTx, Address);
-								DMAPageRead(Address, &sd->sc->temp_buffer[sg_pos], DataTx);					
+								dma_bm_read(Address, &sd->sc->temp_buffer[sg_pos], DataTx, 2);
 							}
 							
 							sg_pos += scb->sge.sys_buf_byte_count;
@@ -907,9 +907,9 @@ spock_process_scsi(spock_t *scsi, scb_t *scb)
 					}
 				} else {
 					if (sd->phase == SCSI_PHASE_DATA_IN) {
-						DMAPageWrite(scsi->data_ptr, sd->sc->temp_buffer, MIN(sd->buffer_length, (int)scsi->data_len));
+						dma_bm_write(scsi->data_ptr, sd->sc->temp_buffer, MIN(sd->buffer_length, (int)scsi->data_len), 2);
 					} else if (sd->phase == SCSI_PHASE_DATA_OUT)
-						DMAPageRead(scsi->data_ptr, sd->sc->temp_buffer, MIN(sd->buffer_length, (int)scsi->data_len));					
+						dma_bm_read(scsi->data_ptr, sd->sc->temp_buffer, MIN(sd->buffer_length, (int)scsi->data_len), 2);
 				}
 
 				scsi_device_command_phase1(sd);

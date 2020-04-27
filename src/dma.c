@@ -983,31 +983,47 @@ dma_mode(int channel)
 
 /* DMA Bus Master Page Read/Write */
 void
-DMAPageRead(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize)
+dma_bm_read(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize, int TransferSize)
 {
-    uint32_t i = 0;
+    uint32_t i = 0, n, n2;
+    uint8_t bytes[4] = { 0, 0, 0, 0 };
 
-#if 0
-    memcpy(DataRead, &ram[PhysAddress], TotalSize);
-#else
-    for (i = 0; i < TotalSize; i++)
-	DataRead[i] = mem_readb_phys(PhysAddress + i);
-#endif
+    n = TotalSize & ~(TransferSize - 1);
+    n2 = TotalSize - n;
+
+    /* Do the divisible block, if there is one. */
+    if (n) {
+	for (i = 0; i < n; i += TransferSize)
+		mem_read_phys((void *) &(DataRead[i]), PhysAddress + i, TransferSize);
+    }
+
+    /* Do the non-divisible block, if there is one. */
+    if (n2) {
+	mem_read_phys((void *) bytes, PhysAddress + n, TransferSize);
+	memcpy((void *) &(DataRead[n]), bytes, n2);
+    }
 }
 
 
 void
-DMAPageWrite(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize)
+dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize, int TransferSize)
 {
-    uint32_t i = 0;
+    uint32_t i = 0, n, n2;
+    uint8_t bytes[4] = { 0, 0, 0, 0 };
 
-#if 0
-    mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
-    memcpy(&ram[PhysAddress], DataWrite, TotalSize);
-#else
-    for (i = 0; i < TotalSize; i++)
-	mem_writeb_phys(PhysAddress + i, DataWrite[i]);
+    n = TotalSize & ~(TransferSize - 1);
+    n2 = TotalSize - n;
 
-    mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
-#endif
+    /* Do the divisible block, if there is one. */
+    if (n) {
+	for (i = 0; i < n; i += TransferSize)
+		mem_write_phys((void *) &(DataWrite[i]), PhysAddress + i, TransferSize);
+    }
+
+    /* Do the non-divisible block, if there is one. */
+    if (n2) {
+	mem_read_phys((void *) bytes, PhysAddress + n, TransferSize);
+	memcpy(bytes, (void *) &(DataWrite[n]), n2);
+	mem_write_phys((void *) bytes, PhysAddress + n, TransferSize);
+    }
 }

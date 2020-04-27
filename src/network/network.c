@@ -281,6 +281,8 @@ network_close(void)
     network_mutex = NULL;
     network_mac = NULL;
 
+    /* Here is where we should clear the queue. */
+
     network_log("NETWORK: closed.\n");
 }
 

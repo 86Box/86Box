@@ -467,7 +467,7 @@ ncr53c8xx_read(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 			buf[i] = inb((uint16_t) (addr + i));
 	} else {
 		ncr53c8xx_log("NCR 810: Reading from memory address %08X\n", addr);
-        	DMAPageRead(addr, buf, len);
+        	dma_bm_read(addr, buf, len, 4);
 	}
 }
 
@@ -485,7 +485,7 @@ ncr53c8xx_write(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 			outb((uint16_t) (addr + i), buf[i]);
 	} else {
 		ncr53c8xx_log("NCR 810: Writing to memory address %08X\n", addr);
-        	DMAPageWrite(addr, buf, len);
+        	dma_bm_write(addr, buf, len, 4);
 	}
 }
 
@@ -495,7 +495,7 @@ read_dword(ncr53c8xx_t *dev, uint32_t addr)
 {
     uint32_t buf;
     ncr53c8xx_log("Reading the next DWORD from memory (%08X)...\n", addr);
-    DMAPageRead(addr, (uint8_t *)&buf, 4);
+    dma_bm_read(addr, (uint8_t *)&buf, 4, 4);
     return buf;
 }
 
@@ -736,7 +736,7 @@ ncr53c8xx_do_command(ncr53c8xx_t *dev, uint8_t id)
     uint8_t buf[12];
 
     memset(buf, 0, 12);
-    DMAPageRead(dev->dnad, buf, MIN(12, dev->dbc));
+    dma_bm_read(dev->dnad, buf, MIN(12, dev->dbc), 4);
     if (dev->dbc > 12) {
 	ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: CDB length %i too big\n", id, dev->current_lun, buf[0], dev->dbc);
 	dev->dbc = 12;
@@ -871,7 +871,7 @@ static uint8_t
 ncr53c8xx_get_msgbyte(ncr53c8xx_t *dev)
 {
     uint8_t data;
-    DMAPageRead(dev->dnad, &data, 1);
+    dma_bm_read(dev->dnad, &data, 1, 4);
     dev->dnad++;
     dev->dbc--;
     return data;
@@ -1082,7 +1082,7 @@ again:
 
 			/* 32-bit Table indirect */
 			offset = sextract32(addr, 0, 24);
-			DMAPageRead(dev->dsa + offset, (uint8_t *)buf, 8);
+			dma_bm_read(dev->dsa + offset, (uint8_t *)buf, 8, 4);
 			/* byte count is stored in bits 0:23 only */
 			dev->dbc = buf[0] & 0xffffff;
 			addr = buf[1];
@@ -1370,14 +1370,14 @@ again:
 			n = (insn & 7);
 			reg = (insn >> 16) & 0xff;
 			if (insn & (1 << 24)) {
-				DMAPageRead(addr, data, n);
+				dma_bm_read(addr, data, n, 4);
 				for (i = 0; i < n; i++)
 					ncr53c8xx_reg_writeb(dev, reg + i, data[i]);
 			} else {
 				ncr53c8xx_log("Store reg 0x%x size %d addr 0x%08x\n", reg, n, addr);
 				for (i = 0; i < n; i++)
 					data[i] = ncr53c8xx_reg_readb(dev, reg + i);
-				DMAPageWrite(addr, data, n);
+				dma_bm_write(addr, data, n, 4);
 			}
 		}
 		break;

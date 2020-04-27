@@ -282,9 +282,11 @@ extern void	mem_set_mem_state_smm(uint32_t base, uint32_t size, int state);
 extern uint8_t	mem_readb_phys(uint32_t addr);
 extern uint16_t	mem_readw_phys(uint32_t addr);
 extern uint32_t	mem_readl_phys(uint32_t addr);
+extern void	mem_read_phys(void *dest, uint32_t addr, int tranfer_size);
 extern void	mem_writeb_phys(uint32_t addr, uint8_t val);
 extern void	mem_writew_phys(uint32_t addr, uint16_t val);
 extern void	mem_writel_phys(uint32_t addr, uint32_t val);
+extern void	mem_write_phys(void *src, uint32_t addr, int tranfer_size);
 
 extern uint8_t	mem_read_ram(uint32_t addr, void *priv);
 extern uint16_t	mem_read_ramw(uint32_t addr, void *priv);

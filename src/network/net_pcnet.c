@@ -240,6 +240,7 @@ typedef struct {
     uint32_t cLinkDownReported;
     /** MS to wait before we enable the link. */
     uint32_t cMsLinkUpDelay;
+    int transfer_size;
     uint8_t maclocal[6]; /* configured MAC (local) address */
     pc_timer_t timer_soft_int, timer_restore;
 } nic_t;
@@ -423,6 +424,7 @@ pcnetIsLinkUp(nic_t *dev)
     return !dev->fLinkTempDown && dev->fLinkUp;
 }
 
+
 /**
  * Load transmit message descriptor
  * Make sure we read the own flag first.
@@ -435,34 +437,36 @@ pcnetIsLinkUp(nic_t *dev)
 static __inline int
 pcnetTmdLoad(nic_t *dev, TMD *tmd, uint32_t addr, int fRetIfNotOwn)
 {
-    uint8_t    ownbyte;
+    uint8_t    ownbyte, bytes[4] = { 0, 0, 0, 0 };
+    uint16_t xda[4];
+    uint32_t xda32[4];
 
     if (BCR_SWSTYLE(dev) == 0) {
-        uint16_t xda[4];
-
-        DMAPageRead(addr+3, &ownbyte, 1);
+	dma_bm_read(addr, (uint8_t *) bytes, 4, dev->transfer_size);
+	ownbyte = bytes[3];
         if (!(ownbyte & 0x80) && fRetIfNotOwn)
             return 0;
-        DMAPageRead(addr, (uint8_t*)&xda[0], sizeof(xda));
+        dma_bm_read(addr, (uint8_t*)&xda[0], sizeof(xda), dev->transfer_size);
         ((uint32_t *)tmd)[0] = (uint32_t)xda[0] | ((uint32_t)(xda[1] & 0x00ff) << 16);
         ((uint32_t *)tmd)[1] = (uint32_t)xda[2] | ((uint32_t)(xda[1] & 0xff00) << 16);
         ((uint32_t *)tmd)[2] = (uint32_t)xda[3] << 16;
         ((uint32_t *)tmd)[3] = 0;
     } else if (BCR_SWSTYLE(dev) != 3) {
-        DMAPageRead(addr+7, &ownbyte, 1);
+	dma_bm_read(addr + 4, (uint8_t *) bytes, 4, dev->transfer_size);
+	ownbyte = bytes[3];
         if (!(ownbyte & 0x80) && fRetIfNotOwn)
             return 0;
-        DMAPageRead(addr, (uint8_t*)tmd, 16);
+        dma_bm_read(addr, (uint8_t*)tmd, 16, dev->transfer_size);
     } else {
-        uint32_t xda[4];
-        DMAPageRead(addr+7, &ownbyte, 1);
+	dma_bm_read(addr + 4, (uint8_t *) bytes, 4, dev->transfer_size);
+	ownbyte = bytes[3];
         if (!(ownbyte & 0x80) && fRetIfNotOwn)
             return 0;
-        DMAPageRead(addr, (uint8_t*)&xda[0], sizeof(xda));
-        ((uint32_t *)tmd)[0] = xda[2];
-        ((uint32_t *)tmd)[1] = xda[1];
-        ((uint32_t *)tmd)[2] = xda[0];
-        ((uint32_t *)tmd)[3] = xda[3];
+        dma_bm_read(addr, (uint8_t*)&xda32[0], sizeof(xda32), dev->transfer_size);
+        ((uint32_t *)tmd)[0] = xda32[2];
+        ((uint32_t *)tmd)[1] = xda32[1];
+        ((uint32_t *)tmd)[2] = xda32[0];
+        ((uint32_t *)tmd)[3] = xda32[3];
     }
     /* Double check the own bit; guest drivers might be buggy and lock prefixes in the recompiler are ignored by other threads. */
     if (tmd->tmd1.own == 1 && !(ownbyte & 0x80))
@@ -481,30 +485,39 @@ pcnetTmdLoad(nic_t *dev, TMD *tmd, uint32_t addr, int fRetIfNotOwn)
 static __inline void
 pcnetTmdStorePassHost(nic_t *dev, TMD *tmd, uint32_t addr)
 {
+    uint8_t bytes[4] = { 0, 0, 0, 0 };
+    uint16_t xda[4];
+    uint32_t xda32[3];
+
     if (BCR_SWSTYLE(dev) == 0) {
-        uint16_t xda[4];
+        dma_bm_read(addr, (uint8_t *) bytes, sizeof(xda), dev->transfer_size);
         xda[0] =   ((uint32_t *)tmd)[0]        & 0xffff;
         xda[1] = ((((uint32_t *)tmd)[0] >> 16) &   0xff) | ((((uint32_t *)tmd)[1]>>16) & 0xff00);
         xda[2] =   ((uint32_t *)tmd)[1]        & 0xffff;
         xda[3] =   ((uint32_t *)tmd)[2] >> 16;
+#if 0
         xda[1] |=  0x8000;
-        DMAPageWrite(addr, (uint8_t*)&xda[0], sizeof(xda));
+        dma_bm_write(addr, (uint8_t*)&xda[0], sizeof(xda), dev->transfer_size);
+#endif
         xda[1] &= ~0x8000;
-        DMAPageWrite(addr+3, (uint8_t*)xda + 3, 1);
+        dma_bm_write(addr, (uint8_t*)&xda[0], sizeof(xda), dev->transfer_size);
     } else if (BCR_SWSTYLE(dev) != 3) {
+#if 0
         ((uint32_t*)tmd)[1] |=  0x80000000;
-        DMAPageWrite(addr, (uint8_t*)tmd, 12);
+        dma_bm_write(addr, (uint8_t*)tmd, 12, dev->transfer_size);
+#endif
         ((uint32_t*)tmd)[1] &= ~0x80000000;
-        DMAPageWrite(addr+7, (uint8_t*)tmd + 7, 1);
+        dma_bm_write(addr, (uint8_t*)tmd, 12, dev->transfer_size);
     } else {
-        uint32_t xda[3];
-        xda[0] = ((uint32_t *)tmd)[2];
-        xda[1] = ((uint32_t *)tmd)[1];
-        xda[2] = ((uint32_t *)tmd)[0];
-        xda[1] |=  0x80000000;
-        DMAPageWrite(addr, (uint8_t*)&xda[0], sizeof(xda));
-        xda[1] &= ~0x80000000;
-        DMAPageWrite(addr+7, (uint8_t*)xda + 7, 1);
+        xda32[0] = ((uint32_t *)tmd)[2];
+        xda32[1] = ((uint32_t *)tmd)[1];
+        xda32[2] = ((uint32_t *)tmd)[0];
+#if 0
+        xda32[1] |=  0x80000000;
+        dma_bm_write(addr, (uint8_t*)&xda32[0], sizeof(xda32), dev->transfer_size);
+#endif
+        xda32[1] &= ~0x80000000;
+        dma_bm_write(addr, (uint8_t*)&xda32[0], sizeof(xda32), dev->transfer_size);
     }
 }
 
@@ -521,33 +534,36 @@ pcnetTmdStorePassHost(nic_t *dev, TMD *tmd, uint32_t addr)
 static __inline int
 pcnetRmdLoad(nic_t *dev, RMD *rmd, uint32_t addr, int fRetIfNotOwn)
 {
-    uint8_t    ownbyte;
+    uint8_t    ownbyte, bytes[4] = { 0, 0, 0, 0 };
+    uint16_t rda[4];
+    uint32_t rda32[4];
 
     if (BCR_SWSTYLE(dev) == 0) {
-        uint16_t rda[4];
-        DMAPageRead(addr+3, &ownbyte, 1);
+        dma_bm_read(addr, (uint8_t *) bytes, 4, dev->transfer_size);
+	ownbyte = bytes[3];
         if (!(ownbyte & 0x80) && fRetIfNotOwn)
             return 0;
-        DMAPageRead(addr, (uint8_t*)&rda[0], sizeof(rda));
+        dma_bm_read(addr, (uint8_t*)&rda[0], sizeof(rda), dev->transfer_size);
         ((uint32_t *)rmd)[0] = (uint32_t)rda[0] | ((rda[1] & 0x00ff) << 16);
         ((uint32_t *)rmd)[1] = (uint32_t)rda[2] | ((rda[1] & 0xff00) << 16);
         ((uint32_t *)rmd)[2] = (uint32_t)rda[3];
         ((uint32_t *)rmd)[3] = 0;
     } else if (BCR_SWSTYLE(dev) != 3) {
-        DMAPageRead(addr+7, &ownbyte, 1);
+        dma_bm_read(addr + 4, (uint8_t *) bytes, 4, dev->transfer_size);
+	ownbyte = bytes[3];
         if (!(ownbyte & 0x80) && fRetIfNotOwn)
             return 0;
-        DMAPageRead(addr, (uint8_t*)rmd, 16);
+        dma_bm_read(addr, (uint8_t*)rmd, 16, dev->transfer_size);
     } else {
-        uint32_t rda[4];
-        DMAPageRead(addr+7, &ownbyte, 1);
+        dma_bm_read(addr + 4, (uint8_t *) bytes, 4, dev->transfer_size);
+	ownbyte = bytes[3];
         if (!(ownbyte & 0x80) && fRetIfNotOwn)
             return 0;
-        DMAPageRead(addr, (uint8_t*)&rda[0], sizeof(rda));
-        ((uint32_t *)rmd)[0] = rda[2];
-        ((uint32_t *)rmd)[1] = rda[1];
-        ((uint32_t *)rmd)[2] = rda[0];
-        ((uint32_t *)rmd)[3] = rda[3];
+        dma_bm_read(addr, (uint8_t*)&rda32[0], sizeof(rda32), dev->transfer_size);
+        ((uint32_t *)rmd)[0] = rda32[2];
+        ((uint32_t *)rmd)[1] = rda32[1];
+        ((uint32_t *)rmd)[2] = rda32[0];
+        ((uint32_t *)rmd)[3] = rda32[3];
     }
     /* Double check the own bit; guest drivers might be buggy and lock prefixes in the recompiler are ignored by other threads. */
     if (rmd->rmd1.own == 1 && !(ownbyte & 0x80))
@@ -567,49 +583,38 @@ pcnetRmdLoad(nic_t *dev, RMD *rmd, uint32_t addr, int fRetIfNotOwn)
 static __inline void
 pcnetRmdStorePassHost(nic_t *dev, RMD *rmd, uint32_t addr)
 {
+    uint16_t rda[4];
+    uint32_t rda32[3];
+
     if (BCR_SWSTYLE(dev) == 0) {
-        uint16_t rda[4];
         rda[0] =   ((uint32_t *)rmd)[0]      & 0xffff;
         rda[1] = ((((uint32_t *)rmd)[0]>>16) &   0xff) | ((((uint32_t *)rmd)[1]>>16) & 0xff00);
         rda[2] =   ((uint32_t *)rmd)[1]      & 0xffff;
         rda[3] =   ((uint32_t *)rmd)[2]      & 0xffff;
+#if 0
         rda[1] |=  0x8000;
-        DMAPageWrite(addr, (uint8_t*)&rda[0], sizeof(rda));
+        dma_bm_write(addr, (uint8_t*)&rda[0], sizeof(rda), dev->transfer_size);
+#endif
         rda[1] &= ~0x8000;
-        DMAPageWrite(addr+3, (uint8_t*)rda + 3, 1);
+        dma_bm_write(addr, (uint8_t*)&rda[0], sizeof(rda), dev->transfer_size);
     } else if (BCR_SWSTYLE(dev) != 3) {
+#if 0
         ((uint32_t*)rmd)[1] |=  0x80000000;
-        DMAPageWrite(addr, (uint8_t*)rmd, 12);
+        dma_bm_write(addr, (uint8_t*)rmd, 12, dev->transfer_size);
+#endif
         ((uint32_t*)rmd)[1] &= ~0x80000000;
-        DMAPageWrite(addr+7, (uint8_t*)rmd + 7, 1);
+        dma_bm_write(addr, (uint8_t*)rmd, 12, dev->transfer_size);
     } else {
-        uint32_t rda[3];
-        rda[0] = ((uint32_t *)rmd)[2];
-        rda[1] = ((uint32_t *)rmd)[1];
-        rda[2] = ((uint32_t *)rmd)[0];
-        rda[1] |=  0x80000000;
-        DMAPageWrite(addr, (uint8_t*)&rda[0], sizeof(rda));
-        rda[1] &= ~0x80000000;
-        DMAPageWrite(addr+7, (uint8_t*)rda + 7, 1);
+        rda32[0] = ((uint32_t *)rmd)[2];
+        rda32[1] = ((uint32_t *)rmd)[1];
+        rda32[2] = ((uint32_t *)rmd)[0];
+#if 0
+        rda32[1] |=  0x80000000;
+        dma_bm_write(addr, (uint8_t*)&rda32[0], sizeof(rda32), dev->transfer_size);
+#endif
+        rda32[1] &= ~0x80000000;
+        dma_bm_write(addr, (uint8_t*)&rda32[0], sizeof(rda32), dev->transfer_size);
     }
-}
-
-
-/**
- * Read+Write a TX/RX descriptor to prevent DMAPageWrite() allocating
- * pages later when we shouldn't schedule to EMT. Temporarily hack.
- */
-static void 
-pcnetDescTouch(nic_t *dev, uint32_t addr)
-{
-    uint8_t aBuf[16];
-    int cbDesc;
-    if (BCR_SWSTYLE(dev) == 0)
-        cbDesc = 8;
-    else
-        cbDesc = 16;
-    DMAPageRead(addr, aBuf, cbDesc);
-    DMAPageWrite(addr, aBuf, cbDesc);
 }
 
 
@@ -926,8 +931,8 @@ pcnetInit(nic_t *dev)
     /** @todo Documentation says that RCVRL and XMTRL are stored as two's complement!
      *        Software is allowed to write these registers directly. */
 #define PCNET_INIT() do { \
-    DMAPageRead(PHYSADDR(dev, CSR_IADR(dev)),         \
-		(uint8_t *)&initblk, sizeof(initblk));             \
+    dma_bm_read(PHYSADDR(dev, CSR_IADR(dev)),         \
+		(uint8_t *)&initblk, sizeof(initblk), dev->transfer_size);             \
     dev->aCSR[15]  = le16_to_cpu(initblk.mode);                        \
     CSR_RCVRL(dev) = (initblk.rlen < 9) ? (1 << initblk.rlen) : 512;   \
     CSR_XMTRL(dev) = (initblk.tlen < 9) ? (1 << initblk.tlen) : 512;   \
@@ -964,18 +969,11 @@ pcnetInit(nic_t *dev)
         RMD rmd;
         uint32_t rdaddr = PHYSADDR(dev, pcnetRdraAddr(dev, i));
 
-        pcnetDescTouch(dev, rdaddr);
         /* At this time it is not guaranteed that the buffers are already initialized. */
         if (pcnetRmdLoad(dev, &rmd, rdaddr, 0)) {
             uint32_t cbBuf = 4096U-rmd.rmd1.bcnt;
             cbRxBuffers += cbBuf;
         }
-    }
-
-    for (i = CSR_XMTRL(dev); i >= 1; i--) {
-        uint32_t tdaddr = PHYSADDR(dev, pcnetTdraAddr(dev, i));
-
-        pcnetDescTouch(dev, tdaddr);
     }
 
     /*
@@ -1339,8 +1337,8 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
              *    forbidden as long as it is owned by the device
              *  - we don't cache any register state beyond this point
              */
-			
-            DMAPageWrite(rbadr, src, cbBuf);
+
+            dma_bm_write(rbadr, src, cbBuf, dev->transfer_size);
 			
             /* RX disabled in the meantime? If so, abort RX. */
             if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev)) {
@@ -1383,7 +1381,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                 /* We have to leave the critical section here or we risk deadlocking
                  * with EMT when the write is to an unallocated page or has an access
                  * handler associated with it. See above for additional comments. */
-                DMAPageWrite(rbadr2, src, cbBuf);
+                dma_bm_write(rbadr2, src, cbBuf, dev->transfer_size);
 
                 /* RX disabled in the meantime? If so, abort RX. */
                 if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev)) {
@@ -1508,7 +1506,7 @@ pcnetAsyncTransmit(nic_t *dev)
 		 * zero length if it is not the last one in the chain. */
 		if (cb <= MAX_FRAME) {
 		    dev->xmit_pos = cb;
-		    DMAPageRead(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf, cb);
+		    dma_bm_read(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf, cb, dev->transfer_size);
 
 		    if (fLoopback) {
 			if (HOST_IS_OWNER(CSR_CRST(dev)))
@@ -1574,7 +1572,7 @@ pcnetAsyncTransmit(nic_t *dev)
              */
             unsigned cb = 4096 - tmd.tmd1.bcnt;
 	    dev->xmit_pos = pcnetCalcPacketLen(dev, cb);
-	    DMAPageRead(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf, cb);
+	    dma_bm_read(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf, cb, dev->transfer_size);
 
             for (;;) {
                 /*
@@ -1613,7 +1611,7 @@ pcnetAsyncTransmit(nic_t *dev)
                 if (dev->xmit_pos + cb <= MAX_FRAME) { /** @todo this used to be ... + cb < MAX_FRAME. */
 		    int off = dev->xmit_pos;
 		    dev->xmit_pos = cb + off;
-		    DMAPageRead(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf + off, cb);
+		    dma_bm_read(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf + off, cb, dev->transfer_size);
 		}
 
                 /*
@@ -2833,6 +2831,11 @@ pcnet_init(const device_t *info)
     dev->is_pci = !!(info->flags & DEVICE_PCI);
     dev->is_vlb = !!(info->flags & DEVICE_VLB);
     dev->is_isa = !!(info->flags & (DEVICE_ISA | DEVICE_AT));
+
+    if (dev->is_pci || dev->is_vlb)
+	dev->transfer_size = 4;
+    else
+	dev->transfer_size = 2;
 
     if (dev->is_pci) {
 	pcnet_mem_init(dev, 0x0fffff00);
