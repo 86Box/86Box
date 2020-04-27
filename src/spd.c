@@ -8,7 +8,7 @@
  *
  *		Emulation of SPD (Serial Presence Detect) devices.
  *
- * Version:	@(#)spd.c	1.0.0	2020/03/24
+ *
  *
  * Authors:	RichardG, <richardg867@gmail.com>
  *
@@ -26,9 +26,6 @@
 #include <86box/smbus.h>
 #include <86box/spd.h>
 
-
-#define SPD_MAX_SLOTS	8
-#define SPD_DATA_SIZE	256
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -153,10 +150,16 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 {
     uint8_t slot, slot_count, vslot, next_empty_vslot, i, split;
     uint16_t min_module_size, total_size, vslots[SPD_MAX_SLOTS];
+    spd_edo_t *edo_data;
     spd_sdram_t *sdram_data;
 
     /* determine the minimum module size for this RAM type */
     switch (ram_type) {
+    	case SPD_TYPE_FPM:
+    	case SPD_TYPE_EDO:
+    		min_module_size = SPD_MIN_SIZE_EDO;
+    		break;
+
     	case SPD_TYPE_SDRAM:
     		min_module_size = SPD_MIN_SIZE_SDRAM;
     		break;
@@ -192,8 +195,8 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     if (total_size > 0) /* did we populate everything? */
     	spd_log("SPD: not enough RAM slots (%d) to cover memory (%d MB short)\n", slot_count, total_size);
 
-    /* populate empty vslots by splitting modules while possible */
-    split = 1;
+    /* populate empty vslots by splitting modules... */
+    split = (total_size == 0); /* ...if possible */
     while (split) {
     	/* look for a module to split */
     	split = 0;
@@ -229,7 +232,7 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 
     	spd_log("SPD: registering slot %d = vslot %d = %d MB\n", slot, vslot, vslots[vslot]);
 
-    	spd_devices[slot] = (device_t *)malloc(sizeof(device_t));
+    	spd_devices[slot] = (device_t *) malloc(sizeof(device_t));
     	memset(spd_devices[slot], 0, sizeof(device_t));
     	spd_devices[slot]->name = "Serial Presence Detect ROM";
     	spd_devices[slot]->local = slot;
@@ -237,8 +240,41 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     	spd_devices[slot]->close = spd_close;
 
     	switch (ram_type) {
+    		case SPD_TYPE_FPM:
+    		case SPD_TYPE_EDO:
+    			edo_data = (spd_edo_t *) &spd_data[slot];
+    			memset(edo_data, 0, sizeof(spd_edo_t));
+
+    			/* FIXME: very little information about EDO SPD is available,
+    			   let alone software to interpret it correctly. */
+    			edo_data->bytes_used = 0x80;
+    			edo_data->spd_size = 0x08;
+    			edo_data->mem_type = ram_type;
+    			edo_data->row_bits = 6 + log2_ui16(vslots[vslot]);
+    			edo_data->col_bits = 9;
+    			edo_data->banks = 2;
+    			edo_data->data_width_lsb = 64;
+    			edo_data->signal_level = SPD_SIGNAL_LVTTL;
+    			edo_data->trac = 50;
+    			edo_data->tcac = 13;
+    			edo_data->refresh_rate = SPD_REFRESH_NORMAL;
+    			edo_data->dram_width = 8;
+
+    			edo_data->spd_rev = 0x12;
+    			sprintf(edo_data->part_no, "86Box-%s-%03dM", (ram_type == SPD_TYPE_FPM) ? "FPM" : "EDO", vslots[vslot]);
+    			for (i = strlen(edo_data->part_no); i < sizeof(edo_data->part_no); i++)
+    				edo_data->part_no[i] = ' ';
+    			edo_data->mfg_year = 20;
+    			edo_data->mfg_week = 17;
+
+    			for (i = 0; i < 63; i++)
+    				edo_data->checksum += spd_data[slot][i];
+    			for (i = 0; i < 129; i++)
+    				edo_data->checksum2 += spd_data[slot][i];
+    			break;
+
     		case SPD_TYPE_SDRAM:
-    			sdram_data = (spd_sdram_t *)&spd_data[slot];
+    			sdram_data = (spd_sdram_t *) &spd_data[slot];
     			memset(sdram_data, 0, sizeof(spd_sdram_t));
 
     			sdram_data->bytes_used = 0x80;
@@ -248,12 +284,10 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     			sdram_data->col_bits = 9;
     			sdram_data->rows = 2;
     			sdram_data->data_width_lsb = 64;
-    			sdram_data->data_width_msb = 0;
-    			sdram_data->signal_level = SPD_SDR_SIGNAL_LVTTL;
+    			sdram_data->signal_level = SPD_SIGNAL_LVTTL;
     			sdram_data->tclk = 0x75; /* 7.5 ns = 133.3 MHz */
     			sdram_data->tac = 0x10;
-    			sdram_data->config = 0;
-    			sdram_data->refresh_rate = SPD_SDR_REFRESH_SELF | SPD_SDR_REFRESH_NORMAL;
+    			sdram_data->refresh_rate = SPD_SDR_REFRESH_SELF | SPD_REFRESH_NORMAL;
     			sdram_data->sdram_width = 8;
     			sdram_data->tccd = 1;
     			sdram_data->burst = SPD_SDR_BURST_PAGE | 1 | 2 | 4 | 8;
@@ -267,17 +301,21 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     			sdram_data->bank_density = 1 << (log2_ui16(vslots[vslot] >> 1) - 2);
     			sdram_data->ca_setup = sdram_data->data_setup = 0x15;
     			sdram_data->ca_hold = sdram_data->data_hold = 0x08;
+
     			sdram_data->spd_rev = 0x12;
     			sprintf(sdram_data->part_no, "86Box-SDR-%03dM", vslots[vslot]);
     			for (i = strlen(sdram_data->part_no); i < sizeof(sdram_data->part_no); i++)
     				sdram_data->part_no[i] = ' ';
-    			sdram_data->mfg_year = 0x20;
-    			sdram_data->mfg_week = 0x13;
+    			sdram_data->mfg_year = 20;
+    			sdram_data->mfg_week = 13;
+
     			sdram_data->freq = 100;
     			sdram_data->features = 0xFF;
 
     			for (i = 0; i < 63; i++)
     				sdram_data->checksum += spd_data[slot][i];
+    			for (i = 0; i < 129; i++)
+    				sdram_data->checksum2 += spd_data[slot][i];
     			break;
     	}
 
