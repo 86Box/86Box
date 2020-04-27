@@ -847,10 +847,7 @@ LPARAM win_get_string(int id)
 void	/* plat_ */
 startblit(void)
 {
-    DWORD ret = WaitForSingleObject(ghMutex, 1000);
-
-    if(ret == WAIT_TIMEOUT)
-	fatal("The blit mutex has timed out.");
+    WaitForSingleObject(ghMutex, INFINITE);
 }
 
 
