@@ -4997,7 +4997,7 @@ mystique_init(const device_t *info)
     mystique->wake_fifo_thread = thread_create_event();
     mystique->fifo_not_full_event = thread_create_event();
     mystique->fifo_thread = thread_create(fifo_thread, mystique);
-    mystique->dma.lock = thread_create_mutex(L"86Box.MGAMutex");
+    mystique->dma.lock = thread_create_mutex();
 
     timer_add(&mystique->wake_timer, mystique_wake_timer, (void *)mystique, 0);
     timer_add(&mystique->softrap_pending_timer, mystique_softrap_pending_timer, (void *)mystique, 1);
