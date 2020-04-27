@@ -132,9 +132,9 @@ thread_destroy_event(event_t *arg)
 
 
 mutex_t *
-thread_create_mutex(wchar_t *name)
+thread_create_mutex(void)
 {
-    return((mutex_t*)CreateMutex(NULL, FALSE, name));
+    return((mutex_t*)CreateMutex(NULL, FALSE, NULL));
 }
 
 

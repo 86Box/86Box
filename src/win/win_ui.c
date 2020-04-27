@@ -962,7 +962,7 @@ ui_init(int nCmdShow)
      * Before we can create the Render window, we first have
      * to prepare some other things that it depends on.
      */
-    ghMutex = CreateMutex(NULL, FALSE, L"86Box.BlitMutex");
+    ghMutex = CreateMutex(NULL, FALSE, NULL);
 
     /* Create the Machine Rendering window. */
     hwndRender = CreateWindow(L"STATIC", NULL, WS_CHILD|SS_BITMAP,
