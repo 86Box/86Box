@@ -120,9 +120,9 @@ static int opMOV_CRx_r_a16(uint32_t fetchdat)
                         mmu_perm=4;
                 if (hascache && !(cr0 & (1 << 30)))
                         cpu_cache_int_enabled = 1;
-				else
-						cpu_cache_int_enabled = 0;
-				if (hascache && ((cr0 ^ old_cr0) & (1 << 30)))
+		else
+			cpu_cache_int_enabled = 0;
+		if (hascache && ((cr0 ^ old_cr0) & (1 << 30)))
                         cpu_update_waitstates();
                 if (cr0 & 1)
                         cpu_cur_status |= CPU_STATUS_PMODE;
@@ -139,8 +139,8 @@ static int opMOV_CRx_r_a16(uint32_t fetchdat)
                 case 4:
                 if (cpu_has_feature(CPU_FEATURE_CR4))
                 {
-			if (cpu_state.regs[cpu_rm].l & 0x00000020)
-				fatal("PAE enable\n");
+	                if (((cpu_state.regs[cpu_rm].l ^ cr4) & cpu_CR4_mask) & CR4_PAE)
+        	                flushmmucache();
                         cr4 = cpu_state.regs[cpu_rm].l & cpu_CR4_mask;
                         break;
                 }
@@ -195,6 +195,8 @@ static int opMOV_CRx_r_a32(uint32_t fetchdat)
                 case 4:
                 if (cpu_has_feature(CPU_FEATURE_CR4))
                 {
+	                if (((cpu_state.regs[cpu_rm].l ^ cr4) & cpu_CR4_mask) & CR4_PAE)
+        	                flushmmucache();
                         cr4 = cpu_state.regs[cpu_rm].l & cpu_CR4_mask;
                         break;
                 }
