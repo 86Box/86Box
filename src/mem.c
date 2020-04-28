@@ -1459,7 +1459,7 @@ mem_read_phys(void *dest, uint32_t addr, int transfer_size)
     } else if (transfer_size == 2) {
 	pw = (uint16_t *) dest;
 	*pw = mem_readw_phys(addr);
-    } else if (transfer_size == 4) {
+    } else if (transfer_size == 1) {
 	pb = (uint8_t *) dest;
 	*pb = mem_readb_phys(addr);
     }
@@ -1546,7 +1546,7 @@ mem_write_phys(void *src, uint32_t addr, int transfer_size)
     } else if (transfer_size == 2) {
 	pw = (uint16_t *) src;
 	mem_writew_phys(addr, *pw);
-    } else {
+    } else if (transfer_size == 1) {
 	pb = (uint8_t *) src;
 	mem_writeb_phys(addr, *pb);
     }
