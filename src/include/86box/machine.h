@@ -297,15 +297,21 @@ extern int	machine_at_i430vx_init(const machine_t *);
 extern int	machine_at_brio80xx_init(const machine_t *);
 extern int	machine_at_pb680_init(const machine_t *);
 
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_p55xb2_init(const machine_t *);
+#endif
 extern int	machine_at_tx97_init(const machine_t *);
 extern int	machine_at_ym430tx_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_586t2_init(const machine_t *);
 extern int	machine_at_807ds_init(const machine_t *);
+#endif
 extern int	machine_at_p5mms98_init(const machine_t *);
 
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_tx100_init(const machine_t *);
 extern int	machine_at_advanceii_init(const machine_t *);
+#endif
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_pb640_get_device(void);
@@ -320,7 +326,9 @@ extern int	machine_at_686nx_init(const machine_t *);
 extern int	machine_at_mb600n_init(const machine_t *);
 extern int	machine_at_8500ttc_init(const machine_t *);
 extern int	machine_at_m6mi_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_vs440fx_init(const machine_t *);
+#endif
 #ifdef EMU_DEVICE_H
 extern void	machine_at_p65up5_common_init(const machine_t *, const device_t *northbridge);
 #endif
@@ -330,7 +338,9 @@ extern int	machine_at_p65up5_cp6nd_init(const machine_t *);
 extern int	machine_at_p65up5_cpknd_init(const machine_t *);
 extern int	machine_at_p6kfx_init(const machine_t *);
 
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_6bxc_init(const machine_t *);
+#endif
 extern int	machine_at_p2bls_init(const machine_t *);
 extern int	machine_at_p3bf_init(const machine_t *);
 extern int	machine_at_bf6_init(const machine_t *);
