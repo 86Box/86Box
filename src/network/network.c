@@ -302,9 +302,12 @@ network_queue(void *priv)
     network_queue_get(&pkt);
     if (pkt.len > 0) {
 	net_cards[network_card].rx(pkt.priv, pkt.data, pkt.len);
-	timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0 * ((double) pkt.len));
+	if (pkt.len >= 128)
+		timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0 * ((double) pkt.len));
+	else
+		timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0 * 128.0);
     } else
-	timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0);
+	timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0 * 128.0);
     network_queue_advance();
 
     network_busy(0);
