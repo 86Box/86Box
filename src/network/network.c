@@ -240,16 +240,12 @@ network_queue_put(void *priv, uint8_t *data, int len)
 
 
 static void
-network_queue_get(netpkt_t *pkt)
+network_queue_get(netpkt_t **pkt)
 {
-    pkt->priv = NULL;
-    pkt->data = NULL;
-    pkt->len = 0;
-
     if (first_pkt == NULL)
-	return;
-
-    memcpy(pkt, first_pkt, sizeof(netpkt_t));
+	*pkt = NULL;
+    else
+	*pkt = first_pkt;
 }
 
 
@@ -295,15 +291,15 @@ network_queue_clear(void)
 static void
 network_queue(void *priv)
 {
-    netpkt_t pkt;
+    netpkt_t *pkt = NULL;
 
     network_busy(1);
 
     network_queue_get(&pkt);
-    if (pkt.len > 0) {
-	net_cards[network_card].rx(pkt.priv, pkt.data, pkt.len);
-	if (pkt.len >= 128)
-		timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0 * ((double) pkt.len));
+    if ((pkt != NULL) && (pkt->len > 0)) {
+	net_cards[network_card].rx(pkt->priv, pkt->data, pkt->len);
+	if (pkt->len >= 128)
+		timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0 * ((double) pkt->len));
 	else
 		timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0 * 128.0);
     } else
