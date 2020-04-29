@@ -165,7 +165,8 @@ poll_thread(void *arg)
 		if ((mac_cmp32[0] != mac_cmp32[1]) ||
 		    (mac_cmp16[0] != mac_cmp16[1])) {
 
-			poll_card->rx(poll_card->priv, (uint8_t *)qp->data, qp->len); 
+			network_queue_put(poll_card->priv, (uint8_t *)qp->data, qp->len);
+			// poll_card->rx(poll_card->priv, (uint8_t *)qp->data, qp->len); 
 			data_valid = 1;
 		}
 

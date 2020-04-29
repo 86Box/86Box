@@ -115,6 +115,8 @@ uint64_t		*byte_code_present_mask;
 uint32_t		purgable_page_list_head = 0;
 int			purgeable_page_count = 0;
 
+int			use_phys_exec = 0;
+
 
 /* FIXME: re-do this with a 'mem_ops' struct. */
 static mem_mapping_t	*read_mapping[MEM_MAPPINGS_NO];
@@ -131,9 +133,6 @@ static uint8_t		ff_array[4096];			/* Must be at least one page. */
 #else
 static uint8_t		ff_pccache[4] = { 0xff, 0xff, 0xff, 0xff };
 #endif
-
-
-#define USE_PHYS_EXEC
 
 
 #ifdef ENABLE_MEM_LOG
@@ -1378,12 +1377,9 @@ mem_readb_phys(uint32_t addr)
 
     mem_logical_addr = 0xffffffff;
 
-#ifdef USE_PHYS_EXEC
-    if (_mem_exec[addr >> MEM_GRANULARITY_BITS])
+    if (use_phys_exec && _mem_exec[addr >> MEM_GRANULARITY_BITS])
 	return _mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK];
-    else
-#endif
-    if (map && map->read_b)
+    else if (map && map->read_b)
        	return map->read_b(addr, map->p);
     else
 	return 0xff;
@@ -1394,20 +1390,14 @@ uint16_t
 mem_readw_phys(uint32_t addr)
 {
     mem_mapping_t *map = read_mapping[addr >> MEM_GRANULARITY_BITS];
-    uint16_t temp;
-#ifdef USE_PHYS_EXEC
-    uint16_t *p;
-#endif
+    uint16_t temp, *p;
 
     mem_logical_addr = 0xffffffff;
 
-#ifdef USE_PHYS_EXEC
-    if ((addr <= MEM_GRANULARITY_HBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
+    if (use_phys_exec && ((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
 	p = (uint16_t *) &(_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK]);
 	return *p;
-    } else
-#endif
-    if ((addr <= MEM_GRANULARITY_HBOUND) && (map && map->read_w))
+    } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->read_w))
        	return map->read_w(addr, map->p);
     else {
 	temp = mem_readb_phys(addr + 1) << 8;
@@ -1422,20 +1412,14 @@ uint32_t
 mem_readl_phys(uint32_t addr)
 {
     mem_mapping_t *map = read_mapping[addr >> MEM_GRANULARITY_BITS];
-    uint32_t temp;
-#ifdef USE_PHYS_EXEC
-    uint32_t *p;
-#endif
+    uint32_t temp, *p;
 
     mem_logical_addr = 0xffffffff;
 
-#ifdef USE_PHYS_EXEC
-    if ((addr <= MEM_GRANULARITY_QBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
+    if (use_phys_exec && ((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
 	p = (uint32_t *) &(_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK]);
 	return *p;
-    } else
-#endif
-    if ((addr <= MEM_GRANULARITY_QBOUND) && (map && map->read_l))
+    } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->read_l))
        	return map->read_l(addr, map->p);
     else {
 	temp = mem_readw_phys(addr + 2) << 16;
@@ -1473,12 +1457,9 @@ mem_writeb_phys(uint32_t addr, uint8_t val)
 
     mem_logical_addr = 0xffffffff;
 
-#ifdef USE_PHYS_EXEC
-    if (_mem_exec[addr >> MEM_GRANULARITY_BITS])
+    if (use_phys_exec && _mem_exec[addr >> MEM_GRANULARITY_BITS])
 	_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK] = val;
-    else
-#endif
-    if (map && map->write_b)
+    else if (map && map->write_b)
        	map->write_b(addr, val, map->p);
 }
 
@@ -1487,19 +1468,14 @@ void
 mem_writew_phys(uint32_t addr, uint16_t val)
 {
     mem_mapping_t *map = write_mapping[addr >> MEM_GRANULARITY_BITS];
-#ifdef USE_PHYS_EXEC
     uint16_t *p;
-#endif
 
     mem_logical_addr = 0xffffffff;
 
-#ifdef USE_PHYS_EXEC
-    if ((addr <= MEM_GRANULARITY_HBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
+    if (use_phys_exec && ((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
 	p = (uint16_t *) &(_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK]);
 	*p = val;
-    } else
-#endif
-    if ((addr <= MEM_GRANULARITY_HBOUND) && (map && map->write_w))
+    } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->write_w))
        	map->write_w(addr, val, map->p);
     else {
 	mem_writeb_phys(addr, val & 0xff);
@@ -1512,19 +1488,14 @@ void
 mem_writel_phys(uint32_t addr, uint32_t val)
 {
     mem_mapping_t *map = write_mapping[addr >> MEM_GRANULARITY_BITS];
-#ifdef USE_PHYS_EXEC
     uint32_t *p;
-#endif
 
     mem_logical_addr = 0xffffffff;
 
-#ifdef USE_PHYS_EXEC
-    if ((addr <= MEM_GRANULARITY_QBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
+    if (use_phys_exec && ((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
 	p = (uint32_t *) &(_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK]);
 	*p = val;
-    } else
-#endif
-    if ((addr <= MEM_GRANULARITY_QBOUND) && (map && map->write_l))
+    } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->write_l))
        	map->write_l(addr, val, map->p);
     else {
 	mem_writew_phys(addr, val & 0xffff);

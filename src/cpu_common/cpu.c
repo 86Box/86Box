@@ -319,10 +319,9 @@ cpu_set(void)
 #else
 	is_k5        = 0;
 #endif
-        is_k6        = (cpu_s->cpu_type == CPU_K6);
 	is_k6        = (cpu_s->cpu_type == CPU_K6) || (cpu_s->cpu_type == CPU_K6_2) ||
-				(cpu_s->cpu_type == CPU_K6_2C) || (cpu_s->cpu_type == CPU_K6_3) ||
-				(cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P);
+		       (cpu_s->cpu_type == CPU_K6_2C) || (cpu_s->cpu_type == CPU_K6_3) ||
+		       (cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P);
         is_p6        = (cpu_s->cpu_type == CPU_PENTIUMPRO) || (cpu_s->cpu_type == CPU_PENTIUM2) ||
 		       (cpu_s->cpu_type == CPU_PENTIUM2D);
 	/* The Samuel 2 datasheet claims it's Celeron-compatible. */

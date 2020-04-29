@@ -441,11 +441,15 @@ pcnetTmdLoad(nic_t *dev, TMD *tmd, uint32_t addr, int fRetIfNotOwn)
     uint16_t xda[4];
     uint32_t xda32[4];
 
+    use_phys_exec = 1;
+
     if (BCR_SWSTYLE(dev) == 0) {
 	dma_bm_read(addr, (uint8_t *) bytes, 4, dev->transfer_size);
 	ownbyte = bytes[3];
-        if (!(ownbyte & 0x80) && fRetIfNotOwn)
+        if (!(ownbyte & 0x80) && fRetIfNotOwn) {
+	    use_phys_exec = 0;
             return 0;
+	}
         dma_bm_read(addr, (uint8_t*)&xda[0], sizeof(xda), dev->transfer_size);
         ((uint32_t *)tmd)[0] = (uint32_t)xda[0] | ((uint32_t)(xda[1] & 0x00ff) << 16);
         ((uint32_t *)tmd)[1] = (uint32_t)xda[2] | ((uint32_t)(xda[1] & 0xff00) << 16);
@@ -454,14 +458,18 @@ pcnetTmdLoad(nic_t *dev, TMD *tmd, uint32_t addr, int fRetIfNotOwn)
     } else if (BCR_SWSTYLE(dev) != 3) {
 	dma_bm_read(addr + 4, (uint8_t *) bytes, 4, dev->transfer_size);
 	ownbyte = bytes[3];
-        if (!(ownbyte & 0x80) && fRetIfNotOwn)
+        if (!(ownbyte & 0x80) && fRetIfNotOwn) {
+	    use_phys_exec = 0;
             return 0;
+	}
         dma_bm_read(addr, (uint8_t*)tmd, 16, dev->transfer_size);
     } else {
 	dma_bm_read(addr + 4, (uint8_t *) bytes, 4, dev->transfer_size);
 	ownbyte = bytes[3];
-        if (!(ownbyte & 0x80) && fRetIfNotOwn)
+        if (!(ownbyte & 0x80) && fRetIfNotOwn) {
+	    use_phys_exec = 0;
             return 0;
+	}
         dma_bm_read(addr, (uint8_t*)&xda32[0], sizeof(xda32), dev->transfer_size);
         ((uint32_t *)tmd)[0] = xda32[2];
         ((uint32_t *)tmd)[1] = xda32[1];
@@ -474,6 +482,8 @@ pcnetTmdLoad(nic_t *dev, TMD *tmd, uint32_t addr, int fRetIfNotOwn)
     if (!(ownbyte & 0x80))
         tmd->tmd1.own = 0;
 
+    use_phys_exec = 0;
+
     return !!tmd->tmd1.own;
 }
 
@@ -485,12 +495,12 @@ pcnetTmdLoad(nic_t *dev, TMD *tmd, uint32_t addr, int fRetIfNotOwn)
 static __inline void
 pcnetTmdStorePassHost(nic_t *dev, TMD *tmd, uint32_t addr)
 {
-    uint8_t bytes[4] = { 0, 0, 0, 0 };
     uint16_t xda[4];
     uint32_t xda32[3];
 
+    use_phys_exec = 1;
+
     if (BCR_SWSTYLE(dev) == 0) {
-        dma_bm_read(addr, (uint8_t *) bytes, sizeof(xda), dev->transfer_size);
         xda[0] =   ((uint32_t *)tmd)[0]        & 0xffff;
         xda[1] = ((((uint32_t *)tmd)[0] >> 16) &   0xff) | ((((uint32_t *)tmd)[1]>>16) & 0xff00);
         xda[2] =   ((uint32_t *)tmd)[1]        & 0xffff;
@@ -519,6 +529,8 @@ pcnetTmdStorePassHost(nic_t *dev, TMD *tmd, uint32_t addr)
         xda32[1] &= ~0x80000000;
         dma_bm_write(addr, (uint8_t*)&xda32[0], sizeof(xda32), dev->transfer_size);
     }
+
+    use_phys_exec = 0;
 }
 
 
@@ -538,11 +550,15 @@ pcnetRmdLoad(nic_t *dev, RMD *rmd, uint32_t addr, int fRetIfNotOwn)
     uint16_t rda[4];
     uint32_t rda32[4];
 
+    use_phys_exec = 1;
+
     if (BCR_SWSTYLE(dev) == 0) {
         dma_bm_read(addr, (uint8_t *) bytes, 4, dev->transfer_size);
 	ownbyte = bytes[3];
-        if (!(ownbyte & 0x80) && fRetIfNotOwn)
+        if (!(ownbyte & 0x80) && fRetIfNotOwn) {
+            use_phys_exec = 0;
             return 0;
+	}
         dma_bm_read(addr, (uint8_t*)&rda[0], sizeof(rda), dev->transfer_size);
         ((uint32_t *)rmd)[0] = (uint32_t)rda[0] | ((rda[1] & 0x00ff) << 16);
         ((uint32_t *)rmd)[1] = (uint32_t)rda[2] | ((rda[1] & 0xff00) << 16);
@@ -551,14 +567,18 @@ pcnetRmdLoad(nic_t *dev, RMD *rmd, uint32_t addr, int fRetIfNotOwn)
     } else if (BCR_SWSTYLE(dev) != 3) {
         dma_bm_read(addr + 4, (uint8_t *) bytes, 4, dev->transfer_size);
 	ownbyte = bytes[3];
-        if (!(ownbyte & 0x80) && fRetIfNotOwn)
+        if (!(ownbyte & 0x80) && fRetIfNotOwn) {
+            use_phys_exec = 0;
             return 0;
+	}
         dma_bm_read(addr, (uint8_t*)rmd, 16, dev->transfer_size);
     } else {
         dma_bm_read(addr + 4, (uint8_t *) bytes, 4, dev->transfer_size);
 	ownbyte = bytes[3];
-        if (!(ownbyte & 0x80) && fRetIfNotOwn)
+        if (!(ownbyte & 0x80) && fRetIfNotOwn) {
+            use_phys_exec = 0;
             return 0;
+	}
         dma_bm_read(addr, (uint8_t*)&rda32[0], sizeof(rda32), dev->transfer_size);
         ((uint32_t *)rmd)[0] = rda32[2];
         ((uint32_t *)rmd)[1] = rda32[1];
@@ -571,6 +591,8 @@ pcnetRmdLoad(nic_t *dev, RMD *rmd, uint32_t addr, int fRetIfNotOwn)
 	
     if (!(ownbyte & 0x80))
         rmd->rmd1.own = 0;
+
+    use_phys_exec = 0;
 
     return !!rmd->rmd1.own;
 }
@@ -585,6 +607,8 @@ pcnetRmdStorePassHost(nic_t *dev, RMD *rmd, uint32_t addr)
 {
     uint16_t rda[4];
     uint32_t rda32[3];
+
+    use_phys_exec = 1;
 
     if (BCR_SWSTYLE(dev) == 0) {
         rda[0] =   ((uint32_t *)rmd)[0]      & 0xffff;
@@ -615,6 +639,8 @@ pcnetRmdStorePassHost(nic_t *dev, RMD *rmd, uint32_t addr)
         rda32[1] &= ~0x80000000;
         dma_bm_write(addr, (uint8_t*)&rda32[0], sizeof(rda32), dev->transfer_size);
     }
+
+    use_phys_exec = 0;
 }
 
 
@@ -931,8 +957,10 @@ pcnetInit(nic_t *dev)
     /** @todo Documentation says that RCVRL and XMTRL are stored as two's complement!
      *        Software is allowed to write these registers directly. */
 #define PCNET_INIT() do { \
+    use_phys_exec = 1; \
     dma_bm_read(PHYSADDR(dev, CSR_IADR(dev)),         \
 		(uint8_t *)&initblk, sizeof(initblk), dev->transfer_size);             \
+    use_phys_exec = 0; \
     dev->aCSR[15]  = le16_to_cpu(initblk.mode);                        \
     CSR_RCVRL(dev) = (initblk.rlen < 9) ? (1 << initblk.rlen) : 512;   \
     CSR_XMTRL(dev) = (initblk.tlen < 9) ? (1 << initblk.tlen) : 512;   \
@@ -1338,7 +1366,9 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
              *  - we don't cache any register state beyond this point
              */
 
+            use_phys_exec = 1;
             dma_bm_write(rbadr, src, cbBuf, dev->transfer_size);
+            use_phys_exec = 0;
 			
             /* RX disabled in the meantime? If so, abort RX. */
             if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev)) {
@@ -1381,7 +1411,9 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                 /* We have to leave the critical section here or we risk deadlocking
                  * with EMT when the write is to an unallocated page or has an access
                  * handler associated with it. See above for additional comments. */
+                use_phys_exec = 1;
                 dma_bm_write(rbadr2, src, cbBuf, dev->transfer_size);
+                use_phys_exec = 0;
 
                 /* RX disabled in the meantime? If so, abort RX. */
                 if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev)) {
@@ -1506,7 +1538,9 @@ pcnetAsyncTransmit(nic_t *dev)
 		 * zero length if it is not the last one in the chain. */
 		if (cb <= MAX_FRAME) {
 		    dev->xmit_pos = cb;
+		    use_phys_exec = 1;
 		    dma_bm_read(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf, cb, dev->transfer_size);
+		    use_phys_exec = 0;
 
 		    if (fLoopback) {
 			if (HOST_IS_OWNER(CSR_CRST(dev)))
@@ -1572,7 +1606,9 @@ pcnetAsyncTransmit(nic_t *dev)
              */
             unsigned cb = 4096 - tmd.tmd1.bcnt;
 	    dev->xmit_pos = pcnetCalcPacketLen(dev, cb);
+	    use_phys_exec = 1;
 	    dma_bm_read(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf, cb, dev->transfer_size);
+	    use_phys_exec = 0;
 
             for (;;) {
                 /*
@@ -1611,7 +1647,9 @@ pcnetAsyncTransmit(nic_t *dev)
                 if (dev->xmit_pos + cb <= MAX_FRAME) { /** @todo this used to be ... + cb < MAX_FRAME. */
 		    int off = dev->xmit_pos;
 		    dev->xmit_pos = cb + off;
+		    use_phys_exec = 1;
 		    dma_bm_read(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf + off, cb, dev->transfer_size);
+		    use_phys_exec = 0;
 		}
 
                 /*

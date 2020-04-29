@@ -57,6 +57,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/timer.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/network.h>
@@ -118,6 +119,8 @@ int		nic_do_log = ENABLE_NIC_LOG;
 #endif
 static mutex_t	*network_mutex;
 static uint8_t	*network_mac;
+pc_timer_t	network_queue_timer;
+netpkt_t	*first_pkt = NULL, *last_pkt = NULL;
 
 
 static struct {
@@ -215,6 +218,99 @@ network_init(void)
 }
 
 
+void
+network_queue_put(void *priv, uint8_t *data, int len)
+{
+    netpkt_t *temp;
+
+    temp = (netpkt_t *) malloc(sizeof(netpkt_t));
+    memset(temp, 0, sizeof(netpkt_t));
+    temp->priv = priv;
+    temp->data = (uint8_t *) malloc(len);
+    memcpy(temp->data, data, len);
+    temp->len = len;
+
+    if (last_pkt != NULL)
+	last_pkt->next = temp;
+    last_pkt = temp;
+
+    if (first_pkt == NULL)
+	first_pkt = temp;
+}
+
+
+static void
+network_queue_get(netpkt_t *pkt)
+{
+    pkt->priv = NULL;
+    pkt->data = NULL;
+    pkt->len = 0;
+
+    if (first_pkt == NULL)
+	return;
+
+    memcpy(pkt, first_pkt, sizeof(netpkt_t));
+}
+
+
+static void
+network_queue_advance(void)
+{
+    netpkt_t *temp;
+
+    temp = first_pkt;
+
+    if (temp == NULL)
+	return;
+
+    first_pkt = temp->next;
+    if (temp->data != NULL)
+	free(temp->data);
+    free(temp);
+
+    if (first_pkt == NULL)
+	last_pkt = NULL;
+}
+
+
+static void
+network_queue_clear(void)
+{
+    netpkt_t *temp = first_pkt;
+
+    if (temp == NULL)
+	return;
+
+    do {
+	if (temp->data != NULL)
+		free(temp->data);
+	free(temp);
+	temp = temp->next;
+    } while (temp != NULL);
+
+    first_pkt = last_pkt = NULL;
+}
+
+
+static void
+network_queue(void *priv)
+{
+    netpkt_t pkt;
+
+    network_busy(1);
+
+    network_queue_get(&pkt);
+    if (pkt.len > 0) {
+	net_cards[network_card].rx(pkt.priv, pkt.data, pkt.len);
+	timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0 * ((double) pkt.len));
+    } else
+	timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0);
+    network_queue_advance();
+
+    network_busy(0);
+}
+
+
 /*
  * Attach a network card to the system.
  *
@@ -250,6 +346,11 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKST
 		(void)net_slirp_reset(&net_cards[network_card], network_mac);
 		break;
     }
+
+    first_pkt = last_pkt = NULL;
+    timer_add(&network_queue_timer, network_queue, NULL, 0);
+    /* 10 mbps. */
+    timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0);
 }
 
 
@@ -257,6 +358,8 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKST
 void
 network_close(void)
 {
+    timer_stop(&network_queue_timer);
+
     /* If already closed, do nothing. */
     if (network_mutex == NULL) return;
 
@@ -282,6 +385,7 @@ network_close(void)
     network_mac = NULL;
 
     /* Here is where we should clear the queue. */
+    network_queue_clear();
 
     network_log("NETWORK: closed.\n");
 }

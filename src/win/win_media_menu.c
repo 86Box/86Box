@@ -406,9 +406,6 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (LOWORD(wParam) & 0xff00) {
 	case IDM_FLOPPY_IMAGE_NEW:
-		if (menus == NULL)
-			break;
-
 		NewFloppyDialogCreate(hwnd, id, 0);
 		break;
 
@@ -416,9 +413,6 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		wp = 1;
 		/* FALLTHROUGH */
 	case IDM_FLOPPY_IMAGE_EXISTING:
-		if (menus == NULL)
-			break;
-
 		ret = file_dlg_w_st(hwnd, IDS_2109, floppyfns[id], 0);
 		if (! ret) {
 			floppy_mount(id, wopenfilestring, wp);
@@ -426,16 +420,10 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case IDM_FLOPPY_EJECT:
-		if (menus == NULL)
-			break;
-
 		floppy_eject(id);
 		break;
 
 	case IDM_FLOPPY_EXPORT_TO_86F:
-		if (menus == NULL)
-			break;
-
 		ret = file_dlg_w_st(hwnd, IDS_2076, floppyfns[id], 1);
 		if (! ret) {
 			plat_pause(1);
@@ -447,9 +435,6 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case IDM_CDROM_MUTE:
-		if (menus == NULL)
-			break;
-
 		cdrom[id].sound_on ^= 1;
 		config_save();
 		media_menu_update_cdrom(id);
@@ -457,23 +442,14 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case IDM_CDROM_EMPTY:
-		if (menus == NULL)
-			break;
-
 		cdrom_eject(id);
 		break;
 
 	case IDM_CDROM_RELOAD:
-		if (menus == NULL)
-			break;
-
 		cdrom_reload(id);
 		break;
 
 	case IDM_CDROM_IMAGE:
-		if (menus == NULL)
-			break;
-
 		if (!file_dlg_w_st(hwnd, IDS_2075, cdrom[id].image_path, 0)) {
 			cdrom_mount(id, wopenfilestring);
 		}
@@ -487,9 +463,6 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		wp = 1;
 		/* FALLTHROUGH */
 	case IDM_ZIP_IMAGE_EXISTING:
-		if (menus == NULL)
-			break;
-
 		ret = file_dlg_w_st(hwnd, IDS_2058, zip_drives[id].image_path, 0);
 		if (! ret)
 			zip_mount(id, wopenfilestring, wp);
@@ -511,9 +484,6 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		wp = 1;
 		/* FALLTHROUGH */
 	case IDM_MO_IMAGE_EXISTING:
-		if (menus == NULL)
-			break;
-
 		ret = file_dlg_w_st(hwnd, IDS_2116, mo_drives[id].image_path, 0);
 		if (! ret)
 			mo_mount(id, wopenfilestring, wp);

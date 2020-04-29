@@ -69,6 +69,14 @@ typedef int (*NETWAITCB)(void *);
 typedef int (*NETSETLINKSTATE)(void *);
 
 
+typedef struct netpkt {
+    void		*priv;
+    uint8_t		*data;
+    int			len;
+
+    struct netpkt	*prev, *next;
+} netpkt_t;
+
 typedef struct {
     const char		*name;
     const char		*internal_name;
@@ -130,6 +138,8 @@ extern const device_t	*network_card_getdevice(int);
 
 extern void	network_set_wait(int wait);
 extern int	network_get_wait(void);
+
+extern void	network_queue_put(void *priv, uint8_t *data, int len);
 
 #ifdef __cplusplus
 }

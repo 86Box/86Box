@@ -46,6 +46,7 @@
 #define MEM_WRITE_EXTERNAL	0x02
 #define MEM_WRITE_DISABLED	0x03
 #define MEM_WRITE_NORMAL	0x04	/* SMM only - means use the non-SMM state */
+#define MEM_WRITE_EXTERNAL_EX	0x05
 #define MEM_WRITE_ROMCS		0x06	/* EXTERNAL type + ROMC flag */
 #define MEM_WRITE_EXTANY	0x07	/* Any EXTERNAL type */
 #define MEM_WRITE_MASK		0x0f
@@ -201,7 +202,8 @@ extern int		readlnum,
 
 extern int		memspeed[11];
 
-extern int		mmu_perm;
+extern int		mmu_perm,
+			use_phys_exec;
 
 extern int		mem_a20_state,
 			mem_a20_alt,
