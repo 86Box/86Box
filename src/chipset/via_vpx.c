@@ -77,9 +77,17 @@ via_vpx_t *dev = (via_vpx_t *) priv;
     }
 
     switch(addr){
-        case 0x04: // Command. On Bitfield 6 RW
+        case 0x04:
+        // Bitfield 6: Parity Error Response
+        // Bitfield 8: SERR# Enable
+        // Bitfield 9: Fast Back-to-Back Cycle Enable
+        if(dev->pci_conf[0x04] && 0x40){ //Bitfield 6
         dev->pci_conf[0x04] = (dev->pci_conf[0x04] & ~0x40) | (val & 0x40);
-
+        } else if(dev->pci_conf[0x04] && 0x100){ //Bitfield 8
+            dev->pci_conf[0x04] = (dev->pci_conf[0x04] & ~0x100) | (val & 0x100);
+        } else if(dev->pci_conf[0x04] && 0x200){ //Bitfield 9
+            dev->pci_conf[0x04] = (dev->pci_conf[0x04] & ~0x200) | (val & 0x200); 
+        }
         case 0x07: // Status
         dev->pci_conf[0x07] &= ~(val & 0xb0);
 		break;
@@ -164,6 +172,8 @@ via_vpx_init(const device_t *info)
 
     dev->pci_conf[0x06] = 0xa0; // Status
     dev->pci_conf[0x07] = 2;
+
+    dev->pci_conf[0x08] = 0; // Silicon Rev.
 
     dev->pci_conf[0x09] = 0; // Program Interface
 
