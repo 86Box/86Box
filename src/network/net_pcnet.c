@@ -940,11 +940,8 @@ pcnetUpdateIrq(nic_t *dev)
     
     pcnetlog(2, "%s: pcnetUpdateIrq: iISR=%d\n", dev->name, iISR);
     
-    /* normal path is to _not_ change the IRQ status */
-    if (iISR != dev->iISR) {
-	pcnet_do_irq(dev, iISR);
-	dev->iISR = iISR;
-    }
+    pcnet_do_irq(dev, iISR);
+    dev->iISR = iISR;
 }
 
 
