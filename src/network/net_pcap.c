@@ -166,6 +166,7 @@ poll_thread(void *arg)
     uint32_t mac_cmp32[2];
     uint16_t mac_cmp16[2];
     event_t *evt;
+    int tx;
 
     pcap_log("PCAP: polling started.\n");
     thread_set_event(poll_state);
@@ -181,16 +182,16 @@ poll_thread(void *arg)
 	/* Wait for a poll request. */
 	network_poll();
 
-	if (pcap == NULL) break;
+	if (pcap == NULL)
+		break;
 
 	/* Wait for the next packet to arrive. */
+	tx = network_tx_queue_check();
 	if (network_get_wait() || (poll_card->set_link_state && poll_card->set_link_state(poll_card->priv)) || (poll_card->wait && poll_card->wait(poll_card->priv)))
 		data = NULL;
 	else
 		data = (uint8_t *)f_pcap_next((void *)pcap, &h);
 	if (data != NULL) {
-		// ui_sb_update_icon(SB_NETWORK, 1);
-
 		/* Received MAC. */
 		mac_cmp32[0] = *(uint32_t *)(data+6);
 		mac_cmp16[0] = *(uint16_t *)(data+10);
@@ -201,19 +202,19 @@ poll_thread(void *arg)
 		if ((mac_cmp32[0] != mac_cmp32[1]) ||
 		    (mac_cmp16[0] != mac_cmp16[1])) {
 
-			network_queue_put(poll_card->priv, data, h.caplen);
-			// poll_card->rx(poll_card->priv, data, h.caplen); 
+			network_queue_put(0, poll_card->priv, data, h.caplen);
 		} else {
 			/* Mark as invalid packet. */
 			data = NULL;
 		}
 	}
 
+	if (tx)
+		network_do_tx();
+
 	/* If we did not get anything, wait a while. */
-	if (data == NULL) {
-		// ui_sb_update_icon(SB_NETWORK, 0);
+	if ((data == NULL) && !tx)
 		thread_wait_event(evt, 10);
-	}
 
 	/* Release ownership of the device. */
 	network_wait(0);
@@ -295,17 +296,8 @@ net_pcap_init(void)
     char *str;
 
     /* Did we already load the library? */
-    if (pcap_handle == NULL) return(-1);
-#if 0
-    // no, we don't..
-    /* Load the DLL if needed. We already know it exists. */
-#ifdef _WIN32
-    pcap_handle = dynld_module("wpcap.dll", pcap_imports);
-#else
-    pcap_handle = dynld_module("libpcap.so", pcap_imports);
-#endif
-    if (pcap_handle == NULL) return(-1);
-#endif
+    if (pcap_handle == NULL)
+	return(-1);
 
     /* Get the PCAP library name and version. */
     strcpy(errbuf, f_pcap_lib_version());
@@ -333,8 +325,6 @@ net_pcap_close(void)
 {
     void *pc;
 
-    // ui_sb_update_icon(SB_NETWORK, 0);
-
     if (pcap == NULL) return;
 
     pcap_log("PCAP: closing.\n");
@@ -360,15 +350,6 @@ net_pcap_close(void)
     /* OK, now shut down Pcap itself. */
     f_pcap_close(pc);
     pcap = NULL;
-
-#if 0
-    // no, we don't..
-    /* Unload the DLL if possible. */
-    if (pcap_handle != NULL) {
-	dynld_close((void *)pcap_handle);
-	pcap_handle = NULL;
-    }
-#endif
 }
 
 
@@ -389,8 +370,6 @@ net_pcap_reset(const netcard_t *card, uint8_t *mac)
     char errbuf[PCAP_ERRBUF_SIZE];
     char filter_exp[255];
     struct bpf_program fp;
-
-    // ui_sb_update_icon(SB_NETWORK, 0);
 
     /* Open a PCAP live channel. */
     if ((pcap = f_pcap_open_live(network_host,		/* interface name */
@@ -438,15 +417,8 @@ net_pcap_reset(const netcard_t *card, uint8_t *mac)
 void
 net_pcap_in(uint8_t *bufp, int len)
 {
-    if (pcap == NULL) return;
-
-    // ui_sb_update_icon(SB_NETWORK, 1);
-
-    network_busy(1);
+    if (pcap == NULL)
+	return;
 
     f_pcap_sendpacket((void *)pcap, bufp, len);
-
-    network_busy(0);
-
-    // ui_sb_update_icon(SB_NETWORK, 0);
 }

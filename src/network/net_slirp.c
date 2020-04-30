@@ -124,6 +124,7 @@ poll_thread(void *arg)
     uint16_t mac_cmp16[2];
     event_t *evt;
     int data_valid = 0;
+    int tx;
 
     slirp_log("SLiRP: polling started.\n");
     thread_set_event(poll_state);
@@ -145,12 +146,11 @@ poll_thread(void *arg)
 	if (slirpq == NULL) break;
 
 	/* Wait for the next packet to arrive. */
+	tx = network_tx_queue_check();
 	data_valid = 0;
 
 	if ((!network_get_wait() && !(poll_card->set_link_state && poll_card->set_link_state(poll_card->priv)) && !(poll_card->wait && poll_card->wait(poll_card->priv))) && (QueuePeek(slirpq) != 0)) {
 		/* Grab a packet from the queue. */
-		// ui_sb_update_icon(SB_NETWORK, 1);
-
 		qp = QueueDelete(slirpq);
 		slirp_log("SLiRP: inQ:%d  got a %dbyte packet @%08lx\n",
 				QueuePeek(slirpq), qp->len, qp);
@@ -165,8 +165,7 @@ poll_thread(void *arg)
 		if ((mac_cmp32[0] != mac_cmp32[1]) ||
 		    (mac_cmp16[0] != mac_cmp16[1])) {
 
-			network_queue_put(poll_card->priv, (uint8_t *)qp->data, qp->len);
-			// poll_card->rx(poll_card->priv, (uint8_t *)qp->data, qp->len); 
+			network_queue_put(0, poll_card->priv, (uint8_t *)qp->data, qp->len);
 			data_valid = 1;
 		}
 
@@ -174,11 +173,12 @@ poll_thread(void *arg)
 		free(qp);
 	}
 
+	if (tx)
+		network_do_tx();
+
 	/* If we did not get anything, wait a while. */
-	if (!data_valid) {
-		// ui_sb_update_icon(SB_NETWORK, 0);
+	if (!data_valid && !tx)
 		thread_wait_event(evt, 10);
-	}
 
 	/* Release ownership of the queue. */
 	network_wait(0);
@@ -218,8 +218,6 @@ net_slirp_init(void)
 int
 net_slirp_reset(const netcard_t *card, uint8_t *mac)
 {
-    // ui_sb_update_icon(SB_NETWORK, 0);
-
     /* Save the callback info. */
     poll_card = card;
 
@@ -237,9 +235,8 @@ net_slirp_close(void)
 {
     queueADT sl;
 
-    // ui_sb_update_icon(SB_NETWORK, 0);
-
-    if (slirpq == NULL) return;
+    if (slirpq == NULL)
+	return;
 
     slirp_log("SLiRP: closing.\n");
 
@@ -271,17 +268,10 @@ net_slirp_close(void)
 void
 net_slirp_in(uint8_t *pkt, int pkt_len)
 {
-    if (slirpq == NULL) return;
-
-    // ui_sb_update_icon(SB_NETWORK, 1);
-
-    network_busy(1);
+    if (slirpq == NULL)
+	return;
 
     slirp_input((const uint8_t *)pkt, pkt_len);
-
-    network_busy(0);
-
-    // ui_sb_update_icon(SB_NETWORK, 0);
 }
 
 

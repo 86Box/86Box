@@ -111,16 +111,20 @@ static netcard_t net_cards[] = {
 int		network_type;
 int		network_ndev;
 int		network_card;
-static volatile int	net_wait = 0;
 char		network_host[522];
 netdev_t	network_devs[32];
 #ifdef ENABLE_NIC_LOG
 int		nic_do_log = ENABLE_NIC_LOG;
 #endif
-static mutex_t	*network_mutex;
-static uint8_t	*network_mac;
-pc_timer_t	network_queue_timer;
-netpkt_t	*first_pkt = NULL, *last_pkt = NULL;
+
+
+/* Local variables. */
+static volatile int	net_wait = 0;
+static mutex_t		*network_mutex;
+static uint8_t		*network_mac;
+static pc_timer_t	network_rx_queue_timer;
+static netpkt_t		*first_pkt[2] = { NULL, NULL },
+			*last_pkt[2] = { NULL, NULL };
 
 
 static struct {
@@ -219,7 +223,7 @@ network_init(void)
 
 
 void
-network_queue_put(void *priv, uint8_t *data, int len)
+network_queue_put(int tx, void *priv, uint8_t *data, int len)
 {
     netpkt_t *temp;
 
@@ -229,50 +233,52 @@ network_queue_put(void *priv, uint8_t *data, int len)
     temp->data = (uint8_t *) malloc(len);
     memcpy(temp->data, data, len);
     temp->len = len;
+    temp->prev = last_pkt[tx];
+    temp->next = NULL;
 
-    if (last_pkt != NULL)
-	last_pkt->next = temp;
-    last_pkt = temp;
+    if (last_pkt[tx] != NULL)
+	last_pkt[tx]->next = temp;
+    last_pkt[tx] = temp;
 
-    if (first_pkt == NULL)
-	first_pkt = temp;
+    if (first_pkt[tx] == NULL)
+	first_pkt[tx] = temp;
 }
 
 
 static void
-network_queue_get(netpkt_t **pkt)
+network_queue_get(int tx, netpkt_t **pkt)
 {
-    if (first_pkt == NULL)
+    if (first_pkt[tx] == NULL)
 	*pkt = NULL;
     else
-	*pkt = first_pkt;
+	*pkt = first_pkt[tx];
 }
 
 
 static void
-network_queue_advance(void)
+network_queue_advance(int tx)
 {
     netpkt_t *temp;
 
-    temp = first_pkt;
+    temp = first_pkt[tx];
 
     if (temp == NULL)
 	return;
 
-    first_pkt = temp->next;
+    first_pkt[tx] = temp->next;
     if (temp->data != NULL)
 	free(temp->data);
     free(temp);
 
-    if (first_pkt == NULL)
-	last_pkt = NULL;
+    if (first_pkt[tx] == NULL)
+	last_pkt[tx] = NULL;
 }
 
 
 static void
-network_queue_clear(void)
+network_queue_clear(int tx)
 {
-    netpkt_t *temp = first_pkt;
+    netpkt_t *temp = first_pkt[tx];
 
     if (temp == NULL)
 	return;
@@ -284,27 +290,27 @@ network_queue_clear(void)
 	temp = temp->next;
     } while (temp != NULL);
 
-    first_pkt = last_pkt = NULL;
+    first_pkt[tx] = last_pkt[tx] = NULL;
 }
 
 
 static void
-network_queue(void *priv)
+network_rx_queue(void *priv)
 {
     netpkt_t *pkt = NULL;
 
     network_busy(1);
 
-    network_queue_get(&pkt);
+    network_queue_get(0, &pkt);
     if ((pkt != NULL) && (pkt->len > 0)) {
 	net_cards[network_card].rx(pkt->priv, pkt->data, pkt->len);
 	if (pkt->len >= 128)
-		timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0 * ((double) pkt->len));
+		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * ((double) pkt->len));
 	else
-		timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0 * 128.0);
+		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
     } else
-	timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0 * 128.0);
-    network_queue_advance();
+	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
+    network_queue_advance(0);
 
     network_busy(0);
 }
@@ -346,10 +352,11 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKST
 		break;
     }
 
-    first_pkt = last_pkt = NULL;
-    timer_add(&network_queue_timer, network_queue, NULL, 0);
+    first_pkt[0] = first_pkt[1] = NULL;
+    last_pkt[0] = last_pkt[1] = NULL;
+    timer_add(&network_rx_queue_timer, network_rx_queue, NULL, 0);
     /* 10 mbps. */
-    timer_on_auto(&network_queue_timer, 0.762939453125 * 2.0);
+    timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0);
 }
 
 
@@ -357,7 +364,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKST
 void
 network_close(void)
 {
-    timer_stop(&network_queue_timer);
+    timer_stop(&network_rx_queue_timer);
 
     /* If already closed, do nothing. */
     if (network_mutex == NULL) return;
@@ -383,8 +390,9 @@ network_close(void)
     network_mutex = NULL;
     network_mac = NULL;
 
-    /* Here is where we should clear the queue. */
-    network_queue_clear();
+    /* Here is where we clear the queues. */
+    network_queue_clear(0);
+    network_queue_clear(1);
 
     network_log("NETWORK: closed.\n");
 }
@@ -458,23 +466,51 @@ network_reset(void)
 }
 
 
-/* Transmit a packet to one of the network providers. */
+/* Queue a packet for transmission to one of the network providers. */
 void
 network_tx(uint8_t *bufp, int len)
 {
+    network_busy(1);
+
     ui_sb_update_icon(SB_NETWORK, 1);
 
-    switch(network_type) {
-	case NET_TYPE_PCAP:
-		net_pcap_in(bufp, len);
-		break;
-
-	case NET_TYPE_SLIRP:
-		net_slirp_in(bufp, len);
-		break;
-    }
+    network_queue_put(1, NULL, bufp, len);
 
     ui_sb_update_icon(SB_NETWORK, 0);
+
+    network_busy(0);
+}
+
+
+/* Actually transmit the packet. */
+void
+network_do_tx(void)
+{
+    netpkt_t *pkt = NULL;
+
+    network_queue_get(1, &pkt);
+    if ((pkt != NULL) && (pkt->len > 0)) {
+	switch(network_type) {
+		case NET_TYPE_PCAP:
+			net_pcap_in(pkt->data, pkt->len);
+			break;
+
+		case NET_TYPE_SLIRP:
+			net_slirp_in(pkt->data, pkt->len);
+			break;
+	}
+    }
+    network_queue_advance(1);
+}
+
+
+int
+network_tx_queue_check(void)
+{
+    if ((first_pkt[1] == NULL) && (last_pkt[1] == NULL))
+	return 0;
+
+    return 1;
 }
 
 

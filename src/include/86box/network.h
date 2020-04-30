@@ -116,6 +116,8 @@ extern void	network_close(void);
 extern void	network_reset(void);
 extern int	network_available(void);
 extern void	network_tx(uint8_t *, int);
+extern void	network_do_tx(void);
+extern int	network_tx_queue_check(void);
 
 extern int	net_pcap_prepare(netdev_t *);
 extern int	net_pcap_init(void);
@@ -139,7 +141,7 @@ extern const device_t	*network_card_getdevice(int);
 extern void	network_set_wait(int wait);
 extern int	network_get_wait(void);
 
-extern void	network_queue_put(void *priv, uint8_t *data, int len);
+extern void	network_queue_put(int tx, void *priv, uint8_t *data, int len);
 
 #ifdef __cplusplus
 }
