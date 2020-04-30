@@ -1071,7 +1071,7 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 		dev->pci_bar[1].addr_regs[addr & 3] = val;
 		/* dev->pci_bar[1].addr_regs[1] &= dev->bios_mask; */
 		dev->pci_bar[1].addr &= 0xffff8001;
-		dev->bios_addr = dev->pci_bar[1].addr;
+		dev->bios_addr = dev->pci_bar[1].addr & 0xffff8000;
 		nic_update_bios(dev);
 		return;
 
