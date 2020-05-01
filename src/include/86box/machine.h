@@ -39,6 +39,7 @@
 #define MACHINE_VIDEO_FIXED	0x004000	/* sys has ONLY int video */
 #define MACHINE_MOUSE		0x008000	/* sys has int mouse */
 #define MACHINE_NONMI		0x010000	/* sys does not have NMI's */
+#define MACHINE_COREBOOT	0x020000	/* sys has coreboot BIOS */
 #else
 #define MACHINE_PC		0x000000	/* PC architecture */
 #define MACHINE_AT		0x000001	/* PC/AT architecture */
@@ -55,6 +56,7 @@
 #define MACHINE_VIDEO_FIXED	0x004000	/* sys has ONLY int video */
 #define MACHINE_MOUSE		0x008000	/* sys has int mouse */
 #define MACHINE_NONMI		0x010000	/* sys does not have NMI's */
+#define MACHINE_COREBOOT	0x020000	/* sys has coreboot BIOS */
 #endif
 
 #define IS_ARCH(m, a)		(machines[(m)].flags & (a)) ? 1 : 0;
