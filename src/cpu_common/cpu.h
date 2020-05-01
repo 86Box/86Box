@@ -515,6 +515,7 @@ extern void	cpu_set(void);
 extern void	cpu_CPUID(void);
 extern void	cpu_RDMSR(void);
 extern void	cpu_WRMSR(void);
+extern void	cpu_INVD(uint8_t wb);
 
 extern int      checkio(int port);
 extern void	codegen_block_end(void);
