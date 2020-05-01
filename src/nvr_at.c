@@ -772,44 +772,44 @@ nvr_start(nvr_t *nvr)
 					   mark everything as bad. */
 
     if (machines[machine].flags & MACHINE_COREBOOT) {
-    	/* Sync floppy drive types on coreboot machines, as SeaBIOS lacks a setup
-    	   utility and just leaves these untouched. */
+    	/* Sync floppy drive types on coreboot machines, as SeaBIOS
+    	   lacks a setup utility and just leaves these untouched. */
 
     	nvr->regs[RTC_FDD_TYPES] = 0x00;
     	nvr->regs[RTC_INST_EQUIP] |= 0xc0;
 
     	for (i = 0; i <= 1; i++) {
-    		if (fdd_get_type(i)) {
-    			if (fdd_is_525(i)) {
-    				if (fdd_is_hd(i))
-    					fdd = 2;
-    				else if (fdd_doublestep_40(i))
-    					fdd = 3;
-    				else
-    					fdd = 1;
-    			} else {
-    				if (fdd_is_hd(i))
-    					fdd = 4;
-    				else if (fdd_is_double_sided(i))
-    					fdd = 3;
-    				else
-    					fdd = 1;
-    			}
+    		if (!fdd_get_type(i))
+    			continue; /* No floppy drive. */
 
-    			nvr->regs[RTC_FDD_TYPES] |= (fdd << ((1 - i) * 4));
-    			nvr->regs[RTC_INST_EQUIP] &= 0x3f; /* At least one drive installed. */
+    		if (fdd_is_525(i)) {
+    			if (fdd_is_hd(i))
+    				fdd = 2; /* 1.2 MB */
+    			else if (fdd_doublestep_40(i))
+    				fdd = 3; /* 720 KB */
+    			else
+    				fdd = 1; /* 360 KB */
+    		} else {
+    			if (fdd_is_hd(i))
+    				fdd = 4; /* 1.44 MB */
+    			else if (fdd_is_double_sided(i))
+    				fdd = 3; /* 720 KB */
+    			else
+    				fdd = 1; /* 360 KB */
     		}
+
+    		nvr->regs[RTC_FDD_TYPES] |= (fdd << ((1 - i) * 4));
+    		nvr->regs[RTC_INST_EQUIP] &= 0x3f; /* At least one drive installed. */
     	}
 
     	if ((nvr->regs[RTC_FDD_TYPES] >> 4) && (nvr->regs[RTC_FDD_TYPES] & 0xf))
     		nvr->regs[RTC_INST_EQUIP] |= 0x40; /* Two drives installed. */
 
-    	/* Re-compute CMOS checksum. SeaBIOS also doesn't care about the checksum,
-    	   but Windows does. */
+    	/* Re-compute CMOS checksum. SeaBIOS doesn't care
+    	   about the checksum either, but Windows does. */
     	uint16_t checksum = 0;
-    	for (i = 0x10; i <= 0x2d; i++) {
-	    	checksum += nvr->regs[i];
-    	}
+    	for (i = 0x10; i <= 0x2d; i++)
+    		checksum += nvr->regs[i];
     	nvr->regs[0x2e] = checksum >> 8;
     	nvr->regs[0x2f] = checksum;
     }
