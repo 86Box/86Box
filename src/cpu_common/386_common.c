@@ -1044,16 +1044,12 @@ enter_smm(int in_hlt)
     else if (is_p6)			/* Intel P6 (Pentium Pro, Pentium II, Celeron) */
 	smram_save_state_p6(saved_state, in_hlt);
 
-    for (n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
-	smram_state -= 4;
-	mem_writel_phys(smram_state, saved_state[n]);
-    }
-
     cr0 &= ~0x8000000d;
     cpu_state.flags = 2;
     cpu_state.eflags = 0;
 
     cr4 = 0;
+
     dr[7] = 0x400;
     cpu_state.pc = 0x8000;
 
@@ -1088,6 +1084,11 @@ enter_smm(int in_hlt)
     smm_seg_load(&cpu_state.seg_gs);
 
     cpu_state.op32 = use32;
+
+    for (n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
+	smram_state -= 4;
+	writememl(0, smram_state, saved_state[n]);
+    }
 
     nmi_mask = 0;
 
@@ -1146,7 +1147,7 @@ leave_smm(void)
 
     for (n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
 	smram_state -= 4;
-	saved_state[n] = mem_readl_phys(smram_state);
+	saved_state[n] = readmeml(0, smram_state);
 	x386_common_log("Reading %08X from memory at %08X to array element %i\n", saved_state[n], smram_state, n);
     }
 

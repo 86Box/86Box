@@ -1898,7 +1898,7 @@ execx86(int cycs)
 			temp = !!(cpu_state.flags & A_FLAG);
 			if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9)) {
 				cpu_src = 6;
-				cpu_data = cpu_dest + cpu_src;
+				cpu_data = cpu_dest - cpu_src;
 				set_of_sub(8);
 				cpu_dest = cpu_data;
 				set_af(1);

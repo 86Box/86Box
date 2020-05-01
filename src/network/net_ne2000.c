@@ -1071,7 +1071,7 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 		dev->pci_bar[1].addr_regs[addr & 3] = val;
 		/* dev->pci_bar[1].addr_regs[1] &= dev->bios_mask; */
 		dev->pci_bar[1].addr &= 0xffff8001;
-		dev->bios_addr = dev->pci_bar[1].addr;
+		dev->bios_addr = dev->pci_bar[1].addr & 0xffff8000;
 		nic_update_bios(dev);
 		return;
 
@@ -1265,13 +1265,6 @@ nic_init(const device_t *info)
     dev->dp8390->priv = dev;
     dev->dp8390->interrupt = nic_interrupt;
 
-    memcpy(dev->dp8390->physaddr, dev->maclocal, sizeof(dev->maclocal));
-
-    nelog(2, "%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
-	dev->name, dev->base_address, dev->base_irq,
-	dev->dp8390->physaddr[0], dev->dp8390->physaddr[1], dev->dp8390->physaddr[2],
-	dev->dp8390->physaddr[3], dev->dp8390->physaddr[4], dev->dp8390->physaddr[5]);
-
     switch(dev->board) {
 	case NE2K_NE1000:
 		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Novell OID) */
@@ -1320,6 +1313,13 @@ nic_init(const device_t *info)
 		dp8390_mem_alloc(dev->dp8390, 0x4000, 0x8000);
 		break;
     }
+
+    memcpy(dev->dp8390->physaddr, dev->maclocal, sizeof(dev->maclocal));
+
+    nelog(2, "%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
+	dev->name, dev->base_address, dev->base_irq,
+	dev->dp8390->physaddr[0], dev->dp8390->physaddr[1], dev->dp8390->physaddr[2],
+	dev->dp8390->physaddr[3], dev->dp8390->physaddr[4], dev->dp8390->physaddr[5]);
 
     /*
      * Make this device known to the I/O system.

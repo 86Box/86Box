@@ -50,7 +50,7 @@ typedef struct {
     uint8_t uart_ctrl;
     uint8_t uart_status;
 
-    uint16_t codec_regs[64];
+    uint16_t codec_regs[128];
     uint32_t codec_ctrl;
 
     struct {
@@ -357,7 +357,9 @@ static uint32_t es1371_inl(uint16_t port, void *p)
 		
 		case 0x14:
 		ret = es1371->codec_ctrl & 0x00ff0000;
-		ret |= es1371->codec_regs[(es1371->codec_ctrl >> 16) & 0x3f];
+		ret |= es1371->codec_regs[(es1371->codec_ctrl >> 16) & 0x7f];
+		if (((es1371->codec_ctrl >> 16) & 0x7f) == 0x26)
+			ret |= 0x0f;
 		ret |= CODEC_READY;
 		break;
 
@@ -589,9 +591,10 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 		es1371->codec_ctrl = val;
 		if (!(val & CODEC_READ))
 		{
-//			audiopci_log("Write codec %02x %04x\n", (val >> 16) & 0x3f, val & 0xffff);
-			es1371->codec_regs[(val >> 16) & 0x3f] = val & 0xffff;
-			switch ((val >> 16) & 0x3f)
+//			audiopci_log("Write codec %02x %04x\n", (val >> 16) & 0x7f, val & 0xffff);
+			if ((((val >> 16) & 0x7f) != 0x7c) || (((val >> 16) & 0x7f) != 0x7e))
+				es1371->codec_regs[(val >> 16) & 0x7f] = val & 0xffff;
+			switch ((val >> 16) & 0x7f)
 			{
 				case 0x02: /*Master volume*/
 				if (val & 0x8000)
@@ -1315,7 +1318,11 @@ static void *es1371_init(const device_t *info)
 	timer_add(&es1371->dac[1].timer, es1371_poll, es1371, 1); 
         
         generate_es1371_filter();
-		
+
+	/* Return a CS4297A like VMWare does. */
+	es1371->codec_regs[0x7c] = 0x4352;
+	es1371->codec_regs[0x7e] = 0x5910;
+
 	return es1371;
 }
 

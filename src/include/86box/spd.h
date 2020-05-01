@@ -8,7 +8,7 @@
  *
  *		Emulation of SPD (Serial Presence Detect) devices.
  *
- * Version:	@(#)spd.h	1.0.0	2020/03/24
+ *
  *
  * Authors:	RichardG, <richardg867@gmail.com>
  *
@@ -19,15 +19,19 @@
 
 
 #define SPD_BASE_ADDR		0x50
+#define SPD_MAX_SLOTS		8
+#define SPD_DATA_SIZE		256
 
+#define SPD_TYPE_FPM		0x01
 #define SPD_TYPE_EDO		0x02
 #define SPD_TYPE_SDRAM		0x04
 
+#define SPD_MIN_SIZE_EDO	8
 #define SPD_MIN_SIZE_SDRAM	8
 
-#define SPD_SDR_SIGNAL_LVTTL	0x01
+#define SPD_SIGNAL_LVTTL	0x01
 
-#define SPD_SDR_REFRESH_NORMAL	0x00
+#define SPD_REFRESH_NORMAL	0x00
 #define SPD_SDR_REFRESH_SELF	0x80
 
 #define SPD_SDR_BURST_PAGE	0x80
@@ -42,6 +46,24 @@
 #define SPD_SDR_ATTR_VCC_LOW_5	0x10
 #define SPD_SDR_ATTR_VCC_HI_5	0x20
 
+
+typedef struct _spd_edo_ {
+    uint8_t	bytes_used, spd_size, mem_type,
+    		row_bits, col_bits, banks,
+    		data_width_lsb, data_width_msb,
+    		signal_level, trac, tcac,
+    		config, refresh_rate,
+    		dram_width, ecc_width,
+    		reserved[47],
+    		spd_rev, checksum,
+    		mfg_jedec[8], mfg_loc;
+    char	part_no[18];
+    uint8_t	rev_code[2],
+    		mfg_year, mfg_week, serial[4], mfg_specific[27],
+    		vendor_specific[2],
+    		other_data[127],
+    		checksum2;
+} spd_edo_t;
 
 typedef struct _spd_sdram_ {
     uint8_t	bytes_used, spd_size, mem_type,
@@ -63,7 +85,8 @@ typedef struct _spd_sdram_ {
     uint8_t	rev_code[2],
     		mfg_year, mfg_week, serial[4], mfg_specific[27],
     		freq, features,
-    		other_data[128];
+    		other_data[127],
+    		checksum2;
 } spd_sdram_t;
 
 

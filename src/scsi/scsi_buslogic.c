@@ -557,7 +557,7 @@ buslogic_param_len(void *p)
 
 
 static void
-BuslogicSCSIBIOSDMATransfer(ESCMD *ESCSICmd, uint8_t TargetID, int dir)
+BuslogicSCSIBIOSDMATransfer(ESCMD *ESCSICmd, uint8_t TargetID, int dir, int transfer_size)
 {
     uint32_t DataPointer = ESCSICmd->DataPointer;
     int DataLength = ESCSICmd->DataLength;
@@ -581,10 +581,10 @@ BuslogicSCSIBIOSDMATransfer(ESCMD *ESCSICmd, uint8_t TargetID, int dir)
 
 	if (dir && ((ESCSICmd->DataDirection == CCB_DATA_XFER_OUT) || (ESCSICmd->DataDirection == 0x00))) {
 		buslogic_log("BusLogic BIOS DMA: Reading %i bytes from %08X\n", TransferLength, Address);
-		DMAPageRead(Address, (uint8_t *)dev->sc->temp_buffer, TransferLength);
+		dma_bm_read(Address, (uint8_t *)dev->sc->temp_buffer, TransferLength, transfer_size);
 	} else if (!dir && ((ESCSICmd->DataDirection == CCB_DATA_XFER_IN) || (ESCSICmd->DataDirection == 0x00))) {
 		buslogic_log("BusLogic BIOS DMA: Writing %i bytes at %08X\n", TransferLength, Address);
-		DMAPageWrite(Address, (uint8_t *)dev->sc->temp_buffer, TransferLength);
+		dma_bm_write(Address, (uint8_t *)dev->sc->temp_buffer, TransferLength, transfer_size);
 	}
     }
 }
@@ -651,7 +651,7 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 
     phase = sd->phase;
     if (phase != SCSI_PHASE_STATUS) {
-	BuslogicSCSIBIOSDMATransfer(ESCSICmd, ESCSICmd->TargetId, (phase == SCSI_PHASE_DATA_OUT));
+	BuslogicSCSIBIOSDMATransfer(ESCSICmd, ESCSICmd->TargetId, (phase == SCSI_PHASE_DATA_OUT), dev->transfer_size);
 	scsi_device_command_phase1(sd);
     }
 

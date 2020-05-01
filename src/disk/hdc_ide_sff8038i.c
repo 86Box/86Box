@@ -98,8 +98,8 @@ sff_bus_master_handler(sff8038i_t *dev, int enabled, uint16_t base)
 static void
 sff_bus_master_next_addr(sff8038i_t *dev)
 {
-    DMAPageRead(dev->ptr_cur, (uint8_t *)&(dev->addr), 4);
-    DMAPageRead(dev->ptr_cur + 4, (uint8_t *)&(dev->count), 4);
+    dma_bm_read(dev->ptr_cur, (uint8_t *)&(dev->addr), 4, 4);
+    dma_bm_read(dev->ptr_cur + 4, (uint8_t *)&(dev->count), 4, 4);
     sff_log("SFF-8038i Bus master DWORDs: %08X %08X\n", dev->addr, dev->count);
     dev->eot = dev->count >> 31;
     dev->count &= 0xfffe;
@@ -318,17 +318,17 @@ sff_bus_master_dma(int channel, uint8_t *data, int transfer_length, int out, voi
 	if (dev->count <= transfer_length) {
 		sff_log("%sing %i bytes to %08X\n", sop, dev->count, dev->addr);
 		if (out)
-			DMAPageRead(dev->addr, (uint8_t *)(data + buffer_pos), dev->count);
+			dma_bm_read(dev->addr, (uint8_t *)(data + buffer_pos), dev->count, 4);
 		else
-			DMAPageWrite(dev->addr, (uint8_t *)(data + buffer_pos), dev->count);
+			dma_bm_write(dev->addr, (uint8_t *)(data + buffer_pos), dev->count, 4);
 		transfer_length -= dev->count;
 		buffer_pos += dev->count;
 	} else {
 		sff_log("%sing %i bytes to %08X\n", sop, transfer_length, dev->addr);
 		if (out)
-			DMAPageRead(dev->addr, (uint8_t *)(data + buffer_pos), transfer_length);
+			dma_bm_read(dev->addr, (uint8_t *)(data + buffer_pos), transfer_length, 4);
 		else
-			DMAPageWrite(dev->addr, (uint8_t *)(data + buffer_pos), transfer_length);
+			dma_bm_write(dev->addr, (uint8_t *)(data + buffer_pos), transfer_length, 4);
 		/* Increase addr and decrease count so that resumed transfers do not mess up. */
 		dev->addr += transfer_length;
 		dev->count -= transfer_length;

@@ -58,16 +58,12 @@ extern int	ui_sb_find_part(int tag);
 extern void	ui_sb_set_ready(int ready);
 extern void	ui_sb_update_panes(void);
 extern void	ui_sb_update_tip(int meaning);
-extern void	ui_sb_check_menu_item(int tag, int id, int chk);
-extern void	ui_sb_enable_menu_item(int tag, int id, int val);
 extern void	ui_sb_timer_callback(int pane);
 extern void	ui_sb_update_icon(int tag, int val);
 extern void	ui_sb_update_icon_state(int tag, int active);
 extern void	ui_sb_set_text_w(wchar_t *wstr);
 extern void	ui_sb_set_text(char *str);
 extern void	ui_sb_bugui(char *str);
-extern void	ui_sb_mount_floppy_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name);
-extern void	ui_sb_mount_zip_img(uint8_t id, int part, uint8_t wp, wchar_t *file_name);
 
 #ifdef __cplusplus
 }

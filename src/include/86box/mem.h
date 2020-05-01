@@ -46,6 +46,7 @@
 #define MEM_WRITE_EXTERNAL	0x02
 #define MEM_WRITE_DISABLED	0x03
 #define MEM_WRITE_NORMAL	0x04	/* SMM only - means use the non-SMM state */
+#define MEM_WRITE_EXTERNAL_EX	0x05
 #define MEM_WRITE_ROMCS		0x06	/* EXTERNAL type + ROMC flag */
 #define MEM_WRITE_EXTANY	0x07	/* Any EXTERNAL type */
 #define MEM_WRITE_MASK		0x0f
@@ -201,7 +202,8 @@ extern int		readlnum,
 
 extern int		memspeed[11];
 
-extern int		mmu_perm;
+extern int		mmu_perm,
+			use_phys_exec;
 
 extern int		mem_a20_state,
 			mem_a20_alt,
@@ -282,9 +284,11 @@ extern void	mem_set_mem_state_smm(uint32_t base, uint32_t size, int state);
 extern uint8_t	mem_readb_phys(uint32_t addr);
 extern uint16_t	mem_readw_phys(uint32_t addr);
 extern uint32_t	mem_readl_phys(uint32_t addr);
+extern void	mem_read_phys(void *dest, uint32_t addr, int tranfer_size);
 extern void	mem_writeb_phys(uint32_t addr, uint8_t val);
 extern void	mem_writew_phys(uint32_t addr, uint16_t val);
 extern void	mem_writel_phys(uint32_t addr, uint32_t val);
+extern void	mem_write_phys(void *src, uint32_t addr, int tranfer_size);
 
 extern uint8_t	mem_read_ram(uint32_t addr, void *priv);
 extern uint16_t	mem_read_ramw(uint32_t addr, void *priv);
@@ -329,10 +333,6 @@ extern void	mem_init(void);
 
 extern void	mem_reset(void);
 extern void	mem_remap_top(int kb);
-
-extern void	mem_add_mtrr(uint64_t base, uint64_t mask, uint8_t type);
-extern void	mem_del_mtrr(uint64_t base, uint64_t mask);
-extern void	mem_invalidate_mtrr(uint8_t wb);
 
 
 #ifdef EMU_CPU_H

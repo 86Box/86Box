@@ -401,6 +401,22 @@ machine_at_equium5200_init(const machine_t *model) // Information about that mac
 }
 
 int
+machine_at_p65up5_cp55t2d_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/p65up5/td5i0201.awd",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_p65up5_common_init(model, &i430hx_device);
+
+    return ret;
+}
+
+int
 machine_at_p55tvp4_init(const machine_t *model)
 {
     int ret;
@@ -549,6 +565,7 @@ machine_at_pb680_init(const machine_t *model)
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
 machine_at_p55xb2_init(const machine_t *model)
 {
@@ -577,7 +594,7 @@ machine_at_p55xb2_init(const machine_t *model)
 
     return ret;
 }
-
+#endif
 
 int
 machine_at_tx97_init(const machine_t *model)
@@ -702,7 +719,7 @@ machine_at_ym430tx_init(const machine_t *model)
     return ret;
 }
 
-
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
 machine_at_586t2_init(const machine_t *model)
 {
@@ -796,7 +813,7 @@ machine_at_807ds_init(const machine_t *model)
 
     return ret;
 }
-
+#endif
 
 int
 machine_at_p5mms98_init(const machine_t *model)
@@ -862,6 +879,7 @@ machine_at_p5mms98_init(const machine_t *model)
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
 machine_at_tx100_init(const machine_t *model)
 {
@@ -920,3 +938,4 @@ machine_at_advanceii_init(const machine_t *model)
 
     return ret;
 }
+#endif

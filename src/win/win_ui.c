@@ -312,7 +312,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_ACTION_HRESET:
 				win_notify_dlg_open();
-				i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2121);
+				i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2112);
 				if (i == 0)
 					pc_reset(1);
 				win_notify_dlg_closed();
@@ -327,7 +327,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (no_quit_confirm)
 					i = 0;
 				else
-					i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
+					i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2113);
 				if (i == 0) {
 					UnhookWindowsHookEx(hKeyboardHook);
 					KillTimer(hwnd, TIMER_1SEC);
@@ -595,7 +595,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 #endif
 			default:
-				MediaMenuHandler(hwnd, message, wParam, lParam);
+				media_menu_proc(hwnd, message, wParam, lParam);
 				break;
 		}
 		return(0);
@@ -695,7 +695,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (no_quit_confirm)
 			i = 0;
 		else
-			i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
+			i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2113);
 		if (i == 0) {
 			UnhookWindowsHookEx(hKeyboardHook);
 			KillTimer(hwnd, TIMER_1SEC);
@@ -731,7 +731,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (manager_wm)
 			break;
 		win_notify_dlg_open();
-		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2121);
+		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2112);
 		if (i == 0)
 			pc_reset(1);
 		win_notify_dlg_closed();
@@ -744,7 +744,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (no_quit_confirm)
 			i = 0;
 		else
-			i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2122);
+			i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2113);
 		if (i == 0) {
 			UnhookWindowsHookEx(hKeyboardHook);
 			KillTimer(hwnd, TIMER_1SEC);
@@ -913,6 +913,7 @@ ui_init(int nCmdShow)
 
     /* Reset all menus to their defaults. */
     ResetAllMenus();
+    media_menu_init();
 
     /* Make the window visible on the screen. */
     ShowWindow(hwnd, nCmdShow);
@@ -925,7 +926,7 @@ ui_init(int nCmdShow)
     ridev.hwndTarget = NULL;	/* current focus window */
     if (! RegisterRawInputDevices(&ridev, 1, sizeof(ridev))) {
 	MessageBox(hwndMain,
-		   plat_get_string(IDS_2114),
+		   plat_get_string(IDS_2105),
 		   plat_get_string(IDS_2050),
 		   MB_OK | MB_ICONERROR);
 	return(4);
@@ -939,7 +940,7 @@ ui_init(int nCmdShow)
     haccel = LoadAccelerators(hinstance, ACCEL_NAME);
     if (haccel == NULL) {
 	MessageBox(hwndMain,
-		   plat_get_string(IDS_2113),
+		   plat_get_string(IDS_2104),
 		   plat_get_string(IDS_2050),
 		   MB_OK | MB_ICONERROR);
 	return(3);
@@ -961,7 +962,7 @@ ui_init(int nCmdShow)
      * Before we can create the Render window, we first have
      * to prepare some other things that it depends on.
      */
-    ghMutex = CreateMutex(NULL, FALSE, L"86Box.BlitMutex");
+    ghMutex = CreateMutex(NULL, FALSE, NULL);
 
     /* Create the Machine Rendering window. */
     hwndRender = CreateWindow(L"STATIC", NULL, WS_CHILD|SS_BITMAP,
@@ -981,7 +982,7 @@ ui_init(int nCmdShow)
     /* Initialize the configured Video API. */
     if (! plat_setvid(vid_api)) {
 	MessageBox(hwnd,
-		   plat_get_string(IDS_2095),
+		   plat_get_string(IDS_2089),
 		   plat_get_string(IDS_2050),
 		   MB_OK | MB_ICONERROR);
 	return(5);

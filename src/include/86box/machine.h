@@ -39,7 +39,6 @@
 #define MACHINE_VIDEO_FIXED	0x004000	/* sys has ONLY int video */
 #define MACHINE_MOUSE		0x008000	/* sys has int mouse */
 #define MACHINE_NONMI		0x010000	/* sys does not have NMI's */
-#define MACHINE_COREBOOT	0x020000	/* sys has coreboot BIOS */
 #else
 #define MACHINE_PC		0x000000	/* PC architecture */
 #define MACHINE_AT		0x000001	/* PC/AT architecture */
@@ -56,7 +55,6 @@
 #define MACHINE_VIDEO_FIXED	0x004000	/* sys has ONLY int video */
 #define MACHINE_MOUSE		0x008000	/* sys has int mouse */
 #define MACHINE_NONMI		0x010000	/* sys does not have NMI's */
-#define MACHINE_COREBOOT	0x020000	/* sys has coreboot BIOS */
 #endif
 
 #define IS_ARCH(m, a)		(machines[(m)].flags & (a)) ? 1 : 0;
@@ -291,6 +289,7 @@ extern int	machine_at_p55t2s_init(const machine_t *);
 extern int	machine_at_m7shi_init(const machine_t *);
 extern int	machine_at_tc430hx_init(const machine_t *);
 extern int	machine_at_equium5200_init(const machine_t *);
+extern int	machine_at_p65up5_cp55t2d_init(const machine_t *);
 
 extern int	machine_at_p55tvp4_init(const machine_t *);
 extern int	machine_at_p55va_init(const machine_t *);
@@ -321,8 +320,14 @@ extern int	machine_at_686nx_init(const machine_t *);
 extern int	machine_at_mb600n_init(const machine_t *);
 extern int	machine_at_8500ttc_init(const machine_t *);
 extern int	machine_at_m6mi_init(const machine_t *);
+extern int	machine_at_vs440fx_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern void	machine_at_p65up5_common_init(const machine_t *, const device_t *northbridge);
+#endif
+extern int	machine_at_p65up5_cp6nd_init(const machine_t *);
 
 /* m_at_slot1.c */
+extern int	machine_at_p65up5_cpknd_init(const machine_t *);
 extern int	machine_at_p6kfx_init(const machine_t *);
 
 extern int	machine_at_6bxc_init(const machine_t *);

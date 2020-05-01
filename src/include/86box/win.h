@@ -43,6 +43,11 @@
 #define SB_MENU_NAME		L"StatusBarMenu"
 #define FS_CLASS_NAME		L"86BoxFullScreen"
 
+#define FLOPPY_SUBMENU_NAME	L"FloppySubmenu"
+#define CDROM_SUBMENU_NAME	L"CdromSubmenu"
+#define ZIP_SUBMENU_NAME	L"ZIPSubmenu"
+#define MO_SUBMENU_NAME		L"MOSubmenu"
+
 /* Application-specific window messages.
 
    A dialog sends 0x8895 with WPARAM = 1 followed by 0x8896 with WPARAM = 1 on open,
@@ -179,6 +184,20 @@ extern int	file_dlg_w_st(HWND hwnd, int i, WCHAR *fn, int save);
 extern int	file_dlg_st(HWND hwnd, int i, char *fn, int save);
 
 extern wchar_t	*BrowseFolder(wchar_t *saved_path, wchar_t *title);
+
+
+/* Functions in win_media_menu.c */
+extern void	media_menu_init();
+extern void	media_menu_reset();
+extern int	media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+extern HMENU	media_menu_get_floppy(int id);
+extern HMENU	media_menu_get_cdrom(int id);
+extern HMENU	media_menu_get_zip(int id);
+extern HMENU	media_menu_get_mo(int id);
+extern void	media_menu_update_floppy(int id);
+extern void	media_menu_update_cdrom(int id);
+extern void	media_menu_update_zip(int id);
+extern void	media_menu_update_mo(int id);
 
 
 #ifdef __cplusplus

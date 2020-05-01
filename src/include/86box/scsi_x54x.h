@@ -425,7 +425,7 @@ typedef struct {
 
     uint32_t	Base, rom_addr,			/* address of BIOS ROM */
 		CmdParamLeft, Outgoing,
-		pad32;
+		transfer_size;
 
     volatile uint32_t
 		MailboxInit, MailboxCount,
