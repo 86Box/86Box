@@ -71,7 +71,7 @@ typedef int (*NETSETLINKSTATE)(void *);
 
 typedef struct netpkt {
     void		*priv;
-    uint8_t		*data;
+    uint8_t		data[65536];	/* Maximum length + 1 to round up to the nearest power of 2. */
     int			len;
 
     struct netpkt	*prev, *next;

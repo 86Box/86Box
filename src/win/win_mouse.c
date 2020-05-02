@@ -89,8 +89,8 @@ win_mouse_handle(PRAWINPUT raw)
 		 * seems to work fine for RDP on Windows 10
 		 * Not sure about other environments.
 		 */
-		mousestate.dx += (state.lLastX - x)/100;
-		mousestate.dy += (state.lLastY - y)/100;
+		mousestate.dx += (state.lLastX - x)/25;
+		mousestate.dy += (state.lLastY - y)/25;
 		x=state.lLastX; 
 		y=state.lLastY;
 	} else {

@@ -230,7 +230,6 @@ network_queue_put(int tx, void *priv, uint8_t *data, int len)
     temp = (netpkt_t *) malloc(sizeof(netpkt_t));
     memset(temp, 0, sizeof(netpkt_t));
     temp->priv = priv;
-    temp->data = (uint8_t *) malloc(len);
     memcpy(temp->data, data, len);
     temp->len = len;
     temp->prev = last_pkt[tx];
@@ -266,8 +265,6 @@ network_queue_advance(int tx)
 	return;
 
     first_pkt[tx] = temp->next;
-    if (temp->data != NULL)
-	free(temp->data);
     free(temp);
 
     if (first_pkt[tx] == NULL)
@@ -284,8 +281,6 @@ network_queue_clear(int tx)
 	return;
 
     do {
-	if (temp->data != NULL)
-		free(temp->data);
 	free(temp);
 	temp = temp->next;
     } while (temp != NULL);
