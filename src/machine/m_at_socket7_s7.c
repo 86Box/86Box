@@ -593,6 +593,31 @@ machine_at_pb680_init(const machine_t *model)
 
 #if defined(DEV_BRANCH) && defined(NO_SIO)
 int
+machine_at_ergox453_init(const machine_t *model)	// Spits out a PSU controller communication error.
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/ergox453/B56_K.LDB",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    device_add(&i430vx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&pc87306_device);	// Placeholder for PC87308VUL.
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+int
 machine_at_p55xb2_init(const machine_t *model)
 {
     int ret;
