@@ -610,7 +610,7 @@ machine_at_ergox453_init(const machine_t *model)	// Spits out a PSU controller c
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&pc87306_device);	// Placeholder for PC87308VUL.
     device_add(&intel_flash_bxt_device);
 
