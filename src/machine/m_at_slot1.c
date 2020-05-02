@@ -274,17 +274,16 @@ machine_at_bf6_init(const machine_t *model)
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
-machine_at_borapro_init(const machine_t *model)
+machine_at_tsunamiatx_init(const machine_t *model)
 {
-	//AMI 440ZX Board. Packard Bell OEM of the MSI-6168
-	//MIGHT REQUIRE MORE EXCESSIVE TESTING!
-	//Reports emmersive amounts of RAM like few Intel OEM boards
-	//we have.
+	//AMI 440BX Board. Requires the PC87309 and
+	//doesn't like the i686 CPU's
 	
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/borapro/MS6168V2.50",
+    ret = bios_load_linear(L"roms/machines/tsunamiatx/bx46200f.rom",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -294,18 +293,20 @@ machine_at_borapro_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-	pci_register_slot(0x0E, PCI_CARD_NORMAL,	  1, 2, 3, 4);
-	pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);	
+	pci_register_slot(0x10, PCI_CARD_NORMAL,	  1, 2, 3, 4);
+	pci_register_slot(0x11, PCI_CARD_NORMAL,      2, 3, 4, 1);	
 	pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
-	pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
+	pci_register_slot(0x13, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+	pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_NORMAL, 	  1, 2, 3, 4);
-    device_add(&i440zx_device);
+    device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add(&w83977ef_device);
+    device_add(&pc87306_device); //PC87309
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;
 }
+#endif

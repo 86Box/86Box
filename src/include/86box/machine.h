@@ -344,7 +344,9 @@ extern int	machine_at_6bxc_init(const machine_t *);
 extern int	machine_at_p2bls_init(const machine_t *);
 extern int	machine_at_p3bf_init(const machine_t *);
 extern int	machine_at_bf6_init(const machine_t *);
-extern int	machine_at_borapro_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(NO_SIO)
+extern int	machine_at_tsunamiatx_init(const machine_t *);
+#endif
 
 /* m_at_socket370.c */
 extern int	machine_at_cubx_init(const machine_t *);

@@ -304,9 +304,9 @@ const machine_t machines[] = {
     { "[Slot 1 BX] ASUS P2B-LS",		"p2bls",		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,		machine_at_p2bls_init, NULL			},
     { "[Slot 1 BX] ASUS P3B-F",			"p3bf",			{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,		 machine_at_p3bf_init, NULL			},
     { "[Slot 1 BX] ABit BF6",			"bf6",			{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  768,   8, 255,		  machine_at_bf6_init, NULL			},
-
-    /* 440ZX */
-    { "[Slot 1 ZX] Packard Bell Bora Pro",	"borapro",		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  512,   8, 255,	      machine_at_borapro_init, NULL			},
+#if defined(DEV_BRANCH) && defined(NO_SIO)
+    { "[Slot 1 BX] Tyan Tsunami ATX",	"tsunamiatx",	{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,		 machine_at_tsunamiatx_init, NULL	},
+#endif
 
     /* PGA370 machines */
     /* 440BX */
