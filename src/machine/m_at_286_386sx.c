@@ -38,6 +38,25 @@
 #include <86box/video.h>
 #include <86box/machine.h>
 
+int
+machine_at_mr286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/mr286/V000B200-1",
+				L"roms/machines/mr286/V000B200-2",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+    device_add(&keyboard_at_device);
+    device_add(&fdc_at_device);
+	device_add(&headland_device);
+
+    return ret;
+}
 
 static void
 machine_at_headland_common_init(int ht386)

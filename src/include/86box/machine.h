@@ -185,6 +185,7 @@ extern int	machine_at_tg286m_init(const machine_t *);
 extern int	machine_at_ama932j_init(const machine_t *);
 extern int	machine_at_px286_init(const machine_t *);
 extern int	machine_at_quadt286_init(const machine_t *);
+extern int	machine_at_mr286_init(const machine_t *);
 
 extern int	machine_at_neat_init(const machine_t *);
 extern int	machine_at_neat_ami_init(const machine_t *);
