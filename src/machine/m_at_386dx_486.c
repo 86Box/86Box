@@ -43,6 +43,25 @@
 #include <86box/machine.h>
 
 int
+machine_at_acc386_init(const machine_t *model)
+{
+    int ret;
+
+   ret = bios_load_linear(L"roms/machines/acc386/acc386.BIN",
+			  0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+    device_add(&acc2168_device);
+    device_add(&keyboard_at_ami_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
 machine_at_ecs386_init(const machine_t *model)
 {
     int ret;
