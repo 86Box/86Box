@@ -335,6 +335,10 @@ extern int	machine_at_686nx_init(const machine_t *);
 extern int	machine_at_mb600n_init(const machine_t *);
 extern int	machine_at_8500ttc_init(const machine_t *);
 extern int	machine_at_m6mi_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_ACERV60N)
+extern int	machine_at_acerv60n_init(const machine_t *);
+#endif
+extern int	machine_at_vs440fx_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern void	machine_at_p65up5_common_init(const machine_t *, const device_t *northbridge);
 #endif

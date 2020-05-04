@@ -77,6 +77,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef SIEMENS
   SIEMENS	:= y
  endif
+ ifndef ACERV60N
+  ACERV60N	:= y
+ endif
  ifndef 596B
   596B	:= y
  endif
@@ -140,6 +143,9 @@ else
  endif
  ifndef SIEMENS
   SIEMENS	:= n
+ endif
+ ifndef ACERV60N
+  ACERV60N	:= n
  endif
  ifndef 596B
   596B	:= n
@@ -481,6 +487,10 @@ endif
 
 ifeq ($(SIEMENS), y)
 OPTS		+= -DUSE_SIEMENS
+endif
+
+ifeq ($(ACERV60N), y)
+OPTS		+= -DUSE_ACERV60N
 endif
 
 ifeq ($(596B), y)
