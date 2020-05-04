@@ -130,3 +130,24 @@ machine_xt_zenith_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_xt_z150_init(const machine_t *model)
+{
+	int ret;
+
+    ret = bios_load_linear(L"roms/machines/z150/BIOS-Z150-1988.bin",
+			   0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+	device_add(&keyboard_pc82_device);
+	device_add(&zenith_scratchpad_device);
+	machine_common_init(model);
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+    device_add(&fdc_xt_device);
+    nmi_init();
+	
+    return ret;
+}
