@@ -267,10 +267,11 @@ const machine_t machines[] = {
 #endif
     { "[Socket 7 TX] SuperMicro P5MMS98",	"p5mms98",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	      machine_at_p5mms98_init, NULL			},
 
-#if defined(DEV_BRANCH) && defined(NO_SIO)
-    /* Apollo VPX */
-    { "[Socket 7 VPX] Zida Tomato TX100",	"tx100",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  512,   8, 127,	        machine_at_tx100_init, NULL			},
 
+    /* Apollo VPX */
+    { "[Socket 7 VPX] FIC VA-502",	"ficva502",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  512,   8, 127,	        machine_at_ficva502_init, NULL			},
+
+#if defined(DEV_BRANCH) && defined(NO_SIO)
     /* Apollo VP3 */
     { "[Socket 7 VP3] QDI Advance II",		"advanceii",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	    machine_at_advanceii_init, NULL			},
 #endif

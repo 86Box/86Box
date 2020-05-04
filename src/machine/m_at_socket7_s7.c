@@ -879,13 +879,12 @@ machine_at_p5mms98_init(const machine_t *model)
     return ret;
 }
 
-#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
-machine_at_tx100_init(const machine_t *model)
+machine_at_ficva502_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/tx100/T100108E.rom",
+    ret = bios_load_linear(L"roms/machines/ficva502/VA502bp.BIN",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -902,14 +901,15 @@ machine_at_tx100_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     device_add(&via_vpx_device);
     device_add(&via_vt82c586b_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&um8669f_device); //IT8661F
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&fdc37c669_device);
     device_add(&sst_flash_29ee010_device);
 	spd_register(SPD_TYPE_SDRAM, 0xF, 256);
 
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
 machine_at_advanceii_init(const machine_t *model)
 {
