@@ -248,7 +248,7 @@ vid_init(const device_t *info)
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ti_cf62011);
 
-    svga_init(&ti->svga, ti,
+    svga_init(info, &ti->svga, ti,
 	      ti->vram_size<<10,
 	      NULL, vid_in, vid_out, NULL, NULL);
 

@@ -93,7 +93,8 @@ uint8_t ht216_in(uint16_t addr, void *p);
 #define BIOS_G2_GC205_PATH			L"roms/video/video7/BIOS.BIN"
 #define BIOS_VIDEO7_VGA_1024I_PATH		L"roms/video/video7/Video Seven VGA 1024i - BIOS - v2.19 - 435-0062-05 - U17 - 27C256.BIN"
 
-static video_timings_t	timing_v7vga = {VIDEO_ISA, 5,  5,  9,  20, 20, 30};
+static video_timings_t	timing_v7vga_isa = {VIDEO_ISA, 3,  3,  6,   5,  5, 10};
+static video_timings_t	timing_v7vga_vlb = {VIDEO_ISA, 5,  5,  9,  20, 20, 30};
 
 
 #ifdef ENABLE_HT216_LOG
@@ -1034,9 +1035,12 @@ void
     else if (has_rom == 2)
 	rom_init(&ht216->bios_rom, BIOS_G2_GC205_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_v7vga);
+    if (info->flags & DEVICE_VLB)
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_v7vga_vlb);
+    else
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_v7vga_isa);
 
-    svga_init(&ht216->svga, ht216, mem_size,
+    svga_init(info, &ht216->svga, ht216, mem_size,
 	      ht216_recalctimings,
 	      ht216_in, ht216_out,
 	      ht216_hwcursor_draw,
@@ -1045,9 +1049,14 @@ void
     ht216->vram_mask = mem_size - 1;
     svga->decode_mask = mem_size - 1;
 
-    mem_mapping_set_handler(&ht216->svga.mapping, ht216_read, NULL, NULL, ht216_write, ht216_writew, ht216_writel);
+    if (info->flags & DEVICE_VLB) {
+	mem_mapping_set_handler(&ht216->svga.mapping, ht216_read, NULL, NULL, ht216_write, ht216_writew, ht216_writel);
+	mem_mapping_add(&ht216->linear_mapping, 0, 0, ht216_read_linear, NULL, NULL, ht216_write_linear, ht216_writew_linear, ht216_writel_linear, NULL, MEM_MAPPING_EXTERNAL, &ht216->svga);
+    } else {
+	mem_mapping_set_handler(&ht216->svga.mapping, ht216_read, NULL, NULL, ht216_write, ht216_writew, NULL);
+	mem_mapping_add(&ht216->linear_mapping, 0, 0, ht216_read_linear, NULL, NULL, ht216_write_linear, ht216_writew_linear, NULL, NULL, MEM_MAPPING_EXTERNAL, &ht216->svga);
+    }
     mem_mapping_set_p(&ht216->svga.mapping, ht216);
-    mem_mapping_add(&ht216->linear_mapping, 0, 0, ht216_read_linear, NULL, NULL, ht216_write_linear, ht216_writew_linear, ht216_writel_linear, NULL, MEM_MAPPING_EXTERNAL, &ht216->svga);
 
     svga->bpp = 8;
     svga->miscout = 1;
@@ -1180,7 +1189,7 @@ const device_t v7_vga_1024i_device =
 const device_t ht216_32_pb410a_device =
 {
     "Headland HT216-32 (Packard Bell PB410A)",
-    DEVICE_ISA,
+    DEVICE_VLB,
     0x7861,	/*HT216-32*/
     ht216_pb410a_init,
     ht216_close,

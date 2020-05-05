@@ -482,7 +482,7 @@ ati28800k_init(const device_t *info)
     rom_init(&ati28800->bios_rom, BIOS_ATIKOR_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     loadfont(FONT_ATIKOR_PATH, 6);
 
-    svga_init(&ati28800->svga, ati28800, ati28800->memory << 10, /*Memory size, default 512KB*/
+    svga_init(info, &ati28800->svga, ati28800, ati28800->memory << 10, /*Memory size, default 512KB*/
 	     ati28800k_recalctimings,
 	     ati28800k_in, ati28800k_out,
 	     NULL,
@@ -543,7 +543,7 @@ ati28800_init(const device_t *info)
 		break;
     }
 
-    svga_init(&ati28800->svga, ati28800, ati28800->memory << 10, /*default: 512kb*/
+    svga_init(info, &ati28800->svga, ati28800, ati28800->memory << 10, /*default: 512kb*/
 	      ati28800_recalctimings,
                    ati28800_in, ati28800_out,
                    NULL,

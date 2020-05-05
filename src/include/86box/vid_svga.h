@@ -143,7 +143,7 @@ typedef struct svga_t
 } svga_t;
 
 
-extern int	svga_init(svga_t *svga, void *p, int memsize, 
+extern int	svga_init(const device_t *info, svga_t *svga, void *p, int memsize, 
 			  void (*recalctimings_ex)(struct svga_t *svga),
 			  uint8_t (*video_in) (uint16_t addr, void *p),
 			  void    (*video_out)(uint16_t addr, uint8_t val, void *p),

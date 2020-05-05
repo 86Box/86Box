@@ -212,13 +212,13 @@ static void *ati18800_init(const device_t *info)
 	};
 
 	if (info->local == ATI18800_EDGE16) {
-		svga_init(&ati18800->svga, ati18800, 1 << 18, /*256kb*/
+		svga_init(info, &ati18800->svga, ati18800, 1 << 18, /*256kb*/
 			  ati18800_recalctimings,
 			  ati18800_in, ati18800_out,
 			  NULL,
 			  NULL);
 	} else {
-		svga_init(&ati18800->svga, ati18800, 1 << 19, /*512kb*/
+		svga_init(info, &ati18800->svga, ati18800, 1 << 19, /*512kb*/
 			  ati18800_recalctimings,
 			  ati18800_in, ati18800_out,
 			  NULL,

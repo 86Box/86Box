@@ -60,6 +60,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
+#include <86box/device.h>
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -642,6 +643,13 @@ video_update_timing(void)
 	video_timing_write_b = ISA_CYCLES(vid_timings->write_b);
 	video_timing_write_w = ISA_CYCLES(vid_timings->write_w);
 	video_timing_write_l = ISA_CYCLES(vid_timings->write_l);
+    } else if (vid_timings->type == VIDEO_PCI) {
+	video_timing_read_b = (int)(pci_timing * vid_timings->read_b);
+	video_timing_read_w = (int)(pci_timing * vid_timings->read_w);
+	video_timing_read_l = (int)(pci_timing * vid_timings->read_l);
+	video_timing_write_b = (int)(pci_timing * vid_timings->write_b);
+	video_timing_write_w = (int)(pci_timing * vid_timings->write_w);
+	video_timing_write_l = (int)(pci_timing * vid_timings->write_l);
     } else {
 	video_timing_read_b = (int)(bus_timing * vid_timings->read_b);
 	video_timing_read_w = (int)(bus_timing * vid_timings->read_w);

@@ -147,7 +147,8 @@ typedef struct gd54xx_t
 
     svga_t		svga;
 
-    int			has_bios, rev;
+    int			has_bios, rev,
+			bit32;
     rom_t		bios_rom;
 
     uint32_t		vram_size;
@@ -207,7 +208,8 @@ typedef struct gd54xx_t
 
 
 static video_timings_t timing_gd54xx_isa	= {VIDEO_ISA, 3,  3,  6,   8,  8, 12};
-static video_timings_t timing_gd54xx_vlb_pci	= {VIDEO_BUS, 4,  4,  8,  10, 10, 20};
+static video_timings_t timing_gd54xx_vlb	= {VIDEO_BUS, 4,  4,  8,  10, 10, 20};
+static video_timings_t timing_gd54xx_pci	= {VIDEO_PCI, 4,  4,  8,  10, 10, 20};
 
 
 static void 
@@ -2955,6 +2957,7 @@ static void
     gd54xx->pci = !!(info->flags & DEVICE_PCI);	
     gd54xx->vlb = !!(info->flags & DEVICE_VLB);
     gd54xx->mca = !!(info->flags & DEVICE_MCA);
+    gd54xx->bit32 = gd54xx->pci || gd54xx->vlb;
 
     gd54xx->rev = 0;
     gd54xx->has_bios = 1;
@@ -3051,35 +3054,53 @@ static void
     if (romfn)
 	rom_init(&gd54xx->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
+
     if (info->flags & DEVICE_ISA)
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_isa);
+    else if (info->flags & DEVICE_PCI)
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_pci);
     else
-	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_vlb_pci);
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_vlb);
 
-    svga_init(&gd54xx->svga, gd54xx, gd54xx->vram_size,
+    svga_init(info, &gd54xx->svga, gd54xx, gd54xx->vram_size,
 	      gd54xx_recalctimings, gd54xx_in, gd54xx_out,
 	      gd54xx_hwcursor_draw, NULL);
     svga->ven_write = gd54xx_write_modes45;
     if (vram <= 1)
 	svga->decode_mask = gd54xx->vram_mask;
 
-    mem_mapping_set_handler(&svga->mapping, gd54xx_read, gd54xx_readw, gd54xx_readl, gd54xx_write, gd54xx_writew, gd54xx_writel);
-    mem_mapping_set_p(&svga->mapping, gd54xx);
-    
-    mem_mapping_add(&gd54xx->mmio_mapping, 0, 0,
+    if (gd54xx->bit32) {
+	mem_mapping_set_handler(&svga->mapping, gd54xx_read, gd54xx_readw, gd54xx_readl, gd54xx_write, gd54xx_writew, gd54xx_writel);
+	mem_mapping_add(&gd54xx->mmio_mapping, 0, 0,
 			gd543x_mmio_read, gd543x_mmio_readw, gd543x_mmio_readl,
 			gd543x_mmio_writeb, gd543x_mmio_writew, gd543x_mmio_writel,
 			NULL, MEM_MAPPING_EXTERNAL, gd54xx);
-    mem_mapping_disable(&gd54xx->mmio_mapping);
-    mem_mapping_add(&gd54xx->linear_mapping, 0, 0,
+	mem_mapping_add(&gd54xx->linear_mapping, 0, 0,
 			gd54xx_readb_linear, gd54xx_readw_linear, gd54xx_readl_linear,
 			gd54xx_writeb_linear, gd54xx_writew_linear, gd54xx_writel_linear,
 			NULL, MEM_MAPPING_EXTERNAL, gd54xx);
-    mem_mapping_disable(&gd54xx->linear_mapping);
-    mem_mapping_add(&gd54xx->aperture2_mapping, 0, 0,
+	mem_mapping_add(&gd54xx->aperture2_mapping, 0, 0,
 			gd5436_aperture2_readb, gd5436_aperture2_readw, gd5436_aperture2_readl,
 			gd5436_aperture2_writeb, gd5436_aperture2_writew, gd5436_aperture2_writel,
 			NULL, MEM_MAPPING_EXTERNAL, gd54xx);
+    } else {
+	mem_mapping_set_handler(&svga->mapping, gd54xx_read, gd54xx_readw, NULL, gd54xx_write, gd54xx_writew, NULL);
+	mem_mapping_add(&gd54xx->mmio_mapping, 0, 0,
+			gd543x_mmio_read, gd543x_mmio_readw, NULL,
+			gd543x_mmio_writeb, gd543x_mmio_writew, NULL,
+			NULL, MEM_MAPPING_EXTERNAL, gd54xx);
+	mem_mapping_add(&gd54xx->linear_mapping, 0, 0,
+			gd54xx_readb_linear, gd54xx_readw_linear, NULL,
+			gd54xx_writeb_linear, gd54xx_writew_linear, NULL,
+			NULL, MEM_MAPPING_EXTERNAL, gd54xx);
+	mem_mapping_add(&gd54xx->aperture2_mapping, 0, 0,
+			gd5436_aperture2_readb, gd5436_aperture2_readw, NULL,
+			gd5436_aperture2_writeb, gd5436_aperture2_writew, NULL,
+			NULL, MEM_MAPPING_EXTERNAL, gd54xx);
+    }
+    mem_mapping_set_p(&svga->mapping, gd54xx);
+    mem_mapping_disable(&gd54xx->mmio_mapping);
+    mem_mapping_disable(&gd54xx->linear_mapping);
     mem_mapping_disable(&gd54xx->aperture2_mapping);
 
     io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);

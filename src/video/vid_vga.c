@@ -115,7 +115,7 @@ static void *vga_init(const device_t *info)
 
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_vga);
 
-        svga_init(&vga->svga, vga, 1 << 18, /*256kb*/
+        svga_init(info, &vga->svga, vga, 1 << 18, /*256kb*/
                    NULL,
                    vga_in, vga_out,
                    NULL,
@@ -141,7 +141,7 @@ void *ps1vga_init(const device_t *info)
 	else
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ps1_svga_isa);
 
-        svga_init(&vga->svga, vga, 1 << 18, /*256kb*/
+        svga_init(info, &vga->svga, vga, 1 << 18, /*256kb*/
                    NULL,
                    vga_in, vga_out,
                    NULL,

@@ -77,11 +77,16 @@ enum
 static video_timings_t timing_s3_86c911		= {VIDEO_ISA, 4,  4,  5,  20, 20, 35};
 static video_timings_t timing_s3_86c801		= {VIDEO_ISA, 4,  4,  5,  20, 20, 35};
 static video_timings_t timing_s3_86c805		= {VIDEO_BUS, 4,  4,  5,  20, 20, 35};
-static video_timings_t timing_s3_stealth64	= {VIDEO_BUS, 2,  2,  4,  26, 26, 42};
-static video_timings_t timing_s3_vision864	= {VIDEO_BUS, 4,  4,  5,  20, 20, 35};
-static video_timings_t timing_s3_vision964	= {VIDEO_BUS, 2,  2,  4,  20, 20, 35};
-static video_timings_t timing_s3_trio32		= {VIDEO_BUS, 4,  3,  5,  26, 26, 42};
-static video_timings_t timing_s3_trio64		= {VIDEO_BUS, 3,  2,  4,  25, 25, 40};
+static video_timings_t timing_s3_stealth64_vlb	= {VIDEO_BUS, 2,  2,  4,  26, 26, 42};
+static video_timings_t timing_s3_stealth64_pci	= {VIDEO_PCI, 2,  2,  4,  26, 26, 42};
+static video_timings_t timing_s3_vision864_vlb	= {VIDEO_BUS, 4,  4,  5,  20, 20, 35};
+static video_timings_t timing_s3_vision864_pci	= {VIDEO_PCI, 4,  4,  5,  20, 20, 35};
+static video_timings_t timing_s3_vision964_vlb	= {VIDEO_BUS, 2,  2,  4,  20, 20, 35};
+static video_timings_t timing_s3_vision964_pci	= {VIDEO_PCI, 2,  2,  4,  20, 20, 35};
+static video_timings_t timing_s3_trio32_vlb	= {VIDEO_BUS, 4,  3,  5,  26, 26, 42};
+static video_timings_t timing_s3_trio32_pci	= {VIDEO_PCI, 4,  3,  5,  26, 26, 42};
+static video_timings_t timing_s3_trio64_vlb	= {VIDEO_BUS, 3,  2,  4,  25, 25, 40};
+static video_timings_t timing_s3_trio64_pci	= {VIDEO_PCI, 3,  2,  4,  25, 25, 40};
 
 enum
 {
@@ -3304,42 +3309,66 @@ static void *s3_init(const device_t *info)
 		case S3_PARADISE_BAHAMAS64:
 			bios_fn = ROM_PARADISE_BAHAMAS64;
 			chip = S3_VISION864;
-			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864);
+			if (info->flags & DEVICE_PCI)
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci);
+			else
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_vlb);
 			break;
 		case S3_PHOENIX_VISION864:
 			bios_fn = ROM_PHOENIX_VISION864;
 			chip = S3_VISION864;
-			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864);
+			if (info->flags & DEVICE_PCI)
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci);
+			else
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_vlb);
 			break;
 		case S3_DIAMOND_STEALTH64_964:
 			bios_fn = ROM_DIAMOND_STEALTH64_964;
 			chip = S3_VISION964;
-			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964);
+			if (info->flags & DEVICE_PCI)
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_pci);
+			else
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_vlb);
 			break;
 		case S3_PHOENIX_TRIO32:
 			bios_fn = ROM_PHOENIX_TRIO32;
 			chip = S3_TRIO32;
-			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32);
+			if (info->flags & DEVICE_PCI)
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_pci);
+			else
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_vlb);
 			break;
 		case S3_PHOENIX_TRIO64:
 			bios_fn = ROM_PHOENIX_TRIO64;
 			chip = S3_TRIO64;
-			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64);
+			if (info->flags & DEVICE_PCI)
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+			else
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
 			break;
 		case S3_PHOENIX_TRIO64_ONBOARD:
 			bios_fn = NULL;
 			chip = S3_TRIO64;
-			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64);
+			if (info->flags & DEVICE_PCI)
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+			else
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
 			break;
 		case S3_DIAMOND_STEALTH64_764:
 			bios_fn = ROM_DIAMOND_STEALTH64_764;
 			chip = S3_TRIO64;
-			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_stealth64);
+			if (info->flags & DEVICE_PCI)
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_stealth64_pci);
+			else
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_stealth64_vlb);
 			break;
 		case S3_NUMBER9_9FX:
 			bios_fn = ROM_NUMBER9_9FX;
 			chip = S3_TRIO64;
-			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64);
+			if (info->flags & DEVICE_PCI)
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+			else
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
 			break;
 		default:
 			free(s3);
@@ -3366,24 +3395,35 @@ static void *s3_init(const device_t *info)
 	s3->pci = !!(info->flags & DEVICE_PCI);
 	s3->vlb = !!(info->flags & DEVICE_VLB);
 
-	mem_mapping_add(&s3->linear_mapping,	0,			0,
-			svga_read_linear,	svga_readw_linear,	svga_readl_linear,
-			svga_write_linear,	svga_writew_linear,	svga_writel_linear,
-			NULL,			MEM_MAPPING_EXTERNAL,	&s3->svga);
-	mem_mapping_add(&s3->mmio_mapping,	0xa0000,		0x10000,
-			s3_accel_read,		s3_accel_read_w,	s3_accel_read_l,
-			s3_accel_write,		s3_accel_write_w,	s3_accel_write_l,
-			NULL,			MEM_MAPPING_EXTERNAL,	s3);
+	if (s3->pci || s3->vlb) {
+		mem_mapping_add(&s3->linear_mapping,	0,			0,
+				svga_read_linear,	svga_readw_linear,	svga_readl_linear,
+				svga_write_linear,	svga_writew_linear,	svga_writel_linear,
+				NULL,			MEM_MAPPING_EXTERNAL,	&s3->svga);
+		mem_mapping_add(&s3->mmio_mapping,	0xa0000,		0x10000,
+				s3_accel_read,		s3_accel_read_w,	s3_accel_read_l,
+				s3_accel_write,		s3_accel_write_w,	s3_accel_write_l,
+				NULL,			MEM_MAPPING_EXTERNAL,	s3);
+	} else {
+		mem_mapping_add(&s3->linear_mapping,	0,			0,
+				svga_read_linear,	svga_readw_linear,	NULL,
+				svga_write_linear,	svga_writew_linear,	NULL,
+				NULL,			MEM_MAPPING_EXTERNAL,	&s3->svga);
+		mem_mapping_add(&s3->mmio_mapping,	0xa0000,		0x10000,
+				s3_accel_read,		s3_accel_read_w,	NULL,
+				s3_accel_write,		s3_accel_write_w,	NULL,
+				NULL,			MEM_MAPPING_EXTERNAL,	s3);
+	}
 	mem_mapping_disable(&s3->mmio_mapping);
 	
 	if (chip == S3_VISION964)
-		svga_init(&s3->svga, s3, vram_size,
+		svga_init(info, &s3->svga, s3, vram_size,
 		s3_recalctimings,
 		s3_in, s3_out,
 		NULL,
 		NULL);
 	else
-		svga_init(&s3->svga, s3, vram_size,
+		svga_init(info, &s3->svga, s3, vram_size,
 		s3_recalctimings,
 		s3_in, s3_out,
 		s3_hwcursor_draw,

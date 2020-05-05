@@ -272,9 +272,12 @@ typedef struct virge_t
 	uint8_t subsys_stat, subsys_cntl;
 } virge_t;
 
-static video_timings_t timing_diamond_stealth3d_2000	= {VIDEO_BUS, 2,  2,  3,  28, 28, 45};
-static video_timings_t timing_diamond_stealth3d_3000	= {VIDEO_BUS, 2,  2,  4,  26, 26, 42};
-static video_timings_t timing_virge_dx			= {VIDEO_BUS, 2,  2,  3,  28, 28, 45};
+static video_timings_t timing_diamond_stealth3d_2000_vlb	= {VIDEO_BUS, 2,  2,  3,  28, 28, 45};
+static video_timings_t timing_diamond_stealth3d_2000_pci	= {VIDEO_PCI, 2,  2,  3,  28, 28, 45};
+static video_timings_t timing_diamond_stealth3d_3000_vlb	= {VIDEO_BUS, 2,  2,  4,  26, 26, 42};
+static video_timings_t timing_diamond_stealth3d_3000_pci	= {VIDEO_PCI, 2,  2,  4,  26, 26, 42};
+static video_timings_t timing_virge_dx_vlb			= {VIDEO_BUS, 2,  2,  3,  28, 28, 45};
+static video_timings_t timing_virge_dx_pci			= {VIDEO_PCI, 2,  2,  3,  28, 28, 45};
 
 static __inline void wake_fifo_thread(virge_t *virge)
 {
@@ -3902,7 +3905,7 @@ static void *s3_virge_init(const device_t *info)
 			return NULL;
 	}
 
-        svga_init(&virge->svga, virge, virge->memory_size << 20,
+        svga_init(info, &virge->svga, virge, virge->memory_size << 20,
                    s3_virge_recalctimings,
                    s3_virge_in, s3_virge_out,
                    s3_virge_hwcursor_draw,
@@ -3978,20 +3981,29 @@ static void *s3_virge_init(const device_t *info)
 		        virge->virge_id_high = 0x56;
 		        virge->virge_id_low = 0x31;
 			virge->chip = S3_VIRGE;
-			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_diamond_stealth3d_2000);
+			if (info->flags & DEVICE_PCI)
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_diamond_stealth3d_2000_pci);
+			else
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_diamond_stealth3d_2000_vlb);
 			break;
 		case S3_DIAMOND_STEALTH3D_3000:
 		        virge->virge_id_high = 0x88;
 		        virge->virge_id_low = 0x3d;
 			virge->chip = S3_VIRGEVX;
-			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_diamond_stealth3d_3000);
+			if (info->flags & DEVICE_PCI)
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_diamond_stealth3d_3000_pci);
+			else
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_diamond_stealth3d_3000_vlb);
 			break;
 		default:
 			virge->svga.crtc[0x6c] = 0x01;
 		        virge->virge_id_high = 0x8a;
 		        virge->virge_id_low = 0x01;
 			virge->chip = S3_VIRGEDX;
-			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_virge_dx);
+			if (info->flags & DEVICE_PCI)
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_virge_dx_pci);
+			else
+				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_virge_dx_vlb);
 			break;
 	}
 
