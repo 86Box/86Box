@@ -311,6 +311,7 @@ extern int	machine_at_p5mms98_init(const machine_t *);
 
 extern int	machine_at_ficva502_init(const machine_t *);
 
+extern int	machine_at_ficpa2012_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_advanceii_init(const machine_t *);
 #endif
