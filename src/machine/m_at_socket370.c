@@ -140,7 +140,7 @@ machine_at_63a_init(const machine_t *model)
        difference between to chipsets other than the name. */
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/63a/63a-q3.bin",
+    ret = bios_load_linear(L"roms/machines/63a1/63a-q3.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -198,4 +198,3 @@ machine_at_apas3_init(const machine_t *model)
 
     return ret;
 }
-
