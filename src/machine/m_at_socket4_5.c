@@ -244,8 +244,6 @@ machine_at_p54tp4xe_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    ide_board_set_force_ata3(0, 1);
-    ide_board_set_force_ata3(1, 1);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
 
@@ -438,8 +436,6 @@ machine_at_powermate_v_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    ide_board_set_force_ata3(0, 1);
-    ide_board_set_force_ata3(1, 1);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
 

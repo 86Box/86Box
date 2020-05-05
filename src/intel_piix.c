@@ -993,12 +993,14 @@ piix_reset_hard(piix_t *dev)
     	fregs[0x08] = dev->rev;
     fregs[0x09] = 0x00;
     fregs[0x0a] = 0x01; fregs[0x0b] = 0x06;
-    fregs[0x0e] = (dev->type > 1) ? 0x80 : 0x00;
+    fregs[0x0e] = ((dev->type > 1) || (dev->rev != 2)) ? 0x80 : 0x00;
     fregs[0x4c] = 0x4d;
     fregs[0x4e] = 0x03;
     fregs[0x60] = fregs[0x61] = fregs[0x62] = fregs[0x63] = 0x80;
     fregs[0x64] = (dev->type > 3) ? 0x10 : 0x00;
     fregs[0x69] = 0x02;
+    if ((dev->type == 1) && (dev->rev != 2))
+	fregs[0x6a] = 0x04;
     fregs[0x70] = (dev->type < 4) ? 0x80 : 0x00;
     fregs[0x71] = (dev->type < 3) ? 0x80 : 0x00;
     if (dev->type <= 4) {
@@ -1041,7 +1043,10 @@ piix_reset_hard(piix_t *dev)
 	fregs[0x3c] = 0x0e;
 	fregs[0x3d] = 0x01;
     }
-    dev->max_func = 0;		/* It starts with IDE disabled, then enables it. */
+    if ((dev->type == 1) && (dev->rev == 2))
+	dev->max_func = 0;		/* It starts with IDE disabled, then enables it. */
+    else
+	dev->max_func = 1;
 
     /* Function 2: USB */
     if (dev->type > 1) {
@@ -1180,6 +1185,12 @@ static void
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
     dev->bm[1] = device_add_inst(&sff8038i_device, 2);
+    if ((dev->type == 1) && (dev->rev == 2)) {
+	/* PIIX rev. 02 has faulty bus mastering on real hardware,
+	   so set our devices IDE devices to force ATA-3 (no DMA). */
+	ide_board_set_force_ata3(0, 1);
+	ide_board_set_force_ata3(1, 1);
+    }
 
     if (dev->type >= 3)
 	dev->usb = device_add(&usb_device);
@@ -1291,6 +1302,20 @@ const device_t piix_device =
     "Intel 82371FB (PIIX)",
     DEVICE_PCI,
     0x122e0101,
+    piix_init, 
+    piix_close, 
+    piix_reset,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t piix_rev02_device =
+{
+    "Intel 82371FB (PIIX) (Faulty BusMastering!!)",
+    DEVICE_PCI,
+    0x122e0121,
     piix_init, 
     piix_close, 
     piix_reset,
