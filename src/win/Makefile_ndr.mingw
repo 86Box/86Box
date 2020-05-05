@@ -317,7 +317,7 @@ else
  ifeq ($(OPTIM), y)
   AOPTIM	:= -mtune=native
   ifndef COPTIM
-   COPTIM	:= -O3 -flto=$(FLTO)
+   COPTIM	:= -O3 -ffp-contract=fast -flto=$(FLTO)
   endif
  else
   ifndef COPTIM
