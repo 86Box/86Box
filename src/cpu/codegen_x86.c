@@ -2047,7 +2047,7 @@ generate_call:
                 int jump_cycles = 0;
 
 		if (codegen_timing_jump_cycles != NULL)
-			codegen_timing_jump_cycles();
+			jump_cycles = codegen_timing_jump_cycles();
 
                 if (jump_cycles)
                 {
