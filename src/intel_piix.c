@@ -896,8 +896,6 @@ board_write(uint16_t port, uint8_t val, void *priv)
 
     if (port == 0x0078)
 	dev->board_config[0] = val;
-    else if (port == 0x0079)
-	dev->board_config[1] = val;
     else if (port == 0x00e0)
 	dev->cur_readout_reg = val;
     else if (port == 0x00e1)
@@ -1266,7 +1264,6 @@ static void
     io_sethandler(0x00e0, 0x0002, board_read, NULL, NULL, board_write, NULL, NULL, dev);
 
     dev->board_config[0] = 0xff;
-    dev->board_config[0] = 0x00;
     /* Register 0x0079: */
     /* Bit 7: 0 = Clear password, 1 = Keep password. */
     /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
@@ -1277,6 +1274,7 @@ static void
     /*		60 MHz: Switch 7 = On, Switch 8 = Off. */
     /*		66 MHz: Switch 7 = Off, Switch 8 = On. */
     /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
+    /* Bit 1: 0 = Soft-off capable power supply present, 1 = Soft-off capable power supply absent. */
     /* Bit 0: 0 = 1.5x multiplier, 1 = 2x multiplier (Switch 6). */
     /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
     dev->board_config[1] = 0xe0;
