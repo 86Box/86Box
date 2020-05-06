@@ -54,6 +54,7 @@
 #include "386_common.h"
 
 #include "codegen.h"
+#include "codegen_accumulate.h"
 #include "codegen_ops.h"
 #include "codegen_ops_x86.h"
 
@@ -1502,6 +1503,8 @@ void codegen_block_start_recompile(codeblock_t *block)
 
         codegen_flat_ds = !(cpu_cur_status & CPU_STATUS_NOTFLATDS);
         codegen_flat_ss = !(cpu_cur_status & CPU_STATUS_NOTFLATSS);       
+
+        codegen_accumulate_reset();
 }
 
 void codegen_block_remove()
@@ -1585,30 +1588,10 @@ void codegen_block_end()
 void codegen_block_end_recompile(codeblock_t *block)
 {
         codegen_timing_block_end();
+        codegen_accumulate(ACCREG_cycles, -codegen_block_cycles);
 
-        if (codegen_block_cycles)
-        {
-                addbyte(0x81); /*SUB $codegen_block_cycles, cyclcs*/
-                addbyte(0x6d);
-                addbyte((uint8_t)cpu_state_offset(_cycles));
-                addlong(codegen_block_cycles);
-        }
-        if (codegen_block_ins)
-        {
-                addbyte(0x81); /*ADD $codegen_block_ins,ins*/
-                addbyte(0x45);
-                addbyte((uint8_t)cpu_state_offset(cpu_recomp_ins));
-                addlong(codegen_block_ins);
-        }
-#if 0
-        if (codegen_block_full_ins)
-        {
-                addbyte(0x81); /*ADD $codegen_block_ins,ins*/
-                addbyte(0x05);
-                addlong((uint32_t)&cpu_recomp_full_ins);
-                addlong(codegen_block_full_ins);
-        }
-#endif
+        codegen_accumulate_flush();
+
         addbyte(0x83); /*ADDL $16,%esp*/
         addbyte(0xC4);
         addbyte(0x10);
@@ -2033,6 +2016,10 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
 generate_call:
         codegen_timing_opcode(opcode, fetchdat, op_32, op_pc);
 
+        codegen_accumulate(ACCREG_ins, 1);
+        codegen_accumulate(ACCREG_cycles, -codegen_block_cycles);
+        codegen_block_cycles = 0;
+
         if ((op_table == x86_dynarec_opcodes &&
               ((opcode & 0xf0) == 0x70 || (opcode & 0xfc) == 0xe0 || opcode == 0xc2 ||
               (opcode & 0xfe) == 0xca || (opcode & 0xfc) == 0xcc || (opcode & 0xfc) == 0xe8 ||
@@ -2050,49 +2037,10 @@ generate_call:
 			jump_cycles = codegen_timing_jump_cycles();
 
                 if (jump_cycles)
-                {
-                        addbyte(0x81); /*SUB $jump_cycles, cycles*/
-                        addbyte(0x6d);
-                        addbyte((uint8_t)cpu_state_offset(_cycles));
-                        addlong(jump_cycles);
-                }
-
-                /*Opcode is likely to cause block to exit, update cycle count*/
-                if (codegen_block_cycles)
-                {
-                        addbyte(0x81); /*SUB $codegen_block_cycles, cycles*/
-                        addbyte(0x6d);
-                        addbyte((uint8_t)cpu_state_offset(_cycles));
-                        addlong(codegen_block_cycles);
-                        codegen_block_cycles = 0;
-                }
-                if (codegen_block_ins)
-                {
-                        addbyte(0x81); /*ADD $codegen_block_ins,ins*/
-                        addbyte(0x45);
-                        addbyte((uint8_t)cpu_state_offset(cpu_recomp_ins));
-                        addlong(codegen_block_ins);
-                        codegen_block_ins = 0;
-                }
-#if 0
-                if (codegen_block_full_ins)
-                {
-                        addbyte(0x81); /*ADD $codegen_block_ins,ins*/
-                        addbyte(0x05);
-                        addlong((uint32_t)&cpu_recomp_full_ins);
-                        addlong(codegen_block_full_ins);
-                        codegen_block_full_ins = 0;
-                }
-#endif
-
+                        codegen_accumulate(ACCREG_cycles, -jump_cycles);
+                codegen_accumulate_flush();
                 if (jump_cycles)
-                {
-                        addbyte(0x81); /*SUB $jump_cycles, cycles*/
-                        addbyte(0x6d);
-                        addbyte((uint8_t)cpu_state_offset(_cycles));
-                        addlong(jump_cycles);
-                        jump_cycles = 0;
-                }
+                        codegen_accumulate(ACCREG_cycles, jump_cycles);
         }
 
         if ((op_table == x86_dynarec_opcodes_REPNE || op_table == x86_dynarec_opcodes_REPE) && !op_table[opcode | op_32])
@@ -2163,6 +2111,8 @@ generate_call:
                 addbyte((uint8_t)cpu_state_offset(ea_seg));
                 addlong((uint32_t)op_ea_seg);
         }
+
+        codegen_accumulate_flush();
 
         addbyte(0xC7); /*MOVL pc,new_pc*/
         addbyte(0x45);
