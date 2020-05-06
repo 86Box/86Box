@@ -34,7 +34,7 @@ void codegen_accumulate_flush(void)
                         addbyte(0x04);
                         addbyte(0x25);
                         addlong((uint32_t) acc_regs[c].dest_reg);
-                        addlong(codegen_block_full_ins);
+                        addlong(acc_regs[c].count);
                 }
 
                 acc_regs[c].count = 0;
