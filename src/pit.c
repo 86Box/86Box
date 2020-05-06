@@ -368,7 +368,7 @@ ctr_latch_status(ctr_t *ctr)
 static void
 ctr_latch_count(ctr_t *ctr)
 {
-    int count = (ctr->latch || (ctr->state == 1)) ? ctr->l : ctr->count;
+    int count = (ctr->latch || ctr->null_count || (ctr->state == 1)) ? ctr->l : ctr->count;
 
     switch (ctr->rm & 0x03) {
 	case 0x00:
@@ -575,6 +575,8 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
 	case 1:
 	case 2:		/* the actual timers */
 		ctr = &dev->counters[t];
+		/* Reloading timer count, so set null_count to 1. */
+		ctr->null_count = 1;
 
 		switch (ctr->wm) {
 			case 0:
@@ -642,7 +644,7 @@ pit_read(uint16_t addr, void *priv)
 			break;
 		}
 
-		count = (ctr->state == 1) ? ctr->l : ctr->count;
+		count = (ctr->null_count || (ctr->state == 1)) ? ctr->l : ctr->count;
 
 		if (ctr->latched) {
 			ret = (ctr->rl) >> ((ctr->rm & 0x80) ? 8 : 0);
