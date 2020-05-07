@@ -45,6 +45,35 @@
 #include "cpu.h"
 #include <86box/machine.h>
 
+int
+machine_at_chariot_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/chariot/P5IV183.ROM",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+	pci_register_slot(0x14, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 3, 4, 2, 1);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 4, 3, 2, 1);
+	
+    device_add(&i430fx_device);
+    device_add(&piix_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&pc87306_device);
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
 
 static void
 machine_at_thor_common_init(const machine_t *model, int mr)
@@ -137,7 +166,6 @@ machine_at_pb640_init(const machine_t *model)
 
     return ret;
 }
-
 
 const device_t *
 at_pb640_get_device(void)

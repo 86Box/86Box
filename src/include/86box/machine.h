@@ -199,6 +199,7 @@ extern int	machine_at_spc4200p_init(const machine_t *);
 extern int	machine_at_spc4216p_init(const machine_t *);
 extern int	machine_at_kmxc02_init(const machine_t *);
 extern int	machine_at_deskmaster286_init(const machine_t *);
+extern int	machine_at_alr_init(const machine_t *);
 
 extern int	machine_at_commodore_sl386sx_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
@@ -265,7 +266,6 @@ extern int	machine_at_p54tp4xe_init(const machine_t *);
 extern int	machine_at_endeavor_init(const machine_t *);
 extern int	machine_at_zappa_init(const machine_t *);
 extern int	machine_at_mb500n_init(const machine_t *);
-extern int	machine_at_president_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_VECTRA54)
 extern int	machine_at_vectra54_init(const machine_t *);
 #endif
@@ -276,6 +276,7 @@ extern const device_t	*at_endeavor_get_device(void);
 #endif
 
 /* m_at_socket7_s7.c */
+extern int	machine_at_chariot_init(const machine_t *);
 extern int	machine_at_thor_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_MRTHOR)
 extern int	machine_at_mrthor_init(const machine_t *);
