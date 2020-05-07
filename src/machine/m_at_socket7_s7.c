@@ -124,14 +124,12 @@ machine_at_pb640_init(const machine_t *model)
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 2, 1, 4);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430fx_pb640_device);
-    device_add(&piix_device);
-    ide_board_set_force_ata3(0, 1);
-    ide_board_set_force_ata3(1, 1);
+    device_add(&piix_rev02_device);
 
     if (gfxcard == VID_INTERNAL)
 	device_add(&gd5440_onboard_pci_device);
 
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&pc87306_device);
     device_add(&intel_flash_bxt_ami_device);
 

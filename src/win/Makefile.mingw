@@ -320,7 +320,7 @@ else
  ifeq ($(OPTIM), y)
   AOPTIM	:= -mtune=native
   ifndef COPTIM
-   COPTIM	:= -O3 -flto=$(FLTO)
+   COPTIM	:= -O3 -ffp-contract=fast -flto=$(FLTO)
   endif
  else
   ifndef COPTIM
@@ -353,9 +353,9 @@ endif
 # Optional modules.
 ifeq ($(DYNAREC), y)
 ifeq ($(X64), y)
-PLATCG		:= codegen_x86-64.o
+PLATCG		:= codegen_x86-64.o codegen_accumulate_x86-64.o
 else
-PLATCG		:= codegen_x86.o
+PLATCG		:= codegen_x86.o codegen_accumulate_x86.o
 endif
 
 OPTS		+= -DUSE_DYNAREC

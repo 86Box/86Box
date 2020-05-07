@@ -141,7 +141,8 @@ typedef struct et4000w32p_t
 	uint32_t key;
 } et4000w32p_t;
 
-static video_timings_t timing_et4000w32 = {VIDEO_BUS, 4,  4,  4,  10, 10, 10};
+static video_timings_t timing_et4000w32_vlb = {VIDEO_BUS, 4,  4,  4,  10, 10, 10};
+static video_timings_t timing_et4000w32_pci = {VIDEO_PCI, 4,  4,  4,  10, 10, 10};
 
 void et4000w32p_recalcmapping(et4000w32p_t *et4000);
 
@@ -1286,9 +1287,12 @@ void *et4000w32p_init(const device_t *info)
         
         et4000->interleaved = (vram_size == 2) ? 1 : 0;
 
-	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000w32);
+	if (info->flags & DEVICE_PCI)
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000w32_pci);
+	else
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000w32_vlb);
 
-        svga_init(&et4000->svga, et4000, vram_size << 20,
+        svga_init(info, &et4000->svga, et4000, vram_size << 20,
                    et4000w32p_recalctimings,
                    et4000w32p_in, et4000w32p_out,
                    et4000w32p_hwcursor_draw,

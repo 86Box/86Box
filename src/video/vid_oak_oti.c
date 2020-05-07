@@ -380,7 +380,7 @@ oti_init(const device_t *info)
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_oti);
 
-    svga_init(&oti->svga, oti, oti->vram_size << 10,
+    svga_init(info, &oti->svga, oti, oti->vram_size << 10,
 	      oti_recalctimings, oti_in, oti_out, NULL, NULL);
 
     io_sethandler(0x03c0, 32,

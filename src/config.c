@@ -103,6 +103,8 @@ typedef struct {
     }					\
 					\
     (next)->next = (old)->next;		\
+    if ((next) == (head))		\
+	(head)->next = (old)->next;	\
 }
 
 

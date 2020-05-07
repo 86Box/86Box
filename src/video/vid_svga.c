@@ -27,6 +27,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include "cpu.h"
+#include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/timer.h>
 #include <86box/io.h>
@@ -861,7 +862,7 @@ svga_poll(void *p)
 
 
 int
-svga_init(svga_t *svga, void *p, int memsize, 
+svga_init(const device_t *info, svga_t *svga, void *p, int memsize, 
 	  void (*recalctimings_ex)(struct svga_t *svga),
 	  uint8_t (*video_in) (uint16_t addr, void *p),
 	  void    (*video_out)(uint16_t addr, uint8_t val, void *p),
@@ -911,10 +912,22 @@ svga_init(svga_t *svga, void *p, int memsize,
     svga->dac_hwcursor.xsize = svga->dac_hwcursor.ysize = 32;
     svga->dac_hwcursor.yoff = 32;
 
-    mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
-		    svga_read, svga_readw, svga_readl,
-		    svga_write, svga_writew, svga_writel,
-		    NULL, MEM_MAPPING_EXTERNAL, svga);
+    if ((info->flags & DEVICE_PCI) || (info->flags & DEVICE_VLB)) {
+	    mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
+			    svga_read, svga_readw, svga_readl,
+			    svga_write, svga_writew, svga_writel,
+			    NULL, MEM_MAPPING_EXTERNAL, svga);
+    } else if ((info->flags & DEVICE_ISA) && (info->flags & DEVICE_AT)) {
+	    mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
+			    svga_read, svga_readw, NULL,
+			    svga_write, svga_writew, NULL,
+			    NULL, MEM_MAPPING_EXTERNAL, svga);
+    } else {
+	    mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
+			    svga_read, NULL, NULL,
+			    svga_write, NULL, NULL,
+			    NULL, MEM_MAPPING_EXTERNAL, svga);
+    }
 
     timer_add(&svga->timer, svga_poll, svga, 1);
 

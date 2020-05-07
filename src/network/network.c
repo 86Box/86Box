@@ -275,14 +275,15 @@ network_queue_advance(int tx)
 static void
 network_queue_clear(int tx)
 {
-    netpkt_t *temp = first_pkt[tx];
+    netpkt_t *temp = first_pkt[tx], *temp2;
 
     if (temp == NULL)
 	return;
 
     do {
+	temp2 = temp->next;
 	free(temp);
-	temp = temp->next;
+	temp = temp2;
     } while (temp != NULL);
 
     first_pkt[tx] = last_pkt[tx] = NULL;

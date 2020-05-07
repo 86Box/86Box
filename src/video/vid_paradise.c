@@ -298,21 +298,21 @@ void *paradise_init(const device_t *info, uint32_t memsize)
 
 	switch(info->local) {
 		case PVGA1A:
-			svga_init(&paradise->svga, paradise, memsize, /*256kb*/
+			svga_init(info, &paradise->svga, paradise, memsize, /*256kb*/
 				   NULL,
 				   paradise_in, paradise_out,
 				   NULL,
 				   NULL);
 			break;
 		case WD90C11:
-			svga_init(&paradise->svga, paradise, 1 << 19, /*512kb*/
+			svga_init(info, &paradise->svga, paradise, 1 << 19, /*512kb*/
 				   paradise_recalctimings,
 				   paradise_in, paradise_out,
 				   NULL,
 				   NULL);
 			break;
 		case WD90C30:
-			svga_init(&paradise->svga, paradise, memsize,
+			svga_init(info, &paradise->svga, paradise, memsize,
 				   paradise_recalctimings,
 				   paradise_in, paradise_out,
 				   NULL,

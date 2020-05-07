@@ -210,7 +210,8 @@ typedef struct tgui_t
         volatile int write_blitter;
 } tgui_t;
 
-video_timings_t timing_tgui = {VIDEO_BUS, 4,  8, 16,   4,  8, 16};
+video_timings_t timing_tgui_vlb = {VIDEO_BUS, 4,  8, 16,   4,  8, 16};
+video_timings_t timing_tgui_pci = {VIDEO_PCI, 4,  8, 16,   4,  8, 16};
 
 void tgui_recalcmapping(tgui_t *tgui);
 
@@ -1663,9 +1664,12 @@ static void *tgui_init(const device_t *info)
 
         rom_init(&tgui->bios_rom, (wchar_t *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
-	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui);
+	if (info->flags & DEVICE_PCI)
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui_pci);
+	else
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui_vlb);
 
-        svga_init(&tgui->svga, tgui, tgui->vram_size,
+        svga_init(info, &tgui->svga, tgui, tgui->vram_size,
                    tgui_recalctimings,
                    tgui_in, tgui_out,
                    tgui_hwcursor_draw,

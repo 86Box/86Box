@@ -2210,10 +2210,7 @@ cpu_CPUID(void)
                 {
                         EAX = CPUID;
                         EBX = ECX = 0;
-                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MTRR/* | CPUID_SEP*/ | CPUID_CMOV;
-#ifdef USE_SEP
-			EDX |= CPUID_SEP;
-#endif
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_SEP | CPUID_CMOV;
                 }
 		else if (EAX == 2)
 		{

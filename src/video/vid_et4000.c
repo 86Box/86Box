@@ -495,7 +495,7 @@ et4000_init(const device_t *info)
 	case 0:		/* ISA ET4000AX */
 		dev->vram_size = device_get_config_int("memory") << 10;
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_isa);
-		svga_init(&dev->svga, dev, dev->vram_size,
+		svga_init(info, &dev->svga, dev, dev->vram_size,
 			  et4000_recalctimings, et4000_in, et4000_out,
 			  NULL, NULL);
 		io_sethandler(0x03c0, 32,
@@ -505,7 +505,7 @@ et4000_init(const device_t *info)
 	case 1:		/* MCA ET4000AX */
 		dev->vram_size = 1024 << 10;
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_mca);
-		svga_init(&dev->svga, dev, dev->vram_size,
+		svga_init(info, &dev->svga, dev, dev->vram_size,
 			  et4000_recalctimings, et4000_in, et4000_out,
 			  NULL, NULL);
 		io_sethandler(0x03c0, 32,
@@ -522,7 +522,7 @@ et4000_init(const device_t *info)
 		dev->port_32cb_val = 0;
 		dev->svga.ksc5601_sbyte_mask = 0x80;
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_isa);
-		svga_init(&dev->svga, dev, dev->vram_size,
+		svga_init(info, &dev->svga, dev, dev->vram_size,
 			  et4000_recalctimings, et4000k_in, et4000k_out,
 			  NULL, NULL);
 		io_sethandler(0x03c0, 32,

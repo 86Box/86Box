@@ -92,7 +92,8 @@ typedef struct mach64_t
         uint8_t regs[256];
         int index;
 
-        int type, pci;
+        int type, pci,
+	    bit32;
         
         uint8_t pci_regs[256];
         uint8_t int_line;
@@ -252,7 +253,8 @@ typedef struct mach64_t
 } mach64_t;
 
 static video_timings_t timing_mach64_isa	= {VIDEO_ISA, 3,  3,  6,   5,  5, 10};
-static video_timings_t timing_mach64_vlb_pci	= {VIDEO_BUS, 2,  2,  1,  20, 20, 21};
+static video_timings_t timing_mach64_vlb	= {VIDEO_BUS, 2,  2,  1,  20, 20, 21};
+static video_timings_t timing_mach64_pci	= {VIDEO_PCI, 2,  2,  1,  20, 20, 21};
 
 enum
 {
@@ -540,26 +542,38 @@ void mach64_updatemapping(mach64_t *mach64)
         switch (svga->gdcreg[6] & 0xc)
         {
                 case 0x0: /*128k at A0000*/
-                mem_mapping_set_handler(&mach64->svga.mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
+		if (mach64->bit32)
+                	mem_mapping_set_handler(&mach64->svga.mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
+		else
+                	mem_mapping_set_handler(&mach64->svga.mapping, mach64_read, mach64_readw, NULL, mach64_write, mach64_writew, NULL);
                 mem_mapping_set_p(&mach64->svga.mapping, mach64);
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
                 mem_mapping_enable(&mach64->mmio_mapping);
                 svga->banked_mask = 0xffff;
                 break;
                 case 0x4: /*64k at A0000*/
-                mem_mapping_set_handler(&mach64->svga.mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
+		if (mach64->bit32)
+			mem_mapping_set_handler(&mach64->svga.mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
+		else
+			mem_mapping_set_handler(&mach64->svga.mapping, mach64_read, mach64_readw, NULL, mach64_write, mach64_writew, NULL);
                 mem_mapping_set_p(&mach64->svga.mapping, mach64);
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
                 svga->banked_mask = 0xffff;
                 break;
                 case 0x8: /*32k at B0000*/
-                mem_mapping_set_handler(&mach64->svga.mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
+		if (mach64->bit32)
+			mem_mapping_set_handler(&mach64->svga.mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
+		else
+			mem_mapping_set_handler(&mach64->svga.mapping, svga_read, svga_readw, NULL, svga_write, svga_writew, NULL);
                 mem_mapping_set_p(&mach64->svga.mapping, svga);
                 mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
                 svga->banked_mask = 0x7fff;
                 break;
                 case 0xC: /*32k at B8000*/
-                mem_mapping_set_handler(&mach64->svga.mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
+		if (mach64->bit32)
+			mem_mapping_set_handler(&mach64->svga.mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
+		else
+			mem_mapping_set_handler(&mach64->svga.mapping, svga_read, svga_readw, NULL, svga_write, svga_writew, NULL);
                 mem_mapping_set_p(&mach64->svga.mapping, svga);
                 mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
                 svga->banked_mask = 0x7fff;
@@ -3266,7 +3280,7 @@ static void *mach64_common_init(const device_t *info)
         mach64->vram_size = device_get_config_int("memory");
         mach64->vram_mask = (mach64->vram_size << 20) - 1;
         
-        svga_init(&mach64->svga, mach64, mach64->vram_size << 20,
+        svga_init(info, &mach64->svga, mach64, mach64->vram_size << 20,
                    mach64_recalctimings,
                    mach64_in, mach64_out,
                    NULL,
@@ -3275,10 +3289,19 @@ static void *mach64_common_init(const device_t *info)
         if (info->flags & DEVICE_PCI)
                 mem_mapping_disable(&mach64->bios_rom.mapping);
 
-        mem_mapping_add(&mach64->linear_mapping,        0,       0,       svga_read_linear, svga_readw_linear, svga_readl_linear, svga_write_linear, svga_writew_linear, svga_writel_linear, NULL, MEM_MAPPING_EXTERNAL, &mach64->svga);
-        mem_mapping_add(&mach64->mmio_linear_mapping,   0,       0,       mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
-        mem_mapping_add(&mach64->mmio_linear_mapping_2, 0,       0,       mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
-        mem_mapping_add(&mach64->mmio_mapping,          0xbc000, 0x04000, mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
+	mach64->bit32 = (info->flags & DEVICE_PCI) || (info->flags & DEVICE_VLB);
+
+	if (mach64->bit32) {
+	        mem_mapping_add(&mach64->linear_mapping,        0,       0,       svga_read_linear, svga_readw_linear, svga_readl_linear, svga_write_linear, svga_writew_linear, svga_writel_linear, NULL, MEM_MAPPING_EXTERNAL, &mach64->svga);
+        	mem_mapping_add(&mach64->mmio_linear_mapping,   0,       0,       mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
+	        mem_mapping_add(&mach64->mmio_linear_mapping_2, 0,       0,       mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
+        	mem_mapping_add(&mach64->mmio_mapping,          0xbc000, 0x04000, mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
+	} else {
+	        mem_mapping_add(&mach64->linear_mapping,        0,       0,       svga_read_linear, svga_readw_linear, NULL,  svga_write_linear, svga_writew_linear, NULL,  NULL, MEM_MAPPING_EXTERNAL, &mach64->svga);
+        	mem_mapping_add(&mach64->mmio_linear_mapping,   0,       0,       mach64_ext_readb, mach64_ext_readw,  NULL,  mach64_ext_writeb, mach64_ext_writew,  NULL,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
+	        mem_mapping_add(&mach64->mmio_linear_mapping_2, 0,       0,       mach64_ext_readb, mach64_ext_readw,  NULL,  mach64_ext_writeb, mach64_ext_writew,  NULL,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
+        	mem_mapping_add(&mach64->mmio_mapping,          0xbc000, 0x04000, mach64_ext_readb, mach64_ext_readw,  NULL,  mach64_ext_writeb, mach64_ext_writew,  NULL,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
+	}
         mem_mapping_disable(&mach64->mmio_mapping);
 
         mach64_io_set(mach64);
@@ -3313,8 +3336,10 @@ static void *mach64gx_init(const device_t *info)
 
         if (info->flags & DEVICE_ISA)
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_isa);
+        else if (info->flags & DEVICE_PCI)
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
 	else
-		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_vlb_pci);
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_vlb);
 
         mach64->type = MACH64_GX;
 	mach64->pci = !!(info->flags & DEVICE_PCI);
@@ -3343,7 +3368,10 @@ static void *mach64vt2_init(const device_t *info)
         mach64_t *mach64 = mach64_common_init(info);
         svga_t *svga = &mach64->svga;
 
-	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_vlb_pci);
+        if (info->flags & DEVICE_PCI)
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
+	else
+		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_vlb);
 
         mach64->type = MACH64_VT2;
 	mach64->pci = 1;

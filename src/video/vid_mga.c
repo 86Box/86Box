@@ -605,7 +605,7 @@ static const uint8_t trans_masks[16][16] =
 static int8_t		dither5[256][2][2];
 static int8_t		dither6[256][2][2];
 
-static video_timings_t	timing_matrox_mystique = {VIDEO_BUS, 4,  4,  4,  10, 10, 10};
+static video_timings_t	timing_matrox_mystique = {VIDEO_PCI, 4,  4,  4,  10, 10, 10};
 
 
 static void	mystique_start_blit(mystique_t *mystique);
@@ -4931,7 +4931,7 @@ mystique_init(const device_t *info)
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_matrox_mystique);
 
-    svga_init(&mystique->svga, mystique, mystique->vram_size << 20,
+    svga_init(info, &mystique->svga, mystique, mystique->vram_size << 20,
 	      mystique_recalctimings,
 	      mystique_in, mystique_out,
 	      mystique_hwcursor_draw,

@@ -327,7 +327,7 @@ static void *tvga_init(const device_t *info)
 	
         rom_init(&tvga->bios_rom, (wchar_t *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         
-        svga_init(&tvga->svga, tvga, tvga->vram_size,
+        svga_init(info, &tvga->svga, tvga, tvga->vram_size,
                    tvga_recalctimings,
                    tvga_in, tvga_out,
                    NULL,
