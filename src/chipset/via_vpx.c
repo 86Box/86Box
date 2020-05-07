@@ -1,25 +1,25 @@
 /*
-
-  86Box	A hypervisor and IBM PC system emulator that specializes in
- 		running old operating systems and software designed for IBM
- 		PC systems and compatibles from 1981 through fairly recent
- 		system designs based on the PCI bus.
- 
-        <This file is part of the 86Box distribution.>
-
-VIA Apollo VPX North Bridge emulation
-
-VT82C585VPX used in the Zida Tomato TX100 board
-based on the model of VIA MVP3 by mooch & Sarah
-
-There's also a SOYO board using the ETEQ chipset which is a rebranded
-VPX + 586B but fails to save on CMOS properly.
-
-Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
-Copyright(C) 2020 Tiseno100
-Copyright(C) 2020 Melissa Goad
-Copyright(C) 2020 Miran Grca
-
+*
+*  86Box	A hypervisor and IBM PC system emulator that specializes in
+* 		running old operating systems and software designed for IBM
+* 		PC systems and compatibles from 1981 through fairly recent
+* 		system designs based on the PCI bus.
+* 
+*        <This file is part of the 86Box distribution.>
+*
+*   VIA Apollo VPX North Bridge emulation
+*
+*   VT82C585VPX used in the FIC VA-502 board
+*   based on the model of VIA MVP3 by mooch & Sarah
+*
+*   There's also a SOYO board using the ETEQ chipset which is a rebranded
+*   VPX + 586B but fails to save on CMOS properly.
+*
+*   Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+*       Copyright(C) 2020 Tiseno100
+*       Copyright(C) 2020 Melissa Goad
+*       Copyright(C) 2020 Miran Grca
+*
 */
 
 #include <stdio.h>
@@ -88,6 +88,8 @@ via_vpx_t *dev = (via_vpx_t *) priv;
         } else if(dev->pci_conf[0x04] && 0x200){ //Bitfield 9
             dev->pci_conf[0x04] = (dev->pci_conf[0x04] & ~0x200) | (val & 0x200); 
         }
+        break;
+
         case 0x07: // Status
         dev->pci_conf[0x07] &= ~(val & 0xb0);
 		break;
