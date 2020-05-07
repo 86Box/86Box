@@ -199,7 +199,6 @@ extern int	machine_at_spc4200p_init(const machine_t *);
 extern int	machine_at_spc4216p_init(const machine_t *);
 extern int	machine_at_kmxc02_init(const machine_t *);
 extern int	machine_at_deskmaster286_init(const machine_t *);
-extern int	machine_at_alr_init(const machine_t *);
 
 extern int	machine_at_commodore_sl386sx_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
