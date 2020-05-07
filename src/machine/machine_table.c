@@ -135,7 +135,6 @@ const machine_t machines[] = {
     { "[286 ISA] Trigem 286M",			"tg286m",		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,							  	512, 8192, 128, 127,	       machine_at_tg286m_init, NULL			},
 
     { "[286 ISA] Samsung Deskmaster 286",	"deskmaster286",	{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512,16384, 128, 127,	   machine_at_deskmaster286_init, NULL			},
-    { "[286 ISA] ALR",	"alr",	{{"286",      cpus_286},         {"386SX",    cpus_i386SX},         {"486", cpus_i486S1},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512,16384, 128, 127,	   machine_at_alr_init, NULL			},
 
     /* 286 machines that utilize the MCA bus */
     { "[286 MCA] IBM PS/2 model 50",		"ibmps2_m50",		{{"Intel", cpus_ps2_m30_286}, {"IBM",cpus_IBM486SLC},{"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_MCA | MACHINE_AT | MACHINE_PS2 | MACHINE_VIDEO,						  1,   10,   1,  63,	    machine_ps2_model_50_init, NULL			},
@@ -303,8 +302,8 @@ const machine_t machines[] = {
 
     /* 440LX */
 
-#if defined(DEV_BRANCH) && defined(NO_SIO)
     /* 440BX */
+#if defined(DEV_BRANCH) && defined(NO_SIO)
     { "[Slot 1 BX] Gigabyte GA-6BXC",		"6bxc",			{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  768,   8, 255,		 machine_at_6bxc_init, NULL			},
 #endif
     { "[Slot 1 BX] ASUS P2B-LS",		"p2bls",		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,		machine_at_p2bls_init, NULL			},
