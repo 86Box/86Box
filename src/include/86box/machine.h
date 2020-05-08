@@ -199,6 +199,7 @@ extern int	machine_at_spc4200p_init(const machine_t *);
 extern int	machine_at_spc4216p_init(const machine_t *);
 extern int	machine_at_kmxc02_init(const machine_t *);
 extern int	machine_at_deskmaster286_init(const machine_t *);
+extern int	machine_at_alr_init(const machine_t *);
 
 extern int	machine_at_commodore_sl386sx_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
@@ -236,7 +237,9 @@ extern int	machine_at_r418_init(const machine_t *);
 extern int	machine_at_ls486e_init(const machine_t *);
 extern int	machine_at_4dps_init(const machine_t *);
 extern int	machine_at_alfredo_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_486sp3g_init(const machine_t *);
+#endif
 
 /* m_at_commodore.c */
 extern int	machine_at_cmdpc_init(const machine_t *);
