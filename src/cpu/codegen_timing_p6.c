@@ -19,8 +19,8 @@
 
 typedef enum uop_type_t
 {
-        UOP_ALU = 0,   /*Executes in Integer X or Y units*/
-        UOP_ALUX,      /*Executes in Integer X unit*/
+        UOP_ALU = 0,   /*Executes in Port 0 or 1 ALU units*/
+        UOP_ALUP0,     /*Executes in Port 0 ALU unit*/
         UOP_LOAD,      /*Executes in Load unit*/
         UOP_STORED,    /*Executes in Data Store unit*/
 	UOP_STOREA,    /*Executes in Address Store unit*/
@@ -31,11 +31,11 @@ typedef enum uop_type_t
         UOP_MSTORED,   /*Executes in Data Store unit*/
         UOP_MSTOREA,   /*Executes in Address Store unit*/
         UOP_FLOAT,     /*Executes in Floating Point unit*/
-        UOP_MMX,       /*Executes in Integer X or Y units as MMX*/
-        UOP_MMX_SHIFT, /*Executes in Integer Y unit. Uses MMX shifter*/
-        UOP_MMX_MUL,   /*Executes in Integer X unit. Uses MMX multiplier*/
+        UOP_MMX,       /*Executes in Port 0 or 1 ALU units as MMX*/
+        UOP_MMX_SHIFT, /*Executes in Port 1 ALU unit. Uses MMX shifter*/
+        UOP_MMX_MUL,   /*Executes in Port 0 ALU unit. Uses MMX multiplier*/
         UOP_BRANCH,    /*Executes in Branch unit*/
-        UOP_LIMM       /*Does not require an execution unit*/
+        UOP_FXCH       /*Does not require an execution unit*/
 } uop_type_t;
 
 typedef enum decode_type_t
@@ -46,46 +46,46 @@ typedef enum decode_type_t
 
 #define MAX_UOPS 10
 
-typedef struct risc86_uop_t
+typedef struct p6_uop_t
 {
         uop_type_t type;
-        double latency;
-} risc86_uop_t;
+        int latency;
+} p6_uop_t;
 
-typedef struct risc86_instruction_t
+typedef struct macro_op_t
 {
         int nr_uops;
         decode_type_t decode_type;
-        risc86_uop_t uop[MAX_UOPS];
-} risc86_instruction_t;
+        p6_uop_t uop[MAX_UOPS];
+} macro_op_t;
 
-static const risc86_instruction_t alu_op =
+static const macro_op_t alu_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_SIMPLE,
         .uop[0] = {.type = UOP_ALU, .latency = 1}
 };
-static const risc86_instruction_t alux_op =
+static const macro_op_t alup0_op =
 {
         .nr_uops = 1,
-        .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_ALUX, .latency = 1}
+        .decode_type = DECODE_SIMPLE,
+        .uop[0] = {.type = UOP_ALUP0, .latency = 1}
 };
-static const risc86_instruction_t load_alu_op =
+static const macro_op_t load_alu_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_LOAD, .latency = 1},
         .uop[1] = {.type = UOP_ALU,  .latency = 1}
 };
-static const risc86_instruction_t load_alux_op =
+static const macro_op_t load_alup0_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD, .latency = 1},
-        .uop[1] = {.type = UOP_ALUX, .latency = 1}
+        .uop[0] = {.type = UOP_LOAD,  .latency = 1},
+        .uop[1] = {.type = UOP_ALUP0, .latency = 1}
 };
-static const risc86_instruction_t alu_store_op =
+static const macro_op_t alu_store_op =
 {
         .nr_uops = 4,
         .decode_type = DECODE_COMPLEX,
@@ -94,38 +94,38 @@ static const risc86_instruction_t alu_store_op =
         .uop[2] = {.type = UOP_STORED,  .latency = 1},
         .uop[3] = {.type = UOP_STOREA,  .latency = 1}	
 	};
-static const risc86_instruction_t alux_store_op =
+static const macro_op_t alup0_store_op =
 {
         .nr_uops = 4,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_LOAD,    .latency = 1},
-        .uop[1] = {.type = UOP_ALUX,    .latency = 1},
+        .uop[1] = {.type = UOP_ALUP0,   .latency = 1},
         .uop[2] = {.type = UOP_STORED,  .latency = 1},
         .uop[3] = {.type = UOP_STOREA,  .latency = 1}		
 };
 
-static const risc86_instruction_t branch_op =
+static const macro_op_t branch_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_BRANCH, .latency = 1}
+        .uop[0] = {.type = UOP_BRANCH, .latency = 2}
 };
 
-static const risc86_instruction_t limm_op =
+static const macro_op_t fxch_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_SIMPLE,
-        .uop[0] = {.type = UOP_LIMM, .latency = 1}
+        .uop[0] = {.type = UOP_FXCH, .latency = 1}
 };
 
-static const risc86_instruction_t load_op =
+static const macro_op_t load_op =
 {
         .nr_uops = 1,
-        .decode_type = DECODE_COMPLEX,
+        .decode_type = DECODE_SIMPLE,
         .uop[0] = {.type = UOP_LOAD, .latency = 1}
 };
 
-static const risc86_instruction_t store_op =
+static const macro_op_t store_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
@@ -134,14 +134,14 @@ static const risc86_instruction_t store_op =
 };
 
 
-static const risc86_instruction_t bswap_op =
+static const macro_op_t bswap_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU,   .latency = 1},
         .uop[1] = {.type = UOP_ALU,   .latency = 1},	
 };
-static const risc86_instruction_t leave_op =
+static const macro_op_t leave_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
@@ -149,27 +149,27 @@ static const risc86_instruction_t leave_op =
         .uop[1] = {.type = UOP_ALU,  .latency = 1},
         .uop[2] = {.type = UOP_ALU,  .latency = 1}
 };
-static const risc86_instruction_t lods_op =
+static const macro_op_t lods_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_LOAD,   .latency = 1},
         .uop[1] = {.type = UOP_ALU,    .latency = 1}
 };
-static const risc86_instruction_t loop_op =
+static const macro_op_t loop_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU,    .latency = 1},
-        .uop[1] = {.type = UOP_BRANCH, .latency = 1}
+        .uop[1] = {.type = UOP_BRANCH, .latency = 2}
 };
-static const risc86_instruction_t mov_reg_seg_op =
+static const macro_op_t mov_reg_seg_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_LOAD,   .latency = 1},
 };
-static const risc86_instruction_t movs_op =
+static const macro_op_t movs_op =
 {
         .nr_uops = 4,
         .decode_type = DECODE_COMPLEX,
@@ -178,14 +178,14 @@ static const risc86_instruction_t movs_op =
         .uop[2] = {.type = UOP_STOREA, .latency = 1},	
         .uop[3] = {.type = UOP_ALU,    .latency = 1}
 };
-static const risc86_instruction_t pop_reg_op =
+static const macro_op_t pop_reg_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_LOAD, .latency = 1},
         .uop[1] = {.type = UOP_ALU,  .latency = 1}
 };
-static const risc86_instruction_t pop_mem_op =
+static const macro_op_t pop_mem_op =
 {
         .nr_uops = 4,
         .decode_type = DECODE_COMPLEX,
@@ -194,14 +194,14 @@ static const risc86_instruction_t pop_mem_op =
         .uop[2] = {.type = UOP_STOREA, .latency = 1},	
         .uop[3] = {.type = UOP_ALU,    .latency = 1}
 };
-static const risc86_instruction_t push_imm_op =
+static const macro_op_t push_imm_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_STORED,  .latency = 1},
         .uop[1] = {.type = UOP_STOREA,  .latency = 1},	
 };
-static const risc86_instruction_t push_mem_op =
+static const macro_op_t push_mem_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
@@ -209,7 +209,7 @@ static const risc86_instruction_t push_mem_op =
         .uop[1] = {.type = UOP_STORED, .latency = 1},
         .uop[2] = {.type = UOP_STOREA, .latency = 1}
 };
-static const risc86_instruction_t push_seg_op =
+static const macro_op_t push_seg_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
@@ -218,7 +218,7 @@ static const risc86_instruction_t push_seg_op =
         .uop[2] = {.type = UOP_STOREA, .latency = 1},
 	.uop[3] = {.type = UOP_ALU,    .latency = 1}
 };
-static const risc86_instruction_t stos_op =
+static const macro_op_t stos_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
@@ -226,33 +226,33 @@ static const risc86_instruction_t stos_op =
         .uop[2] = {.type = UOP_STOREA, .latency = 1},	
         .uop[3] = {.type = UOP_ALU,    .latency = 1}
 };
-static const risc86_instruction_t test_reg_op =
-{
-        .nr_uops = 1,
-        .decode_type = DECODE_SIMPLE,
-        .uop[0] = {.type = UOP_ALU,    .latency = 1}
-};
-static const risc86_instruction_t test_reg_b_op =
+static const macro_op_t test_reg_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_ALUX,   .latency = 1}
+        .uop[0] = {.type = UOP_ALU,    .latency = 1}
 };
-static const risc86_instruction_t test_mem_imm_op =
+static const macro_op_t test_reg_b_op =
+{
+        .nr_uops = 1,
+        .decode_type = DECODE_COMPLEX,
+        .uop[0] = {.type = UOP_ALUP0,   .latency = 1}
+};
+static const macro_op_t test_mem_imm_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_LOAD, .latency = 1},
         .uop[1] = {.type = UOP_ALU,  .latency = 1}
 };
-static const risc86_instruction_t test_mem_imm_b_op =
+static const macro_op_t test_mem_imm_b_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD, .latency = 1},
-        .uop[1] = {.type = UOP_ALUX, .latency = 1}
+        .uop[0] = {.type = UOP_LOAD,  .latency = 1},
+        .uop[1] = {.type = UOP_ALUP0, .latency = 1}
 };
-static const risc86_instruction_t xchg_op =
+static const macro_op_t xchg_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
@@ -262,98 +262,98 @@ static const risc86_instruction_t xchg_op =
 };
 
 
-static const risc86_instruction_t mmx_op =
+static const macro_op_t mmx_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_SIMPLE,
-        .uop[0] = {.type = UOP_MMX, .latency = 1.5}
+        .uop[0] = {.type = UOP_MMX, .latency = 1}
 };
-static const risc86_instruction_t mmx_mul_op =
+static const macro_op_t mmx_mul_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_SIMPLE,
-        .uop[0] = {.type = UOP_MMX_MUL, .latency = 1.5}
+        .uop[0] = {.type = UOP_MMX_MUL, .latency = 1}
 };
-static const risc86_instruction_t mmx_shift_op =
+static const macro_op_t mmx_shift_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_SIMPLE,
-        .uop[0] = {.type = UOP_MMX_SHIFT, .latency = 1.5}
+        .uop[0] = {.type = UOP_MMX_SHIFT, .latency = 1}
 };
-static const risc86_instruction_t load_mmx_op =
+static const macro_op_t load_mmx_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD, .latency =   1},
-        .uop[1] = {.type = UOP_MMX,  .latency = 1.5}
+        .uop[0] = {.type = UOP_LOAD, .latency =   2},
+        .uop[1] = {.type = UOP_MMX,  .latency =   2}
 };
-static const risc86_instruction_t load_mmx_mul_op =
+static const macro_op_t load_mmx_mul_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD,    .latency =   3},
-        .uop[1] = {.type = UOP_MMX_MUL, .latency = 1.5}
+        .uop[0] = {.type = UOP_LOAD,    .latency =   2},
+        .uop[1] = {.type = UOP_MMX_MUL, .latency =   2}
 };
-static const risc86_instruction_t load_mmx_shift_op =
+static const macro_op_t load_mmx_shift_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD,      .latency =   3},
-        .uop[1] = {.type = UOP_MMX_SHIFT, .latency = 1.5}
+        .uop[0] = {.type = UOP_LOAD,      .latency =   2},
+        .uop[1] = {.type = UOP_MMX_SHIFT, .latency =   2}
 };
-static const risc86_instruction_t mload_op =
+static const macro_op_t mload_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_MLOAD, .latency = 3},
+        .uop[0] = {.type = UOP_MLOAD, .latency = 1},
 };
 
-static const risc86_instruction_t mstore_op =
+static const macro_op_t mstore_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_MSTORED, .latency = 1},
         .uop[1] = {.type = UOP_MSTOREA, .latency = 1}
 };
-static const risc86_instruction_t pmul_op =
+static const macro_op_t pmul_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_SIMPLE,
-        .uop[0] = {.type = UOP_MMX_MUL, .latency = 1.5}
+        .uop[0] = {.type = UOP_MMX_MUL, .latency = 1}
 };
-static const risc86_instruction_t pmul_mem_op =
+static const macro_op_t pmul_mem_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD,    .latency =   3},
-        .uop[1] = {.type = UOP_MMX_MUL, .latency = 1.5}
+        .uop[0] = {.type = UOP_LOAD,    .latency =   2},
+        .uop[1] = {.type = UOP_MMX_MUL, .latency =   2}
 };
-static const risc86_instruction_t float_op =
+static const macro_op_t float_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_SIMPLE,
         .uop[0] = {.type = UOP_FLOAT, .latency = 1}
 };
-static const risc86_instruction_t fadd_op =
+static const macro_op_t fadd_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_SIMPLE,
-        .uop[0] = {.type = UOP_FLOAT, .latency = 3}
+        .uop[0] = {.type = UOP_FLOAT, .latency = 2}
 };
-static const risc86_instruction_t fmul_op =
+static const macro_op_t fmul_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_SIMPLE,
-        .uop[0] = {.type = UOP_ALU, .latency = 5}
+        .uop[0] = {.type = UOP_ALUP0, .latency = 3}
 };
-static const risc86_instruction_t float2_op =
+static const macro_op_t float2_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_FLOAT, .latency = 1},
         .uop[1] = {.type = UOP_FLOAT, .latency = 1}
 };
-static const risc86_instruction_t fchs_op =
+static const macro_op_t fchs_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
@@ -361,35 +361,35 @@ static const risc86_instruction_t fchs_op =
         .uop[1] = {.type = UOP_FLOAT, .latency = 2},
         .uop[2] = {.type = UOP_FLOAT, .latency = 2}	
 };
-static const risc86_instruction_t load_float_op =
+static const macro_op_t load_float_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_FLOAD, .latency = 1},
         .uop[1] = {.type = UOP_FLOAT, .latency = 1}
 };
-static const risc86_instruction_t load_fadd_op =
+static const macro_op_t load_fadd_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_FLOAD, .latency = 1},
-        .uop[1] = {.type = UOP_FLOAT, .latency = 3}
+        .uop[1] = {.type = UOP_FLOAT, .latency = 2}
 };
-static const risc86_instruction_t load_fmul_op =
+static const macro_op_t load_fmul_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_LOAD, .latency = 1},
-        .uop[1] = {.type = UOP_ALU,  .latency = 5}
+        .uop[1] = {.type = UOP_ALU,  .latency = 4}
 };
-static const risc86_instruction_t fstore_op =
+static const macro_op_t fstore_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_FSTORED, .latency = 1},
         .uop[1] = {.type = UOP_FSTOREA, .latency = 1},
 };
-static const risc86_instruction_t load_fiadd_op =
+static const macro_op_t load_fiadd_op =
 {
         .nr_uops = 7,
         .decode_type = DECODE_COMPLEX,
@@ -401,51 +401,51 @@ static const risc86_instruction_t load_fiadd_op =
         .uop[5] = {.type = UOP_FLOAT, .latency = 1},
         .uop[6] = {.type = UOP_FLOAT, .latency = 1}	
 };
-static const risc86_instruction_t fdiv_op =
+static const macro_op_t fdiv_op =
 {
         .nr_uops = 1,
-        .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_FLOAT, .latency = 32}
+        .decode_type = DECODE_SIMPLE,
+        .uop[0] = {.type = UOP_FLOAT, .latency = 37}
 };
-static const risc86_instruction_t fdiv_mem_op =
+static const macro_op_t fdiv_mem_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_FLOAD, .latency = 1},
-        .uop[1] = {.type = UOP_FLOAT, .latency = 38}
+        .uop[1] = {.type = UOP_FLOAT, .latency = 37}
 };
-static const risc86_instruction_t fsin_op =
+static const macro_op_t fsin_op =
 {
         .nr_uops = 1,
-        .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_FLOAT, .latency = 60}
+        .decode_type = DECODE_SIMPLE,
+        .uop[0] = {.type = UOP_FLOAT, .latency = 62}
 };
-static const risc86_instruction_t fsqrt_op =
+static const macro_op_t fsqrt_op =
 {
         .nr_uops = 1,
-        .decode_type = DECODE_COMPLEX,
+        .decode_type = DECODE_SIMPLE,
         .uop[0] = {.type = UOP_FLOAT, .latency = 69}
 };
 
-static const risc86_instruction_t complex_fldcw_op =
+static const macro_op_t fldcw_op =
 {
         .nr_uops = 1,
-        .decode_type = DECODE_COMPLEX,
+        .decode_type = DECODE_SIMPLE,
         .uop[0] = {.type = UOP_FLOAT, .latency = 10}
 };
-static const risc86_instruction_t complex_float_op =
+static const macro_op_t complex_float_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_FLOAT, .latency = 1}
 };
-static const risc86_instruction_t complex_float_l_op =
+static const macro_op_t complex_float_l_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_FLOAT, .latency = 50}
 };
-static const risc86_instruction_t complex_flde_op =
+static const macro_op_t flde_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
@@ -453,7 +453,7 @@ static const risc86_instruction_t complex_flde_op =
         .uop[1] = {.type = UOP_FLOAD, .latency = 1},
         .uop[2] = {.type = UOP_FLOAT, .latency = 2}
 };
-static const risc86_instruction_t complex_fste_op =
+static const macro_op_t fste_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
@@ -462,20 +462,20 @@ static const risc86_instruction_t complex_fste_op =
         .uop[2] = {.type = UOP_FSTOREA, .latency = 1}
 };
 
-static const risc86_instruction_t complex_alu1_op =
+static const macro_op_t complex_alu1_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU, .latency = 1}
 };
-static const risc86_instruction_t complex_alu2_op =
+static const macro_op_t alu2_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU, .latency = 1},
         .uop[1] = {.type = UOP_ALU, .latency = 1}
 };
-static const risc86_instruction_t complex_alu3_op =
+static const macro_op_t alu3_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
@@ -483,7 +483,7 @@ static const risc86_instruction_t complex_alu3_op =
         .uop[1] = {.type = UOP_ALU, .latency = 1},
         .uop[2] = {.type = UOP_ALU, .latency = 1}
 };
-static const risc86_instruction_t complex_alu6_op =
+static const macro_op_t alu6_op =
 {
         .nr_uops = 6,
         .decode_type = DECODE_COMPLEX,
@@ -494,57 +494,39 @@ static const risc86_instruction_t complex_alu6_op =
         .uop[4] = {.type = UOP_ALU, .latency = 1},
         .uop[5] = {.type = UOP_ALU, .latency = 1}
 };
-static const risc86_instruction_t complex_alux1_op =
+static const macro_op_t complex_alup0_1_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_ALUX, .latency = 1}
+        .uop[0] = {.type = UOP_ALUP0, .latency = 1}
 };
-static const risc86_instruction_t complex_alux3_op =
+static const macro_op_t alup0_3_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_ALUX, .latency = 1},
-        .uop[1] = {.type = UOP_ALUX, .latency = 1},
-        .uop[2] = {.type = UOP_ALUX, .latency = 1}
+        .uop[0] = {.type = UOP_ALUP0, .latency = 1},
+        .uop[1] = {.type = UOP_ALUP0, .latency = 1},
+        .uop[2] = {.type = UOP_ALUP0, .latency = 1}
 };
-static const risc86_instruction_t complex_alux6_op =
+static const macro_op_t alup0_6_op =
 {
         .nr_uops = 6,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_ALUX, .latency = 1},
-        .uop[1] = {.type = UOP_ALUX, .latency = 1},
-        .uop[2] = {.type = UOP_ALUX, .latency = 1},
-        .uop[3] = {.type = UOP_ALUX, .latency = 1},
-        .uop[4] = {.type = UOP_ALUX, .latency = 1},
-        .uop[5] = {.type = UOP_ALUX, .latency = 1}
+        .uop[0] = {.type = UOP_ALUP0, .latency = 1},
+        .uop[1] = {.type = UOP_ALUP0, .latency = 1},
+        .uop[2] = {.type = UOP_ALUP0, .latency = 1},
+        .uop[3] = {.type = UOP_ALUP0, .latency = 1},
+        .uop[4] = {.type = UOP_ALUP0, .latency = 1},
+        .uop[5] = {.type = UOP_ALUP0, .latency = 1}
 };
-static const risc86_instruction_t complex_alu_store_op =
-{
-        .nr_uops = 4,
-        .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD,   .latency = 1},
-        .uop[1] = {.type = UOP_ALU,    .latency = 1},
-        .uop[2] = {.type = UOP_STORED, .latency = 1},
-        .uop[3] = {.type = UOP_STOREA, .latency = 1},	
-};
-static const risc86_instruction_t complex_alux_store_op =
-{
-        .nr_uops = 4,
-        .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD,   .latency = 1},
-        .uop[1] = {.type = UOP_ALUX,   .latency = 1},
-        .uop[2] = {.type = UOP_STORED, .latency = 1},
-        .uop[3] = {.type = UOP_STOREA, .latency = 1}	
-};
-static const risc86_instruction_t complex_arpl_op =
+static const macro_op_t arpl_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU,   .latency = 3},
         .uop[1] = {.type = UOP_ALU,   .latency = 3}
 };
-static const risc86_instruction_t complex_bound_op =
+static const macro_op_t bound_op =
 {
         .nr_uops = 4,
         .decode_type = DECODE_COMPLEX,
@@ -553,13 +535,13 @@ static const risc86_instruction_t complex_bound_op =
         .uop[2] = {.type = UOP_ALU,  .latency = 1},
         .uop[3] = {.type = UOP_ALU,  .latency = 1}
 };
-static const risc86_instruction_t complex_bsx_op =
+static const macro_op_t bsx_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU, .latency = 10}
 };
-static const risc86_instruction_t complex_call_far_op =
+static const macro_op_t call_far_op =
 {
         .nr_uops = 4,
         .decode_type = DECODE_COMPLEX,
@@ -568,13 +550,13 @@ static const risc86_instruction_t complex_call_far_op =
         .uop[2] = {.type = UOP_STOREA,  .latency = 1},	
         .uop[3] = {.type = UOP_BRANCH,  .latency = 1}
 };
-static const risc86_instruction_t complex_cli_sti_op =
+static const macro_op_t cli_sti_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU, .latency = 7}
 };
-static const risc86_instruction_t complex_cmps_op =
+static const macro_op_t cmps_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
@@ -582,15 +564,15 @@ static const risc86_instruction_t complex_cmps_op =
         .uop[1] = {.type = UOP_ALU,    .latency = 1},
         .uop[2] = {.type = UOP_ALU,    .latency = 1}
 };
-static const risc86_instruction_t complex_cmpsb_op =
+static const macro_op_t cmpsb_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD,   .latency = 1},
-        .uop[1] = {.type = UOP_ALUX,   .latency = 1},
-        .uop[2] = {.type = UOP_ALU,    .latency = 1}
+        .uop[0] = {.type = UOP_LOAD,    .latency = 1},
+        .uop[1] = {.type = UOP_ALUP0,   .latency = 1},
+        .uop[2] = {.type = UOP_ALU,     .latency = 1}
 };
-static const risc86_instruction_t complex_cmpxchg_op =
+static const macro_op_t cmpxchg_op =
 {
         .nr_uops = 4,
         .decode_type = DECODE_COMPLEX,
@@ -599,54 +581,62 @@ static const risc86_instruction_t complex_cmpxchg_op =
         .uop[2] = {.type = UOP_STORED, .latency = 1},
         .uop[3] = {.type = UOP_STOREA, .latency = 1}
 };
-static const risc86_instruction_t complex_cmpxchg_b_op =
+static const macro_op_t cmpxchg_b_op =
 {
         .nr_uops = 4,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD,   .latency = 1},
-        .uop[1] = {.type = UOP_ALUX,   .latency = 1},
-        .uop[2] = {.type = UOP_STORED, .latency = 1},
-        .uop[3] = {.type = UOP_STOREA, .latency = 1}
+        .uop[0] = {.type = UOP_LOAD,    .latency = 1},
+        .uop[1] = {.type = UOP_ALUP0,   .latency = 1},
+        .uop[2] = {.type = UOP_STORED,  .latency = 1},
+        .uop[3] = {.type = UOP_STOREA,  .latency = 1}
 };
-static const risc86_instruction_t complex_cpuid_op =
+static const macro_op_t complex_push_mem_op =
+{
+        .nr_uops = 2,
+        .decode_type = DECODE_COMPLEX,
+        .uop[0] = {.type = UOP_STORED, .latency = 1},
+        .uop[1] = {.type = UOP_STOREA, .latency = 1}
+};
+
+static const macro_op_t cpuid_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU, .latency = 23}
 };
-static const risc86_instruction_t complex_div16_op =
+static const macro_op_t div16_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_ALUX, .latency = 10}
+        .uop[0] = {.type = UOP_ALUP0, .latency = 21}
 };
-static const risc86_instruction_t complex_div16_mem_op =
+static const macro_op_t div16_mem_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD,   .latency =  1},
-        .uop[1] = {.type = UOP_ALUX,   .latency = 10}
+        .uop[0] = {.type = UOP_LOAD,    .latency =  1},
+        .uop[1] = {.type = UOP_ALUP0,   .latency = 21}
 };
-static const risc86_instruction_t complex_div32_op =
+static const macro_op_t div32_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_ALUX, .latency = 18}
+        .uop[0] = {.type = UOP_ALUP0, .latency = 37}
 };
-static const risc86_instruction_t complex_div32_mem_op =
+static const macro_op_t div32_mem_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_LOAD,   .latency = 1},
-        .uop[1] = {.type = UOP_ALUX,  .latency = 18}
+        .uop[1] = {.type = UOP_ALUP0,  .latency = 37}
 };
-static const risc86_instruction_t complex_emms_op =
+static const macro_op_t emms_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_ALU, .latency = 25}
+        .uop[0] = {.type = UOP_ALU, .latency = 50}
 };
-static const risc86_instruction_t complex_enter_op =
+static const macro_op_t enter_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
@@ -654,28 +644,28 @@ static const risc86_instruction_t complex_enter_op =
         .uop[1] = {.type = UOP_STOREA, .latency =  1},
         .uop[2] = {.type = UOP_ALU,    .latency = 10}
 };
-static const risc86_instruction_t complex_femms_op =
+static const macro_op_t femms_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU, .latency = 6}
 };
-static const risc86_instruction_t complex_in_op =
+static const macro_op_t in_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD, .latency = 10}
+        .uop[0] = {.type = UOP_LOAD, .latency = 18}
 };
-static const risc86_instruction_t complex_ins_op =
+static const macro_op_t ins_op =
 {
         .nr_uops = 4,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD,   .latency = 10},
+        .uop[0] = {.type = UOP_LOAD,   .latency = 18},
         .uop[1] = {.type = UOP_STORED, .latency =  1},
         .uop[2] = {.type = UOP_STOREA, .latency =  1},
         .uop[3] = {.type = UOP_ALU,    .latency =  1}
 };
-static const risc86_instruction_t complex_int_op =
+static const macro_op_t int_op =
 {
         .nr_uops = 8,
         .decode_type = DECODE_COMPLEX,
@@ -688,7 +678,7 @@ static const risc86_instruction_t complex_int_op =
         .uop[6] = {.type = UOP_STOREA,  .latency =  1},	
         .uop[7] = {.type = UOP_BRANCH,  .latency =  1}
 };
-static const risc86_instruction_t complex_iret_op =
+static const macro_op_t iret_op =
 {
         .nr_uops = 5,
         .decode_type = DECODE_COMPLEX,
@@ -698,41 +688,20 @@ static const risc86_instruction_t complex_iret_op =
         .uop[3] = {.type = UOP_ALU,    .latency = 20},
         .uop[4] = {.type = UOP_BRANCH, .latency =  1}
 };
-static const risc86_instruction_t complex_invd_op =
+static const macro_op_t invd_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU, .latency = 500}
 };
-static const risc86_instruction_t complex_jmp_far_op =
+static const macro_op_t jmp_far_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU,    .latency = 3},
         .uop[1] = {.type = UOP_BRANCH, .latency = 1}
 };
-static const risc86_instruction_t complex_load_alu_op =
-{
-        .nr_uops = 2,
-        .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD, .latency = 1},
-        .uop[1] = {.type = UOP_ALU,  .latency = 1}
-};
-static const risc86_instruction_t complex_load_alux_op =
-{
-        .nr_uops = 2,
-        .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD, .latency = 1},
-        .uop[1] = {.type = UOP_ALUX, .latency = 1}
-};
-static const risc86_instruction_t complex_loop_op =
-{
-        .nr_uops = 2,
-        .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_ALU,    .latency = 1},
-        .uop[1] = {.type = UOP_BRANCH, .latency = 1}
-};
-static const risc86_instruction_t complex_lss_op =
+static const macro_op_t lss_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
@@ -740,7 +709,7 @@ static const risc86_instruction_t complex_lss_op =
         .uop[1] = {.type = UOP_LOAD,   .latency = 1},
         .uop[2] = {.type = UOP_ALU,    .latency = 3}
 };
-static const risc86_instruction_t complex_mov_mem_seg_op =
+static const macro_op_t mov_mem_seg_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
@@ -748,68 +717,63 @@ static const risc86_instruction_t complex_mov_mem_seg_op =
         .uop[1] = {.type = UOP_STORED, .latency = 1},
         .uop[2] = {.type = UOP_STOREA, .latency = 1},
 };
-static const risc86_instruction_t complex_mov_seg_mem_op =
+static const macro_op_t mov_seg_mem_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_LOAD,   .latency = 1},
         .uop[1] = {.type = UOP_ALU,    .latency = 3}
 };
-static const risc86_instruction_t complex_mov_seg_reg_op =
+static const macro_op_t mov_seg_reg_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU,   .latency = 3}
 };
-static const risc86_instruction_t complex_mul_op =
+static const macro_op_t mul_op =
+{
+        .nr_uops = 1,
+        .decode_type = DECODE_SIMPLE,
+        .uop[0] = {.type = UOP_ALUP0, .latency = 1}
+};
+static const macro_op_t mul_mem_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_ALUX, .latency = 1},
-        .uop[1] = {.type = UOP_ALUX, .latency = 1}
+        .uop[0] = {.type = UOP_LOAD,    .latency = 1},
+        .uop[1] = {.type = UOP_ALUP0,   .latency = 1}
 };
-static const risc86_instruction_t complex_mul_mem_op =
+static const macro_op_t mul64_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD,   .latency = 1},
-        .uop[1] = {.type = UOP_ALUX,   .latency = 1},
-        .uop[2] = {.type = UOP_ALUX,   .latency = 1}
+        .uop[0] = {.type = UOP_ALUP0, .latency = 1},
+        .uop[1] = {.type = UOP_ALUP0, .latency = 1},
+        .uop[2] = {.type = UOP_ALUP0, .latency = 1}
 };
-static const risc86_instruction_t complex_mul64_op =
-{
-        .nr_uops = 3,
-        .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_ALUX, .latency = 1},
-        .uop[1] = {.type = UOP_ALUX, .latency = 1},
-        .uop[2] = {.type = UOP_ALUX, .latency = 1}
-};
-static const risc86_instruction_t complex_mul64_mem_op =
+static const macro_op_t mul64_mem_op =
 {
         .nr_uops = 4,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD,   .latency = 1},
-        .uop[1] = {.type = UOP_ALUX,   .latency = 1},
-        .uop[2] = {.type = UOP_ALUX,   .latency = 1},
-        .uop[3] = {.type = UOP_ALUX,   .latency = 1}
+        .uop[0] = {.type = UOP_LOAD,    .latency = 1},
+        .uop[1] = {.type = UOP_ALUP0,   .latency = 1},
+        .uop[2] = {.type = UOP_ALUP0,   .latency = 1},
+        .uop[3] = {.type = UOP_ALUP0,   .latency = 1}
 };
-static const risc86_instruction_t complex_out_op =
+static const macro_op_t out_op =
 {
-        .nr_uops = 2,
+        .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_STORED, .latency = 10},
-        .uop[1] = {.type = UOP_STOREA, .latency = 10},
+        .uop[0] = {.type = UOP_ALU,    .latency = 18}
 };
-static const risc86_instruction_t complex_outs_op =
+static const macro_op_t outs_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_LOAD,   .latency =  1},
-        .uop[1] = {.type = UOP_STORED, .latency = 10},
-        .uop[1] = {.type = UOP_STOREA, .latency = 10},	
-        .uop[2] = {.type = UOP_ALU,    .latency =  1}
+        .uop[1] = {.type = UOP_ALU,    .latency = 18}	
 };
-static const risc86_instruction_t complex_pusha_op =
+static const macro_op_t pusha_op =
 {
         .nr_uops = 8,
         .decode_type = DECODE_COMPLEX,
@@ -822,7 +786,7 @@ static const risc86_instruction_t complex_pusha_op =
         .uop[6] = {.type = UOP_STORED, .latency = 2},
         .uop[7] = {.type = UOP_STOREA, .latency = 2}
 };
-static const risc86_instruction_t complex_popa_op =
+static const macro_op_t popa_op =
 {
         .nr_uops = 8,
         .decode_type = DECODE_COMPLEX,
@@ -835,36 +799,30 @@ static const risc86_instruction_t complex_popa_op =
         .uop[6] = {.type = UOP_LOAD, .latency = 1},
         .uop[7] = {.type = UOP_LOAD, .latency = 1}
 };
-static const risc86_instruction_t complex_popf_op =
-{
-        .nr_uops = 2,
-        .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD, .latency =  3},
-        .uop[1] = {.type = UOP_ALUX, .latency = 17}
-};
-static const risc86_instruction_t complex_push_mem_op =
-{
-        .nr_uops = 2,
-        .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_STORED, .latency = 1},
-        .uop[1] = {.type = UOP_STOREA, .latency = 1}
-};
-static const risc86_instruction_t complex_pushf_op =
+static const macro_op_t popf_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_ALUX,   .latency = 1},
-        .uop[1] = {.type = UOP_STORED, .latency = 1},
-        .uop[2] = {.type = UOP_STOREA, .latency = 1}
+        .uop[0] = {.type = UOP_LOAD,  .latency =  1},
+        .uop[1] = {.type = UOP_ALU,   .latency =  6},	
+        .uop[2] = {.type = UOP_ALUP0, .latency = 10}
 };
-static const risc86_instruction_t complex_ret_op =
+static const macro_op_t pushf_op =
+{
+        .nr_uops = 3,
+        .decode_type = DECODE_COMPLEX,
+        .uop[0] = {.type = UOP_ALUP0,   .latency = 1},
+        .uop[1] = {.type = UOP_STORED,  .latency = 1},
+        .uop[2] = {.type = UOP_STOREA,  .latency = 1}
+};
+static const macro_op_t ret_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_LOAD,   .latency = 1},
         .uop[1] = {.type = UOP_BRANCH, .latency = 1}
 };
-static const risc86_instruction_t complex_retf_op =
+static const macro_op_t retf_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
@@ -872,52 +830,52 @@ static const risc86_instruction_t complex_retf_op =
         .uop[1] = {.type = UOP_ALU,    .latency = 3},
         .uop[2] = {.type = UOP_BRANCH, .latency = 1}
 };
-static const risc86_instruction_t complex_scas_op =
+static const macro_op_t scas_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_LOAD,   .latency = 1},
         .uop[1] = {.type = UOP_ALU,    .latency = 1}
 };
-static const risc86_instruction_t complex_scasb_op =
+static const macro_op_t scasb_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_LOAD,   .latency = 1},
         .uop[1] = {.type = UOP_ALU,    .latency = 1}
 };
-static const risc86_instruction_t complex_setcc_mem_op =
+static const macro_op_t setcc_mem_op =
 {
         .nr_uops = 4,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_ALUX,    .latency = 1},
-        .uop[1] = {.type = UOP_ALUX,    .latency = 1},
-        .uop[2] = {.type = UOP_FSTORED, .latency = 1},
-        .uop[3] = {.type = UOP_FSTOREA, .latency = 1}
+        .uop[0] = {.type = UOP_ALUP0,    .latency = 1},
+        .uop[1] = {.type = UOP_ALUP0,    .latency = 1},
+        .uop[2] = {.type = UOP_FSTORED,  .latency = 1},
+        .uop[3] = {.type = UOP_FSTOREA,  .latency = 1}
 };
-static const risc86_instruction_t complex_setcc_reg_op =
+static const macro_op_t setcc_reg_op =
 {
         .nr_uops = 3,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_ALUX,  .latency = 1},
-        .uop[1] = {.type = UOP_ALUX,  .latency = 1},
-        .uop[2] = {.type = UOP_ALU,   .latency = 1}
+        .uop[0] = {.type = UOP_ALUP0,  .latency = 1},
+        .uop[1] = {.type = UOP_ALUP0,  .latency = 1},
+        .uop[2] = {.type = UOP_ALU,    .latency = 1}
 };
-static const risc86_instruction_t complex_test_mem_op =
+static const macro_op_t test_mem_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_LOAD, .latency = 1},
         .uop[1] = {.type = UOP_ALU,  .latency = 1}
 };
-static const risc86_instruction_t complex_test_mem_b_op =
+static const macro_op_t test_mem_b_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
-        .uop[0] = {.type = UOP_LOAD, .latency = 1},
-        .uop[1] = {.type = UOP_ALUX, .latency = 1}
+        .uop[0] = {.type = UOP_LOAD,  .latency = 1},
+        .uop[1] = {.type = UOP_ALUP0, .latency = 1}
 };
-static const risc86_instruction_t complex_xchg_mem_op =
+static const macro_op_t xchg_mem_op =
 {
         .nr_uops = 4,
         .decode_type = DECODE_COMPLEX,
@@ -926,60 +884,58 @@ static const risc86_instruction_t complex_xchg_mem_op =
         .uop[2] = {.type = UOP_STOREA, .latency = 1},	
         .uop[3] = {.type = UOP_ALU,    .latency = 1}
 };
-static const risc86_instruction_t complex_xlat_op =
+static const macro_op_t xlat_op =
 {
         .nr_uops = 2,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU,    .latency = 1},
         .uop[1] = {.type = UOP_LOAD,   .latency = 1}
 };
-static const risc86_instruction_t complex_wbinvd_op =
+static const macro_op_t wbinvd_op =
 {
         .nr_uops = 1,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU, .latency = 10000}
 };
-
-
 #define INVALID NULL
 
-static const risc86_instruction_t *opcode_timings[256] =
+static const macro_op_t *opcode_timings[256] =
 {
 /*      ADD                    ADD                    ADD                   ADD*/
-/*00*/  &alux_store_op,        &alu_store_op,         &load_alux_op,        &load_alu_op,
+/*00*/  &alup0_store_op,       &alu_store_op,         &load_alup0_op,       &load_alu_op,
 /*      ADD                    ADD                    PUSH ES               POP ES*/
-        &alux_op,              &alu_op,               &push_seg_op,         &complex_mov_seg_mem_op,
+        &alup0_op,             &alu_op,               &push_seg_op,         &mov_seg_mem_op,
 /*      OR                     OR                     OR                    OR*/
-        &alux_store_op,        &alu_store_op,         &load_alux_op,        &load_alu_op,
+        &alup0_store_op,       &alu_store_op,         &load_alup0_op,       &load_alu_op,
 /*      OR                     OR                     PUSH CS               */
-        &alux_op,              &alu_op,               &push_seg_op,         INVALID,
+        &alup0_op,             &alu_op,               &push_seg_op,         INVALID,
 
 /*      ADC                    ADC                    ADC                   ADC*/
-/*10*/  &complex_alux_store_op,&complex_alu_store_op, &complex_load_alux_op,&complex_load_alu_op,
+/*10*/  &alup0_store_op,       &alu_store_op,         &load_alup0_op,       &load_alu_op,
 /*      ADC                    ADC                    PUSH SS               POP SS*/
-        &complex_alux1_op,     &complex_alu1_op,      &push_seg_op,         &complex_mov_seg_mem_op,
+        &complex_alup0_1_op,   &complex_alu1_op,      &push_seg_op,         &mov_seg_mem_op,
 /*      SBB                    SBB                    SBB                   SBB*/
-/*10*/  &complex_alux_store_op,&complex_alu_store_op, &complex_load_alux_op,&complex_load_alu_op,
+/*10*/  &alup0_store_op,       &alu_store_op,         &load_alup0_op,       &load_alu_op,
 /*      SBB                    SBB                    PUSH DS               POP DS*/
-        &complex_alux1_op,     &complex_alu1_op,      &push_seg_op,         &complex_mov_seg_mem_op,
+        &complex_alup0_1_op,   &complex_alu1_op,      &push_seg_op,         &mov_seg_mem_op,
 
 /*      AND                    AND                    AND                   AND*/
-/*20*/  &alux_store_op,        &alu_store_op,         &load_alux_op,        &load_alu_op,
+/*20*/  &alup0_store_op,       &alu_store_op,         &load_alup0_op,       &load_alu_op,
 /*      AND                    AND                                          DAA*/
-        &alux_op,              &alu_op,               INVALID,              &complex_alux1_op,
+        &alup0_op,             &alu_op,               INVALID,              &complex_alup0_1_op,
 /*      SUB                    SUB                    SUB                   SUB*/
-        &alux_store_op,        &alu_store_op,         &load_alux_op,        &load_alu_op,
+        &alup0_store_op,       &alu_store_op,         &load_alup0_op,       &load_alu_op,
 /*      SUB                    SUB                                          DAS*/
-        &alux_op,              &alu_op,               INVALID,              &complex_alux1_op,
+        &alup0_op,             &alu_op,               INVALID,              &complex_alup0_1_op,
 
 /*      XOR                    XOR                    XOR                   XOR*/
-/*30*/  &alux_store_op,        &alu_store_op,         &load_alux_op,        &load_alu_op,
+/*30*/  &alup0_store_op,       &alu_store_op,         &load_alup0_op,       &load_alu_op,
 /*      XOR                    XOR                                          AAA*/
-        &alux_op,              &alu_op,               INVALID,              &complex_alux6_op,
+        &alup0_op,             &alu_op,               INVALID,              &alup0_6_op,
 /*      CMP                    CMP                    CMP                   CMP*/
-        &load_alux_op,         &load_alu_op,          &load_alux_op,        &load_alu_op,
+        &load_alup0_op,        &load_alu_op,          &load_alup0_op,       &load_alu_op,
 /*      CMP                    CMP                                          AAS*/
-        &alux_op,              &alu_op,               INVALID,              &complex_alux6_op,
+        &alup0_op,             &alu_op,               INVALID,              &alup0_6_op,
 
 /*      INC EAX                INC ECX                INC EDX                INC EBX*/
 /*40*/  &alu_op,               &alu_op,               &alu_op,               &alu_op,
@@ -1000,12 +956,12 @@ static const risc86_instruction_t *opcode_timings[256] =
         &pop_reg_op,           &pop_reg_op,           &pop_reg_op,           &pop_reg_op,
 
 /*      PUSHA                  POPA                   BOUND                  ARPL*/
-/*60*/  &complex_pusha_op,     &complex_popa_op,      &complex_bound_op,     &complex_arpl_op,
+/*60*/  &pusha_op,             &popa_op,              &bound_op,             &arpl_op,
         INVALID,               INVALID,               INVALID,               INVALID,
 /*      PUSH imm               IMUL                   PUSH imm               IMUL*/
-        &push_imm_op,          &complex_mul_op,       &push_imm_op,          &complex_mul_op,
+        &push_imm_op,          &mul_op,               &push_imm_op,          &mul_op,
 /*      INSB                   INSW                   OUTSB                  OUTSW*/
-        &complex_ins_op,       &complex_ins_op,       &complex_outs_op,      &complex_outs_op,
+        &ins_op,               &ins_op,               &outs_op,              &outs_op,
 
 /*      Jxx*/
 /*70*/  &branch_op,     &branch_op,     &branch_op,     &branch_op,
@@ -1015,107 +971,107 @@ static const risc86_instruction_t *opcode_timings[256] =
 
 /*80*/  INVALID,                   INVALID,                   INVALID,                   INVALID,
 /*      TEST                       TEST                       XCHG                       XCHG*/
-        &complex_test_mem_b_op,    &complex_test_mem_op,      &complex_xchg_mem_op,      &complex_xchg_mem_op,
+        &test_mem_b_op,            &test_mem_op,              &xchg_mem_op,              &xchg_mem_op,
 /*      MOV                        MOV                        MOV                        MOV*/
         &store_op,                 &store_op,                 &load_op,                  &load_op,
 /*      MOV from seg               LEA                        MOV to seg                 POP*/
-        &complex_mov_mem_seg_op,   &store_op,                 &complex_mov_seg_mem_op,   &pop_mem_op,
+        &mov_mem_seg_op,           &store_op,                 &mov_seg_mem_op,           &pop_mem_op,
 
 /*      NOP                        XCHG                       XCHG                       XCHG*/
-/*90*/  &limm_op,                  &xchg_op,                  &xchg_op,                  &xchg_op,
+/*90*/  &fxch_op,                  &xchg_op,                  &xchg_op,                  &xchg_op,
 /*      XCHG                       XCHG                       XCHG                       XCHG*/
         &xchg_op,                  &xchg_op,                  &xchg_op,                  &xchg_op,
 /*      CBW                        CWD                        CALL far                   WAIT*/
-        &complex_alu1_op,          &complex_alu1_op,          &complex_call_far_op,      &limm_op,
+        &complex_alu1_op,          &complex_alu1_op,          &call_far_op,              &fxch_op,
 /*      PUSHF                      POPF                       SAHF                       LAHF*/
-        &complex_pushf_op,         &complex_popf_op,          &complex_alux1_op,         &complex_alux1_op,
+        &pushf_op,                 &popf_op,                  &complex_alup0_1_op,       &complex_alup0_1_op,
 
 /*      MOV                        MOV                        MOV                        MOV*/
 /*a0*/  &load_op,                  &load_op,                  &store_op,                 &store_op,
 /*      MOVSB                      MOVSW                      CMPSB                      CMPSW*/
-        &movs_op,                  &movs_op,                  &complex_cmpsb_op,         &complex_cmps_op,
+        &movs_op,                  &movs_op,                  &cmpsb_op,                 &cmps_op,
 /*      TEST                       TEST                       STOSB                      STOSW*/
         &test_reg_b_op,            &test_reg_op,              &stos_op,                  &stos_op,
 /*      LODSB                      LODSW                      SCASB                      SCASW*/
-        &lods_op,                  &lods_op,                  &complex_scasb_op,         &complex_scas_op,
+        &lods_op,                  &lods_op,                  &scasb_op,                 &scas_op,
 
 /*      MOV*/
-/*b0*/  &limm_op,       &limm_op,       &limm_op,       &limm_op,
-        &limm_op,       &limm_op,       &limm_op,       &limm_op,
-        &limm_op,       &limm_op,       &limm_op,       &limm_op,
-        &limm_op,       &limm_op,       &limm_op,       &limm_op,
+/*b0*/  &alu_op,       &alu_op,       &alu_op,       &alu_op,
+        &alu_op,       &alu_op,       &alu_op,       &alu_op,
+        &alu_op,       &alu_op,       &alu_op,       &alu_op,
+        &alu_op,       &alu_op,       &alu_op,       &alu_op,
 
 /*                                                            RET imm                    RET*/
-/*c0*/  INVALID,                   INVALID,                   &complex_ret_op,           &complex_ret_op,
+/*c0*/  INVALID,                   INVALID,                   &ret_op,                   &ret_op,
 /*      LES                        LDS                        MOV                        MOV*/
-        &complex_lss_op,           &complex_lss_op,           &store_op,                 &store_op,
+        &lss_op,                   &lss_op,                   &store_op,                 &store_op,
 /*      ENTER                      LEAVE                      RETF                       RETF*/
-        &complex_enter_op,         &leave_op,                 &complex_retf_op,          &complex_retf_op,
+        &enter_op,                 &leave_op,                 &retf_op,                  &retf_op,
 /*      INT3                       INT                        INTO                       IRET*/
-        &complex_int_op,           &complex_int_op,           &complex_int_op,           &complex_iret_op,
+        &int_op,                   &int_op,                   &int_op,                   &iret_op,
 
 
 /*d0*/  INVALID,                   INVALID,                   INVALID,                   INVALID,
 /*      AAM                        AAD                        SETALC                     XLAT*/
-        &complex_alux6_op,         &complex_alux3_op,         &complex_alux1_op,         &complex_xlat_op,
+        &alup0_6_op,               &alup0_3_op,               &complex_alup0_1_op,       &xlat_op,
         INVALID,                   INVALID,                   INVALID,                   INVALID,
         INVALID,                   INVALID,                   INVALID,                   INVALID,
 /*      LOOPNE                     LOOPE                      LOOP                       JCXZ*/
-/*e0*/  &complex_loop_op,          &complex_loop_op,          &loop_op,                  &complex_loop_op,
+/*e0*/  &loop_op,                  &loop_op,                  &loop_op,                  &loop_op,
 /*      IN AL                      IN AX                      OUT_AL                     OUT_AX*/
-        &complex_in_op,            &complex_in_op,            &complex_out_op,           &complex_out_op,
+        &in_op,                    &in_op,                    &out_op,                   &out_op,
 /*      CALL                       JMP                        JMP                        JMP*/
-        &store_op,                 &branch_op,                &complex_jmp_far_op,       &branch_op,
+        &store_op,                 &branch_op,                &jmp_far_op,               &branch_op,
 /*      IN AL                      IN AX                      OUT_AL                     OUT_AX*/
-        &complex_in_op,            &complex_in_op,            &complex_out_op,           &complex_out_op,
+        &in_op,                    &in_op,                    &out_op,                   &out_op,
 
 /*                                                            REPNE                      REPE*/
 /*f0*/  INVALID,                   INVALID,                   INVALID,                   INVALID,
 /*      HLT                        CMC*/
-        &complex_alux1_op,          &complex_alu2_op,           INVALID,                   INVALID,
+        &complex_alup0_1_op,       &alu2_op,                  INVALID,                   INVALID,
 /*      CLC                        STC                        CLI                        STI*/
-        &complex_alu1_op,           &complex_alu1_op,           &complex_cli_sti_op,        &complex_cli_sti_op,
+        &complex_alu1_op,          &complex_alu1_op,          &cli_sti_op,               &cli_sti_op,
 /*      CLD                        STD                        INCDEC*/
-        &complex_alu1_op,           &complex_alu1_op,           &alux_store_op,            INVALID
+        &complex_alu1_op,          &complex_alu1_op,          &alup0_store_op,           INVALID
 };
 
-static const risc86_instruction_t *opcode_timings_mod3[256] =
+static const macro_op_t *opcode_timings_mod3[256] =
 {
 /*      ADD                       ADD                       ADD                       ADD*/
-/*00*/  &alux_op,                 &alu_op,                  &alux_op,                 &alu_op,
+/*00*/  &alup0_op,                &alu_op,                  &alup0_op,                &alu_op,
 /*      ADD                       ADD                       PUSH ES                   POP ES*/
-        &alux_op,                 &alu_op,                  &push_seg_op,             &complex_mov_seg_mem_op,
+        &alup0_op,                &alu_op,                  &push_seg_op,             &mov_seg_mem_op,
 /*      OR                        OR                        OR                        OR*/
-        &alux_op,                 &alu_op,                  &alux_op,                 &alu_op,
+        &alup0_op,                &alu_op,                  &alup0_op,                &alu_op,
 /*      OR                        OR                        PUSH CS                   */
-        &alux_op,                 &alu_op,                  &push_seg_op,             INVALID,
+        &alup0_op,                &alu_op,                  &push_seg_op,             INVALID,
 
 /*      ADC                       ADC                       ADC                       ADC*/
-/*10*/  &complex_alux1_op,        &complex_alu1_op,         &complex_alux1_op,        &complex_alu1_op,
+/*10*/  &complex_alup0_1_op,      &complex_alu1_op,         &complex_alup0_1_op,      &complex_alu1_op,
 /*      ADC                       ADC                       PUSH SS                   POP SS*/
-        &complex_alux1_op,        &complex_alu1_op,         &push_seg_op,             &complex_mov_seg_mem_op,
+        &complex_alup0_1_op,      &complex_alu1_op,         &push_seg_op,             &mov_seg_mem_op,
 /*      SBB                       SBB                       SBB                       SBB*/
-        &complex_alux1_op,        &complex_alu1_op,         &complex_alux1_op,        &complex_alu1_op,
+        &complex_alup0_1_op,      &complex_alu1_op,         &complex_alup0_1_op,      &complex_alu1_op,
 /*      SBB                       SBB                       PUSH DS                   POP DS*/
-        &complex_alux1_op,        &complex_alu1_op,         &push_seg_op,             &complex_mov_seg_mem_op,
+        &complex_alup0_1_op,      &complex_alu1_op,         &push_seg_op,             &mov_seg_mem_op,
 
 /*      AND                       AND                       AND                       AND*/
-/*20*/  &alux_op,                 &alu_op,                  &alux_op,                 &alu_op,
+/*20*/  &alup0_op,                &alu_op,                  &alup0_op,                &alu_op,
 /*      AND                       AND                                                 DAA*/
-        &alux_op,                 &alu_op,                  INVALID,                  &complex_alux1_op,
+        &alup0_op,                &alu_op,                  INVALID,                  &complex_alup0_1_op,
 /*      SUB                       SUB                       SUB                       SUB*/
-        &alux_op,                 &alu_op,                  &alux_op,                 &alu_op,
+        &alup0_op,                &alu_op,                  &alup0_op,                &alu_op,
 /*      SUB                       SUB                                                 DAS*/
-        &alux_op,                 &alu_op,                  INVALID,                  &complex_alux1_op,
+        &alup0_op,                &alu_op,                  INVALID,                  &complex_alup0_1_op,
 
 /*      XOR                       XOR                       XOR                       XOR*/
-/*30*/  &alux_op,                 &alu_op,                  &alux_op,                 &alu_op,
+/*30*/  &alup0_op,                &alu_op,                  &alup0_op,                &alu_op,
 /*      XOR                       XOR                                                 AAA*/
-        &alux_op,                 &alu_op,                  INVALID,                  &complex_alux6_op,
+        &alup0_op,                &alu_op,                  INVALID,                  &alup0_6_op,
 /*      CMP                       CMP                       CMP                       CMP*/
-        &alux_op,                 &alu_op,                  &alux_op,                 &alu_op,
+        &alup0_op,                &alu_op,                  &alup0_op,                &alu_op,
 /*      CMP                       CMP                                                 AAS*/
-        &alux_op,                 &alu_op,                  INVALID,                  &complex_alux6_op,
+        &alup0_op,                &alu_op,                  INVALID,                  &alup0_6_op,
 
 /*      INC EAX                INC ECX                INC EDX                INC EBX*/
 /*40*/  &alu_op,               &alu_op,               &alu_op,               &alu_op,
@@ -1136,12 +1092,12 @@ static const risc86_instruction_t *opcode_timings_mod3[256] =
         &pop_reg_op,           &pop_reg_op,           &pop_reg_op,           &pop_reg_op,
 
 /*      PUSHA                  POPA                   BOUND                  ARPL*/
-/*60*/  &complex_pusha_op,     &complex_popa_op,      &complex_bound_op,     &complex_arpl_op,
+/*60*/  &pusha_op,             &popa_op,              &bound_op,             &arpl_op,
         INVALID,               INVALID,               INVALID,               INVALID,
 /*      PUSH imm               IMUL                   PUSH imm               IMUL*/
-        &push_imm_op,          &complex_mul_op,       &push_imm_op,          &complex_mul_op,
+        &push_imm_op,          &mul_op,               &push_imm_op,          &mul_op,
 /*      INSB                   INSW                   OUTSB                  OUTSW*/
-        &complex_ins_op,       &complex_ins_op,       &complex_outs_op,      &complex_outs_op,
+        &ins_op,               &ins_op,               &outs_op,              &outs_op,
 
 /*      Jxx*/
 /*70*/  &branch_op,     &branch_op,     &branch_op,     &branch_op,
@@ -1151,88 +1107,89 @@ static const risc86_instruction_t *opcode_timings_mod3[256] =
 
 /*80*/  INVALID,                   INVALID,                   INVALID,                   INVALID,
 /*      TEST                       TEST                       XCHG                       XCHG*/
-        &complex_alu1_op,          &complex_alu1_op,          &complex_alu3_op,          &complex_alu3_op,
+        &complex_alu1_op,          &complex_alu1_op,          &alu3_op,                  &alu3_op,
 /*      MOV                        MOV                        MOV                        MOV*/
         &store_op,                 &store_op,                 &load_op,                  &load_op,
 /*      MOV from seg               LEA                        MOV to seg                 POP*/
-        &mov_reg_seg_op,           &store_op,                 &complex_mov_seg_reg_op,   &pop_reg_op,
+        &mov_reg_seg_op,           &store_op,                 &mov_seg_reg_op,           &pop_reg_op,
 
 /*      NOP                        XCHG                       XCHG                       XCHG*/
-/*90*/  &limm_op,                  &xchg_op,                  &xchg_op,                  &xchg_op,
+/*90*/  &fxch_op,                  &xchg_op,                  &xchg_op,                  &xchg_op,
 /*      XCHG                       XCHG                       XCHG                       XCHG*/
         &xchg_op,                  &xchg_op,                  &xchg_op,                  &xchg_op,
 /*      CBW                        CWD                        CALL far                   WAIT*/
-        &complex_alu1_op,          &complex_alu1_op,          &complex_call_far_op,      &limm_op,
+        &complex_alu1_op,          &complex_alu1_op,          &call_far_op,              &fxch_op,
 /*      PUSHF                      POPF                       SAHF                       LAHF*/
-        &complex_pushf_op,         &complex_popf_op,          &complex_alux1_op,         &complex_alux1_op,
+        &pushf_op,                 &popf_op,                  &complex_alup0_1_op,       &complex_alup0_1_op,
 
 /*      MOV                        MOV                        MOV                        MOV*/
 /*a0*/  &load_op,                  &load_op,                  &store_op,                 &store_op,
 /*      MOVSB                      MOVSW                      CMPSB                      CMPSW*/
-        &movs_op,                  &movs_op,                  &complex_cmpsb_op,         &complex_cmps_op,
+        &movs_op,                  &movs_op,                  &cmpsb_op,                 &cmps_op,
 /*      TEST                       TEST                       STOSB                      STOSW*/
         &test_reg_b_op,            &test_reg_op,              &stos_op,                  &stos_op,
 /*      LODSB                      LODSW                      SCASB                      SCASW*/
-        &lods_op,                  &lods_op,                  &complex_scasb_op,         &complex_scas_op,
+        &lods_op,                  &lods_op,                  &scasb_op,                 &scas_op,
 
 /*      MOV*/
-/*b0*/  &limm_op,       &limm_op,       &limm_op,       &limm_op,
-        &limm_op,       &limm_op,       &limm_op,       &limm_op,
-        &limm_op,       &limm_op,       &limm_op,       &limm_op,
-        &limm_op,       &limm_op,       &limm_op,       &limm_op,
+/*b0*/  &alu_op,       &alu_op,       &alu_op,       &alu_op,
+        &alu_op,       &alu_op,       &alu_op,       &alu_op,
+        &alu_op,       &alu_op,       &alu_op,       &alu_op,
+        &alu_op,       &alu_op,       &alu_op,       &alu_op,
 
 /*                                                            RET imm                    RET*/
-/*c0*/  INVALID,                   INVALID,                   &complex_ret_op,           &complex_ret_op,
+/*c0*/  INVALID,                   INVALID,                   &ret_op,                   &ret_op,
 /*      LES                        LDS                        MOV                        MOV*/
-        &complex_lss_op,           &complex_lss_op,           &store_op,                 &store_op,
+        &lss_op,                   &lss_op,                   &store_op,                 &store_op,
 /*      ENTER                      LEAVE                      RETF                       RETF*/
-        &complex_enter_op,         &leave_op,                 &complex_retf_op,          &complex_retf_op,
+        &enter_op,                 &leave_op,                 &retf_op,                  &retf_op,
 /*      INT3                       INT                        INTO                       IRET*/
-        &complex_int_op,           &complex_int_op,           &complex_int_op,           &complex_iret_op,
+        &int_op,                   &int_op,                   &int_op,                   &iret_op,
 
 
 /*d0*/  INVALID,                   INVALID,                   INVALID,                   INVALID,
 /*      AAM                        AAD                        SETALC                     XLAT*/
-        &complex_alux6_op,         &complex_alux3_op,         &complex_alux1_op,         &complex_xlat_op,
+        &alup0_6_op,               &alup0_3_op,               &complex_alup0_1_op,       &xlat_op,
         INVALID,                   INVALID,                   INVALID,                   INVALID,
         INVALID,                   INVALID,                   INVALID,                   INVALID,
+	
 /*      LOOPNE                     LOOPE                      LOOP                       JCXZ*/
-/*e0*/  &complex_loop_op,          &complex_loop_op,          &loop_op,                  &complex_loop_op,
+/*e0*/  &loop_op,                  &loop_op,                  &loop_op,                  &loop_op,
 /*      IN AL                      IN AX                      OUT_AL                     OUT_AX*/
-        &complex_in_op,            &complex_in_op,            &complex_out_op,           &complex_out_op,
+        &in_op,                    &in_op,                    &out_op,                   &out_op,
 /*      CALL                       JMP                        JMP                        JMP*/
-        &store_op,                 &branch_op,                &complex_jmp_far_op,       &branch_op,
+        &store_op,                 &branch_op,                &jmp_far_op,               &branch_op,
 /*      IN AL                      IN AX                      OUT_AL                     OUT_AX*/
-        &complex_in_op,            &complex_in_op,            &complex_out_op,           &complex_out_op,
+        &in_op,                    &in_op,                    &out_op,                   &out_op,
 
 /*                                                            REPNE                      REPE*/
 /*f0*/  INVALID,                   INVALID,                   INVALID,                   INVALID,
 /*      HLT                        CMC*/
-        &complex_alux1_op,         &complex_alu2_op,          INVALID,                  INVALID,
+        &complex_alup0_1_op,       &alu2_op,                  INVALID,                   INVALID,
 /*      CLC                        STC                        CLI                        STI*/
-        &complex_alu1_op,          &complex_alu1_op,          &complex_cli_sti_op,       &complex_cli_sti_op,
+        &complex_alu1_op,          &complex_alu1_op,          &cli_sti_op,               &cli_sti_op,
 /*      CLD                        STD                        INCDEC*/
-        &complex_alu1_op,          &complex_alu1_op,          &complex_alux1_op,        INVALID
+        &complex_alu1_op,          &complex_alu1_op,          &complex_alup0_1_op,       INVALID
 };
 
-static const risc86_instruction_t *opcode_timings_0f[256] =
+static const macro_op_t *opcode_timings_0f[256] =
 {
-/*00*/  &complex_alu6_op,       &complex_alu6_op,       &complex_alu6_op,       &complex_alu6_op,
-        INVALID,                &complex_alu6_op,       &complex_alu6_op,       INVALID,
-        &complex_invd_op,       &complex_wbinvd_op,     INVALID,                INVALID,
-        INVALID,                &load_op,               &complex_femms_op,      INVALID,
+/*00*/  &alu6_op,               &alu6_op,               &alu6_op,               &alu6_op,
+        INVALID,                &alu6_op,               &alu6_op,               INVALID,
+        &invd_op,               &wbinvd_op,             INVALID,                INVALID,
+        INVALID,                &load_op,               &femms_op,              INVALID,
 
 /*10*/  INVALID,                INVALID,                INVALID,                INVALID,
         INVALID,                INVALID,                INVALID,                INVALID,
         INVALID,                INVALID,                INVALID,                INVALID,
         INVALID,                INVALID,                INVALID,                INVALID,
 
-/*20*/  &complex_alu6_op,       &complex_alu6_op,       &complex_alu6_op,       &complex_alu6_op,
-        &complex_alu6_op,       &complex_alu6_op,       INVALID,                INVALID,
+/*20*/  &alu6_op,               &alu6_op,               &alu6_op,               &alu6_op,
+        &alu6_op,               &alu6_op,               INVALID,                INVALID,
         INVALID,                INVALID,                INVALID,                INVALID,
         INVALID,                INVALID,                INVALID,                INVALID,
 
-/*30*/  &complex_alu6_op,       &complex_alu6_op,       &complex_alu6_op,       INVALID,
+/*30*/  &alu6_op,               &alu6_op,               &alu6_op,               INVALID,
         INVALID,                INVALID,                INVALID,                INVALID,
         INVALID,                INVALID,                INVALID,                INVALID,
         INVALID,                INVALID,                INVALID,                INVALID,
@@ -1253,7 +1210,7 @@ static const risc86_instruction_t *opcode_timings_0f[256] =
         INVALID,                INVALID,                &mload_op,              &mload_op,
 
 /*70*/  INVALID,                &load_mmx_shift_op,     &load_mmx_shift_op,     &load_mmx_shift_op,
-        &load_mmx_op,           &load_mmx_op,           &load_mmx_op,           &complex_emms_op,
+        &load_mmx_op,           &load_mmx_op,           &load_mmx_op,           &emms_op,
         INVALID,                INVALID,                INVALID,                INVALID,
         INVALID,                INVALID,                &mstore_op,             &mstore_op,
 
@@ -1262,23 +1219,23 @@ static const risc86_instruction_t *opcode_timings_0f[256] =
         &branch_op,     &branch_op,     &branch_op,     &branch_op,
         &branch_op,     &branch_op,     &branch_op,     &branch_op,
 
-/*90*/  &complex_setcc_reg_op,  &complex_setcc_reg_op,  &complex_setcc_reg_op,  &complex_setcc_reg_op,
-        &complex_setcc_reg_op,  &complex_setcc_reg_op,  &complex_setcc_reg_op,  &complex_setcc_reg_op,
-        &complex_setcc_reg_op,  &complex_setcc_reg_op,  &complex_setcc_reg_op,  &complex_setcc_reg_op,
-        &complex_setcc_reg_op,  &complex_setcc_reg_op,  &complex_setcc_reg_op,  &complex_setcc_reg_op,
+/*90*/  &setcc_reg_op,           &setcc_reg_op,          &setcc_reg_op,          &setcc_reg_op,
+        &setcc_reg_op,           &setcc_reg_op,          &setcc_reg_op,          &setcc_reg_op,
+        &setcc_reg_op,           &setcc_reg_op,          &setcc_reg_op,          &setcc_reg_op,
+        &setcc_reg_op,           &setcc_reg_op,          &setcc_reg_op,          &setcc_reg_op,
 
-/*a0*/  &push_seg_op,           &complex_mov_seg_mem_op,&complex_cpuid_op,      &complex_load_alu_op,
-        &complex_alu_store_op,  &complex_alu_store_op,  INVALID,                INVALID,
-        &push_seg_op,           &complex_mov_seg_mem_op,INVALID,                &complex_load_alu_op,
-        &complex_alu_store_op,  &complex_alu_store_op,  INVALID,                &complex_mul_op,
+/*a0*/  &push_seg_op,            &mov_seg_mem_op,        &cpuid_op,              &load_alu_op,
+        &alu_store_op,           &alu_store_op,          INVALID,                INVALID,
+        &push_seg_op,            &mov_seg_mem_op,        INVALID,                &load_alu_op,
+        &alu_store_op,           &alu_store_op,          INVALID,                &mul_op,
 
-/*b0*/  &complex_cmpxchg_b_op,   &complex_cmpxchg_op,    &complex_lss_op,        &complex_load_alu_op,
-        &complex_lss_op,         &complex_lss_op,        &load_alux_op,          &load_alu_op,
-        INVALID,                 INVALID,                &complex_load_alu_op,   &complex_load_alu_op,
-        &complex_bsx_op,         &complex_bsx_op,        &load_alux_op,          &load_alu_op,
+/*b0*/  &cmpxchg_b_op,           &cmpxchg_op,            &lss_op,                &load_alu_op,
+        &lss_op,                 &lss_op,                &load_alup0_op,         &load_alu_op,
+        INVALID,                 INVALID,                &load_alu_op,           &load_alu_op,
+        &bsx_op,                 &bsx_op,                &load_alup0_op,         &load_alu_op,
 
-/*c0*/  &complex_alux_store_op,  &complex_alu_store_op,  INVALID,                INVALID,
-        INVALID,                 INVALID,                INVALID,                &complex_cmpxchg_op,
+/*c0*/  &alup0_store_op,         &alu_store_op,          INVALID,                INVALID,
+        INVALID,                 INVALID,                INVALID,                &cmpxchg_op,
         &bswap_op,               &bswap_op,              &bswap_op,              &bswap_op,
         &bswap_op,               &bswap_op,              &bswap_op,              &bswap_op,
 
@@ -1297,182 +1254,182 @@ static const risc86_instruction_t *opcode_timings_0f[256] =
         &load_mmx_op,            &load_mmx_op,           &load_mmx_op,           INVALID,
         &load_mmx_op,            &load_mmx_op,           &load_mmx_op,           INVALID,
 };
-static const risc86_instruction_t *opcode_timings_0f_mod3[256] =
+static const macro_op_t *opcode_timings_0f_mod3[256] =
 {
-/*00*/  &complex_alu6_op,        &complex_alu6_op,       &complex_alu6_op,       &complex_alu6_op,
-        INVALID,                 &complex_alu6_op,       &complex_alu6_op,       INVALID,
-        &complex_invd_op,        &complex_wbinvd_op,     INVALID,                INVALID,
-        INVALID,                 INVALID,                &complex_femms_op,      INVALID,
+/*00*/  &alu6_op,                &alu6_op,               &alu6_op,               &alu6_op,
+        INVALID,                 &alu6_op,               &alu6_op,               INVALID,
+        &invd_op,                &wbinvd_op,             INVALID,                INVALID,
+        INVALID,                 INVALID,                &femms_op,              INVALID,
 
 /*10*/  INVALID,                 INVALID,                INVALID,                INVALID,
         INVALID,                 INVALID,                INVALID,                INVALID,
         INVALID,                 INVALID,                INVALID,                INVALID,
         INVALID,                 INVALID,                INVALID,                INVALID,
 
-/*20*/  &complex_alu6_op,        &complex_alu6_op,       &complex_alu6_op,       &complex_alu6_op,
-        &complex_alu6_op,        &complex_alu6_op,       INVALID,                INVALID,
+/*20*/  &alu6_op,                &alu6_op,               &alu6_op,               &alu6_op,
+        &alu6_op,                &alu6_op,               INVALID,                INVALID,
         INVALID,                 INVALID,                INVALID,                INVALID,
         INVALID,                 INVALID,                INVALID,                INVALID,
 
-/*30*/  &complex_alu6_op,        &complex_alu6_op,        &complex_alu6_op,        INVALID,
-        INVALID,                 INVALID,                 INVALID,                 INVALID,
-        INVALID,                 INVALID,                 INVALID,                 INVALID,
-        INVALID,                 INVALID,                 INVALID,                 INVALID,
+/*30*/  &alu6_op,                &alu6_op,               &alu6_op,               INVALID,
+        INVALID,                 INVALID,                INVALID,                INVALID,
+        INVALID,                 INVALID,                INVALID,                INVALID,
+        INVALID,                 INVALID,                INVALID,                INVALID,
 
-/*40*/  INVALID,                 INVALID,                 INVALID,                 INVALID,
-        INVALID,                 INVALID,                 INVALID,                 INVALID,
-        INVALID,                 INVALID,                 INVALID,                 INVALID,
-        INVALID,                 INVALID,                 INVALID,                 INVALID,
+/*40*/  INVALID,                 INVALID,                INVALID,                INVALID,
+        INVALID,                 INVALID,                INVALID,                INVALID,
+        INVALID,                 INVALID,                INVALID,                INVALID,
+        INVALID,                 INVALID,                INVALID,                INVALID,
 
-/*50*/  INVALID,                 INVALID,                 INVALID,                 INVALID,
-        INVALID,                 INVALID,                 INVALID,                 INVALID,
-        INVALID,                 INVALID,                 INVALID,                 INVALID,
-        INVALID,                 INVALID,                 INVALID,                 INVALID,
+/*50*/  INVALID,                 INVALID,                INVALID,                INVALID,
+        INVALID,                 INVALID,                INVALID,                INVALID,
+        INVALID,                 INVALID,                INVALID,                INVALID,
+        INVALID,                 INVALID,                INVALID,                INVALID,
 
-/*60*/  &mmx_op,                 &mmx_op,                 &mmx_op,                 &mmx_op,
-        &mmx_op,                 &mmx_op,                 &mmx_op,                 &mmx_op,
-        &mmx_op,                 &mmx_op,                 &mmx_op,                 &mmx_op,
-        INVALID,                 INVALID,                 &mmx_op,                 &mmx_op,
+/*60*/  &mmx_op,                 &mmx_op,                &mmx_op,                &mmx_op,
+        &mmx_op,                 &mmx_op,                &mmx_op,                &mmx_op,
+        &mmx_op,                 &mmx_op,                &mmx_op,                &mmx_op,
+        INVALID,                 INVALID,                &mmx_op,                &mmx_op,
 
-/*70*/  INVALID,                 &mmx_shift_op,           &mmx_shift_op,           &mmx_shift_op,
-        &mmx_op,                 &mmx_op,                 &mmx_op,                 &complex_emms_op,
-        INVALID,                 INVALID,                 INVALID,                 INVALID,
-        INVALID,                 INVALID,                 &mmx_op,                 &mmx_op,
+/*70*/  INVALID,                 &mmx_shift_op,          &mmx_shift_op,          &mmx_shift_op,
+        &mmx_op,                 &mmx_op,                &mmx_op,                &emms_op,
+        INVALID,                 INVALID,                INVALID,                INVALID,
+        INVALID,                 INVALID,                &mmx_op,                &mmx_op,
 
 /*80*/  &branch_op,     &branch_op,     &branch_op,     &branch_op,
         &branch_op,     &branch_op,     &branch_op,     &branch_op,
         &branch_op,     &branch_op,     &branch_op,     &branch_op,
         &branch_op,     &branch_op,     &branch_op,     &branch_op,
 
-/*90*/  &complex_setcc_mem_op,   &complex_setcc_mem_op,   &complex_setcc_mem_op,   &complex_setcc_mem_op,
-        &complex_setcc_mem_op,   &complex_setcc_mem_op,   &complex_setcc_mem_op,   &complex_setcc_mem_op,
-        &complex_setcc_mem_op,   &complex_setcc_mem_op,   &complex_setcc_mem_op,   &complex_setcc_mem_op,
-        &complex_setcc_mem_op,   &complex_setcc_mem_op,   &complex_setcc_mem_op,   &complex_setcc_mem_op,
+/*90*/  &setcc_mem_op,           &setcc_mem_op,          &setcc_mem_op,          &setcc_mem_op,
+        &setcc_mem_op,           &setcc_mem_op,          &setcc_mem_op,          &setcc_mem_op,
+        &setcc_mem_op,           &setcc_mem_op,          &setcc_mem_op,          &setcc_mem_op,
+        &setcc_mem_op,           &setcc_mem_op,          &setcc_mem_op,          &setcc_mem_op,
 
-/*a0*/  &push_seg_op,            &complex_mov_seg_mem_op, &complex_cpuid_op,       &complex_alu1_op,
-        &complex_alu1_op,        &complex_alu1_op,        INVALID,                 INVALID,
-        &push_seg_op,            &complex_mov_seg_mem_op, INVALID,                 &complex_alu1_op,
-        &complex_alu1_op,        &complex_alu1_op,        INVALID,                 &complex_mul_op,
+/*a0*/  &push_seg_op,            &mov_seg_mem_op,        &cpuid_op,              &complex_alu1_op,
+        &complex_alu1_op,        &complex_alu1_op,       INVALID,                INVALID,
+        &push_seg_op,            &mov_seg_mem_op,        INVALID,                &complex_alu1_op,
+        &complex_alu1_op,        &complex_alu1_op,       INVALID,                &mul_op,
 
-/*b0*/  &complex_cmpxchg_b_op,   &complex_cmpxchg_op,     &complex_lss_op,         &complex_alu1_op,
-        &complex_lss_op,         &complex_lss_op,         &alux_op,                &alu_op,
-        INVALID,                 INVALID,                 &complex_alu1_op,        &complex_alu1_op,
-        &complex_bsx_op,         &complex_bsx_op,         &alux_op,                &alu_op,
+/*b0*/  &cmpxchg_b_op,           &cmpxchg_op,            &lss_op,                &complex_alu1_op,
+        &lss_op,                 &lss_op,                &alup0_op,              &alu_op,
+        INVALID,                 INVALID,                &complex_alu1_op,       &complex_alu1_op,
+        &bsx_op,                 &bsx_op,                &alup0_op,              &alu_op,
 
-/*c0*/  &complex_alux1_op,       &complex_alu1_op,        INVALID,                 INVALID,
-        INVALID,                 INVALID,                 INVALID,                 INVALID,
-        &bswap_op,               &bswap_op,               &bswap_op,               &bswap_op,
-        &bswap_op,               &bswap_op,               &bswap_op,               &bswap_op,
+/*c0*/  &complex_alup0_1_op,     &complex_alu1_op,       INVALID,                INVALID,
+        INVALID,                 INVALID,                INVALID,                INVALID,
+        &bswap_op,               &bswap_op,              &bswap_op,              &bswap_op,
+        &bswap_op,               &bswap_op,              &bswap_op,              &bswap_op,
 
-/*d0*/  INVALID,                 &mmx_shift_op,           &mmx_shift_op,           &mmx_shift_op,
-        INVALID,                 &mmx_mul_op,             INVALID,                 INVALID,
-        &mmx_op,                 &mmx_op,                 INVALID,                 &mmx_op,
-        &mmx_op,                 &mmx_op,                 INVALID,                 &mmx_op,
+/*d0*/  INVALID,                 &mmx_shift_op,          &mmx_shift_op,          &mmx_shift_op,
+        INVALID,                 &mmx_mul_op,            INVALID,                INVALID,
+        &mmx_op,                 &mmx_op,                INVALID,                &mmx_op,
+        &mmx_op,                 &mmx_op,                INVALID,                &mmx_op,
 
-/*e0*/  &mmx_op,                 &mmx_shift_op,           &mmx_shift_op,           INVALID,
-        INVALID,                 &pmul_op,                INVALID,                 INVALID,
-        &mmx_op,                 &mmx_op,                 INVALID,                 &mmx_op,
-        &mmx_op,                 &mmx_op,                 INVALID,                 &mmx_op,
+/*e0*/  &mmx_op,                 &mmx_shift_op,          &mmx_shift_op,          INVALID,
+        INVALID,                 &pmul_op,               INVALID,                INVALID,
+        &mmx_op,                 &mmx_op,                INVALID,                &mmx_op,
+        &mmx_op,                 &mmx_op,                INVALID,                &mmx_op,
 
-/*f0*/  INVALID,                 &mmx_shift_op,           &mmx_shift_op,           &mmx_shift_op,
-        INVALID,                 &pmul_op,                INVALID,                 INVALID,
-        &mmx_op,                 &mmx_op,                 &mmx_op,                 INVALID,
-        &mmx_op,                 &mmx_op,                 &mmx_op,                 INVALID,
+/*f0*/  INVALID,                 &mmx_shift_op,          &mmx_shift_op,          &mmx_shift_op,
+        INVALID,                 &pmul_op,               INVALID,                INVALID,
+        &mmx_op,                 &mmx_op,                &mmx_op,                INVALID,
+        &mmx_op,                 &mmx_op,                &mmx_op,                INVALID,
 };
 
-static const risc86_instruction_t *opcode_timings_shift[8] =
+static const macro_op_t *opcode_timings_shift[8] =
 {
-        &complex_alu_store_op,   &complex_alu_store_op,   &complex_alu_store_op,   &complex_alu_store_op,
-        &complex_alu_store_op,   &complex_alu_store_op,   &complex_alu_store_op,   &complex_alu_store_op
+        &alu_store_op,   &alu_store_op,   &alu_store_op,   &alu_store_op,
+        &alu_store_op,   &alu_store_op,   &alu_store_op,   &alu_store_op
 };
-static const risc86_instruction_t *opcode_timings_shift_b[8] =
+static const macro_op_t *opcode_timings_shift_b[8] =
 {
-        &complex_alux_store_op,  &complex_alux_store_op,  &complex_alux_store_op,  &complex_alux_store_op,
-        &complex_alux_store_op,  &complex_alux_store_op,  &complex_alux_store_op,  &complex_alux_store_op
+        &alup0_store_op,  &alup0_store_op,  &alup0_store_op,  &alup0_store_op,
+        &alup0_store_op,  &alup0_store_op,  &alup0_store_op,  &alup0_store_op
 };
-static const risc86_instruction_t *opcode_timings_shift_mod3[8] =
+static const macro_op_t *opcode_timings_shift_mod3[8] =
 {
         &complex_alu1_op,   &complex_alu1_op,   &complex_alu1_op,   &complex_alu1_op,
         &alu_op,            &alu_op,            &alu_op,            &alu_op
 };
-static const risc86_instruction_t *opcode_timings_shift_b_mod3[8] =
+static const macro_op_t *opcode_timings_shift_b_mod3[8] =
 {
-        &complex_alux1_op,  &complex_alux1_op,  &complex_alux1_op,  &complex_alux1_op,
-        &alux_op,           &alux_op,           &alux_op,           &alux_op
+        &complex_alup0_1_op,  &complex_alup0_1_op,  &complex_alup0_1_op,  &complex_alup0_1_op,
+        &alup0_op,            &alup0_op,            &alup0_op,            &alup0_op
 };
 
-static const risc86_instruction_t *opcode_timings_80[8] =
+static const macro_op_t *opcode_timings_80[8] =
 {
-        &alux_store_op, &alux_store_op, &complex_alux_store_op,  &complex_alux_store_op,
-        &alux_store_op, &alux_store_op, &alux_store_op,          &alux_store_op,
+        &alup0_store_op, &alup0_store_op, &alup0_store_op,  &alup0_store_op,
+        &alup0_store_op, &alup0_store_op, &alup0_store_op,  &alup0_store_op,
 };
-static const risc86_instruction_t *opcode_timings_80_mod3[8] =
+static const macro_op_t *opcode_timings_80_mod3[8] =
 {
-        &alux_op,       &alux_op,       &alux_store_op,          &alux_store_op,
-        &alux_op,       &alux_op,       &alux_op,                &alux_op,
+        &alup0_op,       &alup0_op,       &alup0_store_op,  &alup0_store_op,
+        &alup0_op,       &alup0_op,       &alup0_op,        &alup0_op,
 };
-static const risc86_instruction_t *opcode_timings_8x[8] =
+static const macro_op_t *opcode_timings_8x[8] =
 {
-        &alu_store_op,  &alu_store_op,  &complex_alu_store_op,   &complex_alu_store_op,
-        &alu_store_op,  &alu_store_op,  &alu_store_op,           &alu_store_op,
-};
-static const risc86_instruction_t *opcode_timings_8x_mod3[8] =
+        &alu_store_op,  &alu_store_op,    &alu_store_op,    &alu_store_op,
+        &alu_store_op,  &alu_store_op,    &alu_store_op,    &alu_store_op,
+}; 
+static const macro_op_t *opcode_timings_8x_mod3[8] =
 {
-        &alu_op,        &alu_op,        &alu_store_op,           &alu_store_op,
-        &alu_op,        &alu_op,        &alu_op,                 &alu_op,
+        &alu_op,        &alu_op,          &alu_store_op,    &alu_store_op,
+        &alu_op,        &alu_op,          &alu_op,          &alu_op,
 };
 
-static const risc86_instruction_t *opcode_timings_f6[8] =
+static const macro_op_t *opcode_timings_f6[8] =
 {
 /*      TST                                             NOT                     NEG*/
-        &test_mem_imm_b_op,     INVALID,                &complex_alux_store_op, &complex_alux_store_op,
+        &test_mem_imm_b_op,     INVALID,                &alup0_store_op,        &alup0_store_op,
 /*      MUL                     IMUL                    DIV                     IDIV*/
-        &complex_mul_mem_op,    &complex_mul_mem_op,    &complex_div16_mem_op,  &complex_div16_mem_op,
+        &mul_mem_op,            &mul_mem_op,            &div16_mem_op,          &div16_mem_op,
 };
-static const risc86_instruction_t *opcode_timings_f6_mod3[8] =
+static const macro_op_t *opcode_timings_f6_mod3[8] =
 {
 /*      TST                                             NOT                     NEG*/
-        &test_reg_b_op,         INVALID,                &alux_op,               &alux_op,
+        &test_reg_b_op,         INVALID,                &alup0_op,              &alup0_op,
 /*      MUL                     IMUL                    DIV                     IDIV*/
-        &complex_mul_op,        &complex_mul_op,        &complex_div16_op,      &complex_div16_op,
+        &mul_op,                &mul_op,                &div16_op,              &div16_op,
 };
-static const risc86_instruction_t *opcode_timings_f7[8] =
+static const macro_op_t *opcode_timings_f7[8] =
 {
 /*      TST                                             NOT                     NEG*/
-        &test_mem_imm_op,       INVALID,                &complex_alu_store_op,  &complex_alu_store_op,
+        &test_mem_imm_op,       INVALID,                &alu_store_op,          &alu_store_op,
 /*      MUL                     IMUL                    DIV                     IDIV*/
-        &complex_mul64_mem_op,  &complex_mul64_mem_op,  &complex_div32_mem_op,  &complex_div32_mem_op,
+        &mul64_mem_op,          &mul64_mem_op,          &div32_mem_op,          &div32_mem_op,
 };
-static const risc86_instruction_t *opcode_timings_f7_mod3[8] =
+static const macro_op_t *opcode_timings_f7_mod3[8] =
 {
 /*      TST                                             NOT                     NEG*/
         &test_reg_op,           INVALID,                &alu_op,                &alu_op,
 /*      MUL                     IMUL                    DIV                     IDIV*/
-        &complex_mul64_op,      &complex_mul64_op,      &complex_div32_op,      &complex_div32_op,
+        &mul64_op,              &mul64_op,              &div32_op,              &div32_op,
 };
-static const risc86_instruction_t *opcode_timings_ff[8] =
+static const macro_op_t *opcode_timings_ff[8] =
 {
 /*      INC                     DEC                     CALL                    CALL far*/
-        &alu_store_op,          &alu_store_op,          &store_op,              &complex_call_far_op,
+        &alu_store_op,          &alu_store_op,          &store_op,              &call_far_op,
 /*      JMP                     JMP far                 PUSH*/
-        &branch_op,             &complex_jmp_far_op,    &push_mem_op,           INVALID
+        &branch_op,             &jmp_far_op,            &push_mem_op,           INVALID
 };
-static const risc86_instruction_t *opcode_timings_ff_mod3[8] =
+static const macro_op_t *opcode_timings_ff_mod3[8] =
 {
 /*      INC                     DEC                     CALL                    CALL far*/
-        &complex_alu1_op,       &complex_alu1_op,       &store_op,              &complex_call_far_op,
+        &complex_alu1_op,       &complex_alu1_op,       &store_op,              &call_far_op,
 /*      JMP                     JMP far                 PUSH*/
-        &branch_op,             &complex_jmp_far_op,    &complex_push_mem_op,   INVALID
+        &branch_op,             &jmp_far_op,            &complex_push_mem_op,   INVALID
 };
 
-static const risc86_instruction_t *opcode_timings_d8[8] =
+static const macro_op_t *opcode_timings_d8[8] =
 {
 /*      FADDs            FMULs            FCOMs            FCOMPs*/
         &load_fadd_op,   &load_fmul_op,   &load_float_op,  &load_float_op,
 /*      FSUBs            FSUBRs           FDIVs            FDIVRs*/
         &load_float_op,  &load_float_op,  &fdiv_mem_op,    &fdiv_mem_op,
 };
-static const risc86_instruction_t *opcode_timings_d8_mod3[8] =
+static const macro_op_t *opcode_timings_d8_mod3[8] =
 {
 /*      FADD             FMUL             FCOM             FCOMP*/
         &fadd_op,        &fmul_op,        &float_op,       &float_op,
@@ -1480,27 +1437,27 @@ static const risc86_instruction_t *opcode_timings_d8_mod3[8] =
         &float_op,       &float_op,       &fdiv_op,        &fdiv_op,
 };
 
-static const risc86_instruction_t *opcode_timings_d9[8] =
+static const macro_op_t *opcode_timings_d9[8] =
 {
 /*      FLDs                                    FSTs                 FSTPs*/
         &load_float_op,      INVALID,           &fstore_op,          &fstore_op,
 /*      FLDENV               FLDCW              FSTENV               FSTCW*/
-        &complex_float_l_op, &complex_fldcw_op, &complex_float_l_op, &complex_float_op
+        &complex_float_l_op, &fldcw_op,         &complex_float_l_op, &complex_float_op
 };
-static const risc86_instruction_t *opcode_timings_d9_mod3[64] =
+static const macro_op_t *opcode_timings_d9_mod3[64] =
 {
         /*FLD*/
         &float_op,    &float_op,    &float_op,    &float_op,
         &float_op,    &float_op,    &float_op,    &float_op,
         /*FXCH*/
-        &limm_op,     &limm_op,     &limm_op,     &limm_op,
-        &limm_op,     &limm_op,     &limm_op,     &limm_op,
+        &fxch_op,     &fxch_op,     &fxch_op,     &fxch_op,
+        &fxch_op,     &fxch_op,     &fxch_op,     &fxch_op,
         /*FNOP*/
         &float_op,    INVALID,      INVALID,      INVALID,
         INVALID,      INVALID,      INVALID,      INVALID,
         /*FSTP*/
-        &float2_op,  &float2_op,  &float2_op,  &float2_op,
-        &float2_op,  &float2_op,  &float2_op,  &float2_op,
+        &float2_op,   &float2_op,   &float2_op,   &float2_op,
+        &float2_op,   &float2_op,   &float2_op,   &float2_op,
 /*      opFCHS        opFABS*/
         &fchs_op,     &float_op,    INVALID,      INVALID,
 /*      opFTST        opFXAM*/
@@ -1519,28 +1476,28 @@ static const risc86_instruction_t *opcode_timings_d9_mod3[64] =
         &float_op,    &fdiv_op,     &fsin_op,     &fsin_op
 };
 
-static const risc86_instruction_t *opcode_timings_da[8] =
+static const macro_op_t *opcode_timings_da[8] =
 {
 /*      FIADDl            FIMULl            FICOMl            FICOMPl*/
         &load_fadd_op,    &load_fmul_op,    &load_float_op,   &load_float_op,
 /*      FISUBl            FISUBRl           FIDIVl            FIDIVRl*/
         &load_float_op,   &load_float_op,   &fdiv_mem_op,     &fdiv_mem_op,
 };
-static const risc86_instruction_t *opcode_timings_da_mod3[8] =
+static const macro_op_t *opcode_timings_da_mod3[8] =
 {
         INVALID,          INVALID,          INVALID,          INVALID,
 /*                        FCOMPP*/
         INVALID,          &float_op,        INVALID,          INVALID
 };
 
-static const risc86_instruction_t *opcode_timings_db[8] =
+static const macro_op_t *opcode_timings_db[8] =
 {
 /*      FLDil                               FSTil         FSTPil*/
         &load_float_op,   INVALID,          &fstore_op,   &fstore_op,
 /*                        FLDe                            FSTPe*/
-        INVALID,          &complex_flde_op,  INVALID,     &complex_fste_op
+        INVALID,          &flde_op,         INVALID,      &fste_op
 };
-static const risc86_instruction_t *opcode_timings_db_mod3[64] =
+static const macro_op_t *opcode_timings_db_mod3[64] =
 {
         INVALID,          INVALID,          INVALID,      INVALID,
         INVALID,          INVALID,          INVALID,      INVALID,
@@ -1569,14 +1526,14 @@ static const risc86_instruction_t *opcode_timings_db_mod3[64] =
         INVALID,          INVALID,          INVALID,      INVALID,
 };
 
-static const risc86_instruction_t *opcode_timings_dc[8] =
+static const macro_op_t *opcode_timings_dc[8] =
 {
 /*      FADDd             FMULd             FCOMd             FCOMPd*/
         &load_fadd_op,    &load_fmul_op,    &load_float_op,   &load_float_op,
 /*      FSUBd             FSUBRd            FDIVd             FDIVRd*/
         &load_float_op,   &load_float_op,   &fdiv_mem_op,     &fdiv_mem_op,
 };
-static const risc86_instruction_t *opcode_timings_dc_mod3[8] =
+static const macro_op_t *opcode_timings_dc_mod3[8] =
 {
 /*      opFADDr           opFMULr*/
         &fadd_op,         &fmul_op,         INVALID,          INVALID,
@@ -1584,14 +1541,14 @@ static const risc86_instruction_t *opcode_timings_dc_mod3[8] =
         &float_op,        &float_op,        &fdiv_op,         &fdiv_op
 };
 
-static const risc86_instruction_t *opcode_timings_dd[8] =
+static const macro_op_t *opcode_timings_dd[8] =
 {
 /*      FLDd                                    FSTd                 FSTPd*/
-        &load_float_op,     INVALID,            &fstore_op,          &fstore_op,
+        &load_float_op,      INVALID,           &fstore_op,          &fstore_op,
 /*      FRSTOR                                  FSAVE                FSTSW*/
         &complex_float_l_op, INVALID,           &complex_float_l_op, &complex_float_l_op
 };
-static const risc86_instruction_t *opcode_timings_dd_mod3[8] =
+static const macro_op_t *opcode_timings_dd_mod3[8] =
 {
 /*      FFFREE                            FST                FSTP*/
         &float_op,       INVALID,         &float_op,         &float_op,
@@ -1599,14 +1556,14 @@ static const risc86_instruction_t *opcode_timings_dd_mod3[8] =
         &float_op,       &float_op,       INVALID,           INVALID
 };
 
-static const risc86_instruction_t *opcode_timings_de[8] =
+static const macro_op_t *opcode_timings_de[8] =
 {
 /*      FIADDw            FIMULw            FICOMw            FICOMPw*/
         &load_fiadd_op,   &load_fiadd_op,   &load_fiadd_op,   &load_fiadd_op,
 /*      FISUBw            FISUBRw           FIDIVw            FIDIVRw*/
         &load_fiadd_op,   &load_fiadd_op,   &load_fiadd_op,   &load_fiadd_op,
 };
-static const risc86_instruction_t *opcode_timings_de_mod3[8] =
+static const macro_op_t *opcode_timings_de_mod3[8] =
 {
 /*      FADDP            FMULP                          FCOMPP*/
         &fadd_op,        &fmul_op,        INVALID,      &float_op,
@@ -1614,14 +1571,14 @@ static const risc86_instruction_t *opcode_timings_de_mod3[8] =
         &float_op,       &float_op,       &fdiv_op,     &fdiv_op,
 };
 
-static const risc86_instruction_t *opcode_timings_df[8] =
+static const macro_op_t *opcode_timings_df[8] =
 {
 /*      FILDiw                              FISTiw               FISTPiw*/
         &load_float_op,   INVALID,          &fstore_op,          &fstore_op,
 /*                        FILDiq            FBSTP                FISTPiq*/
         INVALID,          &load_float_op,   &complex_float_l_op, &fstore_op,
 };
-static const risc86_instruction_t *opcode_timings_df_mod3[8] =
+static const macro_op_t *opcode_timings_df_mod3[8] =
 {
         INVALID,      INVALID,      INVALID,      INVALID,
 /*      FSTSW AX*/
@@ -1647,35 +1604,35 @@ static p6_unit_t *units;
 /*Pentium Pro has no MMX*/
 static p6_unit_t ppro_units[] =
 {
-        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_ALUX) | (1 << UOP_FLOAT)},      /*Integer X & Floating point*/
-        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_BRANCH)},            		/*Integer Y*/
-        {.uop_mask = (1 << UOP_LOAD)  | (1 << UOP_FLOAD)},          		/*Load*/
-        {.uop_mask = (1 << UOP_STORED) | (1 << UOP_FSTORED)},         		/*Data Store*/
-	{.uop_mask = (1 << UOP_STOREA) | (1 << UOP_FSTOREA)},       		/*Address Store*/
+        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_ALUP0) | (1 << UOP_FLOAT)},     /*Port 0*/
+        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_BRANCH)},            		/*Port 1*/
+        {.uop_mask = (1 << UOP_LOAD)  | (1 << UOP_FLOAD)},          		/*Port 2*/
+        {.uop_mask = (1 << UOP_STORED) | (1 << UOP_FSTORED)},         		/*Port 3*/
+	{.uop_mask = (1 << UOP_STOREA) | (1 << UOP_FSTOREA)},       		/*Port 4*/
 };
 #define NR_PPRO_UNITS (sizeof(ppro_units) / sizeof(p6_unit_t))
 
 /*Pentium II/Celeron assigns the multiplier to port 0, the shifter to port 1, and shares the MMX ALU*/
 static p6_unit_t p2_units[] =
 {
-        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_ALUX) | (1 << UOP_FLOAT) |              /*Integer X & Floating point*/
+        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_ALUP0) | (1 << UOP_FLOAT) |             /*Port 0*/
 	                 (1 << UOP_MMX) | (1 << UOP_MMX_MUL)},
-        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_BRANCH) |                               /*Integer Y*/
+        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_BRANCH) |                               /*Port 1*/
 	                 (1 << UOP_MMX) | (1 << UOP_MMX_SHIFT)},           
-        {.uop_mask = (1 << UOP_LOAD)  | (1 << UOP_FLOAD)  | (1 << UOP_MLOAD)},  	/*Load*/
-        {.uop_mask = (1 << UOP_STORED) | (1 << UOP_FSTORED) | (1 << UOP_MSTORED)},      /*Data Store*/
-	{.uop_mask = (1 << UOP_STOREA) | (1 << UOP_FSTOREA) | (1 << UOP_MSTOREA)}, 	/*Address Store*/
+        {.uop_mask = (1 << UOP_LOAD)  | (1 << UOP_FLOAD)  | (1 << UOP_MLOAD)},  	/*Port 2*/
+        {.uop_mask = (1 << UOP_STORED) | (1 << UOP_FSTORED) | (1 << UOP_MSTORED)},      /*Port 3*/
+	{.uop_mask = (1 << UOP_STOREA) | (1 << UOP_FSTOREA) | (1 << UOP_MSTOREA)}, 	/*Port 4*/
 };
 #define NR_P2_UNITS (sizeof(p2_units) / sizeof(p6_unit_t))
 
-static int uop_run(const risc86_uop_t *uop, int decode_time)
+static int uop_run(const p6_uop_t *uop, int decode_time)
 {
         int c;
         p6_unit_t *best_unit = NULL;
-        double best_start_cycle = 99999;
+        int best_start_cycle = 99999;
         
-        /*UOP_LIMM does not require execution*/
-        if (uop->type == UOP_LIMM)
+        /*UOP_FXCH does not require execution*/
+        if (uop->type == UOP_FXCH)
                return decode_time;
 	
         /*Find execution unit for this uOP*/
@@ -1709,7 +1666,7 @@ static int uop_run(const risc86_uop_t *uop, int decode_time)
 static struct
 {
         int nr_uops;
-        const risc86_uop_t *uops[6];
+        const p6_uop_t *uops[6];
         /*Earliest time a uop can start. If the timestamp is -1, then the uop is
           part of a dependency chain and the start time is the completion time of
           the previous uop*/
@@ -1748,7 +1705,10 @@ void decode_flush_p6()
         /*Submit uops to execution units, and determine the latest completion time*/
         for (c = 0; c < (decode_buffer.nr_uops); c++)
         {
-                start_timestamp = decode_buffer.earliest_start[c];
+                if (decode_buffer.earliest_start[c] == -1)
+                        start_timestamp = last_uop_timestamp;
+                else
+                        start_timestamp = decode_buffer.earliest_start[c];
                 
                 last_uop_timestamp = uop_run(decode_buffer.uops[c], start_timestamp);
                 if (last_uop_timestamp > uop_timestamp)
@@ -1822,7 +1782,7 @@ static int codegen_timing_instr_length(uint64_t deps, uint32_t fetchdat, int op_
         return len;
 }
 
-static void decode_instruction(const risc86_instruction_t *ins, uint64_t deps, uint32_t fetchdat, int op_32, int bit8)
+static void decode_instruction(const macro_op_t *ins, uint64_t deps, uint32_t fetchdat, int op_32, int bit8)
 {
         uint32_t regmask_required;
         uint32_t regmask_modified;	
@@ -1858,10 +1818,8 @@ static void decode_instruction(const risc86_instruction_t *ins, uint64_t deps, u
         }
 
         /*Simple decoders are limited to 7 bytes & 1 uOP*/
-        if (decode_type == DECODE_SIMPLE && instr_length > 7)
+        if ((decode_type == DECODE_SIMPLE && instr_length > 7) || (decode_type == DECODE_SIMPLE && ins->nr_uops > 1))
                 decode_type = DECODE_COMPLEX;
-	else if (decode_type == DECODE_SIMPLE && ins->nr_uops > 1)
-		decode_type = DECODE_COMPLEX;
 
         switch (decode_type)
         {		
@@ -1904,7 +1862,10 @@ static void decode_instruction(const risc86_instruction_t *ins, uint64_t deps, u
                 for (c = 0; c < ins->nr_uops; c++)
                 {
                         decode_buffer.uops[d] = &ins->uop[c];
-                        decode_buffer.earliest_start[d] = earliest_start;
+                        if (c == 0)
+                                decode_buffer.earliest_start[d] = earliest_start;
+                        else
+                                decode_buffer.earliest_start[d] = -1;
 			d++;
                                 
                         if ((d == 3) && (ins->nr_uops > 4)) /*Ins. with >4 uOPs require the use of special units only present on 3 translate PLAs*/
@@ -2009,7 +1970,7 @@ void codegen_timing_p6_prefix(uint8_t prefix, uint32_t fetchdat)
 
 void codegen_timing_p6_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uint32_t op_pc)
 {
-        const risc86_instruction_t **ins_table;
+        const macro_op_t **ins_table;
         uint64_t *deps;
         int mod3 = ((fetchdat & 0xc0) == 0xc0);
         int old_last_complete_timestamp = last_complete_timestamp;
