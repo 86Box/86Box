@@ -72,7 +72,7 @@ typedef struct svga_t
 	     vram_mask,
 	     charseta, charsetb,
 	     adv_flags, ma_latch,
-	     ma, maback,
+	     ca_adj, ma, maback,
 	     write_bank, read_bank,
 	     extra_banks[2],
 	     banked_mask,
@@ -117,6 +117,7 @@ typedef struct svga_t
     /*Called at the start of vertical sync*/
     void (*vsync_callback)(struct svga_t *svga);
 
+    uint32_t (*translate_address)(uint32_t addr, void *p);
     /*If set then another device is driving the monitor output and the SVGA
       card should not attempt to display anything */
     int override;
@@ -132,7 +133,10 @@ typedef struct svga_t
 	    plane_mask, writemask,
 	    colourcompare, colournocare,
 	    dac_mask, dac_status,
-	    ksc5601_sbyte_mask;
+	    ksc5601_sbyte_mask, ksc5601_udc_area_msb[2];
+
+    int ksc5601_swap_mode;
+    uint16_t ksc5601_english_font_type;
 
     int vertical_linedbl;
         
