@@ -434,6 +434,7 @@ extern const device_t	*t1200_get_device(void);
 
 /* m_xt_zenith.c */
 extern int	machine_xt_zenith_init(const machine_t *);
+extern int	machine_xt_z150_init(const machine_t *);
 
 /* m_xt_xi8088.c */
 extern int	machine_xt_xi8088_init(const machine_t *);
