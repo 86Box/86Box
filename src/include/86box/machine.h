@@ -401,6 +401,8 @@ extern const device_t	*tandy1k_hx_get_device(void);
 extern int	machine_pc_init(const machine_t *);
 extern int	machine_pc82_init(const machine_t *);
 
+extern int	machine_cdpmpc_init(const machine_t *);
+
 extern int	machine_xt_init(const machine_t *);
 extern int	machine_genxt_init(const machine_t *);
 
