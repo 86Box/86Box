@@ -68,6 +68,7 @@ video_cards[] = {
 #endif
     { "[ISA] CGA",					"cga",			&cga_device				},
     { "[ISA] Chips & Technologies SuperEGA",		"superega",		&sega_device				},
+    { "[ISA] Cirrus Logic CL-GD 5401",			"cl_gd5401_isa",	&gd5401_isa_device			},
     { "[ISA] Cirrus Logic CL-GD 5402",			"cl_gd5402_isa",	&gd5402_isa_device			},
     { "[ISA] Cirrus Logic CL-GD 5420",			"cl_gd5420_isa",	&gd5420_isa_device			},
 #if defined(DEV_BRANCH) && defined(USE_CL5422)

@@ -185,13 +185,12 @@ extern int	machine_at_tg286m_init(const machine_t *);
 extern int	machine_at_ama932j_init(const machine_t *);
 extern int	machine_at_px286_init(const machine_t *);
 extern int	machine_at_quadt286_init(const machine_t *);
+extern int	machine_at_mr286_init(const machine_t *);
 
 extern int	machine_at_neat_init(const machine_t *);
 extern int	machine_at_neat_ami_init(const machine_t *);
 
 extern int	machine_at_goldstar386_init(const machine_t *);
-extern int	machine_at_micronics386_init(const machine_t *);
-
 
 extern int	machine_at_award286_init(const machine_t *);
 extern int	machine_at_gdc212m_init(const machine_t *);
@@ -212,7 +211,9 @@ extern const device_t	*at_commodore_sl386sx_get_device(void);
 
 /* m_at_386dx_486.c */
 
+extern int	machine_at_acc386_init(const machine_t *);
 extern int  machine_at_ecs386_init(const machine_t *);
+extern int	machine_at_micronics386_init(const machine_t *);
 
 extern int	machine_at_pb410a_init(const machine_t *);
 
@@ -236,7 +237,9 @@ extern int	machine_at_r418_init(const machine_t *);
 extern int	machine_at_ls486e_init(const machine_t *);
 extern int	machine_at_4dps_init(const machine_t *);
 extern int	machine_at_alfredo_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_486sp3g_init(const machine_t *);
+#endif
 
 /* m_at_commodore.c */
 extern int	machine_at_cmdpc_init(const machine_t *);
@@ -265,7 +268,6 @@ extern int	machine_at_p54tp4xe_init(const machine_t *);
 extern int	machine_at_endeavor_init(const machine_t *);
 extern int	machine_at_zappa_init(const machine_t *);
 extern int	machine_at_mb500n_init(const machine_t *);
-extern int	machine_at_president_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_VECTRA54)
 extern int	machine_at_vectra54_init(const machine_t *);
 #endif
@@ -276,6 +278,7 @@ extern const device_t	*at_endeavor_get_device(void);
 #endif
 
 /* m_at_socket7_s7.c */
+extern int	machine_at_chariot_init(const machine_t *);
 extern int	machine_at_thor_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_MRTHOR)
 extern int	machine_at_mrthor_init(const machine_t *);
@@ -298,15 +301,23 @@ extern int	machine_at_i430vx_init(const machine_t *);
 extern int	machine_at_brio80xx_init(const machine_t *);
 extern int	machine_at_pb680_init(const machine_t *);
 
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_p55xb2_init(const machine_t *);
+#endif
 extern int	machine_at_tx97_init(const machine_t *);
 extern int	machine_at_ym430tx_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_586t2_init(const machine_t *);
 extern int	machine_at_807ds_init(const machine_t *);
+#endif
 extern int	machine_at_p5mms98_init(const machine_t *);
 
-extern int	machine_at_tx100_init(const machine_t *);
+extern int	machine_at_ficva502_init(const machine_t *);
+
+extern int	machine_at_ficpa2012_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_advanceii_init(const machine_t *);
+#endif
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_pb640_get_device(void);
@@ -321,7 +332,6 @@ extern int	machine_at_686nx_init(const machine_t *);
 extern int	machine_at_mb600n_init(const machine_t *);
 extern int	machine_at_8500ttc_init(const machine_t *);
 extern int	machine_at_m6mi_init(const machine_t *);
-extern int	machine_at_vs440fx_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern void	machine_at_p65up5_common_init(const machine_t *, const device_t *northbridge);
 #endif
@@ -331,11 +341,15 @@ extern int	machine_at_p65up5_cp6nd_init(const machine_t *);
 extern int	machine_at_p65up5_cpknd_init(const machine_t *);
 extern int	machine_at_p6kfx_init(const machine_t *);
 
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_6bxc_init(const machine_t *);
+#endif
 extern int	machine_at_p2bls_init(const machine_t *);
 extern int	machine_at_p3bf_init(const machine_t *);
 extern int	machine_at_bf6_init(const machine_t *);
-extern int	machine_at_borapro_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(NO_SIO)
+extern int	machine_at_tsunamiatx_init(const machine_t *);
+#endif
 
 /* m_at_socket370.c */
 extern int	machine_at_cubx_init(const machine_t *);

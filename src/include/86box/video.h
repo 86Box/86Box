@@ -47,8 +47,7 @@ extern "C" {
 enum {
     VIDEO_ISA = 0,
     VIDEO_MCA,
-    VIDEO_BUS,
-    VIDEO_PCI
+    VIDEO_BUS
 };
 
 #define VIDEO_FLAG_TYPE_CGA     0
@@ -212,6 +211,7 @@ extern const device_t ati28800_wonderxl24_device;
 #endif
 
 /* Cirrus Logic CL-GD 54xx */
+extern const device_t gd5401_isa_device;
 extern const device_t gd5402_isa_device;
 extern const device_t gd5402_onboard_device;
 extern const device_t gd5420_isa_device;
