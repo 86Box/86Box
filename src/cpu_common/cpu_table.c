@@ -708,6 +708,12 @@ CPU cpus_PentiumII[] = {
     {"Pentium II Klamath 233",       CPU_PENTIUM2,  233333333, 3.5,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 21,21,10,10, 28},
     {"Pentium II Klamath 266",       CPU_PENTIUM2,  266666666, 4.0,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12, 32},
     {"Pentium II Klamath 300/66",    CPU_PENTIUM2,  300000000, 4.5,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
+    
+    /*Intel Celeron Covington*/
+    {"Celeron Covington 66",        CPU_PENTIUM2D,   66666666, 1.0,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
+    {"Celeron Covington 75",        CPU_PENTIUM2D,   75000000, 1.5,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7, 4, 4, 9},
+    {"Celeron Covington 266",       CPU_PENTIUM2D,  266666666, 4.0,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12, 32},
+    {"Celeron Covington 300/66",    CPU_PENTIUM2D,  300000000, 4.5,  0x650,  0x650, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
 
     /*Intel Pentium II Deschutes*/
     {"Pentium II Deschutes 50",     CPU_PENTIUM2D,   50000000, 1.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 6},
@@ -726,25 +732,27 @@ CPU cpus_PentiumII[] = {
 
 CPU cpus_Xeon[] = {
 	/* Slot 2 Xeons. Literal P2D's with more cache */
-    {"Pentium II Xeon 166",    CPU_PENTIUM2D,  166666666, 2.5,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
+    {"Pentium II Xeon 100",    CPU_PENTIUM2D,  100000000, 1.5,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
     {"Pentium II Xeon 400",    CPU_PENTIUM2D,  400000000, 4.0,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
+    {"Pentium II Xeon 450",    CPU_PENTIUM2D,  450000000, 4.5,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 54},
     {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
 };
 
 CPU cpus_Celeron[] = {
     /* Mendocino Celerons. Exact architecture as the P2D series with their L2 cache on-dye.
        Intended for the PGA370 boards but they were capable to fit on a PGA 370 to Slot 1
-       adaptor card so they work on Slot 1 motherboards too!.
+       adaptor card so they work on Slot 1 and Slot 2 motherboards too!.
 
-       The 100Mhz & 166Mhz Mendocino is only meant to not cause any struggle
+       The 66Mhz & 100Mhz Mendocinos are only meant to not cause any struggle
        to the recompiler. */
+    {"Celeron Mendocino 66",        CPU_PENTIUM2D,   66666666, 1.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
     {"Celeron Mendocino 100",       CPU_PENTIUM2D,  100000000, 1.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
-    {"Celeron Mendocino 166",       CPU_PENTIUM2D,  166666666, 2.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
     {"Celeron Mendocino 300/66",    CPU_PENTIUM2D,  300000000, 4.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
     {"Celeron Mendocino 333",       CPU_PENTIUM2D,  333333333, 5.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 40},
     {"Celeron Mendocino 366",       CPU_PENTIUM2D,  366666666, 5.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 33,33,17,17, 44},
     {"Celeron Mendocino 400",       CPU_PENTIUM2D,  400000000, 6.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
     {"Celeron Mendocino 433",       CPU_PENTIUM2D,  433333333, 6.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 39,39,13,13, 51},
+    {"Celeron Mendocino 466",       CPU_PENTIUM2D,  466666666, 7.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 43,43,15,15, 57},
     {"Celeron Mendocino 500",       CPU_PENTIUM2D,  500000000, 7.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 45,45,15,15, 60},
     {"Celeron Mendocino 533",       CPU_PENTIUM2D,  533333333, 8.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 48,48,17,17, 64},
     {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
