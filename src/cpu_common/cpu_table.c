@@ -733,6 +733,7 @@ CPU cpus_PentiumII[] = {
 CPU cpus_Xeon[] = {
 	/* Slot 2 Xeons. Literal P2D's with more cache */
     {"Pentium II Xeon 100",    CPU_PENTIUM2D,  100000000, 1.5,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
+    {"Pentium II Xeon 166",    CPU_PENTIUM2D,  166666666, 2.5,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
     {"Pentium II Xeon 400",    CPU_PENTIUM2D,  400000000, 4.0,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
     {"Pentium II Xeon 450",    CPU_PENTIUM2D,  450000000, 4.5,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 54},
     {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
@@ -743,10 +744,11 @@ CPU cpus_Celeron[] = {
        Intended for the PGA370 boards but they were capable to fit on a PGA 370 to Slot 1
        adaptor card so they work on Slot 1 and Slot 2 motherboards too!.
 
-       The 66Mhz & 100Mhz Mendocinos are only meant to not cause any struggle
+       The 66Mhz, 100Mhz & 166MHz Mendocinos are only meant to not cause any struggle
        to the recompiler. */
     {"Celeron Mendocino 66",        CPU_PENTIUM2D,   66666666, 1.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
     {"Celeron Mendocino 100",       CPU_PENTIUM2D,  100000000, 1.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
+    {"Celeron Mendocino 166",       CPU_PENTIUM2D,  166666666, 2.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
     {"Celeron Mendocino 300/66",    CPU_PENTIUM2D,  300000000, 4.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
     {"Celeron Mendocino 333",       CPU_PENTIUM2D,  333333333, 5.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 40},
     {"Celeron Mendocino 366",       CPU_PENTIUM2D,  366666666, 5.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 33,33,17,17, 44},
