@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <Windows.h>
+#include <windows.h>
 #include <86box/86box.h>
 #include <86box/cdrom.h>
 #include <86box/config.h>
