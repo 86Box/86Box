@@ -1188,11 +1188,9 @@ svga_read_common(uint32_t addr, uint8_t linear, void *p)
 	addr <<= 2;
 
     addr &= svga->decode_mask;
-    if (!linear) {
-        if (svga->translate_address) {
-		latch_addr = svga->translate_address(latch_addr, p);
-		addr = svga->translate_address(addr, p);
-        }
+    if (svga->translate_address) {
+	latch_addr = svga->translate_address(latch_addr, p);
+	addr = svga->translate_address(addr, p);
     }
 
     /* standard VGA latched access */
